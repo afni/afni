@@ -1,5 +1,5 @@
 /***********************************************************************
- * plug_vol2surf.c		- plugin interface to vol2surf computation
+ * plug_vol2surf.c              - plugin interface to vol2surf computation
  *
  * Provide an interface to the global v2s_plugin_opts structure.
  *
@@ -172,9 +172,12 @@ static char g_help[] =
     " \n"
     "   1.5  11 December 2004 [rickr]\n"
     "     - describe the default vol2surf operation in this Help\n"
-	;
+    " \n"
+    "   1.5a 22 March 2005 [rickr]\n"
+    "     - removed all tabs\n"
+        ;
 
-#define P_MAP_NAMES_NVALS      12	/* should match enum for global maps */
+#define P_MAP_NAMES_NVALS      12       /* should match enum for global maps */
 #define P_NY_NVALS              2
 #define P_KEEP_NVALS            3
 #define P_STEP_NVALS            2
@@ -190,15 +193,15 @@ typedef struct
     char            ** maps;
 } pv2s_globals;
 
-static pv2s_globals globs;	/* these are just pointers to afni globals */
+static pv2s_globals globs;      /* these are just pointers to afni globals */
 
 /* local functions */
 static int PV2S_check_surfaces(PLUGIN_interface * plint, int sa, int sb,
-			       char *mesg, int debug);
+                               char *mesg, int debug);
 static int PV2S_disp_afni_surfaces(PLUGIN_interface * plint);
 static int PV2S_init_plugin_opts(pv2s_globals * g);
 static int PV2S_process_args(PLUGIN_interface * plint,pv2s_globals * g,
-			     char *mesg);
+                             char *mesg);
 
 /* for ease of error reporting */
 #define PV2S_BAIL_VALUE(buf,str,val)                                   \
@@ -208,7 +211,7 @@ static int PV2S_process_args(PLUGIN_interface * plint,pv2s_globals * g,
                              "-------------------------------------",   \
                              (str), (val) ); } while (0)
 
-DEFINE_PLUGIN_PROTOTYPE			/* for C++ compilation */
+DEFINE_PLUGIN_PROTOTYPE                 /* for C++ compilation */
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
@@ -217,13 +220,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 ENTRY("vol2surf: PLUGIN_init");
 
-    if ( ncall > 0 ) RETURN(NULL);	/* only one interface */
+    if ( ncall > 0 ) RETURN(NULL);      /* only one interface */
 
     /* might be temporary */
     if ( PLUTO_set_v2s_addrs(&void_vpo, &globs.maps, &globs.hist) )
     {
-	fprintf(stderr,"** plug_v2s: failed to init globals\n");
-	RETURN(NULL);
+        fprintf(stderr,"** plug_v2s: failed to init globals\n");
+        RETURN(NULL);
     }
 
     /* using a void pointer so we don't have to put vol2surf.h in afni.h */
@@ -232,8 +235,8 @@ ENTRY("vol2surf: PLUGIN_init");
     PV2S_init_plugin_opts(&globs);
 
     plint = PLUTO_new_interface("Vol2Surf",
-		"configure afni's volume to surface options",
-		g_help, PLUGIN_CALL_VIA_MENU, PV2S_main);
+                "configure afni's volume to surface options",
+                g_help, PLUGIN_CALL_VIA_MENU, PV2S_main);
 
     PLUTO_add_hint     (plint, "configure vol2surf options");
     PLUTO_set_sequence (plint, "A:afnicontrol:surf");
@@ -337,17 +340,17 @@ ENTRY("vol2surf: PLUGIN_init");
 char * PV2S_main ( PLUGIN_interface * plint )
 {
     pv2s_globals * g;
-    static char    message[2048];	/* use this to output failures */
+    static char    message[2048];       /* use this to output failures */
 
 ENTRY("PV2S_main");
 
-    g = &globs;			/* to have only one global access */
-    message[0] = '\0';		/* init to empty string */
+    g = &globs;                 /* to have only one global access */
+    message[0] = '\0';          /* init to empty string */
 
     g->vpo->ready = 0;
 
     if ( (PV2S_process_args(plint, g, message) != 0) && message[0] )
-	RETURN(message);
+        RETURN(message);
 
     RETURN(NULL);
 }
@@ -358,7 +361,7 @@ static int PV2S_init_plugin_opts(pv2s_globals * g)
 ENTRY("PV2S_init_plugin_opts");
     memset(g->vpo, 0, sizeof(*g->vpo));
 
-    g->vpo->ready =  0;		/* flag as "not ready to go" */
+    g->vpo->ready =  0;         /* flag as "not ready to go" */
     g->vpo->use0  =  0;
     g->vpo->use1  =  0;
     g->vpo->s0A   = -1;
@@ -377,7 +380,7 @@ ENTRY("PV2S_init_plugin_opts");
 
 
 static int PV2S_process_args(PLUGIN_interface * plint, pv2s_globals * g,
-			     char * mesg)
+                             char * mesg)
 {
     THD_session     * ss;
     v2s_plugin_opts   lvpo;
@@ -391,216 +394,216 @@ ENTRY("PV2S_process_args");
     /* do we have a valid 3D view and session? */
     if ( !IM3D_OPEN(plint->im3d) || !plint->im3d->ss_now )
     {
-	sprintf(mesg, "----------------------------------------------\n"
-		      "strange failure: invalid 3D view or session???\n"
-		      "----------------------------------------------");
-	RETURN(-1);
+        sprintf(mesg, "----------------------------------------------\n"
+                      "strange failure: invalid 3D view or session???\n"
+                      "----------------------------------------------");
+        RETURN(-1);
     }
 
     /* to a quick check to be sure we are talking with suma */
     ss = plint->im3d->ss_now;
     if (ss && ss->su_num < 1)
     {
-	sprintf(mesg, "-----------------------------------------\n"
-		      "no surfaces: is afni 'talking' with suma?\n"
-		      "-----------------------------------------");
-	RETURN(1);
+        sprintf(mesg, "-----------------------------------------\n"
+                      "no surfaces: is afni 'talking' with suma?\n"
+                      "-----------------------------------------");
+        RETURN(1);
     }
 
     /* copy current values, and make local changes while checking */
     lvpo = *g->vpo;
-    sopt = &lvpo.sopt;		/* just for typing */
+    sopt = &lvpo.sopt;          /* just for typing */
 
     while ( (tag = PLUTO_get_optiontag(plint)) != NULL )
     {
-	if ( sopt->debug > 2 )
-	    fprintf(stderr,"+d received option tag: %s\n", tag);
+        if ( sopt->debug > 2 )
+            fprintf(stderr,"+d received option tag: %s\n", tag);
 
-	if ( ! strcmp(tag, "op_st") )
-	{
-	    str = PLUTO_get_string(plint);
-	    val = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
+        if ( ! strcmp(tag, "op_st") )
+        {
+            str = PLUTO_get_string(plint);
+            val = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
 
-	    if ( (val < 0) || (val >= P_NY_NVALS) )
-	    {
-		PV2S_BAIL_VALUE(mesg,"bad NY vals", val);
-		RETURN(1);
-	    }
-	    ready = val;		/* this is the interface to "ready" */
+            if ( (val < 0) || (val >= P_NY_NVALS) )
+            {
+                PV2S_BAIL_VALUE(mesg,"bad NY vals", val);
+                RETURN(1);
+            }
+            ready = val;                /* this is the interface to "ready" */
 
-	    /* now get map */
-	    str = PLUTO_get_string(plint);
-	    val = PLUTO_string_index(str, P_MAP_NAMES_NVALS, g->maps);
-	    if ( ready && val == E_SMAP_INVALID )
-	    {
-		sprintf( mesg,  "--------------------------------\n"
-				"please choose a mapping function\n"
-				"--------------------------------" );
-		RETURN(1);
-	    }
-	    else if (ready && ((val < E_SMAP_INVALID) || (val >= E_SMAP_FINAL)))
-	    {
-		PV2S_BAIL_VALUE(mesg, "illegal 'map func'", val);
-		RETURN(1);
-	    }
-	    sopt->map = val;
+            /* now get map */
+            str = PLUTO_get_string(plint);
+            val = PLUTO_string_index(str, P_MAP_NAMES_NVALS, g->maps);
+            if ( ready && val == E_SMAP_INVALID )
+            {
+                sprintf( mesg,  "--------------------------------\n"
+                                "please choose a mapping function\n"
+                                "--------------------------------" );
+                RETURN(1);
+            }
+            else if (ready && ((val < E_SMAP_INVALID) || (val >= E_SMAP_FINAL)))
+            {
+                PV2S_BAIL_VALUE(mesg, "illegal 'map func'", val);
+                RETURN(1);
+            }
+            sopt->map = val;
 
-	    /* now get step index */
-	    str = PLUTO_get_string(plint);
-	    val = PLUTO_string_index(str, P_STEP_NVALS, gp_step_list);
-	    sopt->f_index = val > 0 ? 1 : 0;	/* be sure */
+            /* now get step index */
+            str = PLUTO_get_string(plint);
+            val = PLUTO_string_index(str, P_STEP_NVALS, gp_step_list);
+            sopt->f_index = val > 0 ? 1 : 0;    /* be sure */
 
-	    val = (int)PLUTO_get_number(plint);	/* num steps */
-	    if (ready && ((val <= 0) || (val >= V2S_STEPS_TOOOOO_BIG)))
-	    {
-		PV2S_BAIL_VALUE(mesg, "steps too big", val);
-		RETURN(1);
-	    }
-	    sopt->f_steps = val;
-	}
-	else if ( ! strcmp(tag, "surf pair 0") )
-	{
-	    lvpo.use0 = 0;
-	    str = PLUTO_get_string(plint);
-	    if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
-	    {
-		lvpo.use0 = 1;
-		lvpo.s0A = (int)PLUTO_get_number(plint);
-		lvpo.s0B = -1;	/* first assume to not use surf_B */
-		str = PLUTO_get_string(plint);
-		if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
-		    lvpo.s0B = (int)PLUTO_get_number(plint);
-	    }
-   	}
-	else if ( ! strcmp(tag, "surf pair 1") )
-	{
-	    lvpo.use1 = 0;
-	    str = PLUTO_get_string(plint);
-	    if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
-	    {
-		lvpo.use1 = 1;
-		lvpo.s1A = (int)PLUTO_get_number(plint);
-		lvpo.s1B = -1;	/* first assume to not use surf_B */
-		str = PLUTO_get_string(plint);
-		if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
-		    lvpo.s1B = (int)PLUTO_get_number(plint);
-	    }
-   	}
-	else if ( ! strcmp(tag, "normals") )
-	{
-	    str = PLUTO_get_string(plint);
-	    if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
-	    {
-		sopt->use_norms = 1;
-		sopt->norm_len = PLUTO_get_number(plint);
+            val = (int)PLUTO_get_number(plint); /* num steps */
+            if (ready && ((val <= 0) || (val >= V2S_STEPS_TOOOOO_BIG)))
+            {
+                PV2S_BAIL_VALUE(mesg, "steps too big", val);
+                RETURN(1);
+            }
+            sopt->f_steps = val;
+        }
+        else if ( ! strcmp(tag, "surf pair 0") )
+        {
+            lvpo.use0 = 0;
+            str = PLUTO_get_string(plint);
+            if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
+            {
+                lvpo.use0 = 1;
+                lvpo.s0A = (int)PLUTO_get_number(plint);
+                lvpo.s0B = -1;  /* first assume to not use surf_B */
+                str = PLUTO_get_string(plint);
+                if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
+                    lvpo.s0B = (int)PLUTO_get_number(plint);
+            }
+        }
+        else if ( ! strcmp(tag, "surf pair 1") )
+        {
+            lvpo.use1 = 0;
+            str = PLUTO_get_string(plint);
+            if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
+            {
+                lvpo.use1 = 1;
+                lvpo.s1A = (int)PLUTO_get_number(plint);
+                lvpo.s1B = -1;  /* first assume to not use surf_B */
+                str = PLUTO_get_string(plint);
+                if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
+                    lvpo.s1B = (int)PLUTO_get_number(plint);
+            }
+        }
+        else if ( ! strcmp(tag, "normals") )
+        {
+            str = PLUTO_get_string(plint);
+            if ( PLUTO_string_index(str, P_NY_NVALS, gp_ny_list) != 0 )
+            {
+                sopt->use_norms = 1;
+                sopt->norm_len = PLUTO_get_number(plint);
 
-		str = PLUTO_get_string(plint);
-		val = PLUTO_string_index(str, P_KEEP_NVALS, gp_keep_list);
-		if      ( val == 1 ) sopt->norm_dir = V2S_NORM_KEEP;
-		else if ( val == 2 ) sopt->norm_dir = V2S_NORM_REVERSE;
-		else                 sopt->norm_dir = V2S_NORM_DEFAULT;
-	    }
-	    else
-		sopt->use_norms = 0;
-	}
-	else if ( ! strcmp(tag, "offsets") )
-	{
-	    int test = 0;
+                str = PLUTO_get_string(plint);
+                val = PLUTO_string_index(str, P_KEEP_NVALS, gp_keep_list);
+                if      ( val == 1 ) sopt->norm_dir = V2S_NORM_KEEP;
+                else if ( val == 2 ) sopt->norm_dir = V2S_NORM_REVERSE;
+                else                 sopt->norm_dir = V2S_NORM_DEFAULT;
+            }
+            else
+                sopt->use_norms = 0;
+        }
+        else if ( ! strcmp(tag, "offsets") )
+        {
+            int test = 0;
 
-	    sopt->f_p1_mm = PLUTO_get_number(plint);
-	    sopt->f_pn_mm = PLUTO_get_number(plint);
-	    sopt->f_p1_fr = PLUTO_get_number(plint);
-	    sopt->f_pn_fr = PLUTO_get_number(plint);
+            sopt->f_p1_mm = PLUTO_get_number(plint);
+            sopt->f_pn_mm = PLUTO_get_number(plint);
+            sopt->f_p1_fr = PLUTO_get_number(plint);
+            sopt->f_pn_fr = PLUTO_get_number(plint);
 
-	    /* check for consistency */
-	    if ( sopt->f_p1_fr != 0 || sopt->f_pn_fr != 0 ) test |= 1;
-	    if ( sopt->f_p1_mm != 0 || sopt->f_pn_mm != 0 ) test |= 2;
-	    if ( ready && test > 2 )  /* i.e. == 3 */
-   	    {
-		sprintf( mesg,  "---------------------------------\n"
-				"use only one pair of f*_mm, f*_fr\n"
-				"to change normal lengths     \n"
-				"---------------------------------" );
-		RETURN(1);
-	    }
-	}
-	else if ( ! strcmp(tag, "oor") )
-	{
-	    /* out of bounds ... */
-	    str  = PLUTO_get_string(plint);
-	    val  = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
-	    fval = PLUTO_get_number(plint);
-	    if ( val != 0 )
-	    {
-		sopt->oob.show  = 1;
-		sopt->oob.value = fval;
-	    }
-	    else
-		sopt->oob.show  = 0;
+            /* check for consistency */
+            if ( sopt->f_p1_fr != 0 || sopt->f_pn_fr != 0 ) test |= 1;
+            if ( sopt->f_p1_mm != 0 || sopt->f_pn_mm != 0 ) test |= 2;
+            if ( ready && test > 2 )  /* i.e. == 3 */
+            {
+                sprintf( mesg,  "---------------------------------\n"
+                                "use only one pair of f*_mm, f*_fr\n"
+                                "to change normal lengths     \n"
+                                "---------------------------------" );
+                RETURN(1);
+            }
+        }
+        else if ( ! strcmp(tag, "oor") )
+        {
+            /* out of bounds ... */
+            str  = PLUTO_get_string(plint);
+            val  = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
+            fval = PLUTO_get_number(plint);
+            if ( val != 0 )
+            {
+                sopt->oob.show  = 1;
+                sopt->oob.value = fval;
+            }
+            else
+                sopt->oob.show  = 0;
 
-	    /* out of mask ... */
-	    str  = PLUTO_get_string(plint);
-	    val  = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
-	    fval = PLUTO_get_number(plint);
-	    if ( val != 0 )
-	    {
-		sopt->oom.show  = 1;
-		sopt->oom.value = fval;
-	    }
-	    else
-		sopt->oom.show  = 0;
-	}
-	else if ( ! strcmp(tag, "output") )
-	{
-	    sopt->first_node = (int)PLUTO_get_number(plint);
-	    sopt->last_node  = (int)PLUTO_get_number(plint);
-	    if ( ready &&  sopt->first_node > sopt->last_node )
-	    {
-		sprintf( mesg,  "-----------------------------\n"
-				"illegal node range values:   \n"
-				"first (%d) > last (%d)       \n"
-				"-----------------------------",
-				sopt->first_node, sopt->last_node );
-		RETURN(1);
-	    }
+            /* out of mask ... */
+            str  = PLUTO_get_string(plint);
+            val  = PLUTO_string_index(str, P_NY_NVALS, gp_ny_list);
+            fval = PLUTO_get_number(plint);
+            if ( val != 0 )
+            {
+                sopt->oom.show  = 1;
+                sopt->oom.value = fval;
+            }
+            else
+                sopt->oom.show  = 0;
+        }
+        else if ( ! strcmp(tag, "output") )
+        {
+            sopt->first_node = (int)PLUTO_get_number(plint);
+            sopt->last_node  = (int)PLUTO_get_number(plint);
+            if ( ready &&  sopt->first_node > sopt->last_node )
+            {
+                sprintf( mesg,  "-----------------------------\n"
+                                "illegal node range values:   \n"
+                                "first (%d) > last (%d)       \n"
+                                "-----------------------------",
+                                sopt->first_node, sopt->last_node );
+                RETURN(1);
+            }
 
-	    /* get output filenames */
-	    if ( sopt->outfile_1D )   free(sopt->outfile_1D);
-	    if ( sopt->outfile_niml ) free(sopt->outfile_niml);
-	    sopt->outfile_1D = sopt->outfile_niml = NULL;
+            /* get output filenames */
+            if ( sopt->outfile_1D )   free(sopt->outfile_1D);
+            if ( sopt->outfile_niml ) free(sopt->outfile_niml);
+            sopt->outfile_1D = sopt->outfile_niml = NULL;
 
-	    str = PLUTO_get_string(plint);
-	    if ( strlen(str) > 0 )
-	    {
-		sopt->outfile_1D = (char *)calloc(strlen(str)+1,sizeof(char));
-		strcpy(sopt->outfile_1D, str);
-	    }
+            str = PLUTO_get_string(plint);
+            if ( strlen(str) > 0 )
+            {
+                sopt->outfile_1D = (char *)calloc(strlen(str)+1,sizeof(char));
+                strcpy(sopt->outfile_1D, str);
+            }
 
-	    str = PLUTO_get_string(plint);
-	    if ( strlen(str) > 0 )
-	    {
-		sopt->outfile_niml = (char *)calloc(strlen(str)+1,sizeof(char));
-		strcpy(sopt->outfile_niml, str);
-	    }
-	}
-	else if ( ! strcmp(tag, "debug level") )
-	{
-	    sopt->debug = (int)PLUTO_get_number(plint);
-	    sopt->dnode = (int)PLUTO_get_number(plint);
-	}
-	else
-	{
-	    sprintf( mesg,  "---------------------------\n"
-			    "Unknown option tag : %s\n"
-			    "---------------------------", tag );
-	    RETURN(1);
-	}
+            str = PLUTO_get_string(plint);
+            if ( strlen(str) > 0 )
+            {
+                sopt->outfile_niml = (char *)calloc(strlen(str)+1,sizeof(char));
+                strcpy(sopt->outfile_niml, str);
+            }
+        }
+        else if ( ! strcmp(tag, "debug level") )
+        {
+            sopt->debug = (int)PLUTO_get_number(plint);
+            sopt->dnode = (int)PLUTO_get_number(plint);
+        }
+        else
+        {
+            sprintf( mesg,  "---------------------------\n"
+                            "Unknown option tag : %s\n"
+                            "---------------------------", tag );
+            RETURN(1);
+        }
     }
 
     if ( sopt->debug > 1 )
     {
-	disp_v2s_plugin_opts( "plug_vol2surf options done : ", &lvpo );
-	disp_v2s_opts_t( "  surface options : ", sopt );
+        disp_v2s_plugin_opts( "plug_vol2surf options done : ", &lvpo );
+        disp_v2s_opts_t( "  surface options : ", sopt );
     }
 
     /* should we just run away?  always adjust debugging first... */
@@ -611,76 +614,76 @@ ENTRY("PV2S_process_args");
 
     if ( ! ready )
     {
-	if ( sopt->debug > 0 )
-	    PV2S_disp_afni_surfaces(plint);
+        if ( sopt->debug > 0 )
+            PV2S_disp_afni_surfaces(plint);
         RETURN(1);
     }
 
     if ( ! v2s_is_good_map(sopt->map, 1) )
     {
-	sprintf( mesg,  "-------------------------------------------\n"
-			"mapping function is invalid in this context\n"
-			"index %d, name '%s'\n"
-			"-------------------------------------------",
-		sopt->map,
-		(sopt->map < E_SMAP_INVALID || sopt->map >= E_SMAP_FINAL) ?
-		"out-of-range" : g->maps[sopt->map] );
-	RETURN(1);
+        sprintf( mesg,  "-------------------------------------------\n"
+                        "mapping function is invalid in this context\n"
+                        "index %d, name '%s'\n"
+                        "-------------------------------------------",
+                sopt->map,
+                (sopt->map < E_SMAP_INVALID || sopt->map >= E_SMAP_FINAL) ?
+                "out-of-range" : g->maps[sopt->map] );
+        RETURN(1);
     }
 
     /* verify surface consistency */
     if ( lvpo.use0 )
     {
-	if ( PV2S_check_surfaces(plint, lvpo.s0A, lvpo.s0B, mesg, sopt->debug) )
-	    RETURN(1);
-	if ( lvpo.s0A == lvpo.s0B ) 
-	{
-	    sprintf( mesg,  "--------------------------------\n"
-			    "error: for pair 0, surfA = surfB\n"
-			    "--------------------------------" );
-	    RETURN(1);
-	}
+        if ( PV2S_check_surfaces(plint, lvpo.s0A, lvpo.s0B, mesg, sopt->debug) )
+            RETURN(1);
+        if ( lvpo.s0A == lvpo.s0B ) 
+        {
+            sprintf( mesg,  "--------------------------------\n"
+                            "error: for pair 0, surfA = surfB\n"
+                            "--------------------------------" );
+            RETURN(1);
+        }
     }
     if ( lvpo.use1 )
     {
-	if ( PV2S_check_surfaces(plint, lvpo.s1A, lvpo.s1B, mesg, sopt->debug) )
-	    RETURN(1);
-	if ( lvpo.s1A == lvpo.s1B ) 
-	{
-	    sprintf( mesg,  "--------------------------------\n"
-			    "error: for pair 1, surfA = surfB\n"
-			    "--------------------------------" );
-	    RETURN(1);
-	}
+        if ( PV2S_check_surfaces(plint, lvpo.s1A, lvpo.s1B, mesg, sopt->debug) )
+            RETURN(1);
+        if ( lvpo.s1A == lvpo.s1B ) 
+        {
+            sprintf( mesg,  "--------------------------------\n"
+                            "error: for pair 1, surfA = surfB\n"
+                            "--------------------------------" );
+            RETURN(1);
+        }
     }
 
     /* if the user wan't normals, they can only supply one surface per pair */
     if ( sopt->use_norms && ((lvpo.use0 && lvpo.s0B >= 0) ||
-			     (lvpo.use1 && lvpo.s1B >= 0)) )
+                             (lvpo.use1 && lvpo.s1B >= 0)) )
     {
-	sprintf( mesg,  "----------------------------------------\n"
-			"cannot use normals while using surface B\n"
-			"----------------------------------------" );
-	RETURN(1);
+        sprintf( mesg,  "----------------------------------------\n"
+                        "cannot use normals while using surface B\n"
+                        "----------------------------------------" );
+        RETURN(1);
     }
 
     if ( sopt->debug > 0 )
-	PV2S_disp_afni_surfaces(plint);
+        PV2S_disp_afni_surfaces(plint);
 
     /* for now, only output nodes and a single data column */
     sopt->skip_cols = V2S_SKIP_ALL ^ V2S_SKIP_NODES;
 
-    if ( ready )		/* then copy changes over old values */
+    if ( ready )                /* then copy changes over old values */
     {
-	*g->vpo = lvpo;
-	g->vpo->ready = 1;
+        *g->vpo = lvpo;
+        g->vpo->ready = 1;
     }
 
     RETURN(0);
 }
 
 static int PV2S_check_surfaces(PLUGIN_interface * plint, int sa, int sb,
-			       char * mesg, int debug)
+                               char * mesg, int debug)
 {
     THD_session * ss;
 
@@ -690,77 +693,77 @@ ENTRY("PV2S_check_surfaces");
 
     if ( ss->su_num < 1 )
     {
-	PV2S_BAIL_VALUE(mesg, "Not enough surfaces in session.\n", ss->su_num);
-	RETURN(1);
+        PV2S_BAIL_VALUE(mesg, "Not enough surfaces in session.\n", ss->su_num);
+        RETURN(1);
     }
 
     /* verify that the surface indices are valid */
     if ( sa < 0 )
     {
-	PV2S_BAIL_VALUE(mesg, "surf_A has invalid index", sa);
-	RETURN(1);
+        PV2S_BAIL_VALUE(mesg, "surf_A has invalid index", sa);
+        RETURN(1);
     }
 
     if ( sa >= ss->su_num )
     {
-	PV2S_BAIL_VALUE(mesg, "surf_A beyond valid index", ss->su_num - 1);
-	RETURN(1);
+        PV2S_BAIL_VALUE(mesg, "surf_A beyond valid index", ss->su_num - 1);
+        RETURN(1);
     }
 
     if ( sb >= ss->su_num )
     {
-	PV2S_BAIL_VALUE(mesg, "surf_B beyond valid index", ss->su_num - 1);
-	RETURN(1);
+        PV2S_BAIL_VALUE(mesg, "surf_B beyond valid index", ss->su_num - 1);
+        RETURN(1);
     }
 
     if ( sb >= 0 )
     {
-	/* then check that surf_A and surf_B share LDP */
-	if (strncmp(ss->su_surf[sa]->idcode_ldp,ss->su_surf[sb]->idcode_ldp,32))
-	{
-	    char * la = ss->su_surf[sa]->label_ldp;
-	    char * lb = ss->su_surf[sb]->label_ldp;
-	    if ( ! *la ) la = "undefined";
-	    if ( ! *lb ) lb = "undefined";
-	    sprintf(mesg, "---------------------------------------\n"
-			  "Error: Surf_A and Surf_B have different\n"
-			  "       local domain parents\n"
-			  "LDP #%d = '%s', LDP #%d = '%s'\n"
-	                  "---------------------------------------",
-			  sa, la, sb, lb);
-	    RETURN(1);
-	}
+        /* then check that surf_A and surf_B share LDP */
+        if (strncmp(ss->su_surf[sa]->idcode_ldp,ss->su_surf[sb]->idcode_ldp,32))
+        {
+            char * la = ss->su_surf[sa]->label_ldp;
+            char * lb = ss->su_surf[sb]->label_ldp;
+            if ( ! *la ) la = "undefined";
+            if ( ! *lb ) lb = "undefined";
+            sprintf(mesg, "---------------------------------------\n"
+                          "Error: Surf_A and Surf_B have different\n"
+                          "       local domain parents\n"
+                          "LDP #%d = '%s', LDP #%d = '%s'\n"
+                          "---------------------------------------",
+                          sa, la, sb, lb);
+            RETURN(1);
+        }
 
-	/* and that they have the same number of nodes */
-	if ( ss->su_surf[sa]->num_ixyz != ss->su_surf[sb]->num_ixyz )
-	{
-	    sprintf(mesg, "------------------------------------------------\n"
-			  "Big problem: Surf_A and Surf_B have different\n"
-			  "    numbers of nodes!  They cannot share an LDP.\n"
-			  "    SurfA: '%s', %d nodes\n"
-			  "    SurfB: '%s', %d nodes\n"
-	                  "------------------------------------------------",
-			  ss->su_surf[sa]->label, ss->su_surf[sa]->num_ixyz,
-			  ss->su_surf[sb]->label, ss->su_surf[sb]->num_ixyz);
-	    RETURN(1);
-	}
+        /* and that they have the same number of nodes */
+        if ( ss->su_surf[sa]->num_ixyz != ss->su_surf[sb]->num_ixyz )
+        {
+            sprintf(mesg, "------------------------------------------------\n"
+                          "Big problem: Surf_A and Surf_B have different\n"
+                          "    numbers of nodes!  They cannot share an LDP.\n"
+                          "    SurfA: '%s', %d nodes\n"
+                          "    SurfB: '%s', %d nodes\n"
+                          "------------------------------------------------",
+                          ss->su_surf[sa]->label, ss->su_surf[sa]->num_ixyz,
+                          ss->su_surf[sb]->label, ss->su_surf[sb]->num_ixyz);
+            RETURN(1);
+        }
     }
 
     if ( debug > 0 && ss->su_surf )
     {
-	if ( ss->su_surf[sa] )      /* we have checked sa >= 0, above */
-	    fprintf(stderr,"+d surf_A label: '%s'\n",
-		*ss->su_surf[sa]->label ? ss->su_surf[sa]->label : "not set");
-	else
-	    fprintf(stderr,"** surf_A (#%d) pointer not set??\n", sa);
+        if ( ss->su_surf[sa] )      /* we have checked sa >= 0, above */
+            fprintf(stderr,"+d surf_A label: '%s'\n",
+                *ss->su_surf[sa]->label ? ss->su_surf[sa]->label : "not set");
+        else
+            fprintf(stderr,"** surf_A (#%d) pointer not set??\n", sa);
 
-	if ( sb < 0 )
-	    fprintf(stderr,"-d surf_B not in use\n");
-	else if ( ss->su_surf[sb] )
-	    fprintf(stderr,"+d surf_B label: '%s'\n",
-		*ss->su_surf[sb]->label ? ss->su_surf[sb]->label : "not set");
-	else
-	    fprintf(stderr,"** surf_B (#%d) pointer not set??\n", sb);
+        if ( sb < 0 )
+            fprintf(stderr,"-d surf_B not in use\n");
+        else if ( ss->su_surf[sb] )
+            fprintf(stderr,"+d surf_B label: '%s'\n",
+                *ss->su_surf[sb]->label ? ss->su_surf[sb]->label : "not set");
+        else
+            fprintf(stderr,"** surf_B (#%d) pointer not set??\n", sb);
     }
 
     RETURN(0);
@@ -777,19 +780,19 @@ ENTRY("disp_afni_surfaces");
     ss = plint->im3d->ss_now;
 
     if ( ss->su_surf <= 0 )
-	RETURN(0);
+        RETURN(0);
 
     fprintf(stderr,"-d --------------------------------------\n");
     fprintf(stderr,"   afni surface indices, labels and LDPs:\n");
     for ( c = 0; c < ss->su_num; c++ )
     {
-	label = ss->su_surf[c]->label;
-	ldp   = ss->su_surf[c]->label_ldp;
-	if ( ! *label ) label = "undefined";
-	if ( ! *ldp   ) ldp   = "undefined";
+        label = ss->su_surf[c]->label;
+        ldp   = ss->su_surf[c]->label_ldp;
+        if ( ! *label ) label = "undefined";
+        if ( ! *ldp   ) ldp   = "undefined";
 
-	fprintf(stderr,"   index %2d, label '%s', LDP '%s'\n",
-		    c, label, ldp );
+        fprintf(stderr,"   index %2d, label '%s', LDP '%s'\n",
+                    c, label, ldp );
     }
 
     RETURN(0);

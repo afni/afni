@@ -1,6 +1,3 @@
-
-#define VERSION "version  6.3 (Oct 08, 2004)"
-
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
  *
@@ -18,31 +15,31 @@
  *
  * options:
  *
- * 	-help
- * 	-hist
- * 	-v2s_hist
- * 	-version
+ *      -help
+ *      -hist
+ *      -v2s_hist
+ *      -version
  *
- * 	-grid_par   AFNI_DSET
- * 	-map_func   MAP_FUNCTION
- * 	-spec       SPEC_FILE
- * 	-sv         SURF_VOL
+ *      -grid_par   AFNI_DSET
+ *      -map_func   MAP_FUNCTION
+ *      -spec       SPEC_FILE
+ *      -sv         SURF_VOL
  *
- * 	-cmask      MASK_COMMAND
- * 	-debug      LEVEL
- * 	-dnode      NODE_NUM
- * 	-f_index    INDEX_TYPE
- * 	-f_steps    NUM_STEPS
- * 	-f_p1_mm    DISTANCE
- * 	-f_pn_mm    DISTANCE
- * 	-f_p1_fr    FRACTION
- * 	-f_pn_fr    FRACTION
- * 	-gp_index   INDEX
- * 	-oob_index  INDEX
- * 	-oob_value  VALUE
- * 	-oom_value  VALUE
- * 	-out_1D     OUTPUT_FILE
- * 	-no_headers
+ *      -cmask      MASK_COMMAND
+ *      -debug      LEVEL
+ *      -dnode      NODE_NUM
+ *      -f_index    INDEX_TYPE
+ *      -f_steps    NUM_STEPS
+ *      -f_p1_mm    DISTANCE
+ *      -f_pn_mm    DISTANCE
+ *      -f_p1_fr    FRACTION
+ *      -f_pn_fr    FRACTION
+ *      -gp_index   INDEX
+ *      -oob_index  INDEX
+ *      -oob_value  VALUE
+ *      -oom_value  VALUE
+ *      -out_1D     OUTPUT_FILE
+ *      -no_headers
  *
  * examples:
  *
@@ -53,7 +50,7 @@
  *               -sv         SubjectA_spgr+orig                         \ 
  *               -grid_par   SubjA_EPI+orig                             \
  *               -cmask      '-a SubjA.func+orig[2] -expr step(a-0.6)'  \
- *               -map_func   midpoint					\
+ *               -map_func   midpoint                                   \
  *               -out_1D     SubjA_surf_out.txt
  *
  *----------------------------------------------------------------------
@@ -207,7 +204,12 @@ static char g_history[] =
     "6.3  October 8, 2004  [rickr]\n"
     "  - in suma2afni_surf(), dealt with LDP changes to SUMA_surface\n"
     "  - changed write_outfile functions to v2s_*() and moved them to library\n"
+    "\n"
+    "6.3a March 22, 2005 [rickr]\n"
+    "  - removed tabs\n"
     "---------------------------------------------------------------------\n";
+
+#define VERSION "version  6.3a (March 22, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -222,11 +224,11 @@ static char g_history[] =
 /* --------------------  globals  -------------------- */
 
 /* for all SUMA programs... */
-SUMA_SurfaceViewer * SUMAg_SVv = NULL;	/* array of Surf View structs   */
-int                  SUMAg_N_SVv = 0;	/* length of SVv array          */
-SUMA_DO            * SUMAg_DOv = NULL;	/* array of Displayable Objects */
-int                  SUMAg_N_DOv = 0;	/* length of DOv array          */
-SUMA_CommonFields  * SUMAg_CF = NULL;	/* info common to all viewers   */
+SUMA_SurfaceViewer * SUMAg_SVv = NULL;  /* array of Surf View structs   */
+int                  SUMAg_N_SVv = 0;   /* length of SVv array          */
+SUMA_DO            * SUMAg_DOv = NULL;  /* array of Displayable Objects */
+int                  SUMAg_N_DOv = 0;   /* length of DOv array          */
+SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 
 
 /* --------------------  AFNI prototype(s)  -------------------- */
@@ -250,26 +252,26 @@ int main( int argc , char * argv[] )
 
     /* validate inputs and init options structure */
     if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 )
-	return ret_val;
+        return ret_val;
 
     if ( ( ret_val = validate_options(&opts, &params) ) != 0 )
-	return ret_val;
+        return ret_val;
 
     if ( (ret_val = set_smap_opts( &opts, &params, &sopt )) != 0 )
-	return ret_val;
+        return ret_val;
 
     /* read surface files */
     if ( (ret_val = read_surf_files(&opts, &spec)) != 0 )
-	return ret_val;
+        return ret_val;
 
     /*  get node list from surfaces (multiple points per node)
      *  need merge function
      */
     if ( (ret_val = get_surf_data( &sopt, &params )) != 0 )
-	return ret_val;
+        return ret_val;
 
     if ( (ret_val = write_output( &sopt, &params )) != 0 )
-	return ret_val;
+        return ret_val;
 
     /* free memory */
     final_clean_up(&opts, &params, &spec);
@@ -290,27 +292,27 @@ ENTRY("write_output");
 
     if ( sopt == NULL || p == NULL )
     {
-	fprintf( stderr, "** v2s_wo - bad params (%p,%p)\n", sopt, p );
-	RETURN(-1);
+        fprintf( stderr, "** v2s_wo - bad params (%p,%p)\n", sopt, p );
+        RETURN(-1);
     }
 
     if ( sopt->map == E_SMAP_INVALID )
     {
-	fprintf(stderr,"** v2s wo: invalid map %d\n", sopt->map);
-	RETURN(-1);
+        fprintf(stderr,"** v2s wo: invalid map %d\n", sopt->map);
+        RETURN(-1);
     }
 
     sd = vol2surf(sopt, p);
     if ( !sd )
-	fprintf(stderr,"** vol2surf failed\n");
+        fprintf(stderr,"** vol2surf failed\n");
 
     if ( sd && sopt->debug > 1 ) disp_v2s_results("-- post vol2surf() : ",sd);
 
     if ( sd && sopt->outfile_1D )
-	rv = v2s_write_outfile_1D(sopt, sd, p->surf[0].label);
+        rv = v2s_write_outfile_1D(sopt, sd, p->surf[0].label);
 
     if ( sd && !rv && sopt->outfile_niml )
-	rv = v2s_write_outfile_niml(sopt, sd, 1); /* request to free data */
+        rv = v2s_write_outfile_niml(sopt, sd, 1); /* request to free data */
 
     free_v2s_results( sd );
     sd = NULL;
@@ -320,7 +322,7 @@ ENTRY("write_output");
 
 
 /*----------------------------------------------------------------------
- * get_surf_data	- from surfaces
+ * get_surf_data        - from surfaces
  *
  *----------------------------------------------------------------------
 */
@@ -332,35 +334,35 @@ ENTRY("get_surf_data");
 
     if ( sopt == NULL || p == NULL )
     {
-	fprintf( stderr, "** cnl - bad params (%p,%p)\n", sopt, p );
-	RETURN(-1);
+        fprintf( stderr, "** cnl - bad params (%p,%p)\n", sopt, p );
+        RETURN(-1);
     }
 
     if ( (sopt->map == E_SMAP_MASK) || sopt->use_norms )
-	nsurf = 1;
+        nsurf = 1;
 
     if ( copy_surfaces( sopt, p, nsurf ) )
-	RETURN(-1);
+        RETURN(-1);
 
     if ( sopt->use_norms )
     {
-	if ( ! p->surf[0].norm )
-	{
-	    fprintf(stderr,"** failure: surface '%s' has no normal list\n",
-		    CHECK_NULL_STR(p->surf[0].label));
-	    RETURN(-1);
-	}
+        if ( ! p->surf[0].norm )
+        {
+            fprintf(stderr,"** failure: surface '%s' has no normal list\n",
+                    CHECK_NULL_STR(p->surf[0].label));
+            RETURN(-1);
+        }
 
-	if ((sopt->norm_dir == V2S_NORM_DEFAULT) && check_norm_dirs(sopt, p, 0))
-	    RETURN(-1);
-	else if ( sopt->norm_dir == V2S_NORM_REVERSE)
-	{
-	    /* okay, reverse the direction */
-	    sopt->norm_len *= -1;
-	    if ( sopt->debug > 0 )
-		fprintf(stderr,"++ reversing normal direction\n");
-	}
-	/* else V2S_NORM_KEEP, i.e. do nothing */
+        if ((sopt->norm_dir == V2S_NORM_DEFAULT) && check_norm_dirs(sopt, p, 0))
+            RETURN(-1);
+        else if ( sopt->norm_dir == V2S_NORM_REVERSE)
+        {
+            /* okay, reverse the direction */
+            sopt->norm_len *= -1;
+            if ( sopt->debug > 0 )
+                fprintf(stderr,"++ reversing normal direction\n");
+        }
+        /* else V2S_NORM_KEEP, i.e. do nothing */
     }
 
     RETURN(0);
@@ -368,7 +370,7 @@ ENTRY("get_surf_data");
 
 
 /*----------------------------------------------------------------------
- * check_norm_dirs	- check to reverse normal directions
+ * check_norm_dirs      - check to reverse normal directions
  *
  * Count how many of six bounding points point away from the center.
  *     6   : perfect, no change
@@ -388,13 +390,13 @@ int check_norm_dirs ( v2s_opts_t * sopt, v2s_param_t * p, int surf )
     THD_fvec3 * norms;
     float       fmin[3], fmax[3];
     int         min[3], max[3];
-    int         match[6];		/* +/- 1, for direction match */
+    int         match[6];               /* +/- 1, for direction match */
     int         node, c, ncount;
 
 ENTRY("check_norm_dirs");
 
-    norms  = p->surf[surf].norm;	 /* point to norms for this surface  */
-    coords = p->surf[surf].ixyz;	 /* point to coords for this surface */
+    norms  = p->surf[surf].norm;         /* point to norms for this surface  */
+    coords = p->surf[surf].ixyz;         /* point to coords for this surface */
 
     /* init mins and max's from node 0 */
     min[0] = max[0] = min[1] = max[1] = min[2] = max[2] = 0;
@@ -406,63 +408,63 @@ ENTRY("check_norm_dirs");
     /* now check the rest of them */
     for ( node = 1; node < p->surf[surf].num_ixyz; node++, coords++ )
     {
-	if ( fmin[0] > coords[node].x )		/* x min */
-	{
-	    min [0] = node;
-	    fmin[0] = coords[node].x;
-	}
-	if ( fmax[0] < coords[node].x )		/* x max */
-	{
-	    max [0] = node;
-	    fmax[0] = coords[node].x;
-	}
+        if ( fmin[0] > coords[node].x )         /* x min */
+        {
+            min [0] = node;
+            fmin[0] = coords[node].x;
+        }
+        if ( fmax[0] < coords[node].x )         /* x max */
+        {
+            max [0] = node;
+            fmax[0] = coords[node].x;
+        }
 
-	if ( fmin[1] > coords[node].y )		/* y min */
-	{
-	    min [1] = node;
-	    fmin[1] = coords[node].y;
-	}
-	if ( fmax[1] < coords[node].y )		/* y max */
-	{
-	    max [1] = node;
-	    fmax[1] = coords[node].y;
-	}
+        if ( fmin[1] > coords[node].y )         /* y min */
+        {
+            min [1] = node;
+            fmin[1] = coords[node].y;
+        }
+        if ( fmax[1] < coords[node].y )         /* y max */
+        {
+            max [1] = node;
+            fmax[1] = coords[node].y;
+        }
 
-	if ( fmin[2] > coords[node].z )		/* z min */
-	{
-	    min [2] = node;
-	    fmin[2] = coords[node].z;
-	}
-	if ( fmax[2] < coords[node].z )		/* z max */
-	{
-	    max [2] = node;
-	    fmax[2] = coords[node].z;
-	}
+        if ( fmin[2] > coords[node].z )         /* z min */
+        {
+            min [2] = node;
+            fmin[2] = coords[node].z;
+        }
+        if ( fmax[2] < coords[node].z )         /* z max */
+        {
+            max [2] = node;
+            fmax[2] = coords[node].z;
+        }
     }
 
     if ( sopt->debug > 1 )
-	fprintf(stderr,"++ normals:\n"
-		"      mins       : %d, %d, %d\n"
-		"      min coords : %f, %f, %f\n"
-		"      mins0      : %f, %f, %f\n"
-		"      mins1      : %f, %f, %f\n"
-		"      mins2      : %f, %f, %f\n"
-		"\n"
-		"      maxs       : %d, %d, %d\n"
-		"      max coords : %f, %f, %f\n"
-		"      maxs0      : %f, %f, %f\n"
-		"      maxs1      : %f, %f, %f\n"
-		"      maxs2      : %f, %f, %f\n",
-		min[0], min[1], min[2], 
-		fmin[0], fmin[1], fmin[2], 
-		coords[min[0]].x, coords[min[0]].y, coords[min[0]].z, 
-		coords[min[1]].x, coords[min[1]].y, coords[min[1]].z, 
-		coords[min[2]].x, coords[min[2]].y, coords[min[2]].z, 
-		max[0], max[1], max[2], 
-		fmax[0], fmax[1], fmax[2], 
-		coords[max[0]].x, coords[max[0]].y, coords[max[0]].z, 
-		coords[max[1]].x, coords[max[1]].y, coords[max[1]].z, 
-		coords[max[2]].x, coords[max[2]].y, coords[max[2]].z);
+        fprintf(stderr,"++ normals:\n"
+                "      mins       : %d, %d, %d\n"
+                "      min coords : %f, %f, %f\n"
+                "      mins0      : %f, %f, %f\n"
+                "      mins1      : %f, %f, %f\n"
+                "      mins2      : %f, %f, %f\n"
+                "\n"
+                "      maxs       : %d, %d, %d\n"
+                "      max coords : %f, %f, %f\n"
+                "      maxs0      : %f, %f, %f\n"
+                "      maxs1      : %f, %f, %f\n"
+                "      maxs2      : %f, %f, %f\n",
+                min[0], min[1], min[2], 
+                fmin[0], fmin[1], fmin[2], 
+                coords[min[0]].x, coords[min[0]].y, coords[min[0]].z, 
+                coords[min[1]].x, coords[min[1]].y, coords[min[1]].z, 
+                coords[min[2]].x, coords[min[2]].y, coords[min[2]].z, 
+                max[0], max[1], max[2], 
+                fmax[0], fmax[1], fmax[2], 
+                coords[max[0]].x, coords[max[0]].y, coords[max[0]].z, 
+                coords[max[1]].x, coords[max[1]].y, coords[max[1]].z, 
+                coords[max[2]].x, coords[max[2]].y, coords[max[2]].z);
 
     /* now count the number of normals pointing "away from" the center */
     /* fixed directions - inconsistent usage       07 Apr 2004 [rickr] */
@@ -475,35 +477,35 @@ ENTRY("check_norm_dirs");
     match[5] = norms[max[2]].xyz[2] > 0;
 
     if ( sopt->debug > 1 )
-	fprintf(stderr,"-- matches[0..5] = (%d, %d, %d,  %d, %d, %d)\n",
-		match[0], match[1], match[2], match[3], match[4], match[5] );
+        fprintf(stderr,"-- matches[0..5] = (%d, %d, %d,  %d, %d, %d)\n",
+                match[0], match[1], match[2], match[3], match[4], match[5] );
 
     ncount = 0;
     for ( c = 0; c < 6; c++ )
-	if ( match[c] )
-	    ncount++;
+        if ( match[c] )
+            ncount++;
 
     /* do we fail? */
     if ( (ncount >= 2) && (ncount <= 4) )
     {
-	fprintf(stderr, "** cannot determine directions for normals:\n"
-		"   To proceed, use one of -keep_norm_dir/-reverse_norm_dir.\n"
-		"   \n"
-		"   It is ~%d%% likely that you will want to negate the\n"
-		"   normal length in '-norm_len'\n",
-		(int)(100*ncount/6.0) );
-	RETURN(-1);
+        fprintf(stderr, "** cannot determine directions for normals:\n"
+                "   To proceed, use one of -keep_norm_dir/-reverse_norm_dir.\n"
+                "   \n"
+                "   It is ~%d%% likely that you will want to negate the\n"
+                "   normal length in '-norm_len'\n",
+                (int)(100*ncount/6.0) );
+        RETURN(-1);
     }
 
     /* or do we just warn the user? */
     if ( (ncount == 1) || (ncount == 5) )
-	fprintf(stderr,"** warning: only 83%% sure of direction of normals\n");
+        fprintf(stderr,"** warning: only 83%% sure of direction of normals\n");
     
     /* do we need to reverse the direction? */
     if ( ncount < 2 )
     {
-	fprintf(stderr,"-- reversing direction of normals\n");
-	sopt->norm_len *= -1.0;
+        fprintf(stderr,"-- reversing direction of normals\n");
+        sopt->norm_len *= -1.0;
     }
 
     RETURN(0);
@@ -522,32 +524,31 @@ ENTRY("check_norm_dirs");
 int copy_surfaces ( v2s_opts_t * sopt, v2s_param_t * p, int nsurf )
 {
     SUMA_SurfaceObject ** so;
-    THD_fvec3          *  fvp;
-    float              *  fp, radius[V2S_MAX_SURFS];
-    int                   rv, nindex, sindex;
+    float                 radius[V2S_MAX_SURFS];
+    int                   rv, sindex;
 
 ENTRY("copy_surfaces");
 
     if ( sopt == NULL || p == NULL || nsurf < 0 )
     {
-	fprintf( stderr, "** anl: bad params (%p,%p,%d)\n", sopt, p, nsurf );
-	RETURN(-1);
+        fprintf( stderr, "** anl: bad params (%p,%p,%d)\n", sopt, p, nsurf );
+        RETURN(-1);
     }
 
     /* create a temporary list of surface pointers */
     so = (SUMA_SurfaceObject **)calloc(nsurf, sizeof(SUMA_SurfaceObject *));
     if ( so == NULL )
     {
-	fprintf( stderr, "** anl: failed to alloc %d surf pointers\n", nsurf );
-	RETURN(-1);
+        fprintf( stderr, "** anl: failed to alloc %d surf pointers\n", nsurf );
+        RETURN(-1);
     }
 
     if ( (rv = get_mappable_surfs( so, nsurf, sopt->debug )) != nsurf )
     {
-	fprintf( stderr, "** found %d mappable surfaces (but expected %d)\n",
-		 rv, nsurf );
-	free(so);
-	RETURN(-1);
+        fprintf( stderr, "** found %d mappable surfaces (but expected %d)\n",
+                 rv, nsurf );
+        free(so);
+        RETURN(-1);
     }
 
     /* fill SUMA_surface structs */
@@ -555,9 +556,9 @@ ENTRY("copy_surfaces");
     p->nsurf     = nsurf;
     for ( sindex = 0; sindex < nsurf; sindex++ )
     {
-	if ( suma2afni_surf( sopt, p, so[sindex], sindex ) )
-	    RETURN(-1);
-	surf_ave_radius(radius+sindex, so[sindex], sopt->debug);
+        if ( suma2afni_surf( sopt, p, so[sindex], sindex ) )
+            RETURN(-1);
+        surf_ave_radius(radius+sindex, so[sindex], sopt->debug);
     }
 
     if ( sopt->debug ) fprintf(stderr,"-- surfaces converted: suma to afni\n");
@@ -573,7 +574,7 @@ ENTRY("copy_surfaces");
  *----------------------------------------------------------------------
 */
 int suma2afni_surf(v2s_opts_t * sopt, v2s_param_t * p, SUMA_SurfaceObject * so,
-		   int sindex)
+                   int sindex)
 {
     SUMA_surface * sp;
     float        * fp;
@@ -583,82 +584,82 @@ ENTRY("suma2afni_surf");
 
     if ( !sopt || !p || !so || sindex < 0 || sindex >= V2S_MAX_SURFS )
     {
-	fprintf(stderr,"** s2as: bad params (%p,%p,%p,%d)\n",sopt,p,so,sindex);
-	RETURN(-1);
+        fprintf(stderr,"** s2as: bad params (%p,%p,%p,%d)\n",sopt,p,so,sindex);
+        RETURN(-1);
     }
 
     sp = p->surf + sindex;
 
-    sp->type      = SUMA_SURFACE_TYPE;	/* always (for a SUMA_surface)       */
-    sp->num_ixyz  = so->N_Node;		/* number of nodes                   */
-    sp->nall_ixyz = so->N_Node;		/* allocate later in this function   */
-    sp->num_ijk   = 0;			/* no triangles                      */
-    sp->nall_ijk  = 0;			/* twice as many triangles as before */
+    sp->type      = SUMA_SURFACE_TYPE;  /* always (for a SUMA_surface)       */
+    sp->num_ixyz  = so->N_Node;         /* number of nodes                   */
+    sp->nall_ixyz = so->N_Node;         /* allocate later in this function   */
+    sp->num_ijk   = 0;                  /* no triangles                      */
+    sp->nall_ijk  = 0;                  /* twice as many triangles as before */
 
-    sp->seq       = 1;			/* surfaces are sequential           */
+    sp->seq       = 1;                  /* surfaces are sequential           */
     sp->seqbase   = 0;                  /*     - from 0                      */
     sp->sorted    = 1;                  /*     - and therefore, a sorted lot */
 
-    sp->ixyz      = NULL;		/* just for the moment ...           */
+    sp->ixyz      = NULL;               /* just for the moment ...           */
     sp->norm      = NULL;
 
     if ( !so->NodeList )
     {
-	fprintf(stderr,"** s2as: missing surface NodeList for '%s'\n",
-		so->Label ? so->Label: "<no label>");
-	RETURN(1);
+        fprintf(stderr,"** s2as: missing surface NodeList for '%s'\n",
+                so->Label ? so->Label: "<no label>");
+        RETURN(1);
     }
 
     if ( sopt->use_norms )
     {
-	if ( so->NodeNormList )
-	{
-	    sp->norm = (THD_fvec3 *)malloc(sp->num_ixyz * sizeof(THD_fvec3));
-	    if ( !sp->norm )
-	    {
-		fprintf(stderr,"** s2as: cannot allocate %d THD_fvec3's\n",
-			sp->num_ixyz);
-		RETURN(1);
-	    }
+        if ( so->NodeNormList )
+        {
+            sp->norm = (THD_fvec3 *)malloc(sp->num_ixyz * sizeof(THD_fvec3));
+            if ( !sp->norm )
+            {
+                fprintf(stderr,"** s2as: cannot allocate %d THD_fvec3's\n",
+                        sp->num_ixyz);
+                RETURN(1);
+            }
 
-	    if ( sopt->debug > 1 )
-		fprintf(stderr,"++ filling in norms for surf # %d (%d bytes)\n",
-			sindex, (int)(sp->num_ixyz * sizeof(THD_fvec3)));
+            if ( sopt->debug > 1 )
+                fprintf(stderr,"++ filling in norms for surf # %d (%d bytes)\n",
+                        sindex, (int)(sp->num_ixyz * sizeof(THD_fvec3)));
 
-	    fp = so->NodeNormList;
-	    for ( node = 0; node < sp->num_ixyz; node++ )
-	    {
-		sp->norm[node].xyz[0] = *fp++;
-		sp->norm[node].xyz[1] = *fp++;
-		sp->norm[node].xyz[2] = *fp++;
-	    }
-	}
-	else
-	{
-	    fprintf(stderr,"** missing normals for surface # %d, '%s'\n",
-		    sindex, so->Label ? so->Label: "<no label>");
-	}
+            fp = so->NodeNormList;
+            for ( node = 0; node < sp->num_ixyz; node++ )
+            {
+                sp->norm[node].xyz[0] = *fp++;
+                sp->norm[node].xyz[1] = *fp++;
+                sp->norm[node].xyz[2] = *fp++;
+            }
+        }
+        else
+        {
+            fprintf(stderr,"** missing normals for surface # %d, '%s'\n",
+                    sindex, so->Label ? so->Label: "<no label>");
+        }
     }
 
     sp->ixyz = (SUMA_ixyz *)malloc(sp->num_ixyz * sizeof(SUMA_ixyz));
 
     if ( !sp->ixyz )
     {
-	fprintf(stderr,"** failed to allocate %d SUMA_ixyz\n",sp->num_ixyz);
-	if (sp->norm) free(sp->norm);
-	RETURN(1);
+        fprintf(stderr,"** failed to allocate %d SUMA_ixyz\n",sp->num_ixyz);
+        if (sp->norm) free(sp->norm);
+        RETURN(1);
     }
     else if ( sopt->debug > 1 )
-	fprintf(stderr,"++ s2as: allocated %d SUMA_ixyz nodes (%d bytes)\n",
-		sp->num_ixyz, (int)(sp->num_ixyz*sizeof(SUMA_ixyz)));
+        fprintf(stderr,"++ s2as: allocated %d SUMA_ixyz nodes (%d bytes)\n",
+                sp->num_ixyz, (int)(sp->num_ixyz*sizeof(SUMA_ixyz)));
 
     fp = so->NodeList;
     for ( node = 0; node < sp->num_ixyz; node++ )
     {
-	sp->ixyz[node].id = node;
-	sp->ixyz[node].x  = *fp++;
-	sp->ixyz[node].y  = *fp++;
-	sp->ixyz[node].z  = *fp++;
+        sp->ixyz[node].id = node;
+        sp->ixyz[node].x  = *fp++;
+        sp->ixyz[node].y  = *fp++;
+        sp->ixyz[node].z  = *fp++;
     }
 
     sp->xbot = so->MinDims[0];
@@ -675,25 +676,25 @@ ENTRY("suma2afni_surf");
 
     if (so->idcode_str)
     {
-	strncpy(sp->idcode, so->idcode_str, 31);
-	sp->idcode[31] = '\0';
+        strncpy(sp->idcode, so->idcode_str, 31);
+        sp->idcode[31] = '\0';
     }
     else
-	UNIQ_idcode_fill(sp->idcode);
+        UNIQ_idcode_fill(sp->idcode);
 
-    sp->idcode_ldp[0]  = '\0';	/* maybe assign these ... */
+    sp->idcode_ldp[0]  = '\0';  /* maybe assign these ... */
     sp->idcode_dset[0] = '\0';
 
     strncpy(sp->label, so->Label, 63);  sp->label[63] = '\0';
     if (so->LocalDomainParent && *so->LocalDomainParent)
     {
-	strncpy(sp->label_ldp, so->LocalDomainParent, 63);
-	sp->label[63] = '\0';
+        strncpy(sp->label_ldp, so->LocalDomainParent, 63);
+        sp->label[63] = '\0';
     }
     else
-	strcpy(sp->label_ldp, "no_LDP_label");
+        strcpy(sp->label_ldp, "no_LDP_label");
 
-    sp->vv = NULL;	/* no mappings, for now */
+    sp->vv = NULL;      /* no mappings, for now */
     sp->vn = NULL;
 
     RETURN(0);
@@ -709,48 +710,48 @@ ENTRY("suma2afni_surf");
 int get_mappable_surfs( SUMA_SurfaceObject ** slist, int how_many, int debug )
 {
     SUMA_SurfaceObject * so;
-    int			 count, socount = 0;
+    int                  count, socount = 0;
 
 ENTRY("get_mappable_surfs");
 
     if ( slist == NULL )
     {
-	fprintf( stderr, "** gms: missing slist!\n" );
-	RETURN(-1);
+        fprintf( stderr, "** gms: missing slist!\n" );
+        RETURN(-1);
     }
 
     for ( count = 0; count < SUMAg_N_DOv; count++ )
     {
-	if ( ! SUMA_isSO(SUMAg_DOv[count]) )
-	    continue;
+        if ( ! SUMA_isSO(SUMAg_DOv[count]) )
+            continue;
 
-	so = (SUMA_SurfaceObject *)SUMAg_DOv[count].OP;
+        so = (SUMA_SurfaceObject *)SUMAg_DOv[count].OP;
 
-	if ( ! so->AnatCorrect )
-	{
-	    if ( debug )
-		fprintf(stderr,"-- surf #%d '%s', anat not correct, skipping\n",
-			socount, CHECK_NULL_STR(so->Label));
+        if ( ! so->AnatCorrect )
+        {
+            if ( debug )
+                fprintf(stderr,"-- surf #%d '%s', anat not correct, skipping\n",
+                        socount, CHECK_NULL_STR(so->Label));
             if ( debug > 1 )
                 fprintf(stderr,"** consider adding the following to the "
                                "surface definition in the spec file:\n"
                                "       Anatomical = Y\n");
-	    continue;
-	}
+            continue;
+        }
 
-	if ( debug > 1 )
-	    fprintf( stderr, "\n---------- surface #%d '%s' -----------\n",
-		     socount, CHECK_NULL_STR(so->Label) );
-	if ( debug > 2 ) SUMA_Print_Surface_Object( so, stderr );
+        if ( debug > 1 )
+            fprintf( stderr, "\n---------- surface #%d '%s' -----------\n",
+                     socount, CHECK_NULL_STR(so->Label) );
+        if ( debug > 2 ) SUMA_Print_Surface_Object( so, stderr );
 
-	if ( socount < how_many )	/* store a good surface */
-	    slist[socount] = so;
+        if ( socount < how_many )       /* store a good surface */
+            slist[socount] = so;
 
-	socount++;
+        socount++;
     }
 
     if ( debug > 1 )
-	fprintf( stderr, "++ found %d mappable surfaces\n", socount );
+        fprintf( stderr, "++ found %d mappable surfaces\n", socount );
 
     RETURN(socount);
 }
@@ -772,7 +773,7 @@ ENTRY("set_smap_opts");
     memset( sopt, 0, sizeof(*sopt) );
 
     if ( (sopt->map = check_map_func( opts->map_str )) == E_SMAP_INVALID )
-	RETURN(-1);
+        RETURN(-1);
 
     /* set defaults before checking map type */
 
@@ -786,24 +787,24 @@ ENTRY("set_smap_opts");
     sopt->last_node     = opts->last_node  > 0 ? opts->last_node  : 0;
     if ( sopt->first_node > sopt->last_node )
     {
-	fprintf(stderr, "** error: -first_node (%d) > -last_node (%d)\n",
-		sopt->first_node, sopt->last_node);
-	RETURN(1);
+        fprintf(stderr, "** error: -first_node (%d) > -last_node (%d)\n",
+                sopt->first_node, sopt->last_node);
+        RETURN(1);
     }
 
     sopt->use_norms = opts->use_norms;
     sopt->norm_len  = opts->norm_len;
     sopt->norm_dir  = opts->norm_dir;
-    sopt->f_index   = V2S_INDEX_VOXEL;	     /* default is "voxel" */
+    sopt->f_index   = V2S_INDEX_VOXEL;       /* default is "voxel" */
 
     if ( (opts->f_index_str != NULL) &&
-	 (!strncmp(opts->f_index_str, "node", 4)) )
-	    sopt->f_index = V2S_INDEX_NODE;
+         (!strncmp(opts->f_index_str, "node", 4)) )
+            sopt->f_index = V2S_INDEX_NODE;
 
-    if ( opts->f_steps <= V2S_M2_STEPS_DEFAULT )	/* default is 2    */
-	sopt->f_steps = V2S_M2_STEPS_DEFAULT;
+    if ( opts->f_steps <= V2S_M2_STEPS_DEFAULT )        /* default is 2    */
+        sopt->f_steps = V2S_M2_STEPS_DEFAULT;
     else
-	sopt->f_steps = opts->f_steps;
+        sopt->f_steps = opts->f_steps;
 
     sopt->f_p1_fr      = opts->f_p1_fr;      /* copy fractions & distances */
     sopt->f_pn_fr      = opts->f_pn_fr;
@@ -811,59 +812,59 @@ ENTRY("set_smap_opts");
     sopt->f_pn_mm      = opts->f_pn_mm;
     sopt->outfile_1D   = opts->outfile_1D;
     sopt->outfile_niml = opts->outfile_niml;
-    sopt->oob          = opts->oob;		/* out of bounds info */
-    sopt->oom          = opts->oom;		/* out of bounds info */
+    sopt->oob          = opts->oob;             /* out of bounds info */
+    sopt->oom          = opts->oom;             /* out of bounds info */
 
     if ( sopt->oom.show && !p->cmask )
     {
-	fprintf(stderr,"** '-cmask' option is required with '-oom_value'\n");
-	RETURN(1);
+        fprintf(stderr,"** '-cmask' option is required with '-oom_value'\n");
+        RETURN(1);
     }
 
     /* great, now my switch is ineffective - save for later */
     switch (sopt->map)
     {
-	default:
-	    break;
+        default:
+            break;
 
-	case E_SMAP_AVE:
-	case E_SMAP_COUNT:
-	case E_SMAP_MAX:
-	case E_SMAP_MAX_ABS:
-	case E_SMAP_MIN:
-	case E_SMAP_MASK2:
-	case E_SMAP_SEG_VALS:
-	case E_SMAP_MEDIAN:
-	case E_SMAP_MODE:
-	    nsurf = 2;
-	    break;
+        case E_SMAP_AVE:
+        case E_SMAP_COUNT:
+        case E_SMAP_MAX:
+        case E_SMAP_MAX_ABS:
+        case E_SMAP_MIN:
+        case E_SMAP_MASK2:
+        case E_SMAP_SEG_VALS:
+        case E_SMAP_MEDIAN:
+        case E_SMAP_MODE:
+            nsurf = 2;
+            break;
 
-	case E_SMAP_MIDPT:	/* continue to SMAP_MASK */
-	    nsurf = 2;
+        case E_SMAP_MIDPT:      /* continue to SMAP_MASK */
+            nsurf = 2;
 
-	case E_SMAP_MASK:
-	    if (sopt->f_steps != V2S_M2_STEPS_DEFAULT)
-	    {
-		fprintf(stderr,"** -f_steps option not valid\n");
-		RETURN(-1);
-	    }
+        case E_SMAP_MASK:
+            if (sopt->f_steps != V2S_M2_STEPS_DEFAULT)
+            {
+                fprintf(stderr,"** -f_steps option not valid\n");
+                RETURN(-1);
+            }
 
-	    /* we will only use the first point in the computation */
-	    sopt->f_steps = 1;
-	    break;
+            /* we will only use the first point in the computation */
+            sopt->f_steps = 1;
+            break;
     }
 
     if ( (nsurf == 2) && !opts->snames[1] && !opts->use_norms )
     {
-	fprintf(stderr, "** function '%s' requires 2 surfaces\n",
-		        gv2s_map_names[sopt->map]);
-	RETURN(-1);
+        fprintf(stderr, "** function '%s' requires 2 surfaces\n",
+                        gv2s_map_names[sopt->map]);
+        RETURN(-1);
     }
 
     p->over_steps = v2s_vals_over_steps(sopt->map);
 
     if ( opts->debug > 0 )
-	disp_v2s_opts_t( "++ smap opts set :", sopt );
+        disp_v2s_opts_t( "++ smap opts set :", sopt );
 
     RETURN(0);
 }
@@ -880,27 +881,27 @@ ENTRY("final_clean_up");
 
     for ( surf = 0; surf < p->nsurf; surf++ )
     {
-	if ( opts->debug > 2    ) fprintf(stderr,"-- freeing nodes[%d]\n",surf);
-	if ( p->surf[surf].ixyz ) free(p->surf[surf].ixyz);
-	if ( opts->debug > 2    ) fprintf(stderr,"-- freeing norms[%d]\n",surf);
-	if ( p->surf[surf].norm ) free(p->surf[surf].norm);
+        if ( opts->debug > 2    ) fprintf(stderr,"-- freeing nodes[%d]\n",surf);
+        if ( p->surf[surf].ixyz ) free(p->surf[surf].ixyz);
+        if ( opts->debug > 2    ) fprintf(stderr,"-- freeing norms[%d]\n",surf);
+        if ( p->surf[surf].norm ) free(p->surf[surf].norm);
     }
 
     if ( p->cmask ) free(p->cmask);
 
     if ( opts->debug > 2 ) fprintf(stderr,"-- freeing DOV\n");
     if ( ( SUMAg_DOv != NULL ) &&
-	 ( SUMA_Free_Displayable_Object_Vect(SUMAg_DOv, SUMAg_N_DOv) == 0 ) )
-	fprintf(stderr, "** failed SUMA_Free_Displayable_Object_Vect()\n" );
+         ( SUMA_Free_Displayable_Object_Vect(SUMAg_DOv, SUMAg_N_DOv) == 0 ) )
+        fprintf(stderr, "** failed SUMA_Free_Displayable_Object_Vect()\n" );
 
     if ( opts->debug > 2 ) fprintf(stderr,"-- freeing SVSV\n");
     if ( ( SUMAg_SVv != NULL ) &&
-	 ( SUMA_Free_SurfaceViewer_Struct_Vect(SUMAg_SVv, SUMAg_N_SVv) == 0 ) )
-	fprintf( stderr, "** failed SUMA_Free_SurfaceViewer_Struct_Vect()\n" );
+         ( SUMA_Free_SurfaceViewer_Struct_Vect(SUMAg_SVv, SUMAg_N_SVv) == 0 ) )
+        fprintf( stderr, "** failed SUMA_Free_SurfaceViewer_Struct_Vect()\n" );
 
     if ( opts->debug > 2 ) fprintf(stderr,"-- freeing CF\n");
     if ( ( SUMAg_CF != NULL ) && ( SUMA_Free_CommonFields(SUMAg_CF) == 0 ) )
-	fprintf( stderr, "** failed SUMA_Free_CommonFields()\n" );
+        fprintf( stderr, "** failed SUMA_Free_CommonFields()\n" );
 
     if ( opts->debug > 1 ) fprintf(stderr,"-- freeing complete\n");
 
@@ -914,82 +915,82 @@ ENTRY("final_clean_up");
 */
 int read_surf_files ( opts_t * opts, SUMA_SurfSpecFile * spec )
 {
-    int debug, rv;					/* v3.5 [rickr] */
+    int debug, rv;                                      /* v3.5 [rickr] */
     
 ENTRY("read_surf_files");
 
     debug = (opts->debug > 2);
 
     if ( debug )
-	fputs( "-- SUMA_Create_CommonFields()...\n", stderr );
+        fputs( "-- SUMA_Create_CommonFields()...\n", stderr );
 
     /* initialize common fields struct */
     SUMAg_CF = SUMA_Create_CommonFields();
 
     if ( SUMAg_CF == NULL )
     {
-	fprintf( stderr, "** failed SUMA_Create_CommonFields(), exiting...\n" );
-	RETURN(-1);
+        fprintf( stderr, "** failed SUMA_Create_CommonFields(), exiting...\n" );
+        RETURN(-1);
     }
 
     /* for SUMA type notifications */
     if ( opts->debug > 3 )
     {
-	SUMAg_CF->MemTrace = 1;
+        SUMAg_CF->MemTrace = 1;
 
-	if ( opts->debug > 4 )
-	    SUMAg_CF->InOut_Notify = 1;
+        if ( opts->debug > 4 )
+            SUMAg_CF->InOut_Notify = 1;
     }
 
     if ( debug )
-	fputs( "-- SUMA_Alloc_DisplayObject_Struct()...\n", stderr );
+        fputs( "-- SUMA_Alloc_DisplayObject_Struct()...\n", stderr );
 
     SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct(SUMA_MAX_DISPLAYABLE_OBJECTS);
 
-    if ( debug )	/* can't SUMA_ShowSpecStruct() yet    - v3.9 */
-	fputs( "-- SUMA_Read_SpecFile()...\n", stderr );
+    if ( debug )        /* can't SUMA_ShowSpecStruct() yet    - v3.9 */
+        fputs( "-- SUMA_Read_SpecFile()...\n", stderr );
 
     if ( SUMA_Read_SpecFile( opts->spec_file, spec) == 0 )
     {
-	fprintf( stderr, "** failed SUMA_Read_SpecFile(), exiting...\n" );
-	RETURN(-1);
+        fprintf( stderr, "** failed SUMA_Read_SpecFile(), exiting...\n" );
+        RETURN(-1);
     }
 
     rv = SUMA_spec_select_surfs(spec, opts->snames, V2S_MAX_SURFS, opts->debug);
     if ( rv < 1 )
     {
-	if ( rv == 0 )
-	    fprintf(stderr,"** no named surfaces found in spec file\n");
-	RETURN(-1);
+        if ( rv == 0 )
+            fprintf(stderr,"** no named surfaces found in spec file\n");
+        RETURN(-1);
     }
 
     if ( debug )
-	SUMA_ShowSpecStruct(spec, stderr, opts->debug > 2 ? 3 : 1);
+        SUMA_ShowSpecStruct(spec, stderr, opts->debug > 2 ? 3 : 1);
 
     if ( SUMA_spec_set_map_refs(spec, opts->debug) != 0 )
-	RETURN(-1);
+        RETURN(-1);
 
     /* make sure only group was read from spec file */
     if ( spec->N_Groups != 1 )
     {
-	fprintf( stderr,"** error: N_Groups <%d> must be 1 in spec file <%s>\n",
-		 spec->N_Groups, opts->spec_file );
-	RETURN(-1);
+        fprintf( stderr,"** error: N_Groups <%d> must be 1 in spec file <%s>\n",
+                 spec->N_Groups, opts->spec_file );
+        RETURN(-1);
     }
 
     if ( debug )
-	fputs( "-- SUMA_LoadSpec_eng()...\n", stderr );
+        fputs( "-- SUMA_LoadSpec_eng()...\n", stderr );
 
     /* actually load the surface(s) from the spec file */
     if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug,
-	     SUMAg_CF->DsetList) == 0)     /* DsetList   26 Mar 2004 [ziad] */
+             SUMAg_CF->DsetList) == 0)     /* DsetList   26 Mar 2004 [ziad] */
     {
-	fprintf( stderr, "** error: failed SUMA_LoadSpec_eng(), exiting...\n" );
-	RETURN(-1);
+        fprintf( stderr, "** error: failed SUMA_LoadSpec_eng(), exiting...\n" );
+        RETURN(-1);
     }
 
     if ( opts->debug > 1 )
-	fprintf(stderr, "++ %d surfaces loaded.\n", spec->N_Surfs );
+        fprintf(stderr, "++ %d surfaces loaded.\n", spec->N_Surfs );
 
     RETURN(0);
 }
@@ -1007,8 +1008,8 @@ ENTRY("init_options");
 
     if ( argc < 2 )
     {
-	usage( PROG_NAME, V2S_USE_LONG );
-	RETURN(-1);
+        usage( PROG_NAME, V2S_USE_LONG );
+        RETURN(-1);
     }
 
     /* clear out the options structure */
@@ -1024,349 +1025,349 @@ ENTRY("init_options");
     opts->snames[1]    = NULL;
     opts->f_index_str  = NULL;
 
-    opts->gp_index     = -1;		/* means none: use all       */
-    opts->norm_len     = 1.0;		/* init to 1.0 millimeter    */
-    opts->dnode        = -1;		/* init to something invalid */
+    opts->gp_index     = -1;            /* means none: use all       */
+    opts->norm_len     = 1.0;           /* init to 1.0 millimeter    */
+    opts->dnode        = -1;            /* init to something invalid */
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	/* alphabetical... */
-	if ( ! strncmp(argv[ac], "-cmask", 6) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -cmask COMMAND\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->cmask_cmd = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-debug", 6) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -debug LEVEL\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->debug = atoi(argv[++ac]);
-	    if ( opts->debug < 0 || opts->debug > V2S_DEBUG_MAX_LEV )
-	    {
-		fprintf( stderr, "bad debug level <%d>, should be in [0,%d]\n",
-			opts->debug, V2S_DEBUG_MAX_LEV );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-	}
-	else if ( ! strncmp(argv[ac], "-dnode", 6) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -dnode NODE_NUM\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->dnode = atoi(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-f_index", 7) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -f_index INDEX_TYPE\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->f_index_str = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-f_keep_surf_order", 9) )
-	{
-	    /*  opts->f_kso = 1;		v3.8 */
-
-	    fprintf(stderr,"** the -f_keep_surf_order option is depreciated\n"
-		    "   in favor of -surf_A and -surf_B (version 3.8)\n");
-	    RETURN(-1);
-	}
-	else if ( ! strncmp(argv[ac], "-f_p1_fr", 9) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -f_p1_fr FRACTION\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->f_p1_fr = atof(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-f_pn_fr", 9) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -f_pn_fr FRACTION\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->f_pn_fr = atof(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-f_p1_mm", 9) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -f_p1_mm DISTANCE\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->f_p1_mm = atof(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-f_pn_mm", 9) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -f_pn_mm DISTANCE\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->f_pn_mm = atof(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-f_steps", 7) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -f_steps NUM_STEPS\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->f_steps = atoi(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-first_node", 11) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -first_node NODE_INDEX\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->first_node = atoi(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-gp_index", 7) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -gp_index BRICK_INDEX\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->gp_index = atoi(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-help", 5) )
-	{
-	    usage( PROG_NAME, V2S_USE_LONG );
-	    RETURN(-1);
-	}
-	else if ( ! strncmp(argv[ac], "-hist", 5) )
-	{
-	    usage( PROG_NAME, V2S_USE_HIST );
-	    RETURN(-1);
-	}
-	else if ( ! strncmp(argv[ac], "-v2s_hist", 9) )
-	{
-	    usage( PROG_NAME, V2S_USE_LIB_HIST );
-	    RETURN(-1);
-	}
-	else if ( ! strncmp(argv[ac], "-grid_parent", 5) ||
-		  ! strncmp(argv[ac], "-inset", 6)       ||
-		  ! strncmp(argv[ac], "-input", 6) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -grid_parent INPUT_DSET\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->gpar_file = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-keep_norm_dir", 14) )
-	{
-	    opts->norm_dir = V2S_NORM_KEEP;
-	}
-	else if ( ! strncmp(argv[ac], "-last_node", 11) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -last_node NODE_INDEX\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->last_node = atoi(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-map_func", 4) )  /* mapping function */
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -map_func FUNCTION\n\n", stderr );
-		RETURN(-1);
-	    }
-
-	    opts->map_str = argv[++ac];	    /* store user string for now */
-	}
-	else if ( ! strncmp(argv[ac], "-no_headers", 5) )
-	{
-	    opts->no_head = 1;
-	}
-	else if ( ! strncmp(argv[ac], "-norm_len", 9) )
-	{
-	    if ( (ac+1) >= argc )
-	    {
-		fputs( "option usage: -norm_len LENGTH\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-
-	    opts->norm_len = atof(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-oob_index", 8) )
-	{
-	    if ( (ac+1) >= argc )
+        /* alphabetical... */
+        if ( ! strncmp(argv[ac], "-cmask", 6) )
+        {
+            if ( (ac+1) >= argc )
             {
-		fputs( "option usage: -oob_index INDEX_VALUE\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
+                fputs( "option usage: -cmask COMMAND\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
 
-	    opts->oob.show  = 1;
+            opts->cmask_cmd = argv[++ac];
+        }
+        else if ( ! strncmp(argv[ac], "-debug", 6) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -debug LEVEL\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->debug = atoi(argv[++ac]);
+            if ( opts->debug < 0 || opts->debug > V2S_DEBUG_MAX_LEV )
+            {
+                fprintf( stderr, "bad debug level <%d>, should be in [0,%d]\n",
+                        opts->debug, V2S_DEBUG_MAX_LEV );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+        }
+        else if ( ! strncmp(argv[ac], "-dnode", 6) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -dnode NODE_NUM\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->dnode = atoi(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-f_index", 7) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -f_index INDEX_TYPE\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->f_index_str = argv[++ac];
+        }
+        else if ( ! strncmp(argv[ac], "-f_keep_surf_order", 9) )
+        {
+            /*  opts->f_kso = 1;                v3.8 */
+
+            fprintf(stderr,"** the -f_keep_surf_order option is depreciated\n"
+                    "   in favor of -surf_A and -surf_B (version 3.8)\n");
+            RETURN(-1);
+        }
+        else if ( ! strncmp(argv[ac], "-f_p1_fr", 9) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -f_p1_fr FRACTION\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->f_p1_fr = atof(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-f_pn_fr", 9) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -f_pn_fr FRACTION\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->f_pn_fr = atof(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-f_p1_mm", 9) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -f_p1_mm DISTANCE\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->f_p1_mm = atof(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-f_pn_mm", 9) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -f_pn_mm DISTANCE\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->f_pn_mm = atof(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-f_steps", 7) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -f_steps NUM_STEPS\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->f_steps = atoi(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-first_node", 11) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -first_node NODE_INDEX\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->first_node = atoi(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-gp_index", 7) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -gp_index BRICK_INDEX\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->gp_index = atoi(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-help", 5) )
+        {
+            usage( PROG_NAME, V2S_USE_LONG );
+            RETURN(-1);
+        }
+        else if ( ! strncmp(argv[ac], "-hist", 5) )
+        {
+            usage( PROG_NAME, V2S_USE_HIST );
+            RETURN(-1);
+        }
+        else if ( ! strncmp(argv[ac], "-v2s_hist", 9) )
+        {
+            usage( PROG_NAME, V2S_USE_LIB_HIST );
+            RETURN(-1);
+        }
+        else if ( ! strncmp(argv[ac], "-grid_parent", 5) ||
+                  ! strncmp(argv[ac], "-inset", 6)       ||
+                  ! strncmp(argv[ac], "-input", 6) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -grid_parent INPUT_DSET\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->gpar_file = argv[++ac];
+        }
+        else if ( ! strncmp(argv[ac], "-keep_norm_dir", 14) )
+        {
+            opts->norm_dir = V2S_NORM_KEEP;
+        }
+        else if ( ! strncmp(argv[ac], "-last_node", 11) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -last_node NODE_INDEX\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->last_node = atoi(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-map_func", 4) )  /* mapping function */
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -map_func FUNCTION\n\n", stderr );
+                RETURN(-1);
+            }
+
+            opts->map_str = argv[++ac];     /* store user string for now */
+        }
+        else if ( ! strncmp(argv[ac], "-no_headers", 5) )
+        {
+            opts->no_head = 1;
+        }
+        else if ( ! strncmp(argv[ac], "-norm_len", 9) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -norm_len LENGTH\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->norm_len = atof(argv[++ac]);
+        }
+        else if ( ! strncmp(argv[ac], "-oob_index", 8) )
+        {
+            if ( (ac+1) >= argc )
+            {
+                fputs( "option usage: -oob_index INDEX_VALUE\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+
+            opts->oob.show  = 1;
             opts->oob.index = atoi(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-oob_value", 8) )
-	{
-	    if ( (ac+1) >= argc )
+        }
+        else if ( ! strncmp(argv[ac], "-oob_value", 8) )
+        {
+            if ( (ac+1) >= argc )
             {
-		fputs( "option usage: -oob_value VALUE\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
+                fputs( "option usage: -oob_value VALUE\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
 
-	    opts->oob.show  = 1;
+            opts->oob.show  = 1;
             opts->oob.value = atof(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-oom_value", 8) )
-	{
-	    if ( (ac+1) >= argc )
+        }
+        else if ( ! strncmp(argv[ac], "-oom_value", 8) )
+        {
+            if ( (ac+1) >= argc )
             {
-		fputs( "option usage: -oob_value VALUE\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
+                fputs( "option usage: -oob_value VALUE\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
 
-	    opts->oom.show  = 1;
+            opts->oom.show  = 1;
             opts->oom.value = atof(argv[++ac]);
-	}
-	else if ( ! strncmp(argv[ac], "-out_1D", 7) )
-	{
-	    if ( (ac+1) >= argc )
+        }
+        else if ( ! strncmp(argv[ac], "-out_1D", 7) )
+        {
+            if ( (ac+1) >= argc )
             {
-		fputs( "option usage: -out_1D OUTPUT_FILE\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
+                fputs( "option usage: -out_1D OUTPUT_FILE\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
 
             opts->outfile_1D = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-out_niml", 7) )
-	{
-	    if ( (ac+1) >= argc )
+        }
+        else if ( ! strncmp(argv[ac], "-out_niml", 7) )
+        {
+            if ( (ac+1) >= argc )
             {
-		fputs( "option usage: -out_niml OUTPUT_FILE\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
+                fputs( "option usage: -out_niml OUTPUT_FILE\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
 
             opts->outfile_niml = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-reverse_norm_dir", 8) )
-	{
-	    opts->norm_dir = V2S_NORM_REVERSE;
-	}
-	else if ( ! strncmp(argv[ac], "-skip_col_nodes", 13) )
-	    opts->skip_cols |= V2S_SKIP_NODES;
-	else if ( ! strncmp(argv[ac], "-skip_col_1dindex", 12) )
-	    opts->skip_cols |= V2S_SKIP_VOLIND;
-	else if ( ! strncmp(argv[ac], "-skip_col_i", 11) )
-	    opts->skip_cols |= V2S_SKIP_I;
-	else if ( ! strncmp(argv[ac], "-skip_col_j", 11) )
-	    opts->skip_cols |= V2S_SKIP_J;
-	else if ( ! strncmp(argv[ac], "-skip_col_k", 11) )
-	    opts->skip_cols |= V2S_SKIP_K;
-	else if ( ! strncmp(argv[ac], "-skip_col_vals", 13) )
-	    opts->skip_cols |= V2S_SKIP_NVALS;
-	else if ( ! strncmp(argv[ac], "-skip_col_results", 13) )
-	    opts->skip_cols |= V2S_SKIP_VALS;
-	else if ( ! strncmp(argv[ac], "-spec", 3) )
-	{
-	    if ( (ac+1) >= argc )
+        }
+        else if ( ! strncmp(argv[ac], "-reverse_norm_dir", 8) )
+        {
+            opts->norm_dir = V2S_NORM_REVERSE;
+        }
+        else if ( ! strncmp(argv[ac], "-skip_col_nodes", 13) )
+            opts->skip_cols |= V2S_SKIP_NODES;
+        else if ( ! strncmp(argv[ac], "-skip_col_1dindex", 12) )
+            opts->skip_cols |= V2S_SKIP_VOLIND;
+        else if ( ! strncmp(argv[ac], "-skip_col_i", 11) )
+            opts->skip_cols |= V2S_SKIP_I;
+        else if ( ! strncmp(argv[ac], "-skip_col_j", 11) )
+            opts->skip_cols |= V2S_SKIP_J;
+        else if ( ! strncmp(argv[ac], "-skip_col_k", 11) )
+            opts->skip_cols |= V2S_SKIP_K;
+        else if ( ! strncmp(argv[ac], "-skip_col_vals", 13) )
+            opts->skip_cols |= V2S_SKIP_NVALS;
+        else if ( ! strncmp(argv[ac], "-skip_col_results", 13) )
+            opts->skip_cols |= V2S_SKIP_VALS;
+        else if ( ! strncmp(argv[ac], "-spec", 3) )
+        {
+            if ( (ac+1) >= argc )
             {
-		fputs( "option usage: -spec SPEC_FILE\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
+                fputs( "option usage: -spec SPEC_FILE\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
 
             opts->spec_file = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-surf_", 6) )
-	{
-	    if ( (ac+1) >= argc )
+        }
+        else if ( ! strncmp(argv[ac], "-surf_", 6) )
+        {
+            if ( (ac+1) >= argc )
             {
-		fputs( "option usage: -surf_X SURF_NAME\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
-	    ind = argv[ac][6] - 'A';
-	    if ( (ind < 0) || (ind >= V2S_MAX_SURFS) )
-	    {
-		fprintf(stderr,"** -surf_X option: '%s' out of range,\n"
-			"   use one of '-surf_A' through '-surf_%c'\n",
-			argv[ac], 'A'+V2S_MAX_SURFS-1);
-		RETURN(-1);
-	    }
+                fputs( "option usage: -surf_X SURF_NAME\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
+            ind = argv[ac][6] - 'A';
+            if ( (ind < 0) || (ind >= V2S_MAX_SURFS) )
+            {
+                fprintf(stderr,"** -surf_X option: '%s' out of range,\n"
+                        "   use one of '-surf_A' through '-surf_%c'\n",
+                        argv[ac], 'A'+V2S_MAX_SURFS-1);
+                RETURN(-1);
+            }
 
             opts->snames[ind] = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-sv", 3) )
-	{
-	    if ( (ac+1) >= argc )
+        }
+        else if ( ! strncmp(argv[ac], "-sv", 3) )
+        {
+            if ( (ac+1) >= argc )
             {
-		fputs( "option usage: -sv SURFACE_VOLUME\n\n", stderr );
-		usage( PROG_NAME, V2S_USE_SHORT );
-		RETURN(-1);
-	    }
+                fputs( "option usage: -sv SURFACE_VOLUME\n\n", stderr );
+                usage( PROG_NAME, V2S_USE_SHORT );
+                RETURN(-1);
+            }
 
             opts->sv_file = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-use_norms", 5) )
-	{
-	    opts->use_norms = 1;
-	}
-	else if ( ! strncmp(argv[ac], "-version", 2) )
-	{
-	    usage( PROG_NAME, V2S_USE_VERSION );
-	    RETURN(-1);
-	}
-	else	 /* invalid option */
-	{
-	    fprintf( stderr, "invalid option <%s>\n", argv[ac] );
-	    usage( PROG_NAME, V2S_USE_SHORT );
-	    RETURN(-1);
-	}
+        }
+        else if ( ! strncmp(argv[ac], "-use_norms", 5) )
+        {
+            opts->use_norms = 1;
+        }
+        else if ( ! strncmp(argv[ac], "-version", 2) )
+        {
+            usage( PROG_NAME, V2S_USE_VERSION );
+            RETURN(-1);
+        }
+        else     /* invalid option */
+        {
+            fprintf( stderr, "invalid option <%s>\n", argv[ac] );
+            usage( PROG_NAME, V2S_USE_SHORT );
+            RETURN(-1);
+        }
     }
 
     RETURN(0);
@@ -1389,59 +1390,59 @@ ENTRY("validate_options");
 
     if ( opts->debug > 0 )
     {
-	usage( PROG_NAME, V2S_USE_VERSION );
-	disp_opts_t ( "++ opts read: ", opts );
+        usage( PROG_NAME, V2S_USE_VERSION );
+        disp_opts_t ( "++ opts read: ", opts );
     }
 
     if ( check_map_func( opts->map_str ) == E_SMAP_INVALID )
-	RETURN(-1);
+        RETURN(-1);
 
     if ( !opts->outfile_1D && !opts->outfile_niml )
     {
-	fprintf( stderr, "** missing '-out_1D OUTPUT_FILE' option\n" );
-	RETURN(-1);
+        fprintf( stderr, "** missing '-out_1D OUTPUT_FILE' option\n" );
+        RETURN(-1);
     }
 
     if ( opts->spec_file == NULL )
     {
-	fprintf( stderr, "** missing '-spec_file SPEC_FILE' option\n" );
-	RETURN(-1);
+        fprintf( stderr, "** missing '-spec_file SPEC_FILE' option\n" );
+        RETURN(-1);
     }
 
     if ( opts->sv_file == NULL )
     {
-	fprintf( stderr, "** missing '-sv SURF_VOL' option\n" );
-	RETURN(-1);
+        fprintf( stderr, "** missing '-sv SURF_VOL' option\n" );
+        RETURN(-1);
     }
 
     if ( opts->snames[0] == NULL )
     {
-	fprintf(stderr,"** missing '-surf_A SURF_NAME' option\n");
-	RETURN(-1);
+        fprintf(stderr,"** missing '-surf_A SURF_NAME' option\n");
+        RETURN(-1);
     }
 
     if ( opts->use_norms )
     {
-	if ( opts->snames[1] )
-	{
-	    fprintf(stderr,"** no '-use_norms' option with 2 surfaces\n");
-	    RETURN(-1);
-	}
+        if ( opts->snames[1] )
+        {
+            fprintf(stderr,"** no '-use_norms' option with 2 surfaces\n");
+            RETURN(-1);
+        }
     }
     else if ( opts->norm_len != 1.0 || opts->norm_dir )
     {
-	fprintf(stderr,"** options for normals requires '-use_norms'\n");
-	RETURN(-1);
+        fprintf(stderr,"** options for normals requires '-use_norms'\n");
+        RETURN(-1);
     }
 
     if ( check_outfile( opts, p ) != 0 )
-	RETURN(-1);
+        RETURN(-1);
 
     if ( validate_datasets( opts, p ) != 0 )
-	RETURN(-1);
+        RETURN(-1);
 
     if ( opts->debug > 1 )
-	disp_v2s_param_t( "++ opts validated: ", p );
+        disp_v2s_param_t( "++ opts validated: ", p );
 
     RETURN(0);
 }
@@ -1456,20 +1457,20 @@ int check_outfile( opts_t * opts, v2s_param_t * p )
 ENTRY("check_outfile");
 
     if ( opts == NULL || p == NULL )
-	RETURN(-1);
+        RETURN(-1);
 
     if ( THD_is_file(opts->outfile_1D) )
     {
-	fprintf(stderr, "** output file '%s' already exists\n",
-		opts->outfile_1D);
-	RETURN(-1);
+        fprintf(stderr, "** output file '%s' already exists\n",
+                opts->outfile_1D);
+        RETURN(-1);
     }
 
     if ( THD_is_file(opts->outfile_niml) )
     {
-	fprintf(stderr, "** output file '%s' already exists\n",
-		opts->outfile_niml);
-	RETURN(-1);
+        fprintf(stderr, "** output file '%s' already exists\n",
+                opts->outfile_niml);
+        RETURN(-1);
     }
 
     RETURN(0);
@@ -1491,39 +1492,39 @@ ENTRY("check_map_func");
 
     if ( map_str == NULL )
     {
-	fprintf( stderr, "** missing option: '-map_func FUNCTION'\n" );
-	RETURN(E_SMAP_INVALID);
+        fprintf( stderr, "** missing option: '-map_func FUNCTION'\n" );
+        RETURN(E_SMAP_INVALID);
     }
 
     map = v2s_map_type( map_str );
 
     switch ( map )
     {
-	default:
-	    map = E_SMAP_INVALID;
-	    break;
+        default:
+            map = E_SMAP_INVALID;
+            break;
 
-	case E_SMAP_COUNT:
-	case E_SMAP_MASK2:
-	    fprintf( stderr, "** function '%s' coming soon ...\n",
-		     gv2s_map_names[map] );
-	    RETURN(E_SMAP_INVALID);
-	    break;
+        case E_SMAP_COUNT:
+        case E_SMAP_MASK2:
+            fprintf( stderr, "** function '%s' coming soon ...\n",
+                     gv2s_map_names[map] );
+            RETURN(E_SMAP_INVALID);
+            break;
 
-	case E_SMAP_AVE:
-	case E_SMAP_MASK:
-	case E_SMAP_MAX:
-	case E_SMAP_MAX_ABS:
-	case E_SMAP_MIN:
-	case E_SMAP_MIDPT:
-	case E_SMAP_SEG_VALS:
-	case E_SMAP_MEDIAN:
-	case E_SMAP_MODE:
-	    break;
+        case E_SMAP_AVE:
+        case E_SMAP_MASK:
+        case E_SMAP_MAX:
+        case E_SMAP_MAX_ABS:
+        case E_SMAP_MIN:
+        case E_SMAP_MIDPT:
+        case E_SMAP_SEG_VALS:
+        case E_SMAP_MEDIAN:
+        case E_SMAP_MODE:
+            break;
     }
 
     if ( map == E_SMAP_INVALID )
-	fprintf( stderr, "** invalid map string '%s'\n", map_str );
+        fprintf( stderr, "** invalid map string '%s'\n", map_str );
 
     RETURN(map);
 }
@@ -1549,25 +1550,25 @@ ENTRY("validate_datasets");
 
     if ( !ISVALID_DSET(p->gpar) )
     {
-	if ( opts->gpar_file == NULL )
-	    fprintf( stderr, "** error: missing '-grid_parent DSET' option\n" );
-	else
-	    fprintf( stderr, "** error: invalid input dataset '%s'\n",
-		     opts->gpar_file);
-	RETURN(-1);
+        if ( opts->gpar_file == NULL )
+            fprintf( stderr, "** error: missing '-grid_parent DSET' option\n" );
+        else
+            fprintf( stderr, "** error: invalid input dataset '%s'\n",
+                     opts->gpar_file);
+        RETURN(-1);
     }
     else if ( DSET_BRICK_TYPE(p->gpar, 0) == MRI_complex )
     {
-	fprintf(stderr,
-		"** failure: cannot deal with complex-valued dataset, '%s'\n",
-		opts->gpar_file);
-	RETURN(-1);
+        fprintf(stderr,
+                "** failure: cannot deal with complex-valued dataset, '%s'\n",
+                opts->gpar_file);
+        RETURN(-1);
     }
     else if ( opts->gp_index >= DSET_NVALS(p->gpar) )
     {
-	fprintf(stderr,"** error: gp_index (%d) > max grid parent index (%d)\n",
-		opts->gp_index, DSET_NVALS(p->gpar)-1);
-	RETURN(-1);
+        fprintf(stderr,"** error: gp_index (%d) > max grid parent index (%d)\n",
+                opts->gp_index, DSET_NVALS(p->gpar)-1);
+        RETURN(-1);
     }
 
     p->nvox = DSET_NVOX( p->gpar );
@@ -1577,44 +1578,44 @@ ENTRY("validate_datasets");
 
     if ( opts->cmask_cmd != NULL )
     {
-	int    ncmask, clen = strlen( opts->cmask_cmd );
-	char * cmd;
+        int    ncmask, clen = strlen( opts->cmask_cmd );
+        char * cmd;
 
-	/* save original cmask command, as EDT_calcmask() is destructive */
-	cmd = (char *)malloc((clen + 1) * sizeof(char));
-	strcpy( cmd, opts->cmask_cmd );
+        /* save original cmask command, as EDT_calcmask() is destructive */
+        cmd = (char *)malloc((clen + 1) * sizeof(char));
+        strcpy( cmd, opts->cmask_cmd );
 
-	p->cmask = EDT_calcmask( cmd, &ncmask );
+        p->cmask = EDT_calcmask( cmd, &ncmask );
 
-	free( cmd );			   /* free EDT_calcmask() string */
+        free( cmd );                       /* free EDT_calcmask() string */
 
-	if ( p->cmask == NULL )
-	{
-	    fprintf( stderr, "** failure: cannot compute mask from option:\n"
-		     "   -cmask '%s'\n", opts->cmask_cmd );
-	    RETURN(-1);
-	}
-	if ( ncmask != p->nvox )
-	{
-	    fprintf( stderr, "** error: input and cmask datasets do not have "
-		     "the same dimensions\n" );
-	    RETURN(-1);
-	}
-	if ( ( ccount = THD_countmask( ncmask, p->cmask ) ) <= 0 )
-	{
-	    fprintf( stderr, "** Warning!  No voxels in computed cmask!\n" );
-	    /* return -1;   continue, and let the user deal with it...  */
-	}
+        if ( p->cmask == NULL )
+        {
+            fprintf( stderr, "** failure: cannot compute mask from option:\n"
+                     "   -cmask '%s'\n", opts->cmask_cmd );
+            RETURN(-1);
+        }
+        if ( ncmask != p->nvox )
+        {
+            fprintf( stderr, "** error: input and cmask datasets do not have "
+                     "the same dimensions\n" );
+            RETURN(-1);
+        }
+        if ( ( ccount = THD_countmask( ncmask, p->cmask ) ) <= 0 )
+        {
+            fprintf( stderr, "** Warning!  No voxels in computed cmask!\n" );
+            /* return -1;   continue, and let the user deal with it...  */
+        }
     }
 
     if ( opts->debug > 0 )
     {
-	fprintf( stderr, "++ input dset has nvox = %d, nvals = %d",
-		 p->nvox, DSET_NVALS(p->gpar) );
-	if ( p->cmask == NULL )
-	    fputc( '\n', stderr );
-	else
-	    fprintf( stderr, " (%d voxels in mask)\n", ccount );
+        fprintf( stderr, "++ input dset has nvox = %d, nvals = %d",
+                 p->nvox, DSET_NVALS(p->gpar) );
+        if ( p->cmask == NULL )
+            fputc( '\n', stderr );
+        else
+            fprintf( stderr, " (%d voxels in mask)\n", ccount );
     }
 
     RETURN(0);
@@ -1623,9 +1624,9 @@ ENTRY("validate_datasets");
 /*----------------------------------------------------------------------
  * usage  -  output usage information
  *
- * V2S_USE_SHORT	- display brief output
- * V2S_USE_LONG		- display long output
- * V2S_USE_VERSION	- show the VERSION of the program
+ * V2S_USE_SHORT        - display brief output
+ * V2S_USE_LONG         - display long output
+ * V2S_USE_VERSION      - show the VERSION of the program
  *----------------------------------------------------------------------
 */
 int usage ( char * prog, int level )
@@ -1634,21 +1635,21 @@ ENTRY("usage");
 
     if ( level == V2S_USE_SHORT )
     {
-	fprintf( stderr,
-		 "usage: %s [options] -spec SPEC_FILE -sv SURF_VOL "
-		                    " -grid_parent AFNI_DSET\n"
-		 "usage: %s -help\n",
-		 prog, prog );
+        fprintf( stderr,
+                 "usage: %s [options] -spec SPEC_FILE -sv SURF_VOL "
+                                    " -grid_parent AFNI_DSET\n"
+                 "usage: %s -help\n",
+                 prog, prog );
     }
     else if ( level == V2S_USE_LONG )
     {
-	printf(
-	    "\n"
-	    "%s - map data from a volume domain to a surface domain\n"
-	    "\n"
-	    "  usage: %s [options] -spec SPEC_FILE -sv SURF_VOL \\\n"
-	    "                    -grid_parent AFNI_DSET -map_func MAP_FUNC\n"
-	    "\n"
+        printf(
+            "\n"
+            "%s - map data from a volume domain to a surface domain\n"
+            "\n"
+            "  usage: %s [options] -spec SPEC_FILE -sv SURF_VOL \\\n"
+            "                    -grid_parent AFNI_DSET -map_func MAP_FUNC\n"
+            "\n"
             "This program is used to map data values from an AFNI volume\n"
             "dataset to a surface dataset.  A filter may be applied to the\n"
             "volume data to produce the value(s) for each surface node.\n"
@@ -1661,97 +1662,97 @@ ENTRY("usage");
             "\n"
             "Typically, two corresponding surfaces will be input (via the\n"
             "spec file and the '-surf_A' and '-surf_B' options), along with\n"
-	    "a mapping function and relevant options.  The mapping function\n"
-	    "will act as a filter over the values in the AFNI volume.\n"
+            "a mapping function and relevant options.  The mapping function\n"
+            "will act as a filter over the values in the AFNI volume.\n"
             "\n"
             "Note that an alternative to using a second surface with the\n"
             "'-surf_B' option is to define the second surface by using the\n"
-	    "normals from the first surface.  By default, the second surface\n"
-	    "would be defined at a distance of 1mm along the normals, but the\n"
-	    "user may modify the applied distance (and direction).  See the\n"
-	    "'-use_norms' and '-norm_len' options for more details.\n"
+            "normals from the first surface.  By default, the second surface\n"
+            "would be defined at a distance of 1mm along the normals, but the\n"
+            "user may modify the applied distance (and direction).  See the\n"
+            "'-use_norms' and '-norm_len' options for more details.\n"
             "\n"
             "For each pair of corresponding surface nodes, let NA be the node\n"
             "on surface A (such as a white/grey boundary) and NB be the\n"
             "corresponding node on surface B (such as a pial surface).  The\n"
-	    "filter is applied to the volume data values along the segment\n"
-	    "from NA to NB (consider the average or maximum as examples of\n"
-	    "filters).\n"
-	    "\n"
-	    "Note: if either endpoint of a segment is outside the grid parent\n"
-	    "      volume, that node (pair) will be skipped.\n"
+            "filter is applied to the volume data values along the segment\n"
+            "from NA to NB (consider the average or maximum as examples of\n"
+            "filters).\n"
+            "\n"
+            "Note: if either endpoint of a segment is outside the grid parent\n"
+            "      volume, that node (pair) will be skipped.\n"
             "\n"
             "Note: surface A corresponds to the required '-surf_A' argument,\n"
             "      while surface B corresponds to '-surf_B'.\n"
             "\n",
-	    prog, prog);
+            prog, prog);
 
-	printf(
+        printf(
             "By default, this segment only consists of the endpoints, NA and\n"
             "NB (the actual nodes on the two surfaces).  However the number\n"
             "of evenly spaced points along the segment may be specified with\n"
             "the -f_steps option, and the actual locations of NA and NB may\n"
             "be altered with any of the -f_pX_XX options, covered below.\n"
-	    "\n"
-	    "As an example, for each node pair, one could output the average\n"
-	    "value from some functional dataset along a segment of 10 evenly\n"
-	    "spaced points, where the segment endpoints are defined by the\n"
-	    "xyz coordinates of the nodes.  This is example 3, below.\n"
-	    "\n"
-	    "The mapping function (i.e. filter) is a required parameter to\n"
-	    "the program.\n"
-	    "\n"
-	    "Brief descriptions of the current mapping functions are as\n"
-	    "follows.  These functions are defined over a segment of points.\n"
-	    "\n"
-	    "    ave       : output the average of all voxel values along the\n"
-	    "                segment\n"
-	    "    mask      : output the voxel value for the trivial case of a\n"
-	    "                segment - defined by a single surface point\n"
-	    "    median    : output the median value from the segment\n"
-	    "    midpoint  : output the dataset value at the segment midpoint\n"
-	    "    mode      : output the mode of the values along the segment\n"
-	    "    max       : output the maximum volume value over the segment\n"
-	    "    max_abs   : output the dataset value with max abs over seg\n"
-	    "    min       : output the minimum volume value over the segment\n"
-	    "    seg_vals  : output _all_ volume values over the segment (one\n"
-	    "                sub-brick only)\n"
-	    "\n"
-	    );
+            "\n"
+            "As an example, for each node pair, one could output the average\n"
+            "value from some functional dataset along a segment of 10 evenly\n"
+            "spaced points, where the segment endpoints are defined by the\n"
+            "xyz coordinates of the nodes.  This is example 3, below.\n"
+            "\n"
+            "The mapping function (i.e. filter) is a required parameter to\n"
+            "the program.\n"
+            "\n"
+            "Brief descriptions of the current mapping functions are as\n"
+            "follows.  These functions are defined over a segment of points.\n"
+            "\n"
+            "    ave       : output the average of all voxel values along the\n"
+            "                segment\n"
+            "    mask      : output the voxel value for the trivial case of a\n"
+            "                segment - defined by a single surface point\n"
+            "    median    : output the median value from the segment\n"
+            "    midpoint  : output the dataset value at the segment midpoint\n"
+            "    mode      : output the mode of the values along the segment\n"
+            "    max       : output the maximum volume value over the segment\n"
+            "    max_abs   : output the dataset value with max abs over seg\n"
+            "    min       : output the minimum volume value over the segment\n"
+            "    seg_vals  : output _all_ volume values over the segment (one\n"
+            "                sub-brick only)\n"
+            "\n"
+            );
 
-	printf(
-	    "  --------------------------------------------------\n"
-	    "\n"
-	    "  examples:\n"
-	    "\n"
-	    "    1. Apply a single surface mask to output volume values over\n"
-	    "       each surface node.  Output is one value per sub-brick\n"
-	    "       (per surface node).\n"
-	    "\n"
-	    "    %s                                \\\n"
-	    "       -spec         fred.spec                \\\n"
-	    "       -surf_A       smoothwm                 \\\n"
-	    "       -sv           fred_anat+orig           \\\n"
-	    "       -grid_parent  fred_anat+orig           \\\n"
-	    "       -map_func     mask                     \\\n"
-	    "       -out_1D       fred_anat_vals.1D\n"
-	    "\n"
-	    "    2. Apply a single surface mask to output volume values over\n"
-	    "       each surface node.  In this case restrict input to the\n"
-	    "       mask implied by the -cmask option.  Supply additional\n"
-	    "       debug output, and more for surface node 1874\n"
-	    "\n"
-	    "    %s                                                \\\n"
-	    "       -spec         fred.spec                                \\\n"
-	    "       -surf_A       smoothwm                                 \\\n"
-	    "       -sv           fred_anat+orig                           \\\n"
-	    "       -grid_parent 'fred_epi+orig[0]'                        \\\n"
-	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)'  \\\n"
-	    "       -map_func     mask                                     \\\n"
-	    "       -debug        2                                        \\\n"
-	    "       -dnode        1874                                     \\\n"
-	    "       -out_niml     fred_epi_vals.niml\n"
-	    "\n"
+        printf(
+            "  --------------------------------------------------\n"
+            "\n"
+            "  examples:\n"
+            "\n"
+            "    1. Apply a single surface mask to output volume values over\n"
+            "       each surface node.  Output is one value per sub-brick\n"
+            "       (per surface node).\n"
+            "\n"
+            "    %s                                \\\n"
+            "       -spec         fred.spec                \\\n"
+            "       -surf_A       smoothwm                 \\\n"
+            "       -sv           fred_anat+orig           \\\n"
+            "       -grid_parent  fred_anat+orig           \\\n"
+            "       -map_func     mask                     \\\n"
+            "       -out_1D       fred_anat_vals.1D\n"
+            "\n"
+            "    2. Apply a single surface mask to output volume values over\n"
+            "       each surface node.  In this case restrict input to the\n"
+            "       mask implied by the -cmask option.  Supply additional\n"
+            "       debug output, and more for surface node 1874\n"
+            "\n"
+            "    %s                                                \\\n"
+            "       -spec         fred.spec                                \\\n"
+            "       -surf_A       smoothwm                                 \\\n"
+            "       -sv           fred_anat+orig                           \\\n"
+            "       -grid_parent 'fred_epi+orig[0]'                        \\\n"
+            "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)'  \\\n"
+            "       -map_func     mask                                     \\\n"
+            "       -debug        2                                        \\\n"
+            "       -dnode        1874                                     \\\n"
+            "       -out_niml     fred_epi_vals.niml\n"
+            "\n"
             "    3. Given a pair of related surfaces, for each node pair,\n"
             "       break the connected line segment into 10 points, and\n"
             "       compute the average dataset value over those points.\n"
@@ -1776,8 +1777,8 @@ ENTRY("usage");
             "       -out_1D       fred_func_ave.1D\n"
             "\n"
             "    4. Similar to example 3, but restrict the output columns to\n"
-	    "       only node indices and values (i.e. skip 1dindex, i, j, k\n"
-  	    "       and vals).\n"
+            "       only node indices and values (i.e. skip 1dindex, i, j, k\n"
+            "       and vals).\n"
             "\n"
             "    %s                                                \\\n"
             "       -spec         fred.spec                                \\\n"
@@ -1900,11 +1901,11 @@ ENTRY("usage");
             "       -f_index      nodes                                    \\\n"
             "       -out_1D       fred_anat_norm_ave.2.5.1D\n"
             "\n"
-	    "  --------------------------------------------------\n",
-	    prog, prog, prog, prog, prog, prog, prog, prog, prog );
+            "  --------------------------------------------------\n",
+            prog, prog, prog, prog, prog, prog, prog, prog, prog );
 
-	printf(
-	    "\n"
+        printf(
+            "\n"
             "  REQUIRED COMMAND ARGUMENTS:\n"
             "\n"
             "    -spec SPEC_FILE        : SUMA spec file\n"
@@ -2123,9 +2124,9 @@ ENTRY("usage");
             "                     e.g.  -f_p1_fr 1.0 -f_pn_fr -1.0\n"
             "\n"
             "  ------------------------------\n"
-	);
+        );
 
-	printf(
+        printf(
             "\n"
             "  options specific to use of normals:\n"
             "\n"
@@ -2437,17 +2438,17 @@ ENTRY("usage");
             "  Author: R. Reynolds  - %s\n"
             "\n"
             "                (many thanks to Z. Saad and R.W. Cox)\n"
-	    "\n",
-	    VERSION );
+            "\n",
+            VERSION );
     }
     else if ( level == V2S_USE_HIST )
-	fputs(g_history, stdout);
+        fputs(g_history, stdout);
     else if ( level == V2S_USE_LIB_HIST )
-	fputs(gv2s_history, stdout);
+        fputs(gv2s_history, stdout);
     else if ( level == V2S_USE_VERSION )
-	fprintf(stderr,"%s : %s, compile date: %s\n", prog, VERSION, __DATE__);
+        fprintf(stderr,"%s : %s, compile date: %s\n", prog, VERSION, __DATE__);
     else 
-	fprintf( stderr, "usage called with illegal level <%d>\n", level );
+        fprintf( stderr, "usage called with illegal level <%d>\n", level );
 
     RETURN(-1);
 }
@@ -2468,30 +2469,30 @@ ENTRY("surf_ave_radius");
 
     if ( !so || !radius || so->N_Node <= 0 )
     {
-	fprintf(stderr, "** disp_sar, so, radius == %p,%p\n", so, radius );
-	RETURN(-1);
+        fprintf(stderr, "** disp_sar, so, radius == %p,%p\n", so, radius );
+        RETURN(-1);
     }
 
-    c0 = so->Center[0];				   /* for a little speed */
+    c0 = so->Center[0];                            /* for a little speed */
     c1 = so->Center[1];
     c2 = so->Center[2];
 
     fp = so->NodeList;
     for ( node = 0; node < so->N_Node; node++ )
     {
-	ss  = (*fp - c0) * (*fp - c0);   fp++;
-	ss += (*fp - c1) * (*fp - c1);   fp++;
-	ss += (*fp - c2) * (*fp - c2);   fp++;
+        ss  = (*fp - c0) * (*fp - c0);   fp++;
+        ss += (*fp - c1) * (*fp - c1);   fp++;
+        ss += (*fp - c2) * (*fp - c2);   fp++;
 
-	sum += sqrt(ss);
+        sum += sqrt(ss);
     }
 
     *radius = sum/so->N_Node;
 
     if ( disp )
-	fprintf(stderr,"-- surf %s has average dist %f\n"
-		       "        to center (%f, %f, %f)\n",
-		so->Label, *radius, c0, c1, c2 );
+        fprintf(stderr,"-- surf %s has average dist %f\n"
+                       "        to center (%f, %f, %f)\n",
+                so->Label, *radius, c0, c1, c2 );
 
     RETURN(0);
 }
@@ -2506,43 +2507,43 @@ int disp_opts_t ( char * info, opts_t * opts )
 ENTRY("disp_opts_t");
 
     if ( info )
-	fputs( info, stderr );
+        fputs( info, stderr );
 
     if ( opts == NULL )
     {
-	fprintf( stderr, "disp_opts_t: opts == NULL\n" );
-	RETURN(-1);
+        fprintf( stderr, "disp_opts_t: opts == NULL\n" );
+        RETURN(-1);
     }
 
     fprintf(stderr,
-	    "options struct at %p :\n"
-	    "    gpar_file              = %s\n"
-	    "    outfile_1D             = %s\n"
-	    "    outfile_niml           = %s\n"
-	    "    spec_file              = %s\n"
-	    "    sv_file                = %s\n"
-	    "    cmask_cmd              = %s\n"
-	    "    map_str                = %s\n"
-	    "    snames[0,1]            = %s, %s\n"
-	    "    gp_index, no_head      = %d, %d\n"
-	    "    first_node, last_node  = %d, %d\n"
-	    "    use_norms, norm_len    = %d, %f\n"
-	    "    norm_dir, debug, dnode = %d, %d, %d\n"
-	    "    f_index_str            = %s\n"
-	    "    f_steps                = %d\n"
-	    "    f_p1_fr, f_pn_fr       = %f, %f\n"
-	    "    f_p1_mm, f_pn_mm       = %f, %f\n"
-	    , opts,
-	    CHECK_NULL_STR(opts->gpar_file), CHECK_NULL_STR(opts->outfile_1D),
-	    CHECK_NULL_STR(opts->outfile_niml),
-	    CHECK_NULL_STR(opts->spec_file), CHECK_NULL_STR(opts->sv_file),
-	    CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->map_str),
-	    CHECK_NULL_STR(opts->snames[0]), CHECK_NULL_STR(opts->snames[1]),
-	    opts->gp_index, opts->no_head, opts->first_node, opts->last_node,
-	    opts->use_norms, opts->norm_len, opts->norm_dir, opts->debug,
-	    opts->dnode, CHECK_NULL_STR(opts->f_index_str), opts->f_steps,
-	    opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
-	    );
+            "options struct at %p :\n"
+            "    gpar_file              = %s\n"
+            "    outfile_1D             = %s\n"
+            "    outfile_niml           = %s\n"
+            "    spec_file              = %s\n"
+            "    sv_file                = %s\n"
+            "    cmask_cmd              = %s\n"
+            "    map_str                = %s\n"
+            "    snames[0,1]            = %s, %s\n"
+            "    gp_index, no_head      = %d, %d\n"
+            "    first_node, last_node  = %d, %d\n"
+            "    use_norms, norm_len    = %d, %f\n"
+            "    norm_dir, debug, dnode = %d, %d, %d\n"
+            "    f_index_str            = %s\n"
+            "    f_steps                = %d\n"
+            "    f_p1_fr, f_pn_fr       = %f, %f\n"
+            "    f_p1_mm, f_pn_mm       = %f, %f\n"
+            , opts,
+            CHECK_NULL_STR(opts->gpar_file), CHECK_NULL_STR(opts->outfile_1D),
+            CHECK_NULL_STR(opts->outfile_niml),
+            CHECK_NULL_STR(opts->spec_file), CHECK_NULL_STR(opts->sv_file),
+            CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->map_str),
+            CHECK_NULL_STR(opts->snames[0]), CHECK_NULL_STR(opts->snames[1]),
+            opts->gp_index, opts->no_head, opts->first_node, opts->last_node,
+            opts->use_norms, opts->norm_len, opts->norm_dir, opts->debug,
+            opts->dnode, CHECK_NULL_STR(opts->f_index_str), opts->f_steps,
+            opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
+            );
 
     RETURN(0);
 }
