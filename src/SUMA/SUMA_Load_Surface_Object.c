@@ -3955,7 +3955,7 @@ int SUMA_unique_name_ind( SUMA_SurfSpecFile * spec, char * sname )
 	    if ( index >= 0 )
 	    {
 		fprintf(stderr,"** surf name %d, '%s': multiple matches\n"
-			"   '%s' and '%s'",
+			"   '%s' and '%s'\n",
 			surf, sname, nfile, SUMA_coord_file(spec,index));
 		return -2;
 	    }

@@ -756,6 +756,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         FuncName, s, ntot);
                      SUMA_RETURNe;
                   }
+                  
 
                   ntot = ntot / 6;
                   /* allocate for segments DO */
