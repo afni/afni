@@ -1051,6 +1051,15 @@ conversion back to bytes, the resulting AFNI dataset values will
 all be zero.  Setting AFNI_MINC_FLOATIZE to YES will cause the
 scaled values to be stored as floats.
 
+------------------------------
+Variable: AFNI_MINC_SLICESCALE
+------------------------------
+If this YES/NO variable is set to NO, then AFNI will not use the
+image-min and image-max scaling when reading data from MINC files.
+Normally, you want this scaling, since MINC files are scaled separately
+in each slice.  However, if the image-min and image-max values in the
+MINC file are damaged, then you can turn off the scaling this way.
+
 ----------------------------
 Variable: AFNI_ANALYZE_SCALE
 ----------------------------
