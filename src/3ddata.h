@@ -137,6 +137,9 @@ typedef struct {
       KILL_list kl ;
 } THD_string_array ;
 
+#define SARR_STRING(ss,qq) ((ss)->ar[(qq)])
+#define SARR_NUM(ss)       ((ss)->num)
+
 #define INC_SARR 64
 
 #define INIT_SARR(name)                 \
@@ -939,9 +942,16 @@ typedef struct {
 #define DAXES_YCEN(dax) ((dax)->yyorg + 0.5*((dax)->nyy - 1) * (dax)->yydel)
 #define DAXES_ZCEN(dax) ((dax)->zzorg + 0.5*((dax)->nzz - 1) * (dax)->zzdel)
 
+#if 1
+#define DAXES_NUM(dax,ori) \
+   ( (ORIENT_xyzint[(ori)] == ORIENT_xyzint[(dax)->xxorient]) ? (dax)->nxx : \
+     (ORIENT_xyzint[(ori)] == ORIENT_xyzint[(dax)->yyorient]) ? (dax)->nyy : \
+     (ORIENT_xyzint[(ori)] == ORIENT_xyzint[(dax)->zzorient]) ? (dax)->nzz : 0 )
+#else
 #define DAXES_NUM(dax,ori) ( ( ORIENT_xyzint[(ori)] == 1 ) ? (dax)->nxx : \
                              ( ORIENT_xyzint[(ori)] == 2 ) ? (dax)->nyy : \
                              ( ORIENT_xyzint[(ori)] == 3 ) ? (dax)->nzz : 0 )
+#endif
 
 /***
    WARNING:  If you perform surgery on a dataset and change its

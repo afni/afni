@@ -245,6 +245,36 @@ resolved (as of Feb 1998 and AFNI v2.20).  As a result of this fix, all
 reference to the "ucblib" libraries has been removed from the Solaris
 Makefiles.
 
+CONFUSION: Sun [19 April 1999]
+------------------------------
+The problems with Solaris 2.6 seem to be fixed with some patches
+described in source code file "machdep.h".  You may need one or
+both of these for this operating system.  Another problem arises
+with Solaris 2.5 (SunOS 5.5).  In this case, you might need to
+link to the UC Berkely compatibility libraries.  This is done
+by making the following changes in Makefile.sunultra (or whatever
+you choose to use):
+
+IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include -I/usr/ucbinclude
+LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib -L/usr/ucblib
+EXTRA_LIBS = -lsocket -lnsl -lgen -lucb -ldl
+PLFLAGS    = -L. -L/usr/dt/lib -L/usr/openwin/lib -L/usr/ucblib
+
+This may cause some other problems, which is why it was removed.
+In particular, it makes the file selection tool unusable -- but
+this is only used from the "Read" buttons on the "Define Datamode"
+panel, so this may not bother you.
+
+All this is because Sun chose to develop a routine to read the list
+of filenames from a directory that is
+  1) different from almost every other Unix vendor (who instead
+     chose to copy the UC Berkeley standard), AND ALSO
+  2) has the same subroutine name so that programs written for
+     UCB compatible systems will compile but will not execute
+     properly.
+Not having a Sun workstation, I don't have the resources to try
+to find a clean fix around this set of problems.
+
 WOES: Hewlett Packard
 ---------------------
 If you are using an HP workstation and HP-UX 9.0x, you should be aware

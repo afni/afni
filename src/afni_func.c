@@ -2838,9 +2838,20 @@ ENTRY("AFNI_write_many_dataset_CB") ;
       EXRETURN ;
    }
 
+#if 1
    MCW_choose_multi_strlist( w , "Datasets to Write" , mcwCT_multi_mode ,
                              num_dset , NULL , strlist ,
                              AFNI_do_many_writes , (XtPointer) idclist ) ;
+#else
+   { THD_string_array * sar ;  /*** This code is for experiments only! ***/
+     INIT_SARR(sar) ;
+     for( id=0 ; id < num_dset ; id++ ) ADDTO_SARR(sar,strlist[id]) ;
+
+     MCW_choose_multi_editable_strlist( w , "Datasets to Write" , mcwCT_multi_mode ,
+                                        sar , NULL ,
+                                        AFNI_do_many_writes , (XtPointer) idclist ) ;
+   }
+#endif
 
    XtVaSetValues( w , XmNuserData , (XtPointer) im3d , NULL ) ;
 

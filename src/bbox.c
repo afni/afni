@@ -1807,6 +1807,21 @@ void MCW_choose_string( Widget wpar , char * label ,
    return ;
 }
 
+/*-------------------------------------------------------------------------*/
+
+static int list_max = -1 , list_maxmax ;
+
+static MCW_set_listmax( Widget wpar )
+{
+   if( list_max < 0 ){
+      char * xdef = XGetDefault( XtDisplay(wpar) , "AFNI" , "chooser_listmax" ) ;
+      if( xdef != NULL ) list_max = strtol( xdef , NULL , 10 ) ;
+      if( list_max <= 1 ) list_max = LIST_MAX ;
+      list_maxmax = list_max + 5 ;
+   }
+   return ;
+}
+
 /*-------------------------------------------------------------------------
    Get an integer, as an index to an array of strings:
      pops up a shell to let the user make the selection, cycling through
@@ -1854,7 +1869,6 @@ void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
    XmString xms ;
    char * lbuf ;
    int nvisible ;
-   static int list_max = -1 , list_maxmax ;
 
    /** destructor callback **/
 
@@ -1873,12 +1887,7 @@ void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
       return ;
    }
 
-   if( list_max < 0 ){
-      char * xdef = XGetDefault( XtDisplay(wpar) , "AFNI" , "chooser_listmax" ) ;
-      if( xdef != NULL ) list_max = strtol( xdef , NULL , 10 ) ;
-      if( list_max <= 1 ) list_max = LIST_MAX ;
-      list_maxmax = list_max + 5 ;
-   }
+   MCW_set_listmax( wpar ) ;
 
    /*--- if popup widget already exists, destroy it ---*/
 
@@ -2104,7 +2113,6 @@ void MCW_choose_timeseries( Widget wpar , char * label ,
    XmStringTable xmstr ;
    XmString xms ;
    char * lbuf ;
-   static int list_max = -1 , list_maxmax ;
    char pbuf[256] , qbuf[256] ;
    MRI_IMAGE * tsim ;
 
@@ -2125,12 +2133,7 @@ void MCW_choose_timeseries( Widget wpar , char * label ,
       return ;
    }
 
-   if( list_max < 0 ){
-      char * xdef = XGetDefault( XtDisplay(wpar) , "AFNI" , "chooser_listmax" ) ;
-      if( xdef != NULL ) list_max = strtol( xdef , NULL , 10 ) ;
-      if( list_max <= 1 ) list_max = LIST_MAX ;
-      list_maxmax = list_max + 5 ;
-   }
+   MCW_set_listmax( wpar ) ;
 
    /*--- if popup widget already exists, destroy it ---*/
 
@@ -2282,6 +2285,346 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
    XtPopup( wpop , XtGrabNone ) ;
 
    return ;
+}
+
+/*-------------------------------------------------------------------------
+   Get an integer, as an index to an array of strings:
+   * pops up a shell to let the user make the selection, cycling through
+     the string array
+   * allows the user to add to the string array
+
+     wpar         = parent widget (where to popup)
+     label        = label for chooser
+     sar          = array of initial strings (see 3ddata.h)
+                    [may be changed by the user during operations]
+     init         = index of initial string
+     func         = routine to call when a selection is made:
+            void func( Widget wpar,XtPointer func_data,MCW_choose_cbs * cbs )
+     func_data    = data to pass to func
+
+     The "ival" stored in the MCW_choose_cbs will be the desired result.
+
+   This routine is coded in such a way that only one chooser will be
+   active at a time (per application).  This is a deliberate choice.
+---------------------------------------------------------------------------*/
+
+void MCW_choose_editable_strlist( Widget wpar , char * label ,
+                                  THD_string_array * sar ,
+                                  int init , gen_func * func , XtPointer func_data )
+{
+   int initar[2] ;
+   initar[0] = init ;
+   initar[1] = -666 ;
+
+   MCW_choose_multi_editable_strlist( wpar , label , mcwCT_single_mode ,
+                                      sar , initar , func , func_data ) ;
+   return ;
+}
+
+void MCW_choose_multi_editable_strlist( Widget wpar , char * label , int mode ,
+                                        THD_string_array * sar ,
+                                        int * init ,
+                                        gen_func * func , XtPointer func_data )
+{
+   static Widget wpop = NULL , wrc , wrc2 ;
+   static MCW_choose_data cd ;
+   Position xx,yy ;
+   int ib , ll , ltop , num_str ;
+   Widget wlist = NULL , wlab , wtf , wadd ;
+   XmStringTable xmstr ;
+   XmString xms ;
+   char * lbuf ;
+   int nvisible ;
+
+   /** destructor callback **/
+
+   if( wpar == NULL ){
+      if( wpop != NULL ){
+         XtUnmapWidget( wpop ) ;
+         XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
+         XtDestroyWidget( wpop ) ;
+      }
+      wpop = NULL ; return ;
+   }
+
+   if( ! XtIsRealized(wpar) ){  /* illegal call */
+      fprintf(stderr,"\n*** illegal call to MCW_choose_strlist %s\n",
+              XtName(wpar) ) ;
+      return ;
+   }
+
+   MCW_set_listmax( wpar ) ;
+
+   /*--- if popup widget already exists, destroy it ---*/
+
+   if( wpop != NULL ){
+      XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
+      XtDestroyWidget( wpop ) ;
+   }
+
+   wlist = NULL ;
+
+   /*--- create popup widget ---*/
+
+   wpop = XtVaCreatePopupShell(                           /* Popup Shell */
+             "AFNI" , xmDialogShellWidgetClass , wpar ,
+                XmNallowShellResize , True ,
+                XmNtraversalOn , False ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
+
+   if( MCW_isitmwm(wpar) ){
+      XtVaSetValues( wpop ,
+                        XmNmwmDecorations ,  MWM_DECOR_BORDER ,
+                        XmNmwmFunctions   ,  MWM_FUNC_MOVE
+                                           | MWM_FUNC_CLOSE ,
+                     NULL ) ;
+   }
+
+   XtAddCallback( wpop , XmNdestroyCallback , MCW_destroy_chooser_CB , &wpop ) ;
+
+   XmAddWMProtocolCallback(
+        wpop ,
+        XmInternAtom( XtDisplay(wpop) , "WM_DELETE_WINDOW" , False ) ,
+        MCW_kill_chooser_CB , wpop ) ;
+
+   /* RowColumn to hold all */
+
+   wrc  = XtVaCreateWidget(
+             "menu" , xmRowColumnWidgetClass , wpop ,
+                XmNpacking     , XmPACK_TIGHT ,
+                XmNorientation , XmVERTICAL ,
+                XmNtraversalOn , False ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
+
+   /* Label at the top */
+
+   if( label != NULL ){
+      lbuf = XtMalloc( strlen(label) + 32 ) ;
+      sprintf( lbuf , "----Choose %s----\n%s" ,
+               (mode == mcwCT_single_mode) ? "One" : "One or More" , label ) ;
+   } else {
+      lbuf = XtMalloc( 32 ) ;
+      sprintf( lbuf , "----Choose %s----",
+               (mode == mcwCT_single_mode) ? "One" : "One or More" ) ;
+   }
+   xms = XmStringCreateLtoR( lbuf , XmFONTLIST_DEFAULT_TAG ) ;
+   wlab = XtVaCreateManagedWidget(
+                "menu" , xmLabelWidgetClass , wrc ,
+                   XmNlabelString   , xms  ,
+                   XmNalignment     , XmALIGNMENT_CENTER ,
+                   XmNinitialResourcesPersistent , False ,
+                NULL ) ;
+   myXtFree(lbuf) ; XmStringFree(xms) ;
+
+   /* Separator line */
+
+   (void) XtVaCreateManagedWidget(
+            "menu" , xmSeparatorWidgetClass , wrc ,
+                XmNseparatorType , XmSHADOW_ETCHED_IN ,
+                XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+   /* List to choose from */
+
+   wlist = XmCreateScrolledList( wrc , "menu" , NULL , 0 ) ;
+   XtVaSetValues( wlist ,
+                    XmNtraversalOn      , True ,
+                    XmNselectionPolicy  , (mode == mcwCT_single_mode)
+                                          ? XmSINGLE_SELECT : XmMULTIPLE_SELECT ,
+                  NULL ) ;
+
+   num_str = SARR_NUM(sar) ;
+
+   if( num_str > 0 ){
+      xmstr = (XmStringTable) XtMalloc( num_str * sizeof(XmString *) ) ;
+      for( ib=0 ; ib < num_str ; ib++ )
+         xmstr[ib] = XmStringCreateSimple( SARR_STRING(sar,ib) ) ;
+
+      nvisible = (num_str < list_maxmax ) ? num_str : list_max ;
+      XtVaSetValues( wlist ,
+                       XmNitems            , xmstr ,
+                       XmNitemCount        , num_str ,
+                       XmNvisibleItemCount , nvisible ,
+                     NULL ) ;
+
+      if( init != NULL ){
+         for( ib=0 ; init[ib] >= 0 && init[ib] < num_str ; ib++ ){
+            XmListSelectPos( wlist , init[ib]+1 , False ) ;
+         }
+         if( ib > 0 && init[ib-1] > nvisible )
+            XmListSetBottomPos( wlist , init[ib-1]+1 ) ;
+      }
+
+      for( ib=0 ; ib < num_str ; ib++ ) XmStringFree(xmstr[ib]) ;
+      myXtFree(xmstr) ;
+   }
+
+   XtManageChild(wlist) ;
+
+   /* Some help? */
+
+   if( mode == mcwCT_multi_mode ){
+      MCW_register_help( wlist , OVC_list_help_2 ) ;
+      MCW_register_help( wlab  , OVC_list_help_2 ) ;
+   } else {
+      MCW_register_help( wlist , OVC_list_help_1 ) ;
+      MCW_register_help( wlab  , OVC_list_help_1 ) ;
+      XtAddCallback( wlist , XmNdefaultActionCallback , MCW_choose_CB , &cd ) ;
+   }
+
+   cd.wchoice = wlist ;
+   cd.av      = NULL ;   /* this is NULL --> will use the list widget */
+
+   cd.wpop    = wpop ;  /* data to be passed to pushbutton callback */
+   cd.wcaller = wpar ;
+   cd.sel_CB  = func ;
+   cd.sel_cd  = func_data ;
+   cd.ctype   = mcwCT_integer ;
+   cd.sar     = sar ;
+
+   /* action buttons */
+
+   for( ib=0 ; ib < NUM_OVC_ACT ; ib++ ) OVC_act[ib].data = &cd ;
+
+   (void) MCW_action_area( wrc , OVC_act , NUM_OVC_ACT ) ;
+
+   /* choosing mode, for multiple selections */
+
+   if( mode == mcwCT_multi_mode ){
+      MCW_arrowval * av ;
+
+      (void) XtVaCreateManagedWidget(
+               "menu" , xmSeparatorWidgetClass , wrc ,
+                   XmNseparatorType , XmSHADOW_ETCHED_IN ,
+                   XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+
+      av = new_MCW_optmenu( wrc , "Selection Mode" , 0,NUM_LIST_MODES-1,0,0 ,
+                            MCW_list_mode_CB , wlist ,
+                            MCW_av_substring_CB , list_modes ) ;
+
+      MCW_reghelp_children( av->wrowcol , OVC_list_help_2 ) ;
+      MCW_reghint_children( av->wrowcol , "How list selections work" ) ;
+   }
+
+   /* Separator line */
+
+   (void) XtVaCreateManagedWidget(
+            "menu" , xmSeparatorWidgetClass , wrc ,
+                XmNseparatorType , XmSINGLE_LINE ,
+                XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+   /*-- Stuff to string array --*/
+
+   wrc2 = XtVaCreateWidget(                            /* Rowcol for stuff */
+             "menu" , xmRowColumnWidgetClass , wrc ,
+                XmNpacking      , XmPACK_TIGHT ,
+                XmNorientation  , XmHORIZONTAL ,
+                XmNtraversalOn , False ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
+
+   wtf = XtVaCreateManagedWidget(                      /* String to add */
+             "menu" , TEXT_CLASS , wrc2 ,
+
+                 XmNcolumns         , 24 ,
+                 XmNeditable        , True ,
+                 XmNmaxLength       , 128 ,
+                 XmNresizeWidth     , False ,
+
+                 XmNmarginHeight    , 1 ,
+                 XmNmarginWidth     , 1 ,
+
+                 XmNcursorPositionVisible , True ,
+                 XmNblinkRate , 0 ,
+                 XmNautoShowCursorPosition , True ,
+
+                 XmNinitialResourcesPersistent , False ,
+                 XmNtraversalOn , False ,
+              NULL ) ;
+
+   xms = XmStringCreateLtoR( "Add" , XmFONTLIST_DEFAULT_TAG ) ;
+
+   wadd = XtVaCreateManagedWidget(                     /* Button to add it */
+             "menu" , xmPushButtonWidgetClass , wrc2 ,
+                XmNlabelString  , xms ,
+                XmNtraversalOn , False ,
+                XmNinitialResourcesPersistent , False ,
+             NULL ) ;
+
+   XmStringFree(xms) ;
+
+   { static char * redcolor = NULL ;
+     if( redcolor == NULL ){ HOTCOLOR(wpar,redcolor) ; }
+     MCW_set_widget_bg( wadd , redcolor , 0 ) ;
+   }
+
+   XtAddCallback( wadd, XmNactivateCallback, MCW_stradd_CB, &cd ) ;
+   XtAddCallback( wtf , XmNactivateCallback, MCW_stradd_CB, &cd ) ;
+   cd.wtf = wtf ;
+
+   MCW_reghelp_children( wrc2 , "Type an entry and press Add\n"
+                                "or hit Enter to make a new\n"
+                                "entry in the chooser list."   ) ;
+
+   MCW_reghint_children( wrc2 , "Enter new item into chooser list" ) ;
+
+   XtManageChild( wrc2 ) ;
+
+   /* make it appear, like magic! */
+
+   XtTranslateCoords( wpar , 15,15 , &xx , &yy ) ;
+   XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
+
+   XtManageChild( wrc ) ;
+   XtPopup( wpop , XtGrabNone ) ;
+
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+void MCW_stradd_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   MCW_choose_data * cd = (MCW_choose_data *) client_data ;
+   char * nstr = TEXT_GET( cd->wtf ) ;
+   int id , nvisible , num_str ;
+   XmString xms ;
+
+   if( nstr == NULL || strlen(nstr) == 0 ){ XBell(XtDisplay(w),100); return; }
+
+   /* see if new string is already in the list */
+
+   for( id=0 ; id < SARR_NUM(cd->sar) ; id++ )
+      if( strcmp(nstr,SARR_STRING(cd->sar,id)) == 0 ) break ;
+
+   if( id < SARR_NUM(cd->sar) ){ /* found it, so just jump to it in the list */
+
+      XmListSetBottomPos( cd->wchoice , id+1 ) ;      /* put on bottom */
+      XmListSelectPos( cd->wchoice , id+1 , False ) ; /* select it */
+
+   } else {                      /* is a new string, so add it to the list */
+
+      ADDTO_SARR( cd->sar , nstr ) ;           /* add to internal list */
+
+      xms = XmStringCreateSimple( nstr ) ;
+      XmListAddItem( cd->wchoice , xms , 0 ) ; /* add to List widget */
+      XmStringFree(xms) ;
+
+      num_str = SARR_NUM(cd->sar) ;
+      nvisible = (num_str < list_maxmax) ? num_str : list_max ;
+      XtVaSetValues( cd->wchoice ,
+                       XmNvisibleItemCount , nvisible ,
+                     NULL ) ;
+
+      XmListSetBottomPos( cd->wchoice , 0 ) ;      /* make sure it is visible */
+      XmListSelectPos( cd->wchoice , 0 , False ) ; /* select it */
+   }
+
+   myXtFree(nstr) ; return ;
 }
 
 /*--------------------------------------------------------------------------*/

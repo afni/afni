@@ -345,6 +345,11 @@ extern double mri_maxabs( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_cut_2D( MRI_IMAGE * , int,int,int,int ) ;
 
+/** 15 Apr 1999 **/
+
+extern void mri_upsample( int , int , float * , float * ) ;
+extern MRI_IMAGE * mri_dup2D( int , MRI_IMAGE * ) ;
+
 extern MRI_IMAGE *mri_new( int , int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_read( char * ) ;
 extern int mri_write( char * , MRI_IMAGE * ) ;
@@ -403,6 +408,7 @@ extern MRI_IMAGE *mri_to_byte_scl( double , double , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_to_rgb( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_3to_rgb( MRI_IMAGE * , MRI_IMAGE * , MRI_IMAGE * ) ;
 extern MRI_IMARR * mri_rgb_to_3float( MRI_IMAGE * ) ;
+extern MRI_IMARR * mri_rgb_to_3byte( MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_sharpen_rgb( float , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_flatten_rgb( MRI_IMAGE * ) ;
 

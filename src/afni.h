@@ -118,12 +118,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.21e"
+#define VERSION "2.21f"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "15 April 1999    "
+#define RELEASE "19 April 1999    "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -503,7 +503,7 @@ typedef struct {
 
       Widget         mbar_rowcol ;
       MCW_bbox     * lock_bbox ;
-      Widget         lock_enforce_pb , lock_clear_pb ;
+      Widget         lock_enforce_pb , lock_clear_pb , lock_setall_pb ;
 
       Widget         misc_voxind_pb ;
       Widget         misc_hints_pb ;
@@ -860,10 +860,11 @@ extern void AFNI_clone_controller_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_controller_panel_CB( Widget , XtPointer , XtPointer ) ;
 
 /* "locks" 04 Nov 1996 */
-extern void AFNI_lock_enforce_CB    ( Widget , XtPointer , XtPointer ) ;
-extern void AFNI_lock_change_CB     ( Widget , XtPointer , XtPointer ) ;
-extern void AFNI_lock_clear_CB      ( Widget , XtPointer , XtPointer ) ;
-extern void AFNI_lock_carryout      ( Three_D_View * ) ;
+extern void AFNI_lock_enforce_CB( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_lock_change_CB ( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_lock_clear_CB  ( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_lock_setall_CB ( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_lock_carryout  ( Three_D_View * ) ;
 
 extern void AFNI_time_lock_carryout( Three_D_View * ) ;  /* 03 Nov 1998 */
 extern void AFNI_time_lock_change_CB( Widget , XtPointer , XtPointer ) ;

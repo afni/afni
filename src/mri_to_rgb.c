@@ -64,20 +64,22 @@ MRI_IMAGE * mri_3to_rgb( MRI_IMAGE * rim , MRI_IMAGE * gim , MRI_IMAGE * bim )
 
       case MRI_byte:{
          byte * rr=MRI_BYTE_PTR(rim), * gg=MRI_BYTE_PTR(gim), * bb=MRI_BYTE_PTR(bim) ;
-         for( ii=0 ; ii < npix ; ii++ )
+         for( ii=0 ; ii < npix ; ii++ ){
             rgb[3*ii  ] = rr[ii] ;
             rgb[3*ii+1] = gg[ii] ;
             rgb[3*ii+2] = bb[ii] ;
          }
+      }
       break ;
 
       case MRI_float:{
          float * rr=MRI_FLOAT_PTR(rim), * gg=MRI_FLOAT_PTR(gim), * bb=MRI_FLOAT_PTR(bim) ;
-         for( ii=0 ; ii < npix ; ii++ )
+         for( ii=0 ; ii < npix ; ii++ ){
             rgb[3*ii  ] = rr[ii] ;
             rgb[3*ii+1] = gg[ii] ;
             rgb[3*ii+2] = bb[ii] ;
          }
+      }
       break ;
 
       default:
@@ -105,6 +107,35 @@ MRI_IMARR * mri_rgb_to_3float( MRI_IMAGE * oldim )
    gim = mri_new_conforming( oldim , MRI_float ) ; gg = MRI_FLOAT_PTR(gim) ;
    bim = mri_new_conforming( oldim , MRI_float ) ; bb = MRI_FLOAT_PTR(bim) ;
                                                    rgb= MRI_BYTE_PTR(oldim) ;
+   npix = oldim->nvox ;
+
+   for( ii=0 ; ii < npix ; ii++ ){
+      rr[ii] = rgb[3*ii  ] ;
+      gg[ii] = rgb[3*ii+1] ;
+      bb[ii] = rgb[3*ii+2] ;
+   }
+
+   INIT_IMARR(imar) ;
+   ADDTO_IMARR(imar,rim) ; ADDTO_IMARR(imar,gim) ; ADDTO_IMARR(imar,bim) ;
+
+   return imar ;
+}
+
+/*-------------------------------------------------------------------------------*/
+
+MRI_IMARR * mri_rgb_to_3byte( MRI_IMAGE * oldim )  /* 15 Apr 1999 */
+{
+   MRI_IMARR * imar ;
+   MRI_IMAGE * rim , * gim , * bim ;
+   byte      * rr  , * gg  , * bb  , * rgb ;
+   int ii , npix ;
+
+   if( oldim == NULL || oldim->kind != MRI_rgb ) return NULL ;
+
+   rim = mri_new_conforming( oldim , MRI_byte ) ; rr = MRI_BYTE_PTR(rim) ;
+   gim = mri_new_conforming( oldim , MRI_byte ) ; gg = MRI_BYTE_PTR(gim) ;
+   bim = mri_new_conforming( oldim , MRI_byte ) ; bb = MRI_BYTE_PTR(bim) ;
+                                                  rgb= MRI_BYTE_PTR(oldim) ;
    npix = oldim->nvox ;
 
    for( ii=0 ; ii < npix ; ii++ ){

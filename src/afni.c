@@ -3142,6 +3142,26 @@ ENTRY("AFNI_lock_clear_CB") ;
    EXRETURN ;
 }
 
+void AFNI_lock_setall_CB( Widget w , XtPointer cd , XtPointer calld )
+{
+   Three_D_View * qq3d ;
+   int ii ;
+
+ENTRY("AFNI_lock_setall_CB") ;
+
+   GLOBAL_library.controller_lock = 0 ;
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+      GLOBAL_library.controller_lock |= (1<<ii) ;
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      qq3d = GLOBAL_library.controllers[ii] ;
+      if( IM3D_VALID(qq3d) )
+         MCW_set_bbox( qq3d->vwid->dmode->lock_bbox ,
+                       GLOBAL_library.controller_lock ) ;
+   }
+   EXRETURN ;
+}
+
 void AFNI_lock_carryout( Three_D_View * im3d )
 {
    Three_D_View * qq3d ;

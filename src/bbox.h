@@ -201,6 +201,9 @@ extern char * MCW_av_substring_CB( MCW_arrowval * , XtPointer ) ;
 #define POPDOWN_integer_chooser    MCW_choose_integer(NULL,NULL,0,0,0,NULL,NULL)
 #define POPDOWN_timeseries_chooser MCW_choose_timeseries(NULL,NULL,NULL,0,NULL,NULL)
 
+#define POPDOWN_editable_strlist_chooser \
+                                   MCW_choose_editable_strlist(NULL,NULL,NULL,0,NULL,NULL)
+
 extern void MCW_list_mode_CB( MCW_arrowval * , XtPointer ) ;
 
 extern char * MCW_DC_ovcolor_text( MCW_arrowval * , MCW_DC * ) ;
@@ -211,19 +214,29 @@ extern void   MCW_destroy_chooser_CB( Widget , XtPointer , XtPointer ) ;
 extern void   MCW_kill_chooser_CB   ( Widget , XtPointer , XtPointer ) ;
 
 extern void   MCW_choose_integer( Widget , char * ,
-                           int,int,int , gen_func * , XtPointer ) ;
+                                  int,int,int , gen_func *, XtPointer );
 
-extern void   MCW_choose_string( Widget , char * , char * , gen_func * , XtPointer ) ;
+extern void   MCW_choose_string( Widget, char *, char *, gen_func *, XtPointer );
 
-extern void   MCW_choose_strlist( Widget , char * , int , int ,
-                                  char * strlist[] , gen_func * , XtPointer ) ;
+extern void   MCW_choose_strlist( Widget, char *, int, int,
+                                  char * strlist[], gen_func *, XtPointer );
 
-extern void   MCW_choose_multi_strlist( Widget , char * , int ,
-                                        int , int * , char * strlist[] ,
-                                        gen_func * , XtPointer  ) ;
+extern void   MCW_choose_multi_strlist( Widget, char *, int,
+                                        int, int *, char * strlist[],
+                                        gen_func *, XtPointer  );
 
-extern void   MCW_choose_timeseries( Widget , char * , MRI_IMARR * ,
-                                     int , gen_func * , XtPointer ) ;
+extern void   MCW_choose_timeseries( Widget, char *, MRI_IMARR *,
+                                     int, gen_func *, XtPointer );
+
+extern void MCW_choose_editable_strlist( Widget, char *,
+                                         THD_string_array *,
+                                         int, gen_func *, XtPointer );
+
+extern void MCW_choose_multi_editable_strlist( Widget, char *, int,
+                                               THD_string_array *,
+                                               int *, gen_func *, XtPointer );
+
+extern void MCW_stradd_CB( Widget , XtPointer , XtPointer ) ;
 
 typedef struct {
       int            ctype ;   /* choice type */
@@ -237,6 +250,9 @@ typedef struct {
       MRI_IMARR    * tsarr ;   /* array of timeseries to choose from */
 
       XtPointer parent , aux ;
+
+      THD_string_array * sar ; /* array of strings, for editable_strlist */
+      Widget             wtf ; /* text field, for editable_strlist */
 } MCW_choose_data ;
 
 #define mcwCT_ovcolor    701

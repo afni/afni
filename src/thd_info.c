@@ -129,9 +129,9 @@ char * THD_dataset_info( THD_3dim_dataset * dset , int verbose )
    XLAB(xlbot,fv1.xyz[0]) ; YLAB(ylbot,fv1.xyz[1]) ; ZLAB(zlbot,fv1.xyz[2]) ;
    XLAB(xltop,fv2.xyz[0]) ; YLAB(yltop,fv2.xyz[1]) ; ZLAB(zltop,fv2.xyz[2]) ;
 
-   n1 = DAXES_NUM(daxes,daxes->xxorient) ;
-   n2 = DAXES_NUM(daxes,daxes->yyorient) ;
-   n3 = DAXES_NUM(daxes,daxes->zzorient) ;
+   n1 = DAXES_NUM(daxes,ORI_R2L_TYPE) ;
+   n2 = DAXES_NUM(daxes,ORI_A2P_TYPE) ;
+   n3 = DAXES_NUM(daxes,ORI_I2S_TYPE) ;
 
    outbuf = THD_zzprintf(outbuf,
       "R-to-L extent: %9.3f %s -to- %9.3f %s -step- %9.3f mm [%3d voxels]\n"

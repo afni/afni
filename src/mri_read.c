@@ -141,6 +141,9 @@ WHOAMI ;
          im = mri_read_ascii( fname ) ;    /* list of ASCII numbers */
          if( im != NULL ) return im ;
 
+         im = mri_read_ppm( fname ) ;      /* 15 Apr 1999 */
+         if( im != NULL ) return im ;
+
          fprintf( stderr , "do not recognize file %s\n" , fname );
          fprintf( stderr , "length seen as %d\n" , length ) ;
          return NULL ;

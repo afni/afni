@@ -4286,7 +4286,7 @@ ENTRY("AFNI_lock_button") ;
 
    /*** to clear all locks right now ***/
 
-   xstr = XmStringCreateLtoR( "Clear" , XmFONTLIST_DEFAULT_TAG ) ;
+   xstr = XmStringCreateLtoR( "Clear All" , XmFONTLIST_DEFAULT_TAG ) ;
    dmode->lock_clear_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , menu ,
@@ -4299,6 +4299,22 @@ ENTRY("AFNI_lock_button") ;
                   AFNI_lock_clear_CB , (XtPointer)im3d ) ;
    XmStringFree(xstr) ;
    MCW_register_hint( dmode->lock_clear_pb , "Clear all locked controllers" ) ;
+
+   /*** to set all locks right now [19 Apr 1999] ***/
+
+   xstr = XmStringCreateLtoR( "Set All" , XmFONTLIST_DEFAULT_TAG ) ;
+   dmode->lock_setall_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               XmNlabelString , xstr ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->lock_setall_pb , XmNactivateCallback ,
+                  AFNI_lock_setall_CB , (XtPointer)im3d ) ;
+   XmStringFree(xstr) ;
+   MCW_register_hint( dmode->lock_setall_pb , "Set all locked controllers" ) ;
 
    /*** to enforce locks right now ***/
 

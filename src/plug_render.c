@@ -10,6 +10,7 @@
 #endif
 
 #undef REND_DEBUG
+#define ONLY_AXIAL
 
 /***********************************************************************
   Plugin to render a volume dataset.  Makes a custom interface.
@@ -1906,7 +1907,19 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     (x axis is Right-to-Left, y axis is Anterior-to-Posterior,\n"
        "     and z axis is Inferior-to-Posterior).  This orientation\n"
        "     is how datasets are written out in the +acpc and +tlrc\n"
-       "     coordinates.\n"
+       "     coordinates -- with axial slices.\n"
+#ifdef ONLY_AXIAL
+       "   N.B.: Combining the 3ddup and 3daxialize programs makes it\n"
+       "         possible to create an cubical-voxel axially-oriented\n"
+       "         copy of any dataset.\n"
+#else
+       "   N.B.: The requirement that the dataset be stored in axial slices\n"
+       "         has been removed; however, the cutouts will not work\n"
+       "         properly.  For example, a 'Superior to' cutout will remove\n"
+       "         voxels along the 3rd axis of a dataset; for a dataset made\n"
+       "         up of sagittal slices, this will result in a 'Left of' or\n"
+       "         a 'Right of' type of cutting.\n"
+#endif
        "\n"
        " * Use the Draw button to render and image after making changes\n"
        "     to the drawing parameters or after closing the image window.\n"
@@ -2218,7 +2231,7 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     different when viewed outside AFNI (e.g., using program xv).\n"
        "   N.B.: When viewing an RGB image, most of the image processing\n"
        "         options available from the 'Disp' control panel do not\n"
-       "         function.  'Sharpen' still works.\n"
+       "         function.  'Sharpen' still works, and is very useful.\n"
        "\n"
        "Final Notes:\n"
        "------------\n"
@@ -2261,6 +2274,16 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
     - bricks must be in RAI orientation
 ---------------------------------------------------------------------*/
 
+/*-- 26 Apr 1999: relax requirement that dataset be axial --*/
+
+#ifdef ONLY_AXIAL
+# define IS_AXIAL(ds) ( ( (ds)->daxes->xxorient == ORI_R2L_TYPE ) && \
+                        ( (ds)->daxes->yyorient == ORI_A2P_TYPE ) && \
+                        ( (ds)->daxes->zzorient == ORI_I2S_TYPE )     )
+#else
+# define IS_AXIAL(ds) (1)
+#endif
+
 #define USEFUL_DSET(ds)                                    \
     (( ISVALID_DSET(ds)                      )          && \
      ( DSET_INMEMORY(ds)                     )          && \
@@ -2268,9 +2291,7 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
      ( DSET_BRICK_TYPE(ds,0) == MRI_short ||               \
        DSET_BRICK_TYPE(ds,0) == MRI_byte  ||               \
       (DSET_BRICK_TYPE(ds,0) == MRI_float && float_ok)) && \
-     ( (ds)->daxes->xxorient == ORI_R2L_TYPE )          && \
-     ( (ds)->daxes->yyorient == ORI_A2P_TYPE )          && \
-     ( (ds)->daxes->zzorient == ORI_I2S_TYPE )            )
+     IS_AXIAL(ds)                                            )
 
 static int                  ndsl = 0 ;
 static PLUGIN_dataset_link * dsl = NULL ;
