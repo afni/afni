@@ -4887,6 +4887,10 @@ void RWCOX_popper(void) ;
 void SKIT_popper( Three_D_View * ) ;
 #endif
 
+static int    num_poem  = 0 ;    /* 15 Oct 2003 */
+static char **fname_poem=NULL ;
+static void AFNI_find_poem_files(void) ;
+
 /*---------------------------------------------------------------
   Callback for all actions in the hidden popup
 -----------------------------------------------------------------*/
@@ -5011,8 +5015,123 @@ ENTRY("AFNI_hidden_CB") ;
                                  MCW_USER_KILL ) ;
    }
 
+   else if( w == im3d->vwid->prog->hidden_ranpoem_pb ){
+     static int *dold=NULL, ndold=0 ; int qq,dd ;
+     char *poem ;
+
+     if( num_poem < 0 ) EXRETURN ;
+     if( num_poem == 0 ){
+       AFNI_find_poem_files() ;
+       if( num_poem <= 0 ){ num_poem = -1 ; EXRETURN ; }
+     }
+     if( ndold == 0 && num_poem > 1 ){
+       ndold = num_poem/2 ;
+       dold  = (int *) malloc(sizeof(int)*ndold) ;
+       for( qq=0 ; qq < ndold ; qq++ ) dold[qq] = -1 ;
+     }
+   Retry_dd:
+     dd = (lrand48() >> 8) % num_poem ;              /* pick random file */
+     if( num_poem > 1 ){                       /* check if used recently */
+       for( qq=0 ; qq < ndold && dold[qq] != dd ; qq++ ) ;       /* nada */
+       if( qq < ndold ) goto Retry_dd ;                    /* was recent */
+       for( qq=1 ; qq < ndold ; qq++ )        /* wasn't, so save in list */
+         dold[qq-1] = dold[qq] ;
+       dold[ndold-1] = dd ;
+     }
+     poem = AFNI_suck_file( fname_poem[dd] ) ;
+     if( poem == NULL ) EXRETURN ;
+     (void) MCW_popup_message( im3d->vwid->imag->topper, poem, MCW_USER_KILL );
+     free( poem ) ;
+   }
+
    /****----- Get Outta Here -----****/
 
+   EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
+
+static void AFNI_find_poem_files(void)  /* 15 Oct 2003 */
+{
+   char *epath , *elocal , *eee ;
+   char edir[THD_MAX_NAME] , **ename ;
+   int epos , ll , ii , id , npoem , nx,ny , nep ;
+   char **fpoem ;
+
+ENTRY("AFNI_find_poem_files") ;
+
+   if( num_poem != 0 ) EXRETURN ; /* should never happen */
+
+   /*----- get path to search -----*/
+
+                       epath = getenv("AFNI_PLUGINPATH") ;
+   if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
+   if( epath == NULL ) epath = getenv("PATH") ;
+   if( epath == NULL ){ num_poem=-1; EXRETURN ; }
+
+   /*----- copy path list into local memory -----*/
+
+   ll = strlen(epath) ;
+   elocal = malloc( sizeof(char) * (ll+2) ) ;
+
+   /*----- put a blank at the end -----*/
+
+   strcpy( elocal , epath ) ; elocal[ll] = ' ' ; elocal[ll+1] = '\0' ;
+
+   /*----- replace colons with blanks -----*/
+
+   for( ii=0 ; ii < ll ; ii++ )
+      if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
+
+
+   /*----- extract blank delimited strings;
+           use as directory names to look for files -----*/
+
+   ename    = (char **) malloc(sizeof(char *)*2) ;
+   ename[0] = (char *)  malloc(THD_MAX_NAME) ;
+   ename[1] = (char *)  malloc(THD_MAX_NAME) ;
+
+   epos = 0 ;
+
+   do{
+      ii = sscanf( elocal+epos , "%s%n" , edir , &id ); /* next substring */
+      if( ii < 1 ) break ;                              /* none -> done   */
+
+      /** check if edir occurs earlier in elocal **/
+
+      eee = strstr( elocal , edir ) ;
+      if( eee != NULL && (eee-elocal) < epos ){ epos += id ; continue ; }
+
+      epos += id ;                                 /* char after last scanned */
+
+      ii = strlen(edir) ;                          /* make sure name has   */
+      if( edir[ii-1] != '/' ){                     /* a trailing '/' on it */
+          edir[ii]  = '/' ; edir[ii+1] = '\0' ;
+      }
+      strcpy(ename[0],edir) ;
+      strcat(ename[0],"poem_*.txt") ;        /* add filename pattern */
+      nep = 1 ;
+
+      MCW_file_expand( nep,ename, &npoem , &fpoem );   /* find files that match */
+      if( npoem <= 0 ) continue ;                     /* no files found */
+
+      /** add files we found to list **/
+
+      if( fname_poem == NULL )
+        fname_poem = (char **)malloc(sizeof(char *)*npoem) ;
+      else
+        fname_poem = (char **)realloc(fname_poem,sizeof(char *)*(num_poem+npoem));
+
+      for( ii=0 ; ii < npoem ; ii++ )
+        fname_poem[num_poem++] = strdup(fpoem[ii]) ;
+
+      MCW_free_expand( npoem , fpoem ) ;
+
+   } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
+
+   free(elocal) ; free(ename[0]) ; free(ename[1]) ; free(ename) ;
+
+   if( num_poem == 0 ) num_poem = -1 ;
    EXRETURN ;
 }
 

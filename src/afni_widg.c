@@ -4119,6 +4119,24 @@ STATUS("making prog->rowcol") ;
       XtAddCallback( prog->hidden_gamberi_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
 
+      /*----------*/
+
+      (void) XtVaCreateManagedWidget(
+               "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,
+                  XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+      prog->hidden_ranpoem_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Random Poem") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_ranpoem_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+
     } /* if prog->hidden_menu isn't NULL */
    }
 #endif  /* USE_HIDDEN */
