@@ -936,4 +936,7 @@ extern double poisson_p2t ( double qq , double lambda ) ;
 #include "afni_environ.h"  /* 07 Jun 1999 addition */
 /*------------------------------------------------------------------------*/
 
+extern MRI_IMAGE * THD_average_timeseries( MCW_cluster_array *, THD_3dim_dataset *) ;
+extern MRI_IMAGE * THD_average_one_timeseries( MCW_cluster *, THD_3dim_dataset *) ;
+
 #endif /* _MCW_MRILIB_HEADER_ */

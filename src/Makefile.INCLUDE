@@ -1020,7 +1020,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o  \
            thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o            \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o       \
-           thd_outlier_count.o thd_correlate.o thd_autonudge.o
+           thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o
 
 # these are now included in niml.o
 
