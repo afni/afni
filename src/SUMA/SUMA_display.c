@@ -1130,7 +1130,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
       {  
          XGCValues gcv; /* see program drawing.c in Motif Programming Manual, Ch. 10 */
          gcv.foreground = BlackPixelOfScreen (XtScreen (SUMAg_SVv[ic].X->GLXAREA));
-         SUMAg_SVv[ic].X->gc = XCreateGC (XtDisplay (SUMAg_SVv[ic].X->GLXAREA),
+         SUMAg_SVv[ic].X->gc = XCreateGC (SUMAg_SVv[ic].X->DPY,
                                           RootWindowOfScreen (XtScreen (SUMAg_SVv[ic].X->GLXAREA)), 
                                           GCForeground, &gcv);
          SUMA_SetSVForegroundColor (&SUMAg_SVv[ic], "Green");
@@ -5618,12 +5618,9 @@ void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
 {
    static char FuncName[] = {"SUMA_cb_DrawROI_Delete"};
    XmPushButtonCallbackStruct * pbcbs = (XmPushButtonCallbackStruct *) cbs ;
-   int i=-1;
-   SUMA_ASSEMBLE_LIST_STRUCT *ALS = NULL;
-   SUMA_DRAWN_ROI *NextROI=NULL;
-   DList *list=NULL;
    static int ErrCnt =0;
-   SUMA_Boolean Shaded = NOPE, LocalHead = NOPE;
+   DList *list=NULL;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -5664,44 +5661,12 @@ void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
    
    /* delete ROI */
    ErrCnt = 0;
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Should be deleting ROI %shere ...\n", FuncName, SUMAg_CF->X->DrawROI->curDrawnROI->Label);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Should be deleting ROI %s here ...\n", FuncName, SUMAg_CF->X->DrawROI->curDrawnROI->Label);
    
-   /* form a list of the current ROI available for editing */
-
-      /* assemble the ROI list */
-      ALS = SUMA_AssembleAllROIList (SUMAg_DOv, SUMAg_N_DOv, YUP);
-
-      NextROI = NULL;
-      if (ALS) {
-         if (ALS->N_clist)  {
-            i=0;
-            while (!NextROI && i<ALS->N_clist) {
-               if (ALS->oplist[i] != (void*)SUMAg_CF->X->DrawROI->curDrawnROI) 
-                  NextROI = (SUMA_DRAWN_ROI *)ALS->oplist[i];
-               ++i;
-            }  
-         }
-         SUMA_FreeAssembleListStruct(ALS);
-      }
-
-      
-   /* Close the ROIlist window if it is open */
-   SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
-   if (!Shaded) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing switch ROI window ...\n", FuncName);
-      SUMA_cb_CloseSwitchROI(NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
+   if (!SUMA_DeleteROI (SUMAg_CF->X->DrawROI->curDrawnROI)) {
+      SUMA_SLP_Err("Failed to delete ROI");
+      SUMA_RETURNe; 
    }
-   
-   /* remove ROI for SUMAg_DO and clear the ROI structure*/
-   if (!SUMA_RemoveDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SUMAg_CF->X->DrawROI->curDrawnROI, YUP)) {
-      SUMA_SLP_Err("Failed to remove DO from list.");
-   }
-
-   SUMAg_CF->X->DrawROI->curDrawnROI = NextROI;
-   
-   /* reinitialize the draw ROI window */
-   SUMA_InitializeDrawROIWindow(SUMAg_CF->X->DrawROI->curDrawnROI);
-
    
    /* redisplay */
    if (!list) list = SUMA_CreateList ();
@@ -6745,7 +6710,7 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
    static char FuncName[]={"SUMA_FileSelection_file_select_cb"};
    char buf[256], *filename;
    struct stat statb;
-   FILE *fp;
+   FILE *fp=NULL;
    SUMA_SELECTION_DIALOG_STRUCT *dlg;
    XmFileSelectionBoxCallbackStruct *cbs =
      (XmFileSelectionBoxCallbackStruct *) call_data;
@@ -6775,6 +6740,8 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
    if (dlg->Mode == SUMA_FILE_SAVE) {
       /* here you could do some tests on the file given the
       options that would be specified in dlg */
+      /* Do not carry out tests here as filename might change once proper extensions are added */
+      #if 0
       if (!(fp = fopen (filename, "w"))) {
          perror (filename);
          sprintf (buf, "Can't save to %s.", filename);
@@ -6782,6 +6749,8 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
          XtFree(filename);
          SUMA_RETURNe;
       }
+      #endif
+      
    } 
    else { /* reason == FILE_OPEN */
      /* here you could do some tests on the file given the
@@ -6806,7 +6775,7 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
 
    /* free all allocated space. */
    XtFree (filename);
-   fclose (fp);
+   if (fp) fclose (fp);
 
    /* Now do the SelectCallback */
    if (dlg->SelectCallback) {
@@ -6916,11 +6885,100 @@ void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data)
    SUMA_RETURNe;
 }
 
-/******************** preliminary version of a forced answer dialog **************/
+/*!
+   \brief create a forced answer dialog for replacing ROIs
+   
+   \return SUMA_YES SUMA_NO SUMA_YES_ALL or SUMA_NO_ALL
+*/
+int SUMA_AskUser_ROI_replace(Widget parent, char *question, int default_ans)
+{
+    static char FuncName[]={"SUMA_AskUser_ROI_replace"};
+    static Widget dialog; /* static to avoid multiple creation */
+    Widget YesWid, NoWid, HelpWid;
+    XmString text, yes, no;
+    static int answer;
 
-#define YES 1
-#define NO  2
-#define HELP 3
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!dialog) {
+     dialog = XmCreateQuestionDialog (parent, "dialog", NULL, 0);
+     XtVaSetValues (dialog,
+         XmNdialogStyle,        XmDIALOG_FULL_APPLICATION_MODAL,
+         NULL);
+     XtSetSensitive (
+         XmMessageBoxGetChild (dialog, XmDIALOG_HELP_BUTTON),
+         False);
+     XtAddCallback (dialog, XmNokCallback, SUMA_response, &answer);
+     XtAddCallback (dialog, XmNcancelCallback, SUMA_response, &answer);
+    /* Now add a special extra cute little button */
+    {
+       XmString NewButt;
+       Widget NewButt_button = NULL;
+      
+       NewButt= XmStringCreateLocalized ("Yes All");
+       NewButt_button = XtVaCreateManagedWidget("Yes All", 
+         xmPushButtonWidgetClass, dialog,
+         XmNlabelString, NewButt,
+         NULL);
+       XtVaSetValues(NewButt_button, XmNuserData, SUMA_YES_ALL, NULL);
+       XtAddCallback (NewButt_button, XmNactivateCallback, SUMA_response, &answer);
+       XmStringFree (NewButt);
+       
+
+       NewButt= XmStringCreateLocalized ("No");
+       NewButt_button = XtVaCreateManagedWidget("No", 
+         xmPushButtonWidgetClass, dialog,
+         XmNlabelString, NewButt,
+         NULL);
+       XtVaSetValues(NewButt_button, XmNuserData, SUMA_NO, NULL);
+       XtAddCallback (NewButt_button, XmNactivateCallback, SUMA_response, &answer);
+       XmStringFree (NewButt);
+          
+    }
+
+    }
+   answer = SUMA_NO_ANSWER;
+   text = XmStringCreateLocalized (question);
+   yes = XmStringCreateLocalized ("Yes");
+   no = XmStringCreateLocalized ("No All");
+   XtVaSetValues (dialog,
+     XmNmessageString,      text,
+     XmNokLabelString,      yes,
+     XmNcancelLabelString,  no,
+     XmNdefaultButtonType,  default_ans == SUMA_YES ?
+         XmDIALOG_OK_BUTTON : XmDIALOG_CANCEL_BUTTON,
+     NULL);
+   XmStringFree (text);
+   XmStringFree (yes);
+   XmStringFree (no);
+
+   /* set the values of the standrard buttons */
+   YesWid = XmMessageBoxGetChild(dialog, XmDIALOG_OK_BUTTON);
+   XtVaSetValues(YesWid, XmNuserData, SUMA_YES, NULL);
+   NoWid = XmMessageBoxGetChild(dialog, XmDIALOG_CANCEL_BUTTON);
+   XtVaSetValues(NoWid, XmNuserData, SUMA_NO_ALL, NULL);
+   HelpWid = XmMessageBoxGetChild(dialog, XmDIALOG_HELP_BUTTON);
+   XtVaSetValues(HelpWid, XmNuserData, SUMA_HELP, NULL);
+
+   /* unmanage the Help button because I am not using it here */
+   XtUnmanageChild(HelpWid);
+   
+   XtManageChild (dialog);
+   XtPopup (XtParent (dialog), XtGrabNone);
+
+   while (answer == SUMA_NO_ANSWER)
+     XtAppProcessEvent (SUMAg_CF->X->App, XtIMAll);
+
+   XtPopdown (XtParent (dialog));
+   /* make sure the dialog goes away before returning. Sync with server
+   * and update the display.
+   */
+   XSync (XtDisplay (dialog), 0);
+   XmUpdateDisplay (parent);
+
+   SUMA_RETURN(answer);
+}
+
  
 /*
  * AskUser() -- a generalized routine that asks the user a question
@@ -6932,7 +6990,6 @@ int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_a
     static Widget dialog; /* static to avoid multiple creation */
     XmString text, yes, no;
     static int answer;
-    extern void response();
 
     if (!dialog) {
         dialog = XmCreateQuestionDialog (parent, "dialog", NULL, 0);
@@ -6942,8 +6999,8 @@ int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_a
         XtSetSensitive (
             XmMessageBoxGetChild (dialog, XmDIALOG_HELP_BUTTON),
             False);
-        XtAddCallback (dialog, XmNokCallback, response, &answer);
-        XtAddCallback (dialog, XmNcancelCallback, response, &answer);
+        XtAddCallback (dialog, XmNokCallback, SUMA_response, &answer);
+        XtAddCallback (dialog, XmNcancelCallback, SUMA_response, &answer);
        /* Now add a special extra cute little button */
        {
           /* To do here:
@@ -6959,13 +7016,13 @@ int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_a
             xmPushButtonWidgetClass, dialog,
             XmNlabelString, All,
             NULL);
-          XtVaSetValues(All_button, XmNuserData, 666, NULL);
-          XtAddCallback (All_button, XmNactivateCallback, response, &answer);
+          XtVaSetValues(All_button, XmNuserData, SUMA_YES_ALL, NULL);
+          XtAddCallback (All_button, XmNactivateCallback, SUMA_response, &answer);
           XmStringFree (All);   
        }
 
     }
-    answer = 0;
+    answer = SUMA_NO_ANSWER;
     text = XmStringCreateLocalized (question);
     yes = XmStringCreateLocalized (ans1);
     no = XmStringCreateLocalized (ans2);
@@ -6973,17 +7030,17 @@ int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_a
         XmNmessageString,      text,
         XmNokLabelString,      yes,
         XmNcancelLabelString,  no,
-        XmNdefaultButtonType,  default_ans == YES ?
+        XmNdefaultButtonType,  default_ans == SUMA_YES ?
             XmDIALOG_OK_BUTTON : XmDIALOG_CANCEL_BUTTON,
         NULL);
     XmStringFree (text);
     XmStringFree (yes);
     XmStringFree (no);
-    
+        
     XtManageChild (dialog);
     XtPopup (XtParent (dialog), XtGrabNone);
 
-    while (answer == 0)
+    while (answer == SUMA_NO_ANSWER)
         XtAppProcessEvent (SUMAg_CF->X->App, XtIMAll);
 
     XtPopdown (XtParent (dialog));
@@ -6996,35 +7053,55 @@ int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_a
     return answer;
 }
 
-/* response() --The user made some sort of response to the
- * question posed in AskUser().  Set the answer (client_data)
- * accordingly.
+/*!
+   \brief sets the answer value to a question dialog created by functions 
+   like SUMA_AskUser.... 
+   -Based largely on example in Motif Programming Manual chapters 5 and 7
+   
+   - For the three standard dialog buttons: 
+   XmDIALOG_OK_BUTTON, XmDIALOG_CANCEL_BUTTON and XmDIALOG_HELP_BUTTON,
+   the widget appears to be the dialog widget
+   - For the other buttons (XmCR_ACTIVATE) the widget appears to be the
+   button itself.
  */
-void response(Widget widget, XtPointer client_data, XtPointer call_data)
+void SUMA_response(Widget widget, XtPointer client_data, XtPointer call_data)
 {
-    int *answer = (int *) client_data;
-    int ud;
-    XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
-
-    switch (cbs->reason) {
-      case XmCR_OK:
-         *answer = YES;
-         break;
-      case XmCR_CANCEL:
-         *answer = NO;
-         break;
-      case XmCR_HELP:
-         *answer = HELP;
-         break;
-      case XmCR_ACTIVATE:
-         XtVaGetValues(widget, XmNuserData, &ud, NULL); 
-         *answer = ud;
-         break;
-      default:
-         *answer = -1;
-         break;
-    }
-        
+   static char FuncName[]={"SUMA_response"};
+   int *answer = (int *) client_data;
+   int ud;
+   Widget YesWid, NoWid, HelpWid;
+   XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   switch (cbs->reason) {
+   case XmCR_OK:
+      YesWid = XmMessageBoxGetChild(widget, XmDIALOG_OK_BUTTON);
+      XtVaGetValues(YesWid, XmNuserData, &ud, NULL);       
+      *answer = ud;
+      break;
+   case XmCR_CANCEL:
+      NoWid = XmMessageBoxGetChild(widget, XmDIALOG_CANCEL_BUTTON);
+      XtVaGetValues(NoWid, XmNuserData, &ud, NULL);      
+      *answer = ud;
+      break;
+   case XmCR_HELP:
+      HelpWid = XmMessageBoxGetChild(widget, XmDIALOG_HELP_BUTTON);
+      XtVaGetValues(HelpWid, XmNuserData, &ud, NULL);      
+      *answer = ud;
+      break;
+   case XmCR_ACTIVATE:
+      XtVaGetValues(widget, XmNuserData, &ud, NULL); 
+      *answer = ud;
+      break;
+   default:
+      *answer = -1;
+      break;
+   }
+   
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Answer %d\n", FuncName, *answer); 
+   SUMA_RETURNe;        
 }
 
 

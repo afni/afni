@@ -875,7 +875,16 @@ SUMA_DRAWN_ROI *SUMA_NIMLDrawnROI_to_DrawnROI (SUMA_NIML_DRAWN_ROI * nimlROI)
    
    /* allocate and initialize the whimpy fields */
    ROI = (SUMA_DRAWN_ROI *) SUMA_malloc(sizeof(SUMA_DRAWN_ROI));
-   ROI->Type = nimlROI->Type;
+   if (  nimlROI->Type == SUMA_ROI_OpenPath || 
+         nimlROI->Type == SUMA_ROI_ClosedPath ||
+         nimlROI->Type == SUMA_ROI_FilledArea ) { /* this ROI will gradually be reconstructed,
+                                                       start with the basics */
+         ROI->Type = SUMA_ROI_OpenPath; /* at the end of the construction you should reach nimlROI->Type */
+   }else {
+      /* nothing to reconstruct */
+      ROI->Type = nimlROI->Type;
+   }
+   
    ROI->idcode_str = SUMA_copy_string(nimlROI->idcode_str);
    ROI->Parent_idcode_str = SUMA_copy_string(nimlROI->Parent_idcode_str);
    ROI->Label = SUMA_copy_string(nimlROI->Label);

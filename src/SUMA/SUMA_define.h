@@ -113,6 +113,8 @@
                                          you'll get many reports from the function making it difficult to see other messages. */
 #define SUMA_WORKPROC_IO_NOTIFY 0  /*!< Same as above but for SUMA_workprocess */
                                     
+typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_YES_ALL, SUMA_NO_ALL, SUMA_WHAT_THE_HELL } SUMA_QUESTION_DIALOG_ANSWER; /* DO NOT CHANGE THE ORDER OF THE FIRST 4 */
+
 typedef enum  { SUMA_FT_NOT_SPECIFIED, SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC } SUMA_SO_File_Type;
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
 typedef enum { NOPE, YUP} SUMA_Boolean;
@@ -236,6 +238,7 @@ typedef enum { SUMA_ROI_InCreation, SUMA_ROI_Finished, SUMA_ROI_InEdit} SUMA_ROI
 typedef enum { SUMA_ROI_OpenPath,   /*!< A collection of nodes that are topologically connected */
                SUMA_ROI_ClosedPath, /*!< A closed OpenPath */
                SUMA_ROI_FilledArea, /*!< A filled ClosePath */
+                                    /* Preserve the order of the above three */
                SUMA_ROI_Collection  /*!< NOT USED YET: A collection of ROIdatums, a generic descriptor that is used to
                                           make do without SUMA_ROI structure*/
             } SUMA_ROI_DRAWING_TYPE;  /*!< an ROI created by drawing (or other means)*/
@@ -423,7 +426,7 @@ typedef struct {
    char *Parent_idcode_str;
    char *Label;
    int iLabel;
-   SUMA_NIML_ROI_DATUM *ROI_datum; /*! a vector of ROI data (a multitude of ROI datum) */
+   SUMA_NIML_ROI_DATUM *ROI_datum; /*!< a vector of ROI data (a multitude of ROI datum) */
    int N_ROI_datum;
 } SUMA_NIML_DRAWN_ROI; /*!< a version of SUMA_DRAWN_ROI struct that can be used by niml.
                            Fields are a reflection of those in SUMA_DRAWN_ROI*/

@@ -1573,7 +1573,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                   }
 
-                  SUMA_AddToBrushStroke (sv, (int)Bev.x, (int)Bev.y, sv->Pick0, sv->Pick1, YUP); 
+                  SUMA_AddToBrushStroke (sv, (int)Bev.x, (int)Bev.y, sv->Pick0,
+                     sv->Pick1, YUP); 
                }
                
                
@@ -1764,13 +1765,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
 
                if (!SUMA_GetSelectionLine (sv, (int)Mev.x, (int)Mev.y)) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_GetSelectionLine.\n", FuncName);
+                  fprintf (SUMA_STDERR, "Error %s: Failed in "
+                                       "SUMA_GetSelectionLine.\n", FuncName);
                   break;
                } 
 
-               if (!SUMA_AddToBrushStroke (sv, (int)Mev.x, (int)Mev.y, sv->Pick0, sv->Pick1, YUP)) {
+               if (!SUMA_AddToBrushStroke (sv, (int)Mev.x, (int)Mev.y,
+                     sv->Pick0, sv->Pick1, YUP)) {
                   SUMA_RegisterMessage (SUMAg_CF->MessageList, 
-                                        "Failed to add to BrushStroke.", FuncName, 
+                                        "Failed to add to BrushStroke.", 
+                                        FuncName, 
                                         SMT_Error, SMA_LogAndPopup);
                   break;
                }

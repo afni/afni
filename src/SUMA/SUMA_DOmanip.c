@@ -316,6 +316,8 @@ SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_Boolean Free
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
+   SUMA_LH("Called");
+   
    for (i=0; i<*N_dov; ++i) {
       if (dov[i].OP == op) {
          Found = YUP;
@@ -652,6 +654,69 @@ SUMA_Boolean SUMA_existDO(char *idcode, SUMA_DO *dov, int N_dov)
    }
    SUMA_RETURN(NOPE);
 }
+
+/*!
+   searches for DO object with an idcode_str equal to idcode
+   It returns the DO's index into dov
+   -1 if nothing was found
+   
+*/
+int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_whichDO"};
+   int i;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_DRAWN_ROI *dROI = NULL;
+   SUMA_ROI *ROI = NULL;
+   SUMA_SegmentDO *sdo = NULL;
+   SUMA_Axis *sax = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (idcode == NULL) {
+      fprintf(SUMA_STDERR,"Warning %s: NULL idcode.\n", FuncName);
+      SUMA_RETURN (-1);
+   }
+   for (i=0; i< N_dov; ++i) {
+      switch (dov[i].ObjectType) {
+         case (SO_type):
+            SO = (SUMA_SurfaceObject *)dov[i].OP;
+            if (strcmp(idcode, SO->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+         case (ROIdO_type):
+            dROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+            if (strcmp(idcode, dROI->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+         case (ROIO_type):
+            ROI = (SUMA_ROI *)dov[i].OP;
+            if (strcmp(idcode, ROI->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+         case (AO_type):
+            sax = (SUMA_Axis *)dov[i].OP;
+            if (strcmp(idcode, sax->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+         case (LS_type):
+            sdo = (SUMA_SegmentDO *)dov[i].OP;
+            if (strcmp(idcode, sdo->idcode_str)== 0) {
+               SUMA_RETURN (i);
+            }
+            break;
+         default:
+            fprintf(SUMA_STDERR,"Warning %s: Object type %d not checked.\n", FuncName, dov[i].ObjectType);
+            break;
+      }
+   }
+   SUMA_RETURN(-1);
+}
+
 /*!
    ans = SUMA_findSO_inDOv(idcode, dov, N_dov);
    searches all SO_type DO objects for idcode
@@ -1237,5 +1302,71 @@ int SUMA_Build_Mask_DrawnROI (SUMA_DRAWN_ROI *D_ROI, int *Mask)
    } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
                
    SUMA_RETURN (N_added);
+}
+
+/*!
+   \brief deletes an ROI from the list of drawn objects
+*/
+SUMA_Boolean SUMA_DeleteROI (SUMA_DRAWN_ROI *ROI) 
+{
+   static char FuncName[]={"SUMA_DeleteROI"};
+   SUMA_ASSEMBLE_LIST_STRUCT *ALS = NULL;
+   SUMA_DRAWN_ROI *NextROI=NULL;
+   int i;
+   SUMA_Boolean WasCurrent = NOPE, Shaded = NOPE, LocalHead = NOPE;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!ROI) {
+      SUMA_LH("Null ROI");
+      SUMA_RETURN(YUP);
+   }
+   
+   /* form a list of the current ROI available for editing */
+
+   /* assemble the ROI list */
+   ALS = SUMA_AssembleAllROIList (SUMAg_DOv, SUMAg_N_DOv, YUP);
+
+   NextROI = NULL;
+   if (ALS) {
+      if (ALS->N_clist)  {
+         i=0;
+         while (!NextROI && i<ALS->N_clist) {
+            if (ALS->oplist[i] != (void*)ROI) 
+               NextROI = (SUMA_DRAWN_ROI *)ALS->oplist[i];
+            ++i;
+         }  
+      }
+      SUMA_FreeAssembleListStruct(ALS);
+   }
+
+   /* check to see if ROI being deleted is current one */
+   if (ROI == SUMAg_CF->X->DrawROI->curDrawnROI) {
+      WasCurrent = YUP;
+   }else {
+      WasCurrent = NOPE;
+   }
+   
+   /* Close the ROIlist window if it is open */
+   SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
+   if (!Shaded) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing switch ROI window ...\n", FuncName);
+      SUMA_cb_CloseSwitchROI(NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
+   }
+
+   /* remove ROI for SUMAg_DO and clear the ROI structure*/
+   if (!SUMA_RemoveDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)ROI, YUP)) {
+      SUMA_SLP_Err("Failed to remove DO from list.");
+      SUMA_RETURN(NOPE);
+   }
+
+   if (WasCurrent) {
+      SUMAg_CF->X->DrawROI->curDrawnROI = NextROI;
+
+      /* reinitialize the draw ROI window */
+      SUMA_InitializeDrawROIWindow(SUMAg_CF->X->DrawROI->curDrawnROI);
+   }
+   
+   SUMA_RETURN(YUP);
 }
 
