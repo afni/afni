@@ -179,8 +179,8 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_ISOSURFACE_OPTIONS * Opt)
       float *xyz;
       int npt, *ijk=NULL, nf;
       SUMA_SurfaceObject *SO=NULL;
-      cnt = 0; npt = 0;
       FILE *fid=NULL;
+      cnt = 0; npt = 0;
       fprintf(SUMA_STDERR,"%s:\nRunning qhull...\n", FuncName);
       xyz = (float *)SUMA_malloc(3*mcp->size_z*mcp->size_y*mcp->size_x*sizeof(float));
       for(  k = 0 ; k < mcp->size_z ; k++ ) {
