@@ -3255,6 +3255,9 @@ extern void MRI_autobbox( MRI_IMAGE * ,
 extern int THD_mask_fillin_completely( int,int,int, byte *, int ) ; /* 19 Apr 2002 */
 extern int THD_mask_fillin_once      ( int,int,int, byte *, int ) ;
 
+extern void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
+extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;
+
 extern float THD_cliplevel( MRI_IMAGE * , float ) ;        /* 12 Aug 2001 */
 extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;
 

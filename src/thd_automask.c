@@ -1,8 +1,5 @@
 #include "mrilib.h"
 
-static void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
-static void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;
-
 #define USE_DILATE
 #define USE_FILLIN
 
@@ -302,7 +299,7 @@ ENTRY("THD_mask_fillin_completely") ;
 /*! Find the biggest cluster of nonzeros in the byte mask mmm.
 --------------------------------------------------------------------*/
 
-static void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
+void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
 {
    int ii,jj,kk, icl ,  nxy,nxyz , ijk , ijk_last , mnum ;
    int ip,jp,kp , im,jm,km ;
