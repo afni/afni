@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*----------------
@@ -20,7 +20,7 @@ int main( int argc , char * argv[] )
    FILE * ofile ;
    MRI_IMAGE * flim ;
    float * flar ;
-   int noijk=0 ;
+   int noijk=0 , yes_xyz=0 ;
    byte * cmask=NULL ; int ncmask=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -43,6 +43,10 @@ int main( int argc , char * argv[] )
              "                 Note that if a voxel is zero in 'mset', then\n"
              "                 it won't be included, even if a < 0 < b.\n"
              "  -noijk       Means not to write out the i,j,k values.\n"
+             "  -xyz         Means to write the x,y,z coordinates from\n"
+             "                 the 1st input dataset at the start of each\n"
+             "                 output line.  These coordinates are in\n"
+             "                 the 'RAI' order.\n"
              "  -o fname     Means to write output to file 'fname'.\n"
              "                 [default = stdout, which you won't like]\n"
              "\n"
@@ -108,6 +112,11 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[narg],"-noijk") == 0 ){
          noijk = 1 ;
+         narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-xyz") == 0 ){   /* 23 Mar 2003 */
+         yes_xyz = 1 ;
          narg++ ; continue ;
       }
 
@@ -273,7 +282,7 @@ int main( int argc , char * argv[] )
 
    /* output string buffers */
 
-   obuf = (char *) malloc( sizeof(char) * (ndval+3) * 16 ) ;
+   obuf = (char *) malloc( sizeof(char) * (ndval+9) * 16 ) ;
 
    /* loop over voxels */
 
@@ -290,6 +299,19 @@ int main( int argc , char * argv[] )
          otemp = MV_format_fval((float)i); strcat(obuf,otemp); strcat(obuf," ");
          otemp = MV_format_fval((float)j); strcat(obuf,otemp); strcat(obuf," ");
          otemp = MV_format_fval((float)k); strcat(obuf,otemp); strcat(obuf," ");
+      }
+
+      if( yes_xyz ){                                  /* 23 Mar 2003 */
+        THD_ivec3 ind ; THD_fvec3 vec ;
+        i = DSET_index_to_ix( input_dset[0] , ii ) ;
+        j = DSET_index_to_jy( input_dset[0] , ii ) ;
+        k = DSET_index_to_kz( input_dset[0] , ii ) ;
+        LOAD_IVEC3(ind,i,j,k) ;
+        vec = THD_3dind_to_3dmm ( input_dset[0] , ind ) ;
+        vec = THD_3dmm_to_dicomm( input_dset[0] , vec ) ;
+        otemp = MV_format_fval(vec.xyz[0]); strcat(obuf,otemp); strcat(obuf," ");
+        otemp = MV_format_fval(vec.xyz[1]); strcat(obuf,otemp); strcat(obuf," ");
+        otemp = MV_format_fval(vec.xyz[2]); strcat(obuf,otemp); strcat(obuf," ");
       }
 
       for( kk=0 ; kk < ndset ; kk++ ){
