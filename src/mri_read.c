@@ -120,6 +120,9 @@ static int MCW_imsize_good = -1 ;
 
 /*---------------------------------------------------------------*/
 
+#undef swap_4
+#undef swap_2
+
 /*! Swap the 4 bytes pointed to by ppp: abcd -> dcba. */
 
 static void swap_4(void *ppp)

@@ -312,6 +312,8 @@ typedef struct nifti_1_header nifti_1_header ;
    when it encounters a dataset with a type it doesn't like.
 -----------------------------------------------------------------------------*/
 
+#undef DT_UNKNOWN  /* defined in some dirent.h on some Unix systems */
+
                             /*--- the original ANALYZE 7.5 type codes ---*/
 #define DT_NONE                    0
 #define DT_UNKNOWN                 0     /* what it says, dude           */
