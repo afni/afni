@@ -295,47 +295,124 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
    "Label of the ROI's parent surface." 
 
 #define SUMA_DrawROI_DrawROIMode_help\
-   "Toggles ROI drawing mode"
-
+   "Toggles ROI drawing mode.\n" \
+   "If turned on, then drawing is enabled \n"   \
+   "and the cursor changes to a target. \n"  \
+   "To draw, use the right mouse button. \n" \
+   "If you want to pick a node without causing \n" \
+   "a drawing action, use shift+right button."
+   
 #define SUMA_DrawROI_PenMode_help\
    "Toggles Pen drawing mode\n"\
-   "This is only useful in DrawROI mode.\n"
+   "If turned on, the cursor changes shape to a pen. \n" \
+   "In the pen mode, drawing is done with button 1. \n"  \
+   "This is for coherence with AFNI's pen drawing mode, \n" \
+   "which is meant to work pleasantly with a stylus directly \n"  \
+   "on the screen. In pen mode, you draw with the left mouse \n"  \
+   "button and move the surface with the right button. \n"  \
+   "To pick a node, use shift+left button. \n"  \
+   "Pen mode only works when Draw Mode is enabled."
 
 #define SUMA_DrawROI_AfniLink_help\
-   "Toggles Afni Link for ROI drawing"
+   "Toggles Afni Link for ROI drawing.\n" \
+   "If turned on, then ROIs drawn on the surface are\n" \
+   "sent to AFNI. \n"   \
+   "Surface ROIs that are sent to AFNI are turned\n"  \
+   "into volume ROIs (VOIs) on the fly and displayed \n" \
+   "in a functional volume with the same colormap used in SUMA.\n"   \
+   "The mapping from the surface domain (ROI) to the volume \n"   \
+   "domain (VOI) is done by intersection of the first with \n" \
+   "the latter. The volume used for the VOI has the same \n"   \
+   "resolution (grid) as the Surface Volume (-sv option) \n"   \
+   "used when launching SUMA. The color map used for ROIs \n"  \
+   "is set by the environment variable SUMA_ROIColorMap."
+   
+#define SUMA_DrawROI_Label_help  \
+   "Label of ROI being drawn.\n" \
+   "It is very advisable that you use \n" \
+   "different labels for different ROIs. \n"  \
+   "If you don't, you won't be able to \n"   \
+   "differentiate between them afterwards."
 
-#define SUMA_DrawROI_Save_help \
-   "Save the Drawn ROI to disk.\n"  \
-   "Choose the file format\n"   \
-   "and what is to be saved\n"  \
-   "from the two menus ahead."  \
-
-#define SUMA_DrawROI_Load_help   \
-   "Load a Drawn ROI"
-
-#define SUMA_closeDrawROI_help  \
-   "Close Draw ROI window"
- 
-#define SUMA_DrawROI_Redo_help   \
-   "Redo the last undone action"
-
+#define SUMA_DrawROI_Value_help  \
+   "Integer value associated with ROI.\n" \
+   "This value controls the color of the \n" \
+   "ROI per the ROI colormap."
+   
 #define SUMA_DrawROI_Undo_help   \
-   "Undo the last action on the stack"
+   "Undo the last action on the stack." 
+   
+#define SUMA_DrawROI_Redo_help   \
+   "Redo the last undone action."
 
 #define SUMA_DrawROI_Join_help   \
-   "Join the first node of the path to the last.\n"   \
-   "This is done by cutting the surface\n"   \
+   "Join the first node of the ROI to the last,\n"   \
+   "thereby creating a close contour ROI.\n" \
+   "This is a necessary step before the filling\n" \
+   "operation. Joining is done by cutting the surface\n"   \
    "with a plane formed by the two nodes\n"  \
-   "and the projection of the center of \n"  \
-   "your window." 
+   "and the projection of the center of your window.\n"  \
+   "You could double click at the last node, if you don't\n"   \
+   "want to use the 'Join' button." 
 
 #define SUMA_DrawROI_Finish_help \
-   "Label ROI as finished.\n" \
-   "Allows you to start \n"   \
-   "drawing a new one."
-
+   "Mark ROI as finished.\n" \
+   "Allows you to start drawing a new one.\n"   \
+   "Once marked as finished, an ROI's label\n" \
+   "and value can no longer be changed.\n"   \
+   "To do so, you will need to 'Undo' the \n"   \
+   "finish action."
+   
 #define SUMA_DrawROI_SwitchROI_help \
-   "Switch between ROIs.\n"   \
+   "Allows you to switch between ROIs.\n"   \
+   "This is where you'll suffer if ROIs \n"  \
+   "on topologically isomorphic surfaces \n" \
+   "share identical labels."
+   
+#define SUMA_DrawROI_Load_help   \
+   "Load a Drawn ROI.\n"   \
+   "See BHelp for 'Save' below."
+
+#define SUMA_DrawROI_DeleteROI_help   \
+   "Delete a drawn ROI.\n" \
+   "This operation is not reversible,\n"  \
+   "(no Undo here) so you'll have to click twice."
+   
+#define SUMA_DrawROI_SaveFormat_help   \
+   "File format for saving ROI:\n"  \
+   "Format options are 1D and NIML. \n"   \
+   "   The 1D format is the same one used in AFNI. \n"   \
+   "It is an ASCII file with 2 values per line. The first \n"  \
+   "value is a node index, the second is the node's value. \n" \
+   "Needless, to say, this format does not support the storage \n"   \
+   "of ROI auxiliary information such as Label and \n"   \
+   "Parent Surface, etc... For that you'll have to use NIML.\n" \
+   "   NIML is a whole different story which will be documented \n"  \
+   "(if necessary) in the future. Suffice it to say that in NIML \n" \
+   "format you can store all the auxiliary information about \n"  \
+   "each ROI, unlike with the .1D format. "
+   
+#define SUMA_DrawROI_SaveWhat_help  \
+   "Which ROIs to save?\n" \
+   "   This: saves the current ROI. \n"   \
+   "   All: saves all ROIs on surfaces related to the Parent \n"  \
+   "        surface of the current ROI."
+   
+#define SUMA_DrawROI_Save_help \
+   "Save the Drawn ROI to disk.\n"  \
+   "Choose the file format and what is to be\n"   \
+   "saved from the two menus ahead.\n"  \
+   "\n"  \
+   SUMA_DrawROI_SaveFormat_help  \
+   "\n"  \
+   SUMA_DrawROI_SaveWhat_help
+
+#define SUMA_closeDrawROI_help  \
+   "Close Draw ROI window.\n" \
+   "Current settings are preserved for the \n"   \
+   "next time you reopen this window."
+ 
+
 
 #define SUMA_help_help \
    "Click the hand\n"   \

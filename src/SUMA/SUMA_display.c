@@ -4052,19 +4052,19 @@ void SUMA_CreateDrawROIWindow(void)
       XmNmarginHeight, 0 ,
       XmNmarginWidth , 0 ,
       NULL);
-   
+  
    
    SUMA_CreateTextField ( rc, "Label:",
                            6, SUMA_DrawROI_NewLabel,
-                           NULL, NULL,
+                           "Label of ROI being drawn", SUMA_DrawROI_Label_help,
                            SUMAg_CF->X->DrawROI->ROIlbl);
-                             
+                        
    SUMA_CreateArrowField ( rc, "Value:",
                            1, 0, 100, 1,
                            3, SUMA_int,
                            NOPE,
                            SUMA_DrawROI_NewValue, NULL,
-                           NULL, NULL,
+                           "Integer value associated with ROI", SUMA_DrawROI_Value_help,
                            SUMAg_CF->X->DrawROI->ROIval);
    /* manage  rc */
    XtManageChild (rc);
@@ -4165,9 +4165,8 @@ void SUMA_CreateDrawROIWindow(void)
       xmPushButtonWidgetClass, rc_switch, 
       NULL);
    XtAddCallback (SUMAg_CF->X->DrawROI->Delete_pb, XmNactivateCallback, SUMA_cb_DrawROI_Delete, NULL);
-   MCW_register_hint( SUMAg_CF->X->DrawROI->Delete_pb , "Click twice in 5 seconds to delete ROI." ) ;
-   MCW_register_help( SUMAg_CF->X->DrawROI->Delete_pb , "Click twice to delete ROI.\n"
-                                                     "This action cannot be undone.\n");
+   MCW_register_hint( SUMAg_CF->X->DrawROI->Delete_pb , "Click twice in 5 seconds to delete ROI. No Undo for this action." ) ;
+   MCW_register_help( SUMAg_CF->X->DrawROI->Delete_pb , SUMA_DrawROI_DeleteROI_help);
    MCW_set_widget_bg( SUMAg_CF->X->DrawROI->Delete_pb , MCW_hotcolor(SUMAg_CF->X->DrawROI->Delete_pb) , 0 ) ;
 
    XtManageChild (SUMAg_CF->X->DrawROI->Delete_pb); 
@@ -4200,7 +4199,7 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                NULL, '\0', YUP, DrawROI_SaveMode_Menu, 
-                               "Frm.", NULL, NULL, 
+                               "Frm.", "File format for saving ROI", SUMA_DrawROI_SaveFormat_help, 
                                SUMAg_CF->X->DrawROI->SaveModeMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveModeMenu[SW_DrawROI_SaveMode]);
       
@@ -4208,7 +4207,7 @@ void SUMA_CreateDrawROIWindow(void)
    SUMA_BuildMenuReset(0);
    SUMA_BuildMenu (rc_save, XmMENU_OPTION, 
                                NULL, '\0', YUP, DrawROI_SaveWhat_Menu, 
-                               "What", NULL, NULL,   
+                               "What", "Which ROIs to save?", SUMA_DrawROI_SaveWhat_help,   
                                SUMAg_CF->X->DrawROI->SaveWhatMenu);
    XtManageChild (SUMAg_CF->X->DrawROI->SaveWhatMenu[SW_DrawROI_SaveWhat]);
       
@@ -4756,6 +4755,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
          NULL);
+         if (hint) MCW_register_help( AF->label , hint);
          if (help) MCW_register_help( AF->label , help);
    }else {
       AF->label = NULL;
@@ -4768,7 +4768,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
          NULL);
-   /* No need for hints, they come from daddy if (hint) MCW_register_hint( AF->up , hint); */
+   if (hint) MCW_register_help( AF->up , hint);
    if (help) MCW_register_help( AF->up , help);
 
    XtVaSetValues (AF->up, XmNuserData, (XtPointer)AF, NULL);
@@ -4782,9 +4782,8 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
       XmNmarginTop, 0,
       XmNmarginBottom, 0,
       NULL);
-   /* No need for hints, they come from daddy if (hint) MCW_register_hint( AF->up , hint); */
+   if (hint) MCW_register_help( AF->down , hint);
    if (help) MCW_register_help( AF->down , help);
-
    XtVaSetValues (AF->down, XmNuserData, (XtPointer)AF, NULL);
    XtAddCallback (AF->down, XmNarmCallback, SUMA_ATF_start_stop, (XtPointer)-1);
    XtAddCallback (AF->down, XmNdisarmCallback, SUMA_ATF_start_stop, (XtPointer)-1);
@@ -4847,8 +4846,7 @@ void SUMA_CreateTextField ( Widget pw, char *label,
       XmNpacking, XmPACK_TIGHT, 
       XmNorientation , XmHORIZONTAL ,
       NULL);
-   if (hint) MCW_register_hint( AF->label , hint);
-   if (help) MCW_register_help( AF->label , help);
+   if (hint) MCW_register_hint( AF->rc , hint);
 
    if (label) {
       AF->label =  XtVaCreateManagedWidget (label,
@@ -4857,7 +4855,7 @@ void SUMA_CreateTextField ( Widget pw, char *label,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
          NULL);
-      /* No need for hints, they come from daddy if (hint) MCW_register_hint( AF->up , hint); */
+      if (hint) MCW_register_help( AF->label , hint);
       if (help) MCW_register_help( AF->label , help);
    }else {
       AF->label = NULL;
