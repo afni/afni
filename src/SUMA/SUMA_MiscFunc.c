@@ -3578,8 +3578,28 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
    SUMA_RETURNe;
 }
 
+/*!
+ * call engine with debug flag set                    20 Oct 2003 [rickr] 
+*/
+SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *NodeList)
+{
+   static char FuncName[]={"SUMA_Make_Edge_List"};
+   int i, ie, ip, *isort_EL, **ELp, lu, ht, *iTri_limb, icur, in1, in2;
+   float dx, dy, dz;
+   SUMA_EDGE_LIST *SEL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_RETURN(SUMA_Make_Edge_List_eng(FL, N_FL, N_Node, NodeList, 1));
+}
+
+
+/* - appended _eng to name of engine function          20 Oct 2003 [rickr]
+ * - added debug parameter
+ * - print non-error info when debug flag is set
+*/
 /*! 
-   ans = SUMA_Make_Edge_List (FL, N_FL, N_Node, NodeList);
+   ans = SUMA_Make_Edge_List_eng (FL, N_FL, N_Node, NodeList, debug);
    
    This function creates a list of all the edges making up the FaceSets
    \param FL (int *) FaceSetList vector (was matrix, prior to SUMA 1.2 ( N_FL x 3)
@@ -3587,6 +3607,7 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
    \param N_Node (int) number of nodes forming the mesh
    \param NodeList (float *) vector containing XYZ of each node. This was added to compute
                              the length of each edge.
+   \param debug (int) flag to request extra output
    \ret ans (SUMA_EDGE_LIST *) NULL/failure or the following fields
        EL (int **) sorted edge list
        ELps (int **) edge list properties
@@ -3602,9 +3623,9 @@ void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL)
    DO NOT MODIFY WHAT THIS FUNCTION RETURNS without serious thought.
    Complicated functions depend on it.                
 */
-SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *NodeList)
+SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *NodeList, int debug)
 {
-   static char FuncName[]={"SUMA_Make_Edge_List"};
+   static char FuncName[]={"SUMA_Make_Edge_List_eng"};
    int i, ie, ip, *isort_EL, **ELp, lu, ht, *iTri_limb, icur, in1, in2;
    float dx, dy, dz;
    SUMA_EDGE_LIST *SEL;
@@ -3762,7 +3783,8 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *Node
       i += lu;
    }
    
-   fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+   if ( debug )
+      fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
    if (SEL->min_N_Hosts == 1 || SEL->max_N_Hosts == 1) {
       fprintf(SUMA_STDERR,"Warning %s: You have edges that form a border in the surface.\n", FuncName);
    }

@@ -116,9 +116,27 @@ SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SU
    SUMA_RETURN (YUP);
 }
    
+/*! 
+   Call the function engine, with debug turned on.      20 Oct 2003 [rickr]
+*/
+SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName)
+{/*SUMA_Load_Surface_Object*/
+   char FuncName[]={"SUMA_Load_Surface_Object"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_RETURN( SUMA_Load_Surface_Object_eng( SO_FileName_vp, SO_FT, SO_FF,
+                                              VolParName, 1) );
+}/*SUMA_Load_Surface_Object*/
+
+
+/* - appended _eng to engine function name             20 Oct 2003 [rickr]
+ * - added debug parmeter
+ * - only print non-error info when debug flag is set
+*/
 /*!
 \brief
-      SO = SUMA_Load_Surface_Object ( SO_FileName, SO_FT, SO_FF, char *VolParName)
+      SO = SUMA_Load_Surface_Object_eng ( SO_FileName, SO_FT, SO_FF, char *VolParName, int debug)
    
    
 Input paramters : 
@@ -132,7 +150,8 @@ Input paramters :
 \param   SO_FT (SUMA_SO_File_Type) file type to be read (inventor, free surfer , Surefit )
 \param   SO_FF (SUMA_SO_File_Format) Ascii or Binary (only ascii at the moment, except for .ply files)
 \param   VolParName (char *) filename (+path) of parent volume, pass NULL for none
-         If you pass NULL, no transformation is applied to the coordinates read. 
+         If you pass NULL, no transformation is applied to the coordinates read.
+\param   debug (int) flag specifying whether to output surface object info
    
 \return   SO (SUMA_SurfaceObject *) Surface Object pointer
    The following fields are set (or initialized):
@@ -171,9 +190,9 @@ Input paramters :
 \sa SUMA_Align_to_VolPar()   
    
 ***/
-SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName)
-{/*SUMA_Load_Surface_Object*/
-   char FuncName[]={"SUMA_Load_Surface_Object"};
+SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName, int debug)
+{/*SUMA_Load_Surface_Object_eng*/
+   char FuncName[]={"SUMA_Load_Surface_Object_eng"};
    char stmp[1000], *SO_FileName=NULL;
    SUMA_SFname *SF_FileName; 
    int k, ND, id;
@@ -242,7 +261,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
       case SUMA_INVENTOR_GENERIC:
          SO_FileName = (char *)SO_FileName_vp;
          /* You need to split name into path and name ... */
-         fprintf(stdout,"%s\n", SO_FileName);
+	 if ( debug )
+            fprintf(stdout,"%s\n", SO_FileName);
          SO->Name = SUMA_StripPath(SO_FileName);
          /* check for file existence  */
          if (!SUMA_filexists(SO_FileName)) {
@@ -279,12 +299,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
          SO->FileFormat = SO_FF;
          SO->NodeDim = 3; /* This must be automated */
          /*read the surface file */
-         if (!SUMA_FreeSurfer_Read ((char*)SO_FileName_vp, FS)) {
+         if (!SUMA_FreeSurfer_Read_eng((char*)SO_FileName_vp, FS, debug)) {
             fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_FreeSurfer_Read.\n", FuncName);
             SUMA_RETURN (NULL);
          }
          
-         SUMA_Show_FreeSurfer (FS, NULL);
+	 if ( debug )
+            SUMA_Show_FreeSurfer (FS, NULL);
          /* save the juice and clean up the rest */
          SO->N_Node = FS->N_Node;
          /* Save the pointers to NodeList and FaceSetList and clear what is left of FS structure at the end */
@@ -668,7 +689,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
       }
    SUMA_RETURN (SO);
    
-}/*SUMA_Load_Surface_Object*/
+}/*SUMA_Load_Surface_Object_eng*/
 
  
 /*!
@@ -1252,11 +1273,28 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 }/* SUMA_Read_SpecFile */
 
 /*! 
-   Loads the surfaces specified in Spec and stores them in DOv
+   Call the function engine, with debug turned on.      20 Oct 2003 [rickr]
 */
 SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, char *VolParName)
 {/* SUMA_LoadSpec */
    static char FuncName[]={"SUMA_LoadSpec"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_RETURN( SUMA_LoadSpec_eng(Spec, dov, N_dov, VolParName, 1) );
+
+}/* SUMA_LoadSpec */
+
+/* - appended _eng to engine function name             20 Oct 2003 [rickr]
+ * - added debug parameter
+ * - only output non-error info when debug flag is set
+*/
+/*! 
+   Loads the surfaces specified in Spec and stores them in DOv
+*/
+SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, char *VolParName, int debug)
+{/* SUMA_LoadSpec_eng */
+   static char FuncName[]={"SUMA_LoadSpec_eng"};
    int i, k;
    char *tmpid, *tmpVolParName = NULL;
    SUMA_SurfaceObject *SO=NULL;
@@ -1268,12 +1306,16 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   fprintf (SUMA_STDERR, "Expecting to read %d surfaces.\n", Spec->N_Surfs);
+   if ( debug )
+       fprintf (SUMA_STDERR, "Expecting to read %d surfaces.\n", Spec->N_Surfs);
    for (i=0; i<Spec->N_Surfs; ++i) { /* first loop across mappable surfaces */
       /*locate and load all Mappable surfaces */
       if (SUMA_iswordin(Spec->MappingRef[i],"SAME") == 1) { /* Mappable surfaces */
-         fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-         fprintf (SUMA_STDERR,"Surface #%d (directly mappable), loading ...\n",i);
+         if ( debug ) {
+	    fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+	    fprintf (SUMA_STDERR,
+		     "Surface #%d (directly mappable), loading ...\n",i);
+	 }
 
          if (Spec->VolParName[i][0] != '\0') {
             fprintf (SUMA_STDOUT, "Warning %s: Using Volume Parent Specified in Spec File. This overrides -sv option.\n", FuncName);
@@ -1297,7 +1339,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
             /* Load The Surface */
             if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1) {
-               SO = SUMA_Load_Surface_Object ((void *)SF_name, SUMA_SUREFIT, SUMA_ASCII, tmpVolParName);
+               SO = SUMA_Load_Surface_Object_eng ((void *)SF_name, SUMA_SUREFIT, SUMA_ASCII, tmpVolParName, debug);
             } else {
                fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
                SUMA_RETURN (NOPE);
@@ -1322,7 +1364,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
             /* Load The Surface */
             if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1) {
-               SO = SUMA_Load_Surface_Object ((void *)SF_name, SUMA_VEC, SUMA_ASCII, tmpVolParName);
+               SO = SUMA_Load_Surface_Object_eng ((void *)SF_name, SUMA_VEC, SUMA_ASCII, tmpVolParName, debug);
             } else {
                fprintf(SUMA_STDERR,"Error %s: Only ASCII allowed for 1D files.\n", FuncName);
                SUMA_RETURN (NOPE);
@@ -1341,7 +1383,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "FreeSurfer") == 1) {/* load FreeSurfer surface */
             
             if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1)
-               SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_FREE_SURFER, SUMA_ASCII, tmpVolParName);
+               SO = SUMA_Load_Surface_Object_eng ((void *)Spec->FreeSurferSurface[i], SUMA_FREE_SURFER, SUMA_ASCII, tmpVolParName, debug);
             else {
                fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
                SUMA_RETURN(NOPE);
@@ -1356,7 +1398,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "Ply") == 1) {/* load Ply format surface */
             
-            SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, tmpVolParName);
+            SO = SUMA_Load_Surface_Object_eng ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, tmpVolParName, debug);
             
             if (SO == NULL)   {
                fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
@@ -1372,7 +1414,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
                SUMA_RETURN (NOPE);
             }
             if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1)
-               SO = SUMA_Load_Surface_Object ((void *)Spec->InventorSurface[i], SUMA_INVENTOR_GENERIC, SUMA_ASCII, NULL);
+               SO = SUMA_Load_Surface_Object_eng ((void *)Spec->InventorSurface[i], SUMA_INVENTOR_GENERIC, SUMA_ASCII, NULL, debug);
             else {
                fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
                SUMA_RETURN(NOPE);
@@ -1422,12 +1464,12 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
          
          /* if the surface is loaded OK, and it has not been loaded previously, register it */
          if (SurfIn) {
-            if (!SUMA_SurfaceMetrics (SO, "Convexity, EdgeList, MemberFace", NULL)) {
+            if (!SUMA_SurfaceMetrics_eng (SO, "Convexity, EdgeList, MemberFace", NULL, debug)) {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
             #if SUMA_CHECK_WINDING
-            if (!SUMA_SurfaceMetrics (SO, "CheckWind", NULL)) {
+            if (!SUMA_SurfaceMetrics_eng (SO, "CheckWind", NULL, debug)) {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
                SUMA_RETURN (NOPE);
             }
@@ -1588,8 +1630,11 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
       }
 
       if (SUMA_iswordin(Spec->MappingRef[i],"SAME") != 1) { /* Non Mappable surfaces */
-         fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
-         fprintf (SUMA_STDERR,"Surface #%d (mappable via MappingRef), loading ...\n",i);
+	 if ( debug ) {
+            fprintf (SUMA_STDERR,"\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv");
+            fprintf (SUMA_STDERR,
+		     "Surface #%d (mappable via MappingRef), loading ...\n",i);
+	 }
          
          brk = NOPE;
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "SureFit") == 1) {/* load surefit surface */
@@ -1605,7 +1650,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
             /* Load The Surface */
             if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1) {
-               SO = SUMA_Load_Surface_Object ((void *)SF_name, SUMA_SUREFIT, SUMA_ASCII, tmpVolParName);
+               SO = SUMA_Load_Surface_Object_eng ((void *)SF_name, SUMA_SUREFIT, SUMA_ASCII, tmpVolParName, debug);
             } else {
                fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
                SUMA_RETURN (NOPE);
@@ -1630,7 +1675,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
             /* Load The Surface */
             if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1) {
-               SO = SUMA_Load_Surface_Object ((void *)SF_name, SUMA_VEC, SUMA_ASCII, tmpVolParName);
+               SO = SUMA_Load_Surface_Object_eng ((void *)SF_name, SUMA_VEC, SUMA_ASCII, tmpVolParName, debug);
             } else {
                fprintf(SUMA_STDERR,"Error %s: Only ASCII allowed for 1D files.\n", FuncName);
                SUMA_RETURN (NOPE);
@@ -1650,7 +1695,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "FreeSurfer") == 1) {/* load FreeSurfer surface */
             
             if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1)
-               SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_FREE_SURFER, SUMA_ASCII, tmpVolParName);
+               SO = SUMA_Load_Surface_Object_eng ((void *)Spec->FreeSurferSurface[i], SUMA_FREE_SURFER, SUMA_ASCII, tmpVolParName, debug);
             else {
                fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
                SUMA_RETURN(NOPE);
@@ -1665,7 +1710,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "Ply") == 1) {/* load Ply format surface */
             
-            SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, tmpVolParName);
+            SO = SUMA_Load_Surface_Object_eng ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, tmpVolParName, debug);
             
             if (SO == NULL)   {
                fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
@@ -1681,7 +1726,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
                SUMA_RETURN (NOPE);
             }
             if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1)
-               SO = SUMA_Load_Surface_Object ((void *)Spec->InventorSurface[i], SUMA_INVENTOR_GENERIC, SUMA_ASCII, NULL);
+               SO = SUMA_Load_Surface_Object_eng ((void *)Spec->InventorSurface[i], SUMA_INVENTOR_GENERIC, SUMA_ASCII, NULL, debug);
             else {
                fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
                SUMA_RETURN(NOPE);
@@ -1812,7 +1857,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
                } else SOinh = NULL;
          
                
-               if (!SUMA_SurfaceMetrics (SO, "EdgeList, MemberFace", SOinh)) {
+               if (!SUMA_SurfaceMetrics_eng (SO, "EdgeList, MemberFace", SOinh, debug)) {
                   fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
                   SUMA_RETURN (NOPE);
                }
@@ -1827,13 +1872,30 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
    }/*locate and load all NON Mappable surfaces */
 
    SUMA_RETURN (YUP);
-}/* SUMA_LoadSpec */
+}/* SUMA_LoadSpec_eng */
 
 
 /*!
+   SUMA_SurfaceMetrics - call the engine with debug set    20 Oct 2003 [rickr]
+*/
+SUMA_Boolean SUMA_SurfaceMetrics(SUMA_SurfaceObject *SO, const char *Metrics, SUMA_SurfaceObject *SOinh)
+{
+   static char FuncName[]={"SUMA_SurfaceMetrics"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_RETURN(SUMA_SurfaceMetrics_eng(SO, Metrics, SOinh, 1));
+}
+
+
+/* - appended _eng to engine function name                 20 Oct 2003 [rickr]
+ * - added debug parameter
+ * - only output non-error info when debug flag is set
+*/
+/*!
    calculate surface properties
    
-   ans = SUMA_SurfaceMetrics (SO, Metrics, SOinh)
+   ans = SUMA_SurfaceMetrics_eng (SO, Metrics, SOinh, debug)
    \param SO (SUMA_SurfaceObject *)
    \param Metrics (const char *) list of parameters to compute. Supported parameters are (case sensitive):
       "Convexity", "PolyArea", "Curvature", "EdgeList", "MemberFace", "CheckWind"
@@ -1845,6 +1907,7 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
       if things make sense. SOinh is typically the Mapping Reference SO. Pass NULL not to use this feature.
       Currently, only EL and FN can use this feature if the number of nodes, facesets match and SOinh is the 
       mapping reference of SO
+   \param debug (int) flag specifying whether to output non-error info
    \return ans (SUMA_Boolean) NOPE = failure
    
    Convexity : Fills Cx field in SO, An inode is also created
@@ -1856,15 +1919,16 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
    
       
 */
-SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, SUMA_SurfaceObject *SOinh)
+SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metrics, SUMA_SurfaceObject *SOinh, int debug)
 {
-   static char FuncName[]={"SUMA_SurfaceMetrics"};
+   static char FuncName[]={"SUMA_SurfaceMetrics_eng"};
    SUMA_Boolean DoConv, DoArea, DoCurv, DoEL, DoMF, DoWind, LocalHead = NOPE;
    int i = 0;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   fprintf (SUMA_STDERR,"%s: Calculating surface metrics, please be patient...\n", FuncName);
+   if (debug)
+      fprintf (SUMA_STDERR,"%s: Calculating surface metrics, please be patient...\n", FuncName);
    
    DoConv = DoArea = DoCurv = DoEL = DoMF = DoWind = NOPE;
    
@@ -2016,7 +2080,7 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
       if (!SOinh) {
          /* create the edge list, it's nice and dandy */
          if (LocalHead) fprintf(SUMA_STDOUT, "%s: Making Edge list ....\n", FuncName); 
-         SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList);
+         SO->EL = SUMA_Make_Edge_List_eng (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList, debug);
          if (SO->EL == NULL) {
             fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_Make_Edge_List. Neighbor list will not be created\n", FuncName);
             SO->EL_Inode = NULL;

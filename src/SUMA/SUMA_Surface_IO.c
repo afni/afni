@@ -750,11 +750,24 @@ int main (int argc,char *argv[])
 
 /* CODE */
    
+/* just call engine with debug set                20 Oct 2003 [rickr] */
+SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
+{/* SUMA_FreeSurfer_Read */
+   static char FuncName[]={"SUMA_FreeSurfer_Read"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_RETURN(SUMA_FreeSurfer_Read_eng(f_name, FS, 1));
+}/* SUMA_FreeSurfer_Read */
+
    
-   
+/* - changed function name to XXX_eng             20 Oct 2003 [rickr]
+ * - added debug parameter
+ * - print non-error info only if debug
+*/
 /*!**  
 Usage : 
-Ret = SUMA_FreeSurfer_Read (surfname, FreeSurfer)
+Ret = SUMA_FreeSurfer_Read_eng (surfname, FreeSurfer, debug)
 	
 	For a full surface definition, it is assumed that the first line can be a comment.
 	The second line contains the number of nodes followed by the number of FaceSets
@@ -769,6 +782,8 @@ Input paramters :
         mris_convert -p <patch_name> <patch_name.asc>
        
 \param FreeSurfer (SUMA_FreeSurfer_struct *) pointer to the FreeSurfer structure
+
+\param debug (int) flag specifying whether to output non-error info
    
 Returns : 
 \return  (SUMA_Boolean) YUP/NOPE for success/failure
@@ -782,14 +797,14 @@ Side effects :
    
    
 ***/
-SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
-{/*SUMA_FreeSurfer_Read*/
+SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS, int debug)
+{/*SUMA_FreeSurfer_Read_eng*/
    char stmp[50]; 
    FILE *fs_file;
 	int ex, cnt, jnki, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId;
 	float jnkf, *NodeList;
 	char c;
-	static char FuncName[]={"SUMA_FreeSurfer_Read"};
+	static char FuncName[]={"SUMA_FreeSurfer_Read_eng"};
 	SUMA_Boolean LocalHead = NOPE;
 	   
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -798,7 +813,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 	if (!SUMA_filexists(f_name)) {
 		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
 		SUMA_RETURN (NOPE);
-	}else {
+	}else if ( debug ) {
 		fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
 	}
 	
@@ -974,7 +989,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read (char * f_name, SUMA_FreeSurfer_struct *FS)
 	fclose (fs_file);
 	SUMA_RETURN (YUP);
 	
-}/* SUMA_FreeSurfer_Read*/
+}/* SUMA_FreeSurfer_Read_eng*/
 
 /*! 
 	free memory allocated for FreeSurfer structure  
