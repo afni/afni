@@ -62,7 +62,7 @@ int main( int argc , char * argv[] )
    short *sar , *mar ;
    float pval[128] , wval[128] ;
    int npk , verb=1 , win=0 , his=0 ;
-   char *dname , cmd[2222] ;
+   char *dname , cmd[2222] , *label=NULL , *fname="Anhist" ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAnhist [options] dataset\n"
@@ -78,6 +78,10 @@ int main( int argc , char * argv[] )
              "  -h  = dump histogram data to Anhist.1D and plot to Anhist.ps\n"
              "  -w  = apply a Winsorizing filter prior to histogram scan\n"
              "         (or -w7 to Winsorize 7 times, etc.)\n"
+             "\n"
+             "  -label xxx = Use 'xxx' for a label on the Anhist.ps plot file\n"
+             "                instead of the input dataset filename.\n"
+             "  -fname fff = Use 'fff' for the filename instead of 'Anhist'.\n"
             ) ;
       exit(0) ;
    }
@@ -87,6 +91,19 @@ int main( int argc , char * argv[] )
    /*-- options --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-label") == 0 ){  /* 14 Mar 2003 */
+        label = argv[++iarg] ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-fname") == 0 ){  /* 14 Mar 2003 */
+        fname = argv[++iarg] ;
+        if( !THD_filename_ok(fname) ){
+          fprintf(stderr,"** Bad name after -fname!\n"); exit(1);
+        }
+        iarg++ ; continue ;
+      }
 
       if( argv[iarg][1] == 'q' ){ verb=0 ; iarg++ ; continue ; }
       if( argv[iarg][1] == 'h' ){ his =1 ; iarg++ ; continue ; }
@@ -117,6 +134,8 @@ int main( int argc , char * argv[] )
    DSET_load(dset) ;
    if( !DSET_LOADED(dset) ){ fprintf(stderr,"** CAN'T load dataset\n");exit(1); }
 
+   if( label == NULL ) label = dname ;  /* 14 Mar 2003 */
+
    /*-----------------------------*/
    /*** FIND THE BRAIN-ish MASK ***/
 
@@ -146,7 +165,7 @@ int main( int argc , char * argv[] )
    nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
    if( nmask == 0 ){
      fprintf(stderr,"** No voxels in the automask?!\n");
-     print_results( dname,0,NULL,NULL ) ; exit(1);
+     print_results( label,0,NULL,NULL ) ; exit(1);
    }
 
    /* find most superior point, clip off all more than SIhh (130) mm below it */
@@ -236,7 +255,7 @@ int main( int argc , char * argv[] )
    nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
    if( nmask <= 999 ){
      fprintf(stderr,"** Only %d voxels in the automask?!\n",nmask);
-     print_results( dname,0,NULL,NULL); exit(1);
+     print_results( label,0,NULL,NULL); exit(1);
    }
 
    /* Winsorize? */
@@ -275,7 +294,7 @@ int main( int argc , char * argv[] )
      if( sbot == stop ){
        if( verb ) fprintf(stderr,"+ All voxels in mask have value = %d ?!\n",sbot);
        pval[0] = sbot ; wval[0] = 0 ;
-       print_results( dname,1 , pval,wval ) ; exit(0) ;
+       print_results( label,1 , pval,wval ) ; exit(0) ;
      }
 
      /* build histogram */
@@ -466,9 +485,10 @@ int main( int argc , char * argv[] )
          if( verb ) fprintf(stderr,"\n") ;
        }
 
-       hf = fopen( "Anhist.1D" , "w" ) ;
+       sprintf(cmd,"%s.1D",fname) ;
+       hf = fopen( cmd , "w" ) ;
        if( hf == NULL ){
-         fprintf(stderr,"** Can't open Anhist.1D!\n") ;
+         fprintf(stderr,"** Can't open file %s for output!\n",cmd) ;
        } else {
          char pbuf[1024]="\0" ;
          fprintf(hf,"# 3dAnhist") ;
@@ -496,8 +516,8 @@ int main( int argc , char * argv[] )
            free(Gmat);free(pk);free(ww);free(ap);free(Hvec);free(lam);free(rez);free(wt);
            free(apbest);free(wwbest);free(pkbest);free(lambest);
            free(aplast);free(wwlast);free(pklast);
-           sprintf(cmd,"1dplot -ps -nopush -one -xzero %d -xlabel '%s:%s' 'Anhist.1D[1..3]' > Anhist.ps" ,
-                   cbot , dname , pbuf ) ;
+           sprintf(cmd,"1dplot -ps -nopush -one -xzero %d -xlabel '%s:%s' '%s.1D[1..3]' > %s.ps" ,
+                   cbot , label , pbuf , fname,fname ) ;
          } else {
            fprintf(hf,"# Val Histog\n") ;
            fprintf(hf,"# --- ------\n") ;
@@ -507,19 +527,19 @@ int main( int argc , char * argv[] )
              ii = strlen(pbuf) ;
              sprintf(pbuf+ii," #1%d=%.1f",jj+1,pval[jj]) ;
            }
-           sprintf(cmd,"1dplot -ps -nopush -xzero %d -xlabel '%s:%s' 'Anhist.1D[1]' > Anhist.ps",
-                   cbot , dname , pbuf ) ;
+           sprintf(cmd,"1dplot -ps -nopush -xzero %d -xlabel '%s:%s' '%s.1D[1]' > %s.ps",
+                   cbot , label , pbuf , fname,fname ) ;
          }
          fclose(hf) ;
          if( verb ){
            fprintf(stderr,"++ %s\n",cmd) ;
-           fprintf(stderr,"++ To view plot: gv -landscape Anhist.ps\n") ;
+           fprintf(stderr,"++ To view plot: gv -landscape %s.ps\n",fname) ;
          }
          system( cmd ) ;
        }
      }
 
-     print_results( dname,npk , pval , wval ) ;
+     print_results( label,npk , pval , wval ) ;
    }
 
    exit(0) ;
