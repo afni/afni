@@ -2989,7 +2989,8 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->BrightFact = 1.0;
    Opt->interpmode = SUMA_INTERP;
    Opt->alaAFNI = NOPE;
-   
+   Opt->AutoIntRange = YUP;
+   Opt->AutoBrtRange = YUP;
    {
       char *eee = getenv("SUMA_MaskZero");
       if (eee) {
@@ -5287,6 +5288,7 @@ char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail)
       SS = SUMA_StringAppend_va (SS, "find = %d\n", OptScl->find);
       SS = SUMA_StringAppend_va (SS, "IntRange = %f %f\n", 
          OptScl->IntRange[0], OptScl->IntRange[1]);
+      SS = SUMA_StringAppend_va (SS, "AutoIntRange = %d\n", OptScl->AutoIntRange);
       SS = SUMA_StringAppend_va (SS, "tind = %d (use:%d). Mode %d\n", OptScl->tind, OptScl->UseThr, OptScl->ThrMode);
       SS = SUMA_StringAppend_va (SS, "ThreshRange = %f %f\n", 
          OptScl->ThreshRange[0], OptScl->ThreshRange[1]);
@@ -5295,6 +5297,7 @@ char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail)
          OptScl->BrightRange[0], OptScl->BrightRange[1]);
       SS = SUMA_StringAppend_va (SS, "BrightMap = %f %f\n", 
          OptScl->BrightMap[0], OptScl->BrightMap[1]);
+      SS = SUMA_StringAppend_va (SS, "AutoBrtRange = %d\n", OptScl->AutoBrtRange);
       SS = SUMA_StringAppend_va (SS, "alaAFNI = %d\n", OptScl->alaAFNI);
       SS = SUMA_StringAppend_va (SS, "interpmode = %d\n", OptScl->interpmode);
       SS = SUMA_StringAppend_va (SS, "BiasMode = %d, Range=%f, %f \n", 

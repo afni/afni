@@ -1534,34 +1534,40 @@ void SUMA_SetRangeTableTit_EV ( Widget w , XtPointer cd ,
       SUMA_SL_Err("CEll not found!");
       SUMA_RETURNe;
    }
+   if (!SO->SurfCont->curColPlane) {
+      SUMA_SL_Err("No curColPlane!");
+      SUMA_RETURNe;
+   }
    
    /* Now do something */
    if (j == 0) { /* clicked on one of the row's titles */
       switch (i) {
          case 1:
             if (bev->button == Button1) { /* toggle lock */
-               SO->SurfCont->AutoIntRange = !SO->SurfCont->AutoIntRange;
+               SO->SurfCont->curColPlane->OptScl->AutoIntRange = !SO->SurfCont->curColPlane->OptScl->AutoIntRange;
+               SO->SurfCont->IntRangeLocked = !SO->SurfCont->IntRangeLocked;
                MCW_invert_widget(w);
             }else if (bev->button == Button3) { /* reset to autorange values */
-               AutoHist = SO->SurfCont->AutoIntRange; 
-               SO->SurfCont->AutoIntRange = 1;
+               AutoHist = SO->SurfCont->curColPlane->OptScl->AutoIntRange; 
+               SO->SurfCont->curColPlane->OptScl->AutoIntRange = 1;
                SUMA_InitRangeTable(SO, 0); /* overkill but little overhead */
                SUMA_ColorizePlane(SO->SurfCont->curColPlane);
                SUMA_RemixRedisplay(SO);
-               SO->SurfCont->AutoIntRange = AutoHist; 
+               SO->SurfCont->curColPlane->OptScl->AutoIntRange = AutoHist; 
             }
             break;
          case 2:
             if (bev->button == Button1) { /* toggle lock */
-               SO->SurfCont->AutoBrtRange = !SO->SurfCont->AutoBrtRange;
+               SO->SurfCont->curColPlane->OptScl->AutoBrtRange = !SO->SurfCont->curColPlane->OptScl->AutoBrtRange;
+               SO->SurfCont->BrtRangeLocked = !SO->SurfCont->BrtRangeLocked;
                MCW_invert_widget(w);   
             }else if (bev->button == Button3) { /* reset to autorange values */
-               AutoHist = SO->SurfCont->AutoBrtRange; 
-               SO->SurfCont->AutoBrtRange = 1;
+               AutoHist = SO->SurfCont->curColPlane->OptScl->AutoBrtRange; 
+               SO->SurfCont->curColPlane->OptScl->AutoBrtRange = 1;
                SUMA_InitRangeTable(SO, 1); /* overkill but little overhead */
                SUMA_ColorizePlane(SO->SurfCont->curColPlane);
                SUMA_RemixRedisplay(SO);
-               SO->SurfCont->AutoBrtRange = AutoHist; 
+               SO->SurfCont->curColPlane->OptScl->AutoBrtRange = AutoHist; 
             }
             break;
          case 3:
@@ -2832,7 +2838,6 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            NULL, NULL,  
                            SO->SurfCont->SetRangeTable);
          }
-       
          if (!SO->SurfCont->CoordBiasMenu[SW_CoordBias]) {
                Widget rc = NULL; /* one pass through this block ONLY */
                rc = XtVaCreateWidget ("rowcolumn",
@@ -2901,6 +2906,21 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
          if (!XtIsManaged(SO->SurfCont->rccm_swcmap)) XtManageChild (SO->SurfCont->rccm_swcmap); 
       }
       
+      SUMA_LH("Working the lock stuff ...");
+      /* You'll need to fix the table's locking widget colors */
+      if ( SO->SurfCont->IntRangeLocked == SO->SurfCont->curColPlane->OptScl->AutoIntRange) {
+         SUMA_LH("   Do the Int");
+         /* need to put things in sync */
+         SO->SurfCont->IntRangeLocked = !SO->SurfCont->IntRangeLocked;
+         MCW_invert_widget(SO->SurfCont->SetRangeTable->cells[1]);
+      }
+      if ( SO->SurfCont->BrtRangeLocked == SO->SurfCont->curColPlane->OptScl->AutoBrtRange) {
+         SUMA_LH("   Do the Brt");
+         /* need to put things in sync */
+         SO->SurfCont->BrtRangeLocked = !SO->SurfCont->BrtRangeLocked;
+         MCW_invert_widget(SO->SurfCont->SetRangeTable->cells[2]);
+      } 
+
       /* Set the CoordBias's menu history to reflect current setting */
       SUMA_LH("Updating CoorBias chooser History");
       XtVaSetValues(  SO->SurfCont->CoordBiasMenu[0], XmNmenuHistory , 
@@ -3113,7 +3133,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what)
    float range[2];
    NI_element *nel;
    SUMA_SCALE_TO_MAP_OPT *OptScl;
-   SUMA_Boolean DoIs = NOPE, DoBs = NOPE;
+   SUMA_Boolean DoIs = NOPE, DoBs = NOPE, ColorizeBaby;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -3127,6 +3147,7 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what)
    fi = OptScl->find;
    ti = OptScl->tind;
    bi = OptScl->bind;
+   ColorizeBaby = NOPE;
    
    switch (what) {
       case -1:
@@ -3157,23 +3178,45 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what)
    SUMA_INSERT_CELL_STRING(TF, 1, 3, srange_max);/* max */
    SUMA_INSERT_CELL_STRING(TF, 1, 4, srange_maxloc);/* maxloc */
    /* TFs Range table Int*/
-   if (SO->SurfCont->AutoIntRange && DoIs) { 
-      if (!SO->SurfCont->curColPlane->ForceIntRange[0] && !SO->SurfCont->curColPlane->ForceIntRange[1]) {
-         OptScl->IntRange[0] = range[0]; OptScl->IntRange[1] = range[1]; 
-      } else {
-         SUMA_LH("Using ForceIntRange");
-         OptScl->IntRange[0] = SO->SurfCont->curColPlane->ForceIntRange[0];
-         OptScl->IntRange[1] = SO->SurfCont->curColPlane->ForceIntRange[1];
+   if (DoIs) {
+      if (SO->SurfCont->curColPlane->OptScl->AutoIntRange) { 
+         if (!SO->SurfCont->curColPlane->ForceIntRange[0] && !SO->SurfCont->curColPlane->ForceIntRange[1]) {
+            if (  OptScl->IntRange[0] != range[0] ||
+                  OptScl->IntRange[1] != range[1] ) {
+               ColorizeBaby = YUP;      
+               OptScl->IntRange[0] = range[0]; OptScl->IntRange[1] = range[1]; 
+            }
+         } else {
+            SUMA_LH("Using ForceIntRange");
+            if (  OptScl->IntRange[0] != SO->SurfCont->curColPlane->ForceIntRange[0] ||
+                  OptScl->IntRange[1] != SO->SurfCont->curColPlane->ForceIntRange[1] ) {
+               ColorizeBaby = YUP;      
+               OptScl->IntRange[0] = SO->SurfCont->curColPlane->ForceIntRange[0];
+               OptScl->IntRange[1] = SO->SurfCont->curColPlane->ForceIntRange[1];
+            }
+         }
+
+         /* enforce the SymIrange option */
+         if (SO->SurfCont->curColPlane->SymIrange) {
+            if (  OptScl->IntRange[1] != SUMA_LARG_ABS(OptScl->IntRange[0], OptScl->IntRange[1]) ||
+                  OptScl->IntRange[0] != -OptScl->IntRange[1]) {
+               ColorizeBaby = YUP;   
+               OptScl->IntRange[1] = SUMA_LARG_ABS(OptScl->IntRange[0], OptScl->IntRange[1]);
+               OptScl->IntRange[0] = -OptScl->IntRange[1];
+            }
+         }
+
+         SUMA_INSERT_CELL_VALUE(TFs, 1, 1, OptScl->IntRange[0]);/* min */ 
+         SUMA_INSERT_CELL_VALUE(TFs, 1, 2, OptScl->IntRange[1]);/* max */
+      }else {
+         /* Make sure viewer is showing same values as in OptScl */
+         SUMA_LH("Imposing...");
+         if (  OptScl->IntRange[0] != TFs->num_value[1*TFs->Ni+1] ||
+               OptScl->IntRange[1] != TFs->num_value[2*TFs->Ni+1] ) {
+            SUMA_INSERT_CELL_VALUE(TFs, 1, 1, OptScl->IntRange[0]);/* min */ 
+            SUMA_INSERT_CELL_VALUE(TFs, 1, 2, OptScl->IntRange[1]);/* max */
+         }
       }
-      
-      /* enforce the SymIrange option */
-      if (SO->SurfCont->curColPlane->SymIrange) {
-         OptScl->IntRange[1] = SUMA_LARG_ABS(OptScl->IntRange[0], OptScl->IntRange[1]);
-         OptScl->IntRange[0] = -OptScl->IntRange[1];
-      }
-      
-      SUMA_INSERT_CELL_VALUE(TFs, 1, 1, OptScl->IntRange[0]);/* min */ 
-      SUMA_INSERT_CELL_VALUE(TFs, 1, 2, OptScl->IntRange[1]);/* max */
    } 
    /* TF Range table Thr*/
    SUMA_LH("Setting Thr.");
@@ -3191,20 +3234,43 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what)
    SUMA_INSERT_CELL_STRING(TF, 3, 3, srange_max);/* max */
    SUMA_INSERT_CELL_STRING(TF, 3, 4, srange_maxloc);/* maxloc */
    /* TFs Range table Brt*/
-   if (SO->SurfCont->AutoBrtRange && DoBs) { 
-      OptScl->BrightRange[0] = range[0]; OptScl->BrightRange[1] = range[1]; 
-      SUMA_INSERT_CELL_VALUE(TFs, 2, 1, OptScl->BrightRange[0]);/* min */
-      SUMA_INSERT_CELL_VALUE(TFs, 2, 2, OptScl->BrightRange[1]);/* max */
-      /* TFs Range table BrtMap*/
-      SUMA_INSERT_CELL_VALUE(TFs, 3, 1, OptScl->BrightMap[0]);/* min */
-      SUMA_INSERT_CELL_VALUE(TFs, 3, 2, OptScl->BrightMap[1]);/* max */
-   } 
+   if (DoBs) {
+      if (SO->SurfCont->curColPlane->OptScl->AutoBrtRange) { 
+         if (  OptScl->BrightRange[0] != range[0] ||
+               OptScl->BrightRange[1] != range[1] ) {
+            ColorizeBaby = YUP;      
+            OptScl->BrightRange[0] = range[0]; OptScl->BrightRange[1] = range[1]; 
+         }
+         SUMA_INSERT_CELL_VALUE(TFs, 2, 1, OptScl->BrightRange[0]);/* min */
+         SUMA_INSERT_CELL_VALUE(TFs, 2, 2, OptScl->BrightRange[1]);/* max */
+         /* TFs Range table BrtMap*/
+         SUMA_INSERT_CELL_VALUE(TFs, 3, 1, OptScl->BrightMap[0]);/* min */
+         SUMA_INSERT_CELL_VALUE(TFs, 3, 2, OptScl->BrightMap[1]);/* max */
+      } else {
+         /* Make sure viewer is showing same values as in OptScl */
+         if (  OptScl->BrightRange[0] != TFs->num_value[1*TFs->Ni+2] ||
+               OptScl->BrightRange[1] != TFs->num_value[2*TFs->Ni+2] ||
+               OptScl->BrightMap[0]   != TFs->num_value[1*TFs->Ni+3] ||
+               OptScl->BrightMap[1]   != TFs->num_value[2*TFs->Ni+3]   ) {
+            SUMA_INSERT_CELL_VALUE(TFs, 2, 1, OptScl->BrightRange[0]);/* min */
+            SUMA_INSERT_CELL_VALUE(TFs, 2, 2, OptScl->BrightRange[1]);/* max */
+            /* TFs Range table BrtMap*/
+            SUMA_INSERT_CELL_VALUE(TFs, 3, 1, OptScl->BrightMap[0]);/* min */
+            SUMA_INSERT_CELL_VALUE(TFs, 3, 2, OptScl->BrightMap[1]);/* max */
+         }
+      } 
+   }
    
    /* TFs Range table CoordBias*/
    SUMA_INSERT_CELL_VALUE(TFs, 4, 1, OptScl->CoordBiasRange[0]);/* min */
    SUMA_INSERT_CELL_VALUE(TFs, 4, 2, OptScl->CoordBiasRange[1]);/* max */
    
-   
+   if (ColorizeBaby) {
+      if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURN(NOPE);
+      }
+   }
    SUMA_RETURN(YUP);
 }
 
@@ -4202,9 +4268,17 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO)
 
    SUMA_ENTRY;
 
-   if (!SO) SUMA_RETURN(NOPE);
+   if (!SO) {
+      SUMA_LH("Null SO");
+      SUMA_RETURN(NOPE);
+   }
    Sover = SO->SurfCont->curColPlane;
-
+   
+   if (!Sover) {
+      SUMA_LH("Null Sover");
+      SUMA_RETURN(NOPE);
+   }
+   
    /* 1- Where is this node in the data set ? */
    Found = SUMA_GetNodeRow_FromNodeIndex(Sover->dset_link, SO->SelectedNode, SO->N_Node);
    if (LocalHead) {
@@ -4258,6 +4332,9 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO)
    if (!SO) SUMA_RETURN(NOPE);
 
    Sover = SO->SurfCont->curColPlane;
+   if (!Sover) {
+      SUMA_RETURN(NOPE);
+   }
    
    if (!Sover->Show) {
       SUMA_LH("Col plane hidden");

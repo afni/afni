@@ -2398,7 +2398,7 @@ void SUMA_cb_helpSurfaceStruct (Widget w, XtPointer data, XtPointer callData)
    }
    
    /* Now do the info thingy */
-   SUMA_cb_moreSurfInfo (w, (XtPointer)SO, callData);
+   SUMA_cb_moreSurfInfo (w, (XtPointer)SO->SurfCont->curSOp, callData);
 
    SUMA_RETURNe;
 
@@ -3537,6 +3537,24 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    /* initialize the ColorPlane frame if possible 
    Do it here rather than above because scale goes crazy 
    when parent widgets are being resized*/
+   if (!SO->Overlays[0]) {
+      SUMA_SurfaceObject *SOp=NULL;
+      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n"
+                           "NO Overlays yet for this surface\n", FuncName);
+      /* happens in very few instances when both child and parent 
+      are in the first view and the child is selected before the surface
+      controller for that family is ever opened! */
+      SOp = SUMA_findSOp_inDOv(SO->LocalDomainParentID, SUMAg_DOv, SUMAg_N_DOv);
+      if (!SOp) {
+         SUMA_SL_Err("Failed to find parent, should not be.");
+      }
+
+      if (!SUMA_GetOverlaysFromParent(SO, SOp)) {
+         SUMA_SL_Err("Failed to copy overlays!");
+         SUMA_RETURNe;
+      }
+   }
+   
    if (SO->N_Overlays) {
       SUMA_InitializeColPlaneShell(SO, SO->Overlays[0]);
    }
@@ -3873,6 +3891,7 @@ SUMA_Boolean SUMA_UpdateColPlaneShellAsNeeded(SUMA_SurfaceObject *SO)
    
    SUMA_ENTRY;
    
+   SUMA_LH("Called");
    /* find out which surfaces are related to SO */
    for (i=0; i<SUMAg_N_DOv; ++i) {
       if (SUMA_isSO(SUMAg_DOv[i])) {
@@ -6791,7 +6810,6 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
    
    SUMA_ENTRY;
-   
    #if 0
    XtVaGetValues (w,
                   XmNuserData, &n,
@@ -6802,7 +6820,7 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
    curSOp = (void **)client_data;
    SO = (SUMA_SurfaceObject *)(*curSOp);
    #endif
-   
+  
    /* check to see if window is already open, if it is, just raise it */
    if (SO->SurfCont->SurfInfo_TextShell) {
       XRaiseWindow (SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->SurfInfo_TextShell->toplevel));

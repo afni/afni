@@ -1865,8 +1865,8 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->Int_tb = NULL;
    SurfCont->Thr_tb = NULL;
    SurfCont->Brt_tb = NULL;
-   SurfCont->AutoIntRange = 1;
-   SurfCont->AutoBrtRange = 1;
+   SurfCont->IntRangeLocked = 0;
+   SurfCont->BrtRangeLocked = 0;
    /*SurfCont-> = NULL;
    SurfCont-> = NULL;
    SurfCont-> = NULL;*/
