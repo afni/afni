@@ -631,6 +631,16 @@ ENTRY("new_MCW_grapher") ;
      MCW_reghint_children( grapher->opt_ggap_av->wrowcol ,
                            "Space sub-graphs apart" ) ;
 
+     /* 06 Oct 2004: control 'thick' line size */
+
+     grapher->opt_gthick_av =
+        new_MCW_optmenu( grapher->opt_colors_menu , "'Thick'  " ,
+                         2 , 10 , INIT_GR_gthick , 0 ,
+                         GRA_gthick_CB , (XtPointer) grapher , NULL , NULL ) ;
+     AVOPT_columnize( grapher->opt_gthick_av , 2 ) ;
+     MCW_reghint_children( grapher->opt_gthick_av->wrowcol ,
+                           "Width of 'Thick' lines" ) ;
+
    }
    /***** end colors submenu creation *****/
 
@@ -858,7 +868,8 @@ if(PRINT_TRACING)
    grapher->time_index  =  0 ;
    grapher->pin_top     =  0 ;  /* 27 Apr 1997 */
    grapher->pin_bot     =  0 ;  /* 17 Mar 2004 */
-   grapher->ggap        =  INIT_GR_ggap ;  /* 12 Jan 1998 + 27 May 1999 */
+   grapher->ggap        =  INIT_GR_ggap ;    /* 12 Jan 1998 + 27 May 1999 */
+   grapher->gthick      =  INIT_GR_gthick ;  /* 06 Oct 2004 */
 
    grapher->cen_line    =  NULL ;  /* coords of central graph plot */
    grapher->ncen_line   =  0 ;
@@ -959,6 +970,7 @@ STATUS("destroying arrowvals") ;
    FREE_AV( grapher->transform0D_av )      ;  /* 22 Oct 1996 */
    FREE_AV( grapher->transform1D_av )      ;  /* 03 Nov 1996 */
    FREE_AV( grapher->opt_ggap_av )         ;  /* 28 Sep 1998: via Purify */
+   FREE_AV( grapher->opt_gthick_av )       ;  /* 06 Oct 2004 */
 
    for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )  /* 16 Jun 1997 */
      FREE_AV( grapher->opt_color_av[ii] ) ;
@@ -3735,6 +3747,25 @@ ENTRY("GRA_ggap_CB") ;
 
    gg = grapher->ggap ; grapher->ggap = cbs->ival ;
    if( gg != grapher->ggap ){
+     init_mat( grapher ) ; redraw_graph( grapher , 0 ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+void GRA_gthick_CB( MCW_arrowval *cbs , XtPointer cd )  /* 06 Oct 2004 */
+{
+   MCW_grapher *grapher = (MCW_grapher *) cd ;
+   int gg ;
+
+ENTRY("GRA_gthick_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
+
+   gg = grapher->gthick ; grapher->gthick = cbs->ival ;
+   if( gg != grapher->gthick ){
      init_mat( grapher ) ; redraw_graph( grapher , 0 ) ;
    }
 
