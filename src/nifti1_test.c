@@ -1,6 +1,8 @@
-#include "nifti1_io.c"
+#include "nifti1_io.c"   /* directly include I/O library functions */
 
-/* cc -o nifti1_test -O2 nifti1_test.c -lm */
+/*-----------------------------------------------*/
+/*    cc -o nifti1_test -O2 nifti1_test.c -lm    */
+/*-----------------------------------------------*/
 
 /****************************************************************************/
 
@@ -21,6 +23,11 @@ int main( int argc , char *argv[] )
             "\n"
             " If prefix is not given, then the header info from infile\n"
             " file is printed to stdout.\n"
+            "\n"
+            " Please note that the '.nia' format is NOT part of the\n"
+            " NIFTI-1 specification, but is provided mostly for ease\n"
+            " of visualization (e.g., you can edit a .nia file and\n"
+            " change some header fields, then rewrite it as .nii)\n"
            ) ;
      printf("\nsizeof(nifti_1_header)=%d\n",sizeof(nifti_1_header)) ;
      exit(0) ;
