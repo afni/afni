@@ -46,10 +46,10 @@ float ep = 1e-4; /* this represents the smallest coordinate difference to be exp
 SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_SphereQuality"};
-   float *dist = NULL, mdist, *Cx=NULL, Center[3];
+   float *dist = NULL, mdist, *Cx=NULL, Center[3], *dot=NULL, nr, r[3];
    int i, i3, *isortdist = NULL, *isortconv = NULL;
    FILE *fid;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -139,7 +139,34 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO)
       for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, Cx[i]);
       fclose(fid);
    }
+   
+   /* New idea:
+   If we had a perfect sphere then the normal of each node
+   will be colinear with the direction of the vector between the
+   sphere's center and the node.
+   The mode the deviation, the worse the sphere */
+   dot = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
+   for (i=0; i<SO->N_Node; ++i) {
+      i3 = 3*i;
+      r[0] = SO->NodeList[i3]   - SO->Center[0];
+      r[1] = SO->NodeList[i3+1] - SO->Center[1];
+      r[2] = SO->NodeList[i3+2] - SO->Center[2];
+      nr = sqrt ( r[0] * r[0] + r[1] * r[1] + r[2] * r[2] );
+      r[0] /= nr; r[1] /= nr; r[2] /= nr; 
       
+      dot[i] = r[0]*SO->NodeNormList[i3]   + 
+               r[1]*SO->NodeNormList[i3+1] +
+               r[2]*SO->NodeNormList[i3+2] ;
+      
+   }
+   
+   if (LocalHead) {
+      fid = fopen("dotprod", "w");
+      for (i=0; i<SO->N_Node; ++i) fprintf(fid,"%d\t%f\n", i, dot[i]);
+      fclose(fid);
+   }
+      
+   if (dot) SUMA_free(dot);
    if (isortdist) SUMA_free(isortdist);
    if (isortconv) SUMA_free(isortconv);
    if (dist) SUMA_free(dist);

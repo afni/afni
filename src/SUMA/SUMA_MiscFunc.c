@@ -5288,8 +5288,9 @@ SUMA_Boolean SUMA_Householder (float *Ni, float **Q)
 float * SUMA_Convexity (float *NL, int N_N, float *NNL, SUMA_NODE_FIRST_NEIGHB *FN) 
 {
    static char FuncName[]={"SUMA_Convexity"};
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    float *C=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    C = SUMA_Convexity_Engine (NL, N_N, NNL, FN, NULL);
    
