@@ -100,8 +100,10 @@ void ps_rect( int x1,int y1 , int x2,int y2 )
    fprintf( psfile , "%d %d N ",x2,y1);
    fprintf( psfile , "%d %d N ",x2,y2);
    fprintf( psfile , "%d %d N ",x1,y2);
+#if 0
    fprintf( psfile , "%d %d N ",x1,y1);
-   fprintf( psfile , "F\n") ;
+#endif
+   fprintf( psfile , "F S\n") ;
 }
 
 void ps_point( int ix , int iy )

@@ -4367,3 +4367,7 @@
      cache thrashing.
  * Modified thd_notes.c to add function to append one dataset's history
      to another's.  Used this in 3dcalc.c as a starter.
+
+28 Feb 2003
+ * Per Lukas Pezawas of CBDB, modified 1dgrayplot.c to have -ps option,
+     like 1dplot.c.
