@@ -142,10 +142,10 @@ int calc_glt_matrix
   ok = matrix_inverse_dsc (*cxtxinvct, &t2); /* inv{ [c] inv{[x]'[x]} [c]' } */
   if (ok)
     {
-      matrix_multiply (xtxinvct, t2, &t1);   /* inv{[x]'[x]} inv{ [c] inv{[x]'[x]} [c]' } */
-      matrix_multiply (t1, c, &t2);          /* inv{[x]'[x]} inv{ [c] inv{[x]'[x]} [c]' } [c] */
+      matrix_multiply (xtxinvct, t2, &t1);
+      matrix_multiply (t1, c, &t2);
       matrix_identity (xtxinv.rows, &t1);
-      matrix_subtract (t1, t2, a);           /* I - inv{[x]'[x]} inv{ [c] inv{[x]'[x]} [c]' } [c] */
+      matrix_subtract (t1, t2, a);
     }
   else
     RA_error ("Improper C matrix  ( cannot invert C(1/(X'X))C' ) ");

@@ -1163,7 +1163,7 @@ void get_options
 	  s = ival;
 
 	  if (option_data->num_glt == 0) 
-	    initialize_glt_options (option_data, 10);
+	    initialize_glt_options (option_data, 10);   /* default limit on GLTs */
 	      
 	  if (iglt+1 > option_data->num_glt)    
 	    DC_error ("Use -num_glt option to specify number of GLT's ");
@@ -1390,7 +1390,7 @@ void get_options
     }
 
 
-  /*----- Set number of GLT's -----*/
+  /*----- Set number of GLT's actually present -----*/
   option_data->num_glt = iglt;
 
   /*---- if -jobs is given, make sure are processing 3D data ----*/
@@ -1525,7 +1525,7 @@ void read_input_data
           for( js=is+1 ; js < num_stimts ; js++ ){
             if( strcmp( option_data->stim_filename[is] ,
                         option_data->stim_filename[js]  ) == 0 )
-              fprintf(stderr,"** -stim_file ERROR: "
+              fprintf(stderr,"** -stim_file WARNING: "
                              "#%d '%s' same as #%d '%s'\n" ,
                       is+1,option_data->stim_filename[is] ,
                       js+1,option_data->stim_filename[js]  ) ;
@@ -1674,8 +1674,8 @@ void read_input_data
 
   /*----- Determine total number of parameters in the model -----*/
   qp = (option_data->polort + 1) * (*num_blocks);
-  q = qp;
-  p = qp;
+  q = qp;   /* number of baseline parameters */
+  p = qp;   /* number of total parameters */
   for (is = 0;  is < num_stimts;  is++)
     {
       if (max_lag[is] < min_lag[is])
@@ -1685,7 +1685,7 @@ void read_input_data
     }
   option_data->p  = p;
   option_data->q  = q;
-  option_data->qp = qp;
+  option_data->qp = qp;  /* number of polort baseline parameters */
   
 
   /*----- Read the censorship file -----*/
@@ -1724,7 +1724,7 @@ void read_input_data
 
       for (iglt = 0;  iglt < num_glt;  iglt++)
 	{
-	  matrix_file_read (option_data->glt_filename[iglt],
+	  matrix_file_read (option_data->glt_filename[iglt],  /* uses MRI_read_1D() */
 			    option_data->glt_rows[iglt],
 			    p, &((*glt_cmat)[iglt]), 1);
 	  if ((*glt_cmat)[iglt].elts == NULL)
