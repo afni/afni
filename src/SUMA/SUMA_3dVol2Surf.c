@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.1 (September 17, 2003)"
+#define VERSION "version 3.2 (September 21, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -51,7 +51,12 @@
 /*----------------------------------------------------------------------
  * history:
  *
- * 3.0  September 17, 2003
+ * 3.2  September 20, 2003
+ *   - added max_abs mapping function
+ *   - added options '-oob_index' and '-oob_value'
+ *   - added CHECK_NULL_STR macro
+ *
+ * 3.1  September 17, 2003
  *   - fixed the help instructions for '-cmask'
  *
  * 3.0  August 05, 2003
@@ -120,7 +125,7 @@ SUMA_CommonFields  * SUMAg_CF = NULL;	/* info common to all viewers   */
 
 /* this must match smap_nums enum */
 char * g_smap_names[] = { "none", "mask", "midpoint", "mask2", "ave",
-                          "count", "min", "max", "seg_vals" };
+                          "count", "min", "max", "max_abs", "seg_vals" };
 
 
 /* AFNI prototype */
@@ -192,6 +197,7 @@ int write_output ( smap_opts_t * sopt, opts_t * opts, param_t * p,
 	case E_SMAP_AVE:
 	case E_SMAP_MASK:
 	case E_SMAP_MAX:
+	case E_SMAP_MAX_ABS:
 	case E_SMAP_MIDPT:
 	case E_SMAP_MIN:
 	case E_SMAP_SEG_VALS:
@@ -288,6 +294,21 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	     f3mm_out_of_bounds( &r3mm.pn, &p->f3mm_min, &p->f3mm_max ) )
 	{
 	    oobc++;
+
+	    /* if user requests, display default info */
+	    if ( p->oob.show )
+	    {
+		max_index = vals_over_steps(sopt->map) ? sopt->f_steps : subs;
+
+		fprintf( p->outfp, "  %8d   %8d   %3d  %3d  %3d     %3d",
+		     nindex, p->oob.index,
+		     p->oob.index, p->oob.index, p->oob.index,
+		     max_index );
+		for ( index = 0; index < max_index; index++ )
+		    fprintf( p->outfp, "  %10s", MV_format_fval(p->oob.value));
+		fputc( '\n', p->outfp );
+	    }
+
 	    continue;
 	}
 
@@ -327,10 +348,7 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 
 	/* Hey, these numbers are why I'm writing the program, woohoo! */
 	/* Decide to print over steps or sub-bricks.                   */
-	if ( vals_over_steps(sopt->map) )
-	    max_index = r3mm_res.ims.num;
-	else
-	    max_index = subs;
+	max_index = vals_over_steps(sopt->map) ? r3mm_res.ims.num : subs;
 
 	for ( index = 0; index < max_index; index++ )
 	    fprintf( p->outfp, "  %10s",
@@ -340,7 +358,6 @@ int dump_surf_3dt ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	if ( vals_over_steps(sopt->map) && (max_index < sopt->f_steps) )
 	    for ( index = max_index; index < sopt->f_steps; index++ )
 		fprintf(p->outfp, "  %10s", MV_format_fval(0.0));
-
 	fputc( '\n', p->outfp );
 
 	if ( (sopt->debug > 1) && (nindex == sopt->dnode) )
@@ -525,6 +542,7 @@ int create_node_list ( smap_opts_t * sopt, node_list_t * N )
 
 	case E_SMAP_AVE:
 	case E_SMAP_MAX:
+	case E_SMAP_MAX_ABS:
 	case E_SMAP_MIN:
 	case E_SMAP_MIDPT:
 	case E_SMAP_SEG_VALS:
@@ -739,6 +757,7 @@ int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
 	case E_SMAP_AVE:
 	case E_SMAP_COUNT:
 	case E_SMAP_MAX:
+	case E_SMAP_MAX_ABS:
 	case E_SMAP_MIN:
 	case E_SMAP_MASK2:
 	case E_SMAP_SEG_VALS:
@@ -1016,6 +1035,30 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	{
 	    opts->no_head = 1;
 	}
+	else if ( ! strncmp(argv[ac], "-oob_index", 8) )
+	{
+	    if ( (ac+1) >= argc )
+            {
+		fputs( "option usage: -oob_index INDEX_VALUE\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->oob.show  = 1;
+            opts->oob.index = atoi(argv[++ac]);
+	}
+	else if ( ! strncmp(argv[ac], "-oob_value", 8) )
+	{
+	    if ( (ac+1) >= argc )
+            {
+		fputs( "option usage: -oob_value VALUE\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->oob.show  = 1;
+            opts->oob.value = atof(argv[++ac]);
+	}
 	else if ( ! strncmp(argv[ac], "-out_1D", 7) )
 	{
 	    if ( (ac+1) >= argc )
@@ -1103,6 +1146,8 @@ int validate_options ( opts_t * opts, param_t * p )
     if ( validate_datasets( opts, p ) != 0 )
 	return -1;
 
+    p->oob = opts->oob;		/* out of bounds info */
+
     if ( opts->debug > 1 )
 	disp_param_t( "++ opts validated: ", p );
 
@@ -1182,6 +1227,7 @@ int check_map_func ( char * map_str )
 	case E_SMAP_AVE:
 	case E_SMAP_MASK:
 	case E_SMAP_MAX:
+	case E_SMAP_MAX_ABS:
 	case E_SMAP_MIN:
 	case E_SMAP_MIDPT:
 	case E_SMAP_SEG_VALS:
@@ -1385,6 +1431,7 @@ int usage ( char * prog, int level )
 	    "                segment - defined by a single surface point\n"
 	    "    midpoint  : output the dataset value at the segment midpoint\n"
 	    "    max       : output the maximum volume value over the segment\n"
+	    "    max_abs   : output the dataset value with max abs over seg\n"
 	    "    min       : output the minimum volume value over the segment\n"
 	    "    seg_vals  : output _all_ volume values over the segment (one\n"
 	    "                sub-brick only)\n"
@@ -1424,7 +1471,8 @@ int usage ( char * prog, int level )
 	    "       Since the index is nodes, each of the 10 points will be\n"
 	    "       part of the average.  This could be changed so that only\n"
 	    "       values from distinct volume nodes are considered (by\n"
-	    "       changing the -f_index from nodes to voxels).\n"
+	    "       changing the -f_index from nodes to voxels).  Restrict\n"
+	    "       input voxels to those implied by the -cmask option\n"
 	    "       Output is one average value per sub-brick (per surface\n"
 	    "       node).\n"
 	    "\n"
@@ -1531,6 +1579,9 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "          max      : Output the maximum dataset value along the\n"
 	    "                     connecting segment.\n"
+	    "\n"
+	    "          max_abs  : Output the dataset value with the maximum\n"
+	    "                     absolute value along the segment.\n"
 	    "\n"
 	    "          midpoint : Output the dataset value with xyz\n"
 	    "                     coordinates at the midpoint of the nodes.\n"
@@ -1691,6 +1742,31 @@ int usage ( char * prog, int level )
 	    "    -help                  : show this help\n"
 	    "\n"
 	    "        If you can't get help here, please get help somewhere.\n"
+	    "\n"
+	    "    -oob_index INDEX_NUM   : specify default index for oob nodes\n"
+	    "\n"
+	    "        e.g.     -oob_index -1\n"
+	    "        default: -oob_index  0\n"
+	    "\n"
+	    "        By default, nodes which lie outside the box defined by\n"
+	    "        the -grid_parent dataset are considered out of bounds,\n"
+	    "        and are skipped.  If an out of bounds index is provided,\n"
+	    "        or an out of bounds value is provided, such nodes will\n"
+	    "        not be skipped, and will have indices and values output,\n"
+	    "        according to the -oob_index and -oob_value options.\n"
+	    "        \n"
+	    "        This INDEX_NUM will be used for the 1dindex field, along\n"
+	    "        with the i, j and k indices.\n"
+	    "        \n"
+	    "\n"
+	    "    -oob_value VALUE       : specify default value for oob nodes\n"
+	    "\n"
+	    "        e.g.     -oob_value -999.0\n"
+	    "        default: -oob_value    0.0\n"
+	    "\n"
+	    "        See -oob_index, above.\n"
+	    "        \n"
+	    "        VALUE will be output for nodes which are out of bounds.\n"
 	    "\n"
 	    "    -out_1D OUTPUT_FILE    : specify a 1D file for the output\n"
 	    "\n"
@@ -1929,6 +2005,7 @@ int v2s_adjust_endpts( smap_opts_t * sopt, THD_fvec3 * p1, THD_fvec3 * pn )
 
 	case E_SMAP_AVE:
 	case E_SMAP_MAX:
+	case E_SMAP_MAX_ABS:
 	case E_SMAP_MIN:
 	case E_SMAP_MASK:
 	case E_SMAP_SEG_VALS:
@@ -2015,6 +2092,21 @@ float v2s_apply_filter( range_3dmm_res * rr, smap_opts_t * sopt, int index,
 	    {
 		tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
 		if ( tmp > comp )
+		{
+		    if ( findex ) *findex = count;
+		    comp = tmp;
+		}
+	    }
+	    break;
+
+	case E_SMAP_MAX_ABS:
+	    comp = MRI_FLOAT_PTR(rr->ims.imarr[0])[index];
+	    if ( findex ) *findex = 0;
+
+	    for ( count = 1; count < rr->ims.num; count++ )
+	    {
+		tmp = MRI_FLOAT_PTR(rr->ims.imarr[count])[index];
+		if ( fabs(tmp) > fabs(comp) )
 		{
 		    if ( findex ) *findex = count;
 		    comp = tmp;
@@ -2200,9 +2292,11 @@ int disp_opts_t ( char * info, opts_t * opts )
 	    "    f_p1_fr, f_pn_fr   = %f, %f\n"
 	    "    f_p1_mm, f_pn_mm   = %f, %f\n"
 	    , opts,
-	    opts->gpar_file, opts->out_file, opts->spec_file, opts->sv_file,
-	    opts->cmask_cmd, opts->map_str, opts->no_head, opts->debug,
-	    opts->dnode, opts->f_index_str, opts->f_steps, opts->f_kso,
+	    CHECK_NULL_STR(opts->gpar_file), CHECK_NULL_STR(opts->out_file),
+	    CHECK_NULL_STR(opts->spec_file), CHECK_NULL_STR(opts->sv_file),
+	    CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->map_str),
+	    opts->no_head, opts->debug, opts->dnode,
+	    CHECK_NULL_STR(opts->f_index_str), opts->f_steps, opts->f_kso,
 	    opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
 	    );
 
