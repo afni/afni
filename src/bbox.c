@@ -1163,6 +1163,16 @@ char * AV_format_fval( float fval )
    return buf ;
 }
 
+char * AV_uformat_fval( float fval )
+{
+   static char buf[32] ;
+   AV_fval_to_char( fval , buf ) ;
+   if( buf[0] == ' ' ) return (buf+1) ;
+   return buf ;
+}
+
+/*------------------------------------------------------------------------*/
+
 /*------------------------------------------------------------------------*/
 
 void AV_assign_fval( MCW_arrowval * av , float qval )

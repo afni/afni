@@ -651,7 +651,7 @@ ENTRY("AFNI_find_splash_ppms") ;
 
 /*---------------------------------------------------------------------------*/
 
-#define NLBUF 512
+#define NLBUF 4096
 static char * linbuf ;  /* must be malloc()-ed before use */
 
 static int get_linbuf( char * str )
@@ -674,7 +674,8 @@ static int get_linbuf( char * str )
 
    /* copy into linbuf */
 
-   for( jj=0 ; str[ii] != '\0' &&
+   for( jj=0 ; jj < NLBUF      &&
+               str[ii] != '\0' &&
                str[ii] != '\n' &&
                str[ii] != '!'  &&
                !(str[ii]=='/' && str[ii+1]=='/')
@@ -764,7 +765,7 @@ ENTRY("AFNI_startup_layout_CB") ;
    fbuf = AFNI_suck_file(fname); if( fbuf == NULL ){ AFNI_splashdown(); EXRETURN; }
    nbuf = strlen(fbuf) ;         if( nbuf == 0    ){ AFNI_splashdown(); EXRETURN; }
 
-   fptr = fbuf ; linbuf = (char *) malloc(sizeof(char)*NLBUF) ;
+   fptr = fbuf ; linbuf = (char *) malloc(sizeof(char)*(NLBUF+1)) ;
 
 if(PRINT_TRACING)
 { char str[256] ;
@@ -1246,7 +1247,7 @@ void AFNI_save_layout_CB( Widget w , XtPointer cd , XtPointer cbs )
 ENTRY("AFNI_save_layout_CB") ;
 
    MCW_choose_string( im3d->vwid->picture ,
-                      "Enter layout save filename:" ,
+                      "Layout filename [blank => .afni.startup_script]:" ,
                       NULL , AFNI_finalsave_layout_CB , cd ) ;
    EXRETURN ;
 }
@@ -1257,7 +1258,7 @@ void AFNI_finalsave_layout_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
    int cc,ww , gww,ghh,gxx,gyy ;
-   FILE * fp ;
+   FILE * fp , * gp ;
    MCW_imseq   * isq ;
    MCW_grapher * gra ;
    float ifrac ;
@@ -1278,16 +1279,44 @@ void AFNI_finalsave_layout_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    PLUGIN_interface ** plugint = qm3d->vwid->plugint;       /* their interfaces */
 #endif
 
+   MCW_DCOV     * ovc          = GLOBAL_library.dc->ovc ;   /* 22 Jan 2003 */
+   Three_D_View * zm3d ;
+
 ENTRY("AFNI_finalsave_layout_CB") ;
 
-   if( !THD_filename_ok(cbs->cval) ){ BEEPIT; EXRETURN; }
 
    if( strcmp(cbs->cval,".afnirc") == 0 ){ BEEPIT; EXRETURN; } /* 12 Oct 2000 */
 
-   fp = fopen( cbs->cval , "w" ) ;
-   if( fp == NULL ){ BEEPIT; EXRETURN; }
+   /*-- 23 Jan 2003: open layout file if name is "OK", else don't use it --*/
 
-   fprintf(fp,"\n***LAYOUT\n") ;
+   if( THD_filename_ok(cbs->cval) ){
+     fp = fopen( cbs->cval , "w" ) ;
+     if( fp == NULL ){ BEEPIT; EXRETURN; }
+   } else {
+     fp = NULL ;
+   }
+
+   if( fp != NULL ) fprintf(fp,"\n***LAYOUT\n") ;
+
+   /*-- 22 Jan 2002: maybe write a startup script to do same things --*/
+
+   if( fp == NULL )
+     gp = fopen( ".afni.startup_script" , "w" ) ;
+   else
+     gp = NULL ;
+
+   if( gp != NULL ){
+
+     fprintf(gp,"// AFNI startup script, from Datamode->Misc->Save Layout\n") ;
+
+     /* put in any extra overlay colors */
+
+     for( qq=DEFAULT_NCOLOVR+1 ; qq < ovc->ncol_ov ; qq++ )
+       fprintf(gp,"ADD_OVERLAY_COLOR %s %s\n",
+               ovc->name_ov[qq] , ovc->label_ov[qq] ) ;
+   } else {
+     if( fp == NULL ){ BEEPIT; EXRETURN; }
+   }
 
    /*-- loop over controllers --*/
 
@@ -1295,22 +1324,52 @@ ENTRY("AFNI_finalsave_layout_CB") ;
 
       /*-- controller open? */
 
-      if( !IM3D_OPEN(GLOBAL_library.controllers[cc]) ) continue ; /* skip */
+      zm3d = GLOBAL_library.controllers[cc] ;
+
+      if( !IM3D_OPEN(zm3d) ) continue ; /* skip */
 
       /* print controller info */
 
-      MCW_widget_geom( GLOBAL_library.controllers[cc]->vwid->top_shell ,
+      MCW_widget_geom( zm3d->vwid->top_shell ,
                        NULL,NULL , &gxx,&gyy ) ;
 
-      fprintf(fp,"  %c geom=+%d+%d\n" , abet[cc] , gxx,gyy ) ;
+      if( fp != NULL ) fprintf(fp,"  %c geom=+%d+%d\n" , abet[cc] , gxx,gyy ) ;
 
-      /*-- loop over image viewers --*/
+      /*-- 22 Jan 2003: parallel output for startup script --*/
+
+      if( gp != NULL ){
+
+        fprintf(gp,"OPEN_WINDOW %c geom=+%d+%d\n" , abet[cc] , gxx,gyy ) ;
+
+        fprintf(gp,"SET_THRESHOLD %c.%04d %d\n" , abet[cc] ,
+                    (int)(zm3d->vinfo->func_threshold/THR_FACTOR) ,
+                    (int)(log10(zm3d->vinfo->func_thresh_top)+.01) ) ;
+
+        fprintf(gp,"SET_PBAR_ALL %c.%c%d" , abet[cc] ,
+                   (zm3d->vwid->func->inten_pbar->mode) ? '+' : '-' ,
+                    zm3d->vwid->func->inten_pbar->num_panes ) ;
+        for( qq=0 ; qq < zm3d->vwid->func->inten_pbar->num_panes ; qq++ )
+          fprintf(gp," %s=%s",
+                     AV_uformat_fval(zm3d->vwid->func->inten_pbar->pval[qq]) ,
+                     ovc->label_ov[zm3d->vwid->func->inten_pbar->ov_index[qq]] ) ;
+        fprintf(gp,"\n") ;
+
+        fprintf(gp,"SET_FUNC_VISIBLE %c.%c\n" , abet[cc] ,
+                (zm3d->vinfo->func_visible) ? '+' : '-'   ) ;
+
+        fprintf(gp,"SET_FUNC_RESAM %c.%s.%s\n" , abet[cc] ,
+                RESAM_shortstr[zm3d->vinfo->func_resam_mode] ,
+                RESAM_shortstr[zm3d->vinfo->thr_resam_mode]   ) ;
+
+      } /* end of startup script stuff */
+
+      /*-- loop over image viewers in this controller --*/
 
       for( ww=0 ; ww < 3 ; ww++ ){
 
-         isq = (ww == 0) ? GLOBAL_library.controllers[cc]->s123     /* get the image */
-              :(ww == 1) ? GLOBAL_library.controllers[cc]->s231     /* viewer struct */
-              :            GLOBAL_library.controllers[cc]->s312 ;
+         isq = (ww == 0) ? zm3d->s123     /* get the image */
+              :(ww == 1) ? zm3d->s231     /* viewer struct */
+              :            zm3d->s312 ;
 
          if( isq == NULL ) continue ;   /* skip */
 
@@ -1323,27 +1382,43 @@ ENTRY("AFNI_finalsave_layout_CB") ;
          if( isq->mont_nx > 1 || isq->mont_ny > 1 ){
             sprintf(mont,"%dx%d:%d:%d:%s" ,
                     isq->mont_nx , isq->mont_ny , isq->mont_skip+1 , isq->mont_gap ,
-                    GLOBAL_library.controllers[cc]->dc->ovc->label_ov[isq->mont_gapcolor]);
+                    zm3d->dc->ovc->label_ov[isq->mont_gapcolor]);
          } else {
             mont[0] = '\0' ;
          }
 
-         if( mont[0] == '\0' ){
-            fprintf(fp, "  %c.%simage geom=%dx%d+%d+%d ifrac=%f\n" ,
-                        abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , ifrac ) ;
-         } else {
-            fprintf(fp, "  %c.%simage geom=%dx%d+%d+%d ifrac=%f mont=%s\n" ,
-                        abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , ifrac , mont ) ;
+         if( fp != NULL ){
+           if( mont[0] == '\0' ){
+              fprintf(fp, "  %c.%simage geom=%dx%d+%d+%d ifrac=%s\n" ,
+                          abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , AV_uformat_fval(ifrac) ) ;
+           } else {
+              fprintf(fp, "  %c.%simage geom=%dx%d+%d+%d ifrac=%s mont=%s\n" ,
+                          abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , AV_uformat_fval(ifrac) , mont ) ;
+           }
          }
+
+         /*-- 22 Jan 2003: startup script stuff for image viewers --*/
+
+         if( gp != NULL ){
+           int opval=9 ;
+           drive_MCW_imseq( isq , isqDR_getopacity , &opval ) ;
+           if( mont[0] == '\0' ){
+              fprintf(gp, "OPEN_WINDOW %c.%simage geom=+%d+%d ifrac=%s opacity=%d\n" ,
+                          abet[cc] , wnam[ww] , gxx,gyy , AV_uformat_fval(ifrac) , opval ) ;
+           } else {
+              fprintf(gp, "OPEN_WINDOW %c.%simage geom=+%d+%d ifrac=%s mont=%s opacity=%d\n" ,
+                          abet[cc] , wnam[ww] , gxx,gyy , AV_uformat_fval(ifrac) , mont , opval ) ;
+           }
+        }
       }
 
       /*-- loop over graph viewers --*/
 
       for( ww=0 ; ww < 3 ; ww++ ){
 
-         gra = (ww == 0) ? GLOBAL_library.controllers[cc]->g123    /* get the graph */
-              :(ww == 1) ? GLOBAL_library.controllers[cc]->g231    /* viewer struct */
-              :            GLOBAL_library.controllers[cc]->g312 ;
+         gra = (ww == 0) ? zm3d->g123    /* get the graph */
+              :(ww == 1) ? zm3d->g231    /* viewer struct */
+              :            zm3d->g312 ;
 
          if( gra == NULL ) continue ;   /* ERROR */
 
@@ -1352,12 +1427,26 @@ ENTRY("AFNI_finalsave_layout_CB") ;
          pinnum = (gra->pin_num < MIN_PIN) ? 0 : gra->pin_num ;
          matrix = gra->mat ;
 
-         if( pinnum > 0 ){
-            fprintf(fp , "  %c.%sgraph geom=%dx%d+%d+%d matrix=%d pinnum=%d\n" ,
-                         abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , matrix,pinnum ) ;
-         } else {
-            fprintf(fp , "  %c.%sgraph geom=%dx%d+%d+%d matrix=%d\n" ,
-                         abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , matrix ) ;
+         if( fp != NULL ){
+           if( pinnum > 0 ){
+              fprintf(fp , "  %c.%sgraph geom=%dx%d+%d+%d matrix=%d pinnum=%d\n" ,
+                           abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , matrix,pinnum ) ;
+           } else {
+              fprintf(fp , "  %c.%sgraph geom=%dx%d+%d+%d matrix=%d\n" ,
+                           abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , matrix ) ;
+           }
+         }
+
+         /*-- 22 Jan 2003: startup script stuff for graph viewers --*/
+
+         if( gp != NULL ){
+           if( pinnum > 0 ){
+              fprintf(gp , "OPEN_WINDOW %c.%sgraph geom=%dx%d+%d+%d matrix=%d pinnum=%d\n" ,
+                           abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , matrix,pinnum ) ;
+           } else {
+              fprintf(gp , "OPEN_WINDOW %c.%sgraph geom=%dx%d+%d+%d matrix=%d\n" ,
+                           abet[cc] , wnam[ww] , gww,ghh,gxx,gyy , matrix ) ;
+           }
          }
       }
 
@@ -1390,17 +1479,19 @@ ENTRY("AFNI_finalsave_layout_CB") ;
       ll++ ;
       for( qq=0 ; qq < ll ; qq++ ) if( isspace(plab[qq]) ) plab[qq] = '_' ;
 
-      fprintf(fp , "  %c.plugin.%s geom=+%d+%d\n" ,
-                   abet[cc] , plab , gxx,gyy ) ;
+      if( fp != NULL ) fprintf(fp , "  %c.plugin.%s geom=+%d+%d\n" ,
+                                    abet[cc] , plab , gxx,gyy ) ;
    }
 #endif
 
    /*-- finito! --*/
 
-   fclose(fp) ; EXRETURN ;
+   if( fp != NULL ) fclose(fp) ;
+   if( gp != NULL ) fclose(gp) ;
+   EXRETURN ;
 }
 
-/*--------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
 /*! Run the startup script [21 Jan 2003]. */
 
 void AFNI_startup_script_CB( XtPointer client_data , XtIntervalId * id )
@@ -1413,14 +1504,47 @@ ENTRY("AFNI_startup_script_CB") ;
 
    if( fname == NULL ) EXRETURN ;
 
+   if( strchr(fname,' ') != NULL ){  /* if contains a blank, */
+     AFNI_driver(fname) ;            /* execute a single command */
+     EXRETURN ;
+   }
+
    fbuf = AFNI_suck_file(fname); if( fbuf == NULL ) EXRETURN ;
    nbuf = strlen(fbuf) ;         if( nbuf == 0    ) EXRETURN ;
 
-   fptr = fbuf ; linbuf = (char *) malloc(sizeof(char)*NLBUF) ;
+   fptr = fbuf ; linbuf = (char *) malloc(sizeof(char)*(NLBUF+1)) ;
 
    while(1){
      ii = get_linbuf( fptr ) ; fptr += ii ;
      if( linbuf[0] == '\0' || fptr-fbuf >= nbuf ){ free(linbuf); EXRETURN; }
      AFNI_driver( linbuf ) ;
-   }
+   } /* can't exit this loop except as above */
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Get a filename to run as an AFNI script.  22 Jan 2003 - RWCox.
+-----------------------------------------------------------------------------*/
+
+void AFNI_run_script_CB( Widget w , XtPointer cd , XtPointer cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_run_script_CB") ;
+
+   MCW_choose_string( im3d->vwid->picture ,
+                      "Enter AFNI script filename:" ,
+                      NULL , AFNI_finalrun_script_CB , cd ) ;
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void AFNI_finalrun_script_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+
+ENTRY("AFNI_finalrun_script_CB") ;
+
+   AFNI_startup_script_CB( (XtPointer) cbs->cval , NULL ) ;
+   EXRETURN ;
 }
