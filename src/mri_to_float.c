@@ -73,7 +73,7 @@ ENTRY("mri_to_float") ;
       break ;
 
       default:
-         fprintf( stderr , "mri_to_float:  unrecognized image kind\n" ) ;
+         fprintf( stderr , "mri_to_float:  unrecognized image kind %d\n",oldim->kind ) ;
          MRI_FATAL_ERROR ;
    }
 
@@ -127,8 +127,28 @@ WHOAMI ; IMHEADER(oldim) ;
             newim->im.float_data[ii] = fac * CABS(oldim->im.complex_data[ii]) ;
          break ;
 
+      case MRI_rgb:{
+         byte  * rgb = MRI_RGB_PTR(oldim) ;
+         float * far = MRI_FLOAT_PTR(newim) ;
+         for( ii=0 ; ii < npix ; ii++ )
+            far[ii] =  fac*(  0.299 * rgb[3*ii]
+                            + 0.587 * rgb[3*ii+1]
+                            + 0.114 * rgb[3*ii+2] ) ;
+      }
+      break ;
+
+      case MRI_rgba:{
+         byte  * rgb = (byte *) MRI_RGBA_PTR(oldim) ;
+         float * far = MRI_FLOAT_PTR(newim) ;
+         for( ii=0 ; ii < npix ; ii++ )
+            far[ii] = fac *(  0.299 * rgb[4*ii]
+                            + 0.587 * rgb[4*ii+1]
+                            + 0.114 * rgb[4*ii+2] ) ;
+      }
+      break ;
+
       default:
-         fprintf( stderr , "mri_to_float:  unrecognized image kind\n" ) ;
+         fprintf( stderr , "mri_to_float:  unrecognized image kind %d\n",oldim->kind ) ;
          MRI_FATAL_ERROR ;
    }
 

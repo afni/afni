@@ -94,7 +94,7 @@ static short **            CALC_short[26] ;
 static float **            CALC_float[26] ;
 static float *             CALC_ffac[26] ;
 
-static int                CALC_verbose = 0 ; /* 30 April 1998 */
+static int                 CALC_verbose = 0 ; /* 30 April 1998 */
 
 static char CALC_output_prefix[THD_MAX_PREFIX] = "calc" ;
 
@@ -115,6 +115,8 @@ static float       TS_dt   = 1.0 ; /* 13 Aug 2001 */
 static float Rfac = 0.299 ;  /* 10 Feb 2002: for RGB inputs */
 static float Gfac = 0.587 ;
 static float Bfac = 0.114 ;
+
+static int   CALC_taxis_num = 0 ;    /* 28 Apr 2003 */
 
 /*--------------------------- prototypes ---------------------------*/
 void CALC_read_opts( int , char ** ) ;
@@ -176,6 +178,24 @@ void CALC_read_opts( int argc , char * argv[] )
           fprintf(stderr,"*** All 3 factors after -rgbfac are zero!?\n"); exit(1);
         }
         continue ;
+      }
+
+      /**** -taxis N:dt [28 Apr 2003] ****/
+
+      if( strncmp(argv[nopt],"-taxis",6) == 0 ){
+        char *cpt ;
+        if( ++nopt >= argc ){
+          fprintf(stderr,"*** need an argument after -taxis!\n") ; exit(1) ;
+        }
+        CALC_taxis_num = strtod( argv[nopt] , &cpt ) ;
+        if( CALC_taxis_num < 2 ){
+          fprintf(stderr,"*** value after -taxis must be bigger than 1!\n"); exit(1);
+        }
+        if( *cpt == ':' ){
+          float dt = strtod( cpt+1 , NULL ) ;
+          if( dt != 0.0 ) TS_dt = dt ;
+        }
+         nopt++ ; continue ;  /* go to next arg */
       }
 
       /**** -dt val [13 Aug 2001] ****/
@@ -350,7 +370,9 @@ void CALC_read_opts( int argc , char * argv[] )
          /*-- 17 Apr 1998: allow for a *.1D filename --*/
 
          ll = strlen(argv[nopt]) ;
-         if( ll >= 4 && strstr(argv[nopt],".1D") != NULL ){
+         if( ll >= 4 && ( strstr(argv[nopt],".1D") != NULL ||
+                          strstr(argv[nopt],"1D:") != NULL   ) ){
+
             ll = TS_reader( ival , argv[nopt] ) ;
             if( ll == 0 ){ nopt++ ;  goto DSET_DONE ; }
 
@@ -570,7 +592,7 @@ void CALC_read_opts( int argc , char * argv[] )
             break ;
 
             default:
-               fprintf(stderr,"** Dataset %s has illegal data type: %s\n",
+               fprintf(stderr,"** Dataset %s has illegal data type: %s\n** SORRY\n",
                          argv[nopt-1] ,
                          MRI_type_name[CALC_type[ival]] ) ;
             exit(1) ;
@@ -629,6 +651,21 @@ DSET_DONE: continue;
               "+++ Calculating 3D+time[%d]"
               " dataset from 3D datasets and time series, with dt=%g\n" ,
               ntime_max , TS_dt ) ;
+   }
+
+   if( CALC_taxis_num > 0 ){  /* 28 Apr 2003 */
+     if( ntime_max > 1 ){
+       fprintf(stderr,
+               "+++ WARNING: -taxis %d overriden by dataset input(s)\n",
+               CALC_taxis_num) ;
+     } else {
+       ntime_max = CALC_taxis_num ;
+       TS_make   = 1 ;
+       fprintf(stderr,
+               "+++ Calculating 3D+time[%d]"
+               " dataset from 3D datasets and -taxis with dt=%g\n" ,
+               ntime_max , TS_dt ) ;
+     }
    }
 
    /* 15 Apr 1999: check if each input dataset is used,
@@ -724,6 +761,22 @@ void CALC_Syntax(void)
     "                    [default='./'=current working directory]\n"
     "  -dt tstep     = Use 'tstep' as the TR for manufactured 3D+time datasets.\n"
     "                    If not given, defaults to 1 second.\n"
+    "\n"
+    "  -taxis N      = If only 3D datasets are input (no 3D+time or .1D files),\n"
+    "    *OR*        =   then normally only a 3D dataset is calculated.  With this\n"
+    "  -taxis N:tstep=   option, you can force the creation of a time axis of length\n"
+    "                    'N', optionally using time step 'tstep'.  In such a case,\n"
+    "                    you will probably want to use the predefined time variables\n"
+    "                    't' and/or 'k' in your expression, or each resulting sub-brick\n"
+    "                    will be identical.  For example, '-taxis 121:0.1' will produce\n"
+    "                    121 points in time, spaced with TR 0.1.\n"
+    "            N.B.: You can also specify the TR using the -dt option.\n"
+    "                  You can specify 1D input datasets using the '1D:n@val,n@val'\n"
+    "                  notation to get a similar effect; for example:\n"
+    "                    -dt 0.1 -w '1D:121@0'\n"
+    "                  will have pretty much the same effect as\n"
+    "                    -tsfac 121:0.1\n"
+    "\n"
     "  -rgbfac A B C = For RGB input datasets, the 3 channels (r,g,b) are collapsed\n"
     "                    to one for the purposes of 3dcalc, using the formula\n"
     "                      value = A*r + B*g + C*b\n"
@@ -788,6 +841,17 @@ void CALC_Syntax(void)
     " used in this program.  You can select a column to be the first by\n"
     " using a sub-vector selection of the form 'b.1D[3]', which will\n"
     " choose the 4th column (since counting starts at 0).\n"
+
+    "'1D:' INPUT:\n"
+    " You can input a 1D time series 'dataset' directly on the command line,\n"
+    " without an external file.  The 'filename for such input takes the\n"
+    " general format\n"
+    "   '1D:n_1@val_1,n_2@val_2,n_3@val_3,...'\n"
+    " where each 'n_i' is an integer and each 'val_i' is a float.  For\n"
+    " example\n"
+    "    -a '1D:5@0,10@1,5@0,10@1,5@0'\n"
+    " specifies that variable 'a' be assigned to a 1D time series of 35,\n"
+    " alternating in blocks between values 0 and value 1.\n"
 
     "\n"
     "COORDINATES and PREDEFINED VALUES:\n"
