@@ -203,6 +203,7 @@ static mday holiday[] = {
    {MAR, 2,"Samuel Houston's birthday"                               } ,
    {MAR, 3,"Georg Cantor's birthday"                                 } ,
    {MAR, 3,"Morocco National Day"                                    } ,
+   {MAR, 4,"Casimir Pulaski's birthday"                              } ,
    {MAR, 5,"Anniversary of Boston Massacre"                          } ,
    {MAR, 6,"Michelangelo Buonarroti's birthday"                      } ,
    {MAR, 8,"Kenneth Grahame's birthday"                              } ,
@@ -228,6 +229,7 @@ static mday holiday[] = {
 
    {APR, 1,"April Fool's Day"                                        } ,
    {APR, 2,"Charlemagne's birthday"                                  } ,
+   {APR, 3,"Stanislaw Ulam's birthday"                               } ,
    {APR, 4,"Anniversary of founding of NATO"                         } ,
    {APR, 4,"Hungary Liberation Day"                                  } ,
    {APR, 4,"Senegal Independence Day"                                } ,
@@ -255,6 +257,7 @@ static mday holiday[] = {
    {APR,27,"Togo Independence Day"                                   } ,
    {APR,28,"Kurt Goedel's birthday"                                  } ,
    {APR,29,"Duke Ellington's birthday"                               } ,
+   {APR,29,"Henri Poincare's birthday"                               } ,
    {APR,30,"Karl Friedrich Gauss's birthday"                         } ,
 
    {MAY, 1,"Emperor Claudius's birthday"                             } ,
@@ -266,6 +269,7 @@ static mday holiday[] = {
    {MAY, 8,"Harry S Truman's birthday"                               } ,
    {MAY,11,"Laos Constitution Day"                                   } ,
    {MAY,11,"Richard Feynman's birthday"                              } ,
+   {MAY,12,"Florence Nightingale's birthday"                         } ,
    {MAY,14,"Paraguay Independence Day"                               } ,
    {MAY,15,"Israel Independence Day"                                 } ,
    {MAY,17,"Norway National Day"                                     } ,
@@ -381,6 +385,7 @@ static mday holiday[] = {
    {AUG, 6,"Bolivia Independence Day"                                } ,
    {AUG, 6,"Alexander Fleming's birthday"                            } ,
    {AUG, 7,"Ivory Coast Independence Day"                            } ,
+   {AUG, 8,"P A M Dirac's birthday"                                  } ,
    {AUG, 9,"Anniversary of Richard Nixon's resignation"              } ,
    {AUG, 9,"Singapore National Day"                                  } ,
    {AUG,10,"Ecuador Independence Day"                                } ,
@@ -394,6 +399,7 @@ static mday holiday[] = {
    {AUG,17,"Indonesia Independence Day"                              } ,
    {AUG,18,"Afghanistan Independence Day"                            } ,
    {AUG,19,"Gene Roddenberry's birthday"                             } ,
+   {AUG,20,"Waclaw Sierpinski's birthday"                            } ,
    {AUG,22,"Anniversary of Battle of Bosworth Field"                 } ,
    {AUG,23,"Rumania Liberation Day"                                  } ,
    {AUG,23,"Gene Kelley's birthday"                                  } ,
@@ -402,6 +408,7 @@ static mday holiday[] = {
    {AUG,26,"Anniversary of 19th Amendment's adoption"                } ,
    {AUG,27,"Confucius' birthday"                                     } ,
    {AUG,27,"Charles Gates Dawes' birthday"                           } ,
+   {AUG,30,"Olga Taussky-Todd's birthday"                            } ,
    {AUG,31,"Anniversary of Solidarity's creation"                    } ,
    {AUG,31,"Trinidad and Tobago Independence Day"                    } ,
 
@@ -431,6 +438,7 @@ static mday holiday[] = {
    {SEP,16,"Malaysia Independence Day"                               } ,
    {SEP,16,"Papua New Guinea Independence Day"                       } ,
    {SEP,17,"Anniversary of signing of American Constitution"         } ,
+   {SEP,17,"Georg Bernhard Riemann's birthday"                       } ,
    {SEP,18,"Mexico Independence Day"                                 } ,
    {SEP,19,"Anniversary of Battle of Saratoga"                       } ,
    {SEP,20,"Anniversary of Battle of Chalons"                        } ,
@@ -463,6 +471,7 @@ static mday holiday[] = {
    {OCT,24,"Anniversary of founding of United Nations"               } ,
    {OCT,24,"Zambia Independence Day"                                 } ,
    {OCT,25,"Saint Crispin's (or Crispian's) Day"                     } ,
+   {OCT,25,"Evariste Galois' birthday"                               } ,
    {OCT,26,"Anniversary of Gunfight at the OK Corral"                } ,
    {OCT,27,"Theodore Roosevelt's birthday"                           } ,
    {OCT,29,"Turkey Republic Day"                                     } ,
@@ -496,6 +505,8 @@ static mday holiday[] = {
    {NOV,12,"Auguste Rodin's birthday"                                } ,
    {NOV,12,"Comoros Independence Day"                                } ,
    {NOV,13,"Saint Augustine's birthday"                              } ,
+   {NOV,13,"James Clerk Maxwell's birthday"                          } ,
+   {NOV,13,"Robert Louis Stevenson's birthday"                       } ,
    {NOV,14,"Claude Monet's birthday"                                 } ,
    {NOV,17,"Emperor Vespasian's birthday"                            } ,
    {NOV,17,"August Ferdinand Moebius's birthday"                     } ,
@@ -562,6 +573,7 @@ static mday holiday[] = {
    {DEC,12,"Kenya Independence Day"                                  } ,
    {DEC,12,"William Lloyd Garrison's birthday"                       } ,
    {DEC,12,"Edvard Munch's birthday"                                 } ,
+   {DEC,13,"Werner von Siemens's birthday"                           } ,
    {DEC,14,"Tycho Brahe's birthday"                                  } ,
    {DEC,14,"Nostradamus's birthday"                                  } ,
    {DEC,14,"Jimmy Doolittle's birthday"                              } ,
@@ -586,6 +598,7 @@ static mday holiday[] = {
    {DEC,24,"Adam Mickiewicz's birthday"                              } ,
    {DEC,24,"Ignatius Loyola's birthday"                              } ,
    {DEC,24,"Kit Carson's birthday"                                   } ,
+   {DEC,24,"Christmas Eve"                                           } ,
    {DEC,25,"Christmas Day"                                           } ,
    {DEC,25,"Isaac Newton's birthday"                                 } ,
    {DEC,25,"Clara Barton's birthday"                                 } ,
@@ -618,11 +631,42 @@ char * AFNI_get_date_trivia(void)
    tt = time(NULL) ;         /* seconds since 01 Jan 1970 */
    lt = localtime( &tt ) ;   /* break into pieces */
 
-   /* find this month and day in the trivial list, if present */
+   /**** find this month and day in the trivia list, if present ****/
 
    for( ii=ntar=0 ; ntar < NTMAX && holiday[ii].day != 0 ; ii++ )
      if( holiday[ii].mon == lt->tm_mon+1 && holiday[ii].day == lt->tm_mday )
        tar[ntar++] = holiday[ii].label ;
+
+   /**** Special days not on fixed dates ****/
+
+   /* Day of month = 13 and weekday = Friday */
+
+   if( ntar < NTMAX && lt->tm_mday == 13 && lt->tm_wday == 5 )
+      tar[ntar++] = "Friday the 13th" ;
+
+   /* 1st Monday in September */
+
+   if( ntar < NTMAX && lt->tm_mon+1 == SEP && lt->tm_wday == 1 && lt->tm_mday <= 7 )
+      tar[ntar++] = "Labor Day (USA)" ;
+
+   /* 4th Thursday in November */
+
+   if( ntar < NTMAX && lt->tm_mon+1 == NOV && lt->tm_wday == 4 &&
+                       lt->tm_mday <= 28 && lt->tm_mday >= 22 )
+      tar[ntar++] = "Thanksgiving (USA)" ;
+
+   /* 1st Monday in October */
+
+   if( ntar < NTMAX && lt->tm_mon+1 == OCT && lt->tm_wday == 1 && lt->tm_mday <= 7 )
+      tar[ntar++] = "Opening of Supreme Court (USA)" ;
+
+   /* 1st Tuesday after 1st Monday in November */
+
+   if( ntar < NTMAX && lt->tm_mon+1 == NOV && lt->tm_wday == 2 &&
+                       lt->tm_mday >= 2 && lt->tm_mday <= 8 )
+      tar[ntar++] = "Election Day (USA)" ;
+
+   /**** select which one to return ***/
 
    if( ntar == 1 ){
      return tar[0] ;
