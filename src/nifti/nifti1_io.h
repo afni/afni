@@ -160,7 +160,7 @@ void swap_16bytes( int n , void *ar ) ;
 void swap_Nbytes ( int n , int siz , void *ar ) ;
 
 void swap_nifti_header( struct nifti_1_header *h , int is_nifti ) ;
-unsigned int get_filesize( char *pathname ) ;
+int  get_filesize( char *pathname ) ;
 
 nifti_image *nifti_image_read_bricks(char *hname , int nbricks, int * blist,
                                      nifti_brick_list * NBL );
@@ -194,7 +194,7 @@ int          nifti_validfilename(char* fname) ;
 
 int          disp_nifti_1_header( char * info, nifti_1_header * hp ) ;
 void         nifti_set_debug_level( int level ) ;
-int          print_hex_vals( char * data, int nbytes, FILE * fp ) ;
+static int   print_hex_vals( char * data, int nbytes, FILE * fp ) ;
 
 int valid_nifti_brick_list(nifti_image * nim , int nbricks, int * blist,
                            int disp_error);
@@ -241,13 +241,13 @@ int    nifti_is_gzfile   (char* fname);
 char * nifti_makebasename(char* fname);
 
 /* extension routines */
-static int  nifti_read_extensions( nifti_image *nim, znzFile fp );
-static int  nifti_read_next_extension( nifti1_extension * nex,
-                                       nifti_image *nim, znzFile fp );
+static int  nifti_read_extensions( nifti_image *nim, znzFile fp, int remain );
+static int  nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,
+                                       int remain, znzFile fp );
 static int  nifti_add_exten_to_list( nifti1_extension *  new_ext,
                                      nifti1_extension ** list, int new_length );
 static int  nifti_write_extensions(znzFile fp, nifti_image *nim);
-static int  nifti_valid_extension( nifti_image *nim, int size, int code );
+static int  nifti_valid_extension(nifti_image *nim, int size,int code, int rem);
 static void update_nifti_image_for_brick_list(nifti_image * nim , int nbricks);
 
 /* NBL routines */
