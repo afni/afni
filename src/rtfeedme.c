@@ -470,6 +470,8 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
+   iochan_sleep(128) ;
+
    /*--- send slices or volumes to AFNI ---*/
 
    nbslice = nbytes = mri_datum_size( DSET_BRICK_TYPE(RT_dset[0],0) )

@@ -952,7 +952,7 @@ Boolean RT_worker( XtPointer elvis )
 
    jj = iochan_readcheck( rtinp->ioc_data , SHORT_DELAY ) ;
 
-   if( jj == 0 ){     /** no data **/
+   if( jj == 0 ){     /** no data available now **/
 
 #ifdef WRITE_INTERVAL
       double delt ;
@@ -1002,7 +1002,7 @@ Boolean RT_worker( XtPointer elvis )
       return False ;
    }
 
-   if( jj < 0 ){                 /* something bad happened to data channel */
+   if( jj < 0 ){               /** something bad happened to data channel **/
       if( verbose == 2 )
          fprintf(stderr,"RT: data stream closed down.\n") ;
       VMCHECK ;
@@ -1010,29 +1010,44 @@ Boolean RT_worker( XtPointer elvis )
       CLEANUP ; return False ;
    }
 
+   /************************************************/
+   /** If here, data is ready on the data channel **/
+
    /**-----------------------------------------------------**/
    /** If this is the first time reading the data channel, **/
    /** read and process any header info present there.     **/
    /** (Will read the image data a little farther below.)  **/
 
    if( rtinp->no_data ){
+      int ii , nb ;
 
       /** if so ordered, start a child process to get header info **/
 
       if( strlen(rtinp->name_info) > 0 ) RT_start_child( rtinp ) ;
 
-      /** read some stuff from the data channel **/
+      /** read initial stuff from the data channel **/
 
-      fprintf(stderr,"RT: receiving first data=") ; fflush(stderr) ;
+      fprintf(stderr,"RT: receiving first data") ; fflush(stderr) ;
 
-      rtinp->nbuf = iochan_recv( rtinp->ioc_data , rtinp->buf , RT_NBUF ) ;
+      nb = iochan_recv( rtinp->ioc_data , rtinp->buf , RT_NBUF ) ;
 
-      fprintf(stderr,"%d bytes\n",rtinp->nbuf) ;
-
-      if( rtinp->nbuf <= 0 ){
-         fprintf(stderr,"RT: recv on data stream fails on first try!\a\n") ;
+      if( nb <= 0 ){
+         fprintf(stderr,"\nRT: recv on data stream fails on first try!\a\n") ;
          CLEANUP ; return False ;
       }
+
+      /* read any more that comes available very quickly [06 Aug 2002] */
+
+      while( nb < RT_NBUF-1 ){
+        ii = iochan_readcheck( rtinp->ioc_data , SHORT_DELAY ) ;
+        if( ii <= 0 ) break ;
+        ii = iochan_recv( rtinp->ioc_data , rtinp->buf+nb , RT_NBUF-nb ) ; 
+        if( ii <= 0 ) break ;
+        nb += ii ;
+      }
+      rtinp->nbuf = nb ;
+
+      fprintf(stderr,"=%d bytes\n",rtinp->nbuf) ;
 
       PLUTO_beep() ;
       PLUTO_popup_transient( plint , " \n"
