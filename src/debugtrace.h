@@ -35,7 +35,7 @@
 /*********************************************************************/
 #ifdef USE_TRACING
 
-#define DEBUG_MAX_DEPTH 256  /* way too big, but who cares? */
+#define DEBUG_MAX_DEPTH 1024  /* way too big, but who cares? */
 
 #define DBG_label DBG_labels[DBG_trace]
 

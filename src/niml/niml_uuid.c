@@ -94,7 +94,7 @@ static char * get_UNIQ_string(void)
      }
      nbuf = strlen(buf); sprintf(buf+nbuf,"%02x",(int)urr[nurr]);
      nurr = (nurr+1) % NURR ;
-URR_DONE:
+URR_DONE: ;
    }
 #endif /* NURR */
 

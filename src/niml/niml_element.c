@@ -54,13 +54,6 @@ NI_dpr("ENTER make_empty_data_element\n") ;
    nel->vec_axis_unit   = NULL ;
    nel->vec_axis_label  = NULL ;
 
-   /* set up to allow rowmapping to make NI_get_row() usable */
-
-   nel->rowmap_num   = 0    ;
-   nel->rowmap_cod   = 1    ;  /* rowmap doesn't affect vec_len, etc */
-   nel->rowmap_off   = NULL ;
-   nel->rowmap_siz   = NULL ;
-
    if( !hs->empty ){  /* find and process ni_* attributes about vectors */
 
      /* ni_type attribute */
@@ -89,9 +82,6 @@ NI_dpr("ENTER make_empty_data_element\n") ;
            nel->vec_len      = qq ;      /* length of vectors */
            nel->vec_rank     = nd ;      /* number of dimensions */
            nel->vec_axis_len = dar->ar ; /* array of dimension lengths */
-#ifdef NIML_DEBUG
-NI_dpr("  ni_dimen: nd=%d qq=%d\n",nd,qq) ;
-#endif
         }
      }
 
@@ -184,7 +174,8 @@ NI_dpr("  ni_dimen: nd=%d qq=%d\n",nd,qq) ;
 
      for( ii=0 ; ii < nel->vec_num ; ii++ )
        nel->vec[ii] = NI_malloc(NI_type_size(nel->vec_typ[ii])*nel->vec_len) ;
-   }
+
+   } /* end of processing non-empty header stuff */
 
    return nel ;
 }
@@ -230,10 +221,12 @@ NI_group * make_empty_group_element( header_stuff *hs )
 
 /*-------------------------------------------------------------------------*/
 /*! Byte size of a given integer type code.
+    Modified 13 Feb 2003 to use the new rowtype stuff.
 ---------------------------------------------------------------------------*/
 
 int NI_type_size( int tval )
 {
+#if 0                   /* OLD code, removed 13 Feb 2003 */
    switch( tval ){
       case NI_BYTE:     return sizeof(byte)    ;
       case NI_SHORT:    return sizeof(short)   ;
@@ -246,53 +239,17 @@ int NI_type_size( int tval )
       case NI_STRING:   return sizeof(char *)  ;
    }
    return 0 ;
-}
-
-#if 0
-/*----------------------------------------------------------------------*/
-static int typesize[NI_NUM_TYPES] ;
-
-/*----------------------------------------------------------------------*/
-/*! Static table to store byte sizes of NIML types.
-------------------------------------------------------------------------*/
-
-/*! Function to initialize static NIML type size table. */
-
-void init_typesize(void)
-{
-   int first=1 , ii ;
-   if( first ){
-     first = 0 ;
-     for( ii=0 ; ii < NI_NUM_TYPES ; ii++ )
-       typesize[ii] = NI_type_size(ii) ;
-   }
-}
+#else
+   int ii = NI_rowtype_code_to_size( tval ) ;
+   return (ii > 0) ? ii : 0 ;
 #endif
-
-#if 0
-/*-------------------------------------------------------------------------*/
-/*! Number of component values of a given integer type code.
----------------------------------------------------------------------------*/
-
-int NI_type_nval( int tval )
-{
-   switch( tval ){
-      case NI_BYTE:     return 1 ;
-      case NI_SHORT:    return 1 ;
-      case NI_INT:      return 1 ;
-      case NI_FLOAT:    return 1 ;
-      case NI_DOUBLE:   return 1 ;
-      case NI_COMPLEX:  return 2 ;
-      case NI_RGB:      return 3 ;
-      case NI_RGBA:     return 4 ;
-      case NI_STRING:   return 0 ;
-   }
-   return 0 ;
 }
-#endif
 
+#ifndef USE_NEW_IOFUN
 /*----------------------------------------------------------------------*/
 /*! Return the size in bytes of one row in a data element.
+    Note that this will only included the "fixed" size of the
+    data, not any space for var dim arrays.
 ------------------------------------------------------------------------*/
 
 int NI_element_rowsize( NI_element *nel )
@@ -312,6 +269,8 @@ int NI_element_rowsize( NI_element *nel )
 
 /*----------------------------------------------------------------------*/
 /*! Return the size of all the rows in a data element.
+    Note that this will only included the "fixed" size of the
+    data, not any space for var dim arrays.
 ------------------------------------------------------------------------*/
 
 int NI_element_allsize( NI_element *nel )
@@ -324,6 +283,7 @@ int NI_element_allsize( NI_element *nel )
 
    return (nel->vec_len * NI_element_rowsize(nel)) ;
 }
+#endif  /* USE_NEW_IOFUN */
 
 /*************************************************************************/
 /********** Functions to create NIML data and group elements *************/
@@ -372,13 +332,12 @@ void NI_free_element( void *nini )
       NI_free( nel->attr_lhs ) ;
       NI_free( nel->attr_rhs ) ;
 
-      for( ii=0 ; ii < nel->vec_num ; ii++ ){
-         if( nel->vec_typ[ii] == NI_STRING ){
-            char **vpt = (char **) nel->vec[ii] ;
-            for( jj=0 ; jj < nel->vec_len ; jj++ ) NI_free(vpt[jj]) ;
-         }
-         NI_free( nel->vec[ii] ) ;
-      }
+      /* 14 Feb 2003: NI_free_column() will also free var dim arrays */
+
+      for( ii=0 ; ii < nel->vec_num ; ii++ )
+         NI_free_column( NI_rowtype_find_code(nel->vec_typ[ii]) ,
+                         nel->vec_len , nel->vec[ii]             ) ;
+
       NI_free( nel->vec_typ  ) ;
       NI_free( nel->vec ) ;
 
@@ -387,9 +346,6 @@ void NI_free_element( void *nini )
       NI_free(nel->vec_axis_origin) ;
       NI_free(nel->vec_axis_unit) ;
       NI_free(nel->vec_axis_label) ;
-
-      NI_free(nel->rowmap_off) ;
-      NI_free(nel->rowmap_siz) ;
 
       NI_free( nel ) ;
 
@@ -421,21 +377,19 @@ void NI_free_element( void *nini )
 /*! Create a new data element.
 
     - name   = string name for header.
-    - veclen = size of vectors (ni_dimen).
+    - veclen = size (length) of vectors (ni_dimen attribute).
                - Vectors are added with NI_add_column().
                - Set this to zero for "empty" elements (those with only
                  headers, no data).
-               - Set this to -1 if data is to be stored into the element
-                 by rows rather than by columns - cf. NI_add_row().
 
-    Return is NULL if inputs are stupid.
+    Return is NULL if inputs are stupid or criminal or insane.
 -------------------------------------------------------------------------*/
 
 NI_element * NI_new_data_element( char *name , int veclen )
 {
    NI_element *nel ;
 
-   if( name == NULL || name[0] == '\0' ) return NULL ;
+   if( name == NULL || name[0] == '\0' || veclen < 0 ) return NULL ;
 
    nel = NI_malloc( sizeof(NI_element) ) ;
 
@@ -443,41 +397,23 @@ NI_element * NI_new_data_element( char *name , int veclen )
 
    nel->name = NI_strdup(name) ;
    nel->attr_num = 0 ;
-   nel->attr_lhs = nel->attr_rhs = NULL ;
+   nel->attr_lhs = nel->attr_rhs = NULL ;  /* no attributes yes */
 
-   nel->vec_num = 0 ;
+   nel->vec_num = 0 ;                      /* no vectors yet */
    nel->vec_typ = NULL ;
    nel->vec     = NULL ;
 
-   if( veclen == 0 ){              /* empty element */
+   if( veclen == 0 ){                      /* empty element */
      nel->vec_len      = 0 ;
      nel->vec_filled   = 0 ;
      nel->vec_rank     = 0 ;
      nel->vec_axis_len = NULL ;
-     nel->rowmap_num   = 0    ;
-     nel->rowmap_cod   = -1   ;    /* signal that rows are bad */
-     nel->rowmap_off   = NULL ;
-     nel->rowmap_siz   = NULL ;
-   } else if( veclen > 0 ){        /* element with data to come in columns */
-     nel->vec_len         = veclen ;
+   } else {                                /* element with data to */
+     nel->vec_len         = veclen ;       /* come via NI_add_column */
      nel->vec_filled      = veclen ;
      nel->vec_rank        = 1 ;
      nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
      nel->vec_axis_len[0] = veclen ;
-     nel->rowmap_num      = 0    ;
-     nel->rowmap_cod      = -1   ; /* signal that rows are bad */
-     nel->rowmap_off      = NULL ;
-     nel->rowmap_siz      = NULL ;
-   } else {                        /* element with data to come in rows */
-     nel->vec_len         = 0 ;
-     nel->vec_filled      = 0 ;
-     nel->vec_rank        = 1 ;
-     nel->vec_axis_len    = NI_malloc(sizeof(int)) ;
-     nel->vec_axis_len[0] = 0 ;
-     nel->rowmap_num      = 0    ;
-     nel->rowmap_cod      = 0    ; /* rowmap creates vec_ stuff */
-     nel->rowmap_off      = NULL ;
-     nel->rowmap_siz      = NULL ;
    }
 
    nel->vec_axis_delta  = NULL ;
@@ -489,444 +425,34 @@ NI_element * NI_new_data_element( char *name , int veclen )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Define the rowmap for inserting/retrieving a struct from a
-    data element, using ARrays as input.
-     - nrow = number of data fields in a row
-     - typ[i] = type code for the i-th field, i=0..nrow-1 (e.g., NI_FLOAT)
-     - off[i] = byte offset into struct for i-th field
--------------------------------------------------------------------------*/
-
-void NI_define_rowmap_AR( NI_element *nel, int nrow, int *typ, int *off )
-{
-   int ii ;
-
-   /* sanity checks */
-
-   if( nel             == NULL            ||
-       nel->type       != NI_ELEMENT_TYPE ||
-       nel->rowmap_cod <  0               ||
-       nel->rowmap_num >  0               ||
-       nrow            <  1               ||
-       typ             == NULL            ||
-       off             == NULL              ) return ;
-
-   /* check each offset and type code */
-
-   for( ii=0 ; ii < nrow ; ii++ )
-      if( typ[ii] < 0 || typ[ii] >= NI_NUM_TYPES || off[ii] < 0 ) return ;
-
-   /* if we are adding a rowmap to an existing element
-      (rowmap_cod==1), then the number of rows must match */
-
-   if( nel->rowmap_cod == 1 && nel->vec_num != nrow ) return ;
-
-   /* make rowmap inside element */
-
-   nel->rowmap_num = nrow ;
-   nel->rowmap_off = NI_malloc(sizeof(int)*nrow) ;
-   nel->rowmap_siz = NI_malloc(sizeof(int)*nrow) ;
-
-   /* if adding rowmap to a new element,
-      then must make vector stuff as well */
-
-   if( nel->rowmap_cod == 0 ){
-     nel->vec_num  = nrow ;
-     nel->vec_typ  = NI_malloc(sizeof(int)*nrow) ;
-     nel->vec      = NI_malloc(sizeof(void *)*nrow ) ;
-   }
-
-   for( ii=0 ; ii < nrow ; ii++ ){
-      nel->rowmap_off[ii] = off[ii] ;
-      nel->rowmap_siz[ii] = NI_type_size(typ[ii]) ;
-      if( nel->rowmap_cod == 0 ){
-        nel->vec_typ[ii]    = typ[ii] ;
-        nel->vec[ii]        = NULL ;
-      }
-   }
-   return ;
-}
-
-/*-----------------------------------------------------------------------*/
-/*! Define the rowmap for inserting/retrieving a struct from a
-    data element, using VAriable argument list as input, as in
-    NI_define_rowmap_VA(nel,typ1,off1,typ2,off2,-1);
-    This function works simply by building temp arrays with the
-    typ and off arguments, then calls NI_define_rowmap_AR().
-     - typ = type code (-1 signals end of argument list)
-     - off = byte offset into struct (should be >= 0)
-
-    Example:
-     -  typedef struct { float ff; short ss; char *SS; } zork ;
-     -  zork zzz = { 1.3 , -3 , "Puff the Magic Dragon" } ;
-     -  NI_element *nel = NI_new_data_element( "bythesea" , -1 ) ;
-     -  NI_define_rowmap_VA( nel ,
-     -                       NI_FLOAT , offsetof(zork,ff) ,
-     -                       NI_SHORT , offsetof(zork,ss) ,
-     -                       NI_STRING, offsetof(zork,SS) , -1 ) ;
-     -  NI_add_row( nel , &zzz ) ;
-
-    Note that when the "char *SS" field is copied out of the struct
-    into the data element by NI_add_row(), that function will actually
-    copy not the pointer, but will make a copy of the contents of
-    the C string to which the pointer refers.
--------------------------------------------------------------------------*/
-
-void NI_define_rowmap_VA( NI_element *nel , ... )
-{
-   va_list vararg_ptr ;
-   int nrow=0 , typ,off ;
-   int *tar=NULL , *oar=NULL ;
-
-   /* check nel for reasonability */
-
-   if( nel == NULL || nel->type != NI_ELEMENT_TYPE ) return ;
-
-   /* initialize vararg usage */
-
-   va_start( vararg_ptr , nel ) ;
-
-   /* loop over remaining args */
-
-   while(1){
-     typ = va_arg( vararg_ptr , int ) ;     /* get next arg */
-
-     if( typ < 0 || typ >= NI_NUM_TYPES ){  /* end of args? */
-        if( nrow > 0 ){
-          NI_define_rowmap_AR(nel,nrow,tar,oar) ;
-          NI_free(tar) ; NI_free(oar) ;
-        }
-        va_end( vararg_ptr ) ; return ;     /* the only way out */
-     }
-
-     off = va_arg( vararg_ptr , int ) ;     /* get next arg */
-
-     /* add typ,off to end of arrays */
-
-     tar = NI_realloc(tar,sizeof(int)*(nrow+1)) ; tar[nrow] = typ ;
-     oar = NI_realloc(oar,sizeof(int)*(nrow+1)) ; oar[nrow] = off ;
-     nrow++ ;
-   }
-}
-
-/*-----------------------------------------------------------------------*/
-/*! Add a row to a data element from a struct.  You must have defined
-    the mapping from the struct to the columns using NI_define_rowmap_??
-    before this.  The datin pointer should to point to the start
-    of the struct from which the data bytes will be extracted.
--------------------------------------------------------------------------*/
-
-void NI_add_row( NI_element *nel , void *datin )
-{
-   int ii , rr , ll , typ ;
-   char *vpt , *ddd , *eee , *dat=(char *)datin ;
-
-   /* check inputs */
-
-   if( nel             == NULL            ||
-       nel->type       != NI_ELEMENT_TYPE ||
-       nel->rowmap_num <= 0               ||
-       dat             == NULL              ) return ;
-
-   rr = nel->vec_len ;  /* number of rows we currently have */
-
-   /* loop over columns */
-
-   for( ii=0 ; ii < nel->vec_num ; ii++ ){
-
-      /* extend size of this column */
-
-      ll  = nel->rowmap_siz[ii] ; /* size of one column element */
-      typ = nel->vec_typ[ii] ;    /* type code of column element */
-
-      nel->vec[ii] = NI_realloc( nel->vec[ii] , (rr+1)*ll ) ;
-
-      /* pointer to space we just allocated at end of column */
-
-      vpt = (char *)(nel->vec[ii]) + rr*ll ;
-
-      /* pointer to space in struct to copy from */
-
-      ddd = (char *)(dat + nel->rowmap_off[ii]) ;
-
-      /* If the data is actually a string, then
-         ddd points to the char * that points to the string.
-         So we have to duplicate that string, then save
-         the pointer to the duplicate in the element.
-         Confused?  So am I.  This requires thinking, which is hard work */
-
-      if( typ == NI_STRING ){
-         char *ppp ;
-#ifdef NIML_DEBUG
-NI_dpr("NI_add_row duplicating string:  dat=%p ddd=%p ll=%d\n",dat,ddd,ll) ;
-#endif
-         memcpy(&ppp,ddd,ll) ;      /* ppp is the pointer to the string */
-         eee = NI_strdup(ppp);      /* duplicate string from struct */
-#ifdef NIML_DEBUG
-NI_dpr("           duplicated string:%s; stored at eee=%p\n",eee,eee) ;
-#endif
-         ddd = (char *)(&eee);      /* we want to save address of duplicate */
-      }
-
-      memcpy( vpt, ddd , ll ) ;  /* copy bytes from ddd to element */
-
-#ifdef NIML_DEBUG
-if( typ == NI_STRING ){
-  char *ppp ; memcpy(&ppp,vpt,ll) ;
-  NI_dpr("      vpt as a char *=%p\n",ppp) ;
-}
-#endif
-
-   }
-
-   nel->vec_len = nel->vec_filled = nel->vec_axis_len[0] = rr+1 ;
-   return ;
-}
-
-/*-----------------------------------------------------------------------*/
-/*! Get a row from a data element into a struct, pre-allocated by the
-    caller.  You must have defined the mapping from the struct to the
-    columns using NI_define_rowmap_?? before this.  Strings in the
-    element will be duplicated with strdup and the pointers to the
-    duplicates will be put into the struct.
-
-    Example:
-     -  NI_element *nel ;  ** get this from NI_read_element()? **
-     -  int ii , nrow=nel->vec_len ;
-     -  typedef struct { int i; float x,y; } IXY ;
-     -  IXY *zzz = malloc(sizeof(IXY)*nrow) ;
-     -  NI_define_rowmap_VA( nel ,
-     -                       NI_INT   , offsetof(IXY,i) ,
-     -                       NI_FLOAT , offsetof(IXY,x) ,
-     -                       NI_FLOAT , offsetof(IXY,y) , -1 ) ;
-     -  for( ii=0 ; ii < nrow ; ii++ ) NI_get_row(nel,ii,zzz+ii) ;
--------------------------------------------------------------------------*/
-
-void NI_get_row( NI_element *nel , int rr , void *datin )
-{
-   int ii , ll , typ ;
-   char *vpt , *ddd , *eee , *dat=(char *)datin ;
-
-   /* check inputs */
-
-   if( nel             == NULL            ||
-       nel->type       != NI_ELEMENT_TYPE ||
-       nel->rowmap_num <= 0               ||
-       rr              <  0               ||
-       rr              >= nel->vec_len    ||
-       dat             == NULL              ) return ;
-
-#ifdef NIML_DEBUG
-NI_dpr("ENTER NI_get_row with rr=%d\n",rr) ;
-#endif
-
-   /* loop over columns */
-
-   for( ii=0 ; ii < nel->vec_num ; ii++ ){
-
-      ll  = nel->rowmap_siz[ii] ; /* size of this column element */
-      typ = nel->vec_typ[ii] ;    /* type code of column element */
-
-#ifdef NIML_DEBUG
-NI_dpr("  ii=%d ll=%d typ=%d off=%d\n",ii,ll,typ,nel->rowmap_off[ii]) ;
-#endif
-
-      /* pointer to space in element where data lives */
-
-      vpt = (char *)(nel->vec[ii]) + rr*ll ;
-
-#ifdef NIML_DEBUG
-NI_dpr("  vpt=%p ",vpt) ;
-#endif
-
-      /* pointer to space in struct to copy into */
-
-      ddd = (char *)(dat + nel->rowmap_off[ii]) ;
-
-#ifdef NIML_DEBUG
-NI_dpr("  ddd=%p ",ddd) ;
-#endif
-
-      /* if the data is actually a string,
-         then vpt really points to the char * that points to the string;
-         in this case, we want to duplicate the string,
-         then copy the pointer to the duplicate into the struct */
-
-      if( typ == NI_STRING ){
-         char *ppp ;
-         memcpy(&ppp,vpt,ll) ;      /* ppp is the pointer to the string */
-         eee = NI_strdup(ppp);      /* duplicate string from element */
-         vpt = (char *)(&eee);      /* we want to save address of duplicate */
-#ifdef NIML_DEBUG
-NI_dpr("  vpt=%p ",vpt) ;
-#endif
-      }
-#ifdef NIML_DEBUG
-NI_dpr(" copying from vpt to ddd\n") ;
-#endif
-      memcpy( ddd, vpt , ll ) ;  /* copy bytes from element to ddd */
-   }
-
-   return ;
-}
-
-/*-----------------------------------------------------------------------*/
-/*! Add many rows to a data element from an array of structs.
-    You must have defined the mapping from the struct to the columns
-    using NI_define_rowmap_?? before this.
-  - The datin pointer should to point to the start
-    of the struct array from which the data bytes will be extracted.
-  - The stride parameter is the step size in bytes from one struct
-    to the next in datin.  This would usually be sizeof() applied to
-    one element of the struct type, as in the example below.
-
-  Example:
-     -  typedef struct { int i; float x,y; } IXY ;
-     -  int nrow=300 ;
-     -  IXY *zzz = malloc(sizeof(IXY)*nrow) ;
-     -  NI_element *nel ;
-     -  ** Do something to fill zzz[ii] for ii=0..nrow-1 **
-     -  nel = NI_new_data_element( "node2D" , -1 ) ;
-     -  NI_define_rowmap_VA( nel ,
-     -                       NI_INT   , offsetof(IXY,i) ,
-     -                       NI_FLOAT , offsetof(IXY,x) ,
-     -                       NI_FLOAT , offsetof(IXY,y) , -1 ) ;
-     -  NI_add_many_rows( nel, nrow, sizeof(IXY), zzz ) ;
--------------------------------------------------------------------------*/
-
-void NI_add_many_rows( NI_element *nel, int nrow, int stride, void *datin )
-{
-   int ii,rr,ll, typ, rrnew, kk ;
-   char *vpt , *ddd , *eee , *dat=(char *)datin ;
-
-   /* check inputs */
-
-   if( nel             == NULL            ||
-       nel->type       != NI_ELEMENT_TYPE ||
-       nel->rowmap_num <= 0               ||
-       nrow            <= 0               ||
-       stride          <= 0               ||
-       dat             == NULL              ) return ;
-
-   if( nrow == 1 ){ NI_add_row(nel,datin); return; }
-
-   rr    = nel->vec_len ;  /* number of rows we currently have */
-   rrnew = rr + nrow ;     /* number of rows we will have */
-
-   /* loop over columns */
-
-   for( ii=0 ; ii < nel->vec_num ; ii++ ){
-
-      /* extend size of this column */
-
-      ll  = nel->rowmap_siz[ii] ; /* size of one column element */
-      typ = nel->vec_typ[ii] ;    /* type code of column element */
-
-      nel->vec[ii] = NI_realloc( nel->vec[ii] , rrnew*ll ) ;
-
-      /* loop over new rows */
-
-      if( typ == NI_STRING ){
-        char *ppp , *qqq ;
-        for( kk=0 ; kk < nrow ; kk++ ){
-
-          /* pointer to space in struct to copy from */
-
-          qqq = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
-
-          /* If the data is actually a string, then
-             qqq points to the char * that points to the string.
-             So we have to duplicate that string, then save
-             the pointer to the duplicate in the element.
-             Confused?  So am I.  This requires thinking, which is hard work */
-
-          memcpy(&ppp,qqq,ll) ;   /* ppp is the pointer to the string */
-          eee = NI_strdup(ppp);   /* duplicate string from struct */
-          ddd = (char *)(&eee);   /* we want to save address of duplicate */
-
-          /* pointer to space to which to copy */
-
-          vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
-
-          memcpy( vpt, ddd , ll ) ;  /* copy bytes from ddd to element */
-        }
-
-      } else {
-        switch( ll ){
-          default:
-           for( kk=0 ; kk < nrow ; kk++ ){
-             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
-             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
-             memcpy( vpt, ddd , ll ) ;  /* copy bytes from ddd to element */
-           }
-          break ;
-
-          case 1:
-           for( kk=0 ; kk < nrow ; kk++ ){
-             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
-             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
-             memcpy( vpt, ddd , 1 ) ;  /* copy bytes from ddd to element */
-           }
-          break ;
-
-          case 2:
-           for( kk=0 ; kk < nrow ; kk++ ){
-             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
-             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
-             memcpy( vpt, ddd , 2 ) ;  /* copy bytes from ddd to element */
-           }
-          break ;
-
-          case 4:
-           for( kk=0 ; kk < nrow ; kk++ ){
-             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
-             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
-             memcpy( vpt, ddd , 4 ) ;  /* copy bytes from ddd to element */
-           }
-          break ;
-
-          case 8:
-           for( kk=0 ; kk < nrow ; kk++ ){
-             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
-             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
-             memcpy( vpt, ddd , 8 ) ;  /* copy bytes from ddd to element */
-           }
-          break ;
-        }
-      }
-
-   } /* end of loop over columns */
-
-   nel->vec_len = nel->vec_filled = nel->vec_axis_len[0] = rrnew ;
-   return ;
-}
-
-/*-----------------------------------------------------------------------*/
 /*! Add a vector (column) of data to a data element.
 
     - nel = data element to modify
-    - typ = type code of data (e.g., NI_FLOAT)
+    - typ = integer type code of data (e.g., NI_FLOAT)
     - arr = pointer to data values - must be an array of length veclen
-            from NI_new_data_element()
+            (same value as used in NI_new_data_element() call)
+    - if arr is NULL, then will add a zero-filled column of the given
+      type to the data element
 
     The data array is copied into the element.  If the element was
     specified with veclen=0, then this function will do nothing.
     Since this function has no return value, the only way to check for
-    such an error is to see if nel->vec_num was incremented.
+    such an error is to see if nel->vec_num was incremented.  Or don't
+    be so stupid as to make this error.
 -------------------------------------------------------------------------*/
 
 void NI_add_column( NI_element *nel , int typ , void *arr )
 {
-   int nn , ll , ii ;
+   int nn , ii ;
+   NI_rowtype *rt ;
 
    /* check for reasonable inputs */
 
-   if( nel == NULL || nel->vec_len == 0 || arr == NULL ) return ;
-
-   if( nel->rowmap_cod >= 0 ) return ;  /* needs NI_add_row() */
-
-   if( typ < 0 || typ >= NI_NUM_TYPES ) return ;
+   if( nel == NULL || nel->vec_len <= 0 ) return ;
 
    if( nel->type != NI_ELEMENT_TYPE ) return ;
+
+   rt = NI_rowtype_find_code(typ) ; if( rt == NULL ) return ;
 
    /* get number of vectors currently in element */
 
@@ -937,22 +463,13 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
    nel->vec_typ     = NI_realloc( nel->vec_typ , sizeof(int)*(nn+1) ) ;
    nel->vec_typ[nn] = typ ;
 
-   /* add 1 to the vec array, and copy data into it */
+   /* add 1 element to the vec array, and copy data into it */
 
-   nel->vec     = NI_realloc( nel->vec , sizeof(void *)*(nn+1) ) ;
-   ll           = nel->vec_len * NI_type_size(typ) ;
-   nel->vec[nn] = NI_malloc( ll ) ;
-
-   /* for String or Line, must do something different */
-
-   if( typ == NI_STRING ){
-      char **vpt = (char **) nel->vec[nn] ;
-      char **iar = (char **) arr ;
-      for( ii=0 ; ii < nel->vec_len ; ii++ ) /* duplicate strings */
-         vpt[ii] = NI_strdup( iar[ii] ) ;
-   } else {
-     memcpy( nel->vec[nn] , arr , ll ) ;     /* copy numbers in */
-   }
+   nel->vec = NI_realloc( nel->vec , sizeof(void *)*(nn+1) ) ;
+   if( arr != NULL )
+     nel->vec[nn] = NI_copy_column( rt , nel->vec_len , arr ) ;
+   else
+     nel->vec[nn] = NI_malloc( rt->size * nel->vec_len ) ;
 
    /* add 1 to the count of vectors */
 
@@ -1070,9 +587,6 @@ char * NI_get_attribute( void *nini , char *attname )
 
 /*-----------------------------------------------------------------------*/
 /*! Set the dimen attribute for a data element.
-    If you are adding rows using NI_define_rowmap_VA() and
-    NI_add_row(), then do not call this function until the last
-    row has been added!
 -------------------------------------------------------------------------*/
 
 void NI_set_dimen( NI_element *nel , int rank , int *nd )
@@ -1223,6 +737,7 @@ void NI_rename_group( NI_group *ngr , char *nam )
    return ;
 }
 
+#ifndef USE_NEW_IOFUN
 /*-----------------------------------------------------------------------*/
 /*! Fill one row of an element with some data bytes (numeric only).
 -------------------------------------------------------------------------*/
@@ -1315,7 +830,9 @@ void NI_fill_vector_row( NI_element *nel , int row , char *buf )
    }
    return ;
 }
+#endif  /* USE_NEW_IOFUN */
 
+#ifndef USE_NEW_IOFUN
 /*------------------------------------------------------------------*/
 /*! Swap bytes for an array of type code tval.
 --------------------------------------------------------------------*/
@@ -1341,3 +858,4 @@ void NI_swap_vector( int tval , int nvec , void *vec )
    }
    return ;
 }
+#endif  /* USE_NEW_IOFUN */

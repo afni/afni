@@ -697,6 +697,7 @@ int NI_rowtype_code_to_size( int dtyp )
    static int last_dtyp=-1 , last_size=-1 ;         /* 12 Dec 2002 */
    NI_rowtype *rt ;
 
+   if( rowtype_table == NULL )  setup_basic_types() ;
    if( dtyp <  0              ) return -1 ;
    if( dtyp <  ROWTYPE_OFFSET ) return type_size[dtyp] ;
    if( dtyp == last_dtyp      ) return last_size ;
@@ -1642,6 +1643,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
 
 void NI_swap_column( NI_rowtype *rt , int nrow , char *dat )
 {
+   if( rt == NULL || nrow <= 0 || dat == NULL ) return ;  /* stupid inputs */
    switch( rt->code ){
 
      case NI_RGB:
@@ -1668,7 +1670,7 @@ void NI_swap_column( NI_rowtype *rt , int nrow , char *dat )
        NI_swap4( 2*nrow , dat ) ;
      return ;
 
-     /* a derived type */
+     /* a derived type (use recursion) */
 
      default:{
        int ii , row , fsiz = rt->size ;
@@ -1712,14 +1714,14 @@ void NI_free_column( NI_rowtype *rt , int col_len , void *cpt )
    char *dat=(char *)cpt , *ptr ;
    int ii , jj ;
 
-   if( dat == NULL || col_len < 1 ) return ;      /* nothing to do */
+   if( rt == NULL || dat == NULL || col_len < 1 ) return ; /* nothing to do */
 
    /* if has variable dim arrays inside, free them */
 
    if( rt->psiz == 0 ){
-     for( ii=0 ; ii < col_len ; ii++ ){      /* loop over structs */
-       ptr = dat + rt->size * ii ;      /* pointer to this struct */
-       for( jj=0 ; jj < rt->part_num ; jj++ ){ /* loop over parts */
+     for( ii=0 ; ii < col_len ; ii++ ){            /* loop over structs */
+       ptr = dat + rt->size * ii ;            /* pointer to this struct */
+       for( jj=0 ; jj < rt->part_num ; jj++ ){       /* loop over parts */
          if( rt->part_typ[jj] == NI_STRING ||
              rt->part_dim[jj] >= 0           ){
            char **apt = (char **)(ptr+rt->part_off[jj]) ;
@@ -1732,4 +1734,45 @@ void NI_free_column( NI_rowtype *rt , int col_len , void *cpt )
    /* free the column array itself */
 
    NI_free(cpt) ; return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Copy a column of rowtype structs, including var dim arrays.  Return
+    is the pointer to the copy.
+------------------------------------------------------------------------------*/
+
+void * NI_copy_column( NI_rowtype *rt , int col_len , void *cpt )
+{
+   char *dat=(char *)cpt , *ndat , *nptr , *qpt ;
+   int ii , jj , kk ;
+
+   if( rt == NULL || dat == NULL || col_len < 1 ) return NULL ;
+
+   /* make a quick (surface) copy */
+
+   ndat = NI_malloc( rt->size * col_len ) ;
+   memcpy( ndat , dat , rt->size * col_len ) ;
+
+   /* copy any var dim arrays inside */
+
+   if( rt->psiz == 0 ){
+     for( ii=0 ; ii < col_len ; ii++ ){                 /* loop over structs */
+       nptr = ndat + rt->size * ii ;                   /* ptr to this struct */
+       for( jj=0 ; jj < rt->part_num ; jj++ ){            /* loop over parts */
+
+         if( rt->part_typ[jj] == NI_STRING ){               /* a string part */
+           char **apt = (char **)(nptr+rt->part_off[jj]) ;   /* *apt => data */
+           qpt = NI_strdup(*apt) ; *apt = qpt ;
+         } else if( rt->part_dim[jj] >= 0 ){
+           char **apt = (char **)(nptr+rt->part_off[jj]) ;   /* *apt => data */
+           if( *apt != NULL ){
+             kk  = ROWTYPE_part_dimen(rt,nptr,jj) * rt->part_rtp[jj]->size ;
+             qpt = NI_malloc(kk) ; memcpy(qpt,*apt,kk) ; *apt = qpt ;
+           }
+         }
+       }
+     }
+   }
+
+   return ndat ;
 }

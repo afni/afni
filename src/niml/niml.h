@@ -197,11 +197,6 @@ typedef struct {
    float *vec_axis_origin ; /*!< Array of origins, from ni_origin. */
    char **vec_axis_unit ;   /*!< Array of units, from ni_units. */
    char **vec_axis_label ;  /*!< Array of labels, from ni_axes. */
-
-   int  rowmap_num ;   /*!< Is >0 for use with NI_add_row(). */
-   int  rowmap_cod ;
-   int *rowmap_off ;   /*!< Array of offsets into struct. */
-   int *rowmap_siz ;   /*!< Array of sizes of components. */
 } NI_element ;
 #endif
 
@@ -489,15 +484,6 @@ extern void NI_rename_group( NI_group *, char * ) ;  /* 03 Jun 2002 */
 
 extern void NI_swap_vector( int, int, void * ) ;
 
-#include <stdarg.h>
-extern void NI_define_rowmap_AR( NI_element *, int,int *,int *) ;
-extern void NI_define_rowmap_VA( NI_element *, ... ) ;
-
-extern void NI_add_row( NI_element *, void * ) ;
-extern void NI_get_row( NI_element *, int, void * ) ;
-
-extern void NI_add_many_rows( NI_element *, int,int, void * ) ;
-
 /** I/O functions **/
 
 extern NI_stream NI_stream_open( char *, char * ) ;
@@ -536,6 +522,7 @@ extern int    NI_write_rowtype( NI_stream_type * ,
 extern int    NI_read_columns ( NI_stream_type *,
                                 int, int *, int, void **, int,int ) ;
 extern void   NI_free_column  ( NI_rowtype * , int , void * ) ;
+extern void * NI_copy_column  ( NI_rowtype * , int , void * ) ;
 
 #define NI_SWAP_MASK  (1<<0)
 #define NI_LTEND_MASK (1<<1)
