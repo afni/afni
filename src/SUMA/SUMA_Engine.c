@@ -1306,7 +1306,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 	} 
 	/* if surface is Inherently mappable, do the obivious */
 	if (SUMA_isINHmappable(SO)){
-		fprintf(SUMA_STDERR,"%s: Surface is inherrently mappable. XYZmap = XYZ.\n", FuncName);
+		fprintf(SUMA_STDERR,"%s: Surface is inherently mappable. XYZmap = XYZ.\n", FuncName);
 		SUMA_COPY_VEC (XYZ, XYZmap, 3, float, float);
 		return (XYZmap);	
 	}
@@ -1409,7 +1409,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 	} 
 	/* if surface is Inherently mappable, do the obivious */
 	if (SUMA_isINHmappable(SO)){
-		fprintf(SUMA_STDERR,"%s: Surface is inherrently mappable. XYZ = XYZmap.\n", FuncName);
+		fprintf(SUMA_STDERR,"%s: Surface is inherently mappable. XYZ = XYZmap.\n", FuncName);
 		SUMA_COPY_VEC (XYZmap, XYZ, 3, float, float);
 		return (XYZ);	
 	}
