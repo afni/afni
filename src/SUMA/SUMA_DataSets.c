@@ -743,7 +743,7 @@ char * SUMA_append_replace_string(char *s1, char *s2, char *Spc, int whichTofree
 void  SUMA_TestDataSets_Usage()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m  \n");
+          printf ("\nUsage:   \n");
           printf ("\t ..... \n\n");
           printf ("\t\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t"
                   "Thu May 29 14:42:58 EDT 2003 \n");

@@ -348,7 +348,7 @@ void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test)
 void usageSUMA_StripPath ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_StripPath <Name> \n");
+          printf ("\nUsage:  SUMA_StripPath <Name> \n");
           printf ("\t  \n\n");
           printf ("To Compile:\ngcc -DSUMA_StripPath_STAND_ALONE -Wall -o $1 $1.c -SUMA_lib.a -I/usr/X11R6/include -I./ \n\n");
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tThu Jan 24 10:55:18 EST 2002 \n");
@@ -387,7 +387,7 @@ int main (int argc,char *argv[])
 void usageParseName_Main ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_ParseName <Name> \n");
+          printf ("\nUsage:  SUMA_ParseName <Name> \n");
           printf ("\t  breaks a file name into path, filename and extension components.\n");
           printf ("\t  The program outputs: Path FileName FileName_NoExtension Extension\n");
           printf ("\t  Empty attributes are represented by (null).\n");

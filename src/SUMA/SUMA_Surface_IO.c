@@ -705,7 +705,7 @@ SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF)
 void usage_SUMA_SureFit_Main ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_SureFit CoordRoot TopoRoot \n");
+          printf ("\nUsage:  SUMA_SureFit CoordRoot TopoRoot \n");
           printf ("\t ..... \n\n");
           printf ("\t To Compile:\ngcc -DSUMA_SureFit_STAND_ALONE -Wall -o $1 $1.c -I./ -I//usr/X11R6/include SUMA_lib.a\n");
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tFri Feb 8 16:29:06 EST 2002 \n");
@@ -1090,7 +1090,7 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 void usage_SUMA_FreeSurfer_Main ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_FreeSurfer f_name \n");
+          printf ("\nUsage:  SUMA_FreeSurfer f_name \n");
           printf ("\t ..... \n\n");
           printf ("\t To Compile:\ngcc -DSUMA_FreeSurfer_STAND_ALONE -Wall -o $1 $1.c -I./ -I//usr/X11R6/include SUMA_lib.a\n");
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \tFri Feb 8 16:29:06 EST 2002 \n");
@@ -1717,7 +1717,7 @@ SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
 void usage_SUMA_Ply_Read_Main ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_Ply_Read -s f_name \n");
+          printf ("\nUsage:  SUMA_Ply_Read -s f_name \n");
           printf ("\t reads in a .ply file and writes it out to copy_f_name.ply\n");
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
           exit (0);
@@ -1806,7 +1806,7 @@ void usage_SUMA_ConvertSurface ()
           static char FuncName[]={"usage_SUMA_ConvertSurface"};
           char * s = NULL;
           
-          printf ("\n\33[1mUsage: \33[0m ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> \n"
+          printf ("\nUsage:  ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> \n"
                   "    [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc] [-MNI_rai/-MNI_lpi]\n"
                   "    reads in a surface and writes it out in another format.\n"
                   "    Note: This is a not a general utility conversion program. \n"
@@ -2795,7 +2795,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
                                              "version in file ?", 
                   NI_get_attribute( nel , "Label"), nel_idcode); 
 
-                  answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
+                  answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
                                     stmp, 
                                     0);
                   if (LocalHead) fprintf (SUMA_STDERR,"%s: Got %d, You ?\n", FuncName, answer);
@@ -3495,7 +3495,7 @@ void SUMA_SaveSOascii (char *filename, void *data)
    SUMA_LH(newname);
    /* check for filename existence */
    if (SUMA_filexists (newname)) {
-      answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
+      answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
                                     "Prefix exists, overwrite?", 
                                     SUMA_NO);
       if (answer == SUMA_NO ||answer == SUMA_NO_ALL) {
@@ -3517,7 +3517,7 @@ void SUMA_SaveSOascii (char *filename, void *data)
       SUMA_LH(newname);
       /* check for filename existence */
       if (SUMA_filexists (newname)) {
-         answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
+         answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
                                        "Prefix exists, overwrite?", 
                                        SUMA_NO);
          if (answer == SUMA_NO ||answer == SUMA_NO_ALL) {
@@ -3540,7 +3540,7 @@ void SUMA_SaveSOascii (char *filename, void *data)
       SUMA_LH(newname);
       /* check for filename existence */
       if (SUMA_filexists (newname)) {
-         answer = SUMA_AskUser_ROI_replace (SUMAg_SVv[0].X->TOPLEVEL, 
+         answer = SUMA_ForceUser_YesNo (SUMAg_SVv[0].X->TOPLEVEL, 
                                        "Prefix exists, overwrite?", 
                                        SUMA_NO);
          if (answer == SUMA_NO ||answer == SUMA_NO_ALL) {

@@ -741,7 +741,7 @@ void SUMA_alloc_problem (char *s1)
    static char FuncName[]={"SUMA_alloc_problem"};
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   printf ("\n\n\a\33[1mError in memory allocation\33[0m\n");
+   printf ("\n\n\aError in memory allocation\n");
    printf ("Error origin : %s\n\n",s1);
    printf ("Exiting Program ..\n\n");
    exit (0);
@@ -960,8 +960,8 @@ void SUMA_error_message (char *s1,char *s2,int ext)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   printf ("\n\n\a\33[1mError: \33[0m%s\n",s2);
-   printf ("\33[1mError origin:\33[0m %s\n\n",s1);
+   printf ("\n\n\aError: %s\n",s2);
+   printf ("Error origin: %s\n\n",s1);
    if (ext == 1)
       {
         printf ("Exiting Program ..\n\n");
@@ -4217,18 +4217,20 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
 /*!
    Makes sure the triangles in FaceSetList are of a consistent orientation.
    
-   ans = SUMA_MakeConsistent (FaceSetList, N_FaceSet, SEL) 
+   ans = SUMA_MakeConsistent (FaceSetList, N_FaceSet, SEL, detail) 
    
    \param FaceSetList (int *) N_FaceSet x 3 vector (was matrix prior to SUMA 1.2) containing triangle definition
    \param N_FaceSet int
    \param SEL (SUMA_EDGE_LIST *) pointer Edgelist structure as output by SUMA_Make_Edge_List
-   
+   \param detail (int)  0: quiet, except for errors and warnings
+                        1: report at end
+                        2: LocalHead gets turned on
    \ret ans (SUMA_Boolean) YUP, NOPE 
    
    \sa SUMA_Make_Edge_List
      
 */
-SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL) 
+SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int detail) 
 {
    /* see for more documentation labbook NIH-2 test mesh  p61 */
    int i, it, NP, ip, N_flip=0, *isflip, *ischecked, ht0, ht1, NotConsistent, miss, miss_cur, N_iter, EdgeSeed, TriSeed, N_checked;
@@ -4238,6 +4240,8 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   if (detail > 1) LocalHead = YUP;
+   
    NP = 3;
    isflip = (int *)SUMA_calloc(SEL->N_EL/3, sizeof(int));
    ischecked = (int *)SUMA_calloc(SEL->N_EL/3, sizeof(int));
@@ -4355,9 +4359,9 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL)
    }
 
    if (LocalHead) fprintf(SUMA_STDERR,"%s: %d iterations required to check the surface.\n", FuncName, N_iter);
-   fprintf(SUMA_STDERR,"%s: %d/%d (%f%%) triangles checked.\n", FuncName, N_checked, SEL->N_EL/3, (float)N_checked/(SEL->N_EL/3)*100.0);
+   if (detail) fprintf(SUMA_STDERR,"%s: %d/%d (%f%%) triangles checked.\n", FuncName, N_checked, SEL->N_EL/3, (float)N_checked/(SEL->N_EL/3)*100.0);
    if (N_flip) {
-      fprintf(SUMA_STDERR,"%s: %d triangles were flipped to make them consistent with the triangle containing the first edge in the list.\n", FuncName, N_flip);
+      if (detail) fprintf(SUMA_STDERR,"%s: %d triangles were flipped to make them consistent with the triangle containing the first edge in the list.\n", FuncName, N_flip);
    } else fprintf(SUMA_STDERR,"%s: All checked triangles were consistent with the triangle containing the first edge in the list.\n", FuncName);
    if (miss) {
       fprintf(SUMA_STDERR,"%s: %d segments with two neighbors were skipped. Not good in general.\n", FuncName, miss);
@@ -4385,7 +4389,7 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL)
 void usage ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m SUMA_MakeConsistent <FaceSetList file> <NodeList file>\n");
+          printf ("\nUsage:  SUMA_MakeConsistent <FaceSetList file> <NodeList file>\n");
           printf ("To compile: \ngcc -DSUMA_MakeConsistent_STANDALONE -Wall -o SUMA_MakeConsistent SUMA_MiscFunc.c ");
           printf ("SUMA_lib.a libmri.a -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib \n");
           printf ("-lm -lGL -lGLU -lGLw -lXmu -lXm -lXt -lXext -lX11 -lMesaGLw -lMesaGLwM \n");
@@ -4423,13 +4427,13 @@ int main (int argc,char *argv[])
    SUMA_Read_file (argv[2], NodeList, N_Node *3);
    
    /* make the edge list */
-   SEL = SUMA_Make_Edge_List (FL, N_FL, N_Node, NodeList);
+   SEL = SUMA_Make_Edge_List (FL, N_FL, N_Node, NodeList, 1);
    if (SEL == NULL) {
       fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_Make_Edge_List.\n", FuncName);
       return (NOPE);
    }
 
-   if (!SUMA_MakeConsistent (FL, N_FL, SEL)) {
+   if (!SUMA_MakeConsistent (FL, N_FL, SEL, 1)) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MakeConsistent.\n", FuncName);
       return (1);
    }else {

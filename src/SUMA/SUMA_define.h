@@ -949,7 +949,7 @@ typedef struct {
                                  prior to mixing with background. Default is set
                                  by environment variable SUMA_NumForeSmoothing which 
                                  is set to 0 (No smoothing). */
-
+   SUMA_Boolean WarnClose; /*!< Pops up a window to double check before SUMA quits */
 }SUMA_X_AllView;
 
 /*! filename and path */

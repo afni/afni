@@ -621,7 +621,7 @@ L_CREATE_SPEC:
 	    echo "        SureFitCoord = $surf"	>> $spec_file
 	    echo "        SureFitTopo = $list_topo_cur[$cnt]" >> $spec_file
 		 echo "        SureFitVolParam = ../$Vol_Param"	>> $spec_file
-		 echo "        MappingRef = $map_ref"		>> $spec_file
+		 echo "        LocalDomainParent = $map_ref"		>> $spec_file
 	    echo "        SurfaceState = $s_state"		>> $spec_file
 	    echo "        EmbedDimension = $embed_ref"		>> $spec_file
 	    echo ""						>> $spec_file

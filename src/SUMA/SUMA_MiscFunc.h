@@ -63,7 +63,7 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  );
 int SUMA_float_file_size (char *f_name);
 int SUMA_Read_2Dfile (char *f_name, float **x,  int n_rows, int n_cols);
 int SUMA_Read_2Ddfile (char *f_name, int **x, int n_rows, int n_cols);
-SUMA_Boolean SUMA_MakeConsistent (int *FaceSetList, int N_FaceSet, SUMA_EDGE_LIST *SEL);
+SUMA_Boolean SUMA_MakeConsistent (int *FaceSetList, int N_FaceSet, SUMA_EDGE_LIST *SEL, int detail);
 SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FaceSetList, int N_FaceSet, int N_Node, float *NodeList);
 SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FaceSetList, int N_FaceSet, int N_Node, float *NodeList, int debug);
 void SUMA_free_Edge_List (SUMA_EDGE_LIST *SEL);

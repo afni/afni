@@ -307,7 +307,7 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 void usage ()
  
   {/*Usage*/
-		printf ("\n\33[1mUsage: \33[0m SUMA_IV_XYZextract <IV_filename> [-o output filename] [-c]\n\n");
+		printf ("\nUsage:  SUMA_IV_XYZextract <IV_filename> [-o output filename] [-c]\n\n");
 		printf ("\t  	Extracts the XYZ coordinates of the nodes in an IV file so that we can manipulate the \n");
 		printf ("\t data to our liking. The program looks for a sequence of characters that seem to indicate\n");
 		printf ("\t the start of the XYZ list. Once the sequence is found, the series of triplets is read and\n");
