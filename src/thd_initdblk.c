@@ -155,7 +155,7 @@ ENTRY("THD_init_one_datablock") ;
 
    brick_ccode = COMPRESS_filecode(dkptr->brick_name) ;
    if( brick_ccode != COMPRESS_NOFILE ){
-       dkptr->storage_mode = STORAGE_BY_BRICK ;
+     dkptr->storage_mode = STORAGE_BY_BRICK ;
    }
 
    /*-- if VOLUME_FILENAMES attribute exists, make it so [20 Jun 2002] --*/

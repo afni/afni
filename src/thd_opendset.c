@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -39,34 +39,38 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
 
    /*-- perhaps the MINC way --*/
 
-   if( plen > 4 && strcmp(pathname+plen-4,".mnc") == 0 ){
-      return THD_open_minc( pathname ) ;
+   if( STRING_HAS_SUFFIX(pathname,".mnc") ){
+     return THD_open_minc( pathname ) ;
    }
 
    /*-- perhaps the ANALYZE way --*/
 
-   if( plen > 4 && strcmp(pathname+plen-4,".hdr") == 0 ){
-      return THD_open_analyze( pathname ) ;
+   if( STRING_HAS_SUFFIX(pathname,".hdr") ){
+     return THD_open_analyze( pathname ) ;
    }
 
    /*-- perhaps the CTF way [04 Dec 2002] --*/
 
-   if( plen > 4 && strcmp(pathname+plen-4,".mri") == 0 ){
-      return THD_open_ctfmri( pathname ) ;
-   }
-   if( plen > 4 && strcmp(pathname+plen-4,".svl") == 0 ){
-      return THD_open_ctfsam( pathname ) ;
+   if( STRING_HAS_SUFFIX(pathname,".mri") ){
+     return THD_open_ctfmri( pathname ) ;
+   } else if( STRING_HAS_SUFFIX(pathname,".svl") ){
+     return THD_open_ctfsam( pathname ) ;
    }
 
    /*-- 04 Mar 2003: allow input of .1D files --*/
 
-   if( strstr(pathname,".1D") != NULL ){
-      dset = THD_open_1D( pathname ) ;
-      if( dset != NULL ) return dset ;
+   if( STRING_HAS_SUFFIX(pathname,".1D") ){
+     return THD_open_1D( pathname ) ;
+   } else if( STRING_HAS_SUFFIX(pathname,".3D") ){  /* 21 Mar 2003 */
+     return THD_open_3D( pathname ) ;
    }
-   if( strstr(pathname,".3D") != NULL ){   /* 21 Mar 2003 */
-      dset = THD_open_3D( pathname ) ;
-      if( dset != NULL ) return dset ;
+
+   /*-- 28 Aug 2003: the NIFTI way! --*/
+
+   if( STRING_HAS_SUFFIX(pathname,".nii") ||
+       STRING_HAS_SUFFIX(pathname,".nia")   ){
+
+     return THD_open_nifti( pathname ) ;
    }
 
    /*-- find directory and last names in the pathname --*/

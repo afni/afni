@@ -280,8 +280,11 @@ typedef struct nifti_1_header nifti_1_header ;
          y = "true" voxel value
    Normally, we would expect this scaling to be used to store "true" floating
    values in a smaller integer datatype, but that is not required.  That is,
-   it is legal to use scaling even if the datatype is a float type
-   (crazy, perhaps, but legal).
+   it is legal to use scaling even if the datatype is a float type (crazy,
+   perhaps, but legal).
+    - However, the scaling is to be ignored if datatype is DT_RGB24.
+    - If datatype is a complex type, then the scaling is to be
+      applied to both the real and imaginary parts.
 
    The cal_min and cal_max fields (if nonzero) are used for mapping (possibly
    scaled) dataset values to display colors:
@@ -312,7 +315,7 @@ typedef struct nifti_1_header nifti_1_header ;
    when it encounters a dataset with a type it doesn't like.
 -----------------------------------------------------------------------------*/
 
-#undef DT_UNKNOWN  /* defined in some dirent.h on some Unix systems */
+#undef DT_UNKNOWN  /* defined in dirent.h on some Unix systems */
 
                             /*--- the original ANALYZE 7.5 type codes ---*/
 #define DT_NONE                    0

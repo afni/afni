@@ -4717,3 +4717,7 @@
 26 Aug 2003
  * Modified afni_func.c to skip printing adoption warnings unless user
      explicitly requests them with an environment variable.
+
+28 Aug 2003
+ * Widespread changes, including addition of thd_niftiread.c, to read
+     NIFTI-1 formatted files as datasets.

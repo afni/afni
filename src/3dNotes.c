@@ -153,6 +153,7 @@ int main (int argc, char * argv[]) {
    if( DSET_IS_3D(dset)      ) Error_Exit("Cannot use .3D dataset") ;
    if( DSET_IS_CTFMRI(dset)  ) Error_Exit("Cannot use CTF dataset") ;
    if( DSET_IS_CTFSAM(dset)  ) Error_Exit("Cannot use CTF dataset") ;
+   if( DSET_IS_NIFTI(dset)   ) Error_Exit("Cannot use NIFTI dataset") ;
 
    /* First, delete notes */
    do {

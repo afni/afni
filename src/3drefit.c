@@ -770,6 +770,10 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"** 3drefit: Can't process CTF dataset %s\n",argv[iarg]);
          continue ;
       }
+      if( DSET_IS_NIFTI(dset) ){
+         fprintf(stderr,"** 3drefit: Can't process NIFTI dataset %s\n",argv[iarg]);
+         continue ;
+      }
       fprintf(stderr,"++ 3drefit: Processing AFNI dataset %s\n",argv[iarg]) ;
 
       tross_Make_History( "3drefit" , argc,argv, dset ) ;

@@ -90,6 +90,13 @@ static void swap_analyze_hdr( struct dsr *pntr )
 }
 
 /*-----------------------------------------------------------------*/
+#ifndef DONT_INCLUDE_ANALYZE_STRUCT
+#define DONT_INCLUDE_ANALYZE_STRUCT
+#endif
+#include "nifti1_io.h"               /*** NIFTI spec and funcs ***/
+/*-----------------------------------------------------------------*/
+
+/*-----------------------------------------------------------------*/
 /*! Open an ANALYZE .hdr file as an unpopulated AFNI dataset.
     It will be populated from the .img file, in THD_load_analyze().
 -------------------------------------------------------------------*/
@@ -112,6 +119,14 @@ THD_3dim_dataset * THD_open_analyze( char *hname )
    int iview ;
 
 ENTRY("THD_open_analyze") ;
+
+   /* 28 Aug 2003: check if this is a NIFTI file instead */
+
+   { nifti_image *nim = nifti_image_read(hname,0) ;
+     if( nim != NULL && nim->nifti_type > 0 ){
+       nifti_image_free(nim); dset = THD_open_nifti(hname); RETURN(dset);
+     }
+   }
 
    /*-- check & prepare filenames --*/
 

@@ -115,6 +115,7 @@ ENTRY("THD_delete_3dim_dataset") ;
    if( DSET_IS_3D(dset)      ) kill_files = False ;
    if( DSET_IS_CTFMRI(dset)  ) kill_files = False ;
    if( DSET_IS_CTFSAM(dset)  ) kill_files = False ;
+   if( DSET_IS_NIFTI(dset)   ) kill_files = False ;  /* 28 Aug 2003 */
 
    if( kill_files ){
       THD_diskptr * dkptr = dset->dblk->diskptr ;
