@@ -3650,12 +3650,16 @@ typedef struct {
   char name[32] ;
 } MRI_warp3D_param_def ;
 
-/*! Struct that holds information used during warp3D registration. */
+  /*! Struct that holds information used during warp3D registration. */
 
 typedef struct {
+
+   /*- this stuff is to be set by the user -*/
+
    int nparam ;
    MRI_warp3D_param_def *param ;
    float scale_init , scale_out ;
+   float delfac ;
 
    int regmode , verb , max_iter , num_iter  ;
    int xedge , yedge , zedge ;
@@ -3666,10 +3670,12 @@ typedef struct {
    void (*vwinv)(float,float,float,float *,float *,float *) ;
    void (*vwset)(int,float *) ;
 
+   /*- below here is not to be touched by the user! -*/
+
    MRI_IMAGE *imww ;
    MRI_IMAGE *imap ;
-   MRI_IMARR *fitim ;
-   double *chol_fitim ;
+   MRI_IMAGE *imps ;
+
 } MRI_warp3D_align_basis ;
 
 /*---------------------------------------------------------------------*/
