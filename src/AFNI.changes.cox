@@ -4197,3 +4197,8 @@
 
 10 Jan 2002
  * Modified edt_blur.c to clip output to input range.
+
+13 Jan 2002
+ * Modified Makefile.solaris28_gcc on hador system - plugins would no longer
+     load.  Use of GNU ld instead of UCB ld fixes this, but for unknown
+     reasons.  Evil spirits?
