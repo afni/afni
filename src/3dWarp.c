@@ -59,16 +59,19 @@ int main( int argc , char * argv[] )
             "--------------------------\n"
             "Transform Defining Options: [exactly one of these must be used]\n"
             "--------------------------\n"
-            "  -matvec_in2out mmm  = Read a 3x4 affine transform matrix+vector\n"
+            "  -matvec_in2out mmm = Read a 3x4 affine transform matrix+vector\n"
+            "                        from file 'mmm':\n"
+            "                         x_out = Matrix x_in + Vector\n"
+            "\n"
+            "  -matvec_out2in mmm = Read a 3x4 affine transform matrix+vector\n"
             "                         from file 'mmm':\n"
-            "                          x_out = Matrix x_in + Vector\n"
+            "                         x_in = Matrix x_out + Vector\n"
             "\n"
-            "  -matvec_out2in mmm  = Read a 3x4 affine transform matrix+vector\n"
-            "                          from file 'mmm':\n"
-            "                          x_in = Matrix x_out + Vector\n"
-            "\n"
-            "              ** N.B.: The coordinate vectors described above are\n"
-            "                       defined in DICOM ('RAI') coordinate order.\n"
+            "           ** N.B.: The coordinate vectors described above are\n"
+            "                     defined in DICOM ('RAI') coordinate order.\n"
+            "                     (Also see the '-fsl_matvec option, below.)\n"
+            "           ** N.B.: Using the special name 'IDENTITY' for 'mmm'\n"
+            "                     means to use the identity matrix.\n"
             "-----------------------\n"
             "Other Transform Options:\n"
             "-----------------------\n"
@@ -78,7 +81,8 @@ int main( int argc , char * argv[] )
             "  -quintic    }\n"
             "\n"
             "  -fsl_matvec   = Indicates that the matrix file 'mmm' uses FSL\n"
-            "                    ordered coordinates ('LPI').\n"
+            "                    ordered coordinates ('LPI').  For use with\n"
+            "                    matrix files from FSL and SPM.\n"
             "\n"
             "  -newgrid ddd  = Tells program to compute new dataset on a\n"
             "                    new 3D grid, with spacing of 'ddd' mmm.\n"
@@ -220,15 +224,21 @@ int main( int argc , char * argv[] )
        if( ++nopt >= argc ){
          fprintf(stderr,"** ERROR: need an argument after -matvec!\n"); exit(1);
        }
-       matim = mri_read_ascii( argv[nopt] ) ;
-       if( matim == NULL ){
-         fprintf(stderr,"** Can't read -matvec file %s\n",argv[nopt]); exit(1);
-       }
-       if( matim->nx != 4 || matim->ny < 3 ){
-         fprintf(stderr,"** -matvec file not 3x4!\n"); exit(1);
+       if( strcmp(argv[nopt],"IDENTITY") == 0 ){
+         matim = mri_new( 4,3 , MRI_float ) ;    /* will be all zero */
+         matar = MRI_FLOAT_PTR(matim) ;
+         matar[0] = matar[5] = matar[10] = 1.0 ; /* load identity matrix */
+       } else {
+         matim = mri_read_ascii( argv[nopt] ) ;
+         if( matim == NULL ){
+           fprintf(stderr,"** Can't read -matvec file %s\n",argv[nopt]); exit(1);
+         }
+         if( matim->nx != 4 || matim->ny < 3 ){
+           fprintf(stderr,"** -matvec file not 3x4!\n"); exit(1);
+         }
+         matar = MRI_FLOAT_PTR(matim) ;
        }
 
-       matar = MRI_FLOAT_PTR(matim) ;
        use_matvec = (strstr(argv[nopt-1],"_in2out") != NULL) ? MATVEC_FOR : MATVEC_BAC ;
 
        switch( use_matvec ){
