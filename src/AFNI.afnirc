@@ -21,79 +21,11 @@ AFNI_SPLASHTIME        = 1.0
 
 AFNI_plug_drawdset_butcolor = #992066  // For the Plugins menu.
 AFNI_plug_histog_butcolor   = #663199  // Colors are drawn from
-AFNI_plug_maskave_butcolor  = #992066  // the RBGYR map defined below
+AFNI_plug_maskave_butcolor  = #992066  // the RBGCYC map in afni.h
 AFNI_plug_render_butcolor   = #cc1033
 AFNI_plug_volreg_butcolor   = #cc1033
 
 ***COLORS
 // Define new overlay colors.  These will appear on the color menus.
-//
-// RBGYR cyclic color map [from Ziad Saad of Marquette University]
-//
-  rbgyr20_01 = #cc1033
-  rbgyr20_02 = #992066
-  rbgyr20_03 = #663199
-  rbgyr20_04 = #3341cc
-  rbgyr20_05 = #0051ff
-  rbgyr20_06 = #0074cc
-  rbgyr20_07 = #009799
-  rbgyr20_08 = #00b966
-  rbgyr20_09 = #00dc33
-  rbgyr20_10 = #00ff00
-  rbgyr20_11 = #33ff00
-  rbgyr20_12 = #66ff00
-  rbgyr20_13 = #99ff00
-  rbgyr20_14 = #ccff00
-  rbgyr20_15 = #ffff00
-  rbgyr20_16 = #ffcc00
-  rbgyr20_17 = #ff9900
-  rbgyr20_18 = #ff6600
-  rbgyr20_19 = #ff3300
-  rbgyr20_20 = #ff0000
 
-***PALETTES
-// Use the cyclic colors to create palettes that can be
-// applied to functional overlays.
-rbgyr [20]
-  1.0 -> rbgyr20_01
-  0.9 -> rbgyr20_02
-  0.8 -> rbgyr20_03
-  0.7 -> rbgyr20_04
-  0.6 -> rbgyr20_05
-  0.5 -> rbgyr20_06
-  0.4 -> rbgyr20_07
-  0.3 -> rbgyr20_08
-  0.2 -> rbgyr20_09
-  0.1 -> rbgyr20_10
-  0.0 -> rbgyr20_11
- -0.1 -> rbgyr20_12
- -0.2 -> rbgyr20_13
- -0.3 -> rbgyr20_14
- -0.4 -> rbgyr20_15
- -0.5 -> rbgyr20_16
- -0.6 -> rbgyr20_17
- -0.7 -> rbgyr20_18
- -0.8 -> rbgyr20_19
- -0.9 -> rbgyr20_20
-
-rbgyr [20+]
-  1.00 -> rbgyr20_01
-  0.95 -> rbgyr20_02
-  0.90 -> rbgyr20_03
-  0.85 -> rbgyr20_04
-  0.80 -> rbgyr20_05
-  0.75 -> rbgyr20_06
-  0.70 -> rbgyr20_07
-  0.65 -> rbgyr20_08
-  0.60 -> rbgyr20_09
-  0.55 -> rbgyr20_10
-  0.50 -> rbgyr20_11
-  0.45 -> rbgyr20_12
-  0.40 -> rbgyr20_13
-  0.35 -> rbgyr20_14
-  0.30 -> rbgyr20_15
-  0.25 -> rbgyr20_16
-  0.20 -> rbgyr20_17
-  0.15 -> rbgyr20_18
-  0.10 -> rbgyr20_19
-  0.05 -> rbgyr20_20
+  salmon = #ff8866

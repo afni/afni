@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.45m"
+#define VERSION "2.49a"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "07 Jun 2002      "
+#define RELEASE "10 Jun 2002      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -1752,8 +1752,8 @@ extern int  AFNI_needs_dset_tin(void) ;
 #define DEFAULT_NGRAY   80
 #define DEFAULT_GAMMA   1.0
 
-#define DEFAULT_NCOLOVR 20
-#define MAX_NCOLOVR     99
+#define DEFAULT_NCOLOVR 40
+#define MAX_NCOLOVR     199
 
 /** color definitions and their labels (for 'choosers') **/
 
@@ -1777,14 +1777,29 @@ static char * INIT_def_colovr[DEFAULT_NCOLOVR] = {
    "#ffff00" , "#ffcc00"   , "#ff9900"  , "#ff6900" , "#ff4400" , "#ff0000" ,
    "#0000ff" , "#0044ff"   , "#0069ff"  , "#0099ff" , "#00ccff" , "#00ffff" ,
    "green"   , "limegreen" , "violet"   , "hotpink" ,
-   "white"   , "#dddddd"   , "#bbbbbb"  , "black"
+   "white"   , "#dddddd"   , "#bbbbbb"  , "black"   ,
+
+   "#cc1033" , "#992066"   , "#663199"  , "#3341cc" ,  /* RGB cycle */
+   "#0051ff" , "#0074cc"   , "#009799"  , "#00b966" ,  /* 10 Jun 2002 */
+   "#00dc33" , "#00ff00"   , "#33ff00"  , "#66ff00" ,
+   "#99ff00" , "#ccff00"   , "#ffff00"  , "#ffcc00" ,
+   "#ff9900" , "#ff6600"   , "#ff3300"  , "#ff0000"
 } ;
+
+#define RGBCYC_COUNT  20  /* 10 Jun 2002: number in RGB cycle */
+#define RGBCYC_FIRST  20  /*              index of first one */
 
 static char * INIT_def_labovr[DEFAULT_NCOLOVR] = {
    "yellow" , "yell-oran" , "oran-yell" , "orange"   , "oran-red" , "red"   ,
    "dk-blue", "blue"      , "lt-blue1"  , "lt-blue2" , "blue-cyan", "cyan"  ,
    "green"  , "limegreen" , "violet"    , "hotpink"  ,
-   "white"  , "gry-dd"    , "gry-bb"    , "black"
+   "white"  , "gry-dd"    , "gry-bb"    , "black"    ,
+
+   "rbgyr20_01" , "rbgyr20_02" , "rbgyr20_03" , "rbgyr20_04" , /* RBG cycle */
+   "rbgyr20_05" , "rbgyr20_06" , "rbgyr20_07" , "rbgyr20_08" , /* 10 Jun 2002 */
+   "rbgyr20_09" , "rbgyr20_10" , "rbgyr20_11" , "rbgyr20_12" ,
+   "rbgyr20_13" , "rbgyr20_14" , "rbgyr20_15" , "rbgyr20_16" ,
+   "rbgyr20_17" , "rbgyr20_18" , "rbgyr20_19" , "rbgyr20_20"
 } ;
 
 /** actual colors (from defaults above, or from X11 resources) **/

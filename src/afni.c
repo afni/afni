@@ -9388,6 +9388,8 @@ ENTRY("AFNI_load_defaults") ;
    NAME2INT("pbar_pos_pane_count" , INIT_panes_pos , NPANE_MIN , NPANE_MAX ) ;
    NAME2INT("pbar_sgn_pane_count" , INIT_panes_sgn , NPANE_MIN , NPANE_MAX ) ;
 
+   /* start with positive panes */
+
    for( ii=NPANE_INIT+1 ; ii <= NPANE_MAX ; ii++ ){
       fval     = 1.0 / ii ;
       pthr[0]  = 1.0 ;
@@ -9479,6 +9481,14 @@ ENTRY("AFNI_load_defaults") ;
       for( jj=0 ; jj <  ii ; jj++ ) INIT_ovin_sgn[ii][jj] = pov[jj] ;
 
    }
+
+   /* 10 Jun 2002: put RGB cyclic maps in place */
+
+#if defined(RGBCYC_COUNT) && RGBCYC_COUNT <= NPANE_MAX
+   ii = RGBCYC_COUNT ;
+   for( jj=0 ; jj < ii ; jj++ ) INIT_ovin_pos[ii][jj] = RGBCYC_FIRST+jj+1 ;
+   for( jj=0 ; jj < ii ; jj++ ) INIT_ovin_sgn[ii][jj] = RGBCYC_FIRST+jj+1 ;
+#endif
 
    EXRETURN ;
 }
