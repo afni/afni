@@ -526,7 +526,7 @@ int main (int argc,char *argv[])
    
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;");
    
    if (argc < 2) {
       usage_SUMA_ConvexHull(ps);
@@ -626,6 +626,7 @@ int main (int argc,char *argv[])
       } else if (ps->i_N_surfnames) {
          SUMA_SurfSpecFile *Spec=NULL;
          SUMA_SurfaceObject *SO=NULL;
+         
          if (ps->i_N_surfnames > 1) {
             SUMA_S_Err("Only 1 input surface allowed!");
             exit(1);
