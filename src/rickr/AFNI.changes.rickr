@@ -176,3 +176,8 @@
       o modified rickr/Makefile   - file_tool depends on ge4_header.o
       o modified Makefile.INCLUDE - file_tool depends on ge4_header.o
 
+09 May 2003:
+  * modified 3dmaskdump.c
+      o added -index option for Mike B
+      o combined changes with Bob's
+
