@@ -3,7 +3,9 @@
                 (made to compile without support files besides mcw_glob.h)
 ***************************************************************************/
 
+/* #ifdef CYGWIN   rickr - 2003 May 01 */
 #include <errno.h>
+/* #else */
 
 /*
  * Copyright (c) 1989 The Regents of the University of California.
