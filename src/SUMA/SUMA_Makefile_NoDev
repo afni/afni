@@ -172,6 +172,10 @@ SUMA_Homer: SUMA_Homer.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_Homer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Homer.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
+SurfClust: SUMA_SurfClust.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED -DSUMA_SurfClust_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SurfClust.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
 3dVol2Surf: SUMA_3dVol2Surf.c 
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ SUMA_3dVol2Surf.c ${SUMA_INCLUDE_PATH}	${SUMA_LINK_PATH} 	\
@@ -305,6 +309,7 @@ install:
 	@if [ -f MakeColorMap ]; then mv MakeColorMap ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ROI2dataset ]; then mv ROI2dataset ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfSmooth ]; then mv SurfSmooth ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SurfClust ]; then mv SurfClust ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfPatch ]; then mv SurfPatch ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfQual ]; then mv SurfQual ${INSTALLDIR_SUMA}; fi;
 	@if [ -f CompareSurfaces ]; then mv CompareSurfaces ${INSTALLDIR_SUMA}; fi;
@@ -343,6 +348,7 @@ packbins:
 	@if [ -f MakeColorMap ]; then $(CP) -p MakeColorMap SUMA_bin/; fi;
 	@if [ -f ROI2dataset ]; then $(CP) -p ROI2dataset SUMA_bin/; fi;
 	@if [ -f SurfSmooth ]; then $(CP) -p SurfSmooth SUMA_bin/; fi;
+	@if [ -f SurfClust ]; then $(CP) -p SurfClust SUMA_bin/; fi;
 	@if [ -f SurfPatch ]; then $(CP) -p SurfPatch SUMA_bin/; fi;
 	@if [ -f SurfQual ]; then $(CP) -p SurfQual SUMA_bin/; fi;
 	@if [ -f CompareSurfaces ]; then $(CP) -p CompareSurfaces SUMA_bin/; fi;
@@ -377,7 +383,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics    \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
-   SUMA_TestDsetIO ConvertDset ShowCmap
+   SUMA_TestDsetIO ConvertDset ShowCmap SurfClust
    
 #SUMA_TestDataSets
  

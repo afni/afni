@@ -258,6 +258,9 @@ typedef struct {
          */              
 } SUMA_DSET;
 
+#define SUMA_COUNTER_SUFFIX(ic)  ( ((ic) == 1) ? "st" : ((ic) == 2) ? "nd" : ((ic) == 3) ? "rd" : "th" )
+#define SUMA_COUNTER_PLURAL(ic)  ( ((ic) == 1) ? "" : "s" )
+
 #define SUMA_SKIP_COMMON_OPTIONS(m_brk, m_kar) {\
    if (!m_brk &&                                     \
        ( (strcmp(argv[m_kar], "-memdbg") == 0) ||    \

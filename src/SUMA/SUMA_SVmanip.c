@@ -1069,8 +1069,6 @@ char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail)
 
    SUMA_ENTRY;
 
-   SUMA_ENTRY;
-   
    SS = SUMA_StringAppend (NULL, NULL);
    
    if (!VS) {
