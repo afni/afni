@@ -950,3 +950,6 @@
   * modified Makefile.INCLUDE to compile nifti_test, nifti_stats and
     nifti1_test automatically
 
+11 Jan 2005:
+  * modified afni_niml.c: slist_choose_surfs() check_user_surfs on nsurf == 1
+
