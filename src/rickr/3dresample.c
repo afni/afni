@@ -405,8 +405,8 @@ int usage ( char * prog, int level )
     if ( level == USE_SHORT )
     {
 	fprintf( stderr,
-		 "usage : %s [options] -prefix OUT_DSET -inset IN_DSET\n"
-		 "usage : %s -help\n",
+		 "usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
+		 "usage: %s -help\n",
 		 prog, prog );
 	return 0;
     }
@@ -421,6 +421,8 @@ int usage ( char * prog, int level )
 	    "    grid spacing (via the -dxyz option), or change them\n"
 	    "    both to match that of a master dataset (via the -master\n"
 	    "    option).\n"
+	    "\n"
+	    "  usage: %s [options] -prefix OUT_DSET -inset IN_DSET\n"
 	    "\n"
 	    "  examples:\n"
 	    "\n"
@@ -494,7 +496,7 @@ int usage ( char * prog, int level )
 	    "    -inset IN_DSET   : required input dataset to reorient\n"
 	    "          e.g.  -inset old.dset+orig\n"
 	    "\n",
-	    prog, prog, prog, prog, prog );
+	    prog, prog, prog, prog, prog, prog );
 
 	return 0;
     }

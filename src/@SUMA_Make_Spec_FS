@@ -7,22 +7,10 @@
 # options:  -sid	subject_id	: specify subject ID
 #	    -fspath	FreeSurfer_path : specify path to FreeSurfer files
 #	    -neuro			: use neurological orientation
-#	    -flpLRsurf			: flip surface left to right
 #           -debug      level		: display extra output
 #
 
 #----------------------------------------------------------------------
-# this is a user-definable section
-
-set surf_attribs = (	smoothwm		\
-			pial			\
-			inflated		\
-			occip.patch3d		\
-			occip.patch.flat	\
-			sphere			\
-			)
-# -- end user defines -------------------------------------------------
-
 
 goto L_INIT_VARS
      L_INIT_VARS_DONE:
@@ -57,7 +45,6 @@ goto L_CREATE_BRICK
 goto L_TEST_SURF_VOL
      L_TEST_SURF_VOL_DONE:
 
-set endstr = "$0 ... finished"
 goto L_GOOD_END	# finished, woohooo!
 
 
@@ -66,9 +53,17 @@ goto L_GOOD_END	# finished, woohooo!
 
 L_INIT_VARS:
 
-set start_dir = $cwd
-set endstr    = done
-set debug     = 0
+    set prog_name = $0:t
+    set endstr = "$prog_name ... finished"
+    set debug     = 0
+
+    set surf_attribs = (smoothwm		\
+			pial			\
+			inflated		\
+			occip.patch3d		\
+			occip.patch.flat	\
+			sphere			\
+			)
 
 goto L_INIT_VARS_DONE
 
@@ -79,8 +74,8 @@ goto L_INIT_VARS_DONE
 L_CHECK_USAGE:
 
     if ( $#argv == 0 ) then
-	echo "usage: $0 [options] -sid SUBJECT_ID"
-	echo "usage: $0 -help"
+	echo "usage: $prog_name [options] -sid SUBJECT_ID"
+	echo "usage: $prog_name -help"
 	set endstr = ""
 	goto L_GOOD_END
     endif
@@ -95,10 +90,9 @@ L_PARSE_COMMAND:
 
     # init command line arg values
 
-    set fs_path		= "./"
+    set fs_dir		= "."
     set subj_id		= ""
     set neuro_ori	= 0
-    set flip_lr_surf	= 0
 
     set args     = $#argv
     set count    = 1
@@ -111,7 +105,7 @@ L_PARSE_COMMAND:
 	    case "-h":
 	    case "-help":
 
-		goto L_HELP_END
+		goto L_HELP_END		# and don't ya' come back, neither
 
 	    breaksw
 
@@ -139,7 +133,12 @@ L_PARSE_COMMAND:
 		endif
 
 		@ count ++
-		set fs_path  = $argv[$count]
+		set fs_dir  = $argv[$count]
+
+		if ( ! -d $fs_dir ) then
+		    set endstr = "failure: directory not found - '$fs_dir'"
+		    goto L_BAD_END
+		endif
 
 	    breaksw
 
@@ -148,14 +147,6 @@ L_PARSE_COMMAND:
 	    case "-neuro":
 
 		set neuro_ori = 1
-
-	    breaksw
-
-	    # ----------------------------------------------------------
-	    # usage : -flpLRsurf
-	    case "-flpLRsurf":
-
-		set flip_lr_surf = 1
 
 	    breaksw
 
@@ -194,12 +185,18 @@ L_PARSE_COMMAND:
 	goto L_BAD_END
     endif
 
-    if ( $debug ) echo "++ usage okay"
+    if ( $debug ) echo "-- usage okay"
     if ( $debug > 1 ) set echo
 
     set spec_files   = ( SUMA_{$subj_id}_lh.spec SUMA_{$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
     set afni_dataset = $afni_prefix+orig
+
+    # set and go to the base directory
+    cd $fs_dir
+    set start_dir = $cwd
+
+    if ( $debug ) echo "-- using start_dir '$start_dir'"
 
 goto L_PARSE_COMMAND_DONE
 
@@ -212,7 +209,7 @@ L_VERIFY_PROGRAMS:
     set failed_pgms = 0
     foreach test_command ( afni to3d suma mris_convert )
 
-	which $test_command >& /dev/null
+	(which $test_command) >& /dev/null
 
 	if ( $status ) then
 	    echo "program not found in path: $test_command"
@@ -225,7 +222,7 @@ L_VERIFY_PROGRAMS:
 	goto L_BAD_END
     endif
 
-    if ( $debug ) echo "++ all programs found"
+    if ( $debug ) echo "-- all programs found"
 
 goto L_VERIFY_PROGRAMS_DONE
 
@@ -245,17 +242,17 @@ L_SET_SURF_DIRS:
     else if ( -d ../surf ) then
 	set surf_dir = ../surf
     else
-	set surf_dirs = ( `find $fs_path -maxdepth 4 -type d -name surf` )
+	# this is a general failure case, even if we find one
+	set surf_dirs = ( `find . -maxdepth 4 -type d -name surf -print` )
 	
 	if ( $#surf_dirs == 0 ) then
-	    echo "failure: cannot find directory 'surf' under $fs_path"
-	    echo "Directory 'surf' cannot be more than 4 subdirectories below"
-	    echo "top directory '$fs_path'."
+	    echo "failure: cannot find directory 'surf' under '$fs_dir'"
+	    echo "(subject to a maximum search depth of 4 subdirectories)"
 
 	    set endstr = ""
 	else if ( $#surf_dirs == 1 ) then
-	    echo "surf directory found at $surf_dirs[1]"
-	    set endstr = "consider running program from $surf_dirs[1]"
+	    echo "surf directory found at '$surf_dirs[1]'"
+	    set endstr = "consider running program from '$surf_dirs[1]:h'"
 	else
 	    echo "multiple surf directories found:"
 	    set count = 1
@@ -264,8 +261,8 @@ L_SET_SURF_DIRS:
 		@ count ++
 	    end
 
-	    set endstr = "consider running program from one of the " \
-			 "surf directories"
+	    set endstr = ( "consider running program from one of the" \
+			   "surf directories" )
 	endif
 
 	goto L_BAD_END
@@ -277,18 +274,25 @@ L_SET_SURF_DIRS:
 	goto L_BAD_END
     endif
 
-    if ( $debug ) echo "++ using surf directory '$surf_dir'..."
+    if ( $debug ) echo "-- using surf directory '$surf_dir'..."
 
     # now check for orig dir
 
-    if ( -d mri/orig ) then
-	set orig_dir = mri/orig
-    else if ( -d orig ) then
-	set orig_dir = orig
-    else if ( -d ../mri/orig ) then
-	set orig_dir = ../mri/orig
-    else
-	set endstr = "failure: cannot find directory 'orig' under $fs_path"
+    set orig_dir = ""
+    foreach test_dir (  $surf_dir/orig		\
+			$surf_dir/mri/orig	\
+			orig			\
+			mri/orig		\
+			../orig			\
+			../mri/orig )
+	if ( -d $test_dir ) then
+	    set orig_dir = $test_dir
+	    break
+	endif
+    end
+
+    if ( $orig_dir == "" ) then
+	set endstr = "failure: cannot find directory 'orig' under $fs_dir"
 	goto L_BAD_END
     endif
 
@@ -298,14 +302,14 @@ L_SET_SURF_DIRS:
 	goto L_BAD_END
     endif
 
-    if ( $debug ) echo "++ using orig directory '$orig_dir'..."
+    if ( $debug ) echo "-- using orig directory '$orig_dir'..."
 
     # decide whether we need to make surf/SUMA directory
 
     set suma_dir = $surf_dir/SUMA
 
     if ( -d $suma_dir ) then
-	if ( $debug ) echo "++ $suma_dir already exists, continuing..."
+	if ( $debug ) echo "-- $suma_dir already exists, continuing..."
     else
 	echo "++ creating directory '$suma_dir' for results..."
 	mkdir $suma_dir
@@ -323,40 +327,26 @@ goto L_SET_SURF_DIRS_DONE
 
 L_CHECK_FOR_OVERWRITE:
 
-    set overwrite_failures = 0
+    set test_failures = 0
 
-    # spec files
-    if ( -f $suma_dir/$spec_files[1] || -f $suma_dir/$spec_files[2] ) then
-        echo "failure: will not overwrite files: "
-	echo "        '$suma_dir/$spec_files[1]'"
-	echo "        '$suma_dir/$spec_files[2]'"
+    foreach test_file (	$suma_dir/$spec_files[1]	\
+			$suma_dir/$spec_files[2]	\
+			$suma_dir/$afni_dataset.HEAD	\
+			$suma_dir/$afni_dataset.BRIK	\
+			$orig_dir/$afni_dataset.HEAD	\
+			$orig_dir/$afni_dataset.BRIK		)
+	if ( -f $test_file ) then
+	    if ( $test_failures == 0 ) then
+		echo "failure: will not overwrite files: "
+		set test_failures = 1
+	    endif
 
-	set overwrite_failures = 1
-    endif
+	    echo "        '$test_file'"
+	endif
+    end
 
-    # AFNI files
-    if ( -f $orig_dir/$afni_dataset.HEAD ||	\
-	 -f $orig_dir/$afni_dataset.BRIK ) then
-
-        echo "failure: will not overwrite files: "
-	echo "        '$orig_dir/$afni_dataset.HEAD'"
-        echo "        '$orig_dir/$afni_dataset.BRIK'"
-
-	set overwrite_failures = 1
-    endif
-
-    if ( -f $suma_dir/$afni_dataset.HEAD ||  \
-              -f $suma_dir/$afni_dataset.BRIK ) then
-
-        echo "failure: will not overwrite files:"
-	echo "        '$suma_dir/$afni_dataset.HEAD'"
-        echo "        '$suma_dir/$afni_dataset.BRIK'"
-
-	set overwrite_failures = 1
-    endif
-
-    if ( $overwrite_failures ) then
-        set endstr = "please remove the files to continue"
+    if ( $test_failures ) then
+        set endstr = "please remove these files to continue"
 	goto L_BAD_END
     endif
 
@@ -369,31 +359,30 @@ L_LOOK_FOR_SURF:
 
     cd $surf_dir
 
-    set list_lh = ""
-    set list_rh = ""
+    set list_lh = "X"	# init to something useless - allows nice empty check
+    set list_rh = "X"
 
     foreach attrib ( $surf_attribs )
-	set surf_lh = lh.$attrib
-	set surf_rh = rh.$attrib
-	if ( -f $surf_lh ) set list_lh = ( $list_lh $surf_lh )
-	if ( -f $surf_rh ) set list_rh = ( $list_rh $surf_rh )
+	if ( -f lh.$attrib ) set list_lh = ( $list_lh lh.$attrib )
+	if ( -f rh.$attrib ) set list_rh = ( $list_rh rh.$attrib )
     end
 
+    set list_lh = ( $list_lh[2-] )	# now remove the leading "X"
+    set list_rh = ( $list_rh[2-] )
+
     if ( $#list_lh == 0 && $#list_rh == 0 ) then
-	set endstr = "found no surface files under directory: $surf_dir"
+	set endstr = "found no LH or RH surface files under '$surf_dir'"
 	goto L_BAD_END
     endif
 
     if ( $#list_lh > 0 ) then
-	echo "++ found $#list_lh LH surfaces : "
-	echo "       " $list_lh
-	echo ""
+	echo "-- found $#list_lh LH surfaces"
+	if ( $debug ) echo "    --" $list_lh
     endif
 
     if ( $#list_rh > 0 ) then
-	echo "++ found $#list_rh RH surfaces : "
-	echo "       " $list_rh
-	echo ""
+	echo "-- found $#list_rh RH surfaces"
+	if ( $debug ) echo "    --" $list_rh
     endif
 
     cd $start_dir
@@ -406,17 +395,15 @@ goto L_LOOK_FOR_SURF_DONE
 
 L_CONVERT_SURFACES:
 
-    # todo - account for flip_lr_surf
-
     cd $surf_dir
     foreach surf ( $list_lh $list_rh )
 	# run mris_convert and verify
 	if ( $surf =~ *patch* ) then
-	    echo "-- running 'mris_convert $surf $surf.asc'"
-	    mris_convert $surf $surf.asc
-	else
 	    echo  "-- running 'mris_convert -p $surf $surf.asc'"
 	    mris_convert -p $surf $surf.asc
+	else
+	    echo "-- running 'mris_convert $surf $surf.asc'"
+	    mris_convert $surf $surf.asc
 	endif
 
 	if ( ! -f $surf.asc ) then
@@ -425,25 +412,25 @@ L_CONVERT_SURFACES:
 	    if ( ! -w . ) then
 		set endstr = "--> no write permissions in this directory"
 	    else
-		set endstr = "--> is your FreeSurfer license set up?"
+		set endstr = "--> is your FreeSurfer license installed?"
 	    endif
 
 	    goto L_BAD_END
-	else
-	    if ( $debug ) then
-		echo "++ $surf.asc created"
-		if ( -f $start_dir/$suma_dir/$surf.asc ) then
-		    echo "++ overwriting '$suma_dir/$surf.asc'"
-		endif
-	    endif
+	endif
 
-	    \mv -f $surf.asc $start_dir/$suma_dir	# how barbaric!
-
-	    if ( $status ) then
-		set endstr = ( "failure: cannot overwrite"	\
-			       "'$start_dir/$suma_dir/$surf.asc'" )
-		goto L_BAD_END
+	if ( $debug ) then
+	    echo "++ $surf.asc created"
+	    if ( -f $start_dir/$suma_dir/$surf.asc ) then
+		echo "++ overwriting '$suma_dir/$surf.asc'"
 	    endif
+	endif
+
+	\mv -f $surf.asc $start_dir/$suma_dir	# how barbaric!
+
+	if ( $status ) then
+	    set endstr = ( "failure: cannot write"	\
+			   "'$start_dir/$suma_dir/$surf.asc'" )
+	    goto L_BAD_END
 	endif
     end
 
@@ -485,7 +472,7 @@ L_CREATE_SPEC:
 	echo "#     date    : `date`"				>> $spec_file
 	echo "#     machine : `uname -n`"			>> $spec_file
 	echo "#     pwd     : $cwd"				>> $spec_file
-	echo "#     command : $0 $argv"				>> $spec_file
+	echo "#     command : $prog_name $argv"			>> $spec_file
 	echo ""							>> $spec_file
 	
 	# define the group
@@ -512,7 +499,6 @@ L_CREATE_SPEC:
 	    endif
 
 	    # EmbedDimension is 2 for flat surfaces, else 3
-	    echo $surf | grep flat >& /dev/null
 	    if ( $surf =~ *flat* ) then
 		set embed_ref = 2
 	    else
@@ -576,12 +562,12 @@ goto L_CREATE_BRICK_DONE
 
 ####################################################################
 # echo details for the user to launch suma and afni, in order to
-* check the alignment
+# check the alignment
 
 L_TEST_SURF_VOL:
 
     echo ""
-    echo "------------------------------------------------------------"
+    echo "------------------------------------------------------------------"
     echo "Please verify that the datasets are aligned properly in both"
     echo "afni and suma.  You may do this by running the following commands:"
     echo ""
@@ -597,10 +583,66 @@ goto L_TEST_SURF_VOL_DONE
 
 L_HELP_END:
 
-    echo "yeah, you need help..."
-
     echo ""
-    echo "If you don't get help here, please get help somewhere..."
+    echo "$prog_name - prepare for surface viewing in SUMA"
+    echo ""
+    echo "    This script goes through the following steps:"
+    echo "      - verify existence of necessary programs "
+    echo "        (afni, to3d, suma, mris_conver)"
+    echo "      - determine the location of surface and COR files"
+    echo "      - creation of ascii surface files via 'mri_convert'"
+    echo "      - creation of left and right hemisphere SUMA spec files"
+    echo "      - creation of an AFNI dataset from the COR files via 'to3d'"
+    echo ""
+    echo "      - all created files are stored in a new SUMA directory"
+    echo ""
+    echo "  Usage: $prog_name [options] -sid SUBJECT_ID"
+    echo ""
+    echo "  examples:"
+    echo ""
+    echo "    $prog_name -sid subject1"
+    echo "    $prog_name -help"
+    echo "    $prog_name -fspath subject1/surface_stuff -sid subect1"
+    echo "    $prog_name -neuro -sid 3.14159265 -debug 1"
+    echo ""
+    echo "  options:"
+    echo ""
+    echo "    -help    : show this help information"
+    echo ""
+    echo "    -debug LEVEL    : print debug information along the way"
+    echo "          e.g. -debug 1"
+    echo "          the default level is 0, max is 2"
+    echo ""
+    echo "    -fspath PATH    : path to 'surf' and 'orig' directories"
+    echo "          e.g. -fspath subject1/surface_info"
+    echo "          the default PATH value is './', the current directory"
+    echo ""
+    echo "          This is generally the location of the 'surf' directory,"
+    echo "          though having PATH end in surf is OK.  The mri/orig"
+    echo "          directory should also be located here."
+    echo ""
+    echo "          Note: when this option is provided, all file/path"
+    echo "          messages will be with respect to this directory."
+    echo ""
+    echo "    -neuro          : use neurological orientation"
+    echo "          e.g. -neuro"
+    echo "          the default is radiological orientation"
+    echo ""
+    echo "          In the default radiological orientation, the subject's"
+    echo "          right is on the left side of the image.  In the"
+    echo "          neurological orientation, left is really left."
+    echo ""
+    echo "    -sid SUBJECT_ID : required subject ID for file naming"
+    echo ""
+    echo ""
+    echo "  notes:"
+    echo ""
+    echo "    0. More help may be found at http://someplace.TBD"
+    echo "    1. Surface file names should look like 'lh.smoothwm'."
+    echo "    2. Patches of surfaces need the word patch in their name, in"
+    echo "       order to use the correct option for 'mris_convert'."
+    echo ""
+    echo "       R. Reynolds (rickr@codon.nih.gov), Z. Saad (ziad@nih.gov)"
     echo ""
 
     exit
