@@ -567,7 +567,7 @@
   * modified 3dANOVA3.c to fix stack space problem (see N_INDEX)
 
 22 July 2004:
-  * modified SUMA/3dSurf2Vol.c (-> v3.5) fixed bug in sdata_1D file test
+  * modified SUMA_3dSurf2Vol.c (-> v3.5) fixed bug in sdata_1D file test
 
 26 July 2004:
   * modified thd_mastery.c
@@ -580,4 +580,8 @@
 
 27 July 2004:
   * modified plug_crender.c (-> v1.9) to resample only appropriate sub-bricks
+
+28 July 2004:
+  * modifed SUMA_3dSurf2Vol.c (-> v3.6), fixed bug where a previous change
+    caused the default f_steps to revert from 2 to 1 (discovered by Kuba)
 
