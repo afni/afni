@@ -4344,3 +4344,6 @@
  * Modified coxplot/plot_x11.c to flip line segments if that will make
      them join. Also, initialize thickness of plots to 0, to allow for
      special case (circle, box, ...) that is first item plotted.
+
+24 Feb 2003
+ * Modified afni.c to draw a * in the box of the closest surface node.
