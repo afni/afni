@@ -179,7 +179,7 @@ redraw(void)
 
 int generateEPS(char *filename, int inColor, unsigned int width, unsigned int height);
 
-void
+int
 main(int argc, char **argv)
 {
   static int configuration[] = { GLX_DOUBLEBUFFER, GLX_RGBA, GLX_DEPTH_SIZE, 16,
@@ -225,6 +225,7 @@ main(int argc, char **argv)
 
   generateEPS("dino.rgb.eps", /* color */ 1, imageWidth, imageHeight);
   generateEPS("dino.bw.eps", /* black&white */ 0, imageWidth, imageHeight);
+  exit(0) ;
 }
 
 GLvoid *grabPixels(int inColor, unsigned int width, unsigned int height);

@@ -1500,7 +1500,7 @@ qhull configuration error (qh_RANDOMmax in user.h):\n\
     fprintf (qh ferr, "\
 qhull configuration warning (qh_RANDOMmax in user.h):\n\
    average of 1000 random integers (%.2g) is much different than expected (%.2g).\n\
-   Is qh_RANDOMmax (%d) wrong?\n",
+   Is qh_RANDOMmax (%g) wrong?\n",
 	     randr, qh_RANDOMmax/2.0, qh_RANDOMmax);
   qh RANDOMa= 2.0 * qh RANDOMfactor/qh_RANDOMmax;
   qh RANDOMb= 1.0 - qh RANDOMfactor;
