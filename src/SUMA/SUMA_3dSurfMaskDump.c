@@ -1,5 +1,5 @@
 
-#define VERSION "version 2.2 (June 19, 2003)"
+#define VERSION "version 2.3 (July 21, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurfMaskDump - dump ascii dataset values corresponding to a surface
@@ -49,6 +49,9 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.3  July 21, 2003
+ *   - fixed problem with nodes outside grid_par dataset
  *
  * 2.2  June 19, 2003
  *   - added -m2_index INDEX_TYPE option (to index across nodes, too)
@@ -211,7 +214,8 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     double    * bptr, * bave;   /* temp pointers into bdata */
     float     * fser;
     float       rat0, ratn;
-    int         node, sub, subs;
+    float       dist, min_dist, max_dist;    /* for debug checks       v2.3 */
+    int         node, sub, subs, oobc;
     int         vindex, sindex, prev_ind;
     int		scount, bcount;		    /* step and sub-brick counters */
     int         dcount;
@@ -261,8 +265,7 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	fprintf( p->outfp, "#\n" );
 
 	/* output column headers */
-	fprintf( p->outfp, "#    node     1dindex    i    j    k     "
-		           "nvox" );
+	fprintf( p->outfp, "#    node     1dindex    i    j    k     nvox" );
 	for ( sub = 0; sub < subs; sub++ )
 	    fprintf( p->outfp, "       v%-2d  ", sub );
 	fputc( '\n', p->outfp );
@@ -277,6 +280,10 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     steps  = sopt->m2_steps;
     dcount = 2;
 
+    min_dist = 9999.9;						/* v2.3 */
+    max_dist = -1.0;
+    oobc     = 0; 			  /* init out-of-bounds counter */
+
     /* note, NodeList elements are in dicomm mm orientation */
 
     for ( node = 0; node < N->nnodes; node++ )
@@ -284,6 +291,18 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	/* note the endpoints */
 	f3mm0 = THD_dicomm_to_3dmm(p->gpar, N->nodes[node]);
 	f3mmn = THD_dicomm_to_3dmm(p->gpar, N->nodes[node+N->nnodes]);
+
+	/* if either point is outside our dataset, skip the pair   v2.3 */
+	if ( f3mm_out_of_bounds( &f3mm0, &p->f3mm_min, &p->f3mm_max ) ||
+	     f3mm_out_of_bounds( &f3mmn, &p->f3mm_min, &p->f3mm_max ) )
+	{
+	    oobc++;
+	    continue;
+	}
+
+	dist = dist_f3mm( &f3mm0, &f3mmn );			/* v2.3 */
+	if ( dist < min_dist ) min_dist = dist;
+	if ( dist > max_dist ) max_dist = dist;
 
 	/* init values for average */
 	scount   = 0;		/* for count of used voxels            */
@@ -320,6 +339,7 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 
 	    /* store the information */
 	    bptr = bdata + scount * subs;	/* don't repeat calc.    */
+
 	    for ( bcount = 0; bcount < subs; bcount++ )
 		bptr[bcount] = fser[bcount];
 
@@ -376,7 +396,14 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	for ( sub = 0; sub < subs; sub++ )
 	    fprintf( p->outfp, "  %10s", MV_format_fval(bave[sub]) );
 	fputc( '\n', p->outfp );
+    }
 
+    if ( sopt->debug > 0 )					/* v2.3 */
+    {
+	fprintf( stderr, "-- node pair dist (min,max) = (%f,%f)\n",
+		 min_dist, max_dist );
+	fprintf( stderr, "-- out-of-bounds count = %d (of %d)\n",
+		 oobc,N->nnodes);
     }
 
     free(bdata);
@@ -396,7 +423,9 @@ int dump_midpt_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     THD_fvec3 * f3p0, * f3p1;
     THD_ivec3   i3ind;
     MRI_IMAGE * im;
+    float       dist, min_dist, max_dist;    /* for debug checks       v2.3 */
     float     * fser, * fp;
+    int         oobc;
     int         node, sub, subs;
     int         vindex;
     int         nx, ny, nz;
@@ -445,6 +474,10 @@ int dump_midpt_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	fputc( '\n', p->outfp );
     }
 
+    min_dist = 9999.9;						/* v2.3 */
+    max_dist = -1.0;
+    oobc     = 0; 			  /* init out-of-bounds counter */
+
     /* note, NodeList elements are in dicomm mm orientation */
 
     f3p0 = N->nodes;			/* set the 2 node pointers */
@@ -456,7 +489,18 @@ int dump_midpt_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	f3da.xyz[1] = (f3p0->xyz[1] + f3p1->xyz[1]) / 2.0;
 	f3da.xyz[2] = (f3p0->xyz[2] + f3p1->xyz[2]) / 2.0;
 
+	dist = dist_f3mm( f3p0, f3p1 );		/* dicom is okay */
+	if ( dist < min_dist ) min_dist = dist;
+	if ( dist > max_dist ) max_dist = dist;
+
 	f3mma = THD_dicomm_to_3dmm( p->gpar, f3da );
+
+	/* make sure that we are still in the dataset 		    v2.3 */
+	if ( f3mm_out_of_bounds( &f3mma, &p->f3mm_min, &p->f3mm_max ) )
+	{
+	    oobc++;
+	    continue;
+	}
 
 	if ( (sopt->debug > 2) && (node % 15000 == 0) )
 	{
@@ -492,6 +536,14 @@ int dump_midpt_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	free(im);
     }
 
+    if ( sopt->debug > 0 )					/* v2.3 */
+    {
+	fprintf( stderr, "-- node pair dist (min,max) = (%f,%f)\n",
+		 min_dist, max_dist );
+	fprintf( stderr, "-- out-of-bounds count = %d (of %d)\n",
+		 oobc,N->nnodes);
+    }
+
     return 0;
 }
 
@@ -506,6 +558,7 @@ int dump_single_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     THD_ivec3   i3ind;
     MRI_IMAGE * im;
     float     * fser, * fp;
+    int         oobc;
     int         node, sub, subs;
     int         vindex;
     int         nx, ny, nz;
@@ -545,11 +598,21 @@ int dump_single_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	fputc( '\n', p->outfp );
     }
 
+    oobc = 0;     		     /* init out-of-bounds counter   v2.3 */
+
     /* note, NodeList elements are in dicomm mm orientation */
 
     for ( node = 0; node < N->nnodes; node++ )
     {
 	f3mm   = THD_dicomm_to_3dmm( p->gpar, N->nodes[node] );
+
+	/* make sure that we are still in the dataset 		    v2.3 */
+	if ( f3mm_out_of_bounds( &f3mm, &p->f3mm_min, &p->f3mm_max ) )
+	{
+	    oobc++;
+	    continue;
+	}
+
 	i3ind  = THD_3dmm_to_3dind ( p->gpar, f3mm );
 	vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
 
@@ -572,6 +635,9 @@ int dump_single_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 
 	free(im);
     }
+
+    if ( sopt->debug > 0 )					/* v2.3 */
+	fprintf( stderr, "-- out-of-bounds count = %d\n", oobc );
 
     return 0;
 }
@@ -1164,14 +1230,14 @@ int check_map_func ( char * map_str )
 	case E_SMAP_MAX:
 	case E_SMAP_MIN:
 	case E_SMAP_MASK2:
-	case E_SMAP_MIDPT:
 	    fprintf( stderr, "** function '%s' coming soon ...\n",
 		     g_smap_names[map] );
 	    return E_SMAP_INVALID;
 	    break;
 
-	case E_SMAP_MASK:
 	case E_SMAP_AVE:
+	case E_SMAP_MASK:
+	case E_SMAP_MIDPT:
 	    break;
     }
 
@@ -1249,6 +1315,7 @@ int validate_datasets( opts_t * opts, param_t * p )
     }
 
     p->nvox = DSET_NVOX( p->gpar );
+    set_3dmm_bounds( p->gpar, &p->f3mm_min, &p->f3mm_max );
 
     /* -------------------------------------------------------------------- */
     /* check for cmask - casually stolen from 3dmaskdump.c (thanks, Bob! :) */
@@ -1590,11 +1657,15 @@ int disp_param_t ( char * info, param_t * p )
 
     printf( "param_t struct at %p :\n"
 	    "    gpar  : vcheck  = %p : %s\n"
+	    "    f3mm_min (xyz)  = (%f, %f, %f)\n"
+	    "    f3mm_max (xyz)  = (%f, %f, %f)\n"
 	    "    outfp, cmask    = %p : %p\n"
 	    "    ncmask, ccount  = %d, %d\n"
 	    "    nvox            = %d\n"
 	    , p,
 	    p->gpar, ISVALID_DSET(p->gpar) ? "valid" : "invalid",
+	    p->f3mm_min.xyz[0], p->f3mm_min.xyz[1], p->f3mm_min.xyz[2], 
+	    p->f3mm_max.xyz[0], p->f3mm_max.xyz[1], p->f3mm_max.xyz[2], 
 	    p->outfp, p->cmask, p->ncmask, p->ccount, p->nvox
 	    );
 
@@ -1625,6 +1696,92 @@ int disp_smap_opts_t ( char * info, smap_opts_t * sopt )
 	    sopt->map, sopt->debug, sopt->no_head,
 	    sopt->m2_index, sopt->m2_steps, sopt->cmask
 	    );
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * dist_f3mm		- return Euclidean distance between the points
+ *----------------------------------------------------------------------
+*/
+float dist_f3mm( THD_fvec3 * p1, THD_fvec3 * p2 )
+{
+    double d0, d1, d2;
+
+    if ( p1 == NULL || p2 == NULL )
+    {
+	fprintf( stderr, "** dist_f3mm: invalid params (%p,%p)\n", p1, p2 );
+	return 0.0;
+    }
+
+    d0 = p1->xyz[0] - p2->xyz[0];
+    d1 = p1->xyz[1] - p2->xyz[1];
+    d2 = p1->xyz[2] - p2->xyz[2];
+
+    return sqrt(d0*d0 + d1*d1 + d2*d2);
+}
+
+
+/*----------------------------------------------------------------------
+ * set_3dmm_bounds	 - note 3dmm bounding values
+ *
+ * This is an outer bounding box, like FOV, not SLAB.
+ *----------------------------------------------------------------------
+*/
+int set_3dmm_bounds ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max)
+{
+    float tmp;
+    int   c;
+
+    if ( !dset || !min || !max )
+    {
+	fprintf(stderr, "** invalid params to set_3dmm_bounds: (%p,%p,%p)\n",
+		dset, min, max );
+	return -1;
+    }
+
+    /* get undirected bounds */
+    min->xyz[0] = DSET_XORG(dset) - 0.5 * DSET_DX(dset);
+    max->xyz[0] = min->xyz[0] + DSET_NX(dset) * DSET_DX(dset);
+
+    min->xyz[1] = DSET_YORG(dset) - 0.5 * DSET_DY(dset);
+    max->xyz[1] = min->xyz[1] + DSET_NY(dset) * DSET_DY(dset);
+
+    min->xyz[2] = DSET_ZORG(dset) - 0.5 * DSET_DZ(dset);
+    max->xyz[2] = min->xyz[2] + DSET_NZ(dset) * DSET_DZ(dset);
+
+    for ( c = 0; c < 3; c++ )
+	if ( min->xyz[c] > max->xyz[c] )
+	{
+	    tmp = min->xyz[c];
+	    min->xyz[c] = max->xyz[c];
+	    max->xyz[c] = tmp;
+	}
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * f3mm_out_of_bounds	 - check wether cp is between min and max
+ *
+ * 			 - v2.3 [rickr]
+ *----------------------------------------------------------------------
+*/
+int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max )
+{
+    int c;
+
+    if ( !cp || !min || !max )
+	return -1;
+
+    for ( c = 0; c < 3; c++ )
+    {
+	if ( ( cp->xyz[c] < min->xyz[c] ) ||
+	     ( cp->xyz[c] > max->xyz[c] ) )
+	    return 1;
+    }
 
     return 0;
 }
