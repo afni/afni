@@ -268,6 +268,10 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;
 
+#if 1
+   return NULL ;
+#endif
+
    if( ncall > 0 || !is_nih_host() || !can_get_testfile() ) return NULL ;
 
    plint = PLUTO_new_interface( "TT Atlas",
