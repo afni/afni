@@ -1848,3 +1848,9 @@
  * Added program 1dfft.c - to calculate abs(FFT(timeseries)).
  * Modified 1deval.c to allow input of time series.
  * Got some 3dDeconvolve.c changes from Doug Ward.
+
+25 Nov 1999
+ * Added program 1dcat.c - catenate *.1D files.
+
+28 Nov 1999
+ * Added function ZTONE to parser.f.

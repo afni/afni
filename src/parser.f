@@ -817,7 +817,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
-     X       LAND,LOR,LMOFN,MEDIAN
+     X       LAND,LOR,LMOFN,MEDIAN , ZTONE
 C
 C  External library functions
 C
@@ -1044,6 +1044,8 @@ C.......................................................................
             R8_EVAL(NEVAL) = STEP( R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'BOOL' )THEN
             R8_EVAL(NEVAL) = BOOL( R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'ZTONE' )THEN
+            R8_EVAL(NEVAL) = ZTONE( R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'AND'  )THEN
             NTM   = R8_EVAL(NEVAL)
@@ -1222,7 +1224,7 @@ C
 C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
-     X       LOR, LMOFN , MEDIAN
+     X       LOR, LMOFN , MEDIAN , ZTONE
 C
 C  External library functions
 C
@@ -1664,6 +1666,10 @@ C.......................................................................
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = BOOL( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
+         ELSEIF( CNCODE .EQ. 'ZTONE' )THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = ZTONE( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'AND'  )THEN
             NTM   = R8_EVAL(1, NEVAL)
@@ -1907,6 +1913,23 @@ C
 5000  CONTINUE
 C-----------------------------------------------------------------------
 8000  CONTINUE
+      RETURN
+      END
+C
+C
+C
+      FUNCTION ZTONE( X )
+      IMPLICIT REAL*8 (A-H,O-Z)
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C
+      IF( X .LE. 0.D+00 )THEN
+         ZTONE = 0.D+00
+      ELSEIF( X .GE. 1.0 )THEN
+         ZTONE = 1.D+00
+      ELSE
+         Y = (0.5 * 3.1415926535897932D+00) * (1.6D+00 * X - 0.8D+00)
+         ZTONE = 0.50212657D+00 * ( TANH(TAN(Y)) + 0.99576486D+00 )
+      ENDIF
       RETURN
       END
 C

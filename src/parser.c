@@ -15,9 +15,9 @@ static integer c__1 = 1;
 {
     /* Initialized data */
 
-    static integer n_funcargs__[77] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
+    static integer n_funcargs__[78] = { 1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,
 	    2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,2,1,1,1,-1,
-	    4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2 };
+	    4,4,4,2,2,2,3,3,3,1,1,1,2,2,2,3,3,3,3,3,3,3,3,3,2,2,2,1 };
 
     /* Format strings */
     static char fmt_9001[] = "(\002 PARSER error\002,i4,\002: \002,a/1x,a/80"
@@ -601,7 +601,7 @@ L9000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*78] = "SIN                             " 
+    static char c_funcname__[32*79] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -643,7 +643,8 @@ L9000:
 	    "          " "FIGT_T2P                        " "FIGT_P2T        "
 	    "                " "FIGT_T2Z                        " "FIPT_T2P  "
 	    "                      " "FIPT_P2T                        " "FIPT"
-	    "_T2Z                        " "DUMMY                           ";
+	    "_T2Z                        " "ZTONE                           " 
+	    "DUMMY                           ";
 
     /* Builtin functions */
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
@@ -738,7 +739,7 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*78] = "SIN                             " 
+    static char c_funcname__[32*79] = "SIN                             " 
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
@@ -780,7 +781,8 @@ L8000:
 	    "          " "FIGT_T2P                        " "FIGT_P2T        "
 	    "                " "FIGT_T2Z                        " "FIPT_T2P  "
 	    "                      " "FIPT_P2T                        " "FIPT"
-	    "_T2Z                        " "DUMMY                           ";
+	    "_T2Z                        " "ZTONE                           " 
+	    "DUMMY                           ";
 
     /* Format strings */
     static char fmt_5501[] = "(\002(F\002,i1,\002.0)\002)";
@@ -934,7 +936,7 @@ L120:
 */
 
 	ifunc = 1;
-	s_copy(c_funcname__ + 2464, c_id__, 32L, 32L);
+	s_copy(c_funcname__ + 2496, c_id__, 32L, 32L);
 L210:
 	if (! (s_cmp(c_id__, c_funcname__ + (ifunc - 1 << 5), 32L, 32L) != 0))
 		 {
@@ -943,7 +945,7 @@ L210:
 	++ifunc;
 	goto L210;
 L220:
-	if (ifunc <= 77) {
+	if (ifunc <= 78) {
 /* !it is a function */
 	    *ntype = 1008;
 	    *value = (doublereal) ifunc;
@@ -1208,9 +1210,9 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
     static doublereal x, y;
     static integer neval;
     extern doublereal lmofn_(integer *, integer *, doublereal *), qginv_(
-	    doublereal *), dbesi0_(doublereal *), dbesi1_(doublereal *), 
-	    dbesj0_(doublereal *), dbesj1_(doublereal *), dbesk0_(doublereal *
-	    ), dbesk1_(doublereal *);
+	    doublereal *), ztone_(doublereal *), dbesi0_(doublereal *), 
+	    dbesi1_(doublereal *), dbesj0_(doublereal *), dbesj1_(doublereal *
+	    ), dbesk0_(doublereal *), dbesk1_(doublereal *);
 #define c8_val__ ((char *)equiv_0)
     extern doublereal dbesy0_(doublereal *), dbesy1_(doublereal *);
 #define r8_val__ (equiv_0)
@@ -1535,6 +1537,8 @@ L1000:
 	r8_eval__[neval - 1] = step_(&r8_eval__[neval - 1]);
     } else if (s_cmp(cncode, "BOOL", 8L, 4L) == 0) {
 	r8_eval__[neval - 1] = bool_(&r8_eval__[neval - 1]);
+    } else if (s_cmp(cncode, "ZTONE", 8L, 5L) == 0) {
+	r8_eval__[neval - 1] = ztone_(&r8_eval__[neval - 1]);
 /* ...................................................................
 .... */
     } else if (s_cmp(cncode, "AND", 8L, 3L) == 0) {
@@ -1744,6 +1748,7 @@ L8000:
     static integer ivbot;
     extern doublereal qginv_(doublereal *);
     static char c2code[8];
+    extern doublereal ztone_(doublereal *);
     static integer ivtop;
     extern doublereal dbesi0_(doublereal *), dbesi1_(doublereal *), dbesj0_(
 	    doublereal *), dbesj1_(doublereal *), dbesk0_(doublereal *), 
@@ -2427,6 +2432,12 @@ L1000:
 		r8_eval__[iv - ibv + (neval << 6) - 65] = bool_(&r8_eval__[iv 
 			- ibv + (neval << 6) - 65]);
 	    }
+	} else if (s_cmp(cncode, "ZTONE", 8L, 5L) == 0) {
+	    i__2 = ivtop;
+	    for (iv = ivbot; iv <= i__2; ++iv) {
+		r8_eval__[iv - ibv + (neval << 6) - 65] = ztone_(&r8_eval__[
+			iv - ibv + (neval << 6) - 65]);
+	    }
 /* ...............................................................
 ........ */
 	} else if (s_cmp(cncode, "AND", 8L, 3L) == 0) {
@@ -2766,6 +2777,34 @@ L8000:
 #undef r8_val__
 #undef c8_val__
 
+
+
+
+
+doublereal ztone_(doublereal *x)
+{
+    /* System generated locals */
+    doublereal ret_val;
+
+    /* Builtin functions */
+    double tan(doublereal), tanh(doublereal);
+
+    /* Local variables */
+    static doublereal y;
+
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ */
+
+    if (*x <= 0.) {
+	ret_val = 0.;
+    } else if (*x >= 1.f) {
+	ret_val = 1.;
+    } else {
+	y = (*x * 1.6 - .8) * 1.5707963267948966;
+	ret_val = (tanh(tan(y)) + .99576486) * .50212657;
+    }
+    return ret_val;
+} /* ztone_ */
 
 
 
@@ -3205,10 +3244,10 @@ doublereal dbesk1_(doublereal *x)
     integer s_wsfe(cilist *), e_wsfe(void);
 
     /* Fortran I/O blocks */
-    static cilist io___88 = { 0, 6, 0, fmt_999, 0 };
+    static cilist io___89 = { 0, 6, 0, fmt_999, 0 };
 
 
-    s_wsfe(&io___88);
+    s_wsfe(&io___89);
     e_wsfe();
     return 0;
 } /* qqqerr_ */
