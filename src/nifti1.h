@@ -894,6 +894,10 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    Thus, if the 0020/0032 DICOM attribute are extracted into (px,py,pz), then
      qoffset_x = -px   qoffset_y = -py   qoffset_z = pz
    is a reasonable setting for qform_code==NIFTI_XFORM_SCANNER_ANAT.
+
+   That is, DICOM's coordinate system is 180 degrees rotated about the z-axis
+   from the neuroscience/NIFTI coordinate system.  To transform between DICOM
+   and NIFTI, you just have to negate the x- and y-coordinates.
 -----------------------------------------------------------------------------*/
 
    /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
