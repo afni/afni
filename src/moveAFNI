@@ -1,20 +1,18 @@
 #!/bin/tcsh
 
-# script to put changed files from afni_src.tgz into the current directory
+# script to put changed files from afni_src/ into the current directory
 
 set doit = 0
 if( $#argv == 1 ) then
   if( $argv[1] == "doit" ) set doit = 1
 endif
 
-set archive  = afni_src.tgz
 set localdir = afni_src
 set ftpdir   = $cwd
 
 echo "================================================"
-echo "Starting to install $archive into $ftpdir"
+echo "Starting to install $localdir into $ftpdir"
 
-gzip -dc $archive | tar xpf -
 cd $localdir
 
 echo "Starting to scan for changed files"
@@ -24,20 +22,17 @@ foreach fname ( `find . -print | grep -v CVS | grep -v moveAFNI` )
 
    if( -f $fname ) then
       if( -f $ftpdir/$fname ) then
-         diff $ftpdir/$fname $fname > /dev/null
+         cmp -s $ftpdir/$fname $fname
          set mmm = $status
       else
          set mmm = 1
       endif
       if( $mmm && $doit ) then
-         echo "/bin/mv -f $fname $ftpdir/$fname"
-               /bin/mv -f $fname $ftpdir/$fname
+         echo "/bin/cp -f $fname $ftpdir/$fname"
+               /bin/cp -f $fname $ftpdir/$fname
          @ ttt = $ttt + 1
       else if( $mmm ) then
-         echo "WOULD /bin/mv -f $fname $ftpdir/$fname"
-      else
-#            echo "/bin/rm -f $fname"
-#                  /bin/rm -f $fname
+         echo "WOULD /bin/cp -f $fname $ftpdir/$fname"
       endif
    else if( -d $fname ) then
       if( ! -d $ftpdir/$fname ) then
@@ -54,7 +49,4 @@ end
 
 cd -
 
-echo "Removing leftover files from $localdir"
-/bin/rm -rf $localdir
-
-if( $doit ) echo "`date`: Put ${ttt} files from ${archive} to ${ftpdir}"
+if( $doit ) echo "`date`: Put ${ttt} files from ${localdir} to ${ftpdir}"

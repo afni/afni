@@ -24,7 +24,7 @@
 
 ************************************************************************/
 
-char * CLUST_main( PLUGIN_interface * ) ;
+static char * CLUST_main( PLUGIN_interface * ) ;
 
 static char helpstring[] =
   " Purpose: Apply the clustering algorithm to a functional dataset.\n"
@@ -124,7 +124,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   Main routine for this plugin (will be called from AFNI).
 ****************************************************************************/
 
-char * CLUST_main( PLUGIN_interface * plint )
+static char * CLUST_main( PLUGIN_interface * plint )
 {
    char * tag , * new_prefix ;
    float rmm , vmul , thresh ;

@@ -14,7 +14,7 @@
   Simple plugin to copy a dataset and make a new one.
 ************************************************************************/
 
-char * COPY_main( PLUGIN_interface * ) ;
+static char * COPY_main( PLUGIN_interface * ) ;
 
 static char helpstring[] =
    " Purpose: Creating a copy of a dataset.\n"
@@ -99,7 +99,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   Main routine for this plugin (will be called from AFNI).
 ****************************************************************************/
 
-char * COPY_main( PLUGIN_interface * plint )
+static char * COPY_main( PLUGIN_interface * plint )
 {
    char * tag , * new_prefix , * cpt ;
    MCW_idcode * idc ;

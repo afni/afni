@@ -3417,3 +3417,13 @@
  * Modified matrix.[ch] and RegAna.c to speed up some of Doug Ward's
       matrix-vector calculations, to make 3dDeconvolve faster.  Makes
       it about 22% faster on an Athlon/Linux box.
+
+08 Jan 2001
+ * Modifications to make AFNI work under CYGWIN (www.cygwin.com):
+   - Removed shm stuff from thd_iochan.c
+   - Compile plugins directly into afni.exe (no dlopen)
+   - Changing Makefile.cygwin and Makefile.INCLUDE to make
+       PLUGIN_init() function have different names for each
+       plugin compiled on CYGWIN
+   - At this time, 3dNLfim, 3dTSgen, plug_nlfit, and plug_wavelets
+       are not compiled for CYGWIN since they present difficulties.

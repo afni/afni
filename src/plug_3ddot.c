@@ -28,9 +28,9 @@ static char helpstring[] =
 
 /*---------- prototypes for internal routines ----------*/
 
-char * DOT_main( PLUGIN_interface * ) ;
+static char * DOT_main( PLUGIN_interface * ) ;
 
-double DSET_cor( int , THD_3dim_dataset * , THD_3dim_dataset * ) ;
+static double DSET_cor( int , THD_3dim_dataset * , THD_3dim_dataset * ) ;
 
 /***********************************************************************
    Set up the interface to the user
@@ -77,7 +77,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   Main routine for this plugin (will be called from AFNI).
 ****************************************************************************/
 
-char * DOT_main( PLUGIN_interface * plint )
+static char * DOT_main( PLUGIN_interface * plint )
 {
    MCW_idcode * idc ;
    THD_3dim_dataset * xset , * yset ;
@@ -145,7 +145,7 @@ char * DOT_main( PLUGIN_interface * plint )
   less than -1.0 if an error occurs.
 ------------------------------------------------------------------------------*/
 
-double DSET_cor( int demean, THD_3dim_dataset * xset, THD_3dim_dataset * yset )
+static double DSET_cor( int demean, THD_3dim_dataset * xset, THD_3dim_dataset * yset )
 {
    double sumxx , sumyy , sumxy , tx,ty , dxy , xbar,ybar ;
    void  *  xar , *  yar ;

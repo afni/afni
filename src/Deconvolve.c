@@ -63,6 +63,9 @@
            constraints.
   Date:    10 May 2001
 
+  Mod:     Made fstat_t2p() a static function to avoid conflicts on CYGWIN.
+  Date:    08 Jan 2002 - RWCox
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -505,7 +508,7 @@ void glt_analysis
 */
 
 
-double fstat_t2p( double ff , double dofnum , double dofden )
+static double fstat_t2p( double ff , double dofnum , double dofden )
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound ;

@@ -64,6 +64,28 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
                   mayo_analyze
 
+# For CYGWIN (look for "exe" to find various places below)
+#  Note that 3dNLfim and 3dTSgen are missing for now
+
+PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
+               sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals            \
+               fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3daxialize   \
+               p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta    \
+               waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket         \
+                               AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk      \
+               3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna       \
+               2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat  \
+               3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam         \
+               3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose      \
+               3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
+               3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
+               3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump   \
+               3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid      \
+               3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum   \
+               3dExtrema qhull.exe strblast 3dConvolve 3dZcutup 3dZcat 3dTqual    \
+               3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI               \
+               3dAFNItoANALYZE siemens_vision ge_header mayo_analyze
+
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
@@ -96,9 +118,16 @@ all_noplug:libmri.a programs_noplug
 
 totality_noplug:libmri.a libcoxplot.a programs_noplug install_noplug clean
 
+# CYGWIN: variations on totality and vastness above
+
+totality_exe:libmri.a libcoxplot.a programs_exe install_exe clean_exe
+vastness_exe:libmri.a libcoxplot.a programs_exe install_exe
+
 programs:$(PROGRAMS)
 
 programs_noplug:$(PROGRAMS_NOPLUG)
+
+programs_exe:$(PROGRAMS_EXE)
 
 libraries:libmri.a libcoxplot.a libvolpack.a libf2c.a
 
@@ -672,6 +701,12 @@ afni:$(AFOBJS) libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lvolpack -lf2c $(LLIBS)
 
+# CYGWIN: must compile afni.exe with fixed plugins (see PLUGIN_FIXED, far below)
+
+afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h
+	$(RM) $@
+	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lcoxplot -lmri -lvolpack -lf2c $(LLIBS)
+
 ### If you have Purify
 
 # pafni:$(AFOBJS) libcoxplot.a
@@ -792,7 +827,12 @@ clean:
 	$(RM) *.o
 
 cleaner:
-	$(RM) *.a $(PROGRAMS)
+	$(RM) *.o *.a $(PROGRAMS)
+
+# CYGWIN: remove the fixed plugins as well
+
+clean_exe:
+	$(RM) *.o *.fixed
 
 #backup:
 #	ssh afni chmod -R u+w /home/rwcox/AFNI_BACKUP
@@ -834,6 +874,14 @@ install_noplug: $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
 	$(CP) libmri.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
+
+# CYGWIN: must put the .exe suffix on the "mv" command for some reason
+
+install_exe: $(INSTALLDIR)
+	( for pp in $(PROGRAMS_EXE) ; do                               \
+             qq=`basename $$pp .exe`; $(MV) $${qq}.exe $(INSTALLDIR) ; \
+          done )
+	$(CP) $(SCRIPTS) $(INSTALLDIR)
 
 ###################################################################
 # some dependencies (not complete)
@@ -1055,14 +1103,6 @@ install_plugins: $(INSTALLDIR)
 	$(PLUGIN_CC) -c $*.c $(IFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o $*.$(SO) $*.o
 
-libmri.$(SO):mrilib.h $(MRI_OBJS)
-	$(RM) $@
-	$(LD) $(PLUGIN_LFLAGS) -o libmri.$(SO) $(MRI_OBJS)
-
-libcdf.$(SO):cdflib.h $(CDF_OBJS)
-	$(RM) $@
-	$(LD) $(PLUGIN_LFLAGS) -o libcdf.$(SO) $(CDF_OBJS)
-
 plug_realtime.$(SO):plug_realtime.c
 	$(RM) $@
 	$(PLUGIN_CC) -c plug_realtime.c $(IFLAGS)
@@ -1075,9 +1115,38 @@ plug_drealtime.$(SO):plug_realtime.c
 
 plug_render.$(SO):mri_render.h
 
-epsim:epsim.o
+# Stuff for plugins on CYGWIN:
+# Each plugin must be listed here and have 2 corresponding lines in fixed_plugins.h
+# 
+# plug_nlfit.fixed and plug_wavelets.fixed have been removed due to difficulties
+
+PLUGIN_FIXED = plug_clust.fixed    plug_copy.fixed     plug_rename.fixed     \
+               plug_tag.fixed      plug_power.fixed    plug_stats.fixed      \
+               plug_lsqfit.fixed   plug_imreg.fixed    plug_edit.fixed       \
+                                   plug_realtime.fixed plug_3ddot.fixed      \
+               plug_coorder.fixed  plug_compress.fixed plug_volreg.fixed     \
+               plug_drawdset.fixed plug_maskave.fixed  plug_deconvolve.fixed \
+               plug_render.fixed   plug_notes.fixed    plug_histog.fixed     \
+               plug_scatplot.fixed plug_nudge.fixed                          \
+               plug_zeropad.fixed  plug_3Ddump_V2.fixed                      \
+               plug_4Ddump.fixed   plug_delay_V2.fixed plug_extract.fixed    \
+               plug_betafit.fixed                                            \
+               plug_second_dataset.fixed                                     \
+               plug_stavg.fixed    plug_reorder.fixed                        \
+               plug_roiedit.fixed  plug_hemisub.fixed  plug_maskcalc.fixed   \
+               plug_maxima.fixed   plug_fourier.fixed  plug_threshold.fixed  \
+               plug_permtest.fixed
+
+plugin_fixed:$(PLUGIN_FIXED)
+
+.SUFFIXES:.fixed
+
+.c.fixed:afni_plugin.h afni.h 3ddata.h
 	$(RM) $@
-	$(CC) -o epsim epsim.o $(LFLAGS) $(LLIBS)
+	$(PLUGIN_CC) -c $*.c $(IFLAGS) -DPLUGIN_init=PLUGIN_init_$*
+	$(MV) $*.o $*.fixed
+
+# Miscellaneous stuff (plugouts)
 
 plugout_tt:plugout_tt.o
 	$(RM) $@
@@ -1176,6 +1245,13 @@ qhull:
 	( cd qhulldir ; \
 	  make qhull clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
 	  $(MV) qhull .. ; )
+
+# CYGWIN: we "mv" the result, so must name it correctly as qhull.exe
+
+qhull.exe:
+	( cd qhulldir ; \
+	  make qhull clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
+	  $(MV) qhull.exe .. ; )
 
 #######
 # Eispack and CDF library files - make them and move them up here
@@ -1389,5 +1465,9 @@ testcox:testcox.o
 
 agni_to_afni:agni_to_afni.o agni.o
 	$(CC) -o agni_to_afni agni_to_afni.o $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+epsim:epsim.o
+	$(RM) $@
+	$(CC) -o epsim epsim.o $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------

@@ -53,7 +53,7 @@ static char * cord_strings[] = {
 
 /*----------------- prototypes for internal routines -----------------*/
 
-char * CORD_main( PLUGIN_interface * ) ;  /* the entry point */
+static char * CORD_main( PLUGIN_interface * ) ;  /* the entry point */
 
 /***********************************************************************
    Set up the interface to the user:
@@ -117,7 +117,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   AFNI will popup the return string in a message box.
 ****************************************************************************/
 
-char * CORD_main( PLUGIN_interface * plint )
+static char * CORD_main( PLUGIN_interface * plint )
 {
    char * str ;                 /* strings from user */
 

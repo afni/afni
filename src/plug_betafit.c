@@ -63,7 +63,7 @@ static char helpstring[] =
   "-- RWCox - June 2000\n"
 ;
 
-char * BFIT_main( PLUGIN_interface * ) ;
+static char * BFIT_main( PLUGIN_interface * ) ;
 
 #define NYESNO 2
 static char * YESNO_strings[NYESNO] = { "No" , "Yes" } ;
@@ -142,7 +142,7 @@ PLUGIN_interface * PLUGIN_init(int ncall)
 
 /*--------------------------------------------------------------------*/
 
-char * BFIT_main( PLUGIN_interface * plint )
+static char * BFIT_main( PLUGIN_interface * plint )
 {
    MCW_idcode * idc ;
    THD_3dim_dataset * input_dset , * mask_dset = NULL ;

@@ -111,6 +111,8 @@
                 function.  If neither is defined, file locking will
                 not be used.
 
+    DONT_USE_SHM = Set this to disable use of shared memory.
+
   Exactly one of the following flags must be set for AFNI plugins
   to work:
 
@@ -125,8 +127,10 @@
                               routines, such as "shl_load".  This is
                               only used on HP-UX, as far as I know.
 
-  Apparently some systems don't support either method (IBM AIX, so I've
-  been told).  In such a case, plugins won't work.
+    NO_DYNAMIC_LOADING = if this is set, then AFNI will load the plugins
+                         statically - this means that you can't add plugins
+                         without recompiling AFNI;  this option has only
+                         been tested on CYGWIN, and requires a special Makefile.
 
   Flags that MUST be set appropriately for each system:
 
@@ -262,6 +266,22 @@ extern long   strtol() ;
 # define USE_FLOCK
 #endif
 
+#ifdef CYGWIN
+# include <dirent.h>
+# define THD_MMAP_FLAG  MAP_SHARED
+# define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
+# define SCANDIR_WANTS_CONST
+# define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
+# define MMAP_THRESHOLD -1        /* no mmap-ing */
+# define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
+# define BOXUP_SCALE              /* looks nicer */
+# define NO_DYNAMIC_LOADING
+# undef  DONT_UNROLL_FFTS         /* helps a lot */
+# define DONT_USE_STRPTIME
+# define NO_FRIVOLITIES
+# define USING_LESSTIF            /* try to avoid some bugs */
+#endif
+
 /* SCO UDK under Unixware 7 -- contributed by Jason Bacon */
 #ifdef SCO
 # include <dirent.h>
@@ -299,7 +319,7 @@ extern long   strtol() ;
    Do NOT change anything below this line (unless your name is Cox)!
 *************************************************************************/
 
-#if defined(DYNAMIC_LOADING_VIA_DL) || defined(DYNAMIC_LOADING_VIA_SHL)
+#if defined(DYNAMIC_LOADING_VIA_DL) || defined(DYNAMIC_LOADING_VIA_SHL) || defined(NO_DYNAMIC_LOADING)
 #  define ALLOW_PLUGINS
 #else
 #  define DONT_ALLOW_PLUGINS

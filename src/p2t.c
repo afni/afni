@@ -65,7 +65,7 @@ double gamma( double x )
 
 double qginv( double ) ;
 
-void main( int argc , char * argv[] )
+int main( int argc , char * argv[] )
 {
    double pp , dof , tt , bb , binv ;
    double nn,ll,mm ;
