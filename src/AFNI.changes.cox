@@ -4232,3 +4232,7 @@
 
 24 Jan 2003
  * Added special function key stuff to imseq.c (arrows, PgUp/PgDn).
+
+27 Jan 2003
+ * Added messages to afni_version.c when version checking is disabled, fails,
+     or when the current version is different than the last version.
