@@ -5326,4 +5326,5 @@
  * Added I:*.1D stuff to 3dcalc.c.
 
 23 Feb 2005
- * Modified to3d.c to accept -Torg option.
+ * Modified to3d.c to accept -Torg option.  Also to thd_info.c to print
+     out the ttorg field.
