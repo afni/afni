@@ -104,6 +104,8 @@ static void RWC_set_endianosity(void)
 static char *pbuf = NULL ;
 static int  npbuf = 0 ;
 
+#define NPBUF 1024
+
 static void RWC_clear_pbuf(void)
 {
    if( pbuf != NULL ){ free(pbuf); pbuf = NULL; npbuf = 0; }
@@ -117,7 +119,7 @@ static int RWC_printf( char *fmt , ... )
 
    va_start( vararg_ptr , fmt ) ;
 
-   if( sbuf == NULL ) sbuf = malloc(8192) ;  /* 1st time in */
+   if( sbuf == NULL ) sbuf = malloc(NPBUF) ;  /* 1st time in */
 
    sbuf[0] = '\0' ;
    nn = vsprintf( sbuf , fmt , vararg_ptr ) ;
@@ -126,12 +128,12 @@ static int RWC_printf( char *fmt , ... )
    if( nsbuf == 0 ) return 0 ;
 
    if( npbuf == 0 ){
-     pbuf = malloc(8192) ; npbuf = 8192 ; pbuf[0] = '\0' ;
+     pbuf = malloc(NPBUF) ; npbuf = NPBUF ; pbuf[0] = '\0' ;
    }
 
    lpbuf = strlen(pbuf) ;
    if( lpbuf+nsbuf+8 > npbuf ){
-     npbuf += 8192; pbuf = realloc(pbuf,npbuf);
+     npbuf += NPBUF; pbuf = realloc(pbuf,npbuf);
    }
 
    strcat(pbuf,sbuf) ;
@@ -146,6 +148,29 @@ static unsigned int pxl_len = 0 ;  /* and length in file */
 void mri_dicom_pxlarr( off_t *poff , unsigned int *plen )
 {
    *poff = pxl_off ; *plen = pxl_len ;
+}
+
+/****************************************************************/
+
+static int rwc_opt = 0 ;
+
+#define RWC_NONAME_MASK  1
+#define RWC_NOHEX_MASK   2
+
+void mri_dicom_noname( int ii )
+{
+   if( ii )
+     rwc_opt |= RWC_NONAME_MASK ;
+   else if( rwc_opt & RWC_NONAME_MASK )
+     rwc_opt ^= RWC_NONAME_MASK ;
+}
+
+void mri_dicom_nohex( int ii )
+{
+   if( ii )
+     rwc_opt |= RWC_NOHEX_MASK ;
+   else if( rwc_opt & RWC_NOHEX_MASK )
+     rwc_opt ^= RWC_NOHEX_MASK ;
 }
 
 /****************************************************************/
@@ -2325,7 +2350,12 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 			  DCM_TAG_ELEMENT(elementItem->element.tag),
 			  elementItem->element.length);
 #endif
-	    (void) RWC_printf("//%31s//", elementItem->element.description);
+
+            if( (rwc_opt & RWC_NONAME_MASK) == 0 )
+	      (void) RWC_printf("//%31s//", elementItem->element.description);
+            else
+	      (void) RWC_printf("//") ;
+
 	    if (elementItem->element.d.ot == NULL)
 		(void) RWC_printf("Data on disk\n");
 	    else {
@@ -2362,8 +2392,12 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 		    (void) RWC_printf("%8lx %ld\n", *elementItem->element.d.sl,
 				  *elementItem->element.d.sl);
 #else
-		    (void) RWC_printf("%8x %d\n", *elementItem->element.d.sl,
-				  *elementItem->element.d.sl);
+                    if( (rwc_opt & RWC_NOHEX_MASK) == 0 )
+		      (void) RWC_printf("%8x %d\n", *elementItem->element.d.sl,
+				        *elementItem->element.d.sl);
+                    else
+		      (void) RWC_printf(" %d\n", *elementItem->element.d.sl ) ;
+
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,
@@ -2371,8 +2405,12 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 #endif
 		    break;
 		case DCM_SS:
-		    (void) RWC_printf("%4x %d\n", *elementItem->element.d.ss,
-				  *elementItem->element.d.ss);
+                    if( (rwc_opt & RWC_NOHEX_MASK) == 0 )
+		      (void) RWC_printf("%4x %d\n", *elementItem->element.d.ss,
+				    *elementItem->element.d.ss);
+                    else
+		      (void) RWC_printf(" %d\n", *elementItem->element.d.ss ) ;
+
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,
@@ -2409,8 +2447,12 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 		    (void) RWC_printf("%8lx %ld\n", *elementItem->element.d.ul,
 				  *elementItem->element.d.ul);
 #else
-		    (void) RWC_printf("%8x %d\n", *elementItem->element.d.ul,
-				  *elementItem->element.d.ul);
+                    if( (rwc_opt & RWC_NOHEX_MASK) == 0 )
+		      (void) RWC_printf("%8x %d\n", *elementItem->element.d.ul,
+				    *elementItem->element.d.ul);
+                    else
+		      (void) RWC_printf(" %d\n", *elementItem->element.d.ul ) ;
+
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,
@@ -2418,8 +2460,12 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 #endif
 		    break;
 		case DCM_US:
-		    (void) RWC_printf("%4x %d\n", *elementItem->element.d.us,
-				  *elementItem->element.d.us);
+                    if( (rwc_opt & RWC_NOHEX_MASK) == 0 )
+		      (void) RWC_printf("%4x %d\n", *elementItem->element.d.us,
+		          		  *elementItem->element.d.us);
+                    else
+		      (void) RWC_printf(" %d\n", *elementItem->element.d.us ) ;
+
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,

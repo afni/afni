@@ -3838,3 +3838,6 @@
  * Added mri_dicom_hdr.c and dicom_hdr.c - function and program to read/print
      DICOM header info.  Adapted from dcm_dump_file.c from RSNA, per the
      suggestion of Jack Lancaster.
+
+19 Jul 2002
+ * New functiona mri_read_dicom() to read images from DICOM files.

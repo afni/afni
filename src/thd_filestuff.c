@@ -45,7 +45,7 @@ int THD_is_symlink( char * pathname )  /* 03 Mar 1999 */
 /*-------------------------------------------------------*/
 /*!\brief Return the file length (-1 if file not found). */
 
-long THD_filesize( char * pathname )
+unsigned long THD_filesize( char * pathname )
 {
    static struct stat buf ; int ii ;
 
