@@ -4014,3 +4014,7 @@
 25 Oct 2002
  * Modified plug_drawdset.c to use sorting to prevent vast numbers of duplicates
      when inserting large R circles/spheres.
+
+28 Oct 2002
+ * Changes to mri_dicom_hdr.c and mri_read_dicom.c to deal with Siemens' stupid
+     mosaic format.

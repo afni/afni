@@ -6394,16 +6394,18 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
     CONDITION cond;
     CTNBOOLEAN calculatedLength = FALSE;
 
+ENTRY("readVRLength") ;
+
     if (*size == 0)
-	return DCM_STREAMCOMPLETE;
+	RETURN( DCM_STREAMCOMPLETE );
 
     if ((*size < 4) && knownLength) {
 	if (debug)
 	    (void) DCM_DumpElements((DCM_OBJECT **) object, 0);
 	(void) DCM_CloseObject((DCM_OBJECT **) object);
-	return COND_PushCondition(DCM_ILLEGALSTREAMLENGTH,
+	RETURN( COND_PushCondition(DCM_ILLEGALSTREAMLENGTH,
 				DCM_Message(DCM_ILLEGALSTREAMLENGTH), *size,
-				  "readVRLength");
+				  "readVRLength") );
     }
     if (*ptr == NULL) {
 	if (fd != -1) {
@@ -6413,9 +6415,9 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 	}
 
 	if (nBytes != 4)
-	    return COND_PushCondition(DCM_FILEACCESSERROR,
+	    RETURN( COND_PushCondition(DCM_FILEACCESSERROR,
 				      DCM_Message(DCM_FILEACCESSERROR), name,
-				      "readVRLength");
+				      "readVRLength") ) ;
 	localPtr = buf;
     } else
 	localPtr = *ptr;
@@ -6436,10 +6438,13 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 	vrCode[1] = buf[1];
 	vrCode[2] = '\0';
 	vrPtr = lookupVRCode(vrCode);
-	if (vrPtr == NULL)
-	    return COND_PushCondition(DCM_UNRECOGNIZEDVRCODE,
+	if (vrPtr == NULL){
+            fprintf(stderr,"** ERROR: unknown VR code %s in element (%04x,%04x)\n",  /* RWC */
+                    vrCode,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
+	    RETURN( COND_PushCondition(DCM_UNRECOGNIZEDVRCODE,
 				DCM_Message(DCM_UNRECOGNIZEDVRCODE), vrCode,
-				      "readVRLength");
+				      "readVRLength") );
+        }
 
 	if (vrPtr->representation != e->representation) {
 	    if (vrPtr->representation == DCM_OB) {
@@ -6455,9 +6460,17 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 		       acceptVRMismatch) {	/* Believe input */
 		e->representation = vrPtr->representation;
 	    } else {
-		if (e->tag != DCM_PXLPIXELDATA)
-		    return COND_PushCondition(DCM_VRMISMATCH,
-			       DCM_Message(DCM_VRMISMATCH), vrCode, e->tag);
+#if 0
+		if (e->tag != DCM_PXLPIXELDATA){
+                    STATUS("VR mismatch") ;
+		    RETURN( COND_PushCondition(DCM_VRMISMATCH,
+			       DCM_Message(DCM_VRMISMATCH), vrCode, e->tag));
+                }
+#else
+               fprintf(stderr,"++ WARNING: VR mismatch in element (%04x,%04x)\n",  /* RWC */
+                       DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
+               e->representation = vrPtr->representation;
+#endif
 	    }
 	}
 	if (vrPtr->representation != DCM_OW &&
@@ -6480,9 +6493,9 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 		if (debug)
 		    (void) DCM_DumpElements((DCM_OBJECT **) object, 0);
 		(void) DCM_CloseObject((DCM_OBJECT **) object);
-		return COND_PushCondition(DCM_ILLEGALSTREAMLENGTH,
+		RETURN( COND_PushCondition(DCM_ILLEGALSTREAMLENGTH,
 				DCM_Message(DCM_ILLEGALSTREAMLENGTH), *size,
-					  "readVRLength");
+					  "readVRLength"));
 	    }
 	    if (*ptr == NULL) {
 		if (fd != -1) {
@@ -6492,9 +6505,9 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 		}
 
 		if (nBytes != 4)
-		    return COND_PushCondition(DCM_FILEACCESSERROR,
+		    RETURN( COND_PushCondition(DCM_FILEACCESSERROR,
 				     DCM_Message(DCM_FILEACCESSERROR), name,
-					      "readVRLength");
+					      "readVRLength"));
 		localPtr = buf;
 	    } else
 		localPtr = *ptr;
@@ -6526,21 +6539,25 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 	if (debug)
 	    (void) DCM_DumpElements((DCM_OBJECT **) object, 0);
 	(void) DCM_CloseObject((DCM_OBJECT **) object);
-	return COND_PushCondition(DCM_UNEVENELEMENTLENGTH,
+        fprintf(stderr,"** ERROR: illegal odd length=%d in element (%04x,%04x)\n",  /* RWC */
+                e->length,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
+	RETURN( COND_PushCondition(DCM_UNEVENELEMENTLENGTH,
 				  DCM_Message(DCM_UNEVENELEMENTLENGTH),
 			     DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag),
-				  e->length, "readFile");
+				  e->length, "readFile"));
     }
     if ((e->length != (U32) DCM_UNSPECIFIEDLENGTH) && (e->length > (U32) (*size))) {
 	if (debug)
 	    (void) DCM_DumpElements((DCM_OBJECT **) object, 0);
 	(void) DCM_CloseObject((DCM_OBJECT **) object);
-	return COND_PushCondition(DCM_ELEMENTLENGTHERROR,
+        fprintf(stderr,"** ERROR: oversize length=%d in element (%04x,%04x)\n",  /* RWC */
+                e->length,DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ;
+	RETURN( COND_PushCondition(DCM_ELEMENTLENGTHERROR,
 				  DCM_Message(DCM_ELEMENTLENGTHERROR),
 			     DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag),
-				  e->length, *size, "readFile");
+				  e->length, *size, "readFile"));
     }
-    return DCM_NORMAL;
+    RETURN( DCM_NORMAL);
 }
 
 static CONDITION
@@ -9226,7 +9243,11 @@ static DCMDICT PRC_dictionary[] = {
     {DCM_PRCPPSENDDATE, DCM_DA, "PRC PPS End Date"},
     {DCM_PRCPPSENDTIME, DCM_TM, "PRC PPS End Time"},
     {DCM_PRCPPSSTATUS, DCM_CS, "PRC PPS Status"},
+#if 0
     {DCM_PRCPPSID, DCM_CS, "PRC PPS ID"},
+#else
+    {DCM_PRCPPSID, DCM_SH, "PRC PPS ID"},    /* RWC */
+#endif
     {DCM_PRCPPSDESCRIPTION, DCM_LO, "PRC PPS Description"},
     {DCM_PRCPPTYPEDESCRIPTION, DCM_LO, "PRC Perf Procedure Type Description"},
     {DCM_PRCPERFORMEDAISEQUENCE, DCM_SQ, "PRC Perf AI Sequence"},
