@@ -1666,6 +1666,11 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
    XGCValues  gcv;
    GC         myGC ;
 
+   static Cursor cur = None ;  /* 17 Jun 2002 */
+   XColor fg , bg ;
+   Colormap cmap ;
+   Boolean  good ;
+
    /** make a GC for invert drawing **/
 
    gcv.function = GXinvert ;
@@ -1676,8 +1681,16 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
 
    dis = XtDisplay(w) ; win = XtWindow(w) ;
 
+   if( cur == None ){  /* 17 Jun 2002: make a special cursor */
+     cur  = XCreateFontCursor( dis , XC_diamond_cross ) ;
+     cmap = DefaultColormap( dis , DefaultScreen(dis) ) ;
+     good =   XParseColor( dis, cmap, "yellow" , &fg )
+           && XParseColor( dis, cmap, "red"    , &bg )  ;
+     if( good ) XRecolorCursor( dis , cur , &fg , &bg ) ;
+   }
+
    grab = !XGrabPointer(dis, win, False, 0, GrabModeAsync,
-                        GrabModeAsync, win, None, (Time)CurrentTime);
+                        GrabModeAsync, win, cur , (Time)CurrentTime);
 
    /* grab fails => exit */
 
