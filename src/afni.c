@@ -301,6 +301,9 @@ ENTRY("AFNI_parse_args") ;
    env = getenv( "AFNI_SESSTRAIL" ) ;
    if( env != NULL ) SESSTRAIL = strtol(env,NULL,10) ;
 
+   env = getenv( "AFNI_MARKERS_NOQUAL" ) ;             /* 17 Nov 1999 */
+   if( env != NULL ) GLOBAL_argopt.elide_quality = 1 ;
+
 #ifdef ALLOW_PLUGINS
    { char * en                = getenv( "AFNI_NOPLUGINS" ) ;
      GLOBAL_argopt.noplugins  = (en != NULL) ;

@@ -551,6 +551,14 @@ The purpose of this feature is to let you highlight the plugins that you
 use most frequently.  The size of the of plugin menu is growing, and it
 is easy to misplace what you need in the list.
 
+-----------------------------
+Variable: AFNI_MARKERS_NOQUAL
+-----------------------------
+If this variable is set (to anything), then the interactive AFNI program
+behaves as if the "-noqual" command line option had been included.  This
+feature was added at the request of Dr. Michael S. Beauchamp, who has a
+rare neurological disorder called "noqaulagnosia".
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

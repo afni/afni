@@ -1814,3 +1814,4 @@
  * Removed some -help from imcalc.c, since 3dcalc -help has the
      same info.
  * Added function PARSER_1deval() to parser_int.c.
+ * Added environment variable AFNI_MARKERS_NOQUAL to afni.c.
