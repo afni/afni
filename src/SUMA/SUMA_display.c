@@ -1,5 +1,5 @@
 #include "SUMA_suma.h"
-
+ 
 /* the method for hiding a surface viewer (and other controllers), used to have three options prior to Fri Jan  3 10:21:52 EST 2003
 Now only SUMA_USE_WITHDRAW and NOT SUMA_USE_DESTROY should be used*/
 #define SUMA_USE_WITHDRAW
@@ -26,11 +26,10 @@ extern SUMA_CommonFields *SUMAg_CF;
 */
 
 /*! Widget initialization */
-/*   GLX_RED_SIZE, 4, GLX_BLUE_SIZE, 4, GLX_GREEN_SIZE, 4, GLX_ALPHA_SIZE, 4, */
 static int snglBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
-   None};
+   GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1,  None};
 static int dblBuf[] = {GLX_RGBA, GLX_DEPTH_SIZE, 16,
-  GLX_DOUBLEBUFFER, None};
+  GLX_RED_SIZE, 1, GLX_BLUE_SIZE, 1, GLX_GREEN_SIZE, 1, GLX_DOUBLEBUFFER, None};
 
 static String fallbackResources_default[] = {
    "*glxarea*width: 300", "*glxarea*height: 300",
@@ -958,6 +957,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    char *vargv[1]={ "[A] SUMA" };
    int cargc = 1;
    SUMA_Boolean NewCreation = NOPE, Found;
+   SUMA_Boolean LocalHead = NOPE;
    char slabel[20]; 
        
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -1010,7 +1010,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
        False, SUMA_unSetcSV, NULL); 
 
       /* Step 3. */
-      /*fprintf(stdout, "trying for cool double buffer visual\n");*/
+      if (LocalHead) fprintf(stdout, "trying for cool double buffer visual\n");
       SUMAg_SVv[ic].X->VISINFO = glXChooseVisual(SUMAg_SVv[ic].X->DPY, DefaultScreen(SUMAg_SVv[ic].X->DPY), dblBuf);
       if (SUMAg_SVv[ic].X->VISINFO == NULL) {
       fprintf(stdout, "trying lame single buffer visual\n");
@@ -1028,7 +1028,12 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                               " It is best you switch your X display to TrueColor\n"
                               " mode\n");
       }
-
+		if (SUMAg_SVv[ic].X->VISINFO->depth <16) {
+			fprintf (SUMA_STDERR,"%s: X visual depth is less than 16 bits.\n"
+										" Some functions may not function.\n"
+										" Increase depth of your display.\n", FuncName);
+		}
+		
       /* Step 3.5 Wed Dec 18 14:49:25 EST 2002 - The GUI*/
          /* see Kilgard's OpenGL Programming for the X window system */
          /* create main window */
@@ -1138,7 +1143,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          XGCValues gcv; /* see program drawing.c in Motif Programming Manual, Ch. 10 */
          gcv.foreground = BlackPixelOfScreen (XtScreen (SUMAg_SVv[ic].X->GLXAREA));
          SUMAg_SVv[ic].X->gc = XCreateGC (SUMAg_SVv[ic].X->DPY,
-                                          RootWindowOfScreen (XtScreen (SUMAg_SVv[ic].X->GLXAREA)), 
+                                          XtWindow (SUMAg_SVv[ic].X->GLXAREA), 
                                           GCForeground, &gcv);
          SUMA_SetSVForegroundColor (&SUMAg_SVv[ic], "Green");
 
@@ -1326,6 +1331,7 @@ SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
    Colormap cmap;
    int i, numCmaps;
    XVisualInfo * vi;
+   SUMA_Boolean LocalHead = NOPE;
    static char FuncName[]={"SUMA_getShareableColormap"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -1334,11 +1340,15 @@ SUMA_getShareableColormap(SUMA_SurfaceViewer *csv)
    
    /* Be lazy; using DirectColor too involved for this example. */
 #if defined(__cplusplus) || defined(c_plusplus)
-   if (vi->c_class != TrueColor)
-    XtAppError(SUMAg_CF->X->App, "no support for non-TrueColor visual");
+   if (vi->c_class != TrueColor) {
+      SUMA_S_Crit("SUMA has no support for non-TrueColor visual");
+      exit(1);
+   }
 #else 
-   if (vi->class != TrueColor)
-    XtAppError(SUMAg_CF->X->App, "no support for non-TrueColor visual");
+   if (vi->class != TrueColor) {
+      SUMA_S_Crit("SUMA has no no support for non-TrueColor visual");
+      exit(1);
+   }
 #endif
 
    /* If no standard colormap but TrueColor, just make an
