@@ -1803,13 +1803,27 @@ void RWC_XtPopdown( Widget w )
 #include <sys/wait.h>
 #include <sys/types.h>
 
+static int have_say = -1 ;
+static char voice[128] = "Cellos" ;
+
+/*-----------------------------------------------------------------*/
+/*! Set the voice for the Apple speech synthesizer. */
+
+void AFNI_speak_setvoice( char *vvv )
+{
+   int ll ;
+   if( vvv == NULL || *vvv == '\0' ) return ;
+   ll = strlen(vvv) ; if( ll > 100 ) return ;
+   strcpy(voice,vvv) ;               return ;
+}
+
+
+/*-----------------------------------------------------------------*/
 /*! Speak a string using Apple's say command:
     - string = Apple text-to-speech code
     - nofork = 1 if you want to wait for the speech to finish;
              = 0 if you want the function to return immediately,
                  before speech finishes (or perhaps even starts). */
-
-static int have_say = -1 ;
 
 void AFNI_speak( char *string , int nofork )
 {
@@ -1850,7 +1864,7 @@ void AFNI_speak( char *string , int nofork )
    /* Run the say program using system() */
 
    buf = (char *)malloc(strlen(string)+32) ;
-   sprintf(buf,"say -vCellos '%s'",string) ;
+   sprintf(buf,"say -v%s '%s'",voice,string) ;
    system(buf) ; free(buf) ;
 
    if( !nofork ) _exit(0) ;  /* grandchild exits */
@@ -1860,5 +1874,6 @@ void AFNI_speak( char *string , int nofork )
 #else
 
 void AFNI_speak( char *string , int nofork ){ return; }  /* dummy function */
+void AFNI_speak_setvoice( char *vvv ){ return; }
 
 #endif

@@ -4109,12 +4109,14 @@ ENTRY("PLUGIN_seq_send_CB") ;
              MCW_popup_message( seq->wimage , birn[nold++] , MCW_USER_KILL ) ;
            } else {
              PLUTO_beep() ;
+             AFNI_speak("Stop it",0) ;
            }
          } else if( xev->button == Button3 ){
            if( !NO_frivolities && nkl < NKLING ){
              MCW_popup_message( seq->wimage , kling[nkl++] , MCW_USER_KILL ) ;
            } else {
              PLUTO_beep() ;
+             AFNI_speak("Deesist at once",0) ;
            }
          }
       }
