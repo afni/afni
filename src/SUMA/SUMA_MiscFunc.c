@@ -3899,7 +3899,7 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List_eng (int *FL, int N_FL, int N_Node, float *
          if (debug) {
             int iii=0;
             fprintf(SUMA_STDERR, " These edges are formed by the following nodes:\n");
-            for (iii = 0; iii < SEL->N_EL; +++iii) { 
+            for (iii = 0; iii < SEL->N_EL; ++iii) { 
                if (SEL->ELps[iii][2] > 2) fprintf (SUMA_STDERR," %d: Edge [%d %d] shared by %d triangles.\n", 
                                                 iii+1, SEL->EL[iii][0], SEL->EL[iii][1] , SEL->ELps[iii][2] );
             }
