@@ -67,6 +67,7 @@ typedef struct {
 
    int newvox , newopa , newangles ;
    int renmode , intmode ;
+   int vox_is_gray ;
 } CREN_stuff ;
 
 #define ISVALID_CREN(ah) ( (ah) != NULL && (ah)->type == CREN_TYPE )
