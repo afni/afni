@@ -4187,3 +4187,7 @@
 30 Dec 2002
  * Minor change to AFNI_rescan_session() users to print out number of
      new datasets rows.
+
+31 Dec 2002
+ * Modified niml/niml_rowtype.c to deal with String type and debugged
+     stuff with output of var dim arrays.

@@ -45,7 +45,7 @@ void * NI_realloc( void *p , size_t len )
 
 /**** Fake routines with no meaning in this NI_malloc version ****/
 
-char * NI_malloc_status          (void){ return NULL; }
+char * NI_malloc_status          (void){ return "disabled"; }
 void   NI_malloc_dump            (void){ return;      }
 void   NI_malloc_enable_tracking (void){ return;      }
 int    NI_malloc_tracking_enabled(void){ return 0;    }
@@ -355,7 +355,7 @@ char * NI_malloc_status(void)
    static char buf[128] = "\0" ;
    int jj,kk , nptr=0 ; size_t nbyt=0 ;
 
-   if( ! use_tracking ) return NULL ;
+   if( ! use_tracking ) return "not enabled" ;
 
    for( jj=0 ; jj < SLOTS ; jj++ ){
      for( kk=0 ; kk < nhtab[jj] ; kk++ ){
