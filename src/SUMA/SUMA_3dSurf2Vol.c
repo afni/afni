@@ -1,5 +1,5 @@
 
-#define VERSION "version 2.1 (October 20, 2003)"
+#define VERSION "version 2.2 (December 15, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -24,6 +24,8 @@
  * 	-version
  *
  * 	-spec                SPEC_FILE
+ * 	-surf_A              SURF_NAME_A
+ * 	-surf_B              SURF_NAME_B
  * 	-sv                  SURF_VOL
  * 	-grid_parent         AFNI_DSET
  * 	-prefix              OUTPUT_DSET
@@ -66,37 +68,42 @@
  *----------------------------------------------------------------------
 */
 
-/*----------------------------------------------------------------------
- * history:
- *
- * 2.1  October 20, 2003
- *   - call the new engine function, SUMA_LoadSpec_eng()
- *     (this will restrict the debug output from SUMA_LoadSpec())
- *
- * 2.0  October 2, 2003
- *   - Major changes accepting surface data, surface coordinates, output data
- *     type, debug options, multiple sub-brick output, and node pair segment
- *     alterations.
- *   - Added many options:  -surf_xyz_1D, -sdata_1D, -data_expr, -datum,
- *                          -dnode, -dvoxel, -f_index, -f_p1_fr, -f_pn_fr,
- *                          -f_p1_mm, -f_pn_mm
- *
- * 1.2  July 21, 2003
- *   - make sure input points fit in output dataset
- *   - add min/max distance output, along with out-of-bounds count
- *
- * 1.1  June 11, 2003
- *   - small reorg of s2v_fill_mask2() (should have no effect)
- *   - improve description of -f_steps option
- *
- * 1.0  May 29, 2003
- *   - initial release
- *----------------------------------------------------------------------
-*/
+static char g_history[] =
+ "----------------------------------------------------------------------\n"
+ "history:\n"
+ "\n"
+ "2.2  December 15, 2003\n"
+ "  - added program arguments '-surf_A' and '-surf_B' (-surf_A is required)\n"
+ "  - added option '-hist' (for program history)\n"
+ "  - explicit pointer init to NULL (a.o.t. memset() to 0)\n"
+ "\n"
+ "2.1  October 20, 2003\n"
+ "  - call the new engine function, SUMA_LoadSpec_eng()\n"
+ "    (this will restrict the debug output from SUMA_LoadSpec())\n"
+ "\n"
+ "2.0  October 2, 2003\n"
+ "  - Major changes accepting surface data, surface coordinates, output data\n"
+ "    type, debug options, multiple sub-brick output, and node pair segment\n"
+ "    alterations.\n"
+ "  - Added many options:  -surf_xyz_1D, -sdata_1D, -data_expr, -datum,\n"
+ "                         -dnode, -dvoxel, -f_index, -f_p1_fr, -f_pn_fr,\n"
+ "                         -f_p1_mm, -f_pn_mm\n"
+ "\n"
+ "1.2  July 21, 2003\n"
+ "  - make sure input points fit in output dataset\n"
+ "  - add min/max distance output, along with out-of-bounds count\n"
+ "\n"
+ "1.1  June 11, 2003\n"
+ "  - small reorg of s2v_fill_mask2() (should have no effect)\n"
+ "  - improve description of -f_steps option\n"
+ "\n"
+ "1.0  May 29, 2003\n"
+ "  - initial release\n"
+ "----------------------------------------------------------------------\n";
+ 
 
 /*----------------------------------------------------------------------
  * todo:
- *   - verify that the inner surface is the first surface
  *   - allow a single surface input for most functions
  *   - handle niml input
  *----------------------------------------------------------------------
@@ -889,7 +896,17 @@ ENTRY("init_node_list");
     if ( sopt->map == E_SMAP_MASK )
 	nsurf = 1;
     else
+    {
+	/* do a quick check before slow reading action */
+	if ( ! p->sxyz_im && (SUMAg_N_DOv < 2) )
+	{
+	    fprintf(stderr,"** function '%s' requires 2 surfaces\n",
+		    gs2v_map_names[sopt->map]);
+	    RETURN(-1);
+	}
+
 	nsurf = 2;
+    }
 
     if ( p->sxyz_im )
 	rv = sxyz_1D_to_nlist( opts, sopt, p, N, nsurf );
@@ -1532,7 +1549,7 @@ ENTRY("sdata_from_1D");
     /* only allocate space ilist */
     if ( (N->ilist = (int *)malloc(N->ilen*sizeof(int))) == NULL )
     {
-	fprintf(stderr,"** nf1D a: failed to allocate %d ints\n", N->ilen);
+	fprintf(stderr,"** sf1D a: failed to allocate %d ints\n", N->ilen);
 	RETURN(-1);
     }
 
@@ -1553,7 +1570,7 @@ ENTRY("sdata_from_1D");
 */
 int fill_SUMA_structs ( opts_t * opts, SUMA_SurfSpecFile * spec )
 {
-    int debug = 0;
+    int debug = 0, rv;
 ENTRY("fill_SUMA_structs");
 
     if ( opts->debug > 2 )
@@ -1597,6 +1614,23 @@ ENTRY("fill_SUMA_structs");
 	RETURN(-1);
     }
 
+    if ( debug )
+	SUMA_ShowSpecStruct(spec, stderr, 1);
+
+    rv = SUMA_spec_select_surfs(spec, opts->snames, S2V_MAX_SURFS, opts->debug);
+    if ( rv < 1 )
+    {
+	if ( rv == 0 )
+	    fprintf(stderr,"** no named surfaces found in spec file\n");
+	RETURN(-1);
+    }
+
+    if ( opts->debug > 0 )
+	SUMA_ShowSpecStruct(spec, stderr, 1);
+
+    if ( SUMA_spec_set_map_refs(spec, opts->debug) != 0 )
+	RETURN(-1);
+
     /* make sure only group was read from spec file */
     if ( spec->N_Groups != 1 )
     {
@@ -1628,7 +1662,7 @@ ENTRY("fill_SUMA_structs");
 */
 int init_options ( opts_t * opts, int argc, char * argv [] )
 {
-    int ac;
+    int ac, ind;
 
 ENTRY("init_options");
 
@@ -1638,21 +1672,24 @@ ENTRY("init_options");
 	RETURN(-1);
     }
 
-    /* clear out the options and parameter structures */
+    /* clear out the options structure, pointers get explicit NULL */
     memset( opts, 0, sizeof( opts_t) );
+    opts->gpar_file        = NULL;	opts->oset_file     = NULL;
+    opts->spec_file        = NULL;	opts->sv_file       = NULL;
+    opts->surf_xyz_1D_file = NULL;	opts->sdata_file_1D = NULL;
+    opts->sdata_file_niml  = NULL;	opts->cmask_cmd     = NULL;
+    opts->data_expr        = NULL;	opts->map_str       = NULL;
+    opts->datum_str        = NULL;	opts->f_index_str   = NULL;
+    opts->snames[0]        = NULL;	opts->snames[1]     = NULL;
+
 
     opts->dnode = -1;			/* init to something invalid */
     opts->dvox  = -1;			/* init to something invalid */
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	/* do help first, the rest alphabetically */
-	if ( ! strncmp(argv[ac], "-help", 2) )
-	{
-	    usage( PROG_NAME, S2V_USE_LONG );
-	    RETURN(-1);
-	}
-	else if ( ! strncmp(argv[ac], "-cmask", 6) )
+	/* alphabetical... */
+	if ( ! strncmp(argv[ac], "-cmask", 6) )
 	{
 	    if ( (ac+1) >= argc )
 	    {
@@ -1804,6 +1841,16 @@ ENTRY("init_options");
 
 	    opts->gpar_file = argv[++ac];
 	}
+	else if ( ! strncmp(argv[ac], "-help", 5) )
+	{
+	    usage( PROG_NAME, S2V_USE_LONG );
+	    RETURN(-1);
+	}
+	else if ( ! strncmp(argv[ac], "-hist", 5) )
+	{
+	    usage( PROG_NAME, S2V_USE_HIST );
+	    RETURN(-1);
+	}
 	else if ( ! strncmp(argv[ac], "-map_func", 4) )  /* mapping function */
 	{
 	    if ( (ac+1) >= argc )
@@ -1862,7 +1909,7 @@ ENTRY("init_options");
 
             opts->spec_file = argv[++ac];
 	}
-	else if ( ! strncmp(argv[ac], "-surf_xyz_1D", 5) )
+	else if ( ! strncmp(argv[ac], "-surf_xyz_1D", 9) )
 	{
 	    if ( (ac+1) >= argc )
             {
@@ -1872,6 +1919,25 @@ ENTRY("init_options");
 	    }
 
             opts->surf_xyz_1D_file = argv[++ac];
+	}
+	else if ( ! strncmp(argv[ac], "-surf_", 6) )
+	{
+	    if ( (ac+1) >= argc )
+            {
+		fputs( "option usage: -surf_X SURF_NAME\n\n", stderr );
+		usage( PROG_NAME, S2V_USE_SHORT );
+		RETURN(-1);
+	    }
+	    ind = argv[ac][6] - 'A';
+	    if ( (ind < 0) || (ind >= S2V_MAX_SURFS) )
+	    {
+		fprintf(stderr,"** -surf_X option: '%s' out of range,\n"
+			"   use one of '-surf_A' through '-surf_%c'\n",
+			argv[ac], 'A'+S2V_MAX_SURFS-1);
+		RETURN(-1);
+	    }
+
+            opts->snames[ind] = argv[++ac];
 	}
 	else if ( ! strncmp(argv[ac], "-sv", 3) )
 	{
@@ -1918,7 +1984,11 @@ int validate_options ( opts_t * opts, param_t * p )
 {
 ENTRY("validate_options");
 
+    /* clear param struct - pointer get explicit NULL */
     memset( p, 0, sizeof(*p) );
+    p->gpar         = NULL;    p->oset     = NULL;
+    p->sxyz_im      = NULL;    p->sdata_im = NULL;
+    p->parser.pcode = NULL;    p->cmask    = NULL;
 
     if ( check_map_func( opts->map_str ) == E_SMAP_INVALID )
 	RETURN(-1);
@@ -2080,19 +2150,27 @@ int validate_surface ( opts_t * opts, param_t * p )
 
 ENTRY("validate_surface");
 
-    if ( opts->spec_file == NULL && opts->surf_xyz_1D_file == NULL )
+    if ( ! opts->surf_xyz_1D_file )  /* then check the surface input */
     {
-	fprintf( stderr, "** missing '-spec_file SPEC_FILE' option\n" );
-	errs++;
-    }
+	if ( opts->spec_file == NULL )
+	{
+	    fprintf( stderr, "** missing '-spec_file SPEC_FILE' option\n" );
+	    errs++;
+	}
 
-    if ( opts->sv_file == NULL && opts->surf_xyz_1D_file == NULL )
-    {
-	fprintf( stderr, "** missing '-sv SURF_VOL' option\n" );
-	errs++;
-    }
+	if ( opts->sv_file == NULL )
+	{
+	    fprintf( stderr, "** missing '-sv SURF_VOL' option\n" );
+	    errs++;
+	}
 
-    if ( opts->spec_file != NULL && opts->surf_xyz_1D_file != NULL )
+	if ( opts->snames[0] == NULL )
+	{
+	    fprintf( stderr, "** missing '-surf_A SURF_NAME' option\n" );
+	    errs++;
+	}
+    }
+    else if ( opts->spec_file != NULL )
     {
 	fprintf(stderr,
 		"** cannot use both spec and xyz surface files, %s and %s\n",
@@ -2224,22 +2302,21 @@ int usage ( char * prog, int level )
 ENTRY("usage");
 
     if ( level == S2V_USE_SHORT )
-    {
-	fprintf( stderr,
-		 "usage: %s [options] -spec SPEC_FILE -sv SURF_VOL "
-		                    " -grid_parent AFNI_DSET\n"
-		 "usage: %s -help\n",
+	fprintf(stderr,
+		"  usage: %s [options] -spec SPEC_FILE -surf_A SURF_NAME \\\n"
+		"             -grid_parent AFNI_DSET -sv SURF_VOL \\\n"
+		"             -map_func MAP_FUNC -prefix OUTPUT_DSET\n"
+		"usage: %s -help\n",
 		 prog, prog );
-	RETURN(0);
-    }
     else if ( level == S2V_USE_LONG )
     {
 	printf(
 	    "\n"
 	    "%s - map data from a surface domain to an AFNI volume domain\n"
 	    "\n"
-	    "  usage: %s [options] -spec SPEC_FILE -grid_parent AFNI_DSET \\\n"
-	    "             -sv SURF_VOL -map_func MAP_FUNC -prefix OUTPUT_DSET\n"
+	    "  usage: %s [options] -spec SPEC_FILE -surf_A SURF_NAME \\\n"
+	    "             -grid_parent AFNI_DSET -sv SURF_VOL \\\n"
+	    "             -map_func MAP_FUNC -prefix OUTPUT_DSET\n"
 	    "\n"
 	    "    This program is meant to take as input a pair of surfaces,\n"
 	    "    optionally including surface data, and an AFNI grid parent\n"
@@ -2247,6 +2324,11 @@ ENTRY("usage");
 	    "    surface data mapped to the dataset grid space.  The mapping\n"
 	    "    function determines how to map the surface values from many\n"
 	    "    nodes to a single voxel.\n"
+	    "\n"
+	    "    Surfaces (from the spec file) are specified using '-surf_A'\n"
+	    "    (and '-surf_B', if a second surface is input).  If two\n"
+	    "    surfaces are input, then the computed segments over node\n"
+	    "    pairs will be in the direction from surface A to surface B.\n"
 	    "\n"
 	    "    The basic form of the algorithm is:\n"
 	    "\n"
@@ -2272,12 +2354,15 @@ ENTRY("usage");
 	    "      Surface coordinates are assumed to be in the Dicom\n"
 	    "      orientation.  This information may come from the option\n"
 	    "      pair of '-spec' and '-sv', with which the user provides\n"
-	    "      the name of the SPEC FILE and the SURFACE VOLUME, or it\n"
-	    "      may come from the '-surf_xyz_1D' option.  See these option\n"
-	    "      descriptions below.\n"
+	    "      the name of the SPEC FILE and the SURFACE VOLUME, along\n"
+	    "      with '-surf_A' and optionally '-surf_B', used to specify\n"
+	    "      actual surfaces by name.  Alternatively, the surface\n"
+	    "      coordinates may come from the '-surf_xyz_1D' option.\n"
+	    "      See these option descriptions below.\n"
 	    "\n"
-	    "      Note that the user must provide either the pair of options\n"
-	    "      '-spec' and '-sv', or the single option '-surf_xyz_1D'.\n"
+	    "      Note that the user must provide either the three options\n"
+	    "      '-spec', '-sv' and '-surf_A', or the single option,\n"
+	    "      '-surf_xyz_1D'.\n"
 	    "\n"
 	    "  Surface Data:\n"
 	    "\n"
@@ -2320,7 +2405,8 @@ ENTRY("usage");
 	    "       elsewhere.\n"
 	    "\n"
 	    "    %s                       \\\n"
-	    "       -spec         fred1.spec               \\\n"
+	    "       -spec         fred.spec                \\\n"
+	    "       -surf_A       pial                     \\\n"
 	    "       -sv           fred_anat+orig           \\\n"
 	    "       -grid_parent  fred_anat+orig           \\\n"
 	    "       -map_func     mask                     \\\n"
@@ -2346,7 +2432,9 @@ ENTRY("usage");
 	    "       the 10 values per node index in sdata_10.1D.\n"
 	    "\n"
 	    "    %s                       \\\n"
-	    "       -spec         fred2.spec                              \\\n"
+	    "       -spec         fred.spec                               \\\n"
+	    "       -surf_A       smoothwm                                \\\n"
+	    "       -surf_B       pial                                    \\\n"
 	    "       -sv           fred_anat+orig                          \\\n"
 	    "       -grid_parent 'fred_func+orig[0]'                      \\\n"
 	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
@@ -2371,7 +2459,9 @@ ENTRY("usage");
 	    "       grey matter, generating a \"thicker\" result.\n"
 	    "\n"
 	    "    %s                       \\\n"
-	    "       -spec         fred2.spec                              \\\n"
+	    "       -spec         fred.spec                               \\\n"
+	    "       -surf_A       smoothwm                                \\\n"
+	    "       -surf_B       pial                                    \\\n"
 	    "       -sv           fred_anat+orig                          \\\n"
 	    "       -grid_parent 'fred_func+orig[0]'                      \\\n"
 	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
@@ -2418,7 +2508,9 @@ ENTRY("usage");
 	    "       '-dvoxel' is used to track the results for voxel #6789.\n"
 	    "\n"
 	    "    %s                       \\\n"
-	    "       -spec         fred2.spec                              \\\n"
+	    "       -spec         fred.spec                               \\\n"
+	    "       -surf_A       smoothwm                                \\\n"
+	    "       -surf_B       pial                                    \\\n"
 	    "       -sv           fred_anat+orig                          \\\n"
 	    "       -grid_parent 'fred_func+orig[0]'                      \\\n"
 	    "       -sdata_1D     sdata_10.1D'[0,3]'                      \\\n"
@@ -2446,6 +2538,28 @@ ENTRY("usage");
 	    "\n"
 	    "        Note: this option, along with '-sv', may be replaced\n"
 	    "              by the '-surf_xyz_1D' option.\n"
+	    "\n"
+	    "    -surf_A SURF_NAME      : specify surface A (from spec file)\n"
+	    "    -surf_B SURF_NAME      : specify surface B (from spec file)\n"
+	    "\n"
+	    "        e.g. -surf_A smoothwm\n"
+	    "        e.g. -surf_A lh.smoothwm\n"
+	    "        e.g. -surf_B lh.pial\n"
+	    "\n"
+	    "        This parameter is used to tell the program with surfaces\n"
+	    "        to use.  The '-surf_A' parameter is required, but the\n"
+	    "        '-surf_B' parameter is an option.\n"
+	    "\n"
+	    "        The surface names must uniquely match those in the spec\n"
+	    "        file, though a sub-string match is good enough.  The\n"
+	    "        surface names are compared with the names of the surface\n"
+	    "        node coordinate files.\n"
+	    "\n"
+	    "        For instance, given a spec file that has only the left\n"
+	    "        hemisphere in it, 'pial' should produce a unique match\n"
+	    "        with lh.pial.asc.  But if both hemispheres are included,\n"
+	    "        then 'pial' would not be unique (matching rh.pail.asc,\n"
+	    "        also).  In that case, 'lh.pial' would be better.\n"
 	    "\n"
 	    "    -sv SURFACE_VOLUME     : AFNI dataset\n"
 	    "\n"
@@ -2717,6 +2831,10 @@ ENTRY("usage");
 	    "\n"
 	    "        This will have no effect without the '-debug' option.\n"
 	    "\n"
+	    "    -hist                  : show revision history\n"
+	    "\n"
+	    "        Display module history over time.\n"
+	    "\n"
 	    "    -help                  : show this help\n"
 	    "\n"
 	    "        If you can't get help here, please get help somewhere.\n"
@@ -2755,16 +2873,13 @@ ENTRY("usage");
 	    prog, prog,
 	    prog, prog, prog, prog, prog,
 	    VERSION );
-
-	RETURN(0);
     }
+    else if ( level == S2V_USE_HIST )
+	fputs(g_history, stdout);
     else if ( level == S2V_USE_VERSION )
-    {
 	printf( "%s : %s, compile date: %s\n", prog, VERSION, __DATE__ );
-	RETURN(0);
-    }
-
-    fprintf( stderr, "usage called with illegal level <%d>\n", level );
+    else
+	fprintf( stderr, "usage called with illegal level <%d>\n", level );
 
     RETURN(-1);
 }

@@ -5,12 +5,15 @@
 
 #define S2V_USE_LONG      	  1
 #define S2V_USE_SHORT     	  2
-#define S2V_USE_VERSION   	  3
+#define S2V_USE_HIST	   	  3
+#define S2V_USE_VERSION   	  4
 
 #define S2V_F_STEPS_MIN           1
 
 #define S2V_F_INDEX_VOXEL         0
 #define S2V_F_INDEX_POINT         1
+
+#define S2V_MAX_SURFS		  2
 
 #define S2V_DEBUG_MAX_LEV	  5
 #define S2V_DEBUG_TEST_NODE	  7
@@ -45,6 +48,7 @@ typedef struct
     char   * map_str;			/* how to map surf(s) to dset  */
     char   * datum_str;			/* data type of output dset    */
     char   * f_index_str;		/* count by voxels or points   */
+    char   * snames[S2V_MAX_SURFS];	/* list of surfaces to use     */
     int      sxyz_ori_gpar;             /* input xyz use gpar orient   */
     int      debug;			/* level of debug output       */
     int      dnode;			/* node watched for debug      */
