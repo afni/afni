@@ -246,7 +246,7 @@ PLUGIN_interface * ENV_init(void)
                     0 , 40 , 3 , 3 , NULL ) ;
 
    if( SUMA_ENABLED )
-     ENV_add_string( "SUMA_OVERLAY_COLOR" ,
+     ENV_add_string( "AFNI_SUMA_COLOR" ,
                      "Name of color for surface overlays" ,   /* 21 Sep 2001 */
                      0,NULL , NULL ) ;
 

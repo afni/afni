@@ -460,6 +460,7 @@ ENTRY("AFNI_parse_args") ;
       /*---- -agni [29 Aug 2001] -----*/
 
       if( strcmp(argv[narg],"-agni") == 0 || strcmp(argv[narg],"-suma") ){
+         fprintf(stderr,"\n-agni/-suma are now turned on by default\n") ;
          GLOBAL_argopt.enable_suma = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
