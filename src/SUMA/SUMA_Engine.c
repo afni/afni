@@ -297,6 +297,29 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             break;
             
+         case SE_LoadSegDO:
+            if (EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            if (!EngineData->ip) {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_LoadSegDO, (void *)sv,
+                                                        NULL, NULL,
+                                                        "*",
+                                                        SUMAg_CF->X->FileSelectDlg);
+            } else {
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_OPEN, YUP,
+                                                        SUMA_LoadSegDO, (void *)sv,
+                                                        NULL, NULL,
+                                                        "*",
+                                                        SUMAg_CF->X->FileSelectDlg);
+            }
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Segment File", &SUMAg_CF->X->FileSelectDlg);
+            break;
+            
          case SE_LoadViewFileSelection:
             /* opens the view file selection window.
             Expects a position  reference widget typecast to ip, the latter can be null.*/

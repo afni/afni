@@ -260,6 +260,42 @@ SUMA_postRedisplay(Widget w,
    SUMA_RETURNe;
 }
 
+void SUMA_LoadSegDO (char *s, void *csvp)
+{
+   static char FuncName[]={"SUMA_LoadSegDO"};
+   SUMA_SegmentDO *SDO = NULL;
+   SUMA_SurfaceViewer *sv;
+   
+   SUMA_ENTRY;
+   
+   sv = (SUMA_SurfaceViewer *)csvp;
+   
+   if (!s) { SUMA_RETURNe; }
+   
+   if (!(SDO = SUMA_ReadSegDO(s))) {
+      SUMA_SL_Err("Failed to read segment file.\n");
+      SUMA_RETURNe;
+   }
+   
+   /* addDO */
+   if (!SUMA_AddDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SDO, LS_type, SUMA_LOCAL)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* register DO with viewer */
+   if (!SUMA_RegisterDO(SUMAg_N_DOv-1, sv)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_RegisterDO.\n", FuncName);
+      SUMA_RETURNe;
+   }
+
+   /* redisplay curent only*/
+   sv->ResetGLStateVariables = YUP;
+   SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+               
+   SUMA_RETURNe;
+}
+
 /*!
    \brief, retrieves an vector attribute
    and decodes it into m_fv. It is your 

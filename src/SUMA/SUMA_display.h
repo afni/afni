@@ -275,6 +275,7 @@ int SUMA_AskUser_File_replace(Widget parent, char *question, int default_ans);
 void SUMA_WidgetResize (Widget New, int width, int height);
 void SUMA_LoadVisualState(char *fname, void *csvp);
 void SUMA_SaveVisualState(char *fname, void *csvp);
+void SUMA_LoadSegDO (char *s, void *csvp);
 
 
 

@@ -283,11 +283,12 @@ int main (int argc,char *argv[])
          */
 		}
       
-      if (  !brk && 
+      if (  !brk && (
             (strcmp(argv[kar], "-trace") == 0) ||
             (strcmp(argv[kar], "-TRACE") == 0) ||
             (strcmp(argv[kar], "-nomall") == 0) ||
-            (strcmp(argv[kar], "-yesmall") == 0) ) {
+            (strcmp(argv[kar], "-yesmall") == 0)  )
+            ) {
 			/* dealt with in SUMA_ParseInput_basics */
 			brk = YUP;
 		}

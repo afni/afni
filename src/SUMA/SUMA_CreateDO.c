@@ -85,6 +85,76 @@ void SUMA_free_SegmentDO (SUMA_SegmentDO * SDO)
    SUMA_RETURNe;
 }
 
+SUMA_SegmentDO * SUMA_ReadSegDO (char *s)
+{
+   static char FuncName[]={"SUMA_ReadSegDO"};
+   SUMA_SegmentDO *SDO = NULL;
+   MRI_IMAGE * im = NULL;
+   float *far=NULL;
+   int itmp, itmp2;
+   int nrow=-1, ncol=-1;
+   
+   SUMA_ENTRY;
+   
+   if (!s) {
+      SUMA_SLP_Err("NULL s");
+      SUMA_RETURN(NULL);
+   }
+   
+   im = mri_read_1D (s);
+
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
+   }
+   im = mri_read_1D (s);
+
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NULL);
+   }
+
+   far = MRI_FLOAT_PTR(im);
+   ncol = im->nx;
+   nrow = im->ny;
+
+   if (!ncol) {
+      SUMA_SLP_Err("Empty file");
+      SUMA_RETURN(NULL);
+   }
+   if (nrow !=  6 ) {
+      SUMA_SLP_Err("File must have\n"
+                   "6 columns.");
+      mri_free(im); im = NULL;   /* done with that baby */
+      SUMA_RETURN(NULL);
+   }/* find out if file exists and how many values it contains */
+
+   /* allocate for segments DO */
+   SDO = SUMA_Alloc_SegmentDO (ncol, s);
+   if (!SDO) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Allocate_SegmentDO.\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+
+   /* fill up SDO */
+   itmp = 0;
+   while (itmp < SDO->N_n) {
+      itmp2 = 3*itmp;
+      SDO->n0[itmp2]   = far[itmp       ];
+      SDO->n0[itmp2+1] = far[itmp+  ncol];
+      SDO->n0[itmp2+2] = far[itmp+2*ncol];
+      SDO->n1[itmp2]   = far[itmp+3*ncol];
+      SDO->n1[itmp2+1] = far[itmp+4*ncol];
+      SDO->n1[itmp2+2] = far[itmp+5*ncol]; 
+      ++itmp;
+   } 
+
+   mri_free(im); im = NULL; far = NULL;
+
+   SUMA_RETURN(SDO);
+}
+
+
 /*! Allocate for a axis object */
 SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
 {   
@@ -210,7 +280,7 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
    }
    
    glBegin(GL_LINES);
-   glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); /*turn on emissivity for axis*/
+   glMaterialfv(GL_FRONT, GL_EMISSION, SDO->LineCol); /*turn on emissivity for */
    glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
    glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
    
@@ -231,6 +301,8 @@ SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
          break;
    }
    
+   glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity */
+
    SUMA_RETURN (YUP);
    
 }

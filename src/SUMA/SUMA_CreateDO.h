@@ -52,6 +52,7 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char
                                           char *Label, char *ColPlaneName, 
                                           float *FillColor, float *EdgeColor, int EdgeThickness , 
                                           SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay);
+SUMA_SegmentDO * SUMA_ReadSegDO (char *s);
 
  
 /*!
