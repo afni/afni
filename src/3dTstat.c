@@ -27,6 +27,8 @@
 #define METH_AUTOCORR     11  /* KRH 16 Jun 2004 */
 #define METH_AUTOREGP     12  /* KRH 16 Jun 2004 */
 
+#define METH_ABSMAX     13  /* KRH 15 Feb 2005 */
+
 #define MAX_NUM_OF_METHS 20
 static int meth[MAX_NUM_OF_METHS] = {METH_MEAN};
 static int nmeths = 0;
@@ -34,7 +36,7 @@ static char prefix[THD_MAX_PREFIX] = "stat" ;
 static int datum                   = MRI_float ;
 static char meth_names[][20] = {"Mean","Slope","Std Dev","Coef of Var","Median",
 	                    "Med Abs Dev", "Max", "Min", "Durbin-Watson", "Std Dev (NOD)",
-                            "Coef Var(NOD)","AutoCorr","AutoReg"};
+                            "Coef Var(NOD)","AutoCorr","AutoReg","Absolute Max"};
 static void STATS_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
@@ -75,6 +77,7 @@ int main( int argc , char * argv[] )
              " -median = compute median of input voxels  [undetrended]\n"
              " -min    = compute minimum of input voxels [undetrended]\n"
              " -max    = compute maximum of input voxels [undetrended]\n"
+             " -absmax    = compute absolute maximum of input voxels [undetrended]\n"
              "\n"
              " -prefix p = use string 'p' for the prefix of the\n"
              "               output dataset [DEFAULT = 'stat']\n"
@@ -170,6 +173,12 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-max") == 0 ){
          meth[nmeths++] = METH_MAX ;
+         nbriks++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-absmax") == 0 ){
+         meth[nmeths++] = METH_ABSMAX ;
          nbriks++ ;
          nopt++ ; continue ;
       }
@@ -451,10 +460,16 @@ static void STATS_tsfunc( double tzero, double tdelta ,
       }
       break ;
 
+      case METH_ABSMAX:
       case METH_MAX:{
          register int ii ;
          register float vm=ts[0] ;
-         for( ii=1 ; ii < npts ; ii++ ) if( ts[ii] > vm ) vm = ts[ii] ;
+         if (meth[meth_index] == METH_ABSMAX) {
+           vm = fabs(vm) ;
+           for( ii=1 ; ii < npts ; ii++ ) if( fabs(ts[ii]) > vm ) vm = fabs(ts[ii]) ;
+         } else {
+           for( ii=1 ; ii < npts ; ii++ ) if( ts[ii] > vm ) vm = ts[ii] ;
+         }
          val[out_index] = vm ;
       }
       break ;
