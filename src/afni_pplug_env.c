@@ -294,6 +294,12 @@ PLUGIN_interface * ENV_init(void)
                    "Draw crosshairs with lines, not overlay voxels?" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
+   /* 25 Mar 2002 */
+
+   ENV_add_string( "AFNI_CROP_ZOOMSAVE" ,
+                   "Crop zoomed images when saving to disk?" ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
