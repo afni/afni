@@ -5005,3 +5005,6 @@
 
 21 Mar 2004
  * AFNI_DISABLE_CURSORS in xutil.c.
+
+22 Mar 2004
+ * AFNI_SLAVE_FUNCTIME in afni.c.

@@ -389,6 +389,9 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_yesno( "AFNI_IMAGE_ZOOM_NN" ,
 	           "Use Nearest Neighbor interpolation for image Zoom?" ) ;
 
+   /* 22 Mar 004 [RWCox] */
+   ENV_add_yesno( "AFNI_SLAVE_FUNCTIME" , "Time Index affects functional overlay?" ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
