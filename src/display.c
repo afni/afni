@@ -129,8 +129,11 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
         dc->visual_redshift   = 7 - highbit(dc->visual_redmask) ;
         dc->visual_greenshift = 7 - highbit(dc->visual_greenmask) ;
         dc->visual_blueshift  = 7 - highbit(dc->visual_bluemask) ;
-        dc->visual_class      = dc->visual_info->class ;
-
+#if defined(__cplusplus) || defined(c_plusplus)
+        dc->visual_class      = dc->visual_info->c_class ;
+#else
+	dc->visual_class      = dc->visual_info->class ;
+#endif
         if( dc->visual_class != PseudoColor &&
             dc->visual_class != TrueColor      ){
 
@@ -1035,14 +1038,19 @@ void reload_DC_colordef( MCW_DC * dc )
 
    /*--- PseudoColor case ---*/
 
+#if defined(__cplusplus) || defined(c_plusplus)
+   if( vin->c_class == PseudoColor ){
+#else
    if( vin->class == PseudoColor ){
+#endif
+
       int iz , count , ii ;
       XColor * xcol ;
 
       /* create output */
 
       cd = (DC_colordef *) malloc( sizeof(DC_colordef) ) ;
-      cd->class = PseudoColor ;
+      cd->classKRH = PseudoColor ;
       cd->depth = vin->depth ;
 
       /* get all the colors in the colormap */
@@ -1103,14 +1111,19 @@ void reload_DC_colordef( MCW_DC * dc )
 
    /*--- TrueColor case ---*/
 
+#if defined(__cplusplus) || defined(c_plusplus)
+   if( vin->c_class == TrueColor ){
+#else
    if( vin->class == TrueColor ){
+#endif
+
       unsigned long r , g , b ;
       byte          rr, gg, bb ;
 
       /* create output */
 
       cd = (DC_colordef *) malloc( sizeof(DC_colordef) ) ;
-      cd->class = TrueColor ;
+      cd->classKRH = TrueColor ;
       cd->depth = vin->depth ;
 
       cd->rrmask  = vin->red_mask ;            /* bit masks for color  */
@@ -1144,8 +1157,13 @@ void reload_DC_colordef( MCW_DC * dc )
 
    /*--- Illegal Visual class! [do nothing]---*/
 
+#if defined(__cplusplus) || defined(c_plusplus)
+   fprintf(stderr,"reload_DC_colordef: illegal Visual class %s\n",
+                  x11_vcl[vin->c_class] ) ;
+#else
    fprintf(stderr,"reload_DC_colordef: illegal Visual class %s\n",
                   x11_vcl[vin->class] ) ;
+#endif
    return ;
 }
 
@@ -1160,7 +1178,7 @@ Pixel DC_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
 
    if( cd == NULL ){ reload_DC_colordef(dc) ; cd = dc->cdef ; }
 
-   switch( cd->class ){
+   switch( cd->classKRH ){
 
       /*--- TrueColor case: make color by appropriate bit twiddling ---*/
 
@@ -1347,7 +1365,7 @@ void DC_pixel_to_rgb( MCW_DC * dc , Pixel ppp ,
 
    if( cd == NULL ){ reload_DC_colordef(dc) ; cd = dc->cdef ; }
 
-   switch( cd->class ){
+   switch( cd->classKRH ){
 
       /*--- TrueColor case: unmake color by appropriate bit twiddling ---*/
 

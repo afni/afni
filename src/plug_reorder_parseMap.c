@@ -110,9 +110,9 @@
 		char *myFile = "QQ_epoch.map";	/  epoch map for a given experiment  /
 		int length = npts;				/  number of time-course points in  /
 										/  the dataSet  /
-		ClassInfo *class;				/  Place to store the sequence of classes /
+		ClassInfo *classKRH;				/  Place to store the sequence of classes /
 		int classCount;					/  Number of classes in 'class' array /
-		if(NULL == REORDER_parseMap(myFile, &length, &class, &classCount)) {
+		if(NULL == REORDER_parseMap(myFile, &length, &classKRH, &classCount)) {
 			printf("!! error !!\n");
 			FreeWorkspace();
 			return NULL;
@@ -159,14 +159,14 @@
 
 #ifndef MAIN_PLUGIN_REORDER
 typedef struct {
-	char class;
+	char classKRH;
 	int length;
 	} ClassInfo;
 #endif
 
 int *REORDER_parseMap(char *mapFile
 					, int *length
-					, ClassInfo **class
+					, ClassInfo **classKRH
 					, int *classCount)
 {
 FILE *inf = NULL;
@@ -321,8 +321,8 @@ if(NULL == classNum) {
 	}
 
 /* Arrays to be reallocated (initialize) */
-(*class) = (ClassInfo *)calloc(sizeof(ClassInfo), 1);
-if(NULL == (*class)) {
+(*classKRH) = (ClassInfo *)calloc(sizeof(ClassInfo), 1);
+if(NULL == (*classKRH)) {
 	printf("!! [AFNI/reorder] Allocation error(4) !!\n");
 	free(index);
 	free(classList);
@@ -386,8 +386,8 @@ for(i = 0, line = 1; i < rawLength; line++) {
 			free(classList);
 			free(classNum);
 			free(index);
-			free((*class));
-			(*class) = NULL;
+			free((*classKRH));
+			(*classKRH) = NULL;
 			*length = *classCount = 0;
 			return NULL;
 			}
@@ -395,8 +395,8 @@ for(i = 0, line = 1; i < rawLength; line++) {
 		(*classCount)++;
 
 		/* reallocate space */
-		(*class) = (ClassInfo *)realloc((void *)(*class), (*classCount)*sizeof(ClassInfo));
-		if(NULL == (*class)) {
+		(*classKRH) = (ClassInfo *)realloc((void *)(*classKRH), (*classCount)*sizeof(ClassInfo));
+		if(NULL == (*classKRH)) {
 			printf("!! [AFNI/reorder] Allocation error(4) !!\n");
 			free(index);
 			free(classList);
@@ -404,8 +404,8 @@ for(i = 0, line = 1; i < rawLength; line++) {
 			*length = *classCount = 0;
 			return NULL;
 			}
-		(*class)[(*classCount)-1].class = currentClass;
-		(*class)[(*classCount)-1].length = 1;
+		(*classKRH)[(*classCount)-1].classKRH = currentClass;
+		(*classKRH)[(*classCount)-1].length = 1;
 		}
 	else if(currentClass != cBuf[0]) { /* new class */
 		currentClass = cBuf[0];
@@ -419,8 +419,8 @@ for(i = 0, line = 1; i < rawLength; line++) {
 			free(classList);
 			free(classNum);
 			free(index);
-			free((*class));
-			(*class) = NULL;
+			free((*classKRH));
+			(*classKRH) = NULL;
 			*length = *classCount = 0;
 			return NULL;
 			}
@@ -428,8 +428,8 @@ for(i = 0, line = 1; i < rawLength; line++) {
 		(*classCount)++;
 
 		/* reallocate space */
-		(*class) = (ClassInfo *)realloc((void *)(*class), (*classCount)*sizeof(ClassInfo));
-		if(NULL == (*class)) {
+		(*classKRH) = (ClassInfo *)realloc((void *)(*classKRH), (*classCount)*sizeof(ClassInfo));
+		if(NULL == (*classKRH)) {
 			printf("!! [AFNI/reorder] Allocation error(4) !!\n");
 			free(index);
 			free(classList);
@@ -437,8 +437,8 @@ for(i = 0, line = 1; i < rawLength; line++) {
 			*length = *classCount = 0;
 			return NULL;
 			}
-		(*class)[(*classCount)-1].class = currentClass;
-		(*class)[(*classCount)-1].length = 1;
+		(*classKRH)[(*classCount)-1].classKRH = currentClass;
+		(*classKRH)[(*classCount)-1].length = 1;
 		}
 	else {
 		#ifdef DEBUG_PLUGIN_REORDER_PARSEMAP
@@ -454,8 +454,8 @@ for(i = 0, line = 1; i < rawLength; line++) {
 			(*classCount)++;
 	
 			/* reallocate space */
-			(*class) = (ClassInfo *)realloc((void *)(*class), (*classCount)*sizeof(ClassInfo));
-			if(NULL == (*class)) {
+			(*classKRH) = (ClassInfo *)realloc((void *)(*classKRH), (*classCount)*sizeof(ClassInfo));
+			if(NULL == (*classKRH)) {
 				printf("!! [AFNI/reorder] Allocation error(4) !!\n");
 				free(index);
 				free(classList);
@@ -463,8 +463,8 @@ for(i = 0, line = 1; i < rawLength; line++) {
 				*length = *classCount = 0;
 				return NULL;
 				}
-			(*class)[(*classCount)-1].class = currentClass;
-			(*class)[(*classCount)-1].length = 0;
+			(*classKRH)[(*classCount)-1].classKRH = currentClass;
+			(*classKRH)[(*classCount)-1].length = 0;
 			}
 		else if(classNum[i] != k) {
 			printf("!! [AFNI/reorder] Invalid class numbering at line %d {3} !!\n"
@@ -472,12 +472,12 @@ for(i = 0, line = 1; i < rawLength; line++) {
 			free(index);
 			free(classList);
 			free(classNum);
-			free((*class));
-			(*class) = NULL;
+			free((*classKRH));
+			(*classKRH) = NULL;
 			*length = *classCount = 0;
 			return NULL;
 			}
-		++(*class)[(*classCount)-1].length;
+		++(*classKRH)[(*classCount)-1].length;
 		}
 	++i;
 	}
@@ -496,7 +496,7 @@ for(i = 0; i < rawLength; i++) {
 	}
 printf("\n[parseMap] Meta-sequence of classes is:\n");
 for(i = 0; i < *classCount; i++) {
-	printf("  [%d] Class %c [Width %d TRs]\n", i, (*class)[i].class, (*class)[i].length);
+	printf("  [%d] Class %c [Width %d TRs]\n", i, (*classKRH)[i].classKRH, (*classKRH)[i].length);
 	}
 #endif
 
@@ -595,7 +595,7 @@ return(index);
 main(int argc, char *argv[])
 {
 int *index = NULL;
-ClassInfo *class = NULL;
+ClassInfo *classKRH = NULL;
 int classCount = 0;
 int length;
 int i;
@@ -611,7 +611,7 @@ if(length < 1) {
 	exit(1);
 	}
 
-if(NULL == (index = REORDER_parseMap(argv[1], &length, &class, &classCount))) {
+if(NULL == (index = REORDER_parseMap(argv[1], &length, &classKRH, &classCount))) {
 	printf("!! [Main] Trouble parsing epoch map file !!\n");
 	exit(1);
 	}
@@ -623,11 +623,11 @@ for(i = 0; i < length; i++) {
 
 printf("\n[Main] Meta-sequence of classes is:\n");
 for(i = 0; i < classCount; i++) {
-	printf("  [%d] Class %c [Width %d TRs]\n", i, class[i].class, class[i].length);
+	printf("  [%d] Class %c [Width %d TRs]\n", i, classKRH[i].classKRH, classKRH[i].length);
 	}
 
 free(index);
-free(class);
+free(classKRH);
 }
 #endif
 

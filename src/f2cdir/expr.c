@@ -1032,18 +1032,18 @@ mkfunct(expptr p0)
 	register expptr q;
 	extern chainp new_procs;
 	int k, nargs;
-	int class;
+	int classKRH;
 
 	if(p->tag != TPRIM)
 		return( errnode() );
 
 	np = p->namep;
-	class = np->vclass;
+	classKRH = np->vclass;
 
 
-	if(class == CLUNKNOWN)
+	if(classKRH == CLUNKNOWN)
 	{
-		np->vclass = class = CLPROC;
+		np->vclass = classKRH = CLPROC;
 		if(np->vstg == STGUNKNOWN)
 		{
 			if(np->vtype!=TYSUBR && (k = intrfunct(np->fvarname))
@@ -1083,7 +1083,7 @@ mkfunct(expptr p0)
 		}
 	}
 
-	if(class != CLPROC) {
+	if(classKRH != CLPROC) {
 		if (np->vstg == STGCOMMON)
 			fatalstr(
 			 "Cannot invoke common variable %.50s as a function.",

@@ -426,17 +426,17 @@ enddcl(Void)
 
  void
 #ifdef KR_headers
-startproc(progname, class)
+startproc(progname, classKRH)
 	Extsym *progname;
-	int class;
+	int classKRH;
 #else
-startproc(Extsym *progname, int class)
+startproc(Extsym *progname, int classKRH)
 #endif
 {
 	register struct Entrypoint *p;
 
 	p = ALLOC(Entrypoint);
-	if(class == CLMAIN) {
+	if(classKRH == CLMAIN) {
 		puthead(CNULL, CLMAIN);
 		if (progname)
 		    strcpy (main_alias, progname->cextname);
@@ -452,13 +452,13 @@ startproc(Extsym *progname, int class)
 			}
 		puthead(CNULL, CLBLOCK);
 		}
-	if(class == CLMAIN)
+	if(classKRH == CLMAIN)
 		newentry( mkname(" MAIN"), 0 )->extinit = 1;
 	p->entryname = progname;
 	entries = p;
 
-	procclass = class;
-	fprintf(diagfile, "   %s", (class==CLMAIN ? "MAIN" : "BLOCK DATA") );
+	procclass = classKRH;
+	fprintf(diagfile, "   %s", (classKRH==CLMAIN ? "MAIN" : "BLOCK DATA") );
 	if(progname) {
 		fprintf(diagfile, " %s", progname->fextname);
 		procname = progname->cextname;
@@ -511,21 +511,21 @@ newentry(register Namep v, int substmsg)
 
  void
 #ifdef KR_headers
-entrypt(class, type, length, entry, args)
-	int class;
+entrypt(classKRH, type, length, entry, args)
+	int classKRH;
 	int type;
 	ftnint length;
 	Extsym *entry;
 	chainp args;
 #else
-entrypt(int class, int type, ftnint length, Extsym *entry, chainp args)
+entrypt(int classKRH, int type, ftnint length, Extsym *entry, chainp args)
 #endif
 {
 	register Namep q;
 	register struct Entrypoint *p;
 
-	if(class != CLENTRY)
-		puthead( procname = entry->cextname, class);
+	if(classKRH != CLENTRY)
+		puthead( procname = entry->cextname, classKRH);
 	else
 		fprintf(diagfile, "       entry ");
 	fprintf(diagfile, "   %s:\n", entry->fextname);
@@ -535,7 +535,7 @@ entrypt(int class, int type, ftnint length, Extsym *entry, chainp args)
 		q->vstg = STGEXT;
 
 	type = lengtype(type, length);
-	if(class == CLPROC)
+	if(classKRH == CLPROC)
 	{
 		procclass = CLPROC;
 		proctype = type;
@@ -551,14 +551,14 @@ entrypt(int class, int type, ftnint length, Extsym *entry, chainp args)
 	p->arglist = revchain(args);
 	p->enamep = q;
 
-	if(class == CLENTRY)
+	if(classKRH == CLENTRY)
 	{
-		class = CLPROC;
+		classKRH = CLPROC;
 		if(proctype == TYSUBR)
 			type = TYSUBR;
 	}
 
-	q->vclass = class;
+	q->vclass = classKRH;
 	q->vprocclass = 0;
 	settype(q, type, length);
 	q->vprocclass = PTHISPROC;

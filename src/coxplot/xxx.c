@@ -165,7 +165,7 @@ void fred_CB( Widget w , XtPointer qd , XtPointer qb )
       fprintf(stderr,"get_X11_colordef fails!\n") ; return ;
    }
 
-   if( cd->class == TrueColor ){
+   if( cd->classKRH == TrueColor ){
       fprintf(stderr,"get_X11_colordef: visual class=TrueColor depth=%d\n"
                      "  masks:  red = %x  green = %x  blue = %x\n"
                      "  shifts: red = %d  green = %d  blue = %d\n",
@@ -173,7 +173,7 @@ void fred_CB( Widget w , XtPointer qd , XtPointer qb )
                      cd->rrmask , cd->ggmask , cd->bbmask ,
                      cd->rrshift , cd->ggshift , cd->bbshift ) ;
 
-   } else if ( cd->class == PseudoColor ){
+   } else if ( cd->classKRH == PseudoColor ){
       int ii ;
       fprintf(stderr,"get_X11_colordef: visual class=PseudoColor depth=%d colors=%d\n",
                      cd->depth , cd->ncolors ) ;

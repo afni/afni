@@ -20,7 +20,11 @@ void xxx_get_colormap( Display * display , Window w , XColor ** xcar , int * nca
    vin = XGetVisualInfo( display , VisualIDMask , &vinfo , &count ) ;
    if( count == 0 || vin == NULL ){ *xcar = NULL ; *ncar = 0 ; return ; }
 
+#if defined(__cplusplus) || defined(c_plusplus)
+   if( vin->c_class != PseudoColor ){ XFree(vin) ; *xcar = NULL ; *ncar = 0 ; return ; }
+#else
    if( vin->class != PseudoColor ){ XFree(vin) ; *xcar = NULL ; *ncar = 0 ; return ; }
+#endif
 
    count = vin->colormap_size ;
    xcol  = (XColor *) malloc( sizefo(XColor) * count ) ;
