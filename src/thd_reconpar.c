@@ -12,17 +12,6 @@
     have been read in from multiple sessions
 ------------------------------------------------------------------*/
 
-#ifdef OMIT_DATASET_IDCODES
-# define IFNOANAT(ds)                                         \
-   if( needed && (ds)->anat_parent == NULL )                  \
-      fprintf(stderr, "\n** Can't find anat parent %s of %s", \
-             (ds)->anat_parent_name , DSET_HEADNAME(ds) )
-
-# define IFNOWARP(ds)                                             \
-   if( needed && (ds)->warp_parent == NULL && ! DSET_ONDISK(ds) ) \
-      fprintf(stderr, "\n** Can't find warp parent %s of %s",     \
-             (ds)->warp_parent_name , DSET_HEADNAME(ds) )
-#else
 # define IFNOANAT(ds)                                           \
    if( needed && (ds)->anat_parent == NULL )                    \
       fprintf(stderr, "\n** Can't find anat parent %s of %s",   \
@@ -32,7 +21,6 @@
    if( needed && (ds)->warp_parent == NULL && ! DSET_ONDISK(ds) ) \
       fprintf(stderr, "\n** Can't find warp parent %s of %s",     \
              (ds)->warp_parent_idcode.str , DSET_HEADNAME(ds) )
-#endif
 
 #if 0
 # define SHOW_PARENTING(str,ds,dsp)                                            \
@@ -69,16 +57,7 @@ void THD_reconcile_parents( THD_sessionlist * ssl )
 
             /*-- if it needs an anatomy parent --*/
 
-#ifdef OMIT_DATASET_IDCODES
-            needed = 0 ;
-            if( strlen(dset_orph->anat_parent_name) > 0 ){
-               needed = 1 ;
-               find = THD_dset_in_sessionlist( FIND_NAME ,
-                                               dset_orph->anat_parent_name,
-                                               ssl , iss ) ;
-               dset_orph->anat_parent = find.dset ;
-            }
-#else
+          if( dset_orph->anat_parent == NULL ){  /* 28 Dec 2002 */
             needed = 0 ;
             if( ! ISZERO_IDCODE(dset_orph->anat_parent_idcode) ){
                needed = 1 ;
@@ -98,22 +77,12 @@ void THD_reconcile_parents( THD_sessionlist * ssl )
                if( dset_orph->anat_parent != NULL )
                   SHOW_PARENTING("(NAME) anat_parent",dset_orph,dset_orph->anat_parent) ;
             }
-#endif /* OMIT_DATASET_IDCODES */
-
             IFNOANAT(dset_orph) ;
+          }
 
             /*-- if it needs a warp parent --*/
 
-#ifdef OMIT_DATASET_IDCODES
-            needed = 0 ;
-            if( strlen(dset_orph->warp_parent_name) > 0 ){
-               needed = 1 ;
-               find = THD_dset_in_sessionlist( FIND_NAME ,
-                                               dset_orph->warp_parent_name,
-                                               ssl , iss ) ;
-               dset_orph->warp_parent = find.dset ;
-            }
-#else
+          if( dset_orph->warp_parent == NULL ){  /* 28 Dec 2002 */
             needed = 0 ;
             if( ! ISZERO_IDCODE(dset_orph->warp_parent_idcode) ){
                needed = 1 ;
@@ -133,9 +102,8 @@ void THD_reconcile_parents( THD_sessionlist * ssl )
                if( dset_orph->warp_parent != NULL )
                   SHOW_PARENTING("(NAME) warp_parent",dset_orph,dset_orph->warp_parent) ;
             }
-#endif /* OMIT_DATASET_IDCODES */
-
             IFNOWARP(dset_orph) ;
+          }
 
          }
       }  /* end of loop over anat datasets */
@@ -150,16 +118,7 @@ void THD_reconcile_parents( THD_sessionlist * ssl )
 
             /*-- if it needs an anatomy parent --*/
 
-#ifdef OMIT_DATASET_IDCODES
-            needed = 0 ;
-            if( strlen(dset_orph->anat_parent_name) > 0 ){
-               needed = 1 ;
-               find = THD_dset_in_sessionlist( FIND_NAME ,
-                                               dset_orph->anat_parent_name,
-                                               ssl , iss ) ;
-               dset_orph->anat_parent = find.dset ;
-            }
-#else
+          if( dset_orph->anat_parent == NULL ){  /* 28 Dec 2002 */
             needed = 0 ;
             if( ! ISZERO_IDCODE(dset_orph->anat_parent_idcode) ){
                needed = 1 ;
@@ -179,22 +138,12 @@ void THD_reconcile_parents( THD_sessionlist * ssl )
                if( dset_orph->anat_parent != NULL )
                   SHOW_PARENTING("(NAME) anat_parent",dset_orph,dset_orph->anat_parent) ;
             }
-#endif /* OMIT_DATASET_IDCODES */
-
             IFNOANAT(dset_orph) ;
+          }
 
             /*-- if it needs a warp parent --*/
 
-#ifdef OMIT_DATASET_IDCODES
-            needed = 0 ;
-            if( strlen(dset_orph->warp_parent_name) > 0 ){
-               needed = 1 ;
-               find = THD_dset_in_sessionlist( FIND_NAME ,
-                                               dset_orph->warp_parent_name,
-                                               ssl , iss ) ;
-               dset_orph->warp_parent = find.dset ;
-            }
-#else
+          if( dset_orph->warp_parent == NULL ){  /* 28 Dec 2002 */
             needed = 0 ;
             if( ! ISZERO_IDCODE(dset_orph->warp_parent_idcode) ){
                needed = 1 ;
@@ -214,9 +163,8 @@ void THD_reconcile_parents( THD_sessionlist * ssl )
                if( dset_orph->warp_parent != NULL )
                   SHOW_PARENTING("(NAME) warp_parent",dset_orph,dset_orph->warp_parent) ;
             }
-#endif /* OMIT_DATASET_IDCODES */
-
             IFNOWARP(dset_orph) ;
+          }
 
          }
       }  /* end of loop over func datasets */

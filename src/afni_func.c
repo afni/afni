@@ -489,9 +489,7 @@ if(PRINT_TRACING)
    MCW_strncpy( new_dset->anat_parent_name ,
                 anat_parent->self_name , THD_MAX_NAME ) ;
 
-#ifndef OMIT_DATASET_IDCODES
    new_dset->anat_parent_idcode = anat_parent->idcode ;
-#endif
 
    /* 11/09/94 addition: the data_parent may itself be a warp;
        in this case, we want the true warp parent to be the original data */
@@ -502,13 +500,9 @@ if(PRINT_TRACING)
    MCW_strncpy( new_dset->warp_parent_name ,
                 new_dset->warp_parent->self_name , THD_MAX_NAME ) ;
 
-#ifndef OMIT_DATASET_IDCODES
    new_dset->warp_parent_idcode = new_dset->warp_parent->idcode ;
-#endif
 
-#ifndef OMIT_DATASET_IDCODES
    new_dset->idcode = MCW_new_idcode() ;
-#endif
 
    /* make the actual warp from the warp_parent to this dataset */
 
@@ -728,11 +722,6 @@ ENTRY("AFNI_make_descendants_old") ;
 
          /* look for orig_dset's anat parent in this sessionlist */
 
-#ifdef OMIT_DATASET_IDCODES
-         find = THD_dset_in_sessionlist( FIND_NAME ,
-                                         orig_dset->anat_parent->self_name ,
-                                         ssl , iss ) ;
-#else
          find = THD_dset_in_sessionlist( FIND_IDCODE ,
                                          &(orig_dset->anat_parent->idcode) ,
                                          ssl , iss ) ;
@@ -740,7 +729,6 @@ ENTRY("AFNI_make_descendants_old") ;
             find = THD_dset_in_sessionlist( FIND_NAME ,
                                             orig_dset->anat_parent->self_name ,
                                             ssl , iss ) ;
-#endif
 
          /* check for a good find; if it doesn't happen,
             then skip (this eventuality should never occur!) */
@@ -788,11 +776,6 @@ ENTRY("AFNI_make_descendants_old") ;
 
          /* look for orig_dset's anat parent in this sessionlist */
 
-#ifdef OMIT_DATASET_IDCODES
-         find = THD_dset_in_sessionlist( FIND_NAME ,
-                                         orig_dset->anat_parent->self_name ,
-                                         ssl , iss ) ;
-#else
          find = THD_dset_in_sessionlist( FIND_IDCODE ,
                                          &(orig_dset->anat_parent->idcode) ,
                                          ssl , iss ) ;
@@ -800,7 +783,6 @@ ENTRY("AFNI_make_descendants_old") ;
             find = THD_dset_in_sessionlist( FIND_NAME ,
                                             orig_dset->anat_parent->self_name ,
                                             ssl , iss ) ;
-#endif
 
          /* check for a good find; if it doesn't happen,
             then skip (this eventuality should never occur!) */
@@ -2854,6 +2836,8 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
    EXRETURN ;
 }
 
+#define NEW_RESCAN_SESSION  /* 28 Dec 2002 */
+
 /*----------------------------------------------------------------
    Obey the command to rescan the current session
 ------------------------------------------------------------------*/
@@ -2868,10 +2852,12 @@ ENTRY("AFNI_rescan_CB") ;
    SHOW_AFNI_PAUSE ;
    AFNI_rescan_session( im3d->vinfo->sess_num ) ;
 
+#ifndef NEW_RESCAN_SESSION
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
       qq3d = GLOBAL_library.controllers[cc] ;
       if( IM3D_OPEN(qq3d) ) AFNI_process_dsetchange( qq3d ) ;
    }
+#endif
 
    SHOW_AFNI_READY ;
    EXRETURN ;
@@ -2890,15 +2876,18 @@ ENTRY("AFNI_rescan_all_CB") ;
    for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ )
       AFNI_rescan_session( iss ) ;
 
+#ifndef NEW_RESCAN_SESSION
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
       im3d = GLOBAL_library.controllers[cc] ;
       if( IM3D_OPEN(im3d) ) AFNI_process_dsetchange( im3d ) ;
    }
+#endif
 
    SHOW_AFNI_READY ;
    EXRETURN ;
 }
 
+#ifndef NEW_RESCAN_SESSION  /***** 28 Dec 2002: remove the old code *****/
 /*----------------------------------------------------------------------*/
 /*!
   Re-read the session indexed by "sss".
@@ -2911,7 +2900,7 @@ ENTRY("AFNI_rescan_all_CB") ;
            tie his shoes correctly).
 ------------------------------------------------------------------------*/
 
-void AFNI_rescan_session( int sss )
+void AFNI_rescan_session( int sss )  /* the old way */
 {
    int vv , ii , cc ;
    THD_session *  new_ss , * old_ss ;
@@ -3109,6 +3098,140 @@ STATUS("fixing active controllers") ;
 
    EXRETURN ;
 }
+#else       /******* 28 Dec 2002: insert the new code *******/
+/*----------------------------------------------------------------------*/
+/*!
+  Re-read the session indexed by "sss".
+  Much of this code is taken from AFNI_read_inputs().
+
+  WARNING:
+    - This will do bad things if the user deletes the session directory
+      or the current active datasets within it before trying this.
+    - On the other hand, if the user is that stupid, bad things will
+      probably have happened to him already (like being unable to open
+      dataset files, or being unable to tie his shoes correctly).
+
+  28 Dec 2002: modified extensively to not clobber existing pointers
+               to datasets, but instead to insert new datasets into the
+               existing session -- RWCox (MX&HNY)
+------------------------------------------------------------------------*/
+
+void AFNI_rescan_session( int sss )   /* the new way */
+{
+   int vv , ii , nr ;
+   THD_session  *new_ss , *old_ss ;
+   THD_slist_find find ;
+   THD_3dim_dataset *new_dset ;
+
+ENTRY("AFNI_rescan_session") ;
+{ char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
+
+   if( GLOBAL_library.have_dummy_dataset ){ BEEPIT; EXRETURN; }
+
+   /*--- sanity checks ---*/
+
+   if( sss < 0 || sss >= GLOBAL_library.sslist->num_sess ){ BEEPIT; EXRETURN; }
+
+   old_ss = GLOBAL_library.sslist->ssar[sss] ;
+   if( ! ISVALID_SESSION(old_ss) ){ BEEPIT; EXRETURN; }
+
+                                     /* can't rescan global session */
+   if( old_ss == GLOBAL_library.session ) EXRETURN;  /* 21 Dec 2001 */
+
+   /*--- Make sure that the dataset choosers are closed.
+         Since these are just instances of the generic strlist
+         chooser, and we can't tell what is being chosen just now,
+         we'll just forcibly close the strlist chooser no matter what. ---*/
+
+   POPDOWN_strlist_chooser ;
+
+   /*--- read in the session again, into a new THD_session struct ---*/
+
+STATUS("rescanning session now:") ;
+STATUS(old_ss->sessname) ;
+
+   new_ss = THD_init_session( old_ss->sessname ) ;
+   if( ! ISVALID_SESSION(new_ss) ){ BEEPIT; EXRETURN; } /* this is BAD */
+
+   /*--- scan datasets and remove those
+         that already exist in this session ---*/
+
+   for( ii=0 ; ii < new_ss->num_anat ; ii++ ){
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+       new_dset = new_ss->anat[ii][vv] ;
+       if( ISVALID_DSET(new_dset) ){
+         find = THD_dset_in_session( FIND_IDCODE, &(new_dset->idcode), old_ss );
+         if( find.dset == NULL ){
+          find = THD_dset_in_session(FIND_PREFIX, DSET_PREFIX(new_dset),old_ss);
+          if( find.dset != NULL && find.view_index != vv ) find.dset = NULL ;
+         }
+         if( find.dset != NULL ){
+           DSET_delete(new_dset); new_ss->anat[ii][vv] = NULL;
+         }
+       }
+     }
+   }
+   for( ii=0 ; ii < new_ss->num_func ; ii++ ){
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+       new_dset = new_ss->func[ii][vv] ;
+       if( ISVALID_DSET(new_dset) ){
+         find = THD_dset_in_session( FIND_IDCODE, &(new_dset->idcode), old_ss );
+         if( find.dset == NULL ){
+          find = THD_dset_in_session(FIND_PREFIX, DSET_PREFIX(new_dset),old_ss);
+          if( find.dset != NULL && find.view_index != vv ) find.dset = NULL ;
+         }
+         if( find.dset != NULL ){
+           DSET_delete(new_dset); new_ss->func[ii][vv] = NULL;
+         }
+       }
+     }
+   }
+
+   /*--- now scan survivors and put them
+         at the end of the existing session ---*/
+
+   for( ii=0 ; ii < new_ss->num_anat ; ii++ ){
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* see if row is empty */
+       if( new_ss->anat[ii][vv] != NULL ) break ;
+     if( vv > LAST_VIEW_TYPE ) continue ;          /* empty row ==> skip  */
+     nr = old_ss->num_anat ;                       /* next row in old_ss  */
+     if( nr >= THD_MAX_SESSION_ANAT ) break ;      /* old session is full */
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* copy new row to old */
+       old_ss->anat[nr][vv] = new_ss->anat[ii][vv];
+     old_ss->num_anat ++ ;                         /* 1 more row in old   */
+   }
+   for( ii=0 ; ii < new_ss->num_func ; ii++ ){
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+       if( new_ss->func[ii][vv] != NULL ) break ;
+     if( vv > LAST_VIEW_TYPE ) continue ;
+     nr = old_ss->num_func ;
+     if( nr >= THD_MAX_SESSION_FUNC ) break ;
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+       old_ss->func[nr][vv] = new_ss->func[ii][vv];
+     old_ss->num_func ++ ;
+   }
+
+   /* assign the warp and anatomy parent pointers;
+      then, make any datasets that don't exist but logically
+      descend from the warp and anatomy parents just assigned */
+
+   THD_reconcile_parents( GLOBAL_library.sslist ) ;
+   AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ;
+   AFNI_make_descendants( GLOBAL_library.sslist ) ;
+
+   /* 28 Aug 2002: deal with warptables */
+
+   if( new_ss->warptable != NULL ){
+     if( GLOBAL_library.warptable == NULL ) /* create global warptable */
+       GLOBAL_library.warptable = new_Htable(101) ;
+     subsume_Htable( new_ss->warptable , GLOBAL_library.warptable ) ;
+     destroy_Htable( new_ss->warptable ) ;
+     new_ss->warptable = NULL ;
+   }
+
+   EXRETURN ;
+}
+#endif  /******* 28 Dec 2002: end of replacement code *******/
 
 /*---------------------------------------------------------------
    Rescan for timeseries files

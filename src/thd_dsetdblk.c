@@ -28,9 +28,7 @@ THD_3dim_dataset * THD_3dim_from_block( THD_datablock * blk )
    ATR_string * atr_str ;
    ATR_float  * atr_flo ;
 
-#ifndef OMIT_DATASET_IDCODES
    int new_idcode = 0 ;
-#endif
 
 ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
@@ -107,7 +105,6 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
       }
    }
 
-#ifndef OMIT_DATASET_IDCODES
    /*-------------------------------------------------------*/
    /*--               find identifier codes               --*/
    /*-------------------------------------------------------*/
@@ -136,7 +133,6 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    atr_str = THD_find_string_atr( blk , ATRNAME_IDWARPPAR ) ;
    if( atr_str != NULL )
       MCW_strncpy( dset->warp_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;
-#endif
 
    /*--------------------------------*/
    /*-- get data labels (optional) --*/
@@ -694,7 +690,6 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
       RETURN(NULL) ;
    }
 
-#ifndef OMIT_DATASET_IDCODES
    /*--- If we assigned a new dataset idcode, write it back to disk ---*/
 
    if( dset != NULL && new_idcode ){
@@ -702,7 +697,6 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
               dset->dblk->diskptr->header_name ) ;
       THD_write_3dim_dataset( NULL , NULL , dset , False ) ;
    }
-#endif
 
    if( dset != NULL ){
      DSET_NULL_SUMA(dset) ;     /* clean surface map stuff */

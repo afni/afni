@@ -1954,9 +1954,7 @@ ENTRY("T3D_initialize_user_data") ;
    EMPTY_STRING( user_inputs.anatomy_dataname ) ;
    EMPTY_STRING( user_inputs.geometry_dataname ) ;
    EMPTY_STRING( user_inputs.output_filename ) ;
-#ifndef OMIT_DATASET_IDCODES
    ZERO_IDCODE( user_inputs.anatomy_parent_idcode ) ;
-#endif
 
    strcpy( user_inputs.session_filename , "./" ) ;
 
@@ -4630,21 +4628,15 @@ void T3D_save_file_CB( Widget w ,
    }
 
    EMPTY_STRING( dset->warp_parent_name ) ;
-#ifndef OMIT_DATASET_IDCODES
    ZERO_IDCODE(dset->warp_parent_idcode) ;
-#endif
 
    if( strlen(user_inputs.anatomy_dataname) > 0 ){
       MCW_strncpy( dset->anat_parent_name ,
                    user_inputs.anatomy_dataname , THD_MAX_NAME ) ;
-#ifndef OMIT_DATASET_IDCODES
       dset->anat_parent_idcode = user_inputs.anatomy_parent_idcode ;
-#endif
    } else {
       EMPTY_STRING( dset->anat_parent_name ) ;
-#ifndef OMIT_DATASET_IDCODES
       ZERO_IDCODE(dset->anat_parent_idcode) ;
-#endif
    }
 
    MCW_strncpy( dset->self_name, user_inputs.dataset_name, THD_MAX_NAME ) ;
@@ -4782,11 +4774,9 @@ void T3D_save_file_CB( Widget w ,
       wmsg = NULL ;
    }
 
-#ifndef OMIT_DATASET_IDCODES
    /** make up a new idcode for this new output dataset **/
 
    dset->idcode = MCW_new_idcode() ;
-#endif
 
    npad = (int) zpad ;
    if( npad == 0 ){   /* the old code */
@@ -5369,9 +5359,7 @@ ENTRY("T3D_geometry_parent_CB") ;
    if( strlen(geom_dset->anat_parent_name) > 0 ){
       MCW_strncpy( user_inputs.anatomy_dataname ,
                    geom_dset->anat_parent_name, THD_MAX_NAME ) ;
-#ifndef OMIT_DATASET_IDCODES
       user_inputs.anatomy_parent_idcode = geom_dset->anat_parent_idcode ;
-#endif
    }
 #endif
 
@@ -5529,9 +5517,7 @@ ENTRY("T3D_anatomy_parent_CB") ;
 
    MCW_strncpy( user_inputs.anatomy_dataname ,
                 anat_dset->self_name , THD_MAX_NAME ) ;
-#ifndef OMIT_DATASET_IDCODES
    user_inputs.anatomy_parent_idcode = anat_dset->idcode ;
-#endif
 
 #ifndef NO_NAMES
    if( w != NULL ) XmTextFieldSetString( wset.anatomy_dataname_textfield ,

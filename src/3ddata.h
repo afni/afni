@@ -1419,10 +1419,9 @@ typedef struct {
 
 /*--------------------------------------------------------------------*/
 /*--------------------  Unique ID code for a 3D dataset  -------------*/
-#ifndef OMIT_DATASET_IDCODES
 
 #ifndef IDCODE_PREFIX
-#  define MCW_IDPREFIX "GPL_"
+#  define MCW_IDPREFIX "NIH_"
 #else
 #  define MCW_IDPREFIX IDCODE_PREFIX
 #endif
@@ -1471,8 +1470,6 @@ extern MCW_idcode MCW_new_idcode(void) ;
 #define ATRNAME_IDDATE    "IDCODE_DATE"
 #define ATRNAME_IDANATPAR "IDCODE_ANAT_PARENT"
 #define ATRNAME_IDWARPPAR "IDCODE_WARP_PARENT"
-
-#endif /* OMIT_DATASET_IDCODES */
 
 /*----------------------------------------------------------------------*/
 /*------------------- how to present the coordinates -------------------*/
@@ -1962,11 +1959,9 @@ typedef struct THD_3dim_dataset {
 
       int death_mark ;            /*!< dataset is marked for destruction */
 
-#ifndef OMIT_DATASET_IDCODES
       MCW_idcode idcode ;              /*!< globally unique (I hope) ID code for this dataset */
       MCW_idcode anat_parent_idcode ;  /*!< ID code for warp_parent dataset */
       MCW_idcode warp_parent_idcode ;  /*!< ID code for anat_parent dataset */
-#endif
 
       char * keywords ;           /*!< 30 Nov 1997: keyword list for dataset */
 

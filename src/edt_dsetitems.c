@@ -394,9 +394,7 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
                new_warp_parent = 1 ;
                dset->warp_parent = warp_parent ;
                MCW_strncpy(dset->warp_parent_name,warp_parent->self_name,THD_MAX_NAME) ;
-#ifndef OMIT_DATASET_IDCODES
                dset->warp_parent_idcode = warp_parent->idcode ;
-#endif
             }
             else EDERR("illegal new warp_parent") ;
          break ;
@@ -416,9 +414,7 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
                new_anat_parent = 1 ;
                dset->anat_parent = anat_parent ;
                MCW_strncpy(dset->anat_parent_name,anat_parent->self_name,THD_MAX_NAME) ;
-#ifndef OMIT_DATASET_IDCODES
                dset->anat_parent_idcode = anat_parent->idcode ;
-#endif
             }
             else EDERR("illegal new anat_parent") ;
          break ;
