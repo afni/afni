@@ -389,12 +389,15 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_yesno( "AFNI_IMAGE_ZOOM_NN" ,
 	           "Use Nearest Neighbor interpolation for image Zoom?" ) ;
 
-   /* 22 Mar 004 [RWCox] */
+   /* 22 Mar 2004 [RWCox] */
    ENV_add_yesno( "AFNI_SLAVE_FUNCTIME" , "Time Index affects functional overlay?" ) ;
 
    ENV_add_string( "AFNI_REALTIME_MP_HOST_PORT" ,     /* 31 Mar 2004 [rickr] */
                    "Supply host:port string for realtime motion parameters." ,
                    0,NULL , NULL ) ;
+
+   /* 07 Apr 2004 [RWCox] */
+   ENV_add_yesno( "AFNI_X11_REDECORATE" , "Try to set X11 window 'decorations'?" ) ;
 
    /*---------------- compute helpstring -----------------------*/
 
