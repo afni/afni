@@ -3430,3 +3430,8 @@
 
 28 Jan 2001
  * Modified cs_qhull.c to use centroid instead of normal for midpoint.
+
+29 Jan 2001
+ * Modified afni.c function AFNI_setup_viewing() to correct problem when
+     viewing the same functional bucket in two controllers - the bucket
+     widgets might not get set up correctly due to false memories.
