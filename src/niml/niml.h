@@ -1144,19 +1144,22 @@ extern void * NI_registry_replace         ( void *, void * ) ;
 #ifndef TYPEDEF_NI_datacontainer
 #define TYPEDEF_NI_datacontainer
 typedef struct {
-  char typename   [IDCODE_LEN] ;
+  char typename   [IDCODE_LEN] ; /* e.g., "NI_ELEMENT"   */
+  char self_name  [IDCODE_LEN] ; /* e.g., "AFNI_dataset" */
   char self_idcode[IDCODE_LEN] ;
-  char self_name  [IDCODE_LEN] ;
   int  ival , jval ;
-  void *self ;
-} NI_datacontainer ;
+  void *self_data ;              /* the actual data */
+} NI_objcontainer ;
 
-typedef void (*NI_elm_to_obj)( NI_datacontainer *) ;
+typedef int (*NI_objconverter_func)( NI_objcontainer * ) ;
 #endif
 
 extern char * NI_self_idcode( void * ) ;
-extern void   NI_suck_stream( char *, int, int *, NI_datacontainer *** ) ;
-extern void   NI_convert_elm_to_obj( NI_datacontainer * ) ;
-extern void   NI_register_elm_to_obj( char * , NI_elm_to_obj ) ;
+extern void   NI_suck_stream( char *, int, int *, NI_objcontainer *** ) ;
+extern void   NI_convert_elm_to_obj( NI_objcontainer * ) ;
+extern void   NI_convert_obj_to_elm( NI_objcontainer * ) ;
+extern void   NI_register_objconverters( char * ,
+                                         NI_objconverter_func ,
+                                         NI_objconverter_func  ) ;
 
 #endif /* _NIML_HEADER_FILE */

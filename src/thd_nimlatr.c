@@ -453,3 +453,38 @@ STATUS("adding sub-bricks") ;
 
    RETURN(ngr) ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+int AFNI_obj_to_dataset( NI_objcontainer *dc )
+{
+   THD_3dim_dataset *dset ;
+
+   if( dc == NULL || strcmp(dc->self_name,"AFNI_dataset") != 0 ) return 0 ;
+
+   dset = THD_niml_to_dataset( (NI_group *)dc->self_data , 0 ) ;
+   if( dset == NULL ) return 0 ;
+
+   NI_free_element( dc->self_data ) ;
+   dc->self_data = (void *)dset ;
+   return 1 ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+int AFNI_dataset_to_obj( NI_objcontainer *dc )
+{
+   NI_group *ngr ;
+   THD_3dim_dataset *dset ;
+
+   if( dc == NULL || strcmp(dc->typename,"AFNI_dataset") != 0 ) return 0 ;
+
+   dset = (THD_3dim_dataset *)dc->self_data ;
+   if( !ISVALID_DSET(dset) ) return 0 ;
+
+   ngr = THD_dataset_to_niml( dset ) ;
+   if( ngr == NULL ) return 0 ;
+
+   dc->self_data = (void *)ngr ;
+   return 1 ;
+}
