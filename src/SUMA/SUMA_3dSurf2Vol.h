@@ -53,8 +53,6 @@ typedef struct
 {
     THD_3dim_dataset * gpar;		/* input dataset              */
     THD_3dim_dataset * oset;		/* output dataset             */
-    THD_fvec3          f3mm_min;	/* numerical min xyz points   */
-    THD_fvec3          f3mm_max;	/* numerical max xyz points   */
     int                nvox;		/* gpar nxyz                  */
     byte             * cmask;		/* computed mask              */
     int                ncmask;		/* nvox for cmask             */
@@ -73,11 +71,15 @@ typedef struct
 /* ---- function prototypes ---- */
 
 /* library protos - rcr - move to separate file */
-int s2v_fill_mask (node_list_t *N, param_t *p, float *fdata, s2v_opts_t *sopt);
-int s2v_fill_mask2(node_list_t *N, param_t *p, float *fdata, s2v_opts_t *sopt);
-int s2v_map_type  ( char * map_str );
-THD_3dim_dataset * s2v_nodes2volume(node_list_t *N,param_t *p,s2v_opts_t *sopt);
-float dist_f3mm   ( THD_fvec3 * p1, THD_fvec3 * p2 );
+int s2v_fill_mask     ( node_list_t * N, THD_3dim_dataset * gpar,
+	  		float * fdata, byte * mask, s2v_opts_t * sopt );
+int s2v_fill_mask2    ( node_list_t * N, THD_3dim_dataset * gpar,
+	  		float * fdata, byte * mask, s2v_opts_t * sopt );
+int s2v_map_type      ( char * map_str );
+
+THD_3dim_dataset * s2v_nodes2volume( node_list_t * N, THD_3dim_dataset * gpar,
+				     byte * cmask, s2v_opts_t * sopt );
+
 
 
 int alloc_node_list   ( s2v_opts_t * sopt, node_list_t * N, int nsurf);
@@ -87,13 +89,11 @@ int create_node_list  ( s2v_opts_t * sopt, node_list_t * N );
 int disp_opts_t       ( char * info, opts_t * opts );
 int disp_param_t      ( char * info, param_t * p );
 int disp_s2v_opts_t   ( char * info, s2v_opts_t * sopt );
-int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max );
 int final_clean_up    ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
        			node_list_t * N );
 int get_mappable_surfs( SUMA_SurfaceObject ** slist, int how_many, int debug );
 int init_options      ( opts_t * opts, int argc, char * argv [] );
 int read_surf_files   ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec );
-int set_3dmm_bounds   ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max);
 int set_map_opts      ( opts_t * opts, param_t * p, s2v_opts_t * sopt );
 int usage             ( char * prog, int level );
 int validate_datasets ( opts_t * opts, param_t * p );
