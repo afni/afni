@@ -8,7 +8,7 @@ goto PARSE_COMMAND
 Ret_PARSE_COMMAND:
 
 goto CHECK_PROGRAMS
-Ret_CHECK_PROGRAMS
+Ret_CHECK_PROGRAMS:
 
 goto SET_VARIABLES
 Ret_SET_VARIABLES:
@@ -43,7 +43,7 @@ PARSE_COMMAND:
 	if ($SurfAnatPath == $2:t) then 
 		#no path given
 		set SurfAnatPath = .
-	end
+	endif
 	goto Ret_PARSE_COMMAND
 
 SET_VARIABLES:
@@ -76,10 +76,13 @@ DOWNSAMPLE:
 
 RESAMPLE:
 	#resample Experiment volume to look like SurfAnat
-	echo "resampling ..."
 	cd $CurDir
 	set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"
 	set ExpAnat_Resamp = $ExpAnat_ResampPrefix$ExpAnatView
+	echo ""
+	echo "resampling $ExpAnat to match $SurfAnatPath/$SurfAnat"
+	echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -zeropad -rmode Cu -inset $ExpAnat"
+	echo ""
 	3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -zeropad -rmode Cu -inset $ExpAnat
 	test -f $ExpAnat_Resamp.BRIK || goto NO_RESAMP
 	set ExpAnatPrefix = $ExpAnat_ResampPrefix
@@ -88,10 +91,13 @@ RESAMPLE:
 	goto Ret_RESAMPLE
 	
 REGISTER:
-	echo "Running 3dvolreg ..."
 	cd $CurDir
 	set VolRegPrefix = $SurfAnatPrefix"_Alnd_Exp"
-	3dvolreg -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
+	echo ""
+	echo "Registering $SurfAnatPath/$SurfAnat to $ExpAnat"
+	echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
+	echo ""
+	3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
 	test -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || goto NO_VOLREG
 	mv $SurfAnatPath/$VolRegPrefix* ./
 	#remove _resamp_
@@ -173,7 +179,7 @@ USAGE:
 	echo "NOTE: You must run the script from the directory where Experiment Anatomy resides."
 	echo ""
 	echo "Example:"
-	echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig. 1.1"
+	echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
 	echo ""
 	echo "\012Ziad Saad (ziad@nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
 	goto END

@@ -60,7 +60,7 @@ L_INIT_VARS:
     set surf_attribs = (smoothwm		\
 			pial			\
 			inflated		\
-			occip.patch3d		\
+			occip.patch.3d		\
 			occip.patch.flat	\
 			sphere			\
 			)
@@ -229,7 +229,7 @@ goto L_VERIFY_PROGRAMS_DONE
 
 ####################################################################
 # 1. set surf_dir and orig_dir - check cwd and parent
-# 2. create SUMA directory under surf_dir and store the results there
+# 2. create SUMA directory at the same level as surf_dir and store the results there
 
 L_SET_SURF_DIRS:
 
@@ -306,7 +306,7 @@ L_SET_SURF_DIRS:
 
     # decide whether we need to make surf/SUMA directory
 
-    set suma_dir = $surf_dir/SUMA
+    set suma_dir = $start_dir/SUMA
 
     if ( -d $suma_dir ) then
 	if ( $debug ) echo "-- $suma_dir already exists, continuing..."
@@ -346,7 +346,7 @@ L_CHECK_FOR_OVERWRITE:
     end
 
     if ( $test_failures ) then
-        set endstr = "please remove these files to continue"
+        set endstr = "please remove these files if you want to rerun the script."
 	goto L_BAD_END
     endif
 
@@ -425,11 +425,11 @@ L_CONVERT_SURFACES:
 	    endif
 	endif
 
-	\mv -f $surf.asc $start_dir/$suma_dir	# how barbaric!
+	\mv -f $surf.asc $suma_dir	# how barbaric!
 
 	if ( $status ) then
 	    set endstr = ( "failure: cannot write"	\
-			   "'$start_dir/$suma_dir/$surf.asc'" )
+			   "'$suma_dir/$surf.asc'" )
 	    goto L_BAD_END
 	endif
     end
@@ -498,8 +498,8 @@ L_CREATE_SPEC:
 		set map_ref = $s_head.smoothwm.asc
 	    endif
 
-	    # EmbedDimension is 2 for flat surfaces, else 3
-	    if ( $surf =~ *flat* ) then
+	    # EmbedDimension is 2 for .flat surfaces, else 3
+	    if ( $surf =~ *.flat* ) then
 		set embed_ref = 2
 	    else
 		set embed_ref = 3
@@ -550,7 +550,7 @@ L_CREATE_BRICK:
 	     -zSLAB 127.5P-A $cor_files
     endif
 
-    mv $afni_dataset.HEAD $afni_dataset.BRIK $start_dir/$suma_dir
+    mv $afni_dataset.HEAD $afni_dataset.BRIK $suma_dir
 
     echo "++ created AFNI file '$suma_dir/$afni_dataset.HEAD'"
     echo "++ created AFNI file '$suma_dir/$afni_dataset.BRIK'"
@@ -573,7 +573,7 @@ L_TEST_SURF_VOL:
     echo ""
     echo "    cd $suma_dir"
     echo "    afni -niml &"
-    echo "    suma -spec $spec_file -vp -afni_dataset"
+    echo "    suma -spec $spec_file -sv $afni_dataset"
 
 goto L_TEST_SURF_VOL_DONE
 
@@ -641,7 +641,8 @@ L_HELP_END:
     echo "    1. Surface file names should look like 'lh.smoothwm'."
     echo "    2. Patches of surfaces need the word patch in their name, in"
     echo "       order to use the correct option for 'mris_convert'."
-    echo ""
+    echo "    3. Flat surfaces must have .flat in their name."
+	 echo ""
     echo "     R. Reynolds (rickr@codon.nih.gov), Z. Saad (ziad@nih.gov)"
     echo ""
 
