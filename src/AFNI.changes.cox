@@ -5178,3 +5178,8 @@
      timeseries if polort>0, and -nodmbase option is not given.
  * 3dDeconvolve saga: Generate response vectors from stimulus timing and
      user-specified model.
+
+19 Aug 2004
+ * eis_svd.c sometimes works wrong with "gcc -O", so modified Makefile.INCLUDE
+     and eispack/Makefile to turn optimization off for this file.
+
