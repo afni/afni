@@ -211,9 +211,9 @@ ENTRY("mri_read_dicom") ;
          fprintf(stderr,
                  "++ DICOM WARNING: file %s has Bits_Stored=%d and High_Bit=%d\n",
                  fname,bs,hb) ;
-       nwarn++ ;
        if( nwarn == NWMAX )
          fprintf(stderr,"++ DICOM WARNING: no more Bits_Stored messages will be printed\n") ;
+       nwarn++ ;
      }
    }
 
@@ -225,9 +225,9 @@ ENTRY("mri_read_dicom") ;
         fprintf(stderr,
                 "++ DICOM WARNING: file %s has Rescale tags - not implemented here\n",
                 fname ) ;
-      nwarn++ ;
       if( nwarn == NWMAX )
         fprintf(stderr,"++ DICOM WARNING: no more Rescale tags messages will be printed\n") ;
+      nwarn++ ;
    }
 
    /* check if Window is ordered */
@@ -238,9 +238,9 @@ ENTRY("mri_read_dicom") ;
         fprintf(stderr,
                 "++ DICOM WARNING: file %s has Window tags  - not implemented here\n",
                 fname ) ;
-      nwarn++ ;
       if( nwarn == NWMAX )
         fprintf(stderr,"++ DICOM WARNING: no more Window tags messages will be printed\n") ;
+      nwarn++ ;
    }
 
    /*** extract attributes of the image(s) to be read in ***/
@@ -308,9 +308,9 @@ ENTRY("mri_read_dicom") ;
            if( nwarn < NWMAX )
              fprintf(stderr,"++ DICOM NOTICE: %dx%d Siemens Mosaic of %dx%d images in file %s\n",
                     mos_ix,mos_iy,mos_nx,mos_ny,fname) ;
-           nwarn++ ;
            if( nwarn == NWMAX )
              fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosiac messages will be printed\n") ;
+           nwarn++ ;
 
            /* 31 Oct 2002: extract extra Siemens info, if possible */
 
@@ -340,9 +340,9 @@ ENTRY("mri_read_dicom") ;
              fprintf(stderr,
                      "++ DICOM WARNING: bad SIEMENS MOSAIC parameters: nx=%d ny=%d ix=%d iy=%d imx=%d imy=%d\n",
                      mos_nx,mos_ny , mos_ix,mos_iy , nx,ny ) ;
-           nwarn++ ;
            if( nwarn == NWMAX )
              fprintf(stderr,"++ DICOM NOTICE: no more SIEMENS MOSAIC parameter messages will be printed\n");
+           nwarn++ ;
          }
 
        } /* end of if E_ACQ_MATRIX has good values in it */
@@ -352,17 +352,20 @@ ENTRY("mri_read_dicom") ;
          if( nwarn < NWMAX )
            fprintf(stderr,"++ DICOM WARNING: bad SIEMENS MOSAIC Acquisition Matrix: %d %d %d %d\n",
                    aa,bb,cc,dd ) ;
-         nwarn++ ;
          if( nwarn == NWMAX )
            fprintf(stderr,"++ DICOM NOTICE: no more SIEMENS MOSAIC Acquisition Matrix messages will be printed\n");
+         nwarn++ ;
        }
 
      } /* end of if have '//' in E_ACQ_MATRIX */
    } /* end of if a Siemens mosaic */
 
-   /* try to get dx, dy, dz, dt */
+   /*-- try to get dx, dy, dz, dt --*/
 
    dx = dy = dz = dt = 0.0 ;
+
+   /* dx,dy first */
+
    if( epos[E_PIXEL_SPACING] != NULL ){
      ddd = strstr(epos[E_PIXEL_SPACING],"//") ;
      if( ddd != NULL ) sscanf( ddd+2 , "%f\\%f" , &dx , &dy ) ;
@@ -377,14 +380,63 @@ ENTRY("mri_read_dicom") ;
      }
    }
 
-   if( epos[E_SLICE_SPACING] != NULL ){
-     ddd = strstr(epos[E_SLICE_SPACING],"//") ;
-     if( ddd != NULL ) sscanf( ddd+2 , "%f" , &dz ) ;
-   }
-   if( dz == 0.0 && epos[E_SLICE_THICKNESS] != NULL ){
-     ddd = strstr(epos[E_SLICE_THICKNESS],"//") ;
-     if( ddd != NULL ) sscanf( ddd+2 , "%f" , &dz ) ;
-   }
+   /*-- 27 Nov 2002: fix stupid GE error,
+                     where the slice spacing is really the slice gap --*/
+
+   { char *eee ;
+     int stupid_ge_fix ;
+     float sp=0.0 , th=0.0 ;
+     static int nwarn=0 ;
+
+     eee           = getenv("AFNI_SLICE_SPACING_IS_GAP") ;
+     stupid_ge_fix = (eee != NULL && (*eee=='Y' || *eee=='y') ) ;
+
+     if( epos[E_SLICE_SPACING] != NULL ){                  /* get reported slice spacing */
+       ddd = strstr(epos[E_SLICE_SPACING],"//") ;
+       if( ddd != NULL ) sscanf( ddd+2 , "%f" , &sp ) ;
+     }
+     if( epos[E_SLICE_THICKNESS] != NULL ){                /* get reported slice thickness */
+       ddd = strstr(epos[E_SLICE_THICKNESS],"//") ;
+       if( ddd != NULL ) sscanf( ddd+2 , "%f" , &th ) ;
+     }
+
+     sp = fabs(sp) ;                                       /* we don't use the sign */
+
+     if( stupid_ge_fix ){                                  /* the stupid GE way */
+       dz = sp+th ;
+     } else {
+       dz = (sp != 0.0) ? sp : th ;                        /* the correct DICOM way */
+
+       if( sp < th ) dz = sp+th ;                          /* the stupid GE way again */
+
+       if( sp > 0.0 && sp < th && nwarn < NWMAX ){
+         fprintf(stderr,
+                 "++ DICOM WARNING: file %s has Slice_Spacing=%f smaller than Slice_Thickness=%f\n",
+                 fname , sp , th ) ;
+         if( nwarn == 0 )
+           fprintf(stderr,
+              "\n"
+              "++  Setting environment variable AFNI_SLICE_SPACING_IS_GAP       ++\n"
+              "++   to YES will make the center-to-center slice distance        ++\n"
+              "++   be set to Slice_Spacing+Slice_Thickness=%6.3f.             ++\n"
+              "++  This is against the DICOM standard [attribute (0018,0088)    ++\n"
+              "++   is defined as the center-to-center spacing between slices,  ++\n"
+              "++   NOT as the edge-to-edge gap between slices], but it seems   ++\n"
+              "++   to be necessary for some GE scanners.                       ++\n"
+              "++                                                               ++\n"
+              "++  This correction has been made on this data: dz=%6.3f.       ++\n"
+              "\n\a" ,
+             sp+th , dz ) ;
+       }
+       if( nwarn == NWMAX )
+         fprintf(stderr,"++ DICOM WARNING: no more Slice_Spacing messages will be printed\n") ;
+       nwarn++ ;
+     }
+     if( dz == 0.0 && dx != 0.0 ) dz = 1.0 ;               /* nominal dz */
+
+   } /*-- end of dz code --*/
+
+   /* get dt */
 
    if( epos[E_REPETITION_TIME] != NULL ){
      ddd = strstr(epos[E_REPETITION_TIME],"//") ;
