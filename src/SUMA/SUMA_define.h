@@ -329,8 +329,8 @@ typedef struct {
 /*! Displayable Object Type */
 typedef struct {
    void *OP;   /*<! Object Pointer */
-   SUMA_DO_Types ObjectType; /*<! Type of displayable object */
-   SUMA_DO_CoordType CoordType; /*<! Type of coordinate system that the object is attached to
+   SUMA_DO_Types ObjectType; /*!< Type of displayable object */
+   SUMA_DO_CoordType CoordType; /*!< Type of coordinate system that the object is attached to
                                     This is used to determine whether the object is drawn before or 
                                     or after the shift and rotation matrices are applied */
 } SUMA_DO;
@@ -346,6 +346,9 @@ typedef struct {
    int REDISPLAYPENDING;
    int WIDTH, HEIGHT;
    XtWorkProcId REDISPLAYID, MOMENTUMID;
+   
+   Widget ToggleCrossHair_View_tglbtn; /*!< Toggle button in View-> menu */
+         
 }SUMA_X;
 
 /*! filename and path */

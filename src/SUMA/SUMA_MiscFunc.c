@@ -2393,6 +2393,7 @@ ans = SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, d, closest_
    cnt = 0;
    cntmax = SO->FN->N_Neighb[Nref];
    // NOTE: This assumes that FN->NodeId is monotonically increasing from 0 to N_Node -1
+   N_Checked = 0;
    while (!Found && cnt < cntmax) {
       // find the triangles touching the edge Nref-FirstNeighb[Nref][cnt], usually there are two 
       if (!SUMA_Get_Incident(Nref, SO->FN->FirstNeighb[Nref][cnt], SO->EL, Indident, &N_Incident) {

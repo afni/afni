@@ -379,6 +379,8 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
             
          case SE_ToggleCrossHair:
             sv->ShowCrossHair = !sv->ShowCrossHair;
+            XmToggleButtonSetState (sv->X->ToggleCrossHair_View_tglbtn, 
+               sv->ShowCrossHair, NOPE);            
             break;
             
          case SE_SetCrossHair:
