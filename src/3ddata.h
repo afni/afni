@@ -92,7 +92,7 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
     Labels aren't really used anymore, since the stupid users didn't like them
 */
-#define THD_DEFAULT_LABEL "Elvis Lives"
+#define THD_DEFAULT_LABEL "Viggo!"
 
 /*! Max num datasets per session. */
 

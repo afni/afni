@@ -1723,55 +1723,69 @@ char * AFNI_controller_label( Three_D_View * im3d )
   Set the titles in all windows
 ----------------------------------------------------------------------*/
 
-void AFNI_set_window_titles( Three_D_View * im3d )
+#undef  USE_TITLE2
+#define USE_TITLE2(ds)   ( ISVALID_DSET(ds)                     &&  \
+                           AFNI_yesenv("AFNI_TITLE_LABEL2")     &&  \
+                           *((ds)->label2) != '\0'              &&  \
+                           strcmp( (ds)->label2 , "zyxt" ) != 0   )
+
+void AFNI_set_window_titles( Three_D_View *im3d )
 {
    Boolean redo_title ;
    char ttl[THD_MAX_NAME] , nam[THD_MAX_NAME] ;
-   char * tnam ;
+   char *tnam ;
 
 ENTRY("AFNI_set_window_titles") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    if( im3d->anat_wod_flag )
-      sprintf(ttl , "{warp} %s%s: " ,
-              AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
+     sprintf(ttl , "{warp} %s%s: " ,
+             AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
    else
-      sprintf(ttl , "%s%s: " ,
-              AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
+     sprintf(ttl , "%s%s: " ,
+             AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
 
-   strcpy( nam , im3d->anat_now->dblk->diskptr->directory_name ) ;
-   strcat( nam , im3d->anat_now->dblk->diskptr->filecode ) ;
-   tnam = THD_trailname(nam,SESSTRAIL+1) ;
-   strcat( ttl , tnam ) ;
+   if( USE_TITLE2(im3d->anat_now) ){
+     strcat( ttl , im3d->anat_now->label2 ) ;
+   } else {
+     strcpy( nam , im3d->anat_now->dblk->diskptr->directory_name ) ;
+     strcat( nam , im3d->anat_now->dblk->diskptr->filecode ) ;
+     tnam = THD_trailname(nam,SESSTRAIL+1) ;
+     strcat( ttl , tnam ) ;
+   }
 
    if( ISVALID_3DIM_DATASET(im3d->fim_now) ){
-      strcat( ttl , " & " ) ;
-      strcat( ttl , im3d->fim_now->dblk->diskptr->filecode ) ;
+     strcat( ttl , " & " ) ;
+     if( USE_TITLE2(im3d->fim_now) ){
+       strcat( ttl , im3d->fim_now->label2 ) ;
+     } else {
+       strcat( ttl , im3d->fim_now->dblk->diskptr->filecode ) ;
+     }
    }
 
    redo_title = (Boolean) (strcmp(ttl,im3d->window_title) != 0 ) ;
    if( redo_title ){
-      strcpy( im3d->window_title , ttl ) ;
-      XtVaSetValues( im3d->vwid->top_shell , XmNtitle , ttl , NULL ) ;
+     strcpy( im3d->window_title , ttl ) ;
+     XtVaSetValues( im3d->vwid->top_shell , XmNtitle , ttl , NULL ) ;
 
-      if( im3d->s123 != NULL )
-         drive_MCW_imseq( im3d->s123 , isqDR_title , (XtPointer) ttl ) ;
+     if( im3d->s123 != NULL )
+       drive_MCW_imseq( im3d->s123 , isqDR_title , (XtPointer) ttl ) ;
 
-      if( im3d->s231 != NULL )
-         drive_MCW_imseq( im3d->s231 , isqDR_title , (XtPointer) ttl ) ;
+     if( im3d->s231 != NULL )
+       drive_MCW_imseq( im3d->s231 , isqDR_title , (XtPointer) ttl ) ;
 
-      if( im3d->s312 != NULL )
-         drive_MCW_imseq( im3d->s312 , isqDR_title , (XtPointer) ttl ) ;
+     if( im3d->s312 != NULL )
+       drive_MCW_imseq( im3d->s312 , isqDR_title , (XtPointer) ttl ) ;
 
-      if( im3d->g123 != NULL )
-         drive_MCW_grapher( im3d->g123 , graDR_title , (XtPointer) ttl ) ;
+     if( im3d->g123 != NULL )
+       drive_MCW_grapher( im3d->g123 , graDR_title , (XtPointer) ttl ) ;
 
-      if( im3d->g231 != NULL )
-         drive_MCW_grapher( im3d->g231 , graDR_title , (XtPointer) ttl ) ;
+     if( im3d->g231 != NULL )
+       drive_MCW_grapher( im3d->g231 , graDR_title , (XtPointer) ttl ) ;
 
-      if( im3d->g312 != NULL )
-         drive_MCW_grapher( im3d->g312 , graDR_title , (XtPointer) ttl ) ;
+     if( im3d->g312 != NULL )
+       drive_MCW_grapher( im3d->g312 , graDR_title , (XtPointer) ttl ) ;
    }
 
    EXRETURN ;

@@ -116,6 +116,7 @@ static void ENV_leftisleft( char * ) ;
 static void ENV_marksquality( char * ) ;
 static void ENV_trusthost( char * ) ;     /* 21 Feb 2001 */
 static void ENV_cwd( char * ) ;           /* 22 Feb 2001 */
+static void ENV_redraw_titles( char * );  /* 21 Dec 2004 */
 
 #ifdef USE_SESSTRAIL
 static void ENV_sesstrail( char * ) ;
@@ -170,7 +171,7 @@ static char * ENV_main( PLUGIN_interface * ) ;  /* the entry point */
 
 PLUGIN_interface * ENV_init(void)
 {
-   PLUGIN_interface * plint ;     /* will be the output of this routine */
+   PLUGIN_interface *plint ;     /* will be the output of this routine */
 
    char *helpstring=NULL , *ept , *eval ;
    int ii ;
@@ -398,6 +399,11 @@ PLUGIN_interface * ENV_init(void)
 
    /* 07 Apr 2004 [RWCox] */
    ENV_add_yesno( "AFNI_X11_REDECORATE" , "Try to set X11 window 'decorations'?" ) ;
+
+   /* 21 Dec 2004 [RWCox] */
+   ENV_add_string( "AFNI_TITLE_LABEL2" ,
+                   "Use 'label2' field for window titles?" ,
+                   NUM_yesno_list , yesno_list , ENV_redraw_titles ) ;
 
    /*---------------- compute helpstring -----------------------*/
 
@@ -772,6 +778,15 @@ static void ENV_trusthost( char * vname )  /* 21 Feb 2001 */
 {
    char * str = getenv(vname) ;
    TRUST_addhost(str) ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+static void ENV_redraw_titles( char *vname ) /* 21 Dec 2004 */
+{
+   int ii ;
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+     AFNI_set_window_titles( GLOBAL_library.controllers[ii] ) ;
 }
 
 /*-----------------------------------------------------------------------*/
