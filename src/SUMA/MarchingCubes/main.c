@@ -36,7 +36,8 @@ void mc_help(void)
             "           Vol.1D is the (Res x Res x Res) volume in 1D format.\n"
             "           You can't use a binary file where you have 0 and 1,\n"
             "           like in a segmented volume, you need to create a gradient\n"
-            "           over zero. For example if you have a mask with 0 outside \n"
+            "           over zero. \n"
+            " Example 1: If you have a mask with 0 outside \n"
             "           the brain and 1 inside, turn all 0s into -1.\n"
             "           Say Anat is a 128x128x128 volume for example:\n"
             "           3dAutomask -prefix Mask Anat+orig.            \n"
@@ -44,7 +45,25 @@ void mc_help(void)
             "           3dmaskdump GradMask+orig. > GradMask.1D\n"
             "           mc GradMask.1D 128\n"
             "           quickspec -tn 1D testNodes.1D testFaces.1D\n"
-            "           suma -spec quic.spec\n"
+            "           suma -spec quick.spec\n"
+            "\n"
+            "Usage 3: mc <Vol.1D> <ResX ResY ResZ> \n"
+            "         Same as usage 2 but allowing for non cubical volumes.\n"
+            "         in the 1D file, the X dimension changes first, followed\n"
+            "         by Y followed by Z. \n"
+            "         In other terms: 1Drow = X + Nx Y + NxNy Z\n"
+            " Example 2: You have an ROI data set with non zero values where\n"
+            "            forming volumes of interest. To extract isosurface of \n"
+            "            value 3 from your ROI dataset COPY_closeup+orig:\n"
+            "         rm Mask* GradMask*\n"
+            "         set vol = COPY_closeup+orig\n"
+            "         set sz_st = `3dAttribute -name DATASET_DIMENSIONS $vol`\n"
+            "         set sz = ($sz_st[3] $sz_st[4] $sz_st[5])\n"
+            "         3dcalc -datum float -a $vol -expr '( -1*(1-equals(a,3))+equals(a,3) )' -prefix GradMask\n"
+            "         3dmaskdump GradMask+orig. > GradMask.1D\n"
+            "         mc GradMask.1D $sz[1] $sz[2] $sz[3]\n"
+            "         quickspec -tn 1D testNodes.1D testFaces.1D\n"
+            "         suma -spec quick.spec \n"
             "\n" );
             
 }
@@ -58,7 +77,7 @@ int main (int argc, char **argv)
 {
   MCB *mcp ;
   int obj_type;
-  int Res = 256;
+  int Resx = 256, Resy =256, Resz =256;
   char *fname = NULL;
   
   if (argc == 1) {
@@ -69,32 +88,33 @@ int main (int argc, char **argv)
    if (!strcmp(argv[1], "-h") || !strcmp(argv[1], "-help")) {
       mc_help(); exit(0);
    }
-   Res = 60 ;
+   Resx = Resy = Resz = 60 ;
    obj_type = atoi(argv[1]);
    if (obj_type < 0 || obj_type > 9) {
       fprintf(stderr,"Bad object type (value between 0 and 9).\n");
       exit(1);
    }
   }else if (argc == 3){
-   if (argc != 3){
-      fprintf(stderr,"Usage: mc 1Dname nvoxel\n\n1D file is the output of 3dmaskdump volume is assumed cubic [nvoxel * nvoxel *nvoxel]for now...\n");
-      exit(1);
-   }
    fname = argv[1];
-   Res = atoi(argv[2]) ;
-  }else {
+   Resx = Resy = Resz = atoi(argv[2]) ;
+  }else if (argc == 5){
+   fname = argv[1];
+   Resx = atoi(argv[2]) ;
+   Resy = atoi(argv[3]) ;
+   Resz = atoi(argv[4]) ;
+  } else{
    fprintf(stderr,"Bad usage.\n");
    exit(1);
   }
   
   mcp = MarchingCubes(-1, -1, -1);
-  set_resolution( mcp, Res, Res, Res ) ;
+  set_resolution( mcp, Resx, Resy, Resz) ;
 
   init_all(mcp) ;
   if (argc == 2) {
    printf("Creating %s...\n", Obj_Types[obj_type]);
    compute_data( *mcp , obj_type) ;
-  }else if (argc == 3) {
+  }else if (argc == 3 || argc == 5) {
    z_compute_data( *mcp , fname) ;
   } 
   run(mcp) ;
