@@ -1259,11 +1259,17 @@ void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    if( ndsl < 1 ){
       (void) MCW_popup_message( choose_pb ,
+                                   " \n"
                                    "Didn't find any datasets to edit!\n"
                                    "Check if:\n"
                                    " - you are in 'Warp-on-Demand' mode\n"
-                                   " - you are in the correct session" ,
-                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+                                   " - you are in the correct session\n"
+                                   "Also:\n"
+                                   " * Only datasets with 1 sub-brick can\n"
+                                   "    be edited.\n"
+                                   " * The dataset must match the resolution\n"
+                                   "    of the current anatomical view.\n"
+                               , MCW_USER_KILL | MCW_TIMER_KILL ) ;
       XBell(dc->display,100) ; return ;
    }
 
