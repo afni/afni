@@ -1291,7 +1291,7 @@ extern void AFNI_choose_surface_CB( Widget , XtPointer , XtPointer ) ; /* 19 Aug
 extern void AFNI_update_surface_widgets( Three_D_View * ) ;
 extern void AFNI_update_all_surface_widgets( THD_3dim_dataset * ) ;
 
-extern void AFNI_allow_suma_overlay( int ) ;  /* 16 Jun 2003 */
+extern void AFNI_disable_suma_overlay( int ) ;  /* 16 Jun 2003 */
 
 /*-------------------------------------------------------------------
   Include prototypes for actual data warping and slicing here.

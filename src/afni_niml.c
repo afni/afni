@@ -1022,7 +1022,7 @@ STATUS("redisplay Node_ROI function") ;
 
 /*--------------------------------------------------------------------*/
 
-void AFNI_allow_suma_overlay( int aa )
+void AFNI_disable_suma_overlay( int aa )
 {
    dont_overlay_suma = aa ;
 }
