@@ -1,0 +1,57 @@
+# This Makefile works on UnixWare 7 with the Universal Development Kit
+# -- contributed by Jason Bacon
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+#CEXTRA = -DUSE_TRACING -fomit-frame-pointer
+CEXTRA = -DUSE_TRACING
+CC     = cc -O -DSCO -DNO_GAMMA $(CEXTRA)
+CCVOL  = cc -DSCO -DNO_GAMMA $(CEXTRA)
+CCFAST = cc -O2 -DSCO -DNO_GAMMA $(CEXTRA)
+CCMIN  = cc -DSCO
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/local/include
+LFLAGS = -W l,'-Bexport' -L.
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -G -W l,'-Bexport'
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -W l,'-Bexport' -L.
+
+AR     = ar
+RANLIB = touch
+TAR    = tar
+MKDIR  = mkdir
+TAPE   = /dev/null
+GZIP   = gzip
+LD     = cc
+
+RM = /bin/rm -f
+MV = /bin/cp -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./scoudk
+LIBDIR = $(INSTALLDIR)
+
+# for dynamic linking
+
+LLIBS  = -lmri -lXm -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lsocket -lSM -lICE
+
+# for static linking, as far as possible
+
+#LLIBS = -lmri -ldl               \
+	/usr/X11R6/lib/libXm.a   \
+	/usr/X11R6/lib/libXpm.a  \
+	/usr/X11R6/lib/libXext.a \
+	/usr/X11R6/lib/libXmu.a  \
+	/usr/X11R6/lib/libXt.a   \
+	/usr/X11R6/lib/libSM.a   \
+	/usr/X11R6/lib/libICE.a  \
+	/usr/X11R6/lib/libX11.a  \
+	/usr/lib/libm.a          \
+	/usr/lib/libc.a
+
+###############################################################
+
+include Makefile.INCLUDE

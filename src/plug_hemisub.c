@@ -1,8 +1,12 @@
+
 /*----------------------------------------------------------------------
  *
- *  plug_hemisub.c	- AFNI plugin to subtract hemispheres
+ *  plug_hemisub.c      - AFNI plugin to subtract hemispheres
  *
  *  $Log$
+ *  Revision 1.2  2000/06/15 22:02:40  cox
+ *  AFNI
+ *
  *  Revision 1.1  1999/08/06 19:10:48  cox
  *  AFNI
  *
@@ -10,15 +14,13 @@
  * Initial revision
  *
  *----------------------------------------------------------------------
-*/
-
-#include <alloca.h>
+ */
 
 #include "afni.h"
 
 typedef struct
 {
-    int thresh_type;	/* none, pos_only, neg_only */
+    int thresh_type;    /* none, pos_only, neg_only */
 } hemi_s;
 
 static char * process_data     ( THD_3dim_dataset *, hemi_s * );
@@ -34,7 +36,7 @@ static char * process_as_floats( THD_3dim_dataset *, hemi_s * );
 
 char * HEMISUB_main( PLUGIN_interface * );
 
-#define		   NUM_T_OPTS	3
+#define            NUM_T_OPTS   3
 
 static char      * thresh_opts[ NUM_T_OPTS ] =
 			{ "any", "positives only", "negatives only" };
@@ -103,7 +105,7 @@ char * HEMISUB_main( PLUGIN_interface * plint )
 
 
     if ( plint == NULL )
-	return	"------------------------\n"
+	return  "------------------------\n"
 		"HEMISUB_main: NULL input\n"
 		"------------------------\n";
 
@@ -113,8 +115,8 @@ char * HEMISUB_main( PLUGIN_interface * plint )
 
     if( dset == NULL )
 	return "-------------------------------\n"
-               "HEMISUB_main: bad input dataset\n"
-               "-------------------------------";
+	       "HEMISUB_main: bad input dataset\n"
+	       "-------------------------------";
 
     DSET_load( dset );
 
@@ -183,14 +185,14 @@ process_data( THD_3dim_dataset * dset, hemi_s * hs )
 
 	for ( cx = 0; cx < (nx+1)/2; cx++ )
 	{
-	    if ( type == 1 )		/* positives only */
+	    if ( type == 1 )            /* positives only */
 	    {
 		if ( *sp < 0 )
 		    *sp = 0;
 		if ( *sp2 < 0 )
 		    *sp2 = 0;
 	    }
-	    else if ( type == 2 )	/* negatives only */
+	    else if ( type == 2 )       /* negatives only */
 	    {
 		if ( *sp > 0 )
 		    *sp = 0;
@@ -218,7 +220,7 @@ process_data( THD_3dim_dataset * dset, hemi_s * hs )
     if ( floats )
 	return process_as_floats( dset, hs );
 
-    return NULL;	/* success */
+    return NULL;        /* success */
 }
 
 
@@ -249,7 +251,7 @@ process_as_floats( THD_3dim_dataset * dset, hemi_s * hs )
 
     /* first get the data into a float array */
 
-    if ( ( fdata = (float *)alloca( nvox * sizeof( float ) ) ) == NULL )
+    if ( ( fdata = (float *)malloc( nvox * sizeof( float ) ) ) == NULL )
 	return  "------------------------------\n"
 		"paf: failed allocation of floats"
 		"------------------------------\n";
@@ -282,7 +284,7 @@ process_as_floats( THD_3dim_dataset * dset, hemi_s * hs )
 	    *fp2 = -*fp;
 
 	    fp++;
-   	    fp2--;
+	    fp2--;
 	}
     }
 
@@ -290,17 +292,18 @@ process_as_floats( THD_3dim_dataset * dset, hemi_s * hs )
 
     maxabs = MCW_vol_amax( nvox, 1, 1, MRI_float, fdata );
 
-    if ( maxabs == 0.0 )
-	return NULL;		/* result is all zero, let the user worry */
-
-    factor = MRI_TYPE_maxval[MRI_short] /maxabs;	/* 32767? / maxabs */
-
-    EDIT_coerce_scale_type( nvox, factor, MRI_float, fdata, MRI_short, sdata );
-
-    DSET_BRICK_FACTOR( dset, 0 ) = factor == 0.0 ? 0.0 : 1.0 / factor;
-
-    THD_load_statistics( dset );
-
-    return NULL;	/* success */
+    /* result is all zero, let the user worry */
+    if ( maxabs != 0.0 )
+    {
+	factor = MRI_TYPE_maxval[MRI_short] /maxabs;        /* 32767? / maxabs */
+    
+	EDIT_coerce_scale_type( nvox, factor, MRI_float, fdata, MRI_short, sdata );
+    
+	DSET_BRICK_FACTOR( dset, 0 ) = factor == 0.0 ? 0.0 : 1.0 / factor;
+    
+	THD_load_statistics( dset );
+    }
+    free(fdata);
+    return NULL;        /* success */
 }
 

@@ -2291,6 +2291,23 @@ STATUS("making func->rowcol") ;
    XtAddCallback( func->pbar_writeout_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
 
+   /* 15 Jun 2000: image save button */
+
+   func->pbar_saveim_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Save to PPM") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   MCW_register_hint( func->pbar_saveim_pb ,
+                      "Write out as image file" );
+
+   XtAddCallback( func->pbar_saveim_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+
    func->pbar_showtable_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
@@ -2304,7 +2321,6 @@ STATUS("making func->rowcol") ;
                   AFNI_pbar_CB , im3d ) ;
 
    MCW_register_hint( func->pbar_showtable_pb , "Will popup a listing window" ) ;
-
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,

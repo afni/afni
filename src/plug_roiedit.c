@@ -8,9 +8,6 @@
  ***********************************************************************
  */
 
-#ifndef SCO
-#include <alloca.h>
-#endif
 #include <Xm/FileSB.h>
 
 #include "afni.h"
@@ -2115,7 +2112,7 @@ r_histogram( r_alg_s * A, int min, int max, int check_val )
     int     count, size = max - min + 1, total = 0;
 
 
-    if ( ( hist = (int *)alloca( size * sizeof( int ) ) ) == NULL )
+    if ( ( hist = (int *)malloc( size * sizeof( int ) ) ) == NULL )
     {
 	sprintf( gRmessage, "Error: pr_rh_10\n"
 		 "Failed alloca for %d ints.", size );
@@ -2144,6 +2141,7 @@ r_histogram( r_alg_s * A, int min, int max, int check_val )
     for ( count = 0; count < size; count++)
 	printf( " %6d   \t %7d   \t  %7.3f\n",
 		min + count, hist[ count ], 100.0 * hist[ count ] / total );
+    free(hist);
 }
 
 

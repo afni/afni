@@ -440,6 +440,7 @@ typedef struct {
              pbar_readin_pb , pbar_writeout_pb ;
       MCW_arrowval * pbar_palette_av ;
       Widget pbar_showtable_pb ;
+      Widget pbar_saveim_pb  ;    /* 15 Jun 2000 */
 
       Widget options_rowcol , options_label ;
       MCW_bbox     * underlay_bbox ;

@@ -232,6 +232,21 @@ extern long   strtol() ;
 # undef  DONT_UNROLL_FFTS         /* helps a lot */
 #endif
 
+/* SCO UDK under Unixware 7 -- contributed by Jason Bacon */
+#ifdef SCO
+# include <dirent.h>
+# define THD_MMAP_FLAG  MAP_SHARED
+# define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
+# define SCANDIR_WANTS_CONST
+# define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
+/* # define MMAP_THRESHOLD -1 */       /* no mmap-ing */
+# define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
+# define BOXUP_SCALE              /* looks nicer */
+# define DYNAMIC_LOADING_VIA_DL
+# undef  DONT_UNROLL_FFTS         /* helps a lot */
+#endif
+
+
 /************************************************************************
    Do NOT change anything below this line (unless your name is Cox)!
 *************************************************************************/

@@ -151,6 +151,12 @@ ENTRY("AFNI_splashup") ;
 
       if( !first ){
          drive_MCW_imseq( ppp->seq , isqDR_title , (XtPointer) "AFNI!" ) ;
+         drive_MCW_imseq( ppp->seq , isqDR_imhelptext,
+                          (XtPointer)
+                            "Help me if you can, I'm feeling down,\n"
+                            "and I do appreciate you being round.\n"
+                            "Help me get my feet back on the ground,\n"
+                            "won't you please, please, help me?\n" ) ;
       }
 
    /*--- destroy splash image ---*/

@@ -8,6 +8,10 @@
 /*-------------------------------------------------------------------*/
 /* taken from #include "/usr/people/ziad/Programs/C/Z/Zlib/prototype.h" */
 
+#ifdef SCO
+#define drem remainder
+#endif
+
 int Read_file (float *x,char *f_name,int n_points);
 
 void linear_reg (float *x,float *y,int size,float *a,float *b,int *err);

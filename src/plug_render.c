@@ -351,6 +351,7 @@ static MCW_bbox * wfunc_see_overlay_bbox , * wfunc_cut_overlay_bbox ,
 static MCW_arrowval * wfunc_clusters_rmm_av , * wfunc_clusters_vmul_av ;
 
 static Widget wfunc_pbar_menu , wfunc_pbar_equalize_pb , wfunc_pbar_settop_pb ;
+static Widget wfunc_pbar_saveim_pb ;
 static MCW_arrowval * wfunc_pbar_palette_av ;
 static MCW_arrowval * wfunc_pbar_mixshade_av ;  /* 21 Dec 1999 */
 
@@ -359,6 +360,7 @@ extern void REND_pbarmenu_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 extern void REND_palette_av_CB( MCW_arrowval * , XtPointer ) ;
 extern void REND_mixshade_av_CB( MCW_arrowval * , XtPointer ) ;  /* 21 Dec 1999 */
 extern void REND_set_pbar_top_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void REND_finalize_saveim_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 #define DEFAULT_FUNC_RANGE 10000.0
 
@@ -4667,6 +4669,23 @@ void REND_func_widgets(void)
    XtAddCallback( wfunc_pbar_settop_pb , XmNactivateCallback ,
                   REND_pbarmenu_CB , im3d ) ;
 
+   /* 15 Jun 2000: image save button */
+
+   wfunc_pbar_saveim_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , wfunc_pbar_menu ,
+            LABEL_ARG("Save to PPM") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   MCW_register_hint( wfunc_pbar_saveim_pb ,
+                      "Write out as image file" );
+
+   XtAddCallback( wfunc_pbar_saveim_pb , XmNactivateCallback ,
+                  REND_pbarmenu_CB , im3d ) ;
+
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , wfunc_pbar_menu ,
              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
@@ -5568,6 +5587,14 @@ void REND_pbarmenu_CB( Widget w , XtPointer cd , XtPointer cbs )
                           REND_set_pbar_top_CB , NULL  ) ;
    }
 
+   /*--- Save pbar into image file ---*/
+
+   else if( w == wfunc_pbar_saveim_pb ){
+      MCW_choose_string( wfunc_choices_label,
+                         "PPM file prefix" , NULL ,
+                         REND_finalize_saveim_CB , cd ) ;
+   }
+
    return ;
 }
 
@@ -5612,6 +5639,39 @@ void REND_set_pbar_top_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
    INVALIDATE_OVERLAY ;
    return ;
+}
+
+void REND_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   char * fname , * ptr ;
+   int ll , nx=20 , ny=256 ;
+   MRI_IMAGE * im ;
+
+   if( !renderer_open || cbs->reason != mcwCR_string ||
+       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ) return;
+
+   fname = (char *) malloc( sizeof(char) * (ll+8) ) ;
+   strcpy( fname , cbs->cval ) ;
+
+   if( ll > 240 || ! THD_filename_ok(fname) ){free(fname); return;}
+
+                     ptr = strstr(fname,".ppm") ;
+   if( ptr == NULL ) ptr = strstr(fname,".pnm") ;
+   if( ptr == NULL ) strcat(fname,".ppm") ;
+
+   fprintf(stderr,"Writing palette image to %s\n",fname) ;
+
+   ptr = getenv( "AFNI_PBAR_IMXY" );
+   if( ptr != NULL ){
+      ll = sscanf( ptr , "%dx%d" , &nx , &ny ) ;
+      if( ll < 2 || nx < 1 || ny < 32 ){ nx=20; ny=256; }
+   }
+
+   im = MCW_pbar_to_mri( wfunc_color_pbar , nx,ny ) ;
+   mri_write_pnm( fname , im ) ;
+
+   POPDOWN_string_chooser; mri_free(im); free(fname); return;
 }
 
 /*-----------------------------------------------------------------------------------

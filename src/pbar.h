@@ -10,6 +10,7 @@
 #include <string.h>
 #include <math.h>
 
+#include "mrilib.h"      /* 15 Jun 2000 */
 #include "mcw_malloc.h"
 
 #include "display.h"
@@ -71,5 +72,7 @@ MCW_pbar * new_MCW_pbar( Widget , MCW_DC * ,
 
 void alter_MCW_pbar( MCW_pbar * , int , float * ) ;
 void update_MCW_pbar( MCW_pbar * ) ;
+
+MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar *,int,int ) ; /* 15 Jun 2000 */
 
 #endif

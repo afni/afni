@@ -640,10 +640,20 @@ ENTRY("AFNI_pbar_CB") ;
       free(dum) ;
    }
 
+   /*--- Save pbar into image file ---*/
+
+   else if( w == im3d->vwid->func->pbar_saveim_pb ){
+      MCW_choose_string( im3d->vwid->func->options_label ,
+                         "PPM file prefix" , NULL ,
+                         AFNI_finalize_saveim_CB , cd ) ;
+   }
+
    /*** done ***/
 
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 void AFNI_palette_av_CB( MCW_arrowval * av , XtPointer cd )
 {
@@ -662,6 +672,8 @@ ENTRY("AFNI_palette_av_CB") ;
 
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 void AFNI_finalize_read_palette_CB( Widget w, XtPointer cd, XtPointer cb )
 {
@@ -759,6 +771,8 @@ ENTRY("AFNI_finalize_read_palette_CB") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 void AFNI_set_pbar_top_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
@@ -784,6 +798,8 @@ ENTRY("AFNI_set_pbar_top_CB") ;
 
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------------*/
 
 void AFNI_finalize_write_palette_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
 {
@@ -857,5 +873,42 @@ ENTRY("AFNI_finalize_write_palette_CB") ;
       fprintf( fp , "  %f -> %s\n" ,
                pval[ii] , im3d->dc->ovc->label_ov[ovin[ii]] ) ;
 
-   fclose(fp) ; free(fname) ; EXRETURN ;
+   POPDOWN_string_chooser; fclose(fp); free(fname); EXRETURN;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void AFNI_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   char * fname , * ptr ;
+   int ll , nx=20 , ny=256 ;
+   MRI_IMAGE * im ;
+
+ENTRY("AFNI_finalize_saveim_CB") ;
+
+   if( ! IM3D_OPEN(im3d) || cbs->reason != mcwCR_string ||
+       cbs->cval == NULL || (ll=strlen(cbs->cval)) == 0   ){BEEPIT; EXRETURN;}
+
+   fname = (char *) malloc( sizeof(char) * (ll+8) ) ;
+   strcpy( fname , cbs->cval ) ;
+
+   if( ll > 240 || ! THD_filename_ok(fname) ){free(fname); BEEPIT; EXRETURN;}
+
+                     ptr = strstr(fname,".ppm") ;
+   if( ptr == NULL ) ptr = strstr(fname,".pnm") ;
+   if( ptr == NULL ) strcat(fname,".ppm") ;
+
+   fprintf(stderr,"Writing palette image to %s\n",fname) ;
+
+   ptr = getenv( "AFNI_PBAR_IMXY" );
+   if( ptr != NULL ){
+      ll = sscanf( ptr , "%dx%d" , &nx , &ny ) ;
+      if( ll < 2 || nx < 1 || ny < 32 ){ nx=20; ny=256; }
+   }
+
+   im = MCW_pbar_to_mri( im3d->vwid->func->inten_pbar , nx,ny ) ;
+   mri_write_pnm( fname , im ) ;
+
+   POPDOWN_string_chooser; mri_free(im); free(fname); EXRETURN;
 }

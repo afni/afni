@@ -2164,3 +2164,10 @@
 08 Jun 2000
  * Added new picture to splash screen (the MCW gang).  Also, added
      AFNI_IMAGE_PGMFILE environment variable to afni_splash.c
+
+16 Jun 2000
+ * Added option "-nscale" to 3dcalc.c [that damn Tom Ross again].
+ * Added an SCO Makefile [from Jason Bacon] and a couple of patches
+     to go with it.
+ * Added "Save to PPM" button to color pbar popup menus, to let the
+     user save a representation of the color overlay scheme.

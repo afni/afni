@@ -717,6 +717,17 @@ at this time, the only such image is the "MCW AFNI gang" picture.)
 This filename should be an absolute pathname, so that AFNI can find it
 regardless of the directory in which AFNI is started.
 
+------------------------
+Variable: AFNI_PBAR_IMXY
+------------------------
+This variable determines the size of the image saved when the
+"Save to PPM" button is selected for a color pbar.  It should be
+in the format
+  setenv AFNI_PBAR_IMXY 20x256
+which means to set the x-size (horizontal) to 20 pixels and the
+y-size (vertical) to 256 pixels.  These values are the default,
+by the way.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

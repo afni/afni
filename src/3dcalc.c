@@ -49,6 +49,7 @@ static int                ntime[26] ;
 static int                ntime_max = 0 ;
 static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
 static int                CALC_gscale = 0 ;  /* 01 Apr 1999 */
+static int                CALC_nscale = 0 ;  /* 15 Jun 2000 */
 
 static int                CALC_histpar = -1 ; /* 22 Nov 1999 */
 
@@ -201,10 +202,19 @@ void CALC_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      /**** -nscale [15 Jun 2000] ****/
+
+      if( strncmp(argv[nopt],"-nscale",6) == 0 ){
+         CALC_gscale = CALC_fscale = 0 ;
+         CALC_nscale = 1 ;
+         nopt++ ; continue ;
+      }
+
       /**** -fscale [16 Mar 1998] ****/
 
       if( strncmp(argv[nopt],"-fscale",6) == 0 ){
          CALC_fscale = 1 ;
+         CALC_nscale = 0 ;
          nopt++ ; continue ;
       }
 
@@ -212,6 +222,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-gscale",6) == 0 ){
          CALC_gscale = CALC_fscale = 1 ;
+         CALC_nscale = 0 ;
          nopt++ ; continue ;
       }
 
@@ -618,8 +629,8 @@ void CALC_Syntax(void)
     "                  This option is often necessary to eliminate unpleasant\n"
     "                  truncation artifacts.\n"
     "                  [The default is to scale only if the computed values\n"
-    "                   seem to need it -- are all less than 1 or there is\n"
-    "                   at least one value beyond the integer upper limit.]\n"
+    "                   seem to need it -- are all <= 1.0 or there is at\n"
+    "                   least one value beyond the integer upper limit.]\n"
     "             ** In earlier versions of 3dcalc, scaling (if used) was\n"
     "                   applied to all sub-bricks equally -- a common scale\n"
     "                   factor was used.  This would cause trouble if the values\n"
@@ -629,6 +640,9 @@ void CALC_Syntax(void)
     "  -gscale     = Same as '-fscale', but also forces each output sub-brick to\n"
     "                   get the same scaling factor.  This may be desirable\n"
     "                   for 3D+time datasets, for example.\n"
+    "  -nscale     = Don't do any scaling on output to byte or short datasets.\n"
+    "                   This may be especially useful when operating on mask\n"
+    "                   datasets whose output values are only 0's and 1's.\n"
     "  -a dname    = Read dataset 'dname' and call the voxel values 'a'\n"
     "                  in the expression that is input below.  'a' may be any\n"
     "                  single letter from 'a' to 'z'.\n"
@@ -1319,9 +1333,11 @@ int main( int argc , char * argv[] )
 
             if( CALC_fscale ){   /* 16 Mar 1998 */
                fimfac = (gtop > 0.0) ? MRI_TYPE_maxval[CALC_datum] / gtop : 0.0 ;
-            } else {
+            } else if( !CALC_nscale ){
                fimfac = (gtop > MRI_TYPE_maxval[CALC_datum] || (gtop > 0.0 && gtop <= 1.0) )
                         ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
+            } else {
+               fimfac = 0.0 ;
             }
 
             if( CALC_verbose ){

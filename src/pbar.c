@@ -491,3 +491,66 @@ printf("set pane %d to height %d\n",npane-1,sum) ; fflush(stdout) ;
 #endif
 
 }
+
+/*-------------------------------------------------------------------------
+   Make an image of the pbar (sans handles)
+   -- RWCox - 15 Jun 2000
+---------------------------------------------------------------------------*/
+
+MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar * pbar , int nx , int ny )
+{
+   MRI_IMAGE * im ;
+   int   ii,npix,kk,ll , sum,hh ;
+   float pmin,pmax , rhh,fhh , hfrac ;
+   byte rr,gg,bb , *bar ;
+
+   /* check for decent inputs */
+
+   if( pbar == NULL ) return NULL ;
+   if( nx < 1                 ) nx = 1 ;
+   if( ny < 4*pbar->num_panes ) ny = 4*pbar->num_panes ;
+
+   im  = mri_new( nx , ny , MRI_rgb ) ;
+   bar = MRI_RGB_PTR(im) ;
+
+   pmax = pbar->pval[0] ;
+   pmin = pbar->pval[pbar->num_panes] ;
+
+   hfrac = ny / (pmax-pmin) ;
+   rhh  = 0.0 ;
+   sum  = ny ;
+   ll   = 0 ;
+
+   /* do each pane */
+
+   for( kk=0 ; kk < pbar->num_panes-1 ; kk++ ){
+      fhh  = hfrac * (pbar->pval[kk]-pbar->pval[kk+1]) ; /* wannabe height */
+      hh   = (int) (rhh+fhh+0.45) ;                      /* actual height */
+      rhh  = fhh - hh ;                                  /* remainder */
+      sum -= hh ;                                        /* # pixels left */
+
+      rr = DCOV_REDBYTE  (pbar->dc,pbar->ov_index[kk]) ;
+      gg = DCOV_GREENBYTE(pbar->dc,pbar->ov_index[kk]) ;
+      bb = DCOV_BLUEBYTE (pbar->dc,pbar->ov_index[kk]) ;
+
+      npix = hh*nx ;
+      for( ii=0 ; ii < npix ; ii++ ){
+        *bar++ = rr ; *bar++ = gg ; *bar++ = bb ;
+      }
+
+   }
+
+   /* last pane */
+
+   kk = pbar->num_panes-1 ;
+   rr = DCOV_REDBYTE  (pbar->dc,pbar->ov_index[kk]) ;
+   gg = DCOV_GREENBYTE(pbar->dc,pbar->ov_index[kk]) ;
+   bb = DCOV_BLUEBYTE (pbar->dc,pbar->ov_index[kk]) ;
+
+   npix = sum*nx ;
+   for( ii=0 ; ii < npix ; ii++ ){
+     *bar++ = rr ; *bar++ = gg ; *bar++ = bb ;
+   }
+
+   return im ;
+}
