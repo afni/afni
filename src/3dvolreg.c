@@ -1211,13 +1211,12 @@ void VL_syntax(void)
     "                                  xyz-axes origins reset to those of the\n"
     "                                  base dataset.  This is equivalent to using\n"
     "                                  '3drefit -duporigin' on the output dataset.\n"
-#if 0
     "                       -sinit = When using -twopass registration on volumes\n"
     "                                  whose magnitude differs significantly, the\n"
-    "                                  least squares fitting procedure can be\n"
-    "                                  speeded up by doing a zero-th pass estimate\n"
-    "                                  of the scale difference between the bricks.\n"
-#endif
+    "                                  least squares fitting procedure is started\n"
+    "                                  by doing a zero-th pass estimate of the\n"
+    "                                  scale difference between the bricks.\n"
+    "                                  Use this option to turn this feature OFF.\n"
     "              -coarse del num = When doing the first pass, the first step is\n"
     "                                  to do a number of coarse shifts in order to\n"
     "                                  find a starting point for the iterations.\n"
@@ -1279,13 +1278,11 @@ void VL_command_line(void)
 
    while( Iarg < Argc && Argv[Iarg][0] == '-' ){
 
-#if 0
       /** -sinit [22 Mar 2004] **/
 
       if( strcmp(Argv[Iarg],"-sinit") == 0 ){
-        VL_sinit = 1 ; Iarg++ ; continue ;
+        VL_sinit = 0 ; Iarg++ ; continue ;
       }
-#endif
 
       /** -params [not in the help list] **/
 

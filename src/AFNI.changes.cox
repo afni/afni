@@ -5039,3 +5039,6 @@
 
 11 May 2004
  * Modified imseq.c to apply Zero Color to RGB images.
+
+12 May 2004
+ * Modified 3dvolreg.c to make -sinit turn scale init off for -twopass.
