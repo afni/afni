@@ -2581,6 +2581,7 @@ STATUS("making func->rowcol") ;
 
      if( im3d->dc->visual_class == TrueColor ){
        char *eee = getenv("AFNI_COLORSCALE_DEFAULT") ;
+       if( eee == NULL ) eee = getenv("AFNI_COLOR_SCALE_DEFAULT") ;
        if( eee == NULL || strcmp(eee,"NO") != 0 ){
          PBAR_set_bigmode( func->inten_pbar , 1 , pmin,pmax ) ;
          PBAR_set_bigmap( func->inten_pbar , eee ) ;

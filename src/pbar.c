@@ -271,6 +271,7 @@ static void PBAR_enviro_bigmaps( MCW_DC *dc )
    for( ii=1 ; ii <= 99 ; ii++ ){
      sprintf(nnn,"AFNI_COLORSCALE_%02d",ii) ;
      en = getenv(nnn) ;
+     if( en == NULL ){sprintf(nnn,"AFNI_COLOR_SCALE_%02d",ii); en=getenv(nnn);}
      if( en != NULL ){
        if( THD_is_file(en) ){
          fn = en ;
