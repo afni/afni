@@ -31,16 +31,16 @@ static int mask_count( int nvox , byte *mmm )
 /*! Put (i,j) into the current cluster, if it is nonzero. */
 
 #undef  CPUT
-#define CPUT(i,j)                                              \
-  do{ ijk = (i)+(j)*nx ;                                       \
-      if( mmm[ijk] ){                                          \
-        if( nnow == nall ){ /* increase array lengths */       \
-          nall += DALL ;                                       \
-          inow = (short *) realloc(inow,sizeof(short)*nall) ;  \
-          jnow = (short *) realloc(jnow,sizeof(short)*nall) ;  \
-        }                                                      \
-        inow[nnow] = (i) ; jnow[nnow] = (j) ;                  \
-        nnow++ ; mmm[ijk] = 0 ;                                \
+#define CPUT(i,j)                                                     \
+  do{ ijk = (i)+(j)*nx ;                                              \
+      if( mmm[ijk] ){                                                 \
+        if( nnow == nall ){ /* increase array lengths */              \
+          nall += DALL ;                                              \
+          inow = (short *) realloc((void *)inow,sizeof(short)*nall) ; \
+          jnow = (short *) realloc((void *)jnow,sizeof(short)*nall) ; \
+        }                                                             \
+        inow[nnow] = (i) ; jnow[nnow] = (j) ;                         \
+        nnow++ ; mmm[ijk] = 0 ;                                       \
       } } while(0)
 
 /*------------------------------------------------------------------*/
@@ -107,24 +107,24 @@ static int bigclustsize2D( int nx , int ny , byte *mmm )
 
    } /* loop ends when all nonzero points are clustered */
 
-   free(inow) ; free(inow) ; return nbest ;
+   free((void *)inow) ; free((void *)jnow) ; return nbest ;
 }
 
 /*--------------------------------------------------------------------------*/
 /*! Put (i,j,k) into the current cluster, if it is nonzero. */
 
 #undef  CPUT
-#define CPUT(i,j,k)                                            \
-  do{ ijk = (i)+(j)*nx+(k)*nxy ;                               \
-      if( mmm[ijk] ){                                          \
-        if( nnow == nall ){ /* increase array lengths */       \
-          nall += DALL ;                                       \
-          inow = (short *) realloc(inow,sizeof(short)*nall) ;  \
-          jnow = (short *) realloc(jnow,sizeof(short)*nall) ;  \
-          know = (short *) realloc(know,sizeof(short)*nall) ;  \
-        }                                                      \
-        inow[nnow] = (i); jnow[nnow] = (j); know[nnow] = (k);  \
-        nnow++ ; mmm[ijk] = 0 ;                                \
+#define CPUT(i,j,k)                                                   \
+  do{ ijk = (i)+(j)*nx+(k)*nxy ;                                      \
+      if( mmm[ijk] ){                                                 \
+        if( nnow == nall ){ /* increase array lengths */              \
+          nall += DALL ;                                              \
+          inow = (short *) realloc((void *)inow,sizeof(short)*nall) ; \
+          jnow = (short *) realloc((void *)jnow,sizeof(short)*nall) ; \
+          know = (short *) realloc((void *)know,sizeof(short)*nall) ; \
+        }                                                             \
+        inow[nnow] = (i); jnow[nnow] = (j); know[nnow] = (k);         \
+        nnow++ ; mmm[ijk] = 0 ;                                       \
       } } while(0)
 
 /*--------------------------------------------------------------------------*/
@@ -132,22 +132,25 @@ static int bigclustsize2D( int nx , int ny , byte *mmm )
 
 static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
 {
-   int ii,jj,kk, icl ,  nxy , ijk , ijk_last ;
+   int ii,jj,kk, icl , nxy,nxyz , ijk , ijk_last ;
    int ip,jp,kp , im,jm,km ;
-   int nnow , nall , nsav , nkill=0 ;
+   int nnow , nall , nsav , nkill ;
    short *inow , *jnow , *know ;
    short *isav , *jsav , *ksav ;
 
    if( nx < 1 || ny < 1 || nz < 1 || mmm == NULL || csize < 2 ) return ;
 
-   nxy = nx*ny ;
+   nxy = nx*ny ; nxyz = nxy*nz ;
 
    nall  = 8 ;                                    /* # allocated pts */
    inow  = (short *) malloc(sizeof(short)*nall) ; /* coords of pts */
    jnow  = (short *) malloc(sizeof(short)*nall) ;
    know  = (short *) malloc(sizeof(short)*nall) ;
 
-   nsav  = 0 ; isav = jsav = ksav = NULL ;
+   nsav  = nkill = 0 ;
+   isav  = (short *) malloc(sizeof(short)) ;
+   jsav  = (short *) malloc(sizeof(short)) ;
+   ksav  = (short *) malloc(sizeof(short)) ;
 
    /*--- scan through array, find nonzero point, build a cluster, ... ---*/
 
@@ -157,8 +160,8 @@ static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
    while(1) {
      /* find next nonzero point */
 
-     for( ijk=ijk_last ; ijk < nxy ; ijk++ ) if( mmm[ijk] ) break ;
-     if( ijk == nxy ) break ;  /* didn't find any! */
+     for( ijk=ijk_last ; ijk < nxyz ; ijk++ ) if( mmm[ijk] ) break ;
+     if( ijk == nxyz ) break ;  /* didn't find any! */
 
      ijk_last = ijk+1 ;         /* start here next time */
 
@@ -195,9 +198,9 @@ static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
 
      if( nnow >= csize ){
        kk = nsav+nnow ;
-       isav = (short *)realloc(isav,sizeof(short)*kk) ;
-       jsav = (short *)realloc(jsav,sizeof(short)*kk) ;
-       ksav = (short *)realloc(ksav,sizeof(short)*kk) ;
+       isav = (short *)realloc((void *)isav,sizeof(short)*kk) ;
+       jsav = (short *)realloc((void *)jsav,sizeof(short)*kk) ;
+       ksav = (short *)realloc((void *)ksav,sizeof(short)*kk) ;
        memcpy(isav+nsav,inow,sizeof(short)*nnow) ;
        memcpy(jsav+nsav,jnow,sizeof(short)*nnow) ;
        memcpy(ksav+nsav,know,sizeof(short)*nnow) ;
@@ -205,23 +208,23 @@ static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
        if( verb )
          fprintf(stderr,"++ clustedit3D: saved cluster with %d voxels\n",nnow);
      } else {
-       nkill +=nnow ;
+       nkill += nnow ;
      }
 
    } /* loop ends when all nonzero points are clustered */
 
-   free(inow); free(inow); free(know);
+   free((void *)inow); free((void *)jnow); free((void *)know);
 
    /* copy saved points back into mmm */
 
    for( ii=0 ; ii < nsav ; ii++ )
      mmm[ IJK(isav[ii],jsav[ii],ksav[ii]) ] = 1 ;
 
-   free(isav); free(jsav); free(ksav) ;
+   free((void *)isav); free((void *)jsav); free((void *)ksav) ;
 
    if( verb )
      fprintf(stderr,"++ clustedit3D totals:"
-                    " saved=%d killed=%d nxyz=%d\n",nsav,nkill,nxy*nz) ;
+                    " saved=%d killed=%d nxyz=%d\n",nsav,nkill,nxyz) ;
    return ;
 }
 
@@ -291,14 +294,14 @@ ENTRY("partial_cliplevel") ;
    do{
      for( npos=0,ii=ncut ; ii < nhist ; ii++ ) npos += hist[ii]; /* number >= cut */
      nhalf = npos/2 ;
-     for( kk=0,ii=ncut ; ii < nhist && kk < nhalf ; ii++ )       /* find mfrac pt */
-       kk += hist[ii] ;                                          /* of vals >= cut */
-     nold = ncut ;                                               /* last cut */
-     ncut = mfrac * ii ;                                         /* new cut */
+     for( kk=0,ii=ncut ; ii < nhist && kk < nhalf ; ii++ )  /* find median of */
+       kk += hist[ii] ;                                     /* valuess >= cut */
+     nold = ncut ;                                          /* last cut */
+     ncut = mfrac * ii ;                                    /* new cut */
      qq++ ;
   } while( qq < 20 && ncut != nold ) ; /* iterate until done, or at most 20 times */
 
-   free(hist) ;
+   free((void *)hist) ;
    RETURN( (float)(ncut) ) ;
 }
 
@@ -323,14 +326,14 @@ ENTRY("get_octant_clips") ;
 
    cv.clip_000 = -1 ;  /* flags error return */
 
-   if( im == NULL || im->kind != MRI_short ) EXRETURN ;
+   if( im == NULL || im->kind != MRI_short ) RETURN(cv) ;
 
    nx = im->nx ; ny = im->ny ; nz = im->nz ; nxy = nx*ny ;
    it = nx-1   ; jt = ny-1   ; kt = nz-1   ;
 
    /* compute CM of image */
 
-   sar = MRI_SHORT_PTR(im) ; if( sar == NULL ) EXRETURN ;
+   sar = MRI_SHORT_PTR(im) ; if( sar == NULL ) RETURN(cv) ;
 
    xcm = ycm = zcm = sum = 0.0 ;
    for( ijk=kk=0 ; kk < nz ; kk++ ){
@@ -342,19 +345,30 @@ ENTRY("get_octant_clips") ;
        ycm += val * jj ;
        zcm += val * kk ;
    }}}
-   if( sum == 0.0 ) EXRETURN ;
+   if( sum == 0.0 ) RETURN(cv) ;
    ic = (int)rint(xcm/sum); jc = (int)rint(ycm/sum); kc = (int)rint(zcm/sum);
 
    /* compute cliplevel in each octant about the CM */
 
-   cv.clip_000 = partial_cliplevel( im,mfrac,  0,ic ,  0,jc ,  0,kc ) ;
-   cv.clip_100 = partial_cliplevel( im,mfrac, ic,it ,  0,jc ,  0,kc ) ;
-   cv.clip_010 = partial_cliplevel( im,mfrac,  0,ic , jc,jt ,  0,kc ) ;
-   cv.clip_110 = partial_cliplevel( im,mfrac, ic,it , jc,jt ,  0,kc ) ;
-   cv.clip_001 = partial_cliplevel( im,mfrac,  0,ic ,  0,jc , kc,kt ) ;
-   cv.clip_101 = partial_cliplevel( im,mfrac, ic,it ,  0,jc , kc,kt ) ;
-   cv.clip_011 = partial_cliplevel( im,mfrac,  0,ic , jc,jt , kc,kt ) ;
-   cv.clip_111 = partial_cliplevel( im,mfrac, ic,it , jc,jt , kc,kt ) ;
+   val = 0.5 * partial_cliplevel( im,mfrac , 0,it , 0,jt , 0,kt ) ;
+
+   cv.clip_000 = partial_cliplevel( im,mfrac,  0  ,ic+2,  0  ,jc+2,  0  ,kc+2 );
+   cv.clip_100 = partial_cliplevel( im,mfrac, ic-2,it  ,  0  ,jc+2,  0  ,kc+2 );
+   cv.clip_010 = partial_cliplevel( im,mfrac,  0  ,ic+2, jc-2,jt  ,  0  ,kc+2 );
+   cv.clip_110 = partial_cliplevel( im,mfrac, ic-2,it  , jc-2,jt  ,  0  ,kc+2 );
+   cv.clip_001 = partial_cliplevel( im,mfrac,  0  ,ic+2,  0  ,jc+2, kc-2,kt   );
+   cv.clip_101 = partial_cliplevel( im,mfrac, ic-2,it  ,  0  ,jc+2, kc-2,kt   );
+   cv.clip_011 = partial_cliplevel( im,mfrac,  0  ,ic+2, jc-2,jt  , kc-2,kt   );
+   cv.clip_111 = partial_cliplevel( im,mfrac, ic-2,it  , jc-2,jt  , kc-2,kt   );
+
+   if( cv.clip_000 < val ) cv.clip_000 = val ;  /* don't let   */
+   if( cv.clip_100 < val ) cv.clip_100 = val ;  /* clip levels */
+   if( cv.clip_010 < val ) cv.clip_010 = val ;  /* get too     */
+   if( cv.clip_110 < val ) cv.clip_110 = val ;  /* small!      */
+   if( cv.clip_001 < val ) cv.clip_001 = val ;
+   if( cv.clip_101 < val ) cv.clip_101 = val ;
+   if( cv.clip_011 < val ) cv.clip_011 = val ;
+   if( cv.clip_111 < val ) cv.clip_111 = val ;
 
    /* (x0,y0,z0) = center of lowest octant
       (x1,y1,z1) = center of highest octant */
@@ -368,6 +382,7 @@ ENTRY("get_octant_clips") ;
 
    if( verb )
     fprintf(stderr,"++ get_octant_clips:\n"
+                   "    min clip=%.1f\n"
                    "    clip_000=%.1f\n"
                    "    clip_100=%.1f\n"
                    "    clip_010=%.1f\n"
@@ -378,11 +393,12 @@ ENTRY("get_octant_clips") ;
                    "    clip_111=%.1f\n"
                    "    (x0,y0,z0) = (%.1f,%.1f,%.1f)\n"
                    "    (x1,y1,z1) = (%.1f,%.1f,%.1f)\n" ,
+            val ,
             cv.clip_000 , cv.clip_100 , cv.clip_010 , cv.clip_110 ,
             cv.clip_001 , cv.clip_101 , cv.clip_011 , cv.clip_111 ,
             cv.x0 , cv.y0 , cv.z0 , cv.x1 , cv.y1 , cv.z1  ) ;
 
-   EXRETURN ;
+   RETURN(cv) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -426,10 +442,12 @@ ENTRY("mri_short2mask") ;
 
    nx = im->nx ; ny = im->ny ; nz = im->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
-   cvec = get_octant_clips( im , 0.4 ) ;
+   cvec = get_octant_clips( im , 0.45 ) ;
    if( cvec.clip_000 < 0.0 ) RETURN(NULL) ;
 
    /* create mask, clipping at a level that varies spatially */
+
+   if( verb ) fprintf(stderr,"++ mri_short2mask: clipping\n") ;
 
    mask = (byte *) malloc( sizeof(byte)*nxyz ) ;
    for( ijk=kk=0 ; kk < nz ; kk++ ){
@@ -439,11 +457,16 @@ ENTRY("mri_short2mask") ;
        mask[ijk] = (sar[ijk] >= cval) ;       /* binarize */
    }}}
 
+   if( verb ) fprintf(stderr,"++ mri_short2mask: %d voxels above clip\n",
+                             mask_count(nxyz,mask) ) ;
+
    /* remove small clusters */
 
-   clustedit3D( nx,ny,nz , mask , (int)rint(0.01*nxyz) ) ;
+   clustedit3D( nx,ny,nz , mask , (int)rint(0.02*nxyz) ) ;
 
    /* fill in any isolated holes in mask */
+
+   if( verb ) fprintf(stderr,"++ mri_short2mask: filling in holes\n") ;
 
    for( kk=1 ; kk < nz-1 ; kk++ ){
     for( jj=1 ; jj < ny-1 ; jj++ ){
@@ -501,6 +524,7 @@ MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor )
    int ii,jj,kk,ijk , nx,ny,nz,nxy,nxyz ;
    float val , icm,jcm,kcm,sum , dx,dy,dz ;
    byte *mask , *mmm ;
+   int *zcount , z1,z2,z3 ;
 
 ENTRY("mri_brainormalize") ;
 
@@ -574,21 +598,47 @@ ENTRY("mri_brainormalize") ;
 
    if( mask == NULL ){ mri_free(sim); RETURN(NULL); }
 
-   if( mask_count(nxyz,mask) <= 999 ){ free(mask); mri_free(sim); RETURN(NULL); }
+   kk = mask_count(nxyz,mask) ;
+   if( verb )
+     fprintf(stderr,"++mri_brainormalize: mask now has %d voxels\n",kk) ;
 
-   /* descend from Superior, searching for 1st 2D slice with a large blob */
+   if( kk <= 999 ){ free((void *)mask); mri_free(sim); RETURN(NULL); }
 
-   mmm = (byte *) malloc( sizeof(byte)*nxy ) ;
-   jj  = 0.1*nxy ;
-   for( kk=nz-1 ; kk > 0 ; kk-- ){
+   /* descending from Superior:
+        count biggest blob in each slice
+        find Superiormost location that has 3
+          slices in a row with "a lot" of stuff
+        zero out all stuff out above that slice */
+
+   mmm    = (byte *) malloc( sizeof(byte)*nxy ) ;  /* slice mask */
+   zcount = (int *)  malloc( sizeof(int) *nz  ) ;  /* slice counts */
+   for( kk=nz-1 ; kk >= 0 ; kk-- ){
      memcpy( mmm , mask + kk*nxy , sizeof(byte)*nxy ) ;
-     if( bigclustsize2D(nx,ny,mmm) > jj ) break ;
+     zcount[kk] = bigclustsize2D(nx,ny,mmm) ;
    }
-   free(mmm) ;
-   if( kk == 0 ){ free(mask); mri_free(sim); RETURN(NULL); }
+   free((void *)mmm) ;
 
-   /* zero out all above that slice */
+   if( verb ){
+     fprintf(stderr,"++mri_brainormalize: zcount from top slice #%d\n",nz-1) ;
+     for( kk=nz-1 ; kk >= 0 ; kk-- ){
+       fprintf(stderr," %.3f",((double)(zcount[kk]))/((double)nxy) ) ;
+       if( (nz-kk)%10 == 0 && kk > 0 ) fprintf(stderr,"\n") ;
+     }
+     fprintf(stderr,"\n") ;
+   }
 
+   /* search down for topmost slice that meets the criterion */
+
+   z1 = (int)(0.01*nxy) ;
+   z2 = (int)(0.02*nxy) ;
+   z3 = (int)(0.03*nxy) ;
+   for( kk=nz-1 ; kk > 2 ; kk-- )
+     if( zcount[kk] >= z1 && zcount[kk-1] >= z2 && zcount[kk-2] >= z3 ) break ;
+
+   free((void *)zcount) ;
+   if( kk <= 2 ){ free((void *)mask); mri_free(sim); RETURN(NULL); }
+
+   /* zero out all above the slice we just found */
 
    if( kk < nz-1 ){
      if( verb )
@@ -596,9 +646,9 @@ ENTRY("mri_brainormalize") ;
      memset( mask+(kk+1)*nxy , 0 , nxy*(nz-1-kk)*sizeof(byte) ) ;
    }
 
-   /* find slice index 160 mm below that slice */
+   /* find slice index 161 mm below that slice */
 
-   jj  = (int)rint( kk-160.0/dz ) ;
+   jj  = (int)rint( kk-161.0/dz ) ;
    if( jj >= 0 ){
      if( verb )
        fprintf(stderr,"++mri_brainormalize: bot clip below slice %d\n",jj) ;
@@ -606,14 +656,14 @@ ENTRY("mri_brainormalize") ;
    }
 
    kk = mask_count(nxyz,mask) ;
-   if( kk <= 999 ){ free(mask); mri_free(sim); RETURN(NULL); }
+   if( kk <= 999 ){ free((void *)mask); mri_free(sim); RETURN(NULL); }
 
    /* apply mask to image (will also remove any negative values) */
 
    if( verb )
      fprintf(stderr,"++mri_brainormalize: applying mask to image; %d/%d\n",kk,nxyz) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mask[ii] ) sar[ii] = 0 ;
-   free(mask) ;
+   free((void *)mask) ;
 
    /* compute CM of masked image (indexes, not mm) */
 
