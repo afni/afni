@@ -3565,7 +3565,7 @@ extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
 extern THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * ,
                                        int,int,int,int,int,int , char * , int ) ;
 
-extern THD_3dim_dataset * THD_warp3D(
+extern THD_3dim_dataset * THD_warp3D(    /* cf. mri_warp3D.c - 18 May 2003 */
                      THD_3dim_dataset *,
                      void w_in2out(float,float,float,float *,float *,float *),
                      void w_out2in(float,float,float,float *,float *,float *),

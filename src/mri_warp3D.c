@@ -9,17 +9,27 @@
 /*--------------------------------------------------------------------------*/
 
 static int wtype = MRI_LINEAR ;
-void mri_warp3D_method( int mode ){ wtype = mode ; }
+void mri_warp3D_method( int mode ){ wtype = mode ; }  /* set interpolation */
 
 /*--------------------------------------------------------------------------*/
 
-static int zout  = 1 ;
-void mri_warp3D_zerout( int zzzz ){ zout  = zzzz ; }
+static int zout = 1 ;
+void mri_warp3D_zerout( int zzzz ){ zout  = zzzz ; }  /* outside = 0? */
 
 /*--------------------------------------------------------------------------*/
+/*! Generic warping function.  Calls the specific one for the desired
+    interpolation method.
+      - im = input image (3D).
+      - nxnew,nynew,nznew = size of output image grid.
+      - wf( inew,jnew,knew , iold,jold,kold ) is a function that takes
+        as input 3 indices in [0..nxnew-1,0..nynew-1,0..nznew-1] and
+        returns indices in the input image space.
+      - indices in and out of wf() are floats.
+----------------------------------------------------------------------------*/
 
 MRI_IMAGE *mri_warp3D( MRI_IMAGE *im, int nxnew, int nynew, int nznew,
-                       void wf(float,float,float,float *,float *,float *) ){
+                       void wf(float,float,float,float *,float *,float *) )
+{
    switch( wtype ){
 
      default:
@@ -36,11 +46,12 @@ MRI_IMAGE *mri_warp3D( MRI_IMAGE *im, int nxnew, int nynew, int nznew,
 }
 
 /*--------------------------------------------------------------------------*/
+/* Macros for interpolation and access to data arrays. */
 
 #define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]         /* input point */
 #define NAR(i,j,k) nar[(i)+(j)*nxnew+(k)*nxynew]   /* output point */
 
-/* clip input image index to valid range for x,y,z directions */
+/* clip input mm to range [0..nn] (for indexing) */
 
 #define CLIP(mm,nn) if(mm < 0)mm=0; else if(mm > nn)mm=nn
 
@@ -86,12 +97,6 @@ static INLINE void w3dMRI_affine( float  a,float  b,float  c,
 
 /*---------------------------------------------------------------------------*/
 /*! Transform a 3D image geometrically, using cubic interpolation.
-      - im = input image
-      - nxnew,nynew,nznew = size of output image
-      - wf( inew,jnew,knew , iold,jold,kold ) is a function that takes
-        as input 3 indices in [0..nxnew-1,0..nynew-1,0..nznew-1] and
-        returns indices in the input image space.
-      - indices in and out of wf() are floats
 -----------------------------------------------------------------------------*/
 
 MRI_IMAGE *mri_warp3D_cubic( MRI_IMAGE *im, int nxnew, int nynew, int nznew,
@@ -133,15 +138,16 @@ ENTRY("mri_warp3D_cubic") ;
    nznew = (nznew > 0) ? nznew : nz ;
    nxynew = nxnew*nynew ;
 
-   /*----- allow for different input image types, by breaking them into
-           components, doing each one separately, and then reassembling -----*/
+   /*----- Allow for different input image types, by breaking them into
+           components, doing each one separately, and then reassembling.
+           This is needed since we only warp float-valued images below.  -----*/
 
    switch( im->kind ){
 
-     case MRI_float:                        /* use input directly */
+     case MRI_float:                              /* use input directly */
        imfl = im ; break ;
 
-     default:{                              /* floatize-input */
+     default:{                                    /* floatize input */
        imfl = mri_to_float(im) ;
        new  = mri_warp3D_cubic( imfl , nxnew,nynew,nznew , wf ) ;
        mri_free(imfl) ;
@@ -150,7 +156,7 @@ ENTRY("mri_warp3D_cubic") ;
        RETURN(new) ;
      }
 
-     case MRI_rgb:{
+     case MRI_rgb:{                                /* break into 3 pieces */
        MRI_IMARR *imar = mri_rgb_to_3float(im) ;
        MRI_IMAGE *rim,*gim,*bim ;
        rim = mri_warp3D_cubic( IMARR_SUBIM(imar,0), nxnew,nynew,nznew, wf ) ;
@@ -164,7 +170,7 @@ ENTRY("mri_warp3D_cubic") ;
        mri_free(rim); mri_free(gim); mri_free(bim); RETURN(new);
      }
 
-     case MRI_complex:{
+     case MRI_complex:{                             /* break into 4 pieces */
        MRI_IMARR *imar = mri_complex_to_pair(im) ;
        MRI_IMAGE *rim, *iim ;
        rim = mri_warp3D_cubic( IMARR_SUBIM(imar,0), nxnew,nynew,nznew, wf ) ;
@@ -281,12 +287,6 @@ ENTRY("mri_warp3D_cubic") ;
 
 /*---------------------------------------------------------------------------*/
 /*! Transform a 3D image geometrically, using linear interpolation.
-      - im = input image
-      - nxnew,nynew,nznew = size of output image
-      - wf( inew,jnew,knew , iold,jold,kold ) is a function that takes
-        as input 3 indices in [0..nxnew-1,0..nynew-1,0..nznew-1] and
-        returns indices in the input image space.
-      - indices in and out of wf() are floats
 -----------------------------------------------------------------------------*/
 
 MRI_IMAGE *mri_warp3D_linear( MRI_IMAGE *im, int nxnew, int nynew, int nznew,
@@ -451,12 +451,6 @@ ENTRY("mri_warp3D_linear") ;
 
 /*---------------------------------------------------------------------------*/
 /*! Transform a 3D image geometrically, using NN 'interpolation'.
-      - im = input image
-      - nxnew,nynew,nznew = size of output image
-      - wf( inew,jnew,knew , iold,jold,kold ) is a function that takes
-        as input 3 indices in [0..nxnew-1,0..nynew-1,0..nznew-1] and
-        returns indices in the input image space.
-      - indices in and out of wf() are floats
 -----------------------------------------------------------------------------*/
 
 MRI_IMAGE *mri_warp3D_NN( MRI_IMAGE *im, int nxnew, int nynew, int nznew,
@@ -598,20 +592,7 @@ MRI_IMAGE *mri_warp3D_resize( MRI_IMAGE *im , int nxnew, int nynew, int nznew )
      nnz      = rint(sz_scale*nz) ;
    }
 
-   switch( wtype ){
-
-     default:
-     case MRI_CUBIC:
-        return mri_warp3D_cubic ( im , nnx,nny,nnz , w3dMRI_scaler ) ;
-
-     case MRI_LINEAR:
-        return mri_warp3D_linear( im , nnx,nny,nnz , w3dMRI_scaler ) ;
-
-     case MRI_NN:
-        return mri_warp3D_NN    ( im , nnx,nny,nnz , w3dMRI_scaler ) ;
-   }
-
-   return NULL ; /* unreachable */
+   return mri_warp3D( im , nnx,nny,nnz , w3dMRI_scaler ) ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -629,23 +610,11 @@ MRI_IMAGE * mri_warp3D_affine( MRI_IMAGE *im , THD_vecmat aff )
    a31_aff = aff.mm.mat[2][0] ; a32_aff = aff.mm.mat[2][1] ;
    a33_aff = aff.mm.mat[2][2] ; a34_aff = aff.vv.xyz[2]    ;
 
-   switch( wtype ){
-
-     default:
-     case MRI_CUBIC:
-        return mri_warp3D_cubic ( im , 0,0,0 , w3dMRI_scaler ) ;
-
-     case MRI_LINEAR:
-        return mri_warp3D_linear( im , 0,0,0 , w3dMRI_scaler ) ;
-
-     case MRI_NN:
-        return mri_warp3D_NN    ( im , 0,0,0 , w3dMRI_scaler ) ;
-   }
-
-   return NULL ; /* unreachable */
+   return mri_warp3D( im , 0,0,0 , w3dMRI_scaler ) ;
 }
 
 /*===========================================================================*/
+/******** Functions for warping a dataset using coordinate transforms, *******/
 /*===========================================================================*/
 
 static THD_vecmat ijk_to_dicom_in, ijk_to_dicom_out, dicom_to_ijk_in ;
@@ -653,23 +622,30 @@ static THD_vecmat ijk_to_dicom_in, ijk_to_dicom_out, dicom_to_ijk_in ;
 static void (*warp_out_to_in)(float  ,float  ,float ,
                               float *,float *,float * ) ;
 
+/*----------------------------------------------------------------------------*/
+/*! This is the function passed to mri_warp3D() for ijk_out to ijk_in
+    transformation.  It does the ijk_out to dicom_out transform here,
+    then calls the user-function for dicom_out to dicom_in transform, then
+    does the dicom_in to ijk_in transform here.
+------------------------------------------------------------------------------*/
+
 static INLINE void warp_func( float xout, float yout, float zout,
                               float *xin, float *yin, float *zin )
 {
    THD_fvec3 xxx,yyy ; float xi,yi,zi ;
 
    LOAD_FVEC3(xxx,xout,yout,zout) ;
-   yyy = VECMAT_VEC( ijk_to_dicom_out , xxx ) ;
-   warp_out_to_in( yyy.xyz[0],yyy.xyz[1],yyy.xyz[2] ,
-                  &(xxx.xyz[0]) , &(xxx.xyz[1]), &(xxx,xyz[2]) ) ;
-   yyy = VECMAT_VEC( dicom_to_ijk_in , xxx ) ;
+   yyy = VECMAT_VEC( ijk_to_dicom_out , xxx ) ;       /* ijk_out to dicom_out */
+   warp_out_to_in( yyy.xyz[0],yyy.xyz[1],yyy.xyz[2], /* dicom_out to dicom_in */
+                  &(xxx.xyz[0]) , &(xxx.xyz[1]), &(xxx.xyz[2]) ) ;
+   yyy = VECMAT_VEC( dicom_to_ijk_in , xxx ) ;          /* dicom_in to ijk_in */
    *xin = yyy.xyz[0] ; *yin = yyy.xyz[1] ; *zin = yyy.xyz[2] ;
 }
 
 /*--------------------------------------------------------------------------*/
-/* Find the 8 corners of the input dataset (voxel edges, not centers).
-   Warp each one using the provided wfunc().
-   Return the min and max (x,y,z) coordinates of these warped points.
+/*! Find the 8 corners of the input dataset (voxel edges, not centers).
+    Warp each one using the provided wfunc().
+    Return the min and max (x,y,z) coordinates of these warped points.
 ----------------------------------------------------------------------------*/
 
 static void warp_corners( THD_3dim_dataset *inset,
@@ -744,7 +720,7 @@ static void warp_corners( THD_3dim_dataset *inset,
 }
 
 /*--------------------------------------------------------------------------*/
-/*! Geometrically transform a 3D dataset.
+/*! Geometrically transform a 3D dataset, producing a new dataset.
      - w_in2out transforms DICOM coords from input grid to output grid
        (only needed if newdel > 0.0; otherwise, can be NULL)
      - w_out2in is the inverse of w_in2out (cannot be NULL)
@@ -753,6 +729,9 @@ static void warp_corners( THD_3dim_dataset *inset,
      - zpad   = number of planes to zeropad on each face of inset (>= 0)
      - flag   = reserved for future expansion
      - Interpolation method can be set using mri_warp3D_method().
+     - At end, input dataset is unloaded.
+     - If input is 3D+time, the output dataset won't have slice-wise time
+       offsets, even if the input did.
 ----------------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_warp3D(
@@ -761,7 +740,7 @@ THD_3dim_dataset * THD_warp3D(
                      void w_out2in(float,float,float,float *,float *,float *),
                      float newdel , char *prefix , int zpad , int flag        )
 {
-   THD_3dim_dataset *outset ;
+   THD_3dim_dataset *outset , *qset ;
    int nxin,nyin,nzin,nxyzin,nvals , ival ;
    int nxout,nyout,nzout,nxyzout ;
    float xbot,xtop , ybot,ytop , zbot,ztop ;
@@ -782,25 +761,26 @@ ENTRY("THD_warp3D") ;
    /*-- zeropad and replace input dataset, if desired --*/
 
    if( zpad > 0 ){
-     THD_3dim_dataset *qset ;
      qset = THD_zeropad( inset , zpad,zpad,zpad,zpad,zpad,zpad ,
                          "Quetzalcoatl" , ZPAD_PURGE ) ;
      if( qset == NULL ){
        fprintf(stderr,"** ERROR: THD_warp3D can't zeropad!\n"); RETURN(NULL);
      }
-     DSET_unload(inset) ; inset = qset ;
+     DSET_unload(inset) ;
+   } else {
+     qset = inset ;
    }
 
    /*-- compute mapping from input dataset (i,j,k) to DICOM coords --*/
 
    { THD_vecmat ijk_to_xyz , xyz_to_dicom ;
 
-     LOAD_DIAG_MAT( ijk_to_xyz.mm , inset->daxes->xxdel,
-                                    inset->daxes->yydel, inset->daxes->zzdel );
-     LOAD_FVEC3   ( ijk_to_xyz.vv , inset->daxes->xxorg,
-                                    inset->daxes->yyorg, inset->daxes->zzorg );
+     LOAD_DIAG_MAT( ijk_to_xyz.mm , qset->daxes->xxdel,
+                                    qset->daxes->yydel, qset->daxes->zzdel );
+     LOAD_FVEC3   ( ijk_to_xyz.vv , qset->daxes->xxorg,
+                                    qset->daxes->yyorg, qset->daxes->zzorg );
 
-     xyz_to_dicom.mm = inset->daxes->to_dicomm ;
+     xyz_to_dicom.mm = qset->daxes->to_dicomm ;
      LOAD_FVEC3( xyz_to_dicom.vv , 0.0,0.0,0.0 ) ;
 
      ijk_to_dicom_in = MUL_VECMAT( xyz_to_dicom , ijk_to_xyz ) ;
@@ -809,10 +789,10 @@ ENTRY("THD_warp3D") ;
 
    /*-- make empty output dataset --*/
 
-   nxin  = DSET_NX(inset) ;
-   nyin  = DSET_NY(inset) ;
-   nzin  = DSET_NZ(inset) ; nxyzin = nxin*nyin*nzin;
-   nvals = DSET_NVALS(inset) ;
+   nxin  = DSET_NX(qset) ;
+   nyin  = DSET_NY(qset) ;
+   nzin  = DSET_NZ(qset) ; nxyzin = nxin*nyin*nzin;
+   nvals = DSET_NVALS(qset) ;
 
    if( nxyzin <= 1 ){
      fprintf(stderr,"** ERROR: THD_warp3D has nxin=%d nyin=%d nzin=%d!\n",
@@ -822,7 +802,7 @@ ENTRY("THD_warp3D") ;
 
    if( !use_newgrid ){               /*-- output is on same grid as input --*/
 
-     outset = EDIT_empty_copy( inset ) ;
+     outset = EDIT_empty_copy( qset ) ;
      nxout = nxin ; nyout = nyin ; nzout = nzin ; nxyzout = nxyzin ;
 
    } else {                          /*-- output is on new grid --*/
@@ -833,7 +813,7 @@ ENTRY("THD_warp3D") ;
 
      /* compute DICOM coordinates of warped corners */
 
-     warp_corners( inset, w_in2out, &xbot,&xtop, &ybot,&ytop, &zbot,&ztop ) ;
+     warp_corners( qset, w_in2out, &xbot,&xtop, &ybot,&ytop, &zbot,&ztop ) ;
 
      nxout = (int)( (xtop-xbot)/ddd_newgrid+0.999 ); if( nxout < 1 ) nxout = 1;
      nyout = (int)( (ytop-ybot)/ddd_newgrid+0.999 ); if( nyout < 1 ) nyout = 1;
@@ -879,18 +859,18 @@ ENTRY("THD_warp3D") ;
                         ADN_xyzorient   , orixyz ,
                         ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
                         ADN_nvals       , nvals ,
-                        ADN_type        , inset->type ,
-                        ADN_view_type   , inset->view_type ,
-                        ADN_func_type   , inset->func_type ,
+                        ADN_type        , qset->type ,
+                        ADN_view_type   , qset->view_type ,
+                        ADN_func_type   , qset->func_type ,
                       ADN_none ) ;
 
-     if( DSET_NUM_TIMES(inset) > 1 )     /* and some time structure? */
+     if( DSET_NUM_TIMES(qset) > 1 )     /* and some time structure? */
        EDIT_dset_items( outset ,
                           ADN_ntt       , nvals ,
-                          ADN_tunits    , DSET_TIMEUNITS(inset) ,
-                          ADN_ttorg     , DSET_TIMEORIGIN(inset) ,
-                          ADN_ttdel     , DSET_TR(inset) ,
-                          ADN_ttdur     , DSET_TIMEDURATION(inset) ,
+                          ADN_tunits    , DSET_TIMEUNITS(qset) ,
+                          ADN_ttorg     , DSET_TIMEORIGIN(qset) ,
+                          ADN_ttdel     , DSET_TR(qset) ,
+                          ADN_ttdur     , DSET_TIMEDURATION(qset) ,
                         ADN_none ) ;
 
    } /*-- end of warping to new grid --*/
@@ -917,8 +897,8 @@ ENTRY("THD_warp3D") ;
 
    /*-- read input data from disk, if not already present --*/
 
-   DSET_load(inset) ;
-   if( !DSET_LOADED(inset) ){
+   DSET_load(qset) ;
+   if( !DSET_LOADED(qset) ){
      fprintf(stderr,"** ERROR: THD_warp3D can't load input dataset!\n") ;
      DSET_delete(outset); RETURN(NULL);
    }
@@ -928,8 +908,8 @@ ENTRY("THD_warp3D") ;
    warp_out_to_in = w_out2in ;  /* for use in warp_func(), supra */
 
    for( ival=0 ; ival < nvals ; ival++ ){
-     inim  = DSET_BRICK(inset,ival) ;
-     fac   = DSET_BRICK_FACTOR(inset,ival) ;
+     inim  = DSET_BRICK(qset,ival) ;
+     fac   = DSET_BRICK_FACTOR(qset,ival) ;
      if( fac > 0.0 && fac != 0.0 ) wim = mri_scale_to_float( fac , inim ) ;
      else                          wim = inim ;
      outim = mri_warp3D( wim , nxout,nyout,nzout , warp_func ) ;
@@ -939,12 +919,14 @@ ENTRY("THD_warp3D") ;
      }
      if( wim != inim ) mri_free(wim) ;
      EDIT_substitute_brick( outset, ival,outim->kind,mri_data_pointer(outim) );
-     DSET_unload_one( inset , ival ) ;
+     DSET_unload_one( qset , ival ) ;
    }
 
    /*-- done!!! --*/
 
-   DSET_unload( inset ) ;
+   if( qset == inset ) DSET_unload( qset ) ;
+   else                DSET_delete( qset ) ;
+
    THD_load_statistics( outset ) ;
    RETURN( outset ) ;
 }
