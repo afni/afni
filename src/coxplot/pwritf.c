@@ -35,7 +35,7 @@ extern struct {
 	integer *isiz, integer *ior, integer *icent, ftnlen ch_len)
 {
     /* System generated locals */
-    integer i__1;
+    integer i__1, i__2;
     real r__1, r__2;
 
     /* Builtin functions */
@@ -43,12 +43,13 @@ extern struct {
 
     /* Local variables */
     static real xold, yold, size, xorg, yorg;
-    static logical lstr[66666];
-    static integer nstr;
-    static real xstr[66666], ystr[66666];
+    static integer lstr[69999], nstr;
+    static real xstr[69999], ystr[69999];
     static integer i__;
     static char chloc[6666];
-    static integer nchar, isize;
+    static integer nchar;
+    extern /* Subroutine */ int color_(integer *);
+    static integer isize;
     static real ct, or;
     static integer nchloc;
     static real st, xr, yr, xx, yy;
@@ -56,7 +57,7 @@ extern struct {
     extern /* Subroutine */ int zzline_(real *, real *, real *, real *), 
 	    zzconv_(char *, integer *, char *, integer *, ftnlen, ftnlen), 
 	    zzphys_(real *, real *), zzstro_(char *, integer *, integer *, 
-	    real *, real *, logical *, ftnlen);
+	    real *, real *, integer *, ftnlen);
 
 
 
@@ -168,13 +169,20 @@ L20:
 
     i__1 = nstr;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	xr = xx + ct * (xstr[i__ - 1] - xorg) - st * (ystr[i__ - 1] - yorg);
-	yr = yy + st * (xstr[i__ - 1] - xorg) + ct * (ystr[i__ - 1] - yorg);
-	if (lstr[i__ - 1]) {
-	    zzline_(&xold, &yold, &xr, &yr);
+	if (lstr[i__ - 1] <= 1) {
+	    xr = xx + ct * (xstr[i__ - 1] - xorg) - st * (ystr[i__ - 1] - 
+		    yorg);
+	    yr = yy + st * (xstr[i__ - 1] - xorg) + ct * (ystr[i__ - 1] - 
+		    yorg);
+	    if (lstr[i__ - 1] == 1) {
+		zzline_(&xold, &yold, &xr, &yr);
+	    }
+	    xold = xr;
+	    yold = yr;
+	} else if (lstr[i__ - 1] > 100 && lstr[i__ - 1] <= 107) {
+	    i__2 = lstr[i__ - 1] - 100;
+	    color_(&i__2);
 	}
-	xold = xr;
-	yold = yr;
 /* L200: */
     }
 
@@ -235,7 +243,7 @@ L200:
 
 
 /* Subroutine */ int zzstro_(char *ch, integer *nch, integer *nstr, real *
-	xstr, real *ystr, logical *lbstr, ftnlen ch_len)
+	xstr, real *ystr, integer *lstr, ftnlen ch_len)
 {
     /* Initialized data */
 
@@ -763,7 +771,7 @@ L200:
 
 
     /* Parameter adjustments */
-    --lbstr;
+    --lstr;
     --ystr;
     --xstr;
 
@@ -824,9 +832,11 @@ L200:
 		scale *= 1.5f;
 		xcur += scale * 4.f;
 		ycur += scale * 12.f;
-/* CC            ELSEIF( ISTR .GE. 5 .AND. ISTR .LE. 11 )THEN 
-*/
-/* CC               CALL COLOR( ISTR-4 ) */
+	    } else if (istr >= 5 && istr <= 11) {
+		++(*nstr);
+		lstr[*nstr] = istr + 96;
+		xstr[*nstr] = xcur;
+		ystr[*nstr] = ycur;
 	    }
 /* ...............................................................
 ...... */
@@ -845,8 +855,9 @@ L200:
 		++(*nstr);
 		kst = nstrok[ioff + is - 1];
 
-		lbstr[*nstr] = kst >= 16384;
-		if (lbstr[*nstr]) {
+		lstr[*nstr] = 0;
+		if (kst >= 16384) {
+		    lstr[*nstr] = 1;
 		    kst += -16384;
 		}
 

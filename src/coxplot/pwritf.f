@@ -7,9 +7,9 @@ C
       INTEGER       NCH , ISIZ,IOR,ICENT
       CHARACTER*(*) CH
 C
-      PARAMETER ( NSAVE = 66666 )
+      PARAMETER ( NSAVE = 69999 )
       REAL    XSTR(NSAVE) , YSTR(NSAVE)
-      LOGICAL LSTR(NSAVE)
+      INTEGER LSTR(NSAVE)
 C
       CHARACTER*6666 CHLOC
 C.......................................................................
@@ -95,11 +95,15 @@ C
 C  Now draw the strokes
 C
       DO 200 I=1,NSTR
-         XR = XX + CT*(XSTR(I)-XORG) - ST*(YSTR(I)-YORG)
-         YR = YY + ST*(XSTR(I)-XORG) + CT*(YSTR(I)-YORG)
-         IF( LSTR(I) )CALL ZZLINE( XOLD,YOLD , XR,YR )
-         XOLD = XR
-         YOLD = YR
+         IF( LSTR(I) .LE. 1 )THEN
+           XR = XX + CT*(XSTR(I)-XORG) - ST*(YSTR(I)-YORG)
+           YR = YY + ST*(XSTR(I)-XORG) + CT*(YSTR(I)-YORG)
+           IF( LSTR(I) .EQ. 1 )CALL ZZLINE( XOLD,YOLD , XR,YR )
+           XOLD = XR
+           YOLD = YR
+         ELSE IF( LSTR(I) .GT. 100 .AND. LSTR(I) .LE. 107 )THEN
+           CALL COLOR( LSTR(I)-100 )
+         ENDIF
 200   CONTINUE
 C
       XPHOLD = XOLD
@@ -143,7 +147,7 @@ C.......................................................................
 C
 C
 C
-      SUBROUTINE ZZSTRO( CH,NCH , NSTR,XSTR,YSTR,LBSTR )
+      SUBROUTINE ZZSTRO( CH,NCH , NSTR,XSTR,YSTR,LSTR )
       IMPLICIT NONE
 C
 C  Convert a string of generalized characters into a set of strokes,
@@ -153,7 +157,7 @@ C
       CHARACTER*(*) CH
       INTEGER       NCH , NSTR
       REAL          XSTR(*) , YSTR(*)
-      LOGICAL       LBSTR(*)
+      INTEGER       LSTR(*)
 C
       INTEGER IS , KST , ICH , IOFF , ISTR , INC
       REAL    XCUR , YCUR , SCALE
@@ -723,8 +727,11 @@ C
                SCALE = 1.5 * SCALE
                XCUR  = XCUR + 4.*SCALE
                YCUR  = YCUR + 12.*SCALE
-CCC            ELSEIF( ISTR .GE. 5 .AND. ISTR .LE. 11 )THEN
-CCC               CALL COLOR( ISTR-4 )
+            ELSEIF( ISTR .GE. 5 .AND. ISTR .LE. 11 )THEN
+               NSTR = NSTR + 1
+               LSTR(NSTR) = 96+ISTR
+               XSTR(NSTR) = XCUR
+               YSTR(NSTR) = YCUR
             ENDIF
 C.....................................................................
 C  Check if this is a newline character
@@ -740,8 +747,11 @@ C
                NSTR  = NSTR + 1
                KST   = NSTROK(IOFF+IS)
 C
-               LBSTR(NSTR) = KST .GE. 16384
-               IF( LBSTR(NSTR) )KST = KST - 16384
+               LSTR(NSTR) = 0
+               IF( KST .GE. 16384 )THEN
+                 LSTR(NSTR) = 1
+                 KST = KST - 16384
+               ENDIF
 C
                XCUR = XCUR + SCALE*FLOAT( KST/128 - 64 )
                YCUR = YCUR + SCALE*FLOAT( MOD(KST,128) - 64 )
