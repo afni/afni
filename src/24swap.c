@@ -26,7 +26,7 @@ int main( int argc , char * argv[] )
             " -q            Operate quietly\n"
             " -pattern pat  'pat' determines the pattern of 2 and 4\n"
             "                 byte swaps.  Each element is of the form\n"
-            "                 2xN  or 4xN, where N is the number of\n"
+            "                 2xN or 4xN, where N is the number of\n"
             "                 bytes to swap as pairs (for 2x) or\n"
             "                 as quadruples (for 4x).  For 2x, N must\n"
             "                 be divisible by 2; for 4x, N must be\n"
@@ -36,9 +36,11 @@ int main( int argc , char * argv[] )
             "                 are left over after the pattern is used\n"
             "                 up, the pattern starts over.  However,\n"
             "                 if a byte count N is zero, as in the\n"
-            "                 example, then it means to continue until\n"
-            "                 the end of file.\n"
+            "                 example below, then it means to continue\n"
+            "                 until the end of file.\n"
             "\n"
+            " N.B.: You can also use 1xN as a pattern, indicating to\n"
+            "         skip N bytes without any swapping.\n"
             " N.B.: A default pattern can be stored in the Unix\n"
             "         environment variable AFNI_24SWAP_PATTERN.\n"
             "         If no -pattern option is given, the default\n"
@@ -99,7 +101,7 @@ int main( int argc , char * argv[] )
       if( ii != 2 ){
          fprintf(stderr,"** 24swap: illegal pattern %s\n",cpat); exit(1);
       }
-      if( len < 0 || (typ!=2 && typ!=4) ){
+      if( len < 0 || (typ!=2 && typ!=4 && typ!=1 ) ){
          fprintf(stderr,"** 24swap: illegal pattern %s\n",cpat); exit(1);
       }
       if( typ == 2 && len%2 != 0 ){
@@ -142,6 +144,7 @@ int main( int argc , char * argv[] )
                nbyt = fread( bbuf , sizeof(byte) , BUFSIZE , infil ) ;
                if( nbyt <= 0 ) break ;  /* end of file */
                switch( pattype[ipat] ){
+                  case 1: /* nothing to do */             ; break ;
                   case 2: swap_twobytes ( nbyt/2 , bbuf ) ; break ;
                   case 4: swap_fourbytes( nbyt/4 , bbuf ) ; break ;
                }
@@ -160,6 +163,7 @@ int main( int argc , char * argv[] )
                nbyt = fread( bbuf , sizeof(byte) , jpat , infil ) ;
                if( nbyt <= 0 ) break ;  /* end of file */
                switch( pattype[ipat] ){
+                  case 1: /* nothing to do */             ; break ;
                   case 2: swap_twobytes ( nbyt/2 , bbuf ) ; break ;
                   case 4: swap_fourbytes( nbyt/4 , bbuf ) ; break ;
                }

@@ -600,6 +600,14 @@ attached.  If you wish to disable this warning, set this environment
 variable (to anything).  For more information on this subject, please
 see http://varda.biophysics.mcw.edu/~cox/afni_faq.html#AnatParent .
 
+-----------------------------------
+Variable: AFNI_NO_NEGATIVES_WARNING
+-----------------------------------
+If this variable is set (to anything), then to3d will skip the usual
+warning that it pops up in a message window when it discovers negative
+values in the input short images.  (The warning will still be printed
+to stdout.)
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

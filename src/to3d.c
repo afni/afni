@@ -27,6 +27,7 @@ static int     geomparent_loaded = 0 ;
 static int     geometry_loaded   = 0 ;
 
 static int     negative_shorts   = 0 ;  /* 19 Jan 2000 */
+static int     nfloat_err        = 0 ;  /* 14 Sep 1999 */
 
 #ifdef AFNI_DEBUG
 #  define QQQ(str) (printf("to3d: %s\n",str),fflush(stdout))
@@ -85,24 +86,37 @@ void AFNI_handler(char * msg){}
 
 void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
+   char msg[256] ;
+
    MCW_help_CB(NULL,NULL,NULL) ;
    MCW_alter_widget_cursor( wset.topshell , -XC_left_ptr , "yellow","blue" ) ;
 
-   if( negative_shorts ){  /* 19 Jan 2000 */
-      char msg[256] ;
-
+   if( negative_shorts && getenv("AFNI_NO_NEGATIVES_WARNING")==NULL ){ /* 19 Jan 2000 */
       sprintf(msg , " \n"
                     " WARNING: %d negative voxels were\n"
                     "          read in images of shorts.\n"
                     "          It is possible the input\n"
                     "          images need byte-swapping.\n \n"
-                    " ** I recommend that you View Images **\n" ,
+                    " ** I recommend that you View Images. **\n" ,
               negative_shorts ) ;
-      
+
       (void) MCW_popup_message( wset.anatomy_parent_label , msg ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
 
+   if( nfloat_err ){ /* 20 Jan 2000 */
+      sprintf(msg , " \n"
+                    " WARNING: %d errors in floating point images\n"
+                    "          were detected.  It is possible that\n"
+                    "          the inputs need to be 4swap-ed, or\n"
+                    "          otherwise repaired.\n \n"
+                    " ** Erroneous values have been replaced by\n"
+                    " ** zeros. I recommend that you View Images. **\n" ,
+              nfloat_err ) ;
+
+      (void) MCW_popup_message( wset.geometry_parent_label , msg ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   }
 }
 
 /*-----------------------------------------------------------------------*/
@@ -3421,7 +3435,6 @@ void T3D_read_images(void)
    int     gnim ;
    char ** gname ;
    int time_dep , ltt,kzz , ntt,nzz , nvoxt ;
-   int nfloat_err=0 ;  /* 14 Sep 1999 */
 
 #ifdef AFNI_DEBUG
 printf("T3D_read_images: entry\n") ;
