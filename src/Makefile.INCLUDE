@@ -1268,6 +1268,15 @@ coxplot.tgz:
 	$(TAR) cf - ./coxplot | $(GZIP) -9v > coxplot.tgz
 
 #######
+# rickr library
+
+librickr.a:
+	( cd rickr ; 							\
+	make librickr.a clean 'RM=$(RM)' 'CC=$(CC)'			\
+			      'RANLIB=$(RANLIB)' 'IFLAGS=$(IFLAGS)' ;	\
+	$(MV) librickr.a .. ; )
+
+#######
 # surface library (not currently used)
 
 libsipp.a:
