@@ -269,7 +269,7 @@ char * nifti_makebasename(const char* fname);
 
 /* other routines */
 struct nifti_1_header   nifti_convert_nim2nhdr(nifti_image* nim);
-nifti_1_header        * nifti_read_header(char * hname, int * swap);
+nifti_1_header        * nifti_read_header(char * hname, int * swap, int check);
 nifti_image           * nifti_copy_nim_info(nifti_image* src);
 nifti_image           * nifti_simple_init_nim();
 nifti_image           * nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
@@ -296,6 +296,10 @@ int     valid_nifti_extensions(nifti_image *nim);
 /*-- the rest of these apply only to nifti1_io.c, check for _NIFTI1_IO_C_ */
 /*                                                    Feb 9, 2005 [rickr] */
 #ifdef _NIFTI1_IO_C_
+
+typedef struct {
+    int debug;
+} nifti_global_options;
 
 #undef  LNI_FERR /* local nifti file error, to be compact and repetative */
 #define LNI_FERR(func,msg,file)                                      \
