@@ -4,6 +4,14 @@
 #include <math.h>
 #include "nifti1.h"
 
+#if 1
+int main( int argc , char *argv[] )
+{
+   nifti_1_header h ;
+   printf("%d\n",sizeof(h)) ; exit(0) ;
+}
+#else
+
 /*****===================================================================*****/
 /*****      Sample functions to deal with NIFTI-1 and ANALYZE files      *****/
 /*****...................................................................*****/
@@ -711,3 +719,4 @@ void nifti_image_infodump( nifti_image *nim )
 
    return ;
 }
+#endif
