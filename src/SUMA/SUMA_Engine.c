@@ -130,7 +130,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                nel = NI_new_data_element("ni_do", 0);
                NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
                stmp = SUMA_append_string("DEFINE_COLORSCALE ", cmap->Name);
-               for (i=0; i < cmap->N_Col; ++i) {
+               /* SEND COLORMAP In REVERSE ORDER TO AFNI,
+               C'est la vie */
+               for (i=cmap->N_Col-1; i >= 0; --i) {
                   sprintf(sbuf,"rgbi:%f/%f/%f", 
                            cmap->M[i][0], cmap->M[i][1], cmap->M[i][2]);
                   stmp = SUMA_append_replace_string(stmp, sbuf, " ", 1);
@@ -283,13 +285,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
                                                            SUMA_SaveSOascii, (void *)SaveSO_data,
                                                            NULL, NULL,
-                                                           "*.xyz",
+                                                           "*.1D.xyz",
                                                            SUMAg_CF->X->FileSelectDlg);
                } else {
                   SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
                                                            SUMA_SaveSOascii, (void *)SaveSO_data,
                                                            NULL, NULL,
-                                                           "*.xyz",
+                                                           "*.1D.xyz",
                                                            SUMAg_CF->X->FileSelectDlg);
                }
 

@@ -78,6 +78,8 @@ char * SUMA_help_message_Info(void)
       "\t  b: background color, toggle.\n\n");
    SS = SUMA_StringAppend (SS, 
       "\t  c: load a node color file.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  Ctrl+d: draw ROI controller.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  d: Show all DO objects in DOv.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
@@ -150,6 +152,9 @@ char * SUMA_help_message_Info(void)
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  s: NO LONGER IN USE. Use:\n"
       "\t     View->Surface Controller->More.\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  Ctrl+s: Open controller for \n"
+      "\t          surface in Focus.\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+Alt+s: Input filename with coordinates\n"
       "\t              forming a segment (6 values) on \n"
@@ -161,7 +166,10 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "\t  t: talk to AFNI, toggle.\n");
    SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+t: Force a resend of surfaces to AFNI.\n\n");
+      "\t  Ctrl+t: Force a resend of \n"
+      "            surfaces to AFNI.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  Ctrl+u: Open SUMA controller.\n\n");   
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  v: Show current surface viewer structure (cSV).\n\n");
    SS = SUMA_StringAppend (SS, 

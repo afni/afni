@@ -737,7 +737,24 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    
    SUMA_LH("Called");
    /* select the color map */
-   mapcode = SUMA_CMAP_ROI128;
+   {
+      char *eee = getenv("SUMA_ROIColorMap");
+      if (eee) {
+         if (strcmp (eee, "bgyr64") == 0) {
+            mapcode = SUMA_CMAP_BGYR64;
+         } else if (strcmp (eee, "ygbrp64") == 0) {
+            mapcode = SUMA_CMAP_ROI64;
+         } else if (strcmp (eee, "ygbrp128") == 0) {
+            mapcode = SUMA_CMAP_ROI128;
+         } else {
+            mapcode = SUMA_CMAP_ROI128;
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: Unrecognized option. Using default\n", FuncName);
+         }
+      } else {
+         mapcode = SUMA_CMAP_ROI128;
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Undefined environment. Using default\n", FuncName);
+      }
+   }
    
    /* intilialize list */
    ROIPlaneList = SUMA_Addto_ROIplane_List (NULL, NULL, 0);

@@ -417,7 +417,7 @@ int main (int argc,char *argv[])
          SUMA_COLOR_SCALED_VECT * SV;
          float ClipRange[2], *Vsort;
 
-         /* create the color mapping of Cx (SUMA_CMAP_MATLAB_DEF_BGYR64)*/
+         /* create the color mapping of Cx (SUMA_CMAP_MATLAB_DEF_BYR64)*/
          CM = SUMA_GetStandardMap (SUMA_CMAP_nGRAY20);
          if (CM == NULL) {
             fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName); 
@@ -503,7 +503,7 @@ int main (int argc,char *argv[])
       fprintf (SpecOut,"NewSurface\n");
       fprintf (SpecOut, "\tSurfaceFormat = ASCII\n");
       fprintf (SpecOut, "\tSurfaceType = Ply\n");
-      fprintf (SpecOut, "\tFreeSurferSurface = %s\n", fName);
+      fprintf (SpecOut, "\tSurfaceName = %s\n", fName);
       fprintf (SpecOut, "\tMappingRef = SAME\n");
       fprintf (SpecOut, "\tSurfaceState = %s\n", SOv[ipart]->State);
       fprintf (SpecOut, "\tEmbedDimension = 3\n\n");

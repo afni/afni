@@ -935,9 +935,13 @@ char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col)
          *N_col = 19;
          SUMA_RETURN("bgyr19");
          break;
-      case SUMA_CMAP_MATLAB_DEF_BGYR64:
+      case SUMA_CMAP_MATLAB_DEF_BYR64:
          *N_col = 64;
-         SUMA_RETURN("matlab_default_bgyr64");
+         SUMA_RETURN("matlab_default_byr64");
+         break;
+      case SUMA_CMAP_BGYR64:
+         *N_col = 64;
+         SUMA_RETURN("bgyr64");
          break;
       case SUMA_CMAP_ROI128:
          *N_col = 128;
@@ -971,7 +975,8 @@ SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name)
    if (!strcmp(Name, "gray20")) SUMA_RETURN(SUMA_CMAP_GRAY20);
    if (!strcmp(Name, "bw20")) SUMA_RETURN(SUMA_CMAP_BW20);
    if (!strcmp(Name, "bgyr19")) SUMA_RETURN(SUMA_CMAP_BGYR19);
-   if (!strcmp(Name, "matlab_default_bgyr64")) SUMA_RETURN(SUMA_CMAP_MATLAB_DEF_BGYR64);
+   if (!strcmp(Name, "matlab_default_byr64")) SUMA_RETURN(SUMA_CMAP_MATLAB_DEF_BYR64);
+   if (!strcmp(Name, "bgyr64")) SUMA_RETURN(SUMA_CMAP_BGYR64);
    if (!strcmp(Name, "roi64")) SUMA_RETURN(SUMA_CMAP_ROI64);
    if (!strcmp(Name, "roi128")) SUMA_RETURN(SUMA_CMAP_ROI128);
    /* if (!strcmp(Name, "")) SUMA_RETURN(); */
@@ -988,7 +993,7 @@ SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name)
       SUMA_CMAP_GRAY20
       SUMA_CMAP_nGRAY20
       SUMA_CMAP_BW20
-      SUMA_CMAP_MATLAB_DEF_BGYR64
+      SUMA_CMAP_MATLAB_DEF_BYR64
    \return CM (SUMA_COLOR_MAP*) color map structure (NULL in case of error)
 */
 
@@ -1126,7 +1131,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
                }
                break;
             }
-            case SUMA_CMAP_MATLAB_DEF_BGYR64:
+            case SUMA_CMAP_MATLAB_DEF_BYR64:
             {
                /* default matlab color map */
                Ncols = 64;
@@ -1168,6 +1173,48 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
             
             }
          
+            case SUMA_CMAP_BGYR64:
+            {
+               /* default matlab color map */
+               Ncols = 64;
+               NFid = 10;
+               
+               Fiducials = (float **)SUMA_allocate2D(NFid, 3, sizeof(float));
+               Nind = (int *) SUMA_calloc (NFid, sizeof (int));
+               
+               if (!Fiducials || !Nind) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
+                  SUMA_RETURN (NULL);
+               }
+               
+               /* create the fiducial colors */
+               k = 0;
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.5625; Nind[k] = 0; ++k; 
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 1.0; Nind[k] = 7; ++k;
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 1.0; Nind[k] = 15; ++k;
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 1.0; Nind[k] = 18; ++k;
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 0.0; Nind[k] = 24; ++k;
+               Fiducials[k][0] = 0.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; Nind[k] = 32; ++k;
+               Fiducials[k][0] = 1.0; Fiducials[k][1] = 1.0; Fiducials[k][2] = 0.0; Nind[k] = 43; ++k;
+               Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.5; Fiducials[k][2] = 0.0; Nind[k] = 48; ++k;
+               Fiducials[k][0] = 1.0; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 56; ++k;
+               Fiducials[k][0] = 0.5625; Fiducials[k][1] = 0.0; Fiducials[k][2] = 0.0; Nind[k] = 63; ++k;
+               
+               /* generate 64 colors colormap */
+               CM = SUMA_MakeColorMap_v2 (Fiducials, k, Nind, NOPE, SUMA_StandardMapName(mapcode,&nc));
+               
+               /* free Fiducials & Nind*/
+               SUMA_free2D((char **)Fiducials, k);
+               SUMA_free(Nind);
+               
+               if (!CM) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to create CM.\n", FuncName);
+                  SUMA_RETURN (NULL);   
+               }
+               break;
+            
+            }
+
          case SUMA_CMAP_ROI128:
             {
                /* a large colormap for lots of ROI drawing */
@@ -1459,7 +1506,8 @@ int main (int argc,char *argv[])
          if (strcmp(argv[kar], "BW20") == 0)    MapType = SUMA_CMAP_BW20;
          if (strcmp(argv[kar], "GRAY20") == 0)    MapType = SUMA_CMAP_GRAY20;
          if (strcmp(argv[kar], "BGYR19") == 0)    MapType = SUMA_CMAP_BGYR19;
-         if (strcmp(argv[kar], "MATLAB_DEF_BGYR64") == 0)    MapType = SUMA_CMAP_MATLAB_DEF_BGYR64;
+         if (strcmp(argv[kar], "MATLAB_DEF_BYR64") == 0)    MapType = SUMA_CMAP_MATLAB_DEF_BYR64;
+         if (strcmp(argv[kar], "BGYR64") == 0)    MapType = SUMA_CMAP_BGYR64;
          if (strcmp(argv[kar], "ROI64") == 0)    MapType = SUMA_CMAP_ROI64;
          if (strcmp(argv[kar], "ROI128") == 0)    MapType = SUMA_CMAP_ROI128;
    

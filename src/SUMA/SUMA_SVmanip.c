@@ -1233,7 +1233,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->ROI_CM = NULL;
    cf->ROI_FillMode = SUMA_ROI_FILL_TO_THISROI;
-   cf->ROI2afni = YUP;
+   cf->ROI2afni = NOPE;
    return (cf);
 
 }

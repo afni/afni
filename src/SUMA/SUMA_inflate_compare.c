@@ -170,8 +170,8 @@ int main (int argc,char *argv[])
   else 
     if (SUMA_iswordin(Spec.SurfaceType[0], "SureFit") == 1) {
       Surf1_SFName = SUMA_malloc(sizeof(SUMA_SFname));
-      strcpy(Surf1_SFName->name_coord,Spec.SureFitCoord[0]);
-      strcpy(Surf1_SFName->name_topo, Spec.SureFitTopo[0]);
+      strcpy(Surf1_SFName->name_coord,Spec.CoordFile[0]);
+      strcpy(Surf1_SFName->name_topo, Spec.TopoFile[0]);
       strcpy(Surf1_SFName->name_param, Spec.SureFitVolParam[0]);
       Surf1 = SUMA_Load_Surface_Object(Surf1_SFName, SUMA_SUREFIT, SUMA_ASCII,Vol1Parent_FileName);
       tag1 =  "SF";
@@ -187,8 +187,8 @@ int main (int argc,char *argv[])
   else 
     if (SUMA_iswordin(Spec.SurfaceType[0], "SureFit") == 1) {
       Surf2_SFName = SUMA_malloc(sizeof(SUMA_SFname));
-      strcpy(Surf2_SFName->name_coord,Spec.SureFitCoord[0]);
-      strcpy(Surf2_SFName->name_topo, Spec.SureFitTopo[0]);
+      strcpy(Surf2_SFName->name_coord,Spec.CoordFile[0]);
+      strcpy(Surf2_SFName->name_topo, Spec.TopoFile[0]);
       strcpy(Surf2_SFName->name_param, Spec.SureFitVolParam[0]);
       Surf2 = SUMA_Load_Surface_Object(Surf1_SFName, SUMA_SUREFIT, SUMA_ASCII,Vol1Parent_FileName);
       tag2 =  "SF";
@@ -349,7 +349,7 @@ int main (int argc,char *argv[])
   }
   
   /* output this distance as a color file */
-  MyColMap = SUMA_GetStandardMap(SUMA_CMAP_MATLAB_DEF_BGYR64);
+  MyColMap = SUMA_GetStandardMap(SUMA_CMAP_MATLAB_DEF_BYR64);
   MyOpt = SUMA_ScaleToMapOptInit();
   MySV = SUMA_Create_ColorScaledVect(num_nodes1);
   mindistance = minimum(num_nodes1, distance);
