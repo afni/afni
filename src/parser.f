@@ -839,7 +839,7 @@ C
      X          FIBTTP , FIBTPT , FIBTTZ ,
      X          FIBNTP , FIBNPT , FIBNTZ ,
      X          FIGTTP , FIGTPT , FIGTTZ ,
-     X          FIPTTP , FIPTPT , FIPTTZ
+     X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE
 C
       REAL*8 R2D , D2R
       PARAMETER ( R2D = 57.29577951308232D+00 ,
@@ -978,6 +978,10 @@ C.......................................................................
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'LRAN' )THEN
             R8_EVAL(NEVAL) = LRAN( R8_EVAL(NEVAL) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'PLEG')THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = LEGENDRE( R8_EVAL(NEVAL),R8_EVAL(NEVAL+1) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
             IF( ABS(R8_EVAL(NEVAL)) .LT. 87.5 )
@@ -1320,7 +1324,7 @@ C
      X          FIBTTP , FIBTPT , FIBTTZ ,
      X          FIBNTP , FIBNPT , FIBNTZ ,
      X          FIGTTP , FIGTPT , FIGTTZ ,
-     X          FIPTTP , FIPTPT , FIPTTZ
+     X          FIPTTP , FIPTPT , FIPTTZ , LEGENDRE
 C
       REAL*8 R2D , D2R
       PARAMETER ( R2D = 57.29577951308232D+00 ,
@@ -1695,6 +1699,13 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'LRAN')THEN
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = LRAN( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'PLEG')THEN
+            NEVAL = NEVAL - 1
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = LEGENDRE( R8_EVAL(IV-IBV,NEVAL) ,
+     X                                         R8_EVAL(IV-IBV,NEVAL+1) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'SINH' )THEN
