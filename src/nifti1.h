@@ -947,7 +947,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
         whereas +x is Right, +y is Anterior  , +z is Superior. )
    Thus, if the (0020,0032) DICOM attribute is extracted into (px,py,pz), then
      qoffset_x = -px   qoffset_y = -py   qoffset_z = pz
-   is a reasonable setting for qform_code=NIFTI_XFORM_SCANNER_ANAT.
+   is a reasonable setting when qform_code=NIFTI_XFORM_SCANNER_ANAT.
 
    That is, DICOM's coordinate system is 180 degrees rotated about the z-axis
    from the neuroscience/NIFTI coordinate system.  To transform between DICOM
@@ -1091,9 +1091,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
     slice_duration = If this is positive, AND if slice_dim is nonzero,
                      indicates the amount of time used to acquire 1 slice.
-                     slice_duration*dim[slice_dim] can be less than
-                     pixdim[slice_dim] with a clustered acquisition
-                     method, for example.
+                     slice_duration*dim[slice_dim] can be less than pixdim[4]
+                     with a clustered acquisition method, for example.
 
     slice_code = If this is nonzero, AND if slice_dim is nonzero, AND
                  if slice_duration is positive, indicates the timing
