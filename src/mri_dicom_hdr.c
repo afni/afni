@@ -11941,7 +11941,7 @@ CTNBOOLEAN UTL_IsDirectory(const char* path)
 }
 
 
-
+#if 0
 CONDITION UTL_ScanDirectory(const char* path,
 			    LST_HEAD** lst)
 {
@@ -11987,6 +11987,7 @@ CONDITION UTL_ScanDirectory(const char* path,
 
   return UTL_NORMAL;
 }
+#endif
 
 static char* UTL_configFile = 0;
 static LST_HEAD* UTL_configList = 0;
