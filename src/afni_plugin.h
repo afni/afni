@@ -47,7 +47,13 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 /***************** The dlfcn.h and dl library ****************/
 
 #ifdef DYNAMIC_LOADING_VIA_DL
+
+#ifndef DARWIN
 #  include <dlfcn.h>
+#else
+#  include "dlcompat/dlfcn.h"
+#endif
+
    typedef void * DYNAMIC_handle ;
 
 #  define ISVALID_DYNAMIC_handle(handle) ((handle) != (DYNAMIC_handle) 0)
