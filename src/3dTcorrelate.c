@@ -29,8 +29,10 @@ int main( int argc , char *argv[] )
              "                coefficient.\n"
              "  -quadrant = Correlation is the quadrant correlation coefficient.\n"
              "\n"
-             "  -polort m = Remove polynomical trend of order 'm', for m=0..3\n"
+             "  -polort m = Remove polynomical trend of order 'm', for m=-1..3.\n"
              "                [default is m=1; removal is by least squares].\n"
+             "                Using m=-1 means no detrending; this is only useful\n"
+             "                for data/information that has been pre-processed.\n"
              "\n"
              "  -autoclip = Clip off low-intensity regions in the two datasets,\n"
              "               so that the correlation is only computed between\n"
@@ -39,7 +41,7 @@ int main( int argc , char *argv[] )
              "               3dClipLevel works.\n"
              "\n"
              "  -prefix p = Save output into dataset with prefix 'p'\n"
-             "               [default prefix is 'Tcorr']\n"
+             "               [default prefix is 'Tcorr'].\n"
              "\n"
              "Notes:\n"
              " * The output dataset is functional bucket type, with one\n"
@@ -47,7 +49,7 @@ int main( int argc , char *argv[] )
              " * Because both time series are detrended prior to correlation,\n"
              "    the results will not be identical to using FIM or FIM+ to\n"
              "    calculate correlations (whose ideal vector is not detrended).\n"
-             " * This is a quick hack for Mike Beauchamp.  Pay up.\n"
+             " * This is a quick hack for Mike Beauchamp.  Thanks for you-know-what.\n"
              "\n"
              "-- RWCox - Aug 2001\n"
             ) ;
@@ -87,7 +89,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-polort") == 0 ){
          char *cpt ;
          int val = strtod(argv[++nopt],&cpt) ;
-         if( *cpt != '\0' || val < 0 || val > 3 ){
+         if( *cpt != '\0' || val < -1 || val > 3 ){
             fprintf(stderr,"** Illegal value after -polort!\n");exit(1);
          }
          polort = val ; nopt++ ; continue ;
@@ -180,6 +182,8 @@ int main( int argc , char *argv[] )
 
    EDIT_substitute_brick( cset , 0 , MRI_float , NULL ) ; /* make array  */
    car = DSET_ARRAY(cset,0) ;                             /* get array   */
+
+   tross_Make_History( "3dTcorrelate" , argc,argv , cset ) ;
 
    /* loop over voxels, correlate */
 

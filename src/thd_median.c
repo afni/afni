@@ -19,7 +19,8 @@ ENTRY("THD_median_brick") ;
    nvox  = DSET_NVOX(dset) ;
    nvals = DSET_NVALS(dset) ;
 
-   medim = mri_new_conforming( DSET_BRICK(dset,0) , MRI_float ) ;
+   tsim  = DSET_BRICK(dset,0) ;
+   medim = mri_new_conforming( tsim , MRI_float ) ;
    medar = MRI_FLOAT_PTR(medim) ;
 
    for( ii=0 ; ii < nvox ; ii++ ){
@@ -28,5 +29,5 @@ ENTRY("THD_median_brick") ;
       mri_free(tsim) ;
    }
 
-   return medim ;
+   RETURN(medim) ;
 }

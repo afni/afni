@@ -154,7 +154,7 @@ WHOAMI ;
    }
 
    if( make_space && mri_data_pointer(newim) == NULL ){
-      fprintf( stderr , "malloc failure for image space\n" ) ;
+      fprintf( stderr , "malloc failure for image space: %d bytes\n",npix*newim->pixel_size ) ;
       MRI_FATAL_ERROR ;
    }
 

@@ -23,15 +23,17 @@ MRI_IMAGE * THD_extract_series( int ind , THD_3dim_dataset * dset , int raw )
    int nv , ival ;
    char * iar ;      /* brick in the input */
 
+ENTRY("THD_extract_series") ;
+
    if( ind < 0 || dset == NULL ||
-       ind >= dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ) return NULL ;
+       ind >= dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ) RETURN( NULL );
 
    nv  = dset->dblk->nvals ;
    iar = DSET_ARRAY(dset,0) ;
    if( iar == NULL ){  /* if data needs to be loaded from disk */
       (void) THD_load_datablock( dset->dblk , NULL ) ;
       iar = DSET_ARRAY(dset,0) ;
-      if( iar == NULL ) return NULL ;
+      if( iar == NULL ) RETURN( NULL );
    }
    typ = DSET_BRICK_TYPE(dset,0) ;
    im  = mri_new( nv , 1 , typ ) ;
@@ -40,7 +42,7 @@ MRI_IMAGE * THD_extract_series( int ind , THD_3dim_dataset * dset , int raw )
 
       default:             /* don't know what to do --> return nada */
          mri_free( im ) ;
-         return NULL ;
+         RETURN( NULL );
 
       case MRI_byte:{
          byte * ar  = MRI_BYTE_PTR(im) , * bar ;
@@ -126,7 +128,7 @@ MRI_IMAGE * THD_extract_series( int ind , THD_3dim_dataset * dset , int raw )
       im->xo = 0.0 ; im->dx = 1.0 ;  /* 08 Nov 1996 */
    }
 
-   return im ;
+   RETURN( im );
 }
 
 /*----------------------------------------------------------------------------
@@ -141,7 +143,9 @@ MRI_IMARR * THD_extract_many_series( int ns, int * ind, THD_3dim_dataset * dset 
    int nv , ival , kk ;
    char * iar ;      /* brick in the input */
 
-   if( ns <= 0 || ind == NULL | dset == NULL ) return NULL ;
+ENTRY("THD_extract_many_series") ;
+
+   if( ns <= 0 || ind == NULL | dset == NULL ) RETURN( NULL );
 
    /* try to load dataset */
 
@@ -150,7 +154,7 @@ MRI_IMARR * THD_extract_many_series( int ns, int * ind, THD_3dim_dataset * dset 
    if( iar == NULL ){  /* if data needs to be loaded from disk */
       (void) THD_load_datablock( dset->dblk , NULL ) ;
       iar = DSET_ARRAY(dset,0) ;
-      if( iar == NULL ) return NULL ;
+      if( iar == NULL ) RETURN( NULL );
    }
    typ = DSET_BRICK_TYPE(dset,0) ;
 
@@ -168,7 +172,7 @@ MRI_IMARR * THD_extract_many_series( int ns, int * ind, THD_3dim_dataset * dset 
 
       default:             /* don't know what to do --> return nada */
          DESTROY_IMARR(imar) ;
-         return NULL ;
+         RETURN( NULL );
 
       case MRI_byte:{
          byte * ar , * bar ;
@@ -291,5 +295,5 @@ MRI_IMARR * THD_extract_many_series( int ns, int * ind, THD_3dim_dataset * dset 
       }
    }
 
-   return imar ;
+   RETURN( imar );
 }

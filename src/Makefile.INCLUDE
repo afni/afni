@@ -917,6 +917,10 @@ mcw_graf.o:mcw_graf.h
 ###################################################################
 # make the mri library
 
+agni.o:agni.c agni.h
+	$(RM) $@
+	$(CCFAST) -c agni.c -I./sipp $(IFLAGS)
+
 csfft.o:csfft.c
 	$(RM) $@
 	$(CCFAST) -c csfft.c $(IFLAGS)
@@ -1153,6 +1157,20 @@ coxplot.h:
 
 coxplot.tgz:
 	$(TAR) cf - ./coxplot | $(GZIP) -9v > coxplot.tgz
+
+#######
+
+libsipp.a:
+	( cd sipp ; \
+	  make libsipp.a clean 'RM=$(RM)' 'CC=$(CCFAST)' 'AR=$(AR)' \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
+	  $(MV) libsipp.a .. ; )
+
+sipp.h:
+	$(CP) sipp/sipp.h ./
+
+sipp.tgz:
+	$(TAR) cf - ./sipp | $(GZIP) -9v > sipp.tgz
 
 #######
 

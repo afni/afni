@@ -2389,8 +2389,9 @@ extern void THD_const_detrend    ( int, float *, float * ); /* 24 Aug 2001 */
 #define DETREND_const(n,f)     THD_const_detrend(n,f,NULL)
 
 #define DETREND_polort(p,n,f)                            \
- do{ switch(p){  case 0: DETREND_const(n,f)    ; break;  \
-        default: case 1: DETREND_linear(n,f)   ; break;  \
+ do{ switch(p){ default:                         break;  \
+                 case 0: DETREND_const(n,f)    ; break;  \
+                 case 1: DETREND_linear(n,f)   ; break;  \
                  case 2: DETREND_quadratic(n,f); break;  \
                  case 3: DETREND_cubic(n,f)    ; break; } } while(0)
 

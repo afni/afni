@@ -3047,3 +3047,11 @@
  * New file thd_correlate.c computes various correlation coefficients
      between vectors.
  * Added constant detrending to thd_detrend.c.
+
+24 Aug 2001
+ * Modified 3dTcorrelate.c to have "-polort -1" option.
+ * Modified afni_friends.c.
+ * Modified to3d.c, which tried to popup outlier message in batch mode.
+     Also, made it check for negatives again after 2swap; skip outlier
+     check if too many negatives (more than 1%); print percentage of
+     negatives in negatives report.
