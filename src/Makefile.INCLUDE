@@ -1661,6 +1661,10 @@ nicat:nicat.o
 	$(RM) $@
 	$(CC) -o nicat nicat.o $(LFLAGS) $(LLIBS)
 
+test_rowtype:test_rowtype.o
+	$(RM) $@
+	$(CC) -o test_rowtype test_rowtype.o $(LFLAGS) $(LLIBS)
+
 niccc:niccc.o
 	$(RM) $@
 	$(CC) -o niccc niccc.o $(LFLAGS) $(LLIBS)
