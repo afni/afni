@@ -228,6 +228,9 @@ int main( int argc , char * argv[] )
        " -quintic = Use the quintic (5th order) Lagrange polynomial method.\n"
        " -heptic  = Use the heptic (7th order) Lagrange polynomial method.\n"
        "\n"
+       " -Fourier_nopad = Use a Fourier method WITHOUT padding\n"
+       "                  (if you don't mind the wraparound effect).\n"
+       "\n"
        " -clipit  = Clip results to input brick range [now the default]\n"
        " -noclip  = Don't clip results to input brick range\n"
        "\n"
@@ -397,6 +400,10 @@ int main( int argc , char * argv[] )
          iopt++ ; continue ;
       }
 
+      if( strcmp(argv[iopt],"-Fourier_nopad") == 0 ){   /* 13 May 2003 */
+         THD_rota_method( MRI_FOURIER_NOPAD ) ;
+         iopt++ ; continue ;
+      }
       if( strncmp(argv[iopt],"-Fourier",4) == 0 || strncmp(argv[iopt],"-fourier",4) == 0 ){
          THD_rota_method( MRI_FOURIER ) ;
          iopt++ ; continue ;

@@ -3552,6 +3552,8 @@ extern void lin_shift  ( int , float , float *) ;
 extern void cub_shift  ( int , float , float *) ;
 extern void quint_shift( int , float , float *) ;
 
+extern void THD_fftshift( THD_3dim_dataset *, float,float,float, int ) ;
+
   /*-- see mri_3dalign.c for these routines --*/
 
 /*! Struct that holds information used during 3D registration. */
