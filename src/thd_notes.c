@@ -293,13 +293,12 @@ void tross_Copy_History( THD_3dim_dataset * old_dset , THD_3dim_dataset * new_ds
 
 void tross_Addto_History( THD_3dim_dataset *old_dset , THD_3dim_dataset *new_dset )
 {
-   char *ch , *cn ;
+   char *ch ;
 
    if( !ISVALID_DSET(old_dset) || !ISVALID_DSET(new_dset) ) return ;
 
-   ch = tross_Get_History( old_dset ) ;      if( ch == NULL ) return ;
-   cn = tross_Encode_String(ch) ; free(ch) ; if( cn == NULL ) return;
-   tross_Append_History( new_dset , cn ) ; free(cn) ; return ;
+   ch = tross_Get_History( old_dset ) ; if( ch == NULL ) return ;
+   tross_Append_History( new_dset , ch ) ; free(ch) ; return ;
 }
 
 /*---------------------------------------------------------------------------*/

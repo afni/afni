@@ -15,8 +15,10 @@
 
 #include <stdarg.h>
 
-#undef ZMAX
-#define ZMAX 8000
+#undef  ZMAX
+#undef  SZMAX
+#define ZMAX  8000
+#define SZMAX "%.8000s"   /* same as ZMAX */
 
 char * THD_zzprintf( char * sss , char * fmt , ... ) ;
 
@@ -302,12 +304,15 @@ ENTRY("THD_dataset_info") ;
 
    /** If present, print out History **/
 
-   { char * chn ; int j ;
+   { char * chn ; int j,k ;
      chn = tross_Get_History(dset) ;
      if( chn != NULL ){
-        j = strlen(chn) ; if( j > ZMAX ) chn[ZMAX] = '\0' ;
-        outbuf = THD_zzprintf(outbuf,"\n----- HISTORY -----\n%s\n",chn) ;
-        free(chn) ;
+       j = strlen(chn) ;
+       outbuf = THD_zzprintf(outbuf,"\n----- HISTORY -----\n") ;
+       for( k=0 ; k < j ; k += ZMAX )
+         outbuf = THD_zzprintf(outbuf,SZMAX,chn+k) ;
+       free(chn) ;
+       outbuf = THD_zzprintf(outbuf,"\n") ;
      }
    }
 

@@ -1112,13 +1112,20 @@ int main( int argc , char * argv[] )
    if( jjj == 1 ){
       tross_Copy_History( CALC_dset[ids] , new_dset ) ;
    } else {                                               /* 27 Feb 2003 */
+      char hbuf[64] ;
       tross_Append_History( new_dset ,
-                            "--- History of inputs to 3dcalc ---" ) ;
-      for( iii=0 ; iii < 26 ; iii++ )
-        if( CALC_dset[iii] != NULL )
-          tross_Addto_History( CALC_dset[ids] , new_dset ) ;
+                            "===================================" ) ;
       tross_Append_History( new_dset ,
-                            "-----------------------------------" ) ;
+                            "=== History of inputs to 3dcalc ===" ) ;
+      for( iii=0 ; iii < 26 ; iii++ ){
+        if( CALC_dset[iii] != NULL ){
+          sprintf(hbuf,"=== Input %c:", 'a'+iii ) ;
+          tross_Append_History( new_dset , hbuf ) ;
+          tross_Addto_History( CALC_dset[iii] , new_dset ) ;
+        }
+      }
+      tross_Append_History( new_dset ,
+                            "===================================" ) ;
    }
    tross_Make_History( "3dcalc" , argc,argv , new_dset ) ;
 
