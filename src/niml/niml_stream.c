@@ -2341,6 +2341,7 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
 
 #ifndef DONT_USE_SHM
       case NI_SHM_TYPE:
+        NI_sleep(1) ;                          /* 31 Mar 2005 */
         SHM_close( ns->shmioc ) ;              /* detach shared memory */
       break ;
 #endif
@@ -2363,6 +2364,7 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
             tcp_send( ns->sd , "X" , 1 , MSG_OOB ) ;   /* 02 Jan 2004 */
             NI_sleep(1) ;
           }
+          NI_sleep(1) ;        /* 31 Mar 2005 */
           CLOSEDOWN(ns->sd) ;  /* close socket */
         }
       break ;

@@ -50,6 +50,7 @@ int main( int argc , char *argv[] )
        }
        nl++ ; ntot += jj ;
      }
+     NI_sleep(1) ; NI_stream_close(ns) ;
      ct = NI_clock_time()-ct ;
      fprintf(stderr,"Wrote %d bytes in %d ms: %.3f Mbytes/s\n",
                     ntot,ct,(9.5367e-7*ntot)/(1.e-3*ct)       ) ;
