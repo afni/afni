@@ -99,7 +99,7 @@ void AFNI_splashup(void)
    byte * bspl ;
    int   sxx,syy ;
    char * sen ;
-   static int first=1 , nov , dnov , nm=0 ;
+   static int ncall=0 , nov , dnov , nm=-1 ;
 
 ENTRY("AFNI_splashup") ;
 
@@ -112,88 +112,94 @@ ENTRY("AFNI_splashup") ;
       mri_free(imspl) ;
       imspl = SPLASH_decode26( NX_blank, NY_blank, NLINE_blank, BAR_blank ) ;
 
-      if( first ){
-        nov  =    (lrand48() >> 8) % NOVER  ;
-        dnov = 2*((lrand48() >> 8) % 2) - 1 ;
+      if( ncall==0 ){                           /* initialize random */
+        nov  =    (lrand48() >> 8) % NOVER  ;   /* sub-image overlay */
+        dnov = 2*((lrand48() >> 8) % 2) - 1 ;   /* index & direction */
       }
 
-      /* overlay sub-image at the right */
+      /* overlay small sub-image at the right [RWC] */
 
       nov  = (nov+dnov+NOVER) % NOVER ;
       imov = SPLASH_decode26( xover[nov], yover[nov], lover[nov], bover[nov] ) ;
 
       mri_overlay_2D( imspl, imov, IXOVER, JYOVER ) ; mri_free(imov) ;
 
-      if( first ) AFNI_find_splash_ppms() ; /* 17 Sep 2001 */
+      if( ncall==0 ) AFNI_find_splash_ppms() ; /* 17 Sep 2001 */
 
-#ifdef NMAIN
       /* possibly replace the splash image at the top */
 
-      if( !first || AFNI_yesenv("AFNI_SPLASH_OVERRIDE") || num_ppms > 0 ){ /* 07 Jun 2000 */
-         int good=0 , qq,nq=0 ;
-         char * ufname , * qname[10] , str[32] ;
+      if( ncall > 0 || AFNI_yesenv("AFNI_SPLASH_OVERRIDE") || num_ppms > 0 ){ /* 07 Jun 2000 */
+        int good=0 , qq,nq=0 , sov=0 ;
+        char *ufname , *qname[10] , str[32] ;
 
-         /* select a user specified main image name, if any */
+#ifdef NMAIN
+        sov = (ncall == 1) ;
+#endif
+        if( !sov )
+          sov = ( (lrand48() >> 8 ) % 4 ) == 0 ;   /* 13 Nov 2002: skip overlay? */
 
-         if( AFNI_yesenv("AFNI_SPLASH_OVERRIDE") ){
-            ufname = getenv("AFNI_IMAGE_PGMFILE") ;
-            if( ufname != NULL ) qname[nq++] = ufname ;
-            for( qq=1 ; qq < 10 ; qq++ ){
-               sprintf(str,"AFNI_IMAGE_PGMFILE_%d",qq) ;
-               ufname = getenv(str); if( ufname != NULL) qname[nq++] = ufname;
+        /* select a user specified main image name, if any */
+
+        if( AFNI_yesenv("AFNI_SPLASH_OVERRIDE") && !sov ){
+          ufname = getenv("AFNI_IMAGE_PGMFILE") ;
+          if( ufname != NULL ) qname[nq++] = ufname ;
+          for( qq=1 ; qq < 10 ; qq++ ){
+            sprintf(str,"AFNI_IMAGE_PGMFILE_%d",qq) ;
+            ufname = getenv(str); if( ufname != NULL) qname[nq++] = ufname;
+          }
+        }
+
+        switch( nq ){
+          case 0:  ufname = NULL                           ; break ;
+          case 1:  ufname = qname[0]                       ; break ;
+          default: ufname = qname[ (lrand48() >> 8) % nq ] ; break ;
+        }
+
+        /* popup user specified main image, if any */
+
+        if( ufname != NULL ){         /* 08 & 20 Jun 2000 */
+          imov = mri_read(ufname) ;  /* popup user-supplied image */
+          if( imov != NULL ){
+            if( imov->nx != NX_TOPOVER || imov->ny != NY_TOPOVER ){
+              MRI_IMAGE * imq = mri_resize(imov,NX_TOPOVER,NY_TOPOVER) ;
+              mri_free(imov) ; imov = imq ;
             }
-         }
+            if( imov->kind == MRI_rgb ){             /* color */
+              MRI_IMAGE * imq = mri_to_rgb(imspl) ;
+              mri_free(imspl) ; imspl = imq ;
+              reload_DC_colordef( GLOBAL_library.dc ) ;
+            } else if( imov->kind != MRI_byte ){     /* gray */
+              MRI_IMAGE * imq = mri_to_byte(imov) ;
+              mri_free(imov) ; imov = imq ;
+            }
+            mri_overlay_2D( imspl , imov , 0,0 ) ;
+            mri_free(imov) ; good = 1 ;
+          }
+        }
 
-         switch( nq ){
-            case 0:  ufname = NULL                           ; break ;
-            case 1:  ufname = qname[0]                       ; break ;
-            default: ufname = qname[ (lrand48() >> 8) % nq ] ; break ;
-         }
+        if( !good ){    /* no user specified image ==> use my own */
 
-         /* popup user specified main image, if any */
-
-         if( ufname != NULL ){         /* 08 & 20 Jun 2000 */
-            imov = mri_read(ufname) ;  /* popup user-supplied image */
+          if( num_ppms > 0 && !sov ){  /* 17 Sep 2001: external image */
+            static int np=-1 ;
+            if( np < 0 ) np = (lrand48() >> 8) % num_ppms ;
+            else         np = (np+1)%(num_ppms) ;
+            imov = mri_read_ppm(fname_ppms[np]) ;
             if( imov != NULL ){
-               if( imov->nx != xmain[0] || imov->ny != ymain[0] ){
-                  MRI_IMAGE * imq = mri_resize(imov,xmain[0],ymain[0]) ;
-                  mri_free(imov) ; imov = imq ;
-               }
-               if( imov->kind == MRI_rgb ){             /* color */
-                  MRI_IMAGE * imq = mri_to_rgb(imspl) ;
-                  mri_free(imspl) ; imspl = imq ;
-                  reload_DC_colordef( GLOBAL_library.dc ) ;
-               } else if( imov->kind != MRI_byte ){     /* gray */
-                  MRI_IMAGE * imq = mri_to_byte(imov) ;
-                  mri_free(imov) ; imov = imq ;
-               }
-               mri_overlay_2D( imspl , imov , 0,0 ) ;
-               mri_free(imov) ; good = 1 ;
+              MRI_IMAGE * imq = mri_to_rgb(imspl) ;
+              mri_free(imspl) ; imspl = imq ;
+              reload_DC_colordef( GLOBAL_library.dc ) ;
+              mri_overlay_2D( imspl , imov , 0,0 ) ;
+              mri_free(imov) ; good = 1 ;
             }
-         }
+          }
 
-         if( !good ){    /* no user specified image ==> use my own */
-
-            int nrr = lrand48()&3584 ;
-            if( num_ppms > 0 && nrr != 0 ){  /* 17 Sep 2001: external image */
-              static int np=-1 ;
-              if( np < 0 ) np = (lrand48() >> 8) % num_ppms ;
-              else         np = (np+1)%(num_ppms) ;
-              imov = mri_read_ppm(fname_ppms[np]) ;
-              if( imov != NULL ){
-                MRI_IMAGE * imq = mri_to_rgb(imspl) ;
-                mri_free(imspl) ; imspl = imq ;
-                reload_DC_colordef( GLOBAL_library.dc ) ;
-                mri_overlay_2D( imspl , imov , 0,0 ) ;
-                mri_free(imov) ; good = 1 ;
-              }
-            }
-
-            if( !good ){                            /* internal image */
-              nm = (nm+1)%(NMAIN) ;
-              if( rmapm[nm] == NULL ){              /* grayscale */
+#ifdef NMAIN
+          if( !good ){                            /* internal image */
+            nm = (nm+1)%(NMAIN+1) ;
+            if( nm < NMAIN ){                     /* don't always overlay */
+              if( rmapm[nm] == NULL ){             /* grayscale overlay */
                 imov = SPLASH_decode26( xmain[nm],ymain[nm],lmain[nm],bmain[nm] ) ;
-              } else {                              /* color */
+              } else {                             /* color overlay */
                 MRI_IMAGE * imq = mri_to_rgb(imspl) ;
                 mri_free(imspl) ; imspl = imq ;
                 reload_DC_colordef( GLOBAL_library.dc ) ;
@@ -203,11 +209,13 @@ ENTRY("AFNI_splashup") ;
               mri_overlay_2D( imspl , imov , 0,0 ) ;
               mri_free(imov) ; good = 1 ;
             }
-
-         } /* end of "my own" image */
-
-      } /* end of replacing splash image */
+          } /* end of internal image */
 #endif
+
+        } /* end of "my own" image */
+      } /* end of replacing splash image */
+
+      /*-- show the image at last! --*/
 
       handle = SPLASH_popup_image( handle, imspl ) ;
 #ifndef USE_FADING
@@ -218,10 +226,10 @@ ENTRY("AFNI_splashup") ;
 
       ppp = (PLUGIN_impopper *) handle ;
 
-      if( first ){ dd = MWM_DECOR_BORDER ;
-                   ee = 0 ;
-      } else     { dd = MWM_DECOR_BORDER | MWM_DECOR_TITLE | MWM_DECOR_MENU ;
-                   ee = MWM_FUNC_MOVE | MWM_FUNC_CLOSE ;
+      if( ncall==0 ){ dd = MWM_DECOR_BORDER ;
+                      ee = 0 ;
+      } else        { dd = MWM_DECOR_BORDER | MWM_DECOR_TITLE | MWM_DECOR_MENU ;
+                      ee = MWM_FUNC_MOVE | MWM_FUNC_CLOSE ;
       }
 
       /* 21 Sep 2000 -- allow user to control splash position */
@@ -260,7 +268,7 @@ ENTRY("AFNI_splashup") ;
 
       /* some super-frivolities */
 
-      if( !first ){
+      if( ncall==0 ){
          drive_MCW_imseq( ppp->seq , isqDR_title , (XtPointer) "AFNI!" ) ;
          drive_MCW_imseq( ppp->seq , isqDR_imhelptext,
                           (XtPointer)
@@ -304,7 +312,7 @@ ENTRY("AFNI_splashup") ;
       AFNI_splashdown() ;  /* off with their heads */
    }
 
-   first = 0 ; EXRETURN ;
+   ncall++ ; EXRETURN ;
 }
 
 /*------------------------------------------------------------------
@@ -603,7 +611,7 @@ ENTRY("AFNI_find_splash_ppms") ;
 
       for( ii=0 ; ii < nppm ; ii++ ){
          mri_read_ppm_header( fppm[ii] , &nx , &ny ) ;
-         if( nx == xmain[0] || ny == ymain[0] ){      /* PPM file of good size? */
+         if( nx == NX_TOPOVER || ny == NY_TOPOVER ){      /* PPM file of good size? */
             if( fname_ppms == NULL )
                fname_ppms = (char **)malloc(sizeof(char *)) ;
             else

@@ -13,6 +13,9 @@
 #include "splash_cox3.h"
 #include "splash_cox4.h"
 
+/*------------------------------------------------------*/
+/* Stuff for the little sub-image overlay at the right */
+
 #undef  NOVER
 #define NOVER 4
 
@@ -21,27 +24,36 @@ static int    xover[NOVER]={NX_cox1   ,NX_cox2   ,NX_cox3   ,NX_cox4   };
 static int    yover[NOVER]={NY_cox1   ,NY_cox2   ,NY_cox3   ,NY_cox4   };
 static int    lover[NOVER]={NLINE_cox1,NLINE_cox2,NLINE_cox3,NLINE_cox4};
 
-/*------------------------------------------------------------------------------------*/
-#undef  NMAIN
-#define NMAIN 2
-#ifdef  NMAIN
-#  include "splash_gang.h"  /* MCW gang [gray]  */
-#  include "splash_sscc.h"  /* NIH gang [color] */
-
-static char **bmain[NMAIN]={BAR_gang  ,BAR_sscc  };
-static int    xmain[NMAIN]={NX_gang   ,NX_sscc   };
-static int    ymain[NMAIN]={NY_gang   ,NY_sscc   };
-static int    lmain[NMAIN]={NLINE_gang,NLINE_sscc};
-static byte  *rmapm[NMAIN]={NULL      ,RMAP_sscc };  /* color maps */
-static byte  *gmapm[NMAIN]={NULL      ,GMAP_sscc };
-static byte  *bmapm[NMAIN]={NULL      ,BMAP_sscc };
-static int    nmapm[NMAIN]={0         ,NC_sscc   };
-#endif
-/*------------------------------------------------------------------------------------*/
-
 #undef  IXOVER
 #undef  JYOVER
 #define IXOVER 332
 #define JYOVER 171
+
+/*----------------------------------------*/
+/* Stuff for the image overlay at the top */
+
+#undef  NX_TOPOVER
+#undef  NY_TOPOVER
+#define NX_TOPOVER 436
+#define NY_TOPOVER 140
+
+#undef  NMAIN
+#define NMAIN 2
+#ifdef  NMAIN
+
+#  include "splash_gang.h"  /* MCW gang [gray]  */
+#  include "splash_sscc.h"  /* NIH gang [color] */
+
+  static char **bmain[NMAIN]={BAR_sscc  , BAR_gang  };
+  static int    xmain[NMAIN]={NX_sscc   , NX_gang   };
+  static int    ymain[NMAIN]={NY_sscc   , NY_gang   };
+  static int    lmain[NMAIN]={NLINE_sscc, NLINE_gang};
+  static byte  *rmapm[NMAIN]={RMAP_sscc , NULL      };  /* color maps */
+  static byte  *gmapm[NMAIN]={GMAP_sscc , NULL      };
+  static byte  *bmapm[NMAIN]={BMAP_sscc , NULL      };
+  static int    nmapm[NMAIN]={NC_sscc   , 0         };
+
+#endif /* NMAIN */
+/*------------------------------------------*/
 
 #endif /* _AFNI_SPLASH_HEADER */
