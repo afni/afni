@@ -32,6 +32,7 @@
 #  define TWO_TWO(x,y) TWO_ONE(x,y)
 #endif
 
+#define DONT_USE_DEBUGTHISFILE /* 02 Aug 2002 */
 #ifdef DONT_USE_DEBUGTHISFILE  /* 04 Jun 2001 */
 # undef  DEBUGTHISFILE
 # define DEBUGTHISFILE 0

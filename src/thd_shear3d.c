@@ -456,26 +456,13 @@ MCW_3shear shear_best( THD_dmat33 * q , THD_dfvec3 * xyzdel )
    sh[4] = shear_arb( q , xyzdel , 2,0,1 ) ;
    sh[5] = shear_arb( q , xyzdel , 2,1,0 ) ;
 
-   if( DEBUGTHISFILE ){
-      DUMP_DMAT33("sbest-q",*q) ; DUMP_DFVEC3("sbest-v",*xyzdel) ;
-      DUMP_3SHEAR("sbest-[0]",sh[0]) ;
-      DUMP_3SHEAR("sbest-[1]",sh[1]) ;
-      DUMP_3SHEAR("sbest-[2]",sh[2]) ;
-      DUMP_3SHEAR("sbest-[3]",sh[3]) ;
-      DUMP_3SHEAR("sbest-[4]",sh[4]) ;
-      DUMP_3SHEAR("sbest-[5]",sh[5]) ;
-   }
-
    /* find the one with the smallest "norm" */
 
    jbest = 0 ; best = BIG_NORM ;
    for( ii=0 ; ii < 6 ; ii++ ){
       val = norm_3shear( sh[ii] ) ;
-      if( DEBUGTHISFILE ) fprintf(stderr,"sbest-val[%d] = %g\n",ii,val) ;
       if( val < best ){ best = val ; jbest = ii ; }
    }
-
-   if( DEBUGTHISFILE ) fprintf(stderr,"sbest-jbest = %d\n",jbest) ;
 
    return sh[jbest] ;
 }
@@ -534,12 +521,6 @@ MCW_3shear rot_to_shear( int ax1 , double th1 ,
 
    q = rot_to_matrix( ax1,th1 , ax2,th2 , ax3,th3 ) ;
 
-   if( DEBUGTHISFILE ){
-      fprintf(stderr,"rot_to_shear: ax1=%d th1=%g ax2=%d th2=%g ax3=%d th3=%g\n",
-              ax1,th1,ax2,th2,ax3,th3 ) ;
-      DUMP_DMAT33("Rotation",q) ;
-   }
-
    /* if trace too small, maybe we should flip a couple axes */
 
    if( DMAT_TRACE(q) < 1.0 ){
@@ -554,7 +535,6 @@ MCW_3shear rot_to_shear( int ax1 , double th1 ,
       if( q.mat[i1][i1] + q.mat[i2][i2] < -0.02 ){
          q = DMAT_MUL( q , p ) ;
          flip0 = i1 ; flip1 = i2 ;  /* yes flips */
-         if( DEBUGTHISFILE ) fprintf(stderr,"flip0=%d flip1=%d\n",flip0,flip1) ;
       }
    }
 
@@ -569,9 +549,6 @@ MCW_3shear rot_to_shear( int ax1 , double th1 ,
       case DELTA_FIXED:
          c = DMATVEC(q,d) ; d = SUB_DFVEC3(d,c) ; break ;
    }
-
-   if( DEBUGTHISFILE )fprintf(stderr,"dcode=%d  dx=%g  dy=%g  dz=%g\n",
-                              dcode , d.xyz[0] , d.xyz[1] , d.xyz[2] ) ;
 
    /* scale q and d by the voxel dimensions */
 
@@ -612,8 +589,6 @@ MCW_3shear rot_to_shear( int ax1 , double th1 ,
 
    shr.flip0 = flip0 ; shr.flip1 = flip1 ;
 
-   if( DEBUGTHISFILE ){ DUMP_3SHEAR("matvec",shr) ; }
-
    return shr ;
 }
 
@@ -640,12 +615,6 @@ MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec ,
 
    p = DMAT_svdrot( rmat ) ;
    q = TRANSPOSE_DMAT( p ) ;
-
-   if( DEBUGTHISFILE ){
-      DUMP_DMAT33("r2smv-in",rmat) ;
-      DUMP_DMAT33("r2smv-out",q) ;
-      p = SUB_DMAT(rmat,q) ; DUMP_DMAT33("r2smv-dif",p) ;
-   }
 #endif
 
    /* if trace too small, maybe we should flip a couple axes */
@@ -698,8 +667,6 @@ MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec ,
    }
 
    shr.flip0 = flip0 ; shr.flip1 = flip1 ;
-
-   if( DEBUGTHISFILE ){ DUMP_3SHEAR("matvec",shr) ; }
 
    return shr ;
 }

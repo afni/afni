@@ -364,10 +364,6 @@ int main( int argc , char * argv[] )
             mri_free(matim) ;
          }
 
-         if( DEBUGTHISFILE ){
-            DUMP_DMAT33("matvec-mat",rmat) ; DUMP_DFVEC3("matvec-vec",tvec) ;
-         }
-
          /* check if matrix is approximately orthogonal */
          /* [will be orthogonalized in rot_to_shear_matvec() in thd_shear3d.c] */
 
@@ -798,8 +794,6 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
                      matar[8],matar[9],matar[10] ) ;
       LOAD_DFVEC3(tvec,matar[3],matar[7],matar[11]) ;
 
-      if( DEBUGTHISFILE ){ DUMP_DMAT33("rmat",rmat) ; DUMP_DFVEC3("tvec",tvec) ; }
-
       /* check if matrix is orthogonal */
 
       pp = TRANSPOSE_DMAT(rmat) ; pp = DMAT_MUL(pp,rmat) ;
@@ -816,8 +810,6 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
       fv = THD_dataset_center( dset ) ;       /* dataset coords  */
       FVEC3_TO_DFVEC3( fv , cv_e2 ) ;         /* convert to double */
 
-      if( DEBUGTHISFILE ){ DUMP_DFVEC3("cv_e2",cv_e2) ; }
-
       /* cv_e1 = center of gridparent */
 
       if( gridpar_dset != NULL ){
@@ -827,21 +819,15 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
          cv_e1 = cv_e2 ;  /* what else to do? */
       }
 
-      if( DEBUGTHISFILE ){ DUMP_DFVEC3("cv_e1",cv_e1) ; }
-
       /* cv_s2 = center of rotation in rotparent */
 
       atr = THD_find_float_atr( rotpar_dset->dblk , "VOLREG_CENTER_OLD" ) ;
       LOAD_DFVEC3( cv_s2 , atr->fl[0] , atr->fl[1] , atr->fl[2] ) ;
 
-      if( DEBUGTHISFILE ){ DUMP_DFVEC3("cv_s2",cv_s2) ; }
-
       /* cv_s1 = center of base dataset for rotparent */
 
       atr = THD_find_float_atr( rotpar_dset->dblk , "VOLREG_CENTER_BASE" ) ;
       LOAD_DFVEC3( cv_s1 , atr->fl[0] , atr->fl[1] , atr->fl[2] ) ;
-
-      if( DEBUGTHISFILE ){ DUMP_DFVEC3("cv_s1",cv_s1) ; }
 
       /* compute extra shift due to difference in
          center of rotation between rotparent and input dataset,
@@ -850,29 +836,19 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
       dv = SUB_DFVEC3( cv_e2 , cv_s2 ) ;
       ev = DMATVEC( rmat , dv ) ;         /* R[E2-S2]         */
 
-      if( DEBUGTHISFILE ){ DUMP_DFVEC3("R[E2-S2]",ev) ; }
-
       dv = ev ;  /* vestige of a stupid bug, since fixed */
 
       ev = SUB_DFVEC3( cv_e1 , cv_s1 ) ;  /* E1-S1            */
 
-      if( DEBUGTHISFILE ){ DUMP_DFVEC3("E1-S1",ev) ; }
-
       qv = SUB_DFVEC3( dv , ev ) ;        /* R[E2-S2] + S1-E1 */
 
-      if( DEBUGTHISFILE ){ DUMP_DFVEC3("net Dicom",ev) ; }
-
       tvec = ADD_DFVEC3( tvec , qv ) ;    /* shifted translation vector */
-
-      if( DEBUGTHISFILE ){ DUMP_DFVEC3("total Dicom",tvec) ; }
 
       /* convert transformation from Dicom to dataset coords */
 
       pp   = DBLE_mat_to_dicomm( dset ) ;
       ppt  = TRANSPOSE_DMAT(pp);
       rmat = DMAT_MUL(ppt,rmat); rmat = DMAT_MUL(rmat,pp); tvec = DMATVEC(ppt,tvec);
-
-      if( DEBUGTHISFILE ){ DUMP_DFVEC3("total xyz",tvec) ; }
 
       /* modify origin of output dataset to match -gridparent */
 
