@@ -2160,3 +2160,7 @@
 
 23 May 2000
  * Modified thd_idcode.c to use lowercase in dataset IDcodes.
+
+08 Jun 2000
+ * Added new picture to splash screen (the MCW gang).  Also, added
+     AFNI_IMAGE_PGMFILE environment variable to afni_splash.c

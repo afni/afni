@@ -596,6 +596,10 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o 1dplot 1dplot.o display.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
+1dsigplot:libcoxplot.a 1dsigplot.o display.o
+	$(RM) $@
+	$(CC) -o 1dsigplot 1dsigplot.o display.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+
 1dtranspose:1dtranspose.o
 	$(RM) $@
 	$(CC) -o 1dtranspose 1dtranspose.o $(LFLAGS) $(LLIBS)

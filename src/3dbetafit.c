@@ -17,12 +17,14 @@ int main( int argc , char * argv[] )
 
    int mcount,mgood , ii , jj , ibot,itop ;
 
-   int narg=1 , nboot=0 , nran=1000 ;
+   int narg=1 , nran=1000 ;
    float abot= 0.5 , atop=  4.0 ;
    float bbot=10.0 , btop=200.0 ;
    float pbot=50.0 , ptop= 80.0 ;
-   float * aboot , * bboot ;
-   float   asig  ,   bsig  ;
+
+   int nboot=0 ;
+   double  aboot,bboot,tboot , pthr=1.e-4 ;
+   float   asig , bsig , tsig , abcor ;
 
    THD_3dim_dataset * input_dset , * mask_dset=NULL ;
    float mask_bot=666.0 , mask_top=-666.0 ;
@@ -54,7 +56,9 @@ int main( int argc , char * argv[] )
              "  -mrange b t = Use only mask values in range from\n"
              "                 'b' to 't' (inclusive)\n"
              "\n"
-             "  -sqr = Flag to square the data from the dataset\n"
+             "  -sqr    = Flag to square the data from the dataset\n"
+             "  -pthr p = Sets p-value of cutoff for threshold evaluation\n"
+             "              [default = 1.e-4]\n"
          ) ;
          exit(0) ;
    }
@@ -62,6 +66,14 @@ int main( int argc , char * argv[] )
    /* scan command-line args */
 
    while( narg < argc && argv[narg][0] == '-' ){
+
+      if( strcmp(argv[narg],"-pthr") == 0 ){
+         pthr = strtod(argv[++narg],NULL) ;
+         if( pthr <= 0.0 || pthr >= 1.0 ){
+            fprintf(stderr,"*** Illegal value after -pthr!\n");exit(1);
+         }
+         narg++ ; continue;
+      }
 
       if( strcmp(argv[narg],"-sqr") == 0 ){
          sqr = 1 ; narg++ ; continue;
@@ -168,11 +180,6 @@ int main( int argc , char * argv[] )
 
    DSET_delete(mask_dset) ; DSET_delete(input_dset) ;
 
-   if( nboot > 0 ){
-      aboot = (float *) malloc(sizeof(float)*nboot) ;
-      bboot = (float *) malloc(sizeof(float)*nboot) ;
-   }
-
    for( pcut=pbot ; pcut <= ptop ; pcut += 1.0 ){
       bfr = BFIT_compute( bfd ,
                           pcut , abot,atop , bbot,btop , nran,200 ) ;
@@ -194,33 +201,39 @@ int main( int argc , char * argv[] )
       bb   = bfr->b ;
       eps  = bfr->eps ;
 
-      xth  = beta_p2t( 1.e-4 , aa,bb ) ;
+      xth  = beta_p2t( pthr , aa,bb ) ;
       if( sqr ) xth = sqrt(xth) ;
       if( sqr ) xc  = sqrt(xc ) ;
 
       if( nboot > 0 ){
-         asig = bsig = 0.0 ;
+         asig = bsig = tsig = abcor = 0.0 ;
          for( ii=0 ; ii < nboot ; ii++ ){
             nfd = BFIT_bootstrap_sample( bfd ) ;
             nfr = BFIT_compute( nfd ,
                                 pcut , abot,atop , bbot,btop , nran,200 ) ;
-            aboot[ii] = nfr->a ;
-            bboot[ii] = nfr->b ;
+            aboot = nfr->a ;
+            bboot = nfr->b ;
+            tboot = beta_p2t( pthr , aboot,bboot ) ;
+            if( sqr ) tboot = sqrt(tboot) ;
             BFIT_free_result(nfr) ;
             BFIT_free_data  (nfd) ;
-            asig += SQR( aboot[ii]-aa ) ;
-            bsig += SQR( bboot[ii]-bb ) ;
+            asig += SQR( aboot-aa ) ;
+            bsig += SQR( bboot-bb ) ;
+            tsig += SQR( tboot-xth) ;
+            abcor+= (aboot-aa)*(bboot-bb) ;
          }
          asig = sqrt(asig/nboot) ;
          bsig = sqrt(bsig/nboot) ;
+         tsig = sqrt(tsig/nboot) ;
+         abcor = abcor/(nboot*asig*bsig) ;
       }
 
       if( nboot <= 0 ){
-         printf("%3.0f%%: a=%.2f b=%.2f eps=%.2f cutoff=%.2f qfit=%8.2e thr=%.2f\n",
+         printf("%3.0f%%: a=%.3f b=%.3f eps=%.3f cutoff=%.3f qfit=%8.2e thr=%.3f\n",
                 pcut , aa,bb,eps , xc , bfr->q_chisq , xth ) ;
       } else {
-         printf("%3.0f%%: a=%.2f[%.2f] b=%.2f[%.2f] eps=%.2f cutoff=%.2f qfit=%8.2e thr=%.2f\n",
-                pcut , aa,asig,bb,bsig,eps , xc , bfr->q_chisq , xth ) ;
+         printf("%3.0f%%: a=%.3f[%.3f] b=%.3f[%.3f] [%.3f] eps=%.3f cutoff=%.3f qfit=%8.2e thr=%.3f[%.3f]\n",
+                pcut , aa,asig,bb,bsig,abcor,eps , xc , bfr->q_chisq , xth,tsig ) ;
       }
       fflush(stdout) ;
 

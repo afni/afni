@@ -1,0 +1,54 @@
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING
+CC     = /usr/local/pgcc/bin/gcc -O2 -march=i686 -mcpu=i686 -ffast-math -fomit-frame-pointer -DLINUX -DNO_GAMMA $(CEXTRA)
+CCVOL  = /usr/local/pgcc/bin/gcc -DLINUX -DNO_GAMMA $(CEXTRA)
+CCFAST = /usr/local/pgcc/bin/gcc -O3 -march=i686 -mcpu=i686 -ffast-math -fomit-frame-pointer -DLINUX -DNO_GAMMA $(CEXTRA)
+# CCFAST = /usr/local/pgcc/bin/gcc -O3 -m486 -ffast-math -fomit-frame-pointer -DLINUX -DNO_GAMMA $(CEXTRA)
+CCMIN  = /usr/local/pgcc/bin/gcc -s
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/X11R6/include
+LFLAGS = -s -L. -L/usr/X11R6/lib
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared
+PLUGIN_CC     = $(CC)
+PLUGIN_CCD    = $(PLUGIN_CC) $(CCDEBS)
+PLFLAGS       = -s -rdynamic -L. -L/usr/X11R6/lib
+
+AR     = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+TAPE   = /dev/st0
+GZIP   = /bin/gzip
+LD     = /usr/local/pgcc/bin/gcc
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./linux_rh61_pgcc
+LIBDIR = $(INSTALLDIR)
+
+# for dynamic linking
+
+# LLIBS  = -lmri -lXm -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+
+# for static linking, as far as possible
+
+LLIBS = -lmri -ldl -lm -lc       \
+        /usr/X11R6/lib/libXm.a   \
+        /usr/X11R6/lib/libXp.a   \
+        /usr/X11R6/lib/libXpm.a  \
+        /usr/X11R6/lib/libXext.a \
+        /usr/X11R6/lib/libXmu.a  \
+        /usr/X11R6/lib/libXt.a   \
+        /usr/X11R6/lib/libSM.a   \
+        /usr/X11R6/lib/libICE.a  \
+        /usr/X11R6/lib/libX11.a
+
+###############################################################
+
+include Makefile.INCLUDE

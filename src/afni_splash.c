@@ -67,9 +67,12 @@ void AFNI_splashup(void)
    int    dd,ee ;
    char   bb ;
    byte * bspl ;
-   static int first=1 , nov , dnov ;
+   static int first=1 , nov , dnov , nm=-1 ;
+   static char * ufname=NULL ;
 
 ENTRY("AFNI_splashup") ;
+
+   if( first ) ufname = getenv("AFNI_IMAGE_PGMFILE") ;
 
    /*--- create splash image ---*/
 
@@ -85,6 +88,33 @@ ENTRY("AFNI_splashup") ;
       imov = SPLASH_decode26( xover[nov], yover[nov], lover[nov], bover[nov] ) ;
 
       mri_overlay_2D( imspl, imov, IXOVER, JYOVER ) ; mri_free(imov) ;
+
+#ifdef NMAIN
+      if( !first ){                    /* 07 Jun 2000 */
+         nm = (nm+1)%(NMAIN+1) ;
+         if( nm < NMAIN ){
+            imov = SPLASH_decode26( xmain[nm], ymain[nm], lmain[nm], bmain[nm] ) ;
+            mri_overlay_2D( imspl , imov , 0,0 ) ;
+            mri_free(imov) ;
+         } else if( ufname != NULL ){  /* 08 Jun 2000 */
+            imov = mri_read(ufname) ;
+            if( imov != NULL ){
+               if( imov->nx != xmain[0] || imov->ny != ymain[0] ){
+                  MRI_IMAGE * imq = mri_resize(imov,xmain[0],ymain[0]) ;
+                  mri_free(imov) ; imov = imq ;
+               }
+               if( imov->kind != MRI_byte ){
+                  MRI_IMAGE * imq = mri_to_byte(imov) ;
+                  mri_free(imov) ; imov = imq ;
+               }
+               mri_overlay_2D( imspl , imov , 0,0 ) ;
+               mri_free(imov) ;
+            } else {
+               ufname = NULL ;     /* mark filename as useless */
+            }
+         }
+      }
+#endif
 
       handle = SPLASH_popup_image( handle, imspl ) ;
 #ifndef USE_FADING
@@ -120,15 +150,7 @@ ENTRY("AFNI_splashup") ;
       /* some super-frivolities */
 
       if( !first ){
-         drive_MCW_imseq( ppp->seq , isqDR_title     , (XtPointer) "AFNI!" ) ;
-         drive_MCW_imseq( ppp->seq , isqDR_imhelptext,
-                          (XtPointer) " \n"
-                                      " The new AFNI logo is the only image \n"
-                                      " returned from Mars by the ill-fated \n"
-                                      " Polar Lander mission.    How such a \n"
-                                      " structure could have been formed is \n"
-                                      " being researched by NASA's top men. \n"
-                        ) ;
+         drive_MCW_imseq( ppp->seq , isqDR_title , (XtPointer) "AFNI!" ) ;
       }
 
    /*--- destroy splash image ---*/

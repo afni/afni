@@ -703,6 +703,20 @@ file won't be read until AFTER this file is read.  Also note that use
 of the -skip_afnirc option will cause both the system and user setup
 files to be skipped.
 
+----------------------------
+Variable: AFNI_IMAGE_PGMFILE
+----------------------------
+If this variable is set, it is the name of an image file to be read
+that will be shown (sometimes) in the AFNI splash window, when this
+window is popped up by left-clicking in the blank square just to the
+right of the AFNI controller "done" button.  This image should be in
+PGM format, and be 436 pixels wide and 140 deep.  (The "AFNI rocks"
+image will still be shown at startup, and your custom image will also
+share screen time with any other images I've preloaded into the system;
+at this time, the only such image is the "MCW AFNI gang" picture.)
+This filename should be an absolute pathname, so that AFNI can find it
+regardless of the directory in which AFNI is started.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

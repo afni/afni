@@ -3,7 +3,7 @@
 
 /**** test FFT speeds ****/
 
-void main( int argc , char * argv[] )
+int main( int argc , char * argv[] )
 {
    int num , len , ii , type_ux=0 , kk , iv , nvec , nvec_in ;
    complex * cx ;
@@ -13,6 +13,8 @@ void main( int argc , char * argv[] )
    float kbytes ;
    if( argc < 4 ){printf("Usage: fftest [-q] len num nvec\n");exit(0);}
 
+   if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
+   if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
    if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
    if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
 
@@ -65,8 +67,12 @@ void main( int argc , char * argv[] )
         printf("%8f %8f\n",kbytes,flops) ;
      else if(quiet == 2)
         printf("%8f\n",flops) ;
+     else if(quiet == 3)
+        printf("%8d %8f\n",len,flops) ;
      else
         printf(" CPU = %f  ELAPSED = %f  Kbytes = %f  Megaflops = %f\n",
                tcpu,tclock,kbytes,flops);
+     fflush(stdout) ;
    }
+   exit(0) ;
 }

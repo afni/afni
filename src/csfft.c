@@ -1898,11 +1898,11 @@ static void fft_3dec( int mode , int idim , complex * xc )
          t8 = bbi+cci      ; t6 = t8*CC3       ;
          t5 = (bbr-ccr)*SS3; t2 = (bbi-cci)*SS3;
 
-         aar = aa[k].r; aai = aa[k].i;                   /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
 
-         xc[k   ].r = aar+t4    ; xc[k   ].i = aai+t8    ;
-         xc[k+M ].r = aar+t1-t2 ; xc[k+M ].i = aai+t6+t5 ;
-         xc[k+M2].r = aar+t1+t2 ; xc[k+M2].i = aai+t6-t5 ;
+         xc[k   ].r = aar+t4      ; xc[k   ].i = aai+t8      ;
+         xc[k+M ].r = (aar+t1)-t2 ; xc[k+M ].i = (aai+t6)+t5 ;
+         xc[k+M2].r = (aar+t1)+t2 ; xc[k+M2].i = (aai+t6)-t5 ;
       }
    } else {
       for( k=0 ; k < M ; k++ ){
@@ -1920,9 +1920,9 @@ static void fft_3dec( int mode , int idim , complex * xc )
 
          aar = aa[k].r; aai = aa[k].i;                  /* a[k] */
 
-         xc[k   ].r = aar+t4    ; xc[k   ].i = aai+t8    ;
-         xc[k+M ].r = aar+t1+t2 ; xc[k+M ].i = aai+t6-t5 ;
-         xc[k+M2].r = aar+t1-t2 ; xc[k+M2].i = aai+t6+t5 ;
+         xc[k   ].r = aar+t4      ; xc[k   ].i = aai+t8      ;
+         xc[k+M ].r = (aar+t1)+t2 ; xc[k+M ].i = (aai+t6)-t5 ;
+         xc[k+M2].r = (aar+t1)-t2 ; xc[k+M2].i = (aai+t6)+t5 ;
       }
    }
 

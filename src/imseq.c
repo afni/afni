@@ -1678,11 +1678,24 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
          tim = XImage_to_mri( seq->dc , seq->given_xim , 1 ) ;
          if( tim != NULL ){
+            static int warned=0 ;
+
             printf("Writing one PNM image to file %s\n",seq->saver_prefix) ;
             mri_write_pnm( seq->saver_prefix , tim ) ;
             mri_free( tim ) ; tim = NULL ;  /* 17 June 1997 */
+
+            if( seq->dc->visual_class == TrueColor &&
+                seq->dc->depth == 16               && !warned ){ /* 30 May 2000 */
+
+               warned = 1 ;
+               fprintf(stderr,
+                "\n"
+                "*** WARNING: Save:one with X11 TrueColor depth=16 can ***\n"
+                "***          result in gray pixels not having R=G=B.  ***\n");
+            }
+
          } else {
-            XBell( XtDisplay(w) , 100 ) ;
+            XBell( XtDisplay(w) , 100 ) ;  /* image creation failed! */
          }
          myXtFree( seq->saver_prefix ) ; seq->saver_prefix = NULL ;
          POPDOWN_string_chooser ;
