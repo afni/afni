@@ -1,6 +1,8 @@
 #ifndef SUMA_DEFINE_INCLUDED
 #define SUMA_DEFINE_INCLUDED
 
+#define SUMA_SUMA_NIML_DEBUG 0
+
 #define ARRAY 1
 #define STRAIGHT 2
 #define TRIANGLES 1
@@ -119,7 +121,7 @@
 typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
 typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_YES_ALL, SUMA_NO_ALL, SUMA_WHAT_THE_HELL } SUMA_QUESTION_DIALOG_ANSWER; /* DO NOT CHANGE THE ORDER OF THE FIRST 4 */
 
-typedef enum  { SUMA_FT_NOT_SPECIFIED, SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC } SUMA_SO_File_Type;
+typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED, SUMA_FREE_SURFER, SUMA_SUREFIT, SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC } SUMA_SO_File_Type;
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
 typedef enum { NOPE, YUP} SUMA_Boolean;
 typedef enum {SO_type, AO_type, ROIdO_type, ROIO_type, GO_type, LS_type} SUMA_DO_Types;   /*!< Displayable Object Types 
@@ -496,36 +498,75 @@ typedef struct {
 Stucture to hold the contents of the specs file 
 */
 typedef struct {
-   char SurfaceType[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];
-   char SurfaceFormat[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH]; 
-   char TopoFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /* renamed from SureFitTopo to make more generic */ 
-   char CoordFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /* renamed from SureFitCoord to make more generic */ 
-   char MappingRef[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
-   char SureFitVolParam[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
-   char FreeSurferSurface[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /* though named FreeSurferSurface, this variable 
-                                                                             is also used to load SurfaceName spec field */
-   char InventorSurface[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
-   char VolParName[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; 
-   char *IDcode[SUMA_MAX_N_SURFACE_SPEC];
-   char State[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];
-   char Group[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
-   char SurfaceLabel[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];
-   int EmbedDim[SUMA_MAX_N_SURFACE_SPEC];
-   int N_Surfs;
-   int N_States;
-   int N_Groups;
-   char StateList[SUMA_MAX_N_SURFACE_SPEC*100];
-   char SpecFilePath[SUMA_MAX_DIR_LENGTH];
+   char SurfaceType[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];    /*!< Type of surface loaded: 
+                                                                        FreeSurfer, SureFit/Caret, 1D format, inventor, Ply */ 
+   char SurfaceFormat[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];  /*!< ASCII or Binary */
+   char TopoFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< Surface Topology (mesh) file 
+                                                                     renamed from SureFitTopo because 1D uses it too */ 
+   char CoordFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< Surface Coordinate (XYZ) file
+                                                                      renamed from SureFitCoord because 1D uses it too  */ 
+   char MappingRef[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< Becoming obsolete. Jan 2 03 */
+   char SureFitVolParam[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< For SureFit only: Name of file containing anatomical
+                                                                             coordinates modification. */
+   char SurfaceFile[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];  /*!< File containing topology and geometry of surface. */
+   char VolParName[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];   /*!< Now known as surface volume in the documentation 
+                                                                          This is the volume from which the surface was created,
+                                                                          aligned to the experiment's data. Alignment transforms
+                                                                          added by 3dVolreg or 3dAnatNudge that are stored in this 
+                                                                          volume ar applied to the surface. Also, tlrc transforms of
+                                                                          this volume can be applied to the surface. */
+   char *IDcode[SUMA_MAX_N_SURFACE_SPEC];                            /*!< Unique identifier for the surface object */
+   char State[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];       /*!< Geometrical state of the surface. For example:
+                                                                           pial, white, inflated, spherical, etc... */
+                                                                           
+   char Group[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH];        /*!< Some identifier, best thought of as the name of 
+                                                                           the subject */
+   char SurfaceLabel[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_NAME_LENGTH]; /*!< A user defined "short" label to use in GUI */
+   int EmbedDim[SUMA_MAX_N_SURFACE_SPEC];                            /*!< 2 for flat surfaces, 3 for 3D dwelling ones. */
    
    /* modifications to the lame MappingRef field */
-   char AnatCorrect[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];    /*!< Does surface geometry matches anatomy ?*/
+   char AnatCorrect[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];    /*!< Does surface geometry matche the anatomy ?*/
    char Hemisphere[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];     /*!< Left/Right */
-   char ParentDomainID[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!< Grandparent's mesh ID (icosahedron's for std-meshes) */
-   char OriginatorID[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!<  ID common for surfaces from one subject that are created
+   char DomainGrandParentID[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!< Grandparent's mesh ID 
+                                                                                    (icosahedron's for std-meshes) */
+   char OriginatorID[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!<  ID common to surfaces from one subject that are created
                                                                               at one point in time. Surfaces of the same subject,
                                                                               created at different points in time (like in a longitudinal
                                                                               study) will have differing OriginatorID fields */
+   char LocalCurvatureParent[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];   /*!<  Name of surface (in current spec file)
+                                                                                 from which the curvature will be borrowed.
+                                                                                 The LocalCurvatureParent must be isotopic to 
+                                                                                 the child surface. This Parent used to be
+                                                                                 the MappingRef field*/
+   char LocalDomainParent[SUMA_MAX_N_SURFACE_SPEC][SUMA_MAX_LABEL_LENGTH];       /*!< Name of surface (in current spec file)
+                                                                                 from which EdgeLists and other shared information
+                                                                                 will be borrowed. This field used to be 
+                                                                                 the MappingRef field. Naturally, Parent and 
+                                                                                 Child must be isotopic.
+                                                                                 You must have at least one of the surfaces loaded
+                                                                                 into SUMA be the Parent. Use SAME for this field when
+                                                                                 a surface is a LocalDomainParent.
+                                                                                 */
+   #if 0
+   /* Not being used yet, but in the SurfaceObject structure */
+   int NodeDim; /*!< 3 for nodes specified in 3D, 2 for X,Y only (not really supported...) */
+   int MeshDim; /*!< 3 for triangles, 4 for quadrilaterals (not quite supported) */
+   /* you can also envision ID fields that point to surface attributes that are time consuming 
+   to calculate and do not change often. I use none at the moment, but will do so, perhaps in the future.
+   For example:
+   A sorted EdgeList (for fast topological shenanigans, I swear by this one)
+   A node curvature list,
+   Interpolation weights,
+   Datasets containing ROI or parcellation information  
+   etc...
+   */  
+   #endif
    
+   int N_Surfs;                                                      /*!< Number of surfaces, in the spec file */
+   int N_States;                                                     
+   int N_Groups;
+   char StateList[SUMA_MAX_N_SURFACE_SPEC*100];
+   char SpecFilePath[SUMA_MAX_DIR_LENGTH];
 } SUMA_SurfSpecFile;
 
 /*! structure that containing node's first order neighbors */
@@ -1293,21 +1334,27 @@ typedef struct {
    SUMA_FileName Name_topo; /*!< Directory and Name of surface topology file  (for SureFit files)*/
    char *idcode_str; /*!< string containing the idcode of the surface */
    char *Label; /*!< string containing a label for the surface. Used for window titles and saved image names */
-   char *MapRef_idcode_str; /*!< if NULL, then it is not known whether surface is mappable or not
-                                 if equal to idcode_str then surface surface is Mappable, 
-                                 otherwise it specifies the idcode of the Mapping reference surface */
    char *Name_NodeParent; /*!< Node parent of the SO.   Node Indices of SO are into NodeList matrix of the NodeParent SO*/               
    char *Group;   /*!< Group the surface belongs to, like Simpsons H. */
    char *State; /*!< State of SO (like inflated, bloated, exploded) */
    /* modifications to the lame MappingRef field */
    SUMA_SO_SIDE Side; /*!< Left/right */
    SUMA_Boolean AnatCorrect;    /*!< Does surface geometry matches anatomy ? (YUP/NOPE)*/
-   char *ParentDomainID;        /*!< Grandparent's mesh ID (icosahedron's for std-meshes) */
+   char *DomainGrandParentID;        /*!< Grandparent's mesh ID (icosahedron's for std-meshes) */
    char *OriginatorID;          /*!<  ID common for surfaces from one subject that are created
                                       at one point in time. Surfaces of the same subject,
                                       created at different points in time (like in a longitudinal
                                       study) will have differing OriginatorID fields */
-   
+   char *LocalCurvatureParent;   /*!< \sa same field in SUMA_SurfSpecFile structure */
+   char *LocalCurvatureParentID;        /*!< \sa idcode_str of LocalCurvatureParent*/
+   char *LocalDomainParent;   /*!< \sa same field in SUMA_SurfSpecFile structure */
+   char *LocalDomainParentID;      /*!< \sa idcode_str of LocalDomainParent */
+   #if 0
+   /* in the old days */
+   char *MapRef_idcode_str; /*!< if NULL, then it is not known whether surface is mappable or not
+                                 if equal to idcode_str then surface surface is Mappable, 
+                                 otherwise it specifies the idcode of the Mapping reference surface */
+   #endif
    SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume data sets ?*/
    SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, VP->VOLREG_CENTER_OLD, VP->VOLREG_MATVEC were successfully applied*/
    SUMA_Boolean TAGALIGN_APPLIED; /*!< YUP if VP->TAGALIGN_MATVEC was successfully applied */
@@ -1715,6 +1762,8 @@ typedef struct {
    SUMA_Boolean GoneBad;   /*!< Flag indicating that stream went bad */
    SUMA_Boolean Send;      /*!< Flag indicating that elements should be sent 
                                 As long as GoneBad is NOPE */
+   int istream; /*!< index of the stream used in SUMAg_CF->ns_v */
+   char *suma_host_name;
 }SUMA_COMM_STRUCT;
 
 

@@ -181,6 +181,10 @@ int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr)
          NI_set_attribute ( nel, Attr, NULL);
          break;     
       
+      case SUMA_NODE_3C:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;  
+         
       default:
          NI_set_attribute ( nel, Attr, NULL);
          break;          
@@ -218,6 +222,7 @@ int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col,
       case SUMA_NODE_G:
       case SUMA_NODE_B:
       case SUMA_NODE_A:
+      case SUMA_NODE_3C:
          NI_add_column_stride ( nel, NI_FLOAT, (float *)col, stride );      
          break;
       case SUMA_NODE_BYTE:
@@ -263,7 +268,7 @@ char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr)
          SUMA_RETURN ("Afni_1D");
          break;
       default:
-         SUMA_RETURN("Cowabonga");
+         SUMA_RETURN("Cowabonga-gimlauron");
          break;
    }   
    
@@ -314,8 +319,11 @@ char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp)
       case SUMA_NODE_RGBAb:
          SUMA_RETURN("Node_RGBAb");
          break;
+      case SUMA_NODE_XYZ:
+         SUMA_RETURN("Node_XYZ");
+         break;
       default:
-         SUMA_RETURN("Cowabonga");
+         SUMA_RETURN("Cowabonga-gothdo");
          break;
    }
 }
@@ -334,6 +342,7 @@ SUMA_DSET_TYPE SUMA_Dset_Type (char *Name)
    if (!strcmp(Name,"Node_RGBA")) SUMA_RETURN (SUMA_NODE_RGBA);
    if (!strcmp(Name,"Node_RGBb")) SUMA_RETURN (SUMA_NODE_RGBb);
    if (!strcmp(Name,"Node_RGBAb")) SUMA_RETURN (SUMA_NODE_RGBAb);
+   if (!strcmp(Name,"Node_XYZ")) SUMA_RETURN (SUMA_NODE_XYZ);
    if (!strcmp(Name,"Cowabonga")) SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
    SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
 }
@@ -363,6 +372,9 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
       case SUMA_NODE_FLOAT:
          SUMA_RETURN("Generic_Float");
          break;
+      case SUMA_NODE_3C:
+         SUMA_RETURN("XYZ_triplets");
+         break;
       case SUMA_NODE_X:
          SUMA_RETURN("X_coord");
          break;
@@ -382,7 +394,7 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
          SUMA_RETURN("B_col");
          break;
       default:
-         SUMA_RETURN("Cowabonga");
+         SUMA_RETURN("Cowabonga-Jo");
          break;
    }
    
@@ -399,6 +411,7 @@ SUMA_COL_TYPE SUMA_Col_Type (char *Name)
    if (!strcmp(Name,"Generic_Int")) SUMA_RETURN (SUMA_NODE_INT);
    if (!strcmp(Name,"Node_Index")) SUMA_RETURN (SUMA_NODE_INDEX);
    if (!strcmp(Name,"Generic_Float")) SUMA_RETURN (SUMA_NODE_FLOAT);
+   if (!strcmp(Name,"XYZ_triplets")) SUMA_RETURN (SUMA_NODE_3C);
    if (!strcmp(Name,"X_coord")) SUMA_RETURN (SUMA_NODE_X);
    if (!strcmp(Name,"Y_coord")) SUMA_RETURN (SUMA_NODE_Y);
    if (!strcmp(Name,"Z_coord")) SUMA_RETURN (SUMA_NODE_Z);

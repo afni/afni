@@ -354,6 +354,8 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 	ND = SO->NodeDim;
 	switch (SO->FileType) {
 		case SUMA_INVENTOR_GENERIC:
+		case SUMA_PLY:
+      case SUMA_VEC:
 			/* Do nothing */
 			break;
 		case SUMA_FREE_SURFER:
@@ -391,7 +393,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 				}
 			}
 			break;
-		default:
+      default:
 			fprintf(SUMA_STDERR,"Warning %s: Unknown SO->FileType. Assuming coordinates are in DICOM already.\n", FuncName);
 			break;
 	}

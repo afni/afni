@@ -622,7 +622,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
                   
                /* start the listening WorkProcess */
-               LocalHead = YUP;
                if (!SUMAg_CF->niml_work_on) {
                   SUMA_LH("registering SUMA_niml_workproc...");
                   SUMA_register_workproc(SUMA_niml_workproc, (XtPointer)sv); 
@@ -1779,7 +1778,7 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    /* take care of the cross hair's XYZ */
 
    /* to do elsewhere */
-   /* when a cross hair needs to be communicated, you must use the MapRef_idcode_str surface and not the Focus_Surface */
+   /* when a cross hair needs to be communicated, you must use the LocalDomainParentID surface and not the Focus_Surface */
    SUMA_RETURN (YUP);
 }
 
@@ -1911,10 +1910,10 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
       SO_nxt = (SUMA_SurfaceObject *)(dov[sv->VSv[nxtstateID].MembSOs[i]].OP);
 
       /* Get the Mapping Reference surface, that's the precursor*/
-      if (!SO_nxt->MapRef_idcode_str) {
+      if (!SO_nxt->LocalDomainParentID) {
          prec_ID = -1;
       }else {
-         prec_ID = SUMA_findSO_inDOv(SO_nxt->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+         prec_ID = SUMA_findSO_inDOv(SO_nxt->LocalDomainParentID, SUMAg_DOv, SUMAg_N_DOv);
       }
       if (prec_ID < 0) {
          /* no precursors found, notify user */
@@ -2199,7 +2198,7 @@ int SUMA_GetEyeAxis (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
                        do so, the function will search for nodes contained in a box mm wide
                        and centered on XYZ. If nodes are found in the box the I_C is set to the
                        index of the closest node and XYZmap contains the coordinates of I_C in the 
-                       SO->MapRef_idcode_str surface.
+                       SO->LocalDomainParentID surface.
    \ret XYZmap (float *) Mappable XYZ coordinates. NULL in case of trouble.
 
 */
@@ -2276,7 +2275,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
    
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Node identified for linking purposes is %d\n", FuncName, *I_C);
    /* find the SO that is the Mappable cahuna */
-   SOmapID = SUMA_findSO_inDOv(SO->MapRef_idcode_str, dov, N_dov);
+   SOmapID = SUMA_findSO_inDOv(SO->LocalDomainParentID, dov, N_dov);
    if (SOmapID < 0) {
       fprintf (SUMA_STDERR,"%s: Failed in SUMA_findSO_inDOv This should not happen.\n", FuncName);
       SUMA_free(XYZmap);
@@ -2348,7 +2347,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
    } else {
       /* surface is mappable, things will get more complicated */
       /* find the SO that is the Mappable cahuna */
-      SOmapID = SUMA_findSO_inDOv(SO->MapRef_idcode_str, dov, N_dov);
+      SOmapID = SUMA_findSO_inDOv(SO->LocalDomainParentID, dov, N_dov);
       if (SOmapID < 0) {
          fprintf (SUMA_STDERR,"%s: Failed in SUMA_findSO_inDOv This should not happen.\n", FuncName);
          SUMA_free(XYZ);
@@ -2415,7 +2414,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
    Prec_ID = SUMA_MapRefRelative (Cur_ID, Prec_List, N_Prec_List, dov);
    Returns the ID (index into dov) of the surface object in Prec_List that is related 
    (via MapRef) to the surface object Cur_ID.
-   This means that SOcur.MapRef_idcode_str = SOprec.MapRef_icode_str or SOprec.idcode_str
+   This means that SOcur.LocalDomainParentID = SOprec.MapRef_icode_str or SOprec.idcode_str
 
    \param Cur_ID (int) index into dov of the current surface object
    \param Prec_List (int *) indices into dov of the precursor surface objects 
@@ -2440,7 +2439,7 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
 
    for (i=0; i<N_prec_list; ++i) {
       SO_prec = (SUMA_SurfaceObject *)(dov[prec_list[i]].OP);
-      if (strcmp(SOcur->MapRef_idcode_str, SO_prec->MapRef_idcode_str) == 0 || strcmp(SOcur->MapRef_idcode_str, SO_prec->idcode_str) == 0) {
+      if (strcmp(SOcur->LocalDomainParentID, SO_prec->LocalDomainParentID) == 0 || strcmp(SOcur->LocalDomainParentID, SO_prec->idcode_str) == 0) {
          /* there's some relationship here, save it for return */
          if (rel_id < 0) {
             rel_id = prec_list[i];

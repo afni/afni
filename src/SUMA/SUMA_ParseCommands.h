@@ -38,6 +38,8 @@ DList *SUMA_CreateActionStack (void);
 void SUMA_ReleaseActionStackData (void *asdata);
 DList *SUMA_EmptyDestroyActionStack (DList *AS);
 const char *SUMA_ColMixModeString (SUMA_COL_MIX_MODE mode);
+SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd);
+const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp);
 
 
 

@@ -415,6 +415,63 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN ("BadCode");
    }
 }
+
+/*!
+   \brief Returns the name (string) of a surface type
+*/
+const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp)
+{
+   static char FuncName[]={"SUMA_SurfaceTypeString"};
+   
+   SUMA_ENTRY; 
+   switch (tp) {
+      case SUMA_FT_NOT_SPECIFIED:
+         SUMA_RETURN("NotSpecified");
+         break;
+      case SUMA_FREE_SURFER:
+         SUMA_RETURN("FreeSurfer");
+         break;
+      case SUMA_SUREFIT:
+         SUMA_RETURN("SureFit");
+         break;
+      case SUMA_INVENTOR_GENERIC:
+         SUMA_RETURN("GenericInventor"); 
+         break;
+      case SUMA_PLY:
+         SUMA_RETURN("Ply");
+         break;
+      case SUMA_VEC:
+         SUMA_RETURN("1D");
+         break;
+      case SUMA_FT_ERROR:
+         SUMA_RETURN("Error");     
+      default:        
+         SUMA_RETURN ("Error");
+   }
+}
+
+/*!
+   \brief Returns the code for a surface's file type
+*/
+SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
+{
+   static char FuncName[]={"SUMA_SurfaceTypeCode"};
+   
+   SUMA_ENTRY;
+   
+   if (!cd) { SUMA_RETURN(SUMA_FT_ERROR); }
+   
+   if (!strcmp(cd, "NotSpecified")) { SUMA_RETURN(SUMA_FT_NOT_SPECIFIED ); }
+   if (!strcmp(cd, "FreeSurfer")) { SUMA_RETURN( SUMA_FREE_SURFER); }
+   if (!strcmp(cd, "SureFit")) { SUMA_RETURN( SUMA_SUREFIT); }
+   if (!strcmp(cd, "GenericInventor")) { SUMA_RETURN(SUMA_INVENTOR_GENERIC ); }
+   if (!strcmp(cd, "Ply")) { SUMA_RETURN( SUMA_PLY); }
+   if (!strcmp(cd, "1D")) { SUMA_RETURN(SUMA_VEC ); }
+   if (!strcmp(cd, "Error")) { SUMA_RETURN(SUMA_FT_ERROR ); }
+   /* if (!strcmp(cd, "")) { SUMA_RETURN( ); } */
+   SUMA_RETURN(SUMA_FT_ERROR); 
+   
+}
 /*!**
    
 Purpose : 

@@ -78,16 +78,17 @@ int main (int argc,char *argv[])
   int N_FaceSet_tmp;
   char *fout = NULL;
   int inflation = 10; /* inflation in mm */
-  if (argc < 5) {
-    cmp_surf_usage();
-    exit (1);
-  }
   
   /* allocate space for CommonFields structure */
   SUMAg_CF = SUMA_Create_CommonFields ();
   if (SUMAg_CF == NULL) {
     fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
     exit(1);
+  }
+  
+  if (argc < 5) {
+    cmp_surf_usage();
+    exit (1);
   }
   
   /* read in the surfaces */
@@ -163,7 +164,7 @@ int main (int argc,char *argv[])
 
   /**** loading the first surface *****/
   if (SUMA_iswordin(Spec.SurfaceType[0], "FreeSurfer") == 1) {
-    Surf1_FileName = Spec.FreeSurferSurface[0];
+    Surf1_FileName = Spec.SurfaceFile[0];
     Surf1 = SUMA_Load_Surface_Object(Surf1_FileName, SUMA_FREE_SURFER, SUMA_ASCII, Vol1Parent_FileName);
     tag1 =  "FS";
   }
@@ -180,7 +181,7 @@ int main (int argc,char *argv[])
   
   /**** loading the second surface *****/
   if (SUMA_iswordin(Spec.SurfaceType[0], "FreeSurfer") == 1) {
-    Surf2_FileName = Spec.FreeSurferSurface[0];
+    Surf2_FileName = Spec.SurfaceFile[0];
     Surf2 = SUMA_Load_Surface_Object(Surf1_FileName, SUMA_FREE_SURFER, SUMA_ASCII, Vol1Parent_FileName);
     tag2 =  "FS";
   }

@@ -6161,3 +6161,69 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
 
 }
 
+/*!
+   \brief Appends newstring to string in SS->s while taking care of resizing space allocated for s
+   A variable argument version of SUMA_StringAppend
+   
+   \param SS (SUMA_STRING *) pointer to string structure
+   \param newstring (char *) pointer to string to add to SS
+   \param ..... the remaining parameters a la printf manner
+   \return SS (SUMA_STRING *) pointer to string structure with SS->s now containing newstring
+   - When SS is null, 1000 characters are allocated for s (initialization) and s[0] = '\0';
+   - When newstring is NULL, space allocated for SS->s is resized to the correct dimension and 
+   a null character is placed at the end.
+   
+   - For this function, the formatted length of newstring should not be > than MAX_APPEND-1 
+   If that occurs, the string will be trunctated and no one should get hurt
+   
+   \sa SUMA_StringAppend
+*/
+
+#define MAX_APPEND 1000
+
+SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
+{
+   static char FuncName[]={"SUMA_StringAppend_va"};
+   char sbuf[MAX_APPEND];
+   int nout;
+   va_list vararg_ptr ;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SS) {
+      /* let the other one handle this */
+      SUMA_RETURN (SUMA_StringAppend(SS,newstring));
+   }
+   
+   if (newstring) {
+      /* form the newstring and send it to the olde SUMA_StringAppend */
+      va_start( vararg_ptr ,  newstring) ;
+      if (strlen(newstring) >= MAX_APPEND -1 ) {
+         SUMA_SL_Err("newstring too long.\nCannot use SUMA_StringAppend_va");
+         SUMA_RETURN(SUMA_StringAppend(SS,"Error SUMA_StringAppend_va: ***string too long to add ***"));
+      }
+      
+      nout = vsnprintf (sbuf, MAX_APPEND * sizeof(char), newstring, vararg_ptr); 
+      va_end(vararg_ptr);  /* cleanup */
+      
+      if (nout < 0) {
+         SUMA_SL_Err("Error reported by  vsnprintf");
+         SUMA_RETURN(SUMA_StringAppend(SS,"Error SUMA_StringAppend_va: ***Error reported by  vsnprintf"));
+      }
+      if (nout >= MAX_APPEND) {
+         SUMA_SL_Warn("String trunctated by vsnprintf");
+         SUMA_StringAppend(SS,sbuf);
+         SUMA_RETURN(SUMA_StringAppend(SS,"WARNING: ***Previous string trunctated because of its length. ***"));
+      }
+      
+      SUMA_RETURN (SUMA_StringAppend(SS,sbuf));
+   }else {
+      /* let the other one handle this */
+      SUMA_RETURN (SUMA_StringAppend(SS,newstring));
+   }
+   
+   /* should not be here */
+   SUMA_RETURN (NULL);
+
+}

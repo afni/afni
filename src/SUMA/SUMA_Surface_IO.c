@@ -1802,49 +1802,53 @@ int main (int argc,char *argv[])
 void usage_SUMA_ConvertSurface ()
    
   {/*Usage*/
+          static char FuncName[]={"usage_SUMA_ConvertSurface"};
+          char * s = NULL;
+          
           printf ("\n\33[1mUsage: \33[0m ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> \n"
-                  "\t [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc] [-MNI_rai/-MNI_lpi]\n");
-          printf ("\t reads in a surface and writes it out in another format.\n");
-          printf ("\t Note: This is a not a general utility conversion program. \n");
-          printf ("\t Only fields pertinent to SUMA are preserved.\n");
-          printf ("\t -i_TYPE inSurf specifies the input surface, TYPE is one of the following:\n");
-          printf ("\t    fs: FreeSurfer surface. \n");
-          printf ("\t        Only .asc surfaces are read.\n");
-          printf ("\t    sf: SureFit surface. \n");
-          printf ("\t        You must specify the .coord followed by the .topo file.\n");
-          printf ("\t    vec: Simple ascii matrix format. \n");
-          printf ("\t         You must specify the NodeList file followed by the FaceSetList file.\n");
-          printf ("\t         NodeList contains 3 floats per line, representing X Y Z vertex coordinates.\n");
-          printf ("\t         FaceSetList contains 3 ints per line, representing v1 v2 v3 triangle vertices.\n");
-          printf ("\t    ply: PLY format, ascii or binary.\n");
-          printf ("\t         Only vertex and triangulation info is preserved.\n");
-          printf ("\t -o_TYPE outSurf specifies the output surface, TYPE is one of the following:\n");
-          printf ("\t    fs: FreeSurfer ascii surface. \n");
-          printf ("\t    sf: SureFit surface. (NOT IMPLEMENTED YET)\n");
-          printf ("\t        You must specify the .coord followed by the .topo file.\n");
-          printf ("\t    vec: Simple ascii matrix format. \n");
-          printf ("\t         see help for vec under -i_TYPE options for format specifications.\n");
-          printf ("\t    ply: PLY format, ascii or binary.\n");
-          printf ("\t -sv SurfaceVolume [VolParam for sf surfaces]\n");
-          printf ("\t    This option must not come before the -i_TYPE option.\n");
-          printf ("\t    If you supply a surface volume, the coordinates of the input surface.\n");
-          printf ("\t     are modified to SUMA's convention and aligned with SurfaceVolume.\n");
-          printf ("\t     You must also specify a VolParam file for SureFit surfaces.\n");
-          printf ("\t -tlrc: Apply Talairach transform (which must be in talairach version of \n");
-          printf ("\t     SurfaceVolume) to the surface vertex coordinates. \n"
-                  "\t     This option must be used with the -sv option.\n");
-          printf ("\t -MNI_rai/-MNI_lpi: Apply Andreas Meyer Lindenberg's transform to turn \n"
-                  "\t     AFNI tlrc coordinates (RAI) into MNI coord space \n"
-                  "\t     in RAI (with -MNI_rai) or LPI (with -MNI_lpi)).\n"
-                  "\t     NOTE: -MNI_lpi option has not been tested yet (I have no data\n"
-                  "\t     to test it on. Verify alignment with AFNI and please report\n"
-                  "\t     any bugs.\n" );
-          printf ("\t     This option can be used without the -tlrc option.\n"
-                  "\t     But that assumes that surface nodes are already in\n"
-                  "\t     AFNI RAI tlrc coordinates .\n"); 
-          printf ("\tNOTE: The vertex coordinates coordinates of the input surfaces are only\n");
-          printf ("\t      transformed if -sv option is used. If you do transform surfaces, \n");
-          printf ("\t      take care not to load them into SUMA with another -sv option.\n");  
+                  "    [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc] [-MNI_rai/-MNI_lpi]\n"
+                  "    reads in a surface and writes it out in another format.\n"
+                  "    Note: This is a not a general utility conversion program. \n"
+                  "    Only fields pertinent to SUMA are preserved.\n"
+                  "    -i_TYPE inSurf specifies the input surface, TYPE is one of the following:\n"
+                  "       fs: FreeSurfer surface. \n"
+                  "           Only .asc surfaces are read.\n"
+                  "       sf: SureFit surface. \n"
+                  "           You must specify the .coord followed by the .topo file.\n"
+                  "       vec: Simple ascii matrix format. \n"
+                  "            You must specify the NodeList file followed by the FaceSetList file.\n"
+                  "            NodeList contains 3 floats per line, representing X Y Z vertex coordinates.\n"
+                  "            FaceSetList contains 3 ints per line, representing v1 v2 v3 triangle vertices.\n"
+                  "       ply: PLY format, ascii or binary.\n"
+                  "            Only vertex and triangulation info is preserved.\n"
+                  "    -o_TYPE outSurf specifies the output surface, TYPE is one of the following:\n"
+                  "       fs: FreeSurfer ascii surface. \n"
+                  "       sf: SureFit surface. (NOT IMPLEMENTED YET)\n"
+                  "           You must specify the .coord followed by the .topo file.\n"
+                  "       vec: Simple ascii matrix format. \n"
+                  "            see help for vec under -i_TYPE options for format specifications.\n"
+                  "       ply: PLY format, ascii or binary.\n"
+                  "    -sv SurfaceVolume [VolParam for sf surfaces]\n"
+                  "       This option must not come before the -i_TYPE option.\n"
+                  "       If you supply a surface volume, the coordinates of the input surface.\n"
+                  "        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
+                  "        You must also specify a VolParam file for SureFit surfaces.\n"
+                  "    -tlrc: Apply Talairach transform (which must be in talairach version of \n"
+                  "        SurfaceVolume) to the surface vertex coordinates. \n"
+                  "        This option must be used with the -sv option.\n"
+                  "    -MNI_rai/-MNI_lpi: Apply Andreas Meyer Lindenberg's transform to turn \n"
+                  "        AFNI tlrc coordinates (RAI) into MNI coord space \n"
+                  "        in RAI (with -MNI_rai) or LPI (with -MNI_lpi)).\n"
+                  "        NOTE: -MNI_lpi option has not been tested yet (I have no data\n"
+                  "        to test it on. Verify alignment with AFNI and please report\n"
+                  "        any bugs.\n" 
+                  "        This option can be used without the -tlrc option.\n"
+                  "        But that assumes that surface nodes are already in\n"
+                  "        AFNI RAI tlrc coordinates .\n"    
+                  "   NOTE: The vertex coordinates coordinates of the input surfaces are only\n"
+                  "         transformed if -sv option is used. If you do transform surfaces, \n"
+                  "         take care not to load them into SUMA with another -sv option.\n"); 
+          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL; 
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
           exit (0);
   }/*Usage*/
@@ -3117,50 +3121,54 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
 void usage_ROI2dataset_Main ()
    
   {/*Usage*/
-         static char Help_msg[]={
-            "\n\33[1mUsage: \33[0m\n"
-            "\tROI2dataset <-prefix dsetname> [...] <-input ROI1 ROI2 ...>\n"
-            "\t            [<-of ni_bi|ni_as|1D>] \n"
-            "\t            [<-dom_par_id idcode>] \n"
-          /* "\t[<-dom_par domain> NOT IMPLEMENTED YET] \n" */
-            "\t This program transforms a series of ROI files\n"
-            "\t to a node dataset. This data set will contain\n"
-            "\t the node indices in the first column and their\n"
-            "\t ROI values in the second column.\n"
-            "\t Duplicate node entries (nodes that are part of\n"
-            "\t multiple ROIs) will get ignored. You will be\n"
-            "\t notified when this occurs. \n"
-            "\n\33[1mMandatory parameters:\33[0m\n"
-            "\t -prefix dsetname: Prefix of output dataset.\n"
-            "\t                   Program will not overwrite existing\n"
-            "\t                   datasets.\n"
-            "\t -input ROI1 ROI2....: ROI files to turn into a \n"
-            "\t                       data set. This parameter MUST\n"
-            "\t                       be the last one on command line.\n"
-            "\n\33[1mOptional parameters:\33[0m\n"
+      static char FuncName[]={"usage_ROI2dataset_Main"};
+      char * s = NULL;
+      fprintf(SUMA_STDOUT, 
+            "\n"
+            "Usage: \n"
+            "   ROI2dataset <-prefix dsetname> [...] <-input ROI1 ROI2 ...>\n"
+            "               [<-of ni_bi|ni_as|1D>] \n"
+            "               [<-dom_par_id idcode>] \n"
+          /* "   [<-dom_par domain> NOT IMPLEMENTED YET] \n" */
+            "    This program transforms a series of ROI files\n"
+            "    to a node dataset. This data set will contain\n"
+            "    the node indices in the first column and their\n"
+            "    ROI values in the second column.\n"
+            "    Duplicate node entries (nodes that are part of\n"
+            "    multiple ROIs) will get ignored. You will be\n"
+            "    notified when this occurs. \n"
+            "\n"
+            "Mandatory parameters:\n"
+            "    -prefix dsetname: Prefix of output dataset.\n"
+            "                      Program will not overwrite existing\n"
+            "                      datasets.\n"
+            "    -input ROI1 ROI2....: ROI files to turn into a \n"
+            "                          data set. This parameter MUST\n"
+            "                          be the last one on command line.\n"
+            "\n"
+            "Optional parameters:\n"
             "(all optional parameters must be specified before the\n"
             " -input parameters.)\n"
-            "\t -h | -help: This help message\n"
-            "\t -of FORMAT: Output format of dataset. FORMAT is one of:\n"
-            "\t             ni_bi: NIML binary\n"
-            "\t             ni_as: NIML ascii (default)\n"
-            "\t             1D   : 1D AFNI format.\n"
-            "\t -dom_par_id id: Idcode of domain parent.\n"
-            "\t                 When specified, only ROIs have the same\n"
-            "\t                 domain parent are included in the output.\n"
-            "\t                 If id is not specified then the first\n"
-            "\t                 domain parent encountered in the ROI list\n"
-            "\t                 is adopted as dom_par_id.\n"
-            "\t                 1D roi files do not have domain parent \n"
-            "\t                 information. They will be added to the \n"
-            "\t                 output data under the chosen dom_par_id.\n"
-            "\t -prefix dsetname: Prefix of output data set.\n\n"
-            "\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
-         };
-         
-         fprintf(SUMA_STDOUT, "%s", Help_msg);
-         
-         exit (0);
+            "    -h | -help: This help message\n"
+            "    -of FORMAT: Output format of dataset. FORMAT is one of:\n"
+            "                ni_bi: NIML binary\n"
+            "                ni_as: NIML ascii (default)\n"
+            "                1D   : 1D AFNI format.\n"
+            "    -dom_par_id id: Idcode of domain parent.\n"
+            "                    When specified, only ROIs have the same\n"
+            "                    domain parent are included in the output.\n"
+            "                    If id is not specified then the first\n"
+            "                    domain parent encountered in the ROI list\n"
+            "                    is adopted as dom_par_id.\n"
+            "                    1D roi files do not have domain parent \n"
+            "                    information. They will be added to the \n"
+            "                    output data under the chosen dom_par_id.\n"
+            "    -prefix dsetname: Prefix of output data set.\n"
+            "\n");
+         s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+         fprintf(SUMA_STDOUT, 
+            "       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n");
+     exit (0);
   }/*Usage*/
    
 int main (int argc,char *argv[])

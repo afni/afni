@@ -883,120 +883,198 @@ SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_
 /*!
 output the state variable contents of the Surface Viewer 
 */
-void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
+void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out, int detail)
 {
-   int i;
    static char FuncName[]={"SUMA_Show_SurfaceViewer_Struct"};
+   char *s = NULL;  
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (Out == NULL) Out = stdout;
    
-   fprintf(Out,"\nSV contents:\n");
-   fprintf(Out,"\tverbose = %d\n", SV->verbose);
-   if (SV->ShowLeft) fprintf(Out,"\tShow Left = YES\n");
-   else fprintf(Out,"\tShow Left = NO\n");
-   if (SV->ShowRight) fprintf(Out,"\tShow Right = YES\n");
-   else fprintf(Out,"\tShow Right = NO\n");
-   fprintf(Out,"\tAspect = %f\n", SV->Aspect);
-   fprintf(Out,"\tViewFrom = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFrom[0], SV->GVS[SV->StdView].ViewFrom[1], SV->GVS[SV->StdView].ViewFrom[2]);
-   fprintf(Out,"\tViewFromOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFromOrig[0], SV->GVS[SV->StdView].ViewFromOrig[1], SV->GVS[SV->StdView].ViewFromOrig[2]);
-   fprintf(Out,"\tViewCenter = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCenter[0], SV->GVS[SV->StdView].ViewCenter[1], SV->GVS[SV->StdView].ViewCenter[2]);
-   fprintf(Out,"\tViewCenterOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCenterOrig[0], SV->GVS[SV->StdView].ViewCenterOrig[1], SV->GVS[SV->StdView].ViewCenterOrig[2]);
-   fprintf(Out,"\tViewCamUp = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCamUp[0], SV->GVS[SV->StdView].ViewCamUp[1], SV->GVS[SV->StdView].ViewCamUp[2]);
-   fprintf(Out,"\tRotaCenter = [%f %f %f]\n", SV->GVS[SV->StdView].RotaCenter[0], SV->GVS[SV->StdView].RotaCenter[1], SV->GVS[SV->StdView].RotaCenter[2]);
-   fprintf(Out,"\tlight0_position = [%f %f %f %f]\n", SV->light0_position[0], SV->light0_position[1], SV->light0_position[2], SV->light0_position[3]);
-   fprintf(Out,"\tlight1_position = [%f %f %f %f]\n", SV->light1_position[0], SV->light1_position[1], SV->light1_position[2], SV->light1_position[3]);
-   fprintf(Out,"\tWindWidth = %d\n", SV->WindWidth);
-   fprintf(Out,"\tWindHeight = %d\n", SV->WindHeight);
-   fprintf(Out,"\tcurrentQuat = [%f %f %f %f]\n", SV->GVS[SV->StdView].currentQuat[0], SV->GVS[SV->StdView].currentQuat[1], SV->GVS[SV->StdView].currentQuat[2], SV->GVS[SV->StdView].currentQuat[3]);
-   fprintf(Out,"\tdeltaQuat = [%f %f %f %f]\n", SV->GVS[SV->StdView].deltaQuat[0], SV->GVS[SV->StdView].deltaQuat[1], SV->GVS[SV->StdView].deltaQuat[2], SV->GVS[SV->StdView].deltaQuat[3]);
-   fprintf(Out,"\tApplyMomentum = %d\n", SV->GVS[SV->StdView].ApplyMomentum);
-   fprintf(Out,"\tMinIdleDelta = %d\n", SV->GVS[SV->StdView].MinIdleDelta);
-   fprintf(Out,"\tzoomDelta = %f, zoomBegin = %f\n", SV->GVS[SV->StdView].zoomDelta, SV->GVS[SV->StdView].zoomBegin);
-   fprintf(Out,"\tArrowRotationAngle=%f rad (%f deg)\n", SV->ArrowRotationAngle, SV->ArrowRotationAngle * 180.0 / SUMA_PI);
-   fprintf(Out,"\tspinDeltaX/Y = %d/%d\n", SV->GVS[SV->StdView].spinDeltaX, SV->GVS[SV->StdView].spinDeltaY);
-   fprintf(Out,"\tspinBeginX/Y = %d/%d\n", SV->GVS[SV->StdView].spinBeginX, SV->GVS[SV->StdView].spinBeginY);   
-   fprintf(Out,"\tTranslateGain = %f\n", SV->GVS[SV->StdView].TranslateGain);
-   fprintf(Out,"\tArrowtranslateDeltaX/Y = %f/%f\n", SV->GVS[SV->StdView].ArrowtranslateDeltaX, SV->GVS[SV->StdView].ArrowtranslateDeltaY);
-   fprintf(Out,"\ttranslateBeginX/Y = %d/%d\n", SV->GVS[SV->StdView].translateBeginX, SV->GVS[SV->StdView].translateBeginY);
-   fprintf(Out,"\ttranslateDeltaX/Y = %f/%f\n", SV->GVS[SV->StdView].translateDeltaX, SV->GVS[SV->StdView].translateDeltaY);
-   fprintf(Out,"\ttranslateVec = [%f %f 0.0]\n", SV->GVS[SV->StdView].translateVec[0], SV->GVS[SV->StdView].translateVec[1]);
-   fprintf(Out,"\tShow Mesh Axis %d\n", SV->ShowMeshAxis);
-   fprintf(Out,"\tShow Eye Axis %d\n", SV->ShowEyeAxis);
-   fprintf(Out,"\tShow Cross Hair %d\n", SV->ShowCrossHair);
-   fprintf(Out,"\tPolyMode %d\n", SV->PolyMode);
+   s = SUMA_SurfaceViewer_StructInfo (SV, detail);
    
-   fprintf(Out,"\tN_DO = %d\n", SV->N_DO);
-   fprintf(Out,"\tRegisteredDO = [");
-   for (i=0; i< SV->N_DO; ++i)
-      fprintf(Out,"%d, ", SV->RegisteredDO[i]);
-   fprintf(Out,"]\n");
-   if (SV->X == NULL) fprintf(Out,"\tX struct is NULL!\n");
-   else {
-   fprintf(Out,"\tX struct defined.\n");
+   if (s) {
+      fprintf(Out, "%s", s);
+      SUMA_free(s); s = NULL;
+   }else {
+      SUMA_SL_Err("Failed in SUMA_SurfaceViewer_StructInfo");
    }
-   fprintf(Out,"\tSO in focus %d\n", SV->Focus_SO_ID);
-   fprintf(Out,"\tDO in focus %d\n", SV->Focus_DO_ID);
-   /* show some state stuff */
-   fprintf(Out,"\nView States:\n");
-   for (i=0; i < SV->N_VSv; ++i) {
-      fprintf(Out,"\nView State %d/%d (FOV = %f):\n", i, SV->N_VSv, SV->FOV[i]);
-      if (!SUMA_Show_ViewState (&(SV->VSv[i]), Out)) {
-         fprintf(Out,"Error in SUMA_Show_ViewState\n");
-      }
-   }
-   fprintf(Out, "\nStandard viewing mode: %d\n", SV->StdView );
-   fprintf(Out, "\nBackground Modulation Factor= %f\n", SV->Back_Modfact);
-   fprintf(Out, "\nNumber of foreground smoothing steps = %d\n", SV->NumForeSmoothing);
-   fprintf(Out, "\nLast non mappable visited %d\n", SV->LastNonMapStateID);
    
-   /*fprintf(Out,"\t\n", SV->);
-   fprintf(Out,"\t\n", SV->);
-   fprintf(Out,"\t\n", SV->);
-   fprintf(Out,"\t\n", SV->);*/
-   fprintf(Out,"\n");
    SUMA_RETURNe;
 }
 
+char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
+{
+   static char FuncName[]={"SUMA_SurfaceViewer_StructInfo"};
+   SUMA_STRING *SS = NULL;
+   char *s=NULL;
+   int i;
+      
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (!SV) {
+      SS = SUMA_StringAppend (SS,"NULL SV.\n");
+      SS = SUMA_StringAppend (SS, NULL);
+      /* copy s pointer and free SS */
+      s = SS->s;
+      SUMA_free(SS);
+      SUMA_RETURN(s);  
+   }
+   
+   SS = SUMA_StringAppend(SS, "\nSV contents:\n");
+   SS = SUMA_StringAppend_va(SS, "\tverbose = %d\n", SV->verbose); 
+   if (SV->ShowLeft) SS = SUMA_StringAppend_va(SS,"\tShow Left = YES\n");
+   else SS = SUMA_StringAppend_va(SS,"\tShow Left = NO\n");
+   if (SV->ShowRight) SS = SUMA_StringAppend_va(SS,"\tShow Right = YES\n");
+   else SS = SUMA_StringAppend_va(SS,"\tShow Right = NO\n");
+   SS = SUMA_StringAppend_va(SS,"\tAspect = %f\n", SV->Aspect);
+   SS = SUMA_StringAppend_va(SS,"\tViewFrom = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFrom[0], SV->GVS[SV->StdView].ViewFrom[1], SV->GVS[SV->StdView].ViewFrom[2]);
+   SS = SUMA_StringAppend_va(SS,"\tViewFromOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFromOrig[0], SV->GVS[SV->StdView].ViewFromOrig[1], SV->GVS[SV->StdView].ViewFromOrig[2]);
+   SS = SUMA_StringAppend_va(SS,"\tViewCenter = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCenter[0], SV->GVS[SV->StdView].ViewCenter[1], SV->GVS[SV->StdView].ViewCenter[2]);
+   SS = SUMA_StringAppend_va(SS,"\tViewCenterOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCenterOrig[0], SV->GVS[SV->StdView].ViewCenterOrig[1], SV->GVS[SV->StdView].ViewCenterOrig[2]);
+   SS = SUMA_StringAppend_va(SS,"\tViewCamUp = [%f %f %f]\n", SV->GVS[SV->StdView].ViewCamUp[0], SV->GVS[SV->StdView].ViewCamUp[1], SV->GVS[SV->StdView].ViewCamUp[2]);
+   SS = SUMA_StringAppend_va(SS,"\tRotaCenter = [%f %f %f]\n", SV->GVS[SV->StdView].RotaCenter[0], SV->GVS[SV->StdView].RotaCenter[1], SV->GVS[SV->StdView].RotaCenter[2]);
+   SS = SUMA_StringAppend_va(SS,"\tlight0_position = [%f %f %f %f]\n", SV->light0_position[0], SV->light0_position[1], SV->light0_position[2], SV->light0_position[3]);
+   SS = SUMA_StringAppend_va(SS,"\tlight1_position = [%f %f %f %f]\n", SV->light1_position[0], SV->light1_position[1], SV->light1_position[2], SV->light1_position[3]);
+   SS = SUMA_StringAppend_va(SS,"\tWindWidth = %d\n", SV->WindWidth);
+   SS = SUMA_StringAppend_va(SS,"\tWindHeight = %d\n", SV->WindHeight);
+   SS = SUMA_StringAppend_va(SS,"\tcurrentQuat = [%f %f %f %f]\n", SV->GVS[SV->StdView].currentQuat[0], SV->GVS[SV->StdView].currentQuat[1], SV->GVS[SV->StdView].currentQuat[2], SV->GVS[SV->StdView].currentQuat[3]);
+   SS = SUMA_StringAppend_va(SS,"\tdeltaQuat = [%f %f %f %f]\n", SV->GVS[SV->StdView].deltaQuat[0], SV->GVS[SV->StdView].deltaQuat[1], SV->GVS[SV->StdView].deltaQuat[2], SV->GVS[SV->StdView].deltaQuat[3]);
+   SS = SUMA_StringAppend_va(SS,"\tApplyMomentum = %d\n", SV->GVS[SV->StdView].ApplyMomentum);
+   SS = SUMA_StringAppend_va(SS,"\tMinIdleDelta = %d\n", SV->GVS[SV->StdView].MinIdleDelta);
+   SS = SUMA_StringAppend_va(SS,"\tzoomDelta = %f, zoomBegin = %f\n", SV->GVS[SV->StdView].zoomDelta, SV->GVS[SV->StdView].zoomBegin);
+   SS = SUMA_StringAppend_va(SS,"\tArrowRotationAngle=%f rad (%f deg)\n", SV->ArrowRotationAngle, SV->ArrowRotationAngle * 180.0 / SUMA_PI);
+   SS = SUMA_StringAppend_va(SS,"\tspinDeltaX/Y = %d/%d\n", SV->GVS[SV->StdView].spinDeltaX, SV->GVS[SV->StdView].spinDeltaY);
+   SS = SUMA_StringAppend_va(SS,"\tspinBeginX/Y = %d/%d\n", SV->GVS[SV->StdView].spinBeginX, SV->GVS[SV->StdView].spinBeginY);   
+   SS = SUMA_StringAppend_va(SS,"\tTranslateGain = %f\n", SV->GVS[SV->StdView].TranslateGain);
+   SS = SUMA_StringAppend_va(SS,"\tArrowtranslateDeltaX/Y = %f/%f\n", SV->GVS[SV->StdView].ArrowtranslateDeltaX, SV->GVS[SV->StdView].ArrowtranslateDeltaY);
+   SS = SUMA_StringAppend_va(SS,"\ttranslateBeginX/Y = %d/%d\n", SV->GVS[SV->StdView].translateBeginX, SV->GVS[SV->StdView].translateBeginY);
+   SS = SUMA_StringAppend_va(SS,"\ttranslateDeltaX/Y = %f/%f\n", SV->GVS[SV->StdView].translateDeltaX, SV->GVS[SV->StdView].translateDeltaY);
+   SS = SUMA_StringAppend_va(SS,"\ttranslateVec = [%f %f 0.0]\n", SV->GVS[SV->StdView].translateVec[0], SV->GVS[SV->StdView].translateVec[1]);
+   SS = SUMA_StringAppend_va(SS,"\tShow Mesh Axis %d\n", SV->ShowMeshAxis);
+   SS = SUMA_StringAppend_va(SS,"\tShow Eye Axis %d\n", SV->ShowEyeAxis);
+   SS = SUMA_StringAppend_va(SS,"\tShow Cross Hair %d\n", SV->ShowCrossHair);
+   SS = SUMA_StringAppend_va(SS,"\tPolyMode %d\n", SV->PolyMode);
+   
+   SS = SUMA_StringAppend_va(SS,"\tN_DO = %d\n", SV->N_DO);
+   SS = SUMA_StringAppend(SS, "\tRegisteredDO = [");
+
+   for (i=0; i< SV->N_DO; ++i) {
+      SS = SUMA_StringAppend_va(SS,"%d, ", SV->RegisteredDO[i]); 
+   } 
+   SS = SUMA_StringAppend(SS,"]\n");
+   if (SV->X == NULL) SS = SUMA_StringAppend_va(SS,"\tX struct is NULL!\n");
+   else {
+   SS = SUMA_StringAppend_va(SS,"\tX struct defined.\n");
+   }
+   
+   SS = SUMA_StringAppend_va(SS,"\tSO in focus %d\n", SV->Focus_SO_ID);
+   SS = SUMA_StringAppend_va(SS,"\tDO in focus %d\n", SV->Focus_DO_ID);
+
+   /* show some state stuff */
+   SS = SUMA_StringAppend(SS, "\nView States:\n");
+   for (i=0; i < SV->N_VSv; ++i) {
+      SS = SUMA_StringAppend_va(SS,"\nView State %d/%d (FOV = %f):\n", i, SV->N_VSv, SV->FOV[i]);
+      s = SUMA_ViewStateInfo (&(SV->VSv[i]), 0);
+      if (!s) {
+         SS = SUMA_StringAppend(SS, "*** Error in SUMA_Show_ViewState ***\n");
+      } else {
+         SS = SUMA_StringAppend(SS, s);
+         SUMA_free(s); s = NULL;
+      }
+   }
+   SS = SUMA_StringAppend_va(SS, "\nStandard viewing mode: %d\n", SV->StdView );
+   SS = SUMA_StringAppend_va(SS, "\nBackground Modulation Factor= %f\n", SV->Back_Modfact);
+   SS = SUMA_StringAppend_va(SS, "\nNumber of foreground smoothing steps = %d\n", SV->NumForeSmoothing);
+   SS = SUMA_StringAppend_va(SS, "\nLast non mappable visited %d\n", SV->LastNonMapStateID);
+   
+   SS = SUMA_StringAppend(SS,"\n");
+   
+   /* trim SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS);
+      
+   SUMA_RETURN(s);
+}
+
 /*! Show the ViewState structure */
-SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out) 
+SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out, int detail) 
 {
    static char FuncName[]={"SUMA_Show_ViewState"};
-   int i;
+   char *s = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    if (Out == NULL) Out = stdout;
 
-   if (VS == NULL) {
-      fprintf(Out,"VS is NULL\n");      
+   s = SUMA_ViewStateInfo(VS,  detail);
+   if (!s) {
+      SUMA_SL_Err("Failed in SUMA_ViewStateInfo");
       SUMA_RETURN(NOPE);
+   }  else {
+      fprintf(Out, "%s", s);
+      SUMA_free(s); s = NULL;
+   }
+   
+   SUMA_RETURN(YUP);
+}
+
+/*! Show the ViewState structure */
+char *SUMA_ViewStateInfo(SUMA_ViewState *VS, int detail) 
+{
+   static char FuncName[]={"SUMA_ViewStateInfo"};
+   int i;
+   SUMA_STRING *SS = NULL;
+   char *s=NULL;   
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   if (!VS) {
+      SS = SUMA_StringAppend (SS,"NULL VS.\n");
+      SS = SUMA_StringAppend (SS, NULL);
+      /* copy s pointer and free SS */
+      s = SS->s;
+      SUMA_free(SS);
+      SUMA_RETURN(s);  
    }
 
-   if (VS->Name) fprintf(Out,"\tName: %s\n", VS->Name);
-   else fprintf(Out,"\tName: NULL\n");
+   if (VS->Name) SS = SUMA_StringAppend_va(SS, "\tName: %s\n", VS->Name);
+   else SS = SUMA_StringAppend_va(SS, "\tName: NULL\n");
    
    if (VS->N_MembSOs) {
-      fprintf(Out,"\t%d MembSOs: ", VS->N_MembSOs);
-      for (i=0; i < VS->N_MembSOs; ++i) fprintf(Out,"%d, ", VS->MembSOs[i]);
-      fprintf(Out,"\n");
+      SS = SUMA_StringAppend_va(SS, "\t%d MembSOs: ", VS->N_MembSOs);
+      for (i=0; i < VS->N_MembSOs; ++i) SS = SUMA_StringAppend_va(SS, "%d, ", VS->MembSOs[i]);
+      SS = SUMA_StringAppend_va(SS, "\n");
    } else {
-      fprintf(Out,"\tNo MembSOs\n");
+      SS = SUMA_StringAppend_va(SS, "\tNo MembSOs\n");
    }
    
    if (VS->Hist) {
       if (VS->Hist->N_DO) {
-         fprintf(Out,"\tHist->N_DO = %d\nHist->RegisteredDO: ", VS->Hist->N_DO);
+         SS = SUMA_StringAppend_va(SS, "\tHist->N_DO = %d\nHist->RegisteredDO: ", VS->Hist->N_DO);
          for (i=0; i < VS->Hist->N_DO; ++i) {
-            fprintf(Out,"\t%d, ", VS->Hist->RegisteredDO[i]);
+            SS = SUMA_StringAppend_va(SS, "\t%d, ", VS->Hist->RegisteredDO[i]);
          }
       }
    } else {
-      fprintf(Out,"\tHist is NULL\n");
+      SS = SUMA_StringAppend_va(SS, "\tHist is NULL\n");
    }
    
-   SUMA_RETURN (YUP);
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS);
+   
+   SUMA_RETURN (s);
 }
 
 /*!
@@ -1628,7 +1706,7 @@ SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int is
 {
    static char FuncName[]={"SUMA_Assign_HostName"};
    int istart = 0, istop = 0, i = 0;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1706,7 +1784,7 @@ SUMA_STANDARD_VIEWS SUMA_BestStandardView (SUMA_SurfaceViewer *sv, SUMA_DO *dov,
       case 3:
          SUMA_RETURN(SUMA_3D);
       default:
-         fprintf(SUMA_STDERR,"Error %s: No provision for such a maximum embedding dimension.\n", FuncName);
+         fprintf(SUMA_STDERR,"Error %s: No provision for such a maximum embedding dimension of %d.\n", FuncName, maxdim);
          SUMA_RETURN(SUMA_Dunno);
    }
 

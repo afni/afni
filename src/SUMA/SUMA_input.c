@@ -158,7 +158,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         FuncName);
                         
                   /* find SO that is mappable reference & get corresponding state ID*/
-                  dov_ID = SUMA_findSO_inDOv(SO->MapRef_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+                  dov_ID = SUMA_findSO_inDOv(SO->LocalDomainParentID, SUMAg_DOv, SUMAg_N_DOv);
                   SOmap = (SUMA_SurfaceObject *)SUMAg_DOv[dov_ID].OP;
                   nxtstateID = SUMA_WhichState(SOmap->State, sv);
                   
@@ -823,7 +823,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             
          case XK_v:
             if (SUMAg_CF->Dev) {
-               SUMA_Show_SurfaceViewer_Struct (sv, stdout);
+               SUMA_Show_SurfaceViewer_Struct (sv, stdout, 0);
             }
             break;
 

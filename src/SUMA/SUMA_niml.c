@@ -138,7 +138,27 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
        if (LocalHead)   fprintf(SUMA_STDERR,"%s: reading data stream", FuncName) ;
 
        nini = NI_read_element( SUMAg_CF->ns_v[cc] , 1 ) ;  /* read it */
-
+         #if SUMA_SUMA_NIML_DEBUG /* debugging corruption of niml ...*/
+            nel = (NI_element *)nini ;
+            if( strcmp(nel->name,"SUMA_irgba") == 0 || strcmp(nel->name,"Node_RGBAb") == 0) 
+            {
+               int *ibad=NULL;
+               
+               ibad = (int *)nel->vec[0]; 
+               if (ibad[0] > 1000) {
+                  fprintf (SUMA_STDERR,"**********\n\tibad[0] = %d\n****************\n", ibad[0]);
+                  fprintf (SUMA_STDOUT,"********** ibad[0] = %d ****************", ibad[0]);
+               }
+               if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
+                  fprintf(SUMA_STDERR,"--------\n\tEmpty SUMA_irgba (len = %d, len = %d)\n--------\n", 
+                     nel->vec_len, nel->vec_filled);
+                  fprintf(SUMA_STDOUT,"-------- Empty SUMA_irgba (len = %d, filled = %d) --------", 
+                     nel->vec_len, nel->vec_filled);
+               }
+               fprintf (SUMA_STDOUT,"\n");
+            }
+         #endif
+         
        if (LocalHead)   fprintf(SUMA_STDERR," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
 
        if( nini != NULL ) {
@@ -192,7 +212,7 @@ int SUMA_which_stream_index (SUMA_CommonFields *cf, char *nel_stream_name)
 {
    static char FuncName[]={"SUMA_which_stream_index"};
    int i;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -203,11 +223,11 @@ int SUMA_which_stream_index (SUMA_CommonFields *cf, char *nel_stream_name)
    SUMA_RETURN(-1);
 }
 
-SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, SUMA_Boolean fromSUMA)
+SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, SUMA_Boolean fromSUMA, SUMA_Boolean killit)
 {
    static char FuncName[]={"SUMA_niml_hangup"};
    int i;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -226,9 +246,15 @@ SUMA_Boolean SUMA_niml_hangup (SUMA_CommonFields *cf, char *nel_stream_name, SUM
       else {  SUMA_SLP_Err("Stream not found"); }
       SUMA_RETURN(NOPE); 
    } else {
-      SUMA_LH("Stream found, closing");
+      SUMA_LH("Stream found.");
       fprintf (SUMA_STDERR,"%s: stream index %d\n", FuncName, i);
-      NI_stream_close(cf->ns_v[i]);
+      if (killit) {
+         SUMA_LH("Killing stream");
+         NI_stream_kill(cf->ns_v[i]);
+      }else {
+        SUMA_LH("Just closing stream"); 
+         NI_stream_close(cf->ns_v[i]);
+      }
       cf->ns_v[i] = NULL;
       cf->Connected_v[i] = NOPE; 
       cf->ns_flags_v[i] = 0;
@@ -255,9 +281,14 @@ SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUM
 {
    static char FuncName[]={"SUMA_niml_call"};
    int nn, Wait_tot;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (si < 0 || si >= SUMA_MAX_STREAMS) {
+      SUMA_SL_Err("Bad value for stream index.");
+      SUMA_RETURN(NOPE);
+   }
    
      /* find out if the stream has been established already */
       if (cf->ns_v[si]) { /* stream is open, nothing to do */
@@ -272,8 +303,8 @@ SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUM
                cf->ns_flags_v[si] = 0;
                cf->TrackingId_v[si] = 0;
 
-               if (fromSUMA) { SUMA_SLP_Err("NI_stream_open failed."); }
-               else { SUMA_SL_Err("NI_stream_open failed."); }
+               if (fromSUMA) { SUMA_SLP_Err("NI_stream_open failed (1p)."); }
+               else { SUMA_SL_Err("NI_stream_open failed (1)."); }
                SUMA_BEEP;
                cf->Connected_v[si] = !cf->Connected_v[si];
                SUMA_RETURN(NOPE) ;
@@ -290,8 +321,8 @@ SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUM
             /*   cf->ns_v[si] = NI_stream_open( "tcp:128.231.212.194:53211" , "w" ) ;*/
 
          if( cf->ns_v[si] == NULL ){
-            if (fromSUMA) { SUMA_SLP_Err("NI_stream_open failed");} 
-            else { SUMA_SL_Err("NI_stream_open failed");}
+            if (fromSUMA) { SUMA_SLP_Err("NI_stream_open failed (2p)");} 
+            else { SUMA_SL_Err("NI_stream_open failed (2)");}
             SUMA_BEEP; 
             cf->Connected_v[si] = !cf->Connected_v[si];
             cf->ns_flags_v[si] = 0;
@@ -367,7 +398,6 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-
    if( tt < 0 ) {/* should never happen */
       fprintf(SUMA_STDERR,"Error %s: Should never have happened.\n", FuncName);
       SUMA_RETURN(NOPE);
@@ -389,18 +419,20 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    }
    
    /*--- stream closer ---*/
-   if( strcmp(nel->name,"CloseStream") == 0) { /* CloseStream */
-      fprintf (SUMA_STDERR,"%s:\nClosing stream %s ...\n", FuncName, NI_get_attribute(nel, "ni_stream_name"));
-      if (!SUMA_niml_hangup (SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"), NOPE)) {
+   if( strcmp(nel->name,"CloseKillStream") == 0) { /* CloseKillStream */
+      if (LocalHead) fprintf (SUMA_STDERR,"%s:\nClosing then killing stream %s ...\n", 
+                                    FuncName, NI_get_attribute(nel, "ni_stream_name"));
+      if (!SUMA_niml_hangup (SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"), NOPE, YUP)) {
          SUMA_SL_Err("Failed in SUMA_niml_hangup.\n");
          SUMA_RETURN(NOPE);
       }
       SUMA_RETURN(YUP);
-   } /* CloseStream */  
+   } /* CloseStreamKill */  
 
    /*--- stream tracking ON ---*/
    if( strcmp(nel->name,"StartTracking") == 0) { /* Start tracking */
-      fprintf (SUMA_STDERR,"%s:\n Starting NI element tracking for %s ...\n", FuncName, NI_get_attribute(nel, "ni_stream_name"));
+      if (LocalHead) fprintf (SUMA_STDERR,"%s:\n Starting NI element tracking for %s ...\n", 
+                                          FuncName, NI_get_attribute(nel, "ni_stream_name"));
       i = SUMA_which_stream_index(SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"));
       if ( i < 0) {
          SUMA_SL_Err("Failed to find stream!\n");
@@ -419,7 +451,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
    
    /*--- stream tracking OFF ---*/
    if( strcmp(nel->name,"StopTracking") == 0) { /* Stop tracking */
-      fprintf (SUMA_STDERR,"%s:\n Stopping NI element tracking for %s ...\n", FuncName, NI_get_attribute(nel, "ni_stream_name"));
+      if (LocalHead) fprintf (SUMA_STDERR,"%s:\n Stopping NI element tracking for %s ...\n", 
+                                          FuncName, NI_get_attribute(nel, "ni_stream_name"));
       i = SUMA_which_stream_index(SUMAg_CF, NI_get_attribute(nel, "ni_stream_name"));
       if ( i < 0) {
          SUMA_SL_Err("Failed to find stream!\n");
@@ -450,7 +483,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                N_SOlist = SUMA_RegisteredSOs(svi, SUMAg_DOv, SOlist);
                while (i < N_SOlist && !Found) { 
                   SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);
-                  if (strcmp(nel_surfidcode, SO->MapRef_idcode_str) == 0) {
+                  if (strcmp(nel_surfidcode, SO->LocalDomainParentID) == 0) {
                      Found = YUP;
                      dest_SO_ID = SOlist[i];
                   }
@@ -584,6 +617,59 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       SUMA_RETURN(YUP) ;
    }/* SUMA_crosshair_xyz */
    
+   /* Node_XYZ */
+   if( strcmp(nel->name,"Node_XYZ") == 0) {/* Node_XYZ */
+      if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
+         fprintf(SUMA_STDERR,"%s: Empty Node_XYZ\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }else {
+         if( nel->vec_num != 1 || nel->vec_typ[0] != NI_FLOAT) {
+              fprintf(SUMA_STDERR,"%s: Node_XYZ Bad format\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+      }
+      /* show me nel */
+      /* if (LocalHead) SUMA_nel_stdout (nel); */
+
+      /* look for the surface idcode */
+      nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
+      if (nel_surfidcode == NULL) {
+         fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      } 
+      
+      SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
+      if (!SO) {
+         fprintf(SUMA_STDERR,"Error %s: nel idcode is not found in DOv.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* now copy the new node coordinates over the old ones */
+      if (nel->vec_len != SO->N_Node * 3) {
+         fprintf(SUMA_STDERR,"Error %s:\nExpected %d * 3 = %d values, found %d\n", 
+            FuncName, SO->N_Node, SO->N_Node * 3, nel->vec_len);
+         SUMA_RETURN(NOPE);
+      }
+      
+      XYZ = (float *)nel->vec[0];
+      for (i=0; i < nel->vec_len; ++i) SO->NodeList[i] = XYZ[i];
+
+      /* file a redisplay request */
+      if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
+      if (!list) list = SUMA_CreateList();
+      SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAny, sv);
+
+      if (!SUMA_Engine (&list)) {
+         fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+
+      /* don't free nel, it's freed later on */
+      SUMA_RETURN(YUP) ;
+      
+       
+   }/* Node_XYZ */
+   
    /* SUMA_irgba Node colors */
    if( strcmp(nel->name,"SUMA_irgba") == 0 || strcmp(nel->name,"Node_RGBAb") == 0) {/* SUMA_irgba */
       if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
@@ -595,24 +681,22 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             SUMA_RETURN(NOPE);
         }
       }
-     
-      #if 0
-      {  /* At times, I found the value in nel->vec[0] to be corrupted, use this to check on it */
-         int *ibad;
-         ibad = (int *)nel->vec[0]; 
-         fprintf (SUMA_STDERR,"ibad[0] = %d\n", ibad[0]);
-      }
+      #if SUMA_SUMA_NIML_DEBUG
+         fprintf(SUMA_STDERR,"Warning %s:\nSleeping ONLY ...\n", FuncName);
+         NI_sleep(200);
+         SUMA_RETURN(YUP);
+   
+
+         if (0) {  /* At times, I found the value in nel->vec[0] to be corrupted, use this to check on it */
+            int *ibad;
+            ibad = (int *)nel->vec[0]; 
+            fprintf (SUMA_STDERR,"ibad[0] = %d\n", ibad[0]);
+         }
       #endif
       
       /* show me nel */
       /* if (LocalHead) SUMA_nel_stdout (nel); */
 
-      if (1) {
-         char *nel_itercount=NULL;
-         nel_itercount = NI_get_attribute(nel, "iCol_iter_Niter");
-         if (nel_itercount) { fprintf(SUMA_STDOUT,"Receiving %s...\n",nel_itercount); }
-      }
-      
       /* look for the surface idcode */
       nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
       if (nel_surfidcode == NULL) {
@@ -668,7 +752,12 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       /* file a redisplay request */
       if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
       if (!list) list = SUMA_CreateList();
-      SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAfni, sv);
+      if (strcmp(nel->name,"SUMA_irgba") == 0) {
+         /* call from AFNI */
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAfni, sv);
+      } else {
+         SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAny, sv);
+      }
 
       if (!SUMA_Engine (&list)) {
          fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
@@ -887,7 +976,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
    \param dov (SUMA_DO *) the Displayable Objects vector (ususally SUMAg_DOv)
    \param N_dov (int) the number of elements in dov (usually SUMAg_N_DOv)
    \ret ans (SUMA_Boolean) NOPE if none of the SOs shown in the viewer has both 
-      MapRef_idcode_str != NULL && VolPar != NULL
+      LocalDomainParentID != NULL && VolPar != NULL
       
    This function is much different from the one prior to Tue Nov 19 11:44:24 EST 2002
 */
@@ -903,7 +992,7 @@ SUMA_Boolean SUMA_CanTalkToAfni (SUMA_DO *dov, int N_dov)
    for (i=0; i< N_dov; ++i) {
       if (SUMA_isSO(dov[i])) {
          SO = (SUMA_SurfaceObject *)(dov[i].OP);
-         if (SO->MapRef_idcode_str != NULL && SO->VolPar != NULL) {
+         if (SO->LocalDomainParentID != NULL && SO->VolPar != NULL) {
             SUMA_RETURN (YUP);
          }
       } 

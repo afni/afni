@@ -1012,7 +1012,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          
          /* form the nel for this plane */
          nel = SUMA_NewNel ( SUMA_NODE_ROI, /* one of SUMA_DSET_TYPE */
-                       SO->MapRef_idcode_str, /* idcode of Domain Parent */
+                       SO->LocalDomainParentID, /* idcode of Domain Parent */
                        NULL, /* idcode of geometry parent, not useful here*/
                        N_NewNode); /* Number of elements */
          
@@ -1718,8 +1718,13 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->idcode_str\n", FuncName);
    if (SO->idcode_str) free(SO->idcode_str); /* DO NOT use SUMA_free because this pointer is created by UNIQ_hashcode which uses afni's calloc 
                                                 If you do so, you'll get a nasty warning from SUMA_free*/
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->MapRef_idcode_str\n", FuncName);
-   if (SO->MapRef_idcode_str) SUMA_free(SO->MapRef_idcode_str);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->LocalDomainParentID\n", FuncName);
+   if (SO->LocalDomainParentID) SUMA_free(SO->LocalDomainParentID);
+   if (SO->LocalDomainParent) SUMA_free(SO->LocalDomainParent);
+   if (SO->LocalCurvatureParentID) SUMA_free(SO->LocalCurvatureParentID);
+   if (SO->LocalCurvatureParent) SUMA_free(SO->LocalCurvatureParent);
+   if (SO->OriginatorID) SUMA_free(SO->OriginatorID);
+   if (SO->DomainGrandParentID) SUMA_free(SO->DomainGrandParentID);
    if (LocalHead) fprintf (SUMA_STDERR, "%s: freeing SO->Group\n", FuncName);
    if (SO->Group) SUMA_free(SO->Group);
    if (SO->State) SUMA_free(SO->State);
@@ -1929,14 +1934,24 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
       sprintf (stmp,"IDcode: %s\n", SO->idcode_str);
       SS = SUMA_StringAppend (SS,stmp);
       
-      if (SO->MapRef_idcode_str == NULL) {
-         sprintf (stmp,"MapRef_idcode_str is NULL\n");
-         SS = SUMA_StringAppend (SS,stmp);
-      } else {
-         sprintf (stmp,"MapRef_idcode_str: %s\n", SO->MapRef_idcode_str);
-         SS = SUMA_StringAppend (SS,stmp);
-      }
+      if (!SO->LocalDomainParent) SS = SUMA_StringAppend_va (SS,"LocalDomainParent is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"LocalDomainParent: %s\n", SO->LocalDomainParent);
 
+      if (!SO->LocalDomainParentID) SS = SUMA_StringAppend_va (SS,"LocalDomainParentID is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"LocalDomainParentID: %s\n", SO->LocalDomainParentID);
+     
+      if (!SO->LocalCurvatureParent) SS = SUMA_StringAppend_va (SS,"LocalCurvatureParent is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"LocalCurvatureParent: %s\n", SO->LocalCurvatureParent);
+       
+      if (!SO->LocalCurvatureParentID) SS = SUMA_StringAppend_va (SS,"LocalCurvatureParentID is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"LocalCurvatureParentID: %s\n", SO->LocalCurvatureParentID);
+       
+      if (!SO->OriginatorID) SS = SUMA_StringAppend_va (SS,"OriginatorID is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"OriginatorID: %s\n", SO->OriginatorID);
+       
+      if (!SO->DomainGrandParentID) SS = SUMA_StringAppend_va (SS,"DomainGrandParentID is NULL\n");
+      else SS = SUMA_StringAppend_va (SS,"DomainGrandParentID: %s\n", SO->DomainGrandParentID);
+             
       sprintf (stmp,"Group: %s\tState: %s\n", SO->Group, SO->State);
       SS = SUMA_StringAppend (SS,stmp);
 
@@ -2309,7 +2324,6 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Group = NULL;
       SO[i].FaceSetMarker = NULL;
       SO[i].idcode_str = NULL;
-      SO[i].MapRef_idcode_str = NULL;
       SO[i].Name.Path = NULL;
       SO[i].Name.FileName = NULL;
       SO[i].Name_coord.Path = NULL;
@@ -2324,8 +2338,12 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Show = YUP;
       SO[i].Side = SUMA_NO_SIDE;
       SO[i].AnatCorrect = NOPE;
-      SO[i].ParentDomainID = NULL;
+      SO[i].DomainGrandParentID = NULL;
       SO[i].OriginatorID = NULL;
+      SO[i].LocalDomainParent = NULL;
+      SO[i].LocalCurvatureParent = NULL;
+      SO[i].LocalDomainParentID = NULL;
+      SO[i].LocalCurvatureParentID = NULL;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

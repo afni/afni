@@ -153,13 +153,13 @@ RENAMING:
 	echo "From $sDir/I.$NlocPad ..." >> $LogFile
 	test -f $listfile && rm -f $listfile
 	set Nremain = `expr $Ntot - $Nimage` #remaining images
-   set Nremain = `expr $Nremain + $Nloc`  # *** Dec 23 03
-                                          #add first image's offset or indexing
-                                          #will fail for time series containing
-                                          #less than 1000 images total 
 	while ($Nremain > 0)
 		#echo "Nimage $Nimage, Nloc $Nloc, Ntot $Ntot, Nremain $Nremain"
-		if ($Nremain > 999) then
+		set Nwhatapain = `expr $Nremain + $Nloc`  # *** Dec 23 03
+                                          #add first image's offset to next condition or indexing
+                                          #will fail for time series containing
+                                          #less than 1000 images total 
+      if ($Nwhatapain > 999) then
 			#echo 'Full'
 			#echo "in $sDir from $Nloc to 999"
 			count -digit 3 -root $sDir/I. $Nloc 999 >> $listfile

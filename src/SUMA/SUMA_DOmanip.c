@@ -274,6 +274,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object_Vect (SUMA_DO *dov, int N)
          Ret = Ret * SUMA_Free_Displayable_Object (&dov[i]);
       }
    }
+
    if (dov) SUMA_free(dov);
    SUMA_RETURN(Ret);
 
@@ -786,7 +787,58 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
 }
 
 /*!
-   determines if a Surface Object is mappable (ie MapRef_idcode_str != NULL)
+   
+  SO = SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
+   searches all SO_type DO objects for idcode
+   
+   \param coordname (char *) filename of SO (without path) that you are searching for.
+                             If surface is specified by 2 files, then use the coord file
+                             name.  
+   \param dov (SUMA_DO*) pointer to vector of Displayable Objects, typically SUMAg_DOv
+   \param N_dov (int) number of DOs in dov
+   \return SO (SUMA_SurfaceObject *) pointer of SO with matching idcode 
+       NULL if not found
+   \sa SUMA_findSO_inDOv
+   \sa SUMA_findSOp_inDOv
+*/
+SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, int N_dov)
+{
+   static char FuncName[]={"SUMA_findSOp_inDOv"};
+   SUMA_SurfaceObject *SO;
+   int i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   for (i=0; i<N_dov; ++i) {
+      if (dov[i].ObjectType == SO_type) {
+         SO = (SUMA_SurfaceObject *)dov[i].OP;
+         switch(SO->FileType) {
+            case SUMA_SUREFIT:
+            case SUMA_VEC:
+               if (strcmp(coordname, SO->Name_coord.FileName)== 0) {
+                  SUMA_RETURN (SO);
+               }
+               break;
+            case SUMA_FREE_SURFER:
+            case SUMA_INVENTOR_GENERIC:
+            case SUMA_PLY: 
+               if (strcmp(coordname, SO->Name.FileName)== 0) {
+                  SUMA_RETURN (SO);
+               }
+               break;
+            default: 
+               SUMA_SL_Err("Type not supported.");
+               SUMA_RETURN(NULL);
+         }
+               
+      }
+   }
+   
+   SUMA_RETURN(NULL);
+}
+
+/*!
+   determines if a Surface Object is mappable (ie LocalDomainParentID != NULL)
    ans = SUMA_ismappable (SUMA_SurfaceObject *SO)
    \param SO (SUMA_SurfaceObject *)
    \ret YUP/NOPE
@@ -797,7 +849,7 @@ SUMA_Boolean SUMA_ismappable (SUMA_SurfaceObject *SO)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   if (SO->MapRef_idcode_str != NULL) {
+   if (SO->LocalDomainParentID != NULL) {
       /* SO is mappable */
       SUMA_RETURN (YUP);
    } 
@@ -806,7 +858,7 @@ SUMA_Boolean SUMA_ismappable (SUMA_SurfaceObject *SO)
 }
 
 /*!
-   determines if a Surface Object is inherently mappable (ie MapRef_idcode_str == idcode_str)
+   determines if a Surface Object is inherently mappable (ie LocalDomainParentID == idcode_str)
    ans = SUMA_isINHmappable (SUMA_SurfaceObject *SO)
    \param SO (SUMA_SurfaceObject *)
    \ret YUP/NOPE
@@ -817,10 +869,10 @@ SUMA_Boolean SUMA_isINHmappable (SUMA_SurfaceObject *SO)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   if (SO->MapRef_idcode_str == NULL) {
+   if (SO->LocalDomainParentID == NULL) {
       SUMA_RETURN (NOPE);
    }
-   if (strcmp(SO->MapRef_idcode_str, SO->idcode_str) == 0) {
+   if (strcmp(SO->LocalDomainParentID, SO->idcode_str) == 0) {
       /* SO is inherently mappable */
       SUMA_RETURN (YUP);
    } 
@@ -831,9 +883,9 @@ SUMA_Boolean SUMA_isINHmappable (SUMA_SurfaceObject *SO)
    \brief ans = SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
    returns YUP if SO1 and SO2 are related, ie: 
    SO1->idcode_str = SO2->idcode_str (in this case SO1 = SO2) or 
-   SO1->MapRef_idcode_str = SO2->idcode_str (SO2 is the mapping reference of SO1) or
-   SO1->idcode_str = SO2->MapRef_idcode_str (SO1 is the mapping reference of SO2)
-   SO1->MapRef_idcode_str = SO2->MapRef_idcode_str (SO1 and SO2 have the same mapping reference) or 
+   SO1->LocalDomainParentID = SO2->idcode_str (SO2 is the mapping reference of SO1) or
+   SO1->idcode_str = SO2->LocalDomainParentID (SO1 is the mapping reference of SO2)
+   SO1->LocalDomainParentID = SO2->LocalDomainParentID (SO1 and SO2 have the same mapping reference) or 
 */
 SUMA_Boolean SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2)
 {
@@ -851,22 +903,22 @@ SUMA_Boolean SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2)
       SUMA_RETURN (YUP);
    }
    
-   if (SO1->MapRef_idcode_str) {
-      if (strcmp (SO1->MapRef_idcode_str, SO2->idcode_str) == 0) {
+   if (SO1->LocalDomainParentID) {
+      if (strcmp (SO1->LocalDomainParentID, SO2->idcode_str) == 0) {
          /* SO2 is the mapping reference of SO1 */
          SUMA_RETURN (YUP);
       }
    }
    
-   if (SO2->MapRef_idcode_str) {
-      if (strcmp (SO1->idcode_str, SO2->MapRef_idcode_str) == 0) {
+   if (SO2->LocalDomainParentID) {
+      if (strcmp (SO1->idcode_str, SO2->LocalDomainParentID) == 0) {
           /* SO1 is the mapping reference of SO2 */
           SUMA_RETURN (YUP);
       }
    }
    
-   if (SO1->MapRef_idcode_str && SO2->MapRef_idcode_str) {
-      if (strcmp (SO1->MapRef_idcode_str, SO2->MapRef_idcode_str) == 0) {
+   if (SO1->LocalDomainParentID && SO2->LocalDomainParentID) {
+      if (strcmp (SO1->LocalDomainParentID, SO2->LocalDomainParentID) == 0) {
          /* SO1 and SO2 have the same mapping reference */
          SUMA_RETURN (YUP);
       }
@@ -1106,7 +1158,7 @@ SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov
 }
 
 /*!
-\brief Returns YUP if the surface: dROI->Parent_idcode_str is related to SO->idcode_str or SO->MapRef_idcode_str.
+\brief Returns YUP if the surface: dROI->Parent_idcode_str is related to SO->idcode_str or SO->LocalDomainParentID.
 NOPE otherwise
 
 ans = SUMA_isdROIrelated (dROI, SO);
@@ -1125,7 +1177,7 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    if (LocalHead) {
-      fprintf (SUMA_STDERR, "%s: %s SO->MapRef_idcode_str\n", FuncName, SO->MapRef_idcode_str);
+      fprintf (SUMA_STDERR, "%s: %s SO->LocalDomainParentID\n", FuncName, SO->LocalDomainParentID);
       fprintf (SUMA_STDERR, "%s: %s ROI->Parent_idcode_str\n", FuncName, ROI->Parent_idcode_str);
       fprintf (SUMA_STDERR, "%s: %s SO->idcode_str\n", FuncName, SO->idcode_str);
    }
@@ -1146,7 +1198,7 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
 }
 
 /*!
-\brief Returns YUP if if the surface: ROI->Parent_idcode_str is related to SO->idcode_str or SO->MapRef_idcode_str.
+\brief Returns YUP if if the surface: ROI->Parent_idcode_str is related to SO->idcode_str or SO->LocalDomainParentID.
 NOPE otherwise
 
 ans = SUMA_isROIrelated (ROI, SO);

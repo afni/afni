@@ -1239,62 +1239,78 @@ int r_ulong_size ( unsigned long l )
 #ifdef SUMA_MakeColorMap_STAND_ALONE
 void SUMA_MakeColorMap_usage ()
    {
-      fprintf (SUMA_STDOUT,   "\n\33[1mUsage1: \33[0m\n");
-      fprintf (SUMA_STDOUT, "MakeColorMap <-fn Fiducials_Ncol> [-pos] [-ah prefix] [-h/-help]\n");
-      fprintf (SUMA_STDOUT, "\t Creates a colormap of N colors that contains the fiducial colors.\n");
-      fprintf (SUMA_STDOUT, "\t -fn Fiducials_Ncol: Fiducial colors and their indices in the color\n"
-                            "\t                     map are listed in file Fiducials_Ncol.\n");
-      fprintf (SUMA_STDOUT, "\t\t Each row contains 4 tab delimited values:\n");
-      fprintf (SUMA_STDOUT, "\t\t R G B i\n");
-      fprintf (SUMA_STDOUT, "\t\t R G B values are between 0 and 1 and represent the \n"
-                            "\t\t i-th color in the colormap. i should be between 0 and\n");
-      fprintf (SUMA_STDOUT, "\t\t N-1, N being the total number of colors in the colormap.\n");
-      fprintf (SUMA_STDOUT, "\n\33[1mUsage2: \33[0m\n");
-      fprintf (SUMA_STDOUT, "MakeColorMap <-f Fiducials> <-nc N> [-sl] [-ah prefix] [-h/-help]\n");
-      fprintf (SUMA_STDOUT, "\t Creates a colormap of N colors that contains the fiducial colors.\n");
-      fprintf (SUMA_STDOUT, "\t -f Fiducials:  Fiducial colors are listed in an ascii file Fiducials. \n");
-      fprintf (SUMA_STDOUT, "\t\t Each row contains 3 tab delimited R G B values between 0 and 1.\n");
-      fprintf (SUMA_STDOUT, "\t -nc N: Total number of colors in the color map.\n");
-      fprintf (SUMA_STDOUT, "\t -sl: (optional, default is NO) if used, the last color in the Fiducial \n");
-      fprintf (SUMA_STDOUT, "\t\t list is omitted. This is useful in creating cyclical color maps.\n");
-      fprintf (SUMA_STDOUT, "\n\33[1mUsage3: \33[0m\n");
-      fprintf (SUMA_STDOUT, "MakeColorMap <-std MapName>\n");
-      fprintf (SUMA_STDOUT, "\t Returns one of SUMA's standard colormaps. Choose from:\n");
-      fprintf (SUMA_STDOUT, "\t rgybr20, ngray20, gray20, bw20, bgyr19, \n");
-      fprintf (SUMA_STDOUT, "\t matlab_default_byr64, roi128, roi64\n");
-      fprintf (SUMA_STDOUT, "\n\33[1mCommon options to all usages:\33[0m\n");
-      fprintf (SUMA_STDOUT, "\t -ah prefix: (optional, Afni Hex format.\n");
-      fprintf (SUMA_STDOUT, "\t              default is RGB values in decimal form)\n");
-      fprintf (SUMA_STDOUT,   "\t\t use this option if you want a color map formatted to fit \n"
-                              "\t\t in AFNI's .afnirc file. The colormap is written out as \n");
-      fprintf (SUMA_STDOUT,   "\t\tprefix_01 = #xxxxxxx \n\t\tprefix_02 = #xxxxxxx\n\t\t etc...\n"); 
-      /* that's not a useful option, both versions will be written out */
-      /*fprintf (SUMA_STDOUT, "\t -pos: (optional, default is NO) create a positive only color map. \n");
-      fprintf (SUMA_STDOUT, "\t\t This option is meaningful when combined with -ah option.\n"); */
-      fprintf (SUMA_STDOUT, "\t -h or -help: displays this help message.\n");
-      fprintf (SUMA_STDOUT, "\n");
-      fprintf (SUMA_STDOUT,   "Example Usage 1: Creating a colormap of 20 colors that goes from \n"
-                              "Red to Green to Blue to Yellow to Red.\n");
-      fprintf (SUMA_STDOUT,   "\n\tThe file FidCol_Nind contains the following:\n");
-      fprintf (SUMA_STDOUT,   "\t1 0 0 0\n\t0 1 0 5\n\t0 0 1 10\n\t1 1 0 15\n\t1 0 0 19\n\n");
-      fprintf (SUMA_STDOUT,   "\tThe following command will generate the RGB colormap in decimal form:\n");
-      fprintf (SUMA_STDOUT,   "\tMakeColorMap -fn FidCol_Nind \n\n");
-      fprintf (SUMA_STDOUT,   "\tThe following command will generate the colormap and write it as \n"
-                              "\tan AFNI color palette file:\n");
-      fprintf (SUMA_STDOUT,   "\tMakeColorMap -fn FidCol_Nind -ah TestPalette > TestPalette.pal\n\n");
-      fprintf (SUMA_STDOUT,   "Example Usage 2: Creating a cyclical version of the colormap in usage 1:\n");
-      fprintf (SUMA_STDOUT,   "\n\tThe file FidCol contains the following:\n");
-      fprintf (SUMA_STDOUT,   "\t1 0 0\n\t0 1 0\n\t0 0 1\n\t1 1 0\n\t1 0 0\n\n");
-      fprintf (SUMA_STDOUT,   "\tThe following command will generate the RGB colormap in decimal form:\n");
-      fprintf (SUMA_STDOUT,   "\tMakeColorMap -f FidCol -sl -nc 20 \n\n");
-      fprintf (SUMA_STDOUT,   "Example Usage 3: MakeColorMap -std ngray20 \n\n");
-      fprintf (SUMA_STDOUT,   "To read in a new colormap into AFNI, either paste the contents of TestPalette.pal\n");
-      fprintf (SUMA_STDOUT,   "in your .afnirc file or read the .pal file using AFNI as follows:\n");
-      fprintf (SUMA_STDOUT,   "1- run afni\n2- Define Function --> right click on Inten (over colorbar) \n"
-                              "\t--> Read in palette (choose TestPalette.pal)\n");
-      fprintf (SUMA_STDOUT,   "3- set the #colors chooser (below colorbar) to 20 (the number of colors in TestPalette.pal).\n");
-      /*fprintf (SUMA_STDOUT, "\t To Compile:\ngcc  -DSUMA_MakeColorMap_STAND_ALONE -Wall -Wno-unused-variable -o SUMA_MakeColorMap SUMA_Color.c SUMA_lib.a libmri.a  -I/usr/X11R6/include -I./ -L/usr/lib -L/usr/X11R6/lib -lMesaGLwM -lMesaGLw -lGLU -lGL -lXmu -lXm -lXt -lXext -lX11 -lm\n");*/
-      fprintf (SUMA_STDOUT, "\t\t Ziad S. Saad & Rick R. Reynolds SSCC/NIMH/NIH ziad@nih.gov \tTue Apr 23 14:14:48 EDT 2002\n\n");
+      static char FuncName[]={"SUMA_MakeColorMap_usage"};
+      char * s = NULL;
+      
+      fprintf (SUMA_STDOUT, "\n"
+                            "\33[1mUsage1: \33[0m\n"
+                            "MakeColorMap <-fn Fiducials_Ncol> [-pos] [-ah prefix] [-h/-help]\n"
+                            "    Creates a colormap of N colors that contains the fiducial colors.\n"
+                            "    -fn Fiducials_Ncol: Fiducial colors and their indices in the color\n"
+                            "                        map are listed in file Fiducials_Ncol.\n"
+                            "       Each row contains 4 tab delimited values:\n"
+                            "       R G B i\n"
+                            "       R G B values are between 0 and 1 and represent the \n"
+                            "       i-th color in the colormap. i should be between 0 and\n"
+                            "       N-1, N being the total number of colors in the colormap.\n"
+                            "\n"
+                            "\33[1mUsage2: \33[0m\n"
+                            "MakeColorMap <-f Fiducials> <-nc N> [-sl] [-ah prefix] [-h/-help]\n"
+                            "    Creates a colormap of N colors that contains the fiducial colors.\n"
+                            "    -f Fiducials:  Fiducial colors are listed in an ascii file Fiducials. \n"
+                            "       Each row contains 3 tab delimited R G B values between 0 and 1.\n"
+                            "    -nc N: Total number of colors in the color map.\n"
+                            "    -sl: (optional, default is NO) if used, the last color in the Fiducial \n"
+                            "       list is omitted. This is useful in creating cyclical color maps.\n"
+                            "\n"
+                            "\33[1mUsage3: \33[0m\n"
+                            "MakeColorMap <-std MapName>\n"
+                            "    Returns one of SUMA's standard colormaps. Choose from:\n"
+                            "    rgybr20, ngray20, gray20, bw20, bgyr19, \n"
+                            "    matlab_default_byr64, roi128, roi64\n"
+                            "\n"
+                            "\33[1mCommon options to all usages:\33[0m\n"
+                            "    -ah prefix: (optional, Afni Hex format.\n"
+                            "                 default is RGB values in decimal form)\n"
+                            "       use this option if you want a color map formatted to fit \n"
+                            "       in AFNI's .afnirc file. The colormap is written out as \n"
+                            "      prefix_01 = #xxxxxxx \n      prefix_02 = #xxxxxxx\n       etc...\n" 
+                            "    -h or -help: displays this help message.\n"
+                            "\n"
+                            ""
+                            "Example Usage 1: Creating a colormap of 20 colors that goes from \n"
+                            "Red to Green to Blue to Yellow to Red.\n"
+                            "\n"
+                            "   The file FidCol_Nind contains the following:\n"
+                            "   1 0 0 0\n   0 1 0 5\n   0 0 1 10\n   1 1 0 15\n   1 0 0 19\n"
+                            "\n"
+                            "   The following command will generate the RGB colormap in decimal form:\n"
+                            "   MakeColorMap -fn FidCol_Nind \n"
+                            "\n"
+                            "   The following command will generate the colormap and write it as \n"
+                            "   an AFNI color palette file:\n"
+                            "   MakeColorMap -fn FidCol_Nind -ah TestPalette > TestPalette.pal\n"
+                            "\n"
+                            "Example Usage 2: Creating a cyclical version of the colormap in usage 1:\n"
+                            "\n"
+                            "   The file FidCol contains the following:\n"
+                            "   1 0 0\n   0 1 0\n   0 0 1\n   1 1 0\n   1 0 0\n"
+                            "\n"
+                            "   The following command will generate the RGB colormap in decimal form:\n"
+                            "   MakeColorMap -f FidCol -sl -nc 20 \n"
+                            "\n"
+                            "Example Usage 3: MakeColorMap -std ngray20 \n"
+                            "\n"
+                            "To read in a new colormap into AFNI, either paste the contents of \n"
+                            "TestPalette.pal in your .afnirc file or read the .pal file using \n"
+                            "AFNI as follows:\n"
+                            "1- run afni\n2- Define Function --> right click on Inten (over colorbar) \n"
+                            "   --> Read in palette (choose TestPalette.pal)\n"
+                            "3- set the #colors chooser (below colorbar) to 20 (the number of colors in \n"
+                            "   TestPalette.pal).\n");
+      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+      fprintf (SUMA_STDOUT, "    Ziad S. Saad & Rick R. Reynolds SSCC/NIMH/NIH ziad@nih.gov    Tue Apr 23 14:14:48 EDT 2002\n\n");
+   
    }
  
 int main (int argc,char *argv[])
@@ -2231,7 +2247,7 @@ char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col)
          SUMA_RETURN("roi64");
          break;
       default:
-         SUMA_RETURN("Cowabonga");
+         SUMA_RETURN("Cowabonga-x321");
          break;
    }
 }
@@ -2584,151 +2600,157 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
 #ifdef SUMA_ScaleToMap_STAND_ALONE
    void SUMA_ScaleToMap_usage ()
    {
+      static char FuncName[]={"SUMA_ScaleToMap_usage"};
+      char * s = NULL;
       fprintf (SUMA_STDOUT,   "\n\33[1mUsage: \33[0m ScaleToMap <-input IntFile icol vcol>  \n"
-                              "\t [-cmap MapType] [-cmapfile Mapfile] [-cmapdb Palfile] [-frf] \n"
-                              "\t [-clp/-perc_clp clp0 clp1] [-apr/-anr range]\n"
-                              "\t [-interp/-nointerp/-direct] [-msk msk0 msk1] [-nomsk_col]\n"
-                              "\t [-msk_col R G B] [-br BrightFact]\n"
-                              "\t [-h/-help] [-verb] [-showmap] [-showdb]\n\n");
-      fprintf (SUMA_STDOUT,   "\t -input IntFile icol vcol: input data.\n"
-                              "\t    Infile: 1D formatted ascii file containing node values\n"
-                              "\t    icol: index of node index column \n"
-                              "\t    (-1 if the node index is implicit)\n"
-                              "\t    vcol: index of node value column.\n"
-                              "\t    Example: -input ValOnly.1D -1 0 \n"
-                              "\t    for a 1D file containing node values\n"
-                              "\t    in the first column and no node indices.\n"
-                              "\t    Example: -input NodeVal.1D 1 3\n"
-                              "\t    for a 1D file containing node indices in\n"
-                              "\t    the SECOND column and node values in the \n"
-                              "\t    FOURTH column (index counting begins at 0)\n");
-      fprintf (SUMA_STDOUT,   "\t -v and -iv options are now obsolete.\n"
-                              "\t    Use -input option instead.\n");
-      fprintf (SUMA_STDOUT,   "\t -cmap MapName: (optional, default RGYBR20) \n"
-                              "\t    choose one of the standard colormaps available with SUMA:\n"
-                              "\t    RGYBR20, BGYR19, BW20, GRAY20, MATLAB_DEF_BYR64, \n"
-                              "\t    ROI64, ROI128\n"
-                              "\t    You can also use AFNI's default paned color maps:\n"
-                              "\t    The maps are labeled according to the number of \n"
-                              "\t    panes and their sign. Example: afni_p10\n"
-                              "\t    uses the positive 10-pane afni colormap.\n"
-                              "\t    afni_n10 is the negative counterpart.\n"
-                              "\t    These maps are meant to be used with\n"
-                              "\t    the options -apr and -anr listed below.\n"
-                              "\t    You can also load non-default AFNI colormaps\n"
-                              "\t    from .pal files (AFNI's colormap format); see option\n"
-                              "\t    -cmapdb below.\n");
-      fprintf (SUMA_STDOUT,   "\t -cmapdb Palfile: read color maps from AFNI .pal file\n"
-                              "\t    In addition to the default paned AFNI colormaps, you\n"
-                              "\t    can load colormaps from a .pal file.\n"
-                              "\t    To access maps in the Palfile you must use the -cmap option\n"
-                              "\t    with the label formed by the name of the palette, its sign\n"
-                              "\t    and the number of panes. For example, to following palette:\n"
-                              "\t    ***PALETTES deco [13]\n"
-                              "\t    should be accessed with -cmap deco_n13\n"
-                              "\t    ***PALETTES deco [13+]\n"
-                              "\t    should be accessed with -cmap deco_p13\n");                   
-      fprintf (SUMA_STDOUT,   "\t -cmapfile Mapfile: read color map from Mapfile.\n"
-                              "\t    Mapfile:1D formatted ascii file containing colormap.\n"
-                              "\t            each row defines a color in one of two ways:\n"
-                              "\t            R  G  B        or\n"
-                              "\t            R  G  B  f     \n"
-                              "\t    where R, G, B specify the red, green and blue values, \n"
-                              "\t    between 0 and 1 and f specifies the fraction of the range\n"
-                              "\t    reached at this color. THINK values of right of AFNI colorbar.\n"
-                              "\t    The use of fractions (it is optional) would allow you to create\n"
-                              "\t    non-linear color maps where colors cover differing fractions of \n"
-                              "\t    the data range.\n"
-                              "\t    Sample colormap with positive range only (a la AFNI):\n"
-                              "\t            0  0  1  1.0\n"
-                              "\t            0  1  0  0.8\n"
-                              "\t            1  0  0  0.6\n"
-                              "\t            1  1  0  0.4\n"
-                              "\t            0  1  1  0.2\n"
-                              "\t    Note the order in which the colors and fractions are specified.\n"
-                              "\t    The bottom color of the +ve colormap should be at the bottom of the\n"
-                              "\t    file and have the lowest +ve fraction. The fractions here define a\n"
-                              "\t    a linear map so they are not necessary but they illustrate the format\n"
-                              "\t    of the colormaps.\n"
-                              "\t    Comparable colormap with negative range included:\n"
-                              "\t            0  0  1   1.0\n"
-                              "\t            0  1  0   0.6\n"
-                              "\t            1  0  0   0.2\n"
-                              "\t            1  1  0  -0.2\n"
-                              "\t            0  1  1  -0.6\n"
-                              "\t    The bottom color of the -ve colormap should have the \n"
-                              "\t    lowest -ve fraction. \n"
-                              "\t    You can use -1 -1 -1 for a color to indicate a no color\n"
-                              "\t    (like the 'none' color in AFNI). Values mapped to this\n"
-                              "\t    'no color' will be masked as with the -msk option.\n"
-                              "\t    If your 1D color file has more than three or 4 columns,\n"
-                              "\t    you can use the [] convention adopted by AFNI programs\n"
-                              "\t    to select the columns you need.\n");
-      fprintf (SUMA_STDOUT,   "\t -frf: (optional) first row in file is the first color.\n"
-                              "\t    As explained in the -cmapfile option above, the first \n"
-                              "\t    or bottom (indexed 0 )color of the colormap should be \n"
-                              "\t    at the bottom of the file. If the opposite is true, use\n"
-                              "\t    the -frf option to signal that.\n"
-                              "\t    This option is only useful with -cmapfile.\n");
-      fprintf (SUMA_STDOUT,   "\t -clp/-perc_clp clp0 clp1: (optional, default no clipping)\n"
-                              "\t    clips values in IntVect. if -clp is used then values in vcol\n"
-                              "\t    < clp0 are clipped to clp0 and > clp1 are clipped to clp1\n");
-      fprintf (SUMA_STDOUT,   "\t    if -perc_clp is used them vcol is clipped to the values \n"
-                              "\t    corresponding to clp0 and clp1 percentile.\n"
-                              "\t    The -clp/-prec_clp options are mutually exclusive with -apr/-anr.\n");
-      fprintf (SUMA_STDOUT,   "\t -apr range: (optional) clips the values in IntVect to [0 range].\n"
-                              "\t    This option allows range of colormap to be set as in AFNI, \n"
-                              "\t    with Positive colorbar (Pos selected).\n"
-                              "\t    This option is mutually exclusive with -clp/-perc_clp).\n"
-                              "\t    set range = 0 for autoranging.\n"
-                              "\t    If you use -apr and your colormap contains fractions, you\n"
-                              "\t    must use a positive range colormap.\n");
-      fprintf (SUMA_STDOUT,   "\t -anr range: (optional) clips the values in IntVect to [-range range].\n"
-                              "\t    This option allows range of colormap to be set as in AFNI, \n"
-                              "\t    with Negative colorbar (Pos NOT selected).\n"
-                              "\t    This option is mutually exclusive with -clp/-perc_clp).\n"
-                              "\t    set range = 0 for autoranging.\n"
-                              "\t    If you use -anr and your colormap contains fractions, you\n"
-                              "\t    must use a negative range colormap.\n");
-      fprintf (SUMA_STDOUT,   "\t -interp: (default) use color interpolation between colors in colormap\n"
-                              "\t    If a value is assigned between two colors on the colorbar,\n"
-                              "\t    it receives a color that is an interpolation between those two colors.\n"
-                              "\t    This is the default behaviour in SUMA and AFNI when using the continuous\n"
-                              "\t    colorscale. Mutually exclusive with -nointerp and -direct options.\n");
-      fprintf (SUMA_STDOUT,   "\t -nointerp: (optional) turns off color interpolation within the colormap\n"
-                              "\t    Color assigniment is done a la AFNI when the paned colormaps are used.\n"
-                              "\t    Mutually exclusive with -interp and -direct options.\n");
-      fprintf (SUMA_STDOUT,   "\t -direct: (optional) values (typecast to integers) are mapped directly\n"
-                              "\t    to index of color in color maps. Example: value 4 is assigned\n" 
-                              "\t    to the 5th (index 4) color in the color map (same for values\n"
-                              "\t    4.2 and 4.7). This mapping scheme is useful for ROI indexed type\n"
-                              "\t    data. Negative data values are set to 0 and values >= N_col \n"
-                              "\t    (the number of colors in the colormap) are set to N_col -1\n");
-      fprintf (SUMA_STDOUT,   "\t -msk_zero: (optional) values that are 0 will get masked no matter\n"
-                              "\t    what colormaps or mapping schemes you are using. \n"
-                              "\t    AFNI masks all zero values by default.\n");
-      fprintf (SUMA_STDOUT,   "\t -msk msk0 msk1: (optinal, default is no masking) \n"
-                              "\t    Values in vcol (BEFORE clipping is performed) \n");
-      fprintf (SUMA_STDOUT,   "\t    between [msk0 msk1] are masked by the masking color.\n");
-      fprintf (SUMA_STDOUT,   "\t -msk_col R G B: (optional, default is 0.3 0.3 0.3) \n"
-                              "\t    Sets the color of masked voxels.\n");
-      fprintf (SUMA_STDOUT,   "\t -nomsk_col: do not output nodes that got masked.\n"
-                              "\t    It does not make sense to use this option with\n"
-                              "\t    -msk_col.\n");
-      fprintf (SUMA_STDOUT,   "\t -br BrightFact: (optional, default is 1) \n"
-                              "\t    Applies a brightness factor to the colors \n"
-                              "\t    of the colormap and the mask color.\n");
-      fprintf (SUMA_STDOUT,   "\t -h or -help: displays this help message.\n");
-      fprintf (SUMA_STDOUT,   "\n");
-      fprintf (SUMA_STDOUT,   "\tThe following options are for debugging and sanity checks.\n");
-      fprintf (SUMA_STDOUT,   "\t -verb: (optional) verbose mode.\n");
-      fprintf (SUMA_STDOUT,   "\t -showmap: (optional) print the colormap to the screen and quit.\n"
-                              "\t    This option is for debugging and sanity checks.\n");
-      fprintf (SUMA_STDOUT,   "\t -showdb: (optional) print the colors and colormaps of AFNI\n"
-                              "\t    along with any loaded from the file Palfile.\n");
-      fprintf (SUMA_STDOUT,   "\t -ionot: (optional) not for the faint of heart\n\n");                        
-      fprintf (SUMA_STDOUT,   "\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
-                              "\t   July 31/02 Last Modified Nov 03 03\n\n");
+                              "    [-cmap MapType] [-cmapfile Mapfile] [-cmapdb Palfile] [-frf] \n"
+                              "    [-clp/-perc_clp clp0 clp1] [-apr/-anr range]\n"
+                              "    [-interp/-nointerp/-direct] [-msk msk0 msk1] [-nomsk_col]\n"
+                              "    [-msk_col R G B] [-br BrightFact]\n"
+                              "    [-h/-help] [-verb] [-showmap] [-showdb]\n"
+                              "\n"
+                              "    -input IntFile icol vcol: input data.\n"
+                              "       Infile: 1D formatted ascii file containing node values\n"
+                              "       icol: index of node index column \n"
+                              "       (-1 if the node index is implicit)\n"
+                              "       vcol: index of node value column.\n"
+                              "       Example: -input ValOnly.1D -1 0 \n"
+                              "       for a 1D file containing node values\n"
+                              "       in the first column and no node indices.\n"
+                              "       Example: -input NodeVal.1D 1 3\n"
+                              "       for a 1D file containing node indices in\n"
+                              "       the SECOND column and node values in the \n"
+                              "       FOURTH column (index counting begins at 0)\n"             
+                              "    -v and -iv options are now obsolete.\n"
+                              "       Use -input option instead.\n"  
+                              "    -cmap MapName: (optional, default RGYBR20) \n"
+                              "       choose one of the standard colormaps available with SUMA:\n"
+                              "       RGYBR20, BGYR19, BW20, GRAY20, MATLAB_DEF_BYR64, \n"
+                              "       ROI64, ROI128\n"
+                              "       You can also use AFNI's default paned color maps:\n"
+                              "       The maps are labeled according to the number of \n"
+                              "       panes and their sign. Example: afni_p10\n"
+                              "       uses the positive 10-pane afni colormap.\n"
+                              "       afni_n10 is the negative counterpart.\n"
+                              "       These maps are meant to be used with\n"
+                              "       the options -apr and -anr listed below.\n"
+                              "       You can also load non-default AFNI colormaps\n"
+                              "       from .pal files (AFNI's colormap format); see option\n"
+                              "       -cmapdb below.\n"
+                              "    -cmapdb Palfile: read color maps from AFNI .pal file\n"
+                              "       In addition to the default paned AFNI colormaps, you\n"
+                              "       can load colormaps from a .pal file.\n"
+                              "       To access maps in the Palfile you must use the -cmap option\n"
+                              "       with the label formed by the name of the palette, its sign\n"
+                              "       and the number of panes. For example, to following palette:\n"
+                              "       ***PALETTES deco [13]\n"
+                              "       should be accessed with -cmap deco_n13\n"
+                              "       ***PALETTES deco [13+]\n"
+                              "       should be accessed with -cmap deco_p13\n"  
+                              "    -cmapfile Mapfile: read color map from Mapfile.\n"
+                              "       Mapfile:1D formatted ascii file containing colormap.\n"
+                              "               each row defines a color in one of two ways:\n"
+                              "               R  G  B        or\n"
+                              "               R  G  B  f     \n"
+                              "       where R, G, B specify the red, green and blue values, \n"
+                              "       between 0 and 1 and f specifies the fraction of the range\n"
+                              "       reached at this color. THINK values of right of AFNI colorbar.\n"
+                              "       The use of fractions (it is optional) would allow you to create\n"
+                              "       non-linear color maps where colors cover differing fractions of \n"
+                              "       the data range.\n"
+                              "       Sample colormap with positive range only (a la AFNI):\n"
+                              "               0  0  1  1.0\n"
+                              "               0  1  0  0.8\n"
+                              "               1  0  0  0.6\n"
+                              "               1  1  0  0.4\n"
+                              "               0  1  1  0.2\n"
+                              "       Note the order in which the colors and fractions are specified.\n"
+                              "       The bottom color of the +ve colormap should be at the bottom of the\n"
+                              "       file and have the lowest +ve fraction. The fractions here define a\n"
+                              "       a linear map so they are not necessary but they illustrate the format\n"
+                              "       of the colormaps.\n"
+                              "       Comparable colormap with negative range included:\n"
+                              "               0  0  1   1.0\n"
+                              "               0  1  0   0.6\n"
+                              "               1  0  0   0.2\n"
+                              "               1  1  0  -0.2\n"
+                              "               0  1  1  -0.6\n"
+                              "       The bottom color of the -ve colormap should have the \n"
+                              "       lowest -ve fraction. \n"
+                              "       You can use -1 -1 -1 for a color to indicate a no color\n"
+                              "       (like the 'none' color in AFNI). Values mapped to this\n"
+                              "       'no color' will be masked as with the -msk option.\n"
+                              "       If your 1D color file has more than three or 4 columns,\n"
+                              "       you can use the [] convention adopted by AFNI programs\n"
+                              "       to select the columns you need.\n"   
+                              "    -frf: (optional) first row in file is the first color.\n"
+                              "       As explained in the -cmapfile option above, the first \n"
+                              "       or bottom (indexed 0 )color of the colormap should be \n"
+                              "       at the bottom of the file. If the opposite is true, use\n"
+                              "       the -frf option to signal that.\n"
+                              "       This option is only useful with -cmapfile.\n" 
+                              "    -clp/-perc_clp clp0 clp1: (optional, default no clipping)\n"
+                              "       clips values in IntVect. if -clp is used then values in vcol\n"
+                              "       < clp0 are clipped to clp0 and > clp1 are clipped to clp1\n" 
+                              "       if -perc_clp is used them vcol is clipped to the values \n"
+                              "       corresponding to clp0 and clp1 percentile.\n"
+                              "       The -clp/-prec_clp options are mutually exclusive with -apr/-anr.\n"  
+                              "    -apr range: (optional) clips the values in IntVect to [0 range].\n"
+                              "       This option allows range of colormap to be set as in AFNI, \n"
+                              "       with Positive colorbar (Pos selected).\n"
+                              "       This option is mutually exclusive with -clp/-perc_clp).\n"
+                              "       set range = 0 for autoranging.\n"
+                              "       If you use -apr and your colormap contains fractions, you\n"
+                              "       must use a positive range colormap.\n"  
+                              "    -anr range: (optional) clips the values in IntVect to [-range range].\n"
+                              "       This option allows range of colormap to be set as in AFNI, \n"
+                              "       with Negative colorbar (Pos NOT selected).\n"
+                              "       This option is mutually exclusive with -clp/-perc_clp).\n"
+                              "       set range = 0 for autoranging.\n"
+                              "       If you use -anr and your colormap contains fractions, you\n"
+                              "       must use a negative range colormap.\n"  
+                              "    -interp: (default) use color interpolation between colors in colormap\n"
+                              "       If a value is assigned between two colors on the colorbar,\n"
+                              "       it receives a color that is an interpolation between those two colors.\n"
+                              "       This is the default behaviour in SUMA and AFNI when using the continuous\n"
+                              "       colorscale. Mutually exclusive with -nointerp and -direct options.\n"    
+                              "    -nointerp: (optional) turns off color interpolation within the colormap\n"
+                              "       Color assigniment is done a la AFNI when the paned colormaps are used.\n"
+                              "       Mutually exclusive with -interp and -direct options.\n"    
+                              "    -direct: (optional) values (typecast to integers) are mapped directly\n"
+                              "       to index of color in color maps. Example: value 4 is assigned\n" 
+                              "       to the 5th (index 4) color in the color map (same for values\n"
+                              "       4.2 and 4.7). This mapping scheme is useful for ROI indexed type\n"
+                              "       data. Negative data values are set to 0 and values >= N_col \n"
+                              "       (the number of colors in the colormap) are set to N_col -1\n"    
+                              "    -msk_zero: (optional) values that are 0 will get masked no matter\n"
+                              "       what colormaps or mapping schemes you are using. \n"
+                              "       AFNI masks all zero values by default.\n"    
+                              "    -msk msk0 msk1: (optinal, default is no masking) \n"
+                              "       Values in vcol (BEFORE clipping is performed) \n"    
+                              "       between [msk0 msk1] are masked by the masking color.\n"    
+                              "    -msk_col R G B: (optional, default is 0.3 0.3 0.3) \n"
+                              "       Sets the color of masked voxels.\n"    
+                              "    -nomsk_col: do not output nodes that got masked.\n"
+                              "       It does not make sense to use this option with\n"
+                              "       -msk_col.\n"    
+                              "    -br BrightFact: (optional, default is 1) \n"
+                              "       Applies a brightness factor to the colors \n"
+                              "       of the colormap and the mask color.\n"    
+                              "    -h or -help: displays this help message.\n"    
+                              "\n"    
+                              "   The following options are for debugging and sanity checks.\n"    
+                              "    -verb: (optional) verbose mode.\n"    
+                              "    -showmap: (optional) print the colormap to the screen and quit.\n"
+                              "       This option is for debugging and sanity checks.\n"    
+                              "    -showdb: (optional) print the colors and colormaps of AFNI\n"
+                              "       along with any loaded from the file Palfile.\n"    
+                              "    -ionot: (optional) not for the faint of heart\n"
+                              "\n");                        
+      s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
+      fprintf (SUMA_STDOUT,   "    Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
+                              "      July 31/02 Last Modified Nov 03 03\n"
+                              "\n");
    }
 
 int main (int argc,char *argv[])

@@ -130,6 +130,10 @@ inspec: SUMA_Load_Surface_Object.c
 	$(RM) $@
 	${CC} -DSUMA_inspec_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+quickspec: SUMA_Load_Surface_Object.c
+	$(RM) $@
+	${CC} -DSUMA_quickspec_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 SUMA_TestDataSets: SUMA_DataSets.c
 	$(RM) $@
 	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
@@ -200,6 +204,7 @@ install:
 	@if [ -f ConvertSurface ]; then mv ConvertSurface ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfaceMetrics ]; then mv SurfaceMetrics ${INSTALLDIR_SUMA}; fi;
 	@if [ -f inspec ]; then mv inspec ${INSTALLDIR_SUMA}; fi;
+	@if [ -f quickspec ]; then mv quickspec ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -229,6 +234,7 @@ packbins:
 	@if [ -f ConvertSurface ]; then $(CP) -p ConvertSurface SUMA_bin/; fi;	
 	@if [ -f SurfaceMetrics ]; then $(CP) -p SurfaceMetrics SUMA_bin/; fi;	
 	@if [ -f inspec ]; then $(CP) -p inspec SUMA_bin/; fi;	
+	@if [ -f quickspec ]; then $(CP) -p quickspec SUMA_bin/; fi;	
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
@@ -240,7 +246,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	SUMA_FreeSurfer ScaleToMap MakeColorMap CompareSurfaces		      \
 	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics SUMA_TestDataSets   \
-	ROI2dataset SurfSmooth inspec
+	ROI2dataset SurfSmooth inspec quickspec
 
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 
