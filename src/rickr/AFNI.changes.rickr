@@ -550,3 +550,7 @@
   * modified coxplot/plot_ts.c:init_colors() to start with color 0 (not 1)
     (allows users to modify ...COLOR_01, too, matching README.environment)
 
+20 May 2004:
+  * modified SUMA_3dVol2Surf.c (-> v5.1)
+      - Ziad reminded me to add help for options '-first_node' and '-last_node'
+
