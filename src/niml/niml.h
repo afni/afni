@@ -515,6 +515,10 @@ extern int NI_stream_readable( NI_stream_type * ) ;
 extern int NI_stream_writeable( NI_stream_type * ) ;
 extern int NI_stream_hasinput( NI_stream_type * , int ) ;
 
+extern int NI_stream_setbufsize( NI_stream_type *, int ) ; /* 03 Jan 2003 */
+extern int NI_stream_getbufsize( NI_stream_type * ) ;
+extern int NI_stream_readbuf( NI_stream_type *, char *, int ) ;
+
 extern int NI_stream_reopen( NI_stream_type *, char * ) ; /* 23 Aug 2002 */
 
 extern void NI_binary_threshold( NI_stream_type *, int ) ;
@@ -525,6 +529,9 @@ extern int    NI_write_columns( NI_stream_type * ,
                                 int , int * , int , void ** , int ) ;
 extern int    NI_write_rowtype( NI_stream_type * ,
                                 NI_rowtype * , int , void * , int ) ;
+
+#define NI_SWAP_MASK  (1<<0)
+#define NI_LTEND_MASK (1<<1)
 
 /* prototypes for Web data fetchers */
 

@@ -9,7 +9,6 @@
 static int decode_one_double( NI_stream_type *, double * ) ;
 static int decode_one_string( NI_stream_type *, char ** ) ;
 static int scan_for_angles( NI_stream_type *, int ) ;
-static void reset_buffer( NI_stream_type * ) ;
 
 #define clear_buffer(ns) ( (ns)->nbuf = (ns)->npos = 0 )
 
@@ -101,7 +100,7 @@ NI_dpr("NI_read_element: found '<'\n") ;
       or a trailer '</stuff>', which is also illegal (here) */
 
    if( nn - ns->npos <= 2 || ns->buf[ns->npos+1] == '/' ){
-      ns->npos = nn; reset_buffer(ns); /* toss the '<..>', try again */
+      ns->npos = nn; NI_reset_buffer(ns); /* toss the '<..>', try again */
 #ifdef NIML_DEBUG
 NI_dpr("NI_read_element: illegal header found? skipping\n") ;
 #endif
@@ -118,7 +117,7 @@ NI_dpr("NI_read_element: parsing putative header\n") ;
 
    if( hs == NULL ){  /* something bad happened there */
       fprintf(stderr,"NI_read_element: bad element header found!\n") ;
-      ns->npos = nn; reset_buffer(ns); /* toss the '<..>', try again */
+      ns->npos = nn; NI_reset_buffer(ns); /* toss the '<..>', try again */
       goto HeadRestart ;
    }
 
@@ -318,8 +317,8 @@ NI_dpr("b64: Reread at row=%d num_reread=%d\n",row,num_reread) ;
 
            if( num_reread > 1 || ns->nbuf-ns->npos < 4 ){
 
-             reset_buffer(ns) ;  /* discard used up data in buffer */
-                                 /* (so ns->npos == 0 now)         */
+             NI_reset_buffer(ns) ;  /* discard used up data in buffer */
+                                    /* (so ns->npos == 0 now)         */
 
              /* now read at least enough to fill up one quad,
                 waiting a long time if need be (or until the stream goes bad) */
@@ -466,7 +465,7 @@ Base64Done:
 
            if( ns->nbuf-ns->npos < nbrow ){
 
-             reset_buffer(ns) ;  /* discard used up data in buffer */
+             NI_reset_buffer(ns) ;  /* discard used up data in buffer */
 
              /* now read at least enough to fill one data row,
                 waiting a long time if need be (or until the stream goes bad) */
@@ -683,9 +682,9 @@ NI_dpr("NI_read_element: TailRestart scan_for_angles; num_restart=%d\n" ,
 
          is_tail = ( ns->buf[ns->npos+1] == '/' ) ;
 
-         if( !is_tail ){                       /* no '/'? */
-           ns->npos = nn ; reset_buffer(ns) ;  /* skip '<...>' */
-           goto TailRestart ;                  /* and try again */
+         if( !is_tail ){                         /* no '/'? */
+           ns->npos = nn ; NI_reset_buffer(ns) ; /* skip '<...>' */
+           goto TailRestart ;                    /* and try again */
          }
 
          ns->npos = nn ; /* skip '</...>' and we are done here! */
@@ -795,7 +794,7 @@ if( need_data ) NI_dpr(" {eob}") ;
 
    if( need_data ){
 
-      reset_buffer(ns) ; /* discard used up data in buffer */
+      NI_reset_buffer(ns) ; /* discard used up data in buffer */
 
       /*- read at least 1 byte,
           waiting up to 666 ms (unless the data stream goes bad) -*/
@@ -876,7 +875,7 @@ Restart:
 
    if( need_data ){
 
-      reset_buffer(ns) ; /* discard used up data in buffer */
+      NI_reset_buffer(ns) ; /* discard used up data in buffer */
 
       /*- read at least 1 byte,
           waiting up to 666 ms (unless the data stream goes bad) -*/
@@ -910,7 +909,7 @@ Restart:
     instead of position ns->npos; then set ns->npos to 0.
 ------------------------------------------------------------------------*/
 
-static void reset_buffer( NI_stream_type *ns )
+void NI_reset_buffer( NI_stream_type *ns )
 {
    if( ns == NULL || ns->npos <= 0 || ns->nbuf <= 0 ) return ;
 
@@ -964,7 +963,7 @@ Restart:                                       /* loop back here to retry */
    mleft = msec - (NI_clock_time()-start_time) ;             /* time left */
 
    if( num_restart > 3 && mleft <= 0 && !caseb ){              /* failure */
-      reset_buffer(ns) ;                               /* and out of time */
+      NI_reset_buffer(ns) ;                            /* and out of time */
 #ifdef NIML_DEBUG
 NI_dpr("  scan_for_angles: out of time!\n") ;
 #endif
@@ -1021,7 +1020,7 @@ NI_dpr("  scan_for_angles: case (a)\n") ;
 #ifdef NIML_DEBUG
 NI_dpr("  scan_for_angles: case (b)\n") ;
 #endif
-      reset_buffer(ns) ; epos = 0 ; caseb = 1 ;
+      NI_reset_buffer(ns) ; epos = 0 ; caseb = 1 ;
 
    } else {                              /* case (c) */
 #ifdef NIML_DEBUG
