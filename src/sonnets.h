@@ -20,7 +20,7 @@ static char * sonnets[] = {
    "  Pity the world, or else this glutton be,\n"
    "  To eat the world's due, by the grave and thee.\n"
 ,
-   "When forty winters shall beseige thy brow,\n"
+   "When forty winters shall besiege thy brow,\n"
    "And dig deep trenches in thy beauty's field,\n"
    "Thy youth's proud livery, so gazed on now,\n"
    "Will be a tatter'd weed, of small worth held:\n"
