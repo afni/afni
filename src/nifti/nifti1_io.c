@@ -17,8 +17,7 @@
 /*****===================================================================*****/
 
 
-/* global version and history strings, for printing */
-static char gni_version[] = "nifti library version 0.10 (December 29, 2004)";
+/* global history and version strings, for printing */
 static char gni_history[] = 
   "----------------------------------------------------------------------\n"
   "history (of nifti library changes):\n"
@@ -155,10 +154,57 @@ static char gni_history[] =
   "   - broke out code as nifti_write_ascii_image() function\n"
   "   - added debug to top-level write functions, and free the znzFile\n"
   "   - removed unused internal function nifti_image_open()\n"
+  "\n"
+  "1.0  30 Dec 2004 [rickr] - initial release version, woohooo!\n"
+  "   - moved static function prototypes from header to C file\n"
+  "   - free extensions in nifti_image_free()\n"
   "----------------------------------------------------------------------\n";
+static char gni_version[] = "nifti library version 1.0 (December 30, 2004)";
 
 /* global debug level */
 static int gni_debug = 1;  /* default to basic output */
+
+/*---------------------------------------------------------------------------*/
+/* prototypes for internal functions - not part of exported library          */
+
+/* extension routines */
+static int  valid_nifti_extensions(nifti_image *nim);
+static int  nifti_read_extensions( nifti_image *nim, znzFile fp, int remain );
+static int  nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,                                       int remain, znzFile fp );
+static int  nifti_add_exten_to_list( nifti1_extension *  new_ext,
+                                     nifti1_extension ** list, int new_length );static int  nifti_write_extensions(znzFile fp, nifti_image *nim);
+static int  nifti_check_extension(nifti_image *nim, int size,int code, int rem);static void update_nifti_image_for_brick_list(nifti_image * nim , int nbricks);
+
+/* NBL routines */
+static int  nifti_load_NBL_bricks(nifti_image * nim , int * slist, int * sindex,                                  nifti_brick_list * NBL, znzFile fp );
+static int  nifti_alloc_NBL_mem(  nifti_image * nim, int nbricks,
+                                  nifti_brick_list * nbl);
+static int  nifti_copynsort(int nbricks, int *blist, int **slist, int **sindex);
+
+/* misc */
+static int   int_force_positive(int * list, int nel);
+static int   print_hex_vals    (char * data, int nbytes, FILE * fp);
+static int   unescape_string   (char *str);  /* string utility functions */
+static char *escapize_string   (char *str);
+
+/* internal I/O routines */
+static znzFile nifti_image_write_hdr_img(nifti_image *nim , int write_data ,
+                                         char* opts);
+static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts ,
+                         char* opts, znzFile imgfile, nifti_brick_list * NBL );
+static znzFile nifti_image_load_prep( nifti_image *nim );
+static size_t  nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot,
+                                 nifti_image *nim);
+static int     nifti_write_all_data(znzFile fp, nifti_image *nim,
+                                    nifti_brick_list * NBL);
+static size_t  nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes);
+static int     has_ascii_header(znzFile fp);
+static nifti_image *read_ascii_image(znzFile fp, char *fname, int flen,
+                                     int read_data);
+static znzFile nifti_write_ascii_image(nifti_image *nim, nifti_brick_list *NBL,
+                                    char *opts, int write_data, int leave_open);
+/*---------------------------------------------------------------------------*/
+
 
 /* for calling from some main program */
 void nifti_disp_lib_hist( void )
@@ -1794,12 +1840,9 @@ int nifti_is_gzfile(char* fname)
 }
 
 
+/* allocates memory for basename which should eventually be freed */
 char * nifti_makebasename(char* fname)
 {
-   /*
-      NB: it allocates memory for basename which should be freed
-	when no longer required
-   */
    char *basename, *ext;
 
    basename=nifti_strdup(fname);
@@ -3191,10 +3234,16 @@ void nifti_image_unload( nifti_image *nim )
 
 void nifti_image_free( nifti_image *nim )
 {
+   int c ;
    if( nim == NULL ) return ;
    if( nim->fname != NULL ) free(nim->fname) ;
    if( nim->iname != NULL ) free(nim->iname) ;
    if( nim->data  != NULL ) free(nim->data ) ;
+   if( nim->num_ext > 0 && nim->ext_list ){
+      for( c = 0; c < nim->num_ext; c++ )
+         if ( nim->ext_list[c].edata ) free(nim->ext_list[c].edata);
+      free(nim->ext_list);
+   }
    free(nim) ; return ;
 }
 

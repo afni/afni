@@ -918,3 +918,10 @@
          Makefile.solaris28_gcc, Makefile.solaris28_suncc, Makefile.solaris_gcc,
          Makefile.sparc5_2.5, Makefile.sparky, Makefile.sunultra
 
+30 Dec 2004: nifti library and start of nifti_tool
+  * modified nifti/nifti1_io.[ch] (library v 1.0 - initial release version)
+      - moved static function prototypes from header to C file
+      - free extensions in nifti_image_free()
+  * added nifti/nifti_tool.[ch] (v 0.1) for new program, nifti_tool
+  * modifited Makefile.INCLUDE to compile nifti_tool
+

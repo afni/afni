@@ -1813,7 +1813,7 @@ asnap:asnap.o
 	$(RM) $@
 	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS) -lf2c
 
-# specifics for the nifti1 .o files
+# specifics for the nifti library files
 nifti1_io.o:nifti/nifti1_io.c nifti/nifti1_io.h
 	$(RM) $@
 	$(CC) -c nifti/nifti1_io.c $(IFLAGS) $(USE_ZLIB)
@@ -1821,6 +1821,14 @@ nifti1_io.o:nifti/nifti1_io.c nifti/nifti1_io.h
 znzlib.o:nifti/znzlib.c nifti/znzlib.h
 	$(RM) $@
 	$(CC) -c nifti/znzlib.c $(IFLAGS) $(USE_ZLIB)
+
+nifti_stats.o:nifti/nifti_stats.c
+	$(RM) $@
+	$(CC) -c nifti/nifti_stats.c $(IFLAGS)
+
+nifti_stats:nifti_stats.o
+	$(RM) $@
+	$(CC) -o nifti_stats nifti_stats.o -lm
 
 nifti1_test.o:nifti/nifti1_test.c 
 	$(RM) $@
@@ -1830,13 +1838,13 @@ nifti1_test:nifti1_test.o nifti1_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o nifti1_test nifti1_test.o nifti1_io.o znzlib.o $(LZLIB) -lm
 
-nifti_stats.o:nifti/nifti_stats.c
+nifti_tool.o:nifti/nifti_tool.c 
 	$(RM) $@
-	$(CC) -c nifti/nifti_stats.c $(IFLAGS)
+	$(CC) -c nifti/nifti_tool.c $(IFLAGS)
 
-nifti_stats:nifti_stats.o
+nifti_tool:nifti_tool.o nifti1_io.o znzlib.o
 	$(RM) $@
-	$(CC) -o nifti_stats nifti_stats.o -lm
+	$(CC) -o nifti_tool nifti_tool.o nifti1_io.o znzlib.o $(LZLIB) -lm
 
 tsdsim:tsdsim.o
 	$(RM) $@
