@@ -1,5 +1,6 @@
 #include "SUMA_suma.h"
 #include "../thd_brainormalize.h"
+#include "../rickr/r_new_resam_dset.h"
 
 #undef STAND_ALONE
 
@@ -129,11 +130,10 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                   intersections caused by the touchup operation.\n"
                "                   R is the maximum number of pixels on the side of a hole\n"
                "                   that can be filled. Big holes are not filled.\n"
-               "                   If you use -touchup, the default R is 5. Otherwise \n"
+               "                   If you use -touchup, the default R is 10. Otherwise \n"
                "                   the default is 0.\n"
                "                   This is a less than elegant solution to the small\n"
-               "                   intersections and I hope to make do without it in \n"
-               "                   the near future. \n"
+               "                   intersections and I hope to make do without it someday. \n"
                "     -NN_smooth NN_SM: Perform Nearest Neighbor coordinate interpolation\n"
                "                       every few iterations. Default is 72\n"
                "     -smooth_final SM: Perform final surface smoothing after all iterations.\n"
@@ -295,6 +295,7 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
    Opt->fillhole = -1;
    Opt->iset = NULL;
    Opt->SpatShift[0] = Opt->SpatShift[1] = Opt->SpatShift[2] = 0.0;
+   Opt->OrigSpatNormedSet = NULL;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -653,9 +654,9 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
    if (Opt->fillhole < 0) {
       if (Opt->UseExpansion) {
          if (Opt->debug) {
-            SUMA_SL_Note("Setting fill_hole to 5");
+            SUMA_SL_Note("Setting fill_hole to 10");
          }
-         Opt->fillhole = 5;
+         Opt->fillhole = 10;
       } else  Opt->fillhole = 0;
    }
    
@@ -707,9 +708,9 @@ int main (int argc,char *argv[])
    SUMA_FORM_AFNI_DSET_STRUCT *OptDs = NULL;
    THD_3dim_dataset *dset = NULL;
    THD_ivec3 orixyz , nxyz ;
-   THD_fvec3 dxyz , orgxyz ;
+   THD_fvec3 dxyz , orgxyz , fv2, originRAIfv;
    THD_3dim_dataset *oset = NULL;
-   MRI_IMAGE *imin=NULL, *imout=NULL ;
+   MRI_IMAGE *imin=NULL, *imout=NULL, *imout_orig=NULL ;
    
    SUMA_Boolean LocalHead = NOPE;
 
@@ -780,15 +781,82 @@ int main (int argc,char *argv[])
 
       /*--- normalize image spatially ---*/
       mri_brainormalize_verbose( Opt->debug ) ;
-      imout = mri_brainormalize( imin , Opt->iset->daxes->xxorient,
+      if (Opt->fillhole) {
+         imout = mri_brainormalize( imin , Opt->iset->daxes->xxorient,
                                         Opt->iset->daxes->yyorient,
-                                        Opt->iset->daxes->zzorient) ;
+                                        Opt->iset->daxes->zzorient, &imout_orig) ;
+      } else {
+         imout = mri_brainormalize( imin , Opt->iset->daxes->xxorient,
+                                        Opt->iset->daxes->yyorient,
+                                        Opt->iset->daxes->zzorient, NULL) ;
+      }
       mri_free( imin ) ;
 
       if( imout == NULL ){
         fprintf(stderr,"**ERROR: normalization fails!?\n"); exit(1);
       }
+      
+      if (imout_orig) {
+         SUMA_SL_Note("Creating an output dataset in original grid...");
+         /* me needs the origin of this dset in RAI world */
+         LOAD_FVEC3(originRAIfv , Opt->iset->daxes->xxorg , Opt->iset->daxes->yyorg , Opt->iset->daxes->zzorg) ;
+         originRAIfv = THD_3dmm_to_dicomm( Opt->iset , originRAIfv ) ;
 
+         LOAD_FVEC3(fv2 , Opt->iset->daxes->xxorg + (Opt->iset->daxes->nxx-1)*Opt->iset->daxes->xxdel ,
+                    Opt->iset->daxes->yyorg + (Opt->iset->daxes->nyy-1)*Opt->iset->daxes->yydel ,
+                    Opt->iset->daxes->zzorg + (Opt->iset->daxes->nzz-1)*Opt->iset->daxes->zzdel  ) ;
+         fv2 = THD_3dmm_to_dicomm( Opt->iset , fv2 ) ;
+
+         if( originRAIfv.xyz[0] > fv2.xyz[0] ) { float tf; tf = originRAIfv.xyz[0]; originRAIfv.xyz[0] = fv2.xyz[0]; fv2.xyz[0] = tf; } 
+         if( originRAIfv.xyz[1] > fv2.xyz[1] ) { float tf; tf = originRAIfv.xyz[1]; originRAIfv.xyz[1] = fv2.xyz[1]; fv2.xyz[1] = tf; }
+         if( originRAIfv.xyz[2] > fv2.xyz[2] ) { float tf; tf = originRAIfv.xyz[2]; originRAIfv.xyz[2] = fv2.xyz[2]; fv2.xyz[2] = tf; }
+
+         if (LocalHead) {
+            fprintf(stderr,"++3dSpatNorm (ZSS): RAI origin info: %f %f %f\n", originRAIfv.xyz[0], originRAIfv.xyz[1], originRAIfv.xyz[2]);
+         }
+
+         Opt->OrigSpatNormedSet = EDIT_empty_copy( NULL ) ;
+         tross_Copy_History( Opt->iset , Opt->OrigSpatNormedSet ) ;
+         tross_Make_History( "3dSpatNorm" , argc,argv , Opt->OrigSpatNormedSet ) ;
+
+         LOAD_IVEC3( nxyz   , imout_orig->nx    , imout_orig->ny    , imout_orig->nz    ) ;
+         LOAD_FVEC3( dxyz   , imout_orig->dx    , imout_orig->dy    , imout_orig->dz    ) ;
+         LOAD_FVEC3( orgxyz , originRAIfv.xyz[0]    , originRAIfv.xyz[1]    , originRAIfv.xyz[2]    ) ;
+         LOAD_IVEC3( orixyz , ORI_R2L_TYPE , ORI_A2P_TYPE , ORI_I2S_TYPE ) ;
+
+         prefix = SUMA_AfniPrefix(Opt->in_name, NULL); 
+         if (!prefix) { SUMA_SL_Err("Bad prefix!!!"); exit(1); }
+         spatprefix = SUMA_append_string(prefix, "_SpatNorm_OrigSpace");
+         EDIT_dset_items( Opt->OrigSpatNormedSet ,
+                            ADN_prefix      , spatprefix ,
+                            ADN_datum_all   , imout_orig->kind ,
+                            ADN_nxyz        , nxyz ,
+                            ADN_xyzdel      , dxyz ,
+                            ADN_xyzorg      , orgxyz ,
+                            ADN_xyzorient   , orixyz ,
+                            ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                            ADN_view_type   , VIEW_ORIGINAL_TYPE ,
+                            ADN_type        , HEAD_ANAT_TYPE ,
+                            ADN_func_type   , ANAT_BUCK_TYPE ,
+                          ADN_none ) ;
+
+         EDIT_substitute_brick( Opt->OrigSpatNormedSet , 0 , imout_orig->kind , mri_data_pointer(imout_orig) ) ;      
+
+         oset = r_new_resam_dset ( Opt->OrigSpatNormedSet, Opt->iset,	0,	0,	0,	NULL, MRI_NN, NULL);
+         if (!oset) {
+            fprintf(stderr,"**ERROR: Failed to reslice!?\n"); exit(1);
+         }
+         DSET_delete(Opt->OrigSpatNormedSet); Opt->OrigSpatNormedSet = oset; oset = NULL;
+
+         if (Opt->WriteSpatNorm) {
+            SUMA_LH("Writing SpatNormed dset in original space");
+            DSET_write(Opt->OrigSpatNormedSet) ;
+         }
+
+         if (prefix) SUMA_free(prefix); prefix = NULL;
+         if (spatprefix) SUMA_free(spatprefix); spatprefix = NULL; 
+      }
+      
       oset = EDIT_empty_copy( NULL ) ;
       tross_Copy_History( Opt->iset , oset ) ;
       tross_Make_History( "3dSpatNorm" , argc,argv , oset ) ;
@@ -834,6 +902,11 @@ int main (int argc,char *argv[])
          FuncName, DSET_NVOX( Opt->in_vol ), DSET_NX( Opt->in_vol ), DSET_NY( Opt->in_vol ), DSET_NZ( Opt->in_vol )); 
       /* load the dset */
       DSET_load(Opt->in_vol);
+      if (Opt->fillhole) Opt->OrigSpatNormedSet = Opt->in_vol; /* original is same as in_vol */
+      if (DSET_NX( Opt->in_vol) !=  THD_BN_NX || DSET_NY( Opt->in_vol) !=  THD_BN_NY  || DSET_NZ( Opt->in_vol) !=  THD_BN_NZ ) {
+         fprintf(SUMA_STDERR,"Error %s:\n SpatNormed Dset must be %d x %d x %d\n", FuncName, THD_BN_NX, THD_BN_NY, THD_BN_NZ );
+         exit(1);
+      }
    }
    
    
@@ -954,7 +1027,7 @@ int main (int argc,char *argv[])
          SUMA_SkullMask (SOhull, Opt, ps->cs);
          /* Now take mask and turn it into a volume */
          fprintf (SUMA_STDERR,"%s: Locating voxels on skull boundary  ...\n", FuncName);
-         isin = SUMA_FindVoxelsInSurface (SOhull, SO->VolPar, &N_in, 0);
+         isin = SUMA_FindVoxelsInSurface (SOhull, SO->VolPar, &N_in, 0, NULL);
          isin_float = (float *)SUMA_malloc(sizeof(float) * SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz);
          if (!isin_float) {
             SUMA_SL_Crit("Failed to allocate");
@@ -1163,7 +1236,7 @@ int main (int argc,char *argv[])
    
    /* what voxels are inside the surface ? */
    fprintf (SUMA_STDERR,"%s: Locating voxels inside surface  ...\n", FuncName);
-   isin = SUMA_FindVoxelsInSurface (SO, SO->VolPar, &N_in, Opt->fillhole);
+   isin = SUMA_FindVoxelsInSurface (SO, SO->VolPar, &N_in, Opt->fillhole, Opt->OrigSpatNormedSet);
    isin_float = (float *)SUMA_malloc(sizeof(float) * SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz);
    if (!isin_float) {
       SUMA_SL_Crit("Failed to allocate");
@@ -1208,6 +1281,8 @@ int main (int argc,char *argv[])
    if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
    if (OptDs) { OptDs->mset = NULL; OptDs = SUMA_Free_FormAfniDset_Opt(OptDs);  }
    if (dset) { DSET_delete(dset); dset = NULL; }
+   if (Opt->OrigSpatNormedSet && Opt->OrigSpatNormedSet != Opt->in_vol) { DSET_delete(Opt->OrigSpatNormedSet); Opt->OrigSpatNormedSet = NULL; }
+   else Opt->OrigSpatNormedSet = NULL;
    if (isin) { SUMA_free(isin); isin = NULL; }
    if (isin_float) { SUMA_free(isin_float); isin_float = NULL; }
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
