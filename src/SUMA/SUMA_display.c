@@ -89,7 +89,7 @@ static String fallbackResources_NP[] = {
    "*frame*topOffset: 20", "*frame*bottomOffset: 20",
    "*frame*rightOffset: 20", "*frame*leftOffset: 20",
    "*frame*shadowType: SHADOW_IN", 
-   "*fontList:              9x15bold=charset1"    ,
+   "*fontList:              9x15=charset1"    ,
    "*pbar*fontList:         6x10=charset1"        ,
    "*imseq*fontList:        7x13=charset1"        ,
    "*background:            black"               ,
@@ -97,14 +97,14 @@ static String fallbackResources_NP[] = {
    "*borderColor:           gray70"               ,
    "*foreground:            white"               ,
    "*borderWidth:           0"                    ,
-   "*troughColor:           white"                ,
+   "*troughColor:           LightCyan2"                ,
    "*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
    "*help*background:       black"                ,
    "*help*foreground:       yellow"               ,
    "*help*helpborder:       False"                ,
    "*help*waitPeriod:       1066"                 ,
-   "*help*fontList:         9x15bold=charset1"    ,
-   "*cluefont:              9x15bold"             ,
+   "*help*fontList:         9x15=charset1"    ,
+   "*cluefont:              9x15"             ,
    "*help*cancelWaitPeriod: 50"                   ,
    "*hotcolor:              blue2"               , 
   NULL
@@ -1191,6 +1191,7 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   SUMA_LH("Called");
    ic = 0;
    Found = 0;
    while (ic < SUMA_MAX_SURF_VIEWERS && !Found) {
@@ -2383,22 +2384,33 @@ SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
 {
    static char FuncName[] = {"SUMA_InitializeDrawROIWindow"};
    SUMA_SurfaceObject *SOp = NULL;
-   char sbuf[20];
+   char sbuf[SUMA_MAX_LABEL_LENGTH];
+   SUMA_Boolean LocalHead = YUP;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-   SOp = SUMA_findSOp_inDOv(DrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
-   if (SOp) {
-      SUMA_SET_LABEL(SUMAg_CF->X->DrawROI->ParentLabel_lb, SOp->Label);
-   }   
-   
-   SUMAg_CF->X->DrawROI->curDrawnROI = DrawnROI; /* set the currently drawnROI */
-   
-   SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIlbl->textfield, DrawnROI->Label);
-   SUMAg_CF->X->DrawROI->ROIval->value = DrawnROI->iLabel;
-   sprintf(sbuf,"%d", DrawnROI->iLabel);
-   SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIval->textfield, sbuf);
-   
+   if (!DrawnROI) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Initializing with NULL.\n", FuncName);
+      SUMA_SET_LABEL(SUMAg_CF->X->DrawROI->ParentLabel_lb, "Parent: -");
+      SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIlbl->textfield, "-");
+      SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIval->textfield, "0");
+   }else {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Initializing with %p.\n", FuncName, DrawnROI);
+      SOp = SUMA_findSOp_inDOv(DrawnROI->Parent_idcode_str, SUMAg_DOv, SUMAg_N_DOv);
+      sprintf (sbuf, "Parent: %s", SOp->Label);
+      if (SOp) {
+         SUMA_SET_LABEL(SUMAg_CF->X->DrawROI->ParentLabel_lb, sbuf);
+      } else {
+         SUMA_SET_LABEL(SUMAg_CF->X->DrawROI->ParentLabel_lb, "Parent: Not Found");
+      }  
+
+      SUMAg_CF->X->DrawROI->curDrawnROI = DrawnROI; /* set the currently drawnROI */
+
+      SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIlbl->textfield, DrawnROI->Label);
+      SUMAg_CF->X->DrawROI->ROIval->value = DrawnROI->iLabel;
+      sprintf(sbuf,"%d", DrawnROI->iLabel);
+      SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIval->textfield, sbuf);
+   }
    SUMA_RETURN (YUP);
 }
 
@@ -2456,6 +2468,12 @@ void SUMA_CreateDrawROIWindow(void)
       XmNtraversalOn , False ,
       NULL); 
    
+   XtVaCreateManagedWidget ("ROI",
+      xmLabelGadgetClass, frame, 
+      XmNchildType, XmFRAME_TITLE_CHILD,
+      XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+      NULL);
+   
    
    /* vertical row column to stack horizontal rcs in */
    rcv = XtVaCreateWidget ("rowcolumn",
@@ -2465,11 +2483,23 @@ void SUMA_CreateDrawROIWindow(void)
          XmNmarginWidth , SUMA_MARGIN ,
          NULL);
          
-   XtVaCreateManagedWidget ("ROI",
-      xmLabelGadgetClass, frame, 
-      XmNchildType, XmFRAME_TITLE_CHILD,
-      XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
-      NULL);
+   /* row column for the parent surface name */
+   rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, rcv,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         XmNmarginHeight, SUMA_MARGIN ,
+         XmNmarginWidth , SUMA_MARGIN ,
+         NULL);
+   
+   /*put a label containing the ROI's parent surface name */
+   SUMAg_CF->X->DrawROI->ParentLabel_lb = XtVaCreateManagedWidget ("Parent: N/A", 
+            xmLabelWidgetClass, rc,
+            NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->ParentLabel_lb , SUMA_DrawROI_ParentLabel_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->ParentLabel_lb , "Label of the ROI's parent surface" ) ;
+   
+   XtManageChild(rc);
    
    /* row column for the surface labels and the toggle DrawROI buttons */
    rc = XtVaCreateWidget ("rowcolumn",
@@ -2479,28 +2509,7 @@ void SUMA_CreateDrawROIWindow(void)
          XmNmarginHeight, SUMA_MARGIN ,
          XmNmarginWidth , SUMA_MARGIN ,
          NULL);
-   
-   /* put a push button to switch between ROIs */
-   SUMAg_CF->X->DrawROI->SwitchROIlst = SUMA_AllocateScrolledList ("Switch ROI", SUMA_LSP_SINGLE, 
-                              NOPE, YUP,
-                              SUMAg_CF->X->DrawROI->AppShell, SWP_TOP_LEFT,
-                              SUMA_cb_SelectSwitchROI,
-                              SUMA_cb_SelectSwitchROI,
-                              SUMA_cb_CloseSwitchROI);
-    
-   pb = XtVaCreateWidget ("Switch ROI", xmPushButtonWidgetClass, rc, NULL);
-   XtAddCallback (pb, XmNactivateCallback, SUMA_cb_DrawROI_SwitchROI, SUMAg_CF->X->DrawROI->SwitchROIlst);
-   MCW_register_help(pb , SUMA_DrawROI_SwitchROI_help ) ;
-   MCW_register_hint(pb , "Switch between ROIs." ) ;
-   XtManageChild (pb);
-   
-   /*put a label containing the ROI's parent surface name */
-   SUMAg_CF->X->DrawROI->ParentLabel_lb = XtVaCreateManagedWidget ("Parent: N/A", 
-            xmLabelWidgetClass, rc,
-            NULL);
-   MCW_register_help(SUMAg_CF->X->DrawROI->ParentLabel_lb , SUMA_DrawROI_ParentLabel_help ) ;
-   MCW_register_hint(SUMAg_CF->X->DrawROI->ParentLabel_lb , "Label of the ROI's parent surface" ) ;
-   
+
    /*put a toggle button for the DrawROI more */
    /* Turn on the ROI drawing mode, since that is what the users want to do the first time they open this window */
    SUMAg_CF->ROI_mode = YUP;
@@ -2532,7 +2541,7 @@ void SUMA_CreateDrawROIWindow(void)
                            SUMAg_CF->X->DrawROI->ROIlbl);
                              
    SUMA_CreateArrowField ( rc, "Value:",
-                           1, -10, 10, 1,
+                           1, 0, 100, 1,
                            3, SUMA_int,
                            NOPE,
                            SUMA_DrawROI_NewValue,
@@ -2544,7 +2553,7 @@ void SUMA_CreateDrawROIWindow(void)
    /* a separator */
    XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rcv, NULL);
    
-   /* add rc for undo, redo, save, close buttons */
+   /* add rc for undo, redo buttons */
    rc_ur = XtVaCreateWidget ("rowcolumn",
       xmRowColumnWidgetClass, rcv,
       XmNpacking, XmPACK_TIGHT, 
@@ -2593,6 +2602,44 @@ void SUMA_CreateDrawROIWindow(void)
                               xmSeparatorWidgetClass, rc_ur, 
                               XmNorientation, XmVERTICAL,NULL);
                                                             
+   SUMAg_CF->X->DrawROI->Delete_pb = XtVaCreateWidget ("delete ROI", 
+      xmPushButtonWidgetClass, rc_ur, 
+      NULL);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Delete_pb, XmNactivateCallback, SUMA_cb_DrawROI_Delete, NULL);
+   MCW_register_hint( SUMAg_CF->X->DrawROI->Delete_pb , "Click twice in 5 seconds to delete ROI." ) ;
+   MCW_set_widget_bg( SUMAg_CF->X->DrawROI->Delete_pb , MCW_hotcolor(SUMAg_CF->X->DrawROI->Delete_pb) , 0 ) ;
+
+   XtManageChild (SUMAg_CF->X->DrawROI->Delete_pb); 
+
+   /* a separator */
+   XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rcv, NULL);
+
+   /* manage rc_ur */
+   XtManageChild (rc_ur);
+  
+   /* add rc for save, close buttons */
+   rc_ur = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, rcv,
+      XmNpacking, XmPACK_TIGHT, 
+      XmNorientation , XmHORIZONTAL ,
+      XmNmarginHeight, SUMA_MARGIN ,
+      XmNmarginWidth , SUMA_MARGIN ,
+      NULL);
+
+   /* put a push button to switch between ROIs */
+   SUMAg_CF->X->DrawROI->SwitchROIlst = SUMA_AllocateScrolledList ("Switch ROI", SUMA_LSP_SINGLE, 
+                              NOPE, YUP,
+                              SUMAg_CF->X->DrawROI->AppShell, SWP_TOP_LEFT,
+                              SUMA_cb_SelectSwitchROI,
+                              SUMA_cb_SelectSwitchROI,
+                              SUMA_cb_CloseSwitchROI);
+    
+   pb = XtVaCreateWidget ("Switch ROI", xmPushButtonWidgetClass, rc_ur, NULL);
+   XtAddCallback (pb, XmNactivateCallback, SUMA_cb_DrawROI_SwitchROI, SUMAg_CF->X->DrawROI->SwitchROIlst);
+   MCW_register_help(pb , SUMA_DrawROI_SwitchROI_help ) ;
+   MCW_register_hint(pb , "Switch between ROIs." ) ;
+   XtManageChild (pb);
+   
    SUMAg_CF->X->DrawROI->Save_pb = XtVaCreateWidget ("Save", 
       xmPushButtonWidgetClass, rc_ur, 
       NULL);
@@ -2600,6 +2647,18 @@ void SUMA_CreateDrawROIWindow(void)
    MCW_register_help(SUMAg_CF->X->DrawROI->Save_pb , SUMA_DrawROI_Save_help ) ;
    MCW_register_hint(SUMAg_CF->X->DrawROI->Save_pb , "Save the Drawn ROI" ) ;
    XtManageChild (SUMAg_CF->X->DrawROI->Save_pb);
+
+   SUMAg_CF->X->DrawROI->Load_pb = XtVaCreateWidget ("Load", 
+      xmPushButtonWidgetClass, rc_ur, 
+      NULL);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Load_pb, XmNactivateCallback, SUMA_cb_DrawROI_Load, NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->Load_pb , SUMA_DrawROI_Load_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Load_pb , "Load a Drawn ROI" ) ;
+   XtManageChild (SUMAg_CF->X->DrawROI->Load_pb);
+   
+   XtVaCreateManagedWidget (  "sep", 
+                              xmSeparatorWidgetClass, rc_ur, 
+                              XmNorientation, XmVERTICAL,NULL);
 
    pb = XtVaCreateWidget ("BHelp", 
       xmPushButtonWidgetClass, rc_ur, 
@@ -2963,7 +3022,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
    AF->textfield = XtVaCreateManagedWidget ("label",
         xmTextFieldWidgetClass, AF->rc,
         XmNuserData, (XtPointer)AF,
-        XmNvalue, "0",
+        XmNvalue, "-",
         XmNcolumns, AF->cwidth,
         NULL);
    XtAddCallback (AF->textfield, XmNactivateCallback, SUMA_ATF_cb_label_change, (XtPointer)AF);
@@ -3151,18 +3210,29 @@ void SUMA_DrawROI_NewValue (void *data)
    SUMA_ARROW_TEXT_FIELD *AF=NULL;
    SUMA_DRAWN_ROI *DrawnROI=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+   static int ErrCnt=0;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    AF = (SUMA_ARROW_TEXT_FIELD *)data;
    DrawnROI = SUMAg_CF->X->DrawROI->curDrawnROI;
    
-   if (LocalHead) fprintf (SUMA_STDERR, "%s: Changing ROI value from %d to %d\n", 
-      FuncName, DrawnROI->iLabel, (int)AF->value);   
+   if (!DrawnROI) SUMA_RETURNe;
    
-   DrawnROI->iLabel = (int)AF->value;
+   if (AF->value == DrawnROI->iLabel) SUMA_RETURNe;
    
+   if (!DrawnROI->DrawStatus == SUMA_ROI_Finished) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Changing ROI value from %d to %d\n", 
+         FuncName, DrawnROI->iLabel, (int)AF->value);   
+
+      DrawnROI->iLabel = (int)AF->value;
+      ErrCnt = 0;
+   } else {
+      if (!ErrCnt) SUMA_SLP_Err ("ROI is marked as finished.\nNew value will not be applied.\n");
+      ++ErrCnt;
+      AF->value = (float)DrawnROI->iLabel;
+      SUMA_ATF_SetString (AF); 
+   }
    SUMA_RETURNe;
 }
 
@@ -3347,6 +3417,8 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
    XmListCallbackStruct *cbs = (XmListCallbackStruct *) call_data;
    char *choice=NULL;
    SUMA_Boolean CloseShop = NOPE;
+   int ichoice = -1;
+   SUMA_DRAWN_ROI *DrawnROI = NULL;
    
    LW = (SUMA_LIST_WIDGET *)data;
    
@@ -3366,7 +3438,20 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
 
    XmStringGetLtoR (cbs->item, XmFONTLIST_DEFAULT_TAG, &choice);
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Selected item: %s (%d)\n", FuncName, choice, cbs->item_position);
+   ichoice = cbs->item_position -1; /* 1st element in list is indexed 1 */
    XtFree (choice);
+
+   /* now retrieve that choice from the SUMA_ASSEMBLE_LIST_STRUCT structure and initialize the drawing window */
+   if (LW->ALS) {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: N_clist = %d\n", FuncName, LW->ALS->N_clist); 
+      if (LW->ALS->N_clist > ichoice) {
+         DrawnROI = (SUMA_DRAWN_ROI *)LW->ALS->oplist[ichoice];
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: Retrieved DrawnROI labeled %s\n", FuncName, DrawnROI->Label);
+         SUMA_InitializeDrawROIWindow(DrawnROI);
+      }
+   } else {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: NULL ALS\n", FuncName); 
+   }
 
    if (CloseShop) {
       SUMA_cb_CloseSwitchROI( w,  data,  call_data);
@@ -3377,6 +3462,8 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data)
 
 /*!
    \brief Closes the DrawROI window 
+   
+   -expects SUMA_LIST_WIDGET * in client_data
 */
 void SUMA_cb_CloseSwitchROI(Widget w, XtPointer data, XtPointer call_data)
 {
@@ -3694,6 +3781,8 @@ void  SUMA_cb_doneSumaCont(Widget wcall, XtPointer cd1, XtPointer cbs)
    XmPushButtonCallbackStruct * pbcbs = (XmPushButtonCallbackStruct *) cbs ;
    SUMA_Boolean LocalHead = NOPE;
    
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
    /* NULL widget --> reset button to lowercase */
    if( wcall == NULL ){
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Resetting button.\n", FuncName); 
@@ -3741,7 +3830,11 @@ void  SUMA_cb_doneSumaCont(Widget wcall, XtPointer cd1, XtPointer cbs)
 void SUMA_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
 {
    static char FuncName[] = {"SUMA_quit_timeout_CB"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
    SUMA_cb_doneSumaCont(NULL, NULL, NULL);
+
    SUMA_RETURNe; 
 }
 
@@ -4752,10 +4845,133 @@ void SUMA_cb_DrawROI_Finish (Widget w, XtPointer data, XtPointer client_data)
    SUMA_RETURNe;
 }
 
+/*! 
+   \brief Delete a drawn ROI 
+   
+*/
+void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs)
+{
+   static char FuncName[] = {"SUMA_cb_DrawROI_Delete"};
+   XmPushButtonCallbackStruct * pbcbs = (XmPushButtonCallbackStruct *) cbs ;
+   int i=-1;
+   SUMA_ASSEMBLE_LIST_STRUCT *ALS = NULL;
+   SUMA_DRAWN_ROI *NextROI=NULL;
+   DList *list=NULL;
+   static int ErrCnt =0;
+   SUMA_Boolean Shaded = NOPE, LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!SUMAg_CF->X->DrawROI->curDrawnROI && wcall) { 
+      /* remember, you'll always get the callback from the time out function
+      the use of wcall in the condition above is to tell the difference between
+      the timeout call and a delete request with a null curDrawnROI ...
+      NULL curDrawnROI occurs normally such as when there are no ROI left */
+      if (!ErrCnt) SUMA_SLP_Note ("No ROI to delete");
+      wcall = NULL; /* use this to turn key back to lower case ahead */
+      ErrCnt ++;
+   }
+   
+   /* NULL widget --> reset button to lowercase */
+   if( wcall == NULL ){
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Resetting button.\n", FuncName); 
+      if( SUMAg_CF->X->DrawROI->Delete_first == NOPE ){
+         MCW_set_widget_label( SUMAg_CF->X->DrawROI->Delete_pb , "delete ROI" ) ;
+         SUMAg_CF->X->DrawROI->Delete_first = YUP ;
+      }
+      SUMA_RETURNe ;
+   }
+   
+   /* First press --> just change button label */
+
+   if( SUMAg_CF->X->DrawROI->Delete_first ){
+      MCW_set_widget_label( SUMAg_CF->X->DrawROI->Delete_pb  , "DELETE ROI" ) ;
+      SUMAg_CF->X->DrawROI->Delete_first = NOPE ;
+
+      /* if not re-pressed in 5 seconds, will reset to lowercase */
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: First Press, adding time out.\n", FuncName);
+      (void) XtAppAddTimeOut(
+               XtWidgetToApplicationContext(SUMAg_CF->X->DrawROI->Delete_pb) ,
+               5000 , SUMA_delete_timeout_CB , NULL ) ;
+
+       SUMA_RETURNe;
+   }
+   
+   /* delete ROI */
+   ErrCnt = 0;
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Should be deleting ROI %shere ...\n", FuncName, SUMAg_CF->X->DrawROI->curDrawnROI->Label);
+   
+   /* form a list of the current ROI available for editing */
+
+      /* assemble the ROI list */
+      ALS = SUMA_AssembleAllROIList (SUMAg_DOv, SUMAg_N_DOv, YUP);
+
+      NextROI = NULL;
+      if (ALS) {
+         if (ALS->N_clist)  {
+            i=0;
+            while (!NextROI && i<ALS->N_clist) {
+               if (ALS->oplist[i] != (void*)SUMAg_CF->X->DrawROI->curDrawnROI) 
+                  NextROI = (SUMA_DRAWN_ROI *)ALS->oplist[i];
+               ++i;
+            }  
+         }
+         SUMA_FreeAssembleListStruct(ALS);
+      }
+
+      
+   /* Close the ROIlist window if it is open */
+   SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
+   if (!Shaded) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Closing switch ROI window ...\n", FuncName);
+      SUMA_cb_CloseSwitchROI(NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
+   }
+   
+   /* remove ROI for SUMAg_DO and clear the ROI structure*/
+   if (!SUMA_RemoveDO(SUMAg_DOv, &SUMAg_N_DOv, (void *)SUMAg_CF->X->DrawROI->curDrawnROI, YUP)) {
+      SUMA_SLP_Err("Failed to remove DO from list.");
+   }
+
+   SUMAg_CF->X->DrawROI->curDrawnROI = NextROI;
+   
+   /* reinitialize the draw ROI window */
+   SUMA_InitializeDrawROIWindow(SUMAg_CF->X->DrawROI->curDrawnROI);
+
+   
+   /* redisplay */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL); 
+   if (!SUMA_Engine(&list)) SUMA_SLP_Err("Failed to redisplay.");
+   
+   /* reset the Delete button settings */
+   MCW_set_widget_label( SUMAg_CF->X->DrawROI->Delete_pb , "delete ROI" ) ;   
+   SUMA_RETURNe;
+}
+
+void SUMA_delete_timeout_CB( XtPointer client_data , XtIntervalId * id )
+{
+   static char FuncName[] = {"SUMA_delete_timeout_CB"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_cb_DrawROI_Delete(NULL, NULL, NULL);
+
+   SUMA_RETURNe; 
+}
+
 
 void SUMA_cb_DrawROI_Save (Widget w, XtPointer data, XtPointer client_data)
 {
    static char FuncName[]={"SUMA_cb_DrawROI_Save"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_DrawROI_Load (Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_DrawROI_Load"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -4768,24 +4984,44 @@ void SUMA_DrawROI_NewLabel (void *data)
    SUMA_DRAWN_ROI *DrawnROI=NULL;
    SUMA_ARROW_TEXT_FIELD * AF=NULL;
    void *n=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   static int ErrCnt=0;
+   SUMA_Boolean Shaded = YUP, LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    AF = (SUMA_ARROW_TEXT_FIELD *)data;
    DrawnROI = SUMAg_CF->X->DrawROI->curDrawnROI;
+   if (!DrawnROI) {
+      SUMA_RETURNe;
+   }
    
    XtVaGetValues (AF->textfield, XmNvalue, &n, NULL);
-   /* YOU DO NOT WANT TO FREE n because n is not a copy of the string in the widget! */
-   if (DrawnROI->Label) {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Changing ROI label from %s to %s\n", FuncName, DrawnROI->Label, (char *)n);         
-      DrawnROI->Label = (char *)SUMA_realloc(DrawnROI->Label, sizeof(char)*(strlen((char *)n)+1));
-   }  else {
-      if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting ROI label to %s\n", FuncName, (char *)n);
-      DrawnROI->Label = (char *)SUMA_malloc(sizeof(char) * (strlen((char *)n)+1));
+   /* return if not change has been made */
+   if (!strcmp((char *)n, DrawnROI->Label)) SUMA_RETURNe;
+   
+   if (DrawnROI->DrawStatus != SUMA_ROI_Finished) {
+      /* YOU DO NOT WANT TO FREE n because n is not a copy of the string in the widget! */
+      if (DrawnROI->Label) {
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: Changing ROI label from %s to %s\n", FuncName, DrawnROI->Label, (char *)n);         
+         DrawnROI->Label = (char *)SUMA_realloc(DrawnROI->Label, sizeof(char)*(strlen((char *)n)+1));
+      }  else {
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting ROI label to %s\n", FuncName, (char *)n);
+         DrawnROI->Label = (char *)SUMA_malloc(sizeof(char) * (strlen((char *)n)+1));
+      }
+      DrawnROI->Label = strcpy(DrawnROI->Label, (char *)n);   
+      ErrCnt = 0;
+      
+      /* check if list window is open and update it if need be */
+      SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
+      if (!Shaded) {
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: updating switch ROI window ...\n", FuncName);
+         SUMA_cb_DrawROI_SwitchROI(NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
+      }
+   } else {
+      if (!ErrCnt) SUMA_SLP_Err("ROI maked as finished.\nNew label cannot be applied.");
+      ++ErrCnt;
+      SUMA_SET_TEXT_FIELD(SUMAg_CF->X->DrawROI->ROIlbl->textfield, DrawnROI->Label);
    }
-   DrawnROI->Label = strcpy(DrawnROI->Label, (char *)n);   
-
    
    SUMA_RETURNe;
 }
@@ -4857,6 +5093,281 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
       XmNy, NewY,
       NULL);
       
+   SUMA_RETURNe;
+}
+
+/*** Functions to follow taken from editor_dnd.c example code 
+ * Written by Paula Ferguson.  
+ * Copyright 1994, O'Reilly & Associates, Inc.
+ * Permission to use, copy, and modify this program without
+ * restriction is hereby granted, as long as this copyright
+ * notice appears in each copy of the program source code.
+ * This program is freely distributable without licensing fees and
+ * is provided without guarantee or warrantee expressed or implied.
+ * This program is -not- in the public domain.
+ */
+ 
+/*!
+   \brief function to allocate and initialize a file selection dialogue structure
+   
+   \param parent (Widget) parent widget of dialog
+   \param Mode (SUMA_FILE_SELECT_MODE) : SUMA_OPEN_FILE, SUMA_SAVE_FILE
+   \param preserve (SUMA_Boolean) YUP: keep dialog widget and structure after closing.
+                                    see notes in structure's definition for more help.
+   \param SelectCallback(char *filename, void *data) (void*): Function to call when selection is made
+   \param SelectData (void *) data to pass SelectCallback
+   \param CancelCallback(void *data) (void*): Function to call when cancel is pressed
+   \param CancelData (void *) data to pass CancelCallback
+   \param odlg (SUMA_SELECTION_DIALOG_STRUCT *) if not null, then instead of 
+            creating a new structure, the function will update the fields in 
+            odlg. This is useful if you want to reuse a dialog's widget (preserve = YUP)
+            but with different callbacks and calldata.
+            NOTE: parent cannot be changed if you are updating odlg.
+            NOTE: DO NOT USE preserve = YUP along with non-NULL odlg. It does not make sense
+            and I can't easily make this fool proof.
+   \return dlg_strct (SUMA_SELECTION_DIALOG_STRUCT *) an allocated and initialized dialogue struct
+               or an updated odlg if specified. 
+    
+   -You might have to add a trap for the kill button, if possible, else you need to trap for the kill with
+   a callback to set the widget to null.
+   
+   See SUMA_DestroyTextShell
+*/
+SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy, SUMA_FILE_SELECT_MODE Mode, SUMA_Boolean preserve,
+                                                                  void (*SelectCallback)(char *filename, void *data), void *SelectData,
+                                                                  void (*CancelCallback)(void *data), void *CancelData,
+                                                                  SUMA_SELECTION_DIALOG_STRUCT *odlg)
+{
+   static char FuncName[]={"SUMA_CreateFileSelectionDialogStruct"};
+   SUMA_SELECTION_DIALOG_STRUCT * dlg = NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!odlg) { /* new structure */
+      SUMA_LH("A new structure ");    
+      dlg = (SUMA_SELECTION_DIALOG_STRUCT *)SUMA_malloc(sizeof(SUMA_SELECTION_DIALOG_STRUCT));
+      if (!dlg) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to allocate for TextShell.\n", FuncName);
+         SUMA_RETURN (NULL);
+      }
+      dlg->dlg_w = NULL;
+      dlg->daddy = daddy; 
+   }else {
+      SUMA_LH("Refitting old one. ");
+      dlg = odlg;
+      if (dlg->filename) SUMA_free(dlg->filename);
+   }
+   
+   dlg->filename = NULL;
+   dlg->Mode = Mode;
+   dlg->SelectCallback = SelectCallback;
+   dlg->SelectData = SelectData;
+   dlg->CancelCallback = CancelCallback;
+   dlg->CancelData = CancelData;
+   dlg->preserve = preserve;
+   
+   SUMA_RETURN(dlg);
+}
+
+/*!
+   \brief, opens a file selection dialogue
+*/                                                            
+SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title_extension, SUMA_SELECTION_DIALOG_STRUCT *dlg)
+{
+   static char FuncName[]={"SUMA_CreateFileSelectionDialog"};
+   SUMA_Boolean LocalHead = YUP;
+   XmString button, title;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!dlg->dlg_w) {/* need to create it for the first time */
+      SUMA_LH ("Creating new window.");
+      dlg->dlg_w = XmCreateFileSelectionDialog (dlg->daddy, "Files", NULL, 0);
+      XtAddCallback (dlg->dlg_w, XmNcancelCallback, SUMA_FileSelection_popdown_cb, (XtPointer)dlg);
+      XtAddCallback (dlg->dlg_w, XmNokCallback, SUMA_FileSelection_file_select_cb, (XtPointer)dlg);
+      XtAddCallback (dlg->dlg_w, XmNdestroyCallback, SUMA_DestroyFileSelectionDialog, (XtPointer)dlg);
+      /* you can't cancel the kill button's effect, the way you do for toplevel shells. 
+      But it does appear that the kill button is just unmanaging the widget, which is fine.
+      */
+      
+      
+      if (dlg->Mode == SUMA_FILE_OPEN) {
+        button = XmStringCreateLocalized ("Open");
+        title = XmStringCreateLocalized ("Open File");
+      } 
+      else { /* dlg->Mode == SUMA_FILE_SAVE */
+        button = XmStringCreateLocalized ("Save");
+        title = XmStringCreateLocalized ("Save File");
+      }
+      XtVaSetValues (dlg->dlg_w,
+        XmNokLabelString, button,
+        XmNdialogTitle,   title,
+        NULL);
+      XmStringFree (button);
+      XmStringFree (title);
+      XtManageChild (dlg->dlg_w);
+   } else {
+      SUMA_LH ("Raising dialogue");
+      XtManageChild (dlg->dlg_w);
+      /* make sure that dialog is raised to top of window stack */
+      XMapRaised (XtDisplay (dlg->dlg_w), XtWindow (XtParent (dlg->dlg_w)));      
+   }
+   
+   SUMA_RETURN(dlg);
+}
+/*!
+ \brief sample callback routine for "Cancel" button in FileSelectionDialogs 
+ SUMA_SELECTION_DIALOG_STRUCT *
+*/
+void SUMA_FileSelection_popdown_cb (Widget w, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_FileSelection_popdown_cb"};
+   SUMA_SELECTION_DIALOG_STRUCT *dlg;
+   SUMA_Boolean LocalHead = YUP;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_LH("Called");
+   
+   dlg = (SUMA_SELECTION_DIALOG_STRUCT *)client_data;
+   
+   XtUnmanageChild (dlg->dlg_w);
+
+   /* do the callback for the cancel */
+   if (dlg->CancelCallback) {
+      dlg->CancelCallback(dlg->CancelData);
+   }
+   
+   /* if preservation is not required, kill the widget and free dlg */
+   if (!dlg->preserve) {
+      if (dlg->dlg_w) {
+         SUMA_LH("Destroying dlg");
+         XtDestroyWidget(dlg->dlg_w); /* The function SUMA_DestroyFileSelectionDialog is called by the widget upon destruction */;
+      }else {
+         SUMA_SL_Warn("dlg_w is null.\nThis should not be.");
+         SUMA_DestroyFileSelectionDialog(NULL, (XtPointer)dlg, NULL);
+      }
+   }
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief destroys file selection dialog widget and frees dlg structure
+   
+   -expects SUMA_SELECTION_DIALOG_STRUCT * in clientdata
+*/
+void SUMA_DestroyFileSelectionDialog(Widget w, XtPointer clientdata, XtPointer calldata)
+{
+   static char FuncName[]={"SUMA_DestroyFileSelectionDialog"};
+   SUMA_Boolean LocalHead = YUP;
+   SUMA_SELECTION_DIALOG_STRUCT *dlg = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   SUMA_LH("Called");
+   
+   dlg = (SUMA_SELECTION_DIALOG_STRUCT *)clientdata;
+   
+   if (!dlg) SUMA_RETURNe;
+   
+   if (dlg->dlg_w) {
+      SUMA_LH("Destroying widget");
+      dlg->dlg_w = NULL; /* keep it here, it is healthy, even if dlg is freed */
+   }
+   
+   /* now free structure */
+   if (dlg->filename) SUMA_free(dlg->filename);
+   SUMA_free(dlg);
+   
+   SUMA_RETURNe;
+}
+
+/* callback routine for "OK" button in FileSelectionDialogs */
+void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_FileSelection_file_select_cb"};
+   char buf[256], *filename;
+   struct stat statb;
+   FILE *fp;
+   SUMA_SELECTION_DIALOG_STRUCT *dlg;
+   XmFileSelectionBoxCallbackStruct *cbs =
+     (XmFileSelectionBoxCallbackStruct *) call_data;
+   SUMA_Boolean LocalHead = YUP;
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SUMA_LH("Called");
+   
+   dlg = (SUMA_SELECTION_DIALOG_STRUCT *)client_data;
+
+   /* clear old filename */
+   if (dlg->filename) {
+      SUMA_free(dlg->filename); 
+      dlg->filename = NULL;
+   }
+
+   if (!XmStringGetLtoR (cbs->value, XmFONTLIST_DEFAULT_TAG, &filename))
+      SUMA_RETURNe; /* must have been an internal error */
+
+   if (filename[0] == '\0') {
+      XtFree (filename);
+      XBell (XtDisplay (dlg->daddy), 50);
+      SUMA_RETURNe; /* nothing typed */
+   }
+
+   if (dlg->Mode == SUMA_FILE_SAVE) {
+      /* here you could do some tests on the file given the
+      options that would be specified in dlg */
+      if (!(fp = fopen (filename, "w"))) {
+         perror (filename);
+         sprintf (buf, "Can't save to %s.", filename);
+         SUMA_SLP_Err(buf);
+         XtFree(filename);
+         SUMA_RETURNe;
+      }
+   } 
+   else { /* reason == FILE_OPEN */
+     /* here you could do some tests on the file given the
+     options that would be specified in dlg */
+     /* make sure the file is a regular text file and open it */
+     if (stat (filename, &statb) == -1 ||
+             (statb.st_mode & S_IFMT) != S_IFREG ||
+             !(fp = fopen (filename, "r"))) {
+         perror (filename);
+         sprintf (buf, "Can't read %s.", filename);
+         SUMA_SLP_Err(buf);
+         XtFree(filename);
+         SUMA_RETURNe;
+     }
+   }
+
+   /* store the filename */
+   if (filename) {
+      dlg->filename = (char *)SUMA_calloc(strlen(filename)+1, sizeof(char));
+      dlg->filename = strcpy(dlg->filename, filename);
+   }
+
+   /* free all allocated space. */
+   XtFree (filename);
+   fclose (fp);
+
+   XtUnmanageChild (dlg->dlg_w);
+
+   /* Now do the SelectCallback */
+   if (dlg->SelectCallback) {
+      dlg->SelectCallback(dlg->filename, dlg->SelectData);
+   } 
+
+   /* if not preserving, destroy the stuff */
+   if (!dlg->preserve) {
+      if (dlg->dlg_w) {
+         SUMA_LH("Destroying dlg");
+         XtDestroyWidget(dlg->dlg_w); /* The function SUMA_DestroyFileSelectionDialog is called by the widget upon destruction */;
+      }else {
+         SUMA_SL_Warn("dlg_w is null.\nThis should not be.");
+         SUMA_DestroyFileSelectionDialog(NULL, (XtPointer)dlg, NULL);
+      }
+   }
    SUMA_RETURNe;
 }
 

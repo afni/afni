@@ -18,7 +18,11 @@ typedef struct {
   int *ClsNodes;
   int *FaceSetList;
 } SUMA_MorphInfo;
-
+/*
+typedef struct {
+   char fileNm[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
+} SUMA_FileNm;
+*/
 SUMA_MorphInfo * SUMA_Create_MorphInfo (void);
 SUMA_Boolean SUMA_Free_MorphInfo (SUMA_MorphInfo *MI);
 
@@ -27,6 +31,8 @@ float *SUMA_readColor (int numNodes, char* colFileNm);
 void SUMA_writeColorFile (float *array, int numNode, char fileNm[]);
 void SUMA_writeFSfile (float *nodeList, int *faceList, int numNode, int numFace, char firstLine[], char fileNm[]);
 void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[], char group[], char specFileNm[]);
+float* SUMA_readMapDump (int* N_Node, char* dumpFileNm);
+float* SUMA_readANOVA1D (int *N_Node, char* fileNm, SUMA_Boolean sig);
 
 void SUMA_binSearch( float *nodeList, float target, int *seg);
 float intersection_map(float a, float b, float c, float d, float val);

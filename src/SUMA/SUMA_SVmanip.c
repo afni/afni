@@ -1085,7 +1085,9 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
    SUMA_RETURN (YUP);
 }
 
-/*! allocate and intialize SUMA_CommonFields */
+/*! allocate and intialize SUMA_CommonFields 
+\sa SUMA_Free_CommonFields
+*/
 SUMA_CommonFields * SUMA_Create_CommonFields ()
 {
    static char FuncName[]={"SUMA_Create_CommonFields"};
@@ -1130,6 +1132,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->X_Resources = SXR_NP;
    cf->X->Help_TextShell = NULL;
    cf->X->Log_TextShell = NULL;
+   cf->X->FileSelectDlg = NULL;
    cf->MessageList = SUMA_CreateMessageList ();
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    cf->ROI_mode = NOPE;
@@ -1200,7 +1203,7 @@ SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void)
    DrawROI->ROIlbl = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
    DrawROI->curDrawnROI = NULL;  /* DO NOT FREE THIS POINTER */
    DrawROI->SwitchROIlst = NULL;
-
+   DrawROI->Delete_first = YUP;
    return (DrawROI);
 }
 
@@ -1323,13 +1326,16 @@ void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont)
    return (NULL);
 }
 
-/*! free SUMA_CommonFields */
+/*! free SUMA_CommonFields 
+\sa SUMA_Create_CommonFields
+*/
 SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
 {
    static char FuncName[]={"SUMA_Free_CommonFields"};
    
    /* do not use commonfields related stuff here for obvious reasons */
    
+   if (cf->X->FileSelectDlg) SUMA_DestroyFileSelectionDialog(NULL, cf->X->FileSelectDlg, NULL);
    if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont);
    if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI);
    if (cf->X) free(cf->X);

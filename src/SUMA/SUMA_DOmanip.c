@@ -2,7 +2,9 @@
 
 extern SUMA_CommonFields *SUMAg_CF; 
 extern SUMA_DO *SUMAg_DOv;   
-extern int SUMAg_N_DOv; 
+extern int SUMAg_N_DOv;
+extern SUMA_SurfaceViewer *SUMAg_SVv;
+extern int SUMAg_N_SVv;
 
 /*! functions dealing with Drawable Object Manipulation */
 
@@ -278,7 +280,6 @@ Add a displayable object to dov
 SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Type, SUMA_DO_CoordType DO_CoordType)
 {
    static char FuncName[] = {"SUMA_AddDO"};
-   SUMA_Boolean Shaded=NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -292,15 +293,53 @@ SUMA_Boolean SUMA_AddDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_DO_Types DO_Typ
    dov[*N_dov].CoordType = DO_CoordType;
    *N_dov = *N_dov+1;
    
-   /* Make some updates if needed */
-   
-   /* is the Switch ROI window open ? */
-   SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded);
-   if (!Shaded) {
-      SUMA_cb_DrawROI_SwitchROI (NULL, (XtPointer) SUMAg_CF->X->DrawROI->SwitchROIlst, NULL);
-   }
    
    SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Remove a displayable object from dov
+   success = SUMA_RemoveDO(dov, N_dov, op, Free_op);
+   
+   \param dov (SUMA_DO*) vector containing displayable objects
+   \param N_dov (int *) number of elements in dov
+   \param op (void *) pointer to object sought
+   \param Free_op (SUMA_Boolean) Flag for freeing space allocated for op's data.
+         Freeing is done via SUMA_Free_Displayable_Object()
+   \return success (SUMA_Boolean)  flag. 
+*/
+SUMA_Boolean SUMA_RemoveDO(SUMA_DO *dov, int *N_dov, void *op, SUMA_Boolean Free_op)
+{
+   static char FuncName[] = {"SUMA_RemoveDO"};
+   int i;
+   SUMA_Boolean LocalHead=YUP, Found=NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   for (i=0; i<*N_dov; ++i) {
+      if (dov[i].OP == op) {
+         Found = YUP;
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: found object. Removing it from dov.\n", FuncName);
+         if (Free_op) {
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: Freeing object.\n", FuncName);
+            if (!SUMA_Free_Displayable_Object (&dov[i])) {
+               SUMA_SLP_Crit("Failed to free displayable object.");
+               SUMA_RETURN(NOPE);
+            }
+         }
+         *N_dov = *N_dov-1;
+         dov[i].OP = dov[*N_dov].OP;
+         dov[i].ObjectType = dov[*N_dov].ObjectType;
+         dov[i].CoordType = dov[*N_dov].CoordType;
+      }
+   }
+
+   
+   if (Found) {
+      SUMA_RETURN(YUP);
+   } else {
+      SUMA_RETURN(NOPE);
+   }
 }
 
 /*!
@@ -865,6 +904,8 @@ SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT
    
    SUMA_RETURN(NULL);
 }
+
+
 /*!
 \brief Returns an ROI that is related to SO and is in InCreation (being actively drawn) DrawStatus 
  There should only be one ROI in creation at any one time for a group of related surfaces. 
@@ -941,7 +982,7 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO)
 }
 
 /*!
-\brief Returns YUP if if the surface: dROI->Parent_idcode_str is related to SO->idcode_str or SO->MapRef_idcode_str.
+\brief Returns YUP if if the surface: ROI->Parent_idcode_str is related to SO->idcode_str or SO->MapRef_idcode_str.
 NOPE otherwise
 
 ans = SUMA_isROIrelated (ROI, SO);
@@ -1101,4 +1142,86 @@ int SUMA_Build_Mask_DrawnROI (SUMA_DRAWN_ROI *D_ROI, int *Mask)
    } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
                
    SUMA_RETURN (N_added);
+}
+
+/*!
+   \brief Loads a color plane file and adds it to a surface's list of colorplanes
+   
+   \param dlg (SUMA_SELECTION_DIALOG_STRUCT *) struture from selection dialogue
+*/
+void SUMA_LoadColorPlaneFile (char *filename, void *data)
+{
+   static char FuncName[]={"SUMA_LoadColorPlaneFile"};
+   SUMA_SurfaceObject *SO = NULL;
+   int ntot;
+   SUMA_OVERLAY_PLANE_DATA sopd;
+   SUMA_IRGB *irgb=NULL;
+   int OverInd = -1;
+   DList *list=NULL;
+   SUMA_Boolean LocalHead=YUP;
+      
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   SO = (SUMA_SurfaceObject *)data;
+   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: Received request to load %s for surface %s.\n", FuncName, filename, SO->Label);
+   }
+
+   /* find out if file exists and how many values it contains */
+   ntot = SUMA_float_file_size (filename);
+   if (ntot < 0) {
+      fprintf(SUMA_STDERR,"Error %s: filename %s could not be open.\n", FuncName, filename);
+      SUMA_RETURNe;
+   }
+
+   /* make sure it's a full matrix */
+   if ((ntot % 4)) {
+      fprintf(stderr,"Error %s: file %s contains %d values, not divisible by ncols %d.\n", FuncName, filename, ntot, 4);
+      SUMA_RETURNe;
+   }
+
+
+   irgb = SUMA_Read_IRGB_file(filename, ntot / 4);
+   if (!irgb) {
+      SUMA_SLP_Err("Failed to read file.");
+      SUMA_RETURNe;
+   }
+
+   sopd.N = irgb->N;
+   sopd.Type = SOPT_ifff;
+   sopd.Source = SES_Suma;
+   sopd.GlobalOpacity = 0.3;
+   sopd.BrightMod = NOPE;
+   sopd.Show = YUP;
+   /* dim colors from maximum intensity to preserve surface shape highlights, division by 255 is to scale color values between 1 and 0 */
+   sopd.DimFact = 0.5;
+   sopd.i = (void *)irgb->i;
+   sopd.r = (void *)irgb->r;
+   sopd.g = (void *)irgb->g;
+   sopd.b = (void *)irgb->b;
+   sopd.a = NULL;
+
+   if (!SUMA_iRGB_to_OverlayPointer (SO, filename, &sopd, &OverInd, SUMAg_DOv, SUMAg_N_DOv)) {
+      SUMA_SLP_Err("Failed to fetch or create overlay pointer.");
+      SUMA_RETURNe;
+   }
+
+   /* values were copied, dump structure */
+   irgb = SUMA_Free_IRGB(irgb);  
+
+   /* remix colors for all viewers displaying related surfaces */
+   if (!SUMA_SetRemixFlag(SO->idcode_str, SUMAg_SVv, SUMAg_N_SVv)) {
+      SUMA_SLP_Err("Failed in SUMA_SetRemixFlag.\n");
+      SUMA_RETURNe;
+   }
+
+   if (!list) list = SUMA_CreateList();
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_Suma, NULL);
+   if (!SUMA_Engine (&list)) {
+      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }  
+               
+
+   SUMA_RETURNe;
 }

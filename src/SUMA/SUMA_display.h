@@ -149,6 +149,7 @@ void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data)
 void SUMA_cb_DrawROI_Undo (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_Redo (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_Save (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_DrawROI_Load (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_setlabel (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_CreateArrowField ( Widget pw, char *label,
                               float value, float vmin, float vmax, float vstep,
@@ -175,6 +176,8 @@ void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION L
 void SUMA_cb_DrawROI_Finish (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_Join (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_DrawROI_SwitchROI (Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_DrawROI_Delete(Widget wcall, XtPointer cd1, XtPointer cbs);
+void SUMA_delete_timeout_CB( XtPointer client_data , XtIntervalId * id );
 SUMA_LIST_WIDGET * SUMA_FreeScrolledList (SUMA_LIST_WIDGET *LW);
 SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (char *Label, int SelectPolicy, 
                                                 SUMA_Boolean RemoveDups, SUMA_Boolean ShowSorted,
@@ -186,6 +189,14 @@ void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partia
                                   SUMA_LIST_WIDGET *LW);
 void SUMA_cb_CloseSwitchROI(Widget w, XtPointer data, XtPointer call_data);
 void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data);
+void SUMA_FileSelection_popdown_cb (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtPointer call_data);
+SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialog (char *title, SUMA_SELECTION_DIALOG_STRUCT *dlg);
+SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy, SUMA_FILE_SELECT_MODE Mode, SUMA_Boolean preserve,
+                                                                  void (*SelectCallback)(char *filename, void *data), void *SelectData,
+                                                                  void (*CancelCallback)(void *data), void *CancelData,
+                                                                  SUMA_SELECTION_DIALOG_STRUCT *dlg);
+void SUMA_DestroyFileSelectionDialog(Widget w, XtPointer data, XtPointer client_data);
 
 
 
@@ -198,7 +209,10 @@ void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data);
 
 #define SUMA_DrawROI_Save_help \
    "Save the Drawn ROI"
-   
+
+#define SUMA_DrawROI_Load_help   \
+   "Load a Drawn ROI"
+
 #define SUMA_closeDrawROI_help  \
    "Close Draw ROI window"
  

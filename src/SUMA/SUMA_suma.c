@@ -38,7 +38,7 @@ void SUMA_usage ()
 			 printf ("\n\t[-memdbg] This option will trun on the memory tracing from the getgo.\n");
           */
 			 /*SUMA_VolSurf_help(NULL); OBSOLETE */
-			 printf ("\n\n\tFor help on interacting with SUMA, press 'h' with the mouse pointer inside SUMA's window.\n");
+			 printf ("\n\n\tFor help on interacting with SUMA, press 'ctrl+h' with the mouse pointer inside SUMA's window.\n");
 			 printf ("\n\n\tFor more help: http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
 			 printf ("\n\n\tIf you can't get help here, please get help somewhere.\n");
 			 SUMA_Version(NULL);

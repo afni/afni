@@ -1482,7 +1482,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
       SUMA_free(Sover);
       SUMA_RETURN (NULL);
    } else {
-      strcpy (Sover->Name, Name);
+      sprintf(Sover->Name, "%s", Name);
    }
    Sover->N_Alloc = N_Nodes;
    
@@ -1863,7 +1863,7 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
    static char FuncName[] = {"SUMA_MixOverlays"};
    int i, j;
    SUMA_Boolean Full, Fill, Locl, Glob;
-   SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
+   SUMA_Boolean LocalHead = YUP; /* local headline debugging messages */   
    
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
@@ -2117,33 +2117,70 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_old(SUMA_OVERLAYS ** Overlays, int N_Overl
 SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overlays) 
 {
    static char FuncName[]={"SUMA_Show_ColorOverlayPlanes"};
-   int i;
+   char *s;
    
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
-   for (i=0; i < N_Overlays; ++i) {
-      fprintf (SUMA_STDOUT, "%s: Overlay plane %s, order %d, indexed %d.\n", FuncName, Overlays[i]->Name, Overlays[i]->PlaneOrder, i);
-      if (!Overlays[i]) {
-         fprintf (SUMA_STDOUT, "is NULL\n");
-         continue;
-      }
-      fprintf (SUMA_STDOUT, "%s, Show=%d, N_Alloc=%d\n", Overlays[i]->Name, (int)Overlays[i]->Show, Overlays[i]->N_Alloc);
-      fprintf (SUMA_STDOUT, "\tNodeDef: %d values, [%d %d %d %d %d...]\n", \
-         Overlays[i]->N_NodeDef, Overlays[i]->NodeDef[0], Overlays[i]->NodeDef[1], Overlays[i]->NodeDef[2], \
-         Overlays[i]->NodeDef[3], Overlays[i]->NodeDef[4]);
-      fprintf (SUMA_STDOUT, "\tColMat:[%f %f %f; %f %f %f; %f %f %f ....]\n", \
-         Overlays[i]->ColMat[0][0], Overlays[i]->ColMat[0][1],Overlays[i]->ColMat[0][2],\
-         Overlays[i]->ColMat[1][0], Overlays[i]->ColMat[1][1],Overlays[i]->ColMat[1][2],\
-         Overlays[i]->ColMat[2][0], Overlays[i]->ColMat[2][1],Overlays[i]->ColMat[2][2]);
-      fprintf (SUMA_STDOUT, "\tGlobal Fact: %f\n\tLocalOpacity: [%f %f %f %f %f...]", \
-         Overlays[i]->GlobalOpacity, Overlays[i]->LocalOpacity[0], Overlays[i]->LocalOpacity[1],\
-         Overlays[i]->LocalOpacity[2], Overlays[i]->LocalOpacity[3], Overlays[i]->LocalOpacity[4]);
-      fprintf (SUMA_STDOUT, "\n");
+   s = SUMA_ColorOverlayPlane_Info (Overlays, N_Overlays);
+   if (s) {
+      fprintf (SUMA_STDERR,"%s\n", s);
+      SUMA_free(s);
    }
-
+   
    SUMA_RETURN (YUP);
 }
+
+/*!
+   \brief Shows the contents of the color overlay planes
+   \sa SUMA_Show_ColorOverlayPlanes (for backward compat.)
+*/
+char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays) 
+{
+   static char FuncName[]={"SUMA_ColorOverlayPlane_Info"};
+   char stmp[1000], *s = NULL;
+   int i, j, ShowN;
+   SUMA_STRING *SS = NULL;
    
+   if (SUMAg_CF->InOut_Notify)  SUMA_DBG_IN_NOTIFY(FuncName); 
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   sprintf (stmp,"Info on %d color overlay planes:\n---------------------------------\n", N_Overlays);
+   SS = SUMA_StringAppend (SS,stmp);
+   for (i=0; i < N_Overlays; ++i) {
+      if (Overlays[i]) {
+         sprintf (stmp,"Overlay plane %s: order %d, indexed %d, global opacity %f, BrightMod (isBackground) %d.\n", 
+            Overlays[i]->Name, Overlays[i]->PlaneOrder, i, Overlays[i]->GlobalOpacity, Overlays[i]->BrightMod);
+         SS = SUMA_StringAppend (SS,stmp);
+         sprintf (stmp,"Show=%d, N_Alloc=%d, N_NodeDef=%d\n", (int)Overlays[i]->Show, Overlays[i]->N_Alloc, Overlays[i]->N_NodeDef);
+         SS = SUMA_StringAppend (SS,stmp);
+         if (Overlays[i]->N_NodeDef > 5) ShowN = 5;
+         else ShowN = Overlays[i]->N_NodeDef;
+         SS = SUMA_StringAppend (SS,"\n");
+         sprintf (stmp,"\tindex\tR\tG\tB\tLocOp\n");
+         SS = SUMA_StringAppend (SS,stmp);
+         stmp[0] = '\0';
+         for (j=0; j < ShowN; ++j) {
+            sprintf (stmp,"%s\t%d\t%.3f\t%.3f\t%.3f\t%.3f\n", 
+                     stmp, Overlays[i]->NodeDef[j], Overlays[i]->ColMat[j][0], 
+                     Overlays[i]->ColMat[j][1], Overlays[i]->ColMat[j][2],
+                     Overlays[i]->LocalOpacity[j]);
+         }
+         SS = SUMA_StringAppend (SS,stmp);        
+         SS = SUMA_StringAppend (SS,"\n");
+
+      } else {
+         SS = SUMA_StringAppend (SS,"\tNULL overlay plane.\n");
+      }
+   }
+   /* clean SS */
+   SS = SUMA_StringAppend (SS, NULL);
+   /* copy s pointer and free SS */
+   s = SS->s;
+   SUMA_free(SS); 
+   
+   SUMA_RETURN(s);
+}
 /*! 
 
    ans = SUMA_SetPlaneOrder (Overlays, N_Overlays, Name, NewOrder);
@@ -2252,3 +2289,146 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
    SUMA_RETURN (YUP);
 
 }
+
+/*!
+   \brief A function that looks up an overlay plane by its name.
+   If the plane is found its index is returned, otherwise
+   a new one is created. The function also sets up pointers to 
+   that plane for all related surfaces in dov.
+*/ 
+SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO, char *Name, SUMA_OVERLAY_PLANE_DATA *sopd, int *PlaneInd, SUMA_DO *dov, int N_dov) 
+{
+   static char FuncName[]={"SUMA_iRGB_to_OverlayPointer"};
+   int i, OverInd = -1;
+   SUMA_SurfaceObject *SO2 = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+      /* if plane exists use it, else create a new one on the mappable surface */
+      if (!SUMA_Fetch_OverlayPointer (SO->Overlays, SO->N_Overlays, Name, &OverInd)) {
+         /* overlay plane not found, create a new one on the mappable surface*/
+         if (!SUMA_isINHmappable(SO)) {
+            if (sopd->Source == SES_Afni) {
+               /* unexpected, surfaces coming from AFNI with a map should be inherrently mappable */
+               fprintf(SUMA_STDERR,"Error %s: Surface %s (ID: %s) received from AFNI is not Inherrently mappable.\n", FuncName, SO->Label, SO->idcode_str);
+               SUMA_RETURN(NOPE);
+            } else {
+               SUMA_SL_Warn ("Placing colors on surface \nnot inherently mappable.\nCase not tested.");
+            }
+         } 
+
+         SO->Overlays[SO->N_Overlays] = SUMA_CreateOverlayPointer (SO->N_Node, Name);
+         if (!SO->Overlays[SO->N_Overlays]) {
+            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
+            SUMA_RETURN(NOPE);
+         } 
+
+         /* make an Inode for the overlay */
+         SO->Overlays_Inode[SO->N_Overlays] = SUMA_CreateInode ((void *)SO->Overlays[SO->N_Overlays], SO->idcode_str);
+         if (!SO->Overlays_Inode[SO->N_Overlays]) {
+            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+
+         OverInd = SO->N_Overlays; 
+         SO->N_Overlays ++;
+
+         /* place the overlay plane on top */
+         if(!SUMA_SetPlaneOrder (SO->Overlays, SO->N_Overlays, Name, SO->N_Overlays-1)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetPlaneOrder\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+
+         /* set up some defaults for the overlap plane */
+         SO->Overlays[OverInd]->Show = sopd->Show;
+         SO->Overlays[OverInd]->GlobalOpacity = sopd->GlobalOpacity;
+         SO->Overlays[OverInd]->BrightMod = sopd->BrightMod;
+         
+      }
+      
+      /* Now put the colors in the overlay plane */
+      SO->Overlays[OverInd]->N_NodeDef = sopd->N;
+      if (SO->Overlays[OverInd]->N_NodeDef) {
+         switch (sopd->Type) {
+            case SOPT_ibbb:
+               {
+                  int *inel=NULL;
+                  byte *r=NULL, *g=NULL, *b=NULL, *a=NULL;
+                  
+                  inel = (int *)sopd->i;
+                  r = (byte *)sopd->r;
+                  g = (byte *)sopd->g;
+                  b = (byte *)sopd->b;
+                  for (i=0; i < sopd->N; ++i) {
+                     /*fprintf(SUMA_STDERR,"Node %d: r%d, g%d, b%d\n", inel[i], r[i], g[i], b[i]);*/
+                     SO->Overlays[OverInd]->NodeDef[i] = inel[i];
+                     SO->Overlays[OverInd]->ColMat[i][0] = (float)(r[i]) * sopd->DimFact;
+                     SO->Overlays[OverInd]->ColMat[i][1] = (float)(g[i]) * sopd->DimFact;
+                     SO->Overlays[OverInd]->ColMat[i][2] = (float)(b[i]) * sopd->DimFact;
+                  }
+               }
+               break;
+            case SOPT_ifff:
+               {
+                  int *inel=NULL;
+                  float *r=NULL, *g=NULL, *b=NULL, *a=NULL;
+                  
+                  inel = (int *)sopd->i;
+                  r = (float *)sopd->r;
+                  g = (float *)sopd->g;
+                  b = (float *)sopd->b;
+                  for (i=0; i < sopd->N; ++i) {
+                     /*fprintf(SUMA_STDERR,"Node %d: r%d, g%d, b%d\n", inel[i], r[i], g[i], b[i]);*/
+                     SO->Overlays[OverInd]->NodeDef[i] = inel[i];
+                     SO->Overlays[OverInd]->ColMat[i][0] = (float)(r[i]) * sopd->DimFact;
+                     SO->Overlays[OverInd]->ColMat[i][1] = (float)(g[i]) * sopd->DimFact;
+                     SO->Overlays[OverInd]->ColMat[i][2] = (float)(b[i]) * sopd->DimFact;
+                  }
+               }
+               break;
+            default:
+               SUMA_SLP_Err("Unknown color plane type");
+               SUMA_RETURN(NOPE);
+               break;
+         }
+      }
+       
+      /* Now that you have the color overlay plane set, go about all the surfaces, searching for ones related to SO 
+      and make sure they have this colorplane, otherwise, create a link to it. */   
+      for (i=0; i < N_dov; ++i) {
+         if (SUMA_isSO(dov[i])) {
+            SO2 = (SUMA_SurfaceObject *)dov[i].OP;
+            if (SUMA_isRelated(SO, SO2) && SO != SO2) {
+               /* surfaces related and not identical, check on colorplanes */
+               if (!SUMA_Fetch_OverlayPointer (SO2->Overlays, SO2->N_Overlays, Name, &OverInd)) {
+                  /* color plane not found, link to that of SO */
+                  SO2->Overlays_Inode[SO2->N_Overlays] = SUMA_CreateInodeLink (SO2->Overlays_Inode[SO2->N_Overlays],\
+                         SO->Overlays_Inode[SO->N_Overlays-1]);
+                  if (!SO2->Overlays_Inode[SO2->N_Overlays]) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
+                     SUMA_RETURN(NOPE);
+                  }
+                  /* now copy the actual overlay plane pointer */
+                  SO2->Overlays[SO2->N_Overlays] = SO->Overlays[SO->N_Overlays-1];
+
+                  /*setup the defaults */
+                  SO2->Overlays[SO2->N_Overlays]->Show = YUP;
+                  SO2->Overlays[SO2->N_Overlays]->GlobalOpacity = SUMA_AFNI_COLORPLANE_OPACITY;
+                  SO2->Overlays[SO2->N_Overlays]->BrightMod = NOPE;
+
+                  /*increment the number of overlay planes */
+                  ++SO2->N_Overlays;
+               } else {
+                  /* colorplane found OK */
+               }
+            }
+         }
+      }
+
+
+   *PlaneInd = OverInd;
+   SUMA_RETURN (YUP);
+
+}
+
