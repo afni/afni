@@ -1,6 +1,14 @@
 # This Makefile works on FreeBSD 3.2 with openmotif 2.1.30,
 # and also on FreeBSD 4.x with a standard X developer installation.
-# It is nearly identical to the Makefile for Linux RedHat 6.x
+# It is based on the Makefile for Linux RedHat 6.x
+#
+# Note: Compilation of netcdf-3.5.0 may fail due to m4's lack of
+#       support for the -B option.  Remove the -B10000 flag from
+#       netcdf-3.5.0/src/configure BEFORE running make to avoid
+#       this error.  ( Or force configure to use gm4 by reversing
+#       the order of "m4 gm4" to "gm4 m4" everywhere in the script )
+#       This problem has been reported to the netcdf development team.
+#
 # Contributed by: Jason Bacon
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
