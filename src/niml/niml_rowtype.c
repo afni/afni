@@ -1207,3 +1207,74 @@ int NI_write_columns( NI_stream_type *ns,
    FREEUP ;
    return ntot ;
 }
+
+/*------------------------------------------------------------------------*/
+/*! Read "columns" of data from a NI_stream.  Each column is an array of
+    structs of some NI_rowtype (including the builtin types):
+      - ns         = stream to read from
+      - col_num    = number of columns to read (1,2,...)
+      - col_typ[i] = type code for column #i (i=0..col_num-1)
+      - col_len    = number of elements in each column
+      - col_dpt[i] = pointer to data in column #i
+        - col_dpt can't be NULL
+        - but if col_dpt[i] is NULL, it will be NI_malloc()-ed
+      - return value is
+        - number of rows actually read (<= col_len)
+        - zero if stream isn't ready to read
+        - -1 if something bad happened
+
+   Only the data is read from the stream - no header or footer.
+   This function is adapted from the 1st edition of NI_read_element().
+--------------------------------------------------------------------------*/
+
+int NI_read_columns( NI_stream_type *ns,
+                     int col_num , int   *col_typ ,
+                     int col_len , void **col_dpt , int tmode )
+{
+   int ii,jj , row , dim , ntot,nout , col ;
+   char *ptr , **col_dat=(char **)col_dpt ;
+   int  nwbuf,bb=0,cc=0;
+   char *wbuf=NULL ; /* write buffer */
+   char *bbuf=NULL ; /* copy of write buffer */
+   char *cbuf=NULL ; /* Base64 buffer */
+
+   NI_rowtype **rt=NULL ;  /* array of NI_rowtype, 1 per column */
+   int *vsiz=NULL , vsiz_tot=0 ;
+   int *fsiz=NULL , fsiz_tot=0 ;
+
+# undef  FREEUP
+# define FREEUP do{ NI_FREE(wbuf); NI_FREE(bbuf); NI_FREE(cbuf); \
+                    NI_FREE(rt)  ; NI_FREE(vsiz); NI_FREE(fsiz); \
+                } while(0)
+
+   /*-- check inputs --*/
+
+   if( col_num <= 0 || col_len <= 0                       ) return  0 ;
+   if( ns == NULL   || col_typ == NULL || col_dat == NULL ) return -1 ;
+
+   /*-- check stream --*/
+
+   if( ns->bad ){                       /* not connected yet? */
+     jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
+     if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
+   }
+   jj = NI_stream_readcheck(ns,1) ;
+   if( jj < 1 ) return jj ;
+
+   /* create array of NI_rowtype for columns, etc. */
+
+   rt   = NI_malloc( sizeof(NI_rowtype *) * col_num ) ;
+   vsiz = NI_malloc( sizeof(int)          * col_num ) ;
+   fsiz = NI_malloc( sizeof(int)          * col_num ) ;
+   for( col=0 ; col < col_num ; col++ ){
+     rt[col] = NI_rowtype_find_code( col_typ[col] ) ;
+     if( rt[col] == NULL ){ FREEUP; return -1; }
+     vsiz[col] = (rt[col]->psiz == 0) ;  /* is this a variable size type */
+     fsiz[col] = rt[col]->size ;         /* fixed size of struct (w/padding) */
+     vsiz_tot += vsiz[col] ;
+     fsiz_tot += fsiz[col] ;
+     if( col_dat[col] == NULL )
+       col_dat[col] = NI_malloc( fsiz[col] * col_len ) ;
+   }
+
+}
