@@ -3,6 +3,8 @@
 
 
 SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *tmpVolParName, int debug);
+SUMA_Boolean SUMA_PrepAddmappableSO(SUMA_SurfaceObject *SO, SUMA_DO *dov, int *N_dov, int debug, DList *DsetList);
+SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO);
 SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName);
 SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName, int debug);
 SUMA_SurfaceObject *SUMA_Load_Surface_Object_Wrapper ( char *if_name1, char *if_name2, char *vp_name, 
@@ -28,7 +30,8 @@ int    SUMA_swap_spec_entries (SUMA_SurfSpecFile *spec,int i0,int i1,int debug);
 int    SUMA_unique_name_ind   ( SUMA_SurfSpecFile * spec, char * sname );
 int    swap_strings           ( char * s0, char * s1, char * save, int len );
 void SUMA_Show_IO_args(SUMA_GENERIC_ARGV_PARSE *ps);
-SUMA_SurfSpecFile *SUMA_IO_args2_spec(SUMA_GENERIC_ARGV_PARSE *ps);
+SUMA_SurfSpecFile *SUMA_SOGroup_2_Spec(SUMA_SurfaceObject **SOv, int N_SOv);
+SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps);
 SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags);
 SUMA_GENERIC_ARGV_PARSE *SUMA_FreeGenericArgParse(SUMA_GENERIC_ARGV_PARSE *ps);
 char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt);

@@ -33,18 +33,18 @@ extern int SUMAg_N_SVv;
 
 SUMA_Boolean SUMA_Engine (DList **listp)
 {
+   static char FuncName[]={"SUMA_Engine"};
    char tmpcom[SUMA_MAX_COMMAND_LENGTH], sfield[100], sdestination[100];
    const char *NextCom;
-   static char FuncName[]={"SUMA_Engine"};
    int NextComCode, ii, i, id, ND, ip, NP;
    SUMA_SurfaceObject *SO = NULL;
    float delta_t;
    struct  timeval tt;
-   int it, Wait_tot, nn=0, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
+   int it, Wait_tot, nn=0, N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS], iv200[200];
    float ft, **fm, fv15[15];
    XtPointer elvis=NULL;
    NI_element *nel;
-   SUMA_Boolean Found, LocalHead = NOPE;
+   SUMA_Boolean Found;
    SUMA_SurfaceViewer *svi;
    SUMA_SurfaceViewer *sv = NULL;
    static char Command[]={"OBSOLETE-since:Thu Jan 23 16:55:03 EST 2003"};
@@ -53,7 +53,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    DListElmt *NextElem_CANT_TOUCH_THIS, *LocElm=NULL;
    DList *list= NULL;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL, *LogShell=NULL;
-
+   SUMA_Boolean LocalHead = NOPE;
+   
    /*int iv3[3], iv15[15], **im;
    float fv3[3];
    char s[SUMA_MAX_STRING_LENGTH];*/ /* keep standard unused variables undeclared, else compiler complains*/
@@ -602,7 +603,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SE_Load_Group:
             /* Does not need a sv 
                expects  a pointer to .spec filename in cp, 
-                        if cp is NULL then it will look for a spec structure pointer in iv (sorry, ran out of places...) 
+                        if cp is NULL then it will look for a spec structure pointer in ip (sorry, ran out of places...) 
+                        it will also determine if surfaces in a spec structure pointer have already been loaded from f (really, ran out of places...)
                         a VolumeParent name in vp,
                         the indices of the viewers to register the surfaces with in iv15. 
                         and the number of viewers specified in iv15 in i.
@@ -610,10 +612,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
             if (EngineData->cp_Dest != NextComCode || EngineData->vp_Dest != NextComCode 
                || EngineData->iv15_Dest != NextComCode || EngineData->i_Dest != NextComCode
-               || EngineData->ip_Dest != NextComCode) {
-               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n%d %d %d %d %d\n", \
+               || EngineData->ip_Dest != NextComCode || EngineData->f_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n%d %d %d %d %d %d\n", \
                   FuncName, NextCom, NextComCode, EngineData->cp_Dest, EngineData->vp_Dest, 
-                  EngineData->iv15_Dest, EngineData->i_Dest , EngineData->ip_Dest);
+                  EngineData->iv15_Dest, EngineData->i_Dest , EngineData->ip_Dest, EngineData->f_Dest);
                break;
             } 
             {
@@ -632,23 +634,27 @@ SUMA_Boolean SUMA_Engine (DList **listp)
 		            }	
                } else {
                   if (!EngineData->ip) {
-                     fprintf(SUMA_STDERR,"Error %s: Nothing in iv, nothing to do !\n", FuncName); exit(1);
+                     fprintf(SUMA_STDERR,"Error %s: Nothing in ip, nothing to do !\n", FuncName); exit(1);
                   }
-                  Spec = *((SUMA_SurfSpecFile *)EngineData->ip); /* STOPPED HERE, nothing is sent in iv YET */
+                  Spec = *((SUMA_SurfSpecFile *)EngineData->ip); 
                }
-		         /* make sure only one group was read in */
+               
+               /* make sure only one group was read in */
 		         if (Spec.N_Groups != 1) {
 			         fprintf(SUMA_STDERR,"Error %s: One and only one group of surfaces is allowed at the moment (%d found).\n", FuncName, Spec.N_Groups);
 			         exit(1);
 		         }
 
-		         /* load the surfaces specified in the specs file, one by one*/			
-		         if (LocalHead) fprintf (SUMA_STDERR, "%s: Loading Surfaces in Spec File ...\n", FuncName);
-		         if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName, 0, SUMAg_CF->DsetList)) {
-			         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
-			         exit(1);
-		         }
-
+		         if (!EngineData->f) {
+                  /* load the surfaces specified in the specs file, one by one*/			
+		            if (LocalHead) fprintf (SUMA_STDERR, "%s: Loading Surfaces in Spec File ...\n", FuncName);
+		            if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName, 0, SUMAg_CF->DsetList)) {
+			            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
+			            exit(1);
+		            }
+               }
+               
+               
                /* register the new group with SUMA */
                if (!SUMA_RegisterGroup(SUMAg_CF, &Spec)) {
                   SUMA_SL_Err("Failed to register group");
@@ -668,8 +674,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (LocalHead) fprintf (SUMA_STDERR, "%s: Adding call to Home and Redisplay \n", FuncName);
                /* add a call to Home and a redisplay */
                if (!list) {
-                  if (LocalHead) fprintf (SUMA_STDERR, "%s: Creating new list.\n", FuncName);
-                  list = SUMA_CreateList();
+                  fprintf (SUMA_STDERR, "Error %s: Should not be inside SUMA_Engine: ZSS Feb 02 05.\n", FuncName);
+                  /* list = SUMA_CreateList();*/
+                  break;
                }else {
                   SUMA_LH("Appending to list ");
                }
@@ -909,87 +916,169 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                                             SEI_Head, NULL); 
             break;
             
+         case SE_SetAfniSurfList:
+            /* expects ivec in EngineData and a string in s saying what is to be sent*/
+            { int nels_sent, N_Send, *SendList;
+               
+               if (EngineData->ivec_Dest != NextComCode || EngineData->s_Dest != NextComCode) {
+                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+                  break;
+               }
+               N_Send = EngineData->ivec->n;
+               SendList = EngineData->ivec->v; 
+               /* send to afni the list of surfaces in SendList*/
+               if (N_Send) {
+                  for (ii=0; ii<N_Send; ++ii) {
+                     nels_sent = 0;
+                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SendList[ii]].OP);
+                     if (SO->Label) fprintf(SUMA_STDERR,"%s: Sending surface %s (%s)...\n", FuncName, SO->Label, EngineData->s);
+                     if (SUMA_iswordin(EngineData->s,"NodeList") == 1) {
+                        nel = SUMA_makeNI_SurfIXYZ (SO);
+                        if (!nel) {
+                           fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfIXYZ failed\n", FuncName);
+                           break;
+                        }
+                        /* send surface nel */
+                        if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_iXYZ nel...\n ", FuncName) ;
+                        nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
+
+                        if( nn < 0 ){
+                             fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
+                        }
+
+                        #if 0
+                           {
+                              NI_stream nstdout;
+                               nstdout = NI_stream_open( "fd:1","w");
+                                if( nstdout == NULL ){ fprintf(SUMA_STDERR,"Can't open fd:1\n"); break; }
+                                 NI_write_element( nstdout , nel , NI_TEXT_MODE ) ;
+                               NI_stream_close(nstdout);
+                           }
+                        #endif
+
+                        NI_free_element(nel);
+                        nel = NULL;
+                        ++nels_sent;
+                     }
+                     if (SUMA_iswordin(EngineData->s,"NodeNormList") == 1) {
+                        /* send node normals       ZSS Oct 05 04 */
+                        nel = SUMA_makeNI_SurfINORM (SO);
+                        if (!nel) {
+                           fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfINORM failed\n", FuncName);
+                           break;
+                        }
+                        /* send surface nel */
+                        if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_NORM nel ...\n", FuncName) ;
+                        nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
+
+                        if( nn < 0 ){
+                             fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
+                        }
+                        NI_free_element(nel);
+                        nel = NULL;
+                        ++nels_sent;
+                     }
+                     
+                     if (SUMA_iswordin(EngineData->s,"FaceSetList") == 1) {
+                        /* send triangles */
+                        nel = SUMA_makeNI_SurfIJK (SO);
+                        if (!nel) {
+                           fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfIJK failed\n", FuncName);
+                           break;
+                        }
+                        /* send surface nel */
+                        if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_IJK nel ...\n", FuncName) ;
+                        nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
+
+                        if( nn < 0 ){
+                             fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
+                        }
+                        NI_free_element(nel);
+                        nel = NULL;
+                        ++nels_sent;
+                     }
+                     if (nels_sent) {
+                        /* mark surface as sent to afni */
+                        SO->SentToAfni = YUP;
+                     } else {
+                        SUMA_SL_Warn("Nothing sent dude, what's happening?");
+                     }
+                  }
+               }
+
+               break;
+            }
+            
          case SE_SetAfniSurf:
             /* expects nothing in EngineData */
-            { int loc_ID, N_Send, *SendList;
-            
-            /* send to afni the list of anatomically correct surfaces and with a surface volume*/
-            /* No surfaces are sent twice because there should not be duplicate 
-            local domain parent surfaces in SUMAg_DOv */
-            /* prior to Wed Nov  6 17:47:20 EST 2002, only mappable surfaces that are related to the ones shown in the viewer
-            were being sent to AFNI. Now all mappable surfaces loaded are sent regardless of what is shown */
-            /* Jan. 08 04: All anatomically correct surfaces are now sent to AFNI */
-            SendList = SUMA_FormSOListToSendToAFNI(SUMAg_DOv , SUMAg_N_DOv, &N_Send);
-            if (N_Send) {
-               for (ii=0; ii<N_Send; ++ii) {
-                  SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SendList[ii]].OP);
-                  if (SO->Label) fprintf(SUMA_STDERR,"%s: Sending surface %s ...\n", FuncName, SO->Label);
-                  nel = SUMA_makeNI_SurfIXYZ (SO);
-                  if (!nel) {
-                     fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfIXYZ failed\n", FuncName);
+            {  int N_Send, *SendList;
+               SUMA_IVEC ivec;
+               /* send to afni the list of anatomically correct surfaces and with a surface volume*/
+               /* No surfaces are sent twice because there should not be duplicate 
+               local domain parent surfaces in SUMAg_DOv */
+               /* prior to Wed Nov  6 17:47:20 EST 2002, only mappable surfaces that are related to the ones shown in the viewer
+               were being sent to AFNI. Now all mappable surfaces loaded are sent regardless of what is shown */
+               /* Jan. 08 04: All anatomically correct surfaces are now sent to AFNI */
+               SendList = SUMA_FormSOListToSendToAFNI(SUMAg_DOv , SUMAg_N_DOv, &N_Send);
+               if (N_Send) {
+                  ivec.v = SendList;
+                  ivec.n = N_Send;
+                  ED = SUMA_InitializeEngineListData (SE_SetAfniSurfList);
+                  if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                                         SEF_ivec, (void *)(&ivec), 
+                                                         SES_Suma, (void *)sv, NOPE, 
+                                                         SEI_Tail, NULL))) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
                      break;
                   }
-                  /* send surface nel */
-                  if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_iXYZ nel...\n ", FuncName) ;
-                  nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
-
-                  if( nn < 0 ){
-                       fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
-                  }
-
-                  #if 0
-                     {
-                        NI_stream nstdout;
-                         nstdout = NI_stream_open( "fd:1","w");
-                          if( nstdout == NULL ){ fprintf(SUMA_STDERR,"Can't open fd:1\n"); break; }
-                           NI_write_element( nstdout , nel , NI_TEXT_MODE ) ;
-                         NI_stream_close(nstdout);
-                     }
-                  #endif
-
-                  NI_free_element(nel);
-                  nel = NULL;
-                  
-                  /* send node normals       ZSS Oct 05 04 */
-                  nel = SUMA_makeNI_SurfINORM (SO);
-                  if (!nel) {
-                     fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfINORM failed\n", FuncName);
+                  if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                                         SEF_s, (void *)("NodeList, FaceSetList, NodeNormList"), 
+                                                         SES_Suma, (void *)sv, NOPE, 
+                                                         SEI_In, LocElm))) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
                      break;
                   }
-                  /* send surface nel */
-                  if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_NORM nel ...\n", FuncName) ;
-                  nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
-
-                  if( nn < 0 ){
-                       fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
-                  }
-                  NI_free_element(nel);
-                  nel = NULL;
-
-                  /* send triangles */
-                  nel = SUMA_makeNI_SurfIJK (SO);
-                  if (!nel) {
-                     fprintf(SUMA_STDERR,"Error %s: SUMA_makeNI_SurfIJK failed\n", FuncName);
-                     break;
-                  }
-                  /* send surface nel */
-                  if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_IJK nel ...\n", FuncName) ;
-                  nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
-
-                  if( nn < 0 ){
-                       fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
-                  }
-                  NI_free_element(nel);
-                  nel = NULL;
-
-                  /* mark surface as sent to afni */
-                  SO->SentToAfni = YUP;
+                  if (SendList) SUMA_free(SendList); SendList = NULL;   
                }
-               SUMA_free(SendList); SendList = NULL;
+
+               break;
             }
-           
-            break;
+         
+         case SE_SetAfniThisSurf:
+            /* expects an idcode_str in EngineData->cp and what needs to be sent in EngineData->s for surface to be sent to AFNI */
+            {
+               SUMA_IVEC ivec;
+               if (EngineData->s_Dest != NextComCode || EngineData->cp_Dest != NextComCode) {
+                  fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+                  break;
+               }
+               i = SUMA_findSO_inDOv(EngineData->cp, SUMAg_DOv, SUMAg_N_DOv);
+               if (i<0) {
+                  SUMA_SL_Err("Surface Not Found!");
+                  break;
+               }
+               ivec.n = 1;
+               ivec.v = (int*)SUMA_malloc(ivec.n*sizeof(int));
+               ivec.v[0] = i;
+               ED = SUMA_InitializeEngineListData (SE_SetAfniSurfList);
+               if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                                      SEF_ivec, (void *)(&ivec), 
+                                                      SES_Suma, (void *)sv, NOPE, 
+                                                      SEI_Tail, NULL))) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                  break;
+               }
+               if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                                      SEF_s, (void *)(EngineData->s), 
+                                                      SES_Suma, (void *)sv, NOPE, 
+                                                      SEI_In, LocElm))) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
+                  break;
+               }
+               SUMA_free(ivec.v);
+               break;
             }
+               
          case SE_ToggleShowSelectedNode:
             /* expects nothing in EngineData */
             {
@@ -1514,7 +1603,11 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      /* you must check for both conditions because by default 
                      all viewers are initialized to isShaded = NOPE, even before they are ever opened */
                      if (LocalHead) fprintf (SUMA_STDERR,"%s: Home call viewer %d.\n", FuncName, ii);
-                     if (!list) list= SUMA_CreateList();
+                     if (!list) {
+                        fprintf (SUMA_STDERR, "Error %s: Should not be inside SUMA_Engine: ZSS Feb 02 05.\n", FuncName);
+                        /* list = SUMA_CreateList();*/
+                        break;
+                     }
                      SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, &SUMAg_SVv[ii]);
                   }
                }
@@ -2908,7 +3001,7 @@ int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send)
       for (ii=0; ii<N_dov; ++ii) {
          if (SUMA_isSO(dov[ii])) {
             SO = (SUMA_SurfaceObject *)(dov[ii].OP);      
-            if (SO->AnatCorrect) {
+            if (SO->AnatCorrect && !SO->SentToAfni && SO->VolPar) {
                switch (s) {
                   case 0:
                      if (SO->Side == SUMA_LEFT && SUMA_isTypicalSOforVolSurf(SO) ==  -1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}

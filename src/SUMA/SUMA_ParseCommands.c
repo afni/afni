@@ -159,6 +159,8 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetForceAfniSurf")) SUMA_RETURN (SE_SetForceAfniSurf);
    if (!strcmp(Scom,"CloseStream4All")) SUMA_RETURN (SE_CloseStream4All);
    if (!strcmp(Scom,"SetAfniSurf")) SUMA_RETURN (SE_SetAfniSurf);
+   if (!strcmp(Scom,"SetAfniThisSurf")) SUMA_RETURN (SE_SetAfniThisSurf);
+   if (!strcmp(Scom,"SetAfniSurfList")) SUMA_RETURN (SE_SetAfniSurfList);
    if (!strcmp(Scom,"BindCrossHair")) SUMA_RETURN(SE_BindCrossHair);
    if (!strcmp(Scom,"ToggleForeground")) SUMA_RETURN (SE_ToggleForeground);
    if (!strcmp(Scom,"ToggleBackground")) SUMA_RETURN (SE_ToggleBackground);
@@ -305,8 +307,12 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SetForceAfniSurf");      
       case SE_CloseStream4All:
          SUMA_RETURN("CloseStream4All");      
+      case SE_SetAfniThisSurf: 
+         SUMA_RETURN("SetAfniThisSurf");      
       case SE_SetAfniSurf: 
          SUMA_RETURN("SetAfniSurf");      
+      case SE_SetAfniSurfList: 
+         SUMA_RETURN("SetAfniSurfList");      
       case SE_BindCrossHair:
          SUMA_RETURN("BindCrossHair");      
       case SE_ToggleForeground:
@@ -540,6 +546,12 @@ const char* SUMA_EngineFieldString (SUMA_ENGINE_FIELD_CODE i)
       case (SEF_im):
          SUMA_RETURN ("im");
          break;
+      case (SEF_ivec):
+         SUMA_RETURN ("ivec");
+         break;
+      case (SEF_fvec):
+         SUMA_RETURN ("fvec");
+         break;
       case (SEF_fv3):
          SUMA_RETURN ("fv3");
          break;
@@ -551,6 +563,12 @@ const char* SUMA_EngineFieldString (SUMA_ENGINE_FIELD_CODE i)
          break;
       case (SEF_iv15):
          SUMA_RETURN ("iv15");
+         break;
+      case (SEF_iv200):
+         SUMA_RETURN ("iv200");
+         break;
+      case (SEF_fv200):
+         SUMA_RETURN ("fv200");
          break;
       case (SEF_i):
          SUMA_RETURN ("i");
@@ -592,10 +610,14 @@ SUMA_ENGINE_FIELD_CODE SUMA_EngineFieldCode(char *Scom)
    /*fprintf(stdout,"Looking for %s\n", Scom);*/
    if (!strcmp(Scom,"fm")) SUMA_RETURN(SEF_fm);   
    if (!strcmp(Scom,"im")) SUMA_RETURN(SEF_im);   
+   if (!strcmp(Scom,"fvec")) SUMA_RETURN(SEF_fvec);   
+   if (!strcmp(Scom,"ivec")) SUMA_RETURN(SEF_ivec);   
    if (!strcmp(Scom,"fv3")) SUMA_RETURN(SEF_fv3);
    if (!strcmp(Scom,"iv3")) SUMA_RETURN(SEF_iv3);
    if (!strcmp(Scom,"fv15")) SUMA_RETURN(SEF_fv15);
    if (!strcmp(Scom,"iv15")) SUMA_RETURN(SEF_iv15);
+   if (!strcmp(Scom,"fv200")) SUMA_RETURN(SEF_fv200);
+   if (!strcmp(Scom,"iv200")) SUMA_RETURN(SEF_iv200);
    if (!strcmp(Scom,"i")) SUMA_RETURN(SEF_i);
    if (!strcmp(Scom,"f")) SUMA_RETURN (SEF_f);
    if (!strcmp(Scom,"s")) SUMA_RETURN (SEF_s);
@@ -849,9 +871,18 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
    SUMA_Boolean  Refill = NOPE;
    DListElmt *tail=NULL, *head=NULL, *NewElement=NULL;
    SUMA_EngineData * Old_ED=NULL;
+   SUMA_IVEC *ivec=NULL;
+   SUMA_FVEC *fvec=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (PassByPointer) {
+      if (Fld != SEF_im && Fld != SEF_fm && Fld != SEF_ivec && Fld != SEF_fvec) {
+         SUMA_SL_Err("Cannot use PassByPointer except with SEF_im || SEF_fm || SEF_ivec || SEF_fvec");
+         SUMA_RETURN (NULL);
+      }
+   } 
    
    if (!list) {
       fprintf (SUMA_STDERR, "Error %s: list has not been initialized.\n", FuncName);
@@ -1000,6 +1031,74 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
          EngineData->im_Source = Src;
          break;
 
+      case SEF_ivec:
+         if (EngineData->ivec_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->ivec_Dest);
+            SUMA_RETURN (NULL);
+         }
+         ivec = (SUMA_IVEC *)FldValp;
+         /* space available*/
+         if (PassByPointer) {
+            EngineData->ivec = ivec;
+            EngineData->ivec_LocalAlloc = NOPE;
+         } else {
+            if (EngineData->fvec != NULL) {
+               fprintf(SUMA_STDERR, "Error %s: Passing by value and EngineData->fvec is not NULL. Clean up your act.\n", FuncName);
+               SUMA_RETURN(NULL);
+            }
+            if (ivec->n <= 0 && ivec->v) {
+               fprintf(SUMA_STDERR, "Error %s: ivec->n <= 0 while ivec->v is not NULL. Clean up your act.\n", FuncName);
+               SUMA_RETURN(NULL);
+            }
+            EngineData->ivec_LocalAlloc = YUP;
+            EngineData->ivec = (SUMA_IVEC*)SUMA_malloc(sizeof(SUMA_IVEC));
+            EngineData->ivec->v = (int *)SUMA_malloc(ivec->n * sizeof(int));
+            if (!EngineData->ivec->v)  {
+               SUMA_SL_Crit("Failed to allocate");
+               SUMA_RETURN(NULL);
+            }
+            SUMA_COPY_VEC(ivec->v, EngineData->ivec->v, ivec->n, int, int);
+            EngineData->ivec->n = ivec->n;
+         }
+         /* set the new destination*/
+         EngineData->ivec_Dest = Dest;
+         EngineData->ivec_Source = Src;
+         break;
+         
+     case SEF_fvec:
+         if (EngineData->fvec_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->fvec_Dest);
+            SUMA_RETURN (NULL);
+         }
+         fvec = (SUMA_FVEC *)FldValp;
+         /* space available*/
+         if (PassByPointer) {
+            EngineData->fvec = fvec;
+            EngineData->fvec_LocalAlloc = NOPE;
+         } else {
+            if (EngineData->fvec != NULL) {
+               fprintf(SUMA_STDERR, "Error %s: Passing by value and EngineData->fvec is not NULL. Clean up your act.\n", FuncName);
+               SUMA_RETURN(NULL);
+            }
+            if (fvec->n <= 0 && fvec->v) {
+               fprintf(SUMA_STDERR, "Error %s: fvec->n <= 0 while fvec->v is not NULL. Clean up your act.\n", FuncName);
+               SUMA_RETURN(NULL);
+            }
+            EngineData->fvec_LocalAlloc = YUP;
+            EngineData->fvec = (SUMA_FVEC*)SUMA_malloc(sizeof(SUMA_FVEC));
+            EngineData->fvec->v = (float *)SUMA_malloc(fvec->n * sizeof(float));
+            if (!EngineData->fvec->v)  {
+               SUMA_SL_Crit("Failed to allocate");
+               SUMA_RETURN(NULL);
+            }
+            SUMA_COPY_VEC(fvec->v, EngineData->fvec->v, fvec->n, float, float);
+            EngineData->fvec->n = fvec->n;
+         }
+         /* set the new destination*/
+         EngineData->fvec_Dest = Dest;
+         EngineData->fvec_Source = Src;
+         break;
+
       case SEF_i:
          if (EngineData->i_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
             fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->i_Dest);
@@ -1058,6 +1157,21 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
          EngineData->fv15_Source = Src;
          break;
          
+      case SEF_fv200:
+         if (EngineData->fv200_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->fv200_Dest);
+            SUMA_RETURN (NULL);
+         }
+         { /* assign by value */
+            float *fvt;
+            int kt;
+            fvt = (float*)FldValp;
+            for (kt=0; kt < 200; ++kt) EngineData->fv200[kt] = fvt[kt];
+         }
+         EngineData->fv200_Dest = Dest;
+         EngineData->fv200_Source = Src;
+         break;
+         
       case SEF_iv3:
          if (EngineData->iv3_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
             fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->iv3_Dest);
@@ -1088,7 +1202,22 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
          EngineData->iv15_Source = Src;
          break;
 
-      case SEF_s:
+      case SEF_iv200:
+         if (EngineData->iv200_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->iv200_Dest);
+            SUMA_RETURN (NULL);
+         }
+         { /* assign by value */
+            int *ivt;
+            int kt;
+            ivt = (int*)FldValp;
+            for (kt=0; kt < 200; ++kt) EngineData->iv200[kt] = ivt[kt];
+         }
+         EngineData->iv200_Dest = Dest;
+         EngineData->iv200_Source = Src;
+         break;
+     
+     case SEF_s:
          if (EngineData->s_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
             fprintf(SUMA_STDERR, "Error %s: field %d has a preset destination (%d).\n", FuncName, Fld, EngineData->s_Dest);
             SUMA_RETURN (NULL);
@@ -1411,6 +1540,22 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *ED, char *Fldname, void *
          SUMA_RETURN (YUP);   
          break;
          
+      case SEF_fv200:
+         if (ED->fv200_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, ED->fv200_Dest);
+            SUMA_RETURN (NOPE);
+         }
+         { /* assign by value */
+            float *fvt;
+            int kt;
+            fvt = (float*)FldValp;
+            for (kt=0; kt < 200; ++kt) ED->fv200[kt] = fvt[kt];
+         }
+         ED->fv200_Dest = Dest;
+         ED->fv200_Source = Src;
+         SUMA_RETURN (YUP);   
+         break;
+         
       case SEF_iv3:
          if (ED->iv3_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
             fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, ED->iv3_Dest);
@@ -1440,6 +1585,22 @@ SUMA_Boolean SUMA_RegisterEngineData (SUMA_EngineData *ED, char *Fldname, void *
          }
          ED->iv15_Dest = Dest;
          ED->iv15_Source = Src;
+         SUMA_RETURN (YUP);   
+         break;
+
+      case SEF_iv200:
+         if (ED->iv200_Dest != SEF_Empty) { /* Make sure the data in this field in not predestined */
+            fprintf(SUMA_STDERR, "Error %s: field %s has a preset destination (%d).\n", FuncName, Fldname, ED->iv200_Dest);
+            SUMA_RETURN (NOPE);
+         }
+         { /* assign by value */
+            int *ivt;
+            int kt;
+            ivt = (int*)FldValp;
+            for (kt=0; kt < 200; ++kt) ED->iv200[kt] = ivt[kt];
+         }
+         ED->iv200_Dest = Dest;
+         ED->iv200_Source = Src;
          SUMA_RETURN (YUP);   
          break;
 
@@ -1548,80 +1709,38 @@ SUMA_EngineData *SUMA_InitializeEngineListData (SUMA_ENGINE_CODE CommandCode)
    ED->im_LocalAlloc = NOPE;
    ED->N_rows = 0;
    ED->N_cols = 0;
+   ED->ivec = NULL;
+   ED->fvec = NULL;
+   ED->ivec_LocalAlloc = NOPE;
+   ED->fvec_LocalAlloc = NOPE;
    ED->i = 0;
    ED->f = 0.0;
    ED->iv3[0] = ED->iv3[1] = ED->iv3[2] = 0;
    ED->fv3[0] = ED->fv3[1] = ED->fv3[2] = 0.0;
    for (i=0; i < 15; ++i) {
       ED->fv15[i] = 0.0;
-      ED->iv15[i] = 0.0;
+      ED->iv15[i] = 0;
+   }
+   for (i=0; i < 200; ++i) {
+      ED->fv200[i] = 0.0;
+      ED->iv200[i] = 0;
    }
    sprintf(ED->s,"NOTHING");
    
    ED->vp = NULL;
    
    ED->fm_Dest = ED->im_Dest = ED->i_Dest = ED->f_Dest = ED->iv3_Dest = ED->fv3_Dest = \
-   ED->fv15_Dest = ED->iv15_Dest = ED->s_Dest = ED->vp_Dest = ED->ip_Dest = ED->fp_Dest = \
-   ED->cp_Dest = SE_Empty;
+   ED->fv15_Dest = ED->iv15_Dest = ED->fv200_Dest = ED->iv200_Dest = ED->s_Dest = ED->vp_Dest = ED->ip_Dest = ED->fp_Dest = \
+   ED->cp_Dest = ED->ivec_Dest = ED->fvec_Dest = SE_Empty;
    
    ED->fm_Source = ED->im_Source = ED->i_Source = ED->f_Source = ED->iv3_Source = ED->fv3_Source = \
-   ED->fv15_Source = ED->iv15_Source = ED->s_Source = ED->vp_Source = SES_Empty;
+   ED->fv15_Source = ED->iv15_Source = ED->fv200_Source = ED->iv200_Source = ED->s_Source = ED->vp_Source = \
+   ED->ivec_Source = ED->fvec_Source = SES_Empty;
    
    SUMA_RETURN (ED);
 
 }
 
-/*!
-SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *ED)
-\param ED (SUMA_EngineData *) pointer to allocated structure
-   structure fields fm and im are set to NULL, s to "" 
-   i, v, fv3, iv3, fv15 and iv15 are initialized to 0 or 0.0
-   _Dest are all set to SE_Empty
-   N_rows and N_cols = 0
-
--- Discovered allocation bug here Jan 23 03.
-OBSOLETE, use SUMA_InitializeEngineListData 
-
-*/
-SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *ED)
-{   int i;
-   static char FuncName[]={"SUMA_InitializeEngineData"};
-   
-   SUMA_ENTRY;
-
-   fprintf (SUMA_STDERR, "Error %s: This function is now obsolete. Must use SUMA_InitializeEngineListData instead.\n", FuncName);
-   SUMA_RETURN (NOPE);
-
-   if (ED == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: Must pre-allocate for ED.\n", FuncName);
-      SUMA_RETURN (NOPE);   
-   }
-   
-   ED->fm = NULL;
-   ED->im = NULL;
-   ED->N_rows = 0;
-   ED->N_cols = 0;
-   ED->i = 0;
-   ED->f = 0.0;
-   ED->iv3[0] = ED->iv3[1] = ED->iv3[2] = 0;
-   ED->fv3[0] = ED->fv3[1] = ED->fv3[2] = 0.0;
-   for (i=0; i < 15; ++i) {
-      ED->fv15[i] = 0.0;
-      ED->iv15[i] = 0.0;
-   }
-   sprintf(ED->s,"NOTHING");
-   
-   ED->vp = NULL;
-   
-   ED->fm_Dest = ED->im_Dest = ED->i_Dest = ED->f_Dest = ED->iv3_Dest = ED->fv3_Dest = \
-   ED->fv15_Dest = ED->iv15_Dest = ED->s_Dest = ED->vp_Dest = ED->ip_Dest = ED->fp_Dest = \
-   ED->cp_Dest = SE_Empty;
-   
-   ED->fm_Source = ED->im_Source = ED->i_Source = ED->f_Source = ED->iv3_Source = ED->fv3_Source = \
-   ED->fv15_Source = ED->iv15_Source = ED->s_Source = ED->vp_Source = SES_Empty;
-
-   SUMA_RETURN (YUP);
-}
 
 /*!
    Free an action stack data structure 
@@ -1840,7 +1959,10 @@ SUMA_Boolean SUMA_ReleaseEngineListElement (DList *list, DListElmt *element)
    void *ED=NULL;
    
    SUMA_ENTRY;
-   
+   if (!element) {
+      SUMA_SL_Err("Null element");
+      SUMA_RETURN (NOPE);
+   }
    if (dlist_remove (list, element, &ED) < 0) {
       fprintf (SUMA_STDERR, "Error %s: Failed to remove element from list.\n", FuncName);
       SUMA_RETURN (NOPE);
@@ -2129,7 +2251,65 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *ED, char *Location)
       }/* passed by pointer */
    }
 
-   /* i */
+   /* ivec */
+   if (ED->ivec_Dest == Loc) {
+      /* needs to be released */
+      if (ED->ivec_LocalAlloc) { /* locally allocated */
+         /* must be freed */
+         if (!ED->ivec) {
+            fprintf (SUMA_STDERR, "Error %s: NULL ivec, why?\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (ED->ivec->n > 0 && !ED->ivec->v) {
+            fprintf (SUMA_STDERR, "Error %s: ED->ivec->n >= 0 && ED->ivec->v = NULL.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (ED->ivec->v == NULL) {
+            fprintf (SUMA_STDERR, "Error in %s: v is null already. This should not be .\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (ED->ivec->v) SUMA_free(ED->ivec->v); 
+         if (ED->ivec) SUMA_free(ED->ivec); 
+         ED->ivec = NULL;
+         ED->ivec_Dest = SE_Empty;
+         ED->ivec_Source = SES_Empty;
+      } /* locally allocated */ else { /* passed by pointer */
+         ED->ivec = NULL; 
+         ED->ivec_Dest = SE_Empty;
+         ED->ivec_Source = SES_Empty;
+      }/* passed by pointer */
+   }
+   
+   /* fvec */
+   if (ED->fvec_Dest == Loc) {
+      /* needs to be released */
+      if (ED->fvec_LocalAlloc) { /* locally allocated */
+         /* must be freed */
+         if (!ED->fvec) {
+            fprintf (SUMA_STDERR, "Error %s: NULL fvec, why?\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (ED->fvec->n > 0 && !ED->fvec->v) {
+            fprintf (SUMA_STDERR, "Error %s: ED->fvec->n >= 0 && ED->fvec->v = NULL.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (ED->fvec->v == NULL) {
+            fprintf (SUMA_STDERR, "Error in %s: v is null already. This should not be .\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (ED->fvec->v) SUMA_free(ED->fvec->v); 
+         if (ED->fvec) SUMA_free(ED->fvec); 
+         ED->fvec = NULL;
+         ED->fvec_Dest = SE_Empty;
+         ED->fvec_Source = SES_Empty;
+      } /* locally allocated */ else { /* passed by pointer */
+         ED->fvec = NULL; 
+         ED->fvec_Dest = SE_Empty;
+         ED->fvec_Source = SES_Empty;
+      }/* passed by pointer */
+   }
+
+  /* i */
    if (ED->i_Dest == Loc) {
       ED->i_Dest = SE_Empty;
       ED->i_Source = SES_Empty;
@@ -2145,6 +2325,12 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *ED, char *Location)
    if (ED->iv15_Dest == Loc) {
       ED->iv15_Dest = SE_Empty;
       ED->iv15_Source = SES_Empty;
+   }
+
+   /* iv200 */
+   if (ED->iv200_Dest == Loc) {
+      ED->iv200_Dest = SE_Empty;
+      ED->iv200_Source = SES_Empty;
    }
    
    /* f */
@@ -2165,6 +2351,12 @@ SUMA_Boolean SUMA_ReleaseEngineData (SUMA_EngineData *ED, char *Location)
       ED->fv15_Source = SES_Empty;
    }
    
+   /* fv200 */
+   if (ED->fv200_Dest == Loc) {
+      ED->fv200_Dest = SE_Empty;
+      ED->fv200_Source = SES_Empty;
+   }
+
    /*s*/
    if (ED->s_Dest == Loc) {
       ED->s_Dest = SE_Empty;

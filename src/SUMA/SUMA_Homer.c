@@ -406,8 +406,7 @@ int main (int argc,char *argv[])
          SUMA_RETURN (1);
       }
 
-#if 1
-      {
+            {
                SUMA_DSET *dset=NULL;/* create the color plane for Convexity*/
              
              /* create an overlay plane */
@@ -422,7 +421,7 @@ int main (int argc,char *argv[])
                } 
                
                /* Add this plane to SOv[ipart]->Overlays */
-               if (!SUMA_AddNewPlane (SOv[ipart], NewColPlane, NULL, -1)) {
+               if (!SUMA_AddNewPlane (SOv[ipart], NewColPlane, NULL, -1, 0)) {
                   SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
                   SUMA_FreeOverlayPointer(NewColPlane);
                   SUMA_RETURN (NOPE);
@@ -437,82 +436,7 @@ int main (int argc,char *argv[])
                   SUMA_ColorizePlane(NewColPlane);
                }
             }
-#else
-      SUMA_LH("Color planes...");
-      { /* MOST OF THIS BLOCK SHOULD BE TURNED TO A FUNCTION */
-         SUMA_COLOR_MAP *CM;
-         SUMA_SCALE_TO_MAP_OPT * OptScl;
-         SUMA_STANDARD_CMAP MapType;
-         SUMA_COLOR_SCALED_VECT * SV;
-         float IntRange[2], *Vsort;
 
-         /* create the color mapping of Cx (SUMA_CMAP_MATLAB_DEF_BYR64)*/
-         CM = SUMA_GetStandardMap (SUMA_CMAP_nGRAY20);
-         if (CM == NULL) {
-            fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName); 
-            SUMA_RETURN (NOPE);
-         }
-
-         /* get the options for creating the scaled color mapping */
-         OptScl = SUMA_ScaleToMapOptInit();
-         if (!OptScl) {
-            fprintf (SUMA_STDERR,"Error %s: Could not get scaling option structure.\n", FuncName);
-            SUMA_RETURN (NOPE); 
-         }
-
-         /* work the options a bit */
-         OptScl->ApplyClip = YUP;
-         IntRange[0] = 5; IntRange[1] = 95; /* percentile clipping range*/ 
-         Vsort = SUMA_PercRange (SOv[ipart]->Cx, NULL, SOv[ipart]->N_Node, IntRange, IntRange, NULL); 
-         OptScl->IntRange[0] = IntRange[0]; OptScl->IntRange[1] = IntRange[1];
-
-         OptScl->BrightFact = SUMA_DIM_CONVEXITY_COLOR_FACTOR;
-
-         /* map the values in SOv[ipart]->Cx to the colormap */
-         SV = SUMA_Create_ColorScaledVect(SOv[ipart]->N_Node);/* allocate space for the result */
-         if (!SV) {
-            fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
-            SUMA_RETURN (NOPE);
-         }
-
-         /* finally ! */
-         /*fprintf (SUMA_STDERR,"%s: 1st color in map %f %f %f\n", FuncName, CM->M[0][0], CM->M[0][1],CM->M[0][2]);*/
-         if (!SUMA_ScaleToMap (SOv[ipart]->Cx, SOv[ipart]->N_Node, Vsort[0], Vsort[SOv[ipart]->N_Node-1], CM, OptScl, SV)) {
-            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
-            SUMA_RETURN (NOPE);
-         }
-
-
-         /* create an overlay plane */
-         NewColPlane = SUMA_CreateOverlayPointer (SOv[ipart]->N_Node, "Convexity", SOv[ipart]->idcode_str);
-         if (!NewColPlane) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
-            SUMA_RETURN (NOPE);
-         } 
-
-         /* Now place the color map in the Coloroverlay structure */
-         NewColPlane->ColVec = SV->cV; SV->cV = NULL; /* this way the color vector will not be freed */
-         NewColPlane->N_NodeDef = SOv[ipart]->N_Node;
-         NewColPlane->GlobalOpacity = SUMA_CONVEXITY_COLORPLANE_OPACITY;
-         NewColPlane->Show = YUP;
-         NewColPlane->isBackGrnd = YUP;
-
-         /* Add this plane to SOv[ipart]->Overlays */
-         if (!SUMA_AddNewPlane (SOv[ipart], NewColPlane)) {
-            SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
-            SUMA_FreeOverlayPointer(NewColPlane);
-            SUMA_RETURN (NOPE);
-         }
-
-
-         /* free */
-         if (Vsort) SUMA_free(Vsort);
-         if (CM) SUMA_Free_ColorMap (CM);
-         if (OptScl) SUMA_free(OptScl);
-         if (SV) SUMA_Free_ColorScaledVect (SV);
-         
-      }
-#endif
       /* all the previous stuff is nice and dandy but it takes a lot more to
          get this thing working */
       /* Write out the surfaces in PLY format and create a dummy spec file */

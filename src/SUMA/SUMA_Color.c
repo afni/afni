@@ -1947,6 +1947,14 @@ SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, fl
    
    SUMA_ENTRY;
    
+   if (!ovr) { 
+      SUMA_SL_Err("NULL ovr");
+      SUMA_RETURN(NOPE);
+   }
+   if (!ovr->NodeDef) {
+      SUMA_SL_Err("NULL ovr->NodeDef");
+      SUMA_RETURN(NOPE);
+   }
    /* Now add the new one */
    if (NewBias) {
       #if 0
@@ -5105,8 +5113,20 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
    
    SUMA_ENTRY;
 
+   if (!Overlays) {
+      SUMA_SL_Err("Null Overlays!");
+      SUMA_RETURN(NOPE);
+   }
+   if (!glcolar) {
+      SUMA_SL_Err("Null glcolar!");
+      SUMA_RETURN(NOPE);
+   }
    if (!isColored) {
       fprintf (SUMA_STDERR, "Error %s: isColored is NULL.\n", FuncName); 
+      SUMA_RETURN (NOPE);
+   }
+   if (!ShowOverlays) {
+      SUMA_SL_Err("NULL ShowOverlays");
       SUMA_RETURN (NOPE);
    }
    if (!NshowOverlays) { /* nothing to see here */
@@ -5130,7 +5150,11 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
       Fill = YUP; 
       
       i = ShowOverlays[j];
-      
+      if (!Overlays[i]) {
+         fprintf(SUMA_STDERR,"Error %s:\nNULL ShowOverlays[%d]\n", FuncName, i);
+         SUMA_RETURN (NOPE);
+      }  
+     
       /* is this a full listing */
       if (LocalHead) fprintf (SUMA_STDOUT, "%s: Full listing flag: %d\n", FuncName, Overlays[i]->FullList);
       if (Overlays[i]->FullList) {         Fill = NOPE;   /* Full list, no need to fill up unvisited nodes at the end */   } 
@@ -5861,8 +5885,11 @@ SUMA_Boolean SUMA_MovePlaneDown (SUMA_SurfaceObject *SO, char *Name)
    \brief Adds a new plane to SO->Overlays. 
    If plane exists, you get an error message
    Adds plane to related surfaces if dov is not NULL
+   
+   DuplicateFlag == 0 return with error if plane already exists
+                    1 return with warning if plane already exists
 */
-SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, SUMA_DO *dov, int N_dov)
+SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, SUMA_DO *dov, int N_dov, int DuplicateFlag)
 {
    static char FuncName[]={"SUMA_AddNewPlane"};
    DList *ForeList=NULL, *BackList = NULL;
@@ -5877,15 +5904,26 @@ SUMA_Boolean SUMA_AddNewPlane (SUMA_SurfaceObject *SO, SUMA_OVERLAYS *Overlay, S
       SUMA_S_Err("You sent me NULLS!");
       SUMA_RETURN (NOPE);
    }
+   
    if (SUMA_isOverlayOfSO(SO, Overlay)) {
-      SUMA_S_Err("Plane exists in SO->Overlays.");
-      SUMA_RETURN (NOPE);
+      if (DuplicateFlag == 0) {
+         SUMA_S_Err("Plane exists in SO->Overlays.");
+         SUMA_RETURN (NOPE);
+      } else {
+         SUMA_S_Warn("Plane exists in SO->Overlays. Preserving old one.");
+         SUMA_RETURN (YUP);
+      }
    }
    
    /* also try looking for plane by name */
    if (SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, Overlay->Name, &junk)) {
-      SUMA_S_Err("Plane exists in SO->Overlays. (identified by name)");
-      SUMA_RETURN (NOPE);
+      if (DuplicateFlag == 0) {   
+         SUMA_S_Err("Plane exists in SO->Overlays (identified by name).");
+         SUMA_RETURN (NOPE);
+      } else {
+         SUMA_S_Warn("Plane exists in SO->Overlays (identified by name). Preserving old one.");
+         SUMA_RETURN (YUP);
+      }
    }
    
    /* make sure that overlay plane does not have bias in it */
@@ -6080,7 +6118,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          OverInd = SO->N_Overlays; 
 
          /* Add this plane to SO->Overlays */
-         if (!SUMA_AddNewPlane (SO, Overlay, dov, N_dov)) {
+         if (!SUMA_AddNewPlane (SO, Overlay, dov, N_dov, 0)) {
             SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
             SUMA_FreeOverlayPointer(Overlay);
             SUMA_RETURN (NOPE);
@@ -6773,7 +6811,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    OverInd = SO->N_Overlays;
    
    /* Add this plane to SO->Overlays */
-   if (!SUMA_AddNewPlane (SO, NewColPlane, SUMAg_DOv, SUMAg_N_DOv)) {
+   if (!SUMA_AddNewPlane (SO, NewColPlane, SUMAg_DOv, SUMAg_N_DOv, 0)) {
       SUMA_SL_Crit("Failed in SUMA_AddNewPlane");
       SUMA_FreeOverlayPointer(NewColPlane);
       SUMA_FreeDset(dset); dset = NULL;

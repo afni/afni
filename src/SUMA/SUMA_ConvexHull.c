@@ -631,7 +631,7 @@ int main (int argc,char *argv[])
             SUMA_S_Err("Only 1 input surface allowed!");
             exit(1);
          }
-         Spec = SUMA_IO_args2_spec(ps);
+         Spec = SUMA_IO_args_2_spec(ps);
          if (!Spec) {
             SUMA_S_Err("Failed to create spec!");
             exit(1);

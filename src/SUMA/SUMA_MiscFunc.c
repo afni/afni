@@ -1219,11 +1219,14 @@ void SUMA_disp_vecmat (float *v,int nr, int nc , int SpcOpt,
    int i,j;
    FILE *foutp;
    static char FuncName[]={"SUMA_disp_vecmat"};
+   SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
 
    if (!fout) foutp = stdout;
    else foutp = fout;
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s:\nExpecting to write %d rows/%d columns\n", FuncName, nr, nc);
    
    if (!SpcOpt)
       sprintf(spc," ");
