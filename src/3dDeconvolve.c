@@ -6594,6 +6594,27 @@ static float basis_spmg2( float x, float a, float b, float c )
 }
 
 /*--------------------------------------------------------------------------*/
+
+#undef  BLOCK_RISE
+#define BLOCK_RISE 4.0
+#undef  BLOCK_FALL
+#define BLOCK_FALL 5.0
+#undef  ZTONE
+#define ZTONE(q) (0.375-0.5*cos(3.1416*q)+0.125*cos(6.2832*q))
+
+static float basis_block( float x, float dur, float b, float c )
+{
+   if( x <= 0.0f || x >= (dur+BLOCK_RISE+BLOCK_FALL) ) return 0.0f ;
+
+   if( x < BLOCK_RISE ){ x = x/BLOCK_RISE ; return ZTONE(x) ; }
+
+   if( x < dur+BLOCK_RISE ) return 1.0f ;
+
+   x = (x-dur-BLOCK_RISE) / BLOCK_FALL ; x = 1.0f - x ;
+   return ZTONE(x) ;
+}
+
+/*--------------------------------------------------------------------------*/
 /* Legendre polynomial basis function
     - 0 for x outside range bot..top
     - P_n(x), x scaled to be -1..1 over range bot..top
@@ -6666,7 +6687,7 @@ basis_expansion * basis_parser( char *sym )
        sscanf(cpt,"%f,%f",&bot,&top) ;
        if( bot <= 0.0f || top <= 0.0f ){
          fprintf(stderr,"** ERROR: 'GAM(%s' is illegal\n",cpt) ;
-         free((void *)be->bfunc); free((void *)be); return NULL ;
+         free((void *)be->bfunc); free((void *)be); free(scp); return NULL;
        }
        be->bfunc[0].a = bot ;
        be->bfunc[0].b = top ;
@@ -6681,12 +6702,12 @@ basis_expansion * basis_parser( char *sym )
 
      if( cpt == NULL ){
        fprintf(stderr,"** ERROR: 'TENT' by itself is illegal\n") ;
-       free((void *)be); return NULL ;
+       free((void *)be); free(scp); return NULL;
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 2 ){
        fprintf(stderr,"** ERROR: 'TENT(%s' is illegal\n",cpt) ;
-       free((void *)be->bfunc); free((void *)be); return NULL ;
+       free((void *)be); free(scp); return NULL;
      }
      be->nfunc = nord ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -6714,12 +6735,12 @@ basis_expansion * basis_parser( char *sym )
 
      if( cpt == NULL ){
        fprintf(stderr,"** ERROR: 'TRIG' by itself is illegal\n") ;
-       free((void *)be); return NULL ;
+       free((void *)be); free(scp); return NULL;
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 3 ){
        fprintf(stderr,"** ERROR: 'TRIG(%s' is illegal\n",cpt) ;
-       free((void *)be->bfunc); free((void *)be); return NULL ;
+       free((void *)be); free(scp); return NULL;
      }
      be->nfunc = nord ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -6747,12 +6768,12 @@ basis_expansion * basis_parser( char *sym )
 
      if( cpt == NULL ){
        fprintf(stderr,"** ERROR: 'SIN' by itself is illegal\n") ;
-       free((void *)be); return NULL ;
+       free((void *)be); free(scp); return NULL;
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 1 ){
        fprintf(stderr,"** ERROR: 'SIN(%s' is illegal\n",cpt) ;
-       free((void *)be->bfunc); free((void *)be); return NULL ;
+       free((void *)be); free(scp); return NULL;
      }
      be->nfunc = nord ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -6771,12 +6792,12 @@ basis_expansion * basis_parser( char *sym )
 
      if( cpt == NULL ){
        fprintf(stderr,"** ERROR: 'POLY' by itself is illegal\n") ;
-       free((void *)be); return NULL ;
+       free((void *)be); free(scp); return NULL;
      }
      sscanf(cpt,"%f,%f,%d",&bot,&top,&nord) ;
      if( bot >= top || nord < 1 || nord > POLY_MAX ){
        fprintf(stderr,"** ERROR: 'POLY(%s' is illegal\n",cpt) ;
-       free((void *)be->bfunc); free((void *)be); return NULL ;
+       free((void *)be); free(scp); return NULL;
      }
      be->nfunc = nord ;
      be->tbot  = bot  ; be->ttop = top ;
@@ -6792,12 +6813,12 @@ basis_expansion * basis_parser( char *sym )
        be->bfunc[nn].c = (float)nn ;
      }
 
-   /*--- SPM ---*/
+   /*--- SPMG ---*/
 
    } else if( strcmp(scp,"SPMG") == 0 ){
 
      be->nfunc = 2 ;
-     be->tbot  = 0.0 ; be->ttop = 25.0f ;
+     be->tbot  = 0.0f ; be->ttop = 25.0f ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
      be->bfunc[0].f = basis_spmg1 ;
      be->bfunc[0].a = 0.0f ;
@@ -6808,7 +6829,30 @@ basis_expansion * basis_parser( char *sym )
      be->bfunc[1].b = 0.0f ;
      be->bfunc[1].c = 0.0f ;
 
+   /*--- BLOCK(duration) ---*/
+
+   } else if( strcmp(scp,"SPMG") == 0 ){
+
+     if( cpt == NULL ){
+       fprintf(stderr,"** ERROR: 'BLOCK' by itself is illegal\n") ;
+       free((void *)be); free(scp); return NULL;
+     }
+     sscanf(cpt,"%f",&top) ;
+     if( top <= 0.0f ){
+       fprintf(stderr,"** ERROR: 'BLOCK(%s' is illegal\n",cpt) ;
+       free((void *)be); free(scp); return NULL;
+     }
+
+     be->nfunc = 1 ;
+     be->tbot  = 0.0f ; be->ttop = top+BLOCK_RISE+BLOCK_FALL ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     be->bfunc[0].f = basis_block ;
+     be->bfunc[0].a = top ;
+     be->bfunc[0].b = 0.0f ;
+     be->bfunc[0].c = 0.0f ;
+
+   /*--- NO MORE CHOICES ---*/
    }
 
-   return be ;
+   free(scp); return be;
 }
