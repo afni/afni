@@ -327,7 +327,7 @@ ENTRY("THD_open_minc") ;
 
    code = nc_inq_attlen( ncid , NC_GLOBAL , "history" , &len ) ;
    if( code == NC_NOERR && len > 0 ){
-      ppp = malloc(len+4) ;
+      ppp = calloc(1,len+4) ;
       code = nc_get_att_text( ncid , NC_GLOBAL , "history" , ppp ) ;
       if( code == NC_NOERR ){  /* should always happen */
          ppp[len] = '\0' ;
@@ -353,7 +353,7 @@ void THD_load_minc( THD_datablock *dblk )
    int nx,ny,nz,nxy,nxyz,nxyzv , nbad,ibr,nv, nslice ;
    void *ptr ;
    nc_type im_type=NC_SHORT ;
-   float im_valid_range[2], fac,denom , intop,inbot , outbot,outtop ;
+   float im_valid_range[2], fac,denom , intop,inbot , outbot,outtop , sfac=1.0;
    float *im_min=NULL  , *im_max=NULL  ;
    int    im_min_varid ,  im_max_varid , do_scale ;
 
@@ -386,7 +386,7 @@ ENTRY("THD_load_minc") ;
 
    for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
       if( DBLK_ARRAY(dblk,ibr) == NULL ){
-         ptr = malloc( DBLK_BRICK_BYTES(dblk,ibr) ) ;
+         ptr = calloc( 1,DBLK_BRICK_BYTES(dblk,ibr) ) ;
          mri_fix_data_pointer( ptr ,  DBLK_BRICK(dblk,ibr) ) ;
          if( ptr == NULL ) nbad++ ;
       }
@@ -413,6 +413,8 @@ ENTRY("THD_load_minc") ;
 
    do_scale = (im_type==NC_BYTE || im_type==NC_SHORT || im_type==NC_INT) ;
 
+   if( do_scale && AFNI_noenv("AFNI_MINC_SLICESCALE") ) do_scale = 0 ;
+
    code = nc_get_att_float( ncid,im_varid , "valid_range" , im_valid_range ) ;
 
    /** if can't get valid_range, make something up **/
@@ -438,6 +440,7 @@ ENTRY("THD_load_minc") ;
    /** Scaling will only be done if we get both image-min and image-max      **/
 
    if( do_scale ){
+
      code = nc_inq_varid( ncid , "image-min" , &im_min_varid ) ;
      if( code == NC_NOERR ){
        im_min = (float *) calloc(sizeof(float),nslice) ;
@@ -445,17 +448,40 @@ ENTRY("THD_load_minc") ;
        if( code != NC_NOERR ){ free(im_min); im_min = NULL; }
      }
 
+     /* got im_min ==> try for im_max */
+
      if( im_min != NULL ){
        code = nc_inq_varid( ncid , "image-max" , &im_max_varid ) ;
        if( code == NC_NOERR ){
-         im_max = (float *) malloc(sizeof(float)*nslice) ;
+         im_max = (float *) calloc(sizeof(float),nslice) ;
          code = nc_get_var_float( ncid , im_max_varid , im_max ) ;
          if( code != NC_NOERR ){
            free(im_min); im_min = NULL; free(im_max); im_max = NULL;
          }
        }
      }
-   }
+
+     /* 19 Mar 2003: make sure we don't scale out of range! */
+
+     if( im_max != NULL && MRI_IS_INT_TYPE(DBLK_BRICK_TYPE(dblk,0)) ){
+       float stop=0.0 , vbot,vtop ;
+       int ii ;
+       for( ii=0 ; ii < nslice ; ii++ ){
+         if( im_min[ii] < im_max[ii] ){
+           vbot = fabs(im_min[ii]) ; vtop = fabs(im_max[ii]) ;
+           vtop = MAX(vtop,vbot) ; stop = MAX(vtop,stop) ;
+         }
+       }
+       if( stop > MRI_TYPE_maxval[DBLK_BRICK_TYPE(dblk,0)] ){
+         sfac = MRI_TYPE_maxval[DBLK_BRICK_TYPE(dblk,0)] / stop ;
+         fprintf(stderr,"++ Scaling %s by %g to avoid overflow to %g of %s data!\n",
+                 dkptr->brick_name, sfac, stop, MRI_TYPE_name[DBLK_BRICK_TYPE(dblk,0)] ) ;
+       } else if( stop == 0.0 ){
+         free(im_min); im_min = NULL; free(im_max); im_max = NULL;
+       }
+     }
+
+   } /* end of do_scale */
 
    /** read data! **/
 
@@ -503,7 +529,7 @@ ENTRY("THD_load_minc") ;
                 fac = (outtop-outbot) / denom ;
                 qq = kk*nxy ; outbot += 0.499 ;
                 for( ii=0 ; ii < nxy ; ii++ )        /* scale slice */
-                   br[ii+qq] = (byte) (fac*(br[ii+qq]-inbot) + outbot) ;
+                   br[ii+qq] = (byte) ((fac*(br[ii+qq]-inbot) + outbot)*sfac) ;
              }
            }
          }
@@ -539,7 +565,7 @@ ENTRY("THD_load_minc") ;
                 fac = (outtop-outbot) / denom ;
                 qq = kk*nxy ; outbot += 0.499 ;
                 for( ii=0 ; ii < nxy ; ii++ )        /* scale slice */
-                   br[ii+qq] = (short) (fac*(br[ii+qq]-inbot) + outbot) ;
+                   br[ii+qq] = (short) ((fac*(br[ii+qq]-inbot) + outbot)*sfac) ;
              }
            }
          }
@@ -583,7 +609,7 @@ ENTRY("THD_load_minc") ;
                 fac = (outtop-outbot) / denom ;
                 qq = kk*nxy ;
                 for( ii=0 ; ii < nxy ; ii++ )        /* scale slice */
-                   br[ii+qq] = (fac*(br[ii+qq]-intop) + outbot) ;
+                   br[ii+qq] = (fac*(br[ii+qq]-inbot) + outbot) ;
              }
            }
          }

@@ -3916,7 +3916,10 @@ ENTRY("AFNI_write_dataset_CB") ;
           resam_mode <= LAST_RESAM_TYPE  &&
           im3d->vinfo->resam_vox > 0.0   &&
          !DSET_IS_MINC(dset)             &&      /* 29 Oct 2001 */
-         !DSET_IS_ANALYZE(dset)              ;   /* 27 Aug 2002 */
+         !DSET_IS_ANALYZE(dset)          &&      /* 27 Aug 2002 */
+         !DSET_IS_CTFSAM(dset)           &&
+         !DSET_IS_CTFMRI(dset)           &&
+         !DSET_IS_1D(dset)                  ;
 
    destroy = !DSET_WRITEABLE(dset) ;      /* check for destruction */
 

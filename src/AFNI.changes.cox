@@ -4435,3 +4435,11 @@
  * Added thd_getorient.c to get axis direction in a dataset for
      a given orientation code.
  * Modified mri_copy.c to work if input image doesn't have data array.
+ * Added environment variable AFNI_MINC_SLICESCALE to thd_mincread.c.
+ * Fixed bug in thd_mincread.c in slice-scaling when datum is floats
+     (subtracted intop instead of inbot in scaling formula).
+ * Modified thd_mincread.c to downscale short or byte datasets if
+     slice scaling would push them past the maxval for that data type.
+     Also, use calloc() on im_min and im_max arrays to avoid problems
+     when those arrays in the MINC file are incomplete.
+ * Modified 3drefit.c, and thd_delete.c to skip CTF and 1D files.
