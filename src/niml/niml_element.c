@@ -204,15 +204,17 @@ NI_group * make_empty_group_element( header_stuff *hs )
 
    ngr->type = NI_GROUP_TYPE ;
 
+   ngr->name = hs->name ; hs->name = NULL ;  /* 24 Feb 2005 */
+
    /* move attributes from hs to new element */
 
    ngr->attr_num = hs->nattr ;
 
    if( ngr->attr_num > 0 ){
-      ngr->attr_lhs = hs->lhs ; hs->lhs = NULL ;
-      ngr->attr_rhs = hs->rhs ; hs->rhs = NULL ;
+     ngr->attr_lhs = hs->lhs ; hs->lhs = NULL ;
+     ngr->attr_rhs = hs->rhs ; hs->rhs = NULL ;
    } else {
-      ngr->attr_lhs = ngr->attr_rhs = NULL ;
+     ngr->attr_lhs = ngr->attr_rhs = NULL ;
    }
 
    /* have no pieces-parts yet */
@@ -220,7 +222,6 @@ NI_group * make_empty_group_element( header_stuff *hs )
    ngr->part_num = 0 ;
    ngr->part_typ = NULL ;
    ngr->part     = NULL ;
-   ngr->name     = NULL ;  /* 03 Jun 2002 */
 
    return ngr ;
 }
@@ -307,15 +308,15 @@ void NI_free_element( void *nini )
       NI_group *ngr = (NI_group *) nini ;
 
       for( ii=0 ; ii < ngr->attr_num ; ii++ ){
-         NI_free( ngr->attr_lhs[ii] ) ;
-         NI_free( ngr->attr_rhs[ii] ) ;
+        NI_free( ngr->attr_lhs[ii] ) ;
+        NI_free( ngr->attr_rhs[ii] ) ;
       }
       NI_free( ngr->attr_lhs ) ;
       NI_free( ngr->attr_rhs ) ;
 
       if( ngr->part != NULL ){
         for( ii=0 ; ii < ngr->part_num ; ii++ )
-           NI_free_element( ngr->part[ii] ) ;     /* recursion */
+          NI_free_element( ngr->part[ii] ) ;     /* recursion */
       }
 
       NI_free( ngr->part_typ ) ;

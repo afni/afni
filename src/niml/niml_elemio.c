@@ -9,6 +9,20 @@ static int scan_for_angles( NI_stream_type *, int ) ;
 #define clear_buffer(ns) ( (ns)->nbuf = (ns)->npos = 0 )
 
 /*--------------------------------------------------------------------*/
+/*! Check if header_stuff marks this NIML element as a group.
+----------------------------------------------------------------------*/
+
+static int header_stuff_is_group( header_stuff *hs )  /* 24 Feb 2005 */
+{
+   char *atr ;
+   if( hs == NULL ) return 0 ;
+   if( strcmp(hs->name,"ni_group") == 0 ) return 1 ;
+   atr = get_header_attribute( hs , "ni_form" ) ;
+   if( atr != NULL && strcmp(atr,"ni_group") == 0 ) return 1 ;
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
 
 static int read_header_only = 0 ;
 void NI_read_header_only( int r ){ read_header_only=r ; } /* 23 Mar 2003 */
@@ -147,7 +161,7 @@ NI_dpr("NI_read_element: header parsed successfully\n") ;
 
    /*--------------- Now make an element of some kind ---------------*/
 
-   if( strcmp(hs->name,"ni_group") == 0 ){  /*--- a group element ---*/
+   if( header_stuff_is_group(hs) ){         /*--- a group element ---*/
 
       NI_group *ngr ;
       void *nini ;
@@ -158,7 +172,7 @@ NI_dpr("NI_read_element: header parsed successfully\n") ;
       start_time = NI_clock_time() ; /* allow up to 10 sec for next */
       msec       = 9999 ;            /* element to appear, before giving up */
 
-      ngr = make_empty_group_element( hs ) ;
+      ngr = make_empty_group_element( hs ) ;  /* copies name and attributes */
       destroy_header_stuff( hs ) ;
       if( empty ) return ngr ;  /* 03 Jun 2002: empty group is legal */
 
@@ -856,30 +870,44 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
    if( tt == NI_GROUP_TYPE ){
 
       NI_group *ngr = (NI_group *) nini ;
+      char *gname ;
+
+      /* 24 Feb 2005: all group elements used to be named "ni_group",
+                      but no more; now they have attribute ni_form="ni_group" */
+
+      gname = ngr->name ;
+      if( gname == NULL || *gname == '\0' ) gname = "ni_group" ;
 
       /*- group header -*/
 
       if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+#if 1
+      nout = NI_stream_writestring( ns , "<"   ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , gname ) ; ADDOUT ;
+#else
       nout = NI_stream_writestring( ns , "<ni_group" ) ; ADDOUT ;
+#endif
 
       /*- attributes -*/
 
+      NI_set_attribute( ngr , "ni_form" , "ni_group" ) ;  /* 24 Feb 2005 */
+
       for( ii=0 ; ii < ngr->attr_num ; ii++ ){
 
-         jj = NI_strlen( ngr->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
-         nout = NI_stream_writestring( ns , att_prefix ) ; ADDOUT ;
-         if( NI_is_name(ngr->attr_lhs[ii]) ){
-           nout = NI_stream_write( ns , ngr->attr_lhs[ii] , jj ) ;
-         } else {
-           att = quotize_string( ngr->attr_lhs[ii] ) ;
-           nout = NI_stream_writestring( ns , att ) ; NI_free(att) ;
-         }
-         ADDOUT ;
+        jj = NI_strlen( ngr->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
+        nout = NI_stream_writestring( ns , att_prefix ) ; ADDOUT ;
+        if( NI_is_name(ngr->attr_lhs[ii]) ){
+          nout = NI_stream_write( ns , ngr->attr_lhs[ii] , jj ) ;
+        } else {
+          att = quotize_string( ngr->attr_lhs[ii] ) ;
+          nout = NI_stream_writestring( ns , att ) ; NI_free(att) ;
+        }
+        ADDOUT ;
 
-         jj = NI_strlen( ngr->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
-         nout = NI_stream_writestring( ns , att_equals ) ; ADDOUT ;
-         att = quotize_string( ngr->attr_rhs[ii] ) ;
-         nout = NI_stream_writestring( ns , att ) ; NI_free(att) ; ADDOUT ;
+        jj = NI_strlen( ngr->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
+        nout = NI_stream_writestring( ns , att_equals ) ; ADDOUT ;
+        att = quotize_string( ngr->attr_rhs[ii] ) ;
+        nout = NI_stream_writestring( ns , att ) ; NI_free(att) ; ADDOUT ;
       }
 
       /*- close group header -*/
@@ -890,13 +918,19 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       /*- write the group parts (recursively) -*/
 
       for( ii=0 ; ii < ngr->part_num ; ii++ ){
-         nout = NI_write_element( ns , ngr->part[ii] , tmode ) ; ADDOUT ;
+        nout = NI_write_element( ns , ngr->part[ii] , tmode ) ; ADDOUT ;
       }
 
       /*- group trailer -*/
 
       if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+#if 1
+      nout = NI_stream_writestring( ns , "</"  ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , gname ) ; ADDOUT ;
+      nout = NI_stream_writestring( ns , ">\n" ) ; ADDOUT ;
+#else
       nout = NI_stream_writestring( ns , "</ni_group>\n" ) ; ADDOUT ;
+#endif
 
       return ntot ;
 
