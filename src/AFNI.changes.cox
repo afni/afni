@@ -3939,4 +3939,8 @@
 27 Aug 2002
  * Modified mri_read*_analyze() functions to always floatize ANALYZE
      data if the SPM funused1 scale factor is present.
- * Added ANALYZE (thd_read_analyze.c) file input to datasets.
+ * Added ANALYZE (thd_analyzeread.c) file input to datasets.
+
+28 Aug 2002
+ * Modified thd_initsess.c and thd_analyzeread.c to support FSL/FEAT
+     input .map files.
