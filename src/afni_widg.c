@@ -2048,7 +2048,9 @@ ENTRY("AFNI_make_wid2") ;
       "  during 'real-time'\n"
       "  FIM calculations!"
     ) ;
+#if 0
    MCW_register_hint( func->thr_scale , "Threshold for functional overlay" ) ;
+#endif
 
    /** Mar 1996: label for computed p-value, under scale **/
 
