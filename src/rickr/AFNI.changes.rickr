@@ -222,5 +222,10 @@
 
 26 June 2003:
   * modified Imon.[ch], realtime.c to add axis offset functionality
-      o -> Imon version 2.7
+      -> Imon version 2.7
+
+27 June 2003:
+  * modified Imon.c, realtime.c to pass BYTEORDER command to realtime plugin
+      -> Imon version 2.8
+  * modified plug_realtime.c to handle BYTEORDER command
 
