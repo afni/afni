@@ -1,13 +1,28 @@
-#include "nifti1.h"   /* for the NIFTI_INTENT constants */
 
+/*************************************************************************/
+/**  Functions to compute cumulative distributions and their inverses   **/
+/**  for the NIfTI-1 statistical type.  Much of this code is taken      **/
+/**  from other sources.  In particular, the cdflib functions by        **/
+/**  Brown and Lovato make up the bulk of this file.  That code         **/
+/**  was placed in the public domain.  The code by K. Krishnamoorthy is **/
+/**  also released for unrestricted use.  Finally, the other parts      **/
+/**  of this file by RW Cox are released to the public domain.          **/
+/**                                                                     **/
+/**  Most of this file comprises a set of "static" functions, to be     **/
+/*-  called by the user-level functions at the very end of the file.    **/
+/*************************************************************************/
+
+#include "nifti1.h"   /* for the NIFTI_INTENT_* constants */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 
 /*************************************************************************/
 /************* Include all the cdflib functions here and now *************/
-/*************     [about 9800 lines of code below here]     *************/
+/*************     [about 9900 lines of code below here]     *************/
 /*************************************************************************/
+
+/** Prototypes for cdflib functions **/
 
 static double algdiv(double*,double*);
 static double alngam(double*);
@@ -100,18 +115,19 @@ static long fifidint(double);
 static long fifmod(long,long);
 static void ftnstop(char*);
 static int ipmpar(int*);
+
 /***=====================================================================***/
 static double algdiv(double *a,double *b)
 /*
 -----------------------------------------------------------------------
- 
+
      COMPUTATION OF LN(GAMMA(B)/GAMMA(A+B)) WHEN B .GE. 8
- 
+
                          --------
- 
+
      IN THIS ALGORITHM, DEL(X) IS THE FUNCTION DEFINED BY
      LN(GAMMA(X)) = (X - 0.5)*LN(X) - X + 0.5*LN(2*PI) + DEL(X).
- 
+
 -----------------------------------------------------------------------
 */
 {
@@ -166,39 +182,40 @@ S30:
     algdiv = w-u-v;
     return algdiv;
 } /* END */
+
 /***=====================================================================***/
 static double alngam(double *x)
 /*
 **********************************************************************
- 
+
      double alngam(double *x)
                  double precision LN of the GAMma function
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns the natural logarithm of GAMMA(X).
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X --> value at which scaled log gamma is to be returned
                     X is DOUBLE PRECISION
- 
- 
+
+
                               Method
- 
- 
+
+
      If X .le. 6.0, then use recursion to get X below 3
      then apply rational approximation number 5236 of
      Hart et al, Computer Approximations, John Wiley and
      Sons, NY, 1968.
- 
+
      If X .gt. 6.0, then use recursion to get X to at least 12 and
      then use formula 5423 of the same source.
- 
+
 **********************************************************************
 */
 {
@@ -279,6 +296,7 @@ S110:
     return alngam;
 #undef hln2pi
 } /* END */
+
 /***=====================================================================***/
 static double alnrel(double *a)
 /*
@@ -309,6 +327,7 @@ S10:
     alnrel = log(x);
     return alnrel;
 } /* END */
+
 /***=====================================================================***/
 static double apser(double *a,double *b,double *x,double *eps)
 /*
@@ -345,6 +364,7 @@ S30:
     apser = -(*a*(c+s));
     return apser;
 } /* END */
+
 /***=====================================================================***/
 static double basym(double *a,double *b,double *lambda,double *eps)
 /*
@@ -454,15 +474,16 @@ S80:
     basym = e0*t*u*sum;
     return basym;
 } /* END */
+
 /***=====================================================================***/
 static double bcorr(double *a0,double *b0)
 /*
 -----------------------------------------------------------------------
- 
+
      EVALUATION OF  DEL(A0) + DEL(B0) - DEL(A0 + B0)  WHERE
      LN(GAMMA(A)) = (A - 0.5)*LN(A) - A + 0.5*LN(2*PI) + DEL(A).
      IT IS ASSUMED THAT A0 .GE. 8 AND B0 .GE. 8.
- 
+
 -----------------------------------------------------------------------
 */
 {
@@ -504,6 +525,7 @@ static double bcorr,a,b,c,h,s11,s3,s5,s7,s9,t,w,x,x2;
     bcorr = (((((c5*t+c4)*t+c3)*t+c2)*t+c1)*t+c0)/a+w;
     return bcorr;
 } /* END */
+
 /***=====================================================================***/
 static double betaln(double *a0,double *b0)
 /*
@@ -611,6 +633,7 @@ S110:
     betaln = -(0.5e0*log(b))+e+w-u-v;
     return betaln;
 } /* END */
+
 /***=====================================================================***/
 static double bfrac(double *a,double *b,double *x,double *y,double *lambda,
 	     double *eps)
@@ -679,6 +702,7 @@ S20:
     bfrac *= r;
     return bfrac;
 } /* END */
+
 /***=====================================================================***/
 static void bgrat(double *a,double *b,double *x,double *y,double *w,
 	   double *eps,int *ierr)
@@ -762,6 +786,7 @@ S70:
     *ierr = 1;
     return;
 } /* END */
+
 /***=====================================================================***/
 static double bpser(double *a,double *b,double *x,double *eps)
 /*
@@ -861,28 +886,29 @@ S110:
     bpser *= (1.0e0+*a*sum);
     return bpser;
 } /* END */
+
 /***=====================================================================***/
 static void bratio(double *a,double *b,double *x,double *y,double *w,
 	    double *w1,int *ierr)
 /*
 -----------------------------------------------------------------------
- 
+
             EVALUATION OF THE INCOMPLETE BETA FUNCTION IX(A,B)
- 
+
                      --------------------
- 
+
      IT IS ASSUMED THAT A AND B ARE NONNEGATIVE, AND THAT X .LE. 1
      AND Y = 1 - X.  BRATIO ASSIGNS W AND W1 THE VALUES
- 
+
                       W  = IX(A,B)
                       W1 = 1 - IX(A,B)
- 
+
      IERR IS A VARIABLE THAT REPORTS THE STATUS OF THE RESULTS.
      IF NO INPUT ERRORS ARE DETECTED THEN IERR IS SET TO 0 AND
      W AND W1 ARE COMPUTED. OTHERWISE, IF AN ERROR IS DETECTED,
      THEN W AND W1 ARE ASSIGNED THE VALUE 0 AND IERR IS SET TO
      ONE OF THE FOLLOWING VALUES ...
- 
+
         IERR = 1  IF A OR B IS NEGATIVE
         IERR = 2  IF A = B = 0
         IERR = 3  IF X .LT. 0 OR X .GT. 1
@@ -890,7 +916,7 @@ static void bratio(double *a,double *b,double *x,double *y,double *w,
         IERR = 5  IF X + Y .NE. 1
         IERR = 6  IF X = A = 0
         IERR = 7  IF Y = B = 0
- 
+
 --------------------
      WRITTEN BY ALFRED H. MORRIS, JR.
         NAVAL SURFACE WARFARE CENTER
@@ -1099,6 +1125,7 @@ S330:
     *ierr = 7;
     return;
 } /* END */
+
 /***=====================================================================***/
 static double brcmp1(int *mu,double *a,double *b,double *x,double *y)
 /*
@@ -1238,6 +1265,7 @@ S190:
     brcmp1 = Const*sqrt(*b*x0)*z*exp(-bcorr(a,b));
     return brcmp1;
 } /* END */
+
 /***=====================================================================***/
 static double brcomp(double *a,double *b,double *x,double *y)
 /*
@@ -1377,6 +1405,7 @@ S190:
     brcomp = Const*sqrt(*b*x0)*z*exp(-bcorr(a,b));
     return brcomp;
 } /* END */
+
 /***=====================================================================***/
 static double bup(double *a,double *b,double *x,double *y,int *n,double *eps)
 /*
@@ -1455,6 +1484,7 @@ S70:
     bup *= w;
     return bup;
 } /* END */
+
 /***=====================================================================***/
 static void cdfbet(int *which,double *p,double *q,double *x,double *y,
 	    double *a,double *b,int *status,double *bound)
@@ -1830,6 +1860,7 @@ S540:
 #undef inf
 #undef one
 } /* END */
+
 /***=====================================================================***/
 static void cdfbin(int *which,double *p,double *q,double *s,double *xn,
 	    double *pr,double *ompr,int *status,double *bound)
@@ -2200,6 +2231,7 @@ S560:
 #undef inf
 #undef one
 } /* END */
+
 /***=====================================================================***/
 static void cdfchi(int *which,double *p,double *q,double *x,double *df,
 	    int *status,double *bound)
@@ -2485,6 +2517,7 @@ S380:
 #undef zero
 #undef inf
 } /* END */
+
 /***=====================================================================***/
 static void cdfchn(int *which,double *p,double *q,double *x,double *df,
 	    double *pnonc,int *status,double *bound)
@@ -2759,6 +2792,7 @@ S280:
 #undef one
 #undef inf
 } /* END */
+
 /***=====================================================================***/
 static void cdff(int *which,double *p,double *q,double *f,double *dfn,
 	  double *dfd,int *status,double *bound)
@@ -3076,6 +3110,7 @@ S420:
 #undef zero
 #undef inf
 } /* END */
+
 /***=====================================================================***/
 static void cdffnc(int *which,double *p,double *q,double *f,double *dfn,
 	    double *dfd,double *phonc,int *status,double *bound)
@@ -3401,6 +3436,7 @@ S350:
 #undef one
 #undef inf
 } /* END */
+
 /***=====================================================================***/
 static void cdfgam(int *which,double *p,double *q,double *x,double *shape,
 	    double *scale,int *status,double *bound)
@@ -3700,6 +3736,7 @@ S310:
 #undef zero
 #undef inf
 } /* END */
+
 /***=====================================================================***/
 static void cdfnbn(int *which,double *p,double *q,double *s,double *xn,
 	    double *pr,double *ompr,int *status,double *bound)
@@ -4072,6 +4109,7 @@ S540:
 #undef inf
 #undef one
 } /* END */
+
 /***=====================================================================***/
 static void cdfnor(int *which,double *p,double *q,double *x,double *mean,
 	    double *sd,int *status,double *bound)
@@ -4277,6 +4315,7 @@ S160:
     }
     return;
 } /* END */
+
 /***=====================================================================***/
 static void cdfpoi(int *which,double *p,double *q,double *s,double *xlam,
 	    int *status,double *bound)
@@ -4534,6 +4573,7 @@ S330:
 #undef atol
 #undef inf
 } /* END */
+
 /***=====================================================================***/
 static void cdft(int *which,double *p,double *q,double *t,double *df,
 	  int *status,double *bound)
@@ -4786,59 +4826,60 @@ S310:
 #undef inf
 #undef maxdf
 } /* END */
+
 /***=====================================================================***/
 static void cumbet(double *x,double *y,double *a,double *b,double *cum,
 	    double *ccum)
 /*
 **********************************************************************
- 
+
      void cumbet(double *x,double *y,double *a,double *b,double *cum,
             double *ccum)
 
           Double precision cUMulative incomplete BETa distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Calculates the cdf to X of the incomplete beta distribution
      with parameters a and b.  This is the integral from 0 to x
      of (1/B(a,b))*f(t)) where f(t) = t**(a-1) * (1-t)**(b-1)
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X --> Upper limit of integration.
                                         X is DOUBLE PRECISION
- 
+
      Y --> 1 - X.
                                         Y is DOUBLE PRECISION
- 
+
      A --> First parameter of the beta distribution.
                                         A is DOUBLE PRECISION
- 
+
      B --> Second parameter of the beta distribution.
                                         B is DOUBLE PRECISION
- 
+
      CUM <-- Cumulative incomplete beta distribution.
                                         CUM is DOUBLE PRECISION
- 
+
      CCUM <-- Compliment of Cumulative incomplete beta distribution.
                                         CCUM is DOUBLE PRECISION
- 
- 
+
+
                               Method
- 
- 
+
+
      Calls the routine BRATIO.
- 
+
                                    References
- 
+
      Didonato, Armido R. and Morris, Alfred H. Jr. (1992) Algorithim
      708 Significant Digit Computation of the Incomplete Beta Function
      Ratios. ACM ToMS, Vol.18, No. 3, Sept. 1992, 360-373.
- 
+
 **********************************************************************
 */
 {
@@ -4863,54 +4904,55 @@ S20:
 */
     return;
 } /* END */
+
 /***=====================================================================***/
 static void cumbin(double *s,double *xn,double *pr,double *ompr,
 	    double *cum,double *ccum)
 /*
 **********************************************************************
- 
+
      void cumbin(double *s,double *xn,double *pr,double *ompr,
             double *cum,double *ccum)
 
                     CUmulative BINomial distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns the probability   of 0  to  S  successes in  XN   binomial
      trials, each of which has a probability of success, PBIN.
- 
- 
+
+
                               Arguments
- 
- 
+
+
      S --> The upper limit of cumulation of the binomial distribution.
                                                   S is DOUBLE PRECISION
- 
+
      XN --> The number of binomial trials.
                                                   XN is DOUBLE PRECISIO
- 
+
      PBIN --> The probability of success in each binomial trial.
                                                   PBIN is DOUBLE PRECIS
- 
+
      OMPR --> 1 - PBIN
                                                   OMPR is DOUBLE PRECIS
- 
+
      CUM <-- Cumulative binomial distribution.
                                                   CUM is DOUBLE PRECISI
- 
+
      CCUM <-- Compliment of Cumulative binomial distribution.
                                                   CCUM is DOUBLE PRECIS
- 
- 
+
+
                               Method
- 
- 
+
+
      Formula  26.5.24    of   Abramowitz  and    Stegun,  Handbook   of
      Mathematical   Functions (1966) is   used  to reduce the  binomial
      distribution  to  the  cumulative    beta distribution.
- 
+
 **********************************************************************
 */
 {
@@ -4930,44 +4972,45 @@ S10:
 S20:
     return;
 } /* END */
+
 /***=====================================================================***/
 static void cumchi(double *x,double *df,double *cum,double *ccum)
 /*
 **********************************************************************
- 
+
      void cumchi(double *x,double *df,double *cum,double *ccum)
              CUMulative of the CHi-square distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Calculates the cumulative chi-square distribution.
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X       --> Upper limit of integration of the
                  chi-square distribution.
                                                  X is DOUBLE PRECISION
- 
+
      DF      --> Degrees of freedom of the
                  chi-square distribution.
                                                  DF is DOUBLE PRECISION
- 
+
      CUM <-- Cumulative chi-square distribution.
                                                  CUM is DOUBLE PRECISIO
- 
+
      CCUM <-- Compliment of Cumulative chi-square distribution.
                                                  CCUM is DOUBLE PRECISI
- 
- 
+
+
                               Method
- 
- 
+
+
      Calls incomplete gamma function (CUMGAM)
- 
+
 **********************************************************************
 */
 {
@@ -4981,77 +5024,78 @@ static double a,xx;
     cumgam(&xx,&a,cum,ccum);
     return;
 } /* END */
+
 /***=====================================================================***/
 static void cumchn(double *x,double *df,double *pnonc,double *cum,
 	    double *ccum)
 /*
 **********************************************************************
- 
+
      void cumchn(double *x,double *df,double *pnonc,double *cum,
             double *ccum)
 
              CUMulative of the Non-central CHi-square distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Calculates     the       cumulative      non-central    chi-square
      distribution, i.e.,  the probability   that  a   random   variable
      which    follows  the  non-central chi-square  distribution,  with
      non-centrality  parameter    PNONC  and   continuous  degrees   of
      freedom DF, is less than or equal to X.
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X       --> Upper limit of integration of the non-central
                  chi-square distribution.
                                                  X is DOUBLE PRECISION
- 
+
      DF      --> Degrees of freedom of the non-central
                  chi-square distribution.
                                                  DF is DOUBLE PRECISION
- 
+
      PNONC   --> Non-centrality parameter of the non-central
                  chi-square distribution.
                                                  PNONC is DOUBLE PRECIS
- 
+
      CUM <-- Cumulative non-central chi-square distribution.
                                                  CUM is DOUBLE PRECISIO
- 
+
      CCUM <-- Compliment of Cumulative non-central chi-square distribut
                                                  CCUM is DOUBLE PRECISI
- 
- 
+
+
                               Method
- 
- 
+
+
      Uses  formula  26.4.25   of  Abramowitz  and  Stegun, Handbook  of
      Mathematical    Functions,  US   NBS   (1966)    to calculate  the
      non-central chi-square.
- 
- 
+
+
                               Variables
- 
- 
+
+
      EPS     --- Convergence criterion.  The sum stops when a
                  term is less than EPS*SUM.
                                                  EPS is DOUBLE PRECISIO
- 
+
      NTIRED  --- Maximum number of terms to be evaluated
                  in each sum.
                                                  NTIRED is INTEGER
- 
+
      QCONV   --- .TRUE. if convergence achieved -
                  i.e., program did not stop on NTIRED criterion.
                                                  QCONV is LOGICAL
- 
+
      CCUM <-- Compliment of Cumulative non-central
               chi-square distribution.
                                                  CCUM is DOUBLE PRECISI
- 
+
 **********************************************************************
 */
 {
@@ -5195,53 +5239,54 @@ S80:
 #undef qsmall
 #undef qtired
 } /* END */
+
 /***=====================================================================***/
 static void cumf(double *f,double *dfn,double *dfd,double *cum,double *ccum)
 /*
 **********************************************************************
- 
+
      void cumf(double *f,double *dfn,double *dfd,double *cum,double *ccum)
                     CUMulative F distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Computes  the  integral from  0  to  F of  the f-density  with DFN
      and DFD degrees of freedom.
- 
- 
+
+
                               Arguments
- 
- 
+
+
      F --> Upper limit of integration of the f-density.
                                                   F is DOUBLE PRECISION
- 
+
      DFN --> Degrees of freedom of the numerator sum of squares.
                                                   DFN is DOUBLE PRECISI
- 
+
      DFD --> Degrees of freedom of the denominator sum of squares.
                                                   DFD is DOUBLE PRECISI
- 
+
      CUM <-- Cumulative f distribution.
                                                   CUM is DOUBLE PRECISI
- 
+
      CCUM <-- Compliment of Cumulative f distribution.
                                                   CCUM is DOUBLE PRECIS
- 
- 
+
+
                               Method
- 
- 
+
+
      Formula  26.5.28 of  Abramowitz and   Stegun   is  used to  reduce
      the cumulative F to a cumulative beta distribution.
- 
- 
+
+
                               Note
- 
- 
+
+
      If F is less than or equal to 0, 0 is returned.
- 
+
 **********************************************************************
 */
 {
@@ -5280,68 +5325,69 @@ S10:
 #undef half
 #undef done
 } /* END */
+
 /***=====================================================================***/
 static void cumfnc(double *f,double *dfn,double *dfd,double *pnonc,
 	    double *cum,double *ccum)
 /*
 **********************************************************************
- 
+
                F -NON- -C-ENTRAL F DISTRIBUTION
- 
- 
- 
+
+
+
                               Function
- 
- 
+
+
      COMPUTES NONCENTRAL F DISTRIBUTION WITH DFN AND DFD
      DEGREES OF FREEDOM AND NONCENTRALITY PARAMETER PNONC
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X --> UPPER LIMIT OF INTEGRATION OF NONCENTRAL F IN EQUATION
- 
+
      DFN --> DEGREES OF FREEDOM OF NUMERATOR
- 
+
      DFD -->  DEGREES OF FREEDOM OF DENOMINATOR
- 
+
      PNONC --> NONCENTRALITY PARAMETER.
- 
+
      CUM <-- CUMULATIVE NONCENTRAL F DISTRIBUTION
- 
+
      CCUM <-- COMPLIMENT OF CUMMULATIVE
- 
- 
+
+
                               Method
- 
- 
+
+
      USES FORMULA 26.6.20 OF REFERENCE FOR INFINITE SERIES.
      SERIES IS CALCULATED BACKWARD AND FORWARD FROM J = LAMBDA/2
      (THIS IS THE TERM WITH THE LARGEST POISSON WEIGHT) UNTIL
      THE CONVERGENCE CRITERION IS MET.
- 
+
      FOR SPEED, THE INCOMPLETE BETA FUNCTIONS ARE EVALUATED
      BY FORMULA 26.5.16.
- 
- 
+
+
                REFERENCE
- 
- 
+
+
      HANDBOOD OF MATHEMATICAL FUNCTIONS
      EDITED BY MILTON ABRAMOWITZ AND IRENE A. STEGUN
      NATIONAL BUREAU OF STANDARDS APPLIED MATEMATICS SERIES - 55
      MARCH 1965
      P 947, EQUATIONS 26.6.17, 26.6.18
- 
- 
+
+
                               Note
- 
- 
+
+
      THE SUM CONTINUES UNTIL A SUCCEEDING TERM IS LESS THAN EPS
      TIMES THE SUM (OR THE SUM IS LESS THAN 1.0E-20).  EPS IS
      SET TO 1.0E-4 IN A DATA STATEMENT WHICH CAN BE CHANGED.
- 
+
 **********************************************************************
 */
 {
@@ -5451,47 +5497,48 @@ S70:
 #undef half
 #undef done
 } /* END */
+
 /***=====================================================================***/
 static void cumgam(double *x,double *a,double *cum,double *ccum)
 /*
 **********************************************************************
- 
+
      void cumgam(double *x,double *a,double *cum,double *ccum)
            Double precision cUMulative incomplete GAMma distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Computes   the  cumulative        of    the     incomplete   gamma
      distribution, i.e., the integral from 0 to X of
           (1/GAM(A))*EXP(-T)*T**(A-1) DT
      where GAM(A) is the complete gamma function of A, i.e.,
           GAM(A) = integral from 0 to infinity of
                     EXP(-T)*T**(A-1) DT
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X --> The upper limit of integration of the incomplete gamma.
                                                 X is DOUBLE PRECISION
- 
+
      A --> The shape parameter of the incomplete gamma.
                                                 A is DOUBLE PRECISION
- 
+
      CUM <-- Cumulative incomplete gamma distribution.
                                         CUM is DOUBLE PRECISION
- 
+
      CCUM <-- Compliment of Cumulative incomplete gamma distribution.
                                                 CCUM is DOUBLE PRECISIO
- 
- 
+
+
                               Method
- 
- 
+
+
      Calls the routine GRATIO.
- 
+
 **********************************************************************
 */
 {
@@ -5511,60 +5558,61 @@ S10:
 */
     return;
 } /* END */
+
 /***=====================================================================***/
 static void cumnbn(double *s,double *xn,double *pr,double *ompr,
 	    double *cum,double *ccum)
 /*
 **********************************************************************
- 
+
      void cumnbn(double *s,double *xn,double *pr,double *ompr,
             double *cum,double *ccum)
 
                     CUmulative Negative BINomial distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns the probability that it there will be S or fewer failures
      before there are XN successes, with each binomial trial having
      a probability of success PR.
- 
+
      Prob(# failures = S | XN successes, PR)  =
                         ( XN + S - 1 )
                         (            ) * PR^XN * (1-PR)^S
                         (      S     )
- 
- 
+
+
                               Arguments
- 
- 
+
+
      S --> The number of failures
                                                   S is DOUBLE PRECISION
- 
+
      XN --> The number of successes
                                                   XN is DOUBLE PRECISIO
- 
+
      PR --> The probability of success in each binomial trial.
                                                   PR is DOUBLE PRECISIO
- 
+
      OMPR --> 1 - PR
                                                   OMPR is DOUBLE PRECIS
- 
+
      CUM <-- Cumulative negative binomial distribution.
                                                   CUM is DOUBLE PRECISI
- 
+
      CCUM <-- Compliment of Cumulative negative binomial distribution.
                                                   CCUM is DOUBLE PRECIS
- 
- 
+
+
                               Method
- 
- 
+
+
      Formula  26.5.26    of   Abramowitz  and    Stegun,  Handbook   of
      Mathematical   Functions (1966) is   used  to reduce the  negative
      binomial distribution to the cumulative beta distribution.
- 
+
 **********************************************************************
 */
 {
@@ -5577,30 +5625,31 @@ static double T1;
     cumbet(pr,ompr,xn,&T1,cum,ccum);
     return;
 } /* END */
+
 /***=====================================================================***/
 static void cumnor(double *arg,double *result,double *ccum)
 /*
 **********************************************************************
- 
+
      void cumnor(double *arg,double *result,double *ccum)
- 
- 
+
+
                               Function
- 
- 
+
+
      Computes the cumulative  of    the  normal   distribution,   i.e.,
      the integral from -infinity to x of
           (1/sqrt(2*pi)) exp(-u*u/2) du
- 
+
      X --> Upper limit of integration.
                                         X is DOUBLE PRECISION
- 
+
      RESULT <-- Cumulative normal distribution.
                                         RESULT is DOUBLE PRECISION
- 
+
      CCUM <-- Compliment of Cumulative normal distribution.
                                         CCUM is DOUBLE PRECISION
- 
+
      Renaming of function ANORM from:
 
      Cody, W.D. (1993). "ALGORITHM 715: SPECFUN - A Portabel FORTRAN
@@ -5609,19 +5658,19 @@ static void cumnor(double *arg,double *result,double *ccum)
 
      with slight modifications to return ccum and to deal with
      machine constants.
- 
+
 **********************************************************************
   Original Comments:
 ------------------------------------------------------------------
- 
+
  This function evaluates the normal distribution function:
- 
+
                               / x
                      1       |       -t*t/2
           P(x) = ----------- |      e       dt
                  sqrt(2 pi)  |
                              /-oo
- 
+
    The main computation evaluates near-minimax approximations
    derived from those in "Rational Chebyshev approximations for
    the error function" by W. J. Cody, Math. Comp., 1969, 631-637.
@@ -5631,38 +5680,38 @@ static void cumnor(double *arg,double *result,double *ccum)
    depends on the arithmetic system, the compiler, the intrinsic
    functions, and proper selection of the machine-dependent
    constants.
- 
+
 *******************************************************************
 *******************************************************************
- 
+
  Explanation of machine-dependent constants.
- 
+
    MIN   = smallest machine representable number.
- 
+
    EPS   = argument below which anorm(x) may be represented by
            0.5  and above which  x*x  will not underflow.
            A conservative value is the largest machine number X
            such that   1.0 + X = 1.0   to machine precision.
 *******************************************************************
 *******************************************************************
- 
+
  Error returns
- 
+
   The program returns  ANORM = 0     for  ARG .LE. XLOW.
- 
- 
+
+
  Intrinsic functions required are:
- 
+
      ABS, AINT, EXP
- 
- 
+
+
   Author: W. J. Cody
           Mathematics and Computer Science Division
           Argonne National Laboratory
           Argonne, IL 60439
- 
+
   Latest modification: March 15, 1992
- 
+
 ------------------------------------------------------------------
 */
 {
@@ -5789,45 +5838,46 @@ static double del,eps,temp,x,xden,xnum,y,xsq,min;
 */
     if(*ccum < min) *ccum = 0.0e0;
 } /* END */
+
 /***=====================================================================***/
 static void cumpoi(double *s,double *xlam,double *cum,double *ccum)
 /*
 **********************************************************************
- 
+
      void cumpoi(double *s,double *xlam,double *cum,double *ccum)
                     CUMulative POIsson distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns the  probability  of  S   or  fewer events in  a   Poisson
      distribution with mean XLAM.
- 
- 
+
+
                               Arguments
- 
- 
+
+
      S --> Upper limit of cumulation of the Poisson.
                                                   S is DOUBLE PRECISION
- 
+
      XLAM --> Mean of the Poisson distribution.
                                                   XLAM is DOUBLE PRECIS
- 
+
      CUM <-- Cumulative poisson distribution.
                                         CUM is DOUBLE PRECISION
- 
+
      CCUM <-- Compliment of Cumulative poisson distribution.
                                                   CCUM is DOUBLE PRECIS
- 
- 
+
+
                               Method
- 
- 
+
+
      Uses formula  26.4.21   of   Abramowitz and  Stegun,  Handbook  of
      Mathematical   Functions  to reduce   the   cumulative Poisson  to
      the cumulative chi-square distribution.
- 
+
 **********************************************************************
 */
 {
@@ -5841,44 +5891,45 @@ static double chi,df;
     cumchi(&chi,&df,ccum,cum);
     return;
 } /* END */
+
 /***=====================================================================***/
 static void cumt(double *t,double *df,double *cum,double *ccum)
 /*
 **********************************************************************
- 
+
      void cumt(double *t,double *df,double *cum,double *ccum)
                     CUMulative T-distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Computes the integral from -infinity to T of the t-density.
- 
- 
+
+
                               Arguments
- 
- 
+
+
      T --> Upper limit of integration of the t-density.
                                                   T is DOUBLE PRECISION
- 
+
      DF --> Degrees of freedom of the t-distribution.
                                                   DF is DOUBLE PRECISIO
- 
+
      CUM <-- Cumulative t-distribution.
                                                   CCUM is DOUBLE PRECIS
- 
+
      CCUM <-- Compliment of Cumulative t-distribution.
                                                   CCUM is DOUBLE PRECIS
- 
- 
+
+
                               Method
- 
- 
+
+
      Formula 26.5.27   of     Abramowitz  and   Stegun,    Handbook  of
      Mathematical Functions  is   used   to  reduce the  t-distribution
      to an incomplete beta.
- 
+
 **********************************************************************
 */
 {
@@ -5904,38 +5955,39 @@ S10:
 S20:
     return;
 } /* END */
+
 /***=====================================================================***/
 static double dbetrm(double *a,double *b)
 /*
 **********************************************************************
- 
+
      double dbetrm(double *a,double *b)
           Double Precision Sterling Remainder for Complete
                     Beta Function
- 
- 
+
+
                               Function
- 
- 
+
+
      Log(Beta(A,B)) = Lgamma(A) + Lgamma(B) - Lgamma(A+B)
      where Lgamma is the log of the (complete) gamma function
- 
+
      Let ZZ be approximation obtained if each log gamma is approximated
      by Sterling's formula, i.e.,
      Sterling(Z) = LOG( SQRT( 2*PI ) ) + ( Z-0.5 ) * LOG( Z ) - Z
- 
+
      Returns Log(Beta(A,B)) - ZZ
- 
- 
+
+
                               Arguments
- 
- 
+
+
      A --> One argument of the Beta
                     DOUBLE PRECISION A
- 
+
      B --> The other argument of the Beta
                     DOUBLE PRECISION B
- 
+
 **********************************************************************
 */
 {
@@ -5955,34 +6007,35 @@ static double dbetrm,T1,T2,T3;
     dbetrm += dstrem(&T3);
     return dbetrm;
 } /* END */
+
 /***=====================================================================***/
 static double devlpl(double a[],int *n,double *x)
 /*
 **********************************************************************
- 
+
      double devlpl(double a[],int *n,double *x)
               Double precision EVALuate a PoLynomial at X
- 
- 
+
+
                               Function
- 
- 
+
+
      returns
           A(1) + A(2)*X + ... + A(N)*X**(N-1)
- 
- 
+
+
                               Arguments
- 
- 
+
+
      A --> Array of coefficients of the polynomial.
                                         A is DOUBLE PRECISION(N)
- 
+
      N --> Length of A, also degree of polynomial - 1.
                                         N is INTEGER
- 
+
      X --> Point at which the polynomial is to be evaluated.
                                         X is DOUBLE PRECISION
- 
+
 **********************************************************************
 */
 {
@@ -5997,31 +6050,32 @@ static int i;
     devlpl = term;
     return devlpl;
 } /* END */
+
 /***=====================================================================***/
 static double dexpm1(double *x)
 /*
 **********************************************************************
- 
+
      double dexpm1(double *x)
             Evaluation of the function EXP(X) - 1
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X --> Argument at which exp(x)-1 desired
                     DOUBLE PRECISION X
- 
- 
+
+
                               Method
- 
- 
+
+
      Renaming of function rexp from code of:
- 
+
      DiDinato, A. R. and Morris,  A.   H.  Algorithm 708: Significant
      Digit Computation of the Incomplete  Beta  Function Ratios.  ACM
      Trans. Math.  Softw. 18 (1993), 360-373.
- 
+
 **********************************************************************
 */
 {
@@ -6048,45 +6102,46 @@ S20:
     dexpm1 = w*(0.5e0+(0.5e0-1.0e0/w));
     return dexpm1;
 } /* END */
+
 /***=====================================================================***/
 static double dinvnr(double *p,double *q)
 /*
 **********************************************************************
- 
+
      double dinvnr(double *p,double *q)
      Double precision NoRmal distribution INVerse
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns X  such that CUMNOR(X)  =   P,  i.e., the  integral from -
      infinity to X of (1/SQRT(2*PI)) EXP(-U*U/2) dU is P
- 
- 
+
+
                               Arguments
- 
- 
+
+
      P --> The probability whose normal deviate is sought.
                     P is DOUBLE PRECISION
- 
+
      Q --> 1-P
                     P is DOUBLE PRECISION
- 
- 
+
+
                               Method
- 
- 
+
+
      The  rational   function   on  page 95    of Kennedy  and  Gentle,
      Statistical Computing, Marcel Dekker, NY , 1980 is used as a start
      value for the Newton method of finding roots.
- 
- 
+
+
                               Note
- 
- 
+
+
      If P or Q .lt. machine EPS returns +/- DINVNR(EPS)
- 
+
 **********************************************************************
 */
 {
@@ -6145,6 +6200,7 @@ S40:
 #undef nhalf
 #undef dennor
 } /* END */
+
 /***=====================================================================***/
 static void E0000(int IENTRY,int *status,double *x,double *fx,
 		  unsigned long *qleft,unsigned long *qhi,double *zabsst,
@@ -6347,76 +6403,78 @@ S300:
     *status = 1;
     return;
 S310:
-    switch((int)i99999){case 1: goto S10;case 2: goto S20;case 3: goto S90;case 
+    switch((int)i99999){case 1: goto S10;case 2: goto S20;case 3: goto S90;case
       4: goto S130;case 5: goto S200;case 6: goto S270;default: break;}
 #undef qxmon
 } /* END */
+
 /***=====================================================================***/
 static void dinvr(int *status,double *x,double *fx,
 	   unsigned long *qleft,unsigned long *qhi)
 /*
 **********************************************************************
- 
+
      void dinvr(int *status,double *x,double *fx,
            unsigned long *qleft,unsigned long *qhi)
 
           Double precision
           bounds the zero of the function and invokes zror
                     Reverse Communication
- 
- 
+
+
                               Function
- 
- 
+
+
      Bounds the    function  and  invokes  ZROR   to perform the   zero
      finding.  STINVR  must  have   been  called  before this   routine
      in order to set its parameters.
- 
- 
+
+
                               Arguments
- 
- 
+
+
      STATUS <--> At the beginning of a zero finding problem, STATUS
                  should be set to 0 and INVR invoked.  (The value
                  of parameters other than X will be ignored on this cal
- 
+
                  When INVR needs the function evaluated, it will set
                  STATUS to 1 and return.  The value of the function
                  should be set in FX and INVR again called without
                  changing any of its other parameters.
- 
+
                  When INVR has finished without error, it will return
                  with STATUS 0.  In that case X is approximately a root
                  of F(X).
- 
+
                  If INVR cannot bound the function, it returns status
                  -1 and sets QLEFT and QHI.
                          INTEGER STATUS
- 
+
      X <-- The value of X at which F(X) is to be evaluated.
                          DOUBLE PRECISION X
- 
+
      FX --> The value of F(X) calculated when INVR returns with
             STATUS = 1.
                          DOUBLE PRECISION FX
- 
+
      QLEFT <-- Defined only if QMFINV returns .FALSE.  In that
           case it is .TRUE. If the stepping search terminated
           unsucessfully at SMALL.  If it is .FALSE. the search
           terminated unsucessfully at BIG.
                     QLEFT is LOGICAL
- 
+
      QHI <-- Defined only if QMFINV returns .FALSE.  In that
           case it is .TRUE. if F(X) .GT. Y at the termination
           of the search and .FALSE. if F(X) .LT. Y at the
           termination of the search.
                     QHI is LOGICAL
- 
+
 **********************************************************************
 */
 {
     E0000(0,status,x,fx,qleft,qhi,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 } /* END */
+
 /***=====================================================================***/
 static void dstinv(double *zsmall,double *zbig,double *zabsst,
 	    double *zrelst,double *zstpmu,double *zabsto,
@@ -6489,41 +6547,42 @@ static void dstinv(double *zsmall,double *zbig,double *zabsst,
     E0000(1,NULL,NULL,NULL,NULL,NULL,zabsst,zabsto,zbig,zrelst,zrelto,zsmall,
     zstpmu);
 } /* END */
+
 /***=====================================================================***/
 static double dlanor(double *x)
 /*
 **********************************************************************
- 
+
      double dlanor(double *x)
            Double precision Logarith of the Asymptotic Normal
- 
- 
+
+
                               Function
- 
- 
+
+
       Computes the logarithm of the cumulative normal distribution
       from abs( x ) to infinity for abs( x ) >= 5.
- 
- 
+
+
                               Arguments
- 
- 
+
+
       X --> Value at which cumulative normal to be evaluated
                      DOUBLE PRECISION X
- 
- 
+
+
                               Method
- 
- 
+
+
       23 term expansion of formula 26.2.12 of Abramowitz and Stegun.
       The relative error at X = 5 is about 0.5E-5.
- 
- 
+
+
                               Note
- 
- 
+
+
       ABS(X) must be >= 5 else there is an error stop.
- 
+
 **********************************************************************
 */
 {
@@ -6549,37 +6608,38 @@ static double dlanor,approx,correc,xx,xx2,T2;
     return dlanor;
 #undef dlsqpi
 } /* END */
+
 /***=====================================================================***/
 static double dln1mx(double *x)
 /*
 **********************************************************************
- 
+
      double dln1mx(double *x)
                Double precision LN(1-X)
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns ln(1-x) for small x (good accuracy if x .le. 0.1).
      Note that the obvious code of
                LOG(1.0-X)
      won't work for small X because 1.0-X loses accuracy
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X --> Value for which ln(1-x) is desired.
                                         X is DOUBLE PRECISION
- 
- 
+
+
                               Method
- 
- 
+
+
      If X > 0.1, the obvious code above is used ELSE
      The Taylor series for 1-x is expanded to 20 terms.
- 
+
 **********************************************************************
 */
 {
@@ -6592,39 +6652,40 @@ static double dln1mx,T1;
     dln1mx = dln1px(&T1);
     return dln1mx;
 } /* END */
+
 /***=====================================================================***/
 static double dln1px(double *a)
 /*
 **********************************************************************
- 
+
      double dln1px(double *a)
                Double precision LN(1+X)
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns ln(1+x)
      Note that the obvious code of
                LOG(1.0+X)
      won't work for small X because 1.0+X loses accuracy
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X --> Value for which ln(1-x) is desired.
                                         X is DOUBLE PRECISION
- 
- 
+
+
                               Method
- 
- 
+
+
      Renames ALNREL from:
      DiDinato, A. R. and Morris,  A.   H.  Algorithm 708: Significant
      Digit Computation of the Incomplete  Beta  Function Ratios.  ACM
      Trans. Math.  Softw. 18 (1993), 360-373.
- 
+
 **********************************************************************
 -----------------------------------------------------------------------
             EVALUATION OF THE FUNCTION LN(1 + A)
@@ -6653,39 +6714,40 @@ S10:
     dln1px = log(x);
     return dln1px;
 } /* END */
+
 /***=====================================================================***/
 static double dlnbet(double *a0,double *b0)
 /*
 **********************************************************************
- 
+
      double dlnbet(a0,b0)
           Double precision LN of the complete BETa
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns the natural log of the complete beta function,
      i.e.,
- 
+
                   ln( Gamma(a)*Gamma(b) / Gamma(a+b)
- 
- 
+
+
                               Arguments
- 
- 
+
+
    A,B --> The (symmetric) arguments to the complete beta
                   DOUBLE PRECISION A, B
- 
- 
+
+
                               Method
- 
- 
+
+
      Renames BETALN from:
      DiDinato, A. R. and Morris,  A.   H.  Algorithm 708: Significant
      Digit Computation of the Incomplete  Beta  Function Ratios.  ACM
      Trans. Math.  Softw. 18 (1993), 360-373.
- 
+
 **********************************************************************
 -----------------------------------------------------------------------
      EVALUATION OF THE LOGARITHM OF THE BETA FUNCTION
@@ -6791,36 +6853,37 @@ S110:
     dlnbet = -(0.5e0*log(b))+e+w-u-v;
     return dlnbet;
 } /* END */
+
 /***=====================================================================***/
 static double dlngam(double *a)
 /*
 **********************************************************************
- 
+
      double dlngam(double *a)
                  Double precision LN of the GAMma function
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns the natural logarithm of GAMMA(X).
- 
- 
+
+
                               Arguments
- 
- 
+
+
      X --> value at which scaled log gamma is to be returned
                     X is DOUBLE PRECISION
- 
- 
+
+
                               Method
- 
- 
+
+
      Renames GAMLN from:
      DiDinato, A. R. and Morris,  A.   H.  Algorithm 708: Significant
      Digit Computation of the Incomplete  Beta  Function Ratios.  ACM
      Trans. Math.  Softw. 18 (1993), 360-373.
- 
+
 **********************************************************************
 -----------------------------------------------------------------------
             EVALUATION OF LN(GAMMA(A)) FOR POSITIVE A
@@ -6873,6 +6936,7 @@ S40:
     dlngam = d+w+(*a-0.5e0)*(log(*a)-1.0e0);
     return dlngam;
 } /* END */
+
 /***=====================================================================***/
 static double dstrem(double *z)
 {
@@ -6938,37 +7002,38 @@ S20:
 #undef hln2pi
 #undef ncoef
 } /* END */
+
 /***=====================================================================***/
 static double dt1(double *p,double *q,double *df)
 /*
 **********************************************************************
- 
+
      double dt1(double *p,double *q,double *df)
      Double precision Initalize Approximation to
            INVerse of the cumulative T distribution
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns  the  inverse   of  the T   distribution   function, i.e.,
      the integral from 0 to INVT of the T density is P. This is an
      initial approximation
- 
- 
+
+
                               Arguments
- 
- 
+
+
      P --> The p-value whose inverse from the T distribution is
           desired.
                     P is DOUBLE PRECISION
- 
+
      Q --> 1-P.
                     Q is DOUBLE PRECISION
- 
+
      DF --> Degrees of freedom of the T distribution.
                     DF is DOUBLE PRECISION
- 
+
 **********************************************************************
 */
 {
@@ -7006,6 +7071,7 @@ S30:
     dt1 = xp;
     return dt1;
 } /* END */
+
 /***=====================================================================***/
 static void E0001(int IENTRY,int *status,double *x,double *fx,
 		  double *xlo,double *xhi,unsigned long *qleft,
@@ -7165,75 +7231,77 @@ S280:
       default: break;}
 #undef ftol
 } /* END */
+
 /***=====================================================================***/
 static void dzror(int *status,double *x,double *fx,double *xlo,
 	   double *xhi,unsigned long *qleft,unsigned long *qhi)
 /*
 **********************************************************************
- 
+
      void dzror(int *status,double *x,double *fx,double *xlo,
            double *xhi,unsigned long *qleft,unsigned long *qhi)
 
      Double precision ZeRo of a function -- Reverse Communication
- 
- 
+
+
                               Function
- 
- 
+
+
      Performs the zero finding.  STZROR must have been called before
      this routine in order to set its parameters.
- 
- 
+
+
                               Arguments
- 
- 
+
+
      STATUS <--> At the beginning of a zero finding problem, STATUS
                  should be set to 0 and ZROR invoked.  (The value
                  of other parameters will be ignored on this call.)
- 
+
                  When ZROR needs the function evaluated, it will set
                  STATUS to 1 and return.  The value of the function
                  should be set in FX and ZROR again called without
                  changing any of its other parameters.
- 
+
                  When ZROR has finished without error, it will return
                  with STATUS 0.  In that case (XLO,XHI) bound the answe
- 
+
                  If ZROR finds an error (which implies that F(XLO)-Y an
                  F(XHI)-Y have the same sign, it returns STATUS -1.  In
                  this case, XLO and XHI are undefined.
                          INTEGER STATUS
- 
+
      X <-- The value of X at which F(X) is to be evaluated.
                          DOUBLE PRECISION X
- 
+
      FX --> The value of F(X) calculated when ZROR returns with
             STATUS = 1.
                          DOUBLE PRECISION FX
- 
+
      XLO <-- When ZROR returns with STATUS = 0, XLO bounds the
              inverval in X containing the solution below.
                          DOUBLE PRECISION XLO
- 
+
      XHI <-- When ZROR returns with STATUS = 0, XHI bounds the
              inverval in X containing the solution above.
                          DOUBLE PRECISION XHI
- 
+
      QLEFT <-- .TRUE. if the stepping search terminated unsucessfully
                 at XLO.  If it is .FALSE. the search terminated
                 unsucessfully at XHI.
                     QLEFT is LOGICAL
- 
+
      QHI <-- .TRUE. if F(X) .GT. Y at the termination of the
               search and .FALSE. if F(X) .LT. Y at the
               termination of the search.
                     QHI is LOGICAL
- 
+
 **********************************************************************
 */
 {
     E0001(0,status,x,fx,xlo,xhi,qleft,qhi,NULL,NULL,NULL,NULL);
 } /* END */
+
 /***=====================================================================***/
 static void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl)
 /*
@@ -7282,6 +7350,7 @@ static void dstzr(double *zxlo,double *zxhi,double *zabstl,double *zreltl)
 {
     E0001(1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,zabstl,zreltl,zxhi,zxlo);
 } /* END */
+
 /***=====================================================================***/
 static double erf1(double *x)
 /*
@@ -7351,12 +7420,13 @@ S30:
     erf1 = fifdsign(1.0e0,*x);
     return erf1;
 } /* END */
+
 /***=====================================================================***/
 static double erfc1(int *ind,double *x)
 /*
 -----------------------------------------------------------------------
          EVALUATION OF THE COMPLEMENTARY ERROR FUNCTION
- 
+
           ERFC1(IND,X) = ERFC(X)            IF IND = 0
           ERFC1(IND,X) = EXP(X*X)*ERFC(X)   OTHERWISE
 -----------------------------------------------------------------------
@@ -7458,6 +7528,7 @@ S70:
     erfc1 = 0.0e0;
     return erfc1;
 } /* END */
+
 /***=====================================================================***/
 static double esum(int *mu,double *x)
 /*
@@ -7488,16 +7559,17 @@ S20:
     esum = exp(w)*exp(*x);
     return esum;
 } /* END */
+
 /***=====================================================================***/
 static double exparg(int *l)
 /*
 --------------------------------------------------------------------
      IF L = 0 THEN  EXPARG(L) = THE LARGEST POSITIVE W FOR WHICH
      EXP(W) CAN BE COMPUTED.
- 
+
      IF L IS NONZERO THEN  EXPARG(L) = THE LARGEST NEGATIVE W FOR
      WHICH THE COMPUTED VALUE OF EXP(W) IS NONZERO.
- 
+
      NOTE... ONLY AN APPROXIMATE VALUE FOR EXPARG(L) IS NEEDED.
 --------------------------------------------------------------------
 */
@@ -7535,18 +7607,19 @@ S50:
     exparg = 0.99999e0*((double)m*lnb);
     return exparg;
 } /* END */
+
 /***=====================================================================***/
 static double fpser(double *a,double *b,double *x,double *eps)
 /*
 -----------------------------------------------------------------------
- 
+
                  EVALUATION OF I (A,B)
                                 X
- 
+
           FOR B .LT. MIN(EPS,EPS*A) AND X .LE. 0.5.
- 
+
 -----------------------------------------------------------------------
- 
+
                   SET  FPSER = X**A
 */
 {
@@ -7580,6 +7653,7 @@ S20:
     fpser *= (1.0e0+*a*s);
     return fpser;
 } /* END */
+
 /***=====================================================================***/
 static double gam1(double *a)
 /*
@@ -7641,35 +7715,36 @@ S50:
     gam1 = t*w/ *a;
     return gam1;
 } /* END */
+
 /***=====================================================================***/
 static void gaminv(double *a,double *x,double *x0,double *p,double *q,
 	    int *ierr)
 /*
  ----------------------------------------------------------------------
             INVERSE INCOMPLETE GAMMA RATIO FUNCTION
- 
+
      GIVEN POSITIVE A, AND NONEGATIVE P AND Q WHERE P + Q = 1.
      THEN X IS COMPUTED WHERE P(A,X) = P AND Q(A,X) = Q. SCHRODER
      ITERATION IS EMPLOYED. THE ROUTINE ATTEMPTS TO COMPUTE X
      TO 10 SIGNIFICANT DIGITS IF THIS IS POSSIBLE FOR THE
      PARTICULAR COMPUTER ARITHMETIC BEING USED.
- 
+
                       ------------
- 
+
      X IS A VARIABLE. IF P = 0 THEN X IS ASSIGNED THE VALUE 0,
      AND IF Q = 0 THEN X IS SET TO THE LARGEST FLOATING POINT
      NUMBER AVAILABLE. OTHERWISE, GAMINV ATTEMPTS TO OBTAIN
      A SOLUTION FOR P(A,X) = P AND Q(A,X) = Q. IF THE ROUTINE
      IS SUCCESSFUL THEN THE SOLUTION IS STORED IN X.
- 
+
      X0 IS AN OPTIONAL INITIAL APPROXIMATION FOR X. IF THE USER
      DOES NOT WISH TO SUPPLY AN INITIAL APPROXIMATION, THEN SET
      X0 .LE. 0.
- 
+
      IERR IS A VARIABLE THAT REPORTS THE STATUS OF THE RESULTS.
      WHEN THE ROUTINE TERMINATES, IERR HAS ONE OF THE FOLLOWING
      VALUES ...
- 
+
        IERR =  0    THE SOLUTION WAS OBTAINED. ITERATION WAS
                     NOT USED.
        IERR.GT.0    THE SOLUTION WAS OBTAINED. IERR ITERATIONS
@@ -8004,6 +8079,7 @@ S360:
     *ierr = -8;
     return;
 } /* END */
+
 /***=====================================================================***/
 static double gamln(double *a)
 /*
@@ -8058,6 +8134,7 @@ S40:
     gamln = d+w+(*a-0.5e0)*(log(*a)-1.0e0);
     return gamln;
 } /* END */
+
 /***=====================================================================***/
 static double gamln1(double *a)
 /*
@@ -8107,18 +8184,19 @@ S10:
     gamln1 = x*w;
     return gamln1;
 } /* END */
+
 /***=====================================================================***/
 static double Xgamm(double *a)
 /*
 -----------------------------------------------------------------------
- 
+
          EVALUATION OF THE GAMMA FUNCTION FOR REAL ARGUMENTS
- 
+
                            -----------
- 
+
      GAMMA(A) IS ASSIGNED THE VALUE 0 WHEN THE GAMMA FUNCTION CANNOT
      BE COMPUTED.
- 
+
 -----------------------------------------------------------------------
      WRITTEN BY ALFRED H. MORRIS, JR.
           NAVAL SURFACE WEAPONS CENTER
@@ -8257,6 +8335,7 @@ S120:
     if(*a < 0.0e0) Xgamm = 1.0e0/(Xgamm*s)/x;
     return Xgamm;
 } /* END */
+
 /***=====================================================================***/
 static void grat1(double *a,double *x,double *r,double *p,double *q,
 	   double *eps)
@@ -8361,18 +8440,19 @@ S120:
     if(*x <= *a) goto S80;
     goto S90;
 } /* END */
+
 /***=====================================================================***/
 static void gratio(double *a,double *x,double *ans,double *qans,int *ind)
 /*
  ----------------------------------------------------------------------
         EVALUATION OF THE INCOMPLETE GAMMA RATIO FUNCTIONS
                       P(A,X) AND Q(A,X)
- 
+
                         ----------
- 
+
      IT IS ASSUMED THAT A AND X ARE NONNEGATIVE, WHERE A AND X
      ARE NOT BOTH 0.
- 
+
      ANS AND QANS ARE VARIABLES. GRATIO ASSIGNS ANS THE VALUE
      P(A,X) AND QANS THE VALUE Q(A,X). IND MAY BE ANY INTEGER.
      IF IND = 0 THEN THE USER IS REQUESTING AS MUCH ACCURACY AS
@@ -8380,7 +8460,7 @@ static void gratio(double *a,double *x,double *ans,double *qans,int *ind)
      IND = 1 THEN ACCURACY IS REQUESTED TO WITHIN 1 UNIT OF THE
      6-TH SIGNIFICANT DIGIT, AND IF IND .NE. 0,1 THEN ACCURACY
      IS REQUESTED TO WITHIN 1 UNIT OF THE 3RD SIGNIFICANT DIGIT.
- 
+
      ERROR RETURN ...
         ANS IS ASSIGNED THE VALUE 2 WHEN A OR X IS NEGATIVE,
      WHEN A*X = 0, OR WHEN P(A,X) AND Q(A,X) ARE INDETERMINANT.
@@ -8779,6 +8859,7 @@ S430:
     *ans = 2.0e0;
     return;
 } /* END */
+
 /***=====================================================================***/
 static double gsumln(double *a,double *b)
 /*
@@ -8807,22 +8888,23 @@ S20:
     gsumln = gamln1(&T2)+log(x*(1.0e0+x));
     return gsumln;
 } /* END */
+
 /***=====================================================================***/
 static double psi(double *xx)
 /*
 ---------------------------------------------------------------------
- 
+
                  EVALUATION OF THE DIGAMMA FUNCTION
- 
+
                            -----------
- 
+
      PSI(XX) IS ASSIGNED THE VALUE 0 WHEN THE DIGAMMA FUNCTION CANNOT
      BE COMPUTED.
- 
+
      THE MAIN COMPUTATION INVOLVES EVALUATION OF RATIONAL CHEBYSHEV
      APPROXIMATIONS PUBLISHED IN MATH. COMP. 27, 123-127(1973) BY
      CODY, STRECOK AND THACHER.
- 
+
 ---------------------------------------------------------------------
      PSI WAS WRITTEN AT ARGONNE NATIONAL LABORATORY FOR THE FUNPACK
      PACKAGE OF SPECIAL FUNCTION SUBROUTINES. PSI WAS MODIFIED BY
@@ -9001,6 +9083,7 @@ S100:
     psi = 0.0e0;
     return psi;
 } /* END */
+
 /***=====================================================================***/
 static double rcomp(double *a,double *x)
 /*
@@ -9035,6 +9118,7 @@ S20:
     rcomp = rt2pin*sqrt(*a)*exp(t1);
     return rcomp;
 } /* END */
+
 /***=====================================================================***/
 static double rexp(double *x)
 /*
@@ -9066,6 +9150,7 @@ S20:
     rexp = w*(0.5e0+(0.5e0-1.0e0/w));
     return rexp;
 } /* END */
+
 /***=====================================================================***/
 static double rlog(double *x)
 /*
@@ -9117,6 +9202,7 @@ S40:
     rlog = r-log(*x);
     return rlog;
 } /* END */
+
 /***=====================================================================***/
 static double rlog1(double *x)
 /*
@@ -9168,23 +9254,24 @@ S40:
     rlog1 = *x-log(w);
     return rlog1;
 } /* END */
+
 /***=====================================================================***/
 static double spmpar(int *i)
 /*
 -----------------------------------------------------------------------
- 
+
      SPMPAR PROVIDES THE SINGLE PRECISION MACHINE CONSTANTS FOR
      THE COMPUTER BEING USED. IT IS ASSUMED THAT THE ARGUMENT
      I IS AN INTEGER HAVING ONE OF THE VALUES 1, 2, OR 3. IF THE
      SINGLE PRECISION ARITHMETIC BEING USED HAS M BASE B DIGITS AND
      ITS SMALLEST AND LARGEST EXPONENTS ARE EMIN AND EMAX, THEN
- 
+
         SPMPAR(1) = B**(1 - M), THE MACHINE PRECISION,
- 
+
         SPMPAR(2) = B**(EMIN - 1), THE SMALLEST MAGNITUDE,
- 
+
         SPMPAR(3) = B**EMAX*(1 - B**(-M)), THE LARGEST MAGNITUDE.
- 
+
 -----------------------------------------------------------------------
      WRITTEN BY
         ALFRED H. MORRIS, JR.
@@ -9235,36 +9322,37 @@ S20:
     spmpar = w*z*b*b;
     return spmpar;
 } /* END */
+
 /***=====================================================================***/
 static double stvaln(double *p)
 /*
 **********************************************************************
- 
+
      double stvaln(double *p)
                     STarting VALue for Neton-Raphon
                 calculation of Normal distribution Inverse
- 
- 
+
+
                               Function
- 
- 
+
+
      Returns X  such that CUMNOR(X)  =   P,  i.e., the  integral from -
      infinity to X of (1/SQRT(2*PI)) EXP(-U*U/2) dU is P
- 
- 
+
+
                               Arguments
- 
- 
+
+
      P --> The probability whose normal deviate is sought.
                     P is DOUBLE PRECISION
- 
- 
+
+
                               Method
- 
- 
+
+
      The  rational   function   on  page 95    of Kennedy  and  Gentle,
      Statistical Computing, Marcel Dekker, NY , 1980.
- 
+
 **********************************************************************
 */
 {
@@ -9295,6 +9383,7 @@ S20:
     stvaln = sign*stvaln;
     return stvaln;
 } /* END */
+
 /***=====================================================================***/
 static double fifdint(double a)
 /************************************************************************
@@ -9306,6 +9395,7 @@ value in a double.
 {
   return (double) ((int) a);
 } /* END */
+
 /***=====================================================================***/
 static double fifdmax1(double a,double b)
 /************************************************************************
@@ -9318,6 +9408,7 @@ returns the maximum of two numbers a and b
   if (a < b) return b;
   else return a;
 } /* END */
+
 /***=====================================================================***/
 static double fifdmin1(double a,double b)
 /************************************************************************
@@ -9330,6 +9421,7 @@ returns the minimum of two numbers a and b
   if (a < b) return a;
   else return b;
 } /* END */
+
 /***=====================================================================***/
 static double fifdsign(double mag,double sign)
 /************************************************************************
@@ -9344,6 +9436,7 @@ transfers the sign of the variable "sign" to the variable "mag"
   return mag;
 
 } /* END */
+
 /***=====================================================================***/
 static long fifidint(double a)
 /************************************************************************
@@ -9355,6 +9448,7 @@ Truncates a double precision number to a long integer
   if (a < 1.0) return (long) 0;
   else return (long) a;
 } /* END */
+
 /***=====================================================================***/
 static long fifmod(long a,long b)
 /************************************************************************
@@ -9366,6 +9460,7 @@ returns the modulo of a and b
 {
   return a % b;
 } /* END */
+
 /***=====================================================================***/
 static void ftnstop(char* msg)
 /************************************************************************
@@ -9377,73 +9472,74 @@ Prints msg to standard error and then exits
   if (msg != NULL) fprintf(stderr,"%s\n",msg);
   exit(1);
 } /* END */
+
 /***=====================================================================***/
 static int ipmpar(int *i)
 /*
 -----------------------------------------------------------------------
- 
+
      IPMPAR PROVIDES THE INTEGER MACHINE CONSTANTS FOR THE COMPUTER
      THAT IS USED. IT IS ASSUMED THAT THE ARGUMENT I IS AN INTEGER
      HAVING ONE OF THE VALUES 1-10. IPMPAR(I) HAS THE VALUE ...
- 
+
   INTEGERS.
- 
+
      ASSUME INTEGERS ARE REPRESENTED IN THE N-DIGIT, BASE-A FORM
- 
+
                SIGN ( X(N-1)*A**(N-1) + ... + X(1)*A + X(0) )
- 
+
                WHERE 0 .LE. X(I) .LT. A FOR I=0,...,N-1.
- 
+
      IPMPAR(1) = A, THE BASE.
- 
+
      IPMPAR(2) = N, THE NUMBER OF BASE-A DIGITS.
- 
+
      IPMPAR(3) = A**N - 1, THE LARGEST MAGNITUDE.
- 
+
   FLOATING-POINT NUMBERS.
- 
+
      IT IS ASSUMED THAT THE SINGLE AND DOUBLE PRECISION FLOATING
      POINT ARITHMETICS HAVE THE SAME BASE, SAY B, AND THAT THE
      NONZERO NUMBERS ARE REPRESENTED IN THE FORM
- 
+
                SIGN (B**E) * (X(1)/B + ... + X(M)/B**M)
- 
+
                WHERE X(I) = 0,1,...,B-1 FOR I=1,...,M,
                X(1) .GE. 1, AND EMIN .LE. E .LE. EMAX.
- 
+
      IPMPAR(4) = B, THE BASE.
- 
+
   SINGLE-PRECISION
- 
+
      IPMPAR(5) = M, THE NUMBER OF BASE-B DIGITS.
- 
+
      IPMPAR(6) = EMIN, THE SMALLEST EXPONENT E.
- 
+
      IPMPAR(7) = EMAX, THE LARGEST EXPONENT E.
- 
+
   DOUBLE-PRECISION
- 
+
      IPMPAR(8) = M, THE NUMBER OF BASE-B DIGITS.
- 
+
      IPMPAR(9) = EMIN, THE SMALLEST EXPONENT E.
- 
+
      IPMPAR(10) = EMAX, THE LARGEST EXPONENT E.
- 
+
 -----------------------------------------------------------------------
- 
+
      TO DEFINE THIS FUNCTION FOR THE COMPUTER BEING USED REMOVE
      THE COMMENT DELIMITORS FROM THE DEFINITIONS DIRECTLY BELOW THE NAME
      OF THE MACHINE
 
 *** RWCox: at this time, the IEEE parameters are enabled.
- 
+
 -----------------------------------------------------------------------
- 
+
      IPMPAR IS AN ADAPTATION OF THE FUNCTION I1MACH, WRITTEN BY
      P.A. FOX, A.D. HALL, AND N.L. SCHRYER (BELL LABORATORIES).
      IPMPAR WAS FORMED BY A.H. MORRIS (NSWC). THE CONSTANTS ARE
      FROM BELL LABORATORIES, NSWC, AND OTHER SOURCES.
- 
+
 -----------------------------------------------------------------------
      .. Scalar Arguments ..
 */
@@ -9821,10 +9917,6 @@ typedef struct { double p,q ; } pqpair ;  /* for returning p=cdf q=1-cdf */
 /******** Internal functions for various statistical computations ********/
 /*************************************************************************/
 
-static pqpair weibull_s2pq ( double val, double p1,double p2,double p3 );
-static pqpair invgauss_s2pq( double val, double p1,double p2 )          ;
-static pqpair extval1_s2pq ( double val, double p1,double p2 )          ;
-
 /*--------------------------------------------------------------------*/
 /*!   Given qq, return x such that Q(x)=qq, for 0 < qq < 1,
       where Q(x) = 1-P(x) = reversed cdf of N(0,1) variable.
@@ -9832,21 +9924,11 @@ static pqpair extval1_s2pq ( double val, double p1,double p2 )          ;
 
 static double Qginv( double qq )
 {
-   int which , status ;
-   double p , q , x , mean,sd,bound ;
+   double p , q ;
 
    if( qq <= 0.0          ) return  99.99 ;
    if( qq >= 0.9999999999 ) return -99.99 ;
-
-   which  = 2 ;
-   p      = 1.0 - qq ;
-   q      = qq ;
-   x      = 0.0 ;
-   mean   = 0.0 ;
-   sd     = 1.0 ;
-
-   cdfnor( &which , &p , &q , &x , &mean , &sd , &status , &bound ) ;
-   return x ;
+   p = 1.0-qq ; q = qq ; return dinvnr(&p,&q) ;
 }
 
 /*---------------------------------------------------------------
@@ -9875,14 +9957,14 @@ static pqpair fstat_s2pq( double ff , double dofnum , double dofden )
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound ;
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
    which  = 1 ;
    p      = 0.0 ;
    q      = 1.0 ;
-   f      = ff ;     if( f <= 0.0 ){ pq.p=0.0; pq.q=1.0; return pq; }
-   dfn    = dofnum ;
-   dfd    = dofden ;
+   f      = ff ;     if( f   <= 0.0 ) return pq;
+   dfn    = dofnum ; if( dfn <= 0.0 ) return pq ;
+   dfd    = dofden ; if( dfd <= 0.0 ) return pq ;
 
    cdff( &which , &p , &q , &f , &dfn , &dfd , &status , &bound ) ;
    pq.p = p ; pq.q = q ; return pq ;
@@ -9915,15 +9997,15 @@ static pqpair fnonc_s2pq( double ff , double dofnum , double dofden , double non
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound , pnonc ;
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
    which  = 1 ;
    p      = 0.0 ;
    q      = 1.0 ;
-   f      = ff ;     if( f <= 0.0 ){ pq.p=0.0; pq.q=1.0; return pq; }
-   dfn    = dofnum ;
-   dfd    = dofden ;
-   pnonc  = nonc ;
+   f      = ff ;     if(   f   <= 0.0 ) return pq ;
+   dfn    = dofnum ; if( dfn   <= 0.0 ) return pq ;
+   dfd    = dofden ; if( dfd   <= 0.0 ) return pq ;
+   pnonc  = nonc ;   if( pnonc <  0.0 ) return pq ;
 
    cdffnc( &which , &p , &q , &f , &dfn , &dfd , &pnonc , &status , &bound ) ;
    pq.p = p ; pq.q = q ; return pq ;
@@ -9935,18 +10017,10 @@ static pqpair fnonc_s2pq( double ff , double dofnum , double dofden , double non
 
 static pqpair normal_s2pq( double zz )
 {
-   int which , status ;
-   double p , q , x , mean,sd,bound ;
+   double p , q , x=zz ;
    pqpair pq ;
 
-   which  = 1 ;
-   p      = 0.0 ;
-   q      = 1.0 ;
-   x      = zz ;
-   mean   = 0.0 ;
-   sd     = 1.0 ;
-
-   cdfnor( &which , &p , &q , &x , &mean , &sd , &status , &bound ) ;
+   cumnor( &x, &p, &q ) ;
    pq.p = p ; pq.q = q ; return pq ;
 }
 
@@ -9954,18 +10028,11 @@ static pqpair normal_s2pq( double zz )
 
 static double normal_pq2s( pqpair pq )
 {
-   int which , status ;
-   double p , q , x , mean,sd,bound ;
+   double p=pq.p , q=pq.q ;
 
-   which  = 2 ;
-   p      = pq.p ; if( p <= 0.0 ) return -99.99 ;
-   q      = pq.q ; if( q <= 0.0 ) return  99.99 ;
-   x      = 0.0 ;
-   mean   = 0.0 ;
-   sd     = 1.0 ;
-
-   cdfnor( &which , &p , &q , &x , &mean , &sd , &status , &bound ) ;
-   return x ;
+   if( p <= 0.0 ) return -99.99 ;
+   if( q <= 0.0 ) return  99.99 ;
+   return dinvnr( &p,&q ) ;
 }
 
 /*----------------------------------------------------------------
@@ -9976,13 +10043,13 @@ static pqpair chisq_s2pq( double xx , double dof )
 {
    int which , status ;
    double p,q,x,df,bound ;
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
    which  = 1 ;
    p      = 0.0 ;
    q      = 1.0 ;
-   x      = xx ;  if( x <= 0.0 ){ pq.p=0.0; pq.q=1.0; return pq; }
-   df     = dof ;
+   x      = xx ;  if(   x <= 0.0 ) return pq ;
+   df     = dof ; if( dof <= 0.0 ) return pq ;
 
    cdfchi( &which , &p , &q , &x , &df , &status , &bound ) ;
    pq.p = p ; pq.q = q ; return pq ;
@@ -10013,14 +10080,14 @@ static pqpair chsqnonc_s2pq( double xx , double dof , double nonc )
 {
    int which , status ;
    double p,q,x,df,bound , pnonc ;
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
    which  = 1 ;
    p      = 0.0 ;
    q      = 1.0 ;
-   x      = xx ;  if( x <= 0.0 ){ pq.p=0.0; pq.q=1.0; return pq; }
-   df     = dof ;
-   pnonc  = nonc ;
+   x      = xx ;   if( x     <= 0.0 ) return pq ;
+   df     = dof ;  if( df    <= 0.0 ) return pq ;
+   pnonc  = nonc ; if( pnonc <  0.0 ) return pq ;
 
    cdfchn( &which , &p , &q , &x , &df , &pnonc , &status , &bound ) ;
    pq.p = p ; pq.q = q ; return pq ;
@@ -10052,15 +10119,15 @@ static pqpair beta_s2pq( double xx , double aa , double bb )
 {
    int which , status ;
    double p,q,x,y,a,b,bound ;
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
    which  = 1 ;
    p      = 0.0 ;
    q      = 1.0 ;
-   x      = xx ;       if( x <= 0.0 ){ pq.p=0.0; pq.q=1.0; return pq; }
+   x      = xx ;       if( x <= 0.0 ) return pq ;
    y      = 1.0 - xx ; if( y <= 0.0 ){ pq.p=1.0; pq.q=0.0; return pq; }
-   a      = aa ;
-   b      = bb ;
+   a      = aa ;       if( a <  0.0 ) return pq ;
+   b      = bb ;       if( b <  0.0 ) return pq ;
 
    cdfbet( &which , &p , &q , &x , &y , &a , &b ,  &status , &bound ) ;
    pq.p = p ; pq.q = q ; return pq ;
@@ -10095,14 +10162,14 @@ static pqpair binomial_s2pq( double ss , double ntrial , double ptrial )
 {
    int which , status ;
    double p,q, s,xn,pr,ompr,bound ;
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
    which  = 1 ;
    p      = 0.0 ;
    q      = 1.0 ;
-   s      = ss ;
-   xn     = ntrial ;
-   pr     = ptrial ;
+   s      = ss ;            if( s  <  0.0 ) return pq ;
+   xn     = ntrial ;        if( xn <= 0.0 ) return pq ;
+   pr     = ptrial ;        if( pr <  0.0 ) return pq ;
    ompr   = 1.0l - ptrial ;
 
    cdfbin( &which , &p , &q , &s , &xn , &pr , &ompr , &status , &bound ) ;
@@ -10136,14 +10203,14 @@ static pqpair gamma_s2pq( double xx , double sh , double sc )
 {
    int which , status ;
    double p,q, x,shape,scale,bound ;
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
    which  = 1 ;
    p      = 0.0 ;
    q      = 1.0 ;
-   x      = xx ;  if( x <= 0.0 ){ pq.p=0.0; pq.q=1.0; return pq; }
-   shape  = sh ;
-   scale  = sc ;
+   x      = xx ;  if(     x <= 0.0 ) return pq ;
+   shape  = sh ;  if( shape <= 0.0 ) return pq ;
+   scale  = sc ;  if( scale <= 0.0 ) return pq ;
 
    cdfgam( &which , &p , &q , &x , &shape , &scale , &status , &bound ) ;
    pq.p = p ; pq.q = q ; return pq ;
@@ -10175,13 +10242,13 @@ static pqpair poisson_s2pq( double xx , double lambda )
 {
    int which , status ;
    double p,q, s,xlam,bound ;
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
    which  = 1 ;
    p      = 0.0 ;
    q      = 1.0 ;
-   s      = xx ;
-   xlam   = lambda ;
+   s      = xx ;     if(    s < 0.0 ) return pq ;
+   xlam   = lambda ; if( xlam < 0.0 ) return pq ;
 
    cdfpoi( &which , &p , &q , &s , &xlam , &status , &bound ) ;
    pq.p = p ; pq.q = q ; return pq ;
@@ -10212,13 +10279,13 @@ static pqpair student_s2pq( double xx , double dof )
 {
    int which , status ;
    double p,q, s,xlam,bound ;
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
    which  = 1 ;
    p      = 0.0 ;
    q      = 1.0 ;
    s      = xx ;
-   xlam   = dof ;
+   xlam   = dof ;  if( xlam <= 0.0 ) return pq ;
 
    cdft( &which , &p , &q , &s , &xlam , &status , &bound ) ;
    pq.p = p ; pq.q = q ; return pq ;
@@ -10248,7 +10315,7 @@ double student_pq2s( pqpair pq , double dof )
 
 static pqpair correl_s2pq( double rr , double dof )
 {
-   return beta_s2pq( 0.5*rr , 0.5*dof , 0.5*dof ) ;
+   return beta_s2pq( 0.5*(rr+1.0) , 0.5*dof , 0.5*dof ) ;
 }
 
 /*------------------------------*/
@@ -10260,7 +10327,7 @@ static double correl_pq2s( pqpair pq , double dof )
 }
 
 /*----------------------------------------------------------------
-  U(0,1) distribution.
+  Uniform U(0,1) distribution.
 ------------------------------------------------------------------*/
 
 static pqpair uniform_s2pq( double xx )
@@ -10274,9 +10341,9 @@ static pqpair uniform_s2pq( double xx )
 
 /*------------------------------*/
 
-static double uniform_p2s( pqpair pq )
+static double uniform_pq2s( pqpair pq )
 {
-   return pq.p ;
+   return pq.p ;   /* that was easy */
 }
 
 /*----------------------------------------------------------------
@@ -10317,7 +10384,7 @@ static pqpair laplace_s2pq( double xx )
 
 /*------------------------------*/
 
-static double laplace_p2s( pqpair pq )
+static double laplace_pq2s( pqpair pq )
 {
         if( pq.p <= 0.0 ) return -99.9 ;
    else if( pq.q <= 0.0 ) return  99.9 ;
@@ -10362,12 +10429,15 @@ static double alng( double x )
    return valg ;
 }
 #else
-# define alng(x) lgamma(x)   /* C math library log(Gamma(x)) function */
+static double alng( double x ) /*-- replace with cdflib function --*/
+{
+  double xx=x ; return alngam( &xx ) ;
+}
 #endif
 
 /*---------------------------------------------------------------------------*/
 
-#if 1
+#if 0
 static double gaudf( double x )
 {
    static double p0=913.16744211475570 , p1=1024.60809538333800,
@@ -10401,15 +10471,16 @@ static double gaudf( double x )
    return reslt ;
 }
 #else
-static double gaudf( double x )
+static double gaudf( double x ) /*-- replace with cdflib func --*/
 {
-   pqpair pq = normal_s2pq(x) ; return pq.p ;
+   double xx=x , p,q ;
+   cumnor( &xx, &p, &q ); return p;
 }
 #endif
 
 /*---------------------------------------------------------------------------*/
 
-#if 1
+#if 0
 static double betadf( double x , double p , double q )
 {
    int check , ns ;
@@ -10452,15 +10523,21 @@ L5:
    return result ;
 }
 #else
-static double betadf( double x , double p , double q )
+static double betadf( double x , double p , double q ) /*-- cdflib func --*/
 {
-   pqpair pq = beta_s2pq(x,p,q) ; return pq.p ;
+   double xx=x,yy=1.0-x , aa=p,bb=q , pp,qq ;
+   cumbet( &xx,&yy , &aa,&bb , &pp,&qq ) ; return pp ;
 }
 #endif
 
 /*---------------------------------------------------------------------------*/
+/* Krishnamoorthy's function for cdf of noncentral t, for df > 0,
+   translated into C by RW Cox [Mar 2004].
+   Note the original fails for delta=0, so we call the cdflib func for this.
+   A couple of other minor fixes are also included.
+-----------------------------------------------------------------------------*/
 
-static double tnonc_s2p( double t , double df , double delta )
+static pqpair tnonc_s2pq( double t , double df , double delta )
 {
    int indx , k , i ;
    double x,del,tnd,ans,y,dels,a,b,c ;
@@ -10469,18 +10546,36 @@ static double tnonc_s2p( double t , double df , double delta )
    double ptermf,qtermf,ptermb,qtermb,term ;
    double rempois,delosq2,sum,cons,error ;
 
-   if( t < 0.0 ){ x = -t ; del = -delta ; indx = 1 ; }
-   else         { x =  t ; del =  delta ; indx = 0 ; }
+   pqpair pq={0.0,1.0} ;  /* will be return value */
+   double ab1 ;
 
-   ans = gaudf(-del) ;
-   if( x == 0.0 ) return ans ;
+   /*-- stupid user? --*/
 
-   y = x*x/(df+x*x) ;
-   dels = 0.5*del*del ;
-   k = (int)dels ;
-   a = k+0.5 ;
+   if( df <= 0.0 ) return pq ;
+
+   /*-- non-centrality = 0? --*/
+
+   if( fabs(delta) < 1.e-8 ) return student_s2pq(t,df) ;
+
+   /*-- start K's code here --*/
+
+   if( t < 0.0 ){ x = -t ; del = -delta ; indx = 1 ; }  /* x will be */
+   else         { x =  t ; del =  delta ; indx = 0 ; }  /* positive */
+
+   ans = gaudf(-del) ;  /* prob that x <= 0 = Normal cdf */
+
+   /*-- the nearly trivial case of x=0 --*/
+
+   if( x == 0.0 ){ pq.p = ans; pq.q = 1.0-ans; return pq; }
+
+   if( df == 1.0 ) df = 1.0000001 ;  /** df=1 is BAD **/
+
+   y = x*x/(df+x*x) ;    /* between 0 and 1 */
+   dels = 0.5*del*del ;  /* will be positive */
+   k = (int)dels ;       /* 0, 1, 2, ... */
+   a = k+0.5 ;           /* might be as small as 0.5 */
    c = k+1.0 ;
-   b = 0.5*df ;
+   b = 0.5*df ;          /* might be as small as 0.0 */
 
    pkf = exp(-dels+k*log(dels)-alng(k+1.0)) ;
    pkb = pkf ;
@@ -10492,8 +10587,20 @@ static double tnonc_s2p( double t , double df , double delta )
    qbetaf = betadf(y, c, b) ;
    qbetab = qbetaf ;
 
-   pgamf = exp(alng(a+b-1.0)-alng(a)-alng(b)+(a-1.0)*log(y)+b*log(1.0-y)) ;
-   pgamb = pgamf*y*(a+b-1.0)/a ;
+   ab1 = a+b-1.0 ;  /* might be as small as -0.5 */
+
+   /*-- RWCox: if a+b-1 < 0, log(Gamma(a+b-1)) won't work;
+               instead, use Gamma(a+b-1)=Gamma(a+b)/(a+b-1) --*/
+
+   if( ab1 > 0.0 )
+     pgamf = exp(alng(ab1)-alng(a)-alng(b)+(a-1.0)*log(y)+b*log(1.0-y)) ;
+   else
+     pgamf = exp(alng(a+b)-alng(a)-alng(b)+(a-1.0)*log(y)+b*log(1.0-y))/ab1 ;
+
+   pgamb = pgamf*y*(ab1)/a ;
+
+   /*-- we can't have c+b-1 < 0, so the above patchup isn't needed --*/
+
    qgamf = exp(alng(c+b-1.0)-alng(c)-alng(b)+(c-1.0)*log(y) + b*log(1.0-y)) ;
    qgamb = qgamf*y*(c+b-1.0)/c ;
 
@@ -10537,17 +10644,11 @@ L1:
    }
 L2:
    tnd = 0.5*sum + ans ;
-   if(indx) tnd = 1.0 - tnd ;
-   return tnd ;
-}
 
-/*------------------------------*/
+   /*-- return a pqpair, not just the cdf --*/
 
-static pqpair tnonc_s2pq( double xx , double dof , double nonc )
-{
-   pqpair pq ;
-   pq.p = tnonc_s2p(xx,dof,nonc) ;
-   pq.q = 1.0-pq.p ;
+   if( indx ){ pq.p = 1.0-tnd; pq.q = tnd    ; }
+   else      { pq.p = tnd    ; pq.q = 1.0-tnd; }
    return pq ;
 }
 
@@ -10555,18 +10656,18 @@ static pqpair tnonc_s2pq( double xx , double dof , double nonc )
 
 static double tnonc_pq2s( pqpair pq , double dof , double nonc )
 {
-   double xx ;
+   return 0.0 ;   /*** NOT IMPLEMENTED ***/
 }
 
 /*----------------------------------------------------------------
-   Chi distribution.
+   Chi distribution (sqrt of chi-squared, duh).
 ------------------------------------------------------------------*/
 
 static pqpair chi_s2pq( double xx , double dof )
 {
-   pqpair pq ;
+   pqpair pq={0.0,1.0} ;
 
-   if( xx <= 0.0 ){ pq.p=0.0; pq.q=1.0; return pq; }
+   if( xx <= 0.0 || dof <= 0.0 ) return pq ;
    return chisq_s2pq( sqrt(xx) , dof ) ;
 }
 
@@ -10574,11 +10675,91 @@ static pqpair chi_s2pq( double xx , double dof )
 
 static double chi_pq2s( pqpair pq , double dof )
 {
-   return sqrt(chisq_p2s(pq,dof)) ;
+   return sqrt(chisq_pq2s(pq,dof)) ;
+}
+
+/*----------------------------------------------------------------
+   Extreme value type I: cdf(x) = exp(-exp(-x)).
+------------------------------------------------------------------*/
+
+static pqpair extval1_s2pq( double x )
+{
+   double p,q,y ; pqpair pq ;
+
+   if( x > -5.0 ){ y = exp(-x) ; p = exp(-y) ; }
+   else          { y = 1.0     ; p = 0.0     ; }
+
+   if( y >= 1.e-4 ) q = 1.0-p ;
+   else             q = y*(1.0+y*(-0.5+y*(1.0/6.0-y/24.0))) ;
+   pq.p = p ; pq.q = q ; return pq ;
+}
+
+/*------------------------------*/
+
+static double extval1_pq2s( pqpair pq )
+{
+        if( pq.p <= 0.0 ) return -99.9 ;
+   else if( pq.p >= 1.0 ) return  99.9 ;
+   return -log(-log(pq.p)) ;
+}
+
+/*----------------------------------------------------------------
+   Weibull distribution: cdf(x) = 1 - exp( -x^c ) for x>0 and c>0.
+------------------------------------------------------------------*/
+
+static pqpair weibull_s2pq( double x , double c )
+{
+   double y ;
+   pqpair pq={0.0,1.0} ;
+
+   if( x <= 0.0 || c <= 0.0 ) return pq ;
+
+   y = pow(x,c) ; pq.q = exp(-y) ;
+   if( y >= 1.e-4 ) pq.p = 1.0-pq.q ;
+   else             pq.p = y*(1.0+y*(-0.5+y*(1.0/6.0-y/24.0))) ;
+   return pq ;
+}
+
+/*------------------------------*/
+
+static double weibull_pq2s( pqpair pq , double c )
+{
+        if( pq.p <= 0.0 || c <= 0.0 ) return   0.0 ;
+   else if( pq.q <= 0.0             ) return 999.9 ;
+   return pow( -log(pq.q) , 1.0/c ) ;
+}
+
+/*----------------------------------------------------------------
+   Inverse Gaussian:
+    density proportional to exp(-0.5*c(x+1/x))/x^1.5 (x,c >0).
+------------------------------------------------------------------*/
+
+static pqpair invgauss_s2pq( double x, double c )
+{
+   double y , p1,q1 , p2,q2 , v ;
+   pqpair pq={0.0,1.0} ;
+
+   if( x <= 0.0 || c <= 0.0 ) return pq ;
+
+   y = sqrt(c/x) ;
+   v =  y*(x-1.0) ; cumnor( &v , &p1,&q1 ) ;
+   v = -y*(x+1.0) ; cumnor( &v , &p2,&q2 ) ;
+   pq.p = p1 ;
+   if( p2 > 0.0 ) pq.p += exp(2.0*c+log(p2)) ;
+   pq.q = 1.0-pq.p ; return pq ;
+}
+
+/*------------------------------*/
+
+static double invgauss_pq2s( pqpair pq , double c )
+{
+   return 0.0 ;  /** NOT IMPLEMENTED **/
 }
 
 /*--------------------------------------------------------------------------*/
 /*! Given a value, calculate both its cdf and reversed cdf (1.0-cdf).
+    If an error occurs, you'll probably get back {0.0,1.0}.
+    All the actual work is done in utility functions for each distribution.
 ----------------------------------------------------------------------------*/
 
 static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
@@ -10587,42 +10768,174 @@ static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
 
    switch( code ){
 
-     case NIFTI_INTENT_CORREL:     pq = correl_s2pq  ( val, p1 )      ; break; /**/
-     case NIFTI_INTENT_TTEST:      pq = student_s2pq ( val, p1 )      ; break; /**/
-     case NIFTI_INTENT_FTEST:      pq = fstat_s2pq   ( val, p1,p2 )   ; break; /**/
-     case NIFTI_INTENT_ZSCORE:     pq = normal_s2pq  ( val )          ; break; /**/
-     case NIFTI_INTENT_CHISQ:      pq = chisq_s2pq   ( val, p1 )      ; break; /**/
-     case NIFTI_INTENT_BETA:       pq = beta_s2pq    ( val, p1,p2 )   ; break; /**/
-     case NIFTI_INTENT_BINOM:      pq = binomial_s2pq( val, p1,p2 )   ; break; /**/
-     case NIFTI_INTENT_GAMMA:      pq = gamma_s2pq   ( val, p1,p2 )   ; break; /**/
-     case NIFTI_INTENT_POISSON:    pq = poisson_s2pq ( val, p1 )      ; break; /**/
-     case NIFTI_INTENT_FTEST_NONC: pq = fnonc_s2pq   ( val, p1,p2,p3 ); break; /**/
-     case NIFTI_INTENT_CHISQ_NONC: pq = chsqnonc_s2pq( val, p1,p2    ); break; /**/
-     case NIFTI_INTENT_TTEST_NONC: pq = tnonc_s2pq   ( val, p1,p2 )   ; break; /**/
-     case NIFTI_INTENT_CHI:        pq = chi_s2pq     ( val, p1 )      ; break; /**/
-
-     case NIFTI_INTENT_WEIBULL:    pq = weibull_s2pq ( val, p1,p2,p3 ); break;
-     case NIFTI_INTENT_INVGAUSS:   pq = invgauss_s2pq( val, p1,p2 )   ; break;
-     case NIFTI_INTENT_EXTVAL:     pq = extval1_s2pq ( val, p1,p2 )   ; break;
+     case NIFTI_INTENT_CORREL:     pq = correl_s2pq  ( val, p1 )      ; break;
+     case NIFTI_INTENT_TTEST:      pq = student_s2pq ( val, p1 )      ; break;
+     case NIFTI_INTENT_FTEST:      pq = fstat_s2pq   ( val, p1,p2 )   ; break;
+     case NIFTI_INTENT_ZSCORE:     pq = normal_s2pq  ( val )          ; break;
+     case NIFTI_INTENT_CHISQ:      pq = chisq_s2pq   ( val, p1 )      ; break;
+     case NIFTI_INTENT_BETA:       pq = beta_s2pq    ( val, p1,p2 )   ; break;
+     case NIFTI_INTENT_BINOM:      pq = binomial_s2pq( val, p1,p2 )   ; break;
+     case NIFTI_INTENT_GAMMA:      pq = gamma_s2pq   ( val, p1,p2 )   ; break;
+     case NIFTI_INTENT_POISSON:    pq = poisson_s2pq ( val, p1 )      ; break;
+     case NIFTI_INTENT_FTEST_NONC: pq = fnonc_s2pq   ( val, p1,p2,p3 ); break;
+     case NIFTI_INTENT_CHISQ_NONC: pq = chsqnonc_s2pq( val, p1,p2    ); break;
+     case NIFTI_INTENT_TTEST_NONC: pq = tnonc_s2pq   ( val, p1,p2 )   ; break;
+     case NIFTI_INTENT_CHI:        pq = chi_s2pq     ( val, p1 )      ; break;
 
      /* these distributions are shifted and scaled copies of a standard case */
 
+     case NIFTI_INTENT_INVGAUSS:
+        if( p1 > 0.0 && p2 > 0.0 ) pq = invgauss_s2pq( val/p1,p2/p1 ) ; break;
+
+     case NIFTI_INTENT_WEIBULL:
+        if( p2 > 0.0 && p3 > 0.0 ) pq = weibull_s2pq ((val-p1)/p2,p3) ; break;
+
+     case NIFTI_INTENT_EXTVAL:
+                    if( p2 > 0.0 ) pq = extval1_s2pq ( (val-p1)/p2 )  ; break;
+
      case NIFTI_INTENT_NORMAL:
-                    if( p2 > 0.0 ) pq = normal_s2pq  ( (val-p1)/p2 )  ; break; /**/
+                    if( p2 > 0.0 ) pq = normal_s2pq  ( (val-p1)/p2 )  ; break;
 
      case NIFTI_INTENT_LOGISTIC:
-                    if( p2 > 0.0 ) pq = logistic_s2pq( (val-p1)/p2 )  ; break; /**/
+                    if( p2 > 0.0 ) pq = logistic_s2pq( (val-p1)/p2 )  ; break;
 
      case NIFTI_INTENT_LAPLACE:
-                    if( p2 > 0.0 ) pq = laplace_s2pq ( (val-p1)/p2 )  ; break; /**/
+                    if( p2 > 0.0 ) pq = laplace_s2pq ( (val-p1)/p2 )  ; break;
 
      case NIFTI_INTENT_UNIFORM:
-                    if( p2 > p1  ) pq = uniform_s2pq((val-p1)/(p2-p1)); break; /**/
+                    if( p2 > p1  ) pq = uniform_s2pq((val-p1)/(p2-p1)); break;
 
-     case NIFTI_INTENT_PVAL:       pq.p=1.0l-val ; pq.q=val ;val      ; break; /**/
+     /* this case is trivial */
+
+     case NIFTI_INTENT_PVAL:       pq.p = 1.0l-val ; pq.q = val       ; break;
    }
 
    return pq ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Given a pq value (cdf and 1-cdf), compute the value that gives this.
+    If an error occurs, you'll probably get back 9999.99.
+    All the actual work is done in utility functions for each distribution.
+----------------------------------------------------------------------------*/
+
+static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
+{
+   double val=9999.99 ;
+
+   if( pq.p < 0.0 || pq.q < 0.0 || pq.p > 1.0 || pq.q > 1.0 ) return val ;
+
+   switch( code ){
+
+     case NIFTI_INTENT_CORREL:     val = correl_pq2s  ( pq , p1 )      ; break;
+     case NIFTI_INTENT_TTEST:      val = student_pq2s ( pq , p1 )      ; break;
+     case NIFTI_INTENT_FTEST:      val = fstat_pq2s   ( pq , p1,p2 )   ; break;
+     case NIFTI_INTENT_ZSCORE:     val = normal_pq2s  ( pq )           ; break;
+     case NIFTI_INTENT_CHISQ:      val = chisq_pq2s   ( pq , p1 )      ; break;
+     case NIFTI_INTENT_BETA:       val = beta_pq2s    ( pq , p1,p2 )   ; break;
+     case NIFTI_INTENT_BINOM:      val = binomial_pq2s( pq , p1,p2 )   ; break;
+     case NIFTI_INTENT_GAMMA:      val = gamma_pq2s   ( pq , p1,p2 )   ; break;
+     case NIFTI_INTENT_POISSON:    val = poisson_pq2s ( pq , p1 )      ; break;
+     case NIFTI_INTENT_FTEST_NONC: val = fnonc_pq2s   ( pq , p1,p2,p3 ); break;
+     case NIFTI_INTENT_CHISQ_NONC: val = chsqnonc_pq2s( pq , p1,p2    ); break;
+     case NIFTI_INTENT_TTEST_NONC: val = tnonc_pq2s   ( pq , p1,p2 )   ; break;
+     case NIFTI_INTENT_CHI:        val = chi_pq2s     ( pq , p1 )      ; break;
+
+     /* these distributions are shifted and scaled copies of a standard case */
+
+     case NIFTI_INTENT_INVGAUSS:
+        if( p1 > 0.0 && p2 > 0.0 ) val = invgauss_pq2s      ( pq,p2/p1); break;
+
+     case NIFTI_INTENT_WEIBULL:
+        if( p2 > 0.0 && p3 > 0.0 ) val = p1+p2*weibull_pq2s ( pq, p3 ) ; break;
+
+     case NIFTI_INTENT_EXTVAL:
+                    if( p2 > 0.0 ) val = p1+p2*extval1_pq2s ( pq )     ; break;
+
+     case NIFTI_INTENT_NORMAL:
+                    if( p2 > 0.0 ) val = p1+p2*normal_pq2s  ( pq )     ; break;
+
+     case NIFTI_INTENT_LOGISTIC:
+                    if( p2 > 0.0 ) val = p1+p2*logistic_pq2s( pq )     ; break;
+
+     case NIFTI_INTENT_LAPLACE:
+                    if( p2 > 0.0 ) val = p1+p2*laplace_pq2s ( pq )     ; break;
+
+     case NIFTI_INTENT_UNIFORM:
+                    if( p2 > p1  ) val = p1+(p2-p1)*uniform_pq2s(pq)   ; break;
+
+     /* this case is trivial */
+
+     case NIFTI_INTENT_PVAL:       val = pq.q                          ; break;
+   }
+
+   return val ;
+}
+
+/****************************************************************************/
+/*[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]*/
+/*..........................................................................*/
+/*............. AT LAST!  Functions to be called by the user! ..............*/
+/*..........................................................................*/
+/*[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]*/
+/****************************************************************************/
+
+/****************************************************************************
+ Statistical codes implemented here:
+
+     NIFTI_INTENT_CORREL     = correlation statistic
+     NIFTI_INTENT_TTEST      = t statistic (central)
+     NIFTI_INTENT_FTEST      = F statistic (central)
+     NIFTI_INTENT_ZSCORE     = N(0,1) statistic
+     NIFTI_INTENT_CHISQ      = Chi-squared (central)
+     NIFTI_INTENT_BETA       = Beta variable (central)
+     NIFTI_INTENT_BINOM      = Binomial variable
+     NIFTI_INTENT_GAMMA      = Gamma distribution
+     NIFTI_INTENT_POISSON    = Poisson distribution
+     NIFTI_INTENT_FTEST_NONC = noncentral F statistic
+     NIFTI_INTENT_CHISQ_NONC = noncentral chi-squared
+     NIFTI_INTENT_TTEST_NONC = noncentral t statistic
+     NIFTI_INTENT_CHI        = Chi statistic (central)
+     NIFTI_INTENT_INVGAUSS   = inverse Gaussian variable
+     NIFTI_INTENT_WEIBULL    = Weibull distribution
+     NIFTI_INTENT_EXTVAL     = Extreme value type I
+     NIFTI_INTENT_NORMAL     = N(mu,variance) normal
+     NIFTI_INTENT_LOGISTIC   = Logistic distribution
+     NIFTI_INTENT_LAPLACE    = Laplace distribution
+     NIFTI_INTENT_UNIFORM    = Uniform distribution
+     NIFTI_INTENT_PVAL       = "p-value"
+*****************************************************************************/
+
+#include <ctype.h>
+#include <string.h>
+/*--------------------------------------------------------------------------*/
+/*! Given a string name for a statistic, return its integer code.
+    Returns -1 if not found.
+----------------------------------------------------------------------------*/
+
+int nifti_intent_code( char *name )
+{
+   char *unam , *upt ;
+   int ii ;
+   static char *inam[]={ NULL , NULL ,
+                         "CORREL"   , "TTEST"   , "FTEST"      , "ZSCORE"     ,
+                         "CHISQ"    , "BETA"    , "BINOM"      , "GAMMA"      ,
+                         "POISSON"  , "NORMAL"  , "FTEST_NONC" , "CHISQ_NONC" ,
+                         "LOGISTIC" , "LAPLACE" , "UNIFORM"    , "TTEST_NONC" ,
+                         "WEIBULL"  , "CHI"     , "INVGAUSS"   , "EXTVAL"     ,
+                         "PVAL"     ,
+                       NULL } ;
+
+   if( name == NULL || *name == '\0' ) return -1 ;
+
+   unam = strdup(name) ;
+   for( upt=unam ; *upt != '\0' ; upt++ ) *upt = (char)toupper(*upt) ;
+
+   for( ii=NIFTI_FIRST_STATCODE ; ii <= NIFTI_LAST_STATCODE ; ii++ )
+     if( strcmp(inam[ii],unam) == 0 ) break ;
+
+   free(unam) ;
+   return (ii <= NIFTI_LAST_STATCODE) ? ii : -1 ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -10630,6 +10943,8 @@ static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
       - val      = statistic
       - code     = NIFTI_INTENT_* statistical code
       - p1,p2,p3 = parameters of the distribution
+
+    If an error occurs, you'll probably get back 0.0.
 ----------------------------------------------------------------------------*/
 
 double nifti_stat2cdf( double val, int code, double p1,double p2,double p3 )
@@ -10645,6 +10960,8 @@ double nifti_stat2cdf( double val, int code, double p1,double p2,double p3 )
       - val      = statistic
       - code     = NIFTI_INTENT_* statistical code
       - p1,p2,p3 = parameters of the distribution
+
+  If an error transpires, you'll probably get back 1.0.
 ----------------------------------------------------------------------------*/
 
 double nifti_stat2rcdf( double val, int code, double p1,double p2,double p3 )
@@ -10652,4 +10969,76 @@ double nifti_stat2rcdf( double val, int code, double p1,double p2,double p3 )
    pqpair pq ;
    pq = stat2pq( val, code, p1,p2,p3 ) ;
    return pq.q ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Given a cdf probability, find the value that gave rise to it.
+     - p        = cdf; 0 < p < 1
+     - code     = NIFTI_INTENT_* statistical code
+     - p1,p2,p3 = parameters of the distribution
+
+  If an error transpires, you'll probably get back 9999.9.
+----------------------------------------------------------------------------*/
+
+double nifti_cdf2stat( double p , int code, double p1,double p2,double p3 )
+{
+   pqpair pq ;
+   pq.p = p ; pq.q = 1.0-p ;
+   return pq2stat(pq,code,p1,p2,p3) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Given a reversed cdf probability, find the value that gave rise to it.
+     - q        = 1-cdf; 0 < q < 1
+     - code     = NIFTI_INTENT_* statistical code
+     - p1,p2,p3 = parameters of the distribution
+
+  If an error transpires, you'll probably get back 9999.9.
+----------------------------------------------------------------------------*/
+
+double nifti_rcdf2stat( double q , int code, double p1,double p2,double p3 )
+{
+   pqpair pq ;
+   pq.p = 1.0-q ; pq.q = q ;
+   return pq2stat(pq,code,p1,p2,p3) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Sample program to test the above functions.
+----------------------------------------------------------------------------*/
+
+int main( int argc , char *argv[] )
+{
+   double val , p , q , p1=0.0,p2=0.0,p3=0.0 ;
+   double vbot,vtop,vdel ;
+   int code , iarg=1 , doq=0 , dod=0 ;
+
+   if( argc < 3 ){ printf("Usage: nifti_stats [-q|-d] val code [p1 p2 p3]\n"); exit(0); }
+
+        if( strcmp(argv[iarg],"-q") == 0 ){ doq = 1 ; iarg++ ; }
+   else if( strcmp(argv[iarg],"-d") == 0 ){ dod = 1 ; iarg++ ; }
+
+   vbot=vtop=vdel = 0.0 ;
+   sscanf( argv[iarg++] , "%lf:%lf:%lf" , &vbot,&vtop,&vdel ) ;
+   if( vbot >= vtop ) vdel = 0.0 ;
+   if( vdel <= 0.0  ) vtop = vbot ;
+
+   code = nifti_intent_code(argv[iarg++]) ;
+     if( code < 0 ){ fprintf(stderr,"illegal code=%s\n",argv[iarg-1]); exit(1); }
+   if( argc > iarg ) p1 = strtod(argv[iarg++],NULL) ;
+   if( argc > iarg ) p2 = strtod(argv[iarg++],NULL) ;
+   if( argc > iarg ) p3 = strtod(argv[iarg++],NULL) ;
+
+   for( val=vbot ; val <= vtop ; val += vdel ){
+     if( doq )
+       p = nifti_stat2rcdf( val , code,p1,p2,p3 ) ;
+     else if( dod )
+       p = 100.0*( nifti_stat2cdf(val+.01,code,p1,p2,p3)
+                  -nifti_stat2cdf(val    ,code,p1,p2,p3)) ;
+     else
+       p = nifti_stat2cdf ( val , code,p1,p2,p3 ) ;
+     printf("%.9g\n",p) ;
+     if( vdel <= 0.0 ) break ;
+   }
+   exit(0) ;
 }

@@ -1765,6 +1765,10 @@ nifti1_test:nifti1_test.o
 	$(RM) $@
 	$(CC) -o nifti1_test nifti1_test.o -lm
 
+nifti_stats:nifti_stats.o
+	$(RM) $@
+	$(CC) -o nifti_stats nifti_stats.o -lm
+
 tsdsim:tsdsim.o
 	$(RM) $@
 	$(CC) -o tsdsim tsdsim.o $(LFLAGS) $(LLIBS) -lmx
