@@ -3753,6 +3753,7 @@ ENTRY("GRA_setshift_startup") ;
 
    XtManageChild( wrc ) ;
    XtPopup( grapher->dialog , XtGrabNone ) ;
+   RWC_visibilize_widget( grapher->dialog ) ; /* 09 Nov 1999 */
    MCW_alter_widget_cursor( grapher->dialog , -XC_left_ptr ,"yellow","blue" ) ;
    EXRETURN ;
 }

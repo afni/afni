@@ -1789,3 +1789,10 @@
 
 03 Nov 1999
  * Fixed the -help output for 3drefit.c, in the description of "-apar".
+
+09 Nov 1999
+ * Added function RWC_visibilize_widget() to xutil.[ch] - used to ensure
+     that popup widgets are fully onscreen.  Used this function in
+     afni_func.c, afni_graph.c, afni_setup.c, bbox.c.
+ * Added missing "void" to declaration of function setup_tmpdir() in
+     thd_http.c.

@@ -220,7 +220,7 @@ void MCW_discard_events( Widget w , int ev_mask )
 char * MCW_hotcolor(Widget w)
 {
    static char * redcolor = NULL ;
- 
+
    if( redcolor == NULL ){
      char * xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL, "hotcolor" ) ;
 
@@ -1112,6 +1112,8 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
    if( shi > 0 )
       XtVaSetValues( tw->wshell , XmNheight , shi , NULL ) ;
 
+   RWC_visibilize_widget( tw->wshell ) ;  /* 09 Nov 1999 */
+
    return tw ;
 }
 
@@ -1196,6 +1198,36 @@ char * RWC_getname( Display * display , char * name )
    return cval ;
 }
 
+/*-------------------------------------------------------------------
+  09 Nov 1999: move a widget to make sure it is visible
+---------------------------------------------------------------------*/
+
+void RWC_visibilize_widget( Widget w )
+{
+   Position xroot , yroot ;
+   int wx,hy,xx,yy , scr_width,scr_height , changed=0 ;
+   Screen * scr ;
+
+   if( w == NULL || !XtIsWidget(w) ) return ;
+
+   MCW_widget_geom( w , &wx,&hy,&xx,&yy ) ;     /* geometry of widget */
+
+   scr        = XtScreen( w ) ;
+   scr_width  = WidthOfScreen( scr ) ;
+   scr_height = HeightOfScreen( scr ) ;
+
+   if( xx+wx > scr_width ){ xx = scr_width - wx ; changed++ ; }
+   if( xx    < 0         ){ xx = 0              ; changed++ ; }
+
+   if( yy+hy > scr_height ){ yy = scr_height - hy ; changed++ ; }
+   if( yy    < 0          ){ yy = 0               ; changed++ ; }
+
+   if( changed )
+      XtVaSetValues( w , XmNx , xx , XmNy , yy , NULL ) ;
+
+   return ;
+}
+
 /*----------  Fix a Linux stupidity  ------------------------------------*/
 
 #ifdef NEED_XSETLOCALE
@@ -1204,4 +1236,3 @@ char * RWC_getname( Display * display , char * name )
 char * _Xsetlocale( int category, const char * locale)
 { return setlocale(category,locale) ; }
 #endif
-

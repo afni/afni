@@ -9,7 +9,7 @@
 /*---------------------------------------------------------------------*/
 static char tmpdir[256] = "\0" ;
 
-static setup_tmpdir(void)  /* 02 Apr 1999 */
+static void setup_tmpdir(void)  /* 02 Apr 1999 */
 {
    char * td ;
 

@@ -621,6 +621,7 @@ ENTRY("AFNI_pbar_CB") ;
       XmStringFree(xstr) ;
 
       XtPopup( im3d->vwid->file_dialog , XtGrabNone ) ;
+      RWC_visibilize_widget( im3d->vwid->file_dialog ) ; /* 09 Nov 1999 */
    }
 
    /*--- Write out a palette file ---*/

@@ -1370,6 +1370,8 @@ void MCW_choose_ovcolor( Widget wpar , MCW_DC * dc , int ovc_init ,
    if( av->wtext != NULL )
       MCW_set_widget_bg( av->wtext , NULL , dc->ovc->pix_ov[ovc_init] ) ; /* after popup */
 
+   RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
+
    return ;
 }
 
@@ -1485,6 +1487,8 @@ void MCW_choose_integer( Widget wpar , char * label ,
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ;
+
+   RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
 
    return ;
 }
@@ -1811,6 +1815,8 @@ void MCW_choose_string( Widget wpar , char * label ,
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ;
 
+   RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
+
    return ;
 }
 
@@ -2037,6 +2043,8 @@ void MCW_choose_multi_strlist( Widget wpar , char * label , int mode ,
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ;
+
+   RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
 
    return ;
 }
@@ -2294,6 +2302,8 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ;
+
+   RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
 
    return ;
 }
@@ -2589,6 +2599,8 @@ void MCW_choose_multi_editable_strlist( Widget wpar , char * label , int mode ,
 
    XtManageChild( wrc ) ;
    XtPopup( wpop , XtGrabNone ) ;
+
+   RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
 
    return ;
 }

@@ -2044,6 +2044,7 @@ ENTRY("AFNI_read_sess_CB") ;
                   NULL ) ;
 
    XtPopup( im3d->vwid->file_dialog , XtGrabNone ) ;
+   RWC_visibilize_widget( im3d->vwid->file_dialog ) ; /* 09 Nov 1999 */
 
    EXRETURN ;
 }
@@ -2273,6 +2274,7 @@ ENTRY("AFNI_read_1D_CB") ;
                   NULL ) ;
 
    XtPopup( im3d->vwid->file_dialog , XtGrabNone ) ;
+   RWC_visibilize_widget( im3d->vwid->file_dialog ) ; /* 09 Nov 1999 */
 
    EXRETURN ;
 }

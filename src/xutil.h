@@ -125,4 +125,6 @@ extern MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type ) ;
 extern void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
 extern void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
 
+void RWC_visibilize_widget( Widget ) ;  /* 09 Nov 1999 */
+
 #endif /* _MCW_XUTIL_HEADER_ */
