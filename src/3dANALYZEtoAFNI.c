@@ -164,7 +164,6 @@ int main( int argc , char *argv[] )
 
 #define OR3OK(x,y,z) ( ((x)&6) + ((y)&6) + ((z)&6) == 6 )
 
-
      if( strcmp(argv[iarg],"-orient") == 0 ){
        char acod ;
 

@@ -41,6 +41,8 @@ int main( int argc , char * argv[] )
    float  *fit , *ssp , tval , c21,ic21 ;
    short  *sar , *qar ;
    byte   *tar , *mask=NULL ;
+   float  *zar , *yar ;
+   int     datum ;
 
    /*----- Read command line -----*/
 
@@ -186,9 +188,11 @@ int main( int argc , char * argv[] )
    if( !ISVALID_DSET(dset) ){
      fprintf(stderr,"** Can't open dataset %s\n",argv[iarg]); exit(1);
    }
-   if( DSET_BRICK_TYPE(dset,0) != MRI_short || !DSET_datum_constant(dset) ){
-     fprintf(stderr,"** Can't process non-short dataset!\n") ; exit(1) ;
+   datum = DSET_BRICK_TYPE(dset,0) ;
+   if( (datum != MRI_short && datum != MRI_float) || !DSET_datum_constant(dset) ){
+     fprintf(stderr,"** Can't process non-short, non-float dataset!\n") ; exit(1) ;
    }
+   fprintf(stderr,"Input data type = %s\n",MRI_TYPE_name[datum]) ;
    nvals = DSET_NUM_TIMES(dset) ; nuse = nvals - ignore ;
    if( nuse < 15 ){
      fprintf(stderr,"** Can't use dataset with < 15 time points per voxel!\n") ;
@@ -229,7 +233,7 @@ int main( int argc , char * argv[] )
    EDIT_dset_items( oset ,
                       ADN_prefix    , prefix ,
                       ADN_brick_fac , NULL ,
-                      ADN_datum_all , MRI_short ,
+                      ADN_datum_all , datum ,
                     ADN_none ) ;
 
    if( THD_is_file(DSET_HEADNAME(oset)) ){
@@ -243,15 +247,27 @@ int main( int argc , char * argv[] )
    /* create bricks (will be filled with zeros) */
 
    for( iv=0 ; iv < nvals ; iv++ )
-     EDIT_substitute_brick( oset , iv , MRI_short , NULL ) ;
+     EDIT_substitute_brick( oset , iv , datum , NULL ) ;
 
    /* copy the ignored bricks */
 
-   for( iv=0 ; iv < ignore ; iv++ ){
-     sar = DSET_ARRAY(oset,iv) ;
-     qar = DSET_ARRAY(dset,iv) ;
-     memcpy( sar , qar , DSET_BRICK_BYTES(dset,iv) ) ;
-     DSET_unload_one(dset,iv) ;
+   switch( datum ){
+     case MRI_short:
+       for( iv=0 ; iv < ignore ; iv++ ){
+         sar = DSET_ARRAY(oset,iv) ;
+         qar = DSET_ARRAY(dset,iv) ;
+         memcpy( sar , qar , DSET_BRICK_BYTES(dset,iv) ) ;
+         DSET_unload_one(dset,iv) ;
+       }
+     break ;
+     case MRI_float:
+       for( iv=0 ; iv < ignore ; iv++ ){
+         zar = DSET_ARRAY(oset,iv) ;
+         yar = DSET_ARRAY(dset,iv) ;
+         memcpy( zar , yar , DSET_BRICK_BYTES(dset,iv) ) ;
+         DSET_unload_one(dset,iv) ;
+       }
+     break ;
    }
 
    /*-- setup to save a threshold statistic dataset, if desired --*/
@@ -355,9 +371,19 @@ int main( int argc , char * argv[] )
 
       /* extract ii-th time series into far[] */
 
-      for( iv=0 ; iv < nuse ; iv++ ){
-        qar = DSET_ARRAY(dset,iv+ignore) ;   /* skip ignored data */
-        far[iv] = (float) qar[ii] ;
+      switch( datum ){
+        case MRI_short:
+          for( iv=0 ; iv < nuse ; iv++ ){
+            qar = DSET_ARRAY(dset,iv+ignore) ;   /* skip ignored data */
+            far[iv] = (float) qar[ii] ;
+          }
+        break ;
+        case MRI_float:
+          for( iv=0 ; iv < nuse ; iv++ ){
+            zar = DSET_ARRAY(dset,iv+ignore) ;   /* skip ignored data */
+            far[iv] = zar[ii] ;
+          }
+        break ;
       }
       memcpy(dar,far,sizeof(float)*nuse) ;   /* copy data into dar[] */
 
@@ -430,9 +456,19 @@ int main( int argc , char * argv[] )
 
       /* put dar[] into output bricks */
 
-      for( iv=0 ; iv < nuse ; iv++ ){
-        sar = DSET_ARRAY(oset,iv+ignore) ; /* output brick */
-        sar[ii] = (short) dar[iv] ;        /* original or mutated data */
+      switch( datum ){
+        case MRI_short:
+          for( iv=0 ; iv < nuse ; iv++ ){
+            sar = DSET_ARRAY(oset,iv+ignore) ; /* output brick */
+            sar[ii] = (short) dar[iv] ;        /* original or mutated data */
+          }
+        break ;
+        case MRI_float:
+          for( iv=0 ; iv < nuse ; iv++ ){
+            zar = DSET_ARRAY(oset,iv+ignore) ; /* output brick */
+            zar[ii] = dar[iv] ;                /* original or mutated data */
+          }
+        break ;
       }
 
    } /* end of loop over voxels #ii */
