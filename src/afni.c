@@ -1751,10 +1751,12 @@ STATUS("get status") ;
      MEM_plotdata * mp ;
      AFNI_surface_widgets *swid = im3d->vwid->view->swid ;  /* 19 Aug 2002 */
 
+     if( !IM3D_OPEN(im3d) )     RETURN(NULL) ;
      if( !do_surf && !do_xhar ) RETURN(NULL) ;  /* nothing to do */
 
      /* get ready to plot */
 
+STATUS("creating memplot for image overlay") ;
      create_memplot_surely( "SUMA_plot" , 1.0 ) ;
      mp = get_active_memplot() ;
 
@@ -1773,8 +1775,8 @@ STATUS("get status") ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
       float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz ;
-      float rr_box=1.0,gg_box=0.0,bb_box=0.0 ;
-      float rr_lin=1.0,gg_lin=0.0,bb_lin=1.0 ;
+      float rr_box=1.0,gg_box=0.0,bb_box=0.0 ;   /* white */
+      float rr_lin=0.4,gg_lin=0.0,bb_lin=0.7 ;   /* dark blue */
       float rr_led=1.0,gg_led=0.0,bb_led=0.0 ;
       char str[32] , *eee ;
       float rx=RX ;         /* default rectangle halfsize */
@@ -1789,6 +1791,7 @@ STATUS("get status") ;
 
       /* define parameters for node boxes and triangle lines */
 
+STATUS("defining surface drawing parameters") ;
       if( swid != NULL && ks < swid->nrow ){     /* 19 Aug 2002: the new way */
         int cc, dd ;                             /*           to set colors: */
                                                  /* from the surface widgets */
@@ -1902,10 +1905,14 @@ STATUS("get status") ;
 
       /* find nodes inside this slice */
 
+      if( skip_boxes ) STATUS("finding slice planes") ;
+      else             STATUS("drawing node boxes") ;
+
       if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){               /* search x */
          float xb=fvm.xyz[0] , xt=fvp.xyz[0] , xm,xw ;        /* range of  */
          if( xb > xt ){ float t=xb ; xb=xt ; xt=t ; }         /* x in slice */
          xm = 0.5*(xb+xt); xw = 0.25*(xt-xb); xb = xm-xw; xt = xm+xw;
+STATUS(" - x plane") ;
          if( !skip_boxes ){
           for( ii=0 ; ii < nn ; ii++ ){
             if( nod[ii].x >= xb && nod[ii].x <= xt ){         /* inside?  */
@@ -1935,6 +1942,7 @@ STATUS("get status") ;
          float yb=fvm.xyz[1] , yt=fvp.xyz[1] , ym,yw ;
          if( yb > yt ){ float t=yb ; yb=yt ; yt=t ; }
          ym = 0.5*(yb+yt); yw = 0.25*(yt-yb); yb = ym-yw; yt = ym+yw;
+STATUS(" - y plane") ;
          if( !skip_boxes ){
           for( ii=0 ; ii < nn ; ii++ ){
             if( nod[ii].y >= yb && nod[ii].y <= yt ){
@@ -1964,6 +1972,7 @@ STATUS("get status") ;
          float zb=fvm.xyz[2] , zt=fvp.xyz[2] , zm,zw ;
          if( zb > zt ){ float t=zb ; zb=zt ; zt=t ; }
          zm = 0.5*(zb+zt); zw = 0.25*(zt-zb); zb = zm-zw; zt = zm+zw;
+STATUS(" - z plane") ;
          if( !skip_boxes ){
           for( ii=0 ; ii < nn ; ii++ ){
             if( nod[ii].z >= zb && nod[ii].z <= zt ){
@@ -2007,16 +2016,18 @@ STATUS("get status") ;
         for( ilev=0 ; ilev <= 2 ; ilev++ ){  /* 26 Feb 2003: loop over levels: */
                                              /* slice center, top & bot edges  */
           if( ilev == 0 ){
-            if( skip_lcen ) continue ;
+            if( skip_lcen ) continue ;  /* don't do center plane */
             xlev = xyz ;
             set_color_memplot(rr_lin,gg_lin,bb_lin) ;  /* line drawing colors */
             set_thick_memplot(linewidth) ;
           } else {
-            if( skip_ledg ) continue ;
+            if( skip_ledg ) continue ;  /* don't do edge planes */
             xlev = (ilev == 1) ? xyzp : xyzm ;
             set_color_memplot(rr_led,gg_led,bb_led) ;
             set_thick_memplot(0) ;
           }
+
+STATUS("drawing triangle lines") ;
 
           /* loop over triangles */
 
@@ -2102,6 +2113,7 @@ STATUS("get status") ;
      if( do_xhar ){
       MCW_grapher * grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
 
+STATUS("drawing crosshairs") ;
       THD_ivec3 ib = THD_3dind_to_fdind( br ,
                                          TEMP_IVEC3( im3d->vinfo->i1 ,
                                                      im3d->vinfo->j2 ,
@@ -2880,6 +2892,7 @@ if(PRINT_TRACING)
          myXtFree( seq ) ;
          MCW_invert_widget(w) ;  /* back to normal */
          INIT_BKGD_LAB(im3d) ;
+         AFNI_view_setter(im3d,NULL) ;
 
          /* July 1996: redraw if we just lost a crosshair montage
             (it would have been in the z direction of the brick) */
@@ -2955,7 +2968,6 @@ if(PRINT_TRACING)
                     /* 20 Feb 2003: set plane from which viewpoint is controlled */
 
                     AFNI_view_setter(im3d,seq) ;
-
                     AFNI_set_viewpoint(
                        im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
                        (im3d->vinfo->crosshair_visible==True) ?
@@ -2984,7 +2996,6 @@ if(PRINT_TRACING)
             /* 20 Feb 2003: set plane from which viewpoint is controlled */
 
             AFNI_view_setter(im3d,seq) ;
-
             AFNI_set_viewpoint(
                im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
                (im3d->vinfo->crosshair_visible==True) ?
@@ -3037,8 +3048,10 @@ if(PRINT_TRACING)
       /* Arrowpad stuff */
 
       case isqCR_appress:{
-         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING )
+         if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
+            AFNI_view_setter(im3d,seq) ;
             AFNI_crosshair_gap_CB( NULL , (XtPointer) im3d ) ;
+         }
       }
       break ;  /* end of arrowpad center key press */
 
@@ -3073,7 +3086,6 @@ if(PRINT_TRACING)
             /* 20 Feb 2003: set plane from which viewpoint is controlled */
 
             AFNI_view_setter(im3d,seq) ;
-
             AFNI_set_viewpoint(
                im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
                (im3d->vinfo->crosshair_visible==True) ?
@@ -3167,6 +3179,7 @@ if(PRINT_TRACING)
       /*--- 22 Aug 1998: redraw everything ---*/
 
       case isqCR_force_redisplay:{
+         AFNI_view_setter(im3d,seq) ;
          PLUTO_force_redisplay() ;  /* see afni_plugin.c */
          PLUTO_force_rebar() ;      /* ditto [23 Aug 1998] */
       }
@@ -4881,6 +4894,8 @@ STATUS("setting image viewer 'sides'") ;
 #endif
 
       drive_MCW_imseq( *snew, isqDR_ignore_redraws, (XtPointer) 0 ) ; /* 16 Aug 2002 */
+
+      AFNI_view_setter( im3d , *snew ) ;
     } /* end of creating a new image viewer */
 
     /** Don't forget to send information like the reference timeseries ... **/
@@ -5103,7 +5118,6 @@ ENTRY("AFNI_lock_carryout") ;
              jj >= 0 && jj < qaxes->nyy && kk >= 0 && kk < qaxes->nzz   ){
 
             SAVE_VPT(qq3d) ;
-            AFNI_view_setter(qq3d,NULL) ;
             AFNI_set_viewpoint( qq3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
          }
       }
@@ -5234,8 +5248,6 @@ if(PRINT_TRACING)
 
    if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ) EXRETURN ;
 
-   if( xx < 0 && yy < 0 && zz < 0 ) AFNI_view_setter(im3d,NULL) ;
-
    /** 02 Nov 1996:
          Attach view-specific dataxes and warps to the datasets **/
 
@@ -5259,7 +5271,7 @@ if(PRINT_TRACING)
    new_xyz =
     do_lock = !( i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) ;  /* 11 Nov 1996 */
 
-   if( !redisplay_option && !new_xyz ){ AFNI_view_setter(im3d,NULL); EXRETURN; }
+   if( !redisplay_option && !new_xyz ) EXRETURN;
 
    isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
                                                     : isqDR_overlay ;
@@ -5452,7 +5464,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    }
 #endif
 
-   AFNI_view_setter(im3d,NULL) ; EXRETURN ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -6038,7 +6050,6 @@ ENTRY("AFNI_marktog_CB") ;
    }
 
    if( im3d->anat_now->markers->numset > 0 ){
-      AFNI_view_setter(im3d,NULL) ;
       AFNI_set_viewpoint( im3d , xx,yy,zz , REDISPLAY_OVERLAY ) ;  /* redraw */
    }
 
@@ -7779,9 +7790,8 @@ ENTRY("AFNI_see_marks_CB") ;
 
    marks->tag_visible = marks->ov_visible = (bval == 0) ? (False) : (True) ;
 
-   if( w != NULL ){
+   if( w != NULL )
       AFNI_set_viewpoint( im3d , -1,-1,-1 , REDISPLAY_OVERLAY ) ;
-   }
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -7802,6 +7812,7 @@ ENTRY("AFNI_imag_pop_CB") ;
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
    XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
+   AFNI_view_setter(im3d,seq) ;
 
    /*-- jump back to old location --*/
 
@@ -7813,7 +7824,6 @@ ENTRY("AFNI_imag_pop_CB") ;
      kk = im3d->vinfo->k3_old ;
 
      SAVE_VPT(im3d) ;  /* save current place as old one */
-     AFNI_view_setter(im3d,seq) ;
      AFNI_set_viewpoint( im3d , ij,jj,kk , REDISPLAY_OVERLAY ) ; /* jump */
    }
 
@@ -7887,11 +7897,12 @@ ENTRY("AFNI_imag_pop_CB") ;
          }
          TTO_labeled = 1 ;
       }
-      if( ISQ_REALZ(seq) )
+      if( ISQ_REALZ(seq) ){
          MCW_choose_strlist( seq->wbar ,
                              "Brain Structure (from San Antonio Talairach Daemon)" ,
                              TTO_COUNT , TTO_current , TTO_labels ,
                              AFNI_talto_CB , (XtPointer) im3d ) ;
+      }
    }
 
    /*---- 10 Jul 2001: Talairach "Where Am I?" ----*/
@@ -8049,7 +8060,6 @@ ENTRY("AFNI_talto_CB") ;
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz   ){
 
       SAVE_VPT(im3d) ;
-      AFNI_view_setter(im3d,NULL) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
    } else {
       XBell( im3d->dc->display , 100 ) ;
@@ -8220,7 +8230,6 @@ ENTRY("AFNI_jumpto_dicom") ;
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
 
       SAVE_VPT(im3d) ;
-      AFNI_view_setter(im3d,NULL) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
@@ -8244,7 +8253,6 @@ ENTRY("AFNI_jumpto_ijk") ;
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
 
       SAVE_VPT(im3d) ;
-      AFNI_view_setter(im3d,NULL) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
