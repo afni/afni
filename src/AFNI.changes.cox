@@ -5132,3 +5132,8 @@
 
 29 Jul 2004
  * Added mri_symbolize.c, and -gltsym option to 3dDeconvolve.
+
+02 Aug 2004
+ * Modified matrix_f.c to include loop unrolling found in matrix.c.
+ * Modified mri_symbolize.c and 3dDeconvolve.c to use '[[...]]' subscripting
+     for -gltsym multi-row expansion.
