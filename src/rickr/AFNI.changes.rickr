@@ -130,4 +130,5 @@
 
 11 February 2003:
   * minor updates to SUMA/SUMA_3dSurfMaskDump.c (for -help)
+  * 3dSurfMaskDump rv 1.2: do not free structs at the end
 
