@@ -76,7 +76,7 @@ unsigned char *SUMA_read_ppm(char *fname, int *width, int *height, int verb)
          imar[i1d4] = (unsigned char)rgb[i1d3]; alf  = (float)imar[i1d4];   ++i1d3; ++i1d4; 
          imar[i1d4] = (unsigned char)rgb[i1d3]; alf += (float)imar[i1d4];   ++i1d3; ++i1d4; 
          imar[i1d4] = (unsigned char)rgb[i1d3]; alf += (float)imar[i1d4];            ++i1d4; 
-         imar[i1d4] = (unsigned char)(alf/3.0);
+         imar[i1d4] = (unsigned char)(alf/3.0); 
       }
    } 
 

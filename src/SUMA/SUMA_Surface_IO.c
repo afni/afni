@@ -2069,6 +2069,128 @@ void SUMA_Show_FreeSurfer (SUMA_FreeSurfer_struct *FS, FILE *Out)
 
 }
 
+/*!
+   \brief Load a brain voyager surface model from a .srf file.
+   
+   Thanks to Nikolaus Kriegeskorte for code snippets and help.
+   
+   The following fields are set in SO:
+   SO->NodeDim
+   SO->FaceSetDim
+   SO->NodeList
+   SO->FaceSetList
+   SO->N_Node;
+   SO->N_FaceSet;
+   SO->Name;
+   SO->FileType;
+   SO->FileFormat
+
+*/
+SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int debug) 
+{
+   static char FuncName[]={"SUMA_BrainVoyager_Read"};
+	float FileVersion, cx, cy, cz, *fbuf = NULL;
+	int i, ii, chnk, ex, surf_type, n_neighbors;
+	char buffer[256];
+   FILE *fl=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   /* check for existence */
+	if (!SUMA_filexists(f_name)) {
+		fprintf(SUMA_STDERR,"Error %s: File %s does not exist or cannot be read.\n", FuncName, f_name);
+		SUMA_RETURN (NOPE);
+	}else {
+      if ( debug > 1) {
+		   fprintf(SUMA_STDERR,"%s: File %s exists and will be read.\n", FuncName, f_name);
+	   }
+   }
+	
+   fl = fopen(f_name, "r");
+   if (!fl) {
+      SUMA_SL_Err("Failed to open file for reading.\n");
+      SUMA_RETURN(NOPE);
+   }
+   
+   SO->N_Node=0;
+	SO->N_FaceSet=0;
+   
+   chnk = sizeof(float);
+   ex = fread (&FileVersion, chnk, 1, fl);
+   if (FileVersion < 0 || FileVersion > 500000) { /* trouble perhaps ? */
+      SUMA_SL_Err("Version number < 0 || > 500000\nSeems like bad news to me, quitting...");
+      fclose(fl);
+      SUMA_RETURN(NOPE);
+   }
+   chnk = sizeof(int);
+   ex = fread (&surf_type, chnk, 1, fl);
+   ex = fread (&(SO->N_Node), chnk, 1, fl);
+   ex = fread (&(SO->N_FaceSet), chnk, 1, fl);
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s:\nSurfType is %d\nN_Node = %d, N_FaceSet = %d\n", 
+                           FuncName, surf_type, SO->N_Node, SO->N_FaceSet);
+   }
+   if (SO->N_Node < 0 || SO->N_FaceSet < 0) {
+      SUMA_SL_Err("Negative values for N_Node and N_FaceSet.");
+      fclose(fl);
+      SUMA_RETURN(NOPE);
+   } 
+   chnk = sizeof(float);
+   ex = fread (&cx, chnk, 1, fl);
+   ex = fread (&cy, chnk, 1, fl);
+   ex = fread (&cz, chnk, 1, fl);
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s:\ncenter = [%f, %f, %f]\n(Niko adds 30 to cy ...)\n", FuncName, cx, cy, cz);
+   }
+   SO->NodeDim = 3;
+   SO->FaceSetDim = 3;
+   fbuf = (float *)SUMA_malloc(SO->N_Node*sizeof(float));
+   SO->NodeList = (float *)SUMA_malloc(SO->NodeDim*SO->N_Node*sizeof(float));
+   SO->FaceSetList = (int *)SUMA_malloc(SO->FaceSetDim*SO->N_FaceSet*sizeof(int));
+   if (!fbuf || !SO->NodeList || !SO->FaceSetList) {
+      SUMA_SL_Crit("Failed to allocate.");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* read the coords */
+   SUMA_LH("Reading coords...");
+   ex = fread(fbuf, sizeof(float), SO->N_Node, fl);
+   for (i=0; i<SO->N_Node; ++i) SO->NodeList[3*i] = fbuf[i];
+   ex = fread(fbuf, sizeof(float), SO->N_Node, fl);
+   for (i=0; i<SO->N_Node; ++i) SO->NodeList[3*i+1] = fbuf[i];
+   ex = fread(fbuf, sizeof(float), SO->N_Node, fl);
+   for (i=0; i<SO->N_Node; ++i) SO->NodeList[3*i+2] = fbuf[i];
+   SUMA_free(fbuf); fbuf = NULL;
+   
+   /* skip the node normals, which would be read much like the x y z coords*/
+   fseek(fl, SO->N_Node*SO->NodeDim*sizeof(float), SEEK_CUR);
+   
+   /* skip the curvature color info */
+   ex = fread(buffer, 32, 1, fl);
+   fseek(fl, SO->N_Node*4, SEEK_CUR);
+   
+   /* skip nearest neighbor info */
+   for (i=0; i<SO->N_Node; ++i) {
+      ex = fread(&n_neighbors, sizeof(int), 1, fl);
+      fseek(fl, n_neighbors*sizeof(int), SEEK_CUR);
+   }
+   
+   /* read dems triangles */
+   SUMA_LH("Reading FaceSets...");
+   ex = fread(SO->FaceSetList, sizeof(int), SO->N_FaceSet * SO->FaceSetDim , fl);
+   
+   fclose(fl); fl = NULL;
+   
+   SO->FileType = SUMA_BRAIN_VOYAGER;
+   SO->Name = SUMA_StripPath(f_name);
+   SO->FileFormat = SUMA_BINARY;    /* files are likely all BINARY_LE, must take care of that at some point*/
+   
+   SUMA_LH("Done.");
+   
+   SUMA_RETURN(YUP);
+}
+
 #ifdef SUMA_FreeSurfer_STAND_ALONE
 
 
@@ -2175,6 +2297,7 @@ PlyProperty face_props[] = { /* list of property information for a vertex */
   {"vertex_indices", PLY_INT, PLY_INT, offsetof(Face,verts),
    1, PLY_UCHAR, PLY_UCHAR, offsetof(Face,nverts)},
 };
+
 
 /*!
    \brief Reads a Ply formatted file into a SUMA_SurfaceObject structure
@@ -2557,6 +2680,7 @@ SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO)
    SUMA_RETURN (YUP);
 }
 
+
 /*! 
    \brief Function to write a surface object to a FreeSurfer .asc file format
    ans = SUMA_Boolean SUMA_FS_Write (fileNm, SO, firstLine);
@@ -2805,7 +2929,7 @@ void usage_SUMA_ConvertSurface ()
                   "           Only .asc surfaces are read.\n"
                   "       sf: SureFit surface. \n"
                   "           You must specify the .coord followed by the .topo file.\n"
-                  "       vec: Simple ascii matrix format. \n"
+                  "       vec (or 1D): Simple ascii matrix format. \n"
                   "            You must specify the NodeList file followed by the FaceSetList file.\n"
                   "            NodeList contains 3 floats per line, representing X Y Z vertex coordinates.\n"
                   "            FaceSetList contains 3 ints per line, representing v1 v2 v3 triangle vertices.\n"
@@ -2815,7 +2939,7 @@ void usage_SUMA_ConvertSurface ()
                   "       fs: FreeSurfer ascii surface. \n"
                   "       sf: SureFit surface. (NOT IMPLEMENTED YET)\n"
                   "           You must specify the .coord followed by the .topo file.\n"
-                  "       vec: Simple ascii matrix format. \n"
+                  "       vec (or 1D): Simple ascii matrix format. \n"
                   "            see help for vec under -i_TYPE options for format specifications.\n"
                   "       ply: PLY format, ascii or binary.\n"
                   "    -make_consistent: Check the consistency of the surface's mesh (triangle\n"
@@ -2920,7 +3044,19 @@ int main (int argc,char *argv[])
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
       SUMA_TO_LOWER(argv[kar]);
-		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
+		
+      if (!brk && (strcmp(argv[kar], "-i_bv") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -i_bv ");
+				exit (1);
+			}
+			if_name = argv[kar];
+         iType = SUMA_BRAIN_VOYAGER;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -i_fs ");
@@ -3330,6 +3466,11 @@ int main (int argc,char *argv[])
          SO_name = (void *)if_name; 
          fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
          SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, sv_name);
+         break;  
+      case SUMA_BRAIN_VOYAGER:
+         SO_name = (void *)if_name; 
+         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_BRAIN_VOYAGER, SUMA_FF_NOT_SPECIFIED, sv_name);
          break;  
       default:
          fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);

@@ -2045,6 +2045,8 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
    SUMA_RETURNe;
 }
 
+#define TestImage 0 
+#define TestTexture 0 /* needs TestImage to be active */
 /*! Create a tesselated mesh */
 void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {  static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
@@ -2052,9 +2054,18 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    int i, ii, ND, id, ip, NP, PolyMode;
    static char FuncName[]={"SUMA_DrawMesh"};
    SUMA_DRAWN_ROI *DrawnROI = NULL;
+      static unsigned char *image=NULL;
+      static GLuint texName;
    SUMA_Boolean LocalHead = NOPE;
       
    SUMA_ENTRY;
+   
+   #if TestImage
+   if (image) {
+      SUMA_SL_Note("Binding texture");
+      glBindTexture(GL_TEXTURE_2D, texName);
+   }
+   #endif
       
    /* check on rendering mode */
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
@@ -2128,15 +2139,15 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                break;
          } /* switch RENDER_METHOD */
 
-         if (0){
+         #if TestImage
+         if (1){
             GLboolean valid;
             GLfloat rpos[4];
             char  string[]= {"Yo Baby sssup? 1 2 3, 4.2 mm"};
             int is;
             float txcol[3] = {0.2, 0.5, 1};
             static int width, height;
-            static unsigned char *image=NULL;
-            
+
             SUMA_SL_Note(  "Doing the splat and the text thing\n"
                            "from Kilgard's renderSplat in splatlogo.c\n"
                            "to understand scaling operations.\n");
@@ -2166,15 +2177,39 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
             if (!image) {
                FILE *fid;
                SUMA_SL_Note(  "Reading the image.");
-               image = SUMA_read_ppm("test.ppm", &width, &height, 1);
+               image = SUMA_read_ppm("IMG_0526.ppm", &width, &height, 1);
                if (!image) {
                   SUMA_SL_Err("Failed to read image.");
+               }else{
+                  #if TestTexture
+                  SUMA_SL_Note("Creating texture, see init pp 415 in OpenGL programming guide, 3red");
+                  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                  glGenTextures(1, &texName);
+                  glBindTexture(GL_TEXTURE_2D, texName);
+                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_CLAMP); /* GL_REPEAT, GL_CLAMP */
+                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+                  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE); /* GL_REPLACE, GL_MODULATE */
+                  glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP); /* GL_SPHERE_MAP, GL_EYE_LINEAR, GL_OBJECT_LINEAR */
+                  glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_SPHERE_MAP);
+                  glEnable(GL_TEXTURE_GEN_S);
+                  glEnable(GL_TEXTURE_GEN_T);
+                  glEnable(GL_TEXTURE_2D);
+                  glEnable(GL_CULL_FACE);
+                  glEnable(GL_LIGHTING);
+                  glEnable(GL_LIGHT0);
+                  glEnable(GL_AUTO_NORMAL);
+                  glEnable(GL_NORMALIZE);
+                  glMaterialf(GL_FRONT, GL_SHININESS, 64.0);
+                  #endif
                }
                /*
                fid = fopen("junk.img", "w");
                SUMA_disp_vecucmat (image, width*height, 4, 1, SUMA_ROW_MAJOR, fid, NOPE);
                fclose(fid);
                */
+               
             }
             if (image) {
                SUMA_SL_Note(  "Drawing the image.");
@@ -2188,6 +2223,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                glDisable(GL_ALPHA_TEST);
             }
          }
+         #endif
 
          /*fprintf(stdout, "Disabling clients\n");*/
          glDisableClientState (GL_COLOR_ARRAY);   
