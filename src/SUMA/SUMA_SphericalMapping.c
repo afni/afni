@@ -2304,7 +2304,7 @@ int main (int argc, char *argv[])
 {/* main SUMA_MapIcosahedron */
 
    static char FuncName[]={"SUMA_MapIcosahedron-main"};
-   SUMA_Boolean brk, LocalHead = NOPE, SurfIn = NOPE, color=NOPE, smooth=NOPE, verb=NOPE;
+   SUMA_Boolean brk, SurfIn = NOPE, color=NOPE, smooth=NOPE, verb=NOPE;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char *smwmColFileNm=NULL;
    char icoFileNm[10000], mapSphrFileNm[10000], mapInflFileNm[10000], mapSmWmFileNm[10000]; 
@@ -2331,7 +2331,8 @@ int main (int argc, char *argv[])
    struct  timeval start_time;
    float etime_MapSurface;
    SUMA_Boolean CheckSphereReg,CheckSphere;
-    
+   SUMA_Boolean LocalHead = NOPE;
+   
    /* allocate space for CommonFields structure */
    if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
@@ -2456,7 +2457,21 @@ int main (int argc, char *argv[])
             sprintf (fout, "%s", argv[kar]);
             brk = YUP;
          }   
-
+      
+      if (!brk && strcmp(argv[kar], "-iodbg") == 0)
+         {
+            SUMAg_CF->InOut_Notify = YUP;
+            brk = YUP;
+         }
+      
+      #if SUMA_MEMTRACE_FLAG
+         if (!brk && (strcmp(argv[kar], "-memdbg") == 0)) {
+			   fprintf(SUMA_STDOUT,"Warning %s: SUMA running in memory trace mode.\n", FuncName);
+			   SUMAg_CF->MemTrace = YUP;
+			   brk = YUP;
+		   }
+      #endif
+      
       if (!brk) {
          fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
          exit (1);
@@ -3037,51 +3052,51 @@ int main (int argc, char *argv[])
 
 
    /* free variables */
+   if (LocalHead) fprintf(SUMA_STDERR, "Freeing MI\n"); 
    SUMA_Free_MorphInfo (MI);
-   /* fprintf(SUMA_STDERR, "poo1\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo1\n"); 
    SUMA_free(surfaces);
-   /* fprintf(SUMA_STDERR, "poo2\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo2\n"); 
    SUMA_free(mapSphrList);
-   /* fprintf(SUMA_STDERR, "poo3\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo3\n"); 
    if (verb)   SUMA_free(ctrSphrList);
-   /* fprintf(SUMA_STDERR, "poo4\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo4\n"); 
    SUMA_Free_Surface_Object (icoSurf);
-   /* fprintf(SUMA_STDERR, "poo5\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo5\n"); 
    SUMA_Free_Surface_Object (sphrSurf);
-   /* fprintf(SUMA_STDERR, "poo6\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo6\n"); 
    if (smooth) SUMA_free(smweight);
-   /* fprintf(SUMA_STDERR, "poo7\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo7\n"); 
 
    if (color) {
       SUMA_free(mapCol);
    }
-   /* fprintf(SUMA_STDERR, "poo8\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo8\n"); 
    if (inflSurf!=NULL) {
       SUMA_free(mapInflNodeList);
       SUMA_Free_Surface_Object (inflSurf);
    }
-   /* fprintf(SUMA_STDERR, "poo9\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo9\n");
    if (pialSurf!=NULL) {
       SUMA_free(mapPialNodeList);
       SUMA_Free_Surface_Object (pialSurf);
    }
-   /* fprintf(SUMA_STDERR, "poo10\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo10\n"); 
    if (smwmSurf!=NULL) {
       SUMA_free(mapSmWmNodeList);
       SUMA_Free_Surface_Object (smwmSurf);
    }
-   /* fprintf(SUMA_STDERR, "poo11\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo11\n"); 
    if (whiteSurf!=NULL) {
       SUMA_free(mapWhiteNodeList);
       SUMA_Free_Surface_Object (whiteSurf);
    }
-   /* fprintf(SUMA_STDERR, "poo12\n"); */
+   if (LocalHead)  fprintf(SUMA_STDERR, "poo12\n"); 
    if (sphrNoRegSurf!=NULL) {
       SUMA_free(mapSphrNoRegNodeList);
       SUMA_Free_Surface_Object (sphrNoRegSurf);
    }
-   /* fprintf(SUMA_STDERR, "poo13\n"); */
-SUMA_Free_Surface_Object (whiteSurf);
+   
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
    exit(0);
