@@ -53,7 +53,7 @@ static void F1D_chainfunc( int , double , double , float * ar ) ;
 ************************************************************************/
 
 #define NUM_CHAIN 8
-static char alpha[26] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+static char alpha[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
 
 #define RR 17
 #define SS 18
@@ -88,7 +88,8 @@ PLUGIN_interface * F1D_init(void)
    plint = PLUTO_new_interface( "1D Chain Func" ,
                                 "Control 1DChain function" ,
                                 helpstring ,
-                                PLUGIN_CALL_VIA_MENU , F1D_main  ) ;
+                                PLUGIN_CALL_VIA_MENU ,
+                                (char *(*)())F1D_main  ) ;
 
    PLUTO_add_hint( plint , "Control 1DChain function" ) ;
 
@@ -105,33 +106,39 @@ PLUGIN_interface * F1D_init(void)
    rlist = &(GLOBAL_library.registered_0D) ;
    num0D = rlist->num ;
    if( num0D > 0 ){
-      funcname = (char **) realloc( funcname, sizeof(char **)*(numfunc+num0D) );
-      func0D   = (generic_func **) malloc( sizeof(generic_func *)*num0D ) ;
-      for( ii=0 ; ii < num0D ; ii++ ){
+     int n0 = 0 ;
+     funcname = (char **) realloc( (void *)funcname, sizeof(char **)*(numfunc+num0D) );
+     func0D   = (generic_func **) malloc( sizeof(generic_func *)*num0D ) ;
+     for( ii=0 ; ii < num0D ; ii++ ){
+       if( rlist->flags[ii] == 0 ){            /* 18 Dec 2003: only allow "normal" funcs */
          ll = strlen(rlist->labels[ii]) ;
-         funcname[ii+numfunc] = AFMALL(char, ll+8) ;
-         strcpy(funcname[ii+numfunc],"0D: ") ;
-         strcat(funcname[ii+numfunc],rlist->labels[ii]) ;
-
-         func0D[ii] = rlist->funcs[ii] ;
-      }
-      numfunc += num0D ;
+         funcname[numfunc] = AFMALL(char, ll+8) ;
+         strcpy(funcname[numfunc],"0D: ") ;
+         strcat(funcname[numfunc],rlist->labels[ii]) ;
+         func0D[n0++] = rlist->funcs[ii] ;
+         numfunc++ ;
+       }
+     }
+     num0D = n0 ;
    }
 
    rlist = &(GLOBAL_library.registered_1D) ;
    num1D = rlist->num ;
    if( num1D > 0 ){
-      funcname = (char **) realloc( funcname, sizeof(char **)*(numfunc+num1D) );
-      func1D   = (generic_func **) malloc( sizeof(generic_func *)*num1D ) ;
-      for( ii=0 ; ii < num1D ; ii++ ){
+     int n1 = 0 ;
+     funcname = (char **) realloc( (void *)funcname, sizeof(char **)*(numfunc+num1D) );
+     func1D   = (generic_func **) malloc( sizeof(generic_func *)*num1D ) ;
+     for( ii=0 ; ii < num1D ; ii++ ){
+       if( rlist->flags[ii] == 0 ){            /* 18 Dec 2003: only allow "normal" funcs */
          ll = strlen(rlist->labels[ii]) ;
-         funcname[ii+numfunc] = AFMALL(char, ll+8) ;
-         strcpy(funcname[ii+numfunc],"1D: ") ;
-         strcat(funcname[ii+numfunc],rlist->labels[ii]) ;
-
-         func1D[ii] = rlist->funcs[ii] ;
-      }
-      numfunc += num1D ;
+         funcname[numfunc] = AFMALL(char, ll+8) ;
+         strcpy(funcname[numfunc],"1D: ") ;
+         strcat(funcname[numfunc],rlist->labels[ii]) ;
+         func1D[n1++] = rlist->funcs[ii] ;
+         numfunc++ ;
+       }
+     }
+     num1D = n1 ;
    }
 
    AFNI_register_1D_function( "1DChain" , F1D_chainfunc ) ;  /* add this only now */
@@ -174,7 +181,7 @@ static char * F1D_main( PLUGIN_interface * plint )
    char *tag , *str ;
    int ii,kk,jj , ndone=0 ;
 
-   /*-- turn off all rows --*/
+   /*-- turn off all function rows --*/
 
    for( ii=0 ; ii < NUM_CHAIN ; ii++ ){
       chain_do[ii] = 0 ;
@@ -182,7 +189,7 @@ static char * F1D_main( PLUGIN_interface * plint )
       if( chain_pc[ii] != NULL ){ free(chain_pc[ii]); chain_pc[ii]=NULL; }
    }
 
-   /*--------- loop over input lines ---------*/
+   /*--------- loop over input lines, re-enable functions rows ---------*/
 
    while(1){
       tag = PLUTO_get_optiontag(plint) ;  /* "A", "B", etc */
@@ -191,7 +198,7 @@ static char * F1D_main( PLUGIN_interface * plint )
       /* find which variable */
 
       for( kk=0 ; kk < NUM_CHAIN ; kk++ )
-         if( tag[0] == alpha[kk] ) break ;
+        if( tag[0] == alpha[kk] ) break ;
 
       if( kk >= NUM_CHAIN ) break ;       /* should not happen */
 
@@ -213,8 +220,8 @@ static char * F1D_main( PLUGIN_interface * plint )
          chain_dd[kk] = -1 ;                         /* code for this case */
 
          if( chain_pc[kk] == NULL ){
-            for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
-            return "** Expr 9 parser error **" ;
+           for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
+           return "** Expr 9 parser error **" ;
          }
 
          /* check symbol usage */
@@ -223,36 +230,36 @@ static char * F1D_main( PLUGIN_interface * plint )
 
          for( ii=0 ; ii < kk ; ii++ ){                 /* previous */
            if( hasym[ii] && chain_do[ii] == 0 ){
-               for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
-               return "** Expr 9 uses inactive symbol **" ;
-            }
+             for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
+             return "** Expr 9 uses inactive symbol **" ;
+           }
          }
 
          if( hasym[kk] ){                              /* current */
-            for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
-            return "** Expr 9 uses current symbol **" ;
+           for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
+           return "** Expr 9 uses current symbol **" ;
          }
 
          for( ii=kk+1 ; ii < NUM_CHAIN  ; ii++ ){      /* subsequent */
-            if( hasym[ii] ){
-               for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
-               return "** Expr 9 uses subsequent symbol **" ;
-            }
+           if( hasym[ii] ){
+             for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
+             return "** Expr 9 uses subsequent symbol **" ;
+           }
          }
 
          for( ii=NUM_CHAIN ; ii < RR ; ii++ ){         /* undefined */
-            if( hasym[ii] ){
-               for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
-               return "** Expr 9 uses undefined symbol **" ;
-            }
+           if( hasym[ii] ){
+             for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
+             return "** Expr 9 uses undefined symbol **" ;
+           }
          }
 
          for( ns=ii=0 ; ii < kk ; ii++ ) if( hasym[ii] ) ns++ ;
          for( ii=RR   ; ii <=ZZ ; ii++ ) if( hasym[ii] ) ns++ ;
 
          if( ns == 0 ){
-            for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
-            return "** Expr 9 doesn't use any symbols **" ;
+           for( jj=0 ; jj < NUM_CHAIN ; jj++ ) chain_do[jj] = 0 ;
+           return "** Expr 9 doesn't use any symbols **" ;
          }
 
       } else if( jj >= 1 && jj <= num0D ){   /* 0D function */
@@ -286,13 +293,13 @@ static void F1D_chainfunc( int nx , double to , double dt , float * ar )
    /* allocate vectors workspace */
 
    for( nexp=ndo=kk=0 ; kk < NUM_CHAIN ; kk++ ){
-      if( chain_do[kk] ){
-         abc[kk] = (float *) malloc(sizeof(float)*nx) ;
-         ndo++ ;
-         if( chain_pc[kk] != NULL ) nexp++ ;
-      } else {
-         abc[kk] = NULL ;
-      }
+     if( chain_do[kk] ){
+       abc[kk] = (float *) malloc(sizeof(float)*nx) ;
+       ndo++ ;
+       if( chain_pc[kk] != NULL ) nexp++ ;
+     } else {
+       abc[kk] = NULL ;
+     }
    }
 
    if( ndo == 0 ) return ;  /* nothing to do */
@@ -300,90 +307,98 @@ static void F1D_chainfunc( int nx , double to , double dt , float * ar )
    /* loop over chain links */
 
    for( kk=0 ; kk < NUM_CHAIN ; kk++ ){
-      if( !chain_do[kk] ) continue ;     /* skip this link */
+     if( !chain_do[kk] ) continue ;     /* skip this link */
 
-      switch( chain_dd[kk] ){
+     switch( chain_dd[kk] ){
 
-         case 0:                                      /* 0D func */
-            memcpy( abc[kk] , aprev , sizeof(float)*nx ) ;
-            chain_ff[kk]( nx , abc[kk] ) ;
-         break ;
+       case 0:                                      /* 0D func */
+         memcpy( abc[kk] , aprev , sizeof(float)*nx ) ;
+#if 0
+         chain_ff[kk]( nx , abc[kk] ) ;
+#else
+         AFNI_CALL_0D_function( chain_ff[kk] , nx,abc[kk] ) ;
+#endif
+       break ;
 
-         case 1:                                      /* 1D func */
-            memcpy( abc[kk] , aprev , sizeof(float)*nx ) ;
-            chain_ff[kk]( nx , to,dt , abc[kk] ) ;
-         break ;
+       case 1:                                      /* 1D func */
+         memcpy( abc[kk] , aprev , sizeof(float)*nx ) ;
+#if 0
+         chain_ff[kk]( nx , to,dt , abc[kk] ) ;
+#else
+         AFNI_CALL_1D_function( chain_ff[kk] , nx,to,dt,abc[kk] ) ;
+#endif
+       break ;
 
-         case -1:{                                    /* Expr 9 */
-            int hasym[26] , jj ;
+       case -1:{                                    /* Expr 9 */
+         int hasym[26] , jj ;
 
-            PARSER_mark_symbols( chain_pc[kk] , hasym ) ;  /* which symbols to load? */
+         PARSER_mark_symbols( chain_pc[kk] , hasym ) ;  /* which symbols to load? */
 
-            for( ii=0 ; ii < nx ; ii++ ){  /* loop over voxels */
+         for( ii=0 ; ii < nx ; ii++ ){  /* loop over voxels */
 
-               for( pp=0 ; pp < 26 ; pp++ ) atoz[pp] = 0.0 ; /* all variables=0 */
+           for( pp=0 ; pp < 26 ; pp++ ) atoz[pp] = 0.0 ; /* all variables=0 */
 
-               /* load previous chain vectors at this voxel */
+           /* load previous chain vectors at this voxel */
 
-               for( pp=0 ; pp < kk ; pp++ )
-                  if( hasym[pp] ) atoz[pp] = (double) abc[pp][ii] ;
+           for( pp=0 ; pp < kk ; pp++ )
+             if( hasym[pp] ) atoz[pp] = (double) abc[pp][ii] ;
 
-               /* load local voxels from the immediately previous chain vector */
+           /* load local voxels from the immediately previous chain vector */
 
-               if( hasym[RR] ){                         /* load R */
-                  jj = ii-4 ; if( jj < 0 ) jj = 0 ;
-                  atoz[RR] = (double) aprev[jj] ;
-               }
+           if( hasym[RR] ){                         /* load R */
+             jj = ii-4 ; if( jj < 0 ) jj = 0 ;
+             atoz[RR] = (double) aprev[jj] ;
+           }
 
-               if( hasym[SS] ){                         /* load S */
-                  jj = ii-3 ; if( jj < 0 ) jj = 0 ;
-                  atoz[SS] = (double) aprev[jj] ;
-               }
+           if( hasym[SS] ){                         /* load S */
+             jj = ii-3 ; if( jj < 0 ) jj = 0 ;
+             atoz[SS] = (double) aprev[jj] ;
+           }
 
-               if( hasym[TT] ){                         /* load T */
-                  jj = ii-2 ; if( jj < 0 ) jj = 0 ;
-                  atoz[TT] = (double) aprev[jj] ;
-               }
+           if( hasym[TT] ){                         /* load T */
+             jj = ii-2 ; if( jj < 0 ) jj = 0 ;
+             atoz[TT] = (double) aprev[jj] ;
+           }
 
-               if( hasym[UU] ){                         /* load U */
-                  jj = ii-1 ; if( jj < 0 ) jj = 0 ;
-                  atoz[UU] = (double) aprev[jj] ;
-               }
+           if( hasym[UU] ){                         /* load U */
+             jj = ii-1 ; if( jj < 0 ) jj = 0 ;
+             atoz[UU] = (double) aprev[jj] ;
+           }
 
-               if( hasym[VV] ){                         /* load V */
-                  atoz[VV] = (double) aprev[ii] ;
-               }
+           if( hasym[VV] ){                         /* load V */
+             atoz[VV] = (double) aprev[ii] ;
+           }
 
-               if( hasym[WW] ){                         /* load W */
-                  jj = ii+1 ; if( jj >= nx ) jj = nx-1 ;
-                  atoz[WW] = (double) aprev[jj] ;
-               }
+           if( hasym[WW] ){                         /* load W */
+             jj = ii+1 ; if( jj >= nx ) jj = nx-1 ;
+             atoz[WW] = (double) aprev[jj] ;
+           }
 
-               if( hasym[XX] ){                         /* load X */
-                  jj = ii+2 ; if( jj >= nx ) jj = nx-1 ;
-                  atoz[XX] = (double) aprev[jj] ;
-               }
+           if( hasym[XX] ){                         /* load X */
+             jj = ii+2 ; if( jj >= nx ) jj = nx-1 ;
+             atoz[XX] = (double) aprev[jj] ;
+           }
 
-               if( hasym[YY] ){                         /* load Y */
-                  jj = ii+3 ; if( jj >= nx ) jj = nx-1 ;
-                  atoz[YY] = (double) aprev[jj] ;
-               }
+           if( hasym[YY] ){                         /* load Y */
+             jj = ii+3 ; if( jj >= nx ) jj = nx-1 ;
+             atoz[YY] = (double) aprev[jj] ;
+           }
 
-               if( hasym[ZZ] ){                         /* load Z */
-                  jj = ii+4 ; if( jj >= nx ) jj = nx-1 ;
-                  atoz[ZZ] = (double) aprev[jj] ;
-               }
+           if( hasym[ZZ] ){                         /* load Z */
+             jj = ii+4 ; if( jj >= nx ) jj = nx-1 ;
+             atoz[ZZ] = (double) aprev[jj] ;
+           }
 
-               /* compute this row! */
+           /* compute this row! */
 
-               abc[kk][ii] = PARSER_evaluate_one( chain_pc[kk] , atoz ) ;
+           abc[kk][ii] = PARSER_evaluate_one( chain_pc[kk] , atoz ) ;
 
-            } /* end of loop over voxels */
-         }
-         break ;
-      }
+         } /* end of loop over voxels */
+       }
+       break ;
+     }
 
-      aprev = abc[kk] ;  /* for next time, this is previous image */
+     aprev = abc[kk] ;  /* for next time, this is previous image */
 
    } /* end of loop over chain links */
 
@@ -394,7 +409,7 @@ static void F1D_chainfunc( int nx , double to , double dt , float * ar )
    /* take out the trash */
 
    for( kk=0 ; kk < NUM_CHAIN ; kk++ )       /* images */
-      if( abc[kk] != NULL ) free(abc[kk]) ;
+     if( abc[kk] != NULL ) free(abc[kk]) ;
 
    return ;
 }

@@ -1263,7 +1263,6 @@ extern THD_3dim_dataset * AFNI_init_warp( Three_D_View * ,
                                           THD_3dim_dataset * ,
                                           THD_warp * , float  ) ;
 
-extern AFNI_arrowpad_CB( MCW_arrowpad * , XtPointer ) ;
 extern void AFNI_handler( char * ) ;
 
 extern void AFNI_thr_scale_CB( Widget , XtPointer , XtPointer ) ;
@@ -1794,15 +1793,18 @@ extern void winsor21_box_func( int, int, double,double, float * ) ;
 extern void AFNI_register_nD_function( int, char *, generic_func *, int ) ;
 extern void AFNI_register_nD_func_init( int nd , generic_func *fin ) ;
 
-#define AFNI_register_0D_function(cc,ff) AFNI_register_nD_function(0,(cc),(ff),0)
-#define AFNI_register_1D_function(cc,ff) AFNI_register_nD_function(1,(cc),(ff),0)
-#define AFNI_register_2D_function(cc,ff) AFNI_register_nD_function(2,(cc),(ff),0)
+#define AFNI_register_0D_function(cc,ff) \
+   AFNI_register_nD_function(0,(char *)(cc),(generic_func *)(ff),0)
+#define AFNI_register_1D_function(cc,ff) \
+   AFNI_register_nD_function(1,(char *)(cc),(generic_func *)(ff),0)
+#define AFNI_register_2D_function(cc,ff) \
+   AFNI_register_nD_function(2,(char *)(cc),(generic_func *)(ff),0)
 
 #define AFNI_register_slice_proj(cc,ff)  \
-   AFNI_register_nD_function(-1,(cc),(generic_func *)(ff),0)   /* 31 Jan 2002 */
+   AFNI_register_nD_function(-1,(char *)(cc),(generic_func *)(ff),0)   /* 31 Jan 2002 */
 
 #define AFNI_register_1D_funcstr(cc,ff)  \
-   AFNI_register_nD_function(1,(cc),(ff),RETURNS_STRING)
+   AFNI_register_nD_function(1,(char *)(cc),(generic_func *)(ff),RETURNS_STRING)
 
 extern void AFNI_store_dset_index(int,int) ;  /* 18 May 2000 */
 extern int  AFNI_needs_dset_ijk(void) ;

@@ -16,7 +16,14 @@ static int      bigmap_num=0 ;    /* 31 Jan 2003 */
 static char   **bigmap_name ;
 static rgbyte **bigmap ;
 
-static MCW_DC *first_dc = NULL ;  /* 04 Feb 2003 */
+static MCW_DC *myfirst_dc = NULL ;  /* 04 Feb 2003 */
+
+#undef  PBAR_callback
+#define PBAR_callback(pb,vv)                                            \
+ do{ void (*pf)(MCW_pbar *,XtPointer,int) =                             \
+      (void (*)(MCW_pbar *,XtPointer,int))(pb->pb_CB) ;                 \
+     if( pf != NULL ) pf( pb, (XtPointer)(pb->pb_data), (int)(vv) );    \
+ } while(0)
 
 /*----------------------------------------------------------------------
    Make a new paned-window color+threshold selection bar:
@@ -200,7 +207,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    /*-- 31 Jan 2003: create palettes to choose between for "big" mode --*/
 
-   if( first_dc == NULL ) first_dc = dc ;  /* 04 Feb 2003 */
+   if( myfirst_dc == NULL ) myfirst_dc = dc ;  /* 04 Feb 2003 */
 
    PBAR_add_bigmap(NULL,NULL) ;
 
@@ -348,7 +355,7 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
          bigmap[3][ii].r = bigmap[3][ii].g = bigmap[3][ii].b = 0 ;
        }
      }
-     PBAR_enviro_bigmaps( first_dc ) ;
+     PBAR_enviro_bigmaps( myfirst_dc ) ;
    }
 
    if( name == NULL || *name == '\0' || cmap == NULL ) return ;
@@ -433,7 +440,7 @@ int PBAR_define_bigmap( char *cmd )
   float  val[NPANE_BIG] , fr,fg,fb ;
   rgbyte col[NPANE_BIG] ;
 
-  if( first_dc == NULL ) return(-1) ;
+  if( myfirst_dc == NULL ) return(-1) ;
 
   name[0] = '\0' ; ii = 0 ;
   sscanf(cmd,"%127s%n",name,&ii) ;
@@ -452,7 +459,7 @@ int PBAR_define_bigmap( char *cmd )
     if( !nonum ) sscanf(eqn,"%f=%s%n",val+neq,rhs,&ii) ;
     else         sscanf(eqn,"%s%n"           ,rhs,&ii) ;
     if( *rhs == '\0' || ii == 0 ) return -1;                    /* bad */
-    ii = DC_parse_color( first_dc , rhs, &fr,&fg,&fb ) ;
+    ii = DC_parse_color( myfirst_dc , rhs, &fr,&fg,&fb ) ;
     if( ii ) return -1;                                         /* bad */
     col[neq].r = (byte)(255.0*fr+0.5) ;
     col[neq].g = (byte)(255.0*fg+0.5) ;
@@ -462,7 +469,7 @@ int PBAR_define_bigmap( char *cmd )
   if( nonum )                    /* supply numbers, if missing */
     for( ii=0 ; ii < neq ; ii++ ) val[ii] = neq-ii ;
 
-  PBAR_make_bigmap( name , neq, val, col, first_dc ); return(0);
+  PBAR_make_bigmap( name , neq, val, col, myfirst_dc ); return(0);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -631,9 +638,9 @@ static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 
    MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
    PBAR_bigexpose_CB(NULL,pbar,NULL) ;
-   if( XtIsRealized(pbar->panes[0]) ){
-     if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar, pbar->pb_data, pbCR_COLOR );
-   }
+   if( XtIsRealized(pbar->panes[0]) )
+     PBAR_callback(pbar,pbCR_COLOR) ;
+
    return ;
 }
 
@@ -806,7 +813,7 @@ void PBAR_click_CB( Widget w , XtPointer cd , XtPointer cb )
      }
      MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
      PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
-     if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar, pbar->pb_data, pbCR_COLOR );
+     PBAR_callback(pbar,pbCR_COLOR) ;
      return ;
    }
 
@@ -861,7 +868,7 @@ void PBAR_set_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    pbar->ovin_save[pbar->num_panes][ip][jm] =
                          pbar->ov_index[ip] = cbs->ival ;
 
-   if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar , pbar->pb_data , pbCR_COLOR ) ;
+   PBAR_callback(pbar,pbCR_COLOR) ;
    return ;
 }
 
@@ -912,7 +919,7 @@ ENTRY("rotate_MCW_pbar") ;
      }
    }
 
-   if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar , pbar->pb_data , pbCR_COLOR ) ;
+   PBAR_callback(pbar,pbCR_COLOR) ;
 
    EXRETURN ;
 }
@@ -1001,8 +1008,7 @@ printf("resize: read pane # %d height=%d\n",i,hh[i]) ; fflush(stdout) ;
    for( i=0 ; i < pbar->num_panes ; i++ )
       pbar->pane_hsum[i+1] = pbar->pane_hsum[i] + hh[i] ;
 
-   if( pbar->pb_CB != NULL )
-      pbar->pb_CB( pbar , pbar->pb_data , pbCR_VALUE ) ;
+   PBAR_callback(pbar,pbCR_VALUE) ;
 
    pbar->renew_all = 0 ;
 }

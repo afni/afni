@@ -140,6 +140,33 @@ extern void LMAP_ZNAME( THD_linear_mapping * , int ,
 extern void B2SL_NAME( int nxx, int nyy, int nzz ,
                        int fixed_axis , int fixed_index ,
                        WTYPE * bold , WTYPE * bslice ) ;
+/*---------------------------------------------------------------------*/
+#undef  WTYPE
+#undef  LMAP_XNAME
+#undef  LMAP_YNAME
+#undef  LMAP_ZNAME
+#undef  B2SL_NAME
+#define WTYPE rgbyte
+#define LMAP_XNAME TWO_TWO(AFNI_lmap_to_xslice_,WTYPE)
+#define LMAP_YNAME TWO_TWO(AFNI_lmap_to_yslice_,WTYPE)
+#define LMAP_ZNAME TWO_TWO(AFNI_lmap_to_zslice_,WTYPE)
+#define B2SL_NAME  TWO_TWO(AFNI_br2sl_,WTYPE)
+
+extern void LMAP_XNAME( THD_linear_mapping * , int ,
+                        THD_dataxes * , WTYPE * ,
+                        THD_dataxes * new_daxes , int , WTYPE * ) ;
+
+extern void LMAP_YNAME( THD_linear_mapping * , int ,
+                        THD_dataxes * , WTYPE * ,
+                        THD_dataxes * new_daxes , int , WTYPE * ) ;
+
+extern void LMAP_ZNAME( THD_linear_mapping * , int ,
+                        THD_dataxes * , WTYPE * ,
+                        THD_dataxes * new_daxes , int , WTYPE * ) ;
+
+extern void B2SL_NAME( int nxx, int nyy, int nzz ,
+                       int fixed_axis , int fixed_index ,
+                       WTYPE * bold , WTYPE * bslice ) ;
 /*------------------------------------------------------------------*/
 #undef  WTYPE
 #undef  LMAP_XNAME

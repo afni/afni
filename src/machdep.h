@@ -15,6 +15,8 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+extern void machdep() ;
+
 /*----------------------------------------------------------------------------
   Flags that can be used to work around bugs on some systems
   (you could also use the -Dname command line switch in the Makefile

@@ -32,6 +32,7 @@
 
 #include "afni.h"
 #include <X11/keysym.h>  /* 20 Feb 2003 */
+#include "afni_plugout.h"
 
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
@@ -1423,8 +1424,8 @@ STATUS("call 13") ;
 
         /* 01 Feb 2000: see afni_fimfunc.c */
 
-        AFNI_register_fimfunc("Spearman CC",1,spearman_fimfunc,NULL);
-        AFNI_register_fimfunc("Quadrant CC",1,quadrant_fimfunc,NULL);
+        AFNI_register_fimfunc("Spearman CC",1,(generic_func *)spearman_fimfunc,NULL);
+        AFNI_register_fimfunc("Quadrant CC",1,(generic_func *)quadrant_fimfunc,NULL);
 
         /* 31 Jan 2002 */
 
