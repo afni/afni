@@ -287,6 +287,11 @@ void                   nifti_set_iname_offset(nifti_image *nim);
 
 /*-------------------- Some C convenience macros ----------------------------*/
 
+/* nifti extension codes */
+#define NIFTI_ECODE_UNKNOWN  0
+#define NIFTI_ECODE_DICOM    2
+#define NIFTI_ECODE_AFNI     4
+
 #undef  LNI_FERR /* local nifti file error, to be compact and repetative */
 #define LNI_FERR(func,msg,file)                                      \
             fprintf(stderr,"** ERROR (%s): %s '%s'\n",func,msg,file)

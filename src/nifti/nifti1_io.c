@@ -18,7 +18,7 @@
 
 
 /* global version and history strings, for printing */
-static char gni_version[] = "nifti library version 0.6a (December 15, 2004)";
+static char gni_version[] = "nifti library version 0.7 (December 16, 2004)";
 static char gni_history[] = 
   "----------------------------------------------------------------------\n"
   "history (of nifti library changes):\n"
@@ -118,6 +118,8 @@ static char gni_history[] =
   "   - pass NBL to nifti_image_write_hdr_img2(), and allow NBL or data\n"
   "   - added nifti_image_write_bricks() wrapper for ...write_hdr_img2()\n"
   "   - included compression abilities\n"
+  "\n"
+  "0.7  16 Dec 2004 [rickr] - minor changes to extension reading\n"
   "----------------------------------------------------------------------\n";
 
 /* global debug level */
@@ -2582,20 +2584,22 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp )
    {
       if( nifti_add_exten_to_list(&extn, &Elist, count+1) < 0 ){
          if( gni_debug > 0 )
-            fprintf(stderr,"** failed after %d successful extionsion reads\n",
-                    count);
+            fprintf(stderr,"** failed adding ext %d to list\n", count);
          return -1;
       }
 
       /* we have a new extension */
-      if( gni_debug > 1 )
+      if( gni_debug > 1 ){
          fprintf(stderr,"+d found extension #%d, code = 0x%x, size = %d\n",
                  count, extn.ecode, extn.esize);
+         if( extn.ecode == NIFTI_ECODE_AFNI )  /* if AFNI, then ~XML */
+            fprintf(stderr,"   AFNI extension: %.*s\n",extn.esize-8,extn.edata);
+      }
       if( remaining > 0 ) remaining -= extn.esize;
       count++;
    }
 
-   if( gni_debug > 2 ) fprintf(stderr,"+d found %d extensions\n", count);
+   if( gni_debug > 2 ) fprintf(stderr,"+d found %d extension(s)\n", count);
 
    nim->num_ext = count;
    nim->ext_list = Elist;
@@ -2661,7 +2665,7 @@ static int nifti_read_next_extension( nifti1_extension * nex,
                                       nifti_image *nim, znzFile fp )
 {
    int swap = nim->byteorder != short_order();
-   int count, size, code;
+   int count, size, code, posn;
 
    /* first clear nex */
    nex->esize = nex->ecode = 0;
@@ -2669,36 +2673,32 @@ static int nifti_read_next_extension( nifti1_extension * nex,
 
    /* must start with 4-byte size and code */
    count = znzread( &size, 4, 1, fp );
-   if( count == 1 ) count = znzread( &code, 4, 1, fp );
+   if( count == 1 ) count += znzread( &code, 4, 1, fp );
 
-   if( count != 1 ){
+   if( count != 2 ){
       if( gni_debug > 2 ) fprintf(stderr,"-d current extension read failed\n");
-      return 0;       /* no extension, no error condition */
+      znzseek(fp, -4*count, SEEK_CUR); /* back up past any read */
+      return 0;                        /* no extension, no error condition */
    }
 
    if( swap ){
       if( gni_debug > 2 )
-         fprintf(stderr,"-d pre-swap exts: code = %d, size = %d\n", code, size);
+         fprintf(stderr,"-d pre-swap exts: code %d, size %d\n", code, size);
 
       swap_4bytes(1, &size);
       swap_4bytes(1, &code);
    }
 
    if( gni_debug > 2 )
-      fprintf(stderr,"-d new extensions: code = %d, size = %d\n", code, size);
+      fprintf(stderr,"-d potential extension: code %d, size %d\n", code, size);
 
-   /* since size includes the space for size and code, it should be > 8 */
-   if( size < 8 ){
-      if( gni_debug > 0 )
-         fprintf(stderr,"-d extension size cannot be less than 8: %d\n",size);
-      return -1;
-   } else if( size == 8 ){
-      if( gni_debug > 1 )
-         fprintf(stderr,"-d extension size 8 shows empty extension\n");
-      return -1;
+   if( !nifti_valid_extension(nim, size, code) ){
+      if( znzseek(fp, -8, SEEK_CUR) < 0 ){      /* back up past any read */
+         fprintf(stderr,"** failure to back out of extension read!\n");
+         return -1;
+      }
+      return 0;
    }
-
-   if( !nifti_valid_extension(nim, size, code) ) return 0;
 
    /* now get the actual data */
    nex->esize = size;
@@ -2730,32 +2730,38 @@ static int nifti_read_next_extension( nifti1_extension * nex,
 }
 
 /*----------------------------------------------------------------------
- *
+ * check for valid size and code, as well as can be done
  *----------------------------------------------------------------------*/
 static int nifti_valid_extension( nifti_image *nim, int size, int code )
 {
-   /* first check for bad conditions */
-   if( !nim || size <= 0 || code < 0 ){
+   /* check for bad code before bad size */
+   if( code != 0 &&          /* unregistered, not recommended, but valid */
+       code != 2 &&          /* DICOM */
+       code != 4   )         /* AFNI */
+   {
+      if( gni_debug > 2 ) fprintf(stderr,"-d invalid extension code %d\n",code);
+      return 0;
+   }
+
+   if( size < 16 ){
       if( gni_debug > 2 )
-         fprintf(stderr,"** NVE, bad exten params %p,%d,%d\n", nim, size, code);
+         fprintf(stderr,"-d extension size %d, no room for extension\n",size);
+      return 0;
+   }
+
+   if( size & 0xf ){
+      if( gni_debug > 2 )
+         fprintf(stderr,"-d nifti extension size %d not multiple of 16\n",size);
       return 0;
    }
 
    if( nim->nifti_type == 3 && size > LNI_MAX_NIA_EXT_LEN ){
       if( gni_debug > 2 )
-         fprintf(stderr,"** NVE, bad nifti_type 3 size %d\n", size);
+         fprintf(stderr,"-d NVE, bad nifti_type 3 size %d\n", size);
       return 0;
    }
 
-   /* now known, good codes */
-   if( code == 0 ||          /* unknown, unregistered, not recommended */
-       code == 2 ||          /* DICOM */
-       code == 4   )         /* AFNI */
-      return 1;
-
-   if( gni_debug > 2 ) fprintf(stderr,"-d invalid extension code %d\n", code);
-
-   return 0;
+   return 1;
 }
 
 
