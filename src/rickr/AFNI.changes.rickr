@@ -284,4 +284,6 @@
   * modified Imon.c (-> v3.0)  - retest errors before reporting them
       - major version change for high numbers, plus new warning output
 
+02 September 2003:
+  * modified Imon.c (->v3.1) - added '-gert_outdir OUTPUT_DIR' option
 

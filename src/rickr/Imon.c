@@ -1,10 +1,13 @@
 
-#define IFM_VERSION "version 3.0 (August 20, 2003)"
+#define IFM_VERSION "version 3.1 (September 02, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
  *
- * 2.12 August 20, 2003
+ * 3.1 September 02, 2003
+ *   - Add option '-od OUTPUT_DIRECTORY' for the GERT_Reco2 case.
+ *
+ * 3.0 August 20, 2003
  *   - It seems that the GE scanners may write the files for a volume
  *     out of order.  To handle that possibility, volume_match() will
  *     re-test any volume for error conditions (separated by sleep()).
@@ -151,7 +154,7 @@ static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
 static int check_im_store_space( im_store_t * is, int num_images );
 static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
-static int create_gert_script  ( stats_t * s, char * spat );
+static int create_gert_script  ( stats_t * s, opts_t * opts );
 static int dir_expansion_form  ( char * sin, char ** sexp );
 static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_fl_file_index  ( param_t * p, char * file );
@@ -1174,7 +1177,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
 	    p->opts.drive_cmd = argv[ac];
 	}
-	else if ( ! strncmp( argv[ac], "-GERT_Reco2", 5 ) )
+	else if ( ! strncmp( argv[ac], "-GERT_Reco2", 7 ) )
 	{
 	    p->opts.gert_reco = 1;	/* output script at the end */
 	}
@@ -1214,6 +1217,18 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 		    0, IFM_MAX_NT );
 		errors++;
 	    }
+	}
+	else if ( ! strncmp( argv[ac], "-od", 3 ) ||
+	          ! strncmp( argv[ac], "-gert_outdir", 9 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -gert_outdir OUTPUT_DIR\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    p->opts.gert_outdir = argv[ac];
 	}
 	else if ( ! strncmp( argv[ac], "-quiet", 6 ) )
 	{
@@ -1823,6 +1838,7 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 	    "   start_dir          = %s\n"
 	    "   drive_cmd          = %s\n"
 	    "   sp                 = %s\n"
+	    "   gert_outdir        = %s\n"
 	    "   (argv, argc)       = (%p, %d)\n"
 	    "   (nt, nice)         = (%d, %d)\n"
 	    "   (debug, gert_reco) = (%d, %d)\n"
@@ -1834,6 +1850,7 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 	    CHECK_NULL_STR(opt->start_dir),
 	    CHECK_NULL_STR(opt->drive_cmd),
 	    CHECK_NULL_STR(opt->sp),
+	    CHECK_NULL_STR(opt->gert_outdir),
 	    opt->argv, opt->argc,
 	    opt->nt, opt->nice,
 	    opt->debug, opt->gert_reco, opt->quit,
@@ -2107,12 +2124,6 @@ static int usage ( char * prog, int level )
 	  "        the default level is 1, the domain is [0,3]\n"
 	  "        the '-quiet' option is equivalent to '-debug 0'\n"
 	  "\n"
-	  "    -GERT_Reco2        : output a GERT_Reco2 script\n"
-	  "\n"
-	  "        Create a script called 'GERT_Reco2', similar to the one\n"
-	  "        that Ifile creates.  This script may be run to create the\n"
-	  "        AFNI datasets corresponding to the I-files.\n"
-	  "\n"
 	  "    -help              : show this help information\n"
 	  "\n"
 	  "    -nice INCREMENT    : adjust the nice value for the process\n"
@@ -2138,23 +2149,13 @@ static int usage ( char * prog, int level )
 	  "        allow the value to increase based on subsequent runs).\n"
 	  "        Therefore %s would not detect a stalled first run.\n"
 	  "\n"
+	  "    -quiet             : show only errors and final information\n"
+	  "\n"
 	  "    -quit              : quit when there is no new data\n"
 	  "\n"
 	  "        With this option, the program will terminate once a delay\n"
 	  "        in new data occurs.  This is most appropriate to use when\n"
 	  "        the image files have already been collected.\n"
-	  "\n"
-	  "    -quiet             : show only errors and final information\n"
-	  "\n"
-	  "    -sp SLICE_PATTERN  : set output slice pattern in GERT_Reco2\n"
-	  "\n"
-	  "        e.g. -sp alt-z\n"
-	  "        the default is 'alt+z'\n"
-	  "\n"
-	  "        This options allows the user to alter the slice\n"
-	  "        acquisition pattern in the GERT_Reco2 script.\n"
-	  "\n"
-	  "        See 'to3d -help' for more information.\n"
 	  "\n"
 	  "    -start_file S_FILE : have %s process starting at S_FILE\n"
 	  "\n"
@@ -2170,6 +2171,36 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "    -version           : show the version information\n"
 	  "\n"
+	  "  ---------------------------------------------------------------\n"
+	  "  GERT_Reco2 options:\n"
+	  "\n"
+	  "    -GERT_Reco2        : output a GERT_Reco2 script\n"
+	  "\n"
+	  "        Create a script called 'GERT_Reco2', similar to the one\n"
+	  "        that Ifile creates.  This script may be run to create the\n"
+	  "        AFNI datasets corresponding to the I-files.\n"
+	  "\n"
+	  "    -gert_outdir OUTPUT_DIR  : set output directory in GERT_Reco2\n"
+	  "\n"
+	  "        e.g. -gert_outdir subject_A7\n"
+	  "        e.g. -od subject_A7\n"
+	  "        the default is '-gert_outdir afni'\n"
+	  "\n"
+	  "        This will add '-od OUTPUT_DIR' to the @RenamePanga command\n"
+	  "        in the GERT_Reco2 script, creating new datasets in the\n"
+	  "        OUTPUT_DIR directory, instead of the 'afni' directory.\n"
+	  "\n"
+	  "    -sp SLICE_PATTERN  : set output slice pattern in GERT_Reco2\n"
+	  "\n"
+	  "        e.g. -sp alt-z\n"
+	  "        the default is 'alt+z'\n"
+	  "\n"
+	  "        This options allows the user to alter the slice\n"
+	  "        acquisition pattern in the GERT_Reco2 script.\n"
+	  "\n"
+	  "        See 'to3d -help' for more information.\n"
+	  "\n"
+	  "  ---------------------------------------------------------------\n"
 	  "\n"
 	  "  Author: R. Reynolds - %s\n"
 	  "\n"
@@ -2310,14 +2341,15 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
  * Note - stats struct parameters have been checked.
  * ----------------------------------------------------------------------
 */
-static int create_gert_script( stats_t * s, char * spat )
+static int create_gert_script( stats_t * s, opts_t * opts )
 {
     FILE * fp;
+    char * spat;			/* slice acquisition pattern */
     char   cdir[4], csuff[IFM_SUFFIX_LEN];
     int    num_valid, c;
 
-    if ( !spat )
-	spat = IFM_SLICE_PAT;
+    /* if the user did not give a slice pattern string, use the default */
+    spat = opts->sp ? opts->sp : IFM_SLICE_PAT;
 
     for ( c = 0, num_valid = 0; c < s->nused; c++ )
 	if ( s->runs[c].volumes > 0 )
@@ -2343,13 +2375,15 @@ static int create_gert_script( stats_t * s, char * spat )
 	     "# This script was automatically generated by '%s'.\n"
 	     "# The script format was, uh, borrowed from Ziad's Ifile.c.\n"
 	     "#\n"
-	     "# Please modify the following options for your own evil use.\n"
+	     "# Please modify the following options for your own evil uses.\n"
 	     "\n"
 	     "set OutlierCheck = '-oc'         # use '' to skip outlier check\n"
 	     "set OutPrefix    = 'OutBrick'    # prefix for datasets\n"
+	     "set OutputDir    = '-od %s'    # where to put output datasets\n"
 	     "\n"
 	     "\n",
-	     IFM_PROG_NAME
+	     IFM_PROG_NAME,
+	     opts->gert_outdir ? opts->gert_outdir : "afni"
 	   );
 
     for ( c = 0; c < s->nused; c++ )
@@ -2362,7 +2396,7 @@ static int create_gert_script( stats_t * s, char * spat )
 	    }
 
 	    fprintf( fp, "@RenamePanga %s %s %d %d $OutPrefix "
-		         "-sp %s $OutlierCheck\n",
+		         "-sp %s $OutlierCheck $OutputDir\n",
 		     cdir, csuff, s->slices, s->runs[c].volumes, spat );
 	}
 
@@ -2414,7 +2448,7 @@ static int show_run_stats( stats_t * s )
     putchar( '\n' );
 
     if ( gP.opts.gert_reco )
-	(void)create_gert_script( s, gP.opts.sp );
+	(void)create_gert_script( s, &gP.opts );
 
     fflush( stdout );
 
