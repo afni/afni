@@ -3669,8 +3669,8 @@ ENTRY("ISQ_show_zoom") ;
      }
    }
 
-   /* now we can copy the relevant area from
-      the pixmap we just re-drew into the image window */
+   /* now we can copy the relevant area
+      from the pixmap into the image window */
 
    xoff = seq->zoom_hor_off * pw ; if( xoff+iw > pw ) xoff = pw-iw ;
    yoff = seq->zoom_ver_off * ph ; if( yoff+ih > ph ) yoff = ph-ih ;
