@@ -1,5 +1,5 @@
 
-#define VERSION "version 0.5 (November 19, 2003)"
+#define VERSION "version 1.0 (December 01, 2003)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -19,7 +19,17 @@
  *     n_area_B		: area for each node on the second surface
  *     nodes            : node index
  *     node_vol		: between surface volume per node
+ *     norm_A		: vector of normal at node on first surface
+ *     norm_B		: vector of normal at node on second surface
  *     thick            : thickness - length of node segment
+ *
+ * Final info options (accessed via '-info_XXXX'):
+ *
+ *     all              : combines all '-info_XXXX' options
+ *     area             : display total area of each surface
+ *     norms            : display norm averages
+ *     thick            : display min/max thickness
+ *     vol              : display total volume and areas
  *
  * See "SurfMeasures -help" for more information.
  *
@@ -31,7 +41,8 @@
 /*----------------------------------------------------------------------
  * history
  *
- * 0.5 November 19, 2003
+ * 1.0 December 1, 2003
+ *   - initial release
  *----------------------------------------------------------------------
 */
 
@@ -39,7 +50,6 @@
 /*----------------------------------------------------------------------
  * todo:
  *
- * - update volume computation 
  * - add '-node_mask' option?  -cmask?
  * - '-no_nodes' option?  remove "nodes" as default?
  *----------------------------------------------------------------------
@@ -62,7 +72,7 @@ SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 /* these must match smeasure_codes_e enum */
 char * g_sm_names[] = { "none", "ang_norms", "ang_ns_A", "ang_ns_B",
 			"coord_A", "coord_B", "n_area_A", "n_area_B",
-			"node_vol", "nodes", "thick" };
+			"node_vol", "nodes", "norm_A", "norm_B", "thick" };
 
 char * g_sm_desc[] = { "invalid function",
     		       "angular difference between normals",
@@ -74,6 +84,8 @@ char * g_sm_desc[] = { "invalid function",
 		       "associated node area on second surface",
 		       "associated node volume between surfaces",
 		       "node number",
+		       "vector of normal at node on first surface",
+		       "vector of normal at node on second surface",
 		       "distance between surfaces along segment" };
 
 /*----------------------------------------------------------------------*/
@@ -84,6 +96,9 @@ int main ( int argc, char * argv[] )
     opts_t  opts;
     int     rv;
 
+    /* note initial time */
+    (void) COX_clock_time();
+
     mainENTRY("SurfMeasures main");
     machdep();
     AFNI_logger(PROG_NAME,argc,argv);
@@ -91,16 +106,36 @@ int main ( int argc, char * argv[] )
     if ( (rv = init_options(&opts, argc, argv)) != 0 )
 	return rv;
 
+    if ( opts.debug > 1 )
+	fprintf(stderr,"-- timing: init opts         : time = %.3f\n",
+		COX_clock_time());
+
     if ( (rv = validate_options(&opts, &p)) != 0 )
 	return rv;
+
+    if ( opts.debug > 1 )
+	fprintf(stderr,"-- timing: validate opts     : time = %.3f\n",
+		COX_clock_time());
 
     if ( (rv = get_surf_data(&opts, &p)) != 0 )
 	return rv;
 
+    if ( opts.debug > 1 )
+	fprintf(stderr,"-- timing: get surf data     : time = %.3f\n",
+		COX_clock_time());
+
     if ( (rv = write_output(&opts, &p)) != 0 )
 	return rv;
 
+    if ( opts.debug > 1 )
+	fprintf(stderr,"-- timing: write outfile     : time = %.3f\n",
+		COX_clock_time());
+
     final_cleanup(&opts, &p);
+
+    if ( opts.debug > 1 )
+	fprintf(stderr,"-- timing: final clean up    : time = %.3f\n",
+		COX_clock_time());
 
     return 0;
 }
@@ -114,15 +149,15 @@ int main ( int argc, char * argv[] )
 int write_output( opts_t * opts, param_t * p )
 {
     THD_fvec3   p0, p1;
-    double      vol0 = -1.0, vol1 = -1.0, a0 = -1.0, a1 = -1.0;
-    double      tvol0, tvol1, tarea0, tarea1, r;
-    double      base, dist, min_dist, max_dist, tdist = -1.0;
+    double      tarea0, tarea1, tvolume;
+    double      dist, min_dist, max_dist, tdist;
     double      atn = 0.0, atna = 0.0, atnb = 0.0;  /* angle totals */
     float       fvn, fva, fvb;
     float     * fp0, * fp1;
     float     * norms0, * norms1;
+    float       ave_dist;
     int       * fcodes;
-    int         c, vflag, fnum, node;
+    int         c, fnum, node;
 
 ENTRY("write_output");
 
@@ -135,7 +170,7 @@ ENTRY("write_output");
     norms0 = p->S.slist[0]->NodeNormList;
 
     /* if we have only one surface, just init fp1 to that */
-    if ( p->S.nsurf > 0 )
+    if ( p->S.nsurf > 1 )
     {
 	fp1    = p->S.slist[1]->NodeList;
 	norms1 = p->S.slist[1]->NodeNormList;
@@ -148,11 +183,10 @@ ENTRY("write_output");
 
     fcodes = p->F->codes;	/* for convenience */
 
-    tvol0  = 0.0;		/* for total volume computation */
-    tvol1  = 0.0;		/* for total volume computation */
-    tarea0 = 0.0;		/* for total area computation */
-    tarea1 = 0.0;		/* for total area computation */
-    vflag  = (p->S.narea[0] != NULL) && (p->S.narea[1] != NULL);
+    tdist   = 0.0;              /* for total distance over nodes */
+    tarea0  = 0.0;		/* for total area computation   */
+    tarea1  = 0.0;		/* for total area computation  */
+    tvolume = 0.0;		/* for total volume           */
 
     min_dist = 9999.0;
     max_dist = 0.0;
@@ -161,29 +195,20 @@ ENTRY("write_output");
 	p0.xyz[0] = fp0[0];  p0.xyz[1] = fp0[1];  p0.xyz[2] = fp0[2];
 	p1.xyz[0] = fp1[0];  p1.xyz[1] = fp1[1];  p1.xyz[2] = fp1[2];
 
-	dist = dist_f3mm(&p0, &p1);
+	dist = dist_fn(3, p0.xyz, p1.xyz);
 	if ( dist < min_dist ) min_dist = dist;
 	if ( dist > max_dist ) max_dist = dist;
+	tdist += dist;
 
-	/* do we compute the volume? */
-	if ( vflag )
-	{
-	    a0      = p->S.narea[0][node];
-	    a1      = p->S.narea[1][node];
-	    base    = a0 > a1 ? a0 : a1;
-	    vol0    = 0.5 * (a0 + a1) * dist;
+	/* keep track of the total areas and volume */
+	if ( p->S.narea[0] )
+	    tarea0  += p->S.narea[0][node];
 
-	    r = (a0 == 0 || a1 == 0) ? 0 : ((a0 < a1) ? a0/a1 : a1/a0);
-	    r = sqrt(r);
-	    vol1 = base * dist * (1 + r + r*r) / 3.0;
+	if ( p->S.narea[1] )
+	    tarea1  += p->S.narea[1][node];
 
-	    /* keep track of everything for comparison */
-	    tvol0  += vol0;
-	    tvol1  += vol1;
-	    tarea0 += a0;
-	    tarea1 += a1;
-	    tdist  += dist;
-	}
+	if ( p->S.nvol )
+	    tvolume += p->S.nvol[node];
 
 	fputc(' ', p->outfp);
 
@@ -213,6 +238,16 @@ ENTRY("write_output");
 		    atnb += fvb;
 		    break;
 
+		case E_SM_COORD_A:
+		    for (c = 0; c < 3; c++)
+			fprintf(p->outfp,"  %10s", MV_format_fval(fp0[c]));
+		    break;
+
+		case E_SM_COORD_B:
+		    for (c = 0; c < 3; c++)
+			fprintf(p->outfp,"  %10s", MV_format_fval(fp1[c]));
+		    break;
+
 		case E_SM_N_AREA_A:
 		    fprintf(p->outfp,"  %10s",
 			    MV_format_fval(p->S.narea[0][node]));
@@ -228,21 +263,25 @@ ENTRY("write_output");
 		    break;
 
 		case E_SM_NODE_VOL:
-		    fprintf(p->outfp,"  %10s", MV_format_fval(vol0));
+		    fprintf(p->outfp,"  %10s", MV_format_fval(p->S.nvol[node]));
+		    break;
+
+		case E_SM_NORM_A:
+		    if ( norms0 )
+			for (c = 0; c < 3; c++)
+			    fprintf(p->outfp,"  %10s",
+				    MV_format_fval(norms0[3*node+c]));
+		    break;
+
+		case E_SM_NORM_B:
+		    if ( norms1 )
+			for (c = 0; c < 3; c++)
+			    fprintf(p->outfp,"  %10s",
+				    MV_format_fval(norms1[3*node+c]));
 		    break;
 
 		case E_SM_THICK:
 		    fprintf(p->outfp,"  %10s", MV_format_fval(dist));
-		    break;
-
-		case E_SM_COORD_A:
-		    for (c = 0; c < 3; c++)
-			fprintf(p->outfp,"  %10s", MV_format_fval(fp0[c]));
-		    break;
-
-		case E_SM_COORD_B:
-		    for (c = 0; c < 3; c++)
-			fprintf(p->outfp,"  %10s", MV_format_fval(fp1[c]));
 		    break;
 	    }
 	}
@@ -251,16 +290,6 @@ ENTRY("write_output");
 
 	if ( node == opts->dnode && opts->debug > 0 )
 	{
-	    fprintf(stderr,"-- dnode %d, dist = %s\n",
-		    node, MV_format_fval(dist_f3mm(&p0,&p1)) );
-	    if ( vflag )
-	    {
-		fprintf(stderr,"-- vol0 = %s", MV_format_fval(vol0));
-		fprintf(stderr,", vol1 = %s",  MV_format_fval(vol1));
-		fprintf(stderr,", a0 = %s",    MV_format_fval(a0));
-		fprintf(stderr,", a1 = %s\n",  MV_format_fval(a1));
-	    }
-
 	    disp_f3_point("-- p0    = ", fp0);
 	    disp_f3_point("-- p1    = ", fp1);
 
@@ -275,24 +304,38 @@ ENTRY("write_output");
 	fp1 += 3;
     }
 
-    printf("------------------------------------------------------------\n");
-    if ( vflag )
+    ave_dist = tdist/p->S.nnodes;
+
+    if ( opts->info )
+	printf("----------------------------------------------------------\n");
+
+    if ( opts->info & ST_INFO_AREA )
     {
-	printf("-- total volume = %.1f\n", tvol0);
-	if ( opts->total_vol )
-	{
-	printf("-- icone volume = %.1f, aarea*adist = %.1f\n",
-		   tvol1, (tarea0+tarea1)*tdist/(2*p->S.nnodes));
-	    printf("-- area0 = %.1f, area1 = %.1f, ave dist = %.3f\n",
-		    tarea0, tarea1, tdist/p->S.nnodes);
-	}
+	if ( p->S.narea[0] )
+	    printf("-- total area 0 = %.1f\n", tarea0);
+
+    	if ( p->S.nsurf > 1 )
+	    printf("-- total area 1 = %.1f\n", tarea1);
     }
 
-    printf("-- min surf dist = %.5f, max surf dist = %.5f\n",min_dist,max_dist);
+    if ( opts->info & ST_INFO_NORMS )
+    {
+	printf( "-- ave. angles to normals: (sA, sB, n0_n1) = "
+		"(%.4f, %.4f, %.4f)\n",
+		atn/p->S.nnodes, atna/p->S.nnodes, atnb/p->S.nnodes);
+    }
 
-    if ( atn > 0.0 || atna > 0.0 || atnb > 0.0 )
-	printf("-- ave: ang_norms = %.4f, ang_ns_A = %.4f, ang_ns_B = %.4f\n",
-		atn /p->S.nnodes, atna/p->S.nnodes, atnb/p->S.nnodes);
+    if ( (opts->info & ST_INFO_THICK) && (p->S.nsurf > 1) )
+	printf( "-- thickness: (min, ave, max) = (%.5f, %.5f, %.5f)\n",
+		min_dist, ave_dist, max_dist);
+
+    if ( (opts->info & ST_INFO_VOL) && p->S.nvol )
+    {
+	printf("-- total volume = %.1f\n", tvolume);
+	if ( opts->debug > 1 )
+	    printf("-- ave dist * (area0, ave, area1) = (%.1f, %.1f, %.1f)\n",
+		ave_dist*tarea0, ave_dist*(tarea0+tarea1)/2, ave_dist*tarea1);
+    }
 
     RETURN(0);
 }
@@ -381,8 +424,10 @@ ENTRY("print_column_headers");
     fputc('#', p->outfp);
     for (c = 0; c < p->F->nused; c++ )
     {
-	if ( (p->F->codes[c] == E_SM_COORD_A) ||
-	     (p->F->codes[c] == E_SM_COORD_B) )
+	if ( ( p->F->codes[c] == E_SM_COORD_A ) ||
+	     ( p->F->codes[c] == E_SM_COORD_B ) ||
+	     ( p->F->codes[c] == E_SM_NORM_A  ) ||
+	     ( p->F->codes[c] == E_SM_NORM_B  ) )
 	    num2print = 3;
 	else
 	    num2print = 1;
@@ -398,8 +443,10 @@ ENTRY("print_column_headers");
     fputc('#', p->outfp);
     for (c = 0; c < p->F->nused; c++ )
     {
-	if ( (p->F->codes[c] == E_SM_COORD_A) ||
-	     (p->F->codes[c] == E_SM_COORD_B) )
+	if ( ( p->F->codes[c] == E_SM_COORD_A ) ||
+	     ( p->F->codes[c] == E_SM_COORD_B ) ||
+	     ( p->F->codes[c] == E_SM_NORM_A  ) ||
+	     ( p->F->codes[c] == E_SM_NORM_B  ) )
 	    num2print = 3;
 	else
 	    num2print = 1;
@@ -468,14 +515,30 @@ ENTRY("get_surf_data");
     if ( rv != 0 )
 	RETURN(rv);
 
+    if ( opts->debug > 1 )
+	fprintf(stderr,"-- timing: Surf (spec2SUMA)  : time = %.3f\n",
+		COX_clock_time());
+
     if ( (rv = all_mappable_surfs(opts, p)) != 0 )
 	RETURN(rv);
+
+    if ( opts->debug > 1 )
+	fprintf(stderr,"-- timing: Surf (all_map)    : time = %.3f\n",
+		COX_clock_time());
 
     if ( (rv = verify_surf_t(opts, p)) != 0)
 	RETURN(rv);
 
+    if ( opts->debug > 1 )
+	fprintf(stderr,"-- timing: Surf (verify surf): time = %.3f\n",
+		COX_clock_time());
+
     if ( (rv = get_surf_measures(opts, p)) != 0)
 	RETURN(rv);
+
+    if ( opts->debug > 1 )
+	fprintf(stderr,"-- timing: Surf (get measure): time = %.3f\n",
+		COX_clock_time());
 
     RETURN(0);
 }
@@ -496,7 +559,7 @@ ENTRY("get_surf_measures");
     geta = getb = 0;
     debug = opts->debug > 2;
 
-    if ( opts->total_vol )
+    if ( opts->info & ST_INFO_VOL )
     {
 	geta = getb = 1;
     }
@@ -530,9 +593,15 @@ ENTRY("get_surf_measures");
 
     if ( getb )
     {
+	if ( p->S.nsurf < 2 )
+	{
+	    fprintf(stderr,"** gsf: functions requre 2 surfaces, failing...\n");
+	    RETURN(-1);
+	}
+
 	if ( !SUMA_SurfaceMetrics_eng(p->S.slist[1], "PolyArea", NULL, debug) )
 	{
-	    fprintf(stderr,"** gsf: surface metrics A failure\n");
+	    fprintf(stderr,"** gsf: surface metrics B failure\n");
 	    RETURN(-1);
 	}
 
@@ -544,7 +613,9 @@ ENTRY("get_surf_measures");
     {
 	if ( surf_triangle_match(opts, p) != 0 )
 	    RETURN(-1);
-	if ( test_planar_sides(opts, p) < 0 )
+	if ( compute_face_vols(opts, p) != 0 )
+	    RETURN(-1);
+	if ( compute_node_vols(opts, p) != 0 )
 	    RETURN(-1);
     }
 
@@ -591,6 +662,8 @@ ENTRY("surf_triangle_match");
     RETURN(0);
 }
 
+
+#if 0		/* test_planar_sides */
 
 /*----------------------------------------------------------------------
  * test_planar_sides	- check that all pentahedra have planar sides
@@ -696,6 +769,8 @@ ENTRY("planar_points");
     RETURN(fabs(result));
 }
 
+#endif		/* test_planar_sides */
+
 
 /*----------------------------------------------------------------------
  * cross_product		- return the cross product of u and v
@@ -703,13 +778,27 @@ ENTRY("planar_points");
 */
 int cross_product( double * res, double * u, double * v )
 {
-ENTRY("cross_product");
-
     res[0] = u[1]*v[2] - u[2]*v[1];
     res[1] = u[2]*v[0] - u[0]*v[2];
     res[2] = u[0]*v[1] - u[1]*v[0];
 
-    RETURN(0);
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * dot_product		- return the dot product of u and v
+ *----------------------------------------------------------------------
+*/
+double dot_product( double * u, double * v )
+{
+    double res;
+
+    res  = u[0]*v[0];
+    res += u[1]*v[1];
+    res += u[2]*v[2];
+
+    return res;
 }
 
 
@@ -767,12 +856,170 @@ ENTRY("compute_node_areas");
 
 	alist[node] = sum/3.0;
 
-	flist += so->MF->N_Memb_max;
-
 	if ( node == opts->dnode )
 	    fprintf(stderr, "-- dnode %d: area = %s (%d faces, surf %s)\n",
 		    node, MV_format_fval(alist[node]),
 		    so->MF->N_Memb[node], CHECK_NULL_STR(so->Label));
+    }
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * compute_node_vols			- get volume at each node
+ *
+ * Set each node's volume to one third the sum of the included
+ * triangle face volumes.
+ *----------------------------------------------------------------------
+*/
+int compute_node_vols( opts_t * opts, param_t * p )
+{
+    SUMA_SurfaceObject    * so;
+    double		    sum;
+    float                 * nvols;
+    int                   * flist;
+    int                     node, c;
+
+ENTRY("compute_node_vols");
+
+    so = p->S.slist[0];			/* just for ease of typing */
+
+    nvols = (float *)malloc(p->S.nnodes*sizeof(float));
+    ALLOC_CHECK(nvols, "float", p->S.nnodes);
+    p->S.nvol = nvols;
+
+    for ( node = 0; node < p->S.nnodes; node++ )
+    {
+	if ( node == opts->dnode && opts->debug > 1 )
+	    fprintf(stderr,"-- dnode %d, facelist (%d) :\n        ",
+		    node, so->MF->N_Memb[node]);
+	flist = so->MF->NodeMemberOfFaceSet[node];
+	sum = 0.0;
+	for (c = 0; c < so->MF->N_Memb[node]; c++)
+	{
+	    if ( flist[c] < 0 || flist[c] >= so->N_FaceSet )
+	    {
+		fprintf(stderr,"** cnv: FaceSet mis-match flist,max = %d,%d\n",
+			flist[c], so->N_FaceSet);
+		free(p->S.nvol);
+		RETURN(-1);
+	    }
+	    if ( node == opts->dnode && opts->debug > 1 )
+		fprintf(stderr,"  %d", flist[c]);
+
+	    sum += p->S.fvol[flist[c]];
+	}
+
+	nvols[node] = sum/3.0;
+
+	if ( node == opts->dnode && opts->debug > 0 )
+	    fprintf(stderr,"\n-- volume = %f\n", sum);
+    }
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * compute_face_vols			- volume for each triangle face
+ *
+ * The volume corresponding to a triange face is the approximate volume
+ * of the pentahedron formed by the pair of corresponding triangular faces.
+ * It is computed (approximated) as the sum of three quadrahedrons, which
+ * will be close to correct, and will give a very accurate total volume
+ * (since the interior face volumes will perfectly fill the space).
+ *----------------------------------------------------------------------
+*/
+int compute_face_vols( opts_t * opts, param_t * p )
+{
+    SUMA_SurfaceObject    * so0, *so1;
+    double                  totalv;
+    double                  v0, v1, v2;
+    float                 * fvlist, * xyzn0, * xyzn1;
+    float                   vmin, vmax;
+    int                   * fp;
+    int                     i0, i1, i2;
+    int                     face, nnodes, test;
+
+ENTRY("compute_face_vols");
+
+    so0 = p->S.slist[0];
+    so1 = p->S.slist[1];
+
+    if ( !so0 || !so1 )
+    {
+	fprintf(stderr,"** cfv: missing SurfaceObject (%p, %p)\n", so0, so1 );
+	RETURN(-1);
+    }
+
+    fp    = so0->FaceSetList;  /* we need only 1, as they are the same */
+    xyzn0 = so0->NodeList;
+    xyzn1 = so1->NodeList;
+    
+    if ( !fp || !xyzn0 || !xyzn1 )
+    {
+	fprintf(stderr,"** cfv: missing face set list data (%p,%p,%p)\n",
+		fp, xyzn0, xyzn1);
+	RETURN(-1);
+    }
+
+    fvlist = (float *)malloc(p->S.nfaces*sizeof(float));
+    ALLOC_CHECK(fvlist, "float", p->S.nfaces);
+    p->S.fvol = fvlist;
+    
+    vmin = 10000.0;  vmax = -1.0;
+    nnodes = p->S.nnodes;
+    totalv = 0.0;
+    for ( face = 0; face < p->S.nfaces; face++ )
+    {
+	i0 = fp[0];  i1 = fp[1];  i2 = fp[2];
+
+	if ( i0 < 0 || i1 < 0 || i2 < 0 ||
+	     i0 >= nnodes || i1 >= nnodes || i2 >= nnodes )
+	{
+	    fprintf(stderr,"** cfv: face %d, index out of range [0,%d]\n"
+		           "        indices are (%d,%d,%d)\n",
+			   face, nnodes-1, i0, i1, i2);
+	    RETURN(-1);
+	}
+
+	test = (i0 == opts->dnode || i1 == opts->dnode || i2 == opts->dnode);
+
+	i0 *= 3;  i1 *= 3;  i2 *= 3;	/* node index -> (float*) index */
+
+	v0 = tetra_volume( xyzn0+i0, xyzn0+i1, xyzn0+i2, xyzn1+i0 );
+	v1 = tetra_volume( xyzn0+i1, xyzn0+i2, xyzn1+i0, xyzn1+i1 );
+	v2 = tetra_volume( xyzn0+i2, xyzn1+i0, xyzn1+i1, xyzn1+i2 );
+
+	if ( v0 < 0.0 || v1 < 0.0 || v2 < 0.0 ||
+	     (opts->debug > 2 && test) )
+	{
+	    fprintf(stderr,"** cfv: check volume: %f = %f + %f + %f, face %d\n",
+			   v0+v1+v2, v0, v1, v2, face );
+	    fprintf(stderr,"        nodes %d, %d, %d\n", i0/3, i1/3, i2/3);
+
+	    if ( v0 < 0.0 || v1 < 0.0 || v2 < 0.0 )
+		RETURN(-1);
+	}
+
+	fvlist[face] = v0 + v1 + v2;
+	totalv += fvlist[face];
+	if ( fvlist[face] < vmin )  vmin = fvlist[face];
+	if ( fvlist[face] > vmax )  vmax = fvlist[face];
+
+	fp += 3;
+    }
+
+    if ( opts->debug > 0 )
+    {
+	fprintf(stderr,"++ total face volume = %f\n", totalv);
+	if ( opts->debug > 1 )
+	{
+	    fprintf(stderr,"++ volumes: faces 0, 1 (of %d), vols = %f, %f\n",
+		    p->S.nfaces, fvlist[0], fvlist[1]);
+	    fprintf(stderr,"-- faces: vmin, vmax = %f, %f\n", vmin, vmax);
+	}
     }
 
     RETURN(0);
@@ -826,7 +1073,10 @@ ENTRY("all_mappable_surfs");
     }
 
     if ( p->S.nsurf > 0 )
+    {
 	p->S.nnodes = p->S.slist[0]->N_Node;
+	p->S.nfaces = p->S.slist[0]->N_FaceSet;
+    }
 
     if ( opts->debug )
 	fprintf(stderr, "++ found %d mappable surfaces\n", p->S.nsurf);
@@ -881,7 +1131,7 @@ ENTRY("spec2SUMA");
     }
 
     /* actually load the surface(s) from the spec file */
-    if (SUMA_LoadSpec_eng(spec, SUMAg_DOv, &SUMAg_N_DOv, sv_file, debug>2) == 0)
+    if (SUMA_LoadSpec_eng(spec, SUMAg_DOv, &SUMAg_N_DOv, sv_file, debug>3) == 0)
     {
 	fprintf( stderr, "** error: failed SUMA_LoadSpec(), exiting...\n" );
 	RETURN(-1);
@@ -938,7 +1188,7 @@ ENTRY("add_to_flist");
 */
 int init_opts_t( opts_t * opts )
 {
-ENTRY("init_options");
+ENTRY("init_opts_t");
 
     memset(opts, 0, sizeof(opts_t));
 
@@ -1022,6 +1272,26 @@ ENTRY("init_options");
 	    if ( add_to_flist(&opts->F, argv[ac]) != 0 )
 		RETURN(-1);
 	}
+	else if ( ! strncmp(argv[ac], "-info_all",9) )
+	{
+	    opts->info |= ST_INFO_ALL;
+	}
+	else if ( ! strncmp(argv[ac], "-info_area",10) )
+	{
+	    opts->info |= ST_INFO_AREA;
+	}
+	else if ( ! strncmp(argv[ac], "-info_norms",10) )
+	{
+	    opts->info |= ST_INFO_NORMS;
+	}
+	else if ( ! strncmp(argv[ac], "-info_thick",11) )
+	{
+	    opts->info |= ST_INFO_THICK;
+	}
+	else if ( ! strncmp(argv[ac], "-info_vol",9) )
+	{
+	    opts->info |= ST_INFO_VOL;
+	}
 	else if ( ! strncmp(argv[ac], "-out_1D", 7) )
 	{
 	    CHECK_ARG_COUNT(ac,"option usage: -out_1D OUTPUT_FILE\n");
@@ -1036,10 +1306,6 @@ ENTRY("init_options");
 	{
 	    CHECK_ARG_COUNT(ac,"option usage: -sv SURF_VOLUME\n");
 	    opts->sv_file = argv[++ac];
-	}
-	else if ( ! strncmp(argv[ac], "-total_vol",10) )
-	{
-	    opts->total_vol = 1;
 	}
 	else if ( ! strncmp(argv[ac], "-ver",4) )
 	{
@@ -1114,6 +1380,8 @@ ENTRY("validate_options");
     p->S.slist    = NULL;			/* to be safe...   */
     p->S.narea[0] = NULL;
     p->S.narea[1] = NULL;
+    p->S.nvol     = NULL;
+    p->S.fvol     = NULL;
 
     p->F          = &opts->F;			/* point to struct */
 
@@ -1127,6 +1395,15 @@ ENTRY("validate_options");
 }
 
 
+/* so I don't have to repeat this all over (and can do it per function)... */
+
+#define SM_2SURF_TEST(code)						\
+	    do{ if (p->S.nsurf<2)					\
+		fprintf(stderr,"** function %s requires 2 surfaces\n",	\
+			g_sm_names[fcodes[code]]);			\
+		errs++;							\
+	    } while (0);
+
 /*----------------------------------------------------------------------
  * validate_option_lists		- check function and info entries
  *----------------------------------------------------------------------
@@ -1139,9 +1416,15 @@ ENTRY("validate_option_lists");
 
     errs = 0;
 
-    if ( opts->total_vol && p->S.nsurf < 2 )
+    if ( (opts->info & ST_INFO_THICK) && p->S.nsurf < 2 )
     {
-	fprintf(stderr,"** -total_vol option requiers 2 surfaces\n");
+	fprintf(stderr,"** -info_thick option requiers 2 surfaces\n");
+	errs++;
+    }
+
+    if ( (opts->info & ST_INFO_VOL) && p->S.nsurf < 2 )
+    {
+	fprintf(stderr,"** -info_vol option requiers 2 surfaces\n");
 	errs++;
     }
 
@@ -1159,11 +1442,21 @@ ENTRY("validate_option_lists");
 	    case E_SM_COORD_A:
 	    case E_SM_N_AREA_A:
 	    case E_SM_NODES:
+	    case E_SM_NORM_A:
+		break;
+
+	    case E_SM_ANG_NS_A:
+		if ( !p->S.slist[0]->NodeNormList )
+		{
+		    fprintf(stderr,"** missing node normals for func '%s'\n",
+			    g_sm_names[fcodes[c]]);
+		    errs++;
+		}
 		break;
 
 	    case E_SM_ANG_NORMS:
-	    case E_SM_ANG_NS_A:
 	    case E_SM_ANG_NS_B:
+	    case E_SM_NORM_B:
 		if ( !p->S.slist[0]->NodeNormList ||
 		     !p->S.slist[1]->NodeNormList )
 		{
@@ -1172,18 +1465,15 @@ ENTRY("validate_option_lists");
 		    errs++;
 		}
 
-		/* and continue for the nsurf check... */
+		SM_2SURF_TEST(c);
+		break;
 		
 	    case E_SM_COORD_B:
 	    case E_SM_N_AREA_B:
 	    case E_SM_NODE_VOL:
 	    case E_SM_THICK:
-		if ( p->S.nsurf < 2 )
-		{
-		    fprintf(stderr,"** func '%s' requires 2 surfaces\n",
-			    g_sm_names[fcodes[c]]);
-		    errs++;
-		}
+
+		SM_2SURF_TEST(c);
 		break;
 	}
 
@@ -1267,7 +1557,7 @@ ENTRY("usage");
 	    "            -spec       fred1.spec                     \\\n"
 	    "            -func       coord_A                        \\\n"
 	    "            -func       n_area_A                       \\\n"
-	    "            -out_1D     fred1_areas.1D                 \\\n"
+	    "            -out_1D     fred1_areas.1D                   \n"
 	    "\n"
 	    "    2. For each node of the surface pair, display the:\n"
 	    "         o  node index\n"
@@ -1278,8 +1568,9 @@ ENTRY("usage");
 	    "         o  coordinates of the first segment node\n"
 	    "         o  coordinates of the second segment node\n"
 	    "\n"
-	    "         Additionally, diplay some approximate volume results\n"
-	    "         for the entire cortical ribbon.\n"
+	    "         Additionally, display total surface areas, minimum and\n"
+	    "         maxumum thicknesses, and the total volume for the\n"
+	    "         cortical ribbon.\n"
 	    "\n"
 	    "        %s                                   \\\n"
 	    "            -spec       fred2.spec                     \\\n"
@@ -1289,13 +1580,18 @@ ENTRY("usage");
 	    "            -func       thick                          \\\n"
 	    "            -func       coord_A                        \\\n"
 	    "            -func       coord_B                        \\\n"
-	    "            -total_vol                                 \\\n"
-	    "            -out_1D     fred2_vol.1D                   \\\n"
+	    "            -info_area                                 \\\n"
+	    "            -info_thick                                \\\n"
+	    "            -info_vol                                  \\\n"
+	    "            -out_1D     fred2_vol.1D                     \n"
 	    "\n"
 	    "    3. For each node of the surface pair, display the:\n"
 	    "         o  node index\n"
 	    "         o  angular diff between the first and second norms\n"
 	    "         o  angular diff between the segment and first norm\n"
+	    "         o  angular diff between the segment and second norm\n"
+	    "         o  the normal vectors for the first surface nodes\n"
+	    "         o  the normal vectors for the second surface nodes\n"
 	    "         o  angular diff between the segment and second norm\n"
 	    "\n"
 	    "        %s                                   \\\n"
@@ -1303,9 +1599,11 @@ ENTRY("usage");
 	    "            -func       ang_norms                      \\\n"
 	    "            -func       ang_ns_A                       \\\n"
 	    "            -func       ang_ns_B                       \\\n"
-	    "            -out_1D     fred2_norm_angles.1D           \\\n"
+	    "            -func       norm_A                         \\\n"
+	    "            -func       norm_B                         \\\n"
+	    "            -out_1D     fred2_norm_angles.1D             \n"
 	    "\n"
-	    "    4. Same as #3, but also output extra debug info and in\n"
+	    "    4. Similar to #3, but output extra debug info, and in\n"
 	    "       particular, info regarding node 5000.\n"
 	    "\n"
 	    "        %s                                   \\\n"
@@ -1315,7 +1613,7 @@ ENTRY("usage");
 	    "            -func       ang_ns_B                       \\\n"
 	    "            -debug      2                              \\\n"
 	    "            -dnode      5000                           \\\n"
-	    "            -out_1D     fred2_norm_angles.1D           \\\n"
+	    "            -out_1D     fred2_norm_angles.1D             \n"
 	    "\n"
 	    "------------------------------------------------------------\n"
 	    "\n"
@@ -1355,6 +1653,8 @@ ENTRY("usage");
 	    "        e.g.     -debug 2\n"
 	    "        default: -debug 0\n"
 	    "\n"
+	    "        Valid debug levels are from 0 to 5.\n"
+	    "\n"
 	    "    -dnode NODE           : display extra info for node NODE\n"
 	    "\n"
 	    "        e.g. -dnode 5000\n"
@@ -1383,6 +1683,36 @@ ENTRY("usage");
 	printf(
 	    "\n"
 	    "    -help                 : show this help menu\n"
+	    "\n"
+	    "  NOTE: the following '-info_XXXX' options are used to display\n"
+	    "        pieces of 'aggregate' information about the surface(s).\n"
+	    "\n"
+	    "    -info_all             : display all final info\n"
+	    "\n"
+	    "        This is a short-cut to get all '-info_XXXX' options.\n"
+	    "\n"
+	    "    -info_area            : display info on surface area(s)\n"
+	    "\n"
+	    "        Display the total area of each triangulated surface.\n"
+	    "\n"
+	    "    -info_norms           : display info about the normals\n"
+	    "\n"
+	    "        For 1 or 2 surfaces, this will give (if possible) the\n"
+	    "        average angular difference between:\n"
+	    "\n"
+	    "            o the normals of the surfaces\n"
+	    "            o the connecting segment and the first normal\n"
+	    "            o the connecting segment and the second normal\n"
+	    "\n"
+	    "    -info_thick           : display min and max thickness\n"
+	    "\n"
+	    "        For 2 surfaces, this is used to display the minimum and\n"
+	    "        maximum distances between the surfaces, along each of\n"
+	    "        the connecting segments.\n"
+	    "\n"
+	    "    -info_vol             : display info about the volume\n"
+	    "\n"
+	    "        For 2 surfaces, display the total computed volume.\n"
 	    "\n"
 	    "    -sv SURF_VOLUME       : specify an associated AFNI volume\n"
 	    "\n"
@@ -1467,8 +1797,9 @@ ENTRY("final_cleanup");
 
     if ( p->S.narea[0] )  free(p->S.narea[0]);
     if ( p->S.narea[1] )  free(p->S.narea[1]);
-
-    /* rcr - check for the mallocs (like function stuff) */
+    if ( p->S.slist    )  free(p->S.slist);
+    if ( p->S.nvol     )  free(p->S.nvol);
+    if ( p->S.fvol     )  free(p->S.fvol);
 
     if ( opts->debug > 2 )
 	fprintf(stderr,"-- freeing SUMA data...\n");
@@ -1489,24 +1820,57 @@ ENTRY("final_cleanup");
 
 
 /*----------------------------------------------------------------------
- * dist_f3mm            - return Euclidean distance between the points
+ * tetra_volume			- retrun the volume of the tetrahedron
+ *
+ * 	V = 1/6 * |a o (b x c)|               -- mathworld.wolfram.com
  *----------------------------------------------------------------------
 */
-float dist_f3mm( THD_fvec3 * p1, THD_fvec3 * p2 )
+double tetra_volume( float * p0, float * p1, float * p2, float * p3 )
 {
-    double d0, d1, d2;
+    double v0[3], v1[3], v2[3], xp[3];
 
-    if ( p1 == NULL || p2 == NULL )
+    v0[0] = p1[0] - p0[0];
+    v0[1] = p1[1] - p0[1];
+    v0[2] = p1[2] - p0[2];
+
+    v1[0] = p2[0] - p0[0];
+    v1[1] = p2[1] - p0[1];
+    v1[2] = p2[2] - p0[2];
+
+    v2[0] = p3[0] - p0[0];
+    v2[1] = p3[1] - p0[1];
+    v2[2] = p3[2] - p0[2];
+
+    cross_product(xp, v1, v2);
+
+    return(fabs(dot_product(v0,xp))/6.0);
+}
+
+
+/*----------------------------------------------------------------------
+ * dist_fn            - return Euclidean distance between the points
+ *----------------------------------------------------------------------
+*/
+double dist_fn( int len, float * p1, float * p2 )
+{
+    double diff, sum;
+    int    c;
+
+    if ( len < 1 || p1 == NULL || p2 == NULL )
     {
-	fprintf( stderr, "** dist_f3mm: invalid params (%p,%p)\n", p1, p2 );
+	fprintf(stderr, "** dist_fn: invalid params (%d,%p,%p)\n",
+		len, p1, p2);
 	return 0.0;
     }
 
-    d0 = p1->xyz[0] - p2->xyz[0];
-    d1 = p1->xyz[1] - p2->xyz[1];
-    d2 = p1->xyz[2] - p2->xyz[2];
+    sum = 0.0;
+    for ( c = 0; c < len; c++ )
+    {
+	diff = p1[c] - p2[c];
+	sum += diff * diff;
+    }
 
-    return sqrt(d0*d0 + d1*d1 + d2*d2);
+    return sqrt(sum);
 }
 
 
@@ -1529,11 +1893,15 @@ int disp_surf_t( char * info, surf_t * d )
 	    "surf_t struct at %p:\n"
 	    "    spec N_Surfs   = %d\n"
 	    "    spec N_Groups  = %d\n"
-	    "    slist, nsurf   = %p, %d\n"
-	    "    salloc, nnodes = %d, %d\n",
+	    "    slist          = %p\n"
+	    "    narea[0,1]     = %p, %p\n"
+	    "    nvol, fvol     = %p, %p\n"
+	    "    nsurf, salloc  = %d, %d\n"
+	    "    nnodes, nfaces = %d, %d\n",
 	    d,
 	    d->spec.N_Surfs, d->spec.N_Groups, d->slist,
-	    d->nsurf, d->salloc, d->nnodes);
+	    d->narea[0], d->narea[1], d->nvol, d->fvol,
+	    d->nsurf, d->salloc, d->nnodes, d->nfaces);
 
     return 0;
 }
@@ -1587,13 +1955,13 @@ int disp_opts_t( char * info, opts_t * d )
 	    "    spec_file    = %s\n"
 	    "    sv_file      = %s\n"
 	    "    out_1D_file  = %s\n"
-	    "    total_vol    = %d\n"
+	    "    info         = %0x\n"
 	    "    debug, dnode = %d, %d\n",
 	    d,
 	    CHECK_NULL_STR(d->spec_file),
 	    CHECK_NULL_STR(d->sv_file),
 	    CHECK_NULL_STR(d->out_1D_file),
-	    d->total_vol, d->debug, d->dnode);
+	    d->info, d->debug, d->dnode);
 
     return 0;
 }
@@ -1620,4 +1988,66 @@ int disp_f3_point( char * info, float * d )
 
     return 0;
 }
+
+
+/*----------------------------------------------------------------------
+ * lazy_det			- compute determinant
+ * 				- assume small, don't search for efficiency
+ *----------------------------------------------------------------------
+*/
+double lazy_det( int width, double * data )
+{
+    static int   total_size = 0;
+    double     * newm, * rowp, * cur, rv;
+    int          c, row, col, w2, sign;
+
+    if ( width < 2 )
+	return *data;
+
+    if ( width == 2 )
+	return( data[0]*data[3] - data[1]*data[2] );
+
+    /* otherwise, we need more space */
+    w2 = width - 1;
+    total_size += w2*w2;
+    newm = malloc(w2*w2 * sizeof(double));
+    if ( !newm )
+    {
+	fprintf(stderr,"** failed to allocate %d doubles for mat (%d ttl)\n",
+		w2*w2, total_size);
+	return 0.0;
+    }
+
+    rv   = 0.0;
+    sign = -1;
+    for ( c = 0; c < width; c++ )
+    {
+	sign = -sign;				/* catch the continue */
+
+	if ( data[c] == 0.0 )			/* skip any zeros */
+	    continue;
+
+	/* start by copying new data */
+	for ( row = 1; row < width; row++ )	/* always skip row 0 */
+	{
+	    rowp = data + row     * width;	/* point to source column */
+	    cur  = newm + (row-1) * w2;		/* init dest pointer */
+
+	    for ( col = 0; col < width; col++ )
+	    {
+		if ( col == c )
+		    continue;
+
+		*cur++ = rowp[col];
+	    }
+	}
+
+	rv += sign * data[c] * lazy_det( w2, newm );
+    }
+
+    free(newm);
+
+    return rv;
+}
+
 
