@@ -13,12 +13,14 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#define MAX_PARCODE 244
+#define MAX_PARCODE 999
 
 typedef struct {
    int num_code ;
    char c_code[8*MAX_PARCODE] ;
 } PARSER_code ;
+
+extern void PARSER_set_printout( int ) ;
 
 extern PARSER_code * PARSER_generate_code( char * ) ;
 

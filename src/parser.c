@@ -57,7 +57,7 @@ static doublereal c_b362 = 12.;
     static doublereal val_token__;
     extern integer last_nonblank__(char *, ftnlen);
     static integer nf, n_code__[1024], n_func__[20], ntoken;
-    static char c_local__[257];
+    static char c_local__[1000];
     extern /* Subroutine */ int execute_(integer *, char *, ftnlen);
 #define c8_token__ ((char *)equiv_0)
     static char c_ch__[1];
@@ -130,7 +130,7 @@ static doublereal c_b362 = 12.;
 /* -----------------------------------------------------------------------
  */
     nlen = last_nonblank__(c_expr__, c_expr_len);
-    if (nlen <= 0 || nlen > 256) {
+    if (nlen <= 0 || nlen > 999) {
 /* !no input, or too much */
 	*num_code__ = 0;
 	goto L8000;

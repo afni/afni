@@ -9,6 +9,10 @@
 
 /***** C routines to interface to the f2c generated parser code *****/
 
+static int printout = 0 ;
+
+void PARSER_set_printout( int p ){ printout = p ; }
+
 /*------------------------------------------------------------------
    Input  = expression string
    Output = structure containing information about how to
@@ -18,7 +22,7 @@
 
 PARSER_code * PARSER_generate_code( char * expression )
 {
-   logical false = FALSE_ ;
+   logical pr ;
    integer num_code ;
    int nexp ;
    PARSER_code * pc ;
@@ -29,7 +33,9 @@ PARSER_code * PARSER_generate_code( char * expression )
 
    pc = (PARSER_code *) malloc( sizeof(PARSER_code) ) ;
 
-   parser_( expression , &false , &num_code , pc->c_code ,
+   pr = (printout) ? TRUE_ : FALSE_ ;
+
+   parser_( expression , &pr , &num_code , pc->c_code ,
             (ftnlen) nexp , (ftnlen) 8 ) ;
 
    if( num_code <= 0 ){ free(pc) ; return NULL ; }
