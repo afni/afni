@@ -1,53 +1,11 @@
 Plugout Instructions
 --------------------
-  I have (finally) created the first version of the interface
-  between AFNI and other programs.
-
-  You will need the source code in order to modify the test
-  program ("plugout_tt.c") to fit into your software.  Note
-  that you must link with the "libmri.a" library (-L. -lmri)
-  to get the inter-process communcation routines that I wrote.
-  If you want to see their source code, look at files
-  "thd_iochan.[ch]".
-
-  Assuming you start with the source code, I'll outline the
-  procedures needed to compile and run AFNI with the test
-  program.  (If you get a binary distribution, you should
-  be able to unpack it, then skip to step f.)
-
-    a) get "afni96.tgz" from the FTP site
-    b) gzip -dc afni96.tgz | tar xf -
-       cd AFNI96
-    c) Choose from the "Makefile.* collection; rename your
-       choice to be "Makefile".
-    d) Edit it as needed.  If you have an SGI system like
-       ours, then perhaps only INSTALLDIR needs to be changed.
-    e) make all plugins
-       make install install_plugins
-       make clean
-    f) get "sample.tgz" and/or "sample96.tgz" from the FTP site
-    g) gzip -dc sample.tgz   | tar xf -
-       gzip -dc sample96.tgz | tar xf -
-       (These will unpack into directories "sample/" and "sample96/")
-    h) In one terminal window, cd to the directory above
-       "sample/" and "sample96/".  Run AFNI with the command
-       afni -R -yesplugouts
-    i) Switch AFNI into the "Talairach View" using the toggle button
-       located 3rd down in the second column in the AFNI control
-       window.  Open one or more image windows with the "Image"
-       buttons in the lower half of the first control window column.
-    j) In another terminal window, run the test program:
-       plugout_tt -v
-    k) At this point, every time you click (Button 1) in an AFNI
-       image window, you should get the coordinates being printed out
-       in the plugout_tt window.  Note that this will only happen as
-       long as you remain in the "Talairach View" of the data --  that
-       is what the plugout_tt program requests.
-
-    If you get this to work, then you will probably want to tear into
-    the plugout_tt.c source code.  I tried to write it in such a way
-    that you can take the "afni_io" routine and adapt it easily to
-    meet your needs.  It is heavily (and I hope clearly) commented.
+A "plugout" is a external program that communicates with AFNI
+using IPC shared memory or TCP/IP sockets.  There are 3 sample
+plugouts distributed with AFNI; the filenames all start with
+"plugout_".  At present, I don't have the energy to document
+the plugout protocol for talking to AFNI, so the sample programs
+will have to do.
 
 Bob Cox
 Biophysics Research Institute / Medical College of Wisconsin
