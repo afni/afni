@@ -271,7 +271,7 @@
 
 # include "thd_iochan.h"                /* prototypes for shm stuff */
 
-# define PROC_MAX   16                  /* max num processes */
+# define PROC_MAX   32                  /* max num processes */
 
   static int proc_numjob        = 1   ; /* num processes */
   static pid_t proc_pid[PROC_MAX]     ; /* IDs of processes */
@@ -500,6 +500,9 @@ void display_help_menu()
             "             number of CPU sharing memory on the system.\n"
             "             J=1 is normal (single process) operation.\n"
             "             The maximum allowed value of J is %d.\n"
+            "         * For more information on parallelizing, see\n"
+            "             http://afni.nimh.nih.gov/afni/parallize.html\n"
+            "         * Use -mask to get more speed; cf. 3dAutomask.\n"
           , PROC_MAX ) ;
 #endif
 
@@ -2133,98 +2136,31 @@ void proc_finalize_shm_volumes(void)
 
      /** if failed, print out some advice on how to tune SHMMAX **/
 
+     { char *cmd=NULL ;
 #if defined(LINUX)
-     { FILE *fp = fopen( "/proc/sys/kernel/shmmax" , "r" ) ;
-       if( fp != NULL ){
-         unsigned int smax=0 ;
-         fscanf(fp,"%u",&smax) ; fclose(fp) ;
-         if( smax > 0 ){
-           fprintf(stderr ,
-                   "\n"
-                   "** LINUX ADVICE:\n"
-                   "** Current max shared memory size = %u bytes\n"
-                   "** You can increase the maximum allowed size\n"
-                   "** by using a command like so (as root user):\n"
-                   "**   echo VAL > /proc/sys/kernel/shmmax\n"
-                   "** where VAL is a number (must be >= 33554432).\n"
-                   "** This should probably be done at bootup,\n"
-                   "** for example in the /etc/rc.d/rc.local file.\n"
-                   "** N.B.: This advice may or may not be appropriate\n"
-                   "**       for your version of Linux.  Please check\n"
-                   "**       with your Linux system administrator for\n"
-                   "**       authoritative help on reconfiguring the\n"
-                   "**       operating system!\n"
-                   , smax ) ;
-         }
-       }
-     }
-
+       cmd = "cat /proc/sys/kernel/shmmax" ;
 #elif defined(SOLARIS)
-     { FILE *fp = popen( "/usr/sbin/sysdef | grep SHMMAX" , "r" ) ;
-       if( fp != NULL ){
+       cmd = "/usr/sbin/sysdef | grep SHMMAX" ;
+#elif defined(DARWIN)
+       cmd = "sysctl -n kern.sysv.shmmax" ;
+#endif
+       if( cmd != NULL ){
+        FILE *fp = popen( cmd , "r" ) ;
+        if( fp != NULL ){
          unsigned int smax=0 ;
          fscanf(fp,"%u",&smax) ; pclose(fp) ;
-         if( smax > 0 ){
+         if( smax > 0 )
            fprintf(stderr ,
                    "\n"
-                   "** SOLARIS ADVICE:\n"
-                   "** Current max shared memory size = %u bytes\n"
-                   "** You can increase the maximum allowed size\n"
-                   "** by having root edit file /etc/system and\n"
-                   "** adding a line like so\n"
-                   "**   set shmsys:shminfo_shmmax = VAL\n"
-                   "** where VAL is a large number, and then rebooting.\n"
-                   "** N.B.: Be very careful with /etc/system, and\n"
-                   "**       make a backup copy before editing it!\n"
-                   "** N.B.: This advice may or may not be appropriate\n"
-                   "**       for your version of Solaris.  Please check\n"
-                   "**       with your Solaris system administrator for\n"
-                   "**       authoritative help on reconfiguring the\n"
-                   "**       operating system!\n"
+                   "** POSSIBLY USEFUL ADVICE:\n"
+                   "** Current max shared memory size = %u bytes.\n"
+                   "** For information on how to change this, see\n"
+                   "**   http://afni.nimh.nih.gov/afni/parallize.htm\n"
+                   "** and also contact your system administrator.\n"
                    , smax ) ;
-         }
+        }
        }
      }
-
-#elif defined(DARWIN)
-     { FILE *fp = popen( "sysctl -n kern.sysv.shmmax" , "r" ) ;
-       if( fp != NULL ){
-         unsigned int smax=0 ; char str[128] ;
-         fscanf(fp,"%s%u",str,&smax) ; pclose(fp) ;
-         if( smax > 0 ){
-           fprintf(stderr ,
-                   "\n"
-                   "** DARWIN ADVICE:\n"
-                   "** Current max shared memory size = %u bytes\n"
-                   "** You can increase the maximum allowed size\n"
-                   "** by having a superuser issue a command like\n"
-                   "**   sysctl -w kern.sysv.shmmax=VAL\n"
-                   "** where VAL is a large-ish number.\n"
-                   "** You can also change this parameter in the file\n"
-                   "** /System/Library/StartupItems/SystemTuning/SystemTuning\n"
-                   "** so that the change will happen at system bootup.\n"
-                   "** N.B.: This advice may or may not be appropriate\n"
-                   "**       for your version of Darwin.  Please check\n"
-                   "**       with your Darwin system administrator for\n"
-                   "**       authoritative help on reconfiguring the\n"
-                   "**       operating system!\n"
-                   , smax ) ;
-         }
-       }
-     }
-
-#else
-     fprintf(stderr,
-             "\n"
-             "** Don't know how to advise you to modify your\n"
-             "** system to allow larger shared memory segments.\n"
-             "** I suggest you search the Web for the name\n"
-             "** of your operating system and the word 'shmmax'.\n"
-             "** And/or contact a skilled system administrator\n"
-             "** for your type of computer.\n"
-            ) ;
-#endif
-
      exit(1) ;
    }
 
@@ -3282,6 +3218,9 @@ void calculate_results
              and all the results are in the shared memory segment arrays */
         }
 #endif
+
+        if( option_data->input1D_filename == NULL)  /* don't need data anymore */
+          DSET_unload(dset) ;
       
     }  /*----- NOT nodata -----*/
 
