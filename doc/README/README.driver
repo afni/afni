@@ -32,6 +32,7 @@ SET_THRESHOLD [c].val [dec]
     SET_THRESHOLD A.3000 2
   will set the '**' (decimal) level of the slider to 2 and the slider value to
   30 (=0.3000*100).
+  ++ You can also use "SET_FUNC_THRESH" for the command name.
 
 SET_THRESHNEW [c] val [flags]
   Sets the threshold slider for controller index 'c' (default='A') to the
@@ -90,6 +91,7 @@ DEFINE_COLORSCALE name color color color
   same format).  See http://afni.nimh.nih.gov/afni/afni_colorscale.html for
   more information about the format of color names and about how the colorscale
   definition works.
+  ++ You can also use "DEFINE_COLOR_SCALE" for the command name.
 
 SET_FUNC_AUTORANGE [c.]{+|-}
   Sets the function "autoRange" toggle to be on ('+') or off ('-'):
@@ -134,14 +136,17 @@ SET_SESSION [c.]directoryname
   match on directory names is done by a sub-string match - that is,
   directoryname = "fred" will match an AFNI session directory named
   "wilhelm/frederick/von/guttenstein".
+  ++ You can also use "SWITCH_SESSION" or "SWITCH_DIRECTORY" for the command.
 
 SET_ANATOMY [c.]prefix
   Switches controller 'c' to be looking at the anatomical dataset with
   the given prefix.  The prefix must be a perfect match - this is NOT
   a sub-string match.
+  ++ You can also use "SWITCH_ANATOMY" or "SWITCH_UNDERLAY" for the command.
 
 SET_FUNCTION [c.]prefix
   Same, but for the functional dataset in controller 'c'.
+  ++ You can also use "SWITCH_FUNCTION" or "SWITCH_OVERLAY" for the command.
 
 OPEN_WINDOW [c.]windowname [options]
   Opens a window from controller 'c'.  The window name can be one of
@@ -169,6 +174,7 @@ OPEN_WINDOW [c.]windowname [options]
   the plugin interface window.
   If the specified image or graph window is already open, you can still
   use this command to alter some of its properties.
+  ++ You can also use "ALTER_WINDOW" for the command name.
 
 CLOSE_WINDOW [c].windowname
   Closes a window from controller 'c'.  You can only close graph and image
