@@ -605,7 +605,7 @@ THD_3dim_dataset * copy_dset( THD_3dim_dataset * dset , char * new_prefix )
 
    /*-- make brick(s) for this dataset --*/
 
-   THD_load_datablock( dset->dblk , NULL ) ;  /* make sure old one is in memory */
+   THD_load_datablock( dset->dblk ) ;  /* make sure old one is in memory */
 
    nvals = DSET_NVALS(dset) ;
 

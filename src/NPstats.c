@@ -151,7 +151,7 @@ do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
           fprintf(stderr,"*** Axes mismatch: %s\n",(name)) ; exit(1) ; }      \
        if( DSET_NVALS((ds)) != 1 ){                                           \
          fprintf(stderr,"*** Must specify 1 sub-brick: %s\n",(name));exit(1);}\
-       THD_load_datablock( (ds)->dblk , NULL ) ;                              \
+       THD_load_datablock( (ds)->dblk ) ;                                     \
        pv = DSET_PRINCIPAL_VALUE((ds)) ;                                      \
        if( DSET_ARRAY((ds),pv) == NULL ){                                     \
           fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }   \

@@ -935,6 +935,8 @@ int main( int argc , char * argv[] )
 
    mainENTRY("AFNI:main") ; /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
 
+   THD_set_freeup( AFNI_purge_unused_dsets ) ;  /* 18 Oct 2001 */
+
 #if 0
    if( argc > 1 ) AFNI_logger("afni",argc,argv) ; /* 14 Aug 2001 */
 #endif

@@ -130,7 +130,7 @@ int main( int argc , char * argv[] )
          HI_syntax("mask and input dataset bricks don't match in size!") ;
 
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
-      THD_load_datablock( dset->dblk , NULL ) ;
+      THD_load_datablock( dset->dblk ) ;
       EDIT_one_dataset( dset , &HI_edopt ) ;
 
       iv_fim = (HI_dind >= 0) ? HI_dind

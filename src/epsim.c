@@ -263,7 +263,7 @@ int main( int argc , char * argv[] )
    if ( verbose )  printf("EPsim: 3d Dataset File = %s\n" , input_filename ) ; 
       
    /* --- load data block --- */
-   ok = THD_load_datablock( dset->dblk , NULL);
+   ok = THD_load_datablock( dset->dblk );
    if ( !ok )  FatalError ("Unable to load data block") ;
 
    /* --- get data dimensions --- */

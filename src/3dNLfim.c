@@ -472,7 +472,7 @@ void get_options
 	      NLfit_error (message);
 	    }
 
-	  THD_load_datablock ((*dset_time)->dblk, NULL);
+	  THD_load_datablock ((*dset_time)->dblk);
 
 	  *nxyz =  (*dset_time)->dblk->diskptr->dimsizes[0]
 	    * (*dset_time)->dblk->diskptr->dimsizes[1]

@@ -208,7 +208,7 @@ int main( int argc , char * argv[] )
       THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ; /* don't mmap  */
       if( CL_verbose )
          fprintf(stderr,"+++ Loading dataset %s\n",argv[iarg]) ;
-      THD_load_datablock( dset->dblk , NULL ) ;                    /* read in     */
+      THD_load_datablock( dset->dblk  ) ;                          /* read in     */
       EDIT_one_dataset( dset , &CL_edopt ) ;                       /* editing?    */
 
       if( CL_ivfim < 0 )

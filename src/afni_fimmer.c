@@ -406,7 +406,7 @@ if(PRINT_TRACING)
 
    /*--- FIM: find values above threshold to fim ---*/
 
-   THD_load_datablock( dset_time->dblk , AFNI_purge_unused_dsets ) ;
+   THD_load_datablock( dset_time->dblk ) ;
 
    nxyz =  dset_time->dblk->diskptr->dimsizes[0]
          * dset_time->dblk->diskptr->dimsizes[1]

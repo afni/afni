@@ -3195,5 +3195,25 @@
      old behavior).
 
 16 Oct 2001
- * Took new FD2.c from Andrzej Jesmanowicz, with changes to run with
-     X11 TrueColor visual.
+ * Took new FD2.c from Andrzej Jesmanowicz, with changes to run with X11
+     TrueColor visual.
+
+18 Oct 2001
+ * Modified thd_loaddblk.c to make THD_load_datablock() have only 1 argument;
+     the "freeup" argument is moved to a file-scope variable, and is set
+     by calling new function THD_set_freeup().
+ * Modified lots of programs to use modified THD_load_datablock() correctly.
+ * Modified DSET_load() macro in 3ddata.h.
+ * Modified afni.c to use THD_set_freeup() with AFNI_purge_unused_dsets().
+ * Added macro mri_zero_image() to mrilib.h.
+ * Modified thd_fdto1D.c to zero output, then only access non-NULL bricks;
+     this is to prevent crashes when a user tries to graph a dataset that
+     didn't load correctly (cf. Sally Durgerian).
+ * On some Solaris systems, displayed to SGI systems (cf. Mike Beauchamp),
+     Button 3 doesn't always seem to get passed through.  The following
+     changes are to let Button 1 also popup "hidden" menus:
+       - imseq.c for wbar menu
+       - imseq.c for wimage menu (if Ctrl or Shift also pressed)
+       - afni_setup.c for Inten menu
+       - afni_func.c for Hidden menu (in logo square)
+       - plug_render.c for Inten menu and Xhair menu (latter is Button 2)

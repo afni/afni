@@ -3357,7 +3357,7 @@ void REND_xhair_EV( Widget w , XtPointer cd ,
    switch( ev->type ){
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
-         if( event->button == Button3 ){
+         if( event->button == Button3 || event->button == Button2 ){
             MCW_choose_ovcolor( w,dc , xhair_ovc , REND_xhair_ovc_CB,NULL ) ;
          }
       }
@@ -5799,7 +5799,7 @@ void REND_pbarmenu_EV( Widget w , XtPointer cd ,
    switch( ev->type ){
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
-         if( event->button == Button3 ){
+         if( event->button == Button3 || event->button == Button1 ){
 
             /* in case the user read in any new palette, add them to menu */
 

@@ -31,7 +31,7 @@ ENTRY("THD_extract_series") ;
    nv  = dset->dblk->nvals ;
    iar = DSET_ARRAY(dset,0) ;
    if( iar == NULL ){  /* if data needs to be loaded from disk */
-      (void) THD_load_datablock( dset->dblk , NULL ) ;
+      (void) THD_load_datablock( dset->dblk ) ;
       iar = DSET_ARRAY(dset,0) ;
       if( iar == NULL ) RETURN( NULL );
    }
@@ -152,7 +152,7 @@ ENTRY("THD_extract_many_series") ;
    nv  = dset->dblk->nvals ;
    iar = DSET_ARRAY(dset,0) ;
    if( iar == NULL ){  /* if data needs to be loaded from disk */
-      (void) THD_load_datablock( dset->dblk , NULL ) ;
+      (void) THD_load_datablock( dset->dblk ) ;
       iar = DSET_ARRAY(dset,0) ;
       if( iar == NULL ) RETURN( NULL );
    }

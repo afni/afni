@@ -11,10 +11,6 @@
 
 /** external routine for freeing memory in THD_load_datablock **/
 
-#ifndef THD_FREEUP
-#define THD_FREEUP NULL
-#endif
-
 extern MRI_IMAGE * AFNI_dataset_slice( THD_3dim_dataset * , int,int,int,int ) ;
 extern MRI_IMAGE * FD_warp_to_mri( int,int , FD_brick * ) ;
 

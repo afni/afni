@@ -1401,7 +1401,7 @@ int main( int argc , char * argv[] )
       if( MRG_have_edopt )
          EDIT_one_dataset( dset , &MRG_edopt ) ;  /* some real work */
       else
-         THD_load_datablock( dset->dblk , NULL ) ;
+         THD_load_datablock( dset->dblk ) ;
 
       if( ! MRG_be_quiet ){ printf(".") ; fflush(stdout) ; }
 

@@ -1334,7 +1334,7 @@ void read_input_data
 		   option_data->input_filename);
 	  DC_error (message);
 	}  
-      THD_load_datablock ((*dset_time)->dblk, NULL);
+      THD_load_datablock ((*dset_time)->dblk);
       nt = DSET_NUM_TIMES (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
 
@@ -1348,7 +1348,7 @@ void read_input_data
 		       option_data->mask_filename);
 	      DC_error (message);
 	    }  
-	  THD_load_datablock ((*mask_dset)->dblk, NULL);
+	  THD_load_datablock ((*mask_dset)->dblk);
 	}
     }
   else

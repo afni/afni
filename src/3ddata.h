@@ -1892,7 +1892,7 @@ static char tmp_dblab[8] ;
 
 /** macros to load and unload a dataset from memory **/
 
-#define DSET_load(ds)   THD_load_datablock( (ds)->dblk , NULL )
+#define DSET_load(ds)   THD_load_datablock( (ds)->dblk )
 #define DSET_unload(ds) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY )
 
 #define DSET_unload_one(ds,iv) THD_purge_one_brick( (ds)->dblk , (iv) )
@@ -2325,7 +2325,8 @@ extern int TRUST_host(char *) ;
 #define OKHOST(hh) TRUST_host(hh) ;
 extern void TRUST_addhost(char *) ;      /* 21 Feb 2001 */
 
-extern Boolean THD_load_datablock ( THD_datablock * , generic_func * ) ;
+extern Boolean THD_load_datablock ( THD_datablock * ) ;
+extern void    THD_set_freeup( generic_func * ) ;            /* 18 Oct 2001 */
 extern Boolean THD_purge_datablock( THD_datablock * , int ) ;
 extern Boolean THD_purge_one_brick( THD_datablock * , int ) ;
 extern void    THD_force_malloc_type( THD_datablock * , int ) ;

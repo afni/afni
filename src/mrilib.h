@@ -372,6 +372,9 @@ extern void mri_free( MRI_IMAGE * ) ;
 extern void mri_fix_data_pointer( void * , MRI_IMAGE * ) ;
 #define mri_clear_data_pointer(iq) mri_fix_data_pointer(NULL,(iq))
 
+#define mri_zero_image(iq) \
+   memset(mri_data_pointer(iq),0,(iq)->nvox*(iq)->pixel_size)
+
 extern MRI_IMAGE * mri_zeropad_3D( int,int,int,int,int,int , MRI_IMAGE * ) ;
 extern MRI_IMAGE * mri_zeropad_2D( int,int,int,int, MRI_IMAGE * ) ;
 

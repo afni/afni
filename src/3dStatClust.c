@@ -73,7 +73,7 @@ if((ptr)==NULL) \
 do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
        if( !ISVALID_3DIM_DATASET((ds)) ){                                     \
           fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; } \
-       THD_load_datablock( (ds)->dblk , NULL ) ;                              \
+       THD_load_datablock( (ds)->dblk ) ;                                     \
        pv = DSET_PRINCIPAL_VALUE((ds)) ;                                      \
        if( DSET_ARRAY((ds),pv) == NULL ){                                     \
           fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }   \

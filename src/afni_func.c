@@ -4859,7 +4859,11 @@ ENTRY("AFNI_hidden_EV") ;
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
 
-         if( event->button == Button3 ){
+         if( event->button == Button3 ||
+             (event->button == Button1 &&
+              (event->state & (ShiftMask|ControlMask))) ){
+
+            event->button = Button3 ;                                 /* fakeout */
             XmMenuPosition( im3d->vwid->prog->hidden_menu , event ) ; /* where */
             XtManageChild ( im3d->vwid->prog->hidden_menu ) ;         /* popup */
          }

@@ -129,12 +129,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.31i"
+#define VERSION "2.32a"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "25 Sep 2001      "
+#define RELEASE "18 Oct 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -147,8 +147,8 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
      "*   Milwaukee, WI 53226-0509                   *\n"  \
      "* See file README.copyright for information.   *\n"  \
      "*                                              *\n"  \
-     "* Released to the public under the GNU General *\n"  \
-     "* Public License (version 2), Dec 2000.        *\n"  \
+     "* Released to the public by MCW under the GNU  *\n"  \
+     "* General Public License (version 2), Dec 2000 *\n"  \
      "*                                              *\n"  \
      "* Author:  Robert W Cox, PhD                   *\n"  \
      "************************************************"
@@ -1218,11 +1218,6 @@ extern void AFNI_set_valabel( FD_brick *, int, MRI_IMAGE *, char * ) ;
 /*-------------------------------------------------------------------
   Include prototypes for actual data warping and slicing here.
 --------------------------------------------------------------------*/
-
-#ifdef THD_FREEUP
-#undef THD_FREEUP
-#endif
-#define THD_FREEUP AFNI_purge_unused_dsets
 
 #include "afni_warp.h"
 

@@ -76,10 +76,10 @@ itall:all plugins install install_plugins
 $(INSTALLDIR):
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
 
-totality:cleaner all plugins install install_plugins install_lib clean
+totality:all plugins install install_plugins install_lib clean
 	$(CP) README* $(INSTALLDIR)
 
-vastness:cleaner all plugins install install_plugins install_lib
+vastness:all plugins install install_plugins install_lib
 	$(CP) README* $(INSTALLDIR)
 
 all_noplug:libmri.a programs_noplug
@@ -250,7 +250,7 @@ dsetdup:dsetdup.o
 
 3dinfo:3dinfo.o
 	$(RM) $@
-	$(CC) -o 3dinfo 3dinfo.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dinfo 3dinfo.o $(LFLAGS) $(LLIBS) -lmri
 
 3dmaskave:3dmaskave.o
 	$(RM) $@

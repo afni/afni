@@ -156,7 +156,7 @@ void get_options
 	      sprintf (message, "Can't open dataset: %s\n", anat_filename); 
 	      SI_error (message); 
 	    } 
-	  THD_load_datablock (anat->dblk, NULL); 
+	  THD_load_datablock (anat->dblk); 
 	  if (DSET_ARRAY(anat,0) == NULL)
 	    {
 	      sprintf (message, "Can't access data: %s\n", anat_filename); 

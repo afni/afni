@@ -741,7 +741,7 @@ void read_input_data
 		   option_data->input_filename);
 	  FIM_error (message);
 	}  
-      THD_load_datablock ((*dset_time)->dblk, NULL);
+      THD_load_datablock ((*dset_time)->dblk);
 
       if (option_data->mask_filename != NULL)
 	{
@@ -753,7 +753,7 @@ void read_input_data
 		       option_data->mask_filename);
 	      FIM_error (message);
 	    }  
-	  THD_load_datablock ((*mask_dset)->dblk, NULL);
+	  THD_load_datablock ((*mask_dset)->dblk);
 	}
     }
   else

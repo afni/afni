@@ -11,9 +11,20 @@ static int native_order = -1 ;
 static int no_mmap      = -1 ;
 static int floatscan    = -1 ;  /* 30 Jul 1999 */
 
+
+/*---------------------------------------------------------------
+  18 Oct 2001:
+  Put freeup function here, and set it by a function, rather
+  than have it provided on every call to THD_load_datablock()
+----------------------------------------------------------------*/
+
+static generic_func *freeup=NULL ;   /* 18 Oct 2001 */
+
+void THD_set_freeup( generic_func *ff ){ freeup = ff; }
+
 /*---------------------------------------------------------------*/
 
-Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
+Boolean THD_load_datablock( THD_datablock * blk )
 {
    THD_diskptr * dkptr ;
    int id , offset ;
@@ -35,7 +46,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    if( ! ISVALID_DATABLOCK(blk) || blk->brick == NULL ) RETURN( False );
 
    ii = THD_count_databricks( blk ) ;
-   if( ii == blk->nvals ) RETURN( True );
+   if( ii == blk->nvals ) RETURN( True );   /* already loaded! */
 
    if( blk->malloc_type == DATABLOCK_MEM_UNDEFINED ) RETURN( False );
 
@@ -94,10 +105,13 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                 nbad,nv ) ;
 #ifdef USING_MCW_MALLOC
          { char * str = mcw_malloc_status() ;
-           if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str);}
+           if( str != NULL )
+             fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
+         }
 #endif
          if( freeup != NULL ){  /* try to free some space? */
-            freeup() ;
+            fprintf(stderr,"*** trying to free some memory\n") ; /* 18 Oct 2001 */
+            freeup() ;                          /* AFNI_purge_unused_dsets() */
             for( ibr=0 ; ibr < nv ; ibr++ ){
                if( DBLK_ARRAY(blk,ibr) == NULL ){
                   ptr = malloc( DBLK_BRICK_BYTES(blk,ibr) ) ;
@@ -108,14 +122,21 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                fprintf(stderr,"*** cannot free up enough memory\n") ;
 #ifdef USING_MCW_MALLOC
                { char * str = mcw_malloc_status() ;
-                 if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str);}
+                 if( str != NULL )
+                   fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
+               }
 #endif
+               for( ibr=0 ; ibr < nv ; ibr++ )  /* 18 Oct 2001 */
+                 if( DBLK_ARRAY(blk,ibr) != NULL ) free(DBLK_ARRAY(blk,ibr)) ;
+
                RETURN( False );
             } else {
                fprintf(stderr,"*** was able to free up enough memory\n") ;
 #ifdef USING_MCW_MALLOC
                { char * str = mcw_malloc_status() ;
-                 if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str);}
+                 if( str != NULL )
+                   fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
+               }
 #endif
             }
          } else {
@@ -162,7 +183,8 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                  dkptr->brick_name ) ;
          perror("*** Unix error message") ;
          if( freeup != NULL ){
-            freeup() ;
+            fprintf(stderr,"*** trying to fix problem\n") ; /* 18 Oct 2001 */
+            freeup() ;                          /* AFNI_purge_unused_dsets */
             ptr = (char *) mmap( 0 , blk->total_bytes ,
                                      PROT_READ , THD_MMAP_FLAG , fd , 0 ) ;
             if( ptr == (char *)(-1) ){
@@ -191,7 +213,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       RETURN( True );  /* finito */
    }
 
-   /*** read data into newly malloc-ed bricks ***/
+   /*** read data into newly malloc-ed (or mmap-ed) bricks ***/
 
    switch( dkptr->storage_mode ){
 

@@ -3553,6 +3553,13 @@ DPR(" .. ButtonPress") ;
 
          if( seq->record_mode ){ XBell(seq->dc->display,100); EXRETURN; }
 
+         if( w == seq->wbar ){          /* moved here 18 Oct 2001 */
+            event->button = Button3 ;                  /* fakeout */
+            XmMenuPosition( seq->wbar_menu , ev ) ;    /* where */
+            XtManageChild ( seq->wbar_menu ) ;         /* popup */
+            EXRETURN ;
+         }
+
          bx  = event->x ;
          by  = event->y ;
          but = event->button ;
@@ -3577,7 +3584,8 @@ DPR(" .. ButtonPress") ;
 
                   /* 23 Oct 1996: Simulation of bottom buttons */
 
-                  if( (event->state & ShiftMask) )
+                  if( (event->state & ShiftMask) &&
+                     !(event->state & ControlMask)  )
                      ISQ_but_disp_CB( seq->wbut_bot[NBUT_DISP] , seq , NULL ) ;
 
                   else if( (event->state & ControlMask) ){
@@ -3606,11 +3614,13 @@ DPR(" .. ButtonPress") ;
                   cbs.yim    = imy ;
                   cbs.nim    = nim ;
 
+                  if( but == Button1 &&
+                      (event->state & (ShiftMask|ControlMask)) ){
+                                               /* 18 Oct 2001 */
+                     event->button = Button3 ; /* fake Button3 press */
+                  }
+
                   seq->status->send_CB( seq , seq->getaux , &cbs ) ;
-               }
-               else if( w == seq->wbar && but == Button3 ){
-                  XmMenuPosition( seq->wbar_menu , event ) ; /* where */
-                  XtManageChild ( seq->wbar_menu ) ;         /* popup */
                }
             }
             break ;

@@ -551,10 +551,9 @@ ENTRY("AFNI_pbar_EV") ;
    switch( ev->type ){
       case ButtonPress:{
          XButtonEvent * event = (XButtonEvent *) ev ;
-         if( event->button == Button3 ){
-            XmMenuPosition( im3d->vwid->func->pbar_menu , event ) ; /* where */
-            XtManageChild ( im3d->vwid->func->pbar_menu ) ;         /* popup */
-         }
+         event->button = Button3 ;                               /* fakeout */
+         XmMenuPosition( im3d->vwid->func->pbar_menu , event ) ; /* where */
+         XtManageChild ( im3d->vwid->func->pbar_menu ) ;         /* popup */
       }
       break ;
    }

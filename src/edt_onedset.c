@@ -68,7 +68,7 @@ void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt )
 ENTRY("EDIT_one_dataset") ;
 
    THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
-   THD_load_datablock( dset->dblk , NULL ) ;
+   THD_load_datablock( dset->dblk ) ;
 
    if( DSET_ARRAY(dset,0) == NULL ){
       fprintf(stderr,

@@ -40,12 +40,13 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
 
    iar = DSET_ARRAY(br->dset,0) ;
    if( iar == NULL ){  /* if data needs to be loaded from disk */
-      (void) THD_load_datablock( br->dset->dblk , NULL ) ;
+      (void) THD_load_datablock( br->dset->dblk ) ;
       iar = DSET_ARRAY(br->dset,0) ;
       if( iar == NULL ) return NULL ;
    }
    typ = DSET_BRICK_TYPE(br->dset,0) ;
    im  = mri_new( nv , 1 , typ ) ;
+   mri_zero_image(im) ;             /* 18 Oct 2001 */
 
    switch( typ ){
 
@@ -57,7 +58,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
          byte * ar  = MRI_BYTE_PTR(im) , * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (byte *) DSET_ARRAY(br->dset,ival) ;
-            ar[ival] = bar[ind] ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
          }
       }
       break ;
@@ -66,7 +67,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
          short * ar  = MRI_SHORT_PTR(im) , * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (short *) DSET_ARRAY(br->dset,ival) ;
-            ar[ival] = bar[ind] ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
          }
       }
       break ;
@@ -75,7 +76,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
          float * ar  = MRI_FLOAT_PTR(im) , * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (float *) DSET_ARRAY(br->dset,ival) ;
-            ar[ival] = bar[ind] ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
          }
       }
       break ;
@@ -84,7 +85,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
          int * ar  = MRI_INT_PTR(im) , * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (int *) DSET_ARRAY(br->dset,ival) ;
-            ar[ival] = bar[ind] ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
          }
       }
       break ;
@@ -93,7 +94,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
          double * ar  = MRI_DOUBLE_PTR(im) , * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (double *) DSET_ARRAY(br->dset,ival) ;
-            ar[ival] = bar[ind] ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
          }
       }
       break ;
@@ -102,7 +103,7 @@ MRI_IMAGE * FD_brick_to_series( int ixyz , FD_brick * br )
          complex * ar  = MRI_COMPLEX_PTR(im) , * bar ;
          for( ival=0 ; ival < nv ; ival++ ){
             bar = (complex *) DSET_ARRAY(br->dset,ival) ;
-            ar[ival] = bar[ind] ;
+            if( bar != NULL ) ar[ival] = bar[ind] ;
          }
       }
       break ;

@@ -22,7 +22,7 @@ void THD_load_statistics( THD_3dim_dataset * dset )
 
    if( ! ISVALID_3DIM_DATASET(dset) ) return ;
 
-   good = THD_load_datablock( dset->dblk , NULL ) ;  /* must have data */
+   good = THD_load_datablock( dset->dblk ) ;  /* must have data */
 
    /*-- 3/24/95: if don't get data, try for the warp parent --*/
 
@@ -203,7 +203,7 @@ void THD_update_statistics( THD_3dim_dataset * dset )
 
    if( ! ISVALID_3DIM_DATASET(dset) ) return ;
 
-   good = THD_load_datablock( dset->dblk , NULL ) ;  /* must have data */
+   good = THD_load_datablock( dset->dblk ) ;  /* must have data */
 
    if( !good) return ;
 

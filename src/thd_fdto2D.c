@@ -38,7 +38,7 @@ MRI_IMAGE * FD_brick_to_mri( int kslice , int ival , FD_brick * br )
    iar = DSET_ARRAY(br->dset,ival) ;
 
    if( iar == NULL ){  /* if data needs to be loaded from disk */
-      (void) THD_load_datablock( br->dset->dblk , NULL ) ;
+      (void) THD_load_datablock( br->dset->dblk ) ;
       iar = DSET_ARRAY(br->dset,ival) ;
       if( iar == NULL ) return NULL ;
    }

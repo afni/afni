@@ -33,7 +33,7 @@ LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
 
-LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm -lmri -ldl -lc
 
 # for static linking to Motif, dynamic to all else
 

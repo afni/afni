@@ -542,7 +542,7 @@ static int CALC_read_opts( int argc , char * argv[] )
 
          /* read data from disk */
 
-         THD_load_datablock( dset->dblk , NULL ) ;
+         THD_load_datablock( dset->dblk ) ;
          if( ! DSET_LOADED(dset) ){
             fprintf(stderr,
              "** -cmask: Can't read data brick for dataset %s\n",argv[nopt-1]) ;

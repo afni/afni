@@ -144,7 +144,7 @@ double DSET_cor( THD_3dim_dataset *xset,
 
    /* load bricks */
 
-   THD_load_datablock( xset->dblk , NULL ) ;
+   THD_load_datablock( xset->dblk ) ;
    ivx   = 0 ;
    itypx = DSET_BRICK_TYPE(xset,ivx) ;
    xar   = DSET_ARRAY(xset,ivx) ; if( xar == NULL ) return 0.0 ;
@@ -156,7 +156,7 @@ double DSET_cor( THD_3dim_dataset *xset,
       PURGE_DSET( xset ) ;
    }
 
-   THD_load_datablock( yset->dblk , NULL ) ;
+   THD_load_datablock( yset->dblk ) ;
    ivy   = 0 ;
    itypy = DSET_BRICK_TYPE(yset,ivy) ;
    yar   = DSET_ARRAY(yset,ivy) ; if( yar == NULL ) return 0.0 ;

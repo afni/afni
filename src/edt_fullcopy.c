@@ -34,7 +34,7 @@ THD_3dim_dataset * EDIT_full_copy( THD_3dim_dataset * dset , char * new_prefix )
 
    /*-- make brick(s) for this dataset --*/
 
-   THD_load_datablock( dset->dblk , NULL ) ;  /* make sure old one is in memory */
+   THD_load_datablock( dset->dblk ) ;  /* make sure old one is in memory */
 
    nvals = DSET_NVALS(dset) ;
 

@@ -126,7 +126,7 @@ if(PRINT_TRACING)
       bar = DSET_ARRAY(dset,ival) ;  /* pointer to data brick array */
 
       if( bar == NULL ){  /* if data needs to be loaded from disk */
-         (void) THD_load_datablock( dset->dblk , THD_FREEUP ) ;
+         (void) THD_load_datablock( dset->dblk ) ;
          bar = DSET_ARRAY(dset,ival) ;
          if( bar == NULL ){
             mri_free(newim) ;
@@ -229,7 +229,7 @@ STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
 
    if( DSET_ARRAY(parent_dset,ival) == NULL ){  /* reload from disk */
       Boolean good ;
-      good = THD_load_datablock( parent_dset->dblk , THD_FREEUP ) ;
+      good = THD_load_datablock( parent_dset->dblk ) ;
       if( ! good ){
          mri_free(newim) ;
          RETURN(NULL) ;  /* couldn't load data --> return nothing */

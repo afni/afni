@@ -585,7 +585,7 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
        if( DSET_NUM_TIMES((ds)) > 1 ){                                               \
          fprintf(stderr,"*** Can't use time-dependent data: %s\n",(name));exit(1); } \
        if( TT_use_editor ) EDIT_one_dataset( (ds), &TT_edopt ) ;                     \
-       else                THD_load_datablock( (ds)->dblk , NULL ) ;                 \
+       else                THD_load_datablock( (ds)->dblk ) ;                        \
        pv = DSET_PRINCIPAL_VALUE((ds)) ;                                             \
        if( DSET_ARRAY((ds),pv) == NULL ){                                            \
           fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }          \
