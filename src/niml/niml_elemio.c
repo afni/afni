@@ -517,7 +517,7 @@ NI_dpr("NI_read_element: ROW=%d",row) ;
               case NI_STRING:{
                  char *val=NULL ;
                  char **vpt = (char **) nel->vec[col] ;
-                 nn = NI_decode_one_string( ns , &val ) ;
+                 nn = NI_decode_one_string( ns , &val , 1 ) ;
                  if( nn == 0 || val == NULL ) goto TextDone ;
                  unescape_inplace(val) ;
                  vpt[row] = val ;
@@ -529,7 +529,7 @@ NI_dpr("NI_read_element: ROW=%d",row) ;
               case NI_BYTE:{
                  double val ;
                  byte *vpt = (byte *) nel->vec[col] ;
-                 nn = NI_decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (byte) val ;
               }
@@ -538,7 +538,7 @@ NI_dpr("NI_read_element: ROW=%d",row) ;
               case NI_SHORT:{
                  double val ;
                  short *vpt = (short *) nel->vec[col] ;
-                 nn = NI_decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (short) val ;
               }
@@ -547,7 +547,7 @@ NI_dpr("NI_read_element: ROW=%d",row) ;
               case NI_INT:{
                  double val ;
                  int *vpt = (int *) nel->vec[col] ;
-                 nn = NI_decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (int) val ;
 #ifdef NIML_DEBUG
@@ -559,7 +559,7 @@ NI_dpr(" [%d]=%d",col,vpt[row]) ;
               case NI_FLOAT:{
                  double val ;
                  float *vpt = (float *) nel->vec[col] ;
-                 nn = NI_decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (float) val ;
 #ifdef NIML_DEBUG
@@ -571,7 +571,7 @@ NI_dpr(" [%d]=%f",col,vpt[row]) ;
               case NI_DOUBLE:{
                  double val ;
                  double *vpt = (double *) nel->vec[col] ;
-                 nn = NI_decode_one_double( ns , &val ) ;
+                 nn = NI_decode_one_double( ns , &val , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (double) val ;
               }
@@ -580,9 +580,9 @@ NI_dpr(" [%d]=%f",col,vpt[row]) ;
               case NI_COMPLEX:{
                  double v1,v2 ;
                  complex *vpt = (complex *) nel->vec[col] ;
-                 nn = NI_decode_one_double( ns , &v1 ) ;
+                 nn = NI_decode_one_double( ns , &v1 , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = NI_decode_one_double( ns , &v2 ) ;
+                 nn = NI_decode_one_double( ns , &v2 , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row].r = (float) v1 ;
                  vpt[row].i = (float) v2 ;
@@ -592,11 +592,11 @@ NI_dpr(" [%d]=%f",col,vpt[row]) ;
               case NI_RGB:{
                  double v1,v2,v3 ;
                  rgb *vpt = (rgb *) nel->vec[col] ;
-                 nn = NI_decode_one_double( ns , &v1 ) ;
+                 nn = NI_decode_one_double( ns , &v1 , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = NI_decode_one_double( ns , &v2 ) ;
+                 nn = NI_decode_one_double( ns , &v2 , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = NI_decode_one_double( ns , &v3 ) ;
+                 nn = NI_decode_one_double( ns , &v3 , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row].r = (byte) v1 ;
                  vpt[row].g = (byte) v2 ;
@@ -607,13 +607,13 @@ NI_dpr(" [%d]=%f",col,vpt[row]) ;
               case NI_RGBA:{
                  double v1,v2,v3,v4 ;
                  rgba *vpt = (rgba *) nel->vec[col] ;
-                 nn = NI_decode_one_double( ns , &v1 ) ;
+                 nn = NI_decode_one_double( ns , &v1 , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = NI_decode_one_double( ns , &v2 ) ;
+                 nn = NI_decode_one_double( ns , &v2 , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = NI_decode_one_double( ns , &v3 ) ;
+                 nn = NI_decode_one_double( ns , &v3 , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
-                 nn = NI_decode_one_double( ns , &v4 ) ;
+                 nn = NI_decode_one_double( ns , &v4 , 1 ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row].r = (byte) v1 ;
                  vpt[row].g = (byte) v2 ;
@@ -716,13 +716,15 @@ NI_dpr("NI_read_element: returning filled data element\n") ;
 
 /*----------------------------------------------------------------------*/
 /*! From the NI_stream ns, starting at buffer position ns->npos, decode
-    one number into *val.  Return value of this function is 1 if
-    we succeeded, 0 if not.  ns->npos will be altered to reflect the
-    current buffer position (one after the last character processed)
-    when all is done.
+    one number into *val.
+    - Parameter ltend !=0 means to stop at '<' character [07 Jan 2003].
+    - Return value of this function is 1 if we succeeded, 0 if not.
+    - ns->npos will be altered to reflect the
+      current buffer position (one after the last character processed)
+      when all is done.
 ------------------------------------------------------------------------*/
 
-int NI_decode_one_double( NI_stream_type *ns, double *val )
+int NI_decode_one_double( NI_stream_type *ns, double *val , int ltend )
 {
    int epos , num_restart, need_data, nn ;
    char vbuf[NVBUF+1] ;                    /* number string from buffer */
@@ -749,7 +751,7 @@ NI_dpr(" {restart: npos=%d nbuf=%d}",ns->npos,ns->nbuf) ;
    /*-- check if we ran into the closing '<' prematurely
         (before any useful characters); if we did, then we are done --*/
 
-   if( ns->npos < ns->nbuf && ns->buf[ns->npos] == '<' ) return 0 ;
+   if( ltend && ns->npos < ns->nbuf && ns->buf[ns->npos] == '<' ) return 0 ;
 
    /*-- if we need some data, try to get some --*/
 
@@ -779,9 +781,9 @@ NI_dpr(" {buf=%.*s}" , nn , ns->buf+ns->npos ) ;
 if( need_data ) NI_dpr(" {eob}") ;
 #endif
 
-      /*- If the string of characters we have is not delimited,
-          and it is too long to be a number, throw out all the
-          data in the buffer and quit.                         -*/
+      /*- If the string of characters we have is not yet
+          delimited, and it is too long to be a number,
+          throw out all the data in the buffer and quit. -*/
 
       if( need_data && epos-ns->npos > NVBUF ){ clear_buffer(ns); return 0; }
    }
@@ -821,13 +823,14 @@ NI_dpr(" {fill buf}") ;
 
 /*----------------------------------------------------------------------*/
 /*! From the NI_stream ns, starting at buffer position ns->npos, decode
-    one string into newly malloc()-ed space pointed to by *str.
-    Return value of this function is 1 if we succeeded, 0 if not.
-    ns->npos will be altered to reflect the current buffer position
-    (one after the last character processed) when all is done.
+    one string into newly NI_malloc()-ed space pointed to by *str.
+    - Parameter ltend !=0 means to stop at '<' character [07 Jan 2003].
+    - Return value of this function is 1 if we succeeded, 0 if not.
+    - ns->npos will be altered to reflect the current buffer position
+      (one after the last character processed) when all is done.
 ------------------------------------------------------------------------*/
 
-int NI_decode_one_string( NI_stream_type *ns, char **str )
+int NI_decode_one_string( NI_stream_type *ns, char **str , int ltend )
 {
    int epos , num_restart, need_data, nn ;
    intpair sp ;
@@ -850,7 +853,7 @@ Restart:
    /*-- check if we ran into the closing '<' prematurely
         (before any useful characters); if we did, then we are done --*/
 
-   if( ns->npos < ns->nbuf && ns->buf[ns->npos] == '<' ) return 0 ;
+   if( ltend && ns->npos < ns->nbuf && ns->buf[ns->npos] == '<' ) return 0 ;
 
    /*-- if we need some data, try to get some --*/
 
@@ -896,7 +899,10 @@ Restart:
    memcpy( *str , ns->buf+sp.i , nn ) ;     /* copy data to string */
    (*str)[nn] = '\0' ;                      /* terminate string */
 
+   /* skip close quote character, if present */
+
    if( sp.j < ns->nbuf && IS_QUOTE_CHAR(ns->buf[sp.j]) ) sp.j++ ;
+
    ns->npos = sp.j ; return 1 ;
 }
 

@@ -9,14 +9,14 @@
 /* These typedefs are used to find the byte alignment
    the compiler imposes on the 'basic' types supported by NIML. */
 
-typedef struct { char a; byte    b; } qvzw_byte    ;
-typedef struct { char a; short   b; } qvzw_short   ;
-typedef struct { char a; int     b; } qvzw_int     ;
-typedef struct { char a; float   b; } qvzw_float   ;
-typedef struct { char a; double  b; } qvzw_double  ;
-typedef struct { char a; complex b; } qvzw_complex ;
-typedef struct { char a; rgb     b; } qvzw_rgb     ;
-typedef struct { char a; rgba    b; } qvzw_rgba    ;
+typedef struct { char a; byte    b; } qdgp_byte    ;
+typedef struct { char a; short   b; } qdgp_short   ;
+typedef struct { char a; int     b; } qdgp_int     ;
+typedef struct { char a; float   b; } qdgp_float   ;
+typedef struct { char a; double  b; } qdgp_double  ;
+typedef struct { char a; complex b; } qdgp_complex ;
+typedef struct { char a; rgb     b; } qdgp_rgb     ;
+typedef struct { char a; rgba    b; } qdgp_rgba    ;
 
 /* Arrays to hold the alignments, sizes, and names of the basic types. */
 
@@ -30,7 +30,7 @@ static char *type_name     [NI_NUM_BASIC_TYPES+1] = {
 
 /* these are used to find/save the alignment and size of pointers */
 
-typedef struct { char a; void *b; } qvzw_pointer ;
+typedef struct { char a; void *b; } qdgp_pointer ;
 static int pointer_alignment ;
 static int pointer_size ;
 
@@ -97,14 +97,14 @@ static void setup_basic_types(void)
 
    /* get alignments and sizes of the basic types */
 
-   type_alignment[NI_BYTE   ] = offsetof(qvzw_byte   ,b) ;
-   type_alignment[NI_SHORT  ] = offsetof(qvzw_short  ,b) ;
-   type_alignment[NI_INT    ] = offsetof(qvzw_int    ,b) ;
-   type_alignment[NI_FLOAT  ] = offsetof(qvzw_float  ,b) ;
-   type_alignment[NI_DOUBLE ] = offsetof(qvzw_double ,b) ;
-   type_alignment[NI_COMPLEX] = offsetof(qvzw_complex,b) ;
-   type_alignment[NI_RGB    ] = offsetof(qvzw_rgb    ,b) ;
-   type_alignment[NI_RGBA   ] = offsetof(qvzw_rgba   ,b) ;
+   type_alignment[NI_BYTE   ] = offsetof(qdgp_byte   ,b) ;
+   type_alignment[NI_SHORT  ] = offsetof(qdgp_short  ,b) ;
+   type_alignment[NI_INT    ] = offsetof(qdgp_int    ,b) ;
+   type_alignment[NI_FLOAT  ] = offsetof(qdgp_float  ,b) ;
+   type_alignment[NI_DOUBLE ] = offsetof(qdgp_double ,b) ;
+   type_alignment[NI_COMPLEX] = offsetof(qdgp_complex,b) ;
+   type_alignment[NI_RGB    ] = offsetof(qdgp_rgb    ,b) ;
+   type_alignment[NI_RGBA   ] = offsetof(qdgp_rgba   ,b) ;
 
    type_size[NI_BYTE   ] = sizeof(byte   ) ;
    type_size[NI_SHORT  ] = sizeof(short  ) ;
@@ -123,11 +123,11 @@ static void setup_basic_types(void)
 
      rt              = NI_new( NI_rowtype ) ;
      rt->code        = ii ;
-     rt->size        = type_size[ii] ;
-     rt->psiz        = rt->size ;
-     rt->algn        = type_alignment[ii] ;
-     rt->name        = NI_strdup(type_name[ii]) ;
-     rt->userdef     = NI_strdup(type_name[ii]) ;
+     rt->size        = type_size[ii] ;          /* size of "struct" */
+     rt->psiz        = rt->size ;               /* size of all parts */
+     rt->algn        = type_alignment[ii] ;     /* byte alignment */
+     rt->name        = NI_strdup(type_name[ii]);
+     rt->userdef     = NI_strdup(type_name[ii]);
      rt->flag        = 0 ;
 
      rt->comp_num    = 1 ;                      /* basic types have */
@@ -145,22 +145,21 @@ static void setup_basic_types(void)
      rt->part_siz[0] = type_size[ii] ;
      rt->part_dim    = NI_malloc(sizeof(int)) ;
      rt->part_dim[0] = -1 ;                     /* fixed size part */
-
      rt->part_rtp    = NI_malloc(sizeof(NI_rowtype *)) ;
      rt->part_rtp[0] = rt ;
 
-     ROWTYPE_register( rt ) ;
+     ROWTYPE_register( rt ) ;                   /* put in the Htable */
    }
 
    /* alignment and size of pointers */
 
-   pointer_alignment = offsetof(qvzw_pointer,b) ;
+   pointer_alignment = offsetof(qdgp_pointer,b) ;
    pointer_size      = sizeof(void *) ;
+
+   /* insert a special rowtype for String (really a pointer) */
 
    type_alignment[NI_STRING] = pointer_alignment ;
    type_size     [NI_STRING] = pointer_size ;
-
-   /* insert a special rowtype for String (really a pointer) */
 
    rt              = NI_new( NI_rowtype ) ;
    rt->code        = NI_STRING ;
@@ -218,7 +217,8 @@ static void setup_basic_types(void)
        - Recursive types cannot be defined; that is, no component of
          tdef can refer to the same tname that is being defined now.
        - A type name may be preceded/appended by an integer count,
-         as in "int,4*float" or "int,float[4]".
+         as in "int,4*float" or "int,float[4]".  These are equivalent
+         to "int,float,float,float,float" (just shorter).
        - Variable dimension arrays may be defined, IF the size of the
          array is an int component of this new rowtype which occurs before
          the array definition:
@@ -252,6 +252,12 @@ static void setup_basic_types(void)
    The return value is a positive integer code which can be used to
    identify this NI_rowtype (the tname string can also be used for
    this purpose).  If -1 is returned, something bad transpired.
+
+   Also see
+    - NI_rowtype_find_name()
+    - NI_rowtype_find_code()
+    - NI_rowtype_name_to_code()
+    - NI_rowtype_code_to_name()
 ----------------------------------------------------------------------------*/
 
 int NI_rowtype_define( char *tname , char *tdef )
@@ -299,9 +305,9 @@ int NI_rowtype_define( char *tname , char *tdef )
    for( ii=0 ; ii < sar->num ; ii++ ){
 
      tp = sar->str[ii] ;
-     id = 0 ; kd = strlen(tp) ;  /* type name is from tp[id..kd-1] */
+     id = 0 ; kd = strlen(tp) ; /* type name of part will be in tp[id..kd-1] */
      if( kd == 0 ){
-       delete_rowtype(rt); delete_str_array(sar); ERREX("empty component name?");
+      delete_rowtype(rt); delete_str_array(sar); ERREX("empty component name?");
      }
 
      /* get count, if present, into jd */
@@ -312,7 +318,7 @@ int NI_rowtype_define( char *tname , char *tdef )
      if( sp != NULL || bp != NULL ){            /*** a count is present ***/
 
        if( sp != NULL && bp != NULL ){          /* can't have both forms! */
-         delete_rowtype(rt); delete_str_array(sar); ERREX("two repeat counts?");
+        delete_rowtype(rt); delete_str_array(sar); ERREX("two repeat counts?");
        }
 
        if( sp != NULL ){                        /* format: count*type */
@@ -324,11 +330,11 @@ int NI_rowtype_define( char *tname , char *tdef )
        }
 
        jd = -1 ;
-       if( tp[nn] != '#' ){                     /* count is a number */
+       if( tp[nn] != '#' ){                     /* count is a plain number */
          isdim = 0 ;
          sscanf( tp+nn , "%d" , &jd ) ;
          if( jd <= 0 ){
-           delete_rowtype(rt); delete_str_array(sar); ERREX("bad repeat number");
+          delete_rowtype(rt); delete_str_array(sar); ERREX("bad repeat number");
          }
        } else {                                 /* count is a #reference */
          isdim = 1 ;
@@ -351,8 +357,8 @@ int NI_rowtype_define( char *tname , char *tdef )
       delete_rowtype(rt); delete_str_array(sar); ERREX("toolong component name");
      }
 
-     NI_strncpy( str , tp+id , kd-id+1 ) ;
-     qt = NI_rowtype_find_name( str ) ;
+     NI_strncpy( str , tp+id , kd-id+1 ) ;  /* copy component name into str */
+     qt = NI_rowtype_find_name( str ) ;     /* look it up in the table */
      if( qt == NULL ){
        delete_rowtype(rt); delete_str_array(sar); ERREX("bad component type");
      }
@@ -373,8 +379,11 @@ int NI_rowtype_define( char *tname , char *tdef )
        if( ROWTYPE_is_varsize(qt) )         /* if component is variable sized, */
          rt->flag |= ROWTYPE_VARSIZE_MASK ; /* mark rowtype as variable sized */
 
-     } else {       /*** variable count: add 1 component that is a pointer  */
-                    /***                 to an array of fixed size elements */
+     } else {       /*** variable count: add 1 component that is a pointer   */
+                    /***                 to an array of fixed size elements, */
+                    /***                 dimension given in component #jd    */
+
+       /* but can't have a var dim array of var dim arrays! */
 
        if( ROWTYPE_is_varsize(qt) ){
          delete_rowtype(rt); delete_str_array(sar);
@@ -403,11 +412,10 @@ int NI_rowtype_define( char *tname , char *tdef )
    /*** now loop over components, breaking them down into their parts,
         storing the part types and their offsets into the C struct    ***/
 
-   rt->part_off = NI_malloc( sizeof(int) * rt->part_num ) ;
-   rt->part_typ = NI_malloc( sizeof(int) * rt->part_num ) ;
-   rt->part_dim = NI_malloc( sizeof(int) * rt->part_num ) ;
-   rt->part_siz = NI_malloc( sizeof(int) * rt->part_num ) ;
-
+   rt->part_off = NI_malloc( sizeof(int)          * rt->part_num ) ;
+   rt->part_typ = NI_malloc( sizeof(int)          * rt->part_num ) ;
+   rt->part_dim = NI_malloc( sizeof(int)          * rt->part_num ) ;
+   rt->part_siz = NI_malloc( sizeof(int)          * rt->part_num ) ;
    rt->part_rtp = NI_malloc( sizeof(NI_rowtype *) * rt->part_num ) ;
 
    almax = 1 ;  /* will be largest type_alignment of any part */
@@ -856,16 +864,14 @@ void NI_multival_to_text( NI_rowtype *rt , int nv , char *dpt , char *wbuf )
 /*! Copy 1 fixed size type (no String or var dim array parts here) value
     in binary format to the wbuf.
     - Return value is number of bytes written.
-    - Note that only data bytes are written,
-       not any padding between elements.
+    - Note that only data bytes are written, not any padding between parts.
 ---------------------------------------------------------------------------*/
 
 int NI_val_to_binary( NI_rowtype *rt , char *dpt , char *wbuf )
 {
    int jj=0 ;  /* will be return value */
 
-   if( ROWTYPE_is_builtin_code(rt->code) ||    /* builtin type */
-       rt->size == rt->psiz                 ){ /* or unpadded  */
+   if( rt->size == rt->psiz ){  /* fixed size, unpadded struct */
 
      jj = rt->size ;
      memcpy(wbuf,dpt,jj) ;
@@ -893,13 +899,12 @@ int NI_multival_to_binary( NI_rowtype *rt , int nv , char *dpt , char *wbuf )
 {
    int jj=0 ;
 
-   if( ROWTYPE_is_builtin_code(rt->code) ||    /* Builtin type is easy */
-       rt->size == rt->psiz                 ){ /* or unpadded type:    */
-                                               /* Write all at once    */
+   if( rt->size == rt->psiz ){          /* fixed size, unpadded structs */
+                                        /* ==> Write all data at once   */
      jj = nv * rt->size ;
      memcpy(wbuf,dpt,jj);
 
-   } else if( rt->psiz > 0 ){               /* Derived type is harder: */
+   } else if( rt->psiz > 0 ){          /* Derived type is harder:      */
                                        /* Write each struct separately */
      int ii ;
      for( ii=0 ; ii < nv ; ii++ )
@@ -934,6 +939,9 @@ int NI_has_String( NI_rowtype *rt )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Write one column of structs to the output stream.  Now superseded
+    by NI_write_columns().
+--------------------------------------------------------------------------*/
 
 int NI_write_rowtype( NI_stream_type *ns , NI_rowtype *rt ,
                       int ndat , void *dat , int tmode )
@@ -1006,12 +1014,22 @@ int NI_write_columns( NI_stream_type *ns,
    vsiz = NI_malloc( sizeof(int)          * col_num ) ;
    fsiz = NI_malloc( sizeof(int)          * col_num ) ;
    for( col=0 ; col < col_num ; col++ ){
+
+     /* convert column type code to rowtype pointer */
+
      rt[col] = NI_rowtype_find_code( col_typ[col] ) ;
+
+     /* can't find type, or no data in column?  take this job and shove it */
+
      if( rt[col] == NULL || col_dat[col] == NULL ){ FREEUP; return -1; }
+
      vsiz[col] = (rt[col]->psiz == 0) ;  /* is this a variable size type */
      fsiz[col] = rt[col]->size ;         /* fixed size of struct (w/padding) */
      vsiz_tot += vsiz[col] ;
      fsiz_tot += fsiz[col] ;
+
+     /* can only write String parts in text mode */
+
      if( tmode != NI_TEXT_MODE && NI_has_String(rt[col]) ) tmode = NI_TEXT_MODE;
    }
 
@@ -1139,7 +1157,7 @@ int NI_write_columns( NI_stream_type *ns,
       } /* end of loop over parts in this column struct */
      } /* end of loop over columns */
 
-     /*- actually write the data in wbuf out -*/
+     /*- actually write the row data in wbuf out -*/
 
      switch( tmode ){
 
@@ -1201,7 +1219,7 @@ int NI_write_columns( NI_stream_type *ns,
       or at least write an end of line */
 
    if( tmode == NI_BASE64_MODE ){
-     if( bb > 0 ){
+     if( bb > 0 ){                  /* num leftover bytes of data */
        byte w,x,y,z ;
        if( bb == 2 ) B64_encode2(bbuf[0],bbuf[1],w,x,y,z) ;
        else          B64_encode1(bbuf[0],w,x,y,z) ;
@@ -1209,7 +1227,7 @@ int NI_write_columns( NI_stream_type *ns,
        cbuf[2] = y ; cbuf[3] = z ; cbuf[4] = B64_EOL2 ;
        nout = NI_stream_write( ns , cbuf , 5 ) ;
        ADDOUT ;
-     } else if( cc > 0 ){
+     } else if( cc > 0 ){           /* just wrie an end of line */
        cbuf[0] = B64_EOL2 ;
        nout = NI_stream_write( ns , cbuf , 1 ) ;
        ADDOUT ;
@@ -1263,7 +1281,8 @@ int NI_read_columns( NI_stream_type *ns,
    int *vsiz=NULL , vsiz_tot=0 ;
    int *fsiz=NULL , fsiz_tot=0 ;
 
-   int (*ReadFun)( NI_stream_type *, NI_rowtype *, void * ) ;
+   int (*ReadFun)( NI_stream_type *, NI_rowtype *, void *, int ) ;
+   int ltend = (flags & NI_LTEND_MASK) != 0 ;
 
 # undef  FREEUP
 # define FREEUP do{ NI_free(rt); NI_free(vsiz); NI_free(fsiz); } while(0)
@@ -1279,8 +1298,8 @@ int NI_read_columns( NI_stream_type *ns,
      jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
      if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
    }
-   jj = NI_stream_readcheck(ns,1) ;
-   if( jj < 1 ) return jj ;
+   jj = NI_stream_hasinput(ns,1) ;      /* any data to be had? */
+   if( jj < 1 ) return jj ;             /* nope? then vamoose! */
 
    /* create array of NI_rowtype for columns, etc. */
 
@@ -1288,13 +1307,18 @@ int NI_read_columns( NI_stream_type *ns,
    vsiz = NI_malloc( sizeof(int)          * col_num ) ;
    fsiz = NI_malloc( sizeof(int)          * col_num ) ;
    for( col=0 ; col < col_num ; col++ ){
+
      rt[col] = NI_rowtype_find_code( col_typ[col] ) ;
      if( rt[col] == NULL ){ FREEUP; return -1; }
      if( tmode != NI_TEXT_MODE && NI_has_String(rt[col]) ){ FREEUP; return -1; }
+
      vsiz[col] = (rt[col]->psiz == 0) ;  /* is this a variable size type? */
      fsiz[col] = rt[col]->size ;         /* fixed size of struct (w/padding) */
      vsiz_tot += vsiz[col] ;
      fsiz_tot += fsiz[col] ;
+
+     /* setup data array for this column */
+
      if( col_dat[col] == NULL )
        col_dat[col] = NI_malloc( fsiz[col]*col_len ) ; /* make space */
      else
@@ -1306,10 +1330,10 @@ int NI_read_columns( NI_stream_type *ns,
         and binary input ==> can read all data direct from stream at once --*/
 
    if( col_num == 1 && fsiz[0] == rt[0]->psiz && tmode == NI_BINARY_MODE ){
-     nin = NI_stream_readbuf( ns , col_dat[0] , fsiz[0]*col_num ) ;
-     if( nin < fsiz[0] ){ FREEUP; return (nin >= 0) ? 0 : -1 ; }
+     nin = NI_stream_readbuf( ns , col_dat[0] , fsiz[0]*col_len ) ;
+     if( nin < fsiz[0] ){ FREEUP; return (nin >= 0) ? 0 : -1 ; }  /* bad */
      nin = nin / fsiz[0] ;  /* number of rows finished */
-     goto ReadFinality ;
+     goto ReadFinality ;    /* post-process input down below */
    }
 
    /*-- Choose function to read from stream and fill one struct --*/
@@ -1323,17 +1347,18 @@ int NI_read_columns( NI_stream_type *ns,
 
    /*-- OK, have to read the hard ways --*/
 
-   for( nn=1,row=0 ; nn && row < col_len ; row++ ){  /* loop over rows */
-
+   for( nn=1,row=0 ; nn && row < col_len ; row++ ){      /* loop over rows */
+                                                         /* until all done */
+                                               /* or ReadFun fails (nn==0) */
     /* loop over columns, read into struct */
 
     for( col=0 ; nn && col < col_num ; col++ ){
-      ptr = col_dat[col] + fsiz[col]*row ; /* ptr to row-th element */
-      nn  = ReadFun( ns , rt[col] , ptr ) ; /* read data to element */
+      ptr = col_dat[col] + fsiz[col]*row ;         /* ptr to row-th struct */
+      nn  = ReadFun( ns , rt[col] , ptr , ltend ) ; /* read data to struct */
     }
    }
 
-   if( row == 0 ){ FREEUP ; return -1 ; }
+   if( row == 0 ){ FREEUP; return -1; }  /* didn't finish any rows */
 
    nin = row ;  /* number of rows finished */
 
@@ -1350,22 +1375,23 @@ ReadFinality:
 }
 
 /*-------------------------------------------------------------------------*/
-/*! Decode binary data from the NI_stream into a rowtype struct.
-    - Note that String (aka NI_STRING) is illegal here.
+/*! Decode binary data from the NI_stream ns into a rowtype struct *dpt.
+    - Note that String (aka NI_STRING) parts are illegal here.
+    - Parameter ltend has no meaning for this function; cf. NI_text_to_val()
     - Return value is 1 if all was OK, 0 if something bad happened.
 ---------------------------------------------------------------------------*/
 
-int NI_binary_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
+int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
 {
    int nn , jj ;
 
    if( rt->code == NI_STRING ) return 0 ;            /* shouldn't happen */
 
-   if( ROWTYPE_is_basic_code(rt->code) ){                  /* basic type */
-                                       /* read directly into data struct */
+   if( rt->size == rt->psiz ){                   /* type with no padding */
+                                    /* can read directly into data struct */
 
-     jj = NI_stream_readbuf( ns , dpt , type_size[rt->code] ) ;
-     return (jj == type_size[rt->code]) ;
+     jj = NI_stream_readbuf( ns , dpt , rt->size ) ;
+     return (jj == rt->size) ;
 
    } else {                                              /* derived type */
 
@@ -1379,25 +1405,35 @@ int NI_binary_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
          aaa = NI_malloc(sizeof(char *)*naaa) ;  /* save their addresses */
      }                                    /* for possible deletion later */
 
-     /* loop over parts and load them */
+     /* loop over parts and load them;
+        set nn=0 if read fails at any part */
 
      for( nn=1,ii=0 ; nn && ii < rt->part_num ; ii++ ){
 
-       if( rt->part_dim[ii] < 0 ){                    /* fixed size part */
+       if( rt->part_dim[ii] < 0 ){           /* read one fixed size part */
 
-         nn = NI_binary_to_val( ns, rt->part_rtp[ii], dat+rt->part_off[ii] );
+         nn = NI_binary_to_val( ns, rt->part_rtp[ii], dat+rt->part_off[ii], 0 );
 
-       } else {                                         /* var dim array */
+       } else {                                    /* read var dim array */
 
          char **apt = (char **)(dat+rt->part_off[ii]); /* data in struct */
                                                  /* will be ptr to array */
          int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
-         int siz = rt->part_rtp[ii]->size ;   /* size of each piece-part */
-         if( dim > 0 ){
+         int siz = rt->part_rtp[ii]->size ;          /* size of one part */
+
+         if( dim > 0 ){                         /* need to get some data */
            *apt = NI_malloc( siz * dim );                  /* make array */
-           for( jj=0 ; nn && jj < dim ; jj++ )   /* get values for array */
+
+           if( siz != rt->part_rtp[ii]->psiz ){     /* padded values ==> */
+            for( jj=0 ; nn && jj < dim ; jj++ )  /* read 1 val at a time */
              nn = NI_binary_to_val( ns, rt->part_rtp[ii],
-                                    *apt + rt->part_rtp[ii]->size * jj ) ;
+                                    *apt + siz * jj , 0 ) ;
+
+           } else {              /* unpadded values ==> read all at once */
+             jj = NI_stream_readbuf( ns , *apt , siz*dim ) ;
+             nn = ( jj == siz*dim ) ;
+           }
+
          } else {
            *apt = NULL ;                    /* dim=0 ==> no array needed */
          }
@@ -1420,12 +1456,13 @@ int NI_binary_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
 
 /*-------------------------------------------------------------------------*/
 /*! Decode text from the NI_stream into a rowtype struct.
+    - Parameter ltend != 0 means stop at '<' character.
     - Return value is 1 if it works, 0 if it fails.
     - If it works, *dpt will be filled with values.
     - Note that dpt must be pre-allocated rt->size bytes long.
 ---------------------------------------------------------------------------*/
 
-int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
+int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
 {
    int nn ;
 
@@ -1450,19 +1487,20 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
 
          if( rt->part_dim[ii] < 0 ){                    /* fixed size part */
 
-           nn = NI_text_to_val( ns, rt->part_rtp[ii], dat+rt->part_off[ii] );
+           nn = NI_text_to_val( ns, rt->part_rtp[ii],
+                                dat+rt->part_off[ii], ltend );
 
          } else {                                         /* var dim array */
 
            char **apt = (char **)(dat+rt->part_off[ii]); /* data in struct */
                                                    /* will be ptr to array */
            int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
-           int siz = rt->part_rtp[ii]->size ;   /* size of each piece-part */
+           int siz = rt->part_rtp[ii]->size ;   /* size of one part struct */
            if( dim > 0 ){
              *apt = NI_malloc( siz * dim );                  /* make array */
              for( jj=0 ; nn && jj < dim ; jj++ )   /* get values for array */
                nn = NI_text_to_val( ns, rt->part_rtp[ii],
-                                    *apt + rt->part_rtp[ii]->size * jj ) ;
+                                    *apt + siz * jj , ltend ) ;
            } else {
              *apt = NULL ;                    /* dim=0 ==> no array needed */
            }
@@ -1486,7 +1524,7 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
      case NI_STRING:{
         char *val=NULL ;
         char **vpt = (char **) dpt ;
-        nn = NI_decode_one_string( ns , &val ) ;
+        nn = NI_decode_one_string( ns , &val , ltend ) ;
         if( nn == 0 || val == NULL ) return 0 ;
         unescape_inplace(val) ;
         *vpt = val ;
@@ -1498,7 +1536,7 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
      case NI_BYTE:{
         double val ;
         byte *vpt = (byte *) dpt ;
-        nn = NI_decode_one_double( ns , &val ) ;
+        nn = NI_decode_one_double( ns , &val , ltend ) ;
         if( nn == 0 ) return 0 ;
         *vpt = (byte) val ;
      }
@@ -1507,7 +1545,7 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
      case NI_SHORT:{
         double val ;
         short *vpt = (short *) dpt ;
-        nn = NI_decode_one_double( ns , &val ) ;
+        nn = NI_decode_one_double( ns , &val , ltend ) ;
         if( nn == 0 ) return 0 ;
         *vpt = (short) val ;
      }
@@ -1516,7 +1554,7 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
      case NI_INT:{
         double val ;
         int *vpt = (int *) dpt ;
-        nn = NI_decode_one_double( ns , &val ) ;
+        nn = NI_decode_one_double( ns , &val , ltend ) ;
         if( nn == 0 ) return 0 ;
         *vpt = (int) val ;
      }
@@ -1525,7 +1563,7 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
      case NI_FLOAT:{
         double val ;
         float *vpt = (float *) dpt ;
-        nn = NI_decode_one_double( ns , &val ) ;
+        nn = NI_decode_one_double( ns , &val , ltend ) ;
         if( nn == 0 ) return 0 ;
         *vpt = (float) val ;
      }
@@ -1534,7 +1572,7 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
      case NI_DOUBLE:{
         double val ;
         double *vpt = (double *) dpt ;
-        nn = NI_decode_one_double( ns , &val ) ;
+        nn = NI_decode_one_double( ns , &val , ltend ) ;
         if( nn == 0 ) return 0 ;
         *vpt = (double) val ;
      }
@@ -1543,9 +1581,9 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
      case NI_COMPLEX:{
         double v1,v2 ;
         complex *vpt = (complex *) dpt ;
-        nn = NI_decode_one_double( ns , &v1 ) ;
+        nn = NI_decode_one_double( ns , &v1 , ltend ) ;
         if( nn == 0 ) return 0 ;
-        nn = NI_decode_one_double( ns , &v2 ) ;
+        nn = NI_decode_one_double( ns , &v2 , ltend ) ;
         if( nn == 0 ) return 0 ;
         vpt->r = (float) v1 ;
         vpt->i = (float) v2 ;
@@ -1555,11 +1593,11 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
      case NI_RGB:{
         double v1,v2,v3 ;
         rgb *vpt = (rgb *) dpt ;
-        nn = NI_decode_one_double( ns , &v1 ) ;
+        nn = NI_decode_one_double( ns , &v1 , ltend ) ;
         if( nn == 0 ) return 0 ;
-        nn = NI_decode_one_double( ns , &v2 ) ;
+        nn = NI_decode_one_double( ns , &v2 , ltend ) ;
         if( nn == 0 ) return 0 ;
-        nn = NI_decode_one_double( ns , &v3 ) ;
+        nn = NI_decode_one_double( ns , &v3 , ltend ) ;
         if( nn == 0 ) return 0 ;
         vpt->r = (byte) v1 ;
         vpt->g = (byte) v2 ;
@@ -1570,13 +1608,13 @@ int NI_text_to_val( NI_stream_type *ns , NI_rowtype *rt , void *dpt )
      case NI_RGBA:{
         double v1,v2,v3,v4 ;
         rgba *vpt = (rgba *) dpt ;
-        nn = NI_decode_one_double( ns , &v1 ) ;
+        nn = NI_decode_one_double( ns , &v1 , ltend ) ;
         if( nn == 0 ) return 0 ;
-        nn = NI_decode_one_double( ns , &v2 ) ;
+        nn = NI_decode_one_double( ns , &v2 , ltend ) ;
         if( nn == 0 ) return 0 ;
-        nn = NI_decode_one_double( ns , &v3 ) ;
+        nn = NI_decode_one_double( ns , &v3 , ltend ) ;
         if( nn == 0 ) return 0 ;
-        nn = NI_decode_one_double( ns , &v4 ) ;
+        nn = NI_decode_one_double( ns , &v4 , ltend ) ;
         if( nn == 0 ) return 0 ;
         vpt->r = (byte) v1 ;
         vpt->g = (byte) v2 ;
@@ -1641,10 +1679,9 @@ void NI_swap_column( NI_rowtype *rt , int nrow , char *dat )
 
            } else {                                         /* var dim array */
 
-             char **apt = (char **)(dat+rt->part_off[ii]); /* data in struct */
+             char **apt = (char **)(ptr+rt->part_off[ii]); /* data in struct */
                                                           /* is ptr to array */
              int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
-             int siz = rt->part_rtp[ii]->size ;   /* size of each piece-part */
              if( dim > 0 && *apt != NULL)
                NI_swap_column( rt->part_rtp[ii] , dim , *apt ) ;
 
@@ -1683,6 +1720,8 @@ void NI_free_column( NI_rowtype *rt , int col_len , void *cpt )
        }
      }
    }
+
+   /* free the column array itself */
 
    NI_free(cpt) ; return ;
 }

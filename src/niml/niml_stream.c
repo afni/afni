@@ -2153,7 +2153,9 @@ void NI_stream_close( NI_stream_type *ns )
 
 /*---------------------------------------------------------------------------*/
 /*!  Check if the NI_stream has data read to be read, or has data stored
-     in its internal buffer.  Return values are as in NI_stream_readcheck().
+     in its internal buffer.
+     - Return values are as in NI_stream_readcheck().
+     - Also see NI_stream_readbuf().
 -----------------------------------------------------------------------------*/
 
 int NI_stream_hasinput( NI_stream_type *ns , int msec )
@@ -2174,6 +2176,8 @@ int NI_stream_hasinput( NI_stream_type *ns , int msec )
    - tcp: the socket connection was dropped
    - shm: the other process died or detached the segment
    - file: you have reached the end of the file, and are still trying to read.
+
+  Also see NI_stream_hasinput() and NI_stream_readbuf().
 -----------------------------------------------------------------------------*/
 
 int NI_stream_readcheck( NI_stream_type *ns , int msec )
