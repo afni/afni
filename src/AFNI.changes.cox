@@ -3435,3 +3435,6 @@
  * Modified afni.c function AFNI_setup_viewing() to correct problem when
      viewing the same functional bucket in two controllers - the bucket
      widgets might not get set up correctly due to false memories.
+
+30 Jan 2001
+ * New program 3dAutoTcorrelate.c for PAB.
