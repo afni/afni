@@ -110,11 +110,11 @@ clean:
 
 SUMA_glxdino:
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_glxdino.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_glxdino.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 SUMA_pixmap2eps:
 	$(RM) $@
-	${CC} ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_pixmap2eps.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_pixmap2eps.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 suma: SUMA_suma.o 
 	$(RM) $@
@@ -230,4 +230,4 @@ SUMA_compare_surfaces SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertS
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 
 
-testGL: SUMA_glxdino SUMA_pixmap2eps install
+testGL: SUMA_glxdino SUMA_pixmap2eps

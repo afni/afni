@@ -50,7 +50,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    static char Command[]={"OBSOLETE-since:Thu Jan 23 16:55:03 EST 2003"};
    SUMA_EngineData *EngineData=NULL, *ED = NULL; /* EngineData is what get passed from a list element, 
                                                    ED is what gets added to the list inside SUMA_Engine */ 
-   DListElmt *NextElem;
+   DListElmt *NextElem_CANT_TOUCH_THIS, *LocElm=NULL;
    DList *list= NULL;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL, *LogShell=NULL;
 
@@ -72,8 +72,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    while (list->size) {/* cycle through NextComs */
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Fetching next element\n", FuncName);
      /* get the next command from the head of the list */
-      NextElem = dlist_head(list);
-      EngineData = (SUMA_EngineData *)NextElem->data;
+      NextElem_CANT_TOUCH_THIS = dlist_head(list);
+      EngineData = (SUMA_EngineData *)NextElem_CANT_TOUCH_THIS->data;
       
       /* decide on what Srcp might be. Currently only sv is passed when the source is Suma*/
       sv = NULL;
@@ -298,10 +298,12 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                ulook_new[0] = ulook_new[1] = ulook_new[2] = 0.0;
                fm = (float **)SUMA_allocate2D(4,4,sizeof(float));
                
-               for (iStep = 1; iStep <= Step; ++iStep) {
-                  fprintf (SUMA_STDERR,"%d\n", iStep);
+               for (iStep = Step; iStep >= 1; --iStep) {
                   fracUp = (float)(iStep)/(float)Step;
                   fracDown = (float)(Step - iStep)/(float)Step;
+                  if (LocalHead) fprintf (SUMA_STDERR,"%s:%d, fracUp %f, fracDown %f, fv3[%f %f %f]\n", 
+                                 FuncName, iStep, fracUp, fracDown, EngineData->fv3[0], 
+                                 EngineData->fv3[1], EngineData->fv3[2]);
                   ulook_new[0] = (EngineData->fv3[0] * fracUp + sv->GVS[sv->StdView].ViewFrom[0] * fracDown) \
                                  - sv->GVS[sv->StdView].ViewCenter[0];
                   ulook_new[1] = (EngineData->fv3[1] * fracUp + sv->GVS[sv->StdView].ViewFrom[1] * fracDown) \
@@ -321,10 +323,10 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   ED = SUMA_InitializeEngineListData (SE_SetRotMatrix);
                   ED->N_cols = 4;
                   ED->N_rows = 4;
-                  if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                  if (!(LocElm = SUMA_RegisterEngineListCommand (  list, ED, 
                                                          SEF_fm, (void *)fm, 
                                                          EngineData->Src, EngineData->Srcp, NOPE, 
-                                                         SEI_Head, NULL )) {
+                                                         SEI_Head, NULL ))) {
                      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
                      break;
                   }
@@ -334,7 +336,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                                          SEF_Empty, NULL, 
                                                          EngineData->Src, EngineData->Srcp, NOPE, 
-                                                         SEI_Head, NULL )) {
+                                                         SEI_After, LocElm )) {
                      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
                      break;
                   }
@@ -1251,7 +1253,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       
       /* release used Element */
       if (LocalHead) fprintf (SUMA_STDERR, "\n%s: Releasing Engine Element.\n", FuncName);
-      if (!SUMA_ReleaseEngineListElement (list, NextElem)) {
+      if (!SUMA_ReleaseEngineListElement (list, NextElem_CANT_TOUCH_THIS)) {
             fprintf(SUMA_STDERR,"Error SUMA_Engine: Failed to Release element \n");
          }
          

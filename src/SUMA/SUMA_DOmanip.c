@@ -391,6 +391,9 @@ SUMA_Boolean SUMA_RegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
       fprintf(SUMA_STDERR,"\n");
    }
 
+   /* update the title bar */
+   SUMA_UpdateViewerTitle(cSV);   
+
    SUMA_RETURN(YUP); 
 }
 /*!
@@ -435,7 +438,10 @@ SUMA_Boolean SUMA_UnRegisterDO(int dov_id, SUMA_SurfaceViewer *cSV)
             fprintf(SUMA_STDERR,"\n");
          }
 
-         
+         /* update the title bar */
+         SUMA_UpdateViewerTitle(cSV);   
+
+
          SUMA_RETURN(YUP);
       }
       ++i;

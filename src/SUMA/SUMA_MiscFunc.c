@@ -4455,34 +4455,32 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
       n2 = el->EL[j][1];
       
       if (FN->N_Neighb[n1] > SUMA_MAX_NUMBER_NODE_NEIGHB || FN->N_Neighb[n2] > SUMA_MAX_NUMBER_NODE_NEIGHB) {
-         fprintf(SUMA_STDERR, "Error %s: Maximum number of node neighbors exceeded, increase SUMA_MAX_NUMBER_NODE_NEIGHB (%d)", FuncName, SUMA_MAX_NUMBER_NODE_NEIGHB);
-         SUMA_Free_FirstNeighb (FN);
-         SUMA_RETURN (NULL);
-      }
-   
-      /*register the neighbors for both nodes*/
-      FN->NodeId[n1] = n1; /* this field may come in handy when operations need to be performed on subsets of the nodes making up the surface */
-      FN->NodeId[n2] = n2;
-      FN->FirstNeighb[n1][FN->N_Neighb[n1]] = n2;
-      FN->FirstNeighb[n2][FN->N_Neighb[n2]] = n1;
-   
-      /* increment neighbor count for nodes in edge */
-      FN->N_Neighb[n1] += 1;
-      FN->N_Neighb[n2] += 1;
-      
-      if (FN->N_Neighb[n1] > FN->N_Neighb_max) FN->N_Neighb_max = FN->N_Neighb[n1];
-      if (FN->N_Neighb[n2] > FN->N_Neighb_max) FN->N_Neighb_max = FN->N_Neighb[n2];
-      
-      /* skip duplicate edges */
-      if (j < N_ELm1) {
-         skp = NOPE;
-         do {
-            if (el->EL[j+1][0] == el->EL[j][0] && el->EL[j+1][1] == el->EL[j][1]) {
-               ++j;
-            } else {
-               skp = YUP;
-            }
-         } while (!skp && j < N_ELm1);
+         fprintf(SUMA_STDERR, "Critical Error %s\a: Maximum number of node neighbors for node %d or node %d exceeds %d (SUMA_MAX_NUMBER_NODE_NEIGHB)\n SUMA will try to launch but some functions may not work properly.\n", FuncName, n1, n2, SUMA_MAX_NUMBER_NODE_NEIGHB);
+      }else {
+         /*register the neighbors for both nodes*/
+         FN->NodeId[n1] = n1; /* this field may come in handy when operations need to be performed on subsets of the nodes making up the surface */
+         FN->NodeId[n2] = n2;
+         FN->FirstNeighb[n1][FN->N_Neighb[n1]] = n2;
+         FN->FirstNeighb[n2][FN->N_Neighb[n2]] = n1;
+
+         /* increment neighbor count for nodes in edge */
+         FN->N_Neighb[n1] += 1;
+         FN->N_Neighb[n2] += 1;
+
+         if (FN->N_Neighb[n1] > FN->N_Neighb_max) FN->N_Neighb_max = FN->N_Neighb[n1];
+         if (FN->N_Neighb[n2] > FN->N_Neighb_max) FN->N_Neighb_max = FN->N_Neighb[n2];
+
+         /* skip duplicate edges */
+         if (j < N_ELm1) {
+            skp = NOPE;
+            do {
+               if (el->EL[j+1][0] == el->EL[j][0] && el->EL[j+1][1] == el->EL[j][1]) {
+                  ++j;
+               } else {
+                  skp = YUP;
+               }
+            } while (!skp && j < N_ELm1);
+         }
       }
       
       ++j;
@@ -5464,7 +5462,146 @@ int SUMA_ReadNumStdin (float *fv, int nv)
    
    SUMA_RETURN(nvr);
 }
-            
+
+/*!
+   \brief function that tests whether a string contains N numbers
+   
+   \param str (char *) null terminated string
+   \param N (void *) This is an integer in disguise
+   \return YUP: If str is NULL or N numbers were found in str
+*/
+SUMA_Boolean SUMA_isNumString (char *s, void *p)
+{
+   static char FuncName[]={"SUMA_isNumString"};
+   char *endp, *strtp;
+   int nd, N;
+   SUMA_Boolean eos, FoundTip;
+   double d;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!s) SUMA_RETURN(YUP); 
+   
+   N = (int)p;
+   
+   /* clean s by removing trailing junk then replacing non characters by space*/
+   FoundTip = NOPE;
+   for (nd=strlen(s)-1; nd >=0; --nd) {
+      if (!isdigit(s[nd]) && s[nd] != '.'  && s[nd] != '-' && s[nd] != '+') {
+         if (!FoundTip) {
+            s[nd]= '\0'; /* remove */
+         } else {
+            s[nd] = ' '; /* blank */
+         }
+      }else {
+         FoundTip = YUP;
+      }
+   }
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: string now:%s:\n", FuncName, s);
+   
+   /* parse s */
+   strtp = s;
+   endp = NULL;
+   nd = 0;
+   eos = NOPE;
+   while (!eos) {
+      d = strtod(strtp, &endp);
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", FuncName, d, ERANGE, EDOM, errno); 
+      if (errno) {
+         SUMA_SLP_Err("Syntax error in parsing string.");
+         SUMA_RETURN (NOPE);
+      }
+
+      if (endp == strtp && *endp=='\0') { 
+         eos = YUP;
+      } else {
+         strtp = endp;
+         ++nd;
+      }
+   }
+   
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Read %d/%d values.\n", FuncName, nd,N);
+   if (N != nd) {
+      SUMA_RETURN(NOPE);
+   } else {
+      SUMA_RETURN(YUP);
+   }
+   
+}   
+
+/*!
+   \brief function that parses a string of numbers into a float vector
+   
+   \param str (char *) null terminated string
+   \param fv (float*) vector where values will be stored
+   \param N (int) This is the number of values desired
+   \return int: This is the number of values read. 
+      The function will register in fv more that N values 
+      (to keep from running over preallocated space), but it
+      will return the full number of values found.
+      
+      -1 in case of error
+   \sa SUMA_isNumString
+*/
+int SUMA_StringToNum (char *s, float *fv, int N)
+{
+   static char FuncName[]={"SUMA_StringToNum"};
+   char *endp, *strtp;
+   int nd;
+   SUMA_Boolean eos, FoundTip;
+   double d;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!s) SUMA_RETURN(0); 
+      
+   /* clean s by removing trailing junk then replacing non characters by space*/
+   FoundTip = NOPE;
+   for (nd=strlen(s)-1; nd >=0; --nd) {
+      if (!isdigit(s[nd]) && s[nd] != '.' && s[nd] != '-' && s[nd] != '+') {
+         if (!FoundTip) {
+            s[nd]= '\0'; /* remove */
+         } else {
+            s[nd] = ' '; /* blank */
+         }
+      }else {
+         FoundTip = YUP;
+      }
+   }
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: string now:%s:\n", FuncName, s);
+   
+   /* parse s */
+   strtp = s;
+   endp = NULL;
+   nd = 0;
+   eos = NOPE;
+   while (!eos) {
+      d = strtod(strtp, &endp);
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: value %f, ERANGE: %d, EDOM %d, errno %d\n", FuncName, d, ERANGE, EDOM, errno); 
+      if (errno) {
+         SUMA_SLP_Err("Syntax error in parsing string.");
+         SUMA_RETURN (NOPE);
+      }
+
+      if (endp == strtp && *endp=='\0') { 
+         eos = YUP;
+      } else {
+         if (nd < N) fv[nd] = (float)d;
+         strtp = endp;
+         ++nd;
+      }
+   }
+   
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Read %d/%d values.\n", FuncName, nd, N);
+   
+   SUMA_RETURN(nd);
+   
+}   
+        
 /***
  
 File : SUMA_Find_inIntVect.c
