@@ -254,8 +254,16 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       
       
       SV->ShowEyeAxis = 1;
-      SV->ShowMeshAxis = 1;
+      SV->ShowMeshAxis = 0;      /* Turned off Oct 15 04 in favor of WorldAxis */
+      SV->ShowWorldAxis = SUMA_THREE_WAX;
       
+      SV->WAx = SUMA_Alloc_Axis ("Viewer World Axis");
+      if (SV->WAx == NULL) {
+         fprintf(SUMA_STDERR,"Error %s: Error Allocating axis\n", FuncName);
+         SUMA_RETURN(NULL);
+      }
+      SV->WAx->type = SUMA_SCALE_BOX;
+
       SV->Ch = SUMA_Alloc_CrossHair ();
       if (SV->Ch == NULL) {
          fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed in SUMA_Alloc_CrossHair\n");
@@ -337,6 +345,7 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
    
    SUMA_ENTRY;
 
+   if (SV->WAx) SUMA_Free_Axis(SV->WAx);
    if (SV->Ch) SUMA_Free_CrossHair (SV->Ch);
    if (SV->X->Title) SUMA_free(SV->X->Title);
    if (SV->X->LookAt_prmpt) SUMA_FreePromptDialogStruct (SV->X->LookAt_prmpt);
@@ -955,6 +964,15 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   light1_position = [%f %f %f %f]\n", SV->light1_position[0], SV->light1_position[1], SV->light1_position[2], SV->light1_position[3]);
    SS = SUMA_StringAppend_va(SS,"   WindWidth = %d\n", SV->WindWidth);
    SS = SUMA_StringAppend_va(SS,"   WindHeight = %d\n", SV->WindHeight);
+   SS = SUMA_StringAppend_va(SS,"   ShowWorldAxis = %d\n", SV->ShowWorldAxis);
+   if (SV->WAx) {
+      SS = SUMA_StringAppend_va(SS,"   WorldAxis: Center = [%f %f %f] BR = [%f %f %f , %f %f %f]\n", 
+                                    SV->WAx->Center[0], SV->WAx->Center[1], SV->WAx->Center[2],
+                                    SV->WAx->BR[0][0], SV->WAx->BR[1][0],   SV->WAx->BR[2][0], 
+                                    SV->WAx->BR[0][1], SV->WAx->BR[1][1],   SV->WAx->BR[2][1]);
+   } else {
+      SS = SUMA_StringAppend_va(SS,"   WorldAxis: NULL\n");
+   }     
    SS = SUMA_StringAppend_va(SS,"   currentQuat = [%f %f %f %f]\n", SV->GVS[SV->StdView].currentQuat[0], SV->GVS[SV->StdView].currentQuat[1], SV->GVS[SV->StdView].currentQuat[2], SV->GVS[SV->StdView].currentQuat[3]);
    SS = SUMA_StringAppend_va(SS,"   deltaQuat = [%f %f %f %f]\n", SV->GVS[SV->StdView].deltaQuat[0], SV->GVS[SV->StdView].deltaQuat[1], SV->GVS[SV->StdView].deltaQuat[2], SV->GVS[SV->StdView].deltaQuat[3]);
    SS = SUMA_StringAppend_va(SS,"   ApplyMomentum = %d\n", SV->GVS[SV->StdView].ApplyMomentum);
@@ -2334,6 +2352,9 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
       cSV->light0_position[1] *= -1;      
       cSV->light0_position[2] *= -1;
    }
+   
+   /* do the axis setup */
+   SUMA_WorldAxisStandard (cSV->WAx, cSV);
 
 
    SUMA_RETURN(YUP);

@@ -1245,6 +1245,30 @@ typedef struct {
    SUMA_Boolean Remix; /*!< flag indicating that colors need to be remixed */ 
 } SUMA_COLORLIST_STRUCT;
 
+typedef enum { SUMA_STD_ZERO_CENTERED, SUMA_SCALE_BOX } SUMA_AxisType;
+
+/*! structure defining an axis object */
+typedef struct {
+   SUMA_AxisType type;
+   GLfloat XaxisColor[4] ;
+   GLfloat YaxisColor[4] ;
+   GLfloat ZaxisColor[4] ;
+   
+   GLfloat LineWidth;
+   SUMA_STIPPLE Stipple; /*!< dashed or solid line */
+   
+   GLfloat XYZspan[3]; /*!< the axis will span +/- span[i] in the three dimensions */
+   GLfloat Center[3]; /*!< origin of axis */
+   GLfloat BR[3][2]; /*!< Box Range values */
+   double MTspace;   /*!< Major tick spacing */
+   double MTsize;    /*!< Major tick size */
+   double mTspace;   /*!< Minor tick spacing */
+   double mTsize;    /*!< Minor tick size */
+   int DoCross;      /*!< if 1 then ticks are centered on line. (total length is same as *Tsize value)*/
+   char *Name; /*!< name of axis */
+   char *idcode_str; /*! idcode of axis */
+}SUMA_Axis;
+
 typedef struct {
    int N;   /*!< Number of points in vectors x and y */
    int Nalloc; /*!< Number of elements allocated for in x and y */
@@ -1282,6 +1306,7 @@ typedef struct {
                                or through decimation (YUP)*/                      
 } SUMA_BRUSH_STROKE_DATUM; /*!< Data structure for the doubly linked version of brushstroke.  */
 
+typedef enum {  SUMA_NO_WAX, SUMA_THREE_WAX, SUMA_THREE_TEXT_WAX, SUMA_BOX_WAX, SUMA_BOX_TEXT_WAX, SUMA_N_WAX_OPTIONS } SUMA_WORLD_AXIS_TOGGLE_METHODS;
 /*! structure defining the state of a viewer window */
 typedef struct {
    int N_DO;      /*!< Total number of surface objects registered with the viewer */
@@ -1328,7 +1353,9 @@ typedef struct {
       
    SUMA_Boolean Open; /*! Viewer visible to the human eye */
    int ShowEyeAxis ; /*!< ShowEyeAxis */
-   int ShowMeshAxis; /*!< ShowEyeAxis */
+   int ShowMeshAxis; /*!< ShowMeshAxis (attached to each surface)*/
+   int ShowWorldAxis; /*!< ShowWorldAxis */
+   SUMA_Axis *WorldAxis;   /*!< pointer to world coordinate axis  */
    int ShowCrossHair; /*!< ShowCrossHair */
    SUMA_Boolean ShowForeground;    /*!< Flag for showing/not showing foreground colors */
    SUMA_Boolean ShowBackground; /*!< Flag for showing/not showing background colors */   
@@ -1339,9 +1366,15 @@ typedef struct {
    
    GLdouble Pick0[3];   /*!< Click location in World coordinates, at z = 0 (near clip plane)*/
    GLdouble Pick1[3];   /*!< Click location in World coordinates, at z = 1.0 (far clip plane)*/
-   
+   GLdouble Pcenter_close[3];  /*!< Center of screen in World coordinates , at z = 0 (near clip plane)*/
+   GLdouble Pcenter_far[3];    /*!< Center of screen in World coordinates , at z = 1 (near far plane)*/
+   GLdouble Plist_close[3];    /*!< lists of points on screen in world coordinates  at z = 0 
+                                    it holds N/3 points where N is the array length
+                                    At the moment, all I need is one point, the lower left
+                                    Should more be needed, I will add them to the list and
+                                    document them here.*/
    SUMA_CrossHair *Ch; /*!< Pointer to Cross Hair structure */
-      
+   SUMA_Axis *WAx;  /*!< Pointer to world axis */   
    
    SUMA_ViewState *VSv; /*!< Vector of Viewing State Structures */
    int N_VSv; /*!< Number of Viewing State structures */
@@ -1429,21 +1462,6 @@ typedef struct {
    
 } SUMA_EngineData;
 
- 
-/*! structure defining an axis object */
-typedef struct {
-   GLfloat XaxisColor[4] ;
-   GLfloat YaxisColor[4] ;
-   GLfloat ZaxisColor[4] ;
-   
-   GLfloat LineWidth;
-   SUMA_STIPPLE Stipple; /*!< dashed or solid line */
-   
-   GLfloat XYZspan[3]; /*!< the axis will span +/- span[i] in the three dimensions */
-   GLfloat Center[3]; /*!< origin of axis */
-   char *Name; /*!< name of axis */
-   char *idcode_str; /*! idcode of axis */
-}SUMA_Axis;
 
 
 /*! structure that contains the output of SurfNorm function */
@@ -1599,7 +1617,7 @@ typedef struct {
    GLfloat *glar_NodeNormList;    /*!< pointer to the 1D NodeNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
    
    SUMA_Boolean ShowMeshAxis; /*!< flag to show Mesh Axis if it is created */
-   SUMA_Axis *MeshAxis;   /*!< pointer to XYZ axis centered on the surface's centroid */
+   SUMA_Axis *MeshAxis;   /*!< pointer to XYZ axis  */
    
    SUMA_MEMBER_FACE_SETS *MF; /*!< structure containing the facesets containing each node */
    SUMA_NODE_FIRST_NEIGHB *FN; /*!< structure containing the first order neighbors of each node */
@@ -1872,6 +1890,12 @@ typedef struct {
    int N_cols;             /* the number of defined colors in Cv */
 } SUMA_AFNI_COLORS;
 
+typedef struct {              
+   int N_Neighb;           /*!< Number of neighbors for a particular node */
+   int *Neighb_ind;        /*!< N_Neighb x 1 vector containing  nodes neighboring node i */
+   float *Neighb_dist;     /*!< N_Neighb x 1 vector containing node distances from node i. 
+                               These are the shortes distances ON THE GRAPH. */
+} SUMA_OFFSET_STRUCT;      /*!< The structure returned by SUMA_FormNeighbOffset */
 
 typedef struct {
    int *NodesInLayer;      /*!< Vector containing nodes that are neighbors to node n 
@@ -1999,5 +2023,26 @@ typedef struct {
    
    int SUMA_ThrScalePowerBias; 
 } SUMA_CommonFields;
+
+typedef enum { SUMA_NO_SORT, SUMA_BY_PLANE_DISTANCE, SUMA_BY_SEGMENT_DISTANCE, SUMA_SORT_BY_LLC_DISTANCE, SUMA_SORT_BY_LL_QUAD } SUMA_SORT_BOX_AXIS_OPTION;
+typedef enum { SUMA_LOWER_LEFT_SCREEN, SUMA_UPPER_LEFT_SCREEN, SUMA_UPPER_RIGHT_SCREEN, SUMA_LOWER_RIGHT_SCREEN } SUMA_SCREEN_CORNERS;
+typedef struct {
+   double upp;
+   double uppx;
+   double uppy;
+   double P1[3];
+   double P2[3];
+   int SegIndex;
+   int PointIndex[2];
+   int FaceIndex[2];
+   int Quad[2];
+   double tick1_dir[3];
+   double tick2_dir[3];
+   double MidFaceDist;
+   double MidSegDist;
+   int AxisDim;
+   int LLCclosestPoint;
+   double LLCclosestDist;
+}  SUMA_AxisSegmentInfo;
  
 #endif

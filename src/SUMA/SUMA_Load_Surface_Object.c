@@ -2066,6 +2066,8 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                SUMA_RETURN(NOPE);
             }
             /* Change the defaults of Mesh axis to fit standard  */
+            /* For the moment, use Box Axis */
+            SO->MeshAxis->type = SUMA_SCALE_BOX;
             SUMA_MeshAxisStandard (SO->MeshAxis, SO);
             /*turn on the viewing for the axis */
             SO->ShowMeshAxis = NOPE;
