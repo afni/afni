@@ -4370,4 +4370,6 @@
 
 28 Feb 2003
  * Per Lukas Pezawas of CBDB, modified 1dgrayplot.c to have -ps option,
-     like 1dplot.c.
+     like 1dplot.c.  While doing so, also fixed a bug in coxplot/plot_ps2.c
+     where the rectangle case didn't have a "break", so fell through and
+     drew a circle as well.
