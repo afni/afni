@@ -1,7 +1,26 @@
-/***************************************************************
-  Sample plugout program to send the dataset commands that
-  drive the AFNI interface
-****************************************************************/
+/******************************************************************
+  Sample plugout program to send AFNI commands that drive the AFNI
+  interface remotely.  Current commands [07 Nov 2001] are
+
+    RESCAN_THIS  Q
+    SET_SESSION  Q.dirname
+    SET_ANATOMY  Q.prefix
+    SET_FUNCTION Q.prefix
+    OPEN_WINDOW  Q.windowname
+    QUIT
+
+  where "Q" is the letter for the AFNI controller you are
+  driving (Q=A,B,C,D, or E).  "Q." can be omitted, in which
+  case you are driving controller A.  Other parameters are:
+
+    dirname    = name of directory that AFNI should switch to
+                   (must already be read into AFNI)
+    prefix     = prefix part of dataset name that AFNI should
+                   switch to (must be in the current session)
+    windowname = axialimage OR coronalimage OR sagittalimage
+                 OR axialgraph OR coronalgraph OR sagittalgraph
+
+*******************************************************************/
 
 /***** Header file for communication routines *****/
 
