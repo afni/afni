@@ -784,11 +784,23 @@ char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp)
       case SUMA_NODE_XYZ:
          SUMA_RETURN("Node_XYZ");
          break;
+      case SUMA_NEW_NODE_XYZ:
+         SUMA_RETURN("NewNode_XYZ");
+         break;
       case SUMA_VIEWER_SETTING:
          SUMA_RETURN("Viewer_Visual_Setting");
          break;
       case SUMA_NODE_CONVEXITY:
          SUMA_RETURN("Node_Convexity");
+         break;
+      case SUMA_NEW_MESH_IJK:
+         SUMA_RETURN("NewMesh_IJK");
+         break;
+      case SUMA_MESH_IJK:
+         SUMA_RETURN("Mesh_IJK");
+         break;
+      case SUMA_PREP_NEW_SURFACE:
+         SUMA_RETURN("PrepNewSurface");
          break;
       default:
          SUMA_RETURN("Cowabonga-gothdo");
@@ -811,10 +823,14 @@ SUMA_DSET_TYPE SUMA_Dset_Type (char *Name)
    if (!strcmp(Name,"Node_RGBb")) SUMA_RETURN (SUMA_NODE_RGBb);
    if (!strcmp(Name,"Node_RGBAb")) SUMA_RETURN (SUMA_NODE_RGBAb);
    if (!strcmp(Name,"Node_XYZ")) SUMA_RETURN (SUMA_NODE_XYZ);
+   if (!strcmp(Name,"NewNode_XYZ")) SUMA_RETURN (SUMA_NEW_NODE_XYZ);
    if (!strcmp(Name,"Viewer_Visual_Setting")) SUMA_RETURN (SUMA_VIEWER_SETTING);
    if (!strcmp(Name,"Cowabonga")) SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
    if (!strcmp(Name,"Node_Convexity")) SUMA_RETURN (SUMA_NODE_CONVEXITY);
    if (!strcmp(Name,"AFNI_3D_dataset")) SUMA_RETURN (SUMA_AFNI_NODE_BUCKET);
+   if (!strcmp(Name,"NewMesh_IJK")) SUMA_RETURN (SUMA_NEW_MESH_IJK);
+   if (!strcmp(Name,"Mesh_IJK")) SUMA_RETURN (SUMA_MESH_IJK);
+   if (!strcmp(Name,"PrepNewSurface")) SUMA_RETURN (SUMA_PREP_NEW_SURFACE);
    SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
 }
 
@@ -3352,6 +3368,9 @@ char *SUMA_help_basics()
 {
    SUMA_STRING *SS = NULL;
    char *s=NULL;
+   static char FuncName[]={"SUMA_help_basics"};
+   
+   SUMA_ENTRY;
    
    SS = SUMA_StringAppend(NULL, NULL);
    SS = SUMA_StringAppend(SS,
@@ -3371,6 +3390,34 @@ char *SUMA_help_basics()
                   "    (that is to your shell/screen), the debugging info\n"
                   "    might get mixed up with your results.\n" 
                   " \n");
+   SUMA_SS2S(SS,s);               
+   SUMA_RETURN(s);
+}
+
+char *SUMA_help_talk()
+{
+   SUMA_STRING *SS = NULL;
+   char *s=NULL;
+   static char FuncName[]={"SUMA_help_talk"};
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend(NULL, NULL);
+   SS = SUMA_StringAppend(SS,
+                  "  SUMA communication options:\n"
+                  "      -talk_suma: Send progress with each iteration to SUMA.\n"
+                  "      -refresh_rate rps: Maximum number of updates to SUMA per second.\n"
+                  "                         The default is the maximum speed.\n"
+                  "      -send_kth kth: Send the kth element to SUMA (default is 1).\n"
+                  "                     This allows you to cut down on the number of elements\n"
+                  "                     being sent to SUMA.\n" 
+                  "      -sh <SumaHost>: Name (or IP address) of the computer running SUMA.\n"
+                  "                      This parameter is optional, the default is 127.0.0.1 \n"
+                  "      -ni_text: Use NI_TEXT_MODE for data transmission.\n"
+                  "      -ni_binary: Use NI_BINARY_MODE for data transmission.\n"
+                  "                  (default is ni_binary).\n"
+                  "      -feed_afni: Send updates to AFNI via SUMA's talk.\n"
+                  "\n");
    SUMA_SS2S(SS,s);               
    SUMA_RETURN(s);
 }
@@ -4166,7 +4213,7 @@ char * SUMA_append_string(char *s1, char *s2)
 */
 char * SUMA_append_replace_string(char *s1, char *s2, char *Spc, int whichTofree)
 {
-   static char FuncName[]={"SUMA_append_string"};
+   static char FuncName[]={"SUMA_append_replace_string"};
    char *atr = NULL;
    int i,cnt, N_s2, N_s1, N_Spc=0;
 

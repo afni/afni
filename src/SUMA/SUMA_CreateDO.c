@@ -18,9 +18,23 @@ SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void)
    nsoopt->LocalDomainParentID = NULL;
    nsoopt->FileFormat = SUMA_ASCII;
    nsoopt->FileType = SUMA_FT_NOT_SPECIFIED;
-   
+   nsoopt->DoMetrics = YUP;
+   nsoopt->DoNormals = YUP;
+   nsoopt->DoCenter = YUP;
    SUMA_RETURN(nsoopt);
 }
+
+SUMA_NEW_SO_OPT *SUMA_FreeNewSOOpt(SUMA_NEW_SO_OPT *nsopt)
+{
+   static char FuncName[]={"SUMA_FreeNewSOOpt"};
+   SUMA_ENTRY;
+   
+   if (!nsopt) SUMA_RETURN(NULL);
+   if (nsopt->idcode_str) SUMA_free(nsopt->idcode_str);
+   if (nsopt->LocalDomainParentID) SUMA_free(nsopt->LocalDomainParentID);
+   SUMA_RETURN(NULL);
+}
+
 /*!
    Creates a surface object and its normals and edge list from a list of Nodes and triangles.
    NodeListp (float **) pointer to nodelist. This points to the vector of node coordinates.
@@ -58,22 +72,32 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
    SO->NodeList = *NodeList; *NodeList = NULL;  /* keeps user from freeing afterwards ... */
    SO->N_Node = N_Node;
    
-   SUMA_LH("Center deal")
-   SUMA_DIM_CENTER(SO);
+   if (nsoopt->DoCenter) {
+      SUMA_LH("Center deal")
+      SUMA_DIM_CENTER(SO);
+   } else {
+      SUMA_LH("Skipping Center deal")
+   }
    
    SUMA_LH("FaceSetList");
    SO->FaceSetDim = 3;
    SO->FaceSetList = *FaceSetList; *FaceSetList = NULL;  /* keeps user from freeing afterwards ... */
    SO->N_FaceSet = N_FaceSet;
    
-   SUMA_LH("Metrics");
-   if (!SUMA_SurfaceMetrics(SO, "EdgeList, MemberFace", NULL)) {
-      SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+   if (nsoopt->DoMetrics) {
+      SUMA_LH("Metrics");
+      if (!SUMA_SurfaceMetrics(SO, "EdgeList, MemberFace", NULL)) {
+         SUMA_SL_Warn("Failed to compute metrics\nReturing with whatever is salvageable");
+      }
+   } else {
+      SUMA_LH("Skipping metrics");
+   }      
+   if (nsoopt->DoNormals) {
+      SUMA_LH("Normals");
+      SUMA_RECOMPUTE_NORMALS(SO);
+   } else {
+      SUMA_LH("Skipping normals");
    }
-      
-   SUMA_LH("Normals");
-   SUMA_RECOMPUTE_NORMALS(SO);
-   
    SUMA_LH("trimmings");
    SO->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));  
    if (nsoopt->idcode_str) sprintf(SO->idcode_str, "%s", nsoopt->idcode_str);
@@ -88,7 +112,7 @@ SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, 
    SO->glar_FaceNormList = (GLfloat *) SO->FaceNormList; 
    
    if (nsooptu != nsoopt) {
-      SUMA_free(nsoopt); nsoopt=NULL; 
+      nsoopt=SUMA_FreeNewSOOpt(nsoopt); 
    }
    
    SUMA_RETURN(SO);
@@ -2821,12 +2845,14 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    }
    #endif
       
+   SUMA_LH("Poly Mode");
    /* check on rendering mode */
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(SurfObj->PolyMode); 
    }
    
+   SUMA_LH("Draw Method");
    ND = SurfObj->NodeDim;
    NP = SurfObj->FaceSetDim;
    switch (DRAW_METHOD) { 
@@ -2880,7 +2906,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          }
          glVertexPointer (3, GL_FLOAT, 0, SurfObj->glar_NodeList);
          glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
-         /* fprintf(stdout, "Ready to draw Elements %d\n", SurfObj->N_FaceSet); */
+         if (LocalHead) fprintf(stdout, "Ready to draw Elements %d\n", SurfObj->N_FaceSet); 
          switch (RENDER_METHOD) {
             case TRIANGLES:
                glDrawElements (GL_TRIANGLES, (GLsizei)SurfObj->N_FaceSet*3, GL_UNSIGNED_INT, SurfObj->glar_FaceSetList);
@@ -2987,20 +3013,23 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          
          glDisable(GL_COLOR_MATERIAL);
          
+         SUMA_LH("ROIs");
          /* draw surface ROIs */
          if (!SUMA_Draw_SO_ROI (SurfObj, SUMAg_DOv, SUMAg_N_DOv)) {
             fprintf (SUMA_STDERR, "Error %s: Failed in drawing ROI objects.\n", FuncName);
          }
          /* Draw Axis */
+         SUMA_LH("Axis");
          if (SurfObj->MeshAxis && SurfObj->ShowMeshAxis)   {
             if (!SUMA_DrawAxis (SurfObj->MeshAxis, sv)) {
                fprintf(stderr,"Error SUMA_DrawAxis: Unrecognized Stipple option\n");
             }
          }
          
+         SUMA_LH("Highlight");
          /* Draw Selected Node Highlight */
          if (SurfObj->ShowSelectedNode && SurfObj->SelectedNode >= 0) {
-            /*fprintf(SUMA_STDOUT,"Drawing Node Selection \n");*/
+            if (LocalHead) fprintf(SUMA_STDOUT,"Drawing Node Selection \n");
             id = ND * SurfObj->SelectedNode;
             glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); /*turn on emissidity for sphere */
             glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
@@ -3012,7 +3041,7 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          
          /* Draw Selected FaceSet Highlight */
          if (SurfObj->ShowSelectedFaceSet && SurfObj->SelectedFaceSet >= 0) {
-            /*fprintf(SUMA_STDOUT,"Drawing FaceSet Selection \n");            */
+            if (LocalHead) fprintf(SUMA_STDOUT,"Drawing FaceSet Selection \n");            
             if (!SUMA_DrawFaceSetMarker (SurfObj->FaceSetMarker)) {
                fprintf(SUMA_STDERR,"Error SUMA_DrawMesh: Failed in SUMA_DrawFaceSetMarker\b");
             }
@@ -3022,12 +3051,14 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 
    } /* switch DRAW_METHOD */
    
+   SUMA_LH("RenderMode");
    /* reset viewer default rendering modes */
    if (SurfObj->PolyMode != SRM_ViewerDefault) {
      /* not the default, do the deed */
      SUMA_SET_GL_RENDER_MODE(sv->PolyMode); 
    }   
 
+   SUMA_LH("Done");
    SUMA_RETURNe;
 } /* SUMA_DrawMesh */
 

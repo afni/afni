@@ -1,5 +1,6 @@
 #Version of SUMA_Makefile with no ifdef statements
 
+MAKE = make
 SUMALIB = libSUMA.a
 AFNILIB = -lmrix -lcoxplot -lf2c -lmri -lrickr
 MAINCODE = SUMA
@@ -66,7 +67,9 @@ SUMA_pixmap2eps:
 
 suma: libSUMA.a SUMA_suma.o 
 	$(RM) $@
-	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o suma ${AFNI_OBJS} SUMA_suma.o ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o suma ${AFNI_OBJS} SUMA_suma.o ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} \
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
 MakeColorMap: SUMA_Color.c
 	$(RM) $@
@@ -286,11 +289,11 @@ SurfMesh: SUMA_coarsen.c libgts.a
 MarchingCubes.o: MarchingCubes/MarchingCubes.c
 	( cd MarchingCubes ;	\
 	  $(RM) mc	debug/*.o;	\
-	  make  mc	;	)
+	  $(MAKE)  mc	;	)
      	
 libply.a: 
 	( cd PLY ;	\
-	  make clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
+	  $(MAKE) clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
 	  $(RANLIB) $@ ;	\
 	  $(CP) -p $@ .. ; )
 
@@ -301,7 +304,7 @@ libgts.a:
 	  automake -a ;	\
 	  autoconf ;	\
 	  ./configure	;	\
-	  make ; \
+	  $(MAKE) ; \
 	  $(RANLIB) src/.libs/$@ ;	\
 	  $(CP) -p src/.libs/$@ .. ; )
 
@@ -312,7 +315,7 @@ AddGTS: ${SUMA_GTS_OBJS}
 
 libglut.a:
 	( cd GLUT/libglut ;	\
-	  make clean $@ 'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
+	  $(MAKE) clean $@ 'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
 	  $(RANLIB) $@ ;	\
      $(CP) -p $@ ../.. ; )
      

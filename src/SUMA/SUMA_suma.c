@@ -101,7 +101,11 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
                   "         is meant to simplify the quick viewing of a surface model.\n"
                   "                suma [-i_TYPE surface] [-t* surface] \n"
                   "         Surfaces specified on command line are place in a group\n"
-                  "         called 'Command Line'.\n"
+                  "         called 'DefGroup'.\n"
+                  "         If you specify nothing on command line, you will have a random\n"
+                  "         surface created for you. Some of these surfaces are generated\n"
+                  "         using Thomas Lewiner's sample volumes for creating isosurfaces.\n"
+                  "         See suma -sources for a complete reference.\n"
                   "\n"
                   "%s"
                   "\n"
@@ -136,7 +140,59 @@ void SUMA_usage (SUMA_GENERIC_ARGV_PARSE *ps)
      
 
 
+/*!
+    a function to return some surface objects for SUMA to work with 
+    
+    surfaces are added to SUMAg_DOv so let them be freed there....
+*/
+SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv) 
+{
+   static char FuncName[]={"SUMA_GimmeSomeSOs"};
+   SUMA_SurfaceObject **SOv=NULL;
+   SUMA_ISOSURFACE_OPTIONS *Opt;
+   char sid[100]; 
+   int i, N_i;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   Opt = (SUMA_ISOSURFACE_OPTIONS *)SUMA_malloc(sizeof(SUMA_ISOSURFACE_OPTIONS));
 
+   N_i = 1; /* just one for now */
+   *N_SOv = N_i; 
+   SOv = (SUMA_SurfaceObject **) SUMA_calloc(*N_SOv, sizeof(SUMA_SurfaceObject *));
+   
+   for (i=0; i<N_i; ++i) {
+      srand((unsigned int)time(NULL));
+      do {
+         Opt->obj_type = rand() % 10;
+      } while (Opt->obj_type == 6);  /* six sucks! */
+      Opt->obj_type_res = 64;
+      Opt->debug = 0;
+      sprintf(sid, "surf_%d", Opt->obj_type);
+      SOv[i] = SUMA_MarchingCubesSurface(Opt);
+      /* assign its Group and State and Side and few other things, must look like surfaces loaded with SUMA_Load_Spec_Surf*/
+      SOv[i]->Group = SUMA_copy_string(SUMA_DEF_GROUP_NAME); /* change this in sync with string in macro SUMA_BLANK_NEW_SPEC_SURF*/
+      SOv[i]->State = SUMA_copy_string(SUMA_DEF_STATE_NAME);
+      SOv[i]->Label = SUMA_copy_string(sid);
+      SOv[i]->EmbedDim = 3;
+      SOv[i]->AnatCorrect = YUP;
+      /* make this surface friendly for suma */
+      if (!SUMA_PrepSO_GeomProp_GL(SOv[i])) {
+         SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
+         SUMA_RETURN(NULL);
+      }
+      /* Add this surface to SUMA's displayable objects */
+      if (!SUMA_PrepAddmappableSO(SOv[i], SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
+         SUMA_S_Err("Failed to add mappable SOs ");
+         SUMA_RETURN(NULL);
+      }
+   }
+  
+   if (Opt) SUMA_free(Opt);
+
+   SUMA_RETURN(SOv);
+}
 
 /*!\**
 File : SUMA.c
@@ -170,12 +226,13 @@ Side effects :
 ***/
 int main (int argc,char *argv[])
 {/* Main */
-   static char FuncName[]={"suma-main"}; 
+   static char FuncName[]={"suma"}; 
 	int kar, i;
 	SUMA_SFname *SF_name;
 	SUMA_Boolean brk, SurfIn;
 	char  *NameParam, *AfniHostName = NULL, *s = NULL;
    char *specfilename[SUMA_MAX_N_GROUPS], *VolParName[SUMA_MAX_N_GROUPS];
+   byte InMem[SUMA_MAX_N_GROUPS];
 	SUMA_SurfSpecFile *Specp[SUMA_MAX_N_GROUPS];   
    SUMA_SurfSpecFile Spec;   
 	SUMA_Axis *EyeAxis; 	
@@ -197,17 +254,20 @@ int main (int argc,char *argv[])
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;");
+   #if 0
    if (argc < 2)
        {
           SUMA_usage (ps);
           exit (1);
        }
+   #endif
 		
    /* initialize Volume Parent and AfniHostName to nothing */
    for (ispec=0; ispec < SUMA_MAX_N_GROUPS; ++ispec) {
       specfilename[ispec] = NULL;
       VolParName[ispec] = NULL;
       Specp[ispec] = NULL;
+      InMem[ispec] = 0;
    }
 	AfniHostName = NULL; 
 	
@@ -220,7 +280,7 @@ int main (int argc,char *argv[])
    if (LocalHead) SUMA_Show_IO_args(ps);
    if (ps->i_N_surfnames || ps->t_N_surfnames) {
       SUMA_LH("-i and/or -t surfaces on command line!");
-      Specp[ispec] = SUMA_IO_args2_spec (ps); 
+      Specp[ispec] = SUMA_IO_args_2_spec (ps); 
       ++ispec;
    }
 	/* Work the options */
@@ -288,32 +348,6 @@ int main (int argc,char *argv[])
       
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
-      #if 0
-      if (  !brk && (strcmp(argv[kar], "-trace") == 0)) {
-			fprintf(SUMA_STDERR,"Warning %s: SUMA running in trace mode.\n", FuncName);
-         SUMA_INOUT_NOTIFY_ON;
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-TRACE") == 0)) {
-			fprintf(SUMA_STDERR,"Warning %s: SUMA running in trace mode.\n", FuncName);
-         SUMA_INOUT_NOTIFY_ON;
-         /* modify DBG_trace to a higher level */
-         DBG_trace = 2;
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-nomall") == 0)) {
-         Domemtrace = NOPE;
-			brk = YUP;
-		}
-      
-      if (!brk && (strcmp(argv[kar], "-yesmall") == 0)) {
-         Domemtrace = YUP;
-			brk = YUP;
-		}
-      
-      #endif
 		#if SUMA_MEMTRACE_FLAG
          if (!brk && (strcmp(argv[kar], "-memdbg") == 0)) {
 			   fprintf(SUMA_STDOUT,"Error %s: -memdbg is obsolete, use -trace\n", FuncName);
@@ -410,19 +444,16 @@ int main (int argc,char *argv[])
 
    /* any Specp to be found ?*/
    
-   #if 0
-   /* dealt with in SUMA_ParseInput_basics */
-   
-   if (Domemtrace) {
-      /* fprintf(SUMA_STDOUT,"Warning %s: enabling mcw_malloc\n", FuncName); */
-      SUMA_MEMTRACE_ON;
-   } else {
-      /* fprintf(SUMA_STDOUT,"Warning %s: mcw_malloc not enabled\n", FuncName); */
-   }
-   #endif
 	if (specfilename[0] == NULL && Specp[0] == NULL) {
-		fprintf (SUMA_STDERR,"Error %s: No spec filename or input surfaces specified.\n", FuncName);
-		exit(1);
+      SUMA_SurfaceObject **SOv=NULL;
+      int N_SOv = 0;
+      fprintf (SUMA_STDERR,"%s: No input specified, showing random surfaces.\nUse suma -help for assistance.\n", FuncName);
+		/* create your own surface and put it in a spec file */
+      SOv = SUMA_GimmeSomeSOs(&N_SOv);
+      Specp[ispec] = SUMA_SOGroup_2_Spec (SOv, N_SOv);
+      SUMA_free(SOv); SOv = NULL;
+      InMem[ispec] = 1; 
+      ++ispec;
 	}
 
 	if(!SUMA_Assign_HostName (SUMAg_CF, AfniHostName, -1)) {
@@ -471,8 +502,7 @@ int main (int argc,char *argv[])
 		return 1;
 	}
    
-	#if 1
-   for (i=0; i<ispec; ++i) {
+	for (i=0; i<ispec; ++i) {
       if (!list) list = SUMA_CreateList();
       ED = SUMA_InitializeEngineListData (SE_Load_Group);
       if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
@@ -484,6 +514,13 @@ int main (int argc,char *argv[])
       }
       if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
                                              SEF_ip, (void *)Specp[i], 
+                                             SES_Suma, NULL, NOPE, 
+                                             SEI_In, Element ))) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+         exit (1);
+      }
+      if (!( Element = SUMA_RegisterEngineListCommand (  list, ED, 
+                                             SEF_f, (void *)&InMem[i], 
                                              SES_Suma, NULL, NOPE, 
                                              SEI_In, Element ))) {
          fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
@@ -548,59 +585,6 @@ int main (int argc,char *argv[])
    }
    SUMA_FreeGenericArgParse(ps); ps = NULL;
    
-   #else
-   /* load the specs file and the specified surfaces*/
-		/* Load The spec file */
-		if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
-			fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
-			exit(1);
-		}	
-
-		/* make sure only one group was read in */
-		if (Spec.N_Groups != 1) {
-			fprintf(SUMA_STDERR,"Error %s: One and only one group of surfaces is allowed at the moment (%d found).\n", FuncName, Spec.N_Groups);
-			exit(1);
-		}
-		
-		/* load the surfaces specified in the specs file, one by one*/			
-		if (!SUMA_LoadSpec_eng (&Spec, SUMAg_DOv, &SUMAg_N_DOv, VolParName, 0, SUMAg_CF->DsetList)) {
-			fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
-			exit(1);
-		}
-	
-	/* Register the surfaces in Spec file with the surface viewer and perform setups */
-	for (kar = 0; kar < SUMA_MAX_SURF_VIEWERS; ++kar) {
-		if (!SUMA_SetupSVforDOs (Spec, SUMAg_DOv, SUMAg_N_DOv, &SUMAg_SVv[kar])) {
-			fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
-			exit (1);
-		}
-	}
-	
-   if (!list) list = SUMA_CreateList();
-   ED = SUMA_InitializeEngineListData (SE_Home);
-   if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                          SEF_Empty, NULL, 
-                                          SES_Afni, (void*)&SUMAg_SVv[0], NOPE, 
-                                          SEI_Tail, NULL )) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
-      exit (1);
-   }
-   ED = SUMA_InitializeEngineListData (SE_Redisplay);
-   if (!SUMA_RegisterEngineListCommand (  list, ED, 
-                                          SEF_Empty, NULL, 
-                                          SES_Afni, (void*)&SUMAg_SVv[0], NOPE, 
-                                          SEI_Tail, NULL )) {
-      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
-      exit (1);
-   }
-   
-   if (!SUMA_Engine (&list)) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Engine\n", FuncName);
-      exit (1);
-   }
-   
-   #endif
-
 	/*Main loop */
 	XtAppMainLoop(SUMAg_CF->X->App);
 

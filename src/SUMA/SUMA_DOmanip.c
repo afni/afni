@@ -799,7 +799,7 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
 
 /*!
    
-  SO = SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
+  SO = SUMA_find_named_SOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
    searches all SO_type DO objects for idcode
    
    \param coordname (char *) filename of SO (without path) that you are searching for.
@@ -814,7 +814,7 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
 */
 SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, int N_dov)
 {
-   static char FuncName[]={"SUMA_findSOp_inDOv"};
+   static char FuncName[]={"SUMA_find_named_SOp_inDOv"};
    SUMA_SurfaceObject *SO = NULL, *SOf = NULL;
    SUMA_STRING *SS=NULL;
    char *stmp=NULL;

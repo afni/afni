@@ -373,23 +373,28 @@ SUMA_Boolean SUMA_niml_call (SUMA_CommonFields *cf, int si, SUMA_Boolean fromSUM
 SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 {
    int tt = NI_element_type(nini) ;
-   int OverInd, loc_ID, iview;
+   int OverInd, loc_ID, iview, *IJK=NULL, N_Node, *FaceSetList=NULL, N_FaceSet;
    int i, I_C = -1, nodeid = -1, iv3[3], dest_SO_ID = -1, 
          N_SOlist, SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];
    NI_element *nel ;
    SUMA_EngineData *ED = NULL; 
    DList *list = NULL;
+   DListElmt *Elm = NULL;
    char CommString[SUMA_MAX_COMMAND_LENGTH], *nel_surfidcode = NULL, *nel_nodeid = NULL;
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100], ssource[100];
    static char FuncName[]={"SUMA_process_NIML_data"};
-   float **fm, dimfact,  *XYZ=NULL;
+   float **fm, dimfact,  *XYZ=NULL, *NodeList=NULL;
    byte *r, *g, *b;
-   SUMA_Boolean Empty_irgba = NOPE, LocalHead = NOPE, Found = NOPE;
+   byte BrandNew = YUP;
+   SUMA_NEW_SO_OPT *nsoopt=NULL;
+   SUMA_Boolean Empty_irgba = NOPE,  Found = NOPE;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfaceViewer *svi = NULL;
    SUMA_OVERLAYS * tmpptr; 
    GLfloat *glar_ColorList = NULL;
    SUMA_OVERLAY_PLANE_DATA sopd;
+   SUMA_SurfSpecFile *Spec=NULL;
+   SUMA_Boolean LocalHead = NOPE;
 
    /*int it;
    float fv3[3], fv15[15];*/
@@ -617,6 +622,268 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       SUMA_RETURN(YUP) ;
    }/* SUMA_crosshair_xyz */
    
+   /* New surface mesh_IJK*/
+   if (strcmp(nel->name,"NewMesh_IJK") == 0) { /* NewMesh_IJK */
+      if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
+         fprintf(SUMA_STDERR,"%s: Empty NewMesh_IJK\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }else {
+         if( nel->vec_num != 1 || nel->vec_typ[0] != NI_INT) {
+              fprintf(SUMA_STDERR,"%s: NewMesh_IJK Bad format\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+      }
+      /* show me nel */
+      /* if (LocalHead) SUMA_nel_stdout (nel); */
+      /* look for the surface idcode */
+      nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
+      if (nel_surfidcode == NULL) {
+         fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      } 
+
+      SUMA_LH("Checking for new surface...");
+      SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
+      if (SO) {
+         fprintf(SUMA_STDERR,"Warning %s: nel idcode was found in DOv.\nChecking for mesh compatibility", FuncName);
+         if (SO->N_FaceSet * SO->FaceSetDim == nel->vec_len) {
+            fprintf(SUMA_STDERR,"Note %s: Mesh dimensions match. New mesh will be adopted.\n", FuncName);
+         } else {
+            fprintf(SUMA_STDERR,"Error %s: Mesh dimensions mismatch.\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+      }
+      
+      /* get the number of nodes */
+      if (!NI_get_attribute(nel, "N_Node")) {
+         fprintf(SUMA_STDERR,"Error %s: NULL or non existent N_Node field.\n", FuncName);
+         SUMA_RETURN(NOPE);   
+      }
+
+      if (LocalHead) fprintf(SUMA_STDERR,"Number of nodes:%s...\n", NI_get_attribute(nel, "N_Node"));
+      N_Node = atoi(NI_get_attribute(nel, "N_Node"));
+      if (N_Node <= 0 || N_Node > 1000000) {
+         fprintf(SUMA_STDERR,"Error %s: Bad number of nodes %d (limit of 1000000 nodes.)\n", FuncName, N_Node);
+         SUMA_RETURN(NOPE);
+      }
+
+      if (!SO) { 
+         SUMA_LH("A brand new surface.");
+         BrandNew = YUP;
+         NodeList = (float *)SUMA_malloc(3 * N_Node * sizeof(float)); /* do not use calloc so that you can see something ... */
+         FaceSetList = (int *)SUMA_malloc(nel->vec_len * sizeof(int)); 
+         if (!NodeList || !FaceSetList) {
+            SUMA_SL_Crit("Failed to allocate for NodeList || FaceSetList");
+            SUMA_RETURN(NOPE);
+         }
+         IJK = (int *)nel->vec[0];
+         N_FaceSet = nel->vec_len / 3; 
+         if (nel->vec_len % 3) {
+            fprintf(SUMA_STDERR,"Error %s: Bad number of elements in IJK vector not divisible by 3! %d\n", FuncName, nel->vec_len);
+            SUMA_RETURN(NOPE);
+         }
+         SUMA_LH("Copying new mesh");
+         for (i=0; i < nel->vec_len; ++i) FaceSetList[i] = IJK[i];
+         /* Now form the new surface */
+         SUMA_LH("Now forming new surface");
+         nsoopt = SUMA_NewNewSOOpt();
+         nsoopt->DoNormals = NOPE; nsoopt->DoMetrics = NOPE; nsoopt->DoCenter = NOPE; 
+         nsoopt->idcode_str = SUMA_copy_string(nel_surfidcode);      
+         SO = SUMA_NewSO(&NodeList, N_Node, &FaceSetList, N_FaceSet, nsoopt);
+         nsoopt=SUMA_FreeNewSOOpt(nsoopt); 
+      } else {
+         SUMA_LH("A refit of an existing surface.");
+         BrandNew = NOPE;
+         if (N_Node != SO->N_Node) {
+            fprintf(SUMA_STDERR,"Error %s: Mismatch in number of nodes between new mesh and pre-existing one (%d vs %d)\n", FuncName, N_Node, SO->N_Node);
+            SUMA_RETURN(NOPE);
+         }
+         IJK = (int *)nel->vec[0];
+         for (i=0; i < nel->vec_len; ++i) SO->FaceSetList[i] = IJK[i];
+      }
+      
+      /* work the mesh a little and add it to DOv */
+      SO->Group = SUMA_copy_string(NI_get_attribute(nel, "Group"));
+      SO->State = SUMA_copy_string(NI_get_attribute(nel, "State"));
+      SO->Label = SUMA_copy_string(NI_get_attribute(nel, "Label"));
+      SO->EmbedDim = atoi(NI_get_attribute(nel, "EmbedDim"));
+      SO->AnatCorrect = atoi(NI_get_attribute(nel, "AnatCorrect"));
+      
+      /* add this surface to DOv */
+      if (BrandNew) {
+         if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)SO,  SO_type, SUMA_LOCAL)) {
+            fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+      }
+      
+      /* don't free nel, it's freed later on */
+      SUMA_RETURN(YUP) ;
+   }/* NewMesh_IJK */
+   
+   if (strcmp(nel->name,"PrepNewSurface") == 0) { /* PrepNewSurface */
+      /* show me nel */
+      /* if (LocalHead) SUMA_nel_stdout (nel); */
+      /* look for the surface idcode */
+      nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
+      if (nel_surfidcode == NULL) {
+         fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      } 
+      SUMA_LH("Looking for  surface...");
+      SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
+      if (!SO) {
+         fprintf(SUMA_STDERR,"Error %s: nel idcode was not found in DOv.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Surface SO about to be prepped: Label %s, State %s, Group %s\n", FuncName, SO->Label, SO->State, SO->Group);
+      
+      if (NI_get_attribute(nel, "VolParFilecode")) {
+         SO->VolPar = SUMA_VolPar_Attr (NI_get_attribute(nel, "VolParFilecode"));
+         if (!SO->VolPar) {
+            SUMA_S_Err("Failed in SUMA_VolPar_Attr");
+            SUMA_RETURN(NOPE);
+         }
+         SO->SUMA_VolPar_Aligned = YUP; /* Surface is in alignment with volume, should not call SUMA_Align_to_VolPar ... */
+      }
+      
+      /* make this surface friendly for suma */
+      if (!SUMA_PrepSO_GeomProp_GL(SO)) {
+         SUMA_S_Err("Failed in SUMA_PrepSO_GeomProp_GL");
+         SUMA_RETURN(NOPE);
+      }
+      /* Add this surface to SUMA's displayable objects */
+      if (!SUMA_PrepAddmappableSO(SO, SUMAg_DOv, &(SUMAg_N_DOv), 0, SUMAg_CF->DsetList)) {
+         SUMA_S_Err("Failed to add mappable SOs ");
+         SUMA_RETURN(NOPE);
+      }
+      /* create a fake spec, be damned gates of spec! */
+      Spec = SUMA_SOGroup_2_Spec (&SO, 1);
+      
+      /* register the new group with SUMA */
+      if (!SUMA_RegisterGroup(SUMAg_CF, Spec)) {
+         SUMA_SL_Err("Failed to register group");
+         SUMA_RETURN(NOPE);
+      }
+               
+	   /* Register the surfaces in Spec file with the surface viewer and perform setups */
+	   if (LocalHead) fprintf (SUMA_STDERR, "%s: Registering surfaces with surface viewers ...\n", FuncName);
+
+      for (i = 0; i< SUMA_MAX_SURF_VIEWERS; ++i) {
+         if (!SUMA_SetupSVforDOs (*Spec, SUMAg_DOv, SUMAg_N_DOv, &(SUMAg_SVv[i]))) {
+			   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SetupSVforDOs function.\n", FuncName);
+			   SUMA_RETURN(NOPE);
+		   }
+	   }
+      
+      /* do not switch or redisplay yet, all you have is garbage for geometry ... */
+      SUMA_free(Spec); Spec = NULL;
+
+      /* switch viewer 0 to the group in question */
+      if (!sv) sv = &(SUMAg_SVv[0]);
+      if (!SUMA_SwitchGroups (sv, SO->Group)) {
+         SUMA_SL_Err("Failed to switch groups!");
+         SUMA_RETURN(NOPE);
+      }
+      if ((i = SUMA_WhichState(SO->State, sv, sv->CurGroupName)) < 0) {
+         SUMA_SL_Err("Failed to find state!");
+         SUMA_RETURN(NOPE);
+      } else {
+         if (!SUMA_SwitchState(SUMAg_DOv, SUMAg_N_DOv, sv, i, sv->CurGroupName)) {
+            SUMA_SL_Err("Failed to switch states!");
+            SUMA_RETURN(NOPE);
+         }
+      }
+      
+      /* do we need to notify AFNI ? */
+      if (NI_get_attribute(nel, "Send2Afni")) {
+         SUMA_LH("Attempting to talk to AFNI");
+         if (!SO->VolPar) {
+            SUMA_SL_Err("Have no VolPar, cannot send to AFNI!\nCommand ignored.");
+         } else {
+            if (!SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) { /* need to send a toggle request */
+               if (LocalHead) fprintf(SUMA_STDERR, "%s: Sending talk request...\n", FuncName);
+               if (!list) list = SUMA_CreateList();
+               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleConnected, SES_SumaFromAny, sv);
+               if (!SUMA_Engine (&list)) {
+                  fprintf(SUMA_STDERR, "Warning %s: SUMA_Engine call failed.\nContinuing...", FuncName);
+               } 
+            } else {
+               SUMA_LH("Looks like they're talking already");
+            }
+            /* now send the surface */
+            SUMA_LH("Now trying to send surface");
+            if (!SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) { 
+               fprintf(SUMA_STDERR, "Warning %s: Failed to open connection.\nContinuing...", FuncName);
+            } else {
+               SUMA_LH("Making Call");
+               if (!list) list = SUMA_CreateList();
+               ED = SUMA_InitializeEngineListData (SE_SetAfniThisSurf);
+               if (!( Elm = SUMA_RegisterEngineListCommand (  list, ED, 
+                                                      SEF_cp, (void *)SO->idcode_str, 
+                                                      SES_Suma, NULL, NOPE, 
+                                                      SEI_Tail, NULL ))) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register command\nIgnoring ...", FuncName);
+               }else {
+                  SUMA_RegisterEngineListCommand (  list, ED, 
+                                                      SEF_s, (void *)("NodeList, FaceSetList, NodeNormList"), 
+                                                      SES_Suma, NULL, NOPE, 
+                                                      SEI_In, Elm );
+                  if (!SUMA_Engine (&list)) {
+                     fprintf(SUMA_STDERR, "Warning %s: SUMA_Engine call failed.\nContinuing...", FuncName);
+                  }
+               }
+            }   
+         }
+      } else {
+         SUMA_LH("No talking to AFNI requested.");
+      }
+      /* don't free nel, it's freed later on */
+      SUMA_RETURN(YUP) ;
+   } /* PrepNewSurface */
+   
+   /* NewNode_XYZ */
+   if( strcmp(nel->name,"NewNode_XYZ") == 0) {/* NewNode_XYZ */
+      if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
+         fprintf(SUMA_STDERR,"%s: Empty NewNode_XYZ\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }else {
+         if( nel->vec_num != 1 || nel->vec_typ[0] != NI_FLOAT) {
+              fprintf(SUMA_STDERR,"%s: NewNode_XYZ Bad format\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
+      }
+      /* show me nel */
+      /* if (LocalHead) SUMA_nel_stdout (nel); */
+
+      /* look for the surface idcode */
+      nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
+      if (nel_surfidcode == NULL) {
+         fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      } 
+      
+      SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
+      if (!SO) {
+         fprintf(SUMA_STDERR,"Error %s: nel idcode is not found in DOv.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* now copy the new node coordinates over the old ones */
+      if (nel->vec_len != SO->N_Node * 3) {
+         fprintf(SUMA_STDERR,"Error %s:\nExpected %d * 3 = %d values, found %d\n", 
+            FuncName, SO->N_Node, SO->N_Node * 3, nel->vec_len);
+         SUMA_RETURN(NOPE);
+      }
+      
+      XYZ = (float *)nel->vec[0];
+      for (i=0; i < nel->vec_len; ++i) SO->NodeList[i] = XYZ[i];
+      
+      /* don't free nel, it's freed later on */
+      SUMA_RETURN(YUP) ;
+   } /* NewNode_XYZ */
+   
    /* Node_XYZ */
    if( strcmp(nel->name,"Node_XYZ") == 0) {/* Node_XYZ */
       if( nel->vec_len  < 1 || nel->vec_filled <  1) {  /* empty element?             */
@@ -661,7 +928,32 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
       if (!list) list = SUMA_CreateList();
       SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAny, sv);
-
+      if (NI_get_attribute(nel, "Send2Afni")) {
+         if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
+            SUMA_LH("Putting request for sending to afni ...");
+            ED = SUMA_InitializeEngineListData (SE_SetAfniThisSurf);
+            if (!( Elm = SUMA_RegisterEngineListCommand (  list, ED, 
+                                                   SEF_cp, (void *)SO->idcode_str, 
+                                                   SES_Suma, NULL, NOPE, 
+                                                   SEI_Tail, NULL ))) {
+               fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+               SUMA_RETURN(NOPE);
+            }
+            
+            /* You could save time and not send the NodeNormList but that means AFNI 
+            will end up with a bad set of normals for the final version of the surface
+            not a good idea... */
+               SUMA_RegisterEngineListCommand ( list, ED, 
+                                                SEF_s, (void *)("NodeList, NodeNormList"), 
+                                                SES_Suma, NULL, NOPE, 
+                                                SEI_In, Elm );
+         } else {
+            if (LocalHead) {
+               SUMA_SL_Note("Cannot send surface to afni, no connection established");
+            }
+         }
+      } 
+      
       if (!SUMA_Engine (&list)) {
          fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
          SUMA_RETURN(NOPE);
@@ -792,7 +1084,7 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    NI_element *nel;
    int *ic, ii, ND, id;
    float *xc, *yc, *zc;
-   
+    
    SUMA_ENTRY;
 
    
@@ -837,7 +1129,7 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    NI_add_column( nel , NI_FLOAT , yc ) ; SUMA_free(yc) ;
    NI_add_column( nel , NI_FLOAT , zc ) ; SUMA_free(zc) ;
 
-   NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
+   if (SO->VolPar) NI_set_attribute (nel, "volume_idcode", SO->VolPar->idcode_str);
    NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
    NI_set_attribute (nel, "surface_label", SO->Label);
    NI_set_attribute (nel, "local_domain_parent_ID", SO->LocalDomainParentID);
@@ -951,7 +1243,7 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
    nel = NI_new_data_element( "SUMA_ijk" , SO->N_FaceSet) ;
    
    /* make the columns to be put in the element */
-   I = (int *)   SUMA_malloc( sizeof(int)   * SO->N_FaceSet ) ;
+   I = (int *) SUMA_malloc( sizeof(int) * SO->N_FaceSet ) ;
    J = (int *) SUMA_malloc( sizeof(int) * SO->N_FaceSet ) ;
    K = (int *) SUMA_malloc( sizeof(int) * SO->N_FaceSet ) ;
 
