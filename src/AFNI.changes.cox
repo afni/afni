@@ -5101,3 +5101,7 @@
 20 Jul 2004
  * Modified thd_get1D.c to limit loading of 1D files in AFNI to a max size
      set by environment variable AFNI_MAX_1DSIZE (default 123K).
+ * Modified mri_read_ascii() in mri_read.c to use the "n@val" method for
+     value duplication.  Also modified my_fgets() to return a duplicate
+     of the previous line if the first two nonblank characters on the line
+     are "".
