@@ -115,12 +115,12 @@ typedef enum {	SE_Empty, \
 					SE_SetCrossHair, SE_ToggleCrossHair, SE_SetSelectedNode, SE_ToggleShowSelectedNode, SE_SetSelectedFaceSet,\
 					SE_ToggleShowSelectedFaceSet, SE_ToggleConnected, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_SetForceAfniSurf, \
 					SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, \
-					SE_Redisplay_AllVisible, \
+					SE_Redisplay_AllVisible, SE_ResetOpenGLState, SE_LockCrossHair,\
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
 					
 typedef enum { SEF_Empty, \
 					SEF_fm, SEF_im, SEF_fv3, SEF_iv3, SEF_fv15, \
-					SEF_iv15, SEF_i, SEF_f, SEF_s, \
+					SEF_iv15, SEF_i, SEF_f, SEF_s, SEF_vp, \
 					SEF_BadCode} SUMA_ENGINE_FIELD_CODE; 
 					
 typedef enum { SES_Empty,\
@@ -139,7 +139,8 @@ typedef enum {	SUMA_2D_Z0, SUMA_3D, SUMA_Dunno} SUMA_STANDARD_VIEWS; /*!< Standa
 																						SUMA_3D standard 3D view
 																						SUMA_Dunno used to flag errors leave this at the end 
 																						Keep in sync with SUMA_N_STANDARD_VIEWS*/
-                                                                  
+typedef enum {	SUMA_No_Lock, SUMA_I_Lock, SUMA_XYZ_Lock}  SUMA_LINK_TYPES; /*!< types of viewer linking */
+                                                                 
 /*! structure to keep track of allocate memory */
 typedef struct {
    void **Pointers; /*!< vector of pointers for which memory was allocated */
@@ -498,6 +499,8 @@ typedef struct {
    SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, NOPE if you can see its contents */
 
    SUMA_Boolean LinkAfniCrossHair; /*!< YUP if the cross hair location is to be sent (and accepted from AFNI, when the stream is open) */
+   SUMA_Boolean ResetGLStateVariables; /*!< YUP if you need to run the function that resets the Eye Axis before display. 
+                                          see functions SUMA_display and SUMA_OpenGLStateReset for more info */
 }SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
@@ -540,6 +543,10 @@ typedef struct {
 	int im_Dest;
 	int im_Source; /*!< source of im */
 	
+   void *vp; /*!< pointer to void */
+   int vp_Dest; /*!< destination of fm */
+	int vp_Source; /*!< source of fm*/
+   
 	int N_rows;
 	int N_cols;
 	
@@ -795,7 +802,7 @@ typedef struct {
                      not be sent to AFNI again as would be the case if the stream 
                      was completely closed */
    SUMA_Boolean Connected; /*! YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI */
-   SUMA_Boolean Locked[SUMA_MAX_SURF_VIEWERS]; /*! All viewers i such that Locked[i] = YUP are locked together */   
+   int Locked[SUMA_MAX_SURF_VIEWERS]; /*! All viewers i such that Locked[i] = YUP are locked together */   
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */

@@ -247,13 +247,17 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
 
+            
             /* send cross hair coordinates */
             sprintf(sfield,"fv3");
             sprintf(sdestination,"SetCrossHair");
             sprintf(ssource,"afni");
             if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)XYZ, sdestination, ssource, NOPE)) {
                fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+               SUMA_RETURN(NOPE);
             }
+            
+            svi->ResetGLStateVariables = YUP; 
             sprintf(CommString,"Redisplay|SetCrossHair~");
             if (!SUMA_Engine (CommString, &EngineData, svi)) {
                fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);

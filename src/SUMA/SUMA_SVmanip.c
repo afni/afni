@@ -185,6 +185,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->isShaded = NOPE; 
       
       SV->LinkAfniCrossHair = YUP;
+      
+      SV->ResetGLStateVariables = YUP;
    }
    SUMA_RETURN (SVv);
 }
@@ -1064,7 +1066,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->ns = NULL;
    cf->Connected = NOPE;
    for (i=0; i<SUMA_MAX_SURF_VIEWERS; ++i) {
-      cf->Locked[i] = YUP;
+      cf->Locked[i] = SUMA_I_Lock;
    }
    
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/

@@ -16,6 +16,7 @@ void SUMA_help_message(FILE *Out)
 	 fprintf (Out, "\t  b: background color, toggle.\n");
 	 fprintf (Out, "\t  c: node color file.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  d: Show all DO objects in DOv.\n");
+    if (SUMAg_CF->Dev) fprintf (Out, "\t   Alt+e: Look for OpenGL errors.\n"); 
 	 fprintf (Out, "\t  f: functional overlay, toggle.\n");
 	 fprintf (Out, "\t  F: Flip light position between +z and -z.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  H: Highlight nodes inside a specified box.\n");
