@@ -838,10 +838,10 @@ SUMA_MenuItem Edit_menu[] = {
 };
 */
 
- 
+/* can use combo like: "Ctrl Shift<Key>d", "Ctrl+D"*/
 SUMA_MenuItem View_menu[] = {
    {  "SUMA Controller", &xmPushButtonWidgetClass, \
-      'U', "Ctrl<Key>u", "Ctrl+u", \/*"Ctrl Shift<Key>d", "Ctrl+D"*/
+      'U', "Ctrl<Key>u", "Ctrl+u", \
       SUMA_cb_viewSumaCont, (XtPointer) SW_ViewSumaCont, NULL },
    
    {  "Surface Controller", &xmPushButtonWidgetClass, \
@@ -6920,7 +6920,8 @@ void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data)
 
 #define YES 1
 #define NO  2
-
+#define HELP 3
+ 
 /*
  * AskUser() -- a generalized routine that asks the user a question
  * and returns a response.  Parameters are: the question, the labels
@@ -6943,6 +6944,26 @@ int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_a
             False);
         XtAddCallback (dialog, XmNokCallback, response, &answer);
         XtAddCallback (dialog, XmNcancelCallback, response, &answer);
+       /* Now add a special extra cute little button */
+       {
+          /* To do here:
+          - Make all other buttons use UserData for uniformity
+          - use SUMA_NO, SUMA_YES etc....
+          - deal with recreation issues (you'll have to keep track of which new buttons are used, their new labels and whether they are to appear or not.)
+            You'll probably want different kinds of static dialog widgets for the various types you envision using ....
+          */
+          XmString All = XmStringCreateLocalized ("All");
+          Widget All_button = NULL;
+
+          All_button = XtVaCreateManagedWidget("All", 
+            xmPushButtonWidgetClass, dialog,
+            XmNlabelString, All,
+            NULL);
+          XtVaSetValues(All_button, XmNuserData, 666, NULL);
+          XtAddCallback (All_button, XmNactivateCallback, response, &answer);
+          XmStringFree (All);   
+       }
+
     }
     answer = 0;
     text = XmStringCreateLocalized (question);
@@ -6958,6 +6979,7 @@ int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_a
     XmStringFree (text);
     XmStringFree (yes);
     XmStringFree (no);
+    
     XtManageChild (dialog);
     XtPopup (XtParent (dialog), XtGrabNone);
 
@@ -6981,12 +7003,28 @@ int AskUser(Widget parent, char *question, char *ans1, char *ans2, int default_a
 void response(Widget widget, XtPointer client_data, XtPointer call_data)
 {
     int *answer = (int *) client_data;
+    int ud;
     XmAnyCallbackStruct *cbs = (XmAnyCallbackStruct *) call_data;
 
-    if (cbs->reason == XmCR_OK)
-        *answer = YES;
-    else if (cbs->reason == XmCR_CANCEL)
-        *answer = NO;
+    switch (cbs->reason) {
+      case XmCR_OK:
+         *answer = YES;
+         break;
+      case XmCR_CANCEL:
+         *answer = NO;
+         break;
+      case XmCR_HELP:
+         *answer = HELP;
+         break;
+      case XmCR_ACTIVATE:
+         XtVaGetValues(widget, XmNuserData, &ud, NULL); 
+         *answer = ud;
+         break;
+      default:
+         *answer = -1;
+         break;
+    }
+        
 }
 
 

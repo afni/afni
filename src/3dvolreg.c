@@ -1397,6 +1397,7 @@ void VL_command_line(void)
          Iarg++ ; continue ;
       }
 
+
       /** -prefix **/
 
       if( strncmp(Argv[Iarg],"-prefix",4) == 0 ){
