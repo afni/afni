@@ -779,8 +779,8 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    The (x,y,z) coordinates are given by the pixdim[] scales, a rotation
    matrix, and a shift.  This method is intended to represent
    "scanner-anatomical" coordinates, which are often embedded in the
-   image header (e.g., DICOM fields 0020/0032, 0020/0037, 0028/0030, and
-   0018/0050), and represent the nominal orientation and location of
+   image header (e.g., DICOM fields (0020,0032), (0020,0037), (0028,0030),
+   and (0018,0050)), and represent the nominal orientation and location of
    the data.  This method can also be used to represent "aligned"
    coordinates, which would typically result from some post-acquisition
    alignment of the volume to a standard orientation (e.g., the same
@@ -788,9 +788,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    orientation from the tilted position of the subject in the scanner).
    The formula for (x,y,z) in terms of header parameters and (i,j,k) is:
 
-     [ x ]   [ R11 R12 R13 ] [ qfac * pixdim[1] * i ]   [ qoffset_x ]
+     [ x ]   [ R11 R12 R13 ] [        pixdim[1] * i ]   [ qoffset_x ]
      [ y ] = [ R21 R22 R23 ] [        pixdim[2] * j ] + [ qoffset_y ]
-     [ z ]   [ R31 R32 R33 ] [        pixdim[3] * k ]   [ qoffset_z ]
+     [ z ]   [ R31 R32 R33 ] [ qfac * pixdim[3] * k ]   [ qoffset_z ]
 
    The qoffset_* shifts are in the NIFTI-1 header.  Note that the center
    of the (i,j,k)=(0,0,0) voxel (first value in the dataset array) is
@@ -804,22 +804,23 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    This may not fit the needs of the data; for example, if the image
    grid is
      i increases from Left-to-Right
-     j increases form Anterior-to-Posterior
+     j increases from Anterior-to-Posterior
      k increases from Inferior-to-Superior
    Then (i,j,k) is a left-handed triple.  In this example, if qfac=1,
    the R matrix would have to be
 
      [  1   0   0 ]
-     [  0  -1   0 ]  which is "improper" (determinant = 1).
+     [  0  -1   0 ]  which is "improper" (determinant = -1).
      [  0   0   1 ]
 
    If we set qfac=-1, then the R matrix would be
 
-     [ -1   0   0 ]
+     [  1   0   0 ]
      [  0  -1   0 ]  which is proper.
-     [  0   0   1 ]
+     [  0   0  -1 ]
 
-   This R matrix is represented by quaternion [a,b,c,d] = [0,0,0,1]
+   This R matrix is represented by quaternion [a,b,c,d] = [0,1,0,0]
+   (which encodes a 180 degree rotation about the x-axis).
 
    METHOD 3 (used when sform_code > 0):
    -----------------------------------
@@ -919,27 +920,46 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
      d = 0.25 * (R21-R12) / a       => quatern_d
 
    If a=0 (a 180 degree rotation), alternative formulas are needed.
-   See the nifti1.c function nifti_mat44_to_quatern() for an
-   implementation of the various cases in converting R to [a,b,c,d].
+   See the nifti1.c function mat44_to_quatern() for an implementation
+   of the various cases in converting R to [a,b,c,d].
 
    Note that R-transpose (= R-inverse) would lead to the quaternion
    [a,-b,-c,-d].
 
    The choice to specify the qoffset_x (etc.) values in the final
    coordinate system is partly to make it easy to convert DICOM images to
-   this format.  The DICOM attribute "Image Position (Patient)" 0020/0032
+   this format.  The DICOM attribute "Image Position (Patient)" (0020,0032)
    stores the (Xd,Yd,Zd) coordinates of the center of the first voxel.
    Here, (Xd,Yd,Zd) refer to DICOM coordinates, and Xd=-x, Yd=-y, Zd=z,
    where (x,y,z) refers to the NIFTI coordinate system discussed above.
    (i.e., DICOM +Xd is Left, +Yd is Posterior, +Zd is Superior,
         whereas +x is Right, +y is Anterior  , +z is Superior. )
-   Thus, if the 0020/0032 DICOM attribute is extracted into (px,py,pz), then
+   Thus, if the (0020,0032) DICOM attribute is extracted into (px,py,pz), then
      qoffset_x = -px   qoffset_y = -py   qoffset_z = pz
    is a reasonable setting for qform_code=NIFTI_XFORM_SCANNER_ANAT.
 
    That is, DICOM's coordinate system is 180 degrees rotated about the z-axis
    from the neuroscience/NIFTI coordinate system.  To transform between DICOM
    and NIFTI, you just have to negate the x- and y-coordinates.
+
+   The DICOM attribute (0020,0037) "Image Orientation (Patient)" gives the
+   orientation of the x- and y-axes of the image data in terms of 2 3-vectors.
+   The first vector is a unit vector along the x-axis, and the second is
+   along the y-axis.  If the (0020,0037) attribute is extracted into the
+   value (xa,xb,xc,ya,yb,yc), then the first two columns of the R matrix
+   would be
+              [ -xa  -ya ]
+              [ -xb  -yb ]
+              [  xc   yc ]
+   The negations are because DICOM's x- and y-axes are reversed relative
+   to NIFTI's.  The third column of the R matrix gives the direction of
+   displacement (relative to the subject) along the slice-wise direction.
+   This orientation is not simply encoded in the DICOM standard, which is
+   mostly concerned with 2D images.  The third column of R will be either
+   the cross-product of the first 2 columns or its negative.  It is possible
+   to infer the sign of the 3rd column by examining the z-coordinate of
+   DICOM attribute (0020,0032) "Image Position (Patient)" for successive
+   slices.
 -----------------------------------------------------------------------------*/
 
    /* [qs]form_code value:  */      /* x,y,z coordinate system refers to:    */
