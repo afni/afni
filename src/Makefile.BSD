@@ -17,15 +17,16 @@
 #   gettext
 #   gmake
 #
-#   Note:   SUMA has display problems on FreeBSD 4.x that I have not
-#           found time to resolve.  I believe they are related to the
-#           version of the GL libraries that ship with 4.x.
+#   Note:   SUMA has display problems on FreeBSD 4.8 and below that I 
+#           have not found time to resolve.  I believe they are related
+#           to the version of the GL libraries that ship with 4.x.
 #
-#           SUMA appears to work fine under FreeBSD 5.1.
+#           SUMA works fine under FreeBSD 4.9 with GeForce drivers installed
+#           and under FreeBSD 5.1.
 #
 #   Note:   The SUMA build process (as of Aug, 2003) requires GNU make,
-#           which is /usr/local/bin/gmake on BSD systems.  Run "gmake"
-#           SUMA and be sure the MAKE macro below is set to gmake.
+#           which is /usr/local/bin/gmake on BSD systems.  
+#           Be sure the MAKE macro below is set to gmake.
 #
 #   Note:   Compilation of netcdf-3.5.0 may fail due to m4's lack of
 #           support for the -B option.  Remove the -B10000 flag from
