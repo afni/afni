@@ -143,7 +143,7 @@ void matrix_destroy (matrix * m)
     free(m->elts) ;
   }
 #ifndef DONT_USE_MATRIX_MAT
-  if( m->mat  != NULL) free (m->mat ) ;
+  if( m->mat  != NULL) free (m->mat) ;
 #endif
   matrix_initialize (m);
 }
@@ -172,11 +172,11 @@ void matrix_create (int rows, int cols, matrix * m)
 
 #ifdef DONT_USE_MATRIX_MAT
   for (i = 0;  i < rows;  i++){
-    m->elts[i] = (double *) calloc (sizeof(double) , cols);
+    m->elts[i] = (float *) calloc (sizeof(float) , cols);
     if (m->elts[i] == NULL) matrix_error ("Memory allocation error");
   }
 #else
-  m->mat  = (double *) calloc( sizeof(double) , rows*cols ) ;
+  m->mat  = (float *) calloc( sizeof(float) , rows*cols ) ;
   if( m->mat == NULL )
     matrix_error ("Memory allocation error");
   for (i = 0;  i < rows;  i++)
