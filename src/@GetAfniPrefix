@@ -10,6 +10,8 @@ set Name = $1:t
 set Name = $Name:r
 #remove +orig or whatever it is
 set Name = `echo $Name | sed 's/+orig//'`
+set Name = `echo $Name | sed 's/+acpc//'`
+set Name = `echo $Name | sed 's/+tlrc//'`
 
 echo $Name
 unset noglob

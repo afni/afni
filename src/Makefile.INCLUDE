@@ -96,7 +96,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze              \
                3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile
 
-SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga
+SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
+          @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h  \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
