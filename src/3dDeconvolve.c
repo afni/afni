@@ -255,8 +255,13 @@
   Mod:     Added -legendre, -nolegendre, -nocond options
   Date     15 Jul 2004 - RWCox
 
-  Mod:     Replace matrix inversion by Gaussian elimination by SVD
+  Mod:     Replace matrix inversion by Gaussian elimination by SVD, and
+           add -svd and -nosvd options.
   Date     20 Jul 2004 - RWCox
+
+  Mod:     If SVD is on, don't eliminate all-zero stim files.
+           Also, add -xjpeg option.
+  Date     21 Jul 2004 - RWCox
 */
 
 /*---------------------------------------------------------------------------*/
@@ -267,9 +272,9 @@
 # define PROGRAM_NAME   "3dDeconvolve_f"             /* name of this program */
 #endif
 
-#define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
+#define PROGRAM_AUTHOR  "B. Douglas Ward, et al."   /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "20 July 2004"        /* latest program revision date*/
+#define PROGRAM_LATEST  "21 July 2004"        /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
@@ -324,6 +329,8 @@
 #else
 # include "matrix_f.h"        /* single precision */
 #endif
+
+void JPEG_matrix_gray( matrix X , char *fname ) ;  /* prototype */
 
 #include "Deconvolve.c"
 
@@ -383,6 +390,8 @@ typedef struct DC_options
   int full_first;       /* flag to output full model stats first */
 
   int nocond ;          /* flag to disable condition numbering [15 Jul 2004] */
+
+  char * xjpeg_filename ;  /* plot file for -xjpeg option [21 Jul 2004] */
 
 } DC_options;
 
@@ -453,6 +462,7 @@ void display_help_menu()
     "[-nolegendre]        use power polynomials for null hypotheses         \n"
     "                       (default is -legendre)                          \n"
     "[-nocond]            don't calculate matrix condition number           \n"
+    "[-svd]               Use SVD instead of Gaussian elimination (default) \n"
     "[-nosvd]             Use Gaussian elimination instead of SVD           \n"
     "[-rmsmin r]          r = minimum rms error to reject reduced model     \n"
     "                                                                       \n"
@@ -514,6 +524,7 @@ void display_help_menu()
     "     The following options control the screen output only:             \n"
     "[-quiet]             Flag to suppress initial screen output            \n"
     "[-xout]              Flag to write X and inv(X'X) matrices to screen   \n"
+    "[-xjpeg filename]    Write a JPEG file graphing the X matrix           \n"
     "[-progress n]        Write statistical results for every nth voxel     \n"
     "[-fdisp fval]        Write statistical results for those voxels        \n"
     "                       whose full model F-statistic is > fval          \n"
@@ -580,6 +591,8 @@ void initialize_options
   option_data->qp       = 0;
   option_data->nbricks  = 0;
   option_data->nocond   = 0;   /* 15 Jul 2004 */
+
+  option_data->xjpeg_filename = NULL ;  /* 21 Jul 2004 */
   
   /*----- Initialize stimulus options -----*/
   option_data->num_stimts = 0;
@@ -781,6 +794,19 @@ void get_options
         nopt++ ; continue ;
       }
 
+      /*-----   -xjpeg filename  ------*/
+      if (strcmp(argv[nopt], "-xjpeg") == 0)   /* 21 Jul 2004 */
+	{
+	  nopt++;
+	  if (nopt >= argc)  DC_error ("need argument after -xjpeg ");
+	  option_data->xjpeg_filename = malloc (sizeof(char)*THD_MAX_NAME);
+	  MTEST (option_data->xjpeg_filename);
+	  strcpy (option_data->xjpeg_filename, argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+
+
       /*-----   -input filename   -----*/
       if (strcmp(argv[nopt], "-input") == 0)
 	{
@@ -908,8 +934,8 @@ void get_options
 
       /*----- -nosvd [20 Jul 2004] -----*/
 
-      if( strcmp(argv[nopt],"-nosvd") == 0 ){
-        use_psinv = 0 ;
+      if( strstr(argv[nopt],"svd") != NULL ){
+        use_psinv = (strncmp(argv[nopt],"-svd",4) == 0) ;
         nopt++ ; continue ;
       }
 
@@ -1758,7 +1784,7 @@ void remove_zero_stimfns
 
       if (all_zero)  /*----- Remove this stimulus function -----*/
 	{
-	  printf ("Warning!  Stimulus function %s consists of all zeros! \n",
+	  printf ("** WARNING!  Stimulus function %s consists of all zeros! \n",
 		 option_data->stim_filename[is]);
 	  if (option_data->num_glt > 0)
 	    DC_error 
@@ -2622,7 +2648,8 @@ void initialize_program
 
 
   /*----- Remove all-zero stimulus functions -----*/
-  remove_zero_stimfns (*option_data, *stimulus, *stim_length, *glt_cmat);
+  if( !use_psinv )
+    remove_zero_stimfns (*option_data, *stimulus, *stim_length, *glt_cmat);
  
 
   /*----- Check for valid inputs -----*/
@@ -3108,6 +3135,10 @@ void calculate_results
 			 min_lag, max_lag, nptr, &xdata);
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
+  if( option_data->xjpeg_filename != NULL )    /* 21 Jul 2004 */
+    JPEG_matrix_gray( xdata , option_data->xjpeg_filename ) ;
+
+
   /*-- 14 Jul 2004: check matrix for bad columns - RWCox --*/
 
   { int *iar , k ;
@@ -3130,10 +3161,10 @@ void calculate_results
   if( !option_data->nocond ){
     double *ev , emin,emax ; int i ;
     ev = matrix_singvals( xdata ) ;
-    emin = emax = ev[0] ;
-    for( i=1 ; i < xdata.cols ; i++ ){
-       if( ev[i] < emin ) emin = ev[i] ;
-       if( ev[i] > emax ) emax = ev[i] ;
+    emin = 1.e+38 ; emax = 1.e-38 ;
+    for( i=0 ; i < xdata.cols ; i++ ){
+      if( ev[i] > 0.0 && ev[i] < emin ) emin = ev[i] ;
+      if(                ev[i] > emax ) emax = ev[i] ;
     }
     free((void *)ev) ;
     if( emin <= 0.0 || emax <= 0.0 ){
@@ -4643,4 +4674,167 @@ int main
 #endif
 
   exit(0);
+}
+
+/*----------------------------------------------------------------------------*/
+/*--------- Grayplot X matrix columns to an image file [21 Jul 2004] ---------*/
+/*----------------------------------------------------------------------------*/
+#include "coxplot.h"
+
+#define TSGRAY_SEPARATE_YSCALE (1<<0)
+#define TSGRAY_FLIP_XY         (1<<1)
+
+/*-----------------------------------------------------------------
+   Plot some timeseries in grayscale
+     npt     = number of points in each series
+     nts     = number of series
+     ymask   = operation modifier:
+                 TSGRAY_SEPARATE_YSCALE
+                 TSGRAY_FLIP_XY
+     y[j][i] = i-th point in j-th timeseries,
+               for i=0..npt-1, j=0..nts-1
+-------------------------------------------------------------------*/
+
+MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
+{
+   MEM_plotdata *mp ;
+   float ybot,ytop , yfac , dx,dy , val ;
+   int ii,jj , flipxy ;
+   char str[32] ;
+   int sepscl ;
+
+   if( npt < 2 || nts < 1 || y == NULL ) return NULL ;
+
+   /* find range of all the data */
+
+   ybot = ytop = y[0][0] ;
+   for( jj=0 ; jj < nts ; jj++ ){
+     for( ii=0 ; ii < npt ; ii++ ){
+       val = y[jj][ii] ;
+            if( ybot > val ) ybot = val ;
+       else if( ytop < val ) ytop = val ;
+     }
+   }
+   if( ybot >= ytop ) return NULL ;  /* data is all the same? */
+   yfac = 1.0/(ytop-ybot) ;
+   dx   = 0.99999/npt ;
+   dy   = 0.99999/nts ;
+
+   create_memplot_surely( "Gplot" , 1.0 ) ;
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   set_thick_memplot( 0.0 ) ;
+
+   flipxy = (ymask & TSGRAY_FLIP_XY) != 0 ;
+   sepscl = (ymask & TSGRAY_SEPARATE_YSCALE) != 0 ;
+
+   for( jj=0 ; jj < nts ; jj++ ){
+
+     if( sepscl ){
+       ybot = ytop = y[jj][0] ; /* find range of data */
+       for( ii=1 ; ii < npt ; ii++ ){
+         val = y[jj][ii] ;
+              if( ybot > val ) ybot = val ;
+         else if( ytop < val ) ytop = val ;
+       }
+       if( ybot >= ytop ) yfac = 1.0 ;
+       else               yfac = 1.0/(ytop-ybot) ;
+     }
+
+     for( ii=0 ; ii < npt ; ii++ ){
+       val = yfac*(ytop-y[jj][ii]) ;
+       set_color_memplot( val,val,val ) ;
+       if( flipxy )
+         plotrect_memplot( ii*dx,jj*dy , (ii+1)*dx,(jj+1)*dy ) ;
+       else
+         plotrect_memplot( jj*dy,1.0-ii*dx , (jj+1)*dy,1.0-(ii+1)*dy ) ;
+     }
+     set_color_memplot( 1.0 , 0.9 , 0.0 ) ; /* yellow box around each column */
+     if( flipxy ){
+       plotline_memplot( 0.0,jj*dy     , 1.0,jj*dy     ) ;
+       plotline_memplot( 1.0,jj*dy     , 1.0,(jj+1)*dy ) ;
+       plotline_memplot( 1.0,(jj+1)*dy , 0.0,(jj+1)*dy ) ;
+       plotline_memplot( 0.0,(jj+1)*dy , 0.0,jj*dy     ) ;
+     } else {
+       plotline_memplot( jj*dy,0.0     , jj*dy,1.0     ) ;
+       plotline_memplot( jj*dy,1.0     , (jj+1)*dy,1.0 ) ;
+       plotline_memplot( (jj+1)*dy,1.0 , (jj+1)*dy,0.0 ) ;
+       plotline_memplot( (jj+1)*dy,0.0 , jj*dy,0.0     ) ;
+     }
+   }
+
+   set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
+   mp = get_active_memplot() ;
+   return mp ;
+}
+
+/*-----------------------------------------------------------------*/
+
+MRI_IMAGE * PLOT_matrix_gray( matrix X )
+{
+   int nts = X.cols , npt = X.rows ;
+   MEM_plotdata *mp ;
+   float **xar ;
+   int ii,jj ;
+   MRI_IMAGE *im ;
+
+   if( nts < 1 || npt < 2 ) return NULL ;
+
+   xar = (float **)malloc( sizeof(float *)*nts ) ;
+   for( jj=0 ; jj < nts ; jj++ ){
+     xar[jj] = (float *)malloc( sizeof(float *)*npt ) ;
+     for( ii=0 ; ii < npt ; ii++ ) xar[jj][ii] = X.elts[ii][jj] ;
+   }
+
+   mp = PLOT_tsgray( npt , nts , TSGRAY_SEPARATE_YSCALE , xar ) ;
+
+   for( jj=0 ; jj < nts ; jj++ ) free((void *)xar[jj]) ;
+   free((void *)xar) ;
+
+   if( mp == NULL ) return NULL ;
+
+   im = mri_new( 768 , 1024 , MRI_rgb ) ;
+   memplot_to_RGB_sef( im , mp , 0,0,1 ) ;
+   delete_memplot( mp ) ;
+   return im ;
+}
+
+/*-----------------------------------------------------------------*/
+
+void JPEG_matrix_gray( matrix X , char *fname )
+{
+   char *pg , *jpfilt ;
+   MRI_IMAGE *im ;
+   FILE *fp ;
+
+   if( fname == NULL || *fname == '\0' ) return ;
+
+   pg = THD_find_executable( "cjpeg" ) ;
+   if( pg == NULL ){
+     fprintf(stderr,
+             "** WARNING: can't save %s because program 'cjpeg' not in path!\n",
+             fname) ;
+     return ;
+   }
+
+   im = PLOT_matrix_gray( X ) ;
+   if( im == NULL ){
+     fprintf(stderr,
+             "** WARNING: can't save %s because of internal error!\n",fname) ;
+     return ;
+   }
+
+   jpfilt = (char *)malloc( sizeof(char)*(strlen(pg)+strlen(fname)+32) ) ;
+   sprintf( jpfilt , "%s -quality 95 > %s" , pg , fname ) ;
+   signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
+   fp = popen( jpfilt , "w" ) ;
+   if( fp == NULL ){
+     mri_free(im) ; free((void *)jpfilt) ;
+     fprintf(stderr,"** WARNING: can't save %s because filter fails!\n",fname) ;
+     return ;
+   }
+   fprintf(fp,"P6\n%d %d\n255\n" , im->nx,im->ny ) ;
+   fwrite( MRI_RGB_PTR(im), sizeof(byte), 3*im->nvox, fp ) ;
+   (void) pclose(fp) ;
+
+   mri_free(im) ; free((void *)jpfilt) ; return ;
 }
