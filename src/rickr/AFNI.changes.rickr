@@ -367,3 +367,7 @@
   * modified Makefile.INCLUDE for SurfMeasures
   * modified SUMA/SUMA_Makefile_NoDev for SurfMeasures
 
+03 December 2003
+  * modified SUMA/SUMA_SurfMeasures.[ch]  (v1.2)
+      - added '-cmask' and '-nodes_1D' options
+
