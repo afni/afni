@@ -484,6 +484,8 @@ static int allow_optmenu_EV = 1 ;
 
 void allow_MCW_optmenu_popup( int ii ){ allow_optmenu_EV = ii ; }
 
+static void optmenu_EV_fixup( Widget ww ) ; 
+
 MCW_arrowval * new_MCW_optmenu( Widget parent ,
                                 char * label ,
                                 int    minval , int maxval , int inival , int decim ,
@@ -624,6 +626,9 @@ ENTRY("new_MCW_optmenu") ;
                            optmenu_EV ,       /* handler */
                            (XtPointer) av ,   /* client data */
                            XtListTail ) ;     /* last in queue */
+#if 1
+     optmenu_EV_fixup( av->wrowcol ) ;
+#endif
    }
 
    RETURN(av) ;
@@ -800,26 +805,46 @@ ENTRY("optmenu_finalize") ;
 }
 
 /*--------------------------------------------------------------------------*/
-#if 0
-void optmenu_EV_fixup( Widget ww )   /* 15 Mar 2004 - RWCox */
+#if 1
+static int    nwid = 0    ;
+static Widget *wid = NULL ;
+
+static void optmenu_EV_fixup_CB( Widget ww , XtPointer xp, XtPointer cd )
 {
-   static int    nwid = 0    ;
-   static Widget *wid = NULL ;
+   int ii ;
+ENTRY("optmenu_EV_fixup_CB") ;
+   for( ii=0 ; ii < nwid ; ii++ )
+     if( wid[ii] == ww ) wid[ii] = (Widget)NULL ;
+   EXRETURN ; ;
+}
+
+static XtIntervalId timer_id = (XtIntervalId)0 ;
+static XtAppContext timer_cx = (XtAppContext)NULL ;
+
+static void optmenu_EV_fixup_timer_CB( XtPointer cd , XtIntervalId *id )
+{
+ENTRY("optmenu_EV_fixup_timer_CB") ;
+   optmenu_EV_fixup(NULL) ;
+   timer_id = XtAppAddTimeOut( timer_cx, 3033, optmenu_EV_fixup_timer_CB, NULL ) ;
+   EXRETURN ;
+}
+
+static void optmenu_EV_fixup( Widget ww )   /* 15 Mar 2004 - RWCox */
+{
    int ii , jj ;
    Widget *qwid ;
 
 ENTRY("optmenu_EV_fixup") ;
 
    if( ww == (Widget)NULL ){                   /* try to fix what's on the list */
-     if( nwid == 0 ) EXRETURN ;
+     if( nwid == 0 ) EXRETURN ;  /* that was easy */
 if(PRINT_TRACING){ char str[256]; sprintf(str,"scanning %d widgets for fixing",nwid); STATUS(str); }
      for( ii=jj=0 ; ii < nwid ; ii++ ){
-if(PRINT_TRACING){ char str[256]; sprintf(str,"  ii=%d\n",ii); STATUS(str); }
-if(PRINT_TRACING){ char str[256]; sprintf(str,"  wid[ii]=%p\n",(char *)wid[ii]); STATUS(str); }
        if( wid[ii] != (Widget)NULL && XtIsRealized(wid[ii])      &&
            XtIsManaged(wid[ii])    && MCW_widget_visible(wid[ii])  ){
 if(PRINT_TRACING){ char str[256]; sprintf(str,"  about to fix ii=%d\n",ii); STATUS(str); }
          POPUP_cursorize(wid[ii]) ;
+         XtRemoveCallback( wid[ii], XmNdestroyCallback, optmenu_EV_fixup_CB, NULL ) ;
          wid[ii] = NULL ; jj++ ;
 if(PRINT_TRACING){ char str[256]; sprintf(str,"  #%d cursor fixed\n",ii); STATUS(str); }
        }
@@ -830,12 +855,20 @@ else if(PRINT_TRACING){ char str[256]; sprintf(str,"  #%d not fixable\n",ii); ST
      qwid = (Widget *) calloc( nwid , sizeof(Widget) ) ;
      for( ii=jj=0 ; ii < nwid ; ii++ )
        if( wid[ii] != (Widget)NULL ) qwid[jj++] = wid[ii] ;
-     free(wid) ; wid = qwid ; nwid = jj ;
+     nwid = jj ;
+     for( ii=0 ; ii < nwid ; ii++ ) wid[ii] = qwid[ii] ;
+     free(qwid) ;
 if(PRINT_TRACING){ char str[256]; sprintf(str,"  %d left to fix later\n",nwid); STATUS(str); }
 
    } else {                               /* add to the list */
      wid = (Widget *)realloc( (void *)wid , sizeof(Widget)*(nwid+1) ) ;
      wid[nwid++] = ww ;
+     XtAddCallback( ww, XmNdestroyCallback, optmenu_EV_fixup_CB, NULL ) ;
+     if( timer_cx == (XtAppContext)NULL ){
+STATUS("  starting first timer callback") ;
+       timer_cx = XtWidgetToApplicationContext(ww) ;
+       timer_id = XtAppAddTimeOut( timer_cx, 5055, optmenu_EV_fixup_timer_CB, NULL ) ;
+     }
 if(PRINT_TRACING){ char str[256]; sprintf(str," now have %d to fix",nwid); STATUS(str); }
    }
    EXRETURN ;
@@ -865,6 +898,8 @@ static void optmenu_EV( Widget w , XtPointer cd ,
         the pointer.  This has the side-effect of
         popping down the popup menu.  If the optmenu
         is NOT in a popup menu, it has no side effect. --*/
+
+   optmenu_EV_fixup(NULL) ;
 
    if( bev->button == Button2 ){
       XUngrabPointer( bev->display , CurrentTime ) ;
