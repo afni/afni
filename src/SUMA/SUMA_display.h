@@ -257,6 +257,7 @@ void SUMA_ColPlane_NewOrder (void *data);
 void SUMA_ColPlane_NewOpacity (void *data);
 void SUMA_ColPlane_NewDimFact (void *data);
 void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_ColPlaneShowOne_toggled (Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ColPlane_Delete(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_ColPlane_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_cb_Dset_Load(Widget w, XtPointer data, XtPointer client_data);

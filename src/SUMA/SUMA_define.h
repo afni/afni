@@ -972,12 +972,14 @@ typedef struct {
    SUMA_TABLE_FIELD *DataTable;
    SUMA_TABLE_FIELD *LabelTable;
    Widget ColPlaneShow_tb; /*!< show/hide color plane */
+   Widget ColPlaneShowOne_tb; /*!< show only one color plane at a time*/
    Widget SymIrange_tb; /*!< Symmetric intensity range */
    Widget AbsThresh_tb; /*!< absolute threshold */
    Widget ShowZero_tb; /*!< Show zero values */
    SUMA_LIST_WIDGET *SwitchDsetlst; /*!< a structure containing widgets and options for the switch color plane list */
    SUMA_TABLE_FIELD *ColPlaneLabelTable; 
    SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */
+   SUMA_Boolean ShowCurOnly; /*!< Show current plane only out of the entire stack */
    void **curSOp; /*!< a copy of the pointer to the surface object for which the controller is open */
    SUMA_CMAP_RENDER_AREA *cmp_ren;   /* data for cmap rendering zone */
    Widget thr_sc;   /*! scale for threshold data */

@@ -3,8 +3,6 @@
 #endif
 
 #include "SUMA_suma.h"
-#include "SUMA_GeomComp.h"
-#include "SUMA_gts.h"
 
 #define SURFPATCH_MAX_SURF 1  /*!< Maximum number of input surfaces */
 
