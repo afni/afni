@@ -5,6 +5,7 @@ int main( int argc , char * argv[] )
    int iarg ;
    THD_3dim_dataset *inset , *outset ;
    int add_I=0 , add_S=0 , add_A=0 , add_P=0 , add_L=0 , add_R=0 ;
+   int RLsiz=0, APsiz=0, ISsiz=0 ; /* 23 Mar 2004 */
    char * prefix="zeropad" ;
 
    int add_z=0 ;   /* 07 Feb 2001 */
@@ -28,6 +29,10 @@ int main( int argc , char * argv[] )
              "  -R n = adds 'n' planes of zero at the Right edge\n"
              "  -z n = adds 'n' planes of zeros on EACH of the\n"
              "          dataset z-axis (slice-direction) faces\n"
+             "\n"
+             " -RL a = These options specify that planes should be added/cut\n"
+             " -AP b = symmetrically to make the resulting volume have\n"
+             " -IS c = 'a', 'b', and 'c' slices in the respective directions.\n"
              "\n"
              " -mm   = pad counts 'n' are in mm instead of slices:\n"
              "         * each 'n' is an integer\n"
@@ -109,6 +114,47 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* skip to next argument */
       }
 
+      /*- -RL, -AP, -IS [23 Mar 2004] -*/
+
+      if( strcmp(argv[iarg],"-RL") == 0 || strcmp(argv[iarg],"-LR") == 0 ){
+        if( add_R || add_L || mset != NULL ){
+          fprintf(stderr,"** 3dZeropad: Can't use -RL with -R, -L, or -master!\n");
+          exit(1) ;
+        }
+        RLsiz = (int) strtod(argv[++iarg],NULL) ;
+        if( RLsiz < 1 ){
+          fprintf(stderr,"** 3dZeropad: value after -RL is illegal!\n") ;
+          exit(1) ;
+        }
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-AP") == 0 || strcmp(argv[iarg],"-PA") == 0 ){
+        if( add_A || add_P || mset != NULL ){
+          fprintf(stderr,"** 3dZeropad: Can't use -AP with -A, -P, or -master!\n");
+          exit(1) ;
+        }
+        APsiz = (int) strtod(argv[++iarg],NULL) ;
+        if( APsiz < 1 ){
+          fprintf(stderr,"** 3dZeropad: value after -AP is illegal!\n") ;
+          exit(1) ;
+        }
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-IS") == 0 || strcmp(argv[iarg],"-SI") == 0 ){
+        if( add_S || add_I || mset != NULL ){
+          fprintf(stderr,"** 3dZeropad: Can't use -IS with -I, -S, or -master!\n");
+          exit(1) ;
+        }
+        ISsiz = (int) strtod(argv[++iarg],NULL) ;
+        if( ISsiz < 1 ){
+          fprintf(stderr,"** 3dZeropad: value after -IS is illegal!\n") ;
+          exit(1) ;
+        }
+        iarg++ ; continue ;
+      }
+
       /*- -mm -*/
 
       if( strcmp(argv[iarg],"-mm") == 0 ){
@@ -134,7 +180,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-master") == 0 ){
         if( add_I || add_S || add_A || mm_flag ||
-            add_P || add_R || add_L || add_z     ){
+            add_P || add_R || add_L || add_z   ||
+            RLsiz || APsiz || ISsiz              ){
 
           fprintf(stderr,"** 3dZeropad: Can't use -master with -I,-S,-A,-P,-R,-L, or -mm!\n");
           exit(1) ;
@@ -159,10 +206,23 @@ int main( int argc , char * argv[] )
 
    if( mset == NULL ){
     if( add_I==0 && add_S==0 && add_P==0 &&
-        add_A==0 && add_L==0 && add_R==0 && add_z==0 ){
+        add_A==0 && add_L==0 && add_R==0 && add_z==0 &&
+        RLsiz==0 && APsiz==0 && ISsiz==0               ){
 
       fprintf(stderr,"++ 3dZeropad: All inputs are zero? Making a copy!\n") ;
     }
+   }
+
+   /* check for conflicts [23 Mar 2004] */
+
+   if( RLsiz > 0 && (add_R || add_L || add_z) ){
+     fprintf(stderr,"** 3dZeropad: Can't use -R or -L or -z with -RL!\n"); exit(1);
+   }
+   if( APsiz > 0 && (add_A || add_P || add_z) ){
+     fprintf(stderr,"** 3dZeropad: Can't use -A or -P or -z with -AP!\n"); exit(1);
+   }
+   if( ISsiz > 0 && (add_I || add_S || add_z) ){
+     fprintf(stderr,"** 3dZeropad: Can't use -I or -S or -z with -IS!\n"); exit(1);
    }
 
    /*-- read the input dataset --*/
@@ -304,6 +364,50 @@ int main( int argc , char * argv[] )
             add_I = add_S = add_z ;
          break ;
       }
+   }
+
+   /*-- 23 Mar 2004: expand/contract if ordered --*/
+
+   if( RLsiz > 0 ){
+     int nold=0 ;
+          if( inset->daxes->xxorient == ORI_R2L_TYPE || inset->daxes->xxorient == ORI_L2R_TYPE )
+       nold = inset->daxes->nxx ;
+     else if( inset->daxes->yyorient == ORI_R2L_TYPE || inset->daxes->yyorient == ORI_L2R_TYPE )
+       nold = inset->daxes->nyy ;
+     else if( inset->daxes->zzorient == ORI_R2L_TYPE || inset->daxes->zzorient == ORI_L2R_TYPE )
+       nold = inset->daxes->nzz ;
+     if( nold > 0 ){
+       add_R = (RLsiz-nold) / 2 ;
+       add_L = RLsiz-(nold+add_R) ;
+     }
+   }
+
+   if( APsiz > 0 ){
+     int nold=0 ;
+          if( inset->daxes->xxorient == ORI_A2P_TYPE || inset->daxes->xxorient == ORI_P2A_TYPE )
+       nold = inset->daxes->nxx ;
+     else if( inset->daxes->yyorient == ORI_A2P_TYPE || inset->daxes->yyorient == ORI_P2A_TYPE )
+       nold = inset->daxes->nyy ;
+     else if( inset->daxes->zzorient == ORI_A2P_TYPE || inset->daxes->zzorient == ORI_P2A_TYPE )
+       nold = inset->daxes->nzz ;
+     if( nold > 0 ){
+       add_A = (APsiz-nold) / 2 ;
+       add_P = APsiz-(nold+add_A) ;
+     }
+   }
+
+   if( ISsiz > 0 ){
+     int nold=0 ;
+          if( inset->daxes->xxorient == ORI_I2S_TYPE || inset->daxes->xxorient == ORI_S2I_TYPE )
+       nold = inset->daxes->nxx ;
+     else if( inset->daxes->yyorient == ORI_I2S_TYPE || inset->daxes->yyorient == ORI_S2I_TYPE )
+       nold = inset->daxes->nyy ;
+     else if( inset->daxes->zzorient == ORI_I2S_TYPE || inset->daxes->zzorient == ORI_S2I_TYPE )
+       nold = inset->daxes->nzz ;
+     if( nold > 0 ){
+       add_I = (ISsiz-nold) / 2 ;
+       add_S = ISsiz-(nold+add_I) ;
+     }
    }
 
    /*-- 04 Oct 2000: all the real work is now in thd_zeropad.c --*/
