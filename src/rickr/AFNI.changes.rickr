@@ -53,3 +53,7 @@
     (note that file_tool will not yet be built automatically)
   * modified r_idisp.c to include r_idisp_vec3f()
 
+20 September 2002:
+  * modified thd_opendset.c so that HEAD/BRIK are okay in directory names
+    (see 'fname' and 'offset' in THD_open_one_dataset())
+
