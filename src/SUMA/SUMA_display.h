@@ -52,7 +52,14 @@ activated.
          datap = (SUMA_MenuCallBackData *)data;  \
          isv = (int)datap->ContID; \
          widtype = (int)datap->callback_data; }
-         
+/*!
+sets the select color of the widget to its foreground color */         
+#define SUMA_SET_SELECT_COLOR(m_w) {\
+      Pixel m_fg_pix;  \
+      XtVaGetValues (m_w, XmNforeground, &m_fg_pix, NULL);  \
+      XtVaSetValues (m_w, XmNselectColor, m_fg_pix, NULL);  \
+}
+ 
 #define SUMA_MARGIN  3
 
 String *SUMA_get_fallbackResources ();         
@@ -114,12 +121,59 @@ char * SUMA_FormatMessage (SUMA_MessageData *MD);
 void SUMA_PopUpMessage (SUMA_MessageData *MD);
 void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_data);
-void SUMA_cb_EditDrawROI (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_CreateDrawROIWindow(void);
+SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
+SUMA_Boolean SUMA_OpenDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI);
+void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_DrawROI_Undo (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_DrawROI_Redo (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_DrawROI_Save (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_DrawROI_setlabel (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_CreateArrowField ( Widget pw, char *label,
+                              float value, float vmin, float vmax, float vstep,
+                              int cwidth, SUMA_VARTYPE type,
+                              SUMA_Boolean wrap,
+                              void (*NewValueCallback)(void * data),
+                              SUMA_ARROW_TEXT_FIELD *AF);
+void SUMA_CreateTextField ( Widget pw, char *label,
+                              int cwidth, 
+                              void (*NewValueCallback)(void *data),
+                              SUMA_ARROW_TEXT_FIELD *AF);
+void SUMA_DrawROI_NewLabel (void * data);
+void SUMA_ATF_change_value (XtPointer client_data, XtIntervalId *id);
+void SUMA_ATF_start_stop (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_DrawROI_NewValue (void * data);
+void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_ATF_SetString (SUMA_ARROW_TEXT_FIELD * AF);
+void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF);
+void SUMA_ATF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer call_data);
+void SUMA_leave_EV( Widget w , XtPointer client_data ,
+                  XEvent * ev , Boolean * continue_to_dispatch );
+void SUMA_ATF_cb_label_Focus (Widget w, XtPointer client_data, XtPointer call_data);
 
 
 
+
+
+#define SUMA_DrawROI_ParentLabel_help  \
+   "Label of the ROI's parent surface." 
+
+#define SUMA_DrawROI_DrawROIMode_help\
+   "Toggles ROI drawing mode"
+
+#define SUMA_DrawROI_Save_help \
+   "Save the Drawn ROI"
+   
+#define SUMA_closeDrawROI_help  \
+   "Close Draw ROI window"
  
+#define SUMA_DrawROI_Redo_help   \
+   "Redo the last undone action"
 
+#define SUMA_DrawROI_Undo_help   \
+   "Undo the last action on the stack"
 
 #define SUMA_help_help \
    "Click the hand\n"   \

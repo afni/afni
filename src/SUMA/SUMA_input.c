@@ -288,7 +288,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             } 
 
             
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
 
             if (!SUMA_Engine (&list)) {
                fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
@@ -324,8 +324,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_F:
             /* flip light position */
             if (!list) list = SUMA_CreateList(); 
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_FlipLight0Pos, SES_Suma, sv);
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_FlipLight0Pos, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
 
             if (!SUMA_Engine (&list)) {
                fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
@@ -335,8 +335,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_f:
             /* Show/hide the foreground */
             if (!list) list = SUMA_CreateList(); 
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleForeground, SES_Suma, sv);
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleForeground, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
 
             if (!SUMA_Engine (&list)) {
                fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
@@ -373,7 +373,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      break;                                      
                }
                
-               SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
 
                if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
@@ -384,7 +384,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_h:
             if (Kev.state & ControlMask){
               if (!list) list = SUMA_CreateList();
-              SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Help, SES_Suma, NULL); 
+              SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Help, SES_Suma, NULL); 
               if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
               }    
@@ -707,7 +707,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      break;
                   }
                   
-                  SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+                  SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
                   if (!SUMA_Engine (&list)) {
                      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
@@ -835,14 +835,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if ((Kev.state & ControlMask) && SUMAg_CF->Dev){
                   fprintf(SUMA_STDOUT, "%s: Forcing a resend of Surfaces to Afni...\n", FuncName);
                   if (!list) list = SUMA_CreateList();
-                  SUMA_REGISTER_COMMAND_NO_DATA(list, SE_SetForceAfniSurf, SES_Suma, sv);
+                  SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_SetForceAfniSurf, SES_Suma, sv);
                   
                   if (!SUMA_Engine (&list)) {
                      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
                   }
             } else {
                if (!list) list = SUMA_CreateList();
-               SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleConnected, SES_Suma, sv);
+               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleConnected, SES_Suma, sv);
                
                if (!SUMA_Engine (&list)) {
                      fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
@@ -1130,7 +1130,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                /* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
                if (!list) list = SUMA_CreateList();
-               SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
                if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
@@ -1160,7 +1160,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
                /* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
                if (!list) list = SUMA_CreateList();
-               SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+               SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
                if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
                }
@@ -1197,8 +1197,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_F3: /* F3 */
             if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleCrossHair, SES_Suma, sv);
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleCrossHair, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
             if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
@@ -1206,8 +1206,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_F4: /* F4 */
             if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleShowSelectedNode, SES_Suma, sv);
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedNode, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
             if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
@@ -1215,8 +1215,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_F5: /* F5 */
             if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleShowSelectedFaceSet, SES_Suma, sv);
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedFaceSet, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
             if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
@@ -1229,7 +1229,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                sv->clear_color[0] = sv->clear_color[1] = sv->clear_color[2] = sv->clear_color[3] = 0.0;
             }
             if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
             if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
@@ -1266,9 +1266,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_Home:   
             /*printf("HOME\n");*/
             if (!list) list = SUMA_CreateList();
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_FOVreset, SES_Suma, sv);
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_FOVreset, SES_Suma, sv);
+            SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
             if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
@@ -1529,7 +1529,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (LocalHead) fprintf(SUMA_STDERR,"%s: Button 3 downplain jane, viewer #%d : X=%f, Y = %f\n", \
                   FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv), (float)Bev.x, (float)Bev.y);
                
-               if (Bev.state & ShiftMask) {
+               if (Bev.state & ShiftMask && SUMAg_CF->ROI_mode) {
                   
                   /* ROI drawing mode */
                   ROI_mode = YUP;     
@@ -2175,20 +2175,6 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
       }
       fprintf(SUMA_STDOUT, "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
 
-      /* check to see if AFNI needs to be notified */
-      if (SUMAg_CF->Connected && sv->LinkAfniCrossHair) {
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
-         /* register a call to SetAfniCrossHair */
-         if (!list) list = SUMA_CreateList();
-         SUMA_REGISTER_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);
-         if (!SUMA_Engine (&list)) {
-            fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
-            SUMA_RETURN (-1);
-         }
-      }else {
-         if (LocalHead) fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
-      }
-
       /* Set the Nodeselection at the closest node */
       it = MTI->inodemin;
       if (!list) list = SUMA_CreateList();
@@ -2235,7 +2221,22 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
          SUMA_RETURN (-1);
       }
       
+      /* check to see if AFNI needs to be notified */
+      if (SUMAg_CF->Connected && sv->LinkAfniCrossHair) {
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Notifying Afni of CrossHair XYZ\n", FuncName);
+         /* register a call to SetAfniCrossHair */
+         if (!list) list = SUMA_CreateList();
+         SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_SetAfniCrossHair, SES_Suma, sv);
+         if (!SUMA_Engine (&list)) {
+            fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+            SUMA_RETURN (-1);
+         }
+      }else {
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: No Notification to AFNI.\n", FuncName);
+      }
+
       /* now put in a request for locking cross hair but you must do this after the node selection has been executed */
+      if (!list) list = SUMA_CreateList();
       ED = SUMA_InitializeEngineListData (SE_LockCrossHair);
       if (LocalHead) fprintf(SUMA_STDERR,"%s: SetNodeElem = %p\n", FuncName, SetNodeElem);
       if (!SUMA_RegisterEngineListCommand (  list, ED, 

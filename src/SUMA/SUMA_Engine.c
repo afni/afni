@@ -96,6 +96,43 @@ SUMA_Boolean SUMA_Engine (DList **listp)
       NextCom = SUMA_CommandString (NextComCode);
       if (LocalHead) fprintf (SUMA_STDERR,"->%s<-\t", NextCom);
       switch (NextComCode) {/* switch NextComCode */
+         case SE_OpenDrawROI:
+            /* opens the DrawROI window, expects a surface viewer pointer in EngineData->Srcp*/
+            {
+               SUMA_DRAWN_ROI *DrawnROI=NULL;
+               
+               if (!sv) {
+                  fprintf (SUMA_STDERR, "Error %s: Null sv.\n", FuncName);
+                  SUMA_RETURN(NOPE);
+               }   
+               
+               /* determine if there are ROIs being drawn on surfaces displayed here */
+               DrawnROI = NULL;
+               /* start with the Focus_SO */
+               if (sv->Focus_SO_ID >= 0) {
+                  SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+                  DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv,  SUMAg_N_DOv); 
+               }
+               if (!DrawnROI) { /* none found on focus surface, check other surfaces in this viewer */
+                  N_SOlist = SUMA_ShownSOs(sv, SUMAg_DOv, SOlist);
+                  if (N_SOlist) {
+                     it = 0;
+                     do {
+                        DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv,  SUMAg_N_DOv);
+                        ++it;
+                     } while (!DrawnROI && it < N_SOlist);
+                  }
+               }
+               
+               /* call function to create ROI window */
+               if (!SUMA_OpenDrawROIWindow (DrawnROI)) {
+                  SUMA_RegisterMessage (SUMAg_CF->MessageList, "Failed to open Draw ROI window", FuncName, 
+                                       SMT_Error, SMA_LogAndPopup);
+
+               }
+               break;
+            
+            }
          case SE_SetRenderMode:
             { /* sets the rendering mode of a surface, expects SO in vp and rendering mode in i*/
                SO = (SUMA_SurfaceObject *)EngineData->vp;
@@ -976,7 +1013,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                      all viewers are initialized to isShaded = NOPE, even before they are ever opened */
                      if (LocalHead) fprintf (SUMA_STDERR,"%s: Home call viewer %d.\n", FuncName, ii);
                      if (!list) list= SUMA_CreateList();
-                     SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Home, SES_Suma, &SUMAg_SVv[ii]);
+                     SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, &SUMAg_SVv[ii]);
                   }
                }
             }
@@ -1380,7 +1417,7 @@ SUMA_Boolean SUMA_SwitchSO (SUMA_DO *dov, int N_dov, int SOcurID, int SOnxtID, S
    
    /* Home call baby */
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
 
    if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
@@ -1612,7 +1649,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
     
    /* Home call baby */
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Home, SES_Suma, sv);
    if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
    }

@@ -37,6 +37,9 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (void);
 void *SUMA_FreeSurfContStruct (SUMA_X_SurfCont *SurfCont);
 SUMA_rb_group *SUMA_CreateLock_rb (int N_rb_group, int N_but);
 void * SUMA_FreeLock_rb (SUMA_rb_group *Lock_rb);
+SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void);
+void *SUMA_FreeDrawROIStruct (SUMA_X_DrawROI *DrawROI);
+ 
 
 
 

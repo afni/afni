@@ -131,7 +131,7 @@ typedef enum { SE_Empty,
                SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, 
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
-               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode,
+               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -152,7 +152,7 @@ typedef enum { SEI_WTSDS,
                SEI_Head, SEI_Tail, SEI_Before, SEI_After, SEI_In,
                SEI_BadLoc } SUMA_ENGINE_INSERT_LOCATION;
                
-typedef enum { SUMA_int, SUMA_float } SUMA_VARTYPE;
+typedef enum { SUMA_int, SUMA_float, SUMA_string} SUMA_VARTYPE;
 
 typedef enum { SUMA_CMAP_UNDEFINED, SUMA_CMAP_RGYBR20,  SUMA_CMAP_nGRAY20,
                SUMA_CMAP_GRAY20, SUMA_CMAP_BW20, SUMA_CMAP_BGYR19, 
@@ -406,16 +406,57 @@ typedef struct {
    Widget LockAllView_tb;  /*!< widget of toggleAllview button */
 }SUMA_X_SumaCont;
 
+/*!
+   Structure containing widgets and settings of an arrow and or a text field
+*/ 
+typedef struct {
+   
+   Widget rc;  /*!< rowcolumn containing all the widgets of the arrow field */
+   Widget textfield;  /*! text label */
+   Widget up;     /*!< up arrow */
+   Widget down;   /*!< down arrow */
+   Widget label;  /*!< label widget */
+   
+   float step; /*!< increment */
+   float min;  /*!< minimum value */
+   float max;  /*!< maximum value */
+   SUMA_Boolean wrap; /*!< YUP: wrap value in min-max range, else clip it*/
+   float value;   /*!< current value */
+   int cwidth; /*!< charcter spaces to save for widget */
+   SUMA_VARTYPE type; /*!< SUMA_int or SUMA_float or SUMA_string */
+   int direction; /*!< +1 up, -1 down */
+   
+   XtIntervalId arrow_timer_id; /*!< time out process id */
+   
+   void (*NewValueCallback)(void *data); /*!< callback to make when a new value is set */
+   SUMA_Boolean modified; /*!< set to YUP when user edits the value field */
+   SUMA_Boolean arrow_action; /*!< set to YUP when user clicks one of the arrows */
+} SUMA_ARROW_TEXT_FIELD;
+
+/*! structure containing widgets for the DrawROI window*/
+typedef struct {
+   Widget AppShell; /*!< AppShell widget for the DrawROI window*/ 
+   Widget DrawROImode_tb; /*!< widget for toggling draw ROI mode */
+   Widget ParentLabel_lb; /*!< widget for specifying a label for the parent surface */ 
+   Widget Redo_pb;
+   Widget Undo_pb;
+   Widget Save_pb;
+   Widget Close_pb;
+   SUMA_ARROW_TEXT_FIELD *ROIval; /*!< pointer to arrow field */
+   SUMA_ARROW_TEXT_FIELD *ROIlbl; /*!< pointer to text field */
+} SUMA_X_DrawROI;
+
+
 typedef enum { SW_File, 
                SW_FileOpen, SW_FileOpenSpec, SW_FileOpenSurf, SW_FileClose, 
                SW_N_File } SUMA_WIDGET_INDEX_FILE; /*!< Indices to widgets under File menu. 
                                                       Make sure you begin with SW_File and end
                                                       with SW_N_File */
-typedef enum { SW_Edit,
-               SW_EditDrawROI,
-               SW_N_Edit } SUMA_WIDGET_INDEX_EDIT; /*!< Indices to widgets under Edit menu. 
-                                                      Make sure you begin with SW_Edit and end
-                                                      with  SW_N_Edit*/
+typedef enum { SW_Tools,
+               SW_ToolsDrawROI,
+               SW_N_Tools } SUMA_WIDGET_INDEX_TOOLS; /*!< Indices to widgets under Tools menu. 
+                                                      Make sure you begin with SW_Tools and end
+                                                      with  SW_N_Tools*/
 typedef enum { SW_View, 
                SW_ViewSumaCont, SW_ViewSurfCont, SW_ViewViewCont, 
                SW_ViewSep1,
@@ -450,7 +491,7 @@ typedef struct {
    SUMA_X_ViewCont *ViewCont; /*!< pointer to structure containing viewer controller widget structure */
    Widget ToggleCrossHair_View_tglbtn; /*!< OBSOLETE Toggle button in View-> menu */
    Widget FileMenu[SW_N_File]; /*!< Vector of widgets under File Menu */       
-   Widget EditMenu[SW_N_Edit]; /*!< Vector of widgets under File Menu */       
+   Widget ToolsMenu[SW_N_Tools]; /*!< Vector of widgets under File Menu */       
    Widget ViewMenu[SW_N_View]; /*!< Vector of widgets under View Menu */
    Widget HelpMenu[SW_N_Help]; /*!< Vector of widgets under Help Menu */
 }SUMA_X;
@@ -458,6 +499,7 @@ typedef struct {
 /*! structure containg X vars common to all viewers */
 typedef struct {
    SUMA_X_SumaCont *SumaCont; /*!< structure containing widgets for Suma's controller */
+   SUMA_X_DrawROI *DrawROI; /*!< structure containing widgets for DrawROI window */
    XtAppContext App; /*!< Application Context for SUMA */
    Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
    SUMA_XRESOURCES X_Resources; /*!< flag specifying the types of resources to use */
@@ -1063,6 +1105,7 @@ typedef struct {
    SUMA_Boolean SwapButtons_1_3; /*!< YUP/NOPE, if functions of mouse buttons 1 and 3 are swapped */
    SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
    DList *MessageList; /*!< a doubly linked list with data elements containing notices, warnings and error messages*/
+   SUMA_Boolean ROI_mode; /*!< Flag specifying that SUMA is in ROI drawing mode */
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */

@@ -60,7 +60,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
        
        /* close everything */
        if (!list) list = SUMA_CreateList();
-       SUMA_REGISTER_COMMAND_NO_DATA(list, SE_CloseStream4All, SES_Suma, sv);
+       SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_CloseStream4All, SES_Suma, sv);
 
        if (!SUMA_Engine (&list)) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Engine.\n\a", FuncName);
@@ -251,20 +251,18 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             if (!SUMA_RegisterEngineListCommand (  list, ED, 
                                                    SEF_fv3, (void*)XYZ,
                                                    SES_SumaFromAfni, svi, NOPE,
-                                                   SEI_Head, NULL)) {
+                                                   SEI_Tail, NULL)) {
                fprintf(SUMA_STDERR,"Error %s: Failed to register element\n", FuncName);
                SUMA_RETURN (NOPE);
             }
             
             svi->ResetGLStateVariables = YUP; 
             
-            SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaFromAfni, svi);
+            SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaFromAfni, svi);
             if (!SUMA_Engine (&list)) {
                fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
             }
-            if (!list) {
-               fprintf(SUMA_STDERR, "Yeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeehaw.\n");
-            }  
+              
             
          } /* link cross hair */    
       } /* iview ... for all viewers */
@@ -410,7 +408,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       /* file a redisplay request */
       if (LocalHead) fprintf(SUMA_STDERR, "%s: Redisplaying all visible...\n", FuncName);
       if (!list) list = SUMA_CreateList();
-      SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAfni, sv);
+      SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaFromAfni, sv);
 
       if (!SUMA_Engine (&list)) {
          fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);

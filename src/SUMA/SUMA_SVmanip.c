@@ -1124,12 +1124,15 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
      SUMA_RETURN (NULL); 
    }
    cf->X->SumaCont = SUMA_CreateSumaContStruct();
+   cf->X->DrawROI = SUMA_CreateDrawROIStruct();
    cf->X->DPY_controller1 = NULL;
    cf->X->X_Resources = SXR_NP;
    cf->X->Help_TextShell = NULL;
    cf->X->Log_TextShell = NULL;
    cf->MessageList = SUMA_CreateMessageList ();
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
+   
+   cf->ROI_mode = NOPE;
    return (cf);
 
 }
@@ -1180,6 +1183,24 @@ void * SUMA_FreeLock_rbg (SUMA_rb_group *Lock_rb)
 }
 
 /*!
+   \brief DrawROI = SUMA_CreateDrawROIStruct();
+   allocates and initializes structure of type SUMA_X_DrawROI
+   \return SUMA_X_DrawROI *
+*/
+SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void) 
+{
+   static char FuncName[]={"SUMA_CreateDrawROIStruct"};
+   SUMA_X_DrawROI *DrawROI = NULL;
+   
+   /* do not use commonfields related stuff here for obvious reasons */
+   DrawROI = (SUMA_X_DrawROI *)malloc (sizeof(SUMA_X_DrawROI));
+   DrawROI->AppShell = NULL;
+   DrawROI->ROIval = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   DrawROI->ROIlbl = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   return (DrawROI);
+}
+
+/*!
    \brief SumaCont = SUMA_CreateSumaContStruct();
    allocates and initializes structure of type SUMA_X_SumaCont
    \return SUMA_X_SumaCont *
@@ -1220,6 +1241,20 @@ void *SUMA_FreeSumaContStruct (SUMA_X_SumaCont *SumaCont)
    return (NULL);
 }
 
+/*!
+   \brief frees structure SUMA_X_DrawROI, returns null
+*/
+void *SUMA_FreeDrawROIStruct (SUMA_X_DrawROI *DrawROI)
+{  
+   static char FuncName[]={"SUMA_FreeDrawROIStruct"};
+   
+   /* do not use commonfields related stuff here for obvious reasons */
+   if (DrawROI->ROIval) free (DrawROI->ROIval);
+   if (DrawROI->ROIlbl) free (DrawROI->ROIlbl);
+   if (DrawROI) free(DrawROI);
+   
+   return (NULL);
+}
 /*!
    \brief ViewCont = SUMA_CreateViewContStruct();
    allocates and initializes structure of type SUMA_X_ViewCont
@@ -1291,6 +1326,7 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    
    if (cf->Mem) SUMA_Free_MemTrace (cf->Mem);
    if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont);
+   if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI);
    if (cf->X) free(cf->X);
    if (cf->MessageList) SUMA_DestroyList(cf->MessageList);
    if (cf) free(cf);

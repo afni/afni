@@ -174,6 +174,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"UpdateLog")) SUMA_RETURN(SE_UpdateLog);
    if (!strcmp(Scom,"Log")) SUMA_RETURN(SE_Log);
    if (!strcmp(Scom,"SetRenderMode")) SUMA_RETURN(SE_SetRenderMode);
+   if (!strcmp(Scom,"OpenDrawROI")) SUMA_RETURN(SE_OpenDrawROI);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -273,6 +274,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("Log");
       case SE_SetRenderMode:
          SUMA_RETURN("SetRenderMode");
+      case SE_OpenDrawROI:
+         SUMA_RETURN("OpenDrawROI"); 
       /*case SE_:
          SUMA_RETURN("");      */
       default:        
@@ -577,7 +580,7 @@ SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, char *Source, SU
       SUMA_EngineData *ED=NULL;
 
       Elist = SUMA_CreateList();
-      SUMA_REGISTER_COMMAND_NO_DATA(Elist, SE_UpdateLog, SES_Suma, NULL);
+      SUMA_REGISTER_HEAD_COMMAND_NO_DATA(Elist, SE_UpdateLog, SES_Suma, NULL);
 
       if (!SUMA_Engine (&Elist)) {
          fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
