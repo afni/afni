@@ -295,8 +295,8 @@ int AFNI_version_check(void)
                    "****************************************************\n"
           , VERSION,RELEASE , AFNI_HOST , vv,r1,r2,r3 , AFNI_LATEST ) ;
 
-   /* 26 Oct 2004: Create an update script, if possible */
 
+#if 0
    sname = AFNI_make_update_script() ;
    if( sname != NULL )
      fprintf(stderr, "\n"
@@ -311,6 +311,7 @@ int AFNI_version_check(void)
                      " Can't create UPDATER script in your AFNI directory.\n"
                      "====================================================\n"
             ) ;
+#endif
 
    return 1 ;
 }
