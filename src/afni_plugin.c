@@ -149,6 +149,8 @@ if(PRINT_TRACING)
 
    DYNAMIC_OPEN( fname , plin->libhandle ) ;
 
+STATUS("returned from DYNAMIC_OPEN()") ;
+
    if( ! ISVALID_DYNAMIC_handle( plin->libhandle ) ){  /* open failed */
 
       /* 24 May 2001: always print if there is an error */

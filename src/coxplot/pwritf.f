@@ -130,7 +130,7 @@ C
 C  quit if at the beginning
          IF( NPOS .LE. 1 )GOTO 200
 C  quit if not a blank or a null
-         IF( CLINE(NPOS:NPOS) .NE. ' '     .AND. 
+         IF( CLINE(NPOS:NPOS) .NE. ' '     .AND.
      .       CLINE(NPOS:NPOS) .NE. CHAR(0)       )GOTO 200
 C  move back one position and try again
          NPOS = NPOS - 1
@@ -704,6 +704,7 @@ C     1 = start superscript
 C     2 = end superscript
 C     3 = start subscript
 C     4 = end subscript
+C     5,6,7,8,9,10,11 = change color
 C
          IF( IOFF .LE. 0 )THEN
             IF( ISTR .EQ. 1 )THEN
@@ -722,6 +723,8 @@ C
                SCALE = 1.5 * SCALE
                XCUR  = XCUR + 4.*SCALE
                YCUR  = YCUR + 12.*SCALE
+CCC            ELSEIF( ISTR .GE. 5 .AND. ISTR .LE. 11 )THEN
+CCC               CALL COLOR( ISTR-4 )
             ENDIF
 C.....................................................................
 C  Check if this is a newline character
@@ -764,7 +767,7 @@ C
       INTEGER       NCHIN , NCHOUT
 C.......................................................................
       INTEGER     NTABLE
-      PARAMETER ( NTABLE = 106 )
+      PARAMETER ( NTABLE = 113 )
       INTEGER      ICHEXT(NTABLE)
       CHARACTER*15 CHTEX(NTABLE) , CHCONT
 C
@@ -789,26 +792,28 @@ C
 C
 C  Table of Tex-like escapes
 C
-      DATA CHTEX /'\Plus' , '\Cross'  , '\Diamond', '\Box'    , 
-     X '\FDiamond','\FBox', '\FPlus', '\FCross', '\Burst'  , '\Octagon',
-     X '\alpha', '\beta'   , '\gamma'  ,  '\delta', '\epsilon','\zeta' ,
-     X '\eta'  , '\theta'  , '\iota'   ,  '\kappa', '\lambda' ,'\mu'   ,
-     X '\nu'   , '\xi'     , '\omicron',  '\pi'   , '\rho'    ,'\sigma',
-     X '\tau'  , '\upsilon', '\phi'    ,  '\chi'  , '\psi'    ,'\omega',
-     X '\Alpha', '\Beta'   , '\Gamma'  ,  '\Delta' , '\Epsilon','\Zeta',
-     X '\Eta'  , '\Theta'  , '\Iota'   ,  '\Kappa' , '\Lambda','\Mu'   ,
-     X '\Nu'   , '\Xi'     , '\Omicron',  '\Pi'    , '\Rho'   ,'\Sigma',
-     X '\Tau'  , '\Upsilon', '\Phi'    ,  '\Chi'   , '\Psi'   ,'\Omega',
-     X '\propto', '\int', '\times', '\div', '\approx', '\partial', 
-     X '\cap', '\?','\langle', '\rangle','\ddagger','\pm',
-     X '\leq'      , '\S'         , '\hbar'          , '\lambar'    ,
-     X '\cup'      , '\degree'    , '\nabla'         , '\downarrow' ,
-     X '\leftarrow', '\rightarrow', '\leftrightarrow', '\oint'      ,
-     X '\in'       , '\notin'     , '\surd'          , '\_'         ,
-     X '\bar'      , '\exists'    , '\geq'           , '\forall'    ,
-     X '\subset'   , '\oplus'     , '\otimes'        , '\dagger'    ,
-     X '\neq'      , '\supset'    , '\infty'         , '\uparrow'   ,
-     X '\#', '\$', '\%' , '\&'    ,  '\{', '\}', '\\', '\cents'   /
+      DATA CHTEX /'\\Plus' , '\\Cross'  , '\\Diamond', '\\Box'         ,
+     X '\\FDiamond','\\FBox','\\FPlus','\\FCross','\\Burst','\\Octagon',
+     X '\\alpha','\\beta' ,'\\gamma' , '\\delta', '\\epsilon','\\zeta' ,
+     X '\\eta' ,'\\theta' ,'\\iota'  , '\\kappa', '\\lambda' ,'\\mu'   ,
+     X '\\nu'  ,'\\xi'    ,'\\omicron',  '\\pi'  ,'\\rho'    ,'\\sigma',
+     X '\\tau' ,'\\upsilon', '\\phi'   , '\\chi' ,'\\psi'    ,'\\omega',
+     X '\\Alpha', '\\Beta'  ,'\\Gamma' , '\\Delta','\\Epsilon','\\Zeta',
+     X '\\Eta' ,'\\Theta' ,'\\Iota'  , '\\Kappa','\\Lambda','\\Mu'     ,
+     X '\\Nu'  ,'\\Xi'    ,'\\Omicron',  '\\Pi'   ,'\\Rho'   ,'\\Sigma',
+     X '\\Tau' ,'\\Upsilon', '\\Phi'   , '\\Chi'  ,'\\Psi'   ,'\\Omega',
+     X '\\propto', '\\int', '\\times', '\\div', '\\approx', '\\partial',
+     X '\\cap', '\\?','\\langle', '\\rangle','\\ddagger','\\pm'        ,
+     X '\\leq'      , '\\S'         , '\\hbar'          , '\\lambar'   ,
+     X '\\cup'      , '\\degree'    , '\\nabla'         , '\\downarrow',
+     X '\\leftarrow', '\\rightarrow', '\\leftrightarrow', '\\oint'     ,
+     X '\\in'       , '\\notin'     , '\\surd'          , '\\_'        ,
+     X '\\bar'      , '\\exists'    , '\\geq'           , '\\forall'   ,
+     X '\\subset'   , '\\oplus'     , '\\otimes'        , '\\dagger'   ,
+     X '\\neq'      , '\\supset'    , '\\infty'         , '\\uparrow'  ,
+     X '\\#','\\$','\\%','\\&','\\{','\\}','\\\\','\\cents'            ,
+     X '\\black','\\red','\\blue','\\green','\\yellow','\\magenta'     ,
+     X '\\cyan' /
 C
 C  Corresponding extended character set bytes
 C
@@ -828,7 +833,8 @@ C
      X   16#a0 , 16#a1 ,16#a2 , 16#a3 ,16#a4 , 16#a5 ,16#a6 , 16#a7 ,
      X   16#a8 , 16#a9 ,16#aa , 16#ab ,16#ac , 16#ad ,16#ae , 16#af ,
      X   16#ba , 16#bb ,16#bc , 16#bd ,16#be , 16#bf ,16#ff , 16#60 ,
-     X   16#23 , 16#24 , 16#25 , 16#26 , 16#7b , 16#7d , 16#5c , 16#5e /
+     X   16#23 , 16#24 , 16#25 , 16#26 , 16#7b , 16#7d , 16#5c , 16#5e ,
+     X   16#94 , 16#95 , 16#96 , 16#97 , 16#98 , 16#99 , 16#9a /
 C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C  Test if a character is alphabetic
 C
