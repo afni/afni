@@ -81,6 +81,8 @@ ENTRY("THD_init_one_datablock") ;
 
    DBLK_unlock(dblk) ;  /* Feb 1998 */
 
+   dblk->shm_idcode[0] = '\0' ;  /* 02 May 2003 */
+
    INIT_KILL(dblk->kl) ;
 
    dblk->diskptr       = dkptr = myXtNew( THD_diskptr ) ;

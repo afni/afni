@@ -727,31 +727,11 @@ float * read_one_time_series
   float * ts_data;         /* input time series data */
 
 
-  /*----- First, check file name for column index -----*/
-  cpt = strstr (ts_filename, "[");
-  if (cpt == NULL)
-    {
-      strcpy (filename, ts_filename);
-      subv[0] = '\0';
-    }
-  else
-    if (cpt == ts_filename)
-      FIM_error ("Illegal time series filename on command line");
-    else
-      {
-	int ii;
-	ii = cpt - ts_filename;
-	memcpy (filename, ts_filename, ii);
-	filename[ii] = '\0';
-	strcpy (subv, cpt);
-      }
-
-  
   /*----- Read the time series file -----*/
-  flim = mri_read_1D( filename ) ;
+  flim = mri_read_1D( ts_filename ) ;
   if (flim == NULL)
     {
-      sprintf (message,  "Unable to read time series file: %s",  filename);
+      sprintf (message,  "Unable to read time series file: %s",  ts_filename);
       FIM_error (message);
     }
 
@@ -760,7 +740,7 @@ float * read_one_time_series
   nx = flim->nx;
   ny = flim->ny; iy = 0 ;
   if( ny > 1 ){
-    fprintf(stderr,"WARNING: time series %s has more than 1 column\n",filename);
+    fprintf(stderr,"WARNING: time series %s has %d columns\n",ts_filename,ny);
   }
 
   
@@ -803,31 +783,12 @@ MRI_IMAGE * read_time_series
   int ny;                  /* number of columns in time series file */
 
 
-  /*----- First, check file name for column index -----*/
-  cpt = strstr (ts_filename, "[");
-  if (cpt == NULL)
-    {
-      strcpy (filename, ts_filename);
-      subv[0] = '\0';
-    }
-  else
-    if (cpt == ts_filename)
-      FIM_error ("Illegal time series filename on command line");
-    else
-      {
-	int ii;
-	ii = cpt - ts_filename;
-	memcpy (filename, ts_filename, ii);
-	filename[ii] = '\0';
-	strcpy (subv, cpt);
-      }
-
-  
   /*----- Read the time series file -----*/
-  flim = mri_read_1D(filename) ;
+
+  flim = mri_read_1D(ts_filename) ;
   if (flim == NULL)
     {
-      sprintf (message,  "Unable to read time series file: %s",  filename);
+      sprintf (message,  "Unable to read time series file: %s",  ts_filename);
       FIM_error (message);
     }
 

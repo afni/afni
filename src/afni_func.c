@@ -4972,6 +4972,9 @@ STATUS("getting anat info") ;
                inf = THD_zzprintf( inf , "\n*** Loaded into memory using malloc.\n") ;
          } else if( im3d->anat_now->dblk->malloc_type == DATABLOCK_MEM_MMAP ){
             inf = THD_zzprintf( inf , "\n*** Loaded into memory using mmap.\n") ;
+         } else if( im3d->anat_now->dblk->malloc_type == DATABLOCK_MEM_SHARED ){
+            inf = THD_zzprintf( inf , "\n*** Loaded into shared memory segment %d.\n",
+                                im3d->anat_now->dblk->shm_idint) ;
          }
          (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
          free(inf) ;
@@ -4996,6 +4999,9 @@ STATUS("got func info") ;
                inf = THD_zzprintf( inf , "\n*** Loaded into memory using malloc.\n") ;
          } else if( im3d->fim_now->dblk->malloc_type == DATABLOCK_MEM_MMAP ){
             inf = THD_zzprintf( inf , "\n*** Loaded into memory using mmap.\n") ;
+         } else if( im3d->fim_now->dblk->malloc_type == DATABLOCK_MEM_SHARED ){
+            inf = THD_zzprintf( inf , "\n*** Loaded into shared memory segment %d.\n",
+                                im3d->fim_now->dblk->shm_idint) ;
          }
          (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
          free(inf) ;

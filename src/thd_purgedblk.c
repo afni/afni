@@ -29,14 +29,17 @@ Boolean THD_purge_datablock( THD_datablock * blk , int mem_type )
             if( ptr != NULL ){ free(ptr) ; nfreed++ ; }
             mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
          }
-         return True ;
+      return True ;
 
       case DATABLOCK_MEM_MMAP:
          ptr = DBLK_ARRAY(blk,0) ;
          if( ptr != NULL ){ munmap( ptr , blk->total_bytes ) ; nfreed++ ; }
          for( ibr=0 ; ibr < blk->nvals ; ibr++ )
             mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
-         return True ;
+      return True ;
+
+      case DATABLOCK_MEM_SHARED:   /* can't be purged */
+      return False ;
    }
 
    return False ;  /* shouldn't be reached */

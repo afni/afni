@@ -34,17 +34,17 @@ void THD_force_malloc_type( THD_datablock * blk , int mem_type )
       new_type = mem_type ;
    }
 
-   if( COMPRESS_filecode(blk->diskptr->brick_name) >= 0 )
+   if( COMPRESS_filecode(blk->diskptr->brick_name) >= 0 && new_type == DATABLOCK_MEM_MMAP )
       new_type = DATABLOCK_MEM_MALLOC ;
 
    /* 25 April 1998: byte order issues */
 
    if( blk->diskptr->byte_order <= 0 )
       blk->diskptr->byte_order = native_order ;
-   else if( blk->diskptr->byte_order != native_order )
+   else if( blk->diskptr->byte_order != native_order && new_type == DATABLOCK_MEM_MMAP )
       new_type = DATABLOCK_MEM_MALLOC ;
 
-   if( no_mmap )
+   if( no_mmap && new_type == DATABLOCK_MEM_MMAP )
       new_type = DATABLOCK_MEM_MALLOC ;
 
    if( DBLK_LOCKED(blk) )                /* 22 Mar 2001 */
