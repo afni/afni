@@ -14,7 +14,7 @@ int main( int argc , char *argv[] )
    short     *car ;
    char * prefix = "ATcorr" ;
    byte * mmm=NULL ;
-   int   nmask ;
+   int   nmask , abuc=1 ;
    char str[32] ;
 
    /*----*/
@@ -46,6 +46,9 @@ int main( int argc , char *argv[] )
              "  -prefix p = Save output into dataset with prefix 'p'\n"
              "               [default prefix is 'ATcorr'].\n"
              "\n"
+             "  -time     = Save output as a 3D+time dataset instead\n"
+             "               of a anat bucket.\n"
+             "\n"
              "Notes:\n"
              " * The output dataset is anatomical bucket type of shorts.\n"
              " * The output file might be gigantic and you might run out\n"
@@ -66,6 +69,10 @@ int main( int argc , char *argv[] )
    /*-- option processing --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strcmp(argv[nopt],"-time") == 0 ){
+         abuc = 0 ; nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-autoclip") == 0 ){
          do_autoclip = 1 ; nopt++ ; continue ;
@@ -138,13 +145,26 @@ int main( int argc , char *argv[] )
    /*-- create output dataset --*/
 
    cset = EDIT_empty_copy( xset ) ;
-   EDIT_dset_items( cset ,
-                      ADN_prefix    , prefix         ,
-                      ADN_nvals     , nmask          ,
-                      ADN_ntt       , 0              , /* no time axis */
-                      ADN_type      , HEAD_ANAT_TYPE ,
-                      ADN_func_type , ANAT_BUCK_TYPE ,
-                    ADN_none ) ;
+
+   if( abuc ){
+     EDIT_dset_items( cset ,
+                        ADN_prefix    , prefix         ,
+                        ADN_nvals     , nmask          ,
+                        ADN_ntt       , 0              , /* no time axis */
+                        ADN_type      , HEAD_ANAT_TYPE ,
+                        ADN_func_type , ANAT_BUCK_TYPE ,
+                      ADN_none ) ;
+   } else {
+     EDIT_dset_items( cset ,
+                        ADN_prefix    , prefix         ,
+                        ADN_nvals     , nmask          ,
+                        ADN_ntt       , nmask          ,  /* num times */
+                        ADN_ttdel     , 1.0            ,  /* fake TR */
+                        ADN_nsl       , 0              ,  /* no slice offsets */
+                        ADN_type      , HEAD_ANAT_TYPE ,
+                        ADN_func_type , ANAT_BUCK_TYPE ,
+                      ADN_none ) ;
+   }
 
    if( THD_is_file(DSET_HEADNAME(cset)) ){
       fprintf(stderr,"** Output dataset %s already exists!\n",

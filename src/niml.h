@@ -47,7 +47,11 @@ typedef struct { int i,j ; } intpair ;
 
 /*! An array of integers. */
 
-typedef struct { int num; int *ar; } intarray ;
+typedef struct { int num; int *ar; } int_array ;
+
+/*! An array of strings, each allocated with NI_malloc(). */
+
+typedef struct { int num; char **str;} str_array ;
 
 /* Macros for data type codes. */
 
