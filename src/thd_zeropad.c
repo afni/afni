@@ -132,6 +132,7 @@ ENTRY("THD_zeropad") ;
       RETURN( NULL );
    }
 
+#if 0
    if( nxnew < 2 || iibot >= iitop ||   /* check for reasonable sizes */
        nynew < 2 || jjbot >= jjtop ||   /* and ranges of dataset     */
        nznew < 2 || kkbot >= kktop   ){
@@ -139,6 +140,7 @@ ENTRY("THD_zeropad") ;
       fprintf(stderr,"*** WARNING - THD_zeropad: dataset cut down to %dx%dx%d\n",
                       nxnew,nynew,nznew) ;
    }
+#endif
 
    /*-- create the shell of the new dataset --*/
 
