@@ -66,6 +66,24 @@
    }         
 
 /*!
+   \brief calculates the average 'radius' of a surface.
+   avg(dist(node_i,center));
+*/
+#define SUMA_SO_RADIUS(SO, r){ \
+   int m_i, m_i3; \
+   float m_dx, m_dy, m_dz; \
+   r = 0.0; \
+   for (m_i=0; m_i<SO->N_Node; ++m_i) {   \
+      m_i3 = 3 * m_i;  \
+      m_dx = SO->NodeList[m_i3  ] - SO->Center[0];   \
+      m_dy = SO->NodeList[m_i3+1] - SO->Center[1];   \
+      m_dz = SO->NodeList[m_i3+2] - SO->Center[2];   \
+      r += sqrt( (m_dx * m_dx) + (m_dy * m_dy) + (m_dz * m_dz)); \
+   }  \
+   r /= (float)SO->N_Node; \
+}
+
+/*!
    A macro to calculate a surface object's normals 
 */
 #define SUMA_RECOMPUTE_NORMALS(SO){ \
@@ -76,6 +94,27 @@
    SO->NodeNormList = m_SN.NodeNormList; \
    SO->FaceNormList = m_SN.FaceNormList; \
    SO->glar_NodeNormList = (GLfloat *) SO->NodeNormList; /* just copy the pointer, not the data */\
+}
+
+/*!
+   A macro to recalculate a surface's center and its bounding box 
+*/
+#define SUMA_DIM_CENTER(SO){  \
+   SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);  \
+   SO->Center[0] /= SO->N_Node;  \
+   SO->Center[1] /= SO->N_Node;  \
+   SO->Center[2] /= SO->N_Node;  \
+   SUMA_MIN_VEC (SO->MinDims, 3, SO->aMinDims );   \
+   SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);    \
+}
+
+/*! calculate the centroid of a triangular faceset */
+#define SUMA_FACE_CENTROID(SO, ifc, c){   \
+   static int m_n1, m_n2, m_n3;  \
+   m_n1 =  SO->FaceSetList[3*ifc]; m_n2 = SO->FaceSetList[3*ifc+1]; m_n3 = SO->FaceSetList[3*ifc+2];   \
+   c[0] = (SO->NodeList[3*m_n1]   + SO->NodeList[3*m_n2]   + SO->NodeList[3*m_n3]  )/3; \
+   c[1] = (SO->NodeList[3*m_n1+1] + SO->NodeList[3*m_n2+1] + SO->NodeList[3*m_n3+1])/3; \
+   c[2] = (SO->NodeList[3*m_n1+2] + SO->NodeList[3*m_n2+2] + SO->NodeList[3*m_n3+2])/3; \
 }
 
 /*! 
@@ -773,9 +812,7 @@ SUMA_MAT_TO_VEC(a,b,rows,cols,typea,typeb)
 
 
 /*
-SUMA_COPY_VEC macro:
-
-copies the contents of vector a into vector b
+SUMA_COPY_VEC macro: copies the contents of vector a into vector b
 
 SUMA_COPY_VEC(a,b,len,typea,typeb)
 
@@ -795,6 +832,15 @@ SUMA_COPY_VEC(a,b,len,typea,typeb)
                            *(_PTB)++ = (typeb)(*(_PTA)++);  \
                     }
 
+/*!
+   SUMA_INIT_VEC macro: initializes values in a vector
+   SUMA_INIT_VEC(a,len,val,typea)
+*/
+#define SUMA_INIT_VEC(a,len,val,typea) {  \
+   int m_i; \
+   for (m_i = 0; m_i < (len) ; m_i ++) \
+      a[m_i] = (typea)val; \
+}
 
 /*!
 SUMA_DOTP_VEC macro:
@@ -827,6 +873,27 @@ WARNING: The input data vectors are not cast to the type of s.
                            s += (*_PTA++) * (*_PTB++);  \
                    }
 
+/*!
+   \brief Macro to calculate the unit direction vector U from P1-->P2 and
+   the distance Un between P1 and P2.
+   If Un is 0, U is all zeros
+   \param P1/P2 (float *) 3-elements arrays containing XYZ of P1 and P2
+   \param U (float *) 3-elements array to contain unit direction vector
+   \param Un (float) the norm of |P1--P2|
+*/ 
+#define SUMA_UNIT_VEC(P1, P2, U, Un){  \
+      /* Calculate normalized unit vector of line formed by P1, P2 */   \
+      U[0] = P2[0] - P1[0];   \
+      U[1] = P2[1] - P1[1];   \
+      U[2] = P2[2] - P1[2];   \
+      Un = sqrt(U[0]*U[0] + U[1]*U[1] + U[2]*U[2]);   \
+      if (Un) {   \
+         U[0] /= Un; U[1] /= Un; U[2] /= Un; \
+      }else {  \
+         U[0] = U[1] = U[2] = 0; \
+      }  \
+   }  \
+   
 
    /*!
    SUMA_MULT_MAT MACRO FOR MATRIX MULTIPLICATION:

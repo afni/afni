@@ -66,4 +66,10 @@ SUMA_Boolean SUMA_Free_SO_map (SUMA_SO_map *SOM);
 SUMA_Boolean SUMA_Show_SO_map  (SUMA_SO_map *SOM, FILE *out); 
 SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot);
 
+#define SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth){ /* r is the radius parameter passed to SUMA_CreateIcosahedron or the -rad option in CreateIcosahedron*/ \
+   a = r*(1+sqrt(5)) / (sqrt(10+2*sqrt(5))); \
+   b = 2*r / (sqrt(10+2*sqrt(5)));  \
+   lgth = sqrt( pow(0-b,2) + pow(b-a,2) + pow(-a-0,2) );  /*determine length of edge by dist node0->node1*/ \
+}
+
 #endif

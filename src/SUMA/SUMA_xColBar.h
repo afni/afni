@@ -170,6 +170,8 @@ void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, XtPointer call_da
 void SUMA_cb_Cmap_Load(Widget w, XtPointer data, XtPointer client_data);
 void SUMA_LoadCmapFile (char *filename, void *data);
 void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO);
+int SUMA_ThreshVal2ScalePos(SUMA_SurfaceObject *SO, float *val);
+void SUMA_SetScaleThr(void *data);
 
 /* the help strings */
 
@@ -309,6 +311,9 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO);
 
 #define SUMA_SurfContHelp_DsetSwitch   \
    "Switch between datasets."
+
+#define SUMA_SurfContHelp_SetThreshTblr0   \
+   "Set the threshold."
 
 #define SUMA_SurfContHelp_DsetLoad  \
    "Load a new dataset (Dset).\n"   \
