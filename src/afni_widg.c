@@ -791,6 +791,8 @@ STATUS("making imag->rowcol") ;
 
    im3d->vinfo->old_crosshair_label = xstr = AFNI_crosshair_label( im3d ) ;
 
+   im3d->vinfo->view_setter = -1 ;  /* 20 Feb 2003 */
+
    imag->crosshair_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , imag->crosshair_rowcol ,

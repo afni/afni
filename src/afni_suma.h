@@ -143,6 +143,10 @@ extern int * SUMA_map_dset_to_surf( SUMA_surface *, struct THD_3dim_dataset *);
 
 extern SUMA_vnlist *SUMA_make_vnlist(SUMA_surface *,struct THD_3dim_dataset *);
 
+extern int AFNI_find_closest_node( int , SUMA_ixyz *,    /* 20 Feb 2003 */
+                                   float,float,float ,
+                                   float,float , float,float , float,float ) ;
+
 extern void SUMA_load  ( struct THD_3dim_dataset * ) ;
 extern void SUMA_unload( struct THD_3dim_dataset * ) ;
 

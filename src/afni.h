@@ -275,7 +275,13 @@ typedef struct {
 
       int see_ttatlas ;  /* 25 Jul 2001 */
 
+      int view_setter ;  /* 20 Feb 2003 */
+
 } AFNI_view_info ;
+
+#define AXIAL    1       /* 20 Feb 2003 */
+#define SAGITTAL 2
+#define CORONAL  3
 
 #undef USE_WRITEOWNSIZE  /* 01 Aug 1999 */
 

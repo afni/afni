@@ -1158,6 +1158,8 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
 
    char *att_prefix , *att_equals , *att_trail ;
 
+   int header_only = ((tmode & NI_HEADER_FLAG) != 0) ;
+
    /* ADDOUT = after writing, add byte count if OK, else quit */
    /* AF     = thing to do if ADDOUT is quitting */
 
@@ -1185,6 +1187,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       if( jj < 1 ) return jj ;
    }
 
+   tmode &= 255 ;
    if( ns->type == NI_STRING_TYPE )      /* string output only in text mode */
       tmode = NI_TEXT_MODE ;
 
@@ -1510,9 +1513,11 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
 #ifdef USE_NEW_IOFUN   /** 13 Feb 2003: output is now done elsewhere **/
 
-      nout = NI_write_columns( ns, nel->vec_num, nel->vec_typ,
-                                   nel->vec_len, nel->vec    , tmode ) ;
-      ADDOUT ;
+      if( !header_only ){
+        nout = NI_write_columns( ns, nel->vec_num, nel->vec_typ,
+                                     nel->vec_len, nel->vec    , tmode ) ;
+        ADDOUT ;
+      }
 
 #else                  /** OLD way of doing output **/
 

@@ -421,6 +421,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
            if( verbose )
               fprintf(stderr,"PO: command DSET_IJK_SET %d %d %d\n",ix,jy,kz) ;
 
+           im3d->vinfo->view_setter = -1 ; /* 20 Feb 2003 */ 
            AFNI_set_viewpoint( im3d , ix,jy,kz , REDISPLAY_ALL ) ;
            if( pp->do_ack ) PO_ACK_OK ( pp->ioc ) ;
         }
