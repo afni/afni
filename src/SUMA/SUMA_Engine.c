@@ -102,7 +102,6 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             {
                SUMA_COLOR_MAP *cmap;
                NI_element *nel=NULL;
-               NI_stream ns;
                int i;
                char sbuf[50], *stmp=NULL;
                
@@ -142,16 +141,16 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                /* SUMA_ShowNel(nel); */
                
-               if (NI_write_element( SUMAg_CF->ns , nel, NI_BINARY_MODE ) < 0) {
+               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
-                  if (stmp) free(stmp);
+                  if (stmp) SUMA_free(stmp); stmp = NULL;
                   SUMA_Free_ColorMap(cmap); cmap = NULL;
                   break;
                }
                
                NI_free_element(nel) ; nel = NULL;
-               if (stmp) free(stmp);
+               if (stmp) SUMA_free(stmp); stmp = NULL;
                
                /* Now set the colormap in AFNI */
                nel = NI_new_data_element("ni_do", 0);
@@ -163,25 +162,24 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                
                /* SUMA_ShowNel(nel); */
                
-               if (NI_write_element( SUMAg_CF->ns , nel, NI_BINARY_MODE ) < 0) {
+               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
-                  if (stmp) free(stmp);
+                  if (stmp) SUMA_free(stmp); stmp = NULL;
                   SUMA_Free_ColorMap(cmap); cmap = NULL;
                   break;
                }
                
                NI_free_element(nel) ; nel = NULL;
-               if (stmp) free(stmp);
+               if (stmp) SUMA_free(stmp); stmp = NULL;
               
                /* set the autorange off */
                nel = NI_new_data_element("ni_do", 0);
                NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
                NI_set_attribute ( nel, "ni_object", "SET_FUNC_AUTORANGE A.-");
-               if (NI_write_element( SUMAg_CF->ns , nel, NI_BINARY_MODE ) < 0) {
+               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
-                  if (stmp) free(stmp);
                   SUMA_Free_ColorMap(cmap); cmap = NULL;
                   break;
                }
@@ -194,15 +192,15 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                sprintf(sbuf," %d", cmap->N_Col);
                stmp = SUMA_append_string("SET_FUNC_RANGE A.", sbuf);
                NI_set_attribute ( nel, "ni_object", stmp);
-               if (NI_write_element( SUMAg_CF->ns , nel, NI_BINARY_MODE ) < 0) {
+               if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel, NI_BINARY_MODE ) < 0) {
                   SUMA_SLP_Err("Failed to send CMAP to afni");
                   NI_free_element(nel) ; nel = NULL;
-                  if (stmp) free(stmp);
+                  if (stmp) SUMA_free(stmp); stmp = NULL;
                   SUMA_Free_ColorMap(cmap); cmap = NULL;
                   break;
                }
                NI_free_element(nel) ; nel = NULL;
-               if (stmp) free(stmp);
+               if (stmp) SUMA_free(stmp); stmp = NULL;
                
                SUMA_Free_ColorMap(cmap); cmap = NULL;
             }
@@ -581,129 +579,127 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             }
             break;
          
-         case SE_ToggleConnected:
-               /* expects nothing in EngineData */
-               if (!SUMA_CanTalkToAfni (SUMAg_DOv, SUMAg_N_DOv)) {
-                  fprintf(SUMA_STDOUT,"%s: Cannot connect to AFNI.\n\tNot one of the surfaces is mappable and has a Surface Volume.\n\tDid you use the -sv option when launching SUMA ?\n", FuncName);
-                  break;
-               }
-               SUMAg_CF->Connected = !SUMAg_CF->Connected;
-               if (SUMAg_CF->Connected) {
-                 /* find out if the stream has been established already */
-                  if (SUMAg_CF->ns) { /* stream is open, nothing to do */
-                     if (LocalHead) fprintf(SUMA_STDOUT,"%s: Stream existed, reusing.\n", FuncName);
-                     fprintf(SUMA_STDOUT,"%s: Connected to AFNI.\n", FuncName);
-                  }else {   /* must open stream */              
-                     /* contact afni */
-                        fprintf(SUMA_STDOUT,"%s: Contacting afni ...\n", FuncName);
-                        SUMAg_CF->ns = NI_stream_open( SUMAg_CF->NimlAfniStream , "w" ) ;
-                        if (!SUMAg_CF->ns) {
-                           SUMA_SLP_Err("NI_stream_open failed.");
-                           SUMA_BEEP;
-                           SUMAg_CF->Connected = !SUMAg_CF->Connected;
-                           break ;
-                        }
-                        if (!strcmp(SUMAg_CF->AfniHostName,"localhost")) { /* only try shared memory when 
-                                                                              AfniHostName is localhost */
-                           fprintf (SUMA_STDERR, "%s: Trying shared memory...\n", FuncName);
-                           if( strstr( SUMAg_CF->NimlAfniStream , "tcp:localhost:" ) != NULL ) {
-                              if (!NI_stream_reopen( SUMAg_CF->ns , "shm:WeLikeElvis:1M" )) {
-                                 fprintf (SUMA_STDERR, "Warning %s: Shared memory communcation failed.\n", FuncName);
-                              }
-                           }
-                        }
-                        /*   SUMAg_CF->ns = NI_stream_open( "tcp:128.231.212.194:53211" , "w" ) ;*/
-
-                     if( SUMAg_CF->ns == NULL ){
-                        SUMA_SLP_Err("NI_stream_open failed");
-                        SUMA_BEEP; 
-                        SUMAg_CF->Connected = !SUMAg_CF->Connected;
-                        break ;
-                     }
-
-                     Wait_tot = 0;
-                     while(Wait_tot < SUMA_WriteCheckWaitMax){
-                       nn = NI_stream_writecheck( SUMAg_CF->ns , SUMA_WriteCheckWait) ;
-                       if( nn == 1 ){ fprintf(stderr,"\n") ; break ; }
-                       if( nn <  0 ){ fprintf(stderr,"BAD\n"); SUMAg_CF->Connected = !SUMAg_CF->Connected; SUMAg_CF->ns = NULL; break;}
-                       Wait_tot += SUMA_WriteCheckWait;
-                       fprintf(SUMA_STDERR,".") ;
-                     }
-
-                     /* make sure you did not exit because of time out */
-                     if (nn!=1) {
-                        SUMAg_CF->Connected = !SUMAg_CF->Connected;
-                        SUMAg_CF->ns = NULL;
-                        fprintf(SUMA_STDERR,"Error %s: WriteCheck timed out (> %d ms).\n", FuncName, SUMA_WriteCheckWaitMax);
-                        break ;
-                     }
-                  } 
-                  
-                  /* Stream is open */
-                  
-                  /* start the listening WorkProcess */
+         case SE_StartListening:
+            /* expects nothing in EngineData */
+            if (!SUMAg_CF->Listening) {
+               SUMAg_CF->Listening = !SUMAg_CF->Listening;
+               fprintf(SUMA_STDERR,"%s: Starting to listen ...\n", FuncName);
+               /* start the listening WorkProcess */
+               if (!SUMAg_CF->niml_work_on) {
+                  SUMA_LH("registering SUMA_niml_workproc...");
                   SUMA_register_workproc(SUMA_niml_workproc, (XtPointer)sv);
-
-                  /* register a call for sending the surface to afni (SetAfniSurf)*/
-                  if (LocalHead) fprintf(SUMA_STDERR,"Notifying Afni of New surface...\n");
-                  ED = SUMA_InitializeEngineListData (SE_SetAfniSurf);
-                  SUMA_RegisterEngineListCommand (list, ED, 
-                                                   SEF_Empty, NULL,
-                                                   SES_Suma, (void *)sv, NOPE,
-                                                   SEI_Head, NULL); 
-                  break;
                } else {
-                  fprintf(SUMA_STDOUT,"%s: Disconnecting from afni.\n", FuncName);
-                  /* remove the listening workprocess) */
-                  SUMA_remove_workproc( SUMA_niml_workproc );
-                   
-                  if (!SUMAg_CF->ns) {
-                     /* It looks like the stream was closed, do the clean up */
-                     fprintf(SUMA_STDERR,"Warning %s: sv->ns is null, stream must have gotten closed. Cleaning up ...\n", FuncName);
-                     ED = SUMA_InitializeEngineListData (SE_CloseStream4All);
-                     SUMA_RegisterEngineListCommand (list, ED, 
-                                                   SEF_Empty, NULL,
-                                                   SES_Suma, (void *)sv, NOPE,
-                                                   SEI_Head, NULL); 
-                     
-                     break;
+                  SUMA_LH("SUMA_niml_workproc Already on.");
+               }
+            } else {
+               /* if already on, just close streams */
+               /* closing the streams */
+               fprintf(SUMA_STDERR,"%s: Closing streams, but still listening ...\n", FuncName);
+               /* kill the streams */
+               for (ii=0; ii< SUMA_MAX_STREAMS; ++ii) {
+                  if (ii != SUMA_AFNI_STREAM_INDEX) {  /* leave AFNI connection separate */
+                     NI_stream_close( SUMAg_CF->ns_v[ii] ) ;
+                     SUMAg_CF->ns_v[ii] = NULL ;
+                     SUMAg_CF->ns_flags_v[ii] = 0;
+                     SUMAg_CF->TrackingId_v[ii] = 0;
                   }
-                  
-                 
-                  /* Close the stream if nobody else wants it. 
-                  This is not a great condition, one should be able to leave the stream open 
-                  even if no viewer, for the moment, does not want to talk to AFNI.
-                  Perhaps in the future. */
-                  if (SUMAg_N_SVv == 1) {
-                     fprintf(SUMA_STDERR,"%s: Nobody wants to talk to AFNI anymore, closing stream ...\n", FuncName);
-                     NI_stream_close(SUMAg_CF->ns);
-                     SUMAg_CF->ns = NULL;
-                  }
+               }
+            } 
+            break;
+            
+         case SE_ToggleConnected:
+            /* expects nothing in EngineData */
+            if (!SUMA_CanTalkToAfni (SUMAg_DOv, SUMAg_N_DOv)) {
+               fprintf(SUMA_STDOUT,"%s: Cannot connect to AFNI.\n\tNot one of the surfaces is mappable and has a Surface Volume.\n\tDid you use the -sv option when launching SUMA ?\n", FuncName);
+               break;
+            }
+               
+            SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] = !SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX];
+            if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
+               if (!SUMA_niml_call (SUMAg_CF, SUMA_AFNI_STREAM_INDEX, YUP)) {
+                  /* conection flag is reset in SUMA_niml_call */
                   break;
                }
+                  
+               /* start the listening WorkProcess */
+               LocalHead = YUP;
+               if (!SUMAg_CF->niml_work_on) {
+                  SUMA_LH("registering SUMA_niml_workproc...");
+                  SUMA_register_workproc(SUMA_niml_workproc, (XtPointer)sv); 
+               } else {
+                  SUMA_LH("SUMA_niml_workproc Already on.");
+               }
+               LocalHead = NOPE;
+
+               /* register a call for sending the surface to afni (SetAfniSurf)*/
+               if (LocalHead) fprintf(SUMA_STDERR,"Notifying Afni of New surface...\n");
+               ED = SUMA_InitializeEngineListData (SE_SetAfniSurf);
+               SUMA_RegisterEngineListCommand (list, ED, 
+                                                SEF_Empty, NULL,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Head, NULL); 
+               break;
+            } else {
+               fprintf(SUMA_STDOUT,"%s: Disconnecting from afni.\n", FuncName);
+
+               if (!SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX]) {
+                  /* It looks like the stream was closed, do the clean up */
+                  fprintf(SUMA_STDERR,"Warning %s: sv->ns is null, stream must have gotten closed. Cleaning up ...\n", FuncName);
+                  ED = SUMA_InitializeEngineListData (SE_CloseStream4All);
+                  ii = SUMA_AFNI_STREAM_INDEX;
+                  SUMA_RegisterEngineListCommand (list, ED, 
+                                                SEF_i, (void*)&ii,
+                                                SES_Suma, (void *)sv, NOPE,
+                                                SEI_Head, NULL); 
+
+                  break;
+               }
+
+
+               /* Close the stream if nobody else wants it. 
+               This is not a great condition, one should be able to leave the stream open 
+               even if no viewer, for the moment, does not want to talk to AFNI.
+               Perhaps in the future. */
+               if (SUMAg_N_SVv == 1) {
+                  fprintf(SUMA_STDERR,"%s: Nobody wants to talk to AFNI anymore, closing stream ...\n", FuncName);
+                  NI_stream_close(SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX]);
+                  SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] = NULL;
+                  SUMAg_CF->ns_flags_v[SUMA_AFNI_STREAM_INDEX] = 0;
+                  SUMAg_CF->TrackingId_v[SUMA_AFNI_STREAM_INDEX] = 0;
+               }
+               break;
+            }
    
          case SE_CloseStream4All:
-            /* expects nothing in EngineData */
-               
-            /* odds are AFNI died or closed stream, mark all surfaces as unsent */
-            for (ii=0; ii<SUMAg_N_DOv; ++ii) {
-               if (SUMA_isSO(SUMAg_DOv[ii])) {
-                  SO = (SUMA_SurfaceObject *)(SUMAg_DOv[ii].OP);
-                  if (SO->SentToAfni) SO->SentToAfni = NOPE;
+            /* expects the stream index in i in EngineData */
+            if (EngineData->i_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               break;
+            }   
+            /* odds are communicating program died or closed stream, mark all surfaces as unsent */
+            if (EngineData->i == SUMA_AFNI_STREAM_INDEX) {
+               for (ii=0; ii<SUMAg_N_DOv; ++ii) {
+                  if (SUMA_isSO(SUMAg_DOv[ii])) {
+                     SO = (SUMA_SurfaceObject *)(SUMAg_DOv[ii].OP);
+                     if (SO->SentToAfni) SO->SentToAfni = NOPE;
+                  }
                }
             }
             
             /* same for parent fields */
             /* check first if stream in SUMAg_CF still good by any chance */
-            nn = NI_stream_goodcheck(SUMAg_CF->ns , 1 ) ;
+            nn = NI_stream_goodcheck(SUMAg_CF->ns_v[EngineData->i] , 1 ) ;
             
             if( nn >= 0 ){ 
                fprintf(stderr,"Error %s: Stream still alive, this should not be. Closing anyway.\n", FuncName); 
-               NI_stream_close(SUMAg_CF->ns); 
+               NI_stream_close(SUMAg_CF->ns_v[EngineData->i]); 
             }
             
             /* clean up and get out of here*/         
-            SUMAg_CF->ns = NULL;
+            SUMAg_CF->ns_v[EngineData->i] = NULL;
+            SUMAg_CF->ns_flags_v[EngineData->i] = 0;
+            SUMAg_CF->TrackingId_v[EngineData->i] = 0;
+ 
             break;
             
          case SE_SetForceAfniSurf:
@@ -756,7 +752,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                   /* send surface nel */
                   if (LocalHead) fprintf(SUMA_STDERR,"%s: Sending SURF_iXYZ nel...\n ", FuncName) ;
-                  nn = NI_write_element( SUMAg_CF->ns , nel , NI_BINARY_MODE ) ;
+                  nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
 
                   if( nn < 0 ){
                        fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
@@ -782,7 +778,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   }
                   /* send surface nel */
                   fprintf(SUMA_STDERR,"%s: Sending SURF_IJK nel ...\n", FuncName) ;
-                  nn = NI_write_element( SUMAg_CF->ns , nel , NI_BINARY_MODE ) ;
+                  nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_BINARY_MODE ) ;
 
                   if( nn < 0 ){
                        fprintf(SUMA_STDERR,"Error %s: NI_write_element failed\n", FuncName);
@@ -1111,7 +1107,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                }
             /*send it to afni */
             /*fprintf(SUMA_STDERR,"Sending cross hair nel ") ;*/
-            nn = NI_write_element( SUMAg_CF->ns , nel , NI_TEXT_MODE ) ;
+            nn = NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nel , NI_TEXT_MODE ) ;
             /*SUMA_nel_stdout (nel);*/
       
             if( nn < 0 ){

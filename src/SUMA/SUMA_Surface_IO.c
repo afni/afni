@@ -2684,7 +2684,7 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_1D (char *filename, char *Parent_idcode_str,
                                     SUMAg_DOv, SUMAg_N_DOv,
                                     ForDisplay);
       
-      if (Label) free(Label); Label = NULL;
+      if (Label) SUMA_free(Label); Label = NULL;
       if (NewName) SUMA_Free_Parsed_Name(NewName); NewName = NULL;
       if (LocalHead) fprintf (SUMA_STDERR, "%s: ROI->Parent_idcode_str %s\n", FuncName, ROIv[i]->Parent_idcode_str);
 
@@ -3423,7 +3423,7 @@ int main (int argc,char *argv[])
    NI_free_element(nel) ; nel = NULL;
    
    /* free others */
-   if (stmp) free(stmp);
+   if (stmp) SUMA_free(stmp);
    if (ROIv) SUMA_free (ROIv);
    if (out_name) SUMA_free(out_name);
    if (Parent_idcode_str) SUMA_free(Parent_idcode_str);

@@ -4198,7 +4198,7 @@ void SUMA_cb_AfniLink_toggled (Widget w, XtPointer data, XtPointer call_data)
    SUMAg_CF->ROI2afni = !SUMAg_CF->ROI2afni;
    
    /* make sure that is OK */
-   if (SUMAg_CF->ROI2afni && !SUMAg_CF->Connected) {
+   if (SUMAg_CF->ROI2afni && !SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
       SUMAg_CF->ROI2afni = NOPE;
       
       SUMA_SLP_Err(  "Cannot link to Afni.\n"
@@ -6855,7 +6855,10 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy
       if (!preserve) 
          SUMA_SLP_Warn("You should not be reusing\na dlg structure along with\nthe Preserve flag on.");
       dlg = odlg;
-      if (dlg->filename) SUMA_free(dlg->filename);
+      if (dlg->filename) {
+         SUMA_LH("Freeing dlg->filename");
+         SUMA_free(dlg->filename);
+      }
    }
    
    dlg->daddy = daddy; 
@@ -6869,7 +6872,10 @@ SUMA_SELECTION_DIALOG_STRUCT *SUMA_CreateFileSelectionDialogStruct (Widget daddy
    
    if (FilePattern) {
       /* new one specified, destroy the old one */
-      if (dlg->FilePattern) SUMA_free(dlg->FilePattern);
+      if (dlg->FilePattern) {
+         SUMA_LH("Freeing dlg->FilePattern");
+         SUMA_free(dlg->FilePattern);
+      }   
       dlg->FilePattern = SUMA_copy_string (FilePattern);
    }
    

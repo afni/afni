@@ -1,5 +1,7 @@
 #include "SUMA_suma.h"
 
+#define SUMA_GEOMCOMP_NI_MODE NI_TEXT_MODE
+
 #undef STAND_ALONE
 
 #if defined SUMA_SurfSmooth_STAND_ALONE
@@ -37,6 +39,10 @@ extern int SUMAg_N_DOv;
 */
 #define DBG 1
 #define DoCheck 1
+#define GEOMCOMP_LINE 1 /*!<  Using socket SUMA_TCP_PORT + GEOMCOMP_LINE 
+                              Make sure GEOMCOMP_LINE < SUMA_MAX_STREAMS*/
+
+
 SUMA_Boolean SUMA_getoffsets (int n, SUMA_SurfaceObject *SO, float *Off, float lim) 
 {
    static char FuncName[]={"SUMA_getoffsets"};
@@ -891,7 +897,7 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
 
 /*!
    \brief Filter data defined on the surface using M.K. Chung et al.'s method (Neuroimage 03)
-   dm_smooth = SUMA_Chung_Smooth (SO, wgt, N_iter, FWHM, fin, vpn, d_order, fout_user);
+   dm_smooth = SUMA_Chung_Smooth (SO, wgt, N_iter, FWHM, fin, vpn, d_order, fout_user, SUMA_COMM_STRUCT *cs);
    
    \param SO (SUMA_SurfaceObject *) Surface object with valid 
                                     SO->NodeList, SO->FaceSetList and SO->FN 
@@ -917,6 +923,8 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                         is equal to fout_user.
                         Either way, you are responsible for freeing memory pointed to by dm_smooth
                         DO NOT PASS fout_user = fin 
+   \param cs (SUMA_COMM_STRUCT *) A pointer to the structure containing info for taking to SUMA
+                           
    \return dm_smooth (float *) A pointer to the smoothed data (vpn * SO->N_Node values). 
                         You will have to free the memory allocated for dm_smooth yourself.
                         
@@ -924,14 +932,44 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                         
 */
 
+/*!
+   \brief, creates a srtucture for holding communication variables 
+   
+   - free returned structure with SUMA_free
+*/
+SUMA_COMM_STRUCT *SUMA_Create_CommSrtuct(void)
+{
+   static char FuncName[]={"SUMA_Create_CommSrtuct"};
+   SUMA_COMM_STRUCT *cs=NULL;
+   
+   SUMA_ENTRY;
+   
+   cs = (SUMA_COMM_STRUCT *)SUMA_malloc(sizeof(SUMA_COMM_STRUCT));
+   if (!cs) {
+      SUMA_SL_Crit("Failed to allocate");
+      SUMA_RETURN(NULL);
+   }
+   
+   cs->Send = NOPE;
+   cs->GoneBad = NOPE;
+   cs->nelps = -1.0;
+   cs->TrackID = 0;
+   
+   SUMA_RETURN(cs);
+}
+
 float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, float *fin_orig, 
-                           int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user)
+                           int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
+                           SUMA_COMM_STRUCT *cs)
 {
-   static char FuncName[]={"SUMA_Chung_Smooth"};
+   static char FuncName[]={"SUMA_Chung_Smooth"}, stmp[500];
    float *fout_final = NULL, *fbuf=NULL, *fin=NULL, *fout=NULL, *fin_next = NULL;
    float delta_time, fp, dfp, fpj, minfn=0.0, maxfn=0.0;
-   int n , k, j, niter, vnk, os; 
+   NI_element *nel=NULL;
+   int n , k, j, niter, vnk, os;
+   struct  timeval tt;
+   float etm = 0.0, wtm; 
    SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -1010,8 +1048,80 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                   if (fout[vnk] < minfn) fout[vnk] = minfn;
                   if (fout[vnk] > maxfn) fout[vnk] = maxfn;
                }/* for n */   
+               if (cs->Send) {
+                  /* make sure stream is till OK */
+                  if (NI_stream_goodcheck ( SUMAg_CF->ns_v[GEOMCOMP_LINE] , 1 ) < 0) {
+                     SUMA_SL_Err("Communication stream gone bad.\nNo proper stream shutting down performed yet.");
+                     SUMA_LH("Cleanup for SUMA_NodeVal2irgba_nel...");
+                     SUMA_NodeVal2irgba_nel (SO, NULL, YUP);
+                     cs->GoneBad = YUP;
+                     cs->Send = NOPE;
+                  } else {
+                     /* colorize data */
+                     if (LocalHead) {
+                        sprintf(stmp,"Updating SUMA, TrackID %d\n", cs->TrackID);
+                        SUMA_LH(stmp);
+                     }
+                     nel = SUMA_NodeVal2irgba_nel (SO, fout, NOPE);
+                     /* tag it with the number of iterations */
+                     sprintf(stmp,"%d_%d_%d", k, niter, N_iter); 
+                     NI_set_attribute (nel, "iCol_iter_Niter", stmp);   
+                     ++cs->TrackID;
+                     sprintf(stmp,"%d", cs->TrackID);
+                     NI_set_attribute (nel, "Tracking_ID", stmp);
+
+                     #if 0 /* writes every element to a text file for debugging ... */
+                     {
+                        NI_stream ns;  
+                        /* Test writing results in asc, 1D format */ 
+                        if (LocalHead) fprintf(stderr," %s:-\nWriting ascii 1D ...\n"
+                                       , FuncName);
+                        /* open the stream */
+                        sprintf(stmp, "file:Test_write_asc_1D_%s.1D",NI_get_attribute (nel, "iCol_iter_Niter"));
+                        ns = NI_stream_open( stmp , "w" ) ;
+                        if( ns == NULL ){
+                          fprintf (stderr,"Error  %s:\nCan't open Test_write_asc_1D!"
+                                       , FuncName); 
+                           SUMA_RETURN(NULL);
+                        }
+
+                        /* write out the element */
+                        if (NI_write_element( ns , nel ,
+                                              NI_TEXT_MODE | NI_HEADERSHARP_FLAG ) < 0) {
+                           fprintf (stderr,"Error  %s:\nFailed in NI_write_element"
+                                          , FuncName);
+                           SUMA_RETURN(NULL);
+                        }
+
+                        /* close the stream */
+                        NI_stream_close( ns ) ;
+                     }
+                     #endif
+
+                     if (cs->nelps > 0) { /* make sure that you are not sending elements too fast */
+                        if (!etm) etm = 100000.0; /* first pass, an eternity */
+                        else etm = SUMA_etime(&tt, 1);
+                        wtm = 1./cs->nelps - etm;
+                        if (wtm > 0) { /* wait */
+                           SUMA_LH("Sleeping to meet refresh rate...");
+                           NI_sleep((int)(wtm*1000));
+                        }
+                     }
+                     /* send it to SUMA */
+                     if (LocalHead) fprintf (SUMA_STDOUT,"Sending %s...\n", NI_get_attribute (nel, "iCol_iter_Niter"));
+                     if (NI_write_element( SUMAg_CF->ns_v[GEOMCOMP_LINE] , nel, SUMA_GEOMCOMP_NI_MODE ) < 0) {
+                        SUMA_LH("Failed updating SUMA...");
+                     }
+                     if (nel) NI_free_element(nel) ; nel = NULL;
+                     if (cs->nelps > 0) SUMA_etime(&tt, 0); /* start the timer */
+                  }
+               }
             } /* for k */
          }/* for niter */
+         if (cs->Send) {
+            SUMA_LH("Cleanup for SUMA_NodeVal2irgba_nel...");
+            SUMA_NodeVal2irgba_nel (SO, NULL, YUP);
+         }
          break;
       case SUMA_ROW_MAJOR:
          SUMA_SL_Err("Row Major not implemented");
@@ -1027,6 +1137,166 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                
    SUMA_RETURN(fout);
 }
+
+/*! 
+   A function to turn node values into a colored nel to be sent to SUMA
+*/
+NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Boolean cleanup)
+{
+   static char FuncName[]={"SUMA_NodeVal2irgba_nel"};
+   static int i_in=0, *node=NULL;
+   static SUMA_COLOR_MAP *CM=NULL;
+   static SUMA_SCALE_TO_MAP_OPT * OptScl=NULL;
+   static SUMA_STANDARD_CMAP MapType;
+   static SUMA_COLOR_SCALED_VECT * SV=NULL;
+   static byte *rgba=NULL;
+   char idcode_str[50];
+   NI_element *nel=NULL;
+   int i, i4; 
+   float ClipRange[2], *Vsort= NULL;
+   SUMA_Boolean LocalHead = YUP;
+    
+   SUMA_ENTRY;
+   
+   if (cleanup) {
+      SUMA_LH("Cleanup...");
+      if (node) SUMA_free(node); node = NULL;
+      if (CM) SUMA_Free_ColorMap (CM); CM = NULL;
+      if (OptScl) SUMA_free(OptScl); OptScl = NULL;
+      if (SV) SUMA_Free_ColorScaledVect (SV); SV = NULL;
+      if (rgba) SUMA_free(rgba); rgba = NULL;
+      SUMA_RETURN(NULL);
+   }
+       
+   if (!i_in) {
+      /* first time around */
+      /* create the color mapping of Cx (SUMA_CMAP_MATLAB_DEF_BYR64)*/
+      CM = SUMA_GetStandardMap (SUMA_CMAP_MATLAB_DEF_BYR64);
+      if (CM == NULL) {
+         fprintf (SUMA_STDERR,"Error %s: Could not get standard colormap.\n", FuncName); 
+         SUMA_RETURN (NULL);
+      }
+
+      /* get the options for creating the scaled color mapping */
+      OptScl = SUMA_ScaleToMapOptInit();
+      if (!OptScl) {
+         fprintf (SUMA_STDERR,"Error %s: Could not get scaling option structure.\n", FuncName);
+         SUMA_RETURN (NULL); 
+      }
+
+      /* work the options a bit */
+      OptScl->ApplyClip = YUP;
+      ClipRange[0] = 0; ClipRange[1] = 100; /* percentile clipping range*/ 
+      Vsort = SUMA_PercRange (val, NULL, SO->N_Node, ClipRange, ClipRange); 
+      if (Vsort[0] < 0 && Vsort[SO->N_Node -1] > 0 ) {
+         /* the new method */
+         if (fabs(ClipRange[0]) > ClipRange[1]) {
+            ClipRange[1] = -ClipRange[0];
+         } else {
+            ClipRange[0] = -ClipRange[1];
+         }
+      } 
+      OptScl->ClipRange[0] = ClipRange[0]; OptScl->ClipRange[1] = ClipRange[1];
+      OptScl->BrightFact = 1.0;
+
+      /* create structure to hold the colored values */
+      SV = SUMA_Create_ColorScaledVect(SO->N_Node);/* allocate space for the result */
+      if (!SV) {
+         fprintf (SUMA_STDERR,"Error %s: Could not allocate for SV.\n", FuncName);
+         SUMA_RETURN (NULL);
+      }
+      
+      /* node vector */
+      node = (int *) SUMA_malloc(sizeof(int) * SO->N_Node);
+      /* color vectors to hold RGBA colors*/
+      rgba = (byte *) SUMA_malloc(sizeof(byte) * SO->N_Node * 4);
+      if (!node || !rgba) {
+         SUMA_SL_Err("Failed to allocate for node or rgba.");
+         SUMA_RETURN(NULL);
+      }
+      for (i=0; i < SO->N_Node; ++i) node[i] = i;
+      
+      if (Vsort) SUMA_free(Vsort); Vsort = NULL;
+   }
+    
+   /* map the values in val to the colormap */
+
+   /* finally ! */
+   if (!SUMA_ScaleToMap (val, SO->N_Node, OptScl->ClipRange[0], OptScl->ClipRange[1], CM, OptScl, SV)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_ScaleToMap.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }             
+               
+   /* copy the colors to rgba */
+   for (i=0; i < SO->N_Node; ++i) {
+      i4 = 4 * i;
+      rgba[i4] = (byte)(SV->cM[i][0] * 255); ++i4;
+      rgba[i4] = (byte)(SV->cM[i][1] * 255); ++i4;
+      rgba[i4] = (byte)(SV->cM[i][2] * 255); ++i4;
+      rgba[i4] = 255;
+   }
+   
+   /* now create the niml element */
+   UNIQ_idcode_fill (idcode_str);
+   /* Now create that data element and write it out */
+   nel = SUMA_NewNel (  SUMA_NODE_RGBAb, /* one of SUMA_DSET_TYPE */
+                        SO->idcode_str, /* idcode of Domain Parent */
+                        NULL, /* idcode of geometry parent, not useful here*/
+                        SO->N_Node); /* Number of elements */
+   if (!nel) {
+      fprintf (stderr,"Error  %s:\nFailed in SUMA_NewNel", FuncName);
+      SUMA_RETURN(NULL);
+   }
+   /* set the surface idcode attribute */
+   if (!i_in) { SUMA_LH("Using FIXED idcode!!!"); }
+   NI_set_attribute (nel, "surface_idcode", "XYZ_ediqUbBRp_dI0hTpiHSJMw");   
+   
+   /* Add the columns */
+   if (!SUMA_AddNelCol (nel, /* the famed nel */ 
+                        SUMA_NODE_INDEX, /* the column's type (description),
+                                            one of SUMA_COL_TYPE */
+                        (void *)node, /* the list of node indices */
+                        NULL  /* that's an optional structure containing 
+                                 attributes of the added column. 
+                                 Not used at the moment */
+                        ,1 /* stride, useful when you need to copy a column
+                              from a multiplexed vector. Say you have in p 
+                              [rgb rgb rgb rgb], to get the g column you 
+                              send in p+1 for the column pointer and a stride
+                              of 3 */
+                        )) {
+      fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
+      SUMA_RETURN(NULL);                    
+   }
+
+   /* insert from multiplexed rgb vector */
+   if (!SUMA_AddNelCol (nel, SUMA_NODE_Rb, (void *)rgba, NULL ,4 )) {
+      fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
+      SUMA_RETURN(NULL);
+   }
+
+   if (!SUMA_AddNelCol (nel, SUMA_NODE_Gb, (void *)(rgba+1), NULL ,4)) {
+      fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
+      SUMA_RETURN(NULL);
+   }
+
+   if (!SUMA_AddNelCol (nel, SUMA_NODE_Bb, (void *)(rgba+2), NULL ,4)) {
+      fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!SUMA_AddNelCol (nel, SUMA_NODE_Ab, (void *)(rgba+3), NULL ,4)) {
+      fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
+      SUMA_RETURN(NULL);
+   }
+   
+   
+   ++i_in; 
+         
+   /* return the element */
+   SUMA_RETURN(nel); 
+               
+} 
 #ifdef SUMA_SurfSmooth_STAND_ALONE
 void usage_SUMA_SurfSmooth ()
    {
@@ -1087,7 +1357,12 @@ void usage_SUMA_SurfSmooth ()
               "\t                 and NodeList_sm.1D with LM method.\n" 
               "\t -add_index : Output the node index in the first column.\n"
               "\t              This is not done by default.\n"
-              "\t -h or -help: this help message.\n"
+              "\n\t SUMA communication options:\n"
+              "\t -talk_suma: Send progress with each iteration to SUMA.\n"
+              "\t -refresh_rate rps: Maximum number of updates to SUMA per second.\n"
+              "\t                    The default is the maximum speed.\n"
+              "\t -sh <SumaHost>: Name (or IP address) of the computer running SUMA.\n"
+              "\t                 This parameter is optional, the default is 127.0.0.1 \n"
               "\n\tSample commands lines for data smoothing:\n"
               "\t SurfSmooth  -i_vec NodeList.1D FaceSetList.1D -met LB_FEM \\\n"
               "\t             -input in.1D -Niter 100 -fwhm 8 -add_index \\\n"
@@ -1129,11 +1404,13 @@ typedef struct {
    float kpb;
    float l;
    float m;
+   float rps;
    int ShowNode;
    int Method;
    int dbg;
    int N_iter;
    int AddIndex;
+   int talk_suma;
    SUMA_SO_File_Type iType;
    char *vp_name;
    char *sv_name;
@@ -1141,6 +1418,7 @@ typedef struct {
    char *if_name2;
    char *in_name;
    char *out_name;   /* this one's dynamically allocated so you'll have to free it yourself */
+   char *suma_host_name; /* this one's dynamically allocated so you'll have to free it yourself */
    char *ShowOffset_DBG;
    char *surf_out;
 } SUMA_SURFSMOOTH_OPTIONS;
@@ -1188,6 +1466,9 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
    Opt->l = -1.0;
    Opt->m = -1.0;
    Opt->AddIndex = 0;
+   Opt->talk_suma = NOPE;
+   Opt->rps = -1.0;
+   Opt->suma_host_name = NULL;
    outname = NULL;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -1197,10 +1478,51 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
           exit (0);
 		}
 		
+		if (!brk && ( (strcmp(argv[kar], "-memdbg") == 0) || (strcmp(argv[kar], "-iodbg") == 0)) ) {
+			/* valid options, but already taken care of */
+			brk = YUP;
+		}
+      
+		if (!brk && strcmp(argv[kar], "-sh") == 0)
+		{
+			kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -sh \n");
+				exit (1);
+			}
+			if (strcmp(argv[kar],"localhost") != 0) {
+            Opt->suma_host_name = SUMA_copy_string(argv[kar]);
+         }else {
+           fprintf (SUMA_STDERR, "localhost is the default for -sh\nNo need to specify it.\n");
+         }
+
+			brk = YUP;
+		}	
+      if (!brk && strcmp(argv[kar], "-refresh_rate") == 0)
+		{
+			kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -refresh_rate \n");
+				exit (1);
+			}
+			Opt->rps = atof(argv[kar]);
+         if (Opt->rps <= 0) {
+            fprintf (SUMA_STDERR, "Bad value (%f) for refresh_rate\n", Opt->rps);
+				exit (1);
+         }
+
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-talk_suma") == 0)) {
+			Opt->talk_suma = 1; 
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-dbg_n") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -dbg_n ");
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -dbg_n \n");
 				exit (1);
 			}
 			Opt->ShowNode = atoi(argv[kar]); kar ++;
@@ -1211,7 +1533,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
       if (!brk && (strcmp(argv[kar], "-Niter") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 arguments after -Niter ");
+		  		fprintf (SUMA_STDERR, "need 1 arguments after -Niter \n");
 				exit (1);
 			}
 			Opt->N_iter = atoi(argv[kar]); 
@@ -1221,7 +1543,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
       if (!brk && (strcmp(argv[kar], "-kpb") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 arguments after -kpb ");
+		  		fprintf (SUMA_STDERR, "need 1 arguments after -kpb \n");
 				exit (1);
 			}
          if (Opt->l != -1.0  || Opt->m != -1.0) {
@@ -1529,7 +1851,8 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"SurfSmooth"}; 
-	int kar, icol, nvec, ncol=0, i, ii;
+   char stmp[500];
+	int kar, icol, nvec, ncol=0, i, ii, WaitClose;
    float *data_old = NULL, *far = NULL;
    float **DistFirstNeighb;
    void *SO_name = NULL;
@@ -1543,7 +1866,10 @@ int main (int argc,char *argv[])
    FILE *fileout=NULL; 
    float **wgt=NULL, *dsmooth=NULL;
    SUMA_INDEXING_ORDER d_order;
-   SUMA_Boolean LocalHead = NOPE;
+   NI_element *nel=NULL;
+   SUMA_Boolean good = YUP;
+   SUMA_COMM_STRUCT *cs = NULL;
+   SUMA_Boolean LocalHead = YUP;
    
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
@@ -1552,6 +1878,9 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
    
+   /* sets the debuging flags, if any */
+   SUMA_ParseInput_basics((void *)SUMAg_CF, argv, argc);
+   
    if (argc < 6)
        {
           usage_SUMA_SurfSmooth();
@@ -1559,7 +1888,8 @@ int main (int argc,char *argv[])
        }
    
    Opt = SUMA_SurfSmooth_ParseInput (argv, argc);
-   
+   cs = SUMA_Create_CommSrtuct();
+   if (!cs) exit(1);
    
    /* now for the real work */
    /* prepare the name of the surface object to read*/
@@ -1609,6 +1939,7 @@ int main (int argc,char *argv[])
       exit (1);
    }
    
+
    /* form the output filename, checking is done in parsing function */
       
    /* form EL and FN */
@@ -1618,6 +1949,33 @@ int main (int argc,char *argv[])
    }
 
    
+   /* see if SUMA talk is turned on */
+   if (Opt->talk_suma) {
+      SUMA_LH("Setting up for communication with SUMA ...");
+      cs->Send = YUP;
+      if(!SUMA_Assign_HostName (SUMAg_CF, Opt->suma_host_name, GEOMCOMP_LINE)) {
+		   fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Assign_HostName", FuncName);
+		   exit (1);
+	   }
+      if (!SUMA_niml_call (SUMAg_CF, GEOMCOMP_LINE, NOPE)) {
+         /* connection flag is reset in SUMA_niml_call */
+         Opt->talk_suma = 0;
+         cs->Send = NOPE;
+      }
+
+      nel = NI_new_data_element("StartTracking", 0); 
+      cs->TrackID = 1; /* that's the index for StartTracking command */
+      NI_set_attribute(nel,"ni_stream_name",  SUMAg_CF->NimlStream_v[GEOMCOMP_LINE]);
+      sprintf(stmp, "%d", cs->TrackID);
+      NI_set_attribute(nel,"Tracking_ID", stmp);
+      if (NI_write_element( SUMAg_CF->ns_v[GEOMCOMP_LINE] , nel, SUMA_GEOMCOMP_NI_MODE ) < 0) {
+         SUMA_SL_Err("Failed to start tracking.\nContinuing...");
+      } 
+      if (nel) NI_free_element(nel); nel = NULL;
+      
+      /* here is where you would start the workprocess for this program
+      But since communication is one way, then forget about it */
+   };
   
    switch (Opt->Method) {
       case SUMA_LB_FEM: 
@@ -1655,7 +2013,10 @@ int main (int argc,char *argv[])
                                        FuncName, etime_GetOffset, SO->N_Node, 
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
-            dsmooth = SUMA_Chung_Smooth (SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, SUMA_COLUMN_MAJOR, NULL);
+            
+            if (Opt->rps > 0) { cs->nelps = (float)Opt->talk_suma * Opt->rps; }
+            else { cs->nelps = (float) Opt->talk_suma * -1.0; }
+            dsmooth = SUMA_Chung_Smooth (SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, SUMA_COLUMN_MAJOR, NULL, cs);
             
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
@@ -1802,15 +2163,87 @@ int main (int argc,char *argv[])
          break;
    }
    
-   /* smooth each column on its own ...*/  
-   /* the way you read and pass the data to the smoothing function should be 
-   designed, this is at a debugging level ... */
    
+   /* you don't want to exit rapidly because the SUMA will choke on the last element */
+   if (cs->Send && !cs->GoneBad) {
+      /* stop tracking */
+      nel = NI_new_data_element("StopTracking", 0);
+      NI_set_attribute(nel,"ni_stream_name",  SUMAg_CF->NimlStream_v[GEOMCOMP_LINE]);
+
+      if (NI_write_element( SUMAg_CF->ns_v[GEOMCOMP_LINE] , nel, SUMA_GEOMCOMP_NI_MODE ) < 0) {
+         SUMA_SL_Err("Failed to stop tracking.\nContinuing...");
+      } 
+      if (nel) NI_free_element(nel); nel = NULL;
+      
+      /* tell suma you're done with that stream */
+      nel = NI_new_data_element("CloseStream",0);
+      if (!nel) {
+         SUMA_SL_Err("Failed to create nel");
+         exit(1);
+      }
+       
+      NI_set_attribute (nel, "ni_stream_name",  SUMAg_CF->NimlStream_v[GEOMCOMP_LINE]);
+      if (NI_write_element( SUMAg_CF->ns_v[GEOMCOMP_LINE] , nel, SUMA_GEOMCOMP_NI_MODE ) < 0) {
+                     SUMA_LH("Failed updating SUMA...");
+      }
+      if (nel) NI_free_element(nel) ; nel = NULL;
+      
+      #if 0
+      { int jnk; fprintf(SUMA_STDERR,"Pausing ..."); jnk = getchar(); fprintf(SUMA_STDERR,"\n"); }
+      SUMA_LH("Sleeping for 2 seconds!");
+      NI_sleep(2000);
+      #endif
+      
+      
+
+      /* now wait till stream goes bad */
+      #if 1
+      good = YUP;
+      WaitClose = 0;
+      while (good && WaitClose < 2000) {
+         SUMA_LH("Waiting for SUMA to close stream");
+         #if 1
+         if (NI_stream_goodcheck(SUMAg_CF->ns_v[GEOMCOMP_LINE], 1) <= 0) {
+            good = NOPE;
+         } else {
+            SUMA_LH("Good Check OK, Sleeping for a second...");
+            NI_sleep(1000);
+            WaitClose += 1000;
+         }
+         #else 
+         if (NI_stream_writecheck(SUMAg_CF->ns_v[GEOMCOMP_LINE], SUMA_WriteCheckWait) <= 0) {
+            good = NOPE;
+         } else {
+            SUMA_LH("Still writecheck waiting...");
+            NI_sleep(1000);
+            WaitClose += 1000;
+         }
+         #endif
+         
+      }
+      
+      if (WaitClose) { 
+         SUMA_SL_Warn("Failed to detect closed stream.\nClosing shop anyway...");  
+      }
+      #endif
+   }
+   
+   if (cs->Send && !cs->GoneBad) { 
+      SUMA_LH("Closing connection...\nBut what do I do if SUMA has closed it ?");
+      NI_stream_close(SUMAg_CF->ns_v[GEOMCOMP_LINE]);
+      SUMAg_CF->ns_v[GEOMCOMP_LINE] = NULL;
+      SUMAg_CF->ns_flags_v[GEOMCOMP_LINE] = 0;
+      SUMAg_CF->TrackingId_v[GEOMCOMP_LINE] = 0;
+   }
+   
+   SUMA_LH("clean up");
    mri_free(im); im = NULL;   /* done with that baby */
+   if (cs) SUMA_free(cs); cs = NULL;
    if (SF_name) SUMA_free(SF_name);
    if (SO) SUMA_Free_Surface_Object(SO);
    if (data_old) SUMA_free(data_old);  
-   if (Opt->out_name) free(Opt->out_name); Opt->out_name = NULL;
+   if (Opt->out_name) SUMA_free(Opt->out_name); Opt->out_name = NULL;
+   if (Opt->suma_host_name) SUMA_free(Opt->suma_host_name); Opt->suma_host_name = NULL;
    if (Opt) SUMA_free(Opt);
    exit(0);
 }

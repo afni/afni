@@ -682,7 +682,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes_w (SUMA_SurfaceObject *SO,
          for (ii=0; ii < N_nelv; ++ii) {
             SUMA_LH("Send this nel to AFNI.");
             /* SUMA_ShowNel(nelv[ii]);*/
-            if (NI_write_element( SUMAg_CF->ns , nelv[ii] , NI_BINARY_MODE ) < 0) {
+            if (NI_write_element( SUMAg_CF->ns_v[SUMA_AFNI_STREAM_INDEX] , nelv[ii] , NI_BINARY_MODE ) < 0) {
                SUMA_SLP_Err("NI_write_element failed.");
             }
             SUMA_LH("Free this nel.");
@@ -789,7 +789,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                    "Turning ROIlink Off.");
       *CreateNel = NOPE;
    }
-   if (*CreateNel && !SUMAg_CF->Connected) {
+   if (*CreateNel && !SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX]) {
       SUMA_SLP_Err(  "You are not connected\n"
                      "to AFNI. Turning \n"
                      "ROIlink Off.");
@@ -853,7 +853,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
                   D_ROI->ColorByLabel = NOPE;
                }
                /* if connected to AFNI, send color map */
-               if (SUMAg_CF->Connected && SUMAg_CF->ROI2afni) {
+               if (SUMAg_CF->Connected_v[SUMA_AFNI_STREAM_INDEX] && SUMAg_CF->ROI2afni) {
                   list = SUMA_CreateList();
                   ED = SUMA_InitializeEngineListData (SE_SendColorMapToAfni);
                   if (!SUMA_RegisterEngineListCommand (  list, ED, 
@@ -1040,7 +1040,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          /* What is the target volume for this nel */
          TargetVol = SUMA_append_replace_string(SO->Group, Plane->name, "-", 0); 
          NI_set_attribute (nel, "target_volume", TargetVol);
-         free(TargetVol);
+         SUMA_free(TargetVol);
          
          /* which colormap was used */
          NI_set_attribute (nel, "color_map", SUMAg_CF->ROI_CM->Name);
@@ -2323,6 +2323,9 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].PolyMode = SRM_ViewerDefault;
       SO[i].Show = YUP;
       SO[i].Side = SUMA_NO_SIDE;
+      SO[i].AnatCorrect = NOPE;
+      SO[i].ParentDomainID = NULL;
+      SO[i].OriginatorID = NULL;
      }
    SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

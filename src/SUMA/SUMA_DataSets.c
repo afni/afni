@@ -1,3 +1,6 @@
+/* This file should not contai functions that REQUIRE the compilation or the headers of SUMA.
+This file might be compiled and used by AFNI 
+*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -14,10 +17,47 @@
 #else
 #endif
 
+#if defined SUMA_COMPILED
+   /* compiling with SUMA headers, include SUMA stuff */
+   #include "SUMA_suma.h"
+#endif
+
 #ifdef STAND_ALONE
-/* these global variables must be declared even 
-   if they will not be used by this main */
+   #if defined SUMA_COMPILED
+      /* need to define these global variables because function calls are made to functions in files that declare these variables as extern */
+      SUMA_CommonFields *SUMAg_CF;
+      SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+      SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+      int SUMAg_N_SVv; /*!< Number of SVs stored in SVv */
+      SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
+      int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
+   #endif
 #else
+  #if defined SUMA_COMPILED
+      extern SUMA_CommonFields *SUMAg_CF;
+      extern int SUMAg_N_DOv; 
+      extern SUMA_DO *SUMAg_DOv;
+  #endif 
+#endif
+
+#ifndef SUMA_COMPILED
+   /* define the macros for InOut debug and memory allocation and freeing */
+   #define SUMA_free( p ) \
+	   free( p )
+   #define SUMA_calloc( nmemb,  size) \
+	   calloc( nmemb, size)
+   #define SUMA_malloc(size) \
+	   malloc(size)
+   #define SUMA_realloc( ptr, size) \
+	   realloc( FuncName, ptr, size)
+   #define SUMA_RETURN(m_rvar) { \
+      return(m_rvar);\
+   }
+   #define SUMA_RETURNe { \
+      return;\
+   }
+   #define SUMA_ENTRY { \
+   }
 #endif
 
 /*!
@@ -31,6 +71,8 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* DomParent_idcode,
    static char FuncName[]={"SUMA_NewDataStruct"};
    NI_element *nel=NULL;
    char idcode[SUMA_IDCODE_LENGTH];
+   
+   SUMA_ENTRY;
    
    nel = NI_new_data_element(SUMA_Dset_Type_Name(dtp), N_el);
    
@@ -50,7 +92,7 @@ NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* DomParent_idcode,
       NI_set_attribute (nel, "GeomParent_idcode", NULL);
    }
   
-   return(nel);  
+   SUMA_RETURN(nel);  
 }
 
 /*!
@@ -68,7 +110,9 @@ int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr)
    static char FuncName[]={"SUMA_AddColAttr"};
    char Name[500], Attr[500];
    
-   if (!nel) return(0);
+   SUMA_ENTRY;
+   
+   if (!nel) SUMA_RETURN(0);
    
    /* save the type of the column */
    sprintf(Name, "TypeCol_%d", nel->vec_num-1);
@@ -113,6 +157,26 @@ int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr)
          NI_set_attribute ( nel, Attr, NULL);
          break;    
        
+      case SUMA_NODE_A:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;
+         
+      case SUMA_NODE_Rb:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;
+      
+      case SUMA_NODE_Gb:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;
+      
+      case SUMA_NODE_Bb:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;    
+       
+      case SUMA_NODE_Ab:
+         NI_set_attribute ( nel, Attr, NULL);
+         break;
+      
       case SUMA_NODE_FLOAT:
          NI_set_attribute ( nel, Attr, NULL);
          break;     
@@ -122,7 +186,7 @@ int SUMA_AddColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col_attr)
          break;          
    }
    
-   return(1);   
+   SUMA_RETURN(1);   
 }
 
 /*!
@@ -134,8 +198,10 @@ int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col,
 {
    static char FuncName[]={"SUMA_AddNelCol"};
    
-   if (!nel) return(0);
-   if (!col) return(0);
+   SUMA_ENTRY;
+   
+   if (!nel) SUMA_RETURN(0);
+   if (!col) SUMA_RETURN(0);
    
    switch (ctp) {
       case SUMA_NODE_INT:
@@ -151,18 +217,26 @@ int SUMA_AddNelCol ( NI_element *nel, SUMA_COL_TYPE ctp, void *col,
       case SUMA_NODE_R:
       case SUMA_NODE_G:
       case SUMA_NODE_B:
+      case SUMA_NODE_A:
          NI_add_column_stride ( nel, NI_FLOAT, (float *)col, stride );      
+         break;
+      case SUMA_NODE_BYTE:
+      case SUMA_NODE_Rb:
+      case SUMA_NODE_Gb:
+      case SUMA_NODE_Bb:
+      case SUMA_NODE_Ab:
+         NI_add_column_stride ( nel, NI_BYTE, (byte *)col, stride );      
          break;
       default:
          fprintf  (stderr,"Error %s: Bad column type.\n", FuncName);
-         return(0);
+         SUMA_RETURN(0);
          break; 
    }
    
    /* add the attributes of that column */
    SUMA_AddColAttr (nel, ctp, col_attr);
    
-   return(1);
+   SUMA_RETURN(1);
 }
  
 
@@ -170,24 +244,26 @@ char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr)
 {
    static char FuncName[]={"SUMA_Dset_Format_Name"};
    
+   SUMA_ENTRY;
+   
    switch(fr) {
       case SUMA_ERROR_DSET_FORMAT:
-         return ("Error_Dset_Format");
+         SUMA_RETURN ("Error_Dset_Format");
          break;
       case SUMA_NO_DSET_FORMAT:
-         return ("Dset_Format_Undefined");
+         SUMA_RETURN ("Dset_Format_Undefined");
          break;
       case SUMA_ASCII_NIML:
-         return ("Ascii_Niml");
+         SUMA_RETURN ("Ascii_Niml");
          break;
       case SUMA_BINARY_NIML:
-         return ("Binary_Niml");
+         SUMA_RETURN ("Binary_Niml");
          break;
       case SUMA_1D:
-         return ("Afni_1D");
+         SUMA_RETURN ("Afni_1D");
          break;
       default:
-         return("Cowabonga");
+         SUMA_RETURN("Cowabonga");
          break;
    }   
    
@@ -196,92 +272,117 @@ char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr)
 SUMA_DSET_FORMAT SUMA_Dset_Format (char *Name)
 {
    static char FuncName[]={"SUMA_Dset_Format"};
-   if (!strcmp(Name,"Error_Dset_Format")) return (SUMA_ERROR_DSET_FORMAT);
-   if (!strcmp(Name,"Dset_Format_Undefined")) return (SUMA_NO_DSET_FORMAT);
-   if (!strcmp(Name,"Ascii_Niml")) return (SUMA_ASCII_NIML);
-   if (!strcmp(Name,"Binary_Niml")) return (SUMA_BINARY_NIML);
-   if (!strcmp(Name,"Afni_1D")) return (SUMA_1D);
-   return(SUMA_ERROR_DSET_FORMAT);
+
+   SUMA_ENTRY;
+   
+   if (!strcmp(Name,"Error_Dset_Format")) SUMA_RETURN (SUMA_ERROR_DSET_FORMAT);
+   if (!strcmp(Name,"Dset_Format_Undefined")) SUMA_RETURN (SUMA_NO_DSET_FORMAT);
+   if (!strcmp(Name,"Ascii_Niml")) SUMA_RETURN (SUMA_ASCII_NIML);
+   if (!strcmp(Name,"Binary_Niml")) SUMA_RETURN (SUMA_BINARY_NIML);
+   if (!strcmp(Name,"Afni_1D")) SUMA_RETURN (SUMA_1D);
+   SUMA_RETURN(SUMA_ERROR_DSET_FORMAT);
 }
 
 char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp)
 {
    static char FuncName[]={"SUMA_Dset_Type_Name"};
    
+   SUMA_ENTRY;
+   
    switch (tp) {
       case SUMA_NO_DSET_TYPE:
-         return("Dset_Type_Undefined");
+         SUMA_RETURN("Dset_Type_Undefined");
          break;
       case SUMA_ERROR_DSET_TYPE:
-         return("Error_Dset_Type");
+         SUMA_RETURN("Error_Dset_Type");
          break;
       case SUMA_NODE_BUCKET:
-         return("Node_Bucket");
+         SUMA_RETURN("Node_Bucket");
          break;
       case SUMA_NODE_ROI:
-         return("Node_ROI");
+         SUMA_RETURN("Node_ROI");
          break;
       case SUMA_NODE_RGB:
-         return("Node_RGB");
+         SUMA_RETURN("Node_RGB");
+         break;
+      case SUMA_NODE_RGBA:
+         SUMA_RETURN("Node_RGBA");
+         break;
+      case SUMA_NODE_RGBb:
+         SUMA_RETURN("Node_RGBb");
+         break;
+      case SUMA_NODE_RGBAb:
+         SUMA_RETURN("Node_RGBAb");
          break;
       default:
-         return("Cowabonga");
+         SUMA_RETURN("Cowabonga");
          break;
    }
 }
 
 SUMA_DSET_TYPE SUMA_Dset_Type (char *Name)
 {
-   if (!strcmp(Name,"Dset_Type_Undefined")) return (SUMA_NO_DSET_TYPE);
-   if (!strcmp(Name,"Error_Dset_Type")) return (SUMA_ERROR_DSET_TYPE);
-   if (!strcmp(Name,"Node_Bucket")) return (SUMA_NODE_BUCKET);
-   if (!strcmp(Name,"Node_ROI")) return (SUMA_NODE_ROI);
-   if (!strcmp(Name,"Node_RGB")) return (SUMA_NODE_RGB);
-   if (!strcmp(Name,"Cowabonga")) return (SUMA_ERROR_DSET_TYPE);
-   return (SUMA_ERROR_DSET_TYPE);
+   static char FuncName[]={"SUMA_Dset_Type"};
+   
+   SUMA_ENTRY;
+   
+   if (!strcmp(Name,"Dset_Type_Undefined")) SUMA_RETURN (SUMA_NO_DSET_TYPE);
+   if (!strcmp(Name,"Error_Dset_Type")) SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
+   if (!strcmp(Name,"Node_Bucket")) SUMA_RETURN (SUMA_NODE_BUCKET);
+   if (!strcmp(Name,"Node_ROI")) SUMA_RETURN (SUMA_NODE_ROI);
+   if (!strcmp(Name,"Node_RGB")) SUMA_RETURN (SUMA_NODE_RGB);
+   if (!strcmp(Name,"Node_RGBA")) SUMA_RETURN (SUMA_NODE_RGBA);
+   if (!strcmp(Name,"Node_RGBb")) SUMA_RETURN (SUMA_NODE_RGBb);
+   if (!strcmp(Name,"Node_RGBAb")) SUMA_RETURN (SUMA_NODE_RGBAb);
+   if (!strcmp(Name,"Cowabonga")) SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
+   SUMA_RETURN (SUMA_ERROR_DSET_TYPE);
 }
 
 char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
 {
+   static char FuncName[]={"SUMA_Col_Type_Name"};
+   
+   SUMA_ENTRY;
+   
    switch (tp) {
       case SUMA_NO_COL_TYPE:
-         return("Col_Type_Undefined");
+         SUMA_RETURN("Col_Type_Undefined");
          break;
       case SUMA_ERROR_COL_TYPE:
-         return ("Error_Col_Type");
+         SUMA_RETURN ("Error_Col_Type");
          break;
       case SUMA_NODE_INT:
-         return("Generic_Int");
+         SUMA_RETURN("Generic_Int");
          break;
       case SUMA_NODE_INDEX:
-         return("Node_Index");
+         SUMA_RETURN("Node_Index");
          break;
       case SUMA_NODE_ILABEL:
-         return("Node_Index_Label");
+         SUMA_RETURN("Node_Index_Label");
          break;
       case SUMA_NODE_FLOAT:
-         return("Generic_Float");
+         SUMA_RETURN("Generic_Float");
          break;
       case SUMA_NODE_X:
-         return("X_coord");
+         SUMA_RETURN("X_coord");
          break;
       case SUMA_NODE_Y:
-         return("Y_coord");
+         SUMA_RETURN("Y_coord");
          break;
       case SUMA_NODE_Z:
-         return("Z_coord");
+         SUMA_RETURN("Z_coord");
          break;
       case SUMA_NODE_R:
-         return("R_col");
+         SUMA_RETURN("R_col");
          break;
       case SUMA_NODE_G:
-         return("G_col");
+         SUMA_RETURN("G_col");
          break;
       case SUMA_NODE_B:
-         return("B_col");
+         SUMA_RETURN("B_col");
          break;
       default:
-         return("Cowabonga");
+         SUMA_RETURN("Cowabonga");
          break;
    }
    
@@ -289,19 +390,23 @@ char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp)
 
 SUMA_COL_TYPE SUMA_Col_Type (char *Name)
 {
-   if (!strcmp(Name,"Col_Type_Undefined")) return (SUMA_NO_COL_TYPE);
-   if (!strcmp(Name,"Error_Col_Type")) return (SUMA_ERROR_COL_TYPE);
-   if (!strcmp(Name,"Generic_Int")) return (SUMA_NODE_INT);
-   if (!strcmp(Name,"Node_Index")) return (SUMA_NODE_INDEX);
-   if (!strcmp(Name,"Generic_Float")) return (SUMA_NODE_FLOAT);
-   if (!strcmp(Name,"X_coord")) return (SUMA_NODE_X);
-   if (!strcmp(Name,"Y_coord")) return (SUMA_NODE_Y);
-   if (!strcmp(Name,"Z_coord")) return (SUMA_NODE_Z);
-   if (!strcmp(Name,"R_col")) return (SUMA_NODE_R);
-   if (!strcmp(Name,"G_col")) return (SUMA_NODE_G);
-   if (!strcmp(Name,"B_col")) return (SUMA_NODE_B);
-   // if (!strcmp(Name,"")) return ();
-   return (SUMA_ERROR_COL_TYPE);
+   static char FuncName[]={"SUMA_Col_Type"};
+   
+   SUMA_ENTRY;
+      
+   if (!strcmp(Name,"Col_Type_Undefined")) SUMA_RETURN (SUMA_NO_COL_TYPE);
+   if (!strcmp(Name,"Error_Col_Type")) SUMA_RETURN (SUMA_ERROR_COL_TYPE);
+   if (!strcmp(Name,"Generic_Int")) SUMA_RETURN (SUMA_NODE_INT);
+   if (!strcmp(Name,"Node_Index")) SUMA_RETURN (SUMA_NODE_INDEX);
+   if (!strcmp(Name,"Generic_Float")) SUMA_RETURN (SUMA_NODE_FLOAT);
+   if (!strcmp(Name,"X_coord")) SUMA_RETURN (SUMA_NODE_X);
+   if (!strcmp(Name,"Y_coord")) SUMA_RETURN (SUMA_NODE_Y);
+   if (!strcmp(Name,"Z_coord")) SUMA_RETURN (SUMA_NODE_Z);
+   if (!strcmp(Name,"R_col")) SUMA_RETURN (SUMA_NODE_R);
+   if (!strcmp(Name,"G_col")) SUMA_RETURN (SUMA_NODE_G);
+   if (!strcmp(Name,"B_col")) SUMA_RETURN (SUMA_NODE_B);
+   // if (!strcmp(Name,"")) SUMA_RETURN ();
+   SUMA_RETURN (SUMA_ERROR_COL_TYPE);
 
 }
 
@@ -311,30 +416,35 @@ int SUMA_ShowNel (NI_element *nel)
    static char FuncName[]={"SUMA_ShowNel"};
    NI_stream nstdout;
    
+   SUMA_ENTRY;
+   
    nstdout = NI_stream_open( "fd:1","w");
    if( nstdout == NULL ){ 
       fprintf(stderr,"%s: Can't open fd:1\n", FuncName); 
-      return(0); 
+      SUMA_RETURN(0); 
    }
    fprintf (stdout, "\n-----------nel stdout begin-----------\n");
    NI_write_element( nstdout , nel , NI_TEXT_MODE ) ;
    fprintf (stdout, "\n-----------nel stdout end  -----------\n");
    NI_stream_close(nstdout);
    
-   return(1);
+   SUMA_RETURN(1);
 }
 
 
 
 int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
 {
+   static char FuncName[]={"SUMA_GetColIndex"};
    int *iv=NULL, i=0;
    char stmp[500];
    
+   SUMA_ENTRY;
+   
    *N_i = -1;
-   iv = (int *)calloc(nel->vec_num, sizeof(int));
+   iv = (int *)SUMA_calloc(nel->vec_num, sizeof(int));
    if (!iv) {
-      return(NULL);
+      SUMA_RETURN(NULL);
    }   
    
    *N_i = 0;
@@ -346,7 +456,7 @@ int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i)
       }
    }
    
-   return(iv);
+   SUMA_RETURN(iv);
 }
 
 
@@ -366,10 +476,12 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg)
    char *stmp=NULL, *stmpn = NULL, *sold=NULL;
    int N_tot, i;
    
-   if (!arg) return(0);
-   if (!arg[0]) return(0);
-   if (!nel) return(0);
-   if (!N_arg) return(0);
+   SUMA_ENTRY;
+   
+   if (!arg) SUMA_RETURN(0);
+   if (!arg[0]) SUMA_RETURN(0);
+   if (!nel) SUMA_RETURN(0);
+   if (!N_arg) SUMA_RETURN(0);
    
    sold = NI_get_attribute(nel, "History");
    if (sold) stmp = SUMA_append_string (sold, "\n");
@@ -384,10 +496,10 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg)
       
    if (stmp) {
       NI_set_attribute ( nel, "History", stmp);
-      free(stmp);
+      SUMA_free(stmp);
    }
    
-   return(1);
+   SUMA_RETURN(1);
 }
 
 /*!
@@ -397,7 +509,7 @@ int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg)
     
    s_tr = SUMA_truncate_string(s1, n);
    
-   - free returned pointer with: if(s_tr) free(s_tr);
+   - free returned pointer with: if(s_tr) SUMA_free(s_tr);
 */
 char *SUMA_truncate_string(char *buf, int n)
 {
@@ -405,19 +517,21 @@ char *SUMA_truncate_string(char *buf, int n)
    char *atr = NULL;
    int i;
 
-   if (!buf) return(NULL);
+   SUMA_ENTRY;
+   
+   if (!buf) SUMA_RETURN(NULL);
    
    if (n < 5) {
       fprintf(stderr,"Error %s:\nNot worth the effort. N < 5.", FuncName);
-      return(NULL);
+      SUMA_RETURN(NULL);
    }
    
    if (strlen(buf) <= n) {
-      atr = (char *) calloc(strlen(buf)+2, sizeof(char));
+      atr = (char *) SUMA_calloc(strlen(buf)+2, sizeof(char));
       sprintf(atr, "%s", buf);
-      return (atr);
+      SUMA_RETURN (atr);
    }else {
-      atr = (char *) calloc(n+2, sizeof(char));
+      atr = (char *) SUMA_calloc(n+2, sizeof(char));
       i=0;
       while (i < n - 3) {
          atr[i] = buf[i];
@@ -427,24 +541,26 @@ char *SUMA_truncate_string(char *buf, int n)
       atr[i] = '\0';
    }
    
-   return(atr);  
+   SUMA_RETURN(atr);  
 }
 
 /*!
    \brief returns a copy of a null terminated string . 
    s_cp = SUMA_copy_string(s1);
    
-   - free returned pointer with: if(s_cp) free(s_cp);
+   - free returned pointer with: if(s_cp) SUMA_free(s_cp);
 */
 char *SUMA_copy_string(char *buf)
 {
    static char FuncName[]={"SUMA_copy_string"};
    char *atr = NULL;
    int i;
-
-   if (!buf) return(NULL);
    
-   atr = (char *) calloc(strlen(buf)+2, sizeof(char));
+   SUMA_ENTRY;
+   
+   if (!buf) SUMA_RETURN(NULL);
+   
+   atr = (char *) SUMA_calloc(strlen(buf)+2, sizeof(char));
    
    i=0;
    while (buf[i]) {
@@ -453,7 +569,7 @@ char *SUMA_copy_string(char *buf)
    }
    atr[i] = '\0';
    
-   return(atr);  
+   SUMA_RETURN(atr);  
 }
 
 /*!
@@ -462,7 +578,7 @@ char *SUMA_copy_string(char *buf)
    s_ap = SUMA_append_string(s1, s2);
   
    - s1 and s2 are copied into a new string
-   -free returned pointer with:  if(s_ap) free(s_ap);
+   -free returned pointer with:  if(s_ap) SUMA_free(s_ap);
    - None of the strings passed to the function
    are freed.
    
@@ -475,14 +591,16 @@ char * SUMA_append_string(char *s1, char *s2)
    int i,cnt, N_s2, N_s1;
 
    
-   if (!s1 && !s2) return(NULL);
+   SUMA_ENTRY;
+   
+   if (!s1 && !s2) SUMA_RETURN(NULL);
    if (!s1) N_s1 = 0;
    else N_s1 = strlen(s1);
    
    if (!s2) N_s2 = 0;
    else N_s2 = strlen(s2);
    
-   atr = (char *) calloc(N_s1+N_s2+2, sizeof(char));
+   atr = (char *) SUMA_calloc(N_s1+N_s2+2, sizeof(char));
    
    /* copy first string */
    i=0;
@@ -501,7 +619,7 @@ char * SUMA_append_string(char *s1, char *s2)
    }
    atr[cnt] = '\0';
    
-   return(atr);  
+   SUMA_RETURN(atr);  
 }    
 
 
@@ -521,7 +639,7 @@ char * SUMA_append_string(char *s1, char *s2)
    
    - s1 and s2 are copied into a new string with spc in between
    - s1 (but not s2 or spc ) IS FREED inside this function
-   -free returned pointer with:  if(s_ap) free(s_ap);
+   -free returned pointer with:  if(s_ap) SUMA_free(s_ap);
    
    \sa SUMA_append_string
 */
@@ -532,7 +650,9 @@ char * SUMA_append_replace_string(char *s1, char *s2, char *Spc, int whichTofree
    int i,cnt, N_s2, N_s1, N_Spc=0;
 
    
-   if (!s1 && !s2) return(NULL);
+   SUMA_ENTRY;
+   
+   if (!s1 && !s2) SUMA_RETURN(NULL);
    
    if (!s1) N_s1 = 0;
    else N_s1 = strlen(s1);
@@ -543,7 +663,7 @@ char * SUMA_append_replace_string(char *s1, char *s2, char *Spc, int whichTofree
    if (!Spc) N_Spc = 0;
    else N_Spc = strlen(Spc);
    
-   atr = (char *) calloc(N_s1+N_s2+N_Spc+2, sizeof(char));
+   atr = (char *) SUMA_calloc(N_s1+N_s2+N_Spc+2, sizeof(char));
    
    /* copy first string */
    i=0;
@@ -595,7 +715,7 @@ char * SUMA_append_replace_string(char *s1, char *s2, char *Spc, int whichTofree
          break;
    }  
 
-   return(atr);  
+   SUMA_RETURN(atr);  
 }    
 
 
@@ -619,7 +739,7 @@ void  SUMA_TestDataSets_Usage()
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"SUMA_TestDataSets-Main-"}; 
-	char *VolParName, *specfilename = NULL, *AfniHostName;
+	char *VolParName, *specfilename = NULL;
    int kar, *Node = NULL, N_Node=-1;
    int SurfIn, brk, LocalHead = 1;
     
@@ -671,10 +791,10 @@ int main (int argc,char *argv[])
       
       /* let us create some colors to go on each node */
       N_Node = 50;
-      node = (int *)malloc(N_Node * sizeof(int));
-      r = (float *)malloc(N_Node * sizeof(float));
-      g = (float *)malloc(N_Node * sizeof(float));
-      b = (float *)malloc(N_Node * sizeof(float));
+      node = (int *)SUMA_malloc(N_Node * sizeof(int));
+      r = (float *)SUMA_malloc(N_Node * sizeof(float));
+      g = (float *)SUMA_malloc(N_Node * sizeof(float));
+      b = (float *)SUMA_malloc(N_Node * sizeof(float));
       for (i=0; i<N_Node; ++i) {
          node[i] = i;
          r[i] = sin((float)i/N_Node*5);
@@ -682,7 +802,7 @@ int main (int argc,char *argv[])
          b[i] = cos((float)i/N_Node*7);
       }
       /* what if you had a vector of say, triplets */
-      rgb = (float *)malloc(3 * N_Node * sizeof(float));
+      rgb = (float *)SUMA_malloc(3 * N_Node * sizeof(float));
       for (i=0; i<N_Node; ++i) {
          i3 = 3*i;
          rgb[i3] = r[i];

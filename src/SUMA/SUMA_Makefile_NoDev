@@ -48,7 +48,7 @@ clean:
 	$(RM) *.o
 
 .c.o:
-	${CC} ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c $*.c 
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} ${SUMA_INCLUDE_PATH} -c $*.c 
 
 SUMA_glxdino:
 	$(RM) $@

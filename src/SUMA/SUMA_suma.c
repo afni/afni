@@ -34,8 +34,10 @@ void SUMA_usage ()
 			 printf ("\n\t[-ah <AfniHost>]: Name (or IP address) of the computer running AFNI. This parameter is \n");
 			 printf ("\n\t                  optional, the default is localhost. \n");
           printf ("\n\t                  When both AFNI and SUMA are on the same computer, you can turn shared \n");
-          printf ("\n\t                  memory communication off by explicitly setting AfniHost to 127.0.0.1\n");
-   		 /*
+          printf ("\n\t                  memory communication off by explicitly setting AfniHost to 127.0.0.1\n"
+                  "\n\t[-niml]: Start listening for NIML-formatted elements.\n");
+   		 
+          /*
 			 printf ("\n\t[-dev]: This option will give access to options that are not well polished for consuption.\n");
 			 printf ("\n\t        \n");
 			 printf ("\n\t[-iodbg] This option will trun on the In/Out debug info from the getgo.\n");
@@ -93,7 +95,6 @@ int main (int argc,char *argv[])
 	SUMA_SFname *SF_name;
 	SUMA_Boolean brk, SurfIn;
 	char *VolParName, *NameParam, *specfilename = NULL, *AfniHostName;
-   char *homeenv=NULL, *sumarc=NULL;
 	SUMA_SurfSpecFile Spec;   
 	SUMA_Axis *EyeAxis; 	
    SUMA_EngineData *ED= NULL;
@@ -101,6 +102,7 @@ int main (int argc,char *argv[])
    DListElmt *Element= NULL;
    int iv15[15], N_iv15;
    struct stat stbuf;
+   SUMA_Boolean Start_niml = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
     
@@ -113,29 +115,8 @@ int main (int argc,char *argv[])
 	/* allocate space for CommonFields structure */
 	if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    
-   /* load the environment variables from .sumarc and .afnirc*/
-   homeenv = getenv("HOME");
+   SUMA_process_environ();
    
-   if (!homeenv) sumarc = SUMA_copy_string(".sumarc");
-   else sumarc = SUMA_append_string (homeenv, "/.sumarc");
-   if (stat(sumarc, &stbuf) != -1) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
-      AFNI_process_environ(sumarc); 
-   } else {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
-   }
-   if (sumarc) free(sumarc);
-   
-   if (!homeenv) sumarc = SUMA_copy_string(".afnirc");
-   else sumarc = SUMA_append_string (homeenv, "/.afnirc");
-   if (stat(sumarc, &stbuf) != -1) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: Loading %s ...\n", FuncName, sumarc);
-      AFNI_process_environ(sumarc); 
-   } else {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: No rc files found.\n", FuncName);
-   }
-   if (sumarc) free(sumarc);
-
    SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
@@ -143,6 +124,7 @@ int main (int argc,char *argv[])
 	}
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
 	
+   
    /* initialize Volume Parent and AfniHostName to nothing */
 	VolParName = NULL;
 	AfniHostName = NULL; 
@@ -188,6 +170,11 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
 		
+      if (!brk && (strcmp(argv[kar], "-niml") == 0)) {
+			Start_niml = YUP;
+			brk = YUP;
+		}
+      
 		if (!brk && (strcmp(argv[kar], "-vp") == 0 || strcmp(argv[kar], "-sa") == 0 || strcmp(argv[kar], "-sv") == 0))
 		{
 			kar ++;
@@ -208,7 +195,11 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need argument after -ah ");
 				exit (1);
 			}
-			AfniHostName = argv[kar];
+			if (strcmp(argv[kar],"localhost") != 0) {
+            AfniHostName = argv[kar];
+         }else {
+           fprintf (SUMA_STDERR, "localhost is the default for -ah\nNo need to specify it.\n");
+         }
 			/*fprintf(SUMA_STDOUT, "Found: %s\n", AfniHostName);*/
 
 			brk = YUP;
@@ -242,10 +233,11 @@ int main (int argc,char *argv[])
 		exit(1);
 	}
 
-	if(!SUMA_Assign_AfniHostName (SUMAg_CF, AfniHostName)) {
-		fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Assign_AfniHostName", FuncName);
+	if(!SUMA_Assign_HostName (SUMAg_CF, AfniHostName, -1)) {
+		fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Assign_HostName", FuncName);
 		exit (1);
 	}
+   
 	
 	/* create an Eye Axis DO */
 	EyeAxis = SUMA_Alloc_Axis ("Eye Axis");
@@ -318,6 +310,16 @@ int main (int argc,char *argv[])
    if (!SUMA_Engine (&list)) {
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Engine\n", FuncName);
       exit (1);
+   }
+   
+   if (Start_niml) {
+      if (!list) list = SUMA_CreateList();
+      SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_StartListening, SES_Suma, NULL);
+
+      if (!SUMA_Engine (&list)) {
+         fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         exit (1);   
+      }
    }
    #else
    /* load the specs file and the specified surfaces*/

@@ -16,7 +16,7 @@ SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void);
 SUMA_Boolean SUMA_Show_ViewState(SUMA_ViewState *VS, FILE *Out); 
 SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *csv, SUMA_DO* dov, int N_dov);
 int SUMA_WhichState (char *state, SUMA_SurfaceViewer *csv);
-SUMA_Boolean SUMA_Assign_AfniHostName (SUMA_CommonFields *cf, char *AfniHostName);
+SUMA_Boolean SUMA_Assign_HostName (SUMA_CommonFields *cf, char *HostName, int istream);
 SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf);
 SUMA_CommonFields * SUMA_Create_CommonFields (void);
 void SUMA_Show_CommonFields (SUMA_CommonFields *cf);
@@ -43,6 +43,7 @@ void *SUMA_FreeDrawROIStruct (SUMA_X_DrawROI *DrawROI);
 void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv); 
 void SUMA_UpdateAllViewerCursor(void); 
 void SUMA_UpdateViewerCursor(SUMA_SurfaceViewer *sv); 
+int SUMA_WhichViewerInMomentum(SUMA_SurfaceViewer *SVv, int N_SV, SUMA_SurfaceViewer *sv);
  
 
 

@@ -11,6 +11,9 @@ typedef enum {
    SUMA_NODE_BUCKET,
    SUMA_NODE_ROI, /*!< Col0: Node ID, Col1: ROI label (int) */
    SUMA_NODE_RGB,
+   SUMA_NODE_RGBb,
+   SUMA_NODE_RGBA,
+   SUMA_NODE_RGBAb
 } SUMA_DSET_TYPE; /*!<  Type of data set 
                         When you add a new element, modify functions
                         SUMA_Dset_Type_Name
@@ -40,6 +43,12 @@ typedef enum {
    SUMA_NODE_R,      /*!< Node R color */
    SUMA_NODE_G,      /*!< Node G color */
    SUMA_NODE_B,      /*!< Node B color */
+   SUMA_NODE_A,      /*!< Node A value */ 
+   SUMA_NODE_BYTE,   /*!< Generic byte */
+   SUMA_NODE_Rb,      /*!< Node R color in bytes*/
+   SUMA_NODE_Gb,      /*!< Node G color in bytes*/
+   SUMA_NODE_Bb,      /*!< Node B color in bytes*/
+   SUMA_NODE_Ab,      /*!< Node A value in bytes*/ 
 }  SUMA_COL_TYPE; /*!<  Column types.
                         When you add a new element, you need to modify
                         SUMA_AddColAttr

@@ -778,6 +778,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
    SUMA_Boolean OKread_SurfaceFormat, OKread_SurfaceType, OKread_TopoFile, OKread_CoordFile;
    SUMA_Boolean OKread_MappingRef, OKread_SureFitVolParam, OKread_FreeSurferSurface, OKread_InventorSurface;
    SUMA_Boolean OKread_Group, OKread_State, OKread_EmbedDim, OKread_SurfaceVolume, OKread_SurfaceLabel;
+   SUMA_Boolean OKread_AnatCorrect, OKread_Hemisphere, OKread_ParentDomainID, OKread_OriginatorID;
    char DupWarn[]={"Bad format in specfile (you may need a NewSurface line). Duplicate specification of"};
    char NewSurfWarn[]={"Bad format in specfile. You must start with NewSurface line before any other field."};
 
@@ -827,6 +828,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
    OKread_SurfaceFormat = OKread_SurfaceType = OKread_TopoFile = OKread_CoordFile = NOPE;
    OKread_MappingRef = OKread_SureFitVolParam = OKread_FreeSurferSurface = OKread_InventorSurface = NOPE;
    OKread_State = OKread_EmbedDim = OKread_SurfaceVolume = OKread_SurfaceLabel = NOPE ;
+   OKread_AnatCorrect = OKread_Hemisphere = OKread_ParentDomainID = OKread_OriginatorID = NOPE;
    
    Spec->StateList[0] = '\0';
    Spec->Group[0][0] = '\0';
@@ -857,6 +859,10 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                Spec->EmbedDim[Spec->N_Surfs-1] = 3;
                Spec->VolParName[Spec->N_Surfs-1][0] = '\0';
                Spec->SurfaceLabel[Spec->N_Surfs-1][0] = '\0';
+               Spec->AnatCorrect[Spec->N_Surfs-1][0] = '\0';
+               Spec->Hemisphere[Spec->N_Surfs-1][0] = '\0';
+               Spec->ParentDomainID[Spec->N_Surfs-1][0] = '\0';
+               Spec->OriginatorID[Spec->N_Surfs-1][0] = '\0';
             } else { 
                /* make sure important fields have been filled */
                if (Spec->SurfaceType[Spec->N_Surfs-2][0] == '\0') {
@@ -864,6 +870,9 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                   SUMA_RETURN (NOPE);
                }
                /* initilize SOME of the fields to previous one */
+               Spec->CoordFile[Spec->N_Surfs-1][0] = '\0';  /* *** BA, Dec 03 */
+               Spec->FreeSurferSurface[Spec->N_Surfs-1][0] = Spec->InventorSurface[Spec->N_Surfs-1][0] = '\0'; /* *** BA, Dec 03 */
+               
                strcpy(Spec->SurfaceFormat[Spec->N_Surfs-1], Spec->SurfaceFormat[Spec->N_Surfs-2]);
                strcpy(Spec->SurfaceType[Spec->N_Surfs-1], Spec->SurfaceType[Spec->N_Surfs-2]);
                strcpy(Spec->TopoFile[Spec->N_Surfs-1], Spec->TopoFile[Spec->N_Surfs-2]);
@@ -875,11 +884,16 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                strcpy(Spec->Group[Spec->N_Surfs-1], Spec->Group[Spec->N_Surfs-2]);
                strcpy(Spec->State[Spec->N_Surfs-1], Spec->State[Spec->N_Surfs-2]);
                Spec->EmbedDim[Spec->N_Surfs-1] = Spec->EmbedDim[Spec->N_Surfs-2];
-               /* only Spec->CoordFile, Spec->FreeSurferSurface or Spec->InventorSurface MUST be specified with a new surface */
+               Spec->AnatCorrect[Spec->N_Surfs-1][0] = '\0';
+               Spec->Hemisphere[Spec->N_Surfs-1][0] = '\0';
+               Spec->ParentDomainID[Spec->N_Surfs-1][0] = '\0';
+               Spec->OriginatorID[Spec->N_Surfs-1][0] = '\0';
+              /* only Spec->CoordFile, Spec->FreeSurferSurface or Spec->InventorSurface MUST be specified with a new surface */
             } 
             OKread_SurfaceFormat = OKread_SurfaceType = OKread_TopoFile = OKread_CoordFile = YUP;
             OKread_MappingRef = OKread_SureFitVolParam = OKread_FreeSurferSurface = OKread_InventorSurface = YUP;
             OKread_Group = OKread_State = OKread_EmbedDim = OKread_SurfaceLabel = OKread_SurfaceVolume = YUP;
+            OKread_AnatCorrect = OKread_Hemisphere = OKread_ParentDomainID = OKread_OriginatorID = YUP;
             skp = 1;
          }
          
@@ -1668,7 +1682,7 @@ SUMA_Boolean SUMA_LoadSpec_eng (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_do
                /* free */
                if (Vsort) SUMA_free(Vsort);
                if (CM) SUMA_Free_ColorMap (CM);
-                if (OptScl) SUMA_free(OptScl);
+               if (OptScl) SUMA_free(OptScl);
                if (SV) SUMA_Free_ColorScaledVect (SV);
             }
             
@@ -3179,11 +3193,13 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
                   }
          break;
       case SUMA_SUREFIT:
-         if (SUMA_iswordin (SO->Name_coord.FileName, "left")) {
+         if (SUMA_iswordin (SO->Name_coord.FileName, "left") ||
+             SUMA_iswordin (SO->Name_coord.FileName, ".L.")) {
             SUMA_RETURN(SUMA_LEFT);
-         } else if (SUMA_iswordin (SO->Name_coord.FileName, "right")) {
-                        SUMA_RETURN(SUMA_RIGHT);
-                  }
+         } else if (SUMA_iswordin (SO->Name_coord.FileName, "right") ||
+             SUMA_iswordin (SO->Name_coord.FileName, ".R.")) {
+             SUMA_RETURN(SUMA_RIGHT);
+                }
          break;
       case SUMA_VEC:
          if (SUMA_iswordin (SO->Name_coord.FileName, "lh") ||
