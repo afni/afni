@@ -635,6 +635,7 @@
     - in afni_vol2surf(), show options on debug
     - allow first_node > last_node if last is 0 (default to n-1)
 
-16 September 2004:
-  * modified SUMA_3dVol2Surf.[ch] (-> v6.2): added -gp_index option
-  * modified vol2surf.[ch]: added support for gp_index
+17 September 2004:
+  * modified SUMA_3dVol2Surf.[ch] (-> v6.2):
+    - added -gp_index and -reverse_norm_dir options
+  * modified vol2surf.[ch]: added support for gp_index and altered norm_dir

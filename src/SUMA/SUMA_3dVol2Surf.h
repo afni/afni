@@ -32,7 +32,7 @@ typedef struct
     int         last_node;		/* skip nodes after this index  */
     int         use_norms;		/* use normals for segments     */
     float       norm_len;		/* signed length of normal      */
-    int         keep_norm_dir;		/* no directional check         */
+    int         norm_dir;		/* default, keep or reverse     */
     int         debug;			/* level of debug output        */
     int         dnode;			/* node watched for debug       */
     char      * f_index_str;		/* node or voxel index type     */
