@@ -22,6 +22,8 @@ void AFNI_splashraise(void){ return; }
 
 static void * SPLASH_popup_image( void * , MRI_IMAGE * ) ;
 static MRI_IMAGE * SPLASH_decode26( int , int , int , char ** ) ;
+static MRI_IMAGE * SPLASH_decodexx( int , int , int , int ,
+                                    byte *, byte *, byte * , char ** ) ;
 
 static MRI_IMAGE * imspl = NULL ;
 static void * handle = NULL ;
@@ -97,20 +99,26 @@ void AFNI_splashup(void)
    byte * bspl ;
    int   sxx,syy ;
    char * sen ;
-   static int first=1 , nov , dnov , nm=-1 ;
+   static int first=1 , nov , dnov , nm=0 ;
 
 ENTRY("AFNI_splashup") ;
 
    /*--- create splash image ---*/
 
    if( ! PLUTO_popup_open(handle) ){
+
+      /* basic image */
+
       mri_free(imspl) ;
       imspl = SPLASH_decode26( NX_blank, NY_blank, NLINE_blank, BAR_blank ) ;
 
       if( first ){
-         nov  =    (lrand48() >> 8) % NOVER  ;
-         dnov = 2*((lrand48() >> 8) % 2) - 1 ;
+        nov  =    (lrand48() >> 8) % NOVER  ;
+        dnov = 2*((lrand48() >> 8) % 2) - 1 ;
       }
+
+      /* overlay sub-image at the right */
+
       nov  = (nov+dnov+NOVER) % NOVER ;
       imov = SPLASH_decode26( xover[nov], yover[nov], lover[nov], bover[nov] ) ;
 
@@ -119,7 +127,7 @@ ENTRY("AFNI_splashup") ;
       if( first ) AFNI_find_splash_ppms() ; /* 17 Sep 2001 */
 
 #ifdef NMAIN
-      /* possibly replace the splash image */
+      /* possibly replace the splash image at the top */
 
       if( !first || AFNI_yesenv("AFNI_SPLASH_OVERRIDE") || num_ppms > 0 ){ /* 07 Jun 2000 */
          int good=0 , qq,nq=0 ;
@@ -183,9 +191,17 @@ ENTRY("AFNI_splashup") ;
 
             if( !good ){                            /* internal image */
               nm = (nm+1)%(NMAIN) ;
-              imov = SPLASH_decode26( xmain[nm],ymain[nm],lmain[nm],bmain[nm] ) ;
+              if( rmapm[nm] == NULL ){              /* grayscale */
+                imov = SPLASH_decode26( xmain[nm],ymain[nm],lmain[nm],bmain[nm] ) ;
+              } else {                              /* color */
+                MRI_IMAGE * imq = mri_to_rgb(imspl) ;
+                mri_free(imspl) ; imspl = imq ;
+                reload_DC_colordef( GLOBAL_library.dc ) ;
+                imov = SPLASH_decodexx( xmain[nm],ymain[nm],lmain[nm],nmapm[nm],
+                                        rmapm[nm],gmapm[nm],bmapm[nm],bmain[nm] ) ;
+              }
               mri_overlay_2D( imspl , imov , 0,0 ) ;
-              mri_free(imov) ;
+              mri_free(imov) ; good = 1 ;
             }
 
          } /* end of "my own" image */
@@ -417,6 +433,10 @@ ENTRY("SPLASH_popup_image") ;
   Decode the 26 data into an image
 ----------------------------------------------------------------------------*/
 
+static byte map26[26] =
+  {  30,  50,  70,  90, 106, 118, 130, 140, 146, 152, 158, 164, 170,
+    176, 182, 190, 198, 206, 212, 218, 224, 230, 236, 242, 248, 254 } ;
+
 static MRI_IMAGE * SPLASH_decode26( int nx, int ny , int nl , char ** im26 )
 {
    MRI_IMAGE * im ;
@@ -445,6 +465,69 @@ ENTRY("SPLASH_decode26") ;
             bim[ii++] = map26[jj] ;
       }
       if( im26[rr][cc] == '\0' ){ cc = 0 ; rr++ ; }
+   }
+
+   RETURN(im) ;
+}
+
+/*--------------------------------------------------------------------------
+  Decode the 'xx' data into an image
+----------------------------------------------------------------------------*/
+
+#define MMAX 82                                               /* max num colors */
+static char alpha[MMAX] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"        /* codes for colors */
+                          "abcdefghijklmnopqrstuvwxyz"        /* [0] .. [MMAX-1] */
+                          ",<.>/?;:'[{]}|=+-_)(*&^%$#@!`~" ;
+
+static MRI_IMAGE * SPLASH_decodexx( int nx, int ny, int nl, int nmap,
+                                    byte *rmap, byte *gmap, byte *bmap ,
+                                    char ** imxx )
+{
+   MRI_IMAGE *im ;
+   byte *bim ;
+   int ii,jj , cc,qq , dd,ee , kk ;
+   char bb ;
+   static int first=1 , ainv[256] ;
+
+ENTRY("SPLASH_decodexx") ;
+
+   if( nmap == 0 ){                /* defaults from old to26.c program */
+     nmap = 26 ;
+     rmap = bmap = gmap = map26 ;
+   }
+
+   if( nx < 3       || ny < 3       || nl < 3 ||
+       rmap == NULL || gmap == NULL ||
+       bmap == NULL || imxx == NULL             ) RETURN(NULL) ;
+
+   if( first ){
+     for( ii=0 ; ii < 256 ; ii++ ) ainv[ii] = -1 ;
+     for( ii=0 ; ii < MMAX ; ii++ ){
+       bb = alpha[ii] ; ainv[bb] = ii ;
+     }
+     first = 0 ;
+   }
+
+   im  = mri_new( nx , ny , MRI_rgb ) ;
+   bim = MRI_RGB_PTR(im) ;
+
+   /* decode the RLE image data into a real image array */
+
+   cc = qq = 0 ;
+   for( ii=0 ; ii < 3*im->nvox && qq < nl ; ){
+     bb = imxx[qq][cc++] ; if( bb == '\0' ) break ;
+     jj = ainv[bb] ;
+     if( jj >= 0 ){
+       bim[ii++] = rmap[jj]; bim[ii++] = gmap[jj]; bim[ii++] = bmap[jj];
+     } else {
+       dd = bb - '0' ;
+       bb = imxx[qq][cc++] ; if( bb == '\0' ) break ;
+       jj = ainv[bb] ;
+       for( ee=0 ; ee < dd && ii < 3*im->nvox ; ee++ ){
+         bim[ii++] = rmap[jj]; bim[ii++] = gmap[jj]; bim[ii++] = bmap[jj];
+       }
+     }
+     if( imxx[qq][cc] == '\0' ){ cc = 0 ; qq++ ; }
    }
 
    RETURN(im) ;

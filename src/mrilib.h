@@ -643,7 +643,7 @@ char * imsized_fname( char * fname ) ;
 long mri_filesize( char * pathname ) ;
 char * my_strdup( char * str ) ;
 
-extern void mri_overlay( MRI_IMAGE *, MRI_IMAGE *, int,int ) ;
+extern void mri_overlay_2D( MRI_IMAGE *, MRI_IMAGE *, int,int ) ;
 
 extern void mri_swapbytes( MRI_IMAGE * ) ;
 
