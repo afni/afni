@@ -625,6 +625,8 @@ typedef struct {
    Widget hidden_gamberi_pb ;  /* 14 Oct 2003 */
    Widget hidden_ranpoem_pb ;  /* 15 Oct 2003 */
 
+   Widget hidden_speech_pb  ;  /* 25 Nov 2003 */
+
 #endif  /* USE_HIDDEN */
 
 } AFNI_program_widgets ;

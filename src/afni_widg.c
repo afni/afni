@@ -3945,17 +3945,17 @@ STATUS("making prog->rowcol") ;
 #ifdef USE_HIDDEN
    if( vwid->picture != NULL ){
 
-      /** popup on picture widget (right of Quit button) **/
+     /** popup on picture widget (right of Quit button) **/
 
 #ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
-      prog->hidden_menu =
+     prog->hidden_menu =
         XmCreatePopupMenu( prog->quit_pb , "menu" , NULL , 0 ) ;
 #else
-      prog->hidden_menu =
+     prog->hidden_menu =
         XmCreatePopupMenu( vwid->picture , "menu" , NULL , 0 ) ;
 #endif
 
-      if( prog->hidden_menu != NULL ){
+     if( prog->hidden_menu != NULL ){
       SAVEUNDERIZE(XtParent(prog->hidden_menu)) ; /* 27 Feb 2001 */
 
       VISIBILIZE_WHEN_MAPPED(prog->hidden_menu) ;
@@ -4154,6 +4154,28 @@ STATUS("making prog->rowcol") ;
                NULL ) ;
       XtAddCallback( prog->hidden_ranpoem_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
+
+      /*----------*/
+
+#if !defined(NO_FRIVOLITIES) && defined(DARWIN)
+      (void) XtVaCreateManagedWidget(
+               "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,
+                  XmNseparatorType , XmSINGLE_LINE ,
+            NULL ) ;
+
+      prog->hidden_speech_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Say Something") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_speech_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+#else
+      prog->hidden_speech_pb = NULL ;
+#endif
 
     } /* if prog->hidden_menu isn't NULL */
    }
