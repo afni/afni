@@ -2,6 +2,7 @@
 #include "mri_render.h"
 #include "mcw_graf.h"
 #include "parser.h"
+#include <ctype.h>
 
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"
@@ -3203,7 +3204,6 @@ void REND_cutout_blobs(void)
                 /* cut cut cut */
 
                 if( logic == CUTOUT_AND && ! mus ){        /* count hits */
-                   ncdone++ ;
                    for( ii=0 ; ii < nx ; ii++ )
                      if( temp[ii] > 0.0 ) GR(ii,jj,kk)++ ;
 
@@ -3212,6 +3212,8 @@ void REND_cutout_blobs(void)
                      if( temp[ii] > 0.0 ) OP(ii,jj,kk) = 0 ;
                 }
             }} /* end of loops over jj,kk (y,z) */
+
+            if( logic == CUTOUT_AND && ! mus ) ncdone++ ;
 
             /* free workspaces */
 
@@ -3374,7 +3376,9 @@ float REND_evaluate( MCW_arrowval * av )
 
    val = strtod( str , &cpt ) ;
 
-   if( *cpt == '\0' || *cpt == ' ' ){ XtFree(str); AV_assign_fval(av,val); return val; }
+   for( ; *cpt != '\0' && isspace(*cpt) ; cpt++ ) ; /* skip blanks */
+
+   if( *cpt == '\0' ){ XtFree(str); AV_assign_fval(av,val); return val; }
 
    /* try to parse an expression */
 

@@ -37,6 +37,7 @@ int TRUST_host( char * hostid )
 
       for( ii=1 ; ii < 99 ; ii++ ){
          sprintf(ename,"AFNI_TRUSTHOST_%d",ii) ;
+         str = getenv(ename) ;
          if( str != NULL ) ADDHOST(str) ;
       }
    }
