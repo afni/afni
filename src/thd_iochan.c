@@ -173,14 +173,14 @@ int tcp_recv( int s , void * buf , int len , unsigned int flags )
 
 void tcp_set_cutoff( int sd )
 {
-#if 1
+#ifdef SO_LINGER
    { struct linger lg ;
      lg.l_onoff  = 1 ;
      lg.l_linger = 0 ;
      setsockopt(sd, SOL_SOCKET, SO_LINGER, (void *)&lg, sizeof(struct linger)) ;
    }
 #endif
-#if 1
+#ifdef SO_REUSEADDR
    { int optval = 1;
      setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (char *)&optval, sizeof(optval)) ;
    }
@@ -230,8 +230,10 @@ int tcp_connect( char * host , int port )
 
    /** set socket options (no delays, large buffers) **/
 
+#if 0
    l = 1;
    setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
+#endif
    l = SOCKET_BUFSIZE ;
    setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
    setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
@@ -280,8 +282,10 @@ int tcp_listen( int port )
 
    /** set socket options (no delays, large buffers) **/
 
+#if 0
    l = 1;
    setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
+#endif
    l = SOCKET_BUFSIZE ;
    setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
    setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
