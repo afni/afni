@@ -443,6 +443,7 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
    if( new_prefix || new_directory_name || new_view_type ){
       char *nprefix = THD_deplus_prefix( prefix ) ;
+
       THD_init_diskptr_names( dset->dblk->diskptr ,
                               directory_name , NULL ,
                               nprefix , view_type , True ) ;
