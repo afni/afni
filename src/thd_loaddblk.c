@@ -806,9 +806,9 @@ ENTRY("THD_alloc_datablock") ;
      /* create a shared memory segment, then setup sub-bricks inside that */
      /*-------------------------------------------------------------------*/
 
-     case DATABLOCK_MEM_SHARED:{
+     case DATABLOCK_MEM_SHARED:
 #if !defined(DONT_USE_SHM) && !defined(CYGWIN)
-       unsigned int offset ;
+     { unsigned int offset ;
        if( blk->shm_idcode[0] == '\0' ){   /* new segment */
          UNIQ_idcode_fill( blk->shm_idcode ) ;
          blk->shm_idint = shm_create( blk->shm_idcode , blk->total_bytes ) ;

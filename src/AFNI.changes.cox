@@ -4688,3 +4688,7 @@
  * Added quintic interpolation to mri_warp3D.c, and 3dWarp.c.
  * Added -fsl_matvec option to 3dWarp.c.
  * plug_3ddup.c created (but not part of the binaries, yet).
+
+07 Aug 2003
+ * Fixed small typo in index in mri_warp3D.c quintic code.
+ * Fixed CYGWIN bracket placement at end of thd_loaddblk.c.
