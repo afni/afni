@@ -51,7 +51,24 @@ int r_idisp_vec3d( char * info, double * vec )
         return -1;
     }
 
-    printf( "THD_dvec3 vector at %p: <%f, %f, %f>\n",
+    printf( "double vector at %p: <%f, %f, %f>\n",
+            vec, vec[0], vec[1], vec[2] );
+
+    return 0;
+}
+
+int r_idisp_vec3f( char * info, float * vec )
+{
+    if ( info )
+        fputs( info, stdout );
+
+    if ( vec == NULL )
+    {
+        printf( "r_idisp_vec3f: vec == NULL" );
+        return -1;
+    }
+
+    printf( "float vector at %p: <%f, %f, %f>\n",
             vec, vec[0], vec[1], vec[2] );
 
     return 0;
@@ -77,10 +94,10 @@ int r_idisp_fd_brick( char * info, FD_brick * bp )
     r_idisp_vec3i( "   FD->nxyz : ", bp->nxyz.ijk );
     r_idisp_vec3i( "   FD->sxyz : ", bp->sxyz.ijk );
     r_idisp_vec3i( "   FD->a123 : ", bp->a123.ijk );
-    printf( "   (n1, d1, e1) = (%d, %d, %d)\n"
-            "   (n2, d2, e2) = (%d, %d, %d)\n"
-            "   (n3, d3)     = (%d, %d)\n"
-            "   start        = %d\n"
+    printf( "   (n1, d1, e1)       = (%d, %d, %d)\n"
+            "   (n2, d2, e2)       = (%d, %d, %d)\n"
+            "   (n3, d3)           = (%d, %d)\n"
+            "   start              = %d\n"
             "   (del1, del2, del3) = (%8.3f, %8.3f, %8.3f)\n"
             "   dset               = %p\n"
 	    "   resam_code         = %d\n"
@@ -239,7 +256,7 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
             "   dblk         : %p\n"
             "   daxes        : %p\n"
             "   wod_daxes    : %p\n"
-            "   wod_flag     :   %d\n"
+            "   wod_flag     : %d\n"
             "   -------------------\n"
             "   taxis        : %p\n"
             "   markers      : %p\n"
@@ -250,8 +267,8 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
             "   anat_parent  : %p\n"
             "   stats        : %p\n"
             "   pts          : %p\n"
-            "   pts_original :   %d\n"
-            "   death_mark   :   %d\n"
+            "   pts_original : %d\n"
+            "   death_mark   : %d\n"
             "   -------------------\n"
 #ifndef OMIT_DATASET_IDCODES
             "   idcode.str              : <%s>\n"
@@ -265,13 +282,13 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
             "   keywords  : %p\n"
             "   tagset    : %p\n"
             "   -------------------\n"
-            "   kl.num    :   %d\n"
-            "   kl.nalloc :   %d\n"
+            "   kl.num    : %d\n"
+            "   kl.nalloc : %d\n"
             "   kl.kill   : %p\n"
             "   parent    : %p\n"
             "   -------------------\n"
             "   su_surf   : %p\n"
-            "   su_sname  : <%s>\n"
+            "   su_sname  : %p\n"
             "   su_vmap   : %p\n"
             "   su_vnlist : %p\n"
             "-------------------------------------------\n",
