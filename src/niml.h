@@ -69,7 +69,7 @@ typedef struct { float r,i ; } complex ;
 #define NI_RGB         6
 #define NI_RGBA        7
 #define NI_STRING      8
-#define NI_LINE        9
+#define NI_LINE        9   /* not supported */
 
 /*! One more than the last NI_ data type code defined above. */
 

@@ -4099,3 +4099,8 @@
 07 Dec 2002
  * Modified imseq.c to change image number on '<' or '>' keys (like
      the graph windows).
+
+09 Dec 2002
+ * Modified imseq.c to save temporary files for animated GIF or MPEG
+     output with a random suffix, to avoid collisions if 2 copies
+     of AFNI (or aiv) are running.
