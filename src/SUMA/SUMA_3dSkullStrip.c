@@ -1126,6 +1126,25 @@ int main (int argc,char *argv[])
          SO->NodeList[i3 + 1] += Opt->SpatShift[1];
          SO->NodeList[i3 + 2] += Opt->SpatShift[2];
       }
+      /* do the deed for the hull thing */
+      if (SOhull) {
+         for (i=0; i<SOhull->N_Node; ++i) {
+            i3 = 3*i;
+            SOhull->NodeList[i3 + 0] += Opt->SpatShift[0];
+            SOhull->NodeList[i3 + 1] += Opt->SpatShift[1];
+            SOhull->NodeList[i3 + 2] += Opt->SpatShift[2];
+         }
+      }
+      /* Change the number of voxels in VolPar to reflect the number of voxels in the non-spatnormed dset */
+      /* SUMA_VolDims(Opt->iset, &SO->VolPar->nx, &SO->VolPar->ny, &SO->VolPar->nz);  *//* remember, the dset that SO->VolPar represents is in RAI still */
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: \nPre: %d %d %d\n", FuncName, SO->VolPar->nx, SO->VolPar->ny, SO->VolPar->nz); 
+      SUMA_Free_VolPar(SO->VolPar); SO->VolPar = NULL;
+      SO->VolPar = SUMA_VolParFromDset(Opt->iset);
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: \nPost: %d %d %d\n", FuncName, SO->VolPar->nx, SO->VolPar->ny, SO->VolPar->nz); 
+      if (SOhull) {
+         SUMA_Free_VolPar(SOhull->VolPar); SOhull->VolPar = NULL;
+         SOhull->VolPar = SUMA_VolParFromDset (Opt->iset);
+      }
    }
    
    /* write the surfaces to disk */
@@ -1163,7 +1182,11 @@ int main (int argc,char *argv[])
       OptDs->prefix = SUMA_copy_string("3dSkullStrip");
       OptDs->prefix_path = SUMA_copy_string("./");
    }
-   OptDs->mset = Opt->in_vol;
+   if (Opt->DoSpatNorm) {
+      OptDs->mset = Opt->iset; 
+   } else {
+      OptDs->mset = Opt->in_vol;
+   }
    OptDs->full_list = 1;
    OptDs->dval = 1;
    dset = SUMA_FormAfnidset (NULL, isin_float, SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz, OptDs);

@@ -3558,7 +3558,7 @@ int main (int argc, char *argv[])
                d_order =  SUMA_ROW_MAJOR; 
                currSurf->FN = icoSurf->FN;  /*all smwm pial and white surfaces have same connectivity as icoSurf*/
 
-               smNodeList = SUMA_Taubin_Smooth (currSurf, NULL, lambda, mu, currSurf->NodeList, 2*numIt, 3, d_order, NULL, cs);
+               smNodeList = SUMA_Taubin_Smooth (currSurf, NULL, lambda, mu, currSurf->NodeList, 2*numIt, 3, d_order, NULL, cs, NULL);
                if ( !smNodeList ) 
                   fprintf(SUMA_STDERR, "Error %s: Failed in Taubin Smoothing.  Surface will not be smoothed.\n\n", FuncName);
                else {
