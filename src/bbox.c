@@ -480,11 +480,11 @@ int AV_colsize()                      /* 11 Dec 2001 */
 
 static void optmenu_EV( Widget,XtPointer,XEvent *,Boolean *) ; /* prototype */
 
-static int allow_optmenu_EV = 1 ;
+static volatile int allow_optmenu_EV = 1 ;
 
 void allow_MCW_optmenu_popup( int ii ){ allow_optmenu_EV = ii ; }
 
-#define USE_FIXUP
+#undef  USE_FIXUP
 #ifdef  USE_FIXUP
 static void optmenu_EV_fixup( Widget ww ) ;
 #endif
@@ -811,8 +811,8 @@ ENTRY("optmenu_finalize") ;
 /* 15 Mar 2004: fix the cursors on the optmenus with popups */
 
 #ifdef USE_FIXUP
-static int    nwid = 0    ;
-static Widget *wid = NULL ;
+static volatile int    nwid = 0    ;
+static volatile Widget *wid = NULL ;
 
 /*- called if an optmenu is destroyed, to remove it from the fixup list -*/
 
@@ -827,13 +827,13 @@ ENTRY("optmenu_EV_fixup_CB") ;
 
 /*- called occasionally to see if anyone can be fixed yet -*/
 
-static XtIntervalId timer_id = (XtIntervalId)0 ;
-static XtAppContext timer_cx = (XtAppContext)NULL ;
+static volatile XtIntervalId timer_id = (XtIntervalId)0 ;
+static volatile XtAppContext timer_cx = (XtAppContext)NULL ;
 
 static void optmenu_EV_fixup_timer_CB( XtPointer cd , XtIntervalId *id )
 {
 ENTRY("optmenu_EV_fixup_timer_CB") ;
-   optmenu_EV_fixup(NULL) ;
+   optmenu_EV_fixup((Widget)NULL) ;
    timer_id = XtAppAddTimeOut( timer_cx, 3033, optmenu_EV_fixup_timer_CB, NULL ) ;
    EXRETURN ;
 }
@@ -911,11 +911,13 @@ static void optmenu_EV( Widget w , XtPointer cd ,
         popping down the popup menu.  If the optmenu
         is NOT in a popup menu, it has no side effect. --*/
 
+#ifdef USE_FIXUP
    optmenu_EV_fixup(NULL) ;
+#endif
 
    if( bev->button == Button2 ){
-      XUngrabPointer( bev->display , CurrentTime ) ;
-      return ;
+     XUngrabPointer( bev->display , CurrentTime ) ;
+     return ;
    }
 
    /*-- start of actual work --*/
@@ -2538,9 +2540,9 @@ static MCW_action_item TSC_act[] = {
    active at a time (per application).  This is a deliberate choice.
 ---------------------------------------------------------------------------*/
 
-void MCW_choose_timeseries( Widget wpar , char * label ,
-                            MRI_IMARR * tsarr , int init ,
-                            gen_func * func , XtPointer func_data )
+void MCW_choose_timeseries( Widget wpar , char *label ,
+                            MRI_IMARR *tsarr , int init ,
+                            gen_func *func , XtPointer func_data )
 {
    static Widget wpop = NULL , wrc ;
    static MCW_choose_data cd ;
@@ -2549,27 +2551,27 @@ void MCW_choose_timeseries( Widget wpar , char * label ,
    Widget wlist = NULL , wlab ;
    XmStringTable xmstr ;
    XmString xms ;
-   char * lbuf ;
-   char pbuf[256] , qbuf[256] ;
-   MRI_IMAGE * tsim ;
+   char *lbuf ;
+   char pbuf[256] , qbuf[512] ;
+   MRI_IMAGE *tsim ;
 
 ENTRY("MCW_choose_timeseries") ;
 
    /** destructor callback **/
 
    if( wpar == NULL ){
-      if( wpop != NULL ){
-         XtUnmapWidget( wpop ) ;
-         XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
-         XtDestroyWidget( wpop ) ;
-      }
-      wpop = NULL ; EXRETURN ;
+     if( wpop != NULL ){
+       XtUnmapWidget( wpop ) ;
+       XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
+       XtDestroyWidget( wpop ) ;
+     }
+     wpop = NULL ; EXRETURN ;
    }
 
    if( ! XtIsRealized(wpar) ){  /* illegal call */
-      fprintf(stderr,"\n*** illegal call to MCW_choose_timeseries %s\n",
-              XtName(wpar) ) ;
-      EXRETURN ;
+     fprintf(stderr,"\n*** illegal call to MCW_choose_timeseries %s\n",
+             XtName(wpar) ) ;
+     EXRETURN ;
    }
 
    MCW_set_listmax( wpar ) ;
@@ -2577,8 +2579,8 @@ ENTRY("MCW_choose_timeseries") ;
    /*--- if popup widget already exists, destroy it ---*/
 
    if( wpop != NULL ){
-      XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
-      XtDestroyWidget( wpop ) ;
+     XtRemoveCallback( wpop, XmNdestroyCallback, MCW_destroy_chooser_CB, &wpop ) ;
+     XtDestroyWidget( wpop ) ;
    }
 
    wlist = NULL ;
@@ -2601,11 +2603,11 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
              NULL ) ;
 
    if( MCW_isitmwm(wpar) ){
-      XtVaSetValues( wpop ,
-                        XmNmwmDecorations ,  MWM_DECOR_BORDER ,
-                        XmNmwmFunctions   ,  MWM_FUNC_MOVE
-                                           | MWM_FUNC_CLOSE ,
-                     NULL ) ;
+     XtVaSetValues( wpop ,
+                      XmNmwmDecorations ,  MWM_DECOR_BORDER ,
+                      XmNmwmFunctions   ,  MWM_FUNC_MOVE
+                                         | MWM_FUNC_CLOSE ,
+                    NULL ) ;
    }
 
    XtAddCallback( wpop , XmNdestroyCallback , MCW_destroy_chooser_CB , &wpop ) ;
@@ -2624,11 +2626,11 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
              NULL ) ;
 
    if( label != NULL ){
-      lbuf = (char*)XtMalloc( strlen(label) + 24 ) ;
-      sprintf( lbuf , "----Choose One----\n%s" , label ) ;
+     lbuf = (char*)XtMalloc( strlen(label) + 32 ) ;
+     sprintf( lbuf , "----Choose One----\n%s" , label ) ;
    } else {
-      lbuf = (char*)XtMalloc( 24 ) ;
-      sprintf( lbuf , "----Choose One----" ) ;
+     lbuf = (char*)XtMalloc( 32 ) ;
+     sprintf( lbuf , "----Choose One----" ) ;
    }
    xms = XmStringCreateLtoR( lbuf , XmFONTLIST_DEFAULT_TAG ) ;
    wlab = XtVaCreateManagedWidget(
@@ -2649,32 +2651,32 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
 
    xd = yd = ltop = 1 ;
    for( ib=0 ; ib < num_ts ; ib++ ){
-      tsim = IMARR_SUBIMAGE(tsarr,ib) ;
-      if( tsim == NULL ){
-         strcpy(pbuf,"** NULL series **") ;
-      } else {
-         if( tsim->name != NULL )
-            strcpy(pbuf,IMARR_SUBIMAGE(tsarr,ib)->name) ;
-         else
-            strcpy(pbuf,"** NO NAME **") ;
+     tsim = IMARR_SUBIMAGE(tsarr,ib) ;
+     if( tsim == NULL ){
+       strcpy(pbuf,"** NULL series ??") ;
+     } else {
+       if( tsim->name != NULL )
+         MCW_strncpy(pbuf,IMARR_SUBIMAGE(tsarr,ib)->name,254) ;
+       else
+         strcpy(pbuf,"** NO NAME ??") ;
 
-         sprintf(qbuf,"%d",tsim->nx) ; ll = strlen(qbuf) ; xd = MAX(xd,ll) ;
-         sprintf(qbuf,"%d",tsim->ny) ; ll = strlen(qbuf) ; yd = MAX(yd,ll) ;
-      }
-      ll = strlen(pbuf) ; ltop = MAX(ltop,ll) ;
+       sprintf(qbuf,"%d",tsim->nx) ; ll = strlen(qbuf) ; xd = MAX(xd,ll) ;
+       sprintf(qbuf,"%d",tsim->ny) ; ll = strlen(qbuf) ; yd = MAX(yd,ll) ;
+     }
+     ll = strlen(pbuf) ; ltop = MAX(ltop,ll) ;
    }
 
    for( ib=0 ; ib < num_ts ; ib++ ){
-      tsim = IMARR_SUBIMAGE(tsarr,ib) ;
-      if( tsim == NULL ){
-         strcpy(qbuf,"** NULL series **") ;
-      } else {
-         if( tsim->name != NULL )
-            strcpy(pbuf,IMARR_SUBIMAGE(tsarr,ib)->name) ;
-         else
-            strcpy(pbuf,"** NO NAME **") ;
+     tsim = IMARR_SUBIMAGE(tsarr,ib) ;
+     if( tsim == NULL ){
+       strcpy(qbuf,"** NULL series ??") ;
+     } else {
+       if( tsim->name != NULL )
+         MCW_strncpy(pbuf,IMARR_SUBIMAGE(tsarr,ib)->name,254) ;
+       else
+         strcpy(pbuf,"** NO NAME ??") ;
 
-         sprintf(qbuf,"%-*s [%*d x %*d]", ltop,pbuf , xd,tsim->nx , yd,tsim->ny ) ;
+        sprintf(qbuf,"%-*s [%*d x %*d]", ltop,pbuf , xd,tsim->nx , yd,tsim->ny ) ;
       }
       xmstr[ib] = XmStringCreateSimple( qbuf ) ;
    }
@@ -2690,8 +2692,8 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
                     XmNselectionPolicy  , XmSINGLE_SELECT ,
                   NULL ) ;
    if( init >= 0 && init < num_ts ){
-      XmListSelectPos( wlist , init+1 , False ) ;
-      if( init+1 > nvisible ) XmListSetBottomPos( wlist , init+1 ) ;
+     XmListSelectPos( wlist , init+1 , False ) ;
+     if( init+1 > nvisible ) XmListSetBottomPos( wlist , init+1 ) ;
    }
    XtManageChild(wlist) ;
 
