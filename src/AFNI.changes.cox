@@ -5253,3 +5253,6 @@
  * First version of 3dWarpDrive released.
  * 3dcalc now prints a warning if outputing a byte-valued dataset when the
      calculated results had some negative values.
+
+01 Dec 2004
+ * Added -twopass option to 3dWarpDrive, etc.

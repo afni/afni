@@ -136,6 +136,11 @@ static THD_mat33 rot_matrix( int ax1, double th1,
 static int matorder = MATORDER_SDU ;
 static int dcode    = DELTA_AFTER  ;  /* cf. 3ddata.h */
 
+#define SMAT_UPPER    1
+#define SMAT_LOWER    2
+
+static int smat     = SMAT_LOWER ;
+
 void parset_affine(void)
 {
    THD_mat33 ss,dd,uu,aa,bb ;
@@ -156,9 +161,20 @@ void parset_affine(void)
 
    /* shear */
 
-   LOAD_MAT( ss , 1.0        , 0.0        , 0.0 ,
-                  parvec[9]  , 1.0        , 0.0 ,
-                  parvec[10] , parvec[11] , 1.0  ) ;
+   switch( smat ){
+     default:
+     case SMAT_LOWER:
+       LOAD_MAT( ss , 1.0        , 0.0        , 0.0 ,
+                      parvec[9]  , 1.0        , 0.0 ,
+                      parvec[10] , parvec[11] , 1.0  ) ;
+     break ;
+
+     case SMAT_UPPER:
+       LOAD_MAT( ss , 1.0 , parvec[9] , parvec[10] ,
+                      0.0 , 1.0       , parvec[11] ,
+                      0.0 , 0.0       , 1.0         ) ;
+     break ;
+   }
 
    /* multiply them, as ordered */
 
@@ -207,8 +223,8 @@ int main( int argc , char * argv[] )
             "Warp a dataset to match another one (the base).\n"
             "\n"
             "This program is a generalization of 3dvolreg.  It tries to find\n"
-            "a transformation that warps a given dataset to match an input\n"
-            "dataset (given by the -base option).  It will be slow.\n"
+            "a spatial transformation that warps a given dataset to match an\n"
+            "input dataset (given by the -base option).  It will be slow.\n"
             "\n"
             "--------------------------\n"
             "Transform Defining Options: [exactly one of these must be used]\n"
@@ -219,19 +235,27 @@ int main( int argc , char * argv[] )
             "  -affine_general     = 12 parameters (3 shifts + 3x3 matrix)\n"
             "  -bilinear_general   = 39 parameters (3 + 3x3 + 3x3x3)\n"
             "\n"
+            "  N.B.: At this time, the image intensity is NOT \n"
+            "         adjusted for the Jacobian of the transformation.\n"
+            "  N.B.: -bilinear_general is not yet implemented.\n"
+            "\n"
             "-------------\n"
             "Other Options:\n"
             "-------------\n"
             "  -linear   }\n"
             "  -cubic    } = Chooses spatial interpolation method.\n"
             "  -NN       } =   [default = linear; inaccurate but fast]\n"
-            "  -quintic  }\n"
+            "  -quintic  }     [for accuracy, try '-cubic -final quintic']\n"
             "\n"
             "  -base bbb   = Load dataset 'bbb' as the base to which the\n"
             "                  input dataset will be matched.\n"
+            "                  [This is a mandatory option]\n"
             "\n"
-            "  -verb       = Print out some information along the way.\n"
+            "  -verb       = Print out lots of information along the way.\n"
             "  -prefix ppp = Sets the prefix of the output dataset.\n"
+            "  -input ddd  = You can put the input dataset anywhere in the\n"
+            "                  command line option list by using the '-input'\n"
+            "                  option, instead of always putting it last.\n"
             "\n"
             "-----------------\n"
             "Technical Options:\n"
@@ -239,13 +263,17 @@ int main( int argc , char * argv[] )
             "  -maxite    m  = Allow up to 'm' iterations for convergence.\n"
             "  -delta     d  = Distance, in voxel size, used to compute\n"
             "                   image derivatives using finite differences.\n"
+            "                   [Default=1.0]\n"
             "  -weight  wset = Set the weighting applied to each voxel\n"
             "                   proportional to the brick specified here.\n"
-            "  -thresh t     = Set the convergence parameter to be 't' voxels\n"
-            "                   voxel movement.  [Default=0.03]\n"
+            "                   [Default=computed by program from base]\n"
+            "  -thresh    t  = Set the convergence parameter to be RMS 't' voxels\n"
+            "                   movement between iterations.  [Default=0.03]\n"
             "  -twopass      = Do the parameter estimation in two passes,\n"
             "                   coarse-but-fast first, then fine-but-slow second\n"
             "                   (much like the same option in program 3dvolreg).\n"
+            "                   This is useful if large-ish warping is needed to\n"
+            "                   align the volumes.\n"
             "  -final 'mode' = Set the final warp to be interpolated using 'mode'\n"
             "                   instead of the spatial interpolation method used\n"
             "                   to find the warp parameters.\n"
@@ -262,29 +290,40 @@ int main( int argc , char * argv[] )
             "\n"
             "  -SDU or -SUD }= Set the order of the matrix multiplication\n"
             "  -DSU or -DUS }= for the affine transformations:\n"
-            "  -USD or -UDS }=   S = lower triangular shear (params #10-12)\n"
+            "  -USD or -UDS }=   S = triangular shear (params #10-12)\n"
             "                    D = diagonal scaling matrix (params #7-9)\n"
             "                    U = rotation matrix (params #4-6)\n"
             "                  Default order is '-SDU', which means that\n"
             "                  the U matrix is applied first, then the\n"
             "                  D matrix, then the S matrix.\n"
             "\n"
-            "The matrices are specified in DICOM-ordered (x,y,z) coordinates as:\n"
+            "  -Supper      }= Set the S matrix to be upper or lower\n"
+            "  -Slower      }= triangular [Default=lower triangular]\n"
+            "\n"
+            "  -ashift OR   }= Apply the shift parameters (#1-3) after OR\n"
+            "  -bshift      }= before the matrix transformation. [Default=after]\n"
+            "\n"
+            "The matrices are specified in DICOM-ordered (x=-R+L,y=-A+P,z=-I+S)\n"
+            "coordinates as:\n"
             "\n"
             "  [U] = [Rotate_y(param#6)] [Rotate_x(param#5)] [Rotate_z(param #4)]\n"
             "        (angles are in degrees)\n"
             "\n"
             "  [D] = diag( param#7 , param#8 , param#9 )\n"
             "\n"
-            "        [    1        0     0 ]\n"
-            "  [S] = [ param#10    1     0 ]\n"
-            "        [ param#11 param#12 1 ]\n"
+            "        [    1        0     0 ]        [ 1 param#10 param#11 ]\n"
+            "  [S] = [ param#10    1     0 ]   OR   [ 0    1     param#12 ]\n"
+            "        [ param#11 param#12 1 ]        [ 0    0        1     ]\n"
             "\n"
-            "  -ashift OR   }= Apply the shift parameters (#1-3) after OR\n"
-            "  -bshift      }= before the matrix transformation.\n"
+            " For example, the default (-SDU/-ashift/-Slower) has the warp\n"
+            " specified as [x]_warped = [S] [D] [U] [x]_in + [shift].\n"
             "\n"
-            " For example, the default (-SDU/-ashift) has the transformation\n"
-            " specified as [x]_warp = [S] [D] [U] [x]_in + [shift].\n"
+            " The goal of the program is to find the warp parameters such that\n"
+            "   I([x]_warped) = s * J([x]_in)\n"
+            " as closely as possible in a weighted least squares sense, where\n"
+            " 's' is a scaling factor (an extra, invisible, parameter), J(x)\n"
+            " is the base image, I(x) is the input image, and the weight image\n"
+            " is a blurred copy of J(x).\n"
             "\n"
             " Using '-parfix', you can specify that some of these parameters\n"
             " are fixed.  For example, '-shift_rotate_scale' is equivalent\n"
@@ -302,6 +341,8 @@ int main( int argc , char * argv[] )
    /*-- startup mechanics --*/
 
    mainENTRY("3dWarpDrive main"); machdep(); AFNI_logger("3dWarpDrive",argc,argv);
+
+   /* initialize parameters of the alignment basis struct */
 
    abas.nparam     = 0 ;
    abas.param      = NULL ;
@@ -361,6 +402,12 @@ int main( int argc , char * argv[] )
      }
      if( strcmp(argv[nopt],"-bshift") == 0 ){
        dcode = DELTA_BEFORE    ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-Slower") == 0 ){
+       smat  = SMAT_LOWER      ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-Supper") == 0 ){
+       smat  = SMAT_UPPER      ; nopt++ ; continue ;
      }
 
      /*-----*/
@@ -563,7 +610,7 @@ int main( int argc , char * argv[] )
 
    /*-- parameterize the warp model --*/
 
-   /*! Add a parameter to the warp3D model.
+   /*! Macro to add a parameter to the warp3D model.
         - nm = name of parameter
         - bb = min value allowed
         - tt = max value allowed
@@ -591,6 +638,10 @@ int main( int argc , char * argv[] )
    } else if( warpdrive_code >= WARPDRIVE_SHIFT &&
               warpdrive_code <= WARPDRIVE_AFFINE  ){
 
+       char *lab09, *lab10, *lab11 ;
+
+       /* add all 12 parameters (may ignore some, later) */
+
        ADDPAR( "x-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
        ADDPAR( "y-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
        ADDPAR( "z-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
@@ -603,12 +654,26 @@ int main( int argc , char * argv[] )
        ADDPAR( "y-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
        ADDPAR( "z-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
 
-       ADDPAR( "y/x-shear" , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "z/x-shear" , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "z/y-shear" , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+       switch( smat ){
+         default:
+         case SMAT_LOWER:
+           lab09 = "y/x-shear" ; lab10 = "z/x-shear" ; lab11 = "z/y-shear" ;
+         break ;
+
+         case SMAT_UPPER:
+           lab09 = "x/y-shear" ; lab10 = "x/z-shear" ; lab11 = "y/z-shear" ;
+         break ;
+       }
+       ADDPAR( lab09 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab10 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab11 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+
+       /* initialize transform parameter vector */
 
        for( kpar=0 ; kpar < 12 ; kpar++ )
          parvec[kpar] = abas.param[kpar].ident ;
+
+       /* initialize transformation function pointers */
 
        if( warpdrive_code == WARPDRIVE_SHIFT ){
          warp_parset = parset_shift ;
@@ -620,6 +685,8 @@ int main( int argc , char * argv[] )
          warp_inv    = warper_affine_inv ;
        }
 
+       /* how many parameters to actually pay attention to */
+
        switch( warpdrive_code ){
          case WARPDRIVE_SHIFT:  abas.nparam =  3 ; break ;
          case WARPDRIVE_ROTATE: abas.nparam =  6 ; break ;
@@ -630,6 +697,8 @@ int main( int argc , char * argv[] )
      fprintf(stderr,"** ERROR: unimplemented transform model!\n") ;
      nerr++ ;
    }
+
+   /* Deal with -parfix options; nfree will be number of free parameters */
 
    nfree = abas.nparam ;
    for( kpar=0 ; kpar < nparfix ; kpar++ ){
@@ -654,7 +723,10 @@ int main( int argc , char * argv[] )
      fprintf(stderr,"** ERROR: no free parameters in transform model!\n") ;
      nerr++ ;
    }
-   if( abas.max_iter <= 0 ) abas.max_iter = 9*nfree+5 ;
+
+   /* default number of iterations allowed */
+
+   if( abas.max_iter <= 0 ) abas.max_iter = 11*nfree+5 ;
 
    /*-- other checks for good set of inputs --*/
 
@@ -683,14 +755,43 @@ int main( int argc , char * argv[] )
 
    if( nerr ) exit(1) ;
 
+   if( abas.verb ) fprintf(stderr,"++ Creating empty output dataset\n") ;
+
+   outset = EDIT_empty_copy( inset ) ;
+
+   EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
+
+   if( THD_is_file( DSET_HEADNAME(outset) ) ){
+     fprintf(stderr, "** ERROR: Output file %s already exists!\n",
+             DSET_HEADNAME(outset) ) ;
+     nerr++ ;
+   }
+
+   tross_Copy_History( inset , outset ) ;
+   tross_Make_History( "3dWarpDrive" , argc,argv , outset ) ;
+
+   outset->daxes->xxorg = inset->daxes->xxorg ;
+   outset->daxes->yyorg = inset->daxes->yyorg ;
+   outset->daxes->zzorg = inset->daxes->zzorg ;
+
    /*-- more checks --*/
 
    nx = DSET_NX(inset) ; ny = DSET_NY(inset) ; nz = DSET_NZ(inset) ;
    dx = DSET_DX(inset) ; dy = DSET_DY(inset) ; dz = DSET_DZ(inset) ;
 
    if( DSET_NX(baset) != nx || DSET_NY(baset) != ny || DSET_NZ(baset) != nz ){
-     fprintf(stderr,"** ERROR: base and input datasets don't match!\n") ;
+     fprintf(stderr,"** ERROR: base and input datasets dimensions don't match!\n") ;
      nerr++ ;
+   }
+
+   if( DSET_DX(baset) != dx || DSET_DY(baset) != dy || DSET_DZ(baset) != dz ){
+     fprintf(stderr,"** WARNING: base and input datasets grids don't match!\n") ;
+   }
+
+   if( baset->daxes->xxorient != inset->daxes->xxorient ||
+       baset->daxes->yyorient != inset->daxes->yyorient ||
+       baset->daxes->zzorient != inset->daxes->zzorient   ){
+     fprintf(stderr,"** WARNING: base and input datasets orientations don't match!\n") ;
    }
 
    if( wtset != NULL &&
@@ -774,14 +875,6 @@ int main( int argc , char * argv[] )
      }
    }
 
-   if( abas.verb ) fprintf(stderr,"++ Creating empty output dataset\n") ;
-
-   outset = EDIT_empty_copy( inset ) ;
-
-   EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
-   tross_Copy_History( inset , outset ) ;
-   tross_Make_History( "3dWarpDrive" , argc,argv , outset ) ;
-
    /*===== do the hard work =====*/
 
    if( abas.verb ) fprintf(stderr,"++ Beginning alignment setup\n") ;
@@ -834,6 +927,8 @@ int main( int argc , char * argv[] )
    }
 
    /*===== hard work is done =====*/
+
+   mri_warp3D_align_cleanup( &abas ) ;
 
    /*-- write the results to disk for all of history to see --*/
 
