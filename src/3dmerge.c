@@ -987,6 +987,22 @@ int main( int argc , char * argv[] )
 
       THD_delete_3dim_dataset( new_dset , False ) ;  /* toss this junk */
 
+      /* 05 Jul 2002: illegal uses of -keepthr? */
+
+      if( MRG_keepthr && !ISFUNC(dset) ){
+        fprintf(stderr,"*** -keepthr can't be used on non-functional dataset!\n");
+        exit(1) ;
+      }
+      if( MRG_keepthr && dset->func_type == FUNC_FIM_TYPE ){
+        fprintf(stderr,"*** -keepthr can't be used on 'fim' type dataset!\n") ;
+        exit(1) ;
+      }
+      if( MRG_keepthr && dset->func_type == FUNC_BUCK_TYPE ){
+        fprintf(stderr,"*** -keepthr can't be used on 'fbuc' type dataset!\n"
+                       "    You can use '3dbuc2fim' first, if needed.\n"    );
+        exit(1) ;
+      }
+ 
       /** get ready to go **/
 
       if( ! MRG_be_quiet ){

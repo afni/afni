@@ -3826,3 +3826,6 @@
 27 Jun 2002
  * Modified niml.c to add debugging output option (NIML_DEBUG).
  * Fixed scan_for_angles() in niml.c to disable timeouts in case (b).
+
+05 Jul 2002
+ * Modified 3dmerge.c to prevent use of -keepthr on fim and fbuc datasets.
