@@ -1016,6 +1016,9 @@ floatvecvec * SYM_expand_ranges( int nlast, int nrang, SYM_irange *rang, char *s
 #include "mcw_glob.h"
 /*------------------------------------------------------------------------*/
 
+/*-----------------  06 Dec 2004: incorporation of list_struct  ----------*/
+#include "list_struct.h"
+
 /*-----------------  02 Feb 1998:
                      incoroporation of 3ddata, 3dmaker, iochan -----------*/
 

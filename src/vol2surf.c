@@ -87,7 +87,7 @@ typedef struct
     int     nused;
     int     nalloc;
     float * list;
-} float_list;
+} float_list_t;
 
 typedef struct
 {
@@ -127,10 +127,10 @@ static int    disp_surf_vals( char * mesg, v2s_results * sd, int node );
 static int    dump_surf_3dt(v2s_opts_t *sopt, v2s_param_t *p, v2s_results *sd);
 static int    f3mm_out_of_bounds(THD_fvec3 *cp, THD_fvec3 *min, THD_fvec3 *max);
 static int    fill_sopt_default(v2s_opts_t * sopt, int nsurf );
-static int    float_list_alloc(float_list *f, int **ilist, int size, int trunc);
-static int    float_list_comp_mode(float_list *f, float *mode, int *nvals,
+static int    float_list_alloc(float_list_t *f,int **ilist,int size,int trunc);
+static int    float_list_comp_mode(float_list_t *f, float *mode, int *nvals,
                                    int *index);
-static int    float_list_slow_sort(float_list * f, int * ilist);
+static int    float_list_slow_sort(float_list_t * f, int * ilist);
 static int    init_seg_endpoints(v2s_opts_t * sopt, v2s_param_t * p,
                                  range_3dmm * R, int node );
 static int    init_range_structs( range_3dmm * r3, range_3dmm_res * res3 );
@@ -894,12 +894,12 @@ ENTRY("v2s_adjust_endpts");
 static float v2s_apply_filter( range_3dmm_res * rr, v2s_opts_t * sopt,
 			       int index, int * findex )
 {
-    static float_list flist = { 0, 0, NULL };    /* for sorting results */
-    static int      * ind_list = NULL;		 /* track index sources */
-    double            tmp, comp = 0.0;
-    float             fval;
-    int               count, source;
-    int               brick_index = 0;
+    static float_list_t   flist = { 0, 0, NULL };  /* for sorting results */
+    static int          * ind_list = NULL;	   /* track index sources */
+    double                tmp, comp = 0.0;
+    float                 fval;
+    int                   count, source;
+    int                   brick_index = 0;
 
 ENTRY("v2s_apply_filter");
 
@@ -1048,7 +1048,7 @@ static int v2s_map_needs_sort( int map )
  *        -1 : on error
  *----------------------------------------------------------------------
 */
-static int float_list_comp_mode( float_list *f, float *mode, int *nvals,
+static int float_list_comp_mode( float_list_t *f, float *mode, int *nvals,
 				 int *index )
 {
     float fcur;
@@ -1099,7 +1099,7 @@ ENTRY("float_list_comp_mode");
  *        < 0 on error
  *----------------------------------------------------------------------
 */
-static int float_list_slow_sort( float_list * f, int * ilist )
+static int float_list_slow_sort( float_list_t * f, int * ilist )
 {
     float * list, save;
     int     c0, c1, sindex;
@@ -1150,7 +1150,7 @@ ENTRY("float_list_slow_sort");
  *        < 0 on error
  *----------------------------------------------------------------------
 */
-static int float_list_alloc(float_list *f, int **ilist, int size, int trunc)
+static int float_list_alloc(float_list_t *f, int **ilist, int size, int trunc)
 {
 ENTRY("float_list_alloc");
 
