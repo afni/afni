@@ -252,6 +252,8 @@
            Also - disable 3dDeconvolve_f (FLOATIZE)
   Date:    14 Jul 2004 - RWCox
 
+  Mod:     Added -legendre option, -nocond option
+  Date     15 Jul 2004 - RWCox
 */
 
 /*---------------------------------------------------------------------------*/
@@ -377,6 +379,8 @@ typedef struct DC_options
   int xout;             /* flag to write X and inv(X'X) matrices to screen */
   int full_first;       /* flag to output full model stats first */
 
+  int nocond ;          /* flag to disable condition numbering [15 Jul 2004] */
+
 } DC_options;
 
 
@@ -442,6 +446,10 @@ void display_help_menu()
     "                       deconvolution procedure. (default = last point) \n"
     "[-polort pnum]       pnum = degree of polynomial corresponding to the  \n"
     "                       null hypothesis  (default: pnum = 1)            \n"
+    "[-legendre]          use Legendre polynomials for null hypothesis      \n"
+    "[-nolegendre]        use power polynomials for null hypotheses         \n"
+    "                       (default is -nolegendre)                        \n"
+    "[-nocond]            don't calculate matrix condition number           \n"
     "[-rmsmin r]          r = minimum rms error to reject reduced model     \n"
     "                                                                       \n"
     "     Input stimulus options:                                           \n"
@@ -567,6 +575,7 @@ void initialize_options
   option_data->q        = 0;
   option_data->qp       = 0;
   option_data->nbricks  = 0;
+  option_data->nocond   = 0;   /* 15 Jul 2004 */
   
   /*----- Initialize stimulus options -----*/
   option_data->num_stimts = 0;
@@ -757,6 +766,15 @@ void get_options
   while (nopt < argc )
     {
 
+      if( strcmp(argv[nopt],"-OK") == 0 ){ nopt++; continue; } /* 14 Jul 2004 */
+
+      /*-----   -nocond           ------*/
+
+      if( strcmp(argv[nopt],"-nocond") == 0 ){  /* 15 Jul 2004 */
+        option_data->nocond = 1 ;
+        nopt++ ; continue ;
+      }
+
       /*-----   -input filename   -----*/
       if (strcmp(argv[nopt], "-input") == 0)
 	{
@@ -875,6 +893,12 @@ void get_options
 	  continue;
 	}
 
+      /*----- -legendre AND -nolegendre [15 Jul 2004] -----*/
+
+      if( strstr(argv[nopt],"legendre") != NULL ){
+        legendre_polort = (strncmp(argv[nopt],"-leg",4) == 0) ;
+        nopt++ ; continue ;
+      }
 
       /*-----   -quiet   -----*/
       if (strcmp(argv[nopt], "-quiet") == 0)
@@ -3071,7 +3095,8 @@ void calculate_results
 
   /*-- 14 Jul 2004: calculate matrix condition number - RWCox --*/
 
-  { double *ev , emin,emax ; int i ;
+  if( !option_data->nocond ){
+    double *ev , emin,emax ; int i ;
     ev = matrix_singvals( xdata ) ;
     emin = emax = ev[0] ;
     for( i=1 ; i < xdata.cols ; i++ ){
@@ -4503,15 +4528,25 @@ int main
   float ** fitts_vol = NULL;   /* volumes for full model fit to input data */
   float ** errts_vol = NULL;   /* volumes for residual errors */
 
+
 #ifdef FLOATIZE
-  fprintf(stderr,"**\n"
-                 "** 3dDeconvolve_f is now disabled.\n"
-                 "** It is too dangerous, due to roundoff problems.\n"
-                 "** Please use 3dDeconvolve from now on!\n"
-                 "** RWCox - 14 Jul 2004\n"
-                 "**\n"
+  /*----- force the user to acknowledge the riskiness of his behavior -----*/
+  if( argc < 2 || strcmp(argv[1],"-OK") != 0 ){
+    fprintf(stderr,"**\n"
+                   "** 3dDeconvolve_f is now disabled.\n"
+                   "** It is too dangerous, due to roundoff problems.\n"
+                   "** Please use 3dDeconvolve from now on!\n"
+                   "**\n"
+                   "** HOWEVER, if you insist on using 3dDeconvolve_f, then:\n"
+                   "**        + Use '-OK' as the first command line option.\n"
+                   "**        + Check the matrix condition number; if it is\n"
+                   "**            greater than 1000, beware!\n"
+                   "**\n"
+                   "** RWCox - 14 Jul 2004\n"
+                   "**\n"
          ) ;
-  exit(0) ;
+    exit(0) ;
+  }
 #endif
 
   /*----- start the elapsed time counter -----*/

@@ -5078,3 +5078,7 @@
      - compute matrix condition number
  * Modified matrix.[ch] and matrix_f.[ch] to support this stuff.
  * Disabled 3dDeconvolve_f binary.
+
+15 Jul 2004
+ * Modified 3dDeconvolve.c and Deconvolve.c to have -legendre option, for
+     use of better polynomials for the baseline estimation.
