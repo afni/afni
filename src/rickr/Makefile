@@ -27,7 +27,7 @@ clean:
 
 file_tool: file_tool.o file_tool.h
 	$(RM) $@
-	$(CC) -o file_tool file_tool.o
+	$(CC) -o file_tool file_tool.o -lm
 
 .c.o:
 	$(RM) $@
