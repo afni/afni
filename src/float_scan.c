@@ -7,6 +7,10 @@
 # define USE_ISNANF
 #endif
 
+#if defined(OSF1)
+# define USE_ISNANF
+#endif
+
 #if defined(HP)
 # define USE_ISNANF
 # define USE_FINITEF

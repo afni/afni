@@ -1815,3 +1815,13 @@
      same info.
  * Added function PARSER_1deval() to parser_int.c.
  * Added environment variable AFNI_MARKERS_NOQUAL to afni.c.
+ * Fixed bug in 3dDetrend when -expr string had no variable symbols.
+ * Modified thd_iochan.c to use SO_REUSEADDR to help close down
+     sockets quickly.
+
+18 Nov 1999
+ * Modified cs_addto_args.c to make the mangling of the arglist
+     more flexible.
+ * Used the previous change in afni.c to add the environment variable
+     AFNI_OPTIONS that will always be added to the command line args.
+ * Incorporated the OSF1 changes from Matthew Belmonte.

@@ -51,6 +51,11 @@ static char * commandline = NULL ;         /* command line for history notes */
 # define DF "df -k ."
 #endif
 
+/*** DEC OSF1 ***/
+#ifdef OSF1
+# define DF "df -k ."
+#endif
+
 /*** SunOS or Solaris ***/
 #if defined(SOLARIS) || defined(SUN)
 # define DF "df -k"

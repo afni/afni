@@ -100,6 +100,20 @@ static AFNI_friend afni_friends[] = {
 #endif
 #include "dbtrace.h"
 
+/*----------------------------------------------------------------
+   Global variables that used to be local variables in main()
+------------------------------------------------------------------*/
+
+static XtAppContext   MAIN_app ;
+static XtErrorHandler MAIN_old_handler ;
+static Three_D_View * MAIN_im3d ;
+static MCW_DC *       MAIN_dc ;
+static Widget         MAIN_shell ;
+static XtWorkProcId   MAIN_wpid ;
+static int            MAIN_argc ;
+static char **        MAIN_argv ;
+static Boolean        MAIN_workprocess( XtPointer ) ;
+
 /********************************************************************
    Print out some help information and then quit quit quit
 *********************************************************************/
@@ -281,12 +295,16 @@ void AFNI_syntax(void)
    parse command line switches and store results in a data structure
 ------------------------------------------------------------------------*/
 
-void AFNI_parse_args( int argc , char * argv[] )
+void AFNI_parse_args( int in_argc , char * in_argv[] )
 {
    int narg = 1 ;
    char * env_orient , * env ;
+   int     argc=in_argc ,    new_argc      ; /* 18 Nov 1999 */
+   char ** argv=in_argv , ** new_argv=NULL ;
 
 ENTRY("AFNI_parse_args") ;
+
+   if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
    GLOBAL_argopt.dz       = 1.0 ;          /* set up defaults */
    GLOBAL_argopt.dy       = 1.0 ;
@@ -303,6 +321,16 @@ ENTRY("AFNI_parse_args") ;
 
    env = getenv( "AFNI_MARKERS_NOQUAL" ) ;             /* 17 Nov 1999 */
    if( env != NULL ) GLOBAL_argopt.elide_quality = 1 ;
+
+   /*-- 18 Nov 1999: Allow setting of options from environment --*/
+
+   env = getenv( "AFNI_OPTIONS" ) ;
+   if( env != NULL )
+     prepend_string_to_args( env, in_argc, in_argv, &new_argc, &new_argv ) ;
+   if( new_argv != NULL ){
+      MAIN_argc = argc = new_argc ;
+      MAIN_argv = argv = new_argv ;
+   }
 
 #ifdef ALLOW_PLUGINS
    { char * en                = getenv( "AFNI_NOPLUGINS" ) ;
@@ -358,8 +386,6 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.left_is_left = ( getenv("AFNI_LEFT_IS_LEFT") != NULL ) ; /* 09 Oct 1998 */
 
    GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
-
-   if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
    while( narg < argc ){
 
@@ -817,16 +843,6 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
     02 Aug 1999: Have moved much of the startup into a work process.
 ===========================================================================*/
 
-static XtAppContext   MAIN_app ;
-static XtErrorHandler MAIN_old_handler ;
-static Three_D_View * MAIN_im3d ;
-static MCW_DC *       MAIN_dc ;
-static Widget         MAIN_shell ;
-static XtWorkProcId   MAIN_wpid ;
-static int            MAIN_argc ;
-static char **        MAIN_argv ;
-static Boolean        MAIN_workprocess( XtPointer ) ;
-
 int main( int argc , char * argv[] )
 {
    int ii ;
@@ -906,7 +922,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"\n*** Cannot initialize X11 ***\n") ; exit(1) ;
    }
 
-   MAIN_argc = argc ; MAIN_argv = argv ;
+   MAIN_argc = argc ; MAIN_argv = argv ;  /* what's left after XtVaAppInit */
 
    REPORT_PROGRESS(".") ;
 

@@ -63,6 +63,11 @@
 # define DF "bdf ."
 #endif
 
+/*** DEC OSF1 ***/
+#ifdef OSF1
+# define DF "df -k ."
+#endif
+
 /*** SGI IRIX ***/
 #ifdef SGI
 # define DF "df -k ."

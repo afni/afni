@@ -1,8 +1,13 @@
 ## for DEC Alpha under OSF/1
 
+#The constant folding routine in some older versions of gcc may fail with
+#SIGABRT (signal 6) when compiling coxplot/plot_motif.c - to avoid this,
+#remove the -O option from the gcc command line and try again.
+# - Matthew Belmonte <mkb4@Cornell.edu>
+
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = gcc -ansi -O -DSGI
-CCVOL  = gcc -ansi -DSGI
+CC     = gcc -ansi -O -DOSF1
+CCVOL  = gcc -ansi -DOSF1
 CCFAST = $(CC)
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
@@ -19,7 +24,7 @@ RANLIB = /usr/bin/ranlib
 TAR    = /bin/tar
 MKDIR  = /bin/mkdir
 LD     = /bin/ld
-GZIP   = /usr/local/bin/gzip
+GZIP   = /usr/bin/gzip
 
 RM = /usr/bin/rm -f
 MV = /usr/bin/mv -f

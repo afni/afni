@@ -383,7 +383,7 @@ menu in the AFNI 'Define Datamode' control panel), but carries a small
 overhead (both in memory and speed).  Setting this environment variable
 (to anything) provides one way to disable this facility, as in
 
-   setenv AFNI_NO_MCW_MALLOC Tinuviel
+   setenv AFNI_NO_MCW_MALLOC Elbereth
 
 Another way to permanently disable this capability (so that it isn't
 even compiled) is outlined in the file machdep.h.  Also, the interactive
@@ -558,6 +558,20 @@ If this variable is set (to anything), then the interactive AFNI program
 behaves as if the "-noqual" command line option had been included.  This
 feature was added at the request of Dr. Michael S. Beauchamp, who has a
 rare neurological disorder called "noqaulagnosia".
+
+----------------------
+Variable: AFNI_OPTIONS
+----------------------
+In the spirit of the previous variable, this variable can be used to set
+up command line options that will always be passed to the interactive
+AFNI program.  If more than one option is needed, then they should be
+separated by spaces, and the whole value of the variable will need to be
+placed in quotes.  For example
+
+   setenv AFNI_OPTIONS "-noqual -ncolors 60"
+
+Note that the AFNI command line option "-nomall" cannot be specified this
+way (cf. the discussion under variable AFNI_NO_MCW_MALLOC).
 
 =================================
 | Robert W. Cox, PhD            |

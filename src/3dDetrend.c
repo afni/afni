@@ -220,8 +220,9 @@ void DT_read_opts( int argc , char * argv[] )
          if( del <= 0.0 ) del = DT_current_del ;
          flim = mri_new( nvals , 1 , MRI_float ) ;
          flar = MRI_FLOAT_PTR(flim) ;
+         for( ii=0 ; ii < 26 ; ii++ ) atoz[ii] = 0.0 ;
          for( ii=0 ; ii < nvals ; ii++ ){
-            atoz[kvar] = ii * del ;
+            if( kvar >= 0 ) atoz[kvar] = ii * del ;
             flar[ii]   = PARSER_evaluate_one( DT_excode[jj] , atoz ) ;
          }
          ADDTO_IMARR( DT_imar , flim ) ;

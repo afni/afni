@@ -28,5 +28,7 @@ extern void symeigval_double( int , double * , double * ) ;
 /***** Argument list mangling *****/
 
 extern void addto_args( int , char ** , int * , char *** ) ;
+extern void append_string_to_args ( char *, int, char **, int *, char *** ) ;
+extern void prepend_string_to_args( char *, int, char **, int *, char *** ) ;
 
 #endif

@@ -159,6 +159,11 @@ void tcp_set_cutoff( int sd )
    lg.l_onoff  = 1 ;
    lg.l_linger = 0 ;
    setsockopt(sd, SOL_SOCKET, SO_LINGER, (void *)&lg, sizeof(struct linger)) ;
+#if 0
+   { int optval = 1;
+     setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (char *)&optval, sizeof(optval)) ;
+   }
+#endif
    return ;
 }
 
