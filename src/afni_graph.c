@@ -18,7 +18,9 @@
 #include <X11/keysym.h>  /* 24 Jan 2003 */
 
 static int show_grapher_pixmap = 1 ;
+static void fd_line( MCW_grapher *, int,int,int,int ) ;
 
+/*------------------------------------------------------------*/
 /*! Macro to call the getser function with correct prototype. */
 
 #undef  CALL_getser
@@ -28,12 +30,18 @@ static int show_grapher_pixmap = 1 ;
     rval = (rtyp) gs(aa,bb,gr->getaux) ;                        \
  } while(0)
 
+/*------------------------------------------------------------*/
+/*! And to call the send_CB function with a good prototype.   */
+
 #undef  CALL_sendback
 #define CALL_sendback(gr,scb)                                                 \
  do{ void (*sb)(MCW_grapher *,XtPointer,GRA_cbs *) =                          \
       (void (*)(MCW_grapher *,XtPointer,GRA_cbs *))(gr->status->send_CB) ;    \
      if( sb != NULL ) sb(gr,gr->getaux,&scb) ;                                \
  } while(0)
+
+/*------------------------------------------------------------*/
+/*! Create a new MCW_grapher window and structure.            */
 
 MCW_grapher * new_MCW_grapher( MCW_DC *dc , get_ptr getser , XtPointer aux )
 {
@@ -1224,7 +1232,7 @@ ENTRY("GRA_redraw_overlay") ;
 
 void redraw_graph( MCW_grapher * grapher , int code )
 {
-   int x, y , npoints , www,xxx ;
+   int x, y , npoints , www,xxx , rrr ;
    int xc = grapher->xc , yc = grapher->yc ;
    char strp[256] , buf[64] ;
    int xd,yd,zd ;
@@ -1310,7 +1318,11 @@ ENTRY("redraw_graph") ;
 
    grapher->xx_text_2 = xxx = xxx + GL_DLX + 15 ;
 
+   DC_linewidth( grapher->dc , 0 ) ;
+   fd_line( grapher , xxx-7 , 41 , xxx-7 , 5 ) ;
+
    sprintf(strp,"Grid:%5d", grapher->grid_spacing ) ;
+   rrr = DC_text_width(grapher->dc,strp) ;
 
    if( !grapher->textgraph ){
       if( grapher->fscale > 0 ){                        /* 04 Feb 1998: */
@@ -1330,10 +1342,12 @@ ENTRY("redraw_graph") ;
 
    npoints = grapher->status->num_series ;
 
-   if( grapher->pin_num < MIN_PIN )          /* 27 Apr 1997 */
-      sprintf(strp, "Num: %5d", npoints) ;
-   else
-      sprintf(strp, "Num: %5d [%d]" , npoints,grapher->pin_num) ;
+   if( grapher->pin_num < MIN_PIN ){          /* 27 Apr 1997 */
+     sprintf(strp, "Num: %5d", npoints) ;
+     fd_line( grapher , grapher->xx_text_2+rrr+3 , 31 , grapher->xx_text_2+rrr+3 , 5 ) ;
+   } else {
+     sprintf(strp, "Num: %5d/%d" , npoints,grapher->pin_num) ;
+   }
 
    if( !grapher->textgraph ){
       switch( grapher->common_base ){
@@ -1358,13 +1372,15 @@ ENTRY("redraw_graph") ;
    grapher->xx_text_3 = grapher->xx_text_2 + xxx + 15 ;
 
    if( !grapher->textgraph && !ISONE(grapher) ){
-      sprintf(strp,"Mean:  %10s", MV_format_fval(grapher->tmean[xc][yc]) ) ;
+      sprintf(strp,"Mean: %10s", MV_format_fval(grapher->tmean[xc][yc]) ) ;
 
       fd_txt( grapher , grapher->xx_text_3 ,  21, strp ) ;
 
-      sprintf(strp,"Sigma: %10s", MV_format_fval(grapher->tstd[xc][yc]) ) ;
+      sprintf(strp,"Sigma:%10s", MV_format_fval(grapher->tstd[xc][yc]) ) ;
 
       fd_txt( grapher , grapher->xx_text_3 ,   7, strp ) ;
+
+      fd_line( grapher , grapher->xx_text_3-7 , 31 , grapher->xx_text_3-7 , 5 ) ;
    }
 
    /*** flush the pixmap to the screen ***/
@@ -1396,11 +1412,22 @@ void fd_txt( MCW_grapher * grapher , int x , int y , char * str )
    return ;
 }
 
+/*-----------------------------------------------*/
+
 void overlay_txt( MCW_grapher * grapher , int x , int y , char * str )
 {
    XDrawString( grapher->dc->display, XtWindow(grapher->draw_fd) ,
                 grapher->dc->myGC , x , grapher->fHIGH-y ,
                 str , strlen(str) ) ;
+   return ;
+}
+
+/*-----------------------------------------------*/
+
+static void fd_line( MCW_grapher *grapher , int x1,int y1, int x2,int y2 )
+{
+   XDrawLine( grapher->dc->display , grapher->fd_pxWind ,
+              grapher->dc->myGC , x1,grapher->fHIGH-y1,x2,grapher->fHIGH-y2 ) ;
    return ;
 }
 

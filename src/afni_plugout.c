@@ -47,7 +47,7 @@ ENTRY("AFNI_init_plugouts") ;
 
    for( cc=0 ; cc < NUM_TCP_CONTROL ; cc++ ){       /* 21 Nov 2001: */
       ioc_control[cc] = NULL ;                      /* initialize control */
-      ioc_conname[cc] = AFMALL(char, malloc(32)) ;                /* sockets and names  */
+      ioc_conname[cc] = AFMALL(char, 32) ;          /* sockets and names  */
       sprintf(ioc_conname[cc],"tcp:*:%d",BASE_TCP_CONTROL+cc) ;
    }
 
