@@ -57,7 +57,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum     \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual          \
            3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dCM            \
-           3dAFNItoANALYZE siemens_vision ge_header mayo_analyze                \
+           3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 3dAFNItoNIFTI  \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC              \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI     \
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot 1dsvd        \
@@ -82,7 +82,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
-                  Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
+                  Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE 3dAFNItoNIFTI siemens_vision ge_header         \
                   mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC          \
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI    \
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize     \
@@ -109,7 +109,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid      \
                3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum   \
                3dExtrema qhull.exe strblast 3dConvolve 3dZcutup 3dZcat 3dTqual    \
-               3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 1ddot         \
+               3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dAFNItoNIFTI 1ddot         \
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 1dsvd        \
                3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile  \
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
@@ -119,7 +119,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS \
-          @SUMA_Make_Spec_SF @make_stim_file @Align_Centers suma_change_spec
+          @SUMA_Make_Spec_SF @make_stim_file @Align_Centers
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h  \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
@@ -1224,7 +1224,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o           \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o     \
            thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o \
-           thd_mincwrite.o thd_mnicoords.o thd_strfunc.o                  \
+           thd_mincwrite.o thd_mnicoords.o thd_strfunc.o thd_niftiwrite.o \
            thd_analyzeread.o thd_ctfread.o thd_1Ddset.o thd_getorient.o   \
            thd_3Ddset.o thd_mattor.o thd_niftiread.o thd_mpegread.o       \
            thd_brainormalize.o thd_opentcat.o thd_nimlatr.o thd_dsetatr.o \
@@ -1864,6 +1864,18 @@ thd_analyzeread.o:thd_analyzeread.c
 thd_niftiread.o:thd_niftiread.c
 	$(RM) $@
 	$(CC) -c thd_niftiread.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
+
+3dAFNItoNIFTI.o:3dAFNItoNIFTI.c
+	$(RM) $@
+	$(CC) -c 3dAFNItoNIFTI.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
+
+3dAFNItoNIFTI:3dAFNItoNIFTI.o nifti1_io.o znzlib.o
+	$(RM) $@
+	$(CC) -o 3dAFNItoNIFTI 3dAFNItoNIFTI.o nifti1_io.o znzlib.o $(LFLAGS) $(LLIBS)
+
+thd_niftiwrite.o:thd_niftiwrite.c
+	$(RM) $@
+	$(CC) -c thd_niftiwrite.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
 
 nifti1_io.o:nifti/niftilib/nifti1_io.c nifti/niftilib/nifti1_io.h
 	$(RM) $@
