@@ -127,11 +127,12 @@ while flg == 0,
  	end
  	
 	if (unbalanced.yes == 1),	
-      fprintf('\nTwo unbalanced designs are currently allowed: When random factor (subject) is nested within another factor A,');
-   	fprintf('\neach level of factor A contains a unique and unequal number of subjects - ')
-		fprintf('\n(1) 3-way ANOVA type 1: AXBXC');
-	   fprintf('\n(2) 3-way ANOVA type 3: BXC(A)');
-	   fprintf('\n(3) 4-way ANOVA type 3: BXCXD(A)')
+      fprintf('\nThe following two kinds of unbalanced designs are currently allowed:')
+		fprintf('\n(1) All factors are fixed - ');
+		fprintf('\n\t1-way ANOVA; 2-way ANOVA type 1: AXB; and 3-way ANOVA type 1: AXBXC');
+	   fprintf('\n\n(2) When a random factor (subject) is nested within another factor A,');
+   	fprintf('\n\teach level of factor A contains a unique and unequal number of subjects - ');
+	   fprintf('\n\t3-way ANOVA type 3: BXC(A); and 4-way ANOVA type 3: BXCXD(A)')
 	   if (input('\nDoes your unbalanced design belong to either of the above types? (1 - Yes; 0 - No) ') == 0);
 		   while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
 		end	
@@ -159,7 +160,7 @@ ntot = 1;
 
 if (unbalanced.yes == 1),    
 
-if (NF == 3 & dsgn == 1),  % Basically for 3-way ANCOVA: This loop is the same as balanced. Maybe also for 4-way ANCOVA?
+if ((NF == 1 | NF == 2 | NF == 3) & dsgn == 1),  % Basically for 3-way ANCOVA: This loop is the same as balanced. Maybe also for 4-way ANCOVA?
    for (i=1:1:NF),
 	   fprintf('\nLabel for No. %i ', i);
 		FL(i).expr = input('factor: ', 's');     % Factor Label i
