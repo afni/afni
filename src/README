@@ -181,7 +181,9 @@ Do not use very high levels of optimization (-xO4, say) with the Sun
 compiler.  It introduces bugs in AFNI, and the Talairach transformation
 will be computed incorrectly.  (This occurred with the compiler as
 of 1996, and may be fixed by now.  But I don't have much access to any
-Sun machines, nor do I particularly care to.)
+Sun machines, nor do I particularly care to.  Getting AFNI to work on
+Solaris is apparently troublesome, due to Sun bugs and incompatibilities
+with other flavors of Unix.)
 
 GOOD NEWS: Sun
 --------------
