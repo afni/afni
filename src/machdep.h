@@ -323,7 +323,9 @@ extern long   strtol() ;
 # define DONT_USE_STRPTIME
 # define NEED_XSETLOCALE
 # define NEED_NL_LANGINFO
-# define DONT_USE_MCW_MALLOC
+# ifndef DONT_USE_MCW_MALLOC
+#  define DONT_USE_MCW_MALLOC
+# endif
 #endif
 
 /************************************************************************

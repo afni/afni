@@ -85,7 +85,7 @@ void NI_free( void *p )
 
 void * NI_realloc( void *p , size_t len )
 {
-   void *q
+   void *q ;
 
    if( use_userfunc ) q = user_realloc( p , len ) ;
    else               q = realloc( p , len ) ;
