@@ -39,6 +39,13 @@ static int dont_hear_suma = 0 ;
 #define SUMA_TCP_PORT 53211
 #endif
 
+#define EPS 0.01
+
+/*------------------------------------------------*/
+/*! If 1, send data; if 0, debug print it instead */
+
+static int sendit=1 ;
+
 /*-----------------------------------------------*/
 /*! Flag to tell if NIML things are initialized. */
 
@@ -111,6 +118,12 @@ ENTRY("AFNI_init_niml") ;
                                          RECEIVE_VIEWPOINT_MASK ,
                                          AFNI_niml_viewpoint_CB ,
                                          GLOBAL_library.controllers[0] ) ;
+
+   /* determine if we actually want to send data */
+
+   sendit = !AFNI_yesenv("AFNI_NIML_DONTSEND") ;
+
+   /* and we're off to see the wizard */
 
    started = 1 ; EXRETURN ;
 }
@@ -337,6 +350,9 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      dont_tell_suma = 1 ;
      PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
      dont_tell_suma = 0 ;
+
+     XtSetSensitive( GLOBAL_library.controllers[0]->vwid->imag->pop_sumato_pb,
+                     True  ) ;
      EXRETURN ;
    }
 
@@ -378,8 +394,6 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 /*! Receives notice when user redisplays the functional overlay.
 ----------------------------------------------------------------------*/
 
-#define SENDIT
-
 static void AFNI_niml_redisplay_CB( int why, int q, void *qq, void *qqq )
 {
    Three_D_View *im3d = (Three_D_View *) qqq ;
@@ -399,9 +413,9 @@ ENTRY("AFNI_niml_redisplay_CB") ;
    adset = im3d->anat_now ; if( adset->su_surf == NULL ) EXRETURN ;
    fdset = im3d->fim_now  ; if( fdset          == NULL ) EXRETURN ;
 
-#ifdef SENDIT
-   if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
-#endif
+   if( sendit ){
+     if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
+   }
 
    /* build a node+color map */
 
@@ -425,11 +439,10 @@ ENTRY("AFNI_niml_redisplay_CB") ;
    if( adset->su_surf->idcode[0] != '\0' )
      NI_set_attribute( nel , "surface_idcode" , adset->su_surf->idcode ) ;
 
-#ifdef SENDIT
-   NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
-#else
-   NIML_to_stderr(nel) ;
-#endif
+   if( sendit )
+     NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
+   else
+     NIML_to_stderr(nel) ;
 
    NI_free_element(nel) ;
 }
@@ -443,7 +456,7 @@ static void AFNI_niml_viewpoint_CB( int why, int q, void *qq, void *qqq )
    Three_D_View *im3d = (Three_D_View *) qqq ;
    NI_element *nel ;
    float xyz[3] ;
-   float xold=-666,yold=-777,zold=-888 ;
+   static float xold=-666,yold=-777,zold=-888 ;
 
 ENTRY("AFNI_niml_viewpoint_CB") ;
 
@@ -451,26 +464,27 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
        !IM3D_OPEN(im3d)               ||
        im3d->anat_now->su_surf == NULL  ) EXRETURN ;
 
-#ifdef SENDIT
-   if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
-#endif
+   if( sendit ){
+     if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
+   }
 
-   xyz[0] = im3d->vinfo->xi ;
+   xyz[0] = im3d->vinfo->xi ;  /* current RAI coordinates */
    xyz[1] = im3d->vinfo->yj ;
    xyz[2] = im3d->vinfo->zk ;
 
-   if( xyz[0] == xold && xyz[1] == yold && xyz[2] == zold ) EXRETURN ;
+   if( fabs(xyz[0]-xold) < EPS &&
+       fabs(xyz[1]-yold) < EPS &&
+       fabs(xyz[2]-zold) < EPS    ) EXRETURN ;  /* too close to old point */
 
    nel = NI_new_data_element( "SUMA_crosshair_xyz" , 3 ) ;
    NI_add_column( nel , NI_FLOAT , xyz ) ;
 
-   xold = xyz[0] ; yold = xyz[1] ; zold = xyz[2] ;
+   xold = xyz[0] ; yold = xyz[1] ; zold = xyz[2] ;  /* save old point */
 
-#ifdef SENDIT
-   NI_write_element( ns_listen[NS_SUMA] , nel , NI_TEXT_MODE ) ;
-#else
-   NIML_to_stderr(nel) ;
-#endif
+   if( sendit )
+     NI_write_element( ns_listen[NS_SUMA] , nel , NI_TEXT_MODE ) ;
+   else
+     NIML_to_stderr(nel) ;
 
    NI_free_element(nel) ;
 }

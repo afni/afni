@@ -357,6 +357,7 @@ typedef struct {
       Widget pop_whereami_pb , pop_ttren_pb ;
       MCW_textwin * pop_whereami_twin ;
 
+      Widget pop_sumato_pb ;
 } AFNI_imaging_widgets ;
 
 /*---*/
@@ -1084,6 +1085,7 @@ extern void AFNI_jumpto_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern int  AFNI_jumpto_dicom        ( Three_D_View * , float, float, float  ) ;
 extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int  ) ;
 extern void AFNI_jumpto_ijk_CB       ( Widget , XtPointer , MCW_choose_cbs * ) ;
+extern void AFNI_sumato_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void AFNI_fimmer_pickref_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_fimmer_pickort_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
