@@ -792,6 +792,63 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
 }
 
 /*!
+   \brief transforms XYZ coordinates from  AFNI'S RAI 
+   talairach space to MNI space in in RAI or (LPI) 
+   http://www.mrc-cbu.cam.ac.uk/Imaging/mnispace.html.
+   see Bob's THD_tta_to_mni in thd_mnicoords.c
+   
+   \param NodeList (float *) vector of coordinates, 3 * N_Node long
+   \param N_Node (int) number of nodes in vector above
+   \param Coord (char *) one of two options
+                  "RAI" meaning the MNI coordinates are to be in RAI
+                  "LPI" meaning the MNI coordinates are to be in LPI
+   \return flag (SUMA_Boolean) NOPE = failed
+   
+   - This function should be rewritten to call THD_tta_to_mni (although you'll have to deal 
+   with the flipping option
+   
+   
+*/
+SUMA_Boolean SUMA_AFNItlrc_toMNI(float *NodeList, int N_Node, char *Coord)
+{
+   static char FuncName[]={"SUMA_AFNItlrc_toMNI"};
+   SUMA_Boolean DoFlip = NOPE;
+   int i, i3;
+   float mx = 0.0,my = 0.0,mz  = 0.0, tx = 0.0,ty = 0.0,tz = 0.0 ;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (strcmp(Coord,"RAI")) DoFlip = NOPE;
+   else if (strcmp(Coord,"LPI")) DoFlip = YUP;
+   else {
+      SUMA_S_Err("Can't do. Either RAI or LPI");
+      SUMA_RETURN(NOPE);
+   }   
+
+   
+   for (i=0; i< N_Node; ++i) {
+      i3 = 3*i;
+      if (DoFlip) {
+         SUMA_LH("Flipping to LPI");
+         tx = - NodeList[i3]; ty = -NodeList[i3+1] ;  /* flip xy from RAI to LPI */
+         tz = NodeList[i3+2] ;
+      } else {
+         SUMA_LH("No Flipping, RAI maintained");
+         tx =  NodeList[i3]; ty = NodeList[i3+1] ;  /* flip xy from RAI to LPI */
+         tz =  NodeList[i3+2] ;
+      }
+      mx = 1.01010 * tx ;
+      my = 1.02962 * ty - 0.05154 * tz ;
+      mz = 0.05434 * ty + 1.08554 * tz ;
+      if( mz < 0.0 ) mz *= 1.09523 ;
+      NodeList[i3] = mx;
+      NodeList[i3+1] = my;
+      NodeList[i3+2] = mz;
+   }
+   
+   
+   SUMA_RETURN(YUP);
+}
+/*!
 
    \brief transforms XYZ coordinates by transfrom in warp.
    ans = SUMA_AFNI_forward_warp_xyz( warp , XYZv,  N);
