@@ -1874,7 +1874,7 @@ tsdsolve:tsdsolve.c
 libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	rm -f libSUMA.a	;\
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) clean libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) clean MarchingCubes.o libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
