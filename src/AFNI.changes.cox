@@ -5387,3 +5387,10 @@
  * Fix REDISPLAY in afni_driver.c (oopsie).
  * Added '<MRI_IMAGE ...>' input to afni_niml.c, to store as .1D files.
  * Added '-Dname=val' option to afni.c (set environment variables).
+
+28 Mar 2005
+ * Changes to the AFNI update script written out in afni_version.c.
+ * Modified total_bytes field in datablock structure to be int64_t rather
+     than int, to better deal with huge datasets.  Modified a lot of places
+     that refer to this field, especially places dealing with reading and
+     writing datasets.

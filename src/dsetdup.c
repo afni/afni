@@ -257,7 +257,8 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
    new_dset->dblk->nvals       = parent->dblk->nvals ;
    new_dset->dblk->brick       = NULL ;
    new_dset->dblk->malloc_type = DATABLOCK_MEM_UNDEFINED ;
-   new_dset->dblk->brick_bytes = new_dset->dblk->total_bytes = 0 ;
+   new_dset->dblk->total_bytes = 0 ;
+   new_dset->dblk->brick_bytes = 0 ;
    new_dset->dblk->natr        = new_dset->dblk->natr_alloc  = 0 ;
    new_dset->dblk->atr         = NULL ;
    new_dset->dblk->parent      = (XtPointer) new_dset ;

@@ -1,54 +1,30 @@
 #include "afni.h"
 #include <sys/utsname.h>
 
-#define AFNI_LATEST "http://afni.nimh.nih.gov/afni/news"
-
-#define FAIL_MESSAGE(reason)                                           \
- do{                                                                   \
-   fprintf(stderr,"\n"                                                 \
-                  "\n** Version check disabled: %s"                    \
-                  "\n**  %s"                                           \
-                  "\n** has info about latest AFNI news.\n" ,          \
-           reason , AFNI_LATEST ) ;                                    \
-   disabled = 1 ; } while(0)
+#define FAIL_MESSAGE(reason)                           \
+ do{ fprintf(stderr,"\n"                               \
+                    "\n** Version check disabled: %s", \
+             reason ) ;                                \
+     disabled = 1 ; } while(0)
 
 static int disabled = 0 ;
 
-/**************************************************************************/
-/***************  if don't have shared memory, do almost nothing **********/
-#ifdef DONT_USE_SHM /******************************************************/
-
-void AFNI_start_version_check(void){
-  FAIL_MESSAGE("system doesn't support shared memory") ;  /* 27 Jan 2003 */
-  return;
-}
-
-int AFNI_version_check(void){ return 0; }
-
-/**************************************************************************/
-/********* if have shared memory, can communicate with child process ******/
-#else /********************************************************************/
-
 #define VERSION_URL "http://afni.nimh.nih.gov/afni/AFNI.version"
-#if 0
-#define SHM_CHILD   "shm:afni_vcheck:1K"
-#else
-#define SHM_CHILD   "tcp:localhost:20279"
-#endif
+#define STR_CHILD   "tcp:localhost:20279"
 #define AFNI_HOST   "http://afni.nimh.nih.gov/afni/"
 #define VSIZE       1024
 
 static pid_t vc_child_pid = (pid_t)(-1) ;
 static IOCHAN *vc_ioc     = NULL ;
 
-char * AFNI_make_update_script(void) ;  /* prototype */
+#undef VERBOSE   /* print messages on failure? */
 
 /*------------------------------------------------------------------------*/
 /*!  This is only called from within the child process. */
 
 static void vexit( int sig )
 {
-#if 0
+#ifdef VERBOSE
    static volatile int fff=0 ;
    if( fff ) _exit(1) ; else fff = 1 ;
    fprintf(stderr,"** Version Check: child fails to complete: %d **\n",sig);
@@ -84,6 +60,7 @@ void AFNI_start_version_check(void)
      return ;
    }
 
+#undef  VDELAY
 #define VDELAY 429999  /* 429999 s = 5 days */
    /* check if we did this in the last VDELAY seconds */
 
@@ -132,7 +109,7 @@ void AFNI_start_version_check(void)
 
      /*-- open a shared mem segment to talk to child --*/
 
-     vc_ioc = iochan_init( SHM_CHILD , "accept" ) ;
+     vc_ioc = iochan_init( STR_CHILD , "accept" ) ;
      if( vc_ioc == NULL ){
        kill(child_pid,SIGTERM) ;            /* cf. Abraham and Isaac */
        vc_child_pid = (pid_t)(-1) ;
@@ -200,7 +177,7 @@ void AFNI_start_version_check(void)
 
      /*-- talk to parent process thru shared memory --*/
 
-     ioc = iochan_init( SHM_CHILD , "create" ) ;
+     ioc = iochan_init( STR_CHILD , "create" ) ;
      if( ioc == NULL )                                  vexit(2);
 
      /*-- wait until ioc is ready for writing --*/
@@ -221,7 +198,7 @@ void AFNI_start_version_check(void)
 
 /******************************************/
 
-#if 0
+#ifdef VERBOSE
 # define KAPUT(ss)                                          \
   do{ fprintf(stderr,"** Version Check fails: %s **\n",ss); \
       return ; } while(0)
@@ -317,8 +294,10 @@ int AFNI_version_check(void)
 
    if( strcmp(vv,VERSION) == 0 ){                    /* versions match */
      fprintf(stderr,"\n** Version check: you are up-to-date!\n"
-                      "** To disable version check:\n"
-                      "** set environment variable AFNI_VERSION_CHECK to NO\n");
+                      "** To disable future version checks:\n"
+                      "** set environment variable AFNI_VERSION_CHECK to NO.\n"
+                      "** Version checks are done about every %.1f days.\n",
+             rint(VDELAY/86400.0) ) ;
      return 0 ;
    }
 
@@ -331,36 +310,13 @@ int AFNI_version_check(void)
                    " Latest version at %s\n"
                    "   Version ID   = %s\n"
                    "****************************************************\n"
-                   "  %s\n"
-                   " has information about features in the latest\n"
-                   " releases of the AFNI software package\n"
-                   "****************************************************\n"
-                   " To disable version check:\n"
+                   " To disable future version checks:\n"
                    " set environment variable AFNI_VERSION_CHECK to NO\n"
                    "****************************************************\n"
-          , VERSION, AFNI_HOST , vv, AFNI_LATEST ) ;
-
-
-#if 0
-   sname = AFNI_make_update_script() ;
-   if( sname != NULL )
-     fprintf(stderr, "\n"
-                     "====================================================\n"
-                     " File  %s\n"
-                     " is a script to download/install updated binaries.\n"
-                     "====================================================\n" ,
-             sname ) ;
-   else
-     fprintf(stderr, "\n"
-                     "====================================================\n"
-                     " Can't create UPDATER script in your AFNI directory.\n"
-                     "====================================================\n"
-            ) ;
-#endif
+          , VERSION, AFNI_HOST , vv ) ;
 
    return 1 ;
 }
-#endif /* DONT_USE_SHM */
 
 /*----------------------------------------------------------------------*/
 /***---------------- 20 Nov 2003: auto-download stuff ----------------***/
@@ -371,7 +327,7 @@ int AFNI_version_check(void)
 # define SHSH(x)   #x
 # define SHSHSH(x) SHSH(x)
 
-# define SNAME "UPDATER"   /* script file name */
+# define SNAME "AFNI_UPDATER"   /* script file name */
 
 char * AFNI_make_update_script(void)
 {
@@ -380,10 +336,10 @@ char * AFNI_make_update_script(void)
    FILE *fp ;
    static char sname[4096] ;
 
-   pg_ftp  = THD_find_executable("ftp" ) ; if( pg_ftp  == NULL ) return NULL;
-   pg_afni = THD_find_executable("afni") ; if( pg_afni == NULL ) return NULL;
-   pg_gzip = THD_find_executable("gzip") ; if( pg_gzip == NULL ) return NULL;
-   pg_tar  = THD_find_executable("tar" ) ; if( pg_tar  == NULL ) return NULL;
+   pg_ftp  = THD_find_executable("ftp" ); if( pg_ftp  == NULL ) return NULL;
+   pg_afni = THD_find_executable("afni"); if( pg_afni == NULL ) return NULL;
+   pg_gzip = THD_find_executable("gzip"); if( pg_gzip == NULL ) return NULL;
+   pg_tar  = THD_find_executable("tar" ); if( pg_tar  == NULL ) return NULL;
 
    strcpy(adir,pg_afni) ;                /* extract name of AFNI directory */
    cpt = THD_trailname(adir,0) ;
@@ -391,9 +347,9 @@ char * AFNI_make_update_script(void)
    if( strlen(adir) <= 0 ) return NULL ; /* no AFNI directory? */
 
    strcpy( cwd , adir ) ;                /* try to write a test file there */
-   strcat( cwd , "qwerty" ) ;
+   strcat( cwd , "afni_qadgop" ) ;
    fp = fopen( cwd , "a" ) ;
-   if( fp == NULL ) return NULL;         /* can't write to AFNI directory? */
+   if( fp == NULL ) return NULL ;        /* can't write to AFNI directory? */
    fclose(fp) ; remove(cwd) ;
 
    getcwd( cwd , 4096 ) ;   /* get current directory for later use */
@@ -407,27 +363,29 @@ char * AFNI_make_update_script(void)
    fprintf( fp ,
             "#!/bin/sh\n"
             "%s -n afni.nimh.nih.gov << EEEEE\n"   /* FTP to get file */
-            "user anonymous AFNI@%s\n"
+            "user anonymous AFNI_UPDATER@%s\n"
             "binary\n"
-            "cd AFNI/tgz\n"
+            "cd tgz\n"
             "get %s\n"
             "bye\n"
             "EEEEE\n"
-            "%s -dc %s | %s xf -\n"      /* uncompress and untar file */
-            "/bin/rm -f %s\n"            /* delete file */
-            "/bin/mv -f %s/* .\n"        /* move files up to here */
-            "/bin/rm -rf %s\n"           /* remove directory leftover */
+            "%s -dc %s | %s xf -\n"      /* uncompress and untar .tgz file */
+            "/bin/rm -f %s\n"            /* delete .tgz file */
+            "/bin/mv -f %s/* .\n"        /* move untar-ed files up to here */
+            "/bin/rm -rf %s\n"           /* remove any directory leftovers */
             "exit\n" ,
-            pg_ftp ,   /* FTP program */
-            hbuf ,     /* hostname, for FTP password */
-            fname ,    /* filename to get */
-            pg_gzip, fname, pg_tar, /* GZIP program, filename , TAR program */
+            pg_ftp ,                /* FTP program */
+            hbuf ,                  /* hostname, for FTP password */
+            fname ,                 /* filename to get */
+            pg_gzip, fname, pg_tar, /* GZIP program, filename, TAR program */
             fname ,                 /* filename to delete */
             SHSHSH(SHOWOFF) ,       /* directory to copy up */
             SHSHSH(SHOWOFF)         /* directory to delete */
           ) ;
    fclose( fp ) ;
-   chmod( SNAME , S_IRUSR | S_IWUSR | S_IXUSR ) ;
+   chmod( SNAME , S_IRUSR | S_IWUSR | S_IXUSR ) ; /* mark as executable */
+
+   /* get back to current working directory, then leave */
 
    chdir(cwd) ;
    sprintf(sname,"%s%s",adir,SNAME) ; return sname ;

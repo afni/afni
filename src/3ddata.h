@@ -1044,9 +1044,9 @@ typedef struct {
       int *    brick_statcode ; /*!< a FUNC_*_TYPE ==> kind of statistic here  */
       float ** brick_stataux ;  /*!< stat_aux parameters for each sub-brick with brick_statcode[iv] > 0               */
 
-      int    total_bytes ;    /*!< totality of data storage needed */
-      int    malloc_type ;    /*!< memory allocation method */
-      int    locked ;         /*!< Feb 1998: locked in memory (un-purgeable) */
+      int64_t total_bytes ;   /*!< totality of data storage needed */
+      int     malloc_type ;   /*!< memory allocation method */
+      int     locked ;        /*!< Feb 1998: locked in memory (un-purgeable) */
 
                                 /* Jan 1999: for datasets that are extracted from a master dataset */
       int    master_nvals ;   /*!< Number of nvals in master dataset */
@@ -2739,6 +2739,14 @@ static char tmp_dblab[8] ;
 */
 #define DSET_IS_MASTERED(ds) DBLK_IS_MASTERED((ds)->dblk)
 
+/*-------------------------------------------------------------------*/
+#undef  TWOGIG
+#define TWOGIG 2147000000   /* 2 gigabytes, aboot */
+
+#define DBLK_mmapfix(db)                                                      \
+  do{ if( (db)->malloc_type==DATABLOCK_MEM_MMAP && (db)->total_bytes>TWOGIG ) \
+        (db)->malloc_type = DATABLOCK_MEM_MMAP ; } while(0)
+
 /*------------- a dynamic array type for 3D datasets ---------------*/
 
 /*! A dynamic array type for AFNI datasets.
@@ -3706,6 +3714,7 @@ extern float THD_stat_to_zscore( float thr , int statcode , float * stataux ) ;
 
 extern int THD_filename_ok( char * ) ;   /* 24 Apr 1997 */
 extern int THD_filename_pure( char * ) ; /* 28 Feb 2001 */
+extern int THD_freemegabytes( char * ) ; /* 28 Mar 2005 */
 
 extern THD_warp * AFNI_make_voxwarp( THD_warp * , THD_3dim_dataset * ,
                                                   THD_3dim_dataset *  ) ;

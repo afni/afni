@@ -100,10 +100,11 @@ Boolean THD_write_datablock( THD_datablock *blk , Boolean write_brick )
 {
    THD_diskptr *dkptr ;
    Boolean good ;
-   int id , nx , ny , nz , nv , nxy , nxyz , ibr , nb ;
+   int id , nx , ny , nz , nv , nxy , nxyz , ibr ;
    int atrank[ATRSIZE_DATASET_RANK] , atdims[ATRSIZE_DATASET_DIMENSIONS] ;
    MRI_IMAGE *im ;
    int save_order ;
+   int64_t nb , idone ;
 
    /*-- sanity checks --*/
 
@@ -205,20 +206,20 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
          Boolean purge_when_done = False , ok ;
          int force_gzip=0 , csave ;
 
-         /** if we have a mmap-ed file, copy into RAM **/
+         /** if we have a mmap-ed file, copy into RAM (ugh) **/
 
          if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
             char *bnew , *bold ;
             int offset ;
 
-            bnew = (char *) malloc( nb ) ;  /* work space */
-            bold = DBLK_ARRAY(blk,0) ;      /* start of mapped file */
+            bnew = (char *) malloc( (size_t)nb ) ;  /* work space */
+            bold = DBLK_ARRAY(blk,0) ;              /* start of mapped file */
 
             if( bnew == NULL )
               WRITE_ERR("cannot rewrite due to malloc failure - is memory exhausted?") ;
 
-            memcpy( bnew , bold , nb ) ;    /* make a copy,    */
-            munmap( (void *) bold , nb ) ;  /* then unmap file */
+            memcpy( bnew , bold , (size_t)nb ) ;    /* make a copy,    */
+            munmap( (void *) bold , (size_t)nb ) ;  /* then unmap file */
 
             /* fix sub-brick pointers */
 
@@ -276,49 +277,50 @@ fprintf(stderr,"Entropy=%g ==> forcing write gzip on %s\n",entrop,dkptr->brick_n
 
          /** write each brick out in a separate operation **/
 
-         id = 0 ;
+         idone = 0 ;
          for( ibr=0 ; ibr < nv ; ibr++ ){
 
-            if( save_order != native_order ){       /* 25 April 1998 */
-               switch( DBLK_BRICK_TYPE(blk,ibr) ){
-                  case MRI_short:
-                     mri_swap2( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
-                  break ;
+           if( save_order != native_order ){       /* 25 April 1998 */
+             switch( DBLK_BRICK_TYPE(blk,ibr) ){
+               case MRI_short:
+                 mri_swap2( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
+               break ;
 
-                  case MRI_complex:   /* 23 Nov 1999 */
-                     mri_swap4( 2*DBLK_BRICK_NVOX(blk,ibr), DBLK_ARRAY(blk,ibr)) ;
-                  break ;
+               case MRI_complex:   /* 23 Nov 1999 */
+                 mri_swap4( 2*DBLK_BRICK_NVOX(blk,ibr), DBLK_ARRAY(blk,ibr)) ;
+               break ;
 
-                  case MRI_float:     /* 23 Nov 1999 */
-                  case MRI_int:
-                     mri_swap4( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
-                  break ;
-               }
-            }
+               case MRI_float:     /* 23 Nov 1999 */
+               case MRI_int:
+                 mri_swap4( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
+               break ;
+             }
+           }
 
-            id += fwrite( DBLK_ARRAY(blk,ibr), 1, DBLK_BRICK_BYTES(blk,ibr), far );
+           idone += fwrite( DBLK_ARRAY(blk,ibr), 1, DBLK_BRICK_BYTES(blk,ibr), far );
          }
 
          COMPRESS_fclose(far) ;
 
          if( purge_when_done ){
-            if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
-               free( DBLK_ARRAY(blk,0) ) ;
-               for( ibr=0 ; ibr < nv ; ibr++ )
-                  mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
-            } else {
-               THD_purge_datablock( blk , DATABLOCK_MEM_MALLOC ) ;
-            }
+           if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
+             free( DBLK_ARRAY(blk,0) ) ;
+             for( ibr=0 ; ibr < nv ; ibr++ )
+               mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
+           } else {
+             THD_purge_datablock( blk , DATABLOCK_MEM_MALLOC ) ;
+           }
          }
 
          if( compress_mode >= 0 || save_order != native_order ){
-            blk->malloc_type = DATABLOCK_MEM_MALLOC ;
+           blk->malloc_type = DATABLOCK_MEM_MALLOC ;
          }
+         DBLK_mmapfix(blk) ;  /* 28 Mar 2005 */
 
          if( force_gzip ) compress_mode = csave ; /* 02 Mar 2001 */
 
-         if( id != blk->total_bytes )
-            WRITE_ERR("write error in brick file - is disk full?") ;
+         if( idone != blk->total_bytes )
+           WRITE_ERR("Write error in brick file: Is disk full, or write_protected?") ;
 
          dkptr->byte_order = save_order ;  /* 23 Nov 1999 */
 

@@ -59,6 +59,19 @@
 #  define USE_TRACING
 #endif
 
+/*------------------------------------------------------*/
+#ifdef SHOWOFF
+# undef  SHSH
+# undef  SHSHSH
+# undef  SHSTRING
+# define SHSH(x)   #x
+# define SHSHSH(x) SHSH(x)
+# define SHSTRING  SHSHSH(SHOWOFF)   /* now in "quotes" */
+#else
+# undef  SHSTRING
+#endif
+/*------------------------------------------------------*/
+
 /*----------------------------------------------------------------
    Global variables that used to be local variables in main()
 ------------------------------------------------------------------*/
@@ -1070,32 +1083,20 @@ int main( int argc , char * argv[] )
 
    if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ){
      printf("Version " VERSION  "\n") ;
-#ifdef SHOWOFF
-#undef SHSH
-#undef SHSHSH
-#define SHSH(x)   #x
-#define SHSHSH(x) SHSH(x)
-       printf( "[[Precompiled binary " SHSHSH(SHOWOFF) ": " __DATE__ "]]\n" ) ;
-#undef SHSH
-#undef SHSHSH
-#endif /* SHOWOFF */
+#ifdef SHSTRING
+       printf( "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n" ) ;
+#endif
      exit(0) ;
    }
 
    /** just print the SHOWOFF string [26 Oct 2004] **/
 
    if( check_string("-show",argc,argv) || check_string("--show",argc,argv) ){
-#ifdef SHOWOFF
-#undef SHSH
-#undef SHSHSH
-#define SHSH(x)   #x
-#define SHSHSH(x) SHSH(x)
-      printf(SHSHSH(SHOWOFF) "\n" ) ;
-#undef SHSH
-#undef SHSHSH
+#ifdef SHSTRING
+      printf( SHSTRING "\n" ) ;
 #else
-      printf("UNKNOWN\n") ;
-#endif /* SHOWOFF */
+      printf("Unknown\n") ;
+#endif
       exit(0) ;
    }
 
@@ -1176,19 +1177,13 @@ int main( int argc , char * argv[] )
    REPORT_PROGRESS( ANNOUNCEMENT ) ;
 
    /*------- 29 Nov 1999: print out precompiled version, if defined --------*/
-#ifdef SHOWOFF
-#undef SHSH
-#undef SHSHSH
-#define SHSH(x)   #x
-#define SHSHSH(x) SHSH(x)
+#ifdef SHSTRING
    REPORT_PROGRESS( "[[Precompiled binary "
-                    SHSHSH(SHOWOFF)
+                    SHSTRING
                     ": "
                     __DATE__
                     "]]\n" ) ;
-#undef SHSH
-#undef SHSHSH
-#endif /* SHOWOFF */
+#endif
 
    /*-- Be friendly --*/
 
@@ -1816,11 +1811,11 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    vv = AFNI_version_check() ; /* nada if AFNI_start_version_check() inactive */
 
-#ifdef SHOWOFF
+#ifdef SHSTRING
    if( vv ){  /* 20 Nov 2003: if version check shows a mismatch */
      char *sname = AFNI_make_update_script() ;
      if( sname != NULL ){
-       char *cpt , *ddd ;
+       char *cpt , *ddd ; int nn ;
        ddd = strdup(sname) ; cpt = THD_trailname(ddd,0) ; *cpt = '\0' ;
        cpt = THD_trailname(sname,0) ;
        fprintf(stderr,
@@ -1828,17 +1823,33 @@ ENTRY("AFNI_startup_timeout_CB") ;
                "*===================================================\n"
                "* A script to update AFNI binaries has been created.\n"
                "* To use it, quit AFNI now, then try the commands\n"
-               "cd %s\n"
+               "pushd %s\n"
                "source %s\n"
+               "popd\n"
                "*===================================================\n" ,
                ddd , cpt ) ;
+       free((void *)ddd) ;
+       nn = THD_freemegabytes(sname) ;
+       if( nn >= 0 && nn <= 300 ){
+         fprintf(stderr,
+               "* HOWEVER: you only have %d Mbytes free, which won't\n"
+               "*          won't be enough to download and install\n"
+               "*          the updated set of AFNI binaries!\n"
+               "*===================================================\n" ,
+               nn ) ;
+       }
      } else {
        fprintf(stderr,
                "\n"
-               "*======================================\n"
+               "*==================================================\n"
                "* Can't create script for updating AFNI\n"
-               "* binaries in your AFNI directory.\n"
-               "*======================================\n" ) ;
+               "*   binaries in your AFNI directory.\n"
+               "* You'll have to get your sysadmin to help, or\n"
+               "*   do it yourself.  AFNI can be downloaded from\n"
+               "*     http://afni.nimh.nih.gov/afni/download   *OR*\n"
+               "*     ftp://afni.nimh.nih.gov/tgz\n"
+               "*   You want file " SHSTRING ".tgz\n"
+               "*==================================================\n" ) ;
      }
    }
 #endif

@@ -888,7 +888,7 @@ char * EDIT_main( PLUGIN_interface * plint )
   if (! PE_be_quiet)
     {
       printf("-- editing input dataset in memory (%.1f MB)",
-	     ((double)dset->dblk->total_bytes) / MEGA ) ;
+	          ((double)dset->dblk->total_bytes) / MEGA ) ;
       fflush(stdout) ;
     } 
 
