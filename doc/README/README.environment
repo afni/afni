@@ -1832,7 +1832,8 @@ AFNI datasets.  If it is set to anything other than one of the values above,
 this variable will be treated as TIME.
 
 MPEG filenames input to AFNI programs (as sources of images or as datasets)
-must end in ".mpg", ".MPG", ".mpeg", or ".MPEG".
+must end in ".mpg", ".MPG", ".mpeg", or ".MPEG".  MPEG datasets will be read
+so that the individal images are displayed in an Axial image window.
 
 ---------------------------
 Variable: AFNI_MPEG_GRAYIZE
@@ -1840,6 +1841,15 @@ Variable: AFNI_MPEG_GRAYIZE
 If this YES/NO variable is set to YES, then MPEG files read into afni,
 to3d, or aiv will be converted to grayscale, even if the images in
 the movie are in color.
+
+--------------------------
+Variable: AFNI_VIDEO_DELAY (editable)
+--------------------------
+This is the number of milliseconds the AFNI waits between drawing new
+images when the 'V' or 'v' keys are pressed in an image (or graph)
+window.  The default value is 1, which is faster than video can be
+displayed anyway.  Set this to a larger value (e.g, 100) to slow down
+the image redraw rate.
 
 =============================================
 | Robert W Cox, PhD                         |
