@@ -3091,7 +3091,7 @@ ENTRY("AFNI_rescan_all_CB") ;
 
 static int AFNI_rescan_session_OLD( int sss )  /* the old way */
 {
-   int vv , ii , cc , nold,nnew ;;
+   int vv , ii , cc , nold,nnew ;
    THD_session *  new_ss , * old_ss ;
    Three_D_View * im3d ;
    MCW_idcode     anat_idcode[MAX_CONTROLLERS] ,
