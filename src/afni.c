@@ -1581,6 +1581,15 @@ void FatalError(char * str)
    exit(1) ;
 }
 
+/*-------------------------------------------------------------------------*/
+
+static char * random_goodbye(void)
+{
+   static char *bye[] = { "Farewell", "Goodbye" , "Until next time" } ;
+   int nn = sizeof(bye)/sizeof(char *) ;
+   return bye[ lrand48() % nn ] ;
+}
+
 /*-------------------------------------------------------------------------
    Callback for the quit button.  If called with the widget == NULL,
    resets the button to the lowercase state.
@@ -1616,7 +1625,7 @@ ENTRY("AFNI_quit_CB") ;
        (ShiftMask|ControlMask|Button2Mask|Button3Mask) ){
 
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
-      AFNI_speak("farewell",1) ;
+      AFNI_speak(random_goodbye(),1) ;
       exit(0) ;
    }
 
@@ -1642,7 +1651,7 @@ ENTRY("AFNI_quit_CB") ;
 
    if( AFNI_count_controllers() <= 1 ){
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
-      AFNI_speak("goodbye",1) ;
+      AFNI_speak(random_goodbye(),1) ;
       exit(0) ;
 
    } else {  /* otherwise, patch up the other windows and continue */
