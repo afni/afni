@@ -4,7 +4,7 @@
 
 #define MAIN
 
-#define VERSION "Version 1.1 <July, 2002>"
+#define VERSION "Version 1.2 <July, 2002>"
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
@@ -36,6 +36,17 @@
  *	3dresample -orient "asl" -rmode NN -prefix asl.dset -inset inset+orig
  *	3dresample -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset some.input+tlrc
  *      3dresample -master master+orig -prefix new.copy -inset old.copy+orig
+ *----------------------------------------------------------------------
+*/
+
+/*----------------------------------------------------------------------
+ * history:
+ *
+ * 1.1  July 2, 2002
+ *   - modified to fully align new data set grid to that of the master
+ *
+ * 1.2  July 29, 2002
+ *   - no change here, but updated r_new_resam_dset() for view type
  *----------------------------------------------------------------------
 */
 
