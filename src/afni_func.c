@@ -5030,7 +5030,7 @@ static void AFNI_find_poem_files(void) ;
 
 void AFNI_hidden_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
 
 ENTRY("AFNI_hidden_CB") ;
 
@@ -5358,6 +5358,23 @@ ENTRY("AFNI_hidden_EV") ;
 
            case 'q':
              AFNI_quit_CB( w , im3d, NULL ) ;  /* Close just this controller */
+           break ;
+
+           case 'f':
+           case 'F':
+             AFNI_faceup() ;                   /* Faces! [27 Dec 2004] */
+           break ;
+
+           case 'p':
+           case 'P':
+             AFNI_hidden_CB( im3d->vwid->prog->hidden_ranpoem_pb ,
+                             (XtPointer)im3d , NULL ) ;
+           break ;
+
+           case 'g':
+           case 'G':
+             AFNI_hidden_CB( im3d->vwid->prog->hidden_gamberi_pb ,
+                             (XtPointer)im3d , NULL ) ;
            break ;
          }
       }
