@@ -351,15 +351,17 @@ MEM_plotdata * plot_ts_mem( int nx , float * x , int ny , int ymask , float ** y
          yll = yobot + jj*(1.0+SY)*dyo ; yhh = yll + dyo ;
          plotpak_set( xobot,xotop , yll,yhh , xbot,xtop , ylo[jj],yhi[jj] , 1 ) ;
 
-         nnay = 1 ;
-         pbot = p10(ylo[jj]) ; ptop = p10(yhi[jj]) ;
-         if( ptop > pbot && pbot > 0.0 ) ptop = pbot ;
-         if( ptop != 0.0 ) mmay = floor( (yhi[jj]-ylo[jj]) / ptop + 0.5 ) ;
-         else              mmay = 5 ;   /* shouldn't happen */
+         if( nnay > 0 ){
+           nnay = 1 ;
+           pbot = p10(ylo[jj]) ; ptop = p10(yhi[jj]) ;
+           if( ptop > pbot && pbot > 0.0 ) ptop = pbot ;
+           if( ptop != 0.0 ) mmay = floor( (yhi[jj]-ylo[jj]) / ptop + 0.5 ) ;
+           else              mmay = 5 ;   /* shouldn't happen */
 
-              if( mmay == 1 ) mmay = 5 ;
-         else if( mmay == 2 ) mmay = 4 ;
-         else if( mmay == 3 ) mmay = 6 ;
+                if( mmay == 1 ) mmay = 5 ;
+           else if( mmay == 2 ) mmay = 4 ;
+           else if( mmay == 3 ) mmay = 6 ;
+         }
 
          set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
          plotpak_perimm( nnax,mmax , nnay,mmay , ilab[(nnax>0)*(jj==0)+2*(nnay>0)] ) ;

@@ -2,7 +2,7 @@
 #include "coxplot.h"
 #include "display.h"
 
-#define TSGRAY_SEPARATE_YSCALE (1)
+#define TSGRAY_SEPARATE_YSCALE (1<<0)
 #define TSGRAY_FLIP_XY         (1<<1)
 
 /*-----------------------------------------------------------------
@@ -10,7 +10,7 @@
      npt     = number of points in each series
      nts     = number of series
      ymask   = operation modifier:
-                 TSGRAY_SEPARATE_YSCALE (not implemented)
+                 TSGRAY_SEPARATE_YSCALE
                  TSGRAY_FLIP_XY
      y[j][i] = i-th point in j-th timeseries,
                for i=0..npt-1, j=0..nts-1
@@ -22,6 +22,7 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
    float ybot,ytop , yfac , dx,dy , val ;
    int ii,jj , flipxy ;
    char str[32] ;
+   int sepscl ;
 
    if( npt < 2 || nts < 1 || y == NULL ) return NULL ;
 
@@ -37,6 +38,7 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
    }
    if( ybot >= ytop ) return NULL ;
    yfac = 1.0/(ytop-ybot) ;
+
    dx   = 1.0/npt ;
    dy   = 1.0/nts ;
 
@@ -45,16 +47,29 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
    set_thick_memplot( 0.0 ) ;
 
    flipxy = (ymask & TSGRAY_FLIP_XY) != 0 ;
+   sepscl = (ymask & TSGRAY_SEPARATE_YSCALE) != 0 ;
 
    for( jj=0 ; jj < nts ; jj++ ){
-      for( ii=0 ; ii < npt ; ii++ ){
-         val = yfac*(ytop-y[jj][ii]) ;
-         set_color_memplot( val,val,val ) ;
-         if( flipxy )
-            plotrect_memplot( ii*dx,jj*dy , (ii+1)*dx,(jj+1)*dy ) ;
-         else
-            plotrect_memplot( jj*dy,1.0-ii*dx , (jj+1)*dy,1.0-(ii+1)*dy ) ;
-      }
+
+     if( sepscl ){
+       ybot = ytop = y[jj][0] ; /* find range of data */
+       for( ii=1 ; ii < npt ; ii++ ){
+          val = y[jj][ii] ;
+               if( ybot > val ) ybot = val ;
+          else if( ytop < val ) ytop = val ;
+       }
+       if( ybot >= ytop ) yfac = 1.0 ;
+       else               yfac = 1.0/(ytop-ybot) ;
+     }
+
+     for( ii=0 ; ii < npt ; ii++ ){
+       val = yfac*(ytop-y[jj][ii]) ;
+       set_color_memplot( val,val,val ) ;
+       if( flipxy )
+         plotrect_memplot( ii*dx,jj*dy , (ii+1)*dx,(jj+1)*dy ) ;
+       else
+         plotrect_memplot( jj*dy,1.0-ii*dx , (jj+1)*dy,1.0-(ii+1)*dy ) ;
+     }
    }
 
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
@@ -113,6 +128,7 @@ int main( int argc , char * argv[] )
             "                [default = 0]\n"
             " -flip      = Plot x and y axes interchanged.\n"
             "                [default: data columns plotted DOWN the screen]\n"
+            " -sep       = Separate scales for each column.\n"
             " -use mm    = Plot 'mm' points\n"
             "                [default: all of them]\n"
             " -ps        = Don't draw plot in a window; instead, write it\n"
@@ -157,6 +173,10 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[iarg],"-flip") == 0 ){
         ymask |= TSGRAY_FLIP_XY ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-sep") == 0 ){
+        ymask |= TSGRAY_SEPARATE_YSCALE ; iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-install") == 0 ){
