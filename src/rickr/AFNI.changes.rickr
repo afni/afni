@@ -464,3 +464,6 @@
       - add functionality for mapping functions that require sorting
       - added mapping functions 'median' and 'mode'
 
+19 February 2004:
+  * modified SUMA_3dVol2Surf.[ch] (->v4.3) to track 1dindex sources 
+
