@@ -3952,14 +3952,16 @@ char * get_PLUGIN_strval( PLUGIN_strval * av )   /* must be XtFree-d */
      xlab } labels for x-axis,
      ylab }            y-axis
      tlab }        and top of graph (NULL => skip this label)
+     jist = "extra" histogram to plot atop hist
+              (if jist == NULL, this plot is skipped)
    Graph is popped up and then "forgotten" -- RWCox - 30 Sep 1999.
 -------------------------------------------------------------------*/
 
 void PLUTO_histoplot( int nbin, float bot, float top, int * hist ,
-                      char * xlab , char * ylab , char * tlab     )
+                      char * xlab , char * ylab , char * tlab , int * jist )
 {
-   int ii , nx ;
-   float * xar , * yar ;
+   int ii , nx , ny ;
+   float * xar , * yar , * zar=NULL , * yzar[2] ;
    float dx ;
 
 ENTRY("PLUTO_histoplot") ;
@@ -3971,21 +3973,27 @@ ENTRY("PLUTO_histoplot") ;
    dx  = (top-bot)/nbin ;
    xar = (float *) malloc(sizeof(float)*nx) ;
    yar = (float *) malloc(sizeof(float)*nx) ;
+   if( jist != NULL )
+      zar = (float *) malloc(sizeof(float)*nx) ;
 
    xar[0] = bot ; yar[0] = 0.0 ;
    for( ii=0 ; ii < nbin ; ii++ ){
       xar[2*ii+1] = bot+ii*dx     ; yar[2*ii+1] = (float) hist[ii] ;
       xar[2*ii+2] = bot+(ii+1)*dx ; yar[2*ii+2] = (float) hist[ii] ;
+
+      if( zar != NULL )
+         zar[2*ii+1] = zar[2*ii+2] = (float) jist[ii] ;
    }
    xar[2*nbin+1] = top ; yar[2*nbin+1] = 0.0 ;
+   if( zar != NULL )
+      zar[0] = zar[2*nbin+1] = 0.0 ;
 
-/**
-fprintf(stderr,"About to plot_ts_lab()\n") ;
-**/
+   yzar[0] = yar ; yzar[1] = zar ; ny = (zar != NULL) ? 2 : 1 ;
 
    plot_ts_lab( GLOBAL_library.dc->display ,
-                nx , xar , 1 , &yar ,
+                nx , xar , ny , yzar ,
                 xlab,ylab,tlab , NULL , NULL ) ;
 
-   free(xar) ; free(yar) ; EXRETURN ;
+   free(xar) ; free(yar) ; if( zar != NULL ) free(zar) ;
+   EXRETURN ;
 }
