@@ -66,6 +66,12 @@ int main( int argc , char * argv[] )
                       ADN_ntt        , 0        ,
                     ADN_none ) ;
    EDIT_substitute_brick( mset , 0 , MRI_byte , mask ) ;
+
+   /* 16 Apr 2002: make history */
+
+   tross_Copy_History( dset , mset ) ;
+   tross_Make_History( "3dAutomask", argc,argv, mset ) ;
+
    DSET_write( mset ) ;
    exit(0) ;
 }

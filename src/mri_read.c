@@ -639,6 +639,7 @@ MRI_IMAGE *mri_try_pgm( FILE *imfile , int *skip )
    Modified 11/06/95 to allow float images with 3Df:
                  and to allow int images with 3Di:
                  and to allow complex images with 3Dc:
+   Modified 16 Apr 2002 to allow RGB input with 3Dr:
 
    [N.B.: if this routine is altered, don't forget mri_imcount!]
 ----------------------------------------------------------------*/
@@ -714,6 +715,15 @@ MRI_IMARR * mri_read_3D( char * tname )
          swap       = 0 ;
          datum_type = MRI_complex ;
          datum_len  = sizeof(complex) ;  /* better be 8 */
+         break ;
+
+      case 'r':
+         ngood = sscanf( tname , "3Dr:%d:%d:%d:%d:%d:%s" ,
+                         &hglobal , &himage , &nx , &ny , &nz , fname ) ;
+
+         swap       = 0 ;
+         datum_type = MRI_rgb ;
+         datum_len  = 3*sizeof(byte) ;  /* better be 3 */
          break ;
    }
 
@@ -957,6 +967,11 @@ int mri_imcount( char * tname )
 
          case 'c':
             ngood = sscanf( new_fname , "3Dc:%d:%d:%d:%d:%d:%s" ,
+                            &hglobal , &himage , &nx , &ny , &nz , fname ) ;
+            break ;
+
+         case 'r':
+            ngood = sscanf( new_fname , "3Dr:%d:%d:%d:%d:%d:%s" ,
                             &hglobal , &himage , &nx , &ny , &nz , fname ) ;
             break ;
       }
@@ -2538,6 +2553,15 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
          swap       = 0 ;
          datum_type = MRI_complex ;
          datum_len  = sizeof(complex) ;  /* better be 8 */
+         break ;
+
+      case 'r':
+         ngood = sscanf( tname , "3Dr:%d:%d:%d:%d:%d:%s" ,
+                         &hglobal , &himage , &nx , &ny , &nz , fname ) ;
+
+         swap       = 0 ;
+         datum_type = MRI_rgb ;
+         datum_len  = 3*sizeof(byte) ;  /* better be 3 */
          break ;
    }
 

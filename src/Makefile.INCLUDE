@@ -47,7 +47,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual      \
            3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI             \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
-           3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC
+           3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
+           3dThreetoRGB
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -64,7 +65,8 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
-                  mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC
+                  mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC          \
+                  3dThreetoRGB
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -87,7 +89,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dExtrema qhull.exe strblast 3dConvolve 3dZcutup 3dZcat 3dTqual    \
                3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI               \
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze              \
-               3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC
+               3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -390,6 +392,10 @@ dsetdup:dsetdup.o
 3dAFNItoANALYZE:3dAFNItoANALYZE.o
 	$(RM) $@
 	$(CC) -o 3dAFNItoANALYZE 3dAFNItoANALYZE.o $(LFLAGS) $(LLIBS)
+
+3dThreetoRGB:3dThreetoRGB.o
+	$(RM) $@
+	$(CC) -o 3dThreetoRGB 3dThreetoRGB.o $(LFLAGS) $(LLIBS)
 
 3dvolreg:3dvolreg.o
 	$(RM) $@
