@@ -5204,3 +5204,6 @@
      over 32 characters in length.  (Someone who shall remain nameless
      created one several thousand characters long, and thd_info.c didn't
      like that much.)
+
+07 Sep 2004
+ * Fixed some stuff in the -help output of afni.c.
