@@ -11,7 +11,6 @@
 #
 
 #----------------------------------------------------------------------
-
 goto L_INIT_VARS
      L_INIT_VARS_DONE:
 
@@ -532,14 +531,14 @@ L_CREATE_BRICK:
 
     cd $orig_dir
 
-    # verify existence of 256 COR files
+    # verify existence of 256 COR files, Checking for 256 is now obsolete ZSS Oct 14 04
     set cor_files = ( COR-??? ) >& /dev/null
     if ( $status ) then
 	set endstr = "failure: did not find COR files under '$orig_dir'"
 	goto L_BAD_END
-    else if ( $#cor_files != 256 ) then
-	set endstr = "failure: 256 COR files required under '$orig_dir'"
-	goto L_BAD_END
+    #else if ( $#cor_files != 256 ) then
+	#set endstr = "failure: 256 COR files required under '$orig_dir'"
+	#goto L_BAD_END
     endif
 
     # create BRIK with to3d
@@ -548,12 +547,53 @@ L_CREATE_BRICK:
     #out by A. Thomas. Good info found here:
     #www.wideman-one.com/gw/brain/fs/coords/fscoords.htm
     
+      #New block added for reading COR images that are no longer 256x256x256 / 1mm cubic voxels ZSS Oct 20 04
+      
+      set Sr = `grep -w imnr0 COR-.info`
+      set i0 = $Sr[$#Sr]
+      set Sr = `grep -w imnr1 COR-.info`
+      set i1 = $Sr[$#Sr]
+      set Sr = `grep -w fov COR-.info`
+      set FOV = `ccalc -eval $Sr[$#Sr] \* 1000`
+      set Sr = `grep -w x COR-.info`
+      set nx = $Sr[$#Sr]
+      set Sr = `grep -w y COR-.info`
+      set ny = $Sr[$#Sr]
+      set Sr = `grep -w thick COR-.info`
+      set zthick = `ccalc -eval $Sr[$#Sr] \* 1000`
+      set Sr = `grep -w psiz COR-.info`
+      set psize = `ccalc -eval $Sr[$#Sr] \* 1000`
+
+      set xSLAB0 = `ccalc -eval $nx \* $psize / 2`
+      set xSLAB1 = `ccalc -eval $xSLAB0 - $psize`
+      set ySLAB0 = `ccalc -eval $ny \* $psize / 2`
+      set ySLAB1 = `ccalc -eval $ySLAB0 - $psize`
+      set zSLAB0 = `ccalc -eval '('$i1 - $i0 + 1')' \* $zthick / 2`
+      set zSLAB1 = `ccalc -eval $zSLAB0 - $zthick`
+
+      if (0) then
+         echo "COR-.info:"
+         echo "i0,i1 = $i0, $i1, FOV = $FOV"
+         echo "nx,ny = $nx, $ny"
+         echo "pdim = $psize mm, thick = $zthick mm"
+         echo "SLABS: $xSLAB0..$xSLAB1, $ySLAB0..$ySLAB1, $zSLAB0..$zSLAB1"
+         if ( $neuro_ori == 1 ) then
+            echo "to3d -xSLAB $xSLAB0'L'-$xSLAB1'R' -ySLAB $ySLAB0'S'-$ySLAB1'I' \
+                     -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'"
+         else 
+            echo "to3d -xSLAB $xSLAB0'R'-$xSLAB1'L' -ySLAB $ySLAB0'S'-$ySLAB1'I' \
+                     -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'"
+         endif
+      endif
+    
     if ( $neuro_ori == 1 ) then
-	to3d -prefix $afni_prefix -xSLAB 127L-128R -ySLAB 128S-127I \
-	     -zSLAB 128P-127A $cor_files
+      to3d -prefix $afni_prefix -xSLAB $xSLAB0'L'-$xSLAB1'R' -ySLAB $ySLAB0'S'-$ySLAB1'I' -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
+	   #to3d -prefix $afni_prefix -xSLAB 127L-128R -ySLAB 128S-127I \
+	   #  -zSLAB 128P-127A $cor_files
     else
-	to3d -prefix $afni_prefix -xSLAB 128R-127L -ySLAB 128S-127I \
-	     -zSLAB 128P-127A $cor_files
+	   to3d -prefix $afni_prefix -xSLAB $xSLAB0'R'-$xSLAB1'L' -ySLAB $ySLAB0'S'-$ySLAB1'I' -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
+      #to3d -prefix $afni_prefix -xSLAB 128R-127L -ySLAB 128S-127I \
+	   #  -zSLAB 128P-127A $cor_files
     endif
 
     mv $afni_dataset.HEAD $afni_dataset.BRIK $start_dir/$suma_dir
