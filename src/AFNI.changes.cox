@@ -4134,3 +4134,6 @@
 16 Dec 2002
  * Moved niml.[ch] into niml/ subdirectory, and modified Makefile.INCLUDE
      accordingly.
+
+18 Dec 2002
+ * Modified plug_realtime.c to add ZGAP and XYZOFF features from Larry Frank.

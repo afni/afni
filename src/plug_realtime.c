@@ -96,9 +96,14 @@ typedef struct {
          orcxx,orcyy,orczz ;      /* orientations */
 
    float xxfov , yyfov , zzfov ;  /* field of view */
-   float dxx  ,dyy  ,dzz ,        /* voxel size */
-         xxorg,yyorg,zzorg ;      /* offsets */
+   float dxx   , dyy   , dzz ,    /* voxel sizes */
+         xxorg,yyorg,zzorg ;      /* grid origins */
    int   xxdcode,yydcode,zzdcode; /* direction code for x,y,z offsets */
+
+   float xxoff , yyoff , zzoff ;  /* offsets (instead of xxorg, etc.) [18 Dec 2002] */
+
+   float zgap ;                   /* extra gap between slices [18 Dec 2002] */
+                                  /* (only used if zzfov is used instead of dzz) */
 
    int   xcen ,ycen ,zcen  ;      /* centering of axes? */
 
@@ -1370,6 +1375,9 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->dyy   = DEFAULT_XYFOV / DEFAULT_XYMATRIX ;
    rtin->dzz   = DEFAULT_ZDELTA ;
 
+   rtin->zgap  = 0.0 ;                  /* 18 Dec 2002 */
+   rtin->xxoff = rtin->yyoff = rtin->zzoff = 0.0 ;
+
    rtin->xxorg = 0.5 * (rtin->nxx - 1) * rtin->dxx ; rtin->xcen = 1 ;
    rtin->yyorg = 0.5 * (rtin->nyy - 1) * rtin->dyy ; rtin->ycen = 1 ;
    rtin->zzorg = 0.5 * (rtin->nzz - 1) * rtin->dzz ; rtin->zcen = 1 ;
@@ -1399,6 +1407,9 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->dxx   = 0.0 ;
    rtin->dyy   = 0.0 ;
    rtin->dzz   = 0.0 ;
+
+   rtin->zgap  = 0.0 ;                  /* 18 Dec 2002 */
+   rtin->xxoff = rtin->yyoff = rtin->zzoff = 0.0 ;
 
    rtin->xxorg = 0.0 ; rtin->xcen = 1 ; rtin->xxdcode = ILLEGAL_TYPE ;
    rtin->yyorg = 0.0 ; rtin->ycen = 1 ; rtin->yydcode = ILLEGAL_TYPE ;
@@ -1792,6 +1803,26 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
             fprintf(stderr,"RT: dzz = %g\n",rtin->dzz) ;
          VMCHECK ;
 
+      } else if( STARTER("ZGAP") ){               /* 18 Dec 2002 */
+         float val = 0.0 ;
+         sscanf( buf , "ZGAP %f" , &val ) ;
+         if( val >= 0.0 ) rtin->zgap = val ;
+         else
+              BADNEWS ;
+         if( verbose == 2 )
+            fprintf(stderr,"RT: zgap = %g\n",rtin->zgap) ;
+         VMCHECK ;
+
+      } else if( STARTER("XYZOFF") ){             /* 18 Dec 2002 */
+         float xval = 0.0 , yval = 0.0 , zval = 0.0 ;
+         sscanf( buf , "XYZOFF %f %f %f" , &xval , &yval , &zval ) ;
+         rtin->xxoff = xval ; rtin->xcen = 1 ;
+         rtin->yyoff = yval ; rtin->ycen = 1 ;
+         rtin->zzoff = zval ; rtin->zcen = 1 ;
+         if( verbose == 2 )
+            fprintf(stderr,"RT: offset = %g %g %g\n",rtin->xxoff,rtin->yyoff,rtin->zzoff) ;
+         VMCHECK ;
+
       } else if( STARTER("ZFIRST") ){   /* set z origin */
          float val = 0.0 ;
          char dcode = ' ' ;
@@ -2142,11 +2173,15 @@ void RT_start_dataset( RT_input * rtin )
    rtin->dxx = rtin->xxfov / rtin->nxx ;
    rtin->dyy = rtin->yyfov / rtin->nyy ;
 
-   if( rtin->zzfov > 0 ) rtin->dzz = rtin->zzfov / rtin->nzz ;
+   /* 18 Dec 2002: add zgap here, per UCSD request */
 
-   if( rtin->xcen ) rtin->xxorg = 0.5 * (rtin->nxx - 1) * rtin->dxx ;
-   if( rtin->ycen ) rtin->yyorg = 0.5 * (rtin->nyy - 1) * rtin->dyy ;
-   if( rtin->zcen ) rtin->zzorg = 0.5 * (rtin->nzz - 1) * rtin->dzz ;
+   if( rtin->zzfov > 0 ) rtin->dzz = rtin->zzfov / rtin->nzz + rtin->zgap ;
+
+   /* 18 Dec 2002: add xxoff (etc.) here, per UCSD request */
+
+   if( rtin->xcen ) rtin->xxorg = 0.5 * (rtin->nxx - 1) * rtin->dxx + rtin->xxoff ;
+   if( rtin->ycen ) rtin->yyorg = 0.5 * (rtin->nyy - 1) * rtin->dyy + rtin->yyoff ;
+   if( rtin->zcen ) rtin->zzorg = 0.5 * (rtin->nzz - 1) * rtin->dzz + rtin->zzoff ;
 
    /* if axis direction is a 'minus', voxel increments are negative */
 
