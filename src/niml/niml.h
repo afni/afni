@@ -105,9 +105,11 @@ typedef struct {
   char *userdef ;          /*!< definition user gave for this type */
   int   comp_num ;         /*!< number of components (components may be rowtypes) */
   int  *comp_typ ;         /*!< integer codes of the components */
+  int  *comp_dim ;         /*!< if >=0, index of dimension of this component */
   int   part_num ;         /*!< number of parts (parts are basic types) */
   int  *part_typ ;         /*!< integer codes of the parts */
   int  *part_off ;         /*!< byte offsets of the parts */
+  int  *part_dim ;         /*!< if >=0, index of dimension of this part */
 } NI_rowtype ;
 
 /*! Macro to delete a rowtype struct.  Only used when an
@@ -128,6 +130,8 @@ extern int          NI_rowtype_name_to_code( char * ) ;
 extern char *       NI_rowtype_code_to_name( int ) ;
 extern int          NI_rowtype_name_to_size( char * ) ;
 extern int          NI_rowtype_code_to_size( int ) ;
+
+extern void NI_rowtype_debug( int ) ;
 
 /*! Used to test if a rowtype code is a basic type. */
 
