@@ -1,0 +1,29 @@
+with(orthopoly) :
+assume(x>0,y>0,z>0) :
+
+pnm := proc(n, m, x)
+          local f, y;
+          if m = 0 then RETURN(P(n, x)) end if;
+          f := (1 - y^2)^(1/2*m)*diff(P(n, y), y $ m);
+          f := subs(y = x, f);
+          RETURN(f)
+end proc :
+
+QQ := (n,m) -> simplify( sqrt(x**2+y**2+z**2)^n
+                         * pnm(n,m,z/sqrt(x**2+y**2+z**2))
+                         * T(m,x/sqrt(x**2+y**2))) :
+
+qq := (n,m) -> factor(diff(simplify( sqrt(x**2+y**2+z**2)^n
+                                     * pnm(n,m,z/sqrt(x**2+y**2+z**2))
+                                     * T(m,x/sqrt(x**2+y**2))),z)) :
+
+WW := (n,m) -> simplify( sqrt(x**2+y**2+z**2)^n
+                         * pnm(n,m,z/sqrt(x**2+y**2+z**2))
+                         * y/sqrt(x*x+y*y)*U(m-1,x/sqrt(x**2+y**2))) :
+
+ww := (n,m) -> factor(diff(simplify( sqrt(x**2+y**2+z**2)^n
+                                     * pnm(n,m,z/sqrt(x**2+y**2+z**2))
+                                     * y/sqrt(x*x+y*y)*U(m-1,x/sqrt(x**2+y**2))),z)) :
+
+lap := ff -> diff(f,x,x) + diff(f,y,y) + diff(f,z,z) :
+
