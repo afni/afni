@@ -62,7 +62,7 @@ static AFNI_friend afni_friends[] = {
   { "S.M. Rao"         , ( 1 |     4 | 8 | 16           | 128 ) } ,
   { "E.A. Stein"       , ( 1 | 2 | 4 | 8 | 16           | 128 ) } ,
   { "A. Jesmanowicz"   , (             8 |      32            ) } ,
-  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32            ) } ,
+  { "M.S. Beauchamp"   , ( 1 | 2 | 4 | 8 | 16 | 32      | 128 ) } ,
   { "M.M. Klosek"      , ( 1 | 2              | 32            ) } ,
   { "J.A. Bobholz"     , (             8 | 16 | 32      | 128 ) } ,
   { "J.A. Frost"       , (             8 | 16                 ) } ,

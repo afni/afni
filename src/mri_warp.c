@@ -5,12 +5,14 @@
 /*** functions to "warp" images -- not very efficient, but quite general ***/
 
 #ifndef MRI_DEBUG
+#ifdef HP
 #pragma INLINE  __MRI_scaler
 #pragma INLINE  mri_warp
 #pragma INLINE  mri_warp_bilinear
 #pragma INLINE  mri_warp_bicubic
 #pragma INLINE  __MRI_rotfunc
 #pragma INLINE  mri_warp_bicubic_point
+#endif
 #endif
 
 #define FINS(i,j) (  ( (i)<0 || (j)<0 || (i)>=nx || (j)>=ny ) \

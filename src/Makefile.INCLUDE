@@ -1058,5 +1058,10 @@ ibinom:ibinom.o
 whirlgif:whirlgif.h whirlgif.c
 	$(CC) -o whirlgif -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
 
+extor:extor.c
+	$(RM) extor extor.o
+	$(CCFAST) -c extor.c $(IFLAGS)
+	$(CC) -o extor extor.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS
