@@ -3697,3 +3697,13 @@
  * New functions in thd_mnicoords.c to translate TT atlas coords to/from
      MNI template coords.
  * Used above in thd_ttatlas_query.c.
+
+30 Apr 2002
+ * Modified 3dclust.c to add -mni option.
+ * Modified 3dclust.c, edt_clust.c, edt_clustarr.c, edt_onedset.c to allow
+     cluster rmm=0 to imply 6 NN clustering, vmul=0 to mean no volume editing,
+     and vmul<0 to mean min volume = fabs(vmul) voxels.
+ * Modified plug_drawdset.c to add 'Flood->Val/Zer' option.  Also to turn
+     'See Function' on if the edited dataset is functional type.
+ * Added edt_clust2.c (NIH_find_clusters) to implement ISOVALUE_MODE and
+     ISOMERGE_MODE.

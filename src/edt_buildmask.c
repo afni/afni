@@ -18,6 +18,8 @@
    To correct error due to abiguity in identification of clusters,
    voxel coordinates are now stored as 3 separate short integers.
    BDW  06 March 1997
+
+   30 Apr 2002: max_dist input as <= 0 now gives NN connectivity
 -----------------------------------------------------------------------------*/
 
 MCW_cluster * MCW_build_mask (int nx, int ny, int nz,
@@ -27,6 +29,10 @@ MCW_cluster * MCW_build_mask (int nx, int ny, int nz,
    int ii, jj, kk, idx, jdy, kdz, nxy, nxyz, ijkma, mnum;
    float xq, yq, zq, dist_q;
    MCW_cluster * mask;
+
+   if( max_dist <= 0.0 ){                   /* 30 Apr 2002 */
+     dx = dy = dz = 1.0 ; max_dist = 1.01 ;
+   }
 
    idx = max_dist / dx ; jdy = max_dist / dy ; kdz = max_dist / dz ;
 
