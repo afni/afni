@@ -130,13 +130,23 @@ static void swap_2(void *ppp)
 }
 
 /*-------------------------*/
-/*! Macro for bad return. */
+/*! Macro for bad return.  */
 
 #undef  BADBAD
 #define BADBAD(s)                                                \
   do{ fprintf(stderr,"** THD_open_ctfmri(%s): %s\n",fname,s);    \
       RETURN(NULL);                                              \
   } while(0)
+
+/*-----------------------------------------------------------------*/
+/*! Function to count slices like CTF does. */
+
+int CTF_count( double start, double end , double delta )
+{
+   int nn=0 ; double cc ;
+   for( cc=start ; cc <= (end+1.0e-6) ; cc += delta ) nn++ ;
+   return nn ;
+}
 
 /*-----------------------------------------------------------------*/
 /*! Open a CTF .mri file as an unpopulated AFNI dataset.
@@ -725,6 +735,8 @@ ENTRY("THD_open_ctfsam") ;
        hh.StepSize <= 0.0       ) BADBAD("bad header data") ;
 
 #if 0
+   printf("\n") ;
+   printf("**CTF SAM : %s\n",fname) ;
    printf("Version   = %d\n",hh.Version) ;
    printf("NumChans  = %d\n",hh.NumChans) ;
    printf("NumWeights= %d\n",hh.NumWeights) ;
@@ -765,9 +777,15 @@ ENTRY("THD_open_ctfsam") ;
 
    dx = dy = dz = hh.StepSize ;  /* will be altered below */
 
+#if 0
    nx = (int)((hh.ZEnd - hh.ZStart)/dz + 0.99999); /* dataset is stored in Z,Y,X order */
    ny = (int)((hh.YEnd - hh.YStart)/dy + 0.99999); /* but AFNI calls these x,y,z       */
    nz = (int)((hh.XEnd - hh.XStart)/dx + 0.99999);
+#else
+   nx = CTF_count( hh.ZStart , hh.ZEnd , hh.StepSize ) ;
+   ny = CTF_count( hh.YStart , hh.YEnd , hh.StepSize ) ;
+   nz = CTF_count( hh.XStart , hh.XEnd , hh.StepSize ) ;
+#endif
 
    /* determine if file is big enough to hold all data it claims */
 
