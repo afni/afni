@@ -1200,6 +1200,15 @@ plus and minus 1/4 of a voxel size about the node location. If you want a
 larger box, you could try
    setenv AFNI_SUMA_BOXSIZE 0.5
 
+----------------------------
+Variable: AFNI_SUMA_LINESIZE (editable)
+----------------------------
+This variable sets the thickness of the lines used when drawing a surface
+intersection overlay.  The units are the width of the entire image;
+reasonable values are in the range 0..0.01; 0 means to draw the thinnest
+line possible.  Since this is editable, you can experiment with it to
+see what looks good.
+
 ------------------------
 Variable: AFNI_FIM_IDEAL
 ------------------------
@@ -1425,6 +1434,13 @@ AFNI's author.  I find this a handy way to "brand" my datasets.
 Idcodes are used to store links between datasets.  In particular, when SUMA
 sends a surface to AFNI, it identifies the dataset to which the surface is
 to be attached with the dataset's idcode.
+
+-------------------------
+Variable: AFNI_AGIF_DELAY
+-------------------------
+This is the time delay between frames when writing an animated GIF file from
+an image viewer window.  The units are 100ths of seconds; the default value
+is 20 (= 5 frames per second).
 
 =======================================
 | Robert W Cox, PhD                   |
