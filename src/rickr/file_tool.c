@@ -99,7 +99,7 @@ static char g_history[] =
  "   - wrap unknown printed strings in NULL check\n"
  "\n"
  " 3.0  March 17, 2004\n"
- "   - added binary editing (gee, that's why I wrote it 18 monsh ago...)\n"
+ "   - added binary editing (gee, that's why I wrote it 18 months ago...)\n"
  "     (see -mod_type s/uint1, s/uint2, s/uint4, float4, float8\n"
  "   - added '-ge_off' option, to display file offsets for some GEMS fields\n"
  "   - added '-hist' option, to display this history\n"
