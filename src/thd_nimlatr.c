@@ -27,6 +27,9 @@ ENTRY("THD_nimlize_dsetatr") ;
 
    ngr = NI_new_group_element() ;
 
+   if( !ISZERO_IDCODE(dset->idcode) )
+     NI_set_attribute( ngr , "self_idcode" , dset->idcode.str ) ;
+
    /* make a data element for each attribute ... */
 
    for( ia=0 ; ia < blk->natr ; ia++ ){
@@ -40,6 +43,7 @@ ENTRY("THD_nimlize_dsetatr") ;
             ATR_float *atr_flo = (ATR_float *) atr_any ;
 
             nel = NI_new_data_element( atr_flo->name , atr_flo->nfl ) ;
+            nel->outmode = NI_TEXT_MODE ;
             NI_set_attribute( nel , "AFNI_atr" , "float" ) ;
             NI_add_column( nel , NI_FLOAT , atr_flo->fl ) ;
             NI_add_to_group( ngr , nel ) ;
@@ -50,6 +54,7 @@ ENTRY("THD_nimlize_dsetatr") ;
             ATR_int *atr_int = (ATR_int *) atr_any ;
 
             nel = NI_new_data_element( atr_int->name , atr_int->nin ) ;
+            nel->outmode = NI_TEXT_MODE ;
             NI_set_attribute( nel , "AFNI_atr" , "int" ) ;
             NI_add_column( nel , NI_INT , atr_int->in ) ;
             NI_add_to_group( ngr , nel ) ;
@@ -61,6 +66,7 @@ ENTRY("THD_nimlize_dsetatr") ;
             char *str ;  /* create string to hold all data to send */
 
             nel = NI_new_data_element( atr_str->name , 1 ) ;
+            nel->outmode = NI_TEXT_MODE ;
             NI_set_attribute( nel , "AFNI_atr" , "string" ) ;
 
             str = malloc( atr_str->nch + 4 ) ;           /* convert from */
@@ -151,4 +157,26 @@ ENTRY("THD_dsetatr_from_niml") ;
    }
 
    EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Make an AFNI dataset from a NIML group element.
+-------------------------------------------------------------------------*/
+
+THD_3dim_dataset * THD_niml_to_dataset( NI_group *ngr )
+{
+   THD_3dim_dataset *dset ;
+
+ENTRY("THD_niml_to_dataset") ;
+
+   if( ngr                  == NULL          ||
+       NI_element_type(ngr) != NI_GROUP_TYPE   ) RETURN(NULL) ;
+
+   /* create the shell of a dataset and populate it's attributes */
+
+   dset = EDIT_empty_copy(NULL) ;
+   
+   THD_dsetatr_from_niml( ngr , dset ) ;
+
+   RETURN(dset) ;
 }

@@ -49,6 +49,10 @@ ENTRY("THD_set_dataset_attributes") ;
    blk = dset->dblk ; daxes = dset->daxes ;  /* always used fixed daxes */
    dkptr = blk->diskptr ;
 
+   /******/
+   /****** These attributes used to be set in THD_write_3dim_dataset() *****/
+   /******/
+
    /*----- write TYPESTRING attribute -----*/
 
    THD_set_string_atr( blk , ATRNAME_TYPESTRING ,
@@ -341,6 +345,10 @@ ENTRY("THD_set_dataset_attributes") ;
 #undef NFPER
 #undef TF
 
+   /******/
+   /****** These attributes used to be set in THD_write_datablock() *****/
+   /******/
+
    /* dataset dimensions */
 
    atrank[0] = dkptr->rank ;  /* should always be 3 */
@@ -464,6 +472,10 @@ ENTRY("THD_set_dataset_attributes") ;
    } else {
       THD_erase_one_atr( blk , ATRNAME_BRICK_STATAUX ) ;
    }
+
+   /******/
+   /****** N.B.: we do NOT set the byte order attribute here *****/
+   /******/ 
 
    EXRETURN ;
 }

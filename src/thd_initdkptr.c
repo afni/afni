@@ -7,24 +7,26 @@
 #include "mrilib.h"
 #include "thd.h"
 
-/*---------------------------------------------------------------
-   Initialize the names inside a diskptr
+/*---------------------------------------------------------------*/
+/*! Initialize the names inside a diskptr
    29 Feb 2001: modified to take directory from prefixname
                 as well as from dirname - RWCox.
    12 May 2003: if prefixname starts with '/', then dirname
                 will be ignored - RWCox.
 -----------------------------------------------------------------*/
 
-void THD_init_diskptr_names( THD_diskptr * dkptr ,
-                             char * dirname , char * headname ,
-                             char * prefixname , int view_type ,
+void THD_init_diskptr_names( THD_diskptr *dkptr ,
+                             char *dirname , char *headname ,
+                             char *prefixname , int view_type ,
                              Boolean do_datafiles )
 {
    int ii ;
    Boolean redo_filecode = False ;
    char dname[THD_MAX_NAME]="\0" , pname[THD_MAX_PREFIX]="\0" ; /* 29 Feb 2001 */
 
-   if( ! ISVALID_DISKPTR(dkptr) ) return ;
+ENTRY("THD_init_diskptr_names") ;
+
+   if( ! ISVALID_DISKPTR(dkptr) ) EXRETURN ;
 
    /* 29 Feb 2001: put dirname and any directories in prefixname together */
 
@@ -96,5 +98,5 @@ void THD_init_diskptr_names( THD_diskptr * dkptr ,
                dkptr->directory_name,dkptr->filecode,DATASET_BRICK_SUFFIX ) ;
 
    }
-   return ;
+   EXRETURN ;
 }

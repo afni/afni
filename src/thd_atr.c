@@ -17,15 +17,15 @@
   interrogated to form the actual data structure of a THD_3dim_dataset.
 ************************************************************************/
 
-/*-----------------------------------------------------------------------
-   given the rudiments of a datablock, read all the attributes into it
+/*-----------------------------------------------------------------------*/
+/*!  Given the rudiments of a datablock, read all the attributes into it
 -------------------------------------------------------------------------*/
 
-void THD_read_all_atr( char * headername , THD_datablock * blk )
+void THD_read_all_atr( char *headername , THD_datablock *blk )
 {
-   ATR_any * next_atr ;
+   ATR_any *next_atr ;
    int code , ii ;
-   FILE * header_file ;
+   FILE *header_file ;
 
 ENTRY("THD_read_all_atr") ;
 
@@ -76,7 +76,7 @@ ENTRY("THD_read_all_atr") ;
       switch( atype ){
 
          case ATR_FLOAT_TYPE:{
-            ATR_float * new_atr = (ATR_float *) next_atr ;
+            ATR_float *new_atr = (ATR_float *) next_atr ;
             char bbb[256] ;
 
             new_atr->type = ATR_FLOAT_TYPE ;
@@ -104,7 +104,7 @@ ENTRY("THD_read_all_atr") ;
          break ;
 
          case ATR_INT_TYPE:{
-            ATR_int * new_atr = (ATR_int *) next_atr ;
+            ATR_int *new_atr = (ATR_int *) next_atr ;
 
             new_atr->type = ATR_INT_TYPE ;
             new_atr->name = XtNewString( aname ) ;
@@ -123,7 +123,7 @@ ENTRY("THD_read_all_atr") ;
          break ;
 
          case ATR_STRING_TYPE:{
-            ATR_string * new_atr = (ATR_string *) next_atr ;
+            ATR_string *new_atr = (ATR_string *) next_atr ;
 
             new_atr->type = ATR_STRING_TYPE ;
             new_atr->name = XtNewString( aname ) ;
@@ -156,10 +156,10 @@ ENTRY("THD_read_all_atr") ;
   29 April 1998: erase all attributes from a datablock
 -------------------------------------------------------------------------*/
 
-void THD_erase_all_atr( THD_datablock * blk )
+void THD_erase_all_atr( THD_datablock *blk )
 {
    int ia ;
-   ATR_any * next_atr ;
+   ATR_any *next_atr ;
 
    if( !ISVALID_DATABLOCK(blk) || blk->natr == 0 || blk->atr == NULL ) return ;
 
@@ -168,21 +168,21 @@ void THD_erase_all_atr( THD_datablock * blk )
 
       switch( next_atr->type ){
          case ATR_FLOAT_TYPE:{
-            ATR_float * aa = (ATR_float *) next_atr ;
+            ATR_float *aa = (ATR_float *) next_atr ;
             SINGLE_KILL( blk->kl , aa->name ) ;
             SINGLE_KILL( blk->kl , aa->fl ) ;
          }
          break ;
 
          case ATR_STRING_TYPE:{
-            ATR_string * aa = (ATR_string *) next_atr ;
+            ATR_string *aa = (ATR_string *) next_atr ;
             SINGLE_KILL( blk->kl , aa->name ) ;
             SINGLE_KILL( blk->kl , aa->ch ) ;
          }
          break ;
 
          case ATR_INT_TYPE:{
-            ATR_int * aa = (ATR_int *) next_atr ;
+            ATR_int *aa = (ATR_int *) next_atr ;
             SINGLE_KILL( blk->kl , aa->name ) ;
             SINGLE_KILL( blk->kl , aa->in ) ;
          }
@@ -200,9 +200,9 @@ void THD_erase_all_atr( THD_datablock * blk )
    29 April 1998: erase a single attribute, given by name
 -------------------------------------------------------------------------*/
 
-void THD_erase_one_atr( THD_datablock * blk , char * name )
+void THD_erase_one_atr( THD_datablock *blk , char *name )
 {
-   ATR_any * next_atr ;
+   ATR_any *next_atr ;
 
    if( ! ISVALID_DATABLOCK(blk) || name     == NULL ||
        blk->natr == 0           || blk->atr == NULL   ) return ;
@@ -213,21 +213,21 @@ void THD_erase_one_atr( THD_datablock * blk , char * name )
 
    switch( next_atr->type ){
       case ATR_FLOAT_TYPE:{
-         ATR_float * aa = (ATR_float *) next_atr ;
+         ATR_float *aa = (ATR_float *) next_atr ;
          SINGLE_KILL( blk->kl , aa->name ) ;
          SINGLE_KILL( blk->kl , aa->fl ) ;
       }
       break ;
 
       case ATR_STRING_TYPE:{
-         ATR_string * aa = (ATR_string *) next_atr ;
+         ATR_string *aa = (ATR_string *) next_atr ;
          SINGLE_KILL( blk->kl , aa->name ) ;
          SINGLE_KILL( blk->kl , aa->ch ) ;
       }
       break ;
 
       case ATR_INT_TYPE:{
-         ATR_int * aa = (ATR_int *) next_atr ;
+         ATR_int *aa = (ATR_int *) next_atr ;
          SINGLE_KILL( blk->kl , aa->name ) ;
          SINGLE_KILL( blk->kl , aa->in ) ;
       }
@@ -243,7 +243,7 @@ void THD_erase_one_atr( THD_datablock * blk , char * name )
   attribute structure that matches (if none, return NULL)
 -------------------------------------------------------------------------*/
 
-ATR_any * THD_find_atr( THD_datablock * blk , char * name )
+ATR_any * THD_find_atr( THD_datablock *blk , char *name )
 {
    int ia ;
 
@@ -255,8 +255,8 @@ ATR_any * THD_find_atr( THD_datablock * blk , char * name )
    /* loop over attributes and check names */
 
    for( ia=0 ; ia < blk->natr ; ia++ ){
-      char * aname ;
-      ATR_any * next_atr = &(blk->atr[ia]) ;  /* pointer to this atr */
+      char *aname ;
+      ATR_any *next_atr = &(blk->atr[ia]) ;  /* pointer to this atr */
 
       /* extract pointer to name from next_atr */
 
@@ -265,19 +265,19 @@ ATR_any * THD_find_atr( THD_datablock * blk , char * name )
          default: aname = NULL ; break ;
 
          case ATR_FLOAT_TYPE:{
-            ATR_float * aa = (ATR_float *) next_atr ;
+            ATR_float *aa = (ATR_float *) next_atr ;
             aname = aa->name ;
          }
          break ;
 
          case ATR_STRING_TYPE:{
-            ATR_string * aa = (ATR_string *) next_atr ;
+            ATR_string *aa = (ATR_string *) next_atr ;
             aname = aa->name ;
          }
          break ;
 
          case ATR_INT_TYPE:{
-            ATR_int * aa = (ATR_int *) next_atr ;
+            ATR_int *aa = (ATR_int *) next_atr ;
             aname = aa->name ;
          }
          break ;
@@ -292,27 +292,27 @@ ATR_any * THD_find_atr( THD_datablock * blk , char * name )
    return NULL ;  /* none matched */
 }
 
-ATR_float * THD_find_float_atr( THD_datablock * blk , char * name )
+ATR_float * THD_find_float_atr( THD_datablock *blk , char *name )
 {
-   ATR_any * aa ;
+   ATR_any *aa ;
    aa = THD_find_atr( blk , name ) ;
 
    if( aa == NULL || aa->type != ATR_FLOAT_TYPE ) return NULL ;
    else                                           return (ATR_float *) aa ;
 }
 
-ATR_int * THD_find_int_atr( THD_datablock * blk , char * name )
+ATR_int * THD_find_int_atr( THD_datablock *blk , char *name )
 {
-   ATR_any * aa ;
+   ATR_any *aa ;
    aa = THD_find_atr( blk , name ) ;
 
    if( aa == NULL || aa->type != ATR_INT_TYPE ) return NULL ;
    else                                         return (ATR_int *) aa ;
 }
 
-ATR_string * THD_find_string_atr( THD_datablock * blk , char * name )
+ATR_string * THD_find_string_atr( THD_datablock *blk , char *name )
 {
-   ATR_any * aa ;
+   ATR_any *aa ;
    aa = THD_find_atr( blk , name ) ;
 
    if( aa == NULL || aa->type != ATR_STRING_TYPE ) return NULL ;
@@ -324,10 +324,10 @@ ATR_string * THD_find_string_atr( THD_datablock * blk , char * name )
   (if name is same as existing attribute, will overwrite)
 -------------------------------------------------------------------------*/
 
-void THD_set_atr( THD_datablock * blk , char * aname ,
-                  int atype , int acount , void * ar )
+void THD_set_atr( THD_datablock *blk , char *aname ,
+                  int atype , int acount , void *ar )
 {
-   ATR_any * old_atr , * atr ;
+   ATR_any *old_atr , *atr ;
 
    if( ! ISVALID_DATABLOCK(blk) )
       THD_FATAL_ERROR( "Illegal block type in THD_set_atr" ) ;
@@ -346,7 +346,7 @@ void THD_set_atr( THD_datablock * blk , char * aname ,
          default: break ;  /* something unpleasant */
 
          case ATR_FLOAT_TYPE:{
-            ATR_float * aa = (ATR_float *) old_atr ;
+            ATR_float *aa = (ATR_float *) old_atr ;
 
             SINGLE_KILL( blk->kl , aa->name ) ;
             SINGLE_KILL( blk->kl , aa->fl   ) ;
@@ -354,7 +354,7 @@ void THD_set_atr( THD_datablock * blk , char * aname ,
          break ;
 
          case ATR_INT_TYPE:{
-            ATR_int * aa = (ATR_int *) old_atr ;
+            ATR_int *aa = (ATR_int *) old_atr ;
 
             SINGLE_KILL( blk->kl , aa->name ) ;
             SINGLE_KILL( blk->kl , aa->in   ) ;
@@ -362,7 +362,7 @@ void THD_set_atr( THD_datablock * blk , char * aname ,
          break ;
 
          case ATR_STRING_TYPE:{
-            ATR_string * aa = (ATR_string *) old_atr ;
+            ATR_string *aa = (ATR_string *) old_atr ;
 
             SINGLE_KILL( blk->kl , aa->name ) ;
             SINGLE_KILL( blk->kl , aa->ch   ) ;
@@ -393,7 +393,7 @@ void THD_set_atr( THD_datablock * blk , char * aname ,
    switch( atype ){
 
       case ATR_FLOAT_TYPE:{
-         ATR_float * new_atr = (ATR_float *) atr ;
+         ATR_float *new_atr = (ATR_float *) atr ;
 
          new_atr->type = ATR_FLOAT_TYPE ;
          new_atr->name = XtNewString( aname ) ;
@@ -407,7 +407,7 @@ void THD_set_atr( THD_datablock * blk , char * aname ,
       break ;
 
       case ATR_INT_TYPE:{
-         ATR_int * new_atr = (ATR_int *) atr ;
+         ATR_int *new_atr = (ATR_int *) atr ;
 
          new_atr->type = ATR_INT_TYPE ;
          new_atr->name = XtNewString( aname ) ;
@@ -421,7 +421,7 @@ void THD_set_atr( THD_datablock * blk , char * aname ,
       break ;
 
       case ATR_STRING_TYPE:{
-         ATR_string * new_atr = (ATR_string *) atr ;
+         ATR_string *new_atr = (ATR_string *) atr ;
 
          new_atr->type = ATR_STRING_TYPE ;
          new_atr->name = XtNewString( aname ) ;
@@ -437,20 +437,26 @@ void THD_set_atr( THD_datablock * blk , char * aname ,
    }  /* end of switch */
 }
 
-void THD_set_float_atr( THD_datablock * blk ,
-                        char * name , int n , float * fl )
+/*-----------------------------------------------------------------------*/
+
+void THD_set_float_atr( THD_datablock *blk ,
+                        char *name , int n , float *fl )
 {
    THD_set_atr( blk , name , ATR_FLOAT_TYPE , n , fl ) ;
 }
 
-void THD_set_int_atr( THD_datablock * blk ,
-                      char * name , int n , int * in )
+/*-----------------------------------------------------------------------*/
+
+void THD_set_int_atr( THD_datablock *blk ,
+                      char *name , int n , int *in )
 {
    THD_set_atr( blk , name , ATR_INT_TYPE , n , in ) ;
 }
 
-void THD_set_char_atr( THD_datablock * blk ,
-                       char * name , int n , char * str )
+/*-----------------------------------------------------------------------*/
+
+void THD_set_char_atr( THD_datablock *blk ,
+                       char *name , int n , char *str )
 {
    THD_set_atr( blk , name , ATR_STRING_TYPE , n , str ) ;
 }

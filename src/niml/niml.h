@@ -196,6 +196,7 @@ extern char * NI_type_name( int ) ;
 #define TYPEDEF_NI_element
 typedef struct {
    int    type ;       /*!< What type of struct is this? */
+   int    outmode ;    /*!< If >=0, output mode. */
    char  *name ;       /*!< Name of element. */
    int    attr_num ;   /*!< Number of attributes. */
    char **attr_lhs ;   /*!< Left-hand-sides of attributes. */
@@ -221,6 +222,7 @@ typedef struct {
 #define TYPEDEF_NI_group
 typedef struct {
    int    type ;       /*!< What type of struct is this? */
+   int    outmode ;    /*!< If >=0, output mode. */
    int    attr_num ;   /*!< Number of attributes. */
    char **attr_lhs ;   /*!< Left-hand-sides of attributes. */
    char **attr_rhs ;   /*!< Right-hand-sides of attributes. */
