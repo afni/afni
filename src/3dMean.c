@@ -178,6 +178,7 @@ int main( int argc , char * argv[] )
 
              fprintf(stderr,"** ERROR: dataset %s doesn't match 1st one in sizes\n",
                      argv[nopt]) ;
+             fprintf(stderr,"** I'm telling your mother about this!\n") ;
              exit(1) ;
          }
       }
