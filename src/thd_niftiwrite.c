@@ -18,21 +18,21 @@ int THD_write_nifti( THD_3dim_dataset *dset, niftiwr_opts_t options )
   nifti_brick_list nbl ;
   int ii ;
   char * fname ;
- 
+
 ENTRY("THD_write_nifti") ;
 
-   nifti_set_debug_level(options.debug_level) ;
+  nifti_set_debug_level(options.debug_level) ;
 
    /*-- check inputs for goodness --*/
-  
+
   fname = nifti_strdup(options.infile_name );
-                                                                              
+
   if( !THD_filename_ok(fname) || fname[0] == '-' ){
     fprintf(stderr,"** ERROR: Illegal filename for NIFTI output: %s\n",
       (fname != NULL) ? fname : "(null)" ) ;
     RETURN(0) ;
   }
-                                                                                
+
   if( !ISVALID_DSET(dset) ){
     fprintf(stderr,
          "** ERROR: Illegal input dataset for NIFTI output: %s\n",
@@ -60,7 +60,7 @@ ENTRY("THD_write_nifti") ;
 
   /*-- construct nifti_brick_list of pointers to data briks */
 
-  nifti_image_infodump(nim) ;
+  if( options.debug_level > 2 ) nifti_image_infodump(nim) ;
   nbl.bricks = (void **) malloc ( DSET_NVALS(dset) * sizeof(void*) ) ;
   nbl.nbricks = DSET_NVALS(dset) ;
   nbl.bsize = DSET_BRICK_BYTES(dset,0) ;
@@ -70,11 +70,14 @@ ENTRY("THD_write_nifti") ;
 
   /*-- use handy-dandy library function to write out data */
 
-  nifti_image_write_bricks (nim, &nbl ) ;  
-  
+  nifti_image_write_bricks (nim, &nbl ) ;
+  RETURN(1) ;
 }
 
-nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t options) {
+/*******************************************************************/
+
+nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t options)
+{
   int nparam, type0 , ii ,val;
   int nif_x_axnum, nif_y_axnum, nif_z_axnum ;
   int slast, sfirst ;
@@ -88,6 +91,7 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   float odd_del, even_del, tmp_float ;
   int even_parity_sign = 0 ;
 
+ENTRY("populate_nifti_image") ;
   /*-- create nifti_image structure --*/
 
   nim = (nifti_image *) calloc( 1 , sizeof(nifti_image) ) ;
@@ -120,15 +124,15 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
 
       type0 = DSET_BRICK_TYPE(dset,0) ;
       fac0  = DSET_BRICK_FACTOR(dset,0) ;
-                                                                                
+
       for( ii=0 ; ii < DSET_NVALS(dset) ; ii++ ){
         if( DSET_BRICK_TYPE(dset,ii) != type0){
           fprintf(stderr,
-          "++ ERROR: CANNOT WRITE NIFTI FILE; BRICK DATA TYPES NOT CONSISTENT\n") ;
+          "** ERROR: CANNOT WRITE NIFTI FILE; BRICK DATA TYPES NOT CONSISTENT\n") ;
           RETURN(0);
         } else if( DSET_BRICK_FACTOR(dset,ii) != fac0) {
           fprintf(stderr,
-          "++ ERROR: CANNOT WRITE NIFTI FILE; BRICK FACTORS NOT CONSISTENT\n") ;
+          "** ERROR: CANNOT WRITE NIFTI FILE; BRICK FACTORS NOT CONSISTENT\n") ;
           fprintf(stderr,
           "RICH HAMMETT SHOULD FIX THIS REAL SOON NOW\n") ;
           RETURN(0);
@@ -136,25 +140,27 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
       }
     }
   } else {  /* we only have one brick */
-    fprintf(stderr,"ONLY ONE BRICK!!!\n") ;
+    if( options.debug_level > 1 ) fprintf(stderr,"ONLY ONE BRICK!!!\n") ;
     type0 = DSET_BRICK_TYPE(dset,0);
     fac0  = DSET_BRICK_FACTOR(dset,0) ;
     if (ISFUNC(dset)) {
-      fprintf(stderr,"ONLY ONE BRICK, AND IT'S FUNCTIONAL!!!\n") ;
+      if( options.debug_level > 1 )
+        fprintf(stderr,"ONLY ONE BRICK, AND IT'S FUNCTIONAL!!!\n") ;
       nim->intent_code = DSET_BRICK_STATCODE(dset,0);
       if (nim->intent_code < 0) nim->intent_code = dset->func_type ;
       if (nim->intent_code < 0) nim->intent_code = NIFTI_INTENT_NONE ;
-      fprintf(stderr,"ONLY ONE BRICK, AND ITS FUNCTIONAL STAT CODE IS %d !!!\n",nim->intent_code) ;
+      if( options.debug_level > 1 )
+        fprintf(stderr,"ONLY ONE BRICK, AND ITS FUNCTIONAL STAT CODE IS %d !!!\n",nim->intent_code) ;
       if (nim->intent_code > -1) {
         nparam = FUNC_need_stat_aux[nim->intent_code];
         if (nparam >= 1) nim->intent_p1 = DSET_BRICK_STATPAR(dset,0,1);
         if (nparam >= 2) nim->intent_p2 = DSET_BRICK_STATPAR(dset,0,2);
         if (nparam = 3) nim->intent_p3 = DSET_BRICK_STATPAR(dset,0,3);
       }
-    } 
-    if (dset->daxes->nzz > 1) { 
-      nim->ndim = 3 ; 
-    } else if (dset->daxes->nyy > 1) { 
+    }
+    if (dset->daxes->nzz > 1) {
+      nim->ndim = 3 ;
+    } else if (dset->daxes->nyy > 1) {
       nim->ndim = 2 ;
     } else {
       nim->ndim = 1;
@@ -236,7 +242,7 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   }
 
   nim->qto_xyz.m[0][0] = nim->qto_xyz.m[0][1] = nim->qto_xyz.m[0][2] =
-  nim->qto_xyz.m[1][0] = nim->qto_xyz.m[1][1] = nim->qto_xyz.m[1][2] = 
+  nim->qto_xyz.m[1][0] = nim->qto_xyz.m[1][1] = nim->qto_xyz.m[1][2] =
   nim->qto_xyz.m[2][0] = nim->qto_xyz.m[2][1] = nim->qto_xyz.m[2][2] = 0.0 ;
 
   /*-- set voxel and time deltas and units --*/
@@ -262,7 +268,7 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   nim->qto_xyz.m[2][nif_z_axnum] =   axstep[nif_z_axnum];
 #endif
 
-  /* nifti origin stuff */        
+  /* nifti origin stuff */
 
 #if 0
   nim->qoffset_x =  axstart[nif_x_axnum] ;
@@ -291,13 +297,15 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
 
   /*-- verify dummy quaternion parameters --*/
 
-  fprintf(stderr,"%f , %f\n %f , %f\n %f , %f\n %f , %f\n %f , %f\n %f , %f\n; %f\n",
+  if( options.debug_level > 2 )
+    fprintf(stderr,"++ Quaternion check:\n"
+          "%f , %f\n %f , %f\n %f , %f\n %f , %f\n %f , %f\n %f , %f\n; %f\n",
            nim->qoffset_x, dumqx , nim->qoffset_y, dumqy , nim->qoffset_z, dumqz ,
            nim->dx, dumdx , nim->dy, dumdy , nim->dz, dumdz, nim->qfac ) ;
 
   /*-- calculate inverse qform            --*/
 
-  nim->qto_ijk = nifti_mat44_inverse( nim->qto_xyz ) ;  
+  nim->qto_ijk = nifti_mat44_inverse( nim->qto_xyz ) ;
 
   /*-- set dimensions of grid array --*/
 
@@ -307,11 +315,11 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   nim->nz = axnum[2] ;
 
   if (dset->taxis == NULL) {
-    nim->nt = 1; 
+    nim->nt = 1;
   } else {
     nim->nt = DSET_NUM_TIMES( dset ) ;
   }
-  
+
   if ( nim->nt > 1) nim->dt = nim->pixdim[4] = dset->taxis->ttdel ;
 
   nim->dim[0] = nim->ndim;
@@ -322,8 +330,8 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   nim->dim[5] = nim->nu;
   nim->dim[6] = nim->nv;
   nim->dim[7] = nim->nw;
-  
-  nim->nvox = nim->nx * nim->ny * nim->nz * nim->nt * 
+
+  nim->nvox = nim->nx * nim->ny * nim->nz * nim->nt *
                                  nim->nu * nim->nv * nim->nw ;
 
   /*-- slice timing --*/
@@ -377,9 +385,9 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
        *-- delta_odd, check to see if all evens are equal  *
        *-- and all odds are equal. Fail if not.            */
 
-          odd_del = dset->taxis->toff_sl[sfirst +  1] - 
+          odd_del = dset->taxis->toff_sl[sfirst +  1] -
                             dset->taxis->toff_sl[sfirst] ;
-          even_del = dset->taxis->toff_sl[sfirst +  2] - 
+          even_del = dset->taxis->toff_sl[sfirst +  2] -
                        dset->taxis->toff_sl[sfirst +  1];
           for (ii = sfirst + 2 ; ii < slast - 1 ; ii += 2 ) {
             if (MYFPEQ(odd_del, dset->taxis->toff_sl[ii + 1] - dset->taxis->toff_sl[ii])) {
@@ -469,16 +477,16 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
           fprintf(stderr, "RICH HAMMETT SHOULD FIX THIS REAL SOON NOW\n") ;
           RETURN(0);
       }
- 
-      nim->slice_start = sfirst ; 
-      nim->slice_end = slast ; 
+
+      nim->slice_start = sfirst ;
+      nim->slice_end = slast ;
 
     } else {
       nim->slice_code = NIFTI_SLICE_UNKNOWN ;
       nim->slice_start = 0 ;
       nim->slice_end = 0 ;
     } /* end the if !pattern_unknown final assignment section */
-    
+
     nim->time_units = NIFTI_UNITS_SEC ;
 
   } else { /* if time axis not exists */
@@ -501,6 +509,5 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   nim->data = NULL ;
   nim->sform_code = 0 ;
 
-  return nim ;
-
+  RETURN(nim) ;
 }
