@@ -2880,67 +2880,111 @@ int SUMA_MapRefRelative (int cur_id, int *prec_list, int N_prec_list, SUMA_DO *d
 int *SUMA_FormSOListToSendToAFNI(SUMA_DO *dov, int N_dov, int *N_Send) 
 {
    static char FuncName[]={"SUMA_FormSOListToSendToAFNI"};
-   int *SendList = NULL, ii, j;
+   int *SendList = NULL, ii, j, s, *is_listed=NULL;
    SUMA_SurfaceObject *SO=NULL;
+   SUMA_SO_SIDE side=SUMA_NO_SIDE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
 
    *N_Send = 0;
    SendList = (int *)SUMA_malloc(N_dov * sizeof(int));
-   if (!SendList) {
+   is_listed = (int *)SUMA_calloc(N_dov,  sizeof(int));
+   if (!SendList || !is_listed) {
       SUMA_SL_Crit("Failed to allocate");
       SUMA_RETURN(SendList);
    }
-   for (j=0; j<3; ++j) {
+   
+   
+   for (s=0;s<5; ++s) {
       for (ii=0; ii<N_dov; ++ii) {
          if (SUMA_isSO(dov[ii])) {
-            SO = (SUMA_SurfaceObject *)(dov[ii].OP);
-            #if 1 
-            /* Jan. 08 04 this is the right thing to do but 
-            AFNI is not ready to deal with this
-            and things can get confusing. See 
-            confusing fat point in Readme_Modify.log,
-            date: Thu Jan  8 13:55:33 EST 2004 */
-            if (!SO->AnatCorrect) {
-               continue;
-            }
-            #else 
-            /* Jan. 08 04 the old and not confusing way. 
-            Turn it off as soon as AFNI is ready 
-            for the option  above.
-            See labbook NIH-3 page 146 */
-            if (!SUMA_isLocalDomainParent(SO)) {
-               continue;
-            }
-            #endif
-            if (j==0) { /* inner surfaces */
-               if (SUMA_isTypicalSOforVolSurf(SO) != -1) {
-                  continue;
-               }
-            }else if (j==1) { /* outer surfaces */
-               if (SUMA_isTypicalSOforVolSurf(SO)  != 1) {
-                  continue;
-               }
-            }else if (j==2) { /* other */
-               if (SUMA_isTypicalSOforVolSurf(SO)  != 0) {
-                  continue;
+            SO = (SUMA_SurfaceObject *)(dov[ii].OP);      
+            if (SO->AnatCorrect) {
+               switch (s) {
+                  case 0:
+                     if (SO->Side == SUMA_LEFT && SUMA_isTypicalSOforVolSurf(SO) ==  -1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     break;
+                  case 1:
+                     if (SO->Side == SUMA_LEFT && SUMA_isTypicalSOforVolSurf(SO) ==   1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     break;
+                  case 2:
+                     if (SO->Side == SUMA_RIGHT && SUMA_isTypicalSOforVolSurf(SO) == -1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     break;
+                  case 3:
+                     if (SO->Side == SUMA_RIGHT && SUMA_isTypicalSOforVolSurf(SO) ==  1) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     break;
+                  default:
+                     if (!is_listed[ii]) { SendList[*N_Send] = ii; *N_Send = *N_Send + 1; is_listed[ii] = 1;}
+                     break;
                }
             }
-            /* if this surface has been sent to AFNI before, bypass it */
-            if (SO->SentToAfni) {
-               if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s has been sent to AFNI before.\n", \
-                  FuncName, SO->idcode_str);
-               continue;
-            }else {
-               if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s Will be sent to AFNI.\n", \
-                  FuncName, SO->idcode_str);
-            }
-            SendList[*N_Send] = ii; *N_Send = *N_Send + 1;
          }
       }
    }
-
+   
+   #if 0
+   for (s=0; s<3; ++s) {
+      if (s==0) side = SUMA_LEFT;
+      else if (s == 1) side = SUMA_RIGHT;
+      else side = SUMA_NO_SIDE;
+      for (j=0; j<3; ++j) {
+         for (ii=0; ii<N_dov; ++ii) {
+            if (SUMA_isSO(dov[ii])) {
+               SO = (SUMA_SurfaceObject *)(dov[ii].OP);
+               if (s==0) {
+                  if (SO->Side != side) { continue;}
+               } else if (s == 1){
+                  if (SO->Side != side) { continue;}
+               } else {
+                  /* let it proceed */
+               }
+               #if 1 
+               /* Jan. 08 04 this is the right thing to do but 
+               AFNI is not ready to deal with this
+               and things can get confusing. See 
+               confusing fat point in Readme_Modify.log,
+               date: Thu Jan  8 13:55:33 EST 2004 */
+               if (!SO->AnatCorrect) {
+                  continue;
+               }
+               #else 
+               /* Jan. 08 04 the old and not confusing way. 
+               Turn it off as soon as AFNI is ready 
+               for the option  above.
+               See labbook NIH-3 page 146 */
+               if (!SUMA_isLocalDomainParent(SO)) {
+                  continue;
+               }
+               #endif
+               if (j==0) { /* inner surfaces */
+                  if (SUMA_isTypicalSOforVolSurf(SO) != -1 ) {
+                     continue;
+                  }
+               }else if (j==1) { /* outer surfaces */
+                  if (SUMA_isTypicalSOforVolSurf(SO)  != 1 ) {
+                     continue;
+                  }
+               }else if (j==2) { /* other */
+                  if (SUMA_isTypicalSOforVolSurf(SO)  != 0 ) {
+                     continue;
+                  }
+               }
+               /* if this surface has been sent to AFNI before, bypass it */
+               if (SO->SentToAfni) {
+                  if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s has been sent to AFNI before.\n", \
+                     FuncName, SO->idcode_str);
+                  continue;
+               }else {
+                  if (LocalHead) fprintf(SUMA_STDERR, "Warning %s: Surface %s Will be sent to AFNI.\n", \
+                     FuncName, SO->idcode_str);
+               }
+               SendList[*N_Send] = ii; *N_Send = *N_Send + 1;
+            }
+         }
+      }
+   }
+   #endif
    SUMA_RETURN(SendList);
 
 }

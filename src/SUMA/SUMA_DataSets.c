@@ -1470,6 +1470,13 @@ int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
    }
    #endif
    
+   
+   if (!dset || node < 0 || (N_Node >=0 && node >= N_Node)) {
+      /* turn this warning off once you confirm that Shane's bug is gone */
+      SUMA_S_Warn("Strange input, returning -1.");
+      SUMA_RETURN(-1);
+   }
+   
    SUMA_LH("Trying the slow mo");
    /* does this dset have a column index ? */
    NodeDef = SUMA_GetNodeDef (dset);
@@ -3913,7 +3920,7 @@ void SUMA_sigfunc(int sig)   /** signal handler for fatal errors **/
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
    TRACEBACK ;
-   fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
+   fprintf(stderr,"*** Program Abort ***\nSUMA Version %.2f\nCompile Date: %s\n", SUMA_LatestVersionNumber(), __DATE__) ; fflush(stderr) ;
    exit(1) ;
 }
 
