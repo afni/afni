@@ -1,4 +1,15 @@
 /*----------------------------------------------------------------------
+ * history:
+ *
+ * 1.1  February 26, 2003
+ *   - added -quiet option
+ *   - use dynamic allocation for data to read
+ *
+ * 1.0  September 11, 2002
+ *   - initial release
+ *----------------------------------------------------------------------
+*/
+/*----------------------------------------------------------------------
  * file_tool.c	- display or modify (binary?) info from files
  *
  * options:
@@ -28,6 +39,7 @@
  *        -mod_data DATA       specify modification data
  *        -mod_type TYPE       specify modification with a value or string
  *        -offset   OFFSET     display/modify from OFFSET bytes into files
+ *        -quiet               do not display header info with output
  *        -swap_bytes          should we use byte swapping for numbers
  *
  * examples:
@@ -37,6 +49,7 @@
  *    file_tool -ge_all -infiles I.100
  *    file_tool -ge_run -infiles I.?42
  *    file_tool -offset 100 -length 32 -infiles file1 file2
+ *    file_tool -offset 100 -length 32 -quiet -infiles file1 file2
  *    file_tool -mod_data "hi there" -offset 2515 -length 8 -infiles I.*
  *    file_tool -debug 1 -mod_data x -mod_type val -offset 2515 \
  *              -length 21 -infiles I.*
@@ -133,13 +146,24 @@ int
 process_file( char * filename, param_t * p )
 {
     FILE        * fp;
-    static char   fdata[MAX_STR_LEN];
+    static char * fdata = NULL;
     int           nbytes, remaining;
 
     if ( (fp = fopen( filename, "r+" )) == NULL )
     {
 	fprintf( stderr, "failure: cannot open <%s> for 'rw'\n", filename );
 	return -1;
+    }
+
+    if ( fdata == NULL )
+    {
+	fdata = calloc( p->length, sizeof(char) );
+	if ( fdata == NULL )
+	{
+	    fprintf( stderr, "failure: cannot allocate %d bytes for data\n",
+		     p->length );
+	    return -1;
+	}
     }
 
     if ( fseek( fp, p->offset, SEEK_SET ) )
@@ -160,7 +184,8 @@ process_file( char * filename, param_t * p )
 
     if ( !p->modify || p->debug )
     {
-	printf( "<%s> : '", filename );
+	if ( ! p->quiet )
+	    printf( "<%s> : '", filename );
 	if ( (nbytes = fwrite( fdata, 1, p->length, stdout )) != p->length )
 	{
 	    fprintf( stderr, "\nfailure: wrote only %d of %d bytes to '%s'\n",
@@ -168,7 +193,8 @@ process_file( char * filename, param_t * p )
 	    fclose( fp );
 	    return -1;
 	}
-	puts( "'" );	/* single quote plus newline */
+	if ( ! p->quiet )
+	    puts( "'" );	/* single quote plus newline */
     }
 
     if ( p->modify )  /* if writing back to file */
@@ -335,6 +361,10 @@ set_params( param_t * p, int argc, char * argv[] )
 		fprintf( stderr, "bad LENGTH <%d>\n", p->length );
 		return -1;
 	    }
+	}
+	else if ( ! strncmp(argv[ac], "-quiet", 2 ) )
+  	{
+	    p->quiet = 1;
 	}
 	else if ( ! strncmp(argv[ac], "-swap_bytes", 3 ) )
   	{
@@ -645,6 +675,8 @@ help_full( char * prog )
 	"          This is the offset into each file for the data to be\n"
 	"          read or modified.\n"
 	"\n"
+	"    -quiet             : do not output header information\n"
+	"\n"
 	"    -swap_bytes        : should we use byte-swapping on numbers\n"
 	"                       : e.g. -swap_bytes\n"
 	"\n"
@@ -904,10 +936,12 @@ disp_param_data( param_t * p )
 	    "mod_type     : %d\n"
 	    "offset       : %ld\n"
 	    "length       : %d\n"
+	    "quiet        : %d\n"
 	    "mod_data     : %s\n"
 	    "\n",
 	    p->num_files, p->flist, p->debug, p->data_len, p->ge_disp,
-	    p->swap, p->modify, p->mod_type, p->offset, p->length, p->mod_data
+	    p->swap, p->modify, p->mod_type, p->offset, p->length, p->quiet,
+	    p->mod_data
 	  );
 
     if ( p->debug > 1 )
