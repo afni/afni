@@ -179,7 +179,8 @@ int sphere_voronoi_vectors( int npt , float *xyz , float **wt )
       xrr = xyz[3*rr  ] ; yrr = xyz[3*rr+1] ; zrr = xyz[3*rr+2] ;
 
       /* midpoints pq,pr,qr, and centroid cc */
-      /*** Q: should centroid be replaced by normal? what about orientation, largeness? ***/
+      /*** Q: should centroid be replaced by normal?
+              what about orientation, largeness?     ***/
 
       xpq = 0.5*(xpp+xqq) ; ypq = 0.5*(ypp+yqq) ; zpq = 0.5*(zpp+zqq) ;
       xpr = 0.5*(xpp+xrr) ; ypr = 0.5*(ypp+yrr) ; zpr = 0.5*(zpp+zrr) ;
@@ -192,10 +193,11 @@ int sphere_voronoi_vectors( int npt , float *xyz , float **wt )
 #undef SCL
 #define SCL(a,b,c) 1.0/sqrt(a*a+b*b+c*c)
 
-#if 1
-#define XCROSS(a,b,c,x,y,z) ((b)*(z)-(c)*(y))
-#define YCROSS(a,b,c,x,y,z) ((c)*(x)-(a)*(z))
-#define ZCROSS(a,b,c,x,y,z) ((a)*(y)-(b)*(x))
+#undef USE_NORMAL
+#ifdef USE_NORMAL
+# define XCROSS(a,b,c,x,y,z) ((b)*(z)-(c)*(y))
+# define YCROSS(a,b,c,x,y,z) ((c)*(x)-(a)*(z))
+# define ZCROSS(a,b,c,x,y,z) ((a)*(y)-(b)*(x))
       { double apq=xpp-xqq , bpq=ypp-yqq , cpq=zpp-zqq ,
                aqr=xqq-xrr , bqr=yqq-yrr , cqr=zqq-zrr  ;
 
@@ -208,11 +210,18 @@ int sphere_voronoi_vectors( int npt , float *xyz , float **wt )
            xnn = -xnn ; ynn = -ynn ; znn = -znn ;
         }
       }
-#endif
 
-#define xVV xnn
-#define yVV ynn
-#define zVV znn
+# define xVV xnn
+# define yVV ynn
+# define zVV znn
+
+#else
+
+# define xVV xcc
+# define yVV ycc
+# define zVV zcc
+
+#endif
 
       /* project pq,pr,qr,cc to sphere (nn is already on sphere) */
 
@@ -271,7 +280,7 @@ int sphere_voronoi_vectors( int npt , float *xyz , float **wt )
       ww[rr] += a_rr_pr_cc = ATR(ss,rr_pr,rr_cc,pr_cc) ;
 
 
-#if 1          /* debugging printouts */
+#if 0          /* debugging printouts */
 # undef  DDD
 # define DDD(x,y,z,a,b,c) sqrt((x-a)*(x-a)+(y-b)*(y-b)+(z-c)*(z-c))
 
@@ -289,7 +298,9 @@ int sphere_voronoi_vectors( int npt , float *xyz , float **wt )
                      "  xqr=%6.3f yqr=%6.3f zqr=%6.3f\n"
                      "  xpr=%6.3f ypr=%6.3f zpr=%6.3f\n"
                      "  xcc=%6.3f ycc=%6.3f zcc=%6.3f\n"
+#ifdef USE_NORMAL
                      "  xnn=%6.3f ynn=%6.3f znn=%6.3f\n"
+#endif
                      "  pp_pq=%6.3f pp_pr=%6.3f pp_cc=%6.3f\n"
                      "  qq_pq=%6.3f qq_qr=%6.3f qq_cc=%6.3f\n"
                      "  rr_qr=%6.3f rr_cc=%6.3f rr_pr=%6.3f\n"
@@ -306,7 +317,9 @@ int sphere_voronoi_vectors( int npt , float *xyz , float **wt )
                xqr, yqr, zqr,
                xpr, ypr, zpr,
                xcc, ycc, zcc,
+#ifdef USE_NORMAL
                xnn, ynn, znn,
+#endif
                pp_pq, pp_pr, pp_cc,
                qq_pq, qq_qr, qq_cc,
                rr_qr, rr_cc, rr_pr,
