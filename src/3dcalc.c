@@ -107,11 +107,16 @@ static int         TS_nmax = 0 ;
 static int         TS_make = 0 ;
 static float       TS_dt   = 1.0 ; /* 13 Aug 2001 */
 
+static MRI_IMAGE * IJKAR_flim[26] ;  /* 22 Feb 2005 */
+static float *     IJKAR_flar[26] ;
+static int         IJKAR_dcod[26] ;
+
 /* this macro tells if a variable (index 0..25) is defined,
    either by a time series file or an input dataset - 16 Nov 1999 */
 
 #define VAR_DEFINED(kv) \
-   (TS_flim[kv] != NULL || CALC_dset[kv] != NULL || CALC_dshift[kv] >= 0)
+   (TS_flim[kv]   != NULL || IJKAR_flim[kv]  != NULL || \
+    CALC_dset[kv] != NULL || CALC_dshift[kv] >= 0      )
 
 static float Rfac = 0.299 ;  /* 10 Feb 2002: for RGB inputs */
 static float Gfac = 0.587 ;
@@ -123,9 +128,10 @@ static int   CALC_taxis_num = 0 ;    /* 28 Apr 2003 */
 void CALC_read_opts( int , char ** ) ;
 void CALC_Syntax(void) ;
 int  TS_reader( int , char * ) ;
+int  IJKAR_reader( int , char * ) ;
 
 /*--------------------------------------------------------------------
-  Read a time series file into variable number ival.
+  Read a time series file into TS variable number ival.
   Returns -1 if an error occured, 0 otherwise.
 ----------------------------------------------------------------------*/
 
@@ -146,6 +152,26 @@ int TS_reader( int ival , char * fname )
 }
 
 /*--------------------------------------------------------------------
+  Read a time series file into IJK variable number ival.
+  Returns -1 if an error occured, 0 otherwise.
+----------------------------------------------------------------------*/
+
+int IJKAR_reader( int ival , char *fname )  /* 22 Feb 2005 */
+{
+   MRI_IMAGE *tsim ;
+
+   if( ival < 0 || ival >= 26 ) return -1 ;
+
+   tsim = mri_read_1D( fname ) ;  /* 16 Nov 1999: replaces mri_read_ascii */
+   if( tsim == NULL ) return -1 ;
+   if( tsim->nx < 2 ){ mri_free(tsim) ; return -1 ; }
+
+   IJKAR_flim[ival] = tsim ;
+   IJKAR_flar[ival]  = MRI_FLOAT_PTR( IJKAR_flim[ival] ) ;
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------
    read the arguments, load the global variables
 ----------------------------------------------------------------------*/
 
@@ -159,6 +185,7 @@ void CALC_read_opts( int argc , char * argv[] )
       CALC_dset[ids]   = NULL ;
       CALC_type[ids]   = -1 ;
       TS_flim[ids]     = NULL ;
+      IJKAR_flim[ids]  = NULL ;  /* 22 Feb 2005 */
 
       CALC_dshift[ids]      = -1 ;                        /* 22 Nov 1999 */
       CALC_dshift_mode[ids] = CALC_dshift_mode_current ;
@@ -376,6 +403,27 @@ void CALC_read_opts( int argc , char * argv[] )
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"** need argument after %s\n",argv[nopt-1]); exit(1);
+         }
+
+         /*-- 22 Feb 2005: allow for I:, J:, K: prefix --*/
+
+         ll = strlen(argv[nopt]) ;
+         if( ll >= 4                         &&
+             strstr(argv[nopt],"1D") != NULL &&
+             argv[nopt][1] == ':'            &&
+             (argv[nopt][0] == 'I' || argv[nopt][0] == 'i' ||
+              argv[nopt][0] == 'J' || argv[nopt][0] == 'j' ||
+              argv[nopt][0] == 'K' || argv[nopt][0] == 'k'   ) ){
+
+           ll = IJKAR_reader( ival , argv[nopt]+2 ) ;
+           if( ll == 0 ){
+             switch( argv[nopt][0] ){
+               case 'I': case 'i': IJKAR_dcod[ival] =  8 ; break ;
+               case 'J': case 'j': IJKAR_dcod[ival] =  9 ; break ;
+               case 'K': case 'k': IJKAR_dcod[ival] = 10 ; break ;
+             }
+             nopt++ ; goto DSET_DONE ;
+           }
          }
 
          /*-- 17 Apr 1998: allow for a *.1D filename --*/
@@ -665,6 +713,22 @@ DSET_DONE: continue;
       fprintf(stderr,"** No actual input datasets given!\n") ; exit(1) ;
    }
 
+   /* 22 Feb 2005: check IJKAR inputs against 1st dataset found */
+
+   for( ii=0 ; ii < 26 ; ii++ ){
+     if( IJKAR_flim[ii] != NULL ){
+       int siz ;
+       switch( IJKAR_dcod[ii] ){
+         case  8: siz = DSET_NX(CALC_dset[ids]) ; break ;
+         case  9: siz = DSET_NY(CALC_dset[ids]) ; break ;
+         case 10: siz = DSET_NZ(CALC_dset[ids]) ; break ;
+       }
+       if( IJKAR_flim[ii]->nx != siz )
+         fprintf(stderr,"** 3dcalc dimension mismatch between '-%c' and '%-c'\n",
+                 'a'+ii , 'a'+ids ) ;
+     }
+   }
+
    if( CALC_code == NULL ){
       fprintf(stderr,"** No expression given!\n") ; exit(1) ;
    }
@@ -904,6 +968,19 @@ void CALC_Syntax(void)
     "    -a '1D:5@0,10@1,5@0,10@1,5@0'\n"
     " specifies that variable 'a' be assigned to a 1D time series of 35,\n"
     " alternating in blocks between values 0 and value 1.\n"
+
+    "\n"
+    "'I:*.1D' and 'J:*.1D' and 'K:*.1D' INPUT:\n"
+    " You can input a 1D time series 'dataset' to be defined as spatially\n"
+    " dependent instead of time dependent using a syntax like\n"
+    "   -c I:fred.1D\n"
+    " This indicates that the n-th value from file fred.1D is to be associated\n"
+    " with the spatial voxel index i=n (respectively j=n and k=n for 'J: and\n"
+    " K: input dataset names).  This technique can be useful if you want to\n"
+    " scale each slice by a fixed constant; for example:\n"
+    "   -a dset+orig -b K:slicefactor.1D -expr 'a*b'\n"
+    " In this example, the '-b' value only varies in the k-index spatial\n"
+    " direction.\n"
 
     "\n"
     "COORDINATES and PREDEFINED VALUES:\n"
@@ -1241,6 +1318,33 @@ int main( int argc , char * argv[] )
                }
             }
 
+            /* 22 Feb 2005: IJKAR 1D arrays */
+
+            else if( IJKAR_flim[ids] != NULL ){
+              int ss , ix=IJKAR_flim[ids]->nx ;
+
+              switch( IJKAR_dcod[ids] ){
+                case 8:
+                  for( jj=jbot ; jj < jtop ; jj++ ){
+                    ss = (jj%nx) ;
+                    atoz[ids][jj-jbot] = (ss < ix) ? IJKAR_flar[ids][ss] : 0.0 ;
+                  }
+                break ;
+                case 9:
+                  for( jj=jbot ; jj < jtop ; jj++ ){
+                    ss = ((jj%nxy)/nx) ;
+                    atoz[ids][jj-jbot] = (ss < ix) ? IJKAR_flar[ids][ss] : 0.0 ;
+                  }
+                break ;
+                case 10:
+                  for( jj=jbot ; jj < jtop ; jj++ ){
+                    ss = (jj/nxy) ;
+                    atoz[ids][jj-jbot] = (ss < ix) ? IJKAR_flar[ids][ss] : 0.0 ;
+                  }
+                break ;
+              }
+            }
+
             /* 22 Nov 1999: if a differentially subscripted dataset is here */
 
             else if( CALC_dshift[ids] >= 0 ){
@@ -1539,6 +1643,7 @@ int main( int argc , char * argv[] )
    for( ids=0 ; ids < 26 ; ids++ ){
       if( CALC_dset[ids] != NULL ) PURGE_DSET( CALC_dset[ids] ) ;
       if( TS_flim[ids]   != NULL ) mri_free( TS_flim[ids] ) ;
+      if( IJKAR_flim[ids]!= NULL ) mri_free( IJKAR_flim[ids] ) ;
    }
 
    /*** attach new data to output brick ***/
