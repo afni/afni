@@ -49,6 +49,9 @@
 
    Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
    Date:    02 December 2002
+
+   Mod:     Setup to use .1D dataset filenames on output if these are input.
+   Date:    14 March 2003 - RWCox
 */
 
 /*---------------------------------------------------------------------------*/
@@ -56,7 +59,7 @@
 #define PROGRAM_NAME    "3dANOVA"                    /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 Dec 1996"     /* date of initial program release */
-#define PROGRAM_LATEST  "02 Dec 2002"     /* date of latest program revision */
+#define PROGRAM_LATEST  "14 Mar 2003"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -281,6 +284,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->xname[ival-1][0][0][nijk-1], 
 		  argv[nopt]);
+
 	  nopt++;
 	  continue;
 	}
@@ -1334,6 +1338,8 @@ void create_bucket (anova_options * option_data)
 	    option_data->first_dataset);
     exit(1) ;
   }
+
+  if( DSET_IS_1D(dset) ) USE_1D_filenames(1) ; /* 14 Mar 2003 */
   
 
   /*----- make an empty copy of this dataset -----*/
