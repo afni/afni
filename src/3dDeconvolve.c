@@ -200,6 +200,10 @@
 
   Mod:     Modified input routines to use THD_makemask.
   Date:    29 January 2002
+
+  Mod:     Extended -tout option to write a t-statistic sub-brick for each
+           of the GLT linear combinations (i.e., each row of each GLT matrix).
+  Date:    08 February 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -207,7 +211,7 @@
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "29 Jan  2002"    /* date of latest program revision */
+#define PROGRAM_LATEST  "08 Feb  2002"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -1817,7 +1821,10 @@ void check_for_valid_inputs
       nbricks += option_data->rout + option_data->fout + option_data->vout;
       if (num_glt > 0)
 	for (iglt = 0;  iglt < num_glt;  iglt++)
-	  nbricks += glt_rows[iglt] + option_data->rout + option_data->fout;
+	  {
+	    nbricks += glt_rows[iglt] * (1 + option_data->tout);
+	    nbricks += option_data->rout + option_data->fout;
+	  }
 
       if (nbricks <= 0)
 	{
@@ -1890,7 +1897,8 @@ void allocate_memory
   float ** ffull_vol,        /* volume of full model F-statistics */
   float ** rfull_vol,        /* volume of full model R^2 stats. */
 
-  float **** glt_coef_vol,   /* volumes for GLT linear combinatins */
+  float **** glt_coef_vol,   /* volumes for GLT linear combinations */
+  float **** glt_tcoef_vol,  /* volumes for GLT t-statistics */
   float ***  glt_fstat_vol,  /* volumes for GLT F-statistics */
   float ***  glt_rstat_vol,  /* volumes for GLT R^2 stats. */
 
@@ -2001,6 +2009,12 @@ void allocate_memory
     {
       *glt_coef_vol  = (float ***) malloc (sizeof(float **) * num_glt);
        MTEST(*glt_coef_vol); 
+       
+       if (tout)
+	 {
+	   *glt_tcoef_vol  = (float ***) malloc (sizeof(float **) * num_glt);
+	   MTEST(*glt_tcoef_vol);
+	 } 
 
        if (fout)
 	 {
@@ -2017,11 +2031,22 @@ void allocate_memory
       for (iglt = 0;  iglt < num_glt;  iglt++)
 	{
 	  nlc = option_data->glt_rows[iglt];
+
 	  (*glt_coef_vol)[iglt] = (float **) malloc (sizeof(float *) * nlc);   
 	  MTEST((*glt_coef_vol)[iglt]);
+
+	  if (tout)
+	    {
+	      (*glt_tcoef_vol)[iglt]
+		= (float **) malloc (sizeof(float *) * nlc);   
+	      MTEST((*glt_tcoef_vol)[iglt]);
+	    }
+
 	  for (ilc = 0;  ilc < nlc;  ilc++)
 	    {
 	      zero_fill_volume (&((*glt_coef_vol)[iglt][ilc]),  nxyz);
+	      if (tout)
+		zero_fill_volume (&((*glt_tcoef_vol)[iglt][ilc]),  nxyz);
 	    }
 	  
 	  if (fout)  zero_fill_volume (&((*glt_fstat_vol)[iglt]),  nxyz);
@@ -2087,6 +2112,7 @@ void initialize_program
   float ** rfull_vol,        /* volume of full model R^2 stats. */
 
   float **** glt_coef_vol,   /* volumes for GLT linear combinations */
+  float **** glt_tcoef_vol,  /* volumes for GLT t-statistics */
   float ***  glt_fstat_vol,  /* volumes for GLT F-statistics */
   float ***  glt_rstat_vol,  /* volumes for GLT R^2 stats. */
 
@@ -2126,7 +2152,7 @@ void initialize_program
   if (!(*option_data)->nodata)
     allocate_memory (*option_data, coef_vol, scoef_vol, tcoef_vol, 
 		     fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
-		     glt_coef_vol, glt_fstat_vol, glt_rstat_vol,
+		     glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
 		     fitts_vol, errts_vol);
 
 }
@@ -2192,6 +2218,7 @@ void save_voxel
   float ffull,                 /* full model F-statistic */
   float rfull,                 /* full model R^2 stat. */
   vector * glt_coef,           /* linear combinations from GLT matrices */
+  vector * glt_tcoef,          /* t-statistics for the general linear tests */
   float * fglt,                /* F-statistics for the general linear tests */
   float * rglt,                /* R^2 stats. for the general linear tests */
   int nt,                      /* number of images in input 3d+time dataset */
@@ -2208,7 +2235,8 @@ void save_voxel
   float * mse_vol,          /* volume of full model mean square error */
   float * ffull_vol,        /* volume of full model F-statistics */
   float * rfull_vol,        /* volume of full model R^2 stats. */
-  float *** glt_coef_vol,   /* volumes for GLT linear combinatins */
+  float *** glt_coef_vol,   /* volumes for GLT linear combinations */
+  float *** glt_tcoef_vol,  /* volumes for GLT t-statistics */
   float **  glt_fstat_vol,  /* volumes for GLT F-statistics */
   float **  glt_rstat_vol,  /* volumes for GLT R^2 stats. */
   float ** fitts_vol,       /* volumes for full model fit to input data */
@@ -2284,6 +2312,13 @@ void save_voxel
 	  if (glt_coef_vol[iglt] != NULL)
 	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++) 
 	      glt_coef_vol[iglt][ilc][iv] = glt_coef[iglt].elts[ilc];
+
+      /*----- Save GLT t-statistics -----*/
+      if (glt_tcoef_vol != NULL)
+	for (iglt = 0;  iglt < num_glt;  iglt++)
+	  if (glt_tcoef_vol[iglt] != NULL)
+	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++) 
+	      glt_tcoef_vol[iglt][ilc][iv] = glt_tcoef[iglt].elts[ilc];
 
       /*----- Save GLT F-statistics -----*/
       if (glt_fstat_vol != NULL)
@@ -2408,7 +2443,8 @@ void calculate_results
   float * mse_vol,          /* volume of full model mean square error */
   float * ffull_vol,        /* volume of F-statistic for the full model */
   float * rfull_vol,        /* volume of R^2 for the full model */
-  float *** glt_coef_vol,   /* volumes for GLT linear combinatins */
+  float *** glt_coef_vol,   /* volumes for GLT linear combinations */
+  float *** glt_tcoef_vol,  /* volumes for GLT t-statistics */
   float **  glt_fstat_vol,  /* volumes for GLT F-statistics */
   float **  glt_rstat_vol,  /* volumes for GLT R^2 stats. */
   float ** fitts_vol,       /* volumes for full model fit to input data */
@@ -2632,12 +2668,12 @@ void calculate_results
 	  
 	  
 	  /*----- Save results for this voxel -----*/
-	  save_voxel (option_data, ixyz, coef, scoef, tcoef, 
-		      fpart, rpart, mse, ffull, rfull, glt_coef, fglt, rglt, 
+	  save_voxel (option_data, ixyz, coef, scoef, tcoef, fpart, rpart, mse,
+		      ffull, rfull, glt_coef, glt_tcoef, fglt, rglt, 
 		      nt, ts_array, good_list, fitts, errts, 
-		      coef_vol, scoef_vol, tcoef_vol, 
-		      fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol, 
-		      glt_coef_vol, glt_fstat_vol, glt_rstat_vol,
+		      coef_vol, scoef_vol, tcoef_vol, fpart_vol, rpart_vol, 
+		      mse_vol, ffull_vol, rfull_vol, glt_coef_vol, 
+		      glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
 		      fitts_vol, errts_vol);
 	  
 	  
@@ -3107,7 +3143,8 @@ void write_bucket_data
   float * mse_vol,         /* volume of full model mean square error */
   float * ffull_vol,       /* volume of full model F-statistics */
   float * rfull_vol,       /* volume of full model R^2 statistics */
-  float *** glt_coef_vol,  /* volumes for GLT linear combinatins */
+  float *** glt_coef_vol,  /* volumes for GLT linear combinations */
+  float *** glt_tcoef_vol, /* volumes for GLT t-statistics */
   float **  glt_fstat_vol, /* volumes for GLT F-statistics */
   float **  glt_rstat_vol  /* volumes for GLT R^2 statistics */
 )
@@ -3339,10 +3376,22 @@ void write_bucket_data
 	  /*----- GLT coefficient -----*/
 	  ibrick++;
 	  brick_type = FUNC_FIM_TYPE;
-	  sprintf (brick_label, "%s LC[%d]", label, ilc);
+	  sprintf (brick_label, "%s LC[%d] coef", label, ilc);
 	  volume = glt_coef_vol[iglt][ilc];		  
 	  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
 			    brick_type, brick_label, 0, 0, 0, bar);
+	      
+	  /*----- GLT t-stat -----*/
+	  if (option_data->tout)
+	    {
+	      ibrick++;
+	      brick_type = FUNC_TT_TYPE;
+	      dof = N - p;
+	      sprintf (brick_label, "%s LC[%d] t-st", label, ilc);
+	      volume = glt_tcoef_vol[iglt][ilc];		  
+	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+				brick_type, brick_label, dof, 0, 0, bar);
+	    }	      
 	}
       
       /*----- GLT R^2 stat -----*/
@@ -3479,6 +3528,7 @@ void output_results
   float * ffull_vol,        /* volume of full model F-statistics */
   float * rfull_vol,        /* volume of full model R^2 statistics */
   float *** glt_coef_vol,   /* volumes for GLT linear combinations */
+  float *** glt_tcoef_vol,  /* volumes for GLT t-statistics */
   float **  glt_fstat_vol,  /* volumes for GLT F-statistics */
   float **  glt_rstat_vol,  /* volumes for GLT R^2 statistics */
   float ** fitts_vol,       /* volumes for full model fit to input data */
@@ -3516,8 +3566,8 @@ void output_results
   if (option_data->bucket_filename != NULL) 
     if (nxyz > 1)
       write_bucket_data (argc, argv, option_data,  coef_vol, tcoef_vol, 
-			 fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol, 
-			 glt_coef_vol, glt_fstat_vol, glt_rstat_vol);
+		   fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol, 
+		   glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol);
     else
       write_one_ts (option_data->bucket_filename, p, coef_vol);
 
@@ -3601,7 +3651,8 @@ void terminate_program
   float ** ffull_vol,       /* volume of full model F-statistics */
   float ** rfull_vol,       /* volume of full model R^2 statistics */
 
-  float **** glt_coef_vol,  /* volumes for GLT linear combinatins */
+  float **** glt_coef_vol,  /* volumes for GLT linear combinations */
+  float **** glt_tcoef_vol, /* volumes for GLT t-statistics */
   float ***  glt_fstat_vol, /* volumes for GLT F-statistics */
   float ***  glt_rstat_vol, /* volumes for GLT R^2 statistics */
 
@@ -3717,6 +3768,22 @@ void terminate_program
       free (*glt_coef_vol);  *glt_coef_vol = NULL; 
     }
 
+  if (*glt_tcoef_vol  != NULL)  
+    {
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+	if ((*glt_tcoef_vol)[iglt] != NULL) 
+	  {   
+	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+	      if ((*glt_tcoef_vol)[iglt][ilc] != NULL)    
+		{ 
+		  free ((*glt_tcoef_vol)[iglt][ilc]);    
+		  (*glt_tcoef_vol)[iglt][ilc] = NULL; 
+		}   
+	    free ((*glt_tcoef_vol)[iglt]);   (*glt_tcoef_vol)[iglt] = NULL; 
+	  }
+      free (*glt_tcoef_vol);  *glt_tcoef_vol = NULL; 
+    }
+
   if (*glt_fstat_vol != NULL)  
     { 
       for (iglt = 0;  iglt < num_glt;  iglt++)
@@ -3785,7 +3852,8 @@ int main
   float * ffull_vol = NULL;   /* volume of full model F-statistics */
   float * rfull_vol = NULL;   /* volume of full model R^2 stats. */
 
-  float *** glt_coef_vol = NULL;    /* volumes for GLT linear combinatins */
+  float *** glt_coef_vol = NULL;    /* volumes for GLT linear combinations */
+  float *** glt_tcoef_vol = NULL;   /* volumes for GLT t-statistics */
   float **  glt_fstat_vol = NULL;   /* volumes for GLT F-statistics */
   float **  glt_rstat_vol = NULL;   /* volumes for GLT R^2 stats. */
 
@@ -3807,16 +3875,16 @@ int main
      &fmri_data, &fmri_length, &censor_array, &censor_length, &good_list,
      &block_list, &num_blocks, &stimulus, &stim_length, &glt_cmat, 
      &coef_vol, &scoef_vol, &tcoef_vol, &fpart_vol, &rpart_vol, 
-     &mse_vol, &ffull_vol, &rfull_vol, &glt_coef_vol, &glt_fstat_vol, 
-     &glt_rstat_vol, &fitts_vol, &errts_vol);
+     &mse_vol, &ffull_vol, &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, 
+     &glt_fstat_vol, &glt_rstat_vol, &fitts_vol, &errts_vol);
 
 
   /*----- Perform deconvolution -----*/
   calculate_results (option_data, dset_time, mask_vol, fmri_data, fmri_length,
-		     good_list, block_list, num_blocks, stimulus, stim_length, 
-		     glt_cmat, coef_vol, scoef_vol, tcoef_vol, fpart_vol, 
-		     rpart_vol, mse_vol, ffull_vol, rfull_vol, glt_coef_vol, 
-		     glt_fstat_vol, glt_rstat_vol, fitts_vol, errts_vol);
+     good_list, block_list, num_blocks, stimulus, stim_length, 
+     glt_cmat, coef_vol, scoef_vol, tcoef_vol, fpart_vol, 
+     rpart_vol, mse_vol, ffull_vol, rfull_vol, glt_coef_vol, glt_tcoef_vol, 
+     glt_fstat_vol, glt_rstat_vol, fitts_vol, errts_vol);
   
 
   /*----- Deallocate memory for input datasets -----*/   
@@ -3830,15 +3898,15 @@ int main
   if (!option_data->nodata)
     output_results (argc, argv, option_data, coef_vol, scoef_vol, tcoef_vol, 
 		    fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
-		    glt_coef_vol, glt_fstat_vol, glt_rstat_vol,
+		    glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
 		    fitts_vol, errts_vol);
 
 
   /*----- Terminate program -----*/
   terminate_program (&option_data, &stimulus, &glt_cmat, &coef_vol, &scoef_vol,
  		     &tcoef_vol, &fpart_vol, &rpart_vol, & mse_vol, &ffull_vol,
-		     &rfull_vol, &glt_coef_vol, &glt_fstat_vol, 
-		     &glt_rstat_vol, &fitts_vol, &errts_vol);
+		     &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, &glt_fstat_vol,
+ 		     &glt_rstat_vol, &fitts_vol, &errts_vol);
 
   exit(0);
 }
