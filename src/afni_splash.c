@@ -156,8 +156,6 @@ ENTRY("AFNI_splashup") ;
         if( num_face > 1 ){                       /* check if used recently */
           for( qq=0 ; qq < ndold && dold[qq] != dd ; qq++ ) ;       /* nada */
           if( qq < ndold ) goto Retry_dd ;                    /* was recent */
-          if( (lrand48() & 66) != 0 &&
-              strstr(fname_face[dd],"wildman") != NULL ) goto Retry_dd ;
           for( qq=1 ; qq < ndold ; qq++ )        /* wasn't, so save in list */
             dold[qq-1] = dold[qq] ;
           dold[ndold-1] = dd ;
@@ -600,7 +598,10 @@ ENTRY("AFNI_find_jpegs") ;
 
      fflist = (char **)realloc(fflist,sizeof(char *)*(num_file+nfile));
      for( ii=0 ; ii < nfile ; ii++ )
-       fflist[num_file++] = strdup(ffile[ii]) ;
+       if( strstr(ffile[ii],"face_wildman.jpg") != NULL )  /* 20 May 2005 */
+         remove(ffile[ii]) ;
+       else
+         fflist[num_file++] = strdup(ffile[ii]) ;
 
      MCW_free_wildcards( nfile , ffile ) ;  /* toss the junk */
 
