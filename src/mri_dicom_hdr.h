@@ -2838,7 +2838,7 @@ extern "C" {
 #define ON		1
 #define REGEX_SIZE	128
 
-#if !defined(LINUX) && !defined(IRIX) && !defined(DARWIN) && !defined(SGI)
+#if !defined(LINUX) && !defined(IRIX) && !defined(DARWIN) && !defined(SGI) && !defined(FreeBSD)
 char *re_comp(char *);
 int re_exec(char *);
 #endif
