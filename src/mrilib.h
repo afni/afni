@@ -810,6 +810,8 @@ extern MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im ) ;
 #define MSB_FIRST      2
 #define NATIVE_ORDER  -1
 
+#define REVERSE_ORDER(bord) (3-(bord))  /* 21 Jun 2002 */
+
 #define ORDER_LEN        9
 #define LSB_FIRST_STRING "LSB_FIRST"
 #define MSB_FIRST_STRING "MSB_FIRST"

@@ -3808,3 +3808,4 @@
 
 21 Jun 2002
  * Modified thd_info.c to print out disk storage mode of dataset.
+ * Started work on 3dANALYZEtoAFNI.c.
