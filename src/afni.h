@@ -514,19 +514,19 @@ typedef struct {
     threshold scale to behave bizarrely.  This macro is a fixup **/
 
 #ifdef FIX_SCALE_SIZE_PROBLEM
-#  define FIX_SCALE_SIZE(iqqq)                                \
-     do{ int sel_height ;  XtPointer sel_ptr ;                \
-         XtVaGetValues( (iqqq)->vwid->func->thr_scale ,       \
-                           XmNuserData , &sel_ptr , NULL ) ;  \
-         sel_height = (int) sel_ptr ;                         \
-         XtVaSetValues( (iqqq)->vwid->func->thr_scale ,       \
-                           XmNheight , sel_height , NULL ) ;  \
-         XtManageChild((iqqq)->vwid->func->thr_scale) ;       \
+#  define FIX_SCALE_SIZE(iqqq)                                           \
+     do{ int sel_height ;  XtPointer sel_ptr ;                           \
+         XtVaGetValues( (iqqq)->vwid->func->thr_scale ,                  \
+                           XmNuserData , &sel_ptr , NULL ) ;             \
+         sel_height = (int) sel_ptr ;                                    \
+         XtVaSetValues( (iqqq)->vwid->func->thr_scale ,                  \
+                           XmNheight , sel_height , NULL ) ;             \
+         XtManageChild((iqqq)->vwid->func->thr_scale) ;                  \
        } while(0)
 #  define HIDE_SCALE(iqqq) XtUnmanageChild((iqqq)->vwid->func->thr_scale)
 #else
 #  define FIX_SCALE_SIZE(iqqq) /* nada */
-#  define HIDE_SCALE(iqqq)   /* nada */
+#  define HIDE_SCALE(iqqq)     /* nada */
 #endif
 
 #ifdef FIX_SCALE_VALUE_PROBLEM

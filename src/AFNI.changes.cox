@@ -4245,3 +4245,13 @@
 
 29 Jan 2003
  * Modified 3drefit.t to add -Torg option (for MEG guys).
+
+30 Jan 2003
+ * Modified pbar.c, afni_func.c, etc., to add a "big" mode to the pbar, with
+     128 colors.  More work is needed here for SUMA, rendering, scripting,
+     loading colormaps, etc.
+
+31 Jan 2003
+ * Modified afni.c to de-sensitize threshold slider when not needed, rather
+     than hide it.  This is to get around a problem with the size of the pbar
+     being adjusted slightly incorrectly, for reasonse I don't understand.

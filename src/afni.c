@@ -6835,12 +6835,19 @@ STATUS(" -- function widgets ON") ;
 
       /* make some widgets sensitive if we have the threshold available */
 
+#define DONT_UNMANAGE_THRESH  /* 31 Jan 2003 */
+
       if( ! have_thr ){
-STATUS(" ---- threshold scale OFF") ;
+#ifndef DONT_UNMANAGE_THRESH
          XtUnmanageChild( im3d->vwid->func->thr_rowcol ) ;
+#else
+         SENSITIZE( im3d->vwid->func->thr_rowcol , 0 ) ;
+#endif
       } else {
-STATUS(" ---- threshold scale ON") ;
          XtManageChild  ( im3d->vwid->func->thr_rowcol ) ;
+#ifdef DONT_UNMANAGE_THRESH
+         SENSITIZE( im3d->vwid->func->thr_rowcol , 1 ) ;
+#endif
          FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
       }
 
@@ -7507,7 +7514,13 @@ STATUS("opening function" ) ;
          OPEN_PANEL(im3d,func) ;
 
 #ifdef REMANAGE_FUNC
+
+# ifndef DONT_UNMANAGE_THRESH
          if( have_thr ) XtManageChild( im3d->vwid->func->thr_rowcol ) ;
+# else
+         XtManageChild( im3d->vwid->func->thr_rowcol ) ;
+         SENSITIZE( im3d->vwid->func->thr_rowcol , have_thr ) ;
+# endif
          XtManageChild( im3d->vwid->func->inten_rowcol ) ;
          XtManageChild( im3d->vwid->func->options_rowcol ) ;
          XtManageChild( im3d->vwid->func->rowcol ) ;
