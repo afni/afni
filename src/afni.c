@@ -5027,9 +5027,13 @@ STATUS("setting image viewer 'sides'") ;
          else if( w == pb_yzx ) pm = afni48sag_pixmap ;
          else if( w == pb_zxy ) pm = afni48cor_pixmap ;
 
-         drive_MCW_imseq( *snew,isqDR_icon , (XtPointer) pm ) ;
+         drive_MCW_imseq( *snew, isqDR_icon , (XtPointer) pm ) ;
       }
 #endif
+      { int ii=AFNI_controller_index(im3d) ;
+        if( ii >= 0 )
+         drive_MCW_imseq( *snew, isqDR_bgicon, (XtPointer)afni16_pixmap[ii] ) ;
+      }
 
       drive_MCW_imseq( *snew, isqDR_ignore_redraws, (XtPointer) 0 ) ; /* 16 Aug 2002 */
 
