@@ -45,7 +45,7 @@ void get_linear_trend( int npt, float *xx, float *f0, float *f1 )
 }
 
 /*-------------------------------------------------------------------------
-   Linear detrend a 1D float array.
+   Linear detrend a 1D float array in place.
    If xx0 != NULL and xx1 != NULL, then the trend removed is
       far[i] -= (*xx0) + (*xx1) * i, for i=0..npt-1
 ---------------------------------------------------------------------------*/
@@ -122,7 +122,7 @@ void get_quadratic_trend( int npt, float *xx, float *f0, float *f1, float *f2 )
 }
 
 /*-------------------------------------------------------------------------
-   Quadratic detrend a 1D float array.
+   Quadratic detrend a 1D float array in place.
    If xx0 != NULL, xx1 != NULL, xx2 != NULL, then the trend removed is
       far[i] -= (*xx0) + (*xx1) * i + (*xx2)*(i*i) , for i=0..npt-1
 ---------------------------------------------------------------------------*/
@@ -148,6 +148,7 @@ void THD_quadratic_detrend( int npt, float *far,
 }
 
 /*------------------------------------------------------------------------------*/
+/*! Cubic detrend a float array in place. */
 
 void THD_cubic_detrend( int npt , float * far )  /* 15 Nov 1999 */
 {

@@ -1484,7 +1484,7 @@ djpeg: cjpeg
 cjpeg:
 	( cd jpeg-6b ; $(RM) Makefile jconfig.h ; ./configure ; \
           make ; strip cjpeg djpeg ; $(MV) cjpeg djpeg .. ;     \
-          $(RM) Makefile jconfig.h ; make clean ; )
+          make clean ; $(RM) Makefile jconfig.h )
 
 #######
 # FFTW - not used

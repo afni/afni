@@ -20,6 +20,74 @@ time_t THD_file_mtime( char * pathname )  /* 05 Dec 2001 */
 }
 
 /*-----------------------------------------------------------*/
+/*! Determine if this exists at all (file, directory, ...). */
+
+int THD_is_ondisk( char * pathname )  /* 19 Dec 2002 */
+{
+   static struct stat buf ; int ii ;
+
+   if( pathname == NULL ) return 0 ;
+   ii = stat( pathname , &buf ) ;
+   return (ii == 0) ;
+}
+
+/*-----------------------------------------------------------*/
+/*! Change working directory. */
+
+int THD_cwd( char *pathname )    /* 19 Dec 2002 */
+{
+   return ( chdir(pathname) == 0 ) ;
+}
+
+/*-----------------------------------------------------------*/
+/*! Create a directory.  Returns 1 if OK, 0 if not. */
+
+int THD_mkdir( char *pathname )  /* 19 Dec 2002 */
+{
+   int lp , ii , jj ;
+   char *pnam ;
+
+   /* check if input is OK, or if it already exists */
+
+   if( !THD_filename_ok(pathname) ) return 0 ;
+   if(  THD_is_ondisk  (pathname) ) return THD_is_directory(pathname) ;
+
+   pnam = strdup(pathname) ;  /* modifiable copy */
+   lp = strlen(pnam) ; ii = 0 ;
+
+   /* loop over path segments, creating them if needed */
+
+   while(1){
+
+     /* advance ii to point to end of next path segment,
+        at the next '/' character, or at the end of pnam */
+
+     ii += strspn(pnam+ii,"/") ; ii += strcspn(pnam+ii,"/") ;
+
+     /* insert a NUL to replace the '/', temporarily */
+
+     if( ii < lp ) pnam[ii] = '\0' ;
+
+     /* if this segment doesn't already exist, create it */
+
+     if( !THD_is_directory(pnam) ){
+       jj = mkdir( pnam , 0755 ) ;
+       if( jj != 0 ){ free(pnam); return 0; } /* bad */
+     }
+
+     /* if reached end of path string, we're done */
+
+     if( ii == lp ){ free(pnam); return 1; }  /* good */
+
+     /* reinsert '/' if it was excised */
+
+     pnam[ii] = '/' ;
+   }
+
+   return 0 ; /* unreachable */
+}
+
+/*-----------------------------------------------------------*/
 /*! Determine if this is really a regular file or not. */
 
 int THD_is_file( char * pathname )
@@ -112,7 +180,7 @@ int THD_equiv_files( char * path1 , char * path2 )
    string, so don't try to free() it!.
 -------------------------------------------------------------------*/
 
-char * THD_trailname( char * fname , int lev )
+char * THD_trailname( char *fname , int lev )
 {
    int fpos , flen , flev ;
 
