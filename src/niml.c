@@ -4149,9 +4149,8 @@ static int tcp_connect( char * host , int port )
 
    /** set socket options (no delays, large buffers) **/
 
-#if 0
-   /* actually, delays (the Nagle algorithm) are OK here,
-      so we won't turn on the TCP_NODELAY option after all */
+#if 1
+   /** disable the Nagle algorithm **/
    l = 1;
    setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
 #endif
@@ -5485,7 +5484,9 @@ fprintf(stderr,"NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" 
       NI_sleep(1); goto HeadRestart;                      /* try again */
    }
 
+#if 0
 fprintf(stderr,"NIML: NI_read_element found '<'\n") ;
+#endif
 
    /* ns->buf[ns->npos] = opening '<' ; ns->buf[nn-1] = closing '>' */
 
@@ -5502,7 +5503,7 @@ fprintf(stderr,"NIML: NI_read_element found '<'\n") ;
    hs = parse_header_stuff( nn - ns->npos , ns->buf + ns->npos , &nhs ) ;
 
    if( hs == NULL ){  /* something bad happened there */
-fprintf(stderr,"NIML: read bad element header!\n") ;
+      fprintf(stderr,"NIML_read_element: bad element header found!\n") ;
       ns->npos = nn; reset_buffer(ns); /* toss the '<..>', try again */
       goto HeadRestart ;
    }
@@ -6451,7 +6452,9 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    /* ADDOUT = after writing, add byte count if OK, else quit */
    /* AF     = thing to do if ADDOUT is quitting */
 
+#if 0
 fprintf(stderr,"NIML: enter NI_write_element\n") ;
+#endif
 
 #undef  AF
 #define AF     0
@@ -6460,10 +6463,14 @@ fprintf(stderr,"NIML: enter NI_write_element\n") ;
    if( ns == NULL ) return -1 ;
 
    if( ns->bad ){                        /* socket that hasn't connected yet */
+#if 0
 fprintf(stderr,"NIML: write socket not connected\n") ;
+#endif
       jj = NI_stream_goodcheck(ns,1) ;   /* try to connect it */
       if( jj < 1 ) return jj ;           /* 0 is nothing yet, -1 is death */
+#if 0
 fprintf(stderr,"      write socket now connected\n") ;
+#endif
    } else {                              /* check if good ns has gone bad */
       jj = NI_stream_writecheck(ns,1) ;
       if( jj < 0 ) return -1 ;
