@@ -5196,15 +5196,16 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
        if( !nosigpipe ){ signal(SIGPIPE,SIG_IGN); nosigpipe = 1; }
 
+#if 0
        /* 03 Mar 2002: wait until we can write fer shur */
-
        do{ ii=tcp_writecheck(ns->sd,1) ; } while(ii==0) ;
        if( ii < 0 ) return -1 ;
+#endif
 
        errno = 0 ;
        nsent = tcp_send( ns->sd , buffer , nbytes , 0 ) ;
        if( nsent < nbytes || errno != 0 ) PERROR("NI_stream_write(send)") ;
-       if( nsent == 0 ){ fprintf(stderr,"send: 0/%d\n",nbytes); nsent=-1; }
+       if( nsent == 0 ){ fprintf(stderr,"tcp send: 0/%d\n",nbytes); nsent=-1; }
        return nsent ;
 
      /** file: ==> just fwrite **/
@@ -5281,8 +5282,10 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 
      case NI_TCP_TYPE:
        ii = NI_stream_goodcheck(ns,1) ; if( ii != 1 ) return ii ;
+#if 0
        do{ ii=tcp_readcheck(ns->sd,1); } while( ii==0 ) ;
        if( ii < 0 ) return -1 ;
+#endif
        errno = 0 ;
        ii = tcp_recv( ns->sd , buffer , nbytes , 0 ) ;
        if( ii == -1 || errno != 0 ) PERROR("NI_stream_read(recv)") ;
@@ -5343,7 +5346,7 @@ static int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
    int nn , ii , ntot=0 , ngood=0 , mwait=0 ;
    int start_msec = NI_clock_time() ;
 
-   if( NI_stream_goodcheck(ns,0) <= 0 ) return -1 ; /* bad input */
+   if( NI_stream_goodcheck(ns,0) < 0 ) return -1 ;   /* bad input */
 
    if( ns->type == NI_STRING_TYPE ) return -1 ;      /* goofy input */
    if( ns->type == NI_REMOTE_TYPE ) return -1 ;      /* goofy input */
