@@ -272,13 +272,13 @@ ENTRY("THD_open_ctfmri") ;
           "  [ %9.4f %9.4f %9.4f %9.4f ]\n"
           "  [ %9.4f %9.4f %9.4f %9.4f ]\n"
           "  [ %9.4f %9.4f %9.4f %9.4f ]\n" ,
-        hh.transformMatrix[0][0] , hh.transformMatrix[0][1] ,
+      hh.transformMatrix[0][0] , hh.transformMatrix[0][1] ,
         hh.transformMatrix[0][2] , hh.transformMatrix[0][3] ,
-        hh.transformMatrix[1][0] , hh.transformMatrix[1][1] ,
+      hh.transformMatrix[1][0] , hh.transformMatrix[1][1] ,
         hh.transformMatrix[1][2] , hh.transformMatrix[1][3] ,
-        hh.transformMatrix[2][0] , hh.transformMatrix[2][1] ,
+      hh.transformMatrix[2][0] , hh.transformMatrix[2][1] ,
         hh.transformMatrix[2][2] , hh.transformMatrix[2][3] ,
-        hh.transformMatrix[3][0] , hh.transformMatrix[3][1] ,
+      hh.transformMatrix[3][0] , hh.transformMatrix[3][1] ,
         hh.transformMatrix[3][2] , hh.transformMatrix[3][3]  ) ;
 #endif
 
@@ -608,7 +608,6 @@ ENTRY("THD_load_ctfmri") ;
 #define      SAM_UNIT_SPMT     5            /* SAM T-statistic */
 #define      SAM_UNIT_SPMP     6            /* SAM probability */
 #define      SAM_UNIT_MUSIC    7            /* MUSIC metric */
-
 
 /* 'SAM_HDR' is to be used for both SAM coefficients & SAM static images */
 typedef struct {
