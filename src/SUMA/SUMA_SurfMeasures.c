@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.5 (January 23, 2004)"
+#define VERSION "version 1.6 (February 11, 2004)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -69,7 +69,10 @@ static char g_history[] =
     "  - reversed history list (most recent last) for '-hist' option\n"
     "\n"
     "1.5 January 23, 2004  [rickr]\n"
-    "  - SUMA_isINHmappable() is depricated, check with AnatCorrect field\n"
+    "  - SUMA_isINHmappable() is deprecated, check with AnatCorrect field\n"
+    "\n"
+    "1.6 February 11, 2004  [rickr]\n"
+    "  - add a little debug help for !AnatCorrect case\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -1124,13 +1127,17 @@ ENTRY("all_mappable_surfs");
 
 	so = (SUMA_SurfaceObject *)SUMAg_DOv[count].OP;
 
-/*	if ( ! SUMA_isINHmappable(so) )       -  depricated  [v1.5] */
+/*	if ( ! SUMA_isINHmappable(so) )       -  deprecated  [v1.5] */
 
 	if ( ! so->AnatCorrect )
 	{
 	    if ( opts->debug )
 		fprintf(stderr,"** warning: surface '%s' is not mappable, "
 		        "skipping...\n", so->Label ? so->Label : "<unnamed>");
+	    if ( opts->debug > 1 )
+		fprintf(stderr,"** consider adding the following to the "
+			       "surface definition in the spec file:\n"
+			       "       Anatomical = Y\n");
 	    continue;
 	}
 
