@@ -23,6 +23,7 @@ int main( int argc , char * argv[] )
    THD_datablock * old_dblk , * new_dblk ;
    char new_prefix[THD_MAX_PREFIX] = "axialize" ;
    int verbose = 0 , nim , pim ;
+   int native_order , save_order ;  /* 23 Nov 1999 */
 
    /*- sanity check -*/
 
@@ -127,6 +128,10 @@ int main( int argc , char * argv[] )
       pim = brax->n3 / 5 ; if( pim < 1 ) pim = 1 ;
    }
 
+   native_order = mri_short_order() ;                           /* 23 Nov 1999 */
+   save_order   = (DSET_BYTEORDER(new_dset) > 0) ? DSET_BYTEORDER(new_dset)
+                                                 : THD_get_write_order() ;
+
    for( nim=ival=0 ; ival < DSET_NVALS(old_dset) ; ival++ ){
       brfac_save = DBLK_BRICK_FACTOR(new_dblk,ival) ;
       DBLK_BRICK_FACTOR(new_dblk,ival) = 0.0 ;
@@ -135,6 +140,14 @@ int main( int argc , char * argv[] )
       for( kk=0 ; kk < brax->n3 ; kk++ ){
          im   = FD_warp_to_mri( kk , ival , brax ) ;
          imar = mri_data_pointer(im) ;
+         if( save_order != native_order ){                   /* 23 Nov 1999 */
+            switch( im->kind ){
+               case MRI_short:   mri_swap2(  npix,imar) ; break ;
+               case MRI_float:
+               case MRI_int:     mri_swap4(  npix,imar) ; break ;
+               case MRI_complex: mri_swap4(2*npix,imar) ; break ;
+            }
+         }
          code = fwrite( imar , dsiz , npix , far ) ;
          mri_free(im) ;
 

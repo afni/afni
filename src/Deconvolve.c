@@ -22,6 +22,14 @@
   Mod:     Additional statistical output (partial R^2 statistics).
   Date:    07 September 1999
 
+  Mod:     Allow reading of multiple input stimulus functions from a single
+           file by selection of individual columns.
+  Date:    09 November 1999
+
+  Mod:     Added options for writing the fitted full model time series (-fitts)
+           and the residual error time series (-errts) to 3d+time datasets.
+  Date:    22 November 1999
+
 
 */
 
@@ -45,7 +53,8 @@ int init_indep_var_matrix
   int NFirst,                 /* index of first image to use in the analysis */
   int N,                      /* total number of images used in the analysis */
   int num_stimts,             /* number of stimulus time series */
-  MRI_IMAGE ** stimulus,      /* stimulus time series arrays */ 
+  float ** stimulus,          /* stimulus time series arrays */
+  int * stim_length,          /* length of stimulus time series arrays */
   int * min_lag,              /* minimum time delay for impulse response */
   int * max_lag,              /* maximum time delay for impulse response */
   matrix * x                  /* independent variable matrix */
@@ -80,12 +89,12 @@ int init_indep_var_matrix
   m = q;
   for (is = 0;  is < num_stimts;  is++)
     {
-      if (stimulus[is]->nx < N+NFirst)
+      if (stim_length[is] < N+NFirst)
 	{
 	  DC_error ("Input stimulus time series is too short");
 	  return (0);
 	}
-      stim_array = MRI_FLOAT_PTR (stimulus[is]);
+      stim_array = stimulus[is];
       for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
 	{
 	  for (n = 0;  n < N;  n++)
@@ -246,7 +255,9 @@ void regression_analysis
   float * rpart,            /* partial R^2 stats. for the stimuli */
   float * ffull,            /* full model F-statistics */
   float * rfull,            /* full model R^2 stats. */
-  int * novar               /* flag for insufficient variation in data */
+  int * novar,              /* flag for insufficient variation in data */
+  float * fitts,            /* full model fitted time series */
+  float * errts             /* full model residual error time series */
 )
 
 {
@@ -272,6 +283,8 @@ void regression_analysis
   /*----- Stop here if variation about baseline is sufficiently low -----*/
   if (sqrt(sse_base/N) < rms_min)
     {
+      int it;
+
       *novar = 1;
       vector_create (p, coef_full);
       vector_create (p, scoef_full);
@@ -280,6 +293,11 @@ void regression_analysis
 	{
 	  fpart[is] = 0.0; 
 	  rpart[is] = 0.0;
+	}
+      for (it = 0;  it < N;  it++)
+	{
+	  fitts[it] = 0.0;
+	  errts[it] = 0.0;
 	}
       *mse = 0.0;
       *rfull = 0.0;
@@ -296,7 +314,7 @@ void regression_analysis
 
 
   /*----- Calculate the error sum of squares for the full model -----*/ 
-  sse_full = calc_sse (x_full, *coef_full, y);
+  sse_full = calc_sse_fit (x_full, *coef_full, y, fitts, errts);
   *mse = sse_full / (N-p);
 
 
@@ -433,6 +451,7 @@ void report_results
   float * rpart,              /* partial R^2 stats. for the stimuli */
   float ffull,                /* full model F-statistic */
   float rfull,                /* full model R^2 stat. */
+  float mse,                  /* mean square error from full model */
   int glt_num,                /* number of general linear tests */
   int * glt_rows,             /* number of linear constraints in glt */
   vector *  glt_coef,         /* linear combinations from GLT matrices */
@@ -518,6 +537,9 @@ void report_results
     sprintf (sbuf, "\nFull Model: \n");
     strcat (lbuf, sbuf);
 
+    sprintf (sbuf, "MSE    = %10.4f \n", mse);
+    strcat (lbuf, sbuf);
+    
     sprintf (sbuf, "R^2    = %10.4f \n", rfull);
     strcat (lbuf, sbuf);
     

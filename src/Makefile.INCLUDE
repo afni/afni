@@ -38,7 +38,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam \
            3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose \
            3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 3dmaskdump \
-           3dTshift 3dDetrend
+           3dTshift 3dDetrend 1dfft
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -49,7 +49,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot \
                   3dIntracranial 24swap 3dTsmooth RSFgen float_scan 3dmaskdump \
                   3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 1dtranspose \
-                  3dTshift 3dDetrend
+                  3dTshift 3dDetrend 1dfft
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
@@ -572,6 +572,10 @@ to3d:to3d.h $(T3OBJS) libcoxplot.a
 1dtranspose:1dtranspose.o
 	$(RM) $@
 	$(CC) -o 1dtranspose 1dtranspose.o $(LFLAGS) $(LLIBS)
+
+1dfft:1dfft.o
+	$(RM) $@
+	$(CC) -o 1dfft 1dfft.o $(LFLAGS) $(LLIBS)
 
 abut:abut.o
 	$(RM) $@

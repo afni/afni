@@ -10,6 +10,9 @@
   Mod:     Increased max. allowed number of input stimulus functions.
   Date:    24 August 1999
 
+  Mod:     Added option to create multiple column stimulus function files.
+  Date:    24 November 1999
+
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -20,7 +23,7 @@
 
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "24 August 1999"            /* date of last program mod */
+#define PROGRAM_DATE "12 November 1999"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -42,10 +45,11 @@
 
 
 int nt = 0;             /* length of time series */
-int num_stim = 0;       /* number of input stimuli (experimental conditions) */
+int num_stimts = 0;       /* number of input stimuli (experimental conditions) */
 int num_reps[MAX_STIM]; /* number of repetitions for each stimulus */
 long seed = 1234567;    /* random number seed */
 char * prefix = NULL;   /* prefix for output .1D stimulus functions */
+int one_file = 0;       /* flag for place stim functions into a single file */
 
 
 /*---------------------------------------------------------------------------*/
@@ -82,9 +86,10 @@ void display_help_menu()
     "Usage:                                                                 \n"
     "RSFgen                                                                 \n"
     "-nt n            n = length of time series                             \n"
-    "-nstim p         p = number of input stimuli (experimental conditions) \n"
+    "-num_stimts      p = number of input stimuli (experimental conditions) \n"
     "-nreps i r       r = number of repetitions for stimulus i  (1<=i<=p)   \n"
     "[-seed s]        s = random number seed                                \n"
+    "[-one_file]      place stimulus functions into a single .1D file       \n"
     "[-prefix pname]  pname = prefix for p output .1D stimulus functions    \n"
     "                   e.g., pname1.1D, pname2.1D, ..., pnamep.1D          \n"
     "                 Warning:  This will overwrite pre-existing .1D files  \n"
@@ -136,15 +141,15 @@ void get_options
 	}
 
 
-      /*-----  -nstim p  -----*/
-      if (strncmp(argv[nopt], "-nstim", 6) == 0)
+      /*-----  -num_stimts p  -----*/
+      if (strncmp(argv[nopt], "-num_stimts", 11) == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  RSF_error ("need argument after -nstim ");
 	  sscanf (argv[nopt], "%d", &ival);
 	  if (ival <= 0)
 	    RSF_error ("illegal argument after -nstim ");
-	  num_stim = ival;
+	  num_stimts = ival;
 	  nopt++;
 	  continue;
 	}
@@ -156,7 +161,7 @@ void get_options
 	  nopt++;
 	  if (nopt+1 >= argc)  RSF_error ("need 2 arguments after -nreps ");
 	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival <= 0) || (ival > num_stim))
+	  if ((ival <= 0) || (ival > num_stimts))
 	    RSF_error ("illegal i argument for -nreps i r ");
 	  i = ival - 1;
 	  nopt++;
@@ -184,6 +189,15 @@ void get_options
 	}
 
 
+      /*-----  -one_file  -----*/
+      if (strncmp(argv[nopt], "-one_file", 9) == 0)
+	{
+	  one_file = 1;
+	  nopt++;
+	  continue;
+	}
+
+
       /*-----   -prefix pname   -----*/
       if (strncmp(argv[nopt], "-prefix", 7) == 0)
 	{
@@ -205,8 +219,8 @@ void get_options
 
   /*----- Print options -----*/
   printf ("nt    = %d \n", nt);
-  printf ("nstim = %d \n", num_stim);
-  for (i = 0;  i < num_stim;  i++)
+  printf ("nstim = %d \n", num_stimts);
+  for (i = 0;  i < num_stimts;  i++)
     printf ("nreps[%d] = %d \n", i+1, num_reps[i]);
   printf ("seed  = %ld \n", seed);
 }
@@ -239,9 +253,9 @@ void initialize
 
   /*----- Check for valid inputs -----*/
   if (nt == 0)        RSF_error ("Must specify nt");
-  if (num_stim == 0)  RSF_error ("Must specify nstim");
+  if (num_stimts == 0)  RSF_error ("Must specify nstim");
   total = 0;
-  for (i = 0;  i < num_stim;  i++)
+  for (i = 0;  i < num_stimts;  i++)
     {
       if (num_reps[i] == 0)  
 	RSF_error ("Must specify nreps >0 for each stimulus");
@@ -276,7 +290,7 @@ void fill_array (int * design)
     design[i] = 0;
 
   i = 0;
-  for (is = 0;  is < num_stim;  is++)
+  for (is = 0;  is < num_stimts;  is++)
     {
       for (m = 0;  m < num_reps[is];  m++)
 	{
@@ -338,10 +352,10 @@ void print_array (int * design)
 
 /*---------------------------------------------------------------------------*/
 /*
-  Write time series array to specified file.
+  Write one time series array to specified file.
 */
 
-void write_ts (char * filename, int * array)
+void write_one_ts (char * filename, int * array)
 {
   int i;
   FILE * outfile = NULL;
@@ -363,7 +377,36 @@ void write_ts (char * filename, int * array)
 
 /*---------------------------------------------------------------------------*/
 /*
-  Write experimental design to separate stimulus function time series files.
+  Write multiple time series arrays to specified file.
+*/
+
+void write_many_ts (char * filename, int * design)
+{
+  int it, is;
+  FILE * outfile = NULL;
+
+
+  outfile = fopen (filename, "w");
+
+
+  for (it = 0;  it < nt;  it++)
+    {
+      for (is = 0;  is < num_stimts;  is++)
+	if (design[it] == is+1)
+	  fprintf (outfile, "  %d", 1);
+	else
+	  fprintf (outfile, "  %d", 0);	  
+      fprintf (outfile, " \n");
+    }
+
+
+  fclose (outfile);
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Write experimental design to stimulus function time series files.
 */
 
 void write_results (int * design)
@@ -373,27 +416,33 @@ void write_results (int * design)
   int is, i;
 
 
-  /*----- Allocate memory for output array -----*/
-  array = (int *) malloc (sizeof(int) * nt);
-  MTEST (array);
-
-
-  for (is = 1;  is <= num_stim; is++)
+  if (one_file)
     {
-      sprintf (filename, "%s%d.1D", prefix, is);
-      printf ("\nWriting file: %s\n", filename);
-      for (i = 0;  i < nt;  i++)
+      sprintf (filename, "%s.1D", prefix);
+      write_many_ts (filename, design);
+    }
+
+  else
+    {
+      /*----- Allocate memory for output array -----*/
+      array = (int *) malloc (sizeof(int) * nt);
+      MTEST (array);
+
+      for (is = 1;  is <= num_stimts; is++)
 	{
-	  if (design[i] == is)  array[i] = 1;
-	  else                  array[i] = 0;
-	}
-      write_ts (filename, array);
-    } 
-
-
-  /*----- Deallocate memory -----*/
-  free (array);   array = NULL;
-
+	  sprintf (filename, "%s%d.1D", prefix, is);
+	  printf ("\nWriting file: %s\n", filename);
+	  for (i = 0;  i < nt;  i++)
+	    {
+	      if (design[i] == is)  array[i] = 1;
+	      else                  array[i] = 0;
+	    }
+	  write_one_ts (filename, array);
+	}  
+      
+      /*----- Deallocate memory -----*/
+      free (array);   array = NULL;
+    }
 
 }
 

@@ -1840,5 +1840,11 @@
      that was told to have a byte order different from the native order -
      it was written in native order and the header wouldn't know about
      that - the result was the file was read in incorrectly later.
+ * Also fixed same error in 3daxialize.c.
  * Also fixed thd_writedblk.c and thd_loaddblk.c to handle byte swapping
      on complex data correctly.
+
+24 Nov 1999
+ * Added program 1dfft.c - to calculate abs(FFT(timeseries)).
+ * Modified 1deval.c to allow input of time series.
+ * Got some 3dDeconvolve.c changes from Doug Ward.

@@ -15,6 +15,13 @@
   Mod:     Additional statistical output (partial R^2 statistics).
   Date:    07 September 1999
 
+  Mod:     Modifications for compatibility with 3dDeconvolve options for
+           writing the fitted full model time series (-fitts) and the 
+           residual error time series (-errts) to 3d+time datasets.
+  Date:    22 November 1999
+
+
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -160,6 +167,58 @@ float  calc_sse
   vector_multiply (x, b, &yhat);
   vector_subtract (y, yhat, &e);
   sse = vector_dot (e, e);
+
+
+  /*----- dispose of vectors -----*/
+  vector_destroy (&e);
+  vector_destroy (&yhat);
+
+
+  /*----- return SSE -----*/
+  return (sse);
+ 
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Calculate the error sum of squares.  Also, return the fitted time series, 
+  and residual errors time series.
+*/
+
+float  calc_sse_fit
+(
+  matrix x,                  /* independent variable matrix  */
+  vector b,                  /* vector of estimated regression parameters */
+  vector y,                  /* vector of measured data */
+  float * fitts,             /* full model fitted time series */
+  float * errts              /* full model residual error time series */
+)
+
+{
+  vector yhat;               /* product Xb */
+  vector e;                  /* vector of residuals */
+  float sse;                 /* error sum of squares */
+  int it;                    /* time point index */
+
+
+  /*----- initialize vectors -----*/
+  vector_initialize (&yhat);
+  vector_initialize (&e);
+
+
+  /*----- calculate the error sum of squares -----*/
+  vector_multiply (x, b, &yhat);
+  vector_subtract (y, yhat, &e);
+  sse = vector_dot (e, e);
+
+
+  /*----- save the fitted time series and residual errors -----*/
+  for (it = 0;  it < x.rows;  it++)
+    {
+      fitts[it] = yhat.elts[it];
+      errts[it] = e.elts[it];
+    }
 
 
   /*----- dispose of vectors -----*/

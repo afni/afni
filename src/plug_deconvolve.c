@@ -41,6 +41,18 @@
   Mod:     Additional statistical output (partial R^2 statistics).
   Date:    07 September 1999
 
+  Mod:     Allow reading of multiple input stimulus functions from a single
+           file by selection of individual columns.
+  Date:    09 November 1999
+
+  Mod:     Modifications for compatibility with 3dDeconvolve options for
+           writing the fitted full model time series (-fitts) and the 
+           residual error time series (-errts) to 3d+time datasets.
+  Date:    22 November 1999
+
+  Mod:     Added test for maximum number of full model parameters.
+  Date:    24 November 1999
+
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -51,12 +63,12 @@
 
 #define PROGRAM_NAME "plug_deconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "07 September 1999"         /* date of last program mod */
+#define PROGRAM_DATE "24 November 1999"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
-#define MAX_XVARS 200                           /* max. number of parameters */
+#define MAX_XVARS 250                           /* max. number of parameters */
 #define MAX_STIMTS 20                 /* max. number of stimulus time series */
 #define MAX_GLT 10                    /* max. number of general linear tests */
 #define MAX_CONSTR 10                 /* max. number of linear constraints   */
@@ -99,6 +111,7 @@ static char helpstring[] =
    "                                                                        \n"
    " Stimulus:    Label     = Name for reference to this input stimulus.    \n"
    "              File      = Time series file representing input stimulus. \n"
+   "              Column    = Column of file which contains input stimulus. \n"
    "              Min Lag   = Minimum time delay for impulse response.      \n"
    "              Max Lag   = Maximum time delay for impulse response.      \n"
 ;
@@ -134,7 +147,9 @@ static int prev_nt=0;       /* previous time series length */
 
 static int num_stimts = 0;                 /* number of stimulus time series */
 static char * stim_label[MAX_STIMTS];      /* stimulus time series labels */
-static MRI_IMAGE * stimulus[MAX_STIMTS];   /* stimulus time series arrays */
+static int stim_column[MAX_STIMTS];        /* column containing stimulus */
+static float * stimulus[MAX_STIMTS];       /* stimulus time series arrays */
+static int stim_length[MAX_STIMTS];        /* length of stimulus time series */
 static int min_lag[MAX_STIMTS];   /* minimum time delay for impulse response */
 static int max_lag[MAX_STIMTS];   /* maximum time delay for impulse response */
 
@@ -209,6 +224,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
        PLUTO_add_option (plint, "Stimulus", "Stimulus", FALSE);
        PLUTO_add_string( plint, "Label", 0, NULL, 1);
        PLUTO_add_timeseries (plint, "File");
+       PLUTO_add_number (plint, "Column ", 0, 100, 0, 0, TRUE);
        PLUTO_add_number (plint, "Min Lag", 0, 100, 0, 0, TRUE);
        PLUTO_add_number (plint, "Max Lag", 0, 100, 0, 0, TRUE);
       
@@ -228,13 +244,14 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_register_1D_funcstr ("DC_IRF" , DC_IRF);
 
 
-  /*----- Initialize matrices and vectors -----*/
+  /*----- Initialize arrays, matrices, and vectors -----*/
   matrix_initialize (&xdata);
   matrix_initialize (&x_full);
   matrix_initialize (&xtxinv_full);
   matrix_initialize (&xtxinvxt_full);
   matrix_initialize (&x_base);
   matrix_initialize (&xtxinvxt_base);
+
   for (is =0;  is < MAX_STIMTS;  is++)
     {
       matrix_initialize (&x_rdcd[is]);
@@ -242,6 +259,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       stim_label[is] = malloc (sizeof(char)*MAX_NAME_LENGTH);
       MTEST (stim_label[is]);
       strcpy (stim_label[is], " ");
+      stimulus[is] = NULL;
+      stim_length[is] = 0;
     }
 
   for (iglt =0;  iglt < MAX_GLT;  iglt++)
@@ -273,6 +292,10 @@ char * DC_main( PLUGIN_interface * plint )
   int is;                               /* stimulus index */
   char IRF_label[MAX_NAME_LENGTH];      /* label of stimulus for IRF plot */
   int iglt;                             /* general linear test index */
+  MRI_IMAGE * stim;     /* pointers to image structures 
+                           -- used to read 1D ASCII */
+  float * far;          /* pointer to MRI_IMAGE floating point data */
+  int ipt;              /* time point index */
   
 
   /*----- reset flag for successful initialization -----*/
@@ -310,14 +333,42 @@ char * DC_main( PLUGIN_interface * plint )
 	  if (strcmp(stim_label[num_stimts], IRF_label) == 0)
 	    plug_IRF = num_stimts;
 	  
-	  stimulus[num_stimts] = PLUTO_get_timeseries(plint) ;
+	  stim = PLUTO_get_timeseries(plint) ;
 	  
-	  if (stimulus[num_stimts] == NULL || stimulus[num_stimts]->nx < 3 
-	      ||  stimulus[num_stimts]->kind != MRI_float)
+	  if (stim == NULL || stim->nx < 3 
+	      ||  stim->kind != MRI_float)
 	    return "*************************\n"
 	           "Illegal Timeseries Input!\n"
 	           "*************************"  ;
-	  
+
+
+	  /*----- Column in file which contains the stimulus function -----*/
+	  stim_column[num_stimts] = PLUTO_get_number(plint);
+
+	  if ((stim_column[num_stimts] < 0) 
+	    ||(stim_column[num_stimts] > stim->ny - 1))
+	    return "********************************\n"
+	           "Illegal Stim File Column Number!\n"
+	           "********************************"  ;
+
+
+	  /*----- Extract stimulus time series from MRI data structure -----*/
+	  if (stimulus[num_stimts] != NULL) 
+	    {
+	      free (stimulus[num_stimts]);
+	      stimulus[num_stimts] = NULL;
+	    }
+	  far = MRI_FLOAT_PTR(stim);
+	  stim_length[num_stimts] = stim->nx;
+	  stimulus[num_stimts] = (float *) malloc (sizeof(float) * (stim->nx));
+	  MTEST (stimulus[num_stimts]);
+
+	  for (ipt = 0;  ipt < (stim->nx);  ipt++)
+	    stimulus[num_stimts][ipt] 
+	      = far[ipt + stim_column[num_stimts]*(stim->nx)]; 
+
+
+	  /*----- Minimum and Maximum time lags for model -----*/
 	  min_lag[num_stimts] = PLUTO_get_number(plint);
 	  max_lag[num_stimts] = PLUTO_get_number(plint);
 	  
@@ -345,28 +396,16 @@ char * DC_main( PLUGIN_interface * plint )
   while (1);
 
 
-  /*----- show current input options -----*/
-  printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR);
-  printf ("Date:    %s \n", PROGRAM_DATE);
-  printf ("\nControls: \n");
-  printf ("Baseline  = %10s \n", baseline_strings[plug_polort]);
-  printf ("NFirst    = %10d \n", plug_NFirst);
-  printf ("NLast     = %10d \n", plug_NLast);
-  printf ("IRF label = %10s \n", IRF_label);
-
-  for (is = 0;  is < num_stimts;  is++)
-    {
-      printf ("\nStimulus:  %s \n", stim_label[is]);
-      printf ("Min. Lag =%3d   Max. Lag =%3d \n", min_lag[is], max_lag[is]);
-    }
- 
-
   /*----- Determine total number of parameters in the model -----*/
   plug_p = plug_polort + 1;
   for (is = 0;  is < num_stimts;  is++)
     plug_p += max_lag[is] - min_lag[is] + 1;
+  if (plug_p > MAX_XVARS)
+    { 
+      return "****************************\n"
+	     "Too many parameters in model \n"
+	     "****************************"  ;
+    }
  
 
   /*----- Read the general linear test matrices -----*/
@@ -387,6 +426,25 @@ char * DC_main( PLUGIN_interface * plint )
 	  }
       } 
 
+
+  /*----- show current input options -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR);
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\nControls: \n");
+  printf ("Baseline  = %10s \n", baseline_strings[plug_polort]);
+  printf ("NFirst    = %10d \n", plug_NFirst);
+  printf ("NLast     = %10d \n", plug_NLast);
+  printf ("IRF label = %10s \n", IRF_label);
+
+  for (is = 0;  is < num_stimts;  is++)
+    {
+      printf ("\nStimulus:  %s \n", stim_label[is]);
+      printf ("Column = %3d   Min. Lag = %3d   Max. Lag = %3d \n", 
+	      stim_column[is], min_lag[is], max_lag[is]);
+    }
+ 
 
   /*--- nothing left to do until data arrives ---*/
   initialize = 1 ;  /* successful initialization */
@@ -410,7 +468,10 @@ int calculate_results
   int * nlast,          /* last image from input 3d+time dataset to use */
   int * nfit,           /* number of fit parameters */
   float * fit,          /* fit parameters (regression coefficients) */
-  char ** label         /* string containing statistical summary of results */
+  char ** label,        /* string containing statistical summary of results */
+  float ** fitts,       /* full model fitted time series */
+  float ** errts        /* full model residual error time series */
+
 )
   
 {
@@ -479,6 +540,11 @@ int calculate_results
   *nfit = p;
 
 
+  /*----- Allocate memory for fitted time series and residuals -----*/
+  *fitts    = (float *) malloc (sizeof(float) * N);    MTEST (fitts);
+  *errts    = (float *) malloc (sizeof(float) * N);    MTEST (errts);
+
+
   /*----- Perform initialization only if something has changed -----*/
   if (nt == prev_nt)
     {
@@ -487,8 +553,8 @@ int calculate_results
   else
     {
       /*----- Initialize the independent variable matrix -----*/
-      ok = init_indep_var_matrix (p, q, NFirst, N, num_stimts,
-				  stimulus, min_lag, max_lag, &xdata);
+      ok = init_indep_var_matrix (p, q, NFirst, N, num_stimts, stimulus, 
+				  stim_length, min_lag, max_lag, &xdata);
 
       
       /*----- Initialization for the regression analysis -----*/
@@ -518,7 +584,8 @@ int calculate_results
 			   x_full, xtxinv_full, xtxinvxt_full, x_base,
 			   xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, 
 			   y, rms_min, &mse, &coef, &scoef, &tcoef, 
-			   fpart, rpart, &ffull, &rfull, &novar);
+			   fpart, rpart, &ffull, &rfull, &novar, 
+			   *fitts, *errts);
       
  	  
       /*----- Perform the general linear tests for this voxel -----*/
@@ -534,7 +601,7 @@ int calculate_results
       /*----- Report results for this voxel -----*/
       printf ("\nResults for Voxel: \n");
       report_results (q, num_stimts, stim_label, min_lag, max_lag,
-		      coef, tcoef, fpart, rpart, ffull, rfull, 
+		      coef, tcoef, fpart, rpart, ffull, rfull, mse, 
 		      glt_num, glt_rows, glt_coef, fglt, rglt, label);
       printf ("%s \n", *label);
 
@@ -572,40 +639,44 @@ void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
 
 {
   int NFirst;              /* first image from input 3d+time dataset to use */
-  int NLast;               /* last image from input 3d+time dataset to use */
-  float val;               /* fitted value at a time point */ 
+  int NLast;               /* last image from input 3d+time dataset to use */ 
   int n;                   /* time index */
   int ifit;                /* parameter index */
   int nfit;                /* number of fit parameters */
   float fit[MAX_XVARS];    /* fit parameters (regression coefficients) */
   int ok;                  /* Boolean for successful calculation */
+  float * fitts = NULL;    /* full model fitted time series */
+  float * errts = NULL;    /* full model residual error time series */
 
 
   /*----- Calculate the multiple linear regression -----*/
-  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label);
+  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label,
+			  &fitts, &errts);
+
+
+  /*----- If unable to complete the calculation, return all zeros -----*/
   if (!ok)
+    for (n = 0;  n < nt;  n++)  vec[n] = 0.0;
+
+
+  /*----- Use full model fit to the time series data -----*/
+  else
     {
-      for (n = 0;  n < nt;  n++)  vec[n] = 0.0;
-      return;
+      for (n = NFirst;  n <= NLast;  n++)
+	vec[n] = fitts[n-NFirst];
+      
+      for (n = 0;  n < NFirst;  n++)
+	vec[n] = vec[NFirst];
+      
+      for (n = NLast+1;  n < nt;  n++)
+	vec[n] = vec[NLast];
     }
 
 
-  /*----- Use the regression coefficients to calculate the fitted data -----*/
-  for (n = NFirst;  n <= NLast;  n++)
-    {
-      val = 0.0;
-      for (ifit = 0;  ifit < nfit;  ifit++)  
-	val += x_full.elts[n-NFirst][ifit] * fit[ifit];
-      vec[n] = val;
-    }
+  /*----- Deallocate memory -----*/
+  free (fitts);   fitts = NULL;
+  free (errts);   errts = NULL;
 
-  for (n = 0;  n < NFirst;  n++)
-    vec[n] = vec[NFirst];
-
-  for (n = NLast+1;  n < nt;  n++)
-    vec[n] = vec[NLast];
-  
-  
   return;
 }
 
@@ -626,33 +697,38 @@ void DC_Err (int nt, double to, double dt, float * vec, char ** label)
   int nfit;                /* number of fit parameters */
   float fit[MAX_XVARS];    /* fit parameters (regression coefficients) */
   int ok;                  /* Boolean for successful calculation */
+  float * fitts = NULL;    /* full model fitted time series */
+  float * errts = NULL;    /* full model residual error time series */
 
 
   /*----- Calculate the multiple linear regression -----*/
-  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label);
+  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label,
+			  &fitts, &errts);
+
+
+  /*----- If unable to complete the calculation, return all zeros -----*/
   if (!ok)
+    for (n = 0;  n < nt;  n++)  vec[n] = 0.0;
+
+
+  /*----- Use residuals from full model fit to time series data -----*/
+  else
     {
-      for (n = 0;  n < nt;  n++)  vec[n] = 0.0;
-      return;
+      for (n = NFirst;  n <= NLast;  n++)
+	vec[n] = errts[n-NFirst];
+
+      for (n = 0;  n < NFirst;  n++)
+	vec[n] = 0.0;
+      
+      for (n = NLast+1;  n < nt;  n++)
+	vec[n] = 0.0;
     }
 
 
-  /*----- Use the regression coefficients to calculate the residuals -----*/
-  for (n = NFirst;  n <= NLast;  n++)
-    {
-      val = 0.0;
-      for (ifit = 0;  ifit < nfit;  ifit++)  
-	val += x_full.elts[n-NFirst][ifit] * fit[ifit];
-      vec[n] = vec[n] - val;
-    }
+  /*----- Deallocate memory -----*/
+  free (fitts);   fitts = NULL;
+  free (errts);   errts = NULL;
 
-  for (n = 0;  n < NFirst;  n++)
-    vec[n] = 0.0;
-
-  for (n = NLast+1;  n < nt;  n++)
-    vec[n] = 0.0;
-  
-  
   return;
 }
 
@@ -675,46 +751,47 @@ void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
   int it;                  /* array index */
   int ntdnp;               /* number of array points per IRF parameter */  
   int ok;                  /* Boolean for successful calculation */
+  float * fitts = NULL;    /* full model fitted time series */
+  float * errts = NULL;    /* full model residual error time series */
 
 
   /*----- Calculate the multiple linear regression -----*/
-  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label);
+  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label,
+			  &fitts, &errts);
+
+
+  /*----- If unable to complete the calculation, return all zeros -----*/
   if (!ok)
-    {
-      for (it = 0;  it < nt;  it++)  vec[it] = 0.0;
-      return;
-    }
-
-
-  /*----- If IRF index is invalid, return all zeros -----*/
-  if (num_stimts == 1)
-    plug_IRF = 0;
-  else
-    if ((plug_IRF < 0) || (plug_IRF >= num_stimts))
-      {
-	for (it = 0;  it < nt;  it++)
-	  vec[it] = 0.0;
-	return;
-      }
+    for (it = 0;  it < nt;  it++)  vec[it] = 0.0;
 
 
   /*----- Plot the system impulse response function -----*/
-  np = max_lag[plug_IRF] - min_lag[plug_IRF] + 1;
-  ntdnp = nt / np;
-
-  q = plug_polort+1;
-  for (ip = 0;  ip < plug_IRF;  ip++)
-    q += max_lag[ip] - min_lag[ip] + 1;
-
-  for (it = 0;  it < np*ntdnp;  it++)
+  else
     {
-      ip = q + it/ntdnp;
-      vec[it] = fit[ip];
+      if ((num_stimts == 1) || (plug_IRF < 0) || (plug_IRF >= num_stimts))
+	plug_IRF = 0;
+      
+      np = max_lag[plug_IRF] - min_lag[plug_IRF] + 1;
+      ntdnp = nt / np;
+
+      q = plug_polort+1;
+      for (ip = 0;  ip < plug_IRF;  ip++)
+	q += max_lag[ip] - min_lag[ip] + 1;
+
+      for (it = 0;  it < np*ntdnp;  it++)
+	{
+	  ip = q + it/ntdnp;
+	  vec[it] = fit[ip];
+	}
+      
+      for (it = np*ntdnp;  it < nt;  it++)
+	vec[it] = 0.0;
     }
 
-  for (it = np*ntdnp;  it < nt;  it++)
-    vec[it] = 0.0;
 
+  /*----- Deallocate memory -----*/
+  free (fitts);   fitts = NULL;
+  free (errts);   errts = NULL;
   
   return;
 }
