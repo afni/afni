@@ -603,3 +603,7 @@
 26 August 2004:
   * modified FD2.c: added -swap_yes and -swap_no options
 
+27 August 2004:
+  * modified FD2.c: replace -swap_yes and -swap_no with a plain -swap
+		    (this alters the original program!)
+
