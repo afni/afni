@@ -56,6 +56,7 @@ static AFNI_friend afni_friends[] = {
   { "R Doucette"     , (                           64                   ) } ,
   { "RC Reynolds"    , (                           64       | 512       ) } ,
   { "PP Christidis"  , (                           64                   ) } ,
+  { "G Fong"         , (                 16 |           128             ) } ,
   { "LR Frank"       , (             8                                  ) }
 } ;
 
