@@ -17,17 +17,17 @@
 
 /*-------------------------- global data --------------------------*/
 
-static THD_3dim_dataset_array * TCAT_dsar  = NULL ;  /* input datasets */
-static XtPointer_array        * TCAT_subv  = NULL ;  /* sub-brick selectors */
-static int                      TCAT_nvox  = -1 ;    /* # voxels */
-static int                      TCAT_dry   = 0 ;     /* dry run? */
-static int                      TCAT_verb  = 0 ;     /* verbose? */
-static int                      TCAT_type  = -1 ;    /* dataset type */
-static int                      TCAT_glue  = 0 ;     /* glueing run? */
-static int                      TCAT_rlt   = 0 ;     /* remove linear trend? */
+static THD_3dim_dataset_array *TCAT_dsar  = NULL ;  /* input datasets */
+static XtPointer_array        *TCAT_subv  = NULL ;  /* sub-brick selectors */
+static int                     TCAT_nvox  = -1 ;    /* # voxels */
+static int                     TCAT_dry   = 0 ;     /* dry run? */
+static int                     TCAT_verb  = 0 ;     /* verbose? */
+static int                     TCAT_type  = -1 ;    /* dataset type */
+static int                     TCAT_glue  = 0 ;     /* glueing run? */
+static int                     TCAT_rlt   = 0 ;     /* remove linear trend? */
 
-static int                      TCAT_rqt   = 0 ;     /* 15 Nov 1999 */
-static int                      TCAT_rct   = 0 ;     /* 15 Nov 1999 */
+static int                     TCAT_rqt   = 0 ;     /* 15 Nov 1999 */
+static int                     TCAT_rct   = 0 ;     /* 15 Nov 1999 */
 
 static char TCAT_output_prefix[THD_MAX_PREFIX] = "tcat" ;
 static char TCAT_session[THD_MAX_NAME]         = "./"   ;
@@ -51,7 +51,7 @@ int * TCAT_get_subv( int , char * ) ;
    read the arguments, load the global variables
 ----------------------------------------------------------------------*/
 
-void TCAT_read_opts( int argc , char * argv[] )
+void TCAT_read_opts( int argc , char *argv[] )
 {
    int nopt = 1 , ii ;
    char dname[THD_MAX_NAME] ;
@@ -296,7 +296,7 @@ void TCAT_read_opts( int argc , char * argv[] )
   Decode a string like [1..3,5..9(2)] into an array of integers.
 -------------------------------------------------------------------------*/
 
-int * TCAT_get_subv( int nvals , char * str )
+int * TCAT_get_subv( int nvals , char *str )
 {
    int * subv = NULL ;
    int ii , ipos , nout , slen ;
