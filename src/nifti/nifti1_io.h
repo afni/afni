@@ -250,6 +250,8 @@ nifti_image *          nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
 void                   nifti_set_iname_offset(nifti_image *nim);
 int                    nifti_add_exten_to_list( nifti1_extension *  new_ext,
                                     nifti1_extension ** list, int new_length );
+char *                 nifti_strdup(char *str);
+
 
 /*-------------------- Some C convenience macros ----------------------------*/
 

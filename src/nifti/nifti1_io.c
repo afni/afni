@@ -169,6 +169,9 @@ static char gni_history[] =
   "   - only modify offset if it is too small (nifti_set_iname_offset)\n"
   "   - added nifti_type 3 to nifti_makehdrname and nifti_makeimgname\n"
   "   - added function nifti_set_filenames()\n"
+  "\n"
+  "1.1  07 Jan 2005 [rickr] \n"
+  "   - in nifti_read_header(), swap if needed\n"
   "----------------------------------------------------------------------\n";
 static char gni_version[] = "nifti library version 1.0 (January 7, 2004)";
 
@@ -2576,6 +2579,13 @@ nifti_1_header * nifti_read_header( char * hname, int * swap )
       LNI_FERR(fname,"bad nifti_1_header for file", hname);
       return NULL;
    }
+
+   if( lswap ) {
+      if ( gni_debug > 2 ) disp_nifti_1_header("-d nhdr pre-swap: ", &nhdr);
+      swap_nifti_header( &nhdr , NIFTI_VERSION(nhdr) ) ;
+   }
+
+   if ( gni_debug > 2 ) disp_nifti_1_header("-d nhdr post-swap: ", &nhdr);
 
    if ( ! nhdr_looks_good(&nhdr) ){
       LNI_FERR(fname,"nifti_1_header looks bad for file", hname);

@@ -935,15 +935,16 @@
   * added a description of AFNI_SHOW_SURF_POPUPS in README.environment
 
 07 Jan 2005: INITIAL RELEASE OF NIFTI LIBRARY (v 1.0)
-   - added function nifti_set_filenames()
-   - added function nifti_read_header()
-   - added static function nhdr_looks_good()
-   - added static function need_nhdr_swap()
-   - exported nifti_add_exten_to_list symbol
-   - fixed #bytes written in nifti_write_extensions()
-   - only modify offset if it is too small (nifti_set_iname_offset)
-   - added nifti_type 3 to nifti_makehdrname and nifti_makeimgname
-   - added function nifti_set_filenames()
+  * added function nifti_set_filenames()
+  * added function nifti_read_header()
+  * added static function nhdr_looks_good()
+  * added static function need_nhdr_swap()
+  * exported nifti_add_exten_to_list symbol
+  * fixed #bytes written in nifti_write_extensions()
+  * only modify offset if it is too small (nifti_set_iname_offset)
+  * added nifti_type 3 to nifti_makehdrname and nifti_makeimgname
+  * added function nifti_set_filenames()
+  * nifti library release 1.1: swap header in nifti_read_header()
 07 Jan 2005: INITIAL RELEASE OF nifti_tool (v 1.0)
-   - lots of functions
+  * lots of functions
 
