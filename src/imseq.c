@@ -4413,8 +4413,12 @@ ENTRY("ISQ_drawing_EV") ;
               if( ydif ){ DC_gray_change (seq->dc,-ydif); seq->last_by=event->y;}
               seq->cmap_changed = 1 ;
               if( seq->dc->visual_class == TrueColor ){
+                if( seq->graymap_mtd == NULL &&
+                    AFNI_yesenv("AFNI_STROKE_AUTOPLOT") ) ISQ_graymap_draw( seq ) ;
                 KILL_2XIM( seq->given_xbar , seq->sized_xbar ) ;
                 ISQ_redisplay( seq , -1 , isqDR_display ) ;
+              } else {
+                if( seq->graymap_mtd != NULL ) ISQ_graymap_draw( seq ) ;
               }
             }
           }
@@ -5522,28 +5526,40 @@ ENTRY("ISQ_but_disp_CB") ;
    05 Jan 1999: place the dialog near the image window
 -------------------------------------------------------------------------*/
 
-void ISQ_place_dialog( MCW_imseq * seq )
+void ISQ_place_dialog( MCW_imseq *seq )
 {
-   int dw,dh,dx,dy , xp,yp , wx,hy,xx,yy ;
+   if( ISQ_REALZ(seq) ) ISQ_place_widget( seq->wtop , seq->dialog ) ;
+   return ;
+}
 
-ENTRY("ISQ_place_dialog") ;
+/*-----------------------------------------------------------------------*/
 
-   if( !ISQ_REALZ(seq) || seq->dialog==NULL ) EXRETURN ;
+void ISQ_place_widget( Widget wmain , Widget w )  /* 27 Oct 2003 */
+{
+   int dw,dh,dx,dy , xp,yp , wx,hy,xx,yy , sh,sw ;
 
-   MCW_widget_geom( seq->wtop   , &wx,&hy,&xx,&yy ) ;  /* geometry of shell */
-   MCW_widget_geom( seq->dialog , &dw,&dh,&dx,&dy ) ;  /* of dialog */
+ENTRY("ISQ_place_widget") ;
+
+   if( wmain == (Widget)NULL || w == (Widget)NULL ) EXRETURN ;
+   if( !XtIsRealized(wmain)  || !XtIsRealized(w)  ) EXRETURN ;
+
+   MCW_widget_geom( wmain , &wx,&hy,&xx,&yy ) ;  /* geometry of shell */
+   MCW_widget_geom( w     , &dw,&dh,&dx,&dy ) ;  /* of dialog */
+
+   sh = HeightOfScreen(XtScreen(wmain)) ;
+   sh = WidthOfScreen (XtScreen(wmain)) ;
 
    xp = xx+wx+8 ;
-   if( xp+dw > seq->dc->width ) xp = xx-dw-8 ;
-   if( xp    < 0 )              xp = 0 ;
+   if( xp+dw > sw ) xp = xx-dw-8 ;
+   if( xp    < 0  ) xp = 0 ;
 
    yp = yy-4 ;
-   if( yp+dh > seq->dc->height ) yp = seq->dc->height - dh ;
-   if( yp    < 0 )               yp = 0 ;
+   if( yp+dh > sh ) yp = sh - dh ;
+   if( yp    < 0  ) yp = 0 ;
 
-   RWC_xineramize( seq->dc->display , xp,yp,dw,dh , &xp,&yp ); /* 27 Sep 2000 */
+   RWC_xineramize( XtDisplay(wmain) , xp,yp,dw,dh , &xp,&yp ); /* 27 Sep 2000 */
 
-   XtVaSetValues( seq->dialog , XmNx , xp , XmNy , yp , NULL ) ;
+   XtVaSetValues( w , XmNx , xp , XmNy , yp , NULL ) ;
    EXRETURN ;
 }
 
@@ -8671,6 +8687,8 @@ ENTRY("ISQ_graymap_mtdkill") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------*/
+
 void ISQ_graymap_draw( MCW_imseq *seq )  /* 24 Oct 2003 */
 {
    MEM_plotdata *mp ;
@@ -8695,7 +8713,7 @@ ENTRY("ISQ_graymap_draw") ;
      yar[0][ix] = seq->dc->xint_im[ix] ;
      if( yar[0][ix] < 0.0 ) yar[0][ix] = 0.0 ;
      else {
-       yar[0][ix] *= (255.0/65280.0) ; if( yar[0][ix] > 255.0 ) yar[0][ix] = 255.0 ;
+       yar[0][ix] *= (255.0/65280.0); if( yar[0][ix] > 255.0 ) yar[0][ix] = 255.0;
      }
    }
 
@@ -8743,6 +8761,7 @@ ENTRY("ISQ_graymap_draw") ;
       seq->graymap_mtd = memplot_to_topshell( seq->dc->display, mp, ISQ_graymap_mtdkill ) ;
       if( seq->graymap_mtd == NULL ){ delete_memplot(mp); EXRETURN; }
       seq->graymap_mtd->userdata = (void *) seq ;
+      ISQ_place_widget( seq->wtop , seq->graymap_mtd->top ) ;
    }
 
    EXRETURN ;

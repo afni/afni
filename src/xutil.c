@@ -231,10 +231,10 @@ void MCW_discard_events( Widget w , int ev_mask )
 
 char * MCW_hotcolor(Widget w)
 {
-   static char * redcolor = NULL ;
+   static char *redcolor = NULL ;
 
    if( redcolor == NULL ){
-     char * xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL, "hotcolor" ) ;
+     char *xdef = RWC_getname( (w!=NULL) ? XtDisplay(w) : NULL, "hotcolor" ) ;
 
      redcolor = (xdef != NULL) ? (xdef) : ("red3") ;
    }
@@ -1518,11 +1518,14 @@ ENTRY("RWC_xineramize") ;
          nxsi = 0 ;
          STATUS("AFNI_XINERAMA is NO") ;
       } else {
-         xdef  = XGetDefault(dpy,"AFNI","xinerama") ; /* get resource */
+         xdef = XGetDefault(dpy,"AFNI","xinerama") ; /* get resource */
+         if( xdef == NULL ) xdef = getenv("AFNI_xinerama") ;  /* 27 Oct 2003 */
          if( xdef != NULL ){
-            STATUS("Initializing from AFNI.xinerama:") ;
-            STATUS(xdef) ;
-            nn = 0 ; sscanf(xdef,"%d%n",&nxsi,&nn) ;  /* number of sub-screens */
+            char *qdef = strdup(xdef) ;
+            for( nn=0 ; qdef[nn] != '\0' ; nn++ )
+              if( qdef[nn] == '_' || qdef[nn] == ':' ) qdef[nn] = ' ' ;
+
+            nn = 0 ; sscanf(qdef,"%d%n",&nxsi,&nn) ;  /* number of sub-screens */
             if( nn <= 0 || nxsi <= 1 ){               /* ERROR */
                nxsi = 0 ;
             } else {
@@ -1530,7 +1533,7 @@ ENTRY("RWC_xineramize") ;
                ybot = (int *) malloc(sizeof(int)*nxsi) ; /* store sub-screen */
                xtop = (int *) malloc(sizeof(int)*nxsi) ; /* coordinate ranges */
                ytop = (int *) malloc(sizeof(int)*nxsi) ;
-               xp = xdef + nn ;
+               xp = qdef + nn ;
                for( ii=0 ; ii < nxsi ; ii++ ){    /* scan for sub-screen info */
                   nn = 0 ;
                   sscanf(xp,"%d%d%d%d%d%n",&ss,&xorg,&yorg,&wide,&high,&nn) ;
