@@ -1043,6 +1043,12 @@ ENTRY("mri_read_file") ;
         ADDTO_IMARR(newar,newim) ;
       }
 
+   } else if( strstr(new_fname,".mpg" ) != NULL ||  /* 03 Dec 2003 */
+              strstr(new_fname,".MPG" ) != NULL ||  /* read MPEGs  */
+              strstr(new_fname,".mpeg") != NULL ||
+              strstr(new_fname,".MPEG") != NULL   ){
+
+      newar = mri_read_mpeg( new_fname ) ;  /* cf. mri_read_mpeg.c */
    }
 
    /** failed to read anything?  try DICOM format (doesn't have a fixed suffix) **/
@@ -1233,6 +1239,15 @@ ENTRY("mri_imcount") ;
        strstr(new_fname,".IMA") != NULL   ){        /* 12 Mar 2001 */
 
       nz = mri_imcount_siemens( new_fname ) ;
+      if( nz > 0 ){ free(new_fname); RETURN(nz); }
+   }
+
+   if( strstr(new_fname,".mpg" ) != NULL ||  /* 03 Dec 2003 */
+       strstr(new_fname,".MPG" ) != NULL ||
+       strstr(new_fname,".mpeg") != NULL ||
+       strstr(new_fname,".MPEG") != NULL   ){
+
+      nz = mri_imcount_mpeg( new_fname ) ;
       if( nz > 0 ){ free(new_fname); RETURN(nz); }
    }
 
@@ -2990,6 +3005,12 @@ MRI_IMARR * mri_read_file_delay( char * fname )
 
       newar = mri_read_siemens( new_fname ) ;
 
+   } else if( strstr(new_fname,".mpg" ) != NULL ||  /* 03 Dec 2003 */
+              strstr(new_fname,".MPG" ) != NULL ||  /* read MPEGs  */
+              strstr(new_fname,".mpeg") != NULL ||
+              strstr(new_fname,".MPEG") != NULL   ){
+
+      newar = mri_read_mpeg( new_fname ) ;  /* cf. mri_read_mpeg.c */
    }
 
    /* failed thus far?  try DICOM, unless user has requested DICOM last */

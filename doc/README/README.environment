@@ -1819,6 +1819,28 @@ viewing RGB images).  The main function is to avoid having to use the
 feature to invert the grayscale map (e.g., to make a T2 weighted image
 look sort of like a T1 weighted image).
 
+----------------------------
+Variable: AFNI_MPEG_DATASETS
+----------------------------
+This variable can be used to allow MPEG files to be read in as AFNI datasets.
+Such datasets are inherently 3 dimensional.  How they will be organized inside
+AFNI depends on the setting of this variable.  The options are:
+  TIME  = the frame sequence number will be the time axis
+  SPACE = the frame sequence number will be the z-axis
+If this variable is NOT set to anything, then MPEG files will not be read as
+AFNI datasets.  If it is set to anything other than one of the values above,
+this variable will be treated as TIME.
+
+MPEG filenames input to AFNI programs (as sources of images or as datasets)
+must end in ".mpg", ".MPG", ".mpeg", or ".MPEG".
+
+---------------------------
+Variable: AFNI_MPEG_GRAYIZE
+---------------------------
+If this YES/NO variable is set to YES, then MPEG files read into afni,
+to3d, or aiv will be converted to grayscale, even if the images in
+the movie are in color.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |

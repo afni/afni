@@ -543,6 +543,10 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 
 extern MRI_IMAGE * mri_edit_image( float pthr, float power, MRI_IMAGE * im ) ;
 
+extern MRI_IMARR * mri_read_mpeg( char * ) ;    /* 03 Dec 2003 */
+extern int         mri_isgray( MRI_IMAGE * ) ;
+extern int         mri_imcount_mpeg( char * ) ;
+
 extern void cfft( int , int , float * , float * ) ;
 extern void cfft2d( int , int , int , float * , float * ) ;
 extern void csfft_cox( int,int , complex * ) ;

@@ -64,11 +64,11 @@ WHOAMI ; IMHEADER(oldim) ;
 
       case MRI_rgb:{                           /* 13 Nov 2002 */
          byte *rgb = oldim->im.rgb_data ;
-         float rfac=0.299*scale , gfac=0.587*scale , bfac=0.114*scale ;
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = (byte)(  rfac * rgb[3*ii  ]
-                            + gfac * rgb[3*ii+1]
-                            + bfac * rgb[3*ii+2] ) ;
+         float rfac=0.299*scale , gfac=0.587*scale , bfac=0.114*scale , val ;
+         for( ii=0 ; ii < npix ; ii++ ){
+           val = rfac * rgb[3*ii] + gfac * rgb[3*ii+1] + bfac * rgb[3*ii+2] ;
+           ar[ii] = BYTEIZE(val) ;
+         }
       }
       break ;
 
