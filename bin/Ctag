@@ -5,11 +5,11 @@
 set llist = ( AFNI SUMA RICKR )
 
 if( $#argv < 1 || "$1" == "-help" )then
-   echo " Usage: Ctag NAME [files]"
-   echo "  + Write a version string tag to all CVS files here and below."
+   echo " Usage: Ctag NAME"
+   echo "  + Write a version string tag to all CVS files in the cwd and below."
    echo "  + The tag is the output of the command 'date +NAME_%Y_%m_%d_%H:%M'"
    echo "    where the NAME is input on the command line."
-   echo "  + You should check in (i.e., 'Cput .') before using this."
+   echo "  + You should check out and in (i.e., 'Cget ; Cput .') before using Ctag."
    echo "  + Also, will create a file named NAME_label.h in the cwd."
    echo "  + The legal values for NAME are: ${llist} ."
    exit 0
@@ -32,7 +32,7 @@ endif
 
 # Create the tag label for CVS
 
-set ttt = `date +${nnn}_%Y_%m_%d_%H:%M`
+set ttt = `date +${nnn}_%Y_%m_%d_%H%M`
 echo "Tag set to ${ttt}"
 
 # Create the C header file with the tag label
