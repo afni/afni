@@ -94,9 +94,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 static Widget shell=NULL , rowcol , info_lab , choose_pb ;
 static Widget done_pb , undo_pb , help_pb , quit_pb , save_pb , saveas_pb ;
-static MCW_arrowval * value_av , * color_av , * mode_av ;
-static MCW_arrowval * rad_av ;                         /* 16 Oct 2002 */
-static Widget label_textf , label_label ;              /* 15 Oct 2003 */
+static MCW_arrowval *value_av , *color_av , *mode_av ;
+static MCW_arrowval *rad_av ;                         /* 16 Oct 2002 */
+static Widget label_textf , label_label ;             /* 15 Oct 2003 */
 
 #if 0
 # define ENABLE_rad_av \
@@ -605,6 +605,14 @@ void DRAW_make_widgets(void)
                            (XtPointer) NULL ,
                            XtListTail ) ;     /* last in queue */
 
+     XtInsertEventHandler( label_label ,      /* button press in label */
+                           ButtonPressMask ,
+                           FALSE ,
+                           DRAW_label_EV ,
+                           (XtPointer) NULL ,
+                           XtListTail ) ;
+     POPUP_cursorize( label_label ) ;
+
      XtManageChild(rc) ;
    }
 
@@ -917,7 +925,7 @@ void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
       undo_bufsiz = undo_bufnum = undo_bufuse = 0 ;
    }
 
-   XtUnmapWidget( shell ) ; editor_open = 0 ; recv_open = 0 ; recv_key = -1 ;
+   XtUnmapWidget( shell ); editor_open = 0; recv_open = 0; recv_key = -1;
    return ;
 }
 
@@ -980,7 +988,7 @@ void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
       undo_bufsiz = undo_bufnum = undo_bufuse = 0 ;
    }
 
-   XtUnmapWidget( shell ) ; editor_open = 0 ; recv_open = 0 ; recv_key = -1 ;
+   XtUnmapWidget( shell ); editor_open = 0; recv_open = 0; recv_key = -1;
    return ;
 }
 
@@ -1156,6 +1164,8 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            setup a standard value-label table in a file, whose\n"
   "            name is specified by setting environment variable\n"
   "            AFNI_VALUE_LABEL_DTABLE -- cf. file README.environment.\n"
+  "        * Right-clicking in the 'Label' next to the text-entry field\n"
+  "            will bring up a menu of all current value-label pairs.\n"
   "\n"
   "Step 3) Choose a drawing color.\n"
   "        * This is the color that will be shown in the image windows\n"
@@ -1694,9 +1704,9 @@ void DRAW_value_CB( MCW_arrowval * av , XtPointer cd )
    return ;
 }
 
-/*-------------------------------------------------------------------
-  Callbacks and functions for value label [15 Oct 2003]
----------------------------------------------------------------------*/
+/*---------------------------------------------------------------------
+  Callbacks and functions for value label and text field [15 Oct 2003]
+-----------------------------------------------------------------------*/
 
 static void dump_vallab(void)
 {
@@ -1707,12 +1717,16 @@ static void dump_vallab(void)
 #endif
 }
 
+/*---------------------------------------------------------------------*/
+
 char * DRAW_value_string( float val )  /* returns a fixed pointer! */
 {
    static char str[32] ;
    sprintf(str,"%.5g",val) ;
    return str ;
 }
+
+/*---------------------------------------------------------------------*/
 
 void DRAW_set_value_label(void)
 {
@@ -1726,6 +1740,8 @@ void DRAW_set_value_label(void)
    }
    return ;
 }
+
+/*---------------------------------------------------------------------*/
 
 void DRAW_label_CB( Widget wtex , XtPointer cld, XtPointer cad )
 {
@@ -1799,17 +1815,109 @@ void DRAW_label_CB( Widget wtex , XtPointer cld, XtPointer cad )
    return ;
 }
 
-void DRAW_label_EV( Widget wtex , XtPointer cld ,
+/*--------------------------------------------------------------------------*/
+
+static char **vl_strlist=NULL ;
+static  int  vl_nstrlist=0 ;
+
+static void DRAW_label_finalize( Widget w, XtPointer cd, MCW_choose_cbs * cbs )
+{
+   int ival = cbs->ival , nn ;
+   float val=0.0 ;
+
+   if( !editor_open ){ PLUTO_beep(); POPDOWN_strlist_chooser; return; }
+
+   nn = sscanf( vl_strlist[ival] , "%f" , &val ) ;
+   if( nn == 0 || val == 0.0 ) return ;
+
+   AV_assign_fval( value_av ,  val ) ;
+   value_int   = value_av->ival ;
+   value_float = value_av->fval ;
+   DRAW_set_value_label() ;
+   return ;
+}
+
+/*---------------------------------------------------------------------*/
+
+void DRAW_label_EV( Widget w , XtPointer cld ,
                     XEvent *ev , Boolean *continue_to_dispatch )
 {
-   XLeaveWindowEvent *lev = (XLeaveWindowEvent *) ev ;
-   XmAnyCallbackStruct cbs ;
 
-   if( lev->type != LeaveNotify ) return ;
+   /* handle leave event in text field */
 
-   cbs.reason = XmCR_ACTIVATE ;  /* simulate a return press */
-   DRAW_label_CB( wtex , NULL , &cbs ) ;
+   if( w == label_textf ){
+     XmAnyCallbackStruct cbs ;
+     XLeaveWindowEvent *lev = (XLeaveWindowEvent *) ev ;
+     if( lev->type != LeaveNotify ) return ;
+     cbs.reason = XmCR_ACTIVATE ;  /* simulate a return press */
+     DRAW_label_CB( w , NULL , &cbs ) ;
+   }
+
+   /* handle Button-3 press in label */
+
+   else if( w == label_label ){
+     XButtonEvent *bev = (XButtonEvent *) ev ;
+     int nn,ic,ll ; char **la, **lb ; float val ;
+
+     if( bev->button == Button2 ) XUngrabPointer(bev->display,CurrentTime) ;
+     if( bev->button != Button3 ) return ;
+     nn = listize_Dtable( vl_dtable , &la , &lb ) ;
+     if( nn <= 0 || la == NULL || lb == NULL ) return ;
+
+     /** get ready to popup a new list chooser **/
+
+     POPDOWN_strlist_chooser ;
+
+     /** clear old strings **/
+
+     for( ic=0 ; ic < vl_nstrlist ; ic++ ) free(vl_strlist[ic]) ;
+
+     /** make a list of value-label strings **/
+
+     vl_nstrlist = nn ;
+     vl_strlist  = (char **) realloc( vl_strlist , sizeof(char *)*vl_nstrlist ) ;
+     for( nn=ic=0 ; ic < vl_nstrlist ; ic++ ){
+       if( la[ic] != NULL && lb[ic] != NULL ){  /* should always be true */
+         ll = strlen(la[ic])+strlen(lb[ic])+8 ;
+         vl_strlist[nn] = calloc(1,ll) ;
+         sprintf( vl_strlist[nn] , "%s = %s" , la[ic],lb[ic] ) ;
+         nn++ ;
+       }
+     }
+     free(la); free(lb); if( nn == 0 ) return ;
+
+     /* sort list for the user's convenience */
+
+     if( nn > 1 ){
+       int redo ; char *t ;
+      BSort:
+       for( redo=ic=0 ; ic < nn-1 ; ic++ ){
+         if( strcmp(vl_strlist[ic],vl_strlist[ic+1]) > 0 ){
+           t=vl_strlist[ic]; vl_strlist[ic]=vl_strlist[ic+1]; vl_strlist[ic+1]=t;
+           redo = 1 ;
+         }
+       }
+       if( redo ) goto BSort ;
+     }
+
+     /* find current value in list, if any */
+
+     for( ic=0 ; ic < nn ; ic++ ){
+       sscanf( vl_strlist[ic] , "%f" , &val ) ;
+       if( val == value_float ) break ;
+     }
+     if( ic == nn ) ic = -1 ;
+
+     /* let the user choose one */
+
+     MCW_choose_strlist( w , "Value = Label" , nn ,
+                         ic , vl_strlist , DRAW_label_finalize , NULL ) ;
+   }
+
+   return ;
 }
+
+/*---------------------------------------------------------------------*/
 
 void DRAW_attach_dtable( Dtable *dt, char *atname, THD_3dim_dataset *ds )
 {
