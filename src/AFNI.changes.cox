@@ -5312,3 +5312,6 @@
 
 07 Feb 2005
  * Fixed bug in Deconvolve.c with removing mean of -stim_base columns.
+
+16 Feb 2005
+ * Modified 3dhistog.c to remove -thr stuff and add -doall stuff.
