@@ -1132,8 +1132,14 @@ if( PRINT_TRACING ){
                            "To pan the zoomed image window:\n"
                            "- Click on this 'pan' button\n"
                            "- Then drag the image with mouse\n"
-                           "  Button #1 (the cursor in the\n"
-                           "  image window will be hand-shaped)" ) ;
+                           "   Button #1 (the cursor in the\n"
+                           "   image window will be hand-shaped)\n"
+                           "- When you finish dragging, panning\n"
+                           "   mode will be turned off\n"
+                           "- If you want panning mode to stay\n"
+                           "   turned on until you click 'pan'\n"
+                           "   again, set environment variable\n"
+                           "   AFNI_KEEP_PANNING to YES"         ) ;
      MCW_register_hint( newseq->zoom_drag_pb ,
                            "Pan zoomed image" );
 
@@ -3845,9 +3851,11 @@ ENTRY("ISQ_drawing_EV") ;
          /* turn off panning mode */
 
          if( event->button == Button1 && seq->zoom_button1 ){
-            seq->zoom_button1 = 0 ;
-            POPUP_cursorize( seq->wimage ) ;
-            MCW_invert_widget( seq->zoom_drag_pb ) ;
+           if( !AFNI_yesenv("AFNI_KEEP_PANNING") ){
+             seq->zoom_button1 = 0 ;
+             POPUP_cursorize( seq->wimage ) ;
+             MCW_invert_widget( seq->zoom_drag_pb ) ;
+           }
          }
       }
       break ;

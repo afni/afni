@@ -276,6 +276,12 @@ PLUGIN_interface * ENV_init(void)
                     "Max rows in Graph Button-3 popup" ,
                     1 , 99 , 0 , 40 , NULL ) ;
 
+   /* 16 Mar 2002 */
+
+   ENV_add_string( "AFNI_KEEP_PANNING" ,
+                   "Keep 'pan' turned on in image viewers?" ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
