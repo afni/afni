@@ -3455,6 +3455,8 @@ extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_countmask( int , byte * ) ;
 extern byte * THD_automask( THD_3dim_dataset * ) ;         /* 13 Aug 2001 */
 extern byte * MRI_automask( MRI_IMAGE * ) ;                /* 05 Mar 2003 */
+extern void   THD_automask_verbose( int ) ;                /* 28 Oct 2003 */
+extern void   THD_automask_extclip( int ) ;
 
 extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
                           int *, int * , int *, int * , int *, int * ) ;
@@ -3463,6 +3465,8 @@ extern void MRI_autobbox( MRI_IMAGE * ,
 
 extern int THD_mask_fillin_completely( int,int,int, byte *, int ) ; /* 19 Apr 2002 */
 extern int THD_mask_fillin_once      ( int,int,int, byte *, int ) ;
+
+extern int THD_mask_clip_neighbors( int,int,int, byte *, float,float *) ; /* 28 Oct 2003 */
 
 extern void THD_mask_clust( int nx, int ny, int nz, byte *mmm ) ;
 extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;

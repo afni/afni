@@ -19,12 +19,17 @@ ENTRY("THD_median_brick") ;
    DSET_load(dset) ;
    if( !DSET_LOADED(dset) ) RETURN(NULL) ;
 
-   nvox  = DSET_NVOX(dset) ;
    nvals = DSET_NVALS(dset) ;
-
    tsim  = DSET_BRICK(dset,0) ;
+
+   if( nvals == 1 ){
+     medim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,0), tsim ) ;
+     RETURN(medim) ;
+   }
+
    medim = mri_new_conforming( tsim , MRI_float ) ;
    medar = MRI_FLOAT_PTR(medim) ;
+   nvox  = DSET_NVOX(dset) ;
 
    tsar = (float *) calloc( sizeof(float),nvals+1 ) ; /* 05 Nov 2001 */
    for( ii=0 ; ii < nvox ; ii++ ){

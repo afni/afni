@@ -5,13 +5,30 @@
 
 #undef DEBUG
 
+static int verb = 0 ;                            /* 28 Oct 2003 */
+void THD_automask_verbose( int v ){ verb = v ; }
+
+static int exterior_clip = 0 ;
+void THD_automask_extclip( int e ){ exterior_clip = e ; }
+
+static int dall = 0 ;
+
+/*---------------------------------------------------------------------*/
+
+static int mask_count( int nvox , byte *mmm )
+{
+   int ii , nn ;
+   for( nn=ii=0 ; ii < nvox ; ii++ ) nn += (mmm[ii] != 0) ;
+   return nn ;
+}
+
 /*---------------------------------------------------------------------*/
 /*! Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox.
      - compare to thd_makemask.c
      - 05 Mar 2003: modified to put most code into MRI_automask().
 -----------------------------------------------------------------------*/
 
-byte * THD_automask( THD_3dim_dataset * dset )
+byte * THD_automask( THD_3dim_dataset *dset )
 {
    MRI_IMAGE *medim ;
    byte *mmm ;
@@ -32,7 +49,7 @@ ENTRY("THD_automask") ;
     to make it possible to do this on an image directly.
 -----------------------------------------------------------------------*/
 
-byte * MRI_automask( MRI_IMAGE * im )
+byte * MRI_automask( MRI_IMAGE *im )
 {
    float clip_val , *mar ;
    byte *mmm = NULL ;
@@ -46,9 +63,11 @@ ENTRY("MRI_automask") ;
    if( im->kind != MRI_float ) medim = mri_to_float(im) ;
    else                        medim = im ;
 
-   /* clip value to excise small stuff */
+   /* find clip value to excise small stuff */
 
    clip_val = THD_cliplevel(medim,0.5) ;
+
+   if( verb ) fprintf(stderr," + Clip level = %f\n",clip_val) ;
 
    /* create mask of values above clip value */
 
@@ -58,13 +77,16 @@ ENTRY("MRI_automask") ;
    for( nmm=ii=0 ; ii < nvox ; ii++ )
      if( mar[ii] >= clip_val ){ mmm[ii] = 1; nmm++; }
 
-   if( im != medim ) mri_free(medim) ;
+   if( verb ) fprintf(stderr," + Number voxels above clip level = %d\n",nmm) ;
+   if( im != medim && (!exterior_clip || nmm==0) ){ mri_free(medim); medim=NULL; }
    if( nmm == 0 ) RETURN(mmm) ;  /* should not happen */
 
    /*-- 10 Apr 2002: only keep the largest connected component --*/
 
    nx = im->nx ; ny = im->ny ; nz = im->nz ;
+   dall = (nx*ny*nz)/128 ;  /* allocation delta for clustering */
 
+   if( verb ) fprintf(stderr," + Clustering voxels above clip level ...\n") ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
 
    /* 18 Apr 2002: now erode the resulting volume
@@ -79,23 +101,29 @@ ENTRY("MRI_automask") ;
 #ifdef USE_FILLIN
    /* 19 Apr 2002: fill in small holes */
 
-   ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
+   jj = ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
    if( ii > 0 ){
-     ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
+     jj += ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
      if( ii > 0 ){
-       ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
+       jj += ii = THD_mask_fillin_once( nx,ny,nz , mmm , 1 ) ;
      }
    }
+   if( jj > 0 && verb )
+    fprintf(stderr," + Filled   %d voxels in small holes; now have %d voxels\n",
+            jj , mask_count(nvox,mmm) ) ;
 
    nmm = 1 ;
    jj  = rint(0.016*nx) ; nmm = MAX(nmm,jj) ;
    jj  = rint(0.016*ny) ; nmm = MAX(nmm,jj) ;
    jj  = rint(0.016*nz) ; nmm = MAX(nmm,jj) ;
 
-   if( nmm > 1 || ii > 0 ){
-     for( ii=2 ; ii < nmm ; ii++ )
-       THD_mask_fillin_once( nx,ny,nz , mmm , ii ) ;
-     THD_mask_fillin_completely( nx,ny,nz, mmm , nmm ) ;
+   if( nmm > 1 || jj > 0 ){
+     for( jj=0,ii=2 ; ii < nmm ; ii++ )
+       jj += THD_mask_fillin_once( nx,ny,nz , mmm , ii ) ;
+     jj += THD_mask_fillin_completely( nx,ny,nz, mmm , nmm ) ;
+     if( jj > 0 && verb )
+      fprintf(stderr," + Filled   %d voxels in large holes; now have %d voxels\n",
+              jj , mask_count(nvox,mmm) ) ;
    }
 #endif
 
@@ -107,13 +135,69 @@ ENTRY("MRI_automask") ;
 
    for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
 
+   if( verb ) fprintf(stderr," + Clustering non-brain voxels ...\n") ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
 
-   /* and re-invert mask */
+   /* mask is now 1 for non-brain voxels;
+      if we want to clip off voxels neighboring the non-brain
+      mask AND whose values are below clip_val, do so now     */
+
+   if( exterior_clip ){
+     jj = THD_mask_clip_neighbors( nx,ny,nz , mmm , clip_val,mar ) ;
+     if( im != medim ) mri_free(medim) ;
+     if( jj > 0 && verb )
+       fprintf(stderr," + Removed  %d exterior voxels below clip level\n",jj);
+   } else {
+     jj = 0 ;
+   }
+
+   /* and re-invert mask to get brain voxels */
 
    for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
+   if( verb ) fprintf(stderr," + Mask now has %d voxels\n",mask_count(nvox,mmm)) ;
+
+   if( exterior_clip && jj > 0 ){
+     THD_mask_erode( nx,ny,nz, mmm ) ;
+     THD_mask_clust( nx,ny,nz, mmm ) ;
+   }
 
    RETURN(mmm) ;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Find voxels not in the mask, but neighboring it, that are also
+    below the clip threshold in mar[].  Add these to the mask.
+    Repeat until done.  Return value is number of voxels added.
+-----------------------------------------------------------------------*/
+
+int THD_mask_clip_neighbors( int nx, int ny, int nz ,
+                             byte *mmm, float clip_val, float *mar )
+{
+   int ii,jj,kk , ntot=0,nnew , jm,jp,j3 , km,kp,k3 , im,ip,i3 , nxy=nx*ny ;
+
+   if( mmm == NULL || mar == NULL ) return 0 ;
+
+   do{
+    nnew = 0 ;
+    for( kk=1 ; kk < nz-1 ; kk++ ){
+     k3 = kk*nxy ;
+     for( jj=1 ; jj < ny-1 ; jj++ ){
+      j3 = k3 + jj*nx ;
+      for( ii=1 ; ii < nx-1 ; ii++ ){
+       i3 = ii+j3 ;
+       if( mmm[i3] || mar[i3] >= clip_val ) continue ; /* in mask, or too big */
+
+       /* If here, voxel IS NOT in mask, and IS below threshold.
+          If any neighbors are also in mask, then add it to mask. */
+
+       if( mmm[i3-1]   || mmm[i3+1]   ||
+           mmm[i3-nx]  || mmm[i3+nx]  ||
+           mmm[i3-nxy] || mmm[i3+nxy]   ){ mmm[i3] = 1; nnew++; }
+    }}}
+    ntot += nnew ;
+   } while( nnew > 0 ) ;
+
+   return ntot ;
 }
 
 /*---------------------------------------------------------------------*/
@@ -305,7 +389,7 @@ ENTRY("THD_mask_fillin_completely") ;
   do{ ijk = THREE_TO_IJK(i,j,k,nx,nxy) ;                        \
       if( mmm[ijk] ){                                           \
         if( nnow == nall ){ /* increase array lengths */        \
-          nall += DALL ;                                        \
+          nall += dall ;                                        \
           inow = (short *) realloc(inow,sizeof(short)*nall) ;   \
           jnow = (short *) realloc(jnow,sizeof(short)*nall) ;   \
           know = (short *) realloc(know,sizeof(short)*nall) ;   \
@@ -336,7 +420,7 @@ void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
 
    /*--- scan through array, find nonzero point, build a cluster, ... ---*/
 
-   ijk_last = 0 ;
+   ijk_last = 0 ; if( dall < DALL ) dall = DALL ;
    while(1) {
      /* find next nonzero point */
 
@@ -396,6 +480,8 @@ void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
    }
    free(ibest) ; free(jbest) ; free(kbest) ;
 
+   if( verb ) fprintf(stderr," + Largest cluster has %d voxels\n",nbest) ;
+
    return ;
 }
 
@@ -446,8 +532,10 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
        }
    } } }
 
-   for( ii=0 ; ii < nxyz ; ii++ )            /* actually erode */
-     if( nnn[ii] ) mmm[ii] = 0 ;
+   for( jj=ii=0 ; ii < nxyz ; ii++ )            /* actually erode */
+     if( nnn[ii] ){ mmm[ii] = 0 ; jj++ ; }
+
+   if( verb && jj > 0 ) fprintf(stderr," + Eroded   %d voxels\n",jj) ;
 
    /* re-dilate eroded voxels that are next to survivors */
 
@@ -482,8 +570,10 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 
    /* actually do the dilation */
 
-   for( ii=0 ; ii < nxyz ; ii++ )
-     if( nnn[ii] ) mmm[ii] = 1 ;
+   for( jj=ii=0 ; ii < nxyz ; ii++ )
+     if( nnn[ii] ){ mmm[ii] = 1 ; jj++ ; }
+
+   if( verb && jj > 0 ) fprintf(stderr," + Restored %d eroded voxels\n",jj) ;
 #endif
 
    free(nnn) ; return ;

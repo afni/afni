@@ -4759,3 +4759,5 @@
 
 27 Oct 2003
  * Auto-popup and auto-place graymap plot.
+ * Change plug_drawdset.c to disable auto-popup of graymap plot when plugin
+     is open, and re-enable it when plugin closes.
