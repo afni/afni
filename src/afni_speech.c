@@ -13,23 +13,37 @@
              = 0 if you want the function to return immediately,
                  before speech finishes (or perhaps even starts). */
 
+static int have_say = -1 ;
+
 void AFNI_speak( char *string , int nofork )
 {
    char *buf ; pid_t ppp ;
 
+   /* bad input ==> quit */
+
    if( string == NULL || *string == '\0' ) return ;
+
+   /* user says "don't talk" ==> quit */
+
    buf = getenv("AFNI_SPEECH") ;
    if( buf != NULL && toupper(*buf) == 'N' ) return ;
+
+   /* don't have "say" program ==> quit */
+
+   if( have_say == -1 ) have_say = (THD_find_executable("say") != NULL) ;
+   if( have_say == 0 ) return ;
+
+   /* if want speech to run in a separate process ... */
 
    if( !nofork ){
      ppp = fork() ;
      if( ppp < 0 ) return ; /* fork failed */
 
-     /* parent: wait for child to exit (almost instantly) */
+     /* parent: wait for child to exit (happens almost instantly) */
 
      if( ppp > 0 ){ waitpid(ppp,NULL,0); return; }
 
-     /* child forks again immediately, then exits;
+     /* child: fork again immediately, then this child exits;
         this is to prevent zombie processes from hanging around */
 
      ppp = fork() ; if( ppp != 0 ) _exit(0) ; /* child exits now */
