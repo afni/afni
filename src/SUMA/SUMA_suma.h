@@ -46,3 +46,4 @@
 #include "SUMA_MiscFunc.h"   
 #include "SUMA_trackball.h"
 #include "SUMA_Color.h"
+#include "SUMA_GeomComp.h"
