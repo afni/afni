@@ -31,7 +31,7 @@ static void * handle = NULL ;
 #define USE_FADING
 
 #define USE_WRITING     /* 26 Feb 2001 */
-static int do_write=0 ;
+static int do_write=2 ;
 
 static int    num_ppms  =0 ;     /* 17 Sep 2001 */
 static char **fname_ppms=NULL ;
@@ -73,7 +73,7 @@ ENTRY("AFNI_splashdown") ;
 #if 0
                for( ii=0 ; ii < nv ; ii++ ) bspl[ii] *= 0.92 ;
 #else
-               for( ii=0 ; ii < nv ; ii++ ) bspl[ii] = (15*bspl[ii])>>4 ;
+               for( ii=0 ; ii < nv ; ii++ ) bspl[ii] = (15*bspl[ii]) >> 4 ;
 #endif
                SPLASH_popup_image(handle,imspl) ;
                drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
@@ -84,7 +84,8 @@ ENTRY("AFNI_splashdown") ;
 #endif
       SPLASH_popup_image(handle,NULL); myXtFree(handle) ; /* get rid of window */
    }
-   mri_free(imspl) ; imspl = NULL ; do_write = 1 ;
+   mri_free(imspl) ; imspl = NULL ;
+   do_write = ( (lrand48() >> 8) % 8 == 0 ) ? 2 : 1 ;
    EXRETURN ;
 }
 
@@ -373,19 +374,27 @@ ENTRY("SPLASH_imseq_getim") ;
       ii = create_memplot_surely("SPLASH memplot",1.0) ;
       if( ii == 0 ){
          MEM_plotdata * mp = get_active_memplot() ;
-         char * sf = AFNI_get_friend() ;
-         int nn = strlen(sf) ;
-         char * mf = strstr(sf," for ") ;
 
          set_color_memplot(1.0,1.0,1.0) ;
          set_thick_memplot(0.0) ;
 
-         if( nn < 36 || mf == NULL ){
-            plotpak_pwritf( 0.5,0.060 , sf , 28 , 0 , 0 ) ;
+         if( do_write == 2 ){
+           char *sf = AFNI_get_date_trivia() ;
+           int   nn = strlen(sf) , ss=28 ;
+           if( nn > 36 ) ss = (int)(28.0*36.0/nn) ;
+           plotpak_pwritf( 0.5,0.089 , "Today is"  , 28 , 0 , 0 ) ;
+           plotpak_pwritf( 0.5,0.033 , sf          , ss , 0 , 0 ) ;
          } else {
-            *mf = '\0' ;
-            plotpak_pwritf( 0.5,0.089 , sf  , 28 , 0 , 0 ) ;
-            plotpak_pwritf( 0.5,0.033 , mf+1, 28 , 0 , 0 ) ;
+           char * sf = AFNI_get_friend() ;
+           char * mf = strstr(sf," for ") ;
+           int    nn = strlen(sf) ;
+           if( nn < 36 || mf == NULL ){
+              plotpak_pwritf( 0.5,0.060 , sf , 28 , 0 , 0 ) ;
+           } else {
+              *mf = '\0' ;
+              plotpak_pwritf( 0.5,0.089 , sf  , 28 , 0 , 0 ) ;
+              plotpak_pwritf( 0.5,0.033 , mf+1, 28 , 0 , 0 ) ;
+           }
          }
          RETURN((XtPointer)mp) ;  /* will be deleted by imseq */
       }
