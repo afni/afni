@@ -646,7 +646,23 @@ ENTRY("AFNI_faceup") ;
      }
      fim = mri_dup2D(2,im) ; mri_free(im) ;  /* double size for fun */
      if( face_phan == NULL ){
+       int sxx,syy ; char *sen ; PLUGIN_imseq *ph ;
+
        face_phan = PLUTO_imseq_popim( fim,(generic_func *)AFNI_facedown,NULL );
+       sxx = (GLOBAL_library.dc->width-4*NXY)/2 ; if( sxx < 1 ) sxx = 1 ;
+       syy = 100 ;
+       sen = getenv("AFNI_SPLASH_XY") ;
+       if( sen != NULL ){
+         int n,x,y ;
+         n = sscanf(sen,"%d:%d",&x,&y) ;
+         if( n == 2 && x >= 0 && x < GLOBAL_library.dc->width &&
+                       y >= 0 && y < GLOBAL_library.dc->height  ){
+            sxx = x ; syy = y ;
+         }
+       }
+       ph = (PLUGIN_imseq *)face_phan ;
+       XtVaSetValues( ph->seq->wtop , XmNx,sxx , XmNy,syy , NULL ) ;
+
      } else {
        PLUTO_imseq_addto( face_phan , fim ) ;
      }
