@@ -985,7 +985,7 @@ afni_doc.tgz:
 
 ### Put things in their places
 
-install: $(INSTALLDIR)
+install: $(INSTALLDIR) $(INSTALL_PREREQ)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
 	$(CP) $(SCRIPTS) $(INSTALLDIR)
 
