@@ -17,7 +17,7 @@ void NI_read_header_only( int r ){ read_header_only=r ; } /* 23 Mar 2003 */
 /*! Read an element (maybe a group) from the stream, waiting up to
     msec milliseconds for the header to appear.  (After that, this
     function may wait a long time for the rest of the element to
-    appear, unless the data stream comes to an end.)
+    appear, unless the data stream comes to a premature end.)
 
    Return is NULL if nothing can be read at this time.  Otherwise,
    use NI_element_type(return value) to determine if the element
