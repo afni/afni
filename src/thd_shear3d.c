@@ -26,9 +26,9 @@ double norm_3shear( MCW_3shear sh )
    if( ! ISVALID_3SHEAR(sh) ) return BIG_NORM ;
 
    for( ii=0 ; ii < 3 ; ii++ ){
-      jj  = sh.ax[ii] ;
-      val = fabs( sh.scl[ii][(jj+1)%3] ) ; if( val > top ) top = val ;
-      val = fabs( sh.scl[ii][(jj+2)%3] ) ; if( val > top ) top = val ;
+     jj  = sh.ax[ii] ;
+     val = fabs( sh.scl[ii][(jj+1)%3] ) ; if( val > top ) top = val ;
+     val = fabs( sh.scl[ii][(jj+2)%3] ) ; if( val > top ) top = val ;
    }
 
    return top ;
@@ -438,14 +438,25 @@ MCW_3shear shear_arb( THD_dmat33 *q , THD_dfvec3 *xyzdel , int ox1,int ox2,int o
 }
 
 /*-----------------------------------------------------------------------------------
-   Find the "best" shear decomposition (smallest stretching factors)
+   Find the "best" shear decomposition (smallest stretching factors).
+   Input matrix q should have det(q)=1.
 -------------------------------------------------------------------------------------*/
 
-MCW_3shear shear_best( THD_dmat33 * q , THD_dfvec3 * xyzdel )
+MCW_3shear shear_best( THD_dmat33 *q , THD_dfvec3 *xyzdel )
 {
    MCW_3shear sh[6] ;
    int ii , jbest ;
    double val , best ;
+
+   if( DMAT_TRACE(*q) >= 2.99999 ){   /* 24 Feb 2004: input = identity matrix */
+     MCW_3shear shr ; double dx=xyzdel->xyz[0], dy=xyzdel->xyz[1], dz=xyzdel->xyz[2] ;
+     shr.ax[3]=0; shr.scl[3][0]=1.0; shr.scl[3][1]=0.0; shr.scl[3][2]=0.0; shr.sft[3]=dx;
+     shr.ax[2]=2; shr.scl[2][2]=1.0; shr.scl[2][0]=0.0; shr.scl[2][1]=0.0; shr.sft[2]=dz;
+     shr.ax[1]=1; shr.scl[1][1]=1.0; shr.scl[1][0]=0.0; shr.scl[1][2]=0.0; shr.sft[1]=dy;
+     shr.ax[0]=0; shr.scl[0][0]=1.0; shr.scl[0][1]=0.0; shr.scl[0][2]=0.0; shr.sft[0]=0.0;
+     shr.flip0 = shr.flip1 = -1 ;  /* no flips */
+     return shr ;
+   }
 
    /* compute all 6 possible factorizations (the brute force approach) */
 
@@ -460,8 +471,8 @@ MCW_3shear shear_best( THD_dmat33 * q , THD_dfvec3 * xyzdel )
 
    jbest = 0 ; best = BIG_NORM ;
    for( ii=0 ; ii < 6 ; ii++ ){
-      val = norm_3shear( sh[ii] ) ;
-      if( val < best ){ best = val ; jbest = ii ; }
+     val = norm_3shear( sh[ii] ) ;
+     if( val < best ){ best = val ; jbest = ii ; }
    }
 
    return sh[jbest] ;
@@ -559,7 +570,7 @@ MCW_3shear rot_to_shear( int ax1 , double th1 ,
    q.mat[0][1] *= (ydel/xdel) ;  /* q <- inv[D] q D */
    q.mat[0][2] *= (zdel/xdel) ;
    q.mat[1][0] *= (xdel/ydel) ;  /* q still has det[q]=1 after this */
-   q.mat[1][2] *= (zdel/ydel) ;
+   q.mat[1][2] *= (zdel/ydel) ;  /* and the diagonal is unaffected */
    q.mat[2][0] *= (xdel/zdel) ;
    q.mat[2][1] *= (ydel/zdel) ;
 
