@@ -14,6 +14,7 @@ int main( int argc , char * argv[] )
    FILE * ofile ;
    MRI_IMAGE * flim ;
    float * flar ;
+   int noijk=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskdump [options] dataset dataset ...\n"
@@ -34,6 +35,7 @@ int main( int argc , char * argv[] )
              "                 all nonzero values from 'mset' are used.\n"
              "                 Note that if a voxel is zero in 'mset', then\n"
              "                 it won't be included, even if a < 0 < b.\n"
+             "  -noijk       Means not to write out the i,j,k values.\n"
              "  -o fname     Means to write output to file 'fname'.\n"
              "                 [default = stdout, which you won't like]\n"
              "\n"
@@ -59,6 +61,11 @@ int main( int argc , char * argv[] )
 
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
+
+      if( strcmp(argv[narg],"-noijk") == 0 ){
+         noijk = 1 ;
+         narg++ ; continue ;
+      }
 
       if( strncmp(argv[narg],"-mask",5) == 0 ){
          if( mask_dset != NULL ){
@@ -135,7 +142,7 @@ int main( int argc , char * argv[] )
          nvox = DSET_NVOX(input_dset[0]) ;
       } else {
          if( DSET_NVOX(input_dset[ii]) != nvox ){
-            fprintf(stderr,"*** Dataset %d does not match in size!\n",argv[narg+ii]);
+            fprintf(stderr,"*** Dataset %s does not match in size!\n",argv[narg+ii]);
             exit(1) ;
          }
       }
@@ -191,15 +198,17 @@ int main( int argc , char * argv[] )
    for( ii=0 ; ii < nvox ; ii++ ){
       if( mmm != NULL && mmm[ii] == 0 ) continue ;  /* skip this voxel */
 
-      i = DSET_index_to_ix( input_dset[0] , ii ) ;  /* voxel indexes */
-      j = DSET_index_to_jy( input_dset[0] , ii ) ;
-      k = DSET_index_to_kz( input_dset[0] , ii ) ;
-
       obuf[0] = '\0' ;
 
-      otemp = MV_format_fval((float)i) ; strcat(obuf,otemp) ; strcat(obuf," ") ;
-      otemp = MV_format_fval((float)j) ; strcat(obuf,otemp) ; strcat(obuf," ") ;
-      otemp = MV_format_fval((float)k) ; strcat(obuf,otemp) ; strcat(obuf," ") ;
+      if( ! noijk ){
+         i = DSET_index_to_ix( input_dset[0] , ii ) ;  /* voxel indexes */
+         j = DSET_index_to_jy( input_dset[0] , ii ) ;
+         k = DSET_index_to_kz( input_dset[0] , ii ) ;
+
+         otemp = MV_format_fval((float)i); strcat(obuf,otemp); strcat(obuf," ");
+         otemp = MV_format_fval((float)j); strcat(obuf,otemp); strcat(obuf," ");
+         otemp = MV_format_fval((float)k); strcat(obuf,otemp); strcat(obuf," ");
+      }
 
       for( kk=0 ; kk < ndset ; kk++ ){
          flim = THD_extract_series( ii , input_dset[kk] , 0 ) ;

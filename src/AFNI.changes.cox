@@ -1738,3 +1738,7 @@
      to keep the input values, rather than create a fractional mask.
  * Added program 3dmaskdump.c, to dump voxel values out to ASCII.
  * Added qsort_int() to mri_percents.c.
+
+19 Oct 1999
+ * Added program 1dtranspose.c.
+ * Added option -noijk to 3dmaskdump.c.
