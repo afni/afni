@@ -1,5 +1,5 @@
 /*
-
+ 
 The interface routines for reading and writing PLY polygon files.
 
 Greg Turk, February 1994
