@@ -66,7 +66,7 @@ void ps_stroke( void )
 { fprintf( psfile , "S\n") ; atcur=inpath=0 ; }
 
 void ps_move( int ix , int iy )
-{ 
+{
   if( atcur && cx == ix && cy == iy ) return ;
   cx = ix ;
   cy = iy ;
@@ -171,7 +171,7 @@ void ps_linemod( char * s)
   } else if( strncmp(s,"dotted",6) == 0 ) {
      fprintf( psfile , "[ %f %f ] 0 setdash\n" , 2.0*pt , 3.0*pt ) ;
   } else if( strncmp(s,"dotdashed",9) == 0 ) {
-     fprintf( psfile , "[ %f %f %f %f ] 0 setdash\n" , 
+     fprintf( psfile , "[ %f %f %f %f ] 0 setdash\n" ,
 	    2.0*pt , 3.0*pt , 6.0*pt , 3.0*pt ) ;
   } else if( strncmp(s,"shortdashed",11) == 0 ) {
      fprintf( psfile , "[ %f %f ] 0 setdash\n" , 6.0*pt , 3.0*pt ) ;
@@ -218,12 +218,15 @@ int ps_setfont( void )
 
 int ps_openpl( char *fname )
 {
-  if( fname[0] != '|' ){
-     psfile = fopen( fname , "w" ) ;
-     psfile_ispipe = 0 ;
-  } else {
-     psfile = popen( fname+1 , "w" ) ;
-     psfile_ispipe = 1 ;
+  if( strcmp(fname,"-") == 0 ){           /* 29 Nov 2002: to stdout */
+    psfile = stdout ;
+    psfile_ispipe = 0 ;
+  } else if( fname[0] != '|' ){           /* normal file */
+    psfile = fopen( fname , "w" ) ;
+    psfile_ispipe = 0 ;
+  } else {                                /* open a pipe */
+    psfile = popen( fname+1 , "w" ) ;
+    psfile_ispipe = 1 ;
   }
   if( psfile == NULL ) return 0 ;
   ps_prolog();
@@ -238,15 +241,19 @@ void zzpsop_( char *cfl , int ncfl )  /* RWCox */
      ccc[i] = cfl[i] ;
   }
   ccc[i] = '\0' ;
-  ps_openpl( ccc ) ;
+  ps_openpl( ccc ) ; if( psfile == NULL ) return ;
   ps_space( 0,0,4096,4096 ) ;
 }
 
 void ps_closepl( void )
-{ ps_epilog(); 
+{ ps_epilog();
 
-  if( ! psfile_ispipe ) fclose(psfile) ;
-  else                  pclose(psfile) ;  /* RWCox */
+  if( psfile == stdout ){                   /* 29 Nov 2002: don't close stdout */
+    fflush(psfile) ;                        /*              just flush it */
+  } else {
+    if( ! psfile_ispipe ) fclose(psfile) ;
+    else                  pclose(psfile) ;  /* RWCox */
+  }
 
   psfile = NULL ; psfile_ispipe = 0 ;
 }
