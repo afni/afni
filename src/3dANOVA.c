@@ -1339,7 +1339,8 @@ void create_bucket (anova_options * option_data)
     exit(1) ;
   }
 
-  if( DSET_IS_1D(dset) ) USE_1D_filenames(1) ; /* 14 Mar 2003 */
+       if( DSET_IS_1D(dset) ) USE_1D_filenames(1) ; /* 14 Mar 2003 */
+  else if( DSET_IS_3D(dset) ) USE_1D_filenames(3) ; /* 21 Mar 2003 */
   
 
   /*----- make an empty copy of this dataset -----*/
@@ -1436,11 +1437,13 @@ void create_bucket (anova_options * option_data)
           by concatenating previous output files -----*/
   printf("Writing `bucket' dataset ");
   printf("into %s\n", option_data->bucket_filename);
+  fprintf(stderr,"RUNNING COMMAND: %s\n",bucket_str);
   system (bucket_str);
 
 
   /*----- invoke program 3drefit to label individual sub-bricks -----*/
   add_file_name (new_dset, option_data->bucket_filename, refit_str);
+  fprintf(stderr,"RUNNING COMMAND: %s\n",refit_str);
   system (refit_str);
 
 

@@ -89,16 +89,14 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 
      ii = string_index( "ni_delta" , nel->attr_num , nel->attr_lhs ) ;
      if( ii >= 0 && nel->vec_len > 0 ){
-        str_array *sar = decode_string_list( nel->attr_rhs[ii] , NULL ) ;
+        NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
            nel->vec_axis_delta = NI_malloc(sizeof(float)*nd) ;
            if( nd > ns ) nd = ns ;
            for( pp=0 ; pp < nd ; pp++ )
              sscanf( sar->str[pp] , "%f" , nel->vec_axis_delta+pp ) ;
-           for( pp=0 ; pp < ns ; pp++ )
-             NI_free( sar->str[pp] );
-           NI_free(sar->str) ; NI_free(sar) ;
+           NI_delete_str_array(sar) ;
         }
      }
 
@@ -106,16 +104,14 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 
      ii = string_index( "ni_origin" , nel->attr_num , nel->attr_lhs ) ;
      if( ii >= 0 && nel->vec_len > 0 ){
-        str_array *sar = decode_string_list( nel->attr_rhs[ii] , NULL ) ;
+        NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
            nel->vec_axis_origin = NI_malloc(sizeof(float)*nd) ;
            if( nd > ns ) nd = ns ;
            for( pp=0 ; pp < nd ; pp++ )
              sscanf( sar->str[pp] , "%f" , nel->vec_axis_origin+pp ) ;
-           for( pp=0 ; pp < ns ; pp++ )
-             NI_free( sar->str[pp] );
-           NI_free(sar->str) ; NI_free(sar) ;
+           NI_delete_str_array(sar) ;
         }
      }
 
@@ -123,16 +119,14 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 
      ii = string_index( "ni_units" , nel->attr_num , nel->attr_lhs ) ;
      if( ii >= 0 && nel->vec_len > 0 ){
-        str_array *sar = decode_string_list( nel->attr_rhs[ii] , NULL ) ;
+        NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
            nel->vec_axis_unit = NI_malloc(sizeof(char *)*nd) ;
            if( nd > ns ) nd = ns ;
            for( pp=0 ; pp < nd ; pp++ )
              nel->vec_axis_unit[pp] = NI_strdup(sar->str[pp]) ;
-           for( pp=0 ; pp < ns ; pp++ )
-             NI_free( sar->str[pp] );
-           NI_free(sar->str) ; NI_free(sar) ;
+           NI_delete_str_array(sar) ;
         }
      }
 
@@ -140,16 +134,14 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 
      ii = string_index( "ni_axes" , nel->attr_num , nel->attr_lhs ) ;
      if( ii >= 0 && nel->vec_len > 0 ){
-        str_array *sar = decode_string_list( nel->attr_rhs[ii] , NULL ) ;
+        NI_str_array *sar = NI_decode_string_list( nel->attr_rhs[ii] , NULL ) ;
         if( sar != NULL && sar->num > 0 ){
            int ns=sar->num , nd=nel->vec_rank , pp ;
            nel->vec_axis_label = NI_malloc(sizeof(char *)*nd) ;
            if( nd > ns ) nd = ns ;
            for( pp=0 ; pp < nd ; pp++ )
              nel->vec_axis_label[pp] = NI_strdup(sar->str[pp]) ;
-           for( pp=0 ; pp < ns ; pp++ )
-             NI_free( sar->str[pp] );
-           NI_free(sar->str) ; NI_free(sar) ;
+           NI_delete_str_array(sar) ;
         }
      }
 

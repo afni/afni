@@ -71,6 +71,8 @@ typedef struct { float r,i ; } complex ;
 #define NI_RGB         6               /* == MRI_rgb     */
 #define NI_RGBA        7               /* == MRI_rgba    */
 
+#define NI_IS_NUMERIC_TYPE(t) ( (t) >= 0 && (t) <= NI_RGBA )
+
 #define NI_STRING      8               /* after "basic" types */
 
 /*! One more than the last NI_ data type code defined above. */
@@ -537,6 +539,8 @@ extern int    NI_read_columns ( NI_stream_type *,
 extern void   NI_free_column  ( NI_rowtype * , int , void * ) ;
 extern void * NI_copy_column  ( NI_rowtype * , int , void * ) ;
 
+extern void   NI_read_header_only( int ) ; /* 21 Mar 2003 */
+
 #define NI_SWAP_MASK  (1<<0)
 #define NI_LTEND_MASK (1<<1)
 
@@ -686,6 +690,9 @@ typedef struct {
 #define NI_STAT_CHI        19   /* DOF                   */
 #define NI_STAT_INVGAUSS   20   /* mu, lambda            */
 #define NI_STAT_EXTVAL     21   /* location, scale       */
+
+#define NI_STAT_FIRSTCODE   2
+#define NI_STAT_LASTCODE   21
 
 extern int    NI_stat_numparam( int ) ;
 extern char * NI_stat_distname( int ) ;
@@ -1044,6 +1051,20 @@ typedef void NI_voidfunc() ;
 
 extern int NI_do( NI_stream_type * , NI_element * ) ;
 extern void NI_register_doer( char *, NI_voidfunc * ) ;
+/*-------------------------------------------------------------------------*/
+/*! An array of strings, each allocated with NI_malloc(). */
+
+typedef struct { int num; char **str;} NI_str_array ;
+
+#define NI_delete_str_array(sar)             \
+  do{ int pp ;                               \
+      for( pp=0 ; pp < (sar)->num ; pp++ )   \
+        NI_free( (sar)->str[pp] );           \
+      NI_free((sar)->str) ; NI_free(sar) ;   \
+  } while(0)
+
+extern NI_str_array * NI_decode_string_list( char *ss , char *sep ) ;
+#define NI_decode_str_array NI_decode_string_list
 /*-------------------------------------------------------------------------*/
 
 #endif /* _NIML_HEADER_FILE */

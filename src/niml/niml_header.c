@@ -307,16 +307,16 @@ intpair decode_type_field( char *tf )
       in the second and fourth output strings having 0 length).
 ----------------------------------------------------------------------*/
 
-str_array * decode_string_list( char *ss , char *sep )
+NI_str_array * NI_decode_string_list( char *ss , char *sep )
 {
-   str_array *sar ;
+   NI_str_array *sar ;
    int num , nn,id,jd , lss ;
 
    if( ss == NULL || ss[0] == '\0' ) return NULL ; /* bad input */
 
    if( sep == NULL || sep[0] == '\0' ) sep = "," ;  /* default sep */
 
-   sar = NI_malloc(sizeof(str_array)) ;  /* create output */
+   sar = NI_malloc(sizeof(NI_str_array)) ;  /* create output */
    sar->num = 0 ; sar->str = NULL ;
 
    /* scan for sub-strings */

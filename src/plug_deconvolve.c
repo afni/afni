@@ -130,6 +130,8 @@
   Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
   Date:    02 December 2002
 
+  Mod:     Additional input error testing for -censor and -concat options.
+  Date:    17 March 2003
 */
 
 /*---------------------------------------------------------------------------*/
@@ -137,7 +139,7 @@
 #define PROGRAM_NAME    "plug_deconvolve"            /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 September 1998"  /* initial program release date */
-#define PROGRAM_LATEST  "02 December 2002"   /* latest program revision date */
+#define PROGRAM_LATEST  "18 March 2003"      /* latest program revision date */
 
 /*---------------------------------------------------------------------------*/
 
@@ -1020,6 +1022,30 @@ static int calculate_results
   *fitts    = (float *) malloc (sizeof(float) * nt);    MTEST (*fitts);
   *errts    = (float *) malloc (sizeof(float) * nt);    MTEST (*errts);
 
+
+  /*----- Check length of censor array -----*/
+  if ((num_censor != 0) && (censor_length < nt))
+    {
+      DC_error ("Input censor time series file is too short");
+      return (0);
+    }
+
+
+  /*----- Check validity of concatenated runs list -----*/
+  for (ib = 0;  ib < num_blocks;  ib++)
+    if ((block_list[ib] < 0) || (block_list[ib] >= nt))
+      {
+	DC_error ("Invalid concatenated runs list");
+	return (0);
+      }
+  if (num_blocks > 1)
+    for (ib = 1;  ib < num_blocks;  ib++)
+      if (block_list[ib] <= block_list[ib-1])
+	{
+	  DC_error ("Invalid concatenated runs list");
+	  return (0);
+	}
+    
 
   /*----- Create list of good (usable) data points -----*/
   good_list = (int *) malloc (sizeof(int) * nt);  MTEST (good_list);

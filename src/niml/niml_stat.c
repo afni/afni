@@ -27,8 +27,6 @@
 # define NI_STAT_EXTVAL     21   /* location, scale       */
 #endif
 
-#define NI_STAT_LASTCODE   21
-
 static int numparam[] = { 0,0,3,1,2,0,1,2,2,2,
                           1,2,3,2,2,2,2,2,3,1,
                           2,2,

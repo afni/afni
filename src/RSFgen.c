@@ -1,6 +1,6 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1999-2001, and are released under the Gnu General Public
+   of Wisconsin, 1999-2003, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
@@ -46,6 +46,14 @@
   Mod:     Added -one_col option to write stimulus functions as a single
            column of decimal integers.
   Date:    18 April 2002
+
+  Mod:     Added -quiet option.
+  Date:    30 December 2002
+
+  Mod:     Added -table option, to generate random permutations of the rows
+           of an input column or table of numbers.
+  Date:    13 March 2003
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -53,7 +61,7 @@
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "06 July 1999"    /* date of initial program release */
-#define PROGRAM_LATEST "18 April 2002"    /* date of latest program revision */
+#define PROGRAM_LATEST "13 March 2003"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -88,6 +96,8 @@ int one_col = 0;        /* flag for write stim functions as a single column */
 int markov = 0;         /* flag for Markov process */
 char * tpm_file = NULL; /* file name for input of transition prob. matrix */
 float pzero = 0.0;      /* zero (null) state probability */
+int quiet = 0;          /* flag for suppress screen output */
+char * table_file = NULL;  /* input time series file */
 
 
 /*---------------------------------------------------------------------------*/
@@ -113,29 +123,50 @@ if((ptr)==NULL) \
 
 /*---------------------------------------------------------------------------*/
 /*
+  Identify software.
+*/
+
+void identify_software ()
+{
+  
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
+  printf ("\n");
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Routine to display help menu for program RSFgen.
 */
 
 void display_help_menu()
 {
+  identify_software();
+
   printf (
     "Sample program to generate random stimulus functions.                  \n"
     "                                                                       \n"
     "Usage:                                                                 \n"
-    "RSFgen                                                                 \n"
+    PROGRAM_NAME "                                                          \n"
     "-nt n            n = length of time series                             \n"
     "-num_stimts p    p = number of input stimuli (experimental conditions) \n"
     "[-nblock i k]    k = block length for stimulus i  (1<=i<=p)            \n"
     "                     (default: k = 1)                                  \n"
     "[-seed s]        s = random number seed                                \n"
+    "[-quiet]         flag to suppress screen output                        \n"
     "[-one_file]      place stimulus functions into a single .1D file       \n"
     "[-one_col]       write stimulus functions as a single column of decimal\n"
     "                   integers (default: multiple columns of binary nos.) \n"
     "[-prefix pname]  pname = prefix for p output .1D stimulus functions    \n"
     "                   e.g., pname1.1D, pname2.1D, ..., pnamep.1D          \n"
     "                                                                       \n"
-    "The following Random Permutation and Markov Chain options are          \n"
-    "mutually exclusive.                                                    \n"
+    "The following Random Permutation, Markov Chain, and Input Table options\n"
+    "are mutually exclusive.                                                \n"
     "                                                                       \n"
     "Random Permutation options:                                            \n"
     "-nreps i r       r = number of repetitions for stimulus i  (1<=i<=p)   \n"
@@ -148,6 +179,12 @@ void display_help_menu()
     "-markov mfile    mfile = file containing the transition prob. matrix   \n"
     "[-pzero z]       probability of a zero (i.e., null) state              \n"
     "                     (default: z = 0)                                  \n"
+    "                                                                       \n"
+    "Input Table row permutation options:                                   \n"
+    "[-table dfile]   dfile = filename of column or table of numbers        \n"
+    "                 Note: dfile may have a column selector attached       \n"
+    "                 Note: With this option, all other input options,      \n"
+    "                       except -seed and -prefix, are ignored           \n"
     "                                                                       \n"
     "                                                                       \n"
     "Warning: This program will overwrite pre-existing .1D files            \n"
@@ -300,6 +337,15 @@ void get_options
 	}
 
 
+      /*-----  -quiet  -----*/
+      if (strcmp(argv[nopt], "-quiet") == 0)
+	{
+	  quiet = 1;
+	  nopt++;
+	  continue;
+	}
+
+
       /*-----  -one_file  -----*/
       if (strncmp(argv[nopt], "-one_file", 9) == 0)
 	{
@@ -359,30 +405,109 @@ void get_options
 	}
       
 
+      /*-----   -table dfile   -----*/
+      if (strcmp(argv[nopt], "-table") == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  RSF_error ("need argument after -table ");
+	  table_file = malloc (sizeof(char) * THD_MAX_NAME);
+	  MTEST (table_file);
+	  strcpy (table_file, argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+      
+
       /*----- Unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       RSF_error (message);
       
     }
+}
 
 
-  /*----- Print options -----*/
-  printf ("nt            = %d \n", NT);
-  printf ("num_stimts    = %d \n", num_stimts);
-  printf ("seed          = %ld \n", seed);
-  if (pseed)  printf ("pseed         = %ld \n", pseed);
-  printf ("output prefix = %s \n", prefix);
-  if (markov)
+/*---------------------------------------------------------------------------*/
+/*
+  Read input table.
+*/
+
+void read_table 
+(
+  char * table_file,       /* file containing input table */
+  MRI_IMAGE ** flim        /* data structure containing input table */
+)
+
+{
+  int i;
+  char message[THD_MAX_NAME];  /* error message */
+
+  /*----- Read table -----*/
+  *flim = mri_read_1D(table_file);
+  if ((*flim) == NULL)  
     {
-      printf ("TPM file      = %s \n", tpm_file);
-      printf ("pzero         = %f \n", pzero);
-      for (i = 0;  i < num_stimts;  i++)
-	printf ("nblock[%d] = %d \n", i+1, nblock[i]);
+      sprintf (message,  "Unable to read table file: %s", table_file);
+      RSF_error (message);
+    }
+
+  /*----- Initialize control variables -----*/
+  NT = (*flim)->nx;
+  num_stimts = NT;
+  markov = 0;
+  pseed = 0;
+
+  /*----- Initialize repetition number array -----*/
+  num_reps = (int *) malloc (sizeof(int) * num_stimts);
+  MTEST (num_reps);
+  for (i = 0;  i < num_stimts;  i++)
+    num_reps[i] = 1;
+  
+  /*----- Initialize block length array -----*/
+  nblock = (int *) malloc (sizeof(int) * num_stimts);
+  MTEST (nblock);
+  for (i = 0;  i < num_stimts;  i++)
+    nblock[i] = 1;
+  
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Print input options. 
+*/
+
+void print_options ()
+
+{
+  int i;
+
+  identify_software();
+  
+  if (table_file != NULL)
+    {
+      printf ("table file    = %s \n", table_file);
+      printf ("nt            = %d \n", NT);
+      printf ("seed          = %ld \n", seed);
+      printf ("output prefix = %s \n", prefix);
     }
   else
-    for (i = 0;  i < num_stimts;  i++)
-      printf ("nreps[%d]  = %d    nblock[%d] = %d \n", 
-	      i+1, num_reps[i], i+1, nblock[i]);
+    {
+      printf ("nt            = %d \n", NT);
+      printf ("num_stimts    = %d \n", num_stimts);
+      printf ("seed          = %ld \n", seed);
+      if (pseed)  printf ("pseed         = %ld \n", pseed);
+      printf ("output prefix = %s \n", prefix);
+      if (markov)
+	{
+	  printf ("TPM file      = %s \n", tpm_file);
+	  printf ("pzero         = %f \n", pzero);
+	  for (i = 0;  i < num_stimts;  i++)
+	    printf ("nblock[%d] = %d \n", i+1, nblock[i]);
+	}
+      else
+	for (i = 0;  i < num_stimts;  i++)
+	  printf ("nreps[%d]  = %d    nblock[%d] = %d \n", 
+		  i+1, num_reps[i], i+1, nblock[i]);
+    }
 }
 
 
@@ -396,7 +521,8 @@ void initialize
   int argc,                /* number of input arguments */
   char ** argv,            /* array of input arguments */ 
   int ** darray,           /* original design array (block length = 1) */
-  int ** earray            /* expanded design array (arbitrary block length) */
+  int ** earray,           /* expanded design array (arbitrary block length) */
+  MRI_IMAGE ** flim        /* data structure containing input table */
 )
 
 { 
@@ -405,6 +531,14 @@ void initialize
 
   /*----- Get command line inputs -----*/
   get_options (argc, argv);
+
+
+  /*----- Read input table -----*/
+  if (table_file != NULL)  read_table (table_file, flim);
+
+
+  /*----- Print input options -----*/
+  if (! quiet)  print_options ();
 
 
   /*----- Check for valid inputs -----*/
@@ -459,7 +593,7 @@ void markov_array (int * design)
 	       tpm_file);
       RSF_error (message);
     }  
-  matrix_sprint ("\nTPM matrix:", tpm);
+  if (!quiet)  matrix_sprint ("\nTPM matrix:", tpm);
 
 
   /*----- Verify that the TPM has the correct form -----*/
@@ -468,13 +602,13 @@ void markov_array (int * design)
       cumprob = 0.0;
       for (it = 0;  it < num_stimts;  it++)
 	cumprob += tpm.elts[is][it];
-      if (cumprob < 1.0)  
+      if (cumprob < 0.9999)  
 	{
 	  sprintf (message, "Row %d of TPM sums to %f, which is < 1.0",
 		   is, cumprob);
 	  RSF_error (message);
 	}
-      if (cumprob > 1.01)  
+      if (cumprob > 1.0001)  
 	{
 	  sprintf (message, "Row %d of TPM sums to %f, which is > 1.0",
 		   is, cumprob);
@@ -697,9 +831,11 @@ void sprint_array (char * str, int * array, int n)
 {
   int i;
 
-  printf ("%s \n", str);
-
-  print_array (array, n);
+  if (!quiet)
+    {
+      printf ("%s \n", str);
+      print_array (array, n);
+    }
 
   return;
 }
@@ -767,16 +903,18 @@ void write_many_ts (char * filename, int * design)
   Write experimental design to stimulus function time series files.
 */
 
-void write_results (int * design)
+void write_results (char * prefix, int * design, int NT)
 {
-  char filename[THD_MAX_NAME];
-  int * array;
+  char filename[THD_MAX_NAME];    /* output file name */
+  int * array;                    /* output binary sequence representing one
+                                     stimulus function. */
   int is, i;
 
 
   if (one_file || one_col)
     {
       sprintf (filename, "%s.1D", prefix);
+      if (!quiet)  printf ("\nWriting file: %s\n", filename);
       write_many_ts (filename, design);
     }
 
@@ -789,7 +927,7 @@ void write_results (int * design)
       for (is = 1;  is <= num_stimts; is++)
 	{
 	  sprintf (filename, "%s%d.1D", prefix, is);
-	  printf ("\nWriting file: %s\n", filename);
+	  if (!quiet)  printf ("\nWriting file: %s\n", filename);
 	  for (i = 0;  i < NT;  i++)
 	    {
 	      if (design[i] == is)  array[i] = 1;
@@ -806,6 +944,55 @@ void write_results (int * design)
 
 
 /*---------------------------------------------------------------------------*/
+/*
+  Write permutation of input table.
+*/
+
+void write_table 
+(
+  char * prefix,                  /* prefix for output file */
+  int * design,                   /* permutation array */
+  MRI_IMAGE * flim                /* data structure containing input table */
+)
+
+{
+  FILE * outfile = NULL;          /* pointer to output file */
+  char filename[THD_MAX_NAME];    /* output file name */
+  int nx, ny;                     /* dimensions of input table */
+  int it, is, icol;               /* row and column indices */
+  float * far;                    /* pointer to input table float array */ 
+
+
+  /*----- Assemble output file name -----*/
+  sprintf (filename, "%s.1D", prefix);
+  outfile = fopen (filename, "w");
+
+  /*----- Get dimensions of input table -----*/
+  nx = flim->nx ;
+  ny = flim->ny ;
+
+  /*----- Set pointer to input table float array -----*/
+  far = MRI_FLOAT_PTR (flim);
+
+  /*----- Loop over rows of table -----*/
+  for (it = 0;  it <nx;  it++)
+    {
+      /*----- Get permuted row index -----*/
+      is = design[it]-1;
+
+      /*----- Copy row from input table to output file -----*/
+      for (icol = 0;  icol < ny;  icol++)
+	{
+	  fprintf (outfile, "  %f", far[icol*nx+is]);
+	}
+      fprintf (outfile, " \n");
+    }
+
+  fclose (outfile);
+}
+
+
+/*---------------------------------------------------------------------------*/
 
 int main 
 (
@@ -816,74 +1003,66 @@ int main
 {
   int * darray = NULL;     /* design array (block length = 1) */
   int * earray = NULL;     /* expanded array (arbitrary block length) */
-
-  
-  /*----- Identify software -----*/
-  printf ("\n\n");
-  printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
-  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
-  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
-  printf ("\n");
+  MRI_IMAGE * flim = NULL; /* data structure containing input table */
 
   
   /*----- Perform program initialization -----*/
-  initialize (argc, argv, &darray, &earray);
+  initialize (argc, argv, &darray, &earray, &flim);
 
 
-  if (markov)
   /*----- Use Markov chain to generate random stimulus functions -----*/
+  if (markov)
     {
       markov_array (darray);
       sprint_array ("\nMarkov chain time series: ", darray, nt);
     }
 
-
-  else
   /*----- Use random permutations to generate random stimulus functions -----*/
+  else
     {
       /*----- Generate required number of repetitions of stim. fns. -----*/
       fill_array (darray);
-      sprint_array ("\nOriginal array: ", darray, nt);
+      if (!quiet)  sprint_array ("\nOriginal array: ", darray, nt);
       
       /*----- Permute the stimulus functions -----*/
       if (pseed)  
 	{
 	  permute_array (darray);
-	  sprint_array ("\nPermuted array: ", darray, nt);
+	  if (!quiet)  sprint_array ("\nPermuted array: ", darray, nt);
 	}
 
       /*----- Randomize the order of the stimulus functions -----*/
       shuffle_array (darray);
-      sprint_array ("\nShuffled array: ", darray, nt);
+      if (!quiet)  sprint_array ("\nShuffled array: ", darray, nt);
 
     }
 
   
-  /*----- Expand the array for block type designs -----*/
-  if (expand)
-    {
-      expand_array (darray, earray);
-      sprint_array ("\nExpanded array: ", earray, NT);
-    }
+  /*----- Expand the darray for block type designs -----*/
+  expand_array (darray, earray);
+  if (expand && (!quiet))  sprint_array ("\nExpanded array: ", earray, NT);
   
 
   /*----- Output results -----*/
   if (prefix != NULL)  
     {
-      if (! expand)
-	write_results (darray);
+      if (flim == NULL)
+	write_results (prefix, earray, NT);
       else
-	write_results (earray);
+	write_table (prefix, earray, flim);
     }
 
 
   /*----- Deallocate memory -----*/
-  if (darray != NULL)  { free (darray); darray = NULL; }
-  if (earray != NULL)  { free (earray); earray = NULL; }
+  if (darray != NULL)  { free (darray);   darray = NULL; }
+  if (earray != NULL)  { free (earray);   earray = NULL; }
+  if (flim   != NULL)  { mri_free(flim);  flim = NULL; }
   
   exit(0);
 }
 
 /*---------------------------------------------------------------------------*/
+
+
+
 

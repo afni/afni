@@ -446,6 +446,17 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
       THD_init_diskptr_names( dset->dblk->diskptr ,
                               directory_name , NULL ,
                               nprefix , view_type , True ) ;
+
+      if( DSET_IS_1D(dset) || DSET_IS_3D(dset) ){         /* 21 Mar 2003 */
+        char *fname = dset->dblk->diskptr->brick_name ;
+        int  ll = strlen(fname) ;
+        fname[ll-10] = '\0' ;
+        if( DSET_IS_1D(dset) || (DSET_NY(dset)==1 && DSET_NZ(dset)==1) )
+          strcat(fname,".1D");
+        else
+          strcat(fname,".3D");
+      }
+
       if( nprefix != NULL ) free(nprefix) ;
    }
 

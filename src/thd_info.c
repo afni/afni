@@ -106,6 +106,9 @@ ENTRY("THD_dataset_info") ;
 
      case STORAGE_BY_1D:
        outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .1D file\n") ; break ;
+
+     case STORAGE_BY_3D:
+       outbuf = THD_zzprintf(outbuf,"Storage Mode:    AFNI .3D file\n") ; break ;
    }
 
    /*-- keywords --*/

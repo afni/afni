@@ -9,6 +9,11 @@ static int scan_for_angles( NI_stream_type *, int ) ;
 #define clear_buffer(ns) ( (ns)->nbuf = (ns)->npos = 0 )
 
 /*--------------------------------------------------------------------*/
+
+static int read_header_only = 0 ;
+void NI_read_header_only( int r ){ read_header_only=r ; } /* 23 Mar 2003 */
+
+/*--------------------------------------------------------------------*/
 /*! Read an element (maybe a group) from the stream, waiting up to
     msec milliseconds for the header to appear.  (After that, this
     function may wait a long time for the rest of the element to
@@ -32,8 +37,6 @@ static int scan_for_angles( NI_stream_type *, int ) ;
    read even in the buffer, or because the input data stream has gone
    bad (i.e., will return no more data ever).  To check for the latter
    case, use NI_stream_readcheck().
-
-   This code does not yet grok Line input.
 
    If a "<ni_do ... />" element is encountered, it will not be
    returned to the caller.  Instead, the actions it orders will
@@ -136,6 +139,8 @@ NI_dpr("NI_read_element: header parsed successfully\n") ;
       void *nini ;
       int   empty=hs->empty ;
 
+      read_header_only = 0 ;         /* 23 Mar 2003 */
+
       start_time = NI_clock_time() ; /* allow up to 10 sec for next */
       msec       = 9999 ;            /* element to appear, before giving up */
 
@@ -233,7 +238,8 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
           nel->vec_len == 0    ||     /* These other cases are indication */
           nel->vec_num == 0    ||     /* that this is an 'empty' element. */
           nel->vec_typ == NULL ||     /* ==> The header is all there is.  */
-          nel->vec     == NULL   ){
+          nel->vec     == NULL ||
+          read_header_only       ){
 
 #ifdef NIML_DEBUG
 NI_dpr("NI_read_element: returning empty element\n") ;

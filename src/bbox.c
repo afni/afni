@@ -655,6 +655,8 @@ ENTRY("refit_MCW_optmenu") ;
 
    /** reset some internal parameters **/
 
+   if( maxval > minval+255 ) maxval = minval+255 ;  /* 23 Mar 2003 */
+
    av->text_CB   = (text_proc != NULL ) ? (text_proc)
                                         : (AV_default_text_CB) ;
    av->text_data = text_data ;
