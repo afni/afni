@@ -23,6 +23,17 @@ static int header_stuff_is_group( header_stuff *hs )  /* 24 Feb 2005 */
 }
 
 /*--------------------------------------------------------------------*/
+/*! Check if header_stuff marks NIML element as a processing instruction.
+----------------------------------------------------------------------*/
+
+static int header_stuff_is_procins( header_stuff *hs )
+{
+   if( hs == NULL ) return 0 ;
+   if( hs->name != NULL && hs->name[0] == '?' ) return 1 ;
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
 
 static int read_header_only = 0 ;
 void NI_read_header_only( int r ){ read_header_only=r ; } /* 23 Mar 2003 */
@@ -161,7 +172,28 @@ NI_dpr("NI_read_element: header parsed successfully\n") ;
 
    /*--------------- Now make an element of some kind ---------------*/
 
-   if( header_stuff_is_group(hs) ){         /*--- a group element ---*/
+   if( header_stuff_is_procins(hs) ){       /*--- a processing instruction ---*/
+
+     NI_procins *npi ;
+
+     npi       = NI_malloc(NI_procins,sizeof(NI_procins)) ;
+     npi->type = NI_PROCINS_TYPE ;
+     npi->name = NI_strdup( hs->name + 1 ) ; /* skip the '?' */
+
+     npi->attr_num = hs->nattr ;
+     if( npi->attr_num > 0 ){
+       npi->attr_lhs = hs->lhs ; hs->lhs = NULL ;
+       npi->attr_rhs = hs->rhs ; hs->rhs = NULL ;
+     } else {
+       npi->attr_lhs = npi->attr_rhs = NULL ;
+     }
+
+     destroy_header_stuff( hs ) ;
+     return npi ;
+
+   } /*--- end of reading a processing instruction ---*/
+
+   else if( header_stuff_is_group(hs) ){           /*---- a group element ----*/
 
       NI_group *ngr ;
       void *nini ;
@@ -226,7 +258,7 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
 
    } /* end of reading group element */
 
-   else { /*---------------------- a data element -------------------*/
+   else {      /*------------------------ a data element ---------------------*/
 
       NI_element *nel ;
       int form, swap, nbrow , row,col ;
