@@ -971,7 +971,7 @@ afni_src.tgz:
 	$(CP) -r coxplot volpack moveup moveAFNI* cdflib eispack ./afni_src
 	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir dlcompat ./afni_src
 	$(CP) -r netcdf-3.5.0 jpeg-6b niml ./afni_src
-	$(CP) -r SUMA rickr faces ./afni_src
+	$(CP) -r SUMA rickr faces ni_test_? ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
 
