@@ -946,6 +946,10 @@ csfft.o:csfft.c
 	$(RM) $@
 	$(CCFAST) -c csfft.c $(IFLAGS)
 
+mri_drawing.o:mri_drawing.c
+	$(RM) $@
+	$(CCFAST) -c mri_drawing.c $(IFLAGS)
+
 mri_dup.o:mri_dup.c
 	$(RM) $@
 	$(CCFAST) -c mri_dup.c $(IFLAGS)
