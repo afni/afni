@@ -3853,3 +3853,7 @@
  * Modified AFNI_read_images() in afni.c to use im->dx,dy,dz in "-im" usage
      of program, if images read have voxel spacing (e.g., Analyze).
  * Modified imseq.c to NOT turn off widgets if only 1 slice to display.
+
+30 Jul 2002
+ * Modified plug_realtime.c to accept DRIVE_AFNI commands in the image prolog.
+ * Modified afni.c to allow plugouts during realtime.

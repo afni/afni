@@ -1314,7 +1314,7 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
            sprintf(str,"\n Plugins       = %d libraries read",nplug) ;
            REPORT_PROGRESS(str) ;
 
-           if( !GLOBAL_argopt.noplugouts && !ALLOW_real_time ){  /* June 1997 */
+           if( !GLOBAL_argopt.noplugouts ){  /* June 1997 */
                AFNI_init_plugouts() ;
                XtSetSensitive(MAIN_im3d->vwid->dmode->misc_plugout_pb,False) ; /* 07 Nov 2001 */
                REPORT_PROGRESS("\n Plugouts      = listening for connections") ;
