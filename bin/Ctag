@@ -1,5 +1,7 @@
 #!/bin/tcsh
 
+# list of allowable NAME values -- edit here if you want more
+
 set llist = ( AFNI SUMA RICKR )
 
 if( $#argv < 1 || "$1" == "-help" )then
@@ -12,6 +14,8 @@ if( $#argv < 1 || "$1" == "-help" )then
    echo "  + The legal values for NAME are: ${llist} ."
    exit 0
 endif
+
+# scan to make sure the supplied NAME (in variable nnn) is in the list
 
 set nnn = ${1}
 
@@ -26,17 +30,30 @@ if( $iii > $#llist )then
   exit 1
 endif
 
+# Create the tag label for CVS
+
 set ttt = `date +${nnn}_%Y_%m_%d_%H:%M`
+echo "Tag set to ${ttt}"
+
+# Create the C header file with the tag label
+
 set fff = ${nnn}_label.h
 
 if( -f ${fff} )then
   set do_Cadd = 0
+  echo "Rewriting file ${nnn}_label.h"
 else
   set do_Cadd = 1
+  echo "Creating file ${nnn}_label.h"
 endif
 
-echo "WOULD DO THIS: cvs tag -R $ttt"
-echo "#define ${nnn}_VERSION_LABEL " \"${ttt}\" > ${nnn}_label.h
+echo "#undef  ${nnn}_VERSION_LABEL"             >  ${nnn}_label.h
+echo "#define ${nnn}_VERSION_LABEL " \"${ttt}\" >> ${nnn}_label.h
 
-### if( do_Cadd == 1 ) cvs add ${fff}
-### cvs commit -m "Ctag" ${fff}
+# And now do the CVS stuff, ending with the setting of the tag
+
+echo "Sending file and tag to CVS"
+
+if( do_Cadd == 1 ) cvs add ${fff}
+cvs commit -m "Ctag" ${fff}
+cvs tag -R ${ttt}
