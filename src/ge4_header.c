@@ -20,6 +20,9 @@
 /* ----------------------------------------------------------------------
  * history:
  *
+ * June 12, 2003
+ *   - fixed static warnings
+ *
  * June 03, 2003
  *   - added doxygen style header (for ge4_read_header())
  *   - added get_image param to ge4_read_header()
@@ -29,6 +32,7 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ge4_header.h"
@@ -38,9 +42,9 @@
 extern unsigned long THD_filesize ( char * pathname );
 
 /* local protos */
-int swap_2      ( void * ptr );
-int swap_4      ( void * ptr );
-int swap_2_multi( void * ptr, int num_shorts );
+static int swap_2      ( void * ptr );
+static int swap_4      ( void * ptr );
+static int swap_2_multi( void * ptr, int num_shorts );
 
 /* ---------------------------------------------------------------------- */
 /* series header value descriptions - for display */
@@ -476,7 +480,7 @@ int idisp_ge4_series_header( char * info, ge4_series_t * s )
  *  Swap multiple byte pairs.
  *------------------------------------------------------------
 */
-int swap_2_multi( void * ptr, int num_shorts )
+static int swap_2_multi( void * ptr, int num_shorts )
 {
     unsigned char * cp0, * cp1;
     unsigned char   tmpc;

@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.0 (May 29, 2003)"
+#define VERSION "version 1.1 (June 12, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -56,6 +56,10 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 1.1  June 11, 2003
+ *   - small reorg of s2v_fill_mask2() (should have no effect)
+ *   - improve description of -m2_steps option
  *
  * 1.0  May 29, 2003
  *   - initial release
@@ -312,8 +316,9 @@ int s2v_fill_mask2( node_list_t * N, THD_3dim_dataset * gpar,
     THD_fvec3 * f3mm;
     THD_ivec3   i3ind;
     float     * fp, *f0, *fn, *fs;
-    int         steps = sopt->m2_steps;
-    int         s_plus_1 = steps + 1;	/* remove this repeated computation */
+    float       rat0, ratn;			 /* distance ratios      */
+    int         steps   = sopt->m2_steps;
+    int         s_min_1 = sopt->m2_steps - 1;    /* repeated computation */
     int         vindex, node, scount;
     int         nx, ny;
     int		mcount, fcount;
@@ -331,9 +336,9 @@ int s2v_fill_mask2( node_list_t * N, THD_3dim_dataset * gpar,
 	return -1;
     }
 
-    if ( (f3mm = (THD_fvec3 *)malloc((2+steps) * sizeof(THD_fvec3))) == NULL )
+    if ( (f3mm = (THD_fvec3 *)malloc((steps) * sizeof(THD_fvec3))) == NULL )
     {
-	fprintf( stderr, "** s2vfm2: failed to allocate %d fvec3's\n", 2+steps);
+	fprintf( stderr, "** s2vfm2: failed to allocate %d fvec3's\n", steps);
 	return -1;
     }
 
@@ -345,28 +350,27 @@ int s2v_fill_mask2( node_list_t * N, THD_3dim_dataset * gpar,
     {
 	/* note the first and last locations */
 	f3mm[0]       = THD_dicomm_to_3dmm( gpar, N->nodes[node] );
-	f3mm[steps+1] = THD_dicomm_to_3dmm( gpar, N->nodes[node+N->nnodes] );
+	f3mm[s_min_1] = THD_dicomm_to_3dmm( gpar, N->nodes[node+N->nnodes] );
 
 	f0 = f3mm[0].xyz;
-	fn = f3mm[steps+1].xyz;
+	fn = f3mm[s_min_1].xyz;
 
 	if ( sopt->debug > 1 && node == S2V_DEBUG_TEST_NODE )
 	    fprintf( stderr, "++ node %d : %f ", S2V_DEBUG_TEST_NODE, f0[0] );
 
 	/* now fill all intermediate f3mm points */
-	for ( scount = 1; scount < s_plus_1; scount ++ )
+	for ( scount = 1; scount < s_min_1; scount ++ )
 	{
 	    /* for ease of typing, note xyz address */
 	    fs = f3mm[scount].xyz;
 
-	    fs[0] = fn[0] * scount              / (s_plus_1) +
-		    f0[0] * (s_plus_1 - scount) / (s_plus_1);
+	    /* note portions of endpoints */
+	    ratn = (float)scount / s_min_1;
+	    rat0 = 1.0 - ratn;
 
-	    fs[1] = fn[1] * scount              / (s_plus_1) +
-		    f0[1] * (s_plus_1 - scount) / (s_plus_1);
-
-	    fs[2] = fn[2] * scount              / (s_plus_1) +
-		    f0[2] * (s_plus_1 - scount) / (s_plus_1);
+	    fs[0] = rat0 * f0[0] + ratn * fn[0];
+	    fs[1] = rat0 * f0[1] + ratn * fn[1];
+	    fs[2] = rat0 * f0[2] + ratn * fn[2];
 
 	    if ( sopt->debug > 1 && node == S2V_DEBUG_TEST_NODE )
 		    fprintf( stderr, "%f ", fs[0] );
@@ -376,7 +380,7 @@ int s2v_fill_mask2( node_list_t * N, THD_3dim_dataset * gpar,
 		fprintf( stderr, "%f\n            ", fn[0] );
 
 	/* for each point, get the index and fill */
-	for ( scount = 0; scount < steps+2; scount++ )
+	for ( scount = 0; scount < steps; scount++ )
 	{
 	    i3ind  = THD_3dmm_to_3dind ( gpar, f3mm[scount] );
 	    vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
@@ -658,7 +662,10 @@ int set_map_opts( opts_t * opts, param_t * p, s2v_opts_t * sopt )
 
 	case S2V_MAP_MASK2:
 	    sopt->noscale = 1;
-	    sopt->m2_steps = opts->m2_steps;
+	    if ( opts->m2_steps <= 2 )
+		sopt->m2_steps = 2;
+	    else
+		sopt->m2_steps = opts->m2_steps;
 	    break;
     }
 
@@ -837,7 +844,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	{
 	    if ( (ac+1) >= argc )
 	    {
-		fputs( "option usage: -m2_steps INT_STEPS\n\n", stderr );
+		fputs( "option usage: -m2_steps NUM_STEPS\n\n", stderr );
 		usage( PROG_NAME, S2V_USE_SHORT );
 		return -1;
 	    }
@@ -1287,16 +1294,25 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "          mask2  : Given 2 surfaces with the same geometry\n"
 	    "                   (i.e. which are just different views of the\n"
-	    "                   same surface), set the corresponding voxels.\n"
+	    "                   same surface), for each corresponding pair\n"
+	    "                   of nodes, set the voxel that would contain\n"
+	    "                   each node.\n"
 	    "\n"
 	    "                  -m2_steps NUM_STEPS\n"
 	    "\n"
 	    "                   e.g. -m2_steps 20\n"
+	    "                   the default (and minimum) is 2\n"
 	    "\n"
 	    "                   This separate option may be used to specify\n"
-	    "                   the number of of intermediate steps between\n"
-	    "                   the 2 surfaces that should be included in the\n"
-	    "                   resulting mask.\n"
+	    "                   the number of nodes that should be included\n"
+	    "                   along the segment containing each node pair\n"
+	    "                   from the surfaces.\n"
+	    "                   \n"
+	    "                   So for each pair of nodes, include all points\n"
+	    "                   at evenly spaced interval between them.  The\n"
+	    "                   effect is like using NUM_STEPS surface layers\n"
+	    "                   for the mapping, not just the two which were\n"
+	    "                   input (in the spec file).\n"
 	    "\n"
 	    "    -prefix OUTPUT_PREFIX  : prefix for the output dataset\n"
 	    "\n"
