@@ -402,6 +402,86 @@ mat44 mat44_inverse( mat44 R )
 }
 
 /*---------------------------------------------------------------------------*/
+/* Input 9 floats and make an orthgonal mat44 out of them.
+   Each row is normalized, then mat33_polar() is used to orthogonalize them.
+   If row #3 (r31,r32,r33) is input as zero, then it will be taken to be
+   the cross product of rows #1 and #2.
+
+   This function can be used to create a rotation matrix for transforming
+   an oblique volume to anatomical coordinates.  For this application:
+    - row #1 (r11,r12,r13) is the direction vector along the image i-axis
+    - row #2 (r21,r22,r23) is the direction vector along the image j-axis
+    - row #3 (r31,r32,r33) is the direction vector along the slice direction
+      (if available; otherwise enter it as 0's)
+   The first 2 rows can be taken from the DICOM attribute (0020,0037)
+   "Image Orientation (Patient)".
+
+   After forming the rotation matrix, the complete affine transformation from
+   (i,j,k) grid indexes to (x,y,z) spatial coordinates can be computed by
+   multiplying each column by the appropriate grid spacing:
+    - column #1 (R.m[0][0],R.m[1][0],R.m[2][0]) by delta-x
+    - column #2 (R.m[0][1],R.m[1][1],R.m[2][1]) by delta-y
+    - column #3 (R.m[0][2],R.m[1][2],R.m[2][2]) by delta-z
+   And by placing the center (x,y,z) coordinates of voxel (0,0,0) into
+   the column #4 (R.m[0][3],R.m[1][3],R.m[2][3]).
+-----------------------------------------------------------------------------*/
+
+mat44 make_orthog_mat44( float r11, float r12, float r13 ,
+                         float r21, float r22, float r23 ,
+                         float r31, float r32, float r33  )
+{
+   mat44 R ;
+   mat33 Q , P ;
+   double val ;
+
+   R.m[3][0] = R.m[3][1] = R.m[3][2] = 0.0l ; R.m[3][3] = 1.0l ;
+
+   Q.m[0][0] = r11 ; Q.m[0][1] = r12 ; Q.m[0][2] = r13 ; /* load Q */
+   Q.m[1][0] = r21 ; Q.m[1][1] = r22 ; Q.m[1][2] = r23 ;
+   Q.m[2][0] = r31 ; Q.m[2][1] = r32 ; Q.m[2][2] = r33 ;
+
+   /* normalize row 1 */
+
+   val = Q.m[0][0]*Q.m[0][0] + Q.m[0][1]*Q.m[0][1] + Q.m[0][2]*Q.m[0][2] ;
+   if( val > 0.0l ){
+     val = 1.0l / sqrt(val) ;
+     Q.m[0][0] *= val ; Q.m[0][1] *= val ; Q.m[0][2] *= val ;
+   } else {
+     Q.m[0][0] = 1.0l ; Q.m[0][1] = 0.0l ; Q.m[0][2] = 0.0l ;
+   }
+
+   /* normalize row 2 */
+
+   val = Q.m[1][0]*Q.m[1][0] + Q.m[1][1]*Q.m[1][1] + Q.m[1][2]*Q.m[1][2] ;
+   if( val > 0.0l ){
+     val = 1.0l / sqrt(val) ;
+     Q.m[1][0] *= val ; Q.m[1][1] *= val ; Q.m[1][2] *= val ;
+   } else {
+     Q.m[1][0] = 0.0l ; Q.m[1][1] = 1.0l ; Q.m[1][2] = 0.0l ;
+   }
+
+   /* normalize row 3 */
+
+   val = Q.m[2][0]*Q.m[2][0] + Q.m[2][1]*Q.m[2][1] + Q.m[2][2]*Q.m[2][2] ;
+   if( val > 0.0l ){
+     val = 1.0l / sqrt(val) ;
+     Q.m[2][0] *= val ; Q.m[2][1] *= val ; Q.m[2][2] *= val ;
+   } else {
+     Q.m[2][0] = Q.m[0][1]*Q.m[1][2] - Q.m[0][2]*Q.m[1][1] ;  /* cross */
+     Q.m[2][1] = Q.m[0][2]*Q.m[1][0] - Q.m[0][0]*Q.m[1][2] ;  /* product */
+     Q.m[2][2] = Q.m[0][0]*Q.m[1][1] - Q.m[0][1]*Q.m[1][0] ;
+   }
+
+   P = mat33_polar(Q) ;  /* P is orthog matrix closest to Q */
+
+   R.m[0][0] = P.m[0][0] ; R.m[0][1] = P.m[0][1] ; R.m[0][2] = P.m[0][2] ;
+   R.m[1][0] = P.m[1][0] ; R.m[1][1] = P.m[1][1] ; R.m[1][2] = P.m[1][2] ;
+   R.m[2][0] = P.m[2][0] ; R.m[2][1] = P.m[2][1] ; R.m[2][2] = P.m[2][2] ;
+
+   R.m[0][3] = R.m[1][3] = R.m[2][3] = 0.0 ; return R ;
+}
+
+/*---------------------------------------------------------------------------*/
 
 mat33 mat33_inverse( mat33 R )   /* inverse of 3x3 matrix */
 {

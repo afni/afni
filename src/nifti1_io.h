@@ -132,10 +132,14 @@ mat44 quatern_to_mat44( float qb, float qc, float qd,
                         float qx, float qy, float qz,
                         float dx, float dy, float dz, float qfac );
 
+mat44 make_orthog_mat44( float r11, float r12, float r13 ,
+                         float r21, float r22, float r23 ,
+                         float r31, float r32, float r33  ) ;
+
 int unescape_inplace( char *str ) ;  /* string utility functions */
 char *quotize_string( char *str ) ;
 
-int short_order(void) ;
+int short_order(void) ;              /* CPU byte order */
 
 /*-------------------- Some C convenience macros ----------------------------*/
 

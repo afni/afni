@@ -4713,3 +4713,7 @@
 
 24 Aug 2003
  * Modified 3dLRflip.c to give output dataset a new prefix (oops).
+
+26 Aug 2003
+ * Modified afni_func.c to skip printing adoption warnings unless user
+     explicitly requests them with an environment variable.

@@ -741,7 +741,7 @@ void AFNI_force_adoption( THD_session * ss , Boolean do_anats )
 {
    int aa , ff , vv , apref=0 , aset=-1 ;
    THD_3dim_dataset * dset ;
-   int quiet = AFNI_yesenv("AFNI_NO_ADOPTION_WARNING") ; /* 03 Dec 1999 */
+   int quiet = !AFNI_noenv("AFNI_NO_ADOPTION_WARNING") ; /* 03 Dec 1999 */
    int first = 1 ;
 
 ENTRY("AFNI_force_adoption") ;
