@@ -49,7 +49,7 @@ void SHIFT_two_rows( int n, int nup, float af, float * f, float ag, float * g )
 /*--------------------------------------------------------------------------
    Shift 2 rows at a time with the FFT:
      n   = length of a row
-     nup = length to use for FFTs (power of 2 >= n)
+     nup = length to use for FFTs (must be even)
      af  = shift for row f
      ag  = shift for row g
    Input and output arrays are f[n] and g[n].  (Note: g may be NULL.)
