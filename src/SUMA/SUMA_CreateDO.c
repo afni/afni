@@ -405,18 +405,24 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
    GLfloat ROI_NodeGroup[] = {0.8, 0.3, 0.5, 1.0 };
    GLfloat ROI_EdgeGroup[] = {0.8, 0.8, 0.1, 1.0 };
    GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
+   GLfloat NoCol[4] = {0.0, 0.0, 0.0, 0.0};
+   GLfloat Red[4] = {1.0, 0.0, 0.0, 1.0};
+   GLfloat Green[4] = {0.0, 1.0, 0.0, 1.0};
+   GLfloat Blue[4] = {0.0, 0.0, 1.0, 1.0};
+   GLfloat Yellow[4] = {1.0, 1.0, 0.0, 1.0};
+   GLfloat Cyan[4] = {0.0, 1.0, 1.0, 1.0};
+   GLfloat Pink[4] = {1.0, 0.0, 1.0, 1.0};
    int i, id, ii, id1,id2, id3, EdgeIndex, FaceIndex, Node1, Node2, Node3, N_ROId=0, idFirst=0;
    float dx, dy, dz = 0.0;
    SUMA_DRAWN_ROI *D_ROI = NULL;
    SUMA_ROI_DATUM *ROId=NULL;
    SUMA_ROI *ROI = NULL;
    DListElmt *NextElm=NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-   glEnable(GL_COLOR_MATERIAL);
-   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
+   
    for (i=0; i < N_do; ++i) {
       switch (dov[i].ObjectType) { /* case Object Type */
          case ROIdO_type:
@@ -433,18 +439,22 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                if (D_ROI->DrawStatus == SUMA_ROI_InCreation) {
                   switch (D_ROI->Type) {
                      case SUMA_ROI_OpenPath:
-                        ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.0; ROI_SphCol_frst[2] = 0.0; ROI_SphCol_frst[3] = 1.0;     
-                        ROI_SphCol[0] = 0.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;     
+                        SUMA_LH("Red first, Green next");
+                        SUMA_COPY_VEC(Red, ROI_SphCol_frst, 4, GLfloat, GLfloat);
+                        SUMA_COPY_VEC(Green, ROI_SphCol, 4, GLfloat, GLfloat);     
                         break;   
                      case SUMA_ROI_ClosedPath:
-                        ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 1.0; ROI_SphCol_frst[2] = 0.0; ROI_SphCol_frst[3] = 1.0;     
-                        ROI_SphCol[0] = 0.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 1.0; ROI_SphCol[3] = 1.0;  
+                        SUMA_LH("Yellow first, Cyan next");
+                        SUMA_COPY_VEC(Yellow, ROI_SphCol_frst, 4, GLfloat, GLfloat);
+                        SUMA_COPY_VEC(Cyan, ROI_SphCol, 4, GLfloat, GLfloat);      
                         break;   
                      case SUMA_ROI_FilledArea:
-                        ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.0; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
-                        ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;  
+                        SUMA_LH("Pink First, Yellow Next");
+                        SUMA_COPY_VEC(Pink, ROI_SphCol_frst, 4, GLfloat, GLfloat);
+                        SUMA_COPY_VEC(Yellow, ROI_SphCol, 4, GLfloat, GLfloat);       
                         break;   
                      default:
+                        SUMA_LH("Default");
                         ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.3; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
                         ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;     
                         break;
@@ -452,6 +462,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                   }
                } else {
                   /* finished, mark it as such */
+                  SUMA_LH("Finished DROI");
                   ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.3; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
                   ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;
                }
@@ -470,7 +481,8 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                      if (ROId->N_n) {
                         if (!N_ROId) {
                            /* draw 1st sphere */
-                           glMaterialfv(GL_FRONT, GL_EMISSION, ROI_SphCol_frst);
+                           SUMA_LH("First sphere");
+                           glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol_frst);
                            idFirst = 3 * ROId->nPath[0];
                            glTranslatef (SO->NodeList[idFirst], SO->NodeList[idFirst+1], SO->NodeList[idFirst+2]);
                            gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
@@ -478,7 +490,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                         } 
 
                         glLineWidth(6);
-                        glMaterialfv(GL_FRONT, GL_EMISSION, ROI_SphCol);
+                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_SphCol);
                         /* always start at 1 since the 0th node was draw at the end of the previous ROId */
                         for (ii = 1; ii < ROId->N_n; ++ii) {
                            id = 3 * ROId->nPath[ii];
@@ -496,18 +508,16 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                         }
 
                         
-                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
                         ++N_ROId;
                      }
                   } else { /* non segment type Drawn ROI */
-                        glMaterialfv(GL_FRONT, GL_EMISSION, ROI_NodeGroup);
+                        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_NodeGroup);
                         for (ii=0; ii < ROId->N_n; ++ii) {
                            id = 3 * ROId->nPath[ii];
                            glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
                            gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
                            glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
                         }
-                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
                   
                   }
                } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
@@ -519,7 +529,7 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing ROI %s \n", FuncName, ROI->Label);
                switch (ROI->Type) { /* ROI types */
                   case SUMA_ROI_EdgeGroup:
-                     glMaterialfv(GL_FRONT, GL_EMISSION, ROI_EdgeGroup);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_EdgeGroup);
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                         EdgeIndex = ROI->ElInd[ii];
                         Node1 = SO->EL->EL[EdgeIndex][0];
@@ -534,20 +544,18 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                         glVertex3f(SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]); 
                         glEnd();
                      }
-                     glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
                      break;
                   case SUMA_ROI_NodeGroup:
-                     glMaterialfv(GL_FRONT, GL_EMISSION, ROI_NodeGroup);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_NodeGroup);
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                         id = 3 * ROI->ElInd[ii];
                         glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
                         gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
                         glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
                      }
-                     glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
                      break;
                   case SUMA_ROI_FaceGroup:   
-                     glMaterialfv(GL_FRONT, GL_EMISSION, ROI_FaceGroup);
+                     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, ROI_FaceGroup);
                      for (ii=0; ii < ROI->N_ElInd; ++ii) {
                            FaceIndex = ROI->ElInd[ii];
                            id = FaceIndex * 3;
@@ -590,7 +598,6 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
                            glEnd();
 
                      }
-                     glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
                      break;
                   default:
                      fprintf(SUMA_STDERR, "Error %s: Not ready to drawn this type of ROI.\n", FuncName);
@@ -603,7 +610,6 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
             break;
       }/* case Object Type */
    }
-   glDisable(GL_COLOR_MATERIAL);
 
 
    SUMA_RETURN (YUP);
@@ -881,51 +887,27 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
                glPointSize(4.0); /* keep outside of glBegin */
                glBegin (GL_POINTS);
                break;
-            } /* switch RENDER_METHOD */
-            glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
-            for (i=0; i < SurfObj->N_FaceSet; i++)
-            {   
-               ip = NP * i;
-               id = ND * SurfObj->FaceSetList[ip];
-               glNormal3fv(&SurfObj->NodeNormList[id]);
-               glVertex3fv(&SurfObj->NodeList[id]); /* glVertex3f(0.1, 0.9, 0.0); */
-               
-               id = ND * SurfObj->FaceSetList[ip+1];
-               glNormal3fv(&SurfObj->NodeNormList[id]);
-               glVertex3fv(&SurfObj->NodeList[id]);/* glVertex3f(0.1, 0.1, 0.0); */
-               
-               id = ND * SurfObj->FaceSetList[ip+2];
-               glNormal3fv(&SurfObj->NodeNormList[id]);
-               glVertex3fv(&SurfObj->NodeList[id]);/* glVertex3f(0.7, 0.5, 0.0); */
-            }
+         } /* switch RENDER_METHOD */
+         glColor4f(NODE_COLOR_R, NODE_COLOR_G, NODE_COLOR_B, SUMA_NODE_ALPHA);
+         for (i=0; i < SurfObj->N_FaceSet; i++)
+         {   
+            ip = NP * i;
+            id = ND * SurfObj->FaceSetList[ip];
+            glNormal3fv(&SurfObj->NodeNormList[id]);
+            glVertex3fv(&SurfObj->NodeList[id]); /* glVertex3f(0.1, 0.9, 0.0); */
+
+            id = ND * SurfObj->FaceSetList[ip+1];
+            glNormal3fv(&SurfObj->NodeNormList[id]);
+            glVertex3fv(&SurfObj->NodeList[id]);/* glVertex3f(0.1, 0.1, 0.0); */
+
+            id = ND * SurfObj->FaceSetList[ip+2];
+            glNormal3fv(&SurfObj->NodeNormList[id]);
+            glVertex3fv(&SurfObj->NodeList[id]);/* glVertex3f(0.7, 0.5, 0.0); */
+         }
          glEnd();
          break;
       
       case ARRAY:
-         /* Draw Axis */
-         if (SurfObj->MeshAxis && SurfObj->ShowMeshAxis)   {
-            if (!SUMA_DrawAxis (SurfObj->MeshAxis)) {
-               fprintf(stderr,"Error SUMA_DrawAxis: Unrecognized Stipple option\n");
-            }
-         }
-         /* Draw Selected Node Highlight */
-         if (SurfObj->ShowSelectedNode && SurfObj->SelectedNode >= 0) {
-            /*fprintf(SUMA_STDOUT,"Drawing Node Selection \n");*/
-            id = ND * SurfObj->SelectedNode;
-            glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); /*turn on emissidity for sphere */
-            glTranslatef (SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
-            gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad, SurfObj->NodeMarker->slices, SurfObj->NodeMarker->stacks);
-            glTranslatef (-SurfObj->NodeList[id], -SurfObj->NodeList[id+1],-SurfObj->NodeList[id+2]);
-            glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for axis*/
-         }
-         
-         /* Draw Selected FaceSet Highlight */
-         if (SurfObj->ShowSelectedFaceSet && SurfObj->SelectedFaceSet >= 0) {
-            /*fprintf(SUMA_STDOUT,"Drawing FaceSet Selection \n");            */
-            if (!SUMA_DrawFaceSetMarker (SurfObj->FaceSetMarker)) {
-               fprintf(SUMA_STDERR,"Error SUMA_DrawMesh: Failed in SUMA_DrawFaceSetMarker\b");
-            }
-         } 
          /* This allows each node to follow the color specified when it was drawn */ 
          glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
          glEnable(GL_COLOR_MATERIAL);
@@ -958,10 +940,38 @@ void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          
          glDisable(GL_COLOR_MATERIAL);
          
+         /* draw surface ROIs */
          if (!SUMA_Draw_SO_ROI (SurfObj, SUMAg_DOv, SUMAg_N_DOv)) {
             fprintf (SUMA_STDERR, "Error %s: Failed in drawing ROI objects.\n", FuncName);
          }
          
+         /* Draw Axis */
+         if (SurfObj->MeshAxis && SurfObj->ShowMeshAxis)   {
+            if (!SUMA_DrawAxis (SurfObj->MeshAxis)) {
+               fprintf(stderr,"Error SUMA_DrawAxis: Unrecognized Stipple option\n");
+            }
+         }
+         
+         /* Draw Selected Node Highlight */
+         if (SurfObj->ShowSelectedNode && SurfObj->SelectedNode >= 0) {
+            /*fprintf(SUMA_STDOUT,"Drawing Node Selection \n");*/
+            id = ND * SurfObj->SelectedNode;
+            glMaterialfv(GL_FRONT, GL_EMISSION, SurfObj->NodeMarker->sphcol); /*turn on emissidity for sphere */
+            glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, NoColor);
+            glTranslatef (SurfObj->NodeList[id], SurfObj->NodeList[id+1],SurfObj->NodeList[id+2]);
+            gluSphere(SurfObj->NodeMarker->sphobj, SurfObj->NodeMarker->sphrad, SurfObj->NodeMarker->slices, SurfObj->NodeMarker->stacks);
+            glTranslatef (-SurfObj->NodeList[id], -SurfObj->NodeList[id+1],-SurfObj->NodeList[id+2]);
+            glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissidity for axis*/
+         }
+         
+         /* Draw Selected FaceSet Highlight */
+         if (SurfObj->ShowSelectedFaceSet && SurfObj->SelectedFaceSet >= 0) {
+            /*fprintf(SUMA_STDOUT,"Drawing FaceSet Selection \n");            */
+            if (!SUMA_DrawFaceSetMarker (SurfObj->FaceSetMarker)) {
+               fprintf(SUMA_STDERR,"Error SUMA_DrawMesh: Failed in SUMA_DrawFaceSetMarker\b");
+            }
+         } 
+
          break;
 
    } /* switch DRAW_METHOD */

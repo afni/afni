@@ -480,7 +480,7 @@ SUMA_context_Init(SUMA_SurfaceViewer *sv)
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   glClearColor (sv->clear_color[0], sv->clear_color[1],sv->clear_color[2],sv->clear_color[3]);
+   glClearColor (sv->clear_color[0], sv->clear_color[1], sv->clear_color[2], sv->clear_color[3]);
    glShadeModel (GL_SMOOTH);
 
    SUMA_SET_GL_RENDER_MODE(sv->PolyMode); 
@@ -1022,17 +1022,7 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          }
        SUMAg_SVv[ic].X->DOUBLEBUFFER = False;
       }
-      if (SUMAg_SVv[ic].X->VISINFO->class != TrueColor) {
-         fprintf (SUMA_STDERR,"%s: Visual is not TrueColor.\n", FuncName); 
-         fprintf (SUMA_STDERR," You may experience problems drawing ROIs.\n"
-                              " It is best you switch your X display to TrueColor\n"
-                              " mode\n");
-      }
-		if (SUMAg_SVv[ic].X->VISINFO->depth <16) {
-			fprintf (SUMA_STDERR,"%s: X visual depth is less than 16 bits.\n"
-										" Some functions may not function.\n"
-										" Increase depth of your display.\n", FuncName);
-		}
+      
 		
       /* Step 3.5 Wed Dec 18 14:49:25 EST 2002 - The GUI*/
          /* see Kilgard's OpenGL Programming for the X window system */
@@ -7212,9 +7202,7 @@ void SUMA_ShowAllVisuals (void)
    SUMA_ShowVisual(dpy, vi, YUP);
    if (vi->class != TrueColor) {
       fprintf (SUMA_STDERR,"%s: Visual is not TrueColor.\n", FuncName); 
-      fprintf (SUMA_STDERR," You may experience problems drawing ROIs.\n"
-                           " It is best you switch your X display to TrueColor\n"
-                           " mode\n");
+      fprintf (SUMA_STDERR," SUMA NO LIKE.\n");
    }
    XtDestroyWidget(TopLevel);
    
