@@ -1101,6 +1101,9 @@ if( PRINT_TRACING ){
                       LEADING_WIDGET_RIG , newseq->zoom_val_av->wrowcol ,
                   NULL ) ;
 
+     MCW_reghint_children( newseq->zoom_apad->wform ,
+                           "Pan zoomed image window" );
+
      newseq->zoom_apad->parent = (XtPointer) newseq ;
 
      AP_MANGLIZE( newseq->zoom_apad ) ;
@@ -3433,7 +3436,7 @@ ENTRY("ISQ_set_image_number") ;
 #ifdef ALLOW_ZOOM
 static void ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
 {
-   int iw,ih , zlev=seq->zoom_fac , pw,ph , xoff,yoff ;
+   int iw,ih , zlev=seq->zoom_fac , pw,ph , xoff,yoff , newim=0 ;
 
 ENTRY("ISQ_show_zoom") ;
 
@@ -3451,6 +3454,7 @@ ENTRY("ISQ_show_zoom") ;
 
       XFreePixmap( seq->dc->display , seq->zoom_pixmap ) ;
       seq->zoom_pixmap = (Pixmap) 0 ;
+      newim++ ;
    }
 
    /* (re)make the pixmap, if needed;
@@ -3461,6 +3465,7 @@ ENTRY("ISQ_show_zoom") ;
                                         XtWindow(seq->wimage) ,
                                         pw , ph , seq->dc->depth ) ;
       seq->zoom_pw = pw ; seq->zoom_ph = ph ;
+      newim++ ;
    }
 
    /* scale up the given_xim, if needed;
@@ -3472,6 +3477,7 @@ ENTRY("ISQ_show_zoom") ;
      im  = XImage_to_mri( seq->dc, seq->given_xim, X2M_USE_CMAP|X2M_FORCE_RGB ) ;
      mri_dup2D_mode(1); tim = mri_dup2D(zlev,im) ; mri_free(im) ;
      seq->zoom_xim = mri_to_XImage(seq->dc,tim) ; mri_free(tim) ;
+     newim++ ;
    }
 
    /* if zoomed image isn't same size as pixmap, resize it here */
@@ -3481,23 +3487,24 @@ ENTRY("ISQ_show_zoom") ;
      sxim = resize_XImage( seq->dc , seq->zoom_xim , pw , ph ) ;
      MCW_kill_XImage( seq->zoom_xim ) ;
      seq->zoom_xim = sxim ;
+     newim++ ;
    }
 
-   /* every time: put the zoomed XImage into the Pixmap */
+   /* if have a new image, put the zoomed XImage into the Pixmap */
 
-   XPutImage( seq->dc->display ,
-              seq->zoom_pixmap ,
-              seq->dc->origGC  , seq->zoom_xim , 0,0,0,0 , pw,ph ) ;
+   if( newim ){
+     XPutImage( seq->dc->display ,
+                seq->zoom_pixmap ,
+                seq->dc->origGC  , seq->zoom_xim , 0,0,0,0 , pw,ph ) ;
 
-   /* every time: draw the overlay graph into the Pixmap */
+     /* draw the overlay graph into the Pixmap */
 
-#if 1
-   if( !seq->opt.no_overlay && seq->mplot != NULL ){
-      memplot_to_X11_sef( seq->dc->display ,
-                          seq->zoom_pixmap , seq->mplot ,
-                          0,0,MEMPLOT_FREE_ASPECT        ) ;
+     if( !seq->opt.no_overlay && seq->mplot != NULL ){
+        memplot_to_X11_sef( seq->dc->display ,
+                            seq->zoom_pixmap , seq->mplot ,
+                            0,0,MEMPLOT_FREE_ASPECT        ) ;
+     }
    }
-#endif
 
    /* now we can copy the relevant area from
       the pixmap we just re-drew into the image window */

@@ -4412,7 +4412,7 @@ static void init_trusted_list(void)
       }
 
       for( ii=0 ; ii <= 99 ; ii++ ){
-         sprintf(ename,"NIML_TRUSTHOST_%2d",ii) ;
+         sprintf(ename,"NIML_TRUSTHOST_%02d",ii) ;
          str = getenv(ename) ;
          if( str != NULL ) add_trusted_host(str) ;
       }

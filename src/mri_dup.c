@@ -12,8 +12,14 @@
 
 static void (*usammer)(int,int,float *,float *) = upsample_7 ;
 
+static int usammer_mode = 7 ;
+
+static void upsample_1by2( int, byte *, byte * ) ;  /* at end of file */
+static void upsample_1by3( int, byte *, byte * ) ;
+static void upsample_1by4( int, byte *, byte * ) ;
+
 /*-----------------------------------------------------------------------------
-  Set resample mode for mri_dup2D
+  Set resample mode for mri_dup2D (1 or 7)
 -------------------------------------------------------------------------------*/
 
 void mri_dup2D_mode( int mm )
@@ -22,6 +28,7 @@ void mri_dup2D_mode( int mm )
       case 1:  usammer = upsample_1 ; break ;
      default:  usammer = upsample_7 ; break ;
    }
+   usammer_mode = mm ;
 }
 
 /*------------------------------------------------------------------------------
@@ -78,6 +85,30 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
       mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
       MRI_COPY_AUX(newim,imin) ;
       return newim ;
+   }
+
+   /*-- Special case: byte-valued image upsampled by 2/3/4 [13 Mar 2002] --*/
+
+   if( imin->kind == MRI_byte && nup <= 4 ){
+     void (*usbyte)(int,byte *,byte *) = NULL ;
+     byte *bar=MRI_BYTE_PTR(imin) , *bnew , *cold, *cnew ;
+     nx = imin->nx; ny = imin->ny; nxup = nx*nup; nyup = ny*nup ;
+     newim = mri_new( nxup,nyup , MRI_byte ); bnew = MRI_BYTE_PTR(newim);
+     switch( nup ){
+       case 2: usbyte = upsample_1by2 ; break ;
+       case 3: usbyte = upsample_1by3 ; break ;
+       case 4: usbyte = upsample_1by4 ; break ;
+     }
+     for( jj=0 ; jj < ny ; jj++ )                      /* upsample rows */
+       usbyte( nx , bar+jj*nx , bnew+jj*nxup ) ;
+     cold = (byte *) malloc( sizeof(byte) * ny ) ;
+     cnew = (byte *) malloc( sizeof(byte) * nyup ) ;
+     for( ii=0 ; ii < nxup ; ii++ ){                   /* upsample cols */
+       for( jj=0 ; jj < ny ; jj++ ) cold[jj] = bnew[ii+jj*nxup] ;
+       usbyte( ny , cold , cnew ) ;
+       for( jj=0 ; jj < nyup ; jj++ ) bnew[ii+jj*nxup] = cnew[jj] ;
+     }
+     free(cold); free(cnew); MRI_COPY_AUX(newim,imin); return newim;
    }
 
    /*-- otherwise, make sure we operate on a float image --*/
@@ -336,4 +367,55 @@ void upsample_1( int nup , int nar , float * far , float * fout )
       for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] =  FINT1(kk,ii) ;
 
    return ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Upsample an array of bytes by exactly 2.
+--------------------------------------------------------------------*/
+
+static void upsample_1by2( int nar, byte *bar , byte *bout )
+{
+   int ii ;
+   if( nar < 1 || bar == NULL || bout == NULL ) return ;
+
+   for( ii=0 ; ii < nar-1 ; ii++ ){
+      bout[2*ii]   = bar[ii] ;
+      bout[2*ii+1] = (bar[ii]+bar[ii+1]) >> 1 ;
+   }
+   bout[2*nar-1] = bout[2*nar-2] = bar[nar-1] ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Upsample an array of bytes by exactly 3.
+--------------------------------------------------------------------*/
+
+static void upsample_1by3( int nar, byte *bar , byte *bout )
+{
+   int ii ;
+   if( nar < 1 || bar == NULL || bout == NULL ) return ;
+
+   for( ii=0 ; ii < nar-1 ; ii++ ){
+      bout[3*ii]   = bar[ii] ;
+      bout[3*ii+1] = (2*bar[ii]+  bar[ii+1]) / 3 ;
+      bout[3*ii+2] = (  bar[ii]+2*bar[ii+1]) / 3 ;
+   }
+   bout[3*nar-1] = bout[3*nar-2] = bout[3*nar-3] = bar[nar-1] ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Upsample an array of bytes by exactly 4.
+--------------------------------------------------------------------*/
+
+static void upsample_1by4( int nar, byte *bar , byte *bout )
+{
+   int ii ;
+   if( nar < 1 || bar == NULL || bout == NULL ) return ;
+
+   for( ii=0 ; ii < nar-1 ; ii++ ){
+      bout[4*ii]   = bar[ii] ;
+      bout[4*ii+1] = (3*bar[ii]+  bar[ii+1]) >> 2 ;
+      bout[4*ii+2] = (  bar[ii]+  bar[ii+1]) >> 1 ;
+      bout[4*ii+3] = (  bar[ii]+3*bar[ii+1]) >> 2 ;
+   }
+   bout[4*nar-1] = bout[4*nar-2] = bout[4*nar-3] = bout[4*nar-4] = bar[nar-1];
 }

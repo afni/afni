@@ -78,6 +78,8 @@ void set_memplot_X11_box( int xbot, int ybot, int xtop, int ytop )
 }
 
 /*------------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------------*/
 /*! Get the layout of a window/pixmap.  [12 Mar 2002]
 --------------------------------------------------------------------------*/
 
@@ -431,6 +433,17 @@ unsigned long rgb_to_pixel( unsigned char rr , unsigned char gg ,
    return 0 ;  /* always valid */
 }
 
+/*-------------------------------------------------------------------------*/
+
+static volatile int xwasbad ;  /* 13 Mar 2002 */
+
+typedef int (*xhandler)(Display *, XErrorEvent *) ;
+
+static int qhandler( Display *dpy , XErrorEvent *xev )
+{
+   xwasbad = 1 ; return 0 ;
+}
+
 /*-------------------------------------------------------------------------
    Return a structure that defines the colors available for the given
    window.  This only works for PseudoColor and TrueColor visuals.
@@ -445,6 +458,7 @@ X11_colordef * get_X11_colordef( Display * display , Window w )
    XVisualInfo vinfo , * vin ;
    X11_colordef * cd ;          /* will be the output */
    int count , ii ;
+   xhandler old_handler ;       /* 13 Mar 2002 */
 
    /*--- sanity check ---*/
 
@@ -452,8 +466,22 @@ X11_colordef * get_X11_colordef( Display * display , Window w )
 
    /*--- get window attributes ---*/
 
-   sss = XGetWindowAttributes( display, getwin_from_XDBE(display,w), &xwat ) ;
-   if( sss == 0 ) return NULL ;
+   /* 13 Mar 2002: deal with the error that occurs
+                   when the Window is really a Pixmap */
+
+   xwat.depth = 0 ;
+   old_handler = XSetErrorHandler(qhandler) ; xwasbad = 0 ;
+
+   XGetWindowAttributes( display, getwin_from_XDBE(display,w), &xwat ) ;
+
+   (void) XSetErrorHandler(old_handler) ;
+
+   if( xwasbad ){
+      int xx,yy ; unsigned int ww,hh,bb,dd ; Window rr ;
+      XGetGeometry( display,w , &rr,&xx,&yy,&ww,&hh,&bb,&dd ) ;
+      XGetWindowAttributes( display, rr , &xwat ) ;
+   }
+   if( xwat.depth == 0 ) return NULL ;   /* bad news */
 
    /*--- get information about the window's Visual ---*/
 
