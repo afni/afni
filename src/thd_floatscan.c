@@ -7,26 +7,37 @@
 #include <math.h>
 #include <stdlib.h>
 
-#if defined(SUN) || defined(SOLARIS) || defined(SGI)
-# include <ieeefp.h>
-# define USE_ISNANF
-#endif
+#if defined(isnan) && defined(isfinite)
+# define IS_NAN(x)    isnan(x)
+# define IS_FINITE(x) isfinite(x)
 
-#if defined(HP) || defined(OSF1) || defined(LINUX)
-# define USE_ISNANF
-# define USE_FINITEF
-#endif
-
-#ifdef USE_ISNANF
-# define IS_NAN(x) isnanf(x)
 #else
-# define IS_NAN(x) isnan(x)
+
+# if defined(SUN) || defined(SOLARIS) || defined(SGI)
+#  include <ieeefp.h>
+#  define USE_ISNANF
+# endif
+
+# if defined(HP) || defined(OSF1) || defined(LINUX)
+#  define USE_ISNANF
+#  define USE_FINITEF
+# endif
 #endif
 
-#ifdef USE_FINITEF
-# define IS_FINITE(x) finitef(x)
-#else
-# define IS_FINITE(x) finite(x)
+#ifndef IS_NAN
+# ifdef USE_ISNANF
+#  define IS_NAN(x) isnanf(x)
+# else
+#  define IS_NAN(x) isnan(x)
+# endif
+#endif
+
+#ifndef IS_FINITE
+# ifdef USE_FINITEF
+#  define IS_FINITE(x) finitef(x)
+# else
+#  define IS_FINITE(x) finite(x)
+# endif
 #endif
 
 /*---------------------------------------------------------------------
