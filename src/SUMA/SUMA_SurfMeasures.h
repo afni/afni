@@ -14,6 +14,7 @@
 #define ST_SMEASURE             2	/* measure type    */
 
 #define ST_PI			3.141592653589793
+#define ST_EPSILON		0.00001
 
 #define RANGE(a,b,c) do {if ((b)<(a)) (b)=(a); if ((b)>(c)) (b)=(c);} while (0)
 
@@ -30,8 +31,8 @@ typedef enum
     E_SM_COORD_B,			/* give coordinates of second node   */
     E_SM_N_AREA_A,			/* give node area of first node      */
     E_SM_N_AREA_B,			/* give node area of second node     */
-    E_SM_NODES,				/* print out node indices            */
     E_SM_NODE_VOL,			/* give volume for each node         */
+    E_SM_NODES,				/* print out node indices            */
     E_SM_THICK,				/* display between surface thickness */
     E_SM_FINAL
 } smeasure_codes_e;
@@ -109,6 +110,11 @@ float	vector_angle         ( float * v0, float * v1 );
 int	verify_surf_t        ( opts_t * opts, param_t * p );
 int	write_output         ( opts_t * opts, param_t * p );
 
+/* testing routines */
+int     cross_product        ( double * res, double * u, double * v );
+float   eval_planar_points   ( float * a, float * b, float * c, float * d );
+int     test_planar_sides    ( opts_t * opts, param_t * p);
+int     surf_triangle_match  ( opts_t * opts, param_t * p);
 
 
 #endif     /* #define _SUMA_SURFMEASURES_H_ */
