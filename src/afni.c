@@ -1743,7 +1743,7 @@ STATUS("get status") ;
    /*--- 26 Feb 2001: return a memplot drawing struct ---*/
    /*--- 22 Mar 2002: add crosshairs to surface stuff ---*/
 
-#define RX 0.25
+#define RX 0.2
    if( type == isqCR_getmemplot ){
      Three_D_View * im3d = (Three_D_View *) br->parent ;
      int do_surf=(SUMA_ENABLED                   && DSET_HAS_SUMA(br->dset)            );
@@ -1776,12 +1776,13 @@ STATUS("get status") ;
       int   kkk=0 ;
       float xyz=0 , rxm,rxp ;
       int skip_boxes=0 , skip_lines=0 ;
+      float boxsize=RX , linewidth=0.0 ;   /* 23 Feb 2003 */
 
       if( ag == NULL ) continue ;          /* skip this one */
       nn = ag->num_ixyz ; nod = ag->ixyz ;
       if( nn < 1 || nod == NULL ) continue ;  /* nothing to do */
 
-      /* define overlay color for node boxes and triangle lines */
+      /* define parameters for node boxes and triangle lines */
 
       if( swid != NULL && ks < swid->nrow ){     /* 19 Aug 2002: the new way */
         int cc ;                                 /*           to set colors: */
@@ -1805,6 +1806,8 @@ STATUS("get status") ;
             gg_lin = DCOV_GREENBYTE(im3d->dc,cc) / 255.0 ;
             bb_lin = DCOV_BLUEBYTE(im3d->dc,cc)  / 255.0 ;
           }
+          boxsize   = swid->boxsize_av->ival   * 0.1   ;  /* 23 Feb 2003 */
+          linewidth = swid->linewidth_av->ival * 0.002 ;
         }
 
       } else {                                   /* the old way    */
@@ -1828,15 +1831,22 @@ STATUS("get status") ;
           else
             DC_parse_color( im3d->dc , eee , &rr_lin,&gg_lin,&bb_lin ) ;
         }
+
+        eee = getenv("AFNI_SUMA_BOXSIZE") ;  /* maybe set boxsize? */
+        if( eee != NULL ){
+           float val=strtod(eee,NULL) ;
+           if( val > 0.0 ) boxsize = val ;
+        }
+
+        eee = getenv( "AFNI_SUMA_LINESIZE" ) ; /* maybe set linewidth? */
+        if( eee != NULL ){
+          float val = strtod(eee,NULL) ;
+          if( val < 0.0 || val > 0.1 ) val = 0.0 ;
+          linewidth = val ;
+        }
       }
 
       if( skip_boxes && skip_lines ) continue ; /* nothing to do? */
-
-      eee = getenv("AFNI_SUMA_BOXSIZE") ;  /* maybe set boxsize? */
-      if( eee != NULL ){
-         float val=strtod(eee,NULL) ;
-         if( val > 0.0 ) rx = val ;
-      }
 
       /** 21 Mar 2002:
           We calculate plotting coordinates in "fdfind" coordinates,
@@ -1855,6 +1865,7 @@ STATUS("get status") ;
           Previously, I forgot the +0.5, which didn't matter much,
           until the introduction of the image zoom feature last week. **/
 
+      rx  = boxsize ;                /* 23 Feb 2003 */
       rxm = rx-0.5 ; rxp = rx+0.5 ;  /* The 0.5 voxel shift */
 
       /* find DICOM coordinates of next slice and previous slice */
@@ -1874,6 +1885,7 @@ STATUS("get status") ;
       dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
 
       set_color_memplot(rr_box,gg_box,bb_box) ;  /* box drawing colors */
+      set_thick_memplot(0.0) ;
 
       /* find nodes inside this slice */
 
@@ -1943,16 +1955,10 @@ STATUS("get status") ;
         int      ntr = ag->num_ijk ;    /* number of triangles */
         int id,jd,kd ;
         THD_fvec3 fvijk[3] ;
-        float ci,cj,ck , lx=0.0 ;
+        float ci,cj,ck ;
 
         set_color_memplot(rr_lin,gg_lin,bb_lin) ;  /* line drawing colors */
-
-        eee = getenv( "AFNI_SUMA_LINESIZE" ) ;     /* 15 Jan 2003 */
-        if( eee != NULL ){
-          lx = strtod(eee,NULL) ;
-          if( lx < 0.0 || lx > 0.1 ) lx = 0.0 ;
-        }
-        set_thick_memplot(lx) ;
+        set_thick_memplot(linewidth) ;             /* 23 Feb 2003 */
 
         /* loop over triangles */
 

@@ -4337,3 +4337,10 @@
      quantization problems.
  * Modified afni.c to add a "#NodeID" string to the Button-3 image viewer popup,
      when a surface is present.
+
+23 Feb 2003
+ * Modified afni.[ch] and afni_sumafunc.c to create boxsize and linewidth
+     controls on the "Control Surface" popup.
+ * Modified coxplot/plot_x11.c to flip line segments if that will make
+     them join. Also, initialize thickness of plots to 0, to allow for
+     special case (circle, box, ...) that is first item plotted.
