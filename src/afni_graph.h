@@ -119,6 +119,7 @@ typedef struct {
           fim_editref_read_pb , fim_editref_write_pb , fim_editref_store_pb ,
           fim_editref_setshift_pb , fim_editort_clear_pb ,
           fim_polort_choose_pb , fim_bkthr_choose_pb ;
+   MCW_bbox *fim_editref_winaver_bbox ;  /* 26 Jan 2004 */
    Widget fim_ignore_menu   , fim_ignore_cbut ,
           fim_ignore_down_pb, fim_ignore_up_pb , fim_ignore_choose_pb ;
    Widget fim_pickref_pb , fim_pickort_pb , fim_execute_pb , fim_execfimp_pb ;
@@ -379,6 +380,7 @@ typedef struct {
    XPoint    * cen_line ;
    MRI_IMAGE * cen_tsim ;
    MRI_IMAGE * xax_tsim ;  /* 09 Jan 1998 */
+   MRI_IMAGE * ave_tsim ;  /* 26 Jan 2004 */
 
    int xx_text_1 , xx_text_2 , xx_text_3 ;   /* 19 Dec 2003  [rickr] */
 
@@ -477,6 +479,9 @@ typedef struct {
    XtIntervalId timer_id ;                          /* 04 Dec 2003 */
    int          timer_func, timer_param, timer_delay ;
 
+   int dont_setref ;                                /* 27 Jan 2004 */
+   int dont_redraw ;                                /* 27 Jan 2004 */
+
 } MCW_grapher ;
 
 #define GRA_TIMERFUNC_INDEX  701
@@ -520,6 +525,7 @@ typedef struct {
 #define graCR_timeseries_library 7724
 #define graCR_clearort           7725
 #define graCR_polort             7726  /* 27 May 1999 */
+#define graCR_winaver            7727  /* 27 Jan 2004 */
 
 #define graCR_dofim       7731
 
@@ -553,6 +559,7 @@ typedef struct {
 #define graDR_setignore   123
 #define graDR_setindex    124
 #define graDR_polort      125  /* 27 May 1999 */
+#define graDR_winaver     126  /* 27 Jan 2004 */
 
 #define graDR_setmatrix   130  /* 22 Sep 2000 */
 #define graDR_setgrid     131
@@ -643,6 +650,9 @@ extern FIM_menu * AFNI_new_fim_menu( Widget , XtCallbackProc , int ) ;
 extern void GRA_redraw_overlay( MCW_grapher * ) ;
 
 extern void GRA_dplot_change_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void GRA_winaver_CB     ( Widget , XtPointer , XtPointer ) ;  /* 27 Jan 2004 */
+extern void GRA_winaver_setref ( MCW_grapher * ) ;
 
 extern void GRA_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void GRA_file_pixmap( MCW_grapher * , char * ) ;

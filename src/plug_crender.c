@@ -4788,6 +4788,7 @@ ENTRY( "RCREND_open_imseq" );
      opt.save_filter = -1 ;  /* 27 Jun 2001 */
      drive_MCW_imseq( imseq , isqDR_options      , (XtPointer) &opt ) ;
      drive_MCW_imseq( imseq , isqDR_periodicmont , (XtPointer) 0    ) ;
+     drive_MCW_imseq( imseq , isqDR_penbbox      , (XtPointer) 0    ) ;
    }
 
    /* make it popup */

@@ -62,11 +62,11 @@ ENTRY("new_MCW_grapher") ;
    grapher->parent = NULL ;
    grapher->valid  = 1 ;
 
-   grapher->timer_id = 0 ;         /* 04 Dec 2003 */
-
-   grapher->never_drawn = 1 ;
+   grapher->dont_redraw     = 0 ;  /* 27 Jan 2004 */
+   grapher->timer_id        = 0 ;  /* 04 Dec 2003 */
+   grapher->never_drawn     = 1 ;
    grapher->button2_enabled = 0 ;  /* Feb 1998 */
-   grapher->mirror = 0 ;           /* Jul 2000 */
+   grapher->mirror          = 0 ;  /* Jul 2000 */
 
    grapher->gx_max = 0 ;
    grapher->gy_max = 0 ;
@@ -860,6 +860,7 @@ if(PRINT_TRACING)
    grapher->nncen       =  0 ;
    grapher->cen_tsim    =  NULL ;
    grapher->xax_tsim    =  NULL ;  /* 09 Jan 1998 */
+   grapher->ave_tsim    =  NULL ;  /* 27 Jan 2004 */
 
    grapher->xx_text_1 = grapher->xx_text_2 = 1 ;
 
@@ -948,17 +949,20 @@ STATUS("destroying arrowvals") ;
    FREE_AV( grapher->setshift_right_av)    ;
    FREE_AV( grapher->setshift_left_av)     ;
    FREE_AV( grapher->setshift_inc_av)      ;
+   FREE_AV( grapher->transform0D_av )      ;  /* 22 Oct 1996 */
+   FREE_AV( grapher->transform1D_av )      ;  /* 03 Nov 1996 */
+   FREE_AV( grapher->opt_ggap_av )         ;  /* 28 Sep 1998: via Purify */
+
+   for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )  /* 16 Jun 1997 */
+      FREE_AV( grapher->opt_color_av[ii] ) ;
+
+STATUS("destroying fmenu") ;
+   myXtFree( grapher->fmenu->fim_editref_winaver_bbox );  /* 27 Jan 2004 */
    myXtFree( grapher->fmenu->fim_opt_bbox ) ;  /* Jan 1998 */
    myXtFree( grapher->fmenu->fimp_opt_bbox );  /* Jan 1998 */
    myXtFree( grapher->fmenu->fimp_user_bbox);  /* Feb 2000 */
    myXtFree( grapher->fmenu )               ;
    myXtFree( grapher->cen_line )            ;
-   FREE_AV( grapher->transform0D_av )      ;  /* 22 Oct 1996 */
-   FREE_AV( grapher->transform1D_av )      ;  /* 03 Nov 1996 */
-   FREE_AV( grapher->opt_ggap_av )         ;  /* 28 Sep 1998: via Purify */
-
-   for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ )   /* 16 Jun 1997 */
-      FREE_AV( grapher->opt_color_av[ii] ) ;
 
 STATUS("destroying bboxes") ;
    myXtFree( grapher->opt_dplot_bbox ) ;          /* 08 Nov 1996 */
@@ -974,6 +978,7 @@ STATUS("destroying bboxes") ;
 STATUS("freeing cen_tsim") ;
    mri_free( grapher->cen_tsim ) ;
    mri_free( grapher->xax_tsim ) ;  /* 09 Jan 1998 */
+   mri_free( grapher->ave_tsim ) ;  /* 27 Jan 2004 */
 
 STATUS("freeing tuser") ;
    GRA_CLEAR_tuser( grapher ) ;  /* 22 Apr 1997 */
@@ -1004,9 +1009,11 @@ STATUS("freeing grapher") ;
    Erase pixmap to background color
 ------------------------------------*/
 
-void erase_fdw( MCW_grapher * grapher )
+void erase_fdw( MCW_grapher *grapher )
 {
 ENTRY("erase_fdw") ;
+
+   if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
 
    DC_fg_color ( grapher->dc , BG_COLOR(grapher) ) ;
    DC_linewidth( grapher->dc , 0 ) ;
@@ -1116,7 +1123,7 @@ void GRA_small_circle( MCW_grapher * grapher , int xwin , int ywin , int filled 
 
 /*--- draw into window (the graph overlay) ---*/
 
-void GRA_overlay_circle( MCW_grapher * grapher , int xwin , int ywin , int filled )
+void GRA_overlay_circle( MCW_grapher *grapher , int xwin , int ywin , int filled )
 {
    int  i , ncirc ;
    XPoint a[NBTOP] ;
@@ -1166,6 +1173,7 @@ ENTRY("GRA_redraw_overlay") ;
    if( ! GRA_REALZ(grapher) ){ STATUS("ILLEGAL CALL") ; EXRETURN ; }
 
    if( ! MCW_widget_visible(grapher->draw_fd) ) EXRETURN ;  /* 03 Jan 1999 */
+   if( grapher->dont_redraw ) EXRETURN ;                    /* 27 Jan 2004 */
 
    /* erase contents of window (that aren't in the pixmap) */
 
@@ -1230,7 +1238,7 @@ ENTRY("GRA_redraw_overlay") ;
      PLOTCODE_AUTOSCALE = scale graphs automatically
 -------------------------------------------------------------------*/
 
-void redraw_graph( MCW_grapher * grapher , int code )
+void redraw_graph( MCW_grapher *grapher , int code )
 {
    int x, y , npoints , www,xxx , rrr ;
    int xc = grapher->xc , yc = grapher->yc ;
@@ -1241,6 +1249,7 @@ ENTRY("redraw_graph") ;
 
    if( ! GRA_REALZ(grapher) ){ STATUS("ILLEGAL ENTRY"); EXRETURN; }
    if( grapher->fd_pxWind == (Pixmap) 0 ){ STATUS("ILLEGAL ENTRY"); EXRETURN; }
+   if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
 
    /*---- draw the graphs ----*/
 
@@ -1395,6 +1404,11 @@ ENTRY("redraw_graph") ;
    GRA_fix_optmenus( grapher ) ;
 #endif
 
+   /** 27 Jan 2004 **/
+
+   if( MCW_val_bbox(grapher->fmenu->fim_editref_winaver_bbox) )
+     GRA_winaver_setref( grapher ) ;
+
    grapher->never_drawn = 0 ;
    EXRETURN ;
 }
@@ -1493,6 +1507,7 @@ void text_graphs( MCW_grapher * grapher )
    char str[64] , *strp ;
 
 ENTRY("text_graphs") ;
+   if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
 
    DC_fg_color( grapher->dc , TEXT_COLOR(grapher) ) ;
 
@@ -1565,35 +1580,36 @@ ENTRY("text_graphs") ;
     Plot all graphs to pixmap
 -------------------------------------------------------------*/
 
-void plot_graphs( MCW_grapher * grapher , int code )
+void plot_graphs( MCW_grapher *grapher , int code )
 {
-   MRI_IMAGE * tsim ;
-   MRI_IMARR * tsimar ;
-   float     * tsar ;
+   MRI_IMAGE *tsim ;
+   MRI_IMARR *tsimar ;
+   float     *tsar ;
    float       tsbot=0.0 , ftemp , tstop ;
    int i, m, index, ix, iy, xtemp,ytemp,ztemp , xoff,yoff ,npoints,its,ibot,itop;
 
-   static int      * plot = NULL ;  /* arrays to hold plotting coordinates */
-   static XPoint * a_line = NULL ;
-   static int       nplot = 0 ;
+   static int      *plot = NULL ;  /* arrays to hold plotting coordinates */
+   static XPoint *a_line = NULL ;
+   static int      nplot = 0 ;
 
-   MRI_IMARR * dplot_imar = NULL ;  /* 08 Nov 1996 */
-   int         dplot = 0 ;
+   MRI_IMARR *dplot_imar = NULL ;  /* 08 Nov 1996 */
+   int        dplot = 0 ;
 
-   MRI_IMARR * eximar ;
-   int         iex ;
+   MRI_IMARR *eximar ;
+   int        iex ;
 
    float nd_bot , nd_top , nd_dif ;                        /* 03 Feb 1998 */
    int   set_scale = ( (code & PLOTCODE_AUTOSCALE) != 0 ||
                        grapher->never_drawn ) ;
 
-   MRI_IMAGE * dsim ; /* 07 Aug 2001: for double plot */
-   float     * dsar ;
+   MRI_IMAGE *dsim ; /* 07 Aug 2001: for double plot */
+   float     *dsar ;
 
 #define OVI_MAX 19
    int tt, use_ovi, ovi[OVI_MAX] ;  /* 29 Mar 2002: for multi-plots */
 
 ENTRY("plot_graphs") ;
+   if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
 
 #ifdef GRAPHER_ALLOW_ONE                       /* 22 Sep 2000 */
    if( grapher->status->num_series < 1 ){
@@ -1787,12 +1803,37 @@ STATUS("about to perform 1D transformation") ;
       }
    }
 
+   /** find the average time series [27 Jan 2004] **/
+
+   { float *avar , fac ;
+     if( grapher->ave_tsim != NULL ) mri_free(grapher->ave_tsim) ;
+     grapher->ave_tsim = mri_new( NPTS(grapher) , 1 , MRI_float ) ;
+     avar = MRI_FLOAT_PTR(grapher->ave_tsim) ;
+     for( ix=0 ; ix < IMARR_COUNT(tsimar) ; ix++ ){
+       tsim = IMARR_SUBIMAGE(tsimar,ix) ;
+       tsar = MRI_FLOAT_PTR(tsim) ;
+       if( tsar == NULL ) continue ;
+       for( i=0 ; i < tsim->nx ; i++ ) avar[i] += tsar[i] ;
+     }
+     fac = 1.0 / IMARR_COUNT(tsimar) ;
+     for( i=0 ; i < grapher->ave_tsim->nx ; i++ ) avar[i] *= fac ;
+
+     if( MCW_val_bbox(grapher->fmenu->fim_editref_winaver_bbox) ){
+       if( grapher->ref_ts == NULL ) INIT_IMARR( grapher->ref_ts ) ;
+       if( IMARR_COUNT(grapher->ref_ts) == 0 ){
+         ADDTO_IMARR( grapher->ref_ts , grapher->ave_tsim ) ;     /* create first one */
+       } else {
+         IMARR_SUBIMAGE(grapher->ref_ts,0) = grapher->ave_tsim ;  /* replace first one */
+       }
+     }
+   }
+
    /** find some statistics of each time series **/
 
 STATUS("finding statistics of time series") ;
 
    if( set_scale ){
-      nd_bot = WAY_BIG ; nd_top = nd_dif = - WAY_BIG ;  /* 03 Feb 1998 */
+     nd_bot = WAY_BIG ; nd_top = nd_dif = - WAY_BIG ;  /* 03 Feb 1998 */
    }
 
    for( ix=0,its=0 ; ix < grapher->mat ; ix++ ){
@@ -2335,6 +2376,7 @@ void draw_grids( MCW_grapher * grapher )
    float ftemp ;
 
 ENTRY("draw_grids") ;
+   if( grapher->dont_redraw ) EXRETURN ;  /* 27 Jan 2004 */
 
    /* draw grid lines in the chosen color */
 
@@ -3753,6 +3795,8 @@ ENTRY("GRA_refread_choose_CB") ;
    for( ii=0 ; ii < flim->nvox ; ii++ )
       if( fabs(far[ii]) >= 33333.0 ) far[ii] = WAY_BIG ;
 
+   { GRA_cbs cbs; cbs.reason=graCR_winaver; CALL_sendback(grapher,cbs); }
+   MCW_set_bbox( grapher->fmenu->fim_editref_winaver_bbox , 0 ) ;
    gbs.reason   = graCR_refequals ;
    gbs.userdata = (XtPointer) flim ;
 #if 0
@@ -3880,6 +3924,8 @@ OK   drive_code       drive_data should be
 *    graDR_addort_ts  (MRI_IMAGE *) adds an ort timeseries to the list
                         input == NULL --> delete all orts
 
+*    graDR_winaver    (int) 0=off 1=on WinAver toggle on FIM menu
+
 *    graDR_setignore  (int) set the initial ignore level for graphs
 
 *    graDR_polort     (int) set the polort level for fimmery
@@ -3923,6 +3969,14 @@ ENTRY("drive_MCW_grapher") ;
                  drive_code) ;
          XBell( grapher->dc->display , 100 ) ;
          RETURN( False ) ;
+      }
+
+      /*------ winaver [27 Jan 2004] -----*/
+
+      case graDR_winaver:{
+        int vvv = (int)drive_data ;
+        MCW_set_bbox( grapher->fmenu->fim_editref_winaver_bbox , vvv ) ;
+        RETURN( True ) ;
       }
 
       /*------ setglobalbaseline [07 Aug 2001] -----*/
@@ -4375,6 +4429,8 @@ ENTRY("GRA_fim_CB") ;
 #endif
 
       if( tsim != NULL ){
+         { GRA_cbs cbs; cbs.reason=graCR_winaver; CALL_sendback(grapher,cbs); }
+         MCW_set_bbox( grapher->fmenu->fim_editref_winaver_bbox , 0 ) ;
          cbs.reason   = (w == grapher->fmenu->fim_editref_equals_pb)
                         ? graCR_refequals : graCR_refadd ;
          cbs.userdata = (XtPointer) tsim ;
@@ -4418,6 +4474,8 @@ ENTRY("GRA_fim_CB") ;
    else if( w == grapher->fmenu->fim_editref_smooth_pb ){
       cbs.reason = graCR_refsmooth ;
       if( grapher->ref_ts != NULL && IMARR_COUNT(grapher->ref_ts) > 0 ){
+         { GRA_cbs cbs; cbs.reason=graCR_winaver; CALL_sendback(grapher,cbs); }
+         MCW_set_bbox( grapher->fmenu->fim_editref_winaver_bbox , 0 ) ;
 #if 0
          grapher->status->send_CB( grapher , grapher->getaux , &cbs ) ;
 #else
@@ -4824,6 +4882,8 @@ ENTRY("GRA_doshift") ;
       mri_free(tim) ;
    }
 
+   { GRA_cbs cbs; cbs.reason=graCR_winaver; CALL_sendback(grapher,cbs); }
+   MCW_set_bbox( grapher->fmenu->fim_editref_winaver_bbox , 0 ) ;
    gbs.reason   = graCR_refequals ;
    gbs.userdata = (XtPointer) newim ;
 #if 0
@@ -4840,9 +4900,9 @@ ENTRY("GRA_doshift") ;
   The parent widget is intended to be a menu bar.
 -----------------------------------------------------------------------*/
 
-FIM_menu * AFNI_new_fim_menu( Widget parent , XtCallbackProc cbfunc , int graphable )
+FIM_menu * AFNI_new_fim_menu( Widget parent, XtCallbackProc cbfunc, int graphable )
 {
-   FIM_menu * fmenu ;
+   FIM_menu *fmenu ;
    Widget qbut_menu = NULL ;
 
 ENTRY("AFNI_new_fim_menu") ;
@@ -5048,6 +5108,7 @@ ENTRY("AFNI_new_fim_menu") ;
    FIM_MENU_BUT( fim_pickort_pb , "Pick Ort"  ) ;
 
    if( graphable ){
+      char *bbox_label[1] = { "Ideal=WinAver" } ;
       MENU_SLINE(fim_menu) ;
       FIM_MENU_PULLRIGHT(fim_editref_menu,fim_editref_cbut       ,"Edit Ideal"    ) ;
       FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_equals_pb  ,"Ideal = Center") ;
@@ -5056,6 +5117,13 @@ ENTRY("AFNI_new_fim_menu") ;
       FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_setshift_pb,"Shift Ideal"   ) ;
       FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_clear_pb   ,"Clear Ideal"   ) ;
       FIM_MENU_PULL_BUT (fim_editref_menu,fim_editort_clear_pb   ,"Clear Ort"     ) ;
+
+      fmenu->fim_editref_winaver_bbox                      /* 27 Jan 2004 */
+       = new_MCW_bbox( fmenu->fim_editref_menu ,
+                       1 , bbox_label , MCW_BB_check , MCW_BB_noframe ,
+                       GRA_winaver_CB , (XtPointer)fmenu ) ;
+      MCW_reghint_children( fmenu->fim_editref_winaver_bbox->wrowcol ,
+                            "Ideal = Average of all Graphs in Window" ) ;
 #ifdef USE_OPTMENUS
       fmenu->fim_polort_choose_av =
          new_MCW_optmenu( fmenu->fim_editref_menu , "Polort " , 0,MAX_POLORT,1,0 ,
@@ -5081,6 +5149,7 @@ ENTRY("AFNI_new_fim_menu") ;
       EMPTY_BUT(fim_editref_store_pb) ;
       EMPTY_BUT(fim_editort_clear_pb) ;
       EMPTY_BUT(fim_polort_choose_pb) ;
+      fmenu->fim_editref_winaver_bbox = NULL ;  /* 27 Jan 2004 */
    }
 
    FIM_MENU_PULLRIGHT(fim_ignore_menu,fim_ignore_cbut      ,"Ignore") ;
@@ -5338,6 +5407,56 @@ ENTRY("GRA_finalize_global_baseline_CB") ;
                      XmNlabelString,xstr ,
                   NULL ) ;
    XmStringFree(xstr) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*** user presses Ideal=WinAver toggle [27 Jan 2004] ***/
+
+void GRA_winaver_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   FIM_menu *fm = (FIM_menu *)client_data ;
+   MCW_grapher *grapher = (MCW_grapher *)fm->parent ;
+
+   if( MCW_val_bbox(grapher->fmenu->fim_editref_winaver_bbox) ){
+     GRA_cbs cbs ;
+     cbs.reason  = graCR_winaver ;
+     CALL_sendback( grapher , cbs ) ;
+     redraw_graph( grapher , 0 ) ;
+   }
+}
+/*----------------------------------------------------------------------------*/
+
+void GRA_winavertimer_CB( XtPointer cd , XtIntervalId *id )
+{
+   MCW_grapher *grapher = (MCW_grapher *)cd ;
+   GRA_cbs cbs ;
+
+   if( !GRA_REALZ(grapher) || grapher->ave_tsim == NULL ) return ;
+
+   cbs.reason   = graCR_refequals ;
+   cbs.userdata = (XtPointer)grapher->ave_tsim ;
+   grapher->dont_redraw = 1 ;
+   CALL_sendback( grapher , cbs ) ;
+   grapher->dont_redraw = 0 ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*** set ref to average time series [27 Jan 2004] ***/
+
+void GRA_winaver_setref( MCW_grapher *grapher )
+{
+   GRA_cbs cbs ;
+
+ENTRY("GRA_winaver_setref") ;
+
+   if( !GRA_REALZ(grapher) || grapher->ave_tsim == NULL ){
+    STATUS("nothing to do") ; EXRETURN ;
+   }
+
+   (void)XtAppAddTimeOut( XtWidgetToApplicationContext(grapher->opt_quit_pb) ,
+                          1 , GRA_winavertimer_CB , grapher ) ;
    EXRETURN ;
 }
 

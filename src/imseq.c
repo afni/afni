@@ -1317,12 +1317,7 @@ if( PRINT_TRACING ){
      MCW_reghint_children( newseq->pen_bbox->wrowcol ,
                            "Toggle pen drawing" ) ;
 
-#define HIDE_PENBBOX
-#ifndef HIDE_PENBBOX
-     XtSetSensitive( newseq->pen_bbox->wrowcol , False ) ;
-#else
      XtUnmanageChild( newseq->pen_bbox->wrowcol ) ;
-#endif
      wtemp = newseq->pen_bbox->wrowcol ;
    }
 
@@ -6943,11 +6938,7 @@ static unsigned char record_bits[] = {
          seq->button2_enabled = 1 ;
          seq->button2_active  = 0 ;
 
-#ifndef HIDE_PENBBOX
-         XtSetSensitive( seq->pen_bbox->wrowcol , True ) ;
-#else
          XtManageChild( seq->pen_bbox->wrowcol ) ;
-#endif
          RETURN( True );
       }
 
@@ -6969,11 +6960,7 @@ static unsigned char record_bits[] = {
 
          seq->button2_enabled = seq->button2_active = 0 ;
          ISQ_set_cursor_state( seq , CURSOR_NORMAL ) ;
-#ifndef HIDE_PENBBOX
-         XtSetSensitive( seq->pen_bbox->wrowcol , False ) ;
-#else
          XtUnmanageChild( seq->pen_bbox->wrowcol ) ;
-#endif
          RETURN( True );
       }
 
@@ -7059,6 +7046,7 @@ static unsigned char record_bits[] = {
                               XmNwidth  , (int)(0.49+ww/seq->image_frac) ,
                               XmNheight , (int)(0.49+hh/seq->image_frac) ,
                            NULL ) ;
+            if( !seq->button2_enabled ) XtUnmanageChild(seq->pen_bbox->wrowcol);
          } else {
             MCW_unmanage_widgets( seq->onoff_widgets , seq->onoff_num ) ;
             XtVaSetValues( seq->wimage ,
@@ -9368,17 +9356,17 @@ ENTRY("ISQ_remove_onoff") ;
    XtUnmanageChild( w ) ;  /* turn it off */
 
    for( ii=0 ; ii < seq->onoff_num ; ii++ ){     /* find in list */
-      if( w == seq->onoff_widgets[ii] ){
-         seq->onoff_widgets[ii] = NULL ;
-         break ;
-      }
+     if( w == seq->onoff_widgets[ii] ){
+       seq->onoff_widgets[ii] = NULL ;
+       break ;
+     }
    }
 
    for( ii=seq->onoff_num-1 ; ii > 0 ; ii-- ){   /* truncate list */
-      if( seq->onoff_widgets[ii] == NULL )
-         seq->onoff_num = ii ;
-      else
-         break ;
+     if( seq->onoff_widgets[ii] == NULL )
+       seq->onoff_num = ii ;
+     else
+       break ;
    }
 
    EXRETURN ;
@@ -10627,7 +10615,14 @@ void ISQ_pen_bbox_CB( Widget w, XtPointer client_data, XtPointer call_data )
    int val ;
 
 ENTRY("ISQ_pen_bbox_CB") ;
-   if( !ISQ_REALZ(seq) || !seq->button2_enabled ) EXRETURN ;
+   if( !ISQ_REALZ(seq) ) EXRETURN ;                 /* bad, but impossible */
+
+   if( !seq->button2_enabled ){                     /* shouldn't happen */
+     MCW_set_bbox( seq->pen_bbox , 0 ) ;
+     ISQ_set_cursor_state( seq, CURSOR_NORMAL ) ;
+     XtUnmanageChild( seq->pen_bbox->wrowcol ) ;
+     EXRETURN ;
+   }
 
    val = MCW_val_bbox( seq->pen_bbox ) ;
    ISQ_set_cursor_state( seq, (val==0) ? CURSOR_NORMAL : CURSOR_PENCIL ) ;

@@ -4914,3 +4914,8 @@
      the Montage control dialog, since that hangs up for a while on the Mac.
  * Modified afni.c to make sure surface boxes are plotted with line
      thickness zero.
+
+27 Jan 2004
+ * Added "WinAver" feature to afni_graph.[ch] and afni.c.  This shows the
+     "ideal" waveform as the average of all the timeseries in a graphing
+     window.

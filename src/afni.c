@@ -3315,9 +3315,9 @@ if(PRINT_TRACING)
    respond to events that one of the MCW_grapher's sends to us
 ------------------------------------------------------------------------*/
 
-void AFNI_gra_send_CB( MCW_grapher * grapher , FD_brick * br , GRA_cbs * cbs )
+void AFNI_gra_send_CB( MCW_grapher *grapher , FD_brick *br , GRA_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) grapher->parent ;
+   Three_D_View *im3d = (Three_D_View *)grapher->parent ;
 
 ENTRY("AFNI_gra_send_CB") ;
 
@@ -3455,6 +3455,20 @@ STATUS("graCR_pickort") ;
          AFNI_fimmer_setort( im3d , NULL ) ;
       }
       break ; /* end of clearfim */
+
+      /*** 27 Jan 2004:
+           User toggled WinAver on in one graph window,
+           so we toggle it off in the other windows.    ***/
+
+      case graCR_winaver:{
+        if( im3d->g123 != NULL && im3d->g123 != grapher )
+          drive_MCW_grapher( im3d->g123 , graDR_winaver , 0 ) ;
+        if( im3d->g231 != NULL && im3d->g231 != grapher )
+          drive_MCW_grapher( im3d->g231 , graDR_winaver , 0 ) ;
+        if( im3d->g312 != NULL && im3d->g312 != grapher )
+          drive_MCW_grapher( im3d->g312 , graDR_winaver , 0 ) ;
+      }
+      break ; /* end of winaver */
 
       /*** 12 Nov 1996:
            User supplies a timeseries to add to the global library ***/
