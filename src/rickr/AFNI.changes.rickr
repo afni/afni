@@ -1002,3 +1002,12 @@
   * modifed thd_analyzeread.c and thd_niftiread.c not to use include directories
       - they now have explicit targets in Makefile.INCLUDE
 
+07 Mar 2005:
+  * modified thd_coords.c: added THD_3dind_to_3dmm_no_wod()
+  * modified 3ddata.h: added THD_3dind_to_3dmm_no_wod declaration
+  * modified plug_maxima.[ch]:
+      - output appropriate coords via new THD_3dind_to_3dmm_no_wod()
+      - added new debug output
+      - changed default separation to 4 voxels
+      - added gr_fac for printing data values in debug mode
+

@@ -58,6 +58,22 @@ THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset * dset ,
 }
 
 /*--------------------------------------------------------------------*/
+/* this version is without using wod dataxes       7 Mar 2005 [rickr] */
+THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset * dset ,
+                             THD_ivec3 iv )
+{
+   THD_dataxes * daxes ;
+   THD_fvec3     fv ;
+
+   daxes = dset->daxes ;
+
+   fv.xyz[0] = daxes->xxorg + iv.ijk[0] * daxes->xxdel ;
+   fv.xyz[1] = daxes->yyorg + iv.ijk[1] * daxes->yydel ;
+   fv.xyz[2] = daxes->zzorg + iv.ijk[2] * daxes->zzdel ;
+   return fv ;
+}
+
+/*--------------------------------------------------------------------*/
 
 THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset * dset ,
                               THD_fvec3 fv )
