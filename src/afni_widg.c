@@ -770,6 +770,24 @@ STATUS("making imag->rowcol") ;
    XtAddCallback( imag->pop_imageonly_pb , XmNactivateCallback ,
                   AFNI_imag_pop_CB , im3d ) ;
 
+   /*--- environment button in menu [05 Nov 2003] ---*/
+
+#ifdef ALLOW_PLUGINS
+   imag->pop_environment_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+            LABEL_ARG("Edit Environment") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   XtAddCallback( imag->pop_environment_pb , XmNactivateCallback ,
+                  AFNI_imag_pop_CB , im3d ) ;
+#else
+   imag->pop_environment_pb = NULL ;
+#endif
+
    /*--- frame to hold all crosshair stuff ---*/
 
    imag->crosshair_frame =

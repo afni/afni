@@ -3668,13 +3668,13 @@ ENTRY("ISQ_free_alldata") ;
    MCW_kill_XImage( seq->zoom_xim ) ; seq->zoom_xim = NULL ;
 
    if( seq->rowgraph_mtd != NULL ){                /* 30 Dec 1998 */
-      seq->rowgraph_mtd->killfunc = NULL ;
-      plotkill_topshell( seq->rowgraph_mtd ) ;
+     seq->rowgraph_mtd->killfunc = NULL ;
+     plotkill_topshell( seq->rowgraph_mtd ) ;
    }
 
    if( seq->surfgraph_mtd != NULL ){               /* 21 Jan 1999 */
-      seq->surfgraph_mtd->killfunc = NULL ;
-      plotkill_topshell( seq->surfgraph_mtd ) ;
+     seq->surfgraph_mtd->killfunc = NULL ;
+     plotkill_topshell( seq->surfgraph_mtd ) ;
    }
 
    if( seq->graymap_mtd != NULL ){                 /* 24 Oct 2003 */
@@ -4375,6 +4375,11 @@ ENTRY("ISQ_drawing_EV") ;
            } else if( !seq->zoom_button1 ){           /* 23 Oct 2003 */
              if( seq->cmap_changed ){
                COLORMAP_CHANGE(seq); seq->cmap_changed = 0;
+               if( seq->graymap_mtd != NULL && AFNI_yesenv("AFNI_STROKE_AUTOPLOT") ){
+                 RWC_sleep(333) ;
+                 plotkill_topshell( seq->graymap_mtd ) ;
+                 seq->graymap_mtd = NULL ;
+               }
              } else if( seq->status->send_CB != NULL ){  /* 04 Nov 2003 */
                 int imx,imy,nim;
                 seq->wimage_width = -1 ;
@@ -8593,11 +8598,11 @@ ENTRY("ISQ_rowgraph_draw") ;
    /* marked for no graphs? */
 
    if( seq->rowgraph_num == 0 ){
-      if( seq->rowgraph_mtd != NULL ){
-         plotkill_topshell( seq->rowgraph_mtd ) ;
-         seq->rowgraph_mtd = NULL ;
-      }
-      EXRETURN ;
+     if( seq->rowgraph_mtd != NULL ){
+       plotkill_topshell( seq->rowgraph_mtd ) ;
+       seq->rowgraph_mtd = NULL ;
+     }
+     EXRETURN ;
    }
 
    if( seq->orim == NULL ) EXRETURN ;
@@ -8607,11 +8612,11 @@ ENTRY("ISQ_rowgraph_draw") ;
    cbs.reason = isqCR_getxynim ;
    cbs.xim = cbs.yim = cbs.nim = -666 ;
    if( seq->status->send_CB != NULL )
-      seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+     seq->status->send_CB( seq , seq->getaux , &cbs ) ;
    if( cbs.xim < 0 || cbs.yim < 0 ){
-      fprintf(stderr,
-       "*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
-      EXRETURN ;  /* bad result */
+     fprintf(stderr,
+      "*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
+     EXRETURN ;  /* bad result */
    }
    ISQ_unflipxy( seq , &(cbs.xim) , &(cbs.yim) ) ;
    jy = jbot = cbs.yim ; ix = cbs.xim ;
@@ -8695,6 +8700,9 @@ ENTRY("ISQ_rowgraph_draw") ;
    EXRETURN ;
 }
 
+/*-----------------------------------------------------------------------*/
+/*! This function is called when then rowgraph_mtd is killed.            */
+
 void ISQ_rowgraph_mtdkill( MEM_topshell_data * mp )
 {
    MCW_imseq * seq ;
@@ -8712,6 +8720,7 @@ ENTRY("ISQ_rowgraph_mtdkill") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/*! This function is called when the graymap_mtd is killed.              */
 
 void ISQ_graymap_mtdkill( MEM_topshell_data *mp )  /* 24 Oct 2003 */
 {
@@ -8721,9 +8730,10 @@ ENTRY("ISQ_graymap_mtdkill") ;
 
    if( mp == NULL ) EXRETURN ;
    seq = (MCW_imseq *) mp->userdata ;
-   if( ISQ_VALID(seq) ) seq->graymap_mtd = NULL ;
-
-   seq->need_orim &= ~GRAYMAP_MASK ;  /* turn off need for orim for graymap */
+   if( ISQ_VALID(seq) ){
+     seq->graymap_mtd = NULL ;
+     seq->need_orim &= ~GRAYMAP_MASK ;  /* turn off need for orim for graymap */
+   }
 
    EXRETURN ;
 }
@@ -8858,11 +8868,11 @@ ENTRY("ISQ_surfgraph_draw") ;
    /* marked for no graph? */
 
    if( seq->surfgraph_num == 0 ){
-      if( seq->surfgraph_mtd != NULL ){
-         plotkill_topshell( seq->surfgraph_mtd ) ;
-         seq->surfgraph_mtd = NULL ;
-      }
-      EXRETURN ;
+     if( seq->surfgraph_mtd != NULL ){
+       plotkill_topshell( seq->surfgraph_mtd ) ;
+       seq->surfgraph_mtd = NULL ;
+     }
+     EXRETURN ;
    }
 
    if( seq->orim == NULL ) EXRETURN ;
@@ -8934,7 +8944,8 @@ ENTRY("ISQ_surfgraph_draw") ;
    EXRETURN ;
 }
 
-/*--- called when the user kills the surface graph window ---*/
+/*-----------------------------------------------------------*/
+/*--- Called when the user kills the surface graph window ---*/
 
 void ISQ_surfgraph_mtdkill( MEM_topshell_data * mp )
 {
