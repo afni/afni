@@ -360,11 +360,7 @@ int init_regression_analysis
           ibot = IBOT(js) ; itop = ITOP(js) ;
 	  for (jm = ibot;  jm <= itop;  jm++)
 	    {
-	      if (is != js)
-		{
-		  plist[ip] = it;
-		  ip++;
-		}
+	      if (is != js){ plist[ip] = it; ip++; }
 	      it++;
 	    }
 	}
