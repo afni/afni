@@ -4547,3 +4547,8 @@
 
 07 May 2003
  * Parallel computation (-jobs option) addtions to 3dNLfim.c.
+ * Mods to mri_dicom_hdr.c to subtract 1 from rwc_err for each error message.
+     This way, will normally only print 1 such message per to3d run, which will
+     make the users happier, I hope.
+ * Add mri_possibly_dicom() function to mri_read_dicom.c, and use it to censor
+     which files get the full DICOM reading treatment.

@@ -559,6 +559,8 @@ extern void   mri_dicom_seterr( int ) ;     /* 05 Nov 2002 */
 extern MRI_IMARR * mri_read_dicom( char * )  ;
 extern int         mri_imcount_dicom( char * ) ;
 extern char *      mri_dicom_sexinfo( void ) ;   /* 23 Dec 2002 */
+extern int mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
+
 
 /*! Set the data pointer in an MRI_IMAGE to NULL. */
 

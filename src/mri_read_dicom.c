@@ -148,7 +148,7 @@ ENTRY("mri_read_dicom") ;
 
    if( str_sexinfo != NULL ){ free(str_sexinfo); str_sexinfo=NULL; }
 
-   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL);
+   if( !mri_possibly_dicom(fname) ) RETURN(NULL) ;  /* 07 May 2003 */
 
    /* extract header info from file into a string
       - cf. mri_dicom_hdr.[ch]
@@ -1130,7 +1130,7 @@ ENTRY("mri_imcount_dicom") ;
 
    if( str_sexinfo != NULL ){ free(str_sexinfo); str_sexinfo=NULL; }
 
-   if( fname == NULL || fname[0] == '\0' ) RETURN(0);
+   if( !mri_possibly_dicom(fname) ) RETURN(0) ;  /* 07 May 2003 */
 
    /* extract the header from the file (cf. mri_dicom_hdr.[ch]) */
 
@@ -1408,4 +1408,62 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi )
    }
 
    return ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Test if a file is possibly a DICOM file.  -- RWCox - 07 May 2003
+----------------------------------------------------------------------------*/
+
+int mri_possibly_dicom( char *fname )
+{
+#undef  BSIZ
+#define BSIZ 4096
+   FILE *fp ;
+   unsigned char buf[BSIZ] , *cpt ;
+   int nn , ii ;
+
+   if( fname == NULL || *fname == '\0' ) return 0 ;
+   fp = fopen( fname , "rb" ) ; if( fp == NULL ) return 0 ;
+
+   /* read 1st buffer */
+
+   nn = fread( buf , 1 , BSIZ , fp ) ;
+   if( nn < 256 ){ fclose(fp) ; return 0 ; }  /* too short */
+
+   /* easy: check if has 'DICM' marker at offset 128..131 */
+
+   if( buf[128]=='D' && buf[129]=='I' && buf[130]=='C' && buf[131]=='M' ){
+     fclose(fp) ; return 1 ;
+   }
+
+   /* hard: scan file for sequence: E0 7F 10 00 (image data attribute) */
+
+   while(1){
+
+     cpt = memchr( buf, 0xe0, nn ) ;                /* look for E0 */
+
+     if( cpt == NULL ){                        /* skip this buffer */
+       nn = fread( buf , 1 , BSIZ , fp ) ;      /* and get another */
+       if( nn < 256 ){ fclose(fp) ; return 0 ; }
+       continue ;
+     }
+
+     ii = nn - (cpt-buf) ;               /* num char to end of buf */
+     if( ii <= 4 ){                     /* too close to end of buf */
+       memmove( buf , cpt , ii ) ;
+       nn = fread( buf+ii , 1 , BSIZ-ii , fp ) ; nn += ii ;
+       if( nn < 256 ){ fclose(fp) ; return 0 ; }
+       cpt = buf ; ii = nn ;
+     }
+
+     /* see if we got what we want */
+
+     if( *cpt==0xe0 && *(cpt+1)==0x7f && *(cpt+2)==0x10 && *(cpt+3)==0x00 ){
+       fclose(fp) ; return 1 ;
+     }
+
+     /* no?  start again at next char in buf */
+
+     memmove( buf , cpt+1 , ii-1 ) ; nn = ii-1 ;
+   }
 }
