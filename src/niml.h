@@ -346,7 +346,6 @@ extern void NI_stream_close( NI_stream_type * ) ;
 extern int NI_stream_readcheck( NI_stream_type *, int  ) ;
 extern int NI_stream_writecheck( NI_stream_type *, int  ) ;
 extern int NI_stream_write( NI_stream_type *, char *, int ) ;
-extern int NI_stream_writestring( NI_stream_type *, char * ) ;
 extern int NI_stream_read( NI_stream_type *, char *, int ) ;
 extern void NI_binary_threshold( NI_stream_type *, int ) ;
 extern void NI_sleep( int ) ;
