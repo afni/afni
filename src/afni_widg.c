@@ -2573,6 +2573,16 @@ STATUS("making func->rowcol") ;
                           pmin , pmax ,               /* value range */
                           AFNI_inten_pbar_CB ,        /* callback */
                           (XtPointer) im3d    );      /* callback data */
+
+     /* 04 Feb 2002: colorscale-ize? */
+
+     if( im3d->dc->visual_class == TrueColor ){
+       char *eee = getenv("AFNI_COLORSCALE_DEFAULT") ;
+       if( eee == NULL || strcmp(eee,"NO") != 0 ){
+         PBAR_set_bigmode( func->inten_pbar , 1 , pmin,pmax ) ;
+         PBAR_set_bigmap( func->inten_pbar , eee ) ;
+       }
+     }
    }
 
    func->inten_pbar->parent       = (XtPointer) im3d ;
@@ -2587,14 +2597,22 @@ STATUS("making func->rowcol") ;
       "Drag the separator bars to alter the thresholds.\n"
       "Click in a pane to alter the color for that range.\n\n"
       "The functional dataset value that maps to 1.0 is\n"
-      "determined by the 'autoRange' controls to the right."
+      "determined by the 'autoRange' controls to the right.\n"
+      "\n"
+      "In 'continuous' colorscale mode, Button-1 click flips\n"
+      "colors top-to-bottom;  Button-3 click shows a menu of\n"
+      "available colorscales.\n"
    ) ;
 
    MCW_reghelp_children( func->inten_pbar->top ,
       "Drag the separator bars to alter the thresholds.\n"
       "Click in a pane to alter the color for that range.\n\n"
       "The functional dataset value that maps to 1.0 is\n"
-      "determined by the 'autoRange' controls to the right."
+      "determined by the 'autoRange' controls to the right.\n"
+      "\n"
+      "In 'continuous' colorscale mode, Button-1 click flips\n"
+      "colors top-to-bottom;  Button-3 click shows a menu of\n"
+      "available colorscales.\n"
    ) ;
 
    MCW_register_help( func->inten_label ,
@@ -2618,7 +2636,8 @@ STATUS("making func->rowcol") ;
                        func->inten_rowcol ,
                         "#" ,
                         AVOPT_STYLE ,
-                        NPANE_MIN , NPANE_MAX+1 , npane ,
+                        NPANE_MIN , NPANE_MAX+1 ,
+                        (func->inten_pbar->bigmode) ? NPANE_MAX+1 : npane ,
                         MCW_AV_notext , 0 ,
                         AFNI_inten_av_CB , func->inten_pbar ,
                         AFNI_inten_av_texter,NULL ) ;
