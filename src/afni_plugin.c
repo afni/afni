@@ -4486,6 +4486,7 @@ static vptr_func * forced_loads[] = {
    (vptr_func *) THD_dataset_rowfillin ,
    (vptr_func *) mri_histobyte ,          /* 25 Jul 2001 */
    (vptr_func *) sphere_voronoi_vectors , /* 18 Oct 2001 */
+   (vptr_func *) new_CREN_renderer ,      /* 14 Feb 2002 */
 #endif
 NULL } ;
 
