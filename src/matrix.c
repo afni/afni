@@ -7,6 +7,9 @@
 
   Mod:      05 August 1997
             Changed print format for functions matrix_print and vector_print.
+
+  Mod:      04 November 1997
+            Changed initialization in function vector_create.
 */
 
 
@@ -25,7 +28,6 @@
   program for a fee, or the derivation of for-profit works from this program
   is not allowed.
 */
-
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -126,7 +128,7 @@ void matrix_print (matrix m)
   for (i = 0;  i < rows;  i++)
     {
       for (j = 0;  j < cols;  j++)
-	printf ("%10.3f", m.elts[i][j]);
+	printf ("%10.4f", m.elts[i][j]);
       printf (" \n");
     }
   printf (" \n");
@@ -474,6 +476,9 @@ void vector_create (int dim, vector * v)
   v->elts = (double *) malloc (sizeof(double) * dim);
   if (v->elts == NULL)
     matrix_error ("Memory allocation error");
+
+  for (i = 0;  i < dim;  i++)
+     v->elts[i] = 0.0;
 }
 
 
@@ -487,7 +492,7 @@ void vector_print (vector v)
   int i;
 
   for (i = 0;  i < v.dim;  i++)
-    printf ("  %10.3f \n", v.elts[i]);
+    printf ("  %10.4f \n", v.elts[i]);
   printf (" \n");
     
 }
@@ -634,37 +639,3 @@ float vector_dot (vector a, vector b)
 }
 
 /*---------------------------------------------------------------------------*/
-/*
-  Destroy matrix data structure by deallocating memory.
-*/
-
-void matrix_destroy2 (matrix * m)
-{
-  int i, rows;
-
-  printf ("m->elts = %p \n", m->elts);
-
-  if (m->elts != NULL)
-    {
-      rows = m->rows;
-      printf ("rows = %d \n", rows);
-      for (i = 0;  i < rows;  i++)
-	{
-	  printf ("i = %d  m->elts[i] = %p \n", i, m->elts[i]);
-	  if (m->elts[i] != NULL)
-	    {  free (m->elts[i]);   m->elts[i] = NULL; }
-	  printf ("m->elts[i] = %p \n", m->elts[i]);
-	}
-      printf ("m->elts = %p \n", m->elts);
-      free (m->elts); 
-      printf ("m->elts = %p \n", m->elts);
-
-    }
-
-  matrix_initialize (m);
-}
-
-
-
-
-
