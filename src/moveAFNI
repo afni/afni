@@ -1,14 +1,14 @@
 #!/bin/tcsh
 
-# script to put changed files from afni98.tgz into the current directory
+# script to put changed files from afni_src.tgz into the current directory
 
 set doit = 0
 if( $#argv == 1 ) then
   if( $argv[1] == "doit" ) set doit = 1
 endif
 
-set archive  = afni98.tgz
-set localdir = AFNI98
+set archive  = afni_src.tgz
+set localdir = afni_src
 set ftpdir   = $cwd
 
 echo "================================================"
@@ -20,7 +20,7 @@ cd $localdir
 echo "Starting to scan for changed files"
 
 @ ttt = 0
-foreach fname ( `find . -print` )
+foreach fname ( `find . -print | grep -v CVS | grep -v moveAFNI` )
 
    if( -f $fname ) then
       if( -f $ftpdir/$fname ) then
