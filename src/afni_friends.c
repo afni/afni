@@ -50,7 +50,7 @@ static AFNI_friend afni_friends[] = {
   { "T Ross"         , (         4 | 8 | 16 | 32                        ) } ,
   { "H Garavan"      , (         4 | 8 | 16                 | 256       ) } ,
   { "SJ Li"          , (     2                                          ) } ,
-  { "ZS Saad"        , (     2 | 4 | 8 | 16      | 64                   ) } ,
+  { "ZS Saad"        , (     2 | 4 | 8 | 16      | 64 | 128             ) } ,
   { "K Ropella"      , (     2                                          ) } ,
   { "B Knutson"      , (                 16 |           128             ) } ,
   { "B Biswal"       , (                 16                             ) } ,
@@ -60,14 +60,13 @@ static AFNI_friend afni_friends[] = {
   { "PSF Bellgowan"  , (             8 | 16                             ) } ,
   { "S Durgerian"    , (             8 | 16                             ) } ,
   { "M Belmonte"     , (             8 |           64                   ) } ,
-  { "V van Gogh"     , (                      32                        ) } ,
   { "K Bove-Bettis"  , (                 16 |           128             ) } ,
   { "E Kapler"       , (                                128             ) } ,
-  { "R Doucette"     , (                           64                   ) } ,
-  { "RC Reynolds"    , (                           64       | 512       ) } ,
-  { "PP Christidis"  , (                           64                   ) } ,
+  { "R Doucette"     , (                           64 | 128             ) } ,
+  { "RC Reynolds"    , (                           64 | 128 | 512       ) } ,
+  { "PP Christidis"  , (                           64 | 128 | 512       ) } ,
   { "G Fong"         , (                 16 |           128             ) } ,
-  { "LR Frank"       , (             8                                  ) } ,
+  { "LR Frank"       , (             8 | 16                             ) } ,
   { "R Desimone"     , (     2                                          ) }
 } ;
 
@@ -84,7 +83,7 @@ char * AFNI_get_friend(void)
       nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
    } while( qq < 73 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
 
-   if( nh == YOU_KNOW_WHAT && nf != KLOSEK ) nh = INSPIRATION ; /* only for Gosia */
+   if( nh == YOU_KNOW_WHAT && nf != KLOSEK ) nh = INSPIRATION; /* only Gosia */
 
    sprintf( buf  ,
             "Thanks go to %s for %s" ,
@@ -92,7 +91,7 @@ char * AFNI_get_friend(void)
    return buf ;
 }
 
-/*---------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------*/
 /* 25 Nov 2002: this date in history! */
 
 #define JAN  1
@@ -629,7 +628,7 @@ static mday holiday[] = {
 
  {0,0,NULL} } ;  /* the last element, a flag to stop searching */
 
-/*---------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------*/
 /*! Return today's date trivia string. */
 
 char * AFNI_get_date_trivia(void)
