@@ -5331,3 +5331,5 @@
 
 24 Feb 2005
  * Modified 3dmaskave to have -max option.
+ * Modified niml/ functions to generalize NI_group elements so that any
+     element name is OK, provided attribute ni_form="group" is present.
