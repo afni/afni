@@ -43,7 +43,7 @@ ENTRY("AFNI_driver") ;
    /* skip blanks */
 
    for( ii=0 ; ii < clen ; ii++ )
-      if( !isblank(cmd[ii]) ) break ;
+      if( !isspace(cmd[ii]) ) break ;
 
    if( ii == clen ) RETURN(-1) ;
 
@@ -58,7 +58,7 @@ ENTRY("AFNI_driver") ;
           strncmp(cmd,dpair[dd].nam,dlen) == 0   ){  /* found it */
 
          for( ii=dlen ; ii < clen ; ii++ )      /* skip blanks */
-            if( !isblank(cmd[ii]) ) break ;
+            if( !isspace(cmd[ii]) ) break ;
 
          rval = dpair[dd].fun( cmd+ii ) ;
          RETURN(rval) ;
@@ -138,7 +138,7 @@ ENTRY("AFNI_switch_session") ;
 
    MCW_strncpy( dname , cmd+dadd , THD_MAX_NAME ) ;
    for( ic=strlen(dname)-1 ; ic >= 0 ; ic-- )
-      if( isblank(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
+      if( isspace(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
       else break ;
 
    if( strlen(dname) == 0 ) RETURN(-1) ;
@@ -187,7 +187,7 @@ ENTRY("AFNI_switch_anatomy") ;
 
    MCW_strncpy( dname , cmd+dadd , THD_MAX_NAME ) ;
    for( ic=strlen(dname)-1 ; ic >= 0 ; ic-- )
-      if( isblank(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
+      if( isspace(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
       else break ;
 
    if( strlen(dname) == 0 ) RETURN(-1) ;
@@ -233,7 +233,7 @@ ENTRY("AFNI_switch_function") ;
 
    MCW_strncpy( dname , cmd+dadd , THD_MAX_NAME ) ;
    for( ic=strlen(dname)-1 ; ic >= 0 ; ic-- )
-      if( isblank(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
+      if( isspace(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
       else break ;
 
    if( strlen(dname) == 0 ) RETURN(-1) ;

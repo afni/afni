@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include <string.h>
 
@@ -28,6 +28,8 @@ static int  RG_debug           = 0 ;
 static int  RG_almode_coarse   = MRI_BICUBIC ;
 static int  RG_almode_fine     = MRI_BICUBIC ;
 static int  RG_almode_reg      = MRI_BICUBIC ;
+
+static int  RG_use_cm          = 0 ; /* 08 Nov 2001 */
 
 static MRI_IMAGE * RG_imwt     = NULL ;
 
@@ -227,6 +229,8 @@ void REG_syntax(void)
     "                    ACCURACY: displacments of at most a few pixels.\n"
     "                *** This is the default method (without the :0).\n"
     "\n"
+
+#ifdef ALLOW_DFTIME
     "  -dftime[:0]     Similar to the above, but after determining the\n"
     "                    displacements, it modifies the images by using a\n"
     "                    local fit in each voxel.  The optional :0 has the\n"
@@ -239,6 +243,11 @@ void REG_syntax(void)
     "                    for FMRI use only!\n"
     "\n"
     "  -dfspacetime[:0]  Apply both algorithms: dfspace, then dftime.\n"
+    "\n"
+#endif /* ALLOW_DFTIME */
+
+    "  -cmass            Initialize the translation estimate by aligning\n"
+    "                    the centers of mass of the images.\n"
     "\n"
     "The new two options are used to play with the -dfspace algorithm,\n"
     "which has a 'coarse' fit phase and a 'fine' fit phase:\n"
@@ -272,6 +281,13 @@ void REG_command_line(void)
    /*** look for options ***/
 
    while( Iarg < Argc-2 && Argv[Iarg][0] == '-' ){
+
+      /** -cmass [08 Nov 2001] **/
+
+      if( strcmp(Argv[Iarg],"-cmass") == 0 ){
+         RG_use_cm = 1 ;
+         Iarg++ ; continue ;
+      }
 
       /** -nowrite **/
 

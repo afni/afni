@@ -24,6 +24,8 @@ int main( int argc , char *argv[] )
    int nopt=1 , dolabel=TRUE , doquiet = FALSE ;
    char * pix_prefix = NULL ;
 
+   float xcm , ycm , mmm ;  /* 08 Nov 2001 */
+
    /*-------*/
 
    if( argc < 2 || strncmp(argv[1],"-h",2) == 0 ){
@@ -84,13 +86,21 @@ int main( int argc , char *argv[] )
       npix = flim->nvox ;
       flar = MRI_FLOAT_PTR( flim ) ;
 
+      xcm = ycm = mmm = 0.0 ;    /* 08 Nov 2001 */
+
       im_max = im_min = flar[0] ;
       im_ave = 0.0 ;
       for( ii=0 ; ii < npix ; ii++ ){
               if( flar[ii] > im_max ) im_max  = flar[ii] ;
          else if( flar[ii] < im_min ) im_min  = flar[ii] ;
          im_ave += flar[ii] ;
+
+         xcm += fabs(flar[ii]) * (ii/flim->nx) ;
+         ycm += fabs(flar[ii]) * (ii%flim->nx) ;
+         mmm += fabs(flar[ii]) ;
       }
+      if( mmm > 0.0 ){ xcm /= mmm; ycm /= mmm; }
+
       im_ave /= npix ;
 
       im_max2 = 2 * im_min - im_max ;
@@ -116,6 +126,7 @@ int main( int argc , char *argv[] )
                     im_min,im_min2 , im_max,im_max2 ) ;
             printf( "mean=%11.4g  std.dev.=%11.4g  number of zero pixels = %d\n" ,
                     im_ave,im_std,nzero ) ;
+            if( mmm > 0.0 ) printf("x-CM=%11.4g     y-CM=%11.4g\n",xcm,ycm) ;
          } else {
             printf( "%d %d %d " , flim->nx , flim->ny , imk ) ;
             printf( "%11.4g %11.4g %11.4g %11.4g %11.4g %11.4g %d\n" ,
