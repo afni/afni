@@ -9,14 +9,14 @@
 /* These typedefs are used to find the byte alignment
    the compiler imposes on the 'basic' types supported by NIML. */
 
-typedef struct { char a; byte    b; } qdgp_byte    ;
-typedef struct { char a; short   b; } qdgp_short   ;
-typedef struct { char a; int     b; } qdgp_int     ;
-typedef struct { char a; float   b; } qdgp_float   ;
-typedef struct { char a; double  b; } qdgp_double  ;
-typedef struct { char a; complex b; } qdgp_complex ;
-typedef struct { char a; rgb     b; } qdgp_rgb     ;
-typedef struct { char a; rgba    b; } qdgp_rgba    ;
+typedef struct { char a; byte    b; } Qadgop_byte    ;  /* not a Mercotan */
+typedef struct { char a; short   b; } Qadgop_short   ;
+typedef struct { char a; int     b; } Qadgop_int     ;
+typedef struct { char a; float   b; } Qadgop_float   ;
+typedef struct { char a; double  b; } Qadgop_double  ;
+typedef struct { char a; complex b; } Qadgop_complex ;
+typedef struct { char a; rgb     b; } Qadgop_rgb     ;
+typedef struct { char a; rgba    b; } Qadgop_rgba    ;
 
 /* Arrays to hold the alignments, sizes, and names of the basic types. */
 
@@ -28,20 +28,29 @@ static char *type_name     [NI_NUM_BASIC_TYPES+1] = {
   "rgb"   , "rgba"   , "String"
 } ;
 
+static char *type_alias[NI_NUM_BASIC_TYPES+1] = {   /* aliases */
+  "uint8"   , "int16"   , "int32"     ,
+  "float32" , "float64" , "complex64" ,
+  "rgb8"    , "rgba8"   , "CString"
+} ;
+
 /* these are used to find/save the alignment and size of pointers */
 
-typedef struct { char a; void *b; } qdgp_pointer ;
+typedef struct { char a; void *b; } Qadgop_pointer ;
 static int pointer_alignment ;
 static int pointer_size ;
 
-/*! The Htable of user-defined rowtypes, indexed by type name. */
+/*---------------------------------------------------------------*/
+/*! The Htable of user-defined rowtypes, indexed by type name.   */
 
 static Htable *rowtype_table = NULL ;
 
-/*! The array of user-defined rowtypes, indexed by type code. */
+/*! The array of user-defined rowtypes, indexed by type code.
+    Note that rowtypes are never deleted - they just accumulate. */
 
 static NI_rowtype **rowtype_array = NULL ;
 static int         rowtype_num    = 0    ;
+/*---------------------------------------------------------------*/
 
 /*! Rowtype code for first user-defined type. */
 
@@ -97,14 +106,14 @@ static void setup_basic_types(void)
 
    /* get alignments and sizes of the basic types */
 
-   type_alignment[NI_BYTE   ] = offsetof(qdgp_byte   ,b) ;
-   type_alignment[NI_SHORT  ] = offsetof(qdgp_short  ,b) ;
-   type_alignment[NI_INT    ] = offsetof(qdgp_int    ,b) ;
-   type_alignment[NI_FLOAT  ] = offsetof(qdgp_float  ,b) ;
-   type_alignment[NI_DOUBLE ] = offsetof(qdgp_double ,b) ;
-   type_alignment[NI_COMPLEX] = offsetof(qdgp_complex,b) ;
-   type_alignment[NI_RGB    ] = offsetof(qdgp_rgb    ,b) ;
-   type_alignment[NI_RGBA   ] = offsetof(qdgp_rgba   ,b) ;
+   type_alignment[NI_BYTE   ] = offsetof(Qadgop_byte   ,b) ;
+   type_alignment[NI_SHORT  ] = offsetof(Qadgop_short  ,b) ;
+   type_alignment[NI_INT    ] = offsetof(Qadgop_int    ,b) ;
+   type_alignment[NI_FLOAT  ] = offsetof(Qadgop_float  ,b) ;
+   type_alignment[NI_DOUBLE ] = offsetof(Qadgop_double ,b) ;
+   type_alignment[NI_COMPLEX] = offsetof(Qadgop_complex,b) ;
+   type_alignment[NI_RGB    ] = offsetof(Qadgop_rgb    ,b) ;
+   type_alignment[NI_RGBA   ] = offsetof(Qadgop_rgba   ,b) ;
 
    type_size[NI_BYTE   ] = sizeof(byte   ) ;
    type_size[NI_SHORT  ] = sizeof(short  ) ;
@@ -134,7 +143,7 @@ static void setup_basic_types(void)
      rt->comp_typ    = NI_malloc(sizeof(int)) ; /* only one component */
      rt->comp_typ[0] = ii ;
      rt->comp_dim    = NI_malloc(sizeof(int)) ;
-     rt->comp_dim[0] = -1 ;                     /* fixed size component */
+     rt->comp_dim[0] = -1 ;                     /* fixed dim component */
 
      rt->part_num    = 1 ;                      /* basic types have */
      rt->part_typ    = NI_malloc(sizeof(int)) ; /* only one part */
@@ -144,7 +153,7 @@ static void setup_basic_types(void)
      rt->part_siz    = NI_malloc(sizeof(int)) ;
      rt->part_siz[0] = type_size[ii] ;
      rt->part_dim    = NI_malloc(sizeof(int)) ;
-     rt->part_dim[0] = -1 ;                     /* fixed size part */
+     rt->part_dim[0] = -1 ;                     /* fixed dim part */
      rt->part_rtp    = NI_malloc(sizeof(NI_rowtype *)) ;
      rt->part_rtp[0] = rt ;
 
@@ -153,7 +162,7 @@ static void setup_basic_types(void)
 
    /* alignment and size of pointers */
 
-   pointer_alignment = offsetof(qdgp_pointer,b) ;
+   pointer_alignment = offsetof(Qadgop_pointer,b) ;
    pointer_size      = sizeof(void *) ;
 
    /* insert a special rowtype for String (really a pointer) */
@@ -164,11 +173,11 @@ static void setup_basic_types(void)
    rt              = NI_new( NI_rowtype ) ;
    rt->code        = NI_STRING ;
    rt->size        = pointer_size ;
-   rt->psiz        = 0 ;                       /* variable size */
+   rt->psiz        = 0 ;                       /* variable dim */
    rt->algn        = pointer_alignment ;
    rt->name        = NI_strdup("String") ;
    rt->userdef     = NI_strdup("String") ;
-   rt->flag        = ROWTYPE_VARSIZE_MASK ;    /* variable size */
+   rt->flag        = ROWTYPE_VARSIZE_MASK ;    /* variable dim */
 
    rt->comp_num    = 1 ;
    rt->comp_typ    = NI_malloc(sizeof(int)) ;
@@ -293,7 +302,7 @@ int NI_rowtype_define( char *tname , char *tdef )
    /*-- initialize the new rowtype --*/
 
    rt          = NI_new( NI_rowtype ) ;
-   rt->code    = ROWTYPE_BASE_CODE + sizeof_Htable(rowtype_table) ;
+   rt->code    = ROWTYPE_BASE_CODE + rowtype_num ;
    rt->name    = NI_strdup( tname ) ;
    rt->userdef = NI_strdup( tdef ) ;
    rt->flag    = 0 ;
@@ -343,7 +352,7 @@ int NI_rowtype_define( char *tname , char *tdef )
            delete_rowtype(rt); delete_str_array(sar); ERREX("bad #index");
          }
          if( rt->comp_typ[jd-1] != NI_INT ||    /* ref must be to an int */
-             rt->comp_dim[jd-1] >= 0        ){  /* of fixed size (1 int) */
+             rt->comp_dim[jd-1] >= 0        ){  /* of fixed dim (1 int) */
            delete_rowtype(rt); delete_str_array(sar); ERREX("non-int #index");
          }
        }
@@ -370,24 +379,24 @@ int NI_rowtype_define( char *tname , char *tdef )
 
        for( jj=0 ; jj < jd ; jj++ ){
          rt->comp_typ[rt->comp_num + jj] = qt->code ;
-         rt->comp_dim[rt->comp_num + jj] = -1 ;        /* fixed size part */
+         rt->comp_dim[rt->comp_num + jj] = -1 ;        /* fixed dim part */
        }
 
        rt->comp_num += jd ;                 /* have more components now */
        rt->part_num += jd * qt->part_num ;  /* have more parts now */
 
-       if( ROWTYPE_is_varsize(qt) )         /* if component is variable sized, */
-         rt->flag |= ROWTYPE_VARSIZE_MASK ; /* mark rowtype as variable sized */
+       if( ROWTYPE_is_varsize(qt) )         /* if component is variable dim, */
+         rt->flag |= ROWTYPE_VARSIZE_MASK ; /* mark rowtype as variable dim  */
 
      } else {       /*** variable count: add 1 component that is a pointer   */
-                    /***                 to an array of fixed size elements, */
+                    /***                 to an array of fixed dim elements, */
                     /***                 dimension given in component #jd    */
 
        /* but can't have a var dim array of var dim arrays! */
 
        if( ROWTYPE_is_varsize(qt) ){
          delete_rowtype(rt); delete_str_array(sar);
-         ERREX("variable size array must have fixed size type");
+         ERREX("variable dim array must have fixed dim type");
        }
 
        rt->comp_typ = NI_realloc( rt->comp_typ, sizeof(int)*(rt->comp_num+1) );
@@ -399,7 +408,7 @@ int NI_rowtype_define( char *tname , char *tdef )
        rt->comp_num ++ ;  /* 1 more component */
        rt->part_num ++ ;  /* and 1 more part */
 
-       rt->flag |= ROWTYPE_VARSIZE_MASK ;   /* mark rowtype as variable sized */
+       rt->flag |= ROWTYPE_VARSIZE_MASK ;   /* mark rowtype as variable dim */
 
      }
 
@@ -425,7 +434,7 @@ int NI_rowtype_define( char *tname , char *tdef )
    for( ii=0 ; ii < rt->comp_num ; ii++ ){
 
                                     /*** component is a      ***/
-     if( rt->comp_dim[ii] >= 0 ){   /*** variable size array ***/
+     if( rt->comp_dim[ii] >= 0 ){   /*** variable dim array  ***/
                                     /*** ==> store 1 pointer ***/
 
        if( pointer_alignment > 1 ){            /* make sure cbase */
@@ -437,7 +446,7 @@ int NI_rowtype_define( char *tname , char *tdef )
           might end up as a derived type - normally, part_typ
           will be a builtin type code (NI_BYTE .. NI_STRING).
           Note the limitation that the type of variable dim
-          arrays be a fixed size type.                        */
+          arrays be a fixed dim type.                        */
 
        rt->part_typ[id] = rt->comp_typ[ii] ;
        rt->part_off[id] = cbase ;
@@ -450,7 +459,7 @@ int NI_rowtype_define( char *tname , char *tdef )
        for( jd=kd=0 ; jd < rt->comp_dim[ii] ; jd++ ){
          if( rt->comp_dim[jd] >= 0 ){   /* this component is a pointer itself */
            kd++ ;
-         } else {                      /* this component has fixed size parts */
+         } else {                      /* this component has fixed dim parts */
            qt = NI_rowtype_find_code( rt->comp_typ[jd] ) ;
            kd += qt->part_num ;
          }
@@ -462,7 +471,7 @@ int NI_rowtype_define( char *tname , char *tdef )
 
        id++ ; cbase += pointer_size ;
 
-     } else {      /*** fixed size type, possibly with multiple parts ***/
+     } else {      /*** fixed dim type, possibly with multiple parts ***/
 
        qt = NI_rowtype_find_code( rt->comp_typ[ii] ) ;  /* component type */
 
@@ -496,7 +505,7 @@ int NI_rowtype_define( char *tname , char *tdef )
          rt->part_typ[id] = qt->part_typ[jj] ;     /* type of new part      */
          rt->part_rtp[id] = NI_rowtype_find_code( rt->part_typ[id] ) ;
 
-         if( qt->part_dim[jj] < 0 ){        /******* fixed size part       **/
+         if( qt->part_dim[jj] < 0 ){        /******* fixed dim part        **/
 
            nn = last_size ;                        /* # bytes in last part  */
            jd = rt->part_off[id-1] ;               /* offset of last part   */
@@ -509,7 +518,7 @@ int NI_rowtype_define( char *tname , char *tdef )
              if( jd > 0 ) nn += (kd-jd) ;          /* of jj bytes alignment */
            }
            rt->part_off[id] = nn ;
-           rt->part_dim[id] = -1 ;               /* mark as fixed size part */
+           rt->part_dim[id] = -1 ;                /* mark as fixed dim part */
 
            last_size = rt->part_rtp[id]->size ;        /* size of this part */
            rt->part_siz[id] = last_size ;
@@ -544,7 +553,7 @@ int NI_rowtype_define( char *tname , char *tdef )
 
        cbase += qt->size ;
 
-     } /* end of fixed size component part-izing */
+     } /* end of fixed dim component part-izing */
 
    } /* end of loop over components */
 
@@ -564,12 +573,12 @@ int NI_rowtype_define( char *tname , char *tdef )
                           Strings, just the pointers to those things */
 
    /* 26 Dec 2002: Compute the sum of the part sizes
-                   (zero if this has variable size arrays).
+                   (zero if this has variable dim arrays).
                    If rt->psiz == rt->size, then
                    struct is stored without padding bytes. */
 
    rt->psiz = 0 ;
-   if( (rt->flag & ROWTYPE_VARSIZE_MASK) == 0 ){
+   if( !ROWTYPE_is_varsize(rt) ){
      for( ii=0 ; ii < rt->part_num ; ii++ )
        rt->psiz += rt->part_siz[ii] ;
    }
@@ -622,13 +631,23 @@ int NI_rowtype_define( char *tname , char *tdef )
 }
 
 /*--------------------------------------------------------------------*/
-/*! Find a rowtype by its name. */
+/*! Find a rowtype by its name. [19 Feb 2003: or its alias.] */
 
 NI_rowtype * NI_rowtype_find_name( char *nn )
 {
+   NI_rowtype *rt ; int ii ;
+
    if( nn == NULL || *nn == '\0' ) return NULL ;
    if( rowtype_table == NULL ) setup_basic_types() ;
-   return (NI_rowtype *) findin_Htable(nn,rowtype_table) ;
+   rt = (NI_rowtype *) findin_Htable(nn,rowtype_table) ;
+   if( rt != NULL ) return rt ;
+
+   /* 19 Feb 2003: linear search for basic type alias */
+
+   for( ii=0 ; ii <= NI_NUM_BASIC_TYPES ; ii++ )
+     if( strcmp(type_alias[ii],nn) == 0 ) return rowtype_array[ii] ;
+
+   return NULL ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -670,14 +689,27 @@ char * NI_rowtype_code_to_name( int nn )
 }
 
 /*--------------------------------------------------------------------*/
+/*! Given a rowtype code, find its alias name.  This is only valid
+    for builtin types; for user-defined types, the return value is
+    the user-supplied type name string.  Don't free this string!
+----------------------------------------------------------------------*/
+
+char * NI_rowtype_code_to_alias( int nn )   /* 19 Feb 2003 */
+{
+   if( rowtype_table == NULL ) setup_basic_types() ;
+   if( nn <= NI_NUM_BASIC_TYPES ) return type_alias[nn] ;
+   return NI_rowtype_code_to_name( nn ) ;
+}
+
+/*--------------------------------------------------------------------*/
 /*! Given a rowtype name, find its struct size in bytes.
     - Returns -1 if rowtype not found.
-    - Note that if the rowtype contains variable size arrays, this
+    - Note that if the rowtype contains variable dim arrays, this
       size returned here is just the size of the storage for
       the basic struct with pointers, not including the variable
       arrays.
     - See NI_rowtype_vsize() to get the size of a rowtype instance
-      including its variable size arrays.
+      including its variable dim arrays.
 ----------------------------------------------------------------------*/
 
 int NI_rowtype_name_to_size( char *nn )
@@ -721,9 +753,9 @@ int NI_rowtype_vsize( NI_rowtype *rt , void *dpt )
    int ii,jj , ss ;
    char *dat = (char *)dpt ;
 
-   if( rt == NULL   ) return 0 ;        /* nonsense input */
-   if( rt->psiz > 0 ) return rt->psiz ; /* fixed size struct */
-   if( dat == NULL  ) return 0 ;        /* var size struct with no data? */
+   if( rt == NULL              ) return 0;        /* nonsense input */
+   if( !ROWTYPE_is_varsize(rt) ) return rt->psiz; /* fixed dim struct */
+   if( dat == NULL             ) return 0;        /* var size with no data? */
 
    /* loop over parts, adding up part sizes,
       including var dim arrays and String parts */
@@ -732,7 +764,7 @@ int NI_rowtype_vsize( NI_rowtype *rt , void *dpt )
      if( rt->part_typ[ii] == NI_STRING ){      /* String is special */
        char *str = *((char **)((dat) + (rt)->part_off[ii])) ;
        ss += NI_strlen(str) ;
-     } else if( rt->part_dim[ii] < 0 ){        /* 1 fixed size type */
+     } else if( rt->part_dim[ii] < 0 ){        /* 1 fixed dim type */
        ss += rt->part_siz[ii] ;
      } else {                                  /* var dim array */
        jj = ROWTYPE_part_dimen(rt,dat,ii) ;    /* array size */
@@ -745,7 +777,7 @@ int NI_rowtype_vsize( NI_rowtype *rt , void *dpt )
 
 /*-------------------------------------------------------------------------*/
 /*! Encode 1 type value at the end of the text string wbuf (which is
-    assumed to be plenty long).  typ must be a fixed size type code,
+    assumed to be plenty long).  typ must be a fixed dim type code,
     or NI_STRING.  Structs with var dim arrays must be handled separately.
 ---------------------------------------------------------------------------*/
 
@@ -850,7 +882,7 @@ void NI_val_to_text( NI_rowtype *rt , char *dpt , char *wbuf )
 
 /*-------------------------------------------------------------------------*/
 /*! Encode nv type values at the end of the text string wbuf.
-    typ must be a fixed size type code, or NI_STRING.
+    typ must be a fixed dim type code, or NI_STRING.
 ---------------------------------------------------------------------------*/
 
 void NI_multival_to_text( NI_rowtype *rt , int nv , char *dpt , char *wbuf )
@@ -862,7 +894,7 @@ void NI_multival_to_text( NI_rowtype *rt , int nv , char *dpt , char *wbuf )
 }
 
 /*-------------------------------------------------------------------------*/
-/*! Copy 1 fixed size type (no String or var dim array parts here) value
+/*! Copy 1 fixed dim type (no String or var dim array parts here) value
     in binary format to the wbuf.
     - Return value is number of bytes written.
     - Note that only data bytes are written, not any padding between parts.
@@ -872,13 +904,13 @@ int NI_val_to_binary( NI_rowtype *rt , char *dpt , char *wbuf )
 {
    int jj=0 ;  /* will be return value */
 
-   if( rt->size == rt->psiz ){  /* fixed size, unpadded struct */
+   if( rt->size == rt->psiz ){        /* fixed dim, unpadded struct */
 
      jj = rt->size ;
      memcpy(wbuf,dpt,jj) ;
 
-   } else if( rt->psiz > 0 ){       /* derived fixed size type */
-                             /* ==> write each part separately */
+   } else if( !ROWTYPE_is_varsize(rt) ){  /* derived fixed dim type */
+                                  /* ==> write each part separately */
      int ii ;
      for( ii=0 ; ii < rt->part_num ; ii++ ){
        memcpy(wbuf+jj,dpt+rt->part_off[ii],rt->part_siz[ii]) ;
@@ -891,7 +923,7 @@ int NI_val_to_binary( NI_rowtype *rt , char *dpt , char *wbuf )
 }
 
 /*-------------------------------------------------------------------------*/
-/*! Copy nv fixed size type values in binary format to the wbuf.
+/*! Copy nv fixed dim type values in binary format to the wbuf.
      - Return value is number of bytes written.
      - wbuf is assumed big enough to take the load
 ---------------------------------------------------------------------------*/
@@ -900,8 +932,8 @@ int NI_multival_to_binary( NI_rowtype *rt , int nv , char *dpt , char *wbuf )
 {
    int jj=0 ;
 
-   if( rt->size == rt->psiz ){          /* fixed size, unpadded structs */
-                                        /* ==> Write all data at once   */
+   if( rt->size == rt->psiz ){         /* fixed dim, unpadded structs  */
+                                       /* ==> Write all data at once   */
      jj = nv * rt->size ;
      memcpy(wbuf,dpt,jj);
 
@@ -1024,7 +1056,7 @@ int NI_write_columns( NI_stream_type *ns,
 
      if( rt[col] == NULL || col_dat[col] == NULL ){ FREEUP; return -1; }
 
-     vsiz[col] = (rt[col]->psiz == 0) ;  /* is this a variable size type */
+     vsiz[col] = ROWTYPE_is_varsize(rt[col]) ;         /* variable dim type? */
      fsiz[col] = rt[col]->size ;         /* fixed size of struct (w/padding) */
      vsiz_tot += vsiz[col] ;
      fsiz_tot += fsiz[col] ;
@@ -1062,9 +1094,9 @@ int NI_write_columns( NI_stream_type *ns,
      load_encode_table() ;
    }
 
-  /* this macro take the 'nout' number of output bytes
-     and adds into the running total ntot if all was well;
-     if all was not well with the write, then it aborts the output */
+   /* this macro take the 'nout' number of output bytes
+      and adds into the running total ntot if all was well;
+      if all was not well with the write, then it aborts the output */
 
 # undef  ADDOUT
 # define ADDOUT                             \
@@ -1080,7 +1112,7 @@ int NI_write_columns( NI_stream_type *ns,
 
    for( row=0 ; row < col_len ; row++ ){
 
-     /* expand write buffer if any type contains variable sized array(s) */
+     /* expand write buffer if any type contains variable dim array(s) */
 
      if( vsiz_tot ){
        for( jj=col=0 ; col < col_num ; col++ ){
@@ -1260,7 +1292,7 @@ int NI_write_columns( NI_stream_type *ns,
          - NI_BINARY_MODE ==> binary input
          - NI_BASE64_MODE ==> binary/base64 input
       - flags is the OR of various bit masks
-         - NI_SWAP_MASK  ==> binary input must be byte-swapped
+         - NI_SWAP_MASK  ==> binary input must be byte-swapped after input
          - NI_LTEND_MASK ==> text input stops at a '<' in the input
       - return value is:
          - number of complete rows actually read (<= col_len)
@@ -1315,8 +1347,8 @@ int NI_read_columns( NI_stream_type *ns,
      if( rt[col] == NULL ){ FREEUP; return -1; }
      if( tmode != NI_TEXT_MODE && NI_has_String(rt[col]) ){ FREEUP; return -1; }
 
-     vsiz[col] = (rt[col]->psiz == 0) ;  /* is this a variable size type? */
-     fsiz[col] = rt[col]->size ;         /* fixed size of struct (w/padding) */
+     vsiz[col] = ROWTYPE_is_varsize(rt[col]) ;     /*  variable dim type? */
+     fsiz[col] = rt[col]->size ;      /* fixed size of struct (w/padding) */
      vsiz_tot += vsiz[col] ;
      fsiz_tot += fsiz[col] ;
 
@@ -1351,13 +1383,14 @@ int NI_read_columns( NI_stream_type *ns,
 
    /*-- OK, have to read the hard ways --*/
 
-   for( nn=1,row=0 ; row < col_len ; row++ ){             /* loop over rows */
+   for( row=0 ; row < col_len ; row++ ){             /* loop over rows */
                                                           /* until all done */
      /* loop over columns, read into struct */
 
-     for( col=0 ; nn && col < col_num ; col++ ){
+     for( col=0 ; col < col_num ; col++ ){
        ptr = col_dat[col] + fsiz[col]*row ;         /* ptr to row-th struct */
        nn  = ReadFun( ns, rt[col], ptr, ReadFlag ) ; /* read data to struct */
+       if( !nn ) break ;
      }
      if( !nn ) break ;                             /* some ReadFun() failed */
    }
@@ -1370,7 +1403,7 @@ int NI_read_columns( NI_stream_type *ns,
 
 ReadFinality:
 
-   if( tmode != NI_TEXT_MODE && (flags & NI_SWAP_MASK) ){
+   if( tmode != NI_TEXT_MODE && swap ){
      for( col=0 ; col < col_num ; col++ )
        NI_swap_column( rt[col] , nin , col_dat[col] ) ;
    }
@@ -1404,7 +1437,7 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
      char *dat = (char *)dpt , **aaa = NULL ;
      int ii                  ,  naaa = 0 , iaaa = 0 ;
 
-     if( rt->psiz == 0 ){                  /* variable dim arrays inside */
+     if( ROWTYPE_is_varsize(rt) ){         /* variable dim arrays inside */
        for( naaa=ii=0 ; ii < rt->part_num ; ii++ )
          if( rt->part_dim[ii] >= 0 ) naaa++ ;    /* count var dim arrays */
        if( naaa > 0 )
@@ -1412,11 +1445,11 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
      }                                    /* for possible deletion later */
 
      /* loop over parts and load them;
-        set nn=0 if read fails at any part */
+        set nn=0 if read fails at any part (and break out of read loop) */
 
-     for( nn=1,ii=0 ; nn && ii < rt->part_num ; ii++ ){
+     for( nn=1,ii=0 ; ii < rt->part_num ; ii++ ){
 
-       if( rt->part_dim[ii] < 0 ){           /* read one fixed size part */
+       if( rt->part_dim[ii] < 0 ){            /* read one fixed dim part */
 
          nn = NI_binary_to_val( ns, rt->part_rtp[ii], dat+rt->part_off[ii], 0 );
 
@@ -1434,9 +1467,11 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
            *apt = NI_malloc( siz * dim );                  /* make array */
 
            if( siz != rt->part_rtp[ii]->psiz ){     /* padded values ==> */
-            for( jj=0 ; nn && jj < dim ; jj++ )  /* read 1 val at a time */
-             nn = NI_binary_to_val( ns, rt->part_rtp[ii],
-                                    *apt + siz * jj , 0 ) ;
+            for( jj=0 ; jj < dim ; jj++ ){       /* read 1 val at a time */
+              nn = NI_binary_to_val( ns, rt->part_rtp[ii],
+                                     *apt + siz * jj , 0  ) ;
+              if( !nn ) break ;                              /* bad read */
+            }
 
            } else {              /* unpadded values ==> read all at once */
              jj = NI_stream_readbuf( ns , *apt , siz*dim ) ;
@@ -1447,13 +1482,15 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
            *apt = NULL ;                    /* dim=0 ==> no array needed */
          }
          aaa[iaaa++] = *apt ;              /* save for possible deletion */
-
+                                          /* if read fails later in loop */
        }
+
+       if( !nn ) break ;                            /* some read was bad */
      } /* end of loop over parts */
 
      /* bad news ==> delete any allocated var dim arrays */
 
-     if( nn == 0 ){
+     if( !nn ){
        for( ii=0 ; ii < iaaa ; ii++ ) NI_free( aaa[ii] ) ;
      }
      NI_free( aaa ) ;  /* don't need list of var dim arrays no more */
@@ -1482,7 +1519,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
        char *dat = (char *)dpt , **aaa = NULL ;
        int ii , jj ,              naaa = 0 , iaaa = 0 ;
 
-       if( rt->psiz == 0 ){                  /* variable dim arrays inside */
+       if( ROWTYPE_is_varsize(rt) ){         /* variable dim arrays inside */
          for( naaa=ii=0 ; ii < rt->part_num ; ii++ )
            if( rt->part_dim[ii] >= 0 ) naaa++ ;    /* count var dim arrays */
          if( naaa > 0 )
@@ -1491,9 +1528,9 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
 
        /* loop over parts and load them */
 
-       for( nn=1,ii=0 ; nn && ii < rt->part_num ; ii++ ){
+       for( nn=1,ii=0 ; ii < rt->part_num ; ii++ ){
 
-         if( rt->part_dim[ii] < 0 ){                /* one fixed size part */
+         if( rt->part_dim[ii] < 0 ){                 /* one fixed dim part */
 
            nn = NI_text_to_val( ns, rt->part_rtp[ii],
                                 dat+rt->part_off[ii], ltend );
@@ -1506,20 +1543,24 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
            int siz = rt->part_rtp[ii]->size ;   /* size of one part struct */
            if( dim > 0 ){
              *apt = NI_malloc( siz * dim );                  /* make array */
-             for( jj=0 ; nn && jj < dim ; jj++ )   /* get values for array */
+             for( jj=0 ; jj < dim ; jj++ ){        /* get values for array */
                nn = NI_text_to_val( ns, rt->part_rtp[ii],
                                     *apt + siz * jj , ltend ) ;
+               if( !nn ) break ;
+             }
            } else {
              *apt = NULL ;                    /* dim=0 ==> no array needed */
            }
            aaa[iaaa++] = *apt ;              /* save for possible deletion */
 
          }
+
+         if( !nn ) break ;                            /* some read was bad */
        } /* end of loop over parts */
 
        /* bad news ==> delete any allocated var dim arrays */
 
-       if( nn == 0 ){
+       if( !nn ){
          for( ii=0 ; ii < iaaa ; ii++ ) NI_free( aaa[ii] ) ;
          NI_free( aaa ) ;
          return 0 ;
@@ -1534,7 +1575,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
         char *val=NULL ;
         char **vpt = (char **) dpt ;
         nn = NI_decode_one_string( ns , &val , ltend ) ;
-        if( nn == 0 || val == NULL ) return 0 ;
+        if( !nn || val == NULL ) return 0 ;
         unescape_inplace(val) ;
         *vpt = val ;
      }
@@ -1546,7 +1587,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
         double val ;
         byte *vpt = (byte *) dpt ;
         nn = NI_decode_one_double( ns , &val , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         *vpt = (byte) val ;
      }
      break ;
@@ -1555,7 +1596,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
         double val ;
         short *vpt = (short *) dpt ;
         nn = NI_decode_one_double( ns , &val , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         *vpt = (short) val ;
      }
      break ;
@@ -1564,7 +1605,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
         double val ;
         int *vpt = (int *) dpt ;
         nn = NI_decode_one_double( ns , &val , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         *vpt = (int) val ;
      }
      break ;
@@ -1573,7 +1614,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
         double val ;
         float *vpt = (float *) dpt ;
         nn = NI_decode_one_double( ns , &val , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         *vpt = (float) val ;
      }
      break ;
@@ -1582,7 +1623,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
         double val ;
         double *vpt = (double *) dpt ;
         nn = NI_decode_one_double( ns , &val , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         *vpt = (double) val ;
      }
      break ;
@@ -1591,9 +1632,9 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
         double v1,v2 ;
         complex *vpt = (complex *) dpt ;
         nn = NI_decode_one_double( ns , &v1 , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         nn = NI_decode_one_double( ns , &v2 , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         vpt->r = (float) v1 ;
         vpt->i = (float) v2 ;
      }
@@ -1603,11 +1644,11 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
         double v1,v2,v3 ;
         rgb *vpt = (rgb *) dpt ;
         nn = NI_decode_one_double( ns , &v1 , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         nn = NI_decode_one_double( ns , &v2 , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         nn = NI_decode_one_double( ns , &v3 , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         vpt->r = (byte) v1 ;
         vpt->g = (byte) v2 ;
         vpt->b = (byte) v3 ;
@@ -1618,13 +1659,13 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
         double v1,v2,v3,v4 ;
         rgba *vpt = (rgba *) dpt ;
         nn = NI_decode_one_double( ns , &v1 , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         nn = NI_decode_one_double( ns , &v2 , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         nn = NI_decode_one_double( ns , &v3 , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         nn = NI_decode_one_double( ns , &v4 , ltend ) ;
-        if( nn == 0 ) return 0 ;
+        if( !nn ) return 0 ;
         vpt->r = (byte) v1 ;
         vpt->g = (byte) v2 ;
         vpt->b = (byte) v3 ;
@@ -1644,6 +1685,7 @@ int NI_text_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int ltend )
 void NI_swap_column( NI_rowtype *rt , int nrow , char *dat )
 {
    if( rt == NULL || nrow <= 0 || dat == NULL ) return ;  /* stupid inputs */
+
    switch( rt->code ){
 
      case NI_RGB:
@@ -1679,11 +1721,11 @@ void NI_swap_column( NI_rowtype *rt , int nrow , char *dat )
        for( row=0 ; row < nrow ; row++ ){
          ptr = dat + fsiz*row ;     /* ptr to row-th element */
 
-         /* loop over parts and swap them */
+         /* loop over parts and swap them, 1 at a time */
 
          for( ii=0 ; ii < rt->part_num ; ii++ ){
 
-           if( rt->part_dim[ii] < 0 ){                    /* fixed size part */
+           if( rt->part_dim[ii] < 0 ){                     /* fixed dim part */
 
              NI_swap_column( rt->part_rtp[ii] , 1 , ptr+rt->part_off[ii] ) ;
 
@@ -1692,8 +1734,7 @@ void NI_swap_column( NI_rowtype *rt , int nrow , char *dat )
              char **apt = (char **)(ptr+rt->part_off[ii]); /* data in struct */
                                                           /* is ptr to array */
              int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
-             if( dim > 0 && *apt != NULL)
-               NI_swap_column( rt->part_rtp[ii] , dim , *apt ) ;
+             NI_swap_column( rt->part_rtp[ii] , dim , *apt ) ;
 
            }
          } /* end of loop over parts */
@@ -1718,7 +1759,7 @@ void NI_free_column( NI_rowtype *rt , int col_len , void *cpt )
 
    /* if has variable dim arrays inside, free them */
 
-   if( rt->psiz == 0 ){
+   if( ROWTYPE_is_varsize(rt) ){
      for( ii=0 ; ii < col_len ; ii++ ){            /* loop over structs */
        ptr = dat + rt->size * ii ;            /* pointer to this struct */
        for( jj=0 ; jj < rt->part_num ; jj++ ){       /* loop over parts */
@@ -1755,7 +1796,7 @@ void * NI_copy_column( NI_rowtype *rt , int col_len , void *cpt )
 
    /* copy any var dim arrays inside */
 
-   if( rt->psiz == 0 ){
+   if( ROWTYPE_is_varsize(rt) ){
      for( ii=0 ; ii < col_len ; ii++ ){                 /* loop over structs */
        nptr = ndat + rt->size * ii ;                   /* ptr to this struct */
        for( jj=0 ; jj < rt->part_num ; jj++ ){            /* loop over parts */

@@ -145,20 +145,22 @@ typedef struct NI_rowtype {
      NI_free((rr)->part_off) ;             \
      NI_free(rr)             ; } while(0)
 
-extern int          NI_rowtype_define      ( char *, char * ) ;
-extern NI_rowtype * NI_rowtype_find_name   ( char * ) ;
-extern NI_rowtype * NI_rowtype_find_code   ( int ) ;
-extern int          NI_rowtype_name_to_code( char * ) ;
-extern char *       NI_rowtype_code_to_name( int ) ;
-extern int          NI_rowtype_name_to_size( char * ) ;
-extern int          NI_rowtype_code_to_size( int ) ;
-extern int          NI_rowtype_vsize       ( NI_rowtype *, void * ) ;
-extern void         NI_val_to_text         ( NI_rowtype *, char *, char * ) ;
-extern int          NI_val_to_binary       ( NI_rowtype *, char *, char * ) ;
-extern void         NI_multival_to_text    ( NI_rowtype *, int, char *, char * );
-extern int          NI_multival_to_binary  ( NI_rowtype *, int, char *, char * );
-extern int          NI_has_String          ( NI_rowtype * ) ;
-extern void         NI_swap_column         ( NI_rowtype * , int , char * ) ;
+extern int          NI_rowtype_define       ( char *, char * ) ;
+extern NI_rowtype * NI_rowtype_find_name    ( char * ) ;
+extern NI_rowtype * NI_rowtype_find_code    ( int ) ;
+extern int          NI_rowtype_name_to_code ( char * ) ;
+extern char *       NI_rowtype_code_to_name ( int ) ;
+extern char *       NI_rowtype_code_to_alias( int ) ;    /* 19 Feb 2003 */
+extern int          NI_rowtype_name_to_size ( char * ) ;
+extern int          NI_rowtype_code_to_size ( int ) ;
+
+extern int          NI_rowtype_vsize     ( NI_rowtype *, void * ) ;
+extern void         NI_val_to_text       ( NI_rowtype *, char *, char * ) ;
+extern int          NI_val_to_binary     ( NI_rowtype *, char *, char * ) ;
+extern void         NI_multival_to_text  ( NI_rowtype *, int, char *, char * );
+extern int          NI_multival_to_binary( NI_rowtype *, int, char *, char * );
+extern int          NI_has_String        ( NI_rowtype * ) ;
+extern void         NI_swap_column       ( NI_rowtype * , int , char * ) ;
 
 extern void NI_rowtype_debug( int ) ;
 
@@ -168,7 +170,7 @@ extern void NI_rowtype_debug( int ) ;
 
 /*! Integer type code to name string. */
 
-#define NI_type_name(tc) NI_rowtype_code_to_name(tc)
+extern char * NI_type_name( int ) ;
 
 /*****------------------------------------------------------------------*****/
 
@@ -363,6 +365,14 @@ typedef NI_stream_type *NI_stream ;
 #define NI_ATTMODE_LAST   1
 
 extern void NI_set_attribute_mode( int ) ;
+
+/* Type name writing modes [19 Feb 2003] */
+
+#define NI_NAMEMODE_NORMAL 0
+#define NI_NAMEMODE_ALIAS  1
+#define NI_NAMEMODE_LAST   1
+
+extern void NI_set_typename_mode ( int ) ;
 
 /*****---------- Hash table stuff [26 Aug 2002] ----------*****/
 
