@@ -4734,3 +4734,8 @@
      being scaled before warp, but not unscaled after warp, so that the
      surviving scale factor would be applied twice.
  * Added labelizing to Draw Dataset plugin.
+
+21 Oct 2003
+ * Added label popup menu to Draw Dataset plugin.
+ * Added Button1 click in intensity bar to re-aspect image window.
+     Also, skip attempt to reconfigure if happened before within last 33 ms.
