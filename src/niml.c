@@ -319,8 +319,8 @@ static int unescape_inplace( char *str )
 }
 
 /*------------------------------------------------------------------------*/
-/* Quotize (and escapize) one string, returning a new string.
-   Approximately speaking, this is the inverse of unescape_inplace().
+/*! Quotize (and escapize) one string, returning a new string.
+    Approximately speaking, this is the inverse of unescape_inplace().
 --------------------------------------------------------------------------*/
 
 static char * quotize_string( char *str )
@@ -2063,6 +2063,8 @@ int NI_byteorder(void)
 }
 
 /*---------------------------------------------------------------*/
+/*! Struct defined for use in NI_swap2(). */
+
 typedef struct { unsigned char a,b ; } twobytes ;
 
 /*---------------------------------------------------------------*/
@@ -2082,6 +2084,8 @@ void NI_swap2( int n , void *ar )
 }
 
 /*---------------------------------------------------------------*/
+/*! Struct defined for use in NI_swap4(). */
+
 typedef struct { unsigned char a,b,c,d ; } fourbytes ;
 
 /*---------------------------------------------------------------*/
@@ -2102,6 +2106,8 @@ void NI_swap4( int n , void *ar )
 }
 
 /*---------------------------------------------------------------*/
+/*! Struct defined for use in NI_swap8(). */
+
 typedef struct { unsigned char a,b,c,d , e,f,g,h ; } eightbytes ;
 
 /*---------------------------------------------------------------*/
@@ -4554,7 +4560,7 @@ static int tcp_accept( int sd , char **hostname , char **hostaddr )
 static int     host_num  = 0 ;    /*!< Number of trusted hosts. */
 static char ** host_list = NULL ; /*!< IP addresses in dotted form. */
 
-static char * init_hosts[] = { /* Initial list of OK computers */
+static char * init_hosts[] = { /*!< Initial list of OK computers */
     "127.0.0.1"    ,           /* localhost is always OK */
     "192.168."                 /* private class B networks */
 } ;
@@ -4709,8 +4715,8 @@ int NI_trust_host( char *hostid )
   [adapted from thd_iochan.c, 31 May 2002 -- RWCox]
 *****************************************************************/
 
-/*---------------------------------------------------------------
-   Convert a string to a key, for IPC operations.
+/*---------------------------------------------------------------*/
+/*!  Convert a string to a key, for IPC operations.
 -----------------------------------------------------------------*/
 
 static key_t SHM_string_to_key( char * key_string )
@@ -4731,8 +4737,8 @@ static key_t SHM_string_to_key( char * key_string )
    return kk ;
 }
 
-/*---------------------------------------------------------------
-   Get a pre-existing shmem segment.
+/*---------------------------------------------------------------*/
+/*! Get a pre-existing shmem segment.
    Returns the shmid >= 0 if successful; returns -1 if failure.
 -----------------------------------------------------------------*/
 
@@ -4746,8 +4752,8 @@ static int SHM_accept( char * key_string )
    return shmid ;
 }
 
-/*---------------------------------------------------------------
-   Connect to, or create if needed, a shmem segment.
+/*---------------------------------------------------------------*/
+/*!  Connect to, or create if needed, a shmem segment.
    Returns the shmid >= 0 if successful; returns -1 if failure.
 -----------------------------------------------------------------*/
 
@@ -4762,8 +4768,8 @@ static int SHM_create( char * key_string , int size )
    return shmid ;
 }
 
-/*---------------------------------------------------------------
-   Actually attach to the shmem segment.
+/*---------------------------------------------------------------*/
+/*! Actually attach to the shmem segment.
    Returns the pointer to the segment start.
    NULL is returned if an error occurs.
 -----------------------------------------------------------------*/
@@ -4776,8 +4782,8 @@ static char * SHM_attach( int shmid )
    return adr ;
 }
 
-/*---------------------------------------------------------------
-   Find the size of a shmem segment.
+/*---------------------------------------------------------------*/
+/*!  Find the size of a shmem segment.
    Returns -1 if an error occurs.
 -----------------------------------------------------------------*/
 
@@ -4792,8 +4798,8 @@ static int SHM_size( int shmid )
    return buf.shm_segsz ;
 }
 
-/*---------------------------------------------------------------
-   Find the number of attaches to a shmem segment.
+/*---------------------------------------------------------------*/
+/*! Find the number of attaches to a shmem segment.
    Returns -1 if an error occurs.
 -----------------------------------------------------------------*/
 
@@ -5021,8 +5027,8 @@ static SHMioc * SHM_init( char * name , char * mode )
    return NULL ;  /* should never be reached */
 }
 
-/*-------------------------------------------------------------------------
-  Check if the shmem segment is alive (has 2 attached processes).
+/*-------------------------------------------------------------------------*/
+/*! Check if the shmem segment is alive (has 2 attached processes).
   Returns 0 if not alive, 1 if life is happy.
 ---------------------------------------------------------------------------*/
 
@@ -5038,8 +5044,8 @@ static int SHM_alivecheck( int shmid )
 #endif
 /*------------------------------------------*/
 
-/*-------------------------------------------------------------------------
-   Check if the given SHMioc is ready for I/O.  If not, wait up to
+/*-------------------------------------------------------------------------*/
+/*! Check if the given SHMioc is ready for I/O.  If not, wait up to
    msec milliseconds to establish the connection to the other end;
    if msec < 0, will wait indefinitely.  Returns 1 if ready; 0 if not;
    -1 if an error occurs.  Possible errors are:
@@ -5109,8 +5115,8 @@ static int SHM_goodcheck( SHMioc * ioc , int msec )
    return 0 ;  /* should never be reached */
 }
 
-/*-----------------------------------------------------------------------
-  Close a SHMioc.  Note that this will free what ioc points to.
+/*-----------------------------------------------------------------------*/
+/*! Close a SHMioc.  Note that this will free what ioc points to.
 -------------------------------------------------------------------------*/
 
 static void SHM_close( SHMioc *ioc )
@@ -5118,16 +5124,16 @@ static void SHM_close( SHMioc *ioc )
    if( ioc == NULL ) return ;
 
    if( ioc->id >= 0 && ioc->bad != SHM_IS_DEAD ){
-      shmdt( ioc->shmbuf ) ;
-      shmctl( ioc->id , IPC_RMID , NULL ) ;
-      ioc->bad = SHM_IS_DEAD ;
+      shmdt( ioc->shmbuf ) ;                 /* detach */
+      shmctl( ioc->id , IPC_RMID , NULL ) ;  /* delete */
+      ioc->bad = SHM_IS_DEAD ;               /* leave for dead */
    }
 
    free(ioc) ; return ;
 }
 
-/*---------------------------------------------------------------------------
-  Check if the SHMioc is ready to have data read out of it.
+/*---------------------------------------------------------------------------*/
+/*! Check if the SHMioc is ready to have data read out of it.
   If not, the routine will wait up to msec milliseconds for data to be
   available.  If msec < 0, this routine will wait indefinitely.
   For shmem segments, the return value is how many bytes can be
@@ -5186,8 +5192,8 @@ static int SHM_readcheck( SHMioc *ioc , int msec )
    return 0 ;
 }
 
-/*---------------------------------------------------------------------------
-  Check if the SHMioc is ready to have data written into it.
+/*---------------------------------------------------------------------------*/
+/*! Check if the SHMioc is ready to have data written into it.
   If not, the routine will wait up to msec milliseconds for writing to
   be allowable.  If msec < 0, this routine will wait indefinitely.
   The return value is the number of bytes that can be sent (0 if none,
@@ -5244,8 +5250,8 @@ static int SHM_writecheck( SHMioc *ioc , int msec )
    return 0 ;
 }
 
-/*----------------------------------------------------------------------------
-  Send nbytes of data from buffer down the SHMioc.  Return value is
+/*----------------------------------------------------------------------------*/
+/*! Send nbytes of data from buffer down the SHMioc.  Return value is
   the number of bytes actually sent, or is -1 if some error occurs.
 ------------------------------------------------------------------------------*/
 
@@ -5313,8 +5319,8 @@ static int SHM_send( SHMioc *ioc , char *buffer , int nbytes )
    return nwrite ;
 }
 
-/*----------------------------------------------------------------------------
-   Send (exactly) nbytes of data from the buffer down the SHMioc.  The only
+/*----------------------------------------------------------------------------*/
+/*! Send (exactly) nbytes of data from the buffer down the SHMioc.  The only
    difference between this and SHM_send is that this function will not
    return until all the data is sent, even if it takes forever.
    Under these circumstances, it would be good if the reader process is
@@ -5349,8 +5355,8 @@ static int SHM_sendall( SHMioc *ioc , char *buffer , int nbytes )
    return -1 ;   /* should never be reached */
 }
 
-/*----------------------------------------------------------------------------
-  Read up to nbytes of data from the SHMioc, into buffer.  Returns the
+/*----------------------------------------------------------------------------*/
+/*! Read up to nbytes of data from the SHMioc, into buffer.  Returns the
   number of bytes actually read.
   This may be less than nbytes (may even be 0).  If an error occurs, -1 is
   returned.

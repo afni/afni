@@ -242,7 +242,7 @@ int main( int argc , char * argv[] )
    int   num_chan , cur_chan , cc ;
    char *note[128] ;   /* 02 Oct 2002 */
    int   num_note=0 ;
-   int   num_start=0 , jarg ; /* 11 Dec 2002 */
+   int   num_start=0 , jarg , bwait ; /* 11 Dec 2002 */
 
    /*-- help the ignorant user --*/
 
@@ -259,10 +259,18 @@ int main( int argc , char * argv[] )
         "    will be transmitted serially (one group, then another, etc.).\n"
         "    + For example:\n"
         "        rtfeedme A+orig B+orig -break C+orig -break D+orig\n"
-        "      will send the A and B datasets in parallel, then send\n"
-        "      the C dataset separately, then send the D dataset separately.\n"
-        "    + Note that all the options below apply to each group of datasets;\n"
-        "      that is, they will all get the same notes, drive commands, ....\n"
+        "       will send the A and B datasets in parallel, then send\n"
+        "       the C dataset separately, then send the D dataset separately.\n"
+        "       (That is, there will be 3 groups of datasets.)\n"
+        "    + There is a 1 second delay between the end transmission for\n"
+        "       a group and the start transmission for the next group.\n"
+        "    + You can extend the inter-group delay by using a break option\n"
+        "       of the form '-break_20' to indicate a 20 second delay.\n"
+        "    + Within a group, each dataset must have the same datum and\n"
+        "       same x,y,z,t dimensions.  (Different groups don't need to\n"
+        "       be conformant to each other.)\n"
+        "    + All the options below apply to each group of datasets;\n"
+        "       i.e., they will all get the same notes, drive commands, ....\n"
         "\n"
         "Options:\n"
         "  -host sname =  Send data, via TCP/IP, to AFNI running on the\n"
@@ -376,7 +384,7 @@ Restart:
 
    jarg     = iarg ;  /* keep track of where we are starting */
    num_chan = 0 ;
-   for( ; iarg < argc && strcmp(argv[iarg],"-break") != 0 ; iarg++ ) num_chan++;
+   for( ; iarg < argc && strncmp(argv[iarg],"-break",6) != 0 ; iarg++ ) num_chan++;
    if( num_chan == 0 ){
      fprintf(stderr,"*** No more datasets!  Free, free, free at last!\n"); exit(0);
    }
@@ -386,7 +394,15 @@ Restart:
 
    /*-- skip any -break's for when we loop back to Restart --*/
 
-   for( ; iarg < argc && strcmp(argv[iarg],"-break") == 0 ; iarg++ ) ; /* nada */
+   for( ; iarg < argc && strncmp(argv[iarg],"-break",6) == 0 ; iarg++ ) ; /* nada */
+
+   /* check for delay in the form of "-break_XXX" where XXX = # sec to wait */
+
+   bwait = 1 ;
+   if( iarg < argc && strncmp(argv[iarg-1],"-break_",7) == 0 ){
+     bwait = strtol( argv[iarg-1]+7 , NULL , 10 ) ;
+   }
+   if( bwait < 0 ) bwait = 1 ;
 
    num_start++ ;  /* number of times we've been here */
 
@@ -711,7 +727,7 @@ Restart:
      fprintf(stderr,"--- Restarting after '-break'\n") ;
      memcpy( qar , COMMAND_MARKER , COMMAND_MARKER_LENGTH ) ;
      iochan_sendall( AFNI_ioc , qar , nbytes ) ;
-     iochan_sleep(999) ;  /* let AFNI meditate on that for a while */
+     iochan_sleep(1000*bwait) ;  /* let AFNI meditate on that for a while */
      goto Restart ;
    }
 
