@@ -90,6 +90,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Power Spectrum of a 3D+time Dataset" ) ;
 
+   PLUTO_set_sequence( plint , "A:newdset:statistics" ) ;
+
    /*--------- 1st line: Input dataset ---------*/
 
    PLUTO_add_option( plint ,

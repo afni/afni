@@ -69,6 +69,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Voxel Statistics of 3D+time Dataset" ) ;
 
+   PLUTO_set_sequence( plint , "A:newdset:statistics" ) ;
+
    global_plint = plint ;  /* make global copy */
 
    /*--------- 1st line: Input dataset ---------*/

@@ -179,6 +179,8 @@ plint = PLUTO_new_interface("Reorder",
 							PLUGIN_CALL_VIA_MENU,
 							REORDER_main);
 
+   PLUTO_set_sequence( plint , "z:Kummer" ) ;
+
 /*--------- 1st line: Input dataset ---------*/
 
 PLUTO_add_option(plint,

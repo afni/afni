@@ -71,6 +71,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Volume Rendering" ) ;
 
+   PLUTO_set_sequence( plint , "A:graphics" ) ;
+
    return plint ;
 }
 

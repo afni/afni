@@ -576,7 +576,7 @@ backtape:
 afni98.tgz:
 	$(RM) $@
 	$(MKDIR) AFNI98
-	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm $(MINDOCS) $(MISC) ./AFNI98
+	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) ./AFNI98
 	$(CP) -r f2cdir coxplot volpack ./AFNI98
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
@@ -777,7 +777,7 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
 
 # Contributed plugins go last, since they might not compile well
 
-contrib_plugins: ziad_plugins birn_plugins kummer_plugins
+contrib_plugins: ziad_plugins birn_plugins kummer_plugins rickr_plugins
 
 ziad_plugins: plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
               plug_delay_V2.$(SO)  plug_extract.$(SO)
@@ -785,6 +785,9 @@ ziad_plugins: plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
 birn_plugins: plug_stavg.$(SO)
 
 kummer_plugins: plug_reorder.$(SO)
+
+rickr_plugins: plug_roiedit.$(SO) plug_hemisub.$(SO) \
+               plug_maskcalc.$(SO) plug_maxima.$(SO)
 
 install_plugins:
 	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)

@@ -70,6 +70,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Control .BRIK compression" ) ;
 
+   PLUTO_set_sequence( plint , "A:afnicontrol:dset" ) ;
+
    /*---------- 2nd line: other inputs ----------*/
 
    PLUTO_add_option( plint ,

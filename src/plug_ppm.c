@@ -38,6 +38,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    global_plint = plint ;  /* make global copy */
 
+   PLUTO_set_sequence( plint , "A:misc" ) ;
+
    PLUTO_add_option( plint ,
                      "Input" ,  /* label at left of input line */
                      "Input" ,  /* tag to return to plugin */

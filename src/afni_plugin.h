@@ -262,6 +262,8 @@ typedef struct {
    Three_D_View * im3d ;      /* who called me up? */
 
    int opnum , svnum ;        /* used during get_*_from readout */
+
+   char seqcode[PLUGIN_STRING_SIZE] ;  /* 06 Aug 1999 */
 } PLUGIN_interface ;
 
 /*************** Prototypes for creation of the above structures ***************/
@@ -298,6 +300,8 @@ extern int PLUTO_dset_check ( int,int,int, THD_3dim_dataset * ) ;
 #define PLUTO_add_dataset_list   add_dataset_list_to_PLUGIN_interface
 
 extern void PLUTO_add_hint( PLUGIN_interface * , char * ) ;
+
+extern void PLUTO_set_sequence( PLUGIN_interface *, char * ) ; /* 06 Aug 1999 */
 
 /* 15 Jun 1999: redo PLUTO_new_interface */
 
@@ -391,6 +395,8 @@ typedef struct {
 
    int                 interface_count ;
    PLUGIN_interface ** interface ;
+
+   char seqcode[PLUGIN_STRING_SIZE] ;  /* 06 Aug 1999 */
 } AFNI_plugin ;
 
 /*** dynamic array of many plugins ***/

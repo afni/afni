@@ -341,6 +341,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Set Real-Time Acquisition Options" ) ;
 
+   PLUTO_set_sequence( plint , "A:AArealtime" ) ;
+
    /*-- first line of input: Prefix for output dataset --*/
 
    PLUTO_add_option( plint , "" , "Root" , FALSE ) ;

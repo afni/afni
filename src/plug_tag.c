@@ -102,6 +102,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                                 PLUGIN_CALL_IMMEDIATELY , TAG_main ) ;
 
    PLUTO_add_hint( plint , "Interactive Tagset Editor" ) ;
+
+   PLUTO_set_sequence( plint , "A:misc" ) ;
    return plint ;
 }
 

@@ -408,7 +408,9 @@ screen will always stay up until the first AFNI controller window is
 ready for use.  If the time from program start to this ready condition
 is less than AFNI_SPLASHTIME, the splash screen will stay up until
 AFNI_SPLASHTIME has elapsed; otherwise, the splash screen will be
-removed as soon as AFNI is ready to go.
+removed as soon as AFNI is ready to go.  By setting AFNI_SPLASHTIME
+to 0.0, you can have the splash screen removed as soon as possible
+(and the fade-out feature will be disabled).
 
 =================================
 | Robert W. Cox, PhD            |

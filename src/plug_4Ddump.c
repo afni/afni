@@ -199,6 +199,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    global_plint = plint ;  /* make global copy */
 
+   PLUTO_set_sequence( plint , "z:Saad" ) ;
+
    /*--------- 1st line: Input dataset and mask files ---------*/
 
    PLUTO_add_option( plint ,

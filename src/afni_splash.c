@@ -24,15 +24,20 @@ void AFNI_splashdown(void)
 
    if( handle != NULL ){
 #ifdef USE_FADING
-      if( imspl != NULL ){  /* fade gently away */
-         bspl = MRI_BYTE_PTR(imspl) ; nv = imspl->nvox ;
-         for( kk=0 ; kk < 10 ; kk++ ){
-            for( ii=0 ; ii < nv ; ii++ ) bspl[ii] *= 0.92 ;
-            SPLASH_popup_image(handle,imspl) ;
-            drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
+      float max_splash = 5.0 ;
+      char * hh = getenv("AFNI_SPLASHTIME") ;
+      if( hh != NULL ) max_splash = strtod(hh,NULL) ;
+      if( max_splash > 0.0 ){
+         if( imspl != NULL ){  /* fade gently away */
+            bspl = MRI_BYTE_PTR(imspl) ; nv = imspl->nvox ;
+            for( kk=0 ; kk < 10 ; kk++ ){
+               for( ii=0 ; ii < nv ; ii++ ) bspl[ii] *= 0.92 ;
+               SPLASH_popup_image(handle,imspl) ;
+               drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
+            }
          }
+         iochan_sleep(100) ; /* 100 msec of solitude */
       }
-      iochan_sleep(100) ; /* 100 msec of solitude */
 #endif
       SPLASH_popup_image(handle,NULL); handle = NULL;  /* get rid of window */
    }

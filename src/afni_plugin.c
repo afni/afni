@@ -83,6 +83,24 @@ if(PRINT_TRACING)
 
    DESTROY_SARR(rlist) ;
    if( outar->num == 0 ) DESTROY_PLUGIN_ARRAY(outar) ;
+
+   /* 06 Aug 1999: sort array by seqcodes */
+
+   if( outar != NULL && outar->num > 1 ){
+      int iid , qq ; AFNI_plugin * plin ;
+      do{ qq = 0 ;
+          for( iid=1 ; iid < outar->num ; iid++ )
+             if( strcmp(outar->plar[iid-1]->seqcode,
+                        outar->plar[iid  ]->seqcode ) > 0 ){
+
+                plin               = outar->plar[iid-1] ;
+                outar->plar[iid-1] = outar->plar[iid] ;
+                outar->plar[iid]   = plin ;
+                qq++ ;
+             }
+      } while( qq > 0 ) ;
+   }
+
    RETURN(outar) ;
 }
 
@@ -170,6 +188,7 @@ if(PRINT_TRACING)
                                      sizeof(PLUGIN_interface *) * (nin+1) ) ;
 
       plin->interface[nin] = plint ;
+      if( nin == 0 ) strcpy( plin->seqcode , plint->seqcode ) ;  /* 06 Aug 1999 */
       nin++ ;
    } while( plint != NULL ) ;
 
@@ -380,6 +399,8 @@ ENTRY("new_PLUGIN_interface_1999") ;
    else
       plint->helpstring = XtNewString( help ) ;
 
+   strcpy( plint->seqcode , "zzzzzzz" ) ; /* 06 Aug 1999 */
+
    /** 15 Jun 1999 stuff for date checking **/
 
 #ifndef DONT_USE_STRPTIME
@@ -422,6 +443,19 @@ ENTRY("new_PLUGIN_interface_1999") ;
 #endif
 
    RETURN(plint) ;
+}
+
+/*----------------------------------------------------------------------
+  Set the seqcode in a plugin, for sorting in the interface.
+  [06 Aug 1999]
+------------------------------------------------------------------------*/
+
+void PLUTO_set_sequence( PLUGIN_interface * plint , char * sq )
+{
+ENTRY("PLUTO_set_sequence") ;
+   if( plint == NULL || sq == NULL || sq[0] == '\0' ) EXRETURN ;
+   MCW_strncpy( plint->seqcode , sq , PLUGIN_STRING_SIZE ) ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------------

@@ -119,6 +119,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    global_plint = plint ;  /* make global copy */
 
+   PLUTO_set_sequence( plint , "A:funcs:fitting" ) ;
+
    PLUTO_add_hint( plint , "Control LSqFit and LSqDtr Functions" ) ;
 
    /*----- Parameters -----*/

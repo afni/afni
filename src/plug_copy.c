@@ -48,6 +48,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Make a Copy of a Dataset" ) ;
 
+   PLUTO_set_sequence( plint , "A:newdset:copy" ) ;
+
    /*-- first line of input: Dataset --*/
 
    PLUTO_add_option( plint , "Input" , "Input" , TRUE ) ;

@@ -27,6 +27,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "PlaceHolder" , "PlaceHolder" , NULL ,
                                 PLUGIN_CALL_IMMEDIATELY , JUNK_main ) ;
 
+   PLUTO_set_sequence( plint , "A:funcs:junk" ) ;
+
    AFNI_register_2D_function( "Lacy9"   , lacy9_box_func  ) ;
    AFNI_register_2D_function( "Outer9"  , outer9_box_func ) ;
 

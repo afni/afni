@@ -111,7 +111,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 			       PLUGIN_CALL_VIA_MENU , EDIT_main  ) ;
 
   PLUTO_add_hint( plint , "Edit Dataset Contents" ) ;
-  
+
+  PLUTO_set_sequence( plint , "A:newdset:edit" ) ;
 
   /*---- line 1 of input: Dataset -----*/
   PLUTO_add_option (plint, "Dataset", "Dataset", TRUE);

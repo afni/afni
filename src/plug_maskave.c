@@ -53,6 +53,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Average Dataset over ROI" ) ;
 
+   PLUTO_set_sequence( plint , "A:afniinfo:dset" ) ;
+
    /*-- first line of input --*/
 
    PLUTO_add_option( plint , "Source" , "Source" , TRUE ) ;

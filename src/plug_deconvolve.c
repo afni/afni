@@ -187,6 +187,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_hint (plint, 
      "Control DC_Fit, DC_Err, and DC_IRF Deconvolution Functions");
 
+   PLUTO_set_sequence( plint , "A:funcs:fitting" ) ;
+
    /*----- Parameters -----*/
    PLUTO_add_option (plint, "Control", "Control", TRUE);
    PLUTO_add_string (plint, "Baseline", NBASE, baseline_strings, 1);

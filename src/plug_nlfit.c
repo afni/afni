@@ -556,6 +556,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    global_plint = plint ;  /* make global copy */
 
+   PLUTO_set_sequence( plint , "A:funcs:fitting" ) ;
 
    /*----- initialize the model array -----*/
    model_array = NLFIT_get_many_MODELs ();

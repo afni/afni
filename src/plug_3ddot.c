@@ -41,6 +41,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    plint = PLUTO_new_interface( "3D Correlation" , "3D Dataset Correlation" , helpstring ,
                                  PLUGIN_CALL_VIA_MENU , DOT_main  ) ;
 
+   PLUTO_set_sequence( plint , "A:afniinfo:dset" ) ;
+
    PLUTO_add_hint( plint , "3D Dataset Correlation" ) ;
 
    /*-- first line of input: Dataset --*/

@@ -70,6 +70,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    global_plint = plint ;  /* make global copy */
 
+   PLUTO_set_sequence( plint , "A:newdset:reg" ) ;
+
    /*--------- 1st line ---------*/
 
    PLUTO_add_option( plint ,

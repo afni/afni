@@ -66,6 +66,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Dataset Clustering" ) ;
 
+   PLUTO_set_sequence( plint , "A:afniinfo:dset" ) ;
+
    /*-- first line of input: Dataset --*/
 
    PLUTO_add_option( plint , "Dataset" , "Dataset" , TRUE ) ;

@@ -78,6 +78,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Coordinate Order Display" ) ;
 
+   PLUTO_set_sequence( plint , "A:afnicontrol:display" ) ;
+
    /*---------- 2nd line: other inputs ----------*/
 
    PLUTO_add_option( plint ,

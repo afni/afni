@@ -49,6 +49,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Interactive Dataset Editor" ) ;
 
+   PLUTO_set_sequence( plint , "A:olddset:editor" ) ;
+
    return plint ;
 }
 
