@@ -20,7 +20,7 @@ static char * license[] = {
    "  otherwise, caused by the installation or use of this software.  If\n" ,
    "  these conditions are not acceptable to you or your institution, or are\n" ,
    "  not enforceable by the laws of your jurisdiction, you do not have the\n" ,
-   "  right use this software.\n" ,
+   "  right to use this software.\n" ,
    "\n" ,
    "  The MCW-copyrighted part of this software is released to the public under\n" ,
    "  the GNU General Public License, Version 2.  A copy of this License is\n" ,
