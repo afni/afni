@@ -1757,7 +1757,8 @@ libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
 #link executables but check for libraries first and create them if needed	
 suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
-	make -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ConvertSurface packbins 'INSTALLDIR=$(INSTALLDIR)' \
+	make -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
+	3dSurf2Vol ConvertSurface SurfaceMetrics packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
@@ -1811,12 +1812,14 @@ suma_clean:
 	if [ -f SUMA/ScaleToMap ]; then $(RM) SUMA/ScaleToMap; fi;
 	if [ -f CompareSurfaces  ]; then $(RM) CompareSurfaces ; fi;
 	if [ -f SUMA/CompareSurfaces  ]; then $(RM) SUMA/CompareSurfaces ; fi;
-	if [ -f ConvertSurface ]; then $(RM) ; fi;
+	if [ -f ConvertSurface ]; then $(RM) ConvertSurface; fi;
 	if [ -f SUMA/ConvertSurface ]; then $(RM) SUMA/ConvertSurface; fi;
-	if [ -f SUMA_glxdino ]; then $(RM) ; fi;
+	if [ -f SUMA_glxdino ]; then $(RM) SUMA_glxdino; fi;
 	if [ -f SUMA/SUMA_glxdino ]; then $(RM) SUMA/SUMA_glxdino; fi;
-	if [ -f SUMA_pixmap2eps ]; then $(RM) ; fi;
+	if [ -f SUMA_pixmap2eps ]; then $(RM) SUMA_pixmap2eps; fi;
 	if [ -f SUMA/SUMA_pixmap2eps ]; then $(RM) SUMA/SUMA_pixmap2eps; fi;
+	if [ -f SurfaceMetrics ]; then $(RM) SurfaceMetrics; fi;
+	if [ -f SUMA/SurfaceMetrics ]; then $(RM) SUMA/SurfaceMetrics; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -1825,8 +1828,9 @@ suma_link:
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
 	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
-	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap CompareSurfaces ConvertSurface;\
-	make -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap CompareSurfaces ConvertSurface \
+	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap CompareSurfaces ConvertSurface SurfaceMetrics;\
+	make -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap \
+	CompareSurfaces ConvertSurface SurfaceMetrics\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -1841,7 +1845,9 @@ suma_link:
 #install suma
 suma_install:
 	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf SUMA/3dSurf2Vol SUMA/ScaleToMap SUMA/CompareSurfaces SUMA/ConvertSurface SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps ${INSTALLDIR} ; \
+	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf SUMA/3dSurf2Vol \
+	SUMA/ScaleToMap SUMA/CompareSurfaces SUMA/ConvertSurface SUMA/SUMA_glxdino \
+	SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics ${INSTALLDIR} ; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install
