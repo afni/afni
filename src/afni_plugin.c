@@ -3656,11 +3656,11 @@ STATUS("popping up interface") ;
       DSET_ACTION_MAKE_CURRENT == make this the currently viewed dataset
 -----------------------------------------------------------------------------*/
 
-int PLUTO_add_dset( PLUGIN_interface * plint ,
-                     THD_3dim_dataset * dset , int action_flag )
+int PLUTO_add_dset( PLUGIN_interface *plint ,
+                    THD_3dim_dataset *dset , int action_flag )
 {
-   Three_D_View * im3d ;
-   THD_session * sess ;
+   Three_D_View *im3d ;
+   THD_session *sess ;
    int iss , vv , id ;
    int make_current = (action_flag & DSET_ACTION_MAKE_CURRENT) ;
 
