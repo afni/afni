@@ -649,10 +649,14 @@ clean:
 cleaner:
 	$(RM) $(PROGRAMS)
 
+# backup:
+# 	rsh manwe chmod -R u+w /usr3/cox/AFNI98
+# 	rcp -prv * manwe:/usr3/cox/AFNI98
+# 	rsh manwe /bin/rm -rf /usr3/cox/AFNI98/www/AFNI98/binaries
+
 backup:
-	rsh manwe chmod -R u+w /usr3/cox/AFNI98
-	rcp -prv * manwe:/usr3/cox/AFNI98
-	rsh manwe /bin/rm -rf /usr3/cox/AFNI98/www/AFNI98/binaries
+	rsh mandos chmod -R u+w /home/cox/BACKUP
+	rcp -prv * mandos:/home/cox/BACKUP
 
 backtape:
 	$(TAR) cvf $(TAPE) ../AFNI98/

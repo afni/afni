@@ -307,3 +307,32 @@ fprintf(stderr,"\nTHD_normalize_flist: in=%d out=%d qqq=%d\n",
 
    DESTROY_SARR(star_out) ; return star_qqq ;
 }
+
+/*---------------------------------------------------------------
+  Added 27 Jan 2000
+-----------------------------------------------------------------*/
+
+THD_string_array * THD_get_wildcard_filenames( char * pat )
+{
+   int nfiles , ii ;
+   THD_string_array * star ;
+   char ** gname=NULL ;
+
+   if( pat == NULL || strlen(pat) == 0 ) return NULL ;
+
+   MCW_file_expand( 1, &pat, &nfiles, &gname ) ;  /* find files */
+
+   if( nfiles < 1 ){
+       if( gname != NULL ) free(gname) ;
+       return NULL ;
+   }
+
+   INIT_SARR( star ) ;
+
+   for( ii=0 ; ii < nfiles ; ii++ ){
+      ADDTO_SARR( star , gname[ii] ) ;
+   }
+
+   MCW_free_expand( nfiles , gname ) ;
+   return star ;
+}

@@ -509,6 +509,13 @@ STATUS("abs applied to meaningless type: will be ignored") ;
                   for( ii=0 ; ii < nxyz ; ii++ )
                      if( sthr[ii] < thrplu && sthr[ii] > thrmin ){ ffim[ii] = 0.0 ; THADD ; }
                break ;
+
+               case MRI_complex: /* fim datum is complex */
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                     if( sthr[ii] < thrplu && sthr[ii] > thrmin ){
+                       cfim[ii].r = cfim[ii].i = 0.0 ; THADD ;
+                     }
+               break ;
             }
          }
          break ;
@@ -540,6 +547,13 @@ STATUS("abs applied to meaningless type: will be ignored") ;
                case MRI_float:   /* fim datum is floats */
                   for( ii=0 ; ii < nxyz ; ii++ ) if( bthr[ii] < thrplu ){ ffim[ii] = 0.0 ; THADD ; }
                break ;
+
+               case MRI_complex: /* fim datum is complex */
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                     if( bthr[ii] < thrplu ){
+                       cfim[ii].r = cfim[ii].i = 0.0 ; THADD ;
+                     }
+               break ;
             }
          }
          break ;
@@ -568,6 +582,13 @@ STATUS("abs applied to meaningless type: will be ignored") ;
                case MRI_float:   /* fim datum is floats */
                   for( ii=0 ; ii < nxyz ; ii++ )
                      if( fthr[ii] < thrplu && fthr[ii] > thrmin ){ ffim[ii] = 0.0 ; THADD ; }
+               break ;
+
+               case MRI_complex: /* fim datum is complex */
+                  for( ii=0 ; ii < nxyz ; ii++ )
+                     if( fthr[ii] < thrplu && fthr[ii] > thrmin ){
+                       cfim[ii].r = cfim[ii].i = 0.0 ; THADD ;
+                     }
                break ;
             }
          }

@@ -2088,6 +2088,7 @@ extern int THD_equiv_files( char * , char * ) ;
 extern long THD_filesize( char * pathname ) ;
 extern THD_string_array * THD_get_all_subdirs( int , char * ) ;
 extern THD_string_array * THD_normalize_flist( THD_string_array * ) ;
+extern THD_string_array * THD_get_wildcard_filenames( char * ) ;
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;

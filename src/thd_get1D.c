@@ -111,6 +111,8 @@ ENTRY("THD_get_many_timeseries") ;
 /*  Read all *.1D (time series) files from directory */
 /*---------------------------------------------------*/
 
+#define NEWWAY
+
 MRI_IMARR * THD_get_all_timeseries( char * dname )
 {
    THD_string_array * flist , * rlist ;
@@ -119,6 +121,10 @@ MRI_IMARR * THD_get_all_timeseries( char * dname )
    float * far ;
    MRI_IMARR * outar ;
    MRI_IMAGE * outim , * flim ;
+
+#ifdef NEWWAY
+   char * pat ;
+#endif
 
    /*----- sanity check and initialize -----*/
 
@@ -129,7 +135,18 @@ ENTRY("THD_get_all_timeseries") ;
 
    /*----- find all *.1D files -----*/
 
+#ifdef NEWWAY
+   ii  = strlen(dname) ;
+   pat = (char *) malloc(sizeof(char)*(ii+8)) ;
+   strcpy(pat,dname) ;
+   if( pat[ii-1] != '/' ) strcat(pat,"/") ;
+   strcat(pat,"*.1D*") ;
+   flist = THD_get_wildcard_filenames( pat ) ;
+   free(pat) ;
+#else
    flist = THD_get_all_filenames( dname ) ;
+#endif
+
    if( flist == NULL || flist->num <= 0 ){
       DESTROY_SARR(flist) ;
       DESTROY_IMARR(outar) ;

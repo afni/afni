@@ -2000,3 +2000,9 @@
  * Fixed error in -mask[n] option processing in 3dROIstats.c - that
      fiend Tom Ross used argv[narg] instead of argv[narg-1] to check
      for the presence of the "n" option.
+
+27 Jan 2000
+ * Modified thd_sarr.c and thd_get1D.c to speed up (hopefully) reading
+     of *.1D files.
+ * Modified afni.[ch] to allow use of "-no1D" option to skip reading
+     of *.1D files from the dataset directories.

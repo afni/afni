@@ -153,6 +153,12 @@ void AFNI_syntax(void)
      "                  to disk 3D+time datasets.  Note that the resulting\n"
      "                  disk files will be gigantic (100s of Megabytes).\n"
 #endif
+     "   -no1D        Tells AFNI not to read *.1D timeseries files from\n"
+     "                  the dataset directories.  The *.1D files in the\n"
+     "                  directories listed in the AFNI_TSPATH environment\n"
+     "                  variable will still be read (if this variable is\n"
+     "                  not set, then './' will be scanned for *.1D files.)\n"
+     "\n"
      "   -noqual      Tells AFNI not to enforce the 'quality' checks when\n"
      "                  making the transformations to +acpc and +tlrc.\n"
      "   -unique      Tells the program to create a unique set of colors\n"
@@ -316,6 +322,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.skip_afnirc    = 0 ;      /* 14 Jul 1998 */
    GLOBAL_argopt.no_frivolities = 0 ;      /* 01 Aug 1998 */
    GLOBAL_argopt.install_cmap   = 0 ;      /* 14 Sep 1998 */
+   GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
 
    SESSTRAIL = 1 ;
    env = getenv( "AFNI_SESSTRAIL" ) ;
@@ -405,6 +412,13 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;
       }
 #endif
+
+      /*----- -no1D option (27 Jan 2000) ----- */
+
+      if( strncmp(argv[narg],"-no1D",5) == 0 ){
+         GLOBAL_argopt.read_1D = 0 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
 
       /*----- -skip_afnirc option (14 Jul 1998) -----*/
 
@@ -2958,7 +2972,10 @@ if(PRINT_TRACING)
 
 STATUS("reading timeseries files") ;
 
-      GLOBAL_library.timeseries = THD_get_many_timeseries( dlist ) ;
+      /* 27 Jan 2000: allow skipping *.1D files from dataset directories */
+
+      GLOBAL_library.timeseries =
+           THD_get_many_timeseries( (GLOBAL_argopt.read_1D) ? dlist : NULL ) ;
 
       REFRESH ;
 
