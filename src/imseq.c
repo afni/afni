@@ -9831,43 +9831,15 @@ static void SNAP_imseq_send_CB( MCW_imseq *seq, XtPointer handle, ISQ_cbs *cbs )
    return ;
 }
 
-/*----------------------------------------------------------------------*/
-/*! Call this function to get a snapshot of a widget and save
-    it into an image viewer.
-------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
 
-void ISQ_snapshot( Widget w )
+static void SNAP_store_image( MRI_IMAGE *tim , Widget w )
 {
-   MRI_IMAGE *tim ;
-   Window win ;
+ENTRY("ISQ_store_image") ;
 
-ENTRY("ISQ_snapshot") ;
-
-   if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
-   if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
-   win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
-
-   /* create display context if we don't have one */
-
-   if( snap_dc == NULL ){
-     if( first_dc != NULL ) snap_dc = first_dc ;
-     else{
-       (void ) XtAppSetWarningHandler( XtWidgetToApplicationContext(w),
-                                       SNAP_warnhandler ) ;
-       snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 ) ;
-     }
-   }
-
-   /* try to get image */
-
-   tim = SNAP_grab_image( w , snap_dc ) ;
-   if( tim == NULL )                         EXRETURN ;
-
-   /* got image; save it in an array of images */
+   if( tim == NULL ) EXRETURN ;
 
    if( snap_imar == NULL ) INIT_IMARR(snap_imar) ;
-
-   /* 30 Jun 2003: don't accept a duplicate image */
 
    if( IMARR_COUNT(snap_imar) > 0 ){
      MRI_IMAGE *qim = IMARR_LASTIM( snap_imar ) ;
@@ -9889,32 +9861,24 @@ ENTRY("ISQ_snapshot") ;
 
      snap_isq = open_MCW_imseq( snap_dc, SNAP_imseq_getim, NULL ) ;
 
-#if 0
-    {ISQ_options opt ;
-     ISQ_DEFAULT_OPT(opt) ;
-     opt.save_one = False ;
-     opt.save_pnm = False ;
-     drive_MCW_imseq( snap_isq, isqDR_options     , (XtPointer) &opt ) ;
-    }
-#endif
-
      drive_MCW_imseq( snap_isq, isqDR_periodicmont, (XtPointer) 0    ) ;
      drive_MCW_imseq( snap_isq, isqDR_realize     , NULL ) ;
      drive_MCW_imseq( snap_isq, isqDR_title       , "Snapshots" ) ;
 
      /* put next to top shell of widget we are snapshotting */
 
-     wpar = w ;
-     while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
-     XtTranslateCoords( wpar , 0,0 , &xroot,&yroot ) ;
-     xr = (int) xroot ; yr = (int) yroot ;
-     MCW_widget_geom( wpar , &wx,NULL , NULL,NULL ) ;
-     xx = 1+wx+xr ; yy = 1+yr ;
-     if( xx >= snap_dc->width-wx/3 ){
-       XLowerWindow( snap_dc->display , XtWindow(wpar) ) ;
-       xx = yy = 2 ;
+     if( w != (Widget) NULL ){
+       wpar = w ;
+       while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
+       XtTranslateCoords( wpar , 0,0 , &xroot,&yroot ) ;
+       xr = (int) xroot ; yr = (int) yroot ;
+       MCW_widget_geom( wpar , &wx,NULL , NULL,NULL ) ;
+       xx = 1+wx+xr ; yy = 1+yr ;
+       if( xx >= snap_dc->width-wx/3 ){
+         XLowerWindow( snap_dc->display , XtWindow(wpar) ) ; xx = yy = 2 ;
+       }
+       XtVaSetValues( snap_isq->wtop , XmNx,xx , XmNy,yy , NULL ) ;
      }
-     XtVaSetValues( snap_isq->wtop , XmNx,xx , XmNy,yy , NULL ) ;
    }
 
    /* tell the image viewer about the new image */
@@ -9944,5 +9908,65 @@ ENTRY("ISQ_snapshot") ;
 
    ISQ_redisplay( snap_isq , IMARR_COUNT(snap_imar)-1 , isqDR_display ) ;
 
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Call this function to get a snapshot of a widget and save
+    it into an image viewer.  Also see ISQ_snapsave().
+------------------------------------------------------------------------*/
+
+void ISQ_snapshot( Widget w )
+{
+   MRI_IMAGE *tim ;
+   Window win ;
+
+ENTRY("ISQ_snapshot") ;
+
+   if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
+   if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
+   win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
+
+   /* create display context if we don't have one */
+
+   if( snap_dc == NULL ){
+     if( first_dc != NULL ) snap_dc = first_dc ;
+     else{
+       (void ) XtAppSetWarningHandler( XtWidgetToApplicationContext(w),
+                                       SNAP_warnhandler ) ;
+       snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 ) ;
+     }
+   }
+
+   /* try to get image */
+
+   tim = SNAP_grab_image( w , snap_dc ) ;
+   if( tim == NULL )                         EXRETURN ;
+
+   /* got image; save it and display it */
+
+   SNAP_store_image( tim , w ) ;
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Called to add an image to the snapshot save sequence.  [03 Jul 2003]
+     - ww, hh = width and height of image
+     - pix = pointer to 3*ww*hh bytes of RGB data
+     - w = if not NULL, Widget that this data came from
+------------------------------------------------------------------------------*/
+
+void ISQ_snapsave( int ww , int hh , byte *pix , Widget w )
+{
+   MRI_IMAGE *tim ;
+
+ENTRY("ISQ_snapsave") ;
+
+   if( ww < 2 || hh < 2 || pix == NULL ) EXRETURN ;
+
+   tim = mri_new_vol_empty( ww,hh,1, MRI_rgb ); mri_fix_data_pointer( pix,tim );
+   SNAP_store_image( tim , w ) ;
+   mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
    EXRETURN ;
 }

@@ -4619,3 +4619,7 @@
      error occurs.
  * Added mri_equal.c, which checks if 2 images are equal.  Used in ISQ_snapshot()
      to avoid saving duplicate images in succession.
+
+03 Jul 2003
+ * Added ISQ_snapsave() to imseq.c, which lets the user supply the image to be
+     saved in a snapshot, rather than acquire it from a widget like ISQ_snapshot().
