@@ -1844,6 +1844,21 @@ ENTRY("ISQ_zoom_av_CB") ;
 
    if( !ISQ_REALZ(seq) || av != apv ) EXRETURN ;  /* bad */
 
+   if( seq->mont_nx > 1 || seq->mont_ny > 1 ){   /* 18 Nov 2003 */
+#if 0
+fprintf(stderr,"zoom: montage nx=%d ny=%d\n",seq->mont_nx,seq->mont_ny) ;
+#endif
+     AV_assign_ival(av,ZOOM_BOT) ; seq->zoom_fac = 1 ;
+     XBell(seq->dc->display,100); EXRETURN;
+   }
+   if( seq->dialog != NULL && seq->dialog_starter == NBUT_MONT ){
+#if 0
+fprintf(stderr,"zoom: dialog_starter = %d\n",seq->dialog_starter) ;
+#endif
+     AV_assign_ival(av,ZOOM_BOT) ; seq->zoom_fac = 1 ;
+     XBell(seq->dc->display,100); EXRETURN;
+   }
+
    /*-- change zoom factor --*/
 
    xstr = XmStringCreateLtoR( (zlev==1)?"z":"Z" , XmFONTLIST_DEFAULT_TAG );
@@ -7508,9 +7523,16 @@ ENTRY("ISQ_montage_CB") ;
 
    if( ! ISQ_REALZ(seq) || seq->dialog != NULL ) EXRETURN ;
 
-   for( ib=0 ; ib < NBUTTON_BOT-1 ; ib++ )        /* turn off buttons  */
-      if( ISQ_but_bot_dial[ib] == True )          /* that also want to */
-        SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
+   if( seq->zoom_fac != 1 ){
+#if 0
+fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
+#endif
+     XBell(seq->dc->display,100); EXRETURN; /* 18 Nov 2003 */
+   }
+
+   for( ib=0 ; ib < NBUTTON_BOT-1 ; ib++ )       /* turn off buttons  */
+     if( ISQ_but_bot_dial[ib] == True )          /* that also want to */
+       SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
 
    seq->dialog = XtVaCreatePopupShell(
                     "imseq" , xmDialogShellWidgetClass , seq->wtop ,
