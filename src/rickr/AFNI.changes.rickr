@@ -597,3 +597,6 @@
   * modified SUMA_glxdino.c, SUMA_pixmap2eps.c to cast gluTessCallback()'s
     3rd argument only in the case of the LINUX2 define
 
+11 August 2004:
+  * SUMA_SurfMeasures.c (-> v1.10) to warn users about ~10% inaccuracy in volume
+
