@@ -346,7 +346,7 @@ if( PRINT_TRACING ){
 	     DC_error ("Input stimulus time series is too short");
 	     RETURN (0);
 	   }
-      stim_array = stimulus[is]; mold = m ;
+      stim_array = stimulus[is]; mold = m ;  /* mold = col index we start at */
       ibot = IBOT(is) ; itop = ITOP(is) ;
 if( PRINT_TRACING ){
   char str[256] ;
