@@ -23,7 +23,7 @@ static int         VL_nbase  = 0 ;
 static int         VL_intern = 1 ;
 static int         VL_resam  = MRI_FOURIER ;
 static int         VL_final  = -1 ;   /* 20 Nov 1998 */
-static int         VL_clipit = 0 ;    /* 23 Oct 1998 */
+static int         VL_clipit = 1 ;    /* 23 Oct 1998 and 16 Apr 2002 */
 static MRI_IMAGE * VL_imbase = NULL ;
 static MRI_IMAGE * VL_imwt   = NULL ;
 
@@ -833,6 +833,7 @@ int main( int argc , char *argv[] )
       char * str = NULL ;
       str = THD_zzprintf( str , "3dvolreg did: %s" , modes[VL_final] ) ;
       if( VL_clipit ) str = THD_zzprintf( str , " -clipit" ) ;
+      else            str = THD_zzprintf( str , " -noclip" ) ;
       if( VL_zpad )   str = THD_zzprintf( str , " -zpad %d" , VL_zpad ) ;
       str = THD_zzprintf(str,
                       " -rotate %.3fI %.3fR %.3fA -ashift %.3fS %.3fL %.3fP\n" ,
@@ -969,6 +970,7 @@ int main( int argc , char *argv[] )
       for( kim=0 ; kim < imcount ; kim++ ){
          printf("3drotate %s" , modes[VL_final] ) ;
          if( VL_clipit ) printf(" -clipit" ) ;
+         else            printf(" -noclip" ) ;
          if( VL_zpad )   printf(" -zpad %d" , VL_zpad ) ;
          printf(" -rotate %.3fI %.3fR %.3fA -ashift %.3fS %.3fL %.3fP\n" ,
                  roll[kim],pitch[kim],yaw[kim], dx[kim],dy[kim],dz[kim]  ) ;
@@ -999,6 +1001,8 @@ void VL_syntax(void)
     "                    range as the corresponding input volume.\n"
     "                    The interpolation schemes can produce values outside\n"
     "                    the input range, which is sometimes annoying.\n"
+    "                    [16 Apr 2002: -clipit is now the default]\n"
+    "  -noclip         Turns off -clipit\n"
     "  -zpad n         Zeropad around the edges by 'n' voxels during rotations\n"
     "                    (these edge values will be stripped off in the output)\n"
     "              N.B.: Unlike to3d, in this program '-zpad' adds zeros in\n"
@@ -1084,16 +1088,16 @@ void VL_syntax(void)
     "  * These options are intended to be used to align datasets between sessions:\n"
     "     S1 = SPGR from session 1    E1 = EPI from session 1\n"
     "     S2 = SPGR from session 2    E2 = EPI from session 2\n"
-    " 3dvolreg -twopass -twodup -clipit -base S1+orig -prefix S2reg S2+orig\n"
-    " 3dvolreg -clipit -rotparent S2reg+orig -gridparent E1+orig -prefix E2reg \\\n"
+    " 3dvolreg -twopass -twodup -base S1+orig -prefix S2reg S2+orig\n"
+    " 3dvolreg -rotparent S2reg+orig -gridparent E1+orig -prefix E2reg \\\n"
     "          -base 4 E2+orig\n"
     "     Each sub-brick in E2 is registered to sub-brick E2+orig[4], then the\n"
     "     rotation from S2 to S2reg is also applied, which shifting+padding\n"
     "     applied to properly overlap with E1.\n"
     "  * A similar effect could be done by using commands\n"
-    " 3dvolreg -twopass -twodup -clipit -base S1+orig -prefix S2reg S2+orig\n"
-    " 3dvolreg -clipit -prefix E2tmp -base 4 E2+orig\n"
-    " 3drotate -clipit -rotparent S2reg+orig -gridparent E1+orig -prefix E2reg E2tmp+orig\n"
+    " 3dvolreg -twopass -twodup -base S1+orig -prefix S2reg S2+orig\n"
+    " 3dvolreg -prefix E2tmp -base 4 E2+orig\n"
+    " 3drotate -rotparent S2reg+orig -gridparent E1+orig -prefix E2reg E2tmp+orig\n"
     "    The principal difference is that the latter method results in E2\n"
     "    being interpolated twice to make E2reg: once in the 3dvolreg run to\n"
     "    produce E2tmp, then again when E2tmp is rotated to make E2reg.  Using\n"
@@ -1163,7 +1167,7 @@ void VL_syntax(void)
     "                                  iterative progress of the passes.\n"
     "                                N.B.: when using -twopass, and you expect the\n"
     "                                  data bricks to move a long ways, you might\n"
-    "                                  want to use '-heptic -clipit' rather than\n"
+    "                                  want to use '-heptic' rather than\n"
     "                                  the default '-Fourier', since you can get\n"
     "                                  wraparound from Fourier interpolation.\n"
     "                      -twodup = If this option is set, along with -twopass,\n"
@@ -1298,7 +1302,13 @@ void VL_command_line(void)
       /** -clipit **/
 
       if( strncmp(Argv[Iarg],"-clipit",4) == 0 ){
-         VL_clipit++ ;
+         fprintf(stderr,"++ Notice: -clipit is now the default\n") ;
+         VL_clipit = 1 ;
+         Iarg++ ; continue ;
+      }
+
+      if( strncmp(Argv[Iarg],"-noclip",4) == 0 ){
+         VL_clipit = 0 ;
          Iarg++ ; continue ;
       }
 
