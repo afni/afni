@@ -3958,3 +3958,10 @@
 
 09 Sep 2002
  * ISHEADTYPE macro in 3ddata.h used "=" instead of "=="; this was bad.
+ * 'Q' and 'q' quits in afni_widg.c and afni_func.c (hidden_EV).
+
+10 Sep 2002
+ * Modified mri_read_dicom.c to print out at most 9 warning messages of
+     each type.
+ * Modified to3d.c to open X11 immediately when -nosave is used.  Also added
+     a bunch of ENTRY/RETURNs to ferret out a bug (it's still hidden).

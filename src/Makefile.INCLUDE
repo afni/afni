@@ -54,7 +54,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI \
-           dicom_hdr 3dDespike
+           dicom_hdr 3dDespike dicom_to_raw
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -73,7 +73,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
                   mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC          \
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI    \
-                  dicom_hdr 3dDespike
+                  dicom_hdr 3dDespike dicom_to_raw
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -97,7 +97,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI               \
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze              \
                3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile  \
-               3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike
+               3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike dicom_to_raw
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS \
@@ -845,6 +845,10 @@ mayo_analyze:mayo_analyze.o
 dicom_hdr:dicom_hdr.o
 	$(RM) $@
 	$(CC) -o dicom_hdr dicom_hdr.o $(LFLAGS) $(LLIBS)
+
+dicom_to_raw:dicom_to_raw.o
+	$(RM) $@
+	$(CC) -o dicom_to_raw dicom_to_raw.o $(LFLAGS) $(LLIBS)
 
 sfim:sfim.o
 	$(RM) $@
