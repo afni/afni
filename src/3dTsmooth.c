@@ -17,6 +17,9 @@ void linear_filter_zero  ( int , float * , int , float * ) ;
 void linear_filter_trend ( int , float * , int , float * ) ;
 float * hamming_window ( int ) ;
 float * blackman_window( int ) ;
+float * custom_filter( int ) ;
+char custom_file[256] = "\0"; /*KRH 01/03, needed for custom filter */
+int custom_ntaps = 0;
 
 static float af=0.15 , bf=0.70 , cf=0.15 ;
 
@@ -45,6 +48,7 @@ int main( int argc , char * argv[] )
 
 #define BLACKMAN 1
 #define HAMMING  2
+#define CUSTOM   3
 
 #define EXTEND   77
 #define ZERO     78
@@ -92,6 +96,9 @@ int main( int argc , char * argv[] )
              "----------------------------------------------\n"
              "  -hamming N  = Use N point Hamming or Blackman windows.\n"
              "  -blackman N     (N must be odd and bigger than 1.)\n"
+             "  -custom coeff_filename.1D (odd # of coefficients must be in a \n"
+	     "                             single column in ASCII file)\n"
+	     "   (-custom added Jan 2003)\n"
              "    WARNING: If you use long filters, you do NOT want to include the\n"
              "             large early images in the program.  Do something like\n"
              "                3dTsmooth -hamming 13 'fred+orig[4..$]'\n"
@@ -144,6 +151,14 @@ int main( int argc , char * argv[] )
          ntap = (int) strtod(argv[nopt],NULL) ;
          if( ntap < 3 || ntap%2 != 1 ){fprintf(stderr,"*** Illegal -blackman!\n");exit(1);}
          nwin = BLACKMAN ; lwin = blackman_window ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-custom") == 0 ){
+         if( ++nopt >= argc ){fprintf(stderr,"*** Illegal -custom!\n");exit(1);}
+         strcpy(custom_file, argv[nopt]) ;
+         nwin = CUSTOM ; lwin = custom_filter ;
+	 ntap = 1;
          nopt++ ; continue ;
       }
 
@@ -333,6 +348,7 @@ int main( int argc , char * argv[] )
    if( lwin != NULL && ntap > 0 ){        /* 03 Mar 2001 */
       ftap = lwin(ntap) ;
       if( lfil == NULL ) lfil = linear_filter_extend ;
+      if( nwin == CUSTOM ) ntap = custom_ntaps ;
    }
 
    /*----------------------------------------------------*/
@@ -534,6 +550,26 @@ void linear_filter_trend( int ntap , float *wt , int npt , float *x )
    }
 
    return ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+float * custom_filter( int dummy )
+{
+   MRI_IMAGE * filter_data=NULL;
+   float * filter_coefficients = NULL;
+
+   filter_data = mri_read_1D(custom_file);
+   if MRI_IS_1D(filter_data) {
+     custom_ntaps = filter_data->nx;
+     if (custom_ntaps % 2) {
+       filter_coefficients = MRI_FLOAT_PTR(filter_data);
+     } else {
+       /*ERROR, EVEN NUMBER OF FILTER TAPS */
+     }
+   }
+
+   return filter_coefficients ;
 }
 
 /*-------------------------------------------------------------------------*/
