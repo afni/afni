@@ -450,7 +450,7 @@ typedef struct {
                               overlay planes */ 
    char *cmapname; /*!< name of colormap (must be in SUMAg_CF->scm)  */
    SUMA_SCALE_TO_MAP_OPT *OptScl;   /* Options for mapping values in dset to colormap */
-   
+   int SymIrange;
 } SUMA_OVERLAYS;
 
 
@@ -958,6 +958,8 @@ typedef struct {
    SUMA_TABLE_FIELD *DataTable;
    SUMA_TABLE_FIELD *LabelTable;
    Widget ColPlaneShow_tb; /*!< show/hide color plane */
+   Widget SymIrange_tb; /*!< Symmetric intensity range */
+   Widget AbsThresh_tb; /*!< absolute threshold */
    SUMA_LIST_WIDGET *SwitchDsetlst; /*!< a structure containing widgets and options for the switch color plane list */
    SUMA_TABLE_FIELD *ColPlaneLabelTable; 
    SUMA_OVERLAYS *curColPlane; /*!< a copy of the pointer to the selected color plane */

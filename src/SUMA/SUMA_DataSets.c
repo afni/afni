@@ -1809,7 +1809,7 @@ SUMA_DSET *SUMA_far2dset( char *FullName, char *dset_id, char *dom_id,
 
    /* now add the columns */
    for (i=0; i<vec_num; ++i) {
-      if (!SUMA_AddNelCol (dset->nel, "leFloat", SUMA_NODE_FLOAT, (void *)(&(far[i*vec_len])), NULL ,1)) {
+      if (!SUMA_AddNelCol (dset->nel, "numeric", SUMA_NODE_FLOAT, (void *)(&(far[i*vec_len])), NULL ,1)) {
          SUMA_SL_Crit("Failed in SUMA_AddNelCol");
          SUMA_FreeDset((void*)dset); dset = NULL;
          SUMA_RETURN(dset);

@@ -1807,6 +1807,8 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->DataTable = SUMA_AllocTableField();
    SurfCont->LabelTable = SUMA_AllocTableField();
    SurfCont->ColPlaneShow_tb = NULL;
+   SurfCont->SymIrange_tb = NULL;
+   SurfCont->AbsThresh_tb = NULL;
    SurfCont->SwitchDsetlst = NULL;
    SurfCont->ColPlaneLabelTable = SUMA_AllocTableField();;
    SurfCont->curColPlane = NULL;

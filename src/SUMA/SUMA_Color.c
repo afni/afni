@@ -2611,8 +2611,9 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
    
    /* No negative colormaps here */
    if (ColMap->Sgn < 0) {
-      SUMA_S_Err("Colormap is split into positive and negative.\n No support for this feature in SUMA_ScaleToMap.\nTry SUMA_ScaleToMap_alaAFNI");
-      SUMA_RETURN(NOPE);
+      /* proceed, in SUMA options were given to the user to make the range symmetric about 0.
+      They can shoot themselves in the foot if they want to */
+      SUMA_LH("Colormap is split into positive and negative.\n Make sure your range is from -a to + a to have the mapping resemble AFNI's");
    }
    
    /* find the values to be masked out */
@@ -2983,13 +2984,13 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->bind = 0;
    Opt->UseThr = NOPE;
    {
-      char *eee = getenv("SUMA_AbsThreshold");
+      char *eee = getenv("SUMA_AbsThresh_tbold");
       if (eee) {
          if (strcmp(eee,"NO") == 0) Opt->ThrMode = SUMA_LESS_THAN;
          else if (strcmp(eee,"YES") == 0) Opt->ThrMode = SUMA_ABS_LESS_THAN;
          else {
             fprintf (SUMA_STDERR,   "Warning %s:\n"
-                                    "Bad value for environment variable SUMA_AbsThreshold\n"
+                                    "Bad value for environment variable SUMA_AbsThresh_tbold\n"
                                     "Assuming default of YES", FuncName);
             Opt->ThrMode = SUMA_ABS_LESS_THAN;
          }
@@ -4427,6 +4428,7 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
    FullList = 1
    PlaneOrder = -1; i.e. not set 
    isBackGrnd = 0 ; i.e. none
+   SymIrange = 0;
    \sa SUMA_FreeOverlayPointer 
     
 */
@@ -4524,6 +4526,9 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
          SUMA_RETURN (NOPE); 
       }
    }
+   
+   Sover->SymIrange = 0;
+   
    SUMA_RETURN (Sover);
 }
 
@@ -5150,9 +5155,9 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int
    SS = SUMA_StringAppend (SS,stmp);
    for (i=0; i < N_Overlays; ++i) {
       if (Overlays[i]) {
-         sprintf (stmp,"Overlay plane %s:\norder %d, indexed %d\nDimFact %f, global opacity %f, isBackGrnd (isBackground) %d.\n ForceIntRange %f, %f.\n", 
+         sprintf (stmp,"Overlay plane %s:\norder %d, indexed %d\nDimFact %f, global opacity %f, isBackGrnd (isBackground) %d.\n ForceIntRange %f, %f.\nSymIrange = %d\n", 
             Overlays[i]->Name, Overlays[i]->PlaneOrder, i, Overlays[i]->DimFact, Overlays[i]->GlobalOpacity, Overlays[i]->isBackGrnd, 
-            Overlays[i]->ForceIntRange[0], Overlays[i]->ForceIntRange[1]);
+            Overlays[i]->ForceIntRange[0], Overlays[i]->ForceIntRange[1], Overlays[i]->SymIrange);
          SS = SUMA_StringAppend (SS,stmp);
          SS = SUMA_StringAppend_va (SS, "N_links = %d\n", Overlays[i]->N_links);
          SS = SUMA_StringAppend_va (SS, "LinkedPtrType = %d\n", Overlays[i]->LinkedPtrType);
@@ -7169,8 +7174,9 @@ int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node)
          SUMA_LH("Good, found it easily");
          /* make sure node is not outside number of defined nodes */
          if (node >= Sover->N_NodeDef) {
-            /* this one's masked but it was left over from the previous pass */
-            SUMA_RETURN(-1);
+            /* this one's masked but it was left over from the previous pass 
+            Must go search below to make sure whether it is truly masked or not*/
+            SUMA_LH("Can't tell for sure");
          } else {
             SUMA_RETURN(node);
          }

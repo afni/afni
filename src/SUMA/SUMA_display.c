@@ -3783,18 +3783,30 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
    
    /* set the colormap */
    if (SO->SurfCont->cmap_context) {
-      
-      SUMA_cmap_wid_handleRedisplay((XtPointer) SO); 
+      if (strcmp(SO->SurfCont->curColPlane->cmapname, "explicit") == 0) {
+         if (XtIsManaged(SO->SurfCont->DsetMap_fr)) {
+            SUMA_LH("An RGB dset, so surface controls to be seen");
+            XtUnmanageChild(SO->SurfCont->DsetMap_fr);
+            XtUnmanageChild(XtParent(SO->SurfCont->DsetMap_fr));
+         }
+      } else {
+         if (!XtIsManaged(SO->SurfCont->DsetMap_fr)) {
+            SUMA_LH("A non RGB dset, surface controls need to be seen");
+            XtManageChild(XtParent(SO->SurfCont->DsetMap_fr));
+            XtManageChild(SO->SurfCont->DsetMap_fr);
+         }
+         SUMA_cmap_wid_handleRedisplay((XtPointer) SO); 
 
-      /* set the widgets for dems mapping options */
-      SUMA_set_cmap_options(SO, YUP, NOPE);
+         /* set the widgets for dems mapping options */
+         SUMA_set_cmap_options(SO, YUP, NOPE);
 
-      /* set the menu to show the colormap used */
-      SUMA_SetCmapMenuChoice(SO, ColPlane->cmapname);
+         /* set the menu to show the colormap used */
+         SUMA_SetCmapMenuChoice(SO, ColPlane->cmapname);
 
-      /* set the values for the threshold bar */
-      if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
-         SUMA_SetScaleRange(SO, range );
+         /* set the values for the threshold bar */
+         if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
+            SUMA_SetScaleRange(SO, range );
+         }
       }
    } else {
       SUMA_LH("cmap_context was NULL");
@@ -4994,6 +5006,9 @@ void SUMA_ColPlane_NewDimFact (void *data)
    
    /* a good remix and redisplay */
    SUMA_RemixRedisplay (SO);
+   
+   /* update color label */
+   SUMA_UpdateNodeLblField(SO);
    
    SUMA_RETURNe;
 }

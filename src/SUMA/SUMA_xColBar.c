@@ -484,6 +484,7 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
    SO = (SUMA_SurfaceObject *)datap->ContID;
    imenu = (int)datap->callback_data; 
    
+   if (!SO->SurfCont->curColPlane) { SUMA_RETURNe; }
    if (LocalHead) {
       fprintf(SUMA_STDERR, "%s:\n request to switch intensity to col. %d\n", FuncName, imenu - 1);
       fprintf(SUMA_STDERR, "SO->Label = %s\n", SO->Label);
@@ -495,7 +496,6 @@ void SUMA_cb_SwitchIntensity(Widget w, XtPointer client_data, XtPointer call)
 
    if (!SO->SurfCont->curColPlane->Show) { SUMA_RETURNe; } /* nothing else to do */
    
-   if (!SO->SurfCont->curColPlane) { SUMA_RETURNe; }
    
    if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
          SUMA_SLP_Err("Failed to colorize plane.\n");
@@ -649,6 +649,96 @@ void SUMA_cb_SwitchCmap(Widget w, XtPointer client_data, XtPointer call)
    #endif
    
    /* update Lbl fields */
+   SUMA_UpdateNodeLblField(SO);
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_SymIrange_tb_toggled"};
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_TABLE_FIELD *TF=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SO = (SUMA_SurfaceObject *)data;
+   
+   if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
+   
+   SO->SurfCont->curColPlane->SymIrange = !SO->SurfCont->curColPlane->SymIrange;
+   
+   if (SO->SurfCont->curColPlane->SymIrange) {
+      /* manual setting of range. DO NOT Call SUMA_InitRangeTable because it will automatically update the I range under certain conditions*/
+      TF = SO->SurfCont->SetRangeTable;
+      SO->SurfCont->curColPlane->OptScl->IntRange[1] = 
+         SUMA_LARG_ABS(SO->SurfCont->curColPlane->OptScl->IntRange[0], SO->SurfCont->curColPlane->OptScl->IntRange[1]);
+      SO->SurfCont->curColPlane->OptScl->IntRange[0] = -SO->SurfCont->curColPlane->OptScl->IntRange[1];
+      SUMA_INSERT_CELL_VALUE(TF, 1, 1, SO->SurfCont->curColPlane->OptScl->IntRange[0]);
+      SUMA_INSERT_CELL_VALUE(TF, 1, 2, SO->SurfCont->curColPlane->OptScl->IntRange[1]);
+   }
+   
+   if (!SO->SurfCont->curColPlane->Show) { SUMA_RETURNe; } /* nothing else to do */
+   
+   
+   if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURNe;
+   }
+   
+   SUMA_RemixRedisplay(SO);
+ 
+   SUMA_UpdateNodeValField(SO);
+   SUMA_UpdateNodeLblField(SO);
+   
+
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_AbsThresh_tb_toggled"};
+   SUMA_SurfaceObject *SO = NULL;
+   char slabel[100];
+   float range[2]; int loc[2];  
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   SUMA_LH("Called");
+   
+   SO = (SUMA_SurfaceObject *)data;
+   
+   if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
+
+   if (SO->SurfCont->curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) {
+      SO->SurfCont->curColPlane->OptScl->ThrMode = SUMA_ABS_LESS_THAN;
+      sprintf(slabel, "|%5s|", MV_format_fval(fabs(SO->SurfCont->curColPlane->OptScl->ThreshRange[0])));
+   } else {
+      SO->SurfCont->curColPlane->OptScl->ThrMode = SUMA_LESS_THAN;
+      sprintf(slabel, "%5s", MV_format_fval(SO->SurfCont->curColPlane->OptScl->ThreshRange[0]));
+   }
+   SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel);
+   
+   if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
+      SUMA_SetScaleRange(SO, range );
+   }else {
+      SUMA_SLP_Err("Failed to get range");
+      SUMA_RETURNe;
+   }
+      
+   if (!SO->SurfCont->curColPlane->OptScl->UseThr) { SUMA_RETURNe; } /* nothing else to do */
+
+   if (!SUMA_ColorizePlane (SO->SurfCont->curColPlane)) {
+         SUMA_SLP_Err("Failed to colorize plane.\n");
+         SUMA_RETURNe;
+   }
+   
+   SUMA_RemixRedisplay(SO);
+
    SUMA_UpdateNodeLblField(SO);
 
    SUMA_RETURNe;
@@ -1718,21 +1808,35 @@ void SUMA_SetRangeValue (void *data)
       case 1:  /* That's the Int. range */
          SUMA_LH("Setting Int. Range");
          if (j == 1) {
-            if (TF->num_value[n] > ColPlane->OptScl->IntRange[1]) {
-               SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->IntRange[0];
-               SUMA_SLP_Err("Lower bound > Upper bound!");
-               SUMA_TableF_SetString(TF);
+            if (ColPlane->SymIrange) {
+               ColPlane->OptScl->IntRange[0] = -fabs((double)TF->num_value[n]);
+               ColPlane->OptScl->IntRange[1] = -ColPlane->OptScl->IntRange[0];
+               SUMA_INSERT_CELL_VALUE(TF, 1, 1, ColPlane->OptScl->IntRange[0]);
+               SUMA_INSERT_CELL_VALUE(TF, 1, 2, ColPlane->OptScl->IntRange[1]);
             } else {
-               fprintf (SUMA_STDERR,"%s: IntRange[0] was %f, will be %f\n", FuncName, ColPlane->OptScl->IntRange[0], TF->num_value[n]);
-               ColPlane->OptScl->IntRange[0] = TF->num_value[n];
+               if (TF->num_value[n] > ColPlane->OptScl->IntRange[1]) {
+                  SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->IntRange[0];
+                  SUMA_SLP_Err("Lower bound > Upper bound!");
+                  SUMA_TableF_SetString(TF);
+               } else {
+                  fprintf (SUMA_STDERR,"%s: IntRange[0] was %f, will be %f\n", FuncName, ColPlane->OptScl->IntRange[0], TF->num_value[n]);
+                  ColPlane->OptScl->IntRange[0] = TF->num_value[n];
+               }
             }
          } else if (j==2) {
-            if (TF->num_value[n] < ColPlane->OptScl->IntRange[0]) {
-               SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->IntRange[1];
-               SUMA_SLP_Err("Upper bound < Lower bound!");
-               SUMA_TableF_SetString(TF);
-            } else {
-               ColPlane->OptScl->IntRange[1] = TF->num_value[n];
+             if (ColPlane->SymIrange) {
+               ColPlane->OptScl->IntRange[1] = fabs((double)TF->num_value[n]);
+               ColPlane->OptScl->IntRange[0] = -ColPlane->OptScl->IntRange[1];
+               SUMA_INSERT_CELL_VALUE(TF, 1, 1, ColPlane->OptScl->IntRange[0]);
+               SUMA_INSERT_CELL_VALUE(TF, 1, 2, ColPlane->OptScl->IntRange[1]);
+             } else {
+               if (TF->num_value[n] < ColPlane->OptScl->IntRange[0]) {
+                  SUMA_BEEP; TF->num_value[n] = ColPlane->OptScl->IntRange[1];
+                  SUMA_SLP_Err("Upper bound < Lower bound!");
+                  SUMA_TableF_SetString(TF);
+               } else {
+                  ColPlane->OptScl->IntRange[1] = TF->num_value[n];
+               }
             }
          } else { SUMA_SL_Err("What's going on John ?"); }
          if (ColPlane->Show) NewDisp = YUP;
@@ -2221,6 +2325,48 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
       XtVaSetValues(  SO->SurfCont->CoordBiasMenu[0], XmNmenuHistory , 
                       SO->SurfCont->CoordBiasMenu[SO->SurfCont->curColPlane->OptScl->DoBias] , NULL ) ; 
  
+      /* add the selectors for symmetric range and absolute threshold */
+      if (!SO->SurfCont->AbsThresh_tb) {
+         Widget rc;
+         rc = XtVaCreateWidget ("rowcolumn",
+               xmRowColumnWidgetClass, SO->SurfCont->rccm,
+               XmNpacking, XmPACK_TIGHT, 
+               XmNorientation , XmHORIZONTAL ,
+               XmNmarginHeight, 0 ,
+               XmNmarginWidth , 0 ,
+               NULL);
+         /* create the absolute threshold toggle button */
+         SO->SurfCont->AbsThresh_tb = XtVaCreateManagedWidget("|T|", 
+               xmToggleButtonGadgetClass, rc, 
+               NULL);
+         XtAddCallback (SO->SurfCont->AbsThresh_tb, 
+               XmNvalueChangedCallback, SUMA_cb_AbsThresh_tb_toggled, SO);
+         SUMA_SET_SELECT_COLOR(SO->SurfCont->AbsThresh_tb);
+         
+         /* create the symmetric range toggle button */
+         SO->SurfCont->SymIrange_tb = XtVaCreateManagedWidget("sym I", 
+               xmToggleButtonGadgetClass, rc, NULL);
+         XtAddCallback (SO->SurfCont->SymIrange_tb, 
+               XmNvalueChangedCallback, SUMA_cb_SymIrange_tb_toggled, SO);
+         
+         SUMA_SET_SELECT_COLOR(SO->SurfCont->SymIrange_tb);
+         
+         XtManageChild (rc);
+      }
+      
+      /* do the initialization */
+      
+      if (SO->SurfCont->curColPlane->OptScl->ThrMode != SUMA_ABS_LESS_THAN) {
+         XmToggleButtonSetState( SO->SurfCont->AbsThresh_tb, False, NOPE);
+      } else {
+         XmToggleButtonSetState( SO->SurfCont->AbsThresh_tb, True, NOPE);
+      }
+      if (!SO->SurfCont->curColPlane->SymIrange) {
+         XmToggleButtonSetState( SO->SurfCont->SymIrange_tb, False, NOPE);
+      } else {
+         XmToggleButtonSetState( SO->SurfCont->SymIrange_tb, True, NOPE);
+      }
+      
       if (!XtIsManaged(SO->SurfCont->rccm)) XtManageChild (SO->SurfCont->rccm);
    
    }/*  The Color map range and selector block */
@@ -2325,6 +2471,13 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO)
          OptScl->IntRange[0] = SO->SurfCont->curColPlane->ForceIntRange[0];
          OptScl->IntRange[1] = SO->SurfCont->curColPlane->ForceIntRange[1];
       }
+      
+      /* enforce the SymIrange option */
+      if (SO->SurfCont->curColPlane->SymIrange) {
+         OptScl->IntRange[1] = SUMA_LARG_ABS(OptScl->IntRange[0], OptScl->IntRange[1]);
+         OptScl->IntRange[0] = -OptScl->IntRange[1];
+      }
+      
       SUMA_INSERT_CELL_VALUE(TFs, 1, 1, OptScl->IntRange[0]);/* min */ 
       SUMA_INSERT_CELL_VALUE(TFs, 1, 2, OptScl->IntRange[1]);/* max */
    } 
@@ -3340,32 +3493,37 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO)
       fprintf(SUMA_STDERR,"%s: Node index %d is at row %d in dset.", FuncName, SO->SelectedNode, Found);
    }
 
-   /* 2- What is the value of the intensity */
-   str_int = SUMA_GetValInCol(Sover->dset_link->nel, Sover->OptScl->find, Found, &dval);
-   if (str_int) {
-      SUMA_LH(str_int);
-      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 1, str_int);
+   if (Found >= 0) {
+      /* 2- What is the value of the intensity */
+      str_int = SUMA_GetValInCol(Sover->dset_link->nel, Sover->OptScl->find, Found, &dval);
+      if (str_int) {
+         SUMA_LH(str_int);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 1, str_int);
+      } else {
+         SUMA_SL_Err("Failed to get str_int");
+      }
+      str_thr = SUMA_GetValInCol(Sover->dset_link->nel, Sover->OptScl->tind, Found, &dval);
+      if (str_thr) {
+         SUMA_LH(str_thr);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 2, str_thr);
+      } else {
+         SUMA_SL_Err("Failed to get str_thr");
+      }
+      str_brt = SUMA_GetValInCol(Sover->dset_link->nel, Sover->OptScl->bind, Found, &dval);
+      if (str_brt) {
+         SUMA_LH(str_brt);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 3, str_brt);
+      } else {
+         SUMA_SL_Err("Failed to get str_brt");
+      }
+      if (str_int) SUMA_free(str_int); str_int = NULL;
+      if (str_thr) SUMA_free(str_thr); str_thr = NULL;
+      if (str_brt) SUMA_free(str_brt); str_brt = NULL;
    } else {
-      SUMA_SL_Err("Failed to get str_int");
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 1, "NoData");
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 2, "NoData");
+      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 3, "NoData");
    }
-   str_thr = SUMA_GetValInCol(Sover->dset_link->nel, Sover->OptScl->tind, Found, &dval);
-   if (str_thr) {
-      SUMA_LH(str_thr);
-      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 2, str_thr);
-   } else {
-      SUMA_SL_Err("Failed to get str_thr");
-   }
-   str_brt = SUMA_GetValInCol(Sover->dset_link->nel, Sover->OptScl->bind, Found, &dval);
-   if (str_brt) {
-      SUMA_LH(str_brt);
-      SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 3, str_brt);
-   } else {
-      SUMA_SL_Err("Failed to get str_brt");
-   }
-   if (str_int) SUMA_free(str_int); str_int = NULL;
-   if (str_thr) SUMA_free(str_thr); str_thr = NULL;
-   if (str_brt) SUMA_free(str_brt); str_brt = NULL;
-
    SUMA_RETURN(NOPE);
 }
 
@@ -3394,7 +3552,19 @@ SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_SurfaceObject *SO)
 
    if (Found < 0) {
       SUMA_LH("Node not found.\nLikely masked by threshold");
-      sprintf(str_col,"masked by threshold");
+      sprintf(str_col,"masked");
+      /* try to find out why it is masked */
+      if (SO->SurfCont->DataTable) {
+         SUMA_LH("Checking if there is no data for this node");
+         {
+            void *n=NULL;
+            XtVaGetValues(SO->SurfCont->DataTable->cells[1*SO->SurfCont->DataTable->Ni+1], XmNvalue, &n, NULL);
+            if (strcmp((char *)n, "NoData") == 0) {
+               /* no data at all */
+               sprintf(str_col,"no data for this node");
+            }
+         }
+      }
       SUMA_INSERT_CELL_STRING(SO->SurfCont->LabelTable, 0, 1, str_col);
    } else {
       /* Now we know what the index of this node is in the overlay plane (and the data) */
