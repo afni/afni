@@ -39,7 +39,15 @@
 #include <malloc.h>
 #include <strings.h>
 #include <math.h>
+
+#if !defined(DARWIN) && !defined(CYGWIN)  /* RWCox patch */
 #include <values.h>
+#endif
+
+#ifndef MAXINT
+#define MAXINT (1<<30)
+#endif
+
 #include "afni.h"
 
 static char help[] =
