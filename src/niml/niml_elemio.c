@@ -1007,8 +1007,8 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          /** 26 Mar 2003: write number of bytes of data contained herein **/
 
          for( jj=ii=0 ; ii < nel->vec_num ; ii++ )
-            jj = NI_size_column( NI_rowtype_find_code(nel->vec_typ[ii]) ,
-                                 nel->vec_len , nel->vec[ii] ) ;
+            jj += NI_size_column( NI_rowtype_find_code(nel->vec_typ[ii]) ,
+                                  nel->vec_len , nel->vec[ii] ) ;
          sprintf(att,"%sni_datasize%s\"%d\"" , att_prefix , att_equals , jj ) ;
          nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
 

@@ -117,7 +117,7 @@ typedef struct NI_rowtype {
   int   comp_num ;     /*!< number of components (components may be rowtypes) */
   int  *comp_typ ;     /*!< integer codes of the components */
   int  *comp_dim ;     /*!< if >=0, index of dimension of this component */
-  int   part_num ;     /*!< number of parts (parts are basic types) */
+  int   part_num ;     /*!< number of parts (parts are usually basic types) */
   int  *part_typ ;     /*!< integer codes of the parts */
   int  *part_off ;     /*!< byte offsets of the parts */
   int  *part_siz ;     /*!< byte sizes of the parts */
