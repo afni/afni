@@ -63,6 +63,14 @@ void memplot_to_postscript( char * fname , MEM_plotdata * mp )
                ps_rect( x1,y1 , x2,y2 ) ;
                skip = 1 ;
             }
+
+            case THCODE_CIRC:{        /* circle */
+               x1 = 0.499 + PSIZE * (1.0 - MEMPLOT_Y1(mp,ii)) ;
+               y1 = 0.499 + PSIZE * MEMPLOT_X1(mp,ii) ;
+               x2 = 0.499 + PSIZE * MEMPLOT_X2(mp,ii) ;
+               ps_circle( x1,y1 , x2 ) ;
+               skip = 1 ;
+            }
             break ;
          }
       } else if( new_thick != old_thick ){  /* old code to change line thickness */
