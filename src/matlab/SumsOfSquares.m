@@ -390,6 +390,7 @@ if (NF == 4),
 	       switch Contr.ord2.cnt(i).idx2
 		  case 2, what = msdenom(5);   % MSAB
 		  case 3, what = msdenom(6);   % MSAC
+		  case 4, what = msdenom(7) * (dsgn == 1 | dsgn == 2) + msdenom(4) * (dsgn == 4);   % MSAD
 	       end	
 	    case 2,
 	       switch Contr.ord2.cnt(i).idx2

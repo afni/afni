@@ -1111,7 +1111,7 @@ for (sn = 1:1:slices),
 		   case 1,
 			   switch Contr.ord2.cnt(i).idx2    % 2nd factor whose level is fixed
 				   case 2, Contr.ord2.df(i) = dfdenom(4);  % MSAB
-					case 3, Contr.ord2.df(i) = dfdenom(5) * (dsgn == 1 | dsgn == 2);  % MSAC
+					case 3, Contr.ord2.df(i) = dfdenom(5) * (dsgn == 1 | dsgn == 2) + dfdenom(3) * (dsgn == 4);  % MSAC
 				end	
 			case 2,
 			   if (Contr.ord2.cnt(i).idx2 == 3), Contr.ord2.df(i) = dfdenom(6) * (dsgn == 1 | dsgn == 2) + dfdenom(5) * (dsgn == 3 | dsgn == 4);  % MSBC
@@ -1131,6 +1131,7 @@ for (sn = 1:1:slices),
 			   switch Contr.ord2.cnt(i).idx2
 				   case 2, Contr.ord2.df(i) = dfdenom(5);  % MSAB
 					case 3, Contr.ord2.df(i) = dfdenom(6);  % MSAC
+					case 4, Contr.ord2.df(i) = dfdenom(7)*(dsgn == 1 | dsgn == 2) + dfdenom(4) * (dsgn == 4);  % MSAD
 				end	
 			case 2,
 			   switch Contr.ord2.cnt(i).idx2
