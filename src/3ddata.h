@@ -870,8 +870,7 @@ typedef struct {
       int dimsizes[THD_MAX_RANK] ;         /*!< size of each dimension of 3D array */
       int storage_mode ;                   /*!< one of the STORAGE_ codes  */
 
-                                           /* 25 April 1998:           */
-      int byte_order ;                     /*!< LSB_FIRST or MSB_FIRST */
+      int byte_order ;                     /*!< LSB_FIRST or MSB_FIRST [25 Apr 1998] */
 
       char prefix[THD_MAX_PREFIX] ;        /*!< prefix part of filename */
       char viewcode[THD_MAX_VIEWCODE] ;    /*!< viewcode part of filename */
@@ -940,58 +939,62 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
   ( (mm) == DATABLOCK_MEM_MALLOC || (mm) == DATABLOCK_MEM_MMAP \
                                  || (mm) == DATABLOCK_MEM_ANY )
 
-/****
-    Feb 1996:
-      All subvolumes are stored in an array of MRI_IMAGEs (the "brick").
-      If mmap is used, then the whole external file is mmap-ed in one
-        block and the data pointers for each image computed from this base.
-      If malloc is used, then each image is separately allocated and read in.
-      Each datablock has a brick, even if it doesn't actually contain
-        data (is only warp-on-demand).  Whether or not a datablock contains
-        actual voxel data can be determined by examining the "malloc_type".
-****/
 
-/* a brick file should have this many bytes before we try to use mmap */
 
 #ifndef MMAP_THRESHOLD           /* if not previously defined in machdep.h */
+/*! A brick file should have this many bytes before we try to use mmap */
 #  define MMAP_THRESHOLD 99999
 #endif
 
+/*!  All subvolumes are stored in an array of MRI_IMAGE (the "brick").
+     - If mmap is used, then the whole external file is mmap()-ed in one
+       block and the data pointers for each image computed from this base.
+     - If malloc() is used, then each image is separately allocated and read in.
+     - Each datablock has a brick, even if it doesn't actually contain
+       data (is only warp-on-demand).
+     - Whether or not a datablock contains actual voxel data can be
+       determined by examining the "malloc_type".
+    \date Feb 1996
+*/
+
 typedef struct {
-      int type ;     /* type code */
+      int type ;              /*!< type code: DATABLOCK_TYPE */
 
-      int nvals ;             /* number of 3D bricks */
+      int nvals ;             /*!< number of 3D bricks */
 
-      MRI_IMARR * brick  ;    /* array of pointers to each one */
-      float * brick_fac  ;    /* scale factors to convert sub-bricks to floats */
-      int *  brick_bytes ;    /* data size of each sub-brick */
+      MRI_IMARR * brick  ;    /*!< array of pointers to each 3D brick */
+      float * brick_fac  ;    /*!< array of scale factors to convert sub-bricks to floats */
+      int *  brick_bytes ;    /*!< array of data size of each sub-brick */
 
                                 /* These fields added for "bucket" datasets: */
-      char **  brick_lab  ;     /* labels for all sub-bricks                 */
-      char **  brick_keywords ; /* keywords strings for all sub-bricks       */
-      int *    brick_statcode ; /* a FUNC_*_TYPE ==> kind of statistic here  */
-      float ** brick_stataux ;  /* stat_aux parameters for each sub-brick    */
-                                /* with brick_statcode[iv] > 0               */
 
-      int    total_bytes ;    /* totality of data storage needed */
-      int    malloc_type ;    /* memory allocation method */
-      int    locked ;         /* Feb 1998: locked in memory (un-purgeable) */
+      char **  brick_lab  ;     /*!< labels for all sub-bricks                 */
+      char **  brick_keywords ; /*!< keywords strings for all sub-bricks       */
+      int *    brick_statcode ; /*!< a FUNC_*_TYPE ==> kind of statistic here  */
+      float ** brick_stataux ;  /*!< stat_aux parameters for each sub-brick with brick_statcode[iv] > 0               */
 
-      int    master_nvals ;   /* Jan 1999: for datasets that are extracted      */
-      int *  master_ival ;    /*           in pieces from a master dataset      */
-      int *  master_bytes ;   /* master_ival[nvals]; master_bytes[master_nvals] */
+      int    total_bytes ;    /*!< totality of data storage needed */
+      int    malloc_type ;    /*!< memory allocation method */
+      int    locked ;         /*!< Feb 1998: locked in memory (un-purgeable) */
 
-      float master_bot,master_top ; /* 21 Feb 2001: range of data to keep */
+                                /* Jan 1999: for datasets that are extracted from a master dataset */
+      int    master_nvals ;   /*!< Number of nvals in master dataset */
+      int *  master_ival ;    /*!< master_ival[i] = sub-brick index in master of sub-brick #i here */
+      int *  master_bytes ;   /*!< master_bytes[i] = size of sub-brick #i in master */ 
 
-      THD_diskptr * diskptr ; /* where the data is on disk (if anywhere!) */
+      float master_bot ;      /*!< range of data values to keep from master - bottom */
+      float master_top ;      /*!< range of data values to keep from master - top */
 
-      int       natr , natr_alloc ;
-      ATR_any * atr ;         /* array of attributes (from the header) */
+      THD_diskptr * diskptr ; /*!< where the data is on disk (if anywhere!) */
+
+      int       natr ;        /*!< number of attributes read from disk (or to write to disk) */
+      int       natr_alloc ;  /*!< number of attributes allocated in atr below */
+      ATR_any * atr ;         /*!< array of attributes (from the header) */
 
    /* pointers to other stuff */
 
-      KILL_list kl ;
-      XtPointer parent ;
+      KILL_list kl ;          /*!< Stuff to delete if this struct is deleted */
+      XtPointer parent ;      /*!< Somebody who "owns" me */
 } THD_datablock ;
 
 #define DBLK_mallocize(db) THD_force_malloc_type((db),DATABLOCK_MEM_MALLOC)
@@ -1733,63 +1736,67 @@ struct THD_3dim_dataset_array ;  /* incomplete definition */
 
 typedef MRI_IMAGE * THD_merger_func( int merger_code, XtPointer merger_data ) ;
 
+/*! One AFNI dataset structure. */
+
 typedef struct THD_3dim_dataset {
-      int type ;   /* type code */
+      int type ;        /*!< type code: HEAD_ANAT_TYPE or HEAD_FUNC_TYPE or GEN_ANAT_TYPE or GEN_FUNC_TYPE */
 
-      int view_type , func_type ;
+      int view_type ;   /*!< view code: VIEW_ORIGINAL_TYPE or VIEW_ACPCALIGNED_TYPE or VIEW_TALAIRACH_TYPE */
+      int func_type ;   /*!< datasset type: one of FUNC_*_TYPE or ANAT_*_TYPE codes */
 
-      char label1[THD_MAX_LABEL] , label2[THD_MAX_LABEL] ;
+      char label1[THD_MAX_LABEL] ;  /*!< short label #1: not used for anything anymore */
+      char label2[THD_MAX_LABEL] ;  /*!< short label #2: even more obsolete */
 
-      THD_datablock   * dblk ;      /* pointer to actual data */
-      THD_dataxes     * daxes ;     /* info about axes */
-      THD_dataxes     * wod_daxes ; /* warp-on-demand axes */
-      int               wod_flag ;  /* if true, use wod_daxes */
+      THD_datablock   * dblk ;      /*!< pointer to actual data */
+      THD_dataxes     * daxes ;     /*!< info about axes (where dataset is) */
+      THD_dataxes     * wod_daxes ; /*!< warp-on-demand axes (for viewing interpolated dataset) */
+      int               wod_flag ;  /*!< if true, use wod_daxes, otherwise use daxes */
 
-      THD_timeaxis    * taxis ;     /* non-NULL --> 3D+t dataset */
+      THD_timeaxis    * taxis ;     /*!< non-NULL --> this is a 3D+t dataset */
 
-      THD_marker_set  * markers ;         /* user set mark points */
+      THD_marker_set  * markers ;   /*!< user set mark points (if non-NULL) */
 
-      struct THD_3dim_dataset * warp_parent ; /* non-NULL --> a warp */
-      THD_warp                * warp ;        /* of some other dataset */
-      THD_warp                * vox_warp ;    /* index-to-index warp */
+      struct THD_3dim_dataset * warp_parent ; /*!< non-NULL --> this dataset is warped from that one */
+      THD_warp                * warp ;        /*!< this is the coordinate-to-coordinate warp */
+      THD_warp                * vox_warp ;    /*!< this is the index-to-index warp */
 
-      struct THD_3dim_dataset * anat_parent ;   /* non-NULL --> linked */
-                                                /* to anatomical ref */
+      struct THD_3dim_dataset * anat_parent ;   /*!< non-NULL --> linked to this as anatomical ref */
 
-      THD_statistics          * stats ;      /* statistics about the data */
+      THD_statistics          * stats ;      /*!< statistics about the sub-brick data */
 
-      float stat_aux[MAX_STAT_AUX] ;         /* auxiliary statistics info */
+      float stat_aux[MAX_STAT_AUX] ;         /*!< global auxiliary statistics info */
 
-      char warp_parent_name[THD_MAX_NAME] ,  /* dataset names of parents */
-           anat_parent_name[THD_MAX_NAME] ,
-           self_name[THD_MAX_NAME]         ; /* my own name */
+      char warp_parent_name[THD_MAX_NAME] ;  /*!< "name" of warp_parent dataset (no longer used) */
+      char anat_parent_name[THD_MAX_NAME] ;  /*!< "name" of anat_parent dataset (no longer used) */
+      char self_name[THD_MAX_NAME]        ;  /*!< my own "name" (no longer used) */
 
-      struct THD_3dim_dataset_array *  merger_list ; /* non-null ==> this   */
-      THD_merger_func               *  merger_func ; /* dataset is a merger */
-      int                              merger_code , /* merger operation    */
-                                       merger_type  ;
+      struct THD_3dim_dataset_array *  merger_list ; /*!< "merger" stuff was never implemented */
+      THD_merger_func               *  merger_func ; /*!< "merger" stuff was never implemented */
+      int                              merger_code ; /*!< "merger" stuff was never implemented */
+      int                              merger_type ; /*!< "merger" stuff was never implemented */
 
-      THD_vector_list * pts ;     /* in dataset coords (not Dicom!) */
-      Boolean pts_original ;      /* true if was read from disk directly */
+      THD_vector_list * pts ;     /*!< in dataset coords (not Dicom order!) - for Ted Deyoe */
+      Boolean pts_original ;      /*!< true if was read from disk directly */
 
-      int death_mark ;
+      int death_mark ;            /*!< dataset is marked for destruction */
 
 #ifndef OMIT_DATASET_IDCODES
-      MCW_idcode idcode ;
-      MCW_idcode anat_parent_idcode , warp_parent_idcode ;
+      MCW_idcode idcode ;              /*!< globally unique (I hope) ID code for this dataset */
+      MCW_idcode anat_parent_idcode ;  /*!< ID code for warp_parent dataset */
+      MCW_idcode warp_parent_idcode ;  /*!< ID code for anat_parent dataset */
 #endif
 
-      char * keywords ;   /* 30 Nov 1997 */
+      char * keywords ;           /*!< 30 Nov 1997: keyword list for dataset */
 
-      THD_usertaglist * tagset ;  /* 23 Oct 1998 */
+      THD_usertaglist * tagset ;  /*!< 23 Oct 1998: see plug_tag.c */
 
    /* pointers to other stuff */
 
-      KILL_list kl ;
-      XtPointer parent ;
+      KILL_list kl ;              /*!< Stuff to delete if this dataset is deleted (see killer.h) */
+      XtPointer parent ;          /*!< Somebody that "owns" this dataset */
 
 #ifdef ALLOW_AGNI
-      AGNI_surface * ag_surf ;  /* 29 Aug 2001 */
+      AGNI_surface * ag_surf ;  /*!< 29 Aug 2001: surface data (experimental) */
       char * ag_sname ;
       int * ag_vmap ;
 #endif
