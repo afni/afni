@@ -29,9 +29,9 @@ clean:
 	$(CC) -o 3dresample 3dresample.o $(AFNI_WARP_OBJS)	\
 		 $(LFLAGS) -L.. -lrickr $(LLIBS) -lm
 
-file_tool: file_tool.o file_tool.h
+file_tool: file_tool.o file_tool.h ../ge4_header.o
 	$(RM) $@
-	$(CC) -o file_tool file_tool.o -lm
+	$(CC) -o file_tool file_tool.o ../ge4_header.o -lm
 
 Imon: $(IMON_OBJS) Imon.h l_mcw_glob.h realtime.h
 	$(RM) $@
