@@ -832,6 +832,52 @@ THD_ivec3 SUMA_THD_3dmm_to_3dind( SUMA_SurfaceObject *SO  ,
    SUMA_RETURN(iv) ;
 }
 
+/*! 
+   \brief how many voxels in each of the RL AP IS directions
+*/
+void SUMA_VolDims(THD_3dim_dataset *dset, int *nRL, int *nAP, int *nIS)
+{
+   static char FuncName[]={"SUMA_VolDims"};
+   
+   SUMA_ENTRY;
+   
+   *nRL = *nAP = *nIS = -1;
+   
+   if (!dset) {
+      SUMA_SL_Err("NULL dset");
+      SUMA_RETURNe;
+   }
+   
+   switch( dset->daxes->xxorient ){
+      case ORI_R2L_TYPE:
+      case ORI_L2R_TYPE: *nRL = DSET_NX(dset) ; break ;
+      case ORI_P2A_TYPE:
+      case ORI_A2P_TYPE: *nAP = DSET_NX(dset) ; break ;
+      case ORI_I2S_TYPE:
+      case ORI_S2I_TYPE: *nIS = DSET_NX(dset) ; break ;
+   }
+
+   switch( dset->daxes->yyorient ){
+      case ORI_R2L_TYPE:
+      case ORI_L2R_TYPE: *nRL = DSET_NY(dset) ; break ;
+      case ORI_P2A_TYPE:
+      case ORI_A2P_TYPE: *nAP = DSET_NY(dset) ; break ;
+      case ORI_I2S_TYPE:
+      case ORI_S2I_TYPE: *nIS = DSET_NY(dset) ; break ;
+   }
+
+   switch( dset->daxes->zzorient ){
+      case ORI_R2L_TYPE:
+      case ORI_L2R_TYPE: *nRL = DSET_NZ(dset) ; break ;
+      case ORI_P2A_TYPE:
+      case ORI_A2P_TYPE: *nAP = DSET_NZ(dset) ; break ;
+      case ORI_I2S_TYPE:
+      case ORI_S2I_TYPE: *nIS = DSET_NZ(dset) ; break ;
+   }
+   
+   SUMA_RETURNe;
+}
+
 /*!---------------------------------------------------------------------
    convert from input image oriented x,y,z to Dicom x,y,z
      (x axis = R->L , y axis = A->P , z axis = I->S)

@@ -1045,7 +1045,8 @@ void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
       *zrai_orig = fvdic.xyz[2];
        
    /* report for sanity */
-   fprintf(stderr,   "brainnormalize_coord:\n"
+   if (0) {
+      fprintf(stderr,   "brainnormalize_coord:\n"
                      " ijk_spat_rai = [%f %f %f]\n"
                      " ijk_orig_rai = [%f %f %f] (in rai order, not native to iset!)\n"
                      " ijk_orig     = [%f %f %f] (in native order)\n"
@@ -1055,7 +1056,8 @@ void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
                      irai, jrai, krai ,
                      *iorig, *jorig, *korig ,
                      *xrai_orig, *yrai_orig, *zrai_orig,
-                     THD_BN_XORG, THD_BN_YORG, THD_BN_ZORG);         
+                     THD_BN_XORG, THD_BN_YORG, THD_BN_ZORG);   
+   }      
    return;
 } 
 /*----------------------------------------------------------------------
