@@ -399,16 +399,6 @@ char * VOLREG_main( PLUGIN_interface * plint )
              "************************"  ;
    }
 
-   mri_3dalign_params( VL_maxite , VL_dxy , VL_dph , VL_del ,
-                       abs(ax1)-1 , abs(ax2)-1 , abs(ax3)-1 , -1 ) ;
-
-   mri_3dalign_method( VL_resam , 0 , 0 , VL_clipit ) ;
-
-   new_dset = EDIT_empty_copy( VL_dset ) ;
-   EDIT_dset_items( new_dset , ADN_prefix , VL_prefix , ADN_none ) ;
-
-   albase = mri_3dalign_setup( VL_imbase , NULL ) ;
-
    imcount = DSET_NVALS( VL_dset ) ;
    dx      = (float *) malloc( sizeof(float) * imcount ) ;
    dy      = (float *) malloc( sizeof(float) * imcount ) ;
@@ -423,6 +413,16 @@ char * VOLREG_main( PLUGIN_interface * plint )
    ax1 = axcode( VL_dset , 'I' ) ; hax1 = ax1 * iha ;  /* roll */
    ax2 = axcode( VL_dset , 'R' ) ; hax2 = ax2 * iha ;  /* pitch */
    ax3 = axcode( VL_dset , 'A' ) ; hax3 = ax3 * iha ;  /* yaw */
+
+   mri_3dalign_params( VL_maxite , VL_dxy , VL_dph , VL_del ,
+                       abs(ax1)-1 , abs(ax2)-1 , abs(ax3)-1 , -1 ) ;
+
+   mri_3dalign_method( VL_resam , 0 , 0 , VL_clipit ) ;
+
+   new_dset = EDIT_empty_copy( VL_dset ) ;
+   EDIT_dset_items( new_dset , ADN_prefix , VL_prefix , ADN_none ) ;
+
+   albase = mri_3dalign_setup( VL_imbase , NULL ) ;
 
    /*-- loop over sub-bricks and register them --*/
 
