@@ -884,7 +884,6 @@ void vector_subtract (vector a, vector b, vector * c)
 /*!
   Right multiply matrix a by vector b.  Result is vector c.
 */
-
 void vector_multiply (matrix a, vector b, vector * c)
 {
   register int rows, cols;
@@ -904,12 +903,7 @@ void vector_multiply (matrix a, vector b, vector * c)
   for (i = 0;  i < rows;  i++)
     {
       sum = 0.0 ; aa = a.elts[i] ;
-      for (j = 0;  j < cols;  j++)
-#if 0
-        sum += a.elts[i][j] * b.elts[j];
-#else
-        sum += aa[j] * bb[j] ;
-#endif
+      for (j = 0;  j < cols;  j++) sum += aa[j] * bb[j] ;
       c->elts[i] = sum ;
     }
 }
@@ -939,12 +933,7 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
   for (i = 0;  i < rows;  i++)
     {
       sum = c.elts[i] ; aa = a.elts[i] ;
-      for (j = 0;  j < cols;  j++)
-#if 0
-        sum -= a.elts[i][j] * b.elts[j];
-#else
-        sum -= aa[j] * bb[j] ;
-#endif
+      for (j = 0;  j < cols;  j++) sum -= aa[j] * bb[j] ;
       d->elts[i] = sum ; qsum += sum*sum ;
     }
   return qsum ;  /* 26 Feb 2003 */
