@@ -441,6 +441,16 @@ ENTRY("mri_warp3D_align_setup") ;
        bas->imwt->nz != nz   ) bas->imww = mri_copy( cim ) ;
    else                        bas->imww = mri_to_float( bas->imwt ) ;
 
+   if( bas->twoblur > 0.0f ){
+     float bmax = (float)pow((double)nxyz,0.33333333) * 0.03 ;
+     if( bmax < bas->twoblur ){
+       if( bas->verb )
+         fprintf(stderr,"+   shrink bas->twoblur from %.3f to %.3f\n",
+                        bas->twoblur , bmax ) ;
+       bas->twoblur = bmax ;
+     }
+   }
+
    if( bas->verb ) fprintf(stderr,"+   processing weight:") ;
 
    /* make sure weight is non-negative */
@@ -457,15 +467,15 @@ ENTRY("mri_warp3D_align_setup") ;
      if( xfade < 0 || yfade < 0 || zfade < 0 )
        mri_warp3D_align_edging_default(nx,ny,nz,&xfade,&yfade,&zfade) ;
 
-     if( bas->twoblur > 1.0f ){
-       xfade += (int)rint(2.0*bas->twoblur) ;
-       yfade += (int)rint(2.0*bas->twoblur) ;
-       zfade += (int)rint(2.0*bas->twoblur) ;
+     if( bas->twoblur > 0.0f ){
+       xfade += (int)rint(1.5*bas->twoblur) ;
+       yfade += (int)rint(1.5*bas->twoblur) ;
+       zfade += (int)rint(1.5*bas->twoblur) ;
      }
 
-     if( 2*zfade >= nz ) zfade = (nz-1)/2 ;
-     if( 2*xfade >= nx ) xfade = (nx-1)/2 ;
-     if( 2*yfade >= ny ) yfade = (ny-1)/2 ;
+     if( 3*zfade >= nz ) zfade = (nz-1)/3 ;
+     if( 3*xfade >= nx ) xfade = (nx-1)/3 ;
+     if( 3*yfade >= ny ) yfade = (ny-1)/3 ;
 
      if( bas->verb ) fprintf(stderr," [edge(%d,%d,%d)]",xfade,yfade,zfade) ;
 
@@ -490,7 +500,7 @@ ENTRY("mri_warp3D_align_setup") ;
 
    if( wtproc ){
      float blur ;
-     blur = 1.0f + MAX(2.0f,bas->twoblur) ;
+     blur = 1.0f + MAX(1.5f,bas->twoblur) ;
      if( bas->verb ) fprintf(stderr," [blur(%.1f)]",blur) ;
      EDIT_blur_volume_3d( nx,ny,nz ,       1.0f,1.0f,1.0f ,
                           MRI_float , wf , blur,blur,blur  ) ;
@@ -580,14 +590,17 @@ ENTRY("mri_warp3D_align_setup") ;
 
    /*--- twoblur? ---*/
 
-   if( bas->twoblur > 1.0f ){
+   if( bas->twoblur > 0.0f ){
      float *car=MRI_FLOAT_PTR(cim) ;
      float blur = bas->twoblur ;
+     float bfac = blur ;
+          if( bfac < 1.1234f ) bfac = 1.1234f ;
+     else if( bfac > 1.3456f ) bfac = 1.3456f ;
 
      if( bas->verb ) fprintf(stderr,"+  Compute Derivatives of Blurred Base\n") ;
      EDIT_blur_volume_3d( nx,ny,nz ,       1.0f,1.0f,1.0f ,
                           MRI_float , car, blur,blur,blur  ) ;
-     fitim = mri_warp3D_align_fitim( bas , cim , MRI_LINEAR , blur*bas->delfac ) ;
+     fitim = mri_warp3D_align_fitim( bas , cim , MRI_LINEAR , bfac*bas->delfac ) ;
      if( bas->verb ) fprintf(stderr,"+   calculate pseudo-inverse\n") ;
      bas->imps_blur = mri_psinv( fitim , wtar ) ;
      mri_free(fitim) ;
@@ -630,7 +643,7 @@ MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
     *ima=MRI_INT_PTR(bas->imap) , /* = indexes in fim of voxels to use */
     *pma ;                        /* = map of free to total params */
    int ctstart ;
-   int do_twopass=(bas->imps_blur != NULL && bas->twoblur > 1.0f) , passnum=1 ;
+   int do_twopass=(bas->imps_blur != NULL && bas->twoblur > 0.0f) , passnum=1 ;
    char      *save_prefix ;
    static int save_index=0 ;
 
@@ -689,7 +702,9 @@ ENTRY("mri_warp3D_align_one") ;
    for( pp=0 ; pp < npar ; pp++ ) tol[pp] = bas->param[pp].toler ;
 
    if( do_twopass && passnum == 1 ){
-     for( pp=0 ; pp < npar ; pp++ ) tol[pp] *= (1.0f+bas->twoblur) ;
+     float fac = (1.0f+bas->twoblur) ;
+     if( fac < 3.0f ) fac = 3.0f ;
+     for( pp=0 ; pp < npar ; pp++ ) tol[pp] *= fac ;
    }
 
    if( bas->verb ) fprintf(stderr,"++ mri_warp3d_align_one: START PASS #%d\n",passnum) ;
@@ -757,7 +772,7 @@ ENTRY("mri_warp3D_align_one") ;
      memcpy( fitmem[0] , fit , sizeof(float)*npar) ;
 
      iter++ ;
-     if( iter > last_aitken+NMEM ){
+     if( iter > last_aitken+NMEM && !AFNI_noenv("AFNI_WARPDRIVE_AITKEN") ){
        double s0,s1,s2 , dd , de,df ;
        num_aitken = 0 ;
        for( pp=0 ; pp < npar ; pp++ ){
