@@ -117,19 +117,21 @@ switch NF
 
    case 3,
       switch dsgn
-	 case 1,
-	    fstat = repmat(0, [1 N_Brik]); 
+	      case 1,
+	         fstat = repmat(0, [1 N_Brik]); 
 			
-	 case 2,  % 7 terms: 1 (A); 2 (B); 3 (C); 4 (AB), 5 (AC), 6 BC, 7 ABC				
-	    fstat = repmat(0, [1 N_Brik]);   % same as fstat = repmat(0, [1 N_Brik]);
+	      case 2,  % 7 terms: 1 (A); 2 (B); 3 (C); 4 (AB), 5 (AC), 6 BC, 7 ABC				
+	         fstat = repmat(0, [1 N_Brik]);   % same as fstat = repmat(0, [1 N_Brik]);
 				
-	 case {3, 4,} % BXC(A): only 5 terms - 1 (A); 2 (B); 3 C(A); 4 (AB), 5 BC(A)
-	    fstat = repmat(0, [1 N_Brik]); 								
-	    ssterm(3) = ssterm(3) + ssterm(5);  % SSC(A) = SSC + SSAC
-	    dfterm(3) = dfterm(3) + dfterm(5);        %  DF C(A) = DF C + DF AC
+	      case {3, 4,} % BXC(A): only 5 terms - 1 (A); 2 (B); 3 C(A); 4 (AB), 5 BC(A)
+	         							
+	         ssterm(3) = ssterm(3) + ssterm(5);  % SSC(A) = SSC + SSAC
+	         dfterm(3) = dfterm(3) + dfterm(5);        %  DF C(A) = DF C + DF AC
 		
-	    ssterm(6) = ssterm(6) + ssterm(7);   % SSBC(A) = SSC + SSAC
-	    dfterm(6) = dfterm(6) + dfterm(7);
+	         ssterm(6) = ssterm(6) + ssterm(7);   % SSBC(A) = SSC + SSAC
+	         dfterm(6) = dfterm(6) + dfterm(7);
+				
+				fstat = repmat(0, [1 N_Brik]); 	
 								
       end  % switch dsgn	
 
@@ -138,38 +140,35 @@ switch NF
       switch dsgn
          % Order of the 15 terms: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 7 (AD); 8 (BC); 9 (BD); 10 (CD)
 	      %        11 (ABC); 12 (ABD); 13 (ACD); 14 (BCD); 15 (ABCD)
-	 case {1, 2,}
-	    fstat = repmat(0, [1 N_Brik]); 
-	 case {3, 4,}	% only 11 terms in nesting case without AD, ABD, ACD, and ABCD: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 
-			% 7 (BC); 8 (BD); 9 (CD); 10 (ABC); 11 (BCD); 
-	      			   
-         %dftmp = dfterm(1) + 1;
+	      case {1, 2,}
+	         fstat = repmat(0, [1 N_Brik]); 
+	      case {3, 4,}	% only 11 terms in nesting case without AD, ABD, ACD, and ABCD: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 
+			% 7 (BC); 8 (BD); 9 (CD); 10 (ABC); 11 (BCD); 	      			   
+            ssterm(4) = ssterm(4) + ssterm(7);       %SSD(A) = SSD + SSAD
+	         dfterm(4) = dfterm(4) + dfterm(7);   %DF(D(A)) = DF(D) + DF(AD)
 
-         ssterm(4) = ssterm(4) + ssterm(7);       %SSD(A) = SSD + SSAD
-	 dfterm(4) = dfterm(4) + dfterm(7);   %DF(D(A)) = DF(D) + DF(AD)
-
-	 ssterm(9) = ssterm(9) + ssterm(12);      %SSBD(A) = SSB + SSABD
-	 dfterm(9) = dfterm(9) + dfterm(12);   %DF(BD(A)) = DF(BD) + DF(ABD)
+            ssterm(9) = ssterm(9) + ssterm(12);      %SSBD(A) = SSB + SSABD
+            dfterm(9) = dfterm(9) + dfterm(12);   %DF(BD(A)) = DF(BD) + DF(ABD)
 	
-	 ssterm(10) = ssterm(10) + ssterm(13);    %SSCD(A) = SSC + SSACD
-	 dfterm(10) = dfterm(10) + dfterm(13);   %DF(CD(A)) = DF(CD) + DF(ACD)
+            ssterm(10) = ssterm(10) + ssterm(13);    %SSCD(A) = SSC + SSACD
+            dfterm(10) = dfterm(10) + dfterm(13);   %DF(CD(A)) = DF(CD) + DF(ACD)
 	
-	 ssterm(14) = ssterm(14) + ssterm(15);    %SSBCD(A) = SSBCD + SSABCD
-	 dfterm(14) = dfterm(14) + dfterm(15);   %DF(BCD(A)) = DF(BCD)+ DF(ABCD)
+            ssterm(14) = ssterm(14) + ssterm(15);    %SSBCD(A) = SSBCD + SSABCD
+            dfterm(14) = dfterm(14) + dfterm(15);   %DF(BCD(A)) = DF(BCD)+ DF(ABCD)
 	
-         fstat = repmat(0, [1 N_Brik]);  
-         
-   case 5,
+            fstat = repmat(0, [1 N_Brik]);  
+				         
+         case 5,
 			% There are only 9 terms: 1 (A); 2 (B); 3 (C); 4 (D); 5 (AB); 6 (AC); 7 (BC); 8 (CD); 9 (ABC)
 						
-      ssterm(4) = ssterm(4) + ssterm(7) + ssterm(9) + ssterm(12);       %SSD(AB) = SSD + SSAD + SSBD + SSABD
-      dfterm(4) = dfterm(4) + dfterm(7) + dfterm(9) + dfterm(12);   %DF(D(AB)) = (DF(A)+ DF(B) + DF(AB) + 1)DF(D)	
+            ssterm(4) = ssterm(4) + ssterm(7) + ssterm(9) + ssterm(12);       %SSD(AB) = SSD + SSAD + SSBD + SSABD
+            dfterm(4) = dfterm(4) + dfterm(7) + dfterm(9) + dfterm(12);   %DF(D(AB)) = (DF(A)+ DF(B) + DF(AB) + 1)DF(D)	
 			
-      ssterm(10) = ssterm(10) + ssterm(13) + ssterm(14) + ssterm(15);       %SSCD(AB) = SSCD + SSACD + SSBCD + SSABCD
-      dfterm(10) = dfterm(10) + dfterm(13) + dfterm(14) + dfterm(15);   %DF(CD(AB)) = (DF(A)+ DF(B) + DF(AB) + 1)DF(D)	
+            ssterm(10) = ssterm(10) + ssterm(13) + ssterm(14) + ssterm(15);       %SSCD(AB) = SSCD + SSACD + SSBCD + SSABCD
+            dfterm(10) = dfterm(10) + dfterm(13) + dfterm(14) + dfterm(15);   %DF(CD(AB)) = (DF(A)+ DF(B) + DF(AB) + 1)DF(D)	
 			
-      fstat = repmat(0, [1 N_Brik]);						
-   end	
+            fstat = repmat(0, [1 N_Brik]);						
+      end	
 end
 
 % Compute the mean square for each term
@@ -204,29 +203,29 @@ switch NF
    case 3,
    switch dsgn
       case 1,
-	 dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;
-	 msdenom = repmat(mse, size(msterm)); dfdenom = repmat(dfe, size(msterm));
+	      dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;
+	      msdenom = repmat(mse, size(msterm)); dfdenom = repmat(dfe, size(msterm));
 			
       case 2,   % 7 terms: 1 (A); 2 (B); 3 (C); 4 (AB), 5 (AC), 6 BC, 7 ABC
-	 dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;
-	 msdenom = [msterm(5), msterm(6), mse, msterm(7), mse, mse, mse];
-	 dfdenom = [dfterm(5), dfterm(6), dfe, dfterm(7), dfe, dfe, dfe];
+	      dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;
+	      msdenom = [msterm(5), msterm(6), mse, msterm(7), mse, mse, mse];
+	      dfdenom = [dfterm(5), dfterm(6), dfe, dfterm(7), dfe, dfe, dfe];
 			
       case 3,  % 5 terms: 1 A; 2 B; 3 C(A); 4 (AB), 5  BC(A)
-         msterm_new = [msterm(1:4), msterm(6)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
-	 intensity_new = [intensity(1:4), intensity(6)];    % Throw out those four which do not exist for nesting.
-	 dfterm_new = [dfterm(1:4)', dfterm(6)'];
-	 tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+         msterm_new = [msterm(1:4), msterm(6)];   % Throw out those four which do not exist for nesting: AC and ABC.
+	      intensity_new = [intensity(1:4), intensity(6)];    % Throw out those four which do not exist for nesting.
+	      dfterm_new = [dfterm(1:4)', dfterm(6)'];
+	      tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
          msdenom = [msterm(3), msterm(6), mse, msterm(6), mse];
-	 dfdenom = [dfterm(3), dfterm(6), dfe, dfterm(6), dfe];
+	      dfdenom = [dfterm(3), dfterm(6), dfe, dfterm(6), dfe];
 				
       case 4,  % 5 terms: 1 A; 2 B; 3 C(A); 4 (AB), 5  BC(A)
-         msterm_new = [msterm(1:4), msterm(6)];   % Throw out those four which do not exist for nesting: AD, ABD, ACD, and ABCD.
-	 intensity_new = [intensity(1:4), intensity(6)];    % Throw out those four which do not exist for nesting.
-	 dfterm_new = [dfterm(1:4)', dfterm(6)'];
-	 tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
-         msdenom = [msterm(4), mse, msterm(6), mse, mse];
-	 dfdenom = [dfterm(4), dfe, dfterm(6), dfe, dfe];	
+         msterm_new = [msterm(1:4), msterm(6)];   % Throw out those four which do not exist for nesting: AC and ABC.
+	      intensity_new = [intensity(1:4), intensity(6)];    % Throw out those four which do not exist for nesting.
+	      dfterm_new = [dfterm(1:4)', dfterm(6)'];
+	      tnames_new = [tnames(1:4); tnames(6)];     % Only preserve those valid for nesting. Semicolon for coloumn catenation	
+         msdenom = [msterm(4), mse, msterm(6), mse, mse,0,0];  % 2 extra 0's are for error-prone problem down below for contrasts
+	      dfdenom = [dfterm(4), dfe, dfterm(6), dfe, dfe];	
    end			
 
    case  4,
@@ -313,9 +312,9 @@ if (NF == 3),
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
          LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
-	 LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
-	 tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
-	 if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
+	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
+	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
+	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
       end
    end	
 
@@ -325,22 +324,23 @@ if (NF == 3),
    if (Contr.ord2.tot > 0),    % 7 terms: 1 (A); 2 (B); 3 (C); 4 (AB), 5 (AC), 6 BC, 7 ABC
       for (i = 1:1:Contr.ord2.tot),
          LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
-	 switch Contr.ord2.cnt(i).idx1
-	   case 1,
-	      switch Contr.ord2.cnt(i).idx2
-		 case 2, what = msdenom(4);   % MSAB
-		 case 3, what = msdenom(5) * (dsgn == 1 | dsgn == 2);   % MSAC
-	      end	
-	   case 2,
-	      if (Contr.ord2.cnt(i).idx2 == 3),
-		 what = msdenom(6) * (dsgn == 1 | dsgn == 2) + msdenom(5)* (dsgn == 3 | dsgn == 4);  % MSBC
-	      else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause; end		   
-	end %switch Contr.ord2.cnt(i).idx1
-	LC.t2(i).value = Contr.ord2.cnt(i).vec * y0;   % intensity for this 2nd order contrast
-	tmp = what*Contr.ord2.cnt(i).scalar;
-	if (tmp > 0), LC.t2(i).t = LC.t2(i).value/sqrt(tmp); end
-     end %for (i = 1:1:Contr.ord2.tot),
-  end	%if (Contr.ord2.tot > 0),
+	      switch Contr.ord2.cnt(i).idx1
+	         case 1,
+	            switch Contr.ord2.cnt(i).idx2
+		            case 2, what = msdenom(4);   % MSAB
+						case 3, what = msdenom(5) * (dsgn == 1 | dsgn == 2) + what = msdenom(3) * (dsgn == 4);   % MSAC
+						% For design type 4 -- BXC(A): the denominator is MSBC(A), the one for main effect of C(A)!
+	            end	
+	         case 2,
+	         if (Contr.ord2.cnt(i).idx2 == 3),
+		         what = msdenom(6) * (dsgn == 1 | dsgn == 2) + msdenom(5)* (dsgn == 3 | dsgn == 4);  % MSBC
+	         else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause; end		   
+	      end %switch Contr.ord2.cnt(i).idx1
+	      LC.t2(i).value = Contr.ord2.cnt(i).vec * y0;   % intensity for this 2nd order contrast
+	      tmp = what*Contr.ord2.cnt(i).scalar;
+	      if (tmp > 0), LC.t2(i).t = LC.t2(i).value/sqrt(tmp); end
+      end %for (i = 1:1:Contr.ord2.tot),
+   end	%if (Contr.ord2.tot > 0),
 
 % dmat(:, num_col0+num_col1+1:num_col1+num_col0+num_col2) is the matrix for 2nd order contrasts
    if (Contr.ord3.tot > 0),
@@ -351,7 +351,7 @@ if (NF == 3),
 	       switch Contr.ord3.cnt(i).idx2
 		  case 2, 
 		     if (Contr.ord3.cnt(i).idx3 == 3),
-			what = msdenom(7) * (dsgn == 1 | dsgn == 2);   % MSABC
+			     what = msdenom(7) * (dsgn == 1 | dsgn == 2);   % MSABC
 		     else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause; end   
 		  case 3, fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;	
 	       end	
