@@ -15,6 +15,7 @@ int main( int argc , char * argv[] )
    int div = -1 , div_bot,div_top , drange=0; /* 16 Sep 1998 */
    float data_bot=666.0 , data_top=-666.0 ;
    int indump = 0 ;                           /* 19 Aug 1999 */
+   int pslice=-1 , qslice=-1 , nxy,nz ;       /* 15 Sep 1999 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskave [options] dataset\n"
@@ -42,6 +43,15 @@ int main( int argc , char * argv[] )
              "  -drange a b  Means to only include voxels from the dataset whose\n"
              "                 values fall in the range 'a' to 'b' (inclusive).\n"
              "                 Otherwise, all voxel values are included.\n"
+             "\n"
+             "  -slices p q  Means to only included voxels from the dataset\n"
+             "                 whose slice numbers are in the range 'p' to 'q'\n"
+             "                 (inclusive).  Slice numbers range from 0 to\n"
+             "                 NZ-1, where NZ can be determined from the output\n"
+             "                 of program 3dinfo.  The default is to include\n"
+             "                 data from all slices.\n"
+             "                 [There is no provision for geometrical voxel]\n"
+             "                 [selection except in the slice (z) direction]\n"
              "\n"
              "  -sigma       Means to compute the standard deviation as well\n"
              "                 as the mean.\n"
@@ -128,7 +138,9 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[narg],"-drange",5) == 0 ){
          if( narg+2 >= argc ){
-            fprintf(stderr,"*** -drange option requires 2 following arguments!\n") ; exit(1) ;
+            fprintf(stderr,
+                    "*** -drange option requires 2 following arguments!\n") ;
+            exit(1) ;
          }
          data_bot = strtod( argv[++narg] , NULL ) ;
          data_top = strtod( argv[++narg] , NULL ) ;
@@ -136,6 +148,21 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"*** -mrange inputs are illegal!\n") ; exit(1) ;
          }
          drange = 1 ;
+         narg++ ; continue ;
+      }
+
+      if( strncmp(argv[narg],"-slices",5) == 0 ){  /* 15 Sep 1999 */
+         if( narg+2 >= argc ){
+            fprintf(stderr,
+                    "*** -slices option requires 2 following arguments!\n") ;
+            exit(1) ;
+         }
+         pslice = (int) strtod( argv[++narg] , NULL ) ;
+         qslice = (int) strtod( argv[++narg] , NULL ) ;
+         if( pslice < 0 || qslice < 0 || qslice < pslice ){
+            fprintf(stderr, "*** Illegal values after -slices!\n") ;
+            exit(1) ;
+         }
          narg++ ; continue ;
       }
 
@@ -189,11 +216,26 @@ int main( int argc , char * argv[] )
    if( input_dset == NULL ){
       fprintf(stderr,"*** Cannot open input dataset!\n") ; exit(1) ;
    }
+
    if( DSET_BRICK_TYPE(input_dset,0) == MRI_complex ){
       fprintf(stderr,"*** Cannot deal with complex-valued input dataset!\n") ; exit(1) ;
    }
+
    if( div >= DSET_NVALS(input_dset) ){
       fprintf(stderr,"*** Not enough sub-bricks in dataset for -dindex %d!\n",div) ; exit(1) ;
+   }
+
+   if( pslice >= 0 ){
+      nxy = DSET_NX(input_dset) * DSET_NY(input_dset) ;
+      nz  = DSET_NZ(input_dset) ;
+      if( qslice >= nz ){
+         fprintf(stderr,
+                 "*** There are only %d slices in the input dataset!\n",nz) ;
+         exit(1) ;
+      }
+
+      if( pslice == 0 && qslice == nz-1 )
+         fprintf(stderr,"+++ -slice option says to use all slices!?\n") ;
    }
 
    nvox = DSET_NVOX(input_dset) ;
@@ -278,16 +320,41 @@ int main( int argc , char * argv[] )
       DSET_unload(mask_dset) ;
 
       if( mcount == 0 ){
-         fprintf(stderr,"*** No voxels survive the masking operations.\n") ; exit(1) ;
+         fprintf(stderr,"*** No voxels survive the masking operation\n"); exit(1);
       }
+
+      fprintf(stderr,"+++ %d voxels survive the mask\n",mcount) ;
+
    } else {
       mcount = nvox ;
       memset( mmm , 1 , mcount ) ;
+      fprintf(stderr,"+++ %d voxels in the entire dataset (no mask)\n",mcount) ;
    }
-   fprintf(stderr,"+++ %d voxels survive the mask\n",mcount) ;
+
+   if( pslice >= 0 ){     /* 15 Sep 1999 */
+      int kz , ibot ;
+      mcount = 0 ;
+      for( kz=0 ; kz < nz ; kz++ ){           /* loop over all slices */
+         ibot = kz*nxy ;                      /* base index for this slice */
+
+         if( kz >= pslice && kz <= qslice ){  /* keepers => recount */
+            for( ii=0 ; ii < nxy ; ii++ )
+               if( mmm[ii+ibot] ) mcount++ ;
+         } else {                             /* throw them back */
+            for( ii=0 ; ii < nxy ; ii++ )
+               mmm[ii+ibot] = 0 ;
+         }
+      }
+
+      if( mcount == 0 ){
+         fprintf(stderr,"*** No voxels survive the slicing operation\n"); exit(1);
+      }
+
+      fprintf(stderr,"+++ %d voxels survive the slicing\n",mcount) ;
+   }
 
    if( mcount < 2 && sigmait ){
-      fprintf(stderr,"+++ [cannot compute sigma]\n") ;
+      fprintf(stderr,"+++ [too few voxels; cannot compute sigma]\n") ;
       sigmait = 0 ;
    }
 

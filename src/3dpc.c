@@ -33,6 +33,10 @@ static char PC_prefix[THD_MAX_PREFIX] = "pc" ;
 
 static float ** PC_brickdata ;   /* pointer to data bricks */
 
+static byte * PC_mask      = NULL ;   /* 15 Sep 1999 */
+static int    PC_mask_nvox = 0 ;
+static int    PC_mask_hits = 0 ;
+
 /*--------------------------- useful macros ------------------------*/
 
    /** i'th element of j'th input brick **/
@@ -153,6 +157,25 @@ void PC_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      /**** -mask mset [15 Sep 1999] ****/
+
+      if( strncmp(argv[nopt],"-mask",5) == 0 ){
+         THD_3dim_dataset * mset ; int ii,mc ;
+         nopt++ ;
+         if( nopt >= argc ) PC_syntax("need argument after -mask!") ;
+         mset = THD_open_dataset( argv[nopt] ) ;
+         if( mset == NULL ) PC_syntax("can't open -mask dataset!") ;
+         PC_mask = THD_makemask( mset , 0 , 1.0,0.0 ) ;
+         PC_mask_nvox = DSET_NVOX(mset) ;
+         DSET_delete(mset) ;
+         if( PC_mask == NULL ) PC_syntax("can't use -mask dataset!") ;
+         for( ii=mc=0 ; ii < PC_mask_nvox ; ii++ ) if( PC_mask[ii] ) mc++ ;
+         if( mc == 0 ) PC_syntax("mask is all zeros!") ;
+         printf("--- %d voxels in mask\n",mc) ;
+         PC_mask_hits = mc ;
+         nopt++ ; continue ;
+      }
+
       /**** unknown switch ****/
 
       fprintf(stderr,"\n*** unrecognized option %s\n",argv[nopt]) ;
@@ -176,7 +199,7 @@ void PC_read_opts( int argc , char * argv[] )
    PC_dset = (THD_3dim_dataset **) malloc( sizeof(THD_3dim_dataset *) * PC_dsnum ) ;
    for( kk=0 ; kk < PC_dsnum ; kk++ ){
       PC_dset[kk] = dset = THD_open_dataset( PC_dsname[kk] ) ;  /* allow for selector */
-      if( ! ISVALID_3DIM_DATASET(dset) ){
+      if( !ISVALID_3DIM_DATASET(dset) ){
          fprintf(stderr,"\n*** can't open dataset file %s\n",PC_dsname[kk]) ;
          exit(1) ;
       }
@@ -198,11 +221,16 @@ void PC_read_opts( int argc , char * argv[] )
    nz = DSET_NZ(PC_dset[0]) ;
    nxyz = nx * ny * nz ;      /* Total number of voxels per brick */
 
+   /* 15 Sep 1999: check if mask is right size */
+
+   if( PC_mask_nvox > 0 && PC_mask_nvox != nxyz )
+      PC_syntax("mask and input dataset bricks don't match in size!") ;
+
    PC_brickdata = (float **) malloc( sizeof(float *) * PC_brnum ) ;
 
    nn = 0 ; /* current brick index */
 
-   if( ! PC_be_quiet ){ printf("--- read dataset bricks"); fflush(stdout); }
+   if( !PC_be_quiet ){ printf("--- read dataset bricks"); fflush(stdout); }
 
    for( kk=0 ; kk < PC_dsnum ; kk++ ){
 
@@ -220,7 +248,7 @@ void PC_read_opts( int argc , char * argv[] )
          fprintf(stderr,"\n*** Can't load dataset %s BRIK from disk!\n",PC_dsname[kk]) ;
          exit(1) ;
       }
-      if( ! PC_be_quiet ){ printf("+"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("+"); fflush(stdout); }
 
       /* copy brick data into float storage */
 
@@ -237,7 +265,13 @@ void PC_read_opts( int argc , char * argv[] )
 
          DSET_unload_one( PC_dset[kk] , mm ) ;
 
-         if( ! PC_be_quiet ){ printf("."); fflush(stdout); }
+         if( PC_mask != NULL ){             /* 15 Sep 1999 */
+            int kk ;
+            for( kk=0 ; kk < nxyz ; kk++ )
+               if( !PC_mask[kk] ) PC_brickdata[nn][kk] = 0.0 ;
+         }
+
+         if( !PC_be_quiet ){ printf("."); fflush(stdout); }
       }
 
       if( kk == 0 ){
@@ -248,7 +282,7 @@ void PC_read_opts( int argc , char * argv[] )
       }
 
    }
-   if( ! PC_be_quiet ){ printf("\n"); fflush(stdout); }
+   if( !PC_be_quiet ){ printf("\n"); fflush(stdout); }
 
    free( PC_dsname ) ; PC_dsname = NULL ;
    return ;
@@ -293,6 +327,9 @@ void PC_syntax(char * msg)
     "  -verbose      = Print progress reports during the computations\n"
     "  -float        = Save eigen-bricks as floats\n"
     "                    [default = shorts, scaled so that |max|=10000]\n"
+    "  -mask mset    = Use the 0 sub-brick of dataset 'mset' as a mask\n"
+    "                    to indicate which voxels to analyze\n"
+    "                    [default = use all voxels]\n"
    ) ;
 
    exit(0) ;
@@ -368,13 +405,13 @@ int main( int argc , char * argv[] )
    if( PC_vmean ){
       float * vxmean = (float *) malloc( sizeof(float) * nn ) ;  /* voxel means */
 
-      if( ! PC_be_quiet ){ printf("--- remove timeseries means"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("--- remove timeseries means"); fflush(stdout); }
 
       for( kk=0 ; kk < nn ; kk++ ) vxmean[kk] = 0.0 ;
 
       for( jj=0 ; jj < mm ; jj++ ){
          for( kk=0 ; kk < nn ; kk++ ) vxmean[kk] += XX(kk,jj) ;
-         if( ! PC_be_quiet ){ printf("+"); fflush(stdout); }
+         if( !PC_be_quiet ){ printf("+"); fflush(stdout); }
       }
 
       sum = 1.0 / mm ;
@@ -382,24 +419,35 @@ int main( int argc , char * argv[] )
 
       for( jj=0 ; jj < mm ; jj++ ){
          for( kk=0 ; kk < nn ; kk++ ) XX(kk,jj) -= vxmean[kk] ;
-         if( ! PC_be_quiet ){ printf("-"); fflush(stdout); }
+         if( !PC_be_quiet ){ printf("-"); fflush(stdout); }
       }
 
       free(vxmean) ;
-      if( ! PC_be_quiet ){ printf("\n"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("\n"); fflush(stdout); }
 
    } else if( PC_dmean ){
-      if( ! PC_be_quiet ){ printf("--- remove brick means"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("--- remove brick means"); fflush(stdout); }
 
-      for( jj=0 ; jj < mm ; jj++ ){
-         sum = 0.0 ;
-         for( kk=0 ; kk < nn ; kk++ ) sum += XX(kk,jj) ;
-         if( ! PC_be_quiet ){ printf("+"); fflush(stdout); }
-         sum /= nn ;
-         for( kk=0 ; kk < nn ; kk++ ) XX(kk,jj) -= sum ;
-         if( ! PC_be_quiet ){ printf("-"); fflush(stdout); }
+      if( PC_mask == NULL ){
+         for( jj=0 ; jj < mm ; jj++ ){
+            sum = 0.0 ;
+            for( kk=0 ; kk < nn ; kk++ ) sum += XX(kk,jj) ;
+            if( !PC_be_quiet ){ printf("+"); fflush(stdout); }
+            sum /= nn ;
+            for( kk=0 ; kk < nn ; kk++ ) XX(kk,jj) -= sum ;
+            if( !PC_be_quiet ){ printf("-"); fflush(stdout); }
+         }
+      } else {                           /* 15 Sep 1999 */
+         for( jj=0 ; jj < mm ; jj++ ){
+            sum = 0.0 ;
+            for( kk=0 ; kk < nn ; kk++ ) if( PC_mask[kk] ) sum += XX(kk,jj) ;
+            if( !PC_be_quiet ){ printf("+"); fflush(stdout); }
+            sum /= PC_mask_hits ;
+            for( kk=0 ; kk < nn ; kk++ ) if( PC_mask[kk] ) XX(kk,jj) -= sum ;
+            if( !PC_be_quiet ){ printf("-"); fflush(stdout); }
+         }
       }
-      if( ! PC_be_quiet ){ printf("\n"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("\n"); fflush(stdout); }
    }
 
    /*-- 07 July 1999: vnorm --*/
@@ -407,13 +455,13 @@ int main( int argc , char * argv[] )
    if( PC_vnorm ){
       float * vxnorm = (float *) malloc( sizeof(float) * nn ) ;  /* voxel norms */
 
-      if( ! PC_be_quiet ){ printf("--- normalize timeseries"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("--- normalize timeseries"); fflush(stdout); }
 
       for( kk=0 ; kk < nn ; kk++ ) vxnorm[kk] = 0.0 ;
 
       for( jj=0 ; jj < mm ; jj++ ){
          for( kk=0 ; kk < nn ; kk++ ) vxnorm[kk] += XX(kk,jj) * XX(kk,jj) ;
-         if( ! PC_be_quiet ){ printf("+"); fflush(stdout); }
+         if( !PC_be_quiet ){ printf("+"); fflush(stdout); }
       }
 
       for( kk=0 ; kk < nn ; kk++ )
@@ -421,17 +469,17 @@ int main( int argc , char * argv[] )
 
       for( jj=0 ; jj < mm ; jj++ ){
          for( kk=0 ; kk < nn ; kk++ ) XX(kk,jj) *= vxnorm[kk] ;
-         if( ! PC_be_quiet ){ printf("*"); fflush(stdout); }
+         if( !PC_be_quiet ){ printf("*"); fflush(stdout); }
       }
 
       free(vxnorm) ;
-      if( ! PC_be_quiet ){ printf("\n"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("\n"); fflush(stdout); }
    }
 
    /*-- load covariance matrix
         (very short code that takes a long time to run!) --*/
 
-   if( ! PC_be_quiet ){ printf("--- compute covariance matrix"); fflush(stdout); }
+   if( !PC_be_quiet ){ printf("--- compute covariance matrix"); fflush(stdout); }
 
    idel = 1 ;                           /* ii goes forward */
    for( jj=0 ; jj < mm ; jj++ ){
@@ -441,15 +489,20 @@ int main( int argc , char * argv[] )
 
       for( ii=ifirst ; ii != ilast ; ii += idel ){
          dsum = 0.0 ;
-         for( kk=0 ; kk < nn ; kk++ ) dsum += XX(kk,ii) * XX(kk,jj)   ;
+         if( PC_mask == NULL ){
+            for( kk=0 ; kk < nn ; kk++ ) dsum += XX(kk,ii) * XX(kk,jj)   ;
+         } else {
+            for( kk=0 ; kk < nn ; kk++ )
+                       if( PC_mask[kk] ) dsum += XX(kk,ii) * XX(kk,jj)   ;
+         }
          AA(ii,jj) = AA(jj,ii) = dsum ;
       }
 
-      if( ! PC_be_quiet ){ printf("+"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("+"); fflush(stdout); }
 
       idel = -idel ;                    /* reverse direction of ii */
    }
-   if( ! PC_be_quiet ){ printf("\n"); fflush(stdout); }
+   if( !PC_be_quiet ){ printf("\n"); fflush(stdout); }
 
    /*-- check diagonal for OK-ness --**/
 
@@ -465,12 +518,12 @@ int main( int argc , char * argv[] )
    }
    if( ii > 0 ){ printf("*** program exiting right here and now!\n"); exit(1); }
 
-   if( ! PC_be_quiet ){ printf("--- covariance trace = %g\n",atrace); fflush(stdout); }
+   if( !PC_be_quiet ){ printf("--- covariance trace = %g\n",atrace); fflush(stdout); }
 
    /*-- normalize, if desired --*/
 
    if( PC_normalize ){
-      if( ! PC_be_quiet ){ printf("--- normalizing covariance"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("--- normalizing covariance"); fflush(stdout); }
 
       dsdev = (double *) malloc( sizeof(double) * mm ) ; /* brick stdev */
 
@@ -481,10 +534,10 @@ int main( int argc , char * argv[] )
 
       atrace = mm ;
 
-      if( ! PC_be_quiet ){ printf("\n"); fflush(stdout); }
+      if( !PC_be_quiet ){ printf("\n"); fflush(stdout); }
    }
 
-   if( ! PC_be_quiet ){ printf("--- compute eigensolution\n"); fflush(stdout); }
+   if( !PC_be_quiet ){ printf("--- compute eigensolution\n"); fflush(stdout); }
 
 #ifdef USE_LAPACK
    (void) dsyevx_( "V"     , /* eigenvalues and vectors */
@@ -520,7 +573,7 @@ int main( int argc , char * argv[] )
    zout = aa ;                        /* eigenvalues go into wout */
 #endif
 
-   if( ! PC_be_quiet ) printf("\n") ;
+   if( !PC_be_quiet ) printf("\n") ;
 
    sum = 0.0 ;
 
@@ -557,7 +610,7 @@ int main( int argc , char * argv[] )
               "\n*** Output dataset %s already exists--will be destroyed!\n",
               DSET_HEADNAME(new_dset) ) ;
 
-   } else if( ! PC_be_quiet ){
+   } else if( !PC_be_quiet ){
       printf("--- output dataset %s" , DSET_HEADNAME(new_dset) ) ;
       fflush(stdout) ;
    }
@@ -607,13 +660,13 @@ int main( int argc , char * argv[] )
       sprintf(vname,"var=%6.3f%%" , 100.0*perc[jj]+0.499 ) ;
       EDIT_BRICK_LABEL( new_dset , jj , vname ) ;
 
-      if( ! PC_be_quiet ){ printf(".") ; fflush(stdout); }
+      if( !PC_be_quiet ){ printf(".") ; fflush(stdout); }
    }
    free(fout) ;
 
    DSET_write(new_dset) ;
    DSET_delete(new_dset) ;
-   if( ! PC_be_quiet ){ printf("!\n") ; fflush(stdout); }
+   if( !PC_be_quiet ){ printf("!\n") ; fflush(stdout); }
 
    /*-- write eigenvectors also --*/
 

@@ -89,7 +89,7 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 
 /*-----------------------------------------------------------------------*/
 
-static char * commandline = NULL ;
+static char * commandline = NULL ;  /* for History */
 
 int main( int argc , char * argv[] )
 {
@@ -98,8 +98,6 @@ int main( int argc , char * argv[] )
    Boolean        all_good ;
 
    /* read the user data from the command line, if any */
-
-   commandline = tross_commandline( "to3d" , argc , argv ) ;
 
    wset.topshell = NULL ;  /* flag that X has yet to start */
 
@@ -2596,6 +2594,34 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
    }
 
    First_Image_Arg = nopt ;
+
+   /* 14 Sep 1999: manufacture a command line for History,
+                   but with (possibly) fewer image inputs */
+
+   { int nim=Argc-First_Image_Arg , ii ;
+     char ** qargv ;
+
+     if( nim < 9 ){     /* 8 or fewer images ==> copy them all */
+
+        qargv = Argv ;
+
+     } else {           /* im0 im1 im2 ... im<last-1> im<last> */
+
+        qargv = (char **) malloc( sizeof(char *) * Argc ) ;   /* copy all */
+        for( ii=0 ; ii < Argc ; ii++ ) qargv[ii] = Argv[ii] ; /* argv's   */
+
+        qargv[First_Image_Arg+3] = "..." ;   /* notice of omission */
+
+        for( ii=First_Image_Arg+4 ; ii < Argc-2 ; ii++ ) /* these will */
+           qargv[ii] = NULL ;                            /* be omitted */
+     }
+
+     commandline = tross_commandline( "to3d" , Argc , qargv ) ;
+
+     if( qargv != Argv ) free(qargv) ;
+   }
+
+   return ;
 }
 
 /*--------------------------------------------------------------------*/

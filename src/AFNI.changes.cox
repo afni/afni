@@ -1650,5 +1650,13 @@
 
 14 Sep 1999:
  * Added complexscan function to thd_floatscan.c.
- * to3d.c now scans float and complex input images for errors.
  * thd_loaddblk.c now scans complex inputs for errors, if requested.
+ * to3d.c now scans float and complex input images for errors.
+ * to3d.c now clips out all but a few of the input image files on
+     the command line for the History Note.
+
+15 Sep 1999:
+ * Added -slices option to 3dmaskave.c.
+ * Added default values for i,j,k to 3dcalc.c.
+ * Added thd_makemask.c.
+ * Added -mask option to 3dpc.c.

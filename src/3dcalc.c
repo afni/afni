@@ -471,15 +471,21 @@ void CALC_Syntax(void)
     " information, but simply do not use that dataset's letter in -expr.\n"
 
     "\n"
-    "COORDINATES:\n"
+    "COORDINATES and DEFAULT VALUES:\n"
     " If you don't use '-x', '-y', or '-z' for a dataset, then the voxel\n"
     " spatial coordinates will be loaded into those variables.  For example,\n"
     " the expression 'a*step(x*x+y*y+z*z-100)' will zero out all the voxels\n"
     " inside a 10 mm radius of the origin.\n"
     "\n"
+    " Similarly, the '-i', '-j', and '-k' values, if not otherwise used,\n"
+    " will be loaded with the voxel index coordinates.\n"
+    "\n"
+    " Otherwise undefined letters will be set to zero.  In the future,\n"
+    " new default values for other letters may be added.\n"
+    "\n"
     "PROBLEMS:\n"
     " ** Complex-valued datasets cannot be processed.\n"
-    " ** This program is not very efficient (but is faster than before).\n"
+    " ** This program is not very efficient (but is faster than it used to be).\n"
     "\n"
     "EXPRESSIONS:\n"
     " Arithmetic expressions are allowed, using + - * / ** and parentheses.\n"
@@ -538,7 +544,7 @@ void CALC_Syntax(void)
     "  The arithmetic parser and evaluator is written in Fortran-77 and\n"
     "  is derived from a program written long ago by RW Cox to facilitate\n"
     "  compiling on an array processor hooked up to a VAX.  It's a mess,\n"
-    "  but it works.)\n"
+    "  but it works - somewhat slowly.)\n"
    ) ;
    exit(0) ;
 }
@@ -623,7 +629,8 @@ int main( int argc , char * argv[] )
 
    for (ids=0; ids<26; ids++)
       atoz[ids] = (double *) malloc(sizeof(double) * VSIZE ) ;
-   for( ids=0 ; ids < 26 ; ids++ )
+
+   for( ids=0 ; ids < 26 ; ids++ )  /* initialize to all zeros */
       for (ii=0; ii<VSIZE; ii++)
 	 atoz[ids][ii] = 0.0 ;
 
@@ -718,9 +725,9 @@ int main( int argc , char * argv[] )
 	       }
              }
 
-           /* the case of a voxel (x,y,z) coordinate */
+           /* the case of a voxel (x,y,z) or (i,j,k) coordinate */
 
-           else if( ids >= 23 ){
+           else {
 
               switch( ids ){
                  case 23:     /* x */
@@ -736,6 +743,21 @@ int main( int argc , char * argv[] )
                  case 25:     /* z */
                     for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = daxes->zzorg + (jj/nxy) * daxes->zzdel ;
+                 break ;
+
+                 case 8:     /* i */
+                    for( jj=jbot ; jj < jtop ; jj++ )
+                       atoz[ids][jj-ii] = (jj%nx) ;
+                 break ;
+
+                 case 9:     /* j */
+                    for( jj=jbot ; jj < jtop ; jj++ )
+                       atoz[ids][jj-ii] = ((jj%nxy)/nx) ;
+                 break ;
+
+                 case 10:    /* k */
+                    for( jj=jbot ; jj < jtop ; jj++ )
+                       atoz[ids][jj-ii] = (jj/nxy) ;
                  break ;
                }
 	     } /* end of choice over data type switch */

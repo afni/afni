@@ -239,9 +239,10 @@ static void NOTES_make_widgets(void)
 
    if( max_tlines < 1 ){
       char * cc = my_getenv("AFNI_NOTES_DLINES") ;
-      if( cc != NULL )
-         max_tlines = strtol( cc , NULL , 10 ) ;
-      if( max_tlines < 1 ) max_tlines = THEIGHT ;
+      if( cc != NULL ) max_tlines = strtol( cc , NULL , 10 ) ;
+
+           if( max_tlines <  1 ) max_tlines = THEIGHT ;
+      else if( max_tlines > 99 ) max_tlines = 99 ;     /* 15 Sep 1999 */
    }
 
    /*** top level shell for window manager ***/

@@ -28,9 +28,12 @@ char * tross_commandline( char * pname , int argc , char ** argv )
    ii = strlen(pname) ; ch = malloc(ii+4) ; strcpy(ch,pname) ;
 
    for( ii=1 ; ii < argc ; ii++ ){
+      if( argv[ii] == NULL || argv[ii][0] == '\0' ) continue ; /* skip */
+
       ll = strlen(argv[ii]) ;
-      ch = realloc( ch , strlen(ch)+ll+4 ) ;
-      if( !THD_filename_ok(argv[ii]) ){
+      ch = realloc( ch , strlen(ch)+ll+4 ) ;  /* expand output array */
+
+      if( !THD_filename_ok(argv[ii]) ){       /* bad characters? */
          int jj ; char * aa = malloc(ll+1) ;
 
          strcpy(aa,argv[ii]) ;        /* edit out bad characters */
@@ -38,8 +41,9 @@ char * tross_commandline( char * pname , int argc , char ** argv )
             if( iscntrl(aa[jj]) || isspace(aa[jj]) || aa[jj] < 0 ) aa[jj] = ' ' ;
 
          strcat(ch," '") ; strcat(ch,aa) ; strcat(ch,"'") ; free(aa) ;
+
       } else {
-         strcat(ch," ")  ; strcat(ch,argv[ii]) ;
+         strcat(ch," ")  ; strcat(ch,argv[ii]) ;   /* just copy it */
       }
    }
 

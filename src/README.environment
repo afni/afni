@@ -438,9 +438,9 @@ huge percent changes.
 Variable: AFNI_NOTES_DLINES
 ---------------------------
 This sets the upper limit on the number of lines displayed in the
-Notes plugin, for each note.  If not present, the limit is 4 lines
-shown per note at once -- to see a longer note, you'll have to
-use the scrollbars.
+Notes plugin, for each note.  If not present, the limit is 9 lines
+shown per note at once.  To see a note longer than this limit, you'll
+have to use the vertical scrollbar.
 
 -----------------------
 Variable: AFNI_FIM_MASK

@@ -2256,6 +2256,8 @@ extern FD_brick ** THD_setup_bricks( THD_3dim_dataset * ) ;
 extern int thd_floatscan  ( int , float *   ) ; /* 30 Jul 1999 */
 extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 
+extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
+
 /*------------------------------------------------------------------*/
 /*-- October 1998: routines for 3D volume rotation and alignment. --*/
 

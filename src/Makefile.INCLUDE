@@ -731,7 +731,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_dsetinslist.o thd_info.o thd_purgedblk.o thd_http.o    \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
            thd_trusthost.o thd_rot3d.o thd_mastery.o thd_intlist.o  \
-           thd_checkidc.o thd_floatscan.o thd_notes.o
+           thd_checkidc.o thd_floatscan.o thd_notes.o thd_makemask.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
