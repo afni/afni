@@ -681,7 +681,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes_w (SUMA_SurfaceObject *SO,
       if (N_nelv) {
          for (ii=0; ii < N_nelv; ++ii) {
             SUMA_LH("Send this nel to AFNI.");
-            SUMA_ShowNel(nelv[ii]);
+            /* SUMA_ShowNel(nelv[ii]);*/
             if (NI_write_element( SUMAg_CF->ns , nelv[ii] , NI_BINARY_MODE ) < 0) {
                SUMA_SLP_Err("NI_write_element failed.");
             }
