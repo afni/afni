@@ -10906,6 +10906,15 @@ static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
      NIFTI_INTENT_PVAL       = "p-value"
 *****************************************************************************/
 
+static char *inam[]={ NULL , NULL ,
+                       "CORREL"   , "TTEST"   , "FTEST"      , "ZSCORE"     ,
+                       "CHISQ"    , "BETA"    , "BINOM"      , "GAMMA"      ,
+                       "POISSON"  , "NORMAL"  , "FTEST_NONC" , "CHISQ_NONC" ,
+                       "LOGISTIC" , "LAPLACE" , "UNIFORM"    , "TTEST_NONC" ,
+                       "WEIBULL"  , "CHI"     , "INVGAUSS"   , "EXTVAL"     ,
+                       "PVAL"     ,
+                     NULL } ;
+
 #include <ctype.h>
 #include <string.h>
 /*--------------------------------------------------------------------------*/
@@ -10913,18 +10922,12 @@ static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
     Returns -1 if not found.
 ----------------------------------------------------------------------------*/
 
+
+
 int nifti_intent_code( char *name )
 {
    char *unam , *upt ;
    int ii ;
-   static char *inam[]={ NULL , NULL ,
-                         "CORREL"   , "TTEST"   , "FTEST"      , "ZSCORE"     ,
-                         "CHISQ"    , "BETA"    , "BINOM"      , "GAMMA"      ,
-                         "POISSON"  , "NORMAL"  , "FTEST_NONC" , "CHISQ_NONC" ,
-                         "LOGISTIC" , "LAPLACE" , "UNIFORM"    , "TTEST_NONC" ,
-                         "WEIBULL"  , "CHI"     , "INVGAUSS"   , "EXTVAL"     ,
-                         "PVAL"     ,
-                       NULL } ;
 
    if( name == NULL || *name == '\0' ) return -1 ;
 
@@ -11013,7 +11016,16 @@ int main( int argc , char *argv[] )
    double vbot,vtop,vdel ;
    int code , iarg=1 , doq=0 , dod=0 ;
 
-   if( argc < 3 ){ printf("Usage: nifti_stats [-q|-d] val code [p1 p2 p3]\n"); exit(0); }
+   if( argc < 3 ){
+    int ii ;
+    printf("Usage: nifti_stats [-q|-d] val CODE [p1 p2 p3]\n") ;
+    printf(" val can be a single number or in the form bot:top:step\n") ;
+    printf(" Allowable CODEs:\n") ;
+    for( ii=NIFTI_FIRST_STATCODE ; ii <= NIFTI_LAST_STATCODE ; ii++ ){
+     printf("  %-10s",inam[ii]); if((ii-NIFTI_FIRST_STATCODE)%6==5)printf("\n");
+    }
+    printf("\n"); exit(0);
+   }
 
         if( strcmp(argv[iarg],"-q") == 0 ){ doq = 1 ; iarg++ ; }
    else if( strcmp(argv[iarg],"-d") == 0 ){ dod = 1 ; iarg++ ; }
