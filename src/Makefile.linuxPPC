@@ -3,7 +3,7 @@
 # You may need to change the CPU type for correct optimization
 # on your system.
 
-CPU    = 604		# types are 601, 603, 604, 604e, 750 (G3)
+CPU    = 604e	# types are 601, 603, 604, 604e, 750 (G3), 7400 (G4)
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -Wpointer-arith -DUSE_TRACING
@@ -41,7 +41,7 @@ LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking - assumes you have Motif or LessTif *.so libraries
 
-LLIBS  = -lmri -lICE -lSM -lXm -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+LLIBS  = -lmri -lICE -lSM -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
 
 # for static linking, as far as possible
 

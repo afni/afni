@@ -89,7 +89,6 @@
 #include "simplex.c"
 #include "NLfit.c"
 
-
 typedef struct NL_options
 { 
   char * bucket_filename;      /* file name for bucket dataset */

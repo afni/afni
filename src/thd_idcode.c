@@ -16,7 +16,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-static char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+/*-- 23 May 2000: modified to use upper and lower case --*/
+
+static char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+#define NALPH 52
 
 MCW_idcode MCW_new_idcode(void)
 {
@@ -25,23 +28,45 @@ MCW_idcode MCW_new_idcode(void)
    struct timezone tz ;
    time_t tnow ;
    long   tt ;
-   int    nn , tq , iq , ic ;
+   int    nn , tq , ic ;
    MCW_idcode newid ;
 
-   nn = uname( &ubuf ) ;
-   if( nn == -1 ) strcpy( ubuf.nodename , "A" ) ;
+   static int  nbuf=0   , iq ;
+   static char *buf=NULL ;
+
+   /* first time in: initialize buf string */
+
+   if( nbuf == 0 ){
+      nn = uname( &ubuf ) ;
+      if( nn == -1 ){                     /* should never transpire */
+         strcpy( ubuf.nodename , "E" ) ;
+         strcpy( ubuf.sysname  , "L" ) ;
+         strcpy( ubuf.release  , "V" ) ;
+         strcpy( ubuf.version  , "I" ) ;
+         strcpy( ubuf.machine  , "S" ) ;
+      }
+      nbuf = strlen(ubuf.nodename)+strlen(ubuf.sysname)
+            +strlen(ubuf.release )+strlen(ubuf.version)+strlen(ubuf.machine) ;
+
+      buf = malloc(nbuf+1) ;        /* buf = amalgam of system ID stuff */
+      strcpy(buf,ubuf.nodename) ;
+      strcat(buf,ubuf.sysname ) ;
+      strcat(buf,ubuf.release ) ;
+      strcat(buf,ubuf.version ) ;
+      strcat(buf,ubuf.machine ) ;
+
+      iq = lrand48() % nbuf ;  /* random starting point in buf */
+   }
 
    nn = gettimeofday( &tv , NULL ) ;
-   if( nn == -1 ){ tv.tv_sec = lrand48()%9999999 ; tv.tv_usec = lrand48()%999999 ; }
+   if( nn == -1 ){ tv.tv_sec = lrand48()%9999999; tv.tv_usec = lrand48()%999999; }
    tt = tv.tv_sec + 13*tv.tv_usec + lrand48() % 9999999 ;
-
-   nn = strlen( ubuf.nodename ) ; iq = 0 ;
 
    strcpy(newid.str,MCW_IDPREFIX) ; ic = strlen(newid.str) ;
 
    for( ; ic < MCW_IDSIZE-1 ; ic++ ){
-     tq  = (tt % 26) + (int) ubuf.nodename[iq] ; tq  = tq % 26 ;
-     iq  = (iq+1) % nn ; tt /= 5 ;
+     tq  = (tt % NALPH) + (int) buf[iq] ; tq  = tq % NALPH ;
+     iq  = (iq+1) % nbuf ; tt /= 5 ;
      newid.str[ic] = alphabet[tq] ;
    }
    newid.str[ic] = '\0' ;

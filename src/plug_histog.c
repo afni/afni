@@ -60,7 +60,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_hint( plint , "Histogram of Dataset Brick" ) ;
 
-   PLUTO_set_sequence( plint , "A:afniinfo:dset" ) ;
+   PLUTO_set_sequence( plint , "A:afniinfo:dsethistog" ) ;
 
    /*-- first line of input --*/
 

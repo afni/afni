@@ -27,7 +27,7 @@
    is 0 if all is good.
 -------------------------------------------------------------------------*/
 
-int bi7func( double a , double b , double xc , double * bi7 )
+static int bi7func( double a , double b , double xc , double * bi7 )
 {
 #define NL 20  /* must be between 2 and 20 - see cs_laguerre.c */
 
@@ -36,7 +36,9 @@ int bi7func( double a , double b , double xc , double * bi7 )
    register int ii ;
 
    if( a  <= 0.0 || b  <= 0.0 ||
-       xc <= 0.0 || xc >= 1.0 || bi7 == NULL ) return -1 ;
+       xc <= 0.0 || xc >= 1.0 || bi7 == NULL ) return -1 ;  /* sanity check */
+
+   /* initialize Laguerre integration table */
 
    if( yy == NULL ) get_laguerre_table( NL , &yy , &ww ) ;
 
@@ -66,7 +68,9 @@ int bi7func( double a , double b , double xc , double * bi7 )
    return 0 ;
 }
 
-/*-----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------
+   Set the range of values to search for beta distribution fit
+------------------------------------------------------------------------*/
 
 #define LL   0.2
 #define UL   10000.0
@@ -77,7 +81,7 @@ static double BL   = 5.9 ;
 static double BU   = 999.9 ;
 static int    NRAN = 6666 ;
 
-void betarange( double al,double au , double bl , double bu , int nran )
+static void betarange( double al,double au , double bl , double bu , int nran )
 {
    if( al > 0.0 ) AL = al ;
    if( au > AL  ) AU = au ;
@@ -86,13 +90,22 @@ void betarange( double al,double au , double bl , double bu , int nran )
    if( nran > 1 ) NRAN = nran ;
 }
 
-int betasolve( double e0, double e1, double xc, double * ap, double * bp )
+/*--------------------------------------------------------------------
+   Solve the two equations
+     I10(a,b)/I00(a,b) = e0
+     I01(a,b)/I00(a,b) = e1
+   for (a,b), using 2D Newton's method.
+----------------------------------------------------------------------*/
+
+static int betasolve( double e0, double e1, double xc, double * ap, double * bp )
 {
    double bi7[7] , aa,bb , da,db , m11,m12,m21,m22 , r1,r2 , dd,ee ;
    int nite=0 , ii,jj ;
 
    if( ap == NULL || bp == NULL ||
        xc <= 0.0  || xc >= 1.0  || e0 >= 0.0 || e1 >= 0.0 ) return -1 ;
+
+   /* randomly search for a good starting point */
 
    dd = 1.e+20 ; aa = bb = 0.0 ;
    for( jj=0 ; jj < NRAN ; jj++ ){
@@ -101,10 +114,12 @@ int betasolve( double e0, double e1, double xc, double * ap, double * bp )
       ii = bi7func( da , db , xc , bi7 ) ; if( ii ) continue ;
       r1 = bi7[1] - e0 ; r2 = bi7[2] - e1 ;
       ee = fabs(r1/e0) + fabs(r2/e1) ;
-      if( ee < dd ){ aa=da ; bb=db ; dd=ee ; }
+      if( ee < dd ){ aa=da ; bb=db ; dd=ee ; /*if(ee<0.05)break;*/ }
    }
    if( aa == 0.0 || bb == 0.0 ) return -1 ;
+#if 0
    fprintf(stderr,"%2d: aa=%15.10g  bb=%15.10g  ee=%g\n",nite,aa,bb,ee) ;
+#endif
 
    do{
       ii = bi7func( aa , bb , xc , bi7 ) ;
@@ -118,54 +133,402 @@ int betasolve( double e0, double e1, double xc, double * ap, double * bp )
       db = (-m21*r1 + m11*r2 ) / dd ;
       nite++ ;
       aa -= da ; bb -=db ;
+#if 0
       if( aa < LL ) aa = LL ; else if( aa > UL ) aa = UL ;
       if( bb < LL ) bb = LL ; else if( bb > UL ) bb = UL ;
-      fprintf(stderr,"%2d: aa=%15.10g  bb=%15.10g  ee=%g\n",nite,aa,bb,ee) ;
 
       if( aa == LL || bb == LL || aa == UL || bb == UL ) return -1 ;
-   } while( fabs(da)+fabs(db) > 0.02 ) ;
+#else
+      if( aa < AL ) aa = AL ; else if( aa > AU ) aa = AU ;
+      if( bb < BL ) bb = BL ; else if( bb > BU ) bb = BU ;
+#endif
+
+   } while( nite < 99 && fabs(da)+fabs(db) > 0.02 ) ;
 
    *ap = aa ; *bp = bb ; return 0 ;
 }
 
-/*-----------------------------------------------------------------------*/
+/*--------------------------------------------------------------------*/
 
-void betafill( double a , double b , int n , float * x )
+typedef struct {
+  int mcount , ibot ;
+  float * bval , * cval ;
+} BFIT_data ;
+
+typedef struct {
+  int mgood , itop ;
+  float a,b,xcut,chisq,df_chisq,q_chisq,eps ;
+} BFIT_result ;
+
+void BFIT_free_data( BFIT_data * bfd )
 {
-   int ii ;
-   for( ii=0 ; ii < n ; ii++ )
-      x[ii] = beta_p2t( drand48() , a , b ) ;
-   return ;
+   if( bfd != NULL ){
+      if( bfd->bval != NULL ) free(bfd->bval) ;
+      if( bfd->cval != NULL ) free(bfd->cval) ;
+      free(bfd) ;
+   }
 }
 
-/*-----------------------------------------------------------------------*/
+void BFIT_free_result( BFIT_result * bfr ){ if( bfr != NULL ) free(bfr); }
 
-int main( int argc , char * argv[] )
+/*--------------------------------------------------------------------*/
+
+BFIT_data * BFIT_bootstrap_sample( BFIT_data * bfd )
 {
-   double aa=0.5 , bb=31.0 , xc , e0,e1 , at,bt ;
-   int narg=1 , npt,n,ii ;
-   float * bv ;
+   BFIT_data * nfd ;
+   int ii , jj , mcount,ibot , nuse ;
 
-   srand48((long)time(NULL)) ;
+   if( bfd == NULL ) return NULL ;
+   mcount = bfd->mcount ;
+   ibot   = bfd->ibot   ;
+   nuse   = mcount - ibot ;
 
-   if( argc < 5 ){printf("Usage: betafit a b xc n\n"); exit(0); }
+   nfd = (BFIT_data *) malloc(sizeof(BFIT_data)) ;
 
-   at = strtod(argv[narg++],NULL) ;
-   bt = strtod(argv[narg++],NULL) ;
-   xc = strtod(argv[narg++],NULL) ;
-   npt = (int) strtod(argv[narg++],NULL) ;
-   bv = (float *)malloc(sizeof(float)*npt) ;
-   betafill( at,bt , npt,bv ) ;
-   e0=e1 = 0.0 ;
-   for( ii=n=0 ; ii < npt ; ii++ ){
-      if( bv[ii] < xc ){
-         e0 += log(bv[ii]) ; e1 += log(1.0-bv[ii]) ; n++ ;
+   nfd->mcount = mcount ;
+   nfd->ibot   = ibot ;
+   nfd->bval   = (float *) malloc( sizeof(float) * mcount ) ;
+   if( bfd->cval != NULL )
+      nfd->cval = (float *) malloc( sizeof(float) * mcount ) ;
+   else
+      nfd->cval = NULL ;
+
+   for( ii=0 ; ii < ibot ; ii++ ){
+      nfd->bval[ii] = 0.0 ;
+      if( nfd->cval != NULL ) nfd->cval[ii] = 0.0 ;
+   }
+
+   for( ii=ibot ; ii < mcount ; ii++ ){
+      jj = (lrand48() % nuse) + ibot ;
+      nfd->bval[ii] = bfd->bval[jj] ;
+      if( nfd->cval != NULL )
+         nfd->cval[ii] = bfd->cval[jj] ;
+   }
+
+   if( nfd->cval != NULL )
+      qsort_floatfloat( mcount , nfd->bval , nfd->cval ) ;
+   else
+      qsort_float( mcount , nfd->bval ) ;
+
+   return nfd ;
+}
+
+/*--------------------------------------------------------------------*/
+
+BFIT_data * BFIT_prepare_dataset(
+                THD_3dim_dataset * input_dset , int ival , int sqr ,
+                THD_3dim_dataset * mask_dset  , int miv  ,
+                float mask_bot  , float mask_top            )
+{
+   int mcount , ii,jj , nvox,ibot ;
+   byte * mmm ;
+   BFIT_data * bfd ;
+   float * bval , * cval ;
+
+   /* check inputs */
+
+   if( !ISVALID_DSET(input_dset)     ||
+       ival < 0                      ||
+       ival >= DSET_NVALS(input_dset)  ) return NULL ;
+
+   nvox = DSET_NVOX(input_dset) ;
+
+   if( ISVALID_DSET(mask_dset)          &&
+       (miv < 0                      ||
+        miv >= DSET_NVALS(mask_dset) ||
+        DSET_NVOX(mask_dset) != nvox   )   ) return NULL ;
+
+   DSET_load(input_dset) ;
+   if( DSET_ARRAY(input_dset,ival) == NULL ) return NULL ;
+
+   /* inputs are OK */
+
+   /*-- build a byte mask array --*/
+
+   if( mask_dset == NULL ){
+      mmm = (byte *) malloc( sizeof(byte) * nvox ) ;
+      memset( mmm , 1, nvox ) ; mcount = nvox ;
+   } else {
+
+      mmm = THD_makemask( mask_dset , miv , mask_bot , mask_top ) ;
+      mcount = THD_countmask( nvox , mmm ) ;
+
+      if( !EQUIV_DSETS(mask_dset,input_dset) ) DSET_unload(mask_dset) ;
+      if( mcount < 999 ){
+         free(mmm) ;
+         fprintf(stderr,"*** BFIT_prepare_dataset:\n"
+                        "***   only %d voxels survive the masking!\n",
+                 mcount ) ;
+         return NULL ;
       }
    }
-   e0 /= n ; e1 /= n ;
-   fprintf(stderr,"%d points below cutoff; e0=%g  e1=%g\n",n,e0,e1) ;
 
-   betarange( 0.2*at , 5.0*at , 0.2*bt , 5.0*bt , 66666 ) ;
+   /*-- load values into bval --*/
 
-   betasolve( e0,e1,xc , &aa,&bb ); exit(0) ;
+   bval = (float *) malloc( sizeof(float) * mcount ) ;
+
+   switch( DSET_BRICK_TYPE(input_dset,ival) ){
+
+         case MRI_short:{
+            short * bar = (short *) DSET_ARRAY(input_dset,ival) ;
+            float mfac = DSET_BRICK_FACTOR(input_dset,ival) ;
+            if( mfac == 0.0 ) mfac = 1.0 ;
+            for( ii=jj=0 ; ii < nvox ; ii++ )
+               if( mmm[ii] ) bval[jj++] = mfac*bar[ii] ;
+         }
+         break ;
+
+         case MRI_byte:{
+            byte * bar = (byte *) DSET_ARRAY(input_dset,ival) ;
+            float mfac = DSET_BRICK_FACTOR(input_dset,ival) ;
+            if( mfac == 0.0 ) mfac = 1.0 ;
+            for( ii=jj=0 ; ii < nvox ; ii++ )
+               if( mmm[ii] ) bval[jj++] = mfac*bar[ii] ;
+         }
+         break ;
+
+         case MRI_float:{
+            float * bar = (float *) DSET_ARRAY(input_dset,ival) ;
+            float mfac = DSET_BRICK_FACTOR(input_dset,ival) ;
+            if( mfac == 0.0 ) mfac = 1.0 ;
+               for( ii=jj=0 ; ii < nvox ; ii++ )
+                  if( mmm[ii] ) bval[jj++] = mfac*bar[ii] ;
+         }
+         break ;
+   }
+
+   free(mmm) ; DSET_unload(input_dset) ;  /* don't need no more */
+
+   /* correlation coefficients must be squared prior to betafit, */
+   /* then R**2 values must be sorted.                           */
+
+   if( sqr ){
+      cval = (float *) malloc( sizeof(float) * mcount ) ;
+      for( ii=0 ; ii < mcount ; ii++ ){
+         cval[ii] = bval[ii] ;                /* save cc values */
+         bval[ii] = bval[ii]*bval[ii] ;
+      }
+      qsort_floatfloat( mcount , bval , cval ) ;
+   } else {                                   /* already squared */
+      cval = NULL ;
+      qsort_float( mcount , bval ) ;
+   }
+
+   /* check sorted values for legality */
+
+   if( bval[mcount-1] > 1.0 ){
+      free(bval) ; if(cval!=NULL) free(cval) ;
+      fprintf(stderr,"*** BFIT_prepare_dataset:\n"
+                     "***   R**2 values > 1.0 exist in dataset!\n") ;
+      return NULL ;
+   }
+   if( bval[0] < 0.0 ){
+      free(bval) ; if(cval!=NULL) free(cval) ;
+      fprintf(stderr,"*** BFIT_prepare_dataset:\n"
+                     "***   R**2 values < 0.0 exist in dataset!\n") ;
+      return NULL ;
+   }
+
+   /* find 1st bval > 0 [we don't use 0 values] */
+
+   for( ibot=0; ibot<mcount && bval[ibot]<=0.0; ibot++ ) ; /* nada */
+
+   /* make output structure */
+
+   bfd = (BFIT_data *) malloc( sizeof(BFIT_data) ) ;
+
+   bfd->mcount = mcount ;
+   bfd->ibot   = ibot ;
+   bfd->bval   = bval ;
+   bfd->cval   = cval ;
+
+   return bfd ;
+}
+
+/*--------------------------------------------------------------------*/
+
+BFIT_result * BFIT_compute( BFIT_data * bfd ,
+                            float pcut ,
+                            float abot , float atop ,
+                            float bbot , float btop ,
+                            int   nran , int   nbin  )
+{
+   BFIT_result * bfr ;
+
+   float eps,eps1 ;
+   float *bval , *cval ;
+   double e0,e1 , aa,bb,xc ;
+   double chq,ccc,cdf ;
+   int    ihqbot,ihqtop ;
+   int mcount,mgood , ii,jj , ibot,itop , sqr ;
+   float hbot,htop,dbin ;
+   int * hbin, * jbin ;
+   MRI_IMAGE * flim ;
+
+   /* mangle inputs */
+
+   if( bfd == NULL ) return NULL ;
+   if( pcut < 20.0 || pcut >  99.0 ) return NULL ;
+   if( abot < 0.1  || abot >= atop ) return NULL ;
+   if( bbot < 9.9  || bbot >= btop ) return NULL ;
+
+   if( nran < 100 ) nran = 100 ;
+   if( nbin < 100 ) nbin = 100 ;
+
+   mcount = bfd->mcount ;
+   ibot   = bfd->ibot ;
+   bval   = bfd->bval ;
+   cval   = bfd->cval ; sqr = (cval != NULL) ;
+
+   /* now set the cutoff value (xc) */
+
+   itop  = (int)( ibot + 0.01*pcut*(mcount-ibot) + 0.5 ) ;
+   mgood = itop - ibot ;
+   if( mgood < 999 ){
+      fprintf(stderr,"*** BFIT_compute: mgood=%d\n",mgood) ;
+      return NULL ;
+   }
+
+   xc = bval[itop-1] ;
+
+   /* compute the statistics of the values in (0,xc] */
+
+   e0 = e1 = 0.0 ;
+   for( ii=ibot ; ii < itop ; ii++ ){
+     e0 += log(bval[ii]) ; e1 += log(1.0-bval[ii]) ;
+   }
+   e0 /= mgood ; e1 /= mgood ;
+
+   /* and solve for the best fit parameters (aa,bb) */
+
+   betarange( abot , atop , bbot , btop ,  nran ) ;
+
+   ii = betasolve( e0,e1,xc , &aa,&bb );
+   if( ii < 0 ) return NULL ; /* error */
+
+   /*+++ At this point, could do some bootstrap to
+         estimate how good the estimates aa and bb are +++*/
+
+   /* estimate of outlier fraction */
+
+   eps1 = mgood / ( (mcount-ibot)*(1.0-beta_t2p(xc,aa,bb)) ) ;
+   eps  = 1.0-eps1 ;
+   if( eps1 > 1.0 ) eps1 = 1.0 ;
+   eps1 = (mcount-ibot) * eps1 ;
+
+   /*-- compute histogram and chi-square --*/
+
+#define NEW_HCQ
+
+#ifdef NEW_HCQ    /* use new method */
+
+   { float * xbin = (float *) malloc(sizeof(float)*nbin) ;
+
+     hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
+     jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
+
+     htop = 1.0 - beta_t2p(xc,aa,bb) ;   /* CDF at top */
+     dbin = htop / nbin ;                /* d(CDF) for each bin */
+     ii   = rint( eps1 * dbin ) ;
+     for( jj=0 ; jj < nbin ; jj++ ){
+        xbin[jj] = beta_p2t( 1.0 - (jj+1)*dbin , aa , bb ) ;
+        jbin[jj] = ii ;
+     }
+     xbin[nbin-1] = xc ;
+
+     for( ii=ibot ; ii < mcount ; ii++ ){
+        for( jj=0 ; jj < nbin ; jj++ ){
+           if( bval[ii] <= xbin[jj] ){ hbin[jj]++ ; break ; }
+        }
+     }
+
+     free(xbin) ;
+
+     ihqbot = 0 ;
+     ihqtop = nbin-1 ;
+   }
+
+#else             /* use old method */
+
+   /* original data was already squared (e.g., R**2 values) */
+
+   if( !sqr ){
+      hbot = 0.0 ; htop = 1.001 * xc ;
+      dbin = (htop-hbot)/nbin ;
+
+      hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
+      jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
+
+      for( ii=0 ; ii < nbin ; ii++ ){  /* beta fit */
+         jbin[ii] = (int)( eps1 * ( beta_t2p(hbot+ii*dbin,aa,bb)
+                                   -beta_t2p(hbot+ii*dbin+dbin,aa,bb) ) ) ;
+      }
+
+      flim = mri_new_vol_empty( mcount-ibot,1,1 , MRI_float ) ;
+      mri_fix_data_pointer( bval+ibot , flim ) ;
+      mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
+
+      ihqbot = 0 ;
+      ihqtop = rint( xc / dbin ) ;
+
+   } else {   /* original data was not squared (e.g., correlations) */
+
+      double hb,ht ;
+      htop = sqrt(1.001*xc) ;
+      hbot = -htop ;
+      dbin = (htop-hbot)/nbin ;
+
+      hbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* actual histogram */
+      jbin = (int *) calloc((nbin+1),sizeof(int)) ;  /* theoretical fit */
+
+      for( ii=0 ; ii < nbin ; ii++ ){  /* beta fit */
+         hb = hbot+ii*dbin ; ht = hb+dbin ;
+         hb = hb*hb ; ht = ht*ht ;
+         if( hb > ht ){ double qq=hb ; hb=ht ; ht=qq ; }
+         jbin[ii] = (int)( 0.5*eps1 * ( beta_t2p(hb,aa,bb)
+                                       -beta_t2p(ht,aa,bb) ) ) ;
+      }
+
+      ihqbot = rint( (-sqrt(xc) - hbot) / dbin ) ;
+      ihqtop = rint( ( sqrt(xc) - hbot) / dbin ) ;
+
+      flim = mri_new_vol_empty( mcount-ibot,1,1 , MRI_float ) ;
+      mri_fix_data_pointer( cval+ibot , flim ) ;
+      mri_histogram( flim , hbot,htop , TRUE , nbin,hbin ) ;
+
+   }
+#endif
+
+   /* compute upper-tail probability of chi-square */
+
+   chq = cdf = 0.0 ;
+   for( ii=ihqbot ; ii <= ihqtop ; ii++ ){
+      ccc = jbin[ii] ;
+      if( ccc > 1.0 ){
+         chq += SQR(hbin[ii]-ccc) / ccc ;
+         cdf++ ;
+      }
+   }
+   cdf -= 3.0 ;
+   ccc = chisq_t2p( chq , cdf ) ;
+
+#ifndef NEW_HCQ
+   mri_clear_data_pointer(flim) ; mri_free(flim) ;
+#endif
+   free(hbin) ; free(jbin) ;
+
+   bfr = (BFIT_result *) malloc(sizeof(BFIT_result)) ;
+
+   bfr->mgood    = mgood ;
+   bfr->itop     = itop  ;
+
+   bfr->a        = aa  ;
+   bfr->b        = bb  ;
+   bfr->xcut     = xc  ;
+   bfr->chisq    = chq ;
+   bfr->q_chisq  = ccc ;
+   bfr->df_chisq = cdf ;
+   bfr->eps      = eps ;
+
+   return bfr ;
 }

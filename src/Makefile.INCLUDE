@@ -1118,11 +1118,8 @@ unu.o:unu.c
 unu:unu.o
 	$(CC) -o unu unu.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
-betafit.o:betafit.c
-	$(CCFAST) -c betafit.c $(IFLAGS)
-
-betafit:betafit.o
-	$(CC) -o betafit betafit.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+3dbetafit:3dbetafit.o betafit.c
+	$(CC) -o 3dbetafit 3dbetafit.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

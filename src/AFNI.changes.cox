@@ -2147,3 +2147,16 @@
 
 19 May 2000
  * Added changes from Doug Ward for a "-mask" option to 3dNLfim.c.
+
+22 May 2000
+ * Added AFNI_USE_THD_open_dataset environment variable to allow
+      THD_open_one_dataset (in thd_opendset.c) to call THD_open_dataset
+      instead (in thd_mastery.c), if a "[" is also present in the
+      dataset pathname.
+      !!! This feature must be used with care, since some programs    !!!
+      !!! (e.g., 3dbucket) will break if it is used.  A program that  !!!
+      !!! writes to a pre-existing dataset MUST NOT open that dataset !!!
+      !!! with a sub-brick selector list.                             !!!
+
+23 May 2000
+ * Modified thd_idcode.c to use lowercase in dataset IDcodes.

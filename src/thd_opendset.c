@@ -21,6 +21,14 @@ THD_3dim_dataset * THD_open_one_dataset( char * pathname )
        (plen=strlen(pathname)) == 0  ||
        pathname[plen-1]        == '/'  ) return NULL ;
 
+   /*-- perhaps open the new-fangled way [22 May 2000] --*/
+
+   if( getenv("AFNI_USE_THD_open_dataset") != NULL &&
+       strstr(pathname,"[")           != NULL   ){
+
+      return THD_open_dataset( pathname ) ;
+   }
+
    /*-- find directory and last names in the pathname --*/
 
    for( ii=plen-1 ; ii >= 0 ; ii-- ) if( pathname[ii] == '/' ) break ;
