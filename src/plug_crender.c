@@ -9,10 +9,12 @@
   ----------------------------------------------------------------------
 */
 
-#define PLUG_CRENDER_VERSION "Version 1.6 <September 2002>"
+#define PLUG_CRENDER_VERSION "Version 1.7 <October 2002>"
 
 /***********************************************************************
  * VERSION HISTORY
+ *
+ * 1.7   - incremental rotation is now the default
  *
  * 1.6   - draw crosshairs directly onto the rendered image
  *           o see gcr.hairs
@@ -1629,7 +1631,7 @@ ENTRY( "RCREND_make_widgets" );
      incrot_bbox = new_MCW_bbox( hrc , 1 , incrot_bbox_label ,
                                  MCW_BB_check , MCW_BB_noframe ,
                                  RCREND_incrot_CB, NULL         ) ;
-     MCW_set_bbox( incrot_bbox , 0 ) ;
+     MCW_set_bbox( incrot_bbox , 1 ) ;
      MCW_reghelp_children( incrot_bbox->wrowcol ,
                            "OUT: angles increment globally\n"
                            "IN:  angles increment locally"   ) ;

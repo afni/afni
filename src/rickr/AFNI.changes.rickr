@@ -67,3 +67,5 @@
 01 October 2002:
   * modified Makefile.INCLUDE to build file_tool automatically
 
+23 October 2002:
+  * modified plug_crender.c so that Incremental rotation is the default
