@@ -593,7 +593,7 @@ int DC_find_overlay_color( MCW_DC * dc , char * label )
    int ii ;
    if( dc == NULL || label == NULL ) return -1 ;
    for( ii=0 ; ii < dc->ovc->ncol_ov ; ii++ )
-      if( strcmp(label,dc->ovc->label_ov[ii]) == 0 ) return ii ;
+      if( strcasecmp(label,dc->ovc->label_ov[ii]) == 0 ) return ii ;
    return -1 ;
 }
 

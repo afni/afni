@@ -2910,6 +2910,10 @@ typedef struct {
 #endif
 #endif
 
+char * ig_strstr( char *, char *, char * ) ; /* 08 Aug 2002 */
+void freeup_strings( int n , char **sar ) ;
+int breakup_string( char *sin , char ***stok ) ;
+
 extern THD_string_array * THD_get_all_filenames( char * ) ;
 extern THD_string_array * THD_extract_regular_files( THD_string_array * ) ;
 extern THD_string_array * THD_extract_directories( THD_string_array * ) ;
