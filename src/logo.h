@@ -9,6 +9,8 @@
 
 #ifndef MAIN
 extern Pixmap logo_pixmap ;
+extern Pixmap sower_pixmap ;
+extern int    sower_nx , sower_ny ;
 
 extern int    afni48_good ;
 extern Pixmap afni48_pixmap ;
@@ -21,6 +23,9 @@ extern Pixmap afni48grasag_pixmap ;
 extern Pixmap afni48graaxi_pixmap ;
 #else
 Pixmap logo_pixmap      = XmUNSPECIFIED_PIXMAP ;
+Pixmap sower_pixmap     = XmUNSPECIFIED_PIXMAP ;
+int    sower_nx         = 0 ;
+int    sower_ny         = 0 ;
 
 int    afni48_good      = 0 ;
 Pixmap afni48_pixmap    = XmUNSPECIFIED_PIXMAP ;
