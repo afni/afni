@@ -4206,3 +4206,4 @@
 15 Jan 2003
  * Modified afni.c to let user set SUMA line thickness via environment
      variable.  Also changed afni_pplug_env.c to match.
+ * Modified afni_func.c to purge all datasets in a session after rescan.
