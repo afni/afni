@@ -252,8 +252,11 @@
            Also - disable 3dDeconvolve_f (FLOATIZE)
   Date:    14 Jul 2004 - RWCox
 
-  Mod:     Added -legendre option, -nocond option
+  Mod:     Added -legendre, -nolegendre, -nocond options
   Date     15 Jul 2004 - RWCox
+
+  Mod:     Replace matrix inversion by Gaussian elimination by SVD
+  Date     20 Jul 2004 - RWCox
 */
 
 /*---------------------------------------------------------------------------*/
@@ -266,7 +269,7 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "16 July 2004"         /* latest program revision date*/
+#define PROGRAM_LATEST  "20 July 2004"        /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
@@ -448,8 +451,9 @@ void display_help_menu()
     "                       null hypothesis  (default: pnum = 1)            \n"
     "[-legendre]          use Legendre polynomials for null hypothesis      \n"
     "[-nolegendre]        use power polynomials for null hypotheses         \n"
-    "                       (default is -nolegendre)                        \n"
+    "                       (default is -legendre)                          \n"
     "[-nocond]            don't calculate matrix condition number           \n"
+    "[-nosvd]             Use Gaussian elimination instead of SVD           \n"
     "[-rmsmin r]          r = minimum rms error to reject reduced model     \n"
     "                                                                       \n"
     "     Input stimulus options:                                           \n"
@@ -899,6 +903,13 @@ void get_options
 
       if( strstr(argv[nopt],"legendre") != NULL ){
         legendre_polort = (strncmp(argv[nopt],"-leg",4) == 0) ;
+        nopt++ ; continue ;
+      }
+
+      /*----- -nosvd [20 Jul 2004] -----*/
+
+      if( strcmp(argv[nopt],"-nosvd") == 0 ){
+        use_psinv = 0 ;
         nopt++ ; continue ;
       }
 
@@ -2595,6 +2606,14 @@ void initialize_program
   /*----- Identify software -----*/
   if (!(*option_data)->quiet)  identify_software();
 
+  /*----- Tell the user if he is being foolish -----*/
+  if( !legendre_polort && (*option_data)->polort > 1 ){  /* 20 Jul 2004 */
+    fprintf(stderr,"** WARNING: you have polynomials of order %d for the baseline\n"
+                   "**          but disabled use of the Legendre polynomials!\n"
+                   "**          Check the matrix condition and accuracy of results!\n" ,
+            (*option_data)->polort ) ;
+    (*option_data)->nocond = 0 ;
+  }
 
   /*----- Read input data -----*/
   read_input_data (*option_data, dset_time, mask_vol, fmri_data, fmri_length,
@@ -4552,16 +4571,16 @@ int main
   /*----- force the user to acknowledge the riskiness of his behavior -----*/
   if( argc < 2 || strcmp(argv[1],"-OK") != 0 ){
     fprintf(stderr,"**\n"
-                   "** 3dDeconvolve_f is now disabled.\n"
-                   "** It is too dangerous, due to roundoff problems.\n"
+                   "** 3dDeconvolve_f is now disabled by default.\n"
+                   "** It is dangerous, due to roundoff problems.\n"
                    "** Please use 3dDeconvolve from now on!\n"
                    "**\n"
                    "** HOWEVER, if you insist on using 3dDeconvolve_f, then:\n"
                    "**        + Use '-OK' as the first command line option.\n"
                    "**        + Check the matrix condition number;\n"
-                   "**            if it is greater than 100, beware!\n"
+                   "**            if it is greater than 100, BEWARE!\n"
                    "**\n"
-                   "** RWCox - 14 Jul 2004\n"
+                   "** RWCox - July 2004\n"
                    "**\n"
          ) ;
     exit(0) ;

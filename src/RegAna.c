@@ -39,12 +39,12 @@
   Mod:     If FLOATIZE is defined, uses floats instead of doubles -- RWCox.
   Date:    03 Mar 2003
 
-  Mod:     If USE_PSINV is defined, use matrix_psinv() instead of inversion.
+  Mod:     If use_psinv is 1, use matrix_psinv() instead of inversion.
   Date     19 Jul 2004 -- RWCox
 
 */
 
-#define USE_PSINV  /* 19 Jul 2004 */
+static int use_psinv = 1 ;  /* 19 Jul 2004 */
 
 /*---------------------------------------------------------------------------*/
 
@@ -90,21 +90,21 @@ int calc_matrices
 
 
   /*----- calculate various matrices which will be needed later -----*/
-#ifndef USE_PSINV
-  matrix_initialize (&xt);
-  matrix_initialize (&xtx);
-  matrix_transpose (*x, &xt);
-  matrix_multiply (xt, *x, &xtx);
-  ok = matrix_inverse_dsc (xtx, xtxinv);
-  if (ok)
-    matrix_multiply (*xtxinv, xt, xtxinvxt);
-  else
-    RA_error ("Improper X matrix  (cannot invert X'X) ");
-  matrix_destroy (&xtx);
-  matrix_destroy (&xt);
-#else
-  matrix_psinv  (*x, xtxinv , xtxinvxt ); ok = 1 ;  /* 19 Jul 2004 */
-#endif
+  if( !use_psinv ){
+    matrix_initialize (&xt);
+    matrix_initialize (&xtx);
+    matrix_transpose (*x, &xt);
+    matrix_multiply (xt, *x, &xtx);
+    ok = matrix_inverse_dsc (xtx, xtxinv);
+    if (ok)
+      matrix_multiply (*xtxinv, xt, xtxinvxt);
+    else
+      RA_error ("Improper X matrix  (cannot invert X'X) ");
+    matrix_destroy (&xtx);
+    matrix_destroy (&xt);
+  } else {
+    matrix_psinv  (*x, xtxinv , xtxinvxt ); ok = 1 ;  /* 19 Jul 2004 */
+  }
 
   return (ok);
 }

@@ -169,9 +169,13 @@ int AFNI_noenv( char * ename )     /* 21 Jun 2000 */
 
 double AFNI_numenv( char *ename )  /* 23 Aug 2003 */
 {
-   char *ept ;
+   char *ept,*ccc ; double val ;
    if( ename == NULL ) return 0.0l ;
    ept = my_getenv(ename) ;
    if( ept   == NULL ) return 0.0l ;
-   return strtod(ept,NULL) ;
+   val = strtod(ept,&ccc) ;
+        if( *ccc == 'k' || *ccc == 'K' ) val *= 1024.0l ;
+   else if( *ccc == 'm' || *ccc == 'M' ) val *= 1024.0l*1024.0l ;
+   else if( *ccc == 'g' || *ccc == 'G' ) val *= 1024.0l*1024.0l*1024.0l ;
+   return val ;
 }
