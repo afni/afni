@@ -98,6 +98,8 @@ typedef struct { float r,i ; } complex ;
 /*--------------------------------------------------------------------------*/
 /*! This type stores the information about user-defined types. 09 Dec 2002. */
 
+#ifndef TYPEDEF_NI_rowtype
+#define TYPEDEF_NI_rowtype
 struct NI_rowtype ;  /* incomplete definition */
 
 typedef struct NI_rowtype {
@@ -121,6 +123,7 @@ typedef struct NI_rowtype {
   struct NI_rowtype **part_rtp; /*!< rowtype ptr for each part;
                                      N.B.: builtin types point to themselves! */
 } NI_rowtype ;
+#endif
 
 /*! NI_rowtype bit flag for variable size data. */
 
@@ -153,6 +156,7 @@ extern void         NI_val_to_text         ( NI_rowtype *, char *, char * ) ;
 extern int          NI_val_to_binary       ( NI_rowtype *, char *, char * ) ;
 extern void         NI_multival_to_text    ( NI_rowtype *, int, char *, char * );
 extern int          NI_multival_to_binary  ( NI_rowtype *, int, char *, char * );
+extern int          NI_has_String          ( NI_rowtype * ) ;
 
 extern void NI_rowtype_debug( int ) ;
 
@@ -517,9 +521,10 @@ extern void NI_binary_threshold( NI_stream_type *, int ) ;
 
 extern void * NI_read_element ( NI_stream_type *, int ) ;
 extern int    NI_write_element( NI_stream_type *, void *, int ) ;
-
-extern int    NI_write_rowtype( NI_stream_type *,
-                                NI_rowtype *, int, void *, int ) ;
+extern int    NI_write_columns( NI_stream_type * ,
+                                int , int * , int , void ** , int ) ;
+extern int    NI_write_rowtype( NI_stream_type * ,
+                                NI_rowtype * , int , void * , int ) ;
 
 /* prototypes for Web data fetchers */
 
