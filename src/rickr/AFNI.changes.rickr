@@ -476,4 +476,6 @@
   * modified mri_dup.c to allow NN interpolation if AFNI_IMAGE_ZOOM_NN is Y
   * modified afni_pplug_env.c to add control for AFNI_IMAGE_ZOOM_NN
   * modified README.environment to add a description of AFNI_IMAGE_ZOOM_NN
+  * modified SUMA_SurfMeasures.[ch] to add functions:
+      'n_avearea_A', 'n_avearea_B', 'n_ntri'
 
