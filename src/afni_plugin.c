@@ -4903,13 +4903,14 @@ static float p10( float x )
    Graph is popped up and then "forgotten" -- RWCox - 13 Jan 2000
 -------------------------------------------------------------------*/
 
-void PLUTO_scatterplot( int npt , float * x , float * y ,
-                        char * xlab , char * ylab , char * tlab )
+void PLUTO_scatterplot( int npt , float *x , float *y ,
+                        char *xlab , char *ylab , char *tlab )
 {
    int ii , np , nnax,mmax , nnay,mmay ;
    float xbot,xtop , ybot,ytop , pbot,ptop ,
          xobot,xotop,yobot,yotop , xa,xb,ya,yb , dx,dy ;
-   float * xar , * yar , * zar=NULL , ** yzar ;
+   float *xar , *yar , *zar=NULL , **yzar ;
+   float dsq , rx,ry ;
    char str[32] ;
    MEM_plotdata * mp ;
 
@@ -5012,26 +5013,29 @@ ENTRY("PLUTO_scatterplot") ;
 
    /* plot data */
 
-#define DSQ 0.003
+#define DSQ 0.001
 
-   dx = DSQ*(xtop-xbot) ;
-   dy = DSQ*(ytop-ybot) * (xotop-xobot)/(yotop-yobot) ;
+   dsq = AFNI_numenv( "AFNI_SCATPLOT_FRAC" ) ;   /* 15 Feb 2005 */
+   if( dsq <= 0.0 || dsq >= 0.01 ) dsq = DSQ ;
+
+   dx = dsq*(xtop-xbot) ;
+   dy = dsq*(ytop-ybot) * (xotop-xobot)/(yotop-yobot) ;
    for( ii=0 ; ii < npt ; ii++ ){
-      xa = x[ii] - dx ; xb = x[ii] + dx ;
-      ya = y[ii] - dy ; yb = y[ii] + dy ;
+
+#if 0
+      rx = (drand48()-0.5)*dx ;
+      ry = (drand48()-0.5)*dy ;
+#else
+      rx = ry = 0.0 ;
+#endif
+      xa = x[ii]+rx - dx ; xb = x[ii]+rx + dx ;
+      ya = y[ii]+ry - dy ; yb = y[ii]+ry + dy ;
 
       plotpak_line( xa,ya , xa,yb ) ;
       plotpak_line( xa,yb , xb,yb ) ;
       plotpak_line( xb,yb , xb,ya ) ;
       plotpak_line( xb,ya , xa,ya ) ;
    }
-
-#if 0
-   set_color_memplot( 0.5,0.5,0.5 ) ;
-   plotrect_memplot( DSQ,DSQ , 10*DSQ,10*DSQ ) ;     /* just for testing */
-   set_color_memplot( 1.0,0.0,0.0 ) ;
-   plotrect_memplot( xotop-DSQ,yotop-DSQ , xotop-10*DSQ,yotop-10*DSQ ) ;
-#endif
 
    mp = get_active_memplot() ;
 
