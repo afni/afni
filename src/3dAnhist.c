@@ -107,6 +107,7 @@ int main( int argc , char * argv[] )
       }
 
       if( argv[iarg][1] == 'q' ){ verb=0 ; iarg++ ; continue ; }
+      if( argv[iarg][1] == 'v' ){ verb++ ; iarg++ ; continue ; }
       if( argv[iarg][1] == 'h' ){ his =1 ; iarg++ ; continue ; }
       if( argv[iarg][1] == 'F' ){ fit =0 ; iarg++ ; continue ; }
       if( argv[iarg][1] == 'w' ){
@@ -132,7 +133,7 @@ int main( int argc , char * argv[] )
    if( nx < 32 || ny < 32 || nz < 32 ){
       fprintf(stderr,"** Dataset dimensions are less than 32x32x32?!\n"); exit(1);
    }
-   if( verb ) fprintf(stderr,"++ Loading dataset\n") ;
+   if( verb ) fprintf(stderr,"++ Loading dataset %s\n", DSET_BRIKNAME(dset) ) ;
    DSET_load(dset) ;
    if( !DSET_LOADED(dset) ){ fprintf(stderr,"** CAN'T load dataset\n");exit(1); }
 
@@ -294,10 +295,11 @@ int main( int argc , char * argv[] )
             if( mar[ii] < sbot ) sbot = mar[ii] ;
        else if( mar[ii] > stop ) stop = mar[ii] ;
      if( sbot == stop ){
-       if( verb ) fprintf(stderr,"+ All voxels in mask have value = %d ?!\n",sbot);
+       if( verb ) fprintf(stderr,"+ All voxels inside mask have value=%d ?!\n",sbot);
        pval[0] = sbot ; wval[0] = 0 ;
        print_results( label,1 , pval,wval ) ; exit(0) ;
      }
+     if( verb > 1 ) fprintf(stderr,"++ Data range: %d .. %d\n",sbot,stop) ;
 
      /* build histogram */
 
@@ -327,27 +329,38 @@ int main( int argc , char * argv[] )
      cbot = ncut ; ctop = 3*ncut ;
      if( verb ) fprintf(stderr,"++ Histogram range = %d .. %d\n",cbot,ctop) ;
      nwid = rint(0.1*ncut) ;
-     if( nwid == 0 ){
+     if( nwid <= 0 ){
        if( verb ) fprintf(stderr,"++ Using unsmoothed histogram\n") ;
-       memcpy( gist , hist , sizeof(short)*32768 ) ;
+       memcpy( gist , hist , sizeof(int)*32768 ) ;
      } else {
-       float *wt = (float *) malloc(sizeof(float)*(2*nwid+1)) ;
-       float ws=0.0 ;
+       float *wt , ws ;
        int ibot,itop ;
 
-       if( verb ) fprintf(stderr,"++ Smoothing histogram = %d .. %d around each value\n",-nwid,nwid) ;
+       if( verb > 1 ) fprintf(stderr,"++ Computing smoothing weights:") ;
+       ws = 0.0 ;
+       wt = (float *)malloc(sizeof(float)*(2*nwid+1)) ;
        for( ii=0 ; ii <= 2*nwid ; ii++ ){
-         wt[ii] = nwid+0.5-abs(nwid-ii) ; ws += wt[ii] ;
+         wt[ii] = nwid-abs(nwid-ii) + 0.5f ;
+         if( verb > 1 ) fprintf(stderr," (%d,%g)" , ii,wt[ii]) ;
+         ws += wt[ii] ;
        }
+       if( verb > 1 ) fprintf(stderr,"\n") ;
        for( ii=0 ; ii <= 2*nwid ; ii++ ) wt[ii] /= ws ;
 
+       if( verb )
+         fprintf(stderr,"++ Smoothing histogram = %d .. %d around each value\n",
+                 -nwid,nwid) ;
+
        for( jj=cbot ; jj <= ctop ; jj++ ){
-         ibot = jj-nwid ; if( ibot < sbot ) ibot = 0 ;
+         ibot = jj-nwid ; if( ibot < sbot ) ibot = sbot ;
          itop = jj+nwid ; if( itop > stop ) itop = stop ;
          ws = 0.0 ;
          for( ii=ibot ; ii <= itop ; ii++ )
            ws += wt[nwid-jj+ii] * hist[ii] ;
          gist[jj] = rint(ws) ;
+         if( verb > 1 )
+           fprintf(stderr," + %3d: unsmoothed=%d  smoothed=%d\n",
+                   jj,hist[jj],gist[jj]) ;
        }
        free(wt) ;
      }
@@ -381,10 +394,35 @@ int main( int argc , char * argv[] )
      }
      if( verb ) fprintf(stderr,"\n") ;
 
-     if( his ){
+     if( npk > 2 ){  /* find largest two peaks */
+       float pval_top, pval_2nd, wval_top, wval_2nd , www; int iii,itop ;
+       www = wval[0] ; iii = 0 ;
+       for( ii=1 ; ii < npk ; ii++ ){
+         if( wval[ii] > www ){ www = wval[ii] ; iii = ii ; }
+       }
+       pval_top = pval[iii] ; wval_top = www ; itop = iii ;
+       www = -1 ; iii = -1 ;
+       for( ii=0 ; ii < npk ; ii++ ){
+         if( ii != itop && wval[ii] > www ){ www = wval[ii] ; iii = ii ; }
+       }
+       pval_2nd = pval[iii] ; wval_2nd = www ;
+
+       if( pval_top < pval_2nd ){
+         pval[0] = pval_top ; wval[0] = wval_top ;
+         pval[1] = pval_2nd ; wval[1] = wval_2nd ;
+       } else {
+         pval[0] = pval_2nd ; wval[0] = wval_2nd ;
+         pval[1] = pval_top ; wval[1] = wval_top ;
+       }
+       npk = 2 ;
+       if( verb )
+         fprintf(stderr,"++ Keeping top 2 peaks: %.1f %.1f\n",pval[0],pval[1]) ;
+     }
+
+     if( his ){   /* fit histogram? */
        FILE *hf ;
        float **Gmat, *Hvec, *lam, *rez, sum,wtm, *wt,wbot,wtop, ebest=-1.0;
-       float *ap,*pk,*ww ; int nregtry ;
+       float *ap,*pk,*ww ; int nregtry , nbetter ;
        float *pkbest,*wwbest,*apbest,*lambest , pplm,aplm,wplm ;
        float *pklast,*wwlast,*aplast ;
        npos = 0 ;
@@ -410,54 +448,80 @@ int main( int argc , char * argv[] )
          wwlast = (float *)malloc(sizeof(float)*nvec) ;
 
          if( verb ) fprintf(stderr,"++ Regressing histogram") ;
-         wbot = 0.1*cbot; wtop=0.9*cbot; pplm=0.05*cbot; aplm=0.95; wplm=0.4*cbot;
+         wbot=0.1*cbot; wtop=0.9*cbot; pplm=0.05*cbot; aplm=0.75; wplm=0.4*cbot;
          nregtry = 0 ;
    RegTry:
          switch(nvec){
-           case 1: nw =   40000 ; break ;
-           case 2: nw =  600000 ; break ;
-          default: nw = 1200000 ; break ;
+           case 1: nw =   30000 ; break ;
+           case 2: nw =  400000 ; break ;
+          default: nw = 1000000 ; break ;   /* should no longer occur */
          }
-         if( nregtry > 0 ){
+         if( nregtry > 0 ){                 /* keep previous best estimates */
            pplm *= 0.7 ; aplm *= 0.7 ; wplm *= 0.7 ; nw /= 2 ;
            memcpy(aplast,apbest,sizeof(float)*nvec) ;
            memcpy(pklast,pkbest,sizeof(float)*nvec) ;
            memcpy(wwlast,wwbest,sizeof(float)*nvec) ;
          } else {
-           for( jj=0 ; jj < nvec ; jj++ ){
+           for( jj=0 ; jj < nvec ; jj++ ){  /* initial estimates */
              wwlast[jj] = 0.5*cbot ;
              aplast[jj] = 0.0 ;
              pklast[jj] = pval[jj] ;
            }
          }
+
+#define FIXWT
+#ifdef  FIXWT
+         for( ii=0 ; ii < ndim ; ii++ ){
+           wt[ii] = pow( (double)gist[cbot+ii] , 1.25 ) ;
+         }
+         for( ii=0,sum=0.0 ; ii < ndim ; ii++ ) sum += wt[ii] ;
+         for( ii=0 ; ii < ndim ; ii++ ) wt[ii] /= sum ;
+         wtm = 1.0 ;
+         for( ii=0 ; ii < ndim ; ii++ )
+           if( wt[ii] < wtm && wt[ii] > 0.0 ) wtm = wt[ii] ;
+         for( ii=0 ; ii < ndim ; ii++ )
+           if( wt[ii] == 0.0 ) wt[ii] = wtm ;
+#endif
+
+         nbetter = 0 ;
          for( iw=0 ; iw < nw ; iw++ ){           /* random search nw times */
            for( jj=0 ; jj < nvec ; jj++ ){
              ww[jj] = wwlast[jj] + (2.*drand48()-1.)*wplm ;
              pk[jj] = pklast[jj] + (2.*drand48()-1.)*pplm ;
              ap[jj] = aplast[jj] + (2.*drand48()-1.)*aplm ;
+                  if( pk[jj] >  0.9*ctop ) pk[jj] = 0.9*ctop ;
+             else if( pk[jj] <  1.1*cbot ) pk[jj] = 1.1*cbot ;
                   if( ap[jj] >  1.0 ) ap[jj] =  1.0 ;
              else if( ap[jj] < -1.0 ) ap[jj] = -1.0 ;
                   if( ww[jj] < 0.1*cbot ) ww[jj] = 0.1*cbot ;
-             else if( ww[jj] > 0.9*ctop ) ww[jj] = 0.9*ctop ;
+             else if( ww[jj] > 0.9*cbot ) ww[jj] = 0.9*cbot ;
 
                   if( pk[jj]+ww[jj] > ctop ) ww[jj] = ctop-pk[jj] ;
              else if( pk[jj]-ww[jj] < cbot ) ww[jj] = pk[jj]-cbot ;
            }
            sum = wtm = 0.0 ;
-           for( ii=0 ; ii < ndim ; ii++ ){
+           for( ii=0 ; ii < ndim ; ii++ ){  /* create basis vectors */
+#ifndef FIXWT
             wt[ii] = 0.01/ndim ;
-            for( jj=0 ; jj < nvec ; jj++ ){
+#endif
+            for( jj=0 ; jj < nvec ; jj++ ){  /* basis for jj-th peak pdf */
              apar = ap[jj] ;
              Gmat[jj][ii] = pmodel_bin(cbot+ii-0.5,cbot+ii+0.5,pk[jj],ww[jj]) ;
              if( Gmat[jj][ii] < 0.0 ) Gmat[jj][ii] = 0.0 ;
+#ifndef FIXWT
              wt[ii] += Gmat[jj][ii] ;
+#endif
             }
+#ifndef FIXWT
             wtm = MAX(wtm,wt[ii]) ;
+#endif
            }
+#ifndef FIXWT
            for( ii=0 ; ii < ndim ; ii++ ){
              wt[ii] = pow(wt[ii]/wtm,1.25) ; sum += wt[ii] ;
            }
            for( ii=0 ; ii < ndim ; ii++ ) wt[ii] /= sum ;
+#endif
            for( ii=0 ; ii < ndim ; ii++ ){
              Hvec[ii] = gist[cbot+ii] * wt[ii] ;
              for( jj=0 ; jj < nvec ; jj++ ) Gmat[jj][ii] *= wt[ii] ;
@@ -473,17 +537,27 @@ int main( int argc , char * argv[] )
                  for( jj=0 ; jj < nvec ; jj++ ) sum += Gmat[jj][ii] * lam[jj] ;
                  hist[cbot+ii] = (int)rint(sum/wt[ii]) ;
                }
-               npos = 1 ;
+               npos = 1 ; nbetter++ ;
                memcpy( apbest , ap , sizeof(float)*nvec ) ;
                memcpy( pkbest , pk , sizeof(float)*nvec ) ;
                memcpy( wwbest , ww , sizeof(float)*nvec ) ;
                memcpy( lambest, lam, sizeof(float)*nvec ) ;
                if( verb ) fprintf(stderr,"+") ;
+               if( verb > 1 ){
+                 fprintf(stderr,"[") ;
+                 for( jj=0 ; jj < nvec ; jj++ ){
+                   fprintf(stderr,"p=%.1f w=%.2f a=%.3f",
+                           pkbest[jj],wwbest[jj],apbest[jj]) ;
+                   if( jj < nvec-1 ) fprintf(stderr,";") ;
+                 }
+                 fprintf(stderr,"]") ;
+               }
              }
            }
-         }
+         } /* end of nw searches */
          if( verb ) fprintf(stderr,".") ;
-         if( nregtry < 8 ){ nregtry++ ; goto RegTry ; }
+         if( nregtry < 8                 ){ nregtry++ ; goto RegTry ; }
+         if( nregtry < 12 && nbetter > 0 ){ nregtry++ ; goto RegTry ; }
          if( verb ) fprintf(stderr,"\n") ;
        } /* end of fitting */
 
@@ -500,6 +574,8 @@ int main( int argc , char * argv[] )
            fprintf(hf,"# Peak %d: location=%.1f histpeak=%.1f\n",jj+1,pval[jj],wval[jj]) ;
          }
          if( fit && npos > 0 ){
+           float gval ;
+
            for( jj=0 ; jj < npk ; jj++ ){
              fprintf(hf,"# Peak %d fit: location=%.1f width=%.2f skew=%.3f height=%.1f\n",
                      jj+1,pkbest[jj],wwbest[jj],apbest[jj],lambest[jj] ) ;
@@ -510,10 +586,24 @@ int main( int argc , char * argv[] )
            }
            fprintf(hf,"#\n") ;
            fprintf(hf,"# Histogram Region: min=%d max=%d\n",cbot,ctop) ;
-           fprintf(hf,"# Val Histog Fitted Hi-Fit\n") ;
-           fprintf(hf,"# --- ------ ------ ------\n") ;
-           for( ii=cbot ; ii <= ctop ; ii++ )
-             fprintf(hf,"%5d %6d %6d %6d\n",ii,gist[ii],hist[ii],gist[ii]-hist[ii]) ;
+
+           fprintf(hf,"# Val Histog FitSum Hi-Fit") ;
+           for( jj=0 ; jj < npk ; jj++ ) fprintf(hf," Fit#%1d ",jj+1) ;
+           fprintf(hf,"\n") ;
+
+           fprintf(hf,"# --- ------ ------ ------") ;
+           for( jj=0 ; jj < npk ; jj++ ) fprintf(hf," ------") ;
+           fprintf(hf,"\n") ;
+           for( ii=cbot ; ii <= ctop ; ii++ ){
+             fprintf(hf,"%5d %6d %6d %6d",ii,gist[ii],hist[ii],gist[ii]-hist[ii]) ;
+             for( jj=0 ; jj < npk ; jj++ ){
+               apar = apbest[jj] ;
+               gval = lambest[jj] *
+                      pmodel_bin(ii-0.5,ii+0.5,pkbest[jj],wwbest[jj]) ;
+               fprintf(hf," %6d",(int)rint(gval)) ;
+             }
+             fprintf(hf,"\n") ;
+           }
 
            for( jj=0; jj < npk ; jj++ ) free(Gmat[jj]);
            free(Gmat);free(pk);free(ww);free(ap);free(Hvec);free(lam);free(rez);free(wt);
