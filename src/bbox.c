@@ -633,6 +633,7 @@ void refit_MCW_optmenu( MCW_arrowval * av ,
    int  num_children , ic , ival ;
    char * butlabel , * blab ;
    XmString xstr ;
+   int maxbut ;   /* 23 Aug 2003 */
 
 ENTRY("refit_MCW_optmenu") ;
 
@@ -652,9 +653,15 @@ ENTRY("refit_MCW_optmenu") ;
                      XmNnumChildren , &num_children ,
                   NULL ) ;
 
-   /** reset some internal parameters **/
+   /* 23 Aug 2003: replace hard limit of 255 buttons
+                   with maxbut from environment variable */
 
-   if( maxval > minval+255 ) maxval = minval+255 ;  /* 23 Mar 2003 */
+   maxbut = AFNI_numenv( "AFNI_MAX_OPTMENU" ) ;
+        if( maxbut <= 0 ) maxbut = 255 ;
+   else if( maxbut < 99 ) maxbut = 99 ;
+   if( maxval > minval+maxbut ) maxval = minval+maxbut ;  /* 23 Mar 2003 */
+
+   /** reset some internal parameters **/
 
    av->text_CB   = (text_proc != NULL ) ? (text_proc)
                                         : (AV_default_text_CB) ;

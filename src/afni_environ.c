@@ -163,3 +163,12 @@ int AFNI_noenv( char * ename )     /* 21 Jun 2000 */
    ept = my_getenv(ename) ;
    return NOISH(ept) ;
 }
+
+double AFNI_numenv( char *ename )  /* 23 Aug 2003 */
+{
+   char *ept ;
+   if( ename == NULL ) return 0.0l ;
+   ept = my_getenv(ename) ;
+   if( ept   == NULL ) return 0.0l ;
+   return strtod(ept,NULL) ;
+}

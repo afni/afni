@@ -4705,3 +4705,6 @@
 
 15 Aug 2003
  * Added -version option to afni.c, per Rick Reynolds.
+
+23 Aug 2003
+ * Added AFNI_MAX_OPTMENU environment variable (bbox.c, etc.).

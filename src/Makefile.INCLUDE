@@ -1519,6 +1519,7 @@ netcdf_attr.o:
           FC=""  ; export FC  ; F90=""   ; export F90 ;   \
           CXX="" ; export CXX ; CC="${CCMIN}";export CC;  \
           $(RM) config.cache config.log config.status ;   \
+          chmod ugo+x ./configure ;                       \
           ./configure ; make libsrc/all ;                 \
           $(CP) libsrc/netcdf.h  ../.. ;                  \
           $(MV) libsrc/attr.o    ../../netcdf_attr.o    ; \
@@ -1558,8 +1559,9 @@ mpeg_encode:
 djpeg: cjpeg
 
 cjpeg:
-	( cd jpeg-6b ; $(RM) Makefile jconfig.h ; ./configure ; \
-          make ; strip cjpeg djpeg ; $(MV) cjpeg djpeg .. ;     \
+	( cd jpeg-6b ; $(RM) Makefile jconfig.h ;           \
+          chmod ugo+x ./configure ; ./configure ;           \
+          make ; strip cjpeg djpeg ; $(MV) cjpeg djpeg .. ; \
           make clean ; $(RM) Makefile jconfig.h )
 
 #######

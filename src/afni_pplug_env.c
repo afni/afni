@@ -304,6 +304,12 @@ PLUGIN_interface * ENV_init(void)
                    "Crop zoomed images when saving to disk?" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
+   /* 23 Aug 2003 */
+
+   ENV_add_numeric( "AFNI_MAX_OPTMENU" ,
+                    "Max buttons in an Option Menu" ,
+                    100 , 100000 , 0 , 255 , NULL ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
