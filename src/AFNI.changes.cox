@@ -5010,3 +5010,6 @@
  * AFNI_SLAVE_FUNCTIME in afni.c.
  * Modified 3dvolreg.c to make -wtrim always be on, and to and scale init
      for the twopass iteration.
+
+23 Mar 2004
+ * 3dZeropad.c gets new -RL, -AP, -SI options.
