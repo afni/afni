@@ -7,8 +7,12 @@
 #ifndef _MCW_THDSOURCE_HEADER_
 #define _MCW_THDSOURCE_HEADER_
 
+#ifndef EXIT
+#define EXIT exit
+#endif
+
 #define THD_FATAL_ERROR(str) \
-  { fprintf(stderr,"\a\n*** FATAL INTERAL ERROR: %s\n",str);sleep(1);exit(-1); }
+  { fprintf(stderr,"\a\n*** FATAL INTERNAL ERROR: %s\n",str);sleep(1);EXIT(1); }
 
 #define ATR_ALLINC 8
 

@@ -3,12 +3,26 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*** Not 7D safe ***/
 
 #define MAX_NUP 32
+
+static void (*usammer)(int,int,float *,float *) = upsample_7 ;
+
+/*-----------------------------------------------------------------------------
+  Set resample mode for mri_dup2D
+-------------------------------------------------------------------------------*/
+
+void mri_dup2D_mode( int mm )
+{
+   switch( mm ){
+      case 1:  usammer = upsample_1 ; break ;
+     default:  usammer = upsample_7 ; break ;
+   }
+}
 
 /*------------------------------------------------------------------------------
    Blow up a 2D image nup times, using 7th order polynomial for interpolation.
@@ -80,7 +94,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
    /*-- upsample rows --*/
 
    for( jj=0 ; jj < ny ; jj++ )
-      mri_upsample( nup , nx , flar + jj*nx , newar + jj*nxup ) ;
+      usammer( nup , nx , flar + jj*nx , newar + jj*nxup ) ;
 
    if( flim != imin ) mri_free(flim) ;
 
@@ -94,7 +108,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
 
    for( ii=0 ; ii < nxup ; ii++ ){
       for( jj=0 ; jj < ny ; jj++ ) cold[jj] = newar[ii + jj*nxup] ;
-      mri_upsample( nup , ny , cold , cnew ) ;
+      usammer( nup , ny , cold , cnew ) ;
       for( jj=0 ; jj < nyup ; jj++ ) newar[ii+jj*nxup] = cnew[jj] ;
    }
 
@@ -157,11 +171,6 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
 #define S_P3(x) (x*(x*x-1.0)*(x*x-4.0)*(x+3.0)*(4.0-x)*0.001388888889)
 #define S_P4(x) (x*(x*x-1.0)*(x*x-4.0)*(x*x-9.0)*0.0001984126984)
 
-static int nupold = -1 ;
-
-static float fm3[MAX_NUP], fm2[MAX_NUP], fm1[MAX_NUP], f00[MAX_NUP],
-             fp1[MAX_NUP], fp2[MAX_NUP], fp3[MAX_NUP], fp4[MAX_NUP] ;
-
 #ifdef ZFILL
 #  define FINS(i) ( ((i)<0 || (i)>=nar) ? 0.0 : far[(i)] )
 #else
@@ -183,9 +192,12 @@ static float fm3[MAX_NUP], fm2[MAX_NUP], fm1[MAX_NUP], f00[MAX_NUP],
   Uses 7th order polynomial interpolation.
 ------------------------------------------------------------------------------*/
 
-void mri_upsample( int nup , int nar , float * far , float * fout )
+void upsample_7( int nup , int nar , float * far , float * fout )
 {
-   int kk , ii , ibot,itop ;
+   int kk,ii , ibot,itop ;
+   static int nupold = -1 ;
+   static float fm3[MAX_NUP], fm2[MAX_NUP], fm1[MAX_NUP], f00[MAX_NUP],
+                fp1[MAX_NUP], fp2[MAX_NUP], fp3[MAX_NUP], fp4[MAX_NUP] ;
 
    /*-- sanity checks --*/
 
@@ -244,6 +256,84 @@ void mri_upsample( int nup , int nar , float * far , float * fout )
 
    for( ii=itop+1 ; ii < nar ; ii++ )
       for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] =  FINT7(kk,ii) ;
+
+   return ;
+}
+
+/*======================================================================*/
+
+#define INT1(k,i)  (f00[k]*far[i]  + fp1[k]*far[i+1] )
+
+#define FINT1(k,i) (f00[k]*FINS(i) + fp1[k]*FINS(i+1))
+
+/*----------------------------------------------------------------------------
+  Up sample an array far[0..nar-1] nup times to produce fout[0..nar*nup-1].
+  Uses linear polynomial interpolation.
+------------------------------------------------------------------------------*/
+
+void upsample_1( int nup , int nar , float * far , float * fout )
+{
+   int kk,ii , ibot,itop ;
+   static int nupold=-1 ;
+   static float f00[MAX_NUP], fp1[MAX_NUP] ;
+
+   /*-- sanity checks --*/
+
+   if( nup < 1 || nup > MAX_NUP || nar < 2 || far == NULL || fout == NULL ) return ;
+
+   if( nup == 1 ){ memcpy( fout, far, sizeof(float)*nar ); return; }
+
+   /*-- initialize interpolation coefficient, if nup has changed --*/
+
+   if( nup != nupold ){
+      float val ;
+      for( kk=0 ; kk < nup ; kk++ ){
+         val = ((float)kk) / ((float)nup) ;
+         f00[kk] = 1.0 - val ; fp1[kk] = val ;
+      }
+      nupold = nup ;
+   }
+
+   /*-- interpolate the intermediate places --*/
+
+   ibot = 0 ; itop = nar-2 ;
+
+   switch( nup ){
+      default:
+         for( ii=ibot ; ii <= itop ; ii++ )
+            for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = INT1(kk,ii) ;
+      break ;
+
+      case 2:
+         for( ii=ibot ; ii <= itop ; ii++ ){
+            fout[ii*nup]   = INT1(0,ii) ; fout[ii*nup+1] = INT1(1,ii) ;
+         }
+      break ;
+
+      case 3:
+         for( ii=ibot ; ii <= itop ; ii++ ){
+            fout[ii*nup]   = INT1(0,ii) ; fout[ii*nup+1] = INT1(1,ii) ;
+            fout[ii*nup+2] = INT1(2,ii) ;
+         }
+      break ;
+
+      case 4:
+         for( ii=ibot ; ii <= itop ; ii++ ){
+            fout[ii*nup]   = INT1(0,ii) ; fout[ii*nup+1] = INT1(1,ii) ;
+            fout[ii*nup+2] = INT1(2,ii) ; fout[ii*nup+3] = INT1(3,ii) ;
+         }
+      break ;
+   }
+
+   /*-- interpolate the outside edges --*/
+
+#if 0                             /* nugatory */
+   for( ii=0 ; ii < ibot ; ii++ )
+      for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = FINT1(kk,ii) ;
+#endif
+
+   for( ii=itop+1 ; ii < nar ; ii++ )
+      for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] =  FINT1(kk,ii) ;
 
    return ;
 }

@@ -30,7 +30,7 @@ ENTRY("MCW_kill_XImage") ;
 /*-------------------------------------------------------------------------
   Create an XImage from an MRI_IMAGE of shorts:
     values >= 0 draw from the "image" palette
-    values <  0 draw from the "overlay" palette
+    values <  0 draw from the "overlay" palette (stored in dc)
 ---------------------------------------------------------------------------*/
 
 XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )

@@ -301,6 +301,8 @@ extern void ISQ_montage_action_CB( Widget , XtPointer , XtPointer ) ;
 
 /*------------- the central data type -------------*/
 
+#define ALLOW_ZOOM           /* 11 Mar 2002 */
+
 #define ISQ_NHELP   2047
 #define ISQ_NWIDGET 128
 
@@ -458,6 +460,17 @@ typedef struct MCW_imseq {
      MCW_arrowval * wbar_label_av ;      /* 20 Sep 2001 */
      MCW_arrowval * wbar_labsz_av ;      /* 21 Sep 2001 */
 
+#ifdef ALLOW_ZOOM                        /* 11 Mar 2002 */
+     Widget        zoom_sep ;
+     MCW_arrowval *zoom_val_av ;
+     MCW_arrowpad *zoom_apad ;
+     int    zoom_fac     ;
+     float  zoom_hor_off, zoom_ver_off ;
+     int    zoom_pw , zoom_ph ;
+     Pixmap zoom_pixmap  ;
+     XImage *zoom_xim  ;
+#endif
+
 } MCW_imseq ;
 
 /*--------------------------------------------------------------------*/
@@ -531,6 +544,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_opacitybut      603  /* 07 Mar 2001 */
 #define isqDR_record_mode     604  /* 24 Apr 2001 */
 #define isqDR_record_disable  605  /* 24 Apr 2001 */
+#define isqDR_zoombut         606  /* 11 Mar 2002 */
 
 #define isqDR_plot_label      701  /* 20 Sep 2001 */
 #define isqDR_plot_plot       702  /* 20 Sep 2001 */
@@ -592,6 +606,10 @@ extern void ISQ_opacity_CB( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_opacity_label( int ) ;
 extern MRI_IMAGE * ISQ_index_to_rgb( MCW_DC * , int , MRI_IMAGE * ) ;
 #define ISQ_SKIP_OVERLAY(isq) ((isq)->opt.no_overlay || (isq)->ov_opacity == 0.0)
+
+#ifdef ALLOW_ZOOM
+extern void ISQ_zoom_CB( void * , XtPointer ) ;  /* 11 Mar 2002 */
+#endif
 
 extern MRI_IMAGE * ISQ_manufacture_one( int nim , int overlay , MCW_imseq * seq ) ;
 extern void ISQ_make_montage( MCW_imseq * ) ;
