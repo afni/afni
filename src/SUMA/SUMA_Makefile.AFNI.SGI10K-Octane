@@ -1,0 +1,37 @@
+## for SGI (IRIX 6.5, R10000 chip)
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = gcc -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE -UUSE_TRACING -DDONT_USE_MCW_MALLOC
+CCVOL  = gcc -w -DSGI -DUSE_TRACING -DHAVE_XDBE
+CCFAST = $(CC)
+CCMIN  = gcc
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/Motif-2.1/include
+LFLAGS = -s -L. -L/usr/Motif-2.1
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -L. -L/usr/Motif-2.1
+
+AR     = /usr/bin/ar
+RANLIB = /sbin/touch
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+LD     = /bin/ld
+GZIP   = /usr/local/bin/gzip
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp -f
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ../../abin_dev
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lXext -lX11 -lm -lc
+
+###############################################################
+
+include Makefile.INCLUDE
