@@ -4540,3 +4540,6 @@
 
 04 May 2003
  * Parallel computation (-jobs option) addtions to 3dDeconvolve.c.
+
+06 May 2003
+ * Minor changes to 3dDeconvolve.c.
