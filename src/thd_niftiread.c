@@ -3,7 +3,7 @@
 #ifndef DONT_INCLUDE_ANALYZE_STRUCT
 #define DONT_INCLUDE_ANALYZE_STRUCT
 #endif
-#include "nifti1_io.h"   /** will include nifti1.h **/
+#include "nifti/nifti1_io.h"   /** will include nifti1.h **/
 
 /*******************************************************************/
 /********** 26 Aug 2003: read a NIFTI-1 file as a dataset **********/

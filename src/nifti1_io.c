@@ -18,7 +18,7 @@
 
 
 /* global version and history strings, for printing */
-static char gni_version[] = "nifti library version 0.5 (December 14, 2004)";
+static char gni_version[] = "nifti library version 0.6 (December 15, 2004)";
 static char gni_history[] = 
   "----------------------------------------------------------------------\n"
   "history (of nifti library changes):\n"
@@ -106,15 +106,21 @@ static char gni_history[] =
   "           nifti_copynsort() and force_positive() (static functions)\n"
   "   - in nifti_image_read(), check for failed load only if read_data is set\n"
   "   - broke most of nifti_image_load() into nifti_image_load_prep()\n"
+  "\n"
+  "0.6  15 Dec 2004 [rickr]  - added sub-brick writing functionality\n"
+  "   - in nifti1_io.h, removed znzlib directory from include - all nifti\n"
+  "       library files are now under the nifti directory\n"
+  "   - nifti_read_extensions(): print no offset warning for nifti_type 3\n"
+  "   - nifti_write_all_data():\n"
+  "       o pass nifti_brick_list * NBL, for optional writing\n"
+  "       o if NBL, write each sub-brick, sequentially\n"
+  "   - nifti_set_iname_offset(): case 1 must have sizeof() cast to int\n"
+  "   - pass NBL to nifti_image_write_hdr_img2(), and allow NBL or data\n"
+  "   - added nifti_image_write_bricks() wrapper for ...write_hdr_img2()\n"
   "----------------------------------------------------------------------\n";
 
 /* global debug level */
 static int gni_debug = 0;
-
-/*---------------------------------------------------------------------------*/
-/* Return a pointer to a string holding the name of a NIFTI datatype.
-   Don't free() or modify this string!  It points to static storage.
------------------------------------------------------------------------------*/
 
 /* for calling from some main program */
 void nifti_disp_lib_hist( void )
@@ -175,7 +181,7 @@ void nifti_disp_lib_version( void )
  * Note that valid values for blist are in [0..nt*nu*nv*nw-1],
  * or written [ 0 .. (dim[4]*dim[5]*dim[6]*dim[7] - 1) ].
  *----------------------------------------------------------------------*/
-nifti_image *nifti_image_read_bricks( char *hname , int nbricks, int * blist,
+nifti_image *nifti_image_read_bricks( char *hname, int nbricks, int * blist,
                                       nifti_brick_list * NBL )
 {
    nifti_image * nim;
@@ -235,13 +241,14 @@ static void update_nifti_image_for_brick_list( nifti_image * nim , int nbricks )
    /* update the dimensions to 4 or lower */
    for( ndim = 4; (ndim > 1) && (nim->dim[ndim] <= 1); ndim-- )
        ;
-   nim->dim[0] = nim->ndim = ndim;
 
    if( gni_debug > 2 ){
+      fprintf(stderr,"+d ndim = %d -> %d\n",nim->ndim, ndim);
       fprintf(stderr," --> (%d,%d,%d,%d,%d,%d,%d)\n",
               nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->nv, nim->nw);
-      fprintf(stderr,"+d new ndim = %d\n",nim->ndim);
    }
+
+   nim->dim[0] = nim->ndim = ndim;
 }
 
 
@@ -626,6 +633,11 @@ char *nifti_strdup(char *str)
 #ifndef HAVE_STRDUP
 #endif
 
+
+/*---------------------------------------------------------------------------*/
+/* Return a pointer to a string holding the name of a NIFTI datatype.
+   Don't free() or modify this string!  It points to static storage.
+-----------------------------------------------------------------------------*/
 
 char *nifti_datatype_string( int dt )
 {
@@ -1724,7 +1736,7 @@ char * nifti_find_file_extension( char * name )
    return NULL;
 }
 
-static int nifti_is_gzfile(char* fname)
+int nifti_is_gzfile(char* fname)
 {
   /* return true if the filename ends with .gz */
   if (fname == NULL) { return 0; }
@@ -1763,7 +1775,7 @@ void nifti_set_debug_level( int level )
  * NB: it allocates memory for hdrname which should be freed
  *   when no longer required
  ----------------------------------------------------------------------*/
-static char * nifti_findhdrname(char* fname)
+char * nifti_findhdrname(char* fname)
 {
    char *basename, *hdrname, *ext;
    char  elist[2][5] = { ".hdr", ".nii" };
@@ -1831,7 +1843,7 @@ static char * nifti_findhdrname(char* fname)
  * NB: it allocates memory for imgname which should be freed
  *   when no longer required
  ----------------------------------------------------------------------*/
-static char * nifti_findimgname(char* fname , int nifti_type)
+char * nifti_findimgname(char* fname , int nifti_type)
 {
    char *basename, *imgname, ext[2][5] = { ".nii", ".img" };
    int  first;  /* first extension to use */
@@ -2521,13 +2533,9 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp )
 
    posn = znztell(fp);
  
-   if( posn != sizeof(nifti_1_header) ){
-      int dlevel_test = 0;
-      if( nim->nifti_type == 3 ) dlevel_test = 1;
-      if( gni_debug > dlevel_test )
-         fprintf(stderr,"** WARNING: posn not header size (%d, %d)\n",
-                 posn, (int)sizeof(nifti_1_header));
-   }
+   if( (posn != sizeof(nifti_1_header)) && (nim->nifti_type != 3) )
+      fprintf(stderr,"** WARNING: posn not header size (%d, %d)\n",
+              posn, (int)sizeof(nifti_1_header));
 
    if( gni_debug > 2 )
       fprintf(stderr,"-d nre: posn = %d, offset = %d, type = %d\n",
@@ -3021,19 +3029,47 @@ static size_t nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes)
      return ; } while(0)
 */
 
-static void nifti_write_all_data(znzFile fp, nifti_image *nim)
+static void nifti_write_all_data(znzFile fp, nifti_image *nim,
+                                 nifti_brick_list * NBL)
 {
    /** Write all the image data at once (no swapping here) **/
    size_t ss;
-   ss = nifti_write_buffer(fp,nim->data,nim->nbyper * nim->nvox);
-   if (ss < (nim->nbyper * nim->nvox)){
-      fprintf(stderr,
-         "** ERROR: nifti_image_write: wrote only %d of %d bytes to file\n",
-         (int)ss, nim->nbyper * nim->nvox);
-      return;
+   int    bnum;
+
+   if( !NBL ){ /* just write one buffer and get out of here */
+      ss = nifti_write_buffer(fp,nim->data,nim->nbyper * nim->nvox);
+      if (ss < (nim->nbyper * nim->nvox)){
+         fprintf(stderr,
+            "** ERROR: nifti_image_write: wrote only %d of %d bytes to file\n",
+            (int)ss, nim->nbyper * nim->nvox);
+         return;
+      }
+
+      if( gni_debug > 1 )
+         fprintf(stderr,"+d wrote single image of %d bytes\n",(int)ss);
+   } else {
+      if( ! NBL->bricks || NBL->nbricks <= 0 || NBL->bsize <= 0 ){
+         fprintf(stderr,"** write NBL: no brick data to write (%p,%d,%d)\n",
+                 NBL->bricks, NBL->nbricks, NBL->bsize);
+         return;
+      }
+
+      for( bnum = 0; bnum < NBL->nbricks; bnum++ ){
+         ss = nifti_write_buffer(fp, NBL->bricks[bnum], NBL->bsize);
+         if( ss < NBL->bsize ){
+            fprintf(stderr,
+               "** write ERROR: wrote %d of %d bytes of brick %d of %d to file",
+               (int)ss, NBL->bsize, bnum+1, NBL->nbricks);
+            return;
+         }
+      }
+      if( gni_debug > 1 )
+         fprintf(stderr,"+d wrote image of %d brick(s), each of %d bytes\n",
+                 NBL->nbricks, NBL->bsize);
    }
 
    nim->byteorder = short_order() ;  /* mark as being in this CPU byte order */
+
    return ;
 }
 
@@ -3076,7 +3112,7 @@ static int nifti_write_extensions(znzFile fp, nifti_image *nim)
    }
 
    if( gni_debug > 1 )
-      fprintf(stderr,"+d wrote out %d extensions\n", nim->num_ext);
+      fprintf(stderr,"+d wrote out %d extension(s)\n", nim->num_ext);
 
    return nim->num_ext;
 }
@@ -3247,7 +3283,6 @@ void nifti_set_iname_offset(nifti_image *nim)
 {
    int offset = nifti_extension_size(nim);  /* init based on extensions */
 
-
    switch( nim->nifti_type ){
 
      default:  /* writing into 2 files */
@@ -3256,7 +3291,8 @@ void nifti_set_iname_offset(nifti_image *nim)
      break ;
 
      case 1:   /* NIFTI-1 single binary file */
-       if (nim->iname_offset < sizeof(struct nifti_1_header))  {
+       /* need to cast sizeof to int, else -1 may be promoted to unsigned */
+       if (nim->iname_offset < (int)sizeof(struct nifti_1_header)) {
 	   offset += sizeof(struct nifti_1_header) + 4 ;
 	   /* be sure offset is aligned to a 16 byte word boundary */
 	   if ( ( offset % 16 ) != 0 )  offset = ((offset + 0xf) & ~0xf);
@@ -3299,7 +3335,8 @@ void nifti_set_iname_offset(nifti_image *nim)
  * ----------------------------------------------------------------------*/
 
 static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data , 
-                                           char* opts, znzFile *imgfile )
+                                           char* opts, znzFile *imgfile,
+                                           nifti_brick_list * NBL )
 {
    struct nifti_1_header nhdr ;
    znzFile fp=NULL, hdrfile=NULL;
@@ -3307,9 +3344,15 @@ static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data ,
 
    if( nim        == NULL                         ) ERREX("NULL input") ;
    if( !nifti_validfilename(nim->fname)           ) ERREX("bad fname input") ;
-   if( (nim->data  == NULL)  && ((write_data & 1)!=0) ) ERREX("no image data") ;
+   if( (nim->data == NULL) && ((write_data & 1)!=0) &&
+       (NBL == NULL) )                              ERREX("no image data") ;
 
    nifti_set_iname_offset(nim);
+
+   if( gni_debug > 2 )
+      fprintf(stderr,"-d start write of nifti file '%s', type %d, offset %d\n",
+              nim->fname ? nim->fname : "<NULL>",
+              nim->nifti_type, nim->iname_offset);
 
    /* make iname from fname, if needed */
 
@@ -3347,7 +3390,7 @@ static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data ,
        nifti_write_extensions(fp,nim);
 
        /* writes the binary data to fp */
-       if ( (write_data & 1)!=0) { nifti_write_all_data(fp,nim); }
+       if ( (write_data & 1)!=0) { nifti_write_all_data(fp,nim,NBL); }
        if ( (write_data & 2)==0) { znzclose(fp); }
        return fp;  /* returned but may be closed */
      }
@@ -3381,7 +3424,7 @@ static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data ,
        }
        /* skip to vox_offset, ready for writing */
        znzseek(fp,nim->iname_offset,SEEK_SET);
-       if ( (write_data & 1)!=0)  nifti_write_all_data(fp,nim);
+       if ( (write_data & 1)!=0)  nifti_write_all_data(fp,nim,NBL);
      }
      
      /** close the file if requested **/
@@ -3417,7 +3460,7 @@ static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data ,
    if ((write_data & 3)!=0) {  
      /* skip to vox_offset, ready for writing in image file */
      znzseek(*imgfile,nim->iname_offset,SEEK_SET);
-     if ( (write_data & 1)!=0) nifti_write_all_data(*imgfile,nim);
+     if ( (write_data & 1)!=0) nifti_write_all_data(*imgfile,nim,NBL);
    }
 
    /** close the file if requested **/
@@ -3427,15 +3470,21 @@ static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data ,
 
 
 static znzFile nifti_image_write_hdr_img( nifti_image *nim , int write_data , 
-                                          char* opts)
+                                          char* opts )
 {
-  return nifti_image_write_hdr_img2(nim,write_data,opts,NULL);
+  return nifti_image_write_hdr_img2(nim,write_data,opts,NULL,NULL);
 }
 
 
 void nifti_image_write( nifti_image *nim )
 {
   nifti_image_write_hdr_img(nim,1,"wb");
+}
+
+/* new function to pass NBL down to write_all_data */
+void nifti_image_write_bricks( nifti_image *nim, nifti_brick_list * NBL )
+{
+  (void)nifti_image_write_hdr_img2(nim,1,"wb",NULL,NBL);
 }
 
 

@@ -1814,13 +1814,19 @@ asnap:asnap.o
 	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS) -lf2c
 
 # specifics for the nifti1 .o files
-znzlib.o:znzlib/znzlib.c znzlib/znzlib.h
+nifti1_io.o:nifti/nifti1_io.c nifti/nifti1_io.h
 	$(RM) $@
-	$(CC) -c znzlib/znzlib.c $(IFLAGS)
+	$(CC) -c nifti/nifti1_io.c $(IFLAGS)
 
-nifti1_test.o:nifti1_io.o nifti1_io.h nifti1.h
+znzlib.o:nifti/znzlib.c nifti/znzlib.h
+	$(RM) $@
+	$(CC) -c nifti/znzlib.c $(IFLAGS)
 
-nifti1_test:nifti1_test.o znzlib.o
+nifti1_test.o:nifti/nifti1_test.c 
+	$(RM) $@
+	$(CC) -c nifti/nifti1_test.c $(IFLAGS)
+
+nifti1_test:nifti1_test.o nifti1_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o nifti1_test nifti1_test.o nifti1_io.o znzlib.o -lm
 

@@ -12,7 +12,7 @@
 #endif
 #include "nifti1.h"                  /*** NIFTI-1 header specification ***/
 
-#include "znzlib/znzlib.h"
+#include "znzlib.h"
 
 /*=================*/
 #ifdef  __cplusplus
@@ -35,12 +35,17 @@ extern "C" {
 /*****===================================================================*****/
 
 /* 
-   Modified by: Mark Jenkinson (FMRIB Centre, University of Oxford, UK)
    Date: July/August 2004 
+   Modified by: Mark Jenkinson (FMRIB Centre, University of Oxford, UK)
 
-   Mainly adding low-level IO and changing things to allow gzipped files
-   to be read and written
-   Full backwards compatability should have been maintained
+      Mainly adding low-level IO and changing things to allow gzipped files
+      to be read and written
+      Full backwards compatability should have been maintained
+
+   Date: December 2004
+   Modified by: Rick Reynolds (SSCC/DIRP/NIMH, National Institutes of Health)
+
+      Modified and added many routines for I/O.
 */
 
 /********************** Some sample data structures **************************/
@@ -157,19 +162,20 @@ void swap_Nbytes ( int n , int siz , void *ar ) ;
 void swap_nifti_header( struct nifti_1_header *h , int is_nifti ) ;
 unsigned int get_filesize( char *pathname ) ;
 
-/* main routine for reading a dataset into a brick list */
 nifti_image *nifti_image_read_bricks(char *hname , int nbricks, int * blist,
                                      nifti_brick_list * NBL );
 int          nifti_image_load_bricks(nifti_image *nim , int nbricks, int *blist,
                                      nifti_brick_list * NBL );
 void         free_NBL( nifti_brick_list * NBL );
 
-/* main routine for reading a dataset into a single image */
+/* main read/write routines */
 nifti_image *nifti_image_read    ( char *hname , int read_data ) ;
 int          nifti_image_load    ( nifti_image *nim ) ;
 void         nifti_image_unload  ( nifti_image *nim ) ;
 void         nifti_image_free    ( nifti_image *nim ) ;
+
 void         nifti_image_write   ( nifti_image *nim ) ;
+void         nifti_image_write_bricks(nifti_image *nim, nifti_brick_list * NBL);
 void         nifti_image_infodump( nifti_image *nim ) ;
 
 void         nifti_disp_lib_hist( void ) ;     /* to display library history */
@@ -228,9 +234,9 @@ void mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod ) ;
 
 /*--------------------- Low level IO routines ------------------------------*/
 
-static char * nifti_findhdrname (char* fname);
-static char * nifti_findimgname (char* fname , int nifti_type);
-static int    nifti_is_gzfile   (char* fname);
+char * nifti_findhdrname (char* fname);
+char * nifti_findimgname (char* fname , int nifti_type);
+int    nifti_is_gzfile   (char* fname);
 
 char * nifti_makebasename(char* fname);
 
@@ -260,13 +266,14 @@ static int int_force_positive( int * list, int nel );
 static znzFile nifti_image_write_hdr_img(nifti_image *nim , int write_data , 
                                          char* opts);
 static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data , 
-                                           char* opts, znzFile *imgfile );
+                         char* opts, znzFile *imgfile, nifti_brick_list * NBL );
 static znzFile nifti_image_open(char *hname , char *opts , nifti_image **nim);
 static znzFile nifti_image_load_prep( nifti_image *nim );
 static size_t nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot,
                                 nifti_image *nim);
 
-static void   nifti_write_all_data(znzFile fp, nifti_image *nim);
+static void   nifti_write_all_data(znzFile fp, nifti_image *nim,
+                                   nifti_brick_list * NBL);
 static size_t nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes);
 
 
