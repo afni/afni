@@ -18,6 +18,7 @@
 extern SUMA_SurfaceViewer *SUMAg_cSV;
 extern int SUMAg_N_DOv; 
 extern SUMA_DO *SUMAg_DOv;
+extern SUMA_CommonFields *SUMAg_CF; 
 
 
 /*! Mouse and Keyboard input handler function */
@@ -132,14 +133,16 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					break;
 					
 				case 'B':
-					SUMAg_cSV->BF_Cull = !SUMAg_cSV->BF_Cull;
-					if (SUMAg_cSV->BF_Cull) {
-						glCullFace (GL_BACK);
-   					glEnable (GL_CULL_FACE);
-					} else {
-						glDisable(GL_CULL_FACE);
+					if (SUMAg_CF->Dev)  {
+						SUMAg_cSV->BF_Cull = !SUMAg_cSV->BF_Cull;
+						if (SUMAg_cSV->BF_Cull) {
+							glCullFace (GL_BACK);
+   						glEnable (GL_CULL_FACE);
+						} else {
+							glDisable(GL_CULL_FACE);
+						}
+						postRedisplay();
 					}
-					postRedisplay();
 					break;
 					
 				case 'b':
@@ -202,7 +205,9 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					break;
 				
 				case 'd':
-					SUMA_Show_DOv(SUMAg_DOv, SUMAg_N_DOv, stdout);
+					if (SUMAg_CF->Dev) {
+						SUMA_Show_DOv(SUMAg_DOv, SUMAg_N_DOv, stdout);
+					}
 					break;
 				
 				
@@ -222,25 +227,27 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					break;				
 
 				case 'H':
-					do {
-						fprintf(stdout,"Enter XYZ of center followed by size of Box (comma separated):\n");
-					} while (fscanf(stdin,"%f, %f, %f, %f, %f, %f", &(fv15[0]), &(fv15[1]),&(fv15[2]),\
-																&(fv15[3]), &(fv15[4]),&(fv15[5])) != 6);
-					fprintf(stdout,"You Entered: Center: %f %f %f Size %f %f %f\n", \
-						fv15[0], fv15[1],fv15[2],\
-						fv15[3], fv15[4],fv15[5]);
-					
-					/* register fv15 with EngineData */
-					sprintf(sfield,"fv15");
-					sprintf(sdestination,"HighlightNodes");
-					if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
-						fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-						break;
-					}
-						
-					sprintf(CommString,"Redisplay|HighlightNodes~");			
-					if (!SUMA_Engine (CommString, &EngineData)) {
-						fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+					if (SUMAg_CF->Dev) {
+						do {
+							fprintf(stdout,"Enter XYZ of center followed by size of Box (comma separated):\n");
+						} while (fscanf(stdin,"%f, %f, %f, %f, %f, %f", &(fv15[0]), &(fv15[1]),&(fv15[2]),\
+																	&(fv15[3]), &(fv15[4]),&(fv15[5])) != 6);
+						fprintf(stdout,"You Entered: Center: %f %f %f Size %f %f %f\n", \
+							fv15[0], fv15[1],fv15[2],\
+							fv15[3], fv15[4],fv15[5]);
+
+						/* register fv15 with EngineData */
+						sprintf(sfield,"fv15");
+						sprintf(sdestination,"HighlightNodes");
+						if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
+							fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+							break;
+						}
+
+						sprintf(CommString,"Redisplay|HighlightNodes~");			
+						if (!SUMA_Engine (CommString, &EngineData)) {
+							fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+						}
 					}
 					break;
 
@@ -270,10 +277,12 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					break;
 					
 				case 'L':
-					do {
-						fprintf(stdout,"Enter XYZ coordinates to look from (comma separated):\n");
-					} while (fscanf(stdin,"%f, %f, %f", &(fv3[0]), &(fv3[1]),&(fv3[2])) != 3);
-					fprintf(stdout,"You Entered: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
+					if (SUMAg_CF->Dev) {
+						do {
+							fprintf(stdout,"Enter XYZ coordinates to look from (comma separated):\n");
+						} while (fscanf(stdin,"%f, %f, %f", &(fv3[0]), &(fv3[1]),&(fv3[2])) != 3);
+						fprintf(stdout,"You Entered: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
+					}
 					break;
 					
 				case 'm':
@@ -290,25 +299,27 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					 break;
 				
 				case 'n':
-					do {
-						fprintf(stdout,"Enter XYZ of center followed by size of Box (comma separated):\n");
-					} while (fscanf(stdin,"%f, %f, %f, %f, %f, %f", &(fv15[0]), &(fv15[1]),&(fv15[2]),\
-																&(fv15[3]), &(fv15[4]),&(fv15[5])) != 6);
-					fprintf(stdout,"You Entered: Center: %f %f %f Size %f %f %f\n", \
-						fv15[0], fv15[1],fv15[2],\
-						fv15[3], fv15[4],fv15[5]);
-					
-					/* register fv15 with EngineData */
-					sprintf(sfield,"fv15");
-					sprintf(sdestination,"GetNearestNode");
-					if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
-						fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-						break;
-					}					
-						
-					sprintf(CommString,"Redisplay|GetNearestNode~");			
-					if (!SUMA_Engine (CommString, &EngineData)) {
-						fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+					if (SUMAg_CF->Dev) {
+						do {
+							fprintf(stdout,"Enter XYZ of center followed by size of Box (comma separated):\n");
+						} while (fscanf(stdin,"%f, %f, %f, %f, %f, %f", &(fv15[0]), &(fv15[1]),&(fv15[2]),\
+																	&(fv15[3]), &(fv15[4]),&(fv15[5])) != 6);
+						fprintf(stdout,"You Entered: Center: %f %f %f Size %f %f %f\n", \
+							fv15[0], fv15[1],fv15[2],\
+							fv15[3], fv15[4],fv15[5]);
+
+						/* register fv15 with EngineData */
+						sprintf(sfield,"fv15");
+						sprintf(sdestination,"GetNearestNode");
+						if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv15, sdestination, ssource, NOPE)) {
+							fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+							break;
+						}					
+
+						sprintf(CommString,"Redisplay|GetNearestNode~");			
+						if (!SUMA_Engine (CommString, &EngineData)) {
+							fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+						}
 					}
 					break;
 					
@@ -329,7 +340,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					break;
 					
 				case 'S':
-					{
+					if (SUMAg_CF->Dev) {
 						int *do_id, n_do_id;
 						do_id = SUMA_GetDO_Type(SUMAg_DOv, SUMAg_N_DOv, SO_type, &n_do_id);
 						if (n_do_id) {
@@ -342,9 +353,11 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						break;
 					}
 				case 's':
-					for (ii=0; ii< SUMAg_cSV->N_DO; ++ii) {
-						if (SUMA_isSO(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]])) 
-							SUMA_Print_Surface_Object((SUMA_SurfaceObject*)SUMAg_DOv[SUMAg_cSV->ShowDO[ii]].OP, stdout);
+					if (SUMAg_CF->Dev) {
+						for (ii=0; ii< SUMAg_cSV->N_DO; ++ii) {
+							if (SUMA_isSO(SUMAg_DOv[SUMAg_cSV->ShowDO[ii]])) 
+								SUMA_Print_Surface_Object((SUMA_SurfaceObject*)SUMAg_DOv[SUMAg_cSV->ShowDO[ii]].OP, stdout);
+						}
 					}
 					break;
 					
@@ -356,11 +369,13 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					break;
 					
 				case 'v':
-					Show_SUMA_SurfaceViewer_Struct (SUMAg_cSV, stdout);
+					if (SUMAg_CF->Dev) {
+						Show_SUMA_SurfaceViewer_Struct (SUMAg_cSV, stdout);
+					}
 					break;
 				
 				case 'W':
-					{
+					if (SUMAg_CF->Dev) {
 						FILE *Fout;
 						SUMA_SurfaceObject *SO;
 						
@@ -462,22 +477,23 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					break;
 					
  				case '@':
-					/* calculate the curvature */
-					fprintf(SUMA_STDOUT, "%s: Calculating surface curvature ...\n", FuncName);
-					{
-						SUMA_SurfaceObject *SO;
-						SO = (SUMA_SurfaceObject *)SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP;
-						SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL);
-						if (SO->SC == NULL) {
-								fprintf(stderr,"Error %s: Failed in SUMA_Surface_Curvature\n", FuncName);
-								break;
-							}					
-					}	
+					if (SUMAg_CF->Dev) {
+						/* calculate the curvature */
+						fprintf(SUMA_STDOUT, "%s: Calculating surface curvature ...\n", FuncName);
+						{
+							SUMA_SurfaceObject *SO;
+							SO = (SUMA_SurfaceObject *)SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP;
+							SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL);
+							if (SO->SC == NULL) {
+									fprintf(stderr,"Error %s: Failed in SUMA_Surface_Curvature\n", FuncName);
+									break;
+								}					
+						}	
+					}
 					break;
 				
 				case '(':
-					fprintf(SUMA_STDOUT, "%s: Calculating convexity ...\n", FuncName);
-					{
+					if (SUMAg_CF->Dev) {
 						SUMA_SurfaceObject *SO;
 						SUMA_COLOR_MAP *CM;
 						SUMA_SCALE_TO_MAP_OPT * OptScl;
@@ -486,6 +502,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 						float ClipRange[2], *Vsort;
 						float * attr_sm;
 						
+						fprintf(SUMA_STDOUT, "%s: Calculating convexity ...\n", FuncName);
 						SO = (SUMA_SurfaceObject *)SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP;	
 						if (SO->Cx) {
 							fprintf(stderr,"Error %s: SO->Cx must be null prior to new assignment\n", FuncName);

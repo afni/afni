@@ -1,6 +1,21 @@
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <Xm/Form.h>    /* Motif Form widget. */
+#include <Xm/Frame.h>   /* Motif Frame widget. */
+#include <X11/keysym.h>
+#include <X11/Xutil.h>
+#include <X11/Xatom.h>  /* For XA_RGB_DEFAULT_MAP. */
+#include <X11/Xmu/StdCmap.h>  /* For XmuLookupStandardColormap. */
+#include <math.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glx.h>
+#include <GL/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
 
+#include "SUMA_suma.h"
+
+extern SUMA_CommonFields *SUMAg_CF; 
 
 /*!
 Controls help message
@@ -12,28 +27,28 @@ void SUMA_help_message(FILE *Out)
 	}
     fprintf (Out, "\nKeyboard Controls\n");
 	 fprintf (Out, "\t  a: attenuation by background, toggle.\n");
-	 fprintf (Out, "\t  B: Backface culling toggle.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  B: Backface culling toggle.\n");
 	 fprintf (Out, "\t  b: background color toggle.\n");
 	 fprintf (Out, "\t  c: input a node color file.\n");
-	 fprintf (Out, "\t  d: Show all DO objects in DOv.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  d: Show all DO objects in DOv.\n");
 	 fprintf (Out, "\t  f: functional overlay toggle.\n");
 	 fprintf (Out, "\t  F: Flip light position between +z and -z.\n");
-	 fprintf (Out, "\t  H: Highlight nodes inside a specified box.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  H: Highlight nodes inside a specified box.\n");
 	 fprintf (Out, "\t  h: help message\n");
 	 fprintf (Out, "\t  l: look at point\n");
-	 fprintf (Out, "\t  L: look from point\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  L: look from point\n");
 	 fprintf (Out, "\t  m: toggle momentum\n");
-	 fprintf (Out, "\t  n: bring a node to direct view\n");
-	 fprintf (Out, "\t  s: Show surface object structures in ShowDO vector.\n");
-	 fprintf (Out, "\t  S: Show all surface objects registered in DOv.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  n: bring a node to direct view\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  s: Show surface object structures in ShowDO vector.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  S: Show all surface objects registered in DOv.\n");
 	 fprintf (Out, "\t  t: toggle TalkToAfni\n");
-	 fprintf (Out, "\t  v: Show current surface viewer structure (cSV).\n");
-	 fprintf (Out, "\t  w: Write the contents of the image viewer to disk (suma.rgb.eps).\n");
-	 fprintf (Out, "\t  W: Write ascii files containing the NodeList and the FaceSetList of the surface in focus.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  v: Show current surface viewer structure (cSV).\n");
+	 fprintf (Out, "\t  w: Write the rendered scene an image file on disk (suma_img*.eps).\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  W: Write ascii files containing the NodeList and the FaceSetList of the surface in focus.\n");
 	 fprintf (Out, "\t  Z/z: zoom in/out\n");
 	 fprintf (Out, "\t  *: Smooth node colors by averaging with neighbors.\n");
-	 fprintf (Out, "\t  @: Compute curvatures along principal directions on the surface, results written to disk.\n");
-	 fprintf (Out, "\t  (: Compute convexity of surface, results written to disk.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  @: Compute curvatures along principal directions on the surface, results written to disk.\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  (: Compute convexity of surface, results written to disk.\n");
 	 fprintf (Out, "\t  ,/. (think </>): Switch to next/previous view state.\n");
 	 fprintf (Out, "\t  SPACE: Toggle between Mapping Reference and Current view state.\n");
 	 fprintf (Out, "\t  L-R arrows: rotate about screen's Y axis\n");
@@ -57,7 +72,21 @@ void SUMA_help_message(FILE *Out)
 	 fprintf (Out, "\t  Button 2-Motion: translation\n"); 
 	 fprintf (Out, "\t  Button 3-Press: picking \n");
 	 fprintf (Out, "\n");
+	 fprintf (Out, "More help at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
+	 fprintf (Out, "\n");
 	 return;
+}
+
+/*!
+SUMA version 
+*/
+void SUMA_Version (FILE *Out)
+{
+	if (Out == NULL) {
+		Out = stdout;
+	}
+	fprintf (Out, "\n\tSUMA version 1.0, Fri Jun 7 2002\n");
+	return;
 }
 
 /*!
@@ -68,7 +97,9 @@ void SUMA_VolSurf_help (FILE *Out)
 	if (Out == NULL) {
 		Out = stdout;
 	}
-    fprintf (Out, "\nVolume <--> Surface jeremiad:\n");
+    fprintf (Out, "SUMA_VolSurf_help: This function is obsolete.\n");
+	 return;
+	 fprintf (Out, "\nVolume <--> Surface jeremiad:\n");
 	 fprintf (Out, "-----------------------------\n");
 	 fprintf (Out, "\tTo transform surface node coordinates to voxel coordinates a few parameters are required.\n");
 	 fprintf (Out, "\tThose paramters vary depending on the type of surfaces used. Currently, SUMA supports \n");
@@ -107,4 +138,5 @@ void SUMA_VolSurf_help (FILE *Out)
 	 fprintf (Out, "\nor:\n");
 	 fprintf (Out, "\t./suma -vp CW-cSurfParent-SPGR-AX_LPI+orig. -spec CW-SureFit.SumaSpec\n");
 	 fprintf (Out, "\t\n"); 
+	 return;
 }

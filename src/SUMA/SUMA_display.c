@@ -280,6 +280,7 @@ resize(Widget w,
    gluLookAt (SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewFrom[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCenter[2], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[0], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[1], SUMAg_cSV->GVS[SUMAg_cSV->StdView].ViewCamUp[2]);
 	SUMAg_cSV->Aspect = (GLfloat) callData->width/(GLfloat) callData->height;
 	SUMAg_cSV->WindWidth = callData->width; SUMAg_cSV->WindHeight = callData->height;
+	postRedisplay();
 
 }
 
@@ -624,7 +625,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 		while (!OKname) {
 			sprintf (tmpprfx, "%d", cntindx);
 			padprfx = SUMA_pad_str (tmpprfx, '0', 4, 0);
-			sprintf(padname,"suma.rgb%s.eps", padprfx);
+			sprintf(padname,"suma_img%s.eps", padprfx);
 			if (SUMA_filexists(padname)) {
 				++cntindx;
 			} else { OKname = YUP; }

@@ -720,5 +720,7 @@ typedef struct {
 typedef struct {
 	char AfniHostName[SUMA_MAX_NAME_LENGTH]; /*!< name or ipaddress of afni host maximum allowed name is 20 chars less than allocated for, see SUMA_Assign_AfniHostName*/ 
 	char NimlAfniStream[SUMA_MAX_NAME_LENGTH]; /*!< niml stream name for communicating with afni */
+	SUMA_Boolean Dev; /*!< Flag for developer option (allows the use of confunsing or kludge options) */
 } SUMA_CommonFields;
+
 #endif

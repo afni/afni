@@ -7,6 +7,9 @@ endif
 goto PARSE_COMMAND
 Ret_PARSE_COMMAND:
 
+goto CHECK_PROGRAMS
+Ret_CHECK_PROGRAMS
+
 goto SET_VARIABLES
 Ret_SET_VARIABLES:
 
@@ -37,6 +40,10 @@ PARSE_COMMAND:
 	set SurfAnatPrefix = `@GetAfniPrefix $2` 
 	set SurfAnatView = `@GetAfniView $2` 
 	set SurfAnatPath = $2:h
+	if ($SurfAnatPath == $2:t) then 
+		#no path given
+		set SurfAnatPath = .
+	end
 	goto Ret_PARSE_COMMAND
 
 SET_VARIABLES:
@@ -103,6 +110,24 @@ CHECK_EXISTENCE:
 	test -f $SurfAnatPath/$SurfAnat.BRIK || goto NO_SURFANAT
 	goto Ret_CHECK_EXISTENCE
 
+CHECK_PROGRAMS:
+	 set failed_pgms = 0
+    foreach test_command ( 3dvolreg adwarp @GetAfniView @GetAfniPrefix )
+		(which $test_command) >& /dev/null
+
+		if ( $status ) then
+	   	 echo "program not found in path: $test_command"
+	   	 @ failed_pgms ++
+		endif
+    end
+
+    if ( $failed_pgms ) then
+		echo "$failed_pgms program(s) not found"
+		goto END
+    endif
+
+	goto Ret_CHECK_PROGRAMS
+	
 NO_SURFANAT:
 	echo ""
 	echo "Error: No Surface Anatomy $SurfAnat (.HEAD or .BRIK) volume in $SurfAnatPath"
@@ -140,7 +165,10 @@ USAGE:
 	echo "<Experiment Anatomy> Name of high resolution anatomical data set in register with experimental data."
 	echo "<Surface Anatomy> Path and Name of high resolution antomical data set used to create the surface."
 	echo "[dxyz]: This optional parameter indicates that the anatomical volumes must be downsampled to dxyz mm"
-	echo "        voxel resolution before registration. That is necessary when 3dvolreg runs out of memory."
+	echo "        voxel resolution before registration. That is only necessary if 3dvolreg runs out of memory."
+	echo "        You MUST have 3dvolreg that comes with afni distributions newer than version 2.45l. It contains"
+	echo "        an option for reducing memory usage and thus allow the registration of large data sets."
+	echo "         
 	echo ""
 	echo "NOTE: You must run the script from the directory where Experiment Anatomy resides."
 	echo ""
