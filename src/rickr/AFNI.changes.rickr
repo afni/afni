@@ -811,7 +811,7 @@
   * modified Makefile.INCLUDE, adding list_struct.o to CS_OBJS
   * modified vol2surf.c, changing float_list to float_list_t
 
-10 December 2004:   added header extensions to nifti library
+10 December 2004:   added header extensions to nifti library (v 0.4)
   * in nifti1_io.h:
       - added num_ext and ext_list to the definition of nifti_image
       - made many functions static (more to follow)
@@ -841,4 +841,16 @@
 
 11 Dec 2004:
   * added a description of the default operation to the Help in plug_vol2surf.c
+
+14 Dec 2004: added loading a brick list to nifti1 library (v 0.5)
+  * added nifti_brick_list type to nifti1_io.h, along with new prototypes
+  * added main nifti_image_read_bricks() function, with description
+  * added nifti_image_load_bricks() - library function (requires nim)
+  * added valid_nifti_brick_list() - library function
+  * added free_NBL() - library function
+  * added update_nifti_image_for_brick_list() for dimension update
+  * added nifti_load_NBL_bricks(), nifti_alloc_NBL_mem(),
+          nifti_copynsort() and force_positive() (static functions)
+  * in nifti_image_read(), check for failed load only if read_data is set
+  * broke most of nifti_image_load() into nifti_image_load_prep()
 

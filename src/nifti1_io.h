@@ -117,6 +117,16 @@ typedef struct {                  /** Image storage struct **/
 
 } nifti_image ;
 
+
+
+/* struct for return from nifti_image_read_bricks() */
+typedef struct {
+  int     nbricks;    /* the number of allocated pointers in 'bricks' */
+  int     bsize;      /* the length of each data block, in bytes      */
+  void ** bricks;     /* array of pointers to data blocks             */
+} nifti_brick_list;
+
+
 /*****************************************************************************/
 /*--------------- Prototypes of functions defined in this file --------------*/
 
@@ -147,6 +157,14 @@ void swap_Nbytes ( int n , int siz , void *ar ) ;
 void swap_nifti_header( struct nifti_1_header *h , int is_nifti ) ;
 unsigned int get_filesize( char *pathname ) ;
 
+/* main routine for reading a dataset into a brick list */
+nifti_image *nifti_image_read_bricks(char *hname , int nbricks, int * blist,
+                                     nifti_brick_list * NBL );
+int          nifti_image_load_bricks(nifti_image *nim , int nbricks, int *blist,
+                                     nifti_brick_list * NBL );
+void         free_NBL( nifti_brick_list * NBL );
+
+/* main routine for reading a dataset into a single image */
 nifti_image *nifti_image_read    ( char *hname , int read_data ) ;
 int          nifti_image_load    ( nifti_image *nim ) ;
 void         nifti_image_unload  ( nifti_image *nim ) ;
@@ -171,6 +189,9 @@ int          nifti_validfilename(char* fname) ;
 int          disp_nifti_1_header( char * info, nifti_1_header * hp ) ;
 void         nifti_set_debug_level( int level ) ;
 int          print_hex_vals( char * data, int nbytes, FILE * fp ) ;
+
+int valid_nifti_brick_list(nifti_image * nim , int nbricks, int * blist,
+                           int disp_error);
 
 
 void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize ) ;
@@ -214,13 +235,26 @@ static int    nifti_is_gzfile   (char* fname);
 char * nifti_makebasename(char* fname);
 
 /* extension routines */
-static int nifti_read_extensions( nifti_image *nim, znzFile fp );
-static int nifti_read_next_extension( nifti1_extension * nex,
-                                      nifti_image *nim, znzFile fp );
-static int nifti_add_exten_to_list( nifti1_extension *  new_ext,
-                                    nifti1_extension ** list, int new_length );
-static int nifti_write_extensions(znzFile fp, nifti_image *nim);
-static int nifti_valid_extension( nifti_image *nim, int size, int code );
+static int  nifti_read_extensions( nifti_image *nim, znzFile fp );
+static int  nifti_read_next_extension( nifti1_extension * nex,
+                                       nifti_image *nim, znzFile fp );
+static int  nifti_add_exten_to_list( nifti1_extension *  new_ext,
+                                     nifti1_extension ** list, int new_length );
+static int  nifti_write_extensions(znzFile fp, nifti_image *nim);
+static int  nifti_valid_extension( nifti_image *nim, int size, int code );
+static void update_nifti_image_for_brick_list(nifti_image * nim , int nbricks);
+
+/* NBL routines */
+static int  nifti_load_NBL_bricks(nifti_image * nim , int * slist, int * sindex,
+                                  nifti_brick_list * NBL, znzFile fp );
+static int  nifti_alloc_NBL_mem(  nifti_image * nim, int nbricks,
+                                  nifti_brick_list * nbl);
+static int  nifti_copynsort(int nbricks, int *blist, int **slist, int **sindex);
+
+
+/* misc */
+static int int_force_positive( int * list, int nel );
+
 
 /* internal I/O routines */
 static znzFile nifti_image_write_hdr_img(nifti_image *nim , int write_data , 
@@ -228,6 +262,7 @@ static znzFile nifti_image_write_hdr_img(nifti_image *nim , int write_data ,
 static znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_data , 
                                            char* opts, znzFile *imgfile );
 static znzFile nifti_image_open(char *hname , char *opts , nifti_image **nim);
+static znzFile nifti_image_load_prep( nifti_image *nim );
 static size_t nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot,
                                 nifti_image *nim);
 
@@ -235,10 +270,12 @@ static void   nifti_write_all_data(znzFile fp, nifti_image *nim);
 static size_t nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes);
 
 
+/* other routines */
 nifti_image *          nifti_copy_nim_info(nifti_image* src);
 nifti_image *          nifti_simple_init_nim();
 struct nifti_1_header  nifti_convert_nim2nhdr(nifti_image* nim);
-nifti_image *          nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname);
+nifti_image *          nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
+                                              char* fname);
 void                   nifti_set_iname_offset(nifti_image *nim);
 
 /*-------------------- Some C convenience macros ----------------------------*/
