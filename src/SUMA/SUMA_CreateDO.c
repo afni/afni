@@ -737,7 +737,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
    
    SUMA_LH("Called");
    /* select the color map */
-   mapcode = SUMA_CMAP_ROI64;
+   mapcode = SUMA_CMAP_ROI128;
    
    /* intilialize list */
    ROIPlaneList = SUMA_Addto_ROIplane_List (NULL, NULL, 0);
