@@ -111,12 +111,15 @@ typedef struct {
    int    ov_brightest,   ov_darkest,   ov_reddest,   ov_greenest,   ov_bluest;
 
    float  bright_ov[MAX_COLORS] ; /* brightness of overlay colors [20 Dec 1999] */
+
+   byte r_ov[MAX_COLORS] ;  /* 06 Mar 2001 */
+   byte g_ov[MAX_COLORS] ;
+   byte b_ov[MAX_COLORS] ;
 } MCW_DCOV ;
 
-#define DCOV_REDBYTE(dc,i)   INTEN_TO_BYTE((dc)->ovc->xcol_ov[i].red)
-#define DCOV_GREENBYTE(dc,i) INTEN_TO_BYTE((dc)->ovc->xcol_ov[i].green)
-#define DCOV_BLUEBYTE(dc,i)  INTEN_TO_BYTE((dc)->ovc->xcol_ov[i].blue)
-#define DC_GRAYBYTE(dc,i)    INTEN_TO_BYTE((dc)->xgry_im[i].red)
+#define DCOV_REDBYTE(dc,i)   ((dc)->ovc->r_ov[i])
+#define DCOV_GREENBYTE(dc,i) ((dc)->ovc->g_ov[i])
+#define DCOV_BLUEBYTE(dc,i)  ((dc)->ovc->b_ov[i])
 
 #define DCOV_BRIGHTNESS(dc,i) ((dc)->ovc->bright_ov[i])
 
@@ -160,11 +163,26 @@ typedef struct {
 
       XtPointer    parent , aux ;
 
-      DC_colordef * cdef ;   /* 11 Feb 1999 */
+      DC_colordef * cdef ;    /* 11 Feb 1999 */
 
       int does_backingstore ; /* 27 Feb 2001 */
       int does_saveunders ;
+
+      byte r_im[MAX_COLORS] ; /* 06 Mar 2001 */
+      byte g_im[MAX_COLORS] ;
+      byte b_im[MAX_COLORS] ;
+#if 0
+      byte gray_im[MAX_COLORS] ;
+#endif
 } MCW_DC ;
+
+#define DC_REDBYTE(dc,i)     ((dc)->r_im[i])  /* 06 Mar 2001 */
+#define DC_GREENBYTE(dc,i)   ((dc)->g_im[i])
+#define DC_BLUEBYTE(dc,i)    ((dc)->b_im[i])
+
+#if 0
+#define DC_GRAYBYTE(dc,i)    ((dc)->gray_im[i])
+#endif
 
 /* fonts to try if the defaults fail */
 

@@ -848,6 +848,17 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
                strcpy( gout[ib+gold] , gl.gl_pathv[ib] ) ;  /* just name */
             }
          }
+
+      } else if( ig == 6 && strcmp(fname,"ALLZERO") == 0 ){ /* 06 Mar 2001 */
+
+         gold = gnum ; gnum++ ;
+         if( gout == NULL ) gout = (char **) malloc (      sizeof(char *)*gnum);
+         else               gout = (char **) realloc(gout, sizeof(char *)*gnum);
+
+         ilen = lpre + strlen(fname) + 1 ;
+         gout[gold] = (char *) malloc( sizeof(char) * ilen ) ; /* output! */
+         strcpy( gout[gold] , fpre ) ;
+         strcat( gout[gold] , fname ) ;
       }
 
       globfree( &gl ) ;

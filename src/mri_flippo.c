@@ -30,7 +30,7 @@ MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im )
 
    if( ! MRI_IS_2D(im) ){
       fprintf(stderr,"\n*** mri_flippo only works with 2D images!\n") ;
-      EXIT(1) ;
+      return im ;
    }
 
    nx     = im->nx ; ny     = im->ny ;

@@ -89,7 +89,9 @@ int main( int argc , char * argv[] )
              "               system -- I often use 5, but our true SNR\n"
              "               is about 100 for EPI.\n"
              "  -nl x    = Set the noise level to 'x', skipping the\n"
-             "               estimation procedure.\n"
+             "               estimation procedure.  Also sets fac=1.0.\n"
+             "               You can use program 3dClipLevel to get an\n"
+             "               estimate of a value for 'x'.\n"
              "Author -- RW Cox\n"
             ) ;
       exit(0) ;
@@ -110,7 +112,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[narg],"-nl") == 0 ){
          narg++ ; nl = 1 ;
-         nlxx = strtod( argv[narg] , NULL ) ;
+         nlxx = strtod( argv[narg] , NULL ) ; snr = 1.0 ;
          if( nlxx <= 0.0 ){fprintf(stderr,"Illegal nl value!\n");exit(1);}
          narg++ ; continue ;
       }
@@ -120,7 +122,7 @@ int main( int argc , char * argv[] )
    if( narg >= argc ){fprintf(stderr,"No datasets?\n");exit(1);}
 
    for( ; narg < argc ; narg++ ){
-      dset = THD_open_one_dataset(argv[narg]) ;
+      dset = THD_open_one_dataset(argv[narg]) ;  /** NOT THD_open_dataset()! **/
       if( dset == NULL ){
          printf("*** Can't open %s\n",argv[narg]) ;
          continue ;

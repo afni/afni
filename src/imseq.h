@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_IMSEQ_HEADER_
 #define _MCW_IMSEQ_HEADER_
 
@@ -409,6 +409,11 @@ typedef struct {
 
      char winfo_sides[4][16] ;
 
+     /* opacity of overlay */
+
+     float ov_opacity ;
+     MCW_arrowval * ov_opacity_av ;
+
 } MCW_imseq ;
 
 #define ISQ_USE_SIDES(isq) ( (isq)->winfo_sides[0][0] != '\0' || \
@@ -467,6 +472,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define BUTTON2_NODRAW          3
 
 #define isqDR_rebar           602  /* 23 Aug 1998 */
+#define isqDR_opacitybut      603  /* 07 Mar 2001 */
 
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
@@ -512,6 +518,16 @@ extern void ISQ_button2_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 extern void ISQ_make_image( MCW_imseq * ) ;
 extern void ISQ_show_image( MCW_imseq * ) ;
 extern void ISQ_draw_winfo( MCW_imseq * ) ;
+
+ /* 06 Mar 2001 */
+extern MRI_IMAGE * ISQ_overlay( MCW_DC *, MRI_IMAGE *, MRI_IMAGE *, float ) ;
+#define ISQ_GOOD_OVERLAY_TYPE(dt) ( (dt)==MRI_short || (dt)==MRI_rgb )
+
+ /* 07 Mar 2001 */
+extern void ISQ_opacity_CB( MCW_arrowval * , XtPointer ) ;
+extern char * ISQ_opacity_label( int ) ;
+extern MRI_IMAGE * ISQ_index_to_rgb( MCW_DC * , int , MRI_IMAGE * ) ;
+#define ISQ_SKIP_OVERLAY(isq) ((isq)->opt.no_overlay || (isq)->ov_opacity == 0.0)
 
 extern MRI_IMAGE * ISQ_manufacture_one( int nim , int overlay , MCW_imseq * seq ) ;
 extern void ISQ_make_montage( MCW_imseq * ) ;

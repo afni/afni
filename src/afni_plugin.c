@@ -3717,6 +3717,8 @@ ENTRY("PLUTO_popup_image") ;
 
       drive_MCW_imseq( imp->seq , isqDR_realize, NULL ) ;
       drive_MCW_imseq( imp->seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
+
+      drive_MCW_imseq( imp->seq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
    }
 
    /*-- display image at last --*/
@@ -3893,6 +3895,7 @@ void * PLUTO_imseq_popup( MRI_IMARR * imar, generic_func * kfunc, void * kdata )
 
    drive_MCW_imseq( psq->seq , isqDR_clearstat , NULL ) ;
 
+
    { ISQ_options opt ;       /* change some options from the defaults */
 
      ISQ_DEFAULT_OPT(opt) ;
@@ -3909,8 +3912,10 @@ void * PLUTO_imseq_popup( MRI_IMARR * imar, generic_func * kfunc, void * kdata )
 
    if( ntot == 1 )
       drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
-   else
+   else {
       drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
+      drive_MCW_imseq( psq->seq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
+   }
 
    return (void *) psq ;
 }
@@ -3957,8 +3962,10 @@ void PLUTO_imseq_addto( void * handle , MRI_IMAGE * im )
 
    if( ntot == 1 )
       drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
-   else
+   else {
       drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
+      drive_MCW_imseq( psq->seq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
+   }
 
    drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)(ntot) ) ;
 

@@ -571,6 +571,10 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
    dc->ovc->name_ov[ii]  = XtNewString(name) ;
    dc->ovc->label_ov[ii] = XtNewString(label) ;
 
+   dc->ovc->r_ov[ii] = INTEN_TO_BYTE(cell.red) ;       /* 06 Mar 2001 */
+   dc->ovc->g_ov[ii] = INTEN_TO_BYTE(cell.green) ;
+   dc->ovc->b_ov[ii] = INTEN_TO_BYTE(cell.blue) ;
+
    if( dc->visual_class == PseudoColor )  /* 11 Feb 1999: */
       FREE_DC_colordef(dc->cdef) ;        /* will need to be recomputed */
 
@@ -972,6 +976,17 @@ void DC_set_image_colors( MCW_DC * dc )
       }
       dc->pix_im_ready = 1 ;
 
+   }
+
+   /* 06 Mar 2001: save RGB of colors into arrays for quick use later */
+
+   for( ii=0 ; ii < nc ; ii++ ){
+      dc->r_im[ii] = INTEN_TO_BYTE( xc[ii].red   ) ;
+      dc->g_im[ii] = INTEN_TO_BYTE( xc[ii].green ) ;
+      dc->b_im[ii] = INTEN_TO_BYTE( xc[ii].blue  ) ;
+#if 0
+      dc->gray_im[ii] = BRIGHTNESS( dc->r_im[ii] , dc->g_im[ii] , dc->b_im[ii] ) ;
+#endif
    }
 
    return ;

@@ -2907,6 +2907,10 @@ void Syntax()
     "      block depends on the rest of the command line parameters.  The\n"
     "      various 3D: input formats are just ways of inputting multiple 2D\n"
     "      slices from a single file.\n"
+    "  * SPECIAL CASE: If fname is ALLZERO, then this means not to read\n"
+    "      data from disk, but instead to create nz nx*ny images filled\n"
+    "      with zeros.  One application of this is to make it easy to create\n"
+    "      a dataset of a specified geometry for use with other programs.\n"
     "\n"
     "The 'raw pgm' image format is also supported; it reads data into 'byte' images.\n"
     "\n"
@@ -4132,6 +4136,8 @@ void T3D_open_view_CB( Widget w ,
 
    drive_MCW_imseq( wset.seq , isqDR_getimnr , (XtPointer) &nim ) ;
    drive_MCW_imseq( wset.seq , isqDR_title   , (XtPointer) imnames->ar[nim] ) ;
+
+   drive_MCW_imseq( wset.seq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
 
    /* 01 Dec 1999: add "sides" markers for image viewer */
 

@@ -389,6 +389,21 @@ MRI_IMARR * mri_read_3D( char * tname )
        nx <= 0   || ny <= 0    || nz <= 0 ||
        strlen(fname) <= 0                   ) return NULL ;   /* bad info */
 
+   /*** 06 Mar 2001: special case of fname ***/
+
+   if( strcmp(fname,"ALLZERO") == 0 ){
+      INIT_IMARR(newar) ;
+      for( kim=0 ; kim < nz ; kim++ ){
+         newim = mri_new( nx , ny , datum_type ) ;
+         imar  = mri_data_pointer( newim ) ;
+         memset( imar , 0 , newim->nvox * newim->pixel_size ) ;
+         sprintf( buf , "%s#%d" , fname,kim ) ;
+         mri_add_name( buf , newim ) ;
+         ADDTO_IMARR(newar,newim) ;
+      }
+      return newar ;
+   }
+
    /*** open the input file and position it ***/
 
    imfile = fopen( fname , "r" ) ;
@@ -1559,7 +1574,7 @@ void mri_purge_delay( MRI_IMAGE * im )
 
 void mri_input_delay( MRI_IMAGE * im )
 {
-   FILE * imfile ;
+   FILE * imfile=NULL ;
    void * imar ;
 
    /** if no delay input file,
@@ -1568,12 +1583,14 @@ void mri_input_delay( MRI_IMAGE * im )
    if( im->fname == NULL ||
        (im->fondisk & INPUT_DELAY) == 0 ) return ;
 
-   /** open the delay input file **/
+   /** open the delay input file [06 Mar 2001: maybe not] **/
 
-   imfile = fopen( im->fname , "r" ) ;
-   if( imfile == NULL ){
-      fprintf( stderr , "couldn't open delayed image file %s\n" , im->fname ) ;
-      return ;
+   if( strcmp(im->fname,"ALLZERO") != 0 ){
+      imfile = fopen( im->fname , "r" ) ;
+      if( imfile == NULL ){
+         fprintf( stderr , "couldn't open delayed image file %s\n" , im->fname ) ;
+         return ;
+      }
    }
 
    /** make space for the array **/
@@ -1582,16 +1599,20 @@ void mri_input_delay( MRI_IMAGE * im )
    if( imar == NULL ){
       fprintf( stderr ,
                "malloc fails for delayed image from file %s\n" , im->fname ) ;
-      fclose( imfile ) ;
+      if( imfile != NULL ) fclose( imfile ) ;
       return ;
    }
    mri_fix_data_pointer( imar , im ) ;
 
    /** read from the file into the array **/
 
-   fseek( imfile , im->foffset , SEEK_SET ) ;
-   fread( imar , im->pixel_size , im->nvox , imfile ) ;
-   fclose( imfile ) ;
+   if( imfile != NULL ){
+      fseek( imfile , im->foffset , SEEK_SET ) ;
+      fread( imar , im->pixel_size , im->nvox , imfile ) ;
+      fclose( imfile ) ;
+   } else {
+      memset( imar , 0 , im->nvox * im->pixel_size ) ;  /* 06 Mar 2001 */
+   }
 
    /** swap bytes, if so marked **/
 
@@ -1607,7 +1628,9 @@ fprintf(stderr,"delayed input from file %s at offset %d\n",im->fname,im->foffset
    return ;
 }
 
+/**********************************************************************/
 /**** like mri_read_file, but returns delayed images for 3D: files ****/
+/**** (all others are read in now anyhoo, so there)                ****/
 
 MRI_IMARR * mri_read_file_delay( char * fname )
 {
@@ -1620,7 +1643,7 @@ MRI_IMARR * mri_read_file_delay( char * fname )
 
    if( strlen(new_fname) > 9 && new_fname[0] == '3' && new_fname[1] == 'D' ){
 
-      newar = mri_read_3D_delay( new_fname ) ;   /* read from a 3D file */
+      newar = mri_read_3D_delay( new_fname ) ;   /* read from a 3D file, later */
 
    } else if( strlen(new_fname) > 9 &&
               new_fname[0] == '3' && new_fname[1] == 'A' && new_fname[3] == ':' ){
@@ -1718,42 +1741,48 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
        nx <= 0   || ny <= 0    || nz <= 0 ||
        strlen(fname) <= 0                   ) return NULL ;   /* bad info */
 
-   /*** open the input file and position it ***/
+   /*** open the input file and position it [06 Mar 2001: maybe not] ***/
 
-   imfile = fopen( fname , "r" ) ;
-   if( imfile == NULL ){
-      fprintf( stderr , "couldn't open delayed image file %s\n" , fname ) ;
-      return NULL ;
+   if( strcmp(fname,"ALLZERO") != 0 ){
+      imfile = fopen( fname , "r" ) ;
+      if( imfile == NULL ){
+         fprintf( stderr , "couldn't open delayed image file %s\n" , fname ) ;
+         return NULL ;
+      }
+   } else {
+      imfile = NULL ;
    }
 
-   fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
-   length = ftell( imfile ) ;
+   if( imfile != NULL ){
+      fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
+      length = ftell( imfile ) ;
 
    /** 13 Apr 1999: modified to allow actual hglobal < -1
                     as long as hglobal+himage >= 0       **/
 
 #if 0                 /* the old code */
-   if( hglobal < 0 ){
-      hglobal = length - nz*(datum_len*nx*ny+himage) ;
-      if( hglobal < 0 ) hglobal = 0 ;
-   }
+      if( hglobal < 0 ){
+         hglobal = length - nz*(datum_len*nx*ny+himage) ;
+         if( hglobal < 0 ) hglobal = 0 ;
+      }
 #else                 /* 13 Apr 1999 */
-   if( hglobal == -1 || hglobal+himage < 0 ){
-      hglobal = length - nz*(datum_len*nx*ny+himage) ;
-      if( hglobal < 0 ) hglobal = 0 ;
-   }
+      if( hglobal == -1 || hglobal+himage < 0 ){
+         hglobal = length - nz*(datum_len*nx*ny+himage) ;
+         if( hglobal < 0 ) hglobal = 0 ;
+      }
 #endif
 
-   ngood = hglobal + nz*(datum_len*nx*ny+himage) ;
-   if( length < ngood ){
-      fprintf( stderr,
-        "file %s is %d bytes long but must be at least %d bytes long\n"
-        "for hglobal=%d himage=%d nx=%d ny=%d nz=%d and voxel=%d bytes\n",
-        fname,length,ngood,hglobal,himage,nx,ny,nz,datum_len ) ;
+      ngood = hglobal + nz*(datum_len*nx*ny+himage) ;
+      if( length < ngood ){
+         fprintf( stderr,
+           "file %s is %d bytes long but must be at least %d bytes long\n"
+           "for hglobal=%d himage=%d nx=%d ny=%d nz=%d and voxel=%d bytes\n",
+           fname,length,ngood,hglobal,himage,nx,ny,nz,datum_len ) ;
+         fclose( imfile ) ;
+         return NULL ;
+      }
       fclose( imfile ) ;
-      return NULL ;
    }
-   fclose( imfile ) ;
 
    /*** put pointers to data in the file into the images ***/
 

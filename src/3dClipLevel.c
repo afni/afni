@@ -8,7 +8,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * dset ;
    short * sar ;
    byte * bar ;
-   int nhist , nneg=0 , verb=0 , nhalf ;
+   int nhist , nneg=0 , verb=0 , nhalf , iv,nvals ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dClipLevel [options] dataset\n"
@@ -27,7 +27,7 @@ int main( int argc , char * argv[] )
              "N.B.: This program only works with byte- and short-valued\n"
              "        datasets, and prints a warning message if any input\n"
              "        voxels are negative.  If the dataset has more than one\n"
-             "        sub-brick, the first one is used.\n"
+             "        sub-brick, all sub-bricks are used to build the histogram.\n"
              "N.B.: Use at your own risk!  You might want to use the AFNI Histogram\n"
              "        plugin to see if the results are reasonable.  This program is\n"
              "        likely to produce bad results on images gathered with local\n"
@@ -70,11 +70,13 @@ int main( int argc , char * argv[] )
    DSET_load(dset) ;
    if( !DSET_LOADED(dset) ){ fprintf(stderr,"** CAN'T load dataset\n");exit(1); }
 
+   nvals = DSET_NVALS(dset) ;
+
    /*-- allocate histogram --*/
 
    switch( DSET_BRICK_TYPE(dset,0) ){
-      case MRI_short: sar = DSET_ARRAY(dset,0) ; nhist = 32767 ; break ;
-      case MRI_byte : bar = DSET_ARRAY(dset,0) ; nhist =   255 ; break ;
+      case MRI_short: nhist = 32767 ; break ;
+      case MRI_byte : nhist =   255 ; break ;
    }
 
    hist = (int *) calloc(sizeof(int),nhist) ;
@@ -83,23 +85,27 @@ int main( int argc , char * argv[] )
    /*-- make histogram --*/
 
    dsum = 0.0 ;
-   switch( DSET_BRICK_TYPE(dset,0) ){
-      case MRI_short:
-         for( ii=0 ; ii < nvox ; ii++ ){
-            if( sar[ii] > 0 ){
-               hist[sar[ii]]++ ; dsum += (double)(sar[ii])*(double)(sar[ii]) ; npos++ ;
-            } else if( sar[ii] < 0 )
-              nneg++ ;
-         }
-      break ;
-
-      case MRI_byte:                       /* there are no negative bytes */
-         for( ii=0 ; ii < nvox ; ii++ ){
-            if( bar[ii] > 0 ){
-               hist[bar[ii]]++ ; dsum += (double)(bar[ii])*(double)(bar[ii]) ; npos++ ;
+   for( iv=0 ; iv < nvals ; iv++ ){
+      switch( DSET_BRICK_TYPE(dset,0) ){
+         case MRI_short:
+            sar =  DSET_ARRAY(dset,iv) ;
+            for( ii=0 ; ii < nvox ; ii++ ){
+               if( sar[ii] > 0 ){
+                  hist[sar[ii]]++ ; dsum += (double)(sar[ii])*(double)(sar[ii]) ; npos++ ;
+               } else if( sar[ii] < 0 )
+                 nneg++ ;
             }
-         }
-      break ;
+         break ;
+   
+         case MRI_byte:                       /* there are no negative bytes */
+            bar =  DSET_ARRAY(dset,iv) ;
+            for( ii=0 ; ii < nvox ; ii++ ){
+               if( bar[ii] > 0 ){
+                  hist[bar[ii]]++ ; dsum += (double)(bar[ii])*(double)(bar[ii]) ; npos++ ;
+               }
+            }
+         break ;
+      }
    }
 
    DSET_unload(dset) ;

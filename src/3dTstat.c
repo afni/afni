@@ -16,6 +16,9 @@
 #define METH_MEDIAN 4   /* 14 Feb 2000 */
 #define METH_MAD    5
 
+#define METH_MAX    6
+#define METH_MIN    7
+
 static int meth                    = METH_MEAN ;
 static char prefix[THD_MAX_PREFIX] = "stat" ;
 static int datum                   = MRI_float ;
@@ -43,10 +46,13 @@ int main( int argc , char * argv[] )
              "             [      the slope has been removed]\n"
              " -cvar   = compute coefficient of variation of input\n"
              "             voxels = stdev/fabs(mean)\n"
-             " -median = compute median of input voxels\n"
+             "\n"
              " -MAD    = compute MAD (median absolute deviation) of\n"
              "             input voxels = median(|voxel-median(voxel)|)\n"
-             "             [N.B.: the slope is NOT removed for this]\n"
+             "             [N.B.: the trend is NOT removed for this]\n"
+             " -median = compute median of input voxels [undetrended]\n"
+             " -min    = compute minimum of input voxels [undetrended]\n"
+             " -max    = compute maximum of input voxels [undetrended]\n"
              "\n"
              " -prefix p = use string 'p' for the prefix of the\n"
              "               output dataset [DEFAULT = 'stat']\n"
@@ -95,6 +101,16 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-cvar") == 0 ){
          meth = METH_CVAR ; detrend = 1 ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-min") == 0 ){
+         meth = METH_MIN ; detrend = 0 ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-max") == 0 ){
+         meth = METH_MAX ; detrend = 0 ;
          nopt++ ; continue ;
       }
 
@@ -252,6 +268,22 @@ static void STATS_tsfunc( double tzero , double tdelta ,
          vm = qmed_float( npts , ts ) ;
          for( ii=0 ; ii < npts ; ii++ ) ts[ii] = fabs(ts[ii]-vm) ;
          *val = qmed_float( npts , ts ) ;
+      }
+      break ;
+
+      case METH_MIN:{
+         register int ii ;
+         register float vm=ts[0] ;
+         for( ii=1 ; ii < npts ; ii++ ) if( ts[ii] < vm ) vm = ts[ii] ;
+         *val = vm ;
+      }
+      break ;
+
+      case METH_MAX:{
+         register int ii ;
+         register float vm=ts[0] ;
+         for( ii=1 ; ii < npts ; ii++ ) if( ts[ii] > vm ) vm = ts[ii] ;
+         *val = vm ;
       }
       break ;
    }

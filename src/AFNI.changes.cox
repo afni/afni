@@ -2647,3 +2647,27 @@
 04 Mar 2001
  * New program ent16.c computes 16-bit entropy of stdin stream.  Can be
      used in a script to decide when to gzip datasets.
+
+05 Mar 2001
+ * Modified Ziad Saad's plug_delay_V2.h to use remainder() instead of
+     drem() for Solaris, since Solaris doesn't have that BSD function
+     for some stupid SysV reason.
+
+06 Mar 2001
+ * Modified display.[ch] to store RGB bytes for the underlay and overlay
+     colors in the MCW_DC structure.  This is preparation for allowing
+     direct RGB overlays into imseq.c.
+ * Modified mri_new.c (and mcw_glob.c) to allow use of the special filename
+     ALLZERO in 3D: input.  This will make it simple to create an empty
+     dataset using to3d, for example.
+ * Added -min and -max options to 3dTstat.c.
+ * Modified 3dClipLevel.c to use all sub-bricks instead of just the first.
+ * Added function ISQ_overlay() into imseq.[ch], to do the overlaying of
+     underlay and color of MRI_short and MRI_rgb in all cases.
+
+07 Mar 2001
+ * Modified imseq.[ch] to add controls and functions for translucent color
+     overlays, if X11 Visual is TrueColor.
+ * Modified to3d.c, afni_plugin.c, and plug_render.c to turn off the
+     overlay opacity arrowval for their particular image windows
+     (since they don't use overlays anyhoo).

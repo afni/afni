@@ -950,11 +950,24 @@ Variable: AFNI_AUTOGZIP (cf. AFNI_COMPRESSOR)
 -----------------------
 If this YES/NO variable is set to YES, then when AFNI programs write a
 dataset .BRIK file to disk, they will test to see if the data is easily
-compressible (say, at least 80%).  If so, then the GZIP compression will
-be used.  (For this to work, the gzip program must be in your path.)
-This can be useful if you are dealing with mask datasets, which are
-usually highly compressible, but don't want the overhead of trying to
-compress arbitrary datasets.
+compressible (at least 80%).  If so, then the GZIP compression will be
+used.  (For this to work, the gzip program must be in your path.) This
+can be useful if you are dealing with mask datasets, which are usually
+highly compressible, but don't want the overhead of trying to compress
+and decompress arbitrary MRI datasets.
+
+A command line method to carry out compression of datasets that will
+compress well is to use a csh script like the following:
+
+  #!/bin/csh
+  foreach fred ( `find . -name \*.BRIK -print` )
+    ent16 -%50 < $fred
+    if( $status == 1 ) gzip -1v $fred
+  end
+
+This will only gzip .BRIK files that the program ent16 estimates will
+compress by at least 50%.  Note that ent16's estimate of compression
+may be high or low relative to what gzip actually does.
 
 =======================================
 | Robert W Cox, PhD                   |
