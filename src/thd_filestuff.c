@@ -102,7 +102,8 @@ int THD_equiv_files( char * path1 , char * path2 )
      - the lev=2 trailing name is "author/of/AFNI", and so on.
    That is, "lev" is the number of directory names above the
    last name to keep.  The pointer returned is to some place
-   in the middle of fname.
+   in the middle of fname; that is, this is not a malloc()-ed
+   string, so don't try to free() it!.
 -------------------------------------------------------------------*/
 
 char * THD_trailname( char * fname , int lev )

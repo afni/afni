@@ -127,32 +127,42 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
 /***************  generic function with no return value  **********************/
 
-/*! \brief Generic function type returning void. */
+/*! Generic function type returning void. */
 
 typedef void generic_func() ;
 
-/*! \brief Generic function type returning float. */
+/*! Generic function type returning float. */
 
 typedef float float_func() ;
 
-typedef struct {                 /* for "registered" functions */
-   int num ;
-   int * flags ;
-   char ** labels ;
-   generic_func ** funcs ;
+/*! Stores a list of "registered" functions (e.g., "Transforms") */
 
-   void ** func_data ;           /* 30 Jan 2000 */
+typedef struct {
+   int num ;                     /*< number of functions */
+   int * flags ;                 /*< flags[i] = bitmask flag for function #i */
+   char ** labels ;              /*< labels[i] = string name for function #i */
+   generic_func ** funcs ;       /*< funcs[i] = function #i */
+
+   void ** func_data ;           /*< 30 Jan 2000 */
    int *   func_code ;
 } MCW_function_list ;
 
-#define RETURNS_STRING   1   /* possible flags bit settings */
+/*! MCW_function_list possible bitmask flag */
+#define RETURNS_STRING   1
+
+/*! MCW_function_list possible bitmask flag */
 #define NEEDS_DSET_INDEX 2
 
-#define FUNC_0D   0   /* possible values of func_code */
+/*! MCW_function_list possible func_code */
+#define FUNC_0D   0
+/*! MCW_function_list possible func_code */
 #define FUNC_1D   1
+/*! MCW_function_list possible func_code */
 #define FUNC_2D   2
+/*! MCW_function_list possible func_code */
 #define FUNC_3D   3
 
+/*! MCW_function_list possible func_code */
 #define FUNC_FIM  71
 
 /******************************** macros ******************************/
@@ -205,6 +215,8 @@ typedef struct {
       int * ic ;         /*!< added 26 Mar 2001 */
 } XtPointer_array ;
 
+/*! Increment for extending XtPointer_array allocation */
+
 #define INC_XTARR 8
 
 /*! \brief Initialize dynamic XtPointer array named "name".
@@ -256,7 +268,8 @@ typedef struct {
      myXtFree( (name) ) ;     \
      (name) = NULL ; }
 
-#define DESTROY_XTARR  FREE_XTARR   /* duplicate definition */
+/*! Duplicate definition for FREE_XTARR */
+#define DESTROY_XTARR  FREE_XTARR
 
 /************************* string array stuff *************************/
 
@@ -472,32 +485,37 @@ static char * MAPPING_typestr[] = {
    MAPPING_LINEAR_STR
 } ;
 
-typedef struct {
-      int type ;            /* type code */
+/*! Structure to hold a linear mapping between coordinate systems. */
 
-      THD_mat33 mfor,mbac ; /* x_map = [mfor] * x_in  - bvec  */
-                            /* x_in  = [mbac] * x_map - svec  */
-                            /* ( ==> svec = - [mbac] * bvec ) */
-      THD_fvec3 bvec,svec,
-                bot,top ;   /* bot,top are bounds (application defined) */
+typedef struct {
+      int type ;            /*< type code: only type now is MAPPING_LINEAR_TYPE */
+
+      THD_mat33 mfor ;      /*< x_map = [mfor] * x_in  - bvec  */
+      THD_mat33 mbac ;      /*< x_in  = [mbac] * x_map - svec  */
+
+      THD_fvec3 bvec;       /* x_map = [mfor] * x_in  - bvec  */
+      THD_fvec3 svec;       /* svec = - [mbac] * bvec */
+      THD_fvec3 bot ;       /* lower bound for transformation use */
+      THD_fvec3 top ;       /* upper bound for transformation use */
 } THD_linear_mapping ;
+
+/*! Copy the .bot and .top bounds between two THD_linear_mapping structs. */
 
 #define COPY_LMAP_BOUNDS(m1,m2) ( (m1).bot=(m2).bot , (m1).top=(m2).top )
 
-/* use the matrix operations to define a macro
-   to load the inverse to a THD_linear_mapping once the forward is done */
+/*! Use the matrix operations to define a macro
+    to load the inverse to a THD_linear_mapping once the forward is done. */
 
 #define LOAD_INVERSE_LMAP(map) \
    ( (map).mbac = MAT_INV((map).mfor) ,          \
      (map).svec = MATVEC((map).mbac,(map).bvec) ,\
      NEGATE_FVEC3((map).svec) )
 
-#define MAPPING_LINEAR_FSTART \
-   XtOffsetOf(THD_linear_mapping,mfor)
-#define MAPPING_LINEAR_FEND   \
-   (XtOffsetOf(THD_linear_mapping,top)+sizeof(THD_fvec3))
-#define MAPPING_LINEAR_FSIZE  \
-   ((MAPPING_LINEAR_FEND-MAPPING_LINEAR_FSTART)/sizeof(float))
+#define MAPPING_LINEAR_FSTART XtOffsetOf(THD_linear_mapping,mfor)
+#define MAPPING_LINEAR_FEND   (XtOffsetOf(THD_linear_mapping,top)+sizeof(THD_fvec3))
+#define MAPPING_LINEAR_FSIZE  ((MAPPING_LINEAR_FEND-MAPPING_LINEAR_FSTART)/sizeof(float))
+
+/*! Debugging printout of a THD_linear_mapping struct. */
 
 #define DUMP_LMAP(m) \
 ( printf("THD_linear_mapping:\n") ,                                     \
@@ -530,25 +548,26 @@ typedef struct {
 #define MARKS_MAXHELP 256
 #define MARKS_MAXFLAG 8
 
+/*! Structure for user placed markers. */
+
 typedef struct {
-     int numdef , numset ; /* # of markers defined, from 1 to MAX_MARKS */
+     int numdef ;                             /*< Number of markers defined */
+     int numset ;                             /*< Number of markers now set */
 
-     char label[MARKS_MAXNUM][MARKS_MAXLAB] ; /* names for these marks */
+     char label[MARKS_MAXNUM][MARKS_MAXLAB] ; /*< Names for these marks */
 
-     char help[MARKS_MAXNUM][MARKS_MAXHELP] ; /* help for these marks */
+     char help[MARKS_MAXNUM][MARKS_MAXHELP] ; /*< Help for these marks */
 
-     int ovcolor[MARKS_MAXNUM] ;              /* -1 --> use defaults */
+     int ovcolor[MARKS_MAXNUM] ;              /*< Overlay color index; -1 --> use defaults */
 
-     Boolean valid[MARKS_MAXNUM] ;            /* True if actually set */
+     Boolean valid[MARKS_MAXNUM] ;            /*< True if actually set */
 
-     float xyz[MARKS_MAXNUM][3] ;             /* coordinates */
-                                              /* (3dmm, not Dicom) */
+     float xyz[MARKS_MAXNUM][3] ;             /*< Coordinates (3dmm, not Dicom) */
 
-     int aflags[MARKS_MAXFLAG] ;              /* action flags */
+     int aflags[MARKS_MAXFLAG] ;              /*< Action flags */
 
-     int type ;                               /* type of markers */
-                                              /* (same as aflags[0]) */
-     char name[MARKS_MAXLAB] ;                /* name of this type */
+     int type ;                               /*< Type of markers (same as aflags[0]) */
+     char name[MARKS_MAXLAB] ;                /*< Name of this type of markers */
 } THD_marker_set ;
 
 #define MARKS_FSIZE  (MARKS_MAXNUM*3)
@@ -574,6 +593,8 @@ typedef struct {
 
 /*........................................................................*/
 
+/*! Number of orig->acpc markers. */
+
 #define NMARK_ALIGN 5
 
 static int THD_align_aflags[MARKS_MAXFLAG] = {
@@ -586,6 +607,8 @@ static int THD_align_aflags[MARKS_MAXFLAG] = {
 #define IMARK_MSA1 3
 #define IMARK_MSA2 4
 
+/*! Labels for orig->acpc markers. */
+
 static char * THD_align_label[NMARK_ALIGN] = {
    "AC superior edge"     ,
    "AC posterior margin"  ,
@@ -593,6 +616,8 @@ static char * THD_align_label[NMARK_ALIGN] = {
    "First mid-sag pt"     ,
    "Another mid-sag pt"
 } ;
+
+/*! Help for orig->acpc markers. */
 
 static char * THD_align_help[NMARK_ALIGN] = {
    "This is the uppermost point\n"
@@ -623,6 +648,8 @@ static char * THD_align_help[NMARK_ALIGN] = {
 
 /*.....................................................................*/
 
+/*! Number of acpc->tlrc markers. */
+
 #define NMARK_BOUNDING 6
 
 static int THD_bounding_aflags[MARKS_MAXFLAG] = {
@@ -636,7 +663,8 @@ static int THD_bounding_aflags[MARKS_MAXFLAG] = {
 #define IMARK_MLEF 4
 #define IMARK_MRIG 5
 
-/* if you change these, change the helps below too */
+/*! Atlas distances for acpc->tlrc markers.
+    If you change these, change the helps below too */
 
 #define ATLAS_FRONT_TO_AC 70.0
 #define ATLAS_AC_TO_PC    23.0
@@ -663,6 +691,8 @@ static int THD_bounding_aflags[MARKS_MAXFLAG] = {
 #define MAX_ALLOWED_DEVIATION 2.0
 #define MIN_ALLOWED_DEVIATION 0.5
 
+/*! Labels for acpc->tlrc markers. */
+
 static char * THD_bounding_label[NMARK_BOUNDING] = {
    "Most anterior point"  ,
    "Most posterior point" ,
@@ -671,6 +701,8 @@ static char * THD_bounding_label[NMARK_BOUNDING] = {
    "Most left point"      ,
    "Most right point"
 } ;
+
+/*! Help for acpc->tlrc markers. */
 
 static char * THD_bounding_help[NMARK_BOUNDING] = {
 "The frontmost point of the frontal cortex;\n"
@@ -733,11 +765,13 @@ static char * RESAM_typestr[] = {
 #define NSTR_SHORT_RESAM 2
 static char * RESAM_shortstr[] = { "NN" , "Li" , "Cu" , "Bk" } ;
 
-typedef struct {
-      int type ;  /* type code */
-      int resam_type ;
+/*! 12-piece Warp struct for orig/acpc -> tlrc coordinates. */
 
-      THD_linear_mapping warp[12] ;
+typedef struct {
+      int type ;       /*< type code: WARP_TALAIRACH_12_TYPE */
+      int resam_type ; /*< Resampling method */
+
+      THD_linear_mapping warp[12] ; /* The 12 pieces of the transformation */
 } THD_talairach_12_warp ;
 
 #define W_RAS  0  /* right-anterior -superior mapping index */
@@ -755,9 +789,13 @@ typedef struct {
 
 #define WARP_TALAIRACH_12_SIZE (12*MAPPING_LINEAR_FSIZE)
 
+/*! Debug printout for 1 piece of a Talairach warp. */
+
 #define DUMP_T12_MAP(t12,xx,yy,zz) \
  (  printf("\n--- submap " # xx # yy # zz "\n" ) , \
     DUMP_LMAP( (t12).warp[W_ ## xx ## yy ## zz] )    )
+
+/*! Debug printout for all 12 pieces of a Talairach warp. */
 
 #define DUMP_T12_WARP(t12) \
  ( printf("\n12 region Talairach warp:") ,                 \
@@ -768,26 +806,36 @@ typedef struct {
    DUMP_T12_MAP((t12),R,M,I) , DUMP_T12_MAP((t12),L,M,I) , \
    DUMP_T12_MAP((t12),R,P,I) , DUMP_T12_MAP((t12),L,P,I)    )
 
-typedef struct {
-      int type ;
-      int resam_type ;
+/*! Struct to hold a simple affine warp (orig -> acpc). */
 
-      THD_linear_mapping warp ;
+typedef struct {
+      int type ;         /*< type code: WARP_AFFINE_TYPE */
+      int resam_type ;   /*< Resampling method */
+
+      THD_linear_mapping warp ; /*< The single affine mapping */
 } THD_affine_warp ;
 
 #define WARP_AFFINE_SIZE (MAPPING_LINEAR_FSIZE)
 
+/*! Union type to hold all possible warp types. */
+
 typedef union {
-      int type ;
+      int type ;                      /*< WARP_AFFINE_TYPE or WARP_TALAIRACH_12_TYPE */
       THD_affine_warp       rig_bod ;
       THD_talairach_12_warp tal_12 ;
 } THD_warp ;
+
+/*! Check if ww is a good warp. */
 
 #define ISVALID_WARP(ww) ( (ww) != NULL &&                  \
                            (ww)->type >= FIRST_WARP_TYPE && \
                            (ww)->type <= LAST_WARP_TYPE )
 
-static THD_warp tempA_warp ;  /* temporary warp */
+/*! Temporary warp. */
+
+static THD_warp tempA_warp ;
+
+/*! Return value is an affine warp set to the identity transformation. */
 
 #define IDENTITY_WARP                                                   \
    ( tempA_warp.rig_bod.type       = WARP_AFFINE_TYPE ,                 \
@@ -800,6 +848,8 @@ static THD_warp tempA_warp ;  /* temporary warp */
      LOAD_FVEC3(    tempA_warp.rig_bod.warp.bot  , -9999,-9999,-9999 ) ,\
      LOAD_FVEC3(    tempA_warp.rig_bod.warp.top  ,  9999, 9999, 9999 ) ,\
      tempA_warp )
+
+/*! Return values is a warp of angle th about axis ff, in aa-bb plane. */
 
 #define ROTGEN_WARP(th,ff,aa,bb)                                        \
    ( tempA_warp.rig_bod.type       = WARP_AFFINE_TYPE ,                 \
@@ -817,7 +867,7 @@ static THD_warp tempA_warp ;  /* temporary warp */
 #define ROTY_WARP(th) ROTGEN_WARP(th,1,2,0)
 #define ROTZ_WARP(th) ROTGEN_WARP(th,2,0,1)
 
-/* make the affine warp map point (xin,yin,zin) to (xout,yout,zout) */
+/*! Make the affine warp map point (xin,yin,zin) to (xout,yout,zout). */
 
 #define CEN_WARP(ww,xin,yin,zin,xout,yout,zout)                  \
   do{ THD_fvec3 tv , uv ;                                        \
@@ -919,6 +969,8 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
          *pp = '\0' ; } break ; } while(1)
 #endif
 
+/*! Extract the prefix from a filename. */
+
 #define FILENAME_TO_PREFIX(fn,pr)             \
   do{ int ii ;                                \
       for( ii=strlen((fn)) ; ii >= 0 ; ii-- ) \
@@ -934,6 +986,8 @@ extern void THD_delete_diskptr( THD_diskptr * ) ;
 #define DATABLOCK_MEM_MALLOC     2
 #define DATABLOCK_MEM_MMAP       4
 #define DATABLOCK_MEM_ANY        (DATABLOCK_MEM_MALLOC | DATABLOCK_MEM_MMAP)
+
+/*! Determine if mm is a valid memory allocation code. */
 
 #define ISVALID_MEM_CODE(mm) \
   ( (mm) == DATABLOCK_MEM_MALLOC || (mm) == DATABLOCK_MEM_MMAP \
@@ -980,7 +1034,7 @@ typedef struct {
                                 /* Jan 1999: for datasets that are extracted from a master dataset */
       int    master_nvals ;   /*!< Number of nvals in master dataset */
       int *  master_ival ;    /*!< master_ival[i] = sub-brick index in master of sub-brick #i here */
-      int *  master_bytes ;   /*!< master_bytes[i] = size of sub-brick #i in master */ 
+      int *  master_bytes ;   /*!< master_bytes[i] = size of sub-brick #i in master */
 
       float master_bot ;      /*!< range of data values to keep from master - bottom */
       float master_top ;      /*!< range of data values to keep from master - top */
@@ -997,18 +1051,42 @@ typedef struct {
       XtPointer parent ;      /*!< Somebody who "owns" me */
 } THD_datablock ;
 
+/*! Force bricks to be allocated with malloc(). */
+
 #define DBLK_mallocize(db) THD_force_malloc_type((db),DATABLOCK_MEM_MALLOC)
+
+/*! Force bricks to be allocated with mmap(). */
+
 #define DBLK_mmapize(db)   THD_force_malloc_type((db),DATABLOCK_MEM_MMAP)
+
+/*! Don't care how bricks are allocated. */
+
 #define DBLK_anyize(db)    THD_force_malloc_type((db),DATABLOCK_MEM_ANY)
 
+/*! Test if brick is set to be malloc()-ed. */
+
 #define DBLK_IS_MALLOC(db)  ((db)->malloc_type == DATABLOCK_MEM_MALLOC)
+
+/*! Test if brick is set to be mmap()-ed. */
+
 #define DBLK_IS_MMAP(db)    ((db)->malloc_type == DATABLOCK_MEM_MMAP)
 
+/*! Lock bricks in memory. */
+
 #define DBLK_lock(db)   ((db)->locked = 1)
+
+/*! Unlock bricks from memory, if they aren't "superlocked". */
+
 #define DBLK_unlock(db) ((db)->locked = ((db)->locked<2) ? 0 : 2)
+
+/*! Test if brick is locked into memory. */
+
 #define DBLK_LOCKED(db) ((db)->locked)
 
-#define DBLK_superlock(db) ((db)->locked = 2)  /* 22 Mar 2001: cannot be unlocked */
+/*! Superlock brick in memory.  Can only be undone by explicit access to db->locked. */
+#define DBLK_superlock(db) ((db)->locked = 2)
+
+/*! Check if brick is mastered from another dataset. */
 
 #define DBLK_IS_MASTERED(db) \
   ((db)->master_nvals > 0 && (db)->master_ival != NULL && (db)->master_bytes != NULL)
@@ -1024,6 +1102,8 @@ extern void THD_store_datablock_label    ( THD_datablock * , int , char * ) ;
 extern void THD_store_datablock_keywords ( THD_datablock * , int , char * ) ;
 extern void THD_append_datablock_keywords( THD_datablock * , int , char * ) ;
 
+/*! Initialize all sub-bricks auxiliary data to nothing. */
+
 #define THD_null_datablock_auxdata(blk) ( (blk)->brick_lab      = NULL , \
                                           (blk)->brick_keywords = NULL , \
                                           (blk)->brick_statcode = NULL , \
@@ -1031,22 +1111,34 @@ extern void THD_append_datablock_keywords( THD_datablock * , int , char * ) ;
 
 extern int  THD_string_has( char * , char * ) ;
 
+/*! Check if datablock is OK. */
+
 #define ISVALID_DATABLOCK(bk) ( (bk) != NULL && (bk)->type == DATABLOCK_TYPE )
+
+/*! Synonym for ISVALID_DATABLOCK. */
+
 #define ISVALID_DBLK           ISVALID_DATABLOCK  /* 26 Mar 2001 */
 
 /*------------- a dynamic array type for datablocks --------------*/
 
+/*! A dynamic array type for datablocks - used when assembling datasets. */
+
 typedef struct {
-      int num , nall ;
-      THD_datablock ** ar ;
+      int num ;                /*< Number of datablocks stored */
+      int nall ;               /*< Number of datablocks space allocated for */
+      THD_datablock ** ar ;    /*< Array of datablocks */
 } THD_datablock_array ;
 
 #define INC_DBARR 8
+
+/*! Initialize a THD_datablock_array. */
 
 #define INIT_DBARR(name)                  \
    ( (name) = XtNew(THD_datablock_array) ,\
      (name)->num = (name)->nall = 0 ,     \
      (name)->ar  = NULL )
+
+/*! Add a datablock to a THD_datablock_array. */
 
 #define ADDTO_DBARR(name,bblk)                                     \
    { if( (name)->num == (name)->nall ){                            \
@@ -1060,6 +1152,8 @@ typedef struct {
       ((name)->num)++ ;                  \
      } }
 
+/*! Free the space used by a THD_datablock_array (but not the datablocks themselves). */
+
 #define FREE_DBARR(name)      \
    if( (name) != NULL ){      \
      myXtFree( (name)->ar ) ; \
@@ -1069,6 +1163,8 @@ typedef struct {
 /*---------- stuff to hold axes information for 3D dataset -----------*/
 
 #define DATAXES_TYPE 27
+
+/*! Default resampling grid size (in mm). */
 
 #define DEFAULT_RESAMPLE_VOX 1.0
 
@@ -1115,6 +1211,9 @@ static char * ORIENT_tinystr[] = {
 
 static char ORIENT_xyz[]   = "xxyyzzg" ;  /* Dicom directions are
                                              x = R->L , y = A->P , z = I->S */
+
+/*! Determines if orientation code (0..5) is Dicom positive or negative. */
+
 static char ORIENT_sign[]  = "+--++-" ;
 
 static char ORIENT_first[] = "RLPAIS" ;
@@ -1124,30 +1223,50 @@ static int  ORIENT_xyzint[] = { 1,1 , 2,2 , 3,3 , 666 } ;
 #define ORIENT_OPPOSITE(orc) \
   ( ((orc) % 2 == 0) ? ((orc)+1) : ((orc)-1) )
 
-/*** voxel center x[i] is at xxorg + i * xxdel ***/
+/*! Struct to hold information about 3D brick grid in space.
+    Voxel center x[i] is at xxorg + i * xxdel, et cetera.
+*/
 
 typedef struct {
-      int type ;    /* type code */
+      int type ;     /*< type code: DATAXES_TYPE */
 
-      int   nxx,nyy,nzz ;            /* number of points in each direction */
+      int nxx ;      /*< Number of points in grid in x direction */
+      int nyy ;      /*< Number of points in grid in y direction */
+      int nzz ;      /*< Number of points in grid in z direction */
 
-      float xxorg , yyorg , zzorg ;  /* center of (0,0,0) voxel */
-      float xxdel , yydel , zzdel ;  /* spacings between voxel centers (mm) */
+      float xxorg ;  /*< Center of (0,0,0) voxel */
+      float yyorg ;  /*< Center of (0,0,0) voxel */
+      float zzorg ;  /*< center of (0,0,0) voxel */
+      float xxdel ;  /*< Spacings between voxel centers (mm) - may be negative */
+      float yydel ;  /*< Spacings between voxel centers (mm) - may be negative */
+      float zzdel ;  /*< Spacings between voxel centers (mm) - may be negative */
 
-      float xxmin,xxmax , yymin,yymax , zzmin,zzmax ;  /* bounding box */
+      float xxmin ;  /*< Bounding box for grid */
+      float xxmax ;  /*< Bounding box for grid */
+      float yymin ;  /*< Bounding box for grid */
+      float yymax ;  /*< Bounding box for grid */
+      float zzmin ;  /*< Bounding box for grid */
+      float zzmax ;  /*< Bounding box for grid */
 
-      int xxorient , yyorient , zzorient ;  /* orientation codes */
+      int xxorient ;  /*< Orientation code */
+      int yyorient ;  /*< Orientation code */
+      int zzorient ;  /*< Orientation code */
 
-      THD_mat33 to_dicomm ; /* orthogonal matrix transforming from */
-                            /* dataset coordinates to Dicom coordinates */
+      THD_mat33 to_dicomm ; /*< Orthogonal matrix transforming from
+                                dataset coordinates to Dicom coordinates */
 
    /* pointers to other stuff */
 
-      XtPointer parent ;
+      XtPointer parent ;    /*< Dataset that "owns" this struct */
 } THD_dataxes ;
 
+/*! Center of grid in x-direction. */
 #define DAXES_XCEN(dax) ((dax)->xxorg + 0.5*((dax)->nxx - 1) * (dax)->xxdel)
+
+/*! Center of grid in y-direction. */
 #define DAXES_YCEN(dax) ((dax)->yyorg + 0.5*((dax)->nyy - 1) * (dax)->yydel)
+
+/*! Center of grid in z-direction. */
 #define DAXES_ZCEN(dax) ((dax)->zzorg + 0.5*((dax)->nzz - 1) * (dax)->zzdel)
 
 #if 1
@@ -1161,20 +1280,23 @@ typedef struct {
                              ( ORIENT_xyzint[(ori)] == 3 ) ? (dax)->nzz : 0 )
 #endif
 
-/***
-   WARNING:  If you perform surgery on a dataset and change its
-             dimensions in the dataxes, you must also reflect
-             this in the diskptr.  Otherwise, the .HEAD file
-             will not have the correct dimensions!  The macro
-             just below will do this for you.
-***/
+/*!  WARNING:  If you perform surgery on a dataset and change its
+               dimensions in the dataxes, you must also reflect
+               this in the diskptr.  Otherwise, the .HEAD file
+               will not have the correct dimensions!  The macro
+               just below will do this for you.
+*/
 
 #define DATAXES_TO_DISKPTR(ds)                             \
   ( (ds)->dblk->diskptr->dimsizes[0] = (ds)->daxes->nxx ,  \
     (ds)->dblk->diskptr->dimsizes[1] = (ds)->daxes->nyy ,  \
     (ds)->dblk->diskptr->dimsizes[2] = (ds)->daxes->nzz  )
 
+/*! Check if dax is a valid THD_dataxes struct. */
+
 #define ISVALID_DATAXES(dax) ( (dax) != NULL && (dax)->type == DATAXES_TYPE )
+
+/*! Check if two THD_dataxes are essential equivalent. */
 
 #define EQUIV_DATAXES(cax,dax)                     \
   ( ISVALID_DATAXES((cax))                      && \
@@ -1197,24 +1319,6 @@ extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 /*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/
 
-/******
-    For 3D+t datasets, there are ntt 3D times; the i-th one is centered
-    at ttorg + ttdel*ii seconds, for ii=0..ntt-1.
-    Also, ttdur = duration of each sample in time.
-
-    If ( nsl > 0 && toff_sl != NULL), then the data was acquired as
-    slices, not as a 3D block.  The slicing direction must be the
-    dataset (not Dicom) z-axis.  The extra offset for the data at
-    z is given by computing isl = (z - zorg_sl) / dz_sl + 0.5; the
-    extra offset is then toff_sl[isl].
-
-    All this is computed using the routine THD_timeof.
-
-    When transformed, all the slice stuff will be ignored.  That's
-    because the warped dataset z-direction will not be the same as the
-    original dataset's z-direction.
-******/
-
 #define TIMEAXIS_TYPE 907
 
 #define UNITS_MSEC_TYPE  77001
@@ -1223,19 +1327,47 @@ extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
 static char * UNITS_TYPE_labelstring[] = { "ms" , "s" , "Hz" } ;
 
+/*! Return a string for the units of the uu-th time unit type. */
+
 #define UNITS_TYPE_LABEL(uu) UNITS_TYPE_labelstring[(uu)-UNITS_MSEC_TYPE]
 
+/*! \brief Struct to hold information about the time axis of a 3D+time datset.
+
+    For 3D+t datasets, there are ntt 3D times; the i-th one is centered
+    at ttorg + ttdel*ii seconds, for ii=0..ntt-1.
+    Also, ttdur = duration of each sample in time.
+
+    If ( nsl > 0 && toff_sl != NULL), then the data was acquired as
+    slices, not as a 3D block.  The slicing direction must be the
+    dataset (not Dicom) z-axis.  The extra offset for the data at
+    z is given by computing isl = (z - zorg_sl) / dz_sl + 0.5; the
+    extra offset is then toff_sl[isl].  Note that dz_sl might be
+    different from the dataxes zzdel because the dataset might actually
+    be made up of duplicated slices (see program abut.c).
+
+    All this is computed using the routine THD_timeof().
+
+    When transformed, all the slice stuff will be ignored.  That's
+    because the warped dataset z-direction will not be the same as the
+    original dataset's z-direction.
+*/
+
 typedef struct {
-   int   type ;
-   int   ntt ;
-   float ttorg , ttdel , ttdur ;
+   int   type ;     /*< TIMEAXIS_TYPE */
+   int   ntt ;      /*< Number of time points */
+   float ttorg ;    /*< Time origin (usually 0) */
+   float ttdel ;    /*< Fondly known as TR */
+   float ttdur ;    /*< Duration of image acquisition (usually not known) */
 
-   int units_type ;  /* one of the UNITS_ codes above */
+   int units_type ;  /*< one of the UNITS_ codes */
 
-   int     nsl ;
-   float * toff_sl ;
-   float   zorg_sl , dz_sl ;
+   int     nsl ;      /*< Number of slice-dependent time offsets */
+   float * toff_sl ;  /*< toff_sl[i] is time offset for slice #1 */
+   float   zorg_sl ;  /*< z-coordinate origin for slice offsets */
+   float   dz_sl ;    /*< z-coordinate spacing for slice offsets */
 } THD_timeaxis ;
+
+/*! Check if tax points to a valid THD_timeaxis struct. */
 
 #define ISVALID_TIMEAXIS(tax) ((tax) != NULL && (tax)->type == TIMEAXIS_TYPE)
 
@@ -1244,22 +1376,37 @@ typedef struct {
 
 #define STATISTICS_TYPE 17
 
-typedef struct {
-   float min , max ;
-} THD_brick_stats ;
+/*! Statistics about data in a sub-brick.
+    (e.g., Used in the Define Function control panel in AFNI.)
+*/
 
 typedef struct {
-   int type ;
-   int              nbstat ;      /* number of entries below */
-   THD_brick_stats * bstat ;      /* array of entries for all sub-bricks */
-   XtPointer parent ;
+   float min ;      /*< Smallest value in sub-brick */
+   float max ;      /*< Largest value in sub-brick */
+} THD_brick_stats ;
+
+/*! Collection of statistics about all sub-bricks. */
+
+typedef struct {
+   int type ;                     /*< STATISTICS_TYPE */
+   int              nbstat ;      /*< Number of entries below */
+   THD_brick_stats * bstat ;      /*< Array of entries for all sub-bricks */
+   XtPointer parent ;             /*< Owner of this object */
 } THD_statistics ;
+
+/*! Check if st is a valid THD_statistics struct. */
 
 #define ISVALID_STATISTIC(st) ( (st) != NULL && (st)->type == STATISTICS_TYPE )
 
+/*! Check if bst is a valid sub-brick statistic. */
+
 #define ISVALID_BSTAT(bst) ( (bst).min <= (bst).max )
 
+/*! Make bst have invalid data. */
+
 #define INVALIDATE_BSTAT(bst) ( (bst).min = 1.0 , (bst).max = -1.0 )
+
+/*! Destroy a THD_statistics struct. */
 
 #define KILL_STATISTIC(st)          \
   do{ if( ISVALID_STATISTIC(st) ){  \
@@ -1275,19 +1422,37 @@ typedef struct {
 #  define MCW_IDPREFIX IDCODE_PREFIX
 #endif
 
-#define MCW_IDSIZE 32  /* 27 Sep 2001; increased from 16 to 32 */
+/*! Size of ID code string. 27 Sep 2001: increased from 16 to 32. */
+#define MCW_IDSIZE 32
+
+/*! Size of ID date string. */
 #define MCW_IDDATE 48
 
-typedef struct { char str[MCW_IDSIZE] , date[MCW_IDDATE] ; } MCW_idcode ;
-MCW_idcode MCW_new_idcode(void) ;
+/*! Struct to hold ID code for a dataset. */
+
+typedef struct {
+  char str[MCW_IDSIZE] ;    /*< Unique ID code string */
+  char date[MCW_IDDATE] ;   /*< Date string was generated */
+ } MCW_idcode ;
+
+extern MCW_idcode MCW_new_idcode(void) ;
+
+/*! Check if 2 ID code strings are equal. */
 
 #define EQUIV_IDCODES(id,ie) (strncmp((id).str,(ie).str,MCW_IDSIZE) == 0)
+
+/*! Check if 2 AFNI dataset pointers point to the same dataset struct. */
 
 #define EQUIV_DSETS(ds,es) \
    ( (ds)==(es) ||         \
      ((ds)!=NULL && (es)!=NULL && EQUIV_IDCODES((ds)->idcode,(es)->idcode)) )
 
+/*! Zero out the ID code. */
+
 #define ZERO_IDCODE(id)   ((id).str[0] = (id).date[0] = '\0')
+
+/*! Check if the ID code is zero. */
+
 #define ISZERO_IDCODE(id) ((id).str[0] == '\0')
 
 #define ATRNAME_IDSTRING  "IDCODE_STRING"
@@ -1299,6 +1464,8 @@ MCW_idcode MCW_new_idcode(void) ;
 
 /*----------------------------------------------------------------------*/
 /*------------------- how to present the coordinates -------------------*/
+
+/*! How to present coordinates to the user (vs. the internal RAI/Dicom order). */
 
 typedef struct {
    int xxsign , yysign , zzsign ,
@@ -1590,6 +1757,8 @@ static int FUNC_need_stat_aux[] = { 0 , 0 , 3 , 1 , 2 ,
                                     0 , 1 , 2 , 2 , 2 , 1 ,
                                     0 } ; /* # aux data needed */
 
+/*! Labels describing the parameters needed for each statistic code. */
+
 static char * FUNC_label_stat_aux[] = {
    "N/A" , "N/A" ,                                      /* fim, fith */
    "SAMPLES  FIT-PARAMETERS  ORT-PARAMETERS" ,          /* fico */
@@ -1736,7 +1905,8 @@ struct THD_3dim_dataset_array ;  /* incomplete definition */
 
 typedef MRI_IMAGE * THD_merger_func( int merger_code, XtPointer merger_data ) ;
 
-/*! One AFNI dataset structure. */
+/*! One AFNI dataset structure.
+    Most elements are accessed via macros, and should only be changed via EDIT_dset_items(). */
 
 typedef struct THD_3dim_dataset {
       int type ;        /*!< type code: HEAD_ANAT_TYPE or HEAD_FUNC_TYPE or GEN_ANAT_TYPE or GEN_FUNC_TYPE */
@@ -1949,7 +2119,9 @@ typedef struct THD_3dim_dataset {
 /*! \brief Return the brick scaling factor of the iv-th volume of dataset ds.
 
     If the scale factor is 0, then the brick is used "as-is"; that is,
-    the effective scale factor is 1.
+    the effective scale factor is 1.  You can assign to this macro
+    as in "DSET_BRICK_FACTOR(ds,iv)=3.2;" but I don't recommend this.
+    Instead, do something like "EDIT_BRICK_FACTOR(ds,iv,3.2);" (see editvol.h).
 */
 
 #define DSET_BRICK_FACTOR(ds,iv) DBLK_BRICK_FACTOR((ds)->dblk,(iv))
@@ -1968,6 +2140,8 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 */
 #define DSET_PRINCIPAL_VALUE(ds) ( ISANAT(ds) ? ANAT_ival_zero[(ds)->func_type] \
                                               : FUNC_ival_fim[(ds)->func_type] )
+
+/*! Synonym for DSET_PRINCIPAL_VALUE */
 
 #define DSET_PRINCIPAL_INDEX DSET_PRINCIPAL_VALUE
 
@@ -2134,14 +2308,14 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
 #else
 /*! \brief Determine if a graph window can be opened for dataset ds.
 
-    Cannot graph warp-on-demand datasets
+    Cannot graph warp-on-demand datasets.
 */
 #define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
                              (ds)->wod_flag == False                            && \
                              ( DSET_ONDISK(ds) || DSET_LOADED(ds) && DSET_LOCKED(ds) ) )
 #endif
 
-/*! \brief Return the TR for dataset ts; will be 0 if not time-dependent */
+/*! \brief Return the TR for dataset ts; will be 0 if not time-dependent. */
 
 #define DSET_TIMESTEP(ds)        ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttdel )
 
@@ -2149,13 +2323,13 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
 
 /*! \brief Return the time origin for dataset ds.
 
-    Is always 0 in current version of AFNI
+    Is always 0 in current version of AFNI.
 */
 #define DSET_TIMEORIGIN(ds)      ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttorg )
 
 /*! \brief Return the time duration of image acquisition for dataset ds.
 
-    Is always 0 in current version of AFNI (was intended for true 3D echo-volume imaging)
+    Is always 0 in current version of AFNI (was intended for true 3D echo-volume imaging).
 */
 #define DSET_TIMEDURATION(ds)    ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttdur )
 
@@ -2165,7 +2339,7 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
       - UNITS_MSEC_TYPE  milliseconds
       - UNITS_SEC_TYPE   seconds
       - UNITS_HZ_TYPE    Hertz
-      - ILLEGAL_TYPE     not a time-dependent dataset
+      - ILLEGAL_TYPE     not a time-dependent dataset (d'oh)
 */
 #define DSET_TIMEUNITS(ds)       ( ((ds)->taxis == NULL) ? ILLEGAL_TYPE             \
                                                          : (ds)->taxis->units_type )
@@ -2187,6 +2361,9 @@ static char tmp_dblab[8] ;
     This label is used on chooser menus, for example
 */
 #define DSET_BRICK_LAB(ds,iv) DBLK_BRICK_LAB((ds)->dblk,(iv))
+
+/*! Synonym for DSET_BRICK_LAB */
+
 #define DSET_BRICK_LABEL      DSET_BRICK_LAB
 
 #define DBLK_BRICK_STATCODE(db,iv)  \
@@ -2194,7 +2371,7 @@ static char tmp_dblab[8] ;
 
 /*! \brief Return the statistical type code for the iv-th volume of dataset ds.
 
-    Will be -1 if this sub-brick is not tagged as being an SPM
+    Will be -1 if this sub-brick is not tagged as being an SPM.
 */
 #define DSET_BRICK_STATCODE(ds,iv)                                         \
    ( ISBUCKET((ds)) ? DBLK_BRICK_STATCODE((ds)->dblk,(iv))                 \
@@ -2208,7 +2385,7 @@ static char tmp_dblab[8] ;
 
     If return is NULL, there aren't any parameters for this sub-brick,
     otherwise the number of parameters is given by FUNC_need_stat_aux[code],
-    where code = DSET_BRICK_STATCODE(ds,iv)
+    where code = DSET_BRICK_STATCODE(ds,iv).
 */
 #define DSET_BRICK_STATAUX(ds,iv)                                          \
    ( ISBUCKET((ds)) ? DBLK_BRICK_STATAUX((ds)->dblk,(iv))                  \
@@ -2218,7 +2395,7 @@ static char tmp_dblab[8] ;
 #define DBLK_BRICK_STATPAR(db,iv,jj) \
  ( ((db)->brick_stataux != NULL) ? (db)->brick_stataux[iv][jj] : 0.0 )
 
-/*! \brief Return the jj-th statistical parameter for the iv-th volume of dataset ds */
+/*! \brief Return the jj-th statistical parameter for the iv-th volume of dataset ds. */
 
 #define DSET_BRICK_STATPAR(ds,iv,jj)                                       \
    ( ISBUCKET((ds)) ? DBLK_BRICK_STATPAR((ds)->dblk,(iv),(jj))             \
@@ -2264,7 +2441,7 @@ static char tmp_dblab[8] ;
 /*! \brief Determine if the ii-th volume of dataset dset has a valid brick statistic.
 
     Brick statistics are just the min and max values in the volume
-    (not scaled by the brick scaling factor)
+    (not scaled by the brick scaling factor).
 */
 
 #define DSET_VALID_BSTAT(dset,ii)                 \
@@ -2273,13 +2450,13 @@ static char tmp_dblab[8] ;
     (ii) < (dset)->stats->nbstat     &&           \
     ISVALID_BSTAT( (dset)->stats->bstat[(ii)] ) )
 
-/*! \brief Mark the ii-th volume's brick statistics to be invalid in dataset dset */
+/*! \brief Mark the ii-th volume's brick statistics to be invalid in dataset dset. */
 
 #define DSET_CRUSH_BSTAT(dset,ii)                                 \
   do{ if( DSET_VALID_BSTAT(dset,ii) )                             \
          INVALIDATE_BSTAT((dset)->stats->bstat[(ii)]) ; } while(0)
 
-/*! \brief Delete all the sub-brick statistics for dataset ds */
+/*! \brief Delete all the sub-brick statistics for dataset ds. */
 
 #define DSET_KILL_STATS(ds)                                \
   do{ if( (ds)->stats != NULL ){                           \
@@ -2292,7 +2469,7 @@ static char tmp_dblab[8] ;
 
     Note that each sub-brick now has its own stat_aux data, and this
     global data is only used for the older (non-bucket) functional
-    dataset types such as "fico"
+    dataset types such as "fico".
 */
 
 #define INIT_STAT_AUX(ds,nf,ff)               \
@@ -2300,7 +2477,7 @@ static char tmp_dblab[8] ;
       for( is=0 ; is < MAX_STAT_AUX ; is++ )  \
          (ds)->stat_aux[is] = (is < (nf)) ? (ff)[is] : 0.0 ; } while(0)
 
-/*! \brief Clear the global stat_aux data in a dataset */
+/*! \brief Clear the global stat_aux data in a dataset. */
 
 #define ZERO_STAT_AUX(ds)                              \
   do{ int is ; for( is=0 ; is < MAX_STAT_AUX ; is++ )  \
@@ -2442,7 +2619,7 @@ typedef struct THD_3dim_dataset_array {
 /*! \brief Free the AFNI dataset array (but don't kill the datasets).
 
     This would be used after the dataset pointers have been moved
-    someplace else (e.g., into the THD_session structure)
+    someplace else (e.g., into the THD_session structure).
 */
 
 #define FREE_3DARR(name)      \
@@ -2499,7 +2676,7 @@ typedef struct {
 
 #define ISVALID_SESSION(ss) ( (ss) != NULL && (ss)->type == SESSION_TYPE )
 
-/*! \brief Initialize THD_session ss to hold nothing at all */
+/*! \brief Initialize THD_session ss to hold nothing at all. */
 
 #define BLANK_SESSION(ss) \
   if( ISVALID_SESSION((ss)) ){ \
@@ -2514,7 +2691,7 @@ typedef struct {
 
 /*! \brief Array of THD_sessions.
 
-    Holds all the datasets read into AFNI from all directories
+    Holds all the datasets read into AFNI from all directories.
 */
 
 typedef struct {
@@ -2527,7 +2704,7 @@ typedef struct {
 
 #define ISVALID_SESSIONLIST(sl) ( (sl)!=NULL && (sl)->type==SESSIONLIST_TYPE )
 
-/*! \brief Initialize a THD_sessionlist to contain nothing */
+/*! \brief Initialize a THD_sessionlist to contain nothing. */
 
 #define BLANK_SESSIONLIST(sl) \
    if( ISVALID_SESSIONLIST((sl)) ){ \
@@ -2539,16 +2716,16 @@ typedef struct {
 
     There are different ways to search for a dataset in THD_sessionlist
       - FIND_NAME    to find by the name field (is now obsolete)
-      - FIND_IDCODE  to find by the dataset ID code
-      - FIND_PREFIX  to find by the dataset prefix
+      - FIND_IDCODE  to find by the dataset ID code (the best way)
+      - FIND_PREFIX  to find by the dataset prefix (an OK way)
 */
 
 typedef struct {
-   int sess_index ;
-   int anat_index ;
-   int func_index ;
-   int view_index ;
-   THD_3dim_dataset * dset ;
+   int sess_index ;            /*< Session it was found in */
+   int anat_index ;            /*< Anat index it was found at (if >= 0) */
+   int func_index ;            /*< Func index it was found at (if >= 0) */
+   int view_index ;            /*< View index it was found at (if >= 0) */
+   THD_3dim_dataset * dset ;   /*< Pointer to found dataset */
 } THD_slist_find ;
 
 /*! \brief Set the find codes to indicate a bad result */
@@ -2745,6 +2922,8 @@ extern void THD_set_float_atr( THD_datablock * , char * , int , float * ) ;
 extern void THD_set_int_atr  ( THD_datablock * , char * , int , int   * ) ;
 extern void THD_set_char_atr ( THD_datablock * , char * , int , char  * ) ;
 
+/*! Macro to set a string attribute from a C string (vs. a char array). */
+
 #define THD_set_string_atr(blk,name,str) \
    THD_set_char_atr( (blk) , (name) , strlen(str)+1 , (str) )
 
@@ -2769,6 +2948,8 @@ extern MRI_IMAGE *        THD_fetch_1D           (char *); /* 26 Mar 2001 */
 extern int * MCW_get_intlist( int , char * ) ;
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 
+/*! Help string to explain dataset "mastering" briefly. */
+
 #define MASTER_SHORTHELP_STRING                                                 \
  "INPUT DATASET NAMES\n"                                                        \
  "-------------------\n"                                                        \
@@ -2779,6 +2960,8 @@ extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
  "  'r1+orig[3..5]<100..200>'                          {both selectors}\n"      \
  "  '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}\n"         \
  "For the gruesome details, see the output of 'afni -help'.\n"
+
+/*! Help string to explain dataset "mastering" at length. */
 
 #define MASTER_HELP_STRING                                                    \
     "INPUT DATASET NAMES\n"                                                   \
@@ -2825,6 +3008,8 @@ extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
     " so you will have to escape them.  This is most easily done by\n"        \
     " putting the entire dataset plus selection list inside forward\n"        \
     " single quotes, as in 'fred+orig[5..7,9]', or double quotes \"x\".\n"
+
+/*! Help string to explain calculated datasets. */
 
 #define CALC_HELP_STRING                                                   \
    "CALCULATED DATASETS\n"                                                 \
@@ -2908,29 +3093,50 @@ extern int THD_dataset_tshift( THD_3dim_dataset * , int ) ; /* 15 Feb 2001 */
 /*----------------------------------------------------------------*/
 /*--------  FD_brick type: for rapid extraction of slices --------*/
 
+/*! \brief This type is to hold information needed for the rapid extraction
+           of slices from an AFNI dataset (THD_3dim_dataset struct).
+
+    It exists primarily as a historical artifact.  The earliest version
+    of AFNI was to be called FD3, as a successor to FD2.  The FD_brick
+    was conceived as part of FD3.  However, FD3 morphed into AFNI within
+    a few weeks, but by then I didn't want to throw away the code that
+    had already been structured around this (primarily the imseq.c stuff).
+*/
+
 typedef struct FD_brick {
 
-   THD_ivec3 nxyz ,     /* actual dimensions as read in */
-             sxyz ,     /* starting indices in each dataset dimen */
-             a123 ;     /* axis codes as supplied in
-                           THD_3dim_dataset_to_brick */
+   THD_ivec3 nxyz ;     /*< actual dimensions as read in */
+   THD_ivec3 sxyz ;     /*< starting indices in each dataset dimen */
+   THD_ivec3 a123 ;     /*< axis codes as supplied in THD_3dim_dataset_to_brick */
 
-   int n1,d1,e1 ,       /* ni = length in direction i */
-       n2,d2,e2 ,       /* di = stride in direction i */
-       n3,d3,           /* ei = last index in direc i */
-       start ;          /* start = offset of 1st elem */
+   int n1 ;             /*< ni = length in direction i */
+   int d1 ;             /*< di = stride in direction i */
+   int e1 ;             /*< ei = last index in direc i */
+   int n2 ;             /*< ni = length in direction i */
+   int d2 ;             /*< di = stride in direction i */
+   int e2 ;             /*< ei = last index in direc i */
+   int n3 ;             /*< ni = length in direction i */
+   int d3 ;             /*< di = stride in direction i */
+   int start ;          /*< start = offset of 1st elem */
 
-   float del1,del2,del3 ;       /* voxel dimensions */
+   float del1 ;         /*< voxel dimensions */
+   float del2 ;         /*< voxel dimensions */
+   float del3 ;         /*< voxel dimensions */
 
-   THD_3dim_dataset * dset ;    /* pointer to parent dataset */
-   int resam_code , thr_resam_code ;
+   THD_3dim_dataset * dset ;    /*< pointer to parent dataset */
+   int resam_code ;             /*< how to resample normal sub-bricks */
+   int thr_resam_code ;         /*< how to resample statistical sub-bricks */
 
-   char namecode[32] ;  /* June 1997 */
+   char namecode[32] ;          /*< June 1997 */
 
-   XtPointer parent ;
+   XtPointer parent ;           /*< struct owner */
 } FD_brick ;
 
+/*! rotate the three numbers (a,b,c) to (b,c,a) into (na,nb,nc) */
+
 #define ROT3(a,b,c,na,nb,nc) ((na)=(b),(nb)=(c),(nc)=(a))
+
+/*! Determine if this FD_brick can be drawn (in an image or graph) */
 
 #define BRICK_DRAWABLE(br) ((br)->n1 > 1 && (br)->n2 > 1)
 
@@ -2964,6 +3170,8 @@ extern void THD_const_detrend    ( int, float *, float * ); /* 24 Aug 2001 */
 #define DETREND_quadratic(n,f) THD_quadratic_detrend(n,f,NULL,NULL,NULL)
 #define DETREND_cubic(n,f)     THD_cubic_detrend(n,f)
 #define DETREND_const(n,f)     THD_const_detrend(n,f,NULL)
+
+/*! Macro to detrend a time series array in to various polynomial orders. */
 
 #define DETREND_polort(p,n,f)                            \
  do{ switch(p){ default:                         break;  \
@@ -3055,6 +3263,8 @@ extern THD_dvecmat THD_read_dvecmat( char * , int ) ;  /* THD_read_vecmat.c */
 #define TM_IYZ 0
 #define TM_IZX 1
 
+/*! Struct used in cox_render.c to indicate which lines in a volume are all zero. */
+
 typedef struct {
    int   nmask[3] ;
    byte * mask[3] ;
@@ -3100,9 +3310,11 @@ extern void quint_shift( int , float , float *) ;
 
   /*-- see mri_3dalign.c for these routines --*/
 
+/*! Struct that holds information used during 3D registration. */
+
 typedef struct {
-   MRI_IMARR * fitim ;
-   double * chol_fitim ;
+   MRI_IMARR * fitim ;    /*< Regression basis images */
+   double * chol_fitim ;  /*< Choleski decomposition of the normal equations */
 } MRI_3dalign_basis ;
 
 extern void mri_3dalign_edging( int , int , int ) ;

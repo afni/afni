@@ -1411,6 +1411,12 @@ WHOAMI ;
 
 /*---------------------------------------------------------------*/
 
+/*! Increment for time series array size for mri_read_ascii() */
+#define INC_TSARSIZE 128
+
+/*! Length of line buffer for mri_read_ascii() */
+#define LBUF         32768
+
 /*!\brief Read an array of ASCII numbers into a 1D or 2D image.
 
   \param fname = input filename
@@ -1429,9 +1435,6 @@ WHOAMI ;
   be skipped as a comment.  A line with no characters (just
   the '\n') will also be skipped.
 */
-
-#define INC_TSARSIZE 128
-#define LBUF         32768
 
 MRI_IMAGE * mri_read_ascii( char * fname )
 {
