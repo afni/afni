@@ -4407,7 +4407,10 @@ ENTRY("ISQ_drawing_EV") ;
           int ydif = (event->y - seq->last_by) ;
           if( !seq->dc->use_xcol_im && (xdif || ydif) ){
             double denom = AFNI_numenv("AFNI_STROKE_THRESHOLD") ;
-            if( denom < 1.0l ) denom = 32.0l ;
+            if( denom < 1.0l ){
+              if( getenv("AFNI_STROKE_THRESHOLD") != NULL ) EXRETURN ;
+              denom = 32.0l ;
+            }
             xdif = rint(xdif/denom) ; ydif = rint(ydif/denom) ;
             if( xdif || ydif ){
               if( xdif ){ DC_gray_conbrio(seq->dc, xdif); seq->last_bx=event->x;}
