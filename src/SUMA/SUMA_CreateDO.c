@@ -1150,24 +1150,29 @@ SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv)
    
    switch (Ax->type) {
       case SUMA_STD_ZERO_CENTERED:
-         glBegin(GL_LINES);
-         glMaterialfv(GL_FRONT, GL_EMISSION, Ax->XaxisColor); /*turn on emissivity for axis*/
          glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
          glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
-
+         
+         glMaterialfv(GL_FRONT, GL_EMISSION, Ax->XaxisColor); /*turn on emissivity for axis*/
+         glBegin(GL_LINES);
          glVertex3f(-Ax->XYZspan[0]+Ax->Center[0], Ax->Center[1], Ax->Center[2]);
          glVertex3f(Ax->XYZspan[0]+Ax->Center[0], Ax->Center[1], Ax->Center[2]); 
-
+         glEnd();
+         
          glMaterialfv(GL_FRONT, GL_EMISSION, Ax->YaxisColor); /*turn on emissivity for axis*/
+         glBegin(GL_LINES);
          glVertex3f(Ax->Center[0], -Ax->XYZspan[1]+Ax->Center[1], Ax->Center[2]);
          glVertex3f(Ax->Center[0], +Ax->XYZspan[1]+Ax->Center[1], Ax->Center[2]); 
-
+         glEnd();
+         
          glMaterialfv(GL_FRONT, GL_EMISSION, Ax->ZaxisColor); /*turn on emissivity for axis*/
+         glBegin(GL_LINES);
          glVertex3f(Ax->Center[0], Ax->Center[1], -Ax->XYZspan[2]+Ax->Center[2]);
          glVertex3f(Ax->Center[0], Ax->Center[1], Ax->XYZspan[2]+Ax->Center[2]); 
+         glEnd();
+         
          glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
 
-         glEnd();
          break;
       case SUMA_SCALE_BOX:
          /* Sort segments by distance from screen center*/
@@ -2459,44 +2464,54 @@ SUMA_Boolean SUMA_DrawCrossHair (SUMA_CrossHair* Ch)
    glLineWidth(Ch->LineWidth);
    /*fprintf(SUMA_STDOUT, "Center: %f, %f, %f. Gap %f, Radius: %f\n",\
       Ch->c[0], Ch->c[2], Ch->c[2], Ch->g, Ch->r);*/
-   glBegin(GL_LINES);
       glMaterialfv(GL_FRONT, GL_AMBIENT, NoColor); /* turn off ambient and diffuse components */
       glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
       if (Ch->g) { /* gap */
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->XaxisColor); /*turn on emissivity for axis*/
+         glBegin(GL_LINES);
          glVertex3f(Ch->c[0] - Ch->r, Ch->c[1], Ch->c[2]);
          glVertex3f(Ch->c[0] - Ch->g, Ch->c[1], Ch->c[2]);
          glVertex3f(Ch->c[0] + Ch->r, Ch->c[1], Ch->c[2]);
          glVertex3f(Ch->c[0] + Ch->g, Ch->c[1], Ch->c[2]);
+         glEnd();  
 
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->YaxisColor); /*turn on emissivity for axis*/
+         glBegin(GL_LINES);
          glVertex3f(Ch->c[0], Ch->c[1] - Ch->r, Ch->c[2]);
          glVertex3f(Ch->c[0], Ch->c[1] - Ch->g, Ch->c[2]);
          glVertex3f(Ch->c[0], Ch->c[1] + Ch->r, Ch->c[2]);
          glVertex3f(Ch->c[0], Ch->c[1] + Ch->g, Ch->c[2]);
+         glEnd();  
 
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->ZaxisColor); /*turn on emissivity for axis*/
+         glBegin(GL_LINES);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - Ch->r);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - Ch->g);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + Ch->r);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + Ch->g);
+         glEnd();  
 
       }/*gap */ else {/*no gap */
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->XaxisColor); /*turn on emissivity for axis*/
+         glBegin(GL_LINES);
          glVertex3f(Ch->c[0] - Ch->r, Ch->c[1], Ch->c[2]);
          glVertex3f(Ch->c[0] + Ch->r, Ch->c[1], Ch->c[2]);
+         glEnd();  
          
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->YaxisColor); /*turn on emissivity for axis*/
+         glBegin(GL_LINES);
          glVertex3f(Ch->c[0], Ch->c[1] - Ch->r, Ch->c[2]);
          glVertex3f(Ch->c[0], Ch->c[1] + Ch->r, Ch->c[2]);
+         glEnd();  
 
          glMaterialfv(GL_FRONT, GL_EMISSION, Ch->ZaxisColor); /*turn on emissivity for axis*/
+         glBegin(GL_LINES);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] - Ch->r);
          glVertex3f(Ch->c[0], Ch->c[1], Ch->c[2] + Ch->r);
+         glEnd();  
       }
       glMaterialfv(GL_FRONT, GL_EMISSION, NoColor); /*turn off emissivity for axis*/
 
-   glEnd();  
    
    if (Ch->ShowSphere) {
       /*fprintf(SUMA_STDOUT, "SHOWING SPHERE\n");*/
