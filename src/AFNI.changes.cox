@@ -4351,3 +4351,7 @@
      result can be read by mri_read_1D(), etc.
  * Incorporated changes from KRH to fix mri_read_dicom.c for Siemens
      mosaics with incomplete slice coordinates.
+ * Modified afni_graph.c to fix problem with double plot introduced
+     when multiple timeseries graphing was introduced - forgot to
+     reset tsar pointer to original data when graphing double plot
+     in plus/minus mode.
