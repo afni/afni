@@ -9909,8 +9909,6 @@ void ISQ_snapshot( Widget w )
 
 ENTRY("ISQ_snapshot") ;
 
-fprintf(stderr,"Entering ISQ_snapshot\n") ;
-
    if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
    if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
    win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
@@ -9937,7 +9935,7 @@ fprintf(stderr,"Entering ISQ_snapshot\n") ;
    /* create viewer, if not present already */
 
    if( snap_isq == NULL ){
-     int ii , xr,yr , wx,hy ;
+     int ii , xr,yr , wx,hy , xx,yy ;
      Position xroot,yroot ;
      Widget wpar ;
 
@@ -9973,11 +9971,14 @@ fprintf(stderr,"Entering ISQ_snapshot\n") ;
      wpar = w ;
      while( XtParent(wpar) != NULL ) wpar = XtParent(wpar) ;  /* find top */
      XtTranslateCoords( wpar , 0,0 , &xroot,&yroot ) ;
+     xr = (int) xroot ; yr = (int) yroot ;
      MCW_widget_geom( wpar , &wx,NULL , NULL,NULL ) ;
-     XtVaSetValues( snap_isq->wtop ,
-                      XmNx , 1+wx+(int)xroot ,
-                      XmNy , 1   +(int)yroot ,
-                    NULL ) ;
+     xx = 1+wx+xr ; yy = 1+yr ;
+     if( xx >= snap_dc->width-wx/3 ){
+       XLowerWindow( snap_dc->display , XtWindow(wpar) ) ;
+       xx = yy = 2 ;
+     }
+     XtVaSetValues( snap_isq->wtop , XmNx,xx , XmNy,yy , NULL ) ;
    }
 
    /* tell the image viewer about the new image */
@@ -9993,6 +9994,44 @@ fprintf(stderr,"Entering ISQ_snapshot\n") ;
 
    ISQ_redisplay( snap_isq , IMARR_COUNT(snap_imar)-1 , isqDR_display ) ;
 
-fprintf(stderr,"  normal exit of ISQ_snapshot\n") ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Call this function to get a snapshot of a widget and save
+    it into a PPM file.
+------------------------------------------------------------------------*/
+
+void ISQ_snapfile( Widget w )
+{
+   MRI_IMAGE *tim ;
+   Window win ;
+   char fname[32] ;
+   int ii ; static int last_ii=1 ;
+
+ENTRY("ISQ_snapfile") ;
+
+   if( w == NULL || !XtIsWidget(w) )         EXRETURN ;
+   if( !XtIsRealized(w) || !XtIsManaged(w) ) EXRETURN ;
+   win = XtWindow(w); if( win == (Window)0 ) EXRETURN ;
+
+   /* create display context if we don't have one */
+
+   if( snap_dc == NULL ){
+     if( first_dc != NULL ) snap_dc = first_dc ;
+     else                   snap_dc = MCW_new_DC( w, 4,0, NULL,NULL, 1.0,0 );
+   }
+
+   /* try to get image */
+
+   tim = SNAP_grab_image( w , snap_dc ) ;
+   if( tim == NULL )                         EXRETURN ;
+
+   for( ii=last_ii ; ii <= 999999 ; ii++ ){
+     sprintf(fname,"S_%06d.ppm",ii) ;
+     if( ! THD_is_ondisk(fname) ) break ;
+   }
+   if( ii <= 999999 ) mri_write_pnm( fname , tim ) ;
+   mri_free(tim) ; last_ii = ii ;
    EXRETURN ;
 }
