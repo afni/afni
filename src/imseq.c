@@ -613,6 +613,8 @@ ENTRY("open_MCW_imseq") ;
    newseq->horig = tim->nx ;  /* save original dimensions */
    newseq->vorig = tim->ny ;
 
+   newseq->cropit = 0 ;       /* 11 Jun 2002 */
+
    newseq->last_width_mm  = IM_WIDTH(tim) ;  /* dimensions in real space */
    newseq->last_height_mm = IM_HEIGHT(tim) ;
 
@@ -1618,7 +1620,7 @@ ENTRY("ISQ_zoom_av_CB") ;
    } else {
       float mh = (zlev-1.001)/zlev ;        /* max offset allowed */
       float dh = 0.5*(1.0/zold-1.0/zlev) ;  /* change in offset to */
-                                               /* keep current center */
+                                            /* keep current center */
       seq->zoom_hor_off += dh ;
       seq->zoom_ver_off += dh ;
            if( seq->zoom_hor_off > mh  ) seq->zoom_hor_off = mh  ;
@@ -1955,8 +1957,7 @@ ENTRY("ISQ_make_image") ;
 
       ovim = seq->ovim ;
       if( ovim == NULL ){
-         tim = (MRI_IMAGE *) seq->getim( seq->im_nr ,
-                                         isqCR_getoverlay , seq->getaux ) ;
+         tim = ISQ_getoverlay( seq->im_nr , seq ) ;
 
          if( tim != NULL && !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
             fprintf(stderr,"\a\n*** Illegal overlay image! ***\n") ;
@@ -1973,10 +1974,7 @@ ENTRY("ISQ_make_image") ;
       /*-- 19 Sep 2001: get an overlay plot, if there is one --*/
 
       if( MCW_val_bbox(seq->wbar_plots_bbox) != 0 ){
-        seq->mplot = (MEM_plotdata *) seq->getim( seq->im_nr ,
-                                                  isqCR_getmemplot ,
-                                                  seq->getaux ) ;
-
+        seq->mplot = ISQ_getmemplot( seq->im_nr , seq ) ;
         if( seq->mplot != NULL )
           flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror, seq->mplot );
       }
@@ -1984,7 +1982,7 @@ ENTRY("ISQ_make_image") ;
       /*-- 20 Sep 2001: get a label, if there is one --*/
 
       if( seq->wbar_label_av->ival != 0 ){
-        lab = (char *) seq->getim( seq->im_nr, isqCR_getlabel, seq->getaux ) ;
+        lab = ISQ_getlabel( seq->im_nr , seq ) ;
         if( lab != NULL ){
           MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
           if( mp != NULL ){
@@ -2822,7 +2820,7 @@ ENTRY("ISQ_saver_CB") ;
          /* get overlay and flip it */
 
          if( !ISQ_SKIP_OVERLAY(seq) ){
-            tim = (MRI_IMAGE *) seq->getim( kf,isqCR_getoverlay,seq->getaux) ;
+            tim = ISQ_getoverlay( kf , seq ) ;
             if( tim != NULL && !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
                KILL_1MRI(tim) ;
             }
@@ -2857,7 +2855,7 @@ ENTRY("ISQ_saver_CB") ;
 
          if( MCW_val_bbox(seq->wbar_plots_bbox) != 0 ){  /* draw geometry overlay */
            MEM_plotdata *mp ;
-           mp = (MEM_plotdata *) seq->getim( kf,isqCR_getmemplot,seq->getaux ) ;
+           mp = ISQ_getmemplot( kf , seq ) ;
            if( mp != NULL ){
              flip_memplot( ISQ_TO_MRI_ROT(seq->opt.rot),seq->opt.mirror,mp );
              memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
@@ -3099,7 +3097,7 @@ ENTRY("ISQ_saver_CB") ;
          /* get overlay and flip it */
 
          if( !ISQ_SKIP_OVERLAY(seq) ){
-            tim = (MRI_IMAGE *) seq->getim( kf,isqCR_getoverlay,seq->getaux) ;
+            tim = ISQ_getoverlay( kf , seq ) ;
             if( tim != NULL && !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
                KILL_1MRI(tim) ;
             }
@@ -7034,7 +7032,7 @@ ENTRY("ISQ_manufacture_one") ;
 
    if( ISQ_SKIP_OVERLAY(seq) ) RETURN( NULL );
 
-   tim = (MRI_IMAGE *) seq->getim( nim , isqCR_getoverlay , seq->getaux ) ;
+   tim = ISQ_getoverlay( nim , seq ) ;
 
    if( tim == NULL ) RETURN( NULL );
 
@@ -7302,7 +7300,7 @@ DPR("Destroying overlay image array") ;
             if( nim < 0 || nim >= seq->status->num_total ) continue ; /* skip */
          }
 
-         mp = (MEM_plotdata *) seq->getim( nim,isqCR_getmemplot,seq->getaux );
+         mp = ISQ_getmemplot( nim , seq ) ;
 
          if( mp == NULL ) continue ; /* skip */
 
@@ -7363,7 +7361,7 @@ DPR("Destroying overlay image array") ;
 
          /*- get label string -*/
 
-         lab = (char *) seq->getim( nim, isqCR_getlabel, seq->getaux ) ;
+         lab = ISQ_getlabel( nim , seq ) ;
          if( lab != NULL ){
           mp = ISQ_plot_label( seq , lab ) ;  /* plot it */
           if( mp != NULL ){
@@ -8769,6 +8767,55 @@ void ISQ_butsave_EV( Widget w , XtPointer client_data ,
 }
 
 /*--------------------------------------------------------------------------*/
+/*! Get the label for overlay. [11 Jun 2002]
+----------------------------------------------------------------------------*/
+
+char * ISQ_getlabel( int nn , MCW_imseq *seq )
+{
+   char *lab ;
+
+ENTRY("ISQ_getlabel") ;
+
+   lab = (char *) seq->getim( nn,isqCR_getlabel,seq->getaux );
+   RETURN(lab) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Get the memplot for overlay. [11 Jun 2002]
+----------------------------------------------------------------------------*/
+
+MEM_plotdata * ISQ_getmemplot( int nn , MCW_imseq *seq )
+{
+   MEM_plotdata *mp ;
+
+ENTRY("ISQ_getmemplot") ;
+
+   mp = (MEM_plotdata *) seq->getim( nn,isqCR_getmemplot,seq->getaux );
+   RETURN(mp) ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Get the image for overlay. [11 Jun 2002]
+----------------------------------------------------------------------------*/
+
+MRI_IMAGE * ISQ_getoverlay( int nn , MCW_imseq *seq )
+{
+   MRI_IMAGE *tim ;
+
+ENTRY("ISQ_getoverlay") ;
+
+   tim = (MRI_IMAGE *) seq->getim( nn , isqCR_getoverlay , seq->getaux ) ;
+
+   if( seq->cropit ){
+     MRI_IMAGE *qim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,
+                                       seq->crop_ya,seq->crop_yb ) ;
+     if( qim != NULL ){ mri_free(tim); tim = qim; }
+   }
+
+   RETURN(tim) ;
+}
+
+/*--------------------------------------------------------------------------*/
 /*! Get the image for display.  Maybe use projections. [31 Jan 2002] */
 
 MRI_IMAGE * ISQ_getimage( int nn , MCW_imseq *seq )
@@ -8783,6 +8830,12 @@ ENTRY("ISQ_getimage") ;
    /* get the commanded slice */
 
    tim = (MRI_IMAGE *) seq->getim( nn, isqCR_getimage, seq->getaux ) ;
+
+   if( seq->cropit ){
+     MRI_IMAGE *cim = mri_cut_2D( tim, seq->crop_xa,seq->crop_xb,
+                                       seq->crop_ya,seq->crop_yb ) ;
+     if( cim != NULL ){ mri_free(tim); tim = cim; }
+   }
 
    /* the old way - return this slice */
 
@@ -8828,6 +8881,12 @@ ENTRY("ISQ_getimage") ;
          fim = mri_to_float(qim) ; mri_free(qim) ; /* convert it */
       } else
          fim = qim ;                               /* just put it here */
+
+      if( seq->cropit ){
+        MRI_IMAGE *cim = mri_cut_2D( fim , seq->crop_xa,seq->crop_xb,
+                                           seq->crop_ya,seq->crop_yb ) ;
+        if( cim != NULL ){ mri_free(fim); fim = cim; }
+      }
 
       ADDTO_IMARR(imar,fim) ;
    }

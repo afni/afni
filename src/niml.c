@@ -7891,24 +7891,33 @@ fprintf(stderr,"  and writing it [%d]\n",strlen(wbuf) ) ;
       ADDOUT ;
       nout = NI_stream_write( ns , nel->name , strlen(nel->name) ) ;
       ADDOUT ;
-      nout = NI_stream_write( ns , ">\n" , 2 ) ;
+      nout = NI_stream_write( ns , ">\n\n" , 3 ) ;
       ADDOUT ;
 
       /* 06 Mar 2002: hack hack hack */
+      /* 11 Jun 2002: more hack hack hack */
 
-#define MINOUT 1024
-#ifdef  MINOUT
-      if( ns->type == NI_TCP_TYPE && ntot < MINOUT ){
-        int nn = MINOUT-ntot ;
-        char *str = calloc(1,nn+16) ;
+#define USE_MINOUT
+#ifdef  USE_MINOUT
+      if( ns->type == NI_TCP_TYPE ){
+        char *eee = getenv("NIML_TCP_MINOUT") ;
+        int minout=1024 , nn ;
+        if( eee != NULL ){
+           nn = strtol( eee , NULL , 10 ) ;
+           if( nn >= 0 ) minout = nn ;
+        }
+        nn = minout-ntot ;
+        if( nn > 0 ){
+          char *str = calloc(1,nn+16) ;
 #if 0
 fprintf(stderr,"NI_write_element: adding %d blanks\n",nn) ;
 #endif
-        sprintf(str,"%*.*s\n",nn,nn," ") ;
-        NI_stream_write( ns , str , strlen(str) ) ;
-        free(str) ;
+          sprintf(str,"%*.*s\n",nn,nn," ") ;
+          NI_stream_write( ns , str , strlen(str) ) ;
+          free(str) ;
+        }
       }
-#endif
+#endif  /* USE_MINOUT */
 
       return ntot ;
    } /* end of write data element */

@@ -200,11 +200,7 @@ typedef struct {
 
 /*! Size of NI_stream buffer. */
 
-#if 0
-#define NI_BUFSIZE (64*1024)
-#else
-#define NI_BUFSIZE (2*1024)
-#endif
+#define NI_BUFSIZE (16*1024)
 
 /*! Data needed to process input stream. */
 

@@ -468,6 +468,9 @@ typedef struct MCW_imseq {
      XImage *zoom_xim  ;
      int    zoom_button1 , zoom_xp,zoom_yp ; /* 15 Mar 2002 */
 
+     int cropit , crop_xa,crop_xb , crop_ya,crop_yb ; /* 11 Jun 2002 */
+     int crop_nxorg , crop_nyorg ;
+
 } MCW_imseq ;
 
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
@@ -616,7 +619,10 @@ extern void ISQ_set_barhint( MCW_imseq * , char * ) ; /* 29 Jul 2001 */
 
 extern MRI_IMAGE * ISQ_process_mri( int , MCW_imseq * , MRI_IMAGE * ) ;
 
-extern MRI_IMAGE * ISQ_getimage( int , MCW_imseq * ) ; /* 31 Jan 2002 */
+extern MRI_IMAGE    * ISQ_getimage  ( int , MCW_imseq * ) ; /* 31 Jan 2002 */
+extern MRI_IMAGE    * ISQ_getoverlay( int , MCW_imseq * ) ; /* 11 Jun 2002 */
+extern MEM_plotdata * ISQ_getmemplot( int , MCW_imseq * ) ;
+extern char         * ISQ_getlabel  ( int , MCW_imseq * ) ;
 
 extern void ISQ_free_alldata( MCW_imseq * ) ;
 
