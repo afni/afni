@@ -1816,11 +1816,11 @@ asnap:asnap.o
 # specifics for the nifti1 .o files
 nifti1_io.o:nifti/nifti1_io.c nifti/nifti1_io.h
 	$(RM) $@
-	$(CC) -c nifti/nifti1_io.c $(IFLAGS)
+	$(CC) -c nifti/nifti1_io.c $(IFLAGS) $(USE_ZLIB)
 
 znzlib.o:nifti/znzlib.c nifti/znzlib.h
 	$(RM) $@
-	$(CC) -c nifti/znzlib.c $(IFLAGS)
+	$(CC) -c nifti/znzlib.c $(IFLAGS) $(USE_ZLIB)
 
 nifti1_test.o:nifti/nifti1_test.c 
 	$(RM) $@
