@@ -99,7 +99,9 @@ void AFNI_start_io( void )
 
       if( AFNI_ioc == NULL ){
          fprintf(stderr,"Can't open control channel %s to AFNI!\a\n",AFNI_iochan) ;
+#if 0
          AFNI_mode = 0 ;                       /* disable AFNI */
+#endif
          return ;
       } else {
          if( AFNI_verbose ) fprintf(stderr,"Entering AFNI_WAIT_CONTROL_MODE.\n") ;
@@ -137,7 +139,7 @@ void AFNI_start_io( void )
       /* decide name of data channel: it can be TCP/IP or shared memory */
 
       if( AFNI_use_tcp ) sprintf(AFNI_iochan,"tcp:%s:%d",AFNI_host,AFNI_TCP_PORT) ;
-      else               sprintf(AFNI_iochan,"shm:rtfeedme:%dM",RT_mega) ;
+      else               sprintf(AFNI_iochan,"shm:grv:%dM",RT_mega) ;
 
       strcpy(AFNI_buf,AFNI_iochan) ;     /* tell AFNI where to read data */
       if( AFNI_infocom[0] != '\0' ){
@@ -239,6 +241,8 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
+   mainENTRY("rtfeedme") ;
+
    /*-- scan arguments --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){
@@ -296,14 +300,6 @@ int main( int argc , char * argv[] )
       exit(1);
    }
 
-   if( AFNI_verbose )
-      fprintf(stderr,"--- Reading dataset bricks from disk\n") ;
-   DSET_load(RT_dset) ;
-   if( ! DSET_LOADED(RT_dset) ){
-      fprintf(stderr,"*** Can't load dataset brick file\n") ;
-      exit(1) ;
-   }
-
    /*-- initiate communications with AFNI --*/
 
    if( AFNI_verbose ) fprintf(stderr,"--- Starting I/O to AFNI\n") ;
@@ -312,19 +308,27 @@ int main( int argc , char * argv[] )
    AFNI_mode = AFNI_OPEN_CONTROL_MODE ;
    AFNI_start_io() ;
 
-   ii = 0 ;
-   while( AFNI_mode > 0 && AFNI_mode != AFNI_CONTINUE_MODE && ii < 700 ){
-      iochan_sleep( 20 ) ;
+   ii = 1 ;
+   while( AFNI_mode > 0 && AFNI_mode != AFNI_CONTINUE_MODE && ii < 1000 ){
+      iochan_sleep( 30 ) ;
       AFNI_start_io() ;
       ii++ ;
-      if( AFNI_verbose && ii%10 == 0 ) fprintf(stderr,".") ;
    }
 
    if( AFNI_mode != AFNI_CONTINUE_MODE ){
       fprintf(stderr,"\n*** Can't connect to AFNI?!\n") ; exit(1) ;
    }
 
-   if( AFNI_verbose ) fprintf(stderr,"\n--- Connection to AFNI is ready\n") ;
+   if( AFNI_verbose )
+     fprintf(stderr,"\n--- Connection to AFNI is ready after %d tries\n",ii) ;
+
+   if( AFNI_verbose )
+      fprintf(stderr,"--- Reading dataset bricks from disk\n") ;
+   DSET_load(RT_dset) ;
+   if( ! DSET_LOADED(RT_dset) ){
+      fprintf(stderr,"*** Can't load dataset brick file\n") ;
+      exit(1) ;
+   }
 
    /*-- Send dataset control information --*/
 
