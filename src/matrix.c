@@ -78,7 +78,7 @@
 #if defined(USE_SCSLBLAS)                            /** SGI Altix **/
 #  include <scsl_blas.h>
 #  define SETUP_BLAS1
-#  define SETUP_BLAS2
+#  undef  SETUP_BLAS2     /* don't use this */
 #  define TRANSA "T"
 #elif defined(USE_SUNPERF)                           /** Sun Solaris **/
 #  include <sunperf.h>
