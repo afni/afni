@@ -650,10 +650,10 @@ char * SUMA_help_message_Info(void)
       "     Ctrl+Shift+U-D arrows: AP cardinal views\n\n");
 
    SS = SUMA_StringAppend (SS, 
-      "     F1: object axis (X-Red, Y-Green, Z-Blue), \n"
-      "         toggle. \n");
+      "     F1: screen axis (X-Red, Y-Green), toggle. \n");
    SS = SUMA_StringAppend (SS, 
-      "     F2: screen axis (X-Red, Y-Green), toggle. \n");
+      "     F2: surface axis (X-Red, Y-Green, Z-Blue), \n"
+      "         switch. \n");
    SS = SUMA_StringAppend (SS, 
       "     F3: cross hair, toggle. \n");
    SS = SUMA_StringAppend (SS, 

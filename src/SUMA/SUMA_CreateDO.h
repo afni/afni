@@ -6,7 +6,7 @@ SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO,
                                        SUMA_Boolean replace);
 SUMA_Axis* SUMA_Alloc_Axis (const char *Name);
 void SUMA_Free_Axis (SUMA_Axis *Ax);
-SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax);
+SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv);
 void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceObject *cso);
 void SUMA_EyeAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *csv);
 void SUMA_Free_CrossHair (SUMA_CrossHair *Ch);
@@ -57,6 +57,11 @@ SUMA_DRAWN_ROI * SUMA_1DROI_to_DrawnROI ( int *Node, int N_Node, int Value, char
                                           SUMA_DO *dov, int N_dov, SUMA_Boolean ForDisplay);
 SUMA_SegmentDO * SUMA_ReadSegDO (char *s);
 SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float topright[3], int verb);
+SUMA_Boolean SUMA_DrawLineAxis ( SUMA_AxisSegmentInfo *ASIp, SUMA_Axis *Ax, SUMA_Boolean AddText);
+DList *SUMA_SortedAxisSegmentList ( SUMA_SurfaceViewer *sv, SUMA_Axis *Ax, 
+                                    SUMA_SORT_BOX_AXIS_OPTION opt);
+void SUMA_WorldAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_AxisText(SUMA_AxisSegmentInfo *ASIp, double *Ps);
 
  
 /*!

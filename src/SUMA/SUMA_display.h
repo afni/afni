@@ -110,7 +110,8 @@ int SUMA_generateEPS(char *filename, int inColor, unsigned int width, unsigned i
 GLvoid *SUMA_grabPixels(int inColor, unsigned int width, unsigned int height);
 SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO* dov);
 void SUMA_context_Init(SUMA_SurfaceViewer *sv);
-SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y);
+SUMA_Boolean SUMA_GetSelectionLine (SUMA_SurfaceViewer *sv, int x, int y, GLdouble *Pick0, GLdouble *Pick1, 
+                                    int N_List, int *xList, int *yList, GLdouble *Pick0List);
 void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData);
 void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData);
@@ -288,6 +289,8 @@ void SUMA_LoadSegDO (char *s, void *csvp);
 void SUMA_SiSi_I_Insist(void);
 void SUMA_BuildMenuReset(int nchar);
 SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
+SUMA_Boolean SUMA_World2ScreenCoords (SUMA_SurfaceViewer *sv, int N_List, double *WorldList, 
+                                       double *ScreenList, int *Quad, SUMA_Boolean ApplyXform);
 
 
 
