@@ -2584,13 +2584,34 @@ ENTRY("ISQ_saver_CB") ;
          int    mcod = X2M_USE_CMAP ;                             /* 21 Sep 2001: */
          if( seq->opt.save_filter >= 0 ) mcod |= X2M_FORCE_RGB ;  /* compute mcod rather than */
                                                                   /* use fixed X2M_USE_CMAP   */
+
          /* undump XImage to MRI_IMAGE (rgb format) */
 
          reload_DC_colordef( seq->dc ) ;  /* 23 Mar 1999 */
          tim = XImage_to_mri( seq->dc , seq->given_xim , mcod ) ; /* 21 Sep 2001: */
                                                                   /* X2M_USE_CMAP -> mcod */
 
-         if( tim != NULL ){                  /* actually got image */
+         /* 23 Mar 2002: zoom out, if ordered */
+
+#ifdef ALLOW_ZOOM
+         if( seq->zoom_fac >  1    &&
+             seq->mont_nx  == 1    &&
+             seq->mont_ny  == 1    &&
+             tim           != NULL && tim->kind == MRI_rgb ){
+
+           MRI_IMAGE *qim=mri_dup2D(seq->zoom_fac,tim) ;
+           mri_free(tim) ; tim = qim ;
+         }
+#endif
+
+         /* 23 Mar 2002: draw overlay lines on top, if any */
+
+         if( tim != NULL && seq->mplot != NULL && tim->kind == MRI_rgb )
+            memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+
+         /* save image to disk */
+
+         if( tim != NULL ){                  /* if we have image, that is */
             static int warned=0 ;
 
             if( seq->opt.save_filter < 0 ){  /* the old code: dump to PNM file */
@@ -2608,6 +2629,8 @@ ENTRY("ISQ_saver_CB") ;
                char filt[512] ; int ff=seq->opt.save_filter ; FILE *fp ;
                int pc ;
 
+               /* open a pipe to the filter function */
+
                sprintf( fname, "%s%s", seq->saver_prefix, ppmto_suffix[ff] ) ;
                sprintf( filt , ppmto_filter[ff] , fname ) ;
                printf("Writing one image to file %s\n",fname) ;
@@ -2618,6 +2641,8 @@ ENTRY("ISQ_saver_CB") ;
                   if( errno != 0 ) perror("** Unix error message") ;
                   POPDOWN_string_chooser ; mri_free(tim) ; EXRETURN ;
                }
+
+               /* write a PPM file to the filter pipe */
 
                fprintf(fp,"P6\n%d %d\n255\n" , tim->nx,tim->ny ) ;
                fwrite( MRI_RGB_PTR(tim), sizeof(byte), 3*tim->nvox, fp ) ;
@@ -3544,7 +3569,7 @@ ENTRY("ISQ_show_zoom") ;
    if( seq->zoom_xim == NULL ){
      MRI_IMAGE *im , *tim ;
      im  = XImage_to_mri( seq->dc, seq->given_xim, X2M_USE_CMAP|X2M_FORCE_RGB ) ;
-     mri_dup2D_mode(1); tim = mri_dup2D(zlev,im) ; mri_free(im) ;
+     tim = mri_dup2D(zlev,im) ; mri_free(im) ;
      seq->zoom_xim = mri_to_XImage(seq->dc,tim) ; mri_free(tim) ;
      newim++ ;
    }

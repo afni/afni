@@ -2,11 +2,13 @@
 #include "coxplot.h"
 
 /*--------------------------------------------------------------------------
-  Routines to render a memplot into an MRI_rgb image
+  Routines to render a memplot into an MRI_rgb image.
+  The assumption is that the plot is over the region [0,1]x[0,1],
+  which is rendered into the image [0..nx-1]x[0..ny-1].
 ----------------------------------------------------------------------------*/
 
-/*--------------------------------------------------------------------------
-   Set a sub-box within a window into which the next RGB plot should
+/*--------------------------------------------------------------------------*/
+/*! Set a sub-box within a window into which the next RGB plot should
    be scaled.  (0,0,0,0) args means use the whole window.  After
    each drawing (memplot_to_RGB_sef), will be reset to the whole window
    anyway.
@@ -25,14 +27,15 @@ void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop )
    }
 }
 
-/*--------------------------------------------------------------------------
-  Actually do the rendering.
-  Plotting will start with line #start and go to #end-1.
-  If end <= start, will do from #start to the last one in the plot.
-  To do all lines, set start=end=0.
-  "freee" controls whether the aspect ratio will be free to vary (!= 0),
-  or will be fixed (==0).
-  18 Sep 2001: adapted from X11 routines in coxplot/plot_x11.c
+/*--------------------------------------------------------------------------*/
+/*! Actually do the rendering of a memplot into an RGB image.
+  - Plotting will start with line #start and go to #end-1.
+  - If end <= start, will do from #start to the last one in the plot.
+  - To do all lines, set start=end=0.
+  - "freee" controls whether the aspect ratio will be free to vary (!= 0),
+    or will be fixed (==0).
+  - 18 Sep 2001: adapted from X11 routines in coxplot/plot_x11.c
+  - 23 Mar 2002: actually tested for the first time
 ----------------------------------------------------------------------------*/
 
 void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata * mp ,

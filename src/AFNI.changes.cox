@@ -3599,3 +3599,6 @@
  * Modified afni.c to correctly draw coordinates for lines shifted by 1/2 pixel.
  * Modified afni.c and afni_pplug_env.c to allow user to draw crosshairs with
      lines instead of overlay pixels.
+
+23 Mar 2002
+ * Modified imseq.c to zoom and draw overlays on Save One images.

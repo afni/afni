@@ -28,6 +28,7 @@
 
 /*--------------------------- Simple fill routine ---------------------------*/
 
+static
 void ppmd_filledrectangle( byte *pixels, int cols, int rows,
                            int x, int y, int width, int height , byte r,byte g,byte b )
 {
@@ -46,10 +47,13 @@ void ppmd_filledrectangle( byte *pixels, int cols, int rows,
             ASSPIX(pixels,col,row,r,g,b) ;
 }
 
-/*-------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 #define ppmd_lineclip 1  /* always clip lines */
 
+/*! Draw a line */
+
+static
 void ppmd_line( byte *pixels, int cols, int rows,
                 int x0, int y0, int x1, int y1, byte r,byte g,byte b )
 {
@@ -148,10 +152,13 @@ void ppmd_line( byte *pixels, int cols, int rows,
     }
 }
 
-/*-------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
 #define SPLINE_THRESH 3
 
+/*! Draw a spline between 3 points, using recursion and lines. */
+
+static
 void ppmd_spline3( byte *pixels, int cols, int rows,
                    int x0, int y0, int x1, int y1, int x2, int y2, byte r,byte g, byte b)
 {
@@ -174,8 +181,11 @@ void ppmd_spline3( byte *pixels, int cols, int rows,
 	ppmd_line( pixels, cols, rows, xb, yb, x2, y2, r,g,b ) ;
 }
 
-/*-------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
+/*! Draw a spline between a bunch of points. */
+
+static
 void ppmd_polyspline( byte *pixels, int cols, int rows,
                       int x0,int y0, int nc, int* xc, int* yc, int x1,int y1, byte r,byte g,byte b )
 {
@@ -191,8 +201,11 @@ void ppmd_polyspline( byte *pixels, int cols, int rows,
     ppmd_spline3( pixels, cols, rows, x, y, xc[nc - 1], yc[nc - 1], x1, y1, r,g,b ) ;
 }
 
-/*-------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
+/*! Draw a circle. */
+
+static
 void ppmd_circle( byte *pixels, int cols, int rows,
                   int cx, int cy, int radius, byte r,byte g,byte b )
 {
@@ -467,7 +480,7 @@ char126[] = { 23, 255, 21, 2, 1, 0, 255, 1, 253, 3, 251, 5, 251, 7, 252,
 
 /*-------------------------------------------------------------------------------*/
 
-/* Pointers to character definition tables. */
+/*! Pointers to character definition tables. */
 
 static unsigned char *ctab[] = {
     char32, char33, char34, char35, char36, char37, char38, char39, char40,
@@ -483,7 +496,7 @@ static unsigned char *ctab[] = {
     char119, char120, char121, char122, char123, char124, char125, char126
 };
 
-/* Table used to look up sine of angles from 0 through 90 degrees.
+/*! Table used to look up sine of angles from 0 through 90 degrees.
    The value returned is the sine * 65536.  Symmetry is used to
    obtain sine and cosine for arbitrary angles using this table. */
 
@@ -500,10 +513,10 @@ static long sintab[] = {
     65047, 65176, 65286, 65376, 65446, 65496, 65526, 65536
 };
 
-/*-------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
-/*  ISIN  --  Return sine of an angle in integral degrees.  The
-	      value returned is 65536 times the sine.  */
+/*! Return sine of an angle in integral degrees.  The
+    value returned is 65536 times the sine.  */
 
 static long isin(int deg)
 {
@@ -529,8 +542,8 @@ static long isin(int deg)
 
 /*-------------------------------------------------------------------------------*/
 
-/*  ICOS  --  Return cosine of an angle in integral degrees.  The
-	      value returned is 65536 times the cosine.  */
+/*! Return cosine of an angle in integral degrees.  The
+      value returned is 65536 times the cosine.  */
 
 static long icos(int deg) { return isin(deg + 90); }
 
@@ -541,13 +554,14 @@ static long icos(int deg) { return isin(deg + 90); }
 #define Scalef 21	/* Font design size */
 #define Descend 9	/* Descender offset */
 
-/*-------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
-/* PPMD_TEXT  --  Draw the zero-terminated  string  s, with  its  baseline
-		  starting  at	point  (x, y), inclined by angle degrees to
-		  the X axis, with letters height pixels  high	(descenders
-		  will	extend below the baseline).  ppmd_line does the actual drawing */
+/*! Draw the zero-terminated  string  s, with  its  baseline
+    starting at point  (x, y), inclined by angle degrees to
+    the X axis, with letters height pixels  high (descenders
+    will extend below the baseline).  ppmd_line does the actual drawing */
 
+static
 void ppmd_text(byte *pixels, int cols, int rows,
                int x, int y, int height, int angle, char *s, byte r,byte g,byte b )
 {
@@ -614,27 +628,38 @@ void ppmd_text(byte *pixels, int cols, int rows,
     }
 }
 
-/*-------------------------------------------------------------------------------*/
+/******************************************************************************/
+/*************** Interfaces that use mrilib.h images **************************/
+/******************************************************************************/
 
-void mri_drawline( MRI_IMAGE *im , int x0,int y0, int x1,int y1, byte r,byte g,byte b )
+/*----------------------------------------------------------------------------*/
+/*! Draw a line into an RGB image.
+    - x0,y0 = start pixel coords
+    - x1,y1 = end pixel coords
+    - r,g,b = line color
+------------------------------------------------------------------------------*/
+
+void mri_drawline( MRI_IMAGE *im, int x0,int y0, int x1,int y1, byte r,byte g,byte b )
 {
    if( im == NULL || im->kind != MRI_rgb ) return ;
-   ppmd_line( MRI_RGB_PTR(im) , im->nx , im->ny , x0,y0,x1,y1 , r,g,b ) ;
+   ppmd_line( MRI_RGB_PTR(im), im->nx, im->ny, x0,y0,x1,y1, r,g,b ) ;
 }
 
-/*-------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
-void mri_drawfilledrectangle( MRI_IMAGE *im ,
-                              int x, int y, int width, int height , byte r,byte g,byte b )
+void mri_drawfilledrectangle( MRI_IMAGE *im,
+                              int x, int y, int width, int height,
+                              byte r,byte g,byte b )
 {
    if( im == NULL || im->kind != MRI_rgb ) return ;
-   ppmd_filledrectangle( MRI_RGB_PTR(im) , im->nx , im->ny , x,y,width,height , r,g,b ) ;
+   ppmd_filledrectangle( MRI_RGB_PTR(im), im->nx, im->ny, x,y,width,height, r,g,b ) ;
 }
 
-/*-------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 
-void mri_drawemptyrectangle( MRI_IMAGE *im ,
-                             int x, int y, int width, int height , byte r,byte g,byte b )
+void mri_drawemptyrectangle( MRI_IMAGE *im,
+                             int x, int y, int width, int height,
+                             byte r,byte g,byte b )
 {
     register int cx, cy, cwidth, cheight, col, row;
 
@@ -647,13 +672,20 @@ void mri_drawemptyrectangle( MRI_IMAGE *im ,
     if ( cx + cwidth > im->nx ) cwidth = im->nx - cx;
     if ( cy + cheight > im->ny ) cheight = im->ny - cy;
 
-    ppmd_line( MRI_RGB_PTR(im), im->nx,im->ny, cx      ,cy       , cx+width,cy       , r,g,b );
-    ppmd_line( MRI_RGB_PTR(im), im->nx,im->ny, cx+width,cy       , cx+width,cy+height, r,g,b );
-    ppmd_line( MRI_RGB_PTR(im), im->nx,im->ny, cx+width,cy+height, cx      ,cy+height, r,g,b );
-    ppmd_line( MRI_RGB_PTR(im), im->nx,im->ny, cx      ,cy+height, cx      ,cy       , r,g,b );
+    ppmd_line( MRI_RGB_PTR(im),im->nx,im->ny,cx      ,cy       ,cx+width,cy       ,r,g,b);
+    ppmd_line( MRI_RGB_PTR(im),im->nx,im->ny,cx+width,cy       ,cx+width,cy+height,r,g,b);
+    ppmd_line( MRI_RGB_PTR(im),im->nx,im->ny,cx+width,cy+height,cx      ,cy+height,r,g,b);
+    ppmd_line( MRI_RGB_PTR(im),im->nx,im->ny,cx      ,cy+height,cx      ,cy       ,r,g,b);
 }
 
-/*-------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+/*! Draw text into an RGB image.
+    - x,y = pixel coords of baseline start
+    - height = pixel height of characters
+    - angle = degrees of inclination of baseline to x-axis
+    - s = string to draw
+    - r,g,b = color to draw in
+------------------------------------------------------------------------------*/
 
 void mri_drawtext( MRI_IMAGE *im ,
                    int x, int y, int height, int angle, char *s,
