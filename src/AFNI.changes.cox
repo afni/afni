@@ -3844,3 +3844,7 @@
 
 23 Jul 2002
  * Modified mri_read_dicom.c to get slice orientation and offsets.
+
+24 Jul 2002
+ * Modified UNIQ_idcode() in niml.c to get 4 extra bytes from /dev/urandom,
+     if it is readable.

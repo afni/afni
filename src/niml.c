@@ -1392,7 +1392,7 @@ char * UNIQ_idcode(void)
    nbuf = strlen(ubuf.nodename)+strlen(ubuf.sysname)
          +strlen(ubuf.release )+strlen(ubuf.version)+strlen(ubuf.machine) ;
 
-   buf = malloc(nbuf+64) ;      /* include some extra space */
+   buf = malloc(nbuf+128) ;      /* include some extra space */
    strcpy(buf,ubuf.nodename) ;
    strcat(buf,ubuf.sysname ) ;
    strcat(buf,ubuf.release ) ;
@@ -1413,6 +1413,17 @@ char * UNIQ_idcode(void)
    sprintf(buf+nbuf,"%d%d%d%d",
           (int)tv.tv_sec,(int)tv.tv_usec,(int)getpid(),ncall) ;
    ncall++ ;
+
+   /* 24 Jul 2002: get random bytes from /dev/urandom */
+
+#define NURR 4   /* 32 random bits should be enough */
+   { FILE *ufp = fopen("/dev/urandom","rb") ;
+     if( ufp != NULL ){
+       char urr[NURR+1] ;
+       fread( &urr , 1,NURR, ufp ) ; fclose(ufp) ;
+       urr[NURR] = '\0' ; strcat(buf,urr) ;
+     }
+   }
 
    /* make the output by hashing the string in buf */
 
