@@ -77,6 +77,7 @@ typedef struct {
   int    bigmode , bigset ;     /* 30 Jan 2003 */
   float  bigtop , bigbot ;
   rgbyte bigcolor[NPANE_BIG] ;
+  char * bigname ;              /* 22 Oct 2003 */
   XImage * bigxim ;
   int    bigmap_index ;         /* 31 Jan 2003 */
   float  bigfac ;               /* 11 Feb 2003 */

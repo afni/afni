@@ -213,6 +213,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
    pbar->bigxim  = NULL ;
    for( i=0 ; i < NPANE_BIG ; i++ )
      pbar->bigcolor[i] = bigmap[0][i] ;
+   pbar->bigname = bigmap_name[0] ;
 
    XtAddCallback( pbar->panes[0], XmNexposeCallback, PBAR_bigexpose_CB, pbar ) ;
 
@@ -623,6 +624,7 @@ static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
      XBell( pbar->dc->display,100); POPDOWN_strlist_chooser; return;
    }
 
+   pbar->bigname = bigmap_name[ind] ;  /* 22 Oct 2003 */
    pbar->bigmap_index = ind ;
    for( ii=0 ; ii < NPANE_BIG ; ii++ )
      pbar->bigcolor[ii] = bigmap[ind][ii] ;
