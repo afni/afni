@@ -19,26 +19,29 @@
 #define METH_MAX    6
 #define METH_MIN    7
 
-static int meth                    = METH_MEAN ;
+#define METH_DW     8   /* KRH 3 Dec 2002 */
+
+#define MAX_NUM_OF_METHS 20
+static int meth[MAX_NUM_OF_METHS] = {METH_MEAN};
 static char prefix[THD_MAX_PREFIX] = "stat" ;
 static int datum                   = MRI_float ;
 static int detrend                 = 1 ;
-
+static char meth_names[][20] = {"Mean","Slope","Std Dev","Coeff of Var","Median",
+	                    "Med Abs Dev", "Max", "Min", "Durbin-Watson"};
 static void STATS_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
-                         double ts_slope , void * ud , float * val ) ;
+                         double ts_slope , void * ud , int nbriks, float * val ) ;
 
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
-   int nopt ;
+   int nopt, nbriks, ii ;
 
    /*----- Read command line -----*/
-
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dTstat [options] dataset\n"
-             "Computes a single voxel-wise statistic for a 3D+time dataset\n"
-             "(if you want more than one of these, run 3dTstat more than once).\n"
+             "Computes one or more voxel-wise statistics for a 3D+time dataset\n"
+             "and stores them in a bucket dataset.\n"
              "\n"
              "Options:\n"
              " -mean   = compute mean of input voxels [DEFAULT]\n"
@@ -55,6 +58,9 @@ int main( int argc , char * argv[] )
              " -MAD    = compute MAD (median absolute deviation) of\n"
              "             input voxels = median(|voxel-median(voxel)|)\n"
              "             [N.B.: the trend is NOT removed for this]\n"
+             " -DW    = compute Durbin-Watson Statistic of\n"
+             "             input voxels\n"
+             "             [N.B.: the trend is removed for this]\n"
              " -median = compute median of input voxels  [undetrended]\n"
              " -min    = compute minimum of input voxels [undetrended]\n"
              " -max    = compute maximum of input voxels [undetrended]\n"
@@ -65,7 +71,7 @@ int main( int argc , char * argv[] )
              "               of the output, where 'd' is one of\n"
              "               'byte', 'short', or 'float' [DEFAULT=float]\n"
              "\n"
-             "The output is a single sub-brick dataset.  The input dataset\n"
+             "The output is a bucket dataset.  The input dataset\n"
              "may use a sub-brick selection list, as in program 3dcalc.\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -75,61 +81,67 @@ int main( int argc , char * argv[] )
    mainENTRY("3dTstat main"); machdep(); AFNI_logger("3dTstat",argc,argv);
 
    nopt = 1 ;
+   nbriks = 0 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
       /*-- methods --*/
 
       if( strcmp(argv[nopt],"-median") == 0 ){
-         meth = METH_MEDIAN ; detrend = 0 ;
+         meth[nbriks++] = METH_MEDIAN ; detrend = 0 ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-DW") == 0 ){
+         meth[nbriks++] = METH_DW ; detrend = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-MAD") == 0 ){
-         meth = METH_MAD ; detrend = 0 ;
+         meth[nbriks++] = METH_MAD ; detrend = 0 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-mean") == 0 ){
-         meth = METH_MEAN ; detrend = 1 ;
+         meth[nbriks++] = METH_MEAN ; detrend = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-slope") == 0 ){
-         meth = METH_SLOPE ; detrend = 1 ;
+         meth[nbriks++] = METH_SLOPE ; detrend = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-stdev") == 0 ||
           strcmp(argv[nopt],"-sigma") == 0   ){
 
-         meth = METH_SIGMA ; detrend = 1 ;
+         meth[nbriks++] = METH_SIGMA ; detrend = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-cvar") == 0 ){
-         meth = METH_CVAR ; detrend = 1 ;
+         meth[nbriks++] = METH_CVAR ; detrend = 1 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-stdevNOD") == 0 ||
           strcmp(argv[nopt],"-sigmaNOD") == 0   ){  /* 07 Dec 2001 */
 
-         meth = METH_SIGMA ; detrend = 0 ;
+         meth[nbriks++] = METH_SIGMA ; detrend = 0 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-cvarNOD") == 0 ){     /* 07 Dec 2001 */
-         meth = METH_CVAR ; detrend = 0 ;
+         meth[nbriks++] = METH_CVAR ; detrend = 0 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-min") == 0 ){
-         meth = METH_MIN ; detrend = 0 ;
+         meth[nbriks++] = METH_MIN ; detrend = 0 ;
          nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-max") == 0 ){
-         meth = METH_MAX ; detrend = 0 ;
+         meth[nbriks++] = METH_MAX ; detrend = 0 ;
          nopt++ ; continue ;
       }
 
@@ -171,6 +183,10 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
    }
 
+   /*--- If no options selected, default to single stat MEAN--KRH---*/
+
+   if (nbriks == 0) nbriks = 1;
+
    /*----- read input dataset -----*/
 
    if( nopt >= argc ){
@@ -200,12 +216,13 @@ int main( int argc , char * argv[] )
 
    /*------------- ready to compute new dataset -----------*/
 
-   new_dset = MAKER_4D_to_typed_fim(
+   new_dset = MAKER_4D_to_typed_fbuc(
                  old_dset ,             /* input dataset */
                  prefix ,               /* output prefix */
                  datum ,                /* output datum  */
                  0 ,                    /* ignore count  */
                  detrend ,              /* detrending?   */
+                 nbriks ,               /* number of briks */
                  STATS_tsfunc ,         /* timeseries processor */
                  NULL                   /* data for tsfunc */
               ) ;
@@ -213,6 +230,9 @@ int main( int argc , char * argv[] )
    if( new_dset != NULL ){
       tross_Copy_History( old_dset , new_dset ) ;
       tross_Make_History( "3dTstat" , argc,argv , new_dset ) ;
+      for (ii = 0; ii < nbriks; ii++) {
+        EDIT_BRICK_LABEL(new_dset, ii, meth_names[meth[ii]]) ;
+      }
       DSET_write( new_dset ) ;
       printf("--- Output dataset %s\n",DSET_FILECODE(new_dset)) ;
    } else {
@@ -230,9 +250,10 @@ int main( int argc , char * argv[] )
 static void STATS_tsfunc( double tzero, double tdelta ,
                           int npts, float ts[],
                           double ts_mean, double ts_slope,
-                          void * ud, float * val          )
+                          void * ud, int nbriks, float * val          )
 {
    static int nvox , ncall ;
+   int meth_index ;
 
    /** is this a "notification"? **/
 
@@ -253,12 +274,13 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
    /** OK, actually do some work **/
 
-   switch( meth ){
+   for (meth_index = 0; meth_index < nbriks; meth_index++) {
+   switch( meth[meth_index] ){
 
       default:
-      case METH_MEAN:  *val = ts_mean  ; break ;
+      case METH_MEAN:  val[meth_index] = ts_mean  ; break ;
 
-      case METH_SLOPE: *val = ts_slope ; break ;
+      case METH_SLOPE: val[meth_index] = ts_slope ; break ;
 
       case METH_CVAR:
       case METH_SIGMA:{
@@ -275,24 +297,32 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
          sum = sqrt( sum/(npts-1) ) ;
 
-         if( meth == METH_SIGMA )  *val = sum ;
-         else if( ts_mean != 0.0 ) *val = sum / fabs(ts_mean) ;
-         else                      *val = 0.0 ;
+         if( meth[meth_index] == METH_SIGMA )  val[meth_index] = sum ;
+         else if( ts_mean != 0.0 ) val[meth_index] = sum / fabs(ts_mean) ;
+         else                      val[meth_index] = 0.0 ;
       }
       break ;
 
       /* 14 Feb 2000: these 2 new methods disturb the array ts[] */
+      /* 18 Dec 2002: these 2 methods no longer disturb the array ts[] */
 
-      case METH_MEDIAN:
-         *val = qmed_float( npts , ts ) ;
+      case METH_MEDIAN:{
+         float* ts_copy;
+         ts_copy = (float*)calloc(npts, sizeof(float));
+         memcpy( ts_copy, ts, npts * sizeof(float));
+         val[meth_index] = qmed_float( npts , ts_copy ) ;
+      }
       break ;
 
       case METH_MAD:{
+         float* ts_copy;
          register int ii ;
          register float vm ;
-         vm = qmed_float( npts , ts ) ;
-         for( ii=0 ; ii < npts ; ii++ ) ts[ii] = fabs(ts[ii]-vm) ;
-         *val = qmed_float( npts , ts ) ;
+         ts_copy = (float*)calloc(npts, sizeof(float));
+         memcpy( ts_copy, ts, npts * sizeof(float));
+         vm = qmed_float( npts , ts_copy ) ;
+         for( ii=0 ; ii < npts ; ii++ ) ts_copy[ii] = fabs(ts_copy[ii]-vm) ;
+         val[meth_index] = qmed_float( npts , ts_copy ) ;
       }
       break ;
 
@@ -300,7 +330,20 @@ static void STATS_tsfunc( double tzero, double tdelta ,
          register int ii ;
          register float vm=ts[0] ;
          for( ii=1 ; ii < npts ; ii++ ) if( ts[ii] < vm ) vm = ts[ii] ;
-         *val = vm ;
+         val[meth_index] = vm ;
+      }
+      break ;
+
+      case METH_DW:{
+         register int ii ;
+         register float den=ts[0]*ts[0] ;
+         register float num=0 ;
+         for( ii=1 ; ii < npts ; ii++ ) {
+           num = num + (ts[ii] - ts[ii-1])
+		       *(ts[ii] - ts[ii-1]);
+           den = den + ts[ii] * ts[ii];
+         }
+         val[meth_index] = num/den ;
       }
       break ;
 
@@ -308,9 +351,10 @@ static void STATS_tsfunc( double tzero, double tdelta ,
          register int ii ;
          register float vm=ts[0] ;
          for( ii=1 ; ii < npts ; ii++ ) if( ts[ii] > vm ) vm = ts[ii] ;
-         *val = vm ;
+         val[meth_index] = vm ;
       }
       break ;
+   }
    }
 
    ncall++ ; return ;
