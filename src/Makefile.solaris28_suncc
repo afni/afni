@@ -12,6 +12,7 @@ LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
 # These extra libraries are for Suns
 
 EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
+EXTRA_LIBS_2 = -lsocket -lnsl -lc
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -G
