@@ -4284,3 +4284,7 @@
      Also changed mri_read.c, mcw_glob.c, mri_swapbytes.c, 3ddata.h to add
      a "3Dd:" input format for reading doubles from arbitrary files.
  * Added some new default colorscales to pbar.c.
+
+07 Feb 2002
+ * Modified afni_func.c to allow AFNI_RESCAN_METHOD environment variable to
+     choose old rescan method (cf. 28 Dec 2002).

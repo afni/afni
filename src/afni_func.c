@@ -3007,8 +3007,6 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
    EXRETURN ;
 }
 
-#define NEW_RESCAN_SESSION  /* 28 Dec 2002 - use the new AFNI_rescan_session() */
-
 /*----------------------------------------------------------------
    Obey the command to rescan the current session
 ------------------------------------------------------------------*/
@@ -3023,18 +3021,12 @@ ENTRY("AFNI_rescan_CB") ;
 
    SHOW_AFNI_PAUSE ;
    cc = AFNI_rescan_session( im3d->vinfo->sess_num ) ;
+   POPDOWN_strlist_chooser ;
    if( cc > 0 ){
-      POPDOWN_strlist_chooser ;
       sprintf(str," \n"
                   " Added %d datasets to \n"
                   " %s\n" ,
              cc ,
-             GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num]->sessname ) ;
-      (void) MCW_popup_message( w , str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
-   } else {
-      sprintf(str," \n"
-                  " Found 0 new datasets in \n"
-                  " %s\n" ,
              GLOBAL_library.sslist->ssar[im3d->vinfo->sess_num]->sessname ) ;
       (void) MCW_popup_message( w , str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
@@ -3085,10 +3077,9 @@ ENTRY("AFNI_rescan_all_CB") ;
    EXRETURN ;
 }
 
-#ifndef NEW_RESCAN_SESSION  /***** 28 Dec 2002: remove the old code *****/
 /*----------------------------------------------------------------------*/
 /*!
-  Re-read the session indexed by "sss".
+  Re-read the session indexed by "sss".  THE OLD WAY.
   Much of this code is taken from AFNI_read_inputs.
   WARNING: this will do bad things if the user deletes the
            session directory or the current active datasets within it
@@ -3098,16 +3089,16 @@ ENTRY("AFNI_rescan_all_CB") ;
            tie his shoes correctly).
 ------------------------------------------------------------------------*/
 
-int AFNI_rescan_session( int sss )  /* the old way */
+static int AFNI_rescan_session_OLD( int sss )  /* the old way */
 {
-   int vv , ii , cc ;
+   int vv , ii , cc , nold,nnew ;;
    THD_session *  new_ss , * old_ss ;
    Three_D_View * im3d ;
    MCW_idcode     anat_idcode[MAX_CONTROLLERS] ,
                   func_idcode[MAX_CONTROLLERS] ;
    THD_slist_find find ;
 
-ENTRY("AFNI_rescan_session") ;
+ENTRY("AFNI_rescan_session_OLD") ;
 { char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
 
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; RETURN(0) ; }
@@ -3131,6 +3122,8 @@ ENTRY("AFNI_rescan_session") ;
    /*--- mark all datasets in the old session for deletion from memory ---*/
 
 STATUS("marking old session datasets") ;
+
+   nold = old_ss->num_anat + old_ss->num_func ;
 
    for( ii=0 ; ii < old_ss->num_anat ; ii++ )
       for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
@@ -3294,12 +3287,14 @@ STATUS("fixing active controllers") ;
       }
    }
 
-   RETURN(0) ;
+   nnew = new_ss->num_anat + new_ss->num_func ;
+
+   RETURN( (nnew-nold) ) ;
 }
-#else       /******* 28 Dec 2002: insert the new code *******/
+
 /*----------------------------------------------------------------------*/
 /*!
-  Re-read the session indexed by "sss".
+  Re-read the session indexed by "sss".  THE NEW WAY.
   Much of this code is taken from AFNI_read_inputs().
 
   WARNING:
@@ -3314,14 +3309,14 @@ STATUS("fixing active controllers") ;
                existing session -- RWCox (MX&HNY)
 ------------------------------------------------------------------------*/
 
-int AFNI_rescan_session( int sss )   /* the new way */
+static int AFNI_rescan_session_NEW( int sss )   /* the new way */
 {
    int vv , ii , nr , na_new=0 , nf_new=0 ;
    THD_session  *new_ss , *old_ss ;
    THD_slist_find find ;
    THD_3dim_dataset *new_dset ;
 
-ENTRY("AFNI_rescan_session") ;
+ENTRY("AFNI_rescan_session_NEW") ;
 { char str[256]; sprintf(str,"session index %d\n",sss); STATUS(str); }
 
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT; RETURN(0); }
@@ -3431,7 +3426,19 @@ STATUS(old_ss->sessname) ;
 
    RETURN(na_new+nf_new) ;
 }
-#endif  /******* 28 Dec 2002: end of replacement code *******/
+
+/*----------------------------------------------------------------------*/
+/*! Use the old or the new rescan session methods -- 07 Feb 2003.
+------------------------------------------------------------------------*/
+
+int AFNI_rescan_session( int sss )
+{
+   char *eee = getenv("AFNI_RESCAN_METHOD") ;
+
+   return ( eee == NULL || strcmp(eee,"REPLACE") != 0 )
+          ? AFNI_rescan_session_NEW( sss )
+          : AFNI_rescan_session_OLD( sss ) ;
+}
 
 /*---------------------------------------------------------------
    Rescan for timeseries files
