@@ -3556,7 +3556,7 @@ ENTRY("ISQ_saver_CB") ;
                           "OUTPUT %s\n"             /* oof */
                           "GOP_SIZE          5\n"
                           "SLICES_PER_FRAME  1\n"
-                          "FRAME_RATE        %s\n"
+                          "FRAME_RATE        %s\n"  /* frate */
                           "BASE_FILE_FORMAT  PPM\n"
                           "INPUT_CONVERT     *\n"
                           "INPUT_DIR         .\n"
@@ -3570,7 +3570,7 @@ ENTRY("ISQ_saver_CB") ;
                           "BSEARCH_ALG       SIMPLE\n"
                           "REFERENCE_FRAME   ORIGINAL\n"
                           "INPUT\n"
-                          "%s%s.*.ppm [%05d-%05d]\n"
+                          "%s%s.*.ppm [%05d-%05d]\n"  /* prefix, tsuf, from, to */
                           "END_INPUT\n"
                        , oof , frate , pattrn , qscale ,
                          seq->saver_prefix,tsuf,seq->saver_from,seq->saver_to ) ;
