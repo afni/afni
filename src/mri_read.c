@@ -2010,8 +2010,6 @@ static int mri_imcount_analyze75( char * hname )
    struct dsr hdr ;    /* ANALYZE .hdr format */
    int doswap , nz ;
 
-fprintf(stderr,"enter mri_imcount_analyze75\n");
-
    fp = fopen( hname , "rb" ) ;
    if( fp == NULL ) return 0 ;
    hdr.dime.dim[0] = 0 ;
@@ -2030,9 +2028,6 @@ fprintf(stderr,"enter mri_imcount_analyze75\n");
    }
    if( nz < 1 ) nz = 1 ;
 
-#if 1
-   fprintf(stderr,"mri_imcount_analyze75: %s %d\n",hname,nz) ;
-#endif
    return nz ;
 }
 
