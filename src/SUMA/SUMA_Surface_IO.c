@@ -1,11 +1,16 @@
 
 #include "SUMA_suma.h"
+#include "PLY/ply.h"
 
 #undef STAND_ALONE
 
 #if defined SUMA_SureFit_STAND_ALONE
 #define STAND_ALONE 
 #elif defined SUMA_FreeSurfer_STAND_ALONE
+#define STAND_ALONE
+#elif defined SUMA_Ply_Read_STAND_ALONE
+#define STAND_ALONE
+#elif defined SUMA_ConvertSurface_STAND_ALONE
 #define STAND_ALONE
 #endif
 
@@ -961,4 +966,1027 @@ int main (int argc,char *argv[])
 
 	return (0);
 }/* Main */
+#endif
+
+/*** Code to read ply format data 
+Ply functions are based on code by Greg Turk. 
+---------------------------------------------------------------
+
+Copyright (c) 1994 The Board of Trustees of The Leland Stanford
+Junior University.  All rights reserved.   
+  
+Permission to use, copy, modify and distribute this software and its   
+documentation for any purpose is hereby granted without fee, provided   
+that the above copyright notice and this permission notice appear in   
+all copies of this software and that you do not sell the software.   
+  
+THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,   
+EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY   
+WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.   
+
+
+*/
+
+/* user's vertex and face definitions for a polygonal object */
+
+typedef struct Vertex {
+  float x,y,z;             /* the usual 3-space position of a vertex */
+} Vertex;
+
+typedef struct Face {
+  unsigned char intensity; /* this user attaches intensity to faces */
+  unsigned char nverts;    /* number of vertex indices in list */
+  int *verts;              /* vertex index list */
+} Face;
+
+/* information needed to describe the user's data to the PLY routines */
+
+PlyProperty vert_props[] = { /* list of property information for a vertex */
+  {"x", PLY_FLOAT, PLY_FLOAT, offsetof(Vertex,x), 0, 0, 0, 0},
+  {"y", PLY_FLOAT, PLY_FLOAT, offsetof(Vertex,y), 0, 0, 0, 0},
+  {"z", PLY_FLOAT, PLY_FLOAT, offsetof(Vertex,z), 0, 0, 0, 0},
+};
+
+PlyProperty face_props[] = { /* list of property information for a vertex */
+  {"intensity", PLY_UCHAR, PLY_UCHAR, offsetof(Face,intensity), 0, 0, 0, 0},
+  {"vertex_indices", PLY_INT, PLY_INT, offsetof(Face,verts),
+   1, PLY_UCHAR, PLY_UCHAR, offsetof(Face,nverts)},
+};
+
+/*!
+   \brief Reads a Ply formatted file into a SUMA_SurfaceObject structure
+   ans = SUMA_Ply_Read (f_name, SO);
+   
+   \param f_name (char *) name (and path) of .ply file to read. Extension .ply is optional
+   \param SO (SUMA_SurfaceObject *) pointer to a structure to return surface in f_name in
+   \return ans (SUMA_Boolean) YUP/NOPE
+   
+   The following fields are set in SO:
+   SO->NodeDim
+   SO->FaceSetDim
+   SO->NodeList
+   SO->FaceSetList
+   SO->N_Node;
+   SO->N_FaceSet;
+   SO->Name;
+   SO->FileType;
+   SO->FileFormat
+   
+   \sa SUMA_Ply_Write()
+   
+   This function is a wrap around code by Greg Turk. 
+   
+*/
+SUMA_Boolean SUMA_Ply_Read (char * f_name, SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_Ply_Read"};
+   int i,j,k, j3, ji;
+   PlyFile *ply = NULL;
+   int nelems;
+   char **elist = NULL;
+   int file_type;
+   float version;
+   int nprops;
+   int num_elems;
+   PlyProperty **plist = NULL;
+   Vertex **vlist = NULL;
+   Face **flist = NULL;
+   char *elem_name;
+   int num_comments;
+   char **comments = NULL;
+   int num_obj_info;
+   char **obj_info = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* open a PLY file for reading */
+   ply = ply_open_for_reading(f_name, &nelems, &elist, &file_type, &version);
+   if (!ply) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to find/read %s.\n", FuncName, f_name);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* print what we found out about the file */
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: version %f\n", FuncName, version);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: type %d\n", FuncName, file_type);
+
+   /* go through each kind of element that we learned is in the file */
+   /* and read them */
+
+   for (i = 0; i < nelems; i++) {
+
+    /* get the description of the first element */
+    elem_name = elist[i];
+    plist = ply_get_element_description (ply, elem_name, &num_elems, &nprops);
+
+    /* print the name of the element, for debugging */
+    if (LocalHead) fprintf (SUMA_STDERR, "%s: element %s %d\n", FuncName, elem_name, num_elems);
+
+    /* if we're on vertex elements, read them in */
+    if (equal_strings ("vertex", elem_name)) {
+
+      /* create a vertex list to hold all the vertices */
+      #ifdef USE_PLY_VERTEX
+      vlist = (Vertex **) SUMA_malloc (sizeof (Vertex *) * num_elems);
+      #endif
+      
+      SO->NodeList = (float *) SUMA_calloc (3*num_elems, sizeof(float));
+      if (!SO->NodeList) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to allocate for SO->NodeList.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      
+      /* set up for getting vertex elements */
+
+      ply_get_property (ply, elem_name, &vert_props[0]);
+      ply_get_property (ply, elem_name, &vert_props[1]);
+      ply_get_property (ply, elem_name, &vert_props[2]);
+      
+      SO->NodeDim = 3;
+      SO->N_Node = num_elems;
+      /* grab all the vertex elements */
+      for (j = 0; j < num_elems; j++) {
+
+        /* grab and element from the file */
+        #ifdef USE_PLY_VERTEX
+        //vlist[j] = (Vertex *) SUMA_malloc (sizeof (Vertex));
+        //ply_get_element (ply, (void *) vlist[j]);
+        /* print out vertex x,y,z for debugging */
+        if (LocalHead) fprintf (SUMA_STDERR, "%s vertex: %g %g %g\n", FuncName, vlist[j]->x, vlist[j]->y, vlist[j]->z);
+        /* copy to NodeList */
+        j3 = SO->NodeDim*j;
+        SO->NodeList[j3] = vlist[j]->x;
+        SO->NodeList[j3+1] = vlist[j]->y;
+        SO->NodeList[j3+2] = vlist[j]->z;
+        
+        #else
+        j3 = SO->NodeDim*j;
+        ply_get_element (ply, (void *) &(SO->NodeList[j3]));
+        /* print out vertex x,y,z for debugging */
+        if (LocalHead) fprintf (SUMA_STDERR, "%s vertex: %g %g %g\n", FuncName, 
+         SO->NodeList[j3], SO->NodeList[j3+1], SO->NodeList[j3+2]);
+        #endif
+         
+      }
+    }
+
+    /* if we're on face elements, read them in */
+    if (equal_strings ("face", elem_name)) {
+
+      /* create a list to hold all the face elements */
+      flist = (Face **) SUMA_malloc (sizeof (Face *) * num_elems);
+
+      /* set up for getting face elements */
+
+      ply_get_property (ply, elem_name, &face_props[0]);
+      ply_get_property (ply, elem_name, &face_props[1]);
+
+      /* grab all the face elements */
+      for (j = 0; j < num_elems; j++) {
+
+        /* grab and element from the file */
+        flist[j] = (Face *) SUMA_malloc (sizeof (Face));
+        ply_get_element (ply, (void *) flist[j]);
+
+        /* print out face info, for debugging */
+        if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s face: %d, list = ", FuncName, flist[j]->intensity);
+         for (k = 0; k < flist[j]->nverts; k++)
+            fprintf (SUMA_STDERR,"%d ", flist[j]->verts[k]);
+         fprintf (SUMA_STDERR,"\n");
+        }
+        
+      }
+      /* copy face elements to SO structure */
+      SO->FaceSetDim = flist[0]->nverts;
+      SO->N_FaceSet = num_elems;
+      SO->FaceSetList = (int *) SUMA_calloc (SO->FaceSetDim * num_elems, sizeof(int));
+      if (!SO->FaceSetList) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to allocate for SO->NodeList.\n", FuncName);
+         if (SO->NodeList) SUMA_free(SO->NodeList); 
+         SUMA_RETURN(NOPE);
+      }
+      
+      for (j = 0; j < num_elems; j++) {
+         if (flist[j]->nverts != SO->FaceSetDim) {
+            fprintf (SUMA_STDERR, "Error %s: All FaceSets must have the same dimension for SUMA.\n", FuncName);
+            if (SO->NodeList) SUMA_free(SO->NodeList); 
+            if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
+            SO->NodeList = NULL;
+            SO->FaceSetList = NULL;
+            SUMA_RETURN(NOPE);
+         }
+         ji = SO->FaceSetDim * j;
+         for (k = 0; k < flist[j]->nverts; k++)
+            SO->FaceSetList[ji+k] = flist[j]->verts[k];
+      }
+    }
+
+   /* fill up a few more fields */
+   SO->FileType = SUMA_PLY;
+   if (file_type == PLY_ASCII) SO->FileFormat = SUMA_ASCII;
+      else if (file_type == PLY_BINARY_BE) SO->FileFormat = SUMA_BINARY_BE;
+         else if (file_type == PLY_BINARY_LE) SO->FileFormat = SUMA_BINARY_LE;
+            else {
+               fprintf (SUMA_STDERR, "Error %s: PLY_TYPE %d not recognized.\n", FuncName, file_type);
+            }
+            
+   SO->Name = SUMA_StripPath(f_name);
+   
+    /* print out the properties we got, for debugging */
+    for (j = 0; j < nprops; j++)
+      fprintf (SUMA_STDERR, "%s property %s\n", FuncName, plist[j]->name);
+   }
+
+   /* grab and print out the comments in the file */
+   comments = ply_get_comments (ply, &num_comments);
+   for (i = 0; i < num_comments; i++)
+    fprintf (SUMA_STDERR, "%s comment = '%s'\n", FuncName, comments[i]);
+
+   /* grab and print out the object information */
+   obj_info = ply_get_obj_info (ply, &num_obj_info);
+   for (i = 0; i < num_obj_info; i++)
+    fprintf (SUMA_STDERR, "%s obj_info = '%s'\n", FuncName, obj_info[i]);
+
+   /* free the allocations necessary for vertex and facesetlists */
+   for (j = 0; j < SO->N_FaceSet; j++) {
+      SUMA_free(flist[j]);
+   }
+   SUMA_free(flist); flist = NULL;
+   
+   #ifdef USE_PLY_VERTEX
+   for (j = 0; j < SO->N_Node; j++) {
+      SUMA_free(vlist[j]);
+   }
+   SUMA_free(vlist); vlist = NULL;
+   #endif
+   /* close the PLY file, ply structure is freed within*/
+   ply_close (ply);
+   
+   /* free plist */
+   for (j = 0; j < nprops; j++) if (plist[j]) SUMA_free (plist[j]);
+   if (plist) SUMA_free(plist);
+   
+   /* free comments */
+   for (i = 0; i < num_comments; i++) if (comments[i]) SUMA_free (comments[i]);
+   if (comments) SUMA_free (comments);
+   
+   /* free elist */
+   for (i = 0; i < nelems; i++) if (elist[i]) SUMA_free (elist[i]);
+   if (elist) SUMA_free (elist);
+   
+   /* free obj_info */
+   for (i = 0; i < num_obj_info; i++) if (obj_info[i]) SUMA_free (obj_info[i]);
+   if (obj_info) SUMA_free (obj_info);
+    
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Writes an SO into a .ply file
+   ans = SUMA_Ply_Write (f_name, SO);
+   \param f_name (char *) name of .ply file. if .ply is not attached it will be added.
+   \param SO (SUMA_SurfaceObject *) Surface object to write out. 
+      if SO->FileFormat = SUMA_BINARY_BE or SUMA_BINARY_LE the surface is written in binary ply format.
+      SUMA_BINARY is set to SUMA_BINARY_BE
+   \return ans (SUMA_Boolean) success flag.
+   
+   In its current incarnation, the function does overwrite a pre-existing file.
+      
+*/ 
+SUMA_Boolean SUMA_Ply_Write (char * f_name, SUMA_SurfaceObject *SO) 
+{
+   static char FuncName[]={"SUMA_Ply_Write"};
+   int i,j;
+   PlyFile *ply = NULL;
+   int nelems;
+   int file_type;
+   float version;
+   int nverts ;
+   int nfaces ;
+   char *elem_names[] = { "vertex", "face" };/* list of the kinds of elements in the user's object */
+   int n_elem_names = 2;
+   Vertex **verts = NULL;
+   Face *faces = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   nverts = SO->N_Node;
+   nfaces = SO->N_FaceSet;
+   
+   /* must have XYZ */
+   if (SO->NodeDim != 3) {
+      fprintf (SUMA_STDERR, "Error %s: SO->NodeDim != 3.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+
+   /* create the object in ply format */
+   verts = (Vertex **) SUMA_malloc (nverts*sizeof(Vertex *));
+   faces = (Face *) SUMA_malloc (nfaces*sizeof(Face));
+   if (!verts || !faces) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate.\n", FuncName);
+      if (verts) SUMA_free(verts);
+      if (faces) SUMA_free(faces);
+      SUMA_RETURN (NOPE);
+   }
+
+   for (i = 0; i < nfaces; i++) {
+      faces[i].intensity = '\001';
+      faces[i].nverts = SO->FaceSetDim;
+      faces[i].verts = &(SO->FaceSetList[SO->FaceSetDim*i]);
+   }
+   
+   /* open either a binary or ascii PLY file for writing */
+   /* (the file will be called "test.ply" because the routines */
+   /*  enforce the .ply filename extension) */
+
+   switch (SO->FileType) {
+      case SUMA_BINARY_BE:
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_BINARY_BE, &version);
+         break;
+      
+      case SUMA_BINARY_LE:
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_BINARY_LE, &version);
+         break;
+      
+      case SUMA_ASCII:
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_ASCII, &version);
+         break;
+      
+      case SUMA_BINARY:
+         ply = ply_open_for_writing(f_name, n_elem_names, elem_names, PLY_BINARY_BE, &version);
+         break;
+            
+      default:
+         fprintf (SUMA_STDERR, "Error %s: Unrecognized file type.\n", FuncName);
+         SUMA_RETURN (NOPE);
+         break;  
+   }
+
+   if (!ply) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to create %s.\n", FuncName, f_name);
+      if (verts) SUMA_free(verts);
+      if (faces) SUMA_free(faces);
+      SUMA_RETURN (NOPE);
+   }
+   /* describe what properties go into the vertex and face elements */
+
+   ply_element_count (ply, "vertex", nverts);
+   ply_describe_property (ply, "vertex", &vert_props[0]);
+   ply_describe_property (ply, "vertex", &vert_props[1]);
+   ply_describe_property (ply, "vertex", &vert_props[2]);
+
+   ply_element_count (ply, "face", nfaces);
+   ply_describe_property (ply, "face", &face_props[0]);
+   ply_describe_property (ply, "face", &face_props[1]);
+
+   /* write a comment and an object information field */
+   ply_put_comment (ply, "author: Greg Turk");
+   ply_put_obj_info (ply, "random information");
+
+   /* we have described exactly what we will put in the file, so */
+   /* we are now done with the header info */
+   ply_header_complete (ply);
+
+   /* set up and write the vertex elements */
+   ply_put_element_setup (ply, "vertex");
+   for (i = 0; i < nverts; i++)
+    ply_put_element (ply, (void *) &(SO->NodeList[SO->NodeDim*i]));
+
+   /* set up and write the face elements */
+   ply_put_element_setup (ply, "face");
+   for (i = 0; i < nfaces; i++)
+    ply_put_element (ply, (void *) &faces[i]);
+
+   /* close the PLY file */
+   ply_close (ply);
+
+   /* free */
+   if (verts) SUMA_free(verts);
+   if (faces) SUMA_free(faces);
+   
+   SUMA_RETURN (YUP);
+}
+
+/*! 
+   \brief Function to write a surface object to a FreeSurfer .asc file format
+   ans = SUMA_Boolean SUMA_FS_Write (fileNm, SO, firstLine);
+   \param  fileNm (char *) name (and path) of file.
+   \param  SO (SUMA_SurfaceObject *) Surface Object
+   \param firstLine (char *) string to place as comment (begins with #) in fileNm
+   \return YUP/NOPE
+   
+   
+   The function will overwrite pre-existing files!
+   Written by Brenna Bargall
+*/
+SUMA_Boolean SUMA_FS_Write (char *fileNm, SUMA_SurfaceObject *SO, char *firstLine) 
+{
+   static char FuncName[]={"SUMA_FS_Write"};
+   int i, j;
+   FILE *outFile = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (SO->NodeDim != 3 || SO->FaceSetDim != 3) {
+      fprintf (SUMA_STDERR, "Error %s: Must have NodeDim and FaceSetDim = 3.\n",FuncName);
+      SUMA_RETURN (NOPE);
+   }
+
+   outFile = fopen(fileNm, "w");
+   if (!outFile) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in opening %s for writing.\n",FuncName, fileNm);
+      SUMA_RETURN (NOPE);
+   } 
+   
+   fprintf (outFile,"#%s\n", firstLine);
+   fprintf (outFile, "%d %d\n", SO->N_Node, SO->N_FaceSet);
+
+   j=0;
+   for (i=0; i<SO->N_Node; ++i) {
+      j=SO->NodeDim * i;
+      fprintf (outFile, "%f  %f  %f  0\n", SO->NodeList[j], SO->NodeList[j+1], SO->NodeList[j+2]);
+   }
+
+   j=0;
+   for (i=0; i<SO->N_FaceSet; ++i) {
+      j = SO->FaceSetDim * i;
+      fprintf (outFile, "%d %d %d 0\n", SO->FaceSetList[j], SO->FaceSetList[j+1], SO->FaceSetList[j+2]);
+   }
+    
+   
+   fclose(outFile);
+
+   SUMA_RETURN (YUP);
+   
+}
+
+/*!
+   \brief writes the NodeList and FaceSetList of SO to 2 ascii files
+   ans = SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO);
+   \param  Fname (SUMA_SFname *) uses the SureFit filename structure to store
+                                 the names (and paths) of the NodeList (name_coord)
+                                 and the FaceSetList (name_topo) files.
+   \param SO (SUMA_SurfaceObject *) pointer to SO structure.
+   \return YUP/NOPE
+   
+   \sa SUMA_VEC_Read
+   The function will overwrite pre-existing files!
+   
+*/
+SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
+{
+   
+   static char FuncName[]={"SUMA_VEC_Write"};
+   int i, j;
+   FILE *outFile = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (SO->NodeDim != 3 || SO->FaceSetDim != 3) {
+      fprintf (SUMA_STDERR, "Error %s: Must have NodeDim and FaceSetDim = 3.\n",FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   outFile = fopen(Fname->name_coord, "w");
+   if (!outFile) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in opening %s for writing.\n",FuncName, Fname->name_coord);
+      SUMA_RETURN (NOPE);
+   }
+   
+   j=0;
+   for (i=0; i<SO->N_Node; ++i) {
+      j=SO->NodeDim * i;
+      fprintf (outFile, "%f  %f  %f \n", SO->NodeList[j], SO->NodeList[j+1], SO->NodeList[j+2]);
+   }
+   
+   fclose (outFile);
+   
+   outFile = fopen(Fname->name_topo, "w");
+   if (!outFile) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in opening %s for writing.\n",FuncName, Fname->name_topo);
+      SUMA_RETURN (NOPE);
+   }
+   j=0;
+   for (i=0; i<SO->N_FaceSet; ++i) {
+      j = SO->FaceSetDim * i;
+      fprintf (outFile, "%d %d %d\n", SO->FaceSetList[j], SO->FaceSetList[j+1], SO->FaceSetList[j+2]);
+   }
+
+   fclose (outFile);
+   SUMA_RETURN (YUP);
+
+}
+
+#ifdef SUMA_Ply_Read_STAND_ALONE
+void usage_SUMA_Ply_Read_Main ()
+   
+  {/*Usage*/
+          printf ("\n\33[1mUsage: \33[0m SUMA_Ply_Read -s f_name \n");
+          printf ("\t reads in a .ply file and writes it out to copy_f_name.ply\n");
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
+          exit (0);
+  }/*Usage*/
+   
+int main (int argc,char *argv[])
+{/* Main */
+   static char FuncName[]={"SUMA_Ply_Read_Main"}; 
+	int kar;
+   char *f_name=NULL, out_f_name[200];
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_Boolean brk;
+   
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   
+   if (argc < 3)
+       {
+          usage_SUMA_Ply_Read_Main ();
+          exit (1);
+       }
+   
+   kar = 1;
+	brk = NOPE;
+	while (kar < argc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+			 usage_SUMA_Ply_Read_Main();
+          exit (1);
+		}
+		
+		if (!brk && (strcmp(argv[kar], "-s") == 0)) {
+			kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -s ");
+				exit (1);
+			}
+			f_name = argv[kar];
+			/*fprintf(SUMA_STDOUT, "Found: %s\n", f_name);*/
+
+			brk = YUP;
+		}
+      
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+   }
+   
+   if (!f_name) {
+      fprintf (SUMA_STDERR,"Error %s: Missing filename.\n", FuncName);
+      exit(1);
+   }
+   
+   SO = SUMA_Alloc_SurfObject_Struct(1);   
+   if (!SUMA_Ply_Read (f_name, SO)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
+      exit (1);
+   } 
+   
+   SO->Label = SUMA_SurfaceFileName (SO, NOPE);
+   sprintf (out_f_name , "copy_%s", SO->Label);   
+   fprintf (SUMA_STDERR,"%s: Success apparent. Now writing SO to %s\n", FuncName, out_f_name);
+   if (!SUMA_Ply_Write (out_f_name, SO)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
+      exit (1);
+   } 
+      
+   SUMA_Free_Surface_Object (SO);
+   
+   return (0);
+ } /* Main */  
+#endif
+
+#ifdef SUMA_ConvertSurface_STAND_ALONE
+void usage_SUMA_ConvertSurface ()
+   
+  {/*Usage*/
+          printf ("\n\33[1mUsage: \33[0m SUMA_ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> [<-sv SurfaceVolume [VolParam for sf surfaces]>]\n");
+          printf ("\t reads in a surface and writes it out in another format.\n");
+          printf ("\t Note: This is a not a general utility conversion program. \n");
+          printf ("\t Only fields pertinent to SUMA are preserved.\n");
+          printf ("\t -i_TYPE inSurf specifies the input surface, TYPE is one of the following:\n");
+          printf ("\t    fs: FreeSurfer surface. \n");
+          printf ("\t        Only .asc surfaces are read.\n");
+          printf ("\t    sf: SureFit surface. \n");
+          printf ("\t        You must specify the .coord followed by the .topo file.\n");
+          printf ("\t    vec: Simple ascii matrix format. \n");
+          printf ("\t         You must specify the NodeList file followed by the FaceSetList file.\n");
+          printf ("\t         NodeList contains 3 floats per line, representing X Y Z vertex coordinates.\n");
+          printf ("\t         FaceSetList contains 3 ints per line, representing v1 v2 v3 triangle vertices.\n");
+          printf ("\t    ply: PLY format, ascii or binary.\n");
+          printf ("\t         Only vertex and triangulation info is preserved.\n");
+          printf ("\t -o_TYPE outSurf specifies the output surface, TYPE is one of the following:\n");
+          printf ("\t    fs: FreeSurfer ascii surface. \n");
+          printf ("\t    sf: SureFit surface. (NOT IMPLEMENTED YET)\n");
+          printf ("\t        You must specify the .coord followed by the .topo file.\n");
+          printf ("\t    vec: Simple ascii matrix format. \n");
+          printf ("\t         see help for vec under -i_TYPE options for format specifications.\n");
+          printf ("\t    ply: PLY format, ascii or binary.\n");
+          printf ("\t -sv SurfaceVolume [VolParam for sf surfaces]\n");
+          printf ("\t    This option must not come before the -i_TYPE option.\n");
+          printf ("\t    If you supply a surface volume, the coordinates of the input surface.\n");
+          printf ("\t     are modified to SUMA's convention and aligned with SurfaceVolume.\n");
+          printf ("\t     You must also specify a VolParam file for SureFit surfaces.\n");
+          printf ("\tNOTE: The vertex coordinates coordinates of the input surfaces are only\n");
+          printf ("\t      transformed if -sv option is used. If you do transform surfaces, \n");
+          printf ("\t      take care not to load them into SUMA with another -sv option.\n");  
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Wed Jan  8 13:44:29 EST 2003 \n");
+          exit (0);
+  }/*Usage*/
+   
+int main (int argc,char *argv[])
+{/* Main */
+   static char FuncName[]={"SUMA_ConvertSurface"}; 
+	int kar;
+   char *if_name = NULL, *of_name = NULL, *if_name2 = NULL, *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL, *OF_name = NULL, *OF_name2 = NULL;
+   SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED, oType = SUMA_FT_NOT_SPECIFIED;
+   SUMA_SurfaceObject *SO = NULL;
+   SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
+   SUMA_SFname *SF_name = NULL;
+   void *SO_name = NULL;
+   SUMA_Boolean brk;
+   
+	/* allocate space for CommonFields structure */
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+   
+   if (argc < 4)
+       {
+          usage_SUMA_ConvertSurface ();
+          exit (1);
+       }
+   
+   kar = 1;
+	brk = NOPE;
+	while (kar < argc) { /* loop accross command ine options */
+		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
+		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
+			 usage_SUMA_ConvertSurface();
+          exit (1);
+		}
+		
+		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -i_fs ");
+				exit (1);
+			}
+			if_name = argv[kar];
+         iType = SUMA_FREE_SURFER;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_sf") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -i_sf");
+				exit (1);
+			}
+			if_name = argv[kar]; kar ++;
+         if_name2 = argv[kar];
+         iType = SUMA_SUREFIT;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_vec") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec");
+				exit (1);
+			}
+			if_name = argv[kar]; kar ++;
+         if_name2 = argv[kar];
+         iType = SUMA_VEC;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-i_ply") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -i_ply ");
+				exit (1);
+			}
+			if_name = argv[kar];
+         iType = SUMA_PLY;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
+         if (iType == SUMA_FT_NOT_SPECIFIED) {
+            fprintf (SUMA_STDERR, " -sv option must be preceeded by -i_TYPE option.");
+            exit(1);
+         }
+         kar ++;
+			if (iType == SUMA_SUREFIT) {
+            if (kar+1 >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need 2 argument after -sv (SurfaceVolume and VolumeParent)");
+				   exit (1);
+			   }
+            sv_name = argv[kar]; kar ++;
+            vp_name = argv[kar];
+         } else {
+            if (kar >= argc)  {
+		  		   fprintf (SUMA_STDERR, "need argument after -sv ");
+				   exit (1);
+			   }
+			   sv_name = argv[kar];
+         }
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-o_fs") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -o_fs ");
+				exit (1);
+			}
+			of_name = argv[kar];
+         oType = SUMA_FREE_SURFER;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-o_sf") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -o_sf");
+				exit (1);
+			}
+			of_name = argv[kar]; kar ++;
+         of_name2 = argv[kar];
+         oType = SUMA_SUREFIT;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-o_vec") == 0)) {
+         kar ++;
+			if (kar+1 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 2 argument after -o_vec");
+				exit (1);
+			}
+			of_name = argv[kar]; kar ++;
+         of_name2 = argv[kar];
+         oType = SUMA_VEC;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-o_ply") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -o_ply ");
+				exit (1);
+			}
+			of_name = argv[kar];
+         oType = SUMA_PLY;
+			brk = YUP;
+		}
+      
+      if (!brk) {
+			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
+			exit (1);
+		} else {	
+			brk = NOPE;
+			kar ++;
+		}
+   }
+
+   /* sanity checks */
+   if (!if_name) {
+      fprintf (SUMA_STDERR,"Error %s: input surface not specified.\n", FuncName);
+      exit(1);
+   }
+   if (!of_name) {
+      fprintf (SUMA_STDERR,"Error %s: output surface not specified.\n", FuncName);
+      exit(1);
+   }
+   if (iType == SUMA_FT_NOT_SPECIFIED) {
+      fprintf (SUMA_STDERR,"Error %s: input type not recognized.\n", FuncName);
+      exit(1);
+   }
+   if (oType == SUMA_FT_NOT_SPECIFIED) {
+      fprintf (SUMA_STDERR,"Error %s: output type not recognized.\n", FuncName);
+      exit(1);
+   }
+   if (iType == SUMA_SUREFIT) {
+      if (!if_name2) {
+         fprintf (SUMA_STDERR,"Error %s: input SureFit surface incorrectly specified.\n", FuncName);
+         exit(1);
+      }
+      if (!of_name2) {
+       fprintf (SUMA_STDERR,"Error %s: output SureFit surface incorrectly specified. \n", FuncName);
+       exit(1);
+      }
+      if (sv_name && !vp_name) {
+         fprintf (SUMA_STDERR,"Error %s: VolParent must specified with -sv potion for SureFit surfaces. \n", FuncName);
+         exit(1);
+      }
+   }
+   if (iType == SUMA_VEC) {
+      if (!if_name2) {
+         fprintf (SUMA_STDERR,"Error %s: input vec surface incorrectly specified.\n", FuncName);
+         exit(1);
+      }
+      if (!of_name2) {
+       fprintf (SUMA_STDERR,"Error %s: output vec surface incorrectly specified. \n", FuncName);
+       exit(1);
+      }
+   }
+
+
+   /* test for existence of input files */
+   if (!SUMA_filexists(if_name)) {
+      fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name);
+      exit(1);
+   }
+   
+   if (if_name2) {
+      if (!SUMA_filexists(if_name2)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name2);
+         exit(1);
+      }
+   }
+
+   if (sv_name) {
+      if (!SUMA_filexists(sv_name)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, sv_name);
+         exit(1);
+      }
+   }
+   
+   if (vp_name) {
+      if (!SUMA_filexists(vp_name)) {
+         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, vp_name);
+         exit(1);
+      }
+   }
+
+   /* check for existence of output files */
+   if (of_name) {
+      of_name_strip = SUMA_ParseFname (of_name);
+      OF_name = (char *) SUMA_malloc (sizeof(char)*(strlen(of_name)+20));
+   }
+   if (of_name2) {
+      of_name2_strip = SUMA_ParseFname (of_name2);
+      OF_name2 = (char *) SUMA_malloc (sizeof(char)*(strlen(of_name2)+20));
+   }
+
+   if (oType == SUMA_FREE_SURFER) {
+      if (strcmp (of_name_strip->Ext,".asc")==0) {
+         sprintf (OF_name,"%s%s.asc", of_name_strip->Path, of_name_strip->FileName_NoExt);
+      }else {
+         sprintf (OF_name,"%s%s.asc", of_name_strip->Path, of_name_strip->FileName);
+      }
+   }else if (oType == SUMA_PLY) {
+      if (strcmp (of_name_strip->Ext,".ply")==0) {
+         sprintf (OF_name,"%s%s.ply", of_name_strip->Path, of_name_strip->FileName_NoExt);
+      }else {
+         sprintf (OF_name,"%s%s.ply", of_name_strip->Path, of_name_strip->FileName);
+      }
+   }else if (oType == SUMA_SUREFIT) {
+      if (strcmp (of_name_strip->Ext,".coord")==0) {
+         sprintf (OF_name,"%s%s.coord", of_name_strip->Path, of_name_strip->FileName_NoExt);
+      }else {
+         sprintf (OF_name,"%s%s.coord", of_name_strip->Path, of_name_strip->FileName);
+      }
+      if (strcmp (of_name2_strip->Ext,".topo")==0) {
+         sprintf (OF_name2,"%s%s.topo", of_name2_strip->Path, of_name2_strip->FileName_NoExt);
+      }else {
+         sprintf (OF_name2,"%s%s.topo", of_name2_strip->Path, of_name2_strip->FileName);
+      }
+   }else {
+      sprintf (OF_name, "%s",of_name);
+      if (of_name2) sprintf(OF_name2, "%s",of_name2);
+   }
+   
+   if (SUMA_filexists(OF_name)) {
+      fprintf (SUMA_STDERR,"Error %s: %s exists already.\n", FuncName, OF_name);
+      exit(1);
+   }
+   
+   if (of_name2) {
+      if (SUMA_filexists(OF_name2)) {
+         fprintf (SUMA_STDERR,"Error %s: %s exists already.\n", FuncName, OF_name2);
+         exit(1);
+      }
+   }
+   
+   fprintf (SUMA_STDOUT,"Reading surface...\n");
+   
+   /* now for the real work */
+   /* prepare the name of the surface object to read*/
+   switch (iType) {
+      case SUMA_SUREFIT:
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", if_name);
+         sprintf(SF_name->name_topo,"%s", if_name2); 
+         if (!vp_name) { /* initialize to empty string */
+            SF_name->name_param[0] = '\0'; 
+         }
+         else {
+            sprintf(SF_name->name_param,"%s", vp_name);
+         }
+         SO_name = (void *)SF_name;
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, vp_name);
+         break;
+      case SUMA_VEC:
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", if_name);
+         sprintf(SF_name->name_topo,"%s", if_name2); 
+         SO_name = (void *)SF_name;
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, NULL);
+         break;
+      case SUMA_FREE_SURFER:
+         SO_name = (void *)if_name; 
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
+         break;  
+      case SUMA_PLY:
+         SO_name = (void *)if_name; 
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL);
+         break;  
+      default:
+         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
+         exit(1);
+   }
+   
+   if (!SO) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
+      exit (1);
+   }
+   
+   SUMA_Print_Surface_Object (SO, stderr);
+   
+   fprintf (SUMA_STDOUT,"Writing surface...\n");
+   
+
+   /* write the surface object */
+   switch (oType) {
+      case SUMA_SUREFIT:
+         if (SF_name) SUMA_free(SF_name);
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", of_name);
+         sprintf(SF_name->name_topo,"%s", of_name2); 
+         if (!vp_name) { /* initialize to empty string */
+            SF_name->name_param[0] = '\0'; 
+         }
+         else {
+            sprintf(SF_name->name_param,"%s", vp_name);
+         }
+         SO_name = (void *)SF_name;
+         if (!SUMA_Save_Surface_Object (SO_name, SO,  SUMA_SUREFIT, SUMA_ASCII)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+            exit (1);
+         }
+         break;
+      case SUMA_VEC:
+         if (SF_name) SUMA_free(SF_name);
+         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
+         sprintf(SF_name->name_coord,"%s", of_name);
+         sprintf(SF_name->name_topo,"%s", of_name2); 
+         SO_name = (void *)SF_name;
+         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+            exit (1);
+         }
+         break;
+      case SUMA_FREE_SURFER:
+         SO_name = (void *)of_name; 
+         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+            exit (1);
+         }
+         break;  
+      case SUMA_PLY:
+         SO_name = (void *)of_name; 
+         if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+            exit (1);
+         }
+         break;  
+      default:
+         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
+         exit(1);
+   }
+   
+   
+   
+   if (of_name_strip) of_name_strip = SUMA_Free_Parsed_Name (of_name_strip);
+   if (of_name2_strip) of_name2_strip = SUMA_Free_Parsed_Name (of_name2_strip);
+   if (OF_name) SUMA_free(OF_name);
+   if (OF_name2) SUMA_free(OF_name2);
+   if (SF_name) SUMA_free(SF_name);
+   if (SO) SUMA_Free_Surface_Object(SO);
+   return (0);
+}
 #endif

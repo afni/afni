@@ -4354,7 +4354,8 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
             }
         }
         if (jj != FN->N_Neighb[i]) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in copying neighbor list!\nProceeding ...\n", FuncName);
+            fprintf (SUMA_STDERR, "Error %s: Failed in copying neighbor list! jj=%d, FN->N_Neighb[%d]=%d\nProceeding ...\n", 
+               FuncName, jj, i, FN->N_Neighb[i]);
         }    
       #endif
    }

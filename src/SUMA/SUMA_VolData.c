@@ -257,7 +257,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 			}
 			break;
 		case SUMA_SUREFIT:
-			/* For FreeSurfer, coordinates are actually a float version of the indices */
+			/* For SureFit, coordinates are actually a float version of the indices */
 			SF = (SUMA_SureFit_struct *)S_Struct;
 			{	THD_fvec3 fv, iv;
 				float D[3];

@@ -2,8 +2,25 @@
 /* Header FILES */
 #include "SUMA_suma.h"
    
-/* CODE */
-   
+#undef STAND_ALONE
+
+#if defined SUMA_StripPath_STAND_ALONE
+#define STAND_ALONE 
+#elif defined SUMA_ParseName_STAND_ALONE
+#define STAND_ALONE
+#endif
+
+#ifdef STAND_ALONE
+/* these global variables must be declared even if they will not be used by this main */
+SUMA_SurfaceViewer *SUMAg_cSV; /*!< Global pointer to current Surface Viewer structure*/
+SUMA_SurfaceViewer *SUMAg_SVv; /*!< Global pointer to the vector containing the various Surface Viewer Structures */
+int SUMAg_N_SVv = 0; /*!< Number of SVs stored in SVv */
+SUMA_DO *SUMAg_DOv;   /*!< Global pointer to Displayable Object structure vector*/
+int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
+SUMA_CommonFields *SUMAg_CF; /*!< Global pointer to structure containing info common to all viewers */
+#else
+extern SUMA_CommonFields *SUMAg_CF; 
+#endif
    
    
 /*!**
@@ -27,6 +44,8 @@ Returns :
    
 Support : 
 \sa  SUMA_define.h 
+
+NOTE: SUMA_ParseFname() is better than this function	
    
 To Compile as stand alone:
 gcc -DSUMA_StripPath_STAND_ALONE -Wall -o $1 $1.c -SUMA_lib.a -I/usr/X11R6/include -I./
@@ -78,9 +97,114 @@ SUMA_FileName SUMA_StripPath (char *FileName)
 	}
 	return (NewName);
 }/*SUMA_StripPath*/
+
+/*!
+   \brief ans = SUMA_ParseFname (FileName);
+   parses a file name into its elements
+   \param FileName (char *) obvious ...
+   \return ans (SUMA_PARSED_NAME *) pointer to structure with following fields:
+      .FileName (char *) containing filename without path. 
+                        if empty .FileName = '\0'
+      .Path (char *) containing path including last slash.
+                     If no path exists, Path is "./" 
+      .Ext (char *) containing extension including the dot.
+                    If no extension exists, Ext = '\0'
+      .FileName_NoExt (char *) filename without extension.
+      
+      \sa SUMA_Free_Parsed_Name
+*/
+SUMA_PARSED_NAME * SUMA_ParseFname (char *FileName)
+{/*SUMA_ParseFname*/
+   static char FuncName[]={"SUMA_ParseFname"};
+   char PathDelimiter='/'; 
+   int i, j, iExt , iFile, iPath, N_FileName;
+	SUMA_PARSED_NAME *NewName = NULL;
+   SUMA_Boolean FoundPath = NOPE, FoundExt, FoundFile;
+	
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+
+	N_FileName = strlen(FileName);
+   iExt = N_FileName;
+   iPath = -1;
+   iFile = 0;
+   FoundPath = NOPE;
+   FoundExt = NOPE;
+	if (N_FileName ){
+		NewName = (SUMA_PARSED_NAME *) SUMA_malloc(sizeof(SUMA_PARSED_NAME));
+      
+      i = N_FileName -1;
+		while (i > -1 && !FoundPath) {
+			if (FileName[i] == '.' && !FoundExt) {
+            iExt = i;
+            FoundExt = YUP;
+         } else if (FileName[i] == PathDelimiter) {
+            FoundPath = YUP;
+            iPath = i;
+            iFile = i+1;
+         }
+			--i;
+		}
+      
+      if (iFile == iExt) {
+         /* .file, not an extension */
+         FoundExt = NOPE;
+      }
+      
+      if (iFile ==  N_FileName) FoundFile = NOPE;
+      else FoundFile = YUP;
+      
+      if (FoundPath) {
+         NewName->Path = (char *)SUMA_malloc(sizeof(char)*(iPath+2));
+         for (i=0; i<= iPath; ++i) NewName->Path[i] = FileName[i];
+      }else {
+         NewName->Path = (char *)SUMA_malloc(sizeof(char)*(3));
+         sprintf(NewName->Path, "./");
+      }
+      
+      if (FoundFile) {
+         NewName->FileName = (char *)SUMA_malloc(sizeof(char)*(N_FileName - iFile + 2));
+         for (i=iFile; i< N_FileName; ++i) NewName->FileName[i-iFile] = FileName[i];
+      }else {
+         NewName->FileName = (char *)SUMA_malloc(sizeof(char));
+         NewName->FileName[0] = '\0';
+      }      
+		
+      if (FoundExt) {
+		   NewName->FileName_NoExt = (char *)SUMA_malloc(sizeof(char)*(N_FileName - iFile +2));
+         NewName->Ext = (char *)SUMA_malloc(sizeof(char)*(N_FileName - iExt+2));
+         for (i=iFile; i< iExt; ++i) NewName->FileName_NoExt[i-iFile] = FileName[i];
+         for (i=iExt; i < N_FileName; ++i) NewName->Ext[i-iExt] = FileName[i];
+      } else {
+         NewName->FileName_NoExt = (char *)SUMA_malloc(sizeof(char));
+         NewName->Ext = (char *)SUMA_malloc(sizeof(char));
+         NewName->FileName_NoExt[0] = '\0';
+         NewName->Ext[0] = '\0';
+      }
+      
+	}
    
+	SUMA_RETURN (NewName);
+}/*SUMA_ParseFname*/
+   
+void *SUMA_Free_Parsed_Name(SUMA_PARSED_NAME *Test) 
+{
+   static char FuncName[]={"SUMA_Free_Parsed_Name"}; 
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!Test) SUMA_RETURN (NULL);
+   if (Test->Path) SUMA_free(Test->Path);
+   if (Test->FileName) SUMA_free(Test->FileName);
+   if (Test->Ext) SUMA_free(Test->Ext);
+   if (Test->FileName_NoExt) SUMA_free(Test->FileName_NoExt);
+   SUMA_free(Test);
+   
+   SUMA_RETURN (NULL);
+}
+
 #ifdef SUMA_StripPath_STAND_ALONE
-void usage ()
+void usageSUMA_StripPath ()
    
   {/*Usage*/
           printf ("\n\33[1mUsage: \33[0m SUMA_StripPath <Name> \n");
@@ -101,7 +225,7 @@ int main (int argc,char *argv[])
    
    if (argc < 2)
        {
-          usage ();
+          usageSUMA_StripPath ();
           exit (1);
        }
 
@@ -117,3 +241,55 @@ int main (int argc,char *argv[])
 	return (0);
 }/* Main */
 #endif
+
+#ifdef SUMA_ParseName_STAND_ALONE
+void usageParseName_Main ()
+   
+  {/*Usage*/
+          printf ("\n\33[1mUsage: \33[0m SUMA_ParseName <Name> \n");
+          printf ("\t  breaks a file name into path, filename and extension components.\n");
+          printf ("\t  The program outputs: Path FileName FileName_NoExtension Extension\n");
+          printf ("\t  Empty attributes are represented by (null).\n");
+          printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \t Thu Jan  9 15:48:09 EST 2003\n");
+          exit (0);
+  }/*Usage*/
+   
+int main (int argc,char *argv[])
+{/* Main */
+   static char FuncName[]={"SUMA_ParseName_Main"}; 
+	SUMA_PARSED_NAME *Test;
+   
+	SUMAg_CF = SUMA_Create_CommonFields ();
+	if (SUMAg_CF == NULL) {
+		fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+		exit(1);
+	}
+
+   
+   if (argc < 2)
+       {
+          usageParseName_Main ();
+          exit (1);
+       }
+
+	Test = SUMA_ParseFname (argv[1]);
+	if (!Test) {
+      fprintf (SUMA_STDERR,"(null) (null) (null) (null)\n");
+   }else {
+      if (Test->Path[0] != '\0') fprintf (SUMA_STDERR,"%s ", Test->Path); 
+      else fprintf (SUMA_STDERR,"(null) ");
+      if (Test->FileName[0] != '\0') fprintf (SUMA_STDERR,"%s ",  Test->FileName);
+      else fprintf (SUMA_STDERR,"(null) ");
+      if (Test->FileName_NoExt[0]  != '\0') fprintf (SUMA_STDERR,"%s ",  Test->FileName_NoExt);
+      else fprintf (SUMA_STDERR,"(null) ");
+      if (Test->Ext[0]  != '\0') fprintf (SUMA_STDERR,"%s ",  Test->Ext);
+      else fprintf (SUMA_STDERR,"(null) ");
+      fprintf (SUMA_STDERR,"\n");
+   }
+   
+   if (Test) SUMA_Free_Parsed_Name (Test);
+   
+   exit (0);
+}/* Main */
+#endif
+

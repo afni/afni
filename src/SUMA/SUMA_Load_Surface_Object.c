@@ -17,37 +17,142 @@
 #endif
 
 /* CODE */
+
    
+/*!
+   \brief Function to write surface objects to disk in various formats
+   ans = SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF);
+   \param F_name (void *)
+         For SUMA_INVENTOR_GENERIC F_name is (char *) containing path (if any) and filename of surface
+         For SUMA_SUREFIT F_name is (SUMA_SFname *) containing full topo and coord names, with path (if any)
+         For SUMA_FREE_SURFER F_name is  (char *) name of .asc file (with path)
+         For SUMA_VEC (a dumb ascii format), F_name is (SUMA_SFname *) containing the nodelist file in name_coord 
+          and facesetlist file in name_topo (path included).
+         For SUMA_PLY (char *) name of .ply file (with path)
+   \param   SO_FT (SUMA_SO_File_Type) file type to be read (inventor, free surfer , Surefit )
+   \param   SO_FF (SUMA_SO_File_Format) Ascii or Binary (only ascii at the moment, except for .ply files)
+
+   \sa SUMA_Load_Surface_Object()
    
+   NOTE:
+   Vertex coordinates are written as in SO->NodeList
+   The Volume Parent transformation is not undone. 
+   For SureFit surfaces, the volume param shift is not undone.
+*/
+SUMA_Boolean SUMA_Save_Surface_Object (void * F_name, SUMA_SurfaceObject *SO, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF)
+{/*SUMA_Save_Surface_Object*/
+   static char FuncName[]={"SUMA_Save_Surface_Object"};
    
-/*!**
-File : SUMA_Load_Surface_Object.c
-\author Ziad Saad
-Date : Wed Jan 23 15:18:12 EST 2002
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-Purpose : 
+   /* not ready to undo VolPar transformation */
+   if (SO->VolPar) {
+      fprintf (SUMA_STDERR, "Error %s: SO->VolPar transformation matrix ignored.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+
+   switch (SO_FT) {
+      case SUMA_PLY:
+         if (!SUMA_Ply_Write ((char *)F_name, SO)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to write PLY surface.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         break;
+      case SUMA_FREE_SURFER:
+         if (SO_FF != SUMA_ASCII) {
+            fprintf (SUMA_STDERR, "Error %s: Only ASCII supported for Free Surfer surfaces.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (!SUMA_FS_Write ((char *)F_name, SO, "#Output of SUMA_SurfaceConvert")) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to write FreeSurfer surface.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         break;
+      case SUMA_SUREFIT:
+         fprintf (SUMA_STDERR, "Error %s: Not ready to deal with SureFit surfaces.\n", FuncName);
+         SUMA_RETURN (NOPE);
+         if (SO_FF != SUMA_ASCII) {
+            fprintf (SUMA_STDERR, "Error %s: Only ASCII supported for SureFit surfaces.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         break;
+      case SUMA_VEC:
+         if (SO_FF != SUMA_ASCII) {
+            fprintf (SUMA_STDERR, "Error %s: Only ASCII supported for vec surfaces.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         if (!SUMA_VEC_Write ((SUMA_SFname *)F_name, SO)) {
+            fprintf (SUMA_STDERR, "Error %s: Failed to write vec surface.\n", FuncName);
+            SUMA_RETURN (NOPE);
+         }
+         break;
+      case SUMA_INVENTOR_GENERIC:
+         fprintf (SUMA_STDERR, "Error %s: Not ready to deal with inventor surfaces.\n", FuncName);
+         SUMA_RETURN (NOPE);
+         break;
+      case SUMA_FT_NOT_SPECIFIED:
+      default:
+         fprintf (SUMA_STDERR, "Error %s: Bad surface type.\n", FuncName);
+         SUMA_RETURN (NOPE);
    
+   }
    
+   SUMA_RETURN (YUP);
+}
    
-Usage : 
-      SO = SUMA_Load_Surface_Object ( SO_FileName, SO_FT, SO_FF)
+/*!
+\brief
+      SO = SUMA_Load_Surface_Object ( SO_FileName, SO_FT, SO_FF, char *VolParName)
    
    
 Input paramters : 
 \param   (void *) SO_FileName 
-         For INVENTOR_GENERIC SO_FileName is (char *) containing path (if any) and filename of surface
-         For SureFit SO_FileName is (SUMA_SFname *) containing full topo and coord names, with path (if any)
-         
+         For SUMA_INVENTOR_GENERIC SO_FileName is (char *) containing path (if any) and filename of surface
+         For SUMA_SUREFIT SO_FileName is (SUMA_SFname *) containing full topo and coord names, with path (if any)
+         For SUMA_FREE_SURFER SO_FileName is  (char *) name of .asc file (with path)
+         For SUMA_VEC (a dumb ascii format), SO_FileName is (SUMA_SFname *) containing the nodelist file in name_coord 
+          and facesetlist file in name_topo (path included).
+         For SUMA_PLY (char *) name of .ply file (with path)
 \param   SO_FT (SUMA_SO_File_Type) file type to be read (inventor, free surfer , Surefit )
-\param   SO_FF (SUMA_SO_File_Format) Ascii or Binary (only ascii at the moment)
+\param   SO_FF (SUMA_SO_File_Format) Ascii or Binary (only ascii at the moment, except for .ply files)
 \param   VolParName (char *) filename (+path) of parent volume, pass NULL for none
+         If you pass NULL, no transformation is applied to the coordinates read. 
    
-Returns : 
 \return   SO (SUMA_SurfaceObject *) Surface Object pointer
+   The following fields are set (or initialized):
+   SO->NodeDim
+   SO->FaceSetDim
+   SO->NodeList
+   SO->FaceSetList
+   SO->N_Node;
+   SO->N_FaceSet;
+   SO->Name;
+   SO->FileType;
+   SO->FileFormat
+   SO->idcode_str
+   SO->Center
+   SO->aMaxDims
+   SO->aMinDims
+   SO->NodeNormList
+   SO->FaceNormList
+   SO->glar_NodeList
+   SO->glar_FaceSetList
+   SO->glar_FaceNormList
+   SO->glar_NodeNormList
+   SO->RotationWeight
+   SO->ViewCenterWeight
+   SO->ShowSelectedNode
+   SO->ShowSelectedFaceSet
+   SO->SelectedFaceSet
+   SO->SelectedNode
+   SO->NodeMarker
+   SO->FaceSetMarker
+   SO->VolPar
+   SO->SUMA_VolPar_Aligned   
    
-Support : 
-\sa   SUMA_IV*
-   
+\sa SUMA_IV*
+\sa SUMA_Save_Surface_Object()
+\sa SUMA_Align_to_VolPar()   
    
 ***/
 SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName)
@@ -75,6 +180,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
          break;
       case SUMA_FREE_SURFER:
          break;
+      case SUMA_PLY:
+         break;
       default:
          SUMA_error_message(FuncName, "SO_FileType not supported", 0);
          SUMA_RETURN (NULL);
@@ -84,6 +191,18 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
    
    /* proceed for reading */
    switch (SO_FT) {
+      case SUMA_FT_NOT_SPECIFIED:
+         fprintf (SUMA_STDERR,"Error %s: No File Type specified.\n", FuncName);
+         SUMA_RETURN(NULL);
+         
+      case SUMA_PLY:
+         if (!SUMA_Ply_Read ((char *)SO_FileName_vp, SO)) {
+            fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
+            SUMA_RETURN(NULL);
+         }
+         SO->idcode_str = UNIQ_hashcode((char *)SO_FileName_vp); 
+         break;
+         
       case SUMA_INVENTOR_GENERIC:
          SO_FileName = (char *)SO_FileName_vp;
          /* You need to split name into path and name ... */
@@ -169,6 +288,45 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Assigned idcode_str:%s:.\n", FuncName, SO->idcode_str);
          break;
          
+      case SUMA_VEC:
+         /* naming is with two files, similar to SureFit */
+         SF_FileName = (SUMA_SFname *)SO_FileName_vp;      
+         /* form the topo and the coord names */
+         SO->Name_coord = SUMA_StripPath(SF_FileName->name_coord);
+         SO->Name_topo = SUMA_StripPath(SF_FileName->name_topo);
+         SO->FileType = SO_FT;
+         SO->FileFormat = SO_FF;
+         SO->NodeDim = 3; /* This must be automated */
+         /* check for files */
+         if (!SUMA_filexists(SF_FileName->name_coord)) {
+            fprintf(SUMA_STDERR,"Error %s: Could not find %s\n", FuncName, SF_FileName->name_coord);
+            SUMA_RETURN (NULL);
+         }
+         if (!SUMA_filexists(SF_FileName->name_topo)) {
+            fprintf(SUMA_STDERR,"Error %s: Could not find %s\n", FuncName, SF_FileName->name_topo);
+            SUMA_RETURN (NULL);
+         }
+         /* check number of elements */
+         SO->N_Node = SUMA_float_file_size (SF_FileName->name_coord);
+         if ((SO->N_Node %3)) {
+            fprintf(SUMA_STDERR,"Error %s: Number of elements (%d) in vertex file %s is not multiple of 3.\n", 
+               FuncName, SO->N_Node, SF_FileName->name_coord);
+            SUMA_RETURN (NULL);
+         }
+         SO->N_Node /= 3;
+         SO->N_FaceSet = SUMA_float_file_size (SF_FileName->name_topo);
+         if ((SO->N_FaceSet % 3)) {
+            fprintf(SUMA_STDERR,"Error %s: Number of elements (%d) in faceset file %s is not multiple of 3.\n", 
+               FuncName, SO->N_Node, SF_FileName->name_topo);
+            SUMA_RETURN (NULL);
+         }
+         SO->N_FaceSet /= 3;
+         SO->FaceSetDim = 3;
+         
+         sprintf (stmp, "%s%s", SF_FileName->name_coord, SF_FileName->name_topo);
+         SO->idcode_str = UNIQ_hashcode(stmp);
+         break;
+         
       case SUMA_SUREFIT:
          /* Allocate for SF */
          SF = (SUMA_SureFit_struct *) SUMA_malloc(sizeof(SUMA_SureFit_struct));   
@@ -249,10 +407,10 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName_vp, SUMA_SO_Fil
    SO->Center[0] /= SO->N_Node;
    SO->Center[1] /= SO->N_Node;
    SO->Center[2] /= SO->N_Node;
-   
+
    SUMA_MIN_VEC (SO->MinDims, 3, SO->aMinDims );
    SUMA_MAX_VEC (SO->MaxDims, 3, SO->aMaxDims);
-   
+
    #ifdef DO_SCALE_RANGE
    { float tmpfact;
    /* Now do some scaling */
@@ -943,6 +1101,18 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
             brk = YUP;
          } /* load FreeSurfer surface */
 
+         if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "Ply") == 1) {/* load Ply format surface */
+            
+            SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL);
+            
+            if (SO == NULL)   {
+               fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
+               SUMA_RETURN(NOPE);
+            }
+            SurfIn = YUP;
+            brk = YUP;
+         } /* load Ply format surface */
+         
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) {/* load generic inventor format surface */
             if (tmpVolParName != NULL) {
                fprintf(SUMA_STDERR,"Error %s: Sorry, but Parent volumes are not supported for generic inventor surfaces.\n", FuncName);
@@ -1200,6 +1370,18 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
             brk = YUP;
          } /* load FreeSurfer surface */
 
+         if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "Ply") == 1) {/* load Ply format surface */
+            
+            SO = SUMA_Load_Surface_Object ((void *)Spec->FreeSurferSurface[i], SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL);
+            
+            if (SO == NULL)   {
+               fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
+               SUMA_RETURN(NOPE);
+            }
+            SurfIn = YUP;
+            brk = YUP;
+         } /* load Ply format surface */
+         
          if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) {/* load generic inventor format surface */
             if (tmpVolParName != NULL) {
                fprintf(SUMA_STDERR,"Error %s: Sorry, but Parent volumes are not supported for generic inventor surfaces.\n", FuncName);
@@ -1742,6 +1924,16 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
    /* check if recognizable type */
    switch (SO->FileType) {
       case SUMA_INVENTOR_GENERIC:
+      case SUMA_FT_NOT_SPECIFIED:
+         SUMA_error_message(FuncName, "SO_FileType not specified", 0);
+         SUMA_RETURN (NULL);
+         break;
+      case SUMA_VEC:
+         if (MitPath) nalloc = strlen(SO->Name_coord.Path) + strlen(SO->Name_coord.FileName) \
+                           +    strlen(SO->Name_topo.Path) + strlen(SO->Name_topo.FileName) + 5;
+         else nalloc = strlen(SO->Name_coord.FileName) \
+                     +   strlen(SO->Name_topo.FileName) + 5;
+         break;
       case SUMA_FREE_SURFER:
          if (MitPath) nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
          else nalloc = strlen(SO->Name.FileName) + 5;
@@ -1751,6 +1943,10 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
                            +    strlen(SO->Name_topo.Path) + strlen(SO->Name_topo.FileName) + 5;
          else nalloc = strlen(SO->Name_coord.FileName) \
                      +   strlen(SO->Name_topo.FileName) + 5;
+         break;
+      case SUMA_PLY:
+         if (MitPath) nalloc = strlen(SO->Name.Path) + strlen(SO->Name.FileName) + 5;
+         else nalloc = strlen(SO->Name.FileName) + 5;
          break;
       default:
          SUMA_error_message(FuncName, "SO_FileType not supported", 0);
@@ -1774,6 +1970,17 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
          if (MitPath) sprintf(Name,"%s%s__%s%s", SO->Name_coord.Path, SO->Name_coord.FileName, \
                               SO->Name_topo.Path, SO->Name_topo.FileName);
          else sprintf(Name,"%s__%s", SO->Name_coord.FileName, SO->Name_topo.FileName);
+         break;
+      case SUMA_VEC:
+         if (MitPath) sprintf(Name,"%s%s__%s%s", SO->Name_coord.Path, SO->Name_coord.FileName, \
+                              SO->Name_topo.Path, SO->Name_topo.FileName);
+         else sprintf(Name,"%s__%s", SO->Name_coord.FileName, SO->Name_topo.FileName);
+         break;
+      case SUMA_FT_NOT_SPECIFIED:
+         break;
+      case SUMA_PLY:
+         if (MitPath) sprintf(Name,"%s%s", SO->Name.Path, SO->Name.FileName);
+         else sprintf(Name,"%s", SO->Name.FileName);
          break;
    } 
    SUMA_RETURN (Name);
