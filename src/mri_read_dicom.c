@@ -43,6 +43,8 @@ static char *elist[] = {
  "0028 0004" ,  /* Photometric interpretation */
  "0028 0103" ,  /* Pixel representation */
  "0028 0102" ,  /* High bit */
+ "0028 1050" ,  /* Window center */
+ "0028 1051" ,  /* Window width */
 
 NULL } ;
 
@@ -71,6 +73,8 @@ NULL } ;
 #define E_PHOTOMETRIC_INTERPRETATION 18
 #define E_PIXEL_REPRESENTATION       19
 #define E_HIGH_BIT                   20
+#define E_WINDOW_CENTER              21
+#define E_WINDOW_WIDTH               22
 
 /*-----------------------------------------------------------------------------------*/
 /*! Read image(s) from a DICOM file, if possible.
@@ -157,6 +161,38 @@ MRI_IMARR * mri_read_dicom( char *fname )
       case 32: datum = MRI_int  ; break ;  /* probably not present in DICOM? */
    }
    bpp /= 8 ; /* now bytes per pixel, instead of bits */
+
+   /*** Print some warnings if appropriate ***/
+
+   /* check if BITS_STORED and HIGH_BIT are aligned */
+
+   if( epos[E_BITS_STORED] != NULL && epos[E_HIGH_BIT] != NULL ){
+     int bs=0 , hb=0 ;
+     ddd = strstr(epos[E_BITS_STORED],"//") ; sscanf(ddd+2,"%d",&bs) ;
+     ddd = strstr(epos[E_HIGH_BIT],"//")    ; sscanf(ddd+2,"%d",&hb) ;
+     if( bs != hb+1 )
+       fprintf(stderr,
+               "++ WARNING: DICOM file %s has Bits_Stored=%d and High_Bit=%d\n",
+               fname,bs,hb) ;
+   }
+
+   /* check if Rescale is ordered */
+
+   if( epos[E_RESCALE_INTERCEPT] != NULL ){
+      fprintf(stderr,
+              "++ WARNING: DICOM file %s has Rescale tags - not implemented here\n",
+              fname ) ;
+   }
+
+   /* check if Window is ordered */
+
+   if( epos[E_WINDOW_CENTER] != NULL ){
+      fprintf(stderr,
+              "++ WARNING: DICOM file %s has Window tags  - not implemented here\n",
+              fname ) ;
+   }
+
+   /*** extract attributes of the image(s) to be read in ***/
 
    /* get nx, ny, nz */
 
