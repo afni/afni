@@ -6,6 +6,7 @@ bin/   = holds scripts for CVS usage (does NOT hold AFNI binaries!)
 doc/   = documentation for AFNI
 src/   = source code for AFNI
 
+
 CVS Maintenance Scripts
 -----------------------
 Cadd file [file ...]
@@ -27,7 +28,22 @@ Cunk
 
 cvs tag -c afni-2.33q .
   tags all files in CVS repository as being part of release afni-2.33q
-cvs checkout
-  get all files in CVS repository into working directory
+cvs checkout dname
+  get all files under dname in CVS repository into working directory
 cvs -H [command]
   get help on CVS commands
+
+
+CVS Setup
+---------
+To create the initial setup for AFNI, you must do the following:
+  1) make sure afni:/home2 is NFS-mounted on /net/afni/home2
+       [should be in /etc/fstab on your system]
+  2) setenv CVSROOT /net/afni/home2/AFNI_CVS
+       [should set this in your .cshrc file]
+  3) cvs checkout AFNI
+       [do this in your home directory to create AFNI/]
+  4) cd AFNI/src
+       [can begin editing now!!!]
+       [put changes back to CVS with Cput, Cadd, et cetera]
+       [subdirectories rwcox/ rickr/ ziad/ are for private use]
