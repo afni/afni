@@ -661,12 +661,9 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_r:
             {
                GLvoid *pixels;
-               fprintf(SUMA_STDOUT,"%s: Sending image...\n", FuncName);
-               pixels = SUMA_grabPixels(1, -sv->X->WIDTH, sv->X->HEIGHT);
-               fprintf(SUMA_STDOUT,"%s: Got pixels...\n", FuncName);
-               
+               pixels = SUMA_grabPixels(1, sv->X->WIDTH, sv->X->HEIGHT);
                if (pixels) {
-                 ISQ_snapsave (sv->X->WIDTH, sv->X->HEIGHT, (unsigned char *)pixels, sv->X->GLXAREA ); 
+                 ISQ_snapsave (sv->X->WIDTH, -sv->X->HEIGHT, (unsigned char *)pixels, sv->X->GLXAREA ); 
                  SUMA_free(pixels);
                }else {
                   SUMA_SLP_Err("Failed to record image.");
@@ -1255,9 +1252,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /*ffprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
             }else {
                /*ffprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
-               trackball(sv->GVS[sv->StdView].deltaQuat, 
+               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
                   ArrowDeltaRot, 0.0, /* first point */
-                  -ArrowDeltaRot, 0.0); /* ending x,y */
+                  -ArrowDeltaRot, 0.0, /* ending x,y */
+                  sv->ArrowRotationAngle);
                add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
                sv->GVS[sv->StdView].spinDeltaX = -2*ArrowDeltaRot*sv->WindWidth;
                sv->GVS[sv->StdView].spinDeltaY = 0;
@@ -1291,9 +1289,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
             }else {
                /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
-               trackball(sv->GVS[sv->StdView].deltaQuat, 
+               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
                   -ArrowDeltaRot, 0.0, /* first point */
-                  ArrowDeltaRot, 0.0); /* ending x,y */
+                  ArrowDeltaRot, 0.0, /* ending x,y */
+                  sv->ArrowRotationAngle);
                add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
                sv->GVS[sv->StdView].spinDeltaX = 2*ArrowDeltaRot*sv->WindWidth;
                sv->GVS[sv->StdView].spinDeltaY = 0;
@@ -1332,9 +1331,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
             }else {
                /*fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);*/
-               trackball(sv->GVS[sv->StdView].deltaQuat, 
+               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
                   0.0, ArrowDeltaRot, /* first point */
-                  0.0, -ArrowDeltaRot); /* ending x,y */
+                  0.0, -ArrowDeltaRot, /* ending x,y */
+                  sv->ArrowRotationAngle);
                /*fprintf(stdout,"\ncurrentQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", sv->GVS[sv->StdView].currentQuat[i]);} fprintf(stdout,"\n");
                fprintf(stdout,"\ndeltaQuat\n");for (i=0; i<4; ++i) { fprintf(stdout,"%f\t", sv->GVS[sv->StdView].deltaQuat[i]);} fprintf(stdout,"\n");*/
                add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
@@ -1382,9 +1382,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /*fprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
             }else {
                if (LocalHead) fprintf (SUMA_STDERR,"%s: Vanilla kind.\n", FuncName);
-               trackball(sv->GVS[sv->StdView].deltaQuat, 
+               trackball_Phi(sv->GVS[sv->StdView].deltaQuat, 
                   0.0, -ArrowDeltaRot, /* first point */
-                  0.0, ArrowDeltaRot); /* ending x,y */
+                  0.0, ArrowDeltaRot, /* ending x,y */
+                  sv->ArrowRotationAngle);
                if (LocalHead) {
                   fprintf(stdout,"\ncurrentQuat\n");
                   for (ii=0; ii<4; ++ii) { 

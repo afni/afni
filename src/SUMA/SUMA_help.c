@@ -139,6 +139,14 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "\t  p: Viewer rendering mode  \n"
       "\t     (Fill, Line, Points), switch.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  r: record current image\n"
+      "\t     in an a la AFNI image viewer.\n"
+      "\t     Identical images are rejected.\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  R: Toggle continuous recording \n"
+      "\t     to an a la AFNI image viewer.\n"
+      "\t     Identical images are rejected.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  s: NO LONGER IN USE. Use:\n"
       "\t     View->Surface Controller->More.\n");
@@ -158,10 +166,10 @@ char * SUMA_help_message_Info(void)
       "\t  w: Write the rendered scene to an \n"
       "\t     image file on disk. (Surface_Label*.eps\n"
       "\t     or suma_img*.eps).\n"
-      "\t     You are better off using a screen\n"
-      "\t     (Surface_Label*.eps or suma_img*.eps).\n"
-      "\t     grab instead. (like xv on unix systems,\n"
-      "\t     and grab on Macs.\n");
+      "\t     This option will be dropped in future versions.\n"
+      "\t     Instead, use 'r' or 'R' recording options\n"
+      "\t     or use a screen grab instead. \n"
+      "\t     (like xv on unix systems, and grab on Macs.)\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  W: Write ascii files containing the NodeList,\n"
       "\t     the FaceSetList and the nodecolors of the \n"

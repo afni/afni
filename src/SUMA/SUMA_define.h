@@ -72,6 +72,7 @@
 #define TRANSLATE_GAIN 50 /*!< between 40 and 80 */
 #define ARROW_TRANSLATE_DELTAX 30
 #define ARROW_TRANSLATE_DELTAY 30
+#define ARROW_ROTATION_ANGLE_DEG 15 
 #define SUMA_MAX_MESSAGES 100 /*!< Maximum number of messages stored in list */
 #define SUMA_MAX_MEMBER_FACE_SETS 110 /*!< Maximum number of facesets a node can be part of. 
                                           Used to be 60 but that was not enough for a few
@@ -105,7 +106,7 @@
 
 #define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when keeping track of allocated memory. If needed more space is reallocated with SUMA_MEMTRACE_BLOCK increments. */
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
-#define SUMA_PI 3.14159 
+#define SUMA_PI 3.141592653589 
 #define SUMA_EPSILON 0.000001
 /*!
    Debugging flags
@@ -1034,7 +1035,8 @@ typedef struct {
    int WindWidth;   /*!< Width of window */
    int WindHeight;   /*!< Height of window */
    float *FOV; /*!< Field of View (affects zoom level, there is a separate FOV for each ViewState)*/
-   
+   float ArrowRotationAngle; /*!< Angle to rotate surface by when arrows are used.
+                                 Units are in radians */
    SUMA_Boolean BF_Cull; /*!< flag for backface culling */
    SUMA_RENDER_MODES PolyMode; /*!< polygon viewing mode, SRM_Fill, SRM_Line, SRM_Points
                                     There is a similar field for each surface object to 

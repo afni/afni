@@ -159,6 +159,14 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       
       SV->WindWidth = 350;
       SV->WindHeight = 350;
+      {
+         char *eee = getenv("SUMA_ArrowRotAngle");
+         if (eee) {
+            float rotval = strtod(eee, NULL);
+            if (rotval > 0.0 && rotval < 360.0) SV->ArrowRotationAngle = SUMA_PI * rotval / 180.0;
+            else SV->ArrowRotationAngle = SUMA_PI * ARROW_ROTATION_ANGLE_DEG / 180.0;
+         } else SV->ArrowRotationAngle = SUMA_PI * ARROW_ROTATION_ANGLE_DEG / 180.0;
+      }
       
       SV->Open = NOPE;
       
@@ -798,6 +806,7 @@ void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
    fprintf(Out,"\tApplyMomentum = %d\n", SV->GVS[SV->StdView].ApplyMomentum);
    fprintf(Out,"\tMinIdleDelta = %d\n", SV->GVS[SV->StdView].MinIdleDelta);
    fprintf(Out,"\tzoomDelta = %f, zoomBegin = %f\n", SV->GVS[SV->StdView].zoomDelta, SV->GVS[SV->StdView].zoomBegin);
+   fprintf(Out,"\tArrowRotationAngle=%f rad (%f deg)\n", SV->ArrowRotationAngle, SV->ArrowRotationAngle * 180.0 / SUMA_PI);
    fprintf(Out,"\tspinDeltaX/Y = %d/%d\n", SV->GVS[SV->StdView].spinDeltaX, SV->GVS[SV->StdView].spinDeltaY);
    fprintf(Out,"\tspinBeginX/Y = %d/%d\n", SV->GVS[SV->StdView].spinBeginX, SV->GVS[SV->StdView].spinBeginY);   
    fprintf(Out,"\tTranslateGain = %f\n", SV->GVS[SV->StdView].TranslateGain);

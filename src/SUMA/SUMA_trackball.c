@@ -129,6 +129,46 @@ trackball(float q[4], float p1x, float p1y, float p2x, float p2y)
   axis_to_quat(a, phi, q);
 }
 
+/*!
+   A modification/hack of trackball function to control the rotation angle directement
+*/
+void
+trackball_Phi(float q[4], float p1x, float p1y, float p2x, float p2y, float phi)
+{
+  float a[3];           /* Axis of rotation. */
+  float p1[3], p2[3], d[3];
+  float t;
+
+  if (p1x == p2x && p1y == p2y) {
+    /* Zero rotation */
+    vzero(q);
+    q[3] = 1.0;
+    return;
+  }
+  /* First, figure out z-coordinates for projection of P1 and
+     P2 to deformed sphere. */
+  vset(p1, p1x, p1y, tb_project_to_sphere(TRACKBALLSIZE, p1x, p1y));
+  vset(p2, p2x, p2y, tb_project_to_sphere(TRACKBALLSIZE, p2x, p2y));
+
+  /* Now, we want the cross product of P1 and P2. */
+  vcross(p2, p1, a);
+  /* Figure out how much to rotate around that axis. */
+  vsub(p1, p2, d);
+  t = vlength(d) / (2.0 * TRACKBALLSIZE);
+
+  /* Avoid problems with out-of-control values. */
+  if (t > 1.0) {
+      t = 1.0;
+      phi = 2.0 * asin(t);
+  }
+  if (t < -1.0) {
+      t = -1.0;
+      phi = 2.0 * asin(t);
+  }
+  
+  axis_to_quat(a, phi, q);
+}
+
 /* Given an axis and angle, compute quaternion. */
 void
 axis_to_quat(float a[3], float phi, float q[4])
