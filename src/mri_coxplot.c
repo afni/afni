@@ -89,6 +89,8 @@ ENTRY("memplot_to_RGB_sef") ;
 
    /*--- loop over lines, scale and plot ---*/
 
+   mri_draw_opacity( 1.0 ) ;
+
    for( ii=start ; ii < end ; ii++ ){
 
       skip = 0 ;
@@ -115,14 +117,20 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
             case THCODE_RECT:{        /* rectangle */
                int xb,yb , xt,yt ;
                int w,h ;
-               x1 = (int)( xoff + xscal * MEMPLOT_X1(mp,ii)         ) ;
-               x2 = (int)( xoff + xscal * MEMPLOT_X2(mp,ii)         ) ;
-               y1 = (int)( yoff + yscal * (1.0 - MEMPLOT_Y1(mp,ii)) ) ;
-               y2 = (int)( yoff + yscal * (1.0 - MEMPLOT_Y2(mp,ii)) ) ;
+               x1 = rint( xoff + xscal * MEMPLOT_X1(mp,ii)         ) ;
+               x2 = rint( xoff + xscal * MEMPLOT_X2(mp,ii)         ) ;
+               y1 = rint( yoff + yscal * (1.0 - MEMPLOT_Y1(mp,ii)) ) ;
+               y2 = rint( yoff + yscal * (1.0 - MEMPLOT_Y2(mp,ii)) ) ;
                if( x1 < x2 ){ xb=x1; xt=x2; } else { xb=x2; xt=x1; }
                if( y1 < y2 ){ yb=y1; yt=y2; } else { yb=y2; yt=y1; }
-               w = xt-xb ; h = yt-yb ;
+               w = xt-xb+1 ; h = yt-yb+1 ;
                mri_drawfilledrectangle( im , xb,yb , w,h , rrr,ggg,bbb ) ;
+               skip = 1 ;
+            }
+            break ;
+
+            case THCODE_OPAC:{        /* opacity [22 Jul 2004] */
+               mri_draw_opacity( MEMPLOT_X1(mp,ii) ) ;
                skip = 1 ;
             }
             break ;

@@ -21,10 +21,26 @@
 #undef  DDA_SCALE
 #define DDA_SCALE 8192
 
+/*---------------------- Set opacity [22 Jul 2004] ----------------------------*/
+static float opa = 1.0 ;
+void mri_draw_opacity( float val ){ if( val >= 0.0 && val <= 1.0 ) opa = val ; }
+
 #undef  ASSPIX
-#define ASSPIX(p,x,y,r,g,b) ( (p)[3*((x)+(y)*cols)  ] = (r) ,   \
-                              (p)[3*((x)+(y)*cols)+1] = (g) ,   \
-                              (p)[3*((x)+(y)*cols)+2] = (b)   )
+#undef  ASSPIX_OLD
+#define ASSPIX_OLD(p,x,y,r,g,b) ( (p)[3*((x)+(y)*cols)  ] = (r) ,   \
+                                  (p)[3*((x)+(y)*cols)+1] = (g) ,   \
+                                  (p)[3*((x)+(y)*cols)+2] = (b)   )
+
+#define ASSPIX(p,x,y,r,g,b)                                         \
+ do{ byte ro,go,bo ;                                                \
+     if( opa == 1.0 ) ASSPIX_OLD(p,x,y,r,g,b) ;                     \
+     else {                                                         \
+       ro = (byte)(opa*(r) + (1.0-opa)*(p)[3*((x)+(y)*cols)  ]) ;   \
+       go = (byte)(opa*(g) + (1.0-opa)*(p)[3*((x)+(y)*cols)+1]) ;   \
+       bo = (byte)(opa*(b) + (1.0-opa)*(p)[3*((x)+(y)*cols)+2]) ;   \
+       ASSPIX_OLD(p,x,y,ro,go,bo) ;                                 \
+     } } while(0)
+ 
 
 /*--------------------------- Simple fill routine ---------------------------*/
 

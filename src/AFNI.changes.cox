@@ -5116,3 +5116,7 @@
  * Added -svd option to 3dDeconvolve.  Also, if SVD is on, then DON'T
      remove all zero stimuli from the list.
  * Added -xjpeg option to 3dDeconvolve: grayplot of X matrix.
+
+22 Jul 2002
+ * Modified mri_drawing.c and coxplot/plot_cox.c to allow for opacity.
+     Used this in -xjpeg option in 3dDeconvolve.c.
