@@ -4,7 +4,7 @@
 
 all : libglut.a
 
-CFLAGS = -I.. -O
+CFLAGS = -I.. -O ${SUMA_INCLUDE_PATH}
 
 OBJS = \
 	glut_bitmap.o \
