@@ -68,23 +68,47 @@
    - These are intended to be the fast method for doing these things. **/
 /*---------------------------------------------------------------------*/
 
-#undef SETUP_BLAS  /* define this to use BLAS-1 functions */             
+#undef SETUP_BLAS1  /* define this to use BLAS-1 functions */
+#undef SETUP_BLAS2  /* define this to use BLAS-2 functions */
 #undef DOTP
 #undef VSUB
+#undef MATVEC
+#undef SUBMATVEC
 
 #if defined(USE_SCSLBLAS)                            /** SGI Altix **/
 #  include <scsl_blas.h>
-#  define SETUP_BLAS
+#  define SETUP_BLAS1
+#  define SETUP_BLAS2
+#  define TRANSA "T"
 #elif defined(USE_SUNPERF)                           /** Sun Solaris **/
 #  include <sunperf.h>
-#  define SETUP_BLAS
+#  define SETUP_BLAS1
+#  define SETUP_BLAS2
+#  define TRANSA 'T'
 #endif
 
 /* double precision BLAS-1 functions */
 
-#ifdef SETUP_BLAS
+#ifdef SETUP_BLAS1
 # define DOTP(n,x,y,z) *(z)=ddot(n,x,1,y,1)
 # define VSUB(n,x,y,z) (memcpy(z,x,sizeof(double)*n),daxpy(n,-1.0,y,1,z,1))
+#endif
+
+/*.......................................................................
+   BLAS-2 function operate on matrix-vector structs defined in matrix.h:
+
+   MATVEC(m,v,z):    [z] = [m][v] where m=matrix, z,v = matrices
+   SUBMATVEC(m,v,z): [z] = [z] - [m][v]
+.........................................................................*/
+
+#ifdef SETUP_BLAS2
+# define MATVEC(m,v,z) dgemv( TRANSA , (m).cols , (m).rows ,       \
+                              1.0 , (m).mat , (m).cols ,           \
+                              (v).elts , 1 , 0.0 , (z).elts , 1 )  \
+
+# define SUBMATVEC(m,v,z) dgemv( TRANSA , (m).cols , (m).rows ,      \
+                                 -1.0 , (m).mat , (m).cols ,         \
+                                 (v).elts , 1 , 1.0 , (z).elts , 1 ) \
 #endif
 
 /*---------------------------------------------------------------------------*/
@@ -1037,7 +1061,10 @@ void vector_multiply (matrix a, vector b, vector * c)
 
   bb = b.elts ;
 
-#ifdef DOTP                        /* vectorized */
+#ifdef MATVEC
+  MATVEC( a , b , *c ) ;          /* 04 Mar 2005 */
+
+#elif defined(DOTP)               /* vectorized */
   aa = a.elts ; cc = c->elts ;
   i = rows%2 ;
   if( i == 1 ) DOTP(cols,aa[0],bb,cc) ;
@@ -1071,7 +1098,7 @@ void vector_multiply (matrix a, vector b, vector * c)
     }
 #endif /* UNROLL_VECMUL */
 
-#endif /* DOTP */
+#endif /* MATVEC, DOTP */
 
 #ifdef ENABLE_FLOPS
     flops += 2.0l*rows*cols ;
@@ -1383,7 +1410,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 
    /* compute SVD of scaled matrix */
 
-   svd_double( m , n , amat , sval , umat , vmat ) ; 
+   svd_double( m , n , amat , sval , umat , vmat ) ;
 
    free((void *)amat) ;  /* done with this */
 
