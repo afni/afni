@@ -557,3 +557,6 @@
 07 June 2004:
   * modified @RenamePanga - subtract 1 from init of Nwhatapain
 
+21 June 2004:
+  * modified SUMA_3dSurf2Vol.[ch] (-> v3.4): fixed -surf_xyz_1D option
+
