@@ -8,6 +8,8 @@
 
 /*** 7D SAFE ***/
 
+/** int hist[256] **/
+
 void mri_histobyte( MRI_IMAGE * im , int * hist )
 {
    register int ih , npix , ii ;
