@@ -828,7 +828,11 @@ ENTRY("SUMA_load") ;
 
    if( dset->su_vmap != NULL ) free(dset->su_vmap) ;
 
+#if 0
    dset->su_vmap = SUMA_map_dset_to_surf( dset->su_surf , dset ) ;
+#else
+   dset->su_vmap = NULL ;
+#endif
 
    if( dset->su_vnlist != NULL ){
       SUMA_destroy_vnlist( dset->su_vnlist ) ;

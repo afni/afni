@@ -303,7 +303,9 @@ ENTRY("AFNI_process_NIML_data") ;
      SUMA_ixyzsort_surface( ag ) ;
      dset->su_surf = ag ;
 
+#if 0
      dset->su_vmap = SUMA_map_dset_to_surf( ag , dset ) ;
+#endif
 
      /*-- we're done! --*/
 
