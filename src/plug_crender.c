@@ -4794,6 +4794,7 @@ ENTRY( "RCREND_open_imseq" );
    else {
       drive_MCW_imseq( imseq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
       drive_MCW_imseq( imseq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
+      drive_MCW_imseq( imseq , isqDR_penbbox    , (XtPointer) 0 ) ; /* 18 Jul 2003 */
    }
 
    drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
@@ -4850,6 +4851,7 @@ ENTRY( "RCREND_update_imseq" );
    else {
       drive_MCW_imseq( imseq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
       drive_MCW_imseq( imseq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
+      drive_MCW_imseq( imseq , isqDR_penbbox    , (XtPointer) 0 ) ; /* 18 Jul 2003 */
    }
 
    drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer)(ntot-1) ) ;

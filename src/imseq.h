@@ -477,6 +477,8 @@ typedef struct MCW_imseq {
      int button2_width ;                              /* 08 Oct 2002 */
 
      int cursor_state ;                               /* 10 Mar 2003 */
+
+     MCW_bbox *pen_bbox ;                             /* 18 Jul 2003 */
 } MCW_imseq ;
 
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
@@ -484,10 +486,13 @@ extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_crop_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_actually_pan( MCW_imseq * , int , int ) ;
 
-#define CURSOR_NORMAL 0                               /* 10 Mar 2003 */
-#define CURSOR_PENCIL 1
+#define CURSOR_NORMAL    0                            /* 10 Mar 2003 */
+#define CURSOR_PENCIL    1
+#define CURSOR_CROSSHAIR 2                            /* 18 Jul 2003 */
 
 extern void ISQ_set_cursor_state( MCW_imseq * , int ) ;
+
+extern void ISQ_pen_bbox_CB( Widget, XtPointer, XtPointer ) ; /* 18 Jul 2003 */
 
 /*--------------------------------------------------------------------*/
 
@@ -567,6 +572,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_getopacity      607  /* 21 Jan 2003 */
 #define isqDR_setopacity      608  /* 21 Jan 2003 */
 #define isqDR_setimsave       609  /* 23 Jan 2003 */
+#define isqDR_penbbox         610  /* 18 Jul 2003 */
 
 #define isqDR_plot_label      701  /* 20 Sep 2001 */
 #define isqDR_plot_plot       702  /* 20 Sep 2001 */
