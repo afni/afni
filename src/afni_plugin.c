@@ -3791,12 +3791,7 @@ ENTRY("PLUTO_popup_worker") ;
       w = plint->wid->label ;
    } else {
       im3d = plint->im3d ;
-      if( ! IM3D_VALID(im3d) ){
-         for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-            im3d = GLOBAL_library.controllers[ii] ;
-            if( IM3D_OPEN(im3d) ) break ;
-         }
-      }
+      if( !IM3D_OPEN(im3d) ) im3d = AFNI_find_open_controller() ;
       w = im3d->vwid->top_shell ;
    }
 

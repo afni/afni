@@ -249,6 +249,7 @@ int main( int argc , char * argv[] )
         "  -drive cmd  =  Send 'cmd' as a DRIVE_AFNI command; e.g.,\n"
         "                   -drive 'OPEN_WINDOW A.axialimage'\n"
         "                 If cmd contains blanks, it must be in 'quotes'.\n"
+        "                 Multiple -drive options may be used.\n"
       ) ;
       exit(0) ;
    }
@@ -351,13 +352,13 @@ int main( int argc , char * argv[] )
      if( !DSET_LOADED(RT_dset[cc]) ){
        fprintf(stderr,"*** Can't load dataset %s\n",argv[iarg+cc]); exit(1);
      }
-   }
+   } /* end of loop over channels (datasets) */
 
    /*-- initiate communications with AFNI --*/
 
    if( AFNI_verbose ) fprintf(stderr,"--- Starting I/O to AFNI\n") ;
 
-   atexit(AFNI_exit) ;
+   atexit(AFNI_exit) ;                   /* call this when program ends */
    AFNI_mode = AFNI_OPEN_CONTROL_MODE ;
    AFNI_start_io() ;
 
@@ -379,9 +380,9 @@ int main( int argc , char * argv[] )
 
 #define ADDTO_BUF ( strcat(RT_buf,RT_com) , strcat(RT_buf,"\n") )
 
-   RT_buf[0] = '\0' ;
+   RT_buf[0] = '\0' ;   /* string to hold commands to AFNI realtime plugin */
 
-   /*** Number of channels ***/
+   /*** Number of channels [Aug 2002] ***/
 
    if( num_chan > 1 ){
      sprintf(RT_com,"NUM_CHAN %d",num_chan) ;
@@ -411,9 +412,9 @@ int main( int argc , char * argv[] )
 
    /*** Volume dimensions ***/
 
-   sprintf( RT_com , "XYFOV %f %f %f" , fabs(DSET_DX(RT_dset[0]) * DSET_NX(RT_dset[0])) ,
-                                        fabs(DSET_DY(RT_dset[0]) * DSET_NY(RT_dset[0])) ,
-                                        fabs(DSET_DZ(RT_dset[0]) * DSET_NZ(RT_dset[0]))  ) ;
+   sprintf( RT_com, "XYFOV %f %f %f", fabs(DSET_DX(RT_dset[0]) * DSET_NX(RT_dset[0])) ,
+                                      fabs(DSET_DY(RT_dset[0]) * DSET_NY(RT_dset[0])) ,
+                                      fabs(DSET_DZ(RT_dset[0]) * DSET_NZ(RT_dset[0]))  ) ;
    ADDTO_BUF ;
 
    /*** Matrix sizes ***/
@@ -451,7 +452,7 @@ int main( int argc , char * argv[] )
             ORIENT_shortstr[ RT_dset[0]->daxes->zzorient ]  ) ;
    ADDTO_BUF ;
 
-   /*** DRIVE_AFNI commands ***/
+   /*** DRIVE_AFNI commands [Jul 2002] ***/
 
    for( ii=0 ; ii < ndrive ; ii++ ){
      sprintf( RT_com , "DRIVE_AFNI %s" , drive_afni[ii] ) ;
@@ -480,72 +481,109 @@ int main( int argc , char * argv[] )
    else           qar = NULL ;
 
    xtime = COX_clock_time() ;
-   ntran = DSET_NVALS(RT_dset[0]) ; if( !RT_3D ) ntran *= DSET_NZ(RT_dset[0]) ;
+   ntran = DSET_NVALS(RT_dset[0]) * num_chan ;
+   if( !RT_3D ) ntran *= DSET_NZ(RT_dset[0]) ;
 
    for( tt=0 ; tt < DSET_NVALS(RT_dset[0]) ; tt++ ){  /* loop over time points */
 
-      if( RT_3D ){
-       for( cc=0 ; cc < num_chan ; cc++ ){  /* loop over channels */
-         bar = DSET_ARRAY(RT_dset[cc],tt) ;
-         if( AFNI_verbose ) fprintf(stderr,"--- Sending brick %d, channel %02d\n",tt,cc+1) ;
+      if( RT_3D ){                          /* send 3D arrays */
+
+       for( cc=0 ; cc < num_chan ; cc++ ){  /* loop over channels (datasets) */
+
+         bar = DSET_ARRAY(RT_dset[cc],tt) ; /* array to send */
+
+         if( AFNI_verbose )
+           fprintf(stderr,"--- Sending brick %d, channel %02d\n",tt,cc+1) ;
+
          if( RT_dt > 0.0 ) start_time = COX_clock_time() ;
+
          sar = bar ;
-         if( RT_swap2 ){
+         if( RT_swap2 ){                    /* swap bytes? */
             memcpy(qar,sar,nbytes) ; sar = qar ;
             mri_swap2( nbytes/2 , (short *) sar ) ;
          }
+
+         /* send the whole 3D array */
+
          ii = iochan_sendall( AFNI_ioc , sar , nbytes ) ;
          if( ii < 0 ){
-            fprintf(stderr,"*** Error sending brick %d, channel %02d, to AFNI\n",tt,cc+1) ;
+            fprintf(stderr,
+                    "*** Error sending brick %d, channel %02d, to AFNI\n",
+                    tt,cc+1) ;
             exit(1) ;
          }
-         if( RT_dt > 0.0 ){
+
+         if( RT_dt > 0.0 ){  /* wait for prescribed transmission time */
             left_time = RT_dt - ( COX_clock_time() - start_time ) ;
             if( left_time >= 0.001 ){
                ii = (int) (1000.0 * left_time) ;
                iochan_sleep( ii ) ;
             }
          }
-       }
+       } /* end of loop over channels */
+
+      /* send 2D slices from each channel in turn */
+
       } else {
+
          for( kk=0 ; kk < DSET_NZ(RT_dset[0]) ; kk++ ){  /* loop over slices */
           for( cc=0 ; cc < num_chan ; cc++ ){            /* loop over channels */
-            bar = DSET_ARRAY(RT_dset[cc],tt) ;
-            if( AFNI_verbose ) fprintf(stderr,"--- Sending brick %d, slice %d, channel %02d\n",
-                                       tt,kk,cc+1) ;
+
+            bar = DSET_ARRAY(RT_dset[cc],tt) ;  /* 3D array to get slice from */
+
+            if( AFNI_verbose )
+              fprintf(stderr,"--- Sending brick %d, slice %d, channel %02d\n",
+                             tt,kk,cc+1) ;
+
             if( RT_dt > 0.0 ) start_time = COX_clock_time() ;
-            sar = bar+(kk*nbslice) ;
-            if( RT_swap2 ){
+
+            sar = bar+(kk*nbslice) ;  /* pointer to start of slice data */
+
+            if( RT_swap2 ){           /* byte swapping */
                memcpy(qar,sar,nbslice) ; sar = qar ;
                mri_swap2( nbslice/2 , (short *) sar ) ;
             }
+
+            /* send slice data */
+
             ii = iochan_sendall( AFNI_ioc , sar , nbslice ) ;
+
             if( ii < 0 ){
-              fprintf(stderr,"*** Error sending slice brick %d, slice %d, channel %02d to AFNI\n",
+              fprintf(stderr,
+                      "*** Error sending slice brick %d, slice %d, channel %02d to AFNI\n",
                       tt,kk,cc+1) ;
               exit(1) ;
             }
-            if( RT_dt > 0.0 ){
+
+            if( RT_dt > 0.0 ){  /* wait for prescribed transmission time */
               left_time = RT_dt - ( COX_clock_time() - start_time ) ;
               if( left_time >= 0.001 ){
                  ii = (int) (1000.0 * left_time) ;
                  iochan_sleep( ii ) ;
               }
             }
-          }
-         }
+
+          } /* end of loop over channels */
+         } /* end of loop over slices */
       }
+
+      /** unload dataset bricks we just sent **/
 
       for( cc=0 ; cc < num_chan ; cc++ )
         DSET_unload_one( RT_dset[cc] , tt ) ;
-   }
 
-   xtime = COX_clock_time() - xtime ;
+   } /* end of loop over time points */
 
-   for( cc=0 ; cc < num_chan ; cc++ )
+   /* cleanup */
+
+   xtime = COX_clock_time() - xtime ;  /* total transmit time */
+
+   for( cc=0 ; cc < num_chan ; cc++ )  /* unload all datasets */
       DSET_delete( RT_dset[cc] ) ;
 
-   if( qar != NULL ) free(qar) ;
+   if( qar != NULL ) free(qar) ;       /* free swap space */
+
+   /* make sure all data is transmitted to AFNI */
 
    if( AFNI_verbose ) fprintf(stderr,"--- Clearing buffer") ;
    iochan_sleep(100) ;
@@ -554,6 +592,8 @@ int main( int argc , char * argv[] )
    }
    if( AFNI_verbose ) fprintf(stderr,"\n") ;
 
-   fprintf(stderr,"--- Elapsed transmit time = %f s (%f per transmit)\n",xtime,xtime/ntran) ;
+   fprintf(stderr,
+           "--- Elapsed transmit time = %f s (%f per transmit)\n",
+           xtime,xtime/ntran) ;
    exit(0) ;
 }
