@@ -132,7 +132,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    Added NN_geom, nearest neighbor interpolation option.\n"
             "    Combined with -match_vol or -match_area, this geometry\n"
             "    smoothing mode can be used to inflate surfaces.\n"
-            "  + SurfaceMeasures:\n"
+            "  + SurfaceMetrics:\n"
             "    Option -vol calculates the volume of the closed surface.\n"
             "  + SurfPatch:\n"
             "    Option -vol to calculate the volume between two isotopic\n"

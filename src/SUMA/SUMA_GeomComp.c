@@ -4512,7 +4512,7 @@ void usage_SUMA_getPatch ()
                "                     specified (not = -1)\n"
                "\n"
                "Usage 2:\n"
-               "  The program can also be used calculate between the same patch\n"
+               "  The program can also be used to calculate the volume between the same patch\n"
                "  on two isotopic surfaces. See -vol option below.\n"
                "      -vol: Calculate the volume formed by the patch on surf_A and\n"
                "            and surf_B. For this option, you must specify two and\n"
