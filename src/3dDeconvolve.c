@@ -5808,7 +5808,7 @@ NI_element * matrix_to_niml( matrix a , char *ename )
    NI_element *nel ;
    double *ecol ;
 
-   if( m < 1 || n < 1 || aar == NULL ) return ;  /* bad user, bad */
+   if( m < 1 || n < 1 || aar == NULL ) return NULL ;  /* bad user, bad */
 
    if( ename == NULL || *ename == '\0' ) ename = "matrix" ;
 
@@ -5822,7 +5822,6 @@ NI_element * matrix_to_niml( matrix a , char *ename )
 
    free((void *)ecol) ;
    return nel ;
-   return ;
 }
 
 /*-------------------------------------------------------------------*/

@@ -83,7 +83,7 @@
 #elif defined(USE_SUNPERF)                           /** Sun Solaris **/
 #  include <sunperf.h>
 #  define SETUP_BLAS1
-#  define SETUP_BLAS2
+#  undef SETUP_BLAS2
 #  define TRANSA 'T'
 #endif
 
@@ -228,7 +228,7 @@ void matrix_print (matrix m)
   for( i=0 ; i < rows ; i++ ){
     for( j=0 ; j < cols ; j++ ){
       val = (int)m.elts[i][j] ;
-      if( val != m.elts[i][j] || fabs(val) > 9.0l ) goto zork ;
+      if( val != m.elts[i][j] || fabs(val) > 9.0 ) goto zork ;
     }
   }
 zork:
@@ -584,7 +584,7 @@ void matrix_multiply (matrix a, matrix b, matrix * c)
       }
 
 #ifdef ENABLE_FLOPS
-  flops += 2.0l*rows*cols*cols ;
+  flops += 2.0*rows*cols*cols ;
 #endif
 }
 
@@ -704,7 +704,7 @@ matrix_sprint("matrix_inverse:",a) ;
     }
   matrix_destroy (&tmp);
 #ifdef ENABLE_FLOPS
-  flops += 3.0l*n*n*n ;
+  flops += 3.0*n*n*n ;
 #endif
   return (1);
 }
@@ -733,8 +733,8 @@ int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
   diag = (double *)malloc( sizeof(double)*n ) ;
   for( i=0 ; i < n ; i++ ){
     diag[i] = fabs(atmp.elts[i][i]) ;
-    if( diag[i] == 0.0l ) diag[i] = 1.0l ;  /* shouldn't happen? */
-    diag[i] = 1.0l / sqrt(diag[i]) ;
+    if( diag[i] == 0.0 ) diag[i] = 1.0 ;  /* shouldn't happen? */
+    diag[i] = 1.0 / sqrt(diag[i]) ;
   }
 
   for( i=0 ; i < n ; i++ )                /* scale a */
@@ -749,7 +749,7 @@ int matrix_inverse_dsc (matrix a, matrix * ainv)  /* 15 Jul 2004 - RWCox */
 
   matrix_destroy (&atmp); free((void *)diag) ;
 #ifdef ENABLE_FLOPS
-  flops += 4.0l*n*n + 4.0l*n ;
+  flops += 4.0*n*n + 4.0*n ;
 #endif
   return (mir);
 }
@@ -1076,7 +1076,7 @@ void vector_multiply (matrix a, vector b, vector * c)
   vector_create_noinit (rows, c);
 
   if( cols <= 0 ){
-    for( i=0 ; i < rows ; i++ ) c->elts[i] = 0.0l ;
+    for( i=0 ; i < rows ; i++ ) c->elts[i] = 0.0 ;
     return ;
   }
 
@@ -1122,7 +1122,7 @@ void vector_multiply (matrix a, vector b, vector * c)
 #endif /* MATVEC, DOTP */
 
 #ifdef ENABLE_FLOPS
-    flops += 2.0l*rows*cols ;
+    flops += 2.0*rows*cols ;
     dotsum += rows*cols ; dotnum += rows ;
 #endif
     return ;
@@ -1206,7 +1206,7 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 #endif /* DOTP */
 
 #ifdef ENABLE_FLOPS
-  flops += 2.0l*rows*(cols+1) ;
+  flops += 2.0*rows*(cols+1) ;
   dotsum += rows*cols ; dotnum += rows ;
 #endif
 
@@ -1239,7 +1239,7 @@ double vector_dot (vector a, vector b)
 #endif
 
 #ifdef ENABLE_FLOPS
-  flops += 2.0l*dim ;
+  flops += 2.0*dim ;
 #endif
   return (sum);
 }
@@ -1266,7 +1266,7 @@ double vector_dotself( vector a )
 #endif
 
 #ifdef ENABLE_FLOPS
-  flops += 2.0l*dim ;
+  flops += 2.0*dim ;
 #endif
   return (sum);
 }
@@ -1287,7 +1287,7 @@ double matrix_norm( matrix a )
      if( sum > smax ) smax = sum ;
    }
 #ifdef ENABLE_FLOPS
-   flops += 2.0l*rows*cols ;
+   flops += 2.0*rows*cols ;
 #endif
    return smax ;
 }
@@ -1363,7 +1363,7 @@ double * matrix_singvals( matrix X )   /* 14 Jul 2004 */
 
    for( i=0 ; i < N ; i++ ){
      for( j=0 ; j <= i ; j++ ){
-       sum = 0.0l ;
+       sum = 0.0 ;
        for( k=0 ; k < M ; k++ ) sum += X.elts[k][i] * X.elts[k][j] ;
        a[j+N*i] = sum ;
        if( j < i ) a[i+N*j] = sum ;
@@ -1371,8 +1371,8 @@ double * matrix_singvals( matrix X )   /* 14 Jul 2004 */
    }
 
    for( i=0 ; i < N ; i++ ){
-     if( a[i+N*i] > 0.0 ) e[i] = 1.0l / sqrt(a[i+N*i]) ;
-     else                 e[i] = 1.0l ;
+     if( a[i+N*i] > 0.0 ) e[i] = 1.0 / sqrt(a[i+N*i]) ;
+     else                 e[i] = 1.0 ;
    }
    for( i=0 ; i < N ; i++ ){
      for( j=0 ; j < N ; j++ ) a[j+N*i] *= e[i]*e[j] ;
@@ -1381,7 +1381,7 @@ double * matrix_singvals( matrix X )   /* 14 Jul 2004 */
    symeigval_double( N , a , e ) ;
    free( (void *)a ) ;
 #ifdef ENABLE_FLOPS
-   flops += (M+N+2.0l)*N*N ;
+   flops += (M+N+2.0)*N*N ;
 #endif
    return e ;
 }
@@ -1422,9 +1422,9 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
    /* scale each column to have norm 1 */
 
    for( jj=0 ; jj < n ; jj++ ){
-     sum = 0.0l ;
+     sum = 0.0 ;
      for( ii=0 ; ii < m ; ii++ ) sum += A(ii,jj)*A(ii,jj) ;
-     if( sum > 0.0l ) sum = 1.0l/sqrt(sum) ;
+     if( sum > 0.0 ) sum = 1.0/sqrt(sum) ;
      xfac[jj] = sum ;
      for( ii=0 ; ii < m ; ii++ ) A(ii,jj) *= sum ;
    }
@@ -1441,13 +1441,13 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
    for( ii=1 ; ii < n ; ii++ )
      if( sval[ii] > smax ) smax = sval[ii] ;
 
-   if( smax <= 0.0l ){                        /* this is bad */
+   if( smax <= 0.0 ){                        /* this is bad */
      free((void *)xfac); free((void *)sval);
      free((void *)vmat); free((void *)umat); return;
    }
 
    for( ii=0 ; ii < n ; ii++ )
-     if( sval[ii] < 0.0l ) sval[ii] = 0.0l ;
+     if( sval[ii] < 0.0 ) sval[ii] = 0.0 ;
 
 #ifdef FLOATIZE
 #define PSINV_EPS 1.e-8
@@ -1467,7 +1467,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
      matrix_create( n , m , XtXinvXt ) ;
      for( ii=0 ; ii < n ; ii++ ){
        for( jj=0 ; jj < m ; jj++ ){
-         sum = 0.0l ;
+         sum = 0.0 ;
          for( kk=0 ; kk < n ; kk++ )
            sum += sval[kk] * V(ii,kk) * U(jj,kk) ;
          XtXinvXt->elts[ii][jj] = sum * xfac[ii] ;
@@ -1481,7 +1481,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
      matrix_create( n , n , XtXinv ) ;
      for( ii=0 ; ii < n ; ii++ ){
        for( jj=0 ; jj < n ; jj++ ){
-         sum = 0.0l ;
+         sum = 0.0 ;
          for( kk=0 ; kk < n ; kk++ )
            sum += sval[kk] * V(ii,kk) * V(jj,kk) ;
          XtXinv->elts[ii][jj] = sum * xfac[ii] * xfac[jj] ;
@@ -1490,7 +1490,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
    }
 
 #ifdef ENABLE_FLOPS
-   flops += n*n*(n+2.0l*m+2.0l) ;
+   flops += n*n*(n+2.0*m+2.0) ;
 #endif
    free((void *)xfac); free((void *)sval);
    free((void *)vmat); free((void *)umat); return;
