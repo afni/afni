@@ -3332,6 +3332,7 @@ extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_countmask( int , byte * ) ;
 extern byte * THD_automask( THD_3dim_dataset * ) ;         /* 13 Aug 2001 */
+extern byte * MRI_automask( MRI_IMAGE * ) ;                /* 05 Mar 2003 */
 
 extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
                           int *, int * , int *, int * , int *, int * ) ;
@@ -3523,7 +3524,7 @@ extern THD_warp * AFNI_make_affwarp_mat   ( THD_mat33 ) ;         /* 28 Aug 2002
 extern THD_warp * AFNI_make_affwarp_matvec( THD_mat33 , THD_fvec3 ) ;
 
 extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
-                                     int, int, int, float, char *, int,int ) ;
+                                     int, int, int, float, char *, int,int, byte * ) ;
 
 #define ZPAD_EMPTY (1<<0)
 #define ZPAD_PURGE (1<<1)

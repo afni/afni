@@ -7,15 +7,14 @@
 
 /*---------------------------------------------------------------------*/
 /*! Make a byte mask for a 3D+time dataset -- 13 Aug 2001 - RWCox.
-    (compare to thd_makemask.c)
+     - compare to thd_makemask.c
+     - 05 Mar 2003: modified to put most code into MRI_automask().
 -----------------------------------------------------------------------*/
 
 byte * THD_automask( THD_3dim_dataset * dset )
 {
    MRI_IMAGE *medim ;
-   float clip_val , *mar ;
-   byte *mmm = NULL ;
-   int nvox , ii , nmm , nx,ny,nz ;
+   byte *mmm ;
 
 ENTRY("THD_automask") ;
 
@@ -23,13 +22,33 @@ ENTRY("THD_automask") ;
 
    medim = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL);
 
+   mmm = MRI_automask( medim ) ;
+
+   mri_free(medim) ; RETURN(mmm) ;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Make a byte mask from an image (3D).  Adapted from THD_automask()
+    to make it possible to do this on an image directly.
+-----------------------------------------------------------------------*/
+
+byte * MRI_automask( MRI_IMAGE * im )
+{
+   float clip_val , *mar ;
+   byte *mmm = NULL ;
+   int nvox , ii,jj , nmm , nx,ny,nz ;
+   MRI_IMAGE *medim ;
+
+ENTRY("MRI_automask") ;
+
+   if( im == NULL ) return NULL ;
+
+   if( im->kind != MRI_float ) medim = mri_to_float(im) ;
+   else                        medim = im ;
+
    /* clip value to excise small stuff */
 
    clip_val = THD_cliplevel(medim,0.5) ;
-
-#ifdef DEBUG
-fprintf(stderr,"THD_automask: clip_val = %f\n",clip_val) ;
-#endif
 
    /* create mask of values above clip value */
 
@@ -39,12 +58,12 @@ fprintf(stderr,"THD_automask: clip_val = %f\n",clip_val) ;
    for( nmm=ii=0 ; ii < nvox ; ii++ )
      if( mar[ii] >= clip_val ){ mmm[ii] = 1; nmm++; }
 
-   mri_free(medim) ;
+   if( im != medim ) mri_free(medim) ;
    if( nmm == 0 ) RETURN(mmm) ;  /* should not happen */
 
    /*-- 10 Apr 2002: only keep the largest connected component --*/
 
-   nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
+   nx = im->nx ; ny = im->ny ; nz = im->nz ;
 
    THD_mask_clust( nx,ny,nz, mmm ) ;
 
@@ -69,9 +88,9 @@ fprintf(stderr,"THD_automask: clip_val = %f\n",clip_val) ;
    }
 
    nmm = 1 ;
-   ii  = rint(0.016*nx) ; nmm = MAX(nmm,ii) ;
-   ii  = rint(0.016*ny) ; nmm = MAX(nmm,ii) ;
-   ii  = rint(0.016*nz) ; nmm = MAX(nmm,ii) ;
+   jj  = rint(0.016*nx) ; nmm = MAX(nmm,jj) ;
+   jj  = rint(0.016*ny) ; nmm = MAX(nmm,jj) ;
+   jj  = rint(0.016*nz) ; nmm = MAX(nmm,jj) ;
 
    if( nmm > 1 || ii > 0 ){
      for( ii=2 ; ii < nmm ; ii++ )

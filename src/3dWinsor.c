@@ -15,7 +15,8 @@ int main( int argc , char * argv[] )
    char * prefix = "winsor" ;
    int keepzero = 0 , clipval = 0;
    int iarg ;
-   THD_3dim_dataset * inset , * outset ;
+   THD_3dim_dataset *inset , *outset , *mset=NULL ;
+   byte *mask ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dWinsor [options] dataset\n"
@@ -42,6 +43,9 @@ int main( int argc , char * argv[] )
              "\n"
              " -prefix pp = use 'pp' as the prefix for the output\n"
              "                dataset [default pp='winsor']\n"
+             "\n"
+             " -mask mmm  = use 'mmm' as a mask dataset - voxels NOT\n"
+             "                in the mask won't be filtered\n"
       ) ;
       exit(0) ;
    }
@@ -52,6 +56,15 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+      if( strcmp(argv[iarg],"-mask") == 0 ){         /* 06 Mar 2003 */
+         mset = THD_open_dataset( argv[++iarg] ) ;
+         DSET_load(mset) ;
+         if( mset == NULL || !DSET_LOADED(mset) ){
+           fprintf(stderr,"** Can't load mask dataset %s\n",argv[iarg]); exit(1);
+         }
+         iarg++ ; continue ;
+      }
 
       if( strcmp(argv[iarg],"-clip") == 0 ){
          clipval = strtol(argv[++iarg],NULL,10) ;
@@ -121,6 +134,18 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Dataset not stored as shorts!\n"); exit(1);
    }
 
+   if( mset != NULL ){
+     if( DSET_NVOX(mset) != DSET_NVOX(inset) ){
+       fprintf(stderr,"** Mask and input datasets don't match in size!\n"); exit(1);
+     }
+     mask = THD_makemask( mset , 0 , 1.0,0.0 ) ;
+     if( mask == NULL ){
+       fprintf(stderr,"** Can't make mask from mask dataset?!\n"); exit(1);
+     }
+     fprintf(stderr,"++ %d voxels in the mask\n",THD_countmask(DSET_NVOX(mset),mask));
+     DSET_delete(mset) ;
+   }
+
    DSET_load(inset) ;
    if( !DSET_LOADED(inset) ){
       fprintf(stderr,"*** Can't read dataset into memory!\n"); exit(1);
@@ -132,7 +157,7 @@ int main( int argc , char * argv[] )
 
    /*-- compute output --*/
 
-   outset = WINsorize( inset, nrep, cbot, ctop, irad, prefix, keepzero,clipval ) ;
+   outset = WINsorize( inset, nrep, cbot, ctop, irad, prefix, keepzero,clipval , mask ) ;
 
    if( outset == NULL ){
       fprintf(stderr,"*** Can't compute Winsor filter!\n"); exit(1);

@@ -48,8 +48,7 @@ int main( int argc , char * argv[] )
 {
    int iarg , ii , ny , ignore=0 , use=0 , install=0 ;
    float dx=1.0 ;
-   char * tsfile , * cpt ;
-   char dname[THD_MAX_NAME] , subv[THD_MAX_NAME] ;
+   char *cpt ;
    MRI_IMAGE * inim , * flim ;
    float * far ;
    XtAppContext app ;
@@ -60,7 +59,7 @@ int main( int argc , char * argv[] )
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 1dplot [options] tsfile\n"
+     printf("Usage: 1dplot [options] tsfile ...\n"
             "Graphs the columns of a *.1D type time series file to the screen.\n"
             "\n"
             "Options:\n"
@@ -79,7 +78,9 @@ int main( int argc , char * argv[] )
             "                [default = no axis label]\n"
             "\n"
             " -stdin     = Don't read from tsfile; instead, read from\n"
-            "              stdin and plot it.\n"
+            "              stdin and plot it. You cannot combine input\n"
+            "              from stdin and tsfile(s).  If you want to do\n"
+            "              so, see program 1dcat.\n"
             "\n"
             " -ps        = Don't draw plot in a window; instead, write it\n"
             "              to stdout in PostScript format.\n"
@@ -106,6 +107,10 @@ int main( int argc , char * argv[] )
             "\n"
             "Example: graphing a 'dfile' output by 3dvolreg, when TR=5:\n"
             "   1dplot -volreg -dx 5 -xlabel Time 'dfile[1..6]'\n"
+            "\n"
+            "You can also input more than one tsfile, in which case the files\n"
+            "will all be plotted.  However, if the files have different column\n"
+            "lengths, the shortest one will rule.\n"
             "\n"
            ) ;
       exit(0) ;
@@ -237,7 +242,7 @@ int main( int argc , char * argv[] )
         fprintf(stderr,"*** Can't read numbers from stdin!\n"); exit(1);
      }
 
-     subv[0] = '\0' ; nx = nval ; ny = 1 ;
+     nx = nval ; ny = 1 ;
      far = (float *) malloc(sizeof(float)*nval) ;
      memcpy(far,val,sizeof(float)*nx) ;
      while(1){  /* read from stdin */
@@ -257,36 +262,44 @@ int main( int argc , char * argv[] )
      mri_fix_data_pointer( far , inim ) ;
 
    } else {  /*-- old code: read from a file --*/
+             /*-- 05 Mar 2003: or more than 1 file --*/
 
-     /* check input filename for index strings */
-
-     tsfile = argv[iarg] ;
-     cpt    = strstr(tsfile,"[") ;
-
-     if( cpt == NULL ){
-        strcpy( dname , tsfile ) ;
-        subv[0] = '\0' ;
-     } else if( cpt == tsfile ){
-        fprintf(stderr,"** Illegal filename on command line!\n");exit(1);
-     } else {
-        ii = cpt - tsfile ;
-        memcpy(dname,tsfile,ii) ; dname[ii] = '\0' ;
-        strcpy(subv,cpt) ;
+     if( iarg >= argc ){
+       fprintf(stderr,"** No input files on command line?!\n"); exit(1);
      }
 
-     /* read input file */
+     if( iarg == argc-1 ){                 /* only 1 input file */
+       inim = mri_read_1D( argv[iarg] ) ;
+       if( inim == NULL ){
+         fprintf(stderr,"** Can't read input file %s\n",argv[iarg]) ; exit(1);
+       }
+     } else {                              /* multiple inputs [05 Mar 2003] */
+       MRI_IMARR *imar ;                   /* read them & glue into 1 image */
+       int iarg_first=iarg, nysum=0, ii,jj,nx ;
+       float *far,*iar ;
 
-     inim = mri_read_ascii( dname ) ;
-     if( inim == NULL ){
-        fprintf(stderr,"** Can't read input file %s\n",dname) ;
-        exit(1);
+       INIT_IMARR(imar) ;
+       for( ; iarg < argc ; iarg++ ){
+         inim = mri_read_1D( argv[iarg] ) ;
+         if( inim == NULL ){
+           fprintf(stderr,"** Can't read input file %s\n",argv[iarg]) ; exit(1);
+         }
+         if( iarg == iarg_first || inim->nx < nx ) nx = inim->nx ;
+         ADDTO_IMARR(imar,inim) ; nysum += inim->ny ;
+       }
+       flim = mri_new( nx,nysum, MRI_float ); far = MRI_FLOAT_PTR(flim);
+       for( nysum=ii=0 ; ii < imar->num ; ii++ ){
+         inim = IMARR_SUBIM(imar,ii) ; iar = MRI_FLOAT_PTR(inim) ;
+         for( jj=0 ; jj < inim->ny ; jj++,nysum++ ){
+           memcpy( far + nx*nysum , iar + jj*inim->nx , sizeof(float)*nx ) ;
+         }
+       }
+       DESTROY_IMARR(imar) ; inim = flim ;
      }
+
    } /* end of file input */
 
-   if( inim->kind != MRI_float ){  /* should not happen */
-      flim = mri_to_float(inim) ; mri_free(inim) ; inim = flim ;
-   }
-   flim = mri_transpose(inim) ; mri_free(inim) ;
+   flim = inim ;
    far  = MRI_FLOAT_PTR(flim) ;
    nx   = flim->nx ;
    ny   = flim->ny ;
@@ -298,32 +311,9 @@ int main( int argc , char * argv[] )
 
    /* select data to plot */
 
-   if( subv[0] == '\0' ){  /* no sub-list */
-
-      nts = ny ;
-      yar = (float **) malloc(sizeof(float *)*nts) ;
-      for( ii=0 ; ii < ny ; ii++ ) yar[ii] = far + (ii*nx+ignore) ;
-
-   } else {                /* process sub-list */
-      int  * ivlist , * ivl ;
-
-      ivlist = MCW_get_intlist( ny , subv ) ;
-      if( ivlist == NULL || ivlist[0] < 1 ){
-         fprintf(stderr,"** Illegal column selectors on command line!\n");
-         exit(1);
-      }
-      nts = ivlist[0] ;
-      ivl = ivlist + 1 ;
-      for( ii=0 ; ii < nts ; ii++ ){
-         if( ivl[ii] < 0 || ivl[ii] >= ny ){
-            fprintf(stderr,"** Illegal selector on command line!\n");
-            exit(1) ;
-         }
-      }
-      yar = (float **) malloc(sizeof(float *)*nts) ;
-      for( ii=0 ; ii < nts ; ii++ ) yar[ii] = far + (ivl[ii]*nx+ignore) ;
-      free(ivlist) ;
-   }
+   nts = ny ;
+   yar = (float **) malloc(sizeof(float *)*nts) ;
+   for( ii=0 ; ii < ny ; ii++ ) yar[ii] = far + (ii*nx+ignore) ;
 
    nx = nx - ignore ;  /* cut off the ignored points */
 
