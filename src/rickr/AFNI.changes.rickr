@@ -513,4 +513,7 @@
       - added the ability to pass registration correction parameters over
         a tcp socket (see 'serial_helper -help')
   * modified afni_pplug_env.c, adding AFNI_REALTIME_MP_HOST_PORT
+  * modified README.environment, describing AFNI_REALTIME_MP_HOST_PORT
+  * modified Makefile.INCLUDE, for building serial_helper
+  * modified rickr/Makefile, for building serial_helper
 

@@ -62,7 +62,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI \
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 1ddot          \
            3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat     \
-           $(EXTRAS) Imon fftest
+           $(EXTRAS) Imon fftest serial_helper
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -109,7 +109,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile  \
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp \
-               file_tool.exe Imon.exe 3dresample.exe
+               file_tool.exe Imon.exe 3dresample.exe serial_helper.exe
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS \
@@ -1462,6 +1462,18 @@ Imon.exe: thd_iochan.o
 	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) Imon.exe .. ; )
+
+serial_helper: rickr/serial_helper.c
+	( cd rickr ;                                                    \
+	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'  \
+			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
+	$(MV) serial_helper .. ; )
+
+serial_helper.exe: rickr/serial_helper.c
+	( cd rickr ;                                                    \
+	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'  \
+			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
+	$(MV) serial_helper.exe .. ; )
 
 #######
 # rendering library
