@@ -29,6 +29,9 @@
   Mod:      Added functions column_to_vector and matrix_extract_rows.
   Date:     21 April 2000
 
+  Mod:      Added functions vector_dotself() and vector_multiply_subtract() -- RWCox.
+  Date:     28 Dec 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -321,6 +324,12 @@ void vector_subtract (vector a, vector b, vector * c);
 
 void vector_multiply (matrix a, vector b, vector * c);
 
+/*---------------------------------------------------------------------------*/
+/*
+  Right multiply matrix a by vector b, then subtract c.  Result is vector d.
+*/
+
+void vector_multiply_subtract (matrix a, vector b, vector c, vector * d) ;
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -329,6 +338,7 @@ void vector_multiply (matrix a, vector b, vector * c);
 
 double vector_dot (vector a, vector b);
 
+double vector_dotself (vector a);  /* 28 Dec 2001: RWCox */
 
 /*---------------------------------------------------------------------------*/
 

@@ -4,7 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-/*
+/*!
   This file contains matrix and vector arithmetic routines.
 
   File:     matrix.c
@@ -38,11 +38,14 @@
   Mod:      Added test for missing matrix file name.
   Date:     08 May 2000
 
+  Mod:      Added "register" declarations and a few other things to speed
+            up calculations (including vector_create_noinit) -- RW Cox.
+  Date:     28 Dec 2001
 
 */
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Routine to print and error message and stop.
 */
 
@@ -54,7 +57,7 @@ void matrix_error (char * message)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Initialize matrix data structure.
 */
 
@@ -67,7 +70,7 @@ void matrix_initialize (matrix * m)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Destroy matrix data structure by deallocating memory.
 */
 
@@ -82,7 +85,7 @@ void matrix_destroy (matrix * m)
       for (i = 0;  i < rows;  i++)
 	if (m->elts[i] != NULL)
 	  {  free (m->elts[i]);   m->elts[i] = NULL; }
-      free (m->elts); 
+      free (m->elts);
     }
 
   matrix_initialize (m);
@@ -90,13 +93,13 @@ void matrix_destroy (matrix * m)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Create matrix data structure by allocating memory and initializing values.
 */
 
 void matrix_create (int rows, int cols, matrix * m)
 {
-  int i, j;
+  register int i, j;
 
 
   matrix_destroy (m);
@@ -125,7 +128,7 @@ void matrix_create (int rows, int cols, matrix * m)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Print contents of matrix m.
 */
 
@@ -148,7 +151,7 @@ void matrix_print (matrix m)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Print label and contents of matrix m.
 */
 
@@ -161,7 +164,7 @@ void matrix_sprint (char * s, matrix m)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Print contents of matrix m to specified file.
 */
 
@@ -192,8 +195,8 @@ void matrix_file_write (char * filename, matrix m)
   fclose (outfile);
 }
 
- /*---------------------------------------------------------------------------*/
-/*
+/*---------------------------------------------------------------------------*/
+/*!
   Manual entry of matrix data.
 */
 
@@ -221,7 +224,7 @@ void matrix_enter (matrix * m)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Read contents of matrix m from specified file.
   If unable to read matrix from file, or matrix has wrong dimensions:
      If error_exit flag is set, then print error message and exit.
@@ -294,13 +297,13 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Convert simple array to matrix structure.
 */
 
 void array_to_matrix (int rows, int cols, float ** f, matrix * m)
 {
-  int i, j;
+  register int i, j;
 
   matrix_create (rows, cols, m);
 
@@ -311,14 +314,14 @@ void array_to_matrix (int rows, int cols, float ** f, matrix * m)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Make a copy of the first matrix, return copy as the second matrix.
 */
 
 void matrix_equate (matrix a, matrix * b)
 {
-  int i, j;
-  int rows, cols;
+  register int i, j;
+  register int rows, cols;
 
   rows = a.rows;
   cols = a.cols;
@@ -332,14 +335,14 @@ void matrix_equate (matrix a, matrix * b)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Extract p columns (specified by list) from matrix a.  Result is matrix b.
 */
 
 void matrix_extract (matrix a, int p, int * list, matrix * b)
 {
-  int i, j;
-  int rows, cols;
+  register int i, j;
+  register int rows, cols;
 
   rows = a.rows;
   cols = p;
@@ -353,14 +356,14 @@ void matrix_extract (matrix a, int p, int * list, matrix * b)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Extract p rows (specified by list) from matrix a.  Result is matrix b.
 */
 
 void matrix_extract_rows (matrix a, int p, int * list, matrix * b)
 {
-  int i, j;
-  int rows, cols;
+  register int i, j;
+  register int rows, cols;
 
   rows = p;
   cols = a.cols;
@@ -374,13 +377,13 @@ void matrix_extract_rows (matrix a, int p, int * list, matrix * b)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Create n x n identity matrix.
 */
 
 void matrix_identity (int n, matrix * m)
 {
-  int i, j;
+  register int i, j;
 
   if (n < 1)
     matrix_error ("Illegal dimensions for identity matrix");
@@ -397,14 +400,14 @@ void matrix_identity (int n, matrix * m)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Add matrix a to matrix b.  Result is matrix c.
 */
 
 void matrix_add (matrix a, matrix b, matrix * c)
 {
-  int rows, cols;
-  int i, j;
+  register int rows, cols;
+  register int i, j;
 
   if ((a.rows != b.rows) || (a.cols != b.cols))
     matrix_error ("Incompatible dimensions for matrix addition");
@@ -421,14 +424,14 @@ void matrix_add (matrix a, matrix b, matrix * c)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Subtract matrix b from matrix a.  Result is matrix c.
 */
 
 void matrix_subtract (matrix a, matrix b, matrix * c)
 {
-  int rows, cols;
-  int i, j;
+  register int rows, cols;
+  register int i, j;
 
   if ((a.rows != b.rows) || (a.cols != b.cols))
     matrix_error ("Incompatible dimensions for matrix subtraction");
@@ -445,14 +448,15 @@ void matrix_subtract (matrix a, matrix b, matrix * c)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Multiply matrix a by matrix b.  Result is matrix c.
 */
 
 void matrix_multiply (matrix a, matrix b, matrix * c)
 {
   int rows, cols;
-  int i, j, k;
+  register int i, j, k;
+  register double sum ;
 
   if (a.cols != b.rows)
     matrix_error ("Incompatible dimensions for matrix multiplication");
@@ -465,22 +469,23 @@ void matrix_multiply (matrix a, matrix b, matrix * c)
   for (i = 0;  i < rows;  i++)
     for (j = 0;  j < cols;  j++)
       {
-	c->elts[i][j] = 0.0;
+        sum = 0.0 ;
 	for (k = 0;  k < a.cols;  k++)
-	  c->elts[i][j] += a.elts[i][k] * b.elts[k][j];
+	  sum += a.elts[i][k] * b.elts[k][j];
+        c->elts[i][j] = sum;
       }
 }
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Multiply matrix a by scalar constant k.  Result is matrix c.
 */
 
 void matrix_scale (double k, matrix a, matrix * c)
 {
-  int rows, cols;
-  int i, j;
+  register int rows, cols;
+  register int i, j;
 
 
   rows = a.rows;
@@ -495,14 +500,14 @@ void matrix_scale (double k, matrix a, matrix * c)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Take transpose of matrix a.  Result is matrix t.
 */
 
 void matrix_transpose (matrix a, matrix * t)
 {
-  int rows, cols;
-  int i, j;
+  register int rows, cols;
+  register int i, j;
 
   rows = a.cols;
   cols = a.rows;
@@ -515,7 +520,7 @@ void matrix_transpose (matrix a, matrix * t)
 
  
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Use Gaussian elimination to calculate inverse of matrix a.  Result is 
   matrix ainv.
 */
@@ -524,8 +529,8 @@ int matrix_inverse (matrix a, matrix * ainv)
 {
   const double epsilon = 1.0e-10;
   matrix tmp;
-  int i, j, ii, n;
-  double fval;
+  register int i, j, ii, n;
+  register double fval;
   double fmax;
   double * p;
 
@@ -587,7 +592,7 @@ int matrix_inverse (matrix a, matrix * ainv)
 
  
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Calculate square root of symmetric positive definite matrix a.  
   Result is matrix s.
 */
@@ -598,8 +603,8 @@ int matrix_sqrt (matrix a, matrix * s)
   int n;
   int ok;
   int iter;
-  float sse, psse;
-  int i, j;
+  register float sse, psse;
+  register int i, j;
   matrix x, xinv, axinv, xtemp, error;
 
   matrix_initialize (&x);
@@ -653,7 +658,7 @@ int matrix_sqrt (matrix a, matrix * s)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Initialize vector data structure.
 */
 
@@ -665,7 +670,7 @@ void vector_initialize (vector * v)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Destroy vector data structure by deallocating memory.
 */
 
@@ -677,13 +682,13 @@ void vector_destroy (vector * v)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Create vector v by allocating memory and initializing values.
 */
 
 void vector_create (int dim, vector * v)
 {
-  int i;
+  register int i;
 
   vector_destroy (v);
   
@@ -698,9 +703,23 @@ void vector_create (int dim, vector * v)
      v->elts[i] = 0.0;
 }
 
+/*---------------------------------------------------------------------------*/
+static void vector_create_noinit(int dim, vector * v)  /* 28 Dec 2001: RWCox */
+{
+  register int i;
+
+  vector_destroy (v);
+ 
+  if (dim < 1)  matrix_error ("Illegal dimensions for new vector");
+
+  v->dim = dim;
+  v->elts = (double *) malloc (sizeof(double) * dim);
+  if (v->elts == NULL)
+    matrix_error ("Memory allocation error");
+}
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Print contents of vector v.
 */
 
@@ -716,7 +735,7 @@ void vector_print (vector v)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Print label and contents of vector v.
 */
 
@@ -729,17 +748,17 @@ void vector_sprint (char * s, vector v)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Copy vector a.  Result is vector b.
 */
 
 void vector_equate (vector a, vector * b)
 {
-  int i, dim;
+  register int i, dim;
 
   dim = a.dim;
 
-  vector_create (dim, b);
+  vector_create_noinit (dim, b);
 
   for (i = 0;  i < dim;  i++)
     b->elts[i] = a.elts[i];
@@ -747,15 +766,15 @@ void vector_equate (vector a, vector * b)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Convert simple array f into vector v.
 */
 
 void array_to_vector (int dim, float * f, vector * v)
 {
-  int i;
+  register int i;
 
-  vector_create (dim, v);
+  vector_create_noinit (dim, v);
 
   for (i = 0;  i < dim;  i++)
     v->elts[i] = f[i];
@@ -764,17 +783,17 @@ void array_to_vector (int dim, float * f, vector * v)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Convert column c of matrix m into vector v.
 */
 
 void column_to_vector (matrix m, int c, vector * v)
 {
-  int i;
-  int dim;
+  register int i;
+  register int dim;
 
   dim = m.rows;
-  vector_create (dim, v);
+  vector_create_noinit (dim, v);
 
   for (i = 0;  i < dim;  i++)
     v->elts[i] = m.elts[i][c];
@@ -783,13 +802,13 @@ void column_to_vector (matrix m, int c, vector * v)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Convert vector v into array f.
 */
 
 void vector_to_array (vector v, float * f)
 {
-  int i;
+  register int i;
   
   for (i = 0;  i < v.dim;  i++)
     f[i] = v.elts[i];
@@ -797,20 +816,20 @@ void vector_to_array (vector v, float * f)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Add vector a to vector b.  Result is vector c.
 */
 
 void vector_add (vector a, vector b, vector * c)
 {
-  int i, dim;
+  register int i, dim;
 
   if (a.dim != b.dim)
     matrix_error ("Incompatible dimensions for vector addition");
 
   dim = a.dim;
 
-  vector_create (dim, c);
+  vector_create_noinit (dim, c);
 
   for (i = 0;  i < dim;  i++)
     c->elts[i] = a.elts[i] + b.elts[i];
@@ -818,20 +837,20 @@ void vector_add (vector a, vector b, vector * c)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Subtract vector b from vector a.  Result is vector c.
 */
 
 void vector_subtract (vector a, vector b, vector * c)
 {
-  int i, dim;
+  register int i, dim;
 
   if (a.dim != b.dim)
     matrix_error ("Incompatible dimensions for vector subtraction");
 
   dim = a.dim;
 
-  vector_create (dim, c);
+  vector_create_noinit (dim, c);
 
   for (i = 0;  i < dim;  i++)
     c->elts[i] = a.elts[i] - b.elts[i];
@@ -839,14 +858,15 @@ void vector_subtract (vector a, vector b, vector * c)
 
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Right multiply matrix a by vector b.  Result is vector c.
 */
 
 void vector_multiply (matrix a, vector b, vector * c)
 {
-  int rows, cols;
-  int i, j;
+  register int rows, cols;
+  register int i, j;
+  register double sum ;
 
   if (a.cols != b.dim)
     matrix_error ("Incompatible dimensions for vector multiplication");
@@ -854,26 +874,54 @@ void vector_multiply (matrix a, vector b, vector * c)
   rows = a.rows;
   cols = a.cols;
 
-  vector_create (rows, c);
+  vector_create_noinit (rows, c);
 
   for (i = 0;  i < rows;  i++)
     {
-      c->elts[i] = 0.0;
+      sum = 0.0 ;
       for (j = 0;  j < cols;  j++)
-	c->elts[i] += a.elts[i][j] * b.elts[j];
+        sum += a.elts[i][j] * b.elts[j];
+      c->elts[i] = sum ;
     }
 }
 
+/*---------------------------------------------------------------------------*/
+/*!
+  Compute d = c-a*b: a is a matrix; b,c,d are vectors -- RWCox
+*/
+
+void vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
+{
+  register int rows, cols;
+  register int i, j;
+  register double sum ;
+
+  if (a.cols != b.dim || a.rows != c.dim )
+    matrix_error ("Incompatible dimensions for vector multiplication-subtraction");
+
+  rows = a.rows;
+  cols = a.cols;
+
+  vector_create_noinit (rows, d);
+
+  for (i = 0;  i < rows;  i++)
+    {
+      sum = c.elts[i] ;
+      for (j = 0;  j < cols;  j++)
+        sum -= a.elts[i][j] * b.elts[j];
+      d->elts[i] = sum ;
+    }
+}
 
 /*---------------------------------------------------------------------------*/
-/*
+/*!
   Calculate dot product of vector a with vector b. 
 */
 
 double vector_dot (vector a, vector b)
 {
-  int i, dim;
-  double sum;
+  register int i, dim;
+  register double sum;
 
   if (a.dim != b.dim)
     matrix_error ("Incompatible dimensions for vector dot product");
@@ -883,6 +931,24 @@ double vector_dot (vector a, vector b)
   sum = 0.0;
   for (i = 0;  i < dim;  i++)
     sum += a.elts[i] * b.elts[i];
+
+  return (sum);
+}
+
+/*--------------------------------------------------------------------------*/
+/*!
+  Calculate dot product of vector a with itself -- 28 Dec 2001, RWCox.
+*/
+
+double vector_dotself( vector a )
+{
+  register int i, dim;
+  register double sum;
+
+  dim = a.dim;
+  sum = 0.0;
+  for (i = 0;  i < dim;  i++)
+    sum += a.elts[i] * a.elts[i];
 
   return (sum);
 }
