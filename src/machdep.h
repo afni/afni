@@ -247,6 +247,7 @@ extern long   strtol() ;
 # define DONT_INSTALL_ICONS
 # define DYNAMIC_LOADING_VIA_DL
 # define USE_LOCKF
+# define DONT_USE_MATRIX_MAT  /* 04 Mar 2005 */
 #endif
 
 /*** IBM RS6000 courtesy Doug Morris of UIUC ***/
