@@ -152,6 +152,8 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
                         last_status[0] = '\0' ;                                 \
                     } while(0)
 
+/*! This macro is only to be used inside main(). */
+
 #define mainENTRY(rout)                                            \
   do{ char *e=getenv("AFNI_TRACE");                                \
       if( e != NULL )                                              \

@@ -179,23 +179,26 @@ static char * AFNI_funcmode_bbox_label[2] =
    "  frame drawn around the\n"  \
    "  voxels being graphed."
 
-#define AFNI_crosshair_label_help   \
-   "Displays coordinates of\n"      \
-   "the crosshair point in the\n"   \
-   "DICOM coordinates (3D input)\n" \
-   "or voxel indices (image input)"
+#define AFNI_crosshair_label_help      \
+   "Displays coordinates of\n"         \
+   "the crosshair point in the\n"      \
+   "DICOM coordinates (3D input)\n"    \
+   "or voxel indices (image input)\n"  \
+   "\n"                                \
+   "A Button-3 popup menu lets you\n"  \
+   "change coordinate display order."
 
-#define AFNI_view_help                       \
-   "Normal:   button opens viewing window\n"  \
-   "Inverted: button raises opened window\n\n" \
-   "N.B.: AFNI does not read datasets from\n"  \
-   "      disk until a window is opened.\n"   \
-   "      This can make opening the first\n" \
-   "      viewing window be quite slow."    \
-   "\n"                                      \
-   "The Graph buttons are only enabled for\n" \
-   "3D+time datasets that are viewing their\n" \
-   ".BRIK files (not warping on demand --\n"  \
+#define AFNI_view_help                          \
+   "Normal:   button opens viewing window\n"    \
+   "Inverted: button raises opened window\n\n"  \
+   "N.B.: AFNI does not read datasets from\n"   \
+   "      disk until a window is opened.\n"     \
+   "      This can make opening the first\n"    \
+   "      viewing window be quite slow."        \
+   "\n"                                         \
+   "The Graph buttons are only enabled for\n"   \
+   "3D+time datasets that are viewing their\n"  \
+   ".BRIK files (not warping on demand --\n"    \
    "see the 'Define Datamode' control panel)"
 
 #define AFNI_disp_pcolor_help  \
@@ -944,7 +947,7 @@ STATUS("making imag->rowcol") ;
    imag->crosshair_dicom_pb =
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
-            LABEL_ARG(" DICOM order ") ,
+            LABEL_ARG(" RAI=DICOM order") ,
             XmNmarginHeight , 0 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -955,7 +958,7 @@ STATUS("making imag->rowcol") ;
    imag->crosshair_spm_pb =
       XtVaCreateManagedWidget(
          "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
-            LABEL_ARG(" SPM order ") ,
+            LABEL_ARG(" LPI=SPM order") ,
             XmNmarginHeight , 0 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1652,7 +1655,7 @@ STATUS("making view->rowcol") ;
    view->choose_anat_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
-            LABEL_ARG("Switch Anatomy") ,
+            LABEL_ARG("Switch Underlay") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1672,14 +1675,14 @@ STATUS("making view->rowcol") ;
         "  have 'z' after their names."
    ) ;
    MCW_register_hint( view->choose_anat_pb ,
-                      "Switch between anatomical datasets" ) ;
+                      "Switch datasets for underlay/graphs" ) ;
 
    view_count ++ ;
 
    view->choose_func_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , view->dataset_rowcol ,
-            LABEL_ARG("Switch Function") ,
+            LABEL_ARG("Switch Overlay") ,
             XmNmarginHeight , 1 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1696,7 +1699,7 @@ STATUS("making view->rowcol") ;
      "  have 'z' after their names."
     ) ;
    MCW_register_hint( view->choose_func_pb ,
-                      "Switch between functional datasets" ) ;
+                      "Switch datasets for overlay/function" ) ;
 
    view_count ++ ;
 
@@ -1752,7 +1755,7 @@ STATUS("making view->rowcol") ;
    view->popchoose_anat_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-            LABEL_ARG("Switch Anatomy") ,
+            LABEL_ARG("Switch Underlay") ,
             XmNmarginHeight , 0 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1764,7 +1767,7 @@ STATUS("making view->rowcol") ;
    view->popchoose_func_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-            LABEL_ARG("Switch Function") ,
+            LABEL_ARG("Switch Overlay") ,
             XmNmarginHeight , 0 ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
