@@ -2435,7 +2435,7 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "     a floating point scaling factor attached), and must\n"
        "     be stored as axial slices in the 'RAI' orientation\n"
        "     (x axis is Right-to-Left, y axis is Anterior-to-Posterior,\n"
-       "     and z axis is Inferior-to-Posterior).  This orientation\n"
+       "     and z axis is Inferior-to-Superior).  This orientation\n"
        "     is how datasets are written out in the +acpc and +tlrc\n"
        "     coordinates -- with axial slices.\n"
 #ifdef ONLY_AXIAL

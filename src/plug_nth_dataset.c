@@ -114,8 +114,8 @@ ENTRY("PLUGIN_init - Dataset#N") ;
                                NEEDS_DSET_INDEX|PROCESS_MRI_IMAGE ) ;
    AFNI_register_nD_func_init( 1 , (generic_func *) DSETN_func_init ) ;  /* 21 Jul 2003 */
 
-   plint = PLUTO_new_interface( "Dataset#N" , "Controls 1D function Dataset#N" , helpstring ,
-                                 PLUGIN_CALL_VIA_MENU , DSETN_main  ) ;
+   plint = PLUTO_new_interface( "Dataset#N", "Controls 1D function Dataset#N",
+                                 helpstring, PLUGIN_CALL_VIA_MENU, DSETN_main  ) ;
 
    PLUTO_add_hint( plint , "Controls 1D function Dataset#N" ) ;
 
@@ -157,13 +157,18 @@ char * DSETN_main( PLUGIN_interface * plint )
    MCW_idcode *idc ;
    char *str , *tag ;
    int id=0 ;
- 
+
 ENTRY( "DSETN_main" ) ;
 
    if( plint == NULL )
       RETURN("***********************\n"
              "DSETN_main:  NULL input\n"
              "***********************") ;
+
+   for( id=0 ; id < NMAX ; id++ ){   /* 18 Mar 2004: renullification */
+     dset[id] = NULL ;
+     ZERO_IDCODE(g_id[id]);
+   }
 
    id = 0 ;
 
@@ -272,9 +277,9 @@ ENTRY( "DSETN_dset_recv" );
 
 void DSETN_func( MRI_IMAGE *qim )
 {
-   int id , ny , nxtop=0 , ijk ;
-   MRI_IMARR * tar ;
-   MRI_IMAGE * tsim ;
+   int id , ny , nxtop=0 , ijk , ii ;
+   MRI_IMARR *tar ;
+   MRI_IMAGE *tsim , *zim ;
    float *tsar , *dar ;
    int ovi[NMAX] ;
    char str[16+4*NMAX] ;
@@ -299,13 +304,13 @@ ENTRY( "DSETN_func" );
 
    ny = IMARR_COUNT(tar) ;
 
-   if( ny == 0 ){ DESTROY_IMARR(tar); EXRETURN; }      /* no data */
+   if( ny == 0 || nxtop < 2 ){ DESTROY_IMARR(tar); EXRETURN; } /* no data */
 
    if( ny == 1 ){                                  /* one dataset */
-      tsim = IMARR_SUBIM(tar,0); FREE_IMARR(tar);
-      mri_move_guts(qim,tsim);
-      sprintf(str,"color: %d",ovi[0]) ; mri_add_name(str,qim) ;
-      EXRETURN;
+     tsim = IMARR_SUBIM(tar,0); FREE_IMARR(tar);
+     mri_move_guts(qim,tsim);
+     sprintf(str,"color: %d",ovi[0]) ; mri_add_name(str,qim) ;
+     EXRETURN;
    }
                                              /* multiple datasets */
 
@@ -313,8 +318,12 @@ ENTRY( "DSETN_func" );
    tsar = MRI_FLOAT_PTR(tsim) ;
    strcpy(str,"color:") ;
    for( id=0 ; id < ny ; id++ ){
-      dar = MRI_FLOAT_PTR( IMARR_SUBIM(tar,id) ) ;
-      memcpy( tsar , dar , sizeof(float)*IMARR_SUBIM(tar,id)->nx) ;
+      zim = IMARR_SUBIM(tar,id) ;
+      dar = MRI_FLOAT_PTR(zim) ;
+      memcpy( tsar , dar , sizeof(float)*zim->nx) ;
+      if( zim->nx < nxtop ){   /* 18 Mar 2004: fill with infinity */
+        for( ii=zim->nx ; ii < nxtop ; ii++ ) tsar[ii] = WAY_BIG ;
+      }
       tsar += nxtop ;
       sprintf(str+strlen(str)," %d",ovi[id]) ;
    }
@@ -352,4 +361,3 @@ ENTRY( "set_global_dsets_from_ids" );
 
     RETURN( num_valid );
 }
-

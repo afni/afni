@@ -884,6 +884,11 @@ AFNI_REALTIME_WRITEWAIT = if the image data pauses for this number
                           source program is silent for a very long time,
                           AFNI will still be waiting patiently for data.
 
+AFNI_GRAPH_AUTOGRID     = By default, if the number of time points in an
+                          AFNI graph viewer changes, the density of
+                          vertical grid lines changes.  If you don't
+                          want this to happen, set this variable to NO.
+
 For more information about how the realtime plugin works, read the file
 README.realtime.
 
