@@ -14,8 +14,8 @@ THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv ) ;
 
 int main( int argc , char * argv[] )
 {
-   char * prefix = "fractionize" ;
-   THD_3dim_dataset * tset=NULL , * iset=NULL , * dset=NULL , *wset=NULL ;
+   char *prefix = "fractionize" ;
+   THD_3dim_dataset *tset=NULL , *iset=NULL , *dset=NULL , *wset=NULL ;
    int iarg=1 ;
    int nxin,nyin,nzin , nxyin ;
    float dxin,dyin,dzin , xorgin,yorgin,zorgin , clip=0.0 ;
@@ -24,21 +24,21 @@ int main( int argc , char * argv[] )
    float f1,f2,f , g1,g2,g , h1,h2,h , sx,sy,sz , tx,ty,tz ;
    float x1,x2 , y1,y2 , z1,z2 , xx1,xx2 , yy1,yy2 , zz1,zz2 ;
    int i,ip , j,jp , k,kp , iv,jv,kv , vtype , ijk ;
-   float * voxout ;
-   byte  * bin   = NULL ;
-   short * sin   = NULL , sclip=0   ;
-   float * fin   = NULL , fclip=0.0 ;
-   void  * voxin = NULL ;
+   float *voxout ;
+   byte  *bin   = NULL ;
+   short *sin   = NULL , sclip=0   ;
+   float *fin   = NULL , fclip=0.0 ;
+   void  *voxin = NULL ;
    THD_fvec3 vv ;
 
-   THD_warp * warp=NULL ;  /* 14 Oct 1999 */
+   THD_warp *warp=NULL ;  /* 14 Oct 1999 */
 
    int do_vote=0 ;          /* 18 Oct 1999 */
-   int * vote_val = NULL ;
+   int *vote_val = NULL ;
    int  nvote_val , ivote , voter , vote_print=0 ;
-   byte  * vote_bout = NULL ;
-   short * vote_sout = NULL ;
-   float * vote_best = NULL ;
+   byte  *vote_bout = NULL ;
+   short *vote_sout = NULL ;
+   float *vote_best = NULL ;
 
    /*-- help? --*/
 

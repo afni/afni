@@ -91,7 +91,7 @@ MRI_IMAGE *mri_try_pgm( FILE * , int * ) ;
 
 /*-----------------------------------------------------------------*/
 
-/*! \brief Database of preset file sizes for auto-use of 3D.
+/*! Database of preset file sizes for auto-use of 3D.
 
   If( head < 0 ) then file length must match size
   else file length must == n*size + head for some
@@ -162,7 +162,7 @@ static void swap_2(void *ppp)
 
 /******************************************************************/
 
-/*! \brief Earliest image reading function in the AFNI package.
+/*! Earliest image reading function in the AFNI package.
 
     \param  fname is the name of the file to try to read
     \return NULL if an image couldn't be read, otherwise
@@ -537,7 +537,7 @@ Ready_To_Roll:
      var = strtol( buf , NULL , 10 ) ; }
 #endif
 
-/*! \brief Try to read an file in the "Cox MRI" format.
+/*! Try to read an file in the "Cox MRI" format.
 
     \param imfile is a pointer to an open FILE.
     \param skip is a pointer to an int that will be set to the number
@@ -576,7 +576,7 @@ MRI_IMAGE *mri_try_mri( FILE *imfile , int *skip )
    7D format: MRn kind n-dimensions data, where 'n' = 1-7.
 ***************************************************************************/
 
-/*! \brief Try to read a "Cox nD MRI" image file (fat chance). */
+/*! Try to read a "Cox nD MRI" image file (fat chance). */
 
 MRI_IMAGE *mri_try_7D( FILE *imfile , int *skip )
 {
@@ -623,7 +623,7 @@ MRI_IMAGE *mri_try_7D( FILE *imfile , int *skip )
 
 /*********************************************************************/
 
-/*! \brief Try to read a raw PGM format image file.
+/*! Try to read a raw PGM format image file.
 
     \param imfile is a pointer to an open FILE
     \param skip is a pointer to an int; *skip will be set to the
@@ -668,7 +668,7 @@ MRI_IMAGE *mri_try_pgm( FILE *imfile , int *skip )
    [N.B.: if this routine is altered, don't forget mri_imcount!]
 ----------------------------------------------------------------*/
 
-/*! \brief Read one or more 2D slices from a "3D:" formatted image file. */
+/*! Read one or more 2D slices from a "3D:" formatted image file. */
 
 MRI_IMARR * mri_read_3D( char * tname )
 {
@@ -837,7 +837,7 @@ MRI_IMARR * mri_read_3D( char * tname )
 
 /*--------------------------------------------------------------*/
 
-/*! \brief Read one or more 2D images from a file.
+/*! Read one or more 2D images from a file.
 
    This function is the main point of input for to3d.c.
    \param fname is the name of the file to read.  This file
@@ -917,7 +917,7 @@ MRI_IMARR * mri_read_file( char * fname )
 
 /*-----------------------------------------------------------------*/
 
-/*! \brief Like mri_read_file(), but will only return 1 2D image.
+/*! Like mri_read_file(), but will only return 1 2D image.
 
     If the input file has more than 1 slice, or cannot be read,
     then NULL is returned.
@@ -944,7 +944,7 @@ MRI_IMAGE * mri_read_just_one( char * fname )
   return a count of how many 2D images will be read from this file
 -------------------------------------------------------------------*/
 
-/*! \brief Return a count of how many 2D images are in a file.
+/*! Return a count of how many 2D images are in a file.
 
     Used by to3d.c to figure out how many slices will be read
     later using mri_read_file().  Return value is 0 if the images
@@ -1069,7 +1069,7 @@ int mri_imcount( char * tname )
 
 /*--------------------------------------------------------------*/
 
-/*! \brief Like mri_read_file(), but returns images from many files.
+/*! Like mri_read_file(), but returns images from many files.
 
     \param nf = Number of file names
     \param fn = Array of file name strings
@@ -1106,7 +1106,7 @@ MRI_IMARR * mri_read_many_files( int nf , char * fn[] )
 
 /*---------------------------------------------------------------*/
 
-/*! \brief Read a raw PPM file into 3 byte-valued MRI_IMAGEs.
+/*! Read a raw PPM file into 3 byte-valued MRI_IMAGEs.
 
     \date 16 May 1995
 */
@@ -1192,7 +1192,7 @@ WHOAMI ;
    routines added 1 Oct 1995
 -------------------------------------------------------------------*/
 
-/*! \brief Read 1 2D image, then "nsize" it - make it a power of 2 in sizes.
+/*! Read 1 2D image, then "nsize" it - make it a power of 2 in sizes.
 
     This was developed in the days when FD/FD2/fim ruled the world, and
     those programs (AJ's legacy) only deal with square images that are
@@ -1216,7 +1216,7 @@ MRI_IMAGE *mri_read_nsize( char * fname )
    return imout ;
 }
 
-/*! \brief Read many 2D images from many files. */
+/*! Read many 2D images from many files. */
 
 MRI_IMARR *mri_read_many_nsize( int nf , char * fn[] )
 {
@@ -1240,7 +1240,7 @@ MRI_IMARR *mri_read_many_nsize( int nf , char * fn[] )
 
 /*------------------------------------------------------------------------*/
 
-/*! \brief Set up MCW_SIZE_# database for input.
+/*! Set up MCW_SIZE_# database for input.
 
     This implements the facility for the user to define MCW_IMSIZE_1
     (or AFNI_IMSIZE_1) et cetera, for pre-defining a relationship between
@@ -1311,7 +1311,7 @@ void init_MCW_sizes(void)
 }
 
 /*------------------------------------------------------------------------------*/
-/*! \brief My version of strdup(), which won't fail if the input is NULL. */
+/*! My version of strdup(), which won't fail if the input is NULL. */
 
 char * my_strdup( char * str )
 {
@@ -1324,7 +1324,7 @@ char * my_strdup( char * str )
 
 /*------------------------------------------------------------------------------*/
 
-/*! \brief Check if a filesize fits an MCW_IMSIZE setup.
+/*! Check if a filesize fits an MCW_IMSIZE setup.
 
     \param fname = Filename
     \return A new "filename" with 3D header attached if it fits.

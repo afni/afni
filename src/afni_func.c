@@ -1704,7 +1704,7 @@ char * AFNI_controller_label( Three_D_View * im3d )
    int ic ;
 
    ic = AFNI_controller_index( im3d ) ;
-   if( ic < 0 || ic > 26 ) strcpy(str," ") ;
+   if( ic < 0 || ic > 26 ) strcpy (str,"   ") ;
    else                    sprintf(str,"[%c] ",clabel[ic]) ;
    return str ;
 }

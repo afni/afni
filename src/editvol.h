@@ -42,7 +42,7 @@
 
 #define THREE_TO_IJK(i,j,k,nx,nxy) ((i)+(j)*(nx)+(k)*(nxy))
 
-/*! \brief Struct to store a cluster.
+/*! Struct to store a cluster.
 
     The cluster structure was modified to store the individual coordinate
     indices for each voxel.  This avoids ambiguity in voxel identification.
