@@ -85,7 +85,7 @@ ENTRY("AFNI_splashdown") ;
       SPLASH_popup_image(handle,NULL); myXtFree(handle) ; /* get rid of window */
    }
    mri_free(imspl) ; imspl = NULL ;
-   do_write = ( (lrand48() >> 8) % 8 == 0 ) ? 2 : 1 ;
+   do_write = ( (lrand48() >> 8) % 3 == 0 ) ? 2 : 1 ;
    EXRETURN ;
 }
 

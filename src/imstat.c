@@ -13,9 +13,6 @@ int main( int argc , char *argv[] )
    MRI_IMARR *imar ;
    int kim ;
 
-   static char * dtype[] = {
-      "byte" , "short" , "int" , "float" , "double" , "complex" } ;
-
    int ii , npix , imk , nzero ;
 
    float im_min,im_min2 , im_max,im_max2 , im_ave , im_std ;
@@ -121,7 +118,7 @@ int main( int argc , char *argv[] )
       if( ! doquiet ){
          if( dolabel){
             printf( "\nfile = %s  nx = %d  ny = %d  data type = %s\n" ,
-                    flim->name , flim->nx , flim->ny , dtype[imk] ) ;
+                    flim->name , flim->nx , flim->ny , MRI_TYPE_name[imk] ) ;
             printf( "min =%11.4g  next min=%11.4g  max=%11.4g  next max=%11.4g\n" ,
                     im_min,im_min2 , im_max,im_max2 ) ;
             printf( "mean=%11.4g  std.dev.=%11.4g  number of zero pixels = %d\n" ,
