@@ -2528,15 +2528,6 @@ void NI_typedef( char *name , char *type , char *dimen )
 }
 
 /*--------------------------------------------------------------------*/
-
-#define NUM_NIB 10
-static char *niblist[NUM_NIB] = {
-      "ni_f1"    , "ni_f2"    , "ni_f3" , "ni_f4" ,
-      "ni_i1"    , "ni_i2"    , "ni_i3" , "ni_i4" ,
-      "ni_irgb"  , "ni_irgba"
-} ;
-
-/*--------------------------------------------------------------------*/
 /*! Add attributes to a header_stuff struct if it has a special name.
 ----------------------------------------------------------------------*/
 
@@ -2565,6 +2556,8 @@ static void enhance_header_stuff( header_stuff *hs )
 
       NI_typedef( "ni_irgb"  , "i,r" , NULL ) ;
       NI_typedef( "ni_irgba" , "i,R" , NULL ) ;
+
+      NI_typedef( "ni_string", "S"   , NULL ) ;  /* 03 Jun 2002 */
 
       typedef_nib = 1 ;  /* block further names starting with "ni_" */
    }
@@ -2804,10 +2797,6 @@ fprintf(stderr,"ni_dimen: nd=%d qq=%d\n",nd,qq) ;
 /*-------------------------------------------------------------------------*/
 /*! Make an empty group element from parsed header info.
 
-    To be consistent with the NIML spec, the header name should
-    be "ni_group", but nothing is done to check for this.  Also, the
-    header should not be empty, but this is not checked at all.
-
     The attributes in the header are assigned to the group, and the group
     parts are initialized to nothing.
 ---------------------------------------------------------------------------*/
@@ -2839,6 +2828,7 @@ static NI_group * make_empty_group_element( header_stuff *hs )
    ngr->part_num = 0 ;
    ngr->part_typ = NULL ;
    ngr->part     = NULL ;
+   ngr->name     = NULL ;  /* 03 Jun 2002 */
 
    return ngr ;
 }
@@ -3044,6 +3034,7 @@ void NI_free_element( void *nini )
 
       NI_free( ngr->part_typ ) ;
       NI_free( ngr->part ) ;
+      NI_free( ngr->name ) ;    /* 03 Jun 2002 */
       NI_free( ngr ) ;
    }
 
@@ -3606,15 +3597,19 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
    if( tt == NI_ELEMENT_TYPE ){
       NI_element *nel = (NI_element *) nini ;
 
+      /* see if name is already in element header */
+
       for( nn=0 ; nn < nel->attr_num ; nn++ )
          if( strcmp(nel->attr_lhs[nn],attname) == 0 ) break ;
+
+      /* if not, then add a header attribute */
 
       if( nn == nel->attr_num ){
         nel->attr_lhs = NI_realloc( nel->attr_lhs , sizeof(char *)*(nn+1) ) ;
         nel->attr_rhs = NI_realloc( nel->attr_rhs , sizeof(char *)*(nn+1) ) ;
         nel->attr_num = nn+1 ;
       } else {
-        NI_free(nel->attr_lhs[nn]) ;
+        NI_free(nel->attr_lhs[nn]) ;  /* free old attribute */
         NI_free(nel->attr_rhs[nn]) ;
       }
 
@@ -3811,6 +3806,7 @@ NI_group * NI_new_group_element(void)
    ngr->part_num = 0 ;
    ngr->part_typ = NULL ;
    ngr->part     = NULL ;
+   ngr->name     = NULL ;  /* 03 Jun 2002 */
 
    return ngr ;
 }
@@ -3832,6 +3828,18 @@ void NI_add_to_group( NI_group *ngr , void *nini )
    ngr->part         = NI_realloc( ngr->part , sizeof(void *)*(nn+1) ) ;
    ngr->part[nn]     = nini ;
    ngr->part_num     = nn+1 ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Rename a group element from the default - 03 Jun 2002.
+-------------------------------------------------------------------------*/
+
+void NI_rename_group( NI_group *ngr , char *nam )
+{
+   if( ngr == NULL || ngr->type != NI_GROUP_TYPE ) return ;
+   NI_free( ngr->name ) ;
+   ngr->name = NI_strdup(nam) ;
    return ;
 }
 
@@ -6315,7 +6323,7 @@ fprintf(stderr,"NIML: NI_read_element found '<'\n") ;
 
       ngr = make_empty_group_element( hs ) ;
       destroy_header_stuff( hs ) ;
-      if( empty ) return ngr ;  /* should not happen */
+      if( empty ) return ngr ;  /* 03 Jun 2002: empty group is legal */
 
       /* we now have to read the elements within the group */
 
@@ -6349,7 +6357,7 @@ fprintf(stderr,"NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
 
          /* not a trailer, so try to make an element out of it */
 
-         nini = NI_read_element( ns , mleft ) ;
+         nini = NI_read_element( ns , mleft ) ;   /* recursion! */
          if( nini != NULL ){
             NI_add_to_group( ngr , nini ) ;  /* this is good */
             num_restart = 0 ;
