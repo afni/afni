@@ -2710,13 +2710,20 @@ ENTRY("AFNI_modify_viewing") ;
 
    /* transform current POV to new indices */
 
-   LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
+   if( im3d->type == AFNI_3DDATA_VIEW ){            /* 19 Oct 1999 */
 
-   fv = THD_dicomm_to_3dmm(
-          im3d->anat_now ,
-          TEMP_FVEC3(im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk) ) ;
+      LOAD_ANAT_VIEW(im3d) ;  /* 02 Nov 1996 */
 
-   iv = THD_3dmm_to_3dind( im3d->anat_now , fv ) ;
+      fv = THD_dicomm_to_3dmm(
+             im3d->anat_now ,
+             TEMP_FVEC3(im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk) ) ;
+
+      iv = THD_3dmm_to_3dind( im3d->anat_now , fv ) ;
+
+   } else {
+
+      iv = TEMP_IVEC3( im3d->vinfo->i1 , im3d->vinfo->j2 , im3d->vinfo->k3 ) ;
+   }
 
    /* and redisplay the images */
 

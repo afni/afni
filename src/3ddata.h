@@ -1706,7 +1706,7 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 
 #define DSET_GRAPHABLE(ds) ( ISVALID_3DIM_DATASET(ds) && DSET_INMEMORY(ds)      && \
                              (ds)->wod_flag == False  && DSET_NUM_TIMES(ds) > 1 && \
-                             DSET_ONDISK(ds) )
+                             ( DSET_ONDISK(ds) || DSET_LOADED(ds) && DSET_LOCKED(ds) ) )
 
 #define DSET_TIMESTEP(ds)        ( ((ds)->taxis == NULL) ? 0.0 : (ds)->taxis->ttdel )
 #define DSET_TR                  DSET_TIMESTEP

@@ -188,6 +188,7 @@ void AFNI_syntax(void)
    printf(
      "\n"
      "Usage 2: read in images for 'quick and dirty' viewing\n"
+     "(Many advanced features of AFNI will be disabled.)\n"
      "\n"
      "   afni -im [options] im1 im2 im3 ...\n"
      "\n"
@@ -214,6 +215,25 @@ void AFNI_syntax(void)
      "   -datum type  Tells afni to convert input images into the type given:\n"
      "                  byte, short, float, complex are the legal types.\n"
      " The image files (im1 ...) are the same formats as accepted by to3d.\n"
+     "\n"
+     " New image display options (alternatives to -im) [19 Oct 1999]:\n"
+     "   -tim         These options tell AFNI to arrange the input images\n"
+     "   -tim:<nt>    into a internal time-dependent dataset.  Suppose that\n"
+     "   -zim:<nz>    there are N input 2D slices on the command line.\n"
+     "              * -tim alone means these are N points in time (1 slice).\n"
+     "              * -tim:<nt> means there are nt points in time (nt is\n"
+     "                  an integer > 1), so there are N/nt slices in space,\n"
+     "                  and the images on the command line are input in\n"
+     "                  time order first (like -time:tz in to3d).\n"
+     "              * -zim:<nz> means there are nz slices in space (nz is\n"
+     "                  an integer > 1), so there are N/nz points in time,\n"
+     "                  and the images on the command line are input in\n"
+     "                  slice order first (like -time:zt in to3d).\n"
+     "\n"
+     " N.B.: You may wish to use the -ignore option to set the number of\n"
+     "       initial points to ignore in the time series graph if you use\n"
+     "       -tim or -zim, since there is no way to change this from\n"
+     "       within an AFNI run (the FIM menus are disabled).\n"
    ) ;
 
    printf(
@@ -333,6 +353,8 @@ ENTRY("AFNI_parse_args") ;
    }
 
    GLOBAL_argopt.left_is_left = ( getenv("AFNI_LEFT_IS_LEFT") != NULL ) ; /* 09 Oct 1998 */
+
+   GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
@@ -660,6 +682,33 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -tim option [19 Oct 1999] -----*/
+
+      if( strncmp(argv[narg],"-tim",4)==0 || strncmp(argv[narg],"-zim",4)==0 ){
+         int ll=strlen(argv[narg]) , nn ;
+
+         GLOBAL_argopt.read_images   = True ;
+         GLOBAL_argopt.read_sessions = False ;
+         GLOBAL_argopt.read_tim      = 1 ;
+
+         if( ll > 5 && argv[narg][4] == ':' ){         /* 20 Oct 1999 */
+            nn = strtol( argv[narg]+5 , NULL , 10 ) ;
+            if( nn > 1 ){
+               GLOBAL_argopt.read_tim = nn ; /* will be nz or nt */
+            } else {
+               fprintf(stderr,"** Error: illegal value in %s\n",argv[narg]);
+               exit(1) ;
+            }
+         }
+
+         /* negate flag for time-order first (-tim) vs z-order first (-zim) */
+
+         if( strncmp(argv[narg],"-tim",4)==0 && GLOBAL_argopt.read_tim > 1 )
+            GLOBAL_argopt.read_tim = - GLOBAL_argopt.read_tim ;
+
+         narg++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -nomall option -----*/
 
       if( strncmp(argv[narg],"-nomall",5) == 0 ){    /* was handled in main() */
@@ -983,6 +1032,8 @@ static Boolean MAIN_workprocess( XtPointer fred )
       /*============================================================================*/
       case 11:{
 
+        int do_images ;                           /* 19 Oct 1999 */
+
         /*-----------------------------------*/
         /*--- Create the first controller ---*/
 
@@ -990,9 +1041,11 @@ static Boolean MAIN_workprocess( XtPointer fred )
 
         MCW_enable_help() ;
 
+        do_images = GLOBAL_argopt.read_images ;
+
         MAIN_im3d = new_AFNI_controller( MAIN_shell , MAIN_dc ,
-                                         GLOBAL_argopt.read_images ? AFNI_IMAGES_VIEW
-                                                                   : AFNI_3DDATA_VIEW ) ;
+                                         do_images ? AFNI_IMAGES_VIEW
+                                                   : AFNI_3DDATA_VIEW ) ;
 
         GLOBAL_library.controllers[0] = MAIN_im3d ;
 
@@ -1527,6 +1580,8 @@ THD_3dim_dataset * AFNI_read_images( int nf , char * fname[] )
    THD_3dim_dataset * dset ;
    int datum = GLOBAL_argopt.datum , dsize ;
 
+   int nvals , nzz , nzin ;  /* 19 Oct 1999 */
+
 ENTRY("AFNI_read_images") ;
 
    /*----- see if there are any images to read! -----*/
@@ -1562,7 +1617,7 @@ ENTRY("AFNI_read_images") ;
    if( ! AFNI_GOOD_DTYPE(datum) )
       FatalError("*** Illegal datum type found ***") ;
 
-   dsize = mri_datum_size( (MRI_TYPE) datum) ;
+   dsize = mri_datum_size( (MRI_TYPE) datum ) ;
    bar   = (char *) malloc( dsize * nx*ny*nz ) ;
    if( bar == NULL ){
       fprintf(stderr,"\n** Can't malloc memory for image input!\a\n") ;
@@ -1634,8 +1689,47 @@ ENTRY("AFNI_read_images") ;
 
    /*** tell the user what all we've read ***/
 
-   sprintf(str,": nx=%d ny=%d nz=%d (%s)",nx,ny,nz,MRI_TYPE_name[datum]) ;
+   sprintf(str,": nx=%d ny=%d nslice=%d (%s)",nx,ny,nz,MRI_TYPE_name[datum]) ;
    REPORT_PROGRESS(str) ;
+
+   /*- 19 Oct 1999: if we are doing a -tim read,
+                    then have to setup the time and z dimensions -*/
+
+   if( GLOBAL_argopt.read_tim != 0 ){
+
+      if( GLOBAL_argopt.read_tim > 0 ){          /* 20 Oct 1999 */
+         nzin  = nzz = GLOBAL_argopt.read_tim ;  /* -zim:nzz */
+         nvals = nz / nzz ;
+
+         if( nvals*nzz != nz )
+            fprintf(stderr,
+                    "\n** Warning: -zim:%d does not evenly divide"
+                    "number of 2D slices read=%d\n",
+                    nzz , nz ) ;
+
+      } else {
+         nvals = - GLOBAL_argopt.read_tim ;      /* -tim:nvals */
+         nzin  = nzz = nz / nvals ;
+
+         if( nvals*nzz != nz )
+            fprintf(stderr,
+                    "\n** Warning: -tim:%d does not evenly divide"
+                    "number of 2D slices read=%d\n",
+                    nvals , nz ) ;
+      }
+
+      if( nvals == 1 ){
+         fprintf(stderr,
+                 "\n** Error: -tim or -zim has only 1 point in time!\n") ;
+         exit(1) ;
+      }
+
+      if( nzz == 1 ) nzz = 2 ;  /* can't have just 1 slice */
+
+   } else {   /* the old code */
+      nvals = 1 ;
+      nzz   = nz ;
+   }
 
    /*--- now create the rest of the data structure, as far as we can ---*/
 
@@ -1661,10 +1755,10 @@ ENTRY("AFNI_read_images") ;
 
    dset->dblk->diskptr->type         = DISKPTR_TYPE ;
    dset->dblk->diskptr->rank         = 3 ;
-   dset->dblk->diskptr->nvals        = 1 ;
+   dset->dblk->diskptr->nvals        = nvals ;  /* modified 19 Oct 1999 */
    dset->dblk->diskptr->dimsizes[0]  = nx ;
    dset->dblk->diskptr->dimsizes[1]  = ny ;
-   dset->dblk->diskptr->dimsizes[2]  = nz ;
+   dset->dblk->diskptr->dimsizes[2]  = nzz ;    /* modified 19 Oct 1999 */
    dset->dblk->diskptr->storage_mode = STORAGE_UNDEFINED ;
    dset->dblk->diskptr->byte_order   = THD_get_write_order() ;  /* 25 April 1998 */
 
@@ -1676,7 +1770,7 @@ ENTRY("AFNI_read_images") ;
    EMPTY_STRING(dset->dblk->diskptr->brick_name) ;
 
    dset->dblk->type        = DATABLOCK_TYPE ;
-   dset->dblk->nvals       = 1 ;
+   dset->dblk->nvals       = nvals ;            /* modified 19 Oct 1999 */
 
    /** here is where we attach "bar" to the dataset **/
 
@@ -1694,7 +1788,41 @@ ENTRY("AFNI_read_images") ;
    dset->keywords             = NULL ;
 
    THD_init_datablock_brick( dset->dblk , datum , NULL ) ;
-   mri_fix_data_pointer( bar , DSET_BRICK(dset,0) ) ;  /* the attachment! */
+
+   if( nvals == 1 ){
+
+      mri_fix_data_pointer( bar , DSET_BRICK(dset,0) ) ;  /* the attachment! */
+
+   } else {   /* 19 Oct 1999: make up a lot of bricks and attach them all */
+              /* 20 Oct 1999: allow for the 3rd dimension as well         */
+
+      int iv , jj , kk ;
+      char * qbar ;
+
+      for( iv=0 ; iv < nvals ; iv++ ){
+         qbar = (char *) malloc( dsize*npix*nzz ) ;  /* space for nzz slices */
+
+         if( GLOBAL_argopt.read_tim > 0 ){
+            for( jj=0 ; jj < nzz ; jj++ ){              /* copy slices */
+               kk = MIN(jj,nzin-1) ;
+               memcpy( qbar + jj*dsize*npix ,
+                       bar + (iv*nzin+kk)*dsize*npix , dsize*npix ) ;
+            }
+         } else {
+            for( jj=0 ; jj < nzz ; jj++ ){              /* copy slices */
+               kk = MIN(jj,nzin-1) ;
+               memcpy( qbar + jj*dsize*npix ,
+                       bar + (kk*nvals+iv)*dsize*npix , dsize*npix ) ;
+            }
+         }
+
+         mri_fix_data_pointer( qbar , DSET_BRICK(dset,iv) ) ;
+      }
+
+      free(bar) ;  /* not needed no more no how */
+
+      EDIT_dset_items( dset , ADN_ntt,nvals , ADN_ttdel,1.0 , ADN_none ) ;
+   }
 
    dset->dblk->natr   = dset->dblk->natr_alloc = 0 ;
    dset->dblk->atr    = NULL ;
@@ -1703,7 +1831,7 @@ ENTRY("AFNI_read_images") ;
    dset->daxes->type  = DATAXES_TYPE ;
    dset->daxes->nxx   = nx ;
    dset->daxes->nyy   = ny ;
-   dset->daxes->nzz   = nz ;
+   dset->daxes->nzz   = nzz ;        /* modified 19 Oct 1999 */
    dset->daxes->xxdel = 1.0 ;        /* arbitary units */
    dset->daxes->yydel = GLOBAL_argopt.dy ;  /* these allow user to alter */
    dset->daxes->zzdel = GLOBAL_argopt.dz ;  /* the images' aspect ratio */
@@ -3342,6 +3470,10 @@ ENTRY("AFNI_view_xyz_CB") ;
        drive_MCW_grapher( gr, graDR_setignore, (XtPointer) im3d->fimdata->init_ignore );
        drive_MCW_grapher( gr, graDR_polort, (XtPointer) im3d->fimdata->polort );
        drive_MCW_grapher( gr, graDR_setindex , (XtPointer) im3d->vinfo->time_index );
+
+       if( im3d->type == AFNI_IMAGES_VIEW )
+          drive_MCW_grapher( gr , graDR_fim_disable , NULL ) ;  /* 19 Oct 1999 */
+
        drive_MCW_grapher( gr , graDR_realize , NULL ) ;
 
        *gnew = gr ;

@@ -266,6 +266,8 @@ static int gr_color_start[NUM_COLOR_ITEMS] = {
   1 , 1 , 1 , 1 , 1
 } ;
 
+static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
+
 #define GRA_COLOR(cd)                                              \
    ( ((cd) == BRIGHTEST_COLOR)  ? (grapher->dc->ovc->ov_brightest)  \
     :((cd) == DARKEST_COLOR  )  ? (grapher->dc->ovc->ov_darkest)   \
@@ -507,6 +509,8 @@ typedef struct {
 
 #define graDR_button2_enable  501  /* Feb 1998 */
 #define graDR_button2_disable 502  /* Feb 1998 */
+
+#define graDR_fim_disable     503  /* Oct 1999 */
 
 /***-----------------------------------------------------------------------***/
 

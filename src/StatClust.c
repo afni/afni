@@ -11,6 +11,10 @@
   Mod:     Replaced C "pow" function, significantly improving execution speed.
   Date:    11 October 1999
 
+  Mod:     Replaced dataset interface code with call to THD_open_dataset.
+           Restructured code for initializing hierarchical clustering.
+  Date:    19 October 1999
+
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -329,7 +333,7 @@ cluster * new_cluster (int index, float * centroid, cluster * head_clust)
 
 /*---------------------------------------------------------------------------*/
 /*
-  Deallocate memory for this cluster.
+  Deallocate memory for this cluster (excluding list of voxels).
 */
 
 void delete_cluster (cluster * clust_ptr)
@@ -345,6 +349,25 @@ void delete_cluster (cluster * clust_ptr)
 	}
 
       free (clust_ptr);
+    }
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Deallocate memory for this cluster.
+
+  Note:  This routine does not actually delete the list of voxels.
+*/
+
+void destroy_cluster (cluster * clust_ptr)
+{
+  if (clust_ptr != NULL)
+    {
+      if (clust_ptr->voxel_ptr != NULL)
+	free (clust_ptr->voxel_ptr);
+  
+      delete_cluster (clust_ptr);
     }
 }
 
@@ -581,25 +604,20 @@ cluster * sort_clusters (cluster * head_clust)
 
 void calc_covariance 
 (
-  THD_3dim_dataset * param_dset,   /* parameters for clustering */
-  int * num_voxels,                /* count of voxels above threshold */
   matrix * s,                /* square root of covariance matrix */
   matrix * sinv              /* inverse of square root of covariance matrix */
 )
 
 {
-  int ts_length;                   /* number of parameter sub-bricks */
-  float * ts_array = NULL;         /* parameter array including threshold */
-  float * par_array = NULL;        /* parameter array without threshold */
-  int ixyz, nxyz;                  /* voxel indices */
-  int ip, jp;                      /* parameter indices */
-  int ok;                          /* Boolean for successful matrix calc. */
+  int ivox;                  /* voxel indices */
+  int ip, jp;                /* parameter indices */
+  int ok;                    /* Boolean for successful matrix calc. */
 
-  vector mean;                /* mean parameter vector */ 
-  matrix covar;               /* variance-covariance matrix */
-  matrix cinv;                /* inverse of covariance matrix */
+  vector mean;               /* mean parameter vector */ 
+  matrix covar;              /* variance-covariance matrix */
+  matrix cinv;               /* inverse of covariance matrix */
 
-  char message[80];           /* error message */
+  char message[80];          /* error message */
 
 
   /*----- Initialize vectors and matrices -----*/
@@ -608,115 +626,67 @@ void calc_covariance
   matrix_initialize (&cinv);
 
 
-  /*----- Initialize local variables -----*/
-  nxyz = param_dset->daxes->nxx * param_dset->daxes->nyy 
-       * param_dset->daxes->nzz;       
-  ts_length = SC_dimension + 1;
-
-
   /*----- Allocate space for mean and covariance matrices -----*/
   vector_create (SC_dimension, &mean);
   matrix_create (SC_dimension, SC_dimension, &covar);
 
 
-  /*----- Set up array to hold vector of parameters -----*/
-  ts_array = (float *) malloc (sizeof(float) * ts_length);
-  MTEST (ts_array);
-  par_array = ts_array + 1;
-
-
-  /*----- Initialize voxel counter -----*/
-  (*num_voxels) = 0;
-
-
-  /*----- Iterate over all voxels -----*/
-  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
-    {
-      /*----- Extract threshold and parameter data for this voxel -----*/
-      extract_ts_array (param_dset, ixyz, ts_array);  
-
-      /*----- Check statistical threshold for this voxel -----*/
-      if (fabs(ts_array[0]) > SC_thr)
-	{
-	  /*----- Count the number of voxels above the threshold -----*/
-	  (*num_voxels)++;
-	  
-	  /*----- Calculate parameter sums and products  -----*/
-	  if (SC_statdist)
-	    {
-	      for (ip = 0;  ip < SC_dimension;  ip++)
-		{
-		  mean.elts[ip] += par_array[ip];
-		  for (jp = 0;  jp < SC_dimension;  jp++)
-		    if ((ip == jp) || (SC_statdist == 2))
-		      covar.elts[ip][jp] += par_array[ip] * par_array[jp];
-		}
-	    }
-	}
-    }
-
-  if (SC_verb) 
-    printf ("Number of voxels above threshold = %d \n", *num_voxels);
- 
- if ((*num_voxels) < 2)  
-    {
-      sprintf (message, "Only %d voxels above threshold.  Cannot continue.",
-	       *num_voxels);
-      SC_error (message);
-    }
-
-
-  if (SC_statdist)
-    {
-      /*----- Calculate the mean parameter vector -----*/
-      for (ip = 0;  ip < SC_dimension;  ip++)
-	mean.elts[ip] = mean.elts[ip] / (*num_voxels);
-      if (SC_verb)  
-	vector_sprint ("Mean parameter vector: ", mean);
-      
-      /*----- Calculate the covariance matrix -----*/
-      for (ip = 0;  ip < SC_dimension;  ip++)
+  /*----- Calculate parameter sums and products  -----*/
+  for (ivox = 0;  ivox < SC_nvox;  ivox++)
+    for (ip = 0;  ip < SC_dimension;  ip++)
+      {
+	mean.elts[ip] += SC_parameters[ip][ivox];
 	for (jp = 0;  jp < SC_dimension;  jp++)
-	  if ((ip == jp) || (SC_statdist == 2)) 
-	    covar.elts[ip][jp] = (covar.elts[ip][jp] 
-	      - (*num_voxels) * mean.elts[ip] * mean.elts[jp])
-	      / ((*num_voxels) - 1);
-      if (SC_verb)
-	matrix_sprint ("Parameter covariance matrix: ", covar);
+	  if ((ip == jp) || (SC_statdist == 2))
+	    covar.elts[ip][jp] += 
+	      SC_parameters[ip][ivox] * SC_parameters[jp][ivox];
+      }
 
-      /*----- Note:  The following sequence of calculations may apppear
-              to be inefficient, but it is necessary in order to generate
-              an error message in the event of perfectly correlated 
-	      input parameters -----*/
 
-      /*----- Calculate inverse of covariance matrix -----*/
-      ok = matrix_inverse (covar, &cinv);
-      if (! ok)  
-	SC_error 
-	  ("Unable to calculate inverse of covariance matrix");
+  /*----- Calculate the mean parameter vector -----*/
+  for (ip = 0;  ip < SC_dimension;  ip++)
+    mean.elts[ip] = mean.elts[ip] / SC_nvox;
+  if (SC_verb)  
+    vector_sprint ("Mean parameter vector: ", mean);
+      
 
-      /*----- Calculate square root of inverse covariance matrix -----*/
-      ok = matrix_sqrt (cinv, sinv);
-      if (! ok)  
-	SC_error 
-	  ("Unable to calculate square root of inverse of covariance matrix");
+  /*----- Calculate the covariance matrix -----*/
+  for (ip = 0;  ip < SC_dimension;  ip++)
+    for (jp = 0;  jp < SC_dimension;  jp++)
+      if ((ip == jp) || (SC_statdist == 2)) 
+	covar.elts[ip][jp] = (covar.elts[ip][jp] 
+			      - SC_nvox * mean.elts[ip] * mean.elts[jp])
+	  / (SC_nvox - 1);
+  if (SC_verb)
+    if (SC_statdist == 1)
+      matrix_sprint ("Parameter variance (diagonal) matrix: ", covar);
+    else
+      matrix_sprint ("Parameter covariance matrix: ", covar);
+
+  /*----- Note:  The following sequence of calculations is necessary 
+    in order to generate an error message in the event of 
+    perfectly correlated input parameters -----*/
+
+  /*----- Calculate inverse of covariance matrix -----*/
+  ok = matrix_inverse (covar, &cinv);
+  if (! ok)  
+    SC_error 
+      ("Unable to calculate inverse of covariance matrix");
   
-      /*----- Calculate square root of covariance matrix -----*/
-      ok = matrix_inverse (*sinv, s);
-      if (! ok)  
-	SC_error 
-	  ("Unable to calculate square root of covariance matrix");
-    }
+  /*----- Calculate square root of inverse covariance matrix -----*/
+  ok = matrix_sqrt (cinv, sinv);
+  if (! ok)  
+    SC_error 
+      ("Unable to calculate square root of inverse of covariance matrix");
   
-  else
-    {
-      matrix_identity (SC_dimension, s);
-      matrix_identity (SC_dimension, sinv);
-    }
+  /*----- Calculate square root of covariance matrix -----*/
+  ok = matrix_inverse (*sinv, s);
+  if (! ok)  
+    SC_error 
+      ("Unable to calculate square root of covariance matrix");
   
 
   /*----- Deallocate memory -----*/
-  free (ts_array);   ts_array = NULL;
   vector_destroy (&mean);
   matrix_destroy (&covar);
   matrix_destroy (&cinv);

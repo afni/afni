@@ -9,7 +9,7 @@ static unsigned char buf[NBUF] ;
 
 int main( int argc , char * argv[] )
 {
-   int iarg , ii , ll , jj , nw , verb=1 , ibot , irep,nrep=NREP ;
+   int iarg , ii,ll,jj , nw , verb=1 , ibot , irep,nrep=NREP , ng=0 ;
    FILE * fp ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -65,7 +65,7 @@ int main( int argc , char * argv[] )
                if( irep == (nrep-1) ){
                   unlink(argv[iarg]) ;
                   if( verb ) fprintf(stderr," -- Removed file %s\n",argv[iarg]) ;
-               }
+               } else if( irep == 0 ) ng++ ;
             } else {
                if( irep == 0 )
                   fprintf(stderr," ** Can't write to file %s\n",argv[iarg]) ;
@@ -76,6 +76,7 @@ int main( int argc , char * argv[] )
          }
       }
       sync() ;
+      if( ng == 0 ) break ;  /* none were 'good' */
    }
 
    exit(0) ;

@@ -3,8 +3,6 @@
   This program performs agglomerative hierarchical clustering of voxels 
   for user specified parameter sub-bricks.
 
-  Note: AFNI dataset and user interface code are adapted from program 3dTcat.c 
-
 
   File:    3dStatClust.c
   Author:  B. Douglas Ward
@@ -12,6 +10,10 @@
 
   Mod:     Replaced C "pow" function, significantly improving execution speed.
   Date:    11 October 1999
+
+  Mod:     Replaced dataset interface code with call to THD_open_dataset.
+           Restructured code for initializing hierarchical clustering.
+  Date:    19 October 1999
 
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
@@ -22,7 +24,9 @@
 
 #define PROGRAM_NAME "3dStatClust"                   /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "11 October 1999"           /* date of last program mod */
+#define PROGRAM_DATE "19 October 1999"           /* date of last program mod */
+
+#define MAX_PARAMETERS 100
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -48,50 +52,58 @@ if((ptr)==NULL) \
 ( printf ("Cannot allocate memory \n"),  exit(1) )
      
 
+/*---------------------------------------------------------------------------*/
+
+/** macro to open a dataset and make it ready for processing **/
+
+#define DOPEN(ds,name)                                                        \
+do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
+       if( !ISVALID_3DIM_DATASET((ds)) ){                                     \
+          fprintf(stderr,"*** Can't open dataset: %s\n",(name)) ; exit(1) ; } \
+       THD_load_datablock( (ds)->dblk , NULL ) ;                              \
+       pv = DSET_PRINCIPAL_VALUE((ds)) ;                                      \
+       if( DSET_ARRAY((ds),pv) == NULL ){                                     \
+          fprintf(stderr,"*** Can't access data: %s\n",(name)) ; exit(1); }   \
+       if( DSET_BRICK_TYPE((ds),pv) == MRI_complex ){                         \
+          fprintf(stderr,"*** Can't use complex data: %s\n",(name)) ; exit(1);        }     \
+       break ; } while (0)
+
+
+/*---------------------------------------------------------------------------*/
+
+/** macro to return pointer to correct location in brick for current processing **/
+
+#define SUB_POINTER(ds,vv,ind,ptr)                                            \
+   do{ switch( DSET_BRICK_TYPE((ds),(vv)) ){                                  \
+         default: fprintf(stderr,"\n*** Illegal datum! ***\n");exit(1);       \
+            case MRI_short:{ short * fim = (short *) DSET_ARRAY((ds),(vv)) ;  \
+                            (ptr) = (void *)( fim + (ind) ) ;                 \
+            } break ;                                                         \
+            case MRI_byte:{ byte * fim = (byte *) DSET_ARRAY((ds),(vv)) ;     \
+                            (ptr) = (void *)( fim + (ind) ) ;                 \
+            } break ;                                                         \
+            case MRI_float:{ float * fim = (float *) DSET_ARRAY((ds),(vv)) ;  \
+                             (ptr) = (void *)( fim + (ind) ) ;                \
+            } break ; } break ; } while(0)
+
+
 /*-------------------------- global data ------------------------------------*/
 
-static THD_3dim_dataset_array * SC_dsar     = NULL; /* input datasets */
-static XtPointer_array        * SC_subv     = NULL; /* sub-brick selectors */
 static int                      SC_nvox     = -1;   /* # voxels */
 static int                      SC_verb     = 0;    /* verbose? */
-static int                      SC_type     = -1;   /* dataset type */
 static float                    SC_thr      = -1.0; /* threshold */
 static int                      SC_nclust   = 10;   /* max. output clusters */
 static int                      SC_statdist = 0;    /* dist. calc. method */
 static int                      SC_dimension= 0;    /* number of parameters */
 
+static char SC_thr_filename[THD_MAX_NAME]    = "";
 static char SC_output_prefix[THD_MAX_PREFIX] = "SC" ;
 static char SC_session[THD_MAX_NAME]         = "./"   ;
 
-static char * commandline = NULL ;         /* command line for history notes */
+static int * SC_voxels = NULL;           /* indices for voxels above thr. */
+static float ** SC_parameters = NULL;    /* parameters for voxels above thr. */
 
-/* macros to get
-   DSUB  = a particular input dataset
-   NSUBV = the number of sub-bricks selected from a dataset
-   SUBV  = a particular sub-brick selected from a dataset   */
-
-#define DSUB(id)    DSET_IN_3DARR(SC_dsar,(id))
-#define NSUBV(id)   ( ((int *)SC_subv->ar[(id)])[0]      )
-#define SUBV(id,jj) ( ((int *)SC_subv->ar[(id)])[(jj)+1] )
-
-/*--------------------------- prototypes ------------------------------------*/
-
-void SC_read_opts( int , char ** ) ;
-void SC_Syntax(void) ;
-int * SC_get_subv( int , char * ) ;
-void SC_error (char * message);
-
-/*---------------------------------------------------------------------------*/
-/*
-  Get the time series for one voxel from the AFNI 3d+time data set.
-*/
-
-void extract_ts_array 
-(
-  THD_3dim_dataset * dset_time,      /* input 3d+time dataset */
-  int iv,                            /* get time series for this voxel */
-  float * ts_array                   /* time series data for voxel #iv */
-);
+static char * commandline = NULL ;       /* command line for history notes */
 
 
 /*---------------------------------------------------------------------------*/
@@ -117,12 +129,60 @@ void SC_error (char * message)
 
 /*---------------------------------------------------------------------------*/
 /*
-   Read the arguments, load the global variables
-
-   This routine was adapted from: TCAT_read_opts
+  Display help file.
 */
 
-void SC_read_opts( int argc , char * argv[] )
+void SC_Syntax(void)
+{
+   printf(
+    "Perform agglomerative hierarchical clustering for user specified \n"
+    "parameter sub-bricks, for all voxels whose threshold statistic   \n"
+    "is above a user specified value.\n"
+    "\nUsage: 3dStatClust options datasets \n"
+    "where the options are:\n"
+   ) ;
+
+   printf(
+    "-prefix pname    = Use 'pname' for the output dataset prefix name.\n"
+    "  OR                 [default='SC']\n"
+    "-output pname\n"
+    "\n"
+    "-session dir     = Use 'dir' for the output dataset session directory.\n"
+    "                     [default='./'=current working directory]\n"
+    "-verb            = Print out verbose output as the program proceeds.\n"
+    "\n"
+    "Options for calculating distance between parameter vectors: \n"
+    "   -dist_euc        = Calculate Euclidean distance between parameters \n"
+    "   -dist_ind        = Statistical distance for independent parameters \n"
+    "   -dist_cor        = Statistical distance for correlated parameters \n"
+    "The default option is:  Euclidean distance. \n"
+    "\n"
+    "-thresh t tname  = Use threshold statistic from file tname. \n"
+    "                   Only voxels whose threshold statistic is greater \n"
+    "                   than t in abolute value will be considered. \n"
+    "                     [If file tname contains more than 1 sub-brick, \n"
+    "                     the threshold stat. sub-brick must be specified!]\n"
+    "-nclust n        = This specifies the maximum number of clusters for \n"
+    "                   output (= number of sub-bricks in output dataset).\n"
+    "\n"
+    "Command line arguments after the above are taken as parameter datasets.\n"
+    "\n"
+   ) ;
+
+   printf (MASTER_HELP_STRING);
+
+   exit(0) ;
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+   Read the arguments, load the global variables
+
+*/
+
+int SC_read_opts( int argc , char * argv[] )
 {
    int nopt = 1 , ii ;
    char dname[THD_MAX_NAME] ;
@@ -133,12 +193,8 @@ void SC_read_opts( int argc , char * argv[] )
    char * str;
    int ok, ilen, nlen , max_nsub=0 ;
 
-   int is_thr = 0;          /* flag for threshold sub-brick */
    char message[80];        /* error message */
 
-
-   INIT_3DARR(SC_dsar) ;  /* array of datasets */
-   INIT_XTARR(SC_subv) ;  /* array of sub-brick selector arrays */
 
    while( nopt < argc ){
 
@@ -224,554 +280,203 @@ void SC_read_opts( int argc , char * argv[] )
             SC_error (" Require thr >= 0.0 ");
          }
 	 SC_thr = fval;
-	 is_thr = 1;
 	 nopt++;
 
-	 /*----- Note: no "continue" statement here.  File name will now
-	   be processed as an input dataset -----*/
+	 strcpy (SC_thr_filename, argv[nopt]);
+	 nopt++;
+	 continue;
       }
 
 
+      /*----- Invalid option -----*/
       if( argv[nopt][0] == '-' ){
-         sprintf (message, " Unknown option: %s ", argv[nopt]);
-	 SC_error (message);
-      }
-
-      /**** read dataset ****/
-
-      if (SC_thr < 0.0){
-         SC_error ("Must specify threshold data before parameter data");
+	sprintf (message, " Unknown option: %s ", argv[nopt]);
+	SC_error (message);
       }
 
 
-      cpt = strstr(argv[nopt],"[") ;  /* look for the sub-brick selector */
-
-      if( cpt == NULL ){              /* no selector */
-         strcpy(dname,argv[nopt]) ;
-         subv[0] = '\0' ;
-      } else if( cpt == argv[nopt] ){ /* can't be at start!*/
-         fprintf(stderr," Illegal dataset specifier: %s\n",argv[nopt]) ;
-         exit(1) ;
-      } else {                        /* found selector */
-         ii = cpt - argv[nopt] ;
-         memcpy(dname,argv[nopt],ii) ; dname[ii] = '\0' ;
-         strcpy(subv,cpt) ;
-      }
-      nopt++ ;
-
-      dset = THD_open_one_dataset( dname ) ;
-      if( dset == NULL ){
-         sprintf (message, " Can't open dataset %s ", dname);
-	 SC_error (message);
-      }
-      THD_force_malloc_type( dset->dblk , DATABLOCK_MEM_MALLOC ) ;
-
-      if( SC_type < 0 ) SC_type = dset->type ;
-
-      /* check if voxel counts match */
-
-      ii = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ;
-      if( SC_nvox < 0 ){
-         SC_nvox = ii ;
-      } else if( ii != SC_nvox ){
-         sprintf (message ," Dataset %s differs in size from others",dname);
-         SC_error (message);
-      }
-      ADDTO_3DARR(SC_dsar,dset) ;  /* list of datasets */
-
-      /* process the sub-brick selector string,
-         returning an array of int with
-           svar[0]   = # of sub-bricks,
-           svar[j+1] = index of sub-brick #j for j=0..svar[0] */
-
-      svar = SC_get_subv( DSET_NVALS(dset) , subv ) ;
-      if( svar == NULL || svar[0] <= 0 ){
-         sprintf(message, " Can't decipher index codes from %s%s ",
-		 dname,subv) ;
-         SC_error (message);
-      }
-      if( is_thr && svar[0] != 1 ){
-         SC_error (" Must specify single sub-brick for threshold data ");
-      }
-      ADDTO_XTARR(SC_subv,svar) ;  /* list of sub-brick selectors */
-
-      max_nsub = MAX( max_nsub , svar[0] ) ;
-
-      is_thr = 0;  /* Reset threshold sub-brick flag */
+      /*----- Remaining inputs should be parameter datasets -----*/
+      break;
 
 
    }  /* end of loop over command line arguments */
 
 
-   return ;
+   return (nopt) ;
 }
 
 
 /*---------------------------------------------------------------------------*/
 /*
-  Decode a string like [1..3,5..9(2)] into an array of integers.
-
-  This routine was adapted from: TCAT_get_subv
-*/
-
-int * SC_get_subv( int nvals , char * str )
-{
-   int * subv = NULL ;
-   int ii , ipos , nout , slen ;
-   int ibot,itop,istep , nused ;
-   char * cpt ;
-
-   /* Meaningless input? */
-
-   if( nvals < 1 ) return NULL ;
-
-   /* No selection list ==> select it all */
-
-   if( str == NULL || str[0] == '\0' ){
-      subv = (int *) XtMalloc( sizeof(int) * (nvals+1) ) ;
-      subv[0] = nvals ;
-      for( ii=0 ; ii < nvals ; ii++ ) subv[ii+1] = ii ;
-      return subv ;
-   }
-
-   /* skip initial '[' */
-
-   subv    = (int *) XtMalloc( sizeof(int) * 2 ) ;
-   subv[0] = nout = 0 ;
-
-   ipos = 0 ;
-   if( str[ipos] == '[' ) ipos++ ;
-
-   /*** loop through each sub-selector until end of input ***/
-
-   slen = strlen(str) ;
-   while( ipos < slen && str[ipos] != ']' ){
-
-      /** get starting value **/
-
-      if( str[ipos] == '$' ){  /* special case */
-         ibot = nvals-1 ; ipos++ ;
-      } else {                 /* decode an integer */
-         ibot = strtol( str+ipos , &cpt , 10 ) ;
-         if( ibot < 0 ){ myXtFree(subv) ; return NULL ; }
-         if( ibot >= nvals ) ibot = nvals-1 ;
-         nused = (cpt-(str+ipos)) ;
-         if( ibot == 0 && nused == 0 ){ myXtFree(subv) ; return NULL ; }
-         ipos += nused ;
-      }
-
-      /** if that's it for this sub-selector, add one value to list **/
-
-      if( str[ipos] == ',' || str[ipos] == '\0' || str[ipos] == ']' ){
-         nout++ ;
-         subv = (int *) XtRealloc( (char *)subv , sizeof(int) * (nout+1) ) ;
-         subv[0]    = nout ;
-         subv[nout] = ibot ;
-         ipos++ ; continue ;  /* re-start loop at next sub-selector */
-      }
-
-      /** otherwise, must have '..' or '-' as next inputs **/
-
-      if( str[ipos] == '-' ){
-         ipos++ ;
-      } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
-         ipos++ ; ipos++ ;
-      } else {
-         myXtFree(subv) ; return NULL ;
-      }
-
-      /** get ending value for loop now **/
-
-      if( str[ipos] == '$' ){  /* special case */
-         itop = nvals-1 ; ipos++ ;
-      } else {                 /* decode an integer */
-         itop = strtol( str+ipos , &cpt , 10 ) ;
-         if( itop < 0 ){ myXtFree(subv) ; return NULL ; }
-         if( itop >= nvals ) itop = nvals-1 ;
-         nused = (cpt-(str+ipos)) ;
-         if( itop == 0 && nused == 0 ){ myXtFree(subv) ; return NULL ; }
-         ipos += nused ;
-      }
-
-      /** set default loop step **/
-
-      istep = (ibot <= itop) ? 1 : -1 ;
-
-      /** check if we have a non-default loop step **/
-
-      if( str[ipos] == '(' ){  /* decode an integer */
-         ipos++ ;
-         istep = strtol( str+ipos , &cpt , 10 ) ;
-         if( istep == 0 ){ myXtFree(subv) ; return NULL ; }
-         nused = (cpt-(str+ipos)) ;
-         ipos += nused ;
-         if( str[ipos] == ')' ) ipos++ ;
-      }
-
-      /** add values to output **/
-
-      for( ii=ibot ; (ii-itop)*istep <= 0 ; ii += istep ){
-         nout++ ;
-         subv = (int *) XtRealloc( (char *)subv , sizeof(int) * (nout+1) ) ;
-         subv[0]    = nout ;
-         subv[nout] = ii ;
-      }
-
-      /** check if we have a comma to skip over **/
-
-      if( str[ipos] == ',' ) ipos++ ;
-
-   }  /* end of loop through selector string */
-
-   return subv ;
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Display help file.
-
-  This routine was adapted from: TCAT_Syntax
-*/
-
-void SC_Syntax(void)
-{
-   printf(
-    "Perform agglomerative hierarchical clustering for user specified \n"
-    "parameter sub-bricks, for all voxels whose threshold statistic   \n"
-    "is above a user specified value.\n"
-    "\nUsage: 3dStatClust options datasets \n"
-    "where the options are:\n"
-   ) ;
-
-   printf(
-    "-prefix pname    = Use 'pname' for the output dataset prefix name.\n"
-    "  OR                 [default='SC']\n"
-    "-output pname\n"
-    "\n"
-    "-session dir     = Use 'dir' for the output dataset session directory.\n"
-    "                     [default='./'=current working directory]\n"
-    "-verb            = Print out verbose output as the program proceeds.\n"
-    "\n"
-    "Options for calculating distance between parameter vectors: \n"
-    "   -dist_euc        = Calculate Euclidean distance between parameters \n"
-    "   -dist_ind        = Statistical distance for independent parameters \n"
-    "   -dist_cor        = Statistical distance for correlated parameters \n"
-    "The default option is:  Euclidean distance. \n"
-    "\n"
-    "-thresh t tname  = Use threshold statistic from file tname. \n"
-    "                   Only voxels whose threshold statistic is greater \n"
-    "                   than t in abolute value will be considered. \n"
-    "                     [If file tname contains more than 1 sub-brick, \n"
-    "                     the threshold stat. sub-brick must be specified!]\n"
-    "-nclust n        = This specifies the maximum number of clusters for \n"
-    "                   output (= number of sub-bricks in output dataset).\n"
-    "\n"
-    "Command line arguments after the above are taken as parameter datasets.\n"
-    "A dataset is specified using one of these forms:\n"
-    "   'prefix+view', 'prefix+view.HEAD', or 'prefix+view.BRIK'.\n"
-    "\n"
-    "SUB-BRICK SELECTION:\n"
-    "You can also add a sub-brick selection list after the end of the\n"
-    "dataset name.  This allows only a subset of the sub-bricks to be\n"
-    "used for clustering (by default, all of the input dataset sub-bricks\n"
-    "are used for clustering).  A sub-brick selection list looks like\n"
-    "one of the following forms:\n"
-    "  fred+orig[5]                     ==> use only sub-brick #5\n"
-    "  fred+orig[5,9,12]                ==> use #5, #9, and #12\n"
-    "  fred+orig[5..8]     or [5-8]     ==> use #5, #6, #7, and #8\n"
-    "  fred+orig[5..13(2)] or [5-13(2)] ==> use #5, #7, #9, #11, and #13\n"
-    "Sub-brick indexes start at 0.  You can use the character '$'\n"
-    "to indicate the last sub-brick in a dataset; for example, you\n"
-    "can select every third sub-brick by using the selection list\n"
-    "  fred+orig[0..$(3)]\n"
-    "\n"
-    "NOTES:\n"
-    "* The '$', '(', ')', '[', and ']' characters are special to\n"
-    "  the shell, so you will have to escape them.  This is most easily\n"
-    "  done by putting the entire dataset plus selection list inside\n"
-    "  single quotes, as in 'fred+orig[5..7,9]'.\n"
-    "\n"
-   ) ;
-
-   exit(0) ;
-}
-
-/*-------------------------------------------------------------------------*/
-/*
-  Routine to initialize the program, get all operator inputs, 
-  and assemble the parameter sub-bricks into one temporary dataset.
-
-  The first sub-brick will contain the threshold statistics.
-  The following sub-bricks will contain the parameters for clustering.
-
-  This routine was adapted from: 3dTcat main routine
-
-  Note:  Some of the code herein is superfluous.  However, since this routine
-  is used only for creation of a temporary dataset, the vestigial code
-  has been retained.
-
+  Routine to initialize the program: get all operator inputs; get indices
+  for voxels above threshold; get parameter vectors for all voxels above
+  threshold.
 */
 
 THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
 {
-   int ninp , ids , nv , iv,jv,kv , ivout , new_nvals , ivbot,ivtop ;
-   THD_3dim_dataset * new_dset=NULL , * dset ;
-   char buf[256] ;
-   char message[80];        /* error message */
+  const int MIN_NVOX = 10;    /* minimum number of voxels above threshold */
+
+  THD_3dim_dataset * thr_dset=NULL;     /* threshold dataset */
+  THD_3dim_dataset * param_dset=NULL;   /* parameter dataset(s) */
+
+  int nx, ny, nz;          /* dataset dimensions in voxels */
+  int iv;                  /* index number of sub-brick */
+  void * vfim = NULL;      /* sub-brick data pointer */
+  float * ffim = NULL;     /* sub-brick data in floating point format */
+  int ivox, nvox, icount;  /* voxel indices */
+  int nopt;                /* points to current input option */
+  int ibrick, nbricks;     /* sub-brick indices */
+  char message[80];        /* error message */
 
 
   /*----- Save command line for history notes -----*/
   commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
 
 
-   /*** read input options ***/
-
-   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) SC_Syntax() ;
-
-   SC_read_opts( argc , argv ) ;
-
-   /*** create new dataset (empty) ***/
-
-   ninp = SC_dsar->num ;
-   if( ninp < 2 ){
-      SC_error ("No parameter datasets? ");
-   }
-
-   new_nvals = 0 ;
-   for( ids=0 ; ids < ninp ; ids++ ) new_nvals += NSUBV(ids) ;
-
-   if( new_nvals < 2 ){
-      SC_error ("No parameter sub-bricks? ");
-   }
+  /*----- Read input options -----*/
+  if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) SC_Syntax() ;
+  nopt = SC_read_opts( argc , argv ) ;
 
 
-   /** find 1st dataset that is time dependent **/
+  /*----- Open the threshold dataset -----*/
+  if (SC_verb)  printf ("Reading threshold dataset: %s \n", SC_thr_filename);
+  DOPEN (thr_dset, SC_thr_filename);
 
-   for( ids=0 ; ids < ninp ; ids++ ){
-      dset = DSUB(ids) ;
-      if( DSET_TIMESTEP(dset) > 0.0 ) break ;
-   }
-   if( ids == ninp ) dset = DSUB(0) ;
-
-   new_dset = EDIT_empty_copy( dset ) ; /* make a copy of its header */
-
-   tross_Make_History( PROGRAM_NAME , argc,argv , new_dset ) ;
-
-   /* modify its header */
-
-   EDIT_dset_items( new_dset ,
-                      ADN_prefix        , SC_output_prefix ,
-                      ADN_directory_name, SC_session ,
-                      ADN_type          , SC_type ,
-                      ADN_func_type     , ISANATTYPE(SC_type) ? ANAT_EPI_TYPE
-                                                                : FUNC_FIM_TYPE ,
-                      ADN_ntt           , new_nvals ,  /* both ntt and nvals */
-                      ADN_nvals         , new_nvals ,  /* must be altered    */
-                    ADN_none ) ;
-
-   /* check if we have a valid time axis; if not, make one up */
-
-   if( DSET_TIMESTEP(new_dset) <= 0.0 ){
-      float TR = 1.0 ;
-      float torg = 0.0 , tdur = 0.0 ;
-      int tunits = UNITS_SEC_TYPE ;
-
-#if 0
-      for( ids=0 ; ids < ninp ; ids++ ){
-         dset = DSUB(ids) ;
-         if( DSET_TIMESTEP(dset) > 0.0 ){
-            TR   = DSET_TIMESTEP(dset)   ; tunits = DSET_TIMEUNITS(dset) ;
-            torg = DSET_TIMEORIGIN(dset) ; tdur   = DSET_TIMEDURATION(dset) ;
-            break ;
-         }
-      }
-#endif
-
-      EDIT_dset_items( new_dset ,
-                          ADN_tunits , tunits ,
-                          ADN_ttdel  , TR ,
-                          ADN_ttorg  , torg ,
-                          ADN_ttdur  , tdur ,
-                       ADN_none ) ;
-   }
-
-   /* can't re-write existing dataset */
-
-   if( THD_is_file(DSET_HEADNAME(new_dset)) ){
-     sprintf(message," File %s already exists! ",
-	     DSET_HEADNAME(new_dset) ) ;
-     SC_error (message);
-   }
-
-   THD_force_malloc_type( new_dset->dblk , DATABLOCK_MEM_MALLOC ) ;
-
-
-   /*** loop over input datasets ***/
-
-   if( ninp > 1 ) myXtFree( new_dset->keywords ) ;
-
-   ivout = 0 ;
-   for( ids=0 ; ids < ninp ; ids++ ){
-      dset = DSUB(ids) ;
-      nv   = NSUBV(ids) ;
-
-      if( SC_verb ) printf("Loading %s\n",DSET_FILECODE(dset)) ;
-      DSET_load(dset) ;
-      if( ! DSET_LOADED(dset) ){
-	fprintf(stderr," Fatal error: can't load data from %s\n",
-		DSET_FILECODE(dset)) ;
-	exit(1) ;
-      }
-
-      /** loop over sub-bricks to output **/
-
-      ivbot = ivout ;                       /* save this for later */
-      for( iv=0 ; iv < nv ; iv++ ){
-         jv = SUBV(ids,iv) ;                /* which sub-brick to use */
-
-	 EDIT_substitute_brick( new_dset , ivout ,
-				DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
-
-	 /*----- If this sub-brick is from a bucket dataset,
-	   preserve the label for this sub-brick -----*/
-	 
-	 if( ISBUCKET(dset) )
-	   sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
-	 else
-	   sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
-	 EDIT_dset_items( new_dset, ADN_brick_label_one+ivout, buf, ADN_none );
-	 
-	 sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;
-	 EDIT_dset_items(
-			 new_dset, ADN_brick_keywords_replace_one+ivout, buf, ADN_none ) ;
-	 
-	 EDIT_dset_items(
-			 new_dset ,
-			 ADN_brick_fac_one            +ivout, DSET_BRICK_FACTOR(dset,jv),
-			 ADN_brick_keywords_append_one+ivout, DSET_BRICK_KEYWORDS(dset,jv),
-			 ADN_none ) ;
-	 
-	 /** possibly write statistical parameters for this sub-brick **/
-	 
-	 kv = DSET_BRICK_STATCODE(dset,jv) ;
-	 
-	 if( FUNC_IS_STAT(kv) ){ /* input sub-brick has stat params */
-	   
-	   int npar = FUNC_need_stat_aux[kv] , lv ;
-	   float * par = (float *) malloc( sizeof(float) * (npar+2) ) ;
-	   float * sax = DSET_BRICK_STATAUX(dset,jv) ;
-	   par[0] = kv ;
-	   par[1] = npar ;
-	   for( lv=0 ; lv < npar ; lv++ )
-	     par[lv+2] = (sax != NULL) ? sax[lv] : 0.0 ;
-	   
-	   EDIT_dset_items(new_dset ,
-			   ADN_brick_stataux_one+ivout , par ,
-			   ADN_none ) ;
-	   free(par) ;
-#if 0
-	   /* 2: if the input dataset has statistical parameters */
-	   
-	 } else if( ISFUNC(dset)                        &&   /* dset has stat */
-		    FUNC_IS_STAT(dset->func_type)       &&   /* params        */
-		    jv == FUNC_ival_thr[dset->func_type]  ){ /* thr sub-brick */
-	   
-	   int npar , lv ;
-	   float * par , * sax ;
-	   kv  = dset->func_type ;
-	   npar = FUNC_need_stat_aux[kv] ;
-	   par  = (float *) malloc( sizeof(float) * (npar+2) ) ;
-	   sax  = dset->stat_aux ;
-	   par[0] = kv ;
-	   par[1] = npar ;
-	   for( lv=0 ; lv < npar ; lv++ )
-	     par[lv+2] = (sax != NULL) ? sax[lv] : 0.0 ;
-	   
-	   EDIT_dset_items(new_dset ,
-			   ADN_brick_stataux_one+ivout , par ,
-			   ADN_none ) ;
-	   free(par) ;
-#endif
-	 }
-	 
-	 /** print a message? **/
-	 
-	 if( SC_verb ) printf("Copied %s[%d] into parametric dataset[%d]\n" ,
-			      DSET_FILECODE(dset) , jv , ivout ) ;
-	 
-         ivout++ ;
-      }
-      ivtop = ivout ;  /* new_dset[ivbot..ivtop-1] are from the current dataset */
-
-      /** loop over all bricks in input dataset and
-          unload them if they aren't going into the output
-          (not required, but is done to economize on memory) **/
-
-      if( nv < DSET_NVALS(dset) ){
-	
-	for( kv=0 ; kv < DSET_NVALS(dset) ; kv++ ){  /* all input sub-bricks */
-	  for( iv=0 ; iv < nv ; iv++ ){             /* all output sub-bricks */
-	    jv = SUBV(ids,iv) ;
-	    if( jv == kv ) break ;                 /* input matches output */
-	  }
-	  if( iv == nv ){
-	    mri_free( DSET_BRICK(dset,kv) ) ;
-
-	    if( SC_verb > 1 ) printf("Unloaded unused %s[%d]\n" ,
-				   DSET_FILECODE(dset) , kv ) ;
-	  }
-	}
-      }
-
-
-   } /* end of loop over input datasets */
-
-
-  return (new_dset) ;
-
-
-}
-
-
-/*---------------------------------------------------------------------------*/
-/*
-  Get the time series for one voxel from the AFNI 3d+time data set.
-*/
-
-void extract_ts_array 
-(
-  THD_3dim_dataset * dset_time,      /* input 3d+time dataset */
-  int iv,                            /* get time series for this voxel */
-  float * ts_array                   /* time series data for voxel #iv */
-)
-
-{
-  MRI_IMAGE * im = NULL;   /* intermediate float data */
-  float * ar = NULL;       /* pointer to float data */
-  int ts_length;           /* length of input 3d+time data set */
-  int it;                  /* time index */
-
-
-  /*----- Extract time series from 3d+time data set into MRI_IMAGE -----*/
-  im = THD_extract_series (iv, dset_time, 0);
-
-
-  /*----- Verify extraction -----*/
-  if (im == NULL)  SC_error ("Unable to extract parameter data");
-
-
-  /*----- Now extract time series from MRI_IMAGE -----*/
-  ts_length = DSET_NUM_TIMES (dset_time);
-  ar = MRI_FLOAT_PTR (im);
-  for (it = 0;  it < ts_length;  it++)
+  if (thr_dset == NULL)
     {
-      ts_array[it] = ar[it];
+      sprintf (message, "Cannot open threshold dataset %s", SC_thr_filename); 
+      SC_error (message);
+    }
+
+  if (DSET_NVALS(thr_dset) != 1)
+    SC_error ("Must specify single sub-brick for threshold data");
+
+
+  /*----- Save dimensions of threshold dataset for compatibility test -----*/
+  nx = DSET_NX(thr_dset);   ny = DSET_NY(thr_dset);   nz = DSET_NZ(thr_dset);
+
+
+  /*----- Allocate memory for float data -----*/
+  nvox = DSET_NVOX (thr_dset);
+  ffim = (float *) malloc (sizeof(float) * nvox);   MTEST (ffim);
+
+
+  /*----- Convert threshold dataset sub-brick to floats (in ffim) -----*/
+  iv = DSET_PRINCIPAL_VALUE (thr_dset);
+  SUB_POINTER (thr_dset, iv, 0, vfim);
+  EDIT_coerce_scale_type (nvox, DSET_BRICK_FACTOR(thr_dset,iv),
+			  DSET_BRICK_TYPE(thr_dset,iv), vfim,     /* input  */
+			  MRI_float                   , ffim);    /* output */
+  
+  /*----- Delete threshold dataset -----*/
+  THD_delete_3dim_dataset (thr_dset, False);  thr_dset = NULL ;
+
+
+  /*----- Count number of voxels above threshold -----*/
+  SC_nvox = 0;
+  for (ivox = 0;  ivox < nvox;  ivox++)
+    if (fabs(ffim[ivox]) > SC_thr)  SC_nvox++;
+  if (SC_verb)  printf ("Number of voxels above threshold = %d \n", SC_nvox);
+  if (SC_nvox < MIN_NVOX)  
+    {
+      sprintf (message, "Only %d voxels above threshold.  Cannot continue.",
+	       SC_nvox);
+      SC_error (message);
     }
 
 
-  /*----- Release memory -----*/
-  mri_free (im);   im = NULL;
+
+  /*----- Allocate memory for voxel index array -----*/
+  SC_voxels = (int *) malloc (sizeof(int) * SC_nvox);
+  MTEST (SC_voxels);
+
+
+  /*----- Save indices of voxels above threshold -----*/
+  icount = 0;
+  for (ivox = 0;  ivox < nvox;  ivox++)
+    if (fabs(ffim[ivox]) > SC_thr)
+      {
+	SC_voxels[icount] = ivox;
+	icount++;
+      }
+
+  
+  /*----- Allocate memory for parameter array -----*/
+  SC_parameters = (float **) malloc (sizeof(float *) * MAX_PARAMETERS);
+  MTEST (SC_parameters);
+
+
+  /*----- Begin loop over parameter datasets -----*/
+  SC_dimension = 0;
+  while (nopt < argc)
+    {
+      /*----- Check if this is an input option -----*/
+      if (argv[nopt][0] == '-')
+	SC_error ("ALL input options must precede ALL parameter datasets");
+
+      /*----- Open the parameter dataset -----*/
+      if (SC_verb)  printf ("Reading parameter dataset: %s \n", argv[nopt]);
+      DOPEN (param_dset, argv[nopt]);
+
+      if (param_dset == NULL)
+	{
+	  sprintf (message, "Cannot open parameter dataset %s", argv[nopt]); 
+	  SC_error (message);
+	}
+
+      /*----- Test for dataset compatibility -----*/
+      if ((nx != DSET_NX(param_dset)) || (ny != DSET_NY(param_dset))
+	  || (nz != DSET_NZ(param_dset)))
+	{
+	  sprintf (message, "Parameter dataset %s has incompatible dimensions",
+		   argv[nopt]); 
+	  SC_error (message);
+	}
+	
+     
+      /*----- Get number of parameters specified by this dataset -----*/
+      nbricks = DSET_NVALS(param_dset);
+
+
+      /*----- Loop over sub-bricks selected from parameter dataset -----*/
+      for (ibrick = 0;  ibrick < nbricks;  ibrick++)
+	{
+	  if (SC_verb)  printf ("Reading parameter #%2d \n", SC_dimension+1);
+
+	  SUB_POINTER (param_dset, ibrick, 0, vfim);
+	  EDIT_coerce_scale_type (nvox, DSET_BRICK_FACTOR(param_dset,ibrick),
+		     DSET_BRICK_TYPE(param_dset,ibrick), vfim,   /* input  */
+		     MRI_float                         , ffim);  /* output */
+  
+	  /*----- Allocate memory for parameter data -----*/
+	  SC_parameters[SC_dimension] 
+	    = (float *) malloc (sizeof(float) * SC_nvox);
+	  MTEST (SC_parameters[SC_dimension]);
+	  
+	  /*----- Save parameter data for all voxels above threshold -----*/
+	  for (ivox = 0;  ivox < SC_nvox;  ivox++)
+	    SC_parameters[SC_dimension][ivox] = ffim[SC_voxels[ivox]];
+	  
+	  /*----- Increment count of parameters -----*/
+	  SC_dimension++;
+
+	}
+
+      /*----- Delete parameter dataset -----*/
+      THD_delete_3dim_dataset (param_dset, False);  param_dset = NULL ;
+     
+      nopt++;
+    }
+
+
+  /*----- Delete floating point sub-brick -----*/
+  if (ffim != NULL) { free (ffim);   ffim = NULL; }
+
+
+  if (SC_verb)  printf ("Number of parameters = %d \n", SC_dimension);
+  if (SC_dimension < 1)  SC_error ("No parameter data?");
+
 
 }
 
@@ -781,16 +486,13 @@ void extract_ts_array
   Perform agglomerative hierarchical clustering.
 */
 
-THD_3dim_dataset * form_clusters (THD_3dim_dataset * param_dset)
+THD_3dim_dataset * form_clusters ()
 
 {
   THD_3dim_dataset * new_dset = NULL;   /* hierarchical clustering */
-  int ts_length;                   /* number of parameter sub-bricks */
-  float * ts_array = NULL;         /* parameter array including threshold */
-  float * par_array = NULL;        /* parameter array without threshold */
-  int ixyz, nxyz;                  /* voxel indices */
+  THD_3dim_dataset * thr_dset = NULL;   /* threshold dataset */
+  int ivox, ixyz, nxyz;            /* voxel indices */
   int iclust;                      /* cluster index */
-  int num_voxels;                  /* number of voxels above threshold */
   int ip, jp;                      /* parameter indices */
   cluster * head_clust = NULL;     /* last cluster */
   float * parameters = NULL;       /* parameters after normalization */
@@ -814,39 +516,39 @@ THD_3dim_dataset * form_clusters (THD_3dim_dataset * param_dset)
   matrix_initialize (&sinv);
 
 
-  /*----- Initialize local variables -----*/
-  nxyz = param_dset->daxes->nxx * param_dset->daxes->nyy 
-    * param_dset->daxes->nzz;       
-  ts_length = DSET_NUM_TIMES (param_dset);
-  SC_dimension = ts_length - 1;
-  printf ("Number of parameters = %d \n", SC_dimension);
-  if (SC_dimension < 1)  SC_error ("No parameter data?");
-
-
-  /*----- Set up array to hold vector of parameters -----*/
-  ts_array = (float *) malloc (sizeof(float) * ts_length);
-  MTEST (ts_array);
-  par_array = ts_array + 1;
-
-
   /*----- Calculate covariance matrix for input parameters -----*/
-  calc_covariance (param_dset, &num_voxels, &s, &sinv);
-
+  if (SC_statdist)  calc_covariance (&s, &sinv);
+  else
+    {
+      matrix_identity (SC_dimension, &s);
+      matrix_identity (SC_dimension, &sinv);
+    }
+  
 
   /*----- Set number of sub-bricks -----*/
-  if (num_voxels < SC_nclust)
-    nbricks = num_voxels;
+  if (SC_nvox < SC_nclust)
+    nbricks = SC_nvox;
   else
     nbricks = SC_nclust;
   if (SC_verb) printf ("Output dataset will have %d sub-bricks\n\n", nbricks);
 
 
-  /*-- Make an empty copy of prototype dataset, for eventual output --*/
-  new_dset = EDIT_empty_copy (param_dset);
+  /*----- Open threshold dataset -----*/
+  thr_dset = THD_open_dataset (SC_thr_filename);
+  nxyz = DSET_NVOX (thr_dset);
+
+
+  /*-- Make an empty copy of threshold dataset, for eventual output --*/
+  new_dset = EDIT_empty_copy (thr_dset);
 
 
   /*----- Record history of dataset -----*/
+  tross_Copy_History (thr_dset, new_dset);
   if( commandline != NULL ) tross_Append_History( new_dset , commandline ) ;
+
+  
+  /*----- Delete threshold dataset -----*/
+  THD_delete_3dim_dataset (thr_dset, False);  thr_dset = NULL ;
 
 
   /*----- Modify some structural properties.  Note that the nbricks
@@ -884,38 +586,41 @@ THD_3dim_dataset * form_clusters (THD_3dim_dataset * param_dset)
   
 
   /*----- Build lowest level of cluster hierarchy -----*/
-  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+  for (ivox = 0;  ivox < SC_nvox;  ivox++)
     {
-      /*----- Get array of parameters for this voxel -----*/
-      extract_ts_array (param_dset, ixyz, ts_array);  
+      /*----- Allocate space for parameter vector -----*/
+      parameters = (float *) malloc (sizeof(float) * SC_dimension);
+      MTEST (parameters);
 
-      /*----- If voxel is above threshold cutoff -----*/
-      if (fabs(ts_array[0]) > SC_thr)
+      /*----- Copy the parameter array -----*/
+      for (ip = 0;  ip < SC_dimension;  ip++)
+	parameters[ip] = SC_parameters[ip][ivox];
+      
+      /*----- If using stat. dist., transform the parameter vector -----*/
+      if (SC_statdist)
 	{
-	  /*----- Allocate space for parameter vector -----*/
-	  parameters = (float *) malloc (sizeof(float) * SC_dimension);
-	  MTEST (parameters);
-
-	  /*----- If using stat. dist., transform the parameter vector -----*/
-	  if (SC_statdist)
-	    {
-	      array_to_vector (SC_dimension, par_array, &v);
-	      vector_multiply (sinv, v, &av);
-	      vector_to_array (av, parameters);
-	    }
-	  /*----- Otherwise, just copy the parameter array -----*/
-	  else
-	    for (ip = 0;  ip < SC_dimension;  ip++)
-	      parameters[ip] = par_array[ip];
-
-	  /*----- Create new cluster containing single voxel -----*/
-	  head_clust = new_cluster (ixyz, parameters, head_clust);
+	  array_to_vector (SC_dimension, parameters, &v);
+	  vector_multiply (sinv, v, &av);
+	  vector_to_array (av, parameters);
 	}
+
+      /*----- Create new cluster containing single voxel -----*/
+      ixyz = SC_voxels[ivox];
+      head_clust = new_cluster (ixyz, parameters, head_clust);
     }
 
 
+  /*----- Deallocate memory for parameter data -----*/
+  free (SC_voxels);   SC_voxels = NULL;
+  for (ip = 0;  ip < SC_dimension;  ip++)
+    {
+      free (SC_parameters[ip]);   SC_parameters[ip] = NULL;
+    }
+  free (SC_parameters);   SC_parameters = NULL;
+
+
   /*----- Agglomerate clusters, one-by-one -----*/
-  for (iclust = num_voxels;  iclust > 0;  iclust--)
+  for (iclust = SC_nvox;  iclust > 0;  iclust--)
     {
       if (SC_verb && (iclust % 100 == 0))
 	printf ("# Clusters = %d \n", iclust);
@@ -955,13 +660,11 @@ THD_3dim_dataset * form_clusters (THD_3dim_dataset * param_dset)
 
 
   /*----- Deallocate memory -----*/
-  free (ts_array);   ts_array = NULL;
   vector_destroy (&v);
   vector_destroy (&av);
   matrix_destroy (&s);
   matrix_destroy (&sinv);
-  free (head_clust->voxel_ptr);
-  delete_cluster (head_clust);
+  destroy_cluster (head_clust);
 
 
   /*----- Return hierarchical clustering -----*/
@@ -975,8 +678,8 @@ THD_3dim_dataset * form_clusters (THD_3dim_dataset * param_dset)
 int main( int argc , char * argv[] )
 
 {
-  THD_3dim_dataset * param_dset = NULL;    /* statistical parameter data set */
   THD_3dim_dataset * clust_dset = NULL;    /* hierarchical clusters data set */
+  int ip;                                  /* parameter index */
 
   
   /*----- Identify software -----*/
@@ -987,22 +690,20 @@ int main( int argc , char * argv[] )
   printf ("\n");
 
 
-  /*----- Create dataset which contains all parameters of interest -----*/
-  param_dset = initialize_program (argc, argv);
+  /*----- Initialize program:  get all operator inputs; get indices
+    for voxels above threshold; get parameter vectors for all voxels 
+    above threshold  -----*/
+  initialize_program (argc, argv);
 
 
   /*----- Perform agglomerative hierarchical clustering -----*/
-  clust_dset = form_clusters (param_dset);
+  clust_dset = form_clusters ();
 
   
-  /*----- Deallocate memory for parameter dataset -----*/   
-  THD_delete_3dim_dataset( param_dset , False ) ; param_dset = NULL ;
-
-
   /*----- Output the hierarchical clustering dataset -----*/
   if( SC_verb ) printf("Computing sub-brick statistics\n") ;
   THD_load_statistics( clust_dset ) ;
-    
+
   if( SC_verb ) printf("Writing output to %s and %s\n",
 		       DSET_HEADNAME(clust_dset) , DSET_BRIKNAME(clust_dset) );
   THD_write_3dim_dataset( NULL,NULL , clust_dset , True ) ;

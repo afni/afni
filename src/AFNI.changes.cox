@@ -1742,3 +1742,10 @@
 19 Oct 1999
  * Added program 1dtranspose.c.
  * Added option -noijk to 3dmaskdump.c.
+ * Added option -tim to afni.c - also modified afni.h, afni_graph.[ch], and
+     afni_func.c to make it work.  This option is like -im, but interprets
+     the images as being spread thru time rather than space.
+
+20 Oct 1999
+ * Modified -tim in afni.c to allow for 3D inputs (space-then-time=-zim,
+     or time-then-space=-tim).

@@ -3095,6 +3095,8 @@ OK   drive_code       drive_data should be
 *    graDR_button2_enable  (ignored) Turn button2 reporting on
 *    graDR_button2_disable (ignored) and off.
 
+*    graDR_fim_disable     (ignored) Turn all FIM stuff off (for good)
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -3117,6 +3119,24 @@ ENTRY("drive_MCW_grapher") ;
          RETURN( False ) ;
       }
       break ;
+
+      /*------ fim disabling -----*/
+
+      case graDR_fim_disable:{
+         int ii ;
+         XtUnmanageChild( grapher->fmenu->fim_cbut ) ;
+         XtUnmanageChild( grapher->opt_xaxis_cbut ) ;
+         for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ ){
+            if( gr_unfim[ii] ){
+               if( grapher->opt_color_av[ii] != NULL )
+                  XtUnmanageChild( grapher->opt_color_av[ii]->wrowcol ) ;
+               if( grapher->opt_thick_bbox[ii] != NULL )
+                  XtUnmanageChild( grapher->opt_thick_bbox[ii]->wtop ) ;
+               if( grapher->opt_points_bbox[ii] != NULL )
+                  XtUnmanageChild( grapher->opt_points_bbox[ii]->wtop ) ;
+            }
+         }
+      }
 
       /*------ button2 stuff -----*/
 
