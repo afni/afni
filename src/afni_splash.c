@@ -135,7 +135,7 @@ ENTRY("AFNI_splashup") ;
 
       imov = NULL ;
       if( num_face > 0 ){
-        int ddold=-1 ;
+        static int ddold=-1 ;
         dd = (lrand48() >> 8) % num_face ;
         if( dd == ddold ){ dd = (dd+1)%num_face ; }
         ddold = dd ; imov = mri_read_stuff( fname_face[dd] ) ;
