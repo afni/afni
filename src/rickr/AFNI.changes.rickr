@@ -51,4 +51,5 @@
   * added rickr/file_tool.[ch]
   * modified rickr/Makefile and Makefile.INCLUDE to be able to build file_tool
     (note that file_tool will not yet be built automatically)
+  * modified r_idisp.c to include r_idisp_vec3f()
 

@@ -22,6 +22,7 @@ int r_idisp_mri_imarr  ( char * info, MRI_IMARR   * ip, int images );
 int r_idisp_mat33d     ( char * info, double   mat[3][3] );
 int r_idisp_mat33f     ( char * info, float    mat[3][3] );
 int r_idisp_vec3d      ( char * info, double * vec );
+int r_idisp_vec3f      ( char * info, float  * vec );
 int r_idisp_vec3i      ( char * info, int    * vec );
 
 
