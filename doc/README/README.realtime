@@ -115,6 +115,17 @@ DATUM typ
   command, the XYMATRIX dimensions, and the ACQUISITION_TYPE (whether
   2D or 3D data is being sent).
 
+BYTEORDER order
+  This new command string (27 Jun 2003) tells the realtime plugin the
+  byte order (endian) that the image data is in.  If the byte order is
+  different from that of the machine afni is running on, the realtime
+  plugin will perform byte swapping on the images as they are read in.
+    order = LSB_FIRST  -> least significant byte first (little endian)
+          = MSB_FIRST  -> most significant byte first (big endian)
+ *This command is not required.  Without this command, image bytes will
+  not be swapped.
+ *This command works for DATUM type of short, int, float or complex.
+
 ZORDER arg
   Specifies the order in which the slices will be read.
     arg = alt -> alternating order (e.g., slices are presented

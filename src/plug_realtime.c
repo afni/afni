@@ -35,6 +35,7 @@
   system at the Medical College of Wisconsin.
 ************************************************************************/
 
+/*** 30 Jun 2003: allow MRI_complex data type when using BYTEORDER    [rickr] */
 /*** 27 Jun 2003: added BYTEORDER command for automatic byte swapping [rickr] */
 
 /*** 24 Jun 2002: modified to allow nzz=1 for UCSD trolls ***/
@@ -2066,11 +2067,12 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
       if( (rtin->datum != MRI_short) &&		/* if the type is not okay, */
 	  (rtin->datum != MRI_int)   &&         /* then turn off swapping   */
-	  (rtin->datum != MRI_float) )
+	  (rtin->datum != MRI_float) &&
+	  (rtin->datum != MRI_complex) )
       {
 	 if( rtin->datum != MRI_byte )		/* don't complain about bytes */
-	     fprintf(stderr,"RT: BYTEORDER applies only to byte, short, "
-			    "int or float\n");
+	     fprintf(stderr,"RT: BYTEORDER applies only to short, int, float "
+			    "or complex\n");
          rtin->swap_on_read = 0;
       }
    }
