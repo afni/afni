@@ -23,7 +23,8 @@ MRI_IMAGE * mri_nsize( MRI_IMAGE * imin )
    nx   = imin->nx ;  ny = imin->ny ;
    ntop = MAX(nx,ny) ;
 
-        if( ntop <=  64 ) ntop =  64 ;  /* next power of 2 */
+        if( ntop <=  32 ) ntop =  32 ;  /* next power of 2 */
+   else if( ntop <=  64 ) ntop =  64 ;
    else if( ntop <= 128 ) ntop = 128 ;
    else if( ntop <= 256 ) ntop = 256 ;
    else if( ntop <= 512 ) ntop = 512 ;

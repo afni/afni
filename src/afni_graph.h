@@ -69,6 +69,18 @@
 #undef DONT_MANGLE_XYZ
 #endif
 
+#define GRAPHER_ALLOW_ONE  /* 22 Sep 2000: allow "graphing" of n=1 data */
+
+#ifdef GRAPHER_ALLOW_ONE
+#  define EXRONE(g) if( (g)->status->num_series < 2 ) EXRETURN
+#  define RONE(g,v) if( (g)->status->num_series < 2 ) RETURN(v)
+#  define ISONE(g)  ( (g)->status->num_series < 2 )
+#else
+#  define EXRONE(g) /* nada */
+#  define RONE(g,v) /* nada */
+#  define ISONE(g)  0
+#endif
+
 /***-----------------------------------------------------------------------***/
 
 #define GX_MAX    512                  /* Horizontal size of graph window */
@@ -508,6 +520,10 @@ typedef struct {
 #define graDR_setindex    124
 #define graDR_polort      125  /* 27 May 1999 */
 
+#define graDR_setmatrix   130  /* 22 Sep 2000 */
+#define graDR_setgrid     131
+#define graDR_setpinnum   graDR_newlength
+
 #define graDR_destroy     666
 
 #define graDR_button2_enable  501  /* Feb 1998 */
@@ -538,6 +554,8 @@ extern void mat_down(MCW_grapher *);
 extern void mat_up(MCW_grapher *);
 extern void grid_down(MCW_grapher *);
 extern void grid_up(MCW_grapher *);
+
+extern void text_graphs(MCW_grapher *) ;  /* 22 Sep 2000 */
 
 extern void redraw_graph( MCW_grapher * , int ) ;
 extern void init_const( MCW_grapher * ) ;

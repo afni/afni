@@ -69,6 +69,8 @@ void AFNI_splashup(void)
    int    dd,ee ;
    char   bb ;
    byte * bspl ;
+   int   sxx,syy ;
+   char * sen ;
    static int first=1 , nov , dnov , nm=-1 ;
 
 ENTRY("AFNI_splashup") ;
@@ -152,9 +154,24 @@ ENTRY("AFNI_splashup") ;
                    ee = MWM_FUNC_MOVE | MWM_FUNC_CLOSE ;
       }
 
+      /* 21 Sep 2000: allow user to control splash position */
+
+      sxx = (GLOBAL_library.dc->width-NX_blank)/2 ;
+      syy = 100 ;
+      sen = getenv("AFNI_SPLASH_XY") ;
+      if( sen != NULL ){
+         int n,x,y ;
+         n = sscanf(sen,"%d:%d",&x,&y) ;
+         if( n == 2 && x >= 0 && x < GLOBAL_library.dc->width &&
+                       y >= 0 && y < GLOBAL_library.dc->height  ){
+
+            sxx = x ; syy = y ;
+         }
+      }
+
       XtVaSetValues( ppp->seq->wtop ,
-                       XmNx , (GLOBAL_library.dc->width-NX_blank)/2 ,
-                       XmNy , 100 ,
+                       XmNx , sxx ,
+                       XmNy , syy ,
                        XmNmwmDecorations , dd ,
                        XmNmwmFunctions   , ee ,
                      NULL ) ;

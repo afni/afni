@@ -464,6 +464,15 @@ Variable: AFNI_NOSPLASH
 If this YES/NO variable is set to YES, then the AFNI splash screen
 will not be displayed when the program starts.
 
+------------------------
+Variable: AFNI_SPLASH_XY
+------------------------
+If set, this variable should be in the form "100:37" (two integers
+separated by a colon).  These values specify the (x,y) screen location
+where the splash window's upper left corner will be placed.  If not
+set, x will be set to center the splash window on the display and
+y will be 100.
+
 -------------------------
 Variable: AFNI_SPLASHTIME
 -------------------------

@@ -518,6 +518,8 @@ extern void PLUTO_popup_meter( PLUGIN_interface * ) ;
 extern void PLUTO_popdown_meter( PLUGIN_interface * ) ;
 extern void PLUTO_set_meter( PLUGIN_interface * , int ) ;
 
+extern void PLUTO_set_topshell( PLUGIN_interface *, Widget ) ; /* 22 Sep 2000 */
+
 /*------------------------------------------------------------------------*/
 
 typedef struct {

@@ -46,11 +46,19 @@ ENTRY("new_MCW_grapher") ;
 
    grapher->status = (MCW_grapher_status *) getser(0,graCR_getstatus,aux) ;
 
+#ifndef GRAPHER_ALLOW_ONE                    /* 22 Sep 2000 */
    if( grapher->status->num_series < 2 ){
       fprintf(stderr,"*** Attempt to create grapher with < 2 time points! ***\a\n") ;
       myXtFree(grapher) ;
       RETURN(NULL) ;
    }
+#else
+   if( grapher->status->num_series < 1 ){
+      fprintf(stderr,"*** Attempt to create grapher with < 1 time points! ***\a\n") ;
+      myXtFree(grapher) ;
+      RETURN(NULL) ;
+   }
+#endif
 
    GRA_NULL_tuser(grapher) ;  /* 22 Apr 1997 */
 
@@ -928,6 +936,8 @@ ENTRY("GRA_redraw_overlay") ;
    win = XtWindow(grapher->draw_fd) ;
    XClearWindow( dis , win ) ;
 
+   EXRONE(grapher) ;  /* 22 Sep 2000 */
+
    /* 22 July 1996:
       draw a ball on the graph at the currently display time_index */
 
@@ -997,6 +1007,17 @@ ENTRY("redraw_graph") ;
    erase_fdw  ( grapher ) ;
    draw_grids ( grapher ) ;
    plot_graphs( grapher , code ) ;
+
+   DC_fg_color( grapher->dc , TEXT_COLOR(grapher) ) ;
+
+#ifdef GRAPHER_ALLOW_ONE
+   if( grapher->status->num_series < 2 ){ /* 22 Sep 2000 */
+      fd_txt( grapher , GL_DLX+5, 35,
+              "Can't draw graphs for this dataset: Num < 2" ) ;
+      fd_px_store( grapher ) ;
+      EXRETURN ;
+   }
+#endif
 
    /*---- draw some strings for informative purposes ----*/
 
@@ -1171,6 +1192,72 @@ ENTRY("init_const") ;
 }
 
 /*-----------------------------------------------------------
+  Draw numbers instead of graphs -- 22 Sep 2000 -- RWCox
+-------------------------------------------------------------*/
+
+void text_graphs( MCW_grapher * grapher )
+{
+   MRI_IMAGE * tsim ;
+   int index, ix, iy, xtemp,ytemp,ztemp , xoff,yoff ;
+   int iv , jv , www ;
+   char str[64] , *strp ;
+
+ENTRY("text_graphs") ;
+
+   DC_fg_color( grapher->dc , TEXT_COLOR(grapher) ) ;
+
+   iv = grapher->time_index ;
+   if( iv < 0 )
+      iv = 0 ;
+   else if( iv >= grapher->status->num_series )
+      iv = grapher->status->num_series - 1 ;
+
+   ztemp = grapher->zpoint * grapher->status->ny * grapher->status->nx ;
+
+   for( ix=0 ; ix < grapher->mat ; ix++ ){
+      xtemp  = grapher->xpoint + ix - grapher->xc ;
+           if( xtemp <  0                   ) xtemp += grapher->status->nx ;
+      else if( xtemp >= grapher->status->nx ) xtemp -= grapher->status->nx ;
+
+      for( iy=0 ; iy < grapher->mat ; iy++ ){
+         ytemp = grapher->ypoint - iy + grapher->yc ;
+              if( ytemp <  0                   ) ytemp += grapher->status->ny ;
+         else if( ytemp >= grapher->status->ny ) ytemp -= grapher->status->ny ;
+
+         index = ztemp + ytemp * grapher->status->nx + xtemp ;
+
+         tsim  = (MRI_IMAGE *) grapher->getser( index , graCR_getseries ,
+                                                        grapher->getaux ) ;
+
+         if( tsim == NULL ) break ;
+         if( tsim->nx < 1 ){ mri_free(tsim); break; }  /* shouldn't happen */
+
+         if( tsim->kind != MRI_float ){
+            MRI_IMAGE * qim = mri_to_float(tsim) ;
+            mri_free(tsim) ; tsim = qim ;
+         }
+
+#if 0
+         if( grapher->transform0D_func != NULL )
+            grapher->transform0D_func( tsim->nx , MRI_FLOAT_PTR(tsim) ) ;
+#endif
+
+         jv = iv ; if( jv >= tsim->nx ) jv = tsim->nx - 1 ;
+         AV_fval_to_char( MRI_FLOAT_PTR(tsim)[jv] , str ) ;
+         mri_free(tsim) ;
+         strp = (str[0] == ' ') ? str+1 : str ;
+         www = DC_text_width(grapher->dc,strp) ;
+
+         fd_txt( grapher , grapher->xorigin[ix][iy] + (grapher->gx-www)/2 ,
+                           grapher->yorigin[ix][iy] + 2 ,
+                 strp ) ;
+      }
+   }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------
     Plot all graphs to pixmap
 -------------------------------------------------------------*/
 
@@ -1197,6 +1284,15 @@ void plot_graphs( MCW_grapher * grapher , int code )
                        grapher->never_drawn ) ;
 
 ENTRY("plot_graphs") ;
+
+#ifdef GRAPHER_ALLOW_ONE                       /* 22 Sep 2000 */
+   if( grapher->status->num_series < 1 ){
+      EXRETURN ;
+   } else if( grapher->status->num_series == 1 ){
+      text_graphs( grapher ) ;
+      EXRETURN ;
+   }
+#endif
 
    GRA_fixup_xaxis( grapher ) ;   /* 09 Jan 1998 */
 
@@ -1735,6 +1831,7 @@ STATUS("plotting extra graphs") ;
    Draw frames around each sub-graph and grids inside them
    12 Jan 1998: modified to allow for gaps between graphs
 --------------------------------------------------------------------------*/
+
 void draw_grids( MCW_grapher * grapher )
 {
    int i , mat=grapher->mat , gx=grapher->gx , gy=grapher->gy ;
@@ -1752,17 +1849,19 @@ ENTRY("draw_grids") ;
 
       g       = grapher->grid_spacing ;
       npoints = NPTS(grapher) ;
-      ftemp   = gx / (float) (npoints-1) ;
 
-      for( i=0 ; i < mat ; i++ ){
-         for( m=0 ; m < mat ; m++ ){
-            xo = grapher->xorigin[i][m] ; yo = grapher->yorigin[i][m] ;
-            for( j=1 ; j <= (npoints-1)/g ; j++ ){
-               k = xo + j * g * ftemp ;
-               plot_fdX( grapher , k , yo    , 0 ) ;
-               plot_fdX( grapher , k , yo+gy , 1 ) ;
-            }
-         }
+      if( !ISONE(grapher) ){                /* this if: 22 Sep 2000 */
+        ftemp = gx / (float) (npoints-1) ;
+        for( i=0 ; i < mat ; i++ ){
+           for( m=0 ; m < mat ; m++ ){
+              xo = grapher->xorigin[i][m] ; yo = grapher->yorigin[i][m] ;
+              for( j=1 ; j <= (npoints-1)/g ; j++ ){
+                 k = xo + j * g * ftemp ;
+                 plot_fdX( grapher , k , yo    , 0 ) ;
+                 plot_fdX( grapher , k , yo+gy , 1 ) ;
+              }
+           }
+        }
       }
 
       /* draw an interior framing box at the central square */
@@ -1800,6 +1899,7 @@ ENTRY("draw_grids") ;
 /*------------------------------------------
   Send the caller info about the new graph
 --------------------------------------------*/
+
 void send_newinfo( MCW_grapher * grapher )
 {
 ENTRY("send_newinfo") ;
@@ -2141,6 +2241,7 @@ STATUS("button press") ;
                causes increment of time_index in indicated direction */
 
          else if( grapher->fd_pxWind != (Pixmap) 0 &&
+                  !ISONE(grapher)                  &&
                   (but==Button1)                   && (bx > GL_DLX) &&
                   (xloc == grapher->xpoint)        && (yloc == grapher->ypoint) ){
 
@@ -2192,7 +2293,7 @@ STATUS("button press") ;
 
          /* Button 3 --> popup statistics of this graph */
 
-         if( but == Button3 ){
+         if( but == Button3 && !ISONE(grapher) ){
             int ix , iy ;
 
             ix = xloc - grapher->xpoint + grapher->xc ;
@@ -2455,6 +2556,8 @@ STATUS(str); }
       case '>':
       case '1':
       case 'l':
+         EXRONE(grapher) ;  /* 22 Sep 2000 */
+
               if( buf[0] == '<' ) ii = grapher->time_index - 1 ;
          else if( buf[0] == '>' ) ii = grapher->time_index + 1 ;
          else if( buf[0] == '1' ) ii = 1 ;
@@ -2492,6 +2595,8 @@ STATUS(str); }
          int ndig , ll ;
          MRI_IMAGE * tsim ;
          int xd,yd,zd ;     /* 24 Sep 1999 */
+
+         EXRONE(grapher) ;  /* 22 Sep 2000 */
 
          ll   = MAX( grapher->status->nx , grapher->status->ny ) ;
          ll   = MAX( grapher->status->nz , ll ) ;
@@ -2660,6 +2765,7 @@ STATUS("User pressed Done button: starting timeout") ;
    }
 
    if( w == grapher->opt_write_suffix_pb ){
+      EXRONE(grapher) ;  /* 22 Sep 2000 */
       MCW_choose_string( grapher->option_mbar ,
                          "'Write Center' Suffix:" , Grapher_Stuff.wcsuffix ,
                          GRA_wcsuffix_choose_CB , NULL ) ;
@@ -2729,6 +2835,7 @@ STATUS("User pressed Done button: starting timeout") ;
    }
 
    if( w == grapher->opt_xaxis_center_pb ){
+      EXRONE(grapher) ;  /* 22 Sep 2000 */
       if( grapher->cen_tsim != NULL ){
          mri_free( grapher->xax_tsim ) ;
          grapher->xax_tsim = mri_to_float( grapher->cen_tsim ) ;
@@ -3022,6 +3129,8 @@ ENTRY("GRA_refread_choose_CB") ;
        cbs->reason != mcwCR_string      ||
        cbs->cval == NULL                || strlen(cbs->cval) == 0 ) EXRETURN ;
 
+   EXRONE(grapher) ;  /* 22 Sep 2000 */
+
    flim = mri_read_1D( cbs->cval ) ;     /* 16 Nov 1999: replaces mri_read_ascii */
    if( flim == NULL || flim->nx < 2 ){
       XBell(grapher->dc->display,100) ; mri_free(flim) ; EXRETURN ;
@@ -3052,6 +3161,8 @@ ENTRY("GRA_refstore_choose_CB") ;
        cbs->reason != mcwCR_string      ||
        cbs->cval == NULL                || strlen(cbs->cval) == 0 ) EXRETURN ;
 
+   EXRONE(grapher) ;  /* 22 Sep 2000 */
+
    PLUTO_register_timeseries( cbs->cval , IMARR_SUBIMAGE(grapher->ref_ts,0) ) ;
    EXRETURN ;
 }
@@ -3072,6 +3183,8 @@ ENTRY("GRA_refwrite_choose_CB") ;
        IMARR_COUNT(grapher->ref_ts) < 1 ||
        cbs->reason != mcwCR_string      ||
        cbs->cval == NULL                || (ll=strlen(cbs->cval)) == 0 ) EXRETURN ;
+
+   EXRONE(grapher) ;  /* 22 Sep 2000 */
 
    for( ii=0 ; ii < ll ; ii++ ){
       if( iscntrl(cbs->cval[ii]) || isspace(cbs->cval[ii]) ||
@@ -3154,7 +3267,7 @@ OK   drive_code       drive_data should be
                         All this does is draw some stuff.
 
 *    graDR_newlength  (int) set the expected length of time series
-                        to be some new value.
+                        to be some new value (e.g., the pin number)
 
 *    graDR_button2_enable  (ignored) Turn button2 reporting on
 *    graDR_button2_disable (ignored) and off.
@@ -3162,6 +3275,10 @@ OK   drive_code       drive_data should be
 *    graDR_fim_disable     (ignored) Turn all FIM stuff off (for good)
 
 *    graDR_mirror          (int) Turn mirroring on (==1) or off (==0)
+
+*    graDR_setmatrix       (int) These 3 items set their corresponding
+*    graDR_setgrid               parameters to the drive parameter.
+*    graDR_setpinnum             [same as newlength]
 
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
@@ -3183,6 +3300,28 @@ ENTRY("drive_MCW_grapher") ;
                  drive_code) ;
          XBell( grapher->dc->display , 100 ) ;
          RETURN( False ) ;
+      }
+
+      /*------ setmatrix [22 Sep 2000] -----*/
+
+      case graDR_setmatrix:{
+         int mm = (int) drive_data ;
+         if( mm < 0 ) RETURN( False ) ;
+         grapher->mat = MIN( grapher->mat_max , mm ) ;
+         init_mat    ( grapher ) ;
+         redraw_graph( grapher , 0 ) ;
+         send_newinfo( grapher ) ;
+         RETURN( True ) ;
+      }
+
+      /*------ setgrid [22 Sep 2000] -----*/
+
+      case graDR_setgrid:{
+         int mm = (int) drive_data ;
+         if( mm < 2 ) RETURN( False ) ;
+         grapher->grid_spacing = mm ;
+         redraw_graph(grapher,0) ;
+         RETURN( True ) ;
       }
 
       /*------ mirroring (Jul 2000) -----*/
@@ -3249,7 +3388,11 @@ ENTRY("drive_MCW_grapher") ;
       case graDR_newlength:{
          int new_length = (int) drive_data ;
 
+#ifdef GRAPHER_ALLOW_ONE
+         if( new_length < 1 || new_length > MAX_PIN ) RETURN( False ) ;
+#else
          if( new_length < 2 || new_length > MAX_PIN ) RETURN( False ) ;
+#endif
 
          grapher->pin_num = new_length ;   /* 27 Apr 1997 */
 
@@ -3430,10 +3573,21 @@ STATUS("replacing ort timeseries") ;
       /*------- new data sequence!!! -------*/
 
       case graDR_newdata:{
+         int npold = grapher->status->num_series ;  /* 22 Sep 2000 */
+
          grapher->status = (MCW_grapher_status *)
                               grapher->getser(0,graCR_getstatus,drive_data) ;
          grapher->getaux = drive_data ;
          init_const( grapher ) ;
+
+         if( npold < 2 ){                       /* 22 Sep 2000 */
+            int ii , npoints=NPTS(grapher) ;
+            for( ii=GRID_MAX-1 ; ii > 0 ; ii-- )
+               if( grid_ar[ii] <= npoints / 3 ) break ;
+            grapher->grid_index = ii ;
+            grapher->grid_spacing = grid_ar[ii] ;
+         }
+
 #ifdef USE_OPTMENUS
          GRA_fix_optmenus( grapher ) ;
 #endif
@@ -3476,6 +3630,8 @@ void GRA_fim_CB( Widget w , XtPointer client_data , XtPointer call_data )
 ENTRY("GRA_fim_CB") ;
 
    if( ! GRA_VALID(grapher) || grapher->status->send_CB == NULL ) EXRETURN ;
+
+   EXRONE(grapher) ;  /* 22 Sep 2000 */
 
    /*--- carry out action, depending on which widget called me ---*/
 

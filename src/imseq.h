@@ -434,6 +434,8 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_icon         118
 #define isqDR_sendmontage  119
 #define isqDR_periodicmont 120
+#define isqDR_setmontage   121
+#define isqDR_setifrac     130
 
 #define isqDR_arrowpadhint 201
 #define isqDR_winfotext    202

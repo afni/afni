@@ -2267,3 +2267,16 @@
 
 15 Sep 2000
  * Added -nscale option to 3dmerge.c
+
+21 Sep 2000
+ * Added 32 to mri_nsize.c.
+ * Added AFNI_SPLASH_XY to afni_splash.c.
+
+22 Sep 2000
+ * Added isqDR_setifrac and isqDR_setmontage to imseq.c.
+ * Added graDR_setmatrix, graDR_setgrid, and graDR_setpinnum to afni_graph.c.
+ * Added PLUTO_set_topshell() to afni_plugin.c, and made several
+     PLUGIN_CALL_IMMEDIATELY plugins use this to set the toplevel shell
+     for later AFNI manipulation.
+ * Modified afni_graph.[ch] to allow a graph window to be opened for a
+     dataset of length 1.

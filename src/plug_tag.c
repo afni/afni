@@ -133,6 +133,7 @@ char * TAG_main( PLUGIN_interface * plint )
       if( mytagset  == NULL ) mytagset  = myXtNew(THD_usertaglist) ;
       if( oldtagset == NULL ) oldtagset = myXtNew(THD_usertaglist) ;
       TAG_make_widgets() ;
+      PLUTO_set_topshell( plint , shell ) ;  /* 22 Sep 2000 */
    }
 
    /*-- set titlebar --*/

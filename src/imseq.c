@@ -3762,6 +3762,13 @@ void ISQ_but_cnorm_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 *    isqDR_getoptions      (ISQ_options *) to get the current options
 
+*    isqDR_setmontage      (int *) sets the montage parameters
+                            [0] = nx  [1] = ny  [2] = skip
+                            [3] = gap [4] = gap_color (overlay index)
+
+*    isqDR_setifrac        (float *) sets the image fraction
+                             between FRAC_MIN and FRAC_MAX
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -3779,6 +3786,68 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
                  drive_code) ;
          XBell( seq->dc->display , 100 ) ;
          return False ;
+      }
+      break ;
+
+      /*--------- set montage [22 Sep 2000] ----------*/
+      /* [mostly copied from ISQ_montage_action_CB()] */
+
+      case isqDR_setmontage:{
+         int * mm = (int *) drive_data ;
+
+         if( mm == NULL )                     return False ;  /* sanity */
+         if( mm[0] < 1 || mm[0] > MONT_NMAX ) return False ;  /* checks */
+         if( mm[1] < 1 || mm[1] > MONT_NMAX ) return False ;
+
+         seq->mont_nx_old       = seq->mont_nx       ;  /* save */
+         seq->mont_ny_old       = seq->mont_ny       ;
+         seq->mont_skip_old     = seq->mont_skip     ;
+         seq->mont_gap_old      = seq->mont_gap      ;
+         seq->mont_gapcolor_old = seq->mont_gapcolor ;
+
+         /* set new values, if legal */
+
+         seq->mont_nx = mm[0] ;
+         seq->mont_ny = mm[1] ;
+         if( mm[2] >= 0 && mm[2] <= MONT_SMAX ) seq->mont_skip     = mm[2] ;
+         if( mm[3] >= 0 && mm[3] <= MONT_GMAX ) seq->mont_gap      = mm[3] ;
+         if( mm[4] >= 0 &&
+             mm[4] <= seq->dc->ovc->ncol_ov-1 ) seq->mont_gapcolor = mm[4] ;
+
+         /* set Save:one */
+
+         if( seq->mont_nx * seq->mont_ny > 1 && !seq->opt.save_one ){
+            seq->opt.save_nsize  = 0 ;
+            seq->opt.save_pnm    = 0 ;
+            seq->opt.save_one    = 1 ;
+            SET_SAVE_LABEL(seq) ;
+         }
+
+         /* now do the redisplay */
+
+         ISQ_redisplay( seq , -1 , isqDR_display ) ;    /* local redraw */
+
+         if( seq->status->send_CB != NULL ){  /* tell AFNI */
+
+            ISQ_cbs cbs ;
+            THD_ivec3 minf ;
+            int ijcen = (seq->mont_nx)/2 + (seq->mont_ny/2) * seq->mont_nx ,
+                nmont = seq->mont_nx * seq->mont_ny ;
+
+            minf.ijk[0]  = ijcen ;            /* number of slices before center */
+            minf.ijk[1]  = nmont-ijcen-1 ;    /* number after */
+            minf.ijk[2]  = seq->mont_skip ;   /* number between slices */
+            cbs.reason   = isqCR_newmontage ;
+            cbs.userdata = (XtPointer) &minf ;
+
+            seq->ignore_redraws = 1 ;         /* don't listen to redraws */
+            seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+            seq->ignore_redraws = 0 ;         /* can listen again */
+         }
+
+         ISQ_redisplay( seq , -1 , isqDR_display ) ;    /* local redraw */
+
+         return True ;
       }
       break ;
 
@@ -3808,6 +3877,44 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
          ISQ_draw_winfo( seq ) ;
          return True ;
       }
+
+      /*------- setifrac [22 Sep 2000] -------*/
+      /* [mostly copied from ISQ_arrow_CB()]  */
+
+      case isqDR_setifrac:{
+         float * ff = (float *) drive_data ;
+
+         if( ff == NULL || *ff < FRAC_MIN || *ff > 1.0 ) return False ;
+
+         if( *ff <= FRAC_MAX ){ /* from ISQ_arrow_CB() */
+            float nfrac = *ff ;
+            seq->image_frac = nfrac ;
+
+            if( !seq->onoff_state )  /* turn widgets on first */
+               drive_MCW_imseq( seq,isqDR_onoffwid,(XtPointer)isqDR_onwid );
+
+            XtVaSetValues( seq->wimage ,
+                             XmNrightPosition ,(int)(0.49+nfrac*FORM_FRAC_BASE),
+                             XmNbottomPosition,(int)(0.49+nfrac*FORM_FRAC_BASE),
+                           NULL ) ;
+            XtVaSetValues( seq->wscale ,
+                             XmNrightPosition ,(int)(0.49+nfrac*FORM_FRAC_BASE),
+                           NULL ) ;
+            XtVaSetValues( seq->wbar ,
+                             XmNbottomPosition,(int)(0.49+nfrac*FORM_FRAC_BASE),
+                           NULL ) ;
+            XtVaSetValues( seq->winfo ,
+                             XmNrightPosition ,(int)(0.49+nfrac*FORM_FRAC_BASE),
+                           NULL ) ;
+
+         } else if( seq->onoff_state ) {  /* turn widgets off */
+
+            drive_MCW_imseq( seq,isqDR_onoffwid,(XtPointer)isqDR_offwid );
+
+         }
+         return True ;
+      }
+      break ;
 
       /*------- winfo extra text [07 Aug 1999] -------*/
 
@@ -3950,8 +4057,8 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
             XtManageChildren( seq->onoff_widgets , seq->onoff_num ) ;
             XtVaSetValues(
                seq->wimage ,
-                  XmNrightPosition ,(int)( 0.49 + seq->image_frac * FORM_FRAC_BASE ),
-                  XmNbottomPosition,(int)( 0.49 + seq->image_frac * FORM_FRAC_BASE ),
+                  XmNrightPosition ,(int)( 0.49+seq->image_frac*FORM_FRAC_BASE ),
+                  XmNbottomPosition,(int)( 0.49+seq->image_frac*FORM_FRAC_BASE ),
                NULL ) ;
             XtVaSetValues( seq->wtop ,
                               XmNwidth  , (int)(0.49+ww/seq->image_frac) ,

@@ -158,6 +158,7 @@ char * DRAW_main( PLUGIN_interface * plint )
    if( shell == NULL ){
       dc = im3d->dc ;        /* save this too */
       DRAW_make_widgets() ;
+      PLUTO_set_topshell( plint , shell ) ;  /* 22 Sep 2000 */
    }
 
    /*-- set titlebar --*/

@@ -3499,6 +3499,26 @@ int PLUTO_string_index( char * target , int num , char * source[] )
 }
 
 /*-----------------------------------------------------------------------
+  Function to let an IMMEDIATE mode plugin let AFNI know where its
+  toplevel shell is -- 22 Sep 2000 -- RWCox.
+-------------------------------------------------------------------------*/
+
+void PLUTO_set_topshell( PLUGIN_interface * plint , Widget ts )
+{
+ENTRY("PLUTO_set_topshell") ;
+
+   if( plint == NULL                                ||
+       plint->wid != NULL                           ||
+       ts == (Widget) 0                             ||
+       plint->call_method != PLUGIN_CALL_IMMEDIATELY  ) EXRETURN ;
+
+   plint->wid        = myXtNew(PLUGIN_widgets) ;
+   plint->wid->shell = ts ;
+   plint->wid->meter = NULL ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
   Routines to put a progress meter on the top of the interface shell
 -------------------------------------------------------------------------*/
 

@@ -68,6 +68,10 @@ WHOAMI ;
 
    switch( length ){
 
+      case 2048:   /* raw 32x32 short -- RWCox: 19 Sep 2000 */
+         im = mri_new( 32 , 32 , MRI_short ) ;
+         break ;
+
       case 4096:   /* raw 64x64 byte -- RWC 3/21/95 */
          im = mri_new( 64 , 64 , MRI_byte ) ;
          break ;
