@@ -530,8 +530,6 @@ int resam_str2mode ( char * modestr )
 
     for (mode = FIRST_RESAM_TYPE; mode <= LAST_RESAM_TYPE; mode++ )
     {
-	if ( ! strncmp( modestr, RESAM_shortstr[mode], 2 ) )
-	    return mode;
 	if ( ! strncmp( modestr, RESAM_typestr[mode], 2 ) )
 	    return mode;
     }
