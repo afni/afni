@@ -44,7 +44,7 @@ MP_ALL_OBJS = $(MP_BASE_OBJS) $(MP_OTHER_OBJS) $(MP_ENCODE_OBJS) \
 ############
 
 mpeg_encode: $(MP_ALL_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(MP_ALL_OBJS) -L.. $(LFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(MP_ALL_OBJS) -L.. $(LFLAGS) $(LLIBS)
 
 headers.o: headers.c
 	$(CC) $(CFLAGS) -c headers.c
