@@ -76,6 +76,21 @@ ZFIRST zz[d]
   will be properly positioned relative to each other (e.g., so you
   can overlay SPGR and EPI data correctly).
 
+XYZFIRST xx[d] yy[d] zz[d]
+  This new option (10 Dec 2002) lets you set the offsets of the dataset
+  volume on all 3 axes.  It is very similar to ZFIRST above, but you
+  give values for all axes.  For example:
+    XYZAXES  S-I A-P L-R
+    XYZFIRST 30 20A 50R
+  sets the x-origin to 30S (since no direction code was given for x),
+       the y-origin to 20A, and
+       the z-origin to 50R.  Since the z-axis is L-R and starts in the
+  R hemisphere, these sagittal slices are all in the R hemisphere.  If
+  the 'R' code had been left off the '50R', then the z-origin would have
+  been set to 50L.  Note that the origin is the CENTER of the first voxel.
+ *This command is optional.  If it is given along with ZFIRST (why?), then
+  whichever one comes last wins (for the z-axis).
+
 XYMATRIX nx ny [nz]
   Specifies the size of the images to come, in pixels:
     nx = number of pixels along x-axis
