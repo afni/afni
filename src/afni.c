@@ -30,9 +30,9 @@
 
 #include "afni.h"
 
-#define ANNOUNCEMENT  \
- " GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"  \
- " This is Version " VERSION " of " RELEASE"\n"                               \
+#define ANNOUNCEMENT                                                           \
+ " GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"   \
+ " This is Version " VERSION " of " RELEASE"\n"                                \
  "  ** This software was designed to be used only for research purposes. **\n" \
  "  ** Clinical uses are not recommended, and have never been evaluated. **\n" \
  "  ** This software comes with no warranties of any kind whatsoever,    **\n" \
@@ -43,7 +43,8 @@
 #ifdef AFNI_DEBUG
 #  define REPORT_PROGRESS(str)  /* nada */
 #else
-#  define REPORT_PROGRESS(str) (printf(str),fflush(stdout))
+#  define REPORT_PROGRESS(str)  \
+    do{ if(AFNI_VERBOSE){printf(str);fflush(stdout);} } while(0)
 #endif
 
 #define EMPTY_STRING(str) ((str)[0] = '\0')
@@ -234,6 +235,7 @@ void AFNI_syntax(void)
      "\n"
      "General options (for any Usage):\n"
      "\n"
+     "   -q           Tells afni to be 'quiet' on startup\n"
      "   -gamma gg    Tells afni that the gamma correction factor for the\n"
      "                  monitor is 'gg' (default gg is 1.0; greater than\n"
      "                  1.0 makes the image contrast larger -- this may\n"
@@ -793,6 +795,12 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -q option -----*/
+
+      if( strcmp(argv[narg],"-q") == 0 ){            /* was handled in main() */
+         narg++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -- option -----*/
 
       if( strcmp(argv[narg],"--") == 0 ){
@@ -928,6 +936,14 @@ int main( int argc , char * argv[] )
 #ifdef USE_TRACING
    if( ALLOW_real_time ) DBG_trace = 0 ; /* 26 Jan 2001 */
 #endif
+
+   /** 25 Oct 2001: check for -q (quiet) option right away **/
+
+   GLOBAL_argopt.quiet = AFNI_yesenv("AFNI_QUIET") ;
+   if( AFNI_VERBOSE ){
+     for( ii=1 ; ii < argc ; ii++ )
+       if( strcmp(argv[ii],"-q") == 0 ){ GLOBAL_argopt.quiet = 1 ; break ; }
+   }
 
    /*--- help? ---*/
 
@@ -4562,7 +4578,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    if( new_xyz                         &&
        AGNI_ENABLED                    &&
        im3d->anat_now->ag_surf != NULL &&
-       im3d->anat_now->ag_vmap != NULL   ){
+       im3d->anat_now->ag_vmap != NULL &&
+      !im3d->anat_wod_flag               ){
 
       int pp = im3d->anat_now->ag_vmap[ i1 + j2*dim1 + k3*dim1*dim2 ] ;
 

@@ -3226,3 +3226,8 @@
 22 Oct 2001
  * Fixed bug in 3dvolreg.c about -twopass weight brick (noted by
      William Gandler of the NIH).
+
+25 Oct 2001
+ * Added "-q" (quiet) option to afni.c.
+ * Fixed bug in AFNI_set_viewpoint() in afni.c, so that the AGNI node
+     is looked up only if we are in "view brick" mode.

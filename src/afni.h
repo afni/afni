@@ -65,6 +65,8 @@ typedef struct {
 #ifdef ALLOW_AGNI
       int enable_agni ;       /* 29 Aug 2001 */
 #endif
+
+      int quiet ;             /* 25 Aug 2001 */
 } AF_options ;
 
 #ifdef MAIN
@@ -129,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.32a"
+#define VERSION "2.32b"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "18 Oct 2001      "
+#define RELEASE "25 Oct 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -949,6 +951,7 @@ typedef struct {
 #define GPT             GLOBAL_library.gpt
 #define NO_frivolities  GLOBAL_argopt.no_frivolities
 #define SESSTRAIL       GLOBAL_library.sesstrail
+#define AFNI_VERBOSE    (!GLOBAL_argopt.quiet)  /* 25 Oct 2001 */
 
 #ifdef ALLOW_AGNI                               /* 29 Aug 2001 */
 # define AGNI_ENABLED GLOBAL_argopt.enable_agni

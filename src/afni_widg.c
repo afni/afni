@@ -30,7 +30,8 @@
 #ifdef AFNI_DEBUG
 #  define REPORT_PROGRESS(str)  /* nada */
 #else
-#  define REPORT_PROGRESS(str) (printf(str),fflush(stdout))
+#  define REPORT_PROGRESS(str)  \
+    do{ if(AFNI_VERBOSE){printf(str);fflush(stdout);} } while(0)
 #endif
 
 static int num_entry = 0 ;  /* 31 Aug 1999 */
