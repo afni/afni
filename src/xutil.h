@@ -218,4 +218,6 @@ extern void RWC_drag_rectangle( Widget, int,int, int *,int * ) ; /* 12 Jun 2002 
 
 extern void RWC_XtPopdown( Widget ) ; /* 30 Jun 2003 */
 
+extern void AFNI_speak( char *string , int nofork ) ;   /* 24 Nov 2003 */
+
 #endif /* _MCW_XUTIL_HEADER_ */
