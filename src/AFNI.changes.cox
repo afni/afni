@@ -3968,3 +3968,7 @@
  * Oops.  Forgot to fclose() the fopen()-ed file in mri_read_dicom.c.  This
      was causing the problems in to3d mentioned above.
  * New program dicom_to_raw.c.
+
+30 Sep 2002
+ * Modified 3dAFNItoANALYZE.c (and mri_write_analyze.c) to allow output of
+     AFNI datasets into a 4D ANALYZE format file.

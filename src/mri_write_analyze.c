@@ -100,7 +100,6 @@ ENTRY("mri_write_analyze") ;
 
    if( fname == NULL || fname[0] == '\0' || im == NULL ) EXRETURN ;
    ip = mri_data_pointer(im) ;
-   if( ip == NULL ) EXRETURN ;
 
    /*-- clear header --*/
 
@@ -112,7 +111,9 @@ ENTRY("mri_write_analyze") ;
    hdr.hk.regular    = 'r' ;
 
    sprintf( hdr.hk.db_name   , "%.17s"           , fname ) ;
+#if 0
    sprintf( hdr.hist.descrip , "via AFNI: %.68s" , fname ) ;
+#endif
 
    /*-- set data dimensions --*/
 
@@ -144,15 +145,20 @@ ENTRY("mri_write_analyze") ;
 
    hdr.dime.bitpix = 8*im->pixel_size ;
 
-   hdr.dime.glmin = mri_min( im ) ;
-   hdr.dime.glmax = mri_max( im ) ;
+   if( ip != NULL ){
+     hdr.dime.glmin = mri_min( im ) ;
+     hdr.dime.glmax = mri_max( im ) ;
+   } else {
+     hdr.dime.glmin = 0.0 ;
+     hdr.dime.glmax = 0.0 ;
+   }
 
    /*-- write header --*/
 
    fff = malloc( strlen(fname)+16 ) ;
 
    sprintf(fff,"%s.hdr",fname) ;
-   fp = fopen( fff , "w" ) ;
+   fp = fopen( fff , "wb" ) ;
    if( fp == NULL ){
       fprintf(stderr,"** Can't open file %s for output!\n",fff) ;
       free(fff) ; EXRETURN ;
@@ -160,10 +166,14 @@ ENTRY("mri_write_analyze") ;
    fwrite( &hdr , sizeof(struct dsr) , 1 , fp ) ;
    fclose(fp) ;
 
+   if( ip == NULL ){      /* 30 Sep 2002: skip .img if data not present */
+     free(fff); EXRETURN;
+   }
+
    /*-- write image --*/
 
    sprintf(fff,"%s.img",fname) ;
-   fp = fopen( fff , "w" ) ;
+   fp = fopen( fff , "wb" ) ;
    if( fp == NULL ){
       fprintf(stderr,"** Can't open file %s for output!\n",fff) ;
       free(fff) ; EXRETURN ;
