@@ -9,6 +9,18 @@
 
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
+#define SUMA_WRAP_VALUE(v, min, max)   \
+   {  \
+      if (v > max) v = min;   \
+      else if (v < min) v = max; \
+   }
+
+#define SUMA_CLIP_VALUE(v, min, max)   \
+   {  \
+      if (v > max) v = max;   \
+      else if (v < min) v = min; \
+   }
+   
 #define SUMA_SET_GL_RENDER_MODE(m_PolyMode)  \
    {  \
       switch (m_PolyMode) {   \

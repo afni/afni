@@ -34,7 +34,7 @@ char *SUMA_BuildMessageLog (DList *ML);
 
 /*!
    \brief Macro that adds a command to the head of command list.
-   SUMA_REGISTER_COMMAND_NO_DATA(list, Command, Src, Srcp)
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, Command, Src, Srcp)
 
    \param list (DList *) pointer to list 
    \param Command (SUMA_ENGINE_CODE) command code
@@ -45,7 +45,7 @@ char *SUMA_BuildMessageLog (DList *ML);
    - No Engine Data can be passed with this macro
 
 */
-#define SUMA_REGISTER_COMMAND_NO_DATA(list, Command, Src, Srcp) {\
+#define SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, Command, Src, Srcp) {\
    SUMA_EngineData *ED_macro; \
    ED_macro = SUMA_InitializeEngineListData (Command);   \
    if (!SUMA_RegisterEngineListCommand (  list, ED_macro, \
@@ -56,6 +56,21 @@ char *SUMA_BuildMessageLog (DList *ML);
    }  \
 }
 
+/*!
+   \brief Macro that adds a command to the tail of command list.
+   
+   \sa SUMA_REGISTER_HEAD_COMMAND_NO_DATA
+*/
+#define SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, Command, Src, Srcp) {\
+   SUMA_EngineData *ED_macro; \
+   ED_macro = SUMA_InitializeEngineListData (Command);   \
+   if (!SUMA_RegisterEngineListCommand (  list, ED_macro, \
+                                          SEF_Empty, NULL,  \
+                                          Src, (void *)Srcp, NOPE,   \
+                                          SEI_Tail, NULL)) {   \
+      fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);   \
+   }  \
+}
 
 
 #endif

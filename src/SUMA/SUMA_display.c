@@ -819,14 +819,18 @@ SUMA_MenuItem File_menu[] = {
    {NULL},
 };
  
+
+/* 
 SUMA_MenuItem Edit_menu[] = {
    {  "Draw ROI", &xmPushButtonWidgetClass, \
       'D', "Ctrl <Key>d", "Ctrl+D", \
-      SUMA_cb_EditDrawROI, (XtPointer) SW_EditDrawROI, NULL },
+      SUMA_cb_ToolsDrawROI, (XtPointer) SW_ToolsDrawROI, NULL },
    
    {NULL},
 
 };
+*/
+
  
 SUMA_MenuItem View_menu[] = {
    {  "SUMA Controller", &xmPushButtonWidgetClass, \
@@ -859,6 +863,16 @@ SUMA_MenuItem View_menu[] = {
       
    {NULL},
 };
+
+SUMA_MenuItem Tools_menu[] = {
+   {  "Draw ROI", &xmPushButtonWidgetClass, \
+      'D', "Ctrl <Key>d", "Ctrl+D", \
+      SUMA_cb_ToolsDrawROI, (XtPointer) SW_ToolsDrawROI, NULL },
+   
+   {NULL},
+
+};
+
 
 SUMA_MenuItem Help_menu[] = {
    {  "Viewer Usage", &xmPushButtonWidgetClass, \
@@ -991,22 +1005,21 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
                                  "File", 'F', YUP, File_menu, \
                                  (void *)ic, SUMAg_SVv[ic].X->FileMenu );
          
-         /* create Edit Menu */
-         SUMAg_SVv[ic].X->ViewMenu[SW_View] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
-                                 "Edit", 'E', YUP, Edit_menu, \
-                                 (void *)ic, SUMAg_SVv[ic].X->EditMenu );
-         
          /* create View Menu */
          SUMAg_SVv[ic].X->ViewMenu[SW_View] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
                                  "View", 'V', YUP, View_menu, \
                                  (void *)ic, SUMAg_SVv[ic].X->ViewMenu );
+         
+         /* create Tools Menu */
+         SUMAg_SVv[ic].X->ToolsMenu[SW_Tools] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
+                                 "Tools", 'E', YUP, Tools_menu, \
+                                 (void *)ic, SUMAg_SVv[ic].X->ToolsMenu );
          
          /* create Help Menu */
          SUMAg_SVv[ic].X->HelpMenu[SW_Help] = SUMA_BuildMenu(menubar, XmMENU_PULLDOWN, \
                                  "Help", 'H', YUP, Help_menu, \
                                  (void *)ic, SUMAg_SVv[ic].X->HelpMenu );
          
-         /*STOPPED HERE */
          XtVaSetValues (menubar, XmNmenuHelpWidget, SUMAg_SVv[ic].X->HelpMenu[SW_Help], NULL);
                                  
          /* set states of the some view menu widgets */
@@ -1712,7 +1725,7 @@ void SUMA_cb_helpViewer (Widget w, XtPointer data, XtPointer callData)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Help, SES_Suma, NULL); 
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Help, SES_Suma, NULL); 
    if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
@@ -1732,7 +1745,7 @@ void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Log, SES_Suma, NULL); 
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Log, SES_Suma, NULL); 
    if (!SUMA_Engine (&list)) {
       fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
    }
@@ -1916,8 +1929,8 @@ void SUMA_cb_toggle_crosshair(Widget w, XtPointer data, XtPointer callData)
    sv = &SUMAg_SVv[isv];
       
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleCrossHair, SES_SumaWidget, sv);
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaWidget, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleCrossHair, SES_SumaWidget, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaWidget, sv);
 
    if (!SUMA_Engine (&list)) {
       fprintf(stderr,"Error %s: Failed SUMA_Engine\n", FuncName);
@@ -1940,8 +1953,8 @@ void SUMA_cb_toggle_node_in_focus(Widget w, XtPointer data, XtPointer callData)
    sv = &SUMAg_SVv[isv];
       
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleShowSelectedNode, SES_SumaWidget, sv);
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaWidget, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedNode, SES_SumaWidget, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaWidget, sv);
 
    if (!SUMA_Engine (&list)) {
       fprintf(stderr,"Error %s: Failed SUMA_Engine\n", FuncName);
@@ -1964,8 +1977,8 @@ void SUMA_cb_toggle_selected_faceset(Widget w, XtPointer data, XtPointer callDat
    sv = &SUMAg_SVv[isv];
       
    if (!list) list = SUMA_CreateList();
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_ToggleShowSelectedFaceSet, SES_SumaWidget, sv);
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaWidget, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_ToggleShowSelectedFaceSet, SES_SumaWidget, sv);
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_SumaWidget, sv);
 
    if (!SUMA_Engine (&list)) {
       fprintf(stderr,"Error %s: Failed SUMA_Engine\n", FuncName);
@@ -2241,13 +2254,12 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          XmNtraversalOn , False ,
          NULL); 
 
-      #ifndef MOTIF_1_2
+      /* this one requires Motif 1.2 or newer */
          XtVaCreateManagedWidget ("Disp. Cont.",
             xmLabelGadgetClass, DispFrame, 
             XmNchildType, XmFRAME_TITLE_CHILD,
             XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
             NULL);
-      #endif   
 
       /* row column Lock rowcolumns */
       rc = XtVaCreateWidget ("rowcolumn",
@@ -2333,15 +2345,672 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 
 }
 
-
+/*!
+   \brief creates/raises the DrawROI window
+   
+   \param DrawnROI (SUMA_DRAWN_ROI *) a drawn ROI that is currently being drawn. NULL if there are none
+   
+*/
+SUMA_Boolean SUMA_OpenDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
+{
+   static char FuncName[] = {"SUMA_OpenDrawROIWindow"};
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SUMAg_CF->X->DrawROI->AppShell) { /* need to create window */
+      SUMA_CreateDrawROIWindow ();
+   } else {/* just needs raising */
+      /* controller already created, need to bring it up again */
+      #ifdef SUMA_USE_WITHDRAW
+         if (LocalHead) fprintf (SUMA_STDERR,"%s: raising DrawROI window \n", FuncName);
+         XMapRaised(SUMAg_CF->X->DPY_controller1, XtWindow(SUMAg_CF->X->DrawROI->AppShell));
+      #endif
+   }
+   
+   if (DrawnROI) {
+      /* initialize the window */
+      SUMA_InitializeDrawROIWindow (DrawnROI);
+   } 
+   
+   SUMA_RETURN(YUP);
+}
 
 /*!
-   \brief creates the SUMA controller window. Expects no input
+   \brief Sets the widgets in the DrawROI window based on the DrawnROI structure
+*/
+SUMA_Boolean SUMA_InitializeDrawROIWindow (SUMA_DRAWN_ROI *DrawnROI)
+{
+   static char FuncName[] = {"SUMA_InitializeDrawROIWindow"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_RETURN (YUP);
+}
+
+/*!
+   \brief Creates the widgets for the DrawROI window
+*/
+void SUMA_CreateDrawROIWindow(void)
+{
+   static char FuncName[] = {"SUMA_CreateDrawROIWindow"};
+   Widget form, frame, rc, pb, rc_ur, rcv;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (SUMAg_CF->X->DrawROI->AppShell) {
+      fprintf (SUMA_STDERR,"Error %s: SUMAg_CF->X->DrawROI->AppShell!=NULL. Should not be here.\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   /* create as a separate application shell, you do not want a parent to this controller that
+   can be closed or withdrawn temporarily */
+   SUMAg_CF->X->DrawROI->AppShell = XtVaAppCreateShell("Draw ROI" , "Suma" ,
+      topLevelShellWidgetClass , SUMAg_CF->X->DPY_controller1 ,
+      NULL ) ;
+   
+   /* turn off default delete response. If you do not do that, you will suffer.*/
+   XtVaSetValues( SUMAg_CF->X->DrawROI->AppShell,
+           XmNdeleteResponse, XmDO_NOTHING,
+           NULL);  
+             
+   /* handle the close button from window manager */
+   XmAddWMProtocolCallback(/* make "Close" window menu work */
+      SUMAg_CF->X->DrawROI->AppShell,
+      XmInternAtom( SUMAg_CF->X->DPY_controller1 , "WM_DELETE_WINDOW" , False ) ,
+      SUMA_cb_CloseDrawROIWindow, NULL) ;
+   
+   /* create a form widget, manage it at the end ...*/
+   form = XtVaCreateWidget ("dialog", 
+      xmFormWidgetClass, SUMAg_CF->X->DrawROI->AppShell,
+      XmNborderWidth , 0 ,
+      XmNmarginHeight , SUMA_MARGIN ,
+      XmNmarginWidth  , SUMA_MARGIN ,
+      XmNshadowThickness, 2,
+      XmNshadowType, XmSHADOW_ETCHED_IN,
+      NULL); 
+   
+   /* a frame to put stuff in */
+   frame = XtVaCreateWidget ("dialog",
+      xmFrameWidgetClass, form,
+      XmNleftAttachment , XmATTACH_FORM ,
+      XmNtopAttachment  , XmATTACH_FORM ,
+      XmNshadowType , XmSHADOW_ETCHED_IN ,
+      XmNshadowThickness , 5 ,
+      XmNtraversalOn , False ,
+      NULL); 
+   
+   
+   /* vertical row column to stack horizontal rcs in */
+   rcv = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, frame,
+         XmNorientation , XmVERTICAL ,
+         XmNmarginHeight, SUMA_MARGIN ,
+         XmNmarginWidth , SUMA_MARGIN ,
+         NULL);
+         
+   XtVaCreateManagedWidget ("ROI",
+      xmLabelGadgetClass, frame, 
+      XmNchildType, XmFRAME_TITLE_CHILD,
+      XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
+      NULL);
+   
+   /* row column for the surface labels and the toggle DrawROI buttons */
+   rc = XtVaCreateWidget ("rowcolumn",
+         xmRowColumnWidgetClass, rcv,
+         XmNpacking, XmPACK_TIGHT, 
+         XmNorientation , XmHORIZONTAL ,
+         XmNmarginHeight, SUMA_MARGIN ,
+         XmNmarginWidth , SUMA_MARGIN ,
+         NULL);
+   
+   /*put a label containing the ROI's parent surface name */
+   SUMAg_CF->X->DrawROI->ParentLabel_lb = XtVaCreateManagedWidget ("parent: N/A", 
+            xmLabelWidgetClass, rc,
+            NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->ParentLabel_lb , SUMA_DrawROI_ParentLabel_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->ParentLabel_lb , "Label of the ROI's parent surface" ) ;
+   
+   /*put a toggle button for the DrawROI more */
+   SUMAg_CF->X->DrawROI->DrawROImode_tb = XtVaCreateManagedWidget("Draw Mode", 
+      xmToggleButtonGadgetClass, rc, NULL);
+   XmToggleButtonSetState (SUMAg_CF->X->DrawROI->DrawROImode_tb, SUMAg_CF->ROI_mode, NOPE);
+   XtAddCallback (SUMAg_CF->X->DrawROI->DrawROImode_tb, 
+                  XmNvalueChangedCallback, SUMA_cb_DrawROImode_toggled, 
+                  NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->DrawROImode_tb , SUMA_DrawROI_DrawROIMode_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->DrawROImode_tb , "Toggles ROI drawing mode" ) ;
+
+   /* set the toggle button's select color */
+   SUMA_SET_SELECT_COLOR(SUMAg_CF->X->DrawROI->DrawROImode_tb);
+   
+   /* manage rc */
+   XtManageChild (rc);
+   
+   /* add a rc for the ROI label and the ROI node value */
+   rc = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, rcv,
+      XmNpacking, XmPACK_TIGHT, 
+      XmNorientation , XmHORIZONTAL ,
+      NULL);
+   
+   
+   SUMA_CreateTextField ( rc, "Label:",
+                           6, SUMA_DrawROI_NewLabel,
+                           SUMAg_CF->X->DrawROI->ROIlbl);
+                             
+   SUMA_CreateArrowField ( rc, "Value:",
+                           1, -10, 10, 1,
+                           3, SUMA_int,
+                           NOPE,
+                           SUMA_DrawROI_NewValue,
+                           SUMAg_CF->X->DrawROI->ROIval);
+   /* manage  rc */
+   XtManageChild (rc);
+   
+   
+   /* a separator */
+   XtVaCreateManagedWidget ("sep", xmSeparatorWidgetClass, rcv, NULL);
+   
+   /* add rc for undo, redo, save, close buttons */
+   rc_ur = XtVaCreateWidget ("rowcolumn",
+      xmRowColumnWidgetClass, rcv,
+      XmNpacking, XmPACK_TIGHT, 
+      XmNorientation , XmHORIZONTAL ,
+      XmNmarginHeight, SUMA_MARGIN ,
+      XmNmarginWidth , SUMA_MARGIN ,
+      NULL);
+
+   SUMAg_CF->X->DrawROI->Undo_pb = XtVaCreateWidget ("Undo", 
+      xmPushButtonWidgetClass, rc_ur, 
+      NULL);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Undo_pb, XmNactivateCallback, SUMA_cb_DrawROI_Undo, NULL);   
+   MCW_register_help(SUMAg_CF->X->DrawROI->Undo_pb , SUMA_DrawROI_Undo_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Undo_pb , "Undo the last action on the stack" ) ;
+   XtManageChild (SUMAg_CF->X->DrawROI->Undo_pb);
+   
+   SUMAg_CF->X->DrawROI->Redo_pb = XtVaCreateWidget ("Redo", 
+      xmPushButtonWidgetClass, rc_ur, 
+      NULL);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Redo_pb, XmNactivateCallback, SUMA_cb_DrawROI_Redo, NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->Redo_pb , SUMA_DrawROI_Redo_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Redo_pb , "Redo the last undone action" ) ;
+   XtManageChild (SUMAg_CF->X->DrawROI->Redo_pb);
+   
+   SUMAg_CF->X->DrawROI->Save_pb = XtVaCreateWidget ("Save", 
+      xmPushButtonWidgetClass, rc_ur, 
+      NULL);
+   XtAddCallback (SUMAg_CF->X->DrawROI->Save_pb, XmNactivateCallback, SUMA_cb_DrawROI_Save, NULL);
+   MCW_register_help(SUMAg_CF->X->DrawROI->Save_pb , SUMA_DrawROI_Save_help ) ;
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Save_pb , "Save the Drawn ROI" ) ;
+   XtManageChild (SUMAg_CF->X->DrawROI->Save_pb);
+
+   pb = XtVaCreateWidget ("BHelp", 
+      xmPushButtonWidgetClass, rc_ur, 
+      NULL);
+   XtAddCallback (pb, XmNactivateCallback, MCW_click_help_CB, NULL);  
+   MCW_register_help(pb , SUMA_help_help ) ;
+   MCW_register_hint(pb , "Coddles the weak." ) ;
+   XtManageChild (pb);
+    
+   SUMAg_CF->X->DrawROI->Close_pb = XtVaCreateWidget ("Close", 
+      xmPushButtonWidgetClass, rc_ur, 
+      NULL);   
+   XtAddCallback (SUMAg_CF->X->DrawROI->Close_pb, XmNactivateCallback, SUMA_cb_CloseDrawROIWindow, NULL);
+   MCW_register_hint(SUMAg_CF->X->DrawROI->Close_pb  , "Close Draw ROI window" ) ;
+   MCW_register_help(SUMAg_CF->X->DrawROI->Close_pb  , SUMA_closeDrawROI_help ) ;
+   XtManageChild (SUMAg_CF->X->DrawROI->Close_pb);  
+   
+   /* manage rc_ur */
+   XtManageChild (rc_ur);
+   
+   /* manage vertical rc */
+   XtManageChild (rcv);
+   
+   /* manage frame */
+   XtManageChild (frame);
+   
+   /* manage form */
+   XtManageChild (form);
+
+   /* realize the widget */
+   XtRealizeWidget (SUMAg_CF->X->DrawROI->AppShell);
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief adds arrow fields
+   SUMA_CreateArrowField (    pw, label, 
+                              value,  vmin,  vmax,  vstep,
+                              cwidth, type,
+                              wrap,
+                              NewValueCallback,
+                              AF);
+                              
+   \param pw (Widget)   Parent widget
+   \param label (char *) label (NULL for nothing)
+   \param value (float) current value
+   \param vmin (float) minimum value
+   \param vmax (float) maximum value
+   \param vstep (float) arrow increment
+   \param cwidth (int) number of columns for text field
+   \param type (SUMA_VARTYPE) SUMA_int or SUMA_float
+   \param wrap (SUMA_Boolean) YUP=wrap values, NOPE=clip values
+   \param NewValueCallback(void *data) (void *) Function to call when there is a new value in town. data is actually the AF structure pointer itself
+   \param AF (SUMA_ARROW_TEXT_FIELD *) structure defining the arrow field.                        
+   - AF must be pre-allocated, of course. Its fields are initialized by the values passed to the function
+*/
+void SUMA_CreateArrowField ( Widget pw, char *label,
+                              float value, float vmin, float vmax, float vstep,
+                              int cwidth, SUMA_VARTYPE type,
+                              SUMA_Boolean wrap,
+                              void (*NewValueCallback)(void *data),
+                              SUMA_ARROW_TEXT_FIELD *AF)
+{
+   static char FuncName[]={"SUMA_CreateArrowField"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!AF) {
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, "Bad value in text field", FuncName, SMT_Error, SMA_Log);
+      SUMA_RETURNe;  
+   }
+   
+   AF->step = vstep;
+   AF->value = value;
+   AF->min = vmin;
+   AF->max = vmax;
+   AF->cwidth = cwidth;
+   AF->type = type;
+   AF->NewValueCallback = NewValueCallback;
+   AF->modified = NOPE;
+   AF->wrap = wrap;
+   AF->rc = XtVaCreateManagedWidget ("Container", 
+      xmRowColumnWidgetClass, pw,
+      XmNpacking, XmPACK_TIGHT, 
+      XmNorientation , XmHORIZONTAL ,
+      NULL);
+   
+   if (label) {
+      AF->label =  XtVaCreateManagedWidget (label,
+        xmLabelGadgetClass, AF->rc, NULL);
+   }else {
+      AF->label = NULL;
+   }
+
+   AF->up = XtVaCreateManagedWidget ("arrow_up",
+        xmArrowButtonGadgetClass, AF->rc,
+        XmNarrowDirection,   XmARROW_UP,
+        NULL);
+    XtVaSetValues (AF->up, XmNuserData, (XtPointer)AF, NULL);
+    XtAddCallback (AF->up, XmNarmCallback, SUMA_ATF_start_stop, (XtPointer)1);
+    XtAddCallback (AF->up, XmNdisarmCallback, SUMA_ATF_start_stop, (XtPointer)1);
+
+    AF->down = XtVaCreateManagedWidget ("arrow_dn",
+        xmArrowButtonGadgetClass, AF->rc,
+        XmNarrowDirection,   XmARROW_DOWN,
+        NULL);
+    XtVaSetValues (AF->down, XmNuserData, (XtPointer)AF, NULL);
+    XtAddCallback (AF->down, XmNarmCallback, SUMA_ATF_start_stop, (XtPointer)-1);
+    XtAddCallback (AF->down, XmNdisarmCallback, SUMA_ATF_start_stop, (XtPointer)-1);
+
+   AF->textfield = XtVaCreateManagedWidget ("label",
+        xmTextFieldWidgetClass, AF->rc,
+        XmNuserData, (XtPointer)AF,
+        XmNvalue, "0",
+        XmNcolumns, AF->cwidth,
+        NULL);
+   XtAddCallback (AF->textfield, XmNactivateCallback, SUMA_ATF_cb_label_change, (XtPointer)AF);
+   XtAddCallback (AF->textfield, XmNmodifyVerifyCallback, SUMA_ATF_cb_label_Modify, (XtPointer)AF);
+   
+   /* add event handler to nitify when widget was left */
+   XtInsertEventHandler( AF->textfield ,        /* notify when */
+                         LeaveWindowMask ,  /* pointer leaves */
+                         FALSE ,            /* this window */
+                         SUMA_leave_EV,
+                         (XtPointer) AF ,
+                         XtListTail ) ;     /* last in queue */      
+   XtManageChild (AF->rc);
+   SUMA_RETURNe;
+}
+
+/*! 
+   creates a text field.
+   
+   \sa SUMA_CreateArrowField 
+*/
+void SUMA_CreateTextField ( Widget pw, char *label,
+                              int cwidth, 
+                              void (*NewValueCallback)(void *data),
+                              SUMA_ARROW_TEXT_FIELD *AF)
+{
+   static char FuncName[]={"SUMA_ATF_cb_label_Modify"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* techincally, one should have a structure that is only for text but that is not necessary, I think */
+   
+   AF->up = AF->down = NULL;
+   AF->step = AF->value = AF->min = AF->max = AF->wrap = 0;
+   
+   AF->type = SUMA_string;
+   AF->NewValueCallback = NewValueCallback;
+   AF->cwidth = cwidth;
+   AF->modified = NOPE;
+
+   AF->rc = XtVaCreateManagedWidget ("Container", 
+      xmRowColumnWidgetClass, pw,
+      XmNpacking, XmPACK_TIGHT, 
+      XmNorientation , XmHORIZONTAL ,
+      NULL);
+
+   if (label) {
+      AF->label =  XtVaCreateManagedWidget (label,
+        xmLabelGadgetClass, AF->rc, NULL);
+   }else {
+      AF->label = NULL;
+   }
+   
+   AF->textfield = XtVaCreateManagedWidget ("label",
+        xmTextFieldWidgetClass, AF->rc,
+        XmNuserData, (XtPointer)AF,
+        XmNvalue, "0",
+        XmNcolumns, AF->cwidth,
+        NULL);
+   XtAddCallback (AF->textfield, XmNactivateCallback, SUMA_ATF_cb_label_change, (XtPointer)AF);
+   XtAddCallback (AF->textfield, XmNmodifyVerifyCallback, SUMA_ATF_cb_label_Modify, (XtPointer)AF);
+   
+   /* add event handler to nitify when widget was left */
+   XtInsertEventHandler( AF->textfield ,        /* notify when */
+                         LeaveWindowMask ,  /* pointer leaves */
+                         FALSE ,            /* this window */
+                         SUMA_leave_EV,
+                         (XtPointer) AF ,
+                         XtListTail ) ;     /* last in queue */      
+   XtManageChild (AF->rc);   
+   SUMA_RETURNe;
+} 
+
+/*!
+   \brief This function is called when label field has been modified by user keyboard input.
+   All it does is set AF->modified to YUP
+   
+*/
+void SUMA_ATF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_ATF_cb_label_Modify"};
+   SUMA_ARROW_TEXT_FIELD *AF=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   AF = (SUMA_ARROW_TEXT_FIELD *)client_data ;
+   if (!AF->arrow_action) AF->modified = YUP;
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief This function is called when mouse pointer leaves label field
+   It only acts if  AF->modified 
+*/
+void SUMA_leave_EV( Widget w , XtPointer client_data ,
+                  XEvent * ev , Boolean * continue_to_dispatch )
+{
+   SUMA_ARROW_TEXT_FIELD *AF=NULL; 
+   XLeaveWindowEvent * lev = (XLeaveWindowEvent *) ev ;
+   XmAnyCallbackStruct cbs ;
+   static char FuncName[]={"SUMA_leave_EV"};
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   AF = (SUMA_ARROW_TEXT_FIELD *)client_data ;
+   if( lev->type != LeaveNotify || !AF->modified ) SUMA_RETURNe; 
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Leave notification.\n", FuncName);
+   SUMA_ATF_cb_label_change( AF->textfield , (XtPointer) AF , NULL ) ;
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief This function is called when the label field is activated by the user
+   
+*/
+void SUMA_ATF_cb_label_change (Widget w, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_ATF_cb_label_change"};
+   SUMA_ARROW_TEXT_FIELD *AF=NULL;
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   /* make call to NewValue callback */
+   AF = (SUMA_ARROW_TEXT_FIELD *)client_data;
+   
+   SUMA_ATF_SetValue (AF);
+   
+   AF->NewValueCallback((void*)AF);
+   
+   AF->modified = NOPE;
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief function to handle the pressed buttons of the arrow keys
+   
+   -Based on code from Motif Programming Manual: arrow_timer.c
+   
+ - start_stop is used to start or stop the incremental changes to
+ * the label's value.  When the button goes down, the reason is
+ * XmCR_ARM and the timer starts.  XmCR_DISARM disables the timer.
+ */
+void SUMA_ATF_start_stop (Widget w, XtPointer client_data, XtPointer call_data)
+{
+   static char FuncName[]={"SUMA_ATF_start_stop"};
+   int incr = (int) client_data;
+   SUMA_ARROW_TEXT_FIELD *AF = NULL;
+   void *n;
+   XmArrowButtonCallbackStruct *cbs = 
+        (XmArrowButtonCallbackStruct *) call_data;
+   
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   XtVaGetValues(w, XmNuserData, &n, NULL);
+   AF = (SUMA_ARROW_TEXT_FIELD *)n;
+   AF->direction = incr;
+
+   if (cbs->reason == XmCR_ARM) {
+     AF->arrow_action = YUP;
+     SUMA_ATF_change_value (AF, (XtIntervalId *)1 );
+   } else if (cbs->reason == XmCR_DISARM) {
+     XtRemoveTimeOut (AF->arrow_timer_id);
+     /* make call to NewValue callback */
+     AF->NewValueCallback((void*)AF);
+     AF->arrow_action = NOPE;
+ 
+   }     
+
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief A function that is called when the DrawROI value arrow field is set.
+   
+   \param data (void *) a typecast of a pointer to a SUMA_ARROW_TEXT_FIELD structure
+*/
+void SUMA_DrawROI_NewValue (void *data)
+{
+   static char FuncName[]={"SUMA_DrawROI_NewValue"};
+   SUMA_ARROW_TEXT_FIELD *AF=NULL;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   AF = (SUMA_ARROW_TEXT_FIELD *)data;
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: New ROI value set to %f.\n", FuncName, AF->value);
+   
+   SUMA_RETURNe;
+}
+
+/*!
+ \brief Function based on arrow_time.c program from Motif Programing Manual
+ 
+ change_value is called each time the timer expires.  This function
+ * is also used to initiate the timer.  The "id" represents that timer
+ * ID returned from the last call to XtAppAddTimeOut().  If id == 1,
+ * the function was called from start_stop(), not a timeout.  If the value 
+ * has reached its maximum or minimum, don't restart timer, just return.
+ * If id == 1, this is the first timeout so make it be longer to allow
+ * the user to release the button and avoid getting into the "speedy"
+ * part of the timeouts.
+ */
+void SUMA_ATF_change_value(XtPointer client_data, XtIntervalId *id)
+{
+   static char FuncName[]={"SUMA_ATF_change_value"};
+   int incr;
+   SUMA_ARROW_TEXT_FIELD * AF= NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   AF = (SUMA_ARROW_TEXT_FIELD *)client_data;
+   
+   if (!AF->wrap) {
+      if (AF->value + AF->direction * AF->step> AF->max ||
+        AF->value + AF->direction * AF->step< AF->min)
+        SUMA_RETURNe;
+   }
+   
+   AF->value += AF->direction * AF->step;
+   
+   if (AF->wrap) SUMA_WRAP_VALUE(AF->value, AF->min, AF->max);
+   
+   SUMA_ATF_SetString (AF);
+
+   AF->arrow_timer_id =
+     XtAppAddTimeOut (SUMAg_CF->X->App, (int)id==1? 500 : 100, SUMA_ATF_change_value, (XtPointer)AF);
+   
+   /* turn off the modified field because it should only be on when the user edits the field */
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief updates string based on ROI value in the Arrowfield 
+*/
+void SUMA_ATF_SetString (SUMA_ARROW_TEXT_FIELD * AF)
+{
+   static char FuncName[]={"SUMA_ATF_SetString"};
+   char buf[36];
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (AF->type == SUMA_int) {
+      sprintf (buf, "%-4d", (int)AF->value);
+   }else if (AF->type == SUMA_float) {
+      sprintf (buf, "%-4.4f", AF->value);
+   }
+   XtVaSetValues (AF->textfield, XmNvalue, buf, NULL);
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief sets the value of Arrowfield based on string
+*/
+void SUMA_ATF_SetValue (SUMA_ARROW_TEXT_FIELD * AF)
+{
+   static char FuncName[]={"SUMA_ATF_SetValue"};
+   float val;
+   void *n;
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (AF->type == SUMA_float) { /* nothing to do */
+      SUMA_RETURNe;
+   }
+   XtVaGetValues (AF->textfield, XmNvalue, &n, NULL);
+   /* YOU DO NOT WANT TO FREE n because n is not a copy of the string in the widget! */
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Read %s\n", FuncName, (char *)n);
+   
+   val = strtod ((char *)n, NULL);
+   if (errno) {
+      /* bad syntax, reset value*/
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Bad syntax.\n", FuncName);
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, "Bad value in text field", FuncName, SMT_Error, SMA_Log);
+      SUMA_ATF_SetString (AF);
+   }else { 
+      if (AF->type == SUMA_int) {
+         AF->value = (int)val;    
+         if (AF->wrap) {
+            SUMA_WRAP_VALUE(AF->value, AF->min, AF->max);
+         } else {
+            SUMA_CLIP_VALUE(AF->value, AF->min, AF->max);
+         }
+
+         /* now call set string just to be sure users did not enter floats */
+         SUMA_ATF_SetString (AF);
+      } else {
+         AF->value = val;
+         if (AF->wrap) {
+            SUMA_WRAP_VALUE(AF->value, AF->min, AF->max);
+         } else {
+            SUMA_CLIP_VALUE(AF->value, AF->min, AF->max);
+         }
+      }
+   }
+   
+   SUMA_RETURNe;
+}
+/*!
+   \brief Toggles the draw ROI mode
+*/
+void SUMA_cb_DrawROImode_toggled (Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_DrawROImode_toggled"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMAg_CF->ROI_mode = !SUMAg_CF->ROI_mode;
+   
+   SUMA_RETURNe;
+
+}
+
+/*!
+   \brief Closes the DrawROI window
+*/
+void SUMA_cb_CloseDrawROIWindow(Widget w, XtPointer data, XtPointer call_data)
+{
+   static char FuncName[] = {"SUMA_cb_CloseDrawROIWindow"};
+   SUMA_Boolean LocalHead=YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!SUMAg_CF->X->DrawROI->AppShell) SUMA_RETURNe;
+   
+   #ifdef SUMA_USE_WITHDRAW 
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing DrawROI window...\n", FuncName);
+      
+      XWithdrawWindow(SUMAg_CF->X->DPY_controller1, 
+         XtWindow(SUMAg_CF->X->DrawROI->AppShell),
+         XScreenNumberOfScreen(XtScreen(SUMAg_CF->X->DrawROI->AppShell)));
+   #endif
+   #ifdef SUMA_USE_DESTROY 
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying DrawROI window...\n", FuncName);
+      XtDestroyWidget(->X->DrawROI->AppShell);
+      SUMAg_CF->X->DrawROI->AppShell = NULL;
+   #endif
+   
+   SUMA_RETURNe;
+}
+/*!
+   \brief creates the SUMA controller window. Expects sv  input
 */
 void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_createSumaCont"};
-   SUMA_SurfaceViewer *sv;
    Widget rc, pb_close, pb_new, pb_done, pb_bhelp, LockFrame, AppFrame, form, tb, rb, rc_m;
    int i;
    SUMA_Boolean LocalHead = NOPE;
@@ -2352,8 +3021,6 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       fprintf (SUMA_STDERR,"Error %s: SUMAg_CF->X->SumaCont->AppShell!=NULL. Should not be here.\n", FuncName);
       SUMA_RETURNe;
    }
-
-   sv = (SUMA_SurfaceViewer *)data;
 
    /* create as a separate application shell, you do not want a parent to this controller that
    can be closed or withdrawn temporarily */
@@ -2393,13 +3060,12 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
       XmNtraversalOn , False ,
       NULL); 
    
-   #ifndef MOTIF_1_2
+      /* this one requires Motif 1.2 or newer */
       XtVaCreateManagedWidget ("Lock",
          xmLabelGadgetClass, LockFrame, 
          XmNchildType, XmFRAME_TITLE_CHILD,
          XmNchildHorizontalAlignment, XmALIGNMENT_BEGINNING,
          NULL);
-   #endif   
    
    /* row column Lock rowcolumns */
    rc = XtVaCreateWidget ("rowcolumn",
@@ -3275,7 +3941,7 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
    \brief sets the rendering mode of a surface 
    
    - expects a SUMA_MenuCallBackData * in  client_data
-   with SO as client_data->ContID and Menubutton in callback_data->ContID
+   with SO as client_data->ContID and Menubutton in client_data->callback_data
 */
 void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_data)
 {
@@ -3315,7 +3981,7 @@ void SUMA_cb_SetRenderMode(Widget widget, XtPointer client_data, XtPointer call_
    
    /* make a call to SUMA_Engine */
    if (!list) list = SUMA_CreateList ();
-   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaWidget, NULL);   
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay_AllVisible, SES_SumaWidget, NULL);   
    ED = SUMA_InitializeEngineListData (SE_SetRenderMode);
    Elmnt = SUMA_RegisterEngineListCommand ( list, ED,
                                          SEF_i, (void *)&imenu,
@@ -3428,12 +4094,82 @@ char * SUMA_FormatMessage (SUMA_MessageData *MD)
    SUMA_RETURN (s);
 }
 
-void SUMA_cb_EditDrawROI (Widget w, XtPointer client_data, XtPointer call_data)
+
+/*!
+   \brief opens the DRAW ROI window 
+   
+   - expects a SUMA_MenuCallBackData * in  client_data
+   with sv index as client_data->ContID 
+*/
+void SUMA_cb_ToolsDrawROI (Widget w, XtPointer client_data, XtPointer call_data)
 {
-   static char FuncName[]={"SUMA_cb_EditDrawROI"};
+   static char FuncName[]={"SUMA_cb_ToolsDrawROI"};
+   int isv;
+   DList *list = NULL;
+   SUMA_MenuCallBackData * datap=NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   fprintf (SUMA_STDERR, "%s: Nothing done yet.\n", FuncName);
+   /* get the surface viewer that the command was made in */
+   datap = (SUMA_MenuCallBackData *)client_data;
+   isv = (int)datap->ContID;
+
+   /* register a call to open the ROI editor */
+   if (!list) list = SUMA_CreateList ();
+   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_OpenDrawROI, SES_SumaWidget, (void*)&SUMAg_SVv[isv]); 
+   if (!SUMA_Engine (&list)) {
+      SUMA_RegisterMessage (SUMAg_CF->MessageList, "Failed to open DrawROI", FuncName, SMT_Error, SMA_LogAndPopup);
+   }  
    SUMA_RETURNe;
 }
+
+void SUMA_cb_DrawROI_Undo (Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_DrawROI_Undo"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_DrawROI_Redo (Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_DrawROI_Redo"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_cb_DrawROI_Save (Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_DrawROI_Save"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_RETURNe;
+}
+
+void SUMA_DrawROI_NewLabel (void *data)
+{
+   static char FuncName[]={"SUMA_DrawROI_NewLabel"};
+   SUMA_Boolean LocalHead = YUP;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Nothing done yet.\n", FuncName);
+   
+   SUMA_RETURNe;
+}
+
+/*
+void  (Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={""};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SUMA_RETURNe;
+}
+
+*/
