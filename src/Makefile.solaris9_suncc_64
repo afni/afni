@@ -1,7 +1,10 @@
 # This works on a 64-bit Sun/Solaris 9 with Sun's cc
 
+# USE_ZLIB = -DHAVE_ZLIB
+# LZLIB    = -lz
+
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -xO4 -xarch=v9 -xcode=abs64 -xbuiltin=%all -xlibmil -Xa -w -DSOLARIS -DREAD_WRITE_64 -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
+CC     = cc -xO4 -xarch=v9 -xcode=abs64 -xbuiltin=%all -xlibmil -Xa -w -DSOLARIS -DREAD_WRITE_64 -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC $(USE_ZLIB)
 CCVOL  = cc -xarch=v9 -xcode=abs64 -xO2 -Xa -w -DSOLARIS
 CCFAST = $(CC)
 CCMIN  = cc -xarch=v9 -xcode=abs64
@@ -38,13 +41,13 @@ SHOWOFF = -DSHOWOFF=solaris9_suncc_64
 INSTALLDIR = ./solaris9_suncc_64
 LIBDIR = $(INSTALLDIR)
 
-LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
+LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) -lm $(EXTRA_LIBS)
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
 SUMA_INCLUDE_PATH = -I/usr/openwin/include -I/usr/openwin/share/include/X11 -I../ -I../niml/ -I./ -Igts/src
 SUMA_LINK_PATH = -L/usr/openwin/lib -L/usr/openwin/lib/sparcv9 -R/usr/openwin/lib -R/usr/openwin/lib/sparcv9 -L../
-SUMA_LINK_LIB = -lGL -lGLU -lGLw -lXmu -lXm -lXp -lXt -lXext -lX11 -lsocket -lnsl -lm
+SUMA_LINK_LIB = -lGL -lGLU -lGLw -lXmu -lXm -lXp -lXt -lXext -lX11 -lsocket -lnsl $(LZLIB) -lm
 SUMA_MAKEFILE_NAME = SUMA_Makefile_NoDev
 SUMA_BIN_ARCHIVE = SUMA_SOLARIS.tar
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
