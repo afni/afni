@@ -1830,6 +1830,10 @@ nifti1_test:nifti1_test.o nifti1_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o nifti1_test nifti1_test.o nifti1_io.o znzlib.o -lm
 
+nifti_stats.o:nifti/nifti_stats.c
+	$(RM) $@
+	$(CC) -c nifti/nifti_stats.c $(IFLAGS)
+
 nifti_stats:nifti_stats.o
 	$(RM) $@
 	$(CC) -o nifti_stats nifti_stats.o -lm
