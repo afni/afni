@@ -10,11 +10,15 @@ ifeq ($(CC),gcc)
 #if (on safni) CC starts with gcc then it means makefile is executed from afni's makefile
 #can't use ndef with CC because it's always defined
 else
+#add the option -DSUMA_MOTIF_GLXAREA if you want to use libMesaGLwM.a instead of libMesaGLw.a
 CC = gcc -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
 endif
 
 ifndef INSTALLDIR
-INSTALLDIR = /home/ziad/abin
+INSTALLDIR_SUMA = /home/ziad/abin
+else
+#send suma to one directory back and let Makefile.INCLUDE move it to INSTALLDIR
+INSTALLDIR_SUMA = ../
 endif 
 
 CCOPT = 
@@ -189,7 +193,8 @@ ${F21:.c=.o} : ${F21}
 
 ${M1:.c=} : ${M1}
 	${CC} ${CCOPT} ${WARNOPT} -o ${M1o} ${M1} ${SUMALIB} ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
-	mv ${M1o} ${INSTALLDIR}
+	if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
+	mv ${M1o} ${INSTALLDIR_SUMA}
 	
 CLEANUP : 
 	echo "clean up"
