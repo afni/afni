@@ -1685,11 +1685,12 @@ will save snapfiles with names like "Elvis_000666.ppm".  You can view snapfiles
 with the "aiv" ("AFNI Image Viewer") utility, the "xv" program, or many other
 Unix utilities.
 
-=========================================
-| Robert W Cox, PhD                     |
-| National Institute of Mental Health   |
-| National Institutes of Health         |
-| Department of Health & Human Services |
-| United States of America              |
-| Earth, United Federation of Planets   |
-=========================================
+=============================================
+| Robert W Cox, PhD                         |
+| Scientific and Statistical Computing Core |
+| National Institute of Mental Health       |
+| National Institutes of Health             |
+| Department of Health & Human Services     |
+| United States of America                  |
+| Earth, United Federation of Planets       |
+=============================================
