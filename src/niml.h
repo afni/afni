@@ -131,12 +131,76 @@ typedef struct {
 } NI_group ;
 #endif
 
+/*-----------------------------------------------------------------
+  Stuff for shared memory transport between processes
+-------------------------------------------------------------------*/
+
+#ifndef DONT_USE_SHM
+# include <sys/ipc.h>
+# include <sys/shm.h>
+
+# define SHM_WAIT_CREATE   9
+# define SHM_WAIT_ACCEPT  10
+
+# define SHM_CREATOR      33
+# define SHM_ACCEPTOR     44
+
+# define SHM_DEFAULT_SIZE 196689
+
+# define SHM_HSIZE        128  /* header size in bytes    */
+# define SHM_SIZE1        0    /* size1   = shmhead[this] */
+# define SHM_BSTART1      1    /* bstart1 = shmhead[this] */
+# define SHM_BEND1        2    /* bend1   = shmhead[this] */
+# define SHM_SIZE2        3
+# define SHM_BSTART2      4
+# define SHM_BEND2        5
+
+ /**
+   The shm segment is split into a 128 byte header and 2 buffers:
+     buf1 is written into by the "w" creator and read by the "r" acceptor;
+     buf2 is written into by the "r" acceptor and read by the "w" creator.
+   Each of these is a circular buffer, as described below.
+   The header currently contains 6 ints.  For buf1:
+     size1   = size of buf1 in bytes (fixed by creator)
+     bstart1 = offset into buf1 where good data starts (changed by acceptor)
+     bend1   = offset into buf1 where good data ends (changed by creator)
+   For buf2, a similar triple is set (mutatis mutandum).
+ **/
+
+ typedef struct {
+   int id ;          /* shmid */
+   int bad ;         /* tells whether I/O is OK for this yet */
+   int whoami ;      /* SHM_CREATOR or SHM_ACCEPTOR? */
+
+   char name[128] ;  /* keystring */
+
+   char * shmbuf ;   /* actual shm buffer */
+   int  * shmhead ;  /* buffer as ints */
+
+   int bufsize1 ;    /* size of 1st internal buffer */
+   char * buf1 ;     /* 1st internal buffer [after header] */
+   int  * bstart1 ;
+   int  * bend1 ;
+
+   int bufsize2 ;    /* size of 2nd internal buffer */
+   char * buf2 ;     /* 2nd internal buffer [after buf1] */
+   int  * bstart2 ;
+   int  * bend2 ;
+ } SHMioc ;
+
+#else  /* DONT_USE_SHM */
+
+# define SHMioc void  /* dummy definition */
+
+#endif /* DONT_USE_SHM */
+/*-----------------------------------------------------------------*/
+
 /*! Size of NI_stream buffer. */
 
 #if 0
 #define NI_BUFSIZE (64*1024)
 #else
-#define NI_BUFSIZE (1*1024)
+#define NI_BUFSIZE (2*1024)
 #endif
 
 /*! Data needed to process input stream. */
@@ -164,6 +228,8 @@ typedef struct {
    int npos ;              /*!< Index of next unscanned byte in buf. */
    int bufsize ;           /*!< Length of buf array. */
    char *buf ;             /*!< I/O buffer (may be NULL). */
+
+   SHMioc *shmioc ;        /*!< for NI_SHM_TYPE only */
 } NI_stream_type ;
 #endif
 
@@ -174,11 +240,12 @@ typedef struct {
 typedef NI_stream_type *NI_stream ;
 #endif
 
-#define NI_TCP_TYPE    1
-#define NI_FILE_TYPE   2
-#define NI_STRING_TYPE 3
+#define NI_TCP_TYPE    1  /* tcp: */
+#define NI_FILE_TYPE   2  /* file: */
+#define NI_STRING_TYPE 3  /* str: */
 #define NI_REMOTE_TYPE 4  /* http: or ftp: */
-#define NI_FD_TYPE     5
+#define NI_FD_TYPE     5  /* fd: */
+#define NI_SHM_TYPE    6  /* shm: */
 
 #define TCP_WAIT_ACCEPT   7
 #define TCP_WAIT_CONNECT  8
@@ -294,7 +361,6 @@ extern char * UNIQ_hashcode( char * ) ;
 extern char * NI_hostname_to_inet( char *host ) ;
 extern void   NI_add_trusted_host( char *hostname ) ;
 extern int    NI_trust_host( char *hostid ) ;
-
 
 /*! Close a NI_stream, and set the pointer to NULL. */
 

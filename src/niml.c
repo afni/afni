@@ -4472,6 +4472,700 @@ int NI_trust_host( char *hostid )
    return 0 ;
 }
 
+#ifndef DONT_USE_SHM
+/****************************************************************
+  Routines to manipulate IPC shared memory segments for I/O
+  [adapted from thd_iochan.c, 31 May 2002 -- RWCox]
+*****************************************************************/
+
+/*---------------------------------------------------------------
+   Convert a string to a key, for IPC operations.
+-----------------------------------------------------------------*/
+
+static key_t SHM_string_to_key( char * key_string )
+{
+   int ii , sum ;
+
+   sum = 666 ;
+   if( key_string == NULL ) return (key_t) sum ;
+
+   for( ii=0 ; key_string[ii] != '\0' ; ii++ )
+      sum += ((int)key_string[ii]) << ((ii%3)*8) ;
+
+   return (key_t) sum ;
+}
+
+/*---------------------------------------------------------------
+   Get a pre-existing shmem segment.
+   Returns the shmid >= 0 if successful; returns -1 if failure.
+-----------------------------------------------------------------*/
+
+static int SHM_accept( char * key_string )
+{
+   key_t key ;
+   int   shmid ;
+
+   key   = SHM_string_to_key( key_string ) ;
+   shmid = shmget( key , 0 , 0777 ) ;
+   return shmid ;
+}
+
+/*---------------------------------------------------------------
+   Connect to, or create if needed, a shmem segment.
+   Returns the shmid >= 0 if successful; returns -1 if failure.
+-----------------------------------------------------------------*/
+
+static int SHM_create( char * key_string , int size )
+{
+   key_t key ;
+   int   shmid ;
+
+   key   = SHM_string_to_key( key_string ) ;
+   shmid = shmget( key , size , 0777 | IPC_CREAT ) ;
+   if( shmid < 0 ) PERROR("SHM_create") ;
+   return shmid ;
+}
+
+/*---------------------------------------------------------------
+   Actually attach to the shmem segment.
+   Returns the pointer to the segment start.
+   NULL is returned if an error occurs.
+-----------------------------------------------------------------*/
+
+static char * SHM_attach( int shmid )
+{
+   char * adr ;
+   adr = (char *) shmat( shmid , NULL , 0 ) ;
+   if( adr == (char *) -1 ){ adr = NULL ; PERROR("SHM_attach") ; }
+   return adr ;
+}
+
+/*---------------------------------------------------------------
+   Find the size of a shmem segment.
+   Returns -1 if an error occurs.
+-----------------------------------------------------------------*/
+
+static int SHM_size( int shmid )
+{
+   int ii ;
+   struct shmid_ds buf ;
+
+   if( shmid < 0 ) return -1 ;
+   ii = shmctl( shmid , IPC_STAT , &buf ) ;
+   if( ii < 0 ){ PERROR("SHM_size") ;  return -1 ; }
+   return buf.shm_segsz ;
+}
+
+/*---------------------------------------------------------------
+   Find the number of attaches to a shmem segment.
+   Returns -1 if an error occurs.
+-----------------------------------------------------------------*/
+
+static int SHM_nattach( int shmid )
+{
+   int ii ;
+   struct shmid_ds buf ;
+
+   if( shmid < 0 ) return -1 ;
+   ii = shmctl( shmid , IPC_STAT , &buf ) ;
+   if( ii < 0 ){ PERROR("SHM_nattach") ;  return -1 ; }
+   return buf.shm_nattch ;
+}
+
+/*---------------------------------------------------------------*/
+/*! Fill a SHMioc struct that has just been attached as an "r".
+   - ioc->id should be non-negative at this point.
+   - return value is 1 if things are good, -1 if not.
+-----------------------------------------------------------------*/
+
+static int SHM_fill_accept( SHMioc *ioc )
+{
+   char * bbb ;
+   int jj ;
+
+   if( ioc == NULL || ioc->id < 0 ) return -1 ;      /* bad inputs?   */
+
+   NI_sleep(1) ;                                     /* wait a bit    */
+   bbb = SHM_attach( ioc->id ) ;                     /* attach it     */
+   if( bbb == NULL ) return -1 ;                     /* can't? quit   */
+
+   if( SHM_nattach(ioc->id) != 2 ){                  /* 2 processes?  */
+      NI_sleep(10) ;                                 /* wait a bit,   */
+      if( SHM_nattach(ioc->id) != 2 ){               /* and try again */
+        shmctl( ioc->id , IPC_RMID , NULL ) ;        /* this is bad!  */
+        shmdt( bbb ) ; return -1 ;
+      }
+   }
+
+   jj = SHM_size(ioc->id) ;                          /* shmbuf size   */
+   if( jj <= SHM_HSIZE ){                            /* too small?    */
+      shmctl( ioc->id , IPC_RMID , NULL ) ;          /* this is bad!  */
+      shmdt( bbb ) ; return -1 ;
+   }
+
+   ioc->shmbuf   = bbb ;                             /* buffer */
+   ioc->shmhead  = (int *) bbb ;                     /* buffer as int */
+
+   ioc->bufsize1 = ioc->shmhead[SHM_SIZE1] ;         /* size of buf 1 */
+   ioc->bstart1  = ioc->shmhead + SHM_BSTART1 ;      /* start marker 1*/
+   ioc->bend1    = ioc->shmhead + SHM_BEND1 ;        /* end marker 1  */
+   ioc->buf1     = ioc->shmbuf  + SHM_HSIZE ;        /* buffer 1      */
+
+   ioc->bufsize2 = ioc->shmhead[SHM_SIZE2] ;         /* size of buf 2 */
+   ioc->bstart2  = ioc->shmhead + SHM_BSTART2 ;      /* start marker 2*/
+   ioc->bend2    = ioc->shmhead + SHM_BEND2 ;        /* end marker 2  */
+   ioc->buf2     = ioc->buf1    + ioc->bufsize1 ;    /* buffer 2      */
+
+   if( jj < SHM_HSIZE+ioc->bufsize1+ioc->bufsize2 ){ /* too small?    */
+      shmctl( ioc->id , IPC_RMID , NULL ) ;          /* this is bad!  */
+      shmdt( bbb ) ; return -1 ;
+   }
+
+   ioc->bad = 0 ; return 1 ;                         /** DONE **/
+}
+
+/*---------------------------------------------------------------*/
+/*! Create a SHMioc struct for use as a 2-way I/O channel, and
+    return a pointer to it.  NULL is returned if an error occurs.
+
+  name = "shm:name:size1+size2" to connect a shared memory
+             segment with buffers of length size1 and size2 bytes.
+             The creator process will write to the size1 buffer
+             and read from the size2 buffer.  The acceptor
+             process will reverse this.
+         - The size strings can end in 'K' to multiply by 1024,
+            or end in 'M' to multiply by 1024*1024.
+         - If neither size is given, a default value is used.
+
+  mode = "w" to open a new shared memory channel
+       = "r" to log into a channel created by someone else
+
+ The input "name" is limited to a maximum of 127 bytes.
+-----------------------------------------------------------------*/
+
+static SHMioc * SHM_init( char * name , char * mode )
+{
+   SHMioc *ioc ;
+   int do_create , do_accept ;
+   char key[128] , *kend ;
+   int  size1=SHM_DEFAULT_SIZE , ii , jj , size2=SHM_DEFAULT_SIZE ;
+
+   /** check if inputs are reasonable **/
+
+   if( name                   == NULL ||
+       strlen(name)           >  127  ||
+       strncmp(name,"shm:",4) != 0    ||
+       mode                   == NULL   ) return NULL ;
+
+   do_create = (*mode == 'w') ;  /* writer */
+   do_accept = (*mode == 'r') ;  /* reader */
+
+   if( !do_create && !do_accept ) return NULL ;
+
+   /** get keystring (after "shm:") **/
+
+   for( ii=4 ; name[ii] != ':' && name[ii] != '\0' ; ii++ )
+     key[ii-4] = name[ii] ;
+   key[ii-4] = '\0' ;
+
+   /** get size1 (after "shm:name:"), if we stopped at a ':' **/
+
+   if( do_create && name[ii] == ':' && name[ii+1] != '\0' ){
+
+     size1 = strtol( name+ii+1 , &kend , 10 ) ;
+     if( size1 <= 0 ) size1 = SHM_DEFAULT_SIZE ;
+     else {
+            if( *kend == 'K' || *kend == 'k' ){ size1 *= 1024     ; kend++; }
+       else if( *kend == 'M' || *kend == 'm' ){ size1 *= 1024*1024; kend++; }
+     }
+
+     /** get size2, if we stopped at a + **/
+
+     if( *kend == '+' ){
+       size2 = strtol( kend+1 , &kend , 10 ) ;
+       if( size2 <= 0 ) size2 = SHM_DEFAULT_SIZE ;
+       else {
+              if( *kend == 'K' || *kend == 'k' ){ size2 *= 1024     ; kend++; }
+         else if( *kend == 'M' || *kend == 'm' ){ size2 *= 1024*1024; kend++; }
+       }
+     }
+   }
+
+   /** initialize SHMioc **/
+
+   ioc = (SHMioc *) calloc( 1 , sizeof(SHMioc) ) ;
+
+   strcpy( ioc->name , key ) ;  /* save the key name  */
+
+   /** attach to existing shmem segment **/
+
+   if( do_accept ){
+      ioc->whoami = SHM_ACCEPTOR ;
+      for( ii=0 ; ii < 3 ; ii++ ){      /* try to find segment */
+         ioc->id = SHM_accept( key ) ;  /* several times       */
+         if( ioc->id >= 0 ) break ;     /* works? break out    */
+         NI_sleep(ii+1) ;               /* wait 1 millisecond  */
+      }
+      if( ioc->id < 0 )
+        ioc->id = SHM_accept( key ) ;   /* 1 last try? */
+
+      if( ioc->id < 0 ){                /* failed to find segment? */
+         ioc->bad = SHM_WAIT_CREATE ;   /* mark for waiting        */
+         return ioc ;                   /* and we are DONE for now */
+
+      } else {                          /* found it?   */
+
+         jj = SHM_fill_accept( ioc ) ;  /* fill struct */
+
+         if( jj < 0 ){                  /* this is bad */
+           free(ioc) ; return NULL ;
+         }
+
+         return ioc ;                   /** DONE **/
+      }
+   }
+
+   /** create a new shmem segment **/
+
+   if( do_create ){
+      char * bbb ;
+
+      ioc->whoami = SHM_CREATOR ;
+      ioc->id = SHM_create( key, size1+size2+SHM_HSIZE+4 ) ; /* create it */
+      if( ioc->id < 0 ){                                     /* can't? quit */
+         free(ioc) ; return NULL ;
+      }
+      bbb = SHM_attach( ioc->id ) ;                        /* attach it   */
+      if( bbb == NULL ){                                   /* can't? quit */
+         free(ioc) ; return NULL ;
+      }
+
+      ioc->shmbuf   = bbb ;                                /* buffer */
+      ioc->shmhead  = (int *) bbb ;                        /* buffer as int */
+
+      ioc->bufsize1 = ioc->shmhead[SHM_SIZE1] = size1 ;    /* size of buf 1 */
+      ioc->bstart1  = ioc->shmhead + SHM_BSTART1 ;         /* start marker 1*/
+      ioc->bend1    = ioc->shmhead + SHM_BEND1 ;           /* end marker 1  */
+      ioc->buf1     = ioc->shmbuf  + SHM_HSIZE ;           /* buffer 1      */
+
+      ioc->bufsize2 = ioc->shmhead[SHM_SIZE2] = size2 ;    /* size of buf 2 */
+      ioc->bstart2  = ioc->shmhead + SHM_BSTART2 ;         /* start marker 2*/
+      ioc->bend2    = ioc->shmhead + SHM_BEND2 ;           /* end marker 2  */
+      ioc->buf2     = ioc->buf1    + size1 ;               /* buffer 2      */
+
+      *(ioc->bstart1) = 0 ;                                /* init markers 1*/
+      *(ioc->bend1)   = size1-1 ;
+      *(ioc->bstart2) = 0 ;                                /* init markers 2*/
+      *(ioc->bend2)   = size2-1 ;
+
+      NI_sleep(1) ;
+      jj= SHM_nattach(ioc->id) ;                           /* # processes */
+
+      if( jj < 2 ){
+        NI_sleep(2) ; jj = SHM_nattach(ioc->id) ;
+      }
+
+      if( jj > 2 ){                                        /* should not  */
+        shmctl( ioc->id , IPC_RMID , NULL ) ;              /* happen ever */
+        shmdt( bbb ) ; free(ioc) ; return NULL ;
+      }
+
+      ioc->bad  = (jj < 2)          /* ready if both   */
+                 ? SHM_WAIT_ACCEPT  /* processes are   */
+                 : 0 ;              /* attached to shm */
+      return ioc ;
+   }
+
+   return NULL ;  /* should never be reached */
+}
+
+/*-------------------------------------------------------------------------
+  Check if the shmem segment is alive (has 2 attached processes).
+  Returns 0 if not alive, 1 if life is happy.
+---------------------------------------------------------------------------*/
+
+static int SHM_alivecheck( int shmid )
+{
+   if( shmid < 0 ) return 0 ;
+   return (SHM_nattach(shmid) == 2) ;
+}
+
+/*------------------------------------------*/
+#ifndef NEXTDMS
+#define NEXTDMS(dm) MIN(1.1*(dm)+1.01,99.0)
+#endif
+/*------------------------------------------*/
+
+/*-------------------------------------------------------------------------
+   Check if the given SHMioc is ready for I/O.  If not, wait up to
+   msec milliseconds to establish the connection to the other end;
+   if msec < 0, will wait indefinitely.  Returns 1 if ready; 0 if not;
+   -1 if an error occurs.  Possible errors are:
+     + SHMioc was connected, and now has become disconnected
+     + SHMioc is passed in as NULL
+---------------------------------------------------------------------------*/
+
+static int SHM_goodcheck( SHMioc * ioc , int msec )
+{
+   int ii , jj ;
+   char * bbb ;
+
+   /** check inputs for OK-osity **/
+
+   if( ioc == NULL ) return -1 ;
+
+   /** if it was good before, then check if it is still good **/
+
+   if( ioc->bad == 0 ){
+     ii = SHM_alivecheck(ioc->id) ;
+     return (ii == 0) ? -1 : 1 ;
+   }
+
+   /** wasn't good before, so check if that condition has changed **/
+
+   /** shm "r" process waiting for creation by the "w" process **/
+
+   if( ioc->bad == SHM_WAIT_CREATE ){
+      int dms=0 , ms ;
+
+      if( msec < 0 ) msec = 999999999 ;       /* a long time (11+ days) */
+      for( ms=0 ; ms < msec ; ms += dms ){
+        ioc->id = SHM_accept( ioc->name ) ;  /* try to attach to shmem segment */
+        if( ioc->id >= 0 ) break ;           /* works? break out               */
+        dms = NEXTDMS(dms) ; dms = MIN(dms,msec-ms) ; NI_sleep(dms) ;
+      }
+      if( ioc->id < 0 )                /* one last try? */
+        ioc->id = SHM_accept( ioc->name ) ;
+
+      if( ioc->id >= 0 ){              /* found it?     */
+        jj = SHM_fill_accept( ioc ) ;  /* fill struct   */
+        if( jj < 0 ) return -1 ;       /* this is bad   */
+        ioc->bad = 0 ;                 /* mark as ready */
+        return 1 ;
+      }
+      return 0 ;
+   }
+
+   /** shmem "w" process waiting for "r" process to attach */
+
+   else if( ioc->bad == SHM_WAIT_ACCEPT ){
+     int dms=0 , ms ;
+
+     if( msec < 0 ) msec = 999999999 ;      /* a long time (11+ days) */
+     for( ms=0 ; ms < msec ; ms += dms ){
+       if( SHM_nattach(ioc->id) > 1 ){ ioc->bad = 0 ; return 1 ; }
+       dms = NEXTDMS(dms) ; dms = MIN(dms,msec-ms) ; NI_sleep(dms) ;
+     }
+     if( SHM_nattach(ioc->id) > 1 ){ ioc->bad = 0 ; return 1 ; }
+     return 0 ;
+   }
+
+   return 0 ;  /* should never be reached */
+}
+
+/*-----------------------------------------------------------------------
+  Close a SHMioc.  Note that this will free what ioc points to.
+-------------------------------------------------------------------------*/
+
+static void SHM_close( SHMioc *ioc )
+{
+   if( ioc == NULL ) return ;
+
+   if( ioc->id >= 0 ){
+      shmctl( ioc->id , IPC_RMID , NULL ) ;
+      shmdt( ioc->shmbuf ) ;
+   }
+
+   free(ioc) ; return ;
+}
+
+/*---------------------------------------------------------------------------
+  Check if the SHMioc is ready to have data read out of it.
+  If not, the routine will wait up to msec milliseconds for data to be
+  available.  If msec < 0, this routine will wait indefinitely.
+  For shmem segments, the return value is how many bytes can be
+  read (0 if none are available).
+  -1 will be returned if some unrecoverable error is detected.
+-----------------------------------------------------------------------------*/
+
+static int SHM_readcheck( SHMioc *ioc , int msec )
+{
+   int ii ;
+   int nread , dms=0 , ms ;
+   int *bstart, *bend , bsize ;  /* for the chosen buffer */
+
+   /** check if the SHMioc is good **/
+
+   ii = SHM_goodcheck(ioc,0) ;
+   if( ii == -1 ) return -1 ;            /* some error */
+   if( ii == 0  ){                       /* not good yet */
+      ii = SHM_goodcheck(ioc,msec) ;     /* so wait for it to get good */
+      if( ii != 1 ) return 0 ;           /* if still not good, exit */
+   }
+
+   /** choose buffer from which to read **/
+
+   switch( ioc->whoami ){
+
+     default: return -1 ;  /* should never happen */
+
+     case SHM_ACCEPTOR:
+       bstart = ioc->bstart1 ;
+       bend   = ioc->bend1 ;
+       bsize  = ioc->bufsize1 ;
+     break ;
+
+     case SHM_CREATOR:
+       bstart = ioc->bstart2 ;
+       bend   = ioc->bend2 ;
+       bsize  = ioc->bufsize2 ;
+     break ;
+   }
+
+   /** must loop and wait **/
+
+   if( msec < 0 ) msec = 999999999 ;      /* a long time (11+ days) */
+
+   /** Compute the number of readable bytes into nread. **/
+
+   for( ms=0 ; ms < msec ; ms += dms ){
+     nread = (*bend - *bstart + bsize + 1) % bsize ;
+     if( nread > 0 ) return nread ;
+     dms = NEXTDMS(dms) ; dms = MIN(dms,msec-ms) ; NI_sleep(dms) ;
+     ii = SHM_goodcheck(ioc,0) ; if( ii == -1 ) return -1 ;
+   }
+   nread = (*bend - *bstart + bsize + 1) % bsize ;
+   if( nread > 0 ) return nread ;
+   return 0 ;
+}
+
+/*---------------------------------------------------------------------------
+  Check if the SHMioc is ready to have data written into it.
+  If not, the routine will wait up to msec milliseconds for writing to
+  be allowable.  If msec < 0, this routine will wait indefinitely.
+  The return value is the number of bytes that can be sent (0 if none,
+  positive if some). -1 will be returned if some unrecoverable error is
+  detected.
+-----------------------------------------------------------------------------*/
+
+static int SHM_writecheck( SHMioc *ioc , int msec )
+{
+   int ii ;
+   int nread , dms=0 , ms , nwrite ;
+   int *bstart, *bend , bsize ;  /* for the chosen buffer */
+
+   /** check if the SHMioc is good **/
+
+   ii = SHM_goodcheck(ioc,0) ;
+   if( ii == -1 ) return -1 ;         /* some error */
+   if( ii == 0  ){                    /* not good yet */
+      ii = SHM_goodcheck(ioc,msec) ;  /* so wait for it to get good */
+      if( ii != 1 ) return ii ;       /* if still not good, exit */
+   }
+
+   /** choose buffer to which to write **/
+
+   switch( ioc->whoami ){
+
+     default: return -1 ;  /* should never happen */
+
+     case SHM_ACCEPTOR:
+       bstart = ioc->bstart2 ;
+       bend   = ioc->bend2 ;
+       bsize  = ioc->bufsize2 ;
+     break ;
+
+     case SHM_CREATOR:
+       bstart = ioc->bstart1 ;
+       bend   = ioc->bend1 ;
+       bsize  = ioc->bufsize1 ;
+     break ;
+   }
+
+   if( msec < 0 ) msec = 999999999 ;      /* a long time (11+ days) */
+
+   for( ms=0 ; ms < msec ; ms += dms ){
+      nread  = (*bend - *bstart + bsize + 1) % bsize ;
+      nwrite = bsize - 1 - nread ;
+      if( nwrite > 0 ) return nwrite ;
+      dms = NEXTDMS(dms) ; dms = MIN(dms,msec-ms) ; NI_sleep(dms) ;
+      ii = SHM_goodcheck(ioc,0) ; if( ii == -1 ) return -1 ;
+   }
+   nread  = (*bend - *bstart + bsize + 1) % bsize ;
+   nwrite = bsize - 1 - nread ;
+   if( nwrite > 0 ) return nwrite ;
+   return 0 ;
+}
+
+/*----------------------------------------------------------------------------
+  Send nbytes of data from buffer down the SHMioc.  Return value is
+  the number of bytes actually sent, or is -1 if some error occurs.
+------------------------------------------------------------------------------*/
+
+static int SHM_send( SHMioc *ioc , char *buffer , int nbytes )
+{
+   int ii ;
+   int nread,nwrite , ebot,etop ;
+   int *bstart, *bend , bsize ;  /* for the chosen buffer */
+   char *buf ;
+
+   /** check for reasonable inputs **/
+
+   if( ioc    == NULL || ioc->bad   ||
+       buffer == NULL || nbytes < 0   ) return -1 ;
+
+   if( nbytes == 0 ) return 0 ;  /* stupid user */
+
+   ii = SHM_goodcheck(ioc,1) ;   /* can't send if it ain't good */
+   if( ii <= 0 ) return ii ;
+
+   ii = SHM_writecheck(ioc,1) ;  /* is something is writeable? */
+   if( ii <= 0 ) return ii ;
+
+   /** choose buffer in which to write **/
+
+   switch( ioc->whoami ){
+
+     default: return -1 ;  /* should never happen */
+
+     case SHM_ACCEPTOR:
+       bstart = ioc->bstart2 ;
+       bend   = ioc->bend2 ;
+       bsize  = ioc->bufsize2 ;
+       buf    = ioc->buf2 ;
+     break ;
+
+     case SHM_CREATOR:
+       bstart = ioc->bstart1 ;
+       bend   = ioc->bend1 ;
+       bsize  = ioc->bufsize1 ;
+       buf    = ioc->buf1 ;
+     break ;
+   }
+
+   /** write into the circular buffer, past "bend" **/
+
+   nread  = ( *bend - *bstart + bsize + 1 ) % bsize; /* amount readable  */
+   nwrite = bsize - 1 - nread ;                      /* amount writeable */
+   if( nwrite <= 0 ) return 0 ;                      /* can't write!     */
+
+   if( nwrite > nbytes ) nwrite = nbytes ;           /* how much to write */
+
+   ebot = *bend+1 ; if( ebot >= bsize ) ebot = 0 ;   /* start at ebot */
+   etop = ebot+nwrite-1 ;                            /* end at etop   */
+
+   if( etop < bsize ){                               /* 1 piece to copy  */
+      memcpy( buf + ebot, buffer, nwrite ) ;         /* copy data        */
+      *bend = etop ;                                 /* change bend      */
+   } else {                                          /* 2 pieces to copy */
+      int nn = bsize - ebot ;                        /* size of piece 1  */
+      memcpy( buf + ebot, buffer   , nn        ) ;   /* copy piece 1     */
+      memcpy( buf       , buffer+nn, nwrite-nn ) ;   /* copy piece 2     */
+      *bend = nwrite-nn-1 ;                          /* change bend      */
+   }
+   return nwrite ;
+}
+
+/*----------------------------------------------------------------------------
+   Send (exactly) nbytes of data from the buffer down the SHMioc.  The only
+   difference between this and SHM_send is that this function will not
+   return until all the data is sent, even if it takes forever.
+   Under these circumstances, it would be good if the reader process is
+   still working.
+------------------------------------------------------------------------------*/
+
+static int SHM_sendall( SHMioc *ioc , char *buffer , int nbytes )
+{
+   int ii , ntot=0 , dms=0 ;
+
+   /** check for reasonable inputs **/
+
+   if( ioc    == NULL || ioc->bad   ||
+       buffer == NULL || nbytes < 0   ) return -1 ;
+
+   if( nbytes == 0 ) return 0 ;
+
+   while(1){
+      ii = SHM_send( ioc , buffer+ntot , nbytes-ntot ); /* send what's left */
+      if( ii == -1 ) return -1 ;                        /* an error!?       */
+
+      if( ii == 0 ){                                    /* nothing sent? */
+        dms = NEXTDMS(dms) ;
+      } else {                                          /* sent something!   */
+        ntot += ii ;                                    /* total sent so far */
+        if( ntot >= nbytes ) return nbytes ;            /* all done!?        */
+        dms = 1 ;
+      }
+
+      NI_sleep(dms) ;                                   /* wait a bit */
+   }
+   return -1 ;   /* should never be reached */
+}
+
+/*----------------------------------------------------------------------------
+  Read up to nbytes of data from the SHMioc, into buffer.  Returns the
+  number of bytes actually read.
+  This may be less than nbytes (may even be 0).  If an error occurs, -1 is
+  returned.
+------------------------------------------------------------------------------*/
+
+static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
+{
+   int *bstart, *bend , bsize ;  /* for the chosen buffer */
+   char *buf ;
+   int nread, sbot,stop ;
+
+   /** check for reasonable inputs **/
+
+   if( ioc    == NULL || ioc->bad   ||
+       buffer == NULL || nbytes < 0   ) return -1 ;
+
+   if( nbytes == 0 ) return 0 ;
+
+   if( SHM_goodcheck(ioc,1) != 1 ) return -1 ;
+
+   /** choose buffer from which to read **/
+
+   switch( ioc->whoami ){
+
+     default: return -1 ;  /* should never happen */
+
+     case SHM_ACCEPTOR:
+       bstart = ioc->bstart1 ;
+       bend   = ioc->bend1 ;
+       bsize  = ioc->bufsize1 ;
+       buf    = ioc->buf1 ;
+     break ;
+
+     case SHM_CREATOR:
+       bstart = ioc->bstart2 ;
+       bend   = ioc->bend2 ;
+       bsize  = ioc->bufsize2 ;
+       buf    = ioc->buf2 ;
+     break ;
+   }
+
+   /** read from the circular buffer, starting at bstart **/
+
+   nread = ( *bend - *bstart + bsize + 1 ) % bsize ;    /* readable amount */
+   if( nread <= 0 ) return 0 ;                          /* nothing!?       */
+   if( nread > nbytes ) nread = nbytes ;                /* amount to read  */
+
+   sbot = *bstart ; stop = sbot + nread-1 ;             /* from sbot to stop */
+
+   if( stop < bsize ){                                  /* 1 piece to copy */
+      memcpy( buffer, buf+sbot, nread ) ;               /* copy the data   */
+      *bstart = (stop+1) % bsize ;                      /* move bstart up  */
+   } else {                                             /* 2 pieces to copy */
+      int nn = bsize - sbot ;                           /* size of piece 1  */
+      memcpy( buffer   , buf + sbot, nn        ) ;      /* copy piece 1     */
+      memcpy( buffer+nn, buf       , nread-nn  ) ;      /* copy piece 2     */
+      *bstart = nread-nn ;                              /* move bstart up   */
+   }
+   return nread ;
+}
+#endif /* DONT_USE_SHM */
+
 /*******************************************************************/
 /*** Functions to read/write from NI_streams (files or sockets). ***/
 /*******************************************************************/
@@ -4483,6 +5177,11 @@ int NI_trust_host( char *hostid )
 
   name = "tcp:host:port" to connect a socket to system "host"
              on the given port number.
+
+  name = "shm:keyname:size1+size2" to connect to a shared memory
+             segment created with "keyname" for the ID and with
+             I/O buffer sizes of size1 ("w" process to "r" process)
+             and size2 ("r" process to "w" process).
 
   name = "file:filename" to open a file for I/O.
 
@@ -4505,6 +5204,7 @@ int NI_trust_host( char *hostid )
 
   mode = "w" to open a stream for writing
            - tcp: host must be specified ("w" is for a tcp client)
+           - shm: keyname determines the ID of the segment to create
            - file: filename is opened in write mode (and will be
                   overwritten if already exists)
            - str: data will be written to a buffer in the NI_stream
@@ -4517,6 +5217,7 @@ int NI_trust_host( char *hostid )
   mode = "r" to open a stream for reading
            - tcp: host is ignored (but must be present);
                   ("r" is for a tcp server)
+           - shm: keyname determines the ID of the segment to attach to
            - file: filename is opened in read mode
            - str: characters after the colon are the source of
                   the input data (will be copied to internal buffer);
@@ -4528,18 +5229,20 @@ int NI_trust_host( char *hostid )
                   pretty much the same as str: streams for reading.
 
   For a file:, fd:, or str: stream, you can either read from or write to the
-  stream, but not both, depending on how you opened it.  For a tcp: stream,
-  once it is connected, you can both read and write.  The asymmetry in tcp:
-  streams only comes at the opening (one process must make the call by
-  using "w" and one must listen for the call by using "r").
+  stream, but not both, depending on how you opened it.  For a tcp: or
+  shm: stream, once it is connected, you can both read and write.  The
+  asymmetry in tcp: and shm: streams only comes at the opening (one process
+  must make the call by using "w" and one must listen for the call by
+  using "r").
 
   The inputs "host" (for tcp:) and "filename" (for file:) are limited to a
   maximum of 127 bytes.  For str:, there is no limit for the "r" stream
-  (but clearly you can't have any NUL bytes in there).
+  (but clearly you can't have any NUL bytes in there).  For shm:, "keyname"
+  is limited to 127 bytes also.
 
-  Since opening a socket requires sychronizing two processes,
-  you can't read or write to a tcp: stream immediately.  Instead
-  you have to check if it is "good" first.  This can be done using
+  Since opening a socket or shared memory segment requires sychronizing
+  two processes, you can't read or write to a tcp: or shm: stream immediately.
+  Instead you have to check if it is "good" first.  This can be done using
   the function NI_stream_goodcheck().
 
   After a tcp: "r" stream is good, then the string ns->name
@@ -4642,6 +5345,36 @@ NI_stream NI_stream_open( char *name , char *mode )
       }
       return NULL ;  /* should never be reached */
    }
+
+#ifndef DONT_USE_SHM
+   /***** deal with shared memory transport *****/
+
+   if( strncmp(name,"shm:",4) == 0 ){
+      SHMioc *ioc ;
+
+      ioc = SHM_init( name , mode ) ;  /* open segment */
+      if( ioc == NULL ) return NULL ;  /* this is bad bad bad */
+
+      /** initialize NI_stream_type output **/
+
+      ns = NI_malloc( sizeof(NI_stream_type) ) ;
+
+      ns->type     = NI_SHM_TYPE;    /* what kind is this? */
+      ns->nbuf     = 0 ;             /* buffer is empty    */
+      ns->npos     = 0 ;             /* scan starts at 0   */
+      ns->io_mode  = do_create ? NI_OUTPUT_MODE
+                               : NI_INPUT_MODE  ;
+      ns->bad      = 0 ;
+      ns->shmioc   = ioc ;
+
+      ns->buf      = NI_malloc(NI_BUFSIZE) ;
+      ns->bufsize  = NI_BUFSIZE ;
+
+      NI_strncpy( ns->name , name , 255 ) ;
+
+      return ns ;
+   }
+#endif /* DONT_USE_SHM */
 
    /***** deal with simple files *****/
 
@@ -4807,7 +5540,7 @@ NI_stream NI_stream_open( char *name , char *mode )
 int NI_stream_readable( NI_stream_type *ns )
 {
    if( ns == NULL ) return 0 ;
-   if( ns->type == NI_TCP_TYPE ) return 1 ;
+   if( ns->type == NI_TCP_TYPE || ns->type == NI_SHM_TYPE ) return 1 ;
    return (ns->io_mode == NI_INPUT_MODE) ;
 }
 
@@ -4820,7 +5553,7 @@ int NI_stream_readable( NI_stream_type *ns )
 int NI_stream_writeable( NI_stream_type *ns )
 {
    if( ns == NULL ) return 0 ;
-   if( ns->type == NI_TCP_TYPE ) return 1 ;
+   if( ns->type == NI_TCP_TYPE || ns->type == NI_SHM_TYPE ) return 1 ;
    return (ns->io_mode == NI_OUTPUT_MODE) ;
 }
 
@@ -4921,6 +5654,13 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 
    switch( ns->type ){
 
+#ifndef DONT_USE_SHM
+      /** Shared memory **/
+
+      case NI_SHM_TYPE:
+        return SHM_goodcheck( ns->shmioc , msec ) ;
+#endif
+
       /** File I/O [there is never any waiting here] **/
 
       case NI_FILE_TYPE:
@@ -5013,6 +5753,12 @@ void NI_stream_close( NI_stream_type *ns )
 
    switch( ns->type ){
 
+#ifndef DONT_USE_SHM
+      case NI_SHM_TYPE:
+        SHM_close( ns->shmioc ) ;
+      break ;
+#endif
+
       case NI_FD_TYPE:
       case NI_REMOTE_TYPE:
       case NI_STRING_TYPE:   /* nothing to do */
@@ -5038,6 +5784,7 @@ void NI_stream_close( NI_stream_type *ns )
   The return value is 1 if data is ready, 0 if not;
   -1 will be returned if some unrecoverable error is detected:
     - tcp: the socket connection was dropped
+    - shm: the other process died or detached the segment
     - file: you have reached the end of the file, and are still trying to read.
 -----------------------------------------------------------------------------*/
 
@@ -5046,6 +5793,13 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
    int ii ;
 
    switch( ns->type ){
+
+#ifndef DONT_USE_SHM
+      case NI_SHM_TYPE:
+        ii = SHM_readcheck( ns->shmioc , msec ) ;
+        if( ii > 0 ) ii = 1 ;
+        return ii ;
+#endif
 
       /** tcp: ==> uses the Unix "select" mechanism **/
 
@@ -5116,6 +5870,13 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
 
    switch( ns->type ){
 
+#ifndef DONT_USE_SHM
+      case NI_SHM_TYPE:
+        ii = SHM_writecheck( ns->shmioc , msec ) ;
+        if( ii > 0 ) ii = 1 ;
+        return ii ;
+#endif
+
       /** tcp: ==> uses the Unix "select" mechanism **/
 
       case NI_TCP_TYPE:
@@ -5162,6 +5923,9 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
   - tcp: We use blocking sends, so that all the data should be sent properly
           unless the connection to the other end fails for some reason
           (e.g., the planet explodes in a fiery cataclysm of annihilation).
+  - shm: We also block until everything can be written, even if it requires
+          filling the shared memory buffer many times and waiting for the
+          reading process to empty it many times.
   - file: Everything should be written, unless the filesystem fills up.
           If nothing at all gets written, -1 is returned.
   - str: Everything will be written, or the program will crash.
@@ -5186,6 +5950,11 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
    }
 
    switch( ns->type ){
+
+#ifndef DONT_USE_SHM
+     case NI_SHM_TYPE:
+       return SHM_sendall( ns->shmioc , buffer , nbytes ) ;
+#endif
 
      /** tcp: ==> just use send **/
 
@@ -5257,10 +6026,12 @@ fprintf(stderr,"NI_stream_write str: output=%s\n",ns->buf) ;
    sockets and files, this may be less than nbytes (may even be 0).
    If an error occurs and no data is read, -1 is returned.
 
-   For tcp: streams, if no data is available, this function will wait until
-   something can be read.  If this behavior is undesirable, then you should
-   use NI_stream_readcheck() before calling this function in order to see
-   if any data is available.
+   For tcp: streams, if no data is available, this function will
+   wait until something can be read.  If this behavior is undesirable,
+   then you should use NI_stream_readcheck() before calling this function
+   in order to see if any data is available.
+
+   For shm: streams, will return immediately if no data is available.
 
    For file: streams, this function simply tries to read from the file.
    Whether or not it succeeds, it will return immediately. It should
@@ -5279,6 +6050,11 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
    if( nbytes == 0 ) return 0 ;
 
    switch( ns->type ){
+
+#ifndef DONT_USE_SHM
+     case NI_SHM_TYPE:
+       return SHM_recv( ns->shmioc , buffer , nbytes ) ;
+#endif
 
      /** tcp: just use recv **/
 
