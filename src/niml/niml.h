@@ -410,6 +410,7 @@ extern void     removefrom_Htable( char *, Htable * ) ;
 extern void     profile_Htable( char *, Htable * ) ;
 extern void     subsume_Htable( Htable *, Htable * ) ;
 extern void     Htable_set_vtkill( int ) ;
+extern void     resize_Htable( int , Htable * ) ;
 
 #define         sizeof_Htable(ht) ((ht)->ntot)
 
