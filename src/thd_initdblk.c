@@ -149,11 +149,21 @@ ENTRY("THD_init_one_datablock") ;
 
    THD_init_diskptr_names( dkptr, dirname,NULL,prefix , view_type , True ) ;
 
-   /*-- determine if the BRICK file exists --*/
+   /*-- determine if the BRIK file exists --*/
 
    brick_ccode = COMPRESS_filecode(dkptr->brick_name) ;
    if( brick_ccode != COMPRESS_NOFILE ){
        dkptr->storage_mode = STORAGE_BY_BRICK ;
+   }
+
+   /*-- if VOLUME_FILENAMES attribute exists, make it so [20 Jun 2002] --*/
+
+   if( dkptr->storage_mode == STORAGE_UNDEFINED ){
+     atr_labs = THD_find_string_atr(dblk,"VOLUME_FILENAMES") ;
+     if( atr_labs != NULL ){
+       dkptr->storage_mode = STORAGE_BY_VOLUMES ;
+       dblk->malloc_type = DATABLOCK_MEM_MALLOC ;
+     }
    }
 
    /*-- now set the memory allocation codes, etc. --*/

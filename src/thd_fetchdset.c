@@ -38,6 +38,12 @@ ENTRY("THD_fetch_dset") ;
    THD_allow_empty_dataset(0) ;
    unlink(thp) ; free(thp) ;
    if( dset == NULL ){ fprintf(stderr," ** Can't decode %s\n",hp); free(hp); RETURN(NULL); }
+
+   if( DSET_IS_VOLUMES(dset) ){  /* 20 Jun 2002 */
+     fprintf(stderr," ** Can't load %s by volumes!\n",hp); free(hp);
+     DSET_delete(dset); RETURN(NULL);
+   }
+
    DSET_superlock(dset) ;  /* don't let be deleted from memory */
    if( DSET_IS_MINC(dset) ) RETURN(dset) ;  /* 29 Oct 2001 */
    DSET_mallocize(dset) ;

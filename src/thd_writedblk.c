@@ -283,6 +283,11 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
    if( write_brick == False || blk->brick == NULL ||
        dkptr->storage_mode == STORAGE_UNDEFINED     ) return True ;
 
+   if( dkptr->storage_mode == STORAGE_BY_VOLUMES ){  /* 20 Jun 2002 */
+     fprintf(stderr,"** Writing dataset by VOLUMES not yet supported.\n") ;
+     return False ;
+   }
+
    /*-- check each brick for existence:
           if none exist, cannot write, but is OK
           if some but not all exist, cannot write, and is an error --*/
