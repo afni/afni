@@ -11,6 +11,8 @@
  * Code for -summary added by M.S. Beauchamp, 12/1999  *
  *-----------------------------------------------------*
  * Code for -numROI added by T. ROss 5/00              * 
+ *-----------------------------------------------------*
+ * Code for min,max,-nzminmax added by R. Reynolds 7/04*
  *******************************************************/
 
 #include "mrilib.h"
@@ -33,12 +35,14 @@ int main(int argc, char *argv[])
     THD_3dim_dataset *mask_dset = NULL, *input_dset = NULL;
     int mask_subbrik = 0;
     int sigma = 0, nzmean = 0, nzcount = 0, debug = 0, quiet = 0, summary = 0;
+    int nzminmax = 0;				/* 06 July, 2004 [rickr] */
     short *mask_data;
     int nvox, i, brik;
     int num_ROI, ROI;
     int force_num_ROI = 0;	/* Added 5/00 */
     int narg = 1;
     double *sum, *sumsq, *nzsum, sig, *sumallbriks;
+    double *min, *max, *nzmin, *nzmax;		/* 06 July, 2004 [rickr] */
     long *voxels, *nzvoxels;
     float *input_data;
     byte *temp_datab;
@@ -81,6 +85,7 @@ int main(int argc, char *argv[])
 	       "  -nzmean       Compute the mean using only non_zero voxels.  Implies\n"
 	   "                 the oppisite for the normal mean computed\n"
 	       "  -nzvoxels     Compute the number of non_zero voxels\n"
+	       "  -nzminmax     Compute the min/max of non_zero voxels\n"
 	       "  -sigma        Means to compute the standard deviation as well\n"
 	       "                 as the mean.\n"
 	       "  -summary      Only output a summary line with the grand mean across all briks\n"
@@ -155,6 +160,11 @@ int main(int argc, char *argv[])
 	}
 	if (strncmp(argv[narg], "-nzmean", 5) == 0) {
 	    nzmean = 1;
+	    narg++;
+	    continue;
+	}
+	if (strncmp(argv[narg], "-nzminmax", 5) == 0) {
+	    nzminmax = 1;
 	    narg++;
 	    continue;
 	}
@@ -249,13 +259,19 @@ int main(int argc, char *argv[])
 	    non_zero[i] = num_ROI;
 	    num_ROI++;
 	    if (!quiet && !summary && !force_num_ROI) {
-		fprintf(stdout, "\tMean_%d", i - 32768);
+		fprintf(stdout, "\tMean_%d  ", i - 32768);
 		if (nzmean)
 		    fprintf(stdout, "\tNZMean_%d", i - 32768);
 		if (nzcount)
 		    fprintf(stdout, "\tNZcount_%d", i - 32768);
 		if (sigma)
 		    fprintf(stdout, "\tSigma_%d", i - 32768);
+		fprintf(stdout, "\tMin_%d   ", i - 32768);
+		fprintf(stdout, "\tMax_%d   ", i - 32768);
+		if (nzminmax) {
+		    fprintf(stdout, "\tNZMin_%d ", i - 32768);
+		    fprintf(stdout, "\tNZMax_%d ", i - 32768);
+		}
 	    }
 	}
     /* load the non_zero array if the numROI option used - 5/00 */
@@ -263,13 +279,19 @@ int main(int argc, char *argv[])
 	for (i = 1; i <= force_num_ROI; i++) {
 	    non_zero[i + 32768] = (i - 1);
 	    if (!quiet && !summary) {
-		fprintf(stdout, "\tMean_%d", i );
+		fprintf(stdout, "\tMean_%d  ", i );
 		if (nzmean)
 		    fprintf(stdout, "\tNZMean_%d", i );
 		if (nzcount)
 		    fprintf(stdout, "\tNZcount_%d", i );
 		if (sigma)
 		    fprintf(stdout, "\tSigma_%d", i );
+		fprintf(stdout, "\tMin_%d   ", i );
+		fprintf(stdout, "\tMax_%d   ", i );
+		if (nzminmax) {
+		    fprintf(stdout, "\tNZMin_%d ", i );
+		    fprintf(stdout, "\tNZMax_%d ", i );
+		}
 	    }
 	}
 	num_ROI = force_num_ROI;
@@ -288,12 +310,20 @@ int main(int argc, char *argv[])
 	 Error_Exit("Memory allocation error");
     if ((voxels = (long *) malloc(num_ROI * sizeof(long))) == NULL)
 	 Error_Exit("Memory allocation error");
-    if (nzmean || nzcount) {
+    if (nzmean || nzcount || nzminmax) {
 	if ((nzsum = (double *) malloc(num_ROI * sizeof(double))) == NULL)
 	     Error_Exit("Memory allocation error");
 	if ((nzvoxels = (long *) malloc(num_ROI * sizeof(long))) == NULL)
 	     Error_Exit("Memory allocation error");
+	if ((nzmin = (double *) malloc(num_ROI * sizeof(double))) == NULL)
+	     Error_Exit("Memory allocation error");
+	if ((nzmax = (double *) malloc(num_ROI * sizeof(double))) == NULL)
+	     Error_Exit("Memory allocation error");
     }
+    if ((min = (double *) malloc(num_ROI * sizeof(double))) == NULL)
+	 Error_Exit("Memory allocation error - min");
+    if ((max = (double *) malloc(num_ROI * sizeof(double))) == NULL)
+	 Error_Exit("Memory allocation error - max");
     if (sigma)
 	if ((sumsq = (double *) malloc(num_ROI * sizeof(double))) == NULL)
 	     Error_Exit("Memory allocation error");
@@ -378,6 +408,15 @@ int main(int argc, char *argv[])
 
 	    }			/* switch */
 
+            /* init the min/max values */
+	    for (i = 0; i < num_ROI; i++) {
+		min[i] = max[i] = input_data[0];
+		if ( nzminmax ) {
+		    nzmin[i] =  1e30;    /* that really big number */
+		    nzmax[i] = -1e30;
+		}
+	    }
+
 	    /* do the stats */
 
 	    for (i = 0; i < nvox; i++) {
@@ -386,12 +425,19 @@ int main(int argc, char *argv[])
 		    if ((ROI < 0) || (ROI >= num_ROI))
 			Error_Exit("Somehow I boned computing how many ROIs existed");
 
+		    if (input_data[i] < min[ROI] ) min[ROI] = input_data[i];
+		    if (input_data[i] > max[ROI] ) max[ROI] = input_data[i];
+
 		    sum[ROI] += (double) input_data[i];
 		    voxels[ROI]++;
-		    if (nzmean || nzcount) {
+		    if (nzmean || nzcount || nzminmax) {
 			if (input_data[i] != 0.0) {
 			    nzsum[ROI] += (double) input_data[i];
 			    nzvoxels[ROI]++;
+			    if (input_data[i] < nzmin[ROI] )
+				nzmin[ROI] = input_data[i];
+			    if (input_data[i] > nzmax[ROI] )
+				nzmax[ROI] = input_data[i];
 			}
 		    }
 		    if (sigma)
@@ -419,6 +465,12 @@ int main(int argc, char *argv[])
 				sig = sqrt((voxels[i] / (voxels[i] - 1)) * (sumsq[i] - mean * mean));
 			    fprintf(stdout, "\t%f", (float) sig);
 			}
+			fprintf(stdout, "\t%f", min[i] );
+			fprintf(stdout, "\t%f", max[i] );
+			if (nzminmax) {
+			    fprintf(stdout, "\t%f", nzmin[i] );
+			    fprintf(stdout, "\t%f", nzmax[i] );
+			}
 		    } else {	/* no voxels, so just leave blanks */
 			fprintf(stdout, "\t ");
 			if (nzmean)
@@ -427,6 +479,12 @@ int main(int argc, char *argv[])
 			    fprintf(stdout, "\t ");
 			if (sigma)
 			    fprintf(stdout, "\t ");
+			fprintf(stdout, "\t ");
+			fprintf(stdout, "\t ");
+			if (nzminmax) {
+			    fprintf(stdout, "\t ");
+			    fprintf(stdout, "\t ");
+			}
 		    }
 		}		/* loop over ROI for print */
 
