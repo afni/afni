@@ -934,7 +934,7 @@ afni_src.tgz:
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./afni_src
 	$(CP) -r coxplot volpack moveup moveAFNI* cdflib eispack ./afni_src
 	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir dlcompat ./afni_src
-	$(CP) -r netcdf-3.5.0 ./afni_src
+	$(CP) -r netcdf-3.5.0 jpeg-6b ./afni_src
 	$(CP) -r SUMA rickr ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
