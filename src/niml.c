@@ -3215,8 +3215,12 @@ void NI_free_element( void *nini )
 /*! Create a new data element.
 
     - name   = string name for header.
-    - veclen = size of vectors (ni_dimen); set this to zero for "empty"
-               elements (those with only headers, no data).
+    - veclen = size of vectors (ni_dimen).
+               - Vectors are added with NI_add_column().
+               - Set this to zero for "empty" elements (those with only
+                 headers, no data).
+               - Set this to -1 if data is to be stored into the element
+                 by rows rather than by columns - cf. NI_add_row().
 
     Return is NULL if inputs are stupid.
 -------------------------------------------------------------------------*/
