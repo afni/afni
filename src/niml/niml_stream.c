@@ -763,12 +763,37 @@ static int SHM_size( int shmid )
 static int SHM_nattach( int shmid )
 {
    int ii ;
-   struct shmid_ds buf ;
+   static struct shmid_ds buf ;
+   char *eee = getenv( "NIML_DNAME" ) ;
 
    if( shmid < 0 ) return -1 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
-   if( ii < 0 ){ PERROR("SHM_nattach") ;  return -1 ; }
-   return buf.shm_nattch ;
+   if( ii < 0 ){
+     if( eee != NULL ) fprintf(stderr,"SHM_nattach: trying again!\n") ;
+     NI_sleep(3) ;
+     ii = shmctl( shmid , IPC_STAT , &buf ) ;
+   }
+   if( ii < 0 ){
+     char *ppp ;
+     if( eee != NULL ){
+       ppp = (char *)calloc(1,strlen(eee)+32) ;
+       strcpy(ppp,"SHM_nattach (") ;
+       strcat(ppp,eee) ; strcat(ppp,")") ;
+     } else {
+       ppp = strdup("SHM_nattach") ;
+     }
+     PERROR(ppp);
+     fprintf(stderr,"%s: called shmctl(%x,%x,%p), got %d\n",
+             ppp,(unsigned int)shmid, (unsigned int)IPC_STAT, (void *)&buf,
+             ii ) ;
+     free((void *)ppp); return -1;
+   } else if( eee != NULL ){
+     fprintf(stderr,"SHM_nattach (%s): called shmctl(%x,%x,%p), got %d\n",
+             eee,
+             (unsigned int)shmid, (unsigned int)IPC_STAT, (void *)&buf,
+             (int)buf.shm_nattch ) ;
+   }
+   return (int)buf.shm_nattch ;
 }
 
 /*---------------------------------------------------------------*/
@@ -916,6 +941,7 @@ static SHMioc * SHM_init( char * name , char * mode )
       if( ioc->id < 0 ){                /* failed to find segment? */
          ioc->bad = SHM_WAIT_CREATE ;   /* mark for waiting        */
          return ioc ;                   /* and we are DONE for now */
+         ioc->goodcheck_time = -99 ; /* 23 Nov 2004 */
 
       } else {                          /* found it?   */
 
@@ -926,6 +952,7 @@ static SHMioc * SHM_init( char * name , char * mode )
          }
 
          return ioc ;                   /** DONE **/
+         ioc->goodcheck_time = -99 ; /* 23 Nov 2004 */
       }
    }
 
@@ -978,6 +1005,7 @@ static SHMioc * SHM_init( char * name , char * mode )
       ioc->bad  = (jj < 2)          /* ready if both   */
                  ? SHM_WAIT_ACCEPT  /* processes are   */
                  : 0 ;              /* attached to shm */
+      ioc->goodcheck_time = -99 ; /* 23 Nov 2004 */
       return ioc ;
    }
 
@@ -1012,7 +1040,7 @@ static int SHM_alivecheck( int shmid )
 
 static int SHM_goodcheck( SHMioc * ioc , int msec )
 {
-   int ii , jj ;
+   int ii , jj , ct ;
    char * bbb ;
 
    /** check inputs for OK-osity **/
@@ -1022,7 +1050,13 @@ static int SHM_goodcheck( SHMioc * ioc , int msec )
    /** if it was good before, then check if it is still good **/
 
    if( ioc->bad == 0 ){
-     ii = SHM_alivecheck(ioc->id) ;
+     ct = NI_clock_time() ;
+     if( ct - ioc->goodcheck_time > 2 ){    /* 23 Nov 2004 */
+       ii = SHM_alivecheck(ioc->id) ;
+       ioc->goodcheck_time = ct ;
+     } else {
+       ii = 1 ;
+     }
      if( ii <= 0 ){                            /* has died */
 #ifdef NIML_DEBUG
         NI_dpr("++ Shared memory connection %s has gone bad!\n",
@@ -1104,18 +1138,21 @@ static void SHM_close( SHMioc *ioc )
 
 static int SHM_readcheck( SHMioc *ioc , int msec )
 {
-   int ii ;
+   int ii , ct ;
    int nread , dms=0 , ms ;
    int *bstart, *bend , bsize ;  /* for the chosen buffer */
 
    /** check if the SHMioc is good **/
 
-   ii = SHM_goodcheck(ioc,0) ;
-   if( ii == -1 ) return -1 ;           /* some error */
-   if( ii == 0  ){                      /* not good yet */
-     ii = SHM_goodcheck(ioc,msec) ;     /* so wait for it to get good */
-     if( ii <= 0 ) return ii ;          /* if still not good, exit */
-   }
+   ct = NI_clock_time() ;
+   if( ct - ioc->goodcheck_time > 2 ){    /* 23 Nov 2004 */
+     ii = SHM_goodcheck(ioc,0) ;
+     ioc->goodcheck_time = ct ;
+     if( ii <= 0  ){                      /* not good yet */
+       ii = SHM_goodcheck(ioc,msec) ;     /* so wait for it to get good */
+       if( ii <= 0 ) return ii ;          /* if still not good, exit */
+     }
+   } else if( ioc->bad ) return 0 ;
 
    /** choose buffer from which to read **/
 
@@ -1611,7 +1648,8 @@ NI_stream NI_stream_open( char *name , char *mode )
            }
          }
 
-         add_open_stream(ns) ;   /* 02 Jan 2004 */
+         add_open_stream(ns) ;       /* 02 Jan 2004 */
+         ns->goodcheck_time = -99 ;  /* 23 Nov 2004 */
          return ns ;
       }
 
@@ -1631,6 +1669,7 @@ NI_stream NI_stream_open( char *name , char *mode )
           fcntl( ns->sd, F_SETOWN, (int)getpid() ) ;    /* 02 Jan 2004 */
 
         add_open_stream(ns) ;   /* 02 Jan 2004 */
+        ns->goodcheck_time = -99 ;  /* 23 Nov 2004 */
         return ns ;
       }
       return NULL ;  /* should never be reached */
@@ -1667,6 +1706,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
       add_open_stream(ns) ;  /* 02 Jan 2004 */
+      ns->goodcheck_time = -99 ;  /* 23 Nov 2004 */
       return ns ;
    }
 #endif /* DONT_USE_SHM */
@@ -1712,6 +1752,7 @@ NI_stream NI_stream_open( char *name , char *mode )
          ns->fsize = -1 ;
 
       add_open_stream(ns) ;  /* 02 Jan 2004 */
+      ns->goodcheck_time = -99 ;  /* 23 Nov 2004 */
       return ns ;
    }
 
@@ -1772,6 +1813,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->fsize = -1 ;
 
       add_open_stream(ns) ;  /* 02 Jan 2004 */
+      ns->goodcheck_time = -99 ;  /* 23 Nov 2004 */
       return ns ;
    }
 
@@ -1811,6 +1853,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
       add_open_stream(ns) ;  /* 02 Jan 2004 */
+      ns->goodcheck_time = -99 ;  /* 23 Nov 2004 */
       return ns ;
    }
 
@@ -1844,6 +1887,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       NI_strncpy(ns->orig_name,name,256) ;  /* 23 Aug 2002 */
 
       add_open_stream(ns) ;  /* 02 Jan 2004 */
+      ns->goodcheck_time = -99 ;  /* 23 Nov 2004 */
       return ns ;
    }
 

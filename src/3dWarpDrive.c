@@ -1,12 +1,20 @@
 /*------------------------------------------------------------------------
    ***  This program does something, but nobody is quite sure what.  ***
+  ***  But what it does is very important, nobody doubts that, either. ***
 --------------------------------------------------------------------------*/
 
 #include "mrilib.h"
 
 /*--------------------------------------------------------------------------*/
 
-static float parvec[99] ;
+#define MAXPAR 99
+
+typedef struct { int np ; float vp ; } fixed_param ;
+
+static int nparfix ;
+static fixed_param parfix[MAXPAR] ;
+
+static float parvec[MAXPAR] ;
 
 static void (*warp_parset)(void) = NULL ;
 
@@ -160,8 +168,8 @@ int main( int argc , char * argv[] )
    MRI_warp3D_align_basis abas ;
    char *prefix="warpdriven" ;
    int warpdrive_code=-1 , nerr , nx,ny,nz , nopt=1 ;
-   float dx,dy,dz ;
-   int kim , nvals ;
+   float dx,dy,dz , vp ;
+   int kim , nvals , kpar , np , nfree ;
    MRI_IMAGE *qim , *tim , *fim ;
 
    /*-- help? --*/
@@ -206,6 +214,9 @@ int main( int argc , char * argv[] )
             "                   image derivatives using finite differences\n"
             "  -weight  wset = Set the weighting applied to each voxel\n"
             "                   proportional to the brick specified here\n"
+            "  -parfix n v   = Fix the n'th parameter of the warp model to\n"
+            "                   the value 'v'.  More than one -parfix option\n"
+            "                   can be used.\n"
             "\n"
            ) ;
      exit(0) ;
@@ -232,9 +243,59 @@ int main( int argc , char * argv[] )
    abas.xedge = abas.yedge = abas.zedge = -1 ;
    abas.imww  = abas.imap  = abas.imps  = abas.imsk = NULL ;
 
+   nparfix = 0 ;
+
    /*-- command line options --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     /*-----*/
+
+     if( strcmp(argv[nopt],"-parfix") == 0 ){
+       int np , ip ; float vp ;
+       if( ++nopt >= argc-1 ){
+         fprintf(stderr,"** ERROR: need 2 parameters afer -parfix!\n"); exit(1);
+       }
+       np = strtol( argv[nopt] , NULL , 10 ) ; nopt++ ;
+       vp = strtod( argv[nopt] , NULL ) ;
+       if( np <= 0 || np > MAXPAR ){
+         fprintf(stderr,"** ERROR: param #%d after -parfix is illegal!\n",np) ;
+         exit(1) ;
+       }
+       for( ip=0 ; ip < nparfix ; ip++ ){
+         if( parfix[ip].np == np ){
+           fprintf(stderr,
+                   "++ WARNING: multiple -parfix options for param #%d\n",np) ;
+           break ;
+         }
+       }
+       if( ip == nparfix ) nparfix++ ;
+       parfix[ip].np = np ; parfix[ip].vp = vp ;
+       nopt++ ; continue ;
+     }
+
+     /*-----*/
+
+  /*! Add a parameter to a warp3D model.
+       - nm = name of parameter
+       - bb = min value allowed
+       - tt = max value allowed
+       - id = value for identity warp
+       - dd = delta to use for stepsize
+       - ll = tolerance for convergence test */
+
+#define ADDPAR(nm,bb,tt,id,dd,ll)                               \
+ do{ int p=abas.nparam ;                                        \
+     abas.param = (MRI_warp3D_param_def *) realloc(             \
+                      (void *)abas.param ,                      \
+                      sizeof(MRI_warp3D_param_def)*(p+1) ) ;    \
+     abas.param[p].min   = (bb) ; abas.param[p].max   = (tt) ;  \
+     abas.param[p].delta = (dd) ; abas.param[p].toler = (ll) ;  \
+     abas.param[p].ident = abas.param[p].val_init = (dd) ;      \
+     strcpy( abas.param[p].name , (nm) ) ;                      \
+     abas.param[p].fixed = 0 ;                                  \
+     abas.nparam = p+1 ;                                        \
+ } while(0)
 
      /*-----*/
 
@@ -250,38 +311,13 @@ int main( int argc , char * argv[] )
        warp_for    = warper_affine_for ;
        warp_inv    = warper_affine_inv ;
 
-       abas.nparam = 6 ;
-       abas.param  = (MRI_warp3D_param_def *)calloc(sizeof(MRI_warp3D_param_def),6) ;
+       ADDPAR( "x-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
 
-       abas.param[0].min   = -100.0 ; abas.param[0].max      =  100.0 ;
-       abas.param[0].ident =    0.0 ; abas.param[0].delta    =    1.3 ;
-       abas.param[0].toler =    0.0 ; abas.param[0].val_init =    0.0 ;
-       strcpy(abas.param[0].name , "x-shift") ;
-
-       abas.param[1].min   = -100.0 ; abas.param[1].max      =  100.0 ;
-       abas.param[1].ident =    0.0 ; abas.param[1].delta    =    1.3 ;
-       abas.param[1].toler =    0.0 ; abas.param[1].val_init =    0.0 ;
-       strcpy(abas.param[1].name , "y-shift") ;
-
-       abas.param[2].min   = -100.0 ; abas.param[2].max      =  100.0 ;
-       abas.param[2].ident =    0.0 ; abas.param[2].delta    =    1.3 ;
-       abas.param[2].toler =    0.0 ; abas.param[2].val_init =    0.0 ;
-       strcpy(abas.param[2].name , "z-shift") ;
-
-       abas.param[3].min   = -180.0 ; abas.param[3].max      =  180.0 ;
-       abas.param[3].ident =  0.0   ; abas.param[3].delta    =  0.0 ;
-       abas.param[3].toler =  0.0   ; abas.param[3].val_init =  0.0 ;
-       strcpy(abas.param[3].name , "z-angle") ;
-
-       abas.param[4].min   = -180.0 ; abas.param[4].max      =  180.0 ;
-       abas.param[4].ident =  0.0   ; abas.param[4].delta    =  0.0 ;
-       abas.param[4].toler =  0.0   ; abas.param[4].val_init =  0.0 ;
-       strcpy(abas.param[4].name , "x-angle") ;
-
-       abas.param[5].min   = -180.0 ; abas.param[5].max      =  180.0 ;
-       abas.param[5].ident =  0.0   ; abas.param[5].delta    =  0.0 ;
-       abas.param[5].toler =  0.0   ; abas.param[5].val_init =  0.0 ;
-       strcpy(abas.param[5].name , "y-angle") ;
+       ADDPAR( "z-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "x-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
 
        warpdrive_code = WARPDRIVE_ROTATE ; nopt++ ; continue ;
      }
@@ -429,8 +465,26 @@ int main( int argc , char * argv[] )
 
    if( abas.verb ) fprintf(stderr,"++ Checking inputs\n") ;
 
+   nfree = abas.nparam ;
+   for( kpar=0 ; kpar < nparfix ; kpar++ ){
+     np = parfix[kpar].np - 1 ; vp = parfix[kpar].vp ;
+     if( np >= 0 && np < abas.nparam ){
+       abas.param[np].fixed     = 1  ;
+       abas.param[np].val_fixed = vp ;
+       nfree -- ;
+     } else {
+       fprintf(stderr,
+               "++ WARNING: -parfix for param #%d is out of range 1..%d\n",
+               np+1 , abas.nparam+1 ) ;
+     }
+   }
+   if( nfree <= 0 ){
+     fprintf(stderr,"** ERROR: no free parameters left -- too much -parfix!\n") ;
+     nerr++ ;
+   }
+
    nerr = 0 ;
-   if( warpdrive_code <= 0 ){
+   if( abs.nparam < 1 || warpdrive_code <= 0 ){
      fprintf(stderr,"** ERROR: need to input a transform-specifying option!\n");
      nerr++ ;
    }
@@ -545,6 +599,13 @@ int main( int argc , char * argv[] )
    if( abas.verb ) fprintf(stderr,"++ Beginning alignment iterations\n") ;
    nvals = DSET_NVALS(inset) ;
    for( kim=0 ; kim < nvals ; kim++ ){
+     for( kpar=0 ; kpar < abas.nparam ; kpar++ ){
+       if( abas.param[kpar].fixed )
+         abas.param[kpar].val_init = abas.param[kpar].val_fixed ;
+       else
+         abas.param[kpar].val_init = abas.param[kpar].ident ;
+     }
+
      qim = DSET_BRICK( inset , kim ) ;
      tim = mri_warp3d_align_one( &abas , qim ) ;
      switch( qim->kind ){
