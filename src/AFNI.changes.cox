@@ -4236,3 +4236,6 @@
 27 Jan 2003
  * Added messages to afni_version.c when version checking is disabled, fails,
      or when the current version is different than the last version.
+
+28 Jan 2003
+ * Modified thd_ctfread.c to correct nx,ny,nz calculation for SAM images.
