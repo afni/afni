@@ -17,15 +17,21 @@ extern SUMA_CommonFields *SUMAg_CF;
    - To add a new version, you must add a case statement in SUMA_New_Additions_perver
      AND add the version number in the beginning of verv in SUMA_New_Additions
 */
+
+static int verv[] = { 25000, 24800, 24500, -10000}; /* modify this dude and you must update SUMA_New_Additions_perver  
+                                       Add to the left of the vector, leave the last value of -10000 untouched
+                                       If you like to think of floating point version numbers,divide by 10000*/
+float SUMA_LatestVersionNumber(void)
+{
+   return((float)verv[0]/10000.0);
+}
+
 char * SUMA_New_Additions (int ver, SUMA_Boolean StampOnly)
 {
    static char FuncName[]={"SUMA_New_Additions"};
    char *s = NULL;
    int i;
    SUMA_STRING *SS = NULL;
-   int verv[] = { 25000, 24800, 24500, -10000}; /* modify this dude and you must update SUMA_New_Additions_perver  
-                                       Add to the left of the vector, leave the last value of -10000 untouched
-                                       If you like to think of floating point version numbers,divide by 10000*/
    
    SUMA_ENTRY;
    
