@@ -1,5 +1,5 @@
 
-#define VERSION "version  6.2 (Sep 14, 2004)"
+#define VERSION "version  6.3 (Oct 08, 2004)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -203,6 +203,10 @@ static char g_history[] =
     "6.2  September 16, 2004  [rickr]\n"
     "  - added -gp_index option, mostly to use in plugin interface\n"
     "  - added -reverse_norm_dir option, for reversing the default direction\n"
+    "\n"
+    "6.3  October 8, 2004  [rickr]\n"
+    "  - in suma2afni_surf(), dealt with LDP changes to SUMA_surface\n"
+    "  - changed write_outfile functions to v2s_*() and moved them to library\n"
     "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -303,112 +307,15 @@ ENTRY("write_output");
     if ( sd && sopt->debug > 1 ) disp_v2s_results("-- post vol2surf() : ",sd);
 
     if ( sd && sopt->outfile_1D )
-	rv = write_outfile_1D(sopt, sd, p->surf[0].label);
+	rv = v2s_write_outfile_1D(sopt, sd, p->surf[0].label);
 
     if ( sd && !rv && sopt->outfile_niml )
-	rv = write_outfile_niml(sopt, sd, 1); /* request to free data */
+	rv = v2s_write_outfile_niml(sopt, sd, 1); /* request to free data */
 
     free_v2s_results( sd );
     sd = NULL;
 
     RETURN(rv);
-}
-
-
-/*----------------------------------------------------------------------
- * write_outfile_niml		- write results to niml file
- *                              - free data pointers as we go
- *----------------------------------------------------------------------
-*/
-int write_outfile_niml ( v2s_opts_t * sopt, v2s_results * sd, int free_vals )
-{
-    static char   v2s_name[] = "3dVol2Surf_dataset";
-    NI_element  * nel = NULL;
-    NI_stream     ns;
-    char        * ni_name;
-    int           c;
-
-ENTRY("write_outfile_niml");
-
-    if ( !sopt->outfile_niml ) RETURN(0);
-
-    nel = NI_new_data_element( v2s_name, sd->nused );
-    if ( !nel )
-    {
-	fprintf(stderr,"** file NI_new_data_element, n = '%s', len = %d\n",
-		v2s_name, sd->nused);
-	RETURN(1);
-    }
-
-    ni_name = (char *)calloc(strlen(sopt->outfile_niml)+6, sizeof(char));
-    if ( !ni_name ) { fprintf(stderr,"** ni_name failed\n"); RETURN(1); }
-    sprintf(ni_name, "file:%s", sopt->outfile_niml);
-
-    ns = NI_stream_open(ni_name, "w");
-
-    NI_add_column(nel,NI_INT,sd->nodes);
-
-    for ( c = 0; c < sd->max_vals; c++ )
-    {
-	NI_add_column(nel, NI_FLOAT, sd->vals[c]);
-	if ( free_vals ) { free(sd->vals[c]); sd->vals[c] = NULL; }
-    }
-    if ( free_vals ) { free(sd->vals); sd->vals = NULL; }
-
-    if ( NI_write_element(ns, nel, NI_BINARY_MODE) < 0 )
-    {
-	fprintf(stderr,"** NI_write_element failed for: '%s'\n", ni_name);
-	RETURN(1);
-    }
-
-    NI_free_element( nel );
-    NI_stream_close( ns );
-    free(ni_name);
-
-    RETURN(0);
-}
-
-
-/*----------------------------------------------------------------------
- * write_outfile_1D		- write results to 1D file
- *----------------------------------------------------------------------
-*/
-int write_outfile_1D ( v2s_opts_t * sopt, v2s_results * sd, char * label )
-{
-    FILE        * fp;
-    int           rv = 0, c, c2;
-ENTRY("write_outfile_1D");
-
-    fp = fopen( sopt->outfile_1D, "w" );
-    if ( fp == NULL )
-    {
-	fprintf( stderr, "** failure to open '%s' for writing\n",
-		 sopt->outfile_1D );
-	RETURN(-1);
-    }
-
-    if ( ! sopt->no_head )
-	print_header(fp, label, gv2s_map_names[sopt->map], sd);
-
-    for ( c = 0; c < sd->nused; c++ )
-    {
-	/* keep old spacing */
-	fputc(' ', fp);
-	if ( sd->nodes  ) fprintf(fp, " %8d", sd->nodes[c]);
-	if ( sd->volind ) fprintf(fp, "   %8d ", sd->volind[c]);
-	if ( sd->i      ) fprintf(fp, "  %3d", sd->i[c]);
-	if ( sd->j      ) fprintf(fp, "  %3d", sd->j[c]);
-	if ( sd->k      ) fprintf(fp, "  %3d", sd->k[c]);
-	if ( sd->nvals  ) fprintf(fp, "     %3d", sd->nvals[c]);
-
-	for ( c2 = 0; c2 < sd->max_vals; c2++ )
-	    fprintf(fp, "  %10s", MV_format_fval(sd->vals[c2][c]));
-	fputc('\n', fp);
-    }
-
-    fclose(fp);
-
-    RETURN(0);
 }
 
 
@@ -716,7 +623,7 @@ ENTRY("suma2afni_surf");
 
 	    if ( sopt->debug > 1 )
 		fprintf(stderr,"++ filling in norms for surf # %d (%d bytes)\n",
-			sindex, sp->num_ixyz * sizeof(THD_fvec3));
+			sindex, (int)(sp->num_ixyz * sizeof(THD_fvec3)));
 
 	    fp = so->NodeNormList;
 	    for ( node = 0; node < sp->num_ixyz; node++ )
@@ -743,7 +650,7 @@ ENTRY("suma2afni_surf");
     }
     else if ( sopt->debug > 1 )
 	fprintf(stderr,"++ s2as: allocated %d SUMA_ixyz nodes (%d bytes)\n",
-		sp->num_ixyz, sp->num_ixyz*sizeof(SUMA_ixyz));
+		sp->num_ixyz, (int)(sp->num_ixyz*sizeof(SUMA_ixyz)));
 
     fp = so->NodeList;
     for ( node = 0; node < sp->num_ixyz; node++ )
@@ -774,10 +681,17 @@ ENTRY("suma2afni_surf");
     else
 	UNIQ_idcode_fill(sp->idcode);
 
-    sp->idcode_domaingroup[0] = '\0';	/* maybe assign these ... */
-    sp->idcode_dset[0]        = '\0';
+    sp->idcode_ldp[0]  = '\0';	/* maybe assign these ... */
+    sp->idcode_dset[0] = '\0';
 
     strncpy(sp->label, so->Label, 63);  sp->label[63] = '\0';
+    if (so->LocalDomainParent && *so->LocalDomainParent)
+    {
+	strncpy(sp->label_ldp, so->LocalDomainParent, 63);
+	sp->label[63] = '\0';
+    }
+    else
+	strcpy(sp->label_ldp, "no_LDP_label");
 
     sp->vv = NULL;	/* no mappings, for now */
     sp->vn = NULL;
@@ -2536,57 +2450,6 @@ ENTRY("usage");
 	fprintf( stderr, "usage called with illegal level <%d>\n", level );
 
     RETURN(-1);
-}
-
-
-/*----------------------------------------------------------------------
- * print_header	   - dump standard header for node output         - v2.4
- *----------------------------------------------------------------------
-*/
-int print_header( FILE * outfp, char * surf, char * map, v2s_results * sd )
-{
-    int val;
-
-ENTRY("print_header");
-
-    fprintf( outfp, "# --------------------------------------------------\n" );
-    fprintf( outfp, "# surface '%s', '%s' :\n", surf, map );
-    fprintf( outfp, "#\n" );
-
-    /* keep old style, but don't presume all columns get used (v 6.0) :
-     *     fprintf( outfp, "#    node     1dindex    i    j    k     vals" );
-     *     fprintf( outfp, "#   ------    -------   ---  ---  ---    ----" );
-     */
-
-    /* output column headers */
-    fputc( '#', outfp );	/* still comment line */
-
-    if ( sd->nodes  ) fprintf(outfp, "    node ");
-    if ( sd->volind ) fprintf(outfp, "    1dindex ");
-    if ( sd->i      ) fprintf(outfp, "   i ");
-    if ( sd->j      ) fprintf(outfp, "   j ");
-    if ( sd->k      ) fprintf(outfp, "   k ");
-    if ( sd->nvals  ) fprintf(outfp, "    vals");
-
-    for ( val = 0; val < sd->max_vals; val++ )
-	fprintf( outfp, "       v%-2d  ", val );
-    fputc( '\n', outfp );
-
-    fputc( '#', outfp );
-    /* underline the column headers */
-    if ( sd->nodes  ) fprintf(outfp, "   ------");
-    if ( sd->volind ) fprintf(outfp, "    ------- ");
-    if ( sd->i      ) fprintf(outfp, "  ---");
-    if ( sd->j      ) fprintf(outfp, "  ---");
-    if ( sd->k      ) fprintf(outfp, "  ---");
-    if ( sd->nvals  ) fprintf(outfp, "    ----");
-
-    fputs( "   ", outfp );
-    for ( val = 0; val < sd->max_vals; val++ )
-	fprintf( outfp, " --------   " );
-    fputc( '\n', outfp );
-
-    RETURN(0);
 }
 
 

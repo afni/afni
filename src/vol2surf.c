@@ -11,10 +11,11 @@
  *
  * display functions:
  *
- *     int disp_mri_imarr     ( char * info, MRI_IMARR * dp );
- *     int disp_v2s_opts_t    ( char * info, v2s_opts_t * sopt );
- *     int disp_v2s_param_t   ( char * info, v2s_param_t * p );
- *     int disp_v2s_results   ( char * mesg, v2s_results * d );
+ *     int disp_mri_imarr       ( char * info, MRI_IMARR       * dp   );
+ *     int disp_v2s_opts_t      ( char * info, v2s_opts_t      * sopt );
+ *     int disp_v2s_param_t     ( char * info, v2s_param_t     * p    );
+ *     int disp_v2s_plugin_opts ( char * info, v2s_plugin_opts * d    );
+ *     int disp_v2s_results     ( char * mesg, v2s_results     * d    );
  *
  * Author: R Reynolds
  *----------------------------------------------------------------------
@@ -61,6 +62,13 @@ char gv2s_history[] =
     "  - in init_seg_endpoints(), nuke p1, pn; save dicom_to_mm until end\n"
     "  - changed THD_3dmm_to_3dind() to new THD_3dmm_to_3dind_no_wod()\n"
     "  - added function v2s_is_good_map_index()\n"
+    "\n"
+    "October 08, 2004 [rickr]\n"
+    "  - added disp_v2s_plugin_opts()\n"
+    "  - dealt with default v2s mapping of surface pairs\n"
+    "  - added fill_sopt_default()\n"
+    "  - moved v2s_write_outfile_*() here, with print_header()\n"
+    "  - in afni_vol2surf(), actually write output files\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -112,6 +120,7 @@ static int    disp_range_3dmm_res( char * info, range_3dmm_res * dp );
 static int    disp_surf_vals( char * mesg, v2s_results * sd, int node );
 static int    dump_surf_3dt(v2s_opts_t *sopt, v2s_param_t *p, v2s_results *sd);
 static int    f3mm_out_of_bounds(THD_fvec3 *cp, THD_fvec3 *min, THD_fvec3 *max);
+static int    fill_sopt_default(v2s_opts_t * sopt, int nsurf );
 static int    float_list_alloc(float_list *f, int **ilist, int size, int trunc);
 static int    float_list_comp_mode(float_list *f, float *mode, int *nvals,
                                    int *index);
@@ -120,6 +129,7 @@ static int    init_seg_endpoints(v2s_opts_t * sopt, v2s_param_t * p,
                                  range_3dmm * R, int node );
 static int    init_range_structs( range_3dmm * r3, range_3dmm_res * res3 );
 static double magnitude_f( float * p, int length );
+static int    print_header(FILE *outfp, char *surf, char *map, v2s_results *sd);
 static int    realloc_ints( int ** ptr, int length, char * dstr, int debug );
 static int    realloc_vals_list(float ** ptr, int length, int width, int debug);
 static int    set_3dmm_bounds(THD_3dim_dataset *dset, THD_fvec3 *min,
@@ -138,7 +148,7 @@ static int    validate_v2s_inputs(v2s_opts_t * sopt, v2s_param_t * p);
 
 /*----------------------------------------------------------------------*/
 /* globals to be accessed by plugin and in afni_suma.c                  */
-v2s_plugin_opts gv2s_plug_opts = {0, -1, -1};
+v2s_plugin_opts gv2s_plug_opts = {0, 0, 0, -1, -1, -1, -1};
 			    /* this must match v2s_map_nums enum */
 char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
                             "count", "min", "max", "max_abs", "seg_vals",
@@ -148,11 +158,12 @@ char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
 /*----------------------------------------------------------------------
  * afni_vol2surf     - create v2s_results from gv2s_* afni globals
  *
- *    input:   gpar     : AFNI dataset to be used as the grid parent
- *             gp_index : sub-brick selector
- *             sA       : surface A structure
- *             sB       : surface B structure
- *	       mask     : thresholding mask
+ *    input:   gpar         : AFNI dataset to be used as the grid parent
+ *             gp_index     : sub-brick selector
+ *             sA           : surface A structure
+ *             sB           : surface B structure
+ *	       mask         : thresholding mask
+ *             use_defaults : use default sopt structure
  * 
  *    output:  sd    : allocated v2s_results struct, with requested data
  *
@@ -161,22 +172,28 @@ char * gv2s_map_names[] = { "none", "mask", "midpoint", "mask2", "ave",
  *----------------------------------------------------------------------
 */
 v2s_results * afni_vol2surf ( THD_3dim_dataset * gpar, int gp_index,
-			SUMA_surface * sA, SUMA_surface * sB, byte * mask )
+			      SUMA_surface * sA, SUMA_surface * sB,
+			      byte * mask, int use_defaults )
 {
     static v2s_param_t   P;
-    v2s_plugin_opts    * popt;
-    v2s_opts_t         * sopt;
+    v2s_opts_t         * sopt, sopt_def;
+    v2s_results        * res;
 
 ENTRY("afni_vol2surf");
 
-    if ( !gv2s_plug_opts.ready ) RETURN(NULL);	/* run away! */
     if ( !gpar )                 RETURN(NULL);
 
     if (       check_SUMA_surface(sA) ) RETURN(NULL);
     if ( sB && check_SUMA_surface(sB) ) RETURN(NULL);
 
-    popt = &gv2s_plug_opts;
-    sopt = &gv2s_plug_opts.sopt;
+    if ( use_defaults )
+    {
+	sopt = &sopt_def;
+        fill_sopt_default(sopt, sB ? 2 : 1);  /* 1 or 2 surfaces */
+    }
+    else 
+	sopt = &gv2s_plug_opts.sopt;
+
     sopt->gp_index = gp_index;
 
     /* now fill the param struct based on the inputs */
@@ -194,17 +211,31 @@ ENTRY("afni_vol2surf");
 
     if ( sB ) P.surf[1] = *sB;
 
-    if ( sopt->debug > 1 )
-    {
-	fprintf(stderr, "-d afni_vol2surf: \n"
-			"   ready, surf_A, surf_B = %d, %d, %d\n",
-			popt->ready, popt->surfA, popt->surfB);
-	disp_v2s_opts_t("   options: ", &gv2s_plug_opts.sopt);
-    }
+    if ( gv2s_plug_opts.sopt.debug > 1 )
+	disp_v2s_opts_t("   surf options: ", sopt);
 
     /* fire it up */
 
-    RETURN(vol2surf(sopt, &P));
+    res = vol2surf(sopt, &P);
+
+    /* if the user wants output files, here they are (don't error check) */
+    if (res && sopt->outfile_1D )
+    {
+	if ( THD_is_file(sopt->outfile_1D) )
+	    fprintf(stderr,"** over-writing 1D output file '%s'\n",
+		    sopt->outfile_1D);
+        v2s_write_outfile_1D(sopt, res, P.surf[0].label);
+    }
+
+    if (res && sopt->outfile_niml )
+    {
+	if ( THD_is_file(sopt->outfile_niml) )
+	    fprintf(stderr,"** over-writing niml output file '%s'\n",
+		    sopt->outfile_niml);
+        v2s_write_outfile_niml(sopt, res, 0);
+    }
+
+    RETURN(res);
 }
 
 
@@ -1752,6 +1783,27 @@ ENTRY("disp_v2s_results");
 }
 
 
+/***********************************************************************
+ * disp_v2s_plugin_opts
+ ***********************************************************************
+*/
+int disp_v2s_plugin_opts( char * mesg, v2s_plugin_opts * d )
+{
+ENTRY("disp_v2s_plugin_opts");
+
+    if ( mesg ) fputs( mesg, stderr );
+
+    fprintf(stderr, "v2s_plugin_opts @ %p\n"
+		    "    ready      = %d\n"
+		    "    use0, use1 = %d, %d\n"
+		    "    s0A, s0B   = %d, %d\n"
+		    "    s1A, s1B   = %d, %d\n",
+	    	    d, d->ready, d->use0, d->use1,
+		    d->s0A, d->s0B, d->s1A, d->s1B );
+    RETURN(0);
+}
+
+
 /*----------------------------------------------------------------------
  * free_v2s_results  - free contents of v2s_results struct
  *----------------------------------------------------------------------
@@ -2099,4 +2151,188 @@ ENTRY("v2s_good_map_index");
 
     RETURN(1);
 }
+
+/*----------------------------------------------------------------------
+ * check for a map index that we consider valid
+ *
+ * from anywhere, E_SMAP_MASK2 and E_SMAP_COUNT are not yet implemented
+ * from afni, E_SMAP_SEG_VALS is not acceptable (only allow 1 output)
+ *----------------------------------------------------------------------
+*/
+static int fill_sopt_default(v2s_opts_t * sopt, int nsurf )
+{
+
+ENTRY("fill_sopt_default");
+
+    if ( !sopt || nsurf < 1 || nsurf > 2 )
+    {
+	fprintf(stderr,"** fill_sopt_default: bad params (%p,%d)\n",sopt,nsurf);
+	RETURN(1);
+    }
+
+    /* first set any zeros */
+    memset(sopt, 0, sizeof(*sopt));
+
+    if ( nsurf == 2 )
+	sopt->map = E_SMAP_MIDPT;
+    else
+	sopt->map = E_SMAP_MASK;
+
+    sopt->gp_index     = -1;
+    sopt->no_head      = 1;
+    sopt->skip_cols    = V2S_SKIP_ALL ^ V2S_SKIP_NODES;  /* nodes and 1 val */
+    sopt->f_steps      = 1;
+    sopt->outfile_1D   = NULL;
+    sopt->outfile_niml = NULL;
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * v2s_write_outfile_1D         - write results to 1D file
+ *----------------------------------------------------------------------
+*/
+int v2s_write_outfile_1D ( v2s_opts_t * sopt, v2s_results * sd, char * label )
+{
+    FILE        * fp;
+    int           c, c2;
+ENTRY("v2s_write_outfile_1D");
+
+    fp = fopen( sopt->outfile_1D, "w" );
+    if ( fp == NULL )
+    {
+        fprintf( stderr, "** failure to open '%s' for writing\n",
+                 sopt->outfile_1D );
+        RETURN(-1);
+    }
+
+    if ( ! sopt->no_head )
+        print_header(fp, label, gv2s_map_names[sopt->map], sd);
+
+    for ( c = 0; c < sd->nused; c++ )
+    {
+        /* keep old spacing */
+        fputc(' ', fp);
+        if ( sd->nodes  ) fprintf(fp, " %8d", sd->nodes[c]);
+        if ( sd->volind ) fprintf(fp, "   %8d ", sd->volind[c]);
+        if ( sd->i      ) fprintf(fp, "  %3d", sd->i[c]);
+        if ( sd->j      ) fprintf(fp, "  %3d", sd->j[c]);
+        if ( sd->k      ) fprintf(fp, "  %3d", sd->k[c]);
+        if ( sd->nvals  ) fprintf(fp, "     %3d", sd->nvals[c]);
+
+        for ( c2 = 0; c2 < sd->max_vals; c2++ )
+            fprintf(fp, "  %10s", MV_format_fval(sd->vals[c2][c]));
+        fputc('\n', fp);
+    }
+
+    fclose(fp);
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * v2s_write_outfile_niml       - write results to niml file
+ *                              - free data pointers as we go
+ *----------------------------------------------------------------------
+*/
+int v2s_write_outfile_niml ( v2s_opts_t * sopt, v2s_results * sd, int free_vals){
+    static char   v2s_name[] = "3dVol2Surf_dataset";
+    NI_element  * nel = NULL;
+    NI_stream     ns;
+    char        * ni_name;
+    int           c;
+
+ENTRY("v2s_write_outfile_niml");
+
+    if ( !sopt->outfile_niml ) RETURN(0);
+
+    nel = NI_new_data_element( v2s_name, sd->nused );
+    if ( !nel )
+    {
+        fprintf(stderr,"** file NI_new_data_element, n = '%s', len = %d\n",
+                v2s_name, sd->nused);
+        RETURN(1);
+    }
+
+    ni_name = (char *)calloc(strlen(sopt->outfile_niml)+6, sizeof(char));
+    if ( !ni_name ) { fprintf(stderr,"** ni_name failed\n"); RETURN(1); }
+    sprintf(ni_name, "file:%s", sopt->outfile_niml);
+
+    ns = NI_stream_open(ni_name, "w");
+
+    NI_add_column(nel,NI_INT,sd->nodes);
+
+    for ( c = 0; c < sd->max_vals; c++ )
+    {
+        NI_add_column(nel, NI_FLOAT, sd->vals[c]);
+        if ( free_vals ) { free(sd->vals[c]); sd->vals[c] = NULL; }
+    }
+    if ( free_vals ) { free(sd->vals); sd->vals = NULL; }
+
+    if ( NI_write_element(ns, nel, NI_BINARY_MODE) < 0 )
+    {
+        fprintf(stderr,"** NI_write_element failed for: '%s'\n", ni_name);
+        RETURN(1);
+    }
+
+    NI_free_element( nel );
+    NI_stream_close( ns );
+    free(ni_name);
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * print_header    - dump standard header for node output         - v2.4
+ *----------------------------------------------------------------------
+*/
+static int print_header(FILE * outfp, char * surf, char * map, v2s_results * sd)
+{
+    int val;
+                                                                                
+ENTRY("print_header");
+                                                                                
+    fprintf( outfp, "# --------------------------------------------------\n" );
+    fprintf( outfp, "# surface '%s', '%s' :\n", surf, map );
+    fprintf( outfp, "#\n" );
+                                                                                
+    /* keep old style, but don't presume all columns get used (v 6.0) :
+     *     fprintf( outfp, "#    node     1dindex    i    j    k     vals" );
+     *     fprintf( outfp, "#   ------    -------   ---  ---  ---    ----" );
+     */
+                                                                                
+    /* output column headers */
+    fputc( '#', outfp );        /* still comment line */
+                                                                                
+    if ( sd->nodes  ) fprintf(outfp, "    node ");
+    if ( sd->volind ) fprintf(outfp, "    1dindex ");
+    if ( sd->i      ) fprintf(outfp, "   i ");
+    if ( sd->j      ) fprintf(outfp, "   j ");
+    if ( sd->k      ) fprintf(outfp, "   k ");
+    if ( sd->nvals  ) fprintf(outfp, "    vals");
+                                                                                
+    for ( val = 0; val < sd->max_vals; val++ )
+        fprintf( outfp, "       v%-2d  ", val );
+    fputc( '\n', outfp );
+                                                                                
+    fputc( '#', outfp );
+    /* underline the column headers */
+    if ( sd->nodes  ) fprintf(outfp, "   ------");
+    if ( sd->volind ) fprintf(outfp, "    ------- ");
+    if ( sd->i      ) fprintf(outfp, "  ---");
+    if ( sd->j      ) fprintf(outfp, "  ---");
+    if ( sd->k      ) fprintf(outfp, "  ---");
+    if ( sd->nvals  ) fprintf(outfp, "    ----");
+                                                                                
+    fputs( "   ", outfp );
+    for ( val = 0; val < sd->max_vals; val++ )
+        fprintf( outfp, " --------   " );
+    fputc( '\n', outfp );
+                                                                                
+    RETURN(0);
+}
+                                                                                
 

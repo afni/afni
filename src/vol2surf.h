@@ -90,9 +90,9 @@ typedef struct
 
 typedef struct
 {
-    int        ready;
-    int        surfA;
-    int        surfB;
+    int        ready, use0, use1;
+    int        s0A, s0B;
+    int        s1A, s1B;
     v2s_opts_t sopt;
 } v2s_plugin_opts;
 
@@ -110,17 +110,21 @@ typedef struct
 /* ---- export function prototypes ---- */
 
 v2s_results * afni_vol2surf	( THD_3dim_dataset * gpar, int gp_index,
-			SUMA_surface * sA, SUMA_surface * sB, byte * mask );
+				  SUMA_surface * sA, SUMA_surface * sB,
+				  byte * mask, int use_defaults );
 v2s_results * vol2surf		( v2s_opts_t * sopt, v2s_param_t * p );
 
 int disp_mri_imarr      ( char * info, MRI_IMARR * dp );
 int disp_v2s_opts_t     ( char * info, v2s_opts_t * sopt );
 int disp_v2s_param_t    ( char * info, v2s_param_t * p );
+int disp_v2s_plugin_opts( char * mesg, v2s_plugin_opts * d );
 int disp_v2s_results    ( char * mesg, v2s_results * d );
 int free_v2s_results    ( v2s_results * sd );
 int v2s_is_good_map     ( int map, int from_afni );
 int v2s_map_type        ( char * map_str );
 int v2s_vals_over_steps ( int map );
+int v2s_write_outfile_1D( v2s_opts_t * sopt, v2s_results * sd, char * label );
+int v2s_write_outfile_niml( v2s_opts_t * sopt, v2s_results * sd, int free_vals);
 
 
 /* special thd function - might be moved from vol2surf.[ch] */
