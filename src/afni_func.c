@@ -2816,14 +2816,14 @@ ENTRY("AFNI_finalize_read_1D_CB") ;
       /** try to read a new timeseries **/
 
       case XmCR_OK:{
-         char * text = NULL ;
-         MRI_IMAGE * tsim = NULL , * flim ;
-         float * far ;
+         char *text = NULL ;
+         MRI_IMAGE *flim ;
+         float *far ;
          int ii ;
 
          XmStringGetLtoR( cbs->value , XmFONTLIST_DEFAULT_TAG , &text ) ;
-         tsim = mri_read_ascii( text ) ;
-         if( tsim == NULL || tsim->ny < 2 ){
+         flim = mri_read_1D( text ) ;
+         if( flim == NULL || flim->nx < 2 ){
             XBell(im3d->dc->display,100) ;
             (void) MCW_popup_message( w ,
                                        "********************************\n"
@@ -2834,8 +2834,7 @@ ENTRY("AFNI_finalize_read_1D_CB") ;
             break ;
          }
 
-         flim = mri_transpose(tsim) ; mri_free(tsim) ;
-         far  = MRI_FLOAT_PTR(flim) ;
+         far = MRI_FLOAT_PTR(flim) ;
          for( ii=0 ; ii < flim->nvox ; ii++ )
             if( fabs(far[ii]) >= 33333.0 ) far[ii] = WAY_BIG ;
 

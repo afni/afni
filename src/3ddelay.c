@@ -748,8 +748,8 @@ float * read_one_time_series
 
   
   /*----- Read the time series file -----*/
-  im = mri_read_ascii (filename); 
-  if (im == NULL)
+  flim = mri_read_1D( filename ) ;
+  if (flim == NULL)
     {
       sprintf (message,  "Unable to read time series file: %s",  filename);
       FIM_error (message);
@@ -757,40 +757,9 @@ float * read_one_time_series
 
   
   /*----- Set pointer to data, and set dimensions -----*/
-  flim = mri_transpose (im);   MTEST (flim);
-  mri_free(im);   im = NULL;
-  far = MRI_FLOAT_PTR(flim);
   nx = flim->nx;
-  ny = flim->ny;
+  ny = flim->ny; iy = 0 ;
   
-
-  /*----- Get the column index -----*/
-  if (subv[0] == '\0')  /* no column index */
-    {
-      if (ny != 1)
-	{
-	  sprintf (message,
-		   "Must specify column index for time series file: %s",
-		   ts_filename);
-	  FIM_error (message);
-	}
-      iy = 0;
-    }
-  else  /* process column index */
-    {
-      int * ivlist;
-      
-      ivlist = MCW_get_intlist (ny, subv);
-      if ((ivlist == NULL) || (ivlist[0] != 1))
-	{
-	  sprintf (message,
-		   "Illegal column selector for time series file: %s",
-		   ts_filename);
-	  FIM_error (message);
-	}
-      iy = ivlist[1];
-    }
-
 
   /*----- Save the time series data -----*/
   *ts_length = nx;
@@ -851,42 +820,18 @@ MRI_IMAGE * read_time_series
 
   
   /*----- Read the time series file -----*/
-  im = mri_read_ascii (filename); 
-  if (im == NULL)
+  flim = mri_read_1D(filename) ;
+  if (flim == NULL)
     {
       sprintf (message,  "Unable to read time series file: %s",  filename);
       FIM_error (message);
     }
 
   
-  /*----- Set pointer to data, and set dimensions -----*/
-  flim = mri_transpose (im);   MTEST (flim);
-  mri_free(im);   im = NULL;
   far = MRI_FLOAT_PTR(flim);
   nx = flim->nx;
   ny = flim->ny;
-  
-
-  /*----- Get the column indices -----*/
-  if (subv[0] == '\0')  /* no column indices */
-    {
-      *column_list = NULL;
-    }
-  else  /* process column indices */
-    {
-      int * ivlist;
-      
-      ivlist = MCW_get_intlist (ny, subv);
-      if ((ivlist == NULL) || (ivlist[0] < 1))
-	{
-	  sprintf (message,
-		   "Illegal column selector for time series file: %s",
-		   ts_filename);
-	  FIM_error (message);
-	}
-      *column_list = ivlist;
-    }
-
+  *column_list = NULL;  /* mri_read_1D does column selection */
 
   return (flim);
 }

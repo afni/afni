@@ -332,10 +332,9 @@ void initialize_program
     }
   else 
     {
-        im = mri_read_ascii (*tfilename); 
-	if (im == NULL)
+        flim = mri_read_1D (*tfilename); 
+	if (flim == NULL)
 	  NLfit_error ("Unable to read time reference file \n");
-        flim = mri_transpose (im);  mri_free(im);
         nt = flim -> nx;
 	if (nt < ts_length)
 	    NLfit_error ("Time reference array is too short");  
@@ -826,7 +825,7 @@ char * NL_main( PLUGIN_interface * plint )
 	   if (strcmp (str, "External") == 0){
 	       plug_timeref = 1;
 	       str = PLUTO_get_string(plint);
-	       im = mri_read_ascii (str); 
+	       im = mri_read_1D (str); 
 	       if (im == NULL)
 		 return "************************************\n"
 		        " Unable to read time reference file \n"

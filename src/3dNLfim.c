@@ -1508,10 +1508,9 @@ void initialize_program
     }
   else 
     {
-        im = mri_read_ascii (*tfilename); 
-	if (im == NULL)
+        flim = mri_read_1D(*tfilename) ;
+	if (flim == NULL)
 	  NLfit_error ("Unable to read time reference file \n");
-        flim = mri_transpose (im);  mri_free(im);
         nt = flim -> nx;
 	if (nt < (*ts_length))
 	  NLfit_error ("Time reference array is too short");  

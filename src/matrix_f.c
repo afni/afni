@@ -255,8 +255,8 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 
 
   /*----- Read the matrix file -----*/
-  im = mri_read_ascii (filename); 
-  if (im == NULL)
+  flim = mri_read_1D (filename); 
+  if (flim == NULL)
     if (error_exit)
       {
 	sprintf (message,  "Unable to read matrix from file: %s",  filename);
@@ -270,7 +270,6 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 
   
   /*----- Set pointer to data  -----*/
-  flim = mri_transpose (im);  mri_free(im);
   far = MRI_FLOAT_PTR(flim);
 
 

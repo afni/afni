@@ -370,49 +370,17 @@ float * read_time_series
 
   
   /*----- Read the time series file -----*/
-  im = mri_read_ascii (filename); 
-  if (im == NULL)
+  flim = mri_read_1D(filename) ;
+  if (flim == NULL)
     {
       sprintf (message,  "Unable to read time series file: %s",  filename);
       FDR_error (message);
     }
 
-  
-  /*----- Set pointer to data, and set dimensions -----*/
-  flim = mri_transpose (im);  mri_free(im);
-  MTEST (flim);
   far = MRI_FLOAT_PTR(flim);
   nx = flim->nx;
-  ny = flim->ny;
+  ny = flim->ny; iy = 0 ;
   
-
-  /*----- Get the column index -----*/
-  if (subv[0] == '\0')  /* no column index */
-    {
-      if (ny != 1)
-	{
-	  sprintf (message,
-		   "Must specify column index for time series file: %s",
-		   ts_filename);
-	  FDR_error (message);
-	}
-      iy = 0;
-    }
-  else  /* process column index */
-    {
-      int * ivlist;
-      
-      ivlist = MCW_get_intlist (ny, subv);
-      if ((ivlist == NULL) || (ivlist[0] != 1))
-	{
-	  sprintf (message,
-		   "Illegal column selector for time series file: %s",
-		   ts_filename);
-	  FDR_error (message);
-	}
-      iy = ivlist[1];
-    }
-
 
   /*----- Save the time series data -----*/
   *ts_length = nx;
