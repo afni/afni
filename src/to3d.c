@@ -35,6 +35,9 @@ static float   imdx=0.0, imdy=0.0, imdz=0.0 ;  /* 05 Feb 2001 */
 static float   zpad=0 ;                        /* 05 Feb 2001 */
 static int     zpad_mm=0 ;
 
+static float   zoff ;                          /* 10 May 2001 */
+static int     use_zoff=0 ;
+
 #ifdef AFNI_DEBUG
 #  define QQQ(str) (printf("to3d: %s\n",str),fflush(stdout))
 #else
@@ -192,36 +195,7 @@ QQQ("main1");
    if( strlen(user_inputs.anatomy_parent_filename) > 0 )
       T3D_anatomy_parent_CB( NULL , NULL , NULL ) ;
 
-   all_good = T3D_check_data( False ) ;
-
-   /** Mar 1997: if any FOV or SLAB command line inputs are used,
-                 then require that they all be given.            **/
-
-   if( all_good ){
-      int iii =  (user_inputs.xincode > 0)
-               + (user_inputs.yincode > 0) + (user_inputs.zincode > 0) ;
-
-      if( iii > 0 && iii < 3 ) all_good = False ;
-   }
-
-   if( all_good && !user_inputs.nosave ){      /* done! */
-      T3D_save_file_CB( NULL , NULL , NULL ) ;
-      printf("3D dataset written to disk\n") ;
-      exit(0) ;
-   }
-
-   /* Otherwise, initialize X11 and Xt */
-
-   printf("Making widgets") ; fflush(stdout) ;
-
-   wset.topshell = XtVaAppInitialize( &app , "AFNI" , NULL , 0 ,
-                                      &argc , argv , FALLback , NULL ) ;
-
-   AFNI_load_defaults( wset.topshell ) ;
-   if( argopt.ncolor <= 2   ) argopt.ncolor = INIT_ngray ;
-   if( argopt.gamma  <= 0.0 ) argopt.gamma  = INIT_gamma ;
-
-   /* 05 Feb 2001:
+   /* 05 Feb 2001: [10 May 2001: moved up above auto-save]
       if geometry not loaded at all, maybe use globals imdx, etc. */
 
    if( ! (geomparent_loaded || geometry_loaded) ){
@@ -230,10 +204,26 @@ QQQ("main1");
          user_inputs.fov = INIT_fov ;    /* the old code */
 
       } else {                           /* the new code */
+         float size ;
 
          user_inputs.xsize = imdx ;
          user_inputs.ysize = imdy ;
          if( imdz > 0.0 ) user_inputs.zsize = imdz ;
+
+         /* 10 May 2001: make sure axes are centered */
+
+         size = 0.5 * (user_inputs.nx-1) * user_inputs.xsize ;
+         user_inputs.xorigin = size ;
+
+         size = 0.5 * (user_inputs.ny-1) * user_inputs.ysize ;
+         user_inputs.yorigin = size ;
+
+         size = 0.5 * (user_inputs.nz-1) * user_inputs.zsize ;
+         user_inputs.zorigin = size ;
+
+         user_inputs.xyz_centered = (XCENTERED|YCENTERED|ZCENTERED) ;
+
+         /* adjust voxel shape flag (for widget initialization) */
 
          if( user_inputs.xsize != user_inputs.ysize ){
             user_inputs.voxshape = VOXSHAPE_IRREGULAR ;
@@ -264,7 +254,43 @@ QQQ("main1");
             user_inputs.xyz_centered &= ~ZCENTERED ;
          }
       }
+
+      /* 10 May 2001: use global zoff, if given */
+
+      if( use_zoff ){
+         user_inputs.zorigin = zoff ;
+         user_inputs.xyz_centered &= ~ZCENTERED ;
+      }
    }
+
+   all_good = T3D_check_data( False ) ;
+
+   /** Mar 1997: if any FOV or SLAB command line inputs are used,
+                 then require that they all be given.            **/
+
+   if( all_good ){
+      int iii =  (user_inputs.xincode > 0)
+               + (user_inputs.yincode > 0) + (user_inputs.zincode > 0) ;
+
+      if( iii > 0 && iii < 3 ) all_good = False ;
+   }
+
+   if( all_good && !user_inputs.nosave ){      /* done! */
+      T3D_save_file_CB( NULL , NULL , NULL ) ;
+      printf("3D dataset written to disk\n") ;
+      exit(0) ;
+   }
+
+   /* Otherwise, initialize X11 and Xt */
+
+   printf("Making widgets") ; fflush(stdout) ;
+
+   wset.topshell = XtVaAppInitialize( &app , "AFNI" , NULL , 0 ,
+                                      &argc , argv , FALLback , NULL ) ;
+
+   AFNI_load_defaults( wset.topshell ) ;
+   if( argopt.ncolor <= 2   ) argopt.ncolor = INIT_ngray ;
+   if( argopt.gamma  <= 0.0 ) argopt.gamma  = INIT_gamma ;
 
    if( argopt.xtwarns == False )
       old_handler = XtAppSetWarningHandler(app,AFNI_handler) ;  /* turn off */
@@ -2041,6 +2067,13 @@ void T3D_initialize_user_data(void)
          nopt++ ; continue ;
       }
 
+      if( strncmp(Argv[nopt],"-zorigin",7) == 0 ){
+         if( ++nopt >= Argc ) FatalError("-zorigin needs a value") ;
+         zoff = strtod( Argv[nopt] , NULL ) ;
+         use_zoff = 1 ;
+         nopt++ ; continue ;
+      }
+
       /********** April 1996: new options for setting dimensions **********/
 
 /** 21 Nov 1997: alter the way dimensions are decoded **/
@@ -2895,6 +2928,20 @@ void Syntax()
    ) ;
 
    printf(
+     "\n"
+     "Z-AXIS SLICE OFFSET ONLY\n"
+     " -zorigin distz  Puts the center of the 1st slice off at the\n"
+     "                 given distance ('distz' in mm).  This distance\n"
+     "                 is in the direction given by the corresponding\n"
+     "                 letter in the -orient code.  For example,\n"
+     "                   -orient RAI -zorigin 30\n"
+     "                 would set the center of the first slice at\n"
+     "                 30 mm Inferior.\n"
+     "    N.B.: This option has no effect if the FOV or SLAB options\n"
+     "          described above are used.\n"
+   ) ;
+
+   printf(
     "\n"
     "INPUT IMAGE FORMATS [* SIGNIFICANTLY CHANGED IN 1996 *]\n"
     "  Image files may be single images of unsigned bytes or signed shorts\n"
@@ -2946,9 +2993,13 @@ void Syntax()
     "\n"
     "The 'raw pgm' image format is also supported; it reads data into 'byte' images.\n"
     "\n"
-    "ANALYZE (TM) .hdr/.img files can also be read - give the .hdr filename on\n"
+    "ANALYZE (TM) .hdr/.img files can now be read - give the .hdr filename on\n"
     "the command line.  The program will detect if byte-swapping is needed on\n"
     "these images, and can also set the voxel grid sizes from the first .hdr file.\n"
+    "\n"
+    "Siemens .ima image files can now be read.  The program will detect if\n"
+    "byte-swapping is needed on these images, and can also set voxel grid\n"
+    "sizes and orientations (correctly, I hope).\n"
     "\n"
     "  Notes:\n"
     "   * Not all GPL AFNI programs support all datum types.  Shorts and\n"

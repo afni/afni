@@ -2782,3 +2782,21 @@
  * Fixed a bug in 3dAttribute.c in which the tross_Expand_string()
      result might be NULL, in which case printing it would crash
      on some systems.  Also, free()-ed the data from that call.
+
+30 Apr 2001
+ * Modified mcw_glob.c to print an message if an attempted expansion
+     produces no files.
+
+04 May 2001
+ * Modified thd_loaddblk.c to print a message if a mmap()-ed file isn't
+     big enough for the dataset byte count.
+
+09 May 2001
+ * Fixed a scale-resize bug in Solaris (why does this keep happening,
+     and only on Solaris?!) in afni.c, afni_func.c, and plug_render.c.
+
+10 May 2001
+ * Fixed a bug in to3d.c with the Analyze/Siemens header geometry info:
+     it was only processed AFTER the autosave test was executed.  It was
+     moved before the autosave.  Also added the -zorigin option to let
+     the user set the slice offset (a la 3drefit).

@@ -2282,6 +2282,7 @@ void REND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
    REND_update_imseq() ;
 
    MCW_invert_widget(draw_pb) ;
+   FIX_SCALE_SIZE ;     /* 09 May 2001 */
    return ;
 }
 
@@ -5215,6 +5216,19 @@ void REND_init_cmap(void)
    return ;
 }
 
+/*------------------------------------------------------------------------
+  09 May 2001: fix a Solaris stupidity, where the scale is resized
+               improperly when the Define Function panel is opened!
+--------------------------------------------------------------------------*/
+
+#if defined(SOLARIS) && defined(FIX_SCALE_SIZE_PROBLEM)
+static void fixscale( XtPointer client_data , XtIntervalId * id )
+{
+   FIX_SCALE_SIZE ;
+}
+#endif
+
+
 /*---------------------------------------------------------------------------
    Open or close the overlay control panel
 -----------------------------------------------------------------------------*/
@@ -5232,6 +5246,10 @@ void REND_open_func_CB( Widget w, XtPointer client_data, XtPointer call_data )
       XtManageChild(wfunc_frame) ;
       update_MCW_pbar( wfunc_color_pbar ) ; /* may need to be redrawn */
       FIX_SCALE_SIZE ;
+#if defined(SOLARIS) && defined(FIX_SCALE_SIZE_PROBLEM)
+      (void) XtAppAddTimeOut( XtWidgetToApplicationContext(wfunc_frame),
+                              50,fixscale,NULL ) ; /* 09 May 2001 */
+#endif
       REND_init_cmap() ;                    /* setup the colormap */
    }
 
@@ -5437,6 +5455,7 @@ void REND_thr_scale_CB( Widget w, XtPointer client_data, XtPointer call_data )
    REND_set_thr_pval() ;
 
    INVALIDATE_OVERLAY ;
+   FIX_SCALE_SIZE ;     /* 09 May 2001 */
    return ;
 }
 

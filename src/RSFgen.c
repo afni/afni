@@ -1,3 +1,9 @@
+/*****************************************************************************
+   Major portions of this software are copyrighted by the Medical College
+   of Wisconsin, 1999-2001, and are released under the Gnu General Public
+   License, Version 2.  See the file README.Copyright for details.
+******************************************************************************/
+
 /*---------------------------------------------------------------------------*/
 /*
   This sample program generates random stimulus functions.
@@ -23,10 +29,10 @@
   Date:    14 January 2000
 
   Mod:     Added -markov and -pzero options.
-  Data:    03 October 2000
+  Date:    03 October 2000
 
-  This software is copyrighted and owned by the Medical College of Wisconsin.
-  See the file README.Copyright for details.
+  Mod:     Added -pseed option for permutation of stimulus labels.
+  Date:    27 April 2001
 
 */
 
@@ -35,7 +41,7 @@
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
 #define PROGRAM_INITIAL "06 July 1999"    /* date of initial program release */
-#define PROGRAM_LATEST "03 October 2000"  /* date of latest program revision */
+#define PROGRAM_LATEST "27 April 2001"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -55,7 +61,7 @@
   Global variables and constants.
 */
 
-#define MAX_STIM 20            /* max. number of stimulus time series */
+#define MAX_STIM 50            /* max. number of stimulus time series */
 #define MAX_STRING_LENGTH 80   /* max. length of input string */
 
 
@@ -66,6 +72,7 @@ int num_reps[MAX_STIM]; /* number of repetitions for each stimulus */
 int nblock[MAX_STIM];   /* block length for each stimulus */
 int expand = 0;         /* flag to expand the array for block type design */
 long seed = 1234567;    /* random number seed */
+long pseed = 0;         /* stimulus permutation random number seed */
 char * prefix = NULL;   /* prefix for output .1D stimulus functions */
 int one_file = 0;       /* flag for place stim functions into a single file */
 int markov = 0;         /* flag for Markov process */
@@ -113,13 +120,14 @@ void display_help_menu()
     "[-prefix pname]  pname = prefix for p output .1D stimulus functions    \n"
     "                   e.g., pname1.1D, pname2.1D, ..., pnamep.1D          \n"
     "                                                                       \n"
-    "The following Random Permuation and Markov Chain options are           \n"
+    "The following Random Permutation and Markov Chain options are          \n"
     "mutually exclusive.                                                    \n"
     "                                                                       \n"
     "Random Permutation options:                                            \n"
     "-nreps i r       r = number of repetitions for stimulus i  (1<=i<=p)   \n"
     "[-nblock i k]    k = block length for stimulus i  (1<=i<=p)            \n"
     "                     (default: k = 1)                                  \n"
+    "[-pseed s]       s = stim label permutation random number seed         \n"
     "                                     p                                 \n"
     "                 Note: Require n >= Sum (r[i] * k[i])                  \n"
     "                                    i=1                                \n"
@@ -249,6 +257,20 @@ void get_options
 	}
 
 
+      /*-----  -pseed s  -----*/
+      if (strcmp(argv[nopt], "-pseed") == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  RSF_error ("need argument after -pseed ");
+	  sscanf (argv[nopt], "%ld", &lval);
+	  if (lval <= 0)
+	    RSF_error ("illegal argument after -pseed ");
+	  pseed = lval;
+	  nopt++;
+	  continue;
+	}
+
+
       /*-----  -one_file  -----*/
       if (strncmp(argv[nopt], "-one_file", 9) == 0)
 	{
@@ -310,6 +332,7 @@ void get_options
   printf ("nt            = %d \n", NT);
   printf ("num_stimts    = %d \n", num_stimts);
   printf ("seed          = %ld \n", seed);
+  if (pseed)  printf ("pseed         = %ld \n", pseed);
   printf ("output prefix = %s \n", prefix);
   if (markov)
     {
@@ -378,9 +401,6 @@ void initialize
   *earray = (int *) malloc (sizeof(int) * NT);   MTEST (*earray);
 
 
-  /*----- Initialize random number seed -----*/
-  srand48 (seed);
-
 }
 
 
@@ -436,6 +456,10 @@ void markov_array (int * design)
   /*----- Initialize the experimental design array -----*/
   for (it = 0;  it < nt;  it++)
     design[it] = 0;
+
+
+  /*----- Initialize random number seed -----*/
+  srand48 (seed);
 
 
   /*----- Generate Markov process -----*/
@@ -499,6 +523,46 @@ void fill_array (int * design)
 
 /*---------------------------------------------------------------------------*/
 /*
+  Permute the stimulus functions within the experimental design array.
+*/
+
+void permute_array (int * design)
+
+{
+  int i, j, temp;
+  int is, nb;
+
+
+  /*----- Initialize random number seed -----*/
+  srand48 (pseed);
+
+  
+  /*----- Determine total number of blocks -----*/
+  nb = 0;
+  for (is = 0;  is < num_stimts;  is++)
+    nb += num_reps[is];
+
+
+  /*----- Permute the blocks -----*/
+  for (i = 0;  i < nb;  i++)
+    {
+      j = rand_uniform(0.0,1.0) * nb;
+
+      /*----- Just in case -----*/
+      if (j < 0)  j = 0;
+      if (j > nb-1)  j = nb-1;
+
+      temp = design[i];
+      design[i] = design[j];
+      design[j] = temp;
+    }
+      
+  return;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Shuffle the experimental design array.
 */
 
@@ -506,6 +570,10 @@ void shuffle_array (int * design)
 
 {
   int i, j, temp;
+
+
+  /*----- Initialize random number seed -----*/
+  srand48 (seed);
 
 
   for (i = 0;  i < nt;  i++)
@@ -737,6 +805,12 @@ int main
       fill_array (darray);
       sprint_array ("\nOriginal array: ", darray, nt);
       
+      /*----- Permute the stimulus functions -----*/
+      if (pseed)  
+	{
+	  permute_array (darray);
+	  sprint_array ("\nPermuted array: ", darray, nt);
+	}
 
       /*----- Randomize the order of the stimulus functions -----*/
       shuffle_array (darray);

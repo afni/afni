@@ -8,7 +8,8 @@ static char * afni_helptypes[] = {
    "inspiration"                    ,  /* mask =  32 */
    "great efforts"                  ,  /* mask =  64 */
    "caloric input"                  ,  /* mask = 128 */
-   "awe-inspiring beer consumption"    /* mask = 256 */
+   "awe-inspiring beer consumption" ,  /* mask = 256 */
+   "awe-inspiring caffeine binging"    /* mask = 512 */
 } ;
 
 #define NUM_HELPTYPES (sizeof(afni_helptypes)/sizeof(char *))
@@ -27,9 +28,9 @@ static AFNI_friend afni_friends[] = {
   { "JA Bobholz"     , (             8 | 16 | 32      | 128       ) } ,
   { "JA Frost"       , (             8 | 16                       ) } ,
   { "J Kummer"       , (         4 | 8      | 32                  ) } ,
-  { "BD Ward"        , (         4 | 8           | 64             ) } ,
+  { "BD Ward"        , (         4 | 8           | 64       | 512 ) } ,
   { "KM Donahue"     , (                 16                       ) } ,
-  { "PA Bandettini"  , (                 16                       ) } ,
+  { "PA Bandettini"  , (                 16                 | 512 ) } ,
   { "AS Bloom"       , ( 1 | 2         | 16                       ) } ,
   { "T Ross"         , (         4 | 8 | 16 | 32                  ) } ,
   { "H Garavan"      , (         4 | 8 | 16                 | 256 ) } ,
@@ -38,7 +39,7 @@ static AFNI_friend afni_friends[] = {
   { "K Ropella"      , (     2                                    ) } ,
   { "B Knutson"      , (                 16 |           128       ) } ,
   { "B Biswal"       , (                 16                       ) } ,
-  { "RM Birn"        , (             8 | 16 |           128       ) } ,
+  { "RM Birn"        , (             8 | 16 |           128 | 512 ) } ,
   { "V Roopchansingh", (         4 | 8 | 16                       ) } ,
   { "J Ratke"        , (                 16                       ) } ,
   { "PSF Bellgowan"  , (             8 | 16                       ) } ,

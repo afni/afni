@@ -1,6 +1,6 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   of Wisconsin, 1994-2001, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
@@ -20,6 +20,14 @@
   Mod:     Replaced dataset interface code with call to THD_open_dataset.
            Restructured code for initializing hierarchical clustering.
   Date:    19 October 1999
+
+  Mod:     At each output cluster agglomeration step, print to the screen
+           which clusters are to be combined, and their distance.
+  Date:    05 September 2000
+
+  Mod:     Corrected error in sort_clusters routine.
+  Date:    30 April 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -176,10 +184,9 @@ void print_all_clusters (cluster * clust_ptr, matrix s)
       iclust++;
       sprintf (str, "#%d", iclust);
       print_cluster (clust_ptr, str, s);
-      printf ("\n");
       clust_ptr = clust_ptr->next_cluster;
     }
-  printf ("\n");
+
 }
 
 
@@ -244,7 +251,7 @@ float cluster_distance (cluster * aclust, cluster * bclust)
       sumsqr += delta * delta;
     }
 
-  return ((sumsqr));
+  return (sqrt(sumsqr));
   
 }
 
@@ -497,7 +504,7 @@ cluster * consolidate_clusters (cluster * aclust, cluster * bclust,
   Agglomerate clusters by merging the two clusters which are closest together.
 */
 
-cluster * agglomerate_clusters (cluster * head_clust)
+cluster * agglomerate_clusters (cluster * head_clust, int print_flag)
 {
   const float MAX_DIST = 1.0e+30;
 
@@ -521,9 +528,25 @@ cluster * agglomerate_clusters (cluster * head_clust)
       clust_ptr = clust_ptr->next_cluster;
     }
 
-  /*
-  printf ("min_dist = %f \n", min_dist);
-  */
+
+  /*----- Identify clusters which are to be merged -----*/
+  if (print_flag)
+    {
+      int iclust, iaclust, ibclust;
+
+      clust_ptr = head_clust;
+      iclust = 0;
+      while (clust_ptr != NULL)
+	{
+	  iclust++;
+	  if (aclust == clust_ptr)  iaclust = iclust;
+	  if (bclust == clust_ptr)  ibclust = iclust;
+	  clust_ptr = clust_ptr->next_cluster;
+	}
+      
+      printf ("Merging cluster #%d and cluster #%d \n", iaclust, ibclust);
+      printf ("Distance = %f \n", min_dist);
+    }
 
 
   /*----- Merge these two clusters -----*/
@@ -581,6 +604,7 @@ cluster * sort_clusters (cluster * head_clust)
 	  ip->next_cluster = m;
 	  mp->next_cluster = m->next_cluster;
 	  m->next_cluster = i;
+	  i = m;
 	}
 
       /*----- Move down the list -----*/

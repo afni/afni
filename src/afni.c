@@ -6223,6 +6223,19 @@ THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
    return new_fv ;
 }
 
+/*------------------------------------------------------------------------
+  09 May 2001: fix a Solaris stupidity, where the scale is resized
+               improperly when the Define Function panel is opened!
+--------------------------------------------------------------------------*/
+
+#if defined(SOLARIS) && defined(FIX_SCALE_SIZE_PROBLEM)
+static void fixscale( XtPointer client_data , XtIntervalId * id )
+{
+   Three_D_View * im3d = (Three_D_View *) client_data ;
+   FIX_SCALE_SIZE(im3d) ;
+}
+#endif
+
 /*------------------------------------------------------------------------*/
 
 void AFNI_define_CB( Widget w , XtPointer client_data , XtPointer call_data )
@@ -6356,6 +6369,10 @@ STATUS("opening function" ) ;
          HIDE_SCALE(im3d) ;
          update_MCW_pbar( im3d->vwid->func->inten_pbar ) ;
          FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
+
+#if defined(SOLARIS) && defined(FIX_SCALE_SIZE_PROBLEM)
+        (void) XtAppAddTimeOut( MAIN_app,50,fixscale,im3d ) ; /* 09 May 2001 */
+#endif
 
 /***     XtManageChild( im3d->vwid->func->inten_bbox->wrowcol ) ; ***/
       }

@@ -129,6 +129,7 @@ ENTRY("AFNI_thr_scale_CB") ;
    if( fff >= 0.0 && fff <= 1.0 ) im3d->vinfo->func_threshold = fff ;
 
    FIX_SCALE_VALUE(im3d) ;
+   FIX_SCALE_SIZE(im3d) ;   /* 09 May 2001 */
 
    switch( im3d->vinfo->underlay_type ){
       default:
@@ -202,6 +203,7 @@ ENTRY("AFNI_set_thresh_top") ;
    im3d->vinfo->func_thresh_top = tval ;
 
    FIX_SCALE_VALUE(im3d) ;
+   FIX_SCALE_SIZE(im3d) ;   /* 09 May 2001 */
    AFNI_set_thr_pval( im3d ) ;
 
    /** fix the option menu at the bottom of the scale **/

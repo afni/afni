@@ -1,6 +1,6 @@
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
+   of Wisconsin, 1994-2001, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
@@ -20,12 +20,21 @@
   Mod:     Replaced dataset interface code with call to THD_open_dataset.
            Restructured code for initializing hierarchical clustering.
   Date:    19 October 1999
+
+  Mod:     At each output cluster agglomeration step, print to the screen
+           which clusters are to be combined, and their distance.
+  Date:    05 September 2000
+
+  Mod:     Corrected error in sort_clusters routine.
+  Date:    30 April 2001
+
 */
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dStatClust"                   /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "19 October 1999"           /* date of last program mod */
+#define PROGRAM_INITIAL "08 October 1999" /* date of initial program release */
+#define PROGRAM_LATEST "30 April 2001"      /* date of last program revision */
 
 #define MAX_PARAMETERS 100
 
@@ -634,7 +643,7 @@ THD_3dim_dataset * form_clusters ()
 	  /*----- Print cluster centroid parameters -----*/
 	  if (SC_verb)
 	    {
-	      printf ("# Clusters = %d \n\n", iclust);
+	      printf ("\n\n# Clusters = %d \n\n", iclust);
 	      print_all_clusters (head_clust, s);
 	    }
      
@@ -655,7 +664,9 @@ THD_3dim_dataset * form_clusters ()
 
       /*----- Agglomerate clusters -----*/
       if (iclust > 1)
-	head_clust = agglomerate_clusters (head_clust);
+	head_clust = agglomerate_clusters (head_clust, 
+					   SC_verb*(iclust <= nbricks));
+	  
 
     }
 
@@ -685,10 +696,12 @@ int main( int argc , char * argv[] )
   
   /*----- Identify software -----*/
   printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
-  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 

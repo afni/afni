@@ -14,6 +14,13 @@ int main( int argc , char * argv[] )
    double atoz[26] , value ;
    int ii , kvar ;
 
+   if( argc > 1 && strcmp(argv[1],"-help") == 0 ){
+      printf("Usage: ccalc\n"
+             "Interactive numerical calculator, using the same\n"
+             "expression syntax as 3dcalc.  Mostly for playing.\n" ) ;
+      exit(0) ;
+   }
+
    for( ii=0 ; ii < 25 ; ii++ ) atoz[ii] = 0.0 ;
 
    do{

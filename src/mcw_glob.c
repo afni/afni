@@ -808,8 +808,8 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
          prefix[ib++] = fn[2] ;
          prefix[ib++] = '\0' ;
 
-         ig = sscanf( fn+ib , "%d:%d:%d:%s" ,     /* must scan all */
-                      &b1,&b2,&b3, fname ) ;   /* six items OK  */
+         ig = sscanf( fn+ib , "%d:%d:%d:%s" ,  /* must scan all */
+                      &b1,&b2,&b3, fname ) ;   /* four items OK */
 
          /** if have all 4 3A: items, then make a 3A: prefix for output **/
 
@@ -859,6 +859,10 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
          gout[gold] = (char *) malloc( sizeof(char) * ilen ) ; /* output! */
          strcpy( gout[gold] , fpre ) ;
          strcat( gout[gold] , fname ) ;
+
+      } else {  /* 30 Apr 2001 */
+
+         fprintf(stderr,"** Can't find file %s\n", (ig > 0) ? fname : fn ) ;
       }
 
       globfree( &gl ) ;

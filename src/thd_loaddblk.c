@@ -114,7 +114,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
    /** mmap the whole file at once (makes space and reads it all at once) **/
 
    } else if( blk->malloc_type == DATABLOCK_MEM_MMAP ){
-      int fd ;
+      int fd , fsize ;
       fd = open( dkptr->brick_name , O_RDONLY ) ;
       if( fd < 0 ){
          fprintf( stderr , "\n*** cannot open brick file %s for mmap\n"
@@ -124,11 +124,25 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
          return False ;
       }
 
+      /* 04 May 2001: check file size (the Katie Lee bug) */
+
+      fsize = THD_filesize( dkptr->brick_name ) ;
+      if( fsize < blk->total_bytes )
+         fprintf(stderr ,
+                 "\n*** WARNING: file %s size is %d, but should be at least %d!\n" ,
+                 dkptr->brick_name , fsize , blk->total_bytes ) ;
+
+      /* clear the sub-brick pointers */
+
       for( ibr=0 ; ibr < nv ; ibr++ )
          mri_clear_data_pointer( DBLK_BRICK(blk,ibr) ) ;
 
+      /* map the file into memory */
+
       ptr = (char *) mmap( 0 , blk->total_bytes ,
                                PROT_READ , THD_MMAP_FLAG , fd , 0 ) ;
+
+      /* if that fails, maybe try again */
 
       if( ptr == (char *)(-1) ){
          fprintf(stderr ,
@@ -154,7 +168,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
 
       close(fd) ;  /* can close file after mmap-ing it */
 
-      /* create pointers to all sub-bricks */
+      /* (re)create pointers to all sub-bricks */
 
       offset = 0 ;
       for( ibr=0 ; ibr < nv ; ibr++ ){
@@ -162,7 +176,7 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
          ptr += DBLK_BRICK_BYTES(blk,ibr) ;
       }
 
-      return True ;
+      return True ;  /* finito */
    }
 
    /*** read data into newly malloc-ed bricks ***/
