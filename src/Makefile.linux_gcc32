@@ -6,17 +6,17 @@
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
 
-CC     = /usr/local/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCVOL  = /usr/local/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCFAST = /usr/local/bin/gcc -O3 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CC     = /usr/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCVOL  = /usr/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCFAST = /usr/bin/gcc -O3 -march=i686 -ffast-math -mmmx -DLINUX2 -DNO_GAMMA $(CEXTRA)
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.
 # Your mileage may vary.
 
-# CCFAST = /usr/local/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 -DNO_GAMMA $(CEXTRA)
+# CCFAST = /usr/bin/gcc -O3 -march=i686 -ffast-math -mmmx -msse -mfpmath=sse -DLINUX2 -DNO_GAMMA $(CEXTRA)
 
-CCMIN  = /usr/local/bin/gcc $(CPROF)
+CCMIN  = /usr/bin/gcc $(CPROF)
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/X11R6/lib
@@ -31,7 +31,7 @@ RANLIB = /usr/bin/ranlib
 TAR    = /bin/tar
 MKDIR  = /bin/mkdir
 GZIP   = /bin/gzip
-LD     = /usr/local/bin/gcc $(CPROF)
+LD     = /usr/bin/gcc $(CPROF)
 
 RM = /bin/rm -f
 MV = /bin/mv -f
