@@ -934,7 +934,8 @@ int main( int argc , char * argv[] )
 {
    int ii ;
 
-   machdep() ; /* RWCox: 20 Apr 2001 */
+   machdep() ;                      /* RWCox: 20 Apr 2001 */
+   THD_load_datablock_verbose(1) ;  /* 21 Aug 2002 */
 
 #ifdef CATCH_SIGNALS
    signal(SIGINT ,AFNI_sigfunc) ;   /* may be superseded by mainENTRY below */

@@ -3097,7 +3097,8 @@ extern int TRUST_host(char *) ;
 #define OKHOST(hh) TRUST_host(hh) ;
 extern void TRUST_addhost(char *) ;      /* 21 Feb 2001 */
 
-extern Boolean THD_load_datablock ( THD_datablock * ) ;
+extern Boolean THD_load_datablock( THD_datablock * ) ;
+extern void    THD_load_datablock_verbose(int) ;             /* 21 Aug 2002 */
 extern void    THD_set_freeup( generic_func * ) ;            /* 18 Oct 2001 */
 extern Boolean THD_purge_datablock( THD_datablock * , int ) ;
 extern Boolean THD_purge_one_brick( THD_datablock * , int ) ;

@@ -12,6 +12,11 @@ static int no_mmap      = -1 ;
 static int floatscan    = -1 ;  /* 30 Jul 1999 */
 
 #define PRINT_SIZE 100000000
+#define PRINT_STEP 9
+
+static int verbose = 0 ;
+
+void THD_load_datablock_verbose( int v ){ verbose = v; }
 
 /*-----------------------------------------------------------------*/
 /*! Check if all sub-bricks have the same datum type. [14 Mar 2002]
@@ -46,6 +51,7 @@ Boolean THD_load_datablock( THD_datablock *blk )
    int nx,ny,nz , nxy,nxyz,nxyzv , nv,vv , ii , ntot , ibr , nbad ;
    char * ptr ;
    MRI_IMAGE * im ;
+   int verb = verbose ;
 
 ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
@@ -300,8 +306,8 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    /*** Below here, space for brick images was malloc()-ed,
         and now we have to read data into them             ***/
 
-   if( blk->total_bytes > PRINT_SIZE )
-     fprintf(stderr,"reading dataset %s from disk",dkptr->filecode) ;
+   if( verb ) verb = (blk->total_bytes > PRINT_SIZE) ;
+   if( verb ) fprintf(stderr,"reading dataset %s",dkptr->filecode) ;
 
    switch( dkptr->storage_mode ){
 
@@ -339,9 +345,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
          id = 0 ;
          if( ! DBLK_IS_MASTERED(blk) ){      /* read each brick */
 
-            for( ibr=0 ; ibr < nv ; ibr++ )
-               id += fread( DBLK_ARRAY(blk,ibr), 1,
-                            DBLK_BRICK_BYTES(blk,ibr), far ) ;
+            for( ibr=0 ; ibr < nv ; ibr++ ){
+              id += fread( DBLK_ARRAY(blk,ibr), 1,
+                           DBLK_BRICK_BYTES(blk,ibr), far ) ;
+
+              if( verb && ibr%PRINT_STEP == 0 ) fprintf(stderr,".") ;
+            }
 
          } else {  /* 11 Jan 1999: read brick from master, put into place(s) */
 
@@ -362,6 +371,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                /* read the master sub-brick */
 
                nbr = fread( buf , 1 , blk->master_bytes[ibr] , far ) ;
+               if( verb && ibr%PRINT_STEP == 0 ) fprintf(stderr,".") ;
                if( nbr < blk->master_bytes[ibr] ) break ;
 
                /* find all the dataset sub-bricks that are copies of this */
@@ -509,6 +519,7 @@ fprintf(stderr,"VOL[%d]: opening %s\n",ibr,fnam[ibr]) ;
 
             id = fread( DBLK_ARRAY(blk,ibr), 1,
                         DBLK_BRICK_BYTES(blk,ibr), far ) ;
+            if( verb && ibr%PRINT_STEP==0 ) fprintf(stderr,".") ;
 
 #if 0
 fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
@@ -558,6 +569,7 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
 
             id = fread( DBLK_ARRAY(blk,jbr), 1,
                         DBLK_BRICK_BYTES(blk,jbr), far ) ;
+            if( verb && jbr%PRINT_STEP == 0 ) fprintf(stderr,".") ;
 
             COMPRESS_fclose(far) ;
 
@@ -598,7 +610,7 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
 
    if( dkptr->byte_order != native_order ){
       STATUS("byte swapping") ;
-      if( blk->total_bytes > PRINT_SIZE ) fprintf(stderr,"..byte swapping") ;
+      if( verb ) fprintf(stderr,".byte swap") ;
 
       for( ibr=0 ; ibr < nv ; ibr++ ){
          switch( DBLK_BRICK_TYPE(blk,ibr) ){
@@ -624,7 +636,7 @@ fprintf(stderr,"VOL[%d]: id=%d\n",ibr,id) ;
    if( floatscan ){
       int nerr=0 ;
       STATUS("float scanning") ;
-      if( blk->total_bytes > PRINT_SIZE ) fprintf(stderr,"..sub-ranging") ;
+      if( verb ) fprintf(stderr,".float scan") ;
 
       for( ibr=0 ; ibr < nv ; ibr++ ){
          if( DBLK_BRICK_TYPE(blk,ibr) == MRI_float ){
@@ -652,7 +664,7 @@ fprintf(stderr,"master_bot=%g master_top=%g\n",blk->master_bot,blk->master_top) 
       int jbr ;
 
       STATUS("sub-ranging") ;
-      if( blk->total_bytes > PRINT_SIZE ) fprintf(stderr,"..sub-ranging") ;
+      if( verb ) fprintf(stderr,".sub-range") ;
 
       for( jbr=0 ; jbr < nv ; jbr++ ){
          switch( DBLK_BRICK_TYPE(blk,jbr) ){
@@ -724,7 +736,7 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
       }
    }
 
-   if( blk->total_bytes > PRINT_SIZE ) fprintf(stderr,"..done\n") ;
+   if( verb ) fprintf(stderr,".done\n") ;
 
    RETURN( True ) ;  /* things are now cool */
 }
