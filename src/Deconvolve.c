@@ -66,6 +66,15 @@
   Mod:     Made fstat_t2p() a static function to avoid conflicts on CYGWIN.
   Date:    08 Jan 2002 - RWCox
 
+  Mod:     Added static function student_t2p() for display of p-values 
+           corresponding to the t-statistics.
+  Date:    28 January 2002
+
+  Mod:     Modifications to glt_analysis and report_results for enhanced screen
+           output:  Display of p-values for individual stim function regression
+           coefficients.  Display of t-stats and p-values for individual linear
+           constraints within a GLT.
+  Date:    29 January 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -436,18 +445,20 @@ void regression_analysis
 
 void glt_analysis 
 (
-  int n,                      /* number of data points */
+  int N,                      /* number of data points */
   int p,                      /* number of parameters in the full model */
   matrix x,                   /* X matrix for full model */
   vector y,                   /* vector of measured data */       
   float ssef,                 /* error sum of squares from full model */
   vector coef,                /* regression parameters for full model */
   int novar,                  /* flag for insufficient variation in data */
+  matrix * cxtxinvct,         /* matrices: C(1/(X'X))C' for GLT */
   int glt_num,                /* number of general linear tests */
   int * glt_rows,             /* number of linear constraints in glt */
   matrix * glt_cmat,          /* general linear test matrices */
   matrix * glt_amat,          /* constant matrices */
   vector * glt_coef,          /* linear combinations from GLT matrices */
+  vector * glt_tcoef,         /* t-statistics for GLT linear combinations */
   float * fglt,               /* F-statistics for the general linear tests */
   float * rglt                /* R^2 statistics for the general linear tests */
 )
@@ -457,10 +468,12 @@ void glt_analysis
   int q;                      /* number of parameters in the rdcd model */
   float sser;                 /* error sum of squares, reduced model */
   vector rcoef;               /* regression parameters for reduced model */
+  vector scoef;               /* std. devs. for regression parameters  */
 
 
   /*----- Initialization -----*/
   vector_initialize (&rcoef);
+  vector_initialize (&scoef);
 
 
   /*----- Loop over multiple general linear tests -----*/
@@ -470,6 +483,7 @@ void glt_analysis
       if (novar)
 	{
 	  vector_create (glt_rows[iglt], &glt_coef[iglt]);
+	  vector_create (glt_rows[iglt], &glt_tcoef[iglt]);
 	  fglt[iglt] = 0.0;
 	  rglt[iglt] = 0.0;
 	}
@@ -477,41 +491,65 @@ void glt_analysis
 	{
 	  /*----- Calculate the GLT linear combinations -----*/
 	  calc_lcoef (glt_cmat[iglt], coef, &glt_coef[iglt]);
-	  
+	
+	  /*----- Calculate t-statistics for GLT linear combinations -----*/
+	  calc_tcoef (N, p, ssef, cxtxinvct[iglt], 
+		      glt_coef[iglt], &scoef, &glt_tcoef[iglt]);
+
 	  /*----- Calculate regression parameters for the reduced model -----*/
 	  calc_rcoef (glt_amat[iglt], coef, &rcoef);
 
 	  /*----- Calculate error sum of squares for the reduced model -----*/
 	  sser = calc_sse (x, rcoef, y);
 
-	  /*----- Calculate the F-statistic for the reduced model -----*/
+	  /*----- Calculate the F-statistic for this GLT -----*/
 	  q = p - glt_rows[iglt]; 
-	  fglt[iglt] = calc_freg (n, p, q, ssef, sser);
+	  fglt[iglt] = calc_freg (N, p, q, ssef, sser);
 
-	  /*----- Calculate the R^2 statistic for the reduced model -----*/
+	  /*----- Calculate the R^2 statistic for this GLT -----*/
 	  rglt[iglt] = calc_rsqr (ssef, sser);
 
 	}
     }
 
 
-  /*----- Dispose of vector -----*/
+  /*----- Dispose of vectors -----*/
   vector_destroy (&rcoef);
+  vector_destroy (&scoef);
 
 }
 
 
 /*---------------------------------------------------------------------------*/
 /*
-  Convert F-value to p-value.  
-  This routine was copied from: mri_stats.c
+  Convert t-values and F-values to p-value.  
+  These routines were copied and modified from: mri_stats.c
 */
+
+
+static double student_t2p( double tt , double dof )
+{
+   double bb , xx , pp ;
+
+   tt = fabs(tt);
+
+   if( dof < 1.0 ) return 1.0 ;
+
+   if (tt >= 1000.0)  return 0.0;
+
+   bb = lnbeta( 0.5*dof , 0.5 ) ;
+   xx = dof/(dof + tt*tt) ;
+   pp = incbeta( xx , 0.5*dof , 0.5 , bb ) ;
+   return pp ;
+}
 
 
 static double fstat_t2p( double ff , double dofnum , double dofden )
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound ;
+
+   if (ff >= 1000.0)  return 0.0;
 
    which  = 1 ;
    p      = 0.0 ;
@@ -555,6 +593,7 @@ void report_results
   char ** glt_label,          /* label for general linear tests */
   int * glt_rows,             /* number of linear constraints in glt */
   vector *  glt_coef,         /* linear combinations from GLT matrices */
+  vector *  glt_tcoef,        /* t-statistics for GLT linear combinations */
   float * fglt,               /* F-statistics for the general linear tests */
   float * rglt,               /* R^2 statistics for the general linear tests */
   char ** label               /* statistical summary for ouput display */
@@ -591,8 +630,11 @@ void report_results
 	{
 	  sprintf (sbuf, "t^%d   coef = %10.4f    ", m, coef.elts[m]);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
-	  sprintf (sbuf, "t^%d   t-st = %10.4f\n", m, tcoef.elts[m]);
+	  sprintf (sbuf, "t^%d   t-st = %10.4f    ", m, tcoef.elts[m]);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	  pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
+	  sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
 	}
     }
   else
@@ -609,9 +651,12 @@ void report_results
 	      sprintf (sbuf, "t^%d   coef = %10.4f    ", 
 		       m - mfirst, coef.elts[m]);
 	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
-	      sprintf (sbuf, "t^%d   t-st = %10.4f\n", 
+	      sprintf (sbuf, "t^%d   t-st = %10.4f    ", 
 		       m - mfirst, tcoef.elts[m]);
 	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
+	      pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
+	      sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
+	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
 	    }
 	}
     }
@@ -627,7 +672,10 @@ void report_results
 	{
 	  sprintf (sbuf,"h[%2d] coef = %10.4f    ", ilag, coef.elts[m]);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
-	  sprintf  (sbuf,"h[%2d] t-st = %10.4f\n", ilag, tcoef.elts[m]);
+	  sprintf  (sbuf,"h[%2d] t-st = %10.4f    ", ilag, tcoef.elts[m]);
+	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
+	  pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
+	  sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
 	  m++;
 	}
@@ -638,7 +686,7 @@ void report_results
       sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-r, N-p, fpart[is]);
       if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
       pvalue = fstat_t2p ((double)fpart[is], (double)(p-r), (double)(N-p));
-      sprintf (sbuf, "p-value    = %12.4e \n", pvalue);
+      sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
       if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
     }
   
@@ -656,7 +704,7 @@ void report_results
   sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-q, N-p, ffull);
   if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
   pvalue = fstat_t2p ((double)ffull, (double)(p-q), (double)(N-p));
-  sprintf (sbuf, "p-value    = %12.4e  \n", pvalue);
+  sprintf (sbuf, "p-value  = %12.4e  \n", pvalue);
   if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
     
 
@@ -669,11 +717,19 @@ void report_results
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
 	  for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
 	    {
-	      sprintf (sbuf, "LC[%d]      = %10.4f \n", 
+	      sprintf (sbuf, "LC[%d] coef = %10.4f    ", 
 		       ilc, glt_coef[iglt].elts[ilc]);
 	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
+	      sprintf (sbuf, "LC[%d] t-st = %10.4f    ", 
+		       ilc, glt_tcoef[iglt].elts[ilc]);
+	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
+	      pvalue = student_t2p ((double)glt_tcoef[iglt].elts[ilc], 
+				    (double)(N-p));
+	      sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
+	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
 	    }
-	  sprintf (sbuf, "R^2        = %10.4f    ", rglt[iglt]);
+
+	  sprintf (sbuf, "       R^2 = %10.4f    ", rglt[iglt]);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
 
 	  r = p - glt_rows[iglt];
@@ -681,7 +737,7 @@ void report_results
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
 	  pvalue = fstat_t2p ((double)fglt[iglt], 
 			      (double)(p-r), (double)(N-p));
-	  sprintf (sbuf, "p-value    = %12.4e  \n", pvalue);
+	  sprintf (sbuf, "p-value  = %12.4e  \n", pvalue);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
 	}
     }

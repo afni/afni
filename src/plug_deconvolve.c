@@ -102,6 +102,10 @@
   Mod:     Removed automatic override of NFirst option.
   Date:    08 June 2001
 
+  Mod:     Enhanced screen output:  Display of p-values for individual stim
+           function regression coefficients.  Display of t-stats and p-values
+           for individual linear constraints within a GLT.
+  Date:    29 January 2002
 */
 
 /*---------------------------------------------------------------------------*/
@@ -109,7 +113,7 @@
 #define PROGRAM_NAME    "plug_deconvolve"            /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "21 June 2001"    /* date of latest program revision */
+#define PROGRAM_LATEST  "29 Jan  2002"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -252,6 +256,7 @@ static matrix cxtxinvct[MAX_GLT];   /* matrices: C(1/(X'X))C' for GLT */
 static matrix glt_cmat[MAX_GLT];    /* general linear test matrices */
 static matrix glt_amat[MAX_GLT];    /* constant GLT matrices for later use */
 static vector glt_coef[MAX_GLT];    /* linear combinations from GLT matrices */
+static vector glt_tcoef[MAX_GLT];   /* t-stats for GLT linear combinations */
 
 
 /*---------------------------------------------------------------------------*/
@@ -361,6 +366,8 @@ static void initialize_options ()
                                       /* constant GLT matrices for later use */
       vector_initialize (&glt_coef[iglt]);
                                     /* linear combinations from GLT matrices */
+      vector_initialize (&glt_tcoef[iglt]);
+                                    /* t-stats for GLT linear combinations   */
     }
 
 }
@@ -468,6 +475,8 @@ static void reset_options ()
                                       /* constant GLT matrices for later use */
       vector_destroy (&glt_coef[iglt]);
                                     /* linear combinations from GLT matrices */
+      vector_destroy (&glt_tcoef[iglt]);
+                                    /* t-stats for GLT linear combinations   */
     }
 
 }
@@ -1052,8 +1061,9 @@ static int calculate_results
  	  
       /*----- Perform the general linear tests for this voxel -----*/
       if (glt_num > 0)
-	glt_analysis (N, p, x_full, y, mse*(N-p), coef, novar,
-		  glt_num, glt_rows, glt_cmat, glt_amat, glt_coef, fglt, rglt);
+	glt_analysis (N, p, x_full, y, mse*(N-p), coef, novar, cxtxinvct,
+		      glt_num, glt_rows, glt_cmat, glt_amat, 
+		      glt_coef, glt_tcoef, fglt, rglt);
       
      
       /*----- Save the fit parameters -----*/
@@ -1066,7 +1076,7 @@ static int calculate_results
 		      num_stimts, stim_label, min_lag, max_lag,
 		      coef, tcoef, fpart, rpart, ffull, rfull, mse, 
 		      glt_num, glt_label, glt_rows, glt_coef, 
-		      fglt, rglt, label);
+		      glt_tcoef, fglt, rglt, label);
       printf ("%s \n", *label);
 
       prev_nt = nt;

@@ -32,6 +32,10 @@
            new function vector_dotself() when possible -- RWCox.
   Date:    28 Dec 2001
 
+  Mod:     Modification to calc_tcoef to calculate t-statistics for individual
+           GLT linear constraints.
+  Date:    29 January 2002
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -488,7 +492,7 @@ void calc_tcoef
   mse = sse / df;
 
 
-  for (i = 0;  i < p;  i++)
+  for (i = 0;  i < xtxinv.rows;  i++)
     {
       /*----- Calculate standard deviation for regression parameters -----*/
       var = mse * xtxinv.elts[i][i];
