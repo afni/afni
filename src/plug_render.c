@@ -670,6 +670,7 @@ char * REND_main( PLUGIN_interface * plint )
       dc = im3d->dc ;        /* save this too */
       REND_make_widgets() ;
       PLUTO_set_topshell( plint , shell ) ;  /* 22 Sep 2000 */
+      RWC_visibilize_widget( shell ) ;       /* 27 Sep 2000 */
    }
 
    /*-- set titlebar --*/
@@ -4651,6 +4652,8 @@ void REND_func_widgets(void)
 
    wfunc_pbar_menu = XmCreatePopupMenu( wfunc_color_label , "menu" , NULL , 0 ) ;
 
+   VISIBILIZE_WHEN_MAPPED(wfunc_pbar_menu) ;
+
    XtInsertEventHandler( wfunc_color_label ,     /* handle events in label */
 
                                0
@@ -5957,6 +5960,8 @@ void REND_script_menu( Widget parent )
 
    script_menu =
          XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
+
+   VISIBILIZE_WHEN_MAPPED(script_menu) ;
 
    script_cbut =
          XtVaCreateManagedWidget(

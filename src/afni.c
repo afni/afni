@@ -196,6 +196,11 @@ void AFNI_syntax(void)
      "   -skip_afnirc Tells the program NOT to read the file .afnirc\n"
      "                  in the home directory.  See README.setup for\n"
      "                  details on the use of .afnirc for initialization.\n"
+     "   -layout fn   Tells AFNI to read the initial windows layout from\n"
+     "                  file 'fn'.  If this option is not given, then\n"
+     "                  environment variable AFNI_LAYOUT_FILE is used.\n"
+     "                  If neither is present, then AFNI will do whatever\n"
+     "                  it feels like.\n"
      "\n"
      " If no session_directories are given, then the program will use\n"
      "   the current working directory (i.e., './').\n"
@@ -348,6 +353,21 @@ ENTRY("AFNI_parse_args") ;
 
    GLOBAL_argopt.elide_quality = AFNI_yesenv("AFNI_MARKERS_NOQUAL") ;
 
+   /* 24 Sep 2000: get the default layout name (add $HOME) */
+
+   { char * lf = getenv("AFNI_LAYOUT_FILE") ;
+     if( lf != NULL ){
+        char * eh = getenv("HOME") , * ff ;
+        int ll = strlen(lf) + 8 ;
+        if( eh != NULL ) ll += strlen(eh) ;
+        ff = malloc(ll) ;
+        if( eh != NULL && lf[0] != '/' ){ strcpy(ff,eh) ; strcat(ff,"/") ; }
+        else                            { ff[0] = '\0' ; }
+        strcat(ff,lf) ;
+        GLOBAL_argopt.layout_fname = ff ;
+     }
+   }
+
    /*-- 18 Nov 1999: Allow setting of options from environment --*/
 
    env = getenv( "AFNI_OPTIONS" ) ;
@@ -424,6 +444,14 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;
       }
 #endif
+
+      /*----- -layout (23 Sep 2000) -----*/
+
+      if( strcmp(argv[narg],"-layout") == 0 ){
+         if( narg+1 >= argc ) FatalError("need an argument after -layout!") ;
+         GLOBAL_argopt.layout_fname = argv[++narg] ;  /* just a pointer */
+         narg++ ; continue ;  /* go to next arg */
+      }
 
       /*----- -no1D option (27 Jan 2000) ----- */
 
@@ -1090,7 +1118,7 @@ int main( int argc , char * argv[] )
 static Boolean MAIN_workprocess( XtPointer fred )
 {
    static int MAIN_calls = 0 ;  /* controls what happens */
-   static int nosplash = 0 ;
+   static int nosplash = 0 , nodown = 0 ;
    static double eltime , max_splash=1.0 ;
    int ii ;
 
@@ -1102,7 +1130,8 @@ static Boolean MAIN_workprocess( XtPointer fred )
 
       default:{
          if( nosplash ) return True ;
-         if( COX_clock_time()-eltime >= max_splash ){ AFNI_splashdown(); return True; }
+         if( !nodown &&
+             COX_clock_time()-eltime >= max_splash ){ AFNI_splashdown(); return True; }
       }
       break ;
 
@@ -1291,6 +1320,18 @@ static Boolean MAIN_workprocess( XtPointer fred )
 
         if( ALLOW_real_time > 0 )
            REPORT_PROGRESS("\nRT: realtime plugin is active") ;
+
+        /* 23 Sep 2000: this function will be called 0.123 seconds
+                        from now to initialize the window layouts  */
+
+        if( GLOBAL_argopt.layout_fname != NULL &&
+            MAIN_im3d->type == AFNI_3DDATA_VIEW   ){
+
+          (void) XtAppAddTimeOut( MAIN_app , 123 ,
+                                  AFNI_startup_layout_CB , GLOBAL_argopt.layout_fname ) ;
+
+          nodown = 1 ;  /* splashdown will be done in AFNI_startup_layout_CB */
+        }
 
         /* this function will be called 1.234 seconds from now to finalize
            anything else that needs fixing up once AFNI is fully started   */

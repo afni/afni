@@ -521,6 +521,7 @@ STATUS("creating control panels") ;
    AFNI_make_wid3( im3d ) ; REFRESH ;
 
 #ifdef ALLOW_PLUGINS
+   im3d->vwid->nplugbut = 0 ;
    AFNI_plugin_button( im3d ) ; /* 07 Oct 1996 */
 #endif
 
@@ -581,6 +582,8 @@ STATUS("making imag->rowcol") ;
 
    imag->popmenu =
       XmCreatePopupMenu( imag->topper , "menu" , NULL , 0 ) ;
+
+   VISIBILIZE_WHEN_MAPPED(imag->popmenu) ;
 
 /***
    XtAddCallback( imag->popmenu ,
@@ -2208,6 +2211,8 @@ STATUS("making func->rowcol") ;
 
    func->pbar_menu = XmCreatePopupMenu( func->inten_label , "menu" , NULL , 0 ) ;
 
+   VISIBILIZE_WHEN_MAPPED(func->pbar_menu) ;
+
    XtInsertEventHandler( func->inten_label ,      /* handle events in label */
 
                                0
@@ -3702,6 +3707,8 @@ STATUS("making prog->rowcol") ;
       prog->hidden_menu =
          XmCreatePopupMenu( vwid->picture , "menu" , NULL , 0 ) ;
 
+      VISIBILIZE_WHEN_MAPPED(prog->hidden_menu) ;
+
 /***
       XtAddCallback( prog->hidden_menu ,
                      XmNunmapCallback , AFNI_hidden_CB , im3d ) ;
@@ -3730,6 +3737,8 @@ STATUS("making prog->rowcol") ;
 
       prog->hidden_pts_menu =
          XmCreatePulldownMenu( prog->hidden_menu , "menu" , NULL , 0 ) ;
+
+      VISIBILIZE_WHEN_MAPPED(prog->hidden_pts_menu) ;
 
       /** cascade button to bring this menu up **/
 
@@ -4167,6 +4176,30 @@ ENTRY("AFNI_initialize_controller") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------
+  23 Sep 2000: A hack to allow the creation of a specific controller,
+               instead of letting AFNI_clone_controller_CB choose the index.
+-----------------------------------------------------------------------------*/
+
+static int cii_override = -1 ;
+
+void AFNI_make_controller( int cii )
+{
+   int ii ;
+
+ENTRY("AFNI_make_controller") ;
+
+   if( cii < 0 || cii >= MAX_CONTROLLERS ||
+       IM3D_VALID(GLOBAL_library.controllers[cii]) ) EXRETURN ;
+
+   cii_override = cii ;
+   AFNI_clone_controller_CB( GLOBAL_library.controllers[0]->vwid->prog->clone_pb ,
+                             GLOBAL_library.controllers[0] , NULL ) ;
+
+   cii_override = -1 ;
+   EXRETURN ;
+}
+
 /*---------------------------------------------------------------------------*/
 
 void AFNI_clone_controller_CB( Widget wcall , XtPointer cd , XtPointer cbs )
@@ -4183,19 +4216,31 @@ ENTRY("AFNI_clone_controller_CB") ;
 
    SHOW_AFNI_PAUSE ;
 
-   /** look for a previously opened but now closed controller **/
+   /** 23 Sep 2000: if cii_override is set, use that for
+                    the index of the controller to create **/
 
-   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-      im3d = GLOBAL_library.controllers[ii] ;
-      if( IM3D_VALID(im3d) && ! im3d->opened ) break ;
-   }
+   if( cii_override < 0 ){
+      /** look for a previously opened but now closed controller **/
 
-   if( ii >= MAX_CONTROLLERS ){ /* look for an empty one to create */
       for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
          im3d = GLOBAL_library.controllers[ii] ;
-         if( im3d == NULL ) break ;
+         if( IM3D_VALID(im3d) && ! im3d->opened ) break ;  /* found it */
       }
-      if( ii >= MAX_CONTROLLERS ){ /* something funny has happened! */
+   } else {
+      ii = MAX_CONTROLLERS ;  /* skip this step */
+   }
+
+   if( ii >= MAX_CONTROLLERS ){          /* look for an empty one to create */
+
+      if( cii_override < 0 ){
+         for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+            im3d = GLOBAL_library.controllers[ii] ;
+            if( im3d == NULL ) break ;
+         }
+      } else {
+         ii = cii_override ;
+      }
+      if( ii >= MAX_CONTROLLERS ){       /* something funny has happened! */
          SHOW_AFNI_READY ; EXRETURN ;
       }
 
@@ -4213,10 +4258,12 @@ ENTRY("AFNI_clone_controller_CB") ;
       GLOBAL_library.controllers[ii] =
            new_AFNI_controller( NULL , new_dc , AFNI_3DDATA_VIEW ) ;
 
-      MCW_widget_geom( caller_im3d->vwid->top_shell , NULL,NULL , &xx,&yy ) ;
-      xx += 15 ; yy += 15 ;
-      XtVaSetValues( GLOBAL_library.controllers[ii]->vwid->top_shell ,
-                        XmNx , xx , XmNy , yy , NULL ) ;
+      if( caller_im3d != NULL ){
+         MCW_widget_geom( caller_im3d->vwid->top_shell , NULL,NULL , &xx,&yy ) ;
+         xx += 15 ; yy += 15 ;
+         XtVaSetValues( GLOBAL_library.controllers[ii]->vwid->top_shell ,
+                           XmNx , xx , XmNy , yy , NULL ) ;
+      }
    }
 
    /** at this point, ii = index of a controller to use **/
@@ -4305,6 +4352,8 @@ ENTRY("AFNI_lock_button") ;
    XtManageChild( mbar ) ;
 
    menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
+
+   VISIBILIZE_WHEN_MAPPED(menu) ;
 
    xstr = XmStringCreateLtoR( "Lock" , XmFONTLIST_DEFAULT_TAG ) ;
    cbut = XtVaCreateManagedWidget(
@@ -4483,6 +4532,8 @@ ENTRY("AFNI_misc_button") ;
 
    menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
 
+   VISIBILIZE_WHEN_MAPPED(menu) ;
+
    xstr = XmStringCreateLtoR( "Misc" , XmFONTLIST_DEFAULT_TAG ) ;
    cbut = XtVaCreateManagedWidget(
             "dialog" , xmCascadeButtonWidgetClass , mbar ,
@@ -4519,6 +4570,7 @@ ENTRY("AFNI_misc_button") ;
                              " Edit Environment  = Control environment vars\n"
                              " Edit 2DChain      = Control 2DChain function\n"
 #endif
+                             " Save Layout       = Save windows layout\n"
                              " Version Check     = Check AFNI version\n"
                              " Purge Memory      = Of dataset BRIKs\n"
 #ifdef USE_TRACING
@@ -4668,6 +4720,22 @@ ENTRY("AFNI_misc_button") ;
    MCW_register_hint( dmode->misc_2dchain_pb , "Control 2DChain function" ) ;
    AFNI_misc_CB( dmode->misc_2dchain_pb , im3d , NULL ) ;
 #endif
+
+   /*--- 23 Sep 2000: Save Layout [see afni_splash.c] ---*/
+
+   dmode->misc_savelayout_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Save Layout") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_savelayout_pb , XmNactivateCallback ,
+                  AFNI_save_layout_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_savelayout_pb , "Save windows layout to file" ) ;
+
+   /*--- Utility buttons ---*/
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , menu ,

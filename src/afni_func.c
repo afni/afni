@@ -4263,6 +4263,7 @@ STATUS("got func info") ;
       /*-- popup widgets --*/
 
       XtMapWidget( wpop ) ;  /* after this, is up to user */
+      RWC_visibilize_widget( wpop ) ;
    }
 
    /*.........................................................*/
@@ -4313,6 +4314,7 @@ STATUS("got func info") ;
       /*-- popup widgets --*/
 
       XtMapWidget( wpop ) ;  /* after this, is up to user */
+      RWC_visibilize_widget( wpop ) ;
    }
 #endif
 

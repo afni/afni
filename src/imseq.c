@@ -6,6 +6,8 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
+#undef IMSEQ_DEBUG
+
 #include "mrilib.h"
 #include "imseq.h"
 #include "xutil.h"
@@ -822,6 +824,8 @@ fflush(stdout) ;
                       "a display control menu"  ) ;
 
    newseq->wbar_menu = XmCreatePopupMenu( newseq->wbar , "menu" , NULL , 0 ) ;
+
+   VISIBILIZE_WHEN_MAPPED(newseq->wbar_menu) ;
 
    newseq->wbar_rng_but =
       XtVaCreateManagedWidget(
@@ -2462,8 +2466,26 @@ DPRI(" .. Expose; count=",event->count) ;
          MCW_discard_events( w , ExposureMask );
 #endif
          if( event->count == 0 ){
-                 if( w == seq->wimage ) ISQ_show_image( seq ) ;
-            else if( w == seq->wbar   ) ISQ_show_bar( seq ) ;
+            if( w == seq->wimage ){         /* 25 Sep 2000: check for hidden resizes */
+               int nx,ny ;
+               MCW_widget_geom( seq->wimage , &nx , &ny , NULL,NULL ) ;
+
+               if( seq->sized_xim != NULL &&
+                   ( (nx != seq->sized_xim->width ) ||
+                     (ny != seq->sized_xim->height)   ) ){  /* found a hidden resize */
+                                                            /* so let's un-hide it! */
+                  XConfigureEvent nev ;
+
+DPR(" .. really a hidden resize") ;
+
+                  nev.type = ConfigureNotify ; nev.width = nx ; nev.height = ny ;
+                  ISQ_drawing_EV( w, client_data, (XEvent *) &nev, continue_to_dispatch ) ;
+
+               } else
+                  ISQ_show_image( seq ) ;
+            }
+            else if( w == seq->wbar )
+               ISQ_show_bar( seq ) ;
          }
       }
       break ;
@@ -3116,6 +3138,8 @@ void ISQ_place_dialog( MCW_imseq * seq )
    if( yp+dh > seq->dc->height ) yp = seq->dc->height - dh ;
    if( yp    < 0 )               yp = 0 ;
 
+   RWC_xineramize( seq->dc->display , xp,yp,dw,dh , &xp,&yp ); /* 27 Sep 2000 */
+
    XtVaSetValues( seq->dialog , XmNx , xp , XmNy , yp , NULL ) ;
    return ;
 }
@@ -3763,7 +3787,7 @@ void ISQ_but_cnorm_CB( Widget w, XtPointer client_data, XtPointer call_data )
 *    isqDR_getoptions      (ISQ_options *) to get the current options
 
 *    isqDR_setmontage      (int *) sets the montage parameters
-                            [0] = nx  [1] = ny  [2] = skip
+                            [0] = nx  [1] = ny  [2] = spacing
                             [3] = gap [4] = gap_color (overlay index)
 
 *    isqDR_setifrac        (float *) sets the image fraction
@@ -3809,7 +3833,7 @@ Boolean drive_MCW_imseq( MCW_imseq * seq ,
 
          seq->mont_nx = mm[0] ;
          seq->mont_ny = mm[1] ;
-         if( mm[2] >= 0 && mm[2] <= MONT_SMAX ) seq->mont_skip     = mm[2] ;
+         if( mm[2] >  0 && mm[2] <= MONT_SMAX ) seq->mont_skip     = mm[2]-1 ;
          if( mm[3] >= 0 && mm[3] <= MONT_GMAX ) seq->mont_gap      = mm[3] ;
          if( mm[4] >= 0 &&
              mm[4] <= seq->dc->ovc->ncol_ov-1 ) seq->mont_gapcolor = mm[4] ;

@@ -30,6 +30,9 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
+Revision 1.4  2000/09/28 20:22:18  cox
+AFNI
+
 Revision 1.3  1997/11/06 16:26:48  cox
 Fixes so it won't crash so easily
 
@@ -490,13 +493,22 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 
 /** RWCox change to widget location **/
         { int scw = WidthOfScreen(XtScreen(cw)) , sch = HeightOfScreen(XtScreen(cw)) ;
-          int newx = abs_x + 1 , newy = abs_y+1 ;
+          int newx = abs_x + 1 , newy = abs_y+1 ; int xx,yy ;
           if( newx + logical.width > scw ) newx = scw - logical.width - 2*BorderPix ;
           if( newx < 0 )                   newx = 0 ;
           if( newy + cw->liteClue.font_height + 2 >= sch )
              newy = newy - w_height - cw->liteClue.font_height - 2*BorderPix ;
           if( newy < 0 ) newy = 0 ;
+
+#if 1
+          RWC_xineramize( XtDisplay(w) ,      /* 27 Sep 2000 - see xutil.[ch] */
+                          newx,newy , RWC_width,RWC_height , &xx,&yy ) ;
+          if( yy < newy )
+             yy = newy - w_height - cw->liteClue.font_height - 2*BorderPix ;
+	  XtMoveWidget((Widget) cw, xx,yy);
+#else
 	  XtMoveWidget((Widget) cw, newx,newy);
+#endif
         }
 
 	XtPopup((Widget) cw, XtGrabNone);

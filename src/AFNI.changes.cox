@@ -2280,3 +2280,25 @@
      for later AFNI manipulation.
  * Modified afni_graph.[ch] to allow a graph window to be opened for a
      dataset of length 1.
+ * Added textgraph mode to afni_graph.c, and also changed the baseline
+     pushbutton to a toggle.
+
+25 Sep 2000
+ * Added -layout option to allow user to control initial window setup.
+     Most changes in afni_splash.c, but also in afni.c, afni_widg.c,
+     afni.h, etc.
+ * Modified imseq.c to detect Expose events that have resized the
+     image display window -- this happens sometimes when using -layout.
+
+27 Sep 2000
+ * Program xiner.c writes out Xinerama info about the display, if
+     it is available.  This can be used to generate an X11 resource
+     AFNI.xinerama.
+ * If AFNI.xinerama is detected, then new routine RWC_xineramize (in
+     xutil.c) can be used to adjust location of a rectangle to be
+     sure it fits on a sub-screen.  Older routine RWC_visibilize_widget
+     now uses this.  New callback RWC_visibilize_CB can be used to make
+     sure menus pop up entirely on one sub-screen.
+ * Many places now use visibilize to make sure dialogs and menus pop
+     up on 1 sub-screen.  See, for example, all uses of the function
+     RWC_visibilize_widget() and the macro VISIBILIZE_WHEN_MAPPED().

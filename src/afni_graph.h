@@ -418,13 +418,16 @@ typedef struct {
    MCW_arrowval * opt_ggap_av ; /* 12 Jan 1998 */
    int ggap ;
 
-   Widget opt_color_up_pb   , opt_baseline_pb , opt_save_pb ,
+   Widget opt_color_up_pb   , opt_save_pb ,
           opt_write_center_pb , opt_write_suffix_pb ;
    Widget opt_quit_pb ;
 
    Widget opt_xaxis_menu , opt_xaxis_cbut ,        /* 09 Jan 1998 */
           opt_xaxis_pick_pb , opt_xaxis_center_pb ,
           opt_xaxis_clear_pb ;
+
+   MCW_bbox * opt_textgraph_bbox , * opt_baseline_bbox ;    /* 22 Sep 2000 */
+   int textgraph ;
 
 #ifdef USE_OPTMENUS
    MCW_arrowval * opt_mat_choose_av , * opt_slice_choose_av ;
@@ -615,6 +618,9 @@ extern void GRA_fixup_xaxis( MCW_grapher * ) ;
 extern void GRA_pick_xaxis_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void GRA_mapmenu_CB( Widget , XtPointer , XtPointer ) ;
+
+extern void GRA_textgraph_CB( Widget , XtPointer , XtPointer ) ;  /* 22 Sep 2000 */
+extern void GRA_baseline_CB ( Widget , XtPointer , XtPointer ) ;  /* 22 Sep 2000 */
 
 /***-----------------------------------------------------------------------***/
 #endif

@@ -409,6 +409,7 @@ Widget MCW_popup_message( Widget wparent , char * msg , int msg_type )
    }
 #endif
 
+   RWC_visibilize(wmsg) ;  /* 27 Sep 2000 */
    return wmsg ;
 }
 
@@ -769,6 +770,7 @@ void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
    XtPopup( wpop , XtGrabNone ) ;
+   RWC_visibilize(wpop) ;  /* 27 Sep 2000 */
    return ;
 }
 
@@ -966,7 +968,7 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
 {
    MCW_textwin * tw ;
    int wx,hy,xx,yy , xp,yp , scr_width,scr_height , xr,yr , xpr,ypr , ii,nact ;
-   int swid=0 , shi=0 ;
+   int swid , shi ;
    Position xroot , yroot ;
    Screen * scr ;
    Boolean editable ;
@@ -1068,6 +1070,8 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
                        XmNcursorPositionVisible  , editable ,
                     NULL ) ;
 
+   if( msg == NULL ) msg = "\0" ;  /* 27 Sep 2000 */
+
    if( msg != NULL ){
       int cmax = 20 , ll , nlin ;
       char * cpt , *cold , cbuf[128] ;
@@ -1100,19 +1104,22 @@ MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
 
       cmax = HeightOfScreen(XtScreen(wpar)) - 128 ;
       if( shi > cmax ) shi = cmax ;
+   } else {
+      swid = shi = 100 ;
    }
 
    XtManageChild( tw->wtop ) ;
 
+   XtVaSetValues( tw->wshell , XmNwidth,swid , XmNheight,shi , NULL ) ;
+
    XtPopup( tw->wshell , XtGrabNone ) ;
 
-   if( swid > 0 )
-      XtVaSetValues( tw->wshell , XmNwidth , swid , NULL ) ;
-
-   if( shi > 0 )
-      XtVaSetValues( tw->wshell , XmNheight , shi , NULL ) ;
-
    RWC_visibilize_widget( tw->wshell ) ;  /* 09 Nov 1999 */
+
+   RWC_xineramize( XtDisplay(tw->wshell) ,
+                   xpr,ypr,swid,shi , &xpr,&ypr ); /* 27 Sep 2000 */
+
+   XtVaSetValues( tw->wshell, XmNx,xpr , XmNy,ypr , NULL ) ;
 
    return tw ;
 }
@@ -1205,7 +1212,7 @@ char * RWC_getname( Display * display , char * name )
 void RWC_visibilize_widget( Widget w )
 {
    Position xroot , yroot ;
-   int wx,hy,xx,yy , scr_width,scr_height , changed=0 ;
+   int wx,hy,xx,yy , scr_width,scr_height , xo,yo ;
    Screen * scr ;
 
    if( w == NULL || !XtIsWidget(w) ) return ;
@@ -1216,16 +1223,187 @@ void RWC_visibilize_widget( Widget w )
    scr_width  = WidthOfScreen( scr ) ;
    scr_height = HeightOfScreen( scr ) ;
 
-   if( xx+wx > scr_width ){ xx = scr_width - wx ; changed++ ; }
-   if( xx    < 0         ){ xx = 0              ; changed++ ; }
+   xo = xx ; yo = yy ;                          /* save original position */
 
-   if( yy+hy > scr_height ){ yy = scr_height - hy ; changed++ ; }
-   if( yy    < 0          ){ yy = 0               ; changed++ ; }
+   if( xx+wx > scr_width ) xx = scr_width - wx ;
+   if( xx    < 0         ) xx = 0              ;
 
-   if( changed )
+   if( yy+hy > scr_height ) yy = scr_height - hy ;
+   if( yy    < 0          ) yy = 0               ;
+
+   RWC_xineramize( XtDisplay(w) , xx,yy,wx,hy , &xx,&yy ); /* 27 Sep 2000 */
+
+   if( xx != xo || yy != yo )
       XtVaSetValues( w , XmNx , xx , XmNy , yy , NULL ) ;
 
    return ;
+}
+
+/*----------------------------------------------------------------------
+  A callback version of the above (for use when menus are mapped, say)
+------------------------------------------------------------------------*/
+
+#undef DBGXIN
+
+static void RWC_visibilize_timeout_CB( XtPointer cd , XtIntervalId * id )
+{
+   Widget w = (Widget) cd ;
+#ifdef DBGXIN
+fprintf(stderr,"RWC_visibilize_timout_CB\n") ;
+#endif
+   RWC_visibilize_widget(w) ; return ;
+}
+
+void RWC_visibilize_CB( Widget w , XtPointer cd , XtPointer cb )
+{
+   Widget wpar = w ;
+#ifdef DBGXIN
+fprintf(stderr,"RWC_visibilize_CB\n") ;
+#endif
+   while( !XtIsShell(wpar) ){ wpar = XtParent(w); } /* find 1st shell parent */
+
+   /* must wait for the thing to actually appear, dammit */
+
+   (void) XtAppAddTimeOut( XtWidgetToApplicationContext(wpar) ,
+                           1 , RWC_visibilize_timeout_CB , wpar ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------
+   Given a rectangle (xx..xx+ww,yy..yy+hh), return the new origin
+   (xn,yn) so that the rectangle (xn..xn+ww,yn..yn+hh) fits onto
+   a single Xinerama sub-screen.  If the AFNI.xinerama X11 resource is
+   not found, then this routine uses the display size.
+   -- RWCox -- 27 Sep 2000
+------------------------------------------------------------------------*/
+
+#define BUF 5  /* buffer around the rectangle */
+
+void RWC_xineramize( Display * dpy,
+                     int xx, int yy, int ww, int hh, int *xn, int *yn )
+{
+   static int first=1 ;
+   static int nxsi=0 , *xbot,*ybot,*xtop,*ytop ;
+   int ii , ss ;
+
+   if( dpy==NULL || xn==NULL || yn==NULL || ww<0 || hh<0 ) return ; /* ERROR */
+
+   /*--- first time in: check AFNI.xinerama X resource
+                        load boundaries of sub-screens from resource ---*/
+
+   if( first ){
+      char * xdef , * xp ;
+      int nn,xorg,yorg,wide,high ;
+
+      first = 0 ;                         /* never again */
+      xdef  = getenv( "AFNI_XINERAMA" ) ;
+
+      if( xdef != NULL && (xdef[0] == 'N' || xdef[0] == 'n') ){ /* skip Xinerama */
+         nxsi = 0 ;
+      } else {
+         xdef  = XGetDefault(dpy,"AFNI","xinerama") ; /* get resource */
+         if( xdef != NULL ){
+            nn = 0 ; sscanf(xdef,"%d%n",&nxsi,&nn) ;  /* number of sub-screens */
+            if( nn <= 0 || nxsi <= 1 ){               /* ERROR */
+               nxsi = 0 ;
+            } else {
+               xbot = (int *) malloc(sizeof(int)*nxsi) ; /* make arrays to */
+               ybot = (int *) malloc(sizeof(int)*nxsi) ; /* store sub-screen */
+               xtop = (int *) malloc(sizeof(int)*nxsi) ; /* coordinate ranges */
+               ytop = (int *) malloc(sizeof(int)*nxsi) ;
+               xp = xdef + nn ;
+               for( ii=0 ; ii < nxsi ; ii++ ){    /* scan for sub-screen info */
+                  nn = 0 ;
+                  sscanf(xp,"%d%d%d%d%d%n",&ss,&xorg,&yorg,&wide,&high,&nn) ;
+                  if( nn <= 0 ) break ;           /* ERROR */
+                  xbot[ii] = xorg ; xtop[ii] = xorg+wide ;
+                  ybot[ii] = yorg ; ytop[ii] = yorg+high ;
+                  xp += nn ;
+#ifdef DBGXIN
+fprintf(stderr,"RWC_xineramize: xbot=%4d ybot=%4d xtop=%4d ytop=%4d\n",
+                xbot[ii],ybot[ii],xtop[ii],ytop[ii] ) ;
+#endif
+               }
+               nxsi = ii ;  /* in case the scan aborted */
+            }
+         }
+      }
+
+      /* if nothing found yet, use the display size */
+
+      if( nxsi <= 0 ){
+         nxsi = 1 ;
+         xbot = (int *) malloc(sizeof(int)*nxsi) ;
+         ybot = (int *) malloc(sizeof(int)*nxsi) ;
+         xtop = (int *) malloc(sizeof(int)*nxsi) ;
+         ytop = (int *) malloc(sizeof(int)*nxsi) ;
+         xbot[0] = ybot[0] = 0 ;
+         xtop[0] = WidthOfScreen(DefaultScreenOfDisplay(dpy)) ;
+         ytop[0] = HeightOfScreen(DefaultScreenOfDisplay(dpy)) ;
+      }
+   }
+
+#if 0                                          /* doesn't occur anymore */
+   if( nxsi == 0 ){ *xn=xx; *yn=yy; return; }  /* not setup?  change nothing */
+#endif
+
+   /*--- find the Xinerama sub-screen that (xx,yy) is on (if any) ---*/
+
+   if( nxsi > 1 ){
+      for( ss=0 ; ss < nxsi ; ss++ ){
+         if( xx >= xbot[ss] && xx < xtop[ss] &&
+             yy >= ybot[ss] && yy < ytop[ss]   ) break ;
+      }
+   } else {
+      ss = 0 ;  /* must use #0 - what else is there? */
+   }
+
+#ifdef DBGXIN
+fprintf(stderr,"RWC_xineramize: xx=%d yy=%d ww=%d hh=%d ss=%d\n",xx,yy,ww,hh,ss);
+#endif
+
+   /*--- if not inside any screen, find one it is closest to ---*/
+
+   if( ss >= nxsi ){
+      int dleft,dright,dtop,dbot,dd , dmin , xdif,ydif ;
+      dmin = 123456789 ; ss = 0 ;
+      for( ii=0 ; ii < nxsi; ii++ ){
+         xdif = (xx < xbot[ii]) ? (xbot[ii]-xx)       /* x dist to    */
+               :(xx > xtop[ii]) ? (xx-xtop[ii]) : 0 ; /* [xbot..xtop] */
+
+         ydif = (yy < ybot[ii]) ? (ybot[ii]-yy)
+               :(yy > ytop[ii]) ? (yy-ytop[ii]) : 0 ;
+
+         dleft  = abs(xx-xbot[ii]) + ydif ;  /* L1 dist to left edge */
+         dright = abs(xx-xtop[ii]) + ydif ;
+         dbot   = abs(yy-ybot[ii]) + xdif ;
+         dtop   = abs(yy-ytop[ii]) + xdif ;
+
+                           dd = dleft ;      /* find smallest dist */
+         if( dright < dd ) dd = dright ;
+         if( dbot   < dd ) dd = dbot ;
+         if( dtop   < dd ) dd = dtop ;
+
+         if( dd < dmin ){ dmin = dd; ss = ii; } /* smallest so far? */
+      }
+#ifdef DBGXIN
+fprintf(stderr,"RWC_xineramize: new ss=%d\n",ss) ;
+#endif
+   }
+
+   /*--- now adjust position so all of rectangle
+         (xx..xx+ww,yy..yy+hh) fits on that screen (if possible) ---*/
+
+   if( xx+ww+BUF >= xtop[ss] ){ xx = xtop[ss]-ww-1-2*BUF; } /* move left */
+   if( yy+hh+BUF >= ytop[ss] ){ yy = ytop[ss]-hh-1-2*BUF; } /* move up  */
+   if( xx    < xbot[ss]+BUF  ){ xx = xbot[ss]+BUF; }        /* move right */
+   if( yy    < ybot[ss]+BUF  ){ yy = ybot[ss]+BUF; }        /* move down */
+
+#ifdef DBGXIN
+fprintf(stderr,"RWC_xineramize: new xx=%d yy=%d\n",xx,yy) ;
+#endif
+
+   *xn = xx ; *yn = yy ; return ;
 }
 
 /*----------  Fix a Linux stupidity  ------------------------------------*/

@@ -58,6 +58,8 @@ typedef struct {
       int read_1D ;       /* 27 Jan 2000 */
 
       Boolean read_dsets ;    /* 17 Mar 2000 */
+
+      char * layout_fname ;   /* 23 Sep 2000 */
 } AF_options ;
 
 #ifdef MAIN
@@ -122,12 +124,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.27a"
+#define VERSION "2.27b"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "22 Sep 2000      "
+#define RELEASE "28 Sep 2000      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -330,9 +332,9 @@ typedef struct {
 
       Widget view_frame , view_rowcol ,
              xyz_rowcol   , yzx_rowcol   , zxy_rowcol   ,
-             name_xyz_lab , name_yzx_lab , name_zxy_lab ,
-             image_xyz_pb , image_yzx_pb , image_zxy_pb ,
-             graph_xyz_pb , graph_yzx_pb , graph_zxy_pb  ;
+             name_xyz_lab , name_yzx_lab , name_zxy_lab ,   /* xyz = Axial    */
+             image_xyz_pb , image_yzx_pb , image_zxy_pb ,   /* yzx = Sagittal */
+             graph_xyz_pb , graph_yzx_pb , graph_zxy_pb  ;  /* zxy = Coronal  */
 
       Boolean do_bkgd_lab ;
 
@@ -543,7 +545,9 @@ typedef struct {
       Widget         misc_2dchain_pb ;  /* 03 Jul 2000 */
 #endif
 
-      MCW_bbox     * ijk_lock_bbox ;  /* 11 Sep 2000 */
+      MCW_bbox     * ijk_lock_bbox ;    /* 11 Sep 2000 */
+
+      Widget         misc_savelayout_pb ; /* 23 Sep 2000 */
 
 } AFNI_datamode_widgets ;
 
@@ -598,6 +602,8 @@ extern void AFNI_sonnet_CB    ( Widget , XtPointer , XtPointer );
 
 /*---*/
 
+struct PLUGIN_interface ; /* incomplete definition */
+
 typedef struct {
       Widget top_shell , top_form ;
 
@@ -614,6 +620,13 @@ typedef struct {
       Widget file_dialog , file_sbox ;
       XtCallbackProc file_cb ;
       XtPointer      file_cd ;
+
+#ifdef ALLOW_PLUGINS
+      int nplugbut ;                      /* 23 Sep 2000 */
+      Widget * plugbut ;
+      char ** pluglab ;
+      struct PLUGIN_interface ** plugint ;
+#endif
 
       /*--- Pointers to other data ---*/
 
@@ -919,15 +932,21 @@ typedef struct {
 extern void AFNI_parse_args( int argc , char * argv[] );
 extern void FatalError(char * str);
 
-extern void AFNI_splashup  (void) ;  /* 02 Aug 1999 */
-extern void AFNI_splashdown(void) ;
+extern void AFNI_splashup   (void) ;  /* 02 Aug 1999 */
+extern void AFNI_splashdown (void) ;
+extern void AFNI_splashraise(void) ;  /* 25 Sep 2000 */
 
 extern void AFNI_quit_CB           ( Widget wcall , XtPointer cd , XtPointer cbs );
 extern void AFNI_quit_timeout_CB   ( XtPointer , XtIntervalId * ) ;
 extern void AFNI_startup_timeout_CB( XtPointer , XtIntervalId * ) ;
 
+extern void AFNI_startup_layout_CB  ( XtPointer, XtIntervalId * ) ; /* 23 Sep 2000 */
+extern void AFNI_save_layout_CB     ( Widget, XtPointer, XtPointer ) ;
+extern void AFNI_finalsave_layout_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
+
 extern void AFNI_clone_controller_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_controller_panel_CB( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_make_controller( int ) ;  /* 23 Sep 2000 */
 
 /* "locks" 04 Nov 1996 */
 extern void AFNI_lock_enforce_CB( Widget , XtPointer , XtPointer ) ;

@@ -610,6 +610,10 @@ afni:$(AFOBJS) libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h
 # 	$(RM) $@
 # 	purify $(CC) -o pafni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
+xiner:xiner.o
+	$(RM) $@
+	$(CC) -o xiner xiner.o $(LFLAGS) -lXinerama $(LLIBS)
+
 to3d:to3d.h $(T3OBJS) libcoxplot.a
 	$(RM) $@
 	$(CC) -o to3d $(T3OBJS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)

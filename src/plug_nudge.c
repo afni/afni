@@ -171,6 +171,7 @@ char * NUD_main( PLUGIN_interface * plint )
       dc = im3d->dc ;        /* save this too */
       NUD_make_widgets() ;
       PLUTO_set_topshell( plint , shell ) ;  /* 22 Sep 2000 */
+      RWC_visibilize_widget( shell ) ;       /* 27 Sep 2000 */
    }
 
    /*-- set titlebar --*/

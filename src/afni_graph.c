@@ -168,6 +168,8 @@ ENTRY("new_MCW_grapher") ;
    grapher->but3_menu =
       XmCreatePopupMenu( grapher->draw_fd , "menu" , NULL , 0 ) ;
 
+   VISIBILIZE_WHEN_MAPPED(grapher->but3_menu) ;
+
    grapher->but3_label =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , grapher->but3_menu ,
@@ -237,6 +239,8 @@ ENTRY("new_MCW_grapher") ;
    grapher->opt_menu =
          XmCreatePulldownMenu( grapher->option_mbar , "menu" , NULL,0 ) ;
 
+   VISIBILIZE_WHEN_MAPPED(grapher->opt_menu) ;  /* 27 Sep 2000 */
+
    grapher->opt_cbut =
          XtVaCreateManagedWidget(
             "dialog" , xmCascadeButtonWidgetClass , grapher->option_mbar ,
@@ -270,6 +274,10 @@ ENTRY("new_MCW_grapher") ;
                       "                 its window (the default), OR\n"
                       "                 with the minimum of all sub-\n"
                       "                 graphs as the common baseline\n"
+                      "Show Text?  --> Instead of graphs, show the\n"
+                      "                 numerical values of the data\n"
+                      "                 at the current time index\n"
+                      "                 in each sub-graph box\n"
                       "Save PNM    --> Save the graph window as an\n"
                       "                 image to a PNM format file\n"
                       "Write Center--> Central voxel timeseries will\n"
@@ -508,7 +516,31 @@ ENTRY("new_MCW_grapher") ;
    OPT_MENU_BUT(opt_color_up_pb     ,"Grid Color   [r]" , "Rotate grid color" ) ;
 #endif
 
-   OPT_MENU_BUT(opt_baseline_pb     ,"Baseline     [b]" , "Common graph baseline?" ) ;
+   { static char * bbox_label[1] = { "Baseline   [b]" } ;
+
+    grapher->opt_baseline_bbox =
+         new_MCW_bbox( grapher->opt_menu ,
+                       1 , bbox_label , MCW_BB_check , MCW_BB_noframe ,
+                       GRA_baseline_CB , (XtPointer)grapher ) ;
+
+    MCW_reghint_children( grapher->opt_baseline_bbox->wrowcol ,
+                          "Common graph baseline?" ) ; 
+   }
+
+   /* 22 Sep 2000: Text toggle */
+
+   { static char * bbox_label[1] = { "Show Text? [t]" } ;
+
+    grapher->opt_textgraph_bbox =
+         new_MCW_bbox( grapher->opt_menu ,
+                       1 , bbox_label , MCW_BB_check , MCW_BB_noframe ,
+                       GRA_textgraph_CB , (XtPointer)grapher ) ;
+
+    MCW_reghint_children( grapher->opt_textgraph_bbox->wrowcol ,
+                          "Display text, not graphs" ) ;
+
+    grapher->textgraph = 0 ;
+   }
 
    MENU_SLINE(opt_menu) ;
    OPT_MENU_BUT(opt_save_pb         ,"Save PNM     [S]" , "Save graph as an image" ) ;
@@ -942,7 +974,7 @@ ENTRY("GRA_redraw_overlay") ;
       draw a ball on the graph at the currently display time_index */
 
    ii = grapher->time_index ;
-   if( ii >= 0 && ii < NPTS(grapher) && ii < grapher->nncen ){
+   if( ii >= 0 && ii < NPTS(grapher) && ii < grapher->nncen && !grapher->textgraph ){
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       GRA_overlay_circle( grapher ,
                           grapher->cen_line[ii].x , grapher->cen_line[ii].y , 2 ) ;
@@ -1025,25 +1057,27 @@ ENTRY("redraw_graph") ;
 
    /*** y axis labels ***/
 
-   AV_fval_to_char( grapher->pmax[xc][yc] , strp ) ;
-   www = DC_text_width(grapher->dc,strp) ;
-   xxx = GL_DLX - www - 2 ;
-   xxx = MAX(0,xxx) ;
-   fd_txt( grapher , xxx , GB_DLY + grapher->gy_max - MYTXT, strp) ;
+   if( !grapher->textgraph ){
+      AV_fval_to_char( grapher->pmax[xc][yc] , strp ) ;
+      www = DC_text_width(grapher->dc,strp) ;
+      xxx = GL_DLX - www - 2 ;
+      xxx = MAX(0,xxx) ;
+      fd_txt( grapher , xxx , GB_DLY + grapher->gy_max - MYTXT, strp) ;
 
-   AV_fval_to_char( grapher->pmax[xc][yc] - grapher->pmin[xc][yc] , buf ) ;
-   if( buf[0] == ' ' ) buf[0] = '+' ;
-   sprintf( strp , "[%s]" , buf ) ;
-   www = DC_text_width(grapher->dc,strp) ;
-   xxx = GL_DLX - www + 2 ;
-   xxx = MAX(0,xxx) ;
-   fd_txt( grapher , xxx , GB_DLY + grapher->gy_max - MYTXT - 14 , strp) ;
+      AV_fval_to_char( grapher->pmax[xc][yc] - grapher->pmin[xc][yc] , buf ) ;
+      if( buf[0] == ' ' ) buf[0] = '+' ;
+      sprintf( strp , "[%s]" , buf ) ;
+      www = DC_text_width(grapher->dc,strp) ;
+      xxx = GL_DLX - www + 2 ;
+      xxx = MAX(0,xxx) ;
+      fd_txt( grapher , xxx , GB_DLY + grapher->gy_max - MYTXT - 14 , strp) ;
 
-   AV_fval_to_char( grapher->pmin[xc][yc] , strp ) ;
-   www = DC_text_width(grapher->dc,strp) ;
-   xxx = GL_DLX - www - 2 ;
-   xxx = MAX(0,xxx) ;
-   fd_txt( grapher , xxx , GB_DLY + 5, strp) ;
+      AV_fval_to_char( grapher->pmin[xc][yc] , strp ) ;
+      www = DC_text_width(grapher->dc,strp) ;
+      xxx = GL_DLX - www - 2 ;
+      xxx = MAX(0,xxx) ;
+      fd_txt( grapher , xxx , GB_DLY + 5, strp) ;
+   }
 
    /*** bottom of the page coordinates stuff ***/
 
@@ -1078,14 +1112,16 @@ ENTRY("redraw_graph") ;
 
    sprintf(strp,"Grid:%5d", grapher->grid_spacing ) ;
 
-   if( grapher->fscale > 0 ){                        /* 04 Feb 1998: */
-      AV_fval_to_char( grapher->fscale , buf ) ;     /* put scale on graph, too */
-      www = strlen(strp) ;
-      sprintf(strp+www," Scale:%s pix/datum",buf) ;
-   } else if( grapher->fscale < 0 ){
-      AV_fval_to_char( -grapher->fscale , buf ) ;
-      www = strlen(strp) ;
-      sprintf(strp+www," Scale:%s datum/pix",buf) ;
+   if( !grapher->textgraph ){
+      if( grapher->fscale > 0 ){                        /* 04 Feb 1998: */
+         AV_fval_to_char( grapher->fscale , buf ) ;     /* put scale on graph, too */
+         www = strlen(strp) ;
+         sprintf(strp+www," Scale:%s pix/datum",buf) ;
+      } else if( grapher->fscale < 0 ){
+         AV_fval_to_char( -grapher->fscale , buf ) ;
+         www = strlen(strp) ;
+         sprintf(strp+www," Scale:%s datum/pix",buf) ;
+      }
    }
 
    fd_txt( grapher , xxx , 21, strp) ;
@@ -1097,10 +1133,12 @@ ENTRY("redraw_graph") ;
    else
       sprintf(strp, "Num: %5d [%d]" , npoints,grapher->pin_num) ;
 
-   if( grapher->common_base )            /* 08 Jan 1998 */
-      strcat(strp,"  Base: common") ;
-   else
-      strcat(strp,"  Base: separate") ;
+   if( !grapher->textgraph ){
+      if( grapher->common_base )            /* 08 Jan 1998 */
+         strcat(strp,"  Base: common") ;
+      else
+         strcat(strp,"  Base: separate") ;
+   }
 
    fd_txt( grapher , xxx ,  7, strp ) ;
 
@@ -1237,6 +1275,11 @@ ENTRY("text_graphs") ;
             mri_free(tsim) ; tsim = qim ;
          }
 
+         if( ix == grapher->xc && iy == grapher->yc ){
+            mri_free( grapher->cen_tsim ) ;             /* copy time series too */
+            grapher->cen_tsim = mri_to_float( tsim ) ;
+         }
+
 #if 0
          if( grapher->transform0D_func != NULL )
             grapher->transform0D_func( tsim->nx , MRI_FLOAT_PTR(tsim) ) ;
@@ -1288,7 +1331,12 @@ ENTRY("plot_graphs") ;
 #ifdef GRAPHER_ALLOW_ONE                       /* 22 Sep 2000 */
    if( grapher->status->num_series < 1 ){
       EXRETURN ;
-   } else if( grapher->status->num_series == 1 ){
+   } else if( grapher->status->num_series == 1 || grapher->textgraph ){
+      text_graphs( grapher ) ;
+      EXRETURN ;
+   }
+#else
+   if( grapher->textgraph ){
       text_graphs( grapher ) ;
       EXRETURN ;
    }
@@ -2241,8 +2289,8 @@ STATUS("button press") ;
                causes increment of time_index in indicated direction */
 
          else if( grapher->fd_pxWind != (Pixmap) 0 &&
-                  !ISONE(grapher)                  &&
-                  (but==Button1)                   && (bx > GL_DLX) &&
+                  !ISONE(grapher)                  && !grapher->textgraph &&
+                  (but==Button1)                   && (bx > GL_DLX)       &&
                   (xloc == grapher->xpoint)        && (yloc == grapher->ypoint) ){
 
             /* conversion factor from time index to pixels,
@@ -2293,7 +2341,7 @@ STATUS("button press") ;
 
          /* Button 3 --> popup statistics of this graph */
 
-         if( but == Button3 && !ISONE(grapher) ){
+         if( but == Button3 && !ISONE(grapher) && !grapher->textgraph ){
             int ix , iy ;
 
             ix = xloc - grapher->xpoint + grapher->xc ;
@@ -2535,9 +2583,20 @@ STATUS(str); }
          end_fd_graph_CB( NULL , (XtPointer) grapher , NULL ) ;
       break ;
 
-      case 'b':
-         grapher->common_base = ! grapher->common_base ;
+      case 'b':{
+         int bbb = ! grapher->common_base ;
+         MCW_set_bbox( grapher->opt_baseline_bbox , bbb ) ;
+         grapher->common_base = bbb ;
          redraw_graph( grapher , 0 ) ;
+      }
+      break ;
+
+      case 't':{                                                  /* 22 Sep 2000 */
+         int bbb = ! grapher->textgraph ;
+         MCW_set_bbox( grapher->opt_textgraph_bbox , bbb ) ;
+         grapher->textgraph = bbb ;
+         redraw_graph( grapher , 0 ) ;
+      }
       break ;
 
       case 'S':
@@ -2746,11 +2805,6 @@ STATUS("User pressed Done button: starting timeout") ;
       (void) XtAppAddTimeOut( XtWidgetToApplicationContext(w) ,
                               50 , GRA_quit_timeout_CB , grapher ) ;
 #endif
-      EXRETURN ;
-   }
-
-   if( w == grapher->opt_baseline_pb ){
-      GRA_handle_keypress( grapher , "b" , NULL ) ;
       EXRETURN ;
    }
 
@@ -3377,7 +3431,10 @@ ENTRY("drive_MCW_grapher") ;
 
          if( new_index != grapher->time_index ){
             grapher->time_index = new_index ;
-            GRA_redraw_overlay( grapher ) ;
+            if( grapher->textgraph )
+               redraw_graph( grapher , 0 ) ;
+            else
+               GRA_redraw_overlay( grapher ) ;
          }
          RETURN( True ) ;
       }
@@ -4130,6 +4187,8 @@ ENTRY("AFNI_new_fim_menu") ;
    fmenu->fim_menu =
          XmCreatePulldownMenu( parent , "menu" , NULL,0 ) ;
 
+   VISIBILIZE_WHEN_MAPPED(fmenu->fim_menu) ;  /* 27 Sep 2000 */
+
    fmenu->fim_cbut =
          XtVaCreateManagedWidget(
             "dialog" , xmCascadeButtonWidgetClass , parent ,
@@ -4530,6 +4589,48 @@ ENTRY("GRA_transform_CB") ;
 }
 
 /*----------------------------------------------------------------------------
+   22 Sep 2000: for textgraph toggle
+------------------------------------------------------------------------------*/
+
+void GRA_textgraph_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   MCW_grapher * grapher = (MCW_grapher *) client_data ;
+   int bbb ;
+
+ENTRY("GRA_textgraph_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
+
+   bbb = MCW_val_bbox( grapher->opt_textgraph_bbox ) ;
+   if( bbb != grapher->textgraph ){
+      grapher->textgraph = bbb ;
+      redraw_graph( grapher , 0 ) ;
+   }
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------
+   22 Sep 2000: for new baseline toggle
+------------------------------------------------------------------------------*/
+
+void GRA_baseline_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   MCW_grapher * grapher = (MCW_grapher *) client_data ;
+   int bbb ;
+
+ENTRY("GRA_baseline_CB") ;
+
+   if( ! GRA_VALID(grapher) ) EXRETURN ;
+
+   bbb = MCW_val_bbox( grapher->opt_baseline_bbox ) ;
+   if( bbb != grapher->common_base ){
+      grapher->common_base = bbb ;
+      redraw_graph( grapher , 0 ) ;
+   }
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------
    08 Nov 1996: for "double plots" -- just redraw everything
 ------------------------------------------------------------------------------*/
 
@@ -4755,13 +4856,15 @@ void GRA_mapmenu_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
 ENTRY("GRA_mapmenu_CB") ;
 
- MCW_widget_geom( w                     , &ww,&hh , &xx,&yy ) ;
- MCW_widget_geom( XtParent(XtParent(w)) , &pw,&ph , &px,&py ) ;
+   MCW_widget_geom( w                     , &ww,&hh , &xx,&yy ) ;
+   MCW_widget_geom( XtParent(XtParent(w)) , &pw,&ph , &px,&py ) ;
 
+#if 0
 if(PRINT_TRACING){
  char str[256] ;
- sprintf(str,"menu:   width=%d height=%d x=%d y=%d",ww,hh,xx,yy) ; STATUS(str) ;
- sprintf(str,"parent: width=%d height=%d x=%d y=%d",pw,ph,px,py) ; STATUS(str) ; }
+ sprintf(str,"menu:   width=%d height=%d x=%d y=%d",ww,hh,xx,yy); STATUS(str);
+ sprintf(str,"parent: width=%d height=%d x=%d y=%d",pw,ph,px,py); STATUS(str); }
+#endif
 
    pw = pw >> 3 ;
    if( ! ( xx > px+7*pw || xx+ww < px+pw ) ){
@@ -4769,5 +4872,8 @@ if(PRINT_TRACING){
       xx = px - ww ;  if( xx < 0 ) xx = 0 ;
       XtVaSetValues( w , XmNx , xx , NULL ) ;
    }
+
+   RWC_xineramize( XtDisplay(w) , xx,yy,ww,hh , &xx,&yy ) ; /* 27 Sep 2000 */
+   XtVaSetValues( w , XmNx,xx , XmNy,yy , NULL ) ;
    EXRETURN ;
 }

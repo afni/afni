@@ -767,6 +767,53 @@ which means to set the x-size (horizontal) to 20 pixels and the
 y-size (vertical) to 256 pixels.  These values are the default,
 by the way.
 
+--------------------------
+Variable: AFNI_LAYOUT_FILE
+--------------------------
+If defined, this variable is the name of a file to read at startup
+to define the "layout" of AFNI windows at the program start.  If
+this name starts with a '/' character, then it is an absolute path;
+otherwise, it is taken to be a path relative to the user's home
+directory ($HOME).  If the AFNI command line switch "-layout" is
+used, it will override this specification.
+
+The simplest way to produce a layout file is to use the "Save Layout"
+button on the Datamode->Misc menu.  You can then edit this file;
+the format should be fairly self-explanatory.  The structure of the
+file is similar to the .afnirc file (cf.  README.setup).  In fact,
+the layout file can be included into .afnirc (since it is just another
+*** section) and then setting AFNI_LAYOUT_FILE = .afnirc in the
+***ENVIRONMENT section should work.
+
+A sample layout file:
+
+***LAYOUT
+ A               geom=+73+1106                 // start controller A
+ A.sagittalimage geom=320x320+59+159 ifrac=0.8 // and Sagittal image
+ A.sagittalgraph geom=570x440+490+147 matrix=9 // and Sagittal graph
+ B                                             // start controller B
+ B.plugin.ROI_Average                          // start a plugin
+
+Each window to be opened has a separate command line in this file.
+The "geom=" qualifiers specify the size and position of the windows.
+For images, "ifrac=" can be used to specify the fraction of the
+window occupied by the image (if "ifrac=1.0", then no control widgets
+will be visible).  For graphs, "matrix=" can be used to control the
+initial number of sub-graphs displayed.  For plugins, the label on
+the button that starts the plugin is used after the ".plugin."
+string (blanks should be filled with underscores "_").  In the
+example above, the last two windows to be opened do not have a
+"geom=" qualifier, so their placement will be chosen by the
+window manager.
+
+If you add "slow" after the "***LAYOUT", then each window operation
+will be paused for 1 second to let you watch the layout operations
+proceed gradually.  Otherwise, they will be executed as fast as
+possible (which still may not be all that fast).
+
+Using layouts with a window manager that requires user placement
+of new windows (e.g., twm) is a futile exercise.
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

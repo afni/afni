@@ -125,6 +125,16 @@ extern MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type ) ;
 extern void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
 extern void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
 
-void RWC_visibilize_widget( Widget ) ;  /* 09 Nov 1999 */
+extern void RWC_visibilize_widget( Widget ) ;  /* 09 Nov 1999 */
+
+#define RWC_visibilize RWC_visibilize_widget   /* 27 Sep 2000: sometimes I forget */
+
+extern void RWC_xineramize( Display *,         /* 27 Sep 2000 */
+                            int,int,int,int, int *, int * ) ;
+
+extern void RWC_visibilize_CB( Widget , XtPointer , XtPointer ) ; /* 27 Sep 2000 */
+
+#define VISIBILIZE_WHEN_MAPPED(w) \
+  XtAddCallback(w,XmNmapCallback,RWC_visibilize_CB,NULL)
 
 #endif /* _MCW_XUTIL_HEADER_ */

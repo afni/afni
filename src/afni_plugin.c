@@ -3009,7 +3009,7 @@ void AFNI_plugin_button( Three_D_View * im3d )
 {
    AFNI_plugin_array * exten = GLOBAL_library.plugins ;
    AFNI_plugin * plug ;
-   int pp , ipl , nbut ;
+   int pp , ipl , nbut , npbut ;
    Widget rc , mbar , menu , cbut , pbut , wpar , sep ;
    XmString xstr ;
 
@@ -3019,6 +3019,21 @@ ENTRY("AFNI_plugin_button") ;
 
    if( exten == NULL      ||
        ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+
+   /*-- 23 Sep 2000: count number of buttons that will be made --*/
+
+   npbut = 0 ;
+   for( pp=0 ; pp < exten->num ; pp++ ){
+      plug = exten->plar[pp] ;
+      for( ipl=0 ; ipl < plug->interface_count ; ipl++ ){
+         npbut++ ;
+      }
+   }
+
+   im3d->vwid->nplugbut = npbut ;
+   im3d->vwid->plugbut  = (Widget *)            malloc(sizeof(Widget)            *npbut) ;
+   im3d->vwid->pluglab  = (char **)             malloc(sizeof(char *)            *npbut) ;
+   im3d->vwid->plugint  = (PLUGIN_interface **) malloc(sizeof(PLUGIN_interface *)*npbut) ;
 
    /*-- create menu bar --*/
 
@@ -3045,6 +3060,8 @@ ENTRY("AFNI_plugin_button") ;
    XtManageChild( mbar ) ;
 
    menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
+
+   VISIBILIZE_WHEN_MAPPED(menu) ;
 
    xstr = XmStringCreateLtoR( "Plugins" , XmFONTLIST_DEFAULT_TAG ) ;
    cbut = XtVaCreateManagedWidget(
@@ -3082,6 +3099,9 @@ ENTRY("AFNI_plugin_button") ;
                   XmNtraversalOn , False ,                                \
                   XmNinitialResourcesPersistent , False ,                 \
                NULL ) ;                                                   \
+      im3d->vwid->plugbut[npbut] = pbut ;            /* 23 Sep 2000 */    \
+      im3d->vwid->plugint[npbut] = (pl) ;                                 \
+      im3d->vwid->pluglab[npbut] = XtNewString((pl)->label) ;             \
       XtAddCallback( pbut , XmNactivateCallback ,                         \
                      PLUG_startup_plugin_CB , (XtPointer)(pl) ) ;         \
       XmStringFree(xstr) ;                                                \
@@ -3106,15 +3126,16 @@ ENTRY("AFNI_plugin_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
-   nbut = 2 ;
+   nbut  = 2 ;  /* allow for the Cancel label and separator */
+   npbut = 0 ;  /* actual number of buttons */
 
    /*** make buttons for each interface ***/
 
    for( pp=0 ; pp < exten->num ; pp++ ){
       plug = exten->plar[pp] ;
       for( ipl=0 ; ipl < plug->interface_count ; ipl++ ){
-         MENU_BUT( plug->interface[ipl] ) ;
-         nbut++ ;
+         MENU_BUT( plug->interface[ipl] ) ;  /* modifies npbut */
+         nbut++ ; npbut++ ;
       }
    }
 
@@ -3225,6 +3246,7 @@ STATUS("trying to position popup") ;
 STATUS("popping up interface") ;
 
    XtMapWidget( wpop ) ;
+   RWC_visibilize_widget( wpop ) ; /* 27 Sep 2000 */
    EXRETURN ;
 }
 

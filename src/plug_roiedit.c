@@ -159,6 +159,7 @@ char * DRAW_main( PLUGIN_interface * plint )
       dc = im3d->dc ;        /* save this too */
       DRAW_make_widgets() ;
       PLUTO_set_topshell( plint , shell ) ;  /* 22 Sep 2000 */
+      RWC_visibilize_widget( shell ) ;       /* 27 Sep 2000 */
    }
 
    /*-- set titlebar --*/
@@ -691,6 +692,8 @@ r_main_mk_save_as_fr( Widget parent )
 					     XmDIALOG_HELP_BUTTON ) );
 
     XtManageChild( gRX.save_as_file_d );
+
+    VISIBILIZE_WHEN_MAPPED(gRX.save_as_file_d) ; /* 27 Sep 2000 */
 
     /*
     ** Once we prevent it from popping up immediately, set it to display

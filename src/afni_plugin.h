@@ -246,7 +246,7 @@ typedef struct {
 #define PLUGIN_CALL_VIA_MENU     88
 #define PLUGIN_CALL_VIA_CUSTOM   99
 
-typedef struct {
+typedef struct PLUGIN_interface {
    char label[PLUGIN_LABEL_SIZE] ;         /* for a button */
    char description[PLUGIN_STRING_SIZE] ;  /* for the interface panel */
    char * helpstring ;                     /* from the user? */

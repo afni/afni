@@ -322,9 +322,13 @@ if(PRINT_TRACING)
 
       /** unknown section **/
 
+#if 0
       fprintf(stderr,"\nIn setup file %s, unknown section: %s\n",
                      fname , str ) ;
       break ;                                 /* exit main loop */
+#else
+      GETSTR ; goto SkipSection ;             /* find another section */
+#endif
 
    }  /* end of while loop */
 

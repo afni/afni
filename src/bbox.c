@@ -477,6 +477,8 @@ MCW_arrowval * new_MCW_optmenu( Widget parent ,
 
    av->wmenu = wmenu = XmCreatePulldownMenu( parent , "menu" , NULL , 0 ) ;
 
+   VISIBILIZE_WHEN_MAPPED(wmenu) ;
+
    /** create the button that pops down the menu **/
 
    nargs = 0 ;
