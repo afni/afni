@@ -5296,3 +5296,7 @@
      when scanning input lines for '#' comment characters!  (Stupid)
  * Modified imseq.[ch] to add saving of overlay MEM_plotdata stuff with the
      recorder, as well as the images.
+
+06 Jan 2005
+ * Modified imseq.c to free the pen_bbox and labsz_av when destroying an image
+     viewer -- somehow these got overlooked in ISQ_free_alldata().

@@ -18,7 +18,7 @@
 /*! Free an XImage created by mri_to_XImage() or its kin.
 --------------------------------------------------------------------------*/
 
-void MCW_kill_XImage( XImage * image )
+void MCW_kill_XImage( XImage *image )
 {
 ENTRY("MCW_kill_XImage") ;
    if( image != NULL ){
@@ -36,17 +36,17 @@ ENTRY("MCW_kill_XImage") ;
     - values <  0 draw from the "overlay" palette (stored in dc)
 ---------------------------------------------------------------------------*/
 
-XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
+XImage * mri_to_XImage( MCW_DC *dc , MRI_IMAGE *im )
 {
    int  w2, width, height ;
-   unsigned char * Image;
-   XImage        * ximage;
+   unsigned char *Image;
+   XImage        *ximage;
    int  border ;        /* 22 Aug 1998 */
 
    register int     i , hw , sk , k ;
-   register short * sar ;
-   register Pixel * ppix , * npix ;
-   register unsigned char * ptr;
+   register short *sar ;
+   register Pixel *ppix , *npix ;
+   register unsigned char *ptr;
 
 ENTRY("mri_to_XImage") ;
 
@@ -197,10 +197,10 @@ ENTRY("mri_to_XImage") ;
     - method: nearest neighbor resampling
 ----------------------------------------------------------------------------*/
 
-XImage * resize_XImage( MCW_DC * dc , XImage * image ,
+XImage * resize_XImage( MCW_DC *dc , XImage *image ,
                         int new_width , int new_height )
 {
-   static int * lt = NULL ;       /* lookup table stuff */
+   static int *lt = NULL ;       /* lookup table stuff */
    static int old_width = -1 ;
 
    register int iy, ex, ey, iW, iH, w2 ;
@@ -208,7 +208,7 @@ XImage * resize_XImage( MCW_DC * dc , XImage * image ,
    char         *Ep, *El, *Ip, *Il, *Id , *Ed ; /* d=data, l=row, p=pixel */
    int          Erow , Irow ;
 
-   XImage * emage ;  /* to be output image */
+   XImage *emage ;  /* to be output image */
 
    /*** sanity check ***/
 
@@ -249,6 +249,9 @@ ENTRY("resize_XImage") ;
    }
 
    /*** make lookup table for xnew -> xold ***/
+
+   /*** Notice that this table will never be de-allocated or shrink;
+        it will grow larger when the images grow larger, as needed. ***/
 
    if( new_width > old_width ){
       lt = (int *) XtRealloc( (char *)lt,(size_t)(new_width * sizeof(int)) );
@@ -348,15 +351,15 @@ ENTRY("resize_XImage") ;
                                        (grayscale) if all pixels are gray
 -----------------------------------------------------------------------------*/
 
-MRI_IMAGE * XImage_to_mri( MCW_DC * dc , XImage * ximage , int code )
+MRI_IMAGE * XImage_to_mri( MCW_DC *dc , XImage *ximage , int code )
 {
    int nx , ny , npix , ii,jj , kk , allgray , lsize ;
    Pixel pp ;
-   byte * rgb , * gray ;
+   byte *rgb , *gray ;
    byte rr,gg,bb ;
-   byte * ptr ;
-   XColor * xc ;
-   MRI_IMAGE * outim ;
+   byte *ptr ;
+   XColor *xc ;
+   MRI_IMAGE *outim ;
    int  border ;        /* 22 Aug 1998 */
 
    int use_cmap  = ((code & X2M_USE_CMAP ) != 0) ;  /* 03 Apr 2001 */
@@ -501,13 +504,13 @@ fprintf(stderr,
     Adapted from mri_to_XImage by RWCox -- 11 Feb 1999
 -------------------------------------------------------------------------*/
 
-XImage * pixar_to_XImage( MCW_DC * dc, int nx, int ny, Pixel * par )
+XImage * pixar_to_XImage( MCW_DC *dc, int nx, int ny, Pixel *par )
 {
    int  w2, width, height , border ;
-   unsigned char * Image ;
-   XImage        * ximage ;
+   unsigned char *Image ;
+   XImage        *ximage ;
    register int i , hw  ;
-   register unsigned char * ptr;
+   register unsigned char *ptr;
 
    /*-- sanity checks --*/
 
@@ -608,10 +611,10 @@ ENTRY("pixar_to_XImage") ;
 /*! Local copy of function from display.c, hopefully for speed.
 ---------------------------------------------------------------------*/
 
-static INLINE Pixel tc_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
+static INLINE Pixel tc_rgb_to_pixel( MCW_DC *dc, byte rr, byte gg, byte bb )
 {
-   static MCW_DC * dcold=NULL ;
-   DC_colordef * cd = dc->cdef ;
+   static MCW_DC *dcold=NULL ;
+   DC_colordef *cd = dc->cdef ;
    static unsigned long pold=0 ;
    static byte rold=0 , gold=0 , bold=0 ;
    unsigned long r , g , b ;
@@ -622,7 +625,7 @@ static INLINE Pixel tc_rgb_to_pixel( MCW_DC * dc, byte rr, byte gg, byte bb )
    if( rr == 255 && gg == 255 && bb == 255 ) return cd->whpix ;  /* cases  */
 
    if( dc == dcold && rr == rold && gg == gold && bb == bold ) /* Remembrance of Things Past? */
-      return (Pixel) pold ;
+     return (Pixel) pold ;
 
    rold = rr ; gold = gg ; bold = bb ; dcold = dc ;            /* OK, remember for next time */
 
@@ -648,11 +651,11 @@ static XImage * rgb_to_XImage_clever( MCW_DC *, MRI_IMAGE * ) ;
 /*! Convert an MRI_IMAGE of rgb values to an XImage for display.
 ------------------------------------------------------------------------------*/
 
-XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
+XImage * rgb_to_XImage( MCW_DC *dc , MRI_IMAGE *im )
 {
    switch( dc->visual_class ){
-     case TrueColor:   return rgb_to_XImage_simple(dc,im) ;
-     case PseudoColor: return rgb_to_XImage_clever(dc,im) ;
+    case TrueColor:   return rgb_to_XImage_simple(dc,im) ;
+    case PseudoColor: return rgb_to_XImage_clever(dc,im) ;
    }
    return NULL ;
 }
@@ -661,12 +664,12 @@ XImage * rgb_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
 /*! Convert an MRI_IMAGE of rgb bytes to an XImage (TrueColor visual only)
 ------------------------------------------------------------------------------*/
 
-static XImage * rgb_to_XImage_simple( MCW_DC * dc , MRI_IMAGE * im )
+static XImage * rgb_to_XImage_simple( MCW_DC *dc , MRI_IMAGE *im )
 {
    int nxy , ii ;
-   byte * rgb ;
-   Pixel * par ;
-   XImage * xim ;
+   byte *rgb ;
+   Pixel *par ;
+   XImage *xim ;
 
 ENTRY("rgb_to_XImage_simple") ;
 
@@ -691,13 +694,13 @@ ENTRY("rgb_to_XImage_simple") ;
 /*! Convert an MRI_IMAGE of rgb bytes to an XImage (general visual)
 -------------------------------------------------------------------------*/
 
-static XImage * rgb_to_XImage_clever( MCW_DC * dc , MRI_IMAGE * im )
+static XImage * rgb_to_XImage_clever( MCW_DC *dc , MRI_IMAGE *im )
 {
    int nxy , ii , c ;
-   byte * rgb , r,g,b ;
-   Pixel * par , p=0 ;
-   XImage * xim ;
-   int * col_ar , * ii_ar ;
+   byte *rgb , r,g,b ;
+   Pixel *par , p=0 ;
+   XImage *xim ;
+   int *col_ar , *ii_ar ;
 
 ENTRY("rgb_to_XImage_clever") ;
 
