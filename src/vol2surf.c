@@ -74,6 +74,7 @@ char gv2s_history[] =
     "  - apply debug and dnode, even for defaults\n"
     "  - if the user sets dnode, then skip any (debug > 0) tests for it\n"
     "  - check for out of bounds, even if an endpoint is in (e.g. midpoint)\n"
+    "  - in thd_mask_from_brick(), allow for absolute thresholding\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -2051,7 +2052,7 @@ ENTRY("v2s_map_type");
  *----------------------------------------------------------------------
 */
 int thd_mask_from_brick(THD_3dim_dataset * dset, int volume, float thresh,
-			byte ** mask)
+			byte ** mask, int absolute)
 {
     float   factor;
     byte  * tmask;
@@ -2112,8 +2113,8 @@ ENTRY("thd_mask_from_brick");
 	{
 	    short * dp  = DSET_ARRAY(dset, volume);
 	    short   thr = SHORTIZE(thresh + 0.99999);  /* ceiling */
-	    for ( c = 0; c < nvox; c++ )
-		if ( dp[c] != 0 && ( dp[c] >= thr ) )
+	    for ( c = 0; c < nvox; c++, dp++ )
+		if ( *dp != 0 && ( *dp >= thr || (absolute && *dp <= -thr) ) )
 		{
 		    size++;
 		    tmask[c] = 1;
@@ -2125,8 +2126,8 @@ ENTRY("thd_mask_from_brick");
 	{
 	    int * dp  = DSET_ARRAY(dset, volume);
 	    int   thr = (int)(thresh + 0.99999);  /* ceiling */
-	    for ( c = 0; c < nvox; c++ )
-		if ( dp[c] != 0 && ( dp[c] >= thr ) )
+	    for ( c = 0; c < nvox; c++, dp++ )
+		if ( *dp != 0 && ( *dp >= thr || (absolute && *dp <= -thr) ) )
 		{
 		    size++;
 		    tmask[c] = 1;
@@ -2137,8 +2138,8 @@ ENTRY("thd_mask_from_brick");
 	case MRI_float:
 	{
 	    float * dp = DSET_ARRAY(dset, volume);
-	    for ( c = 0; c < nvox; c++ )
-		if ( dp[c] != 0 && ( dp[c] >= thresh ) )
+	    for ( c = 0; c < nvox; c++, dp++ )
+		if (*dp != 0 && (*dp >= thresh || (absolute && *dp <= -thresh)))
 		{
 		    size++;
 		    tmask[c] = 1;
