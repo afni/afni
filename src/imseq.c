@@ -228,6 +228,12 @@ static int     ppmto_num     = -1 ;
 static char *  ppmto_gif_filter  = NULL ;   /* 27 Jul 2001 */
 static char *  ppmto_agif_filter = NULL ;
 
+#define USE_GIFF
+#ifdef  USE_GIFF
+static char *  ppmto_giff_filter = NULL ;   /* 05 Oct 2004 */
+#define GIFF_MAPFILE "Qwerty53211.ppm"
+#endif
+
 static char *  ppmto_mpeg_filter = NULL ;   /* 02 Aug 2001 */
 static char *  ppmto_ppm_filter  = NULL ;
 
@@ -321,6 +327,12 @@ static void ISQ_setup_ppmto_filters(void)
       /*-- 27 Jul 2001: also try for Animated GIF --*/
 
       ppmto_gif_filter = str ;  /* save this filter string */
+
+#ifdef USE_GIFF
+      str = AFMALL( char , strlen(pg)+128 ) ;           /* 05 Oct 2004 */
+      sprintf(str,"%s -map %s > %%s",pg,GIFF_MAPFILE) ;
+      ppmto_giff_filter = str ;
+#endif
 
       /* 16 Jan 2003: get animated GIF delay (centiseconds) from environment */
 
@@ -3250,6 +3262,14 @@ ENTRY("ISQ_saver_CB") ;
      tsuf[0] = '\0' ;                      /* not used */
    }
 
+#ifdef USE_GIFF
+   if( DO_AGIF(seq) ){
+     MRI_IMAGE *im = mri_colorsetup( 76 , 6,6,5 ) ;
+     mri_write_pnm( GIFF_MAPFILE , im ) ;
+     mri_free( im ) ;
+   }
+#endif
+
    /*---- loop thru, get images, save them ----*/
 
    for( kf=seq->saver_from ; kf <= seq->saver_to ; kf++ ){
@@ -3399,7 +3419,11 @@ ENTRY("ISQ_saver_CB") ;
            sprintf( filt , ppmto_filter[ff] , fname ) ;
          } else if( DO_AGIF(seq) ){                    /* use the gif filter */
            sprintf( fname, "%s%s.%05d.gif" , seq->saver_prefix,tsuf, kf) ;
+#ifndef USE_GIFF
            sprintf( filt , ppmto_gif_filter , fname ) ;
+#else
+           sprintf( filt , ppmto_giff_filter , fname ) ;
+#endif
            if( agif_list == NULL ) INIT_SARR(agif_list) ;
            ADDTO_SARR(agif_list,fname) ;
          } else if( DO_MPEG(seq) ){                    /* use the ppm filter */
@@ -3463,6 +3487,9 @@ ENTRY("ISQ_saver_CB") ;
                fprintf(stderr,"Running '%s'\n",alf) ;
                system(alf) ;                                 /* so run it!    */
                free(alf) ; free(oof) ; free(alc) ;           /* free trash   */
+#ifdef USE_GIFF
+               remove( GIFF_MAPFILE ) ;
+#endif
             }
 
             /* MPEG-1 */

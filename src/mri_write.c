@@ -180,8 +180,8 @@ int mri_write_pnm( char * fname , MRI_IMAGE * im )
 
 ENTRY("mri_write_pnm") ;
 
-   if( im == NULL )      RETURN( 0 );
-   if( ! MRI_IS_2D(im) ) RETURN( 0 );
+   if( im == NULL ) RETURN( 0 );
+   if( im->nz > 1 ) RETURN( 0 );
    if( im->kind != MRI_byte && im->kind != MRI_rgb ) RETURN( 0 );
 
    imfile = fopen( fname , "r" ) ;
