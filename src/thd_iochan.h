@@ -109,6 +109,7 @@ extern int  tcp_alivecheck( int ) ;
 extern void tcp_set_cutoff( int ) ;
 
 extern char *iochan_error_string(void) ;  /* 21 Nov 2001 */
+extern void iochan_enable_perror( int ) ; /* 22 Nov 2002 */
 
 #undef USE_TCP_RECV
 #ifdef USE_TCP_RECV

@@ -4048,3 +4048,8 @@
  * Added some extra programs (gifsicle, mpeg_encode, cjpeg, etc.) to the PROGRAMS
      macro in Makefile.INCLUDE.
  * Added version checking to afni.c startup code.
+
+22 Nov 2002
+ * Added mri_read_stuff.c to filter input from JPEGs, TIFFs, BMPs, etc., into
+     mri_read.c.
+ * Added afni_version.c to check AFNI version at startup.
