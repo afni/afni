@@ -4191,3 +4191,6 @@
 31 Dec 2002
  * Modified niml/niml_rowtype.c to deal with String type and debugged
      stuff with output of var dim arrays.
+
+02 Jan 2002
+ * Added a error message to mcw_malloc.c to note when an allocation fails.

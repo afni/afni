@@ -187,7 +187,12 @@ static void * malloc_track( size_t n , char * fn , int ln )
    int ii ;
 
    fred = malloc(nn) ;
-   if( fred == NULL ) return NULL ;  /* real bad news */
+   if( fred == NULL ){                                     /* real bad news */
+      fprintf(stderr,
+              "\n*** MCW_malloc(%d) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
+              n , fn , ln ) ;
+      return NULL ;
+   }
 
    /* mark overrun buffers */
 
@@ -247,7 +252,12 @@ static void * realloc_track( mallitem * ip, size_t n, char * fn, int ln )
    cfred = ip->pmt ;  /* old address */
 
    nfred = realloc( cfred , nn ) ;
-   if( nfred == NULL ) return NULL ;  /* this is bad - real bad */
+   if( nfred == NULL ){                                       /* real bad */
+      fprintf(stderr,
+              "\n*** MCW_realloc(%d) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
+              n , fn , ln ) ;
+      return NULL ;
+   }
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
       nfred[ii] = nfred[n+NEXTRA+ii] = MAGIC ;
