@@ -56,17 +56,17 @@
 
   Mod:     Added -stim_nptr option, to allow input stim functions to be sampled
            at a multiple of the 1/TR rate.
-  Date:    02 January 2001 
+  Date:    02 January 2001
 
   Mod:     Changes to eliminate constraints on number of stimulus time series,
-           number of regressors, number of GLT's, and number of GLT linear 
+           number of regressors, number of GLT's, and number of GLT linear
            constraints.
   Date:    10 May 2001
 
   Mod:     Made fstat_t2p() a static function to avoid conflicts on CYGWIN.
   Date:    08 Jan 2002 - RWCox
 
-  Mod:     Added static function student_t2p() for display of p-values 
+  Mod:     Added static function student_t2p() for display of p-values
            corresponding to the t-statistics.
   Date:    28 January 2002
 
@@ -124,13 +124,13 @@ double legendre( double x , int m )   /* Legendre polynomials over [-1,1] */
 }
 
 /*---------------------------------------------------------------------------*/
-/* 
-   Initialize independent variable X matrix 
+/*
+   Initialize independent variable X matrix
 */
 
-int init_indep_var_matrix 
+int init_indep_var_matrix
 (
-  int p,                      /* number of parameters in the full model */   
+  int p,                      /* number of parameters in the full model */
   int qp,                     /* number of poly. trend baseline parameters */
   int polort,                 /* degree of polynomial for baseline model */
   int nt,                     /* number of images in input 3d+time dataset */
@@ -154,7 +154,7 @@ int init_indep_var_matrix
   int ilag;                 /* time lag index */
   int ib;                   /* block (run) index */
   int nfirst, nlast;        /* time boundaries of a block (run) */
-  int mfirst, mlast;        /* column boundaries of baseline parameters 
+  int mfirst, mlast;        /* column boundaries of baseline parameters
 			       for a block (run) */
 
   float * stim_array;       /* stimulus function time series */
@@ -166,7 +166,7 @@ int init_indep_var_matrix
   matrix_create (nt, p, &x);
 
 
-  /*----- Set up columns of X matrix corresponding to  
+  /*----- Set up columns of X matrix corresponding to
           the baseline (null hypothesis) signal model -----*/
   for (ib = 0;  ib < num_blocks;  ib++)
     {
@@ -181,11 +181,11 @@ int init_indep_var_matrix
 	  mfirst = ib * (polort+1);
 	  mlast  = (ib+1) * (polort+1);
 
-          if( !legendre_polort ){                /* the old way */
+          if( !legendre_polort ){                /* the old way: powers */
 	    for (m = mfirst;  m < mlast;  m++)
 	      x.elts[n][m] = pow ((double)(n-nfirst), (double)(m-mfirst));
 
-          } else {            /* 15 Jul 2004: the new way - RWCox */
+          } else {            /* 15 Jul 2004: the new way: Legendre - RWCox */
 
             double xx , aa=2.0l/(nlast-nfirst-1.0l) ; /* map nfirst..nlast-1 */
             for( m=mfirst ; m < mlast ; m++ ){        /* to interval [-1,1] */
@@ -194,23 +194,10 @@ int init_indep_var_matrix
             }
           }
 	}
-
-#if 0
-        /* 15 Jul 2004: normalize columns just created */
-        if( legendre_polort ){
-          double aa ;
-          for( m=mfirst ; m < mlast ; m++ ){
-            aa = 0.0l ;
-            for( n=nfirst ; n < nlast ; n++ ) aa += x.elts[n][m]*x.elts[n][m] ;
-            if( aa > 0.0 ) aa = 1.0l/sqrt(aa) ;
-            for( n=nfirst ; n < nlast ; n++ ) x.elts[n][m] *= aa ;
-          }
-        }
-#endif
     }
 
 
-  /*----- Set up columns of X matrix corresponding to 
+  /*----- Set up columns of X matrix corresponding to
           time delayed versions of the input stimulus -----*/
   m = qp;
   for (is = 0;  is < num_stimts;  is++)
@@ -235,7 +222,7 @@ int init_indep_var_matrix
     }
 
 
-  /*----- Keep only those rows of the X matrix which correspond to 
+  /*----- Keep only those rows of the X matrix which correspond to
           usable time points -----*/
   matrix_extract_rows (x, N, good_list, xgood);
   matrix_destroy (&x);
@@ -251,13 +238,13 @@ int init_indep_var_matrix
   Initialization for the regression analysis.
 */
 
-int init_regression_analysis 
+int init_regression_analysis
 (
   int p,                      /* number of parameters in full model */
   int qp,                     /* number of poly. trend baseline parameters */
   int num_stimts,             /* number of stimulus time series */
-  int * baseline,             /* flag for stim function in baseline model */ 
-  int * min_lag,              /* minimum time delay for impulse response */ 
+  int * baseline,             /* flag for stim function in baseline model */
+  int * min_lag,              /* minimum time delay for impulse response */
   int * max_lag,              /* maximum time delay for impulse response */
   matrix xdata,               /* independent variable matrix */
   matrix * x_full,            /* extracted X matrix    for full model */
@@ -272,7 +259,7 @@ int init_regression_analysis
 {
   int * plist = NULL;         /* list of model parameters */
   int ip, it;                 /* parameter indices */
-  int is, js;                 /* stimulus indices */ 
+  int is, js;                 /* stimulus indices */
   int im, jm;                 /* lag index */
   int ok;                     /* flag for successful matrix calculation */
   matrix xtxinv_temp;         /* intermediate results */
@@ -286,7 +273,7 @@ int init_regression_analysis
   plist = (int *) malloc (sizeof(int) * p);   MTEST(plist);
   for (ip = 0;  ip < qp;  ip++)
     plist[ip] = ip;
-  it = ip = qp;    
+  it = ip = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
       for (im = min_lag[is];  im <= max_lag[is];  im++)
@@ -312,7 +299,7 @@ int init_regression_analysis
 	}
 
       it = ip = qp;
-      
+
       for (js = 0;  js < num_stimts;  js++)
 	{
 	  for (jm = min_lag[js];  jm <= max_lag[js];  jm++)
@@ -326,7 +313,7 @@ int init_regression_analysis
 	    }
 	}
 
-      ok = calc_matrices (xdata, p-(max_lag[is]-min_lag[is]+1), 
+      ok = calc_matrices (xdata, p-(max_lag[is]-min_lag[is]+1),
 		     plist, &(x_rdcd[is]), &xtxinv_temp, &(xtxinvxt_rdcd[is]));
       if (!ok)  { matrix_destroy (&xtxinv_temp);  return (0); };
     }
@@ -353,7 +340,7 @@ int init_regression_analysis
   Initialization for the general linear test analysis.
 */
 
-int init_glt_analysis 
+int init_glt_analysis
 (
   matrix xtxinv,              /* matrix:  1/(X'X)  for full model */
   int glt_num,                /* number of general linear tests */
@@ -380,18 +367,18 @@ int init_glt_analysis
 
 
 /*---------------------------------------------------------------------------*/
-/* 
-   Calculate results for this voxel. 
+/*
+   Calculate results for this voxel.
 */
 
-void regression_analysis 
+void regression_analysis
 (
   int N,                    /* number of usable data points */
   int p,                    /* number of parameters in full model */
   int q,                    /* number of parameters in baseline model */
   int num_stimts,           /* number of stimulus time series */
-  int * min_lag,            /* minimum time delay for impulse response */ 
-  int * max_lag,            /* maximum time delay for impulse response */ 
+  int * min_lag,            /* minimum time delay for impulse response */
+  int * max_lag,            /* maximum time delay for impulse response */
   matrix x_full,            /* extracted X matrix    for full model */
   matrix xtxinv_full,       /* matrix:  1/(X'X)      for full model */
   matrix xtxinvxt_full,     /* matrix:  (1/(X'X))X'  for full model */
@@ -430,10 +417,10 @@ void regression_analysis
   calc_coef (xtxinvxt_base, y, &coef_temp);
 
 
-  /*----- Calculate the error sum of squares for the baseline model -----*/ 
+  /*----- Calculate the error sum of squares for the baseline model -----*/
   sse_base = calc_sse (x_base, coef_temp, y);
 
-    
+
   /*----- Stop here if variation about baseline is sufficiently low -----*/
   if (sqrt(sse_base/N) < rms_min)
     {
@@ -445,7 +432,7 @@ void regression_analysis
       vector_create (p, tcoef_full);
       for (is = 0;  is < num_stimts;  is++)
 	{
-	  fpart[is] = 0.0; 
+	  fpart[is] = 0.0;
 	  rpart[is] = 0.0;
 	}
       for (it = 0;  it < N;  it++)
@@ -467,16 +454,16 @@ void regression_analysis
   calc_coef (xtxinvxt_full, y, coef_full);
 
 
-  /*----- Calculate the error sum of squares for the full model -----*/ 
+  /*----- Calculate the error sum of squares for the full model -----*/
   sse_full = calc_sse_fit (x_full, *coef_full, y, fitts, errts);
   *mse = sse_full / (N-p);
 
 
   /*----- Calculate t-statistics for the regression coefficients -----*/
-  calc_tcoef (N, p, sse_full, xtxinv_full, 
+  calc_tcoef (N, p, sse_full, xtxinv_full,
 	      *coef_full, scoef_full, tcoef_full);
 
-  
+
   /*----- Determine significance of the individual stimuli -----*/
   for (is = 0;  is < num_stimts;  is++)
     {
@@ -485,12 +472,12 @@ void regression_analysis
       calc_coef (xtxinvxt_rdcd[is], y, &coef_temp);
 
 
-      /*----- Calculate the error sum of squares for the reduced model -----*/ 
+      /*----- Calculate the error sum of squares for the reduced model -----*/
       sse_rdcd = calc_sse (x_rdcd[is], coef_temp, y);
 
 
       /*----- Calculate partial F-stat for significance of the stimulus -----*/
-      fpart[is] = calc_freg (N, p, p-(max_lag[is]-min_lag[is]+1), 
+      fpart[is] = calc_freg (N, p, p-(max_lag[is]-min_lag[is]+1),
 			     sse_full, sse_rdcd);
 
 
@@ -498,7 +485,7 @@ void regression_analysis
       rpart[is] = calc_rsqr (sse_full, sse_rdcd);
 
     }
-  
+
 
   /*----- Calculate coefficient of multiple determination R^2 -----*/
   *rfull = calc_rsqr (sse_full, sse_base);
@@ -512,19 +499,19 @@ void regression_analysis
   vector_destroy (&coef_temp);
 
 }
-  
+
 
 /*---------------------------------------------------------------------------*/
 /*
   Perform the general linear test analysis for this voxel.
 */
 
-void glt_analysis 
+void glt_analysis
 (
   int N,                      /* number of data points */
   int p,                      /* number of parameters in the full model */
   matrix x,                   /* X matrix for full model */
-  vector y,                   /* vector of measured data */       
+  vector y,                   /* vector of measured data */
   float ssef,                 /* error sum of squares from full model */
   vector coef,                /* regression parameters for full model */
   int novar,                  /* flag for insufficient variation in data */
@@ -569,17 +556,19 @@ void glt_analysis
 	  calc_lcoef (glt_cmat[iglt], coef, &glt_coef[iglt]);
 	
 	  /*----- Calculate t-statistics for GLT linear combinations -----*/
-	  calc_tcoef (N, p, ssef, cxtxinvct[iglt], 
+	  calc_tcoef (N, p, ssef, cxtxinvct[iglt],
 		      glt_coef[iglt], &scoef, &glt_tcoef[iglt]);
 
 	  /*----- Calculate regression parameters for the reduced model -----*/
+          /*-----   (that is, the model in the column space of X but )  -----*/
+          /*-----   (orthogonal to the restricted column space of XC')  -----*/
 	  calc_rcoef (glt_amat[iglt], coef, &rcoef);
 
 	  /*----- Calculate error sum of squares for the reduced model -----*/
 	  sser = calc_sse (x, rcoef, y);
 
 	  /*----- Calculate the F-statistic for this GLT -----*/
-	  q = p - glt_rows[iglt]; 
+	  q = p - glt_rows[iglt];
 	  fglt[iglt] = calc_freg (N, p, q, ssef, sser);
 
 	  /*----- Calculate the R^2 statistic for this GLT -----*/
@@ -598,7 +587,7 @@ void glt_analysis
 
 /*---------------------------------------------------------------------------*/
 /*
-  Convert t-values and F-values to p-value.  
+  Convert t-values and F-values to p-value.
   These routines were copied and modified from: mri_stats.c
 */
 
@@ -646,7 +635,7 @@ static char lbuf[65536];  /* character string containing statistical summary */
 static char sbuf[256];
 
 
-void report_results 
+void report_results
 (
   int N,                      /* number of usable data points */
   int qp,                     /* number of poly. trend baseline parameters */
@@ -657,9 +646,9 @@ void report_results
   int num_blocks,             /* number of blocks (runs) */
   int num_stimts,             /* number of stimulus time series */
   char ** stim_label,         /* label for each stimulus */
-  int * baseline,             /* flag for stim function in baseline model */ 
-  int * min_lag,              /* minimum time delay for impulse response */ 
-  int * max_lag,              /* maximum time delay for impulse response */ 
+  int * baseline,             /* flag for stim function in baseline model */
+  int * min_lag,              /* minimum time delay for impulse response */
+  int * max_lag,              /* maximum time delay for impulse response */
   vector coef,                /* regression parameters */
   vector tcoef,               /* t-statistics for regression parameters */
   float * fpart,              /* partial F-statistics for the stimuli */
@@ -690,16 +679,16 @@ void report_results
   int r;                      /* number of parameters in the reduced model */
 
   int ib;                   /* block (run) index */
-  int mfirst, mlast;        /* column boundaries of baseline parameters 
+  int mfirst, mlast;        /* column boundaries of baseline parameters
 			       for a block (run) */
- 
+
 
   lbuf[0] = '\0' ;   /* make this a 0 length string to start */
-  
+
   /** for each reference, make a string into sbuf **/
 
 
-  /*----- Statistical results for baseline fit -----*/ 
+  /*----- Statistical results for baseline fit -----*/
   if (num_blocks == 1)
     {
       sprintf (sbuf, "\nBaseline: \n");
@@ -721,15 +710,15 @@ void report_results
 	{
 	  sprintf (sbuf, "\nBaseline for Run #%d: \n", ib+1);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
-	  
+	
 	  mfirst = ib * (polort+1);
 	  mlast  = (ib+1) * (polort+1);
 	  for (m = mfirst;  m < mlast;  m++)
 	    {
-	      sprintf (sbuf, "t^%d   coef = %10.4f    ", 
+	      sprintf (sbuf, "t^%d   coef = %10.4f    ",
 		       m - mfirst, coef.elts[m]);
 	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
-	      sprintf (sbuf, "t^%d   t-st = %10.4f    ", 
+	      sprintf (sbuf, "t^%d   t-st = %10.4f    ",
 		       m - mfirst, tcoef.elts[m]);
 	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
 	      pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
@@ -738,7 +727,7 @@ void report_results
 	    }
 	}
     }
-    
+
 
   /*----- Statistical results for stimulus response -----*/
   m = qp;
@@ -760,7 +749,7 @@ void report_results
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
 	  m++;
 	}
-      
+
       sprintf (sbuf, "       R^2 = %10.4f    ", rpart[is]);
       if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
       r = p - (max_lag[is]-min_lag[is]+1);
@@ -770,24 +759,24 @@ void report_results
       sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
       if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
     }
-  
+
 
   /*----- Statistical results for full model -----*/
   sprintf (sbuf, "\nFull Model: \n");
   if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
-  
+
   sprintf (sbuf, "       MSE = %10.4f \n", mse);
   if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
-  
+
   sprintf (sbuf, "       R^2 = %10.4f    ", rfull);
   if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
-  
+
   sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-q, N-p, ffull);
   if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
   pvalue = fstat_t2p ((double)ffull, (double)(p-q), (double)(N-p));
   sprintf (sbuf, "p-value  = %12.4e  \n", pvalue);
   if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
-    
+
 
   /*----- Statistical results for general linear test -----*/
   if (glt_num > 0)
@@ -798,13 +787,13 @@ void report_results
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
 	  for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
 	    {
-	      sprintf (sbuf, "LC[%d] coef = %10.4f    ", 
+	      sprintf (sbuf, "LC[%d] coef = %10.4f    ",
 		       ilc, glt_coef[iglt].elts[ilc]);
 	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
-	      sprintf (sbuf, "LC[%d] t-st = %10.4f    ", 
+	      sprintf (sbuf, "LC[%d] t-st = %10.4f    ",
 		       ilc, glt_tcoef[iglt].elts[ilc]);
 	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf);
-	      pvalue = student_t2p ((double)glt_tcoef[iglt].elts[ilc], 
+	      pvalue = student_t2p ((double)glt_tcoef[iglt].elts[ilc],
 				    (double)(N-p));
 	      sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
 	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
@@ -816,14 +805,14 @@ void report_results
 	  r = p - glt_rows[iglt];
 	  sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-r, N-p, fglt[iglt]);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
-	  pvalue = fstat_t2p ((double)fglt[iglt], 
+	  pvalue = fstat_t2p ((double)fglt[iglt],
 			      (double)(p-r), (double)(N-p));
 	  sprintf (sbuf, "p-value  = %12.4e  \n", pvalue);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf);
 	}
     }
 
-  if (strlen(lbuf) >= MAXBUF) 
+  if (strlen(lbuf) >= MAXBUF)
     strcat (lbuf, "\n\nWarning:  Screen output buffer is full. \n");
 
   *label = lbuf ;  /* send address of lbuf back in what label points to */
