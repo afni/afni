@@ -90,6 +90,7 @@ time_series * RWC_read_time_series(fname)
    float ftemp ;
    time_series *vec ;
    FILE *fts ;
+   char *cpt , linbuf[1024] ; /* 07 Dec 2003 */
 
    vec = (time_series *) malloc( sizeof(time_series) ) ;
    if( vec == NULL ) MALLOC_ERR("new time_series") ;
@@ -113,7 +114,16 @@ time_series * RWC_read_time_series(fname)
 
    while( 1 ){
 
-      ii = fscanf( fts , "%f" , &ftemp ) ;
+#if 1
+      cpt = fgets(linbuf,1023,fts) ;     /* 07 Dec 2003: read line buffer */
+      if( cpt == NULL ) break ;                     /* bad read */
+      cpt = linbuf ;
+      while( isspace(*cpt) ) cpt++ ;                /* skip leading blanks */
+      if( *cpt == '#' || *cpt == '\0' ) continue ;  /* skip comments */
+      ii = sscanf( cpt , "%f" , &ftemp ) ;          /* read value from buffer */
+#else
+      ii = fscanf( fts , "%f" , &ftemp ) ;          /* Ye Olde Way */
+#endif
       if( ii != 1 ) break ;
 
       if( used_tsar == alloc_tsar ){
