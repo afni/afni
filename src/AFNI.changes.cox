@@ -5315,3 +5315,7 @@
 
 16 Feb 2005
  * Modified 3dhistog.c to remove -thr stuff and add -doall stuff.
+
+18 Feb 2005
+ * Modified afni_driver.c, imseq.c, and afni_graph.c to add "keypress="
+     modifiers to the OPEN_WINDOW commands for driving AFNI.
