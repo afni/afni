@@ -263,6 +263,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 				float D[3];
 				/* Calcluate Delta caused by cropping */
 				for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
+				/* fprintf (SUMA_STDERR,"%s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]); */
 				for (i=0; i < SO->N_Node; ++i) {
 					/* change float indices to mm coords */
 					iv.xyz[0] = SO->NodeList[i][0] + D[0];
@@ -303,6 +304,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 
 	if (!Bad && SO->VolPar->VOLREG_MATVEC != NULL) {
 		float Mrot[3][3], Delta[3], x, y, z, NetShift[3];
+		
 		/* fillerup*/
 		Mrot[0][0] = SO->VolPar->VOLREG_MATVEC[0];
 		Mrot[0][1] = SO->VolPar->VOLREG_MATVEC[1];
@@ -317,9 +319,18 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 		Mrot[2][2] = SO->VolPar->VOLREG_MATVEC[10];
 		Delta[2]   = SO->VolPar->VOLREG_MATVEC[11];
 		
-		NetShift[0] = SO->VolPar->VOLREG_CENTER_BASE[0] - SO->VolPar->VOLREG_CENTER_OLD[0] + Delta[0];
-		NetShift[1] = SO->VolPar->VOLREG_CENTER_BASE[1] - SO->VolPar->VOLREG_CENTER_OLD[1] + Delta[1];
-		NetShift[2] = SO->VolPar->VOLREG_CENTER_BASE[2] - SO->VolPar->VOLREG_CENTER_OLD[2] + Delta[2];
+		NetShift[0] = SO->VolPar->VOLREG_CENTER_BASE[0] + Delta[0];
+		NetShift[1] = SO->VolPar->VOLREG_CENTER_BASE[1] + Delta[1];
+		NetShift[2] = SO->VolPar->VOLREG_CENTER_BASE[2] + Delta[2];
+		
+		/*
+		fprintf (SUMA_STDERR,"%s: Applying Rotation.\nMrot[\t%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f]\nDelta = [%f %f %f]\n", FuncName,\
+					Mrot[0][0], Mrot[0][1], Mrot[0][2], Mrot[1][0], Mrot[1][1], Mrot[1][2], Mrot[2][0], Mrot[2][1], Mrot[2][2], \
+					Delta[0], Delta[1], Delta[2]);
+		fprintf (SUMA_STDERR,"VOLREG_CENTER_BASE = [%f %f %f]. VOLREG_CENTER_OLD = [%f %f %f]\n", \
+			SO->VolPar->VOLREG_CENTER_BASE[0], SO->VolPar->VOLREG_CENTER_BASE[1], SO->VolPar->VOLREG_CENTER_BASE[2], \
+			SO->VolPar->VOLREG_CENTER_OLD[0], SO->VolPar->VOLREG_CENTER_OLD[1], SO->VolPar->VOLREG_CENTER_OLD[2]);
+		*/
 		
 		for (i=0; i < SO->N_Node; ++i) {
 			/* zero the center */ 
