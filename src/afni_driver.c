@@ -104,6 +104,7 @@ static AFNI_driver_pair dpair[] = {
  { "SLEEP"              , AFNI_sleeper                 } ,
  { "SETENV"             , AFNI_setenv                  } ,
  { "DEFINE_COLORSCALE"  , AFNI_define_colorscale       } ,
+ { "DEFINE_COLOR_SCALE" , AFNI_define_colorscale       } ,
  { "OPEN_PANEL"         , AFNI_open_panel              } ,
 
  { NULL , NULL } } ;

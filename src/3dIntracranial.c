@@ -57,6 +57,8 @@
   Global variables and constants.
 */
 
+#define USE_QUIET
+
 static char * anat_filename = NULL;      /* file name for input anat dataset */
 static char * prefix_filename = NULL;    /* prefix name for output dataset */
 static Boolean write_mask = FALSE;       /* flag for generate 'fim' mask */
