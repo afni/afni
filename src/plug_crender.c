@@ -9,10 +9,15 @@
   ----------------------------------------------------------------------
 */
 
-#define PLUG_CRENDER_VERSION "Version 1.5 <July 2002>"
+#define PLUG_CRENDER_VERSION "Version 1.6 <September 2002>"
 
 /***********************************************************************
  * VERSION HISTORY
+ *
+ * 1.6   - draw crosshairs directly onto the rendered image
+ *           o see gcr.hairs
+ *       - added sneaky (shhhh...) debugging interface
+ *           o access via 'dh' in opacity box
  *
  * 1.5   - aligned crosshairs to resampled grid
  *           o see RCREND_xhair_underlay/RCREND_xhair_overlay
@@ -223,27 +228,71 @@ static char * dynamic_bbox_label[1] = { "DynaDraw"   } ;
 static char * accum_bbox_label[1]   = { "Accumulate" } ;
 
 /*----------------------------------------------------------------*/
-
 /* rickr - cox rendering data */
 
 typedef struct
 {
-    void  * rh;			/* render handle */
-    float   omap[GRAF_SIZE];
+    THD_fvec3 xp[2][2];		/* 12 points for the 6 xhair segments */
+    THD_fvec3 yp[2][2];
+    THD_fvec3 zp[2][2];
+} CR_xhairs;
 
-    THD_3dim_dataset * dset_or; /* re-oriented dataset      */
-    THD_3dim_dataset * fset_or; /* re-oriented func dataset */
-    THD_3dim_dataset * mset;    /* master for producing fset_or */
+typedef struct
+{
+    void  * rh;			/* render handle                 */
+    float   omap[GRAF_SIZE];    /* opacity map - graph data      */
+
+    THD_3dim_dataset * dset_or; /* re-oriented dataset           */
+    THD_3dim_dataset * fset_or; /* re-oriented func dataset      */
+    THD_3dim_dataset * mset;    /* master for producing fset_or  */
+    FD_brick         * fdm;     /* FD_brick for matset dset      */
+
+    THD_mat33          rotm;    /* current rotation matrix       */
+    CR_xhairs          xhseg;   /* 12 dicom crosshair   segments */
 } CR_data;
 
 CR_data gcr;
+
+/*----------------------------------------------------------------*/
+/* debug stuff   - rickr  2002.09.04 */
+#define CR_MAX_DEBUG   2
+#define CR_TEXT_LEN  512
+
+typedef struct
+{
+    THD_fvec3 xhairs;			/* last cross hair coords      */
+    int       level;
+    char      text[CR_TEXT_LEN];	/* for debug sprintf functions */
+} CR_debug;
+
+CR_debug gcr_debug;
+
+static int r_debug_check( CR_debug * d, char * str );
+/*----------------------------------------------------------------*/
 
 static int grcr_hist_low[256];
 static int grcr_hist_high[256];
 
 /* rickr - temp routines */
 void rcr_disp_hist( unsigned char * im, int nvox, int b1, int cut, int b2 );
+static void idisp_xhair_pts ( char * note, CR_xhairs * p );
 
+
+/*----------------------------------------------------------------*/
+/* new xhair routines */
+
+#define BOUND_VAL(a,v,b) { if (v < (a)) v = (a); if (v > (b)) v = (b); }
+
+static int draw_xhairs_in_image( CR_xhairs * x, MRI_IMAGE * im );
+static int draw_image_line( MRI_IMAGE * im,  THD_fvec3 * p1, THD_fvec3 * p2,
+                            byte * rgb );
+static int get_xhair_points( CR_xhairs * pts, THD_3dim_dataset * dset );
+static int ovc_to_rgb_bytes( int ovc, byte * rgb, MCW_DCOV * ov );
+static int rotate_xhair_points( CR_xhairs * xh, THD_mat33 * rotm );
+static int xhairs_to_image_pts( CR_xhairs * xh, THD_3dim_dataset * dset );
+
+
+/*----------------------------------------------------------------*/
 /* Other data */
 
 static MCW_DC * dc ;                   /* display context */
@@ -274,6 +323,25 @@ static MRI_IMAGE * grim_showthru=NULL ;      /* 07 Jan 2000 */
 # define IS_AXIAL_LPI(ds) ( ( (ds)->daxes->xxorient == ORI_L2R_TYPE ) && \
                             ( (ds)->daxes->yyorient == ORI_P2A_TYPE ) && \
                             ( (ds)->daxes->zzorient == ORI_I2S_TYPE )     )
+
+/* rickr - 2002.09.03 */
+#define FVEC_TIMES_MAT(v,A) \
+  ( tempA_fvec3.xyz[0] = (v).xyz[0] * (A).mat[0][0]  \
+                        +(v).xyz[1] * (A).mat[1][0]  \
+                        +(v).xyz[2] * (A).mat[2][0] ,\
+    tempA_fvec3.xyz[1] = (v).xyz[0] * (A).mat[0][1]  \
+                        +(v).xyz[1] * (A).mat[1][1]  \
+                        +(v).xyz[2] * (A).mat[2][1] ,\
+    tempA_fvec3.xyz[2] = (v).xyz[0] * (A).mat[0][2]  \
+                        +(v).xyz[1] * (A).mat[1][2]  \
+                        +(v).xyz[2] * (A).mat[2][2] ,  tempA_fvec3 )
+
+/* rickr - 2002.09.24 */
+#define DIV_FVEC3_BY_CONST(f,a)      \
+   ( (f).xyz[0] = (f).xyz[0] / (a) , \
+     (f).xyz[1] = (f).xyz[1] / (a) , \
+     (f).xyz[2] = (f).xyz[2] / (a) )
+
 
 static int   dynamic_flag   = 0      ;
 static int   accum_flag     = 0      ;
@@ -836,6 +904,7 @@ char * RCREND_main( PLUGIN_interface * plint )
    gcr.dset_or   = NULL;    /* no reoriented underlay dataset yet */
    gcr.fset_or   = NULL;    /* no reoriented overlay dataset yet  */
    gcr.mset      = NULL;    /* no reorientation master dset yet   */
+   gcr.fdm       = NULL;    /* no master FD_brick yet             */
 
    ovim          = NULL ;   /* no overlay volume yet */
    func_dset     = NULL ;   /* no functional dataset yet */
@@ -848,6 +917,8 @@ char * RCREND_main( PLUGIN_interface * plint )
    redraw_MCW_pasgraf( his_graf ) ;
 
    xhair_ixold = -666 ; xhair_jyold = -666 ; xhair_kzold = -666 ;
+
+   memset( &gcr_debug, 0, sizeof(gcr_debug) );    /* init debug struct */
 
    /* 29 Mar 1999: register to receive updates from AFNI */
 
@@ -1912,6 +1983,11 @@ void RCREND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
    }
 
    if( gcr.mset != NULL ) gcr.mset = NULL;    /* there is no new data here */
+   if( gcr.fdm  != NULL )
+   {
+      free(gcr.fdm);
+      gcr.fdm = NULL;
+   }
 
    if( gcr.rh != NULL ){
       destroy_CREN_renderer(gcr.rh) ;
@@ -1977,6 +2053,12 @@ ENTRY( "RCREND_reload_dataset" );
    }
 
    gcr.mset = local_dset;                  /* we have our rendering master */
+
+   /* reset fdm - delete and re-create */
+   if( gcr.fdm  != NULL )
+      free(gcr.fdm);
+
+   gcr.fdm  = THD_oriented_brick( gcr.mset, "RAI" );  /* get mast FD_brick */
 
    vim      = DSET_BRICK(local_dset,dset_ival) ;
    nvox     = vim->nvox ;
@@ -2240,6 +2322,9 @@ ENTRY( "RCREND_reload_dataset" );
          RCREND_cutout_blobs(grim_showthru) ;
    }
 
+#if 0 	/* rcr - do not render corsshairs with data (for the moment) */
+        /* 2002.08.29 */
+
    /* fill crosshair data into image volumes */
    if( xhair_flag )
    {
@@ -2252,6 +2337,7 @@ ENTRY( "RCREND_reload_dataset" );
       else
 	  RCREND_xhair_overlay( gcr.mset, grim ); /* overlay is in grim */
    }
+#endif
 
    MCW_invert_widget(reload_pb) ;  /* turn the signal off */
 
@@ -2391,7 +2477,7 @@ ENTRY( "RCREND_draw_CB" );
                            angle_roll  * PI / 180 );
    CREN_set_min_opacity(gcr.rh, 0.05 * current_cutout_state.opacity_scale);
 
-   rim = CREN_render( gcr.rh );
+   rim = CREN_render( gcr.rh, &gcr.rotm );
 
    if( rim == NULL ){
       (void) MCW_popup_message( draw_pb ,
@@ -2429,7 +2515,7 @@ ENTRY( "RCREND_draw_CB" );
         MREN_depth_cue( render_handle , 1 ) ;         /* 11 Sep 2001 */
 #endif
 
-      cim = CREN_render( gcr.rh ) ;            /* render it */
+      cim = CREN_render( gcr.rh, &gcr.rotm );           /* render it */
 
 #if 0
       if( func_showthru_dcue )
@@ -2460,6 +2546,17 @@ ENTRY( "RCREND_draw_CB" );
 
          mri_free(rim) ; rim = cim ;
       }
+   }
+
+   if ( xhair_flag )
+   {
+      get_xhair_points( &gcr.xhseg, gcr.mset );
+      xhairs_to_image_pts( &gcr.xhseg, gcr.mset );
+
+      /* now (0,0,z) means the center of the projected image */
+
+      rotate_xhair_points( &gcr.xhseg, &gcr.rotm );
+      draw_xhairs_in_image( &gcr.xhseg, rim );
    }
 
    /* 20 Dec 1999 - restrict colors, if ordered and needed */
@@ -3595,7 +3692,7 @@ ENTRY( "RCREND_do_incrot" );
           ! EQUIV_DATAXES(dset->daxes,im3d->wod_daxes) ){               \
         MCW_set_bbox( xhair_bbox , 0 ) ; xhair_flag = 0 ;               \
         (void) MCW_popup_message( xhair_bbox->wrowcol ,                 \
-                                     "Can't overlay AFNI crosshairs\n"  \
+                                     " Can't overlay AFNI crosshairs\n"  \
                                      "because dataset grid and AFNI\n"  \
                                      "viewing grid don't coincide."   , \
                                   MCW_USER_KILL | MCW_TIMER_KILL ) ;    \
@@ -3815,10 +3912,10 @@ ENTRY( "RCREND_xhair_underlay" );
       EXRETURN;
    }
 
-   /* convert to ijk in mset */
-   LOAD_FVEC3( fxyz, xi, yj, zk );	       /* Dicom coords for dset */
-   fxyz = THD_dicomm_to_3dmm(mset, fxyz);  /*    mm coords for mset */
-   ixyz = THD_3dmm_to_3dind (mset, fxyz);  /*   ijk coords for mset */
+   /* convert to ijk in mset                         rickr 2002.08.05 */
+   LOAD_FVEC3( fxyz, xi, yj, zk );           /* Dicom coords for dset */
+   fxyz = THD_dicomm_to_3dmm(mset, fxyz);    /*    mm coords for mset */
+   ixyz = THD_3dmm_to_3dind (mset, fxyz);    /*   ijk coords for mset */
    UNLOAD_IVEC3( ixyz, ix, jy, kz );
 
    om = im3d->vinfo->xhairs_orimask ;  /* 02 Jun 1999 */
@@ -4531,6 +4628,13 @@ ENTRY( "RCREND_evaluate" );
 
    str = XmTextFieldGetString( av->wtext ) ;
    if( str == NULL || str[0] == '\0' ){ XtFree(str) ; RETURN(0.0) ; }
+
+   /* rcr - until I make a button for this... */
+   if ( r_debug_check( &gcr_debug, str ) )	/* if this is a debug action */
+   {
+	XtFree(str);				/* free the string, and      */
+	RETURN(av->fval);			/* return the previous value */
+   }
 
    /* try a regular numerical conversion */
 
@@ -6858,7 +6962,7 @@ ENTRY( "RCREND_xhair_overlay" );
    ny = xovim->ny;  nxy = nx * ny;
    nz = xovim->nz;
 
-   /* convert to ijk in mset */
+   /* convert to ijk in mset                       rickr 2002.08.05 */
    LOAD_FVEC3( fxyz, xi, yj, zk );         /* Dicom coords for dset */
    fxyz = THD_dicomm_to_3dmm(mset, fxyz);  /*    mm coords for mset */
    ixyz = THD_3dmm_to_3dind (mset, fxyz);  /*   ijk coords for mset */
@@ -8612,3 +8716,529 @@ ENTRY( "RCREND_rotmatrix_to_angles" );
 }
 #endif /* ALLOW_INCROT */
 /*==========================================================================*/
+
+/*--------------------------------------------------------------------------
+ * compute spacial crosshair points, given axis grid
+ *--------------------------------------------------------------------------
+ */
+static int get_xhair_points( CR_xhairs * pts, THD_3dim_dataset * dset )
+{
+    THD_dataxes * dax = dset->daxes;
+    float         xi, yj, zk;
+    float         fa, fb;
+    int           om, gap;
+
+ENTRY( "get_xhair_points" );
+
+    if ( ! pts || ! dset )
+	RETURN(-1);
+
+    xi = im3d->vinfo->xi;			/* get Dicomm mm coords    */
+    yj = im3d->vinfo->yj;
+    zk = im3d->vinfo->zk;
+
+    om  = im3d->vinfo->xhairs_orimask;		/* get xhair orient mask   */
+    gap = im3d->vinfo->crosshair_gap;		/* get gap radius          */
+
+    /* set the 2 x-direction xhair segments */
+    if ( om & ORIMASK_LR )
+    {
+	/* first pair */
+	fa = dax->xxorg;
+	fb = xi - gap * dax->xxdel;
+
+	LOAD_FVEC3( pts->xp[0][0], fa, yj, zk );
+	LOAD_FVEC3( pts->xp[0][1], fb, yj, zk );
+
+        if ( fb < fa )	/* stick to single endpoint */
+	    pts->xp[0][1] = pts->xp[0][0];
+
+	/* second pair */
+	fa = xi + gap * dax->xxdel;
+	fb = dax->xxorg + dax->xxdel * (dax->nxx - 1);
+
+	LOAD_FVEC3( pts->xp[1][0], fa, yj, zk );
+	LOAD_FVEC3( pts->xp[1][1], fb, yj, zk );
+
+        if ( fb < fa )	/* stick to single endpoint */
+	    pts->xp[1][0] = pts->xp[1][1];
+    }
+
+    /* set the 2 y-direction xhair segments */
+    if ( om & ORIMASK_AP )
+    {
+	/* first pair */
+	fa = dax->yyorg;
+	fb = yj - gap * dax->yydel;
+
+	LOAD_FVEC3( pts->yp[0][0], xi, fa, zk );
+	LOAD_FVEC3( pts->yp[0][1], xi, fb, zk );
+
+        if ( fb < fa )	/* stick to single endpoint */
+	    pts->yp[0][1] = pts->yp[0][0];
+
+	/* second  pair */
+	fa = yj + gap * dax->yydel;
+	fb = dax->yyorg + dax->yydel * (dax->nyy - 1);
+
+	LOAD_FVEC3( pts->yp[1][0], xi, fa, zk );
+	LOAD_FVEC3( pts->yp[1][1], xi, fb, zk );
+
+        if ( fb < fa )	/* stick to single endpoint */
+	    pts->yp[1][0] = pts->yp[1][1];
+    }
+
+    /* set the 2 z-direction xhair segments */
+    if ( om & ORIMASK_IS )
+    {
+	/* first pair */
+	fa = dax->zzorg;
+	fb = zk - gap * dax->zzdel;
+
+	LOAD_FVEC3( pts->zp[0][0], xi, yj, fa );
+	LOAD_FVEC3( pts->zp[0][1], xi, yj, fb );
+
+        if ( fb < fa )	/* stick to single endpoint */
+	    pts->zp[0][1] = pts->zp[0][0];
+
+	/* second  pair */
+	fa = zk + gap * dax->zzdel;
+	fb = dax->zzorg + dax->zzdel * (dax->nzz - 1);
+
+	LOAD_FVEC3( pts->zp[1][0], xi, yj, fa );
+	LOAD_FVEC3( pts->zp[1][1], xi, yj, fb );
+
+        if ( fb < fa )	/* stick to single endpoint */
+	    pts->zp[1][0] = pts->zp[1][1];
+    }
+
+    /* debug stuff */
+    LOAD_FVEC3( gcr_debug.xhairs, xi, yj, zk );		/* save for later */
+
+    if ( gcr_debug.level > 0 )
+	r_idisp_vec3f( "-- xhair center : ", gcr_debug.xhairs.xyz );
+
+    RETURN(0);
+}
+
+/*--------------------------------------------------------------------------
+ * Subtract dataset center from all points, and divide by min delta,
+ * this sets image origin to (0,0,0), and the voxel size to cubic units.
+ *--------------------------------------------------------------------------
+ */
+static int xhairs_to_image_pts( CR_xhairs * xh, THD_3dim_dataset * dset )
+{
+    THD_dataxes * dax = dset->daxes;
+    THD_fvec3     org;
+    float         dx, dy, dz, min;
+
+ENTRY( "xhairs_to_image_pts" );
+
+    dx = dax->xxdel;	/* set deltas */
+    dy = dax->yydel;
+    dz = dax->zzdel;
+
+    if ( dx <= 0.0 || dx <= 0.0 || dz <= 0.0 )
+    {
+	fprintf( stderr, "failure: xhairs_to_image_pts - bad deltas!\n" );
+	RETURN(-1);      /* leave image as is */
+    }
+
+    if ( gcr_debug.level > 1 )
+	idisp_xhair_pts( "-- xh, pre im  : ", xh );
+
+    /* set the origins to be the center of the 3-D volume */
+    org.xyz[0] = dax->xxorg + (dax->nxx - 1) * dx / 2.0;
+    org.xyz[1] = dax->yyorg + (dax->nyy - 1) * dy / 2.0;
+    org.xyz[2] = dax->zzorg + (dax->nzz - 1) * dz / 2.0;
+
+    if ( gcr_debug.level > 0 )
+    {
+	r_idisp_vec3f( "-- xhair point shift : ", org.xyz );
+        printf( "-- unitizing points by (%f,%f,%f)\n", dx, dy, dz );
+    }
+
+    /* we have dicom grid, scale to max voxel mm grid */
+    min = dy < dx  ? dy : dx;
+    min = dz < min ? dz : min;
+
+    /* 4 x-points */
+    xh->xp[0][0] = SUB_FVEC3(xh->xp[0][0],org);
+    DIV_FVEC3_BY_CONST(xh->xp[0][0], min);
+
+    xh->xp[0][1] = SUB_FVEC3(xh->xp[0][1],org);
+    DIV_FVEC3_BY_CONST(xh->xp[0][1], min);
+
+    xh->xp[1][0] = SUB_FVEC3(xh->xp[1][0],org);
+    DIV_FVEC3_BY_CONST(xh->xp[1][0], min);
+
+    xh->xp[1][1] = SUB_FVEC3(xh->xp[1][1],org);
+    DIV_FVEC3_BY_CONST(xh->xp[1][1], min);
+
+    /* 4 y-points */
+    xh->yp[0][0] = SUB_FVEC3(xh->yp[0][0],org);
+    DIV_FVEC3_BY_CONST(xh->yp[0][0], min);
+
+    xh->yp[0][1] = SUB_FVEC3(xh->yp[0][1],org);
+    DIV_FVEC3_BY_CONST(xh->yp[0][1], min);
+
+    xh->yp[1][0] = SUB_FVEC3(xh->yp[1][0],org);
+    DIV_FVEC3_BY_CONST(xh->yp[1][0], min);
+
+    xh->yp[1][1] = SUB_FVEC3(xh->yp[1][1],org);
+    DIV_FVEC3_BY_CONST(xh->yp[1][1], min);
+
+    /* 4 z-points */
+    xh->zp[0][0] = SUB_FVEC3(xh->zp[0][0],org);
+    DIV_FVEC3_BY_CONST(xh->zp[0][0], min);
+
+    xh->zp[0][1] = SUB_FVEC3(xh->zp[0][1],org);
+    DIV_FVEC3_BY_CONST(xh->zp[0][1], min);
+
+    xh->zp[1][0] = SUB_FVEC3(xh->zp[1][0],org);
+    DIV_FVEC3_BY_CONST(xh->zp[1][0], min);
+
+    xh->zp[1][1] = SUB_FVEC3(xh->zp[1][1],org);
+    DIV_FVEC3_BY_CONST(xh->zp[1][1], min);
+
+    /* apply shift to debug xhairs */
+    gcr_debug.xhairs = SUB_FVEC3(gcr_debug.xhairs,org);
+    DIV_FVEC3_BY_CONST(gcr_debug.xhairs, min);
+
+    if ( gcr_debug.level > 0 )
+	r_idisp_vec3f( "-- shifted xhair center : ", gcr_debug.xhairs.xyz );
+
+    RETURN(0);
+}
+
+static int rotate_xhair_points( CR_xhairs * xh, THD_mat33 * rotm )
+{
+
+ENTRY( "rotate_xhair_points" );
+
+    if ( gcr_debug.level > 1 )
+	idisp_xhair_pts( "-- xh, pre rot  : ", xh );
+
+    /* 4 x-direction points */
+    xh->xp[0][0] = FVEC_TIMES_MAT(xh->xp[0][0],*rotm);
+    xh->xp[0][1] = FVEC_TIMES_MAT(xh->xp[0][1],*rotm);
+
+    xh->xp[1][0] = FVEC_TIMES_MAT(xh->xp[1][0],*rotm);
+    xh->xp[1][1] = FVEC_TIMES_MAT(xh->xp[1][1],*rotm);
+
+
+    /* 4 y-direction points */
+    xh->yp[0][0] = FVEC_TIMES_MAT(xh->yp[0][0],*rotm);
+    xh->yp[0][1] = FVEC_TIMES_MAT(xh->yp[0][1],*rotm);
+
+    xh->yp[1][0] = FVEC_TIMES_MAT(xh->yp[1][0],*rotm);
+    xh->yp[1][1] = FVEC_TIMES_MAT(xh->yp[1][1],*rotm);
+
+
+    /* 4 z-direction points */
+    xh->zp[0][0] = FVEC_TIMES_MAT(xh->zp[0][0],*rotm);
+    xh->zp[0][1] = FVEC_TIMES_MAT(xh->zp[0][1],*rotm);
+
+    xh->zp[1][0] = FVEC_TIMES_MAT(xh->zp[1][0],*rotm);
+    xh->zp[1][1] = FVEC_TIMES_MAT(xh->zp[1][1],*rotm);
+
+    /* rotate debug xhairs */
+    gcr_debug.xhairs = FVEC_TIMES_MAT(gcr_debug.xhairs,*rotm);
+
+    if ( gcr_debug.level > 1 )
+    {
+	r_idisp_mat33f( "-- rotm : ", rotm->mat );
+	idisp_xhair_pts( "-- xh, post rot : ", xh );
+    }
+
+    if ( gcr_debug.level > 0 )
+	r_idisp_vec3f( "-- rotated xhairs : ", gcr_debug.xhairs.xyz );
+
+    RETURN(0);
+}
+
+static void idisp_xhair_pts ( char * note, CR_xhairs * p )
+{
+    if ( ! p )
+    {
+	fputs( "idisp_xhair_pts: p == NULL!\n", stderr );
+	return;
+    }
+
+    r_idisp_vec3f( note, p->xp[0][0].xyz );
+    r_idisp_vec3f( note, p->xp[0][1].xyz );
+    r_idisp_vec3f( note, p->xp[1][0].xyz );
+    r_idisp_vec3f( note, p->xp[1][1].xyz );
+
+    r_idisp_vec3f( note, p->yp[0][0].xyz );
+    r_idisp_vec3f( note, p->yp[0][1].xyz );
+    r_idisp_vec3f( note, p->yp[1][0].xyz );
+    r_idisp_vec3f( note, p->yp[1][1].xyz );
+
+    r_idisp_vec3f( note, p->zp[0][0].xyz );
+    r_idisp_vec3f( note, p->zp[0][1].xyz );
+    r_idisp_vec3f( note, p->zp[1][0].xyz );
+    r_idisp_vec3f( note, p->zp[1][1].xyz );
+}
+
+static int draw_xhairs_in_image( CR_xhairs * x, MRI_IMAGE * im )
+{
+    THD_fvec3 * p1, * p2;
+    byte        rgb[3] = {0,0,0};
+
+ENTRY( "draw_xhairs_in_image" );
+
+    if ( !x || !im )
+	RETURN(-1);
+
+    ovc_to_rgb_bytes( xhair_ovc, rgb, dc->ovc );
+
+    draw_image_line( im, &x->xp[0][0], &x->xp[0][1], rgb );
+    draw_image_line( im, &x->xp[1][0], &x->xp[1][1], rgb );
+    draw_image_line( im, &x->yp[0][0], &x->yp[0][1], rgb );
+    draw_image_line( im, &x->yp[1][0], &x->yp[1][1], rgb );
+    draw_image_line( im, &x->zp[0][0], &x->zp[0][1], rgb );
+    draw_image_line( im, &x->zp[1][0], &x->zp[1][1], rgb );
+
+    RETURN(0);
+}
+
+/*----------------------------------------------------------------------
+ * Draw a colored line into the image.
+ * Voxels are the units, with the origin in the center.
+ *----------------------------------------------------------------------
+*/
+static int draw_image_line( MRI_IMAGE * im, THD_fvec3 * p1,
+                            THD_fvec3 * p2, byte * rgb )
+{
+    byte * bp = MRI_RGB_PTR(im);
+    int    x, y;			/* computed positions to plot    */
+    int    x1, y1, x2, y2;		/* start and end positions       */
+    int    xtot, ytot;			/* cumulative directional steps  */
+    int    xdir, ydir;			/* direction of steps            */
+    int    xsteps, ysteps, points;	/* total steps to make           */
+    int    index;			/* image index                   */
+    int    pc;				/* point counter                 */
+
+
+ENTRY( "draw_image_line" );
+
+    x1 = (int)( p1->xyz[0] + im->nx / 2 + 0.001 );
+    y1 = (int)( p1->xyz[1] + im->ny / 2 + 0.001 );
+    x2 = (int)( p2->xyz[0] + im->nx / 2 + 0.001 );
+    y2 = (int)( p2->xyz[1] + im->ny / 2 + 0.001 );
+
+    if ( x1 == x2 && y1 == y2 )
+	RETURN(0);
+
+    BOUND_VAL( 0, x1, im->nx-1 );	/* just to be safe */
+    BOUND_VAL( 0, y1, im->ny-1 );
+    BOUND_VAL( 0, x2, im->nx-1 );
+    BOUND_VAL( 0, y2, im->ny-1 );
+
+    if ( x2 > x1 ) xdir =  1;
+    else           xdir = -1;
+
+    if ( y2 > y1 ) ydir =  1;
+    else           ydir = -1;
+
+    xsteps = abs(x2 - x1) + 1;
+    ysteps = abs(y2 - y1) + 1;
+    points = (xsteps >= ysteps) ? xsteps : ysteps;  /* points to plot */
+
+    xtot = ytot = 0;
+    for ( pc = 0; pc < points; pc++ )
+    {
+	x = x1 + xdir * (xtot/points);  /* hmmmm, that's a lot of work to  */
+	y = y1 + ydir * (ytot/points);  /* allow arbitrary direction, alas */
+
+        index = 3 * (x + y * im->nx);
+	
+        bp[index]   = rgb[0];
+        bp[index+1] = rgb[1];
+        bp[index+2] = rgb[2];
+
+	xtot += xsteps;
+        ytot += ysteps;
+    }
+
+    if ( gcr_debug.level > 0 )
+    {
+	printf( "++ drawing line from (%f,%f) to (%f,%f)\n",
+                p1->xyz[0], p1->xyz[1], p2->xyz[0], p2->xyz[1] );
+	printf( "-- as line from (%d,%d) to (%d,%d)\n", x1, y1, x2, y2 );
+    }
+
+    RETURN(0);
+}
+
+#define RD_CHOICE_NONE	        0x00
+#define RD_CHOICE_DISP_DSET	0x01
+#define RD_CHOICE_HELP	        0x02
+#define RD_CHOICE_DISP_IM	0x03
+#define RD_CHOICE_SET_LEVEL	0x04
+#define RD_CHOICE_DISP_XHAIRS	0x05
+
+static int rd_debug_choice   ( char ** str );
+static int rd_disp_debug_help( char *  str, CR_debug * d );
+static int rd_disp_dset_info ( char *  str, CR_debug * d, CR_data * crd );
+static int rd_disp_xhairs    ( char *  str, CR_debug * d );
+static int rd_disp_mri_image ( char *  str, CR_debug * d, MRI_IMARR * r );
+static int rd_set_debug_level( char *  str, CR_debug * d );
+
+/* this is the current interface for setting debug parameters */
+static int r_debug_check( CR_debug * d, char * str )
+{
+    char * sp = str;
+    int    choice;
+
+ENTRY( "r_debug_check" );
+
+    /* check to see if we have a valid debug request */
+    if ( ! d   )         RETURN(0);
+    if ( ! sp )          RETURN(0);
+    if ( isspace(*sp) )  sp++;         /* allow a single leading space */
+    if ( *sp++ != 'd' )  RETURN(0);
+
+    choice = rd_debug_choice( &sp );  /* so get past choice character(s) */
+
+    switch ( choice )
+    {
+	case RD_CHOICE_HELP:        rd_disp_debug_help(sp,d);            break;
+	case RD_CHOICE_DISP_DSET:   rd_disp_dset_info (sp,d,&gcr);       break;
+	case RD_CHOICE_DISP_IM:     rd_disp_mri_image (sp,d,renderings); break;
+	case RD_CHOICE_SET_LEVEL:   rd_set_debug_level(sp,d);            break;
+	case RD_CHOICE_DISP_XHAIRS: rd_disp_xhairs    (sp,d);            break;
+
+	default:
+	     printf( "error: invalid debug command: %5s\n", str );       break;
+    }
+
+    fflush(stdout);
+
+    RETURN(1);	/* we did something */
+}
+
+static int rd_disp_dset_info ( char * str, CR_debug * d, CR_data * crd )
+{
+    THD_3dim_dataset * ds;
+
+    if      ( str[0] == 'd' && str[1] == 'd' ) ds = dset;
+    else if ( str[0] == 'd' && str[1] == 'o' ) ds = crd->dset_or;
+    else if ( str[0] == 'f' && str[1] == 'd' ) ds = func_dset;
+    else if ( str[0] == 'f' && str[1] == 'o' ) ds = crd->fset_or;
+    else if ( str[0] == 'm' && str[1] == 'o' ) ds = crd->mset;
+    else
+    {
+	printf( "error: see 'dh' for list of valid control characters\n" );
+	return 0;
+    }
+
+    sprintf( d->text, "-- debug '%2s' : ", str );
+
+    r_idisp_thd_3dim_dataset( d->text, ds );
+
+    if ( ISVALID_DSET(ds) )
+    {
+	r_idisp_thd_dataxes  ( d->text, ds->daxes );
+	r_idisp_thd_datablock( d->text, ds->dblk );
+    }
+
+    return 1;
+}
+
+static int rd_debug_choice( char ** str )
+{
+    int rv = RD_CHOICE_NONE;
+
+    if ( **str == 'd' ) rv = RD_CHOICE_DISP_DSET;
+    if ( **str == 'h' ) rv = RD_CHOICE_HELP;
+    if ( **str == 'i' ) rv = RD_CHOICE_DISP_IM;
+    if ( **str == 'l' ) rv = RD_CHOICE_SET_LEVEL;
+    if ( **str == 'x' ) rv = RD_CHOICE_DISP_XHAIRS;
+
+    (*str)++;     /* all cases currently move past one 'choice' character */
+
+    return rv;
+}
+
+/* display debug commands */
+static int rd_disp_debug_help( char * str, CR_debug * d )
+{
+    printf (
+	"------------------------------------------------------------------\n"
+	"debugging commands:\n"
+	"\n"
+	"    dh   - debug help           : display this menu\n"
+	"    di   - display image        : display last mri image strcture\n"
+	"    dlN  - debug level          : set debug level to N, {0,1,2}\n"
+	"    ddX  - display dataset info : display dataset info for \n"
+	"                                  dset, fset, or mset\n"
+	"                                  X is one of {dd,do,fd,fo,mo}\n"
+	"    dx   - display crosshairs   : display rotated crosshair center\n"
+	"------------------------------------------------------------------\n"
+	);
+
+    return 1;
+}
+
+/* display last image in the global 'renderings' array */
+static int rd_disp_mri_image( char * str, CR_debug * d, MRI_IMARR * r )
+{
+    if ( r->num <= 0 )
+	return 1;              /* valid attempt, but no data, so return 1 */
+
+    sprintf( d->text, "-- debug : imarr[%d] : ", r->num-1 );
+
+    r_idisp_mri_image( d->text, r->imarr[r->num-1] );
+
+    return 1;
+}
+
+static int rd_set_debug_level( char * str, CR_debug * d )
+{
+    int level = *str - '0';
+
+    if ( level < 0 || level > CR_MAX_DEBUG )
+    {
+	printf( "error: valid debug levels are in [0,%d]\n", CR_MAX_DEBUG );
+	return 0;
+    }
+
+    d->level = level;
+    printf( "-- debug: new level = %d\n", d->level );
+
+    return 1;
+}
+
+static int rd_disp_xhairs( char * str, CR_debug * d )
+{
+    r_idisp_vec3f( "-- debug: rotated xhairs : ", d->xhairs.xyz );
+
+    return 1;
+}
+
+static int ovc_to_rgb_bytes( int ovc, byte * rgb, MCW_DCOV * ov )
+{
+    BOUND_VAL( 0, ovc, ov->ncol_ov );
+
+    if ( ovc == 0 )	/* then use white */
+    {
+	rgb[0] = 255;
+	rgb[1] = 255;
+	rgb[2] = 255;
+    }
+    else
+    {
+	/* get the intensities from the color map */
+	rgb[0] = ov->r_ov[ovc];
+	rgb[1] = ov->g_ov[ovc];
+	rgb[2] = ov->b_ov[ovc];
+    }
+
+    if ( gcr_debug.level > 0 )
+	printf( "-- rgb vals are %d, %d, %d\n", rgb[0], rgb[1], rgb[2] );
+
+    return 1;
+}
+

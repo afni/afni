@@ -444,9 +444,11 @@ void CREN_set_angles( void * ah , float th1 , float th2 , float th3 )
 /*-----------------------------------------------------------------------------
    Actually render an image.  Returns NULL if an error occurs.
    The image is always in MRI_rgb format.
+
+   If rotm is valid, copy the rotation matrix.     2002.08.28 - rickr
 -------------------------------------------------------------------------------*/
 
-MRI_IMAGE * CREN_render( void * ah )
+MRI_IMAGE * CREN_render( void * ah, THD_mat33 * rotm )
 {
    CREN_stuff * ar = (CREN_stuff *) ah ;
    MRI_IMAGE * bim , * qim ;
@@ -502,6 +504,9 @@ fprintf(stderr,"CREN_render: nx=%d ny=%d nz=%d\n",ar->nx,ar->ny,ar->nz);
    /*-- compute rotation matrix uu --*/
 
    uu = rotmatrix( ar->ax1,ar->th1 , ar->ax2,ar->th2 , ar->ax3,ar->th3 ) ;
+
+   if ( rotm != NULL ) /* if requested, copy the rotation matrix, angles only */
+      *rotm = uu;
 
    dab = MIN(ar->dx,ar->dy) ; dab = MIN(dab,ar->dz) ;  /* output grid spacing */
 

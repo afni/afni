@@ -31,7 +31,7 @@ extern void        CREN_set_axes       ( void *, int,int,int , float,float,float
 extern void        CREN_dset_axes      ( void *, THD_3dim_dataset *) ;
 extern void        CREN_set_interp     ( void *, int ) ;
 extern int         CREN_needs_data     ( void * ) ;
-extern MRI_IMAGE * CREN_render         ( void * ) ;
+extern MRI_IMAGE * CREN_render         ( void *, THD_mat33 * ) ;
 
 /*---------------------------*/
 

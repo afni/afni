@@ -118,7 +118,7 @@ int main( int argc , char * argv[] )
 
    for( th3=0 ; th3 < 360.0 ; th3+=5.0 ){
       CREN_set_angles( rhand , th1,th2,(PI/180.0)*th3 ) ;
-      im = CREN_render( rhand ) ;
+      im = CREN_render( rhand, NULL ) ;  /* added NULL   2002.08.28 - rickr */
       if( im == NULL ){
         fprintf(stderr,"renderer fails!\n") ; exit(1) ;
       }
