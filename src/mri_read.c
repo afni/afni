@@ -1007,6 +1007,10 @@ ENTRY("mri_read_file") ;
 
       newar = mri_read_3A( new_fname ) ;   /* from a 3A: file */
 
+   } else if( check_dicom_magic_num( new_fname ) ) { /* 10 Aug 2004 */
+
+     mri_read_dicom( new_fname );
+
    } else if( strstr(new_fname,".hdr") != NULL ||
               strstr(new_fname,".HDR") != NULL   ){  /* 05 Feb 2001 */
 
@@ -3067,6 +3071,28 @@ Done:
    }
 
    free(imar) ; RETURN(newar) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Check for dicom magic number (string) in file
+    Bytes 128-131 should be "DICM" in a Dicom Part 10 file
+*/
+
+short check_dicom_magic_num( char * fname )
+{
+  FILE * fp;
+  char* test_string[4] = {0};
+
+  fp = fopen( fname, "rb" ) ;
+  if(fp == NULL ) return 0 ;
+  fseek( fp, 128 , SEEK_SET ) ;
+  fread( test_string , 1 , 4 , fp ) ;
+  fclose( fp ) ;
+  if (strstr(test_string, "DICM") == NULL) {
+    return 0 ;
+  } else {
+    return 1 ;
+  }
 }
 
 /*---------------------------------------------------------------------------
