@@ -45,6 +45,22 @@ char gv2s_history[] =
     "      and added an index check in validate_v2s_inputs()\n"
     "    - add gp_index as a parameter of afni_vol2surf()\n"
     "    - changed keep_norm_dir to norm_dir, allowing default/keep/reverse\n"
+    "\n"
+    "September 29, 2004 [rickr]\n"
+    "  - added thd_mask_from_brick() (to make byte mask from sub-brick)\n"
+    "  - added compact_results(), in case nalloc > nused\n"
+    "  - added realloc_ints() and realloc_vals_list() (for compact_results())\n"
+    "  - in afni_vol2surf(), if 1 surf and no norms, set steps to 1\n"
+    "  - in set_surf_results(), pass gp_index to v2s_apply_filter\n"
+    "  - segment oob only if both nodes are\n"
+    "  - move dset bounds to range_3dmm struct\n"
+    "  - in segment_imarr()\n"
+    "      - changed THD_3dmm_to_3dind() to new THD_3dmm_to_3dind_no_wod()\n"
+    "      - verify success of THD_extract_series()\n"
+    "      - keep track of repeated and oob nodes\n"
+    "  - in init_seg_endpoints(), nuke p1, pn; save dicom_to_mm until end\n"
+    "  - changed THD_3dmm_to_3dind() to new THD_3dmm_to_3dind_no_wod()\n"
+    "  - added function v2s_is_good_map_index()\n"
     "---------------------------------------------------------------------\n";
 
 #include "mrilib.h"
@@ -64,13 +80,18 @@ typedef struct
     THD_3dim_dataset * dset;            /* for data and geometry     */
     THD_fvec3          p1;              /* segment endpoints         */
     THD_fvec3          pn;
+    THD_fvec3          dset_min;	/* bounds on the dataset     */
+    THD_fvec3          dset_max;
+    int                oob_check;       /* should we check for oob?   */
     int                debug;           /* for local control         */
 } range_3dmm;
                                                                                 
 typedef struct
 {
     MRI_IMARR   ims;                    /* the image array struct     */
+    int         repeats;                /* number of repeated nodes   */
     int         masked;                 /* number of masked points    */
+    int         oob;                    /* number of oob points       */
     int         ifirst;                 /* 1D index of first point    */
     THD_ivec3   i3first;                /* i3ind index of first point */
     THD_ivec3 * i3arr;                  /* i3ind index array          */
@@ -83,6 +104,7 @@ static v2s_results * alloc_output_mem (v2s_opts_t *sopt, v2s_param_t *p);
 static int    alloc_ints(int ** ptr, int length, char * dstr, int debug);
 static int    alloc_vals_list(float *** ptr, int length, int width, int debug);
 static int    check_SUMA_surface( SUMA_surface * s );
+static int    compact_results(v2s_results * sd, int debug);
 static float  directed_dist(float * pnew, float * pold, float *dir, float dist);
 static float  dist_f3mm( THD_fvec3 * p1, THD_fvec3 * p2 );
 static int    disp_range_3dmm( char * info, range_3dmm * dp );
@@ -98,6 +120,8 @@ static int    init_seg_endpoints(v2s_opts_t * sopt, v2s_param_t * p,
                                  range_3dmm * R, int node );
 static int    init_range_structs( range_3dmm * r3, range_3dmm_res * res3 );
 static double magnitude_f( float * p, int length );
+static int    realloc_ints( int ** ptr, int length, char * dstr, int debug );
+static int    realloc_vals_list(float ** ptr, int length, int width, int debug);
 static int    set_3dmm_bounds(THD_3dim_dataset *dset, THD_fvec3 *min,
 			      THD_fvec3 *max);
 static int    set_all_surf_vals (v2s_results * sd, int node_ind, int vind,
@@ -157,21 +181,25 @@ ENTRY("afni_vol2surf");
 
     /* now fill the param struct based on the inputs */
     memset(&P, 0, sizeof(P));
-    P.gpar       = gpar;
-    P.cmask      = mask;
-    P.nvox       = DSET_NVOX(gpar);
-    P.over_steps = v2s_vals_over_steps(sopt->map);
-    P.nsurf      = sB ? 2 : 1;
-    P.surf[0]    = *sA;
+    P.gpar         = gpar;
+    P.cmask        = mask;
+    P.nvox         = DSET_NVOX(gpar);
+    P.over_steps   = v2s_vals_over_steps(sopt->map);
+    P.nsurf        = sB ? 2 : 1;
+    P.surf[0]      = *sA;
+
+    /* verify steps, in case the user has not selected 2 surfaces */
+    if ( P.nsurf == 1 && ! sopt->use_norms )
+	sopt->f_steps = 1;
 
     if ( sB ) P.surf[1] = *sB;
 
     if ( sopt->debug > 1 )
     {
-	fprintf(stderr, "**afni_vol2surf: \n"
-			"  ready, surf_A, surf_B = %d, %d, %d\n",
+	fprintf(stderr, "-d afni_vol2surf: \n"
+			"   ready, surf_A, surf_B = %d, %d, %d\n",
 			popt->ready, popt->surfA, popt->surfB);
-	disp_v2s_opts_t ("  options: ", &gv2s_plug_opts.sopt);
+	disp_v2s_opts_t("   options: ", &gv2s_plug_opts.sopt);
     }
 
     /* fire it up */
@@ -216,13 +244,94 @@ ENTRY("vol2surf");
     sd = alloc_output_mem( sopt, p );
     if ( !sd ) RETURN(NULL);
 
-    if ( sopt->debug > 1 ) disp_v2s_param_t( "-- post alloc_output_mem : ", p );
+    if ( sopt->debug > 1 ) disp_v2s_param_t( "-d post alloc_output_mem : ", p );
 
     rv = dump_surf_3dt( sopt, p, sd );
 
-    if ( sopt->debug > 1 ) disp_v2s_results( "-- post surf creation : ", sd);
+    if ( compact_results(sd, sopt->debug) )
+    {
+	free_v2s_results(sd);		/* free whatever didn't get burned */
+	RETURN(NULL);
+    }
+
+    if ( sopt->debug > 1 ) disp_v2s_results( "-d post surf creation : ", sd);
 
     RETURN(sd);
+}
+
+
+/* compact_results    - if nused < nalloc, realloc all pointers */
+static int compact_results(v2s_results * sd, int debug)
+{
+    int rv = 0, mem = 0;
+ENTRY("compact_results");
+
+    if ( sd->nused > sd->nalloc )  /* should not happen, of course */
+    {
+	fprintf(stderr,"** cr: nused (%d) > nalloc (%d) !!\n",
+		sd->nused, sd->nalloc);
+	RETURN(-1);
+    }
+
+    if ( sd->nused == sd->nalloc ) RETURN(0);   /* we're good */
+
+    /* otherwise, realloc everthing */
+
+    sd->nalloc = sd->nused;
+
+    if ( sd->nodes )
+    {
+	mem += sizeof(int);
+	rv = realloc_ints(&sd->nodes, sd->nalloc, "nodes", debug);
+    }
+
+    if ( ! rv && sd->volind )
+    {
+	mem += sizeof(int);
+	rv = realloc_ints(&sd->volind, sd->nalloc, "volind", debug);
+    }
+
+    if ( ! rv && sd->i )
+    {
+	mem += sizeof(int);
+	rv = realloc_ints(&sd->i, sd->nalloc, "i", debug);
+    }
+
+    if ( ! rv && sd->j )
+    {
+	mem += sizeof(int);
+	rv = realloc_ints(&sd->j, sd->nalloc, "j", debug);
+    }
+
+    if ( ! rv && sd->k )
+    {
+	mem += sizeof(int);
+	rv = realloc_ints(&sd->k, sd->nalloc, "k", debug);
+    }
+
+    if ( ! rv && sd->nvals )
+    {
+	mem += sizeof(int);
+	rv = realloc_ints(&sd->nvals, sd->nalloc, "nvals", debug);
+    }
+
+    if ( ! rv )
+    {
+	mem += (sizeof(float) * sd->max_vals);
+	rv = realloc_vals_list(sd->vals, sd->nalloc, sd->max_vals, debug);
+    }
+
+    if ( rv ) RETURN(rv);	/* if there was a failure, just leave */
+
+    mem *= sd->nalloc;		/* now multiply be the array length */
+
+    if ( debug > 1 )
+	fprintf(stderr,"+d compact results: reallocated %d bytes down to %d\n",
+		sd->memory, mem);
+
+    sd->memory = mem;
+
+    RETURN(rv);
 }
 
 
@@ -233,12 +342,12 @@ ENTRY("vol2surf");
 */
 static int dump_surf_3dt( v2s_opts_t * sopt, v2s_param_t * p, v2s_results * sd )
 {
-    THD_fvec3      dset_min, dset_max;
     range_3dmm_res r3mm_res;
     range_3dmm     r3mm;
     float          dist, min_dist, max_dist;
     int            sub, subs, nindex, findex = 0;
     int            oobc, oomc, max_index;
+    int            oob1, oob2;
 
 ENTRY("dump_surf_3dt");
 
@@ -250,20 +359,20 @@ ENTRY("dump_surf_3dt");
 
     /* note the number of sub-bricks, unless the user has given just one */
     subs = sopt->gp_index >= 0 ? 1 : DSET_NVALS(p->gpar);
-    set_3dmm_bounds( p->gpar, &dset_min, &dset_max );
+    init_range_structs( &r3mm, &r3mm_res );		    /* to empty */
+    r3mm.dset = p->gpar;
+    set_3dmm_bounds( p->gpar, &r3mm.dset_min, &r3mm.dset_max );
+
     if ( sopt->debug > 1 )
-	fprintf(stderr, "-- dset bounding box: (%f, %f, %f)\n"
+	fprintf(stderr, "-d dset bounding box: (%f, %f, %f)\n"
 			"                      (%f, %f, %f)\n",
-		dset_min.xyz[0], dset_min.xyz[1], dset_min.xyz[2], 
-		dset_max.xyz[0], dset_max.xyz[1], dset_max.xyz[2]);
+		r3mm.dset_min.xyz[0],r3mm.dset_min.xyz[1],r3mm.dset_min.xyz[2], 
+		r3mm.dset_max.xyz[0],r3mm.dset_max.xyz[1],r3mm.dset_max.xyz[2]);
 
     min_dist = 9999.9;						/* v2.3 */
     max_dist = -1.0;
     oobc     = 0; 			  /* init out-of-bounds counter */
     oomc     = 0; 			  /* init out-of-mask counter   */
-
-    init_range_structs( &r3mm, &r3mm_res );		    /* to empty */
-    r3mm.dset = p->gpar;
 
     /* note, NodeList elements are in dicomm mm orientation */
 
@@ -281,9 +390,10 @@ ENTRY("dump_surf_3dt");
 	if ( (sopt->debug > 0) && ( nindex == sopt->dnode ) )
 	    r3mm.debug = sopt->debug;
 
-	/* if either point is outside our dataset, skip the pair   v2.3 */
-	if ( f3mm_out_of_bounds( &r3mm.p1, &dset_min, &dset_max ) ||
-	     f3mm_out_of_bounds( &r3mm.pn, &dset_min, &dset_max ) )
+	/* if both points are outside our dataset, skip the pair   v2.3 */
+	oob1 = f3mm_out_of_bounds( &r3mm.p1, &r3mm.dset_min, &r3mm.dset_max );
+	oob2 = f3mm_out_of_bounds( &r3mm.pn, &r3mm.dset_min, &r3mm.dset_max );
+	if ( oob1 && oob2 )
 	{
 	    oobc++;
 	    if ( sopt->oob.show )
@@ -292,9 +402,15 @@ ENTRY("dump_surf_3dt");
 					sopt->oob.index, sopt->oob.value) )
 		    RETURN(1);
 	    if ( (sopt->debug > 0) && ( nindex == sopt->dnode ) )
-		disp_surf_vals("-- debug node, out-of-bounds : ", sd, -1);
+	    {
+		disp_surf_vals("-d debug node, out-of-bounds : ", sd, -1);
+	        fprintf(stderr,"-d dnode coords: (%f, %f, %f)\n",
+			r3mm.p1.xyz[0], r3mm.p1.xyz[1], r3mm.p1.xyz[2]);
+	    }
 	    continue;
 	}
+	else
+	    r3mm.oob_check = oob1 || oob2;
 
 	dist = dist_f3mm( &r3mm.p1, &r3mm.pn );
 	if ( dist < min_dist ) min_dist = dist;
@@ -312,7 +428,7 @@ ENTRY("dump_surf_3dt");
 			r3mm_res.i3first.ijk[2], sopt->oom.value ) )
 		    RETURN(1);
 	    if ( (sopt->debug > 0) && ( nindex == sopt->dnode ) )
-		disp_surf_vals("-- debug node, out-of-mask : ", sd, -1);
+		disp_surf_vals("-d debug node, out-of-mask : ", sd, -1);
 	    continue;
 	}
 
@@ -333,9 +449,9 @@ ENTRY("dump_surf_3dt");
 
     if ( sopt->debug > 0 )					/* v2.3 */
     {
-	fprintf( stderr, "-- node pair dist (min,max) = (%f,%f)\n",
+	fprintf( stderr, "-d node pair dist (min,max) = (%f,%f)\n",
 		 min_dist, max_dist );
-	fprintf( stderr, "-- out-of-bounds, o-o-mask counts : %d, %d (of %d)\n",
+	fprintf( stderr, "-d out-of-bounds, o-o-mask counts : %d, %d (of %d)\n",
 		 oobc, oomc, sopt->last_node - sopt->first_node + 1);
     }
 
@@ -384,34 +500,38 @@ ENTRY("set_surf_results");
     if (sd->k     )  sd->k[sd->nused]      = k;
     if (sd->nvals )  sd->nvals[sd->nused]  = r3res->ims.num;
 
-    /* rcr : should I nuke the MRI images, and just copy what is needed? */
-    if ( ! p->over_steps && sopt->gp_index >= 0 &&
-	 (sopt->debug > 1) && (node == sopt->dnode) )
-	    fprintf(stderr,"** dnode %d gets %f from gp_index %d\n",
-		    node, sd->vals[0][sd->nused], sopt->gp_index);
-    
     /* set max_index, and adjust in case max_vals has been restricted */
     max_index = p->over_steps ? r3res->ims.num : DSET_NVALS(p->gpar);
     if ( max_index > sd->max_vals ) max_index = sd->max_vals;
 
-    for ( c = 0; c < max_index; c++ )
-	sd->vals[c][sd->nused] = v2s_apply_filter(r3res, sopt, c, NULL);
+    if ( sopt->gp_index >= 0 )
+	sd->vals[0][sd->nused] =
+	    v2s_apply_filter(r3res, sopt, sopt->gp_index, NULL);
+    else
+	for ( c = 0; c < max_index; c++ )
+	    sd->vals[c][sd->nused] = v2s_apply_filter(r3res, sopt, c, NULL);
 
     /* possibly fill line with default if by steps and short */
     if ( max_index < sd->max_vals )
 	for ( c = max_index; c < sd->max_vals; c++ )
 	    sd->vals[c][sd->nused] = 0.0;
 
+    /* rcr : should I nuke the MRI images, and just copy what is needed? */
+    if ( ! p->over_steps && sopt->gp_index >= 0 &&
+	 (sopt->debug > 1) && (node == sopt->dnode) )
+	    fprintf(stderr,"** dnode %d gets %f from gp_index %d\n",
+		    node, sd->vals[0][sd->nused], sopt->gp_index);
+    
     if ( (sopt->debug > 1) && (node == sopt->dnode) )
     {
-	fprintf(stderr, "-- debug: node, findex, vol_index = %d, %d, %d\n",
+	fprintf(stderr, "-d debug: node, findex, vol_index = %d, %d, %d\n",
 		node, findex, volind );
 	if ( sopt->use_norms )
 	{
 	    float * fp = p->surf[0].norm[node].xyz;
-	    fprintf(stderr,"-- normal %f, %f, %f\n", fp[0], fp[1], fp[2]);
+	    fprintf(stderr,"-d normal %f, %f, %f\n", fp[0], fp[1], fp[2]);
 	}
-	disp_mri_imarr( "++ raw data: ", &r3res->ims );
+	disp_mri_imarr( "+d raw data: ", &r3res->ims );
     }
 
     sd->nused++;
@@ -486,7 +606,7 @@ ENTRY("segment_imarr");
     }
 
     if ( R->debug > 1 )
-	disp_range_3dmm("segment_imarr: ", R );
+	disp_range_3dmm("-d segment_imarr: ", R );
 
     /* handle this as an acceptable, trivial case */
     if ( sopt->f_steps < 1 )
@@ -502,7 +622,7 @@ ENTRY("segment_imarr");
     if ( res->ims.nall < sopt->f_steps )
     {
 	if ( R->debug > 1 )
-	    fprintf(stderr,"++ realloc of imarr (from %d to %d pointers)\n",
+	    fprintf(stderr,"+d realloc of imarr (from %d to %d pointers)\n",
 		    res->ims.nall,sopt->f_steps);
 
 	res->ims.nall  = sopt->f_steps;
@@ -523,8 +643,10 @@ ENTRY("segment_imarr");
 
     /* init return structure */
     res->ims.num = 0;
+    res->repeats = 0;
     res->masked  = 0;
-    res->i3first = THD_3dmm_to_3dind( R->dset, R->p1 );
+    res->oob     = 0;
+    res->i3first = THD_3dmm_to_3dind_no_wod( R->dset, R->p1 );
     res->ifirst  = res->i3first.ijk[0] +
 	           nx * (res->i3first.ijk[1] + ny * res->i3first.ijk[2] );
 
@@ -543,7 +665,15 @@ ENTRY("segment_imarr");
 	f3mm.xyz[1] = rat1 * R->p1.xyz[1] + ratn * R->pn.xyz[1];
 	f3mm.xyz[2] = rat1 * R->p1.xyz[2] + ratn * R->pn.xyz[2];
 
-	i3ind = THD_3dmm_to_3dind( R->dset, f3mm );
+	/* accept part being oob                30 Sep 2004 [rickr] */
+	if ( R->oob_check && 
+	     f3mm_out_of_bounds( &f3mm, &R->dset_min, &R->dset_max ) )
+	{
+	    res->oob++;
+	    continue;
+	}
+
+	i3ind = THD_3dmm_to_3dind_no_wod( R->dset, f3mm );
 	vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
 
 	/* is this voxel masked out? */
@@ -555,7 +685,10 @@ ENTRY("segment_imarr");
 
 	/* is this voxel repeated, and if so, do we skip it? */
 	if ( sopt->f_index == V2S_INDEX_VOXEL && vindex == prev_ind )
+	{
+	    res->repeats++;
 	    continue;
+	}
 
 	/* Huston, we have a good voxel... */
 
@@ -567,13 +700,19 @@ ENTRY("segment_imarr");
 	res->ims.imarr[res->ims.num] = THD_extract_series( vindex, R->dset, 0 );
 	res->ims.num++;
 
+	if ( ! res->ims.imarr[res->ims.num-1] )
+	{
+	    fprintf(stderr,"** failed THD_extract_series, vox %d\n", vindex);
+	    RETURN(-1);
+	}
+
 	if ( R->debug > 2 )
-	    fprintf(stderr, "-- seg step %2d, vindex %d, coords %f %f %f\n",
+	    fprintf(stderr, "-d seg step %2d, vindex %d, coords %f %f %f\n",
 		    step,vindex,f3mm.xyz[0],f3mm.xyz[1],f3mm.xyz[2]);
     }
 
-    if ( R->debug > 0 )
-	disp_range_3dmm_res( "++ i3mm_seg_imarr results: ", res );
+    if ( R->debug > 1 )
+	disp_range_3dmm_res( "+d i3mm_seg_imarr results: ", res );
 
     RETURN(0);
 }
@@ -1016,41 +1155,30 @@ static int init_seg_endpoints ( v2s_opts_t * sopt, v2s_param_t * p,
 				range_3dmm * R, int node )
 {
     SUMA_surface * sp;
-    THD_fvec3      p1, pn;
 ENTRY("init_seg_endpoints");
 
     /* get node from first surface */
     sp = p->surf;
-    p1.xyz[0] = sp->ixyz[node].x;
-    p1.xyz[1] = sp->ixyz[node].y;
-    p1.xyz[2] = sp->ixyz[node].z;
+    R->p1.xyz[0] = sp->ixyz[node].x;
+    R->p1.xyz[1] = sp->ixyz[node].y;
+    R->p1.xyz[2] = sp->ixyz[node].z;
 
-    /* note the endpoints */
+    /* set pn based on other parameters */
     if ( sopt->use_norms )
+	directed_dist(R->pn.xyz, R->p1.xyz, sp->norm[node].xyz, sopt->norm_len);
+    else if ( p->nsurf > 1 )
     {
-	/* first apply normals, then transform to current 3dmm */
-	directed_dist(pn.xyz, p1.xyz, sp->norm[node].xyz, sopt->norm_len);
-
-	R->p1 = THD_dicomm_to_3dmm(R->dset, p1);
-	R->pn = THD_dicomm_to_3dmm(R->dset, pn);
+	/* get node from second surface */
+	sp = p->surf + 1;
+	R->pn.xyz[0] = sp->ixyz[node].x;
+	R->pn.xyz[1] = sp->ixyz[node].y;
+	R->pn.xyz[2] = sp->ixyz[node].z;
     }
     else
-    {
-	R->p1 = THD_dicomm_to_3dmm(R->dset, p1);
+	R->pn = R->p1;
 
-	if ( p->nsurf > 1 )
-	{
-	    /* get node from second surface */
-	    sp = p->surf + 1;
-	    pn.xyz[0] = sp->ixyz[node].x;
-	    pn.xyz[1] = sp->ixyz[node].y;
-	    pn.xyz[2] = sp->ixyz[node].z;
-
-	    R->pn = THD_dicomm_to_3dmm(R->dset, pn);
-	}
-	else
-	    R->pn = R->p1;
-    }
+    R->p1 = THD_dicomm_to_3dmm(R->dset, R->p1);
+    R->pn = THD_dicomm_to_3dmm(R->dset, R->pn);
 
     RETURN(0);
 }
@@ -1191,8 +1319,9 @@ ENTRY("allocate_output_mem");
     mem *= sd->nalloc;  /* and multiply by the height of each column */
     sd->memory = mem;
 
-    if ( sopt->debug > 0 )
-	fprintf(stderr,"++ allocating memory for results: %d bytes\n", mem);
+    if ( sopt->debug > 1 )
+	fprintf(stderr,"+d alloc result mem: %d bytes, max_vals = %d\n",
+		mem, sd->max_vals);
 
     /* okay, this time let's allocate something... */
 
@@ -1253,8 +1382,39 @@ ENTRY("alloc_vals_list");
     }
 
     if ( debug > 1 )
-	fprintf(stderr,"-- alloc'd %d x %d floats for surf data\n",
+	fprintf(stderr,"-d alloc'd %d x %d floats for surf data\n",
 		width, length);
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * realloc_vals_list  - reallocate 2D arrays for surface data values
+ *----------------------------------------------------------------------
+*/
+static int realloc_vals_list(float ** ptr, int length, int width, int debug)
+{
+    int c, count;
+
+ENTRY("realloc_vals_list");
+
+    count = 0;
+    for ( c = 0; c < width; c++ )
+    {
+	if ( ptr[c] )
+	{
+	    ptr[c] = (float *)realloc(ptr[c], length * sizeof(float));
+	    if ( ptr[c] == NULL )
+		fprintf(stderr,"** rvl: fail to realloc %d floats (%d of %d)\n",
+		    length, c, width);
+	    count++;
+	}
+    }
+
+    if ( debug > 1 )
+	fprintf(stderr,"-d realloc'd %d x %d floats for surf data\n",
+		count, length);
 
     RETURN(0);
 }
@@ -1275,7 +1435,28 @@ ENTRY("alloc_ints");
 	RETURN(1);
     }
     if ( debug > 1 )
-	fprintf(stderr,"-- ai: alloc'd %d ints for '%s'\n", length, dstr);
+	fprintf(stderr,"-d ai: alloc'd %d ints for '%s'\n", length, dstr);
+
+    RETURN(0);
+}
+
+
+/*----------------------------------------------------------------------
+ * realloc_ints  - reallocate 1D array of ints (could replace alloc_ints)
+ *----------------------------------------------------------------------
+*/
+static int realloc_ints( int ** ptr, int length, char * dstr, int debug )
+{
+ENTRY("realloc_ints");
+
+    *ptr = (int *)realloc(*ptr, length * sizeof(int));
+    if ( ! *ptr )
+    {
+	fprintf(stderr,"** ri: failed to alloc %d ints for '%s'\n",length,dstr);
+	RETURN(1);
+    }
+    if ( debug > 1 )
+	fprintf(stderr,"-d ri: alloc'd %d ints for '%s'\n", length, dstr);
 
     RETURN(0);
 }
@@ -1299,13 +1480,14 @@ ENTRY("disp_v2s_param_t");
     }
 
     fprintf(stderr,
-	    "v2s_param_t struct at  %p :\n"
-	    "    gpar  : vcheck   = %p : %s\n"
-	    "    cmask            = %p\n"
-	    "    nvox, over_steps = %d, %d\n"
+	    "v2s_param_t struct at     %p :\n"
+	    "    gpar  : vcheck      = %p : %s\n"
+	    "    cmask               = %p\n"
+	    "    nvox, over_steps    = %d, %d\n"
+	    "    nsurf               = %d\n"
 	    , p,
 	    p->gpar, ISVALID_DSET(p->gpar) ? "valid" : "invalid",
-	    p->cmask, p->nvox, p->over_steps
+	    p->cmask, p->nvox, p->over_steps, p->nsurf
 	    );
 
     RETURN(0);
@@ -1414,12 +1596,19 @@ ENTRY("disp_range_3dmm");
 
     fprintf(stderr,
 	    "range_3dmm struct at %p :\n"
-	    "    dset    = %p : %s\n"
-	    "    p1      = (%f, %f, %f)\n"
-	    "    pn      = (%f, %f, %f)\n",
+	    "    dset             = %p : %s\n"
+	    "    p1               = (%f, %f, %f)\n"
+	    "    pn               = (%f, %f, %f)\n"
+	    "    dset_min         = (%f, %f, %f)\n"
+	    "    dset_max         = (%f, %f, %f)\n"
+	    "    oob_check, debug = (%d, %d)\n",
 	    dp, dp->dset, ISVALID_DSET(dp->dset) ? "valid" : "invalid",
 	    dp->p1.xyz[0], dp->p1.xyz[1], dp->p1.xyz[2],
-	    dp->pn.xyz[0], dp->pn.xyz[1], dp->pn.xyz[2] );
+	    dp->pn.xyz[0], dp->pn.xyz[1], dp->pn.xyz[2],
+	    dp->dset_min.xyz[0], dp->dset_min.xyz[1], dp->dset_min.xyz[2],
+	    dp->dset_max.xyz[0], dp->dset_max.xyz[1], dp->dset_max.xyz[2],
+	    dp->oob_check, dp->debug
+	);
 
     RETURN(0);
 }
@@ -1444,13 +1633,15 @@ ENTRY("disp_range_3dmm_res");
 
     fprintf(stderr,
 	    "range_3dmm_res struct at %p :\n"
-	    "    ims.num, ims.nall  = %d, %d\n"
-	    "    ims.imarr          = %p\n"
-	    "    masked, ifirst     = %d, %d\n"
-	    "    i3first[0,1,2]     = %d, %d, %d\n"
-	    "    i3arr              = %p\n"
+	    "    ims.imarr         = %p\n"
+	    "    ims.num, ims.nall = %d, %d\n"
+	    "    repeats, masked   = %d, %d\n"
+	    "    oob, ifirst       = %d, %d\n"
+	    "    i3first[0,1,2]    = %d, %d, %d\n"
+	    "    i3arr             = %p\n"
 	    , dp,
-	    dp->ims.num, dp->ims.nall, dp->ims.imarr, dp->masked, dp->ifirst,
+	    dp->ims.imarr, dp->ims.num, dp->ims.nall,
+	    dp->repeats, dp->masked, dp->oob, dp->ifirst,
 	    dp->i3first.ijk[0], dp->i3first.ijk[1], dp->i3first.ijk[2],
 	    dp->i3arr );
 
@@ -1518,7 +1709,7 @@ ENTRY("disp_surf_vals");
 	RETURN(-1);
     }
 
-    index = (node >= 0) ? node : sd->nodes[sd->nused - 1];
+    index = (node >= 0) ? node : sd->nused - 1;
 
     fprintf(stderr, "v2s_results vals for sd_index %d, node %d :\n"
 		    "    volind, (i, j, k) = %d, (%d, %d, %d)\n"
@@ -1758,10 +1949,154 @@ ENTRY("v2s_map_type");
         RETURN((int)E_SMAP_INVALID);
     }
                                                                                 
+    /* not ready for E_SMAP_COUNT yet (until someone wants it) */
+    if ( !strcmp( map_str, gv2s_map_names[E_SMAP_COUNT] ) )
+	RETURN((int)E_SMAP_INVALID);
+                                                                                
     for ( map = E_SMAP_INVALID; map < E_SMAP_FINAL; map++ )
         if ( !strcmp( map_str, gv2s_map_names[map] ) )
             RETURN((int)map);
-                                                                                
+
     RETURN((int)E_SMAP_INVALID);
+}
+
+
+/*----------------------------------------------------------------------
+ * thd_mask_from_brick	  - create a mask from a sub-brick and threshold
+ *
+ * return a pointer to a new mask, or NULL on failure
+ *----------------------------------------------------------------------
+*/
+int thd_mask_from_brick(THD_3dim_dataset * dset, int volume, float thresh,
+			byte ** mask)
+{
+    float   factor;
+    byte  * tmask;
+    int     nvox, type, c, size = 0;
+
+ENTRY("thd_mask_from_brick");
+
+    if ( mask ) *mask = NULL;	/* to be sure */
+
+    if ( !ISVALID_DSET(dset) || ! mask || volume < 0 )
+        RETURN(-1);
+
+    if ( volume >= DSET_NVALS(dset) )
+    {
+        fprintf(stderr,"** tmfb: sub-brick %d out-of-range\n", volume);
+        RETURN(-1);
+    }
+
+    nvox = DSET_NVOX(dset);
+    type = DSET_BRICK_TYPE(dset, volume);
+
+    if ( type != MRI_byte && type != MRI_short &&
+	 type != MRI_int && type != MRI_float )
+    {
+	fprintf(stderr,"** tmfb: invalid dataset type %s, sorry...\n",
+		MRI_type_name[type]);
+	RETURN(-1);
+    }
+
+    tmask = (byte *)calloc(nvox, sizeof(byte));
+    if ( ! tmask )
+    {
+	fprintf(stderr,"** tmfb: failed to allocate mask of %d bytes\n", nvox);
+	RETURN(-1);
+    }
+
+    factor = DSET_BRICK_FACTOR(dset, volume);
+
+    /* cheat: adjust threshold, not data */
+    if ( factor != 0.0 ) thresh /= factor;
+
+    switch( DSET_BRICK_TYPE(dset, volume) )
+    {
+	case MRI_byte:
+	{
+	    byte * dp  = DSET_ARRAY(dset, volume);
+	    byte   thr = BYTEIZE(thresh + 0.99999);  /* ceiling */
+	    for ( c = 0; c < nvox; c++ )
+		if ( dp[c] != 0 && ( dp[c] >= thr ) )
+		{
+		    size++;
+		    tmask[c] = 1;
+		}
+	}
+	    break;
+
+	case MRI_short:
+	{
+	    short * dp  = DSET_ARRAY(dset, volume);
+	    short   thr = SHORTIZE(thresh + 0.99999);  /* ceiling */
+	    for ( c = 0; c < nvox; c++ )
+		if ( dp[c] != 0 && ( dp[c] >= thr ) )
+		{
+		    size++;
+		    tmask[c] = 1;
+		}
+	}
+	    break;
+
+	case MRI_int:
+	{
+	    int * dp  = DSET_ARRAY(dset, volume);
+	    int   thr = (int)(thresh + 0.99999);  /* ceiling */
+	    for ( c = 0; c < nvox; c++ )
+		if ( dp[c] != 0 && ( dp[c] >= thr ) )
+		{
+		    size++;
+		    tmask[c] = 1;
+		}
+	}
+	    break;
+
+	case MRI_float:
+	{
+	    float * dp = DSET_ARRAY(dset, volume);
+	    for ( c = 0; c < nvox; c++ )
+		if ( dp[c] != 0 && ( dp[c] >= thresh ) )
+		{
+		    size++;
+		    tmask[c] = 1;
+		}
+	}
+	    break;
+
+	default:		/* let's be sure */
+	{
+	    fprintf(stderr,"** tmfb: invalid dataset type, sorry...\n");
+	    free(tmask);
+	}
+	    break;
+    }
+
+    *mask = tmask;
+
+    RETURN(size);
+}
+
+/*----------------------------------------------------------------------
+ * check for a map index that we consider valid
+ *
+ * from anywhere, E_SMAP_MASK2 and E_SMAP_COUNT are not yet implemented
+ * from afni, E_SMAP_SEG_VALS is not acceptable (only allow 1 output)
+ *----------------------------------------------------------------------
+*/
+int v2s_is_good_map( int map, int from_afni )
+{
+ENTRY("v2s_good_map_index");
+
+    if ( map <= E_SMAP_INVALID || map >= E_SMAP_FINAL )
+	RETURN(0);
+
+    /* these have not (yet? do we care?) been implemented */
+    if ( map == E_SMAP_MASK2 || map == E_SMAP_COUNT )
+	RETURN(0);
+
+    if ( from_afni && map == E_SMAP_SEG_VALS )
+	RETURN(0);
+
+    RETURN(1);
 }
 
