@@ -2892,6 +2892,7 @@ void allocate_memory
   int vout;             /* flag to output variance map */
   int bout;             /* flag to output baseline coefficients */
   int cout;             /* flag to output fit coefficients */
+  int ibot,itop ;
 
 
   /*----- Initialize local variables -----*/
@@ -2935,7 +2936,9 @@ void allocate_memory
   ip = qp - 1;
   for (is = 0;  is < num_stimts;  is++)
     {
-      for (it = min_lag[is];  it <= max_lag[is];  it++)
+      if( basis_stim[is] != NULL ){ ibot=0 ; itop=basis_stim[is]->nfunc-1 ; }
+      else                        { ibot=min_lag[is] ; itop=max_lag[is] ;   }
+      for (it = ibot;  it <= itop;  it++)
 	{
 	  ip++;
 	  if (option_data->stim_base[is])
@@ -3404,7 +3407,7 @@ void report_evaluation
       else                        { ibot = min_lag[is] ; itop = max_lag[is] ;   }
       for (ilag = ibot;  ilag <= itop;  ilag++)
 	{
-	  stddev = sqrt ( 1.0 * xtxinv_full.elts[m][m] );
+	  stddev = sqrt ( xtxinv_full.elts[m][m] );
 	  printf ("  h[%2d] norm. std. dev. = %8.4f  \n", ilag, stddev);
 	  m++;
 	}
@@ -4731,8 +4734,7 @@ void write_bucket_data
 	    {
 	      ibrick++;
 	      brick_type = FUNC_FT_TYPE;
-	      ndof = option_data->stim_maxlag[istim]
-		- option_data->stim_minlag[istim] + 1;
+              ndof = itop - ibot + 1 ;
 	      ddof = N - p;
 	      sprintf (brick_label, "%s F-stat", label);
 	      volume = fpart_vol[istim];
@@ -4969,13 +4971,15 @@ void output_results
   ib = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
-      if( basis_stim[is] != NULL ){    /* until later */
+      if( basis_stim[is] != NULL ){                    /* until later */
         if( option_data->iresp_filename[is] != NULL )
           fprintf(stderr,
-                  "** WARNING: Ignoring -iresp '%s'\n",
-                  option_data->iresp_filename[is]) ;
+                  "** WARNING: Ignoring -iresp %d '%s'\n",
+                  is+1,option_data->iresp_filename[is]) ;
         continue ;
       }
+
+      /* old style iresp: each coefficent is a response */
 
       ts_length = max_lag[is] - min_lag[is] + 1;
       if (option_data->iresp_filename[is] != NULL)
@@ -5000,13 +5004,15 @@ void output_results
   ib = qp;
   for (is = 0;  is < num_stimts;  is++)
     {
-      if( basis_stim[is] != NULL ){    /* until later */
+      if( basis_stim[is] != NULL ){                     /* until later */
         if( option_data->sresp_filename[is] != NULL )
           fprintf(stderr,
-                  "** WARNING: Ignoring -sresp '%s'\n",
-                  option_data->sresp_filename[is]) ;
+                  "** WARNING: Ignoring -sresp %d '%s'\n",
+                  is+1 , option_data->sresp_filename[is]) ;
         continue ;
       }
+
+      /* old style iresp: each coef is a response, so coef var is what we want */
 
       ts_length = max_lag[is] - min_lag[is] + 1;
       if (option_data->sresp_filename[is] != NULL)
