@@ -14,6 +14,12 @@ static void get_siemens_extra_info( char *str , Siemens_extra_info *mi ) ;
 
 /*-----------------------------------------------------------------------------------*/
 
+static char *str_sexinfo=NULL ;
+
+char * mri_dicom_sexinfo(void){ return str_sexinfo; }  /* 23 Dec 2002 */
+
+/*-----------------------------------------------------------------------------------*/
+
 static int LITTLE_ENDIAN_ARCHITECTURE = -1 ;
 
 static void RWC_set_endianosity(void)
@@ -130,7 +136,13 @@ MRI_IMARR * mri_read_dicom( char *fname )
    int use_xycen=0 ;
    float dxx,dyy,dzz ;
 
+   char *eee ;
+   float rescale_slope=0.0 , rescale_inter=0.0 ;  /* 23 Dec 2002 */
+   float window_center=0.0 , window_width =0.0 ;
+
 ENTRY("mri_read_dicom") ;
+
+   if( str_sexinfo != NULL ){ free(str_sexinfo); str_sexinfo=NULL; }
 
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL);
 
@@ -218,29 +230,43 @@ ENTRY("mri_read_dicom") ;
    }
 
    /* check if Rescale is ordered */
+   /* 23 Dec 2002: actually get the rescale params, if environment says to */
 
-   if( epos[E_RESCALE_INTERCEPT] != NULL ){
-      static int nwarn=0 ;
-      if( nwarn < NWMAX )
-        fprintf(stderr,
-                "++ DICOM WARNING: file %s has Rescale tags - not implemented here\n",
-                fname ) ;
-      if( nwarn == NWMAX )
-        fprintf(stderr,"++ DICOM WARNING: no more Rescale tags messages will be printed\n") ;
-      nwarn++ ;
+   eee = getenv("AFNI_DICOM_RESCALE") ;
+   if( epos[E_RESCALE_INTERCEPT] != NULL && epos[E_RESCALE_SLOPE] != NULL ){
+     if( eee == NULL || toupper(*eee) != 'Y' ){
+       static int nwarn=0 ;
+       if( nwarn < NWMAX )
+         fprintf(stderr,
+                 "++ DICOM WARNING: file %s has Rescale tags; setenv AFNI_DICOM_RESCALE YES to enforce them\n",
+                 fname ) ;
+       if( nwarn == NWMAX )
+         fprintf(stderr,"++ DICOM WARNING: no more Rescale tags messages will be printed\n") ;
+       nwarn++ ;
+     } else {
+       ddd = strstr(epos[E_RESCALE_INTERCEPT],"//") ; sscanf(ddd+2,"%f",&rescale_inter) ;
+       ddd = strstr(epos[E_RESCALE_SLOPE    ],"//") ; sscanf(ddd+2,"%f",&rescale_slope) ;
+     }
    }
 
    /* check if Window is ordered */
+   /* 23 Dec 2002: actually get the window params, if environment says to */
 
-   if( epos[E_WINDOW_CENTER] != NULL ){
-      static int nwarn=0 ;
-      if( nwarn < NWMAX )
-        fprintf(stderr,
-                "++ DICOM WARNING: file %s has Window tags  - not implemented here\n",
-                fname ) ;
-      if( nwarn == NWMAX )
-        fprintf(stderr,"++ DICOM WARNING: no more Window tags messages will be printed\n") ;
-      nwarn++ ;
+   eee = getenv("AFNI_DICOM_WINDOW") ;
+   if( epos[E_WINDOW_CENTER] != NULL && epos[E_WINDOW_WIDTH] != NULL ){
+     if( eee == NULL || toupper(*eee) != 'Y' ){
+       static int nwarn=0 ;
+       if( nwarn < NWMAX )
+         fprintf(stderr,
+                 "++ DICOM WARNING: file %s has Window tags; setenv AFNI_DICOM_WINDOW YES to enforce them\n",
+                 fname ) ;
+       if( nwarn == NWMAX )
+         fprintf(stderr,"++ DICOM WARNING: no more Window tags messages will be printed\n") ;
+       nwarn++ ;
+     } else {
+       ddd = strstr(epos[E_WINDOW_CENTER],"//") ; sscanf(ddd+2,"%f",&window_center) ;
+       ddd = strstr(epos[E_WINDOW_WIDTH ],"//") ; sscanf(ddd+2,"%f",&window_width ) ;
+     }
    }
 
    /*** extract attributes of the image(s) to be read in ***/
@@ -295,7 +321,7 @@ ENTRY("mri_read_dicom") ;
        fclose(fp) ;
        if( str != NULL ){                       /* got good data, so parse it */
          get_siemens_extra_info( str , &sexinfo ) ;
-         free(str) ;
+         str_sexinfo = str ;                    /* 23 Dec 2002 */
        }
      } /* end of decoding Siemens extra info */
 
@@ -384,8 +410,7 @@ ENTRY("mri_read_dicom") ;
    /*-- 27 Nov 2002: fix stupid GE error,
                      where the slice spacing is really the slice gap --*/
 
-   { char *eee ;
-     int stupid_ge_fix ;
+   { int stupid_ge_fix ;
      float sp=0.0 , th=0.0 ;
      static int nwarn=0 ;
 
@@ -621,6 +646,128 @@ MCHECK ;
 
    fclose(fp) ;     /* 10 Sep 2002: oopsie - forgot to close file */
 
+   /*-- 23 Dec 2002: implement Rescale, if ordered --*/
+
+   if( rescale_slope > 0.0 ){
+     for( ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
+       im = IMARR_SUBIM(imar,ii) ;
+       switch( im->kind ){
+         case MRI_byte:{
+           byte *ar = mri_data_pointer( im ) ;
+           for( jj=0 ; jj < im->nvox ; jj++ )
+             ar[jj] = rescale_slope*ar[jj] + rescale_inter ;
+         }
+         break ;
+
+         case MRI_short:{
+           short *ar = mri_data_pointer( im ) ;
+           for( jj=0 ; jj < im->nvox ; jj++ )
+             ar[jj] = rescale_slope*ar[jj] + rescale_inter ;
+         }
+         break ;
+
+         case MRI_int:{
+           int *ar = mri_data_pointer( im ) ;
+           for( jj=0 ; jj < im->nvox ; jj++ )
+             ar[jj] = rescale_slope*ar[jj] + rescale_inter ;
+         }
+         break ;
+       }
+     }
+   } /* end of Rescale */
+
+   /*-- 23 Dec 2002: implement Window, if ordered --*/
+   /*                section C.11.2.1.2 (page 503)  */
+
+   if( window_width >= 1.0 ){
+     float wbot,wtop,wfac ;
+     int ymax=0 ;
+
+     /* get output range */
+
+     ddd = strstr(epos[E_BITS_STORED],"//") ;
+     if( ddd != NULL ){
+       ymax = 0 ; sscanf(ddd+2,"%d",&ymax) ;
+       if( ymax > 0 ) ymax = (1 << ymax) - 1 ;
+     }
+     if( ymax <= 0 ){
+       switch( IMARR_SUBIM(imar,0)->kind ){
+         case MRI_byte:  ymax = MRI_maxbyte  ; break ;
+         case MRI_short: ymax = MRI_maxshort ; break ;
+         case MRI_int:   ymax = MRI_maxint   ; break ;
+       }
+     }
+                                          /** window_width == 1 is special **/
+     if( window_width == 1.0 ){           /** binary threshold case **/
+
+       wbot = window_center - 0.5 ;       /* the threshold */
+
+       for( ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
+         im = IMARR_SUBIM(imar,ii) ;
+         switch( im->kind ){
+           case MRI_byte:{
+             byte *ar = mri_data_pointer( im ) ;
+             for( jj=0 ; jj < im->nvox ; jj++ )
+               ar[jj] = (ar[jj] <= wbot) ? 0 : ymax ;
+           }
+           break ;
+  
+           case MRI_short:{
+             short *ar = mri_data_pointer( im ) ;
+             for( jj=0 ; jj < im->nvox ; jj++ )
+               ar[jj] = (ar[jj] <= wbot) ? 0 : ymax ;
+           }
+           break ;
+  
+           case MRI_int:{
+             int *ar = mri_data_pointer( im ) ;
+             for( jj=0 ; jj < im->nvox ; jj++ )
+               ar[jj] = (ar[jj] <= wbot) ? 0 : ymax ;
+           }
+           break ;
+         }
+       }
+
+     } else {                             /** linear windowing case **/
+
+       wbot = (window_center - 0.5) - 0.5*(window_width-1.0) ;
+       wtop = (window_center - 0.5) + 0.5*(window_width-1.0) ;
+       wfac = ymax                  /     (window_width-1.0) ;
+
+       for( ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
+         im = IMARR_SUBIM(imar,ii) ;
+         switch( im->kind ){
+           case MRI_byte:{
+             byte *ar = mri_data_pointer( im ) ;
+             for( jj=0 ; jj < im->nvox ; jj++ )
+               ar[jj] = (ar[jj] <= wbot) ? 0
+                       :(ar[jj] >  wtop) ? ymax
+                                         : wfac*(ar[jj]-wbot)+0.499 ;
+           }
+           break ;
+
+           case MRI_short:{
+             short *ar = mri_data_pointer( im ) ;
+             for( jj=0 ; jj < im->nvox ; jj++ )
+               ar[jj] = (ar[jj] <= wbot) ? 0
+                       :(ar[jj] >  wtop) ? ymax
+                                         : wfac*(ar[jj]-wbot)+0.499 ;
+           }
+           break ;
+
+           case MRI_int:{
+             int *ar = mri_data_pointer( im ) ;
+             for( jj=0 ; jj < im->nvox ; jj++ )
+               ar[jj] = (ar[jj] <= wbot) ? 0
+                       :(ar[jj] >  wtop) ? ymax
+                                         : wfac*(ar[jj]-wbot)+0.499 ;
+           }
+           break ;
+         }
+       }
+     }
+   } /* end of Window */
+
    /*-- store some extra information in MRILIB globals, too? --*/
 
    if( dt > 0.0 && MRILIB_tr <= 0.0 ) MRILIB_tr = dt ;  /* TR */
@@ -697,6 +844,9 @@ MCHECK ;
          kor = 6 - abs(ior)-abs(jor) ;   /* which spatial direction is z-axis */
                                          /* where 1=L-R, 2=P-A, 3=I-S */
          have_orients = 1 ;
+#if 0
+fprintf(stderr,"MRILIB_orients=%s (from IMAGE_ORIENTATION)\n",MRILIB_orients) ;
+#endif
        }
      }
 
@@ -747,13 +897,13 @@ MCHECK ;
 
      /* finish z orientation now */
 
-     if( z1-z0 < 0.0 ) kor = -kor ;
+     if( z1-z0 < 0.0 ) kor = -kor ;     /* reversed orientation */
      if( MRILIB_orients[4] == '\0' ){
        switch( kor ){
-         case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
-         case -1: MRILIB_orients[4] = 'R'; MRILIB_orients[5] = 'L'; break;
-         case  2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
-         case -2: MRILIB_orients[4] = 'A'; MRILIB_orients[5] = 'P'; break;
+         case  1: MRILIB_orients[4] = 'R'; MRILIB_orients[5] = 'L'; break;
+         case -1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
+         case  2: MRILIB_orients[4] = 'A'; MRILIB_orients[5] = 'P'; break;
+         case -2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
          case  3: MRILIB_orients[4] = 'I'; MRILIB_orients[5] = 'S'; break;
          case -3: MRILIB_orients[4] = 'S'; MRILIB_orients[5] = 'I'; break;
          default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
@@ -769,6 +919,9 @@ fprintf(stderr,"z0=%f z1=%f kor=%d MRILIB_orients=%s\n",z0,z1,kor,MRILIB_orients
      if( kor > 0 ) MRILIB_zoff = -MRILIB_zoff ;
    }
 
+   /** use image position vector to set offsets,
+       and (2cd time in) the z-axis orientation **/
+
    if( nzoff < 2 && epos[E_IMAGE_POSITION] != NULL && have_orients ){
      ddd = strstr(epos[E_IMAGE_POSITION],"//") ;
      if( ddd != NULL ){
@@ -777,6 +930,10 @@ fprintf(stderr,"z0=%f z1=%f kor=%d MRILIB_orients=%s\n",z0,z1,kor,MRILIB_orients
        if( qq == 3 ){
          static float zoff ;      /* saved from nzoff=0 case */
          float zz = xyz[kor-1] ;  /* kor from orients above */
+
+#if 0
+fprintf(stderr,"IMAGE_POSITION=%f %f %f  kor=%d\n",xyz[0],xyz[1],xyz[2],kor) ;
+#endif
 
          if( nzoff == 0 ){  /* 1st DICOM image */
 
@@ -817,11 +974,14 @@ fprintf(stderr,"z0=%f z1=%f kor=%d MRILIB_orients=%s\n",z0,z1,kor,MRILIB_orients
 
            float qoff = zz - zoff ;    /* vive la difference */
            if( qoff < 0 ) kor = -kor ; /* kor determines z-axis orientation */
+#if 0
+fprintf(stderr,"  nzoff=1 kor=%d qoff=%f\n",kor,qoff) ;
+#endif
            switch( kor ){
-             case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
-             case -1: MRILIB_orients[4] = 'R'; MRILIB_orients[5] = 'L'; break;
-             case  2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
-             case -2: MRILIB_orients[4] = 'A'; MRILIB_orients[5] = 'P'; break;
+             case  1: MRILIB_orients[4] = 'R'; MRILIB_orients[5] = 'L'; break;
+             case -1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
+             case  2: MRILIB_orients[4] = 'A'; MRILIB_orients[5] = 'P'; break;
+             case -2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
              case  3: MRILIB_orients[4] = 'I'; MRILIB_orients[5] = 'S'; break;
              case -3: MRILIB_orients[4] = 'S'; MRILIB_orients[5] = 'I'; break;
              default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
@@ -838,7 +998,67 @@ fprintf(stderr,"z0=%f z1=%f kor=%d MRILIB_orients=%s\n",z0,z1,kor,MRILIB_orients
          nzoff++ ;  /* 3rd and later images don't count for z-orientation */
        }
      }
-   }  /* end of image position */
+   }  /* end of using image position */
+
+   /** 23 Dec 2002:
+       use slice location value to set z-offset,
+       and (2cd time in) the z-axis orientation
+       -- only try this if image position vector (code above) isn't present
+          AND if we don't have a mosaic image (which already did this stuff)
+       -- shouldn't be necessary, since slice location is deprecated        **/
+
+   else if( nzoff < 2 && epos[E_SLICE_LOCATION] != NULL && have_orients && !mosaic ){
+     ddd = strstr(epos[E_SLICE_LOCATION],"//") ;
+     if( ddd != NULL ){
+       float zz ; int qq ;
+       qq = sscanf(ddd+2,"%f",&zz) ;
+       if( qq == 1 ){
+         static float zoff ;      /* saved from nzoff=0 case */
+
+#if 0
+fprintf(stderr,"SLICE_LOCATION = %f\n",zz) ;
+#endif
+
+         if( nzoff == 0 ){  /* 1st DICOM image */
+
+           zoff = zz ;      /* save this for 2nd image calculation */
+
+           if( MRILIB_orients[4] == '\0' ){
+             switch( kor ){   /* may be changed on second image */
+               case  1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
+               case  2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
+               case  3: MRILIB_orients[4] = 'I'; MRILIB_orients[5] = 'S'; break;
+               default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
+             }
+             MRILIB_orients[6] = '\0' ;
+           }
+
+         } else if( nzoff == 1 && !use_MRILIB_zoff ){  /* 2nd DICOM image */
+
+           float qoff = zz - zoff ;    /* vive la difference */
+           if( qoff < 0 ) kor = -kor ; /* kor determines z-axis orientation */
+           switch( kor ){
+             case  1: MRILIB_orients[4] = 'R'; MRILIB_orients[5] = 'L'; break;
+             case -1: MRILIB_orients[4] = 'L'; MRILIB_orients[5] = 'R'; break;
+             case  2: MRILIB_orients[4] = 'A'; MRILIB_orients[5] = 'P'; break;
+             case -2: MRILIB_orients[4] = 'P'; MRILIB_orients[5] = 'A'; break;
+             case  3: MRILIB_orients[4] = 'I'; MRILIB_orients[5] = 'S'; break;
+             case -3: MRILIB_orients[4] = 'S'; MRILIB_orients[5] = 'I'; break;
+             default: MRILIB_orients[4] ='\0'; MRILIB_orients[5] ='\0'; break;
+           }
+           MRILIB_orients[6] = '\0' ;
+
+           /* save spatial offset of first slice              */
+           /* [this needs to be positive in the direction of] */
+           /* [the -z axis, so may need to change its sign  ] */
+
+           MRILIB_zoff = zoff ; use_MRILIB_zoff = 1 ;
+           if( kor > 0 ) MRILIB_zoff = -MRILIB_zoff ;
+         }
+         nzoff++ ;  /* 3rd and later images don't count for z-orientation */
+       }
+     }
+   } /* end of using slice location */
 
    /* perhaps shift data shorts */
 
@@ -879,6 +1099,8 @@ int mri_imcount_dicom( char *fname )
    Siemens_extra_info sexinfo ;                           /* 02 Dec 2002 */
 
 ENTRY("mri_imcount_dicom") ;
+
+   if( str_sexinfo != NULL ){ free(str_sexinfo); str_sexinfo=NULL; }
 
    if( fname == NULL || fname[0] == '\0' ) RETURN(0);
 
@@ -985,7 +1207,7 @@ ENTRY("mri_imcount_dicom") ;
        fclose(fp) ;
        if( str != NULL ){                       /* got good data, so parse it */
          get_siemens_extra_info( str , &sexinfo ) ;
-         free(str) ;
+         str_sexinfo = str ;                    /* 23 Dec 2002 */
        }
      } /* end of decoding Siemens extra info */
 

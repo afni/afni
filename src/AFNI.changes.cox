@@ -4149,3 +4149,21 @@
      system() and chdir() [pretty clever names, huh?].  Also modified
      afni_driver.c to trim trailing blanks from the input command
      before passing it to the handler functions.
+
+20 Dec 2002
+ * Modified niml/niml_do.c to add verb "close_this" to close a stream.
+     This is to let a stream be closed from the other end.
+ * Modified niml/niml_stream.c to send a "close_this" message when
+     a tcp: or shm: stream is closed.
+ * Modified niml/niml_stream.c to mark NI_stream's for "death" in
+     NI_stream_close_keep(), and then avoid using such streams in
+     other functions.  This is to let a stream be closed without
+     freeing its struct.
+
+23 Dec 2002
+ * Modified mri_read_dicom.c to correct error in z-axis orientation from
+     multiple 1-slice datasets - code had been copied from mri_read.c, but
+     that was for GE LPI coords, and DICOM is RAI.
+ * Modified mri_read_dicom.c to use Rescale and Window tags, if turned on
+     by the relevant environment variables.
+ * Modified aiv.c to use globbing on input filenames.

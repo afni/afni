@@ -82,6 +82,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *im ;
    MRI_IMARR *qar ;
    Widget shell ;
+   int gnim ; char **gname ;   /* 23 Dec 2002: glob filenames */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -106,16 +107,21 @@ int main( int argc , char *argv[] )
 
    /* read images */
 
+   MCW_file_expand( argc-iarg , argv+iarg , &gnim , &gname ) ;
+   if( gnim == 0 ){
+     fprintf(stderr,"** No filenames on command line?! **\n"); exit(1);
+   }
+
    INIT_IMARR(MAIN_imar) ;
 
-   for( ii=iarg ; ii < argc ; ii++ ){
+   for( ii=0 ; ii < gnim ; ii++ ){
      if( verb ) fprintf(stderr,"+") ;
-     qar = mri_read_file( argv[ii] ) ;  /* may have more than 1 image */
+     qar = mri_read_file( gname[ii] ) ;  /* may have more than 1 image */
      if( qar == NULL || IMARR_COUNT(qar) < 1 ){
-       fprintf(stderr,"\n** Can't read image %s - skipping **\n",argv[ii]) ;
+       fprintf(stderr,"\n** Can't read file %s - skipping **\n",gname[ii]) ;
        continue ;
      } else if( verb ){
-       fprintf(stderr,"%s",argv[ii]) ;
+       fprintf(stderr,"%s",gname[ii]) ;
      }
 
      for( jj=0 ; jj < IMARR_COUNT(qar) ; jj++ ){
@@ -126,13 +132,16 @@ int main( int argc , char *argv[] )
    }
 
    if( IMARR_COUNT(MAIN_imar) == 0 ){
-     fprintf(stderr,"\n** NO IMAGES? **\n") ; exit(1) ;
+     fprintf(stderr,"\n** NO IMAGES FOUND!? **\n") ; exit(1) ;
    }
    if( verb ) fprintf(stderr," = ") ;
    if( IMARR_COUNT(MAIN_imar) == 1 )
      fprintf(stderr,"1 image") ;
    else
      fprintf(stderr,"%d images\n",IMARR_COUNT(MAIN_imar)) ;
+
+   MCW_free_expand( gnim , gname ) ;
+
 
    /* connect to X11 */
 
