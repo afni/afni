@@ -2838,9 +2838,13 @@ extern "C" {
 #define ON		1
 #define REGEX_SIZE	128
 
-#if !defined(LINUX) && !defined(IRIX) && !defined(DARWIN) && !defined(SGI) && !defined(FreeBSD)
+#if 0
+#if !defined(LINUX) && !defined(IRIX) && !defined(DARWIN) && !defined(SGI)
 char *re_comp(char *);
 int re_exec(char *);
+#endif
+char *UTL_ConvertRegex(char *regex);
+CONDITION UTL_RegexMatch(char *regex, char *stm);
 #endif
 
 typedef struct {
@@ -2848,7 +2852,6 @@ typedef struct {
   char path[1024];
 } UTL_FILEITEM;
 
-char *UTL_ConvertRegex(char *regex);
 
 long UTL_ConvertDatetoLong(const char *date);
 double UTL_ConvertTimetoFloat(const char *time);
@@ -2860,7 +2863,6 @@ void UTL_SqueezeBlanks(char *s);
 void UTL_GetDicomDate(char *date);
 void UTL_GetDicomTime(char *time);
 
-CONDITION UTL_RegexMatch(char *regex, char *stm);
 CONDITION UTL_DateMatch(char *datestring, char *stm);
 CONDITION UTL_TimeMatch(char *timestring, char *stm);
 

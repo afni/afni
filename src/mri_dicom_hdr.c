@@ -11191,7 +11191,7 @@ LST_Index(LST_HEAD ** l, int index)
 ** Status:		$State$
 */
 
-#ifndef _MSC_VER
+#if 0
 /* UTL_RegexMatch
 **
 ** Purpose:
