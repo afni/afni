@@ -153,7 +153,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      THD_load_minc( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
-       THD_load_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
      STATUS("can't read MINC file?!") ;
@@ -165,7 +165,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
        THD_load_tcat( blk ) ;
        ii = THD_count_databricks( blk ) ;
        if( ii == blk->nvals ){
-         THD_load_statistics( (THD_3dim_dataset *)blk->parent ) ;
+         THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
          RETURN( True ) ;
        }
        STATUS("can't read tcat-ed file?!") ;
@@ -177,7 +177,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      THD_load_analyze( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
-       THD_load_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
      STATUS("can't read ANALYZE file?!") ;
@@ -188,7 +188,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      THD_load_ctfmri( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
-       THD_load_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
      STATUS("can't read CTF MRI file?!") ;
@@ -199,7 +199,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      THD_load_ctfsam( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
-       THD_load_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
      STATUS("can't read CTF SAM file?!") ;
@@ -210,7 +210,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      THD_load_1D( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
-       THD_load_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
      STATUS("can't read 1D dataset file?!") ;
@@ -221,7 +221,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      THD_load_3D( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
-       THD_load_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
      STATUS("can't read 3D dataset file?!") ;
@@ -232,7 +232,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      THD_load_nifti( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
-       THD_load_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
      STATUS("can't read NIFTI dataset file?!") ;
@@ -243,7 +243,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
      THD_load_mpeg( blk ) ;
      ii = THD_count_databricks( blk ) ;
      if( ii == blk->nvals ){
-       THD_load_statistics( (THD_3dim_dataset *)blk->parent ) ;
+       THD_update_statistics( (THD_3dim_dataset *)blk->parent ) ;
        RETURN( True ) ;
      }
      STATUS("can't read MPEG dataset file?!") ;

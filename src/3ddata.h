@@ -2048,9 +2048,10 @@ typedef struct THD_3dim_dataset {
 
 /*! Determine if ds is a pointer to a valid dataset. */
 
-#define ISVALID_3DIM_DATASET(ds) \
+#define ISVALID_3DIM_DATASET(ds)                      \
    ( (ds) != NULL && (ds)->type >= FIRST_3DIM_TYPE && \
-                     (ds)->type <= LAST_3DIM_TYPE )
+                     (ds)->type <= LAST_3DIM_TYPE  && \
+      ISVALID_DATABLOCK((ds)->dblk)                  )
 
 /*! Determine if ds is a pointer to a valid dataset. */
 
@@ -3337,6 +3338,7 @@ extern void THD_check_idcodes( THD_sessionlist * ) ; /* 08 Jun 1999 */
 extern void THD_load_statistics( THD_3dim_dataset * ) ;
 extern void THD_update_statistics( THD_3dim_dataset * ) ;
 extern THD_brick_stats THD_get_brick_stats( MRI_IMAGE * ) ;
+extern void THD_update_one_bstat( THD_3dim_dataset * , int ) ; /* 29 Mar 2005 */
 
 extern THD_fvec3 THD_3dind_to_3dmm( THD_3dim_dataset * , THD_ivec3 ) ;
 extern THD_fvec3 THD_3dind_to_3dmm_no_wod( THD_3dim_dataset * , THD_ivec3 ) ;

@@ -265,3 +265,58 @@ void THD_update_statistics( THD_3dim_dataset *dset )
    }
    return ;
 }
+
+/*----------------------------------------------------------------------*/
+/*! Update the statistics of one sub-brick in a dataset. [29 Mar 2005]
+------------------------------------------------------------------------*/
+
+void THD_update_one_bstat( THD_3dim_dataset *dset , int iv )
+{
+   Boolean good ;
+   int ii , mmin , mmax , ibr , nbsold , nbr ;
+   THD_brick_stats *bsold ;
+   short *brkk ;
+
+   /*-- sanity checks --*/
+
+   if( ! ISVALID_3DIM_DATASET(dset)     ) return ;
+   if( iv < 0 || iv >= DSET_NVALS(dset) ) return ;
+
+   /*-- if here, have good data in this dataset --*/
+
+   if( dset->stats == NULL ){                  /* create if not present */
+     dset->stats = myXtNew( THD_statistics ) ;
+     ADDTO_KILL( dset->kl , dset->stats ) ;
+     dset->stats->type   = STATISTICS_TYPE ;
+     dset->stats->parent = (XtPointer) dset ;
+     dset->stats->bstat  = NULL ;
+     dset->stats->nbstat = 0 ;
+     nbsold              = 0 ;
+   } else {
+     nbsold              = dset->stats->nbstat ;
+   }
+
+   if( dset->dblk->nvals > nbsold ){
+     bsold               = dset->stats->bstat ;
+     dset->stats->nbstat = dset->dblk->nvals ;
+     dset->stats->bstat  = (THD_brick_stats *)
+                           XtRealloc( (char *) bsold ,
+                                sizeof(THD_brick_stats) * dset->dblk->nvals ) ;
+     if( bsold != dset->stats->bstat )
+       REPLACE_KILL( dset->kl , bsold , dset->stats->bstat ) ;
+
+     for( ibr=nbsold ; ibr < dset->dblk->nvals ; ibr++ )  /* 11 Mar 2005 */
+       INVALIDATE_BSTAT( dset->stats->bstat[ibr] ) ;
+   }
+
+   if( iv >= nbsold || ! ISVALID_BSTAT(dset->stats->bstat[iv]) ){
+     dset->stats->bstat[iv] = THD_get_brick_stats( DSET_BRICK(dset,iv) ) ;
+
+     if( DSET_BRICK_FACTOR(dset,iv) > 0.0 ){
+       dset->stats->bstat[iv].min *= DSET_BRICK_FACTOR(dset,iv) ;
+       dset->stats->bstat[iv].max *= DSET_BRICK_FACTOR(dset,iv) ;
+     }
+   }
+
+   return ;
+}
