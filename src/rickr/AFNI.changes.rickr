@@ -491,3 +491,11 @@
 15 March 2004:
   * modified 3dfim+.c: init sum to 0.0 in set_fim_thr_level()
 
+17 March 2004:
+  * modifed file_tool.[ch] (-> v3.0), adding binary data editing
+    (this was the original goal of the program, yet it took 18 months...)
+      - added ability to modify 1, 2 or 4-byte signed or unsigned ints
+      - added ability to modify 4 or 8-byte reals (floats or doubles)
+      - added '-ge_off' option to display file offsets for certain GE fields
+      - added '-hist' option to display module history
+
