@@ -620,6 +620,7 @@ typedef struct {
    int    hidden_code ;
 
    Widget hidden_mission_pb ;  /* 06 Jun 2001 */
+   Widget hidden_gamberi_pb ;  /* 14 Oct 2003 */
 
 #endif  /* USE_HIDDEN */
 

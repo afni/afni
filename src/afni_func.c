@@ -4921,8 +4921,8 @@ ENTRY("AFNI_hidden_CB") ;
 
    /****----- Write points -----****/
 
-   if( w == im3d->vwid->prog->hidden_writepts_ijk_pb ||
-       w == im3d->vwid->prog->hidden_writepts_xyz_pb   ){
+   else if( w == im3d->vwid->prog->hidden_writepts_ijk_pb ||
+            w == im3d->vwid->prog->hidden_writepts_xyz_pb   ){
 
       if( im3d->anat_now->pts == NULL || im3d->anat_now->pts->num <= 0 ){
          (void)  MCW_popup_message( im3d->vwid->picture ,
@@ -4949,7 +4949,7 @@ ENTRY("AFNI_hidden_CB") ;
 
    /****----- Show points -----****/
 
-   if( w == im3d->vwid->prog->hidden_colorpts_pb ){
+   else if( w == im3d->vwid->prog->hidden_colorpts_pb ){
 
       POPDOWN_string_chooser ;
 
@@ -4963,7 +4963,7 @@ ENTRY("AFNI_hidden_CB") ;
 
    /****----- Mission Statement -----****/
 
-   if( w == im3d->vwid->prog->hidden_mission_pb ){
+   else if( w == im3d->vwid->prog->hidden_mission_pb ){
       (void)  MCW_popup_message( im3d->vwid->picture ,
                                     " \n"
                                     " AFNI Mission Statement\n"
@@ -4975,6 +4975,40 @@ ENTRY("AFNI_hidden_CB") ;
                                     " stop bugging me with their\n"
                                     " pitiful 'quick questions'.\n " ,
                                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   }
+
+   else if( w == im3d->vwid->prog->hidden_gamberi_pb ){
+     (void) MCW_popup_message( im3d->vwid->imag->topper ,
+       " \n"
+       "       The Rime of the Ancient Gamberi Cattivi\n"
+       "       (with apologies to Coleridge and Dante)\n"
+       "      -----------------------------------------\n\n"
+       " Illuminato dal sole toscano,\n"
+       " volsi lo sguardo all'orizzonte;\n"
+       " nel mare bagnavo la mano,\n"
+       " e al cielo volgevo la fronte.\n"
+       " \n"
+       " D'improvviso dal mare schiumante,\n"
+       " due gamberi killer cattivi si avvicinarono.\n"
+       " Uno stiletto mi poser d'innante,\n"
+       " mentre i lunghi baffi neri si accarezzavano.\n"
+       " \n"
+       " Il piu giovane ordino:\n"
+       "  \"La macchina fotografica dalla giacca sgancia!\"\n"
+       " mentre la lama premeva forte la guancia.\n"
+       " Prima di dichiarare \"Del Governo e proprieta,\n"
+       " sul mio corpo il nemico passar dovra!\",\n"
+       " il gambero malvagio nella bocca la camera si fionda\n"
+       " e del Tirreno scuro e profondo ritorna a prender l'onda.\n"
+       " \n"
+       " Roberto Cox \"il Magnifico\" di Milwuakee e il dottor Emiliano\n"
+       " corrono al grido di Ziad, ma e tutto invano.\n"
+       " \n"
+       " Ai nostri eroi non resta che accettare l'accaduto,\n"
+       " e a tutta Italia AFNI e SUMA insegnare.\n"
+       " Scusateci se lo stile e un po' caduto,\n"
+       " ma e la scusa per l'anno prossimo a Pisa ritornare.\n" ,
+                                 MCW_USER_KILL ) ;
    }
 
    /****----- Get Outta Here -----****/

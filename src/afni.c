@@ -281,6 +281,40 @@ void AFNI_syntax(void)
      , DEFAULT_NGRAY
    ) ;
 
+   printf(
+    "\n"
+    "\n"
+    "REFERENCES\n"
+    "----------\n"
+    "The following papers describe some of the components of the AFNI package.\n"
+    "\n"
+    " RW Cox.  AFNI: Software for analysis and visualization of functional\n"
+    "    magnetic resonance neuroimages.  Computers and Biomedical Research,\n"
+    "    29: 162-173, 1996.\n"
+    "\n"
+    "  * The first AFNI paper, and the one I prefer you cite if you want to\n"
+    "    refer to the AFNI package as a whole.\n"
+    "\n"
+    " RW Cox, A Jesmanowicz, and JS Hyde.  Real-time functional magnetic\n"
+    "    resonance imaging.  Magnetic Resonance in Medicine, 33: 230-236, 1995.\n"
+    "\n"
+    "  * The first paper on realtime FMRI; describes the algorithm used in\n"
+    "    3dfim+ and the interactive AFNI FIM calculations.\n"
+    "\n"
+    " RW Cox and JS Hyde.  Software tools for analysis and visualization of\n"
+    "    FMRI Data.  NMR in Biomedicine, 10: 171-178, 1997.\n"
+    "\n"
+    " RW Cox and A Jesmanowicz.  Real-time 3D image registration for\n"
+    "    functional MRI.  Magnetic Resonance in Medicine, 42: 1014-1018, 1999.\n"
+    "\n"
+    "  * Describes the algorithm used in 3dvolreg and in the realtime plugin.\n"
+    "\n"
+    " ZS Saad, KM Ropella, RW Cox, and EA DeYoe.  Analysis and use of FMRI\n"
+    "    response delays.  Human Brain Mapping, 13: 74-93, 2001.\n"
+    "\n"
+    "  * Describes the algorithm used in 3ddelay (cf. '3ddelay -help').\n"
+   ) ;
+
    exit(0) ;
 }
 
