@@ -11,6 +11,9 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include
 LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib -R/usr/dt/lib:/usr/openwin/lib:/usr/lib
 
+CCSVD  = $(CCFAST)
+
+
 # These extra libraries are for Suns
 
 EXTRA_LIBS = -lsocket -lnsl -lgen -ldl
