@@ -3347,3 +3347,8 @@
       into substrings (separated by NULs) and execute them all.  This will
       let AFNI catch up when a plugout races ahead during a dataset read
       or a window resize, for example.
+
+27 Nov 2001
+ * Modified mri_read.c to apply the "funused1" entry in the Analyze .hdr
+      file as a scale factor.
+ * Added mri_scale_inplace() function (mri_scale.c).

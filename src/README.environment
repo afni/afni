@@ -1026,6 +1026,15 @@ conversion back to bytes, the resulting AFNI dataset values will
 all be zero.  Setting AFNI_MINC_FLOATIZE to YES will cause the
 scaled values to be stored as floats.
 
+----------------------------
+Variable: AFNI_SCALE_ANALYZE
+----------------------------
+If this YES/NO variable is set to NO, then the "funused1" entry
+in the Mayo Analyze .hdr file will not be used as a scale factor
+for the images contained in the corresponding .img file.  Otherwise,
+if funused1 is positive and not equal to 1.0, all the image data
+in the .img file will be scaled by this value.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |

@@ -1365,7 +1365,8 @@ MRI_IMARR * mri_read_3A( char * tname )
 
 /*---------------------------------------------------------------------------
    Stuff to read an ANALYZE 7.5 .img file, given the .hdr filename
-   -- 05 Feb 2001 -- RWCox
+   -- 05 Feb 2001 - RWCox
+   -- 27 Nov 2001 - modified to use funused1 as a scale factor
 -----------------------------------------------------------------------------*/
 
 #include "mayo_analyze.h"
@@ -1492,6 +1493,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
    MRI_IMARR * newar ;
    MRI_IMAGE * newim ;
    void      * imar ;
+   float fac=0.0 ;    /* 27 Nov 2001 */
 
    /* check & prepare filenames */
 
@@ -1516,6 +1518,14 @@ MRI_IMARR * mri_read_analyze75( char * hname )
 
    doswap = (hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15) ;
    if( doswap ) swap_analyze_hdr( &hdr ) ;
+
+   /* 27 Nov 2001: get a scale factor for images */
+
+   if( !AFNI_noenv("AFNI_SCALE_ANALYZE") ){
+      fac = hdr.dime.funused1 ;
+      (void) thd_floatscan( 1 , &fac ) ;
+      if( fac < 0.0 || fac == 1.0 ) fac = 0.0 ;
+   }
 
    /** fprintf(stderr,"mri_read_analyze75: doswap=%d\n",doswap) ; **/
 
@@ -1616,6 +1626,10 @@ MRI_IMARR * mri_read_analyze75( char * hname )
 
       newim->dx = dx ; newim->dy = dy ; newim->dz = dz ; newim->dw = 1.0 ;
       ADDTO_IMARR(newar,newim) ;
+
+      /* 27 Nov 2001: scale image? */
+
+      if( fac != 0.0 ) mri_scale_inplace( fac , newim ) ;
    }
 
    /** fprintf(stderr,"mri_read_analyze75: about to return\n") ; **/

@@ -514,6 +514,8 @@ extern MRI_IMAGE *mri_rota_variable( int, MRI_IMAGE * , float,float,float ) ;
 extern MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *,int,float,float,float,float) ;
 extern MRI_IMAGE *mri_aff2d_rgb ( MRI_IMAGE *,int,float,float,float,float) ;
 
+extern void mri_scale_inplace( float , MRI_IMAGE * ) ; /* 27 Nov 2001 */
+
 extern void ft_shift2( int, int, float, float *, float, float * ) ;
 
 extern MRI_IMAGE *mri_float_func( int,int,

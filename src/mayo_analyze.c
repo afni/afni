@@ -9,21 +9,32 @@ void swap_short(void *);
 int main( int argc , char * argv[] )
 {
     struct dsr hdr;
-    int size;
+    int size, nn ;
     double cmax, cmin;
     FILE *fp;
 
-    if((fp=fopen(argv[1],"r"))==NULL)
-    {
-        fprintf(stderr,"Can't open:<%s>\n", argv[1]);
-        exit(0);
+    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
+      printf("Usage: mayo_analyze file.hdr ...\n"
+             "Prints out info from the Mayo Analyze 7.5 header file(s)\n"
+      ) ;
+      exit(0) ;
     }
-    fread(&hdr,1,sizeof(struct dsr),fp);
 
-    if(hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15)
-       swap_hdr(&hdr);
+    for( nn=1 ; nn < argc ; nn++ ){
 
-    ShowHdr(argv[1], &hdr);
+       if((fp=fopen(argv[nn],"r"))==NULL){
+           fprintf(stderr,"Can't open:<%s>\n", argv[1]);
+           continue ;
+       }
+       fread(&hdr,1,sizeof(struct dsr),fp);
+
+       if(hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15)
+          swap_hdr(&hdr);
+
+       ShowHdr(argv[nn], &hdr);
+       fclose(fp) ;
+    }
+    exit(0) ;
 }
 
 
@@ -67,10 +78,10 @@ void ShowHdr(char *fileName, struct dsr *hdr)
    printf("funused3:   <%6.4f> \n", hdr->dime.funused3);
    printf("cal_max:    <%6.4f> \n", hdr->dime.cal_max);
    printf("cal_min:    <%6.4f> \n", hdr->dime.cal_min);
-   printf("compressed: <%d> \n", hdr->dime.compressed);
-   printf("verified:   <%d> \n", hdr->dime.verified);
-   printf("glmax:      <%d> \n", hdr->dime.glmax);
-   printf("glmin:      <%d> \n", hdr->dime.glmin);
+   printf("compressed: <%6.4f> \n", hdr->dime.compressed);
+   printf("verified:   <%6.4f> \n", hdr->dime.verified);
+   printf("glmax:      <%d>    \n", hdr->dime.glmax);
+   printf("glmin:      <%d>    \n", hdr->dime.glmin);
 
 /* Data History */
    strncpy(string,hdr->hist.descrip,80);
