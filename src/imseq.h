@@ -475,12 +475,19 @@ typedef struct MCW_imseq {
      int           crop_drag ;
 
      int button2_width ;                              /* 08 Oct 2002 */
+
+     int cursor_state ;                               /* 10 Mar 2003 */
 } MCW_imseq ;
 
 extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
 extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_crop_pb_CB( Widget, XtPointer, XtPointer ) ;
 extern void ISQ_actually_pan( MCW_imseq * , int , int ) ;
+
+#define CURSOR_NORMAL 0                               /* 10 Mar 2003 */
+#define CURSOR_PENCIL 1
+
+extern void ISQ_set_cursor_state( MCW_imseq * , int ) ;
 
 /*--------------------------------------------------------------------*/
 
