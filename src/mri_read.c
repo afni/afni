@@ -29,7 +29,7 @@
 
 /*!\brief Global variable to signal image orientation, if possible. */
 
-char MRILIB_orients[8] = "\0" ;  /* 12 Mar 2001 */
+char MRILIB_orients[8] = "\0\0\0\0\0\0\0\0" ;  /* 12 Mar 2001 */
 
 /*!\brief Global variable to signal image slice offset, if possible. */
 
@@ -889,7 +889,7 @@ MRI_IMARR * mri_read_file( char * fname )
 
       /* 19 Jul 2002: see if it is a DICOM file */
 
-      newar = mri_read_dicom( new_fname ) ;
+      newar = mri_read_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
 
       if( newar == NULL ){   /* DICOM failed */
         newim = mri_read( new_fname ) ;      /* read from a 2D file */
@@ -1044,7 +1044,7 @@ int mri_imcount( char * tname )
 
    /*** 19 Jul 2002: see if it is a DICOM file ***/
 
-   nz = mri_imcount_dicom( new_fname ) ;
+   nz = mri_imcount_dicom( new_fname ) ;  /* cf. mri_read_dicom.c */
    if( nz > 0 ) return nz ;
 
    /*** 05 Feb 2001: deal with ANALYZE .hdr files ***/

@@ -2700,7 +2700,7 @@ typedef struct {
       int num_anat ;                  /*!< Number of anatomical datasets */
       int num_func ;                  /*!< Number of functional dataset */
       char sessname[THD_MAX_NAME] ;   /*!< Name of directory datasets were read from */
-      char lastname[THD_MAX_LABEL] ;  /*!< Just/the/last/name of the directory */
+      char lastname[THD_MAX_NAME] ;   /*!< Just/the/last/name of the directory */
 
       THD_3dim_dataset * anat[THD_MAX_SESSION_ANAT][LAST_VIEW_TYPE+1] ;  /*!< array of anatomical datasets */
       THD_3dim_dataset * func[THD_MAX_SESSION_FUNC][LAST_VIEW_TYPE+1] ;  /*!< array of functional datasets */
