@@ -530,4 +530,8 @@ extern double poisson_t2p ( double xx , double lambda ) ;
 #include "cdflib.h"
 /*------------------------------------------------------------------------*/
 
+/*-----------------  01 Feb 1998: incoroporation of mcw_glob -------------*/
+#include "mcw_glob.h"
+/*------------------------------------------------------------------------*/
+
 #endif /* _MCW_MRILIB_HEADER_ */

@@ -19,7 +19,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             3dmaker.o afni_setup.o                         \
             $(IMOBJS)
 
-T3OBJS  = to3d.o 3ddata.o mcw_glob.o $(IMOBJS)
+T3OBJS  = to3d.o 3ddata.o $(IMOBJS)
 
 MISC    = afni.montage AFNI.Xdefaults mF64 mF128 gmovie 3d*.lib
 
@@ -28,7 +28,7 @@ MISC    = afni.montage AFNI.Xdefaults mF64 mF128 gmovie 3d*.lib
 ## package -- other programs are experimental and/or outsiders.
 
 PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
-           sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat \
+           sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals \
            fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
            p2t 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 \
            waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket \
@@ -113,9 +113,9 @@ pcorsh.o:pcor.c pcor.h
 	$(CC) -c pcorsh.c $(IFLAGS) -DREF_FLOAT_SINGLE -DVOX_SHORT
 	$(RM) pcorsh.c
 
-FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o mcw_glob.o
+FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o
 	$(RM) $@
-	$(CC) -o FD2 FD2.o mcw.o overfim.o ts.o pcorsh.o mcw_glob.o $(LFLAGS) $(LLIBS)
+	$(CC) -o FD2 FD2.o mcw.o overfim.o ts.o pcorsh.o $(LFLAGS) $(LLIBS)
 
 dFD2:dFD2.o ts.o mcw.o overfim.o pcorsh.o
 	$(RM) $@
@@ -159,6 +159,10 @@ dsetdup:dsetdup.o 3ddata.o
 3ddup:3ddup.o 3ddata.o editvol.o
 	$(RM) $@
 	$(CC) -o 3ddup 3ddup.o 3ddata.o editvol.o $(LFLAGS) $(LLIBS)
+
+3dnvals:3dnvals.o 3ddata.o
+	$(RM) $@
+	$(CC) -o 3dnvals 3dnvals.o 3ddata.o $(LFLAGS) $(LLIBS)
 
 3dproject:3dproject.o 3ddata.o editvol.o
 	$(RM) $@
@@ -324,11 +328,11 @@ dafni:dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
               dafni_slice_short.o dafni_slice_float.o dafni_slice_byte.o \
               dafni_slice_complex.o
 
-dto3d:to3d.c 3ddata.c display.c imseq.c bbox.c xim.c xutil.c mcw_glob.c
+dto3d:to3d.c 3ddata.c display.c imseq.c bbox.c xim.c xutil.c
 	$(CCD) -o dto3d $(IFLAGS) \
-               to3d.c 3ddata.c display.c imseq.c bbox.c xim.c xutil.c mcw_glob.c \
+               to3d.c 3ddata.c display.c imseq.c bbox.c xim.c xutil.c \
                $(LFLAGS) $(LLIBS)
-	$(RM) to3d.o 3ddata.o display.o imseq.o bbox.o xim.o xutil.o mcw_glob.o
+	$(RM) to3d.o 3ddata.o display.o imseq.o bbox.o xim.o xutil.o
 
 ### Special compilations for the reslicing routines, which
 ### are templates that require definition of the data type
@@ -487,7 +491,7 @@ src.tgz:
 	$(RM) $@
 	$(MKDIR) ./SRC
 	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm moveup README* AFNI.* \
-              dist* ./SRC
+              dist* 3d*.lib ./SRC
 	$(TAR) cf - ./SRC | $(GZIP) -9v > src.tgz
 	$(RM) -r ./SRC
 
@@ -581,9 +585,9 @@ CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_72.o cdf_73.o cdf_74.o cdf_75.o cdf_76.o cdf_77.o \
            cdf_78.o cdf_79.o cdf_80.o
 
-libmri.a:mrilib.h $(MRI_OBJS) $(CDF_OBJS)
+libmri.a:mrilib.h $(MRI_OBJS) $(CDF_OBJS) mcw_glob.o
 	$(RM) $@
-	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS)
+	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) mcw_glob.o
 	$(RANLIB) libmri.a
 
 ###################################################################

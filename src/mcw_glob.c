@@ -789,7 +789,9 @@ void MCW_free_expand( int gnum , char ** gout )
 {
    int ii ;
 
+   if( gout == NULL ) return ;
+
    for( ii=0 ; ii < gnum ; ii++ ) free( gout[ii] ) ;
-   if( gout != NULL ) free( gout ) ;
+   free( gout ) ;
    return ;
 }

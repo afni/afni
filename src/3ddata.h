@@ -1969,10 +1969,12 @@ typedef struct {
 /************************************************************************/
 /******************* rest of prototypes *********************************/
 
+#ifndef DONT_USE_SCANDIR
 #ifdef SCANDIR_WANTS_CONST
    extern int THD_select_dirent( const struct dirent * dp ) ;
 #else
    extern int THD_select_dirent( struct dirent * dp ) ;
+#endif
 #endif
 
 extern THD_string_array * THD_get_all_filenames( char * ) ;

@@ -29,6 +29,9 @@
                           routine wants "const" arguments -- setting this
                           flag will avoid some stupid compiler warnings
 
+    DONT_USE_SCANDIR   = if #define-d, the Unix routine scandir won't
+                          be used.  This seems to help on Solaris.
+
     DONT_INSTALL_ICONS = if #define-d, won't try to install icons for the
                           various windows (Sun's OpenWindows complains when
                           I do this, and I don't know why, and I don't care)
@@ -86,6 +89,8 @@
   files don't give a prototype for alphasort.  This is a place to fix
   these things up.
 -------------------------------------------------------------------------*/
+
+#define DONT_USE_SCANDIR
 
 /*** HP-UX ***/
 
