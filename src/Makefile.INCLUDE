@@ -782,6 +782,10 @@ siemens_vision:siemens_vision.o
 	$(RM) $@
 	$(CC) -o siemens_vision siemens_vision.o $(LFLAGS) $(LLIBS)
 
+ge_header:ge_header.o
+	$(RM) $@
+	$(CC) -o ge_header ge_header.o $(LFLAGS) $(LLIBS)
+
 sfim:sfim.o
 	$(RM) $@
 	$(CC) -o sfim sfim.o $(LFLAGS) $(LLIBS)

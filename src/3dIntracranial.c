@@ -25,6 +25,9 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
+  Mod:     Added option to suppress spatial smoothing of segmentation mask.
+  Date:    03 December 2001
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -32,7 +35,7 @@
 #define PROGRAM_NAME "3dIntracranial"                /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
 #define PROGRAM_INITIAL "04 June 1999"    /* date of initial program release */
-#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+#define PROGRAM_LATEST "03 December 2001" /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -54,6 +57,7 @@ static char * prefix_filename = NULL;    /* prefix name for output dataset */
 static Boolean write_mask = FALSE;       /* flag for generate 'fim' mask */
 static Boolean quiet = FALSE;            /* flag for suppress screen output */
 static char * commandline = NULL ;       /* command line for history notes */
+static Boolean nosmooth = FALSE;         /* flag to delete spatial smoothing */
 
 
 /*---------------------------------------------------------------------------*/
@@ -100,6 +104,7 @@ void display_help_menu()
      "                     Default: m=4                                     \n"
      "[-max_conn  n]    Maximum voxel connectivity to leave                 \n"
      "                     Default: n=2                                     \n"
+     "[-nosmooth]       Suppress spatial smoothing of segmentation mask     \n"
      "[-mask]           Generate functional image mask (complement)         \n"
      "                     Default: Generate anatomical image               \n"
      "[-quiet]          Suppress output to screen                           \n"
@@ -221,6 +226,15 @@ void get_options
 	  if ((ival < -1) || (ival > 5))
 	    SI_error ("illegal argument after -max_conn ");
 	  max_conn_int = ival;
+	  nopt++;
+	  continue;
+	}
+
+
+      /*-----   -nosmooth -----*/
+      if (strcmp(argv[nopt], "-nosmooth") == 0)
+	{
+	  nosmooth = TRUE;
 	  nopt++;
 	  continue;
 	}

@@ -3366,3 +3366,8 @@
  * Changes to mri_read() in mri_read.c to understand GEMS headers.
  * Changes to to3d.c to understand the GEMS header stuff, including
       a default TR (if user supplies TR=0).
+
+04 Dec 2001
+ * Cleaned up mri_read.c and to3d.c a little.
+ * Got some small changes to 3dIntracranial.c from Doug Ward (-nosmooth).
+ * New program ge_header.c prints out GEMS header information.

@@ -14,6 +14,9 @@
 
   Mod:     Correction to initialization in center of mass calculation.
   Date:    11 February 2000
+
+  Mod:     Added option to suppress spatial smoothing of segmentation mask.
+  Date:    03 December 2001
 */
 
 
@@ -942,7 +945,9 @@ void segment_volume
 
 
   /*----- Create envelope for segmented image -----*/
-  segment_envelope (cv, cx, cy, cz);
+  if (! nosmooth)
+    segment_envelope (cv, cx, cy, cz);
+ 
 
   return;
 }
