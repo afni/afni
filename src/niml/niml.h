@@ -597,6 +597,7 @@ extern void NI_binary_threshold( NI_stream_type *, int ) ;
 
 extern void * NI_read_element ( NI_stream_type *, int ) ;
 extern int    NI_write_element( NI_stream_type *, void *, int ) ;
+extern int    NI_write_procins( NI_stream_type *, char * ) ; /* 17 Mar 2005 */
 extern int    NI_write_columns( NI_stream_type * ,
                                 int , int * , int , void ** , int ) ;
 extern int    NI_write_rowtype( NI_stream_type * ,

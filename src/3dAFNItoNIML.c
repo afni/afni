@@ -37,11 +37,11 @@ int main( int argc , char *argv[] )
    while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcmp(argv[iarg],"-data") == 0 ){
-       dodata = 1 ; iarg++ ; continue ;
+       dodata++ ; iarg++ ; continue ;
      }
 
      if( strncmp(argv[iarg],"-tcp:",5) == 0 ){
-       strcpy(strname,argv[iarg]+1) ; dodata = 1 ; iarg++ ; continue ;
+       strcpy(strname,argv[iarg]+1) ; dodata++ ; iarg++ ; continue ;
      }
 
      fprintf(stderr,"** Illegal option: %s\n",argv[iarg]); exit(1);
@@ -61,25 +61,32 @@ int main( int argc , char *argv[] )
 
    /*-- convert attributes to NIML --*/
 
-   if( dodata ){
-     DSET_load(dset) ;
-     ngr = THD_dataset_to_niml( dset ) ;
-     DSET_unload(dset) ;
-   } else {
-     ngr = THD_nimlize_dsetatr( dset ) ;
-   }
-   if( ngr == NULL ){
-     fprintf(stderr,"** Can't create NIML element!?\n"); exit(1);
-   }
-   NI_rename_group( ngr , "AFNI_dataset" ) ;
-   NI_set_attribute( ngr , "AFNI_prefix" , DSET_PREFIX(dset) ) ;
+   if( dodata ) DSET_load(dset) ;
+   switch( dodata ){
+     default:
+     case 1:
+       ngr = THD_dataset_to_niml( dset ) ; /* header and data together */
+       DSET_unload(dset) ;
+     break ;
 
-   /*-- open stream to stdout, write element, close stream --*/
+     case 0:
+     case 2:
+       ngr = THD_nimlize_dsetatr( dset ) ;      /* header only for now */
+     break ;
+
+     case 3:
+       ngr = NULL ;           /* will send brick data only, not header */
+     break ;
+   }
+
+   /*-- open output stream --*/
 
    ns_out = NI_stream_open( strname , "w" ) ;
    if( ns_out == NULL ){
      fprintf(stderr,"** Can't create NIML stream!?\n"); exit(1);
    }
+
+   /*-- if have a tcp: stream, must wait for it to connect --*/
 
    if( strcmp(strname,"stdout:") != 0 ){
      int nn , nchk ;
@@ -87,16 +94,37 @@ int main( int argc , char *argv[] )
        nn = NI_stream_writecheck( ns_out , 777 ) ;
        if( nn == 1 ){ if(nchk>0)fprintf(stderr,"\n"); break; }
        if( nn <  0 ){ fprintf(stderr,"** NIML stream failure!?\n"); exit(1); }
+       if( nchk==0 ){ fprintf(stderr,"Waiting"); }
        fprintf(stderr,".") ;
      }
      nn = NI_stream_writecheck( ns_out , 1 ) ;
      if( nn <= 0 ){ fprintf(stderr,"** Can't connect!?\n"); exit(1); }
+
+     if( dodata > 1 ) NI_write_procins( ns_out , "keep_reading" ) ;
    }
 
-   NI_write_element( ns_out , ngr , NI_TEXT_MODE ) ;
-   NI_stream_closenow( ns_out ) ;
+   /*-- if have group element from above, send it now --*/
+
+   if( ngr != NULL ){
+     NI_rename_group( ngr , "AFNI_dataset" ) ;
+     NI_set_attribute( ngr , "AFNI_prefix" , DSET_PREFIX(dset) ) ;
+     NI_write_element( ns_out , ngr , NI_TEXT_MODE ) ;
+     NI_free_element( ngr ) ;
+   }
+
+   /*-- if sending data sub-bricks separately, do that now --*/
+
+   if( dodata > 1 ){
+     int iv ; NI_element *nel ;
+     for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
+       nel = THD_subbrick_to_niml( dset , iv , SBFLAG_INDEX ) ;
+       if( nel != NULL ) NI_write_element( ns_out , nel , NI_BINARY_MODE ) ;
+       NI_free_element(nel) ;
+     }
+   }
 
    /*-- Ciao baby --*/
 
+   NI_stream_closenow( ns_out ) ;
    exit(0) ;
 }

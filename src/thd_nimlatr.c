@@ -27,6 +27,8 @@ ENTRY("THD_nimlize_dsetatr") ;
 
    ngr = NI_new_group_element() ;
 
+   NI_rename_group( ngr , "AFNI_dataset" ) ;
+
    NI_set_attribute( ngr , "AFNI_idcode" , dset->idcode.str ) ;
 
    /* make a data element for each attribute ... */
@@ -440,12 +442,11 @@ ENTRY("THD_dataset_to_niml") ;
    ngr = THD_nimlize_dsetatr( dset ) ;
    if( ngr == NULL ) RETURN(NULL) ;
 
-STATUS("rename group to 'AFNI_dataset'") ;
    NI_rename_group( ngr , "AFNI_dataset" ) ;
 
    /* now add a data element for each sub-brick */
 
-STATUS("adding sub-bricks") ;
+   STATUS("adding sub-bricks") ;
    for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
      nel = THD_subbrick_to_niml( dset , iv , 0 ) ;
      if( nel != NULL ) NI_add_to_group( ngr , nel ) ;
