@@ -39,10 +39,10 @@ void mri_dup2D_mode( int mm )
    Blow up a 2D image nup times, using 7th order polynomial for interpolation.
 --------------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
+MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE *imin )
 {
-   MRI_IMAGE * flim , * newim ;
-   float     * flar , * newar , * cold , * cnew ;
+   MRI_IMAGE *flim , *newim ;
+   float     *flar , *newar , *cold , *cnew ;
    int nx,ny , nxup,nyup , ii,jj,kk ;
 
    /*-- sanity checks --*/
@@ -54,7 +54,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
    /*-- complex-valued images: do each part separately --*/
 
    if( imin->kind == MRI_complex ){
-      MRI_IMARR *impair ; MRI_IMAGE * rim, * iim, * tim ;
+      MRI_IMARR *impair ; MRI_IMAGE *rim, *iim, *tim ;
 
       impair = mri_complex_to_pair( imin ) ;
       if( impair == NULL ){
@@ -72,29 +72,32 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
 
    /*-- 14 Mar 2002: RGB image up by 2..4, all colors at once --*/
 
-   if( imin->kind == MRI_rgb && nup == 4 ) return mri_dup2D_rgb4(imin) ;
-   if( imin->kind == MRI_rgb && nup == 3 ) return mri_dup2D_rgb3(imin) ;
-   if( imin->kind == MRI_rgb && nup == 2 ) return mri_dup2D_rgb2(imin) ;
-
-   /*-- rgb-valued image: do each color separately as a byte image --*/
-
    if( imin->kind == MRI_rgb ){
-      MRI_IMARR *imtriple ; MRI_IMAGE *rim, *gim, *bim, *tim ;
+     switch(nup){
+       case 4: return mri_dup2D_rgb4(imin) ;   /* special purpose fast codes */
+       case 3: return mri_dup2D_rgb3(imin) ;   /* using fixed pt arithmetic  */
+       case 2: return mri_dup2D_rgb2(imin) ;
 
-      imtriple = mri_rgb_to_3byte( imin ) ;
-      if( imtriple == NULL ){
-         fprintf(stderr,"*** mri_rgb_to_3float fails in mri_dup2D!\n"); EXIT(1);
-      }
-      rim = IMAGE_IN_IMARR(imtriple,0) ;
-      gim = IMAGE_IN_IMARR(imtriple,1) ;
-      bim = IMAGE_IN_IMARR(imtriple,2) ; FREE_IMARR(imtriple) ;
-      tim = mri_dup2D( nup, rim ); mri_free(rim); rim = tim;
-      tim = mri_dup2D( nup, gim ); mri_free(gim); gim = tim;
-      tim = mri_dup2D( nup, bim ); mri_free(bim); bim = tim;
-      newim = mri_3to_rgb( rim, gim, bim ) ;
-      mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
-      MRI_COPY_AUX(newim,imin) ;
-      return newim ;
+      /*-- other factors: do each color separately as a byte image --*/
+      default:{
+         MRI_IMARR *imtriple ; MRI_IMAGE *rim, *gim, *bim, *tim ;
+
+         imtriple = mri_rgb_to_3byte( imin ) ;
+         if( imtriple == NULL ){
+           fprintf(stderr,"*** mri_rgb_to_3float fails in mri_dup2D!\n"); EXIT(1);
+         }
+         rim = IMAGE_IN_IMARR(imtriple,0) ;
+         gim = IMAGE_IN_IMARR(imtriple,1) ;
+         bim = IMAGE_IN_IMARR(imtriple,2) ; FREE_IMARR(imtriple) ;
+         tim = mri_dup2D( nup, rim ); mri_free(rim); rim = tim;
+         tim = mri_dup2D( nup, gim ); mri_free(gim); gim = tim;
+         tim = mri_dup2D( nup, bim ); mri_free(bim); bim = tim;
+         newim = mri_3to_rgb( rim, gim, bim ) ;
+         mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
+         MRI_COPY_AUX(newim,imin) ;
+         return newim ;
+       }
+     }
    }
 
    /*-- Special case: byte-valued image upsampled by 2/3/4 [13 Mar 2002] --*/
@@ -105,13 +108,13 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
      nx = imin->nx; ny = imin->ny; nxup = nx*nup; nyup = ny*nup ;
      newim = mri_new( nxup,nyup , MRI_byte ); bnew = MRI_BYTE_PTR(newim);
      switch( nup ){
-       case 2: usbyte = upsample_1by2 ; break ;
+       case 2: usbyte = upsample_1by2 ; break ;  /* special fast codes */
        case 3: usbyte = upsample_1by3 ; break ;
        case 4: usbyte = upsample_1by4 ; break ;
      }
      for( jj=0 ; jj < ny ; jj++ )                      /* upsample rows */
        usbyte( nx , bar+jj*nx , bnew+jj*nxup ) ;
-     cold = (byte *) malloc( sizeof(byte) * ny ) ;
+     cold = (byte *) malloc( sizeof(byte) * ny   ) ;
      cnew = (byte *) malloc( sizeof(byte) * nyup ) ;
      for( ii=0 ; ii < nxup ; ii++ ){                   /* upsample cols */
        for( jj=0 ; jj < ny ; jj++ ) cold[jj] = bnew[ii+jj*nxup] ;

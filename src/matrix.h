@@ -32,9 +32,6 @@
   Mod:      Added functions vector_dotself() and vector_multiply_subtract() -- RWCox.
   Date:     28 Dec 2001
 
-  Mod:      Used "register double *" pointers in some places for speed -- RWCox.
-  Date:     27 Feb 2003
-
 */
 
 /*---------------------------------------------------------------------------*/
@@ -56,7 +53,6 @@ typedef struct vector
   int  dim;
   double * elts;
 } vector;
-
 
 /*---------------------------------------------------------------------------*/
 /*

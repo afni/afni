@@ -879,6 +879,7 @@ void vector_subtract (vector a, vector b, vector * c)
 #endif
 }
 
+#undef VM_DEBUG   /* RWCox */
 
 /*---------------------------------------------------------------------------*/
 /*!
@@ -896,6 +897,15 @@ void vector_multiply (matrix a, vector b, vector * c)
 
   rows = a.rows;
   cols = a.cols;
+
+#ifdef VM_DEBUG
+  { static int ncall=0 ; static double rcsum=0.0 , csum=0.0 , rsum=0.0 ;
+    rcsum += rows*cols; csum+=cols; rsum+=rows; ncall++ ;
+    if( ncall%10000 == 0 )
+      fprintf(stderr,"vector_multiply         : ncall=%7d rbar=%8.2f cbar=%8.2f rcbar=%8.2f  rows=%4d cols=%4d\n",
+              ncall,rsum/ncall,csum/ncall,rcsum/ncall , rows,cols) ;
+  }
+#endif
 
   vector_create_noinit (rows, c);
 
@@ -927,6 +937,15 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
   rows = a.rows;
   cols = a.cols;
 
+#ifdef VM_DEBUG
+  { static int ncall=0 ; static double rcsum=0.0 , csum=0.0 , rsum=0.0 ;
+    rcsum += rows*cols; csum+=cols; rsum+=rows; ncall++ ;
+    if( ncall%10000 == 0 )
+      fprintf(stderr,"vector_multiply_subtract: ncall=%7d rbar=%8.2f cbar=%8.2f rcbar=%8.2f  rows=%4d cols=%4d\n",
+              ncall,rsum/ncall,csum/ncall,rcsum/ncall , rows,cols) ;
+  }
+#endif
+
   vector_create_noinit (rows, d);
 
   qsum = 0.0 ; bb = b.elts ;
@@ -941,7 +960,7 @@ double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 
 /*---------------------------------------------------------------------------*/
 /*!
-  Calculate dot product of vector a with vector b. 
+  Calculate dot product of vector a with vector b.
 */
 
 double vector_dot (vector a, vector b)
