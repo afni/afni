@@ -1,0 +1,39 @@
+
+Welcome to the "Programming OpenGL for the X Window System" GLUT-based
+example source code.  The following table names each example program
+directory and what section of the book discusses the example.
+
+Section        Example directory
+----------     ------------------
+  4.1.1          glutsphere
+  4.4            zoomdino
+  5.1.3          lightlab
+  5.2.4          mjkwarp
+  5.3.3          blender
+  5.4.5          splatlogo
+  5.5.5          molehill
+  5.6.7          origami
+  5.7.4          glutduck (requires Open Inventor and C++)
+  6.6.8          torus_test
+
+To build any of these examples, you must first build the GLUT library
+in "libglut".
+
+NOTE:  This distribution contains a minimal implementation of GLUT 3.1
+(in the "libglut" subdirectory) and its documentation (in the "doc"
+subdirectory).  The full GLUT source code distribution contains lots
+more GLUT examples, tests, and Fortran language bindings.  Please find
+information about the latest GLUT source code distribution at:
+
+  http://reality.sgi.com/mjk_asd/glut3/glut3.html
+
+Or try:
+
+  ftp://sgigate.sgi.com/pub/opengl/xjournal/GLUT
+
+I've tried to make the Makefiles as simple and as portable as
+possible.  If you find problems with these examples, please report bugs
+to mjk@sgi.com
+
+- Mark Kilgard
+
