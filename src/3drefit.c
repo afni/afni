@@ -50,6 +50,12 @@ void Syntax(char * str)
     "               ** SPECIAL CASE: you can use the string 'cen' in place of\n"
     "                  a distance to force that axis to be re-centered.\n"
     "\n"
+    "  -dxorigin dx    Adds distance 'dx' (or 'dy', or 'dz') to the center\n"
+    "  -dyorigin dy    coordinate of the edge voxel.  Can be used with the\n"
+    "  -dzorigin dz    values input to the 'Nudge xyz' plugin.\n"
+    "               ** WARNING: you can't use these options at the same\n"
+    "                  time you use -orient.\n"
+    "\n"
     "  -xdel dimx      Makes the size of the voxel the given dimension,\n"
     "  -ydel dimy      for the given axis (x,y,z); dimensions in mm.\n"
     "  -zdel dimz   ** WARNING: if you change a voxel dimension, you will\n"
@@ -108,7 +114,7 @@ void Syntax(char * str)
 
    printf(
     "\n"
-    "  -type           Changes the type of data that is declared for this\n"
+    "  -'type'         Changes the type of data that is declared for this\n"
     "                  dataset, where 'type' is chosen from the following:\n"
    ) ;
    printf("       ANATOMICAL TYPES\n") ;
@@ -160,9 +166,9 @@ int main( int argc , char * argv[] )
    THD_dataxes      * daxes ;
    int new_stuff = 0 ;
    int new_orient = 0 ; char orient_code[4] ; int xxor,yyor,zzor ;
-   int new_xorg   = 0 ; float xorg ; int cxorg=0 ;
-   int new_yorg   = 0 ; float yorg ; int cyorg=0 ;
-   int new_zorg   = 0 ; float zorg ; int czorg=0 ;
+   int new_xorg   = 0 ; float xorg ; int cxorg=0 , dxorg=0 ;
+   int new_yorg   = 0 ; float yorg ; int cyorg=0 , dyorg=0 ;
+   int new_zorg   = 0 ; float zorg ; int czorg=0 , dzorg=0 ;
    int new_xdel   = 0 ; float xdel ;
    int new_ydel   = 0 ; float ydel ;
    int new_zdel   = 0 ; float zdel ;
@@ -411,6 +417,29 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /* 02 Mar 2000: -d?origin stuff, to go with plug_nudge.c */
+
+      if( strncmp(argv[iarg],"-dxorigin",4) == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -dxorigin!");
+         xorg = strtod(argv[iarg],NULL) ; dxorg = 1 ; cxorg = 0 ;
+         new_xorg = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strncmp(argv[iarg],"-dyorigin",4) == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -dyorigin!");
+         yorg = strtod(argv[iarg],NULL) ; dyorg = 1 ; cyorg = 0 ;
+         new_yorg = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strncmp(argv[iarg],"-dzorigin",4) == 0 ){
+         if( ++iarg >= argc ) Syntax("need an argument after -dzorigin!");
+         zorg = strtod(argv[iarg],NULL) ; dzorg = 1 ; czorg = 0 ;
+         new_zorg = 1 ; new_stuff++ ;
+         iarg++ ; continue ;  /* go to next arg */
+      }
+
       /** -?del dim **/
 
       if( strncmp(argv[iarg],"-xdel",4) == 0 ){
@@ -555,6 +584,9 @@ int main( int argc , char * argv[] )
    if( new_stuff == 0 ) Syntax("No options given!?") ;
    if( iarg >= argc   ) Syntax("No datasets given!?") ;
 
+   if( new_orient && (dxorg || dyorg || dzorg) )     /* 02 Mar 2000 */
+      Syntax("Can't use -orient with -d?origin!?") ;
+
    /*--- process datasets ---*/
 
    for( ; iarg < argc ; iarg++ ){
@@ -604,13 +636,19 @@ int main( int argc , char * argv[] )
       if( cyorg ) yorg = 0.5 * (daxes->nyy - 1) * ydel ;
       if( czorg ) zorg = 0.5 * (daxes->nzz - 1) * zdel ;
 
-      if( new_xorg || new_orient )
+      if( dxorg )
+         daxes->xxorg += xorg ;
+      else if( new_xorg || new_orient )
          daxes->xxorg = (ORIENT_sign[daxes->xxorient] == '+') ? (-xorg) : (xorg) ;
 
-      if( new_yorg || new_orient )
+      if( dyorg )
+         daxes->yyorg += yorg ;
+      else if( new_yorg || new_orient )
          daxes->yyorg = (ORIENT_sign[daxes->yyorient] == '+') ? (-yorg) : (yorg) ;
 
-      if( new_zorg || new_orient )
+      if( dzorg )
+         daxes->zzorg += zorg ;
+      else if( new_zorg || new_orient )
          daxes->zzorg = (ORIENT_sign[daxes->zzorient] == '+') ? (-zorg) : (zorg) ;
 
       if( new_xdel || new_orient )

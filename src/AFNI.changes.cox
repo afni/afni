@@ -2052,3 +2052,7 @@
 
 29 Feb 2000
  * Revived the program 3ddot.c and added masking options.
+
+02 Mar 2000
+ * Added plug_nudge.c to move dataset origins around.
+ * Added -dxorigin (etc.) option to 3drefit.c.

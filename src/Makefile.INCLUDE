@@ -865,7 +865,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_coorder.$(SO)  plug_compress.$(SO) plug_volreg.$(SO)      \
         plug_drawdset.$(SO) plug_maskave.$(SO)  plug_deconvolve.$(SO)  \
         plug_render.$(SO)   plug_notes.$(SO)    plug_histog.$(SO)      \
-        plug_scatplot.$(SO)                                            \
+        plug_scatplot.$(SO) plug_nudge.$(SO)                           \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
@@ -1099,6 +1099,12 @@ unu.o:unu.c
 
 unu:unu.o
 	$(CC) -o unu unu.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+
+ibeta.o:ibeta.c
+	$(CCFAST) -c ibeta.c $(IFLAGS)
+
+ibeta:ibeta.o
+	$(CC) -o ibeta ibeta.o $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
 #include Makefile.DEPENDS

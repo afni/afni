@@ -37,7 +37,7 @@ int main( int argc , char * argv[] )
        "   - change a functional dataset to anatomical, or vice-versa\n"
        "\n"
        "OPTIONS:\n"
-       "  -type             = Convert to the given 'type', which must be\n"
+       "  -'type'           = Convert to the given 'type', which must be\n"
        "                       chosen from the same list as in to3d\n"
        "  -session dirname  = Write output into given directory (default=./)\n"
        "  -prefix  pname    = Use 'pname' for the output directory prefix\n"

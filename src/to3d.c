@@ -2671,7 +2671,7 @@ void Syntax()
     "\n"
     "The available options are\n"
     "  -help   show this message\n"
-    "  -type   declare images to contain data of a given type\n"
+    "  -'type' declare images to contain data of a given type\n"
     "          where 'type' is chosen from the following options:\n" ) ;
 
    printf("       ANATOMICAL TYPES\n") ;
