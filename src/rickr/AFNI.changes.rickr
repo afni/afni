@@ -251,3 +251,21 @@
     questionable strings for printing (old glibc doesn't print (nil))
   * modified Imon.h - increase IFM_EPSILON to 0.01 and IFM_MAX_DEBUG to 4
 
+05 August 2003:
+  * renamed SUMA_3dSurfMaskDump.[ch] to SUMA_3dVol2Surf.[ch]
+  * modified Makefile.INCLUDE and SUMA/SUMA_Makefile_NoDev for 3dVol2Surf
+  * modified SUMA_3dVol2Surf (major re-write -> version 3.0)
+      - all output functions now go through dump_surf_3dt
+      - dump_surf_3dt() is a generalized function to get an MRI_IMARR for one
+        or a pair of nodes, by converting to a segment of points
+      - added v2s_adjust_endpts() to apply segment endpoint modifications
+      - added segment_imarr() to get the segment of points and fill the
+        MRI_IMARR list (along with other info)
+      - filter functions have been taken to v2s_apply_filter()
+      - added min, max and seg_vals map functions (filters)
+      - added options of the form -f_pX_XX to adjust segment endpoints
+      - added -dnode option for specific node debugging
+      - changed -output option to -out_1D
+      - added new debug info
+      - added checking of surface order (process from inner to outer)
+
