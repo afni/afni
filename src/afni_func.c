@@ -3118,7 +3118,7 @@ STATUS("fixing active controllers") ;
 
 void AFNI_rescan_session( int sss )   /* the new way */
 {
-   int vv , ii , nr ;
+   int vv , ii , nr , nnew=0 ;
    THD_session  *new_ss , *old_ss ;
    THD_slist_find find ;
    THD_3dim_dataset *new_dset ;
@@ -3137,13 +3137,6 @@ ENTRY("AFNI_rescan_session") ;
 
                                      /* can't rescan global session */
    if( old_ss == GLOBAL_library.session ) EXRETURN;  /* 21 Dec 2001 */
-
-   /*--- Make sure that the dataset choosers are closed.
-         Since these are just instances of the generic strlist
-         chooser, and we can't tell what is being chosen just now,
-         we'll just forcibly close the strlist chooser no matter what. ---*/
-
-   POPDOWN_strlist_chooser ;
 
    /*--- read in the session again, into a new THD_session struct ---*/
 
@@ -3198,7 +3191,7 @@ STATUS(old_ss->sessname) ;
      if( nr >= THD_MAX_SESSION_ANAT ) break ;      /* old session is full */
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )     /* copy new row to old */
        old_ss->anat[nr][vv] = new_ss->anat[ii][vv];
-     old_ss->num_anat ++ ;                         /* 1 more row in old   */
+     old_ss->num_anat ++ ;  nnew++ ;               /* 1 more row in old   */
    }
    for( ii=0 ; ii < new_ss->num_func ; ii++ ){
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
@@ -3208,7 +3201,7 @@ STATUS(old_ss->sessname) ;
      if( nr >= THD_MAX_SESSION_FUNC ) break ;
      for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
        old_ss->func[nr][vv] = new_ss->func[ii][vv];
-     old_ss->num_func ++ ;
+     old_ss->num_func ++ ;  nnew++ ;
    }
 
    /* assign the warp and anatomy parent pointers;
@@ -3228,6 +3221,13 @@ STATUS(old_ss->sessname) ;
      destroy_Htable( new_ss->warptable ) ;
      new_ss->warptable = NULL ;
    }
+
+   /*--- Make sure that the dataset choosers are closed.
+         Since these are just instances of the generic strlist chooser,
+         and we can't tell what is being chosen just now, we'll just
+         forcibly close the strlist chooser (if we got new datasets). ---*/
+
+   if( nnew ) POPDOWN_strlist_chooser ;
 
    EXRETURN ;
 }
