@@ -5376,3 +5376,6 @@
 
 18 Mar 2005
  * Finished up NIML bulk transfer of datasets to AFNI, etc.
+
+21 Mar 2005
+ * Edgize the overlay.

@@ -167,6 +167,11 @@ typedef struct complex { float r , i ; } complex ;
 #ifndef TYPEDEF_rgbyte
 #define TYPEDEF_rgbyte
 typedef struct rgbyte { byte r,g,b ; } rgbyte ;  /* 15 Feb 1999 */
+
+#undef  RGBZEQ
+#undef  RGBZAS
+#define RGBZEQ(q) ( (q).r==0 && (q).g==0 && (q).b==0 )  /* is == (0,0,0)? */
+#define RGBZAS(q) ( (q).r = (q).g = (q).b = 0 )         /* set = (0,0,0). */
 #endif
 
 static rgbyte tEMp_rgbyte_aAa ;

@@ -1484,7 +1484,7 @@ STATUS("call 13") ;
         AFNI_register_2D_function( "Median21", median21_box_func );
         AFNI_register_2D_function( "Winsor21", winsor21_box_func );
 
-        AFNI_register_2D_function( "|FFT2D|" , fft2D_func ) ;
+        AFNI_register_2D_function( "|FFT2D|", fft2D_func );
 
         /* 01 Feb 2000: see afni_fimfunc.c */
 
