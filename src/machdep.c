@@ -1,6 +1,6 @@
 #include "mrilib.h"
 
-#ifdef LINUX
+#if defined(LINUX)
 # include <malloc.h>
 #endif
 
@@ -18,7 +18,7 @@ void machdep()
    if( AFNI_yesenv("AFNI_FORCE_MCW_MALLOC") ) enable_mcw_malloc();
 #endif
 
-   /*-- disable mmap() in malloc() [mostly] --*/
+   /*-- disable mmap() in malloc() [21 Aug 2002: mostly] --*/
 
 #if defined(LINUX) && defined(M_MMAP_MAX)
    mallopt( M_MMAP_MAX , 1 ) ;
