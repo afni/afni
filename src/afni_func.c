@@ -93,7 +93,7 @@ ENTRY("AFNI_thr_scale_drag CB") ;
 
    if( IM3D_OPEN(im3d)                     &&
        ISVALID_3DIM_DATASET(im3d->fim_now) &&
-       FUNC_HAVE_PVAL(DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->fim_index)) ){
+       FUNC_HAVE_PVAL(DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index)) ){
 
       fff = THR_FACTOR * cbs->value ;
       if( fff >= 0.0 && fff <= 1.0 ) im3d->vinfo->func_threshold = fff ;
