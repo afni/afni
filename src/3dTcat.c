@@ -108,7 +108,7 @@ void TCAT_read_opts( int argc , char * argv[] )
 
       /**** -verb ****/
 
-      if( strncmp(argv[nopt],"-verb",2) == 0 ){
+      if( strncmp(argv[nopt],"-verb",5) == 0 ){
          TCAT_verb++ ;
          nopt++ ; continue ;
       }

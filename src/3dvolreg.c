@@ -1277,7 +1277,7 @@ void VL_command_line(void)
 
       /** -verbose **/
 
-      if( strncmp(Argv[Iarg],"-verbose",4) == 0 ){
+      if( strncmp(Argv[Iarg],"-verbose",5) == 0 ){
          VL_verbose++ ;
          Iarg++ ; continue ;
       }

@@ -54,7 +54,7 @@ int main( int argc , char * argv[] )
    nopt = 1 ;
    while( nopt < argc ){
 
-      if( strcmp(argv[nopt],"-v") == 0 ){
+      if( strcmp(argv[nopt],"-verb") == 0 ){
          verbose++ ;
          nopt++ ; continue ;
       }

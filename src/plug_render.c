@@ -51,8 +51,9 @@ void   REND_opacity_scale_CB  ( MCW_arrowval * , XtPointer ) ;
 
 void REND_finalize_dset_CB( Widget , XtPointer , MCW_choose_cbs * ) ; /* dataset chosen */
 
-void REND_reload_dataset(void) ;                         /* actual reloading work */
-void REND_xhair_overlay(void)  ;                         /* make the crosshairs */
+void REND_reload_dataset(void) ;  /* actual reloading work */
+void REND_xhair_underlay(void) ;  /* make the crosshairs - in the underlay */
+void REND_xhair_overlay(void)  ;  /* make the crosshairs - in the overlay  */
 
 static PLUGIN_interface * plint = NULL ;                 /* what AFNI sees */
 
@@ -159,6 +160,12 @@ static Widget done_pb , help_pb , draw_pb , reload_pb ;
 static MCW_arrowval * roll_av , * pitch_av , * yaw_av , * precalc_av ;
 static MCW_bbox * xhair_bbox , * dynamic_bbox , * accum_bbox ;
 static MCW_arrowval * choose_av , * opacity_scale_av ;
+
+  /* 08 Mar 2001 - stuff for colored xhairs */
+
+extern void REND_xhair_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void REND_xhair_ovc_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
+static int xhair_ovc = 0 ;
 
 static char * REND_dummy_av_label[2] = { "[Nothing At All]" , "[Nothing At All]" } ;
 
@@ -580,6 +587,7 @@ void REND_set_thr_pval(void) ;
 
      float angle_roll , angle_pitch , angle_yaw ;
      int xhair_flag ;
+     int xhair_ovc  ;  /* 08 Mar 2001 */
 
      float func_threshold     ;
      float func_thresh_top    ;
@@ -707,7 +715,7 @@ char * REND_main( PLUGIN_interface * plint )
    XtUnmanageChild( clipbot_faclab ) ;
    XtUnmanageChild( cliptop_faclab ) ;
 
-   MCW_set_bbox( xhair_bbox   , 0 ) ; xhair_flag   = 0 ;
+   MCW_set_bbox( xhair_bbox   , 0 ) ; xhair_flag   = 0 ; xhair_ovc = 0 ;
    MCW_set_bbox( dynamic_bbox , 0 ) ; dynamic_flag = 0 ;
    MCW_set_bbox( accum_bbox   , 0 ) ; accum_flag   = 0 ;
 
@@ -765,7 +773,8 @@ char * REND_main( PLUGIN_interface * plint )
                                    REND_xhair_recv , NULL   ) ;
 #else
    xhair_recv = AFNI_receive_init( im3d ,
-                                   RECEIVE_VIEWPOINT_MASK , REND_xhair_recv , NULL ) ;
+                                   RECEIVE_VIEWPOINT_MASK ,
+                                   REND_xhair_recv , NULL  ) ;
 #endif
 
    MPROBE ;
@@ -1382,6 +1391,19 @@ void REND_make_widgets(void)
                               MCW_BB_check , MCW_BB_noframe ,
                               REND_xhair_CB , NULL ) ;
 
+   /* 08 Mar 2001: Button3 popup to control xhair color */
+
+   XtInsertEventHandler( xhair_bbox->wbut[0] ,
+
+                               0
+                             | ButtonPressMask   /* button presses */
+                            ,
+                            FALSE ,              /* nonmaskable events? */
+                            REND_xhair_EV ,      /* handler */
+                            NULL ,               /* client data */
+                            XtListTail           /* last in queue */
+                        ) ;
+
    MCW_set_bbox( xhair_bbox , xhair_flag ) ;
 
    MCW_reghelp_children( xhair_bbox->wrowcol ,
@@ -1955,7 +1977,7 @@ void REND_reload_dataset(void)
       byte * gar , * opar , * ovar ;
       int nvox = grim->nvox , ii ;
 
-      if( ovim == NULL ) REND_reload_func_dset() ;
+      REND_reload_func_dset() ;
 
       if( num_cutouts > 0 && !func_cut_overlay ){  /* do cutouts NOW if not */
          REND_cutout_blobs(opim) ;                 /* to be done to overlay */
@@ -2016,7 +2038,7 @@ void REND_reload_dataset(void)
          REND_cutout_blobs(opim_showthru) ;
    }
 
-   if( xhair_flag                  ) REND_xhair_overlay() ;
+   if( xhair_flag ) REND_xhair_underlay() ;
 
    MCW_invert_widget(reload_pb) ;  /* turn the signal off */
 
@@ -2120,7 +2142,8 @@ void REND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
    }
 
    if( xhair_flag && CHECK_XHAIR_MOTION ){  /* check for new crosshair position */
-      FREE_VOLUMES ;
+      if( xhair_ovc > 0 && DO_OVERLAY ) INVALIDATE_OVERLAY ;
+      else                              FREE_VOLUMES ;
    }
 
    if( NEED_RELOAD ) REND_reload_dataset() ;
@@ -2344,6 +2367,21 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "   02 Jun 1999: The renderer will now draw partial crosshair sets,\n"
        "        as indicated by the 'Xhairs' chooser in the AFNI control\n"
        "        window from which the renderer was started.\n"
+       "   08 Mar 2001: Right-clicking (mouse button 3) on this toggle will\n"
+       "        popup a color chooser.  If you set the color to something\n"
+       "        besides 'none', AND if you are displaying a color overlay,\n"
+       "        then the crosshairs will be rendered in the overlay (you\n"
+       "        could still choose 'white' for the color, if you like).\n"
+       "    N.B.: If the color opacity is set to 'ShowThru', then the\n"
+       "          crosshairs will show through whatever underlay data\n"
+       "          may be in the way.\n"
+       "    N.B.: If you want only the crosshairs in color, then set the\n"
+       "          theshold on the overlay dataset so high that no actual\n"
+       "          data will show in color.  The crosshair overlay will\n"
+       "          still be visible.\n"
+       "    N.B.: If you change the crosshair gap in the AFNI control panel,\n"
+       "          you will have to press 'Reload' in the renderer to force\n"
+       "          a redraw with the new crosshairs.\n"
        "\n"
        " * If you depress 'DynaDraw', then the image will be re-\n"
        "     rendered immediately whenever certain actions are taken:\n"
@@ -2365,7 +2403,8 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         altered by setting the Unix environment variables\n"
        "         AFNI_RENDER_ANGLE_DELTA and AFNI_RENDER_CUTOUT_DELTA\n"
        "         prior to running AFNI.  Once AFNI is started, these\n"
-       "         stepsizes are fixed.\n"
+       "         stepsizes can only be altered from the\n"
+       "         'Datamode->Misc->Edit Environment' menu item.\n"
        "   N.B.: Other circumstances that will invoke automatic redrawing\n"
        "         when DynaDraw is depressed include:\n"
        "      + The crosshairs are moved in an AFNI image window belonging\n"
@@ -2595,7 +2634,9 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         Then the merging algorithm, at each image pixel, is\n"
        "           if( overlay == 0 ) pixel = underlay;\n"
        "           else               pixel = c * overlay + (1-c) * underlay;\n"
-       "         I personally like the results with c=0.65.\n"
+       "         I personally like the results with c=0.65.  This environment\n"
+       "         variable (and others) can be set from the AFNI control panel\n"
+       "         'Datamode->Misc->Edit Environment' menu item.\n"
        "\n"
        " * 'See Overlay' is used to toggle the color overlay computations\n"
        "     on and off - it should be pressed IN for the overlay to become\n"
@@ -3224,7 +3265,7 @@ void REND_xhair_CB( Widget w , XtPointer cd , XtPointer call_data )
    if( old_xh == xhair_flag ) return ;
 
    CHECK_XHAIR_ERROR ;
-   FREE_VOLUMES ;
+   FREE_VOLUMES ; INVALIDATE_OVERLAY ;
 
    xhair_ixold = -666 ; xhair_jyold = -666 ; xhair_kzold = -666 ; /* forget */
 
@@ -3232,6 +3273,33 @@ void REND_xhair_CB( Widget w , XtPointer cd , XtPointer call_data )
       REND_draw_CB(NULL,NULL,NULL) ;
 
    return ;
+}
+
+/*------------------------------------------------------------------------
+  Event handler for Button #3 popup on xhair toggle -- 08 Mar 2001
+--------------------------------------------------------------------------*/
+
+void REND_xhair_EV( Widget w , XtPointer cd ,
+                    XEvent * ev , Boolean * continue_to_dispatch )
+{
+   switch( ev->type ){
+      case ButtonPress:{
+         XButtonEvent * event = (XButtonEvent *) ev ;
+         if( event->button == Button3 ){
+            MCW_choose_ovcolor( w,dc , xhair_ovc , REND_xhair_ovc_CB,NULL ) ;
+         }
+      }
+      break ;
+   }
+   return ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void REND_xhair_ovc_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   xhair_ovc = cbs->ival ;
+   INVALIDATE_OVERLAY ; FREE_VOLUMES ;
 }
 
 /*-------------------------------------------------------------------------
@@ -3336,7 +3404,7 @@ void REND_accum_CB( Widget w , XtPointer client_data , XtPointer call_data )
 }
 
 /*-----------------------------------------------------------------------
-   Overlay some lines showing the crosshair location.
+   Overlay some white lines showing the crosshair location.
    Note that this function assumes that the current anat dataset
    in AFNI is defined on exactly the same grid as the rendering dataset.
 -------------------------------------------------------------------------*/
@@ -3348,13 +3416,15 @@ void REND_accum_CB( Widget w , XtPointer client_data , XtPointer call_data )
 #define GXH_COLOR 127
 #define OXH       255
 
-void REND_xhair_overlay(void)
+void REND_xhair_underlay(void)
 {
    int ix,jy,kz , nx,ny,nz,nxy , ii , gap , om ;
    byte * gar , * oar ;
    byte   gxh ,   oxh=OXH ;
 
    if( grim == NULL || opim == NULL ) return ;  /* error */
+
+   if( xhair_ovc > 0 && DO_OVERLAY ) return ;   /* 08 Mar 2001 */
 
    gxh = (func_computed) ? GXH_COLOR : GXH_GRAY ;
 
@@ -5835,7 +5905,7 @@ void REND_reload_func_dset(void)
          case MRI_short:{
             short * sar = (short *) car ;
             short * qar = (short *) tar ;
-            short   thr = (short) thresh ;
+            int     thr = (int) thresh  ;
 
             for( lp=0 ; lp < num_lp ; lp++ )
                fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
@@ -5854,7 +5924,7 @@ void REND_reload_func_dset(void)
          case MRI_float:{
             float * sar = (float *) car ;
             float * qar = (float *) tar ;
-            float   thr = (float) thresh ;
+            float   thr = thresh        ;
 
             for( lp=0 ; lp < num_lp ; lp++ )
                fim_thr[lp] = scale_factor * pbar->pval[lp+1] / cfac ;
@@ -5873,7 +5943,7 @@ void REND_reload_func_dset(void)
          case MRI_byte:{
             byte * sar = (byte *) car ;
             byte * qar = (byte *) tar ;
-            byte   thr = (byte) thresh ;
+            int    thr = (int) thresh ;
 
             for( lp=0 ; lp < num_lp ; lp++ )
                if( pbar->pval[lp+1] <= 0.0 )
@@ -5920,6 +5990,65 @@ void REND_reload_func_dset(void)
       }
    }  /* end of cluster removal */
 
+   if( xhair_flag ) REND_xhair_overlay() ; /* 08 Mar 2001 */
+
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+   Overlay some colored lines showing the crosshair location.
+   Note that this function assumes that the current anat dataset
+   in AFNI is defined on exactly the same grid as the rendering dataset.
+   08 Mar 2001 -- Adapted from the grayscale underlay version
+-------------------------------------------------------------------------*/
+
+#define OV(i,j,k) ovar[(i)+(j)*nx+(k)*nxy]
+
+void REND_xhair_overlay(void)
+{
+   int ix,jy,kz , nx,ny,nz,nxy , ii , gap , om ;
+   byte * ovar ;
+   byte   gxh = xhair_ovc ;
+
+   if( ovim == NULL || xhair_ovc == 0 ) return ;  /* error */
+
+   CHECK_XHAIR_ERROR ;
+
+   ix = im3d->vinfo->i1 ; nx = ovim->nx ;
+   jy = im3d->vinfo->j2 ; ny = ovim->ny ; nxy = nx * ny ;
+   kz = im3d->vinfo->k3 ; nz = ovim->nz ;
+
+   om = im3d->vinfo->xhairs_orimask ;  /* 02 Jun 1999 */
+
+   if( ix < 0 || ix >= nx ) return ;  /* error */
+   if( jy < 0 || jy >= ny ) return ;  /* error */
+   if( kz < 0 || kz >= nz ) return ;  /* error */
+
+   gap  = im3d->vinfo->crosshair_gap ;
+   ovar = MRI_BYTE_PTR(ovim) ;
+
+   /* 02 Jun 1999: allow for partial crosshair drawing */
+
+   if( (om & ORIMASK_LR) != 0 ){
+      for( ii=0 ; ii < nx ; ii++ ){
+         if( abs(ii-ix) > gap ){ OV(ii,jy,kz) = gxh ; }
+      }
+   }
+
+   if( (om & ORIMASK_AP) != 0 ){
+      for( ii=0 ; ii < ny ; ii++ ){
+         if( abs(ii-jy) > gap ){ OV(ix,ii,kz) = gxh ; }
+      }
+   }
+
+   if( (om & ORIMASK_IS) != 0 ){
+      for( ii=0 ; ii < nz ; ii++ ){
+         if( abs(ii-kz) > gap ){ OV(ix,jy,ii) = gxh ; }
+      }
+   }
+
+   xhair_ixold = ix ; xhair_jyold = jy ; xhair_kzold = kz ;  /* memory */
+   xhair_omold = om ;                                        /* 02 Jun 1999 */
    return ;
 }
 
@@ -6741,6 +6870,7 @@ RENDER_state_array * REND_read_states( char * fname , RENDER_state * rsbase )
       ASS_FLOAT(angle_roll) ; ASS_FLOAT(angle_pitch) ; ASS_FLOAT(angle_yaw) ;
 
       ASS_INT(xhair_flag) ;
+      ASS_INT(xhair_ovc)  ;  /* 08 Mar 2001 */
 
       ASS_INT(   func_use_autorange ) ;
       ASS_FLOAT( func_threshold     ) ;
@@ -6896,6 +7026,7 @@ char * REND_save_state( RENDER_state * rs , RENDER_state * rsbase )
    RSP_FLOAT(angle_roll) ; RSP_FLOAT(angle_pitch) ; RSP_FLOAT(angle_yaw) ;
 
    RSP_INT(xhair_flag) ;
+   RSP_INT(xhair_ovc) ;  /* 08 Mar 2001 */
 
    RSP_INT(   func_use_autorange ) ; RSP_FLOAT( func_threshold     ) ;
    RSP_FLOAT( func_thresh_top    ) ;
@@ -7039,6 +7170,7 @@ void REND_widgets_to_state( RENDER_state * rs )
 
    TO_RS(angle_roll) ; TO_RS(angle_pitch) ; TO_RS(angle_yaw) ;
    TO_RS(xhair_flag) ;
+   TO_RS(xhair_ovc)  ;  /* 08 Mar 2001 */
 
    if( wfunc_frame != NULL ){
 
@@ -7252,6 +7384,10 @@ fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
    if( RSOK(xhair_flag,0,1) ){
       xhair_flag = rs->xhair_flag ;
       MCW_set_bbox( xhair_bbox , xhair_flag ) ;
+   }
+
+   if( RSOK(xhair_ovc,0,dc->ovc->ncol_ov) ){  /* 08 Mar 2001 */
+      xhair_ovc = rs->xhair_ovc ;
    }
 
    /* change function stuff, if the functional widgets exist */

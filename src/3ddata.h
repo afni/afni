@@ -2365,6 +2365,14 @@ extern int thd_complexscan( int , complex * ) ; /* 14 Sep 1999 */
 extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_countmask( int , byte * ) ;
 
+ /* 08 Mar 2001 - functions for dealing with rows */
+
+extern int THD_get_dset_rowcount( THD_3dim_dataset *, int ) ;
+extern void * THD_get_dset_row( THD_3dim_dataset *, int, int, int,int,int ) ;
+extern void THD_put_dset_row( THD_3dim_dataset *, int,
+                              int, int,int,int, void * row ) ;
+extern int THD_dataset_rowfillin( THD_3dim_dataset *, int, int, int ) ;
+
 /*------------------------------------------------------------------*/
 /*-- October 1998: routines for 3D volume rotation and alignment. --*/
 

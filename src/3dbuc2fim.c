@@ -90,7 +90,7 @@ void B2F_read_opts( int argc , char * argv[] )
          continue ;
       }
 
-      if( strncmp(argv[nopt],"-verb",2) == 0 ){
+      if( strncmp(argv[nopt],"-verb",5) == 0 ){
          B2F_verb = 1 ;
          nopt++ ; continue ;
       }

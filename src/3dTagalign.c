@@ -70,7 +70,7 @@ int main( int argc , char * argv[] )
              "\n"
              " -prefix pp    = Use 'pp' as the prefix for the output dataset.\n"
              "                   [default = 'tagalign']\n"
-             " -v            = Print progress reports\n"
+             " -verb         = Print progress reports\n"
              " -dummy        = Don't actually rotate the dataset, just compute\n"
              "                   the transformation matrix and vector.  If\n"
              "                   '-matvec' is used, the mfile will be written.\n"
@@ -156,7 +156,7 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
-      if( strcmp(argv[iarg],"-v") == 0 || strcmp(argv[iarg],"-verb") == 0 ){
+      if( strncmp(argv[iarg],"-verb",5) == 0 ){
          verb++ ;
          iarg++ ; continue ;
       }

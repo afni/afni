@@ -84,7 +84,7 @@ int main( int argc , char * argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-      if( strcmp(argv[iarg],"-verbose") == 0 ){
+      if( strncmp(argv[iarg],"-verbose",5) == 0 ){
          verbose = 1 ;
          iarg++ ; continue ;
       }

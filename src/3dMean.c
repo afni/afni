@@ -53,7 +53,7 @@ int main( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      if( strcmp(argv[nopt],"-verbose") == 0 ){
+      if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          verb++ ; nopt++ ; continue ;
       }
 

@@ -79,7 +79,7 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-verbose") == 0 ){
+      if( strncmp(argv[iarg],"-verbose",5) == 0 ){
          verbose++ ; iarg++ ; continue ;
       }
 

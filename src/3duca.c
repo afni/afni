@@ -107,7 +107,7 @@ void UC_read_opts( int argc , char * argv[] )
 
       /**** -verbose ****/
 
-      if( strncmp(argv[nopt],"-verbose",6) == 0 ){
+      if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          UC_be_quiet = 0 ;
          nopt++ ; continue ;
       }

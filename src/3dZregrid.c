@@ -136,7 +136,7 @@ int main( int argc , char * argv[] )
              " -zsize Z  = sets thickness of dataset (center-to-center of\n"
              "              first and last slices) to Z mm\n"
              " -prefix P = write result in dataset with prefix P\n"
-             " -v        = write progress reports to stderr\n"
+             " -verb     = write progress reports to stderr\n"
              "\n"
              "At least one of '-dz', '-nz', or '-zsize' must be given.\n"
              "On the other hand, using all 3 is over-specification.\n"
@@ -181,7 +181,7 @@ int main( int argc , char * argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-      if( strcmp(argv[iarg],"-v") == 0 ){
+      if( strncmp(argv[iarg],"-verb",5) == 0 ){
          verb++ ; iarg++ ; continue ;
       }
 

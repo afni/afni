@@ -2676,3 +2676,13 @@
 08 Mar 2001
  * Added median+MAD function to cs_qmed.c.
  * Added display of median+MAD to popup stats in afni_graph.[ch].
+ * Added thd_dsetrow.c, thd_rowfillin.c, 3dRowFillin.c to do row filling
+     between gaps (zeros) of like values.  Intended to complement the
+     drawing plugin.
+ * Modified plug_render.c to allow user to display the xhairs in the
+     color overlay (meaning they can ShowThru).
+
+09 Mar 2001
+ * Fixed 1deval.c so that "-v" option becomes "-verb" (since "-v" had
+     another meaning in that program).  Also modified several other
+     programs so that "-verb" is accepted (instead of "-v" or "-verbose").

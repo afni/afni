@@ -207,7 +207,7 @@ int main( int argc , char * argv[] )
    while( iarg < argc && argv[iarg][0] == '-' ){
 
 #if 0
-      if( strcmp(argv[iarg],"-v") == 0 ){ verbose = 1 ; iarg++ ; continue ; }
+      if( strncmp(argv[iarg],"-v",5) == 0 ){ verbose = 1 ; iarg++ ; continue ; }
 #endif
 
       /*----- -apar aset [14 Oct 1999] -----*/

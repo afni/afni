@@ -196,7 +196,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -verbose [30 April 1998] ****/
 
-      if( strncmp(argv[nopt],"-verbose",6) == 0 ){
+      if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          CALC_verbose = 1 ;
          nopt++ ; continue ;
       }

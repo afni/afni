@@ -328,7 +328,7 @@ int main( int argc , char * argv[] )
          iopt++ ; continue ;
       }
 
-      if( strncmp(argv[iopt],"-verbose",4) == 0 ){
+      if( strncmp(argv[iopt],"-verbose",5) == 0 ){
          verb = 1 ;
          iopt++ ; continue ;
       }

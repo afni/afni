@@ -20,7 +20,7 @@ int main( int argc , char * argv[] )
              "  Repeat until the clip value doesn't change.\n"
              "Options:\n"
              "  -mfrac ff = Use the number ff instead of 0.50 in the algorithm.\n"
-             "  -v        = The clip value is always printed to stdout.  If\n"
+             "  -verb     = The clip value is always printed to stdout.  If\n"
              "                this option is used to select verbose output,\n"
              "                progress reports are printed to stderr as well.\n"
              "\n"
@@ -53,7 +53,7 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
-      if( strcmp(argv[iarg],"-v") == 0 ){
+      if( strncmp(argv[iarg],"-verb",5) == 0 ){
          verb++ ; iarg++ ; continue ;
       }
 

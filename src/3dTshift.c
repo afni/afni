@@ -265,7 +265,7 @@ int main( int argc , char *argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
-      if( strcmp(argv[nopt],"-verbose") == 0 ){
+      if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          TS_verbose++ ;
          nopt++ ; continue ;
       }

@@ -120,7 +120,7 @@ void BUCK_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      if( strncmp(argv[nopt],"-verb",2) == 0 ){
+      if( strncmp(argv[nopt],"-verb",5) == 0 ){
          BUCK_verb = 1 ;
          nopt++ ; continue ;
       }
