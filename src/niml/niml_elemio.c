@@ -866,6 +866,11 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
        outmode = nel->outmode ;
      }
      break ;
+
+     case NI_PROCINS_TYPE:{       /* 16 Mar 2005 */
+       outmode = NI_TEXT_MODE ;
+     }
+     break ;
    }
    if( outmode >= 0 ) tmode = outmode ;
 
@@ -919,9 +924,44 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
    att_trail  = (header_sharp) ? (char *)"\n# "  /* write this before closing ">" */
                                : (char *)" "    ;
 
+   /*------------------ write a processing instruction ------------------*/
+
+   if( tt == NI_PROCINS_TYPE ){
+
+     NI_procins *npi = (NI_procins *)nini ;
+
+     if( header_sharp ){ nout = NI_stream_writestring(ns,"# "); ADDOUT; }
+
+     nout = NI_stream_writestring( ns , "<?"   )    ; ADDOUT ;
+     nout = NI_stream_writestring( ns , npi->name ) ; ADDOUT ;
+
+     /*- attributes -*/
+
+     for( ii=0 ; ii < npi->attr_num ; ii++ ){
+
+       jj = NI_strlen( npi->attr_lhs[ii] ) ; if( jj == 0 ) continue ;
+       nout = NI_stream_writestring( ns , " " ) ; ADDOUT ;
+       if( NI_is_name(npi->attr_lhs[ii]) ){
+         nout = NI_stream_write( ns , npi->attr_lhs[ii] , jj ) ;
+       } else {
+         att = quotize_string( npi->attr_lhs[ii] ) ;
+         nout = NI_stream_writestring( ns , att ) ; NI_free(att) ;
+       }
+       ADDOUT ;
+
+       jj = NI_strlen( npi->attr_rhs[ii] ) ; if( jj == 0 ) continue ;
+       nout = NI_stream_writestring( ns , "=" ) ; ADDOUT ;
+       att = quotize_string( npi->attr_rhs[ii] ) ;
+       nout = NI_stream_writestring( ns , att ) ; NI_free(att) ; ADDOUT ;
+     }
+
+     nout = NI_stream_writestring( ns , " ?>\n" ) ; ADDOUT ;
+
+     return ntot ;   /*** done with processing instruction ***/
+
    /*------------------ write a group element ------------------*/
 
-   if( tt == NI_GROUP_TYPE ){
+   } else if( tt == NI_GROUP_TYPE ){
 
       NI_group *ngr = (NI_group *) nini ;
       char *gname ;
@@ -986,7 +1026,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       nout = NI_stream_writestring( ns , "</ni_group>\n" ) ; ADDOUT ;
 #endif
 
-      return ntot ;
+      return ntot ;   /*** done with group element ***/
 
    /*------------------ write a data element ------------------*/
 
@@ -1214,7 +1254,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 #ifdef NIML_DEBUG
   NI_dpr("NI_write_element: empty element '%s' had %d total bytes\n",nel->name,ntot) ;
 #endif
-        return ntot ;                 /* done with empty element */
+        return ntot ;                 /*** done with empty data element ***/
       }
 
       /*- if here, must write some data out -*/
@@ -1261,7 +1301,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 #ifdef NIML_DEBUG
   NI_dpr("NI_write_element: data element '%s' had %d total bytes\n",nel->name,ntot) ;
 #endif
-      return ntot ;
+      return ntot ;   /*** done with full data element ***/
 
    } /* end of write data element */
 

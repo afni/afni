@@ -559,6 +559,8 @@ extern NI_group * NI_new_group_element(void) ;
 extern void NI_add_to_group( NI_group *, void * ) ;
 extern void NI_rename_group( NI_group *, char * ) ;  /* 03 Jun 2002 */
 
+extern NI_procins * NI_new_processing_instruction( char * ) ;       /* 16 Mar 2005 */
+
 extern void NI_swap_vector( int, int, void * ) ;
 
 /** I/O functions **/
