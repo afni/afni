@@ -841,7 +841,13 @@ void CALC_Syntax(void)
     " used in this program.  You can select a column to be the first by\n"
     " using a sub-vector selection of the form 'b.1D[3]', which will\n"
     " choose the 4th column (since counting starts at 0).\n"
+    "\n"
+    " '{...}' row selectors can also be used - see the output of '1dcat -help'\n"
+    " for more details on these.  Note that if multiple timeseries or 3D+time\n"
+    " or 3D bucket datasets are input, they must all have the same number of\n"
+    " points along the 'time' dimension.\n"
 
+    "\n"
     "'1D:' INPUT:\n"
     " You can input a 1D time series 'dataset' directly on the command line,\n"
     " without an external file.  The 'filename for such input takes the\n"

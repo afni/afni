@@ -39,6 +39,9 @@ int main( int argc , char * argv[] )
              "Examples:\n"
              "  1deval -expr 'sin(2*PI*t)' -del 0.01 -num 101 > sin.1D\n"
              "  1deval -expr 'a*b*x' -a fred.1D -b ethel.1D > x.1D\n"
+
+             "\n"
+             TS_HELP_STRING
             ) ;
       exit(0) ;
    }

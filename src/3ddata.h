@@ -3165,6 +3165,45 @@ extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
    " will let you look at the average of datasets r1+orig and r2+orig.\n"  \
    " N.B.: using this dataset input method will use lots of memory!\n"
 
+/*! Help string to explain 1D column and row selection. [01 May 2003] */
+
+#define TS_HELP_STRING                                                        \
+   "TIMESERIES (1D) INPUT\n"                                                  \
+   "---------------------\n"                                                  \
+   "A timeseries file is in the form of a 1D or 2D table of ASCII numbers;\n" \
+   "for example:   3 5 7\n"                                                   \
+   "               2 4 6\n"                                                   \
+   "               0 3 3\n"                                                   \
+   "               7 2 9\n"                                                   \
+   "This example has 3 rows and 4 columns.  Each column is considered as\n"   \
+   "a timeseries in AFNI.  The convention is to store this type of data\n"    \
+   "in a filename ending in '.1D'.\n"                                         \
+   "\n"                                                                       \
+   "When specifying a timeseries file to an command-line AFNI program, you\n" \
+   "can select a subset of columns using the '[...]' notation:\n"             \
+   "  'fred.1D[5]'            ==> use only column #5\n"                       \
+   "  'fred.1D[5,9,17]'       ==> use columns #5, #9, and #12\n"              \
+   "  'fred.1D[5..8]'         ==> use columns #5, #6, #7, and #8\n"           \
+   "  'fred.1D[5..13(2)]'     ==> use columns #5, #7, #9, #11, and #13\n"     \
+   "Sub-brick indexes start at 0.  You can use the character '$'\n"           \
+   "to indicate the last sub-brick in a dataset; for example, you\n"          \
+   "can select every third sub-brick by using the selection list\n"           \
+   "  'fred.1D[0..$(3)]'      ==> use columns #0, #3, #6, #9, ....\n"         \
+   "Similarly, you select a subset of the rows using the '{...}' notation:\n" \
+   "  'fred.1D{0..$(2)}'      ==> use rows #0, #2, #4, ....\n"                \
+   "You can also use both notations together, as in\n"                        \
+   "  'fred.1D[1,3]{1..$(2)}' ==> columns #1 and #3; rows #1, #3, #5, ....\n" \
+   "\n"                                                                       \
+   "You can also input a 1D time series 'dataset' directly on the command\n"  \
+   "line, without an external file. The 'filename' for such input has the\n"  \
+   "general format\n"                                                         \
+   "  '1D:n_1@val_1,n_2@val_2,n_3@val_3,...'\n"                               \
+   "where each 'n_i' is an integer and each 'val_i' is a float.  For\n"       \
+   "example\n"                                                                \
+   "   -a '1D:5@0,10@1,5@0,10@1,5@0'\n"                                       \
+   "specifies that variable 'a' be assigned to a 1D time series of 35,\n"     \
+   "alternating in blocks between values 0 and value 1.\n"
+
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern THD_3dim_dataset * THD_3dim_from_block( THD_datablock * ) ;
 extern void THD_allow_empty_dataset( int ) ; /* 23 Mar 2001 */
