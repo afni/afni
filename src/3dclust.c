@@ -12,10 +12,11 @@
 
 #define PROGRAM_NAME "3dclust"                       /* name of this program */
 #define PROGRAM_AUTHOR "R. W. Cox et al."                  /* program author */
-#define PROGRAM_DATE "19 January 1999"           /* date of last program mod */
+#define PROGRAM_DATE "26 March 1999"             /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
+/* Modified 3/26/99 by BDW to enable -1erode and -1dilate options. */
 /* Modified 1/19/99 by BDW to allow use of signed intensities in calculation
      of cluster averages, etc. (-noabs option), as requested by H. Garavan */
 /* Modified 1/24/97 by BDW to combine the previous modifications  */
@@ -149,6 +150,13 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"\n*** Illegal rmm=%f and/or vmul=%f\a\n",rmm,vmul) ;
       exit(1) ;
    }
+
+   /* BDW  26 March 1999  */
+   else
+     {
+       CL_edopt.clust_rmm = rmm;
+       CL_edopt.clust_vmul = vmul;
+     }
 
    /**-- loop over datasets --**/
 

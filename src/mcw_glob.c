@@ -159,6 +159,10 @@ static	void	 qprintf	__P((Char *));
 #define	M_SET		META('[')
 #define	ismeta(c)	(((c)&M_META) != 0)
 
+#if defined(SOLARIS_DIRENT_ZERO) && !defined(SOLARIS_DIRENT_PATCH)
+#  define SOLARIS_DIRENT_PATCH
+#endif
+
 #ifdef SOLARIS_DIRENT_PATCH
 struct  dirent {
      ino_t            d_ino;
@@ -574,10 +578,15 @@ glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
 	/**********
 	begin patch
 	**********/
+
+#ifndef SOLARIS_DIRENT_ZERO
 	for (ii = -2 ; dp->d_name[ii] != '\0' ; ++ii) {
 	  dname[ii+2] = dp->d_name[ii];
 	}
         dname[ii+2] = '\0';
+#else
+        strcpy(dname, dp->d_name); /* John Koger, March 1999 */
+#endif
 	/**********
 	end patch
 	now use dname for dp->d_name

@@ -11,7 +11,9 @@
 #include <fcntl.h>
 
 /*----------------------------------------------------------------------------
-  Flags that can be used to work around bugs on some systems:
+  Flags that can be used to work around bugs on some systems
+  (you could also use the -Dname command line switch in the Makefile
+   definition of the CC commands to enable these options):
 
     DONT_USE_METER  = if #define-d, won't show progress meter during
                        brick write operations
@@ -19,6 +21,7 @@
     FIX_SCALE_VALUE_PROBLEM = if #defined-d, will work around a bug
                                in Solaris Motif where the threshold scale
                                value is not displayed
+                               [Doesn't seem to be needed anymore]
 
     FIX_SCALE_SIZE_PROBLEM = if #define-d, will work around a bug in
                               some versions of Motif where the
@@ -46,7 +49,7 @@
 
     BOXUP_SCALE = if this is set, then the slider for the functional
                   threshold will have a "box" (Frame widget) drawn
-                  around it.  some people think this looks nicer, some don't.
+                  around it.  Some people think this looks nicer, some don't.
 
     NO_FRIVOLITIES = if this is set, then the hidden "fun" parts of
                      AFNI are disabled.  What these are is a secret.
@@ -80,6 +83,14 @@
                            of the Institut fuer Radiologische Diagnostik,
                            Munchen, and has not been tested at MCW due to
                            the absence of any Sun workstations to play with.)
+
+    SOLARIS_DIRENT_ZERO  = if this is defined, the patch described above
+                           is modified slightly -- see mcw_glob.c for
+                           the gory details.  The patch above seems to
+                           be needed for Solaris 2.5.x and this modification
+                           is also needed for Solaris 2.6.x.
+                              [God, I hope this is the end of this ]
+                              [Solaris nightmare -- I'm sick of it!]
 
   Exactly one of the following flags must be set for AFNI plugins
   to work:

@@ -3703,9 +3703,10 @@ void REND_choose_av_CB( MCW_arrowval * av , XtPointer cd )
       XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
       XmStringFree(xstr) ;
 
-      dset_ival = av->ival ;   /* read this sub-brick */
-      new_dset = 1 ;           /* flag it as new      */
-      REND_reload_dataset() ;  /* load the data       */
+      dset_ival = av->ival ;   /* read this sub-brick    */
+      new_dset = 1 ;           /* flag it as new         */
+      FREE_VOLUMES ;           /* free the internal data */
+      REND_reload_dataset() ;  /* load the data          */
 
    /*--- selection of overlay color sub-brick ---*/
 
