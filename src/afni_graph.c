@@ -142,7 +142,7 @@ ENTRY("new_MCW_grapher") ;
           XmNinitialResourcesPersistent , False ,
        NULL ) ;
 
-   xtInsertEventHandler( grapher->draw_fd ,     /* handle events in graphs */
+   XtInsertEventHandler( grapher->draw_fd ,     /* handle events in graphs */
 
                             0
                           | KeyPressMask        /* get keystrokes */
