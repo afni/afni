@@ -1184,6 +1184,11 @@ plug_drealtime.$(SO):plug_realtime.c
 	$(PLUGIN_CCD) -c plug_realtime.c $(IFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_drealtime.$(SO) plug_realtime.o
 
+plug_crender.$(SO):plug_crender.c librickr.a
+	$(RM) $@
+	$(PLUGIN_CC) -c plug_crender.c $(IFLAGS)
+	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L. -lrickr
+
 plug_render.$(SO):mri_render.h
 
 # Stuff for plugins on CYGWIN:
