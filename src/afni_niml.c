@@ -62,7 +62,7 @@ static int dont_hear_suma = 0 ;
 /*! If 1, send data; if 0, debug print it instead */
 
 static int sendit=1 ;
-static int serrit=0 ;  /* print to stderr? */
+static int serrit=0 ;  /* print element headers to stderr? */
 
 /*-----------------------------------------------*/
 /*! Flag to tell if NIML things are initialized. */
@@ -150,7 +150,7 @@ ENTRY("AFNI_init_niml") ;
    /* determine if we actually want to send data */
 
    sendit = !AFNI_yesenv("AFNI_NIML_DONTSEND") ;
-   serrit = !sendit || AFNI_yesenv("AFNI_NIML_STDERR") ;
+   serrit = !sendit || AFNI_yesenv("AFNI_NIML_STDERR") ;   /* debugging */
 
    /* 12 Feb 2003: setup ni_do "DRIVE_AFNI" verb */
 
@@ -174,12 +174,16 @@ void AFNI_niml_driver( char *object , NI_stream_type *ns , NI_element *nel )
 /*! Debug printout of a NIML element.
 -------------------------------------------------------------------------*/
 
-void NIML_to_stderr( void *nini )
+void NIML_to_stderr( void *nini , int send )
 {
    NI_stream ns_err ;
+   if( NI_element_type(nini) != NI_ELEMENT_TYPE ) return ;
    ns_err = NI_stream_open( "fd:2" , "w" ) ;
    if( ns_err != NULL ){
-     fprintf(stderr,"-------------- AFNI sends NIML element: --------------\n");
+     if( send )
+       fprintf(stderr,"-------------- AFNI sends NIML element: --------------\n");
+     else
+       fprintf(stderr,"-------------- AFNI gets NIML element:  --------------\n");
      NI_write_element( ns_err , nini , NI_TEXT_MODE | NI_HEADER_FLAG ) ;
      NI_stream_close( ns_err ) ;
    }
@@ -248,8 +252,10 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
        ct   = NI_clock_time() ;                      /* start timer */
        nini = NI_read_element( ns_listen[cc] , 2 ) ; /* read data */
 
-       if( nini != NULL )                            /* handle it */
+       if( nini != NULL ){                           /* handle it */
+         if( serrit ) NIML_to_stderr(nini,0) ;
          AFNI_process_NIML_data( cc , nini , ct ) ;
+       }
 
        NI_free_element( nini ) ;                     /* trash it */
      }
@@ -715,7 +721,9 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
      nmap = AFNI_vnlist_func_overlay( im3d,ks , &map,&nvused ) ;
 
+#if 0 
      if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
+#endif
 
      if( nmap < 0 || adset->su_vnlist[ks] == NULL ) continue ; /* this is bad */
 
@@ -767,12 +775,14 @@ ENTRY("AFNI_niml_redisplay_CB") ;
      if( sendit )
        NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
      if( serrit )
-       NIML_to_stderr(nel) ;
+       NIML_to_stderr(nel,1) ;
 
+#if 0
      if( serrit || GLOBAL_argopt.yes_niml > 1 )
        fprintf(stderr,
                "++ NIML write colored surface: voxels=%d nodes=%d time=%d ms\n",
                nvused , nmap , ct = NI_clock_time() - ct ) ;
+#endif
 
      NI_free_element(nel) ;  /* it's gone, so forget it */
 
@@ -912,7 +922,7 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
    if( sendit )
      NI_write_element( ns_listen[NS_SUMA] , nel , NI_TEXT_MODE ) ;
    if( serrit )
-     NIML_to_stderr(nel) ;
+     NIML_to_stderr(nel,1) ;
 
    NI_free_element(nel) ;
    EXRETURN ;
