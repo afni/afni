@@ -229,3 +229,7 @@
       -> Imon version 2.8
   * modified plug_realtime.c to handle BYTEORDER command
 
+30 June 2003:
+  * modified README.realtime to provide details of the BYTEORDER command
+  * modified plug_realtime.c to accept BYTEORDER for MRI_complex images
+
