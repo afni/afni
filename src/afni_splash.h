@@ -7,7 +7,8 @@
 #ifndef _AFNI_SPLASH_HEADER
 #define _AFNI_SPLASH_HEADER
 
-#include "splash_blank.h"
+#include "splash_blank_new.h"
+
 #include "splash_cox1.h"
 #include "splash_cox2.h"
 #include "splash_cox3.h"
@@ -26,8 +27,13 @@ static int    lover[NOVER]={NLINE_cox1,NLINE_cox2,NLINE_cox3,NLINE_cox4};
 
 #undef  IXOVER
 #undef  JYOVER
-#define IXOVER 332
-#define JYOVER 171
+#define IXOVER 290
+#define JYOVER 175
+
+#undef  MAX_XOVER
+#undef  MAX_YOVER
+#define MAX_XOVER 128
+#define MAX_YOVER 128
 
 /*----------------------------------------*/
 /* Stuff for the image overlay at the top */
