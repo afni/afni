@@ -21,6 +21,7 @@ char *SUMA_All_Programs(void );
 void SUMA_SetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 void SUMA_unSetcSV (Widget w, XtPointer clientData, XEvent * event, Boolean * cont);
 char *SUMA_sources_Info(void );
+char * SUMA_Help_AllSurfCont (void);
 
 
 

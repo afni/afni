@@ -3165,7 +3165,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                                                                   This is only for testing purposes, the pb_close
                                                                   button still expects SO in clientData*/
       MCW_register_hint( SO->SurfCont->SurfInfo_pb , "More info on Surface" ) ;
-      MCW_register_help( SO->SurfCont->SurfInfo_pb , SUMA_moreSurfInfo_help ) ;
+      MCW_register_help( SO->SurfCont->SurfInfo_pb , SUMA_SurfContHelp_more ) ;
       XtManageChild (SO->SurfCont->SurfInfo_pb); 
 
       XtManageChild (rc);
@@ -3188,13 +3188,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                                  "RenderMode", '\0', YUP, RenderMode_Menu, 
                                  (void *)(SO->SurfCont->curSOp), 
                                  "Choose the rendering mode for this surface.",
-                                 "Choose the rendering mode for this surface.\n"
-                                 "   Viewer: Surface's rendering mode is set\n"
-                                 "           by the viewer's setting which can\n"
-                                 "           be changed with the 'p' option.\n"
-                                 "   Fill:   Shaded rendering mode.\n"
-                                 "   Line:   Mesh rendering mode.\n"
-                                 "   Points: Points rendering mode.\n", 
+                                 SUMA_SurfContHelp_RenderMode, 
                                  SO->SurfCont->RenderModeMenu );
       XtManageChild (SO->SurfCont->RenderModeMenu[SW_SurfCont_Render]);
       
@@ -3202,8 +3196,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          xmPushButtonWidgetClass, rc, 
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, (XtPointer) SO->SurfCont->curSOp);
-      MCW_register_hint( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
-      MCW_register_help( pb , "Show/Hide Dataset (previously Color Plane) controller" ) ;
+      MCW_register_hint( pb , "Show/Hide Dataset (previously Color Plane) controllers" ) ;
+      MCW_register_help( pb , SUMA_SurfContHelp_Dsets ) ;
       XtManageChild (pb);
       
       XtManageChild (rc);
@@ -3323,8 +3317,8 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          char *Dset_tit[]  =  {  "Lbl", "Par", NULL };
          char *Dset_hint[] =  {  "Label of Dset", 
                                  "Parent surface of Dset", NULL };
-         char *Dset_help[] =  {  "Label of Dset", 
-                                 "Parent surface of Dset.\n", NULL };
+         char *Dset_help[] =  {  SUMA_SurfContHelp_DsetLblTblr0, 
+                                 SUMA_SurfContHelp_DsetLblTblr1, NULL };
          int colw[]={ 3, 27};
          SUMA_CreateTable(rc, 
             2, 2,
@@ -3351,7 +3345,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            2, SUMA_int,
                            NOPE,
                            SUMA_ColPlane_NewOrder, (void *)SO,
-                           SUMA_SurfCont_ColPlaneOrder_hint, SUMA_SurfCont_ColPlaneOrder_help,
+                           SUMA_SurfCont_ColPlaneOrder_hint, SUMA_SurfContHelp_DsetOrd,
                            SO->SurfCont->ColPlaneOrder);
                              
       SUMA_CreateArrowField ( rc, "Opa:",
@@ -3359,7 +3353,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            3, SUMA_float,
                            NOPE,
                            SUMA_ColPlane_NewOpacity, (void *)SO,
-                           SUMA_SurfCont_ColPlaneOpacity_hint, SUMA_SurfCont_ColPlaneOpacity_help,
+                           SUMA_SurfCont_ColPlaneOpacity_hint, SUMA_SurfContHelp_DsetOpa,
                            SO->SurfCont->ColPlaneOpacity);
 
       /* manage  rc */
@@ -3377,7 +3371,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                            3, SUMA_float,
                            YUP,
                            SUMA_ColPlane_NewDimFact, (void *)SO, 
-                           SUMA_SurfCont_ColPlaneDim_hint, SUMA_SurfCont_ColPlaneDim_help,
+                           SUMA_SurfCont_ColPlaneDim_hint, SUMA_SurfContHelp_DsetDim,
                            SO->SurfCont->ColPlaneDimFact);
            
       SO->SurfCont->ColPlaneShow_tb = XtVaCreateManagedWidget("view", 
@@ -3386,7 +3380,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XtAddCallback (SO->SurfCont->ColPlaneShow_tb, 
                   XmNvalueChangedCallback, SUMA_cb_ColPlaneShow_toggled, SO);
                   
-      MCW_register_help(SO->SurfCont->ColPlaneShow_tb , SUMA_SurfCont_ColPlaneShow_help ) ;
+      MCW_register_help(SO->SurfCont->ColPlaneShow_tb , SUMA_SurfContHelp_DsetView ) ;
       MCW_register_hint(SO->SurfCont->ColPlaneShow_tb , "Shows/Hides Dset." ) ;
       SUMA_SET_SELECT_COLOR(SO->SurfCont->ColPlaneShow_tb);
            
@@ -3418,7 +3412,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_SurfCont_SwitchColPlane, (XtPointer)SO);
       MCW_register_hint(pb , "Switch between datasets" ) ;
-      MCW_register_help(pb , "Switch between datasets." ) ;
+      MCW_register_help(pb , SUMA_SurfContHelp_DsetSwitch ) ;
       XtManageChild (pb);
       
       pb = XtVaCreateWidget ("Load Dset", 
@@ -3426,67 +3420,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
             NULL);   
          XtAddCallback (pb, XmNactivateCallback, SUMA_cb_Dset_Load, (XtPointer) SO);
          MCW_register_hint(pb ,  "Load a new dataset (much more with BHelp)" ) ;
-         MCW_register_help(pb ,  "Load a new dataset (Dset).\n"
-                                 "Datasets can be of 2 formats:\n"
-                                 "1- NIML (.niml.dset)\n"
-                                 "     This format is internal \n"
-                                 "     to AFNI/SUMA. \n"
-                                 "2- 1D   (.1D.dset)\n"
-                                 "     Simple ASCII tabular format\n"
-                                 "     supporting numerical values\n"
-                                 "     only.\n"
-                                 "     Each row i contains Nj data\n"
-                                 "     values per node.\n"
-                                 "     Since this format has no header\n"
-                                 "     associated with it, it makes\n"
-                                 "     some assumption about the data\n"
-                                 "     in the columns. \n"
-                                 "   You can choose from 3 options:\n"
-                                 "     (see bottom for nomenclature)\n"
-                                 "   - Each column has Ni values were\n"
-                                 "     Ni = N_Node \n"
-                                 "     In this case, it is assumed that\n"
-                                 "     row i has values for node i on\n"
-                                 "     the surface.\n"
-                                 "   - If Ni is not equal to N_Node then\n"
-                                 "     SUMA will check to see if column 0\n"
-                                 "     (Col_0) is all integers with values\n"
-                                 "     v satisfying:  0 <= v < N_Node .\n"
-                                 "     If that is the case then column 0\n"
-                                 "     contains the node indices. The values\n"
-                                 "     in row j of Dset are for the node\n"
-                                 "     indexed Col_0[j].\n"
-                                 "     In the Sample 1D Dset shown below\n"
-                                 "     assuming N_Node > 58, then SUMA\n"
-                                 "     will consider the 1st column to \n"
-                                 "     contain node indices. In that case\n"
-                                 "     the values -12.1 and 0.9 are for \n"
-                                 "     node 58 on the surface.\n"
-                                 "   - Lastly, if Col_0 fails the node index\n"
-                                 "     test, then SUMA considers the data\n"
-                                 "     in row i to be associated with node i.\n"
-                                 "\n"
-                                 "   If you're confused, try creating some\n"
-                                 "   toy datasets like the one below and \n"
-                                 "   load them into SUMA.\n"
-                                 "\n"
-                                 "   Sample 1D Dset (Call it pickle.1D.dset):\n"
-                                 "     25    22.7     1.2   \n"
-                                 "     58    -12.1    0.9   \n"
-                                 "\n"
-                                 "   Nomenclature and conventions:\n"
-                                 "     - N_Node is the number of nodes\n"
-                                 "       forming the surface.\n"
-                                 "     - Indexing always starts at 0.\n"
-                                 "       In the example, value v at \n"
-                                 "       row 0, column 1 is v = 22.7 .\n"
-                                 "     - A Dset has Ni rows and Nj columns.\n"
-                                 "       In other terms, Ni is the number\n"
-                                 "       of values per node and Nj is the\n"
-                                 "       number of nodes for which data are\n"
-                                 "       specified in Dset.\n"
-                                 "       Ni = 2, Nj = 3 in the example.\n"
-                                  ) ;
+         MCW_register_help(pb ,  SUMA_SurfContHelp_DsetLoad ) ;
          XtManageChild (pb);
       
       pb = XtVaCreateWidget ("Delete", 
@@ -3500,8 +3434,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
          NULL);   
       XtAddCallback (pb, XmNactivateCallback, SUMA_cb_ColPlane_Load, (XtPointer) SO);
       MCW_register_hint(pb , "Load a new color plane (same as ctrl+c)" ) ;
-      MCW_register_help(pb ,  "Load a new color plane.\n"
-                              "(Same as ctrl+c option)." ) ;
+      MCW_register_help(pb , SUMA_SurfContHelp_DsetLoadCol  ) ;
       XtManageChild (pb);
       
        
@@ -4813,7 +4746,7 @@ void SUMA_CreateArrowField ( Widget pw, char *label,
          XmNmarginTop, 0,
          XmNmarginBottom, 0,
          NULL);
-
+         if (help) MCW_register_help( AF->label , help);
    }else {
       AF->label = NULL;
    }

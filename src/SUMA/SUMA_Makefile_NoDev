@@ -10,11 +10,14 @@ SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c SUMA_help.c SUMA_display.c SUMA_ParseCommands.c	\
 		 SUMA_Engine.c SUMA_Surface_IO.c SUMA_VolData.c SUMA_niml.c SUMA_Color.c	\
 		 SUMA_GeomComp.c SUMA_SphericalMapping.c SUMA_Algorithms.c SUMA_DataSets.c	\
-		 SUMA_Homer.c SUMA_xColBar.c
- 
+		 SUMA_Homer.c SUMA_xColBar.c 
+SUMA_GTS_SRCS =  SUMA_gts.c
+
 SUMA_SRCS_MAIN = SUMA_suma.c
 
 SUMA_OBJS = ${SUMA_SRCS:.c=.o}
+SUMA_GTS_OBJS = ${SUMA_GTS_SRCS:.c=.o}
+
 AFNI_OBJS = ../xutil.o ../LiteClue.o
 AFOBJS  = ../afni.o ../afni_func.o ../afni_widg.o ../afni_warp.o ../afni_fimmer.o \
 				../afni_slice_short.o ../afni_slice_float.o                  		\
@@ -213,12 +216,43 @@ ShowCmap: SUMA_xColBar.c
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+
+SampBias: SUMA_SampBias.c libgts.a ${SUMALIB} 
+	$(RM) $@
+	${CC} -DSUMA_COMPILED \
+   	${CCOPT} ${WARNOPT} -o $@ SUMA_SampBias.c ${SUMA_INCLUDE_PATH}		\
+		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
+		${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
+		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} libgts.a 
+
+SurfMesh: SUMA_coarsen.c libgts.a ${SUMALIB}
+	$(RM) $@
+	${CC} -DSUMA_COMPILED \
+   	${CCOPT} ${WARNOPT} -o $@ SUMA_coarsen.c ${SUMA_INCLUDE_PATH}		\
+		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
+		${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
+		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} libgts.a 
+
+
 libply.a: 
 	( cd PLY ;	\
 	  make clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
 	  $(RANLIB) $@ ;	\
 	  $(CP) -p $@ .. ; )
 
+libgts.a: ${SUMA_GTS_OBJS}
+	( cd gts ;	\
+	  aclocal ;	\
+	  autoheader ;	\
+	  automake -a ;	\
+	  autoconf ;	\
+	  ./configure	;	\
+     make clean all 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
+     $(RANLIB) src/.libs/$@ ;	\
+	  $(CP) -p src/.libs/$@ .. ; \
+     cd ..	; \
+     ar q libSUMA.a ${SUMA_GTS_OBJS} ; )
+     
 libglut.a:
 	( cd GLUT/libglut ;	\
 	  make clean $@ 'CC=$(CC)' 'RM=$(RM)' 'RANLIB=$(RANLIB)' 'CCOPT=$(CCOPT)' 'WARNOPT=$(WARNOPT)' ; \
@@ -259,6 +293,8 @@ install:
 	@if [ -f FScurv_to_1D ]; then mv FScurv_to_1D ${INSTALLDIR_SUMA}; fi;
 	@if [ -f FSread_annot ]; then mv FSread_annot ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ShowCmap ]; then mv ShowCmap ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SurfMesh ]; then mv SurfMesh ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SampBias ]; then mv SampBias ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -295,11 +331,14 @@ packbins:
 	@if [ -f FScurv_to_1D ]; then $(CP) -p FScurv_to_1D SUMA_bin/; fi;	
 	@if [ -f FSread_annot ]; then $(CP) -p FSread_annot SUMA_bin/; fi;	
 	@if [ -f ShowCmap ]; then $(CP) -p ShowCmap SUMA_bin/; fi;	
+	@if [ -f SampBias ]; then $(CP) -p SampBias SUMA_bin/; fi;	
+	@if [ -f SurfMesh ]; then $(CP) -p SurfMesh SUMA_bin/; fi;	
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
 	
 all: libSUMA.a mainobj suma install 
+allgts: libgts.a SampBias SurfMesh
 
 standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile	      \
@@ -308,6 +347,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics    \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
    SUMA_TestDsetIO ConvertDset ShowCmap
+   
 #SUMA_TestDataSets
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 

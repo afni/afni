@@ -235,6 +235,10 @@ char * SUMA_help_Cmap_message_Info(SUMA_COLOR_MAP * ColMap)
    s = SUMA_ColorMapVec_Info(&ColMap, 1, 1);
    SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
 
+   /* Add help for all controller options */
+   s = SUMA_Help_AllSurfCont();
+   SS = SUMA_StringAppend (SS, s); SUMA_free(s); s = NULL;
+   
    /* clean SS */
    SS = SUMA_StringAppend (SS, NULL);
    /* copy s pointer and free SS */
@@ -396,7 +400,7 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "  *: Smooth node colors by averaging with neighbors.\n"
       "     The smoothing is only applied to the current colors,\n"
-      "     and will be not be applied to new color sets.\n");
+      "     and will be not be applied to new color sets.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "     @: Compute curvatures along principal directions \n"
       "        on the surface, results written to disk.\n\n");
@@ -440,7 +444,9 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "     F6: Viewer background color, toggle.\n");
    SS = SUMA_StringAppend (SS, 
-      "     F7: Switch between color mixing modes.\n");
+      "     F7: Switch between color mixing modes.\n"
+      "         ORIG: Col = ( 1 - opacity ) * OldCol + opacity * NewCol \n"
+      "         MOD1: Col = ( 1 - opacity ) * OldCol +           NewCol \n");
    SS = SUMA_StringAppend (SS, 
       "     F12: Time 20 scene renderings.\n\n");
    SS = SUMA_StringAppend (SS, 
@@ -540,6 +546,7 @@ char * SUMA_help_message_Info(void)
    SUMA_RETURN (s);
 
 }
+
 /*!
 Controls help message
 */
@@ -606,6 +613,7 @@ char *SUMA_All_Programs(void )
    SUMA_RETURN(s);      
    
 }
+
 /*!
    \brief Returns a string with the new additions and version information
    
@@ -876,4 +884,162 @@ void SUMA_VolSurf_help (FILE *Out)
 	 fprintf (Out, "\t./suma -vp CW-cSurfParent-SPGR-AX_LPI+orig. -spec CW-SureFit.SumaSpec\n");
 	 fprintf (Out, "\t\n"); 
 	 return;
+}
+
+char * SUMA_Help_AllSurfCont ()
+{
+   static char FuncName[]={"SUMA_Help_AllSurfCont"};
+   char *s = NULL;
+   SUMA_STRING *SS = NULL;
+   
+   SUMA_ENTRY;
+   
+   SS = SUMA_StringAppend (NULL, NULL);
+   
+   SS = SUMA_StringAppend(SS, 
+         "\n"
+         "\n"
+         "----------------------------\n"
+         "Help for Surface Controller:\n"
+         "----------------------------\n"
+         "The surface controller is for \n"
+         "controlling properties pertinent\n"
+         "to the surface selected (in focus).\n"
+         "The Surface Controller is launched\n"
+         "with 'ctrl+s' or \n"
+         "      View-->Surface Controller .\n"
+         "\n"
+         );
+   SS = SUMA_StringAppend_va(SS, 
+         "+ Surface Properties Block:\n"
+         "\n"
+         "++ more:\n%s\n"
+         "\n"
+         "++ RenderMode:\n%s\n"
+         "\n"
+         "++ Dsets:\n%s\n"
+         "\n", 
+         SUMA_SurfContHelp_more, SUMA_SurfContHelp_RenderMode, SUMA_SurfContHelp_Dsets);
+   SS = SUMA_StringAppend_va(SS, 
+         "+ Xhair Info Block:\n"
+         "\n"
+         "++ Xhr:\n%s\n"
+         "\n"
+         "++ Node:\n%s\n"
+         "\n"
+         "++ Tri:\n%s\n"
+         "\n"
+         "++ Node Values Table: %s\n"
+         "+++ Col. Intens\n%s\n"
+         "+++ Col. Thresh\n%s\n"
+         "+++ Col. Bright:\n%s\n"
+         "+++ Row  Val:\n%s\n"
+         "\n"
+         "++ Node Label Table:\n"
+         "+++ Row  Lbl:\n%s\n"
+         "\n",
+         SUMA_SurfContHelp_Xhr, SUMA_SurfContHelp_Node, SUMA_SurfContHelp_Tri, 
+         SUMA_SurfContHelp_NodeValTblr0, SUMA_SurfContHelp_NodeValTblc1,  
+         SUMA_SurfContHelp_NodeValTblc2, SUMA_SurfContHelp_NodeValTblc3, 
+         SUMA_SurfContHelp_NodeValTblr0,
+         SUMA_SurfContHelp_NodeLabelTblr0);
+   
+   SS = SUMA_StringAppend_va(SS, 
+         "+ Dset Controls Block:\n"
+         "\n"
+         "++ Dset Info Table: \n"
+         "+++ Row  Lbl:\n%s\n"
+         "+++ Row  Par:\n%s\n"
+         "\n"
+         "++ Ord:\n%s\n"
+         "\n"
+         "++ Opa:\n%s\n"
+         "\n"
+         "++ Dim:\n%s\n"
+         "\n"
+         "++ view:\n%s\n"
+         "\n"
+         "++ Switch Dset:\n%s\n"
+         "\n", 
+         SUMA_SurfContHelp_DsetLblTblr0, SUMA_SurfContHelp_DsetLblTblr1, 
+         SUMA_SurfContHelp_DsetOrd, SUMA_SurfContHelp_DsetOpa, SUMA_SurfContHelp_DsetDim,
+         SUMA_SurfContHelp_DsetView, SUMA_SurfContHelp_DsetSwitch);
+   
+   SS = SUMA_StringAppend_va(SS,       
+         "++ Load Dset:\n%s\n"
+         "\n"
+         "++ Load Col:\n%s\n"
+         "\n", 
+         SUMA_SurfContHelp_DsetLoad,
+         SUMA_SurfContHelp_DsetLoadCol);
+         
+   SS = SUMA_StringAppend_va(SS, 
+         "+ Dset Mapping Block:\n"
+         "\n"
+         "++ Mapping Data: \n"
+         "\n"
+         "+++ I\n%s\n"
+         "++++ v:\n%s\n"
+         "+++ T\n%s\n"
+         "++++ v\n%s\n"
+         "+++ B\n%s\n"
+         "++++ v\n%s\n"
+         "\n", 
+         SUMA_SurfContHelp_SelInt, SUMA_SurfContHelp_SelIntTgl,
+         SUMA_SurfContHelp_SelThr, SUMA_SurfContHelp_SelThrTgl, 
+         SUMA_SurfContHelp_SelBrt, SUMA_SurfContHelp_SelBrtTgl );
+         
+   SS = SUMA_StringAppend_va(SS, 
+         "++ Mapping Parameters Table:\n%s\n"
+         "+++ Col. Min\n%s\n"      
+         "+++ Col. Max\n%s\n"
+         "+++ Row  I\n%s\n"
+         "+++ Row  B1\n%s\n"
+         "+++ Row  B2\n%s\n"
+         "+++ Row  C\n%s\n"
+         "\n", 
+         SUMA_SurfContHelp_SetRngTbl_r0,
+         SUMA_SurfContHelp_SetRngTbl_c1, SUMA_SurfContHelp_SetRngTbl_c2,
+         SUMA_SurfContHelp_SetRngTbl_r1, SUMA_SurfContHelp_SetRngTbl_r2,
+         SUMA_SurfContHelp_SetRngTbl_r3, SUMA_SurfContHelp_SetRngTbl_r4);
+   
+   SS = SUMA_StringAppend_va(SS, 
+         "++ Col\n%s\n"
+         "\n"
+         "++ Bias\n%s\n"
+         "\n"
+         "Cmp\n%s\n"
+         "\n"
+         "New\n%s\n"
+         "\n"
+         "|T|\n%s\n"
+         "\n"
+         "sym I\n%s\n"
+         "\n"      
+         "shw 0\n%s\n"
+         "\n",      
+         SUMA_SurfContHelp_Col, SUMA_SurfContHelp_Bias, SUMA_SurfContHelp_Cmp,
+         SUMA_SurfContHelp_CmpNew, SUMA_SurfContHelp_AbsThr, SUMA_SurfContHelp_Isym,
+         SUMA_SurfContHelp_Shw0);
+
+   SS = SUMA_StringAppend_va(SS, 
+         "++ Data Range Table:\n%s\n"
+         "\n"
+         "+++ Col Min\n%s\n"
+         "+++ Col Node\n%s\n"
+         "+++ Col Max\n%s\n"
+         "+++ Col Node\n%s\n"
+         "+++ Row I\n%s\n"
+         "+++ Row T\n%s\n"
+         "+++ Row B\n%s\n", 
+         SUMA_SurfContHelp_RangeTbl_c0,
+         SUMA_SurfContHelp_RangeTbl_c1, SUMA_SurfContHelp_RangeTbl_c2,
+         SUMA_SurfContHelp_RangeTbl_c3, SUMA_SurfContHelp_RangeTbl_c4,
+         SUMA_SurfContHelp_RangeTbl_r1, SUMA_SurfContHelp_RangeTbl_r2, 
+         SUMA_SurfContHelp_RangeTbl_r3);
+               
+            
+   SUMA_SS2S(SS, s);
+   
+   SUMA_RETURN(s);
 }
