@@ -191,10 +191,10 @@ ENTRY("THD_open_analyze") ;
    if( nz < 1 ) nz = 1 ;
    if( nt < 1 ) nt = 1 ;
 
-   dx = hdr.dime.pixdim[1] ; if( dx == 0.0 )            dx = 1.0 ;
-   dy = hdr.dime.pixdim[2] ; if( dy == 0.0 )            dy = 1.0 ;
-   dz = hdr.dime.pixdim[3] ; if( dz == 0.0 || nz == 1 ) dz = 1.0 ;
-   dt = hdr.dime.pixdim[4] ; if( dt <= 0.0 || nt == 1 ) dt = 1.0 ;
+   dx = fabs(hdr.dime.pixdim[1]) ; if( dx == 0.0 )            dx = 1.0 ;
+   dy = fabs(hdr.dime.pixdim[2]) ; if( dy == 0.0 )            dy = 1.0 ;
+   dz = fabs(hdr.dime.pixdim[3]) ; if( dz == 0.0 )            dz = 1.0 ;
+   dt = fabs(hdr.dime.pixdim[4]) ; if( dt == 0.0 || nt == 1 ) dt = 1.0 ;
 
    ngood = datum_len*nx*ny*nz*nt ;  /* # bytes needed in .img file */
    if( length < ngood ){
@@ -208,6 +208,11 @@ ENTRY("THD_open_analyze") ;
    /*-- make a dataset --*/
 
    dset = EDIT_empty_copy(NULL) ;
+
+   dset->idcode.str[0] = 'A' ;  /* overwrite 1st 4 bytes with something special */
+   dset->idcode.str[1] = 'N' ;
+   dset->idcode.str[2] = 'L' ;
+   dset->idcode.str[3] = 'Z' ;
 
    ppp = THD_trailname(hname,0) ;                   /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
@@ -253,6 +258,17 @@ ENTRY("THD_open_analyze") ;
                       ADN_view_type   , iview ,
                       ADN_func_type   , ANAT_MRAN_TYPE ,
                     ADN_none ) ;
+
+   /* modify axis stuff from orientation codes (swiped from to3d.c) */
+
+   if( ORIENT_sign[dset->daxes->xxorient] == '+' ) dset->daxes->xxorg = -dset->daxes->xxorg;
+   else                                            dset->daxes->xxdel = -dset->daxes->xxdel;
+
+   if( ORIENT_sign[dset->daxes->yyorient] == '+' ) dset->daxes->yyorg = -dset->daxes->yyorg;
+   else                                            dset->daxes->yydel = -dset->daxes->yydel;
+
+   if( ORIENT_sign[dset->daxes->zzorient] == '+' ) dset->daxes->zzorg = -dset->daxes->zzorg;
+   else                                            dset->daxes->zzdel = -dset->daxes->zzdel;
 
    if( nt > 1 )              /* pretend it is 3D+time */
       EDIT_dset_items( dset ,

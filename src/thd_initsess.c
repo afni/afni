@@ -286,7 +286,7 @@ ENTRY("THD_init_session") ;
             iview = dset->view_type ;
             sess->func[nf][iview] = dset ;
             (sess->num_func)++ ;
-         } else {                                      /* should never happen */
+         } else {                                      /* should never happen! */
             fprintf(stderr,
                     "\n*** Session %s: malformed dataset %s\n",
                     sessname , fn_anlz[ii] ) ;
@@ -307,30 +307,13 @@ ENTRY("THD_init_session") ;
          char fnam[THD_MAX_NAME] ;
          FILE *fp ;
          float a11,a12,a13,s1 , a21,a22,a23,s2 , a31,a32,a33,s3 ;
-         THD_warp *warp_exf_hrs=NULL , *warp_exf_std=NULL ;
+         THD_warp *warp_exf_hrs=NULL , *warp_exf_std=NULL , *warp_std_hrs=NULL ;
 
-                             dset_exf = sess->anat[feat_exf][0] ;
-         if( feat_hrs >= 0 ) dset_hrs = sess->anat[feat_hrs][0] ;
-         if( feat_std >= 0 ) dset_std = sess->anat[feat_std][0] ;
+                             dset_exf = sess->anat[feat_exf][0] ;  /* Must have this. */
+         if( feat_hrs >= 0 ) dset_hrs = sess->anat[feat_hrs][0] ;  /* And at least   */
+         if( feat_std >= 0 ) dset_std = sess->anat[feat_std][0] ;  /* one of these. */
 
-         /* try to find the warp from EPI to highres */
-
-         if( dset_hrs != NULL ){
-           strcpy(fnam,sess->sessname) ; strcat(fnam,"example_func2highres.mat") ;
-           fp = fopen(fnam,"r") ;
-           if( fp != NULL ){
-             ii = fscanf(fp,"%f%f%f%f %f%f%f%f %f%f%f%f" ,
-                         &a11,&a12,&a13,&s1 , &a21,&a22,&a23,&s2 ,
-                                              &a31,&a32,&a33,&s3   ) ;
-             if( ii == 12 )
-               warp_exf_hrs = AFNI_make_affwarp( a11,a12,a13,s1 ,
-                                                 a21,a22,a23,s2 ,
-                                                 a31,a32,a33,s3   ) ;
-             fclose(fp) ;
-           }
-         }
-
-         /* try to find the warp from EPI to standard */
+         /* try to read the warp from example_func (EPI) to standard */
 
          if( dset_std != NULL ){
            strcpy(fnam,sess->sessname) ; strcat(fnam,"example_func2standard.mat") ;
@@ -340,10 +323,208 @@ ENTRY("THD_init_session") ;
                          &a11,&a12,&a13,&s1 , &a21,&a22,&a23,&s2 ,
                                               &a31,&a32,&a33,&s3   ) ;
              if( ii == 12 )
-               warp_exf_std = AFNI_make_affwarp( a11,a12,a13,s1 ,
-                                                 a21,a22,a23,s2 ,
-                                                 a31,a32,a33,s3   ) ;
+               warp_exf_std = AFNI_make_affwarp_12( a11,a12,a13,s1 ,
+                                                    a21,a22,a23,s2 ,
+                                                    a31,a32,a33,s3   ) ;
              fclose(fp) ;
+           }
+
+           /* 28 Aug 2002:
+               (i)  correct orientation of example_func
+               (ii) correct warp for non-DICOM order of coords in datasets      */
+
+           if( warp_exf_std != NULL ){
+             THD_mat33 mmm,nnn ;
+             int   ix , iy , iz ;
+             float ax , ay , az ;
+
+#if 0
+printf("warp_exf_std BEFORE:") ; DUMP_LMAP(warp_exf_std->rig_bod.warp) ;
+#endif
+
+#undef FIX_EXF
+#ifdef FIX_EXF
+             /* make matrix that transforms standard to example_func */
+
+             LOAD_MAT(mmm,a11,a12,a13,a21,a22,a23,a31,a32,a33) ;
+             nnn = MAT_INV(mmm) ;
+             UNLOAD_MAT(nnn,a11,a12,a13,a21,a22,a23,a31,a32,a33) ;
+
+             /* for each for, find index and value of largest element */
+
+             ix = 1 ; ax = a11 ;
+             if( fabs(a12) > fabs(ax) ){ ix = 2 ; ax = a12 ; }
+             if( fabs(a13) > fabs(ax) ){ ix = 3 ; ax = a13 ; }
+
+             iy = 1 ; ay = a21 ;
+             if( fabs(a22) > fabs(ay) ){ iy = 2 ; ay = a22 ; }
+             if( fabs(a23) > fabs(ay) ){ iy = 3 ; ay = a23 ; }
+
+             iz = 1 ; az = a31 ;
+             if( fabs(a32) > fabs(az) ){ iz = 2 ; az = a32 ; }
+             if( fabs(a33) > fabs(az) ){ iz = 3 ; az = a33 ; }
+#else
+             ix = 1 ; iy = 2 ; iz = 3 ;
+#endif
+
+             if( ix+iy+iz == 6 ){  /* (ix,iy,iz) must be a permutation of (1,2,3) */
+               THD_ivec3 orixyz ;
+               THD_fvec3 dxyz ;
+               THD_dataxes *daxes = dset_exf->daxes ;
+               THD_warp *from_exf , *to_std ;
+
+#ifdef FIX_EXF
+               /** fix orientation of dset_exf dataset **/
+
+               switch(ix){
+                 case 1:    /* example_func x-axis is mainly same
+                               as standard x-axis (ax>0) or its opposite (ax<0) */
+                   if( ax > 0 ) ix = dset_std->daxes->xxorient ;
+                   else         ix = ORIENT_OPPOSITE(dset_std->daxes->xxorient) ;
+                 break ;
+
+                 case 2:    /* example_func x-axis is mainly same
+                               as standard y-axis (ax>0) or its opposite (ax<0) */
+                   if( ax > 0 ) ix = dset_std->daxes->yyorient ;
+                   else         ix = ORIENT_OPPOSITE(dset_std->daxes->yyorient) ;
+                 break ;
+
+                 case 3:    /* example_func x-axis is mainly same
+                               as standard z-axis (ax>0) or its opposite (ax<0) */
+                   if( ax > 0 ) ix = dset_std->daxes->zzorient ;
+                   else         ix = ORIENT_OPPOSITE(dset_std->daxes->zzorient) ;
+                 break ;
+               }
+               switch(iy){
+                 case 1: if( ay > 0 ) iy = dset_std->daxes->xxorient ;
+                         else         iy = ORIENT_OPPOSITE(dset_std->daxes->xxorient) ;
+                 break ;
+                 case 2: if( ay > 0 ) iy = dset_std->daxes->yyorient ;
+                         else         iy = ORIENT_OPPOSITE(dset_std->daxes->yyorient) ;
+                 break ;
+                 case 3: if( ay > 0 ) iy = dset_std->daxes->zzorient ;
+                         else         iy = ORIENT_OPPOSITE(dset_std->daxes->zzorient) ;
+                 break ;
+               }
+               switch(iz){
+                 case 1: if( az > 0 ) iz = dset_std->daxes->xxorient ;
+                         else         iz = ORIENT_OPPOSITE(dset_std->daxes->xxorient) ;
+                 break ;
+                 case 2: if( az > 0 ) iz = dset_std->daxes->yyorient ;
+                         else         iz = ORIENT_OPPOSITE(dset_std->daxes->yyorient) ;
+                 break ;
+                 case 3: if( az > 0 ) iz = dset_std->daxes->zzorient ;
+                         else         iz = ORIENT_OPPOSITE(dset_std->daxes->zzorient) ;
+                 break ;
+               }
+               orixyz.ijk[0] = ix ; orixyz.ijk[1] = iy ; orixyz.ijk[2] = iz ;
+               dxyz.xyz[0] = fabs(daxes->xxdel) ;
+               dxyz.xyz[1] = fabs(daxes->yydel) ;
+               dxyz.xyz[2] = fabs(daxes->zzdel) ;
+               if( ORIENT_sign[ix] == '-' ) dxyz.xyz[0] = -dxyz.xyz[0] ;
+               if( ORIENT_sign[iy] == '-' ) dxyz.xyz[1] = -dxyz.xyz[1] ;
+               if( ORIENT_sign[iz] == '-' ) dxyz.xyz[2] = -dxyz.xyz[2] ;
+               EDIT_dset_items( dset_exf , ADN_xyzorient,orixyz, ADN_xyzdel,dxyz, ADN_none ) ;
+#endif
+
+               /** now fix warp from example_func to standard to do it in DICOM coords **/
+
+               nnn = SNGL_mat_to_dicomm( dset_exf ) ; mmm = TRANSPOSE_MAT(nnn) ;
+               from_exf = AFNI_make_affwarp_mat( mmm ) ;
+               nnn = SNGL_mat_to_dicomm( dset_std ) ;
+               to_std = AFNI_make_affwarp_mat( nnn ) ;
+               AFNI_concatenate_warp( warp_exf_std , from_exf ) ;
+               AFNI_concatenate_warp( to_std , warp_exf_std ) ;
+               myXtFree(warp_exf_std) ; myXtFree(from_exf) ;
+               warp_exf_std = to_std ;
+
+#if 0
+printf("warp_exf_std AFTER:") ; DUMP_LMAP(warp_exf_std->rig_bod.warp) ;
+#endif
+
+             } /* end of if warp had reasonable axis combinations */
+           } /* end of if we got a good warp */
+         }
+
+         /* try to read the warp from example_func (EPI) to highres */
+
+         if( dset_hrs != NULL ){
+           strcpy(fnam,sess->sessname) ; strcat(fnam,"example_func2highres.mat") ;
+           fp = fopen(fnam,"r") ;
+           if( fp != NULL ){
+             ii = fscanf(fp,"%f%f%f%f %f%f%f%f %f%f%f%f" ,
+                         &a11,&a12,&a13,&s1 , &a21,&a22,&a23,&s2 ,
+                                              &a31,&a32,&a33,&s3   ) ;
+             if( ii == 12 )
+               warp_exf_hrs = AFNI_make_affwarp_12( a11,a12,a13,s1 ,
+                                                    a21,a22,a23,s2 ,
+                                                    a31,a32,a33,s3   ) ;
+             fclose(fp) ;
+           }
+
+           /* 28 Aug 2002: correct warp for non-DICOM order of coords in datasets */
+
+           if( warp_exf_hrs != NULL ){
+             THD_mat33 mmm,nnn ;
+             THD_warp *from_exf , *to_hrs ;
+
+#if 0
+printf("warp_exf_hrs BEFORE:") ; DUMP_LMAP(warp_exf_hrs->rig_bod.warp) ;
+#endif
+
+             nnn = SNGL_mat_to_dicomm( dset_exf ) ; mmm = TRANSPOSE_MAT(nnn) ;
+             from_exf = AFNI_make_affwarp_mat( mmm ) ;
+             nnn = SNGL_mat_to_dicomm( dset_hrs ) ;
+             to_hrs = AFNI_make_affwarp_mat( nnn ) ;
+             AFNI_concatenate_warp( warp_exf_hrs , from_exf ) ;
+             AFNI_concatenate_warp( to_hrs , warp_exf_hrs ) ;
+             myXtFree(warp_exf_hrs) ; myXtFree(from_exf) ;
+             warp_exf_hrs = to_hrs ;
+
+#if 0
+printf("warp_exf_hrs AFTER:") ; DUMP_LMAP(warp_exf_hrs->rig_bod.warp) ;
+#endif
+           }
+         }
+
+         /* try to read the warp from standard to highres */
+
+         if( dset_hrs != NULL && dset_std != NULL ){
+           strcpy(fnam,sess->sessname) ; strcat(fnam,"standard2highres.mat") ;
+           fp = fopen(fnam,"r") ;
+           if( fp != NULL ){
+             ii = fscanf(fp,"%f%f%f%f %f%f%f%f %f%f%f%f" ,
+                         &a11,&a12,&a13,&s1 , &a21,&a22,&a23,&s2 ,
+                                              &a31,&a32,&a33,&s3   ) ;
+             if( ii == 12 )
+               warp_std_hrs = AFNI_make_affwarp_12( a11,a12,a13,s1 ,
+                                                    a21,a22,a23,s2 ,
+                                                    a31,a32,a33,s3   ) ;
+             fclose(fp) ;
+           }
+
+           /* 28 Aug 2002: correct warp for non-DICOM order of coords in datasets */
+
+           if( warp_std_hrs != NULL ){
+             THD_mat33 mmm,nnn ;
+             THD_warp *from_std , *to_hrs ;
+
+#if 0
+printf("warp_std_hrs BEFORE:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
+#endif
+
+             nnn = SNGL_mat_to_dicomm( dset_std ) ; mmm = TRANSPOSE_MAT(nnn) ;
+             from_std = AFNI_make_affwarp_mat( mmm ) ;
+             nnn = SNGL_mat_to_dicomm( dset_hrs ) ;
+             to_hrs = AFNI_make_affwarp_mat( nnn ) ;
+             AFNI_concatenate_warp( warp_std_hrs , from_std ) ;
+             AFNI_concatenate_warp( to_hrs , warp_std_hrs ) ;
+             myXtFree(warp_std_hrs) ; myXtFree(from_std) ;
+             warp_std_hrs = to_hrs ;
+
+#if 0
+printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
+#endif
            }
          }
 
@@ -353,12 +534,19 @@ ENTRY("THD_init_session") ;
 
          if( warp_exf_hrs != NULL || warp_exf_std != NULL ){
 
-           sess->warptable = new_Htable(0) ;  /* default size */
+           if( sess->warptable == NULL )
+              sess->warptable = new_Htable(0) ;  /* use minimum table size */
 
            if( warp_exf_hrs != NULL ){
              for( ii=feat_nf_start ; ii < sess->num_func ; ii++ ){
                sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->func[ii][0]->idcode.str) ;
                addto_Htable( fnam , warp_exf_hrs , sess->warptable ) ;
+             }
+             for( ii=feat_na_start ; ii < sess->num_anat ; ii++ ){
+               if( ii != feat_hrs && ii != feat_std ){
+                 sprintf(fnam,"%s,%s",dset_hrs->idcode.str,sess->anat[ii][0]->idcode.str) ;
+                 addto_Htable( fnam , warp_exf_hrs , sess->warptable ) ;
+               }
              }
            }
 
@@ -367,7 +555,19 @@ ENTRY("THD_init_session") ;
                sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->func[ii][0]->idcode.str) ;
                addto_Htable( fnam , warp_exf_std , sess->warptable ) ;
              }
+             for( ii=feat_na_start ; ii < sess->num_anat ; ii++ ){
+               if( ii != feat_hrs && ii != feat_std ){
+                 sprintf(fnam,"%s,%s",dset_std->idcode.str,sess->anat[ii][0]->idcode.str) ;
+                 addto_Htable( fnam , warp_exf_std , sess->warptable ) ;
+               }
+             }
            }
+
+           if( warp_std_hrs != NULL ){
+             sprintf(fnam,"%s,%s",dset_hrs->idcode.str,dset_std->idcode.str) ;
+             addto_Htable( fnam , warp_std_hrs , sess->warptable ) ;
+           }
+
          } /* end of making warptable */
        } /* end of FEATing */
 #endif

@@ -8402,13 +8402,6 @@ static INLINE UINT hashkey( char *str )
   return h;
 }
 
-/*--------------------------------------------------------*/
-/*! Create a string key from a string.
-----------------------------------------------------------*/
-
-#undef  HASH_STR
-#define HASH_STR(ss) ((strlen(ss) < 25) ? strdup(ss) : MD5_B64_string(ss))
-
 /*-------------------------------------------------------*/
 /*! Create a new Htable, with len slots.
 ---------------------------------------------------------*/
@@ -8463,11 +8456,9 @@ void destroy_Htable( Htable *ht )
 void * findin_Htable( char *str , Htable *ht )
 {
    UINT jj ;
-   int kk ;
-   char *mb ;
+   int kk , ntab ;
+   char *key , **ctab ;
    void ***vtab ;
-   char **ctab ;
-   int  ntab ;
 
    if( str == NULL || ht == NULL || ht->ntot == 0 ) return NULL ;
 
@@ -8477,16 +8468,15 @@ void * findin_Htable( char *str , Htable *ht )
 
    if( vtab[jj] == NULL ) return NULL ;  /* nothing there */
 
-   mb = HASH_STR(str) ;
+   key = str ;
 
    ctab = ht->ctab[jj] ; ntab = ht->ntab[jj] ;
 
-   for( kk=0 ; kk < ntab ; kk++ )   /* scan for match of mb to ctab */
-     if( ctab[kk] != NULL && strcmp(mb,ctab[kk]) == 0 ){
-       free(mb); return vtab[jj][kk];
-     }
+   for( kk=0 ; kk < ntab ; kk++ )   /* scan for match of key to ctab */
+     if( ctab[kk] != NULL && strcmp(key,ctab[kk]) == 0 )
+       return vtab[jj][kk];
 
-   free(mb); return NULL; /* no match found */
+   return NULL ; /* no match found */
 }
 
 /*--------------------------------------------------------*/
@@ -8501,7 +8491,7 @@ void addto_Htable( char *str , void *vpt , Htable *ht )
 {
    UINT jj ;
    int kk , ll=-1 ;
-   char *mb ;
+   char *key ;
 
    /* check for bad inputs */
 
@@ -8511,7 +8501,7 @@ void addto_Htable( char *str , void *vpt , Htable *ht )
 
    jj = hashkey(str) % ht->len ;      /* hash table row */
 
-   mb = HASH_STR(str) ;               /* internal key string */
+   key = strdup(str) ;                /* internal key string */
 
    if( ht->vtab[jj] == NULL ){        /* create this row in table */
 
@@ -8520,14 +8510,14 @@ void addto_Htable( char *str , void *vpt , Htable *ht )
      ht->ntab[jj] = 3 ;    /* made 2 extra entries */
 
      ht->vtab[jj][0] = vpt ;   /* save pointer */
-     ht->ctab[jj][0] = mb ;    /* save key string */
+     ht->ctab[jj][0] = key ;   /* save key string */
      ht->ntot ++ ;             /* 1 more in table */
 
    } else {                           /* search this row */
 
      for( kk=0 ; kk < ht->ntab[jj] ; kk++ ){
             if( ht->ctab[jj][kk] == NULL         ){ if(ll < 0) ll=kk; } /* add here? */
-       else if( strcmp(mb,ht->ctab[jj][kk]) == 0 ) break ;              /* found it? */
+       else if( strcmp(key,ht->ctab[jj][kk]) == 0 ) break ;             /* found it? */
      }
 
      if( kk == ht->ntab[jj] ){   /* didn't find str in row already */
@@ -8535,7 +8525,7 @@ void addto_Htable( char *str , void *vpt , Htable *ht )
        if( ll >= 0 ){         /* have a NULL slot from scan above */
 
          ht->vtab[jj][ll] = vpt ;  /* save ptr */
-         ht->ctab[jj][ll] = mb ;   /* save key string */
+         ht->ctab[jj][ll] = key ;  /* save key string */
          ht->ntot ++ ;             /* 1 more in table */
 
        } else {               /* must make row longer */
@@ -8545,7 +8535,7 @@ void addto_Htable( char *str , void *vpt , Htable *ht )
          ht->ntab[jj] = kk+3 ;
 
          ht->vtab[jj][kk] = vpt ;  /* save ptr */
-         ht->ctab[jj][kk] = mb ;   /* save key string */
+         ht->ctab[jj][kk] = key ;  /* save key string */
          ht->ntot ++ ;             /* 1 more in table */
 
          ht->vtab[jj][kk+1] = ht->vtab[jj][kk+2] = NULL ;  /* created 2 extra */
@@ -8556,7 +8546,7 @@ void addto_Htable( char *str , void *vpt , Htable *ht )
      } else {                    /* found str in row at index kk */
 
        ht->vtab[jj][kk] = vpt ;  /* replace old ptr with new */
-       free(mb) ;                /* don't need this */
+       free(key) ;               /* don't need this */
      }
    }
 }
@@ -8569,7 +8559,7 @@ void removefrom_Htable( char *str , Htable *ht )
 {
    UINT jj ;
    int kk ;
-   char *mb ;
+   char *key ;
    void ***vtab ;
    char **ctab ;
    int  ntab ;
@@ -8582,16 +8572,16 @@ void removefrom_Htable( char *str , Htable *ht )
 
    if( vtab[jj] == NULL ) return ;    /* nothing there */
 
-   mb = HASH_STR(str) ;
+   key = str ;
 
    ctab = ht->ctab[jj] ; ntab = ht->ntab[jj] ;
 
-   for( kk=0 ; kk < ntab ; kk++ )   /* scan for match of mb to ctab */
-     if( ctab[kk] != NULL && strcmp(mb,ctab[kk]) == 0 ){
+   for( kk=0 ; kk < ntab ; kk++ )   /* scan for match of key to ctab */
+     if( ctab[kk] != NULL && strcmp(key,ctab[kk]) == 0 ){
        free(ctab[kk]); ctab[kk] = NULL; vtab[jj][kk] = NULL; ht->ntot--; break;
      }
 
-   free(mb) ; return ;
+   return ;
 }
 
 /*-----------------------------------------------------------------*/
@@ -8622,4 +8612,25 @@ void profile_Htable( char *str, Htable *ht )
      }
    }
    fflush(stdout) ;
+}
+
+/*-----------------------------------------------------------------*/
+/*! Put contents of htold into htnew.
+-------------------------------------------------------------------*/
+
+void subsume_Htable( Htable *htold , Htable *htnew )
+{
+   int kk,jj ;
+
+   /* check inputs for sanity */
+
+   if( htold == NULL || htold->ntot == 0 || htnew == NULL ) return ;
+
+   for( jj=0 ; jj < htold->len ; jj++ ){
+     if( htold->vtab[jj] != NULL ){
+       for( kk=0 ; kk < htold->ntab[jj] ; kk++ )
+         if( htold->ctab[jj][kk] != NULL )
+           addto_Htable( htold->ctab[jj][kk] , htold->vtab[jj][kk] , htnew ) ;
+     }
+   }
 }

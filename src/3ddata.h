@@ -3322,6 +3322,7 @@ extern int THD_axcode( THD_3dim_dataset * , char ) ; /* promoted from static */
 extern int THD_handedness( THD_3dim_dataset * ) ;    /* on 06 Feb 2001 - RWCox */
 
 extern THD_dmat33 DBLE_mat_to_dicomm( THD_3dim_dataset * ) ; /* 14 Feb 2001 */
+extern THD_mat33  SNGL_mat_to_dicomm( THD_3dim_dataset * ) ; /* 28 Aug 2002 */
 
 extern THD_dvecmat THD_rotcom_to_matvec( THD_3dim_dataset * , char * ) ;
 
@@ -3460,8 +3461,12 @@ extern void AFNI_concatenate_warp( THD_warp * , THD_warp * ) ;
 extern THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * ,
                                                    THD_linear_mapping *  ) ;
 
-extern THD_warp * AFNI_make_affwarp(float,float,float,float,float,float,  /* 27 Aug 2002 */
-                                    float,float,float,float,float,float);
+extern THD_warp * AFNI_make_affwarp_12(float,float,float,float,
+                                       float,float,float,float,
+                                       float,float,float,float ); /* 27 Aug 2002 */
+
+extern THD_warp * AFNI_make_affwarp_mat   ( THD_mat33 ) ;         /* 28 Aug 2002 */
+extern THD_warp * AFNI_make_affwarp_matvec( THD_mat33 , THD_fvec3 ) ;
 
 extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
                                      int, int, int, float, char *, int,int ) ;

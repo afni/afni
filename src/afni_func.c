@@ -2471,7 +2471,8 @@ STATUS("failed to read new session") ;
                                            "******************************"
                                          , MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
-            } else if ( new_ss->num_anat <= 0 ){  /** no anatomical datasets? **/
+#if 0  /* removed 28 Aug 2002 */
+            } else if( new_ss->num_anat <= 0 ){  /** no anatomical datasets? **/
 
 STATUS("no anatomies") ;
                XBell(im3d->dc->display,100) ;
@@ -2480,6 +2481,7 @@ STATUS("no anatomies") ;
                                            "** Session has no anatomies **\n"
                                            "******************************"
                                          , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+#endif
 
             } else if( GLOBAL_library.sslist->num_sess >= THD_MAX_NUM_SESSION ){
 
@@ -2492,15 +2494,26 @@ STATUS("too many sessions") ;
                                            "****************************"
                                          , MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
-            } else {  /** GOOD!  Actually read in a new session.   **/
+            } else {  /** GOOD!  Actually process a new session.   **/
                       /** (The following is from AFNI_read_inputs) **/
                int qd , vv ;
-               char str[356] ;
+               char str[356] ;  /* for messages */
 
 STATUS("processing new session") ;
+
+               /* 28 Aug 2002: deal with case of no anatomicals */
+
+               if( new_ss->num_anat <= 0 ){
+                 for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+                    new_ss->anat[0][vv] = EDIT_wod_copy( new_ss->func[0][vv] ) ;
+                 new_ss->num_anat = 1 ;
+                 fprintf(stderr,"\n*** session %s has no anatomies!  Func duplicate used.\n",
+                         new_ss->sessname) ;
+               }
+
                new_ss->parent = NULL ;
 
-               for( qd=0 ; qd < new_ss->num_anat ; qd++ )
+               for( qd=0 ; qd < new_ss->num_anat ; qd++ )       /* parentize */
                   for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
                      PARENTIZE( new_ss->anat[qd][vv] , NULL ) ;
 
@@ -2535,6 +2548,16 @@ STATUS("adding new session to list") ;
 
 STATUS("rescanning timeseries files") ;
                AFNI_rescan_timeseries_CB(NULL,NULL,NULL) ;
+
+               /* 28 Aug 2002: deal with warptables */
+
+               if( new_ss->warptable != NULL ){
+                 if( GLOBAL_library.warptable == NULL ) /* create global warptable */
+                   GLOBAL_library.warptable = new_Htable(101) ;
+                 subsume_Htable( new_ss->warptable , GLOBAL_library.warptable ) ;
+                 destroy_Htable( new_ss->warptable ) ;
+                 new_ss->warptable = NULL ;
+               }
 
                XtPopdown( im3d->vwid->file_dialog ) ;
             }
@@ -3003,6 +3026,16 @@ STATUS("PARENTIZE-ing datasets in new session") ;
    THD_reconcile_parents( GLOBAL_library.sslist ) ;
    AFNI_force_adoption( new_ss , GLOBAL_argopt.warp_4D ) ;
    AFNI_make_descendants( GLOBAL_library.sslist ) ;
+
+   /* 28 Aug 2002: deal with warptables */
+
+   if( new_ss->warptable != NULL ){
+     if( GLOBAL_library.warptable == NULL ) /* create global warptable */
+       GLOBAL_library.warptable = new_Htable(101) ;
+     subsume_Htable( new_ss->warptable , GLOBAL_library.warptable ) ;
+     destroy_Htable( new_ss->warptable ) ;
+     new_ss->warptable = NULL ;
+   }
 
    /*--- for each main controller window, must reset some pointers ---*/
 

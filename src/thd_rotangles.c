@@ -346,3 +346,50 @@ THD_dmat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
 
    return tod ;
 }
+
+/*---------------------------------------------------------------------
+  This produces a permutation-like matrix that transforms from
+  brick axis coordinates to Dicom order coordinates.
+-----------------------------------------------------------------------*/
+
+THD_mat33 SNGL_mat_to_dicomm( THD_3dim_dataset * dset )
+{
+   THD_mat33 tod ;
+
+   LOAD_ZERO_MAT(tod) ;
+
+   switch( dset->daxes->xxorient ){
+      case ORI_R2L_TYPE: tod.mat[0][0] =  1.0 ; break ;
+      case ORI_L2R_TYPE: tod.mat[0][0] = -1.0 ; break ;
+      case ORI_P2A_TYPE: tod.mat[1][0] = -1.0 ; break ;
+      case ORI_A2P_TYPE: tod.mat[1][0] =  1.0 ; break ;
+      case ORI_I2S_TYPE: tod.mat[2][0] =  1.0 ; break ;
+      case ORI_S2I_TYPE: tod.mat[2][0] = -1.0 ; break ;
+
+      default: THD_FATAL_ERROR("illegal xxorient code") ;
+   }
+
+   switch( dset->daxes->yyorient ){
+      case ORI_R2L_TYPE: tod.mat[0][1] =  1.0 ; break ;
+      case ORI_L2R_TYPE: tod.mat[0][1] = -1.0 ; break ;
+      case ORI_P2A_TYPE: tod.mat[1][1] = -1.0 ; break ;
+      case ORI_A2P_TYPE: tod.mat[1][1] =  1.0 ; break ;
+      case ORI_I2S_TYPE: tod.mat[2][1] =  1.0 ; break ;
+      case ORI_S2I_TYPE: tod.mat[2][1] = -1.0 ; break ;
+
+      default: THD_FATAL_ERROR("illegal yyorient code") ;
+   }
+
+   switch( dset->daxes->zzorient ){
+      case ORI_R2L_TYPE: tod.mat[0][2] =  1.0 ; break ;
+      case ORI_L2R_TYPE: tod.mat[0][2] = -1.0 ; break ;
+      case ORI_P2A_TYPE: tod.mat[1][2] = -1.0 ; break ;
+      case ORI_A2P_TYPE: tod.mat[1][2] =  1.0 ; break ;
+      case ORI_I2S_TYPE: tod.mat[2][2] =  1.0 ; break ;
+      case ORI_S2I_TYPE: tod.mat[2][2] = -1.0 ; break ;
+
+      default: THD_FATAL_ERROR("illegal zxorient code") ;
+   }
+
+   return tod ;
+}

@@ -300,12 +300,13 @@ THD_linear_mapping * AFNI_concatenate_lmap( THD_linear_mapping * map_2 ,
     27 Aug 2002 - RWCox.
 ----------------------------------------------------------------------------*/
 
-THD_warp * AFNI_make_affwarp( float a11, float a12, float a13,  float s1 ,
-                              float a21, float a22, float a23,  float s2 ,
-                              float a31, float a32, float a33,  float s3  )
+THD_warp * AFNI_make_affwarp_12( float a11, float a12, float a13,  float s1 ,
+                                 float a21, float a22, float a23,  float s2 ,
+                                 float a31, float a32, float a33,  float s3  )
 {
    THD_warp *warp ;
    THD_linear_mapping map ;
+   float dd , nn ;
 
    warp       = myXtNew( THD_warp ) ;
    warp->type = WARP_AFFINE_TYPE ;
@@ -313,10 +314,30 @@ THD_warp * AFNI_make_affwarp( float a11, float a12, float a13,  float s1 ,
    map.type = MAPPING_LINEAR_TYPE ;
 
    LOAD_MAT(map.mfor,a11,a12,a13,a21,a22,a23,a31,a32,a33) ;
+   dd = MAT_DET(map.mfor) ; nn = MAT_FNORM(map.mfor) ;
+   if( fabs(dd) < 1.e-5*nn*nn*nn ) return NULL ;  /* bad input */
    LOAD_FVEC3(map.bvec,-s1,-s2,-s3) ;
    LOAD_INVERSE_LMAP(map) ;
 
    warp->rig_bod.warp = map ;
 
    return warp ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+THD_warp * AFNI_make_affwarp_mat( THD_mat33 mmm )
+{
+   return AFNI_make_affwarp_12( mmm.mat[0][0], mmm.mat[0][1], mmm.mat[0][2], 0.0 ,
+                                mmm.mat[1][0], mmm.mat[1][1], mmm.mat[1][2], 0.0 ,
+                                mmm.mat[2][0], mmm.mat[2][1], mmm.mat[2][2], 0.0  ) ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+THD_warp * AFNI_make_affwarp_matvec( THD_mat33 mmm , THD_fvec3 vvv )
+{
+   return AFNI_make_affwarp_12( mmm.mat[0][0], mmm.mat[0][1], mmm.mat[0][2], vvv.xyz[0] ,
+                                mmm.mat[1][0], mmm.mat[1][1], mmm.mat[1][2], vvv.xyz[1] ,
+                                mmm.mat[2][0], mmm.mat[2][1], mmm.mat[2][2], vvv.xyz[2]  ) ;
 }

@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.50e"
+#define VERSION "2.51a"
 
 /** this should always be exactly 17 characters! **/
 /**             "12345678901234567" **/
 
-#define RELEASE "19 Aug 2002      "
+#define RELEASE "30 Aug 2002      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -962,6 +962,8 @@ typedef struct {
 
    MCW_function_list registered_slice_proj ;      /* 31 Jan 2002 */
 
+   Htable *warptable ;                            /* 28 Aug 2002 */
+
 } AFNI_library_type ;
 
 #ifdef MAIN
@@ -1223,6 +1225,9 @@ extern void AFNI_initialize_view( THD_3dim_dataset * , Three_D_View * ) ;
 
 extern void AFNI_setup_viewing(  Three_D_View * , Boolean ) ;
 extern void AFNI_modify_viewing( Three_D_View * , Boolean ) ;
+
+extern THD_warp * AFNI_find_warp( THD_3dim_dataset * ,
+                                  THD_3dim_dataset *  ) ; /* 28 Aug 2002 */
 
 extern int AFNI_can_transform_vector( THD_3dim_dataset *, THD_3dim_dataset * );
 
