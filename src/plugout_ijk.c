@@ -47,7 +47,7 @@ int main( int argc , char * argv[] )
              "                connect on the current host using shared memory.\n"
              "  -v          Verbose mode.\n"
              "  -port pp    Use TCP/IP port number 'pp'.  The default is\n"
-             "                8009, but if two plugins are running on the\n"
+             "                8009, but if two plugouts are running on the\n"
              "                same computer, they must use different ports.\n"
              "  -name sss   Use the string 'sss' for the name that AFNI assigns\n"
              "                to this plugout.  The default is something stupid.\n"

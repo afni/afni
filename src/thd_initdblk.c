@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -73,6 +73,9 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    dblk->master_nvals = 0 ;     /* 11 Jan 1999 */
    dblk->master_ival  = NULL ;
    dblk->master_bytes = NULL ;
+
+   dblk->master_bot = 1.0 ;     /* 21 Feb 2001 */
+   dblk->master_top = 0.0 ;
 
    DBLK_unlock(dblk) ;  /* Feb 1998 */
 

@@ -482,6 +482,8 @@ extern void PLUG_choose_dataset_CB   ( Widget , XtPointer , XtPointer ) ;
 extern void PLUG_startup_plugin_CB   ( Widget , XtPointer , XtPointer ) ;
 extern void PLUG_choose_timeseries_CB( Widget , XtPointer , XtPointer ) ;
 
+extern void PLUTO_turnoff_options( PLUGIN_interface * ) ; /* 21 Feb 2001 */
+
 extern void PLUG_finalize_dataset_CB   (Widget, XtPointer, MCW_choose_cbs *);
 extern void PLUG_finalize_timeseries_CB(Widget, XtPointer, MCW_choose_cbs *);
 

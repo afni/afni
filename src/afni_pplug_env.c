@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -89,6 +89,8 @@ static void ENV_coorder( char * ) ;
 static void ENV_compressor( char * ) ;
 static void ENV_leftisleft( char * ) ;
 static void ENV_marksquality( char * ) ;
+static void ENV_trusthost( char * ) ;     /* 21 Feb 2001 */
+static void ENV_cwd( char * ) ;           /* 22 Feb 2001 */
 
 #ifdef USE_SESSTRAIL
 static void ENV_sesstrail( char * ) ;
@@ -110,7 +112,7 @@ static char *yesno_list[] = { "YES" , "NO" } ;
 
 #define NAME_NMAX 32
 #define HINT_NMAX 64
-#define VAL_NMAX  64
+#define VAL_NMAX  (PLUGIN_STRING_SIZE+NAME_NMAX+8)
 
 #define ENV_NUMBER_EDITABLE 1
 #define ENV_NUMBER_FIXED    2
@@ -146,6 +148,16 @@ PLUGIN_interface * ENV_init(void)
    int ii ;
 
    /*------- some environment variables for AFNI ------*/
+
+   { static char buf[VAL_NMAX] = "AFNI_CWD=" ;      /* 22 Feb 2001 */
+     ept = getcwd( buf+9 , VAL_NMAX-9 ) ;
+     if( ept != NULL ){
+        putenv(buf) ;
+        ENV_add_string( "AFNI_CWD" ,
+                        "Current working directory (gets output files)" ,
+                        0,NULL , ENV_cwd ) ;
+     }
+   }
 
    ENV_add_string( "AFNI_ENFORCE_ASPECT" ,
                    "To make AFNI enforce image window aspect ratio?" ,
@@ -212,6 +224,10 @@ PLUGIN_interface * ENV_init(void)
    ENV_add_string( "AFNI_PSPRINT" ,
                    "Command to send stdin to PostScript printer" ,
                    0,NULL , NULL ) ;
+
+   ENV_add_string( "AFNI_TRUSTHOST" ,
+                   "Name of host to trust for plugouts and realtime data" ,
+                   0,NULL , ENV_trusthost ) ;
 
 #ifndef NO_FRIVOLITIES
    ENV_add_string( "AFNI_IMAGE_PGMFILE" ,
@@ -549,6 +565,36 @@ static void ENV_byteorder( char * vname )
    THD_set_write_order( meth ) ;
 }
 #endif
+
+/*-----------------------------------------------------------------------*/
+
+static void ENV_trusthost( char * vname )  /* 21 Feb 2001 */
+{
+   char * str = getenv(vname) ;
+   TRUST_addhost(str) ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+static void ENV_cwd( char * vname )  /* 22 Feb 2001 */
+{
+  char * str = getenv(vname) , buf[256] , *bpt ;
+
+  if( str != NULL && str[0] != '\0' ){
+     int ii = chdir(str) ;
+     if( ii ){
+        perror("** Setting CWD fails") ;
+        bpt = getcwd( buf , 256 ) ;
+        if( bpt != NULL ) fprintf(stderr,"** CWD still = %s\n",buf) ;
+        BEEPIT ;
+     } else {
+        bpt = getcwd( buf , 256 ) ;
+        if( bpt != NULL ) fprintf(stderr,"++ CWD now = %s\n",buf) ;
+     }
+  } else {
+     fprintf(stderr,"** CWD not changed!\n") ;
+  }
+}
 
 /*-----------------------------------------------------------------------*/
 

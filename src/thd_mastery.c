@@ -13,15 +13,17 @@ static THD_3dim_dataset * THD_open_3dcalc( char * ) ;
 
 /*-----------------------------------------------------------------
    11 Jan 1999: Open a dataset, allowing for possible mastering.
+   21 Feb 2001: Allow for <a..b> sub-ranging as well.
 -------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_open_dataset( char * pathname )
 {
    THD_3dim_dataset * dset ;
    char dname[THD_MAX_NAME] , subv[THD_MAX_NAME] ;
-   char * cpt ;
-   int  * ivlist ;
-   int    ii ;
+   char * cpt , * bpt ;
+   int  * ivlist=NULL ;
+   int    ii , jj , kk ;
+   float  bot=1.0 , top=0.0 ;
 
    /*-- sanity check --*/
 
@@ -36,37 +38,72 @@ THD_3dim_dataset * THD_open_dataset( char * pathname )
       return dset ;
    }
 
-   /*-- find the opening "[" --*/
+   /*-- find the opening "[" and/or "<" --*/
 
    cpt = strstr(pathname,"[") ;
+   bpt = strstr(pathname,"<") ;  /* 21 Feb 2001 */
 
-   if( cpt == NULL ){                            /* no "["   */
-      dset = THD_open_one_dataset( pathname ) ;  /* ==> open */
-      return dset ;                              /* normally */
+   if( cpt == NULL && bpt == NULL ){             /* no "[" or "<"  */
+      dset = THD_open_one_dataset( pathname ) ;  /* ==> open      */
+      return dset ;                              /*     normally */
    }
 
-   if( cpt == pathname ) return NULL ;  /* error */
+   if( cpt == pathname || bpt == pathname ) return NULL ;  /* error */
 
    /* copy dataset filename to dname and selector string to subv */
 
-   ii = cpt - pathname ;
-   memcpy(dname,pathname,ii) ; dname[ii] = '\0' ;
-   strcpy(subv,cpt) ;
+   ii = (cpt != NULL ) ? cpt - pathname : 999999 ;
+   jj = (bpt != NULL ) ? bpt - pathname : 999999 ;
+   kk = MIN(ii,jj) ;
+   memcpy(dname,pathname,kk) ; dname[kk] = '\0' ;
 
    /* open the dataset */
 
    dset = THD_open_one_dataset( dname ) ;
    if( dset == NULL ) return NULL ;
 
-   /* parse the selector string */
+   /* parse the sub-brick selector string (if any) */
 
-   ivlist = MCW_get_intlist( DSET_NVALS(dset) , subv ) ;
-   if( ivlist == NULL ) return dset ;
+   if( cpt != NULL ){
+      char * qpt ;
+      strcpy(subv,cpt) ;
+      qpt = strstr(subv,"<") ; if( qpt != NULL ) *qpt = '\0' ;
+      ivlist = MCW_get_intlist( DSET_NVALS(dset) , subv ) ;
+   }
+   if( ivlist == NULL ){
+      ivlist = (int *) malloc(sizeof(int)*(DSET_NVALS(dset)+1)) ;
+      ivlist[0] = DSET_NVALS(dset) ;
+      for( kk=0 ; kk < ivlist[0] ; kk++ ) ivlist[kk+1] = kk ;
+   }
+
+   /* 21 Feb 2001: if present, load the sub-range data */
+
+   if( bpt != NULL ){
+      char * dpt = strstr(bpt,"..") ;
+#if 0
+fprintf(stderr,"bpt=%s\n",bpt) ;
+#endif
+      if( dpt != NULL ){
+#if 0
+fprintf(stderr,"dpt=%s\n",dpt) ;
+#endif
+         kk  = sscanf( bpt+1 , "%f" , &bot ) ;
+         kk += sscanf( dpt+2 , "%f" , &top ) ;
+         if( kk == 2 && bot <= top ){
+            dset->dblk->master_bot = bot ;
+            dset->dblk->master_top = top ;
+         } else {
+            dset->dblk->master_bot = 1.0 ;
+            dset->dblk->master_top = 0.0 ;
+         }
+      }
+   }
 
    /* modify the dataset according to the selector string */
 
    THD_setup_mastery( dset , ivlist ) ;
    free(ivlist) ;
+
    return dset ;
 }
 
@@ -126,9 +163,9 @@ static void THD_setup_mastery( THD_3dim_dataset * dset , int * ivlist )
    } else {                                  /* 21 Feb 2001: change to bucket type */
 
       if( ISANAT(dset) && !ISANATBUCKET(dset) )
-         EDIT_dset_items( dset , ADN_type,ANAT_BUCK_TYPE , ADN_none ) ;
+         EDIT_dset_items( dset , ADN_func_type,ANAT_BUCK_TYPE , ADN_none ) ;
       else if( ISFUNC(dset) && !ISFUNCBUCKET(dset) )
-         EDIT_dset_items( dset , ADN_type,FUNC_BUCK_TYPE , ADN_none ) ;
+         EDIT_dset_items( dset , ADN_func_type,FUNC_BUCK_TYPE , ADN_none ) ;
 
    }
 
@@ -200,6 +237,7 @@ static void THD_setup_mastery( THD_3dim_dataset * dset , int * ivlist )
    if( ISVALID_STATISTIC(dset->stats) ){
       THD_statistics * new_stats , * old_stats ;
       THD_brick_stats * bsold , * bsnew ;
+      float bot,top ;
 
       old_stats = dset->stats ;
       new_stats = myXtNew( THD_statistics ) ;
@@ -223,6 +261,21 @@ static void THD_setup_mastery( THD_3dim_dataset * dset , int * ivlist )
       dset->stats = new_stats ;
 
       myXtFree(bsold) ; myXtFree(old_stats) ;
+
+      /* 21 Feb 2001: mangle statistics if sub-ranging is used */
+
+      bot = dset->dblk->master_bot ; top = dset->dblk->master_top ;
+      if( bot <= top ){
+              if( bot > 0.0 ) bot = 0.0 ;
+         else if( top < 0.0 ) top = 0.0 ;
+
+         for( ibr=0 ; ibr < new_nvals ; ibr++ ){
+            if( ISVALID_BSTAT(bsnew[ibr]) ){
+               if( bsnew[ibr].min < bot ) bsnew[ibr].min = bot ;
+               if( bsnew[ibr].max > top ) bsnew[ibr].max = top ;
+            }
+         }
+      }
    }
 
    return ;

@@ -1376,6 +1376,8 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
         PICTURE_ON(MAIN_im3d) ;
         (void) XtAppAddTimeOut( MAIN_app , 1234 , AFNI_startup_timeout_CB , MAIN_im3d ) ;
 
+        (void) TRUST_host(NULL) ; /* 21 Feb 2001: initialize trust mechanism */
+
         REPORT_PROGRESS("\n") ;
       }
       break ;

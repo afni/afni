@@ -1719,6 +1719,31 @@ ENTRY("PLUG_setup_widgets") ;
 }
 
 /*-----------------------------------------------------------------------
+  21 Feb 2001: routine to turn off optional inputs
+-------------------------------------------------------------------------*/
+
+void PLUTO_turnoff_options( PLUGIN_interface * plint )
+{
+   int kk ;
+
+ENTRY("PLUTO_turnoff_options") ;
+
+   /**** sanity checks ****/
+
+   if( plint == NULL || plint->wid == NULL ||
+       plint->call_method == PLUGIN_CALL_IMMEDIATELY ) EXRETURN ;
+
+   /**** loop over options */
+
+   for( kk=0 ; kk < plint->option_count ; kk++ ){
+      if( !plint->option[kk]->mandatory )
+         XmToggleButtonSetState( plint->wid->opwid[kk]->toggle, False,True ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------
    What happens when a plugin interface action button is pressed
 -------------------------------------------------------------------------*/
 

@@ -62,11 +62,11 @@ static char * MRI_TYPE_name[7] =
 static float MRI_TYPE_maxval[7] =
   { 255.0 , 32767.0 , 2147483647.0 , 0.0,0.0,0.0 , 255.0 } ;
 
-#define SHORTIZE(xx) (  ((xx) < -32767.0) ? (short)-32767                \
-                      : ((xx) >  32767.0) ? (short) 32767 : (short)(xx) )
+#define SHORTIZE(xx) (  ((xx) < -32767.0) ? (short)-32767                    \
+                      : ((xx) >  32767.0) ? (short) 32767 : (short)rint(xx) )
 
-#define BYTEIZE(xx)  (  ((xx) <   0.0) ? (byte)0                 \
-                      : ((xx) > 255.0) ? (byte)255 : (byte)(xx) )
+#define BYTEIZE(xx)  (  ((xx) <   0.0) ? (byte)0                     \
+                      : ((xx) > 255.0) ? (byte)255 : (byte)rint(xx) )
 
 #define MRI_IS_INT_TYPE(typ) ((typ) < 3)
 

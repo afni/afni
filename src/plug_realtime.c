@@ -629,6 +629,8 @@ char * RT_main( PLUGIN_interface * plint )
       reggraph  = 0 ;
    }
 
+   PLUTO_turnoff_options( plint ) ;  /* 21 Feb 2001 */
+
    return NULL ;  /* nothing bad happened */
 }
 

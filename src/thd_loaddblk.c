@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -279,6 +279,85 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
                fprintf(stderr ,
                        "*** %s: found %d float errors -- see program float_scan\n" ,
                        dkptr->brick_name , nerr ) ;
+         }
+
+         /* 21 Feb 2001: if sub-ranging also used, clip values in brick */
+
+#if 0
+fprintf(stderr,"master_bot=%g master_top=%g\n",blk->master_bot,blk->master_top) ;
+#endif
+         if( DBLK_IS_MASTERED(blk) && blk->master_bot <= blk->master_top ){
+            float bot = blk->master_bot , top = blk->master_top , fac ;
+            int jbr ;
+
+            for( jbr=0 ; jbr < nv ; jbr++ ){
+               switch( DBLK_BRICK_TYPE(blk,jbr) ){
+
+                  default:
+                     fprintf(stderr,
+                             "** Can't sub-range datum type %s!\n",
+                             MRI_TYPE_name[DBLK_BRICK_TYPE(blk,jbr)]) ;
+                  break ;
+
+                  case MRI_short:{
+                     short mbot, mtop, *mar = (short *) DBLK_ARRAY(blk,jbr) ;
+                     float mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+                     if( mfac == 0.0 ) mfac = 1.0 ;
+                     mbot = SHORTIZE(bot/mfac) ; mtop = SHORTIZE(top/mfac) ;
+#if 0
+fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
+#endif
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                        if( mar[ii] < mbot || mar[ii] > mtop ) mar[ii] = 0 ;
+                  }
+                  break ;
+
+                  case MRI_int:{
+                     int mbot, mtop, *mar = (int *) DBLK_ARRAY(blk,jbr) ;
+                     float mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+                     if( mfac == 0.0 ) mfac = 1.0 ;
+                     mbot = rint(bot/mfac) ; mtop = rint(top/mfac) ;
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                        if( mar[ii] < mbot || mar[ii] > mtop ) mar[ii] = 0 ;
+                  }
+                  break ;
+
+                  case MRI_byte:{
+                     byte mbot, mtop, *mar = (byte *) DBLK_ARRAY(blk,jbr) ;
+                     float mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+                     if( mfac == 0.0 ) mfac = 1.0 ;
+                     mbot = BYTEIZE(bot/mfac) ; mtop = BYTEIZE(top/mfac) ;
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                        if( mar[ii] < mbot || mar[ii] > mtop ) mar[ii] = 0 ;
+                  }
+                  break ;
+
+                  case MRI_float:{
+                     float mbot, mtop, *mar = (float *) DBLK_ARRAY(blk,jbr) ;
+                     float mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+                     if( mfac == 0.0 ) mfac = 1.0 ;
+                     mbot = (bot/mfac) ; mtop = (top/mfac) ;
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                        if( mar[ii] < mbot || mar[ii] > mtop ) mar[ii] = 0 ;
+                  }
+                  break ;
+
+                  case MRI_complex:{
+                     float mbot, mtop , val ;
+                     complex *mar = (complex *) DBLK_ARRAY(blk,jbr) ;
+                     float mfac = DBLK_BRICK_FACTOR(blk,jbr) ;
+                     if( mfac == 0.0 ) mfac = 1.0 ;
+                     mbot = (bot/mfac) ; mtop = (top/mfac) ;
+                     mbot = (mbot > 0) ? mbot*mbot : 0 ;
+                     mtop = (mtop > 0) ? mtop*mtop : 0 ;
+                     for( ii=0 ; ii < nxyz ; ii++ ){
+                        val = CSQR(mar[ii]) ;
+                        if( val < mbot || val > mtop ) mar[ii].r = mar[ii].i = 0 ;
+                     }
+                  }
+                  break ;
+               }
+            }
          }
 
          return True ;

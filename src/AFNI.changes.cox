@@ -2565,3 +2565,19 @@
      prevent interpretation as fico, etc.
  * Modified 3dmerge.c to allow use of sub-brick selectors on input
      datasets.
+ * Modified thd_trusthost.c to make it easier to add hosts by name
+     or by number, using a new function TRUST_addhost().
+ * Added function PLUTO_turnoff_options() to afni_plugin.c; used this
+     in plug_realtime.c to turn off all input options after processing.
+ * Added AFNI_TRUSTHOST to afni_pplug_env.c so that user can add trusted
+     hosts (for plugins/plugouts) interactively.
+ * Modified thd_mastery.c and thd_loaddblk.c to allow for sub-ranging
+     on dataset input, using the <a..b> syntax on the command line.
+
+22 Feb 2001
+ * Added program 3dClipLevel.c to estimate the cutoff value to excise
+     background regions from anatomical datasets (especially EPI).
+ * Added AFNI_CWD variable to afni_pplug_env.c, to let user change
+     working directory (where output files like "Save:One" go).
+ * Modified 3dOverlap.c to optionally save counts to a new dataset.
+ * Fixed thd_mastery.c so that <a..a> works properly (<= vs. <).

@@ -1,9 +1,3 @@
-/*****************************************************************************
-   Major portions of this software are copyrighted by the Medical College
-   of Wisconsin, 1994-2000, and are released under the Gnu General Public
-   License, Version 2.  See the file README.Copyright for details.
-******************************************************************************/
-
 /*---------------------------------------------------------------------------*/
 /*
   This sample program generates random stimulus functions.
@@ -27,13 +21,21 @@
 
   Mod:     Added flag to expand array for block type design.
   Date:    14 January 2000
+
+  Mod:     Added -markov and -pzero options.
+  Data:    03 October 2000
+
+  This software is copyrighted and owned by the Medical College of Wisconsin.
+  See the file README.Copyright for details.
+
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "14 January 2000"           /* date of last program mod */
+#define PROGRAM_INITIAL "06 July 1999"    /* date of initial program release */
+#define PROGRAM_LATEST "03 October 2000"  /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -42,7 +44,10 @@
 #include <stdio.h>
 
 #include "mrilib.h"
+#include "matrix.h"
+
 #include "randgen.c"
+#include "matrix.c"
 
 
 /*---------------------------------------------------------------------------*/
@@ -63,6 +68,9 @@ int expand = 0;         /* flag to expand the array for block type design */
 long seed = 1234567;    /* random number seed */
 char * prefix = NULL;   /* prefix for output .1D stimulus functions */
 int one_file = 0;       /* flag for place stim functions into a single file */
+int markov = 0;         /* flag for Markov process */
+char * tpm_file = NULL; /* file name for input of transition prob. matrix */
+float pzero = 0.0;      /* zero (null) state probability */
 
 
 /*---------------------------------------------------------------------------*/
@@ -100,21 +108,30 @@ void display_help_menu()
     "RSFgen                                                                 \n"
     "-nt n            n = length of time series                             \n"
     "-num_stimts p    p = number of input stimuli (experimental conditions) \n"
-    "-nreps i r       r = number of repetitions for stimulus i  (1<=i<=p)   \n"
-    "[-nblock i k]    k = block length for stimulus i  (1<=i<=p)            \n"
-    "                     (default: k = 1)                                  \n"
     "[-seed s]        s = random number seed                                \n"
     "[-one_file]      place stimulus functions into a single .1D file       \n"
     "[-prefix pname]  pname = prefix for p output .1D stimulus functions    \n"
     "                   e.g., pname1.1D, pname2.1D, ..., pnamep.1D          \n"
-    "                 Warning:  This will overwrite pre-existing .1D files  \n"
-    "                           that have the same name.                    \n"
     "                                                                       \n"
-    "                    p                                                  \n"
-    "Note: Require n >= Sum (r[i] * k[i])                                   \n"
-    "                   i=1                                                 \n"
+    "The following Random Permuation and Markov Chain options are           \n"
+    "mutually exclusive.                                                    \n"
+    "                                                                       \n"
+    "Random Permutation options:                                            \n"
+    "-nreps i r       r = number of repetitions for stimulus i  (1<=i<=p)   \n"
+    "[-nblock i k]    k = block length for stimulus i  (1<=i<=p)            \n"
+    "                     (default: k = 1)                                  \n"
+    "                                     p                                 \n"
+    "                 Note: Require n >= Sum (r[i] * k[i])                  \n"
+    "                                    i=1                                \n"
+    "                                                                       \n"
+    "Markov Chain options:                                                  \n"
+    "-markov mfile    mfile = file containing the transition prob. matrix   \n"
+    "[-pzero z]       probability of a zero (i.e., null) state              \n"
+    "                     (default: z = 0)                                  \n"
+    "                                                                       \n"
     "                                                                       \n"
     "Warning: This program will overwrite pre-existing .1D files            \n"
+    "                                                                       \n"
     );
   
   exit(0);
@@ -135,6 +152,7 @@ void get_options
 {
   int nopt = 1;                     /* input option argument counter */
   int ival;                         /* integer input */
+  float fval;                       /* float input */
   long lval;                        /* long integer input */
   char message[MAX_STRING_LENGTH];  /* error message */
   int i;
@@ -253,19 +271,55 @@ void get_options
 	}
       
 
+      /*-----   -markov mfile   -----*/
+      if (strcmp(argv[nopt], "-markov") == 0)
+	{
+	  markov = 1;
+	  nopt++;
+	  if (nopt >= argc)  RSF_error ("need argument after -markov ");
+	  tpm_file = malloc (sizeof(char) * MAX_STRING_LENGTH);
+	  MTEST (tpm_file);
+	  strcpy (tpm_file, argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+      
+
+      /*-----   -pzero z   -----*/
+      if (strcmp(argv[nopt], "-pzero") == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  RSF_error ("need argument after -pzero ");
+	  sscanf (argv[nopt], "%f", &fval);
+	  if ((fval < 0.0) || (fval > 1.0))  
+	    RSF_error ("Require  0.0 <= pzero <= 1.0");
+	  pzero = fval;
+	  nopt++;
+	  continue;
+	}
+      
+
       /*----- Unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       RSF_error (message);
       
     }
 
+
   /*----- Print options -----*/
-  printf ("nt         = %d \n", NT);
-  printf ("num_stimts = %d \n", num_stimts);
-  for (i = 0;  i < num_stimts;  i++)
-    printf ("nreps[%d]  = %d    nblock[%d] = %d \n", 
-	    i+1, num_reps[i], i+1, nblock[i]);
-  printf ("seed       = %ld \n", seed);
+  printf ("nt            = %d \n", NT);
+  printf ("num_stimts    = %d \n", num_stimts);
+  printf ("seed          = %ld \n", seed);
+  printf ("output prefix = %s \n", prefix);
+  if (markov)
+    {
+      printf ("TPM file      = %s \n", tpm_file);
+      printf ("pzero         = %f \n", pzero);
+    }
+  else
+    for (i = 0;  i < num_stimts;  i++)
+      printf ("nreps[%d]  = %d    nblock[%d] = %d \n", 
+	      i+1, num_reps[i], i+1, nblock[i]);
 }
 
 
@@ -305,15 +359,19 @@ void initialize
   if (num_stimts == 0)  RSF_error ("Must specify num_stimts");
   total = 0;
   nt = NT;
-  for (i = 0;  i < num_stimts;  i++)
+
+  if (! markov)
     {
-      if (num_reps[i] == 0)  
-	RSF_error ("Must specify nreps > 0 for each stimulus");
-      total += num_reps[i] * nblock[i];
-      nt -= num_reps[i] * (nblock[i] - 1);
+      for (i = 0;  i < num_stimts;  i++)
+	{
+	  if (num_reps[i] == 0)  
+	    RSF_error ("Must specify nreps > 0 for each stimulus");
+	  total += num_reps[i] * nblock[i];
+	  nt -= num_reps[i] * (nblock[i] - 1);
+	}
+      if (total > NT)  RSF_error ("Require  nt >= Sum (r[i] * k[i]) ");
     }
-  if (total > NT)  RSF_error ("nt < Sum (r[i] * k[i]) ");
- 
+
 
   /*----- Allocate memory for experimental design -----*/
   *darray = (int *) malloc (sizeof(int) * nt);   MTEST (*darray);
@@ -323,6 +381,90 @@ void initialize
   /*----- Initialize random number seed -----*/
   srand48 (seed);
 
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Use Markov chain to create random stimulus functions.
+*/
+
+void markov_array (int * design)
+
+{
+  int it, is, isprev;
+  float prob, cumprob;
+  matrix tpm;
+  char message[MAX_STRING_LENGTH];  /* error message */
+
+
+  matrix_initialize (&tpm);
+
+
+  /*----- Read the transition probability matrix -----*/
+  matrix_file_read (tpm_file, num_stimts, num_stimts, &tpm, 1);
+  if (tpm.elts == NULL)
+    { 
+      sprintf (message,  "Unable to read Markov chain matrix from file: %s", 
+	       tpm_file);
+      RSF_error (message);
+    }  
+  matrix_sprint ("\nTPM matrix:", tpm);
+
+
+  /*----- Verify that the TPM has the correct form -----*/
+  for (is = 0;  is < num_stimts;  is++)
+    {
+      cumprob = 0.0;
+      for (it = 0;  it < num_stimts;  it++)
+	cumprob += tpm.elts[is][it];
+      if (cumprob < 1.0)  
+	{
+	  sprintf (message, "Row %d of TPM sums to %f, which is < 1.0",
+		   is, cumprob);
+	  RSF_error (message);
+	}
+      if (cumprob > 1.01)  
+	{
+	  sprintf (message, "Row %d of TPM sums to %f, which is > 1.0",
+		   is, cumprob);
+	  RSF_error (message);
+	}
+    }
+  
+
+  /*----- Initialize the experimental design array -----*/
+  for (it = 0;  it < nt;  it++)
+    design[it] = 0;
+
+
+  /*----- Generate Markov process -----*/
+  isprev = (int) (rand_uniform(0.0,1.0)*num_stimts);
+  for (it = 0;  it < nt;  it++)
+    {
+      if ((pzero > 0.0) && (rand_uniform(0.0,1.0) < pzero))
+	design[it] = 0;
+      else
+	{
+	  prob = rand_uniform(0.0,1.0);
+	  cumprob = 0.0;
+	  for (is = 0;  is < num_stimts;  is++)
+	  {
+	    cumprob += tpm.elts[isprev][is];
+	    if (prob <= cumprob)
+	      {
+		design[it] = is+1;
+		isprev = is;
+		break;
+	      }
+	  }
+	}
+    }
+
+
+  matrix_destroy (&tpm);
+
+  return;
 }
 
 
@@ -569,9 +711,10 @@ int main
   
   /*----- Identify software -----*/
   printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
-  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 
   
@@ -579,30 +722,44 @@ int main
   initialize (argc, argv, &darray, &earray);
 
 
-  /*----- Generate required number of repetitions of stim. fns. -----*/
-  fill_array (darray);
-  sprint_array ("\nOriginal array: ", darray, nt);
-
-
-  /*----- Randomize the order of the stimulus functions -----*/
-  shuffle_array (darray);
-  sprint_array ("\nShuffled array: ", darray, nt);
-
-  
-  if (expand)
+  if (markov)
+  /*----- Use Markov chain to generate random stimulus functions -----*/
     {
-      /*----- Expand the array for block type designs -----*/
-      expand_array (darray, earray);
-      sprint_array ("\nExpanded array: ", earray, NT);
-  
-      /*----- Output results -----*/
-      if (prefix != NULL)  write_results (earray);
+      markov_array (darray);
+      sprint_array ("\nMarkov chain time series: ", darray, nt);
     }
+
+
   else
+  /*----- Use random permutations to generate random stimulus functions -----*/
     {
- 
-      /*----- Output results -----*/
-      if (prefix != NULL)  write_results (darray);
+      /*----- Generate required number of repetitions of stim. fns. -----*/
+      fill_array (darray);
+      sprint_array ("\nOriginal array: ", darray, nt);
+      
+
+      /*----- Randomize the order of the stimulus functions -----*/
+      shuffle_array (darray);
+      sprint_array ("\nShuffled array: ", darray, nt);
+
+  
+      if (expand)
+	{
+	  /*----- Expand the array for block type designs -----*/
+	  expand_array (darray, earray);
+	  sprint_array ("\nExpanded array: ", earray, NT);
+	}
+
+    }
+
+
+  /*----- Output results -----*/
+  if (prefix != NULL)  
+    {
+      if (markov || (! expand))
+	write_results (darray);
+      else
+	write_results (earray);
     }
 
 

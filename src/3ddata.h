@@ -799,6 +799,8 @@ typedef struct {
       int *  master_ival ;    /*           in pieces from a master dataset      */
       int *  master_bytes ;   /* master_ival[nvals]; master_bytes[master_nvals] */
 
+      float master_bot,master_top ; /* 21 Feb 2001: range of data to keep */
+
       THD_diskptr * diskptr ; /* where the data is on disk (if anywhere!) */
 
       int       natr , natr_alloc ;
@@ -2167,10 +2169,13 @@ extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 #define MASTER_SHORTHELP_STRING                                                 \
  "INPUT DATASET NAMES\n"                                                        \
  "-------------------\n"                                                        \
- "This program accepts datasets specified with the sub-brick selection\n"       \
- "format -- e.g., r1+orig[3..5] -- and with the 3dcalc() runtime computation\n" \
- "scheme -- e.g., '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'.\n"         \
- "For details, see the output of 'afni -help'.\n"
+ "This program accepts datasets that are modified on input according to the\n"  \
+ "following schemes:\n"                                                         \
+ "  'r1+orig[3..5]'                                    {sub-brick selector}\n"  \
+ "  'r1+orig<100.200>'                                 {sub-range selector}\n"  \
+ "  'r1+orig[3..5]<100..200>'                          {both selectors}\n"      \
+ "  '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'  {calculation}\n"         \
+ "For the gruesome details, see the output of 'afni -help'.\n"
 
 #define MASTER_HELP_STRING                                                    \
     "INPUT DATASET NAMES\n"                                                   \
@@ -2198,10 +2203,25 @@ extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
     "   fred+orig[$..0]\n"                                                    \
     " will reverse the order of the sub-bricks.\n"                            \
     "\n"                                                                      \
-    " N.B.: The '$', '(', ')', '[', and ']' characters are special to\n"      \
-    " the shell, so you will have to escape them.  This is most easily\n"     \
-    " done by putting the entire dataset plus selection list inside\n"        \
-    " forward single quotes, as in 'fred+orig[5..7,9]'.\n"
+    " N.B.: You may also use the syntax <a..b> after the name of an input \n" \
+    " dataset to restrict the range of values read in to the numerical\n"     \
+    " values in a..b, inclusive.  For example,\n"                             \
+    "    fred+orig[5..7]<100..200>\n"                                         \
+    " creates a 3 sub-brick dataset with values less than 100 or\n"           \
+    " greater than 200 from the original set to zero.\n"                      \
+    " If you use the <> sub-range selection without the [] sub-brick\n"       \
+    " selection, it is the same as if you had put [1..$] in front of\n"       \
+    " the sub-range selection.\n"                                             \
+    "\n"                                                                      \
+    " N.B.: Datasets using sub-brick/sub-range selectors are treated as:\n"   \
+    "  - 3D+time if the dataset is 3D+time and more than 1 brick is chosen\n" \
+    "  - otherwise, as bucket datasets (-abuc or -fbuc)\n"                    \
+    "    (in particular, fico, fitt, etc datasets are converted to fbuc!)\n"  \
+    "\n"                                                                      \
+    " N.B.: The characters '$ ( ) [ ] < >'  are special to the shell,\n"      \
+    " so you will have to escape them.  This is most easily done by\n"        \
+    " putting the entire dataset plus selection list inside forward\n"        \
+    " single quotes, as in 'fred+orig[5..7,9]', or double quotes \"x\".\n"
 
 #define CALC_HELP_STRING                                                   \
    "CALCULATED DATASETS\n"                                                 \
@@ -2216,7 +2236,7 @@ extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
    " memory, locked in place, and deleted from disk.  For example\n"       \
    "    afni -dset '3dcalc( -a r1+orig -b r2+orig -expr 0.5*(a+b) )'\n"    \
    " will let you look at the average of datasets r1+orig and r2+orig.\n"  \
-   " N.B.: using this dataset input method can consume lots of memory!\n"
+   " N.B.: using this dataset input method will use lots of memory!\n"
 
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern THD_3dim_dataset * THD_3dim_from_block( THD_datablock * ) ;
@@ -2238,6 +2258,7 @@ extern int THD_get_write_order(void) ;
 
 extern int TRUST_host(char *) ;
 #define OKHOST(hh) TRUST_host(hh) ;
+extern void TRUST_addhost(char *) ;      /* 21 Feb 2001 */
 
 extern Boolean THD_load_datablock ( THD_datablock * , generic_func * ) ;
 extern Boolean THD_purge_datablock( THD_datablock * , int ) ;
