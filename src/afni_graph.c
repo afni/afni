@@ -1976,7 +1976,7 @@ STATUS("starting time series graph loop") ;
              }
 
              if( use_ovi )                      /* 29 Mar 2002 */
-               DC_fg_color( grapher->dc , ovi[tt%OVI_MAX] ) ;
+               DC_fg_color( grapher->dc , ovi[id%OVI_MAX] ) ;
              else
                DC_fg_color( grapher->dc , DPLOT_COLOR(grapher) ) ;
 

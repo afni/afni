@@ -4626,3 +4626,6 @@
 
 06 Jul 2003
  * Modified 3dmaskave.c to add -median option.
+
+10 Jul 2003
+ * Fixed bug in afni_graph.c of colors in dplots from Dataset#N plugin.
