@@ -157,6 +157,7 @@ extern int          NI_val_to_binary       ( NI_rowtype *, char *, char * ) ;
 extern void         NI_multival_to_text    ( NI_rowtype *, int, char *, char * );
 extern int          NI_multival_to_binary  ( NI_rowtype *, int, char *, char * );
 extern int          NI_has_String          ( NI_rowtype * ) ;
+extern void         NI_swap_rowtype        ( NI_rowtype * , int , char * ) ;
 
 extern void NI_rowtype_debug( int ) ;
 
@@ -518,6 +519,8 @@ extern int NI_stream_hasinput( NI_stream_type * , int ) ;
 extern int NI_stream_setbufsize( NI_stream_type *, int ) ; /* 03 Jan 2003 */
 extern int NI_stream_getbufsize( NI_stream_type * ) ;
 extern int NI_stream_readbuf( NI_stream_type *, char *, int ) ;
+extern int NI_text_to_val  ( NI_stream_type *, NI_rowtype *, void * );
+extern int NI_binary_to_val( NI_stream_type *, NI_rowtype *, void * );
 
 extern int NI_stream_reopen( NI_stream_type *, char * ) ; /* 23 Aug 2002 */
 
