@@ -4674,3 +4674,4 @@
      overlays in float rather than int.
  * Modified FUNC_IS_STAT() and FUNC_HAVE_PVAL() macros in 3ddata.h to return 1
      only if the code supplied corresponds to a valid statistic code.
+ * Various fixes to the anat/func interchangeability stuff.
