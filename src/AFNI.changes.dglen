@@ -15,3 +15,8 @@
 23 December 2004
  * Automask option now working in 3dDWItoDT.
 
+06 March 2005
+ * 3dDTeig.c modified to allow input datasets of at least 6 sub-briks (not necessarily equal to 6).
+
+28 March 2005
+ * 3dDWItoDT.c modified to include non-linear gradient descent method and several new options including eigenvalue,eigenvector calculations, debug briks, cumulative wts, reweighting, verbose output
