@@ -4642,3 +4642,6 @@
      the Button-3 popup widget when using Solaris -- some bug in Solaris seems to
      cause a popup problem when the parent of the menu is also the one getting
      the ButtonPress event.
+ * Modified afni_graph.c, imseq.c, afni.c, plug_nth_dataset.c, etc., to have
+     the Dataset#N, Dataset#2, and Expr0D plugin windows open when these
+     transformations are selected from menus.

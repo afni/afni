@@ -85,8 +85,10 @@ ENTRY("AFNI_register_fimfunc") ;
 
    if( num == sizeof(int) ) EXRETURN ;  /* too many already! */
 
-   if( num == 0 ){ rlist->flags=NULL; rlist->labels=NULL; rlist->funcs=NULL;
-                   rlist->func_data=NULL; rlist->func_code=NULL;             }
+   if( num == 0 ){
+     rlist->flags=NULL; rlist->labels=NULL; rlist->funcs=NULL;
+     rlist->func_data=NULL; rlist->func_code=NULL; rlist->func_init=NULL;
+   }
 
    rlist->flags = (int *) XtRealloc( (char *)rlist->flags, sizeof(int)*(num+1) ) ;
 
@@ -101,12 +103,15 @@ ENTRY("AFNI_register_fimfunc") ;
 
    rlist->func_code = (int *) XtRealloc( (char *)rlist->func_code, sizeof(int)*(num+1) ) ;
 
-   rlist->flags[num]  = nbrik ;
-   rlist->labels[num] = XtNewString(menu_name) ;
-   rlist->funcs[num]  = user_func ;
+   rlist->func_init = (generic_func **) XtRealloc( (char *)rlist->func_init ,
+                                                   sizeof(generic_func *)*(num+1) ) ;
 
+   rlist->flags[num]     = nbrik ;
+   rlist->labels[num]    = XtNewString(menu_name) ;
+   rlist->funcs[num]     = user_func ;
    rlist->func_data[num] = user_data ;
    rlist->func_code[num] = FUNC_FIM  ;
+   rlist->func_init[num] = NULL ;
 
    rlist->num = num+1 ;
    EXRETURN ;

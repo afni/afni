@@ -92,16 +92,23 @@ static int fill    = 0 ;
 static char *lr[2] = { "Left" , "Right" } ;
 static char *ez[2] = { "Extend" , "Zero" } ;
 
+static PLUGIN_interface *plint=NULL ;
+
+static void DSETN_func_init(void)   /* 21 Jul 2003 */
+{
+   PLUG_startup_plugin_CB( NULL , (XtPointer)plint , NULL ) ;
+}
+
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    int id ;
-   PLUGIN_interface * plint ;
 
 ENTRY("PLUGIN_init - Dataset#N") ;
 
    if( ncall > 0 ) RETURN( NULL );  /* only one interface */
 
-   AFNI_register_nD_function( 1 , "Dataset#N" , DSETN_func , NEEDS_DSET_INDEX|PROCESS_MRI_IMAGE ) ;
+   AFNI_register_nD_function ( 1 , "Dataset#N" , DSETN_func , NEEDS_DSET_INDEX|PROCESS_MRI_IMAGE ) ;
+   AFNI_register_nD_func_init( 1 , DSETN_func_init ) ;  /* 21 Jul 2003 */
 
    plint = PLUTO_new_interface( "Dataset#N" , "Controls 1D function Dataset#N" , helpstring ,
                                  PLUGIN_CALL_VIA_MENU , DSETN_main  ) ;
