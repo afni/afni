@@ -165,7 +165,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-cut") == 0 ){
         cut1 = strtod( argv[++iarg] , NULL ) ;
         cut2 = strtod( argv[++iarg] , NULL ) ;
-        if( cut1 < 2.0 || cut2 < cut1+0.5 ){
+        if( cut1 < 1.0 || cut2 < cut1+0.5 ){
           fprintf(stderr,"** Illegal values after -cut!\n"); exit(1);
         }
         iarg++ ; continue ;
@@ -186,20 +186,23 @@ int main( int argc , char * argv[] )
    if( !ISVALID_DSET(dset) ){
      fprintf(stderr,"** Can't open dataset %s\n",argv[iarg]); exit(1);
    }
+   if( DSET_BRICK_TYPE(dset,0) != MRI_short || !DSET_datum_constant(dset) ){
+     fprintf(stderr,"** Can't process non-short dataset!\n") ; exit(1) ;
+   }
    nvals = DSET_NUM_TIMES(dset) ; nuse = nvals - ignore ;
    if( nuse < 15 ){
      fprintf(stderr,"** Can't use dataset with < 15 time points per voxel!\n") ;
      exit(1) ;
    }
-   if( DSET_BRICK_TYPE(dset,0) != MRI_short || !DSET_datum_constant(dset) ){
-     fprintf(stderr,"** Can't process non-short dataset!\n") ; exit(1) ;
-   }
+   fprintf(stderr,"++ ignoring first %d time points, using last %d\n",ignore,nuse);
    if( corder > 0 && 4*corder+2 > nuse ){
      fprintf(stderr,"** -corder %d is too big for NT=%d!\n",corder,nvals) ;
      exit(1) ;
    } else if( corder < 0 ){
      corder = rint(nuse/30.0) ;
      fprintf(stderr,"++ using %d time points => -corder %d\n",nuse,corder) ;
+   } else {
+     fprintf(stderr,"++ -corder %d set from command line\n",corder) ;
    }
    nxyz = DSET_NVOX(dset) ;
    fprintf(stderr,"++ Loading dataset %s\n",argv[iarg]) ;
@@ -215,7 +218,9 @@ int main( int argc , char * argv[] )
      for( ii=0 ; ii < 4 ; ii++ )
        THD_mask_dilate( DSET_NX(dset), DSET_NY(dset), DSET_NZ(dset), mask, 3 ) ;
      ii = THD_countmask( DSET_NVOX(dset) , mask ) ;
-     fprintf(stderr,"++ %d voxels in the mask [out of %d]\n",ii,DSET_NVOX(dset)) ;
+     fprintf(stderr,"++ %d voxels in the mask [out of %d in dataset]\n",ii,DSET_NVOX(dset)) ;
+   } else {
+     fprintf(stderr,"++ processing all %d voxels in dataset\n",DSET_NVOX(dset)) ;
    }
 
    /*-- create empty despiked dataset --*/
@@ -332,6 +337,7 @@ int main( int argc , char * argv[] )
 
    /*--- loop over voxels and do work ---*/
 
+   fprintf(stderr,"++ edit thresholds: %.1f .. %.1f standard deviations\n",cut1,cut2) ;
    fprintf(stderr,"++ %d slices to process\n",DSET_NZ(dset)) ;
    kzold  = -1 ;
    nspike =  0 ; nbig = 0 ;
@@ -432,8 +438,13 @@ int main( int argc , char * argv[] )
    } /* end of loop over voxels #ii */
 
    fprintf(stderr,"++ %d edits; %d big ones\n",nspike,nbig) ;
+
+   DSET_delete(dset) ; /* delete input dataset */
+
+   /* write results */
+
    fprintf(stderr,"++ Writing output dataset %s\n",DSET_HEADNAME(oset)) ;
-   DSET_write(oset) ;
+   DSET_write(oset) ; DSET_delete(oset) ;
 
    if( tset != NULL ){
      fprintf(stderr,"++ Writing -ssave dataset %s\n",DSET_HEADNAME(tset)) ;
