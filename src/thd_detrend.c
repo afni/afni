@@ -54,32 +54,48 @@ void THD_linear_detrend( int npt, float *far, float *xx0, float *xx1 )
 
 void get_quadratic_trend( int npt, float *xx, float *f0, float *f1, float *f2 )
 {
-   double t1,t2,t3,t4,t6,t9,t11,t21,t26 , x0,x1,x2 ;
+   double t1,t2,t3,t4,t6,t9,t11,t21,t26 , x0,x1,x2 , N=npt ;
    int ii ;
 
-   if( npt < 3 || xx == NULL || f0 == NULL || f1 == NULL || f2 == NULL ) return ;
+   if( npt < 3 || xx == NULL || f0 == NULL || f1 == NULL || f2 == NULL ) return;
 
    x0 = xx[0] ; x1 = x2 = 0.0 ;
    for( ii=1 ; ii < npt ; ii++ ){
-      x0 += xx[ii] ;
+      x0 +=  xx[ii] ;
       x1 += (xx[ii] * ii) ;
       x2 += (xx[ii] * ii) * ii ;
    }
 
-   t1 = npt*npt;
+#if 0
+   t1 = N*N;
    t2 = t1*x0;
-   t3 = npt*x1;
-   t4 = npt*x0;
-   t6 = 1.0/npt;
-   t9 = 1.0/(npt+2.0);
-   t11 = 1.0/(npt+1.0);
-   t21 = 1.0/(npt-1.0);
-   t26 = 1.0/(npt-2.0)*t9*t11;
+   t3 = N*x1;
+   t4 = N*x0;
+   t6 = 1.0/N;
+   t9 = 1.0/(N+2.0);
+   t11 = 1.0/(N+1.0);
+   t21 = 1.0/(N-1.0);
+   t26 = 1.0/(N-2.0)*t9*t11;
 
    *f0 = (float) (3.0*(3.0*t2-12.0*t3-3.0*t4+2.0*x0+10.0*x2+6.0*x1)*t6*t9*t11);
-   *f1 = (float) (-6.0*(6.0*t1*npt*x0-21.0*t2-32.0*t1*x1+30.0*npt*x2+60.0*t3+21.0*t4
+   *f1 = (float) (-6.0*(6.0*t1*N*x0-21.0*t2-32.0*t1*x1+30.0*N*x2+60.0*t3
+                        +21.0*t4
                         -22.0*x1-6.0*x0-30.0*x2)*t6*t21*t26);
    *f2 = (float) (30.0*(t2-3.0*t4+2.0*x0+6.0*x2+6.0*x1-6.0*t3)*t6*t21*t26);
+#else
+   *f0 = (  3.0*(3.0*N*N-3.0*N+2.0) * x0
+          -18.0*(-1.0+2.0*N)        * x1
+          +30.0                     * x2 ) / (N*(N+2.0)*(N+1.0)) ;
+
+   *f1 = ( -18.0*(-1.0+2.0*N)              * x0 
+           +12.0*(-1.0+2.0*N)*(8.0*N-11.0) * x1 /((N-1.0)*(N-2.0))
+           -180.0                          * x2 /(N-2.0)          )
+        / (N*(N+2.0)*(N+1.0)) ;
+
+   *f2 = ( 30.0  * x0
+          -180.0 * x1 / (N-2.0)
+          +180.0 * x2 / ((N-1.0)*(N-2.0)) ) / (N*(N+2.0)*(N+1.0))  ;
+#endif
    return ;
 }
 
@@ -89,7 +105,8 @@ void get_quadratic_trend( int npt, float *xx, float *f0, float *f1, float *f2 )
       far[i] -= (*xx0) + (*xx1) * i + (*xx2)*(i*i) , for i=0..npt-1
 ---------------------------------------------------------------------------*/
 
-void THD_quadratic_detrend( int npt, float *far, float *xx0, float *xx1, float *xx2 )
+void THD_quadratic_detrend( int npt, float *far,
+                            float *xx0, float *xx1, float *xx2 )
 {
    register int ii ;
    float f0 , f1 , f2 ;
@@ -108,7 +125,7 @@ void THD_quadratic_detrend( int npt, float *far, float *xx0, float *xx1, float *
    return ;
 }
 
-/*--------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------*/
 
 void THD_cubic_detrend( int npt , float * far )  /* 15 Nov 1999 */
 {

@@ -89,6 +89,11 @@
   Mod:     Added test for maximum number of full model parameters.
   Date:    24 November 1999
 
+  Mod:     Added test for minimum IRF length for compatibility with -tshift
+           option.  Also, added necessary duplicate initialization of total 
+           number of parameters in the full model.
+  Date:    29 November 1999
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -98,7 +103,7 @@
 
 #define PROGRAM_NAME "3dDeconvolve"                  /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "24 November 1999"          /* date of last program mod */
+#define PROGRAM_DATE "29 November 1999"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -882,6 +887,10 @@ void read_input_data
   char message[MAX_NAME_LENGTH];    /* error message */
 
   int num_stimts;          /* number of stimulus time series arrays */
+  int * min_lag;           /* minimum time delay for impulse response */
+  int * max_lag;           /* maximum time delay for impulse response */
+  int q;                   /* number of baseline parameters */
+  int p;                   /* total number of parameters */
   int is;                  /* stimulus time series index */
   int glt_num;             /* number of general linear tests */
   int iglt;                /* general linear test index */
@@ -890,6 +899,22 @@ void read_input_data
   /*----- Initialize local variables -----*/
   num_stimts = option_data->num_stimts;
   glt_num    = option_data->glt_num;
+  min_lag = option_data->stim_minlag;
+  max_lag = option_data->stim_maxlag;
+
+
+  /*----- Determine total number of parameters in the model -----*/
+  q = option_data->polort + 1;
+  p = q;
+  for (is = 0;  is < num_stimts;  is++)
+    p += max_lag[is] - min_lag[is] + 1;
+  if (p < q)  DC_error ("Require min lag <= max lag for all stimuli");
+  if (p > MAX_XVARS) 
+    {
+      sprintf (message,  "Too many parameters: p = %d > %d = MAX PARAMETERS",
+	       p, MAX_XVARS);
+      DC_error (message);
+    }
 
 
   /*----- Read the input fMRI measurement data -----*/
@@ -950,7 +975,7 @@ void read_input_data
       {
 	matrix_file_read (option_data->glt_filename[iglt],
 			  option_data->glt_rows[iglt],
-			  option_data->p, &(glt_cmat[iglt]));
+			  p, &(glt_cmat[iglt]));
 	if (glt_cmat[iglt].elts == NULL)
 	  { 
 	    sprintf (message,  "Unable to read GLT matrix from file: %s", 
@@ -1240,6 +1265,16 @@ void check_for_valid_inputs
 	    {
 	      sprintf (message, "Only %d time points for 3d+time dataset %s", 
 		       m, option_data->sresp_filename[is]);
+	      DC_error (message);
+	    }
+	}	    
+      if ((m < 4) && (option_data->tshift))
+	{
+	  if (option_data->iresp_filename[is] != NULL)
+	    {
+	      sprintf (message, "Only %d time points for 3d+time dataset %s\n",
+ 		       m, option_data->iresp_filename[is]);
+	      strcat (message, "Require >= 4 data points for -tshift option");
 	      DC_error (message);
 	    }
 	}	    

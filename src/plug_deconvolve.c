@@ -53,7 +53,9 @@
   Mod:     Added test for maximum number of full model parameters.
   Date:    24 November 1999
 
-
+  Mod:     Small change to order of print out to screen.
+  Date:    29 November 1999
+  
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -63,7 +65,7 @@
 
 #define PROGRAM_NAME "plug_deconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "24 November 1999"          /* date of last program mod */
+#define PROGRAM_DATE "29 November 1999"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -412,8 +414,6 @@ char * DC_main( PLUGIN_interface * plint )
   if (glt_num > 0)
     for (iglt = 0;  iglt < glt_num;  iglt++)
       {
-	printf ("\nGLT #%d   #rows = %d   from file: %s \n", 
-		iglt+1, glt_rows[iglt], glt_filename[iglt]);
 	matrix_file_read (glt_filename[iglt],
 			  glt_rows[iglt],
 			  plug_p,
@@ -444,6 +444,13 @@ char * DC_main( PLUGIN_interface * plint )
       printf ("Column = %3d   Min. Lag = %3d   Max. Lag = %3d \n", 
 	      stim_column[is], min_lag[is], max_lag[is]);
     }
+
+  if (glt_num > 0)
+    for (iglt = 0;  iglt < glt_num;  iglt++)
+      {
+	printf ("\nGLT #%d   #rows = %d   from file: %s \n", 
+		iglt+1, glt_rows[iglt], glt_filename[iglt]);
+      }
  
 
   /*--- nothing left to do until data arrives ---*/

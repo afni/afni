@@ -7,12 +7,16 @@
 
 #define UMIN 4
 
+#define TOCX   1
+#define FROMCX 2
+
 int main( int argc , char * argv[] )
 {
    MRI_IMAGE * inim , * outim ;
    int ii , jj , nx,nfft=0,ny , nopt,nby2 , ignore=0,nxi , use=0 ;
    complex * cxar ;
    float * iar , * oar , * far ;
+   int nodetrend=0 , cxop=0 ;     /* 29 Nov 1999 */
 
    /*-- help? --*/
 
@@ -21,7 +25,7 @@ int main( int argc , char * argv[] )
             "where infile is an AFNI *.1D file (ASCII list of numbers arranged\n"
             "in columns); outfile will be a similar file, with the absolute\n"
             "value of the FFT of the input columns.  The length of the file\n"
-            "will be the FFT length/2.\n"
+            "will be 1+(FFT length)/2.\n"
             "\n"
             "Options:\n"
             "  -ignore sss = Skip the first 'sss' lines in the input file.\n"
@@ -30,6 +34,10 @@ int main( int argc , char * argv[] )
             "                [default = use them all, Frank]\n"
             "  -nfft nnn   = Set FFT length to 'nnn'.\n"
             "                [default = length of data (# of lines used)]\n"
+            "  -tocx       = Save Re and Im parts of transform in 2 columns.\n"
+            "  -fromcx     = Convert 2 column complex input into 1 column\n"
+            "                  real output.\n"
+            "  -nodetrend  = Skip the detrending of the input.\n"
             "\n"
             "Nota Bene:\n"
             " * Each input time series has any quadratic trend of the\n"
@@ -48,6 +56,21 @@ int main( int argc , char * argv[] )
 
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+      if( strncmp(argv[nopt],"-nodetrend",6) == 0 ){ /* 29 Nov 1999 */
+         nodetrend++ ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-tocx") == 0 ){         /* 29 Nov 1999 */
+         cxop = TOCX ;
+         nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-fromcx") == 0 ){       /* 29 Nov 1999 */
+         cxop = FROMCX ;
+         nopt++ ; continue ;
+      }
 
       if( strcmp(argv[nopt],"-nfft") == 0 ){
          if( ++nopt >= argc ){
@@ -114,26 +137,96 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Input file has too few rows!\n"); exit(1);
    }
 
-   if( nfft < nxi ) nfft = nxi ;
-   nfft = csfft_nextup_one35(nfft) ;
-   fprintf(stderr,"++ FFT length = %d\n",nfft) ;
-   nby2 = nfft/2 ;
+   /*- 29 Nov 1999: complex operations are finicky -*/
 
-   cxar  = (complex *) malloc( sizeof(complex) * nfft ) ;
-   outim = mri_new( nby2 , ny , MRI_float ) ;
-   iar   = MRI_FLOAT_PTR(inim) ;
-   oar   = MRI_FLOAT_PTR(outim) ;
+   switch( cxop ){
+      case TOCX:
+         if( ny != 1 ){
+            fprintf(stderr,
+                    "** -tocx option only works on 1 column files!\n") ;
+            exit(1) ;
+         }
+      break ;
 
-   for( jj=0 ; jj < ny ; jj++ ){
-      far = iar + jj*nx ;
-      THD_quadratic_detrend( nx , far , NULL,NULL,NULL ) ;
-      for( ii=0   ; ii < nxi  ; ii++ ){
-         cxar[ii].r = far[ii+ignore]; cxar[ii].i = 0.0;
+      case FROMCX:
+         if( ny != 2 ){
+            fprintf(stderr,
+                    "** -fromcx option only works on 2 column files!\n") ;
+            exit(1) ;
+         }
+         if( nx != nxi ){
+            fprintf(stderr,
+                   "** -fromcx option doesn't allow -ignore or -use!\n") ;
+            exit(1) ;
+         }
+         jj = csfft_nextup_one35( 2*(nx-1) ) ;
+         if( jj != 2*(nx-1) ){
+            fprintf(stderr,
+                    "** -fromcx only works with certain file lengths!\n") ;
+            exit(1) ;
+         }
+      break ;
+   }
+
+   /* 29 Nov 1999: two possible paths */
+
+   if( cxop != FROMCX ){                     /* real input */
+      if( nfft < nxi ) nfft = nxi ;
+      nfft = csfft_nextup_one35(nfft) ;
+      fprintf(stderr,"++ FFT length = %d\n",nfft) ;
+      nby2 = nfft/2 ;
+
+      cxar = (complex *) malloc( sizeof(complex) * nfft ) ;
+      if( cxop == TOCX )
+         outim = mri_new( nby2+1 , 2 , MRI_float ) ;   /* complex output */
+      else
+         outim = mri_new( nby2+1 , ny , MRI_float ) ;  /* abs() output */
+
+      iar = MRI_FLOAT_PTR(inim) ;
+      oar = MRI_FLOAT_PTR(outim) ;
+
+      for( jj=0 ; jj < ny ; jj++ ){
+         far = iar + jj*nx ;
+         if( !nodetrend ){
+            float f0,f1,f2 ;
+            THD_quadratic_detrend( nxi , far+ignore , &f0,&f1,&f2 ) ;
+            fprintf(stderr,"++ quadratic trend: %g + %g * i + %g * i*i\n"
+                           "                    mid = %g  end = %g\n" ,
+                    f0,f1,f2 , f0+0.5*nxi*f1+0.25*nxi*nxi*f2 ,
+                               f0+(nxi-1)*f1+(nxi-1)*(nxi-1)*f2 ) ;
+         }
+         for( ii=0 ; ii < nxi ; ii++ ){
+            cxar[ii].r = far[ii+ignore]; cxar[ii].i = 0.0;
+         }
+         for( ii=nxi ; ii < nfft ; ii++ ){ cxar[ii].r = cxar[ii].i = 0.0; }
+         csfft_cox( -1 , nfft , cxar ) ;
+         far = oar + jj*(nby2+1) ;
+         if( cxop == TOCX )
+            for( ii=0 ; ii <= nby2 ; ii++ ){ far[ii]          = cxar[ii].r ;
+                                             far[ii+(nby2+1)] = cxar[ii].i ; }
+         else
+            for( ii=0 ; ii <= nby2 ; ii++ ){ far[ii] = CABS(cxar[ii]) ; }
       }
-      for( ii=nxi ; ii < nfft ; ii++ ){ cxar[ii].r = cxar[ii].i = 0.0; }
-      csfft_cox( -1 , nfft , cxar ) ;
-      far = oar + jj*nby2 ;
-      for( ii=0   ; ii < nby2 ; ii++ ){ far[ii] = CABS(cxar[ii+1]) ; }
+
+   } else {   /* complex input */
+      nfft = 2*(nx-1) ;
+      nby2 = nfft/2 ;
+      fprintf(stderr,"++ FFT length = %d\n",nfft) ;
+      cxar = (complex *) malloc( sizeof(complex) * nfft ) ;
+
+      outim = mri_new( nfft , 1 , MRI_float ) ;
+
+      iar = MRI_FLOAT_PTR(inim) ;
+      oar = MRI_FLOAT_PTR(outim) ;
+
+      cxar[0].r    = iar[0]    ; cxar[0].i    = 0.0 ;
+      cxar[nby2].r = iar[nx-1] ; cxar[nby2].i = 0.0 ;
+      for( ii=1 ; ii < nby2 ; ii++ ){
+         cxar[ii].r      = iar[ii] ; cxar[ii].i      =  iar[ii+nx] ;
+         cxar[nfft-ii].r = iar[ii] ; cxar[nfft-ii].i = -iar[ii+nx] ;
+      }
+      csfft_cox( 1 , nfft , cxar ) ;
+      for( ii=0 ; ii < nfft ; ii++ ) oar[ii] = cxar[ii].r / nfft ;
    }
 
    mri_write_1D( argv[nopt+1] , outim ) ;

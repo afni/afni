@@ -1854,3 +1854,10 @@
 
 28 Nov 1999
  * Added function ZTONE to parser.f.
+
+29 Nov 1999
+ * Added -tocx, -fromcx, and -nodetrend options to 1dfft.c.
+ * Modified quadratic detrending calculation in thd_detrend.c.
+ * Added -use option to 1dplot.c.
+ * Added SHOWOFF macro to afni.c, distmake, and Makefile.INCLUDE.
+ * Got some 3dDeconvolve.c fixes from Doug Ward.

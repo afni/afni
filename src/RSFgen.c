@@ -13,6 +13,8 @@
   Mod:     Added option to create multiple column stimulus function files.
   Date:    24 November 1999
 
+  Mod:     Changed option label "-nstim" to "-num_stimts".
+  Date:    29 November 1999
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -23,7 +25,7 @@
 
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "12 November 1999"          /* date of last program mod */
+#define PROGRAM_DATE "29 November 1999"          /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -86,7 +88,7 @@ void display_help_menu()
     "Usage:                                                                 \n"
     "RSFgen                                                                 \n"
     "-nt n            n = length of time series                             \n"
-    "-num_stimts      p = number of input stimuli (experimental conditions) \n"
+    "-num_stimts p    p = number of input stimuli (experimental conditions) \n"
     "-nreps i r       r = number of repetitions for stimulus i  (1<=i<=p)   \n"
     "[-seed s]        s = random number seed                                \n"
     "[-one_file]      place stimulus functions into a single .1D file       \n"
@@ -145,10 +147,10 @@ void get_options
       if (strncmp(argv[nopt], "-num_stimts", 11) == 0)
 	{
 	  nopt++;
-	  if (nopt >= argc)  RSF_error ("need argument after -nstim ");
+	  if (nopt >= argc)  RSF_error ("need argument after -num_stimts ");
 	  sscanf (argv[nopt], "%d", &ival);
 	  if (ival <= 0)
-	    RSF_error ("illegal argument after -nstim ");
+	    RSF_error ("illegal argument after -num_stimts ");
 	  num_stimts = ival;
 	  nopt++;
 	  continue;
@@ -218,11 +220,11 @@ void get_options
     }
 
   /*----- Print options -----*/
-  printf ("nt    = %d \n", nt);
-  printf ("nstim = %d \n", num_stimts);
+  printf ("nt         = %d \n", nt);
+  printf ("num_stimts = %d \n", num_stimts);
   for (i = 0;  i < num_stimts;  i++)
-    printf ("nreps[%d] = %d \n", i+1, num_reps[i]);
-  printf ("seed  = %ld \n", seed);
+    printf ("nreps[%d]  = %d \n", i+1, num_reps[i]);
+  printf ("seed       = %ld \n", seed);
 }
 
 
@@ -253,7 +255,7 @@ void initialize
 
   /*----- Check for valid inputs -----*/
   if (nt == 0)        RSF_error ("Must specify nt");
-  if (num_stimts == 0)  RSF_error ("Must specify nstim");
+  if (num_stimts == 0)  RSF_error ("Must specify num_stimts");
   total = 0;
   for (i = 0;  i < num_stimts;  i++)
     {

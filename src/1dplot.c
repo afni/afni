@@ -43,7 +43,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId * id ) ;
 
 int main( int argc , char * argv[] )
 {
-   int iarg=1 , ii , ny , ignore=0 ;
+   int iarg=1 , ii , ny , ignore=0 , use=0 ;
    float dx=1.0 ;
    char * tsfile , * cpt ;
    char dname[THD_MAX_NAME] , subv[THD_MAX_NAME] ;
@@ -66,6 +66,7 @@ int main( int argc , char * argv[] )
             "                [default = 1]\n"
             " -ignore nn = Skip first 'nn' rows in the input file\n"
             "                [default = 0]\n"
+            " -use mm    = Plot 'mm' points [default = all of them]\n"
             " -xlabel aa = Put string 'aa' below the x-axis\n"
             "                [default = no axis label]\n"
             " -ylabel aa = Put string 'aa' to the left of the y-axis\n"
@@ -149,6 +150,12 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[iarg],"-ignore") == 0 ){
         ignore = strtod( argv[++iarg] , NULL ) ;
         if( ignore < 0 ){fprintf(stderr,"** Illegal -ignore value!\n");exit(1);}
+        iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-use") == 0 ){
+        use = strtod( argv[++iarg] , NULL ) ;
+        if( use < 2 ){fprintf(stderr,"** Illegal -use value!\n");exit(1);}
         iarg++ ; continue ;
      }
 
@@ -243,6 +250,8 @@ int main( int argc , char * argv[] )
 
    nx = nx - ignore ;  /* cut off the ignored points */
 
+   if( use > 1 && nx > use ) nx = use ;  /* 29 Nov 1999 */
+
    /* start X11 */
 
    (void) XtAppAddTimeOut( app , 123 , startup_timeout_CB , NULL ) ;
@@ -277,4 +286,3 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 char * _Xsetlocale( int category, const char * locale)
 { return setlocale(category,locale) ; }
 #endif
-

@@ -879,8 +879,24 @@ int main( int argc , char * argv[] )
    srand48((long)time(NULL)) ;  /* initialize random number generator */
 
    REPORT_PROGRESS( ANNOUNCEMENT ) ;
+
+   /*------------ 29 Nov 1999: print out precompiled version -----------*/
+#ifdef SHOWOFF
+#undef SHSH
+#undef SHSHSH
+#define SHSH(x)   #x
+#define SHSHSH(x) SHSH(x)
+   if( strcmp("NO",SHSHSH(SHOWOFF)) != 0 ){  /* 29 Nov 1999 */
+      char buf[256] ;
+      sprintf(buf,"(Precompiled binary %s: %s)\n",SHSHSH(SHOWOFF),__DATE__) ;
+      REPORT_PROGRESS( buf ) ;
+   }
+#undef SHSH
+#undef SHSHSH
+#endif
+
 #ifdef USE_FRIENDS
-   { char buf[100] ; int nf , nh , hmask , qq=0 ;
+   { char buf[256] ; int nf , nh , hmask , qq=0 ;
      nf = lrand48() % NUM_FRIENDS ;
      do{
         nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
