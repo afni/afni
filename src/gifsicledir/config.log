@@ -1,0 +1,87 @@
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+
+configure:570: checking for a BSD compatible install
+configure:623: checking whether build environment is sane
+configure:680: checking whether make sets ${MAKE}
+configure:726: checking for working aclocal
+configure:739: checking for working autoconf
+configure:752: checking for working automake
+configure:765: checking for working autoheader
+configure:778: checking for working makeinfo
+configure:798: checking for gcc
+configure:911: checking whether the C compiler (gcc  ) works
+configure:927: gcc -o conftest    conftest.c  1>&5
+configure:953: checking whether the C compiler (gcc  ) is a cross-compiler
+configure:958: checking whether we are using GNU C
+configure:967: gcc -E conftest.c
+configure:986: checking whether gcc accepts -g
+configure:1018: checking how to run the C preprocessor
+configure:1039: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:1098: checking for working const
+configure:1152: gcc -c -g -O2  conftest.c 1>&5
+configure:1173: checking for inline
+configure:1187: gcc -c -g -O2  conftest.c 1>&5
+configure:1285: checking for X
+configure:1599: checking for dnet_ntoa in -ldnet
+configure:1618: gcc -o conftest -g -O2   conftest.c -ldnet   1>&5
+/usr/bin/ld: cannot find -ldnet
+collect2: ld returned 1 exit status
+configure: failed program was:
+#line 1607 "configure"
+#include "confdefs.h"
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char dnet_ntoa();
+
+int main() {
+dnet_ntoa()
+; return 0; }
+configure:1640: checking for dnet_ntoa in -ldnet_stub
+configure:1659: gcc -o conftest -g -O2   conftest.c -ldnet_stub   1>&5
+/usr/bin/ld: cannot find -ldnet_stub
+collect2: ld returned 1 exit status
+configure: failed program was:
+#line 1648 "configure"
+#include "confdefs.h"
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char dnet_ntoa();
+
+int main() {
+dnet_ntoa()
+; return 0; }
+configure:1688: checking for gethostbyname
+configure:1716: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:1786: checking for connect
+configure:1814: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:1878: checking for remove
+configure:1906: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:1970: checking for shmat
+configure:1998: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2071: checking for IceConnectionNumber in -lICE
+configure:2090: gcc -o conftest -g -O2   -L/usr/X11R6/lib conftest.c -lICE   1>&5
+configure:2115: checking for gettimeofday prototype
+configure:2128: gcc -c -g -O2  conftest.c 1>&5
+configure:2139: gcc -c -g -O2  conftest.c 1>&5
+configure: In function `main':
+configure:2135: too few arguments to function `gettimeofday'
+configure: failed program was:
+#line 2131 "configure"
+#include "confdefs.h"
+#include <time.h>
+#include <sys/time.h>
+int main() {
+gettimeofday((void *)0);
+; return 0; }
+configure:2205: checking for random
+configure:2233: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2261: checking for strerror
+configure:2289: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2318: checking for strtoul
+configure:2346: gcc -o conftest -g -O2   conftest.c  1>&5
+configure:2375: checking for sys/select.h
+configure:2385: gcc -E  conftest.c >/dev/null 2>conftest.out
+configure:2414: checking for integer typedefs

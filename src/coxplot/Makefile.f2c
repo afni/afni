@@ -1,0 +1,187 @@
+ALLC = color.c curve.c frame.c frstpt.c labmod.c memplt.c    \
+       line.c perim.c periml.c phdot.c phline.c point.c      \
+       points.c pwrit.c pwritf.c set.c setdsh.c              \
+       setfrm.c setlin.c setw.c srface.c tick4.c vector.c    \
+       zzaxxx.c zzaxyy.c zzchar.c zzclip.c zzlabl.c zzlgin.c \
+       zzline.c zzlinx.c zzliny.c zzlogx.c zzlogy.c          \
+       zzperi.c zzphph.c zzphys.c
+
+ALLO = color.o curve.o frame.o frstpt.o labmod.o memplt.o    \
+       line.o perim.o periml.o phdot.o phline.o point.o      \
+       points.o pwrit.o pwritf.o set.o setdsh.o              \
+       setfrm.o setlin.o setw.o srface.o tick4.o vector.o    \
+       zzaxxx.o zzaxyy.o zzchar.o zzclip.o zzlabl.o zzlgin.o \
+       zzline.o zzlinx.o zzliny.o zzlogx.o zzlogy.o          \
+       zzperi.o zzphph.o zzphys.o                            \
+       ppak_perim.o ppak_pwrit.o ppak_pwritf.o ppak_srface.o \
+       plot_cox.o plot_ps.o plot_ps2.o plot_x11.o            \
+       plot_motif.o plot_ts.o
+
+#IFLAGS = -I. -I..
+
+# For IRIX 6.2
+# CC     = cc -O2 -n32
+# AR     = /usr/bin/ar
+# RANLIB = /sbin/touch
+# RM     = /bin/rm -f
+
+# For Linux
+# CC     = gcc -O2 -m486 -ffast-math
+# AR     = /usr/bin/ar
+# RANLIB = /usr/bin/ranlib
+# RM     = /bin/rm -f
+# LFLAGS = -s -L. -L.. -L/usr/X11R6/lib -lcoxplot -lf2c \
+#          -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm
+
+libcoxplot.a:$(ALLO) coxplot.h
+	$(RM) $@
+	$(AR) q libcoxplot.a $(ALLO)
+	$(RANLIB) libcoxplot.a
+
+xxx:xxx.o libcoxplot.a
+	$(RM) $@
+	$(CC) -o xxx xxx.o $(LFLAGS) -L. -L.. -L/usr/X11/lib \
+              -lcoxplot -lf2c -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm
+
+qqq:qqq.o libcoxplot.a
+	$(RM) $@
+	$(CC) -o qqq qqq.o -s -L. -L.. -L/usr/X11R6/lib -lcoxplot -lf2c -lX11 -lm
+
+allc:$(ALLC)
+
+killc:
+	$(RM) $(ALLC)
+
+allo:$(ALLC) $(ALLO)
+
+clean:
+	$(RM) *.o *.P
+
+.c.o:
+	$(RM) $@
+	$(CC) -c $*.c -I. -I.. $(IFLAGS)
+
+# dependencies
+
+plot_cox.o:coxplot.h
+
+# -------------------------------------------------------
+
+F2C = ../f2c -A
+
+color.c:color.f plotpak.inc
+	$(F2C) color.f
+
+curve.c:curve.f plotpak.inc
+	$(F2C) curve.f
+
+filplt.c:filplt.f plotpak.inc
+	$(F2C) filplt.f
+
+frame.c:frame.f plotpak.inc
+	$(F2C) frame.f
+
+frstpt.c:frstpt.f plotpak.inc
+	$(F2C) frstpt.f
+
+labmod.c:labmod.f plotpak.inc
+	$(F2C) labmod.f
+
+line.c:line.f plotpak.inc
+	$(F2C) line.f
+
+memplt.c:memplt.f plotpak.inc
+	$(F2C) memplt.f
+
+perim.c:perim.f plotpak.inc
+	$(F2C) perim.f
+
+periml.c:periml.f plotpak.inc
+	$(F2C) periml.f
+
+phdot.c:phdot.f plotpak.inc
+	$(F2C) phdot.f
+
+phline.c:phline.f plotpak.inc
+	$(F2C) phline.f
+
+point.c:point.f plotpak.inc
+	$(F2C) point.f
+
+points.c:points.f plotpak.inc
+	$(F2C) points.f
+
+psplot.c:psplot.f plotpak.inc
+	$(F2C) psplot.f
+
+pwrit.c:pwrit.f plotpak.inc
+	$(F2C) pwrit.f
+
+pwritf.c:pwritf.f plotpak.inc
+	$(F2C) -!bs pwritf.f
+
+set.c:set.f plotpak.inc
+	$(F2C) set.f
+
+setdsh.c:setdsh.f plotpak.inc
+	$(F2C) setdsh.f
+
+setfrm.c:setfrm.f plotpak.inc
+	$(F2C) setfrm.f
+
+setlin.c:setlin.f plotpak.inc
+	$(F2C) setlin.f
+
+setw.c:setw.f plotpak.inc
+	$(F2C) setw.f
+
+srface.c:srface.f plotpak.inc
+	$(F2C) srface.f
+
+tick4.c:tick4.f plotpak.inc
+	$(F2C) tick4.f
+
+vector.c:vector.f plotpak.inc
+	$(F2C) vector.f
+
+zzaxxx.c:zzaxxx.f plotpak.inc
+	$(F2C) zzaxxx.f
+
+zzaxyy.c:zzaxyy.f plotpak.inc
+	$(F2C) zzaxyy.f
+
+zzchar.c:zzchar.f plotpak.inc
+	$(F2C) zzchar.f
+
+zzclip.c:zzclip.f plotpak.inc
+	$(F2C) zzclip.f
+
+zzlabl.c:zzlabl.f plotpak.inc
+	$(F2C) zzlabl.f
+
+zzlgin.c:zzlgin.f plotpak.inc
+	$(F2C) zzlgin.f
+
+zzline.c:zzline.f plotpak.inc
+	$(F2C) zzline.f
+
+zzlinx.c:zzlinx.f plotpak.inc
+	$(F2C) zzlinx.f
+
+zzliny.c:zzliny.f plotpak.inc
+	$(F2C) zzliny.f
+
+zzlogx.c:zzlogx.f plotpak.inc
+	$(F2C) zzlogx.f
+
+zzlogy.c:zzlogy.f plotpak.inc
+	$(F2C) zzlogy.f
+
+zzperi.c:zzperi.f plotpak.inc
+	$(F2C) zzperi.f
+
+zzphph.c:zzphph.f plotpak.inc
+	$(F2C) zzphph.f
+
+zzphys.c:zzphys.f plotpak.inc
+	$(F2C) zzphys.f

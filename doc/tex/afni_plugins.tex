@@ -1,0 +1,1925 @@
+\documentstyle[12pt,art12cox,epsf]{article}
+\newcommand{\afni}{{\em AFNI\,}}
+\newcommand{\afnit}{{\em AFNI\/}\ }
+
+\newcommand{\MCW}{{\sf MCW}}
+
+\newcommand{\mcwafni}{\MCW$\!$ \afnit}
+
+\setlength{\topmargin}{0.0in}
+\setlength{\textheight}{8.7in}
+\setlength{\oddsidemargin}{0.25in}
+\setlength{\evensidemargin}{0.25in}
+\setlength{\textwidth}{6.5in}
+\setlength{\footskip}{.7in}
+
+\hyphenpenalty=200
+
+\def\mypleft{\footnotesize \MCW$\!$ \afnit Plugins {\normalsize $\alpha$}}
+\def\mypright{\scriptsize\today}
+\dashpage
+
+\raggedbottom
+
+\newcommand{\seeme}[1]%
+{\marginpar{\raggedright%
+$\star\star\star$\hspace*{0pt plus 1fill}$\longrightarrow$\\{}%
+\scriptsize\bf#1}}
+
+\newcommand{\blob}{\hspace*{1em}}
+
+\newcommand{\mysec}[1]{%
+\vspace{2in}\goodbreak\vspace{-1.9in}\section{#1}}
+
+\newcommand{\mysubsec}[1]{%
+\vspace{1.1in}\goodbreak\vspace{-1.05in}\subsection{#1}}
+
+%\setcounter{tocdepth}{2}
+
+\newcommand{\vset}{\vspace{0.5in}\goodbreak\vspace{-0.5in}}
+
+%---------------------------------------------------------------------
+\begin{document}
+%%%\thispagestyle{empty}
+
+\vspace*{0.4in}
+\centerline{\Large\bf\boldmath \MCW$\!$ \afnit --- Plugins {\Large $\alpha$}}\vspace{1ex}
+\centerline{\large\bf Robert W. Cox, Ph.D.}\vspace{0.4ex}
+\centerline{\tt rwcox@mcw.edu}\vspace{0.2ex}
+\centerline{\copyright\ 1996 Medical College of Wisconsin}
+
+\vspace{5ex}
+\centerline{\fbox{\fbox{\LARGE\bf User Written Extensions to \afni}}}
+\vspace{6ex}
+
+\noindent
+A {\bf plugin} is an external software package that can be
+read into \afnit at run time, and be called by the user at any time.
+An ``fill in the form'' interface can be created for each plugin:
+the user fills in the input options relevant to the desired operation,
+and then presses the ``{\tt Run}'' button to actually execute the plugin routine.
+\afnit provides routines for the plugin to create the interface form,
+and to read data from it.  Functions and macros are also provided for
+the plugin to manipulate \afnit datasets.
+
+This version of the plugin package for \afnit is being released
+partly for the purpose of testing the development of new plugins.
+The programmer interface to plugins and \afnit datasets is not
+complete, and new features will undoubtedly evolve as needs become
+apparent.
+
+This document
+is written for the {\tt C}-literate \afnit user who wishes
+to write a plugin.  Sample plugins can be found in the \mcwafni 2.00
+distribution in the files {\tt plug\_*.c}.  The file {\tt afni\_plugin.c}
+contains the source code for the parts of \afnit which are specific
+to dealing with plugins.
+
+There is a lot of information in this manual.  It is not necessary to absorb
+all of it before beginning to write your first plugin.  The fastest
+way to proceed is to read~\S\ref{Background}, skim the rest of this document,
+and then use an existing plugin as a model.
+
+
+%---------------------------------------------------------------------
+\newpage
+{\footnotesize
+ \tableofcontents
+}
+\newpage
+%---------------------------------------------------------------------
+%---------------------------------------------------------------------
+\mysec{\afnit Datasets: Background Information}\label{Background}
+The central type of data structure in \afnit is the dataset.
+In \mcwafni 1.99 and later, a~dataset can have many forms.
+Since virtually all plugins will manipulate datasets, a
+thorough understanding
+of the possible types of datasets is necessary for a plugin author.
+
+%---------------------------------------------------------------------
+\mysubsec{Storage of Datasets on Disk}
+    A dataset {\tt .BRIK} file contains only image data.  However, it is
+    not necessary that a dataset actually have a {\tt .BRIK} file.
+    This is due to the {\bf warp-on-demand} feature of \afnit:
+    images can be displayed by being transformed from a {\bf parent}
+    dataset that {\it does\/} have a {\tt .BRIK} file.
+
+    There were two reasons for the development of this
+    capability.  The first reason was speed of interaction:  it takes
+    about a minute to transform a typical 3D dataset from original
+    to Talairach coordinates (for example).  It only takes a second
+    to do a single slice.  I~didn't want to make the users wait
+    that minute when the ``Transform Data'' button is pressed,
+    only to find that a mistake had been made and the transformation
+    would have to be recomputed.  The second reason was conservation
+    of memory.  A~typical functional dataset is gathered at a much
+    coarser resolution than an anatomical reference.  For display
+    purposes, the functional dataset must be transformed to the
+    anatomical dataset's grid.  If this could not be performed
+    ``on demand'', then every functional dataset would have to
+    be interpolated to the 3D grid of its anatomical reference.
+    This would consume large amounts of memory, large amounts
+    of disk space, and large amounts of CPU time.
+
+    The \afnit ``Write Brick'' buttons call the warp-on-demand routines
+    once for each slice in the output dataset, and write the
+    slices to disk to form the new {\tt .BRIK} file.
+
+    This presents a problem for the plugin author.  To deal with
+    all possible datasets that might be presented to it, a~plugin
+    would have to be able to call the warp-on-demand routines and
+    deal with datasets in this slice-at-a-time fashion.  This can be
+    quite complex.  As an alternative, I~have set up the plugin interface
+    so that the plugin author can specify that only datasets with
+    actual 3D {\tt .BRIK}s be passed to the plugin routines.
+    Then the plugin code can be confident it will only have to
+    deal with collections of 3D arrays.
+
+    For the present,\seeme{\blob}
+    plugins must deal only with the datasets that actually
+    have {\tt .BRIK} files.  I~have not yet
+    documented the methods required for a plugin to deal with
+    warp-on-demand datasets.
+
+    Plugin authors also need to be aware that dataset bricks may not
+    be stored in memory at any given moment.  To overcome this,
+    the macro {\tt DSET\_load} must be called to read the dataset
+    {\tt .BRIK} file into memory, if it is not already present.
+
+    Another complication is that dataset brick arrays can be stored
+    in one of two fashions.  The first method is via the usual {\tt malloc}
+    of workspace.  The second method uses the Unix {\tt mmap} function,
+    which maps the {\tt .BRIK} file directly into memory address space.
+    {\it This mapping is done in readonly mode}; that is, a~plugin
+    must not attempt to write into a brick array of a {\tt mmap}-ed file.
+    If a plugin wishes to modify an existing dataset, then it must
+    force the dataset brick arrays to be stored in {\tt malloc} mode,
+    rather than {\tt mmap} mode.  A~routine is provided to do this.
+
+%---------------------------------------------------------------------
+\mysubsec{Dataset Types}
+    All datasets have a {\bf type} attached.  Each type is categorized
+    as being {\bf anatomical} (which can be displayed in the background)
+    or as being {\bf functional} (which can be displayed as the color overlay).
+
+\vset
+
+    At present, all anatomical types are treated equally.  The different
+    names ({\tt spgr}, {\tt epan},~\ldots) are just for the user's convenience.
+    There are at present five functional dataset types, which are {\it not\/}
+    all treated equally:
+\begin{tabbing}
+   XXXX \= {\bf FFFFF} \= \kill
+        \> {\tt fim}   \> Functional Intensity \\*
+        \>             \> --- one value is stored per voxel \\[1ex]
+%
+        \> {\tt fith}  \> Functional Intensity + Threshold\\*
+        \>             \> --- two values are stored per voxel: \\*
+        \>             \> --- the first is ``intensity'' (defined arbitrarily); \\*
+        \>             \> --- \parbox[t]{4.5in}{
+                              the second is ``threshold'',
+                              which is a number between $-1.0$ and $1.0$,
+                              which can be used to select which
+                              voxels are considered ``active''.} \\[1ex]
+%
+        \> {\tt fico}  \> Functional Intensity + Correlation\\*
+        \>             \> --- two values are stored per voxel:\\*
+        \>             \> --- the first is ``intensity''; \\*
+        \>             \> --- \parbox[t]{4.5in}{
+                              the second is a correlation coefficient
+                              (between $-1.0$ and $1.0$),
+                              which can be used to select ``active'' voxels
+                              at a given significance ($p$) value.}\\[1ex]
+
+        \> {\tt fitt} \> Functional Intensity + $t$-test\\*
+        \>             \> --- two values are stored per voxel:\\*
+        \>             \> --- the first is ``intensity''; \\*
+        \>             \> --- \parbox[t]{4.5in}{
+                              the second is a $t$ statistic, which
+                              can be used to select ``active'' voxels
+                              at a given significance.}\\[1ex]
+
+        \> {\tt fift} \> Functional Intensity + $F$-test\\*
+        \>             \> --- two values are stored per voxel:\\*
+        \>             \> --- the first is ``intensity''; \\*
+        \>             \> --- \parbox[t]{4.5in}{
+                              the second is an $F$ statistic, which
+                              can be used to select ``active'' voxels
+                              at a given significance.}
+\end{tabbing}
+    The plugin interface allows the author to specify which dataset
+    types can be passed.  For example, if one wishes to do some
+    calculation specific to the correlation coefficient values,
+    then allowing only {\tt fico} datasets into the plugin would be sensible.
+    The alternative is to allow arbitrary datasets into the plugin,
+    and then test them for type.  For example, this might necessary if one wishes
+    to write a plugin that could optionally apply a threshold
+    to a dataset before further operations.  If no threshold is desired
+    by the user, then it would make little sense to exclude {\tt fim}
+    datasets from entry.
+
+%---------------------------------------------------------------------
+\mysubsec{Dataset Bricks and Sub-bricks}
+    An \afnit dataset contains one or more 3D sub-brick arrays.
+    For example, a~3D+time dataset is essentially just an array of 3D sub-brick arrays,
+    one at each time index.
+    (Note that there is no provision at present for more than one
+    sub-brick array at each time index.  This may change in the future!)
+    Each sub-brick is mapped to a single contiguous block of memory; however,
+    adjacent sub-bricks will not necessarily be adjacent in memory.
+
+    Sub-bricks can be arrays of type {\tt byte} (a~{\tt typedef} for
+    {\tt unsigned char}), {\tt short}
+    (16 bit signed int), {\tt float}, or {\tt complex} (a~{\tt struct} containing
+    two {\tt float}s).  In places, I~refer to these basic datum types as
+    ``atomic types''.  At present, all \mcwafni programs will create datasets
+    in which all sub-bricks are of the same atomic type.
+    This is not required by \afnit itself, and may change in the future.
+
+    It is likely that a plugin author will wish to restrict
+    the input to contain only sub-bricks of a certain atomic type.
+    The interface definition routines allow this.  At \MCW, we deal
+    mostly with short bricks.
+    The plugin interface also allows the choice of input to
+    be restricted to 3D or 3D+time datasets.
+
+    Note that {\tt byte} and {\tt short} bricks may also have attached a
+    {\tt float} scaling
+    factor.  This is used to allow compact storage of values that are
+    really {\tt float}s.  For example, the correlation coefficient sub-brick
+    of a {\tt fico} dataset (as generated by the {\tt 3dfim} program) will normally
+    be stored as {\tt short}s in the range $[-10000,10000]$, with a
+    scaling factor of $0.0001$ attached to the brick.
+
+%---------------------------------------------------------------------
+\mysubsec{Dataset idcodes}
+    As of \afnit 1.99, all datasets have a (hopefully) unique identifying
+    string embedded in them --- this is called the {\rm idcode}.
+    An example is {\tt MCW\_FCKWJALORIV}.  The 4 letter prefix\seeme{Customizing idcodes}
+    ({\tt MCW\_} in this example) is given by the C macro {\tt IDCODE\_PREFIX},
+    which can be defined in the {\tt machdep.h} file (changing this will require
+    recompiling the entire \mcwafni package).
+    If it is not
+    otherwise defined, then {\tt MCW\_} will be used for the prefix.
+    The rest of the idcode string (a~total of 16 characters) is
+    generated pseudorandomly (by combining the computer nodename with
+    the time of day).
+
+    Even within a single run of \afni, one cannot assume that a pointer
+    to a dataset {\tt struct} will remain constant.  \afnit may deallocate
+    and reallocate dataset pointers during its run (this will happen when
+    one of the ``{\tt Rescan}'' buttons is used, for example).  The only way to
+    uniquely retain a hold on a dataset is to use its idcode.  For that
+    reason, the plugin interface routines return a pointer to an
+    idcode for each dataset that the user inputs.  The plugin must
+    then call a function to get the pointer to the actual dataset {\tt struct}.
+    If a plugin wishes to remember which datasets it was called with
+    in previous executions, it should save the idcodes, not the
+    dataset pointers.
+
+    The use of idcodes presents a problem when copying datasets.
+    If the {\tt PLUTO\_copy\_dset} routine is used to make a
+    working copy of a dataset, then a new idcode will be generated.
+    But if a user uses the Unix {\tt cp} command to copy a dataset's
+    {\tt .HEAD} and {\tt .BRIK} files, this new dataset will have the
+    same idcode as the original.  This will cause confusion, at best,
+    if both datasets are then loaded into the same \afnit run.
+
+    There is no simple solution to this problem, since datasets can
+    refer to each other ({\it e.g.},~a dataset transformed to Talairach
+    coordinates contains an idcode that points to its parent dataset).
+    When a dataset is copied, does the user want its children to
+    point to the copy or to the original parent?  Should a copy
+    of a dataset that points to a parent still point to that parent?
+    (If so, then two datasets will have the same parent.  If not,
+    what is the parent of the copied dataset to be?)
+    As a partial solution, you can use
+    the auxiliary program {\tt 3dnewid} to attach a new
+    idcode to a dataset.  This will not change the idcodes it has
+    that point to other datasets (its `parents'), nor will this
+    change the idcodes inside other datasets that point to the altered dataset
+    (its `children').
+
+%---------------------------------------------------------------------
+%---------------------------------------------------------------------
+\mysec{Accessing Data in a Dataset}\label{Accessing}
+There are a number of functions and macros that provide access to
+the data inside a dataset.  Alternatively, one can directly
+access the {\tt struct} data elements; this is necessary in some cases,
+since at present the dataset {\tt struct} type is not fully encapsulated
+behind a wall of interface routines.
+
+Many of the routines and data types start with the string
+{\tt THD\_} --- this stands for ``3~dimensional dataset''.
+The macros are defined in the file {\tt 3ddata.h} and the
+functions in {\tt 3ddata.c}.  {\it Do not modify these
+files, since they are at the core of the entire \mcwafni package.}
+
+Other routine names described below start with the string
+{\tt PLUTO\_}\seeme{Not a dog} --- this stands for ``PLugin UTility Operation''.
+These are routines (or macros) that were developed specifically
+for the use of plugins.
+
+%---------------------------------------------------------------------
+\mysubsec{Pointer to the Dataset}
+  The type {\tt MCW\_idcode} is a typedef for a {\tt struct} that contains
+  the idcode string described above.  When a user calls a plugin
+  and provides a dataset, the plugin retrieves a ``{\tt MCW\_idcode~*}''
+  by using the routine {\tt PLUTO\_get\_idcode}.
+  To get a pointer to an actual dataset structure, then
+  the appropriate code fragment is:
+
+\begin{samepage}\begin{verbatim}
+     MCW_idcode * idc ;
+     THD_3dim_dataset * dset ;
+     idc  = PLUTO_get_idcode(plint) ;
+     dset = PLUTO_find_dset(idc) ;
+\end{verbatim}\end{samepage}
+  (The {\tt plint} variable will be explained in~\S\ref{CreatingPlugin}.)
+   The pointer {\tt dset} is
+   needed for all further access to the dataset contents.
+
+   If two idcodes are obtained, the plugin can test them for equality using
+   the macro {\tt EQUIV\_IDCODES(*idc1,*idc2)}, which will return 1 if
+   the idcodes pointed to by {\tt idc1} and {\tt idc2} are equivalent.
+   Note that the macro takes as input actual {\tt MCW\_idcode} {\tt struct}s,
+   not pointers {\tt MCW\_idcode *}, which is the return type of {\tt PLUTO\_get\_idcode()}.
+
+%---------------------------------------------------------------------
+\mysubsec{Loading and Unloading Data}
+  The macro {\tt DSET\_load(dset)} will call the appropriate routine
+  to read all the sub-bricks of a dataset into memory, if need be.
+  The macro {\tt DSET\_unload(dset)} will free the memory
+  space occupied by the input dataset.  Note that \afnit may execute
+  {\tt DSET\_unload()} on a dataset after the plugin returns control
+  to the main program.
+
+%---------------------------------------------------------------------
+\mysubsec{Dataset Dimensions and Orientation}
+  The spatial extent of a dataset is stored in a substructure
+  called a {\tt THD\_dataxes}.  Some relevant elements of this
+  structure can be accessed by:
+\begin{tabbing}
+   XXX \= {\tt dset->daxes->XXXXXXXX} \= \kill
+       \> {\tt dset->daxes->nxx}      \> Number of voxels in the $x$ direction \\*
+       \> {\tt dset->daxes->xxorg}    \> $x$ coordinate of center of voxel 0\\
+       \> {\tt dset->daxes->xxdel}    \> voxel size in $x$ direction (may be negative)
+\end{tabbing}
+  The $x$ coordinate of the center of the $i^{\rm th}$ voxel in the $x$
+  direction is
+  $$\hbox{\tt dset->daxes->xxorg} \,+\, \hbox{\tt dset->daxes->xxdel} \,\times\, i
+    \quad {\rm for\ }i=0\ldots\hbox{\tt dset->daxes->nxx-1} .$$
+  Similar variables exist for the $y$ and $z$ directions, with the
+  {\tt xx}'s in the variable names replaced by {\tt yy}'s and {\tt zz}'s, respectively.
+
+  For many purposes, a plugin does not need to know the orientation of the
+  dataset arrays.  If such a need is encounted,
+  the orientation is also stored in the {\tt dset->daxes}
+  structure.  If you are operating on AC--PC or Talairach coordinate data, this will
+  always be $-x={}$Right, $+x={}$Left, $-y={}$Anterior, $+y={}$Posterior,
+  $-z={}$Inferior, and $+z={}$Superior.  In original coordinates, the data
+  will be stored in whatever slice orientation was used to form the dataset
+  in program {\tt to3d}.  For example, the orientation of the $x$ axis can
+  be found by looking at the variable {\tt dset->daxes->xxorient},
+  which will have one of the values
+\begin{tabbing}
+  XXX \= {\tt ORI\_R2L\_TYPE} \= \kill
+      \> {\tt ORI\_R2L\_TYPE} \> =~Right-to-Left \\*
+      \> {\tt ORI\_L2R\_TYPE} \> =~Left-to-Right \\*
+      \> {\tt ORI\_P2A\_TYPE} \> =~Posterior-to-Anterior \\
+      \> {\tt ORI\_A2P\_TYPE} \> =~Anterior-to-Posterior \\
+      \> {\tt ORI\_I2S\_TYPE} \> =~Inferior-to-Superior \\*
+      \> {\tt ORI\_S2I\_TYPE} \> =~Superior-to-Inferior \\*[.5ex]
+      \> {\tt ORI\_GEN\_TYPE} \> =~General orientation (not used at present)
+\end{tabbing}
+  The last code is intended for the long-awaited but oft-postponed day when
+  \afnit supports the creation of datasets with arbitrary axes orientations.
+
+%---------------------------------------------------------------------
+\mysubsec{Dataset Sub-brick Arrays}\label{Subbricks}
+  The data in the $p^{\rm th}$ sub-brick of a dataset is accessed by
+  the macro {\tt DSET\_ARRAY(dset,$p$)}.  This will return a ``{\tt void *}''
+  which must be cast to the appropriate pointer type.  If the pointer
+  returned is {\tt NULL}, then the dataset is not loaded into memory
+  (if it does not have a {\tt .BRIK} file, this will certainly be the case; otherwise,
+   {\tt DSET\_load(dset)} should be executed).
+
+  Unless the plugin interface specified that only datasets with one particular
+  brick type were allowed, a~plugin must be able to determine what
+  type of data is stored in a sub-brick.  This is done with the
+  macro {\tt DSET\_BRICK\_TYPE(dset,$p$)}.  The value returned will
+  be one of the following integers:
+\begin{tabbing}
+   XXX \= {\tt MRI\_COMPLEX}X \= \kill
+       \> {\tt MRI\_byte}     \> meaning {\tt unsigned char} \\*
+       \> {\tt MRI\_short}    \> meaning {\tt short int} \\
+       \> {\tt MRI\_float}    \> meaning {\tt float} \\
+       \> {\tt MRI\_complex}  \> meaning {\tt complex}, which is defined by \\*
+                            \>\> \blob {\tt typedef struct \{ float r,i ; \} complex ;}
+\end{tabbing}
+  The $(i,j,k)$ voxel in the dataset is at location
+  $$i + \hbox{\tt dset->daxes->nxx} \times j +
+        \hbox{\tt dset->daxes->nxx} \times \hbox{\tt dset->daxes->nyy} \times k$$
+  in the array returned by {\tt DSET\_ARRAY}.
+
+  The sample plugin {\tt plug\_3ddot.c} shows an example of manipulating
+  datasets of general type.  In general, this could get quite complex.
+  One way to deal with this (as in {\tt plug\_3ddot.c}, {\tt 3dmerge.c}, and
+  other codes) is to make
+  a {\tt float} copy of a dataset brick, and operate on that, only converting
+  the results to the desired output type when done.
+
+\newcommand{\tb}[2]{\parbox[t]{4.0in}{\sloppy ({\tt #1}):~#2}}
+
+%---------------------------------------------------------------------
+\mysubsec{Miscellaneous Dataset Items and Actions}
+  A glance at {\tt 3ddata.h} and {\tt 3ddata.c} will show that there
+  are many components to an \afnit dataset.  Only some of them are outlined here.
+\begin{tabbing}
+ DSETDSETDSETDSETDSETD              \= \kill
+%
+ \underline{Usage}                  \> \underline{(Type): Description} \\*[.9ex]
+%
+ {\tt DSET\_BRICK\_TYPE(dset,$p$)}  \> \tb{int}{See \S\ref{Subbricks}}\\*[.9ex]
+%
+ {\tt DSET\_BRICK\_BYTES(dset,$p$)} \> \tb{int}{How many bytes in sub-brick $p$}\\*[.9ex]
+%
+ {\tt DSET\_PRINCIPAL\_INDEX(dset)} \> \tb{int}{Index ($p$) of ``principal value'' 
+                                       in the dataset (currently is always 0)} \\[.9ex]
+%
+ {\tt DSET\_THRESH\_INDEX(dset)}    \> \tb{int}{Index ($p$) of the ``threshold value''
+                                       if the dataset has one; will be $-1$ if the
+                                       dataset has no such data
+                                       (currently is 1 for {\tt fith},
+                                         {\tt fico}, {\tt fitt}, and {\tt fift})}\\[.9ex]
+%
+ {\tt DSET\_PREFIX(dset)}           \> \tb{char *}{Pointer to filename prefix string}\\[.9ex]
+%
+ {\tt DSET\_FILECODE(dset)}         \> \tb{char *}{Pointer to filename prefix+view string}\\[.9ex]
+%
+ {\tt DSET\_IDCODE(dset)}           \> \tb{MCW\_idcode *}{Pointer to dataset idcode}\\[.9ex]
+%
+ {\tt DSET\_BRICK\_FACTOR(dset,$p$)}\> \tb{float}{Scale factor to apply to apply
+                                           to each element of the $p^{\rm th}$
+                                           sub-brick.  If zero, no scaling applies.}\\[.9ex]
+%
+ {\tt DSET\_NUM\_TIMES(dset)}       \> \tb{int}{Number of time points in dataset
+                                       (will be 1 except for 3D+time datasets)}\\[.9ex]
+%
+ {\tt DSET\_NVALS\_PER\_TIME(dset)} \> \tb{int}{Number of sub-bricks at each time point
+                                       (currently is always 1)}\\[.9ex]
+%
+ {\tt DSET\_NVALS(dset)}            \> \tb{int}{Total number of sub-bricks in dataset}\\[.9ex]
+%
+ {\tt DSET\_GRAPHABLE(dset)}        \> \tb{int}{Returns 1 if this dataset is 3D+time,
+                                       and can be loaded into memory}\\[.9ex]
+%
+ {\tt ISVALID\_3DIM\_DATASET(dset)} \> \tb{int}{Returns 1 if {\tt dset} points to a
+                                       valid dataset}\\[.9ex]
+%
+ {\tt dset->view\_type}             \> \tb{int}{Determines coordinate system dataset has been
+                                        transformed to: \\*
+                                    \blob {\tt VIEW\_ORIGINAL\_TYPE} = {\tt +orig} \\*
+                                    \blob {\tt VIEW\_ACPCALIGNED\_TYPE} = {\tt +acpc} \\*
+                                    \blob {\tt VIEW\_TALAIRACH\_TYPE} = {\tt +tlrc} } \\[.9ex]
+%
+ {\tt ISANAT(dset)}                 \> \tb{int}{Returns 1 if dataset is an anatomical type}\\*
+ {\tt ISFUNC(dset)}                 \> \tb{int}{Returns 1 if dataset is a functional type}\\[.9ex]
+%
+ {\tt dset->func\_type}             \> \tb{int}{Code indicating what type the dataset is:
+                                       will be one of the {\tt ANAT\_*\_TYPE} or 
+                                       {\tt FUNC\_*\_TYPE} codes in {\tt 3ddata.h}. 
+                                       {\bf N.B.}: It is necessary to use the {\tt ISANAT}
+                                       macro (say) together with {\tt dset->func\_type} to
+                                       precisely determine the dataset type, since the
+                                       {\tt ANAT\_*\_TYPE} and {\tt FUNC\_*\_TYPE} codes
+                                       overlap; for example {\tt FUNC\_FIM\_TYPE} and
+                                       {\tt ANAT\_SPGR\_TYPE} are both 0.}\\*[.9ex]
+%
+ {\tt DSET\_write(dset)}            \> \tb{none}{Writes dataset to disk
+                                                  ({\tt .HEAD} and {\tt .BRIK})} \\*[.9ex]
+%
+ {\tt PLUTO\_output\_header(dset)}  \> \tb{none}{Write dataset {\tt .HEAD} to disk}
+\end{tabbing}
+
+%---------------------------------------------------------------------
+\mysubsec{Creating a New Dataset}\label{CreatingDataset}
+  Creating a completely new dataset is moderately complex.  Under most
+  circumstances, however, a~plugin will usually wish to make an ``empty copy''
+  of an existing input dataset --- an empty copy contains no sub-bricks, but contains
+  all the geometric and type information of a dataset.
+  This is done with the call
+\begin{verbatim}
+  THD_3dim_dataset * old_dset , * new_dset ;
+  new_dset = EDIT_empty_copy( old_dset ) ;
+\end{verbatim}
+  Function {\tt EDIT\_empty\_copy} takes
+  as input a pointer to a dataset and returns as output a pointer to
+  a new dataset where all of the control information about the dataset
+  (except its idcode) has been copied.
+  The plugin can then
+  use {\tt EDIT\_dset\_items} (described below) to change whatever it needs to about the
+  new dataset.  The routine {\tt EDIT\_substitute\_brick} can then
+  be used to attach new sub-brick arrays to the new dataset:
+\begin{verbatim}
+   EDIT_substitute_brick( new_dset , p , MRI_type , ptr ) ;
+\end{verbatim}
+  where {\tt p} is the index of the sub-brick to replace;
+  {\tt MRI\_type} is one of the {\tt MRI\_}
+  type codes given earlier ({\tt type} is {\tt byte}, {\tt short}, {\tt float},
+  or {\tt complex})---see~\S\ref{Subbricks}; and {\tt ptr} is a pointer to an array of
+  values of that type, which must have been created using {\tt malloc}
+  (not {\tt XtMalloc}).
+  If {\tt ptr} is {\tt NULL}, then appropriate space will be {\tt malloc}-ed,
+  which can later be accessed using {\tt DSET\_ARRAY(new\_dset,p)}.
+
+\vset
+  The function {\tt PLUTO\_copy\_dset} (in {\tt afni\_plugin.c})
+  can also be used to create a ``full copy'' of a dataset:
+\begin{verbatim}
+   THD_3dim_dataset * old_dset , * new_dset ;
+   char * new_prefix ;
+   new_dset = PLUTO_copy_dset( old_dset , new_prefix ) ;
+\end{verbatim}
+  The new dataset
+  will have all the sub-bricks copied as well.  This routine can be used
+  as an example of how to create a dataset.
+
+%---------------------------------------------------------------------
+\mysubsec{Changing Dataset Internal Items}
+  If one wishes to change the contents of dataset control items,
+  it might seem simplest to do this directly by accessing the
+  appropriate fields of the {\tt THD\_3dim\_dataset} structure.
+  This is confusing, however, and another method is available.
+  The routine {\tt EDIT\_dset\_items} takes as input a dataset
+  pointer (such as {\tt dset} above), and a paired list
+  of subitems to modify and their new values.  (The call syntax
+  is similar to {\tt XtVaSetValues}.)  For example, to
+  change a dataset memory allocation type to {\tt malloc}
+  (so that the plugin can modify the sub-brick arrays), and at the
+  same time change the dataset filename prefix,
+  the appropriate call would be
+\begin{samepage}\begin{verbatim}
+   char * new_prefix ;
+   ierr = EDIT_dset_items( dset,
+                             ADN_malloc_type, DATABLOCK_MEM_MALLOC ,
+                             ADN_prefix , new_prefix ,
+                           ADN_none ) ;
+\end{verbatim}\end{samepage}
+  Here, the return code {\tt ierr} is the count of the number of errors
+  that happened during {\tt EDIT\_dset\_items} (this should be~0).
+  The two items on the
+  second line are the first pair of inputs, which in this
+  case are a code, {\tt ADN\_malloc\_type}, indicating the dataset item
+  to modify, and the new value of that item, {\tt DATABLOCK\_MEM\_MALLOC}
+  (a~symbolic constant defined in {\tt 3ddata.h}).
+  The two items on the third line are the second pair of
+   inputs: in this case, {\tt ADN\_prefix} indicating
+  that the next input is a new prefix for the dataset's disk files,
+  and {\tt new\_prefix}, a~pointer to the new prefix string.
+  The last line is the special value {\tt ADN\_none}, indicating that
+  no more inputs to {\tt EDIT\_dset\_items} are present.
+
+  The following table shows all the values that can be altered using
+  {\tt EDIT\_dset\_items}.  It is not possible to alter items that
+  affect the size of a dataset after the dataset actually has
+  sub-bricks attached to it.  That is, {\tt EDIT\_empty\_copy(dset)}
+  can be used to create a dataset with no sub-bricks, then {\tt EDIT\_dset\_items}
+  can be used to alter the dataset control parameters at will, but
+  once {\tt EDIT\_substitute\_brick} is used to actually attach 
+  data sub-bricks to the new dataset, then altering parameters
+  such as {\tt ADN\_nxyz} is illegal.  Such parameters are marked with a superscript $\star$ in
+  the table.
+
+\vset
+\renewcommand{\tb}[1]{\parbox[t]{3.6in}{\sloppy #1}}
+\newcommand{\sss}{$^\star$}
+\begin{tabbing}
+  ADN CONTROL NAm \= ADN type nam \= \kill
+%
+\underline{\bf Control Code} \> \underline{\bf Data Type} \> \underline{\bf Meaning} \\*[.5ex]
+%
+{\tt ADN\_prefix          } \> {\tt char *     } \>  \tb{Changes the prefix for
+                                                         the dataset filenames.} \\*[.5ex]
+%
+{\tt ADN\_directory\_name } \> {\tt char *     } \>  \tb{Changes the name of the
+                                                         directory where the
+                                                         dataset will be stored.} \\[.5ex]
+%
+{\tt ADN\_brick\_fac      } \> {\tt float *    } \>  \tb{Changes the scaling factors attached
+                                                         to all sub-bricks.  The input is a
+                                                         {\tt float} array of length {\tt DSET\_NVALS(dset)}.
+                                                         The $p^{\rm th}$ entry contains the
+                                                         scale factor for the $p^{\rm th}$ sub-brick.
+                                                         If this scale factor is zero, then the
+                                                         sub-brick values will not be scaled; otherwise,
+                                                         they will be multiplied by this factor before
+                                                         being used in \afnit.} \\[.5ex]
+%
+{\tt ADN\_malloc\_type    } \> {\tt int        } \>  \tb{Changes the way in which
+                                                         the sub-brick arrays are
+                                                         stored in memory.  Must
+                                                         be one of the following codes:\\
+                                      \blob{\tt DATABLOCK\_MEM\_MALLOC} = use {\tt malloc} \\
+                                      \blob{\tt DATABLOCK\_MEM\_MMAP} = use {\tt mmap} \\
+                                      \blob{\tt DATABLOCK\_MEM\_ANY} = let \afnit choose \\
+                                      Note that if this parameter is changed, then
+                                      the dataset must have {\tt DSET\_load()} executed
+                                      on it before the sub-bricks will be available in memory.}\\[.5ex]
+%
+\sss{\tt ADN\_datum\_all      } \> {\tt int        } \>  \tb{Changes the atomic type stored in
+                                                         all sub-bricks.  Should be one of
+                                                         the following codes---see~\S\ref{Subbricks}: \\
+                                                          \blob {\tt MRI\_byte} {\tt MRI\_short} \\
+                                                          \blob {\tt MRI\_float} {\tt MRI\_complex} \\
+                                                         Note that {\tt EDIT\_substitute\_brick}
+                                                         can change the atomic type of a sub-brick
+                                                         later.  }\\[.5ex]
+%
+\sss{\tt ADN\_datum\_array    } \> {\tt int *      } \>  \tb{Changes the atomic type stored in
+                                                             all sub-bricks.  Unlike {\tt ADN\_datum\_all},
+                                                             the input is an array of length
+                                                             {\tt DSET\_NVALS(dset)} which contains
+                                                             {\tt MRI\_type} codes for each sub-brick
+                                                             individually.  } \\[.5ex]
+%
+\sss{\tt ADN\_nvals           } \> {\tt int        } \>  \tb{Changes the number of
+                                                         3D sub-bricks stored in
+                                                         the dataset.}\\[.5ex]
+%
+\sss{\tt ADN\_nxyz            } \> {\tt THD\_ivec3 } \>  \tb{Changes the number of points
+                                                         stored along each axis of
+                                                         the dataset
+                                                         ({\it e.g.},~{\tt nxx}).}\\[.5ex]
+%
+{\tt ADN\_xyzdel          } \> {\tt THD\_fvec3 } \>  \tb{Changes the spacing (mm)
+                                                         between
+                                                         points along each axis of
+                                                         the dataset
+                                                         ({\it e.g.},~{\tt xxdel}).}\\[.5ex]
+%
+{\tt ADN\_xyzorg          } \> {\tt THD\_fvec3 } \>  \tb{Changes the offset (mm)
+                                                         to the center of the
+                                                         $0^{\rm th}$ voxel along
+                                                         each axis of the dataset
+                                                         ({\it e.g.},~{\tt xxorg}).}\\[.5ex]
+%
+{\tt ADN\_xyzorient       } \> {\tt THD\_ivec3 } \>  \tb{Changes the orientation
+                                                         codes for each axis of the
+                                                         dataset
+                                                         ({\it e.g.},~{\tt xxorient}).}\\[.5ex]
+%
+{\tt ADN\_type            } \> {\tt int        } \>  \tb{One of the following codes: \\
+                                                          \blob{\tt HEAD\_ANAT\_TYPE HEAD\_FUNC\_TYPE} \\
+                                                          \blob{\tt GEN\_ANAT\_TYPE  GEN\_FUNC\_TYPE} \\
+                                                         This values is used with
+                                                         {\tt ADN\_func\_type} to determine
+                                                         how the dataset is processed.  {\tt ANAT}
+                                                         types are displayed as the background
+                                                         grayscale images in \afni.  {\tt FUNC}
+                                                         types are displayed as the color overlay
+                                                         images.
+                                                      }\\[.5ex]
+%
+{\tt ADN\_view\_type      } \> {\tt int        } \>  \tb{Determines the coordinate
+                                                         system that this dataset
+                                                         has been transformed to: \\
+                                    \blob{\tt VIEW\_ORIGINAL\_TYPE} = {\tt +orig} \\
+                                    \blob{\tt VIEW\_ACPCALIGNED\_TYPE} = {\tt +acpc} \\
+                                    \blob{\tt VIEW\_TALAIRACH\_TYPE} = {\tt +tlrc}.}\\[.5ex]
+%
+{\tt ADN\_func\_type      } \> {\tt int        } \>  \tb{If {\tt ADN\_view\_type} is an {\tt ANAT}
+                                                         type, then this should be one of: \\
+                   \hspace*{.2em}{\tt ANAT\_SPGR\_TYPE   ANAT\_FSE\_TYPE   ANAT\_EPI\_TYPE} \\
+                   \hspace*{.2em}{\tt ANAT\_MRAN\_TYPE   ANAT\_CT\_TYPE    ANAT\_SPECT\_TYPE} \\
+                   \hspace*{.2em}{\tt ANAT\_PET\_TYPE    ANAT\_MRA\_TYPE   ANAT\_BMAP\_TYPE} \\
+                   \hspace*{.2em}{\tt ANAT\_DIFF\_TYPE   ANAT\_OMRI\_TYPE} \\
+                                                          If {\tt ADN\_view\_type} is an {\tt FUNC}
+                                                          type, then this should be one of: \\
+                   \hspace*{.2em}{\tt FUNC\_FIM\_TYPE  FUNC\_THR\_TYPE  FUNC\_COR\_TYPE} \\
+                   \hspace*{.2em}{\tt FUNC\_TT\_TYPE   FUNC\_FT\_TYPE} \\
+                                                          Note that if {\tt ADN\_func\_type}
+                                                          is changed, the number of sub-bricks
+                                                          appropriate for this dataset may
+                                                          change also.  You must do this
+                                                          explicitly using {\tt ADN\_nvals}
+                                                          at the same time.
+                                                     }\\[.5ex]
+%
+{\tt ADN\_stat\_aux       } \> {\tt float *    } \> \tb{The {\tt float *} argument
+                                                        must point an array of
+                                                        length {\tt MAX\_STAT\_AUX},
+                                                        which will contain the
+                                                        auxiliary statistical parameters
+                                                        needed for the {\tt fico},
+                                                        {\tt fitt}, or {\tt fift}
+                                                        dataset.} \\[.5ex]
+%
+{\tt ADN\_ntt             } \> {\tt int        } \>  \tb{Changes the number of
+                                                         time points in the dataset.
+                                                         {\bf N.B.}:~You must also
+                                                         change {\tt ADN\_nvals}
+                                                         when you change this!}\\[.5ex]
+%
+{\tt ADN\_ttorg           } \> {\tt float      } \>  \tb{Changes the origin of
+                                                         time for 3D+time datasets.}\\[.5ex]
+%
+{\tt ADN\_ttdel           } \> {\tt float      } \>  \tb{Changes the time step
+                                                         for 3D+time datasets.}\\[.5ex]
+%
+{\tt ADN\_ttdur           } \> {\tt float      } \>  \tb{Changes the duration of
+                                                         data acquisition for each
+                                                         time point.  This parameter
+                                                         is currently unused by any
+                                                         \afnit program.}\\[.5ex]
+%
+%%%{\tt ADN\_nsl             } \> {\tt int        } \>  \\[.5ex]
+%
+%%%{\tt ADN\_zorg\_sl        } \> {\tt float      } \>  \\[.5ex]
+%
+%%%{\tt ADN\_dz\_sl          } \> {\tt float      } \>  \\[.5ex]
+%
+%%%{\tt ADN\_toff\_sl        } \> {\tt float *    } \>  \\[.5ex]
+%
+{\tt ADN\_tunits          } \> {\tt int        } \>  \tb{Changes the units that
+                                                         are used for time in
+                                                         a 3D+time dataset.  Legal
+                                                         values are: \\
+                                                         \blob{\tt UNITS\_MSEC\_TYPE}\\
+                                                         \blob{\tt UNITS\_SEC\_TYPE}\\
+                                                         \blob{\tt UNITS\_HZ\_TYPE}.}\\[.5ex]
+\end{tabbing}
+Note that the {\tt THD\_ivec3} and {\tt THD\_fvec3} types are defined
+in {\tt vecmat.h} (which will be included when you
+\verb=#include "afni.h"=).  They are used to encapsulate 3-vectors of integers and
+{\tt float}s, respectively.
+(By the way, {\tt ADN} stands for {\tt A}fni {\tt D}ataset {\tt N}ame.)
+
+%---------------------------------------------------------------------
+\mysubsec{Header Attributes}
+    As you should know by now,
+    \afnit datasets are stored in two files, with names ending
+    in {\tt .HEAD} and {\tt .BRIK}.  The {\tt .HEAD} file is plain ASCII and
+    contains {\bf attributes}, which are named arrays.
+    When \afnit reads in a
+    {\tt .HEAD} file, it firsts reads all the attributes in,
+    then searches them for the ones needed to define a dataset.
+    Other attributes will be ignored by \afni\@, but still will
+    be in memory, and will still be written to disk when the
+    dataset output routine is called.  This means that
+    a plugin can attach new attributes to a dataset, and that
+    these will be preserved when the dataset is written out
+    and read back in.
+
+\vset
+    There are three types of attributes: string, {\tt float}, and {\tt int}.
+    They are stored in {\tt struct}s defined below:
+\goodbreak
+\begin{samepage}\begin{verbatim}
+  typedef struct {         typedef struct {         typedef struct {
+        int    type ;            int    type ;            int    type ;
+        char * name ;            char * name ;            char * name ;
+        int    nch ;             int     nfl ;            int    nin ;
+        char * ch ;              float * fl ;             int  * in ;
+  } ATR_string ;           } ATR_float ;            } ATR_int ;
+\end{verbatim}\end{samepage}
+    A string attribute can be added to a dataset with the routine\\*[1ex]
+\centerline{\tt THD\_set\_string\_atr( dset->dblk , name , str ) ;}\vspace{1ex}
+    where {\tt name} is a {\tt char~*} that points to a {\tt NUL}-terminated
+    string which will be used to identify the attribute, and {\tt str} is
+    a {\tt char~*} that points to the {\tt NUL}-terminated string to store as the
+    attribute's value.
+    A {\tt float} attribute can be added to a dataset with the routine\\*[1ex]
+\centerline{\tt THD\_set\_float\_atr( dset->dblk , name , nfl , fl ) ;}\vspace{1ex}
+    where {\tt nfl} is the number of floats to be stored in the attribute,
+    and {\tt fl} is a {\tt float~*} that points to the values to be stored.
+    Similarly,\\*[1ex]
+\centerline{\tt THD\_set\_int\_atr( dset->dblk , name , nin , in ) ;}\vspace{1ex}
+    is used to add an {\tt int} attribute to a dataset, where {\tt nin} is the
+    number of integers to store and {\tt in} is an {\tt int~*} pointing
+    to the values to be stored.
+
+    Attributes will be saved to the dataset's {\tt .HEAD} file the next time
+    the dataset is written to disk.  To force the {\tt .HEAD} file {\tt only}
+    to be written out, call\\*[1ex]
+\centerline{\tt PLUTO\_output\_header( dset ) ;}
+
+    The function call {\tt THD\_find\_string\_atr(dset->dblk,name)} will return
+    a pointer of type ``{\tt ATR\_string~*}'' if an attribute is found that has the
+    same {\tt name}.  If {\tt NULL} is returned, then no match was found.  Otherwise,
+    the {\tt nch} and {\tt ch} entries of the {\tt ATR\_string} {\tt struct} contain
+    the count of characters and the character array, respectively.  Similar
+    routines and remarks apply to finding and using {\tt float} and {\tt int} attributes.
+
+%----------------------------------------------------------------------------------
+%---------------------------------------------------------------------
+\mysec{Plugin Libraries}\label{Libraries}
+Plugins are C routines compiled and linked into the shared (or dynamic)
+library format.  On most Unix systems, the suffix for such files is~{\tt .so},
+but on HP--UX systems, the file suffix is~{\tt .sl}.  (HP--UX also uses
+a different API to access such shared libraries, but \afnit will take
+care of that for you.)
+
+Plugins can be compiled into shared library format using the
+{\tt Makefile} distributed with \mcwafni~2.00.  For example,
+{\tt make fred.so}
+will compile {\tt fred.c} into {\tt fred.o}, and then appropriately
+run {\tt ld} on {\tt fred.o} to produce {\tt fred.so}.  At this time,
+I~have only verified that my compilation procedure and shared library
+interface code works on
+Linux~1.2.13, SGI IRIX~5.3 and~6.2, HP--UX~9.05 and~10.0, and Sun Solaris~2.5.
+Making\seeme{System specifics}
+plugins work on
+other systems will require appropriate editing of
+the platform-specific Makefiles and also of the {\tt machdep.h} file.
+
+\afnit will search for plugin libraries when it starts.  It will
+look in the directories specified in the shell environment variable
+{\tt AFNI\_PLUGINPATH} (this is a colon-separated list of directories
+--- for an example, type {\tt echo \$PATH} to see what your current executable
+path is).
+If this variable does not exist, then \afnit will use the
+{\tt PATH} variable instead.  This makes it possible to put the
+plugin libraries in the same location as the \afnit binaries.
+
+\afnit will attempt to load all shared library files it finds.
+System libraries will not work properly, since they will not have the
+required routine {\tt PLUGIN\_init} (see the next section).  Such libraries will then be
+unloaded.  If more than one copy of a correct plugin is found, \afnit
+will load them all.  This will probably confuse the user. (It confuses me.)
+
+%---------------------------------------------------------------------------------
+%---------------------------------------------------------------------
+\mysec{Creating a Plugin}\label{CreatingPlugin}
+There are three issues to address in creating a plugin:
+\begin{itemize}
+  \item Creating a user interface.
+  \item Getting data out of the the user interface when the plugin is called.
+  \item Doing something useful and communicating it back to \afni.
+\end{itemize}
+Each plugin must have one routine named {\tt PLUGIN\_init}.
+\afnit will call this routine to get the specification of how the
+plugin interface should look.  This routine should be prototyped\vspace{2ex}
+
+\noindent
+\centerline{\tt PLUGIN\_interface * PLUGIN\_init( int ncall )}\vspace{2ex}
+The output type ``{\tt PLUGIN\_interface *}'' is a pointer to a type defined
+in {\tt afni\_plugin.h}.  This file will be among the header files
+loaded with the statement {\tt \#include~"afni.h"}, which must be
+at the top of every plugin source file.
+The return value must be constructed using the routines described
+later.  A~variable of type {\tt PLUGIN\_interface} encapsulates the way
+a plugin will be called from \afni.
+
+Each plugin library can define more than one interface.  That is the purpose of
+the {\tt ncall} input to {\tt PLUGIN\_init}.
+On the first call to {\tt PLUGIN\_init}, {\tt ncall}
+will be~$0$.  On each subsequent call, {\tt ncall} will be one larger.
+This will continue until {\tt PLUGIN\_init} returns {\tt NULL}.  After
+that, {\tt PLUGIN\_init} will never be called.
+
+Plugin interfaces are called up by the user from the {\tt Plugins} menu button in \afni,
+located at the bottom of the {\tt Datamode} control panel.
+If this menu button is not present, this means that \afnit did not
+find any plugins when it started up.
+
+In principal, a plugin need not define any interfaces.  It could simply
+use the call to {\tt PLUGIN\_init} to start itself, and then it could
+get all the information it needs directly from \afni, or from the user
+by popping up its own windows.  For this reason, the {\tt PLUGIN\_init} functions are
+called only after \afnit has read in all its inputs, has initialized X11,
+and is just about to pop up the first controller window.
+
+At present, such a ``standalone'' plugin would have to use something
+like {\tt XtAppAddTimeOut} or X11 events to get control after {\tt PLUGIN\_init}
+returns.  It would be possible for a plugin to spawn threads to process
+data while \afnit runs in the ``foreground'', but anyone contemplating
+this approach should be aware that \afnit and Motif are not thread-safe ---
+a~thread cannot directly call a routine in \afnit or Motif to get some
+information or perform some task.
+(I~have thought about adding a ``heartbeat'' to \afnit, so that a plugin
+could register to be called from the \afnit main thread every cycle
+(say 100~ms).  This would allow the plugin main thread to service
+requests from other threads through the use of mutexes and condition variables.
+Any comments on this idea?)
+
+A plugin interface can simply specify that the plugin be called immediately
+when its menu item is picked.  In this case, it the the plugin code's
+responsibility to get whatever inputs it needs from the user --- perhaps
+by popping up its own control window.  This might be appropriate for a plugin
+that provided some new graphical capability; for example, a~volume rendering
+tool (anyone want to write this one for me?).  None of the sample plugins
+use this method of plugin activation.
+
+All the sample plugins use the facility that \afnit provides to create
+a popup control box, which lets the user enter control parameters
+and then press a ``Run'' button to actually call the plugin code.
+The routines described below let the plugin author specify what
+kind of parameters ({\it e.g.},~strings, numbers, or datasets) are
+required by the plugin.
+When the user chooses the plugin from the \afnit menu, this
+control box will be popped up to the display.
+If a plugin's needs fit into
+this paradigm, a~plugin need have no direct interaction with the user --- the
+routines in {\tt afni\_plugin.c} will do these chores.
+
+%---------------------------------------------------------------------
+\mysubsec{Creating a Plugin Interface}
+A quick summary of the procedure, which is to be used from within
+the {\tt PLUGIN\_init()} function:
+\begin{description}
+ \item[Step 1:]
+ Use function {\tt PLUTO\_new\_interface} to create the initial
+ {\tt PLUGIN\_interface} data structure.
+
+ \item[Step 2:]
+ Use function {\tt PLUTO\_add\_option} to create an option line in the
+         \afnit interface menu.  There is no built-in limit to the number
+         of option lines that may be added to an \afnit interface menu.
+ (An ``option line'' is a line of ``chooser'' widgets in the interface window.
+  It may or may not be optional, depending on how you call this routine.)
+
+ \item[Steps 2(abcdef):]
+        Use functions\vspace{2ex}
+
+\noindent
+\centerline{\parbox{5in}{
+            {\tt PLUTO\_add\_number}, \ {\tt PLUTO\_add\_string}, \ {\tt PLUTO\_add\_dataset}, \\
+            {\tt PLUTO\_add\_dataset\_list}, \ and \ {\tt PLUTO\_add\_timeseries}}}\vspace{2ex}
+         to add plugin parameter choosers to the most recently created
+         option line.  Up to 6 choosers may be added to an option line.
+         When one option line is finished, return to Step~2 to create the next.
+ \item[Step 3:]
+ When done, return the new {\tt PLUGIN\_interface *} to \afni.
+\end{description}
+For each {\tt PLUTO\_add\_*} routine, there is a corresponding
+{\tt PLUTO\_get\_*} routine to retrieve the user's inputs from the
+popup window.
+
+These interface creation routines are documented below.  Examples of their usage
+found in the sample plugins.
+Note that there is currently no facility for passing other kinds of
+information to a plugin.
+
+\vset
+
+The figure below shows a popup control box created by application
+of the above procedures.  At the top are four control buttons:
+\begin{tabbing}
+ \blob RUN+CLOSE \= \kill
+%
+\blob{\tt Quit}      \> To close the popup without running the plugin; \\*
+\blob{\tt Run+Keep}  \> To run the plugin and keep the popup open; \\*
+\blob{\tt Run+Close} \> To run the plugin and close the popup window; \\*
+\blob{\tt Help}      \> \parbox[t]{5in}{To popup a window with the help string provided
+                  by the plugin author when {\tt PLUTO\_new\_interface}
+                  was called.}
+\end{tabbing}
+Below, there are four option lines, labeled
+{\tt Dataset}, {\tt Params}, {\tt Threshold}, and {\tt Output}.
+The first option line has a dataset chooser, the next two have
+number choosers, and the fourth (which has been toggled off by the user)
+has a string chooser.
+
+\vspace{3in}\goodbreak\vspace{-2.9in}
+
+\begin{samepage}
+\centerline{\epsfxsize=6in\epsffile{plugclust.eps}}\vspace{1ex}
+
+\centerline{Sample plugin interface window (from {\tt plug\_clust}).}\vspace{2ex}
+\end{samepage}
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_new\_interface}}
+This routine is used to initialize a new interface to a plugin.
+Its prototype is
+\begin{samepage}\begin{verbatim}
+   typedef char * cptr_func() ;  /* generic function returning "char *" */
+
+   PLUGIN_interface * new_PLUGIN_interface( char * label ,
+                                            char * description ,
+                                            char * help ,
+                                            int call_type ,
+                                            cptr_func * call_func ) ;
+\end{verbatim}\end{samepage}
+\vset\noindent
+The arguments are
+\renewcommand{\tb}[1]{\parbox[t]{5in}{\sloppy #1}}
+\begin{tabbing}
+ \blob DESCRIPTION \= \kill
+%
+   \blob{\tt label} \> \tb{C string to go on the menu button that activates this interface
+                           (will be truncated to 15 characters).} \\[.5ex]
+%
+   \blob{\tt description} \> \tb{C string to go on the interface control panel popped-up
+                                 when the button above is pressed---this has no
+                                 meaning if {\tt call\_type = PLUGIN\_CALL\_IMMEDIATELY}.
+                                 In the figure above, this string was
+                                 {\tt "Dataset~Clustering"}.} \\[.5ex]
+%
+   \blob{\tt help} \> \tb{C string to be popped up if the user presses {\tt Help} on
+                          the interface control panel---this has no
+                          meaning for {\tt call\_type = PLUGIN\_CALL\_IMMEDIATELY}.
+                          If this is {\tt NULL}, then there will be no help available.} \\[.5ex]
+%
+   \blob{\tt call\_type} \> \tb{C {\tt int}
+                                that describes how the plugin is to be called from \afnit: \\
+                   \blob{\tt PLUGIN\_CALL\_IMMEDIATELY} means to call {\tt call\_func} as soon
+                     as the activating button is pressed; \\
+                   \blob{\tt PLUGIN\_CALL\_VIA\_MENU} means to have \afnit popup a menu
+                     to control the input parameters passed to {\tt call\_func}.} \\[.5ex]
+%
+   \blob{\tt call\_func} \> \tb{Function that \afnit should call when the user activates
+                   this plugin.  The routine will be passed the
+                   pointer ``{\tt PLUGIN\_interface *}'' created herein, which
+                   can be interrogated with the {\tt PLUTO\_get\_*} 
+                   routines.  The {\tt call\_func} should return a ``{\tt char *}'', which
+                   is {\tt NULL} if everything is OK, and points to an error
+                   message that \afnit will display if something bad happened.
+                   See the sample plugins for examples of how this works.}
+\end{tabbing}
+   The value returned by {\tt PLUTO\_new\_interface} is the pointer to the new interface {\tt struct}.
+   This value should also be the return value of the {\tt PLUGIN\_init} routine.
+   This pointer will be called {\tt plint}\seeme{{\tt plint}}
+   in the sample code fragments below.
+   Note that the three input strings ({\tt label}, {\tt description}, and
+   {\tt help}) are copied by \afni.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_add\_option}}
+This routine is called to add an ``option line'' to a plugin interface control box.
+An option line may or may not be optional, depending on the value of {\tt mandatory}.
+The prototype for this function is
+\begin{samepage}\begin{verbatim}
+   void PLUTO_add_option( PLUGIN_interface * plint ,
+                          char * label , char * tag , int mandatory ) ;
+\end{verbatim}\end{samepage}
+\vset\noindent
+The arguments are
+\renewcommand{\tb}[1]{\parbox[t]{5in}{\sloppy #1}}
+\begin{tabbing}
+ \blob DESCRIPTION \= \kill
+%
+ \blob{\tt plint} \> \tb{The value returned by {\tt PLUTO\_new\_interface}.} \\*[.5ex]
+%
+ \blob{\tt label} \> \tb{C string to go at the start of the option line.
+                         In the figure above, the first option line label is {\tt "Dataset"}.} \\[.5ex]
+%
+ \blob{\tt tag}   \> \tb{C string that will be passed to the plugin's {\tt call\_func}
+                         to identify this option line.  Under most circumstances,
+                         {\tt tag} can be the same as {\tt label}.  Only if you create
+                         multiple option lines with the same {\tt label} and wish to be
+                         able to distinguish them inside the plugin will the use of
+                         {\tt tag} be necessary.} \\[.5ex]
+%
+ \blob{\tt mandatory} \> \tb{C {\tt int} saying whether or not this option line has required
+                             inputs.  If {\tt mandatory=1}, then this option line will
+                             always be passed to the {\tt call\_func}.  If {\tt mandatory=0},
+                             then the user can toggle this line off, in which case the
+                             values on that line will not be passed to the {\tt call\_func}.}
+\end{tabbing}
+After this function is called, then up to 6 choosers can be added to the option line
+by calling the following routines.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_add\_number}}
+This routine is called to add a number chooser to the most recently created option line.
+Numbers are always returned to the plugin {\tt call\_func} in floating point format.
+Numbers can be restricted to a finite set, or be editable by the user.
+The prototype for this function is
+\begin{samepage}\begin{verbatim}
+   void PLUTO_add_number( PLUGIN_interface * plint , char * label ,
+                          int bot , int top , int decim ,
+                          int defval , int editable      ) ;
+\end{verbatim}\end{samepage}
+\vset\noindent
+The arguments are
+\renewcommand{\tb}[1]{\parbox[t]{4.7in}{\sloppy #1}}
+\begin{tabbing}
+ \blob DESCRIPTION NN \= \kill
+%
+ \blob{\tt plint} \> \tb{The value returned by {\tt PLUTO\_new\_interface}.} \\*[.5ex]
+%
+ \blob{\tt label} \> \tb{C string to go at the left of the chooser.} \\[.5ex]
+%
+ \blob{\tt bot, top, decim}  \> \tb{C {\tt int}s specifying the range of allowable numbers.
+                                    {\tt decim} is used to specify the decimal shift
+                                    leftwards; for example, {\tt decim=2} means that
+                                    the legal range of this chooser is
+                                    {\tt 0.01*bot}\ldots{\tt0.01*top}.} \\[.5ex]
+%
+ \blob{\tt defval} \> \tb{C {\tt int} specifying the default value for the chooser when
+                          it is first popped up.  If decim is nonzero, then
+                          the actual default value is {\tt defval/10**decim}.} \\[.5ex]
+%
+ \blob{\tt editable} \> \tb{C {\tt int} specifying if the user can edit (type in) the value.
+                            If {\tt editable=1}, then the number can be selected either
+                            with the arrow controls or by typing.  If {\tt editable=0}, then
+                            a fixed menu of numbers is all that is available to the user
+                            (from {\tt bot/10**decim} to {\tt top/10**decim}, inclusive).}
+\end{tabbing}
+In the figure above, the number choosers on the second and third option lines are
+all {\tt editable}.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_add\_string}}
+This routine is used to add a string chooser to the most recently created
+option line.  The string to be entered can either be selected from a fixed
+list or can be free-form (typed in).  The prototype for this function is
+\begin{samepage}\begin{verbatim}
+   void PLUTO_add_string( PLUGIN_interface * plint , char * label ,
+                          int num_str , char ** strlist , int defval ) ;
+\end{verbatim}\end{samepage}
+\vset\noindent
+The arguments are
+\renewcommand{\tb}[1]{\parbox[t]{5.2in}{\sloppy #1}}
+\begin{tabbing}
+ \blob DESCRIPT \= \kill
+%
+ \blob{\tt plint} \> \tb{The value returned by {\tt PLUTO\_new\_interface}.} \\*[.5ex]
+%
+ \blob{\tt label} \> \tb{C string to go at the left of the chooser.} \\[.5ex]
+%
+ \blob{\tt num\_str} \> \tb{C {\tt int} providing the count of how many strings are
+                           given in {\tt strlist}.  If this is 0, then instead
+                           of being presented with a list of fixed strings,
+                           the user will have to type in a string. At present,
+                           the maximum allowed value for {\tt num\_str} is 34
+                           ({\tt PLUGIN\_MAX\_STRING\_RANGE} in {\tt afni\_plugin.h}).} \\[.5ex]
+%
+ \blob{\tt strlist} \> \tb{{\tt strlist[i]} is a pointer to the $i^{\rm th}$ string value
+                            that the user is to choose from, for $i=0\ldots${\tt num\_str-1}.}
+                        \\[.5ex]
+%
+ \blob{\tt defval} \> \tb{If {\tt num\_str > 0}, then this is an integer from
+                            0 to {\tt num\_str-1} indicating which string
+                            in {\tt strlist} is the default value. \\
+                          If {\tt num\_str == 0}, this gives the width of the
+                          field that the user has to type in the string.
+                          (I~usually use 19 for this case.)}
+\end{tabbing}
+In the figure above, the string chooser on the fourth option line was created
+with {\tt num\_str=0}, and so is a ``type~in'' field (in this case, used to
+specify the prefix of the output dataset).
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_add\_dataset}}
+This routine is used to add a dataset chooser to the most recently created
+option line.  The dataset to be chosen can be restricted in various ways,
+so that the plugin need not deal with the full range of possibilities
+described in~\S\ref{Background}.  The prototype for this function is
+\begin{samepage}\begin{verbatim}
+   void PLUTO_add_dataset( PLUGIN_interface * plint , char * label ,
+                           int anat_mask , int func_mask , int ctrl_mask ) ;
+\end{verbatim}\end{samepage}
+The {\tt \_mask} inputs are bitwise ORs ({\tt |}) of dataset type masks.
+These are used to specify the types of datasets that can be
+passed to the plugin.  The first two {\tt \_mask} inputs below cannot both
+be zero (for then no dataset would be allowed into the plugin!).
+\renewcommand{\tb}[1]{\parbox[t]{5.2in}{\sloppy #1}}
+\begin{tabbing}
+ \blob DESCRIPTI \= \kill
+%
+ \blob{\tt plint} \> \tb{The value returned by {\tt PLUTO\_new\_interface}.} \\*[.5ex]
+%
+ \blob{\tt label} \> \tb{C string to go at the left of the chooser.} \\[.5ex]
+%
+ \blob{\tt anat\_mask} \> \tb{C {\tt int} controlling which kind of anatomical datasets
+                              are allowable.
+                              Chosen from the list in {\tt 3ddata.h}, which is currently \\
+     \blob{\tt ANAT\_SPGR\_MASK ANAT\_FSE\_MASK   ANAT\_EPI\_MASK ANAT\_MRAN\_MASK} \\
+     \blob{\tt ANAT\_CT\_MASK   ANAT\_SPECT\_MASK ANAT\_PET\_MASK ANAT\_MRA\_MASK} \\
+     \blob{\tt ANAT\_BMAP\_MASK ANAT\_DIFF\_MASK  ANAT\_OMRI\_MASK} \\
+               and {\tt ANAT\_ALL\_MASK}, which will allow any anatomical
+               dataset.  Entering 0 for {\tt anat\_mask} will mean that
+               no anatomical datasets will be choosable.} \\[.5ex]
+%
+ \blob{\tt func\_mask} \> \tb{C {\tt int} controlling which kind of functional datasets
+                              are allowable.
+                              Chosen from the list in {\tt 3ddata.h}, which is currently \\
+     \blob{\tt FUNC\_FIM\_MASK  FUNC\_THR\_MASK FUNC\_COR\_MASK} \\
+     \blob{\tt FUNC\_TT\_MASK  FUNC\_FT\_MASK} \\
+                and {\tt FUNC\_ALL\_MASK}, which will allow any functional
+               dataset.  Entering 0 for {\tt func\_mask} will mean that
+               no functional datasets will be choosable.} \\[.5ex]
+%
+ \blob{\tt ctrl\_mask} \> \tb{An additional mask to specify further exactly which
+                              datasets should be choosable: \\[1ex]
+               \parbox[t]{1.6in}{\tt SESSION\_ALL\_MASK}
+               \parbox[t]{3.5in}{If this is set, then the choice of
+                                 datasets will be drawn from all
+                                 sessions now loaded into \afni.
+                                 By default, only the ``current''
+                                 session will be included.} \\[1ex]
+
+               \parbox[t]{1.6in}{\tt DIMEN\_3D\_MASK \\
+                                   DIMEN\_4D\_MASK \\
+                                   DIMEN\_ALL\_MASK}
+               \parbox[t]{3.5in}{ Masks that define whether 3D and/or
+                                  3D+time (4D) datasets are allowable.} \\[1ex]
+
+               \parbox[t]{1.6in}{\tt WARP\_ON\_DEMAND\_MASK}
+               \parbox[t]{3.5in}{If this is set, then datasets that may
+                                 not have a {\tt .BRIK} file will be included
+                                 in the list of datasets to choose from.
+                                 In this case, the plugin must be ready
+                                 to deal with the warp-on-demand routines
+                                 that return one slice at a time.
+                                 By default, only datasets with actual
+                                 {\tt BRIK}s will be included.} \\[1ex]
+
+               \parbox[t]{1.6in}{\tt BRICK\_BYTE\_MASK  \\
+                                   BRICK\_SHORT\_MASK  \\
+                                   BRICK\_FLOAT\_MASK  \\
+                                   BRICK\_COMPLEX\_MASK  \\
+                                   BRICK\_ALLTYPE\_MASK  \\
+                                   BRICK\_ALLREAL\_MASK}
+               \parbox[t]{3.5in}{
+               Masks that define what type of data
+               should be stored in the sub-bricks
+               of the allowable datasets.} \\[1ex]
+
+               Note that entering 0 for {\tt ctrl\_mask} means that no
+               datasets will be choosable.  At the least, one of
+               the {\tt DIMEN\_} masks must be chosen, and one of the 
+               {\tt BRICK\_} masks must be chosen.}
+\end{tabbing}
+The dataset chooser is shown on the first line of the figure above.
+It comprises a label to the left and a pushbutton to the right.
+Clicking on the pushbutton causes a list of eligible datasets to
+pop up.  When the user makes a selection, the name of the selected
+dataset will be shown on the pushbutton.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_add\_dataset\_list}}
+This routine is used to create a dataset list chooser in the most
+recently created option line.  Such a chooser allows the user to
+select multiple datasets.  At this writing, no serious sample
+plugin uses this---the ``{\tt Testing}'' plugin in {\tt plug\_power.c}
+has a trivial example, which was used to debug this facility.
+The prototype for this function is
+\begin{samepage}\begin{verbatim}
+ void PLUTO_add_dataset_list( PLUGIN_interface * plint , char * label ,
+                              int anat_mask , int func_mask , int ctrl_mask ) ;
+\end{verbatim}\end{samepage}
+The arguments are exactly the same as in {\tt PLUTO\_add\_dataset}.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_add\_timeseries}}
+This routine is used to add a timeseries chooser to the most
+recently created option line.  This allows the user to choose from the
+list of {\tt *.1D} files that were read in at program startup, or
+were stored into the timeseries list later
+(via {\tt PLUTO\_register\_timeseries}, or from a graph window).
+The prototype for this function is
+\begin{samepage}\begin{verbatim}
+   void PLUTO_add_timeseries( PLUGIN_interface * plint , char * label ) ;
+\end{verbatim}\end{samepage}
+By now, the arguments should be self explanatory.  A~logical extension
+of this routine would be {\tt PLUTO\_add\_timeseries\_list}.  Perhaps someday.
+Then again, perhaps not.
+
+%---------------------------------------------------------------------
+\mysubsec{Getting Data from a Plugin Interface}
+When the routine ({\tt call\_func}) associated with a
+``{\tt PLUGIN\_interface *}'' is called, then the first
+thing the plugin must do is extract the information that the user put
+into the interface window (in the ``chooser widgets'').
+This is done with various routines that start with {\tt PLUTO\_get\_}.
+They all take as input a variable of type ``{\tt PLUGIN\_interface *}'',
+referred to as {\tt plint} below.
+
+The sample plugins show how to use these functions.  Note that
+they are designed assuming that the plugin action function knows the layout
+of the option lines and choosers as set up by the {\tt PLUGIN\_init} function.
+In all the sample plugins, the first part of the plugin action routine is
+essentially a list of calls to {\tt PLUTO\_get\_something}, with each
+``{\tt something}'' being a copy of the {\tt PLUTO\_add\_something}
+that was used to create a chooser widget in the {\tt PLUGIN\_init} function.
+After all the user input parameters have been acquired and tested, then
+the actual computations begin.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_get\_label(plint)}}
+  Returns the ``{\tt char~*}'' {\tt label} supplied by {\tt PLUTO\_new\_interface}.
+  This could be used to decide which plugin interface was calling the
+  action function, if the same {\tt call\_func} were used for more than
+  one call to {\tt PLUTO\_new\_interface}.  None of the sample plugins
+  use this function (or the next one).
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_get\_description(plint)}}
+  Returns the ``{\tt char~*}'' {\tt description} supplied by {\tt PLUTO\_new\_interface}.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_get\_optiontag(plint)}}
+  Returns the ``{\tt char~*}'' tag specified for the next option line selected by
+  the user.  An option line that is not selected (is toggled off) will
+  be skipped by this function.  {\tt NULL} is returned when the chosen
+  options are exhausted.  It is necessary to call this routine to
+  be able to get values from chooser widgets in the next option line.
+  If the tag value is not desired, then the macro {\tt PLUTO\_next\_option(plint)}
+  can be used.  This is the usual way to advance to the next option line
+  when it is known in advance what it will be (when the option line is
+  {\tt mandatory}).  Note that is necessary to use {\tt PLUTO\_next\_option(plint)}
+  or {\tt PLUTO\_get\_optiontag(plint)} to advance to the first option
+  line, before trying to extract user inputs via {\tt PLUTO\_get\_number(plint)},
+  etc.
+
+  In this routine, as in all the ``{\tt PLUTO\_get\_}'' functions, the
+  return value is a pointer (here, {\tt char~*}).  The memory targeted by
+  this pointer should not be altered by the plugin code.  After the plugin
+  returns control to \afni, this memory will be {\tt XtFree}-d.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_get\_number(plint)}}
+  Returns the next number from an option line number chooser.  This will always be
+  a {\tt float}.  (If the next item on the current option line is not a number chooser,
+  or there is no next item, then the special value {\tt BAD\_NUMBER} will be returned.)
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_get\_string(plint)}}
+  Returns a ``{\tt char~*}'' pointing to the next string from an option line string
+ chooser.
+  (If {\tt NULL} is returned,
+  then the next item on the option line is not a string chooser,
+  or there is no next item.)
+
+  If the string returned is to be used as a dataset prefix,
+  the routine {\tt PLUTO\_prefix\_ok(str)} can be used to check
+  if the string {\tt str} is acceptable.  If zero is returned
+  by this function, then {\tt str} is not acceptable as a dataset
+  prefix ({\it e.g.},~it contains an illegal character).
+
+\vset
+  If the string returned was chosen from a fixed set, then
+  the function call
+\begin{samepage}\begin{verbatim}
+    int ii ;
+    ii = PLUTO_string_index( str , num_str , strlist ) ;
+\end{verbatim}\end{samepage}
+  will return {\tt ii} such that {\tt strcmp(str,strlist[ii])==0)}.
+  If {\tt ii==-1}, then {\tt str} was not found in {\tt strlist}.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_get\_idcode(plint)}}
+  Returns an ``{\tt MCW\_idcode *}'' from an option line dataset chooser.
+  If the value returned is {\tt NULL}, then the user did not make a
+  choice.  (If the next item on the option line is not a dataset chooser,
+  or there is no next item, {\tt NULL} will also be returned.)
+  Normally, the first thing that one does with
+  this is to pass it to {\tt PLUTO\_find\_dset}, which will return
+  a pointer to the actual dataset (or {\tt NULL} if the idcode is illegal).
+
+\begin{samepage}\begin{verbatim}
+     MCW_idcode * idc ;
+     THD_3dim_dataset * dset ;
+     idc  = PLUTO_get_idcode(plint) ;
+     dset = PLUTO_find_dset(idc) ;
+\end{verbatim}\end{samepage}
+  If {\tt dset} is {\tt NULL}, then the user did not make a choice.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_get\_idclist(plint)}}
+  Returns an ``{\tt MCW\_idclist *}'' from an option line dataset list
+  chooser.  This is a pointer
+  to a structure which contains a list of {\tt MCW\_idcode}s.
+  The following 3
+  macros are used to access the contents of the {\tt MCW\_idclist} {\tt struct}:\\[1ex]
+\centerline{\begin{tabular}{lcl}
+    {\tt PLUTO\_idclist\_count(idclist)} &=& number of {\tt MCW\_idcode}s in the list\\[1ex]
+%
+    {\tt PLUTO\_idclist\_next(idclist)}  &=& returns an {\tt MCW\_idcode *} that points \\
+                                         & & \blob to the next dataset idcode on the list \\
+                                         & & \blob (returns {\tt NULL} if past end of list) \\[1ex]
+%
+    {\tt PLUTO\_idclist\_reset(idclist)} &=& resets the {\tt MCW\_idclist} so that \\
+                                         & & \blob {\tt PLUTO\_idclist\_next()} will start\\
+                                         & & \blob again at the first dataset in the list
+\end{tabular}}\vspace{1ex}
+  One way to use the value returned by {\tt PLUTO\_get\_idclist()} is thus to
+  repeatedly call {\tt PLUTO\_idclist\_next()}, then {\tt PLUTO\_find\_dset()},
+  until the dataset pointer returned is {\tt NULL}.  This signals that the list of datasets
+  picked by the user has been exhausted.
+
+%---------------------------------------------------------------------
+\subsubsection{{\tt PLUTO\_get\_timeseries(plint)}}
+  A timeseries is one or more 1-dimensional arrays of {\tt floats}.  If a timeseries chooser
+  is placed in an option line, then the user can select from the list of {\tt *.1D} files
+  read in when \afnit starts.  {\tt PLUTO\_get\_timeseries()} returns a pointer
+  of type {\tt MRI\_IMAGE~*} from an option line timeseries chooser.
+  This points to a ubiquitous and general image {\tt struct}
+  of a type that is used heavily throughout \afni.  Full documentation of the
+  {\tt MRI\_IMAGE} type is beyond me at this time.  For the purposes of reading a
+  timeseries from a plugin chooser, the following code fragment will serve:
+\goodbreak
+\begin{samepage}\begin{verbatim}
+  MRI_IMAGE * tsim ;
+  int ntime , nvec ;
+  float * vec ;
+
+  tsim = PLUTO_get_timeseries(plint) ;
+  if( tsim == NULL ) return "No Timeseries Input" ;
+
+  ntime = tsim->nx ;            /* number of points in each vector */
+  nvec  = tsim->ny ;            /* number of vectors */
+  vec   = MRI_FLOAT_PTR(tsim) ; /* vec[i+j*nx] = i'th point of j'th vector */
+                                /* for i=0..ntime-1 and j=0..nvec-1 */
+\end{verbatim}\end{samepage}
+  As the sample above indicates, {\tt PLUTO\_get\_timeseries()}
+  may return {\tt NULL}, which means that the user did not select a time series.
+
+%------------------------------------------------------------------------------
+\mysubsec{Computing Something Useful}
+Utility is in the eye of the beholder, of course.  One of the most common
+things that a plugin will do is to create a new dataset.  The low-level
+mechanics of this have been discussed in~\S\ref{Accessing}.
+
+\afnit provides a routine to automate the creation of one kind
+of dataset.  This function will take as input a 3D+time dataset
+and return a {\tt fim} dataset, with the intensity in each voxel
+computed from that voxel's time series.  All that the plugin must do
+is provide a function that takes as input a time series and returns
+as output the desired intensity value.
+The output dataset will have its single sub-brick stored as {\tt short}s,
+with a scaling factor attached ({\it \`a~la} {\tt DSET\_BRICK\_FACTOR}).
+
+\vset
+The prototype for this 3D+time to 3D dataset function is
+\begin{samepage}\begin{verbatim}
+   typedef void generic_func() ;
+   THD_3dim_dataset * PLUTO_4D_to_fim( THD_3dim_dataset * old_dset ,
+                                       char * new_prefix ,
+                                       int ignore , int detrend ,
+                                       generic_func * user_func ,
+                                       void * user_data )
+\end{verbatim}\end{samepage}
+\vset\noindent
+The inputs to this routine are
+\renewcommand{\tb}[1]{\parbox[t]{5.2in}{\sloppy #1}}
+\begin{tabbing}
+ \blob DESCRIPTI \= \kill
+%
+ \blob{\tt old\_dset} \> \tb{Pointer to the input 3D+time dataset.
+                            This dataset must {\it not\/} be warp-on-demand.} \\[.9ex]
+%
+ \blob{\tt new\_prefix} \> \tb{C string that will be the new dataset's filename prefix.}\\[.9ex]
+%
+ \blob{\tt ignore} \> \tb{C {\tt int} specifying the number of points at the beginning
+                         of each time series that will be ignored in all calculations.}\\[.9ex]
+%
+ \blob{\tt detrend} \> \tb{C {\tt int}: if this is 1, then each voxel time series will have
+                          its mean and slope removed before being passed to {\tt user\_func}.}
+                       \\[.9ex]
+%
+ \blob{\tt user\_func} \> \tb{Function provided that computes the output value at each
+                             voxel, given that voxel's time series.
+                             The details of this function are documented below.}\\[.9ex]
+
+ \blob{\tt user\_data} \> \tb{A pointer to any data that needs to be passed to
+                              {\tt user\_func}.  This would normally be a pointer
+                              to a {\tt struct} that contains parameters for
+                              the {\tt fim} calculation.}
+%
+\end{tabbing}
+The function {\tt user\_func} should be prototyped as follows:
+\begin{samepage}\begin{verbatim}
+   void user_func( double tzero , double tdelta , int npts , float ts[] ,
+                   double ts_mean , double ts_slope ,
+                   void * ud , float * val ) ;
+\end{verbatim}\end{samepage}
+\vset\noindent
+The arguments to {\tt user\_func} are:
+\begin{tabbing}
+  \hspace*{1in} \= \kill
+%
+  \blob{\tt tzero} \> \parbox[t]{5.2in}{time at {\tt ts[0]}} \\*[0.9ex]
+%
+  \blob{\tt tdelta} \> \parbox[t]{5.2in}{time at {\tt ts[1]} ({\it i.e.}, {\tt ts[k]} is at
+                                      {\tt tzero + k*tdelta});
+                                      {\tt tzero} and {\tt tdelta} will be in seconds
+                                      if this is truly `time'} \\[0.9ex]
+%
+  \blob{\tt npts } \> \parbox[t]{5.2in}{number of points in {\tt ts} array} \\[0.9ex]
+%
+  \blob{\tt ts} \> \parbox[t]{5.2in}{one voxel time series array,
+                          {\tt ts[0]} \ldots {\tt ts[npts-1]};
+                           note that this will always be a {\tt float} array, and
+                           that {\tt ts} will start with the {\tt ignore}$^{\rm th}$ point of
+                           the actual voxel time series.} \\[0.9ex]
+%
+  \blob{\tt ts\_mean} \> \parbox[t]{5.2in}{mean value of ts array} \\[0.9ex]
+%
+  \blob{\tt ts\_slope} \> \parbox[t]{5.2in}{ slope of ts array;
+                     this will be inversely proportional to {\tt tdelta}
+                     (units of 1/sec);
+                     if {\tt detrend} is nonzero, then the mean and slope
+                     will been removed from the {\tt ts} array} \\[0.9ex]
+%
+  \blob{\tt ud} \> \parbox[t]{5.2in}{the {\tt user\_data} pointer passed in here---this can
+                     contain whatever control information the user wants} \\*[0.9ex]
+%
+  \blob{\tt val} \> \parbox[t]{5.2in}{pointer to return value for this voxel;
+                                 note that this must be a {\tt float}}
+\end{tabbing}
+
+\vset
+  Before the first time series is passed, {\tt user\_func} will be called once with
+  arguments
+\begin{verbatim}
+     ( 0.0 , 0.0 , nvox , NULL , 0.0 , 0.0 , user_data , NULL )
+\end{verbatim}
+  where {\tt nvox} = total number of voxel time series that will be processed.
+  This is to allow for some setup ({\it e.g.},~{\tt malloc} of workspace).
+  No value should be returned in this call; in fact, the return pointer {\tt val}
+  will be {\tt NULL} for this special call, which is how this call can be
+  distinguished from the {\tt nvox} calls that follow.
+
+  After the last time series is passed, {\tt user\_func} will be called once again with
+  arguments
+\begin{verbatim}
+     ( 0.0 , 0.0 , 0 , NULL , 0.0 , 0.0 , user_data , NULL )
+\end{verbatim}
+  This is to allow for cleanup ({\it e.g.},~{\tt free} of {\tt malloc}).
+  Note that the only difference between the initial and final
+  ``notification'' calls is the third argument.
+
+If an error occurs, {\tt PLUTO\_4D\_to\_fim} will return a {\tt NULL} pointer;
+otherwise it returns a pointer to the newly created {\tt fim} dataset.
+An example of the use of this dataset creating function can be
+found in {\tt plug\_stats.c}.
+
+%---------------------------------------------------------------------
+%---------------------------------------------------------------------
+\mysec{Sending Information to the User and to \afnit}\label{Sending}
+
+\mysubsec{Sending a Dataset Back to \afnit}
+\displayline{Editing an Existing Dataset in Place}
+One way to send the results of a computation back to \afni is
+to edit an existing dataset in place.  The sample
+plugin {\tt plug\_clust.c} shows how this can be done.
+If this is done, then \afnit must be told to redisplay images
+(otherwise, it won't know that the plugin altered an existing dataset).
+This is done with the routine {\tt PLUTO\_force\_redisplay()}, which
+takes no arguments, but simply instructs each \afnit image and graph
+window to redraw itself.
+
+Editing a dataset in place will destroy the
+data that is stored in its {\tt .BRIK} file.  Careful consideration
+should be given as to whether this is a desirable capability
+to give the user.  As an alternative, the routine {\tt PLUTO\_copy\_dset} can be
+used to create a complete copy of a dataset, which can then be
+edited without destroying the original--see~\S\ref{CreatingDataset}.
+
+Another complication can arise with editing a dataset in the {\tt +tlrc}
+view.  Suppose that this dataset {\tt .BRIK} file
+was originally transformed from a {\tt +orig} view dataset.
+Now suppose that the {\tt +tlrc} dataset {\tt .BRIK} is altered
+by a plugin.  When the {\tt Define Datamode} controls are
+set to {\tt View Data Brick}, then the edited data will be
+seen.  When they are set to {\tt Warp on Demand}, the data
+will be transformed directly from the unedited {\tt +orig .BRIK},
+which will no longer be the same as the {\tt +tlrc .BRIK}.
+This can be {\tt very} confusing.
+
+\displayline{Creating a New Dataset}
+Another way to get information back into \afnit
+is to create a new dataset and send it back with the
+routine {\tt PLUTO\_add\_dset}.  This will put the dataset into
+the current session of the \afnit controller window from which the
+plugin was invoked, and (optionally) make it the current dataset for
+viewing.
+\begin{samepage}\begin{verbatim}
+   PLUTO_add_dset( plint , dset , flag ) ;
+\end{verbatim}\end{samepage}
+where {\tt plint} is the ``{\tt PLUGIN\_interface *}'' passed into
+the plugin {\tt call\_func}, {\tt dset} is the pointer to the
+new dataset, and {\tt flag} takes on one of the values below:
+\begin{tabbing}
+  \blob {\tt DSET\_ACTION\_MAKE\_CURRENT} \blob \=
+      \parbox[t]{4in}{Set the dataset to be the current dataset for viewing.} \\[.5ex]
+  \blob {\tt DSET\_ACTION\_NONE} \>
+      \parbox[t]{4in}{Leave the current dataset for viewing as it is.}
+\end{tabbing}
+Putting a dataset into this specific session
+may not always be desirable --- I'm open
+to suggestions on other ways to specify where a new dataset should be
+placed. {\tt PLUTO\_add\_dset} will write the dataset {\tt .HEAD} and
+{\tt .BRIK} files to disk, so
+the plugin need not bother to perform this task.
+In addition, if the new dataset is in the {\tt +orig} view, {\tt PLUTO\_add\_dset}
+will create the warp-on-demand children datasets in the {\tt +acpc} and {\tt +tlrc}
+views.
+
+If a plugin changes the name of one or more pre-existing datasets, the titles in the
+\afnit windows may be wrong.  The routine {\tt PLUTO\_fixup\_names()}
+(which takes no arguments)
+will tell \afnit to redraw all those titles.  An example of how this is used
+is in {\tt plug\_rename.c}.
+
+\mysubsec{Displaying Miscellaneous Information}
+Some plugins may not wish to send data back to \afnit itself, but
+simply need to open their own windows to communicate something
+to the user.
+
+\displayline{Text Strings}
+If all that is needed is
+to popup a string in a window, the functions below can be used:
+\begin{samepage}\begin{verbatim}
+   PLUTO_popup_message( plint , str ) ;
+   PLUTO_popup_transient( plint , str ) ;
+\end{verbatim}\end{samepage}
+The first function will leave the message box on the screen until
+the user clicks the mouse inside the box.  The second function
+will destroy the message box after 30 seconds if the user does
+not click in it before that amount of time has elapsed.
+
+\displayline{X11 Access}
+The function {\tt PLUTO\_beep()} (which takes no arguments)
+will cause the display bell to ring.  If for some reason a plugin
+needs direct access to the X11 display on which \afnit is running,
+this is given by the macro {\tt PLUTO\_X11\_display} (which
+takes no arguments).  For example, this could be used to open up a
+new window using {\tt XtVaAppCreateShell()}.
+
+\displayline{Progress Meters}
+A plugin that performs a lengthy calculation may wish to inform
+the user of the progress of the computations.  The following routines let a plugin
+control a progress meter like the one displayed when one of the
+\afni ``{\tt Write}'' buttons is used to output a dataset:
+\begin{tabbing}
+  \blob PLUTO POPDOWN METER(pli \= \kill
+%
+  \blob{\tt PLUTO\_popup\_meter(plint)} \> \parbox[t]{3.7in}{
+                                              Creates the progress meter atop
+                                              the titlebar of the plugin's
+                                              user interface window.} \\[.9ex]
+%
+  \blob{\tt PLUTO\_popdown\_meter(plint)} \> \parbox[t]{3.7in}{
+                                               Destroys the progress meter.
+                                               In any case, this will be executed
+                                               when the plugin {\tt call\_func}
+                                               returns control to \afni.} \\[.9ex]
+%
+  \blob{\tt PLUTO\_set\_meter(plint,perc)} \> \parbox[t]{3.7in}{
+                                                Sets the progress meter to
+                                                {\tt perc}\% complete, where
+                                                {\tt perc} is an {\tt int}
+                                                from 0 to 100 (inclusive).
+                                                The meter is initially at {\tt perc=0}.}
+\end{tabbing}
+An example of the usage of the meter routines is in {\tt plug\_stats.c}.
+
+\displayline{2D Images}
+3D or 3D+time ``images'' are handled by creating new datasets and
+passing them back to \afni.  A~plugin may wish to display a single
+2D image.  This can be done by creating an {\tt MRI\_IMAGE} {\tt struct}
+(discussed earlier in~\S\ref{CreatingPlugin}, in the context of timeseries choosers).
+The atomic type of an {\tt MRI\_IMAGE} can be any of the \afnit
+atomic types: {\tt byte}, {\tt short}, {\tt float}, or {\tt complex}---see~\S\ref{Subbricks}.
+The following code fragment shows how to create an image of {\tt short}s
+and get a pointer to the image data array:
+\begin{samepage}\begin{verbatim}
+   MRI_IMAGE * shim ;
+   short * shar ;
+   shim = mri_new( nx , ny , MRI_short ) ;  /* dimensions are nx X ny */
+   shar = mri_data_pointer( shim ) ;
+\end{verbatim}\end{samepage}
+Pixel $(i,j)$ is stored in {\tt shar[$i$+$j$*nx]} for $i={}${\tt 0..nx-1}
+and $j={}${\tt 0..ny-1}.  By default, the image pixels are square.
+If the pixels are rectangular, then setting the {\tt float} elements
+{\tt shim->dx} and {\tt shim->dy}
+to the $x$ and $y$ dimensions of each pixel is necessary.
+If you wish to control the string displayed in the titlebar of
+the image window, then use a call like
+\begin{samepage}\begin{verbatim}
+   mri_add_name( "Titlebar String" , shim ) ;
+\end{verbatim}\end{samepage}
+Once the image has been created, then it is the plugin's responsibility
+to fill the image array.  When that is done, the image can be popped up
+with the routine
+\begin{samepage}\begin{verbatim}
+   void * handle ;
+   handle = PLUTO_popup_image( NULL , shim ) ;
+\end{verbatim}\end{samepage}
+The variable {\tt handle} is a value that identifies the window in which
+the image has been opened.
+
+{\tt PLUTO\_popup\_image} makes a copy of the image, so that there is
+no need to keep the original, unless it is going to be reused (perhaps
+to display another image).  When it is no longer needed by the plugin,
+the {\tt MRI\_IMAGE} {\tt struct} should be destroyed with the
+function call {\tt mri\_free(shim)}.  This will recover the
+memory {\tt malloc}-ed to store the image data array and control information.
+
+The {\tt handle} can be used to display another image in place of
+the first one.  For example, suppose that after the above code
+has been executed, the plugin alters the {\tt shar} array
+(of course, in this case the {\tt shim} {\tt struct} should
+not have be freed).
+It can then force the redisplay of this modified image by
+\begin{verbatim}
+   PLUTO_popup_image( handle , shim ) ;
+\end{verbatim}
+That is, if the first argument to {\tt PLUTO\_popup\_image} is {\tt NULL},
+a~new window is opened and a new {\tt handle} is returned.  If the
+first argument is an old {\tt handle}, then the image in the old
+window will be replaced with the new image.
+
+\vset
+The image window can be closed from within the plugin by the call
+\begin{verbatim}
+   PLUTO_popdown_image( handle ) ;
+\end{verbatim}
+In addition, the user might close the image window at any time.
+A~plugin can detect this by using the call
+\begin{verbatim}
+   ii = PLUTO_popup_open( handle ) ;
+\end{verbatim}
+If {\tt ii==1}, then the window to which {\tt handle} refers is still open;
+if {\tt ii==0}, then that window has been closed.  It is still valid
+to use {\tt handle} to display into that window.  \afnit will reopen
+the window, if necessary.  If the plugin wishes to close a window
+and free up all the memory associated with {\tt handle} (just two pointers), then
+the appropriate macro call is
+\begin{verbatim}
+   PLUTO_popkill_image( handle ) ;
+\end{verbatim}
+The only difference between this and {\tt PLUTO\_popdown\_image} is
+that the memory associated with {\tt handle} is freed, and that
+{\tt handle} itself will be set to {\tt NULL}.
+
+%---------------------------------------------------------------------
+\mysubsec{Sending a Function to \afni}
+\afnit maintains three lists of {\tt transformation functions}.
+These are functions that the user can invoke to modify the display
+of images or graphs.  The three categories of functions are
+\begin{tabbing}
+  \blob 1D FUNCTIONS \= \kill
+%
+  \blob 0D Functions \> \parbox[t]{4.9in}{
+                          Functions that perform point transformations
+                          of {\tt float} arrays; that is, the $i^{\rm th}$ output
+                          point only depends on the $i^{\rm th}$ input point.} \\[.9ex]
+%
+  \blob 1D Functions \> \parbox[t]{4.9in}{
+                          Functions that take as input a 1D {\tt float}
+                          array and overwrite it in place with new
+                          set of values.  The outputs may depend on the
+                          data array in an arbitrary fashion (unlike the 0D case).} \\[.9ex]
+%
+  \blob 2D Functions \> \parbox[t]{4.9in}{
+                          Functions that take as input a 2D {\tt float}
+                          array and overwrite it in place with new
+                          set of values.  The outputs may depend on the
+                          data array in an arbitrary fashion (unlike the 0D case).}
+\end{tabbing}
+The 0D and 1D functions can be applied to graphs of 3D+time datasets
+(from the {\tt Opt} menu in the graphing windows).
+The 0D and 2D functions can be applied to images (from the {\tt Disp} menu in
+the image windows).
+
+One application of a plugin that does not create any user interfaces
+would be a set of functions to be registered with \afni.  The {\tt PLUGIN\_init}
+routine would just perform the necessary registrations, and then
+return {\tt NULL}.  These functions would then appear on the appropriate
+menus, but no {\tt Plugin} menu item would appear for the user to invoke.
+
+\displayline{0D Functions}
+A sample 0D function is
+\begin{samepage}\begin{verbatim}
+void ssqrt_func( int num , float * vec )
+{
+   int ii ;
+   double val ;
+
+   if( num <= 0 || vec == NULL ) return ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+      val = sqrt(fabs(vec[ii])) ;               /* will be nonnegative */
+      vec[ii] = (vec[ii] >= 0.0) ? val : -val ; /* output sign = input sign */
+   }
+}
+\end{verbatim}\end{samepage}
+This function takes the ``signed square root'' of each input point.
+The number of input values is the first argument {\tt num}.  The
+second argument is the pointer to the array of input values.
+Note that this array is modified in place.  In a 0D function,
+the output value of {\tt vec[ii]} should only depend on the input
+{\tt vec[ii]} and not on any other values in the {\tt vec} array.
+More general transformations of 1D arrays should be registered
+as 1D functions.
+
+\vset
+This function already exists in \afni.  If it did not, and it
+was defined in a plugin, then the plugin could register it with
+\afnit with the call
+\begin{verbatim}
+   PLUTO_register_0D_function( "SSqrt" , ssqrt_func ) ;
+\end{verbatim}
+Here, {\tt "SSqrt"} is the string that will be used to identify this
+function on the menus in which it will appear.
+
+\displayline{1D Functions}
+A sample 1D function is
+\begin{samepage}\begin{verbatim}
+void median3_func( int num , double to,double dt, float * vec )
+{
+   int ii ;
+   float aa,bb,cc ;
+
+   bb = vec[0] ; cc = vec[1] ;
+   for( ii=1 ; ii < num-1 ; ii++ ){
+      aa = bb ; bb = cc ; cc = vec[ii+1] ;
+      vec[ii] = MEDIAN(aa,bb,cc) ;         /* see mrilib.h */
+   }
+}
+\end{verbatim}\end{samepage}
+This function computes the median-of-3 filter of the input
+array {\tt vec}.  The input {\tt num} is the number of
+points in the {\tt vec} array.  The input {\tt to} is
+the time-value at the first point {\tt vec[0]};  {\tt dt}~is the time
+spacing between {\tt vec} points.  (These middle two inputs
+are not used in this example.)  Registration of this function
+with \afnit would be accomplished via
+\begin{verbatim}
+   PLUTO_register_1D_function( "Median3" , median3_func ) ;
+\end{verbatim}
+The sample plugin {\tt plug\_lsqfit.c} has an example of creating
+and registering a 1D transformation function.  This function is
+controlled by the user parameters in the interface window.
+
+\displayline{2D Functions}
+A sample 2D function is given at the end of {\tt imseq.c}.
+Because of its length, only its prototype is given here:
+\begin{samepage}\begin{verbatim}
+void median9_box_func( int nx , int ny , double dx, double dy, float * ar ) ;
+\end{verbatim}\end{samepage}
+The inputs are
+\begin{tabbing}
+  \blob XXX \= \kill
+%
+  \blob{\tt nx} \> \parbox[t]{5.8in}{Number of pixels in the $x$-direction.}\\[.9ex]
+%
+  \blob{\tt ny} \> \parbox[t]{5.8in}{Number of pixels in the $y$-direction.}\\[.9ex]
+%
+  \blob{\tt dx} \> \parbox[t]{5.8in}{Spacing between pixels in the $x$-direction}\\[.9ex]
+%
+  \blob{\tt dy} \> \parbox[t]{5.8in}{Spacing between pixels in the $y$-direction}\\[.9ex]
+%
+  \blob{\tt ar} \> \parbox[t]{5.8in}{Pointer to {\tt nx*ny} {\tt float}s; the
+                                     $(i,j)$ pixel is in {\tt ar[$i$+$j$*nx]}
+                                     for $i={}${\tt 0..nx-1} and $j={}${\tt 0..ny-1}}
+\end{tabbing}
+Registration of this function with \afnit would be accomplished via
+\begin{verbatim}
+   PLUTO_register_2D_function( "Median9" , median9_box_func ) ;
+\end{verbatim}
+
+%-----------------------------------------------------------------------
+\mysubsec{Sending a Time Series to \afnit}
+It is also possible for a plugin to create a time series and send it
+to \afni.  This time series will then be available from the time series
+choosers, which can (for example) be used to select the reference function
+for the \afnit internal {\tt FIM} operation.
+
+A time series is just a 2D {\tt MRI\_IMAGE} that was discussed above.
+The first dimension ({\tt nx}) is ``time''.  The second dimension
+({\tt ny}) is the number of time series vectors stored.  For many purposes,
+{\tt ny=1} makes the most sense.
+
+The code fragment below outlines the process:
+\begin{samepage}\begin{verbatim}
+   MRI_IMAGE * tsim ;
+   float * tsar ;
+   tsim = mri_new( nx , ny , MRI_float ) ;
+   tsar = mri_data_pointer( tsim ) ;
+      /*** fill up tsar array appropriately ***/
+   PLUTO_register_timeseries( "Name" , tsim ) ;
+   mri_free( tsim ) ;
+\end{verbatim}\end{samepage}
+Note that the image can be freed after it is registered with \afni, since
+\afnit will make a copy.
+The sample plugin {\tt plug\_lsqfit.c} has an example of creating
+and registering a time series which is defined by user parameters
+(passed in through the interface control window).
+
+%-----------------------------------------------------------------------
+%-----------------------------------------------------------------------
+\mysec{Call for Ideas}\label{Call}
+Although a great deal of work has gone into this version of the
+plugin software ({\tt afni\_plugin.c} and {\tt afni\_plugin.h}
+contain nearly 4000 lines of~C), it is clearly just a start.
+Further development will depend on the needs of plugin developers.
+This is very much a work-in-progress, and will remain so into
+the indefinite future.  I~welcome feedback, especially from
+those that have actually tried to develop useful plugins.
+
+\vspace{3ex}
+\begin{samepage}
+\centerline{\epsfxsize=1.5in\epsffile{bob.eps}}\vspace{1ex}
+\centerline{\sf A portrait of the}
+\centerline{\sf author as a young man.}
+\end{samepage}
+
+\end{document}

@@ -1,0 +1,647 @@
+Gifsicle NEWS
+
+Version 1.25   13.Feb.2001
+
+* Fixed gifview bug: If every frame in an animation had a small or
+  zero delay, then gifview would previously enter a infinite loop and
+  become noninteractive. Reported by Franc,ois Petitjean
+  <francois.petitjean@bureauveritas.com>.
+
+
+Version 1.24   11.Feb.2001
+
+* Delete `unoptimized_pixmaps' array when deleting a viewer in gifview.
+  Reported by Franc,ois Petitjean <francois.petitjean@bureauveritas.com>.
+
+* Added `--resize-width' and `--resize-height' options.
+
+* Why is it that Frenchmen are always telling me to delete the Clp_Parser
+  immediately before calling exit()? Don't they realize that exit() frees
+  application memory just as well as free()? Are things different in
+  France? More French, perhaps?
+
+
+Version 1.23   12.Dec.2000
+
+* In Houston on a layover because of stupid Continental Airlines: allow
+  GIFs without terminators. Problem reported by Matt Olech
+  <Matt.Olech@airliance.com>.
+
+
+Version 1.22   23.Nov.2000
+
+* Handle time more carefully when displaying animations. Should result in
+  more precise timings. Problem reported by Iris Baye <ibaye@gwdg.de>.
+
+
+Version 1.21   9.Sep.2000
+
+* Fixed `--careful -O2', which could create bad GIFs when there were bad
+  interactions with transparency. Bug reported by Manfred Schwarb
+  <schwarb@geo.umnw.ethz.ch>.
+
+
+Version 1.20   23.Jun.2000
+
+* Added `--careful' option, because some bad GIF implementations (Java,
+  Internet Explorer) don't support Gifsicle's super-optimized, but legal,
+  GIFs. Problem reported by Andrea Beiser <abb9@columbia.edu>.
+
+* Gifdiff will work on very large images (better memory usage).
+
+
+Version 1.19   25.Apr.2000
+
+* Fixed memory corruption bug: `gifsicle --use-colormap=FILE.gif' would
+  formerly cause a segmentation fault. Bug reported by Alan Watts
+  <alan@16color.com>.
+
+
+Version 1.18   3.Apr.2000
+
+* Gifview now uses X server memory more parsimoniously. This should make it
+  more robust, and nicer to the X server, on large animations. Requested by
+  Vladimir Eltsov <ve@boojum.hut.fi>. Appears to solve bug reported by
+  Vince McIntyre <vjm@Physics.usyd.edu.au>.
+
+* Gifview treats frame selection more sensibly. A frame selection just
+  tells it which frame to start on.
+
+* Added a message to the manual page warning people to quote the `#'
+  character in frame selections. The interactive bash shell, for example,
+  interprets it as a comment.
+
+
+Version 1.17   15.Mar.2000
+
+* Added `--resize _xH' and `--resize Wx_'. Requested by Edwin Piekart
+  <edwin@ckz.com.pl>.
+
+* Changed behavior of `--no-logical-screen'. Now gifsicle will include all
+  visible GIFs when calculating the size of the logical screen.
+
+* Got rid of spurious redundant-option warnings.
+
+
+Version 1.16.1   10.Sep.1999
+
+* Gifview can put a GIF (or an animated GIF) on the root window; use
+  `gifview -w root'. Requested by Roland Blais <roland@greatbasin.com>.
+
+
+Version 1.16   31.Aug.1999
+
+* Optimization improvement: More colormap manipulation. Version 1.16
+  produces smaller GIFs than 1.15 in the large majority of cases (but not
+  all).
+
+* Fixed memory corruption bug in quantization. Found and fixed by Steven
+  Marthouse <comments@vrml3d.com>.
+
+
+Version 1.15   20.Aug.1999
+
+* Bug fix: no more assertion failures when combining images that require
+  local colormaps.
+
+* Fixed serious quantization bug introduced in 1.14: when reducing the
+  number of colors, gifsicle would ignore a random portion of the colors in
+  the old colormap.
+
+* Optimization bug fix: two adjacent identical frames will no longer crash
+  the optimizer. Bug introduced in 1.14. That's two for two: two "speed
+  improvements" in 1.14, two bugs introduced!
+
+* Bug fix: Exploding the standard input results in files named
+  `#stdin#.NNN', as the documentation claims, not `<stdin>.NNN'.
+
+* Optimization improvement: the optimizer reorders colormaps in a slightly
+  smarter way, which can result in smaller compression.
+
+* If a position option like `-p 0,5' is followed by a multi-frame GIF
+  (without frame specifications), then the position option places the
+  animation as a whole, not each of its individual frames.
+
+* An unrecognized nonnumeric frame specification is now treated as a file
+  name, so you can say `gifsicle #stdin#.000', for example.
+
+* Gifview improvements: Now even images with local color tables can be
+  "unoptimized" or animated.
+
+* `--replace' now preserves the replaced frame's disposal as well as its
+  delay.
+
+* `gifsicle -I -' reports "<stdin>" as the input file name.
+
+
+Version 1.14.2   16.Aug.1999
+
+* Fixed memory bug in Gif_DeleteImage (I freed a block of memory, then
+  accessed it). I am a moron!! This bug affected Version 1.14.1 only.
+
+
+Version 1.14.1   9.Aug.1999
+
+* Fixed configuration bug: you couldn't compile gifsicle from a different
+  directory (it told you to try --enable-ungif).
+
+* Steven Marthouse <comments@vrml3d.com> helped fix `Makefile.w32' to
+  enable wildcards in filenames under Windows. Requested by Mark Olesen
+  <mark_olesen@hotmail.com>.
+
+
+Version 1.14   2.Aug.1999
+
+* Switched to an adaptive tree strategy for LZW GIF compression, which is
+  faster than the old hashing strategy. This method is the brainchild of
+  Hans Dinsen-Hansen <dino@danbbs.dk>.
+
+* Bug fix/optimization improvement: Some images would include a transparent
+  index that was not a valid color (it was larger than the colormap).
+  Gifsicle formerly ignored these transparent indices. It doesn't any
+  longer; furthermore, it will generate those kinds of transparent index,
+  which can mean smaller colormaps and smaller GIFs.
+
+* Speed improvements in optimization and colormap quantization.
+
+* Added `--no-warnings' (`-w') option to inhibit warning messages.
+  Suggested by Andrea Beiser <abb9@columbia.edu>.
+
+* `--info' output can now be sent to a file with `-o', just as with any
+  other kind of output.
+
+* More specific error messages on invalid GIFs.
+
+
+Version 1.13   16.Jun.1999
+
+* Added optional support for run-length-encoded GIFs to avoid patent
+  problems. Run-length encoding idea based on code by Hutchinson Avenue
+  Software Corporation <http://www.hasc.com> found in Thomas Boutell's gd
+  library <http://www.boutell.com>.
+
+* `gifsicle --explode' now generates filenames of the form `file.000 ..
+  file.100' rather than `file.0 .. file.100', so you can use shell globbing
+  like `file.*' and automatically get the right order.
+
+* Added `--background' option to gifview, so you can set the color used for
+  transparent pixels. Suggested by Art Blair <apblair@students.wisc.edu>.
+
+* Gifdiff is built by default on Unix.
+
+
+Version 1.12   25.Mar.1999
+
+* Added `--window' option to gifview, which lets it display a GIF in an
+  arbitrary X window. Thanks to Larry Smith <lcs@zk3.dec.com> for patches.
+
+* Added `--install-colormap' to gifview. Suggested by Yair Lenga
+  <yair.lenga@ssmb.com>.
+
+* Gifsicle now exits with status 1 if there were any errors, status 0
+  otherwise. Before, it exited with status 1 only if there was a fatal error,
+  or nothing was successfully output. The new behavior seems more useful.
+  Problem reported by David Kelly <dkelly@nebula.tbe.com>.
+
+
+Version 1.11.2   10.Mar.1999
+
+* `gifsicle -U' will now unoptimize 1-image GIFs as well as animations.
+
+
+Version 1.11.1   24.Jan.1999
+
+* Fixed core dump on corrupted GIF files (in particular, bad extensions).
+  Problem reported by tenthumbs <tenthumbs@cybernex.net>.
+
+
+Version 1.11   22.Jan.1999
+
+* Added `--scale XFACTORxYFACTOR' to complement `--resize'.
+
+* Made `--resize' work better on animations (no more off-by-one errors).
+
+* Fixed bug in `--use-colormap': If transparency was added to the new
+  colormap, the transparent color index could later be used (incorrectly)
+  as a real image color. This was particularly common if the image was
+  dithered.
+
+* `--dither' now tries to mitigate "jumping dither" animation artifacts
+  (where adjacent frames in an animation have different dithering patterns,
+  so the animation shifts). It does an OK job.
+
+* Improvements to `--color-method=blend-diversity'.
+
+
+Version 1.10   6.Jan.1999
+
+* Gifview is built by default.
+
+* No other changes from 1.10b1: Emil said it worked on Windows.
+
+
+Version 1.10b1   31.Dec.1998
+
+* The two malloc packages that come with Gifsicle don't #define `malloc' or
+  `realloc'; they #define `xmalloc' and `xrealloc'.
+
+* Changes to Windows port from Emil Mikulic <darkmoon@connexus.net.au>.
+
+
+Version 1.9.2   28.Dec.1998
+
+* Gifsicle compiles out of the box on Windows! Port maintained by Emil
+  Mikulic <darkmoon@connexus.net.au>.
+
+* Moved to config.h-based configuration to simplify GIF library and Windows
+  port.
+
+* Some CLP improvements.
+
+
+Version 1.9.1   16.Dec.1998
+
+* If a reduced-colormap image needs a special transparent color, gifsicle
+  will now try to keep the same transparent color value as the input GIF.
+
+* Cropping an image now automatically recalculates the output logical
+  screen, rather than retaining the logical screen of the uncropped image.
+
+* Improvement to colormap modification behavior: If it looks like a color
+  reserved for transparency will be necessary, gifsicle will reserve a slot
+  for it. This will reduce the likelihood that you ask for a colormap of
+  size 64, say, and get one of size 128 (because gifsicle added a slot for
+  transparency).
+
+
+Version 1.9   14.Dec.1998
+
+* `--no-background' is now the same as `--background=0' (set the background
+  to pixel 0) instead of `--same-background'.
+
+
+Version 1.9b3   10.Dec.1998
+
+* Fixed a serious bug in merge.c introduced in 1.8: Merging several images
+  with global colormaps could corrupt the output colors.
+
+* Fixed a serious bug in optimize.c introduced in 1.9b1: Optimizing GIFs
+  which required local color tables could crash the program due to a buffer
+  overrun. (I was adding the background to the output colormap without
+  making sure there was room for it.)
+
+* Fixed an optimizer bug which could result in incorrect animations:
+  background disposal was not handled correctly.
+
+* The optimizer now generates `--disposal=none' instead of
+  `--disposal=asis' in certain situations, which can result in smaller
+  animations. Suggestion by Markus F.X.J. Oberhumer
+  <k3040e4@c210.edvz.uni-linz.ac.at>.
+
+* GIF library changes: cleaner, somewhat faster GIF reading code inspired
+  by Patrick J. Naughton <naughton@wind.sun.com>, whose code is distributed
+  with XV.
+
+
+Version 1.9b2   9.Dec.1998
+
+* Fixed `--logical-screen' and `--no-logical-screen', which had no effect
+  in 1.9b1. In a stunning turn of events, this problem was reported by
+  Markus F.X.J. Oberhumer <k3040e4@c210.edvz.uni-linz.ac.at>.
+
+
+Version 1.9b1   5.Dec.1998
+
+* Added `--resize WxH' option, prompted by code from Christian Kumpf
+  <kumpf@igd.fhg.de>.
+
+* Made `--change-color PIXELINDEX color' work, and `--change-color color
+  PIXELINDEX' illegal.
+
+* Many behavior fixes relating to background and transparency. Gifsicle
+  would tend to create GIFs which looked as expected, but lost information
+  internally; for example, a color value which was only used for
+  transparency would be changed to black, no matter what the input color
+  was. In some cases, gifsicle simply reports a warning now where it
+  ignored information before. Problems reported by Markus F.X.J. Oberhumer
+  <k3040e4@c210.edvz.uni-linz.ac.at>.
+
+* Better error messages are now given on redundant, ambiguous, or useless
+  command-line options.
+
+* Options that affect GIFs on output (such as `--output', `--optimize') now
+  behave more like other options: you should put them before the files they
+  affect. (You may still put them at the end of the argument list if they
+  should affect the last output file.) This should only affect people who
+  used batch or explode mode in complex ways.
+
+* Gifsicle will not write a GIF to stdout if it's connected to a terminal.
+
+
+Version 1.8   3.Dec.1998
+
+* Fixed strange behavior when changing transparency: a new black entry was
+  added to the colormap in almost all situations. Problem reported by
+  Markus F.X.J. Oberhumer <k3040e4@c210.edvz.uni-linz.ac.at>.
+
+* Fixed `--transform-colormap' bug: commands like "thing 2" (ending in an
+  integer) will work now.
+
+* Small fixes (in a gifsicle pipeline, error messages won't be interleaved).
+
+
+Version 1.7.1   2.Dec.1998
+
+* Added configuration check for `strerror'. Problem reported by Mario
+  Gallotta <Mario_Gallotta@optilink.dsccc.com>.
+
+* Added colormap canonicalization: If you pipe a GIF through `gifsicle -O'
+  or `-O2', the output colormaps will be arranged in a predictable order.
+  Feature suggested by Markus F.X.J. Oberhumer
+  <k3040e4@c210.edvz.uni-linz.ac.at>.
+
+
+Version 1.7   28.Nov.1998
+
+* Added `--use-colormap=gray' and `--use-colormap=bw'. Idea and some code
+  thanks to Christian Kumpf <kumpf@igd.fhg.de>.
+
+* Added `--transform-colormap', which allows you to plug programs into
+  gifsicle that arbitrarily change GIF files' colormaps.
+
+* All `--change-color' options now happen simultaneously, so you can safely
+  swap two colors with `--change-color C1 C2 --change-color C2 C1'.
+
+* Colormap modifications are slightly more powerful (they don't reserve a
+  color for transparency if they don't need one, and if a subset of the
+  modified colormap is used, only that subset is output).
+
+* Fixed `--use-colormap' bug: the last color in a used colormap would be
+  ignored (it was reserved for transparency). Symptom: if you put a
+  partially transparent image into the Web-safe palette, the result would
+  never contain white.
+
+* When changing to a grayscale colormap, gifsicle now uses luminance
+  difference to find the closest color. This gives better results for
+  `--use-colormap=gray' and the like.
+
+* Added Introduction and Concept Index sections to the gifsicle manpage.
+
+* The gifsicle package now uses automake.
+
+
+Version 1.6   23.Nov.1998
+
+* A frame extracted from the middle of an animation will now have the
+  animation's screen size rather than 640x480. Problem reported by Mr.
+  Moose <mrmoose@execpc.com>.
+
+
+Version 1.5   27.Sep.1998
+
+* `--help' now prints on stdout, as according to the GNU standards.
+
+* Changes to support Win32 port thanks to Emil Mikulic
+  <darkmoon@connexus.net.au>.
+
+* Makefiles: Added `make uninstall' target, enabled `./configure's
+  program name transformations, made VPATH builds possible.
+
+
+Version 1.4.1   16.Sep.1998
+
+* Fixed `--unoptimize' bug: a frame's transparency could disappear under rare
+  circumstances. Bug reported by Rodney Brown <rodneybrown@pmsc.com>
+
+
+Version 1.4   12.Sep.1998
+
+* Added `--extension' and `--app-extension'.
+
+
+Version 1.3.4   7.Sep.1998
+
+* More configuration changes.
+
+* Fixed bug in gifview `--geometry' option processing: `--geometry -0-0'
+  wasn't recognized.
+
+
+Version 1.3.2   5.Sep.1998
+
+* Fixed configuration bugs reported by Alexander Mai
+  <st002279@hrzpub.tu-darmstadt.de> (OS/2 build didn't work).
+
+
+Version 1.3.1   4.Sep.1998
+
+* Fixed configuration bug: int32_t could be improperly redefined. Reported by
+  Anne "Idiot" Dudfield <anne@lvld.hp.com> and Dax Kelson
+  <dkelson@inconnect.com>.
+
+
+Version 1.3   3.Sep.1998
+
+* Added `--flip-*' and `--rotate-*' options.
+
+* Fixed rare bug in GIF writing code: the last pixel in a frame could
+  previously become corrupted.
+
+
+Version 1.3b1   2.Aug.1998
+
+* Optimization has been completely overhauled. All optimization functions
+  are in a separate file, optimize.c. Some bugs have been caught.
+  Optimization is now quite powerful, and rarely expands any input file.
+  (An expansion of 1-30 bytes usually means that the input file cheated by
+  leaving off 'end-of-image' codes, which the standard says must be used.)
+  People interested in making optimization even better should contact me,
+  or just go ahead and hack the code. Thanks again to David Hedbor
+  <david@hedbor.org> for providing test cases.
+
+  Specific changes:
+
+  - The optimizer can handle any input file, even one with local colormaps or
+    more than 256 colors. If there are more than 256 colors, an optimal subset
+    is placed in the global colormap.
+
+  - The global colormap is reordered so that some images can use a small
+    initial portion of it, which lets them compress smaller.
+
+  - Bug fix: Images relying on background disposal are optimized correctly.
+
+  - `-O2' never does worse than `-O1'.
+
+  - Made the `-O2' heuristic better. Some other small changes and
+    improvements here and there.
+
+  - The optimizer has been pretty extensively tested using gifdiff.
+
+* New program: gifdiff compares two GIFs for identical appearance. It is
+  not built unless you give the `--enable-gifdiff' option to `./configure'.
+  It's probably not useful unless you're testing a GIF optimizer.
+
+* Robustness fixes in GIF library.
+
+
+Version 1.2.1   8.Jun.1998
+
+* `--info' now sends information to standard output. `--info --info' still
+  sends information to standard error.
+
+* `--transparent' didn't work. It does now.
+
+* Added `--background' option. Fixed background processing so that an input
+  background is reflected in the output GIF.
+
+* Re-fixed small bug with the interaction between per-frame options and
+  frame selections.
+
+
+Version 1.2   28.May.1998
+
+* Fixed small bug with the interaction between per-frame options (`--name',
+  `--comment') and frame selections.
+
+* Fixed bad bug in merge: If a global colormap from the source needed to be
+  dumped into a local colormap in the destination, the pixel map was wrong,
+  resulting in bad colors in the destination.
+
+* Fixed memory leaks. Changed memory usage pattern in gifsicle to
+  release source image memory as soon as possible, resulting in a better
+  memory profile. Both programs now keep images in compressed form for
+  better performance.
+
+* Fixed bugs in gifread.c that corrupted memory when uncompressing some bad
+  images.
+
+* Added debugging malloc library (`./configure --enable-dmalloc' to use it).
+
+* Added `--no-delay' and `--no-disposal' options, which should have been there
+  all along.
+
+* `--crop' will not generate an image with 0 width or height, even if a
+  frame is cropped out of existence.
+
+* Other performance improvements.
+
+
+Version 1.2b6   25.May.1998
+
+* License clarification in README.
+
+* GIF comments are now printed out more carefully in `--info': binary
+  characters appear as backslash escapes. (Literal backslashes are printed
+  as `\\'.)
+
+* New `--extension-info/--xinfo' option.
+
+* Removed spurious warning about local colormaps when a `--colors' option
+  is in effect.
+
+* Replacing a named frame with another image now keeps the name by default.
+
+* Many changes to gifview. Added `--animate', `--display', `--geometry',
+  `--name', `--help' options, keystrokes, multiple GIFs on the command
+  line, and a manual page.
+
+
+Version 1.2b5	12.May.1998
+
+* Longstanding bug fix in gifunopt.c: an interlaced replacement frame
+  caused strange behavior when later optimizing, as the underlying data
+  wasn't deinterlaced.
+
+* Further improvements in optimizer; specifically, `-O2' works better now
+  -- it uses actual image data to look for an unused pixel value when
+  there's no transparency specified.
+
+
+Version 1.2b4	12.May.1998
+
+* Improved `--optimize's performance on images where successive frames had
+  different transparent color indexes.
+
+
+Version 1.2b3	11.May.1998
+
+* Fixed bugs in `--unoptimize': it would try to unoptimize images with
+  local color tables and some transparency manipulations could cause a
+  silent failure (example: 2 colors; frame 0 = [*11], frame 1 = [*0*],
+  where * is a transparent pixel. Unoptimized, frame 1 should contain [*01]
+  -- but this can't be expressed with only 2 colors.)
+
+* Greatly improved `--optimize's performance on some images by changing the
+  way frames were switched to `--disposal=background'. Problem noticed by
+  David Hedbor <david@hedbor.org>
+
+* Documentation improvements.
+
+* Unrecognized extensions are now passed through without change. The
+  `--no-extensions' option (currently undocumented) removes all
+  unrecognized extensions.
+
+* Bug fix in gifview: frame selections now prevent display of entire GIF.
+
+
+Version 1.2b2	9.May.1998
+
+* Fixed bad dumb bug in gif.h: lack of parens around macro argument
+
+* Changed heuristic for diversity algorithm: never blend if there are 3 colors
+  or less
+
+* Some optimizations to Floyd-Steinberg code
+
+
+Version 1.2b1	8.May.1998
+
+* Added colormap options: `--colors', `--color-method', `--dither', and
+  `--use-colormap'. All this code is in quantize.c.
+
+* Renamed `--color-change' to `--change-color'.
+
+
+Version 1.1.2
+
+* Added `--color-change' option.
+
+* Added negative frame numbers. `#-N' no longer means `#0-N'; it means the
+  `N'th frame from the end (where `#-1' is the last frame). You can use
+  negative frame numbers in ranges as well (e.g., `#-5--1').
+
+
+Version 1.1.1	22.Nov.1997
+
+* Fixed bug in CLP which segmentation-faulted on `-' arguments.
+
+
+Version 1.1	20.Nov.1997
+
+* Added `--crop' option.
+
+* Changed usage behavior on bad command lines.
+
+
+Version 1.0	21.Jun.1997
+
+* Added `--output/-o' option to specify output filename.
+
+* Slight behavior change: Now, if you replace a frame (say frame #2), its
+  delay value will be preserved in the replacement frame, unless you give
+  an explicit delay. (Before, the replacement frame's delay would be used,
+  which was probably 0.)
+
+
+Version 0.91	15.Jun.1997
+
+* Bug fix: `--optimize' didn't handle the bottom row of an image's changed
+  area correctly. This could lead to incorrect animations. Specific change:
+  merge.c line 744: was y < fbt, now y <= fbt.
+
+* Added `-S' as synonym for `--logical-screen'. 
+
+
+Version 0.9	12.Jun.1997
+
+* First public release.

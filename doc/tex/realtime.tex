@@ -1,0 +1,98 @@
+\documentstyle[12pt,art12cox,epsf]{article}
+
+\newcommand{\afni}{{\it AFNI\,}}
+\newcommand{\afnit}{{\it AFNI\/}\ }
+\newcommand{\tothreed}{{\sf to3d\,}}
+\newcommand{\tothreedit}{{\sf to3d\/}\ }
+\newcommand{\MCW}{{\sf MCW}}
+
+\setlength{\topmargin}{0.0in}
+\setlength{\textheight}{9.02in}
+\setlength{\textwidth}{6.5in}
+\setlength{\oddsidemargin}{0.25in}
+\setlength{\evensidemargin}{0.25in}
+\setlength{\parskip}{0.9ex plus 0.1ex}
+\setlength{\parindent}{0em}
+
+\hyphenpenalty=200
+\widowpenalty=9999
+\brokenpenalty=10000
+\dashpage
+\raggedbottom
+\nofiles
+
+\newcommand{\blob}{\hspace*{1em}}
+\newcommand{\vex}{\vspace{1ex}}
+
+\setlength{\fboxsep}{1.3pt}
+\setlength{\fboxrule}{0.6pt}
+\newcommand{\button}[1]{\fbox{\tt #1}}
+
+%---------------------------------------------------------------------
+\begin{document}
+
+\centerline{\Large\bf Documentation for Real-Time \afni}\vex
+\centerline{\large\bf Robert W. Cox, PhD}\vex
+
+When run with the `{\tt -rt}' command line switch, \afnit will enable the
+real-time plugin, which can acquire reconstructed image data from
+another program, assemble it into a 3D+time dataset, do 2D (slice-wise)
+or 3D (volume-wise) registration, and do real-time functional
+activation calculations.
+
+\displayline{Controlling the Real-Time Plugin}
+The control panel for this plugin, shown below, is activated with the Plugin menu
+item `{\tt RT~Options}'.\\[-2ex]
+{\hspace*{1.1in}\epsfxsize=5.4in\epsffile{realtime.eps}}
+
+
+\displayline{Program {\tt rtfeedme}}
+Program `{\tt rtfeedme}' will send slices from a 3D+time dataset to the \afnit
+real-time plugin, for reassembly into a new dataset.  Its purpose is
+to exercise the real-time capabilities of \afnit without occupying the
+actual scanner.  {\tt rtfeedme} is a command line program, whose
+usage is\\[-1ex]
+\centerline{\tt rtfeedme [options] dataset}\\[1ex]
+where {\tt dataset} specifies the input \afnit 3D+time dataset to be
+transmitted to the plugin.  The available options are:\\[-4ex]
+\begin{tabbing}
+  X \= -host sname XX \= \kill
+  \> {\tt -host sname} \> \parbox[t]{5.05in}{
+                             Send data, via TCP/IP, to \afnit running on the
+                             computer system `{\tt sname}'.  By default, uses the
+                             current system, and transfers data using shared
+                             memory.  To send on the current system using
+                             TCP/IP, use the system `{\tt localhost}'.} \\[1ex]
+%
+  \> {\tt -dt ms}      \> \parbox[t]{5.05in}{
+                             Tries to maintain an inter-transmit interval of
+                             `{\tt ms}' milliseconds.
+                            The default is to send data as fast as possible.
+                            Combined with the real-time 3D registration algorithm
+                            in \afni, this might put a very heavy load on the
+                            computer system.} \\[1ex]
+%
+  \> {\tt -3D}         \> \parbox[t]{5.05in}{
+                            Sends data in 3D bricks.  By default, sends
+                            2D slices.} \\[1ex]
+%
+  \> {\tt -verbose}    \>  \parbox[t]{5.05in}{Be talkative about actions---for
+                                             debugging, mostly.} \\[1ex]
+%
+  \> {\tt -swap2}      \>  \parbox[t]{5.05in}{
+                              Swap byte pairs before sending data.
+                              (Useful for sending data between Intel and SGI
+                               systems, for example.)}
+\end{tabbing}
+The dataset assembled by the real-time plugin will not necessarily
+be identical to the input dataset.  In particular, the 2D slices are
+sent in sequential order, not alternating order.
+
+\displayline{Protocol for Real-Time Image Transfer}
+The real-time plugin accepts reconstructed image data only; it does not
+perform image reconstruction from $k$-space data.  Image data can be transferred
+to \afnit using an IPC shared memory segment (if the image source
+program is on the same computer) or using a TCP/IP socket (if the image source
+program is on a different computer).
+
+\end{document}

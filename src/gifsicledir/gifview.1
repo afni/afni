@@ -1,0 +1,261 @@
+.\" -*- mode: nroff -*-
+.ds V 1.25
+.ds E " \-\- 
+.if t .ds E \(em
+.de OP
+.BR "\\$1" "\\$2" "\\$3" "\\$4" "\\$5" "\\$6"
+..
+.de OA
+.IR "\fB\\$1\& \|\fI\\$2" "\\$3" "\\$4" "\\$5" "\\$6"
+..
+.de QO
+.RB ` "\\$1" "'\\$2"
+..
+.de Sp
+.if n .sp
+.if t .sp 0.4
+..
+.de Es
+.Sp
+.RS 5
+.nf
+..
+.de Ee
+.fi
+.RE
+.PP
+..
+.TH GIFVIEW 1 "3 Apr 2000" "Version \*V"
+.SH NAME
+gifview \- displays GIF images and animations on the X window system
+.SH SYNOPSIS
+.B gifview
+\%[\fB--display\fP \fIdisplay\fP]
+\%[options]
+\%[filenames and frames].\|.\|.
+'
+.SH DESCRIPTION
+.B gifview
+displays GIF image files on workstations and terminals running the X Window
+System.
+.B gifview
+understands multi-image GIFs, which can be displayed either as slideshows
+or as animations.
+'
+.SH INTERACTION
+.B gifview
+windows recognize several keystrokes and button commands. Many of them are
+only useful for multi-image GIFs.
+.TP 12
+Space
+'
+Go to the next frame.
+.TP
+.B b
+Go to the previous frame.
+.TP
+.BR r " or " <
+Go to the first frame.
+.TP
+.BR >
+Go to the last frame.
+.TP
+ESC
+Stop the animation.
+.TP
+.BR s " or " a
+Toggle between animation and slideshow mode.
+.TP
+.BR u
+Toggle between normal and unoptimized mode.
+.TP
+Backspace
+'
+Delete this window.
+.TP
+.B q
+Quit
+.BR gifview .
+'
+.PP
+Left-clicking on a window goes to the next frame; right-clicking on a
+window deletes that window.
+'
+.SH COMMAND LINE
+
+.BR gifview 's
+command line consists of
+.IR "GIF input files" 
+and
+.IR options .
+Most options start with a dash (\-) or plus (+); frame selections, a kind
+of option, start with a number sign (#). Anything else is a GIF input file.
+.PP
+.B gifview
+displays one window for each GIF input file you specify. If no GIF input
+file is given, or you give the special filename `\-', it reads from the
+standard input.
+'
+.SH OPTIONS
+
+.PD 0
+.TP 5
+.OP \-\-animate ", " \-a
+'
+Animate multi-image GIFs by default. Normally, multi-image GIFs first
+appear in slideshow mode. You can always use the
+.RB ` a '
+keystroke to toggle between modes. This option has a converse,
+.QO \-\-no\-animate
+or
+.QO +a .
+'
+.Sp
+.TP 5
+.OP \-\-unoptimize ", " \-U
+'
+Display multi-image GIFs as ``unoptimized'', which shows a faithful
+representation of what a user will see at each frame of an animation. See
+.BR gifsicle (1)
+for a more detailed description of unoptimization. This option has a
+converse,
+.QO \-\-no\-unoptimize
+or
+.QO +U .
+GIFs are always displayed unoptimized in animation mode.
+'
+.Sp
+.TP 5
+.OA \-d display
+.TP
+.OA \-\-display display
+'
+Sets the X display to
+.IR display .
+This option must come before any GIF files.
+'
+.Sp
+.TP 5
+.OA \-\-name name
+'
+Sets the application name under which resources are found, rather than
+the default of ``gifview''. Since
+.B gifview
+itself does not use the resource database, this is mostly useful for
+communication with your window manager.
+'
+.Sp
+.TP 5
+.OA \-\-geometry geometry
+'
+Set the size and position of
+.BR gifview 's
+windows. This is a standard X option. At most one
+.OP \-\-geometry
+option can be given per window (that is, per input GIF file).
+'
+.Sp
+.TP 5
+.OA \-w window
+.TP
+.OA \-\-window window
+'
+Display the next GIF input in an existing X window, instead of making a new
+top-level window. This way, you can use
+.B gifview
+to display animated GIFs in a window you created with another program. The
+.I window
+argument should be an integer
+.RB ( gifview
+will use that window ID)
+or `root'
+.RB ( gifview
+will use the root window).
+'
+.Sp
+.TP 5
+.OP \-\-install\-colormap ", " \-i
+'
+Use a private colormap for each window (if you are using a PseudoColor
+display). This avoids polluting the existing colormap, and may produce
+better results if your colormap is full, but causes annoying colormap
+flashing.
+'
+.Sp
+.TP 5
+.OA \-\-background color
+.TP
+.OA \-\-bg color
+'
+Set the background color, which is used
+for transparent pixels.
+'
+.Sp
+.TP 5
+.OP \-\-no\-interactive ", " \+e
+'
+Don't pay attention to mouse buttons or keystrokes.
+'
+.Sp
+.TP 5
+.OP \-\-help
+'
+Print usage information and exit.
+'
+.Sp
+.TP
+.OP \-\-version
+'
+Print the version number and some quickie warranty information and exit.
+'
+.PD
+'
+.\" -----------------------------------------------------------------
+.SS Frame Selections
+
+A frame selection tells
+.B gifview
+which frame to initially display from the current input file. They are
+useful only for animations, as non-animated GIFs only have one frame. Frame
+selections can only be displayed in slideshow mode.
+.Sp
+.PD 0
+.TP 13
+.BI # num
+'
+Select frame \fInum\fR. (The first frame is
+.QO #0 .
+Negative numbers count backwards from the last frame, which is
+.QO #-1 .)
+'
+.TP 13
+.BI # name
+'
+Select the frame named \fIname\fR.
+.PD
+.PP
+If you give two or more frame selections, you will get one window per frame
+selection.
+'
+.SH SEE ALSO
+
+.BR gifsicle (1)
+'
+.SH BUGS
+
+Please email suggestions, additions, patches and bugs to
+eddietwo@lcs.mit.edu. Also email that address to be added to a Gifsicle
+mailing list (non-spammy).
+'
+.SH AUTHORS
+.na
+Eddie Kohler, eddietwo@lcs.mit.edu
+.br
+http://www.pdos.lcs.mit.edu/~eddietwo/
+.PP
+http://www.lcdf.org/~eddietwo/gifsicle/
+.br
+The 
+.B gifsicle
+home page.
+'
