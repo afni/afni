@@ -131,12 +131,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.32b"
+#define VERSION "2.33a"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "25 Oct 2001      "
+#define RELEASE "31 Oct 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -147,7 +147,8 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
      "* Major portions are Copyright 1994-2000,      *\n"  \
      "*   Medical College of Wisconsin               *\n"  \
      "*   Milwaukee, WI 53226-0509                   *\n"  \
-     "* See file README.copyright for information.   *\n"  \
+     "* See file README.copyright for information,   *\n"  \
+     "* or the Datamode->Misc->License menu item.    *\n"  \
      "*                                              *\n"  \
      "* Released to the public by MCW under the GNU  *\n"  \
      "* General Public License (version 2), Dec 2000 *\n"  \

@@ -1790,7 +1790,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
 void RT_start_dataset( RT_input * rtin )
 {
-   THD_ivec3 nxyz , orixyz;
+   THD_ivec3 nxyz , orixyz ;
    THD_fvec3 dxyz , orgxyz ;
    int nvox , npix , n1 , ii ;
    char npr[THD_MAX_PREFIX] ;

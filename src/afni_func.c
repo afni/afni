@@ -2613,7 +2613,7 @@ void AFNI_read_Web_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_read_Web_CB") ;
 
-   MCW_choose_string( w , "http:// or ftp:// address of dataset (or AFNILIST):" ,
+   MCW_choose_string( w , "http:// or ftp:// address of dataset (.HEAD or .mnc or .mnc.gz):" ,
                       NULL , AFNI_finalize_read_Web_CB , (XtPointer) im3d ) ;
 
    EXRETURN ;
@@ -3423,7 +3423,8 @@ ENTRY("AFNI_write_dataset_CB") ;
    good = ISVALID_3DIM_DATASET(dset)     &&     /* check for bad data */
           resam_mode >= FIRST_RESAM_TYPE &&
           resam_mode <= LAST_RESAM_TYPE  &&
-          im3d->vinfo->resam_vox > 0.0      ;
+          im3d->vinfo->resam_vox > 0.0   &&
+         !DSET_IS_MINC(dset)                ;   /* 29 Oct 2001 */
 
    destroy = !DSET_WRITEABLE(dset) ;      /* check for destruction */
 

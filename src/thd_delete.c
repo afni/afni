@@ -95,6 +95,8 @@ void THD_delete_3dim_dataset( THD_3dim_dataset * dset, Boolean kill_files )
 {
    if( ! ISVALID_3DIM_DATASET(dset) ) return ;
 
+   if( DSET_IS_MINC(dset) ) kill_files = False ;  /* 29 Oct 2001 */
+
    if( kill_files ){
       THD_diskptr * dkptr = dset->dblk->diskptr ;
 

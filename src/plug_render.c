@@ -2879,9 +2879,13 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
 /*-- 26 Apr 1999: relax requirement that dataset be axial --*/
 
 #ifdef ONLY_AXIAL
-# define IS_AXIAL(ds) ( ( (ds)->daxes->xxorient == ORI_R2L_TYPE ) && \
-                        ( (ds)->daxes->yyorient == ORI_A2P_TYPE ) && \
-                        ( (ds)->daxes->zzorient == ORI_I2S_TYPE )     )
+# define IS_AXIAL_RAI(ds) ( ( (ds)->daxes->xxorient == ORI_R2L_TYPE ) && \
+                            ( (ds)->daxes->yyorient == ORI_A2P_TYPE ) && \
+                            ( (ds)->daxes->zzorient == ORI_I2S_TYPE )     )
+# define IS_AXIAL_LPI(ds) ( ( (ds)->daxes->xxorient == ORI_L2R_TYPE ) && \
+                            ( (ds)->daxes->yyorient == ORI_P2A_TYPE ) && \
+                            ( (ds)->daxes->zzorient == ORI_I2S_TYPE )     )
+# define IS_AXIAL(ds) ( IS_AXIAL_RAI(ds) || IS_AXIAL_LPI(ds) )
 #else
 # define IS_AXIAL(ds) (1)
 #endif

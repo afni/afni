@@ -5996,7 +5996,7 @@ STATUS(" -- datamode widgets") ;
    /* Jan 31, 1995: don't allow writes of datasets without warp parents */
    /* Jun 22, 1995: allow it if destruct mode is actuated!              */
 
-   if( GLOBAL_argopt.destruct ){
+   if( GLOBAL_argopt.destruct ){  /* not currently implemented */
       writer = True ;
    } else {
       writer = (Boolean) DSET_WRITEABLE(im3d->anat_now) ;  /* mod 26 Mar 2001 */
@@ -6004,7 +6004,7 @@ STATUS(" -- datamode widgets") ;
 
    SENSITIZE( im3d->vwid->dmode->write_anat_pb , writer ) ;
 
-   if( GLOBAL_argopt.destruct ){
+   if( GLOBAL_argopt.destruct ){  /* not currently implemented */
       writer = (Boolean) ISVALID_3DIM_DATASET(im3d->fim_now) ;
    } else {
       writer = (Boolean) DSET_WRITEABLE(im3d->fim_now) ;  /* mod 26 Mar 2001 */

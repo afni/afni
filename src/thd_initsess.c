@@ -3,10 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
-
 
 /*---------------------------------------------------------------------
    Given a directory name, read in all the datasets and make
@@ -24,10 +23,12 @@ THD_session * THD_init_session( char * sessname )
    int ibar , idset , iview  ;
    Boolean all_anat , all_func ;
 
+ENTRY("THD_init_session") ;
+
    /*-- sanity check --*/
 
-   if( sessname == NULL || strlen(sessname) == 0 || ! THD_is_directory(sessname) )
-      return NULL ;
+   if( sessname == NULL || strlen(sessname) == 0 || !THD_is_directory(sessname) )
+      RETURN( NULL ) ;
 
    /*-- initialize session --*/
 
@@ -56,14 +57,14 @@ THD_session * THD_init_session( char * sessname )
      strcpy( sess->lastname , env+tt ) ;
    }
 #else
-     for( iview-- ; iview >= 0 ; iview-- ) if( sess->sessname[iview] == '/' ) break ;
-     MCW_strncpy( sess->lastname , &(sess->sessname[iview+1]) , THD_MAX_LABEL ) ;
+     for( iview-- ; iview >= 0 ; iview-- )
+        if( sess->sessname[iview] == '/' ) break ;
+     MCW_strncpy( sess->lastname, &(sess->sessname[iview+1]), THD_MAX_LABEL ) ;
 #endif
 
    /*-- read all datablocks --*/
 
    dblk_arrarr = THD_init_alldir_datablocks( sess->sessname ) ;
-   if( dblk_arrarr->num <= 0 ){ myXtFree( sess ) ; return NULL ; }
 
    /*-- for each datablock array ... --*/
 
@@ -136,7 +137,7 @@ THD_session * THD_init_session( char * sessname )
          if( na >= THD_MAX_SESSION_ANAT ){
             fprintf(stderr,
              "\n*** Session %s anatomy table overflow with dataset %s ***\n",
-             sessname , dset_arr->ar[0]->self_name) ;
+             sessname , DSET_HEADNAME(dset_arr->ar[0]) ) ;
             for( idset=0 ; idset < dset_arr->num ; idset++ )
                THD_delete_3dim_dataset( dset_arr->ar[idset] , False ) ;
             FREE_3DARR(dset_arr) ;
@@ -168,13 +169,73 @@ THD_session * THD_init_session( char * sessname )
 
    /*-- throw away the datablock arrays at this point --*/
 
+   STATUS("trashing dblk_arrarr") ;
+
    for( ibar=0 ; ibar < dblk_arrarr->num ; ibar++ ){
       dblk_arr = (THD_datablock_array *) dblk_arrarr->ar[ibar] ;
       FREE_DBARR( dblk_arr ) ;
    }
    FREE_XTARR( dblk_arrarr ) ;
 
+   /*-- 29 Oct 2001: try to read .mnc "datasets" --*/
+
+#ifdef ALLOW_MINC
+   if( !AFNI_noenv("AFNI_MINC_DATASETS") ){
+     char ename[THD_MAX_NAME] , **fn_minc , *eee ;
+     int num_minc , ii ;
+
+     STATUS("looking for MINC files") ;
+
+     strcpy(ename,sess->sessname) ; strcat(ename,"*.mnc") ;
+     eee = ename ;
+     MCW_file_expand( 1,&eee , &num_minc,&fn_minc ) ;  /* find files */
+
+     if( num_minc > 0 ){                               /* got some! */
+       STATUS("opening MINC files") ;
+       for( ii=0 ; ii < num_minc ; ii++ ){             /* loop over files */
+         dset = THD_open_minc( fn_minc[ii] ) ;         /* try it on */
+         if( !ISVALID_DSET(dset) ) continue ;          /* doesn't fit? */
+         if( ISANAT(dset) ){
+            int na = sess->num_anat ;
+            if( na >= THD_MAX_SESSION_ANAT ){
+               fprintf(stderr,
+                 "\n*** Session %s anat table overflow with dataset %s ***\n",
+                 sessname , fn_minc[ii] ) ;
+               THD_delete_3dim_dataset( dset , False ) ;
+               break ; /* out of for loop */
+            }
+            iview = dset->view_type ;
+            sess->anat[na][iview] = dset ;
+            (sess->num_anat)++ ;
+         } else if( ISFUNC(dset) ){
+            int nf = sess->num_func ;
+            if( nf >= THD_MAX_SESSION_FUNC ){
+               fprintf(stderr,
+                 "\n*** Session %s func table overflow with dataset %s ***\n",
+                 sessname , fn_minc[ii] ) ;
+               THD_delete_3dim_dataset( dset , False ) ;
+               break ; /* out of for loop */
+            }
+            iview = dset->view_type ;
+            sess->func[nf][iview] = dset ;
+            (sess->num_func)++ ;
+         } else {                                      /* should never happen */
+            fprintf(stderr,
+                    "\n*** Session %s: malformed dataset %s\n",
+                    sessname , fn_minc[ii] ) ;
+            THD_delete_3dim_dataset( dset , False ) ;
+         }
+       } /* end of loop over files */
+       MCW_free_expand( num_minc , fn_minc ) ;
+     } /* end of if we found files */
+   }
+#endif /* ALLOW_MINC */
+
    /*-- done! --*/
 
-   return sess ;
+   if( sess->num_anat == 0 && sess->num_func == 0 ){
+      myXtFree( sess ) ; RETURN( NULL ) ;
+   }
+
+   RETURN( sess ) ;
 }

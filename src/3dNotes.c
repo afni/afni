@@ -148,6 +148,8 @@ int main (int argc, char * argv[]) {
         dset = THD_open_one_dataset( argv[narg] ) ;
         if( dset == NULL )
            Error_Exit("Cannot open dataset") ; 
+        if( DSET_IS_MINC(dset) )
+           Error_Exit("Cannot use MINC dataset") ;
 
 
    /* First, delete notes */

@@ -47,6 +47,15 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Illegal new dataset name!\n") ; exit(1) ;
    }
 
+#ifdef ALLOW_MINC
+   if( STRING_HAS_SUFFIX(old_name,".mnc") ){
+      fprintf(stderr,"** Old dataset name can't be a MINC file!\n"); exit(1);
+   }
+   if( STRING_HAS_SUFFIX(new_name,".mnc") ){
+      fprintf(stderr,"** New dataset name can't be a MINC file!\n"); exit(1);
+   }
+#endif
+
    /* check old_name for a +view suffix somewhere */
 
    MCW_strncpy(old_prefix,old_name,THD_MAX_PREFIX) ;

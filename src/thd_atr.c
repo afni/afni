@@ -34,6 +34,8 @@ void THD_read_all_atr( char * headername , THD_datablock * blk )
    blk->natr_alloc = 0 ;
    blk->atr        = NULL ;
 
+   if( STRING_HAS_SUFFIX(headername,".mnc") ) return ;
+
    header_file = fopen( headername , "r" ) ;
    if( header_file == NULL ){
        return ;

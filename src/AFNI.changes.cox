@@ -3238,3 +3238,15 @@
  * Added THD_surefit_to_dicomm() to agni.[ch] (from Vecwarp.c).
  * Modified agni.c to allow SureFit coord files to be read directly
      using <SureFit coord=filname IDadd=number/> in .SURF file.
+
+29 Oct 2001
+ * Added thd_mincread.c to read MINC format files as AFNI datasets.
+     Also changed 3ddata.h, afni.c, thd_initsess.c, thd_mastery.c,
+     thd_opendset.c, etc., and include subdirectory netcdf-3.5.0/
+     that hold the NetCDF library.
+
+30 Oct 2001
+ * Modified MINC stuff to use AFNI_MINC_FLOATIZE environment to
+     control conversion to internal floats, and to use
+     AFNI_MINC_DATASETS to control whether AFNI itself looks
+     at .mnc files.

@@ -66,6 +66,13 @@ THD_3dim_dataset * THD_open_dataset( char * pathname )
    kk = MIN(ii,jj) ;
    memcpy(dname,pathname,kk) ; dname[kk] = '\0' ;
 
+#ifdef ALLOW_MINC
+   if( kk > 4 && strcmp(pathname+kk-4,".mnc") == 0 ){
+      fprintf(stderr,"** Can't use selectors on MINC dataset: %s\n",pathname) ;
+      return NULL ;
+   }
+#endif
+
    /* open the dataset */
 
    dset = THD_open_one_dataset( dname ) ;

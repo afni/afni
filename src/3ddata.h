@@ -47,6 +47,13 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 # include "agni.h"
 #endif
 
+#define ALLOW_MINC   /* 29 Oct 2001 */
+
+#define STRING_HAS_SUFFIX(ss,suf)              \
+  ((ss != NULL) && (suf != NULL) &&            \
+   (strlen(ss) >= strlen(suf))   &&            \
+   (strcmp(ss+strlen(ss)-strlen(suf),suf) == 0))
+
 /***************************** dimensions ***************************/
 
 #define THD_MAX_NAME      256
@@ -708,6 +715,7 @@ static THD_warp tempA_warp ;  /* temporary warp */
 
 #define STORAGE_UNDEFINED  0
 #define STORAGE_BY_BRICK   2
+#define STORAGE_BY_MINC    3
 
 /* the filenames in this structure are really path names
    (that is, they have the directory name prependend)    */
@@ -1668,8 +1676,19 @@ typedef struct THD_3dim_dataset {
 #define DSET_ONDISK(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
                           (ds)->dblk->diskptr->storage_mode!=STORAGE_UNDEFINED )
 
-#define DSET_WRITEABLE(ds)                                                    \
- ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) && (ds)->warp_parent != NULL )
+#define DSET_IS_BRIK(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
+                           (ds)->dblk->diskptr->storage_mode == STORAGE_BY_BRICK )
+
+#define DBLK_IS_MINC(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) && \
+                           (db)->diskptr->storage_mode == STORAGE_BY_MINC )
+
+#define DSET_IS_MINC(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&       \
+                           ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
+                           (ds)->dblk->diskptr->storage_mode == STORAGE_BY_MINC )
+
+#define DSET_WRITEABLE(ds)                            \
+ ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&    \
+   (ds)->warp_parent != NULL && !DSET_IS_MINC(ds)  )
 
 #define DSET_COMPRESSED(ds)                  \
    ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
@@ -2222,6 +2241,7 @@ extern THD_session * THD_init_session( char * ) ;
 
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
 extern THD_3dim_dataset * THD_open_dataset( char * ) ;      /* 11 Jan 1999 */
+extern THD_3dim_dataset * THD_open_minc( char * ) ;         /* 29 Oct 2001 */
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *); /* 23 Mar 2001 */
 extern XtPointer_array *  THD_fetch_many_datasets(char *);
@@ -2331,6 +2351,7 @@ extern Boolean THD_purge_datablock( THD_datablock * , int ) ;
 extern Boolean THD_purge_one_brick( THD_datablock * , int ) ;
 extern void    THD_force_malloc_type( THD_datablock * , int ) ;
 extern int     THD_count_databricks( THD_datablock * dblk ) ;
+extern void    THD_load_minc( THD_datablock * ) ;            /* 29 Oct 2001 */
 
 extern void THD_reconcile_parents( THD_sessionlist * ) ;
 extern THD_slist_find THD_dset_in_sessionlist( int,void *, THD_sessionlist *, int ) ;

@@ -226,7 +226,7 @@ fprintf(stderr," .. done\n") ;
       if( ag->nod[ii].id == ag->nod[ii-1].id ) ndup++ ;
 
    if( ndup > 0 )
-      fprintf(stderr,"** AGNI: WARNING: duplicate surface node id's found!\n") ;
+      fprintf(stderr,"** AGNI: WARNING: %d duplicate surface node id's found!\n",ndup) ;
 
    /* find bounding box of all nodes (its useful on occasion) */
 

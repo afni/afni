@@ -49,6 +49,12 @@
   Center at San Antonio.  Thanks go to Drs. Jack Lancaster and Peter Fox
   for sharing this database.
 
+  The netCDF functions included are from the netCDF library from
+  the Unidata Program at the University Corporation for Atmospheric
+  Research (http://www.unidata.ucar.edu/) and distributed in accordance
+  with their Copyright notice (which of course disavows any liability
+  for anything).
+
   The CDF library routines were developed at the University of Texas
   M.D. Anderson Cancer Center, and have been placed into the public domain.
   See the file "cdflib.txt" for more details.

@@ -25,7 +25,9 @@ N.B.: Changes to environment variables AFTER you start a program will
 
 N.B.: Some variables below are described as being of "YES/NO" type.
       This means that they should either be set to the value "YES"
-      or to the value "NO".
+      or to the value "NO".  (Actually, any string that starts with
+      "y" or "Y" is equivalent to "YES"; any string starting with
+      "n" or "N" is equivalent to "NO".)
 
 ********************************************************
 June 1999: Setting environment variables in file .afnirc
@@ -885,9 +887,10 @@ README.realtime.
 ----------------------------------
 Variable: AFNI_PLUGINS_ALPHABETIZE
 ----------------------------------
-If this YES/NO variable is set to YES, then the plugin buttons will
-be alphabetized on the menu.  Otherwise, they will appear in the
-order which AFNI chooses.  Alphabetizing is done without regard to
+If this YES/NO variable is set to NO, then the plugin buttons will
+not be alphabetized on the menu,  and they will appear in the
+order which AFNI chooses.  Otherwise, the plugin menu buttons will
+be alphabetized by default. Alphabetizing is done without regard to
 case (using the C library routine strcasecmp).
 
 ----------------------------
@@ -989,6 +992,39 @@ compress well is to use a csh script like the following:
 This will only gzip .BRIK files that the program ent16 estimates will
 compress by at least 50%.  Note that ent16's estimate of compression
 may be high or low relative to what gzip actually does.
+
+------------------------------
+Variable: AFNI_DONT_MOVE_MENUS
+------------------------------
+If this YES/NO variable is set to YES, then the functions that try
+to move popup menus to "good" locations on screens will be skipped.
+This seems to be necessary on some Solaris systems, where the menus
+can end up being moved to bizarre locations.
+
+----------------------------
+Variable: AFNI_MINC_DATASETS
+----------------------------
+If this YES/NO variable is not set to NO, then MINC-format files
+with name suffix .mnc will be read into the interactive AFNI
+program at startup, along with standard .HEAD/.BRIK datasets.
+That is, you have to set this variable explicitly to NO if you
+don't want MINC-format files to be automatically recognized by
+the interactive AFNI program.  This variable does not affect
+the ability of command line programs (3dSomething) to read
+.mnc input files.
+
+----------------------------
+Variable: AFNI_MINC_FLOATIZE
+----------------------------
+If this YES/NO variable is set to YES, then when MINC-format files
+are read in as datasets, their values will be scaled to floats.
+Otherwise, their values will be scaled to the same data type as
+stored in the file.  In some cases, the latter behavior is not
+good; for example, if a byte-valued file (intrinsic range 0..255)
+is scaled to the range 0..0.5 in the MINC header, then after
+conversion back to bytes, the resulting AFNI dataset values will
+all be zero.  Setting AFNI_MINC_FLOATIZE to YES will cause the
+scaled values to be stored as floats.
 
 =======================================
 | Robert W Cox, PhD                   |

@@ -73,6 +73,15 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** Illegal new dataset name! - EXIT\n") ; exit(1) ;
    }
 
+#ifdef ALLOW_MINC
+   if( STRING_HAS_SUFFIX(old_name,".mnc") ){
+      fprintf(stderr,"** Old dataset name can't be a MINC file\n"); exit(1);
+   }
+   if( STRING_HAS_SUFFIX(new_name,".mnc") ){
+      fprintf(stderr,"** New dataset name can't be a MINC file\n"); exit(1);
+   }
+#endif
+
    if( strstr(new_name,"/") == NULL ){        /* put cwd on new name, if no */
      char *str = malloc(new_len+16) ;         /* directory present at all   */
      strcpy(str,"./") ; strcat(str,new_name) ;

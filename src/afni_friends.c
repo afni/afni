@@ -45,6 +45,7 @@ static AFNI_friend afni_friends[] = {
   { "J Ratke"        , (                 16                             ) } ,
   { "PSF Bellgowan"  , (             8 | 16                             ) } ,
   { "S Durgerian"    , (             8 | 16                             ) } ,
+  { "M Belmonte"     , (             8 |           64                   ) } ,
   { "V van Gogh"     , (                    32                          ) }
 } ;
 

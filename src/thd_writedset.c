@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
 
@@ -37,6 +37,8 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
    if( ! ISVALID_3DIM_DATASET(dset)    ||
        ! ISVALID_DATABLOCK(dset->dblk) ||
        ! ISVALID_DISKPTR(dset->dblk->diskptr) ) return False ;
+
+   if( DSET_IS_MINC(dset) ) return False ;      /* 29 Oct 2001 */
 
    if( DSET_IS_MASTERED(dset) ) return False ;  /* 11 Jan 1999 */
 

@@ -15,7 +15,7 @@
 #include <stdarg.h>
 
 #undef ZMAX
-#define ZMAX 4000
+#define ZMAX 8000
 
 char * THD_zzprintf( char * sss , char * fmt , ... ) ;
 

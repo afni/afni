@@ -11,7 +11,6 @@ static int native_order = -1 ;
 static int no_mmap      = -1 ;
 static int floatscan    = -1 ;  /* 30 Jul 1999 */
 
-
 /*---------------------------------------------------------------
   18 Oct 2001:
   Put freeup function here, and set it by a function, rather
@@ -58,6 +57,17 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       fprintf(stderr,"\n*** Cannot read non 3D datablocks ***\n") ;
       RETURN( False );
    }
+
+   /*-- 29 Oct 2001: MINC input --*/
+
+#ifdef ALLOW_MINC
+   if( dkptr->storage_mode == STORAGE_BY_MINC ){
+      THD_load_minc( blk ) ;
+      ii = THD_count_databricks( blk ) ;
+      if( ii == blk->nvals ) RETURN( True ) ;
+      RETURN( False ) ;
+   }
+#endif
 
    /*-- allocate data space --*/
 
@@ -126,8 +136,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
                    fprintf(stderr,"*** MCW_malloc summary: %s\n",str);
                }
 #endif
-               for( ibr=0 ; ibr < nv ; ibr++ )  /* 18 Oct 2001 */
-                 if( DBLK_ARRAY(blk,ibr) != NULL ) free(DBLK_ARRAY(blk,ibr)) ;
+               for( ibr=0 ; ibr < nv ; ibr++ ){  /* 18 Oct 2001 */
+                 if( DBLK_ARRAY(blk,ibr) != NULL ){
+                    free(DBLK_ARRAY(blk,ibr)) ;
+                    mri_fix_data_pointer( NULL , DBLK_BRICK(blk,ibr) ) ;
+                 }
+               }
 
                RETURN( False );
             } else {
@@ -140,6 +154,12 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 #endif
             }
          } else {
+            for( ibr=0 ; ibr < nv ; ibr++ ){
+              if( DBLK_ARRAY(blk,ibr) != NULL ){
+                 free(DBLK_ARRAY(blk,ibr)) ;
+                 mri_fix_data_pointer( NULL , DBLK_BRICK(blk,ibr) ) ;
+              }
+            }
             RETURN( False );
          }
       }

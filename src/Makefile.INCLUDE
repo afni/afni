@@ -45,7 +45,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual \
-           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp
+           3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -61,7 +61,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
-                  Vecwarp
+                  Vecwarp 3dMINCtoAFNI
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -335,6 +335,10 @@ dsetdup:dsetdup.o
 3dMean:3dMean.o
 	$(RM) $@
 	$(CC) -o 3dMean 3dMean.o $(LFLAGS) $(LLIBS)
+
+3dMINCtoAFNI:3dMINCtoAFNI.o
+	$(RM) $@
+	$(CC) -o 3dMINCtoAFNI 3dMINCtoAFNI.o $(LFLAGS) $(LLIBS)
 
 3dvolreg:3dvolreg.o
 	$(RM) $@
@@ -840,6 +844,7 @@ afni98.tgz:
 	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./AFNI98
 	$(CP) -r coxplot volpack moveup moveAFNI* ./AFNI98
 	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir dlcompat ./AFNI98
+	$(CP) -r netcdf-3.5.0 ./AFNI98
 	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
 	$(RM) -r AFNI98
 
@@ -1033,9 +1038,14 @@ EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_trbak3.o eis_tred1.o eis_tred2.o eis_tred3.o                \
            eis_tridib.o eis_tsturm.o
 
-libmri.a:$(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS) $(EIS_OBJS)
+NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
+               netcdf_nc.o     netcdf_ncio.o  netcdf_ncx.o   netcdf_putget.o  \
+               netcdf_string.o netcdf_v1hpg.o netcdf_v2i.o   netcdf_var.o     \
+               thd_mincread.o
+
+libmri.a:$(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)
 	$(RM) $@
-	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS) $(EIS_OBJS)
+	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)
 	$(RANLIB) libmri.a
 
 ### Dependencies for above
@@ -1211,6 +1221,30 @@ qhull:
 	( cd qhulldir ; \
 	  make qhull clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
 	  $(MV) qhull .. ; )
+
+#######
+
+netcdf_attr.o:
+	( cd netcdf-3.5.0/src ;                           \
+          FC=""  ; export FC  ; F90=""   ; export F90 ;   \
+          CXX="" ; export CXX ; CC="${CCMIN}";export CC;  \
+          $(RM) config.cache config.log config.status ;   \
+          ./configure ; make libsrc/all ;                 \
+	  $(CP) libsrc/netcdf.h  ../.. ;                  \
+          $(MV) libsrc/attr.o    ../../netcdf_attr.o    ; \
+          $(MV) libsrc/dim.o     ../../netcdf_dim.o     ; \
+          $(MV) libsrc/error.o   ../../netcdf_error.o   ; \
+          $(MV) libsrc/libvers.o ../../netcdf_libvers.o ; \
+          $(MV) libsrc/nc.o      ../../netcdf_nc.o      ; \
+          $(MV) libsrc/ncio.o    ../../netcdf_ncio.o    ; \
+          $(MV) libsrc/ncx.o     ../../netcdf_ncx.o     ; \
+          $(MV) libsrc/putget.o  ../../netcdf_putget.o  ; \
+          $(MV) libsrc/string.o  ../../netcdf_string.o  ; \
+          $(MV) libsrc/v1hpg.o   ../../netcdf_v1hpg.o   ; \
+          $(MV) libsrc/v2i.o     ../../netcdf_v2i.o     ; \
+          $(MV) libsrc/var.o     ../../netcdf_var.o     ; \
+          $(RM) config.cache config.log config.status ;   \
+          make clean ; )
 
 #######
 # 27 Jul 2001

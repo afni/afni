@@ -4,7 +4,7 @@ CC     = /usr/local/pgcc/bin/gcc -O2 -march=i686 -mcpu=i686 -ffast-math -fomit-f
 CCVOL  = /usr/local/pgcc/bin/gcc -DLINUX -DNO_GAMMA $(CEXTRA)
 CCFAST = /usr/local/pgcc/bin/gcc -O3 -march=i686 -mcpu=i686 -ffast-math -fomit-frame-pointer -DLINUX -DNO_GAMMA $(CEXTRA)
 # CCFAST = /usr/local/pgcc/bin/gcc -O3 -m486 -ffast-math -fomit-frame-pointer -DLINUX -DNO_GAMMA $(CEXTRA)
-CCMIN  = /usr/local/pgcc/bin/gcc -s
+CCMIN  = /usr/local/pgcc/bin/gcc
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -s -L. -L/usr/X11R6/lib

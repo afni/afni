@@ -3,10 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
-
 
 /*---------------------------------------------------------------------*/
 
@@ -24,6 +23,8 @@ Boolean THD_write_atr( THD_datablock * blk )
 
    dkptr = blk->diskptr ;
    if( ! ISVALID_DISKPTR(dkptr) || strlen(dkptr->header_name) == 0 ) return False ;
+
+   if( DBLK_IS_MINC(blk) ) return False ; /* 29 Oct 2001 */
 
    header_file = fopen( dkptr->header_name , "w" ) ;
    if( header_file == NULL ){
