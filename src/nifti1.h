@@ -109,6 +109,11 @@
      sizeof(int) = sizeof(float) = 4 ;  sizeof(short) = 2
 -----------------------------------------------------------------------------*/
 
+/*=================*/
+#ifdef  __cplusplus
+extern "C" {
+#endif
+/*=================*/
                         /*************************/  /************************/
 struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
                         /*************************/  /************************/
@@ -983,7 +988,7 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    for m=0..dim[4]-1.
 -----------------------------------------------------------------------------*/
 
-                               /*! NIFTI code for unspecified units.
+                               /*! NIFTI code for unspecified units. */
 #define NIFTI_UNITS_UNKNOWN 0
                                /*! NIFTI code for meters. */
 #define NIFTI_UNITS_METER   1
@@ -1094,5 +1099,11 @@ struct dsr {
 #endif /* DONT_INCLUDE_ANALYZE_STRUCT */
 
 /*****************************************************************************/
+
+/*=================*/
+#ifdef  __cplusplus
+}
+#endif
+/*=================*/
 
 #endif /* _NIFTI_HEADER_ */

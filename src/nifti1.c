@@ -67,8 +67,12 @@ typedef struct {                  /** Image storage struct **/
         intent_p3 ;
   char intent_name[16] ;
 
-  char *fname[] ;                 /* input filename (.hdr or .nii) */
   char descrip[80], aux_file[24];
+
+  char *fname ;                   /* header filename (.hdr or .nii) */
+  char *iname ;                   /* image filename (.img or .nii)  */
+  int   iname_offset ;            /* offset into iname where data starts */
+  int   swapsize ;                /* swapping unit in image data */
   void *data ;                    /* pointer to data: nbyper*nvox bytes */
 
 } nifti_image ;
@@ -85,20 +89,28 @@ void swap_16bytes( int n , void *ar ) ;
 void swap_Nbytes ( int n , int siz , void *ar ) ;
 void swap_nifti_header( struct nifti_1_header *h , int is_nifti ) ;
 unsigned int get_filesize( char *pathname ) ;
-nifti_image * nifti_image_read( char *hname ) ;
-void nifti_image_free( nifti_image *nim ) ;
-void nifti_image_infodump( nifti_image *nim ) ;
+
+nifti_image * nifti_image_read    ( char *hname , int read_data ) ;
+void          nifti_image_load    ( nifti_image *nim ) ;
+void          nifti_image_free    ( nifti_image *nim ) ;
+void          nifti_image_infodump( nifti_image *nim ) ;
 
 /*-------------------- Some C convenience macros ----------------------------*/
 
+#undef  swap_2
+#undef  swap_4
 #define swap_2(s) swap_2bytes(1,&(s))  /* s is a 2-byte short; swap in place */
 #define swap_4(v) swap_4bytes(1,&(v))  /* v is a 4-byte value; swap in place */
 
-#define USE_FINITE      /* use finite() to check floats/doubles for goodness */
-#ifdef  USE_FINITE
-#  define IS_GOOD_FLOAT(x) finite(x)         /* check if x is a "good" float */
+                        /***** isfinite() is a C99 macro, which is
+                               present in many C implementations already *****/
 
-#  define FIXED_FLOAT(x)   (IS_GOOD_FLOAT(x) ? (x) : 0.0)    /* fixed if bad */
+#undef IS_GOOD_FLOAT
+#undef FIXED_FLOAT
+
+#ifdef isfinite       /* use isfinite() to check floats/doubles for goodness */
+#  define IS_GOOD_FLOAT(x) isfinite(x)       /* check if x is a "good" float */
+#  define FIXED_FLOAT(x)   (isfinite(x) ? (x) : 0.0)         /* fixed if bad */
 #else
 #  define IS_GOOD_FLOAT(x) 1                               /* don't check it */
 #  define FIXED_FLOAT(x)   (x)                               /* don't fix it */
@@ -117,7 +129,7 @@ char *nifti_datatype_string( int dt )
      case DT_INT8:       return "INT8"       ;
      case DT_UINT8:      return "UINT8"      ;
      case DT_INT16:      return "INT16"      ;
-     Case DT_UINT16:     return "UINT16"     ;
+     case DT_UINT16:     return "UINT16"     ;
      case DT_INT32:      return "INT32"      ;
      case DT_UINT32:     return "UINT32"     ;
      case DT_INT64:      return "INT64"      ;
@@ -131,7 +143,7 @@ char *nifti_datatype_string( int dt )
      case DT_RGB24:      return "RGB24"      ;
    }
 
-   return "**illegal**" ;
+   return "**ILLEGAL**" ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -275,7 +287,8 @@ void swap_Nbytes( int n , int siz , void *ar )
 /*---------------------------------------------------------------*/
 /* Byte swap NIFTI-1 file header in various places and ways.
    If is_nifti is nonzero, will also swap the NIFTI-specific
-   components of the header.
+   components of the header; otherwise, only the components
+   common to NIFTI and ANALYZE will be swapped.
 ---------------------------------------------------------------- */
 
 void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
@@ -294,12 +307,15 @@ void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
    swap_2bytes( 8 , h->dim ) ;
    swap_4bytes( 8 , h->pixdim ) ;
 
-   swap_2(h->datatype) ; swap_2(h->bitpix) ;
+   swap_2(h->datatype) ;
+   swap_2(h->bitpix) ;
 
-   swap_4(h->vox_offset) ; swap_4(h->cal_max) ; swap_4(h->cal_min) ;
+   swap_4(h->vox_offset); swap_4(h->cal_max); swap_4(h->cal_min);
+
+   /* this stuff is NIFTI specific */
 
    if( is_nifti ){
-     swap_2(h->qform_code) ; swap_2(h->sform_code) ;
+     swap_2(h->qform_code); swap_2(h->sform_code);
      swap_4(h->quatern_b); swap_4(h->quatern_c); swap_4(h->quatern_d);
      swap_4(h->qoffset_x); swap_4(h->qoffset_y); swap_4(h->qoffset_z);
      swap_4(h->intent_p1); swap_4(h->intent_p2); swap_4(h->intent_p3);
@@ -307,14 +323,14 @@ void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
      swap_4bytes(4,h->srow_x);
      swap_4bytes(4,h->srow_y);
      swap_4bytes(4,h->srow_z);
-     swap_2(h->intent_code) ; swap_4(h->toffset) ;
+     swap_2(h->intent_code); swap_4(h->toffset);
    }
 }
 
 #define THIS_IS_UNIX
 #ifdef  THIS_IS_UNIX
 /*---------------------------------------------------------------------------*/
-/* Return the file length (-1 if file not found).
+/* Return the file length (0 if file not found or has no contents).
    This is a Unix-specific function, since it uses stat().
 -----------------------------------------------------------------------------*/
 #include <sys/types.h>
@@ -324,9 +340,9 @@ unsigned int get_filesize( char *pathname )
 {
    struct stat buf ; int ii ;
 
-   if( pathname == NULL || *pathname == '\0' ) return -1 ;
-   ii = stat( pathname , &buf ); if( ii != 0 ) return -1 ;
-   return buf.st_size ;
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
+   ii = stat( pathname , &buf ); if( ii != 0 ) return 0 ;
+   return (unsigned int)buf.st_size ;
 }
 
 #else  /*---------- non-Unix version of the above, less efficient -----------*/
@@ -335,8 +351,8 @@ unsigned int get_filesize( char *pathname )
 {
    FILE *fp ; unsigned int len ;
 
-   if( pathname == NULL || *pathname == '\0' ) return -1 ;
-   fp = fopen(pathname,"rb"); if( fp == NULL ) return -1 ;
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
+   fp = fopen(pathname,"rb"); if( fp == NULL ) return 0 ;
    fseek(fp,0L,SEEK_END) ; len = (unsigned int)ftell(fp) ;
    fclose(fp) ; return len ;
 }
@@ -347,23 +363,28 @@ unsigned int get_filesize( char *pathname )
 /* Read in a NIFTI-1 or ANALYZE-7.5 file (pair) into a nifti_image struct.
     - Input is .hdr or .nii filename.
     - Return value is NULL if something fails badly.
+    - If read_data parameter is nonzero, the image data will actually
+      be read in; otherwise, it will have to be read later
+      (e.g., using the nifti_image_load() function).
     - The image data will be stored in whatever data format the
       input data is; no scaling will be applied.
     - DT_BINARY data is not supported!
 ----------------------------------------------------------------------------*/
 
 #undef  ERREX
-#define ERREX(msg) \
- do{ fprintf(stderr,"** nifti_image_read: %s\n",(msg)); return NULL; } while(0)
+#define ERREX(msg)                                           \
+ do{ fprintf(stderr,"** ERROR: nifti_image_read(%s): %s\n",  \
+             (hname != NULL) ? hname : "(null)" , (msg) ) ;  \
+     return NULL ; } while(0)
 
-nifti_image * nifti_image_read( char *hname )
+nifti_image * nifti_image_read( char *hname , int read_data )
 {
    struct nifti_1_header nhdr ;
    nifti_image *nim ;
    FILE *fp ;
    int   ii , doswap , hlen, ilen, ioff ;
    int   nx,ny,nz,nt,nu,nv,nw , ndim,nvox , ntot ;
-   int   is_nifti , is_onefile , swapsize ;
+   int   is_nifti , is_onefile ;
    float dx,dy,dz,dt,du,dv,dw ;
    short ss ;
    char *iname=NULL ;
@@ -406,13 +427,11 @@ nifti_image * nifti_image_read( char *hname )
 
    /** determine if this is a NIFTI-1 compliant header **/
 
-   is_nifti   = NIFTI_VERSION(nhdr) ;
+   is_nifti = NIFTI_VERSION(nhdr) ;
    if( doswap ) swap_nifti_header( &nhdr , is_nifti ) ;
 
    if( nhdr.datatype == DT_BINARY ||
        nhdr.datatype == DT_UNKNOWN  )    ERREX("bad datatype") ;
-
-   is_onefile = is_nifti && NIFTI_ONEFILE(nhdr) ;
 
    if( nhdr.dim[1] <= 0 )                ERREX("bad dim[1]") ;
 
@@ -437,6 +456,8 @@ nifti_image * nifti_image_read( char *hname )
 
    /** will read image data from file 'iname' starting at offset 'ioff' **/
 
+   is_onefile = is_nifti && NIFTI_ONEFILE(nhdr) ;
+
    if( is_onefile ){
      ioff = (int)nhdr.vox_offset ;
      if( ioff < sizeof(nhdr) ) ioff = sizeof(nhdr) ;
@@ -451,7 +472,7 @@ nifti_image * nifti_image_read( char *hname )
 
    if( ilen <= ioff ){ free(iname) ; ERREX("bad data file") ; }
 
-   /** create output image struct and start to set it up **/
+   /*=== create output image struct and start to set it up ===*/
 
    nim = (nifti_image *) calloc( 1 , sizeof(nifti_image) ) ;
 
@@ -461,13 +482,13 @@ nifti_image * nifti_image_read( char *hname )
    /** dimensions of data array **/
 
    nim->ndim = nim->dim[0] = ndim ;
-   nim->nx   = nim->dim[1] = nhdr.dim[1] ; nvox  = nim->nx ;
-   nim->ny   = nim->dim[2] = nhdr.dim[2] ; nvox *= nim->ny ;
-   nim->nz   = nim->dim[3] = nhdr.dim[3] ; nvox *= nim->nz ;
-   nim->nt   = nim->dim[4] = nhdr.dim[4] ; nvox *= nim->nt ;
-   nim->nu   = nim->dim[5] = nhdr.dim[5] ; nvox *= nim->nu ;
-   nim->nv   = nim->dim[6] = nhdr.dim[6] ; nvox *= nim->nv ;
-   nim->nw   = nim->dim[7] = nhdr.dim[7] ; nvox *= nim->nw ; nim->nvox = nvox ;
+   nim->nx   = nim->dim[1] = nhdr.dim[1]; nvox  = nim->nx;
+   nim->ny   = nim->dim[2] = nhdr.dim[2]; nvox *= nim->ny;
+   nim->nz   = nim->dim[3] = nhdr.dim[3]; nvox *= nim->nz;
+   nim->nt   = nim->dim[4] = nhdr.dim[4]; nvox *= nim->nt;
+   nim->nu   = nim->dim[5] = nhdr.dim[5]; nvox *= nim->nu;
+   nim->nv   = nim->dim[6] = nhdr.dim[6]; nvox *= nim->nv;
+   nim->nw   = nim->dim[7] = nhdr.dim[7]; nvox *= nim->nw; nim->nvox = nvox;
 
    /** type of data in voxels and how many bytes per voxel */
 
@@ -475,32 +496,33 @@ nifti_image * nifti_image_read( char *hname )
 
    switch( nim->datatype ){
      default:
-       free(nim) ; ERREX("bad datatype") ;
+       free(nim) ; free(iname) ; ERREX("bad datatype") ;
 
      case DT_INT8:
-     case DT_UINT8:         nim->byper =  1 ; swapsize =  0 ; break ;
+     case DT_UINT8:       nim->nbyper =  1 ; nim->swapsize =  0 ; break ;
 
      case DT_INT16:
-     case DT_UINT16:        nim->byper =  2 ; swapsize =  2 ; break ;
+     case DT_UINT16:      nim->nbyper =  2 ; nim->swapsize =  2 ; break ;
 
-     case DT_RGB24:         nim->byper =  3 ; swapsize =  0 ; break ;
+     case DT_RGB24:       nim->nbyper =  3 ; nim->swapsize =  0 ; break ;
 
      case DT_INT32:
      case DT_UINT32:
-     case DT_FLOAT32:       nim->byper =  4 ; swapsize =  4 ; break ;
+     case DT_FLOAT32:     nim->nbyper =  4 ; nim->swapsize =  4 ; break ;
 
-     case DT_COMPLEX64:     nim->byper =  8 ; swapsize =  4 ; break ;
+     case DT_COMPLEX64:   nim->nbyper =  8 ; nim->swapsize =  4 ; break ;
 
      case DT_FLOAT64:
      case DT_INT64:
-     case DT_UINT64:        nim->byper =  8 ; swapsize =  8 ; break ;
+     case DT_UINT64:      nim->nbyper =  8 ; nim->swapsize =  8 ; break ;
 
-     case DT_FLOAT128:      nim->byper = 16 ; swapsize = 16 ; break ;
+     case DT_FLOAT128:    nim->nbyper = 16 ; nim->swapsize = 16 ; break ;
 
-     case DT_COMPLEX128:    nim->byper = 16 ; swapsize =  8 ; break ;
+     case DT_COMPLEX128:  nim->nbyper = 16 ; nim->swapsize =  8 ; break ;
 
-     case DT_COMPLEX256:    nim->byper = 32 ; swapsize = 16 ; break ;
+     case DT_COMPLEX256:  nim->nbyper = 32 ; nim->swapsize = 16 ; break ;
    }
+   if( !doswap ) nim->swapsize = 0 ;
 
    /** grid spacings **/
 
@@ -549,7 +571,7 @@ nifti_image * nifti_image_read( char *hname )
 
      /* load rotation matrix, including scaling factors for voxel sizes */
 
-     pfac = (pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
+     pfac = (nhdr.pixdim[0] < 0.0) ? -1.0 : 1.0 ;  /* left-handedness? */
 
      nim->qto_xyz.m[0][0] = (a*a+b*b-c*c-d*d) * nim->dx * pfac ;
      nim->qto_xyz.m[0][1] = (2*b*c-2*a*d    ) * nim->dy ;
@@ -574,7 +596,7 @@ nifti_image * nifti_image_read( char *hname )
 
    nim->qto_ijk = nifti_mat44_inverse( nim->qto_xyz ) ;
 
-   /** load sto affine transformation, if present **/
+   /** load sto_xyz affine transformation, if present **/
 
    if( !is_nifti || nhdr.sform_code <= 0 ){ /** no sto transformation **/
 
@@ -582,17 +604,23 @@ nifti_image * nifti_image_read( char *hname )
 
    } else {                            /** sto transformation from srow_*[] **/
 
-     nim->sto_xyz.m[0][0] = srow_x[0] ; nim->sto_xyz.m[0][1] = srow_x[1] ;
-     nim->sto_xyz.m[0][2] = srow_x[2] ; nim->sto_xyz.m[0][3] = srow_x[3] ;
+     nim->sto_xyz.m[0][0] = nhdr.srow_x[0] ;
+     nim->sto_xyz.m[0][1] = nhdr.srow_x[1] ;
+     nim->sto_xyz.m[0][2] = nhdr.srow_x[2] ;
+     nim->sto_xyz.m[0][3] = nhdr.srow_x[3] ;
 
-     nim->sto_xyz.m[1][0] = srow_y[0] ; nim->sto_xyz.m[1][1] = srow_y[1] ;
-     nim->sto_xyz.m[1][2] = srow_y[2] ; nim->sto_xyz.m[1][3] = srow_y[3] ;
+     nim->sto_xyz.m[1][0] = nhdr.srow_y[0] ;
+     nim->sto_xyz.m[1][1] = nhdr.srow_y[1] ;
+     nim->sto_xyz.m[1][2] = nhdr.srow_y[2] ;
+     nim->sto_xyz.m[1][3] = nhdr.srow_y[3] ;
 
-     nim->sto_xyz.m[2][0] = srow_z[0] ; nim->sto_xyz.m[2][1] = srow_z[1] ;
-     nim->sto_xyz.m[2][2] = srow_z[2] ; nim->sto_xyz.m[2][3] = srow_z[3] ;
+     nim->sto_xyz.m[2][0] = nhdr.srow_z[0] ;
+     nim->sto_xyz.m[2][1] = nhdr.srow_z[1] ;
+     nim->sto_xyz.m[2][2] = nhdr.srow_z[2] ;
+     nim->sto_xyz.m[2][3] = nhdr.srow_z[3] ;
 
-     nim->qto_xyz.m[3][0]=nim->qto_xyz.m[3][1]=nim->qto_xyz.m[3][2] = 0.0;
-     nim->qto_xyz.m[3][3]= 1.0 ;
+     nim->sto_xyz.m[3][0]=nim->sto_xyz.m[3][1]=nim->sto_xyz.m[3][2] = 0.0;
+     nim->sto_xyz.m[3][3]= 1.0 ;
 
      nim->sto_ijk = nifti_mat44_inverse( nim->sto_xyz ) ;
 
@@ -627,30 +655,67 @@ nifti_image * nifti_image_read( char *hname )
    memcpy(nim->descrip ,nhdr.descrip ,79) ; nim->descrip [79] = '\0' ;
    memcpy(nim->aux_file,nhdr.aux_file,23) ; nim->aux_file[23] = '\0' ;
 
-   /** now prepare to read the data **/
+   /** read the data if desired, then bug out **/
 
-   fp = fopen( iname , "rb" ) ; free(iname) ;
-   if( fp == NULL ){ free(nim); return NULL; }           /* shouldn't happen */
-   fseek( fp , ioff , SEEK_SET ) ;
+   nim->fname        = strdup(hname) ;  /* save input filename */
+   nim->iname        = iname ;          /* save image filename */
+   nim->iname_offset = ioff ;
+
+   if( read_data ) nifti_image_load( nim ) ;
+   else            nim->data = NULL ;
+
+   return nim ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Load the data from disk into an already-prepared image struct.
+----------------------------------------------------------------------------*/
+
+#undef  ERREX
+#define ERREX(msg)                                               \
+ do{ fprintf(stderr,"** ERROR: nifti_image_load: %s\n",(msg)) ;  \
+     return ; } while(0)
+
+void nifti_image_load( nifti_image *nim )
+{
+   int ntot , ii ;
+   FILE *fp ;
+
+   if( nim == NULL      || nim->iname == NULL ||
+       nim->nbyper <= 0 || nim->nvox <= 0       ) ERREX("bad input struct") ;
+
+   /** open image data file **/
+
+   fp = fopen( nim->iname , "rb" ) ;
+   if( fp == NULL ) ERREX("Can't open data file") ;
+   fseek( fp , nim->iname_offset , SEEK_SET ) ;
 
    /* make space for data, then read all of it in one operation */
 
    ntot      = nim->nbyper * nim->nvox ;            /* total number of bytes */
    nim->data = malloc( ntot ) ;
-   if( nim->data == NULL ){ free(nim); return NULL; }      /* can't malloc!? */
+   if( nim->data == NULL ) ERREX("can't malloc array space") ;
 
    ii = fread( nim->data , 1 , ntot , fp ) ;              /*** data input! ***/
    fclose( fp ) ;
 
    /* if read was short, fill rest of array with 0 bytes */
 
-   if( ii < ntot ) memset( (char *)(nim->data)+ii , 0 , ntot-ii ) ;
+   if( ii < ntot ){
+     fprintf(stderr,"++ WARNING: nifti_image_load(%s):\n"
+                    "   data bytes needed = %d\n"
+                    "   data bytes input  = %d\n"
+                    "   number missing    = %d (set to 0)\n",
+             nim->iname , ntot, ii, ntot-ii ) ;
+     memset( (char *)(nim->data)+ii , 0 , ntot-ii ) ;
+   }
 
    /** byte swap array if needed **/
 
-   if( doswap ) swap_Nbytes( dnum*nvox , dsiz , nim->data ) ;
+   if( nim->swapsize > 0 )
+     swap_Nbytes( ntot / nim->swapsize , nim->swapsize , nim->data ) ;
 
-#ifdef USE_FINITE
+#ifdef isfinite
    /** check input float arrays for goodness, and fix bad numbers **/
 
    switch( nim->datatype ){
@@ -658,7 +723,7 @@ nifti_image * nifti_image_read( char *hname )
      case NIFTI_TYPE_FLOAT32:
      case NIFTI_TYPE_COMPLEX64:{
        register float *far = (float *)nim->data ; register int jj,nj ;
-       nj = nvox * dnum ;
+       nj = ntot / nim->swapsize ;
        for( jj=0 ; jj < nj ; jj++ ) far[jj] = FIXED_FLOAT(far[jj]);
      }
      break ;
@@ -666,7 +731,7 @@ nifti_image * nifti_image_read( char *hname )
      case NIFTI_TYPE_FLOAT64:
      case NIFTI_TYPE_COMPLEX128:{
        register double *far = (double *)nim->data ; register int jj,nj ;
-       nj = nvox * dnum ;
+       nj = ntot / nim->swapsize ;
        for( jj=0 ; jj < nj ; jj++ ) far[jj] = FIXED_FLOAT(far[jj]);
      }
      break ;
@@ -674,10 +739,6 @@ nifti_image * nifti_image_read( char *hname )
    }
 #endif
 
-   /***** return to the place whence we came *****/
-
-   nim->fname = strdup(hname) ;  /* save input filename */
-   return nim ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -688,6 +749,7 @@ void nifti_image_free( nifti_image *nim )
 {
    if( nim == NULL ) return ;
    if( nim->fname != NULL ) free(nim->fname) ;
+   if( nim->iname != NULL ) free(nim->iname) ;
    if( nim->data  != NULL ) free(nim->data ) ;
    free(nim) ; return ;
 }
@@ -699,13 +761,16 @@ void nifti_image_free( nifti_image *nim )
 void nifti_image_infodump( nifti_image *nim )
 {
    printf("\n"
-          "*** nifti_image_infodump:" ) ;
+          "++++++++++++++++++++++++\n"
+          "++ nifti_image_infodump:" ) ;
 
    if( nim == NULL ){
-     printf(" ?? input is NULL ??\n\n") ; return ;
+     printf(" ?? input is NULL ??!!\n\n") ; return ;
    }
 
-   printf("\n  filename = %s\n",nim->fname) ;
+   printf("\n  header filename = %s\n",nim->fname) ;
+   printf(  "  image  filename = %s  offset = %d\n",
+          nim->iname,nim->iname_offset) ;
 
    printf("  ndim = %3d\n"
           "  nx   = %3d    dx = %g\n"
@@ -727,11 +792,31 @@ void nifti_image_infodump( nifti_image *nim )
    printf("  scl_slope = %g  scl_inter = %g\n" ,
           nim->scl_slope , nim->scl_inter       ) ;
 
-   printf("  qto_xyz matrix =\n"
+   printf("  cal_min   = %g  cal_max   = %g\n" ,
+          nim->cal_min   , nim->cal_max         ) ;
+
+   printf("  intent_code = %d  intent_p1=%g  intent_p2=%g  intent_p3=%g\n" ,
+          nim->intent_code, nim->intent_p1, nim->intent_p2, nim->intent_p3 ) ;
+
+   if( nim->intent_name[0] != '\0' )
+     printf("  intent_name = %s\n",nim->intent_name) ;
+
+   if( nim->descrip[0] != '\0' )
+     printf("  descrip = %s\n",nim->descrip) ;
+
+   if( nim->aux_file[0] != '\0' )
+     printf("  aux_file = %s\n",nim->aux_file) ;
+
+   printf("  toffset = %g\n",nim->toffset) ;
+   printf("  xyz_units = %d  time_units = %d\n" ,
+          nim->xyz_units,nim->time_units ) ;
+
+   printf("  qform_code = %d  qto_xyz matrix =\n"
           "    %9.6f %9.6f %9.6f   %9.6f\n"
           "    %9.6f %9.6f %9.6f   %9.6f\n"
           "    %9.6f %9.6f %9.6f   %9.6f\n"
           "    %9.6f %9.6f %9.6f   %9.6f\n" ,
+       nim->qform_code      ,
        nim->qto_xyz.m[0][0] , nim->qto_xyz.m[0][1] ,
        nim->qto_xyz.m[0][2] , nim->qto_xyz.m[0][3] ,
        nim->qto_xyz.m[1][0] , nim->qto_xyz.m[1][1] ,
@@ -755,5 +840,38 @@ void nifti_image_infodump( nifti_image *nim )
        nim->qto_ijk.m[3][0] , nim->qto_ijk.m[3][1] ,
        nim->qto_ijk.m[3][2] , nim->qto_ijk.m[3][3]  ) ;
 
-   return ;
+   if( nim->sform_code != NIFTI_XFORM_UNKNOWN ){
+     printf("  sform_code = %d  sto_xyz matrix =\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n" ,
+         nim->sform_code      ,
+         nim->sto_xyz.m[0][0] , nim->sto_xyz.m[0][1] ,
+         nim->sto_xyz.m[0][2] , nim->sto_xyz.m[0][3] ,
+         nim->sto_xyz.m[1][0] , nim->sto_xyz.m[1][1] ,
+         nim->sto_xyz.m[1][2] , nim->sto_xyz.m[1][3] ,
+         nim->sto_xyz.m[2][0] , nim->sto_xyz.m[2][1] ,
+         nim->sto_xyz.m[2][2] , nim->sto_xyz.m[2][3] ,
+         nim->sto_xyz.m[3][0] , nim->sto_xyz.m[3][1] ,
+         nim->sto_xyz.m[3][2] , nim->sto_xyz.m[3][3]  ) ;
+
+     printf("  sto_ijk matrix =\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n"
+            "    %9.6f %9.6f %9.6f   %9.6f\n" ,
+         nim->sto_ijk.m[0][0] , nim->sto_ijk.m[0][1] ,
+         nim->sto_ijk.m[0][2] , nim->sto_ijk.m[0][3] ,
+         nim->sto_ijk.m[1][0] , nim->sto_ijk.m[1][1] ,
+         nim->sto_ijk.m[1][2] , nim->sto_ijk.m[1][3] ,
+         nim->sto_ijk.m[2][0] , nim->sto_ijk.m[2][1] ,
+         nim->sto_ijk.m[2][2] , nim->sto_ijk.m[2][3] ,
+         nim->sto_ijk.m[3][0] , nim->sto_ijk.m[3][1] ,
+         nim->sto_ijk.m[3][2] , nim->sto_ijk.m[3][3]  ) ;
+   }
+
+   if( nim->data == NULL ) printf("  data not loaded\n") ;
+   else                    printf("  data loaded at address %p\n",nim->data) ;
+
 }
