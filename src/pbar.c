@@ -475,9 +475,9 @@ static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
    for( ii=0 ; ii < NPANE_BIG ; ii++ )
      pbar->bigcolor[ii] = bigmap[ind][ii] ;
 
+   MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
+   PBAR_bigexpose_CB(NULL,pbar,NULL) ;
    if( XtIsRealized(pbar->panes[0]) ){
-     MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
-     PBAR_bigexpose_CB(NULL,pbar,NULL) ;
      if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar, pbar->pb_data, pbCR_COLOR );
    }
    return ;
