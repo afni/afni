@@ -3352,3 +3352,6 @@
  * Modified mri_read.c to apply the "funused1" entry in the Analyze .hdr
       file as a scale factor.
  * Added mri_scale_inplace() function (mri_scale.c).
+
+28 Nov 2001
+ * Modified mri_read.c to also allow floatizing of Analyze .img files.

@@ -1494,6 +1494,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
    MRI_IMAGE * newim ;
    void      * imar ;
    float fac=0.0 ;    /* 27 Nov 2001 */
+   int floatize ;     /* 28 Nov 2001 */
 
    /* check & prepare filenames */
 
@@ -1502,8 +1503,6 @@ MRI_IMARR * mri_read_analyze75( char * hname )
    if( jj < 5 ) return NULL ;
    if( strcmp(hname+jj-3,"hdr") != 0 ) return NULL ;
    strcpy(iname,hname) ; strcpy(iname+jj-3,"img") ;
-
-   /** fprintf(stderr,"mri_read_analyze75: hname=%s iname=%s\n",hname,iname) ; **/
 
    /* read header file into struct */
 
@@ -1521,13 +1520,13 @@ MRI_IMARR * mri_read_analyze75( char * hname )
 
    /* 27 Nov 2001: get a scale factor for images */
 
-   if( !AFNI_noenv("AFNI_SCALE_ANALYZE") ){
+   if( !AFNI_noenv("AFNI_ANALYZE_SCALE") ){
       fac = hdr.dime.funused1 ;
       (void) thd_floatscan( 1 , &fac ) ;
       if( fac < 0.0 || fac == 1.0 ) fac = 0.0 ;
    }
 
-   /** fprintf(stderr,"mri_read_analyze75: doswap=%d\n",doswap) ; **/
+   floatize = AFNI_yesenv("AFNI_ANALYZE_FLOATIZE") ; /* 28 Nov 2001 */
 
    /* get data type into mrilib MRI_* form */
 
@@ -1537,17 +1536,15 @@ MRI_IMARR * mri_read_analyze75( char * hname )
                  hname,hdr.dime.datatype) ;
       return NULL ;
 
-      case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte    ; break ;
-      case ANDT_SIGNED_SHORT:  datum_type = MRI_short   ; break ;
-      case ANDT_SIGNED_INT:    datum_type = MRI_int     ; break ;
-      case ANDT_FLOAT:         datum_type = MRI_float   ; break ;
-      case ANDT_COMPLEX:       datum_type = MRI_complex ; break ;
-      case ANDT_RGB:           datum_type = MRI_rgb     ; break ;
+      case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte   ;               break;
+      case ANDT_SIGNED_SHORT:  datum_type = MRI_short  ;               break;
+      case ANDT_SIGNED_INT:    datum_type = MRI_int    ;               break;
+      case ANDT_FLOAT:         datum_type = MRI_float  ; floatize = 0; break;
+      case ANDT_COMPLEX:       datum_type = MRI_complex; floatize = 0; break;
+      case ANDT_RGB:           datum_type = MRI_rgb    ; floatize = 0; break;
    }
 
    datum_len = mri_datum_size(datum_type) ;
-
-   /** fprintf(stderr,"mri_read_analyze75: datum_type=%d datum_len=%d\n",datum_type,datum_len) ; **/
 
    /* compute dimensions of images, and number of images */
 
@@ -1608,7 +1605,6 @@ MRI_IMARR * mri_read_analyze75( char * hname )
       length = fread( imar , datum_len , nx * ny , fp ) ;
 
       if( doswap ){
-   /** fprintf(stderr,"mri_read_analyze75: about to swap\n") ; **/
          switch( datum_len ){
             default: break ;
             case 2:  swap_twobytes (   nx*ny , imar ) ; break ;  /* short */
@@ -1617,7 +1613,13 @@ MRI_IMARR * mri_read_analyze75( char * hname )
          }
       }
 
-   /** fprintf(stderr,"mri_read_analyze75: about to add aux stuff\n") ; **/
+      /* 28 Nov 2001: convert to floats? */
+
+      if( floatize ){
+         MRI_IMAGE *qim = mri_to_float(newim) ;
+         mri_free(newim) ; newim = qim ;
+      }
+
       if( nz == 1 ) mri_add_name( iname , newim ) ;
       else {
          sprintf( buf , "%s#%d" , iname,kim ) ;
@@ -1632,7 +1634,6 @@ MRI_IMARR * mri_read_analyze75( char * hname )
       if( fac != 0.0 ) mri_scale_inplace( fac , newim ) ;
    }
 
-   /** fprintf(stderr,"mri_read_analyze75: about to return\n") ; **/
    fclose(fp) ; return newar ;
 }
 
