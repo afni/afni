@@ -3939,6 +3939,7 @@ STATUS("making prog->rowcol") ;
 
                                0
                              | ButtonPressMask   /* button presses */
+                             | KeyPressMask      /* get keystrokes */
                             ,
                             FALSE ,              /* nonmaskable events? */
                             AFNI_hidden_EV ,     /* handler */
