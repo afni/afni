@@ -290,7 +290,15 @@ typedef struct PLUGIN_interface {
 
    char seqcode[PLUGIN_STRING_SIZE] ;  /* 06 Aug 1999 */
    char butcolor[PLUGIN_STRING_SIZE] ; /* 01 Nov 1999 */
+
+   int  flags ;                        /* 29 Mar 2002 */
 } PLUGIN_interface ;
+
+#define SHORT_CHOOSE_FLAG 1
+#define SHORT_NUMBER_FLAG 2
+
+#define PLUTO_short_choose(pl) (pl->flags |= SHORT_CHOOSE_FLAG)
+#define PLUTO_short_number(pl) (pl->flags |= SHORT_NUMBER_FLAG)
 
 /*************** Prototypes for creation of the above structures ***************/
 

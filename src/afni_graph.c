@@ -1485,6 +1485,9 @@ void plot_graphs( MCW_grapher * grapher , int code )
    MRI_IMAGE * dsim ; /* 07 Aug 2001: for double plot */
    float     * dsar ;
 
+#define OVI_MAX 19
+   int tt, use_ovi, ovi[OVI_MAX] ;  /* 29 Mar 2002: for multi-plots */
+
 ENTRY("plot_graphs") ;
 
 #ifdef GRAPHER_ALLOW_ONE                       /* 22 Sep 2000 */
@@ -1696,9 +1699,20 @@ STATUS("finding statistics of time series") ;
                         &(grapher->tmad[ix][iy]) ) ;
 
          if( set_scale ){        /* 03 Feb 1998 */
-            nd_bot = MIN( nd_bot , qbot ) ;
-            nd_top = MAX( nd_top , qtop ) ;
-            nd_dif = MAX( nd_dif , (qtop-qbot) ) ;
+
+           if( tsim->ny > 1 ){
+             for( tt=1 ; tt < tsim->ny ; tt++ ){
+               tsar += tsim->nx ;
+               for( i=ibot ; i < itop ; i++ ){
+                 qbot = MIN( qbot , tsar[i] ) ;
+                 qtop = MAX( qtop , tsar[i] ) ;
+               }
+             }
+           }
+
+           nd_bot = MIN( nd_bot , qbot ) ;
+           nd_top = MAX( nd_top , qtop ) ;
+           nd_dif = MAX( nd_dif , (qtop-qbot) ) ;
          }
       }
    }
@@ -1755,7 +1769,10 @@ STATUS("finding common base") ;
          itop = NPTS(grapher) ;
          itop = npoints = MIN( itop , tsim->nx ) ;
          if( first && ibot < itop ){ tsbot = tsar[ibot] ; first = 0 ; }
-         for( i=ibot ; i < itop ; i++ ) tsbot = MIN( tsbot , tsar[i] ) ;
+         for( tt=0 ; tt < tsim->ny ; tt++ ){  /* 29 Mar 2002 */
+           for( i=ibot ; i < itop ; i++ ) tsbot = MIN( tsbot , tsar[i] ) ;
+           tsar += tsim->nx ;
+         }
       }
    } else if( grapher->common_base == BASELINE_GLOBAL ){ /* 07 Aug 2001 */
       tsbot = grapher->global_base ;
@@ -1778,7 +1795,10 @@ STATUS("starting time series graph loop") ;
 
          if( grapher->common_base == BASELINE_INDIVIDUAL && ibot < itop ){
             tsbot = tsar[ibot] ;
-            for( i=ibot+1 ; i < itop ; i++ ) tsbot = MIN( tsbot , tsar[i] ) ;
+            for( tt=0 ; tt < tsim->ny ; tt++ ){
+              for( i=ibot ; i < itop ; i++ ) tsbot = MIN(tsbot,tsar[i]) ;
+              tsar += tsim->nx ;
+            }
          }
          grapher->pmin[ix][iy] = tsbot ;  /* value at graph bottom */
 
@@ -1797,31 +1817,48 @@ STATUS("starting time series graph loop") ;
                fscale > 0 ==> this many pixels per unit of tsar
                fscale < 0 ==> this many units of tsar per pixel **/
 
-         ftemp = grapher->fscale ;
-              if( ftemp == 0.0 ) ftemp =  1.0 ;
-         else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
+         /** 29 Mar 2002: decode 'color:' from tsim->name, if present **/
 
-         for( i=0 ; i < MIN(ibot,itop) ; i++ )
-            plot[i] = (tsar[ibot] - tsbot) * ftemp ;
+         use_ovi = tsim->name!=NULL && (strncmp(tsim->name,"color: ",7)==0) ;
+         if( use_ovi ){
+            char *cpt = tsim->name+6 ; int nuse, ngood ;
+            for( tt=0 ; tt < OVI_MAX ; tt++ )
+               ovi[tt] = DATA_COLOR(grapher) ;
+            for( tt=0 ; tt < OVI_MAX ; tt++ ){
+               ngood = sscanf(cpt,"%d%n",ovi+tt,&nuse) ;
+               if( ngood < 1 ) break ;
+               cpt += nuse ; if( *cpt == '\0' ) break ;
+            }
+         }
 
-         for( i=ibot ; i < itop ; i++ )
-            plot[i] = (tsar[i] - tsbot) * ftemp ;
+         tsar = MRI_FLOAT_PTR(tsim) ;
+         for( tt=0 ; tt < tsim->ny ; tt++ ){  /* 29 Mar 2002: multi-plots */
 
-         grapher->pmax[ix][iy] = tsbot + grapher->gy / ftemp ; /* value at graph top */
+          ftemp = grapher->fscale ;
+               if( ftemp == 0.0 ) ftemp =  1.0 ;
+          else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
 
-         /** Compute X11 line coords from pixel heights in plot[].
-             N.B.: X11 y is DOWN the screen, but plot[] is UP the screen **/
+          for( i=0 ; i < MIN(ibot,itop) ; i++ )
+             plot[i] = (tsar[ibot] - tsbot) * ftemp ;
 
-         ftemp = grapher->gx / (float) (NPTS(grapher) - 1) ;  /* x scale */
+          for( i=ibot ; i < itop ; i++ )
+             plot[i] = (tsar[i] - tsbot) * ftemp ;
 
-         /* X11 box for graph:
-            x = xorigin[ix][iy]          .. xorigin[ix][iy]+gx    (L..R)
-            y = fHIGH-yorigin[ix][iy]-gy .. fHIGH-yorigin[ix][iy] (T..B) */
+          grapher->pmax[ix][iy] = tsbot + grapher->gy / ftemp ; /* value at graph top */
 
-         xoff  = grapher->xorigin[ix][iy] ;
-         yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
+          /** Compute X11 line coords from pixel heights in plot[].
+              N.B.: X11 y is DOWN the screen, but plot[] is UP the screen **/
 
-         /* 09 Jan 1998: allow x-axis to be chosen by a
+          ftemp = grapher->gx / (float) (NPTS(grapher) - 1) ;  /* x scale */
+
+          /* X11 box for graph:
+             x = xorigin[ix][iy]          .. xorigin[ix][iy]+gx    (L..R)
+             y = fHIGH-yorigin[ix][iy]-gy .. fHIGH-yorigin[ix][iy] (T..B) */
+
+          xoff  = grapher->xorigin[ix][iy] ;
+          yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
+
+          /* 09 Jan 1998: allow x-axis to be chosen by a
                          timeseries that ranges between 0 and 1 */
 
 #define XPIX(ii)                                                    \
@@ -1829,24 +1866,27 @@ STATUS("starting time series graph loop") ;
      ? (MRI_FLOAT_PTR(grapher->xax_tsim)[MAX(ii,ibot)] * grapher->gx) \
      : (ii * ftemp) )
 
-         for( i=0 ; i < itop ; i++ ){
-            a_line[i].x = xoff + XPIX(i) ;   /* 09 Jan 1998 */
-            a_line[i].y = yoff - plot[i] ;
-         }
+          for( i=0 ; i < itop ; i++ ){
+             a_line[i].x = xoff + XPIX(i) ;   /* 09 Jan 1998 */
+             a_line[i].y = yoff - plot[i] ;
+          }
 
-         if( DATA_POINTS(grapher) ){         /* 09 Jan 1998 */
+          if( use_ovi )                       /* 29 Mar 2002 */
+            DC_fg_color( grapher->dc , ovi[tt%OVI_MAX] ) ;
+
+          if( DATA_POINTS(grapher) ){         /* 09 Jan 1998 */
             for( i=0 ; i < itop ; i++ )
                GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DATA_IS_THICK(grapher) ) ;
-         }
-         if( DATA_LINES(grapher) ){          /* 01 Aug 1998 */
+          }
+          if( DATA_LINES(grapher) ){          /* 01 Aug 1998 */
             XDrawLines( grapher->dc->display ,
                         grapher->fd_pxWind , grapher->dc->myGC ,
                         a_line , npoints ,  CoordModeOrigin ) ;
-         }
+          }
 
          /* 22 July 1996: save central graph data for later use */
 
-         if( ix == grapher->xc && iy == grapher->yc ){
+          if( ix == grapher->xc && iy == grapher->yc && tt == 0 ){
 #if 0
             if( npoints > grapher->ncen_line ){
                myXtFree(grapher->cen_line) ;
@@ -1859,24 +1899,51 @@ STATUS("starting time series graph loop") ;
 
             mri_free( grapher->cen_tsim ) ;             /* copy time series too */
             grapher->cen_tsim = mri_to_float( tsim ) ;
-         }
+          }
+
+          tsar += tsim->nx ;  /* 29 Mar 2002 */
+         } /* end of loop over multi-plot */
+
+         if( use_ovi )
+           DC_fg_color( grapher->dc , DATA_COLOR(grapher) ) ;
 
          /* 08 Nov 1996: double plot?  Duplicate the above drawing code! */
          /* 07 Aug 2001: old method was DPLOT_OVERLAY,
                          new method is  DPLOT_PLUSMINUS */
+         /* 29 Mar 2002: allow multiple time series (dsim->ny >1) */
 
          if( dplot ){
+            int dny , id ;
             dsim = IMARR_SUBIMAGE(dplot_imar,its) ;
             if( dsim == NULL || dsim->nx < 2 ) continue ;  /* skip */
             dsar = MRI_FLOAT_PTR(dsim) ;
             itop = NPTS(grapher) ;
             itop = npoints = MIN( itop , dsim->nx ) ;
 
-            ftemp = grapher->fscale ;
-                 if( ftemp == 0.0 ) ftemp =  1.0 ;
-            else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
+            if( dplot == DPLOT_PLUSMINUS ) dny = 1 ;        /* 29 Mar 2002 */
+            else                           dny = dsim->ny ;
 
-            switch( dplot ){
+            /** 29 Mar 2002: decode 'color:' from dsim->name, if present **/
+
+            use_ovi = dsim->name!=NULL && (strncmp(dsim->name,"color: ",7)==0) ;
+            if( use_ovi ){
+               char *cpt = dsim->name+6 ; int nuse, ngood ;
+               for( tt=0 ; tt < OVI_MAX ; tt++ )
+                  ovi[tt] = DPLOT_COLOR(grapher) ;
+               for( tt=0 ; tt < OVI_MAX ; tt++ ){
+                  ngood = sscanf(cpt,"%d%n",ovi+tt,&nuse) ;
+                  if( ngood < 1 ) break ;
+                  cpt += nuse ; if( *cpt == '\0' ) break ;
+               }
+            }
+
+            for( id=0 ; id < dny ; id++ ){                  /* 29 Mar 2002 */
+
+             ftemp = grapher->fscale ;
+                  if( ftemp == 0.0 ) ftemp =  1.0 ;
+             else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
+
+             switch( dplot ){
                default:
                case DPLOT_OVERLAY:                       /* plot curve */
                   for( i=0 ; i < MIN(ibot,itop) ; i++ )
@@ -1891,33 +1958,36 @@ STATUS("starting time series graph loop") ;
                   for( i=ibot ; i < itop ; i++ )
                      plot[i] = (tsar[i]   +dsar[i]    - tsbot) * ftemp ;
                break ;
-            }
+             }
 
-            ftemp = grapher->gx / (float) (NPTS(grapher) - 1) ; /* cf XPIX */
-            xoff  = grapher->xorigin[ix][iy] ;
-            yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
+             ftemp = grapher->gx / (float) (NPTS(grapher) - 1) ; /* cf XPIX */
+             xoff  = grapher->xorigin[ix][iy] ;
+             yoff  = grapher->fHIGH - grapher->yorigin[ix][iy] ;
 
-            for( i=0 ; i < itop ; i++ ){
-               a_line[i].x = xoff + XPIX(i) ;  /* 09 Jan 1998 */
-               a_line[i].y = yoff - plot[i] ;
-            }
+             for( i=0 ; i < itop ; i++ ){
+                a_line[i].x = xoff + XPIX(i) ;  /* 09 Jan 1998 */
+                a_line[i].y = yoff - plot[i] ;
+             }
 
-            DC_fg_color ( grapher->dc , DPLOT_COLOR(grapher) ) ;
+             if( use_ovi )                      /* 29 Mar 2002 */
+               DC_fg_color( grapher->dc , ovi[tt%OVI_MAX] ) ;
+             else
+               DC_fg_color( grapher->dc , DPLOT_COLOR(grapher) ) ;
 
-            if( DPLOT_POINTS(grapher) ){        /* 09 Jan 1998 */
+             if( DPLOT_POINTS(grapher) ){       /* 09 Jan 1998 */
                for( i=0 ; i < itop ; i++ )
                   GRA_small_circle( grapher,a_line[i].x,a_line[i].y,DPLOT_IS_THICK(grapher) ) ;
-            }
-            if( DPLOT_LINES(grapher) ) {        /* 01 Aug 1998 */
+             }
+             if( DPLOT_LINES(grapher) ) {        /* 01 Aug 1998 */
                DC_linewidth( grapher->dc , DPLOT_THICK(grapher) ) ;
                XDrawLines( grapher->dc->display ,
                            grapher->fd_pxWind , grapher->dc->myGC ,
                            a_line , npoints ,  CoordModeOrigin ) ;
-            }
+             }
 
-            /* plot minus side of plus/minus curve? */
+             /* plot minus side of plus/minus curve? */
 
-            if( dplot == DPLOT_PLUSMINUS ){  /* lots of duplicate code :-( */
+             if( dplot == DPLOT_PLUSMINUS ){  /* lots of duplicate code :-( */
               ftemp = grapher->fscale ;
                    if( ftemp == 0.0 ) ftemp =  1.0 ;
               else if( ftemp <  0.0 ) ftemp = -1.0 / ftemp ;
@@ -1940,7 +2010,10 @@ STATUS("starting time series graph loop") ;
                             grapher->fd_pxWind , grapher->dc->myGC ,
                             a_line , npoints ,  CoordModeOrigin ) ;
               }
-            }
+             }
+
+             dsar += dsim->nx ;                        /* 29 Mar 2002 */
+            } /* end of loop over multiple plots */
 
             DC_fg_color ( grapher->dc , DATA_COLOR(grapher) ) ;
             DC_linewidth( grapher->dc , DATA_THICK(grapher) ) ;

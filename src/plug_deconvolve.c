@@ -513,6 +513,9 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    global_plint = plint ;  /* make global copy */
 
+   PLUTO_short_choose(plint) ;  /* 29 Mar 2002 [RWCox]: */
+   PLUTO_short_number(plint) ;  /* make 'Choose' and number widgets shorter */
+
    PLUTO_add_hint (plint, 
      "Control DC_Fit, DC_Err, and DC_IRF Deconvolution Functions");
 

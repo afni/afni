@@ -16,6 +16,8 @@ void mri_add_name( char * str , MRI_IMAGE * im )
 {
    int ll ;
 
+   if( im == NULL ) return ;  /* 29 Mar 2002 */
+
    if( im->name != NULL ){ free( im->name ) ; im->name = NULL ; }
 
    if( str == NULL ) return ;
@@ -31,6 +33,8 @@ void mri_add_name( char * str , MRI_IMAGE * im )
 void mri_add_fname_delay( char * str , MRI_IMAGE * im )
 {
    int ll ;
+
+   if( im == NULL ) return ;  /* 29 Mar 2002 */
 
    if( im->fname != NULL ){ free( im->fname ) ; im->fname = NULL ; }
 
