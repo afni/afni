@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.9 (July 29, 2004)"
+#define VERSION "version 1.10 (August 11, 2004)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -85,6 +85,9 @@ static char g_history[] =
     "\n"
     "1.9 July 29, 2004  [rickr]\n"
     "  - Remove check for anat correct.\n"
+    "\n"
+    "1.10 August 11, 2004  [rickr]\n"
+    "  - Add comment about volume being too large.\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -2058,6 +2061,15 @@ ENTRY("usage");
 	    printf( "            %-12s : %s\n", g_sm_names[c], g_sm_desc[c]);
 
 	printf(
+	    "\n"
+	    "          Note that the node volumes are approximations.  Places\n"
+	    "          where either normal points in the 'wrong' direction\n"
+	    "          will be incorrect, as will be the parts of the surface\n"
+	    "          that 'encompass' this region.  Maybe we could refer\n"
+	    "          to this as a mushroom effect...\n"
+	    "\n"
+	    "          Basically, expect the total volume to be around 10%%\n"
+	    "          too large.\n"
 	    "\n"
 	    "    -help                 : show this help menu\n"
 	    "\n"
