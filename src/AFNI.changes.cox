@@ -4955,3 +4955,6 @@
  * Oooops.  "\noesc" should be "\\noesc" in several places.  My bad.
  * Modified mri_read.c to allow GE "IMGF" flag to be anywhere in 1st 4K
      of file, if file starts with "GEMS" instead of "IMGF".
+
+19 Feb 2004
+ * Added -mask and -srad and 5th-value=radius features to 3dUndump.c.

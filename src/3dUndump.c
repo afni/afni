@@ -39,6 +39,14 @@ void Syntax(char * msg)
     "                   create a dataset of a specific size for test\n"
     "                   purposes, when no suitable master exists.\n"
     "          ** N.B.: Exactly one of -master or -dimen must be given.\n"
+    "  -mask kkk    = This option specifies a mask dataset 'kkk', which\n"
+    "                   will control which voxels are allowed to get\n"
+    "                   values set.  If the mask is present, only\n"
+    "                   voxels that are nonzero in the mask can be\n"
+    "                   set in the new dataset.\n"
+    "                   * A mask can be created with program 3dAutomask.\n"
+    "                   * Combining a mask with sphere insertion makes\n"
+    "                     a lot of sense (to me, at least).\n"
     "  -datum type  = 'type' determines the voxel data type of the\n"
     "                   output, which may be byte, short, or float\n"
     "                   [default = short].\n"
@@ -57,6 +65,12 @@ void Syntax(char * msg)
     "                   is used to specify the size of the output dataset,\n"
     "                   (x,y,z) coordinates are not defined (until you\n"
     "                   use 3drefit to define the spatial structure).\n"
+    "  -srad rrr    = Specifies that a sphere of radius 'rrr' will be\n"
+    "                   filled about each input (x,y,z) or (i,j,k) voxel.\n"
+    "                   If the radius is not given, or is 0, then each\n"
+    "                   input data line sets the value in only one voxel.\n"
+    "                   * If '-master' is used, then 'rrr' is in mm.\n"
+    "                   * If '-dimen' is used, then 'rrr' is in voxels.\n"
     "  -orient code = Specifies the coordinate order used by -xyz.\n"
     "                   The code must be 3 letters, one each from the pairs\n"
     "                   {R,L} {A,P} {I,S}.  The first letter gives the\n"
@@ -93,13 +107,19 @@ void Syntax(char * msg)
     "Notes:\n"
     "* This program creates a 1 sub-brick file.  You can 'glue' multiple\n"
     "   files together using 3dbucket or 3dTcat to make multi-brick datasets.\n"
-    "* If an input filename is '-', then stdin is used.\n"
+    "* If an input filename is '-', then stdin is used for input.\n"
     "* By default, the output dataset is of type '-fim', unless the -master\n"
-    "   dataset is an anat type.  You can change the output type using\n"
-    "   3drefit.\n"
+    "   dataset is an anat type. You can change the output type using 3drefit.\n"
     "* You could use program 1dcat to extract specific columns from a\n"
     "   multi-column rectangular file (e.g., to get a specific sub-brick\n"
-    "   from the output of 3dmaskdump).\n"
+    "   from the output of 3dmaskdump), and use the output of 1dcat as input\n"
+    "   to this program.\n"
+    "* [19 Feb 2004] The -mask and -srad options were added this day.\n"
+    "   Also, a fifth value on an input line, if present, is taken as a\n"
+    "   sphere radius to be used for that input point only.  Thus, input\n"
+    "      3.3 4.4 5.5 6.6 7.7\n"
+    "   means to put the value 6.6 into a sphere of radius 7.7 mm centered\n"
+    "   about (x,y,z)=(3.3,4.4,5.5).\n"
     "\n"
     "-- RWCox -- October 2000\n"
    ) ;
@@ -115,19 +135,23 @@ int main( int argc , char * argv[] )
 {
    int do_ijk=1 , dimen_ii=0 , dimen_jj=0 , dimen_kk=0 , datum=MRI_short ;
    THD_3dim_dataset *mset=NULL ;
-   char * prefix="undump" , * orcode=NULL ;
+   char *prefix="undump" , *orcode=NULL ;
    THD_coorder cord ;
-   float dval_float=1.0 , fval_float=0.0 , * fbr=NULL ;
-   short dval_short=1   , fval_short=0   , * sbr=NULL ;
-   byte  dval_byte =1   , fval_byte =0   , * bbr=NULL ;
+   float dval_float=1.0 , fval_float=0.0 , *fbr=NULL ;
+   short dval_short=1   , fval_short=0   , *sbr=NULL ;
+   byte  dval_byte =1   , fval_byte =0   , *bbr=NULL , *mmask=NULL ;
 
-   FILE * fp ;
-   THD_3dim_dataset * dset ;
+   FILE *fp ;
+   THD_3dim_dataset *dset , *maskset=NULL ;
    int iarg , ii,jj,kk,ll,ijk , nx,ny,nz , nxyz , nn ;
-   float      xx,yy,zz,vv ;
-   char linbuf[NBUF] , * cp ;
+   float      xx,yy,zz,vv=0.0 ;
+   short               sv=0   ;
+   byte                bv=0   ;
+   char linbuf[NBUF] , *cp ;
 
    float xxdown,xxup , yydown,yyup , zzdown,zzup ;
+
+   float srad=0.0 , vrad,rii,rjj,rkk,qii,qjj,qkk , dx,dy,dz ;  /* 19 Feb 2004 */
 
    /*-- help? --*/
 
@@ -184,6 +208,21 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
+      if( strcmp(argv[iarg],"-mask") == 0 ){
+        if( iarg+1 >= argc )
+          Syntax("-mask: no argument follows!?") ;
+        else if( maskset != NULL )
+          Syntax("-mask: can't have two -mask options!") ;
+
+        maskset = THD_open_dataset( argv[++iarg] ) ;
+        if( maskset == NULL )
+          Syntax("-mask: can't open dataset" ) ;
+
+        iarg++ ; continue ;
+      }
+
+      /*-----*/
+
       if( strcmp(argv[iarg],"-dimen") == 0 ){
          if( iarg+3 >= argc )
             Syntax("-dimen: don't have 3 arguments following!?") ;
@@ -216,6 +255,20 @@ int main( int argc , char * argv[] )
             Syntax("-datum: illegal type given!") ;
 
          iarg++ ; continue ;
+      }
+
+      /*-----*/
+
+      if( strcmp(argv[iarg],"-srad") == 0 ){   /* 19 Feb 2004 */
+        if( iarg+1 >= argc )
+          Syntax("-srad: no argument follows!?") ;
+
+        srad = strtod( argv[++iarg] , NULL ) ;
+        if( srad <= 0.0 ){
+          fprintf(stderr,"++ WARNING: -srad value of %g is ignored!\n",srad);
+          srad = 0.0 ;
+        }
+        iarg++ ; continue ;
       }
 
       /*-----*/
@@ -365,7 +418,31 @@ int main( int argc , char * argv[] )
 
    nx = DSET_NX(dset); ny = DSET_NY(dset); nz = DSET_NZ(dset); nxyz = nx*ny*nz;
 
-   /*-- fill with the -fval value --*/
+   /* 19 Feb 2004: check and make mask if desired */
+
+   if( maskset != NULL &&
+       ( DSET_NX(maskset) != nx ||
+         DSET_NY(maskset) != ny ||
+         DSET_NZ(maskset) != nz   ) )
+     Syntax("-mask dataset doesn't match dimension of output dataset") ;
+
+   if( maskset != NULL ){
+     mmask = THD_makemask( maskset , 0 , 1.0,-1.0 ) ;
+     if( mmask == NULL ){
+       fprintf(stderr,"++ WARNING: can't create mask for some reason!\n") ;
+     } else {
+       int nmask = THD_countmask( nxyz , mmask ) ;
+       if( nmask == 0 ){
+         fprintf(stderr,"++ WARNING: 0 voxels in mask -- ignoring it!\n") ;
+         free((void *)mmask) ; mmask = NULL ;
+       } else {
+         fprintf(stderr,"++ %d voxels found in mask\n",nmask) ;
+       }
+     }
+     DSET_delete(maskset) ;
+   }
+
+   /*-- fill new dataset brick with the -fval value --*/
 
    switch( datum ){
       case MRI_short:
@@ -386,14 +463,18 @@ int main( int argc , char * argv[] )
 
    /* 24 Nov 2000: get the bounding box for the dataset */
 
+   dx = fabs(dset->daxes->xxdel) ; if( dx <= 0.0 ) dx = 1.0 ;
+   dy = fabs(dset->daxes->yydel) ; if( dy <= 0.0 ) dy = 1.0 ;
+   dz = fabs(dset->daxes->zzdel) ; if( dz <= 0.0 ) dz = 1.0 ;
+
    if( !do_ijk ){
 #ifndef EXTEND_BBOX
-      xxdown = dset->daxes->xxmin - 0.501 * fabs(dset->daxes->xxdel) ;
-      xxup   = dset->daxes->xxmax + 0.501 * fabs(dset->daxes->xxdel) ;
-      yydown = dset->daxes->yymin - 0.501 * fabs(dset->daxes->yydel) ;
-      yyup   = dset->daxes->yymax + 0.501 * fabs(dset->daxes->yydel) ;
-      zzdown = dset->daxes->zzmin - 0.501 * fabs(dset->daxes->zzdel) ;
-      zzup   = dset->daxes->zzmax + 0.501 * fabs(dset->daxes->zzdel) ;
+      xxdown = dset->daxes->xxmin - 0.501 * dx ;
+      xxup   = dset->daxes->xxmax + 0.501 * dx ;
+      yydown = dset->daxes->yymin - 0.501 * dy ;
+      yyup   = dset->daxes->yymax + 0.501 * dy ;
+      zzdown = dset->daxes->zzmin - 0.501 * dz ;
+      zzup   = dset->daxes->zzmax + 0.501 * dz ;
 #else
       xxdown = dset->daxes->xxmin ;
       xxup   = dset->daxes->xxmax ;
@@ -437,14 +518,16 @@ int main( int argc , char * argv[] )
          for( ii=0 ; ii < kk && isspace(linbuf[ii]) ; ii++ ) ; /* nada */
          if( ii == kk ) continue ;                                 /* all blanks */
          if( linbuf[ii] == '/' && linbuf[ii+1] == '/' ) continue ; /* comment */
+         if( linbuf[ii] == '#'                        ) continue ; /* comment */
 
          /* scan line for data */
 
-         vv = dval_float ;
-         nn = sscanf(linbuf+ii , "%f%f%f%f" , &xx,&yy,&zz,&vv ) ;
+         vv   = dval_float ;   /* if not scanned in below, use the default value */
+         vrad = srad ;         /* 19 Feb 2004: default sphere radius */
+         nn   = sscanf(linbuf+ii , "%f%f%f%f%f" , &xx,&yy,&zz,&vv,&vrad ) ;
          if( nn < 3 ){
-            fprintf(stderr,"+++ Warning: file %s line %d: incomplete\n",argv[iarg],ll) ;
-            continue ;
+           fprintf(stderr,"+++ Warning: file %s line %d: incomplete\n",argv[iarg],ll) ;
+           continue ;
          }
 
          /* get voxel index into (ii,jj,kk) */
@@ -502,26 +585,70 @@ int main( int argc , char * argv[] )
             ii = iv.ijk[0]; jj = iv.ijk[1]; kk = iv.ijk[2];  /* save */
          }
 
-         /* now load voxel */
+         /* now load individual voxel (ii,jj,kk) */
 
          ijk = ii + jj*nx + kk*nx*ny ;
-         switch( datum ){
-            case MRI_float:
-               if( fbr[ijk] != fval_float )
-                  fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
-               fbr[ijk] = vv ;
+         if( mmask == NULL || mmask[ijk] ){
+          switch( datum ){
+            case MRI_float:{
+              if( fbr[ijk] != fval_float && fbr[ijk] != vv )
+                fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+              fbr[ijk] = vv ;
+            }
             break ;
-            case MRI_short:
-               if( sbr[ijk] != fval_short )
-                  fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
-               sbr[ijk] = (short) rint(vv) ;
+            case MRI_short:{
+              sv = SHORTIZE(vv) ;
+              if( sbr[ijk] != fval_short && sbr[ijk] != sv )
+                fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+              sbr[ijk] = sv ;
+            }
             break ;
-            case MRI_byte:
-               if( bbr[ijk] != fval_byte )
-                  fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
-               bbr[ijk] = (byte) rint(vv) ;
+            case MRI_byte:{
+              bv = BYTEIZE(vv) ;
+              if( bbr[ijk] != fval_byte && bbr[ijk] != bv )
+                fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+              bbr[ijk] = bv ;
+            }
             break ;
+          }
          }
+
+         /* 19 Feb 2004:
+             Make up radius of ellipsoid in voxel indexes
+             Will put value vv into all voxels (aa,bb,cc) with
+               (aa-ii)**2/qii + (bb-jj)**2/qjj + (cc-kk)**2/qkk <= 1.0 */
+
+         vrad *= 1.00001 ;                               /* expand a little */
+         rii = vrad/dx ; rjj = vrad/dy ; rkk = vrad/dz ;
+         qii = rii*rii ; qjj = rjj*rjj ; qkk = rkk*rkk ;
+
+         if( rii >= 1.0 || rjj >= 1.0 || rkk >= 1.0 ){
+           int aa,bb,cc , abot,atop,bbot,btop,cbot,ctop; float rr;
+           abot = ii-(int)rint(rii) ; atop = ii+(int)rint(rii) ;
+           if( abot < 0 ) abot = 0 ; if( atop >= nx ) atop = nx-1 ;
+           bbot = jj-(int)rint(rjj) ; btop = jj+(int)rint(rjj) ;
+           if( bbot < 0 ) bbot = 0 ; if( btop >= ny ) btop = ny-1 ;
+           cbot = kk-(int)rint(rkk) ; ctop = kk+(int)rint(rkk) ;
+           if( cbot < 0 ) cbot = 0 ; if( ctop >= nz ) ctop = nz-1 ;
+           for( cc=cbot ; cc <= ctop ; cc++ ){
+             for( bb=bbot ; bb <= btop ; bb++ ){
+               for( aa=abot ; aa <= atop ; aa++ ){
+                 rr =  (aa-ii)*(aa-ii)/qii
+                     + (bb-jj)*(bb-jj)/qjj + (cc-kk)*(cc-kk)/qkk ;
+                 if( rr <= 1.00001 ){
+                   ijk = aa + bb*nx + cc*nx*ny ;    /* (aa,bb,cc) in dataset */
+                   if( mmask == NULL || mmask[ijk] ){
+                     switch( datum ){
+                       case MRI_float: fbr[ijk] = vv ; break ;
+                       case MRI_short: sbr[ijk] = sv ; break ;
+                       case MRI_byte:  bbr[ijk] = bv ; break ;
+                     }
+                   }
+                 }
+               }
+             }
+           }
+         }  /* 19 Feb 2004: end of inserting a sphere */
 
       } /* end of loop over input lines */
 
