@@ -439,12 +439,10 @@ int NI_is_name( char *str )
 
    if( str == NULL || str[0] == '\0' || !isalpha(str[0]) ) return 0 ;
 
-   for( ii=1 ; str[ii] != '\0' ; ii++ ){
-     if( IS_NAME_CHAR(str[ii] ) continue ;   /* this one is OK */
-     return 0 ;                    /* this is bad ==>  failure */
-   }
+   for( ii=1 ; str[ii] != '\0' ; ii++ )
+     if( !IS_NAME_CHAR(str[ii]) ) return 0 ; /* this one is bad */
 
-   return 1 ;    /* success */
+   return 1 ;                      /* all were good ==> success */
 }
 
 /*------------------------------------------------------------------------*/

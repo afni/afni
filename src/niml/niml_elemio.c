@@ -198,10 +198,14 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
       NI_element *nel ;
       int form, swap, nbrow , row,col ;
 
-      enhance_header_stuff( hs ) ;
+#if 0
+      enhance_header_stuff( hs ) ;  /* 12 Feb 2003: removed NI_typedef - RWC */
+#endif
+
       nel = make_empty_data_element( hs ) ;
       destroy_header_stuff( hs ) ;
 
+#if 0 /*** 12 Feb 2003: disabled by RWC ***/
       /*-- check if this is a ni_typedef element --*/
 
       if( strcmp(nel->name,"ni_typedef") == 0 ){
@@ -221,6 +225,7 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
 
          goto HeadRestart ;
       }
+#endif
 
       /*-- check if this is an empty element --*/
 
@@ -1277,66 +1282,51 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
             ADDOUT ;
          }
 
-         /** do ni_type if this is NOT a typedef-ed type **/
+         /** do ni_type **/
 
-         tt = string_index(nel->name,typedef_num,typedef_nam) ;
-         if( tt < 0 ){
+         sprintf(att,"%sni_type%s\"" , att_prefix , att_equals ) ;
+         for( ll=-1,ii=0 ; ii < nel->vec_num ; ii++ ){
+          if( nel->vec_typ[ii] != ll ){  /* not the last type */
+             if( ll >= 0 ){              /* write the last type out now */
+                btt = att + strlen(att) ;
+                if( jj > 1 ) sprintf(btt,"%d*%s,",jj,NI_type_name(ll)) ;
+                else         sprintf(btt,"%s,"   ,   NI_type_name(ll)) ;
+             }
+             ll = nel->vec_typ[ii] ;     /* save new type code */
+             jj = 1 ;                    /* it now has count 1 */
 
-           /* ni_type */
-
-           sprintf(att,"%sni_type%s\"" , att_prefix , att_equals ) ;
-           for( ll=-1,ii=0 ; ii < nel->vec_num ; ii++ ){
-            if( nel->vec_typ[ii] != ll ){  /* not the last type */
-               if( ll >= 0 ){              /* write the last type out now */
-                  btt = att + strlen(att) ;
-                  if( jj > 1 ) sprintf(btt,"%d%c,",jj,NI_type_char(ll)) ;
-                  else         sprintf(btt,"%c,"  ,   NI_type_char(ll)) ;
-               }
-               ll = nel->vec_typ[ii] ;     /* save new type code */
-               jj = 1 ;                    /* it now has count 1 */
-
-            } else {                       /* same as last type */
-               jj++ ;                      /* so add 1 to its count */
-            }
-           }
-           /* write the last type */
-           btt = att + strlen(att) ;
-           if( jj > 1 ) sprintf(btt,"%d%c\"",jj,NI_type_char(ll)) ;
-           else         sprintf(btt,"%c\""  ,   NI_type_char(ll)) ;
-
-           nout = NI_stream_writestring( ns , att ) ;
-           ADDOUT ;
+          } else {                       /* same as last type */
+             jj++ ;                      /* so add 1 to its count */
+          }
          }
+         /* write the last type */
+         btt = att + strlen(att) ;
+         if( jj > 1 ) sprintf(btt,"%d*%s\"",jj,NI_type_name(ll)) ;
+         else         sprintf(btt,"%s\""   ,   NI_type_name(ll)) ;
 
-         /** do ni_dimen stuff:
-              if this is NOT typedef-ed, OR
-              if it IS typedef-ed but without a ni_dimen attribute
-               AND the actual element dimension is greater than 1  **/
+         nout = NI_stream_writestring( ns , att ) ;
+         ADDOUT ;
 
-         if( tt < 0 || (typedef_dim[tt] == NULL && nel->vec_len > 1) ){
+         /** do ni_dimen **/
 
-           /* ni_dimen */
-
-           sprintf(att,"%sni_dimen%s" , att_prefix , att_equals ) ;
-           qtt = quotize_int_vector( nel->vec_rank ,
-                                     nel->vec_axis_len , ',' ) ;
-           strcat(att,qtt) ; NI_free(qtt) ;
-           nout = NI_stream_writestring( ns , att ) ;
-           ADDOUT ;
+         sprintf(att,"%sni_dimen%s" , att_prefix , att_equals ) ;
+         qtt = quotize_int_vector( nel->vec_rank ,
+                                   nel->vec_axis_len , ',' ) ;
+         strcat(att,qtt) ; NI_free(qtt) ;
+         nout = NI_stream_writestring( ns , att ) ;
+         ADDOUT ;
 
 #if 0
-           /* extras: ni_veclen and ni_vecnum attributes */
+         /* extras: ni_veclen and ni_vecnum attributes */
 
-           sprintf(att,"%sni_veclen%s\"%d\"", att_prefix,att_equals,nel->vec_len) ;
-           nout = NI_stream_writestring( ns , att ) ;
-           ADDOUT ;
+         sprintf(att,"%sni_veclen%s\"%d\"", att_prefix,att_equals,nel->vec_len) ;
+         nout = NI_stream_writestring( ns , att ) ;
+         ADDOUT ;
 
-           sprintf(att,"%sni_vecnum%s\"%d\"", att_prefix,att_equals,nel->vec_num) ;
-           nout = NI_stream_writestring( ns , att ) ;
-           ADDOUT ;
+         sprintf(att,"%sni_vecnum%s\"%d\"", att_prefix,att_equals,nel->vec_num) ;
+         nout = NI_stream_writestring( ns , att ) ;
+         ADDOUT ;
 #endif
-         }
-
          /* ni_delta */
 
          if( nel->vec_axis_delta != NULL ){
