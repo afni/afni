@@ -764,3 +764,12 @@
     - true_max update in find_local_maxima()
     - added check for warp-on-demand failure
 
+16 November 2004:
+  * modified nifti1_io.[ch] nifti1_test.c to include changes from M Jenkinson
+    - also modified nifti_validfilename, nifti_makebasename and
+      added nifti_find_file_extension
+  * added znzlib directory containing config.h Makefile znzlib.[ch]
+    (unmodified from Mark Jenkinson, except not to define USE_ZLIB)
+  * modified Makefile.INCLUDE to link znzlib.o into nifti1_test and
+    with the CS_OBJS in libmri.a
+
