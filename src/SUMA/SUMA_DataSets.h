@@ -64,6 +64,7 @@ typedef enum {
    SUMA_BINARY_NIML,          /* 2 */
    SUMA_NIML,                 /* 3 */
    SUMA_1D,                   /* 4 */
+   SUMA_1D_PURE,              /* 5 */
 } SUMA_DSET_FORMAT; /*!<  Format of data set
                           When you add a new element, modify functions
                           SUMA_Dset_Format_Name
@@ -367,6 +368,7 @@ NodeDef might be dynamically changed in the overlay plane */
    NEL_WRITE_TX(nel, strm, suc)
    NEL_WRITE_BI(nel, strm, suc)
    NEL_WRITE_1D(nel, strm, suc)
+   NEL_WRITE_1D_PURE(nel, strm, suc)
    macros for writing a NI element in  NI_TEXT_MODE, NI_BINARY_MODE  or
                                        NI_TEXT_MODE | NI_HEADERSHARP_FLAG which is a la 1D
    nel is the NI element
@@ -413,6 +415,30 @@ NodeDef might be dynamically changed in the overlay plane */
       NI_stream_close( m_ns ) ; \
    }  \
 }
+#define NEL_WRITE_1D_PURE(nel, frm, suc) { \
+   FILE *m_fid = NULL;  \
+   int m_ind, m_ival;   \
+   suc = 1; \
+   if (!SUMA_OK_1Dnel(nel)) { \
+      SUMA_SL_Err ("Element cannont be written to 1D format");    \
+      suc = 0; \
+   } else {   \
+      m_fid = fopen(frm,"w"); \
+      if( m_fid == NULL ) {    \
+         SUMA_SL_Err ("Failed to open file for output");  \
+         suc = 0; \
+      } else { \
+         for (m_ival=0; m_ival<nel->vec_len; ++m_ival) { \
+            for (m_ind=0; m_ind<nel->vec_num; ++m_ind) { \
+               fprintf(m_fid,"%f   ", SUMA_GetValInCol2(nel, m_ind, m_ival));  \
+            }  \
+            fprintf(m_fid,"\n"); \
+         }  \
+         fclose(m_fid); m_fid = NULL;  \
+      }  \
+   }\
+}
+
 #define NEL_WRITE_BI(nel, frm, suc) { \
    NI_stream m_ns = NULL;  \
    suc = 1; \
@@ -542,6 +568,7 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
 void SUMA_sigfunc(int sig);
 char *SUMA_pad_string(char *buf, char cp, int n, int add2end);
 char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval); 
+double SUMA_GetValInCol2(NI_element *nel, int ind, int ival); 
 int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node);
 int SUMA_GetNodeIndex_FromNodeRow(SUMA_DSET *dset, int row, int N_Node);
 /*********************** END Miscellaneous support functions **************************** */
