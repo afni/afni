@@ -251,7 +251,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object (SUMA_DO *dov)
          break;
          
    }   
-   if (dov) SUMA_free(dov);
+
    SUMA_RETURN(YUP);
 }
 
@@ -268,6 +268,7 @@ SUMA_Boolean SUMA_Free_Displayable_Object_Vect (SUMA_DO *dov, int N)
          Ret = Ret * SUMA_Free_Displayable_Object (&dov[i]);
       }
    }
+   if (dov) SUMA_free(dov);
    SUMA_RETURN(Ret);
 
 }   

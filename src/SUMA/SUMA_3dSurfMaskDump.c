@@ -239,7 +239,6 @@ int write_so_data ( opts_t * opts, param_t * p, SUMA_SurfaceObject * so )
 */
 int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 {
-#if 0
     if ( SUMA_Free_Displayable_Object_Vect(SUMAg_DOv, SUMAg_N_DOv) == 0 )
 	fprintf( stderr, "** failed SUMA_Free_Displayable_Object_Vect()\n" );
 
@@ -248,7 +247,6 @@ int final_clean_up ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 
     if ( SUMA_Free_CommonFields(SUMAg_CF) == 0 )
 	fprintf( stderr, "** failed SUMA_Free_CommonFields()\n" );
-#endif
 
     fclose( p->outfp );
 
