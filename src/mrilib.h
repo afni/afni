@@ -527,6 +527,8 @@ extern MRI_IMARR * mri_read_analyze75( char * ) ;  /* 05 Feb 2001 */
 extern MRI_IMARR * mri_read_siemens( char * ) ;    /* 12 Mar 2001 */
 extern MRI_IMARR * mri_read3D_analyze75( char * ); /* 26 Aug 2002 */
 
+extern MRI_IMAGE * mri_read_stuff( char * ) ;      /* 22 Nov 2002 */
+
 extern void mri_add_name( char * , MRI_IMAGE * ) ;
 
 extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
