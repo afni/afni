@@ -5008,7 +5008,11 @@ void REND_func_widgets(void)
 
    /**-- Popup menu to control some facets of the pbar --**/
 
+#ifdef BAD_BUTTON3_POPUPS
+   wfunc_pbar_menu = XmCreatePopupMenu( wfunc_color_rowcol, "menu" , NULL , 0 ) ;
+#else
    wfunc_pbar_menu = XmCreatePopupMenu( wfunc_color_label , "menu" , NULL , 0 ) ;
+#endif
 
    SAVEUNDERIZE(XtParent(wfunc_pbar_menu)) ; /* 27 Feb 2001 */
 

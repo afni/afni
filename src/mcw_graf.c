@@ -86,7 +86,11 @@ MCW_graf * new_MCW_graf( Widget wpar , MCW_DC * dc , char * title ,
 
    /* 30 Nov 2002: popup stuff */
 
+#ifdef BAD_BUTTON3_POPUPS
+   gp->popmenu  = XmCreatePopupMenu( gp->topform, "help" , NULL , 0 ) ;
+#else
    gp->popmenu  = XmCreatePopupMenu( gp->drawer , "help" , NULL , 0 ) ;
+#endif
    gp->poplabel = XtVaCreateManagedWidget(
                     "help" , xmLabelWidgetClass , gp->popmenu ,
                     LABEL_ARG("I am a label") ,
@@ -807,7 +811,11 @@ MCW_pasgraf * new_MCW_pasgraf( Widget wpar , MCW_DC * dc , char * title )
 
    /* 30 Nov 2002: popup stuff */
 
+#ifdef BAD_BUTTON3_POPUPS
+   gp->popmenu  = XmCreatePopupMenu( gp->topform, "help" , NULL , 0 ) ;
+#else
    gp->popmenu  = XmCreatePopupMenu( gp->drawer , "help" , NULL , 0 ) ;
+#endif
    gp->poplabel = XtVaCreateManagedWidget(
                     "help" , xmLabelWidgetClass , gp->popmenu ,
                     LABEL_ARG("I am a label") ,

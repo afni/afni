@@ -1653,6 +1653,21 @@ ENTRY("AFNI_startup_timeout_CB") ;
                               MCW_USER_KILL | MCW_TIMER_KILL ) ;
 #endif
 
+#ifdef BAD_BUTTON3_POPUPS
+    (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
+                              " \n"
+                              "*** WARNING:                  ***\n"
+                              "*** This computer system has  ***\n"
+                              "*** a bug with Button-3 popup ***\n"
+                              "*** menus -- to use a button  ***\n"
+                              "*** on such a menu, you have  ***\n"
+                              "*** to keep Button-3 pressed  ***\n"
+                              "*** down and then click the   ***\n"
+                              "*** menu button with Button-1 ***\n"
+                              "*** at the same time.         ***\n" ,
+                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
+#endif
+
    /* 21 Nov 2002: check the AFNI version */
 
    AFNI_version_check() ; /* does nada if AFNI_start_version_check() not called */
