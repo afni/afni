@@ -30,7 +30,7 @@ RANLIB = /usr/bin/ranlib
 TAR    = /usr/bin/tar
 MKDIR  = /bin/mkdir
 GZIP   = /usr/bin/gzip
-LD     = cc
+LD     = g++
 
 RM = /bin/rm -f
 MV = /bin/mv -f
