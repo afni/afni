@@ -85,12 +85,13 @@ ENTRY("THD_open_dataset") ;
    kk = MIN(ii,jj) ;
    memcpy(dname,pathname,kk) ; dname[kk] = '\0' ;
 
-   if( STRING_HAS_SUFFIX(dname,".mnc") ||
-       STRING_HAS_SUFFIX(dname,".hdr") ||
-       STRING_HAS_SUFFIX(dname,".nia") ||
-       STRING_HAS_SUFFIX(dname,".nii") ||
-       STRING_HAS_SUFFIX(dname,".mri") ||
-       STRING_HAS_SUFFIX(dname,".svl")   ){
+   if( STRING_HAS_SUFFIX(dname,".mnc")    ||
+       STRING_HAS_SUFFIX(dname,".hdr")    ||
+       STRING_HAS_SUFFIX(dname,".nia")    ||
+       STRING_HAS_SUFFIX(dname,".nii")    ||
+       STRING_HAS_SUFFIX(dname,".nii.gz") ||
+       STRING_HAS_SUFFIX(dname,".mri")    ||
+       STRING_HAS_SUFFIX(dname,".svl")      ){
 
      fprintf(stderr,"** Can't use selectors on dataset: %s\n",pathname) ;
      RETURN(NULL) ;

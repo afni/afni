@@ -15,6 +15,10 @@ int main( int argc , char *argv[] )
              "OPTIONS:\n"
              "  -prefix ppp = Write the NIfTI-1 file as 'ppp.nii'.\n"
              "                  Default: the dataset's prefix is used.\n"
+#ifdef HAVE_ZLIB
+             "                  If you want a compressed file, try\n"
+             "                  something like 'ppp.nii.gz'\n"
+#endif
              "  -verb       = Be verbose = print progress messages.\n"
              "                  Repeating this increases the verbosity\n"
              "                  (maximum setting is 3 '-verb' options).\n"
