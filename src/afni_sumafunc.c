@@ -473,7 +473,7 @@ ENTRY("AFNI_find_closest_node") ;
 /*-------- Stuff below here is for surface control panel [19 Aug 2002] ------*/
 
 static void AFNI_surf_done_CB( Widget,XtPointer,XtPointer ) ;
-static void AFNI_surf_color_CB( MCW_arrowval *,XtPointer ) ;
+static void AFNI_surf_redraw_CB( MCW_arrowval *,XtPointer ) ;
 static AFNI_make_surface_widgets( Three_D_View *, int ) ;
 static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
 
@@ -497,11 +497,11 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
      swid->surf_node_av[ii] = new_MCW_colormenu( rc ,              \
                                "Nodes" , im3d->dc ,                \
                                0 , im3d->dc->ovc->ncol_ov-1 , 0 ,  \
-                               AFNI_surf_color_CB , im3d ) ;       \
+                               AFNI_surf_redraw_CB , im3d ) ;      \
      swid->surf_line_av[ii] = new_MCW_colormenu( rc ,              \
                                "Lines" , im3d->dc ,                \
                                0 , im3d->dc->ovc->ncol_ov-1 , 1 ,  \
-                               AFNI_surf_color_CB , im3d ) ;       \
+                               AFNI_surf_redraw_CB , im3d ) ;      \
      MCW_reghint_children( swid->surf_node_av[ii]->wrowcol ,       \
                            "Color of node boxes" ) ;               \
      MCW_reghint_children( swid->surf_line_av[ii]->wrowcol ,       \
@@ -555,7 +555,19 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
             XmNtraversalOn , False ,
          NULL ) ;
 
-   /* horiz rowcol for top label and done button */
+   /* top label to look nice */
+
+   xstr = XmStringCreateLtoR( "xxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxxxxxxxxA [x] " ,
+                              XmFONTLIST_DEFAULT_TAG ) ;
+   swid->top_lab = XtVaCreateManagedWidget(
+                    "dialog" , xmLabelWidgetClass , swid->rowcol ,
+                       XmNrecomputeSize , False ,
+                       XmNlabelString , xstr ,
+                       XmNtraversalOn , False ,
+                    NULL ) ;
+   XmStringFree(xstr) ;
+
+   /* horiz rowcol for top controls [23 Feb 2003] */
 
    rc = XtVaCreateWidget(
           "dialog" , xmRowColumnWidgetClass , swid->rowcol ,
@@ -564,18 +576,24 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
              XmNtraversalOn , False ,
           NULL ) ;
 
-   /* label to look nice */
+   /* boxsize control [23 Feb 2003] */
 
+   swid->boxsize_av = new_MCW_optmenu( rc , "BoxSize" ,
+                                       1,19,2,0 ,
+                                       AFNI_surf_redraw_CB , im3d ,
+                                       NULL , NULL ) ;
+   MCW_reghint_children( swid->boxsize_av->wrowcol ,
+                         "Size of boxes drawn at nodes" ) ;
 
-   xstr = XmStringCreateLtoR( "xxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxxxxxxx [x] " ,
-                              XmFONTLIST_DEFAULT_TAG ) ;
-   swid->top_lab = XtVaCreateManagedWidget(
-                    "dialog" , xmLabelWidgetClass , rc ,
-                       XmNrecomputeSize , False ,
-                       XmNlabelString , xstr ,
-                       XmNtraversalOn , False ,
-                    NULL ) ;
-   XmStringFree(xstr) ;
+   /* linewidth control [23 Feb 2003] */
+
+   swid->linewidth_av = new_MCW_optmenu( rc , "LineWidth" ,
+                                         0,19,0,0 ,
+                                         AFNI_surf_redraw_CB , im3d ,
+                                         NULL , NULL ) ;
+   MCW_reghint_children( swid->linewidth_av->wrowcol ,
+                         "Width of lines drawn for surface" ) ;
+
 
    /* Done button */
 
@@ -645,8 +663,8 @@ ENTRY("AFNI_update_surface_widgets") ;
    strcpy( nam , im3d->anat_now->dblk->diskptr->directory_name ) ;
    strcat( nam , im3d->anat_now->dblk->diskptr->filecode ) ;
    tnam = THD_trailname(nam,SESSTRAIL+1) ;
-   ii = strlen(tnam) ; if( ii > 48 ) tnam += (ii-48) ;
-   sprintf(str ,"%-.48s %s" , tnam, AFNI_controller_label(im3d) ) ;
+   ii = strlen(tnam) ; if( ii > 50 ) tnam += (ii-50) ;
+   sprintf(str ,"%-.50s %s" , tnam, AFNI_controller_label(im3d) ) ;
    MCW_set_widget_label( swid->top_lab , str ) ;
 
    /* make more widget rows? (1 per surface is needed) */
@@ -764,16 +782,16 @@ ENTRY("AFNI_surf_done_CB") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/* Callback for press of a colormenu on the surface controls.
+/* Callback for press of an arrowval on the surface controls.
    All this does is to redraw the images, since that is where
-   the actual colors will be grabbed from the swid arrowvals.  */
+   the actual info will be grabbed from the swid arrowvals.  */
 
-static void AFNI_surf_color_CB( MCW_arrowval * av , XtPointer cd )
+static void AFNI_surf_redraw_CB( MCW_arrowval * av , XtPointer cd )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
    AFNI_surface_widgets *swid ;
 
-ENTRY("AFNI_surf_color_CB") ;
+ENTRY("AFNI_surf_redraw_CB") ;
 
    if( im3d == NULL ) EXRETURN ;
    swid = im3d->vwid->view->swid ;

@@ -127,6 +127,7 @@ void memplot_to_X11_sef( Display * dpy , Window w , MEM_plotdata * mp ,
    short x1,y1 , x2,y2 ;  /* X11 screen coords are shorts */
    int skip ;
    int w_width, w_height, w_depth ;  /* 12 Mar 2002 */
+   XGCValues gcv ;
 
    int freee = (mask & MEMPLOT_FREE_ASPECT) != 0 ;  /* 16 Nov 2001 */
    int erase = (mask & MEMPLOT_ERASE      ) != 0 ;
@@ -186,6 +187,13 @@ void memplot_to_X11_sef( Display * dpy , Window w , MEM_plotdata * mp ,
       XSetForeground( old_dpy , old_GC , pix ) ;
    }
 
+   /* 23 Feb 2003: initialize line width to 0 for each entry
+                   (in case a special case [box,circle, ...] comes first */
+
+   gcv.line_width = 0 ;
+   gcv.join_style = JoinBevel ;
+   XChangeGC( old_dpy , old_GC , GCLineWidth | GCJoinStyle , &gcv ) ;
+
    /*--- loop over lines, scale and plot ---*/
 
    for( ii=start ; ii < end ; ii++ ){
@@ -227,7 +235,11 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
                if( y1 < y2 ){ yb=y1; yt=y2; } else { yb=y2; yt=y1; }
                w = xt-xb ; h = yt-yb ;
                if( w || h )
+#if 0
                  XFillRectangle( old_dpy,old_w,old_GC , xb,yb,w,h ) ;
+#else
+                 XDrawRectangle( old_dpy,old_w,old_GC , xb,yb,w,h ) ;
+#endif
                else
                  XDrawPoint( old_dpy,old_w,old_GC , xb,yb ) ;
                skip = 1 ;
@@ -253,7 +265,6 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
          }
 
       } else if( new_thick != old_thick ){ /* normal case: change line thickness */
-         XGCValues gcv ;
          int lw = scal * new_thick ;
          if( lw < 0 ) lw = 0 ;
 #if 0
@@ -315,8 +326,21 @@ for( ii=0 ; ii < nseg ; ii++ )
       /* scan forward to find a set of connected lines */
 
       jtop = jbot+1 ;
-      while( jtop < nseg && xseg[jtop-1].x2 == xseg[jtop].x1
-                         && xseg[jtop-1].y2 == xseg[jtop].y1 ) jtop++ ;
+      while( jtop < nseg ){    /* 23 Feb 2003: more complex connection tests */
+
+        if(    xseg[jtop-1].x2 == xseg[jtop].x1
+            && xseg[jtop-1].y2 == xseg[jtop].y1 ){ jtop++; continue; } /* OK */
+
+        if(    xseg[jtop-1].x2 == xseg[jtop].x2
+            && xseg[jtop-1].y2 == xseg[jtop].y2 ){          /* OK if flipped */
+
+          ii = xseg[jtop].x2; xseg[jtop].x2 = xseg[jtop].x1; xseg[jtop].x1 = ii;
+          ii = xseg[jtop].y2; xseg[jtop].y2 = xseg[jtop].y1; xseg[jtop].y1 = ii;
+          jtop++; continue;
+        }
+
+        break ;    /* get to here ==> jtop-1 and jtop segments not connected */
+      }
 
       /* jbot .. jtop-1 are connected;
          if this is more than one line, draw them together
@@ -340,9 +364,11 @@ fprintf(stderr,"draw_xseg: XDrawLines for %d\n",nj) ;
       /* jbot is not connected to jbot+1;
          scan forward to find a set of disconnected lines */
 
-      while( jtop < nseg &&
+      while( jtop < nseg                            &&
              ( xseg[jtop-1].x2 != xseg[jtop].x1 ||
-               xseg[jtop-1].y2 != xseg[jtop].y1   ) ) jtop++ ;
+               xseg[jtop-1].y2 != xseg[jtop].y1   ) &&
+             ( xseg[jtop-1].x2 != xseg[jtop].x2 ||
+               xseg[jtop-1].y2 != xseg[jtop].y2   )    ) jtop++ ;
 
       /* jbot .. jtop-1 are disconnected, so draw them as such */
 

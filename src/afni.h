@@ -373,6 +373,7 @@ typedef struct {
       Widget *surf_rc ;
       MCW_bbox **surf_bbox ;                       /* 19 Feb 2003 */
       MCW_arrowval **surf_node_av, **surf_line_av ;
+      MCW_arrowval *boxsize_av , *linewidth_av ;   /* 23 Feb 2003 */
 } AFNI_surface_widgets ;
 
 /*---*/
