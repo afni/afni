@@ -26,6 +26,12 @@
 // step size of the arrays of vertices and triangles
 #define ALLOC_SIZE 65536
 
+static int debug;
+void set_suma_debug(int dbg)
+{
+   debug = dbg;
+   return;
+}
 //_____________________________________________________________________________
 // print cube for debug
 void print_cube(MCB *mcb) { printf( "\t%f %f %f %f %f %f %f %f\n", mcb->cube[0], mcb->cube[1], mcb->cube[2], mcb->cube[3], mcb->cube[4], mcb->cube[5], mcb->cube[6], mcb->cube[7]) ; }
@@ -101,15 +107,15 @@ void FreeMarchingCubes(MCB *mcb)
 void run(MCB *mcb)
 //-----------------------------------------------------------------------------
 {
-  int p;
-  printf("Marching Cubes begin: cpu %ld\n", clock() ) ;
+   int p;
+   if (debug) printf("Marching Cubes begin: cpu %ld\n", clock() ) ;
 
-  compute_intersection_points( mcb) ;
+   compute_intersection_points( mcb) ;
 
-  for( mcb->k = 0 ; mcb->k < mcb->size_z-1 ; mcb->k++ )
-  for( mcb->j = 0 ; mcb->j < mcb->size_y-1 ; mcb->j++ )
-  for( mcb->i = 0 ; mcb->i < mcb->size_x-1 ; mcb->i++ )
-  {
+   for( mcb->k = 0 ; mcb->k < mcb->size_z-1 ; mcb->k++ )
+   for( mcb->j = 0 ; mcb->j < mcb->size_y-1 ; mcb->j++ )
+   for( mcb->i = 0 ; mcb->i < mcb->size_x-1 ; mcb->i++ )
+   {
     mcb->lut_entry = 0 ;
     for(  p = 0 ; p < 8 ; ++p )
     {
@@ -117,7 +123,7 @@ void run(MCB *mcb)
       if( fabs( mcb->cube[p] ) < FLT_EPSILON ) mcb->cube[p] = FLT_EPSILON ;
       if( mcb->cube[p] > 0 ) mcb->lut_entry += 1 << p ;
     }
-/*
+   /*
     if( ( mcb->cube[0] = get_data( mcb, mcb->i , mcb->j , mcb->k ) ) > 0 ) mcb->lut_entry +=   1 ;
     if( ( mcb->cube[1] = get_data(mcb, mcb->i+1, mcb->j , mcb->k ) ) > 0 ) mcb->lut_entry +=   2 ;
     if( ( mcb->cube[2] = get_data(mcb, mcb->i+1,mcb->j+1, mcb->k ) ) > 0 ) mcb->lut_entry +=   4 ;
@@ -126,15 +132,17 @@ void run(MCB *mcb)
     if( ( mcb->cube[5] = get_data(mcb, mcb->i+1, mcb->j ,mcb->k+1) ) > 0 ) mcb->lut_entry +=  32 ;
     if( ( mcb->cube[6] = get_data(mcb, mcb->i+1,mcb->j+1,mcb->k+1) ) > 0 ) mcb->lut_entry +=  64 ;
     if( ( mcb->cube[7] = get_data(mcb,  mcb->i ,mcb->j+1,mcb->k+1) ) > 0 ) mcb->lut_entry += 128 ;
-*/
+   */
     process_cube( mcb) ;
-  }
+   }
 
-  printf("Marching Cubes end: cpu %ld\n", clock() ) ;
-  for( mcb->i = 0 ; mcb->i < 15 ; mcb->i++ )
-  {
-    printf("  %7d cases %d\n", mcb->N[mcb->i], mcb->i ) ;
-  }
+   if (debug) { 
+      printf("Marching Cubes end: cpu %ld\n", clock() ) ;
+      for( mcb->i = 0 ; mcb->i < 15 ; mcb->i++ )
+      {
+       printf("  %7d cases %d\n", mcb->N[mcb->i], mcb->i ) ;
+      }
+   }
 }
 //_____________________________________________________________________________
 
@@ -827,7 +835,7 @@ void add_triangle( MCB *mcb , const char* trig, char n, int v12 )
         mcb->triangles = (Triangle*)malloc(2*mcb->Ntrigs * sizeof(Triangle));
         memcpy( mcb->triangles, temp, mcb->Ntrigs*sizeof(Triangle) ) ;
         free(temp) ; temp = NULL;
-        printf("%d allocated triangles\n", mcb->Ntrigs) ;
+        if (debug) printf("%d allocated triangles\n", mcb->Ntrigs) ;
         mcb->Ntrigs *= 2 ;
       }
 
@@ -902,7 +910,7 @@ void test_vertex_addition(MCB *mcb)
     mcb->vertices =  (Vertex*)malloc(mcb->Nverts*2 * sizeof(Vertex)) ;
     memcpy( mcb->vertices, temp, mcb->Nverts*sizeof(Vertex) ) ;
     free(temp); temp = NULL;
-    printf("%d allocated vertices\n", mcb->Nverts) ;
+    if (debug) printf("%d allocated vertices\n", mcb->Nverts) ;
     mcb->Nverts *= 2 ;
   }
 }
@@ -1237,7 +1245,7 @@ void compute_data( MCB mc , int obj_type)
   float tx,ty,tz , val  ;
   int i, j, k;
   float r,R, a, b, c, d;
-  int WriteVol = 0;
+  int WriteVol = debug;
   FILE *fid = NULL;
   
   if (obj_type < 0 || obj_type > 9) {
@@ -1245,9 +1253,16 @@ void compute_data( MCB mc , int obj_type)
    return;
   }
   
-  if (WriteVol) fid = fopen("mc_out.1D", "w");
-  
-  printf("Creating %d...\n", obj_type);
+  if (WriteVol) {
+   char vname[200],vnamepref[200];
+   sprintf(vnamepref,"mc_shape_%d_vol%d", obj_type, mc.size_x);
+   sprintf(vname,"%s.1D", vnamepref);
+   printf(  "Creating object %d and writing its volume to %s.\n"
+            "To view the volume, use:\n"
+            "3dUndump -ijk -dimen %d %d %d -prefix %s %s && afni %s+orig.HEAD\n "
+            , obj_type, vname, mc.size_x, mc.size_y, mc.size_z, vnamepref, vname, vnamepref);
+   fid = fopen(vname, "w");
+  }
  
   r = 1.85f ;
   R = 4 ;
@@ -1312,7 +1327,7 @@ void compute_data( MCB mc , int obj_type)
             break;*/
         }
         set_data( &mc, val, i,j,k ) ;
-         if (WriteVol) { if (fid) fprintf(fid, "%f\n", val); }
+         if (WriteVol) { if (fid) fprintf(fid, "%d %d %d %f\n", i, j, k, val); }
       }
     }
   }
@@ -1329,7 +1344,7 @@ void z_compute_data( MCB mc , char *fname)
 {
    FILE *fid=NULL;
    float *v = NULL;
-   int cnt = 0, nv, ir, jr, kr, i, j, k;
+   int cnt = 0, nv, ir, jr, kr;
    
    nv = mc.size_z*mc.size_y*mc.size_x;
    v = (float *)malloc(sizeof(float)*nv);
@@ -1340,19 +1355,14 @@ void z_compute_data( MCB mc , char *fname)
    }
    for (cnt=0; cnt < nv; ++cnt) {
       fscanf(fid, "%d %d %d %f\n", &ir, &jr, &kr, &(v[cnt]));
+      #if 0
+         fprintf(stderr, "%d %d %d %f\n", ir, jr, kr, (v[cnt]));
+      #endif
+      set_data( &mc, v[cnt], ir, jr, kr); 
    }
-  cnt = 0;
-    for(  i = 0 ; i < mc.size_x ; i++ )
-  {
-    for(  j = 0 ; j < mc.size_y ; j++ )
-    {
-    for(  k = 0 ; k < mc.size_z ; k++ )
-      {
-         set_data( &mc, v[cnt], i, j, k); 
-         ++cnt;
-      }
-    }
-  }
+  
+  
+    
   fclose(fid); fid = NULL; 
   free(v); v = NULL;
 }

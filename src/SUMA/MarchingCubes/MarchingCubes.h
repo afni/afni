@@ -138,5 +138,6 @@ void FreeMarchingCubes (MCB *mcb);
 
 void compute_data( MCB mc , int obj_type) ;
 void z_compute_data( MCB mc, char *fname ) ;
+void set_suma_debug(int dbg);
 
 #endif // _MARCHINGCUBES_H_

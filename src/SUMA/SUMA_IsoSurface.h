@@ -12,6 +12,7 @@ http://www-sop.inria.fr/prisme/personnel/Thomas.Lewiner/JGT.pdf
 #define SUMA_ISOSURFACE_INCLUDED
 
 typedef enum { SUMA_ISO_UNDEFINED, SUMA_ISO_VAL, SUMA_ISO_RANGE, SUMA_ISO_CMASK } SUMA_ISO_OPTIONS;
+typedef enum { SUMA_ISO_XFORM_UNDEFINED, SUMA_ISO_XFORM_NONE, SUMA_ISO_XFORM_SHIFT, SUMA_ISO_XFORM_MASK } SUMA_ISO_XFORMS;
 
 /* structures to be used by surface clusters functions */
 #define ISOSURFACE_MAX_SURF 10  /*!< Maximum number of surfaces allowed for SurfClust*/
@@ -27,14 +28,16 @@ typedef struct {
    int MaskMode;
    char *cmask;
    THD_3dim_dataset *in_vol;
-   int nmaskv;
-   int *maskv;
+   double *mcdatav; /* the dataset that is passed to the marching cube algorithm */
    int debug;
    int ninmask;
    float v0;
    float v1;
    int nvox;
    double *dvec;
+   int obj_type;
+   int obj_type_res;
+   SUMA_ISO_XFORMS xform;
    SUMA_SO_File_Format SurfFileFormat;
    SUMA_SO_File_Type SurfFileType;
 } SUMA_ISOSURFACE_OPTIONS;
