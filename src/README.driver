@@ -47,6 +47,8 @@ CLOSE_WINDOW [c].windowname
 QUIT
   AFNI will exit immediately.
 
+ -------------------------
+
 OPEN_GRAPH_XY gname toplab xbot xtop xlab ny ybot ytop ylab nam_1 .. nam_ny
   This opens a graph window for graphing non-MRI data.  Each graph window
   has a gname string; this lets you graph into more than one window.
@@ -74,6 +76,26 @@ CLEAR_GRAPH_XY gname
 
 ADDTO_GRAPH_xy gname x y_1 y_2 .. y_ny [repeat]
   Actually plots data into the given window.  In the i-th sub-graph, a line
-  will be drawn connecting to (x,y_i), for i=1..ny.  You can put may sets
+  will be drawn connecting to (x,y_i), for i=1..ny.  You can put many sets
   of points on the line, subject to the limitation that a plugout command
   line cannot contain more than 64 Kbytes.
+
+ -------------------------
+
+OPEN_GRAPH_1D gname toplab nx dx xlab ny ybot ytop ylab nam_1 .. nam_ny
+  Opens a graph window that is set up to plot nx points across with spacing dx,
+  in ny separate sub-graphs.  When the graph is full, the graph recycles back
+  to the beginning.
+
+CLOSE_GRAPH_1D gname
+  Closes the graph window with the given name.
+
+CLEAR_GRAPH_1D gname
+  Clears the graph out of the given window (leaves the axes and labels).
+
+ADDTO_GRAPH_1D gname y_1 y_2 .. y_ny [repeat]
+  Actually plots data into the given window.  You can put many sets of ny
+  values at a time on the command line, subject to the limitation that a
+  plugout command line cannot contain more than 64 Kbytes.  Also, if you
+  put more than nx sets of values, only the first nx will be plotted, since
+  that will fill up the graph through one full cycle.

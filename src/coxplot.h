@@ -48,6 +48,7 @@ typedef struct {
    float aspect ;
    float * xyline ;
    char ident[256] ;
+   int insert_at ;    /* 15 Nov 2001 */
 } MEM_plotdata ;
 
 /* macros to manipulate a plot */
@@ -62,11 +63,19 @@ typedef struct {
       (name)->nxyline_all = INC_MEMPLOT ;                                        \
       (name)->xyline = (float *) malloc(sizeof(float)*NXY_MEMPLOT*INC_MEMPLOT) ; \
       strncpy( (name)->ident, (id), 255 ) ; (name)->ident[255] = '\0' ;          \
-      (name)->aspect = 1.3 ;                                                     \
+      (name)->aspect = 1.3 ; (name)->insert_at = -1 ;                            \
   } while(0)
 
+/* put a line at the end of the plot [15 Nov 2001: maybe in the middle]  */
+
 #define ADDTO_MEMPLOT(name,x1,y1,x2,y2,col,th)                                                \
-  do{ int nn ;                                                                                \
+  do{ int nn , ll=(name)->insert_at ;                                                         \
+      if( ll >= 0 && ll < (name)->nxyline ){                                                  \
+         nn = NXY_MEMPLOT * ll ;                                                              \
+         (name)->xyline[nn++] = (x1) ; (name)->xyline[nn++] = (y1) ;                          \
+         (name)->xyline[nn++] = (x2) ; (name)->xyline[nn++] = (y2) ;                          \
+         (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; break ;                  \
+      }                                                                                       \
       if( (name)->nxyline == (name)->nxyline_all ){                                           \
         nn = (name)->nxyline_all = EXP_MEMPLOT * (name)->nxyline_all + INC_MEMPLOT ;          \
         (name)->xyline = (float *) realloc( (name)->xyline , sizeof(float)*NXY_MEMPLOT*nn ) ; \
@@ -77,11 +86,15 @@ typedef struct {
       (name)->xyline[nn++] = (col); (name)->xyline[nn++] = (th) ; (name)->nxyline ++ ;        \
   } while(0)
 
+/* this is fatal */
+
 #define DESTROY_MEMPLOT(name)                                  \
   do{ if( (name) != NULL ){                                    \
          if( (name)->xyline != NULL ) free( (name)->xyline ) ; \
          free( (name) ) ; (name) = NULL ; }                    \
   } while(0)
+
+/* 14 Nov 2001: cut off the end of a plot */
 
 #define TRUNC_MEMPLOT(name,num)                                         \
   do{ if( (num) < (name)->nxyline ) (name)->nxyline = (num); } while(0)
@@ -153,6 +166,10 @@ extern int            create_memplot_surely( char *, float ) ;      /* 20 Sep 20
 extern MEM_plotdata * copy_memplot( MEM_plotdata * ) ; /*-- 26 Feb 2001 --*/
 extern void           append_to_memplot( MEM_plotdata *,MEM_plotdata * ) ;
 extern void           scale_memplot( float,float,float,float,float,MEM_plotdata * );
+
+extern void           cutlines_memplot( int,int,MEM_plotdata * ) ; /* 15 Nov 2001 */
+extern void           insert_at_memplot( int , MEM_plotdata * ) ;
+#define insert_atend_memplot(mm) insert_at_memplot(-1,mm)
 
 #define MRI_ROT_0   1  /* codes for various rotations */
 #define MRI_ROT_90  2  /* [do not change these unless */
@@ -236,6 +253,17 @@ extern void plot_ts_addto( MEM_topshell_data *, int,float *, int,float ** ) ;
 
 extern MEM_plotdata * plot_ts_mem( int,float *, int,int,float **,
                                    char *,char *,char *,char ** ) ;
+
+/*-- 15 Nov 2001: routines for strip plot --*/
+
+extern MEM_topshell_data * plot_strip_init( Display * , int , float ,
+                                            int , float , float ,
+                                            char * , char * ,
+                                            char * , char ** , void_func * ) ;
+
+extern void plot_strip_addto( MEM_topshell_data * , int , float ** ) ;
+
+extern void plot_strip_clear( MEM_topshell_data * ) ;
 
 /*-- routines in this library that will be called from PLOTPAK --*/
 

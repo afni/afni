@@ -22,6 +22,11 @@ static int AFNI_drive_close_graph_xy( char *cmd ) ;
 static int AFNI_drive_clear_graph_xy( char *cmd ) ;
 static int AFNI_drive_addto_graph_xy( char *cmd ) ;
 
+static int AFNI_drive_open_graph_1D ( char *cmd ) ; /* 15 Nov 2001 */
+static int AFNI_drive_close_graph_1D( char *cmd ) ;
+static int AFNI_drive_clear_graph_1D( char *cmd ) ;
+static int AFNI_drive_addto_graph_1D( char *cmd ) ;
+
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
   Return value is 0 if good, -1 if bad.
@@ -39,12 +44,20 @@ static AFNI_driver_pair dpair[] = {
  { "SWITCH_SESSION"   , AFNI_drive_switch_session    } ,
  { "SWITCH_ANATOMY"   , AFNI_drive_switch_anatomy    } ,
  { "SWITCH_FUNCTION"  , AFNI_drive_switch_function   } ,
+
  { "OPEN_WINDOW"      , AFNI_drive_open_window       } ,
  { "CLOSE_WINDOW"     , AFNI_drive_close_window      } ,
+
  { "OPEN_GRAPH_XY"    , AFNI_drive_open_graph_xy     } ,
  { "CLOSE_GRAPH_XY"   , AFNI_drive_close_graph_xy    } ,
  { "CLEAR_GRAPH_XY"   , AFNI_drive_clear_graph_xy    } ,
  { "ADDTO_GRAPH_XY"   , AFNI_drive_addto_graph_xy    } ,
+
+ { "OPEN_GRAPH_1D"    , AFNI_drive_open_graph_1D     } ,
+ { "CLOSE_GRAPH_1D"   , AFNI_drive_close_graph_1D    } ,
+ { "CLEAR_GRAPH_1D"   , AFNI_drive_clear_graph_1D    } ,
+ { "ADDTO_GRAPH_1D"   , AFNI_drive_addto_graph_1D    } ,
+
  { "QUIT"             , AFNI_drive_quit              } ,
 
  { NULL , NULL } } ;
@@ -738,6 +751,8 @@ static void kill_graph_xy( MEM_topshell_data * mp )
    if( Graph_xy_list[ii]->last_y != NULL )
       free( Graph_xy_list[ii]->last_y ) ;
 
+   if( mp->userdata != NULL ) free(mp->userdata) ;
+
    free( Graph_xy_list[ii] ) ; Graph_xy_list[ii] = NULL ; return ;
 }
 
@@ -821,7 +836,7 @@ ENTRY("AFNI_drive_open_graph_xy") ;
    gxy->xbot = xbot ; gxy->xtop = xtop ;
    gxy->ybot = ybot ; gxy->ytop = ytop ; gxy->ny = ny ;
 
-   gxy->num_pt = 0.0 ;
+   gxy->num_pt = 0 ;
 
    /* create the actual graph */
 
@@ -831,10 +846,11 @@ ENTRY("AFNI_drive_open_graph_xy") ;
                            xlabel , ylabel ,
                            toplabel , yname , kill_graph_xy ) ;
 
+   freeup_strings(ntok,stok) ;
+   if( yname != NULL ) free(yname) ;
+
    if( gxy->mp == NULL ){         /* should not happen */
-      freeup_strings(ntok,stok) ;
       free(Graph_xy_list[ig]) ; Graph_xy_list[ig] = NULL ;
-      if( yname != NULL ) free(yname) ;
       RETURN(-1) ;
    }
 
@@ -936,7 +952,7 @@ ENTRY("AFNI_drive_addto_graph_xy") ;
    nx = (ntok-1)/(ny+1) ;
    if( nx < 1 ){ freeup_strings(ntok,stok); RETURN(-1); }
 
-   /* attach last_x and last_y? */
+   /* attach to last_x and last_y? */
 
    num_pt = gxy->num_pt ;
    if( num_pt > 0 ) nx++ ;
@@ -972,10 +988,218 @@ ENTRY("AFNI_drive_addto_graph_xy") ;
 
    /* cleanup */
 
-   gxy->num_pt += nx ;
+   gxy->num_pt += nx ;  /* number of points in each sub-graph so far */
 
    for( jj=0 ; jj < ny ; jj++ ) free(y[jj]) ;
    free(y) ; free(x) ; freeup_strings(ntok,stok) ;
+
+   RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------
+  CLOSE_GRAPH_1D gname
+---------------------------------------------------------------------------*/
+
+static int AFNI_drive_close_graph_1D( char *cmd )
+{
+  int ii = AFNI_drive_close_graph_xy( cmd ) ;
+  RETURN(ii) ;
+}
+
+/*-------------------------------------------------------------------------
+  OPEN_GRAPH_1D gname toplab nx dx xlab
+                             ny ybot ytop ylab yname_1 ... yname_ny
+---------------------------------------------------------------------------*/
+
+static int AFNI_drive_open_graph_1D( char *cmd )
+{
+   int ntok , ig , ii ;
+   char **stok=NULL ;
+
+   char *gname , *toplabel=NULL , *xlabel=NULL , *ylabel=NULL ;
+   int   ny=1 , nx=500 ;
+   float dx=1.0 , ybot=0.0,ytop=1.0 ;
+   char **yname=NULL ;
+
+   Graph_xy *gxy ;
+
+ENTRY("AFNI_drive_open_graph_1D") ;
+
+   /* tokenize the command string */
+
+   ntok = breakup_string( cmd , &stok ) ;
+   if( ntok <= 0 || stok == NULL ) RETURN(-1) ;
+
+   /* check if this graph name is already in use */
+
+   gname = stok[0] ;
+   ig = find_graph_xy_name( gname ) ;
+   if( ig >= 0 ){
+      freeup_strings(ntok,stok) ; RETURN(-1) ;   /* already used = bad */
+   }
+
+#if 0
+{ int qq ;
+  fprintf(stderr,"AFNI_drive_open_graph_1D tokens:\n") ;
+  for( qq=0 ; qq < ntok ; qq++ ) fprintf(stderr," %2d:%s\n",qq,stok[qq]); }
+#endif
+
+   /* create a graph */
+
+   ig = find_empty_graph_xy() ;
+
+   Graph_xy_list[ig] = gxy = (Graph_xy *) malloc(sizeof(Graph_xy)) ;
+
+   MCW_strncpy( gxy->gname , gname , THD_MAX_NAME ) ;
+
+   /* parse values out of the tokens */
+
+   if( ntok > 1 ) toplabel = stok[1] ;
+
+   if( ntok > 2 ){
+      int qq = strtol(stok[2],NULL,10) ;
+      if( qq >= 10 ) nx = qq ;
+   }
+
+   if( ntok > 3 ){
+      float qq = strtod(stok[3],NULL) ;
+      if( qq > 0.0 ) dx = qq ;
+   }
+
+   if( ntok > 4 ) xlabel = stok[4] ;
+
+   if( ntok > 5 ){
+      int qq = strtol(stok[5],NULL,10) ;
+      if( qq > 1 ) ny = qq ;
+   }
+
+   if( ntok > 6 ) ybot = strtod(stok[6],NULL) ;
+   if( ntok > 7 ) ytop = strtod(stok[7],NULL) ;
+   if( ybot == ytop )    { ytop = ybot+1.0 ; }
+   else if( ybot > ytop ){ float qq = ybot; ybot = ytop; ytop = qq ; }
+
+   if( ntok > 8 ) ylabel = stok[8] ;
+
+   if( ntok > 9 ){
+      int qq ;
+      yname = (char **) calloc( ny , sizeof(char *) ) ;
+      for( qq=0 ; qq < ny && qq+9 < ntok ; qq++ ) yname[qq] = stok[qq+9] ;
+   }
+
+   /* put values into graph struct */
+
+   gxy->xbot = 0.0  ; gxy->xtop = nx*dx ;
+   gxy->ybot = ybot ; gxy->ytop = ytop  ; gxy->ny = ny ;
+
+   gxy->num_pt = 0.0 ;
+
+   /* create the actual graph */
+
+fprintf(stderr,"nx=%d dx=%g\n",nx,dx) ;
+
+   gxy->mp = plot_strip_init( GLOBAL_library.dc->display ,
+                              nx , dx ,
+                              -ny , ybot , ytop ,
+                              xlabel , ylabel ,
+                              toplabel , yname , kill_graph_xy ) ;
+
+   freeup_strings(ntok,stok) ;
+   if( yname != NULL ) free(yname) ;
+
+   if( gxy->mp == NULL ){         /* should not happen */
+      free(Graph_xy_list[ig]) ; Graph_xy_list[ig] = NULL ;
+      RETURN(-1) ;
+   }
+
+   gxy->last_y = NULL ;
+
+   RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------
+  CLEAR_GRAPH_1D gname
+---------------------------------------------------------------------------*/
+
+static int AFNI_drive_clear_graph_1D( char *cmd )
+{
+   int ig , ntok , ii ;
+   char **stok = NULL ;
+
+ENTRY("AFNI_drive_clear_graph_1D") ;
+
+   /* tokenize the command string */
+
+   ntok = breakup_string( cmd , &stok ) ;
+   if( ntok <= 0 || stok == NULL ) RETURN(-1) ;
+
+   /* check if this graph name is already in use */
+
+   ig = find_graph_xy_name( stok[0] ) ;
+   freeup_strings(ntok,stok) ;
+   if( ig < 0 || Graph_xy_list[ig]->mp == NULL ) RETURN(-1) ;
+
+   plot_strip_clear( Graph_xy_list[ig]->mp ) ;
+
+   RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------
+  ADDTO_GRAPH_1D gname y_1 y_2 .. y_ny [repeat]
+---------------------------------------------------------------------------*/
+
+static int AFNI_drive_addto_graph_1D( char *cmd )
+{
+   int ig, ntok, nx, ny, ii,jj, tt, num_pt, ibot, nadd ;
+   char **stok = NULL ;
+   Graph_xy *gxy ;
+   float **y ;
+
+ENTRY("AFNI_drive_addto_graph_1D") ;
+
+   /* tokenize the command string */
+
+   ntok = breakup_string( cmd , &stok ) ;
+   if( ntok <= 0 || stok == NULL ) RETURN(-1) ;
+
+   /* check if this graph name is already in use */
+
+   ig = find_graph_xy_name( stok[0] ) ;
+   if( ig < 0 || Graph_xy_list[ig]->mp == NULL ){
+      freeup_strings(ntok,stok) ; RETURN(-1) ;
+   }
+   gxy = Graph_xy_list[ig] ;
+
+   /* number of sub-graphs */
+
+   ny = gxy->ny ;
+
+   /* number of points to add to each sub-graph */
+
+   nadd = (ntok-1)/ny ;
+   if( nadd < 1 ){ freeup_strings(ntok,stok); RETURN(-1); }
+
+   /* make space for incoming data */
+
+   y = (float **) malloc( sizeof(float *)*ny ) ;
+   for( jj=0 ; jj < ny ; jj++ )
+      y[jj] = (float *) calloc(nadd,sizeof(float)) ;
+
+   /* convert incoming tokens to numbers */
+
+   tt = 1 ;                            /* token index */
+   for( ii=0 ; ii < nadd ; ii++ ){
+      for( jj=0 ; jj < ny ; jj++ )
+         y[jj][ii] = strtod( stok[tt++] , NULL ) ;
+   }
+
+   /* graphing! */
+
+   plot_strip_addto( gxy->mp , nadd , y ) ;
+
+   /* cleanup */
+
+   for( jj=0 ; jj < ny ; jj++ ) free(y[jj]) ;
+   free(y) ; freeup_strings(ntok,stok) ;
 
    RETURN(0) ;
 }

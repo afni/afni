@@ -136,7 +136,6 @@ extern int      iochan_force_clear( IOCHAN * ) ;
 extern int      iochan_recvloop( IOCHAN *, char *, int ); /* 22 May 2001 */
 extern pid_t    iochan_fork_relay( char *, char * );      /* 23 May 2001 */
 
-
 /** codes for the "cmd" argument to iochan_ctl **/
 
 #define IOC_TCP_SENDSIZE 501

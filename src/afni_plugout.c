@@ -125,7 +125,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
       if( ! TRUST_host(ioc_control->name) ){
          fprintf(stderr,"PO: untrusted host: %s -- connection denied\n" ,
                  ioc_control->name) ;
-         IOCHAN_CLOSE(ioc_control) ;
+         iochan_set_cutoff(ioc_control) ; IOCHAN_CLOSE(ioc_control) ;
          return(False) ;
       }
 
@@ -150,7 +150,8 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
 
       if( npobuf < 1 ){
          fprintf(stderr,"PO: control channel sent no data!\n") ;
-         IOCHAN_CLOSE(ioc_control) ; free(pobuf) ; return(False) ;
+         iochan_set_cutoff(ioc_control) ; IOCHAN_CLOSE(ioc_control) ;
+         free(pobuf) ; return(False) ;
       }
 
       /** process the input and make a new connection to a plugout program **/
@@ -160,11 +161,13 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
       if( pp == NULL ){
          fprintf(stderr,"PO: can't create PLUGOUT_spec.  Input was:\n%s\n",pobuf) ;
          PO_ACK_BAD(ioc_control) ;
-         iochan_sleep(LONG_DELAY) ; IOCHAN_CLOSE(ioc_control) ;
+         iochan_sleep(LONG_DELAY) ;
+         iochan_set_cutoff(ioc_control) ; IOCHAN_CLOSE(ioc_control) ;
          free(pobuf) ; return(False) ;
       } else {
          if( pp->do_ack ) PO_ACK_OK(ioc_control) ;
-         iochan_sleep(LONG_DELAY) ; IOCHAN_CLOSE(ioc_control) ;
+         iochan_sleep(LONG_DELAY) ;
+         iochan_set_cutoff(ioc_control) ; IOCHAN_CLOSE(ioc_control) ;
          fprintf(stderr,"PO: plugout connection name is %s\n",pp->po_name) ;
       }
 
@@ -184,7 +187,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
          fprintf(stderr,"PO: failure while listening to control channel!\n") ;
 #endif
 
-      IOCHAN_CLOSE(ioc_control) ;
+      iochan_set_cutoff(ioc_control) ; IOCHAN_CLOSE(ioc_control) ;
 
    }
 

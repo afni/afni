@@ -3316,3 +3316,12 @@
  * Modified afni_splash.c so that layout code doesn't check plugin
      widgets if this is a custom plugin (which won't put widgets
      into the "plint" struct).
+
+14 Nov 2001
+ * Added OPEN_GRAPH_XY (etc.) to afni_driver.c, to display graphs
+     from plugout data.
+
+15 Nov 2001
+ * Added plot_strip.c to coxplot/, for doing timeseries plots with
+     recyling back to the left when the graph is full.
+ * Added OPEN_GRAPH_1D (etc.) to afni_driver.c.

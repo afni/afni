@@ -1186,7 +1186,7 @@ libcoxplot.a:coxplot.h
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
 	  $(MV) libcoxplot.a .. ; )
 
-coxplot.h:
+coxplot.h:coxplot/coxplot.h
 	$(CP) coxplot/coxplot.h ./
 
 coxplot.tgz:

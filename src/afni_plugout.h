@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _AFNI_PLUGOUT_HEADER_
 #define _AFNI_PLUGOUT_HEADER_
 
@@ -72,9 +72,11 @@ typedef struct {
 
 /* Remember the movie Death Wish? */
 
-#define DESTROY_PLUGOUT(po)  \
-  do{ if( (po) != NULL ){    \
-         IOCHAN_CLOSE((po)->ioc) ; free((po)) ; (po) = NULL ; } } while(0)
+#define DESTROY_PLUGOUT(po)                       \
+  do{ if( (po) != NULL ){                         \
+         iochan_set_cutoff((po)->ioc) ;           \
+         IOCHAN_CLOSE((po)->ioc) ;                \
+         free((po)) ; (po) = NULL ; } } while(0)
 
 /** prototypes **/
 
