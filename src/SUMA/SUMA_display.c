@@ -2912,7 +2912,7 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
    SO = (SUMA_SurfaceObject *)n;
    
    /* check to see if window is already open, if it is, just raise it */
-   if (SO->SurfCont->SurfInfo_TextShell->toplevel) {
+   if (SO->SurfCont->SurfInfo_TextShell) {
       XRaiseWindow (SUMAg_CF->X->DPY_controller1, XtWindow(SO->SurfCont->SurfInfo_TextShell->toplevel));
       SUMA_RETURNe;
    }
