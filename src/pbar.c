@@ -5,6 +5,7 @@
 ******************************************************************************/
 
 #include "pbar.h"
+#include "xim.h"
 
 /*----------------------------------------------------------------------
    Make a new paned-window color+threshold selection bar:
@@ -186,10 +187,123 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
    for( jm=0 ; jm < PANE_MAXMODE ; jm++ )
       pbar->npan_save[jm] = pbar->num_panes ;
 
+   /*-- 30 Jan 2003: setup the "big" mode for 128 colors --*/
+
+   pbar->bigmode = 0 ;
+   pbar->bigset  = 0 ;
+   pbar->bigbot  = -1.0 ; pbar->bigtop = 1.0 ;
+   pbar->bigxim  = NULL ;
+   for( i=0 ; i < NPANE_BIG ; i++ )
+     pbar->bigcolor[i] = DC_spectrum( dc , (240.0*i)/NPANE_BIG ) ;
+   XtAddCallback( pbar->panes[0], XmNexposeCallback, PBAR_bigexpose_CB, pbar ) ;
+
    /*-- go home --*/
 
    XtManageChild( pbar->top ) ;
    return pbar ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Actually redisplay pane #0 in "big" mode.
+----------------------------------------------------------------------*/
+
+void PBAR_bigexpose_CB( Widget w , XtPointer cd , XtPointer cb )
+{
+   MCW_pbar *pbar = (MCW_pbar *) cd ;
+
+   if( pbar == NULL || !pbar->bigmode ) return ;
+
+   /* make an image of what we want to see */
+
+   if( pbar->bigxim == NULL ){
+     int ww,hh , ii ;
+     MRI_IMAGE *cim ;
+     XImage    *xim ;
+     byte      *car ;
+
+     MCW_widget_geom( pbar->panes[0] , &ww,&hh , NULL,NULL ) ;
+     cim = mri_new( 1,NPANE_BIG , MRI_rgb ) ;
+     car = MRI_RGB_PTR(cim) ;
+     for( ii=0 ; ii < NPANE_BIG ; ii++ ){
+       car[3*ii  ] = pbar->bigcolor[ii].r ;
+       car[3*ii+1] = pbar->bigcolor[ii].g ;
+       car[3*ii+2] = pbar->bigcolor[ii].b ;
+     }
+     xim = mri_to_XImage( pbar->dc , cim ) ;
+     pbar->bigxim = resize_XImage( pbar->dc , xim , ww,hh ) ;
+     MCW_kill_XImage(xim) ; mri_free(cim) ;
+   }
+
+   /* actually show the image to the window pane */
+
+   XPutImage( pbar->dc->display , XtWindow(pbar->panes[0]) ,
+              pbar->dc->origGC , pbar->bigxim , 0,0,0,0 ,
+              pbar->bigxim->width , pbar->bigxim->height ) ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Set "big" mode in the pbar -- 30 Jan 2003 - RWCox.
+----------------------------------------------------------------------*/
+
+void PBAR_set_bigmode( MCW_pbar *pbar, int bmode,
+                       float bot,float top, rgbyte *color )
+{
+   if( color != NULL ){
+     int ii ;
+     MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
+     for( ii=0 ; ii < NPANE_BIG ; ii++ )
+       pbar->bigcolor[ii] = color[ii] ;
+   }
+   if( bmode && bot < top ){ pbar->bigbot = bot; pbar->bigtop = top; }
+   pbar->bigmode   = bmode ;
+   pbar->update_me = 1 ;
+   update_MCW_pbar( pbar ) ;
+}
+
+/*--------------------------------------------------------------------*/
+
+static void PBAR_show_bigmode( MCW_pbar *pbar )  /* 30 Jan 2003 */
+{
+   int ii , yy ;
+   char buf[16] ;
+
+   if( pbar == NULL || !pbar->bigmode ) return ;
+
+   if( !pbar->bigset ){   /* set up big mode */
+
+     if( pbar->hide_changes ) XtUnmapWidget( pbar->top ) ;
+
+     /* turn off all but 1 pane and all but 2 labels */
+
+     XtManageChild( pbar->labels[0] ) ;
+     XtManageChild( pbar->labels[1] ) ;
+     for( ii=2 ; ii <= NPANE_MAX ; ii++ )
+       XtUnmanageChild( pbar->labels[ii] ) ;
+     XtManageChild( pbar->panes[0] ) ;
+     for( ii=1 ; ii < NPANE_MAX ; ii++ )
+       XtUnmanageChild( pbar->panes[ii] ) ;
+     XtVaSetValues( pbar->panes[0] , XmNheight,pbar->panew_height , NULL ) ;
+     XtVaSetValues( pbar->panew    , XmNheight,pbar->panew_height , NULL ) ;
+     XtVaSetValues( pbar->top      , XmNheight,pbar->panew_height , NULL ) ;
+
+     if( pbar->hide_changes ) XtMapWidget( pbar->top ) ;
+
+     MCW_widget_geom( pbar->panes[0] , NULL,NULL,NULL , &yy ) ;
+     XtVaSetValues( pbar->labels[0] , XmNy , yy , NULL ) ;
+     PBAR_labelize( pbar->bigtop , buf ) ;
+     MCW_set_widget_label( pbar->labels[0] , buf ) ;
+
+     yy = pbar->panew_height - PANE_LOFF + PANE_SPACING ;
+     XtVaSetValues( pbar->labels[1] , XmNy , yy , NULL ) ;
+     PBAR_labelize( pbar->bigbot , buf ) ;
+     MCW_set_widget_label( pbar->labels[1] , buf ) ;
+
+     pbar->bigset = 1 ;
+   }
+
+   /* show the thing */
+
+   PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
 }
 
 /*--------------------------------------------------------------------
@@ -224,7 +338,7 @@ void PBAR_click_CB( Widget w , XtPointer cd , XtPointer cb )
 
    XtVaGetValues( w , XmNuserData , &pbar , NULL ) ;
    if( pbar == NULL ) return ;
-   if( pbar->num_panes == 1 ) return ;  /* 05 Dec 2002 */
+   if( pbar->bigmode ){ XBell(dc->display,100); return; } /* 30 Jan 2003 */
    for( ip=0 ; ip < pbar->num_panes ; ip++ ) if( pbar->panes[ip] == w ) break ;
    if( ip == pbar->num_panes ) return ;
 
@@ -235,6 +349,7 @@ void PBAR_click_CB( Widget w , XtPointer cd , XtPointer cb )
 
 void PBAR_set_panecolor( MCW_pbar *pbar , int ip , int ovc ) /* 17 Jan 2003 */
 {
+   if( pbar == NULL || pbar->bigmode ) return ;  /* 30 Jan 2003 */
    if( ovc > 0 ){
       XtVaSetValues( pbar->panes[ip] ,
                         XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP ,
@@ -266,6 +381,7 @@ void PBAR_set_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
    XtVaGetValues( w , XmNuserData , &pbar , NULL ) ;
    if( pbar == NULL ) return ;
+   if( pbar->bigmode ) return ;  /* 30 Jan 2003 */
 
    for( ip=0 ; ip < pbar->num_panes ; ip++ ) if( pbar->panes[ip] == w ) break ;
    if( ip == pbar->num_panes ) return ;
@@ -291,23 +407,38 @@ void rotate_MCW_pbar( MCW_pbar * pbar , int n )
 ENTRY("rotate_MCW_pbar") ;
 
    if( pbar == NULL || n == 0 ) EXRETURN ;
-   dc = pbar->dc ;
-   np = pbar->num_panes ; if( np == 1 ) return ;
-   jm = pbar->mode ;
-   while( n < 0 ) n += np ;  /* make n positive */
-   for( ip=0 ; ip < np ; ip++ ) iov[ip] = pbar->ov_index[ip] ;
 
-   for( ip=0 ; ip < np ; ip++ ){
-      kov = iov[ (ip+n)%np ] ;  /* new overlay index for ip-th pane */
-      w   = pbar->panes[ip] ;
-      if( kov > 0 && kov < dc->ovc->ncol_ov ){
-         XtVaSetValues( w , XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP , NULL ) ;
-         MCW_set_widget_bg( w , NULL , dc->ovc->pix_ov[kov] ) ;
-      } else {
-         XtVaSetValues( w , XmNbackgroundPixmap , check_pixmap , NULL ) ;
-      }
-      pbar->ovin_save[pbar->num_panes][ip][jm] =
-                            pbar->ov_index[ip] = kov ;
+   if( pbar->bigmode ){             /* 30 Jan 2003: rotate the spectrum */
+     rgbyte oldcolor[NPANE_BIG] ;
+
+     MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
+     memcpy(oldcolor,pbar->bigcolor,sizeof(rgbyte)*NPANE_BIG) ;
+
+     while( n < 0 ) n += NPANE_BIG ;  /* make n positive */
+     for( ip=0 ; ip < NPANE_BIG ; ip++ )
+       pbar->bigcolor[ip] = oldcolor[(ip+n)%NPANE_BIG] ;
+
+     PBAR_bigexpose_CB( NULL , pbar , NULL ) ;
+
+   } else {                         /* the older way */
+     dc = pbar->dc ;
+     np = pbar->num_panes ;
+     jm = pbar->mode ;
+     while( n < 0 ) n += np ;  /* make n positive */
+     for( ip=0 ; ip < np ; ip++ ) iov[ip] = pbar->ov_index[ip] ;
+
+     for( ip=0 ; ip < np ; ip++ ){
+        kov = iov[ (ip+n)%np ] ;  /* new overlay index for ip-th pane */
+        w   = pbar->panes[ip] ;
+        if( kov > 0 && kov < dc->ovc->ncol_ov ){
+           XtVaSetValues( w , XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP , NULL ) ;
+           MCW_set_widget_bg( w , NULL , dc->ovc->pix_ov[kov] ) ;
+        } else {
+           XtVaSetValues( w , XmNbackgroundPixmap , check_pixmap , NULL ) ;
+        }
+        pbar->ovin_save[pbar->num_panes][ip][jm] =
+                              pbar->ov_index[ip] = kov ;
+     }
    }
 
    if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar , pbar->pb_data , pbCR_COLOR ) ;
@@ -330,7 +461,8 @@ void PBAR_resize_CB( Widget w , XtPointer cd , XtPointer cb )
    float pmin , pmax , val ;
    int alter_all = pbar->renew_all ;
 
-   if( pbar->renew_all < 0 ) return ;  /* skip it */
+   if( pbar == NULL || pbar->renew_all < 0 ) return ;  /* skip it */
+   if( pbar->bigmode ) return ;  /* 30 Jan 2003 */
 
    jm  = pbar->mode ;
    sum = 0 ;
@@ -411,7 +543,11 @@ printf("resize: read pane # %d height=%d\n",i,hh[i]) ; fflush(stdout) ;
 
 void update_MCW_pbar( MCW_pbar * pbar )
 {
-   if( pbar->update_me ) alter_MCW_pbar( pbar , 0 , NULL ) ;
+   if( pbar == NULL ) return ;
+   if( pbar->update_me ){
+     if( pbar->bigmode ) PBAR_show_bigmode( pbar ) ;         /* 30 Jan 2003 */
+     else                alter_MCW_pbar( pbar , 0 , NULL ) ;
+   }
    pbar->update_me = 0 ;
 }
 
@@ -419,11 +555,16 @@ void alter_MCW_pbar( MCW_pbar * pbar , int new_npane , float * new_pval )
 {
    int i , npane , npane_old , sum , hh , ovc , jm ;
    float pmin , pmax , pval[NPANE_MAX+1] , fhh , rhh ;
+   int was_bigset ;
 
    /* sanity check */
 
    if( pbar == NULL || new_npane > NPANE_MAX ||
        ( new_npane < NPANE_MIN && new_npane != 0 ) ) return ;
+
+   if( pbar->bigmode ) return ;   /* 30 Jan 2003 */
+   was_bigset   = pbar->bigset ;
+   pbar->bigset = 0 ;
 
    /* count of panes, old and new */
 
@@ -431,6 +572,8 @@ void alter_MCW_pbar( MCW_pbar * pbar , int new_npane , float * new_pval )
    npane           = (new_npane > 0) ? new_npane : pbar->num_panes ;
    npane_old       = pbar->num_panes ;
    pbar->num_panes = pbar->npan_save[jm] = npane ;
+
+   if( was_bigset ) npane_old = 1 ;
 
    /*-- get new value array --*/
 
@@ -572,7 +715,23 @@ MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar * pbar , int nx , int ny )
    /* check for decent inputs */
 
    if( pbar == NULL ) return NULL ;
-   if( nx < 1                 ) nx = 1 ;
+   if( nx < 1 ) nx = 1 ;
+
+   if( pbar->bigmode ){    /* 30 Jan 2003: save spectrum */
+     XImage *xim ;
+     if( pbar->bigxim == NULL ){
+       PBAR_bigexpose_CB(NULL,pbar,NULL) ;
+       if( pbar->bigxim == NULL ) return NULL ;
+     }
+     if( ny < NPANE_BIG ) ny = NPANE_BIG ;
+     xim = resize_XImage( pbar->dc , pbar->bigxim , nx,ny ) ;
+     im  = XImage_to_mri( pbar->dc , xim , X2M_USE_CMAP|X2M_FORCE_RGB ) ;
+     MCW_kill_XImage( xim ) ;
+     return im ;
+   }
+
+   /** the old way: make the image by brute force **/
+
    if( ny < 4*pbar->num_panes ) ny = 4*pbar->num_panes ;
 
    im  = mri_new( nx , ny , MRI_rgb ) ;

@@ -375,7 +375,7 @@ void DC_palette_restore( MCW_DC * dc , double new_gamma )
    Modified 22 Aug 1998 for TrueColor support.
 -------------------------------------------------------------------------*/
 
-double mypow( double x , double y )  /* replaces the math library pow */
+static double mypow( double x , double y )  /* replaces the math library pow */
 {
    double b ;
    if( x <= 0.0 ) return 0.0 ;
@@ -428,6 +428,43 @@ void DC_init_im_gry( MCW_DC * dc )
    }
 
    return ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Return a color from the spectrum.  Input "an" is between 0 and 360.
+    Adapted from Andrzej Jesmanowicz, etc. -- 30 Jan 2003 - RWCox.
+------------------------------------------------------------------------*/
+
+rgbyte DC_spectrum( MCW_DC *dc , double an )
+{
+   int r,g,b ;
+   double gamm , ak,ab,s,c,sb,cb ;
+   rgbyte color ;
+
+   if( dc != NULL ) gamm = dc->gamma ;
+   else             gamm = 1.0 ;
+
+   ak = 105.; s  = 150.; c  = s/60.;
+   ab = 65.;  sb = 190.; cb = s/60.;
+
+   while( an <   0.0 ) an += 360.0 ;
+   while( an > 360.0 ) an -= 360.0 ;
+
+   if((an >= 0) && (an < 120.)) {
+     r = 255.*mypow((ak + MIN(s,(120. - an)*c))/255., gamm) +.5;
+     g = 255.*mypow((ak + MIN(s,an*c))/255., gamm) +.5;
+     b = 0;
+   } else if((an >= 120.) && (an < 240.)) {
+     r = 0;
+     g = 255.*mypow((ak + MIN(s ,(240. - an)*c))/255., gamm) +.5;
+     b = 255.*mypow((ab + MIN(sb,(an - 120.)*cb))/255., gamm) +.5;
+   } else if(an >= 240.) {
+     r = 255.*mypow((ak + MIN(s,(an - 240.)*c))/255., gamm) +.5;
+     g = 0;
+     b = 255.*mypow((ak + MIN(s,(360. - an)*c))/255., gamm) +.5;
+   }
+
+   color.r = r ; color.g = g ; color.b = b ; return color ;
 }
 
 /*-----------------------------------------------------------------------

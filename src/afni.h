@@ -1266,6 +1266,7 @@ extern void AFNI_thr_scale_drag_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_inten_pbar_CB( MCW_pbar * , XtPointer , int ) ;
 extern void AFNI_inten_av_CB( MCW_arrowval * , XtPointer ) ;
+extern char * AFNI_inten_av_texter ( MCW_arrowval *, XtPointer ) ; /* 30 Jan 2003 */
 
 extern void   AFNI_set_thresh_top( Three_D_View * , float ) ;
 extern char * AFNI_thresh_tlabel_CB( MCW_arrowval * , XtPointer ) ;
@@ -1296,6 +1297,10 @@ extern void AFNI_andersonville   ( THD_sessionlist * , Boolean ) ;
 extern void AFNI_force_adoption  ( THD_session * , Boolean ) ;
 
 extern MRI_IMAGE * AFNI_func_overlay( int , FD_brick * ) ;
+
+extern MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *, float ,  /* 30 Jan 2003 */
+                                         MRI_IMAGE *,
+                                         float,float, rgbyte * ) ;
 
 extern void AFNI_syntax(void) ;
 

@@ -2618,13 +2618,13 @@ STATUS("making func->rowcol") ;
                        func->inten_rowcol ,
                         "#" ,
                         AVOPT_STYLE ,
-                        NPANE_MIN , NPANE_MAX , npane ,
+                        NPANE_MIN , NPANE_MAX+1 , npane ,
                         MCW_AV_notext , 0 ,
                         AFNI_inten_av_CB , func->inten_pbar ,
-                        NULL,NULL ) ;
+                        AFNI_inten_av_texter,NULL ) ;
 
-   if( AVOPT_STYLE == MCW_AV_optmenu && NPANE_MAX >= COLSIZE )
-      AVOPT_columnize( func->inten_av , 1+(NPANE_MAX+1)/COLSIZE ) ;
+   if( AVOPT_STYLE == MCW_AV_optmenu )
+      AVOPT_columnize( func->inten_av , 2 ) ;
 
    func->inten_av->fastdelay  = 4000 ;  /* slow down repeat action */
    func->inten_av->parent     = im3d ;  /* Daddy! */
