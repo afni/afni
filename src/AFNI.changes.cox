@@ -4034,3 +4034,7 @@
 
 12 Nov 2002
  * Changed MAX_CONTROLLERS in afni.h for Mike Beauchamp.
+
+13 Nov 2002
+ * Modified afni_splash.[ch] to allow color top overlays.  Incorporated SSCC group
+     picture.
