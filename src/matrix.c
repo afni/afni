@@ -151,7 +151,7 @@ void matrix_print (matrix m)
   for (i = 0;  i < rows;  i++)
     {
       for (j = 0;  j < cols;  j++)
-	printf ("%10.4f", m.elts[i][j]);
+	printf (" %10.4g", m.elts[i][j]);
       printf (" \n");
     }
   printf (" \n");
@@ -195,7 +195,7 @@ void matrix_file_write (char * filename, matrix m)
   for (i = 0;  i < rows;  i++)
     {
       for (j = 0;  j < cols;  j++)
-        fprintf (outfile, "  %f", m.elts[i][j]);
+        fprintf (outfile, "  %g", m.elts[i][j]);
       fprintf (outfile, " \n");
     }
   fprintf (outfile, " \n");
@@ -336,13 +336,15 @@ void matrix_equate (matrix a, matrix * b)
 
   matrix_create (rows, cols, b);
 
-  for (i = 0;  i < rows;  i++)
+  for (i = 0;  i < rows;  i++){
 #if 0
     for (j = 0;  j < cols;  j++)
       b->elts[i][j] = a.elts[i][j];
 #else
-    memcpy( b->elts[i] , a.elts[i] , sizeof(double)*cols ) ;  /* RWCox */
+    if( cols > 0 )
+      memcpy( b->elts[i] , a.elts[i] , sizeof(double)*cols ) ;  /* RWCox */
 #endif
+  }
 }
 
 
@@ -746,7 +748,7 @@ void vector_print (vector v)
   int i;
 
   for (i = 0;  i < v.dim;  i++)
-    printf ("  %10.4f \n", v.elts[i]);
+    printf ("  %10.4g \n", v.elts[i]);
   printf (" \n");
     
 }
@@ -782,7 +784,8 @@ void vector_equate (vector a, vector * b)
   for (i = 0;  i < dim;  i++)
     b->elts[i] = a.elts[i];
 #else
-  memcpy( b->elts , a.elts , sizeof(double)*dim ) ;  /* RWCox */
+  if( dim > 0 )
+    memcpy( b->elts , a.elts , sizeof(double)*dim ) ;  /* RWCox */
 #endif
 }
 

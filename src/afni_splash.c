@@ -137,10 +137,12 @@ ENTRY("AFNI_splashup") ;
 
       imov = NULL ; ff = 0 ;
       if( num_face > 0 ){
-        static int ddold=-1 ;
+        static int ddold_1=-1 , ddold_2=-1;
         dd = (lrand48() >> 8) % num_face ;
-        if( dd == ddold ){ dd = (dd+1)%num_face ; }
-        ddold = dd ; imov = mri_read_stuff( fname_face[dd] ) ;
+        if( dd == ddold_1 || dd == ddold_2 ){ dd = (dd+1)%num_face ; }
+        if( dd == ddold_1 || dd == ddold_2 ){ dd = (dd+1)%num_face ; }
+        ddold_2 = ddold_1 ; ddold_1 = dd ;
+        imov = mri_read_stuff( fname_face[dd] ) ;
         if( imov != NULL && (imov->nx > MAX_XOVER || imov->ny > MAX_YOVER) ){
           float xfac=MAX_XOVER/(float)(imov->nx),
                 yfac=MAX_YOVER/(float)(imov->ny) ;
