@@ -439,6 +439,60 @@ Bucket construction examples will be given later.
               entire dataset.}
 \end{tabbing}
 
+\noindent
+To make some of these steps easier, the following {\tt C} macros
+have been defined:
+\begin{itemize}
+  \item {\tt EDIT\_BRICK\_LABEL(ds,iv,str)} \\*
+  will change the label in the
+  {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds} to the string {\tt str}.
+
+ \item {\tt EDIT\_BRICK\_FACTOR(ds,iv,fac)} \\*
+  will change the scaling factor in the
+  {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds} to the {\tt float} value {\tt fac}.
+
+ \item {\tt EDIT\_BRICK\_ADDKEY(ds,iv,str)} \\*
+  will add the keyword string {\tt str} to the
+  {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}.
+
+ \item {\tt EDIT\_BRICK\_TO\_FICO(ds,iv,nsam,nfit,nort)} \\*
+  changes the {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}
+  to be {\tt fico} type (correlation coefficient) with statistical parameters {\tt nsam}, {\tt nfit}, and {\tt nort}.
+
+ \item {\tt EDIT\_BRICK\_TO\_FITT(ds,iv,ndof)} \\*
+  changes the {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}
+  to be {\tt fitt} ($t$-test) type with statistical parameter {\tt ndof}.
+
+ \item {\tt EDIT\_BRICK\_TO\_FIFT(ds,iv,ndof,ddof)} \\*
+  changes the {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}
+  to be {\tt fift} ($F$-test) type with statistical parameters {\tt ndof} and {\tt ddof}.
+
+ \item {\tt EDIT\_BRICK\_TO\_FIZT(ds,iv)} \\*
+  changes the {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}
+  to be {\tt fizt} type ($z$-score, or normally distributed).
+
+ \item {\tt EDIT\_BRICK\_TO\_FICT(ds,iv,ndof)} \\*
+  changes the {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}
+  to be {\tt fict} type ($\chi^2$ distributed) with statistical parameter {\tt ndof}.
+
+ \item {\tt EDIT\_BRICK\_TO\_FIBT(ds,iv,a,b)} \\*
+  changes the {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}
+  to be {\tt fibt} type (beta distributed) with statistical parameters {\tt a} and~{\tt b}.
+
+ \item {\tt EDIT\_BRICK\_TO\_FIBN(ds,iv,ntrial,prob)} \\*
+  changes the {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}
+  to be {\tt fibn} type (binomial distributed) with statistical parameters {\tt ntrial} and {\tt prob}.
+
+ \item {\tt EDIT\_BRICK\_TO\_FIGT(ds,iv,shape,scale)} \\*
+  changes the {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}
+  to be {\tt fign} type (gamma distributed) with statistical parameters {\tt shape} and {\tt scale}.
+
+ \item {\tt EDIT\_BRICK\_TO\_FIPT(ds,iv,mean)} \\*
+  changes the {\tt iv}$^{\rm th}$ sub-brick of dataset {\tt ds}
+  to be {\tt fipt} type (Poisson distributed) with statistical parameter {\tt mean}.
+
+\end{itemize}
+
 \dline{Example: Creating a Bucket Dataset All at Once}
 In this example, an empty copy of an input dataset is made
 (to get the geometry correct), then the new dataset is turned
@@ -564,7 +618,7 @@ and the argument {\tt iv} is a sub-brick index.
 {\tt ISFUNCBUCKET(ds)} \> \tb{Returns 1 if {\tt ds} is a function
                               bucket dataset, 0~if it is not.}
 \\[.9ex]
-{\tt ISBUCKET(ds)}     \> \tb{Returns 1 if {\tt ds} is a 
+{\tt ISBUCKET(ds)}     \> \tb{Returns 1 if {\tt ds} is a
                               bucket dataset (function or anatomy), 0~if it is not.}
 \\[.9ex]
 {\tt DSET\_BRICK\_TYPE(ds,iv)} \> \tb{Returns an integer describing what type
@@ -597,7 +651,7 @@ and the argument {\tt iv} is a sub-brick index.
                                        that you did something wrong.  Do {\it not\/}
                                      write into this array!  The number of parameters
                                      in this array can be determined from the table
-                                     in~\S1, or from 
+                                     in~\S1, or from
                                      {\tt FUNC\_need\_stat\_aux[kv]} where
                                      {\tt kv = DSET\_BRICK\_STATCODE(ds,iv)}.}
 \\[.9ex]
@@ -614,6 +668,82 @@ and the argument {\tt iv} is a sub-brick index.
                                      write into this string!  This pointer may be {\tt NULL}.}
 \end{tabbing}
 
+\dline{Creating a Bucket from a 3D+time Dataset}
+I have written a utility routine to create a function bucket dataset from an input
+3D+time dataset.  This function takes as input a user-supplied function
+that returns the bucket values at each voxel.  This function
+resides in {\tt 3dmaker.c} (a~new file), and can be called from a
+plugin or from a command-line program.
+Its calling sequence is:
+\begin{verbatim}
+  new_dset = MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
+                                     char * new_prefix , int new_datum ,
+                                     int ignore , int detrend ,
+                                     int nbrik ,generic_func * user_func ,
+                                     void * user_data ) ;
+\end{verbatim}
+The inputs to this function are:
+\begin{tabbing}
+ XXX \= XXXXXXXX \= \kill
+    \> {\tt old\_dset}   \> Pointer to old dataset; \\*
+    \>                  \> \blob note that this dataset must not be warp-on-demand. \\[.5ex]
+    \> {\tt new\_prefix} \> String to use as filename prefix. \\[.5ex]
+    \> {\tt new\_datum}  \> Type of data to store in output brick; \\*
+    \>                  \> \blob if negative, will use datum from {\tt old\_dset}. \\[.5ex]
+    \> {\tt ignore}     \> Number of data points to ignore at the start. \\[.5ex]
+    \> {\tt detrend}    \> If nonzero, this routine will detrend ({\tt a+b*t}) \\*
+    \>                  \> \blob each time series before passing it to {\tt user\_func}. \\[.5ex]
+    \> {\tt nbrik}      \> Number of values (and sub-bricks) to create at each voxel location. \\[.5ex]
+    \> {\tt user\_func}  \> Function to compute outputs; discussed below. \\[.5ex]
+    \> {\tt user\_data}  \> Discussed below.
+\end{tabbing}
+The output is a pointer to a new dataset.  If {\tt NULL} is returned,
+some error occurred.
+
+The {\tt user\_func} function should be declared like so:
+\begin{verbatim}
+   void user_func( double tzero , double tdelta ,
+                   int npts , float ts[] , double ts_mean , double ts_slope ,
+                   void * ud , int nbrik , float * val ) ;
+\end{verbatim}
+The arguments to {\tt user\_func} are:
+\begin{tabbing}
+ XXX \= XXXXXXXX \= \kill
+   \> {\tt tzero}  \>  Time at {\tt ts[0]}. \\*[.5ex]
+   \> {\tt tdelta} \>  Time at {\tt ts[1]} ({\it i.e.}, {\tt ts[k]} is at {\tt tzero+k*tdelta}); \\*
+   \>              \>  \blob tzero and tdelta will be in sec if this is truly `time'. \\[.5ex]
+   \> {\tt npts}   \>  Number of points in ts array.\\[.5ex]
+   \> {\tt ts}     \>  One voxel time series array, {\tt ts[0]} \ldots {\tt ts[npts-1]}; \\*
+   \>              \>  \blob note that this will always be a float array, and that {\tt ts} will \\*
+   \>              \>  \blob start with the {\tt ignore}$^{\rm th}$ point of the actual voxel time series. \\[.5ex]
+   \> {\tt ts\_mean} \>  Mean value of {\tt ts} array. \\[.5ex]
+   \> {\tt ts\_slope} \>  Slope of {\tt ts} array; this will be inversely proportional to {\tt tdelta} \\*
+   \>                \> \blob (units of 1/sec); if {\tt detrend} is nonzero, then the mean and slope \\*
+   \>                \> \blob will been removed from the {\tt ts} array. \\[.5ex]
+   \> {\tt ud}     \>  The {\tt user\_data} pointer passed in here; this can contain whatever \\*
+   \>              \>  \blob control information the user wants. \\[.5ex]
+   \> {\tt nbrik}  \>  Number of output values that this function should return for \\*
+   \>              \>   \blob the voxel corresponding to input data {\tt ts}. \\[.5ex]
+   \> {\tt val}    \>  Pointer to return values for this voxel; \\*
+   \>              \> \blob  note that this is a {\tt float} array of length {\tt nbrik}, and that values \\*
+   \>              \> \blob  you don't fill in will be set to zero.
+\end{tabbing}
+Before the first timeseries is passed, {\tt user\_func} will be called with arguments
+\begin{verbatim}
+     ( 0.0 , 0.0 , nvox , NULL , 0.0 , 0.0 , user_data , nbrik , NULL )
+\end{verbatim}
+where {\tt nvox} = number of voxels that will be processed.
+This is to allow for some setup ({\it e.g.},~{\tt malloc}).
+After the last timeseries is passed, {\tt user\_func} will be called again with
+arguments
+\begin{verbatim}
+     ( 0.0 , 0.0 , 0 , NULL , 0.0 , 0.0 , user_data , nbrik , NULL )
+\end{verbatim}
+This is to allow for cleanup ({\it e.g.},~{\tt free}).  Note that the
+only difference between these `notification' calls is the third argument.
+After the new dataset is created, you will likely want to modify
+some of the auxiliary data associated with its sub-bricks ({\it e.g.},~set
+statistical parameters and labels).
 
 %---------------------------------------------------------------------
 \mysec{Changes in \afni}
@@ -648,8 +778,6 @@ In addition, the \fbox{FIM} button has been removed from the
 \mysec{Still to Come}
 Things that are needed:
 \begin{itemize}
-  \item A generic function for converting a 3D+time dataset into
-        a bucket dataset ({\it \`a~la} {\tt PLUTO\_4D\_to\_typed\_fim}).
   \item Routines to deal with keyword lists, and a mechanism to
         allow the user to select sub-bricks (and datasets) based on keywords.
   \item A mechanism to allow the user to assemble datasets `on-the-fly'
