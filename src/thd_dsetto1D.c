@@ -20,7 +20,7 @@
       THD_extract_array()  copies data into a user-supplied array
 -----------------------------------------------------------------*/
 
-MRI_IMAGE * THD_extract_series( int ind , THD_3dim_dataset * dset , int raw )
+MRI_IMAGE * THD_extract_series( int ind , THD_3dim_dataset *dset , int raw )
 {
    int nv , typ , ii ;
    MRI_IMAGE *im ;
@@ -84,8 +84,8 @@ ENTRY("THD_extract_array") ;
    nv  = dset->dblk->nvals ;
    iar = DSET_ARRAY(dset,0) ;
    if( iar == NULL ){         /* load data from disk? */
-      DSET_load(dset) ;
-      iar = DSET_ARRAY(dset,0); if( iar == NULL ) RETURN(-1) ;
+     DSET_load(dset) ;
+     iar = DSET_ARRAY(dset,0); if( iar == NULL ) RETURN(-1) ;
    }
    typ = DSET_BRICK_TYPE(dset,0) ;  /* raw data type */
 
@@ -210,9 +210,9 @@ ENTRY("THD_extract_many_series") ;
    nv  = dset->dblk->nvals ;
    iar = DSET_ARRAY(dset,0) ;
    if( iar == NULL ){  /* if data needs to be loaded from disk */
-      (void) THD_load_datablock( dset->dblk ) ;
-      iar = DSET_ARRAY(dset,0) ;
-      if( iar == NULL ) RETURN( NULL );
+     (void) THD_load_datablock( dset->dblk ) ;
+     iar = DSET_ARRAY(dset,0) ;
+     if( iar == NULL ) RETURN( NULL );
    }
 
    /* create output */
@@ -220,9 +220,9 @@ ENTRY("THD_extract_many_series") ;
    far = (float **) malloc(sizeof(float *)*ns) ;  /* 27 Feb 2003 */
    INIT_IMARR(imar) ;
    for( kk=0 ; kk < ns ; kk++ ){
-      im = mri_new( nv , 1 , MRI_float ) ;  /* N.B.: now does 0 fill */
-      far[kk] = MRI_FLOAT_PTR(im) ;         /* ptr to kk-th output series */
-      ADDTO_IMARR(imar,im) ;
+     im = mri_new( nv , 1 , MRI_float ) ;  /* N.B.: now does 0 fill */
+     far[kk] = MRI_FLOAT_PTR(im) ;         /* ptr to kk-th output series */
+     ADDTO_IMARR(imar,im) ;
    }
 
    /* fill the output */
@@ -230,32 +230,32 @@ ENTRY("THD_extract_many_series") ;
    switch( DSET_BRICK_TYPE(dset,0) ){
 
       default:             /* don't know what to do --> return nada */
-         DESTROY_IMARR(imar) ; free(far) ;
-         RETURN( NULL );
+        DESTROY_IMARR(imar) ; free(far) ;
+        RETURN( NULL );
 
       case MRI_byte:{
-         byte * bar ;
-         for( ival=0 ; ival < nv ; ival++ ){
-            bar = (byte *) DSET_ARRAY(dset,ival) ;
-            if( bar != NULL ){
-              for( kk=0 ; kk < ns ; kk++ ){
-                 far[kk][ival] = bar[ind[kk]] ;
-              }
+        byte * bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (byte *) DSET_ARRAY(dset,ival) ;
+          if( bar != NULL ){
+            for( kk=0 ; kk < ns ; kk++ ){
+              far[kk][ival] = (float)bar[ind[kk]] ;
             }
-         }
+          }
+        }
       }
       break ;
 
       case MRI_short:{
-         short * bar ;
-         for( ival=0 ; ival < nv ; ival++ ){
-            bar = (short *) DSET_ARRAY(dset,ival) ;
-            if( bar != NULL ){
-              for( kk=0 ; kk < ns ; kk++ ){
-                 far[kk][ival] = bar[ind[kk]] ;
-              }
+        short * bar ;
+        for( ival=0 ; ival < nv ; ival++ ){
+          bar = (short *) DSET_ARRAY(dset,ival) ;
+          if( bar != NULL ){
+            for( kk=0 ; kk < ns ; kk++ ){
+              far[kk][ival] = (float)bar[ind[kk]] ;
             }
-         }
+          }
+        }
       }
       break ;
 
@@ -291,7 +291,7 @@ ENTRY("THD_extract_many_series") ;
             bar = (double *) DSET_ARRAY(dset,ival) ;
             if( bar != NULL ){
               for( kk=0 ; kk < ns ; kk++ ){
-                 far[kk][ival] = bar[ind[kk]] ;
+                 far[kk][ival] = (float)bar[ind[kk]] ;
               }
             }
          }

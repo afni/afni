@@ -353,7 +353,8 @@ static int xrestore = 0 ;                           /* globals for -xrestore */
 static char *xrestore_filename = NULL ;
 static int NumTimePoints=0 , NumRegressors=0 ;
 
-static int verb = 1 ;
+static int  verb = 1 ;
+static int mverb = 0 ;
 
 struct DC_options ;  /* incomplete struct definition */
 
@@ -1018,6 +1019,10 @@ void get_options
 	  continue;
 	}
 
+      if( strcmp(argv[nopt],"-verb") == 0 ){
+          option_data->quiet = 0 ; verb = 1 ; mverb = 1 ;
+          nopt++ ; continue ;
+      }
 
       /*-----   -progress n  -----*/
       if (strcmp(argv[nopt], "-progress") == 0)
@@ -3458,7 +3463,7 @@ void calculate_results
           option_data->progress > 0 ||
           proc_numjob > 1             ) vstep = 0 ;
 
-      if( vstep > 0 ) fprintf(stderr,"++ start voxel loop ") ;
+      if( vstep > 0 ) fprintf(stderr,"++ voxel loop:") ;
 
       /*----- Loop over all voxels -----*/
       for (ixyz = ixyz_bot;  ixyz < ixyz_top;  ixyz++)
@@ -4211,8 +4216,11 @@ void write_bucket_data
     {
 
       if( xsave ){
+        int ii ;
         ParamStim  = (int *)  calloc(sizeof(int)   ,nParam) ;
         ParamLabel = (char **)calloc(sizeof(char *),nParam) ;
+        for( ii=0 ; ii < qp     ; ii++ ) ParamLabel[ii] = strdup("ort") ;
+        for(      ; ii < nParam ; ii++ ) ParamLabel[ii] = strdup("coef") ;
         if( cout && bout )
           ParamIndex = (int *)calloc(sizeof(int)   ,nParam) ;
         else
@@ -5479,6 +5487,8 @@ void XSAVE_output( char *prefix )
 
 /*-------------------------------------------------------------------*/
 
+#define DPR(s) fprintf(stderr,"%s\n",(s))
+
 void XSAVE_input( char *xname )
 {
    char *fname , *cpt ;
@@ -5874,7 +5884,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
             - compute and store new GLT results in arrays -----*/
 
    vstep = nxyz / 50 ; if( !verb ) vstep = 0 ;
-   if( vstep > 0 ) fprintf(stderr,"++ start voxel loop ") ;
+   if( vstep > 0 ) fprintf(stderr,"++ voxel loop:") ;
    for( ixyz=0 ; ixyz < nxyz ; ixyz++ ){
 
      if( vstep > 0 && ixyz%vstep == vstep-1 ) vstep_print() ;
@@ -6081,9 +6091,9 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
      if( cmat->elts == NULL ) GLT_ERR ;
 
    } else {             /* symbolic read of stim_labels */
-     floatvec *fv ;
-     int nr=0 ;
+     floatvecvec *fvv ;
      float **far=NULL ;
+     int nr=0 , iv ;
 
      if( nSymStim < 1 ){
        fprintf(stderr,"** ERROR: use of -gltsym without SymStim being defined\n");
@@ -6091,11 +6101,22 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
      }
 
      if( strncmp(fname,"SYM:",4) == 0 ){  /* read directly from fname string */
+       char *fdup=strdup(fname+4) , *fpt , *buf ;
+       int ss , ns ;
 
-       fv = SYM_expand_ranges( ncol-1 , nSymStim , SymStim , fname+4 ) ;
-       if( fv == NULL ) GLT_ERR ;
-       far = (float **)malloc(sizeof(float *)) ;
-       far[0] = fv->ar ; fv->ar = NULL ; free((void *)fv) ; nr = 1 ;
+       buf = fdup ;
+       while(1){
+         fpt = strchr(buf,'\\') ;
+         if( fpt != NULL ) *fpt = '\0' ;
+         fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
+         if( fvv == NULL || fvv->nvec < 1 ) continue ;
+         far = (float **)realloc((void *)far , sizeof(float *)*(nr+fvv->nvec)) ;
+         for( iv=0 ; iv < fvv->nvec ; iv++ ) far[nr++] = fvv->fvar[iv].ar ;
+         free((void *)fvv->fvar) ; free((void *)fvv) ;
+         if( fpt == NULL ) break ;   /* reached end of string? */
+         buf = fpt+1 ;               /* no, so loop back for next 'line' */
+       }
+       free((void *)fdup) ;
 
      } else {                             /* read from file */
        char buf[8192] , *cpt ;
@@ -6104,23 +6125,25 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
        while(1){
          cpt = fgets( buf , 8192 , fp ) ;   /* read next line */
          if( cpt == NULL ) break ;          /* end of input? */
-         fv = SYM_expand_ranges( ncol-1 , nSymStim , SymStim , buf ) ;
-         if( fv == NULL ) continue ;        /* bad line? */
-         far = (float **)realloc( (void *)far , sizeof(float *)*(nr+1) ) ;
-         far[nr++] = fv->ar ; fv->ar = NULL ; free((void *)fv) ;
+         fvv = SYM_expand_ranges( ncol-1 , nSymStim,SymStim , buf ) ;
+         if( fvv == NULL || fvv->nvec < 1 ) continue ;
+         far = (float **)realloc((void *)far , sizeof(float *)*(nr+fvv->nvec)) ;
+         for( iv=0 ; iv < fvv->nvec ; iv++ ) far[nr++] = fvv->fvar[iv].ar ;
+         free((void *)fvv->fvar) ; free((void *)fvv) ;
        }
-       fclose(fp) ; if( nr == 0 ) GLT_ERR ;
+       fclose(fp) ;
      }
+     if( nr == 0 ) GLT_ERR ;
      *nrows = nr ;
      array_to_matrix( nr , ncol , far , cmat ) ;
 
      for( ii=0 ; ii < nr ; ii++ ) free((void *)far[ii]) ;
      free((void *)far) ;
 
-#if 0
-     printf("GLT matrix from %s:\n",fname) ;
-     matrix_print( *cmat ) ;
-#endif
+     if( mverb ){
+       printf("GLT matrix from '%s':\n",fname) ;
+       matrix_print( *cmat ) ; fflush(stdout) ;
+     }
    }
 
    /** check for all zero rows, which will cause trouble later **/
@@ -6141,5 +6164,7 @@ static void vstep_print(void)
 {
    static int nn=0 ;
    static char xx[10] = "0123456789" ;
-   fprintf(stderr , "%c" , xx[nn%10] ) ; nn++ ;
+   fprintf(stderr , "%c" , xx[nn%10] ) ;
+   if( nn%10 == 9) fprintf(stderr,".") ;
+   nn++ ;
 }

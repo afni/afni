@@ -694,23 +694,17 @@ AlphaSim:AlphaSim.o
 	$(RM) $@
 	$(CC) -o 3dRegAna 3dRegAna.o $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-3dDeconvolve.o:3dDeconvolve.c Deconvolve.c RegAna.c matrix.c matrix.h
-	$(CCFAST) -c 3dDeconvolve.c $(IFLAGS)
+# double precision version of 3dDeconvolve
 
-3dDeconvolve:3dDeconvolve.o
+3dDeconvolve:3dDeconvolve.c Deconvolve.c RegAna.c matrix.c matrix.h
 	$(RM) $@
-	$(CC) -o 3dDeconvolve 3dDeconvolve.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+	$(CCFAST) -o 3dDeconvolve 3dDeconvolve.c $(IFLAGS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
-# The float (vs. double) version of 3dDeconvolve
+# float version of 3dDeconvolve
 
-3dDeconvolve_f.o:3dDeconvolve.c Deconvolve.c RegAna.c matrix_f.c matrix_f.h
-	$(RM) 3dDeconvolve_f.o 3dDeconvolve.o
-	$(CCFAST) -c 3dDeconvolve.c $(IFLAGS) -DFLOATIZE
-	$(MV) 3dDeconvolve.o 3dDeconvolve_f.o
-
-3dDeconvolve_f:3dDeconvolve_f.o
+3dDeconvolve_f:3dDeconvolve.c Deconvolve.c RegAna.c matrix.c matrix.h
 	$(RM) $@
-	$(CC) -o 3dDeconvolve_f 3dDeconvolve_f.o $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+	$(CCFAST) -DFLOATIZE -o 3dDeconvolve_f 3dDeconvolve.c $(IFLAGS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 3dConvolve:3dConvolve.o
 	$(RM) $@
