@@ -1,0 +1,42 @@
+# This worked on a Sun UltraSPARC with Solaris 2.5,
+# during the brief period that I had access to one.
+# Do NOT go to higher optimization levels, since the
+# compiler seems to introduce bugs in AFNI.
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = cc -fast -Xa -w -DSOLARIS
+CCMIN  = cc -s
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include -I/usr/ucbinclude
+LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib -L/usr/ucblib
+
+# These extra libraries are for Suns
+
+EXTRA_LIBS = -lsocket -lnsl -lgen -lc -lucb -ldl
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -G
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -L. -L/usr/dt/lib -L/usr/openwin/lib -L/usr/ucblib
+
+AR     = /usr/ccs/bin/ar
+RANLIB = /usr/bin/touch
+TAR    = /bin/tar
+GZIP   = gzip
+MKDIR  = /bin/mkdir
+LD     = /usr/ucb/ld
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp
+
+LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = ./solaris
+LIBDIR = $(INSTALLDIR)
+
+LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
+
+######################################################################
+
+include Makefile.INCLUDE

@@ -92,6 +92,7 @@
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define SCANDIR_WANTS_CONST
 # define BOXUP_SCALE
+# define FIX_SCALE_SIZE_PROBLEM
 # define DYNAMIC_LOADING_VIA_SHL
 #endif
 
@@ -115,6 +116,7 @@ extern int alphasort(struct dirent **, struct dirent **) ;
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define DONT_INSTALL_ICONS
 # define NO_FRIVOLITIES
+# define FIX_SCALE_SIZE_PROBLEM
 extern int alphasort(struct dirent **, struct dirent **) ;
 
 extern double strtod() ;
@@ -136,12 +138,10 @@ extern long   strtol() ;
 # define THD_MMAP_FLAG  (MAP_SHARED | MAP_NORESERVE)
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define dirent direct
-extern int alphasort(struct dirent **, struct dirent **) ;
-
-/** # define FIX_SCALE_VALUE_PROBLEM **/
-
+# define FIX_SCALE_SIZE_PROBLEM
 # define DONT_INSTALL_ICONS
 # define DYNAMIC_LOADING_VIA_DL
+extern int alphasort(struct dirent **, struct dirent **) ;
 #endif
 
 /*** IBM RS6000 courtesy Doug Morris of UIUC ***/
@@ -150,6 +150,7 @@ extern int alphasort(struct dirent **, struct dirent **) ;
 # include <dirent.h>
 # define THD_MMAP_FLAG  MAP_SHARED
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
+# define FIX_SCALE_SIZE_PROBLEM
 extern int alphasort(struct dirent **, struct dirent **) ;
 #endif
 
