@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <X11/keysym.h>  /* 24 Jan 2003 */
 
 #undef IMSEQ_DEBUG
 
@@ -4290,9 +4291,10 @@ DPR(" .. really a hidden resize") ;
       /*----- take key press -----*/
 
       case KeyPress:{
-         XKeyEvent * event = (XKeyEvent *) ev ;
-         char           buf[32] ;
-         KeySym         ks ;
+         XKeyEvent *event = (XKeyEvent *) ev ;
+         char       buf[32] ;
+         int        nbuf ;
+         KeySym     ks ;
 
 DPR(" .. KeyPress") ;
 
@@ -4305,8 +4307,70 @@ DPR(" .. KeyPress") ;
          /* get the string corresponding to the key pressed */
 
          buf[0] = '\0' ;
-         XLookupString( event , buf , 32 , &ks , NULL ) ;
-         if( buf[0] == '\0' ) break ;                     /* nada */
+         ks     = 0 ;
+         nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
+
+         /* 24 Jan 2003: deal with special function keys */
+
+         if( nbuf == 0 ){
+           if( seq->record_mode ) EXRETURN ;
+           switch( ks ){
+             case XK_Left:
+               seq->arrowpad->which_pressed = AP_LEFT ;
+               seq->arrowpad->xev.type = 0 ;
+               ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+             break ;
+
+             case XK_Right:
+               seq->arrowpad->which_pressed = AP_RIGHT ;
+               seq->arrowpad->xev.type = 0 ;
+               ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+             break ;
+
+             case XK_Down:
+               seq->arrowpad->which_pressed = AP_DOWN ;
+               seq->arrowpad->xev.type = 0 ;
+               ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+             break ;
+
+             case XK_Up:
+               seq->arrowpad->which_pressed = AP_UP ;
+               seq->arrowpad->xev.type = 0 ;
+               ISQ_arrowpad_CB( seq->arrowpad , (XtPointer)seq ) ;
+             break ;
+
+             case XK_Page_Up:
+             case XK_Page_Down:{
+               int nn=seq->im_nr , nt=seq->status->num_total ;
+               if( nt > 1 ){
+                 if( ks == XK_Page_Down ){ nn--; if( nn <  0 ) nn = nt-1; }
+                 else                    { nn++; if( nn >= nt) nn = 0   ; }
+#if 1
+                 ISQ_redisplay( seq , nn , isqDR_display ) ;
+#else
+                 ISQ_set_image_number( seq , nn ) ;
+#endif
+               }
+             }
+             break ;
+
+             case XK_Home:
+             case XK_F2:
+             case XK_F3:
+             case XK_F4:
+             case XK_F5:
+             case XK_F6:
+             case XK_F7:
+             case XK_F8:
+             case XK_F9:
+             case XK_F10:
+             case XK_F11:
+             case XK_F12:
+           }
+           EXRETURN ;
+         }
+
+         if( buf[0] == '\0' ) break ;                  /* nada */
 
          /* 07 Dec 2002: modified ad hoc series of if-s into a switch */
 
