@@ -204,8 +204,8 @@
       o added 'midpoint' map function
 
 12 June 2003:
-  * modifed SUMA_3dSurf2Vol.c - minor changes to help and s2v_fill_mask2()
-  * modifed ge4_header.c to remove "static" warnings
+  * modified SUMA_3dSurf2Vol.c - minor changes to help and s2v_fill_mask2()
+  * modified ge4_header.c to remove "static" warnings
 
 17 June 2003:
   * modified SUMA_3dSurfMaskDump.[ch] -> version 2.1
@@ -297,13 +297,13 @@
   * modified SUMA_3dVol2Surf.c: fixed help info for '-cmask option'
 
 21 September 2003:
-  * modifited SUMA_3dVol2Surf.c:
+  * modified SUMA_3dVol2Surf.c:
       - added max_abs mapping function
       - added '-oob_index' and '-oob_value' options
       - added CHECK_NULL_STR macro
 
 23 September 2003:
-  * modifited SUMA_3dVol2Surf.c: added help for -no_header option
+  * modified SUMA_3dVol2Surf.c: added help for -no_header option
 
 01 October 2003:
   * modified SUMA_3dVol2Surf.c: added -oom_value option and help example
@@ -492,7 +492,7 @@
   * modified 3dfim+.c: init sum to 0.0 in set_fim_thr_level()
 
 17 March 2004:
-  * modifed file_tool.[ch] (-> v3.0), adding binary data editing
+  * modified file_tool.[ch] (-> v3.0), adding binary data editing
     (this was the original goal of the program, yet it took 18 months...)
       - added ability to modify 1, 2 or 4-byte signed or unsigned ints
       - added ability to modify 4 or 8-byte reals (floats or doubles)
@@ -568,4 +568,13 @@
 
 22 July 2004:
   * modified SUMA/3dSurf2Vol.c (-> v3.5) fixed bug in sdata_1D file test
+
+26 July 2004:
+  * modified thd_mastery.c
+	- changed THD_setup_mastery() to return int
+	- added THD_copy_dset_subs(), to copy a list of sub-bricks
+  * modified 3ddata.h: added declaration for THD_copy_dset_subs()
+  * modified r_new_resam_dset.[ch], taking new sublist parameter
+  * modified 3dresample.c (-> v1.7), passing NULL for sublist
+  * modified plug_crender.c (-> v1.9a), temporary update, passing sublist NULL
 

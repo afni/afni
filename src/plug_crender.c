@@ -14,10 +14,12 @@
   ----------------------------------------------------------------------
 */
 
-#define PLUG_CRENDER_VERSION "Version 1.8 <July 2003>"
+#define PLUG_CRENDER_VERSION "Version 1.9a <July 2004>"
 
 /***********************************************************************
  * VERSION HISTORY
+ *
+ * 1.9   - updated calls to r_new_resam_dset, passing sublist
  *
  * 1.8   - handle bigmode color bar (see v1.8)
  *
@@ -2091,7 +2093,7 @@ ENTRY( "RCREND_reload_dataset" );
 
          printf("++ reorienting underlay as rai..." );
          gcr.dset_or = r_new_resam_dset(dset, NULL, 0,0,0, "rai",
-                                        RESAM_NN_TYPE);
+                                        RESAM_NN_TYPE, NULL);
          printf(" done\n" );
       }
 
@@ -6743,7 +6745,7 @@ ENTRY( "RCREND_reload_func_dset" );
             THD_delete_3dim_dataset( gcr.fset_or, FALSE );
 
          gcr.fset_or = r_new_resam_dset(func_dset, gcr.mset, 0,0,0, NULL,
-                                        RESAM_NN_TYPE);
+                                        RESAM_NN_TYPE, NULL);
          printf(" done\n" );
       }
 

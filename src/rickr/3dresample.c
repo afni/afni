@@ -4,7 +4,7 @@
 
 #define MAIN
 
-#define VERSION "Version 1.6 <March 04, 2004>"
+#define VERSION "Version 1.7 <July 26, 2004>"
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
@@ -65,6 +65,9 @@ static char g_history[] =
  " 1.6  March 04, 2004\n"
  "   - added check for RESAM_shortstr[] (to catch NN and Bk modes)\n"
  "   - reversed order of history: recent at the bottom\n"
+ "\n"
+ " 1.7  July 26, 2004\n"
+ "   - passed NULL sublist to r_new_resam_dset()\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -116,8 +119,9 @@ int main( int argc , char * argv[] )
 	return ret_val;
 
     /* actually resample and/or reorient the dataset */
-    if ( (dout = r_new_resam_dset( opts.dset, opts.mset,
-                 opts.dx, opts.dy, opts.dz, opts.orient, opts.resam)) == NULL )
+    dout = r_new_resam_dset( opts.dset, opts.mset, opts.dx, opts.dy, opts.dz,
+			     opts.orient, opts.resam, NULL);
+    if ( dout == NULL )
     {
 	fprintf( stderr, "failure to resample dataset, exiting...\n" );
 	return FAIL;

@@ -3145,6 +3145,9 @@ extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
 extern int * MCW_get_intlist( int , char * ) ;
 extern void MCW_intlist_allow_negative( int ) ;             /* 22 Nov 1999 */
 
+/* copy a dataset, given a list of sub-bricks          [rickr] 26 Jul 2004 */
+extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
+
 /*! Help string to explain dataset "mastering" briefly. */
 
 #define MASTER_SHORTHELP_STRING                                                 \
