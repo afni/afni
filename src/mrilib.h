@@ -475,6 +475,8 @@ extern MRI_IMARR * mri_align_dfspace( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
 extern MRI_IMARR * mri_align_dftime( MRI_IMAGE *, MRI_IMAGE * , MRI_IMARR *,
                                      int, float *, float *, float * ) ;
 
+extern void mri_align_params( int,float,float,float,float,float,float ) ;
+
 /*** routine to flip 2D images around ***/
 
 #define MRI_ROT_0   1  /* codes for various rotations */

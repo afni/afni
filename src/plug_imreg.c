@@ -16,6 +16,9 @@ static char helpstring[] =
   "   Datasets:   Input  = 3D+time dataset to process\n"
   "               Output = Prefix for new dataset\n"
   "   Parameters: Base   = Time index for base image\n"
+  "   Fine Fit:   Blur   = FWHM of blurring prior to registration\n"
+  "               Dxy    = Convergence tolerance for translations\n"
+  "               Dphi   = Convergence tolerance for rotations\n"
 ;
 
 /*----------------- prototypes for internal routines -----------------*/
@@ -86,14 +89,26 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                      TRUE            /* is this mandatory? */
                    ) ;
 
-  PLUTO_add_number( plint ,
-                    "Base" ,    /* label next to chooser */
-                    0 ,         /* smallest possible value */
-                    98 ,        /* largest possible value */
-                    0 ,         /* decimal shift (none in this case) */
-                    3 ,         /* default value */
-                    FALSE       /* allow user to edit value? */
-                  ) ;
+   PLUTO_add_number( plint ,
+                     "Base" ,    /* label next to chooser */
+                     0 ,         /* smallest possible value */
+                     98 ,        /* largest possible value */
+                     0 ,         /* decimal shift (none in this case) */
+                     3 ,         /* default value */
+                     FALSE       /* allow user to edit value? */
+                   ) ;
+
+   /*---------- 3rd line --------*/
+
+   PLUTO_add_option( plint ,
+                     "Fine Fit" ,
+                     "Fine Fit" ,
+                     FALSE
+                   ) ;
+
+   PLUTO_add_number( plint , "Blur" , 0 , 40 , 1 , 10 , FALSE ) ;
+   PLUTO_add_number( plint , "Dxy"  , 1 , 20 , 2 ,  7 , FALSE ) ;
+   PLUTO_add_number( plint , "Dphi" , 1 , 50 , 2 , 21 , FALSE ) ;
 
    /*--------- done with interface setup ---------*/
 
@@ -188,6 +203,18 @@ fprintf(stderr,"\nIMREG: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
       return "********************\n"
              "Base value too large\n"
              "********************"  ;
+
+   /*--------- see if the 3rd option line is present --------*/
+
+   str = PLUTO_get_optiontag( plint ) ;
+   if( str != NULL ){
+      float fsig , fdxy , fdph ;
+      fsig = PLUTO_get_number(plint) ;
+      fdxy = PLUTO_get_number(plint) ;
+      fdph = PLUTO_get_number(plint) ;
+      mri_align_params( 0 , 0.0,0.0,0.0 , fsig,fdxy,fdph ) ;
+/* fprintf(stderr,"Set fine params = %f %f %f\n",fsig,fdxy,fdph) ; */
+   }
 
    /*------------- ready to compute new dataset -----------*/
 

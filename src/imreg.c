@@ -214,6 +214,18 @@ void REG_syntax(void)
     "                    for FMRI use only!\n"
     "\n"
     "  -dfspacetime[:0]  Apply both algorithms: dfspace, then dftime.\n"
+    "\n"
+    "  -fine blur dxy dphi  Set the 3 'fine' fit parameters:\n"
+    "                         blur = FWHM of image blur prior to registration,\n"
+    "                                  in pixels [must be > 0];\n"
+    "                         dxy  = convergence tolerance for translations,\n"
+    "                                  in pixels;\n"
+    "                         dphi = convergence tolerance for rotations,\n"
+    "                                  in degrees.\n"
+    "\n"
+    "  -nofine              Turn off the 'fine' fit algorithm; in some cases it\n"
+    "                         makes things worse, not better.  By default, the\n"
+    "                         algorithm is on, with parameters 1.0, 0.07, 0.21.\n"
    ) ;
 
    return ;
@@ -334,6 +346,36 @@ void REG_command_line(void)
 
       if( strncmp(Argv[Iarg],"-bilinear",5) == 0 ){
          RG_bilinear = 1 ;
+         Iarg++ ; continue ;
+      }
+
+      /** 05 Nov 1997: -params maxite sig dxy dph fsig fdxy fdph **/
+
+      if( strncmp(Argv[Iarg],"-params",6) == 0 ){
+         int maxite ;
+         float sig,dxy,dph,fsig,fdxy,fdph ;
+         maxite = strtol( Argv[++Iarg] , NULL , 10 ) ;
+         sig    = strtod( Argv[++Iarg] , NULL ) * 0.42466090 ;
+         dxy    = strtod( Argv[++Iarg] , NULL ) ;
+         dph    = strtod( Argv[++Iarg] , NULL ) ;
+         fsig   = strtod( Argv[++Iarg] , NULL ) * 0.42466090 ;
+         fdxy   = strtod( Argv[++Iarg] , NULL ) ;
+         fdph   = strtod( Argv[++Iarg] , NULL ) ;
+         mri_align_params( maxite,sig,dxy,dph,fsig,fdxy,fdph ) ;
+         Iarg++ ; continue ;
+      }
+
+      if( strncmp(Argv[Iarg],"-nofine",6) == 0 ){
+         mri_align_params( 0 , 0.0,0.0,0.0 , 0.0,0.0,0.0 ) ;
+         Iarg++ ; continue ;
+      }
+
+      if( strncmp(Argv[Iarg],"-fine",4) == 0 ){
+         float fsig,fdxy,fdph ;
+         fsig = strtod( Argv[++Iarg] , NULL ) * 0.42466090 ;
+         fdxy = strtod( Argv[++Iarg] , NULL ) ;
+         fdph = strtod( Argv[++Iarg] , NULL ) ;
+         mri_align_params( 0 , 0.0,0.0,0.0 , fsig,fdxy,fdph ) ;
          Iarg++ ; continue ;
       }
 

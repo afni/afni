@@ -30,8 +30,8 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
-Revision 1.1  1997/11/05 01:14:31  cox
-Initial revision
+Revision 1.2  1997/11/05 21:28:04  cox
+*** empty log message ***
 
 Revision 1.13  1997/07/07 14:55:04  gary
 Cancel timeouts when XcgLiteClueDeleteWidget is called to prevent
@@ -85,6 +85,13 @@ Cancel timeouts when XcgLiteClueDeleteWidget is called to prevent
 errant timeout event on deleted widget.
 $log
 */
+
+/******************************************************************
+  Modified by RWCox of MCW, to draw a rectangle around the text,
+  and to make the widget popup on screen if it would go off.
+  These changes can be found by searching for the string "RWC".
+*******************************************************************/
+
 #include <unistd.h>
 #include <signal.h>
 /* #include <Xm/XmP.h> */
@@ -429,7 +436,7 @@ static Boolean setValues( Widget _current, Widget _request, Widget _new, ArgList
 */
 static void timeout_event( XtPointer client_data, XtIntervalId *id)
 {
-#define BorderPix 2
+#define BorderPix 3
 	struct liteClue_context_str * obj = (struct liteClue_context_str *) client_data;
 	XcgLiteClueWidget cw = obj->cw;
 	Position  abs_x, abs_y;
@@ -438,6 +445,8 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 	XRectangle logical;
 	Position   w_height;	
 	Widget w;
+
+        int RWC_width , RWC_height ;
 
 	if (cw->liteClue.interval_id == (XtIntervalId)0)
 		return;	/* timeout was removed but callback happened anyway */
@@ -464,16 +473,18 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 	XmbTextExtents(cw->liteClue.fontset, obj->text , obj->text_size ,&ink, &logical);
 #endif
 
-	XtResizeWidget((Widget) cw, 2*BorderPix +logical.width, 
-			2*BorderPix + cw->liteClue.font_height, cw->core.border_width );
+        RWC_width  = 2*BorderPix +logical.width ;
+        RWC_height = 2*BorderPix + cw->liteClue.font_height ;
+	XtResizeWidget((Widget) cw, RWC_width , RWC_height ,
+			cw->core.border_width );
 
 /** RWCox change to widget location **/
         { int scw = WidthOfScreen(XtScreen(cw)) , sch = HeightOfScreen(XtScreen(cw)) ;
           int newx = abs_x + 1 , newy = abs_y+1 ;
-          if( newx + logical.width > scw ) newx = scw - logical.width - 2 ;
+          if( newx + logical.width > scw ) newx = scw - logical.width - 2*BorderPix ;
           if( newx < 0 )                   newx = 0 ;
           if( newy + cw->liteClue.font_height + 2 >= sch )
-             newy = newy - w_height - cw->liteClue.font_height - 4 ;
+             newy = newy - w_height - cw->liteClue.font_height - 2*BorderPix ;
           if( newy < 0 ) newy = 0 ;
 	  XtMoveWidget((Widget) cw, newx,newy);
         }
@@ -491,6 +502,11 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 		cw->liteClue.text_GC , BorderPix, 
 		BorderPix + cw->liteClue.font_baseline, obj->text , obj->text_size);
 #endif
+
+/** RWCox change to add a rectangle **/
+        XDrawRectangle( XtDisplay((Widget) cw) , XtWindow((Widget) cw) ,
+                        cw->liteClue.text_GC ,
+                        0,0 , RWC_width-1,RWC_height-1 ) ;
 }
 
 /*

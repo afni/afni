@@ -294,7 +294,7 @@ static char * ISQ_but_bot_help[NBUTTON_BOT] = {
    "    Because of this, use of the Mont button to create anything\n"
    "    but a 1x1 layout will switch this Save button to Save:one.\n"
    " * The PNM format requires the 'netpbm' package to be useful.\n"
-   "    Alternatively, the 'xv' program will read/write PNM images."
+   "    Alternatively, the 'xv' program will read/write PNM images." ,
 
    "Will popup a control box to let you\n"
    "display a montage of images, instead\n"

@@ -32,6 +32,37 @@
 #define MRI_ROTA(a,b,c,d) \
    ( (bilinear) ? mri_rota_bilinear((a),(b),(c),(d)) : mri_rota((a),(b),(c),(d)) )
 
+/*********************************************************************
+  05 Nov 1997: make the parameters that control the iterations
+               be alterable.
+**********************************************************************/
+
+static float dfilt_sigma     = DFILT_SIGMA ,
+             dxy_thresh      = DXY_THRESH ,
+             phi_thresh      = PHI_THRESH ,
+             fine_sigma      = FINE_SIGMA ,
+             fine_dxy_thresh = FINE_DXY_THRESH ,
+             fine_phi_thresh = FINE_PHI_THRESH  ;
+
+static int max_iter = MAX_ITER ;
+
+void mri_align_params( int maxite,
+                       float sig , float dxy , float dph ,
+                       float fsig, float fdxy, float fdph )
+{
+   if( maxite > 0   ) max_iter    = maxite ; else max_iter    = MAX_ITER    ;
+   if( sig    > 0.0 ) dfilt_sigma = sig    ; else dfilt_sigma = DFILT_SIGMA ;
+   if( dxy    > 0.0 ) dxy_thresh  = dxy    ; else dxy_thresh  = DXY_THRESH  ;
+   if( dph    > 0.0 ) phi_thresh  = dph    ; else phi_thresh  = PHI_THRESH  ;
+
+   fine_sigma = fsig ;
+   if( fdxy > 0.0 ) fine_dxy_thresh = fdxy ; else fine_dxy_thresh = FINE_DXY_THRESH ;
+   if( fdph > 0.0 ) fine_phi_thresh = fdph ; else fine_phi_thresh = FINE_PHI_THRESH ;
+
+   return ;
+}
+/*********************************************************************/
+
 /*---------------------------------------------------------------------
    Inputs:  imbase = base image that others will align to
             imwt   = image of weight factors to align to
@@ -67,9 +98,10 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
    double * chol_fitim=NULL ;
 
 #ifdef FINE_FIT
-   MRI_IMARR * fine_fitim ;
-   MRI_IMAGE * fine_imww ;
+   MRI_IMARR * fine_fitim  =NULL ;
+   MRI_IMAGE * fine_imww   =NULL ;
    double * chol_fine_fitim=NULL ;
+   int use_fine_fit = (fine_sigma > 0.0) ;
 #endif
 
    if( ! MRI_IS_2D(imbase) ){
@@ -95,9 +127,9 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
    nx  = im1->nx ;  hnx = 0.5 * nx ;
    ny  = im1->ny ;  hny = 0.5 * ny ;
 
-   bim = mri_filt_fft( im1 , DFILT_SIGMA , 0 , 0 , FILT_FFT_WRAPAROUND ) ;  /* smooth */
-   xim = mri_filt_fft( im1 , DFILT_SIGMA , 1 , 0 , FILT_FFT_WRAPAROUND ) ;  /* d/dx */
-   yim = mri_filt_fft( im1 , DFILT_SIGMA , 0 , 1 , FILT_FFT_WRAPAROUND ) ;  /* d/dy */
+   bim = mri_filt_fft( im1 , dfilt_sigma , 0 , 0 , FILT_FFT_WRAPAROUND ) ;  /* smooth */
+   xim = mri_filt_fft( im1 , dfilt_sigma , 1 , 0 , FILT_FFT_WRAPAROUND ) ;  /* d/dx */
+   yim = mri_filt_fft( im1 , dfilt_sigma , 0 , 1 , FILT_FFT_WRAPAROUND ) ;  /* d/dy */
 
    tim = mri_new( nx , ny , MRI_float ) ;    /* x * d/dy - y * d/dx */
    tar = mri_data_pointer( tim ) ;           /* which is d/d(theta) */
@@ -125,34 +157,35 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
 
    /*** create the FINE_FIT analog of the above, if required ***/
 #ifdef FINE_FIT
-   bim = mri_filt_fft( im1 , FINE_SIGMA , 0 , 0 , FILT_FFT_WRAPAROUND ) ;  /* smooth */
-   xim = mri_filt_fft( im1 , FINE_SIGMA , 1 , 0 , FILT_FFT_WRAPAROUND ) ;  /* d/dx */
-   yim = mri_filt_fft( im1 , FINE_SIGMA , 0 , 1 , FILT_FFT_WRAPAROUND ) ;  /* d/dy */
+   if( use_fine_fit ){
+     bim = mri_filt_fft( im1 , fine_sigma , 0 , 0 , FILT_FFT_WRAPAROUND ) ;  /* smooth */
+     xim = mri_filt_fft( im1 , fine_sigma , 1 , 0 , FILT_FFT_WRAPAROUND ) ;  /* d/dx */
+     yim = mri_filt_fft( im1 , fine_sigma , 0 , 1 , FILT_FFT_WRAPAROUND ) ;  /* d/dy */
 
-   tim = mri_new( nx , ny , MRI_float ) ;    /* x * d/dy - y * d/dx */
-   tar = mri_data_pointer( tim ) ;           /* which is d/d(theta) */
-   xar = mri_data_pointer( xim ) ;
-   yar = mri_data_pointer( yim ) ;
-   for( jj=0 ; jj < ny ; jj++ ){
-      joff = jj * nx ;
-      for( ii=0 ; ii < nx ; ii++ ){
-         tar[ii+joff] = DFAC * (  (ii-hnx) * yar[ii+joff]
-                                - (jj-hny) * xar[ii+joff] ) ;
-      }
-   }
-   INIT_IMARR ( fine_fitim ) ;
-   ADDTO_IMARR( fine_fitim , bim ) ;
-   ADDTO_IMARR( fine_fitim , xim ) ;
-   ADDTO_IMARR( fine_fitim , yim ) ;
-   ADDTO_IMARR( fine_fitim , tim ) ;
+     tim = mri_new( nx , ny , MRI_float ) ;    /* x * d/dy - y * d/dx */
+     tar = mri_data_pointer( tim ) ;           /* which is d/d(theta) */
+     xar = mri_data_pointer( xim ) ;
+     yar = mri_data_pointer( yim ) ;
+     for( jj=0 ; jj < ny ; jj++ ){
+        joff = jj * nx ;
+        for( ii=0 ; ii < nx ; ii++ ){
+           tar[ii+joff] = DFAC * (  (ii-hnx) * yar[ii+joff]
+                                  - (jj-hny) * xar[ii+joff] ) ;
+        }
+     }
+     INIT_IMARR ( fine_fitim ) ;
+     ADDTO_IMARR( fine_fitim , bim ) ;
+     ADDTO_IMARR( fine_fitim , xim ) ;
+     ADDTO_IMARR( fine_fitim , yim ) ;
+     ADDTO_IMARR( fine_fitim , tim ) ;
 
-   if( imwt == NULL ) fine_imww = mri_to_float( bim ) ;  /* 03 Oct 1997 */
-   else               fine_imww = mri_to_float( imwt ) ;
+     if( imwt == NULL ) fine_imww = mri_to_float( bim ) ;  /* 03 Oct 1997 */
+     else               fine_imww = mri_to_float( imwt ) ;
 
 #ifdef USE_DELAYED_FIT
-   chol_fine_fitim = mri_startup_lsqfit( fine_fitim , fine_imww ) ;
+     chol_fine_fitim = mri_startup_lsqfit( fine_fitim , fine_imww ) ;
 #endif
-
+   }
 #endif  /* FINE_FIT */
 
    mri_free( im1 ) ;
@@ -167,7 +200,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
                          (ims->imarr[kim]->name==NULL)?" ":ims->imarr[kim]->name);
 
       im2  = mri_to_float( ims->imarr[kim] ) ;
-      bim2 = mri_filt_fft( im2 , DFILT_SIGMA , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
+      bim2 = mri_filt_fft( im2 , dfilt_sigma , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
 #ifdef USE_DELAYED_FIT
       fit  = mri_delayed_lsqfit( bim2 , fitim , chol_fitim ) ;
 #else
@@ -179,13 +212,13 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
                          fit[1],fit[2],fit[3] ) ;
 
       iter = 0 ;
-      good = ( fabs(fit[1]) > DXY_THRESH ||
-               fabs(fit[2]) > DXY_THRESH || fabs(fit[3]) > PHI_THRESH ) &&
+      good = ( fabs(fit[1]) > dxy_thresh ||
+               fabs(fit[2]) > dxy_thresh || fabs(fit[3]) > phi_thresh ) &&
              ( (code & ALIGN_NOITER_CODE) == 0 ) ;
 
       while( good ){
          tim  = MRI_ROTA( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
-         bim2 = mri_filt_fft( tim , DFILT_SIGMA , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
+         bim2 = mri_filt_fft( tim , dfilt_sigma , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
 #ifdef USE_DELAYED_FIT
          dfit = mri_delayed_lsqfit( bim2 , fitim , chol_fitim ) ;
 #else
@@ -201,20 +234,20 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
          fit[2] += dfit[2] ;
          fit[3] += dfit[3] ;
 
-         good = (++iter < MAX_ITER) &&
-                  ( fabs(dfit[1]) > DXY_THRESH ||
-                    fabs(dfit[2]) > DXY_THRESH || fabs(dfit[3]) > PHI_THRESH ) ;
+         good = (++iter < max_iter) &&
+                  ( fabs(dfit[1]) > dxy_thresh ||
+                    fabs(dfit[2]) > dxy_thresh || fabs(dfit[3]) > phi_thresh ) ;
 
          free(dfit) ; dfit = NULL ;
       } /* end while */
 
       /*** perform fine adjustments (always use bicubic interpolation) ***/
 #ifdef FINE_FIT
-      if( iter < MAX_ITER && (code & ALIGN_NOITER_CODE) == 0 ){
+      if( use_fine_fit && iter < max_iter && (code & ALIGN_NOITER_CODE) == 0 ){
          good = 1 ;
          while( good ){
             tim  = mri_rota( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
-            bim2 = mri_filt_fft( tim , FINE_SIGMA , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
+            bim2 = mri_filt_fft( tim , fine_sigma , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
 #ifdef USE_DELAYED_FIT
             dfit = mri_delayed_lsqfit( bim2 , fine_fitim , chol_fine_fitim ) ;
 #else
@@ -230,9 +263,9 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
             fit[2] += dfit[2] ;
             fit[3] += dfit[3] ;
 
-            good = (++iter < MAX_ITER) &&
-                     ( fabs(dfit[1]) > FINE_DXY_THRESH ||
-                       fabs(dfit[2]) > FINE_DXY_THRESH || fabs(dfit[3]) > FINE_PHI_THRESH ) ;
+            good = (++iter < max_iter) &&
+                     ( fabs(dfit[1]) > fine_dxy_thresh ||
+                       fabs(dfit[2]) > fine_dxy_thresh || fabs(dfit[3]) > fine_phi_thresh ) ;
 
             free(dfit) ; dfit = NULL ;
          } /* end while */
@@ -258,11 +291,13 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
 #endif
 
 #ifdef FINE_FIT
-   DESTROY_IMARR( fine_fitim ) ;
-   mri_free( fine_imww ) ;
+   if( use_fine_fit ){
+     DESTROY_IMARR( fine_fitim ) ;
+     mri_free( fine_imww ) ;
 #ifdef USE_DELAYED_FIT
-   free(chol_fine_fitim) ; chol_fine_fitim = NULL ;
+     free(chol_fine_fitim) ; chol_fine_fitim = NULL ;
 #endif
+   }
 #endif
 
    mri_free( imww ) ;
