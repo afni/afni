@@ -4303,7 +4303,11 @@ DPR(" .. KeyPress") ;
              if( nt > 1 ){
                if( buf[0] == '<' ){ nn--; if( nn <  0 ) nn = nt-1; }
                else               { nn++; if( nn >= nt) nn = 0   ; }
+#if 1
+               ISQ_redisplay( seq , nn , isqDR_display ) ;
+#else
                ISQ_set_image_number( seq , nn ) ;
+#endif
              }
              EXRETURN ;
            }
