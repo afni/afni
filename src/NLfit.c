@@ -466,7 +466,9 @@ void RAN_setup
 
       /* save parameters of new signal model */
 
-      fprintf(stderr,"NLfit: initializing random signal models") ;
+#if 0
+      fprintf(stderr,"++ NLfit: initializing random signal models") ;
+#endif
 
       OLD_smodel    = smodel ;
       OLD_p         = p ;
@@ -501,7 +503,9 @@ void RAN_setup
          smodel( par , ts_length , x_array , ts ) ;  /* time series vector */
       }
 
-      fprintf(stderr,"\n") ;
+#if 0
+      fprintf(stderr," - done\n") ;
+#endif
    } /* end of signal model stowage */
 
    return ;

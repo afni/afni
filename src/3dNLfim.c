@@ -96,7 +96,7 @@
 /*--------- Global variables for multiple process execution - RWCox. --------*/
 /*--------- All names start with "proc_", so search for that string. --------*/
 
-#if !defined(DONT_USE_SHM) && !defined(DONT_USE_FORK)
+#if !defined(DONT_USE_SHM) && !defined(DONT_USE_FORK) && !defined(CYGWIN)
 
 # include "thd_iochan.h"                /* prototypes for shm stuff */
 
@@ -555,7 +555,7 @@ void get_options
          if (mask_vol == NULL )  NLfit_error ("can't use -mask dataset!") ;
          for( ii=mc=0 ; ii < mask_nvox ; ii++ )  if (mask_vol[ii])  mc++ ;
          if (mc == 0)  NLfit_error ("mask is all zeros!") ;
-         printf("--- %d voxels in mask\n",mc) ;
+         printf("++ %d voxels in mask %s\n",mc,argv[nopt]) ;
          nopt++ ; continue ;
       }
 
@@ -2245,7 +2245,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   
 
   /*----- write afni data set -----*/
-  printf("--- Writing combined dataset into %s\n",
+  printf("++ Writing combined dataset into %s\n",
 	 new_dset->dblk->diskptr->header_name) ;
   
   fbuf[0] = numdof;   
@@ -2445,7 +2445,7 @@ void write_bucket_data
 
 
   /*----- write bucket data set -----*/
-  printf("Writing `bucket' dataset ");
+  printf("++ Writing `bucket' dataset ");
   printf("into %s\n", DSET_HEADNAME(new_dset));
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
@@ -2561,7 +2561,7 @@ void write_3dtime
 
 
   /*----- write afni data set -----*/
-  printf ("--- Writing 3d+time dataset into %s\n",
+  printf ("++ Writing 3d+time dataset into %s\n",
 	  new_dset->dblk->diskptr->header_name);
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
@@ -3046,6 +3046,8 @@ int main
 
   int ixyz_bot , ixyz_top ;
 
+  /*----- start the elapsed time counter -----*/
+  (void) COX_clock_time() ;
   
   /*----- Identify software -----*/
   printf ("\n\n");
@@ -3289,23 +3291,6 @@ int main
 		     &tncoef_filename, &tscoef_filename, 
 		     &sfit_filename, &snfit_filename);
 
+  fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time()) ;
   exit (0);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

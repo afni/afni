@@ -267,7 +267,7 @@
 /*--------- Global variables for multiple process execution - RWCox. --------*/
 /*--------- All names start with "proc_", so search for that string. --------*/
 
-#if !defined(DONT_USE_SHM) && !defined(DONT_USE_FORK)
+#if !defined(DONT_USE_SHM) && !defined(DONT_USE_FORK) && !defined(CYGWIN)
 
 # include "thd_iochan.h"                /* prototypes for shm stuff */
 
@@ -4449,15 +4449,6 @@ int main
 		     &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, &glt_fstat_vol,
  		     &glt_rstat_vol, &fitts_vol, &errts_vol);
 
- fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time()) ;
+  fprintf(stderr,"++ Program finished; elapsed time=%.3f\n",COX_clock_time()) ;
   exit(0);
 }
-
-
-
-
-
-
-
-
-
