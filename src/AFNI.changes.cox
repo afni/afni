@@ -3572,3 +3572,10 @@
  * Modified mri_dup.c to do 3x RGB upsample in special function, too.
  * Modified imseq.c to do panning with Button1 when the new 'pan' button
      is on - the "old" arrowpad buttons have been excised.
+
+16 Mar 2002
+ * Modified afni.c to not start NIML until the startup timeout is called.
+     Otherwise, very early data might try to popup a window before that
+     is possible.  Also, made NIML be turned on by default.
+ * Modified afni_niml.c to have the popup messages include the I/O and
+     processing time for large data elements.

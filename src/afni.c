@@ -302,7 +302,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
 
    GLOBAL_argopt.enable_suma    = 1 ;      /* 29 Aug 2001 */
-   GLOBAL_argopt.yes_niml       = 0 ;      /* 28 Feb 2002 */
+   GLOBAL_argopt.yes_niml       = 1 ;      /* 28 Feb 2002 */
 
 #if 0
    GLOBAL_argopt.allow_rt = 0 ;            /* April 1997 */
@@ -469,7 +469,8 @@ ENTRY("AFNI_parse_args") ;
       /*---- -niml [28 Feb 2002] -----*/
 
       if( strcmp(argv[narg],"-niml") == 0 ){
-         GLOBAL_argopt.yes_niml = 1 ;
+         fprintf(stderr,"\n-niml is now turned on by default\n") ;
+         GLOBAL_argopt.yes_niml++ ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -1312,13 +1313,6 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
         }
 #endif
 
-        /* NIML listening on */
-
-        if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml ){
-          AFNI_init_niml() ;
-          XtSetSensitive(MAIN_im3d->vwid->dmode->misc_niml_pb,False) ;
-        }
-
       }
       break ;
 
@@ -1527,7 +1521,19 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
 
 ENTRY("AFNI_startup_timeout_CB") ;
 
-   MCW_help_CB(NULL,NULL,NULL) ;  /* make sure help window is popped down */
+   /* make sure help window is popped down */
+
+   MCW_help_CB(NULL,NULL,NULL) ;
+
+   /* NIML listening on [moved here 17 Mar 2002] */
+
+   if( MAIN_im3d->type == AFNI_3DDATA_VIEW && GLOBAL_argopt.yes_niml ){
+     AFNI_init_niml() ;
+     XtSetSensitive(MAIN_im3d->vwid->dmode->misc_niml_pb,False) ;
+   }
+
+   /* finish up getting AFNI ready to be presented to the world */
+
    SHOW_AFNI_READY ;
    RESET_AFNI_QUIT(im3d) ;
    PICTURE_OFF(im3d) ;
