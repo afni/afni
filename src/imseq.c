@@ -4397,6 +4397,7 @@ ENTRY("ISQ_drawing_EV") ;
              ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
           else
              { XBell(seq->dc->display,100); EXRETURN; }
+          EXRETURN ;
         }
 
         /* Button1 motion: if not panning, grayscaling? */
