@@ -296,15 +296,13 @@ void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out)
 
 SUMA_Boolean SUMA_Free_MemTrace (SUMA_MEMTRACE_STRUCT * Mem) {
    static char FuncName[]={"SUMA_Free_MemTrace"};
-      
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-   
+         
    /* DO NOT USE SUMA_free function here ! */
    if (Mem->Pointers) free (Mem->Pointers);
    if (Mem->Size) free(Mem->Size);
    if (Mem) free (Mem);
    
-   SUMA_RETURN(YUP);
+   return(YUP);
 }
 
 /*! Taken from filexists 
@@ -2393,7 +2391,7 @@ SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, f
    
    hit = NOPE;
    
-      if (det > -SUMA_MT_EPSILON && det < SUMA_MT_EPSILON) {
+      if (det > -SUMA_EPSILON && det < SUMA_EPSILON) {
          /* no hit, will return below */
          hit = NOPE;
       } else {
@@ -2456,7 +2454,7 @@ SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, f
 /*!
 
 SUMA_MT_INTERSECT_TRIANGLE *
-SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet)
+SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, SUMA_MT_INTERSECT_TRIANGLE *prevMTI)
 
 \param   P0 (float *) 3x1 containing XYZ of point 0
 \param   P1 (float *) 3x1 containing XYZ of point 1
@@ -2465,43 +2463,72 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
 \param   FaceSetList (int *) N_FaceSet x 3 with each triplet representing a triangle. Triangles are defined
          by their indices into NodeList 
 \param   N_FaceSet (int) number of triangles in FaceSetList
+\param   PrevMTI (SUMA_MT_INTERSECT_TRIANGLE *) To keep the function from reallocating for MTI each time you call it, you can pass the previous MTI
+         structure to the next call. If the number of facesets is the same as in the previous call and PrevMTI is not NULL then MTI is not reallocated for.
+         If PrevMTI is not null and the last N_FaceSet was different from the current, PrevMTI is freed and a new one is returned. This change appears to 
+         save about 18% of the function's execution time. Be careful not to free PrevMTI without setting it to NULL and then send it to SUMA_MT_intersect_triangle.
 
 \ret   MTI (SUMA_MT_INTERSECT_TRIANGLE *) pointer to structure containing 
       isHit (SUMA_Boolean *) N_FaceSet x 1 vector. isHit[i] = YUP --> FaceSet i is pierced by ray P0-->P1
-      t (float *) distance to the plane in which the triangle lies
+      t (float *) signed distance to the plane in which the triangle lies
       u & v(float *) location withing the triangle of the intersection point
 
 \sa Algorithm from:Moller & Trumbore 97
    Tomas Möller and Ben Trumbore. Fast, minimum storage ray-triangle intersection. 
    Journal of graphics tools, 2(1):21-28, 1997
 
+NOTE: 
+Tue Jan  7 15:07:05 EST 2003 Shruti noted that problems occured when a ray intersected a node. 
+She is correct, if a ray intersects a node, it may or may not be detected and the results are undetermined. 
+This is only expected to happen with synthesized data and checking for such situations will slow the function down. 
+If you must use such data, I recommend you add a tiny bit of noise to the vertex coordinates
+or to your normals. 
+
 */ 
  
 SUMA_MT_INTERSECT_TRIANGLE *
-SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet)
+SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, int *FaceSetList, int N_FaceSet, SUMA_MT_INTERSECT_TRIANGLE *PrevMTI)
 {
    static char FuncName[]={"SUMA_MT_intersect_triangle"};
    double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
    double det,inv_det;
    int iface, ND, id, NP, ip;
    double vert0[3],vert1[3], vert2[3], dir[3], dirn, orig[3];
-   float tmin, tmax, dii;
-   SUMA_MT_INTERSECT_TRIANGLE *MTI;
+   float tmin, tmax, dii, disttest;
+   static SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL;
+   static int N_FaceSet_Previous = 0, entry = 0;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
    tmin = 10000000.0;
    tmax = 0.0;
-   MTI = (SUMA_MT_INTERSECT_TRIANGLE *)SUMA_malloc(sizeof(SUMA_MT_INTERSECT_TRIANGLE));
-   if (MTI == NULL) {
-      fprintf(SUMA_STDERR,"Error : Failed to allocate for MTI\n");
-      SUMA_RETURN (MTI);
-   }
-   MTI->t = NULL;
-   MTI->u = NULL;
-   MTI->v = NULL;
-   MTI->isHit = NULL;
    
+   if (!PrevMTI) { /* nothing preallocated */
+      entry = 0;
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: First entry or nothing pre-allocated.\n", FuncName);
+   } else { /* returning a used MTI, check number of facesets */
+      if (N_FaceSet_Previous != N_FaceSet) { /* must reallocate */
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Reallocating for MTI, a change in number of FaceSets.\n", FuncName);
+         /* free current MTI */
+         PrevMTI = SUMA_Free_MT_intersect_triangle (PrevMTI);
+         entry = 0;
+      }else if (LocalHead) fprintf(SUMA_STDERR,"%s: Reusing.\n", FuncName);
+   }
+   
+   if (!entry) {
+      MTI = (SUMA_MT_INTERSECT_TRIANGLE *)SUMA_malloc(sizeof(SUMA_MT_INTERSECT_TRIANGLE));
+      if (MTI == NULL) {
+         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for MTI\n", FuncName);
+         SUMA_RETURN (NULL);
+      }
+      MTI->t = NULL;
+      MTI->u = NULL;
+      MTI->v = NULL;
+      MTI->isHit = NULL;
+   } else {
+      MTI = PrevMTI;
+   }
 
    /* direction from two points */
    orig[0] = (double)P0[0];
@@ -2516,15 +2543,18 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
    dir[1] /= dirn;
    dir[2] /= dirn;
    
-   MTI->isHit = (SUMA_Boolean *)SUMA_malloc(N_FaceSet*sizeof(SUMA_Boolean));
-   MTI->t = (float *)SUMA_calloc(N_FaceSet, sizeof(float));
-   MTI->u = (float *)SUMA_calloc(N_FaceSet, sizeof(float));
-   MTI->v = (float *)SUMA_calloc(N_FaceSet, sizeof(float));
+   if (!entry) {
+      MTI->isHit = (SUMA_Boolean *)SUMA_malloc(N_FaceSet*sizeof(SUMA_Boolean));
+      MTI->t = (float *)SUMA_calloc(N_FaceSet, sizeof(float));
+      MTI->u = (float *)SUMA_calloc(N_FaceSet, sizeof(float));
+      MTI->v = (float *)SUMA_calloc(N_FaceSet, sizeof(float));
    
-   if (MTI->isHit == NULL || MTI->t == NULL || MTI->u == NULL || MTI->v == NULL) {
-      fprintf(SUMA_STDERR,"Error : Failed to allocate for MTI->isHit | MTI->t | MTI->u | MTI->v\n");
-      SUMA_RETURN (MTI);
+      if (MTI->isHit == NULL || MTI->t == NULL || MTI->u == NULL || MTI->v == NULL) {
+         fprintf(SUMA_STDERR,"Error : Failed to allocate for MTI->isHit | MTI->t | MTI->u | MTI->v\n");
+         SUMA_RETURN (NULL);
+      }
    }
+   
    MTI->N_hits = 0;
    ND = 3;
    NP = 3;
@@ -2546,6 +2576,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
        vert2[1] = (double)NodeList[id+1];
       vert2[2] = (double)NodeList[id+2];
       
+      
       /* find vectors for two edges sharing vert0 */
       SUMA_MT_SUB(edge1, vert1, vert0);
       SUMA_MT_SUB(edge2, vert2, vert0);
@@ -2557,7 +2588,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
       det = SUMA_MT_DOT(edge1, pvec);
 
    #ifdef SUMA_MT_TEST_CULL           /* define TEST_CULL if culling is desired */
-      if (det < SUMA_MT_EPSILON)
+      if (det < SUMA_EPSILON)
          MTI->isHit[iface] = NOPE;
       else {
          /* calculate distance from vert0 to ray origin */
@@ -2585,8 +2616,11 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
                MTI->isHit[iface] = YUP;
                ++MTI->N_hits;
                /* store shortest distance triangle info */
-               if (MTI->t[iface] < tmin) {
-                  tmin = MTI->t[iface];
+               if (MTI->t[iface] < 0) disttest = -MTI->t[iface];
+                  else disttest = MTI->t[iface];
+                   
+               if (disttest < tmin) {
+                  tmin = disttest;
                   MTI->ifacemin = iface;
                   /* calculate the location of the intersection in XYZ coords */
                   MTI->P[0] = vert0[0] + MTI->u[iface] * (vert1[0] - vert0[0] ) + MTI->v[iface] * (vert2[0] - vert0[0] );
@@ -2607,15 +2641,15 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
                   }
                   MTI->d = (float)sqrt((double)MTI->d);
                }
-               if (MTI->t[iface] > tmax) {
-                  tmax = MTI->t[iface];
+               if (disttest > tmax) {
+                  tmax = disttest;
                   MTI->ifacemax = iface;
                }
             }
          }
       }
    #else                    /* the non-culling branch */
-      if (det > -SUMA_MT_EPSILON && det < SUMA_MT_EPSILON)
+      if (det > -SUMA_EPSILON && det < SUMA_EPSILON)
          MTI->isHit[iface] = NOPE;
       else {
          inv_det = 1.0 / det;
@@ -2641,8 +2675,11 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
                MTI->isHit[iface] = YUP;
                ++MTI->N_hits;
                /* store shortest distance triangle info */
-               if (MTI->t[iface] < tmin) {
-                  tmin = MTI->t[iface];
+               if (MTI->t[iface] < 0) disttest = -MTI->t[iface];
+                  else  disttest = MTI->t[iface];
+               
+               if (disttest < tmin) {
+                  tmin = disttest;
                   MTI->ifacemin = iface;
                   /* calculate the location of the intersection in XYZ coords */
                   MTI->P[0] = vert0[0] + MTI->u[iface] * (vert1[0] - vert0[0] ) + MTI->v[iface] * (vert2[0] - vert0[0] );
@@ -2665,8 +2702,8 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
                   ip = NP * iface + MTI->inodeminlocal;
                   MTI->inodemin = FaceSetList[ip];
                }
-               if (MTI->t[iface] > tmax) {
-                  tmax = MTI->t[iface];
+               if (disttest > tmax) {
+                  tmax = disttest;
                   MTI->ifacemax = iface;
                }
             }
@@ -2675,6 +2712,10 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
    #endif
    }/*iface */
    MTI->N_el = N_FaceSet;
+   
+   ++entry;
+   N_FaceSet_Previous = N_FaceSet;
+
    SUMA_RETURN (MTI);
 }
 
@@ -2743,9 +2784,12 @@ SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FI
    SUMA_RETURN (YUP);
 }
 /*!
-free structure SUMA_MT_INTERSECT_TRIANGLE
+\brief free structure SUMA_MT_INTERSECT_TRIANGLE, returns NULL so you should use it as such:
+MTI = SUMA_Free_MT_intersect_triangle (MTI);
+
+\sa SUMA_MT_intersect_triangle to find out why it is important to set MTI to NULL after freeing it
 */
-SUMA_Boolean SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI)
+void * SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI)
 {
    static char FuncName[]={"SUMA_Free_MT_intersect_triangle"};
    
@@ -2756,7 +2800,7 @@ SUMA_Boolean SUMA_Free_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI)
    if (MTI->v) SUMA_free(MTI->v);
    if (MTI->isHit) SUMA_free(MTI->isHit);
    if (MTI) SUMA_free(MTI);
-   SUMA_RETURN(YUP);
+   SUMA_RETURN(NULL);
 }
 
 /*!
@@ -2806,7 +2850,7 @@ SUMA_Boolean SUMA_FromToRotation (float *v0, float *v1, float **mtx)
    SUMA_MT_CROSS(v, v0, v1);
    e = SUMA_MT_DOT(v0, v1);
    f = (e < 0)? -e:e;
-   if (f > 1.0 - SUMA_MT_EPSILON)     /* "v0" and "v1"-vector almost parallel */
+   if (f > 1.0 - SUMA_EPSILON)     /* "v0" and "v1"-vector almost parallel */
    {
       float u[3], v[3]; /* temporary storage vectors */
       float x[3];       /* vector most nearly orthogonal v1 "v0" */
@@ -4203,7 +4247,7 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
 SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 {
    static char FuncName[]={"SUMA_BuildFirstNeighb"};
-   int i, j, n1, n2,  **FirstNeighb, N_ELm1;
+   int i, j, n1, n2,  **FirstNeighb, N_ELm1, jj, tmp;
    SUMA_Boolean skp;
    SUMA_NODE_FIRST_NEIGHB *FN;
    
@@ -4285,14 +4329,38 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
       SUMA_RETURN (NULL);
    } 
 
-   /* crop left over allocated space */
+   /* crop left over allocated space and rearrange neighboring nodes in order */
    for (i=0; i < N_Node; ++i) {
+      #ifdef NoOrder
       for (j=0; j < FN->N_Neighb[i]; ++j) {
-         FirstNeighb[i][j] = FN->FirstNeighb[i][j];
+          FirstNeighb[i][j] = FN->FirstNeighb[i][j];
       }
+      #else /* ordered nodes, Tue Jan  7 13:21:57 EST 2003 */
+        /* copy first node */
+        FirstNeighb[i][0] = FN->FirstNeighb[i][0];
+        j = 1;
+        jj = 1;
+        while (j < FN->N_Neighb[i]) {
+            if (SUMA_whichTri (el, i, FirstNeighb[i][jj-1], FN->FirstNeighb[i][j]) >= 0) {
+               FirstNeighb[i][jj] = FN->FirstNeighb[i][j];
+               /* now swap in FN->FirstNeighb[i] the positions of jj and j */
+               tmp =  FN->FirstNeighb[i][jj];
+               FN->FirstNeighb[i][jj] = FN->FirstNeighb[i][j];
+               FN->FirstNeighb[i][j] = tmp;
+               ++jj;
+               j = jj;
+            } else {
+               ++j;
+            }
+        }
+        if (jj != FN->N_Neighb[i]) {
+            fprintf (SUMA_STDERR, "Error %s: Failed in copying neighbor list!\nProceeding ...\n", FuncName);
+        }    
+      #endif
    }
    SUMA_free2D((char **)FN->FirstNeighb, N_Node);
    FN->FirstNeighb = FirstNeighb;
+   /* SUMA_disp_dmat (FN->FirstNeighb, N_Node, FN->N_Neighb_max, 0); */
    SUMA_RETURN (FN);
 }
 
@@ -4568,7 +4636,12 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, fl
    SUMA_SURFACE_CURVATURE *SC;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   
+   if (!A || !NodeList || !NodeNormList || !FN || !SEL) {
+      fprintf (SUMA_STDERR, "Error %s: One of your inputs is NULL.\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+   
    SC = (SUMA_SURFACE_CURVATURE *)SUMA_malloc (sizeof(SUMA_SURFACE_CURVATURE));
    if (!SC) {
       fprintf (SUMA_STDERR, "Error %s: Failed to allocate for SC.\n", FuncName);

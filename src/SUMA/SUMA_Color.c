@@ -381,9 +381,17 @@ int main (int argc,char *argv[])
    char FuncName[]={"SUMA_MakeColorMap-main"}, *FidName = NULL, *Prfx = NULL, h[9]; 
    int Ncols = 0, N_Fid, kar, i, ifact, *Nind = NULL;
    float **Fid, **M;
-   SUMA_Boolean brk, SkipLast, AfniHex, PosMap, Usage1, Usage2;
+   SUMA_Boolean brk, SkipLast, AfniHex, PosMap, Usage1, Usage2, LocalHead = NOPE;
    SUMA_COLOR_MAP *SM;
       
+   /* allocate space for CommonFields structure and initialize debug*/
+   SUMAg_CF = SUMA_Create_CommonFields ();
+   if (SUMAg_CF == NULL) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
+      exit(1);
+   }
+   SUMAg_CF->InOut_Notify = NOPE;
+   
    if (argc < 3) {
       SUMA_MakeColorMap_usage();
       exit (1);
@@ -397,12 +405,15 @@ int main (int argc,char *argv[])
    Usage1 = NOPE;
    Usage2 = NOPE;
    while (kar < argc) { /* loop accross command ine options */
-      /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
           SUMA_MakeColorMap_usage();
          exit (1);
       }
-      
+      if (!brk && (strcmp(argv[kar], "-v") == 0))
+      {
+         LocalHead = YUP;
+         brk = YUP;
+      }
       if (!brk && (strcmp(argv[kar], "-f") == 0))
       {
          kar ++;
@@ -474,7 +485,7 @@ int main (int argc,char *argv[])
       }
       
    }/* loop accross command ine options */
-
+   
    /* check input */
    if (Usage1 && Usage2) {
       fprintf (SUMA_STDERR,"Error %s: Mixing options from both usage modes.\n", FuncName);
@@ -489,14 +500,6 @@ int main (int argc,char *argv[])
    if (PosMap) {
       fprintf (SUMA_STDERR,"\nWarning %s: -pos option is obsolete.\n", FuncName);
    }
-   
-   /* allocate space for CommonFields structure and initialize debug*/
-   SUMAg_CF = SUMA_Create_CommonFields ();
-   if (SUMAg_CF == NULL) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
-      exit(1);
-   }
-   SUMAg_CF->InOut_Notify = NOPE;
    
    /* read the fiducials file */
    N_Fid = SUMA_float_file_size(FidName);

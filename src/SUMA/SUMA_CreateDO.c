@@ -182,7 +182,7 @@ void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceObject *cso)
 SUMA_Boolean SUMA_CreateSegmentDO (SUMA_SegmentDO *SDO)
 {
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i;
+   int i, N_n3;
    static char FuncName[]={"SUMA_CreateSegmentDO"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -212,7 +212,8 @@ SUMA_Boolean SUMA_CreateSegmentDO (SUMA_SegmentDO *SDO)
    glMaterialfv(GL_FRONT, GL_DIFFUSE, NoColor);
    
    i = 0;
-   while (i < SDO->N_n) {
+   N_n3 = 3*SDO->N_n;
+   while (i < N_n3) {
       glVertex3f(SDO->n0[i], SDO->n0[i+1], SDO->n0[i+2]);
       glVertex3f(SDO->n1[i], SDO->n1[i+1], SDO->n1[i+2]); 
       i += 3;
@@ -777,7 +778,7 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          glEnableClientState (GL_COLOR_ARRAY);
          glEnableClientState (GL_VERTEX_ARRAY);
          glEnableClientState (GL_NORMAL_ARRAY);
-           glColorPointer (4, GL_FLOAT, 0, SUMA_GetColorList (sv, SurfObj->idcode_str));
+         glColorPointer (4, GL_FLOAT, 0, SUMA_GetColorList (sv, SurfObj->idcode_str));
          glVertexPointer (3, GL_FLOAT, 0, SurfObj->glar_NodeList);
          glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
          /*fprintf(stdout, "Ready to draw Elements %d\n", SurfObj->N_FaceSet);*/

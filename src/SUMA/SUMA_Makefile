@@ -160,7 +160,6 @@ SUMA_SurfNorm: SUMA_SurfNorm.c
 install:
 	if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
 	mv suma ${INSTALLDIR_SUMA}
-	mv MakeColorMap ${INSTALLDIR_SUMA} 
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -170,8 +169,8 @@ packbins:
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
 	
-all: libSUMA.a mainobj suma MakeColorMap packbins install 
+all: libSUMA.a mainobj suma install 
 
 standalones: SUMA_CreateIcosahedron SUMA_Map_SurfacetoSurface SUMA_MapIcosahedron SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer SUMA_ScaleToMap MakeColorMap SUMA_compare_surfaces SUMA_inflate_compare
  
-anew: clean libSUMA.a mainobj suma MakeColorMap packbins install 
+anew: clean libSUMA.a mainobj suma standalones packbins install 
