@@ -575,6 +575,8 @@ void DRAW_make_widgets(void)
                               DRAW_mode_CB , NULL ,
                               MCW_av_substring_CB , mode_strings ) ;
 
+     AVOPT_columnize( mode_av , 2 ) ;
+
      MCW_reghelp_children( mode_av->wrowcol ,
                            "Use this to set the way in which\n"
                            "drawing pixels on the screen is\n"
@@ -2787,7 +2789,12 @@ fprintf(stderr,"DRAW_3D_sphere: rad=%g  dx=%g idx=%d  dy=%g jdy=%d  dz=%g kdz=%d
 
    xyzn = (int *) malloc( sizeof(int)*np*(kadd+1) ) ;   /* output array */
 
-   www = (np*(kadd+1) > 1000000) ;
+   if( xyzn == NULL ){
+     fprintf(stderr,"\n** DRAW_3D_sphere ERROR: can't allocate memory!\n\a");
+     free(nn); return;
+   }
+
+   www = (np*(kadd+1) > 1234567) && (np > 1) ;          /* show waiting? */
    if( www ) SHOW_AFNI_PAUSE ;
 
    /** add points around each input point **/
@@ -2813,7 +2820,7 @@ fprintf(stderr,"DRAW_3D_sphere: rad=%g  dx=%g idx=%d  dy=%g jdy=%d  dz=%g kdz=%d
        }
 
 #ifdef USE_COLLAPSAR
-       if( ii > 5 && (ii==np-1 || ii%20==0) ) DRAW_collapsar( &jj , xyzn ) ;
+       if( ii > 5 && (ii==np-1 || ii%16==0) ) DRAW_collapsar( &jj , xyzn ) ;
 #endif
      }
    }
