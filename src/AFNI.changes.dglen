@@ -1,4 +1,6 @@
 15 November 2004:
  * Created 3dTeig.c. Program calculates eigenvalues,vectors,FA from DTI data and
      creates output brik file. Used 3dTstat.c as model for program.
+ * Rename 3dTeig.c 3dDTeig.c. Made program more efficient. Reduced width of help
+     to fit in 80 characters.
  
