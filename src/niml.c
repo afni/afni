@@ -11,7 +11,7 @@ void * NI_malloc( size_t len )
 {
    void *p = calloc(1,len) ;
    if( p == NULL ){
-      fprintf(stderr,"NI_malloc() fails.\n") ; exit(1) ;
+      fprintf(stderr,"NI_malloc() fails. Aauugghh!\n") ; exit(1) ;
    }
    return p ;
 }
@@ -31,7 +31,7 @@ void * NI_realloc( void *p , size_t len )
 {
    void *q = realloc( p , len ) ;
    if( q == NULL && len > 0 ){
-      fprintf(stderr,"NI_realloc() fails.\n"); exit(1);
+      fprintf(stderr,"NI_realloc() fails. Ooooogg!\n"); exit(1);
    }
    return q ;
 }
@@ -48,12 +48,22 @@ char * NI_strncpy( char *dest , const char *src , size_t n )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Like strlen, but better. */
+/*! Like strlen, but better (input=NULL ==> output=0). */
 
 int NI_strlen( char *str )
 {
    if( str == NULL ) return 0 ;
    return strlen(str) ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Like strdup, but better (input=NULL ==> output=NULL). */
+
+char * NI_strdup( char *str )
+{
+   int nn ; char *dup ;
+   if( str == NULL ) return NULL ;
+   nn = strlen(str); dup = NI_malloc(nn+1); strcpy(dup,str); return dup ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -595,19 +605,72 @@ static intpair decode_type_field( char *tf )
 }
 
 /*--------------------------------------------------------------------*/
-/*! Decode a dimen string into an array of integers.
+/*! Decode a single string into a bunch of strings, separated
+    by characters from the list in sep.
+    Passing sep in as NULL means to use "," as the separator.
+    In each sub-string, leading and trailing blanks will be excised.
+    This can result in 0 length strings (e.g., "1,,2," will result
+    in the second and fourth output strings having 0 length).
+----------------------------------------------------------------------*/
+
+static str_array * decode_string_list( char *ss , char *sep )
+{
+   str_array *sar ;
+   int num , nn,id,jd , lss ;
+
+   if( ss == NULL || ss[0] == '\0' ) return NULL ; /* bad input */
+
+   if( sep == NULL || sep[0] == '\0' ) sep = "," ;  /* default sep */
+
+   sar = NI_malloc(sizeof(str_array)) ;  /* create output */
+   sar->num = 0 ; sar->str = NULL ;
+
+   /* scan for sub-strings */
+
+   lss = strlen(ss) ;
+   num = id = 0 ;
+   while( id <= lss ){
+
+      /* skip current position ahead over whitespace */
+
+      while( id < lss && isspace(ss[id]) ) id++ ;
+
+      jd = id ;               /* save current position (start of new string) */
+
+      /* skip ahead until ss[id] is a separator */
+
+      while( id < lss && strchr(sep,ss[id]) == NULL ) id++ ;
+
+      /* sub-string to save runs from ss[jd] to ss[id-1] */
+
+      sar->str = NI_realloc( sar->str , sizeof(char)*(num+1) ) ;
+
+      nn = id-jd ;                                   /* length of sub-string */
+      while( nn > 0 && isspace(ss[jd+nn-1]) ) nn-- ; /* clip trailing blanks */
+      sar->str[num] = NI_malloc(nn+1) ;              /* make output string  */
+      if( nn > 0 ) memcpy(sar->str[num],ss+jd,nn) ;  /* copy sub-string    */
+      sar->str[num++][nn] = '\0' ;                   /* terminate output  */
+
+      id++ ;                                         /* skip separator  */
+   }
+
+   sar->num = num ; return sar ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! Decode a ni_dimen string into an array of integers.
 
   Returns NULL if the input is bad bad bad.
 ----------------------------------------------------------------------*/
 
-static intarray * decode_dimen_string( char *ds )
+static int_array * decode_dimen_string( char *ds )
 {
    int num , dd,nn,id,jd , lds ;
-   intarray *iar ;
+   int_array *iar ;
 
    if( ds == NULL || ds[0] == '\0' ) return NULL ;
 
-   iar = NI_malloc(sizeof(intarray)) ;  /* create output */
+   iar = NI_malloc(sizeof(int_array)) ;  /* create output */
    iar->num = 0 ; iar->ar = NULL ;
 
    /* scan string for integers */
@@ -644,15 +707,15 @@ static intarray * decode_dimen_string( char *ds )
   Returns NULL if the input is bad bad bad.
 ----------------------------------------------------------------------*/
 
-static intarray * decode_type_string( char *ts )
+static int_array * decode_type_string( char *ts )
 {
    int num, typ, lts, id,jd, nn,kk ;
-   intarray *iar ;
+   int_array *iar ;
    intpair dc ;
 
    if( ts == NULL || ts[0] == '\0' ) return NULL ;
 
-   iar = NI_malloc(sizeof(intarray)) ;  /* create output */
+   iar = NI_malloc(sizeof(int_array)) ;  /* create output */
    iar->num = 0 ; iar->ar = NULL ;
 
    /* scan type string to find counts/fields and add to output */
@@ -724,16 +787,17 @@ static char NI_type_char( int typ )
 
 /*--------------------------------------------------------------------*/
 
-static int     typedef_num = 0    ;
-static char ** typedef_nam = NULL ;
-static char ** typedef_typ = NULL ;
-static char ** typedef_dim = NULL ;
+static int     typedef_nib = 0    ; /*!< Block ni_ typedefs? */
+static int     typedef_num = 0    ; /*!< Number of typedefs. */
+static char ** typedef_nam = NULL ; /*!< Names of typedefs.  */
+static char ** typedef_typ = NULL ; /*!< Types of typedefs.  */
+static char ** typedef_dim = NULL ; /*!< Dimens of typedefs. */
 
 /*--------------------------------------------------------------------*/
 /*! Implement typedef-ing.
-     name = name string for new type
-     type = type string for new type
-     dimen= dimen string for new type (can be NULL)
+      name = name string for new type
+      type = type string for new type
+      dimen= dimen string for new type (can be NULL)
     The routine will fail (silently) if name or type is NULL, or
     if name is the same as an existing typedef name, or if the
     type string is indecipherable.
@@ -742,11 +806,14 @@ static char ** typedef_dim = NULL ;
 void NI_typedef( char *name , char *type , char *dimen )
 {
    int nn ;
-   intarray *ar ;
+   int_array *ar ;
 
    if( name == NULL || name[0] == '\0' ||
-       strcmp(name,"ni_group") == 0    ||
        type == NULL || type[0] == '\0'   ) return ; /* bad input */
+
+   /* check if we allow name to start with "ni_" */
+
+   if( typedef_nib && strncmp(name,"ni_",3) == 0 ) return ;
 
    /* search for name in current list */
 
@@ -777,12 +844,9 @@ void NI_typedef( char *name , char *type , char *dimen )
    typedef_typ = NI_realloc( typedef_typ , sizeof(char *)*typedef_num ) ;
    typedef_dim = NI_realloc( typedef_dim , sizeof(char *)*typedef_num ) ;
 
-   typedef_nam[nn] = strdup(name) ;
-   typedef_typ[nn] = strdup(type) ;
-   if( dimen != NULL )
-      typedef_dim[nn] = strdup(dimen) ;
-   else
-      typedef_dim[nn] = NULL ;
+   typedef_nam[nn] = NI_strdup(name) ;
+   typedef_typ[nn] = NI_strdup(type) ;
+   typedef_dim[nn] = NI_strdup(dimen);
 
    return ;
 }
@@ -815,6 +879,8 @@ static void enhance_header_stuff( header_stuff *hs )
 
       NI_typedef( "ni_irgb"  , "i,r" , NULL ) ;
       NI_typedef( "ni_irgba" , "i,R" , NULL ) ;
+
+      typedef_nib = 1 ;  /* block further names starting with "ni_" */
    }
 
    /* Check for special names with predefined types */
@@ -833,7 +899,7 @@ static void enhance_header_stuff( header_stuff *hs )
    if( nn >= 0 ){  /* replace existing RHS */
 
       NI_free( hs->rhs[nn] ) ;
-      hs->rhs[nn] = strdup(ntype) ;
+      hs->rhs[nn] = NI_strdup(ntype) ;
 
    } else {
 
@@ -842,20 +908,22 @@ static void enhance_header_stuff( header_stuff *hs )
       hs->lhs = NI_realloc( hs->lhs , sizeof(char *)*(hs->nattr+1) ) ;
       hs->rhs = NI_realloc( hs->rhs , sizeof(char *)*(hs->nattr+1) ) ;
 
-      hs->lhs[hs->nattr] = strdup("ni_type") ;
-      hs->rhs[hs->nattr] = strdup(ntype) ;
+      hs->lhs[hs->nattr] = NI_strdup("ni_type") ;
+      hs->rhs[hs->nattr] = NI_strdup(ntype) ;
       hs->nattr++ ;
    }
 
-   /* see if we need to add a ni_dimen attribute */
+   /* see if we need to add a ni_dimen attribute:
+      only if the header doesn't have one already,
+      and also if the NI_typedef included a default dimen */
 
    nn = string_index( "ni_dimen" , hs->nattr , hs->lhs ) ;
    if( nn < 0 && ndimen != NULL ){
       hs->lhs = NI_realloc( hs->lhs , sizeof(char *)*(hs->nattr+1) ) ;
       hs->rhs = NI_realloc( hs->rhs , sizeof(char *)*(hs->nattr+1) ) ;
 
-      hs->lhs[hs->nattr] = strdup("ni_dimen") ;
-      hs->rhs[hs->nattr] = strdup(ndimen) ;
+      hs->lhs[hs->nattr] = NI_strdup("ni_dimen") ;
+      hs->rhs[hs->nattr] = NI_strdup(ndimen) ;
       hs->nattr++ ;
    }
 
@@ -908,11 +976,9 @@ static NI_element * make_empty_data_element( header_stuff *hs )
      /* ni_type attribute */
 
      ii = string_index( "ni_type" , nel->attr_num , nel->attr_lhs ) ;
-     if( ii < 0 )
-       ii = string_index( "ni_typ" , nel->attr_num , nel->attr_lhs ) ;
 
      if( ii >= 0 && nel->attr_rhs[ii] != NULL ){
-       intarray *iar = decode_type_string( nel->attr_rhs[ii] ) ;
+       int_array *iar = decode_type_string( nel->attr_rhs[ii] ) ;
        if( iar != NULL ){
          nel->vec_num = iar->num ;  /* number of vectors */
          nel->vec_typ = iar->ar ;   /* vector types */
@@ -923,8 +989,6 @@ static NI_element * make_empty_data_element( header_stuff *hs )
      /* ni_dimen attribute */
 
      ii = string_index( "ni_dimen" , nel->attr_num , nel->attr_lhs ) ;
-     if( ii < 0 )
-       ii = string_index( "ni_dim" , nel->attr_num , nel->attr_lhs ) ;
 
      if( ii >= 0 && nel->attr_rhs[ii] != NULL ){
         int qq = strtol( nel->attr_rhs[ii] , NULL , 10 ) ;
@@ -1178,7 +1242,7 @@ NI_element * NI_new_data_element( char *name , int veclen )
 
    nel->type = NI_ELEMENT_TYPE ;  /* mark as being a data element */
 
-   nel->name = strdup(name) ;
+   nel->name = NI_strdup(name) ;
    nel->attr_num = 0 ;
    nel->attr_lhs = nel->attr_rhs = NULL ;
 
@@ -1265,12 +1329,8 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
         NI_free(nel->attr_rhs[nn]) ;
       }
 
-      nel->attr_lhs[nn] = strdup(attname) ;
-
-      if( attvalue != NULL && attvalue[0] != '\0' )
-         nel->attr_rhs[nn] = strdup(attvalue) ;
-      else
-         nel->attr_rhs[nn] = NULL ;
+      nel->attr_lhs[nn] = NI_strdup(attname) ;
+      nel->attr_rhs[nn] = NI_strdup(attvalue);
 
    /* input is a group element */
 
@@ -1289,12 +1349,8 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
         NI_free(ngr->attr_rhs[nn]) ;
       }
 
-      ngr->attr_lhs[nn] = strdup(attname) ;
-
-      if( attvalue != NULL && attvalue[0] != '\0' )
-         ngr->attr_rhs[nn] = strdup(attvalue) ;
-      else
-         ngr->attr_rhs[nn] = NULL ;
+      ngr->attr_lhs[nn] = NI_strdup(attname) ;
+      ngr->attr_rhs[nn] = NI_strdup(attvalue);
    }
 
    return ;
@@ -2701,13 +2757,9 @@ HeadRestart:                            /* loop back here to retry */
 
       if( strcmp(nel->name,"ni_typedef") == 0 ){
          int nn , nt , nd ;
-fprintf(stderr,"ni_typdef!\n") ;
          nn = string_index( "ni_name" , nel->attr_num , nel->attr_lhs ) ;
-fprintf(stderr," nn=%d\n",nn) ;
          nt = string_index( "ni_type" , nel->attr_num , nel->attr_lhs ) ;
-fprintf(stderr," nt=%d\n",nt) ;
          nd = string_index( "ni_dimen", nel->attr_num , nel->attr_lhs ) ;
-fprintf(stderr," nd=%d\n",nd) ;
 
          /* needs ni_name and ni_type attributes */
 

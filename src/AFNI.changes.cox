@@ -3472,3 +3472,6 @@
 06 Feb 2002
  * Adapted modified plug_histog.c from Vinai Roopchansingh (added the
       "Output" option to write results to a file).
+
+19 Feb 2002
+ * Modified 3dAutoTcorrelate.c to add "-time" option.
