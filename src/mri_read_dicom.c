@@ -46,6 +46,10 @@ static char *elist[] = {
  "0028 1050" ,  /* Window center */
  "0028 1051" ,  /* Window width */
 
+ "0008 0008" ,  /* ID Image type */
+ "0008 0070" ,  /* ID Manufacturer */
+ "0018 1310" ,  /* Acquisition Matrix */
+
 NULL } ;
 
 #define NUM_ELIST (sizeof(elist)/sizeof(char *)-1)
@@ -76,6 +80,10 @@ NULL } ;
 #define E_WINDOW_CENTER              21
 #define E_WINDOW_WIDTH               22
 
+#define E_ID_IMAGE_TYPE              23    /* 28 Oct 2002: for Siemens mosaic */
+#define E_ID_MANUFACTURER            24
+#define E_ACQ_MATRIX                 25
+
 /*-----------------------------------------------------------------------------------*/
 /*! Read image(s) from a DICOM file, if possible.
 -------------------------------------------------------------------------------------*/
@@ -97,6 +105,8 @@ MRI_IMARR * mri_read_dicom( char *fname )
    int have_orients=0 ;
    static int nzoff=0 ;
    int ior,jor,kor ;
+
+   int mosaic=0 , mos_nx,mos_ny , mos_ix,mos_iy,mos_nz ;  /* 28 Oct 2002 */
 
 ENTRY("mri_read_dicom") ;
 
@@ -157,7 +167,7 @@ ENTRY("mri_read_dicom") ;
    if( ddd == NULL ){ free(ppp); RETURN(NULL); }
    bpp = 0 ; sscanf(ddd+2,"%d",&bpp) ;
    switch( bpp ){
-      default: free(ppp) ; RETURN(NULL);   /* bad value */
+      default: free(ppp); RETURN(NULL);    /* bad value */
       case  8: datum = MRI_byte ; break ;
       case 16: datum = MRI_short; break ;
       case 32: datum = MRI_int  ; break ;  /* probably not present in DICOM? */
@@ -168,17 +178,20 @@ ENTRY("mri_read_dicom") ;
 
    /* check if BITS_STORED and HIGH_BIT are aligned */
 
+#define NWMAX 3
    if( epos[E_BITS_STORED] != NULL && epos[E_HIGH_BIT] != NULL ){
      int bs=0 , hb=0 ;
      ddd = strstr(epos[E_BITS_STORED],"//") ; sscanf(ddd+2,"%d",&bs) ;
      ddd = strstr(epos[E_HIGH_BIT],"//")    ; sscanf(ddd+2,"%d",&hb) ;
      if( bs != hb+1 ){
        static int nwarn=0 ;
-       if( nwarn < 9 )
+       if( nwarn < NWMAX )
          fprintf(stderr,
                  "++ WARNING: DICOM file %s has Bits_Stored=%d and High_Bit=%d\n",
                  fname,bs,hb) ;
        nwarn++ ;
+       if( nwarn == NWMAX )
+         fprintf(stderr,"++ WARNING: no more Bits_Stored messages will be printed\n") ;
      }
    }
 
@@ -186,27 +199,31 @@ ENTRY("mri_read_dicom") ;
 
    if( epos[E_RESCALE_INTERCEPT] != NULL ){
       static int nwarn=0 ;
-      if( nwarn < 9 )
+      if( nwarn < NWMAX )
         fprintf(stderr,
                 "++ WARNING: DICOM file %s has Rescale tags - not implemented here\n",
                 fname ) ;
       nwarn++ ;
+      if( nwarn == NWMAX )
+        fprintf(stderr,"++ WARNING: no more Rescale tags messages will be printed\n") ;
    }
 
    /* check if Window is ordered */
 
    if( epos[E_WINDOW_CENTER] != NULL ){
       static int nwarn=0 ;
-      if( nwarn < 9 )
+      if( nwarn < NWMAX )
         fprintf(stderr,
                 "++ WARNING: DICOM file %s has Window tags  - not implemented here\n",
                 fname ) ;
       nwarn++ ;
+      if( nwarn == NWMAX )
+        fprintf(stderr,"++ WARNING: no more Window tags messages will be printed\n") ;
    }
 
    /*** extract attributes of the image(s) to be read in ***/
 
-   /* get nx, ny, nz */
+   /* get image nx & ny */
 
    ddd = strstr(epos[E_ROWS],"//") ;
    if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
@@ -218,13 +235,64 @@ ENTRY("mri_read_dicom") ;
    ny = 0 ; sscanf(ddd+2,"%d",&ny) ;
    if( ny < 2 ){ free(ppp) ; RETURN(NULL); }
 
+   /* get number of slices */
+
    nz = 0 ;
    if( epos[E_NUMBER_OF_FRAMES] != NULL ){
      ddd = strstr(epos[E_NUMBER_OF_FRAMES],"//") ;
      if( ddd != NULL ) sscanf(ddd+2,"%d",&nz) ;
    }
-   if( nz == 0 ) nz = plen / (bpp*nx*ny) ;   /* compute from image array size */
+
+   /* if didn't get nz above, make up a value */
+
+   if( nz == 0 ) nz = plen / (bpp*nx*ny) ;    /* compute from image array size */
    if( nz == 0 ){ free(ppp) ; RETURN(NULL); }
+
+   /*-- 28 Oct 2002: check if this is a Siemens mosaic --*/
+
+   if(        epos[E_ID_IMAGE_TYPE]              != NULL &&
+       strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL &&
+              epos[E_ID_MANUFACTURER]            != NULL &&
+       strstr(epos[E_ID_MANUFACTURER],"SIEMENS") != NULL &&
+              epos[E_ACQ_MATRIX]                 != NULL    ){
+
+     ddd = strstr(epos[E_ACQ_MATRIX],"//") ;
+     if( ddd != NULL ){
+       int aa=0,bb=0,cc=0,dd=0 ;
+       sscanf( ddd+2 , "%d%d%d%d" , &aa,&bb,&cc,&dd ) ;  /* should be 0 nx ny 0 */
+       if( bb > 1 && cc > 1 ){
+         mos_nx = bb    ; mos_ny = cc    ;   /* nx,ny = sub-image dimensions */
+         mos_ix = nx/bb ; mos_iy = ny/cc ;   /* ix,iy = mosaic dimensions */
+
+         if( (mos_ix > 1 || mos_iy > 1) &&     /* Check if is really a mosaic */
+             mos_ix*mos_nx == nx        &&     /* and if subimages fit nicely */
+             mos_iy*mos_ny == ny           ){  /* into the super-image space. */
+
+           static int nwarn=0 ;
+
+           /* should be tagged as a 1 slice image thus far */
+
+           if( nz > 1 ){
+             fprintf(stderr,
+                     "** ERROR: %dx%d Mosaic of %dx%d images in file %s, but also have nz=%d\n",
+                     mos_ix,mos_iy,mos_nx,mos_ny,fname,nz) ;
+             free(ppp) ; RETURN(NULL) ;
+           }
+
+           /* mark as a mosaic */
+
+           mosaic = 1 ;
+           mos_nz = mos_ix * mos_iy ;   /* number of slices in mosaic */
+           if( nwarn < NWMAX )
+             fprintf(stderr,"++ NOTICE: %dx%d Mosaic of %dx%d images in file %s\n",
+                    mos_ix,mos_iy,mos_nx,mos_ny,fname) ;
+           nwarn++ ;
+           if( nwarn == NWMAX )
+             fprintf(stderr,"++ NOTICE: no more Mosiac messages will be printed\n") ;
+         }
+       }
+     }
+   }
 
    /* try to get dx, dy, dz, dt */
 
@@ -294,45 +362,134 @@ ENTRY("mri_read_dicom") ;
 
    RWC_set_endianosity() ; swap = !LITTLE_ENDIAN_ARCHITECTURE ;
 
-   for( ii=0 ; ii < nz ; ii++ ){
-     im = mri_new( nx , ny , datum ) ;    /* new MRI_IMAGE struct */
-     iar = mri_data_pointer( im ) ;       /* data array in struct */
-     fread( iar , bpp , nx*ny , fp ) ;    /* read data directly into it */
+   /* 28 Oct 2002: must allow for 2D mosaic mode */
 
-     if( swap ){                          /* swap bytes? */
-       switch( im->pixel_size ){
-         default: break ;
-         case 2:  swap_twobytes (   im->nvox, iar ) ; break ;  /* short */
-         case 4:  swap_fourbytes(   im->nvox, iar ) ; break ;  /* int, float */
-         case 8:  swap_fourbytes( 2*im->nvox, iar ) ; break ;  /* complex */
-       }
-       im->was_swapped = 1 ;
-     }
+   if( !mosaic ){   /*-- 28 Oct 2002: old method, not a mosaic --*/
+
+    for( ii=0 ; ii < nz ; ii++ ){
+      im = mri_new( nx , ny , datum ) ;    /* new MRI_IMAGE struct */
+      iar = mri_data_pointer( im ) ;       /* data array in struct */
+      fread( iar , bpp , nx*ny , fp ) ;    /* read data directly into it */
+
+      if( swap ){                          /* swap bytes? */
+        switch( im->pixel_size ){
+          default: break ;
+          case 2:  swap_twobytes (   im->nvox, iar ) ; break ;  /* short */
+          case 4:  swap_fourbytes(   im->nvox, iar ) ; break ;  /* int, float */
+          case 8:  swap_fourbytes( 2*im->nvox, iar ) ; break ;  /* complex */
+        }
+        im->was_swapped = 1 ;
+      }
 
 #if 0
-     if( shift == 1 ){
-       switch( datum ){
+      if( shift == 1 ){
+        switch( datum ){
+          case MRI_short:{
+            short * sar = (short *) iar ;
+            for( jj=0 ; jj < im->nvox ; jj++ ){
+              sbot = MIN( sar[jj] , sbot ) ;
+              stop = MAX( sar[jj] , stop ) ;
+            }
+          }
+          break ;
+        }
+      }
+#endif
+
+      /* store auxiliary data in image struct */
+
+      if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
+        im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
+      }
+      if( dt > 0.0 ) im->dt = dt ;
+
+      ADDTO_IMARR(imar,im) ;
+    }
+
+   } else {   /*-- 28 Oct 2002:  is a 2D mosaic --*/
+
+     char *dar , *iar ;
+     int last_ii=-1 , nvox , yy,xx,nxx ;
+
+     nvox = mos_nx*mos_ny*mos_nz ;         /* total number of voxels */
+     dar  = calloc(bpp,nvox) ;            /* make space for super-image */
+     fread( dar , bpp , nvox , fp ) ;    /* read data directly into it */
+     if( swap ){                        /* swap bytes? */
+       switch( bpp ){
+         default: break ;
+         case 2:  swap_twobytes (   nvox, dar ) ; break ;  /* short */
+         case 4:  swap_fourbytes(   nvox, dar ) ; break ;  /* int, float */
+         case 8:  swap_fourbytes( 2*nvox, dar ) ; break ;  /* complex */
+       }
+     }
+
+     /* load data from dar into images */
+
+     nxx = mos_nx * mos_ix ;              /* # pixels per mosaic line */
+
+     for( yy=0 ; yy < mos_iy ; yy++ ){    /* loop over sub-images in mosaic */
+       for( xx=0 ; xx < mos_ix ; xx++ ){
+
+         im = mri_new( mos_nx , mos_ny , datum ) ;
+         iar = mri_data_pointer( im ) ;             /* sub-image array */
+
+         /* copy data rows from dar into iar */
+
+         for( jj=0 ; jj < mos_ny ; jj++ )  /* loop over rows inside sub-image */
+           memcpy( iar + jj*mos_nx*bpp ,
+                   dar + xx*mos_nx*bpp + (jj+yy*mos_ny)*nxx*bpp ,
+                   mos_nx*bpp                                    ) ;
+
+         if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
+           im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
+         }
+         if( dt > 0.0 ) im->dt = dt ;
+         if( swap ) im->was_swapped = 1 ;
+
+         ADDTO_IMARR(imar,im) ;
+       }
+     }
+     free(dar) ;  /* don't need no more; copied all data out of it now */
+
+     /* truncate zero images out of tail of mosaic */
+
+     for( ii=mos_nz-1 ; ii >= 0 ; ii-- ){  /* loop backwards over images */
+       im = IMARR_SUBIM(imar,ii) ;
+       switch( im->kind ){
          case MRI_short:{
-           short * sar = (short *) iar ;
-           for( jj=0 ; jj < im->nvox ; jj++ ){
-             sbot = MIN( sar[jj] , sbot ) ;
-             stop = MAX( sar[jj] , stop ) ;
-           }
+           short *ar = mri_data_pointer( im ) ;
+           for( jj=0 ; jj < im->nvox ; jj++ ) if( ar[jj] != 0 ) break ;
+           if( jj < im->nvox ) last_ii = ii ;
+         }
+         break ;
+
+         case MRI_byte:{
+           byte *ar = mri_data_pointer( im ) ;
+           for( jj=0 ; jj < im->nvox ; jj++ ) if( ar[jj] != 0 ) break ;
+           if( jj < im->nvox ) last_ii = ii ;
+         }
+         break ;
+
+         case MRI_int:{
+           int *ar = mri_data_pointer( im ) ;
+           for( jj=0 ; jj < im->nvox ; jj++ ) if( ar[jj] != 0 ) break ;
+           if( jj < im->nvox ) last_ii = ii ;
          }
          break ;
        }
+       if( last_ii >= 0 ) break ;
      }
+
+     if( last_ii <= 0 ) last_ii = 1 ;
+     if( last_ii+1 < IMARR_COUNT(imar) ) TRUNCATE_IMARR(imar,last_ii+1) ;
+
+#if 0
+fprintf(stderr,"\nmri_read_dicom Mosaic: mos_nx=%d mos_ny=%d mos_ix=%d mos_iy=%d slices=%d\n",
+mos_nx,mos_ny,mos_ix,mos_iy,IMARR_COUNT(imar)) ;
+MCHECK ;
 #endif
 
-     /* store auxiliary data in image struct */
-
-     if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
-       im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
-     }
-     if( dt > 0.0 ) im->dt = dt ;
-
-     ADDTO_IMARR(imar,im) ;
-   }
+   } /* end of mosaic input mode */
 
    /* store some information in MRILIB globals, too? */
 
@@ -529,6 +686,8 @@ int mri_imcount_dicom( char *fname )
    int ii , ee , bpp , datum ;
    int nx,ny,nz ;
 
+   int mosaic=0 , mos_nx,mos_ny , mos_ix,mos_iy,mos_nz ;  /* 28 Oct 2002 */
+
 ENTRY("mri_imcount_dicom") ;
 
    if( fname == NULL || fname[0] == '\0' ) RETURN(0);
@@ -610,6 +769,86 @@ ENTRY("mri_imcount_dicom") ;
      if( ddd != NULL ) sscanf(ddd+2,"%d",&nz) ;
    }
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;
+
+   /*-- 28 Oct 2002: check if this is a Siemens mosaic --*/
+
+   if(        epos[E_ID_IMAGE_TYPE]              != NULL &&
+       strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL &&
+              epos[E_ID_MANUFACTURER]            != NULL &&
+       strstr(epos[E_ID_MANUFACTURER],"SIEMENS") != NULL &&
+              epos[E_ACQ_MATRIX]                 != NULL    ){
+
+     ddd = strstr(epos[E_ACQ_MATRIX],"//") ;
+     if( ddd != NULL ){
+       int aa=0,bb=0,cc=0,dd=0 ;
+       sscanf( ddd+2 , "%d%d%d%d" , &aa,&bb,&cc,&dd ) ;
+       if( bb > 1 && cc > 1 ){
+         mos_nx = bb    ; mos_ny = cc    ;   /* nx,ny = sub-image dimensions */
+         mos_ix = nx/bb ; mos_iy = ny/cc ;   /* ix,iy = mosaic dimensions */
+         if( (mos_ix > 1 || mos_iy > 1) &&
+             mos_ix*mos_nx == nx        &&
+             mos_iy*mos_ny == ny           ){
+
+           char *dar , *rar ;
+           int nvox , yy,xx,nxx,nxb , slices , i,j , blank ;
+           FILE *fp ;
+
+           /* should be tagged as a 1 slice image */
+
+           if( nz > 1 ){
+             fprintf(stderr,
+                     "** ERROR: %dx%d Mosaic of %dx%d images in file %s, but also have nz=%d\n",
+                     mos_ix,mos_iy,mos_nx,mos_ny,fname,nz) ;
+             free(ppp) ; RETURN(0) ;
+           }
+
+           /* mark as a mosaic */
+
+           mosaic = 1 ;
+           mos_nz = mos_ix * mos_iy ;   /* number of slices in mosaic */
+
+           /* must read image data from file to find how many images are all zero */
+
+           fp = fopen( fname , "rb" ) ;
+           if( fp == NULL ){ free(ppp) ; RETURN(0); }
+           lseek( fileno(fp) , poff , SEEK_SET ) ;
+
+           nvox = mos_nx*mos_ny*mos_nz ;         /* total number of voxels */
+           dar  = calloc(bpp,nvox) ;            /* make space for super-image */
+           fread( dar , bpp , nvox , fp ) ;    /* read data directly into it */
+           fclose( fp ) ;                     /* close file */
+
+           /* count slices - all zero (blank) slices at end are skipped */
+
+           slices = 1 ;                  /* default */
+           nxx    = bpp*mos_nx*mos_ix ;  /* bytes per mosaic line */
+           nxb    = bpp*mos_nx ;         /* bytes per sub-image line */
+
+           for( yy=0 ; yy < mos_iy ; yy++ ){      /* rows in array of sub-images */
+             for( xx=0 ; xx < mos_ix ; xx++ ){   /* cols in array of sub-images */
+               blank = 1 ;
+               for( j=0 ; j < mos_ny && blank ; j++ ){     /* row in sub-image */
+                 rar = dar + (j+yy*mos_ny)*nxx + xx*nxb ;  /* start of row data */
+                 for( i=0 ; i < nxb ; i++ )                /* scan row for nonzero */
+                   if( rar[i] != 0 ){ blank=0; break; }
+               }
+               if( !blank ) slices = 1 + xx + yy*mos_ix ;
+             }
+           } /* end of loop over sub-image rows */
+
+#if 0
+fprintf(stderr,"\nmri_imcount_dicom Mosaic: mos_nx=%d mos_ny=%d mos_ix=%d mos_iy=%d slices=%d\n",
+mos_nx,mos_ny,mos_ix,mos_iy,slices) ;
+MCHECK ;
+#endif
+
+           free(dar) ;
+           nz = slices ;
+
+         } /* end of if we actually had good mosaic element stuff */
+       } /* end of if E_ACQ_MATRIX had good bb,cc values */
+     } /* of of if E_ACQ_MATRIX had "//" substring */
+   } /* end of if Siemens mosaic elements were present */
 
    free(ppp) ; RETURN(nz);
 }

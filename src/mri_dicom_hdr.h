@@ -668,6 +668,7 @@ typedef struct {
 	DCM_TAG *at;
 	LST_HEAD* fragments;
     }   d;
+    off_t data_offset ;    /* RWCox: offset into file, if > 0 */
 }   DCM_ELEMENT;
 
 typedef struct {
