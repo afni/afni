@@ -2613,8 +2613,11 @@ void AFNI_read_Web_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_read_Web_CB") ;
 
-   MCW_choose_string( w , "http:// or ftp:// address of dataset (.HEAD or .mnc or .mnc.gz):" ,
-                      NULL , AFNI_finalize_read_Web_CB , (XtPointer) im3d ) ;
+   MCW_choose_string( w ,
+    "Complete http:// or ftp:// address of dataset (.HEAD or .mnc or .mnc.gz):\n"
+    "Examples: ftp://afni.nimh.nih.gov/AFNI/data/astrip+orig.HEAD\n"
+    "          http://afni.nimh.nih.gov/afni/norm305.mnc.gz"
+     , NULL , AFNI_finalize_read_Web_CB , (XtPointer) im3d ) ;
 
    EXRETURN ;
 }
@@ -2684,15 +2687,16 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
          AFNI_add_timeseries( (MRI_IMAGE *) XTARR_XT(dsar,dd) ) ;
          nts++ ; continue ;
       }
-      if( XTARR_IC(dsar,dd) != IC_DSET ) continue ; /* bad */
+      if( XTARR_IC(dsar,dd) != IC_DSET ) continue ;    /* bad */
 
       dset = (THD_3dim_dataset *) XTARR_XT(dsar,dd) ;
-      if( !ISVALID_DSET(dset) ) continue ; /* bad */
+      if( !ISVALID_DSET(dset) ) continue ;             /* bad */
       vv = dset->view_type ;
       if( ISANAT(dset) ){
          nn = ss->num_anat ;
          if( nn >= THD_MAX_SESSION_ANAT ){
             fprintf(stderr,"\a\n*** too many anatomical datasets!\n") ;
+            DSET_delete(dset) ;  /* 01 Nov 2001 */
          } else {
             ss->anat[nn][vv] = dset ;
             ss->num_anat++ ; nds++ ;
@@ -2702,6 +2706,7 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
          nn = ss->num_func ;
          if( nn >= THD_MAX_SESSION_FUNC ){
             fprintf(stderr,"\a\n*** too many functional datasets!\n") ;
+            DSET_delete(dset) ;  /* 01 Nov 2001 */
          } else {
             ss->func[nn][vv] = dset ;
             ss->num_func++ ; nds++ ;
@@ -2712,14 +2717,25 @@ ENTRY("AFNI_finalize_read_Web_CB") ;
 
    FREE_XTARR(dsar) ;
 
-   sprintf(str," \n Read %d datasets\n      %d timeseries from URL\n ",nds,nts) ;
+   /*-- popup a message saying what happened --*/
+
+   if( nts > 0 )
+      sprintf(str," \n Read %d datasets and \n"
+                     "      %d timeseries from\n"
+                     " %s\n ",nds,nts,cbs->cval  ) ;
+   else
+      sprintf(str," \n Read %d datasets from\n"
+                     " %s\n ",nds,cbs->cval    ) ;
+
    (void) MCW_popup_message( im3d->vwid->dmode->read_Web_pb ,
                              str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
-   if( nds == 0 ){ XBell( XtDisplay(w) , 100 ) ; EXRETURN ; }
+   if( nds == 0 ){ XBell(XtDisplay(w),100); EXRETURN; }
 
-   if( na >= 0 ) im3d->vinfo->anat_num = na ;  /* 1st anat in current view */
-   if( nf >= 0 ) im3d->vinfo->func_num = nf ;  /* 1st func in current view */
+   /*-- prepare to switch back to AFNI --*/
+
+   if( na >= 0 ) im3d->vinfo->anat_num = na ; /* 1st new anat in current view */
+   if( nf >= 0 ) im3d->vinfo->func_num = nf ; /* 1st new func in current view */
 
    if( GLOBAL_library.have_dummy_dataset ){
       UNDUMMYIZE ;

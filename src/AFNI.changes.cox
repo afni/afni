@@ -3260,3 +3260,7 @@
      to be missing (default=1), and even to allow the dimension
      variables to be missing.
  * Modified mri_new.c to use calloc() instead of malloc().
+ * Modified MCW_choose_string() in bbox.c to use length of 1st line
+     of label arg as size of text box, rather than strlen(label).
+ * Modified afni_func.c to change way the "Read Web" button presents
+     its chooser, and put some sample Web datasets on the server.

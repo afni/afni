@@ -1772,12 +1772,17 @@ void MCW_choose_string( Widget wpar , char * label ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
 
-   if( label != NULL && (ncol=strlen(label)) > 0 )
+   if( label != NULL && (ncol=strlen(label)) > 0 ){
+      char *cpt ;
       wlab = XtVaCreateManagedWidget(
                 "menu" , xmLabelWidgetClass , wrc ,
                    LABEL_ARG(label) ,
                    XmNinitialResourcesPersistent , False ,
                 NULL ) ;
+
+      cpt = strstr(label,"\n") ;
+      if( cpt != NULL ) ncol = cpt-label ;  /* 01 Nov 2001 */
+   }
 
    if( default_string != NULL && default_string[0] != '\0' ){
       int qq = strlen(default_string) ;
