@@ -114,7 +114,7 @@ MRI_IMAGE *mri_to_byte_scl( double scl , double lev , MRI_IMAGE *oldim )
    register int ii , npix ;
    double   imin,imax ;
    register double dscale , dbbot ;
-   register float  scale  , flbot ;
+   register float  scale  , flbot , val ;
    register byte *ar ;
 
 ENTRY("mri_to_byte_scl") ;
@@ -143,23 +143,31 @@ ENTRY("mri_to_byte_scl") ;
    switch( oldim->kind ){
 
       case MRI_byte:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * (oldim->im.byte_data[ii]-flbot) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            val = scale * (oldim->im.byte_data[ii]-flbot) ;
+            ar[ii] = BYTEIZE(val) ;
+         }
          break ;
 
       case MRI_short:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * (oldim->im.short_data[ii]-flbot) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            val = scale * (oldim->im.short_data[ii]-flbot) ;
+            ar[ii] = BYTEIZE(val) ;
+         }
          break ;
 
       case MRI_int:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * (oldim->im.int_data[ii]-flbot) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            val = scale * (oldim->im.int_data[ii]-flbot) ;
+            ar[ii] = BYTEIZE(val) ;
+         }
          break ;
 
       case MRI_float:
-         for( ii=0 ; ii < npix ; ii++ )
-            ar[ii] = scale * (oldim->im.float_data[ii]-flbot) ;
+         for( ii=0 ; ii < npix ; ii++ ){
+            val = scale * (oldim->im.float_data[ii]-flbot) ;
+            ar[ii] = BYTEIZE(val) ;
+         }
          break ;
 
       case MRI_double:
