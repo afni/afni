@@ -628,3 +628,10 @@
   * modified 3dROIstats.c to fix the minmax initializer
   * modified vol2surf.[ch] SUMA_3dVol2Surf.[ch] (-> v6.1) : library shuffle
 
+09 September 2004:
+  * added plug_vol2surf.c: for setting the internal volume to surface options
+  * modifed afni_plugin.[ch]: added function PLUTO_set_v2s_addrs()
+  * modified vol2surf.c
+    - in afni_vol2surf(), show options on debug
+    - allow first_node > last_node if last is 0 (default to n-1)
+
