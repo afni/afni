@@ -1931,7 +1931,7 @@ SUMA_Boolean SUMA_SetSO_CoordBias(SUMA_SurfaceObject *SO, SUMA_OVERLAYS *ovr, fl
 {
    static char FuncName[]={"SUMA_SetSO_CoordBias"};
    int i, i3;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
    
@@ -6471,7 +6471,10 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
             for (i=0; i <dset->nel->vec_len; ++i) Ti[i]=i;
             OKfirstCol = YUP;
          }else{
-            SUMA_SLP_Note("Used column 0 as node indices");
+            char Name[500], Attr[500];
+            SUMA_SLP_Note("Used column 0 as node indices.\nAdded a node index column nonetheless.");
+            /* You can't just change the label and the type of the 0th column to be SUMA_NODE_INDEX because
+            this column is float, not ints. Duplicate ahead...*/
          }
          
       }
@@ -6483,7 +6486,7 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
       }
       
       /* Now add Ti to the dataset as a node index column ... */
-      if (!SUMA_AddNelCol (dset->nel, "le index", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
+      if (!SUMA_AddNelCol (dset->nel, "Node Index (inferred)", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
          SUMA_SL_Err("Failed to add column");
          if (Ti) SUMA_free(Ti); Ti = NULL;
          SUMA_RETURN(NOPE);
@@ -6549,7 +6552,17 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
                SUMA_RETURN(YUP);
             }
          }else {
-            SUMA_LH("Looks like a full list of values, No need for explicit node column");
+            SUMA_LH( "Looks like a full list of values\n"
+                     "Techincally, there's no need for explicit node column.\n"
+                     "But at times, the data are not ordered by ascending node \n"
+                     "index which causes trouble.\nSo now I add a node index column"
+                     " always which would help point to the problem if it arises");
+            /* Sept 21 04, call SUMA_AddNodeIndexColumn, it is good for you. Might add an unecessary index column when none exit but makes things clear*/
+            if (!SUMA_AddNodeIndexColumn(dset, SO)) {
+                SUMA_LH(" Failed to add a node index column");
+                SUMA_RETURN(NOPE);
+            }        
+            SUMA_LH("Added Index Column");
             SUMA_RETURN(YUP);
          }
       } else {

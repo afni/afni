@@ -237,7 +237,7 @@ void calcWithOffsets(SUMA_SurfaceObject *SO, SUMA_KUBATEST_OPTIONS* Opt)
                      "#Col. 3 shortest surface path\n"
                      "#Col. 4 Ratio of path/distance\n");
    if (Opt->histnote) {
-      fprintf(outFile,  "#Hitory:%s\n", Opt->histnote);
+      fprintf(outFile,  "#History:%s\n", Opt->histnote);
    }
       
    SUMA_etime(&start_time_all,0);
