@@ -665,7 +665,7 @@ NI_rowtype * NI_rowtype_find_name( char *nn )
    /*-- 28 Oct 2004: Define fixed size vector types here and now:
                      format of nn must be VECTOR_basictype_length --*/
 
-   if( busy ) return NULL ;
+   if( busy ) return NULL ;   /* cannot allow re-entry below here! */
 
    ii = strlen(nn) ;
    if( ii < 12 || strncmp(nn,"VECTOR_",7) != 0 || strchr(nn+7,'_') == NULL )
