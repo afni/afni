@@ -13,5 +13,12 @@ SUMA_Boolean SUMA_Save_Surface_Object (void *F_name, SUMA_SurfaceObject *SO, SUM
 char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath);
 SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO);
 
+int    SUMA_spec_select_surfs ( SUMA_SurfSpecFile * spec, char ** names,
+			        int nnames, int debug );
+int    SUMA_spec_set_map_refs ( SUMA_SurfSpecFile * spec, int debug );
+char * SUMA_coord_file        ( SUMA_SurfSpecFile * spec, int index );
+int    SUMA_swap_spec_entries (SUMA_SurfSpecFile *spec,int i0,int i1,int debug);
+int    SUMA_unique_name_ind   ( SUMA_SurfSpecFile * spec, char * sname );
+int    swap_strings           ( char * s0, char * s1, char * save, int len );
 
 #endif

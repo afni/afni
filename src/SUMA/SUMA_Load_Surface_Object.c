@@ -1,3 +1,16 @@
+
+/*----------------------------------------------------------------------
+ * history:
+ *
+ * 11 Dec 2003  [rickr]
+ *   - added functions:
+ *       o  SUMA_spec_select_surfs	- restrict spec struct from name list
+ *       o  SUMA_swap_spec_entries	- swap 2 entries in spec struct
+ *       o  SUMA_unique_name_ind	- verify unique surf name in spec
+ *       o  SUMA_coord_file		- get file name, based on surf type
+ *       o  swap_strings		- swap 2 strings via 3rd
+ *----------------------------------------------------------------------
+*/
     
 /* Header FILES */
    
@@ -3196,3 +3209,267 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
    
    SUMA_RETURN (SUMA_NO_SIDE);
 }
+
+/*---------------------------------------------------------------------------
+ * SUMA_spec_select_surfs	  - restrict spec results to given names
+ *								[rickr]
+ * for each name in list
+ *   - verify that it is in the spec file
+ *   - verify that it is unique in the spec file
+ * restrict the spec contents to the given name list
+ *
+ * return:
+ *   (-1) on failure
+ *   new N_Surfs on success
+ *---------------------------------------------------------------------------
+*/
+int SUMA_spec_select_surfs( SUMA_SurfSpecFile * spec, char ** names, int nnames,
+		       int debug )
+{
+    char * nfile;
+    int    name, surf, name_ind;
+
+    if ( ! spec || ! names )
+    {
+	fprintf(stderr,"** SUMA_spec_select_surfs: invalid params (%p,%p)\n",
+		spec, names);
+	return -1;
+    }
+
+    if ( debug > 1 )
+	fprintf(stderr, "-- select surfs: searching %d names...\n", nnames);
+
+    if ( nnames <= 0 )
+	return 0;
+
+    /* first, check for existence and uniquenes in list */
+    for ( name = 0; name < nnames; name++ )
+    {
+	if ( ! names[name] )	/* then end the process */
+	{
+	    nnames = name;
+	    break;
+	}
+
+	name_ind = SUMA_unique_name_ind(spec, names[name]);
+
+	if ( name_ind < 0 )
+	{
+	    if ( name_ind == -1 )
+		fprintf(stderr,"** surface name '%s' not found\n",names[name]);
+	    return -1;
+	}
+
+	if ( debug > 1 )
+	    fprintf(stderr, "-- select surfs: found name '%s'\n", names[name]);
+
+	if ( name_ind != name )
+	    SUMA_swap_spec_entries(spec, name, name_ind, debug);
+    }
+
+    /* now set N_Surfs and N_Groups */
+    spec->N_Surfs = nnames;
+
+    if ( debug > 1 )
+	fprintf(stderr, "-- select surfs: returning %d names\n", nnames);
+
+    return nnames;
+}
+
+/*---------------------------------------------------------------------------
+ * SUMA_spec_set_map_refs	  - set *all* mapping refs to SAME
+ * 							[rickr]
+ *---------------------------------------------------------------------------
+*/
+int SUMA_spec_set_map_refs( SUMA_SurfSpecFile * spec, int debug )
+{
+    int sc;
+
+    for (sc = 0; sc < spec->N_Surfs; sc++ )
+    {
+	if ( ! strstr(spec->MappingRef[sc],"SAME") )
+	{
+	    if ( debug > 0 )
+		fprintf(stderr,"-- map ref: replace '%s' with '%s'\n",
+			spec->MappingRef[sc], "./SAME");
+	    strcpy(spec->MappingRef[sc], "./SAME");
+	}
+	else if ( debug > 2 )
+	    fprintf(stderr,"-- mr: have good map ref '%s'\n",
+		    spec->MappingRef[sc]);
+    }
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------------
+ * SUMA_swap_spec_entries	  - swap entries for the 2 given indices
+ * 								[rickr]
+ * return:
+ *    0 on success
+ *   -1 on failure
+ *---------------------------------------------------------------------------
+*/
+int SUMA_swap_spec_entries( SUMA_SurfSpecFile * spec, int i0, int i1, int debug)
+{
+    char * cpsave;
+    char   cssave[SUMA_MAX_NAME_LENGTH];
+    int    isave, c;
+
+    if ( !spec || (i0 < 0) || (i0 >= spec->N_Surfs) ||
+	          (i1 < 0) || (i1 >= spec->N_Surfs) )
+    {
+	fprintf(stderr,"** swap_spec_entries: bad params (%p,%d,%d)\n",
+		spec, i0, i1);
+	return -1;
+    }
+
+    if ( debug > 2 )
+	fprintf(stderr,"-- swapping spec entries %d and %d\n", i0, i1);
+
+    cssave[SUMA_MAX_NAME_LENGTH-1] = '\0';		/* to be safe */
+
+    swap_strings(spec->SurfaceType[i0], spec->SurfaceType[i1],
+	    cssave, SUMA_MAX_LABEL_LENGTH);
+    swap_strings(spec->SurfaceFormat[i0], spec->SurfaceFormat[i1],
+	    cssave, SUMA_MAX_LABEL_LENGTH);
+    swap_strings(spec->TopoFile[i0], spec->TopoFile[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->CoordFile[i0], spec->CoordFile[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->MappingRef[i0], spec->MappingRef[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->SureFitVolParam[i0], spec->SureFitVolParam[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->FreeSurferSurface[i0], spec->FreeSurferSurface[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->InventorSurface[i0], spec->InventorSurface[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->VolParName[i0], spec->VolParName[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+
+    cpsave           = spec->IDcode[i0];	/* (char *)IDcode */
+    spec->IDcode[i0] = spec->IDcode[i1];
+    spec->IDcode[i1] = cpsave;
+
+    swap_strings(spec->State[i0], spec->State[i1],
+	    cssave, SUMA_MAX_LABEL_LENGTH);
+    swap_strings(spec->Group[i0], spec->Group[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+    swap_strings(spec->SurfaceLabel[i0], spec->SurfaceLabel[i1],
+	    cssave, SUMA_MAX_NAME_LENGTH);
+
+    isave              = spec->EmbedDim[i0];
+    spec->EmbedDim[i0] = spec->EmbedDim[i1];
+    spec->EmbedDim[i1] = isave;
+
+    /* leave N_Surfs, N_States, N_Groups, StateList, SpecFilePath */
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------------
+ * swap_strings	  		- swap the two strings using the given space
+ * 								[rickr]
+ * return:
+ *   (-1) on failure
+ *   new N_Surfs on success
+ *---------------------------------------------------------------------------
+*/
+int swap_strings( char * s0, char * s1, char * space, int len )
+{
+    if ( ! s0 || ! s1 || ! space || len < 1 )
+    {
+	fprintf(stderr,"** swap_strings: invalid params (%p,%p,%p,%d)\n",
+		s0, s1, space, len);
+    }
+
+    s0   [len-1] = '\0';		/* now safe using strcpy */
+    s1   [len-1] = '\0';
+    space[len-1] = '\0';
+
+    strcpy(space, s0);
+    strcpy(s0,    s1);
+    strcpy(s1,    space);
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------------
+ * SUMA_unique_name_ind		  - check that name exists uniquely [rickr]
+ *
+ * return:
+ 
+ *   -1    on "not found"
+ *   -2    on "multiple matches"
+ *   -3    on "bad, horrible failure"
+ *---------------------------------------------------------------------------
+*/
+int SUMA_unique_name_ind( SUMA_SurfSpecFile * spec, char * sname )
+{
+    char * nfile;
+    int    surf, index = -1;
+
+    if ( ! spec || ! sname )
+    {
+	fprintf(stderr,"** unique_name_ind: bad params (%p, %p)\n",spec,sname);
+	return -3;
+    }
+
+    for ( surf = 0; surf < spec->N_Surfs; surf++ )
+    {
+	nfile = SUMA_coord_file(spec, surf);
+
+	if ( ! nfile )
+	{
+	    fprintf(stderr,"** surf %d, no coord file\n", surf);
+	    return -3;
+	}
+
+	/* we have a match */
+	if ( strstr(nfile, sname) )
+	{
+	    if ( index >= 0 )
+	    {
+		fprintf(stderr,"** surf name %d, '%s': multiple matches\n"
+			"   '%s' and '%s'",
+			surf, sname, nfile, SUMA_coord_file(spec,index));
+		return -2;
+	    }
+
+	    index = surf;
+	}
+    }
+
+    return index;
+}
+
+/*---------------------------------------------------------------------------
+ * SUMA_coord_file	  - based on the surf type, return coord file
+ *								[rickr]
+ * return:
+ *   on success, pointer to coord file
+ *   on any failure, NULL
+ *---------------------------------------------------------------------------
+*/
+char * SUMA_coord_file( SUMA_SurfSpecFile * spec, int index )
+{
+    char * rp;
+
+    if ( ! spec || (index < 0) )
+    {
+	fprintf(stderr,"** coord_file: bad params (%p,%d)\n", spec, index);
+        return NULL;
+    }
+
+    if ( strstr(spec->SurfaceType[index], "SureFit") ||
+	      strstr(spec->SurfaceType[index], "1D") )
+	return spec->CoordFile[index];
+    else if ( strstr(spec->SurfaceType[index], "FreeSurfer") ||
+	      strstr(spec->SurfaceType[index], "Ply")        ||
+	      strstr(spec->SurfaceType[index], "GenericInventor" ) )
+	return spec->FreeSurferSurface[index];
+
+    return NULL;
+}
+
