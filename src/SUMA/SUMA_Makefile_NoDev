@@ -134,6 +134,10 @@ ROI2dataset: SUMA_Surface_IO.c
 	$(RM) $@
 	${CC} -DSUMA_ROI2dataset_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Surface_IO.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+SurfSmooth: SUMA_GeomComp.c
+	$(RM) $@
+	${CC} -DSUMA_SurfSmooth_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_GeomComp.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 SUMA_Homer: SUMA_Homer.c
 	$(RM) $@
 	${CC} -DSUMA_Homer_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Homer.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
@@ -171,6 +175,7 @@ install:
 	@if [ -f ScaleToMap ]; then mv ScaleToMap ${INSTALLDIR_SUMA}; fi;
 	@if [ -f MakeColorMap ]; then mv MakeColorMap ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ROI2dataset ]; then mv ROI2dataset ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SurfSmooth ]; then mv SurfSmooth ${INSTALLDIR_SUMA}; fi;
 	@if [ -f CompareSurfaces ]; then mv CompareSurfaces ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_inflate_compare ]; then mv SUMA_inflate_compare ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_Ply_Read ]; then mv SUMA_Ply_Read ${INSTALLDIR_SUMA}; fi;
@@ -197,6 +202,7 @@ packbins:
 	@if [ -f ScaleToMap ]; then $(CP) -p ScaleToMap SUMA_bin/; fi;
 	@if [ -f MakeColorMap ]; then $(CP) -p MakeColorMap SUMA_bin/; fi;
 	@if [ -f ROI2dataset ]; then $(CP) -p ROI2dataset SUMA_bin/; fi;
+	@if [ -f SurfSmooth ]; then $(CP) -p SurfSmooth SUMA_bin/; fi;
 	@if [ -f CompareSurfaces ]; then $(CP) -p CompareSurfaces SUMA_bin/; fi;
 	@if [ -f SUMA_inflate_compare ]; then $(CP) -p SUMA_inflate_compare SUMA_bin/; fi;
 	@if [ -f SUMA_Ply_Read ]; then $(CP) -p SUMA_Ply_Read SUMA_bin/; fi;
@@ -216,7 +222,7 @@ all: libSUMA.a mainobj suma install
 standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron SUMA_SureFit \
 SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer ScaleToMap MakeColorMap \
 CompareSurfaces SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface \
-3dVol2Surf 3dSurf2Vol SurfaceMetrics SUMA_TestDataSets ROI2dataset
+3dVol2Surf 3dSurf2Vol SurfaceMetrics SUMA_TestDataSets ROI2dataset SurfSmooth
 
 
  

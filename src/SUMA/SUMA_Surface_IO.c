@@ -1827,7 +1827,7 @@ void usage_SUMA_ConvertSurface ()
    
 int main (int argc,char *argv[])
 {/* Main */
-   static char FuncName[]={"SUMA_ConvertSurface"}; 
+   static char FuncName[]={"ConvertSurface"}; 
 	int kar;
    char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
          *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL, 
@@ -1864,7 +1864,7 @@ int main (int argc,char *argv[])
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_ConvertSurface();
-          exit (1);
+          exit (0);
 		}
 		
 		if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {

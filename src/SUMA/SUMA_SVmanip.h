@@ -40,6 +40,8 @@ void * SUMA_FreeLock_rb (SUMA_rb_group *Lock_rb);
 SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void);
 void *SUMA_FreeDrawROIStruct (SUMA_X_DrawROI *DrawROI);
 void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv); 
+void SUMA_UpdateAllViewerCursor(void); 
+void SUMA_UpdateViewerCursor(SUMA_SurfaceViewer *sv); 
  
 
 
