@@ -1832,6 +1832,10 @@ nimel:nimel.o niml.h
 	$(RM) $@
 	$(CC) -o nimel nimel.o $(LFLAGS) $(LLIBS)
 
+nidset:nidset.o niml.h
+	$(RM) $@
+	$(CC) -o nidset nidset.o $(LFLAGS) $(LLIBS)
+
 nicat:nicat.o
 	$(RM) $@
 	$(CC) -o nicat nicat.o $(LFLAGS) $(LLIBS)

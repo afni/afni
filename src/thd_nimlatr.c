@@ -21,7 +21,10 @@ ENTRY("THD_nimlize_dsetatr") ;
 
    if( !ISVALID_DSET(dset) ) RETURN(ngr) ;
    blk = dset->dblk ;
-   if( blk == NULL || blk->natr == 0 || blk->atr == NULL ) RETURN(ngr) ;
+   if( blk == NULL )         RETURN(ngr) ;
+
+   THD_set_dataset_attributes( dset ) ;
+   if( blk->natr == 0 || blk->atr == NULL ) RETURN(ngr) ;
 
    /* create empty output group */
 
@@ -30,8 +33,6 @@ ENTRY("THD_nimlize_dsetatr") ;
    NI_rename_group( ngr , "AFNI_dataset" ) ;
 
    NI_set_attribute( ngr , "AFNI_idcode" , dset->idcode.str ) ;
-
-   THD_set_dataset_attributes( dset ) ;  /* 30 Mar 2005: oops */
 
    /* make a data element for each attribute ... */
 
