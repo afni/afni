@@ -6973,15 +6973,10 @@ STATUS(" -- turning time index control off") ;
 
    ALLOW_COMPUTE_FIM(im3d) ;
 
-   /*----------------------------------------------------------*/
-   /*--- 19 Aug 2002: enable/disable surface chooser button ---*/
+   /*----------------------------------------------------------------*/
+   /*--- 19 Aug 2002: enable/disable surface chooser button, etc. ---*/
 
-   if( im3d->anat_now->su_num > 0 ){
-      SENSITIZE( im3d->vwid->view->choose_surf_pb , True ) ;
-      AFNI_update_surface_widgets( im3d ) ;
-   } else {
-      SENSITIZE( im3d->vwid->view->choose_surf_pb , False ) ;
-   }
+   AFNI_update_surface_widgets( im3d ) ;
 
    /*------------------------------------------*/
    /*--- attach to viewing windows (if any) ---*/

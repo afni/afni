@@ -287,8 +287,8 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
    if( strcmp(nel->name,"SUMA_ixyz") == 0 ){
      THD_3dim_dataset *dset ;
      SUMA_surface *ag ;
-     int *ic ; float *xc,*yc,*zc ; char *idc ;
-     int num ;
+     int *ic ; float *xc,*yc,*zc ; char *idc , idstr[32] ;
+     int num , ii ;
 
      if( dont_hear_suma ) EXRETURN ;
 
@@ -331,10 +331,35 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
         EXRETURN ;
      }
 
+     /*-- get surface ID code (or make it up) --*/
+
+     idc = NI_get_attribute( nel , "surface_idcode" ) ;
+     if( idc == NULL )
+       idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+     if( idc == NULL ){
+       UNIQ_idcode_fill(idstr); idc = idstr ;
+     }
+
      /*-- 14 Aug 2002: we used to trash old surfaces,
                        but now we just accumulate them --*/
 
      num = dset->su_num ;  /* number of surfaces currently attached */
+
+     /* 19 Aug 2002: check for surface idcode in existing set of surfaces */
+
+     for( ii=0 ; ii < num ; ii++ )
+       if( strstr(dset->su_sname[ii],idc) != NULL ) break ;
+
+     if( ii < num ){       /* found it, which is bad */
+        sprintf(msg, "***ERROR:\n\n"
+                     " SUMA_ixyz volume surface idcode is\n"
+                     "  %s\n"
+                     " which is already stored inside dataset \n"
+                     "  %.222s\n" ,
+                idc , DSET_FILECODE(dset) ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
 
      /* make space for 1 more set of surface pointers */
 
@@ -352,17 +377,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      dset->su_surf[num] = ag = SUMA_create_empty_surface() ;
 
-     /*-- get surface ID code (or make it up) --*/
-
-     idc = NI_get_attribute( nel , "surface_idcode" ) ;
-     if( idc == NULL )
-       idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
-
-     if( idc == NULL ){
-       idc = UNIQ_idcode(); NI_strncpy(ag->idcode,idc,32); free(idc);
-     } else {
-       NI_strncpy(ag->idcode,idc,32);
-     }
+     NI_strncpy(ag->idcode,idc,32);  /* idc is surface idcode from above */
 
      /*-- 19 Aug 2002: get surface label (or make it up) --*/
 
@@ -444,7 +459,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      THD_3dim_dataset *dset ;
      SUMA_surface *ag ;
      int *it, *jt , *kt ; char *idc ;
-     int num , ii ;
+     int num , ii , nold ;
 
      if( dont_hear_suma ) EXRETURN ;
 
@@ -517,8 +532,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      if( ii == num ){
         sprintf(msg, "***ERROR:\n\n"
-                     " SUMA_ijk surface input\n"
-                     " surface idcode\n"
+                     " SUMA_ijk surface input surface idcode\n"
                      "  %s\n"
                      " does not match any surface on dataset \n"
                      "  %.222s\n" ,
@@ -537,19 +551,30 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- add nodes to the surface --*/
 
+     nold = ag->num_ijk ;  /* 19 Aug 2002: # triangles before */
+
      SUMA_add_triangles( ag , nel->vec_filled , it,jt,kt ) ;
 
      /*-- we're done! --*/
 
      if( ct_start >= 0 ) ct_tot = NI_clock_time() - ct_start ;
 
-     sprintf(msg,"+++NOTICE:\n\n"
-                 " SUMA_ijk triangles received:\n"
-                 " %d triangles attached to surface \n"
-                 "  %-14.14s\n"
-                 " in dataset\n"
-                 "  %.222s\n" ,
-                 nel->vec_filled , ag->label , DSET_FILECODE(dset) ) ;
+     if( nold == 0 )
+       sprintf(msg,"+++NOTICE:\n\n"
+                   " SUMA_ijk triangles received:\n"
+                   " %d triangles attached to surface \n"
+                   "  %-14.14s\n"
+                   " in dataset\n"
+                   "  %.222s\n" ,
+                   nel->vec_filled , ag->label , DSET_FILECODE(dset) ) ;
+     else
+       sprintf(msg,"+++NOTICE:\n\n"
+                   " SUMA_ijk triangles received:\n"
+                   " %d NEW triangles attached to surface\n"
+                   "  %-14.14s\n"
+                   " (previously had %d triangles) in dataset \n"
+                   "  %.222s\n" ,
+                   nel->vec_filled , ag->label , nold , DSET_FILECODE(dset) ) ;
 
      if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
                                               "I/O time  =%4d ms\n"

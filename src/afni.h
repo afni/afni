@@ -358,7 +358,7 @@ typedef struct {
 /*--- 19 Aug 2002: Switch Surface control box ---*/
 
 typedef struct {
-      Widget wtop , rowcol , done_pb ;
+      Widget wtop , rowcol , top_lab , done_pb ;
       int nrow , nall ;
       Widget *surf_rc , *surf_lab ;
       MCW_arrowval **surf_node_av, **surf_line_av ;
