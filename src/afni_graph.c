@@ -5123,10 +5123,12 @@ void GRA_mapmenu_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
 ENTRY("GRA_mapmenu_CB") ;
 
+   if( AFNI_yesenv("AFNI_DONT_MOVE_MENUS") ) EXRETURN ;  /* 08 Aug 2001 */
+
    MCW_widget_geom( w                     , &ww,&hh , &xx,&yy ) ;
    MCW_widget_geom( XtParent(XtParent(w)) , &pw,&ph , &px,&py ) ;
 
-#if 0
+#if 1
 if(PRINT_TRACING){
  char str[256] ;
  sprintf(str,"menu:   width=%d height=%d x=%d y=%d",ww,hh,xx,yy); STATUS(str);
@@ -5135,8 +5137,11 @@ if(PRINT_TRACING){
 
    pw = pw >> 3 ;
    if( ! ( xx > px+7*pw || xx+ww < px+pw ) ){
-      STATUS("moving menu") ;
       xx = px - ww ;  if( xx < 0 ) xx = 0 ;
+#if 1
+if(PRINT_TRACING){
+ char str[256]; sprintf(str,"moving menu to x=%d",xx); STATUS(str); }
+#endif
       XtVaSetValues( w , XmNx , xx , NULL ) ;
    }
 

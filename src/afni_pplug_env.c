@@ -243,6 +243,11 @@ PLUGIN_interface * ENV_init(void)
                    0,NULL , NULL ) ;
 #endif
 
+   /* 08 Aug 2001 */
+
+   ENV_add_yesno( "AFNI_DONT_MOVE_MENUS" ,
+                  "Move popup menus to enhance visibility?" ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
@@ -382,6 +387,12 @@ void ENV_add_numeric( char * vname , char * vhint ,
    env_var[ii].vfunc  = cbfunc ;
 
    return ;
+}
+
+void ENV_add_yesno( char * vname , char * vhint ) /* 08 Aug 2001 */
+{
+   ENV_add_string( vname , vhint ,
+                   NUM_yesno_list , yesno_list , NULL  ) ;
 }
 
 void ENV_add_string( char * vname , char * vhint ,

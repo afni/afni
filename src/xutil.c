@@ -1447,6 +1447,8 @@ void RWC_visibilize_CB( Widget w , XtPointer cd , XtPointer cb )
    Widget wpar = w ;
 ENTRY("RWC_visibilize_CB") ;
 
+   if( AFNI_yesenv("AFNI_DONT_MOVE_MENUS") ) return ;  /* 08 Aug 2001 */
+
    while( !XtIsShell(wpar) ){ wpar = XtParent(w); } /* find 1st shell parent */
 
    /* must wait for the thing to actually appear, dammit */

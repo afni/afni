@@ -323,6 +323,7 @@ extern int PLUTO_dset_check ( int,int,int, THD_3dim_dataset * ) ;
 
 #define PLUTO_register_environment_numeric ENV_add_numeric     /* 20 Jun 2000 */
 #define PLUTO_register_environment_string  ENV_add_string
+#define PLUTO_register_environment_yesno   ENV_add_yesno       /* 08 Aug 2001 */
 
 extern void PLUTO_add_hint( PLUGIN_interface * , char * ) ;
 

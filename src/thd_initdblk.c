@@ -30,6 +30,8 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    int brick_ccode ;
    int default_order ;   /* 21 Jun 2000 */
 
+ENTRY("THD_init_one_datablock") ;
+
    if( native_order < 0 ) native_order = mri_short_order() ;
 
    no_mmap    = AFNI_yesenv("AFNI_NOMMAP") ;
@@ -48,11 +50,11 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    /*-- sanity check --*/
 
    if( dirname  == NULL || strlen(dirname)  == 0 ||
-       headname == NULL || strlen(headname) == 0   ) return NULL ;
+       headname == NULL || strlen(headname) == 0   ) RETURN( NULL ) ;
 
    FILENAME_TO_PREFIX(headname,prefix) ;
    if( strlen(prefix) == 0 ||
-       strstr(headname,DATASET_HEADER_SUFFIX) == NULL ) return NULL ;
+       strstr(headname,DATASET_HEADER_SUFFIX) == NULL ) RETURN( NULL ) ;
 
    /*-- create output datablock --*/
 
@@ -97,7 +99,7 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    if( dblk->natr <= 0 ){
       THD_delete_datablock( dblk ) ;
       myXtFree(dblk) ;
-      return NULL ;
+      RETURN( NULL ) ;
    }
 
    /*-- get relevant attributes: rank, dimensions, view_type & func_type --*/
@@ -111,7 +113,7 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    if( atr_rank == NULL || atr_dimen == NULL || atr_scene == NULL ){
       THD_delete_datablock( dblk ) ;
       myXtFree(dblk) ;
-      return NULL ;
+      RETURN( NULL ) ;
    }
 
    /*-- load type codes from SCENE attribute --*/
@@ -128,7 +130,7 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    dkptr->rank = atr_rank->in[0] ;                /* N.B.: rank isn't used much */
    for( ii=0 ; ii < dkptr->rank ; ii++ ){
       dkptr->dimsizes[ii] = atr_dimen->in[ii] ;
-      ok                  = ( ok && dkptr->dimsizes[ii] > 1 ) ;
+      ok                  = ( ok && dkptr->dimsizes[ii] >= 1 ) ;
       nvox               *= dkptr->dimsizes[ii] ;
    }
    dkptr->nvals = dblk->nvals = nvals = atr_rank->in[1] ;  /* but nvals is used */
@@ -140,7 +142,7 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
               headname ) ;
       THD_delete_datablock( dblk ) ;
       myXtFree(dblk) ;
-      return NULL ;
+      RETURN( NULL ) ;
    }
 
    /*-- create the storage filenames --*/
@@ -307,7 +309,7 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
       }
    }
 
-   return dblk ;
+   RETURN( dblk ) ;
 }
 
 /*----------------------------------------------------------------
@@ -336,13 +338,15 @@ void THD_init_datablock_brick( THD_datablock * dblk ,
    THD_datablock * pblk = NULL ;
    int * itype = NULL ;
 
-   if( ! ISVALID_DATABLOCK(dblk)   ) return ;   /* bad inputs */
-   if( ntype <  0 && btype == NULL ) return ;
-   if( ntype == 0 && btype != NULL ) return ;
+ENTRY("THD_init_datablock_brick") ;
+
+   if( ! ISVALID_DATABLOCK(dblk)   ) EXRETURN ;   /* bad inputs */
+   if( ntype <  0 && btype == NULL ) EXRETURN ;
+   if( ntype == 0 && btype != NULL ) EXRETURN ;
 
    if( ntype < 0 ){                             /* copy types from */
       pblk = (THD_datablock *) btype ;          /* datablock pblk  */
-      if( ! ISVALID_DATABLOCK(pblk) ) return ;
+      if( ! ISVALID_DATABLOCK(pblk) ) EXRETURN ;
    } else {
       itype = (int *) btype ;
    }
@@ -350,7 +354,7 @@ void THD_init_datablock_brick( THD_datablock * dblk ,
    nx    = dblk->diskptr->dimsizes[0] ;
    ny    = dblk->diskptr->dimsizes[1] ;
    nz    = dblk->diskptr->dimsizes[2] ;
-   nvals = dblk->nvals ; if( nvals < 1 ) return ; /* something wrong */
+   nvals = dblk->nvals ; if( nvals < 1 ) EXRETURN ; /* something wrong */
 
    /** make brick information arrays, if not pre-existing **/
 
@@ -396,7 +400,7 @@ STATUS("starting sub-brick creations") ;
    }
 
 STATUS("exiting") ;
-   return ;
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------
@@ -407,14 +411,16 @@ int THD_need_brick_factor( THD_3dim_dataset * dset )
 {
    int ii , nval ;
 
-   if( ! ISVALID_DSET(dset)            ) return 0 ;
-   if( ! ISVALID_DATABLOCK(dset->dblk) ) return 0 ;
-   if( dset->dblk->brick_fac == NULL   ) return 0 ;
+ENTRY("THD_need_brick_factor") ;
+
+   if( ! ISVALID_DSET(dset)            ) RETURN( 0 ) ;
+   if( ! ISVALID_DATABLOCK(dset->dblk) ) RETURN( 0 ) ;
+   if( dset->dblk->brick_fac == NULL   ) RETURN( 0 ) ;
 
    nval = DSET_NVALS(dset) ;
    for( ii=0 ; ii < nval ; ii++ )
       if( DSET_BRICK_FACTOR(dset,ii) != 0.0 &&
-          DSET_BRICK_FACTOR(dset,ii) != 1.0   ) return 1 ;
+          DSET_BRICK_FACTOR(dset,ii) != 1.0   ) RETURN( 1 ) ;
 
-   return 0 ;
+   RETURN( 0 ) ;
 }

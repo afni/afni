@@ -2983,3 +2983,18 @@
      -iresp/-sresp outputs!
  * Added afni_pplug_1dfunc.c to make 1DChain pseudoplugin (also affected
      afni_func.c and afni_widg.c).
+
+08 Aug 2001
+ * Modified afni_graph.c and xutil.c to use new environment variable
+     AFNI_DONT_MOVE_MENUS - if this is "Yes", then the menu movement
+     functions will be skipped.  Also added this to afni_pplug_env.c.
+     (As usual, this is in response to a problem on Solaris.)
+ * Added program 3dZcutup.c to cut slices out of a dataset.
+ * Modified various functions to work with single-slice datasets.
+     Probably missing some still.
+
+09 Aug 2001
+ * Added program 3dZcat.c to put datasets together in the slice
+     direction.
+ * (Re)modified to3d.c to allow creation of 1 slice datasets.  Hope it
+     works out this time.

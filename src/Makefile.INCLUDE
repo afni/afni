@@ -44,7 +44,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
-           3dExtrema qhull strblast 3dConvolve
+           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -59,7 +59,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+      \
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
-                  3dConvolve
+                  3dConvolve 3dZcutup 3dZcat
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -280,6 +280,14 @@ dsetdup:dsetdup.o
 3dbucket:3dbucket.o
 	$(RM) $@
 	$(CC) -o 3dbucket 3dbucket.o $(LFLAGS) $(LLIBS)
+
+3dZcutup:3dZcutup.o
+	$(RM) $@
+	$(CC) -o 3dZcutup 3dZcutup.o $(LFLAGS) $(LLIBS)
+
+3dZcat:3dZcat.o
+	$(RM) $@
+	$(CC) -o 3dZcat 3dZcat.o $(LFLAGS) $(LLIBS)
 
 3dTcat:3dTcat.o
 	$(RM) $@

@@ -1544,7 +1544,7 @@ STATUS("defaulted anatomy underlay") ;
 
    im3d->ignore_seq_callbacks = AFNI_IGNORE_REDRAWS ;  /* 16 Feb 97 */
 
-   if( ! DSET_GRAPHABLE(im3d->b123_ulay->dset) || ! BRICK_DRAWABLE(im3d->b123_ulay) ){
+   if( !DSET_GRAPHABLE(im3d->b123_ulay->dset) || !BRICK_DRAWABLE(im3d->b123_ulay) ){
       if( im3d->g123 != NULL ){
          drive_MCW_grapher( im3d->g123 , graDR_destroy , NULL ) ;
          im3d->g123 = NULL ;

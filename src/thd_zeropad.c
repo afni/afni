@@ -125,12 +125,20 @@ ENTRY("THD_zeropad") ;
    jjbot = MAX(0,-nybot) ; jjtop = MIN(nyold,nyold+nytop) ;  /* in old dataset */
    kkbot = MAX(0,-nzbot) ; kktop = MIN(nzold,nzold+nztop) ;
 
+   if( nxnew < 1 || iibot > iitop ||   /* check for reasonable sizes */
+       nynew < 1 || jjbot > jjtop ||   /* and ranges of dataset     */
+       nznew < 1 || kkbot > kktop   ){
+
+      fprintf(stderr,"*** THD_zeropad: Can't cut dataset down too much!\n") ;
+      RETURN( NULL );
+   }
+
    if( nxnew < 2 || iibot >= iitop ||   /* check for reasonable sizes */
        nynew < 2 || jjbot >= jjtop ||   /* and ranges of dataset     */
        nznew < 2 || kkbot >= kktop   ){
 
-      fprintf(stderr,"*** THD_zeropad: Can't cut dataset down too much!\n") ;
-      RETURN( NULL );
+      fprintf(stderr,"*** WARNING - THD_zeropad: dataset cut down to %dx%dx%d\n",
+                      nxnew,nynew,nznew) ;
    }
 
    /*-- create the shell of the new dataset --*/

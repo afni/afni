@@ -221,7 +221,7 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
          case ADN_nxyz:  /* processed later */
             nxyz = va_arg( vararg_ptr , THD_ivec3 ) ;
-            if( nxyz.ijk[0] > 1 && nxyz.ijk[1] > 1 && nxyz.ijk[2] > 1 )
+            if( nxyz.ijk[0] >= 1 && nxyz.ijk[1] >= 1 && nxyz.ijk[2] >= 1 )
                new_nxyz = 1 ;
                else EDERR("illegal new nxyz") ;
          break ;

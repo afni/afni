@@ -876,8 +876,10 @@ extern char * AFNI_get_friend(void) ;  /* 26 Feb 2001 */
                                 int , int , int , int , generic_func * ) ;
    extern void ENV_add_string( char * , char * ,
                                int , char ** , generic_func * ) ;
+   extern void ENV_add_yesno( char * , char * ) ;        /* 08 Aug 2001 */
 
    extern PLUGIN_interface * F2D_init(void) ;            /* 03 Jul 2000 */
+   extern PLUGIN_interface * F1D_init(void) ;            /* 08 Aug 2001 */
 #endif
 
 typedef struct {                 /* windows and widgets */

@@ -2998,12 +2998,17 @@ ENTRY("ISQ_set_image_number") ;
    if( ! ISQ_VALID(seq) ) RETURN(0) ;
 
    if( n < 0 || n >= seq->status->num_total ){
-      XBell( seq->dc->display , 100 ) ;
-      printf("\n*** ILLEGAL IMAGING:\n"
-             " ISQ_set_image_number %d\n",n);
 
-      printf(" status: num_total=%d num_series=%d\n",
-              seq->status->num_total , seq->status->num_series ) ;
+      if( seq->status->num_total > 1 ){
+         XBell( seq->dc->display , 100 ) ;
+         fprintf(stderr,"\n*** ILLEGAL IMAGING:\n"
+                        " ISQ_set_image_number %d\n",n);
+
+         fprintf(stderr," status: num_total=%d num_series=%d\n",
+                 seq->status->num_total , seq->status->num_series ) ;
+      } else {
+         XmScaleSetValue( seq->wscale , 0 ) ;  /* 08 Aug 2001 */
+      }
 
       RETURN(0) ;
    }
@@ -5183,7 +5188,10 @@ static unsigned char record_bits[] = {
          if( ! ISQ_REALZ(seq) ){
             XtRealizeWidget( seq->wtop ) ;
             MCW_alter_widget_cursor( seq->wtop , -XC_left_ptr ,"yellow","blue") ;
+            XmUpdateDisplay( seq->wtop ) ;
          }
+         if( seq->status->num_total == 1 )  /* 08 Aug 2001 */
+            drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
          seq->valid = 2 ;
          RETURN( True );
       }
@@ -5533,14 +5541,14 @@ ENTRY("ISQ_setup_new") ;
 
    /* OOPS!  I forgot to reset the scale max value! */
 
-   ii = seq->status->num_total - 1 ; if( ii < 0 ) ii = 0 ;  /* 09 Feb 1999 */
+   ii = seq->status->num_total - 1 ; if( ii <= 0 ) ii = 1 ;  /* 09 Feb 1999 */
 
    XtVaSetValues( seq->wscale ,
                      XmNmaximum , ii ,
                      XmNvalue   , seq->im_nr ,
                   NULL ) ;
 
-#if 0
+#if 1
    if( seq->status->num_total == 1 )
       drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
 #endif
@@ -5548,8 +5556,7 @@ ENTRY("ISQ_setup_new") ;
  if(PRINT_TRACING){
    char str[256] ;
    sprintf(str,"hbase=%d vbase=%d nim=%d lev=%g",
-          seq->hbase,seq->vbase,
-          seq->status->num_total,seq->lev ) ;
+          seq->hbase,seq->vbase, seq->status->num_total,seq->lev ) ;
    STATUS(str) ;
  }
 

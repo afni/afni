@@ -9,6 +9,8 @@
 #define LABEL_ARG(str) \
   XtVaTypedArg , XmNlabelString , XmRString , (str) , strlen(str)+1
 
+#define NZBOT 1 /* min number of slices (1 or 2) [09 Aug 2001] */
+
 /*------------------ global variables: so shoot me ---------------------*/
 
 static to3d_widget_set wset ;
@@ -2549,7 +2551,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          if( ntt < 2 ){
             fprintf(stderr,"Illegal value of nt after -time: option\n") ; nerr++ ;
          }
-         if( nzz < 2 ){
+         if( nzz < NZBOT ){
             fprintf(stderr,"Illegal value of nz after -time: option\n") ; nerr++ ;
          }
          if( TR <= 0.0 ){
@@ -2841,7 +2843,7 @@ void Syntax()
     "    '-time:tz' is used when the slices are input in the order\n"
     "               t-axis first, then z-axis.\n"
     "\n"
-    "    nz  =  number of points in the z-direction\n"
+    "    nz  =  number of points in the z-direction (minimum %d)\n"
     "    nt  =  number of points in the t-direction\n"
     "            (thus exactly nt * nz slices must be read in)\n"
     "    TR  =  repetition interval between acquisitions of the\n"
@@ -2896,6 +2898,8 @@ void Syntax()
     "          Alternatively, the units symbol ('ms', 'msec', 's', 'sec',\n"
     "            'Hz', or 'Hertz') may be attached to TR in the '-time:' option,\n"
     "            as in '-time:zt 16 64 4.0sec alt+z'\n"
+
+      , NZBOT
    ) ;
 
    printf(
@@ -3627,8 +3631,8 @@ printf("T3D_read_images: input file count = %d; expanded = %d\n",nim,gnim) ;
 printf("T3D_read_images: mri_imcount totals nz=%d\n",nz) ;
 #endif
 
-   if( nz < 2 ){
-      fprintf(stderr,"*** Must have at least 2 input images! ***\n") ;
+   if( nz < NZBOT ){
+      fprintf(stderr,"*** Must have at least %d input images! ***\n",NZBOT) ;
       exit(1) ;
    }
 
@@ -3983,7 +3987,7 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
 printf("T3D_read_images: nvals set to %d\n",nvals) ;
 #endif
 
-   nz = nim / nvals ;
+   nz = nim / nvals ;           /* number of slices */
    if( nz * nvals != nim ){
       fprintf(stderr,
                "\n"
