@@ -165,14 +165,7 @@ ENTRY("AFNI_splashup") ;
               MRI_IMAGE * imq = mri_resize(imov,NX_TOPOVER,NY_TOPOVER) ;
               mri_free(imov) ; imov = imq ;
             }
-            if( imov->kind == MRI_rgb ){             /* color */
-              MRI_IMAGE * imq = mri_to_rgb(imspl) ;
-              mri_free(imspl) ; imspl = imq ;
-              reload_DC_colordef( GLOBAL_library.dc ) ;
-            } else if( imov->kind != MRI_byte ){     /* gray */
-              MRI_IMAGE * imq = mri_to_byte(imov) ;
-              mri_free(imov) ; imov = imq ;
-            }
+            reload_DC_colordef( GLOBAL_library.dc ) ;
             mri_overlay_2D( imspl , imov , 0,0 ) ;
             mri_free(imov) ; good = 1 ;
           }
@@ -186,8 +179,6 @@ ENTRY("AFNI_splashup") ;
             else         np = (np+1)%(num_ppms) ;
             imov = mri_read_ppm(fname_ppms[np]) ;
             if( imov != NULL ){
-              MRI_IMAGE * imq = mri_to_rgb(imspl) ;
-              mri_free(imspl) ; imspl = imq ;
               reload_DC_colordef( GLOBAL_library.dc ) ;
               mri_overlay_2D( imspl , imov , 0,0 ) ;
               mri_free(imov) ; good = 1 ;
@@ -201,12 +192,10 @@ ENTRY("AFNI_splashup") ;
               if( rmapm[nm] == NULL ){             /* grayscale overlay */
                 imov = SPLASH_decode26( xmain[nm],ymain[nm],lmain[nm],bmain[nm] ) ;
               } else {                             /* color overlay */
-                MRI_IMAGE * imq = mri_to_rgb(imspl) ;
-                mri_free(imspl) ; imspl = imq ;
-                reload_DC_colordef( GLOBAL_library.dc ) ;
                 imov = SPLASH_decodexx( xmain[nm],ymain[nm],lmain[nm],nmapm[nm],
                                         rmapm[nm],gmapm[nm],bmapm[nm],bmain[nm] ) ;
               }
+              reload_DC_colordef( GLOBAL_library.dc ) ;
               mri_overlay_2D( imspl , imov , 0,0 ) ;
               mri_free(imov) ; good = 1 ;
             }
@@ -458,35 +447,7 @@ static byte map26[26] =
 
 static MRI_IMAGE * SPLASH_decode26( int nx, int ny , int nl , char ** im26 )
 {
-   MRI_IMAGE * im ;
-   byte * bim ;
-   int ii , jj , cc,rr , dd,ee ;
-   char bb ;
-
-ENTRY("SPLASH_decode26") ;
-
-   if( nx < 3 || ny < 3 || nl < 3 || im26 == NULL ) RETURN(NULL) ;
-
-   im  = mri_new( nx , ny , MRI_byte ) ;
-   bim = MRI_BYTE_PTR(im) ;
-
-   /* decode the RLE image data into a real image array */
-
-   cc = rr = 0 ;
-   for( ii=0 ; ii < im->nvox && rr < nl ; ){
-      bb = im26[rr][cc++] ; if( bb == '\0' ) break ;
-      if( bb >= 'A' && bb <= 'Z' ){
-         jj = bb - 'A' ; bim[ii++] = map26[jj] ;
-      } else {
-         dd = bb - '0' ; bb = im26[rr][cc++] ; if( bb == '\0' ) break ;
-         jj = bb - 'A' ;
-         for( ee=0 ; ee < dd && ii < im->nvox ; ee++ )
-            bim[ii++] = map26[jj] ;
-      }
-      if( im26[rr][cc] == '\0' ){ cc = 0 ; rr++ ; }
-   }
-
-   RETURN(im) ;
+   return SPLASH_decodexx( nx, ny, nl, 26,map26,map26,map26,im26 ) ;
 }
 
 /*--------------------------------------------------------------------------
