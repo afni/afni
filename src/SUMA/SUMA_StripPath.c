@@ -66,8 +66,8 @@ SUMA_FileName SUMA_StripPath (char *FileName)
 			--i;
 		}
 		if (!NotFound && i > -1) {
-			NewName.Path = (char *)malloc(sizeof(char)*(i+2));
-			NewName.FileName = (char *)malloc(sizeof(char)*(N_FileName-i-2));
+			NewName.Path = (char *)malloc(sizeof(char)*(N_FileName+1));
+			NewName.FileName = (char *)malloc(sizeof(char)*(N_FileName+1));
 			if (NewName.Path == NULL || NewName.FileName == NULL) {
 				SUMA_alloc_problem (FuncName);
 			}
@@ -80,8 +80,8 @@ SUMA_FileName SUMA_StripPath (char *FileName)
 			fprintf(stdout,"All FileName (%d chars)/%d: %s\n", (N_FileName-i-2), strlen(NewName.FileName), NewName.FileName);*/
 		}
 		else {
-			NewName.Path = (char *)malloc(sizeof(char)*(2));
-			NewName.FileName = (char *)malloc(sizeof(char)*(N_FileName));
+			NewName.Path = (char *)malloc(sizeof(char)*(N_FileName+1));
+			NewName.FileName = (char *)malloc(sizeof(char)*(N_FileName+1));
 			if (NewName.Path == NULL || NewName.FileName == NULL) {
 				SUMA_alloc_problem (FuncName);
 			}
