@@ -1758,23 +1758,30 @@ int NI_stream_reopen( NI_stream_type *ns , char *nname )
 
    /* check inputs for sanity */
 
-   if( ns == NULL || ns->type != NI_TCP_TYPE ) return 0 ;   /* bad input stream */
-   if( ns->bad == MARKED_FOR_DEATH )           return 0 ;   /* really bad */
+   if( ns == NULL || ns->type != NI_TCP_TYPE ) return 0 ; /* bad input stream */
+   if( ns->bad == MARKED_FOR_DEATH )           return 0 ; /* really bad */
+   if( nname == NULL || nname[0] == '\0' )     return 0 ; /* bad new name */
 
-   if( nname == NULL || nname[0] == '\0' ) return 0 ;       /* bad new name */
-
-   if( strncmp(nname,"tcp::",5) == 0 ){                     /* new stream is tcp: */
+   if( strncmp(nname,"tcp::",5) == 0 ){                   /* new is tcp:? */
       typ_new = NI_TCP_TYPE ;
       port_new = strtol(nname+5,NULL,10) ;
-      if( port_new <= 0        ) return 0 ;                 /* bad new port */
-      if( port_new == ns->port ) return 1 ;                 /* same port as before? */
+      if( port_new <= 0        ) return 0 ;               /* bad new port */
+      if( port_new == ns->port ) return 1 ;               /* same as before? */
 #ifndef DONT_USE_SHM
-   } else if( strncmp(nname,"shm:" ,4) == 0 ){
-      if( strstr(ns->orig_name,":localhost:") == NULL )     /* can't do shm: to */
-        return 0 ;                                          /* anyone but localhost */
+   } else if( strncmp(nname,"shm:" ,4) == 0 ){            /* new is shm:? */
+      char *eee = getenv("AFNI_NOSHM") ;                  /* 06 Jun 2003 */
+      if( eee != NULL && toupper(*eee) == 'Y' ){          /* shm: is disabled */
+        fprintf(stderr,"** NIML shm: is disabled\n");
+        return 0 ;
+      }
+      if( strstr(ns->orig_name,":localhost:") == NULL ){  /* can't do shm: */
+        fprintf(stderr,"** NIML shm: not localhost!\n");  /* but on localhost */
+        return 0 ;
+      }
 #endif
    } else {
-     return 0 ;                                             /* bad new name */
+     fprintf(stderr,"** NIML reopen: illegal input '%s'\n",nname);
+     return 0 ;                                           /* bad new name */
    }
 
 #ifdef NIML_DEBUG
