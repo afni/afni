@@ -1110,6 +1110,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                     don't fit into the slice timing pattern.  If there
                     are no padding slices, then slice_start=0 and
                     slice_end=dim[slice_dim]-1 are the correct values.
+                    For these values to be meaningful, slice_start must
+                    be non-negative and slice_end must be greater than
+                    slice_start.
 
   The following table indicates the slice timing pattern, relative to
   time=0 for the first slice acquired, for some sample cases.  Here,

@@ -106,10 +106,12 @@ typedef struct {                  /** Image storage struct **/
 /*****************************************************************************/
 /*--------------- Prototypes of functions defined in this file --------------*/
 
-char *nifti_datatype_string( int dt ) ;
-char *nifti_units_string   ( int uu ) ;
-char *nifti_intent_string  ( int ii ) ;
-char *nifti_xform_string   ( int xx ) ;
+char *nifti_datatype_string   ( int dt ) ;
+char *nifti_units_string      ( int uu ) ;
+char *nifti_intent_string     ( int ii ) ;
+char *nifti_xform_string      ( int xx ) ;
+char *nifti_slice_string      ( int ss ) ;
+char *nifti_orientation_string( int ii ) ;
 
 int nifti_is_inttype( int dt ) ;
 
@@ -120,6 +122,7 @@ mat33 mat33_polar  ( mat33 A ) ;
 float mat33_rownorm( mat33 A ) ;
 float mat33_colnorm( mat33 A ) ;
 float mat33_determ ( mat33 R ) ;
+mat33 mat33_mul    ( mat33 A , mat33 B ) ;
 
 void swap_2bytes ( int n , void *ar ) ;
 void swap_4bytes ( int n , void *ar ) ;
@@ -161,6 +164,17 @@ int   unescape_string( char *str ) ;  /* string utility functions */
 char *escapize_string( char *str ) ;
 
 int short_order(void) ;              /* CPU byte order */
+
+/* Orientation codes that might be returned from mat44_to_orientation(). */
+
+#define NIFTI_L2R  1    /* Left to Right         */
+#define NIFTI_R2L  2    /* Right to Left         */
+#define NIFTI_P2A  3    /* Posterior to Anterior */
+#define NIFTI_A2P  4    /* Anterior to Posterior */
+#define NIFTI_I2S  5    /* Inferior to Superior  */
+#define NIFTI_S2I  6    /* Superior to Inferior  */
+
+void mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod ) ;
 
 /*-------------------- Some C convenience macros ----------------------------*/
 

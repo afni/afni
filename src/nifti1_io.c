@@ -151,6 +151,40 @@ char *nifti_intent_string( int ii )
    return "Unknown" ;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Return a pointer to a string holding the name of a NIFTI slice_code
+   string.  Don't free() or modify this string!  It points to static storage.
+-----------------------------------------------------------------------------*/
+
+char *nifti_slice_string( int ss )
+{
+   switch( ss ){
+     case NIFTI_SLICE_SEQ_INC: return "sequential_increasing"  ;
+     case NIFTI_SLICE_SEQ_DEC: return "sequential_decreasing"  ;
+     case NIFTI_SLICE_ALT_INC: return "alternating_increasing" ;
+     case NIFTI_SLICE_ALT_DEC: return "alternating_decreasing" ;
+   }
+   return "Unknown" ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Return a pointer to a string holding the name of a NIFTI orientation
+   string.  Don't free() or modify this string!  It points to static storage.
+-----------------------------------------------------------------------------*/
+
+char *nifti_orientation_string( int ii )
+{
+   switch( ii ){
+     case NIFTI_L2R: return "Left-to-Right" ;
+     case NIFTI_R2L: return "Right-to-Left" ;
+     case NIFTI_P2A: return "Posterior-to-Anterior" ;
+     case NIFTI_A2P: return "Anterior-to-Posterior" ;
+     case NIFTI_I2S: return "Inferior-to-Superior" ;
+     case NIFTI_S2I: return "Superior-to-Inferior" ;
+   }
+   return "Unknown" ;
+}
+
 /*--------------------------------------------------------------------------*/
 /* Given a datatype code, set number of bytes per voxel and the swapsize.
    The swapsize is set to 0 if this datatype doesn't ever need swapping.
@@ -582,6 +616,19 @@ float mat33_colnorm( mat33 A )  /* max column norm of 3x3 matrix */
 }
 
 /*---------------------------------------------------------------------------*/
+
+mat33 mat33_mul( mat33 A , mat33 B )  /* multiply 2 3x3 matrices */
+{
+   mat33 C ; int i,j ; float sum ;
+   for( i=0 ; i < 3 ; i++ )
+    for( j=0 ; j < 3 ; j++ )
+      C.m[i][j] =  A.m[i][0] * B.m[0][j]
+                 + A.m[i][1] * B.m[1][j]
+                 + A.m[i][2] * B.m[2][j] ;
+   return C ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* Polar decomposition of a 3x3 matrix: finds the closest orthogonal matrix
    to input A (in both the Frobenius and L2 norms).  Algorithm is that from
    NJ Higham, SIAM J Sci Stat Comput, 7:1160-1174.
@@ -636,6 +683,179 @@ mat33 mat33_polar( mat33 A )
    }
 
    return Z ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Input:  4x4 matrix that transforms (i,j,k) indexes to (x,y,z) coordinates,
+           where +x=Right, +y=Anterior, +z=Superior.
+           (Only the upper-left 3x3 corner of R is used herein.)
+   Output: 3 orientation codes that correspond to the closest "standard"
+           anatomical orientation of the (i,j,k) axes.
+   Method: Find which permutation of (x,y,z) has the smallest angle to the
+           (i,j,k) axes directions, which are the columns of the R matrix.
+   Errors: The codes returned will be zero.
+
+   For example, an axial volume might get return values of
+     *icod = NIFTI_R2L   (i axis is mostly Right to Left)
+     *jcod = NIFTI_P2A   (j axis is mostly Posterior to Anterior)
+     *kcod = NIFTI_I2S   (k axis is mostly Inferior to Superior)
+-----------------------------------------------------------------------------*/
+
+void mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
+{
+   float xi,xj,xk , yi,yj,yk , zi,zj,zk , val,detQ,detP ;
+   mat33 P , Q , M ;
+   int i,j,k,p,q,r , ibest,jbest,kbest,pbest,qbest,rbest ;
+   float vbest ;
+
+   if( icod == NULL || jcod == NULL || kcod == NULL ) return ; /* bad */
+
+   *icod = *jcod = *kcod = 0 ; /* error returns, if sh*t happens */
+
+   /* load column vectors for each (i,j,k) direction from matrix */
+
+   /*-- i axis --*/ /*-- j axis --*/ /*-- k axis --*/
+
+   xi = R.m[0][0] ; xj = R.m[0][1] ; xk = R.m[0][2] ;
+   yi = R.m[1][0] ; yj = R.m[1][1] ; yk = R.m[1][2] ;
+   zi = R.m[2][0] ; zj = R.m[2][1] ; zk = R.m[2][2] ;
+
+   /* normalize column vectors to get unit vectors along each ijk-axis */
+
+   /* normalize i axis */
+
+   val = sqrt( xi*xi + yi*yi + zi*zi ) ;
+   if( val == 0.0 ) return ;                 /* stupid input */
+   xi /= val ; yi /= val ; zi /= val ;
+
+   /* normalize j axis */
+
+   val = sqrt( xj*xj + yj*yj + zj*zj ) ;
+   if( val == 0.0 ) return ;                 /* stupid input */
+   xj /= val ; yj /= val ; zj /= val ;
+
+   /* orthogonalize j axis to i axis, if needed */
+
+   val = xi*xj + yi*yj + zi*zj ;    /* dot product between i and j */
+   if( fabs(val) > 1.e-4 ){
+     xj -= val*xi ; yj -= val*yi ; zj -= val*zi ;
+     val = sqrt( xj*xj + yj*yj + zj*zj ) ;  /* must renormalize */
+     if( val == 0.0 ) return ;              /* j was parallel to i? */
+     xj /= val ; yj /= val ; zj /= val ;
+   }
+
+   /* normalize k axis; if it is zero, make it the cross product i x j */
+
+   val = sqrt( xk*xk + yk*yk + zk*zk ) ;
+   if( val == 0.0 ){ xk = yi*zj-zi*yj; yk = zi*xj-zj*xi ; zk=xi*yj-yi*xj ; }
+   else            { xk /= val ; yk /= val ; zk /= val ; }
+
+   /* orthogonalize k to i */
+
+   val = xi*xk + yi*yk + zi*zk ;    /* dot product between i and k */
+   if( fabs(val) > 1.e-4 ){
+     xk -= val*xi ; yk -= val*yi ; zk -= val*zi ;
+     val = sqrt( xk*xk + yk*yk + zk*zk ) ;
+     if( val == 0.0 ) return ;      /* bad */
+     xk /= val ; yk /= val ; zk /= val ;
+   }
+
+   /* orthogonalize k to j */
+
+   val = xj*xk + yj*yk + zj*zk ;    /* dot product between j and k */
+   if( fabs(val) > 1.e-4 ){
+     xk -= val*xj ; yk -= val*yj ; zk -= val*zj ;
+     val = sqrt( xk*xk + yk*yk + zk*zk ) ;
+     if( val == 0.0 ) return ;      /* bad */
+     xk /= val ; yk /= val ; zk /= val ;
+   }
+
+   Q.m[0][0] = xi ; Q.m[0][1] = xj ; Q.m[0][2] = xk ;
+   Q.m[1][0] = yi ; Q.m[1][1] = yj ; Q.m[1][2] = yk ;
+   Q.m[2][0] = zi ; Q.m[2][1] = zj ; Q.m[2][2] = zk ;
+
+   /* at this point, Q is the rotation matrix from the (i,j,k) to (x,y,z) axes */
+
+   detQ = mat33_determ( Q ) ;
+   if( detQ == 0.0 ) return ; /* shouldn't happen unless user is a DUFIS */
+
+   /* Build and test all possible +1/-1 coordinate permutation matrices P;
+      then find the P such that the rotation matrix M=PQ is closest to the
+      identity, in the sense of M having the smallest total rotation angle. */
+
+   /* Despite the formidable looking 6 nested loops, there are
+      only 3*3*3*2*2*2 = 216 passes, which will run very quickly. */
+
+   vbest = -666.0 ; ibest=pbest=qbest=rbest=1 ; jbest=2 ; kbest=3 ;
+   for( i=1 ; i <= 3 ; i++ ){     /* i = column number to use for row #1 */
+    for( j=1 ; j <= 3 ; j++ ){    /* j = column number to use for row #2 */
+     if( i == j ) continue ;
+      for( k=1 ; k <= 3 ; k++ ){  /* k = column number to use for row #3 */
+       if( i == k || j == k ) continue ;
+       P.m[0][0] = P.m[0][1] = P.m[0][2] =
+        P.m[1][0] = P.m[1][1] = P.m[1][2] =
+         P.m[2][0] = P.m[2][1] = P.m[2][2] = 0.0 ;
+       for( p=-1 ; p <= 1 ; p+=2 ){    /* p,q,r are -1 or +1      */
+        for( q=-1 ; q <= 1 ; q+=2 ){   /* and go into rows #1,2,3 */
+         for( r=-1 ; r <= 1 ; r+=2 ){
+           P.m[0][i-1] = p ; P.m[1][j-1] = q ; P.m[2][k-1] = r ;
+           detP = mat33_determ(P) ;             /* sign of permutation */
+           if( detP * detQ <= 0.0 ) continue ;  /* doesn't match sign of Q */
+           M = mat33_mul(P,Q) ;
+
+           /* angle of M rotation = 2.0*acos(0.5*sqrt(1.0+trace(M)))       */
+           /* we want largest trace(M) == smallest angle == M nearest to I */
+
+           val = M.m[0][0] + M.m[1][1] + M.m[2][2] ; /* trace */
+           if( val > vbest ){
+             vbest = val ;
+             ibest = i ; jbest = j ; kbest = k ;
+             pbest = p ; qbest = q ; rbest = r ;
+           }
+   }}}}}}
+
+   /* At this point ibest is 1 or 2 or 3; pbest is -1 or +1; etc.
+
+      The matrix P that corresponds is the best permutation approximation
+      to Q-inverse; that is, P (approximately) takes (x,y,z) coordinates
+      to the (i,j,k) axes.
+
+      For example, the first row of P (which contains pbest in column ibest)
+      determines the way the i axis points relative to the anatomical
+      (x,y,z) axes.  If ibest is 2, then the i axis is along the y axis,
+      which is direction P2A (if pbest > 0) or A2P (if pbest < 0).
+
+      So, using ibest and pbest, we can assign the output code for
+      the i axis.  Mutatis mutandis for the j and k axes, of course. */
+
+   switch( ibest*pbest ){
+     case  1: i = NIFTI_L2R ; break ;
+     case -1: i = NIFTI_R2L ; break ;
+     case  2: i = NIFTI_P2A ; break ;
+     case -2: i = NIFTI_A2P ; break ;
+     case  3: i = NIFTI_I2S ; break ;
+     case -3: i = NIFTI_S2I ; break ;
+   }
+
+   switch( jbest*qbest ){
+     case  1: j = NIFTI_L2R ; break ;
+     case -1: j = NIFTI_R2L ; break ;
+     case  2: j = NIFTI_P2A ; break ;
+     case -2: j = NIFTI_A2P ; break ;
+     case  3: j = NIFTI_I2S ; break ;
+     case -3: j = NIFTI_S2I ; break ;
+   }
+
+   switch( kbest*rbest ){
+     case  1: k = NIFTI_L2R ; break ;
+     case -1: k = NIFTI_R2L ; break ;
+     case  2: k = NIFTI_P2A ; break ;
+     case -2: k = NIFTI_A2P ; break ;
+     case  3: k = NIFTI_I2S ; break ;
+     case -3: k = NIFTI_S2I ; break ;
+   }
+
+   *icod = i ; *jcod = j ; *kcod = k ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1653,9 +1873,9 @@ char *nifti_image_to_ascii( nifti_image *nim )
 
    if( nim == NULL ) return NULL ;   /* stupid caller */
 
-   buf = malloc(65530) ; nbuf = 0 ;
+   buf = malloc(65530) ; nbuf = 0 ;  /* longer than needed, to be safe */
 
-   sprintf( buf , "<nifti_image\n" ) ;   /* XML-ish header */
+   sprintf( buf , "<nifti_image\n" ) ;   /* XML-ish opener */
 
    sprintf( buf+strlen(buf) , "  nifti_type = '%s'\n" ,
               (nim->nifti_type == 1) ? "NIFTI-1+"
@@ -1751,11 +1971,14 @@ char *nifti_image_to_ascii( nifti_image *nim )
    if( nim->slice_dim > 0 )
      sprintf( buf+strlen(buf) , "  slice_dim = '%d'\n",nim->slice_dim ) ;
    if( nim->slice_code > 0 )
-     sprintf( buf+strlen(buf) , "  slice_code = '%d'\n",nim->slice_code ) ;
-   if( nim->slice_start > 0 )
-     sprintf( buf+strlen(buf) , "  slice_start = '%d'\n",nim->slice_start ) ;
-   if( nim->slice_end > 0 )
-     sprintf( buf+strlen(buf) , "  slice_end = '%d'\n",nim->slice_end ) ;
+     sprintf( buf+strlen(buf) ,
+              "  slice_code = '%d'\n"
+              "  slice_code_name = '%s'\n" ,
+              nim->slice_code , nifti_slice_string(nim->slice_code) ) ;
+   if( nim->slice_start >= 0 && nim->slice_end > nim->slice_start )
+     sprintf( buf+strlen(buf) ,
+              "  slice_start = '%d'\n"
+              "  slice_end = '%d'\n"  , nim->slice_start , nim->slice_end ) ;
    if( nim->slice_duration != 0.0 )
      sprintf( buf+strlen(buf) , "  slice_duration = '%g'\n",
               nim->slice_duration ) ;
@@ -1773,6 +1996,8 @@ char *nifti_image_to_ascii( nifti_image *nim )
    }
 
    if( nim->qform_code > 0 ){
+     int i,j,k ;
+
      sprintf( buf+strlen(buf) ,
               "  qform_code = '%d'\n"
               "  qform_code_name = '%s'\n"
@@ -1801,16 +2026,28 @@ char *nifti_image_to_ascii( nifti_image *nim )
      sprintf( buf+strlen(buf) ,
               "  quatern_b = '%g'\n"
               "  quatern_c = '%g'\n"
-              "  quatern_c = '%g'\n"
+              "  quatern_d = '%g'\n"
               "  qoffset_x = '%g'\n"
               "  qoffset_y = '%g'\n"
               "  qoffset_z = '%g'\n"
               "  qfac = '%g'\n" ,
          nim->quatern_b , nim->quatern_c , nim->quatern_c ,
          nim->qoffset_x , nim->qoffset_y , nim->qoffset_z , nim->qfac ) ;
+
+     mat44_to_orientation( nim->qto_xyz , &i,&j,&k ) ;
+     if( i > 0 && j > 0 && k > 0 )
+       sprintf( buf+strlen(buf) ,
+                "  qform_i_orientation = '%s'\n"
+                "  qform_j_orientation = '%s'\n"
+                "  qform_k_orientation = '%s'\n" ,
+                nifti_orientation_string(i) ,
+                nifti_orientation_string(j) ,
+                nifti_orientation_string(k)  ) ;
    }
 
    if( nim->sform_code > 0 ){
+     int i,j,k ;
+
      sprintf( buf+strlen(buf) ,
               "  sform_code = '%d'\n"
               "  sform_code_name = '%s'\n"
@@ -1835,12 +2072,22 @@ char *nifti_image_to_ascii( nifti_image *nim )
          nim->sto_ijk.m[2][2] , nim->sto_ijk.m[2][3] ,
          nim->sto_ijk.m[3][0] , nim->sto_ijk.m[3][1] ,
          nim->sto_ijk.m[3][2] , nim->sto_ijk.m[3][3]  ) ;
+
+     mat44_to_orientation( nim->sto_xyz , &i,&j,&k ) ;
+     if( i > 0 && j > 0 && k > 0 )
+       sprintf( buf+strlen(buf) ,
+                "  sform_i_orientation = '%s'\n"
+                "  sform_j_orientation = '%s'\n"
+                "  sform_k_orientation = '%s'\n" ,
+                nifti_orientation_string(i) ,
+                nifti_orientation_string(j) ,
+                nifti_orientation_string(k)  ) ;
    }
 
    sprintf( buf+strlen(buf) , "/>\n" ) ;   /* XML-ish closer */
 
    nbuf = strlen(buf) ;
-   buf = realloc( buf , nbuf+1 ) ;
+   buf = realloc( buf , nbuf+1 ) ;   /* cut back to proper length */
    return buf ;
 }
 

@@ -34,7 +34,7 @@ ENTRY("THD_open_nifti") ;
 
    if( nim->nx < 2 || nim->ny < 2 ) RETURN(NULL) ;
 
-   /* 4th dimension = time; 5th dimension = bucket
+   /* 4th dimension = time; 5th dimension = bucket:
       these are mutually exclusive in AFNI at present */
 
    ntt = nim->nt ; nbuc = nim->nu ;
@@ -69,7 +69,7 @@ ENTRY("THD_open_nifti") ;
      case DT_UINT32:
      case DT_FLOAT64:
        fprintf(stderr,
-               "** AFNI convert NIFTI_datatype=%d (%s) in file %s to FLOAT32\n",
+               "** AFNI converts NIFTI_datatype=%d (%s) in file %s to FLOAT32\n",
                nim->datatype, nifti_datatype_string(nim->datatype), pathname );
        datum = MRI_float ;
      break ;
@@ -113,8 +113,8 @@ ENTRY("THD_open_nifti") ;
                -nim->qto_xyz.m[1][0] ,  /* with RAI coords, */
                -nim->qto_xyz.m[1][1] ,  /* but NIFTI uses   */
                -nim->qto_xyz.m[1][2] ,  /* LPI coordinates. */
-                nim->qto_xyz.m[2][0] ,
-                nim->qto_xyz.m[2][1] ,
+                nim->qto_xyz.m[2][0] ,  /* [Which is my own] */
+                nim->qto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
                 nim->qto_xyz.m[2][2]  ) ;
 
    orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
@@ -191,7 +191,70 @@ ENTRY("THD_open_nifti") ;
                         ADN_func_type , (statcode != 0) ? FUNC_FIM_TYPE
                                                         : ANAT_EPI_TYPE ,
                       ADN_none ) ;
-   }
+
+     /* if present, add stuff about the slice-timing offsets */
+
+     if( nim->slice_dim      == 3               &&    /* AFNI can only deal with */
+         nim->slice_code     >  0               &&    /* slice timing offsets    */
+         nim->slice_duration >  0.0             &&    /* along the k-axis of     */
+         nim->slice_start    >= 0               &&    /* the dataset volume      */
+         nim->slice_start    < nim->nz          &&
+         nim->slice_end      > nim->slice_start &&
+         nim->slice_end      < nim->nz             ){
+
+       float *toff=(float *)calloc(sizeof(float),nim->nz) , tsl ;
+       int kk ;
+
+            if( nim->time_units == NIFTI_UNITS_MSEC ) nim->slice_duration *= 0.001 ;
+       else if( nim->time_units == NIFTI_UNITS_USEC ) nim->slice_duration *= 1.e-6 ;
+
+       /* set up slice time offsets in the divers orders */
+
+       switch( nim->slice_code ){
+         case NIFTI_SLICE_SEQ_INC:
+           tsl = 0.0 ;
+           for( kk=nim->slice_start ; kk <= nim->slice_end ; kk++ ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+         break ;
+         case NIFTI_SLICE_SEQ_DEC:
+           tsl = 0.0 ;
+           for( kk=nim->slice_end ; kk >= nim->slice_end ; kk-- ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+         break ;
+         case NIFTI_SLICE_ALT_INC:
+           tsl = 0.0 ;
+           for( kk=nim->slice_start ; kk <= nim->slice_end ; kk+=2 ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+           for( kk=nim->slice_start+1 ; kk <= nim->slice_end ; kk+=2 ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+         break ;
+         case NIFTI_SLICE_ALT_DEC:
+           tsl = 0.0 ;
+           for( kk=nim->slice_end ; kk >= nim->slice_start ; kk-=2 ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+           for( kk=nim->slice_end-1 ; kk >= nim->slice_start ; kk-=2 ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+         break ;
+       }
+
+       EDIT_dset_items( dset ,
+                          ADN_nsl     , nim->nz       ,
+                          ADN_zorg_sl , orgxyz.xyz[2] ,
+                          ADN_dz_sl   , dxyz.xyz[2]   ,
+                          ADN_toff_sl , toff          ,
+                        ADN_none ) ;
+
+       free(toff) ;
+
+     } /* end of slice timing stuff */
+
+   } /* end of 3D+time dataset stuff */
 
    /* add statistics, if present */
 
