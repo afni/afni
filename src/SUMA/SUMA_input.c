@@ -1002,7 +1002,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /* work the options a bit */
                OptScl->ApplyClip = YUP;
                IntRange[0] = 5; IntRange[1] = 95; /* percentile clipping range*/ 
-               Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, IntRange, IntRange); 
+               Vsort = SUMA_PercRange (Cx, NULL, SO->N_Node, IntRange, IntRange, NULL); 
                OptScl->IntRange[0] = IntRange[0]; OptScl->IntRange[1] = IntRange[1];
 
                OptScl->BrightFact = 0.4;
