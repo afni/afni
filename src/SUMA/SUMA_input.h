@@ -12,7 +12,7 @@ void  SUMA_ClearBrushStroke (SUMA_SurfaceViewer *sv);
 void SUMA_ShowBrushStroke (SUMA_SurfaceViewer *sv, FILE *out);
 void SUMA_DrawBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean Incremental);
 void SUMA_SetSVForegroundColor (SUMA_SurfaceViewer *sv, const char *Color);
-SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_Boolean DoubleClick);
+SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STROKE_ACTION BsA);
 SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv);
 SUMA_ROI_DATUM *SUMA_NodeStrokeToConnectedNodes (SUMA_SurfaceViewer *sv); 
 SUMA_ROI_DATUM *SUMA_LinkTailNodeToNodeStroke (SUMA_SurfaceViewer *sv, SUMA_DRAWN_ROI *DrawnROI);

@@ -24,7 +24,7 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList);
 SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N);
 SUMA_DRAWN_ROI * SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_STATUS DrawStatus, 
                                        SUMA_ROI_DRAWING_TYPE Type, char * label, int ilabel);
-SUMA_ROI * SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_TYPE Type, char * label, int N_ElInd, int *ElInd);
+SUMA_ROI * SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char * label, int N_ElInd, int *ElInd);
 SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI); 
 SUMA_Boolean SUMA_freeROI (SUMA_ROI *ROI); 
 SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_dov);
