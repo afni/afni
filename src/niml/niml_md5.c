@@ -358,7 +358,7 @@ char * MD5_static_array( int n , char *bytes )
    if( n < 0 || bytes == NULL ) return NULL ;
 
    MD5Init( &context ) ;
-   MD5Update( &context, bytes, n ) ;
+   MD5Update( &context, (unsigned char *)bytes, n ) ;
    MD5Final( digest, &context ) ;
 
    return MD5_static_printf(digest) ;
@@ -449,7 +449,7 @@ static char * MD5_to_B64( unsigned char digest[16] )
 {
    int nb64=0 ; byte *b64=NULL ;
 
-   B64_to_base64( 16 , (char *)digest , &nb64 , &b64 ) ;
+   B64_to_base64( 16 , (byte *)digest , &nb64 , &b64 ) ;
    if( nb64 <= 0 || b64 == NULL ) return NULL ;
    b64[nb64-3] = '\0' ;                           /* remove trailing "==" */
    if( isspace(b64[nb64-4]) ) b64[nb64-4]='\0' ;
@@ -471,7 +471,7 @@ char * MD5_B64_array( int n , char *bytes )
    if( n < 0 || bytes == NULL ) return NULL ;
 
    MD5Init( &context ) ;
-   MD5Update( &context, bytes, n ) ;
+   MD5Update( &context, (unsigned char *)bytes, n ) ;
    MD5Final( digest, &context ) ;
 
    return MD5_to_B64( digest ) ;

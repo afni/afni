@@ -51,7 +51,7 @@ static char * get_UNIQ_string(void)
    nbuf = strlen(ubuf.nodename)+strlen(ubuf.sysname)
          +strlen(ubuf.release )+strlen(ubuf.version)+strlen(ubuf.machine) ;
 
-   buf = malloc(nbuf+222) ;      /* include some extra space */
+   buf = (char *)malloc(nbuf+222) ;      /* include some extra space */
    strcpy(buf,ubuf.nodename) ;
    strcat(buf,ubuf.sysname ) ;
    strcat(buf,ubuf.release ) ;
@@ -145,7 +145,7 @@ char *UNIQ_hashcode( char *str )
    char *idc , *eee ;
    int ii , nn ;
 
-   idc = calloc(1,32) ;
+   idc = (char *)calloc(1,32) ;
 
    eee = getenv("IDCODE_PREFIX") ;
    if( eee != NULL && isalpha(eee[0]) ){
@@ -194,10 +194,10 @@ char *UUID_hashcode( char *str )
    if( str == NULL || str[0] == '\0' ) str = "Onen i Estel Edain" ;
 
    MD5Init( &context ) ;
-   MD5Update( &context, str, strlen(str) ) ;
+   MD5Update( &context, (unsigned char *)str, strlen(str) ) ;
    MD5Final( digest, &context ) ;
 
-   idc = calloc(1,48) ;
+   idc = (char *)calloc(1,48) ;
    sprintf(idc,
      "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x" ,
      digest[0] , digest[1] , digest[2] , digest[3] , digest[4] ,

@@ -1,4 +1,5 @@
 #include "niml_private.h"
+#include <math.h>
 
 /******************************************************************/
 /**** Dtable: string-string pairs (two Htables) -- 15 Oct 2003 ****/
@@ -166,7 +167,7 @@ Dtable * Dtable_from_nimlstring( char *nstr )
 
    ns = NI_stream_open( "str:" , "r" ) ;
    NI_stream_setbuf( ns , nstr ) ;
-   nel = NI_read_element( ns , 1 ) ;
+   nel = (NI_element *)NI_read_element( ns , 1 ) ;
    NI_stream_close( ns ) ;
    if( nel == NULL ) return NULL ;
 

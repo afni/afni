@@ -264,7 +264,7 @@ void * NI_copy_struct( void *ndd )
        if( qq->param != NULL ){
          nn->param = NI_malloc(NI_struct*, sizeof(NI_struct *)*nn->param_num) ;
          for( ii=0 ; ii < nn->param_num ; ii++ )
-           nn->param[ii] = NI_copy_struct( qq->param[ii] ) ; /* recursion */
+           nn->param[ii] = (NI_struct *)NI_copy_struct( qq->param[ii] ) ; /* recursion */
        } else {
          nn->param = NULL ;
        }
@@ -298,7 +298,7 @@ void * NI_copy_struct( void *ndd )
        } else {
          nn->vec_range = NULL ;
        }
-       nn->statistic = NI_copy_struct( qq->statistic ) ;   /* recursion */
+       nn->statistic = (NI_statistic *)NI_copy_struct( qq->statistic ) ;   /* recursion */
      }
      break ;
 
@@ -353,11 +353,11 @@ void * NI_copy_struct( void *ndd )
          nv = NI_dataset_vecnum(nn) ;
          nn->vec = NI_malloc(NI_vector*, sizeof(NI_vector *)*nv) ;
          for( ii=0 ; ii < nv ; ii++ )
-           nn->vec[ii] = NI_copy_struct( qq->vec[ii] ) ;   /* recursion */
+           nn->vec[ii] = (NI_vector *)NI_copy_struct( qq->vec[ii] ) ;   /* recursion */
        } else {
          nn->vec = NULL ;
        }
-       nn->domain = NI_copy_struct( qq->domain ) ;         /* recursion */
+       nn->domain = (NI_struct *)NI_copy_struct( qq->domain ) ;         /* recursion */
      }
      break ;
 

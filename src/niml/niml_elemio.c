@@ -827,14 +827,14 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
    /*-- 15 Oct 2002: write attributes with lots of space, or little --*/
    /*-- 20 Mar 2003: modified for "#  lhs = rhs" type of header     --*/
 
-   att_prefix = (header_sharp) ? "\n#  "      /* write this before each attribute */
-                               : "\n  " ;
+   att_prefix = (header_sharp) ? (char *)"\n#  " /* write this before each attribute */
+                               : (char *)"\n  " ;
 
-   att_equals = (header_sharp) ? " = "        /* write this between lhs and rhs */
-                               : "="    ;
+   att_equals = (header_sharp) ? (char *)" = "   /* write this between lhs and rhs */
+                               : (char *)"="    ;
 
-   att_trail  = (header_sharp) ? "\n# "       /* write this before closing ">" */
-                               : " "    ;
+   att_trail  = (header_sharp) ? (char *)"\n# "  /* write this before closing ">" */
+                               : (char *)" "    ;
 
    /*------------------ write a group element ------------------*/
 

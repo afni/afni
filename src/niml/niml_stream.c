@@ -159,7 +159,7 @@ static void tcp_set_cutoff( int sd )
    Returns 1 if things are OK, 0 if not.
 ---------------------------------------------------------------------*/
 
-static int tcp_alivecheck( sd )
+static int tcp_alivecheck( int sd )
 {
    int ii ;
    char bbb[4] ;
@@ -1562,7 +1562,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       if( NI_strlen(name) > 255 || NI_strlen(fname) < 1 ) return NULL ;
 
       if( *mode == 'a' ) fmode = "ab" ;
-      else               fmode = do_create ? "wb" : "rb" ;
+      else               fmode = do_create ? (char *)"wb" : (char *)"rb" ;
       fp = fopen( fname , fmode ) ;
 
       if( fp == NULL ) return NULL ;
