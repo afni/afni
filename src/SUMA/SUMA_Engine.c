@@ -109,6 +109,12 @@ SUMA_Boolean SUMA_Engine (char *Command, SUMA_EngineData *EngineData, SUMA_Surfa
 						fprintf(SUMA_STDOUT,"%s: Contacting afni ...\n", FuncName);
 						/* contact afni */
 							sv->ns = NI_stream_open( SUMAg_CF->NimlAfniStream , "w" ) ;
+                     fprintf (SUMA_STDERR, "%s: Trying shared memory...\n", FuncName);
+                     if( strstr( SUMAg_CF->NimlAfniStream , "tcp:localhost:" ) != NULL ) {
+                        if (!NI_stream_reopen( sv->ns , "shm:WeLikeElvis:1M" )) {
+                           fprintf (SUMA_STDERR, "Warning %s: Shared memory communcation failed.\n", FuncName);
+                        }
+                     }
 							/*	sv->ns = NI_stream_open( "tcp:128.231.212.194:53211" , "w" ) ;*/
 						if( sv->ns == NULL ){
          				fprintf(SUMA_STDERR,"Error %s: NI_stream_open failed\n", FuncName) ; break ;
