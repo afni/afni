@@ -4373,3 +4373,4 @@
      like 1dplot.c.  While doing so, also fixed a bug in coxplot/plot_ps2.c
      where the rectangle case didn't have a "break", so fell through and
      drew a circle as well.
+ * Modified mritopgm.c to have a clipping option.
