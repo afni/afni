@@ -923,6 +923,7 @@ ENTRY("add_string_to_PLUGIN_interface") ;
                BRICK_SHORT_MASK      should be stored in the sub-bricks
                BRICK_FLOAT_MASK      of the allowable datasets.
                BRICK_COMPLEX_MASK
+               BRICK_RGB_MASK
                BRICK_ALLTYPE_MASK
                BRICK_ALLREAL_MASK
 
@@ -2995,6 +2996,7 @@ ENTRY("PLUGIN_dset_check") ;
    if( itmp == MRI_short   && (ctrl_mask & BRICK_SHORT_MASK)   == 0 ) RETURN(0) ;
    if( itmp == MRI_float   && (ctrl_mask & BRICK_FLOAT_MASK)   == 0 ) RETURN(0) ;
    if( itmp == MRI_complex && (ctrl_mask & BRICK_COMPLEX_MASK) == 0 ) RETURN(0) ;
+   if( itmp == MRI_rgb     && (ctrl_mask & BRICK_RGB_MASK)     == 0 ) RETURN(0) ;
 
    RETURN(1) ;
 }

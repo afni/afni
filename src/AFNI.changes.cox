@@ -4021,3 +4021,7 @@
 
 01 Nov 2002
  * More changes for mosaic input.
+
+04 Nov 2002
+ * Added MRI_rgb type to thd_zeropad.c and to BRICK_*_MASK macros in afni_plugin.h.
+ * Took changes from Rasmus Birn to add a "-gamd" delay option to waver.c.

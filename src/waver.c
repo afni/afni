@@ -67,6 +67,7 @@ static double WAV_rise_start   = -666.0 ,
 static double GAM_power        = 8.6 ;
 static double GAM_time         = 0.547 ;
 static double GAM_ampl         = 0.0 ;
+static double GAM_delay_time   = 0.0 ;
 
 static PARSER_code * EXPR_pcode = NULL ;  /* 01 Aug 2001 */
 static double        EXPR_fac   = 1.0  ;
@@ -108,9 +109,9 @@ double waveform_GAM( double t )
       GAM_ampl = exp(GAM_power) / pow(GAM_power*GAM_time,GAM_power) ;
    }
 
-   if( t <= 0.0 ) return 0.0 ;
+   if( t-GAM_delay_time <= 0.0 ) return 0.0 ;
 
-   return GAM_ampl * pow(t,GAM_power) * exp(-t/GAM_time) ;
+   return GAM_ampl * pow((t-GAM_delay_time),GAM_power) * exp(-(t-GAM_delay_time)/GAM_time) ;
 }
 
 double waveform_WAV( double t )
@@ -333,6 +334,7 @@ void Syntax(void)
     "These options set parameters for the -GAM waveform:\n"
     "  -gamb #        = Sets the parameter 'b' to #                 [8.6]\n"
     "  -gamc #        = Sets the parameter 'c' to #                 [0.547]\n"
+    "  -gamd #        = Sets the delay time to # seconds            [0.0]\n"
     "\n"
     "These options apply to all waveform types:\n"
     "  -peak #        = Sets peak value to #                        [100]\n"
@@ -463,7 +465,15 @@ void Process_Options( int argc , char * argv[] )
          waveform_type = GAM_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
-
+      
+      if( strncmp(argv[nopt],"-gamd",5) == 0 ){
+         if( nopt+1 >= argc ) ERROR ;
+         GAM_delay_time = strtod(argv[nopt+1],NULL) ;
+         /*if( GAM_time <= 0.0 ) ERROR ;*/
+         waveform_type = GAM_TYPE ;
+         nopt++ ; nopt++ ; continue ;
+      }
+      
       if( strncmp(argv[nopt],"-del",4) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          WAV_delay_time = strtod(argv[nopt+1],NULL) ;

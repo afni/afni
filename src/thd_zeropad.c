@@ -295,6 +295,24 @@ STATUS("padding") ;
          }
          break ;
 
+         case MRI_int:{
+            int * bnew = (int *) vnew, * bold = mri_data_pointer(oldim) ;
+            for( kk=kkbot ; kk < kktop ; kk++ )
+               for( jj=jjbot ; jj < jjtop ; jj++ )
+                  for( ii=iibot ; ii < iitop ; ii++ )
+                     bnew[SNEW(ii,jj,kk)] = bold[SOLD(ii,jj,kk)] ;
+         }
+         break ;
+
+         case MRI_rgb:{
+            rgbyte * bnew = (rgbyte *) vnew, * bold = mri_data_pointer(oldim) ;
+            for( kk=kkbot ; kk < kktop ; kk++ )
+               for( jj=jjbot ; jj < jjtop ; jj++ )
+                  for( ii=iibot ; ii < iitop ; ii++ )
+                     bnew[SNEW(ii,jj,kk)] = bold[SOLD(ii,jj,kk)] ;
+         }
+         break ;
+
       } /* end of switch on sub-brick type */
 
       if( purge_flag) DSET_unload_one(inset,iv) ; /* 09 Feb 2001 */
