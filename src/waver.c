@@ -554,33 +554,42 @@ void Process_Options( int argc , char * argv[] )
       }
 
       if( strcmp(argv[nopt],"-tstim") == 0 ){  /* 16 May 2001 */
-         int iopt , nnn ;
-         float value ;
+        int iopt , nnn ;
+        float value ;
+        char *cpt ;
 
-         if( IN_num_tstim > 0 || IN_npts > 0 ){
-            fprintf(stderr,"Cannot input two timeseries!\n") ;
-            exit(1) ;
-         }
-         if( nopt+1 >= argc ) ERROR ;
+        if( IN_num_tstim > 0 || IN_npts > 0 ){
+          fprintf(stderr,"Cannot input two timeseries!\n") ;
+          exit(1) ;
+        }
+        if( nopt+1 >= argc ) ERROR ;
 
-         iopt         = nopt+1 ;
-         IN_num_tstim = 0 ;
-         IN_tstim     = (double *) malloc( sizeof(double) ) ;
-         while( iopt < argc && argv[iopt][0] != '-' ){
+        iopt         = nopt+1 ;
+        IN_num_tstim = 0 ;
+        IN_tstim     = (double *) malloc( sizeof(double) ) ;
+        while( iopt < argc && argv[iopt][0] != '-' ){
 
-            nnn = sscanf( argv[iopt] , "%f" , &value ) ;
-            if( nnn != 1 || value < 0.0 ){
-               fprintf(stderr,"** Illegal value after -tstim: argv=%s\n",argv[iopt]  ) ;
-               fprintf(stderr,"**                    previous argv=%s\n",argv[iopt-1]) ;
-               exit(1) ;
-            }
+          if( isspace(argv[iopt][0]) ){   /* skip if starts with blank */
+            fprintf(stderr,
+                    "** Skipping -tstim value #%d that starts with whitespace!\n",
+                    IN_num_tstim ) ;
+            iopt++; continue;
+          }
 
-            IN_tstim = (double *)realloc(IN_tstim,sizeof(double)*(IN_num_tstim+1));
-            IN_tstim[IN_num_tstim++] = value ;
-            if( value > IN_top_tstim ) IN_top_tstim = value ;
-            iopt++ ;
-         }
-         nopt = iopt ; continue ;
+          value = strtod( argv[iopt] , &cpt ) ;
+          if( *cpt != '\0' && !isspace(*cpt) ){
+            fprintf(stderr,"** Weird value after -tstim: argv='%s'\n",argv[iopt]  ) ;
+            fprintf(stderr,"**                  previous argv='%s'\n",argv[iopt-1]) ;
+            fprintf(stderr,"** ==> Skipping this value!\n") ;
+            iopt++; continue;
+          }
+
+          IN_tstim = (double *)realloc(IN_tstim,sizeof(double)*(IN_num_tstim+1));
+          IN_tstim[IN_num_tstim++] = value ;
+          if( value > IN_top_tstim ) IN_top_tstim = value ;
+          iopt++ ;
+        }
+        nopt = iopt ; continue ;
       }
 
       if( strncmp(argv[nopt],"-inl",4) == 0 ){
