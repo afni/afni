@@ -2073,6 +2073,8 @@ void zero_fill_volume (float ** fvol, int nxyz)
 
 /*** signal handler for fatal errors -- make sure shared memory is deleted ***/
 
+#include <signal.h>
+
 void proc_sigfunc(int sig)
 {
    char * sname ; int ii ;
