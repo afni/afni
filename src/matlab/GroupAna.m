@@ -388,19 +388,25 @@ if (file_format == 1),
    end % if ((NF == 3 & dsgn == 1))							
 	
 	if ((NF == 3 & dsgn == 3)),	
-      acc = 0;
+%      acc = 0;
+		FI = 0; % File index
 %    	if (unbalanced.type == 1),
    		for (i = 1:1:FL(1).N_level),
    	   for (j = 1:1:FL(2).N_level),
    	   for (k = 1:1:FL(3).UL(i).N_level), 	   
  	      			
-   			FI = acc + (j-1)*FL(3).UL(i).N_level + k;   % file index
+%   			FI = acc + (j-1)*FL(3).UL(i).N_level + k;   % file index
  	 		   % Create a matrix for group indices
- 		   	GP(1, FI) = {FL(1).level(i).expr};
-   		   GP(2, FI) = {FL(2).level(j).expr};
-   		   GP(3, FI) = {FL(3).UL(i).n(k).expr};   		   
+% 		   	GP(1, FI) = {FL(1).level(i).expr};
+%   		   GP(2, FI) = {FL(2).level(j).expr};
+%   		   GP(3, FI) = {FL(3).UL(i).n(k).expr};   		   
 				
 				for (r = 1:1:FL(NF+1).N_level),  % if there is any repeated observations
+				FI = FI + 1;
+				GP(1, FI) = {FL(1).level(i).expr};
+   		   GP(2, FI) = {FL(2).level(j).expr};
+   		   GP(3, FI) = {FL(3).UL(i).n(k).expr};
+				
 				flg = 0;		
 				while flg == 0,
    	         fprintf (2,'\n(%i) factor combination:\n', FI);
@@ -426,28 +432,35 @@ if (file_format == 1),
  			
    	 	end  % k
  	  	   end  % j
-   		acc = FI;
+%   		acc = FI;
    		end  % i
  	 		  		
 %      end % if (unbalanced.type == 1),
    end % if ((NF == 3 & dsgn == 3))	
 	
    if ((NF == 4 & dsgn == 3)),	
-      acc = 0;
+%      acc = 0;
 %    	if (unbalanced.type == 1),
-   		for (i = 1:1:FL(1).N_level),
+   		FI = 0; % File index
+			for (i = 1:1:FL(1).N_level),
    	   for (j = 1:1:FL(2).N_level),
    	   for (k = 1:1:FL(3).N_level),
    	   for (l = 1:1:FL(4).UL(i).N_level),
  	      			
-   			FI = acc + (j-1)*FL(3).N_level*FL(4).UL(i).N_level+(k-1)*FL(4).UL(i).N_level + l;   % file index
+%   			FI = acc + (j-1)*FL(3).N_level*FL(4).UL(i).N_level+(k-1)*FL(4).UL(i).N_level + l;   % file index
  	 		   % Create a matrix for group indices
- 		   	GP(1, FI) = {FL(1).level(i).expr};
+% 		   	GP(1, FI) = {FL(1).level(i).expr};
+%   		   GP(2, FI) = {FL(2).level(j).expr};
+%   		   GP(3, FI) = {FL(3).level(k).expr};
+%   		   GP(4, FI) = {FL(4).UL(i).n(l).expr}; 
+				
+				for (r = 1:1:FL(NF+1).N_level),				
+				FI = FI +1;
+				GP(1, FI) = {FL(1).level(i).expr};
    		   GP(2, FI) = {FL(2).level(j).expr};
    		   GP(3, FI) = {FL(3).level(k).expr};
-   		   GP(4, FI) = {FL(4).UL(i).n(l).expr}; 
+   		   GP(4, FI) = {FL(4).UL(i).n(l).expr};
 				
-				for (r = 1:1:FL(NF+1).N_level),
 				flg = 0;		
 				while flg == 0,
    	         fprintf (2,'\n(%i) factor combination:\n', FI);
@@ -475,7 +488,7 @@ if (file_format == 1),
    	 	end
  		   end
  	  	   end
-   		acc = FI;
+%   		acc = FI;
    		end
  	 		  		
 %     end % if (unbalanced.type == 1),
