@@ -79,6 +79,12 @@ ENTRY("THD_write_minc") ;
                fname) ;
        RETURN(0) ;
      }
+     if( DSET_BRICK_TYPE(dset,iv) == MRI_rgb ){
+       fprintf(stderr,
+               "** ERROR: Can't write MINC file since dataset is RGB: %s\n",
+               fname) ;
+       RETURN(0) ;
+     }
 
      /* check if must convert to floats */
 
@@ -162,6 +168,12 @@ ENTRY("THD_write_minc") ;
      sprintf(cmd+strlen(cmd)," -sattribute xspace:spacetype=talairach_") ;
      sprintf(cmd+strlen(cmd)," -sattribute yspace:spacetype=talairach_") ;
      sprintf(cmd+strlen(cmd)," -sattribute zspace:spacetype=talairach_") ;
+   }
+
+   /*-- integer datasets need to be scanned --*/
+
+   if( !floatize ){
+     sprintf(cmd+strlen(cmd)," -scan_range") ;
    }
 
    /*-- add output file name --*/
