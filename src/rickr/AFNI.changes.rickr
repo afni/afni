@@ -932,4 +932,5 @@
 04 Jan 2005:
   * afni_niml.c to allow changing the nodes for a surface, made receive
     message default to the terminal window
+  * added a description of AFNI_SHOW_SURF_POPUPS in README.environment
 
