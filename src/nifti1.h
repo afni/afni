@@ -192,7 +192,7 @@ typedef struct nifti_1_header nifti_1_header ;
 /* HEADER EXTENSIONS:
    -----------------
    After the end of the 348 byte header (e.g., after the magic field),
-   the next 4 bytes are an byte array field named "extension". By default,
+   the next 4 bytes are a char array field named "extension". By default,
    all 4 bytes of this array should be set to zero. In a .nii file, these
    4 bytes will always be present, since the earliest start point for
    the image data is byte #352. In a separate .hdr file, these bytes may
