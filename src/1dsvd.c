@@ -1,5 +1,15 @@
 #include "mrilib.h"
 
+int dbc( const void *ap , const void *bp )   /* for qsort */
+{
+   double *a=(double *)ap,  *b=(double *)bp ;
+   if( *a == *b ) return 0  ;
+   if( *a <  *b ) return -1 ;
+                  return  1 ;
+}
+
+/*-----------------------------------------------------------------*/
+
 int main( int argc , char *argv[] )
 {
    int iarg , ii,jj,kk,mm , nvec , do_one=0 , nx=0,ny , ff ;
@@ -7,6 +17,9 @@ int main( int argc , char *argv[] )
    MRI_IMARR *tar ;
    double *amat , *sval , *umat , *vmat , smax,del,sum ;
    float *far ;
+   int do_cond=0 ;  /* 08 Nov 2004 */
+   int do_sing=0 ;
+   int pall=1 ;
 
    /* help? */
 
@@ -17,6 +30,8 @@ int main( int argc , char *argv[] )
             "\n"
             "Options:\n"
             " -one  =  Make 1st vector be all 1's.\n"
+            " -cond =  Only print condition number (ratio of extremes)\n"
+            " -sing =  Only print singular values\n"
            ) ;
      exit(0) ;
    }
@@ -28,6 +43,14 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-one") == 0 ){
        do_one = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-cond") == 0 ){
+       pall = 0 ; do_cond = 1 ; iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-sing") == 0 ){
+       pall = 0 ; do_sing = 1 ; iarg++ ; continue ;
      }
 
      fprintf(stderr,"** Unknown option: %s\n",argv[iarg]); exit(1);
@@ -56,16 +79,18 @@ int main( int argc , char *argv[] )
      ADDTO_IMARR(tar,tim) ;
    }
 
-   printf("\n") ;
-   printf("++ 1dsvd input vectors:\n") ;
-   jj = 0 ;
-   if( do_one ){
-     printf("00..00: all ones\n") ; jj = 1 ;
-   }
-   for( mm=0 ; mm < IMARR_COUNT(tar) ; mm++ ){
-     tim = IMARR_SUBIM(tar,mm) ;
-     printf("%02d..%02d: %s\n", jj,jj+tim->ny-1, argv[ff+mm] ) ;
-     jj += tim->ny ;
+   if( pall ){
+     printf("\n") ;
+     printf("++ 1dsvd input vectors:\n") ;
+     jj = 0 ;
+     if( do_one ){
+       printf("00..00: all ones\n") ; jj = 1 ;
+     }
+     for( mm=0 ; mm < IMARR_COUNT(tar) ; mm++ ){
+       tim = IMARR_SUBIM(tar,mm) ;
+       printf("%02d..%02d: %s\n", jj,jj+tim->ny-1, argv[ff+mm] ) ;
+       jj += tim->ny ;
+     }
    }
 
    /* create matrix from 1D files */
@@ -96,6 +121,25 @@ int main( int argc , char *argv[] )
    DESTROY_IMARR(tar) ;
 
    svd_double( nx , nvec , amat , sval , umat , vmat ) ;
+
+   if( do_cond ){
+     double sbot,stop , cnum ;
+     sbot = stop = MAX(sval[0],0.0) ;
+     for( jj=1 ; jj < nvec ; jj++ ){
+       if( sval[jj] < sbot ) sbot = sval[jj] ;
+       if( sval[jj] > stop ) stop = sval[jj] ;
+     }
+     cnum = stop/sbot ;
+     printf("%.7g\n",cnum) ;
+   }
+
+   if( do_sing ){
+     qsort( sval , nvec , sizeof(double) , dbc ) ;
+     for( jj=0 ; jj < nvec ; jj++ ) printf(" %6g",sval[jj]) ;
+     printf("\n") ;
+   }
+
+   if( !pall ) exit(0) ;
 
    printf("\n"
           "++ Data vectors [A]:\n   " ) ;
