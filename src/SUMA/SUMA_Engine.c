@@ -44,7 +44,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
    float ft, **fm, fv15[15];
    XtPointer elvis=NULL;
    NI_element *nel;
-   SUMA_Boolean Found, LocalHead = NOPE;
+   SUMA_Boolean Found, LocalHead = YUP;
    SUMA_SurfaceViewer *svi;
    SUMA_SurfaceViewer *sv = NULL;
    static char Command[]={"OBSOLETE-since:Thu Jan 23 16:55:03 EST 2003"};
@@ -707,7 +707,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMAg_CF->Locked[0] = (int)fmod(SUMAg_CF->Locked[0]+1, SUMA_N_Lock_Types);
                SUMA_LockEnum_LockType (SUMAg_CF->Locked[0], LockName);
                fprintf (SUMA_STDERR," %s\n", LockName);
-               /* update the widget */
+               /* update the widget*/
                SUMA_set_Lock_rb (SUMAg_CF->X->SumaCont->Lock_rbg, 0, SUMAg_CF->Locked[0]);
                /* Change the locking type of all remaining viewers, including unopen ones */
                for (ii=1; ii< SUMA_MAX_SURF_VIEWERS; ++ii) {
@@ -1088,6 +1088,18 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
             break;
          
+         case SE_SetLight0Pos:
+            /* expects light XYZ position in fv[3] */
+            if (EngineData->fv3_Dest != NextComCode) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n",FuncName, NextCom, NextComCode);
+               break;
+            }
+            sv->light0_position[0] = EngineData->fv3[0];
+            sv->light0_position[1] = EngineData->fv3[1];
+            sv->light0_position[2] = EngineData->fv3[2];
+            glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
+            break;
+            
          case SE_HighlightNodes:
             /* highlight nodes inside the search box */
             /* expects Node XYZ in EngineData->fv15[0..2]

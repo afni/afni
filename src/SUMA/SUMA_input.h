@@ -31,6 +31,7 @@ SUMA_BRUSH_STROKE_DATUM * SUMA_CreateBSDatum(void);
 SUMA_ACTION_RESULT SUMA_AddFillROIDatum (void *data, SUMA_ACTION_POLARITY Pol);
 SUMA_ACTION_RESULT SUMA_FinishedROI (void *data, SUMA_ACTION_POLARITY Pol);
 void SUMA_LookAtCoordinates (char *s, void *data);
+void SUMA_SetLight0 (char *s, void *data);
 
 /*!
    \brief Macro to retrieve the first node and first triangle intersected by a brushstroke 

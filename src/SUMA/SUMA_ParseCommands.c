@@ -177,6 +177,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"OpenDrawROI")) SUMA_RETURN(SE_OpenDrawROI);
    if (!strcmp(Scom,"RedisplayNow_AllVisible")) SUMA_RETURN(SE_RedisplayNow_AllVisible);
    if (!strcmp(Scom,"RedisplayNow_AllOtherVisible")) SUMA_RETURN(SE_RedisplayNow_AllOtherVisible);
+   if (!strcmp(Scom,"SetLight0Pos")) SUMA_RETURN(SE_SetLight0Pos);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -282,6 +283,8 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("RedisplayNow_AllVisible");
       case SE_RedisplayNow_AllOtherVisible:
          SUMA_RETURN("RedisplayNow_AllOtherVisible");
+      case SE_SetLight0Pos:
+         SUMA_RETURN("SetLight0Pos");      
       /*case SE_:
          SUMA_RETURN("");      */
       default:        

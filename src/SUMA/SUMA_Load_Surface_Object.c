@@ -714,7 +714,9 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
                strcpy(Spec->SureFitTopo[Spec->N_Surfs-1], Spec->SureFitTopo[Spec->N_Surfs-2]);
                strcpy(Spec->MappingRef[Spec->N_Surfs-1], Spec->MappingRef[Spec->N_Surfs-2]);
                strcpy(Spec->SureFitVolParam[Spec->N_Surfs-1], Spec->SureFitVolParam[Spec->N_Surfs-2]);
+               strcpy(Spec->VolParName[Spec->N_Surfs-1],Spec->VolParName[Spec->N_Surfs-2]);
                Spec->IDcode[Spec->N_Surfs-1] = NULL; /* this field is set in LoadSpec function */
+               Spec->SurfaceLabel[Spec->N_Surfs-1][0] = '\0';
                strcpy(Spec->Group[Spec->N_Surfs-1], Spec->Group[Spec->N_Surfs-2]);
                strcpy(Spec->State[Spec->N_Surfs-1], Spec->State[Spec->N_Surfs-2]);
                Spec->EmbedDim[Spec->N_Surfs-1] = Spec->EmbedDim[Spec->N_Surfs-2];
