@@ -8,6 +8,10 @@
 
 /*** 7D SAFE ***/
 
+/*-------------------------------------------------------------------------*/
+/*! Return the pointer to the data array in an MRI_IMAGE struct.
+---------------------------------------------------------------------------*/
+
 void *mri_data_pointer( MRI_IMAGE *im )
 {
    void *data ;
@@ -31,6 +35,10 @@ void *mri_data_pointer( MRI_IMAGE *im )
    return data ;
 }
 
+/*-------------------------------------------------------------------------*/
+/*! Modify the data pointer in an MRI_IMAGE struct.
+---------------------------------------------------------------------------*/
+
 void mri_fix_data_pointer( void * ptr , MRI_IMAGE *im )
 {
    if( im == NULL ) return ;
@@ -47,6 +55,10 @@ void mri_fix_data_pointer( void * ptr , MRI_IMAGE *im )
    return ;
 }
 
+/*-------------------------------------------------------------------------*/
+/*! Get rid of an MRI_IMAGE struct and all its contents.
+---------------------------------------------------------------------------*/
+
 void mri_free( MRI_IMAGE *im )
 {
    void * ptr ;
@@ -62,6 +74,10 @@ void mri_free( MRI_IMAGE *im )
    return ;
 }
 
+/*-------------------------------------------------------------------------*/
+/*! Return the size (bytes) of one data element of the given type.
+---------------------------------------------------------------------------*/
+
 int mri_datum_size( MRI_TYPE typ )
 {
    switch( typ ){
@@ -75,6 +91,41 @@ int mri_datum_size( MRI_TYPE typ )
       case MRI_rgba:    return sizeof(rgba) ;
       default:          return 0 ;
    }
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Replace the guts of MRI_IMAGE struct qim with those of zim.
+    Afterwards, what's left of zim is mri_free()-ed, so don't ever refer
+    to it again. If you want a copy of an image, use mri_copy() instead.
+---------------------------------------------------------------------------*/
+
+void mri_move_guts( MRI_IMAGE *qim , MRI_IMAGE *zim )
+{
+   void *ptr ;
+
+   if( qim == NULL || zim == NULL ) return ;  /* stupid caller */
+
+   /* destroy the contents inside qim, if any */
+
+#ifdef USE_MRI_DELAY
+   if( qim->fname != NULL ) free(qim->fname) ;
+#endif
+   if( qim->name != NULL ) free(qim->name) ;
+   ptr = mri_data_pointer(qim) ;
+   if( ptr != NULL ) free(ptr) ;
+
+   /* put the contents of zim in their place */
+
+   *qim = *zim ;
+
+   /* NULL out the contents of zim, then free() it */
+
+   mri_fix_data_pointer( NULL , zim ) ;
+   zim->name = NULL ;
+#ifdef USE_MRI_DELAY
+   zim->fname = NULL ;
+#endif
+   free(zim) ;
 }
 
 /*---------------- added fake rint() 12 Feb 2001 ---------------*/

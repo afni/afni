@@ -146,10 +146,13 @@ typedef struct {
 } MCW_function_list ;
 
 /*! MCW_function_list possible bitmask flag */
-#define RETURNS_STRING   1
+#define RETURNS_STRING    1
 
 /*! MCW_function_list possible bitmask flag */
-#define NEEDS_DSET_INDEX 2
+#define NEEDS_DSET_INDEX  2
+
+/*! MCW_function_list possible bitmask flag */
+#define PROCESS_MRI_IMAGE 4
 
 /*! MCW_function_list possible func_code */
 #define FUNC_0D   0

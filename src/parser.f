@@ -818,7 +818,7 @@ C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL ,
      X       LAND,LOR,LMOFN,MEDIAN , ZTONE , HMODE,LMODE,
-     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT
+     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD
 C
 C  External library functions
 C
@@ -1077,6 +1077,10 @@ C.......................................................................
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
             R8_EVAL(NEVAL) = MEDIAN( NTM , R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'MAD' )THEN
+            NTM   = R8_EVAL(NEVAL)
+            NEVAL = NEVAL - NTM
+            R8_EVAL(NEVAL) = MAD( NTM , R8_EVAL(NEVAL) )
          ELSEIF( CNCODE .EQ. 'ORSTAT' )THEN
             NTM   = R8_EVAL(NEVAL)
             NEVAL = NEVAL - NTM
@@ -1261,7 +1265,7 @@ C  Internal library functions
 C
       REAL*8 QG , QGINV , BELL2 , RECT , STEP , BOOL , LAND,
      X       LOR, LMOFN , MEDIAN , ZTONE , HMODE , LMODE ,
-     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT
+     X       GRAN,URAN,IRAN,ERAN,LRAN , ORSTAT , TENT, MAD
 C
 C  External library functions
 C
@@ -1767,6 +1771,15 @@ C.......................................................................
                   SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
                ENDDO
                R8_EVAL(IV-IBV,NEVAL) = MEDIAN( NTM, SCOP )
+	    ENDDO
+         ELSEIF( CNCODE .EQ. 'MAD'  )THEN
+            NTM   = R8_EVAL(1, NEVAL)
+            NEVAL = NEVAL - NTM
+            DO IV=IVBOT,IVTOP
+               DO JTM=1,NTM
+                  SCOP(JTM) = R8_EVAL(IV-IBV,NEVAL+JTM-1)
+               ENDDO
+               R8_EVAL(IV-IBV,NEVAL) = MAD( NTM, SCOP )
 	    ENDDO
          ELSEIF( CNCODE .EQ. 'ORSTAT' )THEN
             NTM   = R8_EVAL(1,NEVAL)
@@ -2405,6 +2418,28 @@ C
       ELSE
          MEDIAN = X(IT+1)
       ENDIF
+      RETURN
+      END
+C
+C
+C
+      FUNCTION MAD(N,X)
+      REAL *8 MAD , X(N) , TMP , MEDIAN
+      INTEGER N , IT
+C
+      IF( N .EQ. 1 )THEN
+         MAD = 0.D+00
+         RETURN
+      ELSEIF( N .EQ. 2 )THEN
+         MAD = 0.5D+00*ABS(X(1)-X(2))
+         RETURN
+      ENDIF
+C
+      TMP = MEDIAN(N,X)
+      DO 100 IT=1,N
+         X(IT) = ABS(X(IT)-TMP)
+100   CONTINUE
+      MAD = MEDIAN(N,X)
       RETURN
       END
 C
