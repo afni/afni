@@ -126,6 +126,11 @@ int main( int argc , char * argv[] )
      fprintf(stderr,"** Illegal new prefix: %s\n",new_prefix) ;
      exit(1) ;
    }
+   if( strstr(new_prefix,".nii") != NULL ){  /* 06 Apr 2005 */
+     fprintf(stderr,"** You can't use 3dcopy to create a .nii file!\n"
+                    "** Use program 3dAFNItoNIFTI for that purpose.\n") ;
+     exit(1) ;
+   }
 
    /* 28 Jan 2003:
       to allow for non-AFNI datasets input,

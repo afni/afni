@@ -12,7 +12,7 @@
 
 typedef struct {
   int debug_level ;  /* 0 - 3 */
-  char * infile_name ;
+  char *infile_name ;
 } niftiwr_opts_t ;
 
 
