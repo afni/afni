@@ -4276,6 +4276,9 @@ DPR(" .. ButtonPress") ;
                 /* if dragging occured across sub-images in a montage, quit */
 
                 if( nim1 != nim2 ){
+                  MCW_popup_message( seq->wimage ,
+                                     " \n  Stupid   \n  crop\n  window!\n " ,
+                                     MCW_USER_KILL | MCW_TIMER_KILL  ) ;
                   XBell(seq->dc->display,100); EXRETURN;
                 }
 
@@ -4284,12 +4287,44 @@ DPR(" .. ButtonPress") ;
                 if( imx1 > imx2 ){ tt = imx1; imx1 = imx2; imx2 = tt; }
                 if( imy1 > imy2 ){ tt = imy1; imy1 = imy2; imy2 = tt; }
 
-                if( imx2-imx1 < 9 || imy2-imy1 < 9 ){       /* turn crop off */
+                if( imx2-imx1 < 9 || imy2-imy1 < 9 ){      /* turn crop off */
                    seq->cropit = 0 ; seq->crop_nxorg = -1 ;
-                } else {                                    /* set crop region */
-                   seq->cropit = 1 ; seq->crop_nxorg = -1 ;
+                } else {                                 /* set crop region */
+                   int zlev = seq->zoom_fac ;
+                   if( zlev > 1 ){                  /* 14 Jun 2002: zoomed? */
+                     int xmid=(imx2+imx1)/2, xh=(imx2-imx1)/2, xhw=zlev*xh ;
+                     int ymid=(imy2+imy1)/2, yh=(imy2-imy1)/2, yhw=zlev*yh ;
+                     int nx,ny ;
+                     nx = (seq->crop_nxorg > 0) ? seq->crop_nxorg : seq->horig ;
+                     ny = (seq->crop_nxorg > 0) ? seq->crop_nyorg : seq->vorig ;
+#if 0
+fprintf(stderr,"Crop: imx1=%d imx2=%d xmid=%d xh=%d xhw=%d nx=%d\n",imx1,imx2,xmid,xh,xhw,nx);
+fprintf(stderr,"      imy1=%d imy2=%d ymid=%d yh=%d yhw=%d ny=%d\n",imy1,imy2,ymid,yh,yhw,ny);
+#endif
+                     imx1 = xmid-xhw ; imx2 = xmid+xhw ;
+                          if( imx1 <  0    ){ imx1 = 0   ; imx2 = imx1+2*xhw; }
+                     else if( imx2 >= nx-1 ){ imx2 = nx-1; imx1 = imx2-2*xhw; }
+                     imy1 = ymid-yhw ; imy2 = ymid+yhw ;
+                          if( imy1 <  0    ){ imy1 = 0   ; imy2 = imy1+2*yhw; }
+                     else if( imy2 >= ny-1 ){ imy2 = ny-1; imy1 = imy2-2*yhw; }
+                     seq->zoom_hor_off = ((float)(xmid-xh-imx1))
+                                        /((float)(imx2-imx1)) ;
+                     if( seq->opt.mirror )
+                       seq->zoom_hor_off = 1.0-seq->zoom_hor_off ;
+#if 0
+fprintf(stderr,"      imx1=%d imx2=%d hor_off=%f\n",imx1,imx2,seq->zoom_hor_off);
+#endif
+                     if( seq->zoom_hor_off < 0.0 ) seq->zoom_hor_off = 0.0 ;
+                     seq->zoom_ver_off = ((float)(ymid-yh-imy1))
+                                        /((float)(imy2-imy1)) ;
+#if 0
+fprintf(stderr,"      imy1=%d imy2=%d ver_off=%f\n",imy1,imy2,seq->zoom_ver_off);
+#endif
+                     if( seq->zoom_ver_off < 0.0 ) seq->zoom_ver_off = 0.0 ;
+                   }
                    seq->crop_xa = imx1 ; seq->crop_xb = imx2 ;
                    seq->crop_ya = imy1 ; seq->crop_yb = imy2 ;
+                   seq->cropit = 1 ; seq->crop_nxorg = -1 ;
                 }
 
                 /* force redisplay */
