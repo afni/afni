@@ -6018,6 +6018,7 @@ int *SUMA_reorder(int *y, int *isort, int N_isort)
    - When SS is null, 1000 characters are allocated for s (initialization) and s[0] = '\0';
    - When newstring is NULL, space allocated for SS->s is resized to the correct dimension and 
    a null character is placed at the end.
+   \sa SUMA_SS2S
 */
 SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
 {
@@ -6091,6 +6092,7 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
    Such NULL pointers do not result in null vararg_ptr and cause a seg fault in vsnprintf
    
    \sa SUMA_StringAppend
+   \sa SUMA_SS2S
 */
 
 #define MAX_APPEND 1000
@@ -6152,3 +6154,5 @@ SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... )
    SUMA_RETURN (NULL);
 
 }
+
+      

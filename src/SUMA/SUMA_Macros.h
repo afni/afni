@@ -19,6 +19,14 @@
    of nr rows */ 
 #define SCM(r,c,nr) ((r)+(nr)*(c))
 
+#define SUMA_SS2S(SS, stmp)  {\
+   if (SS)  {  \
+      SS = SUMA_StringAppend(SS, NULL);   \
+      stmp = SS->s;  \
+      SUMA_free(SS); SS = NULL;   } \
+}
+
+
 #define SUMA_WRAP_VALUE(v, min, max)   \
    {  \
       if (v > max) v = min;   \

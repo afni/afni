@@ -1095,15 +1095,15 @@ SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg) {
 //   fprintf(SUMA_STDERR, "%f < %f < %f\n", nodeList[beg], target, nodeList[end]);
    if ( end<beg) {
       fprintf(SUMA_STDERR, "Error %s: Segment must be passed with seg[0] being of lower index of seg[1].\n\n", FuncName);
-      return (found = NOPE);
+      SUMA_RETURN (found = NOPE);
    }
    if ( nodeList[end]<nodeList[beg] ) {
       fprintf(SUMA_STDERR, "Error %s: Nodelist must be passed sorted and in ascending order.\n\n", FuncName);
-      return (found = NOPE);
+      SUMA_RETURN (found = NOPE);
    }
    if ( (nodeList[beg]>target) || (nodeList[end]<target) ) {
       fprintf(SUMA_STDERR, "Error %s: Target does not lie within segment!\n\n", FuncName);
-      return (found = NOPE);
+      SUMA_RETURN (found = NOPE);
    }
 
    if (beg!=end) {
@@ -1133,7 +1133,7 @@ SUMA_Boolean SUMA_binSearch( float *nodeList, float target, int *seg) {
       seg[1] = mid;
    }
   
-   return(found);
+   SUMA_RETURN(found);
 }
  
 /**gives value for intersection of two lines, as defined in SUMA_MapSurface (see p10 LNB)*/
@@ -2726,7 +2726,7 @@ void SUMA_MapIcosahedron_usage ()
 int main (int argc, char *argv[])
 {/* main SUMA_MapIcosahedron */
 
-   static char FuncName[]={"SUMA_MapIcosahedron-main"};
+   static char FuncName[]={"MapIcosahedron"};
    SUMA_Boolean brk, smooth=NOPE, verb=NOPE;
    char fout[SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH];
    char icoFileNm[10000], outSpecFileNm[10000];
@@ -2953,42 +2953,42 @@ int main (int argc, char *argv[])
          currSurf = (SUMA_SurfaceObject *)(SUMAg_DOv[i].OP);
       
       /*find surface id and set some spec info*/
-      
       /*reg sphere*/
-      if (SUMA_iswordin( currSurf->State, "sphere.reg") ==1 && !CheckSphere) 
+      if (SUMA_iswordin( currSurf->State, "sphere.reg") ==1 ) 
          id = 4;
       /*sphere*/
       else if ( SUMA_iswordin( currSurf->State, "sphere") == 1 &&
-                SUMA_iswordin( currSurf->State, "sphere.reg") == 0 && !CheckSphereReg) 
+                SUMA_iswordin( currSurf->State, "sphere.reg") == 0 ) 
          id = 3;
       /*inflated*/
-      else if ((SUMA_iswordin( currSurf->State, "inflated") ==1) && !CheckSphere && !CheckSphereReg) 
+      else if ((SUMA_iswordin( currSurf->State, "inflated") ==1) ) 
          id = 2;
       /*pial*/
-      else if ((SUMA_iswordin( currSurf->State, "pial") ==1) && !CheckSphere && !CheckSphereReg)
+      else if ((SUMA_iswordin( currSurf->State, "pial") ==1) )
          id = 1;
       /*smoothwm*/
-      else if ((SUMA_iswordin( currSurf->State, "smoothwm") ==1) && !CheckSphere && !CheckSphereReg)
+      else if ((SUMA_iswordin( currSurf->State, "smoothwm") ==1) )
          id = 0;
       /*white*/
-      else if ((SUMA_iswordin( currSurf->State, "white") ==1) && !CheckSphere && !CheckSphereReg) 
+      else if ((SUMA_iswordin( currSurf->State, "white") ==1) ) 
          id = 5;
       /*3d patch*/
-      else if ((SUMA_iswordin( currSurf->State, "patch.3d") ==1) && !CheckSphere && !CheckSphereReg) 
+      else if ((SUMA_iswordin( currSurf->State, "patch.3d") ==1) ) 
          id = 6;
       /*flat patch*/
-      else if ((SUMA_iswordin( currSurf->State, "patch.flat") ==1) && !CheckSphere && !CheckSphereReg) 
+      else if ((SUMA_iswordin( currSurf->State, "patch.flat") ==1) ) 
          id = 7;
       else {
-         if (!CheckSphere && !CheckSphereReg) {
+         
             fprintf(SUMA_STDERR, "\nWarning %s: Surface State %s not recognized. Skipping...\n", 
                FuncName, currSurf->State);
             if ( verb ) N_inSpec = N_inSpec-2;
             else        N_inSpec = N_inSpec-1;
             N_skip = N_skip+1;
             skip = YUP;
-         }
       }
+      
+      if ( ( CheckSphere || CheckSphereReg) && (id != 3 && id !=4) ) skip = YUP;
       
       if ( !skip ) {
 
@@ -3015,7 +3015,14 @@ int main (int argc, char *argv[])
             OutName = SUMA_append_string (surfaces_orig[id]->Label, "_Conv_detail.1D");
             surfaces_orig[id]->Cx = SUMA_Convexity_Engine ( surfaces_orig[id]->NodeList, surfaces_orig[id]->N_Node, 
                                                             surfaces_orig[id]->NodeNormList, surfaces_orig[id]->FN, OutName);
-            if (surfaces_orig[id]) SUMA_SphereQuality (surfaces_orig[id], "SphereRegSurf");
+            if (surfaces_orig[id]) {
+               if (id == 4) SUMA_SphereQuality (surfaces_orig[id], "SphereRegSurf");
+               else if (id == 3) SUMA_SphereQuality (surfaces_orig[id], "SphereSurf");
+               else {
+                  SUMA_SL_Err("Logic flow error.");
+                  exit(1);
+               }
+            }
             fprintf(SUMA_STDERR, "%s:\nExiting after SUMA_SphereQuality\n", FuncName);
             if (SUMAg_DOv) SUMA_Free_Displayable_Object (SUMAg_DOv);
             if (surfaces_orig) SUMA_free (surfaces_orig);

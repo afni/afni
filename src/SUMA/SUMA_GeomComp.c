@@ -2891,7 +2891,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
 			if (kar+2 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -input \n");
+		  		fprintf (SUMA_STDERR, "need 3 arguments after -input \n");
 				exit (1);
 			}
 			Opt->in_name = argv[kar]; kar ++;
@@ -2995,7 +2995,8 @@ int main (int argc,char *argv[])
    SO_read = SUMA_spec_select_surfs(&Spec, Opt->surf_names, SURFPATCH_MAX_SURF, 0);
    if ( SO_read != Opt->N_surf )
    {
-	   fprintf(SUMA_STDERR,"Error %s: Found %d surfaces, expected %d.\n", FuncName,  SO_read, Opt->N_surf);
+	   if (SO_read >=0 )
+         fprintf(SUMA_STDERR,"Error %s:\nFound %d surfaces, expected %d.\n", FuncName,  SO_read, Opt->N_surf);
       exit(1);
    }
    /* now read into SUMAg_DOv */
@@ -3064,6 +3065,13 @@ int main (int argc,char *argv[])
    for (i=0; i < Opt->N_surf; ++i) {/* loop to read in surfaces */
       /* now identify surface needed */
       SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[i], SUMAg_DOv, SUMAg_N_DOv);
+      if (!SO) {
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                              "Failed to find surface %s\n"
+                              "in spec file. Use full name.\n",
+                              FuncName, Opt->surf_names[i]);
+         exit(1);
+      }
       /* extract the patch */
       if (!SO->MF) {
          SUMA_SL_Warn ("NULL MF");

@@ -811,37 +811,69 @@ SUMA_SurfaceObject * SUMA_findSOp_inDOv(char *idcode, SUMA_DO *dov, int N_dov)
 SUMA_SurfaceObject * SUMA_find_named_SOp_inDOv(char *coordname, SUMA_DO *dov, int N_dov)
 {
    static char FuncName[]={"SUMA_findSOp_inDOv"};
-   SUMA_SurfaceObject *SO;
+   SUMA_SurfaceObject *SO = NULL, *SOf = NULL;
+   SUMA_STRING *SS=NULL;
+   char *stmp=NULL;
    int i;
    
    SUMA_ENTRY;
-
-   for (i=0; i<N_dov; ++i) {
+   
+   i=0;
+   SOf = NULL;
+   while (i<N_dov) {
       if (dov[i].ObjectType == SO_type) {
          SO = (SUMA_SurfaceObject *)dov[i].OP;
          switch(SO->FileType) {
             case SUMA_SUREFIT:
             case SUMA_VEC:
-               if (strcmp(coordname, SO->Name_coord.FileName)== 0) {
-                  SUMA_RETURN (SO);
+               if (strstr(SO->Name_coord.FileName, coordname)) {
+                  if (SOf) {
+                     SS = SUMA_StringAppend_va(NULL, NULL);
+                     SS = SUMA_StringAppend_va(SS, 
+                                    "Error %s:\n"
+                                    "Surface name %s\n"
+                                    "is not a unique identifier.\n"
+                                    "Found %s and %s so far.\n"
+                                    "Be more specific.\n", FuncName, 
+                                    coordname, SOf->Name_coord.FileName,
+                                    SO->Name_coord.FileName);
+                     SUMA_SS2S(SS, stmp);
+                     SUMA_SL_Err(stmp); if (stmp) SUMA_free(stmp); stmp = NULL;
+                     SUMA_RETURN(NULL);
+                  }
+                  SOf = SO;
                }
                break;
             case SUMA_FREE_SURFER:
             case SUMA_INVENTOR_GENERIC:
             case SUMA_PLY: 
-               if (strcmp(coordname, SO->Name.FileName)== 0) {
-                  SUMA_RETURN (SO);
+               if (strstr(SO->Name.FileName, coordname)) {
+                  if (SOf) {
+                     SS = SUMA_StringAppend_va(NULL, NULL);
+                     SS = SUMA_StringAppend_va(SS, 
+                                    "Error %s:\n"
+                                    "Surface name %s\n"
+                                    "is not a unique identifier.\n"
+                                    "Found %s and %s so far.\n"
+                                    "Be more specific.\n", FuncName, 
+                                    coordname, SOf->Name_coord.FileName,
+                                    SO->Name_coord.FileName);
+                     SUMA_SS2S(SS, stmp);
+                     SUMA_SL_Err(stmp); if (stmp) SUMA_free(stmp); stmp = NULL;
+                     SUMA_RETURN(NULL);
+                  }
+                  SOf = SO;
                }
                break;
             default: 
                SUMA_SL_Err("Type not supported.");
                SUMA_RETURN(NULL);
          }
-               
       }
+      ++i;
    }
    
-   SUMA_RETURN(NULL);
+   SUMA_RETURN(SOf);
 }
 
 /*!

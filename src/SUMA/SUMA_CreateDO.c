@@ -21,17 +21,17 @@ extern int SUMAg_N_DOv;
 */
 SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label)
 {
-   static char FuncName[]={"SUMA_Alloc_Segment"};
+   static char FuncName[]={"SUMA_Alloc_SegmentDO"};
    SUMA_SegmentDO * SDO= NULL;
 
    SUMA_ENTRY;
-
-   if (N_n > 0) {
-      SDO = (SUMA_SegmentDO *) SUMA_malloc (sizeof (SUMA_SegmentDO));
-      if (!SDO) {
+   
+   SDO = (SUMA_SegmentDO *) SUMA_malloc (sizeof (SUMA_SegmentDO));
+   if (!SDO) {
          fprintf(stderr,"Error %s: Failed to allocate for SDO\n", FuncName);
          SUMA_RETURN (SDO);
-      }
+   }
+   if (N_n > 0) {
       SDO->n0 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
       SDO->n1 = (GLfloat *) SUMA_calloc (3*N_n, sizeof(GLfloat));
    
@@ -53,7 +53,7 @@ SUMA_SegmentDO * SUMA_Alloc_SegmentDO (int N_n, char *Label)
    
    
    if (Label) {
-      SDO->Label = (char *)SUMA_calloc (strlen (SDO->Label)+1, sizeof(char));
+      SDO->Label = (char *)SUMA_calloc (strlen(Label)+1, sizeof(char));
       SDO->Label = strcpy (SDO->Label, Label);
    } else {
       SDO->Label = NULL;
