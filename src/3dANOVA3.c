@@ -1136,7 +1136,7 @@ void initialize (int argc,  char ** argv,  anova_options ** option_data)
   *option_data = (anova_options *) malloc(sizeof(anova_options));
   if (*option_data == NULL)
     ANOVA_error ("memory allocation error");
-  
+
   /*----- get command line inputs -----*/
   get_options(argc, argv, *option_data);
   
@@ -5022,10 +5022,13 @@ int main (int argc, char ** argv)
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+    
+  /*----- does user request help menu? -----*/
+  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
   
   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-  machdep() ;
+  mainENTRY("3dANOVA3 main") ; machdep() ;
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
