@@ -53,7 +53,7 @@ typedef struct { int num; char **str;} str_array ;
 
 /****************************************************************************/
 
-extern void NI_stream_close_keep( NI_stream_type * ) ;
+extern void NI_stream_close_keep( NI_stream_type * ,int ) ;
 
 extern int string_index( char *targ, int nstr, char *str[] ) ;
 extern int unescape_inplace( char *str ) ;

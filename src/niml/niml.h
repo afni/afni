@@ -321,6 +321,8 @@ typedef NI_stream_type *NI_stream ;
 #define TCP_WAIT_ACCEPT   7
 #define TCP_WAIT_CONNECT  8
 
+#define MARKED_FOR_DEATH  6666
+
 /* I/O Modes for a NI_stream_type: input or output. */
 
 #define NI_INPUT_MODE  0

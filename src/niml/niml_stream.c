@@ -1712,6 +1712,7 @@ int NI_stream_reopen( NI_stream_type *ns , char *nname )
    /* check inputs for sanity */
 
    if( ns == NULL || ns->type != NI_TCP_TYPE ) return 0 ;   /* bad input stream */
+   if( ns->bad == MARKED_FOR_DEATH )           return 0 ;   /* really bad */
 
    if( nname == NULL || nname[0] == '\0' ) return 0 ;       /* bad new name */
 
@@ -1767,7 +1768,7 @@ NI_dpr("NI_stream_reopen: opening new stream %s\n",msg) ;
    /* send message on old stream to other
       program, telling it to open the new stream */
 
-   sprintf(msg,"<ni_do ni_verb='reopen' ni_object='%s' />\n",nname) ;
+   sprintf(msg,"<ni_do ni_verb='reopen_this' ni_object='%s' />\n",nname) ;
    kk = strlen(msg) ;
 
 #ifdef NIML_DEBUG
@@ -1798,7 +1799,7 @@ NI_dpr("NI_stream_reopen: waiting for new stream to be good\n") ;
 NI_dpr("NI_stream_reopen: closing old stream\n") ;
 #endif
 
-   NI_stream_close_keep(ns) ;
+   NI_stream_close_keep(ns,0) ;
 
    *ns = *nsnew ; NI_free(nsnew) ;
 
@@ -1813,7 +1814,7 @@ NI_dpr("NI_stream_reopen: closing old stream\n") ;
 
 int NI_stream_readable( NI_stream_type *ns )
 {
-   if( ns == NULL ) return 0 ;
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH ) return 0 ;
    if( ns->type == NI_TCP_TYPE || ns->type == NI_SHM_TYPE ) return 1 ;
    return (ns->io_mode == NI_INPUT_MODE) ;
 }
@@ -1826,7 +1827,7 @@ int NI_stream_readable( NI_stream_type *ns )
 
 int NI_stream_writeable( NI_stream_type *ns )
 {
-   if( ns == NULL ) return 0 ;
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH ) return 0 ;
    if( ns->type == NI_TCP_TYPE || ns->type == NI_SHM_TYPE ) return 1 ;
    return (ns->io_mode == NI_OUTPUT_MODE) ;
 }
@@ -1851,9 +1852,10 @@ char * NI_stream_name( NI_stream_type *ns )
 
 char * NI_stream_getbuf( NI_stream_type *ns )
 {
-   if( ns          == NULL           ||
-       ns->type    != NI_STRING_TYPE ||
-       ns->io_mode != NI_OUTPUT_MODE   ) return NULL ;  /* bad inputs */
+   if( ns          == NULL             ||
+       ns->type    != NI_STRING_TYPE   ||
+       ns->io_mode != NI_OUTPUT_MODE   ||
+       ns->bad     == MARKED_FOR_DEATH   ) return NULL ;  /* bad inputs */
 
    return ns->buf ;
 }
@@ -1886,10 +1888,11 @@ void NI_stream_setbuf( NI_stream_type *ns , char *str )
 {
    int nn ;
 
-   if( ns          == NULL           ||
-       ns->type    != NI_STRING_TYPE ||
-       ns->io_mode != NI_INPUT_MODE  ||
-       str         == NULL             ) return ;  /* bad inputs */
+   if( ns          == NULL             ||
+       ns->type    != NI_STRING_TYPE   ||
+       ns->io_mode != NI_INPUT_MODE    ||
+       str         == NULL             ||
+       ns->bad     == MARKED_FOR_DEATH   ) return ;  /* bad inputs */
 
    NI_free(ns->buf) ;               /* take out the trash */
    nn = NI_strlen(str) ;            /* size of new buffer string */
@@ -1912,6 +1915,7 @@ void NI_stream_setbuf( NI_stream_type *ns , char *str )
      - ns was connected to a socket, and now has become disconnected
      - ns is passed in as NULL (bad user, bad bad bad)
      - ns is reading a file or a string, and we are already at its end
+     - ns is marked for death
    The only cases in which 0 is returned is if the NI_stream is
    tcp: or shm: and the stream is waiting for a connection from
    the other program.  These are also the only cases in which input
@@ -1925,7 +1929,7 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 
    /** check inputs for OK-osity **/
 
-   if( ns == NULL ) return -1 ;
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH ) return -1 ;
 
    switch( ns->type ){
 
@@ -2016,50 +2020,63 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Close a NI_stream, but don't free the insides. [23 Aug 2002]
+/*! Close a NI_stream, but don't free the insides.
+    If flag != 0, send a message to the other end about this.
 -------------------------------------------------------------------------*/
 
-void NI_stream_close_keep( NI_stream_type *ns )
+void NI_stream_close_keep( NI_stream_type *ns , int flag )
 {
-   if( ns == NULL ) return ;
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH ) return ;
+
+   /*-- 20 Dec 2002: write a farewell message to the other end? --*/
+
+   if( flag                                                 &&
+       (ns->type == NI_TCP_TYPE || ns->type == NI_SHM_TYPE) &&
+       NI_stream_writecheck(ns,1) > 0                          ){
+
+     NI_stream_writestring( ns , "<ni_do ni_verb='close_this' />\n" ) ;
+     NI_sleep(1) ;  /* give it some time to read the message */
+   }
+
+   /*-- mechanics of closing for different stream types --*/
 
    switch( ns->type ){
 
 #ifndef DONT_USE_SHM
       case NI_SHM_TYPE:
-        SHM_close( ns->shmioc ) ;
+        SHM_close( ns->shmioc ) ;              /* detach shared memory */
       break ;
 #endif
 
       case NI_FD_TYPE:
       case NI_REMOTE_TYPE:
-      case NI_STRING_TYPE:   /* nothing to do */
+      case NI_STRING_TYPE:                     /* nothing to do */
       break ;
 
       case NI_FILE_TYPE:
-        if( ns->fp != NULL ) fclose(ns->fp) ;
+        if( ns->fp != NULL ) fclose(ns->fp) ;  /* close file */
       break ;
 
       case NI_TCP_TYPE:
-        if( ns->sd >= 0 ) CLOSEDOWN(ns->sd) ;
+        if( ns->sd >= 0 ) CLOSEDOWN(ns->sd) ;  /* close socket */
       break ;
    }
 
-   NI_free(ns->buf); return;
+   ns->bad = MARKED_FOR_DEATH ; /* label this as unclean, not to be touched */
+   NI_free(ns->buf) ;           /* don't need internal buffer any more */
+   return ;
 }
 
 /*-----------------------------------------------------------------------*/
 /*! Close a NI_stream.  Note that this will also free what ns points to.
-
+    Don't use this pointer again.
     Use the NI_STREAM_CLOSE macro to call this function and then
     also set the pointer "ns" to NULL.
 -------------------------------------------------------------------------*/
 
 void NI_stream_close( NI_stream_type *ns )
 {
-   if( ns == NULL ) return ;
-
-   NI_stream_close_keep(ns) ; NI_free(ns) ; return ;
+   NI_stream_close_keep(ns,1) ; NI_free(ns) ; return ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2069,7 +2086,7 @@ void NI_stream_close( NI_stream_type *ns )
 
 int NI_stream_hasinput( NI_stream_type *ns , int msec )
 {
-   int ii ;
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH ) return -1 ;
 
    if( ns->npos < ns->nbuf ) return 1 ;      /* check if has data in buffer */
    return NI_stream_readcheck( ns , msec ) ; /* see if any data can be read */
@@ -2090,6 +2107,8 @@ int NI_stream_hasinput( NI_stream_type *ns , int msec )
 int NI_stream_readcheck( NI_stream_type *ns , int msec )
 {
    int ii ;
+
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH ) return -1 ;
 
    switch( ns->type ){
 
@@ -2166,6 +2185,8 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
 int NI_stream_writecheck( NI_stream_type *ns , int msec )
 {
    int ii ;
+
+   if( ns == NULL || ns->bad == MARKED_FOR_DEATH ) return -1 ;
 
    switch( ns->type ){
 
@@ -2249,7 +2270,7 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
    /** check for reasonable inputs **/
 
    if( ns     == NULL || ns->bad    ||
-       buffer == NULL || nbytes < 0   ) return -1 ;
+       buffer == NULL || nbytes < 0 || ns->bad == MARKED_FOR_DEATH ) return -1;
 
    if( nbytes == 0 ) return 0 ;  /* that was easy */
 
@@ -2358,7 +2379,7 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
    /** check for reasonable inputs **/
 
    if( ns     == NULL || ns->bad    ||
-       buffer == NULL || nbytes < 0   ) return -1 ;
+       buffer == NULL || nbytes < 0 || ns->bad == MARKED_FOR_DEATH ) return -1;
 
    if( nbytes == 0 ) return 0 ;
 
