@@ -3579,3 +3579,5 @@
      is possible.  Also, made NIML be turned on by default.
  * Modified afni_niml.c to have the popup messages include the I/O and
      processing time for large data elements.
+ * Modified imseq.c (and afni_pplug_env.c) to keep panning mode on if
+     AFNI_KEEP_PANNING is yessish.
