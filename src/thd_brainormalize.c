@@ -1399,8 +1399,9 @@ ENTRY("mri_brainormalize") ;
                 if( kk < kbot ) kd = kbot-kk ;
            else if( kk > ktop ) kd = kk-ktop ; else kd = 0 ;
            dijk = id+jd+kd+1 ;
-           ff = rint( 100.0f * ddd[ijk] / (float)dijk ) ;
-           sar[ijk] = SHORTIZE(ff) ;
+           ff = (100.0f * ddd[ijk]) / (float)dijk ;
+           if( ff > 255.0f ) ff = 255.0f ;
+           sar[ijk] = (short)ff ;
          } else {
            sar[ijk] = 0 ;
          }
