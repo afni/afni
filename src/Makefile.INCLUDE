@@ -1366,10 +1366,10 @@ file_tool:
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) file_tool .. ; )
 
-Imon: rickr/Imon.c rickr/Imon.h
+Imon: rickr/Imon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h
 	( cd rickr ; 							\
 	make Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
-	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
+		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS=$(EXTRA_LIBS)' ;	\
 	$(MV) Imon .. ; )
 
 #######
