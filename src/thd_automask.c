@@ -244,7 +244,7 @@ ENTRY("THD_mask_fillin_once") ;
            break ;
          }
 
-         NextVox:  /* end of loop over ii */
+         NextVox: ; /* end of loop over ii */
    } } }
 
    /* copy fills back into mmm */

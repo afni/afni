@@ -3787,3 +3787,8 @@
  * Modified imseq.[ch] to add image cropping facility (Shift+Button2).
  * Added function RWC_drag_rectangle() to xutil.c.
  * Put MRI_COPY_AUX() into mri_cut.c (oops).
+
+14 Jun 2002
+ * Modified coxplot/plot_x11.c to remove offset of 0.5 pixels from
+     line drawing code.
+ * Modified imseq.c to fix scaling of memplot overlays when cropping.

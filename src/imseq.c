@@ -8890,32 +8890,34 @@ ENTRY("ISQ_getmemplot") ;
      float nxorg=seq->crop_nxorg , nyorg=seq->crop_nyorg ;
      MEM_plotdata *np ;
 
-     /** Original plot has [0..1]x[0..1] mapped to [0..nxorg]x[nyorg..0].
-         Now, image will be cropped to [xa..xb]x[ya..yb], which will be
-         mapped from plot coords [0..1]x[1..0].  So we need to transform
-         plot coords so that the new
+     /**
+      Original plot has [0..1]x[0..1] mapped to [0..nxorg]x[nyorg..0].
+      Now, image will be cropped to [xa..xb]x[ya..yb], which will be
+      mapped from plot coords [0..1]x[1..0].  So we need to transform
+      plot coords so that the new
            x_plot=0 is at x_image=xa
            x_plot=1 is at x_image=xb
            y_plot=0 is at y_image=yb
            y_plot=1 is at y_image=ya
 
-         Input:   x_plot  = x_image / nxorg
-                  y_plot  = 1 - y_image / nyorg
+      Input:   x_plot  = x_image / nxorg
+               y_plot  = 1 - y_image / nyorg
 
-         Output:  x_plot' = sx * x_plot + tx   > This is done in
-                  y_plot' = sy * y_plot + ty   > scale_memplot function
+      Output:  x_plot' = sx * x_plot + tx   > This is done in
+               y_plot' = sy * y_plot + ty   > scale_memplot function
 
-         Find sx,tx so that x_plot'[x_image=xa]=0 and x_plot'[x_image=xb]=1.
-         Find sy,ty so that y_plot'[y_image=yb]=0 and y_plot'[y_image=ya]=1. **/
+      Find sx,tx so that x_plot'[x_image=xa  ]=0 and x_plot'[x_image=xb+1]=1.
+      Find sy,ty so that y_plot'[y_image=yb+1]=0 and y_plot'[y_image=ya  ]=1.
+     **/
 
-     sx = nxorg / (xb-xa) ;
+     sx = nxorg / (xb+1-xa) ;
      tx = -sx * xa / nxorg ;
 
-     sy = nyorg / (yb-ya) ;
-     ty = -sy * (1.0 - yb / nyorg) ;
+     sy = nyorg / (yb+1-ya) ;
+     ty = -sy * (1.0 - (yb+1) / nyorg) ;
 
-     scale_memplot( sx,tx , sy,ty , 1.0 , mp ) ;
-     np = clip_memplot( 0.0,0.0 , 1.0,1.0 , mp ) ;
+     scale_memplot( sx,tx , sy,ty , 1.0 , mp ) ;    /* expand scale  */
+     np = clip_memplot( 0.0,0.0 , 1.0,1.0 , mp ) ;  /* clip to window */
      DESTROY_MEMPLOT(mp) ; mp = np ;
    }
 
