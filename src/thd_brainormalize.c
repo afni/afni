@@ -451,7 +451,7 @@ static sort_shortvox( int n , shortvox *ar , int dec )
 /*--------------------------------------------------------------------------*/
 
 #undef  DBALL
-#define DBALL 32
+#define DBALL 4096
 
 MRI_IMAGE * mri_watershedize( MRI_IMAGE *sim , float prefac )
 {
@@ -460,8 +460,8 @@ MRI_IMAGE * mri_watershedize( MRI_IMAGE *sim , float prefac )
    int ip,jp,kp , im,jm,km ;
    short *sar , *tar ;
    shortvox *svox ;
-   int *isvox ;
-   int *basin , nball ;
+   int *isvox , *bcount,*bname ;
+   int *basin , nball , nbtop ;
    int nb,vb,mb,m,mu,mq,mz , bp[6] , hpf ;
 
 ENTRY("watershedize") ;
@@ -509,10 +509,10 @@ ENTRY("watershedize") ;
    /* create basin for first (deepest) voxel */
 
    nball    = DBALL ;
+   nbtop    = 1 ;
    basin    = (int *)malloc(sizeof(int)*nball) ;
    basin[0] = svox[0].val ;
    hpf      = (int)rint(prefac*basin[0]) ;      /* preflood */
-   for( m=1 ; m < nball ; m++ ) basin[m] = -1 ;
 
    /* scan voxels as they get shallower, and basinate them */
 
@@ -534,7 +534,7 @@ ENTRY("watershedize") ;
     { qq = isvox[IJK(a,b,c)] ;                             \
       if( qq >= 0 && svox[qq].basin >= 0 ){                \
         qq = svox[qq].basin ;                              \
-        for( m=0 ; m < nb && bp[m] != qq ; qq++ ) ;        \
+        for( m=0 ; m < nb && bp[m] != qq ; m++ ) ;         \
         if( m == nb ){                                     \
           bp[nb] = qq ;                                    \
           if( basin[qq] > vb ){ mb = nb; vb = basin[qq]; } \
@@ -553,30 +553,20 @@ ENTRY("watershedize") ;
 
      if( nb == 0 ){  /*** this voxel is isolated ==> create new basin ****/
 
-       /* scan for free basin (will have depth < 0) */
-
-       if( verb )
-         fprintf(stderr,"++ new basin: pp=%d depth=%d nball=%d ",pp,(int)svox[pp].val,nball) ;
-
-       for( m=1 ; m < nball && basin[m] > 0 ; m++ ) ;
-
-       /* didn't find one ==> add more basin space */
+       m = nbtop ;
 
        if( m == nball ){
-         if( verb ) fprintf(stderr,"[realloc ") ;
-         mu = m; nball += DBALL; basin = (int *)realloc((void *)basin,sizeof(int)*nball);
-         if( verb ) fprintf(stderr,"%d] ",nball) ;
-         for( ; m < nball ; m++ ) basin[m] = -1 ;
-         m = mu ;
+         nball = (int)(1.1*nball)+DBALL ;
+         basin = (int *)realloc((void *)basin,sizeof(int)*nball) ;
        }
        basin[m] = svox[pp].val ;  /* depth of this basin */
        svox[pp].basin = m ;       /* assign voxel to new basin */
-
-       if( verb ) fprintf(stderr,"m=%d\n",m) ;
+       nbtop++ ;
 
      } else {        /*** this voxel has deeper neighbors ***/
 
-       fprintf(stderr,"++ neighbors=%d pp=%d:\n",nb,pp) ;
+       if( verb && nb > 1 )
+         fprintf(stderr,"++ neighbors=%d pp=%d:\n",nb,pp) ;
 
        svox[pp].basin = mq = bp[mb] ;   /* assign voxel to best basin */
 
@@ -590,7 +580,7 @@ ENTRY("watershedize") ;
              if( verb ) fprintf(stderr,"   - merging basin %d into %d\n",mu,mq);
              for( qq=1 ; qq < pp ; qq++ )  /* change all mu's to mq's */
                if( svox[qq].basin == mu ) svox[qq].basin = mq ;
-             basin[m] = -1 ;          /* mark basin as unused */
+             basin[mu] = -1 ;              /* mark basin as unused */
            }
          }
        }
@@ -600,35 +590,34 @@ ENTRY("watershedize") ;
    /* at this point, all voxels in svox are assigned to a basin */
 
    free((void *)isvox) ;
-   isvox = (int *) calloc( sizeof(int) , nball ) ;
+
+   for( mu=m=0 ; m < nbtop ; m++ ) if( basin[m] > 0 ) mu++ ;
+
+   bcount = (int *) calloc(sizeof(int),mu) ;
+   bname  = (int *) calloc(sizeof(int),mu) ;
+   isvox  = (int *) calloc(sizeof(int),nbtop) ;
+
+   for( m=ii=0 ; m < nbtop ; m++ )
+     if( basin[m] > 0 ){ isvox[m] = ii; bname[ii] = m; ii++; }
+
+   if( verb ) fprintf(stderr,"++ %d active basins left\n",mu) ;
+
+   for( pp=0 ; pp < nvox ; pp++ ){
+     m = svox[pp].basin ; ii = isvox[m] ; bcount[ii]++ ;
+   }
 
    tim = mri_new_conforming( sim , MRI_short ) ;
    tar = MRI_SHORT_PTR(tim) ;
 
-   /* for each active basin, count how many voxels are in it */
+   qsort_intint( mu , bcount , isvox ) ;  /* sort into increasing order */
 
-   for( m=0 ; m < nball ; m++ ){
-     if( basin[m] <= 0 ) continue ;    /* invalid ==> skip */
-     for( nb=0,pp=0 ; pp < nvox ; pp++ )
-       if( svox[pp].basin == m ) nb++ ;
-     basin[m] = nb ;                   /* now holds count instead of depth */
-     isvox[m] = m ;
-   }
-
-   qsort_intint( nball , basin , isvox ) ;  /* sort into increasing order */
-
-   ii = 1 ;
-   for( m=0 ; m < nball ; m++ ){
-     if( basin[m] <= 0 ) continue ;
-     mu = isvox[m] ;               /* original basin index */
-     for( pp=0 ; pp < nvox ; pp++ ){
-       if( svox[pp].basin == mu )
-         tar[IJK(svox[pp].i,svox[pp].j,svox[pp].k)] = ii ;
-     }
-     ii++ ;
+   jj = 1 ;
+   for( pp=0 ; pp < nvox ; pp++ ){
+     m = svox[pp].basin ; ii = isvox[m] ;
    }
 
    free((void *)isvox); free((void *)basin); free((void *)svox );
+   free((void *)bcount); free((void *)bname);
 
    return tim ;
 }
