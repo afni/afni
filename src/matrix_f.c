@@ -1171,3 +1171,84 @@ double * matrix_singvals( matrix X )
    free( (void *)a ) ;
    return e ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+extern void svd_double( int, int, double *, double *, double *, double * ) ;
+
+/*---------------------------------------------------------------------------*/
+/*! Given MxN matrix X, return the NxN matrix
+
+       [  T  ]-1                       [  T  ]-1 T
+       [ X X ]     and the NxM matrix  [ X X ]  X
+-----------------------------------------------------------------------------*/
+
+void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
+{
+   int m = X.rows , n = X.cols , ii,jj,kk ;
+   double *amat , *umat , *vmat , *sval , smax, del , sum ;
+
+   if( m < 1 || n < 1 || m < n || (XtXinv == NULL && XtXinvXt == NULL) ) return;
+
+   amat = (double *)calloc( sizeof(double),m*n ) ;
+   umat = (double *)calloc( sizeof(double),m*n ) ;
+   vmat = (double *)calloc( sizeof(double),n*n ) ;
+   sval = (double *)calloc( sizeof(double),n   ) ;
+
+#define A(i,j) amat[(i)+(j)*m]
+#define U(i,j) umat[(i)+(j)*m]
+#define V(i,j) vmat[(i)+(j)*n]
+
+   for( ii=0 ; ii < m ; ii++ )
+     for( jj=0 ; jj < n ; jj++ ) A(ii,jj) = X.elts[ii][jj] ;
+
+   svd_double( m , n , amat , sval , umat , vmat ) ; 
+
+   free((void *)amat) ;
+
+   smax = sval[0] ;
+   for( ii=1 ; ii < n ; ii++ )
+     if( sval[ii] > smax ) smax = sval[ii] ;
+
+   if( smax <= 0.0l ){
+     free((void *)sval); free((void *)vmat); free((void *)umat); return;
+   }
+
+#ifdef FLOATIZE
+#define EPS 1.e-5
+#else
+#define EPS 1.e-12
+#endif
+
+   del  = 1.e-12 * smax*smax ;
+   for( ii=0 ; ii < n ; ii++ )
+     sval[ii] = sval[ii] / ( sval[ii]*sval[ii] + del ) ;
+
+   if( XtXinvXt != NULL ){
+     matrix_create( n , m , XtXinvXt ) ;
+     for( ii=0 ; ii < n ; ii++ ){
+       for( jj=0 ; jj < m ; jj++ ){
+         sum = 0.0l ;
+         for( kk=0 ; kk < n ; kk++ )
+           sum += sval[kk] * V(ii,kk) * U(jj,kk) ;
+         XtXinvXt->elts[ii][jj] = sum ;
+       }
+     }
+   }
+
+   if( XtXinv != NULL ){
+     matrix_create( n , n , XtXinv ) ;
+     for( ii=0 ; ii < n ; ii++ ) sval[ii] = sval[ii] * sval[ii] ;
+     matrix_create( n , n , XtXinv ) ;
+     for( ii=0 ; ii < n ; ii++ ){
+       for( jj=0 ; jj < n ; jj++ ){
+         sum = 0.0l ;
+         for( kk=0 ; kk < n ; kk++ )
+           sum += sval[kk] * V(ii,kk) * V(jj,kk) ;
+         XtXinv->elts[ii][jj] = sum ;
+       }
+     }
+   }
+
+   free((void *)sval); free((void *)vmat); free((void *)umat); return;
+}

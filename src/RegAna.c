@@ -39,12 +39,12 @@
   Mod:     If FLOATIZE is defined, uses floats instead of doubles -- RWCox.
   Date:    03 Mar 2003
 
-  Mod:     If USE_DSC is defined, use matrix_inverse_dsc() -- RWCox
-  Date     15 Jul 2004
+  Mod:     If USE_PSINV is defined, use matrix_psinv() instead of inversion.
+  Date     19 Jul 2004 -- RWCox
 
 */
 
-#define USE_DSC  /* 15 Jul 2004 */
+#define USE_PSINV  /* 19 Jul 2004 */
 
 /*---------------------------------------------------------------------------*/
 
@@ -85,34 +85,26 @@ int calc_matrices
   matrix xt, xtx;               /* temporary matrix calculation results */
   int ok;                       /* flag for successful matrix inversion */
 
-
-  /*----- initialize matrices -----*/
-  matrix_initialize (&xt);
-  matrix_initialize (&xtx);
-
-
   /*----- extract the independent variable matrix X -----*/
   matrix_extract (xdata, p, plist, x);
 
 
   /*----- calculate various matrices which will be needed later -----*/
+#ifndef USE_PSINV
+  matrix_initialize (&xt);
+  matrix_initialize (&xtx);
   matrix_transpose (*x, &xt);
   matrix_multiply (xt, *x, &xtx);
-#ifndef USE_DSC
-  ok = matrix_inverse (xtx, xtxinv);
-#else
   ok = matrix_inverse_dsc (xtx, xtxinv);
-#endif
-
   if (ok)
     matrix_multiply (*xtxinv, xt, xtxinvxt);
   else
     RA_error ("Improper X matrix  (cannot invert X'X) ");
-
-  /*----- dispose of matrices -----*/
   matrix_destroy (&xtx);
   matrix_destroy (&xt);
-
+#else
+  matrix_psinv  (*x, xtxinv , xtxinvxt ); ok = 1 ;  /* 19 Jul 2004 */
+#endif
 
   return (ok);
 }
@@ -144,20 +136,16 @@ int calc_glt_matrix
 
 
   /*----- calculate the constant matrix which will be needed later -----*/
-  matrix_transpose (c, &ct); 
-  matrix_multiply (xtxinv, ct, &xtxinvct);
-  matrix_multiply (c, xtxinvct, cxtxinvct);
-#ifndef USE_DSC
-  ok = matrix_inverse (*cxtxinvct, &t2);
-#else
-  ok = matrix_inverse_dsc (*cxtxinvct, &t2);
-#endif
+  matrix_transpose (c, &ct);                 /* [c]' */
+  matrix_multiply (xtxinv, ct, &xtxinvct);   /* inv{[x]'[x]} [c]' */
+  matrix_multiply (c, xtxinvct, cxtxinvct);  /* [c] inv{[x]'[x]} [c]' */
+  ok = matrix_inverse_dsc (*cxtxinvct, &t2); /* inv{ [c] inv{[x]'[x]} [c]' } */
   if (ok)
     {
-      matrix_multiply (xtxinvct, t2, &t1);
-      matrix_multiply (t1, c, &t2);
+      matrix_multiply (xtxinvct, t2, &t1);   /* inv{[x]'[x]} inv{ [c] inv{[x]'[x]} [c]' } */
+      matrix_multiply (t1, c, &t2);          /* inv{[x]'[x]} inv{ [c] inv{[x]'[x]} [c]' } [c] */
       matrix_identity (xtxinv.rows, &t1);
-      matrix_subtract (t1, t2, a);
+      matrix_subtract (t1, t2, a);           /* I - inv{[x]'[x]} inv{ [c] inv{[x]'[x]} [c]' } [c] */
     }
   else
     RA_error ("Improper C matrix  ( cannot invert C(1/(X'X))C' ) ");
@@ -168,7 +156,6 @@ int calc_glt_matrix
   matrix_destroy (&xtxinvct);
   matrix_destroy (&t1);
   matrix_destroy (&t2);
-
 
   return (ok);
 }

@@ -5091,3 +5091,9 @@
  * Modified Deconvolve.c to use correctly normalized Legendre polynomials,
      for potential ease-of-use for people who want to know what the
      baseline functions are.
+
+19 Jul 2004
+ * Modified matrix.c and RegAna.c to do matrix solutions with pseudo-inverse
+     from SVD, rather than normal equations.
+ * Adapted svd.f into eis_svd.c a little more, and also wrote a wrapper
+     function into cs_symeig.c.
