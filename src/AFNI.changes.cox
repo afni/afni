@@ -2311,3 +2311,7 @@
      now a child of the Form, not the drawing area.  This makes
      it possible to popup the menus with Button3 (the Button3
      popup on the drawing area interfered with this).
+
+01 Oct 2000
+ * Wrote program 3dUndump.c (create a dataset from an ASCII list
+     of voxels, like an inverse to 3dmaskdump.c).
