@@ -73,6 +73,11 @@
                                   message.  For this call, np and
                                   vp are unused.
 
+     why = RECEIVE_TIMEINDEX --> the time index changed in im3d;
+                                 for this call, np,vp are unused.
+                                 The new time index is in
+                                   im3d->vinfo->time_index
+
    This function returns a non-negative int if all is OK -- this
    value is the "key" that is used in calls to AFNI_receive_control
    when you want to manipulate the status of this connection.
@@ -290,6 +295,16 @@ ENTRY("AFNI_receive_control") ;
       }
       break ;
 
+      case TIMEINDEX_STARTUP:{
+         im3d->vinfo->receiver[key]->receiver_mask |= RECEIVE_TIMEINDEX_MASK ;
+      }
+      break ;
+
+      case TIMEINDEX_SHUTDOWN:{
+         im3d->vinfo->receiver[key]->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_TIMEINDEX_MASK) ;
+      }
+      break ;
+
       case EVERYTHING_SHUTDOWN:{
          im3d->vinfo->receiver[key]->receiver_mask = 0 ;
          AFNI_toggle_drawing( im3d ) ;
@@ -484,6 +499,31 @@ ENTRY("AFNI_process_viewpoint") ;
                    RECEIVE_VIEWPOINT , 3 , ijk ,
                    im3d->vinfo->receiver[ir]->receiver_data ) ;
 
+   }
+
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------*/
+/*! Send time index change notice to receivers that care [29 Jan 2003]
+---------------------------------------------------------------------*/
+
+void AFNI_process_timeindex( Three_D_View * im3d )
+{
+   int ir ;
+
+ENTRY("AFNI_process_timeindex") ;
+
+   if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
+                            im3d->vinfo->num_receiver == 0   ) EXRETURN ;
+
+   for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
+      if( im3d->vinfo->receiver[ir] != NULL &&
+          (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_TIMEINDEX_MASK) )
+
+         im3d->vinfo->receiver[ir]->receiver_func(
+                   RECEIVE_TIMEINDEX , 0 , NULL ,
+                   im3d->vinfo->receiver[ir]->receiver_data ) ;
    }
 
    EXRETURN ;

@@ -928,8 +928,9 @@ char * RCREND_main( PLUGIN_interface * plint )
    xhair_recv = AFNI_receive_init( im3d ,
                                    RECEIVE_VIEWPOINT_MASK
                                  | RECEIVE_DRAWNOTICE_MASK
-                                 | RECEIVE_DSETCHANGE_MASK ,
-                                   RCREND_xhair_recv , NULL   ) ;
+                                 | RECEIVE_DSETCHANGE_MASK
+                                 | RECEIVE_TIMEINDEX_MASK      /* 29 Jan 2003 */
+                               , RCREND_xhair_recv , NULL   ) ;
 #else
    xhair_recv = AFNI_receive_init( im3d ,
                                    RECEIVE_VIEWPOINT_MASK ,
@@ -3791,6 +3792,30 @@ ENTRY( "RCREND_xhair_recv" );
 
    switch( why ){
 
+      /*-- change of time index - 29 Jan 2003 --*/
+
+      case RECEIVE_TIMEINDEX:{
+        int ind , red=0 ;
+        if( !dynamic_flag || !IM3D_OPEN(im3d) ) EXRETURN ;
+
+        ind = im3d->vinfo->time_index ;
+
+        if( dset != NULL      && DSET_NVALS(dset) > 1   &&
+            ind  != dset_ival && DSET_NVALS(dset) > ind   ){
+          AV_assign_ival( choose_av , ind ) ;
+          RCREND_choose_av_CB( choose_av , NULL ) ;
+          red = 1 ;
+        }
+        if( func_dset != NULL            && DSET_NVALS(func_dset) > 1 &&
+            ind       != func_color_ival && DSET_NVALS(func_dset) > ind ){
+          AV_assign_ival( wfunc_color_av , ind ) ;
+          RCREND_choose_av_CB( wfunc_color_av , NULL ) ;
+          red = 1 ;
+        }
+        if( red ){ FREE_VOLUMES; RCREND_draw_CB(NULL,NULL,NULL); }
+      }
+      EXRETURN ;
+
       /*-- change of crosshair location --*/
 
       case RECEIVE_VIEWPOINT:{
@@ -5041,6 +5066,7 @@ ENTRY( "RCREND_choose_av_CB" );
       XtVaSetValues( info_lab , XmNlabelString , xstr , NULL ) ;
       XmStringFree(xstr) ;
 
+      dset_ival = av->ival ;   /* read this sub-brick    */
       new_dset = 1 ;           /* flag it as new         */
       FREE_VOLUMES ;           /* free the internal data */
       RCREND_reload_dataset() ;  /* load the data          */
