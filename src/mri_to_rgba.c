@@ -8,9 +8,9 @@ MRI_IMAGE *mri_to_rgba( MRI_IMAGE *oldim )  /* 11 Feb 1999 */
    register int ii , npix ;
    register rgba * oar ;
 
-WHOAMI ; IMHEADER(oldim) ;
+ENTRY("mri_to_rgba") ;
 
-   if( oldim == NULL ) return NULL ;
+   if( oldim == NULL ) RETURN( NULL );
 
    newim = mri_new_conforming( oldim , MRI_rgba ) ; oar = MRI_RGBA_PTR(newim) ;
    npix  = oldim->nvox ;
@@ -53,9 +53,9 @@ WHOAMI ; IMHEADER(oldim) ;
 
       default:
          fprintf(stderr,"mri_to_rgb:  unrecognized image conversion %d\n",oldim->kind) ;
-         return NULL ;
+         RETURN( NULL );
    }
 
    MRI_COPY_AUX(newim,oldim) ;
-   return newim ;
+   RETURN( newim );
 }

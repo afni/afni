@@ -22,16 +22,18 @@ MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void * gapval , MRI_IMARR * i
    MRI_IMAGE * imout , * imin ;
    void * vout ;
 
+ENTRY("mri_cat2D") ;
+
    /*--- sanity checks ---*/
 
-   if( mx < 1 || my < 1 || imar == NULL || imar->num < mx*my ) return NULL ;
-   if( gap < 0 || (gap > 0 && gapval == NULL) )                return NULL ;
+   if( mx < 1 || my < 1 || imar == NULL || imar->num < mx*my ) RETURN( NULL );
+   if( gap < 0 || (gap > 0 && gapval == NULL) )                RETURN( NULL );
 
    for( ij=0 ; ij < mx*my ; ij++ ){     /* find first non-empty image */
       imin = IMARR_SUBIMAGE(imar,ij) ;
       if( imin != NULL ) break ;
    }
-   if( ij == mx*my ) return NULL ;      /* all are empty! */
+   if( ij == mx*my ) RETURN( NULL );      /* all are empty! */
 
    kind = imin->kind ;
    nx   = imin->nx ;
@@ -39,14 +41,14 @@ MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void * gapval , MRI_IMARR * i
 
    if( mx==1 && my==1 ){                    /* 1x1 case (shouldn't happen) */
       imout = mri_to_mri( kind , imin ) ;   /* Just copy input to output   */
-      return imout ;
+      RETURN( imout );
    }
 
    for( ij=0 ; ij < mx*my ; ij++ ){     /* check for consistency */
       imin = IMARR_SUBIMAGE(imar,ij) ;
       if( imin != NULL &&
           (imin->kind != kind || imin->nx != nx || imin->ny != ny) )
-         return NULL ;
+         RETURN( NULL );
    }
 
    nxout = mx * nx + (mx-1) * gap ;
@@ -279,5 +281,5 @@ MRI_IMAGE * mri_cat2D( int mx , int my , int gap , void * gapval , MRI_IMARR * i
       }
    }
 
-   return imout ;
+   RETURN( imout );
 }

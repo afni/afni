@@ -26,13 +26,15 @@ MRI_IMAGE * mri_flip3D( int outx, int outy, int outz, MRI_IMAGE *inim )
    char *inar , *outar ;
    float delx,dely,delz ;
 
-   if( inim == NULL || outx == 0 || outy == 0 || outz == 0 ) return NULL ;
-   ii = abs(outx) ; jj = abs(outy) ; kk = abs(outz) ;
-   if( ii > 3 || jj > 3 || kk > 3 )                          return NULL ;
-   if( ii == jj || ii == kk || jj == kk )                    return NULL ;
-   if( ii+jj+kk != 6 )                                       return NULL ;
+ENTRY("mri_flip3D") ;
 
-   if( outx==1 && outy==2 && outz==3 ) return mri_copy(inim) ;  /* easy case */
+   if( inim == NULL || outx == 0 || outy == 0 || outz == 0 ) RETURN( NULL );
+   ii = abs(outx) ; jj = abs(outy) ; kk = abs(outz) ;
+   if( ii > 3 || jj > 3 || kk > 3 )                          RETURN( NULL );
+   if( ii == jj || ii == kk || jj == kk )                    RETURN( NULL );
+   if( ii+jj+kk != 6 )                                       RETURN( NULL );
+
+   if( outx==1 && outy==2 && outz==3 ) RETURN( mri_copy(inim) ) ;  /* easy case */
 
    nxin = inim->nx ;
    nyin = inim->ny ; nxyin = nxin*nyin ;
@@ -49,7 +51,7 @@ MRI_IMAGE * mri_flip3D( int outx, int outy, int outz, MRI_IMAGE *inim )
      case -2:  ax=nyin-1; bx= 0; cx=-1; dx= 0; nxout=nyin; delx=inim->dy; break;
      case  3:  ax=0     ; bx= 0; cx= 0; dx= 1; nxout=nzin; delx=inim->dz; break;
      case -3:  ax=nzin-1; bx= 0; cx= 0; dx=-1; nxout=nzin; delx=inim->dz; break;
-     default: return NULL ;
+     default: RETURN( NULL );
    }
    switch( outy ){
      case  1:  ay=0     ; by= 1; cy= 0; dy= 0; nyout=nxin; dely=inim->dx; break;
@@ -58,7 +60,7 @@ MRI_IMAGE * mri_flip3D( int outx, int outy, int outz, MRI_IMAGE *inim )
      case -2:  ay=nyin-1; by= 0; cy=-1; dy= 0; nyout=nyin; dely=inim->dy; break;
      case  3:  ay=0     ; by= 0; cy= 0; dy= 1; nyout=nzin; dely=inim->dz; break;
      case -3:  ay=nzin-1; by= 0; cy= 0; dy=-1; nyout=nzin; dely=inim->dz; break;
-     default: return NULL ;
+     default: RETURN( NULL );
    }
    switch( outz ){
      case  1:  az=0     ; bz= 1; cz= 0; dz= 0; nzout=nxin; delz=inim->dx; break;
@@ -67,7 +69,7 @@ MRI_IMAGE * mri_flip3D( int outx, int outy, int outz, MRI_IMAGE *inim )
      case -2:  az=nyin-1; bz= 0; cz=-1; dz= 0; nzout=nyin; delz=inim->dy; break;
      case  3:  az=0     ; bz= 0; cz= 0; dz= 1; nzout=nzin; delz=inim->dz; break;
      case -3:  az=nzin-1; bz= 0; cz= 0; dz=-1; nzout=nzin; delz=inim->dz; break;
-     default: return NULL ;
+     default: RETURN( NULL );
    }
    nxyout = nxout*nyout ;
 
@@ -92,7 +94,7 @@ MRI_IMAGE * mri_flip3D( int outx, int outy, int outz, MRI_IMAGE *inim )
    outar = mri_data_pointer( outim ) ;
 
    if( inar == NULL ){       /* empty input ==> empty output */
-     free(outar) ; mri_fix_data_pointer(NULL,outim ); return outim;
+     free(outar) ; mri_fix_data_pointer(NULL,outim ); RETURN(outim);
    }
 
    dsiz  = outim->pixel_size ;          /* size of each voxel in bytes */
@@ -111,5 +113,5 @@ MRI_IMAGE * mri_flip3D( int outx, int outy, int outz, MRI_IMAGE *inim )
      }
    }
 
-   return outim ;
+   RETURN(outim) ;
 }

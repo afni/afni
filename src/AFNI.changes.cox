@@ -4848,12 +4848,20 @@
  * Modified niml/niml_do.c to allow user to register callbacks that
      supplement builtin verbs.
 
-02 Jan 2003
+02 Jan 2004
  * More annoying bugs in NIML stream I/O.  Also, when a socket is
      closed, send 1 byte of OOB data so that the receiving process
      will receive SIGURG.  The new SIGURG handler will then shut
      the socket down on the other end, without the user having to
      read the "close_this" element.
 
-07 Jan 2003
+07 Jan 2004
  * Modifications to plugins and models to make them work with g++.
+
+08 Jan 2004
+ * Modifications to mcw_malloc.c to print out traceback chain when
+     corruption is detected.
+ * Added ENTRY()/RETURN() to a number of mri_*.c functions.
+ * Modified afni.c to display surface overlay from other datasets in
+     the same directory, if the current underlay datasets doesn't have
+     any surfaces.

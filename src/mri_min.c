@@ -11,8 +11,6 @@ double mri_min( MRI_IMAGE *im )
    float  float_min  = 99999999.0 ;
    double double_min = 99999999.0 ;
 
-WHOAMI ; IMHEADER(im) ;
-
    npix = im->nvox ;
 
    switch( im->kind ){

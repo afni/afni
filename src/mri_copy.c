@@ -17,7 +17,9 @@ MRI_IMAGE * mri_copy( MRI_IMAGE * oldim )
    MRI_IMAGE * newim ;
    void * oar , * nar ;
 
-   if( oldim == NULL ) return NULL ;
+ENTRY("mri_copy") ;
+
+   if( oldim == NULL ) RETURN( NULL );
 
    newim = mri_new_conforming( oldim , oldim->kind ) ;
    oar   = mri_data_pointer( oldim ) ;
@@ -28,5 +30,5 @@ MRI_IMAGE * mri_copy( MRI_IMAGE * oldim )
      memcpy( nar , oar , newim->nvox * newim->pixel_size ) ;
    }
    MRI_COPY_AUX( newim , oldim ) ;
-   return newim ;
+   RETURN( newim );
 }

@@ -48,9 +48,11 @@ MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *im, int flag ,
    MRI_IMAGE *newImg ;
    byte *far , *nar ;
 
+ENTRY("mri_aff2d_byte") ;
+
    if( im == NULL || !MRI_IS_2D(im) || im->kind != MRI_byte ){
       fprintf(stderr,"*** mri_aff2d_byte only works on 2D byte images!\n");
-      return NULL ;
+      RETURN( NULL );
    }
 
    if( flag == 0 ){
@@ -60,7 +62,7 @@ MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *im, int flag ,
    }
    if( (bxx == 0.0 && bxy == 0.0) || (byx == 0.0 && byy == 0.0) ){
       fprintf(stderr,"*** mri_aff2d_byte: input matrix is singular!\n") ;
-      return NULL ;
+      RETURN( NULL );
    }
 
    nx = im->nx ; ny = im->ny ;
@@ -105,7 +107,7 @@ MRI_IMAGE *mri_aff2d_byte( MRI_IMAGE *im, int flag ,
    }
 
    MRI_COPY_AUX(newImg,im) ;
-   return newImg ;
+   RETURN( newImg ) ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -139,9 +141,11 @@ MRI_IMAGE *mri_aff2d_rgb( MRI_IMAGE *im, int flag ,
    byte *far , *nar ;
    register int ii ;
 
+ENTRY("mri_aff2d_rgb") ;
+
    if( im == NULL || !MRI_IS_2D(im) || im->kind != MRI_rgb ){
       fprintf(stderr,"*** mri_aff2d_rgb only works on 2D RGB images!\n");
-      return NULL ;
+      RETURN( NULL );
    }
 
    if( flag == 0 ){
@@ -151,7 +155,7 @@ MRI_IMAGE *mri_aff2d_rgb( MRI_IMAGE *im, int flag ,
    }
    if( (bxx == 0.0 && bxy == 0.0) || (byx == 0.0 && byy == 0.0) ){
       fprintf(stderr,"*** mri_aff2d_byte: input matrix is singular!\n") ;
-      return NULL ;
+      RETURN( NULL );
    }
 
    nx = im->nx ; ny = im->ny ;
@@ -209,5 +213,5 @@ MRI_IMAGE *mri_aff2d_rgb( MRI_IMAGE *im, int flag ,
    }
 
    MRI_COPY_AUX(newImg,im) ;
-   return newImg ;
+   RETURN( newImg );
 }

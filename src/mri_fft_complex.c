@@ -22,8 +22,6 @@ void mri_fft_complex( int mode , float taper , MRI_IMAGE *im )
    complex *cxim ;
    int ii , jj , npix , jbase , nx,ny ;
 
-WHOAMI ; IMHEADER(im) ;
-
    if( im->kind != MRI_complex ){
       fprintf( stderr , "mri_fft_complex only works on complex images!\n" ) ;
       MRI_FATAL_ERROR ;

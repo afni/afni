@@ -23,14 +23,15 @@ MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im )
    register int d1,d2,s1,s2,e1,e2,jb , i1,i2 ;
    float new_dx , new_dy ;
 
+ENTRY("mri_flippo") ;
    /** sanity check **/
 
-   if( im == NULL ) return NULL ;
-   if( rot == MRI_ROT_0 && mirror == FALSE ) return im ;
+   if( im == NULL ) RETURN( NULL );
+   if( rot == MRI_ROT_0 && mirror == FALSE ) RETURN( im );
 
    if( ! MRI_IS_2D(im) ){
       fprintf(stderr,"\n*** mri_flippo only works with 2D images!\n") ;
-      return im ;
+      RETURN( im );
    }
 
    nx     = im->nx ; ny     = im->ny ;
@@ -49,7 +50,7 @@ MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im )
    fopt = (mirror) ? (rot+MRI_FLMADD) : (rot) ;
    switch( fopt ){
 
-      default:  return im ;                       /* should not happen */
+      default:  RETURN(im);                       /* should not happen */
 
       case (MRI_ROT_90):                          /* ROT_90, no mirror */
          nxout = ny ; nyout = nx   ;
@@ -168,5 +169,5 @@ MRI_IMAGE * mri_flippo( int rot , int mirror , MRI_IMAGE * im )
    }
 
    flim->dx = new_dx ; flim->dy = new_dy ; flim->dz = im->dz ;
-   return flim ;
+   RETURN( flim ) ;
 }

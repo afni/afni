@@ -103,22 +103,22 @@ int mri_write_7D( char *fname , MRI_IMAGE *im )
    FILE  *imfile ;
    void  *data ;
 
-WHOAMI ; IMHEADER(im) ;
+ENTRY("mri_write_7D") ;
 
-   if( im == NULL ) return 0 ;
+   if( im == NULL ) RETURN( 0 );
 
    imfile = fopen( fname , "r" ) ;
    if( imfile != NULL ){
       fclose( imfile ) ;
       fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
-      return 0 ;
+      RETURN( 0 );
    }
 
    imfile = fopen( fname , "w" ) ;
 
    if( imfile == NULL ){
       fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
-      return 0 ;
+      RETURN( 0 );
    }
 
    /*** write MR7 header ***/
@@ -167,8 +167,10 @@ WHOAMI ; IMHEADER(im) ;
    fwrite( data , im->pixel_size , im->nvox , imfile ) ;
    fclose( imfile ) ;
 
-   return 1 ;
+   RETURN( 1 );
 }
+
+/**************************************************************************/
 
 int mri_write_pnm( char * fname , MRI_IMAGE * im )
 {
@@ -176,21 +178,23 @@ int mri_write_pnm( char * fname , MRI_IMAGE * im )
    void  *data ;
    int   dsize , noheader = FALSE ;
 
-   if( im == NULL )      return 0 ;
-   if( ! MRI_IS_2D(im) ) return 0 ;
-   if( im->kind != MRI_byte && im->kind != MRI_rgb ) return 0 ;
+ENTRY("mri_write_pnm") ;
+
+   if( im == NULL )      RETURN( 0 );
+   if( ! MRI_IS_2D(im) ) RETURN( 0 );
+   if( im->kind != MRI_byte && im->kind != MRI_rgb ) RETURN( 0 );
 
    imfile = fopen( fname , "r" ) ;
    if( imfile != NULL ){
       fclose( imfile ) ;
       fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
-      return 0 ;
+      RETURN( 0 );
    }
 
    imfile = fopen( fname , "w" ) ;
    if( imfile == NULL ){
       fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
-      return 0 ;
+      RETURN( 0 );
    }
 
    switch( im->kind ){
@@ -206,7 +210,7 @@ int mri_write_pnm( char * fname , MRI_IMAGE * im )
       break ;
    }
    fclose( imfile ) ;
-   return 1 ;
+   RETURN( 1 );
 }
 
 /*---------------------------------------------------------------------------------------*/
@@ -216,13 +220,15 @@ int mri_write_1D( char * fname , MRI_IMAGE * im )  /* 16 Nov 1999 */
    MRI_IMAGE * fim ;
    int jj ;
 
+ENTRY("mri_write_1D") ;
+
    if( fname == NULL || strlen(fname) == 0 ||
-       im == NULL    || im->nz > 1           ) return 0 ;
+       im == NULL    || im->nz > 1           ) RETURN( 0 );
 
    fim = mri_transpose( im ) ;
    jj  = mri_write_ascii( fname , fim ) ;
    mri_free(fim) ;
-   return jj ;
+   RETURN( jj );
 }
 
 /**-------------------------- Only good for 1D and 2D images ---------------------------**/
@@ -232,8 +238,10 @@ int mri_write_ascii( char * fname, MRI_IMAGE * im )
    int ii , jj , nx , ny ;
    FILE  *imfile ;
 
+ENTRY("mri_write_ascii") ;
+
    if( fname == NULL || strlen(fname) == 0 ||
-       im == NULL    || im->nz > 1           ) return 0 ;
+       im == NULL    || im->nz > 1           ) RETURN( 0 );
 
    if( strcmp(fname,"-") == 0 ){
      imfile = stdout ;
@@ -242,12 +250,12 @@ int mri_write_ascii( char * fname, MRI_IMAGE * im )
      if( imfile != NULL ){
        fclose( imfile ) ;
        fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
-       return 0 ;
+       RETURN( 0 );
      }
      imfile = fopen( fname , "w" ) ;
      if( imfile == NULL ){
        fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
-       return 0 ;
+       RETURN( 0 );
      }
    }
 
@@ -290,7 +298,7 @@ int mri_write_ascii( char * fname, MRI_IMAGE * im )
    }
 
    if( imfile != stdout ) fclose(imfile) ;
-   return 1 ;
+   RETURN( 1 );
 }
 
 /*------------------------------------------------------------
@@ -303,20 +311,22 @@ int mri_write_raw( char *fname , MRI_IMAGE *im )
    void  *data ;
    int   dsize ;
 
-   if( im == NULL || fname == NULL || fname[0] == '\0' ) return 0 ;
+ENTRY("mri_write_raw") ;
+
+   if( im == NULL || fname == NULL || fname[0] == '\0' ) RETURN( 0 );
 
    dsize = im->pixel_size * im->nvox ;
    data = mri_data_pointer( im ) ;
 
-   if( dsize <= 0 || data == NULL ) return 0 ;
+   if( dsize <= 0 || data == NULL ) RETURN( 0 );
 
    imfile = fopen( fname , "w" ) ;
 
    if( imfile == NULL ){
-      fprintf(stderr,"** Can't open for output: %s\n",fname) ; return 0 ;
+      fprintf(stderr,"** Can't open for output: %s\n",fname) ; RETURN( 0 );
    }
 
    fwrite( data , 1 , dsize , imfile ) ;
    fclose( imfile ) ;
-   return 1 ;
+   RETURN( 1 );
 }

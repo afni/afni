@@ -20,9 +20,9 @@ MRI_IMAGE *mri_to_complex( MRI_IMAGE *oldim )
    MRI_IMAGE *newim ;
    register int ii , npix ;
 
-WHOAMI ; IMHEADER(oldim) ;
+ENTRY("mri_to_complex") ;
 
-   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+   if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
 
    newim = mri_new_conforming( oldim , MRI_complex ) ;
    npix  = oldim->nvox ;
@@ -87,7 +87,7 @@ WHOAMI ; IMHEADER(oldim) ;
    }
 
    MRI_COPY_AUX(newim,oldim) ;
-   return newim ;
+   RETURN( newim );
 }
 
 /************************************************************************
@@ -102,13 +102,13 @@ MRI_IMAGE *mri_to_complex_ext( MRI_IMAGE *oldim, int xnew, int ynew, int altern 
    MRI_IMAGE *newim ;
    int oldx,oldy , itop,jtop , ii,jj , jbold,jbnew ;
 
-WHOAMI ; IMHEADER(oldim) ;
+ENTRY("mri_to_complex_ext") ;
 
-   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+   if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
 
    if( ! MRI_IS_2D(oldim) ){
-      fprintf(stderr,"\n*** mri_to_complex_ext only works on 2D images\n") ;
-      return NULL ;
+     fprintf(stderr,"\n*** mri_to_complex_ext only works on 2D images\n") ;
+     RETURN( NULL );
    }
 
    oldx = oldim->nx ;
@@ -191,7 +191,7 @@ WHOAMI ; IMHEADER(oldim) ;
    }
 
    MRI_COPY_AUX(newim,oldim) ;
-   return newim ;
+   RETURN( newim );
 }
 
 /*****************************************************************************/
@@ -203,7 +203,9 @@ MRI_IMAGE * mri_pair_to_complex( MRI_IMAGE * rim , MRI_IMAGE * iim )
    register float   * rar , * iar ;
    register int ii , nvox ;
 
-   if( rim == NULL || iim == NULL || rim->nvox != iim->nvox ) return NULL ;
+ENTRY("mri_pair_to_complex") ;
+
+   if( rim == NULL || iim == NULL || rim->nvox != iim->nvox ) RETURN( NULL );
 
    cim = mri_new_conforming( rim , MRI_complex ) ;
    car = MRI_COMPLEX_PTR(cim) ;
@@ -219,7 +221,7 @@ MRI_IMAGE * mri_pair_to_complex( MRI_IMAGE * rim , MRI_IMAGE * iim )
    if( rfim != rim ) mri_free( rfim ) ;
    if( ifim != iim ) mri_free( ifim ) ;
 
-   return cim ;
+   RETURN( cim );
 }
 
 /*****************************************************************************/
@@ -232,7 +234,9 @@ MRI_IMARR * mri_complex_to_pair( MRI_IMAGE * cim )
    register float * rar , * iar ;
    register complex * car ;
 
-   if( cim == NULL || cim->kind != MRI_complex ) return NULL ;
+ENTRY("mri_complex_to_pair") ;
+
+   if( cim == NULL || cim->kind != MRI_complex ) RETURN( NULL );
 
    rim  = mri_new_conforming( cim , MRI_float ) ; rar = MRI_FLOAT_PTR(rim) ;
    iim  = mri_new_conforming( cim , MRI_float ) ; iar = MRI_FLOAT_PTR(iim) ;
@@ -245,5 +249,5 @@ MRI_IMARR * mri_complex_to_pair( MRI_IMAGE * cim )
    ADDTO_IMARR(imarr,rim) ;
    ADDTO_IMARR(imarr,iim) ;
 
-   return imarr ;
+   RETURN( imarr );
 }

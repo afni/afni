@@ -223,23 +223,36 @@ static void probe_track( mallitem * ip )
    for( ii=0 ; ii < NEXTRA ; ii++ )
       if( fred[ii] != MAGIC ){
          fprintf(stderr,"*** MCW_malloc pre-corruption!  "
-                        "serial=%u size=%d source=%s line#=%d\n",
+                        "serial=%u size=%d source=%s line#%d",
                         ip->pss,(int)ip->psz,ip->pfn,ip->pln ) ;
+#ifdef USE_TRACING
+         { int tt ;
+           for( tt=0 ; tt < NTB && ip->ptb[tt] != NULL ; tt++ )
+             fprintf(stderr," <- %s",ip->ptb[tt]) ;
+         }
+#endif
+         fprintf(stderr,"\n") ;
+
          if( pr_nam != NULL )
-          fprintf(stderr," [[ Called from source=%.50s line#=%d ]]\n",pr_nam,pr_lin);
+          fprintf(stderr," [[ Called from source=%.50s line#%d ]]\n",pr_nam,pr_lin);
          break ;
       }
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
       if( fred[n+NEXTRA+ii] != MAGIC ){
          fprintf(stderr,"*** MCW_malloc post-corruption!  "
-                        "serial=%u size=%d source=%s line#=%d\n",
+                        "serial=%u size=%d source=%s line#%d\n",
                         ip->pss,(int)ip->psz,ip->pfn,ip->pln ) ;
-#if 0
-         fprintf(stderr,"  pr_nam=%p\n",(void *)pr_nam) ;
+#ifdef USE_TRACING
+         { int tt ;
+           for( tt=0 ; tt < NTB && ip->ptb[tt] != NULL ; tt++ )
+             fprintf(stderr," <- %s",ip->ptb[tt]) ;
+         }
 #endif
+         fprintf(stderr,"\n") ;
+
          if( pr_nam != NULL )
-          fprintf(stderr," [[ Called from source=%.50s line#=%d ]]\n",pr_nam,pr_lin);
+          fprintf(stderr," [[ Called from source=%.50s line#%d ]]\n",pr_nam,pr_lin);
          break ;
       }
 

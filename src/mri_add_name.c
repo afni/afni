@@ -16,17 +16,18 @@ void mri_add_name( char * str , MRI_IMAGE * im )
 {
    int ll ;
 
-   if( im == NULL ) return ;  /* 29 Mar 2002 */
+ENTRY("mri_add_name") ;
+   if( im == NULL ) EXRETURN ;  /* 29 Mar 2002 */
 
    if( im->name != NULL ){ free( im->name ) ; im->name = NULL ; }
 
-   if( str == NULL ) return ;
+   if( str == NULL ) EXRETURN ;
 
-   ll = strlen(str) ; if( ll <= 0 ) return ;
+   ll = strlen(str) ; if( ll <= 0 ) EXRETURN ;
 
    im->name = (char * ) malloc( ll+1 ) ;
    strcpy( im->name , str ) ;
-   return ;
+   EXRETURN ;
 }
 
 #ifdef USE_MRI_DELAY
@@ -34,16 +35,18 @@ void mri_add_fname_delay( char * str , MRI_IMAGE * im )
 {
    int ll ;
 
-   if( im == NULL ) return ;  /* 29 Mar 2002 */
+ENTRY("mri_add_fname_delay") ;
+
+   if( im == NULL ) EXRETURN ;  /* 29 Mar 2002 */
 
    if( im->fname != NULL ){ free( im->fname ) ; im->fname = NULL ; }
 
-   if( str == NULL ) return ;
+   if( str == NULL ) EXRETURN ;
 
-   ll = strlen(str) ; if( ll <= 0 ) return ;
+   ll = strlen(str) ; if( ll <= 0 ) EXRETURN ;
 
    im->fname = (char * ) malloc( ll+1 ) ;
    strcpy( im->fname , str ) ;
-   return ;
+   EXRETURN ;
 }
 #endif

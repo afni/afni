@@ -20,10 +20,10 @@ static int box_xbot=0 , box_xtop=0 ,
 void set_memplot_RGB_box( int xbot, int ybot, int xtop, int ytop )
 {
    if( xbot < xtop && ybot < ytop ){
-      box_xbot = xbot ; box_ybot = ybot ;
-      box_xtop = xtop ; box_ytop = ytop ;
+     box_xbot = xbot ; box_ybot = ybot ;
+     box_xtop = xtop ; box_ytop = ytop ;
    } else {
-      box_xbot = box_ybot = box_xtop = box_ytop = 0 ;
+     box_xbot = box_ybot = box_xtop = box_ytop = 0 ;
    }
 }
 
@@ -48,14 +48,16 @@ void memplot_to_RGB_sef( MRI_IMAGE *im , MEM_plotdata * mp ,
    int x1,y1 , x2,y2 ;
    int skip ;
 
+ENTRY("memplot_to_RGB_sef") ;
+
    /*--- check for madness ---*/
 
-   if( im == NULL || im->kind != MRI_rgb || mp == NULL ) return ;
+   if( im == NULL || im->kind != MRI_rgb || mp == NULL ) EXRETURN ;
 
    if( start < 0 ) start = 0 ;
 
    nline = MEMPLOT_NLINE(mp) ;
-   if( nline < 1 || start >= nline ) return ;
+   if( nline < 1 || start >= nline ) EXRETURN ;
 
    if( end <= start || end > nline ) end = nline ;
 
@@ -147,5 +149,5 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
    }
 
    set_memplot_X11_box(0,0,0,0) ; /* clear box */
-   return ;
+   EXRETURN ;
 }

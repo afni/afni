@@ -39,8 +39,10 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
    int ii,jj, nx,ny , ix,jy , ifx,jfy ;
    float f_jm1,f_j00,f_jp1,f_jp2 , wt_m1,wt_00,wt_p1,wt_p2 ;
 
+ENTRY("mri_affine_bicubic") ;
+
    if( im == NULL || ! MRI_IS_2D(im) ){
-      fprintf(stderr,"*** mri_affine only works on 2D images!\n") ; EXIT(1) ;
+     fprintf(stderr,"*** mri_affine only works on 2D images!\n"); RETURN(NULL):
    }
 
    /* if complex image: break into pairs, do separately, reassemble */
@@ -64,7 +66,7 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
       newImg = mri_pair_to_complex( rim , iim ) ;
       mri_free( rim ) ; mri_free( iim ) ;
       MRI_COPY_AUX(newImg,im) ;
-      return newImg ;
+      RETURN( newImg );
    }
 
    /** movement params **/
@@ -177,7 +179,7 @@ MRI_IMAGE *mri_affine_bicubic( MRI_IMAGE *im,
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
    MRI_COPY_AUX(newImg,im) ;
-   return newImg ;
+   RETURN( newImg );
 }
 
 /**-------------------------------------------------------------------
@@ -200,8 +202,10 @@ MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
    int ii,jj, nx,ny , ix,jy ;
    float f_j00,f_jp1 , wt_00,wt_p1 ;
 
+ENTRY("mri_rota_bilinear") ;
+
    if( im == NULL || ! MRI_IS_2D(im) ){
-      fprintf(stderr,"*** mri_rota_bilinear only works on 2D images!\n") ; EXIT(1) ;
+     fprintf(stderr,"*** mri_rota_bilinear only works on 2D images!\n"); RETURN(NULL);
    }
 
    /** if complex image, break into pairs, do each separately, put back together **/
@@ -220,7 +224,7 @@ MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
       newImg = mri_pair_to_complex( rim , iim ) ;
       mri_free( rim ) ; mri_free( iim ) ;
       MRI_COPY_AUX(newImg,im) ;
-      return newImg ;
+      RETURN( newImg );
    }
 
    /** rotation params **/
@@ -282,7 +286,7 @@ MRI_IMAGE *mri_rota_bilinear( MRI_IMAGE *im, float aa, float bb, float phi )
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
    MRI_COPY_AUX(newImg,im) ;
-   return newImg ;
+   RETURN( newImg );
 }
 
 /*--------------------------------------------------------------------------
@@ -447,8 +451,10 @@ MRI_IMAGE * mri_rota_shear( MRI_IMAGE *im, float aa, float bb, float phi )
    float *flar ;
    int ii , nxy ;
 
+ENTRY("mri_rota_shear") ;
+
    if( im == NULL || ! MRI_IS_2D(im) ){
-      fprintf(stderr,"*** mri_rota_shear only works on 2D images!\n") ; EXIT(1) ;
+     fprintf(stderr,"*** mri_rota_shear only works on 2D images!\n"); RETURN(NULL);
    }
 
    /** if complex image, break into pairs, do each separately, put back together **/
@@ -467,7 +473,7 @@ MRI_IMAGE * mri_rota_shear( MRI_IMAGE *im, float aa, float bb, float phi )
       flim = mri_pair_to_complex( rim , iim ) ;
       mri_free( rim ) ; mri_free( iim ) ;
       MRI_COPY_AUX(flim,im) ;
-      return flim ;
+      RETURN( flim );
    }
 
    /** copy input to output **/
@@ -531,7 +537,7 @@ MRI_IMAGE * mri_rota_shear( MRI_IMAGE *im, float aa, float bb, float phi )
            if( flar[ii] < bot ) flar[ii] = bot ;
       else if( flar[ii] > top ) flar[ii] = top ;
 
-   return flim ;
+   RETURN( flim );
 }
 
 MRI_IMAGE * mri_rota_variable( int mode, MRI_IMAGE *im, float aa, float bb, float phi )

@@ -16,7 +16,9 @@ MRI_IMAGE * mri_to_mri( int datum , MRI_IMAGE * oldim )
 {
    MRI_IMAGE * newim ;
 
-   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+ENTRY("mri_to_mri") ;
+
+   if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
 
    switch( datum ){
       default:
@@ -68,7 +70,7 @@ MRI_IMAGE * mri_to_mri( int datum , MRI_IMAGE * oldim )
       break ;
 
   }
-  return newim ;
+  RETURN( newim );
 }
 
 /*-----------------------------------------------------
@@ -80,7 +82,9 @@ MRI_IMAGE * mri_to_mri_scl( int datum , double factor , MRI_IMAGE * oldim )
 {
    MRI_IMAGE * newim ;
 
-   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+ENTRY("mri_to_mri_scl") ;
+
+   if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
 
    switch( datum ){
       default:
@@ -112,5 +116,5 @@ MRI_IMAGE * mri_to_mri_scl( int datum , double factor , MRI_IMAGE * oldim )
       }
       break ;
   }
-  return newim ;
+  RETURN( newim );
 }

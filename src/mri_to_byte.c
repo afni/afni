@@ -20,9 +20,9 @@ MRI_IMAGE *mri_to_byte( MRI_IMAGE *oldim )
    double dbbot ;
    byte *ar ;
 
-WHOAMI ; IMHEADER(oldim) ;
+ENTRY("mri_to_byte") ;
 
-   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+   if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
 
    newim = mri_new_conforming( oldim , MRI_byte ) ;
    npix  = oldim->nvox ;
@@ -103,7 +103,7 @@ WHOAMI ; IMHEADER(oldim) ;
    }
 
    MRI_COPY_AUX(newim,oldim) ;
-   return newim ;
+   RETURN( newim );
 }
 
 /*----------------------------------------------------------------------------*/
@@ -117,9 +117,9 @@ MRI_IMAGE *mri_to_byte_scl( double scl , double lev , MRI_IMAGE *oldim )
    register float  scale  , flbot ;
    register byte *ar ;
 
-WHOAMI ; IMHEADER(oldim) ;
+ENTRY("mri_to_byte_scl") ;
 
-   if( oldim == NULL ) return NULL ;  /* 09 Feb 1999 */
+   if( oldim == NULL ) RETURN( NULL );  /* 09 Feb 1999 */
 
    newim = mri_new_conforming( oldim , MRI_byte ) ;
    npix  = oldim->nvox ;
@@ -178,5 +178,5 @@ WHOAMI ; IMHEADER(oldim) ;
    }
 
    MRI_COPY_AUX(newim,oldim) ;
-   return newim ;
+   RETURN( newim );
 }

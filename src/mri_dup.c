@@ -45,11 +45,12 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE *imin )
    float     *flar , *newar , *cold , *cnew ;
    int nx,ny , nxup,nyup , ii,jj,kk ;
 
+ENTRY("mri_dup2D") ;
    /*-- sanity checks --*/
 
-   if( nup < 1 || nup > MAX_NUP || imin == NULL ) return NULL ;
+   if( nup < 1 || nup > MAX_NUP || imin == NULL ) RETURN( NULL );
 
-   if( nup == 1 ){ newim = mri_to_mri( imin->kind, imin ); return newim; }
+   if( nup == 1 ){ newim = mri_to_mri( imin->kind, imin ); RETURN(newim); }
 
    /*-- complex-valued images: do each part separately --*/
 
@@ -67,16 +68,17 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE *imin )
       newim = mri_pair_to_complex( rim , iim ) ;
       mri_free( rim ) ; mri_free( iim ) ;
       MRI_COPY_AUX(newim,imin) ;
-      return newim ;
+      RETURN(newim) ;
    }
 
    /*-- 14 Mar 2002: RGB image up by 2..4, all colors at once --*/
 
    if( imin->kind == MRI_rgb ){
+     MRI_IMAGE *qqim=NULL ;
      switch(nup){
-       case 4: return mri_dup2D_rgb4(imin) ;   /* special purpose fast codes */
-       case 3: return mri_dup2D_rgb3(imin) ;   /* using fixed pt arithmetic  */
-       case 2: return mri_dup2D_rgb2(imin) ;
+       case 4: qqim = mri_dup2D_rgb4(imin); break; /* special purpose fast codes */
+       case 3: qqim = mri_dup2D_rgb3(imin); break; /* using fixed pt arithmetic  */
+       case 2: qqim = mri_dup2D_rgb2(imin); break;
 
       /*-- other factors: do each color separately as a byte image --*/
       default:{
@@ -84,7 +86,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE *imin )
 
          imtriple = mri_rgb_to_3byte( imin ) ;
          if( imtriple == NULL ){
-           fprintf(stderr,"*** mri_rgb_to_3float fails in mri_dup2D!\n"); EXIT(1);
+           fprintf(stderr,"*** mri_rgb_to_3float fails in mri_dup2D!\n"); RETURN(NULL);
          }
          rim = IMAGE_IN_IMARR(imtriple,0) ;
          gim = IMAGE_IN_IMARR(imtriple,1) ;
@@ -95,9 +97,11 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE *imin )
          newim = mri_3to_rgb( rim, gim, bim ) ;
          mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
          MRI_COPY_AUX(newim,imin) ;
-         return newim ;
+         qqim = newim ;
        }
+       break ;
      }
+     RETURN(qqim) ;
    }
 
    /*-- Special case: byte-valued image upsampled by 2/3/4 [13 Mar 2002] --*/
@@ -121,7 +125,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE *imin )
        usbyte( ny , cold , cnew ) ;
        for( jj=0 ; jj < nyup ; jj++ ) bnew[ii+jj*nxup] = cnew[jj] ;
      }
-     free(cold); free(cnew); MRI_COPY_AUX(newim,imin); return newim;
+     free(cold); free(cnew); MRI_COPY_AUX(newim,imin); RETURN(newim);
    }
 
    /*-- otherwise, make sure we operate on a float image --*/
@@ -199,7 +203,7 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE *imin )
    /*-- finito --*/
 
    MRI_COPY_AUX(newim,imin) ;
-   return newim ;
+   RETURN( newim );
 }
 
 /*======================================================================*/
@@ -252,14 +256,14 @@ void upsample_7( int nup , int nar , float * far , float * fout )
    /*-- initialize interpolation coefficient, if nup has changed --*/
 
    if( nup != nupold ){
-      float val ;
-      for( kk=0 ; kk < nup ; kk++ ){
-         val = ((float)kk) / ((float)nup) ;
-         fm3[kk] = S_M3(val); fm2[kk] = S_M2(val); fm1[kk] = S_M1(val);
-         f00[kk] = S_00(val); fp1[kk] = S_P1(val); fp2[kk] = S_P2(val);
-         fp3[kk] = S_P3(val); fp4[kk] = S_P4(val);
-      }
-      nupold = nup ;
+     float val ;
+     for( kk=0 ; kk < nup ; kk++ ){
+       val = ((float)kk) / ((float)nup) ;
+       fm3[kk] = S_M3(val); fm2[kk] = S_M2(val); fm1[kk] = S_M1(val);
+       f00[kk] = S_00(val); fp1[kk] = S_P1(val); fp2[kk] = S_P2(val);
+       fp3[kk] = S_P3(val); fp4[kk] = S_P4(val);
+     }
+     nupold = nup ;
    }
 
    /*-- interpolate the intermediate places --*/
@@ -268,38 +272,38 @@ void upsample_7( int nup , int nar , float * far , float * fout )
 
    switch( nup ){
       default:
-         for( ii=ibot ; ii <= itop ; ii++ )
-            for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = INT7(kk,ii) ;
+        for( ii=ibot ; ii <= itop ; ii++ )
+          for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = INT7(kk,ii) ;
       break ;
 
       case 2:
-         for( ii=ibot ; ii <= itop ; ii++ ){
-            fout[ii*nup]   = INT7(0,ii) ; fout[ii*nup+1] = INT7(1,ii) ;
-         }
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          fout[ii*nup]   = INT7(0,ii) ; fout[ii*nup+1] = INT7(1,ii) ;
+        }
       break ;
 
       case 3:
-         for( ii=ibot ; ii <= itop ; ii++ ){
-            fout[ii*nup]   = INT7(0,ii) ; fout[ii*nup+1] = INT7(1,ii) ;
-            fout[ii*nup+2] = INT7(2,ii) ;
-         }
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          fout[ii*nup]   = INT7(0,ii) ; fout[ii*nup+1] = INT7(1,ii) ;
+          fout[ii*nup+2] = INT7(2,ii) ;
+        }
       break ;
 
       case 4:
-         for( ii=ibot ; ii <= itop ; ii++ ){
-            fout[ii*nup]   = INT7(0,ii) ; fout[ii*nup+1] = INT7(1,ii) ;
-            fout[ii*nup+2] = INT7(2,ii) ; fout[ii*nup+3] = INT7(3,ii) ;
-         }
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          fout[ii*nup]   = INT7(0,ii) ; fout[ii*nup+1] = INT7(1,ii) ;
+          fout[ii*nup+2] = INT7(2,ii) ; fout[ii*nup+3] = INT7(3,ii) ;
+        }
       break ;
    }
 
    /*-- interpolate the outside edges --*/
 
    for( ii=0 ; ii < ibot ; ii++ )
-      for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = FINT7(kk,ii) ;
+     for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = FINT7(kk,ii) ;
 
    for( ii=itop+1 ; ii < nar ; ii++ )
-      for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] =  FINT7(kk,ii) ;
+     for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] =  FINT7(kk,ii) ;
 
    return ;
 }
@@ -330,12 +334,12 @@ void upsample_1( int nup , int nar , float * far , float * fout )
    /*-- initialize interpolation coefficient, if nup has changed --*/
 
    if( nup != nupold ){
-      float val ;
-      for( kk=0 ; kk < nup ; kk++ ){
-         val = ((float)kk) / ((float)nup) ;
-         f00[kk] = 1.0 - val ; fp1[kk] = val ;
-      }
-      nupold = nup ;
+     float val ;
+     for( kk=0 ; kk < nup ; kk++ ){
+       val = ((float)kk) / ((float)nup) ;
+       f00[kk] = 1.0 - val ; fp1[kk] = val ;
+     }
+     nupold = nup ;
    }
 
    /*-- interpolate the intermediate places --*/
@@ -344,28 +348,28 @@ void upsample_1( int nup , int nar , float * far , float * fout )
 
    switch( nup ){
       default:
-         for( ii=ibot ; ii <= itop ; ii++ )
-            for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = INT1(kk,ii) ;
+        for( ii=ibot ; ii <= itop ; ii++ )
+          for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = INT1(kk,ii) ;
       break ;
 
       case 2:
-         for( ii=ibot ; ii <= itop ; ii++ ){
-            fout[ii*nup]   = INT1(0,ii) ; fout[ii*nup+1] = INT1(1,ii) ;
-         }
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          fout[ii*nup]   = INT1(0,ii) ; fout[ii*nup+1] = INT1(1,ii) ;
+        }
       break ;
 
       case 3:
-         for( ii=ibot ; ii <= itop ; ii++ ){
-            fout[ii*nup]   = INT1(0,ii) ; fout[ii*nup+1] = INT1(1,ii) ;
-            fout[ii*nup+2] = INT1(2,ii) ;
-         }
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          fout[ii*nup]   = INT1(0,ii) ; fout[ii*nup+1] = INT1(1,ii) ;
+          fout[ii*nup+2] = INT1(2,ii) ;
+        }
       break ;
 
       case 4:
-         for( ii=ibot ; ii <= itop ; ii++ ){
-            fout[ii*nup]   = INT1(0,ii) ; fout[ii*nup+1] = INT1(1,ii) ;
-            fout[ii*nup+2] = INT1(2,ii) ; fout[ii*nup+3] = INT1(3,ii) ;
-         }
+        for( ii=ibot ; ii <= itop ; ii++ ){
+          fout[ii*nup]   = INT1(0,ii) ; fout[ii*nup+1] = INT1(1,ii) ;
+          fout[ii*nup+2] = INT1(2,ii) ; fout[ii*nup+3] = INT1(3,ii) ;
+        }
       break ;
    }
 
@@ -373,11 +377,11 @@ void upsample_1( int nup , int nar , float * far , float * fout )
 
 #if 0                             /* nugatory */
    for( ii=0 ; ii < ibot ; ii++ )
-      for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = FINT1(kk,ii) ;
+     for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] = FINT1(kk,ii) ;
 #endif
 
    for( ii=itop+1 ; ii < nar ; ii++ )
-      for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] =  FINT1(kk,ii) ;
+     for( kk=0 ; kk < nup ; kk++ ) fout[kk+ii*nup] =  FINT1(kk,ii) ;
 
    return ;
 }
@@ -445,9 +449,10 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
    MRI_IMAGE *outim ;
    int ii,jj , nx,ny , nxup,nyup ;
 
-   if( inim == NULL || inim->kind != MRI_rgb ) return NULL ;
+ENTRY("mri_dup2D_rgb4") ;
+   if( inim == NULL || inim->kind != MRI_rgb ) RETURN(NULL);
 
-   bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) return NULL;
+   bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) RETURN(NULL);
 
    /* make output image **/
 
@@ -557,7 +562,7 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
       bout2[ii] = bout3[ii] = bout1[ii] ;
 
    MRI_COPY_AUX(outim,inim) ;
-   return outim ;
+   RETURN(outim) ;
 }
 
 /*************************************************************************/
@@ -568,9 +573,10 @@ static MRI_IMAGE * mri_dup2D_rgb3( MRI_IMAGE *inim )
    MRI_IMAGE *outim ;
    int ii,jj , nx,ny , nxup,nyup ;
 
-   if( inim == NULL || inim->kind != MRI_rgb ) return NULL ;
+ENTRY("mri_dup2D_rgb3") ;
+   if( inim == NULL || inim->kind != MRI_rgb ) RETURN(NULL) ;
 
-   bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) return NULL;
+   bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) RETURN(NULL);
 
    /* make output image **/
 
@@ -688,7 +694,7 @@ static MRI_IMAGE * mri_dup2D_rgb3( MRI_IMAGE *inim )
    for( ii=0 ; ii < nxup ; ii++ ) bout[ii] = bout3[ii] ;
 
    MRI_COPY_AUX(outim,inim) ;
-   return outim ;
+   RETURN(outim) ;
 }
 
 /*************************************************************************/
@@ -700,9 +706,10 @@ static MRI_IMAGE * mri_dup2D_rgb2( MRI_IMAGE *inim )
    MRI_IMAGE *outim ;
    int ii,jj , nx,ny , nxup,nyup ;
 
-   if( inim == NULL || inim->kind != MRI_rgb ) return NULL ;
+ENTRY("mri_dup2D_rgb2") ;
+   if( inim == NULL || inim->kind != MRI_rgb ) RETURN(NULL) ;
 
-   bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) return NULL;
+   bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) RETURN(NULL);
 
    /* make output image **/
 
@@ -777,5 +784,5 @@ static MRI_IMAGE * mri_dup2D_rgb2( MRI_IMAGE *inim )
       bout2[ii] = bout1[ii] ;
 
    MRI_COPY_AUX(outim,inim) ;
-   return outim ;
+   RETURN(outim) ;
 }
