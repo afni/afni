@@ -745,7 +745,7 @@ ENTRY("refit_MCW_optmenu") ;
 #endif
 
 #if 0
-   XtPopdown( XtParent(wmenu) ) ;  /* 28 Apr 1997 */
+   RWC_XtPopdown( XtParent(wmenu) ) ;  /* 28 Apr 1997 */
 #endif
 
    av->block_assign_actions = 0 ;   /* unblock these actions */
@@ -2818,7 +2818,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
    if( clear && cd->ctype != mcwCT_string ){
       XBell( XtDisplay(cd->wpop) , 100 ) ;
-      XtPopdown( cd->wpop ) ;
+      RWC_XtPopdown( cd->wpop ) ;
       return ;
    }
 
@@ -2836,7 +2836,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
          done = strcmp(wname,OVC_apply_label) != 0 ;
          call = strcmp(wname,OVC_quit_label)  != 0 ;
 
-         if( done ) XtPopdown( cd->wpop ) ;
+         if( done ) RWC_XtPopdown( cd->wpop ) ;
 
          if( call ){
             cbs.reason = mcwCR_ovcolor ;  /* set structure for call to user */
@@ -2862,7 +2862,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
             call  = True ;
          }
 
-         if( done ) XtPopdown( cd->wpop ) ;
+         if( done ) RWC_XtPopdown( cd->wpop ) ;
 
          if( call ){
             int pos_count=0 , * pos_list=NULL , ib ;
@@ -2920,7 +2920,7 @@ void MCW_choose_CB( Widget w , XtPointer client_data , XtPointer call_data )
             call = True ;
          }
 
-         if( done ) XtPopdown( cd->wpop ) ;
+         if( done ) RWC_XtPopdown( cd->wpop ) ;
 
          if( call ){
             cbs.reason = mcwCR_string ;  /* set structure for call to user */
@@ -2967,7 +2967,7 @@ printf("MCW_choose_CB: done=%d  call=%d  plot=%d  flash=%d\n",
        (int)done , (int)call , (int)plot , (int)flash ) ;
 #endif
 
-         if( done ) XtPopdown( cd->wpop ) ;
+         if( done ) RWC_XtPopdown( cd->wpop ) ;
 
          if( call || plot ){  /* must find out what is selected */
             int pos_count , * pos_list , first ;

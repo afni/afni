@@ -7498,7 +7498,7 @@ ENTRY("ISQ_montage_action_CB") ;
    close_window = (ib == MONT_DONE || ib == MONT_QUIT || ib == NUM_MONT_ACT) ;
 
    if( close_window ){
-      XtPopdown( seq->dialog ) ;
+      RWC_XtPopdown( seq->dialog ) ;
       XSync( XtDisplay(w) , False ) ;
       XmUpdateDisplay( w ) ;
    }
@@ -9863,7 +9863,17 @@ ENTRY("ISQ_snapshot") ;
    tim = SNAP_grab_image( w , snap_dc ) ;
    if( tim == NULL )                         EXRETURN ;
 
+   /* got image; save it in an array of images */
+
    if( snap_imar == NULL ) INIT_IMARR(snap_imar) ;
+
+   /* 30 Jun 2003: don't accept a duplicate image */
+
+   if( IMARR_COUNT(snap_imar) > 0 ){
+     MRI_IMAGE *qim = IMARR_LASTIM( snap_imar ) ;
+     if( mri_equal(qim,tim) ){ mri_free(tim); EXRETURN; }
+   }
+
    ADDTO_IMARR(snap_imar,tim) ;
 
    /* create viewer, if not present already */

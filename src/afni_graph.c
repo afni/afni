@@ -4491,7 +4491,7 @@ ENTRY("GRA_setshift_action_CB") ;
                    ib == SETSHIFT_QUIT || ib == NUM_SETSHIFT_ACT) ;
 
    if( close_window ){
-      XtPopdown( grapher->dialog ) ;
+      RWC_XtPopdown( grapher->dialog ) ;
       XSync( XtDisplay(w) , False ) ;
       XmUpdateDisplay( w ) ;
    }

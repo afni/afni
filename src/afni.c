@@ -63,7 +63,7 @@
 ------------------------------------------------------------------*/
 
 static XtAppContext   MAIN_app ;
-static XtErrorHandler MAIN_old_handler ;
+static XtErrorHandler MAIN_old_handler ;   /* no longer used */
 static Three_D_View * MAIN_im3d ;
 static MCW_DC *       MAIN_dc ;
 static Widget         MAIN_shell=NULL ;
@@ -1157,9 +1157,10 @@ int main( int argc , char * argv[] )
    AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
 
    if( GLOBAL_argopt.xtwarns == False )
-     MAIN_old_handler = XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
+     (void) XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
 
-   (void ) XSetErrorHandler( AFNI_xerrhandler ) ;      /* 26 Jun 2003 */
+   (void) XSetErrorHandler( AFNI_xerrhandler ) ;      /* 26 Jun 2003 */
+   (void) XtAppSetErrorHandler(MAIN_app,AFNI_handler) ;
 
    { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
      if( lenv != NULL ){
@@ -1417,11 +1418,6 @@ STATUS("call 14") ;
 
         AFNI_initialize_controller( MAIN_im3d ) ;  /* decide what to see */
         AFNI_initialize_view( NULL , MAIN_im3d ) ; /* set up to see it */
-
-#if 0
-        if( GLOBAL_argopt.xtwarns == False )
-           (void) XtAppSetWarningHandler(MAIN_app,MAIN_old_handler) ;  /* turn back on */
-#endif
 
         /*--- Other small and quick startup stuff before AFNI can go ---*/
 
@@ -2370,9 +2366,11 @@ if(PRINT_TRACING)
 
       LOAD_DSET_VIEWS(im3d) ;  /* 02 Nov 1996 */
 
+#if 0
       if( ival > 0 && GLOBAL_library.have_dummy_dataset && lrand48()%2 == 1 ){
-         RETURN(NULL) ;  /* 23 Apr 2001: test of imseq.c NULL image handler */
+        RETURN(NULL) ;  /* 23 Apr 2001: test of imseq.c NULL image handler */
       }
+#endif
 
       im = FD_warp_to_mri( n , ival , br ) ; /* actually get image from dataset */
 
