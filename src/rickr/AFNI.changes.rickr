@@ -773,3 +773,34 @@
   * modified Makefile.INCLUDE to link znzlib.o into nifti1_test and
     with the CS_OBJS in libmri.a
 
+03 December 2004:
+  * modified nifti1_io.[ch]:
+    - note: header extensions are not yet checked for
+    - added formatted history as global string (for printing)
+    - added nifti_disp_lib_hist(), to display the nifti library history
+    - added nifti_disp_lib_version(), to display the nifti library version
+    - re-wrote nifti_findhdrname()
+        o used nifti_find_file_extension()
+        o changed order of file tests (default is .nii, depends on input)
+        o free hdrname on failure
+    - made similar changes to nifti_findimgname()
+    - check for NULL return from nifti_findhdrname() calls
+    - removed most of ERREX() macros
+    - modified nifti_image_read()
+        o added debug info and error checking (on gni_debug > 0, only)
+        o fail if workingname is NULL
+        o check for failure to open header file
+        o free workingname on failure
+        o check for failure of nifti_image_load()
+        o check for failure of nifti_convert_nhdr2nim()
+    - changed nifti_image_load() to int, and check nifti_read_buffer return
+    - changed nifti_read_buffer() to fail on short read, and to count float
+      fixes (to print on debug)
+    - changed nifti_image_infodump to print to stderr
+    - updated function header comments, or moved comments above header
+    - removed const keyword, changed nifti_image_load() to int, and
+      added LNI_FERR() macro for error reporting on input files
+  * modified nifti1_test.c
+    - if debug, print header and image filenames before changing them
+    - added -nifti_hist and -nifti_ver options
+
