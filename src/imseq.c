@@ -5313,7 +5313,7 @@ Boolean ISQ_disp_options( MCW_imseq * seq , Boolean set )
 
 ENTRY("ISQ_disp_options") ;
 
-   if( !ISQ_VALID(seq) || seq->dialog== NULL || seq->dialog_starter!=NBUT_DISP )
+   if( !ISQ_VALID(seq) || seq->dialog==NULL || seq->dialog_starter!=NBUT_DISP )
       RETURN(False) ;
 
    if( set ){
@@ -5872,6 +5872,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
                            1=ignore redraw commands
                            0=don't ignore redraw commands
 
+*    isqDR_setimsave       (char *) suffix of image save mode
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -5890,6 +5892,25 @@ ENTRY("drive_MCW_imseq") ;
                  drive_code) ;
          XBell( seq->dc->display , 100 ) ;
          RETURN( False );
+      }
+      break ;
+
+      /*--------- save image type? [23 Jan 2003] ----------*/
+
+      case isqDR_setimsave:{
+        char *suf = (char *)drive_data ;
+        int ii ;
+        if( suf == NULL || *suf == '\0' || ppmto_num < 1 ) RETURN(False) ;
+        for( ii=0 ; ii < ppmto_num ; ii++ ){
+          if( strcmp(suf  ,ppmto_suffix[ii]) == 0 ) break ;
+          if( strcmp(suf+1,ppmto_suffix[ii]) == 0 ) break ;
+        }
+        if( ii == ppmto_num ) RETURN(False) ;
+        seq->opt.save_filter = ii ;
+        SET_SAVE_LABEL(seq) ;
+        if( seq->num_bbox > 0 && seq->bbox[NTOG_SAV] != NULL )
+          MCW_set_bbox( seq->bbox[NTOG_SAV] , ppmto_bval[ii] ) ;
+        RETURN( True ) ;
       }
       break ;
 
