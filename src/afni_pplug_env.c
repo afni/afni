@@ -384,6 +384,10 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_yesno( "AFNI_DISP_SCROLLBARS" , "Image Disp menu get scrollbars?" ) ;
 
+   /* 23 Feb 2004 [rickr] */
+   ENV_add_yesno( "AFNI_IMAGE_ZOOM_NN" ,
+	           "Use nearest neighbor interpolation for image zoom?" ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;

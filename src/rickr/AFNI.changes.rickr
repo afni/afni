@@ -471,8 +471,9 @@
   * modified plug_maxima.c
       - added ENTRY/RETURN calls
       - error: do not process last plane in find_local_maxima()
-      - allow any anat or func dataset of type short
-      - added a sub-brick selector
-      - note that dist and radius are in voxels
-      - output coordinates in RAI mm format
+
+23 February 2004:
+  * modified mri_dup.c to allow NN interpolation if AFNI_IMAGE_ZOOM_NN is Y
+  * modified afni_pplug_env.c to add control for AFNI_IMAGE_ZOOM_NN
+  * modified README.environment to add a description of AFNI_IMAGE_ZOOM_NN
 
