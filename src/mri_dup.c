@@ -18,6 +18,8 @@ static void upsample_1by2( int, byte *, byte * ) ;  /* at end of file */
 static void upsample_1by3( int, byte *, byte * ) ;
 static void upsample_1by4( int, byte *, byte * ) ;
 
+static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *) ;   /* 14 Mar 2002 */
+
 /*-----------------------------------------------------------------------------
   Set resample mode for mri_dup2D (1 or 7)
 -------------------------------------------------------------------------------*/
@@ -65,6 +67,10 @@ MRI_IMAGE * mri_dup2D( int nup , MRI_IMAGE * imin )
       MRI_COPY_AUX(newim,imin) ;
       return newim ;
    }
+
+   /*-- 14 Mar 2002 special case: RGB image up by 4, all colors at once --*/
+
+   if( imin->kind == MRI_rgb && nup == 4 ) return mri_dup2D_rgb4(imin) ;
 
    /*-- rgb-valued image: do each color separately as a byte image --*/
 
@@ -421,4 +427,108 @@ static void upsample_1by4( int nar, byte *bar , byte *bout )
       bout[4*ii+3] = (  bar[ii]+3*bar[ii+1]) >> 2 ;
    }
    bout[4*nar-1] = bout[4*nar-2] = bout[4*nar-3] = bout[4*nar-4] = bar[nar-1];
+}
+
+/*************************************************************************/
+/*************************************************************************/
+
+static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
+{
+   rgbyte *bin , *bout , *bin1,*bin2 , *bout1,*bout2,*bout3,*bout4 ;
+   MRI_IMAGE *outim ;
+   int ii,jj , nx,ny , nxup,nyup ;
+
+   if( inim == NULL || inim->kind != MRI_rgb ) return NULL ;
+
+   bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) return NULL;
+
+   nx = inim->nx ; ny = inim->ny ; nxup = 4*nx ; nyup = 4*ny ;
+
+   outim = mri_new( nxup , nyup , MRI_rgb ) ;
+   bout  = (rgbyte *) MRI_RGB_PTR(outim) ;
+
+   /** macros for the 16 different interpolations */
+
+#define BOUT_00(ul,ur,ll,lr) (   ul                           )
+#define BOUT_10(ul,ur,ll,lr) ((3*ul +   ur              ) >> 2)
+#define BOUT_20(ul,ur,ll,lr) ((  ul +   ur              ) >> 1)
+#define BOUT_30(ul,ur,ll,lr) ((  ul + 3*ur              ) >> 2)
+
+#define BOUT_01(ul,ur,ll,lr) ((3*ul +          ll       ) >> 2)
+#define BOUT_11(ul,ur,ll,lr) ((9*ul + 3*ur + 3*ll +   lr) >> 4)
+#define BOUT_21(ul,ur,ll,lr) ((3*ul + 3*ur +   ll +   lr) >> 3)
+#define BOUT_31(ul,ur,ll,lr) ((3*ul + 9*ur +   ll + 3*lr) >> 4)
+
+#define BOUT_02(ul,ur,ll,lr) ((  ul        +   ll       ) >> 1)
+#define BOUT_12(ul,ur,ll,lr) ((3*ul +   ur + 3*ll +   lr) >> 3)
+#define BOUT_22(ul,ur,ll,lr) ((  ul +   ur +   ll +   lr) >> 2)
+#define BOUT_32(ul,ur,ll,lr) ((  ul + 3*ur +   ll + 3*lr) >> 3)
+
+#define BOUT_03(ul,ur,ll,lr) ((  ul        + 3*ll       ) >> 2)
+#define BOUT_13(ul,ur,ll,lr) ((3*ul +   ur + 9*ll + 3*lr) >> 4)
+#define BOUT_23(ul,ur,ll,lr) ((  ul +   ur + 3*ll + 3*lr) >> 3)
+#define BOUT_33(ul,ur,ll,lr) ((  ul + 3*ur + 3*ll + 9*lr) >> 4)
+
+  /** do 16 interpolations between  ul ur
+                                    ll lr **/
+
+#define FOUR_ROWS(k,c,ul,ur,ll,lr)                    \
+   { bout1[4*k  ].c = BOUT_00(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout1[4*k+1].c = BOUT_10(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout1[4*k+2].c = BOUT_20(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout1[4*k+3].c = BOUT_30(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout2[4*k  ].c = BOUT_01(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout2[4*k+1].c = BOUT_11(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout2[4*k+2].c = BOUT_21(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout2[4*k+3].c = BOUT_31(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout3[4*k  ].c = BOUT_02(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout3[4*k+1].c = BOUT_12(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout3[4*k+2].c = BOUT_22(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout3[4*k+3].c = BOUT_32(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout4[4*k  ].c = BOUT_03(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout4[4*k+1].c = BOUT_13(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout4[4*k+2].c = BOUT_23(ul.c,ur.c,ll.c,lr.c) ;  \
+     bout4[4*k+3].c = BOUT_33(ul.c,ur.c,ll.c,lr.c) ; }
+
+   bin1  = bin       ; bin2  = bin+nx    ;  /* input rows */
+   bout1 = bout      ; bout2 = bout1+nxup;  /* output rows */
+   bout3 = bout2+nxup; bout4 = bout3+nxup;
+
+   for( jj=0 ; jj < ny-1 ; jj++ ){   /* loop over input rows */
+
+     for( ii=0 ; ii < nx-1 ; ii++ ){
+        FOUR_ROWS(ii,r,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;
+        FOUR_ROWS(ii,g,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;
+        FOUR_ROWS(ii,b,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;
+     }
+
+     /* here, ii=nx-1, so can't use ii+1 */
+
+     FOUR_ROWS(ii,r,bin1[ii],bin1[ii],bin2[ii],bin2[ii]) ;
+     FOUR_ROWS(ii,g,bin1[ii],bin1[ii],bin2[ii],bin2[ii]) ;
+     FOUR_ROWS(ii,b,bin1[ii],bin1[ii],bin2[ii],bin2[ii]) ;
+
+     /* advance input and output rows */
+
+     bin1 = bin2; bin2 += nx ;
+     bout1 = bout4+nxup; bout2 = bout1+nxup;
+     bout3 = bout2+nxup; bout4 = bout3+nxup;
+   }
+
+   /* here, jj=ny-1, so can't use jj+1 (bin2) */
+
+   for( ii=0 ; ii < nx-1 ; ii++ ){
+     FOUR_ROWS(ii,r,bin1[ii],bin1[ii+1],bin1[ii],bin1[ii+1]) ;
+     FOUR_ROWS(ii,g,bin1[ii],bin1[ii+1],bin1[ii],bin1[ii+1]) ;
+     FOUR_ROWS(ii,b,bin1[ii],bin1[ii+1],bin1[ii],bin1[ii+1]) ;
+   }
+
+   /* here, ii=nx-1 and jj=ny-1, so can only use bin1[ii] */
+
+   FOUR_ROWS(ii,r,bin1[ii],bin1[ii],bin1[ii],bin1[ii]) ;
+   FOUR_ROWS(ii,g,bin1[ii],bin1[ii],bin1[ii],bin1[ii]) ;
+   FOUR_ROWS(ii,b,bin1[ii],bin1[ii],bin1[ii],bin1[ii]) ;
+
+   MRI_COPY_AUX(outim,inim) ;
+   return outim ;
 }
