@@ -15,7 +15,9 @@ A startup Script (file ".afni.startup_script") can also give a sequence
 of commands to be run immediately after AFNI starts up.  The file consists
 of a sequence of command lines (without the "DRIVE_AFNI" prefix).  It is
 also possible to read in a Script file using the "Datamode->Misc->Run Script"
-button from the AFNI controller.
+button from the AFNI controller.  Some of the current state of AFNI can
+be saved to ".afni.startup_script" using the "Datamode->Misc->Save Layout"
+button (by giving a blank as the filename).
 
 ADD_OVERLAY_COLOR colordef colorlab
   Adds the color defined by the string "colordef" to the list of overlay

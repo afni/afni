@@ -1339,6 +1339,7 @@ ENTRY("AFNI_finalsave_layout_CB") ;
       /*-- 22 Jan 2003: parallel output for startup script --*/
 
       if( gp != NULL ){
+        MCW_pbar *pbar = zm3d->vwid->func->inten_pbar ;
 
         fprintf(gp,"OPEN_WINDOW %c geom=+%d+%d\n" , abet[cc] , gxx,gyy ) ;
 
@@ -1346,14 +1347,19 @@ ENTRY("AFNI_finalsave_layout_CB") ;
                     (int)(zm3d->vinfo->func_threshold/THR_FACTOR) ,
                     (int)(log10(zm3d->vinfo->func_thresh_top)+.01) ) ;
 
-        fprintf(gp,"SET_PBAR_ALL %c.%c%d" , abet[cc] ,
-                   (zm3d->vwid->func->inten_pbar->mode) ? '+' : '-' ,
-                    zm3d->vwid->func->inten_pbar->num_panes ) ;
-        for( qq=0 ; qq < zm3d->vwid->func->inten_pbar->num_panes ; qq++ )
-          fprintf(gp," %s=%s",
-                     AV_uformat_fval(zm3d->vwid->func->inten_pbar->pval[qq]) ,
-                     ovc->label_ov[zm3d->vwid->func->inten_pbar->ov_index[qq]] ) ;
-        fprintf(gp,"\n") ;
+        if( !pbar->bigmode ){
+          fprintf(gp,"SET_PBAR_ALL %c.%c%d" , abet[cc] ,
+                     (pbar->mode) ? '+' : '-' , pbar->num_panes ) ;
+          for( qq=0 ; qq < pbar->num_panes ; qq++ )
+            fprintf(gp," %s=%s",
+                       AV_uformat_fval(pbar->pval[qq]) ,
+                       ovc->label_ov[pbar->ov_index[qq]] ) ;
+          fprintf(gp,"\n") ;
+        } else {
+          fprintf(gp,"SET_PBAR_ALL %c.%c%d %f %s\n" , abet[cc] ,
+                     (pbar->mode) ? '+' : '-' , 99 ,
+                     pbar->bigtop , PBAR_get_bigmap(pbar) ) ;
+        }
 
         fprintf(gp,"SET_FUNC_VISIBLE %c.%c\n" , abet[cc] ,
                 (zm3d->vinfo->func_visible) ? '+' : '-'   ) ;
