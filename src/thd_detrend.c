@@ -232,7 +232,7 @@ void THD_generic_detrend( int npt, float *far ,
    if( polort <  0 ) polort = -1 ;
    if( nort   <  0 ) nort   =  0 ;
 
-   nref = polort+1+nref ;
+   nref = polort+1+nort ;
    if( nref == 0 || nref >= npt-1 ) return ;
 
    ref  = (float **) malloc( sizeof(float *) * nref ) ;
@@ -280,6 +280,8 @@ void THD_generic_detrend( int npt, float *far ,
        far[ii] = val ;
      }
      free(fit) ;
+   } else {
+     fprintf(stderr,"THD_generic_detrend: lsqfit fails - no detrending!\n") ;
    }
 
    for( jj=0 ; jj <= polort ; jj++ ) free(ref[jj]) ;

@@ -3,8 +3,11 @@
 void print_results( char * , int , float *, float * ) ;  /* later, dude */
 
 /*---------------------------------------------------------------------------*/
+static double apar=0.0 ;   /** skewness parameter [-1..1] **/
 
-#if 0
+#define USE_SKEWNESS
+
+#ifndef USE_SKEWNESS    /********************************** symmetric model **/
 static double pmodel_pdf( double x )
 {
    double q = 1.0-x*x ;
@@ -20,9 +23,8 @@ static double pmodel_cdf( double x )   /* integral of pmodel_pdf(x) */
    q = x*x ;
    return 0.5 + x*(15.0-10.0*q+3.0*q*q)/16.0 ;
 }
-#else
 
-static double apar=0.0 ;
+#else /*********************************************** Model with skewness **/
 
 static double pmodel_pdf( double x )
 {
@@ -391,12 +393,12 @@ int main( int argc , char * argv[] )
          nregtry = 0 ;
    RegTry:
          switch(nvec){
-           case 1: nw =   50000 ; break ;
-           case 2: nw =  700000 ; break ;
-          default: nw = 1700000 ; break ;
+           case 1: nw =   40000 ; break ;
+           case 2: nw =  600000 ; break ;
+          default: nw = 1200000 ; break ;
          }
          if( nregtry > 0 ){
-           pplm *= 0.5 ; aplm *= 0.5 ; wplm *= 0.5 ; nw /= 2 ;
+           pplm *= 0.7 ; aplm *= 0.7 ; wplm *= 0.7 ; nw /= 2 ;
            memcpy(aplast,apbest,sizeof(float)*nvec) ;
            memcpy(pklast,pkbest,sizeof(float)*nvec) ;
            memcpy(wwlast,wwbest,sizeof(float)*nvec) ;
@@ -408,7 +410,7 @@ int main( int argc , char * argv[] )
            }
          }
          for( iw=0 ; iw < nw ; iw++ ){
-#if 1
+#if 0
            if( nregtry == 0 ){
              for( jj=0 ; jj < nvec ; jj++ ){               /* random search! */
                ww[jj] = wbot+drand48()*(wtop-wbot) ;
@@ -423,10 +425,10 @@ int main( int argc , char * argv[] )
                ap[jj] = aplast[jj] + (2.*drand48()-1.)*aplm ;
                     if( ap[jj] >  1.0 ) ap[jj] =  1.0 ;
                else if( ap[jj] < -1.0 ) ap[jj] = -1.0 ;
-                    if( ww[jj] < cbot ) ww[jj] = cbot ;
-               else if( ww[jj] > ctop ) ww[jj] = ctop ;
+                    if( ww[jj] < 0.1*cbot ) ww[jj] = 0.1*cbot ;
+               else if( ww[jj] > 0.9*ctop ) ww[jj] = 0.9*ctop ;
              }
-#if 1
+#if 0
            }
 #endif
            sum = 0.0 ;
@@ -466,7 +468,7 @@ int main( int argc , char * argv[] )
            }
          }
          if( verb ) fprintf(stderr,".") ;
-         if( nregtry < 6 ){ nregtry++ ; goto RegTry ; }
+         if( nregtry < 8 ){ nregtry++ ; goto RegTry ; }
          if( verb ) fprintf(stderr,"\n") ;
        }
 
@@ -474,6 +476,7 @@ int main( int argc , char * argv[] )
        if( hf == NULL ){
          fprintf(stderr,"** Can't open Anhist.1D!\n") ;
        } else {
+         char pbuf[1024]="\0" ;
          fprintf(hf,"# 3dAnhist") ;
          for( ii=1 ; ii < argc ; ii++ ) fprintf(hf," %s",argv[ii]) ;
          fprintf(hf,"\n") ;
@@ -484,6 +487,10 @@ int main( int argc , char * argv[] )
            for( jj=0 ; jj < npk ; jj++ ){
              fprintf(hf,"# Peak %d fit: location=%.1f width=%.2f skew=%.3f height=%.1f\n",
                      jj+1,pkbest[jj],wwbest[jj],apbest[jj],lambest[jj] ) ;
+             if( jj < 4 ){
+               ii = strlen(pbuf) ;
+               sprintf(pbuf+ii," #%d=%.1f\\pm%.1f",jj+1,pkbest[jj],wwbest[jj]) ;
+             }
            }
            fprintf(hf,"#\n") ;
            fprintf(hf,"# Val Histog Fitted Hi-Fit\n") ;
@@ -495,19 +502,24 @@ int main( int argc , char * argv[] )
            free(Gmat);free(pk);free(ww);free(ap);free(Hvec);free(lam);free(rez);free(wt);
            free(apbest);free(wwbest);free(pkbest);free(lambest);
            free(aplast);free(wwlast);free(pklast);
-           sprintf(cmd,"1dplot -ps -nopush -one -xzero %d -xlabel %s 'Anhist.1D[1..3]' > Anhist.ps" ,
-                   cbot , dname ) ;
+           sprintf(cmd,"1dplot -ps -nopush -one -xzero %d -xlabel '%s:%s' 'Anhist.1D[1..3]' > Anhist.ps" ,
+                   cbot , dname , pbuf ) ;
          } else {
            fprintf(hf,"# Val Histog\n") ;
            fprintf(hf,"# --- ------\n") ;
            for( ii=cbot ; ii <= ctop ; ii++ )
              fprintf(hf,"%5d %6d\n",ii,gist[ii]) ;
-           sprintf(cmd,"1dplot -ps -nopush -xzero %d -xlabel %s 'Anhist.1D[1]' > Anhist.ps",cbot,dname) ;
+           for( jj=0 ; jj < npk && jj < 4 ; jj++ ){
+             ii = strlen(pbuf) ;
+             sprintf(pbuf+ii," #1%d=%.1f",jj+1,pval[jj]) ;
+           }
+           sprintf(cmd,"1dplot -ps -nopush -xzero %d -xlabel '%s:%s' 'Anhist.1D[1]' > Anhist.ps",
+                   cbot , dname , pbuf ) ;
          }
          fclose(hf) ;
          if( verb ){
            fprintf(stderr,"++ %s\n",cmd) ;
-           fprintf(stderr,"++ To view: gv -landscape Anhist.ps\n") ;
+           fprintf(stderr,"++ To view plot: gv -landscape Anhist.ps\n") ;
          }
          system( cmd ) ;
        }
