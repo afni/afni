@@ -3933,3 +3933,9 @@
 
 26 Aug 2002
  * Added Htable (string/pointer pair) hash table functions to niml.[ch].
+ * Added mri_read3D_analyze75() to mri_read.c, to read an ANALYZE file
+     as an array of 3D images, rather than 2D images.
+
+27 Aug 2002
+ * Modified mri_read*_analyze() functions to always floatize ANALYZE
+     data if the SPM funused1 scale factor is present.
