@@ -3415,31 +3415,76 @@ void NI_add_many_rows( NI_element *nel, int nrow, int stride, void *datin )
 
       /* loop over new rows */
 
-      for( kk=0 ; kk < nrow ; kk++ ){
+      if( typ == NI_STRING || typ == NI_LINE ){
+        char *ppp , *qqq ;
+        for( kk=0 ; kk < nrow ; kk++ ){
 
-        /* pointer to space to which to copy */
+          /* pointer to space in struct to copy from */
 
-        vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
+          qqq = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
 
-        /* pointer to space in struct to copy from */
+          /* If the data is actually a string, then
+             qqq points to the char * that points to the string.
+             So we have to duplicate that string, then save
+             the pointer to the duplicate in the element.
+             Confused?  So am I.  This requires thinking, which is hard work */
 
-        ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
+          memcpy(&ppp,qqq,ll) ;   /* ppp is the pointer to the string */
+          eee = NI_strdup(ppp);   /* duplicate string from struct */
+          ddd = (char *)(&eee);   /* we want to save address of duplicate */
 
-        /* If the data is actually a string, then
-           ddd points to the char * that points to the string.
-           So we have to duplicate that string, then save
-           the pointer to the duplicate in the element.
-           Confused?  So am I.  This requires thinking, which is hard work */
+          /* pointer to space to which to copy */
 
-        if( typ == NI_STRING || typ == NI_LINE ){
-           char *ppp ;
-           memcpy(&ppp,ddd,ll) ;   /* ppp is the pointer to the string */
-           eee = NI_strdup(ppp);   /* duplicate string from struct */
-           ddd = (char *)(&eee);   /* we want to save address of duplicate */
+          vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
+
+          memcpy( vpt, ddd , ll ) ;  /* copy bytes from ddd to element */
         }
-        memcpy( vpt, ddd , ll ) ;  /* copy bytes from ddd to element */
+
+      } else {
+        switch( ll ){
+          default:
+           for( kk=0 ; kk < nrow ; kk++ ){
+             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
+             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
+             memcpy( vpt, ddd , ll ) ;  /* copy bytes from ddd to element */
+           }
+          break ;
+
+          case 1:
+           for( kk=0 ; kk < nrow ; kk++ ){
+             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
+             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
+             memcpy( vpt, ddd , 1 ) ;  /* copy bytes from ddd to element */
+           }
+          break ;
+
+          case 2:
+           for( kk=0 ; kk < nrow ; kk++ ){
+             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
+             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
+             memcpy( vpt, ddd , 2 ) ;  /* copy bytes from ddd to element */
+           }
+          break ;
+
+          case 4:
+           for( kk=0 ; kk < nrow ; kk++ ){
+             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
+             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
+             memcpy( vpt, ddd , 4 ) ;  /* copy bytes from ddd to element */
+           }
+          break ;
+
+          case 8:
+           for( kk=0 ; kk < nrow ; kk++ ){
+             ddd = (char *)(dat + nel->rowmap_off[ii] + kk*stride) ;
+             vpt = (char *)(nel->vec[ii]) + (rr+kk)*ll ;
+             memcpy( vpt, ddd , 8 ) ;  /* copy bytes from ddd to element */
+           }
+          break ;
+        }
       }
-   }
+
+   } /* end of loop over columns */
 
    nel->vec_len = nel->vec_axis_len[0] = rrnew ;  /* vectors now longer */
    return ;
