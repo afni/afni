@@ -82,7 +82,7 @@ SUMA_inflate_compare: SUMA_inflate_compare.c
 	$(RM) $@
 	${CC} -DSUMA_inflate_compare_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_inflate_compare.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
-SUMA_CreateIcosahedron: SUMA_SphericalMapping.c
+CreateIcosahedron: SUMA_SphericalMapping.c
 	$(RM) $@
 	${CC} -DSUMA_CreateIcosahedron_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SphericalMapping.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
@@ -90,7 +90,7 @@ SUMA_Map_SurfacetoSurface: SUMA_SphericalMapping.c
 	$(RM) $@
 	${CC} -DSUMA_Map_SurfacetoSurface_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SphericalMapping.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
-SUMA_MapIcosahedron: SUMA_SphericalMapping.c
+MapIcosahedron: SUMA_SphericalMapping.c
 	$(RM) $@
 	${CC} -DSUMA_MapIcosahedron_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_SphericalMapping.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
@@ -149,9 +149,9 @@ install:
 	@echo Installing Binaries...
 	@if [ ! -d $(INSTALLDIR_SUMA) ]; then $(MKDIR) -p $(INSTALLDIR_SUMA); echo WARNING: directory $(INSTALLDIR_SUMA) has been created from SUMA directory. ; fi
 	@if [ -f suma ]; then mv suma ${INSTALLDIR_SUMA}; fi;
-	@if [ -f SUMA_CreateIcosahedron ]; then mv SUMA_CreateIcosahedron ${INSTALLDIR_SUMA}; fi;
+	@if [ -f CreateIcosahedron ]; then mv CreateIcosahedron ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_Map_SurfacetoSurface ]; then mv SUMA_Map_SurfacetoSurface ${INSTALLDIR_SUMA}; fi;
-	@if [ -f SUMA_MapIcosahedron ]; then mv SUMA_MapIcosahedron ${INSTALLDIR_SUMA}; fi;
+	@if [ -f MapIcosahedron ]; then mv MapIcosahedron ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_SureFit ]; then mv SUMA_SureFit ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_Load_Surface_Object ]; then mv SUMA_Load_Surface_Object ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_Read_SpecFile ]; then mv SUMA_Read_SpecFile ${INSTALLDIR_SUMA}; fi;
@@ -175,9 +175,9 @@ packbins:
 	chmod u+x ./@SUMA_CreateCompileStamp
 	./@SUMA_CreateCompileStamp SUMA_bin/@SUMA_CompileStamp
 	@if [ -f suma ]; then $(CP) -p suma SUMA_bin/; fi;
-	@if [ -f SUMA_CreateIcosahedron ]; then $(CP) -p SUMA_CreateIcosahedron SUMA_bin/; fi;
+	@if [ -f CreateIcosahedron ]; then $(CP) -p CreateIcosahedron SUMA_bin/; fi;
 	@if [ -f SUMA_Map_SurfacetoSurface ]; then $(CP) -p SUMA_Map_SurfacetoSurface SUMA_bin/; fi;
-	@if [ -f SUMA_MapIcosahedron ]; then $(CP) -p SUMA_MapIcosahedron SUMA_bin/; fi;
+	@if [ -f MapIcosahedron ]; then $(CP) -p MapIcosahedron SUMA_bin/; fi;
 	@if [ -f SUMA_SureFit ]; then $(CP) -p SUMA_SureFit SUMA_bin/; fi;
 	@if [ -f SUMA_Load_Surface_Object ]; then $(CP) -p SUMA_Load_Surface_Object SUMA_bin/; fi;
 	@if [ -f SUMA_Read_SpecFile ]; then $(CP) -p SUMA_Read_SpecFile SUMA_bin/; fi;
@@ -201,7 +201,7 @@ packbins:
 	
 all: libSUMA.a mainobj suma install 
 
-standalones: SUMA_CreateIcosahedron SUMA_Map_SurfacetoSurface SUMA_MapIcosahedron SUMA_SureFit \
+standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron SUMA_SureFit \
 SUMA_Load_Surface_Object SUMA_Read_SpecFile SUMA_FreeSurfer ScaleToMap MakeColorMap \
 CompareSurfaces SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface \
 3dVol2Surf 3dSurf2Vol SurfaceMetrics SUMA_TestDataSets ROI2dataset
