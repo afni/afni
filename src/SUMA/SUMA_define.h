@@ -113,9 +113,10 @@ typedef enum {	SE_Empty, \
 					SE_SetLookAt, SE_SetLookFrom, SE_Redisplay, SE_Home, SE_SetNodeColor, \
 					SE_FlipLight0Pos, SE_GetNearestNode, SE_SetLookAtNode, SE_HighlightNodes, SE_SetRotMatrix, \
 					SE_SetCrossHair, SE_ToggleCrossHair, SE_SetSelectedNode, SE_ToggleShowSelectedNode, SE_SetSelectedFaceSet,\
-					SE_ToggleShowSelectedFaceSet, SE_ToggleTalkToAfni, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_BindCrossHair,\
-					SE_Remix, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset,\
-					SE_BadCode} SUMA_ENGINE_CODE;
+					SE_ToggleShowSelectedFaceSet, SE_ToggleConnected, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_SetForceAfniSurf, \
+					SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, \
+					SE_Redisplay_AllVisible, \
+               SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
 					
 typedef enum { SEF_Empty, \
 					SEF_fm, SEF_im, SEF_fv3, SEF_iv3, SEF_fv15, \
@@ -431,15 +432,25 @@ typedef struct {
 	Boolean ApplyMomentum;	/*<! Turn momentum ON/OFF */
 } SUMA_GEOMVIEW_STRUCT;
 
+/*! structure holding the pointer the node color assignment and a bit more */
+typedef struct {
+   GLfloat *glar_ColorList; /*!< pointer to the 1D ColorList array */
+   int N_glar_ColorList; /*!< Number of elements in glar_ColorList 4xNumber of nodes in the surface */
+   char *idcode_str; /*!< string containing the idcode of the surface to which glar_ColorList belongs*/
+   SUMA_Boolean Remix; /*!< flag indicating that colors need to be remixed */ 
+} SUMA_COLORLIST_STRUCT;
+
 /*! structure defining the state of a viewer window */
 typedef struct {
 	int N_DO;		/*!< Total number of surface objects registered with the viewer */
-	int *ShowDO; 	/*!< ShowSO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
+	int *ShowDO; 	/*!< ShowDO[i] (i=0..N_DO) contains Object indices into DOv for DOs visible in the surface viewer*/
 	
+   SUMA_COLORLIST_STRUCT *ColList; /*!< pointer to structures containing NodeColorLists for surfaces listed in ShowDO */
+   int N_ColList; /*!< Number of structures in ColList */
+   
 	SUMA_STANDARD_VIEWS StdView; /*!< viewing mode, for 2D or 3D */
 	SUMA_GEOMVIEW_STRUCT *GVS; /*! pointer to structures containing geometric viewing settings */
 	int N_GVS; /*!< Number of different geometric viewing structures */
-
 
 	short verbose;	/*!< Verbosity of viewer */
 
@@ -477,16 +488,16 @@ typedef struct {
 	GLdouble Pick1[3];	/*!< Click location in World coordinates, at z = 1.0 (far clip plane)*/
 	
 	SUMA_CrossHair *Ch; /*!< Pointer to Cross Hair structure */
-	
-	SUMA_Boolean TalkToAfni; /*!< YUP = communicate certain actions to AFNI */
-	NI_stream ns; /*!< Yaking niml stream */
-	
+		
 	SUMA_ViewState *VSv; /*!< Vector of Viewing State Structures */
 	int N_VSv; /*!< Number of Viewing State structures */
 	char *State; /*!< The current state of the viewer. This variable should no be freed since it points to locations within VSv*/
 	int iState; /*!< index into VSv corresponding to State */
 	int LastNonMapStateID; /*!< Index into the state in VSv from which a toggle to the mappable state was initiated */ 
 	
+   SUMA_Boolean isShaded; /*!< YUP if the window is minimized or shaded, NOPE if you can see its contents */
+
+   SUMA_Boolean LinkAfniCrossHair; /*!< YUP if the cross hair location is to be sent (and accepted from AFNI, when the stream is open) */
 }SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
@@ -616,7 +627,8 @@ typedef struct {
 	
 	SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume data sets ?*/
 	SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, VP->VOLREG_CENTER_OLD, VP->VOLREG_MATVEC were successfully applied*/
-	
+	SUMA_Boolean SentToAfni; /*!< YUP if the surface has been niml-sent to AFNI */
+   
 	int N_Node; /*!< Number of nodes in the SO */
 	int NodeDim; /*!< Dimension of Node coordinates 3 for 3D only 3 is used for now, with flat surfaces having z = 0*/
 	int EmbedDim; /*!< Embedding dimension of the surface, 2 for flat surfaces 3 for ones with non zero curvature other. */ 
@@ -653,8 +665,12 @@ typedef struct {
 	GLfloat *glar_NodeList;			/*!< pointer to the 1D NodeList array - DO NOT FREE IT, it is a pointer copy of NodeList*/
 	GLint  *glar_FaceSetList;		/*!< pointer to the 1D FaceSetList array - DO NOT FREE IT, it is a pointer copy of FaceSetList*/
 	GLfloat *glar_FaceNormList;	 /*!< pointer to the 1D FaceNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
+   #if 0
+   /* This pointer is now a part of the surface viewer structure. Wed Nov  6 10:23:05 EST 2002
+   Node color assignment is not a property of the surface alone, it also depends on the settings of the viewer. */
 	GLfloat *glar_ColorList; 		/*!< pointer to the 1D ColorList array*/
-	GLfloat *glar_NodeNormList; 	/*!< pointer to the 1D NodeNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
+   #endif
+   GLfloat *glar_NodeNormList; 	/*!< pointer to the 1D NodeNormList array - DO NOT FREE IT, it is a pointer copy of NodeNormList*/
 	
 	SUMA_Boolean ShowMeshAxis; /*!< flag to show Mesh Axis if it is created */
 	SUMA_Axis *MeshAxis;	/*!< pointer to XYZ axis centered on the surface's centroid */
@@ -763,10 +779,23 @@ typedef struct {
 	int InOut_Level; /*!< level of nested function calls */
 	XtAppContext App; /*!< Application Context for SUMA */
 	Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
-	int N_OpenSV; /*!< Number of open (visible) surface viewers */
+	
+   int N_OpenSV; /*!< Number of open (visible) surface viewers.
+                     Do not confuse this with the number of surface viewers
+                     created (SUMAg_N_SVv)*/
    
    SUMA_MEMTRACE_STRUCT *Mem; /*!< structure used to keep track of memory usage */
    SUMA_Boolean MemTrace; /*!< Flag for keeping track of memory usage (must also set SUMA_MEMTRACE_FLAG ) */
+
+	NI_stream ns; /*!< Stream used to communicate with AFNI. 
+                     It is null when no communication stream is open. 
+                     The stream can be open with Connected set to NOPE.
+                     In that case no communication between the two programs
+                     but resuming communication is easy since surfaces need
+                     not be sent to AFNI again as would be the case if the stream 
+                     was completely closed */
+   SUMA_Boolean Connected; /*! YUP/NOPE, if SUMA is sending (or accepting) communication from AFNI */
+   SUMA_Boolean Locked[SUMA_MAX_SURF_VIEWERS]; /*! All viewers i such that Locked[i] = YUP are locked together */   
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */

@@ -14,7 +14,7 @@ SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void);
 SUMA_Boolean SUMA_CreateFaceSetMarker (SUMA_FaceSetMarker* FM);
 SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void);
 void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM);
-void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj);
+void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *csv);
 SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO);
 void SUMA_Print_Surface_Object(SUMA_SurfaceObject *SO, FILE *Out);
 SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N);

@@ -35,7 +35,8 @@
 
 #include "SUMA_define.h"   
 #include "SUMA_Macros.h"  
-#include "SUMA_prototype.h"  
+#include "SUMA_prototype.h"
+#include "SUMA_ParseCommands.h"  
 #include "SUMA_niml.h"
 #include "SUMA_Engine.h"
 #include "SUMA_display.h"

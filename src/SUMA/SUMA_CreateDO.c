@@ -390,7 +390,7 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
 }
 
 /*! Create a tesselated mesh */
-void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj)
+void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {  static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
 	int i, ND, id, ip, NP;
 	static char FuncName[]={"SUMA_CreateMesh"};
@@ -463,7 +463,7 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj)
    		glEnableClientState (GL_COLOR_ARRAY);
 			glEnableClientState (GL_VERTEX_ARRAY);
 			glEnableClientState (GL_NORMAL_ARRAY);
-	  		glColorPointer (4, GL_FLOAT, 0, SurfObj->glar_ColorList);
+	  		glColorPointer (4, GL_FLOAT, 0, SUMA_GetColorList (sv, SurfObj->idcode_str));
    		glVertexPointer (3, GL_FLOAT, 0, SurfObj->glar_NodeList);
 			glNormalPointer (GL_FLOAT, 0, SurfObj->glar_NodeNormList);
 			/*fprintf(stdout, "Ready to draw Elements %d\n", SurfObj->N_FaceSet);*/
@@ -528,9 +528,7 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
 	SO->glar_NodeList = NULL;
 	SO->glar_NodeNormList = NULL;
 	SO->glar_FaceNormList = NULL;
-	
-	/*fprintf (stdout, "SO->glar_ColorList... ");*/
-	if (SO->glar_ColorList)	SUMA_free(SO->glar_ColorList);
+   
 	/*fprintf (stdout, "SO->NodeList... ");*/
 	if (SO->NodeList)	SUMA_free(SO->NodeList);
 	/*fprintf (stdout, "SO->NodeList... ");*/
@@ -803,15 +801,7 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
 		fprintf (Out, "\n");
 	}
 		
-	if (SO->glar_ColorList == NULL)
-		fprintf (Out,"glar_ColorList is NULL\n\n");
-	else {
-		if (MaxShow > SO->N_Node) MaxShow = SO->N_Node; 
-		fprintf (Out, "glar_ColorList (showing %d out of %d elements):\n", MaxShow*4, SO->N_Node*4);
-		for (i=0; i < MaxShow ; ++i)	fprintf (Out, "\t%.3f\t%.3f\t%.3f\t%.3f\n", SO->glar_ColorList[4*i], SO->glar_ColorList[4*i+1],SO->glar_ColorList[4*i+2], SO->glar_ColorList[4*i+3]);
-		fprintf (Out, "\n");		
-	}
-
+   
 	if (SO->MF == NULL)
 		fprintf (Out,"SO->MF = NULL\n\n") ;
 	else {
@@ -917,7 +907,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
 		SO[i].Cx = NULL;
 		SO[i].Cx_Inode = NULL;
 		SO[i].VolPar = NULL;
-		SO[i].glar_NodeList = NULL; 
+      SO[i].glar_NodeList = NULL; 
 		/* create vector of pointers */
 		SO[i].Overlays = (SUMA_OVERLAYS **) SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
 		SO[i].Overlays_Inode = (SUMA_INODE **) SUMA_malloc(sizeof(SUMA_INODE *) * SUMA_MAX_OVERLAYS); 
@@ -927,6 +917,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
 			SO[i].Overlays_Inode[j] = NULL;
 		}
 		SO[i].N_Overlays = 0;
+      SO[i].SentToAfni = NOPE;
 	}
 	SUMA_RETURN(SO);
 }/* SUMA_Alloc_SurfObject_Struct */

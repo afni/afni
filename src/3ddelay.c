@@ -228,6 +228,9 @@ void display_help_menu()
 	"                   at which the slice containing that voxel was acquired.\n\n"
 	"[-co CCT]          Cross Correlation Coefficient threshold value.\n"
 	"                   This is only used to limit the ascii output (see below).\n"
+   "[-nodtrnd]         Do not remove the linear trend from the data time series.\n"
+   "                   Only the mean is removed. Regardless of this option, \n"
+   "                   No detrending is done to the reference time series.\n"
 	"[-asc [out]]       Write the results to an ascii file for voxels with \n"
 	"[-ascts [out]]     cross correlation coefficients larger than CCT.\n"
 	"                   If 'out' is not specified, a default name similar \n"
@@ -275,6 +278,11 @@ void display_help_menu()
 	"          Bruel and Kjaer Instruments Inc.\n"
 	"   [2] : Bendat, J. S. and G. A. Piersol (1986). Random Data analysis and measurement procedures, \n"
 	"          John Wiley & Sons.\n"
+   "   Author's publications on delay estimation using the Hilbert Transform:\n"
+   "   [3] : Saad, Z.S., et al., Analysis and use of FMRI response delays. \n"
+   "         Hum Brain Mapp, 2001. 13(2): p. 74-93.\n"
+   "   [4] : Saad, Z.S., E.A. DeYoe, and K.M. Ropella, Estimation of FMRI Response Delays. \n"
+   "         Neuroimage, 2002: p. in press.\n\n"   
     );
 
   exit(0);
@@ -595,6 +603,14 @@ void get_options
       if (strcmp(argv[nopt], "-nodsamp") == 0)
 		{
 		  option_data->Dsamp = 0;
+		  nopt++;
+		  continue;
+		}
+
+       /*-----   -nodtrnd  -----*/
+      if (strcmp(argv[nopt], "-nodtrnd") == 0)
+		{
+		  option_data->dtrnd = 0;
 		  nopt++;
 		  continue;
 		}
@@ -1652,11 +1668,13 @@ void calculate_results
 
       if( option_data->dtrnd )
          for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] -= (x0 + x1 * dtr[kk]) ;
-
+      else
+         for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] -= x0;
+         
 		#ifdef ZDBG
 		if (ixyz == iposdbg)
 			{
-				printf("After Detrending\n");
+				printf("After Detrending (or just zero-meaning)\n");
 				printf("TS: %f\t%f\t%f\t%f\t%f\n", vox_vect[0], vox_vect[1],  vox_vect[2], vox_vect[3], vox_vect[4]);
 				/*getchar ();*/
 			}
