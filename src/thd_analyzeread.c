@@ -239,9 +239,35 @@ ENTRY("THD_open_analyze") ;
 
    /* origin of coordinates */
 
-   orgxyz.xyz[0] = 0.5*dx ;
+   orgxyz.xyz[0] = 0.5*dx ;  /* FSL: (0,0,0) is at outer corner of 1st voxel */
    orgxyz.xyz[1] = 0.5*dy ;
    orgxyz.xyz[2] = 0.5*dz ;
+
+   /* 04 Oct 2002: allow auto-centering of ANALYZE datasets */
+
+   if( AFNI_yesenv("AFNI_ANALYZE_AUTOCENTER") ){
+     float size ;
+
+     size = 0.5 * (nx-1) * dx ;
+     orgxyz.xyz[0] = (ORIENT_sign[orixyz.ijk[0]] == '-') ? (-size) : (size) ;
+
+     size = 0.5 * (ny-1) * dy ;
+     orgxyz.xyz[1] = (ORIENT_sign[orixyz.ijk[1]] == '-') ? (-size) : (size) ;
+
+     size = 0.5 * (nz-1) * dz ;
+     orgxyz.xyz[2] = (ORIENT_sign[orixyz.ijk[2]] == '-') ? (-size) : (size) ;
+
+     /* also, change the voxel size signs, if needed */
+
+     if( ORIENT_sign[orixyz.ijk[0]] == '-' ) dxyz.xyz[0] = -dx ;
+     if( ORIENT_sign[orixyz.ijk[1]] == '-' ) dxyz.xyz[1] = -dy ;
+     if( ORIENT_sign[orixyz.ijk[2]] == '-' ) dxyz.xyz[2] = -dz ;
+
+fprintf(stderr,"\n") ;
+DUMP_IVEC3("orixyz",orixyz) ;
+DUMP_FVEC3("orgxyz",orgxyz) ;
+DUMP_FVEC3("dxyz  ",dxyz  ) ;
+   }
 
    iview = VIEW_ORIGINAL_TYPE ;
 
