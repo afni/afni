@@ -83,9 +83,10 @@ void AFNI_syntax(void)
 {
    printf(
      ANNOUNCEMENT
-     "\n"
-     "Usage 1: read in sessions of 3D datasets (created by to3d)\n"
-     "\n"
+
+     "----------------------------------------------------------------\n"
+     "USAGE 1: read in sessions of 3D datasets (created by to3d, etc.)\n"
+     "----------------------------------------------------------------\n"
      "   afni [options] [session_directory ...]\n"
      "\n"
 #if MMAP_THRESHOLD > 0
@@ -169,17 +170,21 @@ void AFNI_syntax(void)
      "                  and must be the same as the '-np port' number given\n"
      "                  to SUMA.  [default = 53211]\n"
      "\n"
-     " If no session_directories are given, then the program will use\n"
-     "   the current working directory (i.e., './').\n"
-     " The maximum number of sessions is now set to  %d.\n"
-     " The maximum number of datasets per session is %d.\n"
+     " * If no session_directories are given, then the program will use\n"
+     "    the current working directory (i.e., './').\n"
+     " * The maximum number of sessions is now set to  %d.\n"
+     " * The maximum number of datasets per session is %d.\n"
+     " * To change these maximums, you must edit file '3ddata.h' and then\n"
+     "    recompile this program.\n"
 
      , THD_MAX_NUM_SESSION , THD_MAX_SESSION_SIZE
    ) ;
 
    printf(
      "\n"
-     "Usage 2: read in images for 'quick and dirty' viewing\n"
+     "-----------------------------------------------------\n"
+     "USAGE 2: read in images for 'quick and dirty' viewing\n"
+     "-----------------------------------------------------\n"
      "(Most advanced features of AFNI will be disabled.)\n"
      "\n"
      "   afni -im [options] im1 im2 im3 ...\n"
@@ -223,14 +228,18 @@ void AFNI_syntax(void)
      "                  slice order first (like -time:zt in to3d).\n"
      "\n"
      " N.B.: You may wish to use the -ignore option to set the number of\n"
-     "       initial points to ignore in the time series graph if you use\n"
-     "       -tim or -zim, since there is no way to change this from\n"
-     "       within an AFNI run (the FIM menus are disabled).\n"
+     "        initial points to ignore in the time series graph if you use\n"
+     "        -tim or -zim, since there is no way to change this from\n"
+     "        within an AFNI run (the FIM menus are disabled).\n"
+     " N.B.: The program 'aiv' (AFNI image viewer) can also be used to\n"
+     "        look at images.\n"
    ) ;
 
    printf(
      "\n"
-     "Usage 3: read in datasets specified on the command line\n"
+     "-------------------------------------------------------\n"
+     "USAGE 3: read in datasets specified on the command line\n"
+     "-------------------------------------------------------\n"
      "\n"
      "  afni -dset [options] dname1 dname2 ...\n"
      "\n"
@@ -245,7 +254,9 @@ void AFNI_syntax(void)
 
    printf(
      "\n"
-     "General options (for any Usage):\n"
+     "-------------------------------\n"
+     "GENERAL OPTIONS (for any usage)\n"
+     "-------------------------------\n"
      "\n"
      "   -q           Tells afni to be 'quiet' on startup\n"
      "   -gamma gg    Tells afni that the gamma correction factor for the\n"
@@ -284,7 +295,7 @@ void AFNI_syntax(void)
 
    printf(
     "\n"
-    "\n"
+    "----------\n"
     "REFERENCES\n"
     "----------\n"
     "The following papers describe some of the components of the AFNI package.\n"
@@ -319,7 +330,7 @@ void AFNI_syntax(void)
     "  * Describes the algorithm used in 3ddelay (cf. '3ddelay -help').\n"
    ) ;
 
-   exit(0) ;
+   printf("\n") ; exit(0) ;
 }
 
 /*----------------------------------------------------------------------

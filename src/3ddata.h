@@ -3193,7 +3193,7 @@ extern THD_3dim_dataset * THD_copy_dset_subs( THD_3dim_dataset * , int * ) ;
     " creates a 3 sub-brick dataset with values less than 100 or\n"           \
     " greater than 200 from the original set to zero.\n"                      \
     " If you use the <> sub-range selection without the [] sub-brick\n"       \
-    " selection, it is the same as if you had put [1..$] in front of\n"       \
+    " selection, it is the same as if you had put [0..$] in front of\n"       \
     " the sub-range selection.\n"                                             \
     "\n"                                                                      \
     " N.B.: Datasets using sub-brick/sub-range selectors are treated as:\n"   \
