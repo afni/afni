@@ -172,4 +172,6 @@ extern THD_fvec3 THD_dicomm_to_surefit( struct THD_3dim_dataset *, THD_fvec3 ) ;
 extern THD_fvec3 THD_surefit_to_dicomm( struct THD_3dim_dataset *, THD_fvec3 ) ;
 extern void SUMA_import_surefit( SUMA_surface *, char *, struct THD_3dim_dataset * );
 
+extern void SUMA_destroy_vnlist( SUMA_vnlist *vnlist ) ;
+
 #endif /* _SUMA_HEADER_FILE */

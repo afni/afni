@@ -21,6 +21,9 @@
 #undef MIN  /* system may define MIN somewhere and complain */
 #define MIN(mm,nn) (((mm) < (nn)) ? (mm) : (nn))
 
+#undef  SIZEOF_INT
+#define SIZEOF_INT 4
+
 /* #define ODEBUG 1 */
 
 #if ODEBUG

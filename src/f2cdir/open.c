@@ -20,6 +20,9 @@ extern int f__canseek(FILE*);
 extern integer f_clos(cllist*);
 #endif
 
+#include <string.h>
+#include <unistd.h>
+
 #ifdef NON_ANSI_RW_MODES
 char *f__r_mode[2] = {"r", "r"};
 char *f__w_mode[4] = {"w", "w", "r+w", "r+w"};
@@ -29,9 +32,9 @@ char *f__w_mode[4] = {"wb", "w", "r+b", "r+"};
 #endif
 
 #ifdef KR_headers
-f__isdev(s) char *s;
+int f__isdev(s) char *s;
 #else
-f__isdev(char *s)
+int f__isdev(char *s)
 #endif
 {
 #ifdef NON_UNIX_STDIO
@@ -220,9 +223,9 @@ integer f_open(olist *a)
 	return(0);
 }
 #ifdef KR_headers
-fk_open(seq,fmt,n) ftnint n;
+int fk_open(seq,fmt,n) ftnint n;
 #else
-fk_open(int seq, int fmt, ftnint n)
+int fk_open(int seq, int fmt, ftnint n)
 #endif
 {	char nbuf[10];
 	olist a;

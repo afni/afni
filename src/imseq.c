@@ -29,6 +29,12 @@
 
 #define DONT_ONOFF_ONE        /* 29 Jul 2002 */
 
+#define SEND(sq,cb)                                     \
+  AFNI_CALL_VOID_3ARG( (sq)->status->send_CB ,          \
+                       MCW_imseq * , sq ,               \
+                       XtPointer   , (sq)->getaux ,     \
+                       ISQ_cbs *   , &(cb)          )
+
 /************************************************************************
    Define the buttons and boxes that go in the "Disp" dialog
 *************************************************************************/
@@ -631,11 +637,21 @@ ENTRY("open_MCW_imseq") ;
 
    newseq->never_drawn = 1 ;
 
+#if 0
    imstatus = (MCW_imseq_status *) get_image(0,isqCR_getstatus,aux) ;
+#else
+   AFNI_CALL_VALU_3ARG( get_image , MCW_imseq_status *,imstatus ,
+                        int,0 , int,isqCR_getstatus , XtPointer,aux ) ;
+#endif
    if( imstatus->num_total < 1 ){ ERREX ; }
    one_image = (imstatus->num_total == 1) ;
 
+#if 0
    tim = (MRI_IMAGE *) get_image(0,isqCR_getqimage,aux) ;  /* fake image */
+#else
+   AFNI_CALL_VALU_3ARG( get_image , MRI_IMAGE *,tim ,
+                        int,0 , int,isqCR_getqimage , XtPointer,aux ) ;
+#endif
 
    newseq->horig = tim->nx ;  /* save original dimensions */
    newseq->vorig = tim->ny ;
@@ -3641,7 +3657,11 @@ ENTRY("ISQ_but_done_CB") ;
       STATUS("IMSEQ: sending destroy message") ;
 
       cbs.reason = isqCR_destroy ;
+#if 0
       seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+      SEND(seq,cbs) ;
+#endif
    }
 
    EXRETURN ;
@@ -3934,7 +3954,11 @@ ENTRY("ISQ_set_image_number") ;
        seq->im_nr = n ;
        cbs.reason = isqCR_newimage ;
        cbs.nim    = seq->im_nr ;
+#if 0
        seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+       SEND(seq,cbs) ;
+#endif
      } else {
 #if 0
        ISQ_redisplay( seq , n , isqDR_display ) ;  /* 07 Nov 2002 */
@@ -4422,7 +4446,11 @@ ENTRY("ISQ_drawing_EV") ;
                 cbs.xim    = imx ;       /* delayed send of Button1 */
                 cbs.yim    = imy ;       /* event to AFNI now       */
                 cbs.nim    = nim ;
+#if 0
                 seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+                SEND(seq,cbs) ;
+#endif
              }
            }
          }
@@ -4617,7 +4645,11 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                  cbs.reason   = isqCR_button2_key ;
                  cbs.event    = ev ;
                  cbs.key      = (int) XK_Delete ;
+#if 0
                  seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+                 SEND(seq,cbs) ;
+#endif
                }
              break ;
 
@@ -4796,7 +4828,11 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
            cbs.event  = ev ;
            cbs.key    = buf[0] ;
            cbs.nim    = seq->im_nr ;
+#if 0
            seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+           SEND(seq,cbs) ;
+#endif
          }
       }
       break ;  /* end of KeyPress */
@@ -4928,7 +4964,11 @@ DPR(" .. ButtonPress") ;
                 }
 
                 if( event->button == Button3 )      /* 04 Nov 2003: only for Button3 */
+#if 0
                   seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+                  SEND(seq,cbs) ;
+#endif
               }
             }
             break ;
@@ -5178,7 +5218,11 @@ ENTRY("ISQ_button2_EV") ;
          cbs.key      = ii ;                 /* number of points */
          cbs.nim      = nim ;                /* z coord */
          cbs.userdata = (XtPointer) xyout ;  /* x & y coords */
+#if 0
          seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+         SEND(seq,cbs) ;
+#endif
 
          seq->button2_active = 0 ;  /* disallow button2 stuff */
       }
@@ -5977,9 +6021,14 @@ ENTRY("ISQ_statistics_WP") ;
 
       /* if here, image nn has yet to be done for local statistics */
 
+#if 0
       im = (MRI_IMAGE *) seq->getim( nn , isqCR_getimage , seq->getaux ) ;
+#else
+      AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,im ,
+                           int,nn , int,isqCR_getimage , XtPointer,seq->getaux ) ;
+#endif
       if( im != NULL ){
-         ISQ_statify_one( seq , nn , im ) ; KILL_1MRI(im) ;
+        ISQ_statify_one( seq , nn , im ) ; KILL_1MRI(im) ;
       }
       RETURN( False );   /* continue next time on next un-statted image */
    }
@@ -6007,7 +6056,12 @@ ENTRY("ISQ_statistics_WP") ;
 
       /* if here, image nn has yet to be done for global histogram */
 
+#if 0
       im = (MRI_IMAGE *) seq->getim( nn , isqCR_getimage , seq->getaux ) ;
+#else
+      AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,im ,
+                           int,nn , int,isqCR_getimage , XtPointer,seq->getaux ) ;
+#endif
       if( im != NULL ){
          ISQ_statify_one( seq , nn , im ) ; KILL_1MRI(im) ;
       }
@@ -6696,7 +6750,11 @@ static unsigned char record_bits[] = {
             cbs.userdata = (XtPointer) &minf ;
 
             seq->ignore_redraws = 1 ;         /* don't listen to redraws */
+#if 0
             seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+            SEND(seq,cbs) ;
+#endif
             seq->ignore_redraws = 0 ;         /* can listen again */
          }
 
@@ -6885,7 +6943,11 @@ static unsigned char record_bits[] = {
             minf.ijk[2]  = seq->mont_skip ;   /* number between slices */
             cbs.reason   = isqCR_newmontage ;
             cbs.userdata = (XtPointer) &minf ;
+#if 0
             seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+            SEND(seq,cbs) ;
+#endif
             RETURN( True );
          } else {
             RETURN( False );
@@ -7257,7 +7319,11 @@ ENTRY("ISQ_arrowpad_CB") ;
 
    if( apad->which_pressed == AP_MID ){
       cbs.reason = isqCR_appress ;
+#if 0
       seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+      SEND(seq,cbs) ;
+#endif
       EXRETURN ;
    }
 
@@ -7294,7 +7360,11 @@ ENTRY("ISQ_arrowpad_CB") ;
    else if( yoff < yorg ) cbs.reason = isqCR_dyminus ;
    else                   EXRETURN ;                     /* error! */
 
+#if 0
    seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+   SEND(seq,cbs) ;
+#endif
    EXRETURN ;
 }
 
@@ -7314,7 +7384,12 @@ ENTRY("ISQ_setup_new") ;
 
    if( !ISQ_VALID(seq) ) RETURN( False );
 
+#if 0
    imstatus = (MCW_imseq_status *) seq->getim(0,isqCR_getstatus,newaux);
+#else
+   AFNI_CALL_VALU_3ARG( seq->getim , MCW_imseq_status *,imstatus ,
+                        int,0 , int,isqCR_getstatus , XtPointer,newaux ) ;
+#endif
    if( imstatus->num_total < 1 ){ RETURN( False ); }  /* 09 Feb 1999: allow 1 */
 
 #if 0
@@ -7839,7 +7914,11 @@ ENTRY("ISQ_montage_action_CB") ;
             cbs.userdata = (XtPointer) &minf ;
 
             seq->ignore_redraws = 1 ;         /* don't listen to redraws */
+#if 0
             seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+            SEND(seq,cbs) ;
+#endif
             seq->ignore_redraws = 0 ;         /* can listen again */
          }
 
@@ -8698,7 +8777,11 @@ ENTRY("ISQ_rowgraph_draw") ;
    cbs.reason = isqCR_getxynim ;
    cbs.xim = cbs.yim = cbs.nim = -666 ;
    if( seq->status->send_CB != NULL )
+#if 0
      seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+     SEND(seq,cbs) ;
+#endif
    if( cbs.xim < 0 || cbs.yim < 0 ){
      fprintf(stderr,
       "*** error in ISQ_rowgraph_draw: xim=%d yim=%d\n",cbs.xim,cbs.yim) ;
@@ -8971,7 +9054,11 @@ ENTRY("ISQ_surfgraph_draw") ;
       cbs.reason = isqCR_getxynim ;
       cbs.xim = cbs.yim = cbs.nim = -666 ;
       if( seq->status->send_CB != NULL )
+#if 0
          seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+#else
+         SEND(seq,cbs) ;
+#endif
       if( cbs.xim < 0 || cbs.yim < 0 ){
          ix = jy = -1 ;
       } else {
@@ -9812,7 +9899,12 @@ char * ISQ_getlabel( int nn , MCW_imseq *seq )
 
 ENTRY("ISQ_getlabel") ;
 
+#if 0
    lab = (char *) seq->getim( nn,isqCR_getlabel,seq->getaux );
+#else
+   AFNI_CALL_VALU_3ARG( seq->getim , char *,lab ,
+                        int,nn , int,isqCR_getlabel , XtPointer,seq->getaux ) ;
+#endif
    RETURN(lab) ;
 }
 
@@ -9826,7 +9918,12 @@ MEM_plotdata * ISQ_getmemplot( int nn , MCW_imseq *seq )
 
 ENTRY("ISQ_getmemplot") ;
 
+#if 0
    mp = (MEM_plotdata *) seq->getim( nn,isqCR_getmemplot,seq->getaux );
+#else
+   AFNI_CALL_VALU_3ARG( seq->getim , MEM_plotdata *,mp ,
+                        int,nn , int,isqCR_getmemplot , XtPointer,seq->getaux ) ;
+#endif
 
    if( mp != NULL && seq->cropit ){  /* scale memplot for cropping region */
      float sx,sy,tx,ty ;
@@ -9878,7 +9975,12 @@ MRI_IMAGE * ISQ_getoverlay( int nn , MCW_imseq *seq )
 
 ENTRY("ISQ_getoverlay") ;
 
+#if 0
    tim = (MRI_IMAGE *) seq->getim( nn , isqCR_getoverlay , seq->getaux ) ;
+#else
+   AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,tim ,
+                        int,nn , int,isqCR_getoverlay , XtPointer,seq->getaux ) ;
+#endif
 
    if( tim == NULL ) RETURN(NULL) ;
 
@@ -9907,7 +10009,12 @@ ENTRY("ISQ_getimage") ;
 
    /* get the commanded slice */
 
+#if 0
    tim = (MRI_IMAGE *) seq->getim( nn, isqCR_getimage, seq->getaux ) ;
+#else
+   AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,tim ,
+                        int,nn , int,isqCR_getimage , XtPointer,seq->getaux ) ;
+#endif
 
    if( tim == NULL ) RETURN(NULL) ;
 
@@ -9972,7 +10079,13 @@ ENTRY("ISQ_getimage") ;
            if( jj < 0   ) jj = 0    ; /* but not past the edges */
       else if( jj >= ns ) jj = ns-1 ;
 
+#if 0
       qim = (MRI_IMAGE *) seq->getim( jj, isqCR_getimage, seq->getaux ) ;
+#else
+      AFNI_CALL_VALU_3ARG( seq->getim , MRI_IMAGE *,qim ,
+                           int,jj , int,isqCR_getimage , XtPointer,seq->getaux ) ;
+#endif
+
       if( qim == NULL )
          fim = mri_to_float(tim) ;                 /* need something */
       else if( qim->kind != MRI_float ){

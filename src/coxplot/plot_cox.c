@@ -849,4 +849,5 @@ void plotpak_points( float *x , float *y , int n , int ipen )
    points_( (real *)x , (real *)y , &nn , &zero , &nipen ) ;
 }
 
+void ppak_garbage_routine(void) ;
 void this_is_real_junk(void){ ppak_garbage_routine(); }

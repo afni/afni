@@ -1,4 +1,10 @@
-/** Casting macros to fixup AFNI stuff for compiling with g++. **/
+#ifndef _AFNI_AMALLOC_HEADER_
+#define _AFNI_AMALLOC_HEADER_
+/************************************************************************
+   Casting macros to fixup AFNI stuff for compiling with g++. 
+   Original dealt with only malloc() casting stuff, but more
+   has been added since.
+************************************************************************/
 
 /*---------------------------------------------------------------------*/
 /*! Replacement for malloc(). */
@@ -101,3 +107,68 @@
      if( fp != NULL )                                          \
        fp(n,ts,(void *)(ud),nb,(void *)(vv)) ;                 \
  } while(0)
+
+/************************************************************************
+     Macros to call functions with arguments of general types
+     specified in the macro call, with various numbers of arguments.
+     Functions returninothing (_VOID_) or return a value (_VALU_).
+************************************************************************/
+
+/*---------------------------------------------------------------------*/
+#define AFNI_CALL_VOID_1ARG(func,typ1,arg1)                   \
+ do{ void (*fp)(typ1) = (void (*)(typ1))(func) ;              \
+     if( fp != NULL )                                         \
+      fp((typ1)(arg1)) ;                                      \
+ } while(0)
+
+/*---------------------------------------------------------------------*/
+#define AFNI_CALL_VALU_1ARG(func,vtyp,vval,typ1,arg1)         \
+ do{ vtyp (*fp)(typ1) = (vtyp (*)(typ1))(func) ;              \
+     if( fp != NULL )                                         \
+      (vval) = fp((typ1)(arg1)) ;                             \
+ } while(0)
+
+/*---------------------------------------------------------------------*/
+#define AFNI_CALL_VOID_2ARG(func,typ1,arg1,typ2,arg2)        \
+ do{ void (*fp)(typ1,typ2) = (void (*)(typ1,typ2))(func) ;   \
+     if( fp != NULL )                                        \
+      fp((typ1)(arg1),(typ2)(arg2)) ;                        \
+ } while(0)
+
+/*---------------------------------------------------------------------*/
+#define AFNI_CALL_VALU_2ARG(func,vtyp,vval,typ1,arg1,typ2,arg2) \
+ do{ vtyp (*fp)(typ1,typ2) = (vtyp (*)(typ1,typ2))(func) ;      \
+     if( fp != NULL )                                           \
+      (vval) = fp((typ1)(arg1),(typ2)(arg2)) ;                  \
+ } while(0)
+
+/*---------------------------------------------------------------------*/
+#define AFNI_CALL_VOID_3ARG(func,typ1,arg1,typ2,arg2,typ3,arg3)      \
+ do{ void (*fp)(typ1,typ2,typ3) = (void (*)(typ1,typ2,typ3))(func) ; \
+     if( fp != NULL )                                                \
+      fp((typ1)(arg1),(typ2)(arg2),(typ3)(arg3)) ;                   \
+ } while(0)
+
+/*-------------------------------------------------------------------------*/
+#define AFNI_CALL_VALU_3ARG(func,vtyp,vval,typ1,arg1,typ2,arg2,typ3,arg3) \
+ do{ vtyp (*fp)(typ1,typ2,typ3) = (vtyp (*)(typ1,typ2,typ3))(func) ;      \
+     if( fp != NULL )                                                     \
+      (vval) = fp((typ1)(arg1),(typ2)(arg2),(typ3)(arg3)) ;               \
+ } while(0)
+
+/*----------------------------------------------------------------------------*/
+#define AFNI_CALL_VOID_4ARG(func,typ1,arg1,typ2,arg2,typ3,arg3,typ4,arg4)     \
+ do{ void (*fp)(typ1,typ2,typ3,typ4) = (void (*)(typ1,typ2,typ3,typ4))(func); \
+     if( fp != NULL )                                                         \
+      fp((typ1)(arg1),(typ2)(arg2),(typ3)(arg3),(typ4)(arg4)) ;               \
+ } while(0)
+
+/*----------------------------------------------------------------------------------*/
+#define AFNI_CALL_VALU_4ARG(func,vtyp,vval,typ1,arg1,typ2,arg2,typ3,arg3,typ4,arg4) \
+ do{ vtyp (*fp)(typ1,typ2,typ3,typ4) = (vtyp (*)(typ1,typ2,typ3,typ4))(func) ;      \
+     if( fp != NULL )                                                               \
+      (vval) = fp((typ1)(arg1),(typ2)(arg2),(typ3)(arg3),(typ4)(arg4)) ;            \
+ } while(0)
+
+/******************************************************************************/
+#endif /* _AFNI_AMALLOC_HEADER_ */

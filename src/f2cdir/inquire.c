@@ -10,6 +10,10 @@ integer f_inqu(a) inlist *a;
 #include "string.h"
 #include "io.h"
 #endif
+
+#include <unistd.h>
+#include <string.h>
+
 integer f_inqu(inlist *a)
 #endif
 {	flag byfile;

@@ -81,6 +81,9 @@ double PARSER_evaluate_one( PARSER_code * pc , double atoz[] )
    first character of sym, otherwise return 0 - 15 Sep 1999 - RWCox.
 ------------------------------------------------------------------------*/
 
+extern integer hassym_(char *sym, integer *num_code__, char *c_code__, ftnlen
+        sym_len, ftnlen c_code_len) ;
+
 int PARSER_has_symbol( char * sym , PARSER_code * pc )
 {
    int hh ;
@@ -239,6 +242,8 @@ doublereal derf_ ( doublereal * x )
 
 doublereal derfc_( doublereal * x )
 { return (doublereal) erfc( (double) *x ) ; }
+
+#include <time.h>
 
 doublereal unif_( doublereal * x )  /* 04 Feb 2000 */
 {

@@ -388,7 +388,12 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
 
         /* if the graph WAS changed, call the callback function */
 
+#if 0
         if( GRAF_changed(gp) && gp->cbfunc != NULL ) gp->cbfunc(gp,gp->cbdata) ;
+#else
+        if( GRAF_changed(gp) && gp->cbfunc != NULL )
+          AFNI_CALL_VOID_2ARG( gp->cbfunc , MCW_graf *,gp , void *,gp->cbdata ) ;
+#endif
 
 #if 1
         if( use_popup ){                     /* 30 Nov 2002 */
@@ -482,7 +487,12 @@ void GRAF_curve_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    gp->spline = bval ;
    GenerateGrafFunc(gp,1);
+#if 0
    if( GRAF_changed(gp) && gp->cbfunc != NULL ) gp->cbfunc(gp,gp->cbdata) ;
+#else
+   if( GRAF_changed(gp) && gp->cbfunc != NULL )
+     AFNI_CALL_VOID_2ARG( gp->cbfunc , MCW_graf *,gp , void *,gp->cbdata ) ;
+#endif
    return ;
 }
 
@@ -498,7 +508,12 @@ void GRAF_reset_CB( Widget w, XtPointer client_data, XtPointer call_data )
    for( j=0 ; j < gp->nhands ; j++ ) gp->hands[j].y = gp->hands[j].x ;
 
    GenerateGrafFunc(gp,1);
+#if 0
    if( GRAF_changed(gp) && gp->cbfunc != NULL ) gp->cbfunc(gp,gp->cbdata) ;
+#else
+   if( GRAF_changed(gp) && gp->cbfunc != NULL )
+     AFNI_CALL_VOID_2ARG( gp->cbfunc , MCW_graf *,gp , void *,gp->cbdata ) ;
+#endif
    return ;
 }
 
@@ -593,7 +608,12 @@ void GRAF_handle_CB( MCW_arrowval * av , XtPointer client_data )
    }
 
    GenerateGrafFunc(gp,1);
+#if 0
    if( GRAF_changed(gp) && gp->cbfunc != NULL ) gp->cbfunc(gp,gp->cbdata) ;
+#else
+   if( GRAF_changed(gp) && gp->cbfunc != NULL )
+     AFNI_CALL_VOID_2ARG( gp->cbfunc , MCW_graf *,gp , void *,gp->cbdata ) ;
+#endif
    return ;
 }
 
@@ -695,6 +715,8 @@ void InitSpline(int *x,int *y,int n,double *y2)
 }
 
 /*******************************************************************/
+
+extern void FatalError(char * str);
 
 double EvalSpline(int xa[],int ya[],double y2a[],int n,double x)
 {

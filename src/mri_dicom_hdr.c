@@ -64,6 +64,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 #include "mri_dicom_hdr.h"
 
@@ -411,8 +412,14 @@ COND_PushCondition(CONDITION cond, char *controlString,...)
 
     (void) strcpy(EDBStack[stackPtr].statusText, buffer);
     if (ErrorCallback != NULL)
+#if 0
 	ErrorCallback(EDBStack[stackPtr].statusCode,
 		      EDBStack[stackPtr].statusText);
+#else
+        AFNI_CALL_VOID_2ARG( ErrorCallback ,
+                             CONDITION,EDBStack[stackPtr].statusCode ,
+                             char *   ,EDBStack[stackPtr].statusText  ) ;
+#endif
 
     if (stackPtr >= MAXEDB - 2) {
 	dumpstack(stderr);
@@ -464,8 +471,14 @@ COND_ExtractConditions(CTNBOOLEAN(*callback) ())
 
     for (index = stackPtr, returnflag = 1; index >= 0 && returnflag != 0;
 	 index--) {
+#if 0
 	returnflag = callback(EDBStack[index].statusCode,
 			      EDBStack[index].statusText);
+#else
+        AFNI_CALL_VALU_2ARG( callback , int,returnflag            ,
+                             CONDITION,EDBStack[index].statusCode ,
+                             char *   ,EDBStack[index].statusText  ) ;
+#endif
     }
 
     return COND_NORMAL;
@@ -11177,6 +11190,7 @@ LST_Sort(LST_HEAD ** list, size_t nodeSize, int (*compare) ())
 	*head;
     CTNBOOLEAN
 	inserted;
+    int ccc ;
 
     if ((*list)->head == NULL) {/* list is empty     */
 	return LST_NORMAL;
@@ -11193,7 +11207,12 @@ LST_Sort(LST_HEAD ** list, size_t nodeSize, int (*compare) ())
 	    (void) LST_Position(&head, n2);
 	inserted = FALSE;
 	while (n2 != NULL && !inserted) {
+#if 0
 	    if (compare(n1, n2) < 0) {
+#else
+            AFNI_CALL_VALU_2ARG(compare,int,ccc,LST_NODE *,n1,LST_NODE *,n2) ;
+            if( ccc < 0 ){
+#endif
 		(void) LST_Insert(&head, n1, LST_K_BEFORE);
 		inserted = TRUE;
 	    } else

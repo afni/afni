@@ -17,6 +17,7 @@ static int floatscan    = -1 ;  /* 30 Jul 1999 */
 static int verbose = 0 ;
 
 void THD_load_datablock_verbose( int v ){ verbose = v; }
+int THD_alloc_datablock( THD_datablock *blk ) ;
 
 /*-----------------------------------------------------------------*/
 /*! Check if all sub-bricks have the same datum type. [14 Mar 2002]

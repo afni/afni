@@ -105,6 +105,9 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
    int   ii , old_datum , nuse , use_fac , iz,izold, nxy,nvox , nbad ;
    register int kk ;
 
+   void (*ufunc)(double,double,int,float *,double,double,void *,float *,float *)
+     = (void (*)(double,double,int,float *,double,double,void *,float *,float *))user_func ;
+
    /*----------------------------------------------------------*/
    /*----- Check inputs to see if they are reasonable-ish -----*/
 
@@ -268,7 +271,11 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
 
    /* start notification */
 
+#if 0
    user_func(  0.0 , 0.0 , nvox , NULL,0.0,0.0 , user_data , NULL , NULL ) ;
+#else
+   ufunc(  0.0 , 0.0 , nvox , NULL,0.0,0.0 , user_data , NULL , NULL ) ;
+#endif
 
    /***** loop over voxels *****/
 
@@ -341,8 +348,13 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
 
       /*** compute output ***/
 
+#if 0
       user_func( tzero,tdelta , nuse,fxar,ts_mean,ts_slope , user_data ,
                  fout+ii , tout+ii ) ;
+#else
+      ufunc( tzero,tdelta , nuse,fxar,ts_mean,ts_slope , user_data ,
+                 fout+ii , tout+ii ) ;
+#endif
 
       /***  limit threshold data to [-1,+1]  ***/
       if (tout[ii] >  1.0)  tout[ii] =  1.0;
@@ -354,7 +366,11 @@ THD_3dim_dataset * MAKER_4D_to_typed_fith( THD_3dim_dataset * old_dset ,
 
    /* end notification */
 
+#if 0
    user_func( 0.0 , 0.0 , 0 , NULL,0.0,0.0 , user_data , NULL , NULL ) ;
+#else
+   ufunc( 0.0 , 0.0 , 0 , NULL,0.0,0.0 , user_data , NULL , NULL ) ;
+#endif
 
    nbad = thd_floatscan(nvox,fout) + thd_floatscan(nvox,tout) ;
    if( nbad > 0 )

@@ -7,7 +7,7 @@
 
 /* Common Block Declarations */
 
-struct {
+extern struct {
     real xpgmin, ypgmin, xpgmax, ypgmax, xclbot, yclbot, xcltop, ycltop, xbot,
 	     ybot, xtop, ytop, xmin, ymin, xmax, ymax;
     integer ixcoor, iycoor;
@@ -18,7 +18,7 @@ struct {
 
 #define zzzplt_1 zzzplt_
 
-struct {
+extern struct {
     real xphmax, yphmax;
     integer ixpmax, iypmax;
     real xpscal, ypscal;
