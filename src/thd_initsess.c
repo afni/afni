@@ -15,13 +15,13 @@
                  datasets are in one array (no anat/func distinction).
 -----------------------------------------------------------------------*/
 
-THD_session * THD_init_session( char *sessname )
+THD_session * THD_init_session( char * sessname )
 {
-   THD_session            *sess ;
-   XtPointer_array        *dblk_arrarr ;
-   THD_datablock_array    *dblk_arr ;
-   THD_3dim_dataset       *dset ;
-   THD_3dim_dataset_array *dset_arr ;
+   THD_session            * sess ;
+   XtPointer_array        * dblk_arrarr ;
+   THD_datablock_array    * dblk_arr ;
+   THD_3dim_dataset       * dset ;
+   THD_3dim_dataset_array * dset_arr ;
 
    int ibar , idset , iview  , nds ;
 
@@ -52,7 +52,7 @@ ENTRY("THD_init_session") ;
 
    /* save last name from sessname */
 #if 1
-   { char *env = my_getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
+   { char * env = my_getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
      if( env != NULL ) tt = strtol(env,NULL,10) ;
      env = THD_trailname(sess->sessname,tt) ;
      tt = 1+strlen(env) - THD_MAX_NAME ; if( tt < 0 ) tt = 0 ;
@@ -159,6 +159,37 @@ ENTRY("THD_init_session") ;
        } /* end of loop over files */
        MCW_free_expand( num_minc , fn_minc ) ;
      } /* end of if we found MINC files */
+   }
+
+   if( !AFNI_noenv("AFNI_NIFTI_DATASETS") ){
+     char ename[THD_MAX_NAME] , **fn_nifti , *eee ;
+     int num_nifti , ii ;
+
+     STATUS("looking for NIFTI files") ;
+
+     strcpy(ename,sess->sessname) ; strcat(ename,"*.nii") ;
+     eee = ename ;
+     MCW_file_expand( 1,&eee , &num_nifti,&fn_nifti ) ;  /* find files */
+
+     if( num_nifti > 0 ){                               /* got some! */
+       STATUS("opening NIFTI files") ;
+       for( ii=0 ; ii < num_nifti ; ii++ ){             /* loop over files */
+         dset = THD_open_nifti( fn_nifti[ii] ) ;         /* try it on */
+         if( !ISVALID_DSET(dset) ) continue ;          /* doesn't fit? */
+         nds = sess->num_dsset ;
+         if( nds >= THD_MAX_SESSION_SIZE ){
+           fprintf(stderr,
+             "\n*** Session %s table overflow with NIFTI dataset %s ***\n",
+             sessname , fn_nifti[ii] ) ;
+           THD_delete_3dim_dataset( dset , False ) ;
+           break ; /* out of for loop */
+         }
+         iview = dset->view_type ;
+         sess->dsset[nds][iview] = dset ;
+         sess->num_dsset ++ ;
+       } /* end of loop over files */
+       MCW_free_expand( num_nifti , fn_nifti ) ;
+     } /* end of if we found NIFTI files */
    }
 
    /*-- 27 Aug 2002: try to read any ANALYZE "datasets" here --*/
