@@ -37,3 +37,6 @@
 15 July 2002:
   * added @SUMA_Make_Spec_SF and @make_stim_file to SCRIPTS in Makefile.INCLUDE
 
+29 July 2002:
+  * modified plug_crender.c to allow arbitrary orientation and grid spacing
+      of functional overlay (no longer needs to match underlay)
