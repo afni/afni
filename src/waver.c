@@ -570,7 +570,8 @@ void Process_Options( int argc , char * argv[] )
 
             nnn = sscanf( argv[iopt] , "%f" , &value ) ;
             if( nnn != 1 || value < 0.0 ){
-               fprintf(stderr,"Illegal value after -tstim: %s\n",argv[iopt]) ;
+               fprintf(stderr,"** Illegal value after -tstim: argv=%s\n",argv[iopt]  ) ;
+               fprintf(stderr,"**                    previous argv=%s\n",argv[iopt-1]) ;
                exit(1) ;
             }
 

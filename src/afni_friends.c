@@ -718,5 +718,5 @@ char * AFNI_get_date_trivia(void)
 
    /* default trivia */
 
-   return "[not yet claimed]" ;
+   return "[Elen sila lumenn' omentielvo]" ;
 }
