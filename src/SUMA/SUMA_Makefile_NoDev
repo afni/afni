@@ -126,6 +126,10 @@ SurfaceMetrics: SUMA_Load_Surface_Object.c
 	$(RM) $@
 	${CC} -DSUMA_SurfaceMetrics_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+inspec: SUMA_Load_Surface_Object.c
+	$(RM) $@
+	${CC} -DSUMA_inspec_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 SUMA_TestDataSets: SUMA_DataSets.c
 	$(RM) $@
 	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
@@ -195,6 +199,7 @@ install:
 	@if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ConvertSurface ]; then mv ConvertSurface ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfaceMetrics ]; then mv SurfaceMetrics ${INSTALLDIR_SUMA}; fi;
+	@if [ -f inspec ]; then mv inspec ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -223,6 +228,7 @@ packbins:
 	@if [ -f SUMA_pixmap2eps ]; then $(CP) -p SUMA_pixmap2eps SUMA_bin/; fi;	
 	@if [ -f ConvertSurface ]; then $(CP) -p ConvertSurface SUMA_bin/; fi;	
 	@if [ -f SurfaceMetrics ]; then $(CP) -p SurfaceMetrics SUMA_bin/; fi;	
+	@if [ -f inspec ]; then $(CP) -p inspec SUMA_bin/; fi;	
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
@@ -234,7 +240,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	SUMA_FreeSurfer ScaleToMap MakeColorMap CompareSurfaces		      \
 	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics SUMA_TestDataSets   \
-	ROI2dataset SurfSmooth
+	ROI2dataset SurfSmooth inspec
 
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 
