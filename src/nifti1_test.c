@@ -13,7 +13,9 @@ int main( int argc , char *argv[] )
    char *tmpstr;
    
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: nifti1_test [-d level] [-n2|-n1|-na|-a2] infile [prefix]\n"
+     printf(
+            "Usage: nifti1_test [-d level] [-n2|-n1|-na|-a2] infile [prefix]\n"
+            "Usage: nifti1_test -nifti_hist\n"
             "\n"
             " If prefix is given, then the options mean:\n"
             "  -a2 ==> write an ANALYZE 7.5 file pair: prefix.hdr/prefix.img\n"
@@ -24,9 +26,12 @@ int main( int argc , char *argv[] )
             "  -zn2 ==> write a NIFTI-1 file pair: prefix.hdr.gz/prefix.img.gz\n"
             "  -zn1 ==> write a NIFTI-1 single file: prefix.nii.gz\n"
             "  -zna ==> write a NIFTI-1 ASCII+binary file: prefix.nia.gz\n"
-            " The default is '-n1'.\n"
             "\n"
-            "  -d level : specify a debug level (0-3)\n"
+            "     The default is '-n1'.\n"
+            "\n"
+            "  -d level    : specify a debug level (0-3)\n"
+            "  -nifti_hist : display the nifti library modification history\n"
+            "  -nifti_ver  : display the nifti library version number\n"
             "\n"
             " If prefix is not given, then the header info from infile\n"
             " file is printed to stdout.\n"
@@ -51,6 +56,14 @@ int main( int argc , char *argv[] )
       else if ( ! strncmp(argv[iarg], "-zn1", 4 ) ){ outmode = 1; usegzip = 1; }
       else if ( ! strncmp(argv[iarg], "-zn2", 4 ) ){ outmode = 2; usegzip = 1; }
       else if ( ! strncmp(argv[iarg], "-zna", 4 ) ){ outmode = 3; usegzip = 1; }
+      else if ( ! strncmp(argv[iarg], "-nifti_hist", 8 ) ) {
+         nifti_disp_lib_hist();
+         exit(0);
+      }
+      else if ( ! strncmp(argv[iarg], "-nifti_ver", 8 ) ) {
+         nifti_disp_lib_version();
+         exit(0);
+      }
       else if ( ! strncmp(argv[iarg], "-d", 2 ) )  {
          iarg++;
          if( iarg >= argc ){
@@ -74,7 +87,15 @@ int main( int argc , char *argv[] )
    nim = nifti_image_read( argv[iarg++] , 1 ) ;
    if( nim == NULL ){ fprintf(stderr,"** image read failure\n"); exit(1) ; }
 
+   /* if no output prefix, dump the image to the screen */
    if( iarg >= argc ){ nifti_image_infodump(nim); exit(0); }
+
+   if( debug > 0 ){
+      if( nim->fname )
+         fprintf(stderr,"-d freeing header filename '%s'\n",nim->fname);
+      if( nim->iname )
+         fprintf(stderr,"-d freeing image filename '%s'\n",nim->iname);
+   }
 
    nim->nifti_type = outmode ;
    if( nim->fname != NULL ) free(nim->fname) ;
@@ -102,8 +123,7 @@ int main( int argc , char *argv[] )
    if (debug > 0)
    {
       fprintf(stderr,"+d writing nifti output to '%s'", nim->fname);
-      if ( nim->nifti_type == 2 )
-         fprintf(stderr," and '%s'", nim->iname);
+      if ( nim->nifti_type == 2 ) fprintf(stderr," and '%s'", nim->iname);
       fputc('\n', stderr);
    }
 

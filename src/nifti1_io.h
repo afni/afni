@@ -144,13 +144,15 @@ void swap_Nbytes ( int n , int siz , void *ar ) ;
 void swap_nifti_header( struct nifti_1_header *h , int is_nifti ) ;
 unsigned int get_filesize( char *pathname ) ;
 
-nifti_image *nifti_image_read    ( const char *hname , int read_data ) ;
-void         nifti_image_load    ( nifti_image *nim ) ;
+nifti_image *nifti_image_read    ( char *hname , int read_data ) ;
+int          nifti_image_load    ( nifti_image *nim ) ;
 void         nifti_image_unload  ( nifti_image *nim ) ;
 void         nifti_image_free    ( nifti_image *nim ) ;
 void         nifti_image_write   ( nifti_image *nim ) ;
 void         nifti_image_infodump( nifti_image *nim ) ;
 
+void         nifti_disp_lib_hist( void ) ;     /* to display library history */
+void         nifti_disp_lib_version( void ) ;  /* to display library version */
 
 char *       nifti_image_to_ascii  ( nifti_image *nim ) ;
 nifti_image *nifti_image_from_ascii( char *str        ) ;
@@ -160,7 +162,7 @@ size_t       nifti_get_volsize(nifti_image *nim) ;
 /* basic file operations */
 int          is_nifti_file( char *hname ) ;
 char *       nifti_find_file_extension( char * name ) ;
-int          nifti_validfilename(const char* fname) ;
+int          nifti_validfilename(char* fname) ;
 
 int          disp_nifti_1_header( char * info, nifti_1_header * hp ) ;
 void         nifti_set_debug_level( int level ) ;
@@ -201,13 +203,13 @@ void mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod ) ;
 
 /*--------------------- Low level IO routines ------------------------------*/
 
-char *       nifti_makebasename(const char* fname);
-int          nifti_is_gzfile(const char* fname);
-char *       nifti_findhdrname(const char* fname);
-char *       nifti_findimgname(const char* fname , const int nifti_type);
+char *       nifti_makebasename(char* fname);
+int          nifti_is_gzfile(char* fname);
+char *       nifti_findhdrname(char* fname);
+char *       nifti_findimgname(char* fname , int nifti_type);
 
-size_t       nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot, const nifti_image *nim);
-size_t       nifti_write_buffer(znzFile fp, const void *buffer, size_t numbytes);
+size_t       nifti_read_buffer(znzFile fp, void* datatptr, size_t ntot, nifti_image *nim);
+size_t       nifti_write_buffer(znzFile fp, void *buffer, size_t numbytes);
 void         nifti_write_all_data(znzFile fp, nifti_image *nim);
 
     /* write header and optionally close header file and/or write img file */
@@ -217,16 +219,19 @@ znzFile      nifti_image_write_hdr_img(nifti_image *nim , int write_data ,
 znzFile      nifti_image_write_hdr_img2( nifti_image *nim , int write_data , 
 					 char* opts, znzFile *imgfile );
 
-znzFile      nifti_image_open(const char *hname , const char *opts , 
-			      nifti_image **nim);
+znzFile      nifti_image_open(char *hname , char *opts , nifti_image **nim);
 
-nifti_image *          nifti_copy_nim_info(const nifti_image* src);
+nifti_image *          nifti_copy_nim_info(nifti_image* src);
 nifti_image *          nifti_simple_init_nim();
-struct nifti_1_header  nifti_convert_nim2nhdr(const nifti_image* nim);
-nifti_image *          nifti_convert_nhdr2nim(struct nifti_1_header nhdr, const char* fname);
+struct nifti_1_header  nifti_convert_nim2nhdr(nifti_image* nim);
+nifti_image *          nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname);
 void                   nifti_set_iname_offset(nifti_image *nim);
 
 /*-------------------- Some C convenience macros ----------------------------*/
+
+#undef  LNI_FERR /* local nifti file error, to be compact and repetative */
+#define LNI_FERR(func,msg,file)                                      \
+            fprintf(stderr,"** ERROR (%s): %s '%s'\n",func,msg,file)
 
 #undef  swap_2
 #undef  swap_4
