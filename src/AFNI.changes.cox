@@ -4478,3 +4478,6 @@
 27 Mar 2003
  * Modified NIML to allow ni_dimen=0 on input, and then infer length of vectors
      from input data.
+
+28 Mar 2003
+ * Changes to afni_splash.[ch].
