@@ -913,6 +913,7 @@ static THD_warp tempA_warp ;
 #define STORAGE_BY_ANALYZE 5
 #define STORAGE_BY_CTFMRI  6  /* 04 Dec 2002 */
 #define STORAGE_BY_CTFSAM  7
+#define STORAGE_BY_1D      8  /* 04 Mar 2003 */
 
 /*! Contains information about where/how dataset is stored on disk.
 
@@ -2133,6 +2134,17 @@ typedef struct THD_3dim_dataset {
                              ISVALID_DISKPTR((ds)->dblk->diskptr) &&               \
                              (ds)->dblk->diskptr->storage_mode == STORAGE_BY_CTFSAM )
 
+/*! Determine if datablock db is stored in a 1D file on disk */
+
+#define DBLK_IS_1D(db) ( ISVALID_DBLK(db) && ISVALID_DISKPTR((db)->diskptr) &&     \
+                         (db)->diskptr->storage_mode == STORAGE_BY_1D )
+
+/*! Determine if dataset ds is stored in a 1D file on disk */
+
+#define DSET_IS_1D(ds) ( ISVALID_DSET(ds) && ISVALID_DBLK((ds)->dblk) &&           \
+                         ISVALID_DISKPTR((ds)->dblk->diskptr) &&                   \
+                         (ds)->dblk->diskptr->storage_mode == STORAGE_BY_1D )
+
 /*! Determine if datablock db is stored by volume files rather than 1 big BRIK */
 
 #define DBLK_IS_VOLUMES(db) ( ISVALID_DBLK(db) &&                                \
@@ -3041,6 +3053,7 @@ extern THD_3dim_dataset * THD_open_minc( char * ) ;         /* 29 Oct 2001 */
 extern THD_3dim_dataset * THD_open_analyze( char * ) ;      /* 27 Aug 2002 */
 extern THD_3dim_dataset * THD_open_ctfmri( char * ) ;       /* 04 Dec 2002 */
 extern THD_3dim_dataset * THD_open_ctfsam( char * ) ;       /* 04 Dec 2002 */
+extern THD_3dim_dataset * THD_open_1D( char * ) ;           /* 04 Mar 2003 */
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *); /* 23 Mar 2001 */
 extern XtPointer_array *  THD_fetch_many_datasets(char *);
@@ -3161,6 +3174,7 @@ extern void    THD_load_minc( THD_datablock * ) ;            /* 29 Oct 2001 */
 extern void    THD_load_analyze( THD_datablock * ) ;         /* 27 Aug 2002 */
 extern void    THD_load_ctfmri ( THD_datablock * ) ;         /* 04 Dec 2002 */
 extern void    THD_load_ctfsam ( THD_datablock * ) ;         /* 04 Dec 2002 */
+extern void    THD_load_1D     ( THD_datablock * ) ;         /* 04 Mar 2003 */
 
 extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define DSET_datum_constant(ds) THD_datum_constant((ds)->dblk)
@@ -3168,7 +3182,9 @@ extern int THD_datum_constant( THD_datablock * ) ;           /* 30 Aug 2002 */
 #define ALLOW_FSL_FEAT  /* 27 Aug 2002 */
 
 #define MINC_FLOATIZE_MASK 1
-extern int THD_write_minc( char *, THD_3dim_dataset *, int ) ; /* 11 Apr 2002 */
+extern int THD_write_minc( char *, THD_3dim_dataset * , int ) ; /* 11 Apr 2002 */
+
+extern void THD_write_1D ( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
 
 extern void THD_reconcile_parents( THD_sessionlist * ) ;
 extern THD_slist_find THD_dset_in_sessionlist( int,void *, THD_sessionlist *, int ) ;

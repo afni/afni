@@ -6994,10 +6994,9 @@ STATUS(" -- function widgets ON") ;
            first=0; for( qq=0; qq < MAX_CONTROLLERS; qq++ ) zfim[qq]=1;
          }
          XtManageChild( im3d->vwid->func->thr_rowcol ) ;
-         SENSITIZE( im3d->vwid->func->thr_rowcol ,
-             DSET_BRICK_TYPE(im3d->fim_now,im3d->vinfo->fim_index) != MRI_rgb );
          qq = AFNI_controller_index(im3d) ;
          if( zfim[qq] && im3d->fim_now->func_type == FUNC_FIM_TYPE ){
+STATUS(" -- set threshold to zero for FIM (once only)") ;
            XmScaleSetValue( im3d->vwid->func->thr_scale , 0 ) ;
            im3d->vinfo->func_threshold = 0.0 ; zfim[qq] = 0 ;
          }
@@ -7671,9 +7670,6 @@ STATUS("opening panel") ;
 #ifdef REMANAGE_FUNC
 STATUS("remanaging children") ;
          XtManageChild( im3d->vwid->func->thr_rowcol ) ;
-         if( im3d->fim_now != NULL )
-           SENSITIZE( im3d->vwid->func->thr_rowcol ,
-                      DSET_BRICK_TYPE(im3d->fim_now,im3d->vinfo->fim_index) != MRI_rgb ) ;
          XtManageChild( im3d->vwid->func->inten_rowcol ) ;
          XtManageChild( im3d->vwid->func->options_rowcol ) ;
          XtManageChild( im3d->vwid->func->rowcol ) ;

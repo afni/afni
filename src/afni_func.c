@@ -1049,6 +1049,11 @@ ENTRY("AFNI_func_overlay") ;
    if( need_thr ) im_thr = FD_warp_to_mri( n , ival , br_fim ) ;
    else           im_thr = NULL ;
 
+   if( im_thr != NULL && !AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ){   /* 04 Mar 2003 */
+     MRI_IMAGE *qim = mri_to_float(im_thr) ;
+     mri_free(im_thr) ; im_thr = qim ;
+   }
+
    have_thr = (im_thr != NULL) ;
 
    AFNI_set_valabel( br_fim , n , im_thr , im3d->vinfo->thr_val ) ;

@@ -48,6 +48,15 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
 
    if( DSET_IS_VOLUMES(dset) && write_brick ) return False ;  /* 20 Jun 2002 */
 
+   if( DSET_IS_1D(dset) ||
+       ( DSET_NY(dset)==1 && DSET_NZ(dset)==1 ) ){            /* 04 Mar 2003 */
+
+     if( !write_brick ) return False ;   /* 1D files always have data */
+
+     THD_write_1D( new_sessname , new_prefixname , dset ) ;
+     return True ;
+   }
+
    blk = dset->dblk ; daxes = dset->daxes ;  /* always used fixed daxes */
 
    /*------------------------------*/
