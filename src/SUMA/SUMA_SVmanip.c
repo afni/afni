@@ -198,7 +198,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->X->REDISPLAYPENDING = 0;
       SV->X->DOUBLEBUFFER = True;
       SV->X->WIDTH = SV->X->HEIGHT = 300; /* if you change this, make sure you do so for fallbackResources in SUMA_display */
-
+      SV->X->ViewCont = NULL;
+      
       SV->Focus_SO_ID = -1;
       SV->Focus_DO_ID = -1;
       
@@ -1107,6 +1108,14 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    
    cf->SwapButtons_1_3 = SUMA_SWAP_BUTTONS_1_3;
    
+   cf->X = (SUMA_X_AllView *)malloc(sizeof(SUMA_X_AllView));
+   if (!cf->X) {
+     fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
+     SUMA_RETURN (NULL); 
+   }
+   cf->X->SumaCont = NULL;
+   cf->X->DPY_controller1 = NULL;
+   
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
    return (cf);
 
@@ -1116,12 +1125,14 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
 {
    static char FuncName[]={"SUMA_Free_CommonFields"};
-   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /* do not use commonfields related stuff here for obvious reasons */
    
    if (cf->Mem) SUMA_Free_MemTrace (cf->Mem);
-   if (cf) SUMA_free(cf);
+   if (cf->X) free(cf->X);
+   if (cf) free(cf);
    
-   SUMA_RETURN (YUP);
+   return (YUP);
 }
 
 void SUMA_Show_CommonFields (SUMA_CommonFields *cf)

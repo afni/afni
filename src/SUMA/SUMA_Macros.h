@@ -10,7 +10,6 @@
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
 /* definitions for SUMA_MT_intersect */
-#define SUMA_MT_EPSILON 0.000001
 #define SUMA_MT_CROSS(m_MTCR_dest,m_MTCR_v1,m_MTCR_v2) \
           m_MTCR_dest[0]=m_MTCR_v1[1]*m_MTCR_v2[2]-m_MTCR_v1[2]*m_MTCR_v2[1]; \
           m_MTCR_dest[1]=m_MTCR_v1[2]*m_MTCR_v2[0]-m_MTCR_v1[0]*m_MTCR_v2[2]; \

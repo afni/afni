@@ -99,7 +99,7 @@
 #define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when keeping track of allocated memory. If needed more space is reallocated with SUMA_MEMTRACE_BLOCK increments. */
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
 #define SUMA_PI 3.14159 
-
+#define SUMA_EPSILON 0.000001
 /*!
    Debugging flags
 */
@@ -247,7 +247,9 @@ typedef struct {
 typedef struct {
    int N_Node; /*!< Number of nodes whose neighbors are listed in this structure */
    int *NodeId; /*!< Id of each node whose neighbors are listed in this structure */
-   int **FirstNeighb; /*!< N_Node x N_Neighb_max matrix with each row specifying the indices of neighboring nodes */
+   int **FirstNeighb; /*!< N_Node x N_Neighb_max matrix with each row specifying the indices of neighboring nodes.
+                        After Tue Jan  7 18:13:44 EST 2003: The nodes are now ordered to form a path on the surface.
+                        Note: There is no guarantee that the path is closed. */
    int *N_Neighb; /*!< maximum number of neighbors for a particular node */
    int N_Neighb_max; /*!< maximum number of neighbors of all nodes */
 } SUMA_NODE_FIRST_NEIGHB;
@@ -335,10 +337,10 @@ typedef struct {
                                     or after the shift and rotation matrices are applied */
 } SUMA_DO;
 
-/*! structure containg X vars */
+/*! structure containg X vars for surface viewers*/
 typedef struct {
    Display *DPY; /*!< display of toplevel widget */
-   Widget TOPLEVEL, FORM, FRAME, GLXAREA;
+   Widget TOPLEVEL, FORM, FRAME, GLXAREA, ViewCont;
    XVisualInfo *VISINFO;
    GLXContext GLXCONTEXT;
    Colormap CMAP;
@@ -350,6 +352,13 @@ typedef struct {
    Widget ToggleCrossHair_View_tglbtn; /*!< Toggle button in View-> menu */
          
 }SUMA_X;
+
+/*! structure containg X vars common to all viewers */
+typedef struct {
+   Widget SumaCont; /*!< AppShell widget for Suma's controller */
+   XtAppContext App; /*!< Application Context for SUMA */
+   Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
+}SUMA_X_AllView;
 
 /*! filename and path */
 typedef struct {
@@ -636,16 +645,16 @@ typedef struct {
 typedef struct {
    int N_el; /*!< Number of elements in each vector */
    SUMA_Boolean *isHit;   /*!< Is the triangle hit ? */
-   float *t;   /*!< Distance from ray source to triangle */
+   float *t;   /*!< SIGNED Distance from ray source to triangle */
    float *u;   /*!< location of intersection in triangle in Barycentric coordinates, V0P = u V0V1 + vV0V2*/
    float *v;   /*!< location of intersection in triangle */
-   int ifacemin; /*!< index of the faceset closest to the ray's origin */
-   int ifacemax; /*!< index of the faceset farthest from the ray's origin */
+   int ifacemin; /*!< index of the faceset closest (NOT SIGNED, abs(t)) to the ray's origin */
+   int ifacemax; /*!< index of the faceset farthest (NOT SIGNED, abs(t)) from the ray's origin */
    int N_hits; /*!< Number of intersections between ray and surface */
    float P[3]; /*!< XYZ of intersection with ifacemin */
    float d; /*!< Distance from the closest node in ifacemin to P */
-   int inodemin; /*!< node index (into NodeList)that is closest to P */
-   int inodeminlocal; /*!< node in FaceSet[ifacemin] that is closest to P, 
+   int inodemin; /*!< node index (into NodeList)that is closest to P  */
+   int inodeminlocal; /*!< node in FaceSet[ifacemin] that is closest to P , 
                   inodemin = FaceSet[ifacemin][inodeminlocal]*/
 } SUMA_MT_INTERSECT_TRIANGLE;
 
@@ -867,8 +876,6 @@ typedef struct {
    SUMA_Boolean Dev; /*!< Flag for developer option (allows the use of confusing or kludge options) */
    SUMA_Boolean InOut_Notify; /*!< prints to STDERR a notice when a function is entered or exited */ 
    int InOut_Level; /*!< level of nested function calls */
-   XtAppContext App; /*!< Application Context for SUMA */
-   Display *DPY_controller1; /*!< Display of 1st controller's top level shell */
    
    int N_OpenSV; /*!< Number of open (visible) surface viewers.
                      Do not confuse this with the number of surface viewers
@@ -888,7 +895,7 @@ typedef struct {
    int Locked[SUMA_MAX_SURF_VIEWERS]; /*!< All viewers i such that Locked[i] = YUP are locked together */   
    
    SUMA_Boolean SwapButtons_1_3; /*!< YUP/NOPE, if functions of mouse buttons 1 and 3 are swapped */
-    
+   SUMA_X_AllView *X; /*!< structure containing widgets and other X related variables that are common to all viewers */ 
 } SUMA_CommonFields;
 
 /*! structure containing a surface patch */

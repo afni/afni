@@ -671,7 +671,7 @@ void SUMA_register_workproc( XtWorkProc func , XtPointer data )
    if( num_workp == 0 ){
       workp = (XtWorkProc *) SUMA_malloc( sizeof(XtWorkProc) ) ;
       datap = (XtPointer *)  SUMA_malloc( sizeof(XtPointer) ) ;
-      wpid  = XtAppAddWorkProc(SUMAg_CF->App, SUMA_workprocess, NULL ) ;
+      wpid  = XtAppAddWorkProc(SUMAg_CF->X->App, SUMA_workprocess, NULL ) ;
 #ifdef WPDEBUG
       fprintf(stderr,"SUMA_register_workproc: wpid = %x\n",(int)wpid) ;
 #endif

@@ -261,7 +261,7 @@ int main (int argc,char *argv[])
 	}
 
 	/*Main loop */
-	XtAppMainLoop(SUMAg_CF->App);
+	XtAppMainLoop(SUMAg_CF->X->App);
 
 	
 	/* Done, clean up time */

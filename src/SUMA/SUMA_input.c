@@ -626,7 +626,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                } else {
                   sv->GVS[sv->StdView].ApplyMomentum = !sv->GVS[sv->StdView].ApplyMomentum;
                   if (sv->GVS[sv->StdView].ApplyMomentum) {
-                      sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->App, 1, SUMA_momentum, (XtPointer) w);
+                      sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, SUMA_momentum, (XtPointer) w);
                       /* wait till user initiates turning */
                      sv->GVS[sv->StdView].spinDeltaX = 0; sv->GVS[sv->StdView].spinDeltaY = 0;
                      sv->GVS[sv->StdView].translateDeltaX = 0; sv->GVS[sv->StdView].translateDeltaY = 0;
@@ -970,6 +970,13 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                {
                   SUMA_SurfaceObject *SO;
                   SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+                  if (!SO->PolyArea) {
+                     fprintf(SUMA_STDOUT, "%s: Computing required mesh area.\n", FuncName);
+                     if (!SUMA_SurfaceMetrics (SO, "PolyArea", NULL)) {
+                        fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+                        break;
+                     }
+                  }
                   SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL);
                   if (SO->SC == NULL) {
                         fprintf(stderr,"Error %s: Failed in SUMA_Surface_Curvature\n", FuncName);
@@ -1937,7 +1944,7 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
       /*fprintf(stdout,"Momentum Redisplay\n");*/
       SUMA_postRedisplay(w, NULL, NULL);
    }
-   sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->App, 1, SUMA_momentum, (XtPointer) w);
+   sv->X->MOMENTUMID = XtAppAddTimeOut(SUMAg_CF->X->App, 1, SUMA_momentum, (XtPointer) w);
 
   SUMA_RETURNe;         
 }
@@ -1996,7 +2003,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 
            SUMA_etime (&tt_tmp, 0);
 
-         MTIi = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet);
+         MTIi = SUMA_MT_intersect_triangle(P0f, P1f, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, NULL);
 
          delta_t_tmp = SUMA_etime (&tt_tmp, 1);
          if (LocalHead) fprintf (SUMA_STDERR, "Local Debug %s: Intersection took %f seconds.\n", FuncName, delta_t_tmp);
@@ -2015,16 +2022,12 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
             }else {     
                /* not good, toss it away */
                if (LocalHead) fprintf (SUMA_STDERR, "%s: ii=%d freeing MTIi...\n", FuncName, ii);
-               if (!SUMA_Free_MT_intersect_triangle(MTIi)) 
-                 fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
-               MTIi = NULL;
+               MTIi = SUMA_Free_MT_intersect_triangle(MTIi); 
             }
          }else {
             /* not good, toss it away */
            if (LocalHead) fprintf (SUMA_STDERR, "%s: ii=%d freeing MTIi no hits...\n", FuncName, ii);
-           if (!SUMA_Free_MT_intersect_triangle(MTIi)) 
-               fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
-           MTIi = NULL;
+           MTIi = SUMA_Free_MT_intersect_triangle(MTIi); 
         }
       }
     } 
@@ -2126,8 +2129,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    } 
    /* clear MTI */
    if (MTI) {
-      if (!SUMA_Free_MT_intersect_triangle(MTI)) 
-         fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
+      MTI = SUMA_Free_MT_intersect_triangle(MTI);
    }
    
    if (imin >= 0) {
