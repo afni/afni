@@ -246,6 +246,9 @@ int main( int argc , char * argv[] )
             "  -twopass      = Do the parameter estimation in two passes,\n"
             "                   coarse-but-fast first, then fine-but-slow second\n"
             "                   (much like the same option in program 3dvolreg).\n"
+            "  -final 'mode' = Set the final warp to be interpolated using 'mode'\n"
+            "                   instead of the spatial interpolation method used\n"
+            "                   to find the warp parameters.\n"
             "  -parfix n v   = Fix the n'th parameter of the warp model to\n"
             "                   the value 'v'.  More than one -parfix option\n"
             "                   can be used, to fix multiple parameters.\n"
@@ -307,6 +310,7 @@ int main( int argc , char * argv[] )
    abas.tolfac     = 0.03f ;
    abas.twoblur    = 0.0f ;
    abas.regmode    = MRI_LINEAR ;
+   abas.regfinal   = -1 ;
    abas.verb       = 0 ;
    abas.max_iter   = 0 ;
    abas.wtproc     = 1 ;
@@ -318,6 +322,7 @@ int main( int argc , char * argv[] )
 
    abas.xedge = abas.yedge = abas.zedge = -1 ;
    abas.imww  = abas.imap  = abas.imps  = abas.imsk = NULL ;
+   abas.imps_blur = NULL ;
 
    nparfix = 0 ;
 
@@ -328,7 +333,6 @@ int main( int argc , char * argv[] )
      /*-----*/
 
      if( strcmp(argv[nopt],"-twopass") == 0 ){
-       fprintf(stderr,"** WARNING: -twopass not implemented yet!\n") ;
        abas.twoblur = 3.0f ; nopt++ ; continue ;
      }
 
@@ -357,6 +361,26 @@ int main( int argc , char * argv[] )
      }
      if( strcmp(argv[nopt],"-bshift") == 0 ){
        dcode = DELTA_BEFORE    ; nopt++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[nopt],"-final") == 0 ){
+       char *str ;
+
+       if( ++nopt >= argc ){
+         fprintf(stderr,"** ERROR: need 1 parameter afer -final!\n"); exit(1);
+       }
+       str = argv[nopt] ; if( *str == '-' ) str++ ;
+
+            if( strcmp(str,"cubic")   == 0 ) abas.regfinal = MRI_CUBIC ;
+       else if( strcmp(str,"quintic") == 0 ) abas.regfinal = MRI_QUINTIC ;
+       else if( strcmp(str,"linear") == 0  ) abas.regfinal = MRI_LINEAR ;
+       else if( strcmp(str,"NN")      == 0 ) abas.regfinal = MRI_NN ;
+       else {
+         fprintf(stderr,"** Illegal mode after -final\n"); exit(1);
+       }
+       nopt++ ; continue ;
      }
 
      /*-----*/
