@@ -584,6 +584,11 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
                                        NULL , NULL ) ;
    MCW_reghint_children( swid->boxsize_av->wrowcol ,
                          "Size of boxes drawn at nodes" ) ;
+   MCW_reghelp_children( swid->boxsize_av->wrowcol ,
+                         "This sets the size of the\n"
+                         "boxes used to draw the\n"
+                         "surface nodes that are\n"
+                         "in the current slice plane." ) ;
 
    /* linewidth control [23 Feb 2003] */
 
@@ -593,9 +598,19 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
                                          NULL , NULL ) ;
    MCW_reghint_children( swid->linewidth_av->wrowcol ,
                          "Width of lines drawn for surface" ) ;
+   MCW_reghelp_children( swid->linewidth_av->wrowcol ,
+                         "This sets the thickness of\n"
+                         "the lines used to draw the\n"
+                         "intersection of the surface\n"
+                         "with the slice plane."         ) ;
 
 
-   /* Done button */
+   /* Done button (with a line separating it from the others) */
+
+   ww = XtVaCreateManagedWidget( "dialog", xmSeparatorWidgetClass, rc ,
+                                    XmNorientation   , XmVERTICAL    ,
+                                    XmNseparatorType , XmDOUBLE_LINE ,
+                                 NULL ) ;
 
    xstr = XmStringCreateLtoR( "Done" , XmFONTLIST_DEFAULT_TAG ) ;
    swid->done_pb =
@@ -605,8 +620,7 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
             XmNtraversalOn , False ,
          NULL ) ;
    XmStringFree(xstr) ;
-   XtAddCallback( swid->done_pb , XmNactivateCallback ,
-                  AFNI_surf_done_CB , im3d ) ;
+   XtAddCallback( swid->done_pb, XmNactivateCallback, AFNI_surf_done_CB, im3d );
    MCW_set_widget_bg( swid->done_pb, MCW_hotcolor(swid->done_pb), 0 ) ;
    MCW_register_hint( swid->done_pb, "Close window" ) ;
 

@@ -1762,6 +1762,10 @@ STATUS("get status") ;
 
     if( do_surf ){
      int ks ;
+     int kbest=-1 , ibest=-1 ;          /* 24 Feb 2003 */
+
+     AFNI_get_xhair_node( im3d , &kbest , &ibest ) ;   /* 24 Feb 2003 */
+
      for( ks=0 ; ks < br->dset->su_num ; ks++ ){  /* 14 Aug 2002: loop over surfaces */
       SUMA_surface *ag = br->dset->su_surf[ks] ;
       int nn , ii,jj ;
@@ -1902,6 +1906,17 @@ STATUS("get status") ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;         /* indexes  */
                plotrect_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
                                  s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  ) ;
+
+               if( ks == kbest && nod[ii].id == ibest ){   /* 24 Feb 2003 */
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  );
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]+rxp),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]-rxm)  );
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]+0.5),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+0.5)  );
+                 plotline_memplot( s1*(fv.xyz[0]+0.5), 1.0-s2*(fv.xyz[1]-rxm),
+                                   s1*(fv.xyz[0]+0.5), 1.0-s2*(fv.xyz[1]+rxp)  );
+               }
             }
           }
          }
@@ -1920,6 +1935,17 @@ STATUS("get status") ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
                plotrect_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
                                  s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  ) ;
+
+               if( ks == kbest && nod[ii].id == ibest ){   /* 24 Feb 2003 */
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  );
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]+rxp),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]-rxm)  );
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]+0.5),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+0.5)  );
+                 plotline_memplot( s1*(fv.xyz[0]+0.5), 1.0-s2*(fv.xyz[1]-rxm),
+                                   s1*(fv.xyz[0]+0.5), 1.0-s2*(fv.xyz[1]+rxp)  );
+               }
             }
           }
          }
@@ -1938,6 +1964,17 @@ STATUS("get status") ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
                plotrect_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
                                  s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  ) ;
+
+               if( ks == kbest && nod[ii].id == ibest ){   /* 24 Feb 2003 */
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  );
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]+rxp),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]-rxm)  );
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]+0.5),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+0.5)  );
+                 plotline_memplot( s1*(fv.xyz[0]+0.5), 1.0-s2*(fv.xyz[1]-rxm),
+                                   s1*(fv.xyz[0]+0.5), 1.0-s2*(fv.xyz[1]+rxp)  );
+               }
             }
           }
          }
