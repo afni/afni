@@ -2599,9 +2599,11 @@ void RT_tell_afni( RT_input * rtin , int mode )
       { char qbuf[256] ;
         sprintf( qbuf , " \n"
                         " Acquisition Terminated\n\n"
-                        " Dataset saved as %s\n"
-                        " with %d bricks\n" ,
-                 DSET_FILECODE(rtin->dset) , rtin->nvol ) ;
+                        " Saving dataset as\n"
+                        "  %s \n"
+                        " with %d %dx%dx%d bricks\n" ,
+                 DSET_FILECODE(rtin->dset) , rtin->nvol ,
+                 DSET_NX(rtin->dset),DSET_NY(rtin->dset),DSET_NZ(rtin->dset) );
 
         PLUTO_beep() ;
         PLUTO_popup_transient( plint , qbuf ) ;
@@ -2643,6 +2645,7 @@ void RT_tell_afni( RT_input * rtin , int mode )
 
       AFNI_purge_unused_dsets() ; sync() ;  /* 08 Mar 2000: sync disk */
       SHOW_AFNI_READY ;
+      PLUTO_popup_transient( plint , "Disk I/O completed" ) ;  /* 25 Jun 2002 */
    }
 
    if( verbose == 2 ) SHOW_TIMES ;
