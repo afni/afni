@@ -1919,6 +1919,7 @@ STATUS("creating memplot for image overlay") ;
       float xyz=0.0,xyzp,xyzm , rxm,rxp ;
       int skip_boxes=1 , skip_lines=0 , skip_lcen=0, skip_ledg=1 ;
       float boxsize=RX , linewidth=0.0 ;      /* 23 Feb 2003 */
+      int firstb ;                            /* 23 Jan 2004 */
 
       if( ag == NULL ) continue ;             /* skip this non-existent one */
       nn = ag->num_ixyz ; nod = ag->ixyz ;
@@ -2037,6 +2038,7 @@ STATUS("defining surface drawing parameters") ;
 
       set_color_memplot(rr_box,gg_box,bb_box) ;  /* box drawing colors */
       set_thick_memplot(0.0) ;
+      firstb = 1 ;                               /* 23 Jan 2004 */
 
       /* find nodes inside this slice */
 
@@ -2055,6 +2057,13 @@ STATUS(" - x plane") ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;     /* coords   */
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;     /* to slice */
                fv = THD_3dfind_to_fdfind( br , fv ) ;         /* indexes  */
+
+               if( firstb ){
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  );
+                 firstb = 0 ;
+               }
+
                plotrect_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
                                  s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  ) ;
 
@@ -2085,6 +2094,13 @@ STATUS(" - y plane") ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
+
+               if( firstb ){
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  );
+                 firstb = 0 ;
+               }
+
                plotrect_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
                                  s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  ) ;
 
@@ -2115,6 +2131,13 @@ STATUS(" - z plane") ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
+
+               if( firstb ){
+                 plotline_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
+                                   s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  );
+                 firstb = 0 ;
+               }
+
                plotrect_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
                                  s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  ) ;
 
@@ -2159,7 +2182,7 @@ STATUS(" - z plane") ;
             if( skip_ledg ) continue ;  /* don't do edge planes */
             xlev = (ilev == 1) ? xyzp : xyzm ;
             set_color_memplot(rr_led,gg_led,bb_led) ;
-            set_thick_memplot(0) ;
+            set_thick_memplot(0.0) ;
           }
 
 STATUS("drawing triangle lines") ;
