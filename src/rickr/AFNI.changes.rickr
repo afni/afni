@@ -203,3 +203,7 @@
       o re-wrote program in terms of 3dSurf2Vol, to handle varying map types
       o added 'midpoint' map function
 
+12 June 2003:
+  * modifed SUMA_3dSurf2Vol.c - minor changes to help and s2v_fill_mask2()
+  * modifed ge4_header.c to remove "static" warnings
+
