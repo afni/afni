@@ -27,23 +27,23 @@
 
 #include "mrilib.h"
 
-/*!\brief Global variable to signal image orientation, if possible. */
+/*! Global variable to signal image orientation, if possible. */
 
 char MRILIB_orients[8] = "\0\0\0\0\0\0\0\0" ;  /* 12 Mar 2001 */
 
-/*!\brief Global variable to signal image slice offset, if possible. */
+/*! Global variable to signal image slice offset, if possible. */
 
 float MRILIB_zoff      = 0.0 ;
 
-/*!\brief Global variable to signal image TR, if possible. */
+/*! Global variable to signal image TR, if possible. */
 
 float MRILIB_tr        = 0.0 ;   /* 03 Dec 2001 */
 
-/*!\brief Global variable to signal image x offset, if possible. */
+/*! Global variable to signal image x offset, if possible. */
 
 float MRILIB_xoff      = 0.0 ;   /* 07 Dec 2001 */
 
-/*!\brief Global variable to signal image y offset, if possible. */
+/*! Global variable to signal image y offset, if possible. */
 
 float MRILIB_yoff      = 0.0 ;
 
@@ -1390,7 +1390,7 @@ char * imsized_fname( char * fname )
 }
 
 /*------------------------------------------------------------------------*/
-/*!\brief Return the size of a file in bytes.
+/*! Return the size of a file in bytes.
 
   \param pathname = input filename
   \return File length if file exists; -1 if it doesn't.
@@ -1409,7 +1409,7 @@ long mri_filesize( char * pathname )
 
 /*---------------------------------------------------------------*/
 
-/*!\brief Read the header from PPM file and return its info.
+/*! Read the header from PPM file and return its info.
 
   \param fname = file name
   \return *nx and *ny are set to the image dimensions;
@@ -1453,7 +1453,7 @@ ENTRY("mri_read_ppm_header") ;
 
 /*---------------------------------------------------------------*/
 
-/*!\brief Reads a raw PPM file into 1 2D MRI_rgb-valued image.
+/*! Reads a raw PPM file into 1 2D MRI_rgb-valued image.
 
    \param fname = Image filename
    \return An MRI_IMAGE if things worked OK; NULL if not
@@ -1706,7 +1706,7 @@ MRI_IMAGE * mri_read_ascii( char * fname )
 
 /*---------------------------------------------------------------------------*/
 
-/*!\brief Read an ASCII file as columns, transpose to rows, allow column selectors.
+/*! Read an ASCII file as columns, transpose to rows, allow column selectors.
 
   \param fname = Input filename (max of 255 characters)
   \return Pointer to MRI_IMAGE if all went well; NULL if not.
@@ -1957,7 +1957,7 @@ MRI_IMARR * mri_read_3A( char * tname )
 #include "mayo_analyze.h"
 
 /*---------------------------------------------------------------*/
-/*!\brief Byte swap ANALYZE file header in various places */
+/*! Byte swap ANALYZE file header in various places */
 
 static void swap_analyze_hdr( struct dsr *pntr )
 {
@@ -1999,7 +1999,7 @@ static void swap_analyze_hdr( struct dsr *pntr )
 }
 
 /*---------------------------------------------------------------*/
-/*!\brief Count how many 2D slices are in an ANALYZE file.
+/*! Count how many 2D slices are in an ANALYZE file.
 
    \param hname = the "hdr" file of the hdr/img file pair.
 */
@@ -2028,7 +2028,7 @@ fprintf(stderr,"enter mri_imcount_analyze75\n");
       default:
       case 4:  nz = hdr.dime.dim[3] * hdr.dime.dim[4] ; break ;
    }
-   if( nz < 1 ) nz == 1 ;
+   if( nz < 1 ) nz = 1 ;
 
 #if 1
    fprintf(stderr,"mri_imcount_analyze75: %s %d\n",hname,nz) ;
@@ -2037,7 +2037,7 @@ fprintf(stderr,"enter mri_imcount_analyze75\n");
 }
 
 /*---------------------------------------------------------------*/
-/*!\brief Read an ANALYZE file into an ARRAY of 2D images.
+/*! Read an ANALYZE file into an ARRAY of 2D images.
 
    \param hname = the "hdr" file for the hdr/img pair
 */
@@ -2135,7 +2135,7 @@ MRI_IMARR * mri_read_analyze75( char * hname )
       default:
       case 4:  nz = hdr.dime.dim[3] * hdr.dime.dim[4] ; break ;
    }
-   if( nz < 1 ) nz == 1 ;
+   if( nz < 1 ) nz = 1 ;
 
    dx = hdr.dime.pixdim[1] ;
    dy = hdr.dime.pixdim[2] ;
@@ -2216,13 +2216,194 @@ MRI_IMARR * mri_read_analyze75( char * hname )
    fclose(fp) ; return newar ;
 }
 
+/*-----------------------------------------------------------------*/
+/*! Read an ANALYZE file into an ARRAY of 3D images [26 Aug 2002].
+
+   \param hname = the "hdr" file for the hdr/img pair
+*/
+
+MRI_IMARR * mri_read3D_analyze75( char * hname )
+{
+   FILE * fp ;
+   char iname[1024] , buf[1024] ;
+   int ii , jj , doswap ;
+   struct dsr hdr ;    /* ANALYZE .hdr format */
+   int ngood , length , kim , koff , datum_type , datum_len , swap ;
+   int   nx,ny,nz , hglobal=0 , himage=0 ;
+   float dx,dy,dz ;
+   MRI_IMARR * newar ;
+   MRI_IMAGE * newim ;
+   void      * imar ;
+   float fac=0.0 ;    /* 27 Nov 2001 */
+   int floatize ;     /* 28 Nov 2001 */
+   int spmorg=0 ;     /* 28 Nov 2001 */
+
+   int   nt , nxyz ;  /* 26 Aug 2002 */
+   float dt ;
+
+   /* check & prepare filenames */
+
+   if( hname == NULL ) return NULL ;
+   jj = strlen(hname) ;
+   if( jj < 5 ) return NULL ;
+   if( strcmp(hname+jj-3,"hdr") != 0 ) return NULL ;
+   strcpy(iname,hname) ; strcpy(iname+jj-3,"img") ;
+
+   /* read header file into struct */
+
+   fp = fopen( hname , "rb" ) ;
+   if( fp == NULL ) return NULL ;
+   hdr.dime.dim[0] = 0 ;
+   fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
+   fclose(fp) ;
+   if( hdr.dime.dim[0] == 0 ) return NULL ;
+
+   /* check for swap-age */
+
+   doswap = (hdr.dime.dim[0] < 0 || hdr.dime.dim[0] > 15) ;
+   if( doswap ) swap_analyze_hdr( &hdr ) ;
+
+   /* 28 Nov 2001: attempt to decode originator a la SPM */
+
+   { short xyzuv[5] , xx,yy,zz ;
+     memcpy( xyzuv , hdr.hist.originator , 10 ) ;
+     if( xyzuv[3] == 0 && xyzuv[4] == 0 ){
+        xx = xyzuv[0] ; yy = xyzuv[1] ; zz = xyzuv[2] ;
+        if( doswap ){ swap_2(&xx); swap_2(&yy); swap_2(&zz); }
+        if( xx > 0 && xx < hdr.dime.dim[1] &&
+            yy > 0 && yy < hdr.dime.dim[2] &&
+            zz > 0 && zz < hdr.dime.dim[3]   ) spmorg = 1 ;
+     }
+   }
+   if( spmorg ) strcpy( MRILIB_orients , "LRPAIS" ) ;
+
+   /* 27 Nov 2001: get a scale factor for images */
+
+   if( !AFNI_noenv("AFNI_ANALYZE_SCALE") ){
+      fac = hdr.dime.funused1 ;
+      (void) thd_floatscan( 1 , &fac ) ;
+      if( fac < 0.0 || fac == 1.0 ) fac = 0.0 ;
+   }
+
+   floatize = AFNI_yesenv("AFNI_ANALYZE_FLOATIZE") ; /* 28 Nov 2001 */
+
+   /* get data type into mrilib MRI_* form */
+
+   switch( hdr.dime.datatype ){
+      default:
+         fprintf(stderr,"*** %s: Unknown ANALYZE datatype=%d\n",
+                 hname,hdr.dime.datatype) ;
+      return NULL ;
+
+      case ANDT_UNSIGNED_CHAR: datum_type = MRI_byte   ;               break;
+      case ANDT_SIGNED_SHORT:  datum_type = MRI_short  ;               break;
+      case ANDT_SIGNED_INT:    datum_type = MRI_int    ;               break;
+      case ANDT_FLOAT:         datum_type = MRI_float  ; floatize = 0; break;
+      case ANDT_COMPLEX:       datum_type = MRI_complex; floatize = 0; break;
+      case ANDT_RGB:           datum_type = MRI_rgb    ; floatize = 0; break;
+   }
+
+   datum_len = mri_datum_size(datum_type) ;
+
+   /* compute dimensions of images, and number of images */
+
+   nx = hdr.dime.dim[1] ;
+   ny = hdr.dime.dim[2] ;
+   if( nx < 2 || ny < 2 ) return NULL ;
+
+   switch( hdr.dime.dim[0] ){
+      case 2:  nz = 1 ; nt = 1 ;                           ; break ;
+      case 3:  nz = hdr.dime.dim[3] ; nt = 1 ;             ; break ;
+
+      default:
+      case 4:  nz = hdr.dime.dim[3] ; nt = hdr.dime.dim[4] ; break ;
+   }
+   if( nz < 1 ) nz = 1 ;
+   if( nt < 1 ) nt = 1 ;
+
+   dx = hdr.dime.pixdim[1] ;
+   dy = hdr.dime.pixdim[2] ;
+   dz = hdr.dime.pixdim[3] ;
+   dt = hdr.dime.pixdim[4] ; if( dt <= 0.0 ) dt = 1.0 ;
+
+   /* open .img file and read images from it */
+
+   length = THD_filesize(iname) ;
+   if( length <= 0 ){
+      fprintf(stderr,"*** Can't find ANALYZE file %s\n",iname) ;
+      return NULL ;
+   }
+
+   fp = fopen( iname , "rb" ) ;
+   if( fp == NULL ){
+      fprintf(stderr,"*** Can't open ANALYZE file %s\n",iname) ;
+      return NULL ;
+   }
+
+   ngood = datum_len*nx*ny*nz*nt ;
+   if( length < ngood ){
+      fprintf( stderr,
+        "*** ANALYZE file %s is %d bytes long but must be at least %d bytes long\n"
+        "*** for nx=%d ny=%d nz=%d nt=%d and voxel=%d bytes\n",
+        iname,length,ngood,nx,ny,nz,nt,datum_len ) ;
+      fclose(fp) ; return NULL ;
+   }
+
+   /*** read images from the file ***/
+
+   INIT_IMARR(newar) ;
+
+   for( kim=0 ; kim < nt ; kim++ ){
+      koff = hglobal + (kim+1)*himage + datum_len*nxyz*kim ;
+      fseek( fp , koff , SEEK_SET ) ;
+
+      newim  = mri_new_vol( nx,ny,nz , datum_type ) ;
+      imar   = mri_data_pointer( newim ) ;
+      length = fread( imar , datum_len , nxyz , fp ) ;
+
+      if( doswap ){
+        switch( datum_len ){
+          default: break ;
+          case 2:  swap_twobytes (   nxyz , imar ) ; break ;  /* short */
+          case 4:  swap_fourbytes(   nxyz , imar ) ; break ;  /* int, float */
+          case 8:  swap_fourbytes( 2*nxyz , imar ) ; break ;  /* complex */
+        }
+        newim->was_swapped = 1 ;  /* 07 Mar 2002 */
+      }
+
+      /* 28 Nov 2001: convert to floats? */
+
+      if( floatize ){
+         MRI_IMAGE *qim = mri_to_float(newim) ;
+         mri_free(newim) ; newim = qim ;
+      }
+
+      if( nt == 1 ) mri_add_name( iname , newim ) ;
+      else {
+         sprintf( buf , "%s#%d" , iname,kim ) ;
+         mri_add_name( buf , newim ) ;
+      }
+
+      newim->dx = dx ; newim->dy = dy ; newim->dz = dz ; newim->dt = dt ; newim->dw = 1.0 ;
+      ADDTO_IMARR(newar,newim) ;
+
+      /* 27 Nov 2001: scale image? */
+
+      if( fac != 0.0 ) mri_scale_inplace( fac , newim ) ;
+
+      newim->dv = fac ;  /* 24 Jun 2002: save scale factor */
+   }
+
+   fclose(fp) ; return newar ;
+}
+
 /*---------------------------------------------------------------------------
   12 Mar 2001 - stuff to read a Siemens Vision .ima file
 -----------------------------------------------------------------------------*/
 
 #include "siemens_vision.h"
 
-/*!\brief Count the number of 2D images in a Siemens Vision .ima file.
+/*! Count the number of 2D images in a Siemens Vision .ima file.
 
    Unfortunately, this requires reading the image data and checking
    for all-zero images.  This is because Siemens stores their data
@@ -2307,7 +2488,7 @@ static int mri_imcount_siemens( char * hname )
 }
 
 /*---------------------------------------------------------------------------*/
-/*!\brief Read an array of 2D images from Siemens Vision .ima file.
+/*! Read an array of 2D images from Siemens Vision .ima file.
 
    The images are stored in a 2D array, which requires untangling the
    data rows to put them into separate MRI_IMAGE structs.

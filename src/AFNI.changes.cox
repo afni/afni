@@ -3930,3 +3930,6 @@
      large dataset.
  * Modified niml.[ch] to implement NI_reopen_stream() and make a first
      cut at NI_do().
+
+26 Aug 2002
+ * Added Htable (string/pointer pair) hash table functions to niml.[ch].

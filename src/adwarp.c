@@ -476,6 +476,8 @@ ENTRY("adwarp_follower_dataset") ;
   new_dset->warp           = myXtNew( THD_warp ) ;
   *(new_dset->warp)        = IDENTITY_WARP ;  /* start with (Dicom) identity */
 
+  new_dset->self_warp      = NULL ;           /* 26 Aug 2002 */
+
   /* follow the links backward from desired view to original view */
 
   AFNI_concatenate_warp( new_dset->warp , anat_parent->warp ) ;
@@ -654,6 +656,8 @@ ENTRY("adwarp_refashion_dataset") ;
   dset->wod_daxes         = myXtNew(THD_dataxes) ; /* 02 Nov 1996 */
   dset->wod_daxes->type   = DATAXES_TYPE ;       /* 02 Nov 1996 */
   dset->vox_warp          = myXtNew(THD_warp) ;    /* 02 Nov 1996 */
+
+  dset->self_warp         = NULL ;                 /* 26 Aug 2002 */
   
   *(dset->wod_daxes)      = *daxes ;            /* copy insides of daxes */
   dset->wod_flag          = True ;              /* mark for warp-on-demand */

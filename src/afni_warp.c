@@ -215,7 +215,11 @@ if(PRINT_TRACING)
    } else {
 STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
       parent_dset = dset ;                    /* self-parenting */
-      parent_to_child_warp = IDENTITY_WARP ;  /* use identity warp */
+
+      if( dset->self_warp != NULL )
+        parent_to_child_warp = *(dset->self_warp) ;  /* 26 Aug 2002 */
+      else
+        parent_to_child_warp = IDENTITY_WARP ;  /* use identity warp */
    }
 
    /*----- make the voxel-to-voxel warp, if needed -----*/
