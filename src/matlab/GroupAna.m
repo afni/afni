@@ -287,7 +287,7 @@ if (cov.do),
       flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', cov.FN);
    else flg = 1; 
 	   [cov.vec, count] = fscanf(fid0, '%f');
-	   if (count ~= ntot & ~(NF == 3 & dsgn == 1)), % Check length of the 1D file
+	   if (count ~= ntot & ~((NF ==1 | NF == 2 | NF == 3) & dsgn == 1)), % Check length of the 1D file
 	      fprintf(2, '\nError: The column length of the covariate has to equal to the total number of input files!\n'); 
 			fprintf(2,'Halted: Ctrl+c to exit'); pause;
 	   end
@@ -337,7 +337,8 @@ if (file_format == 1),
    
    if (unbalanced.yes == 1),    % Try 4-way design 3 first
 	
-	if ((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1),  % Meant for 1,2,3,4-way ANCOVA with unequal sample size
+%	if ((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1),  % Meant for 1,2,3,4-way ANCOVA with unequal sample size
+	if (dsgn == 1),
 	   FI = 0; % File index
 		flg = 0;
 		ntot = input('Total number of input files: ');
@@ -345,6 +346,71 @@ if (file_format == 1),
  	      flg = 0; fprintf(2,'Error: the input is not a number. Please try again.\n');
  	   else flg = 1;
       end
+	
+	switch NF
+	case 1,
+		for (ii = 1:1:FL(1).N_level),		   
+				   fprintf (2,'\nFor factor %c (%s) at level %i (%s),', 64+1, FL(1).expr, ii, FL(1).level(ii).expr);
+					sz = input('\nsample size is: ');
+					fprintf (2,'\nProvide those %i input files:\n', sz);					
+					for (rr = 1:1:sz),
+						FI = FI + 1;
+						GP(1, FI) = {FL(1).level(ii).expr};
+						
+						flg = 0;	
+						while flg == 0,
+						   fprintf (2,'No. %i file ', rr);
+							file(FI).nm = input('is: ', 's');
+							fid = fopen (file(FI).nm,'r');	
+							if (fid == -1), flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(FI).nm);
+							else flg = 1; fclose (fid);	end
+							if isempty(strfind(file(FI).nm, 'tlrc')) == 0
+					         format = 'tlrc';
+					      elseif isempty(strfind(file(FI).nm, 'orig')) == 0
+					         format = 'orig';
+					      else 	
+					         while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
+						      fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					      end
+						end
+						
+					end % for (rr = 1:1:sz)
+		end % for (ii = 1:1:FL(1).N_level)		
+
+	case 2,
+		for (ii = 1:1:FL(1).N_level),		   
+   	   for (jj = 1:1:FL(2).N_level),		      
+				   fprintf (2,'\nFor factor %c (%s) at level %i (%s),', 64+1, FL(1).expr, ii, FL(1).level(ii).expr);
+					fprintf (2,'\n    factor %c (%s) at level %i (%s),', 64+2, FL(2).expr, jj, FL(2).level(jj).expr);
+					sz = input('\nsample size is: ');
+					fprintf (2,'\nProvide those %i input files:\n', sz);					
+					for (rr = 1:1:sz),
+						FI = FI + 1;
+						GP(1, FI) = {FL(1).level(ii).expr};
+						GP(2, FI) = {FL(2).level(jj).expr};
+						
+						flg = 0;	
+						while flg == 0,
+						   fprintf (2,'No. %i file ', rr);
+							file(FI).nm = input('is: ', 's');
+							fid = fopen (file(FI).nm,'r');	
+							if (fid == -1), flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(FI).nm);
+							else flg = 1; fclose (fid);	end
+							if isempty(strfind(file(FI).nm, 'tlrc')) == 0
+					         format = 'tlrc';
+					      elseif isempty(strfind(file(FI).nm, 'orig')) == 0
+					         format = 'orig';
+					      else 	
+					         while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
+						      fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					      end
+						end
+						
+					end % for (rr = 1:1:sz)
+			end % for (jj = 1:1:FL(2).N_level)
+		end % for (ii = 1:1:FL(1).N_level)
+	
+	case 3,
 		for (ii = 1:1:FL(1).N_level),		   
    	   for (jj = 1:1:FL(2).N_level),		      
    	      for (kk = 1:1:FL(3).N_level),
@@ -380,12 +446,53 @@ if (file_format == 1),
 				end % for (kk = 1:1:FL(3).N_level)
 			end % for (jj = 1:1:FL(2).N_level)
 		end % for (ii = 1:1:FL(1).N_level)
-		if (ntot == FI), fprintf (2,'\n%i input files have been read in. \n', FI);
-		else fprintf(2,'Error: Total number of files do not match up. \n'); 
-		while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
-		end
+
+   case 4,		
+		for (ii = 1:1:FL(1).N_level),		   
+   	   for (jj = 1:1:FL(2).N_level),		      
+   	      for (kk = 1:1:FL(3).N_level),
+				for (ll = 1:1:FL(4).N_level),
+				   fprintf (2,'\nFor factor %c (%s) at level %i (%s),', 64+1, FL(1).expr, ii, FL(1).level(ii).expr);
+					fprintf (2,'\n    factor %c (%s) at level %i (%s),', 64+2, FL(2).expr, jj, FL(2).level(jj).expr);
+					fprintf (2,'\n    factor %c (%s) at level %i (%s),', 64+3, FL(3).expr, kk, FL(3).level(kk).expr);
+					fprintf (2,'\n    factor %c (%s) at level %i (%s),', 64+3, FL(3).expr, kk, FL(4).level(ll).expr);
+					sz = input('\nsample size is: ');
+					fprintf (2,'\nProvide those %i input files:\n', sz);					
+					for (rr = 1:1:sz),
+						FI = FI + 1;
+						GP(1, FI) = {FL(1).level(ii).expr};
+						GP(2, FI) = {FL(2).level(jj).expr};
+						GP(3, FI) = {FL(3).level(kk).expr};
+						GP(4, FI) = {FL(4).level(ll).expr};
+						flg = 0;	
+						while flg == 0,
+						   fprintf (2,'No. %i file ', rr);
+							file(FI).nm = input('is: ', 's');
+							fid = fopen (file(FI).nm,'r');	
+							if (fid == -1), flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(FI).nm);
+							else flg = 1; fclose (fid);	end
+							if isempty(strfind(file(FI).nm, 'tlrc')) == 0
+					         format = 'tlrc';
+					      elseif isempty(strfind(file(FI).nm, 'orig')) == 0
+					         format = 'orig';
+					      else 	
+					         while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
+						      fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					      end
+						end
+						
+					end % for (rr = 1:1:sz)
+					end % for (ll = 1:1:FL(4).N_level)
+				end % for (kk = 1:1:FL(3).N_level)
+			end % for (jj = 1:1:FL(2).N_level)
+		end % for (ii = 1:1:FL(1).N_level)
 		
-   end % if ((NF == 3 & dsgn == 1))							
+   end % switch NF
+	if (ntot == FI), fprintf (2,'\n%i input files have been read in. \n', FI);
+	else fprintf(2,'Error: Total number of files do not match up. \n'); 
+	while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+	end	
+	end % if (dsgn == 1)					
 	
 	if ((NF == 3 & dsgn == 3)),	
 %      acc = 0;
