@@ -124,12 +124,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.27b"
+#define VERSION "2.27c"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "28 Sep 2000      "
+#define RELEASE "13 Oct 2000      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -943,6 +943,8 @@ extern void AFNI_startup_timeout_CB( XtPointer , XtIntervalId * ) ;
 extern void AFNI_startup_layout_CB  ( XtPointer, XtIntervalId * ) ; /* 23 Sep 2000 */
 extern void AFNI_save_layout_CB     ( Widget, XtPointer, XtPointer ) ;
 extern void AFNI_finalsave_layout_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
+
+extern void AFNI_decode_geom( char * , int *, int *, int *, int * ) ;
 
 extern void AFNI_clone_controller_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_controller_panel_CB( Widget , XtPointer , XtPointer ) ;

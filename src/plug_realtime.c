@@ -500,7 +500,16 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_register_timeout( 1954 , RT_startup , NULL ) ;
 #endif
 
-   /***** go home *****/
+   /***** 12 Oct 2000: set the graphing geometry, if any *****/
+
+   ept = getenv("AFNI_REALTIME_volreg_graphgeom") ;
+   if( ept != NULL ){
+      char * str = malloc(strlen(ept)+20) ;
+      sprintf(str,"AFNI_tsplotgeom=%s",ept) ;
+      putenv(str) ;
+   }
+
+   /***** go home to mama (i.e., AFNI) *****/
 
    ALLOW_real_time = 1 ;  /* flag to AFNI that realtime work is started */
    return plint ;
@@ -583,6 +592,21 @@ char * RT_main( PLUGIN_interface * plint )
 
          reg_nr   = PLUTO_get_number(plint) ;
          reg_yr   = PLUTO_get_number(plint) ;
+
+         /* 12 Oct 2000: set pin_num on all graphs now open */
+
+         if( reg_nr >= MIN_PIN && reg_nr <= MAX_PIN && IM3D_OPEN(plint->im3d) ){
+
+            drive_MCW_grapher( plint->im3d->g123 ,
+                               graDR_setpinnum , (XtPointer) reg_nr ) ;
+
+            drive_MCW_grapher( plint->im3d->g231 ,
+                               graDR_setpinnum , (XtPointer) reg_nr ) ;
+
+            drive_MCW_grapher( plint->im3d->g312 ,
+                               graDR_setpinnum , (XtPointer) reg_nr ) ;
+         }
+
          continue ;
       }
 #endif
@@ -738,17 +762,24 @@ Boolean RT_worker( XtPointer elvis )
 
    static int first=1 ;
 
+#if 0
    if( first ){
       if( verbose ) fprintf(stderr,"RT: first call to RT_worker()\n") ;
       first = 0 ;
    }
+#endif
 
    /**--------------------------------------------------------------------**/
    /** if we are waiting for a connection, check to see if it is good yet **/
 
    if( rtinp == NULL ){         /* not doing real-time input at this time */
+      static int nerr = 0 ;
       jj = RT_check_listen() ;             /* see if someone wants to talk */
-      if( jj < 0 ) return True ;           /* quit if there's an error */
+      if( jj < 0 ){                        /* quit if there's an error */
+         nerr++ ;
+         return (nerr > 9) ? True : False; /* 12 Oct 2000: if a lot of errors */
+      }
+      nerr = 0 ;                           /* reset error count */
       if( jj == 0 ) return False ;         /* try later if no connection now */
       rtinp = new_RT_input() ;             /* try to make a new input struct */
       IOCHAN_CLOSE( ioc_control ) ;        /* not needed any more */
@@ -3050,12 +3081,19 @@ void RT_registration_3D_realtime( RT_input * rtin )
             "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]" ,
             "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"  } ;
 
+         char * ttl = malloc( strlen(DSET_FILECODE(rtin->dset)) + 32 ) ;
+
+         strcpy(ttl,DSET_FILECODE(rtin->dset)) ;
+         strcat(ttl," [Estimate]") ;
+
          rtin->mp = plot_ts_init( GLOBAL_library.dc->display ,
                                   0.0,rtin->reg_graph_xr ,
                                   -6 , -rtin->reg_graph_yr,rtin->reg_graph_yr ,
-                                  "time", NULL, DSET_FILECODE(rtin->dset), nar , NULL ) ;
+                                  "time", NULL, ttl, nar , NULL ) ;
 
          if( rtin->mp != NULL ) rtin->mp->killfunc = MTD_killfunc ;
+
+         free(ttl) ;
       }
    }
 
@@ -3209,7 +3247,7 @@ void RT_registration_3D_setup( RT_input * rtin )
    int ibase = rtin->reg_base_index ;
    int kk , nx,ny,nz , kind , nbar ;
    MRI_IMAGE * im ;
-   char * bar ;
+   char * bar , * ept ;
 
    /*-- extract info about coordinate axes of dataset --*/
 
@@ -3224,8 +3262,6 @@ void RT_registration_3D_setup( RT_input * rtin )
    rtin->ax3  = axcode( rtin->dset , 'A' ) ;
    rtin->hax3 = rtin->ax3 * rtin->iha      ;  /* yaw */
 
-   kk = rtin->reg_resam ;
-
    im     = DSET_BRICK(rtin->dset,ibase) ;
    im->dx = fabs( DSET_DX(rtin->dset) ) ;  /* must set voxel dimensions */
    im->dy = fabs( DSET_DY(rtin->dset) ) ;
@@ -3237,30 +3273,40 @@ void RT_registration_3D_setup( RT_input * rtin )
 
       case REGMODE_3D_RTIME:                /* actual registration */
       case REGMODE_3D_ATEND:
-         mri_3dalign_params( VL_MIT , VL_DXY , VL_DPH , VL_DEL ,
+         ept = getenv("AFNI_REALTIME_volreg_maxite") ;
+         kk  = VL_MIT ;
+         if( ept != NULL ){
+            kk = strtol(ept,NULL,10) ; if( kk <= 0 ) kk = VL_MIT ;
+         }
+         mri_3dalign_params( kk , VL_DXY , VL_DPH , VL_DEL ,
                              abs(rtin->ax1)-1 , abs(rtin->ax2)-1 , abs(rtin->ax3)-1 , -1 ) ;
 
-                                              /* noreg , clipit */
-         mri_3dalign_method( kk , verbose==2 ,   0     , 1        ) ;
+                                                           /* noreg , clipit */
+         mri_3dalign_method( rtin->reg_resam , verbose==2 ,   0     , 1        ) ;
 
          mri_3dalign_final_regmode( rtin->reg_final_resam ) ;
 
          rtin->reg_3dbasis = mri_3dalign_setup( im ,  NULL ) ;
       break ;
 
-      case REGMODE_3D_ESTIM:                /* just estimate motion */
-         mri_3dalign_params( 1 , VL_DXY , VL_DPH , 2.0*VL_DEL ,
+      case REGMODE_3D_ESTIM:               /* just estimate motion */
+         ept = getenv("AFNI_REALTIME_volreg_maxite") ;
+         kk  = 1 ;
+         if( ept != NULL ){
+            kk = strtol(ept,NULL,10) ; if( kk <= 0 ) kk = 1 ;
+         }
+
+         mri_3dalign_params( kk , VL_DXY , VL_DPH , 2.0*VL_DEL ,
                              abs(rtin->ax1)-1 , abs(rtin->ax2)-1 , abs(rtin->ax3)-1 , -1 ) ;
 
-         kk = MRI_CUBIC ;
-                                              /* noreg , clipit */
+         kk = MRI_CUBIC ;                     /* noreg , clipit */
          mri_3dalign_method( kk , verbose==2 ,   1     , 0        ) ;
 
          rtin->reg_3dbasis = mri_3dalign_setup( im ,  NULL ) ;
-
+#if 0
          kk = MRI_LINEAR ;
-
          mri_3dalign_method( kk , verbose==2 ,   1     , 0        ) ;
+#endif
       break ;
    }
 

@@ -363,7 +363,7 @@ static int get_linbuf( char * str )
 
 /*---------------------------------------------------------------------------*/
 
-static void decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy )
+void AFNI_decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy )
 {
    int has_x , has_plus ;
 
@@ -697,7 +697,7 @@ STATUS("no ***LAYOUT found") ;
       /* set location (ignore size part of geometry, if present) */
 
       if( controller_geom[cc][0] != '\0' ){
-         decode_geom( controller_geom[cc] , &gww,&ghh,&gxx,&gyy ) ;
+         AFNI_decode_geom( controller_geom[cc] , &gww,&ghh,&gxx,&gyy ) ;
          if( gxx >= 0 && gyy >= 0 )
             XtVaSetValues( GLOBAL_library.controllers[cc]->vwid->top_shell ,
                            XmNx , gxx , XmNy , gyy , NULL ) ;
@@ -762,7 +762,7 @@ STATUS("no ***LAYOUT found") ;
          /* change the image geometry? */
 
          if( image_geom[cc][ww][0] != '\0' ){
-            decode_geom( image_geom[cc][ww] , &gww,&ghh,&gxx,&gyy ) ;
+            AFNI_decode_geom( image_geom[cc][ww] , &gww,&ghh,&gxx,&gyy ) ;
             if( gxx >= 0 && gyy >= 0 )
                XtVaSetValues( isq->wtop , XmNx , gxx , XmNy , gyy , NULL ) ;
             if( gww > 0 && ghh > 0 )
@@ -778,10 +778,13 @@ STATUS("no ***LAYOUT found") ;
       /* 11 Oct 2000: change crosshairs if any mont spacing=1 */
 
       if( singleton ){
-         AV_assign_ival( GLOBAL_library.controllers[cc]->vwid->imag->crosshair_av ,
-                         AFNI_XHAIRS_SINGLE ) ;
-         AFNI_crosshair_visible_CB( GLOBAL_library.controllers[cc]->vwid->imag->crosshair_av ,
-                                    GLOBAL_library.controllers[cc] ) ;
+         AV_assign_ival(
+           GLOBAL_library.controllers[cc]->vwid->imag->crosshair_av ,
+           AFNI_XHAIRS_SINGLE ) ;
+
+         AFNI_crosshair_visible_CB(
+           GLOBAL_library.controllers[cc]->vwid->imag->crosshair_av ,
+           GLOBAL_library.controllers[cc] ) ;
       }
 
       /*-- loop over graphs --*/
@@ -824,7 +827,7 @@ STATUS("no ***LAYOUT found") ;
          /* change the graph window geometry? */
 
          if( graph_geom[cc][ww][0] != '\0' ){
-            decode_geom( graph_geom[cc][ww] , &gww,&ghh,&gxx,&gyy ) ;
+            AFNI_decode_geom( graph_geom[cc][ww] , &gww,&ghh,&gxx,&gyy ) ;
             if( gxx >= 0 && gyy >= 0 )
                XtVaSetValues( gra->fdw_graph , XmNx , gxx , XmNy , gyy , NULL ) ;
             if( gww > 0 && ghh > 0 )
@@ -864,7 +867,7 @@ STATUS("no ***LAYOUT found") ;
       }
 
       if( plugin_geom[ipl] != NULL ){
-            decode_geom( plugin_geom[ipl] , &gww,&ghh,&gxx,&gyy ) ;
+            AFNI_decode_geom( plugin_geom[ipl] , &gww,&ghh,&gxx,&gyy ) ;
             if( gxx >= 0 && gyy >= 0 ){
                XtVaSetValues(
                   GLOBAL_library.controllers[cc]->vwid->plugint[ipl]->wid->shell,
@@ -906,6 +909,7 @@ ENTRY("AFNI_save_layout_CB") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
 
 void AFNI_finalsave_layout_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 {
@@ -924,14 +928,16 @@ void AFNI_finalsave_layout_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    int ipl , qq , ll ;
    char * plab ;
 
-   Three_D_View * qm3d         = GLOBAL_library.controllers[0] ; /* already open */
-   int      npbut              = qm3d->vwid->nplugbut ;      /* how many plugins */
-   char **  pluglab            = qm3d->vwid->pluglab ;       /* their labels     */
-   PLUGIN_interface ** plugint = qm3d->vwid->plugint ;       /* their interfaces */
+   Three_D_View * qm3d         = GLOBAL_library.controllers[0]; /* already open */
+   int      npbut              = qm3d->vwid->nplugbut;      /* how many plugins */
+   char **  pluglab            = qm3d->vwid->pluglab;       /* their labels     */
+   PLUGIN_interface ** plugint = qm3d->vwid->plugint;       /* their interfaces */
 
 ENTRY("AFNI_finalsave_layout_CB") ;
 
    if( !THD_filename_ok(cbs->cval) ){ BEEPIT; EXRETURN; }
+
+   if( strcmp(cbs->cval,".afnirc") == 0 ){ BEEPIT; EXRETURN; } /* 12 Oct 2000 */
 
    fp = fopen( cbs->cval , "w" ) ;
    if( fp == NULL ){ BEEPIT; EXRETURN; }

@@ -2340,3 +2340,8 @@
  * Modifed plug_realtime.c to start work process after a timeout.
  * Added PLUTO_register_timeout() afni_plugin.[ch], to execute a
      function after a given number of ms.
+
+12 Oct 2000
+ * Modified afni_graph.c to redraw with autoscale when matrix or
+     length is changed by an external (isqDR_) command (not by
+     the user directly).

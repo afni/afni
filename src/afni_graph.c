@@ -584,7 +584,7 @@ ENTRY("new_MCW_grapher") ;
                        GRA_baseline_CB , (XtPointer)grapher ) ;
 
     MCW_reghint_children( grapher->opt_baseline_bbox->wrowcol ,
-                          "Common graph baseline?" ) ; 
+                          "Common graph baseline?" ) ;
    }
 
    /* 22 Sep 2000: Text toggle */
@@ -1089,9 +1089,12 @@ ENTRY("GRA_redraw_overlay") ;
    EXRETURN ;
 }
 
-/*-----------------------------------------------
-   redraw entire graph
-------------------------------------------------*/
+/*------------------------------------------------------------------
+   redraw entire graph;
+   code is a mask of special values:
+     0                  = default action
+     PLOTCODE_AUTOSCALE = scale graphs automatically
+-------------------------------------------------------------------*/
 
 void redraw_graph( MCW_grapher * grapher , int code )
 {
@@ -1102,8 +1105,8 @@ void redraw_graph( MCW_grapher * grapher , int code )
 
 ENTRY("redraw_graph") ;
 
-   if( ! GRA_REALZ(grapher) ){ STATUS("ILLEGAL ENTRY") ; EXRETURN; }
-   if( grapher->fd_pxWind == (Pixmap) 0 ){ STATUS("ILLEGAL ENTRY") ; EXRETURN; }
+   if( ! GRA_REALZ(grapher) ){ STATUS("ILLEGAL ENTRY"); EXRETURN; }
+   if( grapher->fd_pxWind == (Pixmap) 0 ){ STATUS("ILLEGAL ENTRY"); EXRETURN; }
 
    /*---- draw the graphs ----*/
 
@@ -3434,7 +3437,7 @@ ENTRY("drive_MCW_grapher") ;
          if( mm < 0 ) RETURN( False ) ;
          grapher->mat = MIN( grapher->mat_max , mm ) ;
          init_mat    ( grapher ) ;
-         redraw_graph( grapher , 0 ) ;
+         redraw_graph( grapher, PLOTCODE_AUTOSCALE ); /* 12 Oct 2000: autoscale */
          send_newinfo( grapher ) ;
          RETURN( True ) ;
       }
@@ -3533,7 +3536,7 @@ ENTRY("drive_MCW_grapher") ;
 #ifdef USE_OPTMENUS
          GRA_fix_optmenus( grapher ) ;
 #endif
-         redraw_graph( grapher , 0 ) ;
+         redraw_graph( grapher, PLOTCODE_AUTOSCALE ); /* 12 Oct 2000: autoscale */
          RETURN( True ) ;
       }
 
