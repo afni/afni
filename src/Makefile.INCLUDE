@@ -775,13 +775,13 @@ afni.o:afni.c
 	$(RM) $@
 	$(CC) -c afni.c $(IFLAGS) -DSHOWOFF=$(SHOWOFF)
 
-afni:$(AFOBJS) libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h
+afni:$(AFOBJS) libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h niml.h
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lcoxplot -lmri -lvolpack -lf2c $(LLIBS)
 
 # CYGWIN: must compile afni.exe with fixed plugins (see PLUGIN_FIXED, far below)
 
-afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h
+afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a libvolpack.a libmri.a volpack.h coxplot.h niml.h
 	$(RM) $@
 	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lcoxplot -lmri -lvolpack -lf2c $(LLIBS)
 
@@ -1149,7 +1149,8 @@ NETCDF_OBJS =  netcdf_attr.o   netcdf_dim.o   netcdf_error.o netcdf_libvers.o \
                thd_mincread.o
 
 libmri.a:$(NIML_OBJS) $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS)                \
-         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)
+         $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)             \
+         niml.h mrilib.h 3ddata.h
 	$(RM) $@
 	$(AR) q libmri.a $(MRI_OBJS) $(CDF_OBJS) $(THD_OBJS) $(EDT_OBJS) \
 		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)
@@ -1428,7 +1429,7 @@ cdf_00.o:
 #######
 # Ditto for NIML objects
 
-niml_b64.o:
+niml_b64.o:niml.h
 	( cd niml/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
 
 niml.h:niml/niml.h
