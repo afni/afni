@@ -1,6 +1,11 @@
 #ifndef SUMA_MACROSm_INCLUDED
 #define SUMA_MACROSm_INCLUDED
 
+#define SUMA_WHAT_ENDIAN(End){   \
+   int m_one = 1;   \
+   /* From RickR's Imon */ \
+   End = (*(char *)&m_one == 1) ? LSB_FIRST : MSB_FIRST;   \
+}
       
 #define IS_STRICT_POS(a)   ( ((a) > 0) ? 1 : 0 )
 

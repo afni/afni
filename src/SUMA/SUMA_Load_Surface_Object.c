@@ -349,11 +349,20 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          SO->FileFormat = SO_FF;
          SO->NodeDim = 3; /* This must be automated */
          /*read the surface file */
-         if (!SUMA_FreeSurfer_Read_eng((char*)SO_FileName_vp, FS, debug)) {
-            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_FreeSurfer_Read.\n", FuncName);
+         if (SO->FileFormat == SUMA_ASCII) {
+            if (!SUMA_FreeSurfer_Read_eng((char*)SO_FileName_vp, FS, debug)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_FreeSurfer_Read.\n", FuncName);
+               SUMA_RETURN (NULL);
+            }
+         } else if (SO->FileFormat == SUMA_BINARY_BE) {
+            if (!SUMA_FreeSurfer_ReadBin_eng((char*)SO_FileName_vp, FS, debug)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_FreeSurfer_Read.\n", FuncName);
+               SUMA_RETURN (NULL);
+            }
+         } else {
+            SUMA_SL_Err("Format not supported.");
             SUMA_RETURN (NULL);
          }
-         
 	 if ( debug > 1)
             SUMA_Show_FreeSurfer (FS, NULL);
          /* save the juice and clean up the rest */
@@ -1817,10 +1826,8 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
 
       if (SUMA_iswordin(Spec->SurfaceFormat[i], "ASCII") == 1)
          SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], SUMA_FREE_SURFER, SUMA_ASCII, tmpVolParName, debug);
-      else {
-         fprintf(SUMA_STDERR,"Error %s: Only ASCII surfaces can be read for now.\n", FuncName);
-         SUMA_RETURN(NULL);
-      }
+      else if (SUMA_iswordin(Spec->SurfaceFormat[i], "BINARY") == 1)
+         SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], SUMA_FREE_SURFER, SUMA_BINARY_BE, tmpVolParName, debug);
       if (SO == NULL)   {
          fprintf(SUMA_STDERR,"Error %s: could not load SO\n", FuncName);
          SUMA_RETURN(NULL);
@@ -2917,6 +2924,16 @@ int main (int argc,char *argv[])
       }
       /* add LocalDomainParent */
       fprintf(fid, "\tLocalDomainParent = SAME\n");
+      /* binary ? */
+      switch (TypeC[i]) {
+         case SUMA_FREE_SURFER:
+            if (!SUMA_isExtension(Name_coord[i], ".asc")) {
+               fprintf(fid, "\tSurfaceFormat = BINARY\n");
+            }
+            break;
+         default:
+            break;
+      }
    }
    
    fclose(fid); fid = NULL;
