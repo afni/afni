@@ -2562,7 +2562,7 @@ void scale_up( MCW_grapher * grapher )
 
    if( grapher->fscale > 1000000.0 ){
      static int nn=0 ;
-     nn++ ; if( nn < 9 ) fprintf(stderr,"Is that you, Bellgowan?  If so, stop it!\a\n") ;
+     nn++ ; if( nn < 3 ) fprintf(stderr,"Is that you, Bellgowan?  If so, stop it!\a\n") ;
    }
    return ;
 }

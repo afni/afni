@@ -52,6 +52,7 @@ ENTRY("THD_write_3dim_dataset") ;
    if( DSET_IS_NIFTI(dset)    ) RETURN(False) ;  /* 28 Aug 2003 */
    if( DSET_IS_CTFMRI(dset)   ) RETURN(False) ;  /* 05 Dec 2002 */
    if( DSET_IS_CTFSAM(dset)   ) RETURN(False) ;  /* 05 Dec 2002 */
+   if( DSET_IS_TCAT(dset)     ) RETURN(False) ;  /* 05 Aug 2004 */
 
    if( DSET_IS_VOLUMES(dset) && write_brick ) RETURN(False) ;  /* 20 Jun 2002 */
 
