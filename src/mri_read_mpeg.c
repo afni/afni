@@ -81,7 +81,7 @@ MRI_IMARR * mri_read_mpeg( char *fname )
    if( IMARR_COUNT(imar) == 0 ){
      DESTROY_IMARR(imar);
      imar = NULL;
-   } else if( allgray || AFNI_yesenv("AFNI_MPEG_GRAYIZE") ){
+   } else if( AFNI_yesenv("AFNI_MPEG_GRAYIZE") ){
      MRI_IMARR *qmar ;
      INIT_IMARR(qmar) ;
      for( ii=0 ; ii < IMARR_COUNT(imar) ; ii++ ){
