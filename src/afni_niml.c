@@ -288,6 +288,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      THD_3dim_dataset *dset ;
      SUMA_surface *ag ;
      int *ic ; float *xc,*yc,*zc ; char *idc ;
+     int num ;
 
      if( dont_hear_suma ) EXRETURN ;
 
@@ -323,48 +324,55 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      dset = PLUTO_find_dset_idc( idc ) ;
      if( dset == NULL ){
         sprintf(msg, "***ERROR:\n\n"
-                     " SUMA_ixyz surface dataset idcode is \n"
+                     " SUMA_ixyz volume dataset idcode is \n"
                      "   %s\n"
                      " Can't find this in AFNI\n", idc ) ;
         AFNI_popup_message( msg ) ;
         EXRETURN ;
      }
 
-     /*-- if the dataset already has a surface, trash it */
+     /*-- 14 Aug 2002: we used to trash old surfaces,
+                       but now we just accumulate them --*/
 
-     if( dset->su_surf != NULL ){
-        SUMA_destroy_surface( dset->su_surf ) ; dset->su_surf = NULL ;
-     }
-     if( dset->su_vmap != NULL ){
-        free( dset->su_vmap ) ; dset->su_vmap = NULL ;
-     }
-     if( dset->su_vnlist != NULL ){
-        SUMA_destroy_vnlist( dset->su_vnlist ) ; dset->su_vnlist = NULL ;
-     }
-     if( dset->su_sname != NULL ){
-        free( dset->su_sname ) ;
-     }
+     num = dset->su_num ;  /* number of surfaces currently attached */
 
-     /*-- set the surface filename to the special "don't purge" string --*/
+     /* make space for 1 more set of surface pointers */
 
-     dset->su_sname = strdup( "++LOCK++" ) ;
+     dset->su_surf = (SUMA_surface **) realloc(dset->su_surf, (num+1)*sizeof(SUMA_surface *)) ;
+
+     dset->su_vmap = (int **) realloc(dset->su_vmap, (num+1)*sizeof(int *)) ;
+     dset->su_vmap[num] = NULL ;
+
+     dset->su_vnlist = (SUMA_vnlist **) realloc(dset->su_vnlist, (num+1)*sizeof(SUMA_vnlist *)) ;
+     dset->su_vnlist[num] = NULL ;
+
+     dset->su_sname = (char **) realloc(dset->su_sname, (num+1)*sizeof(char *)) ;
 
      /*-- initialize surface that we will fill up here */
 
-     ag = SUMA_create_empty_surface() ;
+     dset->su_surf[num] = ag = SUMA_create_empty_surface() ;
 
-     /*-- set IDCODEs of surface and of its dataset --*/
-
-     MCW_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
+     /*-- get surface ID code (or make it up) --*/
 
      idc = NI_get_attribute( nel , "surface_idcode" ) ;
      if( idc == NULL )
        idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+
      if( idc == NULL ){
        idc = UNIQ_idcode(); MCW_strncpy(ag->idcode,idc,32); free(idc);
      } else {
        MCW_strncpy(ag->idcode,idc,32);
      }
+
+     /*-- set surface filename now --*/
+
+     dset->su_sname[num] = malloc(16+strlen(ag->idcode)) ;
+     strcpy(dset->su_sname[num], "++LOCK++ ") ;
+     strcat(dset->su_sname[num], ag->idcode ) ;
+
+     /*-- set IDCODEs of surface and of its dataset --*/
+
+     MCW_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
 
      /*-- pointers to the data columns in the NI_element --*/
 
@@ -380,10 +388,11 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      /*-- prepare the surface for AFNI --*/
 
      SUMA_ixyzsort_surface( ag ) ;
-     dset->su_surf = ag ;
+
+     dset->su_num = num+1 ;     /* 14 Aug 2002 */
 
 #if 0
-     dset->su_vmap = SUMA_map_dset_to_surf( ag , dset ) ;
+     dset->su_vmap[num] = SUMA_map_dset_to_surf( ag , dset ) ;
 #endif
 
      /*-- we're done! --*/
@@ -392,9 +401,10 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      sprintf(msg,"+++NOTICE:\n\n"
                  " SUMA_ixyz surface received:\n"
-                 "  %d nodes attached to dataset \n"
-                 "  %.222s\n" ,
-                 nel->vec_filled , DSET_FILECODE(dset) ) ;
+                 " %d nodes attached to dataset\n"
+                 "  %.222s\n"
+                 " This is surface #%d for this dataset \n" ,
+                 nel->vec_filled , DSET_FILECODE(dset), num+1 ) ;
 
      if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
                                               "I/O time  =%4d ms\n"
@@ -420,6 +430,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      THD_3dim_dataset *dset ;
      SUMA_surface *ag ;
      int *it, *jt , *kt ; char *idc ;
+     int num , ii ;
 
      if( dont_hear_suma ) EXRETURN ;
 
@@ -463,13 +474,13 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- dataset must already have a surface */
 
-     ag = dset->su_surf ;
-     if( ag == NULL ){
+     num = dset->su_num ;
+     if( num == 0 ){
         sprintf(msg,"***ERROR:\n\n"
                     " SUMA_ijk surface data\n"
                     " received for dataset\n"
                     "  %.222s\n"
-                    " before SUMA_ixyz data! \n" ,
+                    " before any SUMA_ixyz data! \n" ,
                 DSET_FILECODE(dset) ) ;
         AFNI_popup_message( msg ) ;
         EXRETURN ;
@@ -484,14 +495,25 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                             " does not have surface idcode! \n" ) ;
         EXRETURN ;
      }
-     if( strcmp(dset->su_surf->idcode,idc) != 0 ){
-        sprintf(msg,"***ERROR:\n\n"
-                    "SUMA_ijk surface idcode = %s\n"
-                    "but SUMA_ixyz had idcode= %s\n" ,
-                idc , dset->su_surf->idcode ) ;
+
+     /* 14 Aug 2002: find surface idcode in dataset's list of surfaces */
+
+     for( ii=0 ; ii < num ; ii++ )
+       if( strstr(dset->su_sname[ii],idc) != NULL ) break ;
+
+     if( ii == num ){
+        sprintf(msg, "***ERROR:\n\n"
+                     " SUMA_ijk surface input\n"
+                     " surface idcode\n"
+                     "  %s\n"
+                     " does not match any surface on dataset \n"
+                     "  %.222s\n" ,
+                idc, DSET_FILECODE(dset) ) ;
         AFNI_popup_message( msg ) ;
         EXRETURN ;
      }
+
+     ag = dset->su_surf[ii] ; /* set surface to run with */
 
      /*-- pointers to the data columns in the NI_element --*/
 
@@ -584,8 +606,8 @@ ENTRY("AFNI_niml_redisplay_CB") ;
        !IM3D_OPEN(im3d)          ||
        !im3d->vinfo->func_visible  ) EXRETURN ;
 
-   adset = im3d->anat_now ; if( adset->su_surf == NULL ) EXRETURN ;
-   fdset = im3d->fim_now  ; if( fdset          == NULL ) EXRETURN ;
+   adset = im3d->anat_now ; if( adset->su_num == 0    ) EXRETURN ;
+   fdset = im3d->fim_now  ; if( fdset         == NULL ) EXRETURN ;
 
    if( sendit ){
      if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
@@ -599,7 +621,7 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
 
-   if( nmap < 0 ) EXRETURN ;
+   if( nmap < 0 || adset->su_vnlist[0] == NULL ) EXRETURN ;  /* this is bad */
 
    if( nmap > 0 ){  /* make a data element with data */
       nel = NI_new_data_element( "SUMA_irgba" , -1 ) ;
@@ -615,11 +637,11 @@ ENTRY("AFNI_niml_redisplay_CB") ;
       nel = NI_new_data_element( "SUMA_irgba" , 0 ) ;
       nvused = 0 ;
    }
-   nvtot = adset->su_vnlist->nvox ;  /* 13 Mar 2002 */
+   nvtot = adset->su_vnlist[0]->nvox ;  /* 13 Mar 2002 */
 
    /* 13 Mar 2002: send idcodes of surface and datasets involved */
 
-   NI_set_attribute( nel , "surface_idcode" , adset->su_surf->idcode ) ;
+   NI_set_attribute( nel , "surface_idcode" , adset->su_surf[0]->idcode ) ;
    NI_set_attribute( nel , "volume_idcode"  , adset->idcode.str ) ;
    NI_set_attribute( nel , "function_idcode", fdset->idcode.str ) ;
 
@@ -657,9 +679,10 @@ static void AFNI_niml_viewpoint_CB( int why, int q, void *qq, void *qqq )
 
 ENTRY("AFNI_niml_viewpoint_CB") ;
 
-   if( dont_tell_suma                 ||
-       !IM3D_OPEN(im3d)               ||
-       im3d->anat_now->su_surf == NULL  ) EXRETURN ;
+   if( dont_tell_suma                    ||
+       !IM3D_OPEN(im3d)                  ||
+       im3d->anat_now->su_num     == 0   ||
+       im3d->anat_now->su_surf[0] == NULL  ) EXRETURN ;
 
    if( sendit ){
      if( NI_stream_goodcheck(ns_listen[NS_SUMA],1) < 1 ) EXRETURN ;
@@ -678,7 +701,7 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
 
    /* 13 Mar 2002: add idcodes of what we are looking at right now */
 
-   NI_set_attribute( nel, "surface_idcode", im3d->anat_now->su_surf->idcode ) ;
+   NI_set_attribute( nel, "surface_idcode", im3d->anat_now->su_surf[0]->idcode ) ;
    NI_set_attribute( nel, "volume_idcode" , im3d->anat_now->idcode.str ) ;
 
    xold = xyz[0] ; yold = xyz[1] ; zold = xyz[2] ;  /* save old point */

@@ -1974,21 +1974,29 @@ typedef struct THD_3dim_dataset {
       KILL_list kl ;              /*!< Stuff to delete if this dataset is deleted (see killer.h) */
       XtPointer parent ;          /*!< Somebody that "owns" this dataset */
 
-      SUMA_surface * su_surf ;  /*!< surface data */
-      char * su_sname ;         /*!< name of surface file */
-      int * su_vmap ;           /*!< voxel-to-node map */
-      SUMA_vnlist *su_vnlist ;  /*!< list of surfaces nodes in voxels */
+   /* 14 Aug 2002: modified to make each of this an array of pointers */
+
+      SUMA_surface **su_surf ;    /*!< surface data */
+      char **su_sname ;           /*!< name of surface file */
+      int **su_vmap ;             /*!< voxel-to-node map */
+      SUMA_vnlist **su_vnlist ;   /*!< list of surfaces nodes in voxels */
+
+      int su_num ;                /*!< Number of surfaces */
 
 } THD_3dim_dataset ;
 
 /*! Determine if dataset ds has SUMA surface data attached. */
-#define DSET_HAS_SUMA(ds)   ( (ds)!=NULL && (ds)->su_sname!=NULL && (ds)->su_surf!=NULL )
+#define DSET_HAS_SUMA(ds) ( (ds)!=NULL           &&  \
+                            (ds)->su_sname!=NULL &&  \
+                            (ds)->su_surf!=NULL  &&  \
+                            (ds)->su_num > 0        )
 
-/*! Clear out the AFNI surface data pointers in dataset ds. */
+/*! Clear out the AFNI surface data pointers in dataset ds [does not erase data]. */
 # define DSET_NULL_SUMA(ds)                         \
   do{ if( (ds) != NULL ){                           \
         (ds)->su_sname=NULL; (ds)->su_surf=NULL  ;  \
         (ds)->su_vmap=NULL ; (ds)->su_vnlist=NULL;  \
+        (ds)->su_num=0     ;                        \
       } } while(0)
 
 /*! A marker that defines a dataset that is about to be killed. */

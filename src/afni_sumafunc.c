@@ -38,6 +38,7 @@ int AFNI_vnlist_func_overlay( Three_D_View *im3d, SUMA_irgba **map, int *nvused 
    int nvox,nnod,nout , *numnod , *voxijk , *nlist ;
    int *vlist ;
    int nvout ;   /* 13 Mar 2002 */
+   int ks ;      /* 14 Aug 2002 */
 
 ENTRY("AFNI_vnlist_func_overlay") ;
 
@@ -49,9 +50,15 @@ ENTRY("AFNI_vnlist_func_overlay") ;
 
    /* check datasets for goodness */
 
-   adset = im3d->anat_now ;                    /* anat dataset */
-   if( adset == NULL          ||               /* must have surface */
-       adset->su_surf == NULL   ) RETURN(-1) ;
+   adset = im3d->anat_now ;                /* anat dataset */
+   if( adset == NULL      ||               /* must have surface */
+       adset->su_num == 0   ) RETURN(-1) ;
+
+   /* 14 Aug 2002: find surface index [ks] to use */
+
+   for( ks=0 ; ks < adset->su_num ; ks++ )
+     if( adset->su_surf[ks] != NULL ) break ;
+   if( ks == adset->su_num ) RETURN(-1) ;  /* no valid surface? */
 
    fdset = im3d->fim_now  ; if( fdset == NULL ) RETURN(-1) ;
 
@@ -122,25 +129,25 @@ ENTRY("AFNI_vnlist_func_overlay") ;
 
    /* maybe need to build a voxel-to-node list for func dataset */
 
-   if( adset->su_vnlist == NULL ||
-       !EQUIV_DATAXES(adset->su_vnlist->dset->daxes,fdset->daxes) ){
+   if( adset->su_vnlist[ks] == NULL ||
+       !EQUIV_DATAXES(adset->su_vnlist[ks]->dset->daxes,fdset->daxes) ){
 
-     if( adset->su_vnlist != NULL )
-        SUMA_destroy_vnlist( adset->su_vnlist ) ;
+     if( adset->su_vnlist[ks] != NULL )
+        SUMA_destroy_vnlist( adset->su_vnlist[ks] ) ;
 
-     adset->su_vnlist = SUMA_make_vnlist( adset->su_surf , fdset ) ;
-     if( adset->su_vnlist == NULL ) RETURN(-1) ;
+     adset->su_vnlist[ks] = SUMA_make_vnlist( adset->su_surf[ks] , fdset ) ;
+     if( adset->su_vnlist[ks] == NULL ) RETURN(-1) ;
    }
 
    /* create array of voxel indexes (vlist);
       will put in there the voxels that are above threshold */
 
-   nvox   = adset->su_vnlist->nvox   ; if( nvox < 1 ) RETURN(0);
-   voxijk = adset->su_vnlist->voxijk ;  /* list of voxels with surface nodes */
-   numnod = adset->su_vnlist->numnod ;  /* number of nodes in each voxel */
+   nvox   = adset->su_vnlist[ks]->nvox   ; if( nvox < 1 ) RETURN(0);
+   voxijk = adset->su_vnlist[ks]->voxijk ;  /* list of voxels with surface nodes */
+   numnod = adset->su_vnlist[ks]->numnod ;  /* number of nodes in each voxel */
 
-   nnod = adset->su_surf->num_ixyz   ; if( nnod < 1 ) RETURN(0);
-   ixyz = adset->su_surf->ixyz ;
+   nnod = adset->su_surf[ks]->num_ixyz   ; if( nnod < 1 ) RETURN(0);
+   ixyz = adset->su_surf[ks]->ixyz ;
 
 #if 0
 fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
@@ -257,8 +264,8 @@ fprintf(stderr,"Number of colored nodes in voxels = %d\n",nout) ;
             jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
             r = ar_fim[3*jj]; g = ar_fim[3*jj+1]; b = ar_fim[3*jj+2];
             if( r == 0 && g ==0 && b == 0 ) continue ; /* uncolored */
-            nlist = adset->su_vnlist->nlist[ii] ;     /* list of nodes */
-            for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
+            nlist = adset->su_vnlist[ks]->nlist[ii] ;  /* list of nodes */
+            for( nn=0 ; nn < numnod[ii] ; nn++ ){      /* loop over nodes */
                mmm[nout].id = ixyz[nlist[nn]].id ;
                mmm[nout].r  = r ; mmm[nout].g = g ;
                mmm[nout].b  = b ; mmm[nout].a = 255 ; nout++ ;
@@ -291,7 +298,7 @@ fprintf(stderr,"  fim_thr[%d]=%f\n",lp,fim_thr[lp]) ;
             for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
             if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
             r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
-            nlist = adset->su_vnlist->nlist[ii] ;     /* list of nodes */
+            nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
             for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
                mmm[nout].id = ixyz[nlist[nn]].id ;
                mmm[nout].r  = r ; mmm[nout].g = g ;
@@ -324,7 +331,7 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
             for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
             if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
             r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
-            nlist = adset->su_vnlist->nlist[ii] ;     /* list of nodes */
+            nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
             for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
                mmm[nout].id = ixyz[nlist[nn]].id ;
                mmm[nout].r  = r ; mmm[nout].g = g ;
@@ -350,7 +357,7 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
             for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
             if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
             r = ovc_r[lp]; g = ovc_g[lp]; b = ovc_b[lp];
-            nlist = adset->su_vnlist->nlist[ii] ;     /* list of nodes */
+            nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
             for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
                mmm[nout].id = ixyz[nlist[nn]].id ;
                mmm[nout].r  = r ; mmm[nout].g = g ;

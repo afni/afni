@@ -55,7 +55,8 @@ static AFNI_friend afni_friends[] = {
   { "E Kapler"       , (                                128             ) } ,
   { "R Doucette"     , (                           64                   ) } ,
   { "RC Reynolds"    , (                           64       | 512       ) } ,
-  { "PP Christidis"  , (                           64                   ) }
+  { "PP Christidis"  , (                           64                   ) } ,
+  { "LR Frank"       , (             8                                  ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
