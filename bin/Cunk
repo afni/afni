@@ -1,0 +1,12 @@
+#!/bin/tcsh
+
+if( "$1" == "-help" )then
+   echo "Usage: Cunk"
+   echo "Find files 'unknown' to CVS.  If you want these to be"
+   echo "stored in the repository, you need to use Cadd or cvs add."
+   echo "Only looks at files in the working directory -- does not"
+   echo "work recursively."
+   exit 0
+endif
+
+cvs -Q status `find . -type f -maxdepth 1` | grep Unknown

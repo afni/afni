@@ -1,0 +1,36 @@
+#!/bin/tcsh
+
+if ( $#argv < 2 || "$1" == "-help" ) then
+  echo "Usage: Cmv aa bb"
+  echo "Rename a file, both in the working directory (here) and in CVS."
+  exit 0
+endif
+
+# check for potential problems
+
+set aa = $argv[1]
+set bb = $argv[2]
+
+if( ! -f $aa )then
+  echo "** Cmv ERROR: File $aa is not a regular file"
+  exit 1
+endif
+
+if( -e $bb )then
+  echo "** Cmv ERROR: File $bb already exists"
+  exit 1
+endif
+
+# rename files here
+
+mv $aa $bb
+if( $status != 0 )then
+  echo "** Cmv ERROR: mv $aa $bb failed"
+  exit 1
+endif
+
+#rename them in the repository
+
+cvs remove $aa
+cvs add    -m "Cmv" $bb
+cvs commit -m "Cmv" $aa $bb

@@ -1,0 +1,37 @@
+#!/bin/tcsh
+
+echo ""
+echo "======================= CVS commands ======================="
+echo ""
+
+echo "Cadd file [file ...]"
+echo "  adds new files to CVS repository from working directory"
+
+echo "Cget"
+echo "  gets files from CVS repository to working directory"
+
+echo "Cmv aa bb"
+echo "  rename file 'aa' to 'bb' in working directory and in CVS repository"
+
+echo "Cnew"
+echo "  lists files in working directory that are not up-to-date with CVS"
+
+echo "Cput file [file ...]"
+echo "  sends changes to files from working directory to CVS repository"
+
+echo "Crm file [file ...]"
+echo "  removes files from working directory and CVS repository"
+
+echo "Cunk"
+echo "  lists files in working directory that are unknown to CVS"
+
+echo "cvs tag -c afni-2.33q ."
+echo "  tags all files in CVS repository as being part of release afni-2.33q"
+
+echo "cvs checkout"
+echo "  get all files in CVS repository into working directory"
+
+echo "cvs -H [command]"
+echo "  get help on CVS commands"
+
+echo ""

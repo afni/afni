@@ -1,0 +1,33 @@
+
+AFNI directory
+--------------
+backup   = script to backup all non-CVS contents to another directory
+bin/     = holds scripts for CVS usage (does NOT hold AFNI binaries!)
+doc/     = documentation for AFNI
+src/     = source code for AFNI
+
+CVS Maintenance Scripts
+-----------------------
+Cadd file [file ...]
+  adds new files to CVS repository from working directory
+Cget
+  gets files from CVS repository to working directory
+Chelp
+  prints this message
+Cmv aa bb
+  rename file 'aa' to 'bb' in working directory and in CVS repository
+Cnew
+  lists files in working directory that are not up-to-date with CVS
+Cput file [file ...]
+  sends changes to files from working directory to CVS repository
+Crm file [file ...]
+  removes files from working directory and CVS repository
+Cunk
+  lists files in working directory that are unknown to CVS
+
+cvs tag -c afni-2.33q .
+  tags all files in CVS repository as being part of release afni-2.33q
+cvs checkout
+  get all files in CVS repository into working directory
+cvs -H [command]
+  get help on CVS commands

@@ -1,0 +1,13 @@
+#!/bin/tcsh
+
+if( $#argv < 1 || "$1" == "-help" )then
+   echo "Usage: Cput file [file ...]"
+   echo "Puts revised files into CVS."
+   echo "To do all files (recursively), use '.' for the filename."
+   echo "If there is a conflict (e.g., someone else edited the"
+   echo "same file you edited), then you may have to use Cget or"
+   echo "otherwise resolve the problem."
+   exit 0
+endif
+
+cvs commit -m "Cput" $argv
