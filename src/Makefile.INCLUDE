@@ -1753,6 +1753,10 @@ asnap:asnap.o
 	$(RM) $@
 	$(CC) -o asnap asnap.o -lmrix $(LFLAGS) -lcoxplot $(LLIBS) -lf2c
 
+nifti1_test:nifti1_test.o nifti1.c nifti1.h
+	$(RM) $@
+	$(CC) -o nifti1_test nifti1_test.o -lm
+
 #-------------------------------------------------------------------------------
 
 #############
