@@ -28,6 +28,9 @@
 #include "mrilib.h"
 #include "ge4_header.h"
 
+/* prototype for local function */
+short check_dicom_magic_num( char * );
+
 /*! Global variable to signal image orientation, if possible. */
 
 char MRILIB_orients[8] = "\0\0\0\0\0\0\0\0" ;  /* 12 Mar 2001 */
@@ -3081,7 +3084,7 @@ Done:
 short check_dicom_magic_num( char * fname )
 {
   FILE * fp;
-  char* test_string[4] = {0};
+  char test_string[4] = {0};
 
   fp = fopen( fname, "rb" ) ;
   if(fp == NULL ) return 0 ;
