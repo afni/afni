@@ -8,13 +8,15 @@ int mri_isgray( MRI_IMAGE *im )
    register int nvox , ii ;
    register byte *bar ;
 
-   if( im == NULL || im->kind != MRI_rgb ) return 0 ;
+ENTRY("mri_isgray") ;
+
+   if( im == NULL || im->kind != MRI_rgb ) RETURN( 0 );
 
    nvox = im->nvox ;
    bar  = MRI_RGB_PTR(im) ;
    for( ii=0 ; ii < nvox ; ii++ )
      if( bar[3*ii] != bar[3*ii+1] ||
-         bar[3*ii] != bar[3*ii+2]   ) return 0 ;
+         bar[3*ii] != bar[3*ii+2]   ) RETURN( 0 );
 
-   return 1 ;
+   RETURN( 1 ) ;
 }

@@ -9,8 +9,10 @@ void mri_scale_inplace( float fac , MRI_IMAGE *im )
    register int ii , nvox ;
    void *vp ;
 
-   if( im == NULL || fac == 1.0 || fac == 0.0 ) return ;
-   vp = mri_data_pointer( im ) ; if( vp == NULL ) return ;
+ENTRY("mri_scale_inplace") ;
+
+   if( im == NULL || fac == 1.0 || fac == 0.0 ) EXRETURN ;
+   vp = mri_data_pointer( im ) ; if( vp == NULL ) EXRETURN ;
    nvox = im->nvox ;
 
    switch( im->kind ){
@@ -61,5 +63,5 @@ void mri_scale_inplace( float fac , MRI_IMAGE *im )
       break ;
    }
 
-   return ;
+   EXRETURN ;
 }

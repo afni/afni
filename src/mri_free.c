@@ -62,7 +62,9 @@ void mri_fix_data_pointer( void * ptr , MRI_IMAGE *im )
 void mri_free( MRI_IMAGE *im )
 {
    void * ptr ;
-   if( im == NULL ) return ;
+
+ENTRY("mri_free") ;
+   if( im == NULL ) EXRETURN ;
 #ifdef USE_MRI_DELAY
    if( im->fname != NULL ){ free(im->fname) ; im->fname = NULL ; }
    im->fondisk = 0 ;
@@ -71,7 +73,7 @@ void mri_free( MRI_IMAGE *im )
    ptr = mri_data_pointer(im) ;
    if( ptr != NULL ) free(ptr) ;
    free(im) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -103,7 +105,9 @@ void mri_move_guts( MRI_IMAGE *qim , MRI_IMAGE *zim )
 {
    void *ptr ;
 
-   if( qim == NULL || zim == NULL ) return ;  /* stupid caller */
+ENTRY("mri_move_guts") ;
+
+   if( qim == NULL || zim == NULL ) EXRETURN ;  /* stupid caller */
 
    /* destroy the contents inside qim, if any */
 
@@ -125,7 +129,7 @@ void mri_move_guts( MRI_IMAGE *qim , MRI_IMAGE *zim )
 #ifdef USE_MRI_DELAY
    zim->fname = NULL ;
 #endif
-   free(zim) ;
+   free(zim) ; EXRETURN ;
 }
 
 /*---------------- added fake rint() 12 Feb 2001 ---------------*/

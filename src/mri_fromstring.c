@@ -12,9 +12,11 @@ MRI_IMAGE * mri_1D_fromstring( char *str )
    char sep ;
    MRI_IMAGE *flim ;
 
+ENTRY("mri_1D_fromstring") ;
+
    sar = NI_decode_string_list( str , ",;" ) ;
-   if( sar == NULL ) return NULL ;
-   if( sar->num == 0 ){ NI_delete_str_array(sar); return NULL; }
+   if( sar == NULL ) RETURN(NULL) ;
+   if( sar->num == 0 ){ NI_delete_str_array(sar); RETURN(NULL); }
 
    far = (float *) malloc(sizeof(float)) ;
    for( ii=0 ; ii < sar->num ; ii++ ){
@@ -25,12 +27,12 @@ MRI_IMAGE * mri_1D_fromstring( char *str )
          strstr(sar->str[ii],"*") != NULL   ){  /* scan for count@value */
 
         nnn = sscanf( sar->str[ii] , "%d%c%f" , &count , &sep , &value ) ;
-        if( nnn != 3 || count < 1 ){ free(far); return NULL; }
+        if( nnn != 3 || count < 1 ){ free(far); RETURN(NULL); }
 
      } else {                                 /* just scan for value */
         count = 1 ;
         nnn   = sscanf( sar->str[ii] , "%f" , &value ) ;
-        if( nnn != 1 ){ free(far); return NULL; }
+        if( nnn != 1 ){ free(far); RETURN(NULL); }
      }
 
      far = (float *) realloc( far , sizeof(float)*(ntot+count) ) ;
@@ -42,5 +44,5 @@ MRI_IMAGE * mri_1D_fromstring( char *str )
    NI_delete_str_array(sar) ;
    flim = mri_new_vol_empty( ntot,1,1 , MRI_float ) ;
    mri_fix_data_pointer( far , flim ) ;
-   return flim ;
+   RETURN(flim) ;
 }
