@@ -34,7 +34,7 @@ SUMA_handleRedisplay(XtPointer closure)
    static int Last_isv = -1;
    int isv;
    SUMA_SurfaceViewer *sv;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -50,7 +50,9 @@ SUMA_handleRedisplay(XtPointer closure)
             fprintf (SUMA_STDERR, "Error %s: Making current a window that's closed, this should not be.\n", FuncName);
             SUMA_RETURN(NOPE);
          }else {
-            glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), sv->X->GLXCONTEXT);
+            if (!glXMakeCurrent (sv->X->DPY, XtWindow((Widget)closure), sv->X->GLXCONTEXT)) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+            }
          }
       }
    }
@@ -60,6 +62,17 @@ SUMA_handleRedisplay(XtPointer closure)
    SUMA_display(sv, SUMAg_DOv);
    sv->X->REDISPLAYPENDING = 0;
    
+   if (SUMAg_N_SVv > 1) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Forcing display to finish.\n", FuncName);
+      /* When multiple viewers are open, the picking does not work at times if you click around rapidly.
+      The problem seems to be caused by OpenGL being in a state corresponding to that of the last viewer 
+      visited before coming to the current viewer. Forcing gl to render after a redisplay pending for a 
+      certain viewer is placed seems to reduce this problem significantly so this fix will be adopted
+      until a better one comes along. This call does reduce the apparent speed of the display and might
+      cause momentum motion to be more blocky but the overload is minimal for regular use.*/
+      glFinish ();
+   }
+
    SUMA_RETURN(YUP);
 }
 
@@ -106,7 +119,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    int i;
    GLfloat rotationMatrix[4][4];
    static char FuncName[]={"SUMA_display"};
-   SUMA_Boolean LocalHead = YUP; /* local headline debugging messages */   
+   SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
     
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -118,7 +131,7 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    At any rate, that function is not costly to run so there's no harm in running it anytime
    you have a display call and more than one viewer open */ 
    if (SUMAg_N_SVv > 1 || csv->ResetGLStateVariables) {
-      if (LocalHead) fprintf(SUMA_STDERR, "%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
+      if (1 || LocalHead) fprintf(SUMA_STDERR, "%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
       SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, csv);
       csv->ResetGLStateVariables = NOPE;
    }
@@ -231,13 +244,13 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Flushing or swapping ...\n", FuncName);
    if (csv->X->DOUBLEBUFFER)
     glXSwapBuffers(csv->X->DPY, XtWindow(csv->X->GLXAREA));
-  else
+   else
     glFlush();
 
   /* Avoid indirect rendering latency from queuing. */
   if (!glXIsDirect(csv->X->DPY, csv->X->GLXCONTEXT))
     glFinish();
-
+   
    SUMA_RETURNe;
 }
 
@@ -266,7 +279,9 @@ SUMA_graphicsInit(Widget w, XtPointer clientData, XtPointer call)
     True);              /* Direct rendering if possible. */
 
    /* Setup OpenGL state. */
-   glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT);
+   if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+   }
    
    /* call context_Init to setup colors and lighting */   
    SUMA_context_Init(sv);
@@ -376,7 +391,10 @@ SUMA_resize(Widget w,
 
    /*   fprintf(stdout, "Resizn'...\n");*/
    callData = (GLwDrawingAreaCallbackStruct *) call;
-   glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT);
+   if (!glXMakeCurrent(XtDisplay(w), XtWindow(w), sv->X->GLXCONTEXT)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+   }
+
    glXWaitX();
    sv->X->WIDTH = callData->width;
    sv->X->HEIGHT = callData->height;
@@ -982,7 +1000,9 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    pmap = XCreatePixmap(dpy, RootWindow(dpy, vi->screen),
     csv->X->WIDTH, csv->X->HEIGHT, vi->depth);
    glxpmap = glXCreateGLXPixmap(dpy, vi, pmap);
-   glXMakeCurrent(dpy, glxpmap, cx);
+   if (!glXMakeCurrent(dpy, glxpmap, cx)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);
+   }
 
    SUMA_context_Init(csv);
    glViewport(0, 0, csv->X->WIDTH, csv->X->HEIGHT);
@@ -1036,7 +1056,9 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
    }
 
    /* render to original context */
-   glXMakeCurrent(XtDisplay(csv->X->GLXAREA), XtWindow(csv->X->GLXAREA),  csv->X->GLXCONTEXT); 
+   if (!glXMakeCurrent(XtDisplay(csv->X->GLXAREA), XtWindow(csv->X->GLXAREA),  csv->X->GLXCONTEXT)) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in glXMakeCurrent.\n \tContinuing ...\n", FuncName);   
+   }
 
    SUMA_RETURN (YUP);
 }

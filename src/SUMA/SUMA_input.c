@@ -1213,17 +1213,6 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (LocalHead) fprintf(SUMA_STDERR,"%s: Button 3 downplain jane, viewer #%d : X=%f, Y = %f\n", \
                   FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv), (float)Bev.x, (float)Bev.y);
                
-               #if 0
-               /* a miserable attempt to fix the cross hair linkage problem for repeated selections */
-               if (LocalHead) fprintf(SUMA_STDERR,"%s: Calling SUMA_OpenGLStateReset.\n", FuncName);
-               if (!SUMA_OpenGLStateReset (SUMAg_DOv, SUMAg_N_DOv, sv)) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_OpenGLStateReset.\n", FuncName);
-                  break;
-               }
-               SUMA_postRedisplay(w, NULL, NULL);
-               glXWaitGL();
-               #endif
-               
                ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
                if (ii == 0) { /* no surfaces, break */
                   break;
