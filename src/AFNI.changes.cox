@@ -5281,3 +5281,7 @@
  * Incorporated 3dMean.c changes from Mike Beauchamp to add standard deviation
     option.
  * Fixed stupid scale_thr bug in afni_func.c.
+
+03 Jan 2005
+ * Modified mri_imcount() in mri_read.c to not do "3D:" counting on a file
+     unless there is actually a colon in the filename!  D'oh.
