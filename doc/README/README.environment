@@ -1804,7 +1804,7 @@ time (e.g., using the 3D sphere option with a large radius).
 Variable: AFNI_SPEECH
 ---------------------
 If this YES/NO variable is set to NO, then the AFNI speech synthesis
-is disabled.  At the current time (Nov 2003), only the Mac OS X
+is disabled.  At the current time (Nov 2003), only the Mac OS X 10.3
 version of AFNI uses speech synthesis in any way.  And that's just
 for fun.
 
