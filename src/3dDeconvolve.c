@@ -735,7 +735,7 @@ void initialize_stim_options
       option_data->stim_filename[is] = NULL;
       option_data->stim_label[is] = malloc (sizeof(char)*THD_MAX_NAME);
       MTEST (option_data->stim_label[is]);
-      sprintf (option_data->stim_label[is], "Stim#%d ", is+1);
+      sprintf (option_data->stim_label[is], "Stim#%d", is+1);
 
       option_data->stim_base[is] = 0;
       option_data->stim_minlag[is]   = 0;
