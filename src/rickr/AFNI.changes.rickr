@@ -350,7 +350,7 @@
   * modified SUMA_3dVol2Surf.c to include ENTRY() stuff (3dVol2Surf -> v3.7)
 
 07 November 2003:
-  * checked in an initial version of SurfMeasures (v0.2)
+  * Added SUMA_SurfMeasures.[ch] -> SurfMeasures (v0.2)
       - this is not a release version (this checkin is for backup)
       - supported functions are coord_A, coord_B, n_area_A, n_area_B,
         nodes, node_vol and thick
@@ -599,4 +599,7 @@
 
 11 August 2004:
   * SUMA_SurfMeasures.c (-> v1.10) to warn users about ~10% inaccuracy in volume
+
+26 August 2004:
+  * modified FD2.c: added -swap_yes and -swap_no options
 

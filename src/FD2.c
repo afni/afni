@@ -61,6 +61,7 @@ int RWC_framehide = 0 ;  /* to hide frame in image */
 int RWC_checker   = 0 ;  /* to checkerboard or not to checkerboard */
 int RWC_groupbase = 0 ;  /* to use a group baseline or not */
 int AJ_base = 0;         /* to set base to zero when group baseline is on */
+int RCR_swap = 0;        /* {0, 1, 2} = {current method, -swap_yes, -swap_no} */
 
 /***-----------------------------------------------------------------------***/
 /*  int discard(int, XEvent*) ; */
@@ -810,6 +811,8 @@ STATUS("begin X event loop") ;
   fprintf (stderr, "\n    -grid val        - initial grid separation ");
   fprintf (stderr, "\n    -phase           - image has negative values (for FFT)");
   fprintf (stderr, "\n    -cf              - center image to the frame");
+  fprintf (stderr, "\n    -swap_yes        - force byte-swapping of data");
+  fprintf (stderr, "\n    -swap_no         - prevent byte-swapping of data");
   fprintf (stderr, "\n");
 }
 
@@ -892,7 +895,7 @@ STATUS("begin X event loop") ;
 /* ------------------------- */
 {
    register int i, j, k, nopt, nnn;
-   int          sp;
+   int          sp, swap;
    float        fff;
 
    MRI_IMAGE * imtemp ;
@@ -1018,6 +1021,19 @@ STATUS("begin X event loop") ;
          fprintf (stderr, "\n !!! No more -mag option in use !!!");
          fprintf (stderr, "\n !!! Resize window using mouse  !!!\a\n\n");
          if (++i >= argc) { Syntax(); exit(1); }
+         nopt++; nopt++;
+         continue;
+      }
+
+      /* allow the user to specify whether to swap bytes */
+      if (strncmp(argv [i], "-swap_no", 7) == 0) {
+         RCR_swap = 2;
+         nopt++; nopt++;
+         continue;
+      }
+
+      if (strncmp(argv [i], "-swap_yes", 7) == 0) {
+         RCR_swap = 1;
          nopt++; nopt++;
          continue;
       }
@@ -1197,14 +1213,23 @@ STATUS("begin X event loop") ;
    /* read and check the length of the first file for validity */
 
    imtemp = mri_read_nsize( f_name[0] ) ;
+
+   /* new swapping test     26 Aug 2004 [rickr] */
+   swap = 0;
 #ifdef LINUX
-   if ( imtemp->kind == MRI_short ) {
+   swap = 1;	/* compile-time default */
+#endif
+   /* the user might have explicitly requested swap_yes or swap_no */
+   if      ( RCR_swap == 1 ) swap = 1;  /* -swap_yes */
+   else if ( RCR_swap == 2 ) swap = 0;  /* -swap_no  */
+
+   if ( swap && imtemp->kind == MRI_short ) {
      swap_2(MRI_SHORT_PTR(imtemp), imtemp->nx*imtemp->ny*2);
    }
-   else if ( imtemp->kind == MRI_float ) {
+   else if ( swap && imtemp->kind == MRI_float ) {
      swap_4(MRI_FLOAT_PTR(imtemp), imtemp->nx*imtemp->ny*4);
    }
-#endif
+
    if( imtemp == NULL ) exit(-1) ;
    if( imtemp->kind == MRI_short ){
       allim[0] = imtemp ;
@@ -1241,14 +1266,14 @@ STATUS("begin X event loop") ;
 #endif
 
       imtemp = mri_read_nsize( f_name[i] ) ;
-#ifdef LINUX
-   if ( imtemp->kind == MRI_short ) {
+   /* we already know whether to swap     26 Aug 2004 [rickr] */
+   if ( swap && imtemp->kind == MRI_short ) {
      swap_2(MRI_SHORT_PTR(imtemp), imtemp->nx*imtemp->ny*2);
    }
-   else if ( imtemp->kind == MRI_float ) {
+   else if ( swap && imtemp->kind == MRI_float ) {
      swap_4(MRI_FLOAT_PTR(imtemp), imtemp->nx*imtemp->ny*4);
    }
-#endif
+
       if( imtemp == NULL ){
          fprintf(stderr,"\n*** %s does not have exactly one image!\a\n",
                  f_name[i]) ;
@@ -6105,7 +6130,7 @@ try_again:
    int save_act_im()
 /* ----------------- */
 {
-   int  i, x, y;
+   int  i, x, y, swap;
    XWindowAttributes  wat;
    Window             ww;
 
@@ -6133,23 +6158,31 @@ try_again:
    take_file_name(theDisp, GWindow , CMap, txtGC, mfinfo, x, y, strp, 41,
                   "Enter output image name:" , 1 );
    if ( strp[0] != ASC_NUL ) {
+      /* new swapping test     26 Aug 2004 [rickr] */
+      swap = 0; /* default is no swap, casually wasting a CPU cycle... */
 #ifdef LINUX
-   if ( im_tmp_ar->kind == MRI_short ) {
-     swap_2(MRI_SHORT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*2);
-   }
-   else if ( im_tmp_ar->kind == MRI_float ) {
-     swap_4(MRI_FLOAT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*4);
-   }
+      swap = 1;	/* compile-time default */
 #endif
+      /* the user might have explicitly requested swap_yes or swap_no */
+      if      ( RCR_swap == 1 ) swap = 1;  /* -swap_yes */
+      else if ( RCR_swap == 2 ) swap = 0;  /* -swap_no  */
+
+      if ( swap && im_tmp_ar->kind == MRI_short ) {
+        swap_2(MRI_SHORT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*2);
+      }
+      else if ( swap && im_tmp_ar->kind == MRI_float ) {
+        swap_4(MRI_FLOAT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*4);
+      }
+
       mri_write( strp , im_tmp_ar ) ;
-#ifdef LINUX
-   if ( im_tmp_ar->kind == MRI_short ) {
-     swap_2(MRI_SHORT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*2);
-   }
-   else if ( im_tmp_ar->kind == MRI_float ) {
-     swap_4(MRI_FLOAT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*4);
-   }
-#endif
+
+      if ( swap && im_tmp_ar->kind == MRI_short ) {
+        swap_2(MRI_SHORT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*2);
+      }
+      else if ( swap && im_tmp_ar->kind == MRI_float ) {
+        swap_4(MRI_FLOAT_PTR(im_tmp_ar), im_tmp_ar->nx*im_tmp_ar->ny*4);
+      }
+
    }
 
    txtW_ON = 0;
@@ -7280,7 +7313,7 @@ void add_extra_image(newim)
    int read_new_im()
 {
    MRI_IMAGE * im ;
-   int x , y ;
+   int x , y , swap ;
 
    if ( txtW_ON ) {
       XBell(theDisp, 100); return(2);
@@ -7298,14 +7331,22 @@ void add_extra_image(newim)
    if( strp[0] == '\0' ) return(1) ;
 
    im = mri_read_nsize( strp ) ;
+
+   /* new swapping test     26 Aug 2004 [rickr] */
+   swap = 0 ;
 #ifdef LINUX
-   if ( im->kind == MRI_short ) {
+   swap = 1 ;
+#endif
+   /* the user might have explicitly requested swap_yes or swap_no */
+   if      ( RCR_swap == 1 ) swap = 1;  /* -swap_yes */
+   else if ( RCR_swap == 2 ) swap = 0;  /* -swap_no  */
+
+   if ( swap && im->kind == MRI_short ) {
      swap_2(MRI_SHORT_PTR(im), im->nx*im->ny*2);
    }
-   else if ( im->kind == MRI_float ) {
+   else if ( swap && im->kind == MRI_float ) {
      swap_4(MRI_FLOAT_PTR(im), im->nx*im->ny*4);
    }
-#endif
    if( im == NULL ) return(3) ;
 
    if( (im->nx != im->ny) ||
