@@ -1832,7 +1832,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
       for( ii=0 ; ii < num_str ; ii++ ){
          MCW_strncpy( strlist[ii] ,
                       GLOBAL_library.sslist->ssar[ii]->lastname ,
-                      THD_MAX_NAME ) ;
+                      STRLIST_SIZE ) ;
       }
 
       init_str = im3d->vinfo->sess_num ;
@@ -1857,6 +1857,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
             ltop = MAX( ltop , llen ) ;
          }
       }
+      ltop = MIN(ltop,STRLIST_SIZE-24) ;  /* 06 Aug 2002 */
 
       for( ii=0 ; ii < num_str ; ii++ ){
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
@@ -1919,6 +1920,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
             ltop = MAX( ltop , llen ) ;
          }
       }
+      ltop = MIN(ltop,STRLIST_SIZE-24) ;  /* 06 Aug 2002 */
 
       for( ii=0 ; ii < num_str ; ii++ ){
          for( vv=FIRST_VIEW_TYPE ; vv <= LAST_VIEW_TYPE ; vv++ )
@@ -3246,7 +3248,7 @@ void AFNI_write_many_dataset_CB( Widget w, XtPointer cd, XtPointer cb )
    int iss , id , vv , llen , ltop ;
    THD_session * ss ;
    THD_3dim_dataset * dset ;
-   char nam[THD_MAX_NAME] , * tnam , qnam[THD_MAX_NAME] ;
+   char nam[THD_MAX_NAME+16] , * tnam , qnam[THD_MAX_NAME+16] ;
 
 ENTRY("AFNI_write_many_dataset_CB") ;
 
@@ -3285,6 +3287,7 @@ ENTRY("AFNI_write_many_dataset_CB") ;
          }
       }
    }
+   ltop = MIN(ltop,THD_MAX_NAME) ; /* 06 Aug 2002 */
 
    num_dset = 0 ;
    for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ ){

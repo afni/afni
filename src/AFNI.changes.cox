@@ -3879,3 +3879,5 @@
  * Modified afni_driver.c to allow "iconify" option on OPEN_WINDOW commands.
  * Modified afni_driver.c to return controller index only if the input
      string is only 1 character long or the 2nd character is a '.'.
+ * Modified afni_func.c and bbox.c to deal with potential strlist[] overflow
+     problems.

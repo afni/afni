@@ -786,6 +786,7 @@ static void optmenu_EV( Widget w , XtPointer cd ,
    XButtonEvent * bev = (XButtonEvent *) ev ;
    Dimension lw ;
    static char **strlist=NULL ;
+   static  int  nstrlist=0 ;    /* 06 Aug 2002 */
    char *slab=NULL ;
    XmString xstr ;
 
@@ -824,9 +825,13 @@ ENTRY("optmenu_EV") ;
    av->block_assign_actions = 1 ;         /* temporarily block actions */
    sval = av->ival ;
 
+   /* 06 Aug 2002: free old strings, if any */
+
+   for( ic=0 ; ic < nstrlist ; ic++ ) free(strlist[ic]) ;
+
    /** make a list of strings **/
 
-   nstr = av->imax - av->imin + 1 ;
+   nstrlist = nstr = av->imax - av->imin + 1 ;
    strlist = (char **) realloc( strlist , sizeof(char *)*nstr ) ;
 
    for( ival=av->imin ; ival <= av->imax ; ival++ ){
