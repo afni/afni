@@ -1,4 +1,5 @@
 #include "mrilib.h"
+#include <signal.h>
 
 /*******************************************************************/
 /*!  Write an AFNI dataset as a MINC file.
