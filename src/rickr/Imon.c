@@ -1,8 +1,12 @@
 
-#define IFM_VERSION "version 2.2 (February, 2003)"
+#define IFM_VERSION "version 2.3 (February, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.3  February 14, 2003
+ *   - added -start_file option
+ *   - created opts_t struct for user options
  *
  * 2.2  February 2, 2003
  *   - allow IFM_MAX_GE_FAILURES file reading failures
@@ -45,9 +49,9 @@
 /*----------------------------------------------------------------------
  * todo:
  *
- * - add -host and -swap options
  * - check for missing first slice
- * - add '-first_file FILE' option, for a new starting point
+ * - DRIVE_AFNI
+ * - notes: specify where this data came from
  *----------------------------------------------------------------------
 */
 
@@ -104,19 +108,21 @@ static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
 static int dir_expansion_form  ( char * sin, char ** sexp );
 static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
+static int find_fl_file_index  ( param_t * p, char * file );
 static int find_more_volumes   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_next_zoff      ( param_t * p, int start, float zoff );
 static int init_extras         ( param_t * p, ART_comm * ac );
 static int init_options        ( param_t * p, ART_comm * a, int argc,
 				 char * argv[] );
 static int nap_time_from_tr    ( float tr );
-static int read_ge_files       ( param_t * p, int next, int max );
+static int read_ge_files       ( param_t * p, int start, int max );
 static int read_ge_image       ( char * pathname, finfo_t * fp,
 	                         int get_image, int need_memory );
 static int scan_ge_files       ( param_t * p, int next, int nfiles );
 static int set_nice_level      ( int level );
 static int set_volume_stats    ( param_t * p, stats_t * s, vol_t * v );
 static int show_run_stats      ( stats_t * s );
+static int str_char_count      ( char * str, int len, char target );
 static int swap_4              ( void * ptr );
 
 static void hf_signal          ( int signum );
@@ -126,6 +132,7 @@ static int volume_match  ( vol_t * vin, vol_t * vout, param_t * p, int start );
 static int volume_search ( vol_t * V, param_t * p, int * start, int maxsl );
 
 /* information functions */
+static int idisp_hf_opts_t      ( char * info, opts_t * opt );
 static int idisp_hf_param_t     ( char * info, param_t * p );
 static int idisp_hf_vol_t       ( char * info, vol_t * v );
 static int idisp_ge_extras      ( char * info, ge_extras * E );
@@ -731,10 +738,11 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
 */
 static int read_ge_files(
 	param_t * p,		/* parameter scruct                */
-	int       next,		/* index of next file to scan from */
+	int       start,	/* index of next file to scan from */
 	int       max )		/* max number of files to scan     */
 {
     int n2scan;			/* number of files to actually scan */
+    int next = start;		/* initialize next index to start   */
 
     if ( p == NULL )
     {
@@ -757,6 +765,27 @@ static int read_ge_files(
 
     /* get files */
     MCW_file_expand( 1, &p->glob_dir, &p->nfiles, &p->fnames );
+
+    /* if next is 0, search for any first_file */
+    if ( (next == 0 ) && (p->opts.start_file != NULL) )
+    {
+	next = find_fl_file_index( p, p->opts.start_file );
+
+	if ( next < 0 )		/* if not found, try again later */
+	{
+	    if ( gD.level > 0 )	/* inform the user */
+	    {
+		static int attempts = 0;
+
+		if ( attempts == 0 )
+		    fprintf(stderr, "-- still searching for start_file, '%s'\n",
+			    p->opts.start_file );
+
+		attempts++;
+	    }
+	    return 0;
+	}
+    }
     
     if ( gD.level > 2 )
     {
@@ -956,22 +985,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	    usage( IFM_PROG_NAME, IFM_USE_LONG );
 	    return 1;
 	}
-	else if ( ! strncmp( argv[ac], "-version", 2 ) )
-	{
-	    usage( IFM_PROG_NAME, IFM_USE_VERSION );
-	    return 1;
-	}
-	else if ( ! strncmp( argv[ac], "-start_dir", 6 ) )
-	{
-	    if ( ++ac >= argc )
-	    {
-		fputs( "option usage: -start_dir DIRECTORY\n", stderr );
-		usage( IFM_PROG_NAME, IFM_USE_SHORT );
-		return 1;
-	    }
-
-	    p->start_dir = argv[ac];
-	}
 	else if ( ! strncmp( argv[ac], "-debug", 4 ) )
 	{
 	    if ( ++ac >= argc )
@@ -981,7 +994,8 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 		return 1;
 	    }
 
-	    gD.level = atoi(argv[ac]);
+	    p->opts.debug = atoi(argv[ac]);
+	    gD.level      = p->opts.debug;
 	    if ( gD.level < 0 || gD.level > IFM_MAX_DEBUG )
 	    {
 		fprintf( stderr, "error: debug level must be in [0,%d]\n",
@@ -998,8 +1012,9 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 		return 1;
 	    }
 
-	    p->nice = atoi(argv[ac]);
-	    if ( p->nice < IFM_MIN_NICE_INC || p->nice > IFM_MAX_NICE_INC )
+	    p->opts.nice = atoi(argv[ac]);
+	    if ( (p->opts.nice < IFM_MIN_NICE_INC) ||
+		 (p->opts.nice > IFM_MAX_NICE_INC) )
 	    {
 		fprintf( stderr, "error: nice incrment must be in [%d,%d]\n",
 			 IFM_MIN_NICE_INC, IFM_MAX_NICE_INC );
@@ -1015,8 +1030,8 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 		return 1;
 	    }
 
-	    p->nt = atoi(argv[ac]);
-	    if ( p->nt < 0 || p->nt > IFM_MAX_NT )
+	    p->opts.nt = atoi(argv[ac]);
+	    if ( p->opts.nt < 0 || p->opts.nt > IFM_MAX_NT )
 	    {
 		fprintf( stderr,
 		    "option usage: -nt VOLUMES_PER_RUN\n"
@@ -1031,6 +1046,33 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	    if ( gD.level == IFM_DEBUG_DEFAULT )
 		gD.level = 0;
 	}
+	else if ( ! strncmp( argv[ac], "-start_dir", 8 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -start_dir DIRECTORY\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    p->opts.start_dir = argv[ac];
+	}
+	else if ( ! strncmp( argv[ac], "-start_file", 8 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -start_file DIR/FIRST_FILE\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    p->opts.start_file = argv[ac];
+	}
+	else if ( ! strncmp( argv[ac], "-version", 2 ) )
+	{
+	    usage( IFM_PROG_NAME, IFM_USE_VERSION );
+	    return 1;
+	}
 	/* real-time options */
 	else if ( ! strncmp( argv[ac], "-host", 4 ) )
 	{
@@ -1041,16 +1083,19 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 		return 1;
 	    }
 
+	    p->opts.host = argv[ac];	/* note and store the user option   */
 	    strncpy( A->host, argv[ac], ART_NAME_LEN-1 );
 	    A->host[ART_NAME_LEN-1] = '\0';	/* just to be sure */
 	}
 	else if ( ! strncmp( argv[ac], "-rt", 3 ) )
 	{
 	    A->state = ART_STATE_TO_OPEN; /* real-time is open for business */
+	    p->opts.rt = 1;		  /* just note the user option      */
 	}
 	else if ( ! strncmp( argv[ac], "-swap", 5 ) )
 	{
-	    A->swap = 1;		/* do byte swapping before sending */
+	    A->swap = 1;		/* do byte swapping before sending  */
+	    p->opts.swap = 1;		/* just note the user option        */
 	}
 	else
 	{
@@ -1066,7 +1111,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	return 1;
     }
 
-    if ( p->start_dir == NULL )
+    if ( p->opts.start_dir == NULL )
     {
 	fputs( "error: missing '-start_dir DIR' option\n", stderr );
 	usage( IFM_PROG_NAME, IFM_USE_SHORT );
@@ -1075,11 +1120,14 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     /* done processing argument list */
 
-    if ( dir_expansion_form( p->start_dir, &p->glob_dir ) != 0 )
+    if ( dir_expansion_form( p->opts.start_dir, &p->glob_dir ) != 0 )
 	return 2;
 
     if ( gD.level > 1 )
+    {
+	idisp_hf_opts_t ( "end init_options : ", &p->opts );
 	idisp_hf_param_t( "end init_options : ", p );
+    }
 
     if ( gD.level > 0 )
 	fprintf( stderr, "\n%s running, use <ctrl-c> to quit...\n\n",
@@ -1093,11 +1141,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
  * initialize:
  *     - nice level
  *     - afni communications
+ *     - verify that any passed 'start_file' "matches" 'start_dir'
+ *       (for now, just do this by comparing directory depth)
  *----------------------------------------------------------------------
 */
 static int init_extras( param_t * p, ART_comm * ac )
 {
-    if ( p->nice && set_nice_level(p->nice) )
+    if ( p->opts.nice && set_nice_level(p->opts.nice) )
         return 1;
 
     if ( ac->state == ART_STATE_TO_OPEN )            /* open afni comm link */
@@ -1105,6 +1155,28 @@ static int init_extras( param_t * p, ART_comm * ac )
 	atexit( ART_exit );
 	ac->mode = AFNI_OPEN_CONTROL_MODE;
 	ART_open_afni_link( ac, 2, 1, gD.level );
+    }
+    
+    /* check directory depth of start_file against glob_dir */
+    if ( p->opts.start_file != NULL )
+    {
+	char * sf     = p->opts.start_file;
+	char * gd     = p->glob_dir;
+	int    flevel = str_char_count( sf, strlen(sf), (char)'/' );
+
+	/* check whether the number of slashes match */
+	if ( flevel != str_char_count( gd, strlen(gd), (char)'/' ) )
+	{
+	    fprintf( stderr,
+		     "** warning : relative path to       : '-start_dir  %s'\n"
+		     "             does not seem to match : '-start_file %s'\n"
+		     "             (so 'start_file' may never be found)\n\n",
+		     p->opts.start_file, p->opts.start_dir );
+	}
+	else if ( gD.level > 1 )
+	    fprintf( stderr, "-- '-start_file %s' and\n"
+		             "   '-start_dir  %s' match at dir level %d\n",
+			     p->opts.start_file, p->opts.start_dir, flevel );
     }
 
     return 0;
@@ -1464,6 +1536,10 @@ static int swap_4( void * ptr )            /* destructive */
 }
 
 
+/*------------------------------------------------------------
+ * print out the contents of the im_store_t struct
+ *------------------------------------------------------------
+*/
 static int idisp_im_store_t( char * info, im_store_t * is )
 {
     if ( info )
@@ -1486,6 +1562,10 @@ static int idisp_im_store_t( char * info, im_store_t * is )
 }
 
 
+/*------------------------------------------------------------
+ * print out the contents of the param_t struct
+ *------------------------------------------------------------
+*/
 static int idisp_hf_param_t( char * info, param_t * p )
 {
     if ( info )
@@ -1500,19 +1580,49 @@ static int idisp_hf_param_t( char * info, param_t * p )
     printf( "param_t struct at %p :\n"
             "   (nused, nalloc)   = (%d, %d)\n"
             "   flist             = %p\n"
-	    "   start_dir         = %s\n"
 	    "   glob_dir          = %s\n"
 	    "   nfiles            = %d\n"
-	    "   fnames            = %p\n"
-	    "   nice              = %d\n"
-	    "   nt                = %d\n",
-	    p, p->nused, p->nalloc, p->flist, p->start_dir, p->glob_dir,
-	    p->nfiles, p->fnames, p->nice, p->nt );
+	    "   fnames            = %p\n",
+	    p, p->nused, p->nalloc, p->flist, p->glob_dir,
+	    p->nfiles, p->fnames );
 
     return 0;
 }
 
 
+/*------------------------------------------------------------
+ * print out the contents of the opts_t struct
+ *------------------------------------------------------------
+*/
+static int idisp_hf_opts_t( char * info, opts_t * opt )
+{
+    if ( info )
+	fputs( info, stdout );
+
+    if ( opt == NULL )
+    {
+	printf( "idisp_hf_opts_t: opt == NULL\n" );
+	return -1;
+    }
+
+    printf( "opts_t struct at %p :\n"
+	    "   start_file        = %s\n"
+	    "   start_dir         = %s\n"
+	    "   (nt, nice, debug) = (%d, %d, %d)\n"
+	    "   (rt, swap)        = (%d, %d)\n"
+	    "   host              = %s\n",
+	    opt, opt->start_file, opt->start_dir,
+	    opt->nt, opt->nice, opt->debug,
+	    opt->rt, opt->swap, opt->host );
+
+    return 0;
+}
+
+
+/*------------------------------------------------------------
+ * print out the contents of the vol_t struct
+ *------------------------------------------------------------
+*/
 static int idisp_hf_vol_t( char * info, vol_t * v )
 {
     if ( info )
@@ -1608,9 +1718,9 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
     return 0;
 }
 
-/* ----------------------------------------------------------------------
+/*----------------------------------------------------------------------
  * usage 
- * ----------------------------------------------------------------------
+ *----------------------------------------------------------------------
 */
 static int usage ( char * prog, int level )
 {
@@ -1647,7 +1757,7 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "    %s -start_dir 003\n"
 	  "    %s -help\n"
-	  "    %s -start_dir 003 -nt 120\n"
+	  "    %s -start_dir 003 -nt 120 -start_file 043/I.901\n"
 	  "    %s -debug 2 -nice 10 -start_dir 003\n"
 	  "\n"
 	  "  examples (with real-time options):\n"
@@ -1750,6 +1860,18 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "    -quiet             : show only errors and final information\n"
 	  "\n"
+	  "    -start_file S_FILE : have %s process starting at S_FILE\n"
+	  "\n"
+	  "        e.g.  -start_file 043/I.901\n"
+	  "\n"
+	  "        With this option, any earlier I-files will be ignored\n"
+	  "        by %s.  This is a good way to start processing a later\n"
+	  "        run, if it desired not to look at the earlier data.\n"
+	  "\n"
+	  "        In this example, all files in directories 003 and 023\n"
+	  "        would be ignored, along with everything in 043 up through\n"
+	  "        I.900.  So 043/I.901 might be the first file in run 2.\n"
+	  "\n"
 	  "    -version           : show the version information\n"
 	  "\n"
 	  "\n"
@@ -1759,7 +1881,7 @@ static int usage ( char * prog, int level )
 	  "\n",
 	  prog, prog, prog,
 	  prog, prog, prog, prog, prog, prog, prog,
-	  prog, prog, prog, prog,
+	  prog, prog, prog, prog, prog, prog,
 	  IFM_VERSION
 	);
 
@@ -1833,7 +1955,7 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
 
 	s->nalloc  = IFM_STAT_ALLOC;
 	s->nused   = 0;
-	s->nvols   = gP.nt;		/* init with any user input value */
+	s->nvols   = gP.opts.nt;	/* init with any user input value */
 
 	if ( gD.level > 1 )
 	    fprintf( stderr, "\n-- svs: init alloc - vol %d, run %d, file %s\n",
@@ -1876,7 +1998,7 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
     rp->volumes = v->seq_num;
 
     /* update nvols (if the user did not specify it and it is small) */
-    if ( (p->nt <= 0) && (s->nvols < v->seq_num) )
+    if ( (p->opts.nt <= 0) && (s->nvols < v->seq_num) )
 	s->nvols = v->seq_num;
 
     if ( gD.level > 2 )
@@ -2024,7 +2146,7 @@ static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
 		     "    approximate idle time  : %d seconds\n"
 		     "    first file of this run : %s\n"
 		     "****************************************************\n",
-		     run, seq_num, gS.runs[1].volumes,
+		     run, seq_num, gS.nvols,
 		     naps*nap_time, gS.runs[run].f1name );
 
 	    prev_run = run;
@@ -2207,5 +2329,49 @@ static int complete_orients_str( vol_t * v, param_t * p )
     v->geh.orients[6] = '\0';
 
     return 0;
+}
+
+
+/* ----------------------------------------------------------------------
+ * return the index of 'file' in the directory list
+ *
+ * return  -1   : failed to find it
+ *         else : index
+ * ----------------------------------------------------------------------
+*/
+static int find_fl_file_index( param_t * p, char * file )
+{
+    char ** nlp;
+    int     index;
+
+    if ( (p == NULL) || (file == NULL) )
+	return 0;
+
+    /* rcr - let's be really inefficient for now... */
+    for ( index = 0, nlp = p->fnames; index < p->nfiles; index++, nlp++ )
+	if ( ! strcmp( *nlp, file ) )
+	    return index;
+
+    return -1;
+}
+
+/* ----------------------------------------------------------------------
+ * return the number of occurances of 'target' in 'str' of length 'len'
+ * ----------------------------------------------------------------------
+*/
+static int str_char_count( char * str, int len, char target )
+{
+    char * cp;
+    char * last = str + len;
+    int    num = 0;
+
+    if ( (str == NULL) || (len <= 0) )
+	return 0;
+
+    for ( cp = str; cp < last; cp++ )
+	if ( *cp == target )
+	    num++;
+
+    return num;
 }
 
