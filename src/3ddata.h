@@ -4,6 +4,10 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*! \file
+   This file contains the definition of the structs, macros, etc. for AFNI datasets.
+*/
+
 #ifndef _MCW_3DDATASET_
 #define _MCW_3DDATASET_
 
