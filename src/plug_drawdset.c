@@ -301,6 +301,11 @@ static int undo_how       = 0 ;     /* where to save undo info */
 
 static void DRAW_undo_sizecheck(void) ;  /* check/limit undo stack size */
 
+static void DRAW_undo_butlab( Widget w , int ) ;  /* label undo/redo button */
+
+#define UNDO_button_labelize DRAW_undo_butlab(undo_pb,undo_num)
+#define REDO_button_labelize DRAW_undo_butlab(redo_pb,redo_num)
+
   /* this macro erases the undo stack */
 
 #define CLEAR_UNDOBUF                                                \
@@ -311,7 +316,7 @@ static void DRAW_undo_sizecheck(void) ;  /* check/limit undo stack size */
         if( undo_stack != NULL ) free( undo_stack ) ;                \
         undo_num = 0 ; undo_stack = NULL ;                           \
        }                                                             \
-       SENSITIZE(undo_pb,0) ;                                        \
+       UNDO_button_labelize ;                                        \
    } while(0)
 
   /* this macro erases the redo stack */
@@ -324,7 +329,7 @@ static void DRAW_undo_sizecheck(void) ;  /* check/limit undo stack size */
         if( redo_stack != NULL )free( redo_stack ) ;                 \
         redo_num = 0 ; redo_stack = NULL ;                           \
        }                                                             \
-       SENSITIZE(redo_pb,0) ;                                        \
+       REDO_button_labelize ;                                        \
    } while(0)
 
   /* this macro erases both stacks */
@@ -400,15 +405,14 @@ char * DRAW_main( PLUGIN_interface * plint )
      destroy_Dtable(vl_dtable) ; vl_dtable = NULL ;
    }
 
-   SENSITIZE(undo_pb,0) ;
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
    SENSITIZE(choose_pb,1) ;
 
    /* 19 Nov 2003: new undo/redo stuff */
 
-   SENSITIZE(redo_pb,0) ;
    undo_num = redo_num = undo_how = 0 ;
    undo_stack = redo_stack = NULL ;
+   UNDO_button_labelize ; REDO_button_labelize ;
 
    old_stroke_autoplot = AFNI_yesenv("AFNI_STROKE_AUTOPLOT") ;
    if( old_stroke_autoplot ) putenv("AFNI_STROKE_AUTOPLOT=NO") ;
@@ -425,10 +429,10 @@ char * DRAW_main( PLUGIN_interface * plint )
 #define NACT 7  /* number of action buttons */
 
 static MCW_action_item DRAW_actor[NACT] = {
- {"Undo",DRAW_undo_CB,NULL,
+ {"Undo [0]",DRAW_undo_CB,NULL,
   "Undoes previous draw\naction, if possible","Undo last change",0} ,
 
- {"Redo",DRAW_redo_CB,NULL,
+ {"Redo [0]",DRAW_redo_CB,NULL,
   "Redoes previous undone\naction, if possible","Redo last undo",0} ,
 
  {"Help",DRAW_help_CB,NULL,
@@ -1025,7 +1029,7 @@ void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    DESTROY_DOBUF(sb) ;  /* purge and pop top of undo stack */
    undo_num-- ;
-   if( undo_num == 0 ) SENSITIZE(undo_pb,0) ;
+   UNDO_button_labelize ;
 
    AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
 
@@ -1051,7 +1055,7 @@ void DRAW_redo_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    DESTROY_DOBUF(sb) ;  /* purge and pop top of redo stack */
    redo_num-- ;
-   if( redo_num == 0 ) SENSITIZE(redo_pb,0) ;
+   REDO_button_labelize ;
 
    AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
 
@@ -1383,11 +1387,13 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "        * The last drawing operation can be undone -- that is,\n"
   "            pressing 'Undo' will restore the voxel values before\n"
   "            the last button 2 press-release operation.\n"
-  "        * 'Redo' will undo the last 'Undo'.\n"
-  "        * Multiple levels of Undo/Redo are now implemented.\n"
+  "        * 'Redo' will undo the previous 'Undo'.\n"
+  "        * Multiple levels of Undo/Redo are now available [19 Nov 2003].\n"
   "        * The amount of memory set aside for Undo/Redo operations\n"
   "            is controlled by environment variable AFNI_DRAW_UNDOSIZE,\n"
   "            which is in megabytes; its value defaults to 6.\n"
+  "        * The numbers (as in '[3]') on the Undo and Redo buttons\n"
+  "            indicate how many levels are available at any moment.\n"
   "\n"
   "Step 7) Save dataset (maybe).\n"
   "        * While a dataset is being edited, it is locked into memory.\n"
@@ -2077,8 +2083,8 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
          /*-- 20 Feb 2003: undo via keypress --*/
 
          if( mode == UNDO_MODE ){
-           if( XtIsSensitive(undo_pb) ) DRAW_undo_CB( undo_pb,NULL,NULL ) ;
-           else                         XBell(dc->display,100) ;
+           if( undo_num > 0 ) DRAW_undo_CB( undo_pb,NULL,NULL ) ;
+           else               XBell(dc->display,100) ;
            return ;
          }
 
@@ -2577,11 +2583,11 @@ int DRAW_into_dataset( int np , int *xd , int *yd , int *zd , void *var )
    if( undo_how == 1 ){   /* save on redo stack */
      redo_stack = realloc( (void *)redo_stack, sizeof(dobuf *)*(redo_num+1) );
      redo_stack[redo_num++] = sb ;
-     SENSITIZE(redo_pb,1) ;
+     REDO_button_labelize ;
    } else {               /* save on undo stack */
      undo_stack = realloc( (void *)undo_stack, sizeof(dobuf *)*(undo_num+1) );
      undo_stack[undo_num++] = sb ;
-     SENSITIZE(undo_pb,1) ;
+     UNDO_button_labelize ;
      DRAW_undo_sizecheck() ;
      if( undo_how == 0 ){  /* normal draw ==> can't redo */
        CLEAR_REDOBUF ;
@@ -2630,6 +2636,31 @@ static void DRAW_undo_sizecheck(void)
 
   undo_num = undo_num - ii ;
   return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void DRAW_undo_butlab( Widget w , int n )
+{
+   XmString xstr ;
+   char label[32] ;
+   int nfmt ;
+   static char *fmt[3] = { "%s [%d]" , "%s[%d]" , "%s:%d" } ;
+
+   if( w == (Widget)NULL ) return ;  /* oom-possible? */
+
+        if( n <  10 ) nfmt = 0 ;     /* choose format based */
+   else if( n < 100 ) nfmt = 1 ;     /* on number of digits */
+   else               nfmt = 2 ;
+
+   sprintf( label, fmt[nfmt], (w==undo_pb) ? "Undo" : "Redo" , n ) ;
+
+   xstr = XmStringCreateLtoR( label , XmFONTLIST_DEFAULT_TAG ) ;
+   XtVaSetValues( w , XmNlabelString , xstr , NULL ) ;
+   XmStringFree(xstr) ;
+
+   SENSITIZE( w , (n>0) ) ;
+   return ;
 }
 
 /*---------------------------------------------------------------------------
