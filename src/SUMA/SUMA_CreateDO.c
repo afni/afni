@@ -12,12 +12,11 @@ SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float 
    static char FuncName[]={"SUMA_Cmap_To_SO"};
    SUMA_SurfaceObject *SO= NULL;
    int i, i3, i4, in, k;
-   float dh, dw;
+   float dh, dw, *hp = NULL;
    SUMA_SURF_NORM SN;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
    
    SUMA_LH("Allocating surface.");
    SO = SUMA_Alloc_SurfObject_Struct(1);
@@ -25,8 +24,34 @@ SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float 
    if (!Cmap->N_Col) { SUMA_SL_Err("No colours"); SUMA_RETURN(NULL); }
    if (!SO) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(NULL); }
    
+   #if 0
+   if (Cmap->frac) { 
+      /* DEBUG ONLY */
+      verb = 2;
+      SUMA_SL_Note("DEBUG ONLY, Leaky approach .. ");
+      Cmap = SUMA_Linearize_Color_Map(Cmap, -1);
+   }
+   #endif
+   
    /* scaling factors */
    dh = (topright[1] - orig[1]) / Cmap->N_Col;
+   hp = (float *)SUMA_calloc(Cmap->N_Col+1, sizeof(float));
+   if (!hp) {
+      SUMA_SL_Crit("malloc error");
+      SUMA_RETURN(NULL);
+   }
+   hp[0] = 0.0;
+   for (i=0; i<Cmap->N_Col; ++i) {
+      if (Cmap->frac) {
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: icol %d, frac=%f\n", FuncName, i,  Cmap->frac[i]);
+         if (Cmap->Sgn >= 0) {
+            hp[i+1] = Cmap->frac[i] * (topright[1] - orig[1]);
+         } else {
+            hp[i+1] = (1.0 +Cmap->frac[i]) / 2.0 * (topright[1] - orig[1]);
+         }
+      } else hp[i+1] = hp[i]+dh;
+   }
+   
    dw = topright[0] - orig[0];
    if (dh <= 0 || dw <= 0) {
       SUMA_SL_Err("Whatchyoutalkinaboutwillis?");
@@ -58,10 +83,10 @@ SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float 
    i3 = in * 3;
    while (i < Cmap->N_Col) {
       /* 4 nodes per color */
-      SO->NodeList[i3] =    orig[0]; SO->NodeList[i3+1] = i     * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
-      SO->NodeList[i3] = dw+orig[0]; SO->NodeList[i3+1] = i     * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
-      SO->NodeList[i3] = dw+orig[0]; SO->NodeList[i3+1] = (i+1) * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
-      SO->NodeList[i3] =    orig[0]; SO->NodeList[i3+1] = (i+1) * dh + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
+      SO->NodeList[i3] =    orig[0]; SO->NodeList[i3+1] = hp[i]   + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
+      SO->NodeList[i3] = dw+orig[0]; SO->NodeList[i3+1] = hp[i]   + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
+      SO->NodeList[i3] = dw+orig[0]; SO->NodeList[i3+1] = hp[i+1] + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
+      SO->NodeList[i3] =    orig[0]; SO->NodeList[i3+1] = hp[i+1] + orig[1]; SO->NodeList[i3+2] = 0.0; ++in; i3 = in * 3;
       ++i;
    }
    
@@ -123,6 +148,9 @@ SUMA_SurfaceObject *SUMA_Cmap_To_SO (SUMA_COLOR_MAP *Cmap, float orig[3], float 
          fclose(fout); SUMA_free(fname); fname = NULL;
       }else { SUMA_SL_Err("Failed to write Col file"); SUMA_RETURN(SO); }
    }
+   
+   /* free hp */
+   if (hp) SUMA_free(hp); hp = NULL;
    
    /* some more stuff */
    SN = SUMA_SurfNorm(SO->NodeList,  SO->N_Node, SO->FaceSetList, SO->N_FaceSet );
