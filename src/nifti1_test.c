@@ -29,7 +29,7 @@ int main( int argc , char *argv[] )
             " of visualization (e.g., you can edit a .nia file and\n"
             " change some header fields, then rewrite it as .nii)\n"
            ) ;
-     printf("\nsizeof(nifti_1_header)=%d\n",sizeof(nifti_1_header)) ;
+     printf("\nsizeof(nifti_1_header)=%u\n",(unsigned int)sizeof(nifti_1_header)) ;
      exit(0) ;
    }
 
@@ -60,8 +60,8 @@ int main( int argc , char *argv[] )
    if( nim->iname != NULL ) free(nim->iname) ;
 
    ll = strlen(argv[iarg]) ;
-   nim->fname = AFMALL(char, ll+6) ; strcpy(nim->fname,argv[iarg]) ;
-   nim->iname = AFMALL(char, ll+6) ; strcpy(nim->iname,argv[iarg]) ;
+   nim->fname = (char *)calloc(1,ll+6) ; strcpy(nim->fname,argv[iarg]) ;
+   nim->iname = (char *)calloc(1,ll+6) ; strcpy(nim->iname,argv[iarg]) ;
    if( nim->nifti_type == 1 ){
      strcat(nim->fname,".nii") ;
      strcat(nim->iname,".nii") ;
