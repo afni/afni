@@ -499,3 +499,6 @@
       - added '-ge_off' option to display file offsets for certain GE fields
       - added '-hist' option to display module history
 
+24 March 2004:
+  * modified file_tool.c (-> v3.2), only check max length for mods
+

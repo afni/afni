@@ -1,5 +1,5 @@
 
-#define VERSION         "3.1 (March 17, 2004)"
+#define VERSION         "3.2 (March 24, 2004)"
 
 /*----------------------------------------------------------------------
  * file_tool.c	- display or modify (binary?) info in files
@@ -106,6 +106,9 @@ static char g_history[] =
  "\n"
  " 3.1  March 17, 2004\n"
  "   - only check length against data_len for string mods\n"
+ "\n"
+ " 3.2  March 24, 2004\n"
+ "   - only check max length when modifying data (thanks, PSFB)\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -644,11 +647,6 @@ set_params( param_t * p, int argc, char * argv[] )
 	    if ( p->length < 0 )
 	    {
 		fprintf( stderr, "bad LENGTH <%d>\n", p->length );
-		return -1;
-	    }
-	    else if ( p->length >= MAX_STR_LEN )
-	    {
-		fprintf(stderr, "the length cannot exceed %d\n", MAX_STR_LEN);
 		return -1;
 	    }
 	}
