@@ -1,0 +1,76 @@
+# simple degenerate cases
+t1 t2
+t1 t3
+t1 t4
+t1 t5
+t1 t6 XFAIL
+t1 t7
+t1 t9
+t1 t10
+t1 t11
+t1 t12 XFAIL
+t1 t13 XFAIL
+t14 t15
+t11 t16
+t17 t18
+t19 t20
+t19 t21
+t31 t32 XFAIL
+
+# Various cubes
+t1 t22
+t1 t23
+t1 t24
+t27 t28
+cube cube1
+cube cube2
+cube cube5
+
+# touching corner
+t29 t30
+
+# cube and sligthly rotated cube
+cube cube8
+
+# cubes just touching through one edge (like t29 t30)
+cube9 cube10
+
+# Floating point problems
+t25 t26
+
+# Coincident faces
+cube cube4
+
+# Rotated cube cube1 (touching faces)
+cube6 cube7
+
+# Coincident faces (tetrahedra by T. Binder)
+loc1 loc2 XFAIL
+
+# Coincident faces (again by T. Binder)
+p1 p2
+
+# Menger sponge (by B. Petit)
+sponge cutter
+
+# cylinders (by Darie Aron)
+1.gts 2.gts
+
+# horse and sligthly rotated horse
+horse5.gts horse6.gts XFAIL
+
+# simplified horse
+horse4.gts horse5.gts XFAIL
+
+# identical surfaces
+horse5.gts horse5.gts
+sphere.gts sphere.gts
+
+# tetrahedra by Wayne Gramlich
+# looks like it works but visual inspection shows it doesn't
+a8.gts b8.gts
+a9.gts b9.gts
+a10.gts b10.gts
+a23.gts b23.gts
+a24.gts b24.gts
+a25.gts b25.gts
