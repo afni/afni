@@ -86,6 +86,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          case SES_Afni:
             break;
          default:  
+            break;
       } 
       
       NextComCode = EngineData->CommandCode;
