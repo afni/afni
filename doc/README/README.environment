@@ -1785,7 +1785,8 @@ one press of 'c' down and 'b' up.  Larger movements make larger adjustments.
 
 A larger threshold makes the stroking less sensitive; a smaller threshold
 makes it more sensitive.  The value you choose will depend on your personal
-taste.  The default is 32 pixels, which is the flavor I prefer.
+taste.  The default is 32 pixels, which is the flavor I prefer.  If you set
+this variable to 0, then the stroking function is disabled.
 
 -------------------------------
 Variable: AFNI_STROKE_AUTOPLOT (editable)
@@ -1793,7 +1794,8 @@ Variable: AFNI_STROKE_AUTOPLOT (editable)
 If this variable is set to YES, then the graymap-versus-data value plot
 (manually controlled by "Display Graymap Plot") is automatically popped
 up when the grayscale mapping is altered by using the stroking feature
-described above.
+described above.  N.B.: when the 'Draw Dataset' plugin is active, this
+option is turned off.
 
 =============================================
 | Robert W Cox, PhD                         |

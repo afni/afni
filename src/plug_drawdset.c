@@ -270,6 +270,8 @@ static int  * undo_xyz = NULL ;  /* stores voxel indices for copying */
 
 static THD_dataxes dax_save ;    /* save this for later reference */
 
+static int old_stroke_autoplot = 0 ;  /* 27 Oct 2003 */
+
 char * DRAW_main( PLUGIN_interface * plint )
 {
    XmString xstr ;
@@ -335,6 +337,9 @@ char * DRAW_main( PLUGIN_interface * plint )
    SENSITIZE(undo_pb,0) ;  undo_bufuse = 0 ;
    SENSITIZE(save_pb,0) ; SENSITIZE(saveas_pb,0) ;
    SENSITIZE(choose_pb,1) ;
+
+   old_stroke_autoplot = AFNI_yesenv("AFNI_STROKE_AUTOPLOT") ;
+   if( old_stroke_autoplot ) putenv("AFNI_STROKE_AUTOPLOT=NO") ;
 
    return NULL ;
 }
@@ -926,6 +931,7 @@ void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
    }
 
    XtUnmapWidget( shell ); editor_open = 0; recv_open = 0; recv_key = -1;
+   if( old_stroke_autoplot ) putenv("AFNI_STROKE_AUTOPLOT=YES") ;
    return ;
 }
 
@@ -989,6 +995,7 @@ void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
    }
 
    XtUnmapWidget( shell ); editor_open = 0; recv_open = 0; recv_key = -1;
+   if( old_stroke_autoplot ) putenv("AFNI_STROKE_AUTOPLOT=YES") ;
    return ;
 }
 
@@ -1033,7 +1040,7 @@ void DRAW_saveas_finalize_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    /*-- check for craziness --*/
 
    if( !editor_open || dset == NULL ){
-      POPDOWN_strlist_chooser; XBell(dc->display,100); return;
+     POPDOWN_strlist_chooser; XBell(dc->display,100); return;
    }
 
    if( !PLUTO_prefix_ok(cbs->cval) ){ XBell(dc->display,100); return; }
@@ -1513,7 +1520,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
 
    /*-- check for errors --*/
 
-   if( ! editor_open ){ POPDOWN_strlist_chooser; XBell(dc->display,100); return; }
+   if( !editor_open ){ POPDOWN_strlist_chooser; XBell(dc->display,100); return; }
 
    if( dset != NULL && dset_changed ){ XBell(dc->display,100) ; return ; }
 
@@ -2540,7 +2547,7 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
 
    /* check for errors */
 
-   if( !editor_open || dset == NULL ){ XBell(dc->display,100) ; return ; }
+   if( !editor_open || dset == NULL ){ XBell(dc->display,100); return; }
 
    dir = fillin_dir_strings[ fillin_dir_av->ival ][0] ;
 
