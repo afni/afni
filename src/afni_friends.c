@@ -2,6 +2,9 @@
 #include <time.h>
 #include <stdio.h>
 
+/*-------------------------------------------------------------------------*/
+/*! What we might thank people for. */
+
 static char * afni_helptypes[] = {
    "advice and help"                ,  /* mask =   1 */
    "much encouragement"             ,  /* mask =   2 */
@@ -16,13 +19,17 @@ static char * afni_helptypes[] = {
    "you-know-what"                     /* mask =1024 */
 } ;
 
+/*-- special codes --*/
+
 #define YOU_KNOW_WHAT 10
 #define INSPIRATION    5
-#define KLOSEK         7
+#define KLOSEK         7   /* person index below */
 
 #define NUM_HELPTYPES (sizeof(afni_helptypes)/sizeof(char *))
 
 typedef struct { char * name ; int helpmask ; } AFNI_friend ;
+
+/*! Who we might thank. */
 
 static AFNI_friend afni_friends[] = {
   { "JR Binder"      , ( 1 |     4 | 8 | 16                             ) } ,
@@ -67,6 +74,7 @@ static AFNI_friend afni_friends[] = {
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
 
 /*---------------------------------------------------------------------*/
+/*! Return a "thanks" string (static storage - don't free it). */
 
 char * AFNI_get_friend(void)
 {
@@ -85,6 +93,7 @@ char * AFNI_get_friend(void)
 }
 
 /*---------------------------------------------------------------------------------*/
+/* 25 Nov 2002: this date in history! */
 
 #define JAN  1
 #define FEB  2
@@ -99,31 +108,53 @@ char * AFNI_get_friend(void)
 #define NOV 11
 #define DEC 12
 
+/*! The struct storing date trivia. */
+
 typedef struct { int mon,day; char *label; } mday ;
+
+/*! The data trivia array. */
 
 static mday holiday[] = {
    {JAN, 1,"New Year's Day"                                          } ,
    {JAN, 3,"John Ronald Reuel Tolkien's birthday"                    } ,
    {JAN, 4,"Isaac Newton's birthday"                                 } ,
+   {JAN, 5,"King Juan Carlos I's birthday"                           } ,
    {JAN, 6,"Sherlock Holmes' birthday"                               } ,
+   {JAN, 7,"Millard Fillmore's birthday"                             } ,
+   {JAN, 8,"Stephen Hawking's birthday"                              } ,
    {JAN, 9,"Richard Nixon's birthday"                                } ,
+   {JAN,10,"Donald Knuth's birthday"                                 } ,
    {JAN,11,"Alexander Hamilton's birthday"                           } ,
+   {JAN,14,"Albert Schweitzer's birthday"                            } ,
    {JAN,15,"Martin Luther King Jr's birthday"                        } ,
    {JAN,16,"David Lloyd George's birthday"                           } ,
    {JAN,17,"Benjamin Franklin's birthday"                            } ,
+   {JAN,18,"Cary Grants' birthday"                                   } ,
    {JAN,19,"Edgar Allen Poe's birthday"                              } ,
+   {JAN,20,"Anniversary of end of American Revolution"               } ,
    {JAN,23,"David Hilbert's birthday"                                } ,
    {JAN,24,"Anniversary of beer in cans"                             } ,
    {JAN,27,"Charles Dodgson's (Lewis Carroll) birthday"              } ,
+   {JAN,28,"Anniversary of Challenger explosion"                     } ,
    {JAN,30,"Franklin Roosevelt's birthday"                           } ,
+   {JAN,31,"Queen Beatrix's birthday"                                } ,
+   {FEB, 2,"Charles Maurice de Talleyrand's birthday"                } ,
+   {FEB, 3,"The Day the Music Died"                                  } ,
+   {FEB, 4,"Charles Lindbergh's birthday"                            } ,
+   {FEB, 6,"Ronald Reagan's birthday"                                } ,
+   {FEB, 7,"Thomas More's birthday"                                  } ,
    {FEB, 8,"William Tecumseh Sherman's birthday"                     } ,
+   {FEB,11,"Josiah Willard Gibb's birthday"                          } ,
    {FEB,12,"Abraham Lincoln's birthday"                              } ,
    {FEB,14,"Saint Valentine's Day"                                   } ,
    {FEB,15,"Anniversary of release of AFNI!"                         } ,
    {FEB,19,"Nikolaus Kopernikus' birthday"                           } ,
+   {FEB,20,"Anniversary of John Glenn's spaceflight"                 } ,
    {FEB,21,"Anniversary of start of the Battle of Verdun"            } ,
    {FEB,22,"George Washington's birthday"                            } ,
-   {FEB,29,"Leap Day"                                                } ,
+   {FEB,25,"Auguste Renoir's birthday"                               } ,
+   {FEB,28,"Linus Pauling's birthday"                                } ,
+   {FEB,29,"Herman Hollerith's birthday"                             } ,
    {MAR, 1,"Frederic Chopin's birthday"                              } ,
    {MAR, 3,"Georg Cantor's birthday"                                 } ,
    {MAR,14,"Albert Einstein's birthday"                              } ,
@@ -136,7 +167,7 @@ static mday holiday[] = {
    {APR, 1,"April Fool's Day"                                        } ,
    {APR, 8,"Birthday of Siddhartha Gautama"                          } ,
    {APR, 9,"Anniversary of Lee's surrender at Appomattox"            } ,
-   {APR,12,"Anniversary of attack on Fort Sumter"                    } ,
+   {APR,12,"Anniversary of Yuri Gagarin's spaceflight"               } ,
    {APR,13,"Thomas Jefferson's birthday"                             } ,
    {APR,14,"Anniversary of Lincoln's assasination"                   } ,
    {APR,18,"Anniversary of Paul Revere's Ride"                       } ,
@@ -153,7 +184,7 @@ static mday holiday[] = {
    {APR,30,"Karl Friedrich Gauss's birthday"                         } ,
    {MAY, 7,"Anniversary of sinking of Lusitania"                     } ,
    {MAY, 8,"VE Day"                                                  } ,
-   {MAY,18,"John Paul II's birthday"                                 } ,
+   {MAY,18,"Pope John Paul II's birthday"                            } ,
    {MAY,22,"Arthur Conan Doyle's birthday"                           } ,
    {MAY,24,"Queen Victoria's birthday"                               } ,
    {MAY,27,"Wild Bill Hickock's birthday"                            } ,
@@ -171,6 +202,7 @@ static mday holiday[] = {
    {JUL, 7,"Satchel Paige's birthday"                                } ,
    {JUL,13,"Gaius Julius Caesar's birthday"                          } ,
    {JUL,14,"Bastille Day"                                            } ,
+   {JUL,20,"Anniversary of first landing on Moon"                    } ,
    {JUL,28,"Gerard Manley Hopkin's birthday"                         } ,
    {JUL,31,"Anniversary of Battle of Passchendaele"                  } ,
    {AUG, 1,"Anniversary of Warsaw Uprising"                          } ,
@@ -205,27 +237,39 @@ static mday holiday[] = {
    {NOV,26,"Anniversary of premiere of Casablanca"                   } ,
    {NOV,27,"Start of First Crusade"                                  } ,
    {NOV,28,"William Blake's birthday"                                } ,
+   {NOV,29,"Clive Staples Lewis's birthday"                          } ,
    {NOV,30,"Winston Churchill's birthday"                            } ,
+   {DEC, 1,"Anniversary of Rosa Parks' arrest"                       } ,
    {DEC, 2,"Anniversary of Monroe Doctrine"                          } ,
    {DEC, 3,"Anniversary of Galileo's telescope"                      } ,
+   {DEC, 4,"Crazy Horse's birthday"                                  } ,
    {DEC, 5,"George Armstrong Custer's birthday"                      } ,
+   {DEC, 6,"Spanish Constitution Day"                                } ,
    {DEC, 7,"Anniversary of attack on Pearl Harbor"                   } ,
    {DEC,10,"Ada Lovelace's birthday"                                 } ,
+   {DEC,11,"Aleksander Solzhenitsyn's birthday"                      } ,
+   {DEC,12,"Frank Sinatra's birthday"                                } ,
    {DEC,14,"Tycho Brahe's birthday"                                  } ,
+   {DEC,15,"Anniversary of adoption of US Bill of Rights"            } ,
    {DEC,16,"Anniversary of Boston Tea Party"                         } ,
+   {DEC,17,"Anniversary of Wright brother's flight"                  } ,
    {DEC,19,"William Pitt's (younger) birthday"                       } ,
+   {DEC,20,"Robert Menzies' birthday"                                } ,
    {DEC,21,"Anniversary of Pilgrim's landing"                        } ,
    {DEC,22,"Srinivasa Ramanujan's birthday"                          } ,
+   {DEC,23,"Akihito's birthday"                                      } ,
    {DEC,24,"Adam Mickiewicz's birthday"                              } ,
    {DEC,25,"Christmas Day"                                           } ,
    {DEC,26,"Boxing Day"                                              } ,
    {DEC,27,"Johannes Kepler's birthday"                              } ,
    {DEC,28,"John von Neumann's birthday"                             } ,
+   {DEC,30,"Tiger Woods' birthday"                                   } ,
    {DEC,31,"New Year's Eve"                                          } ,
 
  {0,0,NULL} } ;  /* the last element, a flag to stop searching */
 
 /*---------------------------------------------------------------------------------*/
+/*! Return today's date trivia string. */
 
 char * AFNI_get_date_trivia(void)
 {
@@ -233,12 +277,16 @@ char * AFNI_get_date_trivia(void)
    struct tm *lt ;
    int ii ;
 
-   tt = time(NULL) ;
-   lt = localtime( &tt ) ;
+   tt = time(NULL) ;         /* seconds since 01 Jan 1970 */
+   lt = localtime( &tt ) ;   /* break into pieces */
+
+   /* find this month and day in the trivial list, if present */
 
    for( ii=0 ; holiday[ii].day != 0 ; ii++ )
      if( holiday[ii].mon == lt->tm_mon+1 && holiday[ii].day == lt->tm_mday )
        return holiday[ii].label ;
+
+   /* default trivia */
 
    return "[not yet claimed]" ;
 }
