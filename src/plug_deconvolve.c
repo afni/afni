@@ -294,6 +294,8 @@ static vector glt_tcoef[MAX_GLT];   /* t-stats for GLT linear combinations */
   Include deconvolution analysis software.
 */
 
+#undef USE_BASIS          /* 11 Aug 2004: for Deconvolve.c */
+
 #include "Deconvolve.c"
 
 
