@@ -2039,11 +2039,11 @@ ENTRY("get_optiontag_from_PLUGIN_interface") ;
    while( iopt < plint->option_count ){
 
       opt = plint->option[iopt++] ;
-      if( opt == NULL ) continue ; /* bad? */
+      if( opt == NULL )   continue ; /* bad? */
       if( ! opt->chosen ) continue ; /* not used this time */
 
-      plint->opnum = iopt-1 ;      /* keep track of which option */
-      plint->svnum = 0 ;           /* start at 1st subvalue */
+      plint->opnum = iopt-1 ;        /* keep track of which option */
+      plint->svnum = 0 ;             /* start at 1st subvalue */
       RETURN(opt->tag) ;
    }
 

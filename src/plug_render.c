@@ -134,7 +134,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    }
    PLUTO_register_environment_numeric( "AFNI_RENDER_SHOWTHRU_FAC" ,
                                        "ShowThru mixing factor (volume renderer)",
-                                       10,100,2,(int)rint(100.0*val) , NULL ) ;
+                                       30,100,2,(int)rint(100.0*val) , NULL ) ;
 
    /*-- done --*/
 

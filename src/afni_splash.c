@@ -34,7 +34,7 @@ ENTRY("AFNI_splashdown") ;
 #ifdef USE_FADING
       float max_splash = 3.0 ;
       char * hh = getenv("AFNI_SPLASHTIME") ;
-      if( hh != NULL && isdigit(hh[0]) ) max_splash = strtod(hh,NULL) ;
+      if( hh != NULL ) max_splash = strtod(hh,NULL) ;
       if( max_splash > 0.0 ){
          if( imspl != NULL ){  /* fade gently away */
             byte * bspl ; int ii , nv , kk ; double et ;

@@ -52,14 +52,15 @@ static char * env_fixed[] = {
     "AFNI_NO_MCW_MALLOC" , "AFNI_NOREALPATH" , "AFNI_NOSPLASH"      ,
     "AFNI_NOTES_DLINES"  , "AFNI_OPTIONS"    , "AFNI_SYSTEM_AFNIRC" ,
     "AFNI_ALWAYS_LOCK"   , "AFNI_FIM_BKTHR"  , "AFNI_NO_XDBE"       ,
-    "AFNI_GRAYSCALE_BOT" ,
+    "AFNI_GRAYSCALE_BOT" , "AFNI_NOMMAP"     ,
 #ifndef USE_SESSTRAIL
     "AFNI_SESSTRAIL" ,
 #endif
     "AFNI_RENDER_PRECALC_MODE"     ,
     "AFNI_NO_ADOPTION_WARNING"     ,
-    "AFNI_NO_BYTEORDER_WARNING"    ,
-    "AFNI_BYTEORDER_INPUT"
+    "AFNI_BYTEORDER"               ,
+    "AFNI_BYTEORDER_INPUT"         ,
+    "AFNI_NO_BYTEORDER_WARNING"
 } ;
 
 #define NUM_env_fixed (sizeof(env_fixed)/sizeof(char *))
@@ -89,10 +90,12 @@ static void ENV_sesstrail( char * ) ;
 
 /*-------------------------------------------------------------------------*/
 
+#if 0
 #define NUM_byteorder_list 3
 static char *byteorder_list[] = { "This CPU" , "LSB_FIRST" , "MSB_FIRST" } ;
 
 static void ENV_byteorder( char * ) ;
+#endif
 
 #define NUM_yesno_list 2
 static char *yesno_list[] = { "YES" , "NO" } ;
@@ -170,13 +173,17 @@ PLUGIN_interface * ENV_init(void)
                    "Output BRIK compression method" ,
                    NUM_COMPRESS_elist,COMPRESS_elist , ENV_compressor ) ;
 
+#if 0
    ENV_add_string( "AFNI_BYTEORDER" ,
                    "Byte ordering for output BRIKs" ,
                    NUM_byteorder_list , byteorder_list , ENV_byteorder ) ;
+#endif
 
+#if 0
    ENV_add_string( "AFNI_NOMMAP" ,
                    "Whether to read BRIKs using mmap()" ,
                    NUM_yesno_list , yesno_list , NULL    ) ;
+#endif
 
    ENV_add_string( "AFNI_FLOATSCAN" ,
                    "Scan floating BRIKs for errors on input?" ,
@@ -380,7 +387,7 @@ void ENV_add_string( char * vname , char * vhint ,
 static char * ENV_main( PLUGIN_interface * plint )
 {
    char *tag ;
-   int ii , ndone=0 ;
+   int ii,kk , ndone=0 ;
 
    /*--------- loop over input lines ---------*/
 
@@ -401,6 +408,8 @@ static char * ENV_main( PLUGIN_interface * plint )
          default:
            return "** ENV_main: table corruption! **" ;  /* should not happen */
 
+         /* write a numeric value into the environment */
+
          case ENV_NUMBER_FIXED:
          case ENV_NUMBER_EDITABLE:{
             float val = PLUTO_get_number(plint) ;
@@ -408,6 +417,8 @@ static char * ENV_main( PLUGIN_interface * plint )
                     env_var[ii].vname , AV_format_fval(val) ) ;
          }
          break ;
+
+         /* write a string value into the environment */
 
          case ENV_STRING:{
             char * str = PLUTO_get_string(plint) ; int jj ;
@@ -426,7 +437,8 @@ static char * ENV_main( PLUGIN_interface * plint )
             }
          }
          break ;
-      } /* end of switch over variable types */
+
+      } /* end of switch over environment variable types */
 
       /* actually set environment variable */
 
@@ -436,7 +448,15 @@ static char * ENV_main( PLUGIN_interface * plint )
 
       if( env_var[ii].vfunc != NULL ) env_var[ii].vfunc( env_var[ii].vname ) ;
 
-      ndone++ ;
+      /* turn this option off (for the user's convenience) */
+
+      for( kk=0 ; kk < plint->option_count ; kk++ )            /* find widget */
+         if( strcmp(tag,plint->option[kk]->tag) == 0 ) break ;
+
+      if( kk < plint->option_count )                           /* turn off */
+         XmToggleButtonSetState( plint->wid->opwid[kk]->toggle, False,True ) ;
+
+      ndone++ ;  /* count of how many we've done */
 
    } /* end of while(1) loop over option lines */
 
@@ -485,6 +505,7 @@ static void ENV_sesstrail( char * vname )
 
 /*-----------------------------------------------------------------------*/
 
+#if 0
 static void ENV_byteorder( char * vname )
 {
    char * str = getenv(vname) ;
@@ -499,6 +520,7 @@ static void ENV_byteorder( char * vname )
    }
    THD_set_write_order( meth ) ;
 }
+#endif
 
 /*-----------------------------------------------------------------------*/
 

@@ -341,7 +341,7 @@ ENTRY("AFNI_parse_args") ;
 
    SESSTRAIL = 1 ;
    env = getenv( "AFNI_SESSTRAIL" ) ;
-   if( env != NULL && isdigit(env[0]) ) SESSTRAIL = strtol(env,NULL,10) ;
+   if( env != NULL ) SESSTRAIL = strtol(env,NULL,10) ;
 
    GLOBAL_argopt.elide_quality = AFNI_yesenv("AFNI_MARKERS_NOQUAL") ;
 
@@ -1037,7 +1037,7 @@ int main( int argc , char * argv[] )
    }
 
    { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
-     if( lenv != NULL && isdigit(lenv[0]) ){
+     if( lenv != NULL ){
         float bk = strtod(lenv,NULL) ;
         if( bk >= 0.0 && bk < 100.0 ) SET_FIM_bkthr(bk) ;
      }
@@ -1117,7 +1117,7 @@ static Boolean MAIN_workprocess( XtPointer fred )
            char * hh ;
            AFNI_splashup() ; eltime = COX_clock_time() ;
            hh = getenv("AFNI_SPLASHTIME") ;
-           if( hh != NULL && isdigit(hh[0]) ) max_splash = strtod(hh,NULL) ;
+           if( hh != NULL ) max_splash = strtod(hh,NULL) ;
         }
       }
       break ;
@@ -3779,7 +3779,7 @@ STATUS("setting image view to be L-R mirrored") ;
 #define PP 3
 #define SS 4
 #define II 5
-      if( AFNI_yesenv("AFNI_NO_SIDES_LABELS") ){
+      if( !AFNI_yesenv("AFNI_NO_SIDES_LABELS") ){
          static char * ssix[6] = { "Left"     , "Right"     ,
                                    "Anterior" , "Posterior" ,
                                    "Superior" , "Inferior"   } ;
