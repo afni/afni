@@ -359,6 +359,7 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 			/* Do nothing */
 			break;
 		case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
 			/* For free surfer, all you need to do is 
 			 go from LPI to RAI (DICOM)*/
 			sprintf(orcode,"LPI");

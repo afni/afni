@@ -4079,7 +4079,7 @@ int main (int argc,char *argv[])
             sprintf(SF_name->name_coord,"%s", Opt->surf_out);
             SF_name->name_topo[0] = '\0'; 
             SO_name = (void *)SF_name;
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_SUREFIT, SUMA_ASCII)) {
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_SUREFIT, SUMA_ASCII, NULL)) {
                fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
                exit (1);
             }
@@ -4089,21 +4089,25 @@ int main (int argc,char *argv[])
             sprintf(SF_name->name_coord,"%s", Opt->surf_out);
             SF_name->name_topo[0] = '\0';
             SO_name = (void *)SF_name;
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII)) {
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL)) {
                fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
                exit (1);
             }
             break;
          case SUMA_FREE_SURFER:
             SO_name = (void *)Opt->surf_out; 
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII)) {
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII, NULL)) {
                fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
                exit (1);
             }
-            break;  
+            break;
+         case SUMA_FREE_SURFER_PATCH:
+            fprintf (SUMA_STDERR,"Error %s: No support for writing Free Surfer patches.\n", FuncName);
+            exit (1);  
+            break;
          case SUMA_PLY:
             SO_name = (void *)Opt->surf_out; 
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED)) {
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL)) {
                fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
                exit (1);
             }
@@ -4567,7 +4571,7 @@ int main (int argc,char *argv[])
          /* replace with Patch */
          SO->FaceSetList = ptch->FaceSetList;
          SO->N_FaceSet = ptch->N_FaceSet; 
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, SUMA_ASCII)) {
+         if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, SUMA_ASCII, NULL)) {
                fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
                exit (1);
          }

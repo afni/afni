@@ -395,6 +395,7 @@ const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp)
          SUMA_RETURN("NotSpecified");
          break;
       case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
          SUMA_RETURN("FreeSurfer");
          break;
       case SUMA_SUREFIT:
