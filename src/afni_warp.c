@@ -283,7 +283,6 @@ STATUS("warp-on-demand") ;
                               parent_dset->daxes ,
                               (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -301,7 +300,6 @@ STATUS("scaling slice to floats") ;
                                  (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                   }
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -322,7 +320,6 @@ STATUS("scaling slice to floats") ;
                               parent_dset->daxes ,
                               (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -340,7 +337,6 @@ STATUS("scaling slice to floats") ;
                                  (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                   }
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -361,7 +357,6 @@ STATUS("scaling slice to floats") ;
                               parent_dset->daxes ,
                               (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -379,7 +374,6 @@ STATUS("scaling slice to floats") ;
                                  (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                   }
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -424,7 +418,6 @@ STATUS("scaling slice to floats") ;
                               parent_dset->daxes ,
                               (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -442,7 +435,6 @@ STATUS("scaling slice to floats") ;
                                  (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                   }
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -463,7 +455,6 @@ STATUS("scaling slice to floats") ;
                               parent_dset->daxes ,
                               (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -481,7 +472,6 @@ STATUS("scaling slice to floats") ;
                                  (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                   }
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -502,7 +492,6 @@ STATUS("scaling slice to floats") ;
                               parent_dset->daxes ,
                               (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -520,7 +509,6 @@ STATUS("scaling slice to floats") ;
                                  (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                   }
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -565,7 +553,6 @@ STATUS("scaling slice to floats") ;
                               parent_dset->daxes ,
                               (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -583,7 +570,6 @@ STATUS("scaling slice to floats") ;
                                  (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                   }
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -604,7 +590,6 @@ STATUS("scaling slice to floats") ;
                               parent_dset->daxes ,
                               (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -622,7 +607,6 @@ STATUS("scaling slice to floats") ;
                                  (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                   }
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -643,7 +627,6 @@ STATUS("scaling slice to floats") ;
                               parent_dset->daxes ,
                               (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
@@ -661,7 +644,6 @@ STATUS("scaling slice to floats") ;
                                  (DTYPE *)bar , daxes , fixed_index , (DTYPE *)sar ) ;
                   }
                }
-               CUBIC_CLIP ;
                if( DSET_BRICK_FACTOR(dset,ival) != 0.0 ){
                   MRI_IMAGE * qim ;
                   qim = mri_scale_to_float( DSET_BRICK_FACTOR(dset,ival) , newim ) ;
