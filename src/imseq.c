@@ -2581,9 +2581,10 @@ ENTRY("ISQ_saver_CB") ;
          char * ppnm = strstr( seq->saver_prefix , ".pnm." ) ;
          int    sll  = strlen( seq->saver_prefix ) ;
 
-         int    mcod = X2M_USE_CMAP ;                             /* 21 Sep 2001: */
-         if( seq->opt.save_filter >= 0 ) mcod |= X2M_FORCE_RGB ;  /* compute mcod rather than */
-                                                                  /* use fixed X2M_USE_CMAP   */
+         int    mcod = X2M_USE_CMAP ;        /* 21 Sep 2001: */
+         if( seq->opt.save_filter >= 0 ||
+             seq->mplot != NULL          )   /* compute mcod rather than */
+           mcod |= X2M_FORCE_RGB ;           /* use fixed X2M_USE_CMAP   */
 
          /* undump XImage to MRI_IMAGE (rgb format) */
 
@@ -2608,6 +2609,29 @@ ENTRY("ISQ_saver_CB") ;
 
          if( tim != NULL && seq->mplot != NULL && tim->kind == MRI_rgb )
             memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+
+         /* 25 Mar 2002: perhaps cut up zoomed image
+                         (after overlay is drawn on it, that is) */
+
+#ifdef ALLOW_ZOOM
+         if( seq->zoom_fac >  1               &&
+             seq->mont_nx  == 1               &&
+             seq->mont_ny  == 1               &&
+             tim           != NULL            &&
+             tim->kind     == MRI_rgb         &&
+             AFNI_yesenv("AFNI_CROP_ZOOMSAVE")  ) {
+
+            MRI_IMAGE *qim ;
+            int xa,ya , iw=tim->nx/seq->zoom_fac , ih=tim->ny/seq->zoom_fac ;
+
+            xa = seq->zoom_hor_off * tim->nx ;
+            if( xa+iw > tim->nx ) xa = tim->nx-iw ;
+            ya = seq->zoom_ver_off * tim->nx ;
+            if( ya+ih > tim->ny ) ya = tim->ny-ih ;
+            qim = mri_cut_2D( tim , xa,xa+iw-1 , ya,ya+ih-1 ) ;
+            mri_free(tim) ; tim = qim ;
+         }
+#endif
 
          /* save image to disk */
 
