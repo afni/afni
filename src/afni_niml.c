@@ -1106,7 +1106,7 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
      NI_free_element(nel) ;  /* it's gone, so forget it */
 
-   } /* end of loop over surface in anat dataset */
+   } /* end of loop over surface in session */
 
    EXRETURN ;
 }
