@@ -197,6 +197,7 @@ int main( int argc , char * argv[] )
    float dx,dy,dz , vp ;
    int kim , nvals , kpar , np , nfree ;
    MRI_IMAGE *qim , *tim , *fim ;
+   float clip_baset=0.0f , clip_inset=0.0f ;
 
    /*-- help? --*/
 
@@ -669,6 +670,17 @@ int main( int argc , char * argv[] )
    if( !DSET_LOADED(inset) ){
      fprintf(stderr,"** ERROR: can't load input dataset into memory!\n") ;
      nerr++ ;
+   } else {
+     nvals = DSET_NVALS(inset) ;
+     if( nvals == 1 ){
+       clip_inset = THD_cliplevel( DSET_BRICK(inset,0) , 0.0 ) ;
+       if( DSET_BRICK_FACTOR(inset,0) > 0.0f )
+         clip_inset *= DSET_BRICK_FACTOR(inset,0) ;
+     } else {
+       qim = THD_median_brick( inset ) ;
+       clip_inset = THD_cliplevel( qim , 0.0 ) ;
+       mri_free(qim) ;
+     }
    }
 
    DSET_load(baset) ;
@@ -676,6 +688,7 @@ int main( int argc , char * argv[] )
      fprintf(stderr,"** ERROR: can't load base dataset into memory!\n") ;
      nerr++ ;
    } else {
+     clip_baset  = THD_cliplevel( DSET_BRICK(baset,0) , 0.0 ) ;
      abas.imbase = mri_to_float( DSET_BRICK(baset,0) ) ;
      DSET_delete(baset) ; baset = NULL ;
    }
@@ -717,6 +730,15 @@ int main( int argc , char * argv[] )
 
    /*-- make the shell of the new dataset --*/
 
+   if( clip_baset > 0.0f && clip_inset > 0.0f ){
+     float fac = clip_baset / clip_inset ;
+     if( fac > 0.01 && fac < 100.0 ){
+       abas.scale_init = fac ;
+       if( abas.verb ) fprintf(stderr,"++ Scale factor set to %.2f/%.2f=%.2g\n",
+                               clip_baset , clip_inset , fac ) ;
+     }
+   }
+
    if( abas.verb ) fprintf(stderr,"++ Creating empty output dataset\n") ;
 
    outset = EDIT_empty_copy( inset ) ;
@@ -732,7 +754,6 @@ int main( int argc , char * argv[] )
    mri_warp3D_align_setup( &abas ) ;
 
    if( abas.verb ) fprintf(stderr,"++ Beginning alignment loop\n") ;
-   nvals = DSET_NVALS(inset) ;
    for( kim=0 ; kim < nvals ; kim++ ){
      for( kpar=0 ; kpar < abas.nparam ; kpar++ ){
        if( abas.param[kpar].fixed )
@@ -741,33 +762,40 @@ int main( int argc , char * argv[] )
          abas.param[kpar].val_init = abas.param[kpar].ident ;
      }
 
-     qim = DSET_BRICK( inset , kim ) ;
+     qim = mri_scale_to_float( DSET_BRICK_FACTOR(inset,kim) ,
+                               DSET_BRICK(inset,kim)         ) ;
      tim = mri_warp3d_align_one( &abas , qim ) ;
-     switch( qim->kind ){
+     mri_free( qim ) ; DSET_unload_one( inset , kim ) ;
+     switch( DSET_BRICK_TYPE(inset,kim) ){
+
+         default:
+           fprintf(stderr,"\n** ERROR: Can't store bricks of type %s\n",
+                    MRI_TYPE_name[DSET_BRICK_TYPE(inset,kim)] ) ;
+           /* fall thru on purpose */
 
          case MRI_float:
-            EDIT_substitute_brick( outset, kim, MRI_float, MRI_FLOAT_PTR(tim) );
-            mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
+           EDIT_substitute_brick( outset, kim, MRI_float, MRI_FLOAT_PTR(tim) );
+           mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
          break ;
 
          case MRI_short:
-            fim = mri_to_short(1.0,tim) ; mri_free( tim ) ;
-            EDIT_substitute_brick( outset, kim, MRI_short, MRI_SHORT_PTR(fim) );
-            mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
+           fim = mri_to_short(1.0,tim) ; mri_free( tim ) ;
+           EDIT_substitute_brick( outset, kim, MRI_short, MRI_SHORT_PTR(fim) );
+           mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
          break ;
 
          case MRI_byte:
-            fim = mri_to_byte(tim) ; mri_free( tim ) ;
-            EDIT_substitute_brick( outset, kim, MRI_byte, MRI_BYTE_PTR(fim) ) ;
-            mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
+           vp = mri_min(tim) ;
+           if( vp < 0.0f ){
+             fprintf(stderr,
+              "++ WARNING: output sub-brick #%d is byte, but has negative values\n",
+              kim ) ;
+           }
+           fim = mri_to_byte(tim) ; mri_free( tim ) ;
+           EDIT_substitute_brick( outset, kim, MRI_byte, MRI_BYTE_PTR(fim) ) ;
+           mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
          break ;
-
-         default:
-            fprintf(stderr,"\n** ERROR: Can't align bricks of type %s\n",
-                    MRI_TYPE_name[qim->kind] ) ;
-            exit(1) ;
       }
-      DSET_unload_one( inset , kim ) ;      /* don't need this anymore */
    }
 
    /*===== hard work is done =====*/

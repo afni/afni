@@ -7,14 +7,14 @@
                 store properly elements [0..nhist] (d'oh).
 ----------------------------------------------------------------------------*/
 
-float THD_cliplevel( MRI_IMAGE * im , float mfrac )
+float THD_cliplevel( MRI_IMAGE *im , float mfrac )
 {
    MRI_IMAGE *lim ;
    float fac , sfac=1.0 ;
    double dsum ;
    int nvox , *hist , ii,npos=0 , ncut,kk,ib , qq,nold ;
-   short * sar ;
-   byte * bar ;
+   short *sar ;
+   byte  *bar ;
    int nhist , nneg=0 , nhalf ;
 
 ENTRY("THD_cliplevel") ;
@@ -28,13 +28,11 @@ ENTRY("THD_cliplevel") ;
       case MRI_short: nhist = 32767 ; lim = im ; break ;
       case MRI_byte : nhist =   255 ; lim = im ; break ;
 
-      case MRI_float:
-         fac = mri_maxabs(im) ; if( fac == 0.0 ) RETURN(0.0) ;
-         sfac = 32767.0/fac ; nhist = 32767 ;
-         lim = mri_to_short( sfac , im ) ;
+      default:
+        fac = mri_maxabs(im) ; if( fac == 0.0 ) RETURN(0.0) ;
+        sfac = 32767.0/fac ; nhist = 32767 ;
+        lim = mri_to_short( sfac , im ) ;
       break ;
-
-      default: RETURN(0.0) ; /* bad */
    }
 
    hist = (int *) calloc(sizeof(int),nhist+1) ;  /* 05 Nov 2001: +1 */
