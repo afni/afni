@@ -1326,15 +1326,18 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
      free((void *)vmat); free((void *)umat); return;
    }
 
+   for( ii=0 ; ii < n ; ii++ )
+     if( sval[ii] < 0.0l ) sval[ii] = 0.0l ;
+
 #ifdef FLOATIZE
-#define EPS 1.e-6
+#define PSINV_EPS 1.e-8
 #else
-#define EPS 1.e-12
+#define PSINV_EPS 1.e-16
 #endif
 
    /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
 
-   del  = EPS * smax*smax ;
+   del  = PSINV_EPS * smax*smax ;
    for( ii=0 ; ii < n ; ii++ )
      sval[ii] = sval[ii] / ( sval[ii]*sval[ii] + del ) ;
 
