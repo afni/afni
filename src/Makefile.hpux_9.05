@@ -1,7 +1,7 @@
 ## for HP-UX 9.05
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -Ae -z +O2 +Olibcalls -DHP -DUSE_TRACING
+CC     = cc -Ae -z +O2 +Olibcalls -DHP -DUSE_TRACING -DDONT_USE_STRPTIME
 CCVOL  = cc -Ae -z +O2 +Olibcalls -DHP -DUSE_TRACING
 CCFAST = $(CC)
 CCMIN  = cc -Ae -s

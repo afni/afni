@@ -119,6 +119,9 @@
               "rint" (round-to-integer) math function -- I don't know
               of any system without this function, but you never can tell.
 
+    DONT_USE_STRPTIME = #define this if your system doesn't have the
+                        C function strptime()
+
   Some systems need extra header files included.  Some system header
   files don't give a prototype for alphasort.  This is a place to fix
   these things up.

@@ -109,6 +109,16 @@ static char * xhair_bbox_label[1]   = { "See Xhairs" } ;
 static char * dynamic_bbox_label[1] = { "DynaDraw"   } ;
 static char * accum_bbox_label[1]   = { "Accumulate" } ;
 
+#undef USE_SCRIPTING
+#ifdef USE_SCRIPTING
+  Widget script_menu , script_cbut ,
+         script_save_one_pb  , script_save_many_pb ,
+         script_read_exec_pb , script_read_one_pb   ;
+
+  void REND_script_CB(Widget , XtPointer , XtPointer) ;
+  void REND_script_menu( Widget ) ;
+#endif
+
 /* Other data */
 
 #define MODE_LOW       0
@@ -1035,6 +1045,13 @@ void REND_make_widgets(void)
                                 REND_opacity_scale_CB , NULL , NULL,NULL ) ;
    XtAddCallback( opacity_scale_av->wtext, XmNactivateCallback,
                   REND_textact_CB, opacity_scale_av ) ;
+
+   /*** 07 July 1999: menu to control scripting actions ***/
+
+#ifdef USE_SCRIPTING
+   SEP_VER(hrc) ;
+   REND_script_menu( hrc ) ;
+#endif
 
    XtManageChild(hrc) ;
 
@@ -4167,7 +4184,7 @@ void REND_func_widgets(void)
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmLabelWidgetClass , wfunc_pbar_menu ,
-               LABEL_ARG("--- Cancel ---") ,
+               LABEL_ARG("-- Cancel --") ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
@@ -5327,3 +5344,103 @@ void REND_opacity_scale_CB( MCW_arrowval * av , XtPointer cd )
    if( dynamic_flag && render_handle != NULL ) REND_draw_CB(NULL,NULL,NULL) ;
    return ;
 }
+
+#ifdef USE_SCRIPTING
+/*--------------------------------------------------------------------
+   07 July 1999: Create the widgets for the script control menu
+----------------------------------------------------------------------*/
+
+void REND_script_menu( Widget parent )
+{
+   Widget rc , mbar ;
+
+   rc =  XtVaCreateWidget(
+           "dialog" , xmRowColumnWidgetClass , parent ,
+              XmNorientation , XmHORIZONTAL ,
+              XmNpacking , XmPACK_TIGHT ,
+              XmNtraversalOn , False ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+
+   mbar = XmCreateMenuBar( rc , "dialog" , NULL,0 ) ;
+   XtVaSetValues( mbar ,
+                     XmNmarginWidth  , 0 ,
+                     XmNmarginHeight , 0 ,
+                     XmNspacing      , 3 ,
+                     XmNborderWidth  , 0 ,
+                     XmNborderColor  , 0 ,
+                     XmNtraversalOn  , False ,
+                     XmNbackground   , im3d->dc->ovc->pixov_brightest ,
+                  NULL ) ;
+   XtManageChild( mbar ) ;
+
+   script_menu =
+         XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
+
+   script_cbut =
+         XtVaCreateManagedWidget(
+            "dialog" , xmCascadeButtonWidgetClass , mbar ,
+               LABEL_ARG("Script") ,
+               XmNsubMenuId    , script_menu ,
+               XmNmarginWidth  , 0 ,
+               XmNmarginHeight , 0 ,
+               XmNmarginBottom , 0 ,
+               XmNmarginTop    , 0 ,
+               XmNmarginRight  , 0 ,
+               XmNmarginLeft   , 0 ,
+               XmNtraversalOn  , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+#undef MENU_SLINE
+#define MENU_SLINE                                            \
+   (void) XtVaCreateManagedWidget(                            \
+            "dialog" , xmSeparatorWidgetClass , script_menu , \
+             XmNseparatorType , XmSINGLE_LINE , NULL )
+
+   /* macro to create a new script menu button */
+
+#define SCRIPT_MENU_BUT(wname,label)                           \
+    wname =                                                    \
+         XtVaCreateManagedWidget(                              \
+            "dialog" , xmPushButtonWidgetClass , script_menu , \
+               LABEL_ARG( label ) ,                            \
+               XmNmarginHeight , 0 ,                           \
+               XmNtraversalOn , False ,                        \
+               XmNinitialResourcesPersistent , False ,         \
+            NULL ) ;                                           \
+      XtAddCallback( wname , XmNactivateCallback ,             \
+                     REND_script_CB , NULL ) ;
+
+   /*** top of menu = a label to click on that does nothing at all ***/
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmLabelWidgetClass , script_menu ,
+               LABEL_ARG("-- Cancel --") ,
+               XmNrecomputeSize , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+   MENU_SLINE ;
+
+   SCRIPT_MENU_BUT( script_save_one_pb  , "Save One"  ) ;
+   SCRIPT_MENU_BUT( script_save_many_pb , "Save Many" ) ;
+
+   MENU_SLINE ;
+
+   SCRIPT_MENU_BUT( script_read_one_pb  , "Read One"    ) ;
+   SCRIPT_MENU_BUT( script_read_exec_pb , "Read & Exec" ) ;
+
+   XtManageChild( rc ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------
+   Callback when a script menu button is pressed
+------------------------------------------------------------------------*/
+
+void REND_script_CB( Widget w , XtPointer cd , XtPointer cbs )
+{
+  PLUTO_beep() ; return ;
+}
+#endif

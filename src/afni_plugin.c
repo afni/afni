@@ -382,6 +382,7 @@ ENTRY("new_PLUGIN_interface_1999") ;
 
    /** 15 Jun 1999 stuff for date checking **/
 
+#ifndef DONT_USE_STRPTIME
    if( compile_date == NULL ){
 
       if( num_date_err == 0 ) fprintf(stderr,"\n") ;
@@ -418,6 +419,7 @@ ENTRY("new_PLUGIN_interface_1999") ;
          STATUS(str) ;
       }
    }
+#endif
 
    RETURN(plint) ;
 }
