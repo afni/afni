@@ -1743,7 +1743,7 @@ libSUMA.a: libmri.a
 #link executables but check for libraries first and create them if needed	
 suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 	( cd SUMA ;	\
-	make -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap MakeColorMap 3dSurfMaskDump ConvertSurface packbins 'INSTALLDIR=$(INSTALLDIR)' \
+	make -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap MakeColorMap 3dSurfMaskDump 3dSurf2Vol ConvertSurface packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
@@ -1789,6 +1789,8 @@ suma_clean:
 	if [ -f MakeColorMap ]; then $(RM) MakeColorMap; fi;
 	if [ -f SUMA/3dSurfMaskDump ]; then $(RM) SUMA/3dSurfMaskDump; fi;
 	if [ -f 3dSurfMaskDump ]; then $(RM) 3dSurfMaskDump; fi;
+	if [ -f SUMA/3dSurf2Vol ]; then $(RM) SUMA/3dSurf2Vol; fi;
+	if [ -f 3dSurf2Vol ]; then $(RM) 3dSurf2Vol; fi;
 	if [ -f ScaleToMap ]; then $(RM) ScaleToMap; fi;
 	if [ -f SUMA/ScaleToMap ]; then $(RM) SUMA/ScaleToMap; fi;
 	if [ -f ConvertSurface ]; then $(RM) ; fi;
@@ -1805,8 +1807,8 @@ suma_link:
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
 	$(CP) libmri.a librickr.a ../	;\
-	$(RM) suma MakeColorMap 3dSurfMaskDump	ScaleToMap ConvertSurface;\
-	make -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap 3dSurfMaskDump ScaleToMap ConvertSurface \
+	$(RM) suma MakeColorMap 3dSurfMaskDump 3dSurf2Vol ScaleToMap ConvertSurface;\
+	make -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap 3dSurfMaskDump 3dSurf2Vol ScaleToMap ConvertSurface \
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -1821,7 +1823,7 @@ suma_link:
 #install suma
 suma_install:
 	( if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/3dSurfMaskDump SUMA/ScaleToMap SUMA/ConvertSurface SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps ${INSTALLDIR} ; \
+	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/3dSurfMaskDump SUMA/3dSurf2Vol SUMA/ScaleToMap SUMA/ConvertSurface SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps ${INSTALLDIR} ; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)
 	
 suma: suma_clean suma_exec suma_install

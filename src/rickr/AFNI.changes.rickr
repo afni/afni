@@ -181,3 +181,9 @@
       o added -index option for Mike B
       o combined changes with Bob's
 
+28 May 2003:
+  * added SUMA/SUMA_3dSurf2Vol.[ch]
+
+29 May 2003:
+  * modified Makefile.INCLUDE and SUMA/SUMA_Makefile to build 3dSurf2Vol
+
