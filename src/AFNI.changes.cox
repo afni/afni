@@ -4425,3 +4425,6 @@
 14 Mar 2003
  * A few more changes to 3dAnhist.c.
  * Modified thd_opendset.c to also deal with .1D inputs.
+
+18 Mar 2003
+ * Fixed 1dplot.c -stdin option to work again (oops).
