@@ -5333,7 +5333,8 @@ MRI_IMAGE * AFNI_overlay( int n , FD_brick * br )
    THD_ivec3 ib ;
    THD_3dim_dataset * dset ;
    FD_brick * br_fim ;
-   int do_xhar ;         /* 22 Mar 2002 */
+   int do_xhar ;              /* 22 Mar 2002 */
+   MRI_IMAGE *rgbov = NULL ;  /* 30 Jan 2003 */
 
 ENTRY("AFNI_overlay") ;
 
@@ -5376,7 +5377,9 @@ if(PRINT_TRACING)
    if( im3d->vinfo->func_visible ){
       br_fim = UNDERLAY_TO_OVERLAY(im3d,br) ;
       fov    = AFNI_func_overlay( n , br_fim ) ;
-      if( fov != NULL && fov->kind == MRI_rgb ) return fov ;  /* 15 Apr 2002 */
+      if( fov != NULL && fov->kind == MRI_rgb ){ /* 30 Jan 2003: */
+        rgbov = fov ; fov = NULL ;               /* save RGB overlay for later */
+      }
    }
 
    /*----- 25 Jul 2001: get TT atlas overlay, if desired and possible -----*/
@@ -5413,11 +5416,6 @@ STATUS(str) ; }
 STATUS("new overlay is created de novo") ;
       im  = mri_new( br->n1 , br->n2 , MRI_short ) ; ovgood = False ;
       oar = MRI_SHORT_PTR(im) ;
-#ifdef DONT_USE_MEMCPY
-      for( ii=0 ; ii < im->nvox ; ii++ ) oar[ii] = 0 ;  /* blank overlay */
-#else
-      (void) memset( oar , 0 , sizeof(short)*im->nvox ) ;
-#endif
    }
 
    nx     = im->nx ;
@@ -5735,6 +5733,19 @@ if(PRINT_TRACING)
    /*----- return overlay (kill it if nothing happened) -----*/
 
    if( !ovgood ) KILL_1MRI(im) ;
+
+   /* 30 Jan 2003:
+      If the functional overlay is in RGB format,
+      then must meld that with the short color index image */
+
+   if( rgbov != NULL ){
+     if( im != NULL ){
+       MRI_IMAGE *qim ;
+       qim = ISQ_overlay( im3d->dc , rgbov , im , 1.0 ) ;
+       mri_free(rgbov); mri_free(im); rgbov = qim;
+     }
+     im = rgbov ;
+   }
 
    RETURN( im ) ;
 }

@@ -323,17 +323,21 @@ ENTRY("AFNI_hintize_pbar") ;
 
    if( pbar == NULL || fac == 0.0 ) EXRETURN ;  /* bad */
 
-   np = pbar->num_panes ;
-   for( ip=0 ; ip < np ; ip++ ){
-      w   = pbar->panes[ip] ;          /* the widget for the ip-th pane */
-      top = pbar->pval[ip]   * fac ;   /* scaled top value */
-      bot = pbar->pval[ip+1] * fac ;   /* scaled bot value */
-      AV_fval_to_char( bot , sbot ) ;  /* convert to a nice string */
-      AV_fval_to_char( top , stop ) ;
-      sb = (sbot[0] == ' ') ? sbot+1 : sbot ;  /* skip leading blanks */
-      st = (stop[0] == ' ') ? stop+1 : stop ;
-      sprintf(hint,"%s .. %s",sb,st) ;         /* create hint */
-      MCW_register_hint( w , hint ) ;          /* send to hint system */
+   if( pbar->bigmode ){
+     MCW_unregister_hint( pbar->panes[0] ) ;   /* 30 Jan 2003 */
+   } else {
+     np = pbar->num_panes ;
+     for( ip=0 ; ip < np ; ip++ ){
+       w   = pbar->panes[ip] ;          /* the widget for the ip-th pane */
+       top = pbar->pval[ip]   * fac ;   /* scaled top value */
+       bot = pbar->pval[ip+1] * fac ;   /* scaled bot value */
+       AV_fval_to_char( bot , sbot ) ;  /* convert to a nice string */
+       AV_fval_to_char( top , stop ) ;
+       sb = (sbot[0] == ' ') ? sbot+1 : sbot ;  /* skip leading blanks */
+       st = (stop[0] == ' ') ? stop+1 : stop ;
+       sprintf(hint,"%s .. %s",sb,st) ;         /* create hint */
+       MCW_register_hint( w , hint ) ;          /* send to hint system */
+     }
    }
 
    EXRETURN ;
@@ -442,8 +446,25 @@ void AFNI_inten_av_CB( MCW_arrowval * av , XtPointer cd )
    Three_D_View * im3d = (Three_D_View *) pbar->parent ;
 
    HIDE_SCALE(im3d) ;
-   alter_MCW_pbar( pbar , av->ival , NULL ) ;
+   if( av->ival > NPANE_MAX ){
+     int npane=pbar->num_panes , jm=pbar->mode ;
+     float pmax=pbar->pval_save[npane][0][jm] ,
+           pmin=pbar->pval_save[npane][npane][jm] ;
+     PBAR_set_bigmode( pbar , 1 , pmin,pmax , NULL ) ;
+     AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+   } else {
+     pbar->bigmode = 0 ;
+     alter_MCW_pbar( pbar , av->ival , NULL ) ;
+   }
    FIX_SCALE_SIZE(im3d) ;
+}
+
+char * AFNI_inten_av_texter( MCW_arrowval * av , XtPointer cd )
+{
+   static char buf[4] ;
+   if( av->ival > NPANE_MAX ) strcpy (buf,"**") ;
+   else                       sprintf(buf,"%d",av->ival) ;
+   return buf ;
 }
 
 /*---------------------------------------------------------------------
@@ -1102,6 +1123,27 @@ STATUS("bad function datatypes!!") ;
       im_fim = tim ;
    }
 
+   pbar = im3d->vwid->func->inten_pbar ;
+
+   /** 30 Jan 2003:
+       if the pbar is in "big" mode,
+       then create an RGB overlay in a separate function **/
+
+   if( pbar->bigmode ){
+     float thresh ;
+     thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+     switch( im_fim->kind ){
+       case MRI_short: thresh *= FUNC_scale_short[fdset_type] ; break ;
+       case MRI_byte:  thresh *= FUNC_scale_byte [fdset_type] ; break ;
+     }
+     im_ov = AFNI_newfunc_overlay( im_thr , thresh ,
+                                   im_fim ,
+                                   scale_factor*pbar->bigbot ,
+                                   scale_factor*pbar->bigtop ,
+                                   pbar->bigcolor              ) ;
+     goto CLEANUP ;
+   }
+
    /* create output image */
 
    npix  = im_fim->nx * im_fim->ny ;
@@ -1110,7 +1152,6 @@ STATUS("bad function datatypes!!") ;
 
    /* set overlay colors */
 
-   pbar   = im3d->vwid->func->inten_pbar ;
    num_lp = pbar->num_panes ;
 
    for( lp=0 ; lp < num_lp ; lp++ ) fim_ovc[lp] = pbar->ov_index[lp] ;
@@ -1269,12 +1310,36 @@ STATUS("bad im_fim->kind!") ;
       }
    }
 
-   if( im_thr != NULL && im_thr != im_fim ) mri_free( im_thr ) ;
-   mri_free( im_fim ) ;
+   /* delete the overlay if it contains nothing */
 
    for( ii=0 ; ii < npix ; ii++ ) if( ar_ov[ii] != 0 ) break ;
-
    if( ii == npix ) KILL_1MRI(im_ov) ;  /* no nonzero values --> no overlay */
+
+   /** time to trot, Bwana **/
+
+CLEANUP:
+   if( im_thr != NULL && im_thr != im_fim ) mri_free( im_thr ) ;
+   mri_free( im_fim ) ;
+   RETURN(im_ov) ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Make a functional overlay the new way (30 Jan 2003):
+    - im_thr = threshold image (may be NULL)
+    - thresh = pixels with values in im_thr below this don't get overlay
+    - im_fim = image to make overlay from (may not be NULL)
+    - fimbot = pixel value to map to fimcolor[0]
+    - fimtop = pixel value to map to fimcolor[NPANE_BIG-1]
+-------------------------------------------------------------------------*/
+
+MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *im_thr , float thresh ,
+                                  MRI_IMAGE *im_fim ,
+                                  float fimbot, float fimtop ,
+                                  rgbyte *fimcolor                  )
+{
+   MRI_IMAGE *im_ov=NULL ;
+
+ENTRY("AFNI_newfunc_overlay") ;
 
    RETURN(im_ov) ;
 }

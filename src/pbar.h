@@ -35,7 +35,7 @@ static char check_bits[] = {
 
 static Pixmap check_pixmap = XmUNSPECIFIED_PIXMAP ;
 
-#define NPANE_MIN       2
+#define NPANE_MIN        2
 #define NPANE_MAX       20
 #define PANE_WIDTH      15
 #define PANE_MIN_HEIGHT  5
@@ -52,6 +52,8 @@ static Pixmap check_pixmap = XmUNSPECIFIED_PIXMAP ;
 
 #define pbCR_COLOR       (1<<0)
 #define pbCR_VALUE       (1<<1)
+
+#define NPANE_BIG      128    /* 30 Jan 2003: # colors in "big" mode */
 
 typedef struct {
   Widget top , panew , panes[NPANE_MAX]   , labels[NPANE_MAX+1] ;
@@ -71,6 +73,11 @@ typedef struct {
   XtPointer  pb_data ;
 
   XtPointer parent ;
+
+  int    bigmode , bigset ;         /* 30 Jan 2003 */
+  float  bigtop , bigbot ;
+  rgbyte bigcolor[NPANE_BIG] ;
+  XImage * bigxim ;
 } MCW_pbar ;
 
 MCW_pbar * new_MCW_pbar( Widget , MCW_DC * ,
@@ -84,5 +91,8 @@ MRI_IMAGE * MCW_pbar_to_mri( MCW_pbar *,int,int ) ; /* 15 Jun 2000 */
 void rotate_MCW_pbar( MCW_pbar * , int ) ; /* 30 Mar 2001 */
 
 void PBAR_set_panecolor( MCW_pbar *, int , int ) ;  /* 17 Jan 2003 */
+
+void PBAR_set_bigmode( MCW_pbar *, int, float,float, rgbyte * ) ;  /* 30 Jan 2003 */
+void PBAR_bigexpose_CB( Widget , XtPointer , XtPointer ) ;  /* 30 Jan 2003 */
 
 #endif

@@ -2173,7 +2173,7 @@ ENTRY("ISQ_make_image") ;
          tim = ISQ_getoverlay( seq->im_nr , seq ) ;
 
          if( tim != NULL && !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
-            fprintf(stderr,"\a\n*** Illegal overlay image! ***\n") ;
+            fprintf(stderr,"\a\n*** Illegal overlay image kind=%d! ***\n",tim->kind) ;
             KILL_1MRI(tim) ;
          }
 
@@ -7527,7 +7527,7 @@ ENTRY("ISQ_manufacture_one") ;
    if( tim == NULL ) RETURN( NULL );
 
    if( !ISQ_GOOD_OVERLAY_TYPE(tim->kind) ){
-      fprintf(stderr,"\a\n*** Illegal overlay image! ***\n") ;
+      fprintf(stderr,"\a\n*** Illegal overlay image kind=%d! ***\n",tim->kind) ;
       mri_free(tim) ; RETURN( NULL );
    }
 
