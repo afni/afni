@@ -131,7 +131,7 @@ typedef enum { SE_Empty, \
                SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, \
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,\
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, \
-               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_ShowLog,\
+               SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog,\
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, \
@@ -417,7 +417,7 @@ typedef enum { SW_View, \
                                                       Make sure you begin with SW_View and end
                                                       with SW_N_View */
 typedef enum { SW_Help, \
-               SW_HelpViewer,  SW_HelpSep1, SW_HelpIONotify,
+               SW_HelpViewer,  SW_HelpMessageLog, SW_HelpSep1, SW_HelpIONotify,
                SW_HelpMemTrace,  \
                SW_N_Help } SUMA_WIDGET_INDEX_HELP; /*!< Indices to widgets under Help menu.
                                                          Make sure you begin with SW_View and end

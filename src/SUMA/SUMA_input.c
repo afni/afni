@@ -382,26 +382,21 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_h:
-            if (Kev.state & Mod1Mask){
+            if (Kev.state & ControlMask){
               if (!list) list = SUMA_CreateList();
               SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Help, SES_Suma, NULL); 
               if (!SUMA_Engine (&list)) {
                   fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
               }    
-            }else if (Kev.state & ControlMask){
-               /* open the error log window */
-               if (!list) list = SUMA_CreateList();
-              SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Log, SES_Suma, NULL);
-              if (!SUMA_Engine (&list)) {
-                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-              }
             }else{
-              /* fake some error logs */
-              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Notice", "Me Ars", SMT_Notice, SMA_Log);
-              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Notice2", "Me Ars", SMT_Notice, SMA_LogAndPopup);
-              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Warning", "Me Ars", SMT_Warning, SMA_LogAndPopup);
-              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Error", "Me Ars", SMT_Error, SMA_LogAndPopup);
-              SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Critical", "Me Ars", SMT_Critical, SMA_LogAndPopup);
+               if (SUMAg_CF->Dev) {
+                  /* fake some error logs */
+                  SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Notice", FuncName, SMT_Notice, SMA_Log);
+                  SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Notice2", FuncName, SMT_Notice, SMA_LogAndPopup);
+                  SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Warning", FuncName, SMT_Warning, SMA_LogAndPopup);
+                  SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Error", FuncName, SMT_Error, SMA_LogAndPopup);
+                  SUMA_RegisterMessage (SUMAg_CF->MessageList, "Test Critical", FuncName, SMT_Critical, SMA_LogAndPopup);
+               }
             }
             break;
 
@@ -2087,7 +2082,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
    DList *list = NULL;
    DListElmt *SetNodeElem = NULL;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 

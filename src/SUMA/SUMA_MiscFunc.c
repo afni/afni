@@ -5341,7 +5341,7 @@ int * SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation)
 {/*SUMA_Find_inIntVect*/
    int k, *tmp, *ValLocation;
    static char FuncName[]={"SUMA_Find_inIntVect"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -5416,7 +5416,7 @@ Side effects :
 int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted )
 {/*SUMA_UniqueInt*/
    int *xtmp, *xunq, k ,*x;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    static char FuncName[]={"SUMA_UniqueInt"};
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);

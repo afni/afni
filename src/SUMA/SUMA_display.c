@@ -682,7 +682,7 @@ Widget SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title, char menu_
    Widget menu = NULL, cascade = NULL;
    int i;
    XmString str;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -865,6 +865,10 @@ SUMA_MenuItem Help_menu[] = {
    {  "Viewer Usage", &xmPushButtonWidgetClass, \
       'V', "Ctrl <key>h", "Ctrl+h", \
       SUMA_cb_helpViewer, (XtPointer) SW_HelpViewer, NULL},
+      
+   {  "Message Log", &xmPushButtonWidgetClass, \
+      'L', NULL, NULL, \
+      SUMA_cb_helpMessageLog, (XtPointer) SW_HelpMessageLog, NULL},
       
    {  "Separator 1", &xmSeparatorWidgetClass, \
       '\0', NULL, NULL, \
@@ -1137,7 +1141,7 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
 {
    static char FuncName[]={"SUMA_ButtClose_pushed"};
    int ic, Found;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1685,6 +1689,27 @@ void SUMA_cb_helpViewer (Widget w, XtPointer data, XtPointer callData)
 }
 
 /*!
+   \brief A call back to open the Message Log window 
+   No input parameters needed
+*/
+void SUMA_cb_helpMessageLog (Widget w, XtPointer data, XtPointer callData)
+{
+   static char FuncName[] = {"SUMA_cb_helpMessageLog"};
+   DList *list = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   if (!list) list = SUMA_CreateList();
+   SUMA_REGISTER_COMMAND_NO_DATA(list, SE_Log, SES_Suma, NULL); 
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+   
+   SUMA_RETURNe;
+
+}
+
+
+/*!
  function to toggle the IOnotify debugging flag
  - expects nothing
 */  
@@ -1748,7 +1773,7 @@ void SUMA_cb_helpMemTrace(Widget w, XtPointer data, XtPointer callData)
 void SUMA_cb_viewSumaCont(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_viewSumaCont"};
-   Boolean LocalHead = YUP;
+   Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -1778,7 +1803,7 @@ void SUMA_cb_viewSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_SurfaceViewer *sv;
    int isv, widtype;
    static char FuncName[] = {"SUMA_cb_viewSurfaceCont"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -1815,7 +1840,7 @@ void SUMA_cb_viewViewerCont(Widget w, XtPointer data, XtPointer callData)
 {
    int isv, widtype;
    SUMA_SurfaceViewer *sv;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    static char FuncName[] = {"SUMA_cb_viewViewerCont"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -1998,7 +2023,7 @@ void SUMA_cb_closeViewerCont(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_closeViewerCont"};
    SUMA_SurfaceViewer *sv;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -2035,7 +2060,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    Display *dpy;
    SUMA_SurfaceObject *SO;
    char *slabel; 
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    static char FuncName[] = {"SUMA_cb_createSurfaceCont"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -2216,7 +2241,7 @@ void SUMA_cb_closeSurfaceCont(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_closeSurfaceCont"};
    SUMA_SurfaceObject *SO;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -2253,7 +2278,7 @@ void SUMA_cb_createSumaCont(Widget w, XtPointer data, XtPointer callData)
    SUMA_SurfaceViewer *sv;
    Widget rc, pb_close, pb_new, pb_done, pb_bhelp, LockFrame, AppFrame, form, tb, rb, rc_m;
    int i;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -2512,7 +2537,7 @@ void  SUMA_cb_doneSumaCont(Widget wcall, XtPointer cd1, XtPointer cbs)
 {
    static char FuncName[] = {"SUMA_cb_doneSumaCont"};
    XmPushButtonCallbackStruct * pbcbs = (XmPushButtonCallbackStruct *) cbs ;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    /* NULL widget --> reset button to lowercase */
    if( wcall == NULL ){
@@ -2568,7 +2593,7 @@ void SUMA_quit_timeout_CB( XtPointer client_data , XtIntervalId * id )
 void SUMA_cb_XHlock_toggled(Widget w, XtPointer client_data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_XHlock_toggled"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    int cd, i, j;
    
    cd = (int) client_data;
@@ -2643,7 +2668,7 @@ void SUMA_cb_XHaviewlock_toggled (Widget w, XtPointer client_data, XtPointer cal
 void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer client_data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_XHviewlock_toggled"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    DList *list=NULL;
    SUMA_EngineData *ED = NULL;
    int i = (int) client_data;
@@ -2673,10 +2698,10 @@ void SUMA_cb_XHviewlock_toggled(Widget w, XtPointer client_data, XtPointer callD
 void SUMA_cb_newSumaCont(Widget w, XtPointer client_data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_newSumaCont"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   
    fprintf(SUMA_STDOUT, "%s: Opening a new controller...\n", FuncName);
    /* open a new controller */
    if (!SUMA_X_SurfaceViewer_Create ()) {
@@ -2692,7 +2717,7 @@ void SUMA_cb_newSumaCont(Widget w, XtPointer client_data, XtPointer callData)
 void SUMA_cb_closeSumaCont(Widget w, XtPointer data, XtPointer callData)
 {
    static char FuncName[] = {"SUMA_cb_closeSumaCont"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -2742,7 +2767,7 @@ Widget SUMA_GetTopShell(Widget w)
 void SUMA_set_Lock_rb (SUMA_rb_group * Lock_rbg, int irb, int but)
 {
    static char FuncName[] = {"SUMA_cb_setLockrb"};
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    Widget w;
    int i, itb, ifb;
    
@@ -2833,7 +2858,7 @@ void SUMA_cb_moreSurfInfo (Widget w, XtPointer client_data, XtPointer callData)
    SUMA_SurfaceObject *SO=NULL;
    void *n=NULL;
    char *s = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell = NULL;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -2981,7 +3006,7 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
    static char FuncName[] = {"SUMA_CreateTextShell"};
    Widget rowcol_v, rowcol_h, close_w, form, frame, toggle_case_w;
    int n;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    Pixel fg_pix;
    Arg args[20];
    
@@ -3059,7 +3084,11 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
       XtSetArg (args[n], XmNtopWidget, rowcol_v); n++;
 
       TextShell->text_w = XmCreateScrolledText (form, "text_w", args, n);
-      XmTextSetString (TextShell->text_w, s);
+      if (!s) {
+         XmTextSetString (TextShell->text_w, "No Messages.\n---------------\n");
+      } else {
+         XmTextSetString (TextShell->text_w, s);
+      }   
       XtManageChild (TextShell->text_w);
 
       XtAddCallback (TextShell->search_w, XmNactivateCallback, SUMA_cb_search_text, TextShell);
@@ -3072,7 +3101,8 @@ SUMA_CREATE_TEXT_SHELL_STRUCT * SUMA_CreateTextShell (char *s, char *title, SUMA
       XtRealizeWidget (TextShell->toplevel);
    } else { /* already created, just replace text and perhaps title (in the future)*/
       if (LocalHead) fprintf (SUMA_STDERR, "%s: Setting string in previously created text shell window.\n", FuncName);
-      XmTextSetString (TextShell->text_w, s);
+      if (!s) XmTextSetString (TextShell->text_w, "No Messages.\n---------------\n");
+      else XmTextSetString (TextShell->text_w, s);
    }
    SUMA_RETURN(TextShell);
 }
@@ -3181,23 +3211,45 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
 void SUMA_PopUpMessage (SUMA_MessageData *MD)
 {
    static char FuncName[]={"SUMA_PopUpMessage"};
-
+   Widget Parent_w=NULL;
+   int ii;
+   
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
+   /* find a decent popup message parent */
+   ii=0;
+   while ((SUMAg_SVv[ii].isShaded || !SUMAg_SVv[ii].X->TOPLEVEL) && (ii < SUMAg_N_SVv)) {
+      ++ii;   
+   }
+   
+   
+   if (ii < SUMAg_N_SVv)
+      Parent_w = SUMAg_SVv[ii].X->TOPLEVEL;
+   else { 
+      /* try again but with one that could be shaded */
+      ii=0;
+      while (!SUMAg_SVv[ii].X->TOPLEVEL && (ii < SUMAg_N_SVv)) {
+         ++ii;   
+      }
+      if (ii >= SUMAg_N_SVv) {
+         fprintf (SUMA_STDERR, "Error %s: This should not be happening.\n", FuncName);
+         SUMA_RETURNe;  
+      }else Parent_w = SUMAg_SVv[ii].X->TOPLEVEL;
+   }
    
    if (MD->Action ==  SMA_LogAndPopup) {
       switch (MD->Type) {
          case SMT_Notice:
-            (void)MCW_popup_message(SUMAg_SVv[0].X->GLXAREA, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
+            (void)MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
             break;
          case SMT_Warning:
-            (void)MCW_popup_message(SUMAg_SVv[0].X->GLXAREA, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
+            (void)MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL | MCW_TIMER_KILL);
             break;
          case SMT_Error:
-            (void)MCW_popup_message(SUMAg_SVv[0].X->GLXAREA, SUMA_FormatMessage (MD), MCW_USER_KILL);
+            (void)MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_USER_KILL);
             break;
          case SMT_Critical:
-            (void)MCW_popup_message(SUMAg_SVv[0].X->GLXAREA, SUMA_FormatMessage (MD), MCW_CALLER_KILL);
+            (void)MCW_popup_message(Parent_w, SUMA_FormatMessage (MD), MCW_CALLER_KILL);
             break;
          default:
             break;
@@ -3225,16 +3277,16 @@ char * SUMA_FormatMessage (SUMA_MessageData *MD)
    }
    switch (MD->Type) {
       case SMT_Notice:
-         sprintf(s,"Notice %s -------------:\n%s\n", MD->Source, MD->Message);
+         sprintf(s,"Notice %s:\n%s\n", MD->Source, MD->Message);
          break;
       case SMT_Warning:
-         sprintf(s,"Warning %s -------------:\n%s\n", MD->Source, MD->Message);
+         sprintf(s,"Warning %s:\n%s\n", MD->Source, MD->Message);
          break;
       case SMT_Error:
-         sprintf(s,"Error %s -------------:\n%s\n", MD->Source, MD->Message);
+         sprintf(s,"Error %s:\n%s\n", MD->Source, MD->Message);
          break;
       case SMT_Critical:
-         sprintf(s,"Critical Error %s -------------:\n%s\n", MD->Source, MD->Message);
+         sprintf(s,"Critical Error %s:\n%s\n", MD->Source, MD->Message);
          break;
       default:
          sprintf(s,"BAD MESSAGE.\n");

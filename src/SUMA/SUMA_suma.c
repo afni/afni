@@ -94,7 +94,7 @@ int main (int argc,char *argv[])
    DList *list = NULL;
    DListElmt *Element= NULL;
    int iv15[15], N_iv15;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
     
    if (argc < 3)
        {
