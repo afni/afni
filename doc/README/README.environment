@@ -2104,6 +2104,13 @@ the 'label2' field from the AFNI dataset .HEAD file, rather than the
 dataset filename.  If the label2 field is set to a nontrivial value,
 that is.  You can set the label2 field with the 3drefit command.
 
+---------------------------
+Variable: AFNI_SHOW_SURF_POPUPS
+---------------------------
+If this YES/NO variable is set to YES, then when afni receives surface
+nodes, triangles or normals from suma, a popup message will be displayed.
+Otherwise, the message will be send to stderr (on the terminal window).
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
