@@ -1111,6 +1111,32 @@ void NI_set_attribute_mode( int amode )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Mode for writing names. */
+
+static int name_mode = NI_NAMEMODE_NORMAL ;
+
+/*------------------------------------------------------------------------*/
+/*! Set the mode for writing type names:
+     - NI_NAMEMODE_NORMAL => byte , short, int  , float  , double , ...
+     - NI_NAMEMODE_ALIAS  => uint8, int16, int32, float32, float64, ...
+--------------------------------------------------------------------------*/
+
+void NI_set_typename_mode( int nmode )
+{
+   if( nmode > 0 && nmode <= NI_ATTMODE_LAST ) name_mode = nmode ;
+   else                                        name_mode = NI_NAMEMODE_NORMAL;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Return the type name given the integer code. */
+
+char * NI_type_name( int code )
+{
+   return (name_mode == NI_NAMEMODE_ALIAS) ? NI_rowtype_code_to_alias(code)
+                                           : NI_rowtype_code_to_name (code) ;
+}
+
+/*------------------------------------------------------------------------*/
 /*! Write an element (data or group) to a stream.
     Return value is number of bytes written to the stream.
     If return is -1, something bad happened.  You should check
