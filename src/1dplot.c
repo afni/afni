@@ -56,6 +56,8 @@ int main( int argc , char * argv[] )
    int use_stdin=0 ; /* 01 Aug 2001 */
    int out_ps   =0 ; /* 29 Nov 2002 */
    int nopush   =0 ;
+   int nnax=0,mmax=0 , nnay=0,mmay=0 ;
+   float xbot,xtop   , ybot,ytop ;
 
    /*-- help? --*/
 
@@ -90,6 +92,16 @@ int main( int argc , char * argv[] )
             "              N.B.: If you view this result in 'gv', you should\n"
             "                    turn 'anti-alias' off, and switch to\n"
             "                    landscape mode.\n"
+            "\n"
+            " -xaxis b:t:n:m    = Set the x-axis to run from value 'b' to\n"
+            "                     value 't', with 'n' major divisions and\n"
+            "                     'm' minor tic marks per major division.\n"
+            "                     For example:\n"
+            "                       -xaxis 0:100:5:20\n"
+            "\n"
+            " -yaxis b:t:n:m    = Similar to above, for the y-axis.  These\n"
+            "                     options override the normal autoscaling\n"
+            "                     of their respective axes.\n"
             "\n"
             " -ynames aa bb ... = Use the strings 'aa', 'bb', etc., as\n"
             "                     labels to the right of the graphs,\n"
@@ -148,6 +160,24 @@ int main( int argc , char * argv[] )
 
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     if( strcmp(argv[iarg],"-xaxis") == 0 ){   /* 22 Jul 2003 */
+       sscanf(argv[++iarg],"%f:%f:%d:%d",&xbot,&xtop,&nnax,&mmax) ;
+       if( xbot >= xtop || nnax < 1 || mmax < 1 ){
+         fprintf(stderr,"** String after -xaxis is illegal!\n"); exit(1);
+       }
+       plot_ts_xfix( nnax,mmax , xbot,xtop ) ;
+       iarg++ ; continue ;
+     }
+
+     if( strcmp(argv[iarg],"-yaxis") == 0 ){   /* 22 Jul 2003 */
+       sscanf(argv[++iarg],"%f:%f:%d:%d",&ybot,&ytop,&nnay,&mmay) ;
+       if( ybot >= ytop || nnay < 1 || mmay < 1 ){
+         fprintf(stderr,"** String after -yaxis is illegal!\n"); exit(1);
+       }
+       plot_ts_yfix( nnay,mmay , ybot,ytop ) ;
+       iarg++ ; continue ;
+     }
 
      if( strcmp(argv[iarg],"-nopush") == 0 ){  /* 12 Mar 2003 */
        plot_ts_xypush( 0 , 0 ) ;
