@@ -2112,6 +2112,7 @@ ENTRY("process_NIML_AFNI_dataset") ;
      }
 
      ss->dsset[ii][vv] = dset ;     /*** insert dataset into session here ***/
+     ss->num_dsset++ ;
      POPDOWN_strlist_chooser ;
 
    } else {                  /************* have an old dataset *************/
@@ -2125,6 +2126,7 @@ ENTRY("process_NIML_AFNI_dataset") ;
    /* load any data bricks present in the group element */
 
    (void)THD_add_bricks( dset , ngr ) ;
+   THD_update_statistics( dset ) ;
 
    /** wrapup **/
 
@@ -2140,6 +2142,7 @@ ENTRY("process_NIML_AFNI_dataset") ;
                             "  I/O time = %4d ms, Processing = %4d ms\n" ,
                             ct_read , ct_tot-ct_read ) ;
    SHOW_MESSAGE( msg ) ;
+   UNDUMMYIZE ;
    EXRETURN ;
 }
 
@@ -2170,6 +2173,7 @@ ENTRY("process_NIML_AFNI_volumedata") ;
    if( find.dset == NULL ) EXRETURN ;
 
    (void)THD_add_bricks( find.dset , nini ) ;
+   THD_update_statistics( find.dset ) ;
 
    /** wrapup **/
 

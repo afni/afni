@@ -421,6 +421,16 @@ ENTRY("THD_set_atr") ;
 
          ADDTO_KILL( blk->kl , new_atr->name ) ;
          ADDTO_KILL( blk->kl , new_atr->in ) ;
+
+#if 0
+if(PRINT_TRACING){
+  char str[256] ; int ii ;
+  sprintf(str,"INT atr: name=%s nin=%d vals::",new_atr->name,new_atr->nin) ;
+  STATUS(str) ;
+  for( ii=0 ; ii < acount ; ii++ ) printf(" %d",new_atr->in[ii]) ;
+  printf("\n") ;
+}
+#endif
       }
       break ;
 

@@ -27,61 +27,60 @@ ENTRY("THD_nimlize_dsetatr") ;
 
    ngr = NI_new_group_element() ;
 
-   if( !ISZERO_IDCODE(dset->idcode) )
-     NI_set_attribute( ngr , "AFNI_idcode" , dset->idcode.str ) ;
+   NI_set_attribute( ngr , "AFNI_idcode" , dset->idcode.str ) ;
 
    /* make a data element for each attribute ... */
 
    for( ia=0 ; ia < blk->natr ; ia++ ){
 
-      atr_any = &(blk->atr[ia]) ;
-      if( atr_any == NULL ) continue ;   /* bad attribute */
+     atr_any = &(blk->atr[ia]) ;
+     if( atr_any == NULL ) continue ;   /* bad attribute */
 
-      switch( atr_any->type ){
+     switch( atr_any->type ){
 
-         case ATR_FLOAT_TYPE:{
-            ATR_float *atr_flo = (ATR_float *) atr_any ;
+       case ATR_FLOAT_TYPE:{
+         ATR_float *atr_flo = (ATR_float *) atr_any ;
 
-            nel = NI_new_data_element( "AFNI_atr" , atr_flo->nfl ) ;
-            nel->outmode = NI_TEXT_MODE ;
-            NI_set_attribute( nel , "AFNI_name" , atr_flo->name ) ;
-            NI_add_column( nel , NI_FLOAT , atr_flo->fl ) ;
-            NI_add_to_group( ngr , nel ) ;
-         }
-         break ;
+         nel = NI_new_data_element( "AFNI_atr" , atr_flo->nfl ) ;
+         nel->outmode = NI_TEXT_MODE ;
+         NI_set_attribute( nel , "AFNI_name" , atr_flo->name ) ;
+         NI_add_column( nel , NI_FLOAT , atr_flo->fl ) ;
+         NI_add_to_group( ngr , nel ) ;
+       }
+       break ;
 
-         case ATR_INT_TYPE:{
-            ATR_int *atr_int = (ATR_int *) atr_any ;
+       case ATR_INT_TYPE:{
+         ATR_int *atr_int = (ATR_int *) atr_any ;
 
-            nel = NI_new_data_element( "AFNI_atr" , atr_int->nin ) ;
-            nel->outmode = NI_TEXT_MODE ;
-            NI_set_attribute( nel , "AFNI_name" , atr_int->name ) ;
-            NI_add_column( nel , NI_INT , atr_int->in ) ;
-            NI_add_to_group( ngr , nel ) ;
-         }
-         break ;
+         nel = NI_new_data_element( "AFNI_atr" , atr_int->nin ) ;
+         nel->outmode = NI_TEXT_MODE ;
+         NI_set_attribute( nel , "AFNI_name" , atr_int->name ) ;
+         NI_add_column( nel , NI_INT , atr_int->in ) ;
+         NI_add_to_group( ngr , nel ) ;
+       }
+       break ;
 
-         case ATR_STRING_TYPE:{
-            ATR_string *atr_str = (ATR_string *) atr_any ;
-            char *str ;  /* create string to hold all data to send */
+       case ATR_STRING_TYPE:{
+         ATR_string *atr_str = (ATR_string *) atr_any ;
+         char *str ;  /* create string to hold all data to send */
 
-            nel = NI_new_data_element( "AFNI_atr" , 1 ) ;
-            nel->outmode = NI_TEXT_MODE ;
-            NI_set_attribute( nel , "AFNI_name" , atr_str->name ) ;
+         nel = NI_new_data_element( "AFNI_atr" , 1 ) ;
+         nel->outmode = NI_TEXT_MODE ;
+         NI_set_attribute( nel , "AFNI_name" , atr_str->name ) ;
 
-            str = malloc( atr_str->nch + 4 ) ;           /* convert from */
-            memcpy( str , atr_str->ch , atr_str->nch ) ; /* char array   */
-            THD_zblock( atr_str->nch , str ) ;           /* to C string  */
-            str[ atr_str->nch ] = '\0' ;
+         str = malloc( atr_str->nch + 4 ) ;           /* convert from */
+         memcpy( str , atr_str->ch , atr_str->nch ) ; /* char array   */
+         THD_zblock( atr_str->nch , str ) ;           /* to C string  */
+         str[ atr_str->nch ] = '\0' ;
 
-            NI_add_column( nel , NI_STRING , &str ) ;
-            NI_add_to_group( ngr , nel ) ;
+         NI_add_column( nel , NI_STRING , &str ) ;
+         NI_add_to_group( ngr , nel ) ;
 
-            free((void *)str) ;
-         }
-         break ;
+         free((void *)str) ;
+       }
+       break ;
 
-      } /* end of switch on atr type */
+     } /* end of switch on atr type */
 
    } /* end of loop over all atr's */
 
@@ -95,21 +94,17 @@ ENTRY("THD_nimlize_dsetatr") ;
     and load these into a datablock.
 -----------------------------------------------------------------------*/
 
-void THD_dsetatr_from_niml( NI_group *ngr , THD_3dim_dataset *dset )
+void THD_dblkatr_from_niml( NI_group *ngr , THD_datablock *blk )
 {
-   THD_datablock *blk ;
    ATR_any       *atr ;
    NI_element    *nel ;
    int            ip  ;
 
-ENTRY("THD_dsetatr_from_niml") ;
+ENTRY("THD_dblkatr_from_niml") ;
 
    if( ngr                  == NULL          ||
        NI_element_type(ngr) != NI_GROUP_TYPE ||
-       dset                 == NULL          ||
-       dset->dblk           == NULL            ) EXRETURN ;
-
-   blk = dset->dblk ;  /* attributes are stored in the datablock */
+       blk                  == NULL            ) EXRETURN ;
 
    /*-- loop over parts and extract data from any '<AFNI_atr ...>' elements --*/
 
@@ -120,7 +115,7 @@ ENTRY("THD_dsetatr_from_niml") ;
        /*-- a sub-group ==> recursion! --*/
 
        case NI_GROUP_TYPE:
-         THD_dsetatr_from_niml( (NI_group *)ngr->part[ip] , dset ) ;
+         THD_dblkatr_from_niml( (NI_group *)ngr->part[ip] , blk ) ;
        break ;
 
        /*- data ==> see if is marked as an AFNI_atr and has exactly 1 column
@@ -188,6 +183,7 @@ ENTRY("THD_dsetatr_from_niml") ;
 THD_3dim_dataset * THD_niml_to_dataset( NI_group *ngr , int nodata )
 {
    THD_3dim_dataset *dset ;
+   THD_datablock *blk ;
    char *rhs ;
    int ii ;
 
@@ -198,17 +194,26 @@ ENTRY("THD_niml_to_dataset") ;
 
    /* create the shell of a dataset and populate it's attributes */
 
+   blk  = EDIT_empty_datablock() ;
    dset = EDIT_empty_copy(NULL) ;
 
-   THD_dsetatr_from_niml( ngr , dset ) ;  /* load attributes from NIML */
+   THD_dblkatr_from_niml( ngr , blk ) ;  /* load attributes from NIML */
 
    /* build the datablock from the loaded attributes */
 
-   ii = THD_datablock_from_atr( dset->dblk , NULL , NULL ) ;
+   ii = THD_datablock_from_atr( blk , NULL , NULL ) ;
 
    if( ii == 0 ){                               /* bad attributes */
-     THD_delete_3dim_dataset( dset , False ) ;
-     RETURN(NULL) ;
+     THD_delete_datablock( blk ) ; RETURN(NULL) ;
+   }
+
+   /* build the dataset from the datablock */
+
+   THD_allow_empty_dataset(1) ;
+   dset = THD_3dim_from_block( blk ) ;
+   THD_allow_empty_dataset(0) ;
+   if( dset == NULL ){
+     THD_delete_datablock( blk ) ; RETURN(NULL) ;
    }
 
    DSET_mallocize(dset) ;   /* just to be sure */
@@ -227,7 +232,10 @@ ENTRY("THD_niml_to_dataset") ;
 
    /* now scan the group element for data elements that fill sub-bricks */
 
-   if( !nodata ) (void)THD_add_bricks( dset , ngr ) ;
+   if( !nodata ){
+     (void)THD_add_bricks( dset , ngr ) ;
+     THD_update_statistics( dset ) ;
+   }
 
    RETURN(dset) ;
 }
@@ -314,6 +322,12 @@ ENTRY("THD_add_bricks") ;
    if( str != NULL && ( *str== '-' || isdigit(*str) ) )
      fac = (float)strtod( str , NULL ) ;
 
+   if(PRINT_TRACING){
+     char str[256] ;
+     sprintf(str,"kk=%d vlen=%d nxyz=%d fac=%f\n",kk,vlen,nxyz,fac);
+     STATUS(str);
+   }
+
    /*- loop over columns and enter them into the dataset -*/
 
    for( jj=0 ; jj < nel->vec_num ; jj++ ){
@@ -354,6 +368,8 @@ ENTRY("THD_add_bricks") ;
 
           if( fac > 0.0 ) EDIT_BRICK_FACTOR(dset,bb,fac) ;
      else if( fac < 0.0 ) EDIT_BRICK_FACTOR(dset,bb,0.0) ;
+
+     DSET_CRUSH_BSTAT(dset,bb) ;
 
      if( kk >= 0 ) kk++ ;  /* move to next sub-brick */
    }
@@ -424,11 +440,12 @@ ENTRY("THD_dataset_to_niml") ;
    ngr = THD_nimlize_dsetatr( dset ) ;
    if( ngr == NULL ) RETURN(NULL) ;
 
+STATUS("rename group to 'AFNI_dataset'") ;
    NI_rename_group( ngr , "AFNI_dataset" ) ;
-   NI_set_attribute( nel , "AFNI_idcode" , dset->idcode.str ) ;
 
    /* now add a data element for each sub-brick */
 
+STATUS("adding sub-bricks") ;
    for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
      nel = THD_subbrick_to_niml( dset , iv , 0 ) ;
      if( nel != NULL ) NI_add_to_group( ngr , nel ) ;

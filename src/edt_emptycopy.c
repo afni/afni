@@ -17,14 +17,14 @@
   will definitely need to be called before the new dataset is of use.
 ----------------------------------------------------------------------*/
 
-THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset * old_dset )
+THD_3dim_dataset * EDIT_empty_copy( THD_3dim_dataset *old_dset )
 {
-   THD_3dim_dataset * new_dset ;
-   THD_datablock    * new_dblk ;
-   THD_dataxes      * new_daxes ;
-   THD_timeaxis     * new_taxis ;
-   THD_diskptr      * new_dkptr ;
-   int                new_nvals , old_good ;
+   THD_3dim_dataset *new_dset ;
+   THD_datablock    *new_dblk ;
+   THD_dataxes      *new_daxes ;
+   THD_timeaxis     *new_taxis ;
+   THD_diskptr      *new_dkptr ;
+   int               new_nvals , old_good ;
 
 ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
 
@@ -200,4 +200,62 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    }
 
    RETURN( new_dset );
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Create a simple empty datablock, to be filled in later. */
+
+THD_datablock * EDIT_empty_datablock(void)
+{
+   THD_datablock *new_dblk ;
+   THD_diskptr   *new_dkptr ;
+
+ENTRY("EDIT_empty_datablock") ;
+
+   /** make some new places to store stuff **/
+
+   new_dblk                 = myXtNew( THD_datablock ) ;
+   new_dblk->type           = DATABLOCK_TYPE ;
+   new_dblk->brick          = NULL ;
+   new_dblk->brick_bytes    = NULL ;
+   new_dblk->brick_fac      = NULL ;
+   new_dblk->total_bytes    = 0    ;
+   new_dblk->malloc_type    = DATABLOCK_MEM_UNDEFINED ;
+   new_dblk->parent         = NULL ;
+   new_dblk->brick_lab      = NULL ;
+   new_dblk->brick_keywords = NULL ;
+   new_dblk->brick_statcode = NULL ;
+   new_dblk->brick_stataux  = NULL ;
+   new_dblk->master_nvals   = 0    ; 
+   new_dblk->master_ival    = NULL ;
+   new_dblk->master_bytes   = NULL ;
+   new_dblk->master_bot     = 1.0  ;
+   new_dblk->master_top     = 0.0  ;
+   new_dblk->shm_idcode[0]  = '\0' ;
+   new_dblk->nvals          = 1 ;
+   new_dblk->natr           = new_dblk->natr_alloc = 0 ;
+   new_dblk->atr            = NULL ;
+
+   new_dkptr = new_dblk->diskptr = myXtNew( THD_diskptr ) ;
+
+   new_dkptr->type         = DISKPTR_TYPE ;
+   new_dkptr->rank         = 3 ;
+   new_dkptr->nvals        = 1 ;
+   new_dkptr->storage_mode = STORAGE_UNDEFINED ;
+   new_dkptr->byte_order   = THD_get_write_order() ;
+   new_dkptr->dimsizes[0]  = 2 ;
+   new_dkptr->dimsizes[1]  = 2 ;
+   new_dkptr->dimsizes[2]  = 2 ;
+
+   THD_init_diskptr_names( new_dkptr ,
+                           "./" , NULL , DUMMY_NAME ,
+                           VIEW_ORIGINAL_TYPE , True ) ;
+
+   INIT_KILL(new_dblk->kl) ;
+   ADDTO_KILL(new_dblk->kl,new_dkptr) ;
+
+   DBLK_unlock(new_dblk) ;
+   THD_null_datablock_auxdata( new_dblk ) ;
+
+   RETURN( new_dblk ) ;
 }
