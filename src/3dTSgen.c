@@ -16,6 +16,9 @@
              Removed duplicate readin of dset_time, and removed the
                input of dset_time's bricks (never used).
              22 July 1998 -- RWCox
+	     
+   Mod:      Correction to initialization of dataset parameters.
+             12 November 1998
 */
 
 
@@ -25,27 +28,12 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-/*---------------------------------------------------------------------------*/
-/*
-  This software is Copyright 1997, 1998 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application. The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
-*/
-
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dTSgen"                       /* name of this program */
-#define LAST_MOD_DATE "09 January 1998"          /* date of last program mod */
+#define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
+#define PROGRAM_DATE "12 November 1998"          /* date of last program mod */
 
 
 #include <stdio.h>
@@ -1140,7 +1128,7 @@ void output_ts_array
   int iv;                             /* sub-brick index */ 
   int ierror;                         /* number of errors in editing data */
   int ibuf[32];                       /* integer buffer */
-  float fbuf[1000];                   /* float buffer */
+  float fbuf[10000];                  /* float buffer */
   float fimfac;                       /* scale factor for short data */
   
     
@@ -1181,7 +1169,7 @@ void output_ts_array
   printf("--- Writing combined dataset into %s\n",
 	 new_dset->dblk->diskptr->header_name) ;
 
-  for (ii = 0;  ii < ts_length;  ii++)
+  for (ii = 0;  ii < 10000;  ii++)
     fbuf[ii] = 0.0;
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
@@ -1688,10 +1676,16 @@ void main
   char * output_filename = NULL;   /* file name for output 3d+time dataset */
   char ** ncoef_filename = NULL;   /* file name for noise model parameters */
   char ** scoef_filename = NULL;   /* file name for signal model parameters */  
+  
+  /*----- Identify software -----*/
+  printf ("\n\n");
+  printf ("Program: %s \n", PROGRAM_NAME);
+  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("\n");
+
    
   /*----- program initialization -----*/
-  printf ("\n\nProgram %s \n\n", PROGRAM_NAME);
-  printf ("Last revision: %s\n", LAST_MOD_DATE);
   initialize_program (argc, argv, 
 		      &nname, &sname, &nmodel, &smodel, 
 		      &r, &p, &npname, &spname,

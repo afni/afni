@@ -1617,6 +1617,8 @@ typedef struct THD_3dim_dataset {
 #define DBLK_BRICK_FACTOR(db,iv) ((db)->brick_fac[(iv)])
 #define DSET_BRICK_FACTOR(ds,iv) DBLK_BRICK_FACTOR((ds)->dblk,(iv))
 
+extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
+
 #define DBLK_BRICK_BYTES(db,iv) ((db)->brick_bytes[iv])
 #define DSET_BRICK_BYTES(ds,iv) DBLK_BRICK_BYTES((ds)->dblk,(iv))
 

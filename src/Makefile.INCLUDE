@@ -21,7 +21,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
 
 T3OBJS  = to3d.o $(IMOBJS)
 
-MISC    = afni.montage AFNI.Xdefaults mF64 mF128 3d*.lib
+MISC    = afni.montage AFNI.Xdefaults AFNI.afnirc mF64 mF128 3d*.lib
 
 ## Some programs (like whirlgif) are not included in this list,
 ## and must be "made" separately.  This list is the core AFNI
@@ -600,6 +600,14 @@ afni_plugout.o:afni_plugout.h afni_plugin.h
 
 ###################################################################
 # make the mri library
+
+csfft.o:csfft.c
+	$(RM) $@
+	$(CCFAST) -c csfft.c $(IFLAGS)
+
+thd_rot3d.o:thd_rot3d.c
+	$(RM) $@
+	$(CCFAST) -c thd_rot3d.c $(IFLAGS)
 
 MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_max.o mri_new.o mri_read.o mri_swapbytes.o                  \

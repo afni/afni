@@ -541,6 +541,8 @@ ENTRY("AFNI_make_wid1") ;
 
    /*--- vertical rowcol to hold all imaging stuff ---*/
 
+STATUS("making imag->rowcol") ;
+
    imag->rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , imag->frame ,
@@ -682,6 +684,8 @@ ENTRY("AFNI_make_wid1") ;
 
    /*--- 01 Jan 1997: horizontal rowcol for crosshair stuff ---*/
 
+STATUS("making imag->xhair_rowcol") ;
+
      imag->xhair_rowcol =
         XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , imag->crosshair_rowcol ,
@@ -700,6 +704,8 @@ ENTRY("AFNI_make_wid1") ;
                                               : AFNI_XHAIRS_SINGLE ;
    else
       ii = AFNI_XHAIRS_OFF ;
+
+STATUS("making imag->crosshair_av") ;
 
    imag->crosshair_av = new_MCW_arrowval(
                           imag->xhair_rowcol ,        /* parent Widget */
@@ -726,6 +732,8 @@ ENTRY("AFNI_make_wid1") ;
 
    /*--- 01 Jan 1997: buttonbox to control "all" or "one" xhairs in montage ---*/
 
+STATUS("making imag->xhall_bbox") ;
+
    imag->xhall_bbox = new_MCW_bbox( imag->xhair_rowcol ,
                                      1 , AFNI_xhall_bbox_label ,
                                      MCW_BB_check ,
@@ -743,11 +751,15 @@ ENTRY("AFNI_make_wid1") ;
    MCW_reghint_children( imag->xhall_bbox->wrowcol ,
                          "All-or-One Montage crosshairs" ) ;
 
+STATUS("managing imag->xhair_rowcol") ;
+
    XtManageChild( imag->xhair_rowcol ) ;
 
    /*--- arrowval to control crosshair color ---*/
 
    ii = AVOPT_STYLE ;
+
+STATUS("making imag->crosshair_color_av") ;
 
    if( ii == MCW_AV_downup ){
       imag->crosshair_color_av =
@@ -792,6 +804,8 @@ ENTRY("AFNI_make_wid1") ;
          put crosshair gap into a horizontal rowcol so
          can attach a toggle for periodic montages here, too ****/
 
+STATUS("making imag->gap_wrap_rowcol") ;
+
    imag->gap_wrap_rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , imag->crosshair_rowcol ,
@@ -804,6 +818,8 @@ ENTRY("AFNI_make_wid1") ;
          NULL ) ;
 
    /*--- arrowval to control crosshair gap ---*/
+
+STATUS("making imag->crosshair_gap_av") ;
 
    imag->crosshair_gap_av =
       new_MCW_arrowval( imag->gap_wrap_rowcol ,      /* parent */
@@ -835,6 +851,8 @@ ENTRY("AFNI_make_wid1") ;
    /*--- 1 Aug 1996:
          toggle button box to control periodic montages ---*/
 
+STATUS("making imag->wrap_bbox") ;
+
    imag->wrap_bbox = new_MCW_bbox( imag->gap_wrap_rowcol ,
                                      1 , AFNI_wrap_bbox_label ,
                                      MCW_BB_check ,
@@ -854,9 +872,13 @@ ENTRY("AFNI_make_wid1") ;
    MCW_reghint_children( imag->wrap_bbox->wrowcol ,
                          "Wrap montage past edge of volume?" ) ;
 
+STATUS("managing imag->gap_wrap_rowcol") ;
+
    XtManageChild( imag->gap_wrap_rowcol ) ;
 
    /*--- arrowval to control time index we are viewing ---*/
+
+STATUS("making imag->time_index_av") ;
 
    imag->time_index_av =
       new_MCW_arrowval( imag->crosshair_rowcol ,     /* parent */
@@ -884,6 +906,8 @@ ENTRY("AFNI_make_wid1") ;
    ADDTO_KILL(im3d->kl,imag->time_index_av) ;
 
    /*--- frame to hold all viewing control stuff ---*/
+
+STATUS("imag->view_frame") ;
 
    imag->view_frame =
       XtVaCreateManagedWidget(
@@ -1093,6 +1117,8 @@ ENTRY("AFNI_make_wid1") ;
    marks->ov_visible = marks->tag_visible = False ;
 
    /*--- vertical rowcol to hold all viewing controls stuff ---*/
+
+STATUS("making view->rowcol") ;
 
    view->rowcol =
       XtVaCreateWidget(
@@ -1468,6 +1494,8 @@ ENTRY("AFNI_make_wid2") ;
    /*-------------------------------------------------------*/
 
    /*----- horizontal rowcol to hold the two columns of controls -----*/
+
+STATUS("making marks->rowcol") ;
 
    marks->rowcol =
       XtVaCreateWidget(
@@ -1935,6 +1963,8 @@ ENTRY("AFNI_make_wid2") ;
 #define SELECTOR_HEIGHT 240
 
    sel_height = view_height - 19 ;
+
+STATUS("making func->rowcol") ;
 
    func->rowcol =
       XtVaCreateWidget(
@@ -2804,6 +2834,8 @@ ENTRY("AFNI_make_wid3") ;
    /**************** Datamode controls ********************/
    /*-----------------------------------------------------*/
 
+STATUS("making dmode->rowcol") ;
+
    dmode->rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , dmode->frame ,
@@ -3318,6 +3350,8 @@ ENTRY("AFNI_make_wid3") ;
 
    /*----- rowcol to hold all program controls stuff -----*/
 
+STATUS("making prog->rowcol") ;
+
    prog->rowcol =
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , prog->frame ,
@@ -3692,48 +3726,11 @@ ENTRY("AFNI_make_wid3") ;
       }
 #endif
 
-#undef TESTER
-#ifdef TESTER
-    { void QQ_CB( Widget , XtPointer , XtPointer );
-      Widget pb ;
-      pb = XtVaCreateManagedWidget(
-            "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-               LABEL_ARG("Test") ,
-               XmNmarginHeight , 0 ,
-               XmNtraversalOn , False ,
-               XmNinitialResourcesPersistent , False ,
-            NULL ) ;
-
-      XtAddCallback( pb , XmNactivateCallback , QQ_CB , im3d ) ;
-    }
-#endif
-
    }
 #endif  /* USE_HIDDEN */
 
    EXRETURN ;
 }
-
-#ifdef TESTER
-#define NQQ 39
-static char * qq[NQQ] = {
-  "aa" , "bb" , "cc" , "dd" , "ee" , "ff" , "gg" , "hh" , "ii" , "ww" , "xx" , "yy" , "zz" ,
-  "aa2", "bb2", "cc2", "dd2", "ee2", "ff2", "gg2", "hh2", "ii2", "ww2", "xx2", "yy2", "zz2",
-  "aa3", "bb3", "cc3", "dd3", "ee3", "ff3", "gg3", "hh3", "ii3", "ww3", "xx3", "yy3", "zz3" } ;
-
-void QQQ_CB( Widget wpar , XtPointer cd , MCW_choose_cbs * cbs )
-{  int ib ;
-   printf("\nNumber of selections = %d\n",cbs->nilist) ;
-   for( ib=0 ; ib < cbs->nilist ; ib++ ) printf(" %d",cbs->ilist[ib]) ;
-   printf("\n") ; fflush(stdout) ;
-}
-void QQ_CB( Widget wcall , XtPointer cd , XtPointer cbs )
-{
-   int init[3] = { 3 , 33 , -1 } ;
-   MCW_choose_multi_strlist( wcall , "Multi Test" , mcwCT_multi_mode ,
-                             NQQ , init , qq , QQQ_CB , NULL ) ;
-}
-#endif
 
 /*--------------------------------------------------------------------------
    Find out how many controller windows are active at this instant

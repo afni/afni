@@ -9,18 +9,22 @@
 
 
   Mod:     Changes to allow output of AFNI "bucket" type dataset.
-           17 December 1997
+  Date:    17 December 1997
 
   Mod:     Converted some matrix data structures to vector data structures.
-           18 December 1997
+  Date:    18 December 1997
 
   Mod:     Modified calculation of required disk space to account for the
            'bucket' dataset.
-           08 January 1998
+  Date:    08 January 1998
 
   Mod:     Some of the regression analysis software has been moved to 
            the include file RegAna.c.
-	   20 August 1998
+  Date:	   20 August 1998
+
+  Mod:     Restructured matrix calculations to improve execution speed.
+  Date:    16 December 1998
+
 */
 
 /*****************************************************************************
@@ -32,7 +36,7 @@
 
 #define PROGRAM_NAME "3dRegAna"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "20 August 1998"            /* date of last program mod */
+#define PROGRAM_DATE "16 December 1998"          /* date of last program mod */
 #define SUFFIX ".3dregana"                     /* suffix for temporary files */
 
 #include <stdio.h>
@@ -486,7 +490,7 @@ void delete_piece
 
 void allocate_pieces 
 (
-  matrix * xdata,              /* independent variable matrix */
+  matrix xdata,                /* independent variable matrix */
   model * regmodel,            /* linear regression model */
   RA_options * option_data,    /* user input options */
 
@@ -510,7 +514,7 @@ void allocate_pieces
 
 
   /*----- initialize local variables -----*/
-  n = xdata->rows;
+  n = xdata.rows;
   p = regmodel->p;
   flist = regmodel->flist;
   piece_size = option_data->piece_size;
@@ -2020,32 +2024,43 @@ void initialize_program
 
 void init_regression_analysis 
 (
-  matrix * xdata,               /* independent variable matrix X  */ 
   int p,                        /* number of parameters in the full model */
   int q,                        /* number of parameters in the rdcd model */
   int * flist,                  /* list of parameters in the full model */
   int * rlist,                  /* list of parameters in the rdcd model */
-  matrix * xtxinv,              /* matrix:  1/(Xf'Xf)             */
-  matrix * xtxinvxt,            /* matrix:  (1/(Xf'Xf))Xf'        */
-  matrix * afull,               /* matrix:  I - Xf(1/(Xf'Xf))Xf'  */  
-  matrix * ardcd,               /* matrix:  I - Xr(1/(Xr'Xr))Xr'  */
-  matrix * azero                /* matrix:  I - (1/n)11'          */
+  matrix xdata,                 /* independent variable matrix */
+  matrix * x_full,              /* extracted X matrix    for full model */
+  matrix * xtxinv_full,         /* matrix:  1/(X'X)      for full model */
+  matrix * xtxinvxt_full,       /* matrix:  (1/(X'X))X'  for full model */
+  matrix * x_base,              /* extracted X matrix    for baseline model */
+  matrix * xtxinvxt_base,       /* matrix:  (1/(X'X))X'  for baseline model */
+  matrix * x_rdcd,              /* extracted X matrices  for reduced models */
+  matrix * xtxinvxt_rdcd        /* matrix:  (1/(X'X))X'  for reduced models */
 )
 
 {
   int zlist[MAX_XVARS];         /* list of parameters in constant model */
   int ip;                       /* parameter index */
+  matrix xtxinv_temp;           /* intermediate results */
+
+
+  /*----- Initialize matrix -----*/
+  matrix_initialize (&xtxinv_temp);
 
   
-  /*----- initialize list of parameters in the constant model -----*/
+  /*----- Initialize list of parameters in the constant model -----*/
   for (ip = 0;  ip < MAX_XVARS;  ip++)
     zlist[ip] = 0;
 
 
-  /*----- calculate constant matrices which will be needed later -----*/
-  calc_matrices (*xdata, 1, zlist, xtxinv, xtxinvxt, azero);
-  calc_matrices (*xdata, q, rlist, xtxinv, xtxinvxt, ardcd);
-  calc_matrices (*xdata, p, flist, xtxinv, xtxinvxt, afull);
+  /*----- Calculate constant matrices which will be needed later -----*/
+  calc_matrices (xdata, 1, zlist, x_base, &xtxinv_temp, xtxinvxt_base);
+  calc_matrices (xdata, q, rlist, x_rdcd, &xtxinv_temp, xtxinvxt_rdcd);
+  calc_matrices (xdata, p, flist, x_full, xtxinv_full, xtxinvxt_full);
+
+
+  /*----- Destroy matrix -----*/
+  matrix_destroy (&xtxinv_temp);
 
 }
 
@@ -2057,14 +2072,16 @@ void init_regression_analysis
 
 void regression_analysis 
 (
-  int n,                      /* number of data points */
+  int N,                      /* number of data points */
   int p,                      /* number of parameters in the full model */
   int q,                      /* number of parameters in the rdcd model */
-  matrix xtxinv,              /* matrix:  1/(Xf'Xf)  */
-  matrix xtxinvxt,            /* matrix:  (1/(Xf'Xf))Xf'  */
-  matrix afull,               /* matrix:  I - Xf(1/(Xf'Xf))Xf'  */  
-  matrix ardcd,               /* matrix:  I - Xr(1/(Xr'Xr))Xr'  */
-  matrix azero,               /* matrix:  I - (1/n)11'          */
+  matrix x_full,              /* extracted X matrix    for full model */
+  matrix xtxinv_full,         /* matrix:  1/(X'X)      for full model */
+  matrix xtxinvxt_full,       /* matrix:  (1/(X'X))X'  for full model */
+  matrix x_base,              /* extracted X matrix    for baseline model */
+  matrix xtxinvxt_base,       /* matrix:  (1/(X'X))X'  for baseline model */
+  matrix x_rdcd,              /* extracted X matrix    for reduced model */
+  matrix xtxinvxt_rdcd,       /* matrix:  (1/(X'X))X'  for reduced model */
   vector y,                   /* vector of measured data */ 
   float rms_min,              /* minimum rms error to reject zero model */
   int * levels,               /* indices for repeat observations */
@@ -2072,44 +2089,59 @@ void regression_analysis
   int c,                      /* number of unique rows in ind. var. matrix */
   float flofmax,              /* max. allowed F-stat due to lack of fit */  
   float * flof,               /* F-statistic for lack of fit */
-  vector * coef,              /* regression parameters */
-  vector * scoef,             /* std. devs. for regression parameters */
-  vector * tcoef,             /* t-statistics for regression parameters */
+  vector * coef_full,         /* regression parameters */
+  vector * scoef_full,        /* std. devs. for regression parameters */
+  vector * tcoef_full,        /* t-statistics for regression parameters */
   float * freg,               /* F-statistic for the full regression model */
   float * rsqr                /* coeff. of multiple determination R^2  */
 )
 
 {
-  float sse_rdcd;             /* error sum of squares from reduced model */
-  float sse_full;             /* error sum of squares from full model */
-  float ssto;                 /* total (corrected for mean) sum of squares */
+  float sse_base;             /* error sum of squares, baseline model */
+  float sse_rdcd;             /* error sum of squares, reduced model */
+  float sse_full;             /* error sum of squares, full model */
   float sspe;                 /* pure error sum of squares */
+  vector coef_temp;           /* intermediate results */
 
 
   /*----- Initialization -----*/
-  vector_create (p, coef);
-  vector_create (p, scoef);
-  vector_create (p, tcoef);
-  *freg = 0.0;
-  *rsqr = 0.0;
+  vector_initialize (&coef_temp);
 
 
-  /*----- Calculate the total (corrected for the mean) sum of squares -----*/
-  ssto = calc_sse (azero, y);
+  /*----- Calculate regression coefficients for baseline model -----*/
+  calc_coef (xtxinvxt_base, y, &coef_temp);
+
+
+  /*----- Calculate the error sum of squares for the baseline model -----*/ 
+  sse_base = calc_sse (x_base, coef_temp, y);
 
   
-  /*----- Stop here if variation in data is sufficiently low -----*/
-  if (sqrt(ssto/(n-1)) < rms_min)   return;
-    
+  /*----- Stop here if variation about baseline is sufficiently low -----*/
+  if (sqrt(sse_base/N) < rms_min)
+    {   
+      vector_create (p, coef_full);
+      vector_create (p, scoef_full);
+      vector_create (p, tcoef_full);
+      *freg = 0.0;
+      *rsqr = 0.0;
+      vector_destroy (&coef_temp);
+      return;
+    }
 
-  /*----- Calculate the error sum of squares for the reduced model -----*/ 
-  sse_rdcd = calc_sse (ardcd, y);
 
-
+  /*----- Calculate regression coefficients for the full model  -----*/
+  calc_coef (xtxinvxt_full, y, coef_full);
+  
+  
   /*----- Calculate the error sum of squares for the full model -----*/ 
-  sse_full = calc_sse (afull, y);
+  sse_full = calc_sse (x_full, *coef_full, y);
+  
+  
+  /*----- Calculate t-statistics for the regression coefficients -----*/
+  calc_tcoef (N, p, sse_full, xtxinv_full, 
+	      *coef_full, scoef_full, tcoef_full);
 
-    
+
   /*----- Test for lack of fit -----*/
   if (flofmax > 0.0)
     {
@@ -2117,28 +2149,41 @@ void regression_analysis
       sspe = calc_sspe (y, levels, counts, c);
     
       /*----- Calculate F-statistic for lack of fit -----*/
-      *flof = calc_flof (n, p, c, sse_full, sspe);
+      *flof = calc_flof (N, p, c, sse_full, sspe);
     
-      if (*flof > flofmax)  return;
+      if (*flof > flofmax) 
+	{   
+	  vector_create (p, coef_full);
+	  vector_create (p, scoef_full);
+	  vector_create (p, tcoef_full);
+	  *freg = 0.0;
+	  *rsqr = 0.0;
+	  vector_destroy (&coef_temp);
+	  return;
+	} 
     }
   else
     *flof = -1.0;
 
 
-  /*----- Calculate the coefficients of the linear regression -----*/
-  calc_coef (xtxinvxt, y, coef);
+  /*----- Calculate regression coefficients for reduced model -----*/
+  calc_coef (xtxinvxt_rdcd, y, &coef_temp);
+  
+  
+  /*----- Calculate the error sum of squares for the reduced model -----*/ 
+  sse_rdcd = calc_sse (x_rdcd, coef_temp, y);
 
-
-  /*----- Calculate t-statistics for the regression coefficients -----*/
-  calc_tcoef (n, p, sse_full, xtxinv, *coef, scoef, tcoef);
-
-      
+  
   /*----- Calculate F-statistic for significance of the regression -----*/
-  *freg = calc_freg (n, p, q, sse_full, sse_rdcd);
+  *freg = calc_freg (N, p, q, sse_full, sse_rdcd);
 
 
   /*----- Calculate coefficient of multiple determination R^2 -----*/
-  *rsqr = calc_rsqr (sse_full, ssto);
+  *rsqr = calc_rsqr (sse_full, sse_base);
+
+
+  /*----- Dispose of vector -----*/
+  vector_destroy (&coef_temp);
    
 }
 
@@ -2220,7 +2265,7 @@ void save_voxel
 
 void calculate_results 
 (
-  matrix * xdata,             /* independent variable matrix */
+  matrix xdata,               /* independent variable matrix */
   model * regmodel,           /* linear regression model */
   RA_options * option_data    /* user input options */
 )
@@ -2237,8 +2282,14 @@ void calculate_results
   vector coef;                /* regression parameters */
   vector scoef;               /* std. devs. for regression parameters */
   vector tcoef;               /* t-statistics for regression parameters */
-  matrix xtxinv, xtxinvxt;    /* intermediate matrix calculation results */
-  matrix afull, ardcd, azero; /* intermediate matrix calculation results */
+
+  matrix x_full;              /* extracted X matrix    for full model */
+  matrix xtxinv_full;         /* matrix:  1/(X'X)      for full model */
+  matrix xtxinvxt_full;       /* matrix:  (1/(X'X))X'  for full model */
+  matrix x_base;              /* extracted X matrix    for baseline model */
+  matrix xtxinvxt_base;       /* matrix:  (1/(X'X))X'  for baseline model */
+  matrix x_rdcd;              /* extracted X matrix    for reduced model */
+  matrix xtxinvxt_rdcd;       /* matrix:  (1/(X'X))X'  for reduced model */
   vector y;                   /* vector of measured data */       
 
   int i;                      /* dataset index */
@@ -2259,12 +2310,14 @@ void calculate_results
   float ** tcoef_piece = NULL;       /* pieces for t-statistics */
 
 
-  /*----- initialize matrices -----*/
-  matrix_initialize (&xtxinv);
-  matrix_initialize (&xtxinvxt);
-  matrix_initialize (&afull);
-  matrix_initialize (&ardcd);
-  matrix_initialize (&azero);
+  /*----- Initialize matrices and vectors -----*/
+  matrix_initialize (&x_full);
+  matrix_initialize (&xtxinv_full);
+  matrix_initialize (&xtxinvxt_full);
+  matrix_initialize (&x_base);
+  matrix_initialize (&xtxinvxt_base);
+  matrix_initialize (&x_rdcd);
+  matrix_initialize (&xtxinvxt_rdcd);
   vector_initialize (&coef);
   vector_initialize (&scoef);
   vector_initialize (&tcoef);
@@ -2272,7 +2325,7 @@ void calculate_results
 
 
   /*----- initialize local variables -----*/
-  n = xdata->rows;
+  n = xdata.rows;
   p = regmodel->p;
   flist = regmodel->flist;
   q = regmodel->q;
@@ -2288,15 +2341,19 @@ void calculate_results
 
 
   /*----- initialization for the regression analysis -----*/
-  init_regression_analysis (xdata, p, q, flist, rlist,
-			    &xtxinv, &xtxinvxt, &afull, &ardcd, &azero);
+  init_regression_analysis (p, q, flist, rlist, xdata,
+			    &x_full, &xtxinv_full, &xtxinvxt_full, 
+			    &x_base, &xtxinvxt_base, &x_rdcd, &xtxinvxt_rdcd);
+
+
   vector_create (n, &y);
+
 
   if (option_data->fdisp >= 0)
     {
       printf ("\n");
       printf ("X matrix: \n");
-      matrix_print (*xdata);
+      matrix_print (xdata);
     }
 
   
@@ -2329,7 +2386,9 @@ void calculate_results
      
 
 	  /*----- calculate results for this voxel -----*/
-	  regression_analysis (n, p, q, xtxinv, xtxinvxt, afull, ardcd, azero, 
+	  regression_analysis (n, p, q,  
+			       x_full, xtxinv_full, xtxinvxt_full, x_base,
+			       xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, 
 			       y, option_data->rms_min, option_data->levels, 
 			       option_data->counts, option_data->c, 
 			       option_data->flofmax, &flof,
@@ -2358,16 +2417,18 @@ void calculate_results
 		    &coef_piece, &tcoef_piece);
 
 
-  /*----- dispose of matrices -----*/
+  /*----- Dispose of matrices -----*/
   vector_destroy (&y);
   vector_destroy (&tcoef);
   vector_destroy (&scoef);
   vector_destroy (&coef);
-  matrix_destroy (&azero);
-  matrix_destroy (&ardcd); 
-  matrix_destroy (&afull);
-  matrix_destroy (&xtxinvxt);
-  matrix_destroy (&xtxinv); 
+  matrix_destroy (&xtxinvxt_rdcd);
+  matrix_destroy (&x_rdcd);
+  matrix_destroy (&xtxinvxt_base);
+  matrix_destroy (&x_base);
+  matrix_destroy (&xtxinvxt_full);
+  matrix_destroy (&xtxinv_full); 
+  matrix_destroy (&x_full); 
 
 }
 
@@ -2585,7 +2646,7 @@ void write_afni_data
 
 void write_bucket_data 
 (
-  matrix * xdata,              /* independent variable matrix */
+  matrix xdata,                /* independent variable matrix */
   model * regmodel,            /* linear regression model */
   RA_options * option_data     /* user input options */
 )
@@ -2616,7 +2677,7 @@ void write_bucket_data
   /*----- initialize local variables -----*/
   p = regmodel->p;
   q = regmodel->q;
-  n = xdata->rows;
+  n = xdata.rows;
   nxyz = option_data->nxyz; 
   piece_size = option_data->piece_size;
   num_pieces = option_data->num_pieces;
@@ -2747,7 +2808,7 @@ void write_bucket_data
 
 void output_results 
 (
-  matrix * xdata,              /* independent variable matrix */
+  matrix xdata,                /* independent variable matrix */
   model * regmodel,            /* linear regression model */
   RA_options * option_data     /* user input options */
 )
@@ -2769,7 +2830,7 @@ void output_results
   /*----- initialize local variables -----*/
   p = regmodel->p;
   q = regmodel->q;
-  n = xdata->rows;
+  n = xdata.rows;
   nxyz = option_data->nxyz; 
   piece_size = option_data->piece_size;
   num_pieces = option_data->num_pieces;
@@ -3082,11 +3143,11 @@ void main
 
 
   /*----- perform regression analysis -----*/
-  calculate_results (&xdata, &regmodel, &option_data);
+  calculate_results (xdata, &regmodel, &option_data);
 
 
   /*----- write requested output files -----*/
-  output_results (&xdata, &regmodel, &option_data);
+  output_results (xdata, &regmodel, &option_data);
 		  
 
   /*----- end of program -----*/

@@ -1264,7 +1264,7 @@ static void apply_xshear( float a , float b , float s ,
    st = fabs(a)*ny2 + fabs(b)*nz2 + fabs(s) ; if( st < 1.e-3 ) return ;
 
    if( shift_method == MRI_FOURIER ){
-      nup = 2 ; nst = 0.9*nx + 0.5*st ; if( nst < nx ) nst = nx ;
+      nup = 8 ; nst = 0.95*nx + 0.5*st ; if( nst < nx ) nst = nx ;
       while( nup < nst ){ nup *= 2 ; }  /* FFT length */
    }
 
@@ -1299,7 +1299,7 @@ static void apply_yshear( float a , float b , float s ,
    st = fabs(a)*nx2 + fabs(b)*nz2 + fabs(s) ; if( st < 1.e-3 ) return ;
 
    if( shift_method == MRI_FOURIER ){
-      nup = 2 ; nst = 0.9*ny + 0.5*st ; if( nst < ny ) nst = ny ;
+      nup = 8 ; nst = 0.95*ny + 0.5*st ; if( nst < ny ) nst = ny ;
       while( nup < nst ){ nup *= 2 ; }  /* FFT length */
    }
 
@@ -1343,7 +1343,7 @@ static void apply_zshear( float a , float b , float s ,
    st = fabs(a)*nx2 + fabs(b)*ny2 + fabs(s) ; if( st < 1.e-3 ) return ;
 
    if( shift_method == MRI_FOURIER ){
-      nup = 2 ; nst = 0.9*nz + 0.5*st ; if( nst < nz ) nst = nz ;
+      nup = 8 ; nst = 0.95*nz + 0.5*st ; if( nst < nz ) nst = nz ;
       while( nup < nst ){ nup *= 2 ; }  /* FFT length */
    }
 

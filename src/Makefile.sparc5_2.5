@@ -1,5 +1,6 @@
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = cc -fast -Xa -w -DSOLARIS -DUSE_TRACING
+CCFAST = $(CC)
 CCMIN  = cc -s
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include

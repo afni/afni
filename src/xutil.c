@@ -131,7 +131,6 @@ void MCW_set_widget_bg( Widget w , char * cname , Pixel pix )
    if( ! XtIsObject(w) ) return ;
 #endif
 
-   XtVaGetValues( w , XmNcolormap , &cmap , NULL ) ;
 
    if( cname != NULL && strlen(cname) > 0 ){
       XtVaSetValues( w ,
@@ -144,9 +143,10 @@ void MCW_set_widget_bg( Widget w , char * cname , Pixel pix )
       bg_pix = pix ;
    }
 
+#if 0
+   XtVaGetValues( w , XmNcolormap , &cmap , NULL ) ;
    XmGetColors( XtScreen(w) , cmap , bg_pix ,
                 &fg_pix , &topsh_pix , &botsh_pix , &sel_pix ) ;
-
    XtVaSetValues( w ,
                     XmNtopShadowColor    , topsh_pix ,
                     XmNbottomShadowColor , botsh_pix ,
@@ -156,8 +156,11 @@ void MCW_set_widget_bg( Widget w , char * cname , Pixel pix )
                     XmNforeground        , fg_pix    ,
                     XmNbackground        , bg_pix    ,
                   NULL ) ;
-
    XFlush( XtDisplay(w) ) ;
+#else
+   XmChangeColor( w , bg_pix ) ;
+#endif
+
    return ;
 }
 
@@ -911,7 +914,9 @@ void MCW_set_meter( Widget wscal , int percent )
    XmScaleGetValue( wscal , &old ) ; if( val == old ) return ;
 
    XtVaSetValues( wscal , XmNvalue , val , NULL ) ;
+#if 0
    XFlush( XtDisplay(wscal) ) ;
+#endif
    XmUpdateDisplay(wscal) ;
    return ;
 }

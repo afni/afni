@@ -10,6 +10,15 @@
   Author:  B. Douglas Ward
   Date:    09 September 1998
 
+  Mod:     Generate error message for time series of insufficient length.
+  Date:    29 October 1998
+
+  Mod:     Restructured matrix calculations to improve execution speed.
+  Date:    16 December 1998
+
+  Mod:     Minor correction to stim_label option.
+  Date:    17 December 1998
+
 */
 
 
@@ -17,7 +26,7 @@
 
 #define PROGRAM_NAME "plug_deconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "09 September 1998"         /* date of last program mod */
+#define PROGRAM_DATE "17 December 1998"          /* date of last program mod */
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
 #define MAX_ARRAY_SIZE 1000        /* max. number of time series data points */
@@ -79,7 +88,7 @@ char * DC_main( PLUGIN_interface * ) ;  /* the entry point */
 void DC_Fit ();
 void DC_Err ();
 void DC_IRF ();
-void calculate_results();
+int calculate_results();
 
 
 
@@ -96,15 +105,18 @@ static int initialize=1;    /* flag for perform initialization */
 static int num_stimts = 0;                 /* number of stimulus time series */
 static char * stim_label[MAX_STIMTS];      /* stimulus time series labels */
 static MRI_IMAGE * stimulus[MAX_STIMTS];   /* stimulus time series arrays */
-static int min_lag[MAX_STIMTS];  /* minimum time delay for impulse response */
-static int max_lag[MAX_STIMTS];  /* maximum time delay for impulse response */
+static int min_lag[MAX_STIMTS];   /* minimum time delay for impulse response */
+static int max_lag[MAX_STIMTS];   /* maximum time delay for impulse response */
 
-static matrix x;                  /* independent variable X matrix */
-static matrix xtxinv;             /* matrix:  1/(X'X)     for full model*/
-static matrix xtxinvxt;           /* matrix:  (1/(X'X))X' for full model */
-static matrix abase;              /* A matrix for baseline model */
-static matrix ardcd[MAX_STIMTS];  /* array of A matrices for reduced models */
-static matrix afull;              /* A matrix for full model */
+static matrix xdata;              /* independent variable matrix */
+static matrix x_full;             /* extracted X matrix   for full model */
+static matrix xtxinv_full;        /* matrix:  1/(X'X)     for full model */
+static matrix xtxinvxt_full;      /* matrix:  (1/(X'X))X' for full model */
+static matrix x_base;             /* extracted X matrix   for baseline model */
+static matrix xtxinvxt_base;      /* matrix:  (1/(X'X))X' for baseline model */
+static matrix x_rdcd[MAX_STIMTS]; /* extracted X matrices for reduced models */
+static matrix xtxinvxt_rdcd[MAX_STIMTS];     
+                                  /* matrix:  (1/(X'X))X' for reduced models */
 
 
 /*---------------------------------------------------------------------------*/
@@ -167,19 +179,22 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_register_1D_funcstr ("DC_IRF" , DC_IRF);
 
 
-  /*----- initialize matrices and vectors -----*/
-  matrix_initialize (&x);
-  matrix_initialize (&xtxinv);
-  matrix_initialize (&xtxinvxt);
-  matrix_initialize (&abase);
-  matrix_initialize (&afull);
-
-  for (is = 0;  is < MAX_STIMTS;  is++)
+  /*----- Initialize matrices and vectors -----*/
+  matrix_initialize (&xdata);
+  matrix_initialize (&x_full);
+  matrix_initialize (&xtxinv_full);
+  matrix_initialize (&xtxinvxt_full);
+  matrix_initialize (&x_base);
+  matrix_initialize (&xtxinvxt_base);
+  for (is =0;  is < MAX_STIMTS;  is++)
     {
-      matrix_initialize (&ardcd[is]);
+      matrix_initialize (&x_rdcd[is]);
+      matrix_initialize (&xtxinvxt_rdcd[is]);
       stim_label[is] = malloc (sizeof(char)*MAX_NAME_LENGTH);
       MTEST (stim_label[is]);
+      strcpy (stim_label[is], " ");
     }
+
 
    return plint ;
 }
@@ -278,7 +293,7 @@ char * DC_main( PLUGIN_interface * plint )
   Calculate the impulse response function and associated statistics.
 */
 
-void calculate_results 
+int calculate_results 
 (
   int nt,               /* number of time points */
   double dt,            /* delta time */
@@ -341,6 +356,12 @@ void calculate_results
   if (NLast > nt-1)  NLast = nt-1;
   N = NLast - NFirst + 1;
 
+  if (N <= p)  
+    {
+      DC_error ("Insufficient time series data for deconvolution fit");
+      return (0);
+    }
+
   *nfirst = NFirst;
   *nlast = NLast;
   *nfit = p;
@@ -348,12 +369,13 @@ void calculate_results
 
   /*----- Initialize the independent variable matrix -----*/
   init_indep_var_matrix (p, q, NFirst, N, num_stimts,
-			 stimulus, min_lag, max_lag, &x);
+			 stimulus, min_lag, max_lag, &xdata);
 
 
   /*----- Initialization for the regression analysis -----*/
-  ok = init_regression_analysis (p, q, num_stimts, min_lag, max_lag,
-				 x, &xtxinv, &xtxinvxt, &abase, ardcd, &afull);
+  ok = init_regression_analysis (p, q, num_stimts, min_lag, max_lag, xdata, 
+			       &x_full, &xtxinv_full, &xtxinvxt_full,
+			       &x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);
 
   if (ok)
     {
@@ -364,11 +386,11 @@ void calculate_results
 	y.elts[i] = ts_array[i+NFirst];
       
       
-      /*----- Perform the regression analysis -----*/
+      /*----- Perform the regression analysis for this voxel-----*/
       regression_analysis (N, p, q, num_stimts, min_lag, max_lag,
-			   xtxinv, xtxinvxt, abase, ardcd, afull, 
-			   y, rms_min, &coef, &scoef, &tcoef, fpart, 
-			   &freg, &rsqr);
+			   x_full, xtxinv_full, xtxinvxt_full, x_base,
+			   xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, y, rms_min, 
+			   &coef, &scoef, &tcoef, fpart, &freg, &rsqr);
       
       
       /*----- Save the fit parameters -----*/
@@ -397,6 +419,7 @@ void calculate_results
   vector_destroy (&scoef);
   vector_destroy (&coef);
 
+  return (1);
 }
 
 
@@ -415,10 +438,16 @@ void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
   int ifit;                /* parameter index */
   int nfit;                /* number of fit parameters */
   float fit[MAX_XVARS];    /* fit parameters (regression coefficients) */
+  int ok;                  /* Boolean for successful calculation */
 
 
   /*----- Calculate the multiple linear regression -----*/
-  calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label);
+  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label);
+  if (!ok)
+    {
+      for (n = 0;  n < nt;  n++)  vec[n] = 0.0;
+      return;
+    }
 
 
   /*----- Use the regression coefficients to calculate the fitted data -----*/
@@ -426,7 +455,7 @@ void DC_Fit (int nt, double to, double dt, float * vec, char ** label)
     {
       val = 0.0;
       for (ifit = 0;  ifit < nfit;  ifit++)  
-	val += x.elts[n-NFirst][ifit] * fit[ifit];
+	val += x_full.elts[n-NFirst][ifit] * fit[ifit];
       vec[n] = val;
     }
 
@@ -456,10 +485,16 @@ void DC_Err (int nt, double to, double dt, float * vec, char ** label)
   int ifit;                /* parameter index */
   int nfit;                /* number of fit parameters */
   float fit[MAX_XVARS];    /* fit parameters (regression coefficients) */
+  int ok;                  /* Boolean for successful calculation */
 
 
   /*----- Calculate the multiple linear regression -----*/
-  calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label);
+  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label);
+  if (!ok)
+    {
+      for (n = 0;  n < nt;  n++)  vec[n] = 0.0;
+      return;
+    }
 
 
   /*----- Use the regression coefficients to calculate the residuals -----*/
@@ -467,7 +502,7 @@ void DC_Err (int nt, double to, double dt, float * vec, char ** label)
     {
       val = 0.0;
       for (ifit = 0;  ifit < nfit;  ifit++)  
-	val += x.elts[n-NFirst][ifit] * fit[ifit];
+	val += x_full.elts[n-NFirst][ifit] * fit[ifit];
       vec[n] = vec[n] - val;
     }
 
@@ -499,10 +534,16 @@ void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
   int q;                   /* number of parameters in the baseline model */
   int it;                  /* array index */
   int ntdnp;               /* number of array points per IRF parameter */  
+  int ok;                  /* Boolean for successful calculation */
 
 
   /*----- Calculate the multiple linear regression -----*/
-  calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label);
+  ok = calculate_results (nt, dt, vec, &NFirst, &NLast, &nfit, fit, label);
+  if (!ok)
+    {
+      for (it = 0;  it < nt;  it++)  vec[it] = 0.0;
+      return;
+    }
 
 
   /*----- If IRF index is invalid, return all zeros -----*/
@@ -540,6 +581,13 @@ void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
 
 
 /*---------------------------------------------------------------------------*/
+
+
+
+
+
+
+
 
 
 

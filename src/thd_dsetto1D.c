@@ -99,7 +99,7 @@ ENTRY("THD_extract_series") ;
 
    }
 
-   if( !raw && DSET_BRICK_FACTOR(dset,0) != 0.0 ){
+   if( !raw && THD_need_brick_factor(dset) ){
       MRI_IMAGE * qim ;
       qim = mri_mult_to_float( dset->dblk->brick_fac , im ) ;
       mri_free(im) ; im = qim ;

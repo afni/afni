@@ -375,3 +375,23 @@ printf("  -- making new sub-brick; type=%s\n",MRI_TYPE_name[typ]);fflush(stdout)
 STATUS("exiting") ;
    return ;
 }
+
+/*----------------------------------------------------------------
+  Determine if the brick factors are needed.
+------------------------------------------------------------------*/
+
+int THD_need_brick_factor( THD_3dim_dataset * dset )
+{
+   int ii , nval ;
+
+   if( ! ISVALID_DSET(dset)            ) return 0 ;
+   if( ! ISVALID_DATABLOCK(dset->dblk) ) return 0 ;
+   if( dset->dblk->brick_fac == NULL   ) return 0 ;
+
+   nval = DSET_NVALS(dset) ;
+   for( ii=0 ; ii < nval ; ii++ )
+      if( DSET_BRICK_FACTOR(dset,ii) != 0.0 &&
+          DSET_BRICK_FACTOR(dset,ii) != 1.0   ) return 1 ;
+
+   return 0 ;
+}

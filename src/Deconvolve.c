@@ -5,6 +5,10 @@
   File:    Deconvolve.c
   Author:  B. Douglas Ward
   Date:    31 August 1998
+
+  Mod:     Restructured matrix calculations to improve execution speed.
+  Date:    16 December 1998
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -89,12 +93,14 @@ int init_regression_analysis
   int num_stimts,             /* number of stimulus time series */
   int * min_lag,              /* minimum time delay for impulse response */ 
   int * max_lag,              /* maximum time delay for impulse response */
-  matrix x,                   /* independent variable matrix X */
-  matrix * xtxinv,            /* matrix:  1/(X'X)      for full model */
-  matrix * xtxinvxt,          /* matrix:  (1/(X'X))X'  for full model */
-  matrix * abase,             /* A matrix for baseline model */
-  matrix * ardcd,             /* array of A matrices for reduced models */
-  matrix * afull              /* A matrix for full model */
+  matrix xdata,               /* independent variable matrix */
+  matrix * x_full,            /* extracted X matrix    for full model */
+  matrix * xtxinv_full,       /* matrix:  1/(X'X)      for full model */
+  matrix * xtxinvxt_full,     /* matrix:  (1/(X'X))X'  for full model */
+  matrix * x_base,            /* extracted X matrix    for baseline model */
+  matrix * xtxinvxt_base,     /* matrix:  (1/(X'X))X'  for baseline model */
+  matrix * x_rdcd,            /* extracted X matrices  for reduced models */
+  matrix * xtxinvxt_rdcd      /* matrix:  (1/(X'X))X'  for reduced models */
 )
 
 {
@@ -103,15 +109,20 @@ int init_regression_analysis
   int is, js;                 /* stimulus indices */ 
   int jm;                     /* lag index */
   int ok;                     /* flag for successful matrix calculation */
+  matrix xtxinv_temp;         /* intermediate results */
 
 
-  /*----- Initialize A matrix for the baseline model -----*/
+  /*----- Initialize matrix -----*/
+  matrix_initialize (&xtxinv_temp);
+
+
+  /*----- Initialize matrices for the baseline model -----*/
   for (ip = 0;  ip < q;  ip++)
     plist[ip] = ip;
-  calc_matrices (x, q, plist, xtxinv, xtxinvxt, abase);
+  calc_matrices (xdata, q, plist, x_base, &xtxinv_temp, xtxinvxt_base);
 
 
-  /*----- Initialize A matrices for stimulus functions -----*/
+  /*----- Initialize matrices for stimulus functions -----*/
   for (is = 0;  is < num_stimts;  is++)
     {
       for (ip = 0;  ip < q;  ip++)
@@ -134,15 +145,20 @@ int init_regression_analysis
 	    }
 	}
 
-      calc_matrices (x, p-(max_lag[is]-min_lag[is]+1), 
-		     plist, xtxinv, xtxinvxt, &(ardcd[is]));
+      calc_matrices (xdata, p-(max_lag[is]-min_lag[is]+1), 
+		     plist, &(x_rdcd[is]), &xtxinv_temp, &(xtxinvxt_rdcd[is]));
     }
 
 
-  /*----- Initialize A matrix for full model -----*/
+  /*----- Initialize matrices for full model -----*/
   for (ip = 0;  ip < p;  ip++)
     plist[ip] = ip;
-  ok = calc_matrices (x, p, plist, xtxinv, xtxinvxt, afull);
+  ok = calc_matrices (xdata, p, plist, x_full, xtxinv_full, xtxinvxt_full);
+
+
+  /*----- Destroy matrix -----*/
+  matrix_destroy (&xtxinv_temp);
+
 
   return (ok);
 }
@@ -161,16 +177,18 @@ void regression_analysis
   int num_stimts,           /* number of stimulus time series */
   int * min_lag,            /* minimum time delay for impulse response */ 
   int * max_lag,            /* maximum time delay for impulse response */ 
-  matrix xtxinv,            /* matrix:  1/(X'X)      for full model */
-  matrix xtxinvxt,          /* matrix:  (1/(X'X))X'  for full model */
-  matrix abase,             /* A matrix for baseline model */
-  matrix * ardcd,           /* array of A matrices for reduced models */
-  matrix afull,             /* A matrix for full model */
+  matrix x_full,            /* extracted X matrix    for full model */
+  matrix xtxinv_full,       /* matrix:  1/(X'X)      for full model */
+  matrix xtxinvxt_full,     /* matrix:  (1/(X'X))X'  for full model */
+  matrix x_base,            /* extracted X matrix    for baseline model */
+  matrix xtxinvxt_base,     /* matrix:  (1/(X'X))X'  for baseline model */
+  matrix * x_rdcd,          /* extracted X matrices  for reduced models */
+  matrix * xtxinvxt_rdcd,   /* matrix:  (1/(X'X))X'  for reduced models */
   vector y,                 /* vector of measured data */
   float rms_min,            /* minimum variation in data to fit full model */
-  vector * coef,            /* regression parameters */
-  vector * scoef,           /* std. devs. for regression parameters */
-  vector * tcoef,           /* t-statistics for regression parameters */
+  vector * coef_full,       /* regression parameters */
+  vector * scoef_full,      /* std. devs. for regression parameters */
+  vector * tcoef_full,      /* t-statistics for regression parameters */
   float * fpart,            /* partial F-statistics for the stimuli */
   float * freg,             /* regression F-statistic */
   float * rsqr              /* coeff. of multiple determination R^2  */
@@ -181,44 +199,59 @@ void regression_analysis
   float sse_base;           /* error sum of squares, baseline model */
   float sse_rdcd;           /* error sum of squares, reduced model */
   float sse_full;           /* error sum of squares, full model */
+  vector coef_temp;         /* intermediate results */
 
 
   /*----- Initialization -----*/
-  vector_create (p, coef);
-  vector_create (p, scoef);
-  vector_create (p, tcoef);
-  for (is = 0;  is < num_stimts;  is++)
-    fpart[is] = 0.0; 
-  *rsqr = 0.0;
-  *freg = 0.0;
+  vector_initialize (&coef_temp);
+
+
+  /*----- Calculate regression coefficients for baseline model -----*/
+  calc_coef (xtxinvxt_base, y, &coef_temp);
 
 
   /*----- Calculate the error sum of squares for the baseline model -----*/ 
-  sse_base = calc_sse (abase, y);
+  sse_base = calc_sse (x_base, coef_temp, y);
 
     
   /*----- Stop here if variation about baseline is sufficiently low -----*/
-  if (sqrt(sse_base/N) < rms_min)  return;
+  if (sqrt(sse_base/N) < rms_min)
+    {
+      vector_create (p, coef_full);
+      vector_create (p, scoef_full);
+      vector_create (p, tcoef_full);
+      for (is = 0;  is < num_stimts;  is++)
+	fpart[is] = 0.0; 
+      *rsqr = 0.0;
+      *freg = 0.0;
+      vector_destroy (&coef_temp);
+      return;
+    }
+
+
+  /*----- Calculate regression coefficients for the full model  -----*/
+  calc_coef (xtxinvxt_full, y, coef_full);
 
 
   /*----- Calculate the error sum of squares for the full model -----*/ 
-  sse_full = calc_sse (afull, y);
+  sse_full = calc_sse (x_full, *coef_full, y);
 
 
-  /*----- Calculate the coefficients of the linear regression -----*/
-  calc_coef (xtxinvxt, y, coef);
-
- 
   /*----- Calculate t-statistics for the regression coefficients -----*/
-  calc_tcoef (N, p, sse_full, xtxinv, *coef, scoef, tcoef);
+  calc_tcoef (N, p, sse_full, xtxinv_full, 
+	      *coef_full, scoef_full, tcoef_full);
 
   
   /*----- Determine significance of the individual stimuli -----*/
   for (is = 0;  is < num_stimts;  is++)
     {
 
+      /*----- Calculate regression coefficients for reduced model -----*/
+      calc_coef (xtxinvxt_rdcd[is], y, &coef_temp);
+
+
       /*----- Calculate the error sum of squares for the reduced model -----*/ 
-      sse_rdcd = calc_sse (ardcd[is], y);
+      sse_rdcd = calc_sse (x_rdcd[is], coef_temp, y);
 
 
       /*----- Calculate partial F-stat for significance of the stimulus -----*/
@@ -234,6 +267,10 @@ void regression_analysis
 
   /*----- Calculate the total regression F-statistic -----*/
   *freg = calc_freg (N, p, q, sse_full, sse_base);
+
+
+  /*----- Dispose of vector -----*/
+  vector_destroy (&coef_temp);
 
 }
   

@@ -110,7 +110,7 @@ ENTRY("FD_brick_to_series") ;
 
    }
 
-   if( DSET_BRICK_FACTOR(br->dset,0) != 0.0 ){
+   if( THD_need_brick_factor(br->dset) ){
       MRI_IMAGE * qim ;
       qim = mri_mult_to_float( br->dset->dblk->brick_fac , im ) ;
       mri_free(im) ; im = qim ;

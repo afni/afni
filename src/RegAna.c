@@ -5,6 +5,10 @@
   File:    RegAna.c
   Author:  B. Douglas Ward
   Date:    02 September 1998
+
+  Mod:     Restructured matrix calculations to improve execution speed.
+  Date:    16 December 1998
+
 */
 
 /*---------------------------------------------------------------------------*/
@@ -30,53 +34,43 @@ if((ptr)==NULL) \
 
 int calc_matrices 
 (
-  matrix xdata,                 /* input data matrix X             */
+  matrix xdata,                 /* experimental design matrix      */
   int p,                        /* number of parameters            */
   int * plist,                  /* list of parameters              */
+  matrix * x,                   /* extracted X matrix              */
   matrix * xtxinv,              /* matrix:  1/(X'X)                */
-  matrix * xtxinvxt,            /* matrix:  (1/(X'X))X'            */
-  matrix * a                    /* matrix:  I - X(1/(X'X))X'       */
+  matrix * xtxinvxt             /* matrix:  (1/(X'X))X'            */
 )
 
 {
-  matrix ident, x, xt, xtx, tmp;   /* temporary matrix calculation results */
-  int ok;                          /* flag for successful matrix inversion */
+  matrix xt, xtx;               /* temporary matrix calculation results */
+  int ok;                       /* flag for successful matrix inversion */
 
 
   /*----- initialize matrices -----*/
-  matrix_initialize (&ident);
-  matrix_initialize (&x);
   matrix_initialize (&xt);
   matrix_initialize (&xtx);
-  matrix_initialize (&tmp);
 
 
   /*----- extract the independent variable matrix X -----*/
-  matrix_extract (xdata, p, plist, &x);
+  matrix_extract (xdata, p, plist, x);
 
 
   /*----- calculate various matrices which will be needed later -----*/
-  matrix_transpose (x, &xt);
-  matrix_multiply (xt, x, &xtx);
+  matrix_transpose (*x, &xt);
+  matrix_multiply (xt, *x, &xtx);
   ok = matrix_inverse (xtx, xtxinv);
 
   if (ok)
-    {
-      matrix_multiply (*xtxinv, xt, xtxinvxt);
-      matrix_multiply (x, *xtxinvxt, &tmp);
-      matrix_identity (tmp.rows, &ident);
-      matrix_subtract (ident, tmp, a);
-    }
+    matrix_multiply (*xtxinv, xt, xtxinvxt);
   else
-      RA_error ("Improper X matrix  (cannot invert X'X) ");
+    RA_error ("Improper X matrix  (cannot invert X'X) ");
 
 
   /*----- dispose of matrices -----*/
-  matrix_destroy (&tmp);
   matrix_destroy (&xtx);
   matrix_destroy (&xt);
-  matrix_destroy (&x);
-  matrix_destroy (&ident);
+
 
   return (ok);
 }
@@ -89,26 +83,31 @@ int calc_matrices
 
 float  calc_sse 
 (
-  matrix a,                  /* matrix:  A = I - X(1/(X'X))X'  */
+  matrix x,                  /* independent variable matrix  */
+  vector b,                  /* vector of estimated regression parameters */
   vector y                   /* vector of measured data */
 )
 
 {
-  vector ay;                 /* product Ay */  
+  vector yhat;               /* product Xb */
+  vector e;                  /* vector of residuals */
   float sse;                 /* error sum of squares */
 
 
-  /*----- initialize vector -----*/
-  vector_initialize (&ay);
+  /*----- initialize vectors -----*/
+  vector_initialize (&yhat);
+  vector_initialize (&e);
 
 
   /*----- calculate the error sum of squares -----*/
-  vector_multiply (a, y, &ay);
-  sse = vector_dot (ay, ay);
+  vector_multiply (x, b, &yhat);
+  vector_subtract (y, yhat, &e);
+  sse = vector_dot (e, e);
 
 
-  /*----- dispose of vector -----*/
-  vector_destroy (&ay);
+  /*----- dispose of vectors -----*/
+  vector_destroy (&e);
+  vector_destroy (&yhat);
 
 
   /*----- return SSE -----*/
@@ -223,7 +222,7 @@ float calc_flof
 
 void calc_coef 
 (
-  matrix xtxinvxt,            /* matrix:  (1/(Xf'Xf))Xf'   */
+  matrix xtxinvxt,            /* matrix:  (1/(X'X))X'   */
   vector y,                   /* vector of measured data   */
   vector * coef               /* vector of regression parameters */
 )
@@ -263,6 +262,11 @@ void calc_tcoef
   float tstat;                /* t-statistic for parameter estimate */
   float num;                  /* numerator of t-statistic */
   float var;                  /* variance for parameter estimate */
+
+
+  /*----- Create vectors -----*/
+  vector_create (p, scoef);
+  vector_create (p, tcoef);
 
 
   /*----- Calculate mean square error -----*/

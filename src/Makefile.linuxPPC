@@ -3,6 +3,7 @@
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -Wpointer-arith -DUSE_TRACING
 CC     = gcc -O2 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCFAST = $(CC)
 CCMIN  = gcc -s
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include

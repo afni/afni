@@ -111,6 +111,10 @@ WHOAMI ; IMHEADER(oldim) ;
    return newim ;
 }
 
+/* 13 Dec 1998 */
+
+#define FAC(q) ( (fac[q] != 0.0) ? fac[q] : 1.0 )
+
 MRI_IMAGE * mri_mult_to_float( float * fac , MRI_IMAGE * oldim )
 {
    MRI_IMAGE *newim ;
@@ -125,32 +129,32 @@ WHOAMI ; IMHEADER(oldim) ;
 
       case MRI_byte:
          for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac[ii] * oldim->im.byte_data[ii] ;
+            newim->im.float_data[ii] = FAC(ii) * oldim->im.byte_data[ii] ;
          break ;
 
       case MRI_short:
          for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac[ii] * oldim->im.short_data[ii] ;
+            newim->im.float_data[ii] = FAC(ii) * oldim->im.short_data[ii] ;
          break ;
 
       case MRI_int:
          for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac[ii] * oldim->im.int_data[ii] ;
+            newim->im.float_data[ii] = FAC(ii) * oldim->im.int_data[ii] ;
          break ;
 
       case MRI_float:
          for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac[ii] * oldim->im.float_data[ii] ;
+            newim->im.float_data[ii] = FAC(ii) * oldim->im.float_data[ii] ;
          break ;
 
       case MRI_double:
          for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac[ii] * oldim->im.double_data[ii] ;
+            newim->im.float_data[ii] = FAC(ii) * oldim->im.double_data[ii] ;
          break ;
 
       case MRI_complex:
          for( ii=0 ; ii < npix ; ii++ )
-            newim->im.float_data[ii] = fac[ii] * CABS(oldim->im.complex_data[ii]) ;
+            newim->im.float_data[ii] = FAC(ii) * CABS(oldim->im.complex_data[ii]) ;
          break ;
 
       default:

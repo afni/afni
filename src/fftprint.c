@@ -99,6 +99,8 @@ static void csfft_trigconsts( int idim )  /* internal function */
   The resulting code also needs the csfft_trigconsts() function above.
 ******************************************************************************/
 
+#define EPS 1.e-5  /* set EPS to 0 to disable this option */
+
 void csfft_print( int mode , int idim , complex * xc )
 {
    register unsigned int  m, n, i0, i1, i2, i3, k;
@@ -165,6 +167,10 @@ printf("   xcx[%d].r = f1 ; xcx[%d].i = f2 ;\n" , i1,i1) ;
 printf("\n") ;
 if( csp[k].r == 1.0 ){
   printf("   f1 = xcx[%d].r ; f3 = xcx[%d].i ;  /* cos=1 sin=0 */\n", i1+m,i1+m ) ;
+
+} else if( fabs(csp[k].r) < EPS ){
+  printf("   f1 = - xcx[%d].i * csp[%d].i ; /* cos=0 twiddles */\n", i1+m,k ) ;
+  printf("   f3 = xcx[%d].r * csp[%d].i ;\n", i1+m,k ) ;
 
 } else {
   printf("   f1 = xcx[%d].r * csp[%d].r - xcx[%d].i * csp[%d].i ; /* twiddles */\n",

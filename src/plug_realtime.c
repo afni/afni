@@ -85,6 +85,7 @@ typedef struct {
    char     name_info[NNAME] ;    /* where to get control data */
    IOCHAN * ioc_info ;            /* IO channel for control data */
    pid_t    child_info ;          /* pid of child that will give me control information */
+   double   child_start_time ;    /* 10 Dec 1998: elapsed time when child process was forked */
 
    char prefix[THD_MAX_PREFIX] ;  /* name of dataset */
 
@@ -650,11 +651,22 @@ Boolean RT_worker( XtPointer elvis )
    /**---- See if any data is waiting to be read from the child   ----**/
    /**---- process that is supposed to supply control information ----**/
 
+#define CHILD_MAX_WAIT 33.333  /* seconds */
+
    if( rtinp->child_info > 0 ){
 
       jj = iochan_readcheck( rtinp->ioc_info , SHORT_DELAY ) ;  /** data ready? **/
 
-      if( jj < 0 ){   /** something bad happened? **/
+      if( jj == 0 ){       /** 10 Dec 1998: child not sending data? **/
+         double et = PLUTO_elapsed_time() - rtinp->child_start_time ;
+
+         if( et > CHILD_MAX_WAIT ){  /* don't wait any more, give up */
+            fprintf(stderr,
+                    "RT: no data from child after %f seconds!  Giving up.\a\n",et) ;
+            CLEANUP ; return False ;
+         }
+
+      } else if( jj < 0 ){   /** something bad happened? **/
 
          fprintf(stderr,"RT: child info channel closed prematurely!\a\n") ;
          CLEANUP ; return False ;
@@ -1171,6 +1183,9 @@ void RT_start_child( RT_input * rtin )
          fprintf(stderr,"RT: can't create read channel from child!\a\n") ;
          exit(1) ;
       }
+
+      rtin->child_start_time = PLUTO_elapsed_time() ;  /* 10 Dec 1998 */
+
       /** next time thru RT_worker will try to read data from this channel **/
 
    } else {                          /** I'm the child **/

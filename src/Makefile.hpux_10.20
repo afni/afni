@@ -2,6 +2,7 @@
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = cc -Ae -z +O1 -DHP -DUSE_TRACING
+CCFAST = cc -Ae -z +O3 -DHP +Oaggressive +Olibcalls
 CCMIN  = cc -Ae -s
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/include/X11R5 -I/usr/include/Motif1.2
