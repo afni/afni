@@ -26,7 +26,6 @@ static void * handle = NULL ;
 
 void AFNI_splashdown(void)
 {
-   byte * bspl ; int ii , nv , kk ;
    PLUGIN_impopper * ppp = (PLUGIN_impopper *) handle ;
 
 ENTRY("AFNI_splashdown") ;
@@ -38,7 +37,8 @@ ENTRY("AFNI_splashdown") ;
       if( hh != NULL ) max_splash = strtod(hh,NULL) ;
       if( max_splash > 0.0 ){
          if( imspl != NULL ){  /* fade gently away */
-            bspl = MRI_BYTE_PTR(imspl) ; nv = imspl->nvox ;
+            byte * bspl ; int ii , nv , kk ; double et ;
+            bspl = MRI_BYTE_PTR(imspl) ; nv = imspl->nvox ; et = COX_clock_time() ;
             for( kk=0 ; kk < 10 ; kk++ ){
 #if 0
                for( ii=0 ; ii < nv ; ii++ ) bspl[ii] *= 0.92 ;
@@ -47,9 +47,9 @@ ENTRY("AFNI_splashdown") ;
 #endif
                SPLASH_popup_image(handle,imspl) ;
                drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
+               if( COX_clock_time()-et > 1.1 ) break ;
             }
          }
-         iochan_sleep(100) ; /* 100 msec of solitude */
       }
 #endif
       SPLASH_popup_image(handle,NULL); myXtFree(handle) ; /* get rid of window */

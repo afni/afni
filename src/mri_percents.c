@@ -439,7 +439,7 @@ MRI_IMAGE * mri_flatten( MRI_IMAGE * im )
 printf("Entry: mri_flatten\n") ;
 #endif
 
-   if( im == NULL ) return ;
+   if( im == NULL ) return NULL ;
 
    /*** make an image that is just the voxel index in its array ***/
    /*** also, make the output image while we are at it          ***/

@@ -9,14 +9,15 @@ static byte map26[26] =
 #include "splash_cox1.h"
 #include "splash_cox2.h"
 #include "splash_cox3.h"
+#include "splash_mcw.h"
 
 #undef  NOVER
-#define NOVER 3
+#define NOVER 4
 
-static char ** bover[NOVER] = { BAR_cox1   , BAR_cox2   , BAR_cox3   } ;
-static int     xover[NOVER] = { NX_cox1    , NX_cox2    , NX_cox3    } ;
-static int     yover[NOVER] = { NY_cox1    , NY_cox2    , NY_cox3    } ;
-static int     lover[NOVER] = { NLINE_cox1 , NLINE_cox2 , NLINE_cox3 } ;
+static char ** bover[NOVER] = { BAR_cox1  , BAR_cox2  , BAR_cox3  , BAR_mcw   } ;
+static int     xover[NOVER] = { NX_cox1   , NX_cox2   , NX_cox3   , NX_mcw    } ;
+static int     yover[NOVER] = { NY_cox1   , NY_cox2   , NY_cox3   , NY_mcw    } ;
+static int     lover[NOVER] = { NLINE_cox1, NLINE_cox2, NLINE_cox3, NLINE_mcw } ;
 
 #undef  IXOVER
 #undef  JYOVER

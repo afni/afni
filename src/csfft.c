@@ -45,6 +45,8 @@ void csfft_cox( int mode , int idim , complex * xc ) ;
    HP PA-8000 200 MHz:  58% (32) to 40% (256)  [cc +O3 +Oaggressive]
 ------------------------------------------------------------------------*/
 
+static void fft_3dec( int , int , complex * ) ;  /* 08 Aug 1999  */
+
 /*----------------- the csfft trig constants tables ------------------*/
 
 static complex * csplus = NULL , * csminus = NULL ;
@@ -134,6 +136,8 @@ void csfft_cox( int mode , int idim , complex * xc )
    }
 #endif  /* end of unrollificationizing */
 
+   if( idim % 3 == 0 ){ fft_3dec(mode,idim,xc); return; } /* 08 Aug 1999 */
+
    /**-- perhaps initialize --**/
 
    if( nold != idim ) csfft_trigconsts( idim ) ;
@@ -214,6 +218,12 @@ void csfft_many( int mode , int idim , int nvec , complex * xc )
    register float         co, si, f0, f1, f2, f3, f4;
 
    if( nvec == 1 ){ csfft_cox( mode , idim , xc ) ; return ; }
+
+   if( idim % 3 == 0 ){                           /* 08 Aug 1999 */
+      for( m=0 ; m < nvec ; m++ )
+         fft_3dec( mode , idim , xc + m*idim ) ;
+      return ;
+   }
 
    /** perhaps initialize **/
 
@@ -1344,3 +1354,112 @@ static void fft256( int mode , complex * xc )
    return ;
 }
 #endif /* DONT_UNROLL_FFTS */
+
+/*===================================================================
+   Macros and routines for a radix-3 step combined with powers of 2.
+   RWCox -- 08 Aug 1999.
+=====================================================================*/
+
+#undef  CC3
+#undef  SS3
+#define CC3 (-0.5)         /* cos(2*Pi/3) */
+#define SS3 (0.8660254038) /* sin(2*Pi/3) */
+
+/*------------------------------------------------------------------
+   fft_3dec: do a decimation-by-3, plus a power-of-2.
+   idim must be equal to a power-of-2 times 3 -- this routine must
+     note be called recursively!
+--------------------------------------------------------------------*/
+
+static void fft_3dec( int mode , int idim , complex * xc )
+{
+   int N=idim , M=idim/3 , M2=2*M ;
+   static int mold=-1 ;
+   static complex * cs=NULL , * aa , * bb , * cc ;
+   register int k , i ;
+   register float akr,aki, bkr,bki, ckr,cki, tr,ti, bbr,bbi, ccr,cci,
+                  t1,t2,t4,t5,t6,t8 ;
+
+   /*-- initialize cosine/sine table and memory space --*/
+
+   if( M != mold ){
+      double th = (2.0*PI/N) ;
+      if( M > mold ){
+         if( cs != NULL ){free(cs);free(aa);free(bb);free(cc);}
+         cs = (complex *) malloc(sizeof(complex)*M2) ;
+         aa = (complex *) malloc(sizeof(complex)*M ) ;
+         bb = (complex *) malloc(sizeof(complex)*M ) ;
+         cc = (complex *) malloc(sizeof(complex)*M ) ;
+      }
+
+      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
+      for( k=1 ; k < M2 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
+      mold = M ;
+   }
+
+   /*-- load subarrays, and FFT each one --*/
+
+   for( i=k=0; k < M; k++ ){ aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; }
+
+#ifndef DONT_UNROLL_FFTS
+   switch( M ){
+      case   8: fft8  (mode,aa) ; fft8  (mode,bb) ; fft8  (mode,cc) ; break;
+      case  16: fft16 (mode,aa) ; fft16 (mode,bb) ; fft16 (mode,cc) ; break;
+      case  32: fft32 (mode,aa) ; fft32 (mode,bb) ; fft32 (mode,cc) ; break;
+      case  64: fft64 (mode,aa) ; fft64 (mode,bb) ; fft64 (mode,cc) ; break;
+      case 128: fft128(mode,aa) ; fft128(mode,bb) ; fft128(mode,cc) ; break;
+      case 256: fft256(mode,aa) ; fft256(mode,bb) ; fft256(mode,cc) ; break;
+
+      default:  csfft_cox(mode,M,aa) ;
+                csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ; break ;
+   }
+#else
+      csfft_cox(mode,M,aa) ; csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
+#endif
+
+   /*-- recombination --*/
+
+   if( mode > 0 ){
+      for( k=0 ; k < M ; k++ ){
+         bkr = bb[k].r; bki = bb[k].i;
+         tr  = cs[k].r; ti  = cs[k].i;
+         bbr = tr*bkr - ti*bki ; bbi = tr*bki + ti*bkr ;  /* b[k]*exp(+2*Pi*k/N) */
+
+         ckr = cc[  k].r; cki = cc[  k].i;
+         tr  = cs[2*k].r; ti  = cs[2*k].i;
+         ccr = tr*ckr - ti*cki ; cci = tr*cki + ti*ckr ;  /* c[k]*exp(+4*Pi*k/N) */
+
+         t4 = bbr+ccr      ; t1 = t4*CC3       ;
+         t8 = bbi+cci      ; t6 = t8*CC3       ;
+         t5 = (bbr-ccr)*SS3; t2 = (bbi-cci)*SS3;
+
+         akr = aa[k].r; aki = aa[k].i;                    /* a[k] */
+
+         xc[k   ].r = akr+t4    ; xc[k   ].i = aki+t8    ;
+         xc[k+M ].r = akr+t1-t2 ; xc[k+M ].i = aki+t5+t6 ;
+         xc[k+M2].r = akr+t1+t2 ; xc[k+M2].i = aki-t5+t6 ;
+      }
+   } else {
+      for( k=0 ; k < M ; k++ ){
+         bkr = bb[k].r; bki = bb[k].i;
+         tr  = cs[k].r; ti  = cs[k].i;
+         bbr = tr*bkr + ti*bki ; bbi = tr*bki - ti*bkr ;  /* b[k]*exp(-2*Pi*k/N) */
+
+         ckr = cc[  k].r; cki = cc[  k].i;
+         tr  = cs[2*k].r; ti  = cs[2*k].i;
+         ccr = tr*ckr + ti*cki ; cci = tr*cki - ti*ckr ;  /* c[k]*exp(-4*Pi*k/N) */
+
+         t4 = bbr+ccr      ; t1 = t4*CC3       ;
+         t8 = bbi+cci      ; t6 = t8*CC3       ;
+         t5 = (bbr-ccr)*SS3; t2 = (bbi-cci)*SS3;
+
+         akr = aa[k].r; aki = aa[k].i;                    /* a[k] */
+
+         xc[k   ].r = akr+t4    ; xc[k   ].i = aki+t8    ;
+         xc[k+M ].r = akr+t1+t2 ; xc[k+M ].i = aki-t5+t6 ;
+         xc[k+M2].r = akr+t1-t2 ; xc[k+M2].i = aki+t5+t6 ;
+      }
+   }
+
+   return ;
+}
