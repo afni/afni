@@ -134,9 +134,9 @@ quickspec: SUMA_Load_Surface_Object.c
 	$(RM) $@
 	${CC} -DSUMA_quickspec_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_Load_Surface_Object.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
-SUMA_TestDataSets: SUMA_DataSets.c
-	$(RM) $@
-	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+#SUMA_TestDataSets: SUMA_DataSets.c
+#	$(RM) $@
+#	${CC} -DSUMA_TEST_DATA_SETS_STAND_ALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_DataSets.c ${SUMALIB} libply.a ${AFNILIB} ${ZLIB} ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
 SUMA_TestDsetIO: SUMA_DataSets.c
 	$(RM) $@
@@ -287,10 +287,10 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	SUMA_SureFit SUMA_Load_Surface_Object SUMA_Read_SpecFile	      \
 	SUMA_FreeSurfer ScaleToMap MakeColorMap CompareSurfaces		      \
 	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
-	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics SUMA_TestDataSets   \
+	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics    \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
    SUMA_TestDsetIO ConvertDset
-
+#SUMA_TestDataSets
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 
 

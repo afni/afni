@@ -139,8 +139,10 @@ int SUMA_ReleaseLink (SUMA_INODE * IN)
       SUMA_RETURN(-1);
    }
    if (!IN->N_link) {
-      if (LocalHead) fprintf (SUMA_STDERR,"%s: No links. Returning 0.\n", FuncName);
-      SUMA_RETURN(0);
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: No links. Returning -1.\n", FuncName);
+      /* You do not want to return a 0 because freeing is done when no links remain 
+      THIS STUPID SYSTEM SHOULD BE ELIMINATED IN FAVOR OF THE METHOD USED FOR OVERLAYS*/
+      SUMA_RETURN(-1);
    }
    else {
       IN->N_link--;

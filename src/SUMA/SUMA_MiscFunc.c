@@ -317,28 +317,6 @@ SUMA_Boolean SUMA_Free_MemTrace (SUMA_MEMTRACE_STRUCT * Mem) {
    return(YUP);
 }
 
-/*! Taken from filexists 
-returns 1 if file can be read/found
-*/
-int SUMA_filexists (char *f_name)
-{/*SUMA_filexists*/
-    FILE *outfile;
-    static char FuncName[]={"SUMA_filexists"};
-   
-   SUMA_ENTRY;
-
-    outfile = fopen (f_name,"r");
-    if (outfile == NULL) {
-       SUMA_RETURN(0); 
-   }
-    else {
-       fclose (outfile); 
-   }
-    
-   SUMA_RETURN(1);
-       
-}/*SUMA_filexists*/
-
 /*!
  
 File : Read_file.c
@@ -4779,13 +4757,20 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
 SUMA_Boolean SUMA_Free_FirstNeighb (SUMA_NODE_FIRST_NEIGHB *FN)
 {
    static char FuncName[]={"SUMA_Free_FirstNeighb"};
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-
+   SUMA_LH("Entered");
+   if (!FN) SUMA_RETURN(YUP);
+   SUMA_LH("1");
    if (FN->NodeId) SUMA_free(FN->NodeId);
+   SUMA_LH("2");
    if (FN->N_Neighb) SUMA_free(FN->N_Neighb);
+   SUMA_LH("3");
    if (FN->FirstNeighb) SUMA_free2D ((char **)FN->FirstNeighb, FN->N_Node);
+   SUMA_LH("4");
    if (FN) SUMA_free(FN);
+   SUMA_LH("Leaving");
    SUMA_RETURN (YUP);
 }
 
