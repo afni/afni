@@ -359,6 +359,44 @@ char * NI_type_name( int val )
    return NI_names[val] ;
 }
 
+/*-------------------------------------------------------------------------*/
+/*! A 'getdata' function for reading from a file. */
+
+int NI_read_file( void *handle , char *buf , int nbuf )
+{
+   FILE *fp = (FILE *) handle ;
+   int nn ;
+
+   if( fp == NULL || nbuf < 1 ) return -1 ;    /* bad input */
+
+   if( buf == NULL ){ fclose(fp); return 0; }  /* finished with file */
+
+   nn = fread( buf , 1 , nbuf , fp ) ;         /* read data */
+
+   if( nn == 0 ) nn = -1 ;                     /* can't read data */
+   return nn ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! A 'getdata' function for reading from a socket. */
+
+int NI_read_socket( void *handle , char *buf , int nbuf )
+{
+   int *sp = (int *) handle ;
+   int nn , sd ;
+
+   if( sp == NULL || nbuf < 1 ) return -1 ;    /* bad input */
+   sd = *sp ;
+   if( sd < 0 ) return -1 ;
+
+   if( buf == NULL ){ shutdown(sd,2); close(sd); return 0; }
+
+   nn = recv( sd , buf , nbuf , 0 ) ;
+
+   if( nn < 0 ) nn = -1 ;                      /* an error */
+   return nn ;
+}
+
 /*********************************************************************/
 
 int main( int argc , char *argv[] )

@@ -125,7 +125,7 @@ int tcp_writecheck( int sd , int msec )
    fd_set wfds ;
    struct timeval tv , * tvp ;
 
-   if( sd < 0 ){ STATUS("tcp_readcheck: illegal sd") ; return -1 ; } /* bad socket id */
+   if( sd < 0 ){ STATUS("tcp_writecheck: illegal sd") ; return -1 ; } /* bad socket id */
 
    FD_ZERO(&wfds) ; FD_SET(sd, &wfds) ;         /* check only sd */
 
