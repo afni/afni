@@ -3497,6 +3497,7 @@ ENTRY("AFNI_do_many_writes") ;
             "** Please wait for dataset   **\n"
             "** computations and disk I/O **\n"
             "*******************************" , MCW_CALLER_KILL ) ;
+   AFNI_speak("Writing",0) ;
 
    /** loop through selected datasets and do the dirty work **/
 
@@ -4987,6 +4988,7 @@ ENTRY("AFNI_hidden_CB") ;
    }
 
    else if( w == im3d->vwid->prog->hidden_gamberi_pb ){
+     AFNI_speak( "Gamberi Cattivi" , 0 ) ;
      (void) MCW_popup_message( im3d->vwid->imag->topper ,
        " \n"
        "       The Rime of the Ancient Gamberi Cattivi\n"

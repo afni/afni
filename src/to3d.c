@@ -3575,6 +3575,7 @@ ENTRY("T3D_quit_CB") ;
 
      EXRETURN ;
   }
+  AFNI_speak("Done",1) ;
   exit(0) ;
 }
 
@@ -4620,6 +4621,8 @@ void T3D_save_file_CB( Widget w ,
 
    good = T3D_check_data( True ) ;
    if( !good ) return ;
+
+   AFNI_speak("Saving",0) ;
 
    /*-- store values in dataset --*/
 
