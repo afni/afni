@@ -11,7 +11,11 @@ static char *error_string=NULL ; /* 21 Nov 2001 */
 
 char *iochan_error_string(void){ return error_string; }
 
-/****************************************************************
+#ifndef DONT_USE_SHM
+static int shm_RMID_delay = 0 ;  /* 12 Dec 2002 */
+#endif
+
+/*****************************************************************
   Routines to manipulate IOCHANs, something RWCox invented as
   an abstraction of socket or shmem inter-process communication.
 
@@ -53,7 +57,7 @@ char *iochan_error_string(void){ return error_string; }
   June 1997:
   Shmem IOCHANs now can be bidirectional.  This is ordered
   by using the new "size1+size2" specification.
-*****************************************************************/
+******************************************************************/
 
 /*---------------------------------------------------------------*/
 static int pron = 1 ;                             /* 22 Nov 2002 */
@@ -81,7 +85,7 @@ static int nosigpipe = 0 ;  /* 20 Apr 1997: turn off SIGPIPE signals */
 
 /** this is used to set the send/receive buffer size for sockets **/
 
-#define SOCKET_BUFSIZE  (64*1024)
+#define SOCKET_BUFSIZE  (31*1024)
 
 /********************************************************************
   Routines to manipulate TCP/IP stream sockets.
@@ -464,10 +468,10 @@ int shm_size( int shmid )
    return buf.shm_segsz ;
 }
 
-/*---------------------------------------------------------------
+/*----------------------------------------------------------------
    Find the number of attaches to a shmem segment.
-   Returns -1 if an error occurs.
------------------------------------------------------------------*/
+   Returns -1 if an error occurs (like the segment was destroyed).
+------------------------------------------------------------------*/
 
 int shm_nattach( int shmid )
 {
@@ -475,6 +479,7 @@ int shm_nattach( int shmid )
    struct shmid_ds buf ;
 
    if( shmid < 0 ){ STATUS("shm_nattach: illegal shmid") ; return -1 ; }
+   errno = 0 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
    if( ii < 0 ){
      PERROR("Has shared memory buffer gone bad? shm_nattach") ;
@@ -541,6 +546,18 @@ IOCHAN * iochan_init( char * name , char * mode )
 {
    IOCHAN * ioc ;
    int do_create , do_accept ;
+
+   /** 12 Dec 2002: check if shm_RMID_delay needs to be set **/
+
+#ifndef DONT_USE_SHM
+   { static int first=1 ;
+     if( first ){
+       char *eee = getenv("IOCHAN_DELAY_RMID") ;
+       shm_RMID_delay = ( eee != NULL && (*eee=='Y' || *eee=='y') ) ;
+       first = 0 ;
+     }
+   }
+#endif
 
    /** check if inputs are reasonable **/
 
@@ -855,7 +872,7 @@ int iochan_goodcheck( IOCHAN * ioc , int msec )
       if( ioc->id >= 0 ) ioc->bad = 0 ;                    /* succeeded?             */
    }
 
-   /** shmem segment waiting for creation **/
+   /** shmem segment waiting for creation (by someone else) **/
 
    else if( ioc->bad == SHM_WAIT_CREATE ){
       int dms=0 , ms ;
@@ -880,7 +897,7 @@ int iochan_goodcheck( IOCHAN * ioc , int msec )
       }
    }
 
-   /** shmem segment waiting for someone else to attach **/
+   /** shmem segment we created waiting for someone else to attach **/
 
    else if( ioc->bad == SHM_WAIT_ACCEPT ){
       int dms=0 , ms ;
@@ -919,8 +936,10 @@ void iochan_close( IOCHAN * ioc )
    else if( ioc->type == SHM_IOCHAN ){
 #ifndef DONT_USE_SHM
       if( ioc->id >= 0 ){
-         shmctl( ioc->id , IPC_RMID , NULL ) ;
-         shmdt( (char *) ioc->bstart ) ;
+         shmdt( (char *) ioc->bstart ) ;       /* detach */
+                                               /* then kill */
+         if( !shm_RMID_delay || shm_nattach(ioc->id) < 1 )
+           shmctl( ioc->id , IPC_RMID , NULL ) ;
       }
 #endif
    }

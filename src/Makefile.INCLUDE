@@ -1465,7 +1465,8 @@ mpeg_encode:
 djpeg: cjpeg
 
 cjpeg:
-	( cd jpeg-6b ; ./configure ; make ; $(MV) cjpeg djpeg .. ; make clean ; )
+	( cd jpeg-6b ; $(RM) Makefile jconfig.h ; ./configure ; \
+          make ; $(MV) cjpeg djpeg .. ; make clean ; )
 
 #######
 # FFTW - not used

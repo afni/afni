@@ -40,8 +40,8 @@ char     AFNI_infocom[256]= "\0" ;        /* command for AFNI info */
 
 /*-- prototypes --*/
 
-extern void AFNI_start_io(void) ;
-extern void AFNI_exit(void) ;
+void RT_start_io(void) ;
+void RT_exit(void) ;
 
 /*-- how to execute a command on another system --*/
 
@@ -53,10 +53,30 @@ extern void AFNI_exit(void) ;
 
 /*=============================================================================*/
 
-void AFNI_exit(void)                   /* Function to be called to make sure */
-{                                      /* the AFNI data channels get closed. */
+void RT_exit(void)                   /* Function to be called to make sure */
+{                                    /* the AFNI data channels get closed. */
+   fprintf(stderr,"*** RT_exit: closing data channel to AFNI\n") ;
    iochan_close(AFNI_ioc) ;
    return ;
+}
+
+/*-----------------------------------------------------------------------------*/
+
+void RT_sigfunc(int sig)   /** signal handler for fatal errors **/
+{
+   char * sname ;
+   static volatile int fff=0 ;
+   if( fff ) _exit(1) ; else fff = 1 ;
+   switch(sig){
+      default:      sname = "unknown" ; break ;
+      case SIGINT:  sname = "SIGINT"  ; break ;
+      case SIGPIPE: sname = "SIGPIPE" ; break ;
+      case SIGSEGV: sname = "SIGSEGV" ; break ;
+      case SIGBUS:  sname = "SIGBUS"  ; break ;
+      case SIGTERM: sname = "SIGTERM" ; break ;
+   }
+   fprintf(stderr,"\n*** Fatal Signal %d (%s) received\n",sig,sname) ;
+   exit(1) ;
 }
 
 /*****************************************************************************
@@ -340,8 +360,13 @@ int main( int argc , char * argv[] )
 
    /*-- this stuff is one-time-only setup of the I/O to AFNI --*/
 
-   atexit(AFNI_exit) ;                   /* call this when program ends */
+   atexit(RT_exit) ;                     /* call this when program ends */
    AFNI_mode = AFNI_OPEN_CONTROL_MODE ;  /* mode in which to start I/O  */
+
+   signal(SIGINT ,RT_sigfunc) ;  /* setup signal handler */
+   signal(SIGBUS ,RT_sigfunc) ;  /* for fatal errors */
+   signal(SIGSEGV,RT_sigfunc) ;
+   signal(SIGTERM,RT_sigfunc) ;
 
    /*------ 11 Dec 2002: after a -break, will jump back here ------*/
 
