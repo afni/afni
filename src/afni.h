@@ -136,7 +136,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "12 Dec 2001      "
+#define RELEASE "21 Dec 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -1121,11 +1121,13 @@ extern void AFNI_rescan_timeseries_CB( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_read_sess_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_sess_CB( Widget , XtPointer , XtPointer ) ;
-extern void AFNI_append_sessions( THD_session *, THD_session *); /* 20 Dec 2001 */
 extern void AFNI_make_file_dialog( Three_D_View * ) ;
 extern void AFNI_close_file_dialog_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_1D_CB( Widget , XtPointer , XtPointer ) ;
+
+extern int  DSET_in_global_session( THD_3dim_dataset * ) ;       /* 20 Dec 2001 */
+extern void AFNI_append_sessions( THD_session *, THD_session *); /* 20 Dec 2001 */
 
 extern void AFNI_read_Web_CB( Widget, XtPointer, XtPointer );    /* 26 Mar 2001 */
 extern void AFNI_finalize_read_Web_CB( Widget, XtPointer, MCW_choose_cbs * );

@@ -3027,14 +3027,19 @@ if(PRINT_TRACING)
 
             new_ss->parent = NULL ;
             for( qd=0 ; qd < new_ss->num_anat ; qd++ )
-               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
                   PARENTIZE( new_ss->anat[qd][vv] , NULL ) ;
+                  DSET_MARK_FOR_IMMORTALITY( new_ss->anat[qd][vv] ) ;
+               }
+
 
             for( qd=0 ; qd < new_ss->num_func ; qd++ )
                for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                  PARENTIZE( new_ss->func[qd][vv] , NULL ) ;
+                  PARENTIZE( new_ss->func[qd][vv] , NULL ) ;{
+                  DSET_MARK_FOR_IMMORTALITY( new_ss->func[qd][vv] ) ;
+               }
 
-            /*-- No other sessions?  Put this session in place. --*/
+            /*-- No other sessions?  Put this session in place for viewing. --*/
 
             if( GLOBAL_library.sslist->num_sess == 0 ){
 
@@ -7339,7 +7344,7 @@ ENTRY("AFNI_marks_transform_CB") ;
 
    vvv = vnew ;
    while( ISVALID_VIEW(vvv) && ISVALID_3DIM_DATASET(im3d->anat_dset[vvv]) ){
-      im3d->anat_dset[vvv]->death_mark = DOOMED ;
+      DSET_MARK_FOR_DEATH( im3d->anat_dset[vvv] ) ;
       vvv = WARPED_VIEW(vvv) ;
    }
 

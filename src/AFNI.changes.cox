@@ -3408,3 +3408,7 @@
       MRILIB_xoff and MRILIB_yoff for GEMS images.
  * Modified afni.h, afni.c, afni_func.c to implement AFNI_GLOBAL_SESSION
       environment variable.
+
+21 Dec 2001
+ * Fixed up some rescan session problems with AFNI_GLOBAL_SESSION datasets.
+      (We don't want to let them be destroyed or descendant-ized.)
