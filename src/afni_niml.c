@@ -1,4 +1,5 @@
 #include "afni.h"
+#include "vol2surf.h"
 
 /**************************************/
 /** global data for NIML connections **/
@@ -1007,7 +1008,8 @@ static void AFNI_niml_redisplay_CB( int why, int q, void *qq, void *qqq )
    Three_D_View *im3d = (Three_D_View *) qqq ;
    THD_3dim_dataset *adset , *fdset ;
    SUMA_irgba *map ;
-   int        nmap , nvused , nvtot , ct , ks ;
+   SUMA_irgba *saved_map ;  /* so we can call vol2surf just once for now */
+   int        nmap, saved_nmap , nvused , nvtot , ct , ks , v2s ;
    NI_element *nel ;
    char msg[16] ;
    THD_session *sess ;   /* 20 Jan 2004 */
@@ -1037,15 +1039,59 @@ ENTRY("AFNI_niml_redisplay_CB") ;
       Now we loop over all surfaces in the current session
       and send the node+color map for each and every one! */
 
+   saved_map  = NULL ;
+   saved_nmap = 0 ;
    for( ks=0 ; ks < sess->su_num ; ks++ ){
 
-     nmap = AFNI_vnlist_func_overlay( im3d,ks , &map,&nvused ) ;
+     nvused = -1 ;
+     v2s = 0 ;
+
+     /* Okay, we'll be messy for the moment, since this logic will change
+      * once Ziad and I make some decisions.  For now, let's call vol2surf
+      * only once, and save map and nmap for later.
+      * The first time through, call v2s and (if we'll return) save the
+      * resulting map.  Then when we return, use those saved results.
+      *                                                29 Sep 2004 [rickr]
+     */
+     if( gv2s_plug_opts.ready &&
+         ( gv2s_plug_opts.surfA == ks || gv2s_plug_opts.surfB == ks ) ) {
+       v2s = 1 ;   /* vol2surf case */
+
+       if( ! saved_map ) {
+          /* we have not called vol2surf yet */
+          nmap = AFNI_vol2surf_func_overlay( im3d, &map ) ;
+          if(gv2s_plug_opts.surfB >= 0 && gv2s_plug_opts.surfB < sess->su_num) {
+             /* then we will be back, save map and nmap for next time */
+             saved_map  = map ;
+             saved_nmap = nmap ;
+          }
+       } else {
+          /* vol2surf has been called, use the stored map */
+          map  = saved_map ;
+          nmap = saved_nmap ;
+          saved_map  = NULL ;
+          if( gv2s_plug_opts.sopt.debug > 0 )
+             fprintf(stderr,"AFNI_vol2surf - using results from surf %d\n", ks);
+       }
+     } else {
+       nmap = AFNI_vnlist_func_overlay( im3d,ks , &map,&nvused ) ;
+       if( gv2s_plug_opts.sopt.debug > 0 )
+          fprintf(stderr,"AFNI_vnlist returned %d for surf %d\n", nmap, ks) ;
+     }
 
 #if 0
      if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
 #endif
 
-     if( nmap < 0 || sess->su_surf[ks]->vn == NULL ) continue ; /* this is bad */
+     /* base the error checking on which mapping method was used */
+     if( ! v2s && ( nmap < 0 || sess->su_surf[ks]->vn == NULL ) )
+       continue ; /* this is bad */
+     else if( v2s && (nmap < 0 || (nmap > 0 && !map))) /* 29 Sep 2004 [rickr] */
+     {
+       if( gv2s_plug_opts.sopt.debug > 0 )
+         fprintf(stderr,"** afni: bad surface %d, ret: %d,%p\n", ks, nmap, map);
+       continue ; /* this is bad */
+     }
 
      if( nmap > 0 ){  /*--- make a data element with data ---*/
 
@@ -1067,7 +1113,9 @@ ENTRY("AFNI_niml_redisplay_CB") ;
          bcol[ii] = map[ii].b  ; acol[ii] = map[ii].a ;
        }
 
-       free(map) ;       /* data in nel, so don't need map no more */
+       /* do not free the map if the map is saved and we have a v2s surface */
+       if( ! saved_map || ! v2s )
+          free(map) ;       /* data in nel, so don't need map no more */
 
      } else {         /*--- make an empty data element ---*/
 
@@ -1076,7 +1124,10 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
      }
 
-     nvtot = sess->su_surf[ks]->vn->nvox ; /* 13 Mar 2002 and 20 Jan 2004 */
+     if ( sess->su_surf[ks]->vn )            /* 29 Sep 2004 [rickr] */
+       nvtot = sess->su_surf[ks]->vn->nvox ; /* 13 Mar 2002 and 20 Jan 2004 */
+     else
+       nvtot = -1;      /* make it clear, vol2surf has no interface for this */
 
      /* 13 Mar 2002: send idcodes of surface and datasets involved */
 
@@ -1087,10 +1138,14 @@ ENTRY("AFNI_niml_redisplay_CB") ;
      /* 13 Mar 2002: also send the number of voxels in the surface
                      and the number of voxels that were colored in */
 
-     sprintf(msg,"%d",nvtot) ;
-     NI_set_attribute( nel , "numvox_total" , msg ) ;
-     sprintf(msg,"%d",nvused) ;
-     NI_set_attribute( nel , "numvox_used" , msg ) ;
+     if( nvtot >= 0 ) {
+       sprintf(msg,"%d",nvtot) ;
+       NI_set_attribute( nel , "numvox_total" , msg ) ;
+     }
+     if ( nvused >= 0 ) {
+       sprintf(msg,"%d",nvused) ;
+       NI_set_attribute( nel , "numvox_used" , msg ) ;
+     }
 
      if( sendit )
        NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;

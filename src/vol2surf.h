@@ -118,8 +118,14 @@ int disp_v2s_opts_t     ( char * info, v2s_opts_t * sopt );
 int disp_v2s_param_t    ( char * info, v2s_param_t * p );
 int disp_v2s_results    ( char * mesg, v2s_results * d );
 int free_v2s_results    ( v2s_results * sd );
+int v2s_is_good_map     ( int map, int from_afni );
 int v2s_map_type        ( char * map_str );
 int v2s_vals_over_steps ( int map );
+
+
+/* special thd function - might be moved from vol2surf.[ch] */
+int thd_mask_from_brick(THD_3dim_dataset * dset, int volume, float thresh,
+			byte ** mask);
 
 /* ---- define globals for everyone but vol2surf.c ---- */
 #ifndef _VOL2SURF_C_
