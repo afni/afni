@@ -7,7 +7,7 @@ double log();
 double d_lg10(x) doublereal *x;
 #else
 #undef abs
-#include "math.h"
+#include "mathh.h"
 double d_lg10(doublereal *x)
 #endif
 {

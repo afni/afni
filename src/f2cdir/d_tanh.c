@@ -5,7 +5,7 @@ double tanh();
 double d_tanh(x) doublereal *x;
 #else
 #undef abs
-#include "math.h"
+#include "mathh.h"
 double d_tanh(doublereal *x)
 #endif
 {

@@ -5,7 +5,7 @@ double sin();
 double r_sin(x) real *x;
 #else
 #undef abs
-#include "math.h"
+#include "mathh.h"
 double r_sin(real *x)
 #endif
 {

@@ -5,7 +5,7 @@ double atan2();
 double d_atn2(x,y) doublereal *x, *y;
 #else
 #undef abs
-#include "math.h"
+#include "mathh.h"
 double d_atn2(doublereal *x, doublereal *y)
 #endif
 {

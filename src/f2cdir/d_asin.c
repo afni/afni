@@ -5,7 +5,7 @@ double asin();
 double d_asin(x) doublereal *x;
 #else
 #undef abs
-#include "math.h"
+#include "mathh.h"
 double d_asin(doublereal *x)
 #endif
 {
