@@ -21,11 +21,13 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * mset=NULL , * dset=NULL ;
    double * ww=NULL ;
    int     nww=0 ;
-   int keeptags=1 , wtval=0 , verb=0 ;
-   char * prefix = "tagalign" ;
+   int keeptags=1 , wtval=0 , verb=0 , dummy=0 ;
+   char * prefix = "tagalign" , * mfile=NULL ;
 
    float * fvol , cbot,ctop , dsum ;
    int nval , nvox , clipit , ival ;
+
+   float matar[12] ;
 
    /*--- help? ---*/
 
@@ -49,9 +51,28 @@ int main( int argc , char * argv[] )
              " -nokeeptags   = Don't put transformed locations of dset's tags\n"
              "                   into the output dataset [default = do this]\n"
              "\n"
+             " -matvec mfile = Write the matrix+vector of the transformation to\n"
+             "                   file 'mfile'.  This can be used as input to the\n"
+             "                   '-matvec_dicom' option of 3drotate, if you want\n"
+             "                   to align other datasets in the same way (e.g.,\n"
+             "                   functional datasets).\n"
+             "           N.B.: The matrix+vector of the transformation is also\n"
+             "                   saved in the .HEAD file of the output dataset\n"
+             "                   (unless -dummy is used).  You can use the\n"
+             "                   output dataset from 3dTagalign as the dataset\n"
+             "                   for 3drotates's '-matvec_dset' option; this\n"
+             "                   lets you avoid using an intermediate mfile.\n"
+             "\n"
              " -prefix pp    = Use 'pp' as the prefix for the output dataset.\n"
              "                   [default = 'tagalign']\n"
              " -v            = Print progress reports\n"
+             " -dummy        = Don't actually rotate the dataset, just compute\n"
+             "                   the transformation matrix and vector.  If\n"
+             "                   '-matvec' is used, the mfile will be written.\n"
+             "\n"
+             "Nota Bene:\n"
+             "  The output dataset is rotated/shifted using the equivalent of the\n"
+             "  options '-clipit -Fourier' for 3drotate.\n"
              "\n"
              "Author: RWCox - 16 Jul 2000\n"
             ) ;
@@ -137,12 +158,29 @@ int main( int argc , char * argv[] )
 
       /*-----*/
 
+      if( strcmp(argv[iarg],"-dummy") == 0 ){
+         dummy++ ;
+         iarg++ ; continue ;
+      }
+
+      /*-----*/
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          if( ++iarg >= argc )                  ERREX("Need an argument after -prefix") ;
          prefix = argv[iarg] ;
          if( !THD_filename_ok(prefix) )        ERREX("-prefix string is illegal") ;
          iarg++ ; continue ;
       }
+
+      /*-----*/
+
+      if( strcmp(argv[iarg],"-matvec") == 0 ){
+         if( ++iarg >= argc )                  ERREX("Need an argument after -matvec") ;
+         mfile = argv[iarg] ;
+         if( !THD_filename_ok(mfile) )         ERREX("-matvec string is illegal") ;
+         iarg++ ; continue ;
+      }
+
 
       /*-----*/
 
@@ -273,6 +311,28 @@ int main( int argc , char * argv[] )
      }
    }
 
+   if( mfile ){
+      FILE * mp ;
+
+      if( THD_is_file(mfile) )
+         fprintf(stderr,"+++ Warning: will overwrite -matvec %s\n",mfile) ;
+
+      mp = fopen(mfile,"w") ;
+      if( mp == NULL ){
+         fprintf(stderr,"*** Can't write to -matvec %s\n",mfile) ;
+      } else {
+        for( ii=0 ; ii < 3 ; ii++ )
+          fprintf(mp,"    %8.5f %8.5f %8.5f   %10.5f\n",
+                  rt.mm.mat[ii][0],rt.mm.mat[ii][1],rt.mm.mat[ii][2],rt.vv.xyz[ii] );
+        fclose(mp) ;
+        fprintf(stderr,"+++ Wrote matrix+vector to %s\n",mfile) ;
+      }
+   }
+
+   if( dummy ){
+      fprintf(stderr,"+++ This was a -dummy run: no output dataset\n") ; exit(0) ;
+   }
+
    /*-- now must scramble the rotation matrix and translation
         vector from Dicom coordinate order to dataset brick order --*/
 
@@ -391,7 +451,17 @@ int main( int argc , char * argv[] )
 
    if( verb ) fprintf(stderr,":") ;
 
-   dset->dblk->master_nvals = 0 ;
+   /* save matrix+vector into dataset, too */
+
+   UNLOAD_MAT(rt.mm,matar[0],matar[1],matar[2],
+                    matar[4],matar[5],matar[6],
+                    matar[8],matar[9],matar[10] ) ;
+   UNLOAD_FVEC3(rt.vv,matar[3],matar[7],matar[11]) ;
+   THD_set_atr( dset->dblk, "TAGALIGN_MATVEC", ATR_FLOAT_TYPE, 12, matar ) ;
+
+   /* write dataset to disk */
+
+   dset->dblk->master_nvals = 0 ;  /* in case this was a mastered dataset */
    DSET_write(dset) ;
 
    if( verb ) fprintf(stderr,"\n") ;

@@ -2202,5 +2202,11 @@
      make graph pixel layout correspond to images if left-is-left.
 
 17 Jul 2000
- * Added new program 3dTagchain.c.
+ * Added new program 3dTagalign.c.
  * Fixed a bug in the "Write" callback in plug_tag.c.
+
+20 Jul 2000
+ * Modified 3dTagalign.c to write matrix+vector to a file and to
+     the output dataset header.
+ * Modified 3drotate.c to read matrix+vector of transformation from
+     a file or from a dataset header.
