@@ -250,7 +250,7 @@ if(PRINT_TRACING)
 AFNI_plugin_array * PLUG_get_many_plugins(char *pname)
 {
    char * epath , * elocal , * eee ;
-   char ename[THD_MAX_NAME] , efake[]="./:/usr/local/bin" ;
+   char ename[THD_MAX_NAME] ;
    AFNI_plugin_array * outar , * tmpar ;
    int epos , ll , ii , id ;
    THD_string_array *qlist ; /* 02 Feb 2002 */
@@ -268,18 +268,22 @@ ENTRY("PLUG_get_many_plugins") ;
    if( epath == NULL )
       epath = getenv("AFNI_PLUGIN_PATH") ; /* try another name? */
 
-   if( epath == NULL )
-      epath = getenv("PATH") ;             /* try another name? */
-
-   if( epath == NULL && pname != NULL && pname[0] != '\0' ){ /* 29 Mar 2001: */
-      char *ep = strdup(pname) ;                             /* get the path  */
-      char *tp = THD_trailname(ep,0) ;                       /* to the program */
-      *tp = '\0' ;
-      if( strlen(ep) > 0 ) epath = ep ;    /* got some path */
-      else                 free(ep) ;      /* got zipperoni */
+   if( epath == NULL ){
+     epath = getenv("PATH") ;              /* try yet another name? */
+     if( epath != NULL )
+       fprintf(stderr,
+               "\n++ WARNING: AFNI_PLUGINPATH not set; searching PATH\n") ;
    }
 
-   if( epath == NULL ) epath = efake ;     /* put in a fake path instead? */
+   if( epath == NULL && pname != NULL && strchr(pname,'/') != NULL ){ /* 29 Mar 2001 */
+     char *ep = strdup(pname) ;                                       /* get path    */
+     char *tp = THD_trailname(ep,0) ;                                 /* to program  */
+     *tp = '\0' ;
+     if( strlen(ep) > 0 ) epath = ep ;    /* got some path */
+     else                 free(ep) ;      /* got zipperoni */
+   }
+
+   if( epath == NULL ) epath = "./:/usr/local/bin" ; /* put in a fake path instead? */
 
    INIT_SARR(qlist) ; /* 02 Feb 2002: list of checked directories */
 
@@ -329,7 +333,7 @@ if(PRINT_TRACING)
       tmpar = PLUG_get_all_plugins( ename ) ;             /* read this directory */
       if( tmpar != NULL ){
          for( ii=0 ; ii < tmpar->num ; ii++ )             /* move results to output */
-            ADDTO_PLUGIN_ARRAY( outar , tmpar->plar[ii] ) ;
+           ADDTO_PLUGIN_ARRAY( outar , tmpar->plar[ii] ) ;
 
          FREE_PLUGIN_ARRAY(tmpar) ;                       /* toss temp array */
       }

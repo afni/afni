@@ -121,6 +121,8 @@ void         nifti_image_infodump( nifti_image *nim ) ;
 char *       nifti_image_to_ascii  ( nifti_image *nim ) ;
 nifti_image *nifti_image_from_ascii( char *str        ) ;
 
+int          is_nifti_file( char *hname ) ;
+
 void nifti_datatype_sizes( int datatype , int *nbyper, int *swapsize ) ;
 
 void mat44_to_quatern( mat44 R ,
