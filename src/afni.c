@@ -6239,7 +6239,8 @@ STATUS(" ---- set threshold decim NEW") ;
 
       if( ISFUNCBUCKET(im3d->fim_now) ){
          static THD_3dim_dataset *old_fim = NULL ;  /* 12 Dec 2001 */
-         if( im3d->fim_now != old_fim ){
+         static Three_D_View     *old_im3d = NULL ; /* 29 Jan 2002 */
+         if( im3d->fim_now != old_fim || im3d != old_im3d ){
 STATUS(" ---- func bucket widgets ON") ;
           XtUnmanageChild( im3d->vwid->func->functype_bbox->wtop )  ;
           refit_MCW_optmenu( im3d->vwid->func->fim_buck_av ,
@@ -6260,7 +6261,8 @@ STATUS(" ---- func bucket widgets ON") ;
                            ) ;
           XtManageChild  ( im3d->vwid->func->fim_buck_av->wrowcol ) ;
           XtManageChild  ( im3d->vwid->func->thr_buck_av->wrowcol ) ;
-          old_fim = im3d->fim_now ;
+          old_fim  = im3d->fim_now ;
+          old_im3d = im3d ;
          }
          do_buck = 1 ;
       } else {
