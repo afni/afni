@@ -1,5 +1,5 @@
 # This Makefile works on FreeBSD 3.2 with openmotif 2.1.30,
-# and also on FreeBSD 4.3 with a standard X developer installation.
+# and also on FreeBSD 4.x with a standard X developer installation.
 # It is nearly identical to the Makefile for Linux RedHat 6.x
 # Contributed by: Jason Bacon
 
@@ -32,7 +32,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./abin
+INSTALLDIR = ./FreeBSD
 LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
