@@ -2187,6 +2187,7 @@ typedef struct {
    float fval;
    byte *mmask;
    int full_list;
+   THD_3dim_dataset *mset;
 }  SUMA_FORM_AFNI_DSET_STRUCT;
  
 #endif

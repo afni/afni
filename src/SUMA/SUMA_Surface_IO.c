@@ -5972,6 +5972,7 @@ SUMA_FORM_AFNI_DSET_STRUCT *SUMA_New_FormAfniDset_Opt(void)
    Opt = (SUMA_FORM_AFNI_DSET_STRUCT*)SUMA_malloc(sizeof(SUMA_FORM_AFNI_DSET_STRUCT));
    
    Opt->master = NULL;
+   Opt->mset = NULL;
    Opt->mask = NULL;
    Opt->prefix = NULL;
    Opt->prefix_path = NULL;
@@ -5997,7 +5998,10 @@ SUMA_FORM_AFNI_DSET_STRUCT *SUMA_Free_FormAfniDset_Opt(SUMA_FORM_AFNI_DSET_STRUC
    if (!Opt) SUMA_RETURN(NULL);
    
    if (Opt->master) SUMA_free(Opt->master);
-   if (Opt->mask) SUMA_free(Opt->mask);   
+   if (Opt->mask) SUMA_free(Opt->mask);  
+   if (Opt->mset) {
+      SUMA_SL_Warn("mset is not freed in this function.\nMake sure it is not a lost pointer.\nSet mset to NULL to avoid seeing this message");
+   } 
    if (Opt->prefix) SUMA_free(Opt->prefix);
    if (Opt->prefix_path) SUMA_free(Opt->prefix_path);
    if (Opt->mmask) SUMA_free(Opt->mmask);
@@ -6068,8 +6072,12 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
       SUMA_SL_Err("Can't use mm coords without master.") ;
       SUMA_RETURN(NULL);
    }
-   if( Opt->master == NULL && Opt->dimen_ii < 2 ) {
+   if( (Opt->master == NULL && Opt->mset == NULL) && Opt->dimen_ii < 2 ) {
       SUMA_SL_Err("Must use exactly one of Opt->master or Opt->dimen options");
+      SUMA_RETURN(NULL);
+   }
+   if (Opt->master && Opt->mset) {
+      SUMA_SL_Err("Cannot use Opt->master and Opt->mset");
       SUMA_RETURN(NULL);
    }
    
@@ -6112,7 +6120,9 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
          SUMA_RETURN(dset);
       }
    }
-   if (Opt->master && Opt->orcode) {
+   if (Opt->mset) mset = Opt->mset;
+   
+   if ((Opt->master || Opt->mset) && Opt->orcode) {
       SUMA_SL_Err("Cannot have bothpt->master && Opt->orcode");
       SUMA_RETURN(dset);      
    }
@@ -6377,7 +6387,7 @@ THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, S
    
    if (orcode) free(orcode); orcode = NULL;
    if (mmask && !Opt->mmask) free(mmask); mmask = NULL;
-   if (mset) DSET_delete(mset); mset = NULL; 
+   if (mset && !Opt->mset) DSET_delete(mset); mset = NULL; 
 
    SUMA_RETURN(dset);      
 }
