@@ -4118,3 +4118,15 @@
  * Modified afni_niml.c and afni_sumafunc.c to create functional
      colormaps for all surfaces on the anat dataset, not just the
      first surface.  Also fixed it so that fim=0 is not overlaid.
+ * Modified thd_iochan.c to use IOCHAN_DELAY_RMID environment variable
+     to indicate that deletion of shm segments should only occur when
+     no one is attached to them.  This is to get around a problem on
+     some Unices.
+ * Modified Makefile.INCLUDE rule for cjpeg to remove old Makefile and
+     jconfig.h, since these are re-made by the configure script.
+ * Modified niml.c to shmdt() before shmctl(IPC_RMID) instead of after.
+ * Modified afni.c to skip version check if realtime is on.  Also modified
+     afni_version.c to add an atexit() handler to delete the child-parent
+     shared memory IOCHAN when the program exit()'s.
+ * Modified rtfeedme.c to add a signal handler to close the data IOCHAN
+     if the program crashes.

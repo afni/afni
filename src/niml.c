@@ -4726,7 +4726,7 @@ static key_t SHM_string_to_key( char * key_string )
 
    kk = (key_t) sum ;
 #ifdef IPC_PRIVATE
-   if( kk == IPC_PRIVATE ) kk = 666 ;
+   if( kk == IPC_PRIVATE || kk <= 0 ) kk = 666 ;
 #endif
    return kk ;
 }
@@ -4828,16 +4828,16 @@ static int SHM_fill_accept( SHMioc *ioc )
    if( SHM_nattach(ioc->id) != 2 ){                  /* 2 processes?  */
       NI_sleep(10) ;                                 /* wait a bit,   */
       if( SHM_nattach(ioc->id) != 2 ){               /* and try again */
-        shmctl( ioc->id , IPC_RMID , NULL ) ;        /* this is bad!  */
-        shmdt( bbb ) ;
+        shmdt( bbb ) ;                               /* this is bad!  */
+        shmctl( ioc->id , IPC_RMID , NULL ) ;
         ioc->bad = SHM_IS_DEAD ; return -1 ;
       }
    }
 
    jj = SHM_size(ioc->id) ;                          /* shmbuf size   */
    if( jj <= SHM_HSIZE ){                            /* too small?    */
-      shmctl( ioc->id , IPC_RMID , NULL ) ;          /* this is bad!  */
-      shmdt( bbb ) ;
+      shmdt( bbb ) ;                                 /* this is bad!  */
+      shmctl( ioc->id , IPC_RMID , NULL ) ;
       ioc->bad = SHM_IS_DEAD ; return -1 ;
    }
 
@@ -4855,8 +4855,8 @@ static int SHM_fill_accept( SHMioc *ioc )
    ioc->buf2     = ioc->buf1    + ioc->bufsize1 ;    /* buffer 2      */
 
    if( jj < SHM_HSIZE+ioc->bufsize1+ioc->bufsize2 ){ /* too small?    */
-      shmctl( ioc->id , IPC_RMID , NULL ) ;          /* this is bad!  */
-      shmdt( bbb ) ;
+      shmdt( bbb ) ;                                 /* this is bad!  */
+      shmctl( ioc->id , IPC_RMID , NULL ) ;
       ioc->bad = SHM_IS_DEAD ; return -1 ;
    }
 
@@ -5000,15 +5000,16 @@ static SHMioc * SHM_init( char * name , char * mode )
       *(ioc->bend2)   = size2-1 ;
 
       NI_sleep(1) ;
-      jj= SHM_nattach(ioc->id) ;                           /* # processes */
+      jj = SHM_nattach(ioc->id) ;                          /* # processes */
 
       if( jj < 2 ){
         NI_sleep(2) ; jj = SHM_nattach(ioc->id) ;
       }
 
       if( jj > 2 ){                                        /* should not  */
-        shmctl( ioc->id , IPC_RMID , NULL ) ;              /* happen ever */
-        shmdt( bbb ) ; free(ioc) ; return NULL ;
+        shmdt( bbb ) ;                                     /* happen ever */
+        shmctl( ioc->id , IPC_RMID , NULL ) ;
+        free(ioc) ; return NULL ;
       }
 
       ioc->bad  = (jj < 2)          /* ready if both   */
@@ -5033,7 +5034,7 @@ static int SHM_alivecheck( int shmid )
 
 /*------------------------------------------*/
 #ifndef NEXTDMS
-#define NEXTDMS(dm) MIN(1.1*(dm)+1.01,99.0)
+#define NEXTDMS(dm) MIN(1.1*(dm)+1.01,99.0)  /* expanding wait interval */
 #endif
 /*------------------------------------------*/
 
@@ -5060,8 +5061,8 @@ static int SHM_goodcheck( SHMioc * ioc , int msec )
    if( ioc->bad == 0 ){
      ii = SHM_alivecheck(ioc->id) ;
      if( ii <= 0 ){                            /* has died */
-        shmctl( ioc->id , IPC_RMID , NULL ) ;
-        shmdt( ioc->shmbuf ) ; ioc->bad = SHM_IS_DEAD ; return -1 ;
+        shmdt( ioc->shmbuf ) ; ioc->bad = SHM_IS_DEAD ;
+        shmctl( ioc->id , IPC_RMID , NULL ) ; return -1 ;
      }
      return 1 ;
    }
@@ -5117,8 +5118,9 @@ static void SHM_close( SHMioc *ioc )
    if( ioc == NULL ) return ;
 
    if( ioc->id >= 0 && ioc->bad != SHM_IS_DEAD ){
-      shmctl( ioc->id , IPC_RMID , NULL ) ;
       shmdt( ioc->shmbuf ) ;
+      shmctl( ioc->id , IPC_RMID , NULL ) ;
+      ioc->bad = SHM_IS_DEAD ;
    }
 
    free(ioc) ; return ;
