@@ -9960,13 +9960,14 @@ ENTRY("ISQ_snapshot") ;
 void ISQ_snapsave( int ww , int hh , byte *pix , Widget w )
 {
    MRI_IMAGE *tim ;
+   byte *qix ;
 
 ENTRY("ISQ_snapsave") ;
 
    if( ww < 2 || hh < 2 || pix == NULL ) EXRETURN ;
 
-   tim = mri_new_vol_empty( ww,hh,1, MRI_rgb ); mri_fix_data_pointer( pix,tim );
+   tim = mri_new( ww,hh, MRI_rgb );
+   qix = MRI_RGB_PTR(tim) ; memcpy( qix , pix , 3*ww*hh ) ;
    SNAP_store_image( tim , w ) ;
-   mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
    EXRETURN ;
 }
