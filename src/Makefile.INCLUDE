@@ -1568,7 +1568,7 @@ ibinom:ibinom.o
 ## GIF animation
 
 whirlgif:whirlgif.h whirlgif.c
-	$(CC) -o whirlgif -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
 
 extor.o:extor.c
 	$(CCFAST) -c extor.c $(IFLAGS)
