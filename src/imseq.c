@@ -4679,6 +4679,25 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
            }
            break ;
 
+           case 'b':
+           case 'B':{
+             if( seq->button2_enabled ){
+               MCW_popup_message( w, " \n Not when \n"
+                                        " Drawing! \n ", MCW_USER_KILL );
+               XBell(seq->dc->display,100) ;
+             } else if( seq->status->num_total > 1 ){      /* bring it on */
+               seq->timer_func  = ISQ_TIMERFUNC_BOUNCE ;
+               seq->timer_delay = (int) AFNI_numenv("AFNI_VIDEO_DELAY") ;
+               if( seq->timer_delay <= 0 ) seq->timer_delay = 1 ;
+               seq->timer_param = (buf[0] == 'b') ? 1 : -1 ;
+               seq->timer_id    =
+                 XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
+                                  seq->timer_delay , ISQ_timer_CB , seq ) ;
+             }
+             EXRETURN ;
+           }
+           break ;
+
            /* 07 Dec 2002: scroll forward or backward
                            using '<' or '>' keys (like graphs) */
 
@@ -10422,6 +10441,21 @@ ENTRY("ISQ_timer_CB") ;
        int nn=seq->im_nr , nt=seq->status->num_total ;
        if( nt > 1 && seq->timer_param != 0 ){
          nn = (nn+seq->timer_param+nt) % nt ;
+         ISQ_redisplay( seq , nn , isqDR_display ) ;
+         redo = 1 ;
+       }
+     }
+     break ;
+
+     case ISQ_TIMERFUNC_BOUNCE:{
+       int nn=seq->im_nr , nt=seq->status->num_total ;
+       if( nt > 1 && seq->timer_param != 0 ){
+         nn = nn + seq->timer_param ;
+         if( nn <  0  ){
+           nn = -nn; seq->timer_param = -seq->timer_param;
+         } else if( nn >= nt ){
+           nn = 2*(nt-1)-nn; seq->timer_param = -seq->timer_param;
+         }
          ISQ_redisplay( seq , nn , isqDR_display ) ;
          redo = 1 ;
        }

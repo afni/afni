@@ -492,7 +492,8 @@ typedef struct MCW_imseq {
      int          timer_func, timer_param, timer_delay ;
 } MCW_imseq ;
 
-#define ISQ_TIMERFUNC_INDEX 701
+#define ISQ_TIMERFUNC_INDEX  701
+#define ISQ_TIMERFUNC_BOUNCE 702
 
 extern void ISQ_timer_CB( XtPointer , XtIntervalId * ) ; /* 03 Dec 2003 */
 extern void ISQ_timer_stop( MCW_imseq * ) ;
