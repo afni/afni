@@ -50,9 +50,9 @@ static int  VL_verbose     = 0 ;
 static char VL_dfile[256]  = "\0" ;
 static char VL_1Dfile[256] = "\0" ;  /* 14 Apr 2000 */
 
-static int VL_maxite = 9 ;
-static float VL_dxy  = 0.05 ;  /* voxels */
-static float VL_dph  = 0.07 ;  /* degrees */
+static int VL_maxite = 19 ;
+static float VL_dxy  = 0.02;  /* voxels */
+static float VL_dph  = 0.03 ;  /* degrees */
 static float VL_del  = 0.70 ;  /* voxels */
 
 static int VL_rotcom = 0 ;     /* 04 Sep 2000: print out 3drotate commands? */
@@ -487,11 +487,15 @@ int main( int argc , char *argv[] )
          if( VL_verbose )
            fprintf(stderr,"++ Blurring first pass weight\n") ;
 
+#if 1
          EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
                               MRI_float , qar ,
                               VL_twoblur,VL_twoblur,VL_twoblur ) ;
+#else
+         MRI_5blur_inplace_3D( qim ) ;              /* 07 Jun 2002 */
+#endif
 
-         clip = 0.01 * mri_max(qim) ;              /* 06 Jun 2002 */
+         clip = 0.025 * mri_max(qim) ;              /* 06 Jun 2002 */
          for( ii=0 ; ii < nxyz ; ii++ )
            if( qar[ii] < clip ) qar[ii] = 0.0 ;
 

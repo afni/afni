@@ -232,12 +232,16 @@ ENTRY("mri_3dalign_setup") ;
 
       for( ii=0 ; ii < nxyz ; ii++ ) f[ii] = fabs(f[ii]) ;  /* 16 Nov 1998 */
 
+#if 1
       EDIT_blur_volume_3d( nx,ny,nz , dx,dy,dz ,
                            MRI_float , f , 3.0*dx , 3.0*dy , 3.0*dz ) ;
+#else
+      MRI_5blur_inplace_3D( imww ) ;  /* 07 Jun 2002 */
+#endif
 
       if( verbose) fprintf(stderr,":") ;
 
-      clip  = 0.01 * mri_max(imww) ;
+      clip  = 0.025 * mri_max(imww) ;
       for( ii=0 ; ii < nxyz ; ii++ ) if( f[ii] < clip ) f[ii] = 0.0 ;
 
    } else {
@@ -251,10 +255,14 @@ ENTRY("mri_3dalign_setup") ;
         if( verbose ) fprintf(stderr,"  processing weight") ;
         f = MRI_FLOAT_PTR(imww) ;
         for( ii=0 ; ii < nxyz ; ii++ ) f[ii] = fabs(f[ii]) ;  /* 16 Nov 1998 */
+#if 1
         EDIT_blur_volume_3d( nx,ny,nz , dx,dy,dz ,
                              MRI_float , f , 3.0*dx , 3.0*dy , 3.0*dz ) ;
+#else
+        MRI_5blur_inplace_3D( imww ) ;  /* 07 Jun 2002 */
+#endif
         if( verbose) fprintf(stderr,":") ;
-        clip  = 0.01 * mri_max(imww) ;
+        clip  = 0.025 * mri_max(imww) ;
         for( ii=0 ; ii < nxyz ; ii++ ) if( f[ii] < clip ) f[ii] = 0.0 ;
       }
    }
@@ -321,10 +329,17 @@ ENTRY("mri_3dalign_setup") ;
    }
 
    VRANG("weight",imww) ;
+   if( verbose ){
+     float *f=MRI_FLOAT_PTR(imww) , perc ;
+     int ii , nxyz = imww->nvox , nzer=0 ;
+     for( ii=0 ; ii < nxyz ; ii++ ) nzer += (f[ii] == 0.0) ;
+     perc = (100.0*nzer)/nxyz ;
+     fprintf(stderr,"  # zero weights=%d out of %d (%.1f%%)\n",nzer,nxyz,perc);
+   }
 
    /*-- base image --*/
 
-   INIT_IMARR ( fitim ) ;            /* array of fitting images */
+   INIT_IMARR( fitim ) ;             /* array of fitting images */
 
    if( DOTRIM ) bim = IMTRIM(cim) ;  /* a trimmed duplicate */
    else         bim = cim ;          /* base image */
