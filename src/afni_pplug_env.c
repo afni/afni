@@ -246,16 +246,16 @@ PLUGIN_interface * ENV_init(void)
                     0 , 40 , 3 , 3 , NULL ) ;
 
    if( SUMA_ENABLED ){
-     ENV_add_string( "AFNI_SUMA_BOXCOLOR" ,
-                     "Name of color for surface node overlays" , /* 21 Sep 2001 */
+     ENV_add_string( "AFNI_SUMA_BOXCOLOR" ,                   /* 21 Sep 2001 */
+                     "Color name for surface node overlays [or none]" ,
                      0,NULL , NULL ) ;
 
-     ENV_add_numeric( "AFNI_SUMA_BOXSIZE" ,
-                      "Box size for surface node overlays" ,     /* 10 Mar 2002 */
+     ENV_add_numeric( "AFNI_SUMA_BOXSIZE" ,                   /* 10 Mar 2002 */
+                      "Box size for surface node overlays" ,
                       1 , 10 , 1 , 2 , NULL ) ;
 
-     ENV_add_string( "AFNI_SUMA_LINECOLOR" ,
-                     "Name of color for surface line overlays" , /* 10 Mar 2002 */
+     ENV_add_string( "AFNI_SUMA_LINECOLOR" ,                  /* 10 Mar 2002 */
+                     "Color name for surface line overlays [or none]" ,
                      0,NULL , NULL ) ;
    }
 

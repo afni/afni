@@ -347,9 +347,11 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                  nel->vec_filled , DSET_FILECODE(dset) ) ;
      AFNI_popup_message( msg ) ;
 
+#if 1
      dont_tell_suma = 1 ;
      PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
      dont_tell_suma = 0 ;
+#endif
 
      XtSetSensitive( GLOBAL_library.controllers[0]->vwid->imag->pop_sumato_pb,
                      True  ) ;
@@ -454,7 +456,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                  nel->vec_filled , DSET_FILECODE(dset) ) ;
      AFNI_popup_message( msg ) ;
 
-#if 0
+#if 1
      dont_tell_suma = 1 ;
      PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
      dont_tell_suma = 0 ;

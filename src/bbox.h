@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _MCW_BBOX_HEADER_
 #define _MCW_BBOX_HEADER_
 
@@ -204,6 +204,16 @@ extern char * MCW_av_substring_CB( MCW_arrowval * , XtPointer ) ;
       if( exp ) MCW_expose_widget(av->wrowcol) ;                \
    } } while(0)
 
+/* following 2 macros added 12 Mar 2002 */
+
+#define AV_SENSITIZE_UP(av,sss)                                 \
+   do{ if( av != NULL && av->wup != NULL )                      \
+         XtSetSensitive(av->wup,sss); } while(0)
+
+#define AV_SENSITIZE_DOWN(av,sss)                               \
+   do{ if( av != NULL && av->wdown != NULL )                    \
+         XtSetSensitive(av->wdown,sss); } while(0)
+
 /*---------------------------------------------------------------------------------*/
 
 #define POPDOWN_ovcolor_chooser    MCW_choose_ovcolor(NULL,NULL,0,NULL,NULL)
@@ -339,5 +349,49 @@ extern MCW_arrowpad * new_MCW_arrowpad( Widget , gen_func * , XtPointer ) ;
 
 extern void AP_press_CB( Widget , XtPointer , XtPointer ) ;
 extern void AP_timer_CB( XtPointer , XtIntervalId * ) ;
+
+/*! toggle sensitivity of an arrowpad */
+
+#define AP_SENSITIZE(ap,sss)                            \
+   do{ Boolean sen = (Boolean) sss ;                    \
+       if( ap != NULL ) {                               \
+        int exp = (XtIsSensitive(ap->wform) != sen) ;   \
+        XtSetSensitive(ap->wbut[0],sen);                \
+        XtSetSensitive(ap->wbut[1],sen);                \
+        XtSetSensitive(ap->wbut[2],sen);                \
+        XtSetSensitive(ap->wbut[3],sen);                \
+        XtSetSensitive(ap->wbut[4],sen);                \
+        XtSetSensitive(ap->wform,sen);                  \
+        if( exp ) MCW_expose_widget(ap->wform) ;        \
+   } } while(0)
+
+#define AP_MANGLIZE(ap)                                   \
+  do{ if( ap != NULL ){                                   \
+         XtUnmanageChild( ap->wbut[4] ) ;                 \
+         XtUnmanageChild( ap->wform ) ;                   \
+         XtVaSetValues( ap->wform ,                       \
+                        XmNfractionBase , 6 , NULL ) ;    \
+         XtVaSetValues( ap->wbut[0] ,                     \
+                        XmNtopPosition    , 4 ,           \
+                        XmNbottomPosition , 6 ,           \
+                        XmNleftPosition   , 3 ,           \
+                        XmNrightPosition  , 5 , NULL ) ;  \
+         XtVaSetValues( ap->wbut[1] ,                     \
+                        XmNtopPosition    , 0 ,           \
+                        XmNbottomPosition , 2 ,           \
+                        XmNleftPosition   , 3 ,           \
+                        XmNrightPosition  , 5 , NULL ) ;  \
+         XtVaSetValues( ap->wbut[2] ,                     \
+                        XmNtopPosition    , 2 ,           \
+                        XmNbottomPosition , 4 ,           \
+                        XmNleftPosition   , 2 ,           \
+                        XmNrightPosition  , 4 , NULL ) ;  \
+         XtVaSetValues( ap->wbut[3] ,                     \
+                        XmNtopPosition    , 2 ,           \
+                        XmNbottomPosition , 4 ,           \
+                        XmNleftPosition   , 4 ,           \
+                        XmNrightPosition  , 6 , NULL ) ;  \
+         XtManageChild( ap->wform ) ;                     \
+  } } while(0)
 
 #endif /* _MCW_BBOX_HEADER_ */

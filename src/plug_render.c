@@ -4296,6 +4296,7 @@ void REND_open_imseq( void )
    else {
       drive_MCW_imseq( imseq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
       drive_MCW_imseq( imseq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
+      drive_MCW_imseq( imseq , isqDR_zoombut , (XtPointer) 0 ) ; /* 12 Mar 2002 */
    }
 
    drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
@@ -4349,6 +4350,7 @@ void REND_update_imseq( void )
    else {
       drive_MCW_imseq( imseq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
       drive_MCW_imseq( imseq , isqDR_opacitybut , (XtPointer) 0 ) ; /* 07 Mar 2001 */
+      drive_MCW_imseq( imseq , isqDR_zoombut , (XtPointer) 0 ) ; /* 12 Mar 2002 */
    }
 
    drive_MCW_imseq( imseq , isqDR_reimage , (XtPointer)(ntot-1) ) ;

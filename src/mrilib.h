@@ -553,8 +553,10 @@ extern MRI_IMAGE * mri_cut_2D( MRI_IMAGE * , int,int,int,int ) ;
 
 /** 15 Apr 1999 **/
 
-extern void mri_upsample( int , int , float * , float * ) ;
+extern void upsample_7( int , int , float * , float * ) ;
+extern void upsample_1( int , int , float * , float * ) ; /* 12 Mar 2002 */
 extern MRI_IMAGE * mri_dup2D( int , MRI_IMAGE * ) ;
+extern void        mri_dup2D_mode( int ) ;                /* 12 Mar 2002 */
 
 extern MRI_IMAGE * mri_copy( MRI_IMAGE * ) ;             /* 17 Apr 2000 */
 extern MRI_IMAGE *mri_new( int , int , MRI_TYPE ) ;

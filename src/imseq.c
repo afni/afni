@@ -534,6 +534,11 @@ static char * ISQ_arrow_hint[NARROW] = {
 #define OPACITY_BOT  0
 #define OPACITY_TOP  9
 
+#ifdef ALLOW_ZOOM             /* 11 Mar 2002: zoom controls */
+# define ZOOM_BOT  1
+# define ZOOM_TOP  4
+#endif
+
 MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
                             get_ptr get_image , XtPointer aux )
 {
@@ -543,6 +548,7 @@ MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
    float fac ;
    MRI_IMAGE * tim ;
    float minfrac=DEFAULT_MINFRAC ; char * eee ; /* 27 Feb 2001 */
+   Widget wtemp ;                               /* 11 Mar 2002 */
 
 ENTRY("open_MCW_imseq") ;
 
@@ -987,6 +993,8 @@ if( PRINT_TRACING ){
 
    /** 07 Mar 2001 - add opacity control for overlay, maybe **/
 
+   wtemp = newseq->arrow[NARROW-1]->wrowcol ;  /* 11 Mar 2002 */
+
    newseq->ov_opacity = 1.0 ;  /* 06 Mar 2001 */
 
    if( newseq->dc->visual_class == TrueColor ){
@@ -1000,9 +1008,9 @@ if( PRINT_TRACING ){
                                    XmNseparatorType , XmSINGLE_LINE ,
                                    EDGING_RIG   , XmATTACH_FORM ,
                                    LEADING_RIG  , XmATTACH_WIDGET ,
-                                   LEADING_WIDGET_RIG , newseq->arrow[NARROW-1]->wrowcol ,
+                                   LEADING_WIDGET_RIG , wtemp ,
                                    XmNleftAttachment , XmATTACH_OPPOSITE_WIDGET ,
-                                   XmNleftWidget , newseq->arrow[NARROW-1]->wrowcol ,
+                                   XmNleftWidget , wtemp ,
                                    XmNleftOffset , 7 ,
                                 NULL ) ;
      newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->ov_opacity_sep ;
@@ -1031,6 +1039,8 @@ if( PRINT_TRACING ){
                       LEADING_WIDGET_RIG , newseq->ov_opacity_sep ,
                     NULL ) ;
 
+     wtemp = newseq->ov_opacity_av->wrowcol ; /* 11 Mar 2002 */
+
      MCW_reghelp_children( newseq->ov_opacity_av->wrowcol,
                            "Controls the opacity\n"
                            "of the color overlay:\n"
@@ -1042,6 +1052,71 @@ if( PRINT_TRACING ){
      newseq->ov_opacity_av  = NULL ;
      newseq->ov_opacity_sep = NULL ;
    }
+
+#ifdef ALLOW_ZOOM
+     newseq->zoom_sep = XtVaCreateManagedWidget(
+                         "dialog" , xmSeparatorWidgetClass , newseq->wform ,
+                            XmNseparatorType , XmSINGLE_LINE ,
+                            EDGING_RIG   , XmATTACH_FORM ,
+                            LEADING_RIG  , XmATTACH_WIDGET ,
+                            LEADING_WIDGET_RIG , wtemp ,
+                            XmNleftAttachment , XmATTACH_OPPOSITE_WIDGET ,
+                            XmNleftWidget , wtemp ,
+                            XmNleftOffset , 7 ,
+                         NULL ) ;
+     newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->zoom_sep ;
+
+     newseq->zoom_val_av = new_MCW_arrowval(
+                               newseq->wform ,        /* parent */
+                               "z" ,                  /* label */
+                               MCW_AV_downup ,        /* direction */
+                               ZOOM_BOT ,             /* min */
+                               ZOOM_TOP ,             /* max */
+                               ZOOM_BOT ,             /* init */
+                               MCW_AV_notext ,        /* type */
+                               0 ,                    /* decim */
+                               ISQ_zoom_CB ,          /* action CB */
+                               (XtPointer) newseq ,   /* and its data */
+                               NULL ,                 /* text maker */
+                               NULL                   /* and its data */
+                             ) ;
+     newseq->zoom_val_av->parent = (XtPointer) newseq ;
+     newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->zoom_val_av->wrowcol ;
+     XtVaSetValues( newseq->zoom_val_av->wrowcol ,
+                      EDGING_RIG   , XmATTACH_FORM ,
+                      LEADING_RIG  , XmATTACH_WIDGET ,
+                      LEADING_WIDGET_RIG , newseq->zoom_sep ,
+                    NULL ) ;
+     MCW_reghint_children( newseq->zoom_val_av->wrowcol, "Image zoom level" );
+     AV_SENSITIZE_DOWN( newseq->zoom_val_av , False ) ;
+
+     newseq->zoom_apad = new_MCW_arrowpad( newseq->wform ,
+                                           ISQ_zoom_CB , (XtPointer) newseq ) ;
+
+     newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->zoom_apad->wform ;
+
+     XtVaSetValues( newseq->zoom_apad->wform ,
+                      EDGING_RIG   , XmATTACH_FORM ,
+                      LEADING_RIG  , XmATTACH_WIDGET ,
+                      LEADING_WIDGET_RIG , newseq->zoom_val_av->wrowcol ,
+                  NULL ) ;
+
+     newseq->zoom_apad->parent = (XtPointer) newseq ;
+
+     AP_MANGLIZE( newseq->zoom_apad ) ;
+
+     AP_SENSITIZE( newseq->zoom_apad , 0 ) ;
+
+     wtemp = newseq->zoom_apad->wform ;
+
+     newseq->zoom_fac     = 1   ;     /* initialize data for zooming */
+     newseq->zoom_hor_off = 0.0 ;
+     newseq->zoom_ver_off = 0.0 ;
+     newseq->zoom_pixmap  = (Pixmap) 0 ;
+     newseq->zoom_pw      = 0 ;
+     newseq->zoom_ph      = 0 ;
+     newseq->zoom_xim     = NULL ;
+#endif
 
    /* scale for image number */
 
@@ -1471,6 +1546,95 @@ void ISQ_opacity_CB( MCW_arrowval * av , XtPointer cd ) /* 07 Mar 2001 */
    ISQ_redisplay( seq , -1 , isqDR_display ) ;
    return ;
 }
+
+/*-----------------------------------------------------------------------*/
+
+#ifdef ALLOW_ZOOM
+
+/*! Callback for the zoom buttons */
+
+void ISQ_zoom_CB( void *apv , XtPointer cd ) /* 11 Mar 2002 */
+{
+   MCW_imseq    *seq = (MCW_imseq *) cd ;
+   MCW_arrowval *av  = seq->zoom_val_av ;
+   MCW_arrowpad *ap  = seq->zoom_apad   ;
+
+ENTRY("ISQ_zoom_CB") ;
+
+   /*-- change zoom factor --*/
+
+   if( apv == (void *)av ){
+      XmString xstr ; int zlev=av->ival , zold=seq->zoom_fac ;
+      xstr = XmStringCreateLtoR( (zlev==1)?"z":"Z" , XmFONTLIST_DEFAULT_TAG );
+      XtVaSetValues( av->wlabel , XmNlabelString , xstr , NULL ) ;
+      XmStringFree( xstr ) ;
+
+      seq->zoom_fac = zlev ;   /* change recorded zoom factor */
+      if( zlev == 1 ){
+         seq->zoom_hor_off = seq->zoom_ver_off = 0.0 ; /* no offsets */
+      } else {
+         float mh = (zlev-1.001)/zlev ;        /* max offset allowed */
+         float dh = 0.5*(1.0/zold-1.0/zlev) ;  /* change in offset to */
+                                               /* keep current center */
+         seq->zoom_hor_off += dh ;
+         seq->zoom_ver_off += dh ;
+              if( seq->zoom_hor_off > mh  ) seq->zoom_hor_off = mh  ;
+         else if( seq->zoom_hor_off < 0.0 ) seq->zoom_hor_off = 0.0 ;
+              if( seq->zoom_ver_off > mh  ) seq->zoom_ver_off = mh  ;
+         else if( seq->zoom_ver_off < 0.0 ) seq->zoom_ver_off = 0.0 ;
+      }
+
+      /* turn some arrows on/off depending on zoom level */
+
+      AP_SENSITIZE( seq->zoom_apad , (zlev>1) ) ;
+
+      AV_SENSITIZE_DOWN( seq->zoom_val_av , (zlev > 1       ) ) ;
+      AV_SENSITIZE_UP  ( seq->zoom_val_av , (zlev < ZOOM_TOP) ) ;
+
+      /* free pixmap (need a new one for a new image size) */
+
+      if( seq->zoom_pixmap != (Pixmap) 0 ){
+         XFreePixmap( seq->dc->display , seq->zoom_pixmap ) ;
+         seq->zoom_pixmap = (Pixmap) 0 ; seq->zoom_pw = seq->zoom_ph = 0 ;
+      }
+
+      /* free zoomed image (need a new one for a new image size) */
+
+      MCW_kill_XImage(seq->zoom_xim) ; seq->zoom_xim = NULL ;
+
+      /* must redisplay image totally */
+
+      ISQ_redisplay( seq , -1 , isqDR_display ) ;
+
+   } else {
+
+     /*-- if here, change offset from arrowpad --*/
+
+     int zlev=seq->zoom_fac ;
+     float mh=(zlev-1.001)/zlev , dh = 0.25/zlev ,
+           hh=seq->zoom_hor_off , hhold=hh , vv=seq->zoom_ver_off , vvold=vv ;
+
+     if( zlev == 1 ) EXRETURN ;  /* should not happen */
+
+     switch( ap->which_pressed ){
+       case AP_MID:              /* should not happen */ break ;
+       case AP_DOWN:  vv += dh ; if( vv > mh ) vv = mh ; break ;
+       case AP_UP:    vv -= dh ; if( vv < 0.0) vv = 0.0; break ;
+       case AP_LEFT:  hh -= dh ; if( hh < 0.0) hh = 0.0; break ;
+       case AP_RIGHT: hh += dh ; if( hh > mh ) hh = mh ; break ;
+     }
+
+     if( vv == vvold && hh == hhold ){   /* no changes? beep him! */
+        XBell(seq->dc->display,100) ;
+     } else {                            /* show the image again */
+        seq->zoom_hor_off = hh ; seq->zoom_ver_off = vv ;
+        ISQ_redisplay( seq , -1 , isqDR_reshow ) ;
+     }
+   }
+
+   EXRETURN ;
+}
+#endif
 
 /*-----------------------------------------------------------------------*/
 
@@ -3020,6 +3184,16 @@ ENTRY("ISQ_free_alldata") ;
    FREE_AV( seq->slice_proj_av )       ; /* 31 Jan 2002 */
    FREE_AV( seq->slice_proj_range_av ) ;
 
+#ifdef ALLOW_ZOOM                        /* 11 Mar 2002 */
+   FREE_AV( seq->zoom_val_av ) ;
+   myXtFree( seq->zoom_apad ) ;
+   if( seq->zoom_pixmap != (Pixmap) 0 ){
+     XFreePixmap( seq->dc->display , seq->zoom_pixmap ) ;
+     seq->zoom_pixmap = (Pixmap) 0 ;
+   }
+   MCW_kill_XImage( seq->zoom_xim ) ; seq->zoom_xim = NULL ;
+#endif
+
    if( seq->rowgraph_mtd != NULL ){                /* 30 Dec 1998 */
       seq->rowgraph_mtd->killfunc = NULL ;
       plotkill_topshell( seq->rowgraph_mtd ) ;
@@ -3159,7 +3333,13 @@ ENTRY("ISQ_redisplay") ;
    if( kill_im ) KILL_1MRI( seq->imim ) ;
    if( kill_ov ) KILL_1MRI( seq->ovim ) ;
 
-   if( kill_ov || kill_im ) KILL_2XIM( seq->given_xim  , seq->sized_xim  ) ;
+   if( kill_ov || kill_im ) KILL_2XIM( seq->given_xim , seq->sized_xim  ) ;
+
+#ifdef ALLOW_ZOOM
+   if( kill_ov || kill_im ){
+      MCW_kill_XImage( seq->zoom_xim ) ; seq->zoom_xim = NULL ;
+   }
+#endif
 
    ISQ_show_image( seq ) ;
    ISQ_rowgraph_draw( seq ) ;
@@ -3167,6 +3347,9 @@ ENTRY("ISQ_redisplay") ;
 
    /* 24 Apr 2001: handle image recording */
 
+#ifdef ALLOW_ZOOM
+   if( seq->zoom_fac == 1 ){                 /* 11 Mar 2002 */
+#endif
    if( RECORD_ISON(seq->record_status) ){
       int pos , meth ;
 
@@ -3195,6 +3378,9 @@ ENTRY("ISQ_redisplay") ;
          MCW_invert_widget( seq->record_cbut ) ;
       }
    }
+#ifdef ALLOW_ZOOM
+   }
+#endif
 
    /* exit stage left */
 
@@ -3243,6 +3429,91 @@ ENTRY("ISQ_set_image_number") ;
    RETURN(1) ;
 }
 
+/*-----------------------------------------------------------------------*/
+#ifdef ALLOW_ZOOM
+static void ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
+{
+   int iw,ih , zlev=seq->zoom_fac , pw,ph , xoff,yoff ;
+
+ENTRY("ISQ_show_zoom") ;
+
+   /* find the size of the image window */
+
+   MCW_widget_geom( seq->wimage, &iw,&ih , NULL,NULL ) ;
+
+   /* pixmap should be size of image window, scaled up;
+      if it isn't that size already, free it right now */
+
+   pw = iw*zlev ; ph = ih*zlev ;
+
+   if( seq->zoom_pixmap != (Pixmap) 0 &&
+       (pw != seq->zoom_pw || ph != seq->zoom_ph) ){
+
+      XFreePixmap( seq->dc->display , seq->zoom_pixmap ) ;
+      seq->zoom_pixmap = (Pixmap) 0 ;
+   }
+
+   /* (re)make the pixmap, if needed;
+      it will be saved in the seq struct for next time */
+
+   if( seq->zoom_pixmap == (Pixmap) 0 ){
+      seq->zoom_pixmap = XCreatePixmap( seq->dc->display ,
+                                        XtWindow(seq->wimage) ,
+                                        pw , ph , seq->dc->depth ) ;
+      seq->zoom_pw = pw ; seq->zoom_ph = ph ;
+   }
+
+   /* scale up the given_xim, if needed;
+      it will be save in the seq struct for next time,
+      unless the image changes, in which case it will have been axed */
+
+   if( seq->zoom_xim == NULL ){
+     MRI_IMAGE *im , *tim ;
+     im  = XImage_to_mri( seq->dc, seq->given_xim, X2M_USE_CMAP|X2M_FORCE_RGB ) ;
+     mri_dup2D_mode(1); tim = mri_dup2D(zlev,im) ; mri_free(im) ;
+     seq->zoom_xim = mri_to_XImage(seq->dc,tim) ; mri_free(tim) ;
+   }
+
+   /* if zoomed image isn't same size as pixmap, resize it here */
+
+   if( pw != seq->zoom_xim->width || ph != seq->zoom_xim->height ){
+     XImage *sxim ;
+     sxim = resize_XImage( seq->dc , seq->zoom_xim , pw , ph ) ;
+     MCW_kill_XImage( seq->zoom_xim ) ;
+     seq->zoom_xim = sxim ;
+   }
+
+   /* every time: put the zoomed XImage into the Pixmap */
+
+   XPutImage( seq->dc->display ,
+              seq->zoom_pixmap ,
+              seq->dc->origGC  , seq->zoom_xim , 0,0,0,0 , pw,ph ) ;
+
+   /* every time: draw the overlay graph into the Pixmap */
+
+#if 1
+   if( !seq->opt.no_overlay && seq->mplot != NULL ){
+      memplot_to_X11_sef( seq->dc->display ,
+                          seq->zoom_pixmap , seq->mplot ,
+                          0,0,MEMPLOT_FREE_ASPECT        ) ;
+   }
+#endif
+
+   /* now we can copy the relevant area from
+      the pixmap we just re-drew into the image window */
+
+   xoff = seq->zoom_hor_off * pw ; if( xoff+iw > pw ) xoff = pw-iw ;
+   yoff = seq->zoom_ver_off * ph ; if( yoff+ih > ph ) yoff = ph-ih ;
+
+   XCopyArea( seq->dc->display ,
+              seq->zoom_pixmap ,
+              XtWindow(seq->wimage) , seq->dc->origGC ,
+              xoff , yoff , iw,ih , 0,0 ) ;
+
+   EXRETURN ;
+}
+#endif
+
 /*-----------------------------------------------------------------------
   actually put the image into window
   23 Apr 2001 - modified to deal with case of NULL image from
@@ -3266,6 +3537,16 @@ ENTRY("ISQ_show_image") ;
 #endif
 
    if( ! MCW_widget_visible(seq->wimage) ) EXRETURN ;  /* 03 Jan 1999 */
+
+#ifdef ALLOW_ZOOM
+   if( seq->given_xim != NULL &&
+       seq->zoom_fac  >  1    &&
+       seq->mont_nx   == 1    &&
+       seq->mont_ny   == 1      ){
+
+      ISQ_show_zoom( seq ) ; EXRETURN ;
+   }
+#endif
 
    if( seq->given_xim != NULL && seq->sized_xim == NULL ){
       int nx , ny ;
@@ -3542,7 +3823,7 @@ DPR(" .. KeyPress") ;
          /* 10 Mar 2002: quit if 'q' is pressed */
 
          if( buf[0] == 'q' ){
-            ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ; break ;
+           ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ; break ;
          }
 
          /* in record or Button2 mode, this is illegal */
@@ -3554,12 +3835,10 @@ DPR(" .. KeyPress") ;
          /* otherwise, notify the master, if we have one */
 
          if( w == seq->wimage && seq->status->send_CB != NULL ){
-
             cbs.reason = isqCR_keypress ;
             cbs.event  = ev ;
             cbs.key    = buf[0] ;
             cbs.nim    = seq->im_nr ;
-
             seq->status->send_CB( seq , seq->getaux , &cbs ) ;
          }
       }
@@ -3595,55 +3874,60 @@ DPR(" .. ButtonPress") ;
 
             case Button3:
             case Button1:{
-               int imx,imy,nim;
+              int imx,imy,nim;
 
-               /* while Button2 is active, nothing else is allowed */
+              /* while Button2 is active, nothing else is allowed */
 
-               if( seq->button2_active ){ XBell(seq->dc->display,100); EXRETURN; }
+              if( seq->button2_active ){ XBell(seq->dc->display,100); EXRETURN; }
 
-               if( w == seq->wimage && but == Button3 &&
-                   (event->state & (ShiftMask|ControlMask|Mod1Mask)) ){
+              /* Button3 presses in the image with a modifier
+                 key pressed also means to popup some menu    */
 
-                  /* 23 Oct 1996: Simulation of bottom buttons */
+              if( w == seq->wimage && but == Button3 &&
+                  (event->state & (ShiftMask|ControlMask|Mod1Mask)) ){
 
-                  if( (event->state & ShiftMask) &&
-                     !(event->state & ControlMask)  )
-                     ISQ_but_disp_CB( seq->wbut_bot[NBUT_DISP] , seq , NULL ) ;
+                /* 23 Oct 1996: Simulation of bottom buttons */
 
-                  else if( (event->state & ControlMask) ){
-                     if( seq->status->num_total > 1 && !(event->state & ShiftMask) ){
-                        ISQ_montage_CB( seq->wbut_bot[NBUT_MONT] , seq , NULL ) ;
-                     } else {
-                        XmMenuPosition( seq->wbar_menu , event ) ;
-                        XtManageChild ( seq->wbar_menu ) ;
-                     }
+                if( (event->state & ShiftMask) && !(event->state & ControlMask) )
+                  ISQ_but_disp_CB( seq->wbut_bot[NBUT_DISP] , seq , NULL ) ;
+
+                else if( (event->state & ControlMask) ){
+                  if( seq->status->num_total > 1 && !(event->state & ShiftMask) ){
+                    ISQ_montage_CB( seq->wbut_bot[NBUT_MONT] , seq , NULL ) ;
+                  } else {
+                    XmMenuPosition( seq->wbar_menu , event ) ;
+                    XtManageChild ( seq->wbar_menu ) ;
                   }
+                }
 
-                  else if( (seq->opt.save_one || seq->status->num_total > 1)
-                           && (event->state & Mod1Mask) )
-                     ISQ_but_save_CB( seq->wbut_bot[NBUT_SAVE] , seq , NULL ) ;
+                else if( (seq->opt.save_one || seq->status->num_total > 1)
+                         && (event->state & Mod1Mask) )
+                   ISQ_but_save_CB( seq->wbut_bot[NBUT_SAVE] , seq , NULL ) ;
 
-                  else
-                     XBell( seq->dc->display , 100 ) ;
+                else
+                   XBell( seq->dc->display , 100 ) ;
 
-               } else if( w == seq->wimage && seq->status->send_CB != NULL ){
+              /* compute the location in the image
+                 where the button event transpired, and send to AFNI */
 
-                  seq->wimage_width = -1 ;
-                  ISQ_mapxy( seq , bx,by , &imx,&imy,&nim ) ;
-                  cbs.reason = isqCR_buttonpress ;
-                  cbs.event  = ev ;
-                  cbs.xim    = imx ;
-                  cbs.yim    = imy ;
-                  cbs.nim    = nim ;
+              } else if( w == seq->wimage && seq->status->send_CB != NULL ){
 
-                  if( but == Button1 &&
-                      (event->state & (ShiftMask|ControlMask)) ){
-                                               /* 18 Oct 2001 */
-                     event->button = Button3 ; /* fake Button3 press */
-                  }
+                seq->wimage_width = -1 ;
+                ISQ_mapxy( seq , bx,by , &imx,&imy,&nim ) ;
+                cbs.reason = isqCR_buttonpress ;
+                cbs.event  = ev ;
+                cbs.xim    = imx ;
+                cbs.yim    = imy ;
+                cbs.nim    = nim ;
 
-                  seq->status->send_CB( seq , seq->getaux , &cbs ) ;
-               }
+                if( but == Button1 &&
+                    (event->state & (ShiftMask|ControlMask)) ){
+                                             /* 18 Oct 2001 */
+                   event->button = Button3 ; /* fake Button3 press */
+                }
+
+                seq->status->send_CB( seq , seq->getaux , &cbs ) ;
+              }
             }
             break ;
 
@@ -4982,6 +5266,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_opacitybut      (int) turns opacity control on/off
 
+*    isqDR_zoombut         (int) turns zoom control on/off
+
 *    isqDR_record_mode     (ignored)
                            makes this an image recorder (irreversibly)
 
@@ -5115,6 +5401,11 @@ static unsigned char record_bits[] = {
             ISQ_remove_widget( seq , seq->ov_opacity_sep ) ;
             ISQ_remove_widget( seq , seq->ov_opacity_av->wrowcol ) ;
          }
+#ifdef ALLOW_ZOOM
+         ISQ_remove_widget( seq , seq->zoom_sep ) ;
+         ISQ_remove_widget( seq , seq->zoom_val_av->wrowcol ) ;
+         ISQ_remove_widget( seq , seq->zoom_apad->wform ) ;
+#endif
          ISQ_remove_widget( seq , seq->arrowpad->wform ) ;
          ISQ_remove_widget( seq , seq->wbar ) ;
          ISQ_remove_widget( seq , seq->winfo ) ;
@@ -5189,7 +5480,7 @@ static unsigned char record_bits[] = {
       /*--------- opacity button [07 Mar 2001] ----------*/
 
       case isqDR_opacitybut:{
-         int val = (int ) drive_data ;
+         int val = (int) drive_data ;
          if( seq->ov_opacity_av == NULL ) RETURN( False ) ;
          if( val == 0 ){
             XtUnmanageChild( seq->ov_opacity_sep ) ;
@@ -5199,6 +5490,25 @@ static unsigned char record_bits[] = {
             XtManageChild( seq->ov_opacity_sep ) ;
             XtManageChild( seq->ov_opacity_av->wrowcol ) ;
          }
+         RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- zoom buttons [11 Mar 2002] ----------*/
+
+      case isqDR_zoombut:{
+#ifdef ALLOW_ZOOM
+         int val = (int) drive_data ;
+         if( val == 0 ){
+            XtUnmanageChild( seq->zoom_sep ) ;
+            XtUnmanageChild( seq->zoom_val_av->wrowcol ) ;
+            XtUnmanageChild( seq->zoom_apad->wform ) ;
+         } else {
+            XtManageChild( seq->zoom_sep ) ;
+            XtManageChild( seq->zoom_val_av->wrowcol ) ;
+            XtManageChild( seq->zoom_apad->wform ) ;
+         }
+#endif
          RETURN( True ) ;
       }
       break ;
@@ -6855,6 +7165,8 @@ DPR("Destroying overlay image array") ;
     mirroring, and montaging.  This new version (April 1996) also
     returns the image number that the coordinates occurred in, since
     that may vary with montaging.
+
+    12 Mar 2002: modified to allow for possibility of zoom
 -------------------------------------------------------------------------*/
 
 void ISQ_mapxy( MCW_imseq * seq, int xwin, int ywin,
@@ -6863,6 +7175,9 @@ void ISQ_mapxy( MCW_imseq * seq, int xwin, int ywin,
    int win_wide,win_high , nxim,nyim ;
    int monx,mony,monsk,mongap , win_wide_orig,win_high_orig ;
    int xorg , yorg , ijcen , xcol,yrow , ij ;
+#ifdef ALLOW_ZOOM
+   int zlev = seq->zoom_fac ;
+#endif
 
 ENTRY("ISQ_mapxy") ;
 
@@ -6889,8 +7204,30 @@ ENTRY("ISQ_mapxy") ;
    /* convert actual coordinates input to
       equivalent coordinates in the original (montaged) image */
 
+#ifndef ALLOW_ZOOM
    xorg = ( (float) xwin / win_wide ) * win_wide_orig /* + 0.49 */ ;
    yorg = ( (float) ywin / win_high ) * win_high_orig /* + 0.49 */ ;
+#else
+
+   /* conversion if zoom is not on */
+
+   if( zlev == 1 || monx > 1 || mony > 1 ){
+
+     xorg = ( (float) xwin / win_wide ) * win_wide_orig /* + 0.49 */ ;
+     yorg = ( (float) ywin / win_high ) * win_high_orig /* + 0.49 */ ;
+
+   } else {  /* conversion if zoom is on (only in 1x1 montages) */
+
+     int pw=seq->zoom_pw , ph=seq->zoom_ph ;
+     float xoff,yoff ;
+
+     xoff = seq->zoom_hor_off*pw; if( xoff+win_wide > pw ) xoff = pw-win_wide;
+     yoff = seq->zoom_ver_off*ph; if( yoff+win_high > ph ) yoff = ph-win_high;
+
+     xorg = nxim * (xoff+xwin) / pw ;
+     yorg = nyim * (yoff+ywin) / ph ;
+   }
+#endif
 
    /* compute the coordinates within the sub-image (*xim and *yim),
       and the grid column and row number of the sub-image (xcol,yrow) */

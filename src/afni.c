@@ -1623,8 +1623,9 @@ STATUS("get status") ;
      if( !SUMA_ENABLED || br->dset->su_surf == NULL ) RETURN(NULL) ;
      {
       Three_D_View * im3d = (Three_D_View *) br->parent ;
-      int nn=br->dset->su_surf->num_ixyz , ii,jj ;
-      SUMA_ixyz *nod = br->dset->su_surf->ixyz ;
+      SUMA_surface *ag = br->dset->su_surf ;
+      int nn=ag->num_ixyz , ii,jj ;
+      SUMA_ixyz *nod = ag->ixyz ;
       MEM_plotdata * mp ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
@@ -1633,8 +1634,33 @@ STATUS("get status") ;
       float rx=RX ;         /* default rectangle halfsize */
       int   kkk=0 ;
       float xyz=0 ;
+      int skip_boxes=0 , skip_lines=0 ;
 
       if( nn < 1 || nod == NULL ) RETURN(NULL) ;  /* nothing to do */
+
+      /* define overlay color for node boxes */
+
+      eee = getenv("AFNI_SUMA_BOXCOLOR") ;
+      if( eee == NULL )
+        eee = getenv("AGNI_OVERLAY_COLOR") ;  /* the old way */
+      if( eee != NULL ){
+         if( strcmp(eee,"none") == 0 || strcmp(eee,"skip") == 0 )
+            skip_boxes = 1 ;                  /* don't do boxes */
+         else
+            DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
+      }
+
+      eee = getenv("AFNI_SUMA_LINECOLOR") ;   /* don't do lines? */
+      if( eee != NULL &&
+         (strcmp(eee,"none")==0 || strcmp(eee,"skip")==0) ) skip_lines = 1 ;
+
+      if( skip_boxes && skip_lines ) RETURN(NULL) ; /* nothing to do? */
+
+      eee = getenv("AFNI_SUMA_BOXSIZE") ;  /* maybe set boxsize? */
+      if( eee != NULL ){
+         float val=strtod(eee,NULL) ;
+         if( val > 0.0 ) rx = val ;
+      }
 
       /* find DICOM coordinates of next slice and previous slice */
 
@@ -1647,26 +1673,16 @@ STATUS("get status") ;
       fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
       fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
 
-      create_memplot_surely( "SUMA_plot" , 1.0 ) ;
-      mp = get_active_memplot() ;
-
-      eee = getenv("AFNI_SUMA_BOXCOLOR") ;    /* define overlay color */
-      if( eee == NULL )
-        eee = getenv("AGNI_OVERLAY_COLOR") ;  /* 21 Sep 2001 */
-      if( eee != NULL )
-         DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
-      set_color_memplot(rr,gg,bb) ;
-
-      eee = getenv("AFNI_SUMA_BOXSIZE") ;
-      if( eee != NULL ){
-         float val=strtod(eee,NULL) ;
-         if( val > 0.0 ) rx = val ;
-      }
-
       /* threshold for determining which axis this slice is along */
 
       dxyz = MIN(br->del1,br->del2) ;
       dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
+
+      /* get ready to plot */
+
+      create_memplot_surely( "SUMA_plot" , 1.0 ) ;
+      mp = get_active_memplot() ;
+      set_color_memplot(rr,gg,bb) ;
 
       /* find nodes inside this slice */
 
@@ -1674,7 +1690,8 @@ STATUS("get status") ;
          float xb=fvm.xyz[0] , xt=fvp.xyz[0] , xm,xw ;        /* range of  */
          if( xb > xt ){ float t=xb ; xb=xt ; xt=t ; }         /* x in slice */
          xm = 0.5*(xb+xt); xw = 0.25*(xt-xb); xb = xm-xw; xt = xm+xw;
-         for( ii=0 ; ii < nn ; ii++ ){
+         if( !skip_boxes ){
+          for( ii=0 ; ii < nn ; ii++ ){
             if( nod[ii].x > xb && nod[ii].x < xt ){           /* inside?  */
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ; /* convert  */
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;     /* coords   */
@@ -1683,13 +1700,16 @@ STATUS("get status") ;
                plotrect_memplot( s1*(fv.xyz[0]-rx), 1.0-s2*(fv.xyz[1]-rx),
                                  s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
             }
+          }
          }
-         kkk = 0 ; xyz = xm ;
-      } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* search y */
+         kkk = 0 ; xyz = xm ;  /* for the triangles/lines below */
+      }
+      else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){          /* search y */
          float yb=fvm.xyz[1] , yt=fvp.xyz[1] , ym,yw ;
          if( yb > yt ){ float t=yb ; yb=yt ; yt=t ; }
          ym = 0.5*(yb+yt); yw = 0.25*(yt-yb); yb = ym-yw; yt = ym+yw;
-         for( ii=0 ; ii < nn ; ii++ ){
+         if( !skip_boxes ){
+          for( ii=0 ; ii < nn ; ii++ ){
             if( nod[ii].y > yb && nod[ii].y < yt ){
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
@@ -1698,13 +1718,16 @@ STATUS("get status") ;
                plotrect_memplot( s1*(fv.xyz[0]-rx), 1.0-s2*(fv.xyz[1]-rx),
                                  s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
             }
+          }
          }
-         kkk = 1 ; xyz = ym ;
-      } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* search z */
+         kkk = 1 ; xyz = ym ;  /* for the triangles/lines below */
+      }
+      else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){          /* search z */
          float zb=fvm.xyz[2] , zt=fvp.xyz[2] , zm,zw ;
          if( zb > zt ){ float t=zb ; zb=zt ; zt=t ; }
          zm = 0.5*(zb+zt); zw = 0.25*(zt-zb); zb = zm-zw; zt = zm+zw;
-         for( ii=0 ; ii < nn ; ii++ ){
+         if( !skip_boxes ){
+          for( ii=0 ; ii < nn ; ii++ ){
             if( nod[ii].z > zb && nod[ii].z < zt ){
                LOAD_FVEC3(fv,nod[ii].x,nod[ii].y,nod[ii].z) ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
@@ -1713,22 +1736,20 @@ STATUS("get status") ;
                plotrect_memplot( s1*(fv.xyz[0]-rx), 1.0-s2*(fv.xyz[1]-rx),
                                  s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
             }
+          }
          }
-         kkk = 2 ; xyz = zm ;
+         kkk = 2 ; xyz = zm ;  /* for the triangles/lines below */
       }
-      if( MEMPLOT_NLINE(mp) < 1 ){ delete_memplot(mp) ; mp = NULL ; }
 
       /* 10 Mar 2002:
          For each triangle that crosses the plane of the slice,
-         plot a line segment at the intersection of the plane and triangle
-         (the plane is along DICOM axis #kkk at coordinate xyz).           */
+         plot a line segment at the intersection of the plane and triangle.
+         The plane is along DICOM axis #kkk at coordinate xyz;
+         these variables were set just above in the node display code. */
 
-      if( mp != NULL                     &&
-          br->dset->su_surf->num_ijk > 0 &&
-          br->dset->su_surf->ijk != NULL    ){
-
-        SUMA_ijk *tr = br->dset->su_surf->ijk ;
-        int      ntr = br->dset->su_surf->num_ijk ;
+      if( !skip_lines && ag->num_ijk > 0 && ag->ijk != NULL ){
+        SUMA_ijk *tr = ag->ijk ;
+        int      ntr = ag->num_ijk ;
         int id,jd,kd ;
         THD_fvec3 fvijk[3] ;
         float ci,cj,ck ;
@@ -1737,24 +1758,24 @@ STATUS("get status") ;
         if( eee != NULL )
            DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
         else
-           rr = gg = bb = 1.0 ;
+           rr = gg = bb = 1.0 ;                  /* default is white */
         set_color_memplot(rr,gg,bb) ;
 
         /* loop over triangles */
 
         for( ii=0 ; ii < ntr ; ii++ ){
 
-          /* get indexes of triangle's nodes */
+          /* get indexes of triangle's nodes (from their id's) */
 
-          id = SUMA_find_node_id(br->dset->su_surf,tr[ii].id); if(id<0)continue;
-          jd = SUMA_find_node_id(br->dset->su_surf,tr[ii].jd); if(jd<0)continue;
-          kd = SUMA_find_node_id(br->dset->su_surf,tr[ii].kd); if(kd<0)continue;
+          id = SUMA_find_node_id(ag,tr[ii].id); if( id <0 ) continue;
+          jd = SUMA_find_node_id(ag,tr[ii].jd); if( jd <0 ) continue;
+          kd = SUMA_find_node_id(ag,tr[ii].kd); if( kd <0 ) continue;
 
           /* load DICOM coords of triangle's nodes */
 
-          LOAD_FVEC3(fvijk[0],nod[id].x,nod[id].y,nod[id].z) ;
-          LOAD_FVEC3(fvijk[1],nod[jd].x,nod[jd].y,nod[jd].z) ;
-          LOAD_FVEC3(fvijk[2],nod[kd].x,nod[kd].y,nod[kd].z) ;
+          LOAD_FVEC3(fvijk[0], nod[id].x, nod[id].y, nod[id].z) ;
+          LOAD_FVEC3(fvijk[1], nod[jd].x, nod[jd].y, nod[jd].z) ;
+          LOAD_FVEC3(fvijk[2], nod[kd].x, nod[kd].y, nod[kd].z) ;
 
           /* want 1 node on one size of plane, and 2 on the other */
 
@@ -1764,8 +1785,8 @@ STATUS("get status") ;
           jj = 4*(ci > 0.0) + 2*(cj > 0.0) + (ck > 0.0) ;
           if( jj == 0 || jj == 7 ) continue ; /* all have same sign */
 
-          /* setup so fvijk[id] is on one side of plane
-             and fvijk[jd] and fvijk[kd] are on other side */
+          /* setup id,jd,kd so fvijk[id] is on one side of plane,
+             and so that fvijk[jd] and fvijk[kd] are on other side */
 
           switch( jj ){
              case 6:
@@ -1776,7 +1797,8 @@ STATUS("get status") ;
              case 3: id = 0 ; jd = 1 ; kd = 2 ; break ;  /* id is the 1 */
           }
 
-          /* linearly interpolate between fvijk[id] and fvijk[jd] */
+          /* linearly interpolate between fvijk[id] and fvijk[jd]
+             to find the point where this line hits the slice plane */
 
           ci = fvijk[id].xyz[kkk] - xyz ;
           cj = fvijk[id].xyz[kkk] - fvijk[jd].xyz[kkk] ;
@@ -1795,7 +1817,7 @@ STATUS("get status") ;
           cj = 1.0 - ck ;
           fvm = SCLADD_FVEC3(cj,fvijk[id],ck,fvijk[kd]) ;
 
-          /* transform interpolated vectors to FD_brick coords */
+          /* transform interpolated points to FD_brick coords */
 
           fvp = THD_dicomm_to_3dmm( br->dset , fvp ) ;
           fvp = THD_3dmm_to_3dfind( br->dset , fvp ) ;
@@ -1804,26 +1826,30 @@ STATUS("get status") ;
           fvm = THD_3dmm_to_3dfind( br->dset , fvm ) ;
           fvm = THD_3dfind_to_fdfind( br , fvm ) ;
 
+          /* plot a line segment between them, in the plane of the slice */
+
+          plotline_memplot( s1*fvp.xyz[0] , 1.0-s2*fvp.xyz[1] ,
+                            s1*fvm.xyz[0] , 1.0-s2*fvm.xyz[1]  ) ;
 #if 0
 if( fabs(fvp.xyz[0]-fvm.xyz[0])+fabs(fvp.xyz[1]-fvm.xyz[1]) > 5.0 ){
 fprintf(stderr,"  fvp=%f %f %f   fvm=%f %f %f\n",
         fvp.xyz[0], fvp.xyz[1], fvp.xyz[2],
         fvm.xyz[0], fvm.xyz[1], fvm.xyz[2] ) ;
-id = SUMA_find_node_id(br->dset->su_surf,tr[ii].id) ;
-jd = SUMA_find_node_id(br->dset->su_surf,tr[ii].jd) ;
-kd = SUMA_find_node_id(br->dset->su_surf,tr[ii].kd) ;
+id = SUMA_find_node_id(ag,tr[ii].id) ;
+jd = SUMA_find_node_id(ag,tr[ii].jd) ;
+kd = SUMA_find_node_id(ag,tr[ii].kd) ;
 fprintf(stderr,"  triangle: id=%d x=%f y=%f z=%f\n",nod[id].id,nod[id].x,nod[id].y,nod[id].z) ;
 fprintf(stderr,"  triangle: jd=%d x=%f y=%f z=%f\n",nod[jd].id,nod[jd].x,nod[jd].y,nod[jd].z) ;
 fprintf(stderr,"  triangle: kd=%d x=%f y=%f z=%f\n",nod[kd].id,nod[kd].x,nod[kd].y,nod[kd].z) ;
 }
 #endif
 
-          /* and plot a line in the plane of the slice */
+        } /* end of loop over triangles */
+      } /* end of if over doing lines */
 
-          plotline_memplot( s1*fvp.xyz[0] , 1.0-s2*fvp.xyz[1] ,
-                            s1*fvm.xyz[0] , 1.0-s2*fvm.xyz[1]  ) ;
-        }
-      }
+      /* return to sender */
+
+      if( MEMPLOT_NLINE(mp) < 1 ) DESTROY_MEMPLOT(mp) ;
 
       RETURN(mp) ; /* will be destroyed in imseq */
      }

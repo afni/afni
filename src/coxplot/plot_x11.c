@@ -77,6 +77,24 @@ void set_memplot_X11_box( int xbot, int ybot, int xtop, int ytop )
    }
 }
 
+/*------------------------------------------------------------------------*/
+/*! Get the layout of a window/pixmap.  [12 Mar 2002]
+--------------------------------------------------------------------------*/
+
+static void drawable_geom( Display *dpy , Drawable ddd ,
+                           int *width , int *height , int *depth )
+{
+   int xx,yy ;
+   unsigned int ww,hh,bb,dd ;
+   Window rr ;
+
+   XGetGeometry( dpy,ddd , &rr,&xx,&yy,&ww,&hh,&bb,&dd ) ;
+
+   if( width  != NULL ) *width  = ww ;
+   if( height != NULL ) *height = hh ;
+   if( depth  != NULL ) *depth  = dd ;
+}
+
 /*--------------------------------------------------------------------------
   Actually do the rendering.
   Plotting will start with line #start and go to #end-1.
@@ -101,12 +119,12 @@ static void draw_xseg(void) ; /* prototype for function below */
 void memplot_to_X11_sef( Display * dpy , Window w , MEM_plotdata * mp ,
                          int start , int end , int mask                )
 {
-   XWindowAttributes xwat ;
    int ii , nline , same ;
    float old_thick , old_color , new_color , new_thick ;
    float scal,xscal,yscal , xoff,yoff ;
    short x1,y1 , x2,y2 ;  /* X11 screen coords are shorts */
    int skip ;
+   int w_width, w_height, w_depth ;  /* 12 Mar 2002 */
 
    int freee = (mask & MEMPLOT_FREE_ASPECT) != 0 ;  /* 16 Nov 2001 */
    int erase = (mask & MEMPLOT_ERASE      ) != 0 ;
@@ -121,25 +139,25 @@ void memplot_to_X11_sef( Display * dpy , Window w , MEM_plotdata * mp ,
 
    if( end <= start || end > nline ) end = nline ;
 
-   /*--- if we have a new X11 Display, get its coloring
-         (note the tacit assumption that all windows on the same
-          display in the same program will use the same visual and colormap!) ---*/
+   /*-- if we have a new X11 Display, get its coloring
+        (note the tacit assumption that all windows on the same
+         display in the same program will use the same visual and colormap!) --*/
 
    setup_X11_plotting( dpy , w ) ;
 
-   /*--- get all window attributes ---*/
+   /*-- 12 Mar 2002: replace use of XGetWindowAttributes with XGetGeometry --*/
 
-   ii = XGetWindowAttributes( dpy , getwin_from_XDBE(dpy,w) , &xwat ) ;
-   if( ii == 0 ) return ;
-   if( xwat.depth != old_cd->depth ) return ;  /* this is bad */
+   drawable_geom( dpy, getwin_from_XDBE(dpy,w), &w_width,&w_height,&w_depth ) ;
+
+   if( w_depth != old_cd->depth ) return ;  /* this is bad */
 
    /*--- compute scaling from memplot objective
          coordinates to X11 window coordinates, maintaining aspect ---*/
 
    if( box_xbot >= box_xtop || box_ybot >= box_ytop ){
 
-      xscal = xwat.width / mp->aspect ; /* aspect = x-axis objective size */
-      yscal = xwat.height / 1.0 ;       /* 1.0    = y-axis objective size */
+      xscal = w_width / mp->aspect ; /* aspect = x-axis objective size */
+      yscal = w_height / 1.0 ;       /* 1.0    = y-axis objective size */
       xoff  = yoff = 0.499 ;
 
    } else {  /* 26 Feb 2001: scale to a given sub-box in the window */

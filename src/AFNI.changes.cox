@@ -3525,3 +3525,13 @@
  * Modified afni.c to draw triangle/slice intersection lines.
  * Modified afni.c to allow specification of AFNI_FIM_IDEAL on startup.
  * Modified afni.c to set Dummy session directory to 1st argv directory.
+
+11 Mar 2002
+ * Modified afni.c to have SUMA overlay box and line color environment
+     strings set to "none" mean to skip that overlay step.  (The lines
+     look better without the boxes.)
+
+12 Mar 2002
+ * Implemented "zoom" feature in imseq.c (with a little help from bbox.h).
+ * Modified mri_dup.c to allow linear as well as heptic upsampling.
+     Use this for faster zooming in imseq.c.
