@@ -1562,7 +1562,7 @@ mpeg_encode:
 # 03 Dec 2003 - for even more fun
 
 mpegtoppm:
-	( cd mpegtoppm_dir ; \
+	( cd mpegtoppm_dir ; chmod ugo+x ./configure ;  \
 	  ./configure --disable-sdl --disable-mlib --without-x --disable-dependency-tracking ; \
 	  make ; mv doc/sample2 ../mpegtoppm ; make clean ; )
 
