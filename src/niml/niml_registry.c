@@ -13,8 +13,8 @@
 typedef struct {
   char   idc[32];    /*!< idcode */
   char   ipt[32];    /*!< string representation of a pointer   */
-  void  *vpt    ;    /*!< the pointer to data (equiv to ipt)   */
   size_t vlen   ;    /*!< number of bytes stored in vpt        */
+  void  *vpt    ;    /*!< the pointer to data (equiv to ipt)   */
   char *name    ;    /*!< arbitrary name associated with above */
 } registry_entry ;
 
@@ -61,16 +61,19 @@ static void init_registry(void)
 }
 
 /*-------------------------------------------------------------------*/
-/*! Allocate memory,
-    and associate it with a given idcode and name string. */
+/*! Allocate memory with calloc(),
+    and associate it with a given idcode and name string.
+    Return is NULL is idcode is already used, len is 0,
+    or if calloc() fails.
+---------------------------------------------------------------------*/
 
 void * NI_registry_malloc( char *idcode , char *name , size_t len )
 {
    char *cpt ;
    void *vpt ;
-   registry_entry *rent ;
+   registry_entry *rent ;  /* pay this or be evicted */
 
-   init_registry() ;
+   init_registry() ;       /* setup empty hash tables, if needed */
 
    if( idcode == NULL || *idcode == '\0' || len == 0 ) return NULL ;
 
@@ -88,7 +91,7 @@ void * NI_registry_malloc( char *idcode , char *name , size_t len )
    NI_strncpy( rent->idc , idcode , 32 ) ;
    rent->vpt  = vpt ;
    rent->vlen = len ;
-   vpt_to_char( vpt , rent->ipt ) ;
+   vpt_to_char( vpt , rent->ipt ) ;    /* string version of new pointer */
    if( name == NULL ) name = "NONE" ;
    rent->name = strdup(name) ;
 
