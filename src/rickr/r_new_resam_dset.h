@@ -1,0 +1,14 @@
+#ifndef _R_NEW_RESAM_DSET_H_
+#define _R_NEW_RESAM_DSET_H_
+
+
+THD_3dim_dataset * r_new_resam_dset ( THD_3dim_dataset * din,
+				       double dx, double dy, double dz,
+				       char orient [], int resam_mode);
+int     r_dxyz_mod_dataxes    ( double dx, double dy, double dz,
+                                THD_dataxes * daxin, THD_dataxes * daxout );
+int     r_fill_resampled_data_brick( THD_3dim_dataset * dset, int resam_mode );
+int     r_orient_str2vec      ( char ostr [], THD_ivec3 * ovec );
+Boolean r_is_valid_orient_str ( char ostr [] );
+
+#endif  /* _R_NEW_RESAM_DSET_H_ */
