@@ -25,6 +25,10 @@ clean:
 	$(CC) -o 3dresample 3dresample.o $(AFNI_WARP_OBJS)	\
 		 $(LFLAGS) -L.. -lrickr $(LLIBS)
 
+file_tool: file_tool.o file_tool.h
+	$(RM) $@
+	$(CC) -o file_tool file_tool.o
+
 .c.o:
 	$(RM) $@
 	$(CC) -c $*.c -I. -I.. $(IFLAGS)
