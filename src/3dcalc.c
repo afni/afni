@@ -1511,6 +1511,8 @@ int main( int argc , char * argv[] )
                  "*** Somehow ended up with CALC_datum = %d\n",CALC_datum) ;
       exit(1) ;
 
+      /* the easy case! */
+
       case MRI_float:{
          for (ii=0; ii< ntime_max; ii++) {
              EDIT_substitute_brick(new_dset, ii, MRI_float, buf[ii]);
@@ -1519,61 +1521,85 @@ int main( int argc , char * argv[] )
       }
       break ;
 
+      /* the harder cases */
+
       case MRI_byte:             /* modified 31 Mar 1999 to scale each sub-brick  */
       case MRI_short:{           /* with its own factor, rather than use the same */
          void ** dfim ;          /* factor for each sub-brick -- RWCox            */
          float gtop , fimfac , gtemp ;
 
          if( CALC_verbose )
-            fprintf(stderr,"++ Scaling output to type %s brick(s)\n",
-                    MRI_TYPE_name[CALC_datum] ) ;
+           fprintf(stderr,"++ Scaling output to type %s brick(s)\n",
+                   MRI_TYPE_name[CALC_datum] ) ;
 
-          dfim = (void ** ) malloc( sizeof( void * ) * ntime_max ) ;
+         dfim = (void ** ) malloc( sizeof( void * ) * ntime_max ) ;
 
-         if( CALC_gscale ){   /* 01 Apr 1999: allow global scaling */
-            gtop = 0.0 ;
-            for( ii=0 ; ii < ntime_max ; ii++ ){
-               gtemp = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
-               gtop  = MAX( gtop , gtemp ) ;
-               if( gtemp == 0.0 )
-                  fprintf(stderr,"!! WARNING: output sub-brick %d is all zeros!\n",ii) ;
-            }
+         if( CALC_gscale ){   /* 01 Apr 1999: global scaling */
+           gtop = 0.0 ;
+           for( ii=0 ; ii < ntime_max ; ii++ ){
+             gtemp = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
+             gtop  = MAX( gtop , gtemp ) ;
+             if( gtemp == 0.0 )
+               fprintf(stderr,"!! WARNING: output sub-brick %d is all zeros!\n",ii) ;
+           }
          }
 
-          for (ii = 0 ; ii < ntime_max ; ii ++ ) {
+         for (ii = 0 ; ii < ntime_max ; ii ++ ) {
 
-            if( ! CALC_gscale ){
-                gtop = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
-               if( gtop == 0.0 )
-                  fprintf(stderr,"!! WARNING: output sub-brick %d is all zeros!\n",ii) ;
-            }
+           /* get max of this sub-brick, if not doing global scaling */
 
-            if( CALC_fscale ){   /* 16 Mar 1998 */
-               fimfac = (gtop > 0.0) ? MRI_TYPE_maxval[CALC_datum] / gtop : 0.0 ;
-            } else if( !CALC_nscale ){
-               fimfac = (gtop > MRI_TYPE_maxval[CALC_datum] || (gtop > 0.0 && gtop <= 1.0) )
-                        ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
-            } else {
-               fimfac = 0.0 ;
-            }
+           if( ! CALC_gscale ){
+             gtop = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
+             if( gtop == 0.0 )
+               fprintf(stderr,"!! WARNING: output sub-brick %d is all zeros!\n",ii) ;
+           }
 
-            if( CALC_verbose ){
-               if( fimfac != 0.0 )
-                  fprintf(stderr,"++ Sub-brick %d scale factor = %f\n",ii,fimfac) ;
-               else
-                  fprintf(stderr,"++ Sub-brick %d: no scale factor\n" ,ii) ;
-            }
+           /* compute scaling factor for this brick into fimfac */
 
-            dfim[ii] = (void *) malloc( mri_datum_size(CALC_datum) * CALC_nvox ) ;
-            if( dfim[ii] == NULL ){ fprintf(stderr,"** malloc fails at output\n");exit(1); }
+           if( CALC_fscale ){                    /* 16 Mar 1998: forcibly scale */
+             fimfac = (gtop > 0.0) ? MRI_TYPE_maxval[CALC_datum] / gtop : 0.0 ;
 
-             EDIT_coerce_scale_type( CALC_nvox , fimfac ,
-                                    MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
-             free( buf[ii] ) ;
-             EDIT_substitute_brick(new_dset, ii, CALC_datum, dfim[ii] );
+           } else if( !CALC_nscale ){            /* maybe scale */
 
-            DSET_BRICK_FACTOR(new_dset,ii) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
-          }
+             fimfac = (gtop > MRI_TYPE_maxval[CALC_datum] || (gtop > 0.0 && gtop <= 1.0) )
+                      ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
+
+             if( fimfac == 0.0 && gtop > 0.0 ){  /* 28 Jul 2003: check for non-integers */
+               float fv,iv ; int kk ;
+               for( kk=0 ; kk < CALC_nvox ; kk++ ){
+                 fv = buf[ii][kk] ; iv = rint(fv) ;
+                 if( fabs(fv-iv) >= 0.01 ){
+                   fimfac = MRI_TYPE_maxval[CALC_datum]/ gtop ; break ;
+                 }
+               }
+             }
+
+           } else {                              /* user says "don't scale" */
+             fimfac = 0.0 ;
+           }
+
+           if( CALC_verbose ){
+             if( fimfac != 0.0 )
+               fprintf(stderr,"++ Sub-brick %d scale factor = %f\n",ii,fimfac) ;
+             else
+               fprintf(stderr,"++ Sub-brick %d: no scale factor\n" ,ii) ;
+           }
+
+           /* make space for output brick and scale into it */
+
+           dfim[ii] = (void *) malloc( mri_datum_size(CALC_datum) * CALC_nvox ) ;
+           if( dfim[ii] == NULL ){ fprintf(stderr,"** malloc fails at output\n");exit(1); }
+
+           EDIT_coerce_scale_type( CALC_nvox , fimfac ,
+                                   MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
+           free( buf[ii] ) ;
+
+           /* put result into output dataset */
+
+           EDIT_substitute_brick(new_dset, ii, CALC_datum, dfim[ii] );
+
+           DSET_BRICK_FACTOR(new_dset,ii) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
+         }
       }
       break ;
    }
