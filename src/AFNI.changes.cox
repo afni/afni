@@ -4043,3 +4043,7 @@
  * Modified niml.[ch] to make the NI_malloc() package use tracking functions,
      which I stole from mcw_malloc.c - of course, I wrote that, too, so "stole"
      may be too strong a verb.
+
+21 Nov 2002
+ * Added some extra programs (gifsicle, mpeg_encode, cjpeg, etc.) to the PROGRAMS
+     macro in Makefile.INCLUDE.
