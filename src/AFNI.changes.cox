@@ -4788,3 +4788,4 @@
 13 Nov 2003
  * Added argmax() and argnum() functions to parser.f and 3dcalc.c.
  * Modified Makefile.solaris28_suncc per Vince Hradil's experience.
+ * Split up load vector loops in PAREVEC() in parser.c, for speed.

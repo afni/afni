@@ -9,19 +9,19 @@
 
 static integer c__3 = 3;
 static integer c__1 = 1;
-static doublereal c_b341 = 0.;
-static doublereal c_b355 = 1.;
-static doublereal c_b356 = 2.;
-static doublereal c_b357 = 3.;
-static doublereal c_b358 = 4.;
-static doublereal c_b359 = 5.;
-static doublereal c_b360 = 6.;
-static doublereal c_b361 = 7.;
-static doublereal c_b362 = 8.;
-static doublereal c_b363 = 9.;
-static doublereal c_b364 = 10.;
-static doublereal c_b365 = 11.;
-static doublereal c_b366 = 12.;
+static doublereal c_b366 = 0.;
+static doublereal c_b380 = 1.;
+static doublereal c_b381 = 2.;
+static doublereal c_b382 = 3.;
+static doublereal c_b383 = 4.;
+static doublereal c_b384 = 5.;
+static doublereal c_b385 = 6.;
+static doublereal c_b386 = 7.;
+static doublereal c_b387 = 8.;
+static doublereal c_b388 = 9.;
+static doublereal c_b389 = 10.;
+static doublereal c_b390 = 11.;
+static doublereal c_b391 = 12.;
 
 /* Subroutine */ int parser_(char *c_expr__, logical *l_print__, integer *
 	num_code__, char *c_code__, ftnlen c_expr_len, ftnlen c_code_len)
@@ -1956,32 +1956,132 @@ L8000:
 	i__2 = ivtop;
 	for (iv = ivbot; iv <= i__2; ++iv) {
 	    r8val[iv - ibv - 1] = va[iv];
-	    r8val[iv - ibv + 63] = vb[iv];
-	    r8val[iv - ibv + 127] = vc[iv];
-	    r8val[iv - ibv + 191] = vd[iv];
-	    r8val[iv - ibv + 255] = ve[iv];
-	    r8val[iv - ibv + 319] = vf[iv];
-	    r8val[iv - ibv + 383] = vg[iv];
-	    r8val[iv - ibv + 447] = vh[iv];
-	    r8val[iv - ibv + 511] = vi[iv];
-	    r8val[iv - ibv + 575] = vj[iv];
-	    r8val[iv - ibv + 639] = vk[iv];
-	    r8val[iv - ibv + 703] = vl[iv];
-	    r8val[iv - ibv + 767] = vm[iv];
-	    r8val[iv - ibv + 831] = vn[iv];
-	    r8val[iv - ibv + 895] = vo[iv];
-	    r8val[iv - ibv + 959] = vp[iv];
-	    r8val[iv - ibv + 1023] = vq[iv];
-	    r8val[iv - ibv + 1087] = vr[iv];
-	    r8val[iv - ibv + 1151] = vs[iv];
-	    r8val[iv - ibv + 1215] = vt[iv];
-	    r8val[iv - ibv + 1279] = vu[iv];
-	    r8val[iv - ibv + 1343] = vv[iv];
-	    r8val[iv - ibv + 1407] = vw[iv];
-	    r8val[iv - ibv + 1471] = vx[iv];
-	    r8val[iv - ibv + 1535] = vy[iv];
-	    r8val[iv - ibv + 1599] = vz[iv];
 /* L100: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 63] = vb[iv];
+/* L101: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 127] = vc[iv];
+/* L102: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 191] = vd[iv];
+/* L103: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 255] = ve[iv];
+/* L104: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 319] = vf[iv];
+/* L105: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 383] = vg[iv];
+/* L106: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 447] = vh[iv];
+/* L107: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 511] = vi[iv];
+/* L108: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 575] = vj[iv];
+/* L109: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 639] = vk[iv];
+/* L110: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 703] = vl[iv];
+/* L111: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 767] = vm[iv];
+/* L112: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 831] = vn[iv];
+/* L113: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 895] = vo[iv];
+/* L114: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 959] = vp[iv];
+/* L115: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1023] = vq[iv];
+/* L116: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1087] = vr[iv];
+/* L117: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1151] = vs[iv];
+/* L118: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1215] = vt[iv];
+/* L119: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1279] = vu[iv];
+/* L120: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1343] = vv[iv];
+/* L121: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1407] = vw[iv];
+/* L122: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1471] = vx[iv];
+/* L123: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1535] = vy[iv];
+/* L124: */
+	}
+	i__2 = ivtop;
+	for (iv = ivbot; iv <= i__2; ++iv) {
+	    r8val[iv - ibv + 1599] = vz[iv];
+/* L125: */
 	}
 
 	neval = 0;
@@ -3118,7 +3218,7 @@ doublereal iran_(doublereal *top)
 /*  Return an integer uniformly distributed among 0..TOP */
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
-    d__1 = (*top + 1.) * unif_(&c_b341);
+    d__1 = (*top + 1.) * unif_(&c_b366);
     ret_val = d_int(&d__1);
     return ret_val;
 } /* iran_ */
@@ -3143,7 +3243,7 @@ doublereal eran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b341);
+    u1 = unif_(&c_b366);
     if (u1 <= 0.) {
 	goto L100;
     }
@@ -3171,7 +3271,7 @@ doublereal lran_(doublereal *top)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 L100:
-    u1 = unif_(&c_b341);
+    u1 = unif_(&c_b366);
     if (u1 <= 0. || u1 >= 1.) {
 	goto L100;
     }
@@ -3195,7 +3295,7 @@ doublereal uran_(doublereal *x)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    ret_val = *x * unif_(&c_b341);
+    ret_val = *x * unif_(&c_b366);
     return ret_val;
 } /* uran_ */
 
@@ -3227,11 +3327,11 @@ doublereal gran2_(doublereal *b, doublereal *s)
 
     if (ip == 0) {
 L100:
-	u1 = unif_(&c_b341);
+	u1 = unif_(&c_b366);
 	if (u1 <= 0.) {
 	    goto L100;
 	}
-	u2 = unif_(&c_b341);
+	u2 = unif_(&c_b366);
 	ret_val = *b + *s * sqrt(log(u1) * -2.) * sin(u2 * 6.2831853);
 	ip = 1;
     } else {
@@ -3256,10 +3356,10 @@ doublereal gran1_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    g = unif_(&c_b355) - 6. + unif_(&c_b356) + unif_(&c_b357) + unif_(&c_b358)
-	     + unif_(&c_b359) + unif_(&c_b360) + unif_(&c_b361) + unif_(&
-	    c_b362) + unif_(&c_b363) + unif_(&c_b364) + unif_(&c_b365) + 
-	    unif_(&c_b366);
+    g = unif_(&c_b380) - 6. + unif_(&c_b381) + unif_(&c_b382) + unif_(&c_b383)
+	     + unif_(&c_b384) + unif_(&c_b385) + unif_(&c_b386) + unif_(&
+	    c_b387) + unif_(&c_b388) + unif_(&c_b389) + unif_(&c_b390) + 
+	    unif_(&c_b391);
     ret_val = *b + *s * g;
     return ret_val;
 } /* gran1_ */
@@ -3280,7 +3380,7 @@ doublereal gran_(doublereal *b, doublereal *s)
 /* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
 
-    uu = unif_(&c_b341);
+    uu = unif_(&c_b366);
     if (uu <= .5) {
 	ret_val = gran1_(b, s);
     } else {
