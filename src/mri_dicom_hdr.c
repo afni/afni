@@ -178,6 +178,8 @@ void mri_dicom_nohex( int ii )
 
 /****************************************************************/
 
+static int rwc_fd ;  /* 10 Sep 2002 */
+
 char * mri_dicom_header( char *fname )
 {
     DCM_OBJECT * object;
@@ -204,11 +206,13 @@ ENTRY("mri_dicom_header") ;
     RWC_clear_pbuf() ; pxl_len = 0 ; pxl_off = 0 ;
 
 STATUS(fname) ;
+    rwc_fd = -1 ;
     cond = DCM_OpenFile(fname, options, &object);
     if (cond != DCM_NORMAL && ((options & DCM_PART10FILE) == 0)) {
 STATUS("DCM_OpenFile open failed; try again as Part 10") ;
       (void) DCM_CloseObject(&object);
       (void) COND_PopCondition(TRUE);
+      if( rwc_fd >= 0 ){ close(rwc_fd); rwc_fd = -1; }
       cond = DCM_OpenFile(fname, options | DCM_PART10FILE, &object);
     }
     if (cond == DCM_NORMAL) {
@@ -227,6 +231,8 @@ STATUS("DCM_OpenFile failed") ;
     if( pbuf != NULL ){
       ppp = strdup(pbuf) ; RWC_clear_pbuf() ;
     }
+
+    if( rwc_fd >= 0 ){ close(rwc_fd); rwc_fd = -1; }
 
     RETURN(ppp);
 }
@@ -976,7 +982,7 @@ ENTRY("DCM_OpenFile") ;
 #ifdef _MSC_VER
     fd = open(name, O_RDONLY | O_BINARY);
 #else
-    fd = open(name, O_RDONLY);
+    rwc_fd = fd = open(name, O_RDONLY);
 #endif
     if ((fd < 0) && ((opt & DCM_FILENAMEMASK) == DCM_TRYFILENAMECHANGE)) {
 	char mapName[1024];
@@ -1004,7 +1010,7 @@ ENTRY("DCM_OpenFile") ;
 	cond = readLengthToEnd(fd, name,
 			       opt & (~DCM_LENGTHTOENDMASK), &lengthToEnd);
 	if (cond != DCM_NORMAL) {
-	    (void) close(fd);
+	    (void) close(fd); rwc_fd = -1 ;
 	    RETURN(COND_PushCondition(DCM_FILEOPENFAILED,
 		     DCM_Message(DCM_FILEOPENFAILED), name, "DCM_OpenFile"));
 	}
@@ -1018,8 +1024,9 @@ ENTRY("DCM_OpenFile") ;
 #endif
     cond = readFile1(name, NULL, fd, size, &fileOffset, 0, opt, NULL,
 		     callerObject, NULL, &remainFileOpen, NULL, NULL, NULL);
-    if ((cond != DCM_NORMAL) || !remainFileOpen)
-	(void) close(fd);
+    if ((cond != DCM_NORMAL) || !remainFileOpen){
+	(void) close(fd); rwc_fd = -1 ;
+    }
     if (cond != DCM_NORMAL) {
 	if (debug)
 	    DCM_DumpElements(callerObject, 1);
