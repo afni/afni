@@ -392,3 +392,7 @@
   * modified SUMA_3dSurf2Vol[ch] (-> 3dSurf2Vol v2.2)
       - added '-surf_A' and '-surf_B' to specify surfaces from the spec file
       - added '-hist' option
+  * modified SUMA_3dSurf2Vol[ch] (-> 3dSurf2Vol v3.0)
+      - removed requirement of 2 surfaces for most functions
+        (this was not supposed to be so easy)
+
