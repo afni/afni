@@ -30,7 +30,7 @@ int main( int argc , char * argv[] )
 #define BOX_DIC  2
 #define BOX_NEU  3
 #define BOX_IJK  4
-   int box_num=0 ; float *box_dat=NULL ;   /* 09 May 2003 */
+   int box_num=0 ; float *box_dat=NULL ;   /* 09 May 2003 - RWCox */
    int nx,ny,nz,nxy,nxyz ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -157,11 +157,11 @@ int main( int argc , char * argv[] )
    narg = 1 ;
    while( narg < argc && argv[narg][0] == '-' ){
 
-      if( strcmp(argv[narg],"-quiet") == 0 ){                /* 09 May 2003 */
+      if( strcmp(argv[narg],"-quiet") == 0 ){                /* 09 May 2003 - RWC */
         verb = 0 ; narg++ ; continue ;
       }
 
-      if( strcmp(argv[narg]+2,"box") == 0 ){                 /* 09 May 2003 */
+      if( strcmp(argv[narg]+2,"box") == 0 ){                 /* 09 May 2003 - RWC */
         float xbot,xtop , ybot,ytop , zbot,ztop , btyp ;
         int nn ;
         char code = *(argv[narg]+1) ;   /* should be 'x', 'd' , 'n', or 'i' */
@@ -364,7 +364,7 @@ int main( int argc , char * argv[] )
       }
    }
 
-   /* 09 May 2003: make a mask corresponding to the boxen */
+   /* 09 May 2003: make a mask corresponding to the boxen - RWC */
 
    if( box_num > 0 ){
      byte *bmask = calloc(1,nvox) ;
