@@ -1540,13 +1540,73 @@ int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
    /* bad news lews, this node is not in this Dset */ 
    SUMA_RETURN(-1);
 }
+/*!
+   \brief Returns the value from column ind, row ival
+   The value is stored in a double variable 0.0  in case of error. 
+   \sa SUMA_GetValInCol
+*/
+double SUMA_GetValInCol2(NI_element *nel, int ind, int ival) 
+{
+   static char FuncName[]={"SUMA_GetValInCol2"};
+   SUMA_COL_TYPE ctp;
+   SUMA_VARTYPE vtp;
+   byte *bv = NULL;
+   double *dv = NULL, dval = 0.0;
+   float *fv=NULL;
+   int *iv = NULL;
+   char stmp[51], **cv = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   if (!nel) { SUMA_SL_Err("NULL input"); SUMA_RETURN(0.0); }
+
+   if (ind < 0 || ind > nel->vec_num - 1) {
+      SUMA_SL_Err("Bad index");
+      SUMA_RETURN(0.0);
+   }
+
+   if (ival >= nel->vec_len) {
+      SUMA_SL_Err("ival too large");
+      SUMA_RETURN(0.0);
+   }
+
+   snprintf (stmp,50*sizeof(char),"TypeCol_%d", ind);
+   ctp = SUMA_Col_Type(NI_get_attribute(nel, stmp));
+
+   vtp = SUMA_ColType2TypeCast (ctp) ;
+   switch (vtp) {
+      case SUMA_byte:
+         bv = (byte *)nel->vec[ind];
+         dval = (double)bv[ival];
+         break;
+      case SUMA_int:
+         iv = (int *)nel->vec[ind];
+         dval = (double)iv[ival];
+         break;
+      case SUMA_float:
+         fv = (float *)nel->vec[ind];
+         dval = (double)fv[ival];
+         break;
+      case SUMA_double:
+         dv = (double *)nel->vec[ind];
+         dval = (double)dv[ival];
+         break;
+      default:
+         SUMA_SL_Err("This type is not supported.\n");
+         SUMA_RETURN(0.0);
+         break;
+   }
+
+   SUMA_RETURN(dval);
+}
 
 /*!
    \brief Returns the value from column ind, row ival
    The value is stored in a double variable and a string
    version is returned. NULL in case of error. You are to free
    the returned string.
-
+   \sa SUMA_GetValInCol2
 */
 char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval) 
 {
@@ -1562,7 +1622,7 @@ char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval)
 
    SUMA_ENTRY;
 
-   if (!nel || !dval) { SUMA_SL_Err("NULL input"); SUMA_RETURN(NOPE); }
+   if (!nel || !dval) { SUMA_SL_Err("NULL input"); SUMA_RETURN(NULL); }
 
    if (ind < 0 || ind > nel->vec_num - 1) {
       SUMA_SL_Err("Bad index");
@@ -1781,7 +1841,26 @@ char * SUMA_WriteDset (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int o
             strmname = SUMA_append_string("file:",NameOut);
 	         SUMA_LH("Writing 1D..."); SUMA_LH(strmname); 
             NEL_WRITE_1D (dset->nel, strmname, flg);
-            SUMA_LH("DONE.");
+            if (!flg) {
+               SUMA_SL_Err("Output file not written");
+            } else {
+               SUMA_LH("DONE.");
+            }
+         } 
+         break;
+      case SUMA_1D_PURE:
+         NameOut = SUMA_Extension(PrefOut, ".1D.dset", NOPE);
+         if (!overwrite &&  SUMA_filexists(NameOut)) {
+            exists = 1;
+         } else {
+            strmname = SUMA_copy_string(NameOut);
+	         SUMA_LH("Writing 1D pure..."); SUMA_LH(strmname); 
+            NEL_WRITE_1D_PURE (dset->nel, strmname, flg);
+            if (!flg) {
+               SUMA_SL_Err("Output file not written");
+            } else {
+               SUMA_LH("DONE.");
+            }
          } 
          break;
       case SUMA_NO_DSET_FORMAT:
@@ -1848,6 +1927,7 @@ char *SUMA_RemoveDsetExtension (char*Name, SUMA_DSET_FORMAT form)
          noex  =  SUMA_Extension(Name, ".niml.dset", YUP);
          break;
       case SUMA_1D:
+      case SUMA_1D_PURE:
          tmp  =  SUMA_Extension(Name, ".1D", YUP);
          noex  =  SUMA_Extension(tmp, ".1D.dset", YUP); SUMA_free(tmp); tmp = NULL;
          break;
@@ -2168,6 +2248,16 @@ int main (int argc,char *argv[])
             exit(1);
          }
          oform = SUMA_1D;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-o_1dp") == 0))
+      {
+         if (oform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("output type already specified.");
+            exit(1);
+         }
+         oform = SUMA_1D_PURE;
          brk = YUP;
       }
       
