@@ -220,7 +220,7 @@ ShowCmap: SUMA_xColBar.c
 
 SampBias: SUMA_SampBias.c ${SUMALIB} 
 	$(RM) $@
-	${CC} -DSUMA_COMPILED \
+	${CC} -DSUMA_COMPILED -DSUMA_SampBias_STAND_ALONE \
    	${CCOPT} ${WARNOPT} -o $@ SUMA_SampBias.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
