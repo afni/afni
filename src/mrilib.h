@@ -893,7 +893,6 @@ extern MRI_IMAGE * mri_flip3D( int,int,int , MRI_IMAGE *inim ) ; /* 19 Mar 2003 
 #define BYTE_ORDER_STRING(qq) (  ((qq)==LSB_FIRST) ? LSB_FIRST_STRING \
                                : ((qq)==MSB_FIRST) ? MSB_FIRST_STRING \
                                                    : "Illegal Value" )
-
 extern int mri_short_order(void) ;
 extern int mri_int_order(void) ;
 extern void mri_swap2( int , short * ) ;
@@ -1093,5 +1092,6 @@ extern double mri_entropy8 ( MRI_IMAGE * ) ;  /* 09 Jan 2004 */
 # define RESTRICT /*nada*/
 #endif
 
+/*------------------------------------------------------------------*/
 
 #endif /* _MCW_MRILIB_HEADER_ */

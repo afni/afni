@@ -1959,7 +1959,7 @@ typedef struct THD_3dim_dataset {
       int type ;        /*!< type code: HEAD_ANAT_TYPE or HEAD_FUNC_TYPE or GEN_ANAT_TYPE or GEN_FUNC_TYPE */
 
       int view_type ;   /*!< view code: VIEW_ORIGINAL_TYPE or VIEW_ACPCALIGNED_TYPE or VIEW_TALAIRACH_TYPE */
-      int func_type ;   /*!< datasset type: one of FUNC_*_TYPE or ANAT_*_TYPE codes */
+      int func_type ;   /*!< dataset type: one of FUNC_*_TYPE or ANAT_*_TYPE codes */
 
       char label1[THD_MAX_LABEL] ;  /*!< short label #1: not used for anything anymore */
       char label2[THD_MAX_LABEL] ;  /*!< short label #2: even more obsolete */
