@@ -1,4 +1,4 @@
-#define VERSION "1.1 (April 1, 2004)"
+#define VERSION "1.2 (April 1, 2004)"
 
 /*----------------------------------------------------------------------
  * serial_helper.c    - pass data from plug_realtime to serial port
@@ -33,6 +33,9 @@ static char g_history[] =
  "\n"
  " 1.1  April 1, 2004  [rickr]\n"
  "    - added a little more to the -help section\n"
+ "\n"
+ " 1.2  April 1, 2004  [rickr]\n"
+ "    - complain about bad options\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -362,8 +365,13 @@ int get_options(optiondata *opt, motparm * mp, port_list * plist,
 	}
 	else if ( !strncmp(argv[ac], "-swap", 5) )
 	    opt->swap = 1;
-	if ( !strncmp(argv[ac], "-ver", 4) )
+	else if ( !strncmp(argv[ac], "-ver", 4) )
 	    return usage(prog, SH_USE_VERSION);
+	else
+	{
+	    fprintf(stderr,"** invalid option '%s', exiting...\n", argv[ac]);
+	    return -1;
+	}
     }
 
     /* check basic options */
