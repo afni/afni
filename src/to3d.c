@@ -3027,7 +3027,7 @@ void Syntax()
      " Under most circumstance, -xFOV , -yFOV , and -zSLAB would be the\n"
      " correct combination of geometry specifiers to use.  For example,\n"
      " a common type of run at MCW would be entered as\n"
-     "    -xFOV 120I-S -yFOV 120A-P -zSLAB 60S-50I\n"
+     "    -xFOV 120L-R -yFOV 120A-P -zSLAB 60S-50I\n"
    ) ;
 
    printf(

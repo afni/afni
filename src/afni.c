@@ -6622,8 +6622,8 @@ static void fixscale( XtPointer client_data , XtIntervalId * id )
    Three_D_View * im3d = (Three_D_View *) client_data ;
    FIX_SCALE_SIZE(im3d) ;
 
-#ifdef USING_LESSTIF
-   XtVaSetValues( im3d->vwid->func->thr_scale , XmNwidth,20 , NULL ) ;
+#if 0
+   XtVaSetValues( im3d->vwid->func->thr_scale , XmNscaleWidth,24 , NULL ) ;
 #endif
 }
 #endif
@@ -6765,7 +6765,6 @@ STATUS("opening function" ) ;
          XtUnmanageChild( im3d->vwid->func->inten_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->options_rowcol ) ;
 #endif
-
 
          OPEN_PANEL(im3d,func) ;
 

@@ -2161,7 +2161,7 @@ STATUS("making func->rowcol") ;
 #endif
 
 #ifdef USING_LESSTIF
-   XtVaSetValues( func->thr_scale , XmNwidth,20 , NULL ) ;
+   XtVaSetValues( func->thr_scale , XmNscaleWidth,24 , NULL ) ;
 #endif
 
 #ifdef FIX_SCALE_VALUE_PROBLEM
