@@ -3468,3 +3468,7 @@
 05 Feb 2002
  * Put #undef USE_TRACING in FD2.c, since it uses STATUS() for something
       else.
+
+06 Feb 2002
+ * Adapted modified plug_histog.c from Vinai Roopchansingh (added the
+      "Output" option to write results to a file).
