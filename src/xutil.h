@@ -5,14 +5,7 @@
 #include <X11/Intrinsic.h>
 #include <X11/IntrinsicP.h>
 #include <X11/cursorfont.h>
-#include <Xm/Xm.h>
-#include <Xm/Label.h>
-#include <Xm/Form.h>
-#include <Xm/PushB.h>
-#include <Xm/MwmUtil.h>
-#include <Xm/DialogS.h>
-#include <Xm/Protocols.h>
-#include <Xm/Scale.h>
+#include <Xm/XmAll.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -106,5 +99,18 @@ extern Boolean MCW_isitmwm( Widget ) ;
 Widget MCW_popup_meter( Widget , int ) ;
 void MCW_popdown_meter( Widget ) ;
 void MCW_set_meter( Widget , int ) ;
+
+/*------------------------------------------------------------------------*/
+
+#define TEXT_READONLY  1
+#define TEXT_EDITABLE  2
+
+typedef struct {
+   Widget wshell , wtop , wactar , wscroll , wtext ;
+} MCW_textwin ;
+
+MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type ) ;
+void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
+void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data ) ;
 
 #endif /* _MCW_XUTIL_HEADER_ */

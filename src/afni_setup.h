@@ -55,6 +55,7 @@ typedef struct {
       if( (pp) != NULL ){                                              \
        (name)->par[(name)->num] = (pp) ; ((name)->num)++ ;            \
       } } while(0)
+
 #define PALTAB_NUM(name)            ( (name)->num )
 #define PALTAB_ARR(name,qq)         ( (name)->par[(qq)] )
 #define PALTAB_ARR_LABEL(name,qq)   ( (name)->par[(qq)]->label )
@@ -65,11 +66,14 @@ extern int label_in_PALTAB( PBAR_palette_table * , char * ) ;
 extern char * suck_file( char * ) ;
 extern void AFNI_process_setup( char * , int , MCW_DC * ) ;
 extern int check_PBAR_palette( PBAR_palette * ) ;
-extern void dump_PBAR_palette_table(void) ;
+extern char * dump_PBAR_palette_table(int) ;
 extern void AFNI_pbar_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_pbar_EV( Widget , XtPointer , XEvent * , Boolean * ) ;
 extern char * AFNI_palette_label_CB( MCW_arrowval * , XtPointer ) ;
 extern void AFNI_palette_av_CB( MCW_arrowval * , XtPointer ) ;
 extern void load_PBAR_palette_array( MCW_pbar * , PBAR_palette_array * ) ;
+extern void AFNI_finalize_read_palette_CB( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_set_pbar_top_CB( Widget, XtPointer , MCW_choose_cbs * ) ;
+extern void AFNI_finalize_write_palette_CB( Widget, XtPointer , MCW_choose_cbs * ) ;
 
 #endif

@@ -21,8 +21,9 @@
                                value is not displayed
 
     FIX_SCALE_SIZE_PROBLEM = if #define-d, will work around a bug in
-                              Metrolink Motif where the threshold scale
-                              resizes itself whenever the pbar is touched
+                              some versions of Motif where the
+                              threshold scale resizes itself whenever
+                              the pbar is touched
 
     SCANDIR_WANT_CONST = if #define-d, says that the "scandir" library
                           routine wants "const" arguments -- setting this

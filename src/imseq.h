@@ -319,6 +319,8 @@ typedef struct {
      generic_func * transform2D_func ;
      int            transform2D_index ;
 
+     int never_drawn ;
+
      /*--- data below here should be freed before deletion ---*/
 
      MRI_IMAGE * imim , * ovim ;  /* latest and greatest (already processed) */
@@ -329,7 +331,7 @@ typedef struct {
      ISQ_indiv_statistics * imstat ;
      ISQ_glob_statistics  * glstat ;
 
-     /*--- temporary, I hope ---*/
+     /*--- temporary, I hope [Hah!] ---*/
 
      int saver_from , saver_to ;
      char * saver_prefix ;

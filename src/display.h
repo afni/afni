@@ -31,6 +31,10 @@
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
 #endif
 
+#ifndef myXtNew
+#define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
+#endif
+
 /* these macros are to produce RGB intensities (unsigned shorts) */
 
 #define CLIP_INTEN(i)    (((i)<256) ? (256) : ((i)>65280) ? (65280) : (i))
@@ -51,6 +55,19 @@
 
 #define MAX_COLORS 256
 
+/** Dec 1997: split overlay stuff into a separate struct **/
+
+typedef struct {
+   int    ncol_ov ;              /* number of overlay colors defined */
+   XColor xcol_ov[MAX_COLORS] ;  /* definitions of overlay colors */
+   Pixel  pix_ov[MAX_COLORS]  ;  /* Pixels for overlay */
+   char * name_ov[MAX_COLORS] ;  /* names of overlay colors */
+   char * label_ov[MAX_COLORS] ; /* labels for overlay colors */
+
+   Pixel  pixov_brightest,pixov_darkest,pixov_reddest,pixov_greenest,pixov_bluest;
+   int    ov_brightest,   ov_darkest,   ov_reddest,   ov_greenest,   ov_bluest;
+} MCW_DCOV ;
+
 typedef struct {
       XtAppContext appcontext ;    /* X and Xt stuff */
       Display *    display ;
@@ -64,24 +81,18 @@ typedef struct {
 
       int          width , height ;       /* of the screen */
 
-      int          ncol_im , ncol_ov ;    /* # colors we use */
+      int          ncol_im ;              /* # colors we use */
       double       gamma , gamma_init ;   /* gamma factor */
       int          use_xcol_im ;          /* color in use? */
 
       XColor       xgry_im[MAX_COLORS] ,  /* for images */
-                   xcol_im[MAX_COLORS] ,
-                   xcol_ov[MAX_COLORS]  ; /* for overlays */
+                   xcol_im[MAX_COLORS]  ;
 
-      Pixel        pix_im[MAX_COLORS] ,
-                   pix_ov[MAX_COLORS]  ;
+      Pixel        pix_im[MAX_COLORS] ;
 
-      Pixel        pixov_brightest,pixov_darkest,pixov_reddest,pixov_greenest,pixov_bluest;
-      int             ov_brightest,   ov_darkest,   ov_reddest,   ov_greenest,   ov_bluest;
+      MCW_DCOV *   ovc ;                  /* Dec 1997 */
 
       int          xint_im[MAX_COLORS] ;  /* intensity levels for xgry_im */
-
-      char *       name_ov[MAX_COLORS] ;  /* names of overlay colors */
-      char *       label_ov[MAX_COLORS] ; /* labels for overlay colors */
 
       XFontStruct * myFontStruct ;
 
@@ -146,5 +157,7 @@ extern void DC_fg_color( MCW_DC * , int ) ;
 extern void DC_bg_color( MCW_DC * , int ) ;
 extern void DC_fg_colortext( MCW_DC * , char * ) ;
 extern void DC_linewidth( MCW_DC * , int ) ;
+
+extern void OVC_mostest( MCW_DCOV * ) ;
 
 #endif /* _MCW_DISPLAY_HEADER_ */

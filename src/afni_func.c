@@ -341,7 +341,7 @@ void AFNI_setup_inten_pbar( Three_D_View * im3d )
 
   pbar = im3d->vwid->func->inten_pbar ;
   jm   = pbar->mode ;
-  lcol = im3d->dc->ncol_ov - 1 ;
+  lcol = im3d->dc->ovc->ncol_ov - 1 ;
 
   /** load the 'save' values for all possible pane counts **/
 
@@ -378,6 +378,7 @@ void AFNI_inten_av_CB( MCW_arrowval * av , XtPointer cd )
    MCW_pbar * pbar = (MCW_pbar *) cd ;
    Three_D_View * im3d = (Three_D_View *) pbar->parent ;
 
+   HIDE_SCALE(im3d) ;
    alter_MCW_pbar( pbar , av->ival , NULL ) ;
    FIX_SCALE_SIZE(im3d) ;
 }
@@ -3723,6 +3724,7 @@ ENTRY("AFNI_inten_bbox_CB") ;
 
       /* re-panel the pbar befitting its new mode */
 
+      HIDE_SCALE(im3d) ;
       alter_MCW_pbar( im3d->vwid->func->inten_pbar ,
                       im3d->vwid->func->inten_pbar->npan_save[jm] , NULL ) ;
       FIX_SCALE_SIZE(im3d) ;
@@ -3860,9 +3862,27 @@ char * AFNI_bucket_label_CB( MCW_arrowval * av , XtPointer cd )
 {
    static char blab[32] ;
    THD_3dim_dataset * dset = (THD_3dim_dataset *) cd ;
+   static char * lfmt[3] = { "#%1d %-14.14s" , "#%2d %-14.14s" , "#%3d %-14.14s"  } ;
+   static char * rfmt[3] = { "%-14.14s #%1d" , "%-14.14s #%2d" , "%-14.14s #%3d"  } ;
 
-   if( ISVALID_3DIM_DATASET(dset) )
-      sprintf(blab,"%-14.14s #%d", DSET_BRICK_LABEL(dset,av->ival), av->ival ) ;
+   if( ISVALID_3DIM_DATASET(dset) ){
+
+#ifdef USE_RIGHT_BUCK_LABELS
+      if( DSET_NVALS(dset) < 10 )
+        sprintf(blab, rfmt[0] , DSET_BRICK_LABEL(dset,av->ival) , av->ival ) ;
+      else if( DSET_NVALS(dset) < 100 )
+        sprintf(blab, rfmt[1] , DSET_BRICK_LABEL(dset,av->ival) , av->ival ) ;
+      else
+        sprintf(blab, rfmt[2] , DSET_BRICK_LABEL(dset,av->ival) , av->ival ) ;
+#else
+      if( DSET_NVALS(dset) < 10 )
+        sprintf(blab, lfmt[0] , av->ival , DSET_BRICK_LABEL(dset,av->ival) ) ;
+      else if( DSET_NVALS(dset) < 100 )
+        sprintf(blab, lfmt[1] , av->ival , DSET_BRICK_LABEL(dset,av->ival) ) ;
+      else
+        sprintf(blab, lfmt[2] , av->ival , DSET_BRICK_LABEL(dset,av->ival) ) ;
+#endif
+   }
    else
       sprintf(blab," #%d ",av->ival) ;
 
@@ -3895,8 +3915,8 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_anat_info_pb ){
       char * inf = THD_dataset_info( im3d->anat_now , 0 ) ;
       if( inf != NULL ){
-         (void)  MCW_popup_message( im3d->vwid->imag->topper ,
-                                    inf , MCW_USER_KILL ) ;
+         (void)  new_MCW_textwin( im3d->vwid->imag->topper ,
+                                  inf , TEXT_READONLY ) ;
          free(inf) ;
       } else
          XBell( im3d->dc->display , 100 ) ;
@@ -3905,8 +3925,8 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_func_info_pb ){
       char * inf = THD_dataset_info( im3d->fim_now , 0 ) ;
       if( inf != NULL ){
-         (void)  MCW_popup_message( im3d->vwid->imag->topper ,
-                                    inf , MCW_USER_KILL ) ;
+         (void)  new_MCW_textwin( im3d->vwid->imag->topper ,
+                                  inf , TEXT_READONLY ) ;
          free(inf) ;
       } else
          XBell( im3d->dc->display , 100 ) ;

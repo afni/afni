@@ -2458,7 +2458,7 @@ void AFNI_plugin_button( Three_D_View * im3d )
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
                      XmNtraversalOn  , False ,
-                     XmNbackground   , im3d->dc->pixov_brightest ,
+                     XmNbackground   , im3d->dc->ovc->pixov_brightest ,
                   NULL ) ;
    XtManageChild( mbar ) ;
 
@@ -2846,10 +2846,14 @@ void PLUTO_popup_worker( PLUGIN_interface * plint , char * mesg , int flag )
       w = im3d->vwid->top_shell ;
    }
 
-   if( w != NULL )
-      (void) MCW_popup_message( w , mesg , flag ) ;
-   else
+   if( w != NULL ){
+      if( flag >= 0 )
+         (void) MCW_popup_message( w , mesg , flag ) ;
+      else
+         (void) new_MCW_textwin( w , mesg , TEXT_READONLY ) ;
+   } else {
       fprintf(stderr,"\n%s\a\n",mesg) ;
+   }
 
    return ;
 }

@@ -865,3 +865,176 @@ void MCW_set_meter( Widget wscal , int percent )
    XmUpdateDisplay(wscal) ;
    return ;
 }
+
+/*-----------------------------------------------------------------------*/
+
+#define RONLY_NUM 1
+#define EDIT_NUM  2
+
+static MCW_action_item TWIN_act[] = {
+ { "Quit" , MCW_textwin_CB , NULL , NULL , "Close window" , 0 } ,
+ { "Set"  , MCW_textwin_CB , NULL , NULL , "Apply choice and close window" , 0 }
+} ;
+
+MCW_textwin * new_MCW_textwin( Widget wpar , char * msg , int type )
+{
+   MCW_textwin * tw ;
+   int wx,hy,xx,yy , xp,yp , scr_width,scr_height , xr,yr , xpr,ypr , ii,nact , swid=0 ;
+   Position xroot , yroot ;
+   Screen * scr ;
+   Boolean editable ;
+   Arg wa[64] ; int na ;
+
+   /*-- sanity check --*/
+
+   if( ! XtIsRealized(wpar) ) return NULL ;
+
+   /* set position based on parent and screen geometry */
+
+   MCW_widget_geom( wpar , &wx,&hy,&xx,&yy ) ;     /* geometry of parent */
+   XtTranslateCoords( wpar, 0,0, &xroot,&yroot ) ; /* root coords */
+   xr = (int) xroot ; yr = (int) yroot ;
+
+   scr        = XtScreen(wpar) ;
+   scr_width  = WidthOfScreen(scr) ;
+   scr_height = HeightOfScreen(scr) ;
+
+   xp = xx+8 ;  xpr = xr+8 ;
+        if( xpr+50 > scr_width ){ xp -= 100 ; xpr -= 100 ; } /* too right */
+   else if( xpr+10 < 0 )        { xpr = xp = 1 ; }           /* too left  */
+
+   yp = yy+hy+8 ;  ypr = yr+hy+8 ;
+        if( ypr+50 > scr_height ){ yp = yy-8 ; ypr = yr-100 ;} /* too down */
+   else if( ypr+10 < 0 )         { ypr = yp = 1 ;            } /* too up   */
+
+   /* create a popup shell */
+
+   tw = myXtNew(MCW_textwin) ;
+
+   tw->wshell = XtVaCreatePopupShell(
+                 "dialog" , xmDialogShellWidgetClass , wpar ,
+                    XmNx , xpr ,
+                    XmNy , ypr ,
+                    XmNinitialResourcesPersistent , False ,
+                 NULL ) ;
+
+   XmAddWMProtocolCallback(
+        tw->wshell ,
+        XmInternAtom( XtDisplay(tw->wshell) , "WM_DELETE_WINDOW" , False ) ,
+        MCW_textwinkill_CB , (XtPointer) tw ) ;
+
+   /* create a form to hold everything else */
+
+   tw->wtop = XtVaCreateWidget(
+                "dialog" , xmFormWidgetClass , tw->wshell ,
+                  XmNborderWidth , 0 ,
+                  XmNborderColor , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+                NULL ) ;
+
+   /* create action area */
+
+   editable = (Boolean) (type == TEXT_EDITABLE) ;
+
+   nact = (editable) ? EDIT_NUM : RONLY_NUM ;
+   for( ii=0 ; ii < nact ; ii++ ){
+     TWIN_act[ii].data     = (XtPointer) tw ;
+     TWIN_act[ii].make_red = 0 ;
+   }
+   TWIN_act[nact-1].make_red = 1 ;
+
+   tw->wactar = MCW_action_area( tw->wtop , TWIN_act , nact ) ;
+
+   XtVaSetValues( tw->wactar ,
+                     XmNleftAttachment , XmATTACH_FORM ,
+                     XmNrightAttachment, XmATTACH_FORM ,
+                     XmNtopAttachment  , XmATTACH_FORM ,
+                  NULL ) ;
+
+   /* create text area */
+
+   tw->wscroll = XtVaCreateManagedWidget(
+                    "dialog" , xmScrolledWindowWidgetClass , tw->wtop ,
+                       XmNscrollingPolicy        , XmAUTOMATIC ,
+                       XmNvisualPolicy           , XmVARIABLE ,
+                       XmNscrollBarDisplayPolicy , XmAS_NEEDED ,
+
+                       XmNleftAttachment  , XmATTACH_FORM ,
+                       XmNrightAttachment , XmATTACH_FORM ,
+                       XmNbottomAttachment, XmATTACH_FORM ,
+                       XmNtopAttachment   , XmATTACH_WIDGET ,
+                       XmNtopWidget       , tw->wactar ,
+                       XmNtopOffset       , 7 ,
+
+                       XmNinitialResourcesPersistent , False ,
+                    NULL ) ;
+
+   tw->wtext = XtVaCreateManagedWidget(
+                    "dialog" , xmTextWidgetClass , tw->wscroll ,
+                       XmNeditMode               , XmMULTI_LINE_EDIT ,
+                       XmNautoShowCursorPosition , editable ,
+                       XmNeditable               , editable ,
+                       XmNcursorPositionVisible  , editable ,
+                    NULL ) ;
+
+   if( msg != NULL ){
+      int cmax = 20 , ll ;
+      char * cpt , *cold , cbuf[128] ;
+      XmString xstr ;
+      XmFontList xflist ;
+
+      XtVaSetValues( tw->wtext , XmNvalue , msg , NULL ) ;
+      XtVaGetValues( tw->wtext , XmNfontList , &xflist , NULL ) ;
+
+      cmax = 20 ;
+      for( cpt=msg,cold=msg ; *cpt != '\0' ; cpt++ ){
+         if( *cpt == '\n' ){
+            ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
+            cold = cpt ;
+         }
+      }
+      ll = cpt - cold - 1 ; if( cmax < ll ) cmax = ll ;
+      if( cmax > 88 ) cmax = 88 ;
+      cmax++ ;
+      for( ll=0 ; ll < cmax ; ll++ ) cbuf[ll] = 'x' ;
+      cbuf[cmax] = '\0' ;
+      xstr = XmStringCreateLtoR( cbuf , XmFONTLIST_DEFAULT_TAG ) ;
+      swid = XmStringWidth( xflist , xstr ) + 44 ;
+      XmStringFree( xstr ) ;
+   }
+
+   XtManageChild( tw->wtop ) ;
+
+   XtPopup( tw->wshell , XtGrabNone ) ;
+
+   if( swid > 0 )
+      XtVaSetValues( tw->wshell , XmNwidth , swid , NULL ) ; 
+
+   return tw ;
+}
+
+void MCW_textwin_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   MCW_textwin * tw = (MCW_textwin *) client_data ;
+   char * wname     = XtName(w) ;
+
+   if( client_data == NULL ) return ;
+
+   if( strcmp(wname,"Quit") == 0 ){
+      XtDestroyWidget( tw->wshell ) ;
+      myXtFree( tw ) ;
+      return ;
+   }
+
+   XBell( XtDisplay(w) , 100 ) ;
+   return ;
+}
+
+void MCW_textwinkill_CB( Widget w , XtPointer client_data , XtPointer call_data )
+{
+   MCW_textwin * tw = (MCW_textwin *) client_data ;
+   XtDestroyWidget( tw->wshell ) ;
+   myXtFree( tw ) ;
+   return ;
+}

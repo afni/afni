@@ -28,7 +28,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
 {
    MCW_pbar * pbar ;
-   int i , np , jm , lcol , ic ;
+   int i , np , jm , lcol , ic , ph ;
    Widget frm ;
 
    /* sanity check */
@@ -38,7 +38,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    /* new pbar */
 
-   lcol = dc->ncol_ov - 1 ;  /* last color available */
+   lcol = dc->ovc->ncol_ov - 1 ;  /* last color available */
 
    pbar = myXtNew( MCW_pbar ) ;
 
@@ -76,12 +76,17 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
 
    /** make the panes **/
 
+   pbar->pane_hsum[0] = 0 ;  /* Dec 1997 */
+
    for( i=0 ; i < NPANE_MAX ; i++ ){
+      ph = (i<npane) ? pheight : PANE_MIN_HEIGHT ;  /* Dec 1997 */
+      pbar->pane_hsum[i+1] = pbar->pane_hsum[i] + ph ;
+
       pbar->panes[i] = XtVaCreateWidget(
                           "pbar" , xmDrawnButtonWidgetClass , pbar->panew ,
                               XmNpaneMinimum , PANE_MIN_HEIGHT ,
                               XmNallowResize , True ,
-                              XmNheight , (i<npane) ? pheight : PANE_MIN_HEIGHT ,
+                              XmNheight , ph ,
                               XmNwidth , PANE_WIDTH,
                               XmNborderWidth , 0 ,
                               XmNmarginWidth , 0 ,
@@ -100,7 +105,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
       XtAddCallback( pbar->panes[i] , XmNresizeCallback , PBAR_resize_CB , pbar ) ;
 
       pbar->ov_index[i] = ic = MIN( lcol , i+1 ) ;
-      MCW_set_widget_bg( pbar->panes[i] , NULL , dc->pix_ov[ic] ) ;
+      MCW_set_widget_bg( pbar->panes[i] , NULL , dc->ovc->pix_ov[ic] ) ;
    }
    XtManageChild( pbar->panew ) ;
 
@@ -165,6 +170,7 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
    pbar->update_me    = 0 ;
    pbar->mode         = 0 ;
    pbar->hide_changes = 0 ;
+   pbar->keep_pval    = 0 ;  /* Dec 1997 */
 
    for( jm=0 ; jm < PANE_MAXMODE ; jm++ )
       pbar->npan_save[jm] = pbar->num_panes ;
@@ -223,9 +229,9 @@ void PBAR_set_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
    MCW_pbar * pbar = NULL ;
    int ip , jm ;
 
-   if( cbs->ival > 0 && cbs->ival < dc->ncol_ov ){
+   if( cbs->ival > 0 && cbs->ival < dc->ovc->ncol_ov ){
       XtVaSetValues( w , XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP , NULL ) ;
-      MCW_set_widget_bg( w , NULL , dc->pix_ov[cbs->ival] ) ;
+      MCW_set_widget_bg( w , NULL , dc->ovc->pix_ov[cbs->ival] ) ;
    } else {
       XtVaSetValues( w , XmNbackgroundPixmap , check_pixmap , NULL ) ;
    }
@@ -266,8 +272,7 @@ void PBAR_resize_CB( Widget w , XtPointer cd , XtPointer cb )
    for( i=0 ; i < pbar->num_panes ; i++ ){
      MCW_widget_geom( pbar->panes[i] , NULL , &(hh[i]) , NULL,NULL ) ;
 #ifdef PBAR_DEBUG
-printf("resize: read pane # %d height=%d\n",i,hh[i]) ;
-fflush(stdout) ;
+printf("resize: read pane # %d height=%d\n",i,hh[i]) ; fflush(stdout) ;
 #endif
      sum += hh[i] ;
      if( w == pbar->panes[i] ) ip = i ;
@@ -288,12 +293,20 @@ fflush(stdout) ;
    pmin = pbar->pval[pbar->num_panes] ;
 
    for( i=0 ; i <= pbar->num_panes ; i++ ){
+
+#if 0  /* the pre Dec 1997 way */
       val = pmax - sum * (pmax-pmin) / pbar->panes_sum ;
       if( alter_all || val != pbar->pval[i] ){
+#else
+      if( alter_all || (i>0 && pbar->pane_hsum[i] != sum) ){
+#endif
 
-         pbar->pval_save[pbar->num_panes][i][jm] =         /* reset this */
-                                   pbar->pval[i] = val ;   /* threshold  */
-                                                           /* to match pane size */
+         if( ! pbar->keep_pval ){  /* Dec 1997 */
+            val = pmax - sum * (pmax-pmin) / pbar->panes_sum ;
+            pbar->pval_save[pbar->num_panes][i][jm] =         /* reset this */
+                                      pbar->pval[i] = val ;   /* threshold  */
+                                                              /* to match pane size */
+         }
 
          if( KEEP_LABEL(i,pbar->num_panes) ){
             if( i < pbar->num_panes ){
@@ -315,6 +328,10 @@ fflush(stdout) ;
       }
       if( i < pbar->num_panes ) sum += hh[i] ;
    }
+
+   pbar->pane_hsum[0] = 0 ;
+   for( i=0 ; i < pbar->num_panes ; i++ )
+      pbar->pane_hsum[i+1] = pbar->pane_hsum[i] + hh[i] ;
 
    if( pbar->pb_CB != NULL )
       pbar->pb_CB( pbar , pbar->pb_data , pbCR_VALUE ) ;
@@ -373,7 +390,7 @@ void alter_MCW_pbar( MCW_pbar * pbar , int new_npane , float * new_pval )
          XtVaSetValues( pbar->panes[i] ,
                            XmNbackgroundPixmap , XmUNSPECIFIED_PIXMAP ,
                         NULL ) ;
-         MCW_set_widget_bg( pbar->panes[i] , NULL , pbar->dc->pix_ov[ovc] ) ;
+         MCW_set_widget_bg( pbar->panes[i] , NULL , pbar->dc->ovc->pix_ov[ovc] ) ;
       } else {
          XtVaSetValues( pbar->panes[i] ,
                            XmNbackgroundPixmap , check_pixmap ,
@@ -382,8 +399,7 @@ void alter_MCW_pbar( MCW_pbar * pbar , int new_npane , float * new_pval )
    }
 
 #ifdef PBAR_DEBUG
-printf("\n");
-fflush(stdout) ;
+printf("\n"); fflush(stdout) ;
 #endif
 
    pbar->renew_all = -1 ;  /* skip updates for the moment */
@@ -397,8 +413,7 @@ fflush(stdout) ;
    if( npane > npane_old ){
       for( i=npane_old ; i < npane ; i++ ){
 #ifdef PBAR_DEBUG
-printf("manage pane %d\n",i) ;
-fflush(stdout) ;
+printf("manage pane %d\n",i) ; fflush(stdout) ;
 #endif
 
          XtManageChild( pbar->panes[i] ) ;
@@ -407,8 +422,7 @@ fflush(stdout) ;
    } else if( npane < npane_old ){
       for( i=npane_old-1 ; i >= npane ; i-- ){
 #ifdef PBAR_DEBUG
-printf("unmanage pane %d\n",i) ;
-fflush(stdout) ;
+printf("unmanage pane %d\n",i) ; fflush(stdout) ;
 #endif
          XtUnmanageChild( pbar->panes[i] ) ;
       }
@@ -428,14 +442,12 @@ fflush(stdout) ;
       sum -= hh ;
 #ifdef PBAR_DEBUG
 printf("set pane %d to height %d (top=%g bot=%g float=%g rem=%g sum=%d)\n",
-       i,hh,pval[i],pval[i+1],fhh,rhh,sum) ;
-fflush(stdout) ;
+       i,hh,pval[i],pval[i+1],fhh,rhh,sum) ; fflush(stdout) ;
 #endif
       XtVaSetValues( pbar->panes[i] , XmNheight , hh , NULL ) ;
    }
 #ifdef PBAR_DEBUG
-printf("set pane %d to height %d\n",npane-1,sum) ;
-fflush(stdout) ;
+printf("set pane %d to height %d\n",npane-1,sum) ; fflush(stdout) ;
 #endif
    XtVaSetValues( pbar->panes[npane-1] , XmNheight , sum , NULL ) ;
 
@@ -445,12 +457,20 @@ fflush(stdout) ;
                                                           : SASH_HNO ,
                   NULL ) ;
 
-   XtVaSetValues( pbar->top   , XmNheight , pbar->panew_height , NULL ) ;
+   XtVaSetValues( pbar->top , XmNheight , pbar->panew_height , NULL ) ;
 
    if( pbar->hide_changes ) XtMapWidget( pbar->top ) ;
 
    pbar->renew_all = 1 ;
+   pbar->keep_pval = 1 ;  /* Dec 1997 */
    PBAR_resize_CB( pbar->panes[pbar->num_panes-1] , (XtPointer) pbar , NULL ) ;
+
+   if( pbar->keep_pval ){                  /* Dec 1997 */
+      for( i=0 ; i <= npane ; i++ )
+         pbar->pval_save[pbar->num_panes][i][jm] =
+                                   pbar->pval[i] = pval[i] ;
+   }
+   pbar->keep_pval = 0 ;
 
 #ifdef PBAR_DEBUG
  { int hh,ww,xx,yy , i ;
@@ -458,17 +478,14 @@ fflush(stdout) ;
    XmUpdateDisplay(pbar->top) ;
 
    MCW_widget_geom(pbar->top , &ww,&hh,&xx,&yy ) ;
-   printf("pbar->top  :  w=%d h=%d x=%d y=%d\n",ww,hh,xx,yy) ;
-   fflush(stdout) ;
+   printf("pbar->top  :  w=%d h=%d x=%d y=%d\n",ww,hh,xx,yy) ; fflush(stdout) ;
 
    MCW_widget_geom(pbar->panew , &ww,&hh,&xx,&yy ) ;
-   printf("pbar->panew: w=%d h=%d x=%d y=%d\n",ww,hh,xx,yy) ;
-   fflush(stdout) ;
+   printf("pbar->panew: w=%d h=%d x=%d y=%d\n",ww,hh,xx,yy) ; fflush(stdout) ;
 
    for( i=0 ; i < pbar->num_panes ; i++ ){
       MCW_widget_geom(pbar->panes[i] , &ww,&hh,&xx,&yy ) ;
-      printf("pane # %d: w=%d h=%d x=%d y=%d\n",i,ww,hh,xx,yy) ;
-      fflush(stdout) ;
+      printf("pane # %d: w=%d h=%d x=%d y=%d\n",i,ww,hh,xx,yy) ; fflush(stdout) ;
    }
  }
 #endif

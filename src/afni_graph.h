@@ -242,12 +242,12 @@ static int gr_color_start[NUM_COLOR_ITEMS] = {
   1
 } ;
 
-#define GRA_COLOR(cd)                                          \
-   ( ((cd) == BRIGHTEST_COLOR)  ? (grapher->dc->ov_brightest)   \
-    :((cd) == DARKEST_COLOR  )  ? (grapher->dc->ov_darkest)    \
-    :((cd) == REDDEST_COLOR   ) ? (grapher->dc->ov_reddest)   \
-    :((cd) == GREENEST_COLOR )  ? (grapher->dc->ov_greenest) \
-    :((cd) == BLUEST_COLOR  )   ? (grapher->dc->ov_bluest)  \
+#define GRA_COLOR(cd)                                              \
+   ( ((cd) == BRIGHTEST_COLOR)  ? (grapher->dc->ovc->ov_brightest)  \
+    :((cd) == DARKEST_COLOR  )  ? (grapher->dc->ovc->ov_darkest)   \
+    :((cd) == REDDEST_COLOR   ) ? (grapher->dc->ovc->ov_reddest)  \
+    :((cd) == GREENEST_COLOR )  ? (grapher->dc->ovc->ov_greenest)\
+    :((cd) == BLUEST_COLOR  )   ? (grapher->dc->ovc->ov_bluest) \
     :(cd) )
 
 #define THICKKK  2
@@ -363,6 +363,8 @@ typedef struct {
    int   setshift_left , setshift_right ;
 
    MCW_DC * dc ;
+
+   int never_drawn ;
 
    XtPointer parent ;
 } MCW_grapher ;

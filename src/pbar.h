@@ -35,11 +35,11 @@ static Pixmap check_pixmap = XmUNSPECIFIED_PIXMAP ;
 
 #define PANE_MAXMODE     2
 
-#define NPANE_NOSASH    21
+#define NPANE_NOSASH    21  /* doesn't work well */
 #define SASH_HYES        5
 #define SASH_HNO         1
 
-#define KEEP_LABEL(ip,np) ( ((ip) <= (np) && (np) < NPANE_NOSASH) || ((ip) == 0 || (ip) == (np)) )
+#define KEEP_LABEL(ip,np) ( ((ip)<=(np) && (np)<NPANE_NOSASH) || ((ip)==0 || (ip)==(np)) )
 
 #define pbCR_COLOR       (1<<0)
 #define pbCR_VALUE       (1<<1)
@@ -54,7 +54,9 @@ typedef struct {
   int   ovin_save[NPANE_MAX+1][NPANE_MAX+1][PANE_MAXMODE] ;
   int   npan_save[PANE_MAXMODE] ;
 
-  int   update_me , mode , hide_changes ;
+  int   pane_hsum[NPANE_MAX+1] ;  /* Dec 1997 */
+
+  int   update_me , mode , hide_changes , keep_pval ;
 
   gen_func * pb_CB ;
   XtPointer  pb_data ;

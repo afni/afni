@@ -35,8 +35,8 @@ XImage * mri_to_XImage( MCW_DC * dc , MRI_IMAGE * im )
       sleep(1) ; exit(1) ;
    }
    sar  = MRI_SHORT_PTR(im) ;
-   ppix = dc->pix_im ;  /* positive pixels */
-   npix = dc->pix_ov ;  /* negative pixels */
+   ppix = dc->pix_im ;       /* array for positive pixels */
+   npix = dc->ovc->pix_ov ;  /* array for negative pixels */
 
    width  = im->nx ;
    height = im->ny ;

@@ -260,7 +260,7 @@ ENTRY("AFNI_make_widgets") ;
    if( ! IM3D_VALID(im3d) )
       FatalError("illegal call to AFNI_make_widgets") ;
 
-   last_color = im3d->dc->ncol_ov - 1 ;
+   last_color = im3d->dc->ovc->ncol_ov - 1 ;
 
    vwid         = im3d->vwid ;
    vwid->parent = im3d ;
@@ -2108,6 +2108,8 @@ ENTRY("AFNI_make_wid2") ;
       XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , func->rowcol ,
             XmNorientation , XmVERTICAL ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
             XmNpacking , XmPACK_TIGHT ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -2160,6 +2162,24 @@ ENTRY("AFNI_make_wid2") ;
 
    MCW_register_hint( func->pbar_equalize_pb , "Space separators equally" ) ;
 
+   func->pbar_settop_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Set Top Value") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   XtAddCallback( func->pbar_settop_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+
+   MCW_register_hint( func->pbar_settop_pb , "Is scaled by 'range' controls" ) ;
+
+   (void) XtVaCreateManagedWidget(
+            "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
+             XmNseparatorType , XmSINGLE_LINE , NULL ) ;
+
    func->pbar_readin_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
@@ -2169,7 +2189,7 @@ ENTRY("AFNI_make_wid2") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-   MCW_register_hint( func->pbar_readin_pb , "Read palette file [not implemented]" ) ;
+   MCW_register_hint( func->pbar_readin_pb , "Read in a palette file" ) ;
 
    XtAddCallback( func->pbar_readin_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
@@ -2183,10 +2203,26 @@ ENTRY("AFNI_make_wid2") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-   MCW_register_hint( func->pbar_writeout_pb , "Write palette file [not implemented]" ) ;
+   MCW_register_hint( func->pbar_writeout_pb ,
+                      "Write out a palette file" ) ;
 
    XtAddCallback( func->pbar_writeout_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
+
+   func->pbar_showtable_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Show Palette Table") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   XtAddCallback( func->pbar_showtable_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+
+   MCW_register_hint( func->pbar_showtable_pb , "Will popup a listing window" ) ;
+
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
@@ -3795,7 +3831,7 @@ ENTRY("new_AFNI_controller") ;
 
    /* create the rest of the AFNI control data */
 
-   last_color = im3d->dc->ncol_ov - 1 ;
+   last_color = im3d->dc->ovc->ncol_ov - 1 ;
 
    im3d->vinfo->crosshair_gap     = INIT_crosshair_gap ;
    im3d->vinfo->crosshair_gap_old = 0 ;
@@ -4129,7 +4165,7 @@ void AFNI_lock_button( Three_D_View * im3d )
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
                      XmNtraversalOn  , False ,
-                     XmNbackground   , im3d->dc->pixov_brightest ,
+                     XmNbackground   , im3d->dc->ovc->pixov_brightest ,
                   NULL ) ;
    XtManageChild( mbar ) ;
 
@@ -4257,7 +4293,7 @@ void AFNI_misc_button( Three_D_View * im3d )
                      XmNborderWidth  , 0 ,
                      XmNborderColor  , 0 ,
                      XmNtraversalOn  , False ,
-                     XmNbackground   , im3d->dc->pixov_brightest ,
+                     XmNbackground   , im3d->dc->ovc->pixov_brightest ,
                   NULL ) ;
    XtManageChild( mbar ) ;
 

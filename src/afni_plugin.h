@@ -478,6 +478,9 @@ extern int PLUTO_string_index( char * , int , char ** ) ;
 #define PLUTO_popup_transient(pl,ch) \
    PLUTO_popup_worker((pl),(ch),MCW_USER_KILL|MCW_TIMER_KILL);
 
+#define PLUTO_popup_textwin(pl,ch)   \
+   PLUTO_popup_worker((pl),(ch),-1)
+
 extern void PLUTO_fixup_names(void) ;
 extern void PLUTO_popup_worker( PLUGIN_interface * , char * , int ) ;
 extern void PLUTO_beep(void) ;

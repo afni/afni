@@ -744,7 +744,7 @@ MCW_arrowval * new_MCW_colormenu( Widget parent , char * label , MCW_DC * dc ,
 
    for( ic=0 ; ic < num_children ; ic++ ){
       icol = min_col + ic ;
-      if( icol > 0 ) MCW_set_widget_bg( children[ic] , 0 , dc->pix_ov[icol] ) ;
+      if( icol > 0 ) MCW_set_widget_bg( children[ic] , 0 , dc->ovc->pix_ov[icol] ) ;
       else           MCW_set_widget_bg( children[ic] , "gray40" , 0 ) ;
    }
 
@@ -1119,13 +1119,13 @@ char * MCW_DC_ovcolor_text( MCW_arrowval * av , MCW_DC * dc )
    int ii = av->ival ;
    Widget wfix ;
 
-        if( ii < 0               ) ii = 0 ;
-   else if( ii > dc->ncol_ov - 1 ) ii = dc->ncol_ov - 1 ;
+        if( ii < 0                    ) ii = 0 ;
+   else if( ii > dc->ovc->ncol_ov - 1 ) ii = dc->ovc->ncol_ov - 1 ;
 
    wfix = av->wtext ;
 
    if( wfix != NULL ){
-      if( ii > 0 ) MCW_set_widget_bg( wfix , 0 , dc->pix_ov[ii] ) ;
+      if( ii > 0 ) MCW_set_widget_bg( wfix , 0 , dc->ovc->pix_ov[ii] ) ;
       else         MCW_set_widget_bg( wfix , "gray40" , 0 ) ;
    }
 
@@ -1135,7 +1135,7 @@ char * MCW_DC_ovcolor_text( MCW_arrowval * av , MCW_DC * dc )
    else if( av->wmenu != NULL && XtIsRealized(av->wrowcol) ){
       Pixel ptop , pbot ;
       wfix = av->wrowcol ;
-      if( ii > 0 ) pbot = ptop = dc->pix_ov[ii] ;
+      if( ii > 0 ) pbot = ptop = dc->ovc->pix_ov[ii] ;
       else         XtVaGetValues( XtParent(wfix) ,
                                      XmNtopShadowColor    , &ptop ,
                                      XmNbottomShadowColor , &pbot ,
@@ -1147,7 +1147,7 @@ char * MCW_DC_ovcolor_text( MCW_arrowval * av , MCW_DC * dc )
    }
 #endif
 
-   return dc->label_ov[ii] ;
+   return dc->ovc->label_ov[ii] ;
 }
 
 /*------------------------------------------------------------------------
@@ -1163,8 +1163,8 @@ char * MCW_DC_ovcolor_text( MCW_arrowval * av , MCW_DC * dc )
      func_data = data to pass to func
 
      The "ival" stored in the MCW_choose_cbs will be the index into the
-     DC overlay color table.  The pixel value is thus dc->pix_ov[cbs->ival].
-     The color name is dc->name_ov[cbs->ival].  Etc.
+     DC overlay color table.  The pixel value is thus dc->ovc->pix_ov[cbs->ival].
+     The color name is dc->ovc->name_ov[cbs->ival].  Etc.
 
      Note that cbs->ival = 0 means that the user choose the "None" color.
 
@@ -1238,13 +1238,13 @@ void MCW_choose_ovcolor( Widget wpar , MCW_DC * dc , int ovc_init ,
       wpop = NULL ; return ;
    }
 
-   if( ! XtIsRealized(wpar) || dc->ncol_ov < 2 ){  /* illegal call */
+   if( ! XtIsRealized(wpar) || dc->ovc->ncol_ov < 2 ){  /* illegal call */
       fprintf(stderr,"\n*** illegal call to MCW_choose_ovcolor: %s %d\n",
-             XtName(wpar) , dc->ncol_ov ) ;
+             XtName(wpar) , dc->ovc->ncol_ov ) ;
       return ;
    }
 
-   if( ovc_init < 0 || ovc_init >= dc->ncol_ov ) ovc_init = 1 ;
+   if( ovc_init < 0 || ovc_init >= dc->ovc->ncol_ov ) ovc_init = 1 ;
 
    /*--- if popup widget already exists, destroy it ---*/
 
@@ -1288,7 +1288,7 @@ void MCW_choose_ovcolor( Widget wpar , MCW_DC * dc , int ovc_init ,
              NULL ) ;
 
    av = new_MCW_colormenu( wrc , "Color " , dc ,
-                           0 , dc->ncol_ov - 1 , ovc_init , NULL,NULL ) ;
+                           0 , dc->ovc->ncol_ov - 1 , ovc_init , NULL,NULL ) ;
    MCW_reghelp_children( av->wrowcol , OVC_opt_help ) ;
    MCW_reghint_children( av->wrowcol , "Overlay colors" ) ;
 
@@ -1311,7 +1311,7 @@ void MCW_choose_ovcolor( Widget wpar , MCW_DC * dc , int ovc_init ,
    XtPopup( wpop , XtGrabNone ) ;
 
    if( av->wtext != NULL )
-      MCW_set_widget_bg( av->wtext , NULL , dc->pix_ov[ovc_init] ) ; /* after popup */
+      MCW_set_widget_bg( av->wtext , NULL , dc->ovc->pix_ov[ovc_init] ) ; /* after popup */
 
    return ;
 }

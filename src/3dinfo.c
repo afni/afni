@@ -34,7 +34,7 @@ int main( int argc , char * argv[] )
       outbuf = THD_dataset_info( dset , verbose ) ;
       if( outbuf != NULL ){
          printf("\n") ;
-         printf(outbuf) ;
+         puts(outbuf) ;
          free(outbuf) ; outbuf = NULL ;
       } else {
          printf("\nCan't get info for dataset %s\n",argv[iarg]) ;

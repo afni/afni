@@ -381,8 +381,10 @@ typedef struct {
       MCW_arrowval * inten_av ;
       MCW_bbox     * inten_bbox ;
 
-      Widget pbar_menu , pbar_equalize_pb , pbar_readin_pb , pbar_writeout_pb ;
+      Widget pbar_menu , pbar_equalize_pb , pbar_settop_pb ,
+             pbar_readin_pb , pbar_writeout_pb ;
       MCW_arrowval * pbar_palette_av ;
+      Widget pbar_showtable_pb ;
 
       Widget options_rowcol , options_label ;
       MCW_bbox     * underlay_bbox ;
@@ -419,9 +421,13 @@ typedef struct {
                            XmNuserData , &sel_ptr , NULL ) ;  \
          sel_height = (int) sel_ptr ;                         \
          XtVaSetValues( (iqqq)->vwid->func->thr_scale ,       \
-                           XmNheight , sel_height , NULL ) ; } while(0)
+                           XmNheight , sel_height , NULL ) ;  \
+         XtManageChild((iqqq)->vwid->func->thr_scale) ;       \
+       } while(0)
+#  define HIDE_SCALE(iqqq) XtUnmanageChild((iqqq)->vwid->func->thr_scale)
 #else
 #  define FIX_SCALE_SIZE(iqqq) /* nada */
+#  define HIDE_SCALE(iqqq)   /* nada */
 #endif
 
 #ifdef FIX_SCALE_VALUE_PROBLEM
@@ -637,8 +643,8 @@ typedef struct {
       FD_brick  * b123_fim  , * b231_fim  , * b312_fim  ; /* funcs */
       FD_brick  * b123_ulay , * b231_ulay , * b312_ulay ; /* underlays */
 
-      MCW_imseq   * s123     , * s231      , * s312 ;      /* viewers */
-      MCW_grapher * g123     , * g231      , * g312 ;      /* graphs */
+      MCW_imseq   * s123    , * s231      , * s312 ;      /* viewers */
+      MCW_grapher * g123    , * g231      , * g312 ;      /* graphs */
 
       AFNI_widget_set  * vwid ;
       char window_title[THD_MAX_NAME] ;

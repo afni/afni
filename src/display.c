@@ -12,11 +12,13 @@
     gam  = gamma value to use
 ------------------------------------------------------------------------*/
 
+static MCW_DCOV * only_ovc = NULL ;  /* Dec 1997 */
+
 MCW_DC * MCW_new_DC( Widget wid , int ncol ,
                      int novr , char * covr[] , char * lovr[] , double gam )
 {
    MCW_DC * dc ;
-   int ok , ii ;
+   int ok , ii , new_ovc ;
    unsigned int nplmsk = 0 ;  /* dummy arguments for XAllocColorCells */
    unsigned long plane_masks[1] ;
 
@@ -25,7 +27,7 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
       exit(1) ;
    }
 
-   dc = (MCW_DC *) XtMalloc( sizeof(MCW_DC) ) ;
+   dc = myXtNew(MCW_DC) ;
 
    dc->appcontext = XtWidgetToApplicationContext( wid ) ;
    dc->display    = XtDisplay( wid ) ;
@@ -109,11 +111,19 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
       (since the XImage routines use negative indices
        to indicate overlays, the 0th overlay color is not used) */
 
-   dc->xcol_ov[0]  = dc->xgry_im[0] ;
-   dc->pix_ov[0]   = dc->pix_im[0] ;
-   dc->name_ov[0]  = XtNewString("none") ;
-   dc->label_ov[0] = dc->name_ov[0] ;
-   dc->ncol_ov     = 1 ;
+   /* Dec 1997: put all overlay stuff into a single place */
+
+   new_ovc = 0 ;
+   if( only_ovc == NULL ){ only_ovc = myXtNew(MCW_DCOV) ; new_ovc = 1 ; }
+   dc->ovc = only_ovc ;
+
+   if( new_ovc ){
+      only_ovc->xcol_ov[0]  = dc->xgry_im[0] ;
+      only_ovc->pix_ov[0]   = dc->pix_im[0] ;
+      only_ovc->name_ov[0]  = XtNewString("none") ;
+      only_ovc->label_ov[0] = only_ovc->name_ov[0] ;
+      only_ovc->ncol_ov     = 1 ;
+   }
 
    for( ii=0 ; ii < novr ; ii++ ){
 
@@ -125,54 +135,12 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
 #ifdef DISPLAY_DEBUG
      else {
         printf("\n*** overlay color %s has pixel %d at index %d" ,
-               dc->name_ov[ok] , (int)dc->pix_ov[ok] , ok ) ;
+               dc->ovc->name_ov[ok] , (int)dc->ovc->pix_ov[ok] , ok ) ;
         fflush(stdout) ;
      }
 #endif
    }
-
-   /*-- May 1996: save the indices of the darkest and brightest overlays --*/
-
-   { float bright_inten , dark_inten , red_inten , green_inten , blue_inten , inten ;
-     int   bright_ii    , dark_ii    , red_ii    , green_ii    , blue_ii ;
-
-     bright_inten = dark_inten = XCOL_BRIGHTNESS( dc->xcol_ov[1] ) ;
-     bright_ii    = dark_ii    = 1 ;
-
-     red_inten   = XCOL_REDNESS  ( dc->xcol_ov[1] ) ;  /* June 1997 */
-     green_inten = XCOL_GREENNESS( dc->xcol_ov[1] ) ;
-     blue_inten  = XCOL_BLUENESS ( dc->xcol_ov[1] ) ;
-     red_ii = green_ii = blue_ii = 1 ;
-
-     for( ii=2 ; ii < dc->ncol_ov ; ii++ ){
-        inten = XCOL_BRIGHTNESS( dc->xcol_ov[ii] ) ;
-        if( inten > bright_inten ){
-           bright_inten = inten ; bright_ii = ii ;
-        } else if( inten < dark_inten ){
-           dark_inten = inten ; dark_ii = ii ;
-        }
-
-        inten = XCOL_REDNESS( dc->xcol_ov[ii] ) ;
-        if( inten > red_inten ){
-           red_inten = inten ; red_ii = ii ;
-        }
-
-        inten = XCOL_GREENNESS( dc->xcol_ov[ii] ) ;
-        if( inten > green_inten ){
-           green_inten = inten ; green_ii = ii ;
-        }
-
-        inten = XCOL_BLUENESS( dc->xcol_ov[ii] ) ;
-        if( inten > blue_inten ){
-           blue_inten = inten ; blue_ii = ii ;
-        }
-     }
-     dc->ov_brightest = bright_ii ; dc->pixov_brightest = dc->pix_ov[bright_ii] ;
-     dc->ov_darkest   = dark_ii   ; dc->pixov_darkest   = dc->pix_ov[dark_ii] ;
-     dc->ov_reddest   = red_ii    ; dc->pixov_reddest   = dc->pix_ov[red_ii] ;
-     dc->ov_greenest  = green_ii  ; dc->pixov_greenest  = dc->pix_ov[green_ii] ;
-     dc->ov_bluest    = blue_ii   ; dc->pixov_bluest    = dc->pix_ov[blue_ii] ;
-   }
+   OVC_mostest( dc->ovc ) ;
 
    /*-- May 1996: create new GC for use with text and graphics --*/
 
@@ -202,8 +170,8 @@ MCW_DC * MCW_new_DC( Widget wid , int ncol ,
      } else {
         XSetFont( dc->display , dc->myGC , mfinfo->fid ) ;
      }
-     XSetForeground(dc->display , dc->myGC , dc->pixov_darkest ) ;
-     XSetBackground(dc->display , dc->myGC , dc->pixov_brightest ) ;
+     XSetForeground(dc->display , dc->myGC , dc->ovc->pixov_darkest ) ;
+     XSetBackground(dc->display , dc->myGC , dc->ovc->pixov_brightest ) ;
      dc->myFontStruct = mfinfo ;
    }
 
@@ -354,37 +322,9 @@ Pixel Name_to_color( MCW_DC * dc , char * name )
 /*--------------------------------------------------------------------------
    Given a color name, allocate it, put it into the DC overlay table,
    and return its index (negative if an error occurred)
+   Dec 1997: modified to use read-write color cells,
+             and recycle them if the same label is passed in.
 ----------------------------------------------------------------------------*/
-
-#undef USE_OLD_OVCOL  /* 17 Dec 1997 */
-#ifdef USE_OLD_OVCOL
-
-   /** this version uses read-only color cells **/
-
-int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
-{
-   int ok , ii ;
-   XColor cell , exact ;
-
-   if( dc->ncol_ov < MAX_COLORS && name != NULL && strlen(name) > 0 ){
-
-      ok = XAllocNamedColor( dc->display,dc->colormap,name, &cell,&exact ) ;
-      if( ok ){
-         ii = dc->ncol_ov++ ;  /* new index in overlay color table */
-
-         dc->xcol_ov[ii]  = cell ;
-         dc->pix_ov[ii]   = cell.pixel ;
-         dc->name_ov[ii]  = XtNewString(name) ;
-         dc->label_ov[ii] = XtNewString(label) ;
-         return ii ;
-      }
-   }
-   return -1 ;  /* some error */
-}
-#else
-
-   /** this version uses read-write color cells,
-       and will recycle them if the same label is passed in **/
 
 int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
 {
@@ -397,11 +337,11 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
 
    /** see if label is already in the table **/
 
-   for( ii=1 ; ii < dc->ncol_ov ; ii++ )
-      if( strcmp(label,dc->label_ov[ii]) == 0 ) break ;
+   for( ii=1 ; ii < dc->ovc->ncol_ov ; ii++ )
+      if( strcmp(label,dc->ovc->label_ov[ii]) == 0 ) break ;
 
-   newcol = (ii == dc->ncol_ov) ;     /** need a new color cell? **/
-   if( ii == dc->ncol_ov ){           /** Yes **/
+   newcol = (ii == dc->ovc->ncol_ov) ;     /** need a new color cell? **/
+   if( ii == dc->ovc->ncol_ov ){           /** Yes **/
       unsigned int nplmsk = 0 ;
       unsigned long plane_masks[1] ;
 
@@ -412,36 +352,35 @@ int DC_add_overlay_color( MCW_DC * dc , char * name , char * label )
       if( !ok ) return -1 ;                /* couldn't get a new cell */
       cell.pixel = newpix ;
    } else {
-      if( strcmp(name,dc->name_ov[ii]) == 0 ) return ii ; /* no change! */
-      cell.pixel = dc->pix_ov[ii] ;
+      if( strcmp(name,dc->ovc->name_ov[ii]) == 0 ) return ii ; /* no change! */
+      cell.pixel = dc->ovc->pix_ov[ii] ;
    }
 
    ok = XParseColor( dc->display , dc->colormap , name, &cell ) ;
    if( !ok ) return -1 ;
 
    if( newcol ){                      /** made a new cell **/
-      dc->ncol_ov++ ;
+      dc->ovc->ncol_ov++ ;
    } else {                           /** free old cell stuff **/
-      myXtFree( dc->name_ov[ii] ) ;
-      myXtFree( dc->label_ov[ii] ) ;
+      myXtFree( dc->ovc->name_ov[ii] ) ;
+      myXtFree( dc->ovc->label_ov[ii] ) ;
    }
 
-   dc->xcol_ov[ii]  = cell ;          /** save cell info **/
-   dc->pix_ov[ii]   = cell.pixel ;
-   dc->name_ov[ii]  = XtNewString(name) ;
-   dc->label_ov[ii] = XtNewString(label) ;
+   dc->ovc->xcol_ov[ii]  = cell ;          /** save cell info **/
+   dc->ovc->pix_ov[ii]   = cell.pixel ;
+   dc->ovc->name_ov[ii]  = XtNewString(name) ;
+   dc->ovc->label_ov[ii] = XtNewString(label) ;
 
    XStoreColor( dc->display , dc->colormap , &cell ) ; /** make it work **/
    return ii ;
 }
-#endif /* USE_OLD_OVCOL */
 
 int DC_find_overlay_color( MCW_DC * dc , char * label )
 {
    int ii ;
    if( dc == NULL || label == NULL ) return -1 ;
-   for( ii=0 ; ii < dc->ncol_ov ; ii++ )
-      if( strcmp(label,dc->label_ov[ii]) == 0 ) return ii ;
+   for( ii=0 ; ii < dc->ovc->ncol_ov ; ii++ )
+      if( strcmp(label,dc->ovc->label_ov[ii]) == 0 ) return ii ;
    return -1 ;
 }
 
@@ -664,13 +603,13 @@ XColor * DCpix_to_XColor( MCW_DC * dc , int pp )
    int ii ;
 
    ulc = (dc->use_xcol_im) ? dc->xcol_im : dc->xgry_im ;
-   ovc = dc->xcol_ov ;
+   ovc = dc->ovc->xcol_ov ;
 
    for( ii=0 ; ii < dc->ncol_im ; ii++ )
       if( pp == dc->pix_im[ii] ) return (ulc+ii) ;
 
-   for( ii=0 ; ii < dc->ncol_ov ; ii++ )
-      if( pp == dc->pix_ov[ii] ) return (ovc+ii) ;
+   for( ii=0 ; ii < dc->ovc->ncol_ov ; ii++ )
+      if( pp == dc->ovc->pix_ov[ii] ) return (ovc+ii) ;
 
    return ulc ;  /* not found, but must return something */
 }
@@ -679,13 +618,13 @@ XColor * DCpix_to_XColor( MCW_DC * dc , int pp )
 
 void DC_fg_color( MCW_DC * dc , int nov )
 {
-   XSetForeground( dc->display , dc->myGC , dc->pix_ov[nov] ) ;
+   XSetForeground( dc->display , dc->myGC , dc->ovc->pix_ov[nov] ) ;
    return ;
 }
 
 void DC_bg_color( MCW_DC * dc , int nov )
 {
-   XSetBackground( dc->display , dc->myGC , dc->pix_ov[nov] ) ;
+   XSetBackground( dc->display , dc->myGC , dc->ovc->pix_ov[nov] ) ;
    return ;
 }
 
@@ -713,4 +652,55 @@ void DC_linewidth( MCW_DC * dc , int lw )
       XChangeGC( dc->display , dc->myGC , GCLineWidth | GCJoinStyle , &gcv ) ;
    }
    return ;
+}
+
+/*-------------------------------------------------------------------------
+ May 1996: save the indices of the darkest and brightest overlays
+ Dec 1997: moved into a separate routine
+---------------------------------------------------------------------------*/
+
+void OVC_mostest( MCW_DCOV * ovc )
+{
+   float bright_inten , dark_inten , red_inten , green_inten , blue_inten , inten ;
+   int   bright_ii    , dark_ii    , red_ii    , green_ii    , blue_ii ;
+   int   ii ;
+
+   if( ovc == NULL || ovc->ncol_ov < 2 ) return ;
+
+   bright_inten = dark_inten = XCOL_BRIGHTNESS( ovc->xcol_ov[1] ) ;
+   bright_ii    = dark_ii    = 1 ;
+
+   red_inten   = XCOL_REDNESS  ( ovc->xcol_ov[1] ) ;  /* June 1997 */
+   green_inten = XCOL_GREENNESS( ovc->xcol_ov[1] ) ;
+   blue_inten  = XCOL_BLUENESS ( ovc->xcol_ov[1] ) ;
+   red_ii = green_ii = blue_ii = 1 ;
+
+   for( ii=2 ; ii < ovc->ncol_ov ; ii++ ){
+      inten = XCOL_BRIGHTNESS( ovc->xcol_ov[ii] ) ;
+      if( inten > bright_inten ){
+         bright_inten = inten ; bright_ii = ii ;
+      } else if( inten < dark_inten ){
+         dark_inten = inten ; dark_ii = ii ;
+      }
+
+      inten = XCOL_REDNESS( ovc->xcol_ov[ii] ) ;
+      if( inten > red_inten ){
+         red_inten = inten ; red_ii = ii ;
+      }
+
+      inten = XCOL_GREENNESS( ovc->xcol_ov[ii] ) ;
+      if( inten > green_inten ){
+         green_inten = inten ; green_ii = ii ;
+      }
+
+      inten = XCOL_BLUENESS( ovc->xcol_ov[ii] ) ;
+      if( inten > blue_inten ){
+         blue_inten = inten ; blue_ii = ii ;
+      }
+   }
+   ovc->ov_brightest = bright_ii ; ovc->pixov_brightest = ovc->pix_ov[bright_ii] ;
+   ovc->ov_darkest   = dark_ii   ; ovc->pixov_darkest   = ovc->pix_ov[dark_ii] ;
+   ovc->ov_reddest   = red_ii    ; ovc->pixov_reddest   = ovc->pix_ov[red_ii] ;
+   ovc->ov_greenest  = green_ii  ; ovc->pixov_greenest  = ovc->pix_ov[green_ii] ;
+   ovc->ov_bluest    = blue_ii   ; ovc->pixov_bluest    = ovc->pix_ov[blue_ii] ;
 }

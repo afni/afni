@@ -1,0 +1,157 @@
+Setting Up AFNI Colors and Palettes
+===================================
+You can set up the colors and palette tables used by AFNI in the
+file .afnirc in your home directory.  This file will be read when
+AFNI starts.  Each section of this file starts with a string of
+the form "***NAME", where "NAME" is the name of the section.  At
+present, two sections are available: one for defining new colors,
+and one for defining the layout of colors used for functional
+overlays (the "palette tables").
+
+Defining the Colors Available for Overlays
+------------------------------------------
+The "***COLORS" section is used to define colors that will be added
+to the color menu that is used for functional overlays, crosshairs,
+etc.  A sample is
+
+***COLORS
+   qblue = #804cff
+   zblue = rgbi:0.5/0.3/1.0
+
+The general form of a color definition line is
+   label = definition
+where "label" is what you want to appear on the menu, and "definition"
+is a valid X11 color definition.  (The spaces around "=" are required.)
+In the first line, I have defined the label "qblue" using hexadecimal
+notation for the RGB components (each one has 2 hex digits).  In the
+second line, I have defined the color "zblue" using the RGB intensity
+format, where each of the numbers after the string "rgbi:" is between
+0.0 and 1.0 (inclusive) and indicates the intensity of the desired color
+component.
+
+Note that the file /usr/lib/X11/rgb.txt (or its equivalent) contains
+the definitions of many color names that the X11 system recognizes.
+See 'man XLookupColor' for more information on ways to define X11 colors.
+
+If you use a label that has been defined previously (either internally
+within AFNI, or earlier in the setup file), then that color will be
+redefined.  That is, you could do something stupid like
+   blue = red
+and AFNI won't complain at all.  ("blue" is one of the pre-defined colors
+in AFNI.)  Color labels are case sensitive, so "BLUE = red" is different
+than "blue = red".
+
+On 8 bit graphics systems (the vast majority), you must be cautious
+when defining new colors.  You may run out of color "cells", since there
+are only 2**8 = 256 available at one time.  All the colors used for
+the windowing system, the buttons, the grayscale images, and the overlays
+must come from this limited reservoir.  On a 12 bit system (e.g., SGI),
+there are 2**12 = 4096 color cells available, which is effectively
+unlimited.
+
+Defining the Palette Tables
+---------------------------
+A palette is a listing of colors and separating numerical values that
+are used to define a functional overlay scheme.  These are controlled
+by the "***PALETTES" section in the setup file.  Each palette has a
+name associated, and a number of color "panes".  For example:
+
+***PALETTES
+  rainbow [3]
+    1.0 -> blue
+    0.2 -> green
+   -0.4 -> hotpink
+
+This defines a palette table "rainbow", and in the entry for 3 panes
+sets up the pbar to have 1.0 as its maximum value, then to have the
+color "blue" be assigned to the pane that runs down to 0.2, then the
+color "green" assigned to the next pane running down to -0.4, and then
+the color "hotpink" assigned to the last pane (which will run down to
+-1.0, since the minimum value is the negative of the maximum value).
+
+Each palette table can have palettes from 2 panes up to 20, denoted
+by [2] to [20].  A palette table, can also have palettes that are
+restricted to positive values only.  These are denoted by [2+] to
+[20+].  An example is
+
+  rainbow [3+]
+    1.0 -> blue
+    0.5 -> none
+    0.1 -> limegreen
+
+If the rainbow palette is the active one, when you switch to
+positive-only function mode (using the "Pos" toggle button),
+and then to use 3 panes (using the "#" chooser), then the top
+pane will run from 1.0 to 0.5 in blue, the second pane from
+0.5 to 0.1 and have no color, and the third pane from 0.1 to 0.0
+in limegreen.
+
+It is possible to define palettes that only change the colors,
+not the separating values.  This is done by using the special
+word IGNORE in place of the values:
+
+  rainbow [4+]
+    IGNORE -> blue
+    IGNORE -> green
+    IGNORE -> hotpink
+    IGNORE -> none
+
+All of the values must be IGNORE, or none of them.  When a
+palette like the one above is loaded, only the colors in the
+pbar will change -- the pane heights will be left unchanged.
+
+The New Palette Menu
+--------------------
+Attached to the "Inten" label atop the color pbar is a popup menu
+that is activated using mouse button 3.  This menu has the following
+items:
+   Equalize Spacing   = Sets the spacings in the currently visible
+                          palette to be uniform in size.
+
+   Set Top Value      = Sets the top value in the currently visible
+                          palette to a number you choose.  Note that
+                          you will probably need to adjust the
+                          "Range" control if you change the top value
+                          from 1.0, since the thresholds for making
+                          functional overlays are determined by
+                          multiplying the pbar values times the
+                          value in the "Range" or "autoRange" control.
+
+   Read in palette    = Reads in a palette file.  This is another
+                          file like .afnirc (with ***COLORS and/or
+                          ***PALETTES sections).  AFNI expects such
+                          files to have names that end in ".pal".
+                          Note that new colors defined this way will
+                          NOT be visible on previously created color
+                          menus (such as the Crosshairs Color chooser).
+
+   Write out palette  = Writes out the currently visible palette to
+                          a ".pal" file.  In this way, you can set up
+                          a palette that you like, write it out, and
+                          then read it back in later.  (Or you could
+                          copy the data into your .afnirc file, and
+                          it would be available at all times.)
+
+   Show Palette Table = Pops up a text window showing the definitions
+                          of all the colors and palettes.  Mostly useful
+                          for debugging purposes.
+
+   Set Pal "chooser"  = A menu that lets you pick the palette table
+                          that is currently active.  Note that reading
+                          in a palette table does not make it active --
+                          you must then choose it from this menu.  Also,
+                          if a palette table does not have an entry for
+                          a given number of panes, then nothing will
+                          happen until you use the "#" chooser to make
+                          the number of panes correspond to the selected
+                          palette table.
+
+The Future
+----------
+I will probably add more sections to the setup file.  Someday.  Maybe.
+
+=================================
+| Robert W. Cox, PhD            |
+| Biophysics Research Institute |
+| Medical College of Wisconsin  |
+=================================

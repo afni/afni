@@ -28,6 +28,8 @@ ENTRY("new_MCW_grapher") ;
    grapher->parent = NULL ;
    grapher->valid  = 1 ;
 
+   grapher->never_drawn = 1 ;
+
    grapher->gx_max = 0 ;
    grapher->gy_max = 0 ;
    grapher->fWIDE  = 0 ;
@@ -159,7 +161,7 @@ ENTRY("new_MCW_grapher") ;
             XmNmarginWidth , 0 ,
             XmNmarginHeight, 0 ,
             XmNspacing     , 3 ,
-            XmNbackground  , grapher->dc->pixov_brightest ,
+            XmNbackground  , grapher->dc->ovc->pixov_brightest ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
@@ -173,7 +175,7 @@ ENTRY("new_MCW_grapher") ;
    XtVaSetValues( grapher->option_mbar ,
                      XmNmarginWidth  , 0 ,
                      XmNmarginHeight , 0 ,
-                     XmNbackground   , grapher->dc->pixov_brightest ,
+                     XmNbackground   , grapher->dc->ovc->pixov_brightest ,
                      XmNspacing      , 3 ,
                      XmNborderWidth  , 0 ,
                      XmNtraversalOn  , False ,
@@ -421,7 +423,7 @@ ENTRY("new_MCW_grapher") ;
            new_MCW_colormenu( grapher->opt_colors_menu ,
                               gr_color_label[ii] ,
                               grapher->dc ,
-                              gr_color_start[ii] , grapher->dc->ncol_ov - 1 ,
+                              gr_color_start[ii] , grapher->dc->ovc->ncol_ov - 1 ,
                               grapher->color_index[ii] ,
                               GRA_color_CB , (XtPointer) grapher ) ;
 
@@ -830,7 +832,7 @@ void GRA_redraw_overlay( MCW_grapher * grapher )
 
 ENTRY("GRA_redraw_overlay") ;
 
-   if( ! GRA_REALZ(grapher) ) EXRETURN ;
+   if( ! GRA_REALZ(grapher) ){ STATUS("ILLEGAL CALL") ; EXRETURN ; }
 
    /* erase contents of window (that aren't in the pixmap) */
 
@@ -898,8 +900,8 @@ void redraw_graph( MCW_grapher * grapher )
 
 ENTRY("redraw_graph") ;
 
-   if( ! GRA_REALZ(grapher) ) EXRETURN ;
-   if( grapher->fd_pxWind == (Pixmap) 0 ) EXRETURN ;
+   if( ! GRA_REALZ(grapher) ){ STATUS("ILLEGAL ENTRY") ; EXRETURN; }
+   if( grapher->fd_pxWind == (Pixmap) 0 ){ STATUS("ILLEGAL ENTRY") ; EXRETURN; }
 
    /*---- draw the graphs ----*/
 
@@ -981,6 +983,7 @@ ENTRY("redraw_graph") ;
    GRA_fix_optmenus( grapher ) ;
 #endif
 
+   grapher->never_drawn = 0 ;
    EXRETURN ;
 }
 
@@ -2059,7 +2062,7 @@ void GRA_handle_keypress( MCW_grapher * grapher , char * buf , XEvent * ev )
 
 #if 0
       case 'r':
-         grapher->grid_color = (grapher->grid_color + 1 ) % grapher->dc->ncol_ov ;
+         grapher->grid_color = (grapher->grid_color + 1 ) % grapher->dc->ovc->ncol_ov ;
          redraw_graph( grapher ) ;
       break;
 #endif

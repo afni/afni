@@ -379,6 +379,8 @@ MCW_imseq * open_MCW_imseq( MCW_DC * dc ,
    newseq->getim  = get_image ;
    newseq->getaux = aux ;
 
+   newseq->never_drawn = 1 ;
+
    imstatus = (MCW_imseq_status *) get_image(0,isqCR_getstatus,aux) ;
    if( imstatus->num_total < 1 ) ERREX ;
    one_image = (imstatus->num_total == 1) ;
@@ -1773,7 +1775,7 @@ void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 
          ulc = ( seq->dc->use_xcol_im ) ? seq->dc->xcol_im
                                         : seq->dc->xgry_im ;
-         ovc = seq->dc->xcol_ov ;
+         ovc = seq->dc->ovc->xcol_ov ;
 
          /* write the output file */
 
@@ -2173,6 +2175,8 @@ DPR("  -- putting sized_xim to screen");
    XPutImage( seq->dc->display , XtWindow(seq->wimage) , seq->dc->origGC ,
               seq->sized_xim , 0,0,0,0,
               seq->sized_xim->width , seq->sized_xim->height ) ;
+
+   seq->never_drawn = 0 ;
 
    ISQ_draw_winfo( seq ) ;
    return ;
@@ -3964,7 +3968,7 @@ void ISQ_montage_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    seq->mont_gapcolor_av = new_MCW_colormenu( wrc ,
                                 "Color: " , seq->dc ,
-                                0 , seq->dc->ncol_ov - 1 , seq->mont_gapcolor ,
+                                0 , seq->dc->ovc->ncol_ov - 1 , seq->mont_gapcolor ,
                                 NULL , NULL ) ;
 
    seq->mont_across_av->allow_wrap   = 1 ;   /* allow wrap at limits of values */

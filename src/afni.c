@@ -755,7 +755,10 @@ mcheck(NULL) ; DBG_SIGNALS ; ENTRY("AFNI:main") ;
         strcpy(fname,".afnirc") ;
      }
      AFNI_process_setup( fname , SETUP_INIT_MODE , NULL ) ;
-     dump_PBAR_palette_table() ;
+#ifdef AFNI_DEBUG
+     home = dump_PBAR_palette_table(0) ;
+     if( home != NULL ){ puts(home) ; free(home) ; }
+#endif
    }
 
    AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
@@ -2919,7 +2922,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
 
-      if( redisplay_option == REDISPLAY_ALL || new_xyz )
+      if( im3d->g123 != NULL && ( im3d->g123->never_drawn ||
+                                  redisplay_option == REDISPLAY_ALL || new_xyz ) )
          drive_MCW_grapher( im3d->g123 , graDR_redraw , (XtPointer) xyzm ) ;
    }
 
@@ -2942,7 +2946,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
 
-      if( redisplay_option == REDISPLAY_ALL || new_xyz )
+      if( im3d->g231 != NULL && ( im3d->g231->never_drawn ||
+                                  redisplay_option == REDISPLAY_ALL || new_xyz ) )
          drive_MCW_grapher( im3d->g231 , graDR_redraw , (XtPointer) xyzm ) ;
    }
 
@@ -2965,7 +2970,8 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       xyzm[0] = new_ib.ijk[0] ; xyzm[1] = new_ib.ijk[1] ;
       xyzm[2] = new_ib.ijk[2] ; xyzm[3] = 0 ;
 
-      if( redisplay_option == REDISPLAY_ALL || new_xyz )
+      if( im3d->g312 != NULL && ( im3d->g312->never_drawn ||
+                                  redisplay_option == REDISPLAY_ALL || new_xyz ) )
          drive_MCW_grapher( im3d->g312 , graDR_redraw , (XtPointer) xyzm ) ;
    }
 
@@ -4391,11 +4397,13 @@ STATUS(" ---- threshold scale ON") ;
 
          if( ! ISFUNCBUCKET(im3d->fim_now) ){  /* 30 Nov 1997 */
 
-STATUS(" ---- set threshold decim OLD") ;
 
+#if 1
             /* set number of decimal places to shift for thr_scale */
 
+STATUS(" ---- set threshold decim OLD") ;
             AFNI_set_thresh_top( im3d , FUNC_topval[im3d->fim_now->func_type] ) ;
+#endif
 
             /* set the label at the top of the scale */
 
@@ -4404,8 +4412,8 @@ STATUS(" ---- set threshold decim OLD") ;
          } else {
             int iv = im3d->vinfo->thr_index , jj ;
 
+#if 0
 STATUS(" ---- set threshold decim NEW") ;
-
             if( DSET_VALID_BSTAT(im3d->fim_now,iv) ){
                float bb = fabs(im3d->fim_now->stats->bstat[iv].min) ;
                float tt = fabs(im3d->fim_now->stats->bstat[iv].max) ;
@@ -4419,6 +4427,7 @@ STATUS(" ---- set threshold decim NEW") ;
                   AFNI_set_thresh_top( im3d, xx ) ;
                }
             }
+#endif
 
             jj = DSET_BRICK_STATCODE(im3d->fim_now,iv) ;
             if( jj > 0 )
@@ -4840,8 +4849,8 @@ STATUS("opening function" ) ;
          XtManageChild( im3d->vwid->func->options_rowcol ) ;
          XtManageChild( im3d->vwid->func->rowcol ) ;
 #endif
+         HIDE_SCALE(im3d) ;
          update_MCW_pbar( im3d->vwid->func->inten_pbar ) ;
-
          FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
 
 /***     XtManageChild( im3d->vwid->func->inten_bbox->wrowcol ) ; ***/
