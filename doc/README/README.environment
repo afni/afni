@@ -1471,6 +1471,23 @@ Variable: AFNI_DEFAULT_OPACITY
 This should be set to an integer from 1..9, and controls the default opacity
 setting for the color overlay in image viewer windows.
 
+-----------------------------
+Variable: AFNI_DEFAULT_IMSAVE
+-----------------------------
+This should be set to the suffix of the image format to which you want to save
+from an image viewer.  The suffixes AFNI knows about (as of 23 Jan 2003) are
+ ppm = Portable PixMap format                            = cat
+ jpg = Joint Photographics Experts Group (JPEG) format   = cjpeg
+ gif = Compuserve Graphics Interchange File (GIF) format = ppmtogif
+ tif = Tagged Image File Format (TIFF)                   = ppm2tiff or pnmtotiff
+ bmp = Windows Bitmap (BMP) format                       = ppmtobmp
+ eps = Encapsulated PostScript format                    = pnmtops
+ pdf = Portable Document Format                          = epstopdf
+ png = Portable Network Graphics format                  = pnmtopng
+The third column is the name of the external filter program that AFNI uses to
+write the format.  If a filter is not present on your system, then that option
+is not available.  Most of these filters are part of the netpbm package.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |
