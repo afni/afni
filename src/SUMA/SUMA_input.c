@@ -36,6 +36,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    SUMA_Boolean ROI_mode; 
    static SUMA_Boolean DoubleClick = NOPE;
    DList *list = NULL;
+   SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 
    /*float ft;
@@ -555,21 +556,18 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_L:
             if (SUMAg_CF->Dev) {
-               fprintf(stdout,"NOT USED, Sorry.\n");
-               SUMA_RETURNe;
-               fprintf(stdout,"Enter XYZ coordinates to look from (enter nothing to cancel):\n");
-               it = SUMA_ReadNumStdin (fv3, 3);
-               if (it > 0 && it < 3) {
-                  fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
-                  SUMA_RETURNe;
-               }else if (it < 0) {
-                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-                  SUMA_RETURNe;
-               }else if (it == 0) {
-                  SUMA_RETURNe;
-               }
-            
-               fprintf(stdout,"Parsed input: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
+               prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, "Enter X,Y,Z coordinates of light0:", 
+                                                      "",
+                                                      sv->X->TOPLEVEL, NOPE,
+                                                      SUMA_APPLY_BUTTON,
+                                                      SUMA_SetLight0, (void *)sv,
+                                                      NULL, NULL,
+                                                      NULL, NULL,
+                                                      SUMA_isNumString, (void*)3,  
+                                                      prmpt);
+               
+               prmpt = SUMA_CreatePromptDialog(sv->X->Title, prmpt);
+               
 
             }
             break;
@@ -3404,6 +3402,52 @@ void SUMA_DestroyROIActionData (void *data)
    SUMA_RETURNe;
 }
 
+/*! 
+   \brief set the position of light0
+   \param s (char *) a strng containing X, Y, Z coordinates
+   \param data (void *) a typecast of the pointer to the surface viewer to be affected
+
+*/
+void SUMA_SetLight0 (char *s, void *data)
+{
+   static char FuncName[]={"SUMA_SetLight0"};
+   DList *list=NULL;
+   SUMA_EngineData *ED = NULL;
+   SUMA_SurfaceViewer *sv = NULL;
+   float fv3[3];
+   SUMA_Boolean LocalHead = YUP; 
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (!s) SUMA_RETURNe;
+
+   sv = (SUMA_SurfaceViewer *)data;
+
+   /* parse s */
+   if (SUMA_StringToNum (s, fv3, 3) != 3) { /* problem, beep and ignore */
+      XBell (XtDisplay (sv->X->TOPLEVEL), 50);
+      SUMA_RETURNe;
+   }
+
+   /* register fv3 with ED */
+   if (!list) list = SUMA_CreateList();
+   ED = SUMA_InitializeEngineListData (SE_SetLight0Pos);
+   if (!SUMA_RegisterEngineListCommand (  list, ED, 
+                                          SEF_fv3, (void *)fv3, 
+                                          SES_Suma, (void *)sv, NOPE, 
+                                          SEI_Tail, NULL )) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
+
+   if (!SUMA_Engine (&list)) {
+      fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+   }
+
+   SUMA_RETURNe;
+}
 /*!
    \brief rotates surface to face a certain coordinate 
 

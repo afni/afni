@@ -71,7 +71,9 @@
 #define ARROW_TRANSLATE_DELTAX 30
 #define ARROW_TRANSLATE_DELTAY 30
 #define SUMA_MAX_MESSAGES 100 /*!< Maximum number of messages stored in list */
-#define SUMA_MAX_MEMBER_FACE_SETS 60 /*!< Maximum number of facesets a node can be part of */
+#define SUMA_MAX_MEMBER_FACE_SETS 110 /*!< Maximum number of facesets a node can be part of. 
+                                          Used to be 60 but that was not enough for a few
+                                          funky FS surfaces. ZSS Mon Mar 24 16:14:12 EST 2003*/
 #define SUMA_MAX_FACESET_EDGE_NEIGHB 3 /*!< Maximum number of adjoining FaceSets a triangular faceset can have.*/
 #define SUMA_MAX_DISPLAYABLE_OBJECTS 1000 /*!< Maximum number of displayable Objects */
 #define SUMA_MAX_SURF_VIEWERS 6 /*!< Maximum number of surface viewers allowed */
@@ -83,7 +85,9 @@
 #define SUMA_MAX_LABEL_LENGTH 100 /*!< Maximum number of characters for labeling and naming suma fields and objects */
 #define SUMA_IDCODE_LENGTH 50   /*!< Max. length of idcode_str of all suma objects */
 #define SUMA_MAX_STRING_LENGTH 1000 /*!< Maximum number of characters in a string */ 
-#define SUMA_MAX_NUMBER_NODE_NEIGHB   50 /*!< Maximum number of neighbors any one node can have */
+#define SUMA_MAX_NUMBER_NODE_NEIGHB   100 /*!< Maximum number of neighbors any one node can have.
+                                          Used to be 50 but that was not enough for a few
+                                          funky FS surfaces. ZSS Mon Mar 24 16:14:12 EST 2003*/
 #define SUMA_MAX_OVERLAYS 50 /*!< Maximum number of color overlay planes allowed */
 #define SUMA_COMMAND_DELIMITER '|'
 #define SUMA_COMMAND_TERMINATOR '~'
@@ -132,7 +136,7 @@ typedef enum { SE_Empty,
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
-               SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  
+               SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -561,6 +565,8 @@ typedef struct {
 /*! structure containing widgets for surface  controllers SurfCont */
 typedef struct {
    Widget TopLevelShell;/*!< Top level shell for a Surface's controller */
+   Widget Mainform; /*!< main form, child of TopLevelShell */
+   Widget ShowHide; /*!< a testing, temporary widget */
    Widget SurfInfo_pb; /*!< More info push button */
    SUMA_CREATE_TEXT_SHELL_STRUCT * SurfInfo_TextShell; /*!< structure containing widgets and options of the surface info text shell */
    Widget RenderModeMenu[SRM_N_RenderModes]; /*!< vector of widgets controlling the rendering mode menu */

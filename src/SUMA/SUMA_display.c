@@ -2129,6 +2129,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
    if (LocalHead) fprintf(SUMA_STDERR, "%s: Creating dialog shell.\n", FuncName);
    SO->SurfCont->TopLevelShell = XtVaCreatePopupShell (slabel,
       xmDialogShellWidgetClass, tl,
+      XmNallowShellResize, True, /* let code resize shell */
       XmNdeleteResponse, XmDO_NOTHING,
       NULL);    
    #else
@@ -2149,7 +2150,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       SUMA_cb_closeSurfaceCont, (XtPointer) SO) ;
    
    /* create a form widget, manage it at the end ...*/
-   form = XtVaCreateWidget ("dialog", 
+   SO->SurfCont->Mainform = XtVaCreateWidget ("dialog", 
       xmFormWidgetClass, SO->SurfCont->TopLevelShell,
       XmNborderWidth , 0 ,
       XmNmarginHeight , SUMA_MARGIN ,
@@ -2163,7 +2164,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
      
       /* put a frame */
       SurfFrame = XtVaCreateWidget ("dialog",
-         xmFrameWidgetClass, form,
+         xmFrameWidgetClass, SO->SurfCont->Mainform,
          XmNleftAttachment , XmATTACH_FORM ,
          XmNtopAttachment  , XmATTACH_FORM ,
          XmNshadowType , XmSHADOW_ETCHED_IN ,
@@ -2206,15 +2207,72 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       XtManageChild (SO->SurfCont->SurfInfo_pb); 
 
       XtManageChild (rc);
+      
       XtManageChild (SurfFrame);
    }  
    
+   /* put the colorplane frame */
+   {
+       Widget rc, label;
+     
+      /* put a frame */
+      SO->SurfCont->ShowHide = XtVaCreateWidget ("dialog",
+         xmFrameWidgetClass, SO->SurfCont->Mainform,
+         XmNrightAttachment , XmATTACH_FORM ,
+         XmNleftAttachment, XmATTACH_WIDGET,
+         XmNleftWidget, SurfFrame,
+         XmNtopAttachment  , XmATTACH_FORM ,
+         XmNshadowType , XmSHADOW_ETCHED_IN ,
+         XmNshadowThickness , 5 ,
+         XmNtraversalOn , False ,
+         NULL); 
+
+      /* row column Lock rowcolumns */
+      rc = XtVaCreateWidget ("rowcolumn",
+            xmRowColumnWidgetClass, SO->SurfCont->ShowHide,
+            XmNpacking, XmPACK_TIGHT, 
+            XmNorientation , XmHORIZONTAL ,
+            XmNmarginHeight, SUMA_MARGIN ,
+            XmNmarginWidth , SUMA_MARGIN ,
+            NULL);
+
+      /*put a label containing the surface name, number of nodes and number of facesets */
+      sprintf(slabel,"%s\n%d nodes: %d facesets", SO->Label, SO->N_Node, SO->N_FaceSet); 
+      label = XtVaCreateManagedWidget (slabel, 
+               xmLabelWidgetClass, rc,
+               NULL);
+
+      XtVaCreateManagedWidget (  "sep", 
+                                 xmSeparatorWidgetClass, rc, 
+                                 XmNorientation, XmVERTICAL,NULL);
+
+      SO->SurfCont->SurfInfo_pb = XtVaCreateWidget ("more", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (SO->SurfCont->SurfInfo_pb, XmNactivateCallback, SUMA_cb_moreSurfInfo, NULL);
+      XtVaSetValues (SO->SurfCont->SurfInfo_pb, XmNuserData, (XtPointer)SO, NULL); /* store the surface object SO in userData
+                                                                  I think it is more convenient than as data
+                                                                  in the call back structure. This way it will
+                                                                  be easy to change the SO that this same button
+                                                                  might refer to. 
+                                                                  This is only for testing purposes, the pb_close
+                                                                  button still expects SO in clientData*/
+      MCW_register_hint( SO->SurfCont->SurfInfo_pb , "More info on Surface" ) ;
+      MCW_register_help( SO->SurfCont->SurfInfo_pb , SUMA_moreSurfInfo_help ) ;
+      XtManageChild (SO->SurfCont->SurfInfo_pb); 
+
+      XtManageChild (rc);
+      
+      XtManageChild (SO->SurfCont->ShowHide);
+   
+   }
+   
    { /* rendering mode and transparency level */
-      Widget rc, label;
+      Widget rc, label, pb;
      
       /* put a frame */
       RenderSetFrame = XtVaCreateWidget ("dialog",
-         xmFrameWidgetClass, form,
+         xmFrameWidgetClass, SO->SurfCont->Mainform,
          XmNleftAttachment , XmATTACH_FORM ,
          XmNtopAttachment  , XmATTACH_WIDGET ,
          XmNtopWidget, SurfFrame,
@@ -2238,6 +2296,12 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
                                  (void *)SO, SO->SurfCont->RenderModeMenu );
       XtManageChild (SO->SurfCont->RenderModeMenu[SW_SurfCont_Render]);
       
+      pb = XtVaCreateWidget ("ShowHide", 
+         xmPushButtonWidgetClass, rc, 
+         NULL);   
+      XtAddCallback (pb, XmNactivateCallback, SUMA_cb_UnmanageWidget, (XtPointer) SO);
+      XtManageChild (pb);
+      
       XtManageChild (rc);
       XtManageChild (RenderSetFrame);
    }
@@ -2247,7 +2311,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       
       /* put up a frame to group the display controls */
       DispFrame = XtVaCreateWidget ("dialog",
-         xmFrameWidgetClass, form,
+         xmFrameWidgetClass, SO->SurfCont->Mainform,
          XmNleftAttachment , XmATTACH_FORM ,
          XmNtopAttachment  , XmATTACH_WIDGET ,
          XmNtopWidget, RenderSetFrame,
@@ -2297,7 +2361,7 @@ void SUMA_cb_createSurfaceCont(Widget w, XtPointer data, XtPointer callData)
       /* manage the frame and the fslabelorm */
       XtManageChild (DispFrame);
    }
-   XtManageChild (form);
+   XtManageChild (SO->SurfCont->Mainform);
    
    #if SUMA_CONTROLLER_AS_DIALOG    
    #else
@@ -4015,13 +4079,13 @@ Widget SUMA_GetTopShell(Widget w)
 
 void SUMA_set_Lock_rb (SUMA_rb_group * Lock_rbg, int irb, int but)
 {
-   static char FuncName[] = {"SUMA_cb_setLockrb"};
+   static char FuncName[] = {"SUMA_set_Lock_rb"};
    SUMA_Boolean LocalHead = NOPE;
    Widget w;
    int i, itb, ifb;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+      
    ifb = irb*Lock_rbg->N_but; /* index of first button in radio box irb */
    itb = ifb+but; /* index of button to modify */
    
@@ -4029,6 +4093,7 @@ void SUMA_set_Lock_rb (SUMA_rb_group * Lock_rbg, int irb, int but)
    while (i<Lock_rbg->N_but) {
       /* get the widget of the button in question */
       w = Lock_rbg->tb[ifb+i];
+      if (!w) SUMA_RETURNe; /* this happens before opening the SUMA controller */
       if ( (ifb + i) == itb) XmToggleButtonSetState (w, YUP, NOPE);
        else XmToggleButtonSetState (w, NOPE, NOPE);
       ++i;
@@ -4045,6 +4110,7 @@ void SUMA_set_Lock_arb (SUMA_rb_group * Lock_rbg)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
+   if (!Lock_rbg->atb[0]) SUMA_RETURNe;
    /* find out if all buttons are set to the same value */
    sumlock = 0;
    for (i=0; i < SUMA_MAX_SURF_VIEWERS; ++i) {
@@ -5968,6 +6034,32 @@ void SUMA_FileSelection_file_select_cb(Widget dialog, XtPointer client_data, XtP
    XtUnmanageChild (dlg->dlg_w); /* this function will call the unmap callback which will 
                                     do the destruction if dialog is not to be preserved */
 
+   SUMA_RETURNe;
+}
+
+/* This function is for testing only! */
+void  SUMA_cb_UnmanageWidget(Widget w, XtPointer data, XtPointer client_data)
+{
+   static char FuncName[]={"SUMA_cb_UnmanageWidget"};
+   static int ncall=1;
+   SUMA_SurfaceObject *SO = NULL;
+   int xx, yy;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   SO = (SUMA_SurfaceObject *)data;
+   
+   if (ncall > 0) {
+      XtUnmanageChild((Widget)SO->SurfCont->ShowHide);
+      //XtDestroyWidget((Widget)SO->SurfCont->ShowHide);
+   } else {
+      XtManageChild((Widget)SO->SurfCont->ShowHide);
+   }
+   ncall *= -1;
+   XtResizeWindow(SO->SurfCont->TopLevelShell);
+   MCW_widget_geom (SO->SurfCont->TopLevelShell, NULL, NULL, &xx, &yy);
+   xx += 15; yy += 15;
+   XtVaSetValues(SO->SurfCont->TopLevelShell, XmNx, xx, XmNy, yy, NULL);
    SUMA_RETURNe;
 }
 
