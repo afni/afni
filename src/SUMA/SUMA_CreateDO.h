@@ -5,9 +5,13 @@ typedef struct {
    char *LocalDomainParentID;  /* copied by value */
    SUMA_SO_File_Format FileFormat; /*defaults to  SUMA_ASCII*/
    SUMA_SO_File_Type FileType; /*defaults to SUMA_FT_NOT_SPECIFIED*/
+   byte DoNormals; /* calculate normals ?*/
+   byte DoMetrics; /* calculate metrics? */
+   byte DoCenter; /* calculate center ? */
 } SUMA_NEW_SO_OPT; 
 
 SUMA_NEW_SO_OPT *SUMA_NewNewSOOpt(void);
+SUMA_NEW_SO_OPT *SUMA_FreeNewSOOpt(SUMA_NEW_SO_OPT *nsopt);
 SUMA_SurfaceObject *SUMA_NewSO(float **NodeList, int N_Node, int **FaceSetList, int N_FaceSet, SUMA_NEW_SO_OPT *nsooptu);
 SUMA_SurfaceObject *SUMA_CreateChildSO(SUMA_SurfaceObject * SO, 
                                        float *NodeList, int N_Node, 

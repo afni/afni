@@ -157,7 +157,7 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_ISOSURFACE_OPTIONS * Opt)
    }
    clean_all(mcp) ;
    free(mcp);
-   
+   nsoopt=SUMA_FreeNewSOOpt(nsoopt); 
    SUMA_RETURN(SO);
 }
 /*!

@@ -1,6 +1,9 @@
 #ifndef SUMA_DEFINE_INCLUDED
 #define SUMA_DEFINE_INCLUDED
 
+#define SUMA_DEF_GROUP_NAME "DefGroup"
+#define SUMA_DEF_STATE_NAME "Default_state"
+
 #define SUMA_SUMA_NIML_DEBUG 0
 #define SUMA_SEPARATE_SURF_CONTROLLERS 0 /*!< 0 if you want surfaces sharing the same LocalDomainParent 
                                                 to use the same controller. 
@@ -144,8 +147,8 @@ typedef enum { SE_Empty,
                SE_SetLookAt, SE_SetLookFrom, SE_Redisplay, SE_Home, SE_SetNodeColor, 
                SE_FlipLight0Pos, SE_GetNearestNode, SE_SetLookAtNode, SE_HighlightNodes, SE_SetRotMatrix, 
                SE_SetCrossHair, SE_ToggleCrossHair, SE_SetSelectedNode, SE_ToggleShowSelectedNode, SE_SetSelectedFaceSet,
-               SE_ToggleShowSelectedFaceSet, SE_ToggleConnected, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_SetForceAfniSurf, 
-               SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, 
+               SE_ToggleShowSelectedFaceSet, SE_ToggleConnected, SE_SetAfniCrossHair, SE_SetAfniSurf, SE_SetAfniSurfList, SE_SetAfniThisSurf, 
+               SE_SetForceAfniSurf, SE_BindCrossHair, SE_ToggleForeground, SE_ToggleBackground, SE_FOVreset, SE_CloseStream4All, 
                SE_Redisplay_AllVisible, SE_RedisplayNow, SE_ResetOpenGLState, SE_LockCrossHair,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Help_Cmap, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
@@ -158,7 +161,8 @@ typedef enum { SE_Empty,
 typedef enum { SEF_Empty, 
                SEF_fm, SEF_im, SEF_fv3, SEF_iv3, SEF_fv15, 
                SEF_iv15, SEF_i, SEF_f, SEF_s, SEF_vp, 
-               SEF_cp, SEF_fp, SEF_ip, 
+               SEF_cp, SEF_fp, SEF_ip, SEF_iv200, SEF_fv200, 
+               SEF_ivec, SEF_fvec,
                SEF_BadCode} SUMA_ENGINE_FIELD_CODE; 
                
 typedef enum { SES_Empty,
@@ -1424,9 +1428,17 @@ typedef struct {
    SUMA_ENGINE_CODE fv15_Dest; /*!<  float15 vector destination */
    SUMA_ENGINE_SOURCE fv15_Source; /*!< OBSOLETE float15 vector source */
    
+   float fv200[200]; /*!< Float vector, 200 values */
+   SUMA_ENGINE_CODE fv200_Dest; /*!<  float200 vector destination */
+   SUMA_ENGINE_SOURCE fv200_Source; /*!< OBSOLETE float15 vector source */
+  
    int iv15[15];/*!< Integer vector, 15 values */
    SUMA_ENGINE_CODE iv15_Dest;/*!<  Integer15 vector destination */
    SUMA_ENGINE_SOURCE iv15_Source; /*!< OBSOLETE Integer15 vector source */
+
+   int iv200[200];/*!< Integer vector, 200 values */
+   SUMA_ENGINE_CODE iv200_Dest;/*!<  Integer200 vector destination */
+   SUMA_ENGINE_SOURCE iv200_Source; /*!< OBSOLETE Integer200 vector source */
    
    int i;      /*!< integer */
    SUMA_ENGINE_CODE i_Dest;   /*!<  integer destination */
@@ -1458,6 +1470,16 @@ typedef struct {
    SUMA_Boolean im_LocalAlloc;
    SUMA_ENGINE_CODE im_Dest; /*!<  destination of im */
    SUMA_ENGINE_SOURCE im_Source; /*!< OBSOLETE source of im */
+
+   SUMA_IVEC *ivec; /*!< Same dance as fm but for integers */
+   SUMA_Boolean ivec_LocalAlloc;
+   SUMA_ENGINE_CODE ivec_Dest; /*!<  destination of im */
+   SUMA_ENGINE_SOURCE ivec_Source; /*!< OBSOLETE source of im */
+
+   SUMA_FVEC *fvec; /*!< Same dance as fm but for integers */
+   SUMA_Boolean fvec_LocalAlloc;
+   SUMA_ENGINE_CODE fvec_Dest; /*!<  destination of im */
+   SUMA_ENGINE_SOURCE fvec_Source; /*!< OBSOLETE source of im */
    
    void *vp; /*!< pointer to void */
    SUMA_ENGINE_CODE vp_Dest; /*!<  destination of fm */
@@ -1760,7 +1782,11 @@ typedef struct {
 
 #define SUMA_AFNI_STREAM_INDEX 0  /*!< Index of SUMA<-->AFNI stream */       
 #define SUMA_INITIATED_STREAMS 1  /*!< Number of streams that SUMA initiates */ 
-#define SUMA_MAX_STREAMS       2  /*!< Maximum number of streams, >= SUMA_INITIATED_STREAMS */
+#define SUMA_MAX_STREAMS       5  /*!< Maximum number of streams, >= SUMA_INITIATED_STREAMS */
+#define SUMA_GEOMCOMP_LINE 1 /*!<  Using socket SUMA_TCP_PORT + SUMA_GEOMCOMP_LINE 
+                              Make sure SUMA_GEOMCOMP_LINE < SUMA_MAX_STREAMS*/
+#define SUMA_BRAINWRAP_LINE 2 /*!<  Using socket SUMA_TCP_PORT + SUMA_BRAINWRAP_LINE 
+                              Make sure SUMA_BRAINWRAP_LINE < SUMA_MAX_STREAMS*/
 
 /* *** Niml defines end */
 
@@ -1936,6 +1962,9 @@ typedef struct {
                                 a certain node. */
 
 typedef struct {
+   int talk_suma;
+   int comm_NI_mode;
+   float rps;
    float nelps;  /*!<   number of NI elements to send per second 
                         -1 for going as fast as possible */
    int TrackID;            /*!<  ID of next element to be sent 
@@ -1945,7 +1974,10 @@ typedef struct {
                                 As long as GoneBad is NOPE */
    int istream; /*!< index of the stream used in SUMAg_CF->ns_v */
    char *suma_host_name;
-}SUMA_COMM_STRUCT;
+   int ElInd[SUMA_N_DSET_TYPES]; /* index of elements of a certain type to be sent to SUMA */
+   int kth;    /* send kth element to SUMA */
+   int Feed2Afni;
+} SUMA_COMM_STRUCT;
 
 typedef enum {
    SUMA_DOMAINS_ERROR = -1,
@@ -2073,6 +2105,7 @@ typedef struct {
    char *i_surfpath[SUMA_MAX_SURF_ON_COMMAND];
    char *i_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
    char *i_state[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_group[SUMA_MAX_SURF_ON_COMMAND];
    int i_anatomical[SUMA_MAX_SURF_ON_COMMAND];
    int i_N_surfnames;
    SUMA_SO_File_Format i_FF[SUMA_MAX_SURF_ON_COMMAND];
@@ -2084,6 +2117,7 @@ typedef struct {
    char *ipar_surfpath[SUMA_MAX_SURF_ON_COMMAND];
    char *ipar_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
    char *ipar_state[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_group[SUMA_MAX_SURF_ON_COMMAND];
    int ipar_anatomical[SUMA_MAX_SURF_ON_COMMAND];
    int ipar_N_surfnames;
    SUMA_SO_File_Format ipar_FF[SUMA_MAX_SURF_ON_COMMAND];
@@ -2095,6 +2129,7 @@ typedef struct {
    char *o_surfpath[SUMA_MAX_SURF_ON_COMMAND];
    char *o_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
    char *o_state[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_group[SUMA_MAX_SURF_ON_COMMAND];
    int o_anatomical[SUMA_MAX_SURF_ON_COMMAND];
    int o_N_surfnames;
    SUMA_SO_File_Format o_FF[SUMA_MAX_SURF_ON_COMMAND];
@@ -2106,6 +2141,7 @@ typedef struct {
    char *t_surfpath[SUMA_MAX_SURF_ON_COMMAND];
    char *t_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
    char *t_state[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_group[SUMA_MAX_SURF_ON_COMMAND];
    int t_anatomical[SUMA_MAX_SURF_ON_COMMAND];
    int t_N_surfnames;
    SUMA_SO_File_Format t_FF[SUMA_MAX_SURF_ON_COMMAND];
@@ -2118,6 +2154,9 @@ typedef struct {
    char *vp[SUMA_MAX_SURF_ON_COMMAND];
    int N_vp;
    
+   /* -talk_suma options */
+   SUMA_COMM_STRUCT *cs;
+
    /* flags for what to read */
    byte accept_t;
    byte accept_s;
@@ -2125,6 +2164,8 @@ typedef struct {
    byte accept_o;
    byte accept_spec;
    byte accept_sv;
+   byte accept_talk_suma;
+   byte check_input_surf;
 } SUMA_GENERIC_ARGV_PARSE;
   
  

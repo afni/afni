@@ -1357,7 +1357,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
    #endif
    
    /* register the various states from each SO in DOv */
-   SUMA_LH("Cycling through DOvs...");
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Cycling through DOvs, looking for surfaces of group %s\n", FuncName, Spec->Group[0]);
    for (i=0; i < N_dov; ++i) {
       if (SUMA_isSO_G(dov[i], Spec->Group[0])) {
          SO = (SUMA_SurfaceObject *)(dov[i].OP);
@@ -1371,7 +1371,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
             }
             SUMA_New_ViewState (csv);
             csv->VSv[csv->N_VSv-1].Name = SUMA_copy_string(SO->State);
-            csv->VSv[csv->N_VSv-1].Group = SUMA_copy_string(Spec->Group[0]);
+            csv->VSv[csv->N_VSv-1].Group = SUMA_copy_string(SO->Group); /* ZSS Changed from Spec->Group[0] */
             if (!csv->VSv[csv->N_VSv-1].Name || !csv->VSv[csv->N_VSv-1].Group) {
                fprintf(SUMA_STDERR,"Error %s: Failed to allocate for csv->VSv[csv->N_VSv-1].Name or .Group.\n", FuncName);
                SUMA_RETURN (NOPE);
@@ -1428,10 +1428,14 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
       if (SUMA_isSO(dov[i])) {
          SO = (SUMA_SurfaceObject *)(dov[i].OP);
          /* find out which state it goes in */
-         
+         if (!SO->State || !SO->Group) {
+            fprintf(SUMA_STDERR,"Error %s: Sent me SO (%s) with null State (%s) or null Group (%s)!\n", FuncName, SO->Label, SO->State, SO->Group);
+            if (LocalHead) SUMA_Print_Surface_Object (SO, NULL);      
+            SUMA_RETURN (NOPE);
+         } 
          is = SUMA_WhichState (SO->State, csv, SO->Group);
          if (is < 0) {
-            fprintf(SUMA_STDERR,"Error %s: This should not be.\n", FuncName);
+            fprintf(SUMA_STDERR,"Error %s: This should not be.\nFailed to find %s %s in csv\n", FuncName, SO->State, SO->Group);
             SUMA_RETURN (NOPE);
          }
          if (LocalHead) {
@@ -1497,7 +1501,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    } else {
       portn = SUMA_TCP_PORT;
    }   
-   
+    
    for (i=0; i<SUMA_MAX_STREAMS; ++i) {
       cf->ns_v[i] = NULL;
       cf->ns_flags_v[i] = 0;
@@ -2280,11 +2284,14 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
       SUMA_LH("Done.");
 
    /* register all SOs of the first state */   
-      /*fprintf(SUMA_STDERR,"%s: Registering All SO of the first group ...", FuncName);*/
+      if (LocalHead) {
+         fprintf(SUMA_STDERR,"%s: Registering All SO of the first group ...\n", FuncName);
+         fprintf(SUMA_STDERR,"%s: cSV->VSv[0].N_MembSOs = %d\n", FuncName, cSV->VSv[0].N_MembSOs);
+      }
       cSV->State = cSV->VSv[0].Name;
       cSV->iState = 0;
       for (kar=0; kar < cSV->VSv[0].N_MembSOs; ++ kar) {
-         /*fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", cSV->VSv[0].MembSOs[kar]);*/
+          if (LocalHead) fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", cSV->VSv[0].MembSOs[kar]);
             if (!SUMA_RegisterDO(cSV->VSv[0].MembSOs[kar], cSV)) {
                SUMA_error_message (FuncName,"Failed to register DO", 1);
                SUMA_RETURN(NOPE);
@@ -2292,10 +2299,10 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
       }
       
       
-   /*   fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);*/
+   if (LocalHead)   fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);
 
    /* register all non SO objects */
-   /*   fprintf(SUMA_STDERR,"%s: Registering All Non SO ...", FuncName);*/
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Registering All Non SO ...", FuncName);
       for (kar=0; kar < N_DOv; ++kar) {
          if (!SUMA_isSO(DOv[kar]))
          { 
@@ -2306,7 +2313,7 @@ SUMA_Boolean SUMA_SetupSVforDOs (SUMA_SurfSpecFile Spec, SUMA_DO *DOv, int N_DOv
             }
          }
       }
-   /*   fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);*/
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);
    #endif
 
    /* decide what the best state is */

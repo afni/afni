@@ -42,11 +42,10 @@ extern int SUMAg_N_DOv;
 */
 #define DBG 1
 #define DoCheck 1
-#define GEOMCOMP_LINE 1 /*!<  Using socket SUMA_TCP_PORT + GEOMCOMP_LINE 
-                              Make sure GEOMCOMP_LINE < SUMA_MAX_STREAMS*/
 
+#if 0 /* now set in default arguments */
 int SUMA_GEOMCOMP_NI_MODE = NI_BINARY_MODE;
-
+#endif
 /*!
    \brief Applies an affine transform the coordinates in NodeList
    
@@ -919,8 +918,8 @@ double SUMA_AreaDiff(double r, void *fvdata)
       Rref = fdata->Rref;
       if (LocalHead) { fprintf(SUMA_STDERR,"%s: Reference volume = %f, radius = %f \n", FuncName, Aref, Rref); }
       if (cs->Send) { /* send the first monster (it's SOref "in SUMA" that's being modified on the fly) */
-         if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+         if (!SUMA_SendToSuma (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
          }
       }
    }
@@ -930,8 +929,8 @@ double SUMA_AreaDiff(double r, void *fvdata)
       
    /* need an update ? */
    if (cs->Send) { /* send the update (it's SOref "in SUMA" that's being modified on the fly) */
-      if (!SUMA_SendToAfni (SOref, cs, (void *)fdata->tmpList, SUMA_NODE_XYZ, 1)) {
-      SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      if (!SUMA_SendToSuma (SOref, cs, (void *)fdata->tmpList, SUMA_NODE_XYZ, 1)) {
+      SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
    }
 
@@ -971,8 +970,8 @@ double SUMA_VolDiff(double r, void *fvdata)
       Rref = fdata->Rref;
       if (LocalHead) { fprintf(SUMA_STDERR,"%s: Reference volume = %f, radius = %f \n", FuncName, Vref, Rref); }
       if (cs->Send) { /* send the first monster (it's SOref "in SUMA" that's being modified on the fly) */
-         if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+         if (!SUMA_SendToSuma (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
          }
       }
    }
@@ -982,8 +981,8 @@ double SUMA_VolDiff(double r, void *fvdata)
       
    /* need an update ? */
    if (cs->Send) { /* send the update (it's SOref "in SUMA" that's being modified on the fly) */
-      if (!SUMA_SendToAfni (SOref, cs, (void *)fdata->tmpList, SUMA_NODE_XYZ, 1)) {
-      SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      if (!SUMA_SendToSuma (SOref, cs, (void *)fdata->tmpList, SUMA_NODE_XYZ, 1)) {
+      SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
    }
 
@@ -1337,8 +1336,8 @@ SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObj
       }
       if (! (i%99) && cs) {
          if (cs->Send) { /* send the first monster (it's SOref  "in SUMA" that's being modified on the fly*/
-            if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+            if (!SUMA_SendToSuma (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
             }
          }
       }
@@ -1349,8 +1348,8 @@ SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObj
          char *outname=NULL, tmp[20];
          int ii;
          if (cs->Send) { /* send the first monster (it's SOref that's being modified on the fly*/
-            if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+            if (!SUMA_SendToSuma (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
             }
          }
          sprintf(tmp,"offset_n%d", FROM_THIS_NODE);
@@ -1500,8 +1499,8 @@ SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *
       }
       if (! (i%99) && cs) {
          if (cs->Send) { /* send the first monster (it's SOref  "in SUMA" that's being modified on the fly*/
-            if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+            if (!SUMA_SendToSuma (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
             }
          }
       }
@@ -1512,8 +1511,8 @@ SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *
          char *outname=NULL, tmp[20];
          int ii;
          if (cs->Send) { /* send the first monster (it's SOref that's being modified on the fly*/
-            if (!SUMA_SendToAfni (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+            if (!SUMA_SendToSuma (SOref, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
             }
          }
          sprintf(tmp,"offset_n%d", FROM_THIS_NODE);
@@ -1899,8 +1898,8 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    }
    
    if (cs->Send) { /* send the first monster */
-      if (!SUMA_SendToAfni (SO, cs, (void *)fin_orig, SUMA_NODE_XYZ, 1)) {
-         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      if (!SUMA_SendToSuma (SO, cs, (void *)fin_orig, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
    }
    
@@ -1939,7 +1938,7 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                }/* for n */   
             }/* for k */
             if (cs->Send) {
-               /* SUMA_SendToAfni does not deal with such COLUMN_MAJOR order.
+               /* SUMA_SendToSuma does not deal with such COLUMN_MAJOR order.
                Must flip things here, boooooring */
                if (!niter) { /* allocate for buffer */
                   ftmp = (float *) SUMA_malloc(3*SO->N_Node*sizeof(float));
@@ -1947,8 +1946,8 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                }
                if (ftmp) {
                   for (i=0; i<SO->N_Node; ++i) { ftmp[3*i] = fout[i]; ftmp[3*i+1] = fout[i+SO->N_Node];  ftmp[3*i+2] = fout[i+2*SO->N_Node];}
-                  if (!SUMA_SendToAfni (SO, cs, (void *)ftmp, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)ftmp, SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
                   }
                }
                if (niter == N_iter -1) { /* free the buffer */
@@ -1990,8 +1989,8 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                } /* for k */
             }/* for n */
             if (cs->Send) {
-               if (!SUMA_SendToAfni (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
-                  SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+               if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
+                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
                }
             }
          }/* for niter */
@@ -2325,8 +2324,8 @@ float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float OffsetL
    
    
    if (cs->Send) { /* send the first monster */
-      if (!SUMA_SendToAfni (SO, cs, (void *)fin_orig, SUMA_NODE_XYZ, 1)) {
-         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      if (!SUMA_SendToSuma (SO, cs, (void *)fin_orig, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
    }
    SUMA_LH("Calculating OffS_out ...");
@@ -2364,8 +2363,8 @@ float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float OffsetL
                            FuncName, OffsetLim, etime_GetOffset, SO->N_Node);
             
             if (cs->Send) {
-               if (!SUMA_SendToAfni (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
-                  SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+               if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
+                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
                }
             }
          }
@@ -2435,8 +2434,8 @@ float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
    
    
    if (cs->Send) { /* send the first monster */
-      if (!SUMA_SendToAfni (SO, cs, (void *)fin_orig, SUMA_NODE_XYZ, 1)) {
-         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      if (!SUMA_SendToSuma (SO, cs, (void *)fin_orig, SUMA_NODE_XYZ, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
    }
    
@@ -2457,8 +2456,8 @@ float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
             fout = SUMA_SmoothAttr_Neighb ( fin, vpn*SO->N_Node, 
                                                  fout, SO->FN, vpn);
             if (cs->Send) {
-               if (!SUMA_SendToAfni (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
-                  SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+               if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
+                  SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
                }
             }
          }
@@ -2487,6 +2486,7 @@ SUMA_COMM_STRUCT *SUMA_Create_CommSrtuct(void)
 {
    static char FuncName[]={"SUMA_Create_CommSrtuct"};
    SUMA_COMM_STRUCT *cs=NULL;
+   int i;
    
    SUMA_ENTRY;
    
@@ -2496,12 +2496,18 @@ SUMA_COMM_STRUCT *SUMA_Create_CommSrtuct(void)
       SUMA_RETURN(NULL);
    }
    
+   cs->talk_suma = 0;
+   cs->comm_NI_mode = NI_BINARY_MODE;
+   cs->rps = -1.0;
    cs->Send = NOPE;
    cs->GoneBad = NOPE;
    cs->nelps = -1.0;
    cs->TrackID = 0;
    cs->istream = -1; /* the index of the stream in SUMAg_CF->ns_v */
    cs->suma_host_name = NULL;
+   cs->kth = 1;
+   cs->Feed2Afni = 0;
+   for (i=0; i<SUMA_N_DSET_TYPES; ++i) cs->ElInd[i] = 0;
    SUMA_RETURN(cs);
 }
 
@@ -2540,16 +2546,16 @@ SUMA_COMM_STRUCT *SUMA_Free_CommSrtuct(SUMA_COMM_STRUCT *cs)
                                   the execution of the main program
                                     
 */
-SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void *data, SUMA_DSET_TYPE dtype, int action)
+SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void *data, SUMA_DSET_TYPE dtype, int action)
 {
-   static char FuncName[]={"SUMA_SendToAfni"};
+   static char FuncName[]={"SUMA_SendToSuma"};
    static float etm = 0.0;
    static int i_in = 0;
    char stmp[500];
    struct  timeval tt;
    NI_element *nel=NULL;
    float *f=NULL;
-   int n=-1, WaitClose, WaitMax;
+   int n=-1, WaitClose, WaitMax, *ip = NULL;
    float wtm;
    SUMA_Boolean good = YUP;
    SUMA_Boolean LocalHead = NOPE;
@@ -2577,7 +2583,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
       NI_set_attribute(nel,"ni_stream_name",  SUMAg_CF->NimlStream_v[cs->istream]);
       sprintf(stmp, "%d", cs->TrackID);
       NI_set_attribute(nel,"Tracking_ID", stmp);
-      if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, SUMA_GEOMCOMP_NI_MODE ) < 0) {
+      if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, cs->comm_NI_mode ) < 0) {
          SUMA_SL_Err("Failed to start tracking.\nContinuing...");
       } 
       if (nel) NI_free_element(nel); nel = NULL;
@@ -2590,16 +2596,30 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
    
    if (action == 1) { /* action == 1,  send data mode */
       if (!i_in) {
-         SUMA_SL_Err("You must call SUMA_SendToAfni with action 0 before action 1.\nNo Communcation cleanup done.");
+         SUMA_SL_Err("You must call SUMA_SendToSuma with action 0 before action 1.\nNo Communcation cleanup done.");
          cs->Send = NOPE;
          SUMA_RETURN(NOPE);
       }
+      if ((cs->ElInd[dtype] % cs->kth)) {
+         if (LocalHead) fprintf(SUMA_STDERR,"%s: Skipping element %d of type %d\n", FuncName, cs->ElInd[dtype], dtype);
+         ++cs->ElInd[dtype];
+         SUMA_RETURN(YUP);
+      }
+      ++cs->ElInd[dtype];
       SUMA_LH("Creating nel and sending it");
       switch (dtype) {
          case SUMA_NODE_RGBAb:
          case SUMA_NODE_XYZ:
+         case SUMA_NEW_NODE_XYZ:
             n = 3 * SO->N_Node;
             f = (float *)data;
+            break;
+         case SUMA_NEW_MESH_IJK:
+         case SUMA_MESH_IJK:
+            n = 3 * SO->N_FaceSet;
+            ip = (int *)data;
+            break;
+         case SUMA_PREP_NEW_SURFACE:
             break;
          default:
             SUMA_SL_Err("Data type not supported.");
@@ -2618,16 +2638,21 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
             SUMA_LH("Cleanup for SUMA_NodeVal2irgba_nel...");
             SUMA_NodeVal2irgba_nel (SO, NULL, YUP);
          }
-         if (dtype == SUMA_NODE_XYZ) {
+         if (dtype == SUMA_NODE_XYZ || dtype == SUMA_NEW_NODE_XYZ ) {
             SUMA_LH("Cleanup for SUMA_NodeXYZ2NodeXYZ_nel...");
-            SUMA_NodeXYZ2NodeXYZ_nel (SO, NULL, YUP);
+            SUMA_NodeXYZ2NodeXYZ_nel (SO, NULL, YUP, dtype);
+         }
+         if (dtype == SUMA_NEW_MESH_IJK || dtype == SUMA_MESH_IJK) {
+            SUMA_LH("Cleanup for SUMA_Mesh_IJK2Mesh_IJK_nel...");
+            SUMA_Mesh_IJK2Mesh_IJK_nel (SO, NULL, YUP, dtype);
          }
          SUMA_RETURN(YUP); /* returning without error since program should continue */
       }
 
       
       nel = NULL;
-      if (dtype == SUMA_NODE_RGBAb) {
+      switch (dtype) {
+         case SUMA_NODE_RGBAb:
             /* colorize data */
             nel = SUMA_NodeVal2irgba_nel (SO, f, NOPE);
             if (!nel) {
@@ -2635,29 +2660,55 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
                cs->Send = NOPE;
                SUMA_RETURN(NOPE);
             }
-            ++cs->TrackID;
-            sprintf(stmp,"%d", cs->TrackID);
-            NI_set_attribute (nel, "Tracking_ID", stmp);
-      }
-      if (dtype == SUMA_NODE_XYZ) {
+            break;
+         case SUMA_NODE_XYZ:
+         case SUMA_NEW_NODE_XYZ:
             /* turn XYZ to nel  */
-            nel =  SUMA_NodeXYZ2NodeXYZ_nel(SO, f, NOPE);
+            nel =  SUMA_NodeXYZ2NodeXYZ_nel(SO, f, NOPE, dtype);
             if (!nel) {
                SUMA_SL_Err("Failed in SUMA_NodeXYZ2NodeXYZ_nel.\nCommunication off.")
                cs->Send = NOPE;
                SUMA_RETURN(NOPE);
             }
-            ++cs->TrackID;
-            sprintf(stmp,"%d", cs->TrackID);
-            NI_set_attribute (nel, "Tracking_ID", stmp);
+            if (cs->Feed2Afni) NI_set_attribute(nel, "Send2Afni", "DoItBaby");
+            break;
+         case SUMA_MESH_IJK:
+         case SUMA_NEW_MESH_IJK:
+            /* turn IJK to nel  */
+            nel =  SUMA_Mesh_IJK2Mesh_IJK_nel(SO, ip, NOPE, dtype);
+            if (!nel) {
+               SUMA_SL_Err("Failed in SUMA_Mesh_IJK2Mesh_IJK_nel.\nCommunication off.")
+               cs->Send = NOPE;
+               SUMA_RETURN(NOPE);
+            }
+            break;
+         case SUMA_PREP_NEW_SURFACE:
+            nel = NI_new_data_element(SUMA_Dset_Type_Name(dtype), 0);
+            NI_set_attribute (nel, "surface_idcode", SO->idcode_str);
+            if (SO->VolPar) {
+               char *vppref=NULL;
+               vppref = SUMA_append_replace_string(SO->VolPar->dirname, SO->VolPar->filecode, "/", 0);
+               NI_set_attribute(nel, "VolParFilecode", vppref); SUMA_free(vppref); vppref = NULL;
+               if (cs->Feed2Afni) NI_set_attribute(nel, "Send2Afni", "DoItBaby");
+            }
+            break;
+         default:
+            SUMA_SL_Err("Unexpected element. Ignoring.");
+            SUMA_RETURN(YUP);
+            break;   
       }
       
-
+        
       if (!nel) {/* !nel */
          SUMA_SL_Err("Flow error.");
          SUMA_RETURN(NOPE);
-      }/* !nel */
-
+      }else {/* !nel */
+         /* add tracking */
+         ++cs->TrackID;
+         sprintf(stmp,"%d", cs->TrackID);
+         NI_set_attribute (nel, "Tracking_ID", stmp);
+      }
+      
       #if SUMA_SUMA_NIML_DEBUG /* writes every element to a text file for debugging ... */
       {
          NI_stream ns;  
@@ -2698,7 +2749,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
 
       /* send it to SUMA */
       if (LocalHead) fprintf (SUMA_STDOUT,"Sending element %d...\n", cs->TrackID);
-      if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, SUMA_GEOMCOMP_NI_MODE ) < 0) {
+      if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, cs->comm_NI_mode ) < 0) {
          SUMA_LH("Failed updating SUMA...");
       }
       if (nel) NI_free_element(nel) ; nel = NULL;
@@ -2710,7 +2761,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
    
    if (action == 2) {
       if (i_in < 2) {
-         SUMA_SL_Err("You must call SUMA_SendToAfni with action 0 and 1 before action 2.\nNo Communcation cleanup done.");
+         SUMA_SL_Err("You must call SUMA_SendToSuma with action 0 and 1 before action 2.\nNo Communcation cleanup done.");
          cs->Send = NOPE;
          SUMA_RETURN(NOPE);
       }
@@ -2719,10 +2770,29 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
          etm = 0.0;
          
       /* clean up nel forming functions */
-      if (dtype == SUMA_NODE_RGBAb) {
-         SUMA_LH("Cleanup for SUMA_NodeVal2irgba_nel...");
-         SUMA_NodeVal2irgba_nel (SO, NULL, YUP);
+      switch (dtype) {
+         case SUMA_NODE_RGBAb:
+            SUMA_LH("Cleanup for SUMA_NodeVal2irgba_nel...");
+            SUMA_NodeVal2irgba_nel (SO, NULL, YUP);
+            break;
+         case SUMA_NODE_XYZ:
+         case SUMA_NEW_NODE_XYZ:
+            SUMA_LH("Cleanup for SUMA_NodeXYZ2NodeXYZ_nel...");
+            SUMA_NodeXYZ2NodeXYZ_nel (SO, NULL, YUP, dtype);
+            break;
+         case SUMA_MESH_IJK:
+         case SUMA_NEW_MESH_IJK:
+            SUMA_LH("Cleanup for SUMA_Mesh_IJK2Mesh_IJK_nel...");
+            SUMA_Mesh_IJK2Mesh_IJK_nel (SO, NULL, YUP, dtype);
+            break;
+         case SUMA_PREP_NEW_SURFACE:
+            break;
+         default:
+            SUMA_SL_Err("Unexpected element. Ignoring.");
+            SUMA_RETURN(YUP);
+            break;   
       }
+      
       
       /* now close the stream*/
       if (cs->Send && !cs->GoneBad) { 
@@ -2731,7 +2801,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
          nel = NI_new_data_element("StopTracking", 0);
          NI_set_attribute(nel,"ni_stream_name",  SUMAg_CF->NimlStream_v[cs->istream]);
 
-         if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, SUMA_GEOMCOMP_NI_MODE ) < 0) {
+         if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, cs->comm_NI_mode ) < 0) {
             SUMA_SL_Err("Failed to stop tracking.\nContinuing...");
          } 
          if (nel) NI_free_element(nel); nel = NULL;
@@ -2744,7 +2814,7 @@ SUMA_Boolean SUMA_SendToAfni (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
          }
 
          NI_set_attribute (nel, "ni_stream_name",  SUMAg_CF->NimlStream_v[cs->istream]);
-         if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, SUMA_GEOMCOMP_NI_MODE ) < 0) {
+         if (NI_write_element( SUMAg_CF->ns_v[cs->istream] , nel, cs->comm_NI_mode ) < 0) {
                         SUMA_LH("Failed updating SUMA...");
          }
          if (nel) NI_free_element(nel) ; nel = NULL;
@@ -2888,8 +2958,8 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    
    
    if (cs->Send) { /* send the first monster */
-      if (!SUMA_SendToAfni (SO, cs, (void *)fin_orig, SUMA_NODE_RGBAb, 1)) {
-         SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+      if (!SUMA_SendToSuma (SO, cs, (void *)fin_orig, SUMA_NODE_RGBAb, 1)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
       }
    }
    
@@ -2927,8 +2997,8 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                }/* for n */ 
                  
                if (cs->Send) {
-                  if (!SUMA_SendToAfni (SO, cs, (void *)fout, SUMA_NODE_RGBAb, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_RGBAb, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
                   }
                }
             } /* for k */
@@ -2949,11 +3019,88 @@ float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt,
    SUMA_RETURN(fout);
 }
 
-    
+/*! 
+   A function to turn triangulation to nel to be sent to SUMA
+*/
+NI_element * SUMA_Mesh_IJK2Mesh_IJK_nel (SUMA_SurfaceObject *SO, int *val, SUMA_Boolean cleanup, SUMA_DSET_TYPE dtype)
+{
+   static char FuncName[]={"SUMA_Mesh_IJK2Mesh_IJK_nel"};
+   static int i_in=0;
+   char idcode_str[50], buf[100];
+   NI_element *nel=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (dtype != SUMA_NEW_MESH_IJK && dtype != SUMA_MESH_IJK) {
+      SUMA_SL_Err("Bad dtype for this function!");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (cleanup) {
+      SUMA_LH("Cleanup...");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (!i_in) {
+      /* Initialization block. Nothing to do , really */
+   }
+   
+   
+   /* now create the niml element */
+   UNIQ_idcode_fill (idcode_str);
+   /* Now create that data element and write it out */
+   nel = SUMA_NewNel (  dtype, /* one of SUMA_DSET_TYPE */
+                        SO->idcode_str, /* idcode of Domain Parent */
+                        NULL, /* idcode of geometry parent, not useful here*/
+                        3*SO->N_FaceSet,
+                        NULL,
+                        NULL); /* Number of elements */
+   if (!nel) {
+      fprintf (stderr,"Error  %s:\nFailed in SUMA_NewNel", FuncName);
+      SUMA_RETURN(NULL);
+   }
+   
+   /* set the surface idcode attribute and more*/
+   if (!SO->idcode_str) { SUMA_SL_Err("Surface has a NULL idcode_str, BAD.\n"); SUMA_RETURN(NULL);} 
+   NI_set_attribute (nel, "surface_idcode", SO->idcode_str);   
+   if (!SO->Group) { SUMA_SL_Err("Surface has a NULL Group, BAD.\n"); SUMA_RETURN(NULL);} 
+   NI_set_attribute(nel, "Group", SO->Group);
+   if (!SO->Label) { NI_set_attribute(nel, "Label", "Def_MeshIJK2MeshIJK_nel"); }
+   else NI_set_attribute(nel, "Label", SO->Label);
+   if (!SO->State) { SUMA_SL_Err("Surface has a NULL state, BAD.\n"); SUMA_RETURN(NULL);} 
+   NI_set_attribute(nel, "State", SO->State);
+   sprintf(buf, "%d", SO->N_Node);
+   NI_set_attribute(nel, "N_Node", buf);
+   NI_set_attribute(nel, "EmbedDim", "3");
+   NI_set_attribute(nel, "AnatCorrect", "1");
+   
+   
+   /* Add the coordinate column */
+   if (!SUMA_AddNelCol (nel, /* the famed nel */ 
+                        "IJK indices", 
+                        SUMA_NODE_INT, /* the column's type (description),
+                                            one of SUMA_COL_TYPE */
+                        (void *)val, /* the coordinates */
+                        NULL  /* that's an optional structure containing 
+                                 attributes of the added column. 
+                                 Not used at the moment */
+                        ,1
+                        )) {
+      fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
+      SUMA_RETURN(NULL);                    
+   }
+
+   ++i_in; 
+         
+   /* return the element */
+   SUMA_RETURN(nel); 
+
+}    
 /*! 
    A function to turn node XYZ to nel to be sent to SUMA
 */
-NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Boolean cleanup)
+NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Boolean cleanup, SUMA_DSET_TYPE dtype)
 {
    static char FuncName[]={"SUMA_NodeXYZ2NodeXYZ_nel"};
    static int i_in=0;
@@ -2962,6 +3109,11 @@ NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   if (dtype != SUMA_NEW_NODE_XYZ && dtype != SUMA_NODE_XYZ) {
+      SUMA_SL_Err("Bad dtype for this function!");
+      SUMA_RETURN(NULL);
+   }
    
    if (cleanup) {
       SUMA_LH("Cleanup...");
@@ -2976,7 +3128,7 @@ NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_
    /* now create the niml element */
    UNIQ_idcode_fill (idcode_str);
    /* Now create that data element and write it out */
-   nel = SUMA_NewNel (  SUMA_NODE_XYZ, /* one of SUMA_DSET_TYPE */
+   nel = SUMA_NewNel (  dtype, /* one of SUMA_DSET_TYPE */
                         SO->idcode_str, /* idcode of Domain Parent */
                         NULL, /* idcode of geometry parent, not useful here*/
                         3*SO->N_Node,
@@ -3177,8 +3329,9 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, SUMA_Bo
 void usage_SUMA_SurfSmooth ()
    {
       static char FuncName[]={"usage_SUMA_SurfSmooth"};
-      char * s = NULL;
+      char * s = NULL, *st = NULL;
       s = SUMA_help_basics();
+      st = SUMA_help_talk();
       printf ("\nUsage:  SurfSmooth <-spec SpecFile> <-surf_A insurf> <-met method> \n"
               "\n"
               "   Some methods require additional options detailed below.\n"
@@ -3292,15 +3445,7 @@ void usage_SUMA_SurfSmooth ()
               "      -add_index : Output the node index in the first column.\n"
               "                   This is not done by default.\n"
               "\n"
-              "   SUMA communication options:\n"
-              "      -talk_suma: Send progress with each iteration to SUMA.\n"
-              "      -refresh_rate rps: Maximum number of updates to SUMA per second.\n"
-              "                         The default is the maximum speed.\n"
-              "      -sh <SumaHost>: Name (or IP address) of the computer running SUMA.\n"
-              "                      This parameter is optional, the default is 127.0.0.1 \n"
-              "      -ni_text: Use NI_TEXT_MODE for data transmission.\n"
-              "      -ni_binary: Use NI_BINARY_MODE for data transmission.\n"
-              "                  (default is ni_binary).\n"
+              "%s"
               "\n"
               "%s"
               "\n"
@@ -3367,7 +3512,7 @@ void usage_SUMA_SurfSmooth ()
               "       to load surface datasets directly into SUMA and colorize\n"
               "       them interactively."
               "\n"
-              "\n", s); SUMA_free(s); s = NULL;
+              "\n", st, s); SUMA_free(s); s = NULL; SUMA_free(st); st = NULL;
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
        exit (0);
@@ -3385,13 +3530,11 @@ typedef struct {
    float kpb;
    float l;
    float m;
-   float rps;
    int ShowNode;
    int Method;
    int dbg;
    int N_iter;
    int AddIndex;
-   int talk_suma;
    int insurf_method; /* method used to specify input surfaces. 
                         0 then none input 
                         1 the old way
@@ -3403,7 +3546,6 @@ typedef struct {
    char *if_name2;
    char *in_name;
    char *out_name;   /* this one's dynamically allocated so you'll have to free it yourself */
-   char *suma_host_name; /* this one's dynamically allocated so you'll have to free it yourself */
    char *ShowOffset_DBG;
    char *surf_out;
    char *surf_names[SURFSMOOTH_MAX_SURF];
@@ -3419,10 +3561,9 @@ typedef struct {
    \return Opt (SUMA_SURFSMOOTH_OPTIONS *) options structure.
                To free it, use 
                SUMA_free(Opt->out_name); 
-               SUMA_free(Opt->suma_host_name);
                SUMA_free(Opt);
 */
-SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
+SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_SurfSmooth_ParseInput"}; 
    SUMA_SURFSMOOTH_OPTIONS *Opt=NULL;
@@ -3457,12 +3598,9 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
    Opt->l = -1.0;
    Opt->m = -1.0;
    Opt->AddIndex = 0;
-   Opt->talk_suma = NOPE;
-   Opt->rps = -1.0;
    Opt->insurf_method = 0;
    Opt->spec_file = NULL;
    for (i=0; i<SURFSMOOTH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
-   Opt->suma_host_name = NULL;
    outname = NULL;
 	brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -3474,6 +3612,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
+      #if 0 /* now  in the SUMA_GENERIC_ARGV_PARSE struct */
       if (!brk && strcmp(argv[kar], "-ni_text") == 0)
 		{
          SUMA_GEOMCOMP_NI_MODE = NI_TEXT_MODE;
@@ -3516,6 +3655,13 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 
 			brk = YUP;
 		}
+      
+      if (!brk && (strcmp(argv[kar], "-talk_suma") == 0)) {
+			Opt->talk_suma = 1; 
+			brk = YUP;
+		}
+      
+      #endif
       if (!brk && strcmp(argv[kar], "-dist") == 0)
 		{
 			kar ++;
@@ -3531,11 +3677,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 
 			brk = YUP;
 		}
-      if (!brk && (strcmp(argv[kar], "-talk_suma") == 0)) {
-			Opt->talk_suma = 1; 
-			brk = YUP;
-		}
-      
+     
       if (!brk && (strcmp(argv[kar], "-dbg_n") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
@@ -3820,7 +3962,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
 			brk = YUP;
 		}
       
-      if (!brk) {
+      if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
 		} else {	
@@ -3861,13 +4003,13 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc)
       exit(1);  
    }
    
-   if (Opt->talk_suma && Opt->insurf_method != 2) {
+   if (ps->cs->talk_suma && Opt->insurf_method != 2) {
       fprintf (SUMA_STDERR,   "must specify surface using -spec option\n"
                               "if you whish to talk to suma.\n");
       exit(1); 
    }
    
-   if (0 && Opt->talk_suma && Opt->Method != SUMA_LB_FEM) {
+   if (0 && ps->cs->talk_suma && Opt->Method != SUMA_LB_FEM) {
       fprintf (SUMA_STDERR,   "talk option only valid with -LB_FEM\n");
       exit(1); 
    }
@@ -4016,6 +4158,7 @@ int main (int argc,char *argv[])
    SUMA_INDEXING_ORDER d_order=SUMA_NO_ORDER;
    SUMA_COMM_STRUCT *cs = NULL;
 	SUMA_SurfSpecFile Spec; 
+   SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
 	SUMA_mainENTRY;
@@ -4024,6 +4167,7 @@ int main (int argc,char *argv[])
    
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
+   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;-talk;");
    
    if (argc < 6)
        {
@@ -4031,8 +4175,8 @@ int main (int argc,char *argv[])
           exit (1);
        }
    
-   Opt = SUMA_SurfSmooth_ParseInput (argv, argc);
-   cs = SUMA_Create_CommSrtuct();
+   Opt = SUMA_SurfSmooth_ParseInput (argv, argc, ps);
+   cs = ps->cs;
    if (!cs) exit(1);
    
    /* now for the real work */
@@ -4084,40 +4228,40 @@ int main (int argc,char *argv[])
 
    
    /* see if SUMA talk is turned on */
-   if (Opt->talk_suma) {
-      cs->istream = GEOMCOMP_LINE;
-      if(Opt->suma_host_name) cs->suma_host_name = SUMA_copy_string(Opt->suma_host_name);
+   if (ps->cs->talk_suma) {
+      cs->istream = SUMA_GEOMCOMP_LINE;
       
       if (Opt->Method == SUMA_LB_FEM) { 
-         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_RGBAb, 0)) {
-            SUMA_SL_Err("Failed to initialize SUMA_SendToAfni");
+         if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
             cs->Send = NOPE;
-            Opt->talk_suma = NOPE;
+            ps->cs->talk_suma = NOPE;
          }
       }else if (Opt->Method == SUMA_LM) { 
-         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_XYZ, 0)) {
-            SUMA_SL_Err("Failed to initialize SUMA_SendToAfni");
+         if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
             cs->Send = NOPE;
-            Opt->talk_suma = NOPE;
+            ps->cs->talk_suma = NOPE;
          }
       }else if (Opt->Method == SUMA_NN_GEOM) { 
-         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_XYZ, 0)) {
-            SUMA_SL_Err("Failed to initialize SUMA_SendToAfni");
+         if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
             cs->Send = NOPE;
-            Opt->talk_suma = NOPE;
+            ps->cs->talk_suma = NOPE;
          }
       }else if (Opt->Method == SUMA_BRUTE_FORCE) { 
-         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_XYZ, 0)) {
-            SUMA_SL_Err("Failed to initialize SUMA_SendToAfni");
+         if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
             cs->Send = NOPE;
-            Opt->talk_suma = NOPE;
+            ps->cs->talk_suma = NOPE;
          }
       }else {
          SUMA_SL_Err("Can't talk to suma with the chosen method.\n");
-         Opt->talk_suma = NOPE;
+         ps->cs->talk_suma = NOPE;
       }
    }
   
+   ncol = 3; /* default for geometry smoothing. That is changed below for data smoothing. */
    switch (Opt->Method) {
       case SUMA_LB_FEM: 
          /* Moo Chung's method for interpolation weights */
@@ -4155,8 +4299,7 @@ int main (int argc,char *argv[])
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
-            if (Opt->rps > 0) { cs->nelps = (float)Opt->talk_suma * Opt->rps; }
-            else { cs->nelps = (float) Opt->talk_suma * -1.0; }
+            
             dsmooth = SUMA_Chung_Smooth (SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, SUMA_COLUMN_MAJOR, NULL, cs);
             
             if (LocalHead) {
@@ -4184,8 +4327,7 @@ int main (int argc,char *argv[])
          /* brute forcem nearset neighbor interpolation */
          {
             if (LocalHead) SUMA_etime(&start_time,0);
-            if (Opt->rps > 0) { cs->nelps = (float)Opt->talk_suma * Opt->rps; }
-            else { cs->nelps = (float) Opt->talk_suma * -1.0; }
+            
             d_order =  SUMA_ROW_MAJOR; 
             
             dsmooth = SUMA_NN_GeomSmooth( SO, Opt->N_iter, SO->NodeList,
@@ -4206,8 +4348,7 @@ int main (int argc,char *argv[])
          /* a method that will likely be dropped NOT FINISHED  */
          {
             if (LocalHead) SUMA_etime(&start_time,0);
-            if (Opt->rps > 0) { cs->nelps = (float)Opt->talk_suma * Opt->rps; }
-            else { cs->nelps = (float) Opt->talk_suma * -1.0; }
+            
             d_order =  SUMA_ROW_MAJOR; 
             
             SUMA_etime(&start_time_all,0);
@@ -4235,8 +4376,7 @@ int main (int argc,char *argv[])
          {
             
             if (LocalHead) SUMA_etime(&start_time,0);
-            if (Opt->rps > 0) { cs->nelps = (float)Opt->talk_suma * Opt->rps; }
-            else { cs->nelps = (float) Opt->talk_suma * -1.0; }
+            
             d_order =  SUMA_ROW_MAJOR; 
             dsmooth = SUMA_Taubin_Smooth (SO, NULL, 
                             Opt->l, Opt->m, SO->NodeList, 
@@ -4281,8 +4421,8 @@ int main (int argc,char *argv[])
                /* send the unshrunk bunk */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
-                  if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
                   }
                }
 
@@ -4300,8 +4440,8 @@ int main (int argc,char *argv[])
                /* send the unshrunk bunk */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
-                  if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
                   }
                }
                /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
@@ -4317,8 +4457,8 @@ int main (int argc,char *argv[])
                /* send the unshrunk bunk */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
-                  if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
                   }
                }
                /* to make matters parallel with the other methods, keep dsmooth and free SOnew */
@@ -4334,8 +4474,8 @@ int main (int argc,char *argv[])
                /* send the unshrunk bunk */
                if (cs->Send) {
                   SUMA_LH("Sending last fix to SUMA ...");
-                  if (!SUMA_SendToAfni (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
-                     SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCommunication halted.");
+                  if (!SUMA_SendToSuma (SO, cs, (void *)SOnew->NodeList, SUMA_NODE_XYZ, 1)) {
+                     SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
                   }
                }
 
@@ -4429,16 +4569,16 @@ int main (int argc,char *argv[])
    if (cs->Send && !cs->GoneBad) {
       /* cleanup and close connections */
       if (Opt->Method == SUMA_LB_FEM) {
-         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_RGBAb, 2)) {
-            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCleanup failed");
+         if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NODE_RGBAb, 2)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCleanup failed");
          }
       }else if (Opt->Method == SUMA_LM) {
-         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_XYZ, 2)) {
-            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCleanup failed");
+         if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NODE_XYZ, 2)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCleanup failed");
          }
       }else if (Opt->Method == SUMA_NN_GEOM) {
-         if (!SUMA_SendToAfni (SO, cs, NULL, SUMA_NODE_XYZ, 2)) {
-            SUMA_SL_Warn("Failed in SUMA_SendToAfni\nCleanup failed");
+         if (!SUMA_SendToSuma (SO, cs, NULL, SUMA_NODE_XYZ, 2)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCleanup failed");
          }
       }
    }   
@@ -4451,14 +4591,14 @@ int main (int argc,char *argv[])
       SUMA_LH("Done:");
    }
    mri_free(im); im = NULL;   /* done with that baby */
-   if (cs) cs = SUMA_Free_CommSrtuct(cs);
+   if (cs) cs = NULL; /* ps->cs if freed below */
    if (SF_name) SUMA_free(SF_name);
    if (Opt->insurf_method == 1) { if (SO) SUMA_Free_Surface_Object(SO); }
    if (data_old) SUMA_free(data_old);  
    if (Opt->out_name) SUMA_free(Opt->out_name); Opt->out_name = NULL;
-   if (Opt->suma_host_name) SUMA_free(Opt->suma_host_name); Opt->suma_host_name = NULL;
    if (Opt) SUMA_free(Opt);
- 	if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
+ 	if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
+   if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");
    }
 

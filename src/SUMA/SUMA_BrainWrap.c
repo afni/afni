@@ -255,7 +255,7 @@ int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, in
 /*!
    Based on BET's recipe 
 */
-int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt)
+int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_COMM_STRUCT *cs)
 {
    static char FuncName[]={"SUMA_StretchToFitLeCerveau"};
    int it=0, in=0, ii;
@@ -267,7 +267,7 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
    float *tmpptr, *NewCoord = NULL, f3;
    FILE *OutNodeFile = NULL;
    SUMA_Boolean DoDbg=NOPE;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -388,6 +388,11 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
          tmpptr = NULL;
       /* recalculate surface normals */
       SUMA_RECOMPUTE_NORMALS(SO);
+      if (cs->Send) {
+         if (!SUMA_SendToSuma (SO, cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
+            SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
+         }
+      }
    } /* loop over number of iterations */
    if (OutNodeFile) fclose(OutNodeFile); OutNodeFile = NULL;
    if (NewCoord) SUMA_free(NewCoord); NewCoord = NULL;
@@ -398,7 +403,7 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
 void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
    {
       static char FuncName[]={"usage_SUMA_BrainWrap"};
-      char * s = NULL, *sio=NULL;
+      char * s = NULL, *sio=NULL, *st = NULL;
       int i;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
@@ -472,7 +477,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "        TYPE is one of: fs, 1d (or vec), sf, ply.\n"
                "        Default is: -o_ply \n"
                "\n"
-               "%s\n"
+               "%s"
                "\n"
                /*"     -debug DBG: debug levels of 0 (default), 1, 2, 3.\n"
                "        This is no Rick Reynolds debug, which is oft nicer\n"
@@ -480,7 +485,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "\n" */
                "%s"
                "\n", sio, s);
-       SUMA_free(s); s = NULL;  SUMA_free(sio); sio = NULL;          
+       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;          
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
        exit (0);
@@ -868,7 +873,7 @@ int main (int argc,char *argv[])
    
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;-talk;");
    
    if (argc < 2) {
       usage_SUMA_BrainWrap(ps);
@@ -899,17 +904,70 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Failed to create Icosahedron");
       exit(1);
    }
-   if (LocalHead) SUMA_Print_Surface_Object (SO, NULL);      
    
+   /* need sv for communication to AFNI */
+   SO->VolPar = SUMA_VolPar_Attr (Opt->in_name);
+   SO->SUMA_VolPar_Aligned = YUP; /* Surface is in alignment with volume, should not call SUMA_Align_to_VolPar ... */
+
+   if (!SO->State) {SO->State = SUMA_copy_string("BrainWrap"); }
+   if (!SO->Group) {SO->Group = SUMA_copy_string("BrainWrap"); }
+   if (!SO->Label) {SO->Label = SUMA_copy_string("icobaby"); }
+   
+   /* make the idcode_str depend on the Label, it is convenient to
+   send the same surface all the time to SUMA */
+   if (SO->Label) { if (SO->idcode_str) SUMA_free(SO->idcode_str); SO->idcode_str = UNIQ_hashcode(SO->Label); }
+   if (0 && LocalHead) SUMA_Print_Surface_Object (SO, NULL);      
+   
+   /* see if SUMA talk is turned on */
+   if (ps->cs->talk_suma) {
+      ps->cs->istream = SUMA_BRAINWRAP_LINE;
+      if (!SUMA_SendToSuma (SO, ps->cs, NULL, SUMA_NO_DSET_TYPE, 0)) {
+         SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
+         ps->cs->Send = NOPE;
+         ps->cs->talk_suma = NOPE;
+      } else {
+         /* send the mesh since this is a new surface */
+         if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->FaceSetList, SUMA_NEW_MESH_IJK, 1)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
+            ps->cs->Send = NOPE;
+            ps->cs->talk_suma = NOPE;
+         }
+         /* now send the coordinates of the new surface */
+         if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NEW_NODE_XYZ, 1)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
+            ps->cs->Send = NOPE;
+            ps->cs->talk_suma = NOPE;
+         }
+         /* now send the command to register the new surface with viewers*/
+         if (!SUMA_SendToSuma (SO, ps->cs, NULL, SUMA_PREP_NEW_SURFACE, 1)) {
+            SUMA_SL_Err("Failed to initialize SUMA_SendToSuma");
+            ps->cs->Send = NOPE;
+            ps->cs->talk_suma = NOPE;
+         }
+         /* now manually clean up the function that created the mesh.
+         last SUMA_SendToSuma call will clean up the  SUMA_NODE_XYZ related
+         functions. SUMA_SendToSuma can only clean when the same dtype is being sent */
+         SUMA_Mesh_IJK2Mesh_IJK_nel (SO, NULL, YUP, SUMA_NEW_MESH_IJK);
+      }
+   }
+
    /* This is it baby, start walking */
-   SUMA_StretchToFitLeCerveau (SO, Opt);
+   SUMA_StretchToFitLeCerveau (SO, Opt, ps->cs);
    
    /* write the surface to disk */
    if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
       fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
       exit (1);
    }
-   
+      
+   /* you don't want to exit rapidly because the SUMA might not be done processing the last elements*/
+   if (ps->cs->Send && !ps->cs->GoneBad) {
+      /* cleanup and close connections */
+      if (!SUMA_SendToSuma (SO, ps->cs, NULL, SUMA_NODE_XYZ, 2)) {
+         SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCleanup failed");
+      }
+   }   
+
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt->dvec) SUMA_free(Opt->dvec); Opt->dvec = NULL;
    if (Opt->mcdatav) {SUMA_free(Opt->mcdatav); Opt->mcdatav = NULL;} 
