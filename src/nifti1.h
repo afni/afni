@@ -328,7 +328,8 @@ typedef struct { long double r,i; } complex_longdouble ;
 
 #define NIFTI_INTENT_PVAL       22   /* NO PARAMS               */
 
-#define NIFTI_INTENT_INTERVAL   23   /* width (about center)    */
+#define NIFTI_FIRST_STATCODE     2
+#define NIFTI_LAST_STATCODE     22
 
                                /*--- these aren't statistics ---*/
                                /*--- and have no statistical ---*/
