@@ -22,7 +22,7 @@
 #include <sys/times.h>
 #include <limits.h>
 
-/*-----------------------------------------------------------*/
+/*****---------------------------------------------------*****/
 
 /* This is suppose to be defined in stddef.h, but
    apparently it isn't on all systems for some reason. */
@@ -31,7 +31,7 @@
 # define offsetof(TYPE,MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
 #endif
 
-/*-----------------------------------------------------------*/
+/*****---------------------------------------------------*****/
 
 #ifndef TYPEDEF_byte
 #define TYPEDEF_byte
@@ -53,9 +53,9 @@ typedef struct { byte r,g,b,a ; } rgba ;
 typedef struct { float r,i ; } complex ;
 #endif
 
-/*-----------------------------------------*/
+/*****---------------------------------------------------*****/
 
-/* Macros for data type codes. */
+/***** Macros for data type codes. *****/
 
 #define NI_BYTE        0
 #define NI_SHORT       1
@@ -82,7 +82,7 @@ typedef struct { float r,i ; } complex ;
                            (c) == 'r' || (c) == 'S' || (c) == 'L' ||  \
                            (c) == 'R'                               )
 
-/*-----------------------------------------*/
+/*****---------------------------------------------------*****/
 
 #define NI_ELEMENT_TYPE  17
 #define NI_GROUP_TYPE    18
@@ -281,12 +281,15 @@ extern void NI_set_attribute_mode( int ) ;
 
 /*****---------- Hash table stuff [26 Aug 2002] ----------*****/
 
+#ifndef TYPEDEF_Htable
+#define TYPEDEF_Htable
 typedef struct {
   int     len , ntot ;
   void ***vtab ;             /* pointers */
   char ***ctab ;             /* digests */
   int    *ntab ;             /* counts */
 } Htable ;
+#endif
 
 extern Htable * new_Htable( int ) ;
 extern void     destroy_Htable( Htable * ) ;
@@ -296,7 +299,40 @@ extern void     removefrom_Htable( char *, Htable * ) ;
 extern void     profile_Htable( char *, Htable * ) ;
 extern void     subsume_Htable( Htable *, Htable * ) ;
 
-/*-------------- prototypes ---------------*/
+/*****------------------- DIME stuff [04 Nov 2002] ------------------*****/
+
+#ifndef TYPEDEF_DIME_part
+#define TYPEDEF_DIME_part
+typedef struct {
+   int          type ;
+   int          flags ;
+   char        *id_string ;
+   char        *type_string ;
+   unsigned int data_len ;
+   byte        *data ;
+} DIME_part ;
+#endif
+
+#ifndef TYPEDEF_DIME_message
+#define TYPEDEF_DIME_message
+typedef struct {
+   int         num_part ;
+   DIME_part **part ;
+} DIME_message ;
+#endif
+
+#define DIME_MB_MASK      (1<<0)
+#define DIME_ME_MASK      (1<<1)
+#define DIME_CF_MASK      (1<<2)
+
+#define DIME_VERSION_MASK (0xf8)
+
+DIME_message * DIME_read_message( NI_stream_type * , int ) ;
+DIME_part    * DIME_read_part   ( NI_stream_type * , int ) ;
+
+void           DIME_destroy_message( DIME_message * ) ;
+
+/*****------------------------- prototypes -------------------------*****/
 
 extern void * NI_malloc( size_t ) ;
 extern void   NI_free( void * ) ;
