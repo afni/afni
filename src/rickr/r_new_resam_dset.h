@@ -3,6 +3,7 @@
 
 
 THD_3dim_dataset * r_new_resam_dset ( THD_3dim_dataset * din,
+		                      THD_3dim_dataset * min,
 				       double dx, double dy, double dz,
 				       char orient [], int resam_mode);
 int     r_dxyz_mod_dataxes    ( double dx, double dy, double dz,

@@ -116,9 +116,9 @@ RESAMPLE:
 		echo ""
 	endif
 	if ($Skip == 0) then
-		echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -zeropad -rmode Cu -inset $ExpAnat"
+		echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat"
 		echo ""
-		3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -zeropad -rmode Cu -inset $ExpAnat
+		3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat
 		test -f $ExpAnat_Resamp.BRIK || goto NO_RESAMP
 	endif
 	set ExpAnatPrefix = $ExpAnat_ResampPrefix

@@ -4,7 +4,7 @@
 
 #define MAIN
 
-#define VERSION "Version 1.0 <June 25, 2002>"
+#define VERSION "Version 1.1 <July, 2002>"
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
@@ -29,7 +29,6 @@
  *					 from the set {A,P, I,S, L,R})
  *
  *		-master MAST_DSET : apply orient/dxyz from MAST_DSET
- *              -zeropad          : zeropad a dataset to match master
  *
  *		-rmode RESAM      : one of {"NN", "Li", "Cu", "Bk"}
  *
@@ -37,7 +36,6 @@
  *	3dresample -orient "asl" -rmode NN -prefix asl.dset -inset inset+orig
  *	3dresample -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset some.input+tlrc
  *      3dresample -master master+orig -prefix new.copy -inset old.copy+orig
- *      3dresample -master master+orig -zeropad -prefix new -inset old+orig
  *----------------------------------------------------------------------
 */
 
@@ -62,13 +60,11 @@ typedef struct
     char             * orient;
     char             * prefix;
     int                resam;
-    int                zeropad;
     int                debug;
 } options_t;
 
 int disp_opts_data   ( char * info, options_t * opts );
 int init_options     ( options_t * opts, int argc, char * argv [] );
-int new_zeropad_dset ( options_t * opts, THD_3dim_dataset ** dout );
 int resam_str2mode   ( char * mode );
 int sync_master_opts ( options_t * opts );
 int usage            ( char * prog, int level );
@@ -90,16 +86,12 @@ int main( int argc , char * argv[] )
 	return ret_val;
 
     /* actually resample and/or reorient the dataset */
-    if ( (dout = r_new_resam_dset( opts.dset, opts.dx, opts.dy, opts.dz,
-				   opts.orient, opts.resam ) ) == NULL )
+    if ( (dout = r_new_resam_dset( opts.dset, opts.mset,
+                 opts.dx, opts.dy, opts.dz, opts.orient, opts.resam)) == NULL )
     {
 	fprintf( stderr, "failure to resample dataset, exiting...\n" );
 	return FAIL;
     }
-
-    /* possibly zeropad the output dataset */
-    if ( opts.zeropad && new_zeropad_dset(&opts, &dout) )
-	return FAIL;
 
     return write_results( dout, &opts, argc, argv );
 }
@@ -197,7 +189,8 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 	}
 	else if ( ! strncmp(argv[ac], "-zeropad", 5) )	/* zeropad */
 	{
-	    opts->zeropad = 1;
+	    fputs("warning: '-zeropad' is no longer a valid option\n", stderr);
+	    /* but still move on... */
 	}
 	else if ( ! strncmp(argv[ac], "-rmode", 6) )	/* resample mode */
 	{
@@ -283,7 +276,7 @@ int init_options ( options_t * opts, int argc, char * argv [] )
     return 0;
 }
 
-
+#if 0  /* lose new_zeropad_dset */
 /*----------------------------------------------------------------------
  * new_zeropad_dset - create a new zeropadded dataset
  *
@@ -405,7 +398,7 @@ int new_zeropad_dset ( options_t * opts, THD_3dim_dataset ** dout )
 
     return 0;
 }
-
+#endif   /* end chop of new_zeropad_dset() */
 
 /*----------------------------------------------------------------------*/
 int usage ( char * prog, int level )
@@ -437,7 +430,6 @@ int usage ( char * prog, int level )
 	    "    %s -orient asl -rmode NN -prefix asl.dset -inset in+orig\n"
 	    "    %s -dxyz 1.0 1.0 0.9 -prefix 119.dset -inset in+tlrc\n"
 	    "    %s -master master+orig -prefix new.dset -inset old+orig\n"
-	    "    %s -master M+orig -zeropad -prefix new -inset old+orig\n"
 	    "\n"
 	    "  note:\n"
 	    "\n"
@@ -486,19 +478,12 @@ int usage ( char * prog, int level )
 	    "          See 'Anat resam mode' under the 'Define Markers'\n"
 	    "          window in afni.\n"
 	    "\n"
-	    "    -master MAST_DSET: apply orient/dxyz from MAST_DSET\n"
+	    "    -master MAST_DSET: align dataset grid to that of MAST_DSET\n"
 	    "          e.g.  -master master.dset+orig\n"
 	    "\n"
-	    "          Get dxyz and orient from a master dataset.  This\n"
+	    "          Get dxyz and orient from a master dataset.  The\n"
+            "          resulting grid will match that of the master.  This\n"
 	    "          option cannot be used with -dxyz or -orient.\n"
-	    "\n"
-	    "    -zeropad         : zeropad to match box of master\n"
-	    "          e.g.  -zeropad\n"
-	    "\n"
-	    "          Pad and/or chop a resulting dataset to match the\n"
-	    "          volume of the dataset supplied as master MAST_DSET\n"
-	    "          with the -master option.  The -zeropad option can\n"
-	    "          only be used if the -master option is also used.\n"
 	    "\n"
 	    "    -prefix OUT_DSET : required prefix for output dataset\n"
 	    "          e.g.  -prefix reori.asl.pickle\n"
@@ -508,7 +493,7 @@ int usage ( char * prog, int level )
 	    "\n"
 	    "  Author: R. Reynolds - %s\n"
 	    "\n",
-	    prog, prog, prog, prog, prog, prog, VERSION );
+	    prog, prog, prog, prog, prog, VERSION );
 
 	return 0;
     }
@@ -590,12 +575,6 @@ int sync_master_opts ( options_t * opts )
 {
     THD_dataxes * dax;
 
-    if ( opts->zeropad && !opts->mset )
-    {
-	fputs( "error: cannot use -zeropad without -master\n", stderr );
-	return FAIL;
-    }
-
     if ( !opts->mset )
 	return 0;	/* OK */
 
@@ -668,14 +647,12 @@ int disp_opts_data ( char * info, options_t * opts )
 	    "    orient      = %.6s\n"
 	    "    prefix      = %.60s\n"
 	    "    resam       = %d\n"
-	    "    zeropad     = %d\n"
 	    "    debug       = %d\n",
 	    opts,
 	    opts->dset, ISVALID_DSET(opts->dset) ? "valid" : "invalid",
 	    opts->mset, ISVALID_DSET(opts->mset) ? "valid" : "invalid",
 	    opts->dx, opts->dy, opts->dz,
-	    opts->orient, opts->prefix, opts->resam,
-	    opts->zeropad, opts->debug );
+	    opts->orient, opts->prefix, opts->resam, opts->debug );
 
     return 0;
 }

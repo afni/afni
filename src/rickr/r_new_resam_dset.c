@@ -12,13 +12,12 @@
 #include "r_misc.h"
 #include "r_new_resam_dset.h"
 
-
 /* local #defines and function definitions */
 
 static int apply_dataxes     ( THD_3dim_dataset * dset, THD_dataxes * dax );
 static int apply_orientation ( THD_3dim_dataset * dset, FD_brick * fdb,
 			       char orient[] );
-static int valid_resam_inputs( THD_3dim_dataset * ,
+static int valid_resam_inputs( THD_3dim_dataset * , THD_3dim_dataset *,
 			       double, double, double, char [], int );
 
 #define LR_RESAM_IN_FAIL	-1
@@ -33,6 +32,7 @@ static char * this_file = "r_new_resam_dset.c";
  *
  * inputs:
  *   - din	: input dataset
+ *   - min	: master dataset - overrides dxyz and orient input
  *   - dx,dy,dz : new deltas
  *   - orient   : new orientation string
  *   - resam    : resampling mode
@@ -41,6 +41,7 @@ static char * this_file = "r_new_resam_dset.c";
  *                (or NULL, on failure)
  *
  * notes:
+ *   - if (min != NULL)          , dx, dy, dz and orient are ignored
  *   - if (dx == dy == dz == 0.0), no resampling will be done
  *   - if (orient == NULL),        no reorienting will be done
  *----------------------------------------------------------------------
@@ -48,6 +49,7 @@ static char * this_file = "r_new_resam_dset.c";
 THD_3dim_dataset * r_new_resam_dset
     (
 	THD_3dim_dataset * din,		/* original dataset to resample */
+	THD_3dim_dataset * min,		/* master dataset to align to   */
 	double             dx,		/* delta for new x-axis         */
 	double             dy,		/* delta for new y-axis         */
 	double             dz,		/* delta for new z-axis         */
@@ -59,8 +61,13 @@ THD_3dim_dataset * r_new_resam_dset
     THD_dataxes        new_daxes;
     FD_brick         * fdb = NULL;
     int                work;
+    char             * l_orient, l_orient_s[4] = "";
 
-    work = valid_resam_inputs( din, dx, dy, dz, orient, resam );
+    /* if we have a master, do not rely on orient - use local memory */
+    if ( min ) l_orient = l_orient_s;
+    else       l_orient = orient;
+
+    work = valid_resam_inputs( din, min, dx, dy, dz, l_orient, resam );
 
     if ( work == LR_RESAM_IN_FAIL )
         return NULL;
@@ -78,15 +85,15 @@ THD_3dim_dataset * r_new_resam_dset
 
     if ( work & LR_RESAM_IN_REORIENT )	    /* then re-orient the brick */
     {
-	if ( ( fdb = THD_oriented_brick( dout, orient ) ) == NULL )
+	if ( ( fdb = THD_oriented_brick( dout, l_orient ) ) == NULL )
 	{
 	    fprintf( stderr, "<%s>: failed to create THD_brick with orient "
-		     "string <%.6s>\n", this_file, orient );
+		     "string <%.6s>\n", this_file, l_orient );
 	    THD_delete_3dim_dataset( dout, FALSE );
 	    return NULL;
 	}
 
-	if ( apply_orientation( dout, fdb, orient ) != 0 )
+	if ( apply_orientation( dout, fdb, l_orient ) != 0 )
 	{
 	    THD_delete_3dim_dataset( dout, FALSE );
 	    return NULL;
@@ -99,7 +106,10 @@ THD_3dim_dataset * r_new_resam_dset
     {
 	/*-- given dx, dy and dz, create a new THD_dataxes structure ---- */
 	new_daxes.type = DATAXES_TYPE;
-	if ( r_dxyz_mod_dataxes( dx, dy, dz, dout->daxes, &new_daxes ) != 0 )
+
+	if ( min )   /* if we have a master, just copy the dataxes struct */
+	    new_daxes = *min->daxes;
+        else if ( r_dxyz_mod_dataxes(dx, dy, dz, dout->daxes, &new_daxes) != 0 )
 	{
 	    THD_delete_3dim_dataset( dout, FALSE );
 	    return NULL;
@@ -112,14 +122,16 @@ THD_3dim_dataset * r_new_resam_dset
 	}
     }
 
-     /* needed by THD_load_datablock() */
+    /* needed by THD_load_datablock() */
     dout->warp_parent        = din->warp_parent ? din->warp_parent : din;
     dout->warp_parent_idcode = din->idcode;	/* needed for HEAD write */
 
     /* needed to warp from parent */
-    dout->wod_flag           = True;            /* mark for WOD          */
-    dout->vox_warp->type     = ILLEGAL_TYPE;    /* mark fo recomputation */
-    *dout->wod_daxes         = new_daxes;	/* used for actual warp  */
+    dout->wod_flag        = True;		/* mark for WOD          */
+    dout->vox_warp->type  = ILLEGAL_TYPE;	/* mark fo recomputation */
+    *dout->wod_daxes      = new_daxes;		/* used for actual warp  */
+
+    dout->daxes->parent   = (XtPointer)dout;	/* parent is new dset    */
 
     if ( r_fill_resampled_data_brick( dout, resam ) != 0 )
     {
@@ -392,10 +404,9 @@ int r_orient_str2vec ( char ostr [], THD_ivec3 * ovec )
  *    LR_RESAM_IN_FAIL      : bad inputs
  *----------------------------------------------------------------------
 */
-static int valid_resam_inputs( THD_3dim_dataset * dset,
-				   double dx, double dy, double dz,
-				   char orient [],
-				   int resam )
+static int valid_resam_inputs( THD_3dim_dataset * dset, THD_3dim_dataset * mset,
+			       double dx, double dy, double dz,
+			       char orient [], int resam )
 {
     int ret_val = LR_RESAM_IN_NONE;
 
@@ -405,8 +416,37 @@ static int valid_resam_inputs( THD_3dim_dataset * dset,
 	return LR_RESAM_IN_FAIL;
     }
 
+    if( mset ) /* behold, the master! */
+    {
+	/* validate mset and its thd_dataxes structure */
+        if ( ! ISVALID_3DIM_DATASET(mset) || !ISVALID_DATAXES(mset->daxes) )
+	{
+	    fprintf( stderr, "ERROR: <%s> - invalid master dataset\n",
+                     this_file );
+	    return LR_RESAM_IN_FAIL;
+        }
+
+	/* we should have orientation memory with a master */
+	if ( ! orient )
+	{
+	    fprintf( stderr, "ERROR: <%s> - orientation memory should "
+		     "come with master\n", this_file );
+	    return LR_RESAM_IN_FAIL;
+	}
+
+	/* we have a master - get orientation now, dxyz will come later */
+	orient[0] = ORIENT_typestr[mset->daxes->xxorient][0];
+	orient[1] = ORIENT_typestr[mset->daxes->yyorient][0];
+	orient[2] = ORIENT_typestr[mset->daxes->zzorient][0];
+	orient[3] = '\0';
+
+	return LR_RESAM_IN_RESAM | LR_RESAM_IN_REORIENT; /* we're good to go */
+    }
+
+    /* so no master dataset, validate dxyz and orientation */
+
     /* validate resampling */
-    if ( dx == 0.0 && dy == 0.0 && dz == 0.0 )	/* assume no resampling */
+    if ( dx == 0.0 && dy == 0.0 && dz == 0.0 )        /* no resampling */
         ret_val &= ~LR_RESAM_IN_RESAM;
     else if ( dx <= 0.0 || dy <= 0.0 || dz <= 0.0 )
     {
