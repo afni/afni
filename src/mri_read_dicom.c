@@ -144,6 +144,9 @@ MRI_IMARR * mri_read_dicom( char *fname )
    float rescale_slope=0.0 , rescale_inter=0.0 ;  /* 23 Dec 2002 */
    float window_center=0.0 , window_width =0.0 ;
 
+   char *sexi_start;   /* KRH 25 Jul 2003 */
+   char *sexi_end;
+
 ENTRY("mri_read_dicom") ;
 
    if( str_sexinfo != NULL ){ free(str_sexinfo); str_sexinfo=NULL; }
@@ -328,6 +331,24 @@ ENTRY("mri_read_dicom") ;
        str_sexinfo                               != NULL   ){
 
      /* 31 Oct 2002: extract extra Siemens info from str_sexinfo */
+
+     /* KRH 25 Jul 2003 if start and end markers are present for
+      * Siemens extra info, cut string down to those boundaries */
+
+     sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN ###");
+     sexi_end = strstr(str_sexinfo, "### ASCCONV END ###");
+     if ((sexi_start != NULL) && (sexi_end != NULL)) {
+       char *sexi_tmp;
+       int sexi_size;
+
+       sexi_size = sexi_end - sexi_start + 19 ;
+       sexi_start = sexi_start - str_sexinfo;
+       sexi_tmp = calloc( 1, sexi_size );
+       memcpy(sexi_tmp,str_sexinfo+(int)sexi_start,sexi_size);
+       free(str_sexinfo);
+       str_sexinfo = sexi_tmp;
+     }
+     /* end KRH 25 Jul 2003 change */
 
      sexinfo.good = 0 ;  /* start by marking it as bad */
      for(ii = 0; ii < 3; ii++) sexinfo.have_data[ii] = 0; /* 25 Feb 03 Initialize new member KRH */
@@ -1125,6 +1146,9 @@ int mri_imcount_dicom( char *fname )
 
    int mosaic=0 , mos_nx,mos_ny , mos_ix,mos_iy,mos_nz ;  /* 28 Oct 2002 */
    Siemens_extra_info sexinfo ;                           /* 02 Dec 2002 */
+   
+   char *sexi_start;   /* KRH 25 Jul 2003 */
+   char *sexi_end;
 
 ENTRY("mri_imcount_dicom") ;
 
@@ -1236,6 +1260,24 @@ ENTRY("mri_imcount_dicom") ;
        str_sexinfo                               != NULL   ){
 
      /* 31 Oct 2002: extract extra Siemens info from file */
+
+     /* KRH 25 Jul 2003 if start and end markers are present for
+      * Siemens extra info, cut string down to those boundaries */
+
+     sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN ###");
+     sexi_end = strstr(str_sexinfo, "### ASCCONV END ###");
+     if ((sexi_start != NULL) && (sexi_end != NULL)) {
+       char *sexi_tmp;
+       int sexi_size;
+
+       sexi_size = sexi_end - sexi_start + 19 ;
+       sexi_start = sexi_start - str_sexinfo;
+       sexi_tmp = calloc( 1, sexi_size );
+       memcpy(sexi_tmp,str_sexinfo+(int)sexi_start,sexi_size);
+       free(str_sexinfo);
+       str_sexinfo = sexi_tmp;
+     }
+     /* end KRH 25 Jul 2003 change */
 
      sexinfo.good = 0 ;  /* start by marking it as bad */
      get_siemens_extra_info( str_sexinfo , &sexinfo ) ;

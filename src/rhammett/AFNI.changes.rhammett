@@ -1,3 +1,9 @@
+28 Jul 2003
+   * modified mri_read_dicom.c to allow to3d to read and process 
+     Siemens mosaic files while ignoring seemingly meaningful
+     garbage text.  This was for a new case with even more
+     extensive garbage than the 4 March 2003 case.
+
 05 May 2003
    * modified mri_read.c to allow a switch to choose to try DICOM
      processing last on unknown files.  Set the environment variable
