@@ -575,7 +575,7 @@ ENTRY("watershedize") ;
 
                        /* if have more than one neighbor, other */
        if( nb > 1 ){   /* basins could be merged with the best  */
-         if( verb ) fprintf("++ %d basins touch at pp=%d\n",nb,pp) ;
+         if( verb ) fprintf(stderr,"++ %d basins touch at pp=%d\n",nb,pp) ;
          mz = svox[pp].val ;          /* depth of this voxel */
          for( m=0 ; m < nb ; m++ ){
            if( m == mb ) continue ;        /* can't merge with itself */
