@@ -294,7 +294,7 @@ STATUS("stored new palette") ;
       /**-- ENVIRONMENT section [04 Jun 1999] --**/
 
       if( strcmp(str,"***ENVIRONMENT") == 0 ){  /* loop, looking for environment settings */
-         char * enveqn ; int nl , nr ;
+         char *enveqn ; int nl , nr ;
 
          if( mode != SETUP_ENVIRON_MODE ){ GETSTR ; goto SkipSection ; }
 
