@@ -2671,11 +2671,9 @@ ENTRY("AFNI_read_images") ;
    if( dy > 0.0 ) dset->daxes->yydel = dy ;
    if( dz > 0.0 ) dset->daxes->zzdel = dz ;
 
-#ifndef OMIT_DATASET_IDCODES
    dset->idcode = MCW_new_idcode() ;
    ZERO_IDCODE(dset->anat_parent_idcode) ;
    ZERO_IDCODE(dset->warp_parent_idcode) ;
-#endif
 
    /* set the daxes orientation codes from the command line argument */
 
@@ -8186,9 +8184,7 @@ STATUS("re-anat_parenting anatomical datasets in this session") ;
             dss->anat_parent = im3d->anat_now ;
             MCW_strncpy( dss->anat_parent_name ,
                          im3d->anat_now->self_name , THD_MAX_NAME ) ;
-#ifndef OMIT_DATASET_IDCODES
             dss->anat_parent_idcode = im3d->anat_now->idcode ;
-#endif
          }
       }
 
@@ -8204,9 +8200,7 @@ STATUS("re-anat_parenting functional datasets in this session") ;
             dss->anat_parent = im3d->anat_now ;
             MCW_strncpy( dss->anat_parent_name ,
                          im3d->anat_now->self_name , THD_MAX_NAME ) ;
-#ifndef OMIT_DATASET_IDCODES
             dss->anat_parent_idcode = im3d->anat_now->idcode ;
-#endif
          }
       }
    }

@@ -46,9 +46,7 @@ typedef struct {
 
    int  nimage , nvals , nosave ;
 
-#ifndef OMIT_DATASET_IDCODES
    MCW_idcode anatomy_parent_idcode ;
-#endif
 
    int   need_stat_aux ;
    float stat_aux[MAX_STAT_AUX] ;

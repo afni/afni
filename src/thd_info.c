@@ -45,10 +45,8 @@ ENTRY("THD_dataset_info") ;
 
    outbuf = THD_zzprintf(outbuf,"Dataset File:    %s\n" , DSET_FILECODE(dset) ) ;
 
-#ifndef OMIT_DATASET_IDCODES
-    outbuf = THD_zzprintf(outbuf,"Identifier Code: %s  Creation Date: %s\n" ,
+   outbuf = THD_zzprintf(outbuf,"Identifier Code: %s  Creation Date: %s\n" ,
              dset->idcode.str , dset->idcode.date ) ;
-#endif
 
    if( ISANAT(dset) ){
       outbuf = THD_zzprintf(outbuf,"Dataset Type:    %s (-%s)\n",
@@ -117,14 +115,7 @@ ENTRY("THD_dataset_info") ;
 
    /*-- idcodes --*/
 
-   if( verbose >= 0 ){
-#ifdef OMIT_DATASET_IDCODES
-   if( strlen(dset->anat_parent_name) > 0 )
-      outbuf = THD_zzprintf(outbuf,"Anatomy Parent:  %s\n" , dset->anat_parent_name ) ;
-
-   if( strlen(dset->warp_parent_name) > 0 )
-      outbuf = THD_zzprintf(outbuf,"Warp Parent:     %s\n" , dset->warp_parent_name ) ;
-#else
+  if( verbose >= 0 ){
    if( ! ISZERO_IDCODE(dset->anat_parent_idcode) )
       outbuf = THD_zzprintf(outbuf,"Anatomy Parent:  %s [%s]\n" ,
                 dset->anat_parent_name , dset->anat_parent_idcode.str ) ;
@@ -136,8 +127,7 @@ ENTRY("THD_dataset_info") ;
                  dset->warp_parent_name , dset->warp_parent_idcode.str) ;
    else if( strlen(dset->warp_parent_name) > 0 )
       outbuf = THD_zzprintf(outbuf,"Warp Parent:     %s\n" , dset->warp_parent_name ) ;
-#endif
-   }
+  }
 
    /*-- tagset --*/
 

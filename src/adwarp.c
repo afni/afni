@@ -449,9 +449,7 @@ ENTRY("adwarp_follower_dataset") ;
   MCW_strncpy( new_dset->anat_parent_name ,
 	       anat_parent->self_name , THD_MAX_NAME ) ;
 
-#ifndef OMIT_DATASET_IDCODES
   new_dset->anat_parent_idcode = anat_parent->idcode ;
-#endif
 
    /* 11/09/94 addition: the data_parent may itself be a warp;
        in this case, we want the true warp parent to be the original data */
@@ -462,13 +460,9 @@ ENTRY("adwarp_follower_dataset") ;
   MCW_strncpy( new_dset->warp_parent_name ,
 	       new_dset->warp_parent->self_name , THD_MAX_NAME ) ;
 
-#ifndef OMIT_DATASET_IDCODES
   new_dset->warp_parent_idcode = new_dset->warp_parent->idcode ;
-#endif
 
-#ifndef OMIT_DATASET_IDCODES
   new_dset->idcode = MCW_new_idcode() ;
-#endif
 
   /* make the actual warp from the warp_parent to this dataset */
 

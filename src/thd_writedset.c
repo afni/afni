@@ -62,7 +62,6 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
    THD_set_string_atr( blk , ATRNAME_TYPESTRING ,
                        DATASET_typestr[dset->type] ) ;
 
-#ifndef OMIT_DATASET_IDCODES
    /*----- write IDCODE attributes -----*/
 
    THD_set_string_atr( blk , ATRNAME_IDSTRING , dset->idcode.str ) ;
@@ -77,7 +76,6 @@ Boolean THD_write_3dim_dataset( char * new_sessname , char * new_prefixname ,
       THD_set_string_atr( blk , ATRNAME_IDWARPPAR , dset->warp_parent_idcode.str ) ;
    else
       THD_erase_one_atr( blk , ATRNAME_IDWARPPAR ) ;
-#endif
 
    /*----- write SCENE_TYPE attribute -----*/
 

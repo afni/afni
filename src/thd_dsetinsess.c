@@ -102,7 +102,6 @@ THD_slist_find THD_dset_in_session( int find_type , void * target ,
       }
       break ;
 
-#ifndef OMIT_DATASET_IDCODES
       /**** search for an idcode ****/
 
       case FIND_IDCODE:{
@@ -141,7 +140,6 @@ THD_slist_find THD_dset_in_session( int find_type , void * target ,
          }
       }
       break ;
-#endif /* OMIT_DATASET_IDCODES */
 
    }  /* end of switch on find_type */
 

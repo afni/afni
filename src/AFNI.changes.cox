@@ -4174,3 +4174,8 @@
 
 27 Dec 2002
  * Modified 3dttest.c to save DOF dataset if -unpooled is used.
+
+28 Dec 2002
+ * Modified AFNI_rescan_session() in afni_func.c to NOT clobber existing
+     dataset pointers when adding datasets to a session.
+ * Removed all instances of OMIT_DATASET_IDCODES.

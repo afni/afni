@@ -48,11 +48,9 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
 
    ADDTO_KILL(new_dset->kl,new_dset->wod_daxes) ;
 
-#ifndef OMIT_DATASET_IDCODES
    new_dset->idcode = MCW_new_idcode() ;
    ZERO_IDCODE(new_dset->anat_parent_idcode) ;
    ZERO_IDCODE(new_dset->warp_parent_idcode) ;
-#endif
 
    if( old_good ){
       new_dset->type      = old_dset->type ;      /* data types */
