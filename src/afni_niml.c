@@ -217,6 +217,8 @@ ENTRY("AFNI_process_NIML_data") ;
 
    nel = (NI_element *) nini ;
 
+fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
+
    /******** Surface nodes for a dataset *********/
 
    if( strcmp(nel->name,"SUMA_ixyz") == 0 ){
