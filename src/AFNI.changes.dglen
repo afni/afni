@@ -3,4 +3,5 @@
      creates output brik file. Used 3dTstat.c as model for program.
  * Rename 3dTeig.c 3dDTeig.c. Made program more efficient. Reduced width of help
      to fit in 80 characters.
- 
+17 November 2004
+ * Renamed some internal messages and history to have the updated function name.

@@ -1,4 +1,4 @@
-/*********************** 3dTeig.c **********************************************/
+/*********************** 3dDTeig.c **********************************************/
 /* Author: Daniel Glen, 15 Nov 2004 */
 #include "mrilib.h"
 #include "thd_shear3d.h"
@@ -18,7 +18,7 @@ int main( int argc , char * argv[] )
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dTeig [options] dataset\n"
+      printf("Usage: 3dDTeig [options] dataset\n"
              "Computes eigenvalues and eigenvectors for an input dataset of\n"
              " 6 sub-bricks Dxx,Dxy,Dxz,Dyy,Dyz,Dzz.\n"
 	     " The results are stored in a 13-subbrick bucket dataset.\n"
@@ -35,7 +35,7 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
-   mainENTRY("3dTeig main"); machdep(); AFNI_logger("3dTeig",argc,argv);
+   mainENTRY("3dDTeig main"); machdep(); AFNI_logger("3dDTeig",argc,argv);
 
    nopt = 1 ;
    nbriks = 13 ;
@@ -130,7 +130,7 @@ int main( int argc , char * argv[] )
       EDIT_dset_items(new_dset, ADN_brick_label_one+11,"eigvec_3[3]",ADN_none);
       EDIT_dset_items(new_dset, ADN_brick_label_one+12,"FA",ADN_none);
 
-      tross_Make_History( "3dTeig" , argc,argv , new_dset ) ;
+      tross_Make_History( "3dDTeig" , argc,argv , new_dset ) ;
       DSET_write( new_dset ) ;
       printf("--- Output dataset %s\n",DSET_FILECODE(new_dset)) ;
    } else {
@@ -188,12 +188,13 @@ static void EIG_tsfunc( double tzero, double tdelta ,
    }
 
    /* load the symmetric matrix vector from the "timeseries" subbrik vector values */
+
    a[0]=ts[0]; a[1]=ts[1]; a[2]=ts[2];  
    a[3]=ts[1]; a[4]=ts[3]; a[5]=ts[4];
    a[6]=ts[2]; a[5]=ts[4]; a[8]=ts[5];
 
   symeig_double(3, a, e);    /* compute eigenvalues in e, eigenvectors in a */
-  
+ 
   maxindex=2;                      /* find the lowest, middle and highest eigenvalue */
   maxvalue=e[2];
   minindex=0;
