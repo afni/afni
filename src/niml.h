@@ -90,9 +90,13 @@ typedef struct { int num; int *ar; } intarray ;
 
 /*-----------------------------------------*/
 
+#define NI_ELEMENT_TYPE  17
+#define NI_GROUP_TYPE    18
+
 /*! A data element. */
 
 typedef struct {
+   int    type ;       /*!< What type of struct is this? */
    char  *name ;       /*!< Name of element. */
    int    attr_num ;   /*!< Number of attributes. */
    char **attr_lhs ;   /*!< Left-hand-sides of attributes. */
@@ -106,6 +110,7 @@ typedef struct {
 /*! A bunch of elements. */
 
 typedef struct {
+   int    type ;       /*!< What type of struct is this? */
    int    attr_num ;   /*!< Number of attributes. */
    char **attr_lhs ;   /*!< Left-hand-sides of attributes. */
    char **attr_rhs ;   /*!< Right-hand-sides of attributes. */
@@ -114,11 +119,6 @@ typedef struct {
    int   *part_typ ;   /*!< Type of each part (element or group). */
    void **part ;       /*!< Pointer to each part. */
 } NI_group ;
-
-/* Part type codes. */
-
-#define NI_ELEMENT  0
-#define NI_GROUP    1
 
 /*! Size of NI_stream buffer. */
 
@@ -139,6 +139,8 @@ typedef struct {
 
    int io_mode ;     /*!< Input or output? */
    int data_mode ;   /*!< Text, binary, or base64? */
+
+   int bin_thresh ;  /*!< Threshold size for binary write. */
 
    int nbuf ;              /*!< Number of bytes left in buf. */
    char buf[NI_BUFSIZE] ;  /*!< I/O buffer. */
@@ -169,43 +171,41 @@ typedef NI_stream_type *NI_stream ;
 
 /*-------------- prototypes ---------------*/
 
-void * NI_malloc( size_t ) ;
-void   NI_free( void * ) ;
-void * NI_realloc( void * , size_t ) ;
+extern void * NI_malloc( size_t ) ;
+extern void   NI_free( void * ) ;
+extern void * NI_realloc( void * , size_t ) ;
+extern char * NI_strncpy( char * , const char * , size_t ) ;
 
-char * NI_strncpy( char * , const char * , size_t ) ;
+extern char * NI_type_name( int ) ;
+extern int    NI_type_size( int ) ;
 
-char * NI_type_name( int ) ;
+extern void NI_free_group  ( NI_group *   ) ;
+extern void NI_free_element( void * ) ;
+extern int NI_element_type( void * ) ;
 
-int NI_read_file  ( void *, char *, int ) ;
-int NI_read_socket( void *, char *, int ) ;
+extern NI_element * NI_new_data_element( char *, int ) ;
+extern void NI_add_vector( NI_element * , int , void * ) ;
+extern void NI_set_attribute( void * , char * , char * ) ;
 
-int NI_write_file  ( void *, char *, int ) ;
-int NI_write_socket( void *, char *, int ) ;
+extern NI_group * NI_new_group_element(void) ;
+extern void NI_free_element( void * ) ;
+extern void NI_add_to_group( NI_group * , void * ) ;
 
-NI_stream NI_open_for_input ( int (*getdata)(void *, char *, int) , void * ) ;
-NI_stream NI_open_for_output( int (*putdata)(void *, char *, int) , void * ) ;
+/** I/O functions **/
 
-void NI_close( NI_stream ) ;
+extern NI_stream NI_stream_open( char * , char * ) ;
+extern int NI_stream_goodcheck( NI_stream_type * , int ) ;
+extern void NI_stream_close( NI_stream_type * ) ;
+extern int NI_stream_readcheck( NI_stream_type * , int  ) ;
+extern int NI_stream_writecheck( NI_stream_type * , int  ) ;
+extern int NI_stream_write( NI_stream_type * , char * , int ) ;
+extern int NI_stream_read( NI_stream_type * , char * , int ) ;
+extern void NI_binary_threshold( NI_stream_type * , int ) ;
+extern void NI_sleep( int ) ;
 
-NI_group * NI_get_group( NI_stream ) ;
-
-int NI_put_group  ( NI_stream , NI_group *   ) ;
-int NI_put_element( NI_stream , NI_element * ) ;
-
-int NI_readcheck( NI_stream ) ;
-
-void NI_free_group  ( NI_group *   ) ;
-void NI_free_element( NI_element * ) ;
-
-NI_stream NI_stream_open( char *name , char *mode ) ;
-int NI_stream_goodcheck( NI_stream_type *ns , int msec ) ;
-void NI_stream_close( NI_stream_type *ns ) ;
-int NI_stream_readcheck( NI_stream_type *ns , int msec ) ;
-int NI_stream_writecheck( NI_stream_type *ns , int msec ) ;
-int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes ) ;
-int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes ) ;
-void NI_sleep( int msec ) ;
+extern NI_group * NI_get_group( NI_stream ) ;
+extern int NI_put_group  ( NI_stream , NI_group *   ) ;
+extern int NI_put_element( NI_stream , NI_element * ) ;
 
 /*! Close a NI_stream, and set the pointer to NULL. */
 

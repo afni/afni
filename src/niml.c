@@ -1,5 +1,9 @@
 #include "niml.h"
 
+/****************************************************************************/
+/*********************** Utility functions **********************************/
+/****************************************************************************/
+
 /*--------------------------------------------------------------------------*/
 /*! Allocate memory (actually is calloc). */
 
@@ -42,6 +46,10 @@ char * NI_strncpy( char *dest , const char *src , size_t n )
    strncpy( dest , src , n-1 ) ;
    dest[n] = '\0' ; return dest ;
 }
+
+/****************************************************************************/
+/****************** Functions to process a NIML header **********************/
+/****************************************************************************/
 
 /*--------------------------------------------------------------------------*/
 /*! Deallocate a header_stuff struct. */
@@ -294,55 +302,44 @@ static intarray * decode_type_string( char *ts )
         default: break ;   /* skip junk characters */
 
         case 'b':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_BYTE ;
-           break ;
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_BYTE ;
+        break ;
 
         case 's':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_SHORT ;
-           break ;
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_SHORT ;
+        break ;
 
         case 'i':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_INT ;
-           break ;
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_INT ;
+        break ;
 
         case 'f':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_FLOAT ;
-           break ;
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_FLOAT ;
+        break ;
 
         case 'd':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_DOUBLE ;
-           break ;
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_DOUBLE ;
+        break ;
 
         case 'c':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_COMPLEX ;
-           break ;
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_COMPLEX ;
+        break ;
 
         case 'r':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_RGB ;
-           break ;
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_RGB ;
+        break ;
 
         case 'R':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_RGBA ;
-           break ;
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_RGBA ;
+        break ;
 
         case 'S':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_STRING ;
-           break ;
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_STRING ;
+        break ;
 
         case 'L':
-           for( kd=0 ; kd < jd ; kd++ )
-              iar->ar[kk++] = NI_LINE ;
-           break ;
-
+           for( kd=0 ; kd < jd ; kd++ ) iar->ar[kk++] = NI_LINE ;
+        break ;
       }
    }
 
@@ -350,14 +347,14 @@ static intarray * decode_type_string( char *ts )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Construct an empty element from a header.
+/*! Construct an empty data element from a header.
 
     The data vectors will have space allocated, but they will be
     filled with all zero bytes.  If the header was "empty" (ended in
     "/>"), then no vectors will be allocated.
 -------------------------------------------------------------------------*/
 
-NI_element * make_empty_element( header_stuff *hs )
+static NI_element * make_empty_data_element( header_stuff *hs )
 {
    NI_element *nel ;
    int ii , qq ;
@@ -365,6 +362,8 @@ NI_element * make_empty_element( header_stuff *hs )
    if( hs == NULL || hs->name == NULL ) return NULL ;
 
    nel = NI_malloc( sizeof(NI_element) ) ;
+
+   nel->type = NI_ELEMENT_TYPE ;
 
    /* move name and attributes from hs to new element */
 
@@ -437,6 +436,48 @@ NI_element * make_empty_element( header_stuff *hs )
 }
 
 /*-------------------------------------------------------------------------*/
+/*! Make an empty group element from parsed header info.
+
+    To be consistent with the NIML spec, the header name should
+    be "ni_group", but nothing is done to check for this.  Also, the
+    header should not be empty, but this is not checked at all.
+
+    The attributes in the header are assigned to the group, and the group
+    parts are initialized to nothing.
+---------------------------------------------------------------------------*/
+
+static NI_group * make_empty_group_element( header_stuff *hs )
+{
+   NI_group *ngr ;
+   int ii , qq ;
+
+   if( hs == NULL || hs->name == NULL ) return NULL ;
+
+   ngr = NI_malloc( sizeof(NI_group) ) ;
+
+   ngr->type = NI_GROUP_TYPE ;
+
+   /* move attributes from hs to new element */
+
+   ngr->attr_num = hs->nattr ;
+
+   if( ngr->attr_num > 0 ){
+      ngr->attr_lhs = hs->lhs ; hs->lhs = NULL ;
+      ngr->attr_rhs = hs->rhs ; hs->rhs = NULL ;
+   } else {
+      ngr->attr_lhs = ngr->attr_rhs = NULL ;
+   }
+
+   /* have no pieces-parts yet */
+
+   ngr->part_num = 0 ;
+   ngr->part_typ = NULL ;
+   ngr->part     = NULL ;
+
+   return ngr ;
+}
+
+/*-------------------------------------------------------------------------*/
 /*! Name for a given integer type code.  Return value is to static string. */
 
 char * NI_type_name( int val )
@@ -470,6 +511,255 @@ int NI_type_size( int val )
       case NI_LINE:     return sizeof(char *)  ;
    }
    return 0 ;
+}
+
+/*************************************************************************/
+/********** Functions to create NIML data and group elements *************/
+/*************************************************************************/
+
+/*-----------------------------------------------------------------------*/
+/*! Return the type of something that points to a NI element.
+
+    The input should be a pointer to a NI_element or a NI_group.
+    The return value is NI_ELEMENT_TYPE, NI_GROUP_TYPE, or -1.
+-------------------------------------------------------------------------*/
+
+int NI_element_type( void *nini )
+{
+   NI_element *nel = (NI_element *) nini ;
+   NI_group   *ngr = (NI_group *)   nini ;
+
+   if( nini == NULL ) return -1 ;
+
+   if( nel->type == NI_ELEMENT_TYPE ) return NI_ELEMENT_TYPE ;
+   if( ngr->type == NI_GROUP_TYPE   ) return NI_GROUP_TYPE   ;
+
+   return -1 ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Expunge a data or group element and its contents from the universe.  */
+
+void NI_free_element( void *nini )
+{
+   int ii , tt=NI_element_type(nini)  ;
+
+   if( tt < 0 ) return ; /* bad input */
+
+   /* erase contents of data element */
+
+   if( tt == NI_ELEMENT_TYPE ){
+      NI_element *nel = (NI_element *) nini ;
+
+      NI_free(nel->name) ;
+      for( ii=0 ; ii < nel->attr_num ; ii++ ){
+         NI_free( nel->attr_lhs[ii] ) ;
+         NI_free( nel->attr_rhs[ii] ) ;
+      }
+      NI_free( nel->attr_lhs ) ;
+      NI_free( nel->attr_rhs ) ;
+      NI_free( nel->vec_typ  ) ;
+      for( ii=0 ; ii < nel->vec_num ; ii++ )
+         NI_free( nel->vec[ii] ) ;
+      NI_free( nel->vec ) ;
+      NI_free( nel ) ;
+
+   /* erase contents of group element */
+
+   } else if( tt == NI_GROUP_TYPE ){
+      NI_group *ngr = (NI_group *) nini ;
+
+      for( ii=0 ; ii < ngr->attr_num ; ii++ ){
+         NI_free( ngr->attr_lhs[ii] ) ;
+         NI_free( ngr->attr_rhs[ii] ) ;
+      }
+      NI_free( ngr->attr_lhs ) ;
+      NI_free( ngr->attr_rhs ) ;
+
+      for( ii=0 ; ii < ngr->part_num ; ii++ )
+         NI_free_element( ngr->part[ii] ) ;     /* recursion */
+
+      NI_free( ngr->part_typ ) ;
+      NI_free( ngr->part ) ;
+      NI_free( ngr ) ;
+   }
+
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Create a new data element.
+
+    name   = string name for header.
+    veclen = size of vectors (ni_dimen); set this to zero for "empty"
+             elements (those with only headers, no data).
+
+    Return is NULL if inputs are stupid.
+-------------------------------------------------------------------------*/
+
+NI_element * NI_new_data_element( char *name , int veclen )
+{
+   NI_element *nel ;
+
+   if( name == NULL || name[0] == '\0' || veclen < 0 ) return NULL ;
+
+   nel = NI_malloc( sizeof(NI_element) ) ;
+
+   nel->type = NI_ELEMENT_TYPE ;  /* mark as being a data element */
+
+   nel->name = strdup(name) ;
+   nel->attr_num = 0 ;
+   nel->attr_lhs = nel->attr_rhs = NULL ;
+
+   nel->vec_num = 0 ;
+   nel->vec_len = veclen ;
+
+   nel->vec_typ = NULL ;
+   nel->vec     = NULL ;
+
+   return nel ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Add a vector (column) of data to a data element.
+
+    nel = data element to modify
+    typ = type code of data (e.g., NI_FLOAT)
+    arr = pointer to data values - must be an array of length veclen
+          from NI_new_data_element()
+
+    The data array is copied into the element.  If the element was
+    specified with veclen=0, then this function will do nothing.
+    Since this function has no return value, the only way to check for
+    such an error is to see if nel->vec_num was incremented.
+-------------------------------------------------------------------------*/
+
+void NI_add_vector( NI_element *nel , int typ , void *arr )
+{
+   int nn , ll ;
+
+   /* check for reasonable inputs */
+
+   if( nel == NULL || nel->vec_len == 0 || arr == NULL ) return ;
+
+   if( typ < 0 || typ >= NI_NUM_TYPES ) return ;
+
+   if( nel->type != NI_ELEMENT_TYPE ) return ;
+
+   /* get number of vectors currently in element */
+
+   nn = nel->vec_num ;
+
+   /* add 1 to the vec_typ array */
+
+   nel->vec_typ     = NI_realloc( nel->vec_typ , sizeof(int)*(nn+1) ) ;
+   nel->vec_typ[nn] = typ ;
+
+   /* add 1 to the vec array, and copy data into it */
+
+   nel->vec     = NI_realloc( nel->vec , sizeof(void *)*(nn+1) ) ;
+   ll           = nel->vec_len * NI_type_size(typ) ;
+   nel->vec[nn] = NI_malloc( ll ) ;
+   memcpy( nel->vec[nn] , arr , ll ) ;  /* the real work is here */
+
+   /* add 1 to the count of vectors */
+
+   nel->vec_num = nn+1 ;
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Add an attribute to a data or group element. */
+
+void NI_set_attribute( void *nini , char *attname , char *attvalue )
+{
+   int nn , tt=NI_element_type(nini) ;
+
+   if( tt < 0 || attname == NULL || attname[0] == '\0' ) return ;
+
+   /* input is a data element */
+
+   if( tt == NI_ELEMENT_TYPE ){
+      NI_element *nel = (NI_element *) nini ;
+
+      nn = nel->attr_num ;
+
+      nel->attr_lhs = NI_realloc( nel->attr_lhs , sizeof(char *)*(nn+1) ) ;
+      nel->attr_rhs = NI_realloc( nel->attr_rhs , sizeof(char *)*(nn+1) ) ;
+
+      nel->attr_lhs[nn] = strdup(attname) ;
+
+      if( attvalue != NULL && attvalue[0] != '\0' )
+         nel->attr_lhs[nn] = strdup(attvalue) ;
+      else
+         nel->attr_lhs[nn] = NULL ;
+
+      nel->attr_num = nn+1 ;
+
+   /* input is a group element */
+
+   } else if( tt == NI_GROUP_TYPE ){
+      NI_group *ngr = (NI_group *) nini ;
+
+      nn = ngr->attr_num ;
+
+      ngr->attr_lhs = NI_realloc( ngr->attr_lhs , sizeof(char *)*(nn+1) ) ;
+      ngr->attr_rhs = NI_realloc( ngr->attr_rhs , sizeof(char *)*(nn+1) ) ;
+
+      ngr->attr_lhs[nn] = strdup(attname) ;
+
+      if( attvalue != NULL && attvalue[0] != '\0' )
+         ngr->attr_lhs[nn] = strdup(attvalue) ;
+      else
+         ngr->attr_lhs[nn] = NULL ;
+
+      ngr->attr_num = nn+1 ;
+   }
+
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Create a new group element. */
+
+NI_group * NI_new_group_element(void)
+{
+   NI_group *ngr ;
+
+   ngr = NI_malloc( sizeof(NI_group) ) ;
+
+   ngr->type = NI_GROUP_TYPE ;
+
+   ngr->attr_num = 0 ;
+   ngr->attr_lhs = ngr->attr_rhs = NULL ;
+
+   ngr->part_num = 0 ;
+   ngr->part_typ = NULL ;
+   ngr->part     = NULL ;
+
+   return ngr ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Add an element to a group element. */
+
+void NI_add_to_group( NI_group *ngr , void *nini )
+{
+   int nn , tt=NI_element_type(nini) ;
+
+   if( ngr == NULL || ngr->type != NI_GROUP_TYPE || tt < 0 ) return ;
+
+   nn = ngr->part_num ;
+
+   ngr->part_typ     = NI_realloc( ngr->part_typ , sizeof(int)*(nn+1) ) ;
+   ngr->part_typ[nn] = tt ;
+
+   ngr->part         = NI_realloc( ngr->part , sizeof(void *)*(nn+1) ) ;
+   ngr->part[nn]     = nini ;
+
+   ngr->part_num     = nn+1 ;
+
+   return ;
 }
 
 /*************************************************************************/
@@ -547,7 +837,7 @@ static int tcp_readcheck( int sd , int msec )
    }
 
    ii = select(sd+1, &rfds, NULL, NULL, tvp) ;  /* check it */
-   if( ii == -1 ) PERROR( "tcp_readcheck select" ) ;
+   if( ii == -1 ) PERROR( "tcp_readcheck(select)" ) ;
    return ii ;
 }
 
@@ -583,7 +873,7 @@ static int tcp_writecheck( int sd , int msec )
    }
 
    ii = select(sd+1, NULL , &wfds, NULL, tvp) ;  /* check it */
-   if( ii == -1 ) PERROR( "tcp_writecheck select" ) ;
+   if( ii == -1 ) PERROR( "tcp_writecheck(select)" ) ;
    return ii ;
 }
 
@@ -663,7 +953,7 @@ static int tcp_connect( char * host , int port )
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ PERROR("tcp_connect socket"); return -1; }
+   if( sd == -1 ){ PERROR("tcp_connect(socket)"); return -1; }
 
    /** set socket options (no delays, large buffers) **/
 
@@ -683,12 +973,12 @@ static int tcp_connect( char * host , int port )
 
    hostp = gethostbyname(host) ;
    if( hostp == NULL ){
-      PERROR("tcp_connect gethostbyname"); CLOSEDOWN(sd); return -1;
+      PERROR("tcp_connect(gethostbyname)"); CLOSEDOWN(sd); return -1;
    }
    sin.sin_addr.s_addr = ((struct in_addr *)(hostp->h_addr))->s_addr ;
 
    if( connect(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-      PERROR("tcp_connect connect") ; CLOSEDOWN(sd); return -1;
+      PERROR("tcp_connect(connect)") ; CLOSEDOWN(sd); return -1;
    }
 
    return sd ;
@@ -718,7 +1008,7 @@ static int tcp_listen( int port )
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ PERROR("tcp_listen socket"); return -1; }
+   if( sd == -1 ){ PERROR("tcp_listen(socket)"); return -1; }
 
    /** set socket options (no delays, large buffers) **/
 
@@ -736,11 +1026,11 @@ static int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-      PERROR("tcp_listen bind"); CLOSEDOWN(sd); return -1;
+      PERROR("tcp_listen(bind)"); CLOSEDOWN(sd); return -1;
    }
 
    if( listen(sd,1) == -1 ){
-      PERROR("tcp_listen listen"); CLOSEDOWN(sd); return -1;
+      PERROR("tcp_listen(listen)"); CLOSEDOWN(sd); return -1;
    }
 
    return sd ;
@@ -891,6 +1181,8 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->port = port ;         /* save the port #    */
       ns->nbuf = 0 ;            /* buffer is empty    */
 
+      ns->bin_thresh = -1 ;     /* write in text mode */
+
       /** attach to incoming call "r" **/
 
       if( do_accept ){
@@ -987,16 +1279,16 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 
       case NI_FILE_TYPE:
         if( ns->fp == NULL ) return -1 ;
-        return 1 ;
+      return 1 ;
 
-      /** Socket I/O **/ 
+      /** Socket I/O **/
 
       case NI_TCP_TYPE:
         if( ns->bad == 0 ){  /** if good before, then check if is still good **/
            int ich = 1 ;
            ich = tcp_alivecheck(ns->sd) ;
            if( ich == 0 ) return -1 ;
-           else           return  1 ;
+           return 1 ;
         }
 
         /** wasn't good before, so check if that condition has changed **/
@@ -1041,9 +1333,10 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Close a NI_stream.  Note that this will free what ns points to.
+/*! Close a NI_stream.  Note that this will also free what ns points to.
 
-    Use the NI_STREAM_CLOSE macro to also set the pointer "ns" to NULL.
+    Use the NI_STREAM_CLOSE macro to call this function and then
+    also set the pointer "ns" to NULL.
 -------------------------------------------------------------------------*/
 
 void NI_stream_close( NI_stream_type *ns )
@@ -1054,12 +1347,10 @@ void NI_stream_close( NI_stream_type *ns )
 
       case NI_FILE_TYPE:
         if( ns->fp != NULL ) fclose(ns->fp) ;
-        ns->fp = NULL ;
       break ;
 
       case NI_TCP_TYPE:
         if( ns->sd >= 0 ) CLOSEDOWN(ns->sd) ;
-        ns->sd = -1 ;
       break ;
    }
 
@@ -1114,13 +1405,13 @@ int NI_stream_readcheck( NI_stream_type *ns , int msec )
       case NI_FILE_TYPE:{
          long f_len , f_pos ;
 
-         f_len = NI_filesize( ns->name ) ;
-         if( f_len < 0 ) return -1 ;
+         f_len = NI_filesize( ns->name ) ;   /* length of file      */
+         if( f_len < 0 ) return -1 ;         /* file not found (?)  */
 
-         f_pos = ftell( ns->fp ) ;
-         if( f_pos < 0 ) return -1 ;
+         f_pos = ftell( ns->fp ) ;           /* where are we now?   */
+         if( f_pos < 0 ) return -1 ;         /* should never happen */
 
-         return (f_pos < f_len) ;
+         return (f_pos < f_len) ;   /* can read if we aren't at end */
       }
    }
 
@@ -1173,7 +1464,7 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
 
   tcp: We use blocking sends, so that all the data should be sent properly
        unless the connection to the other end fails for some reason
-       (e.g., the planet explodes in a fiery cataclysm).
+       (e.g., the planet explodes in a fiery cataclysm of annihilation).
 
   file: Everything should be written, unless the filesystem fills up.
 ------------------------------------------------------------------------------*/
@@ -1189,11 +1480,11 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
    if( nbytes == 0 ) return 0 ;  /* that was easy */
 
-   ii = NI_stream_goodcheck(ns,0) ;
-   if( ii != 1 ) return ii ;
+   ii = NI_stream_goodcheck(ns,0) ;  /* check if stream is good */
+   if( ii != 1 ) return ii ;         /* if not, leave now */
 
-   ii = NI_stream_writecheck(ns,1) ;
-   if( ii <= 0 ) return ii ;
+   ii = NI_stream_writecheck(ns,1) ; /* check if stream is writable */
+   if( ii <= 0 ) return ii ;         /* if not, vamoose the ranch */
 
    switch( ns->type ){
 
@@ -1207,14 +1498,14 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
        if( !nosigpipe ){ signal(SIGPIPE,SIG_IGN); nosigpipe = 1; }
 
        nsent = tcp_send( ns->sd , buffer , nbytes , 0 ) ;
-       if( nsent < nbytes ) PERROR("tcp send") ;
+       if( nsent < nbytes ) PERROR("NI_stream_write(send)") ;
        return nsent ;
 
      /** file: ==> just fwrite **/
 
      case NI_FILE_TYPE:
        nsent = fwrite( buffer , 1 , nbytes , ns->fp ) ;
-       if( nsent < nbytes ) PERROR("fwrite") ;
+       if( nsent < nbytes ) PERROR("NI_stream_write(fwrite)") ;
        return nsent ;
    }
 
@@ -1227,6 +1518,14 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
    Returns the number of bytes actually read.  For both the case of
    sockets and files, this may be less than nbytes (may even be 0).
    If an error occurs, -1 is returned.
+
+   For tcp: streams, if no data is available, this function will wait until
+   something can be read.  If this behavior is undesirable, then you should
+   use NI_stream_readcheck() before calling this function in order to see
+   if any data is available.
+
+   For file: streams, this function simply tries to read from the file.
+   Whether or not it succeeds, it will return immediately.
 ---------------------------------------------------------------------------*/
 
 int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
@@ -1247,14 +1546,14 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 
      case NI_TCP_TYPE:
        ii = tcp_recv( ns->sd , buffer , nbytes , 0 ) ;
-       if( ii == -1 ) PERROR("tcp recv") ;
+       if( ii == -1 ) PERROR("NI_stream_read(recv)") ;
        return ii ;
 
      /** file: just use fread **/
 
      case NI_FILE_TYPE:
        ii = fread( buffer , 1 , nbytes , ns->fp ) ;
-       if( ii == -1 ) PERROR("fread") ;
+       if( ii == -1 ) PERROR("NI_stream_read(fread)") ;
        return ii ;
    }
 
@@ -1272,4 +1571,142 @@ void NI_sleep( int msec )
    tv.tv_usec = (msec%1000)*1000 ;
    select( 1 , NULL,NULL,NULL , &tv ) ;
    return ;
+}
+
+/*-----------------------------------------------------------------*/
+/*! Set the binary threshold size for NI_write_element. */
+
+void NI_binary_threshold( NI_stream_type *ns , int size )
+{
+   if( ns == NULL ) return ;
+   ns->bin_thresh = size ;
+   return ;
+}
+
+/**********************************************************************/
+/******* Functions to read and write data and group elements. *********/
+/**********************************************************************/
+
+/*--------------------------------------------------------------------*/
+/*! Read an element (maybe a group) from the stream.
+
+   Return is NULL if nothing can be read.  Otherwise, use
+   NI_element_type(return value) to determine if the element
+   read is a data element or a group element.
+
+   Note that a header that is longer than NI_BUFSIZE will never
+   be read properly, since we must have the entire header in
+   the buffer before processing it.  This should only be a problem
+   for deranged users.
+----------------------------------------------------------------------*/
+
+void * NI_read_element( NI_stream_type *ns )
+{
+   NI_element *nel ;
+   int ii , nn , nhs ;
+   char *cstart , *cstop ;
+   header_stuff *hs ;
+
+   /* check if we have any data left over in the buffer,
+      or if we at least can read some data from the stream */
+
+Restart:                            /* loop back here to retry */
+
+   nn = NI_stream_readcheck(ns,0) ; /* check if data can be read */
+   if( nn < 0 ) return NULL ;       /* stream is bad */
+
+   /* minimum element is "<a/>", which is 4 bytes long */
+
+   if( ns->nbuf < 4 && nn == 0  ) return NULL ; /* no data */
+
+   /* read some data, if there is any space for it */
+
+   if( ns->nbuf < NI_BUFSIZE && nn > 0 ){
+
+      ii = NI_stream_read( ns , ns->buf + ns->nbuf , NI_BUFSIZE - ns->nbuf ) ;
+
+      if( ii <= 0 ) return NULL ;  /* stream went bad somehow */
+
+      ns->nbuf += ii ;             /* buffer is now longer */
+
+      if( ns->nbuf < 4 ) return NULL ; /* not enough data yet */
+   }
+
+   /* check buffer for header start character */
+
+   cstart = memchr( ns->buf , '<' , ns->nbuf ) ;
+
+   if( cstart == NULL ){   /* no header start */
+      ns->nbuf = 0 ;       /* discard all data in buffer */
+      goto Restart ;       /* try to read more data */
+   }
+
+   /* If here, we found a start character! */
+
+   nn = cstart - ns->buf ; /* index of start character */
+
+   if( nn+1 >= ns->nbuf ){ /* start character is last in buf */
+      ns->nbuf   = 1   ;   /* toss out all stuff before '<'  */
+      ns->buf[0] = '<' ;
+      goto Restart     ;   /* try to read more data */
+   }
+
+   /* Now look for a stop character. */
+
+   cstop = memchr( cstart+1 , '>' , ns->nbuf-nn-1 ) ;
+
+   if( cstop == NULL ){    /* no stop character */
+
+      if( nn > 0 ){        /* shift data so '<' is buf[0] */
+         memmove( ns->buf , cstart , ns->nbuf-nn ) ;
+         ns->nbuf -= nn ;
+      }
+      if( ns->nbuf < NI_BUFSIZE ) goto Restart ; /* try to read more data */
+      return NULL ;
+   }
+
+   /* If here, have start and stop characters, so parse the header data! */
+
+   hs = parse_header_stuff( ns->nbuf-nn , cstart , &nhs ) ;
+
+   if( hs == NULL ){  /* something bad happened there */
+
+      ii = cstop - ns->buf ;   /* index of stop character */
+
+      if( ii+1 < ns->nbuf ){   /* destroy all data at or below '>' */
+         memmove( ns->buf , cstop+1 , ns->nbuf-ii-1 ) ;
+         ns->nbuf -= (ii+1) ;
+      } else {
+         ns->nbuf = 0 ;
+      }
+      goto Restart ; /* try to read more data */
+   }
+
+   /* If here, have parsed a header.
+      First, erase the data bytes that were consumed to make the header. */
+
+   if( nhs < ns->nbuf ){
+      memmove( ns->buf , ns->buf+nhs , ns->nbuf-nhs ) ;
+      ns->nbuf -= nhs ;
+   } else {
+      ns->nbuf = 0 ;
+   }
+
+   /**************** Now make an element of some kind ****************/
+
+   if( strcmp(hs->name,"ni_group") == 0 ){  /*** a group element ***/
+
+      NI_group *ngr = make_empty_group_element( hs ) ;
+      destroy_header_stuff( hs ) ;
+   }
+
+   else { /*********************** a data element ******************/
+
+      NI_element *nel = make_empty_data_element( hs ) ;
+      destroy_header_stuff( hs ) ;
+
+      if( nel == NULL || nel->vec_len == 0 ) return nel ;
+   }
+
+   return NULL ; /* should never be reached */
 }

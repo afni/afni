@@ -1300,7 +1300,7 @@ gifsicle:
 
 mpeg_encode:
 	( cd mpeg_encodedir ; \
-	  make mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS) $(LLIBS)' ; \
+	  make mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
 	  $(MV) mpeg_encode .. ; )
 
 #######
