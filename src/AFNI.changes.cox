@@ -5172,3 +5172,7 @@
 11 Aug 2004
  * Added environment variable AFNI_3dDeconvolve_nodup to 3dDeconvolve.c,
      to stop processing if duplicate columns are discovered.
+
+12 Aug 2004
+ * Modified Deconvolve.c and 3dDeconvolve.c to remove mean from baseline
+     timeseries if polort>0, and -nodmbase option is not given.

@@ -3084,14 +3084,14 @@ Done:
 short check_dicom_magic_num( char * fname )
 {
   FILE * fp;
-  char test_string[4] = {0};
+  char test_string[5] ;
 
   fp = fopen( fname, "rb" ) ;
   if(fp == NULL ) return 0 ;
   fseek( fp, 128 , SEEK_SET ) ;
-  fread( test_string , 1 , 4 , fp ) ;
+  fread( test_string , 1 , 4 , fp ) ; test_string[4] = '\0' ;
   fclose( fp ) ;
-  if (strstr(test_string, "DICM") == NULL) {
+  if( strcmp(test_string,"DICM") == 0 ) {
     return 0 ;
   } else {
     return 1 ;

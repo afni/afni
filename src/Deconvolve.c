@@ -98,6 +98,9 @@
 
 /*---------------------------------------------------------------------------*/
 static int legendre_polort = 1 ;  /* 15 Jul 2004 */
+static int demean_base     = 1 ;  /* 12 Aug 2004 */
+
+#define SPOL ((legendre_polort) ? "P_" : "t^")  /* string label for polynomials */
 
 double legendre( double x , int m )   /* Legendre polynomials over [-1,1] */
 {
@@ -144,6 +147,7 @@ int init_indep_var_matrix
   int * min_lag,              /* minimum time delay for impulse response */
   int * max_lag,              /* maximum time delay for impulse response */
   int * nptr,                 /* number of stim fn. time points per TR */
+  int * stim_base ,           /* flag for being in the baseline [12 Aug 2004] */
   matrix * xgood              /* independent variable matrix */
 )
 
@@ -159,6 +163,8 @@ int init_indep_var_matrix
 
   float * stim_array;       /* stimulus function time series */
   matrix x;                 /* X matrix */
+
+  int mold ;                /* 12 Aug 2004 */
 
 
   /*----- Initialize X matrix -----*/
@@ -194,6 +200,16 @@ int init_indep_var_matrix
             }
           }
 	}
+
+        if( mfirst+1 < mlast && demean_base ){  /* 12 Aug 2004: remove means? */
+          float sum ;
+          for( m=mfirst+1 ; m < mlast ; m++ ){
+            sum = 0.0f ;
+            for( n=nfirst ; n < nlast ; n++ ) sum += x.elts[n][m] ;
+            sum /= (nlast-nfirst) ;
+            for( n=nfirst ; n < nlast ; n++ ) x.elts[n][m] -= sum ;
+          }
+        }
     }
 
 
@@ -211,7 +227,7 @@ int init_indep_var_matrix
 	  DC_error ("Input stimulus time series is too short");
 	  return (0);
 	}
-      stim_array = stimulus[is];
+      stim_array = stimulus[is]; mold = m ;
       for (ilag = min_lag[is];  ilag <= max_lag[is];  ilag++)
 	{
 	  for (n = 0;  n < nt;  n++)
@@ -223,6 +239,18 @@ int init_indep_var_matrix
 	    }
 	  m++;
 	}
+
+        /* 12 Aug 2004: remove mean of baseline columns? */
+
+        if( stim_base != NULL && stim_base[is] && demean_base ){
+          int mm ; float sum ;
+          for( mm=mold ; mm < m ; mm++ ){
+            sum = 0.0f ;
+            for( n=0 ; n < nt ; n++ ) sum += x.elts[n][m] ;
+            sum /= nt ;
+            for( n=0 ; n < nt ; n++ ) x.elts[n][m] -= sum ;
+          }
+        }
 #ifdef USE_BASIS
     }
 #endif
@@ -702,9 +730,9 @@ void report_results
       if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf);
       for (m=0;  m < qp;  m++)
 	{
-	  sprintf (sbuf, "t^%d   coef = %10.4f    ", m, coef.elts[m]);
+	  sprintf (sbuf, "%s%d   coef = %10.4f    ", SPOL,m, coef.elts[m]);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
-	  sprintf (sbuf, "t^%d   t-st = %10.4f    ", m, tcoef.elts[m]);
+	  sprintf (sbuf, "%s%d   t-st = %10.4f    ", SPOL,m, tcoef.elts[m]);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
 	  pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
 	  sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
@@ -722,11 +750,11 @@ void report_results
 	  mlast  = (ib+1) * (polort+1);
 	  for (m = mfirst;  m < mlast;  m++)
 	    {
-	      sprintf (sbuf, "t^%d   coef = %10.4f    ",
-		       m - mfirst, coef.elts[m]);
+	      sprintf (sbuf, "%s%d   coef = %10.4f    ",
+		       SPOL,m - mfirst, coef.elts[m]);
 	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
-	      sprintf (sbuf, "t^%d   t-st = %10.4f    ",
-		       m - mfirst, tcoef.elts[m]);
+	      sprintf (sbuf, "%s%d   t-st = %10.4f    ",
+		       SPOL,m - mfirst, tcoef.elts[m]);
 	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ;
 	      pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
 	      sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
