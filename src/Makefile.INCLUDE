@@ -47,7 +47,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual      \
            3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI             \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
-           3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask
+           3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -64,7 +64,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
-                  mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask
+                  mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -87,7 +87,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dExtrema qhull.exe strblast 3dConvolve 3dZcutup 3dZcat 3dTqual    \
                3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI               \
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze              \
-               3dAutoTcorrelate 3dFDR 3dAutomask
+               3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -382,6 +382,10 @@ dsetdup:dsetdup.o
 3dMINCtoAFNI:3dMINCtoAFNI.o
 	$(RM) $@
 	$(CC) -o 3dMINCtoAFNI 3dMINCtoAFNI.o $(LFLAGS) $(LLIBS)
+
+3dAFNItoMINC:3dAFNItoMINC.o
+	$(RM) $@
+	$(CC) -o 3dAFNItoMINC 3dAFNItoMINC.o $(LFLAGS) $(LLIBS)
 
 3dAFNItoANALYZE:3dAFNItoANALYZE.o
 	$(RM) $@
@@ -1022,9 +1026,10 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_tmask.o thd_rotangles.o           thd_center.o           \
            thd_mismatch.o thd_read_vecmat.o thd_tshift.o thd_newprefix.o \
            thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o  \
-           thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o            \
-           thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o       \
-           thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o
+           thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o           \
+           thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o     \
+           thd_outlier_count.o thd_correlate.o thd_autonudge.o thd_avts.o \
+           thd_mincwrite.o
 
 # these are now included in niml.o
 

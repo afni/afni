@@ -3077,6 +3077,9 @@ extern void    THD_force_malloc_type( THD_datablock * , int ) ;
 extern int     THD_count_databricks( THD_datablock * dblk ) ;
 extern void    THD_load_minc( THD_datablock * ) ;            /* 29 Oct 2001 */
 
+#define MINC_FLOATIZE_MASK 1
+extern int THD_write_minc( char *, THD_3dim_dataset *, int ) ; /* 11 Apr 2002 */
+
 extern void THD_reconcile_parents( THD_sessionlist * ) ;
 extern THD_slist_find THD_dset_in_sessionlist( int,void *, THD_sessionlist *, int ) ;
 extern THD_slist_find THD_dset_in_session( int,void * , THD_session * ) ;
