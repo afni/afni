@@ -52,8 +52,10 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     . a set of operations to avoid the clipping of certain brain\n"
                "       areas and reduce leakage into the skull in heavily shaded\n"
                "       data\n"
+               "     . two additional processing stages to ensure convergence and\n"
+               "       reduction of clipped areas.\n"
                "  3- The creation of various masks and surfaces modeling brain\n"
-               "     and portions of the skull\n"  
+               "     and portions of the skull\n"
                "\n"
                "  3dSkullStrip  < -input VOL >\n"
                "             [< -o_TYPE PREFIX >] [< -prefix Vol_Prefix >] \n"
@@ -72,6 +74,9 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             [< -debug DBG >] [< -node_dbg NODE_DBG >]\n"
                "             [< -demo_pause >]\n"  
                "\n"
+               "  NOTE: Program is in Beta mode, please report bugs and strange failures\n"
+               "        to ziad@nih.gov\n"
+               "\n"
                "  Mandatory parameters:\n"
                "     -input VOL: Input AFNI (or AFNI readable) volume.\n"
                "                 \n"
@@ -86,6 +91,13 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -prefix VOL_PREFIX: prefix of output volumes.\n"
                "        If not specified, the prefix is the same\n"
                "        as the one used with -o_TYPE.\n"
+               "        The output mask volume contains:\n"
+               "           0 : outside the brain\n"
+               "           1 : voxels near brain surface on the outside.\n"
+               "           2 : voxels containing a node of the brain surface.\n"
+               "           3 : voxels near brain surface on the inside.\n"
+               "           4 : voxels inside the brain.\n"
+               "        See Tips section below.\n"
                "     -spat_norm: (Default) Perform spatial normalization first.\n"
                "                 This is a necessary step unless the volume has\n"
                "                 been 'spatnormed' already.\n"
@@ -133,7 +145,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                   If you use -touchup, the default R is 10. Otherwise \n"
                "                   the default is 0.\n"
                "                   This is a less than elegant solution to the small\n"
-               "                   intersections and I hope to make do without it someday. \n"
+               "                   intersections which are usually eliminated\n"
+               "                   automatically. \n"
                "     -NN_smooth NN_SM: Perform Nearest Neighbor coordinate interpolation\n"
                "                       every few iterations. Default is 72\n"
                "     -smooth_final SM: Perform final surface smoothing after all iterations.\n"
@@ -162,12 +175,14 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                           problems. With each iteration, the program\n"
                "                           automatically increases the amount of smoothing\n"
                "                           to get rid of intersections. Default is 4\n"
+               "     -blur_fwhm FWHM: Blur dset after spatial normalization.\n"
+               "                      Recommended when you have lots of CSF in brain\n"
+               "                      and when you have protruding gyri (finger like)\n"
+               "                      Recommended value is 2..4. \n"
                "     -demo_pause: Pause at various step in the process to facilitate\n"
                "                  interactive demo while 3dSkullStrip is communicating\n"
                "                  with AFNI and SUMA. See 'Eye Candy' mode below and\n"
                "                  -talk_suma option. \n"
-               "\n"
-               "%s"
                "\n"
                "%s"
                "\n"
@@ -177,22 +192,36 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -node_dbg NODE_DBG: Output lots of parameters for node\n"
                "                         NODE_DBG for each iteration.\n"
                "\n"
+               "  Tips:\n"
+               "     I ran the program with the default parameters on 200+ datasets.\n"
+               "     The results were quite good in all but a couple of instances, here\n"
+               "     are some tips on fixing trouble spots:\n"  
+               "\n"
+               "     Clipping in frontal areas, close to the eye balls:\n"
+               "        + Try -no_avoid_eyes option\n"
+               "     Clipping in general:\n"
+               "        + Use lower -shrink_fac, start with 0.5 then 0.4\n"
+               "     Some lobules are not included:\n"
+               "        + Use a denser mesh (like -ld 50) and increase iterations \n"
+               "        (-niter 750). The program will take much longer to run in that case.\n"
+               "        + Instead of using denser meshes, you could try blurring the data \n"
+               "        before skull stripping. Something like 3dmerge -1blur_fwhm 2 did\n"
+               "        wonders for some of my data with the default options of 3dSkullStrip\n"
+               "        Blurring is a lot faster than increasing mesh density.\n"
+               "        + Use also a smaller -shrink_fac is you have lots of CSF between gyri.\n"
+               "\n" 
                " Eye Candy Mode: *** Only possible when input volume has been 'spatnormed'\n"
                "                     Make sure you use -no_spatnorm option also.\n"
                "                     In the future, this restriction will be lifted.\n"
-               " You can run BrainWarp and have it send successive iterations\n"
+               "  You can run BrainWarp and have it send successive iterations\n"
                " to SUMA and AFNI. This is very helpful in following the\n"
                " progression of the algorithm and determining the source\n"
                " of trouble, if any.\n"
-               " Example:\n"
+               "  Example:\n"
                "     afni -niml -yesplugouts &\n"
                "     suma -niml &\n"
                "     3dSkullStrip -input Anat+orig -o_ply anat_brain -talk_suma -feed_afni -send_kth 5\n"
                "\n"
-               " Tips:\n"
-               " I ran the program with the default parameters on 200+ datasets.\n"
-               " The results were quite good in all but a couple of instances:\n"
-               "\n"  
                /*
                "     -sm_fac SMFAC: Smoothing factor (Default is 1)\n"
                "     -d1 D1: Distance to search inward (Default 20 mm)\n"
@@ -202,7 +231,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -t98 T98: Force t98 to be T98 (Default automated)\n"
                */
                "%s"
-               "\n", sio, sts, s);
+               "\n", sio,  s);
        SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL; SUMA_free(sts); sts = NULL;         
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
@@ -296,6 +325,8 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
    Opt->iset = NULL;
    Opt->SpatShift[0] = Opt->SpatShift[1] = Opt->SpatShift[2] = 0.0;
    Opt->OrigSpatNormedSet = NULL;
+   Opt->in_edvol = NULL;
+   Opt->blur_fwhm = 0.0;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -386,6 +417,19 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
          brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-blur_fwhm") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -blur_fwhm \n");
+				exit (1);
+			}
+			Opt->blur_fwhm = atof(argv[kar]);
+         if ( Opt->PercInt < 0 || Opt->PercInt > 50) {
+            fprintf (SUMA_STDERR, "parameter after -blur_fwhm should be between 0 and 50 (have %f) \n", Opt->blur_fwhm);
+				exit (1);
+         }
+         brk = YUP;
+		}
       
       if (!brk && (strcmp(argv[kar], "-input_1D") == 0)) {
          kar ++;
@@ -710,7 +754,7 @@ int main (int argc,char *argv[])
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz , fv2, originRAIfv;
    THD_3dim_dataset *oset = NULL;
-   MRI_IMAGE *imin=NULL, *imout=NULL, *imout_orig=NULL ;
+   MRI_IMAGE *imin=NULL, *imout=NULL, *imout_orig=NULL , *imout_edge=NULL ;
    
    SUMA_Boolean LocalHead = NOPE;
 
@@ -752,7 +796,7 @@ int main (int argc,char *argv[])
    
    /* Load the AFNI volume and prep it*/
    if (Opt->DoSpatNorm) { /* chunk taken from 3dSpatNorm.c */
-      if( Opt->debug ) SUMA_SL_Note("Loading dset, performing Spatial Normalization");
+      SUMA_SL_Note("Loading dset, performing Spatial Normalization");
       /* load the dset */
       Opt->iset = THD_open_dataset( Opt->in_name );
       if( !ISVALID_DSET(Opt->iset) ){
@@ -784,11 +828,11 @@ int main (int argc,char *argv[])
       if (Opt->fillhole) {
          imout = mri_brainormalize( imin , Opt->iset->daxes->xxorient,
                                         Opt->iset->daxes->yyorient,
-                                        Opt->iset->daxes->zzorient, &imout_orig) ;
+                                        Opt->iset->daxes->zzorient, &imout_orig, NULL) ;
       } else {
          imout = mri_brainormalize( imin , Opt->iset->daxes->xxorient,
                                         Opt->iset->daxes->yyorient,
-                                        Opt->iset->daxes->zzorient, NULL) ;
+                                        Opt->iset->daxes->zzorient, NULL, NULL) ;
       }
       mri_free( imin ) ;
 
@@ -857,6 +901,46 @@ int main (int argc,char *argv[])
          if (spatprefix) SUMA_free(spatprefix); spatprefix = NULL; 
       }
       
+      if (imout_edge) { /* DOES NOTHING YET */
+         SUMA_SL_Note("Creating an output edge dataset ...");
+         oset = EDIT_empty_copy( NULL ) ;
+         tross_Copy_History( Opt->iset , oset ) ;
+         tross_Make_History( "3dSpatNorm" , argc,argv , oset ) ;
+      
+         LOAD_IVEC3( nxyz   , imout_edge->nx    , imout_edge->ny    , imout_edge->nz    ) ;
+         LOAD_FVEC3( dxyz   , imout_edge->dx    , imout_edge->dy    , imout_edge->dz    ) ;
+         LOAD_FVEC3( orgxyz , imout_edge->xo    , imout_edge->yo    , imout_edge->zo    ) ;
+         LOAD_IVEC3( orixyz , ORI_R2L_TYPE , ORI_A2P_TYPE , ORI_I2S_TYPE ) ;
+      
+         prefix = SUMA_AfniPrefix(Opt->in_name, NULL); 
+         if (!prefix) { SUMA_SL_Err("Bad prefix!!!"); exit(1); }
+         spatprefix = SUMA_append_string(prefix, "_EdgeSpatNorm");
+         EDIT_dset_items( oset ,
+                            ADN_prefix      , spatprefix ,
+                            ADN_datum_all   , imout_edge->kind ,
+                            ADN_nxyz        , nxyz ,
+                            ADN_xyzdel      , dxyz ,
+                            ADN_xyzorg      , orgxyz ,
+                            ADN_xyzorient   , orixyz ,
+                            ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                            ADN_view_type   , VIEW_ORIGINAL_TYPE ,
+                            ADN_type        , HEAD_ANAT_TYPE ,
+                            ADN_func_type   , ANAT_BUCK_TYPE ,
+                          ADN_none ) ;
+
+         EDIT_substitute_brick( oset , 0 , imout_edge->kind , mri_data_pointer(imout_edge) ) ;      
+         if (Opt->WriteSpatNorm) {
+            SUMA_LH("Writing Edge dset");
+            DSET_write(oset) ;
+         }
+         Opt->in_edvol = oset; oset = NULL;
+      
+         if (prefix) SUMA_free(prefix); prefix = NULL;
+         if (spatprefix) SUMA_free(spatprefix); spatprefix = NULL;
+         fprintf(SUMA_STDERR,"%s: -spatnorm: Expecting %d voxels in in_vol dset (%d %d %d)\n", 
+            FuncName, DSET_NVOX( Opt->in_vol ), DSET_NX( Opt->in_vol ), DSET_NY( Opt->in_vol ), DSET_NZ( Opt->in_vol ));   
+      }
+      
       oset = EDIT_empty_copy( NULL ) ;
       tross_Copy_History( Opt->iset , oset ) ;
       tross_Make_History( "3dSpatNorm" , argc,argv , oset ) ;
@@ -891,14 +975,18 @@ int main (int argc,char *argv[])
       
       if (prefix) SUMA_free(prefix); prefix = NULL;
       if (spatprefix) SUMA_free(spatprefix); spatprefix = NULL;
-      fprintf(SUMA_STDERR,"%s: -spatnorm: Expecting %d voxels in in_vol dset (%d %d %d)\n", 
+      if( Opt->debug ) fprintf(SUMA_STDERR,"%s: -spatnorm: Expecting %d voxels in in_vol dset (%d %d %d)\n", 
          FuncName, DSET_NVOX( Opt->in_vol ), DSET_NX( Opt->in_vol ), DSET_NY( Opt->in_vol ), DSET_NZ( Opt->in_vol )); 
       
    } else {
       /* volume already SpatNormed, or user does not want SpatNorm */
-      if( Opt->debug ) SUMA_SL_Note("Loading dset, performing no Spatial Normalization");
+      SUMA_SL_Note("Loading dset, performing no Spatial Normalization");
       Opt->in_vol = THD_open_dataset( Opt->in_name );
-      fprintf(SUMA_STDERR,"%s: -no_spatnorm: Expecting %d voxels in in_vol dset (%d %d %d)\n", 
+      if( !ISVALID_DSET(Opt->in_vol) ){
+        fprintf(stderr,"**ERROR: can't open dataset %s\n",Opt->in_name) ;
+        exit(1);
+      }
+      if( Opt->debug ) fprintf(SUMA_STDERR,"%s: -no_spatnorm: Expecting %d voxels in in_vol dset (%d %d %d)\n", 
          FuncName, DSET_NVOX( Opt->in_vol ), DSET_NX( Opt->in_vol ), DSET_NY( Opt->in_vol ), DSET_NZ( Opt->in_vol )); 
       /* load the dset */
       DSET_load(Opt->in_vol);
@@ -923,6 +1011,12 @@ int main (int argc,char *argv[])
       exit(1);
    }
 
+   if (Opt->blur_fwhm) {
+     SUMA_SL_Note("Blurring...");
+     EDIT_blur_volume(  DSET_NX(Opt->in_vol), DSET_NY(Opt->in_vol), DSET_NZ(Opt->in_vol),
+                        SUMA_ABS((DSET_DX(Opt->in_vol))), SUMA_ABS((DSET_DY(Opt->in_vol))),  SUMA_ABS((DSET_DZ(Opt->in_vol))),  
+                        DSET_BRICK_TYPE(Opt->in_vol,0), DSET_ARRAY(Opt->in_vol,0), 0.42466090*Opt->blur_fwhm) ;
+   }
    
    if (Opt->UseSkull) { SOhull = SUMA_Alloc_SurfObject_Struct(1); }
    else SOhull = NULL;
@@ -946,16 +1040,16 @@ int main (int argc,char *argv[])
          SUMA_S_Err("Failed to create Icosahedron");
          exit(1);
       }
-      if (Opt->NoEyes) {
-         if (Opt->Stop) SUMA_free(Opt->Stop); Opt->Stop = NULL;
+
+      if (Opt->Stop) SUMA_free(Opt->Stop); Opt->Stop = NULL;
+      if (!Opt->Stop) {
+         Opt->Stop = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
          if (!Opt->Stop) {
-            Opt->Stop = (float *)SUMA_calloc(SO->N_Node, sizeof(float));
-            if (!Opt->Stop) {
-               SUMA_SL_Crit("Failed to allocate");
-               exit(1);
-            }
+            SUMA_SL_Crit("Failed to allocate");
+            exit(1);
          }
       }
+
       if (Opt->avoid_vent) {
          float U[3], Un, *a, P2[2][3];
          for (i=0; i<SO->N_Node; ++i) {
@@ -1120,24 +1214,7 @@ int main (int argc,char *argv[])
          if (Opt->k98maskcnt && Opt->k98mask) { for (ii=0; ii<Opt->k98maskcnt; ++ii) Opt->dvec[Opt->k98mask[ii]] = mval; }
          /* SUMA_REPOSITION_TOUCHUP(6);*/
          SUMA_Reposition_Touchup(SO, Opt, 6, ps->cs);
-         #if 0
-         /* smooth the surface a bit */
-         ps->cs->kth = 1;
-         dsmooth = SUMA_Taubin_Smooth( SO, NULL,
-                                    0.6307, -.6732, SO->NodeList,
-                                    8, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL);    
-         memcpy((void*)SO->NodeList, (void *)dsmooth, SO->N_Node * 3 * sizeof(float));
-         SUMA_RECOMPUTE_NORMALS(SO);
-         if (ps->cs->Send) {
-            if (!SUMA_SendToSuma (SO, ps->cs, (void *)SO->NodeList, SUMA_NODE_XYZ, 1)) {
-               SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
-            }
-         }
-         ps->cs->kth = kth_buf;
-         /* SUMA_REPOSITION_TOUCHUP(3);  */
-         SUMA_Reposition_Touchup(SO, Opt, 3, ps->cs);
-
-         #endif
+         
          if (LocalHead) fprintf (SUMA_STDERR,"%s: Touchup correction  Done.\n", FuncName);
    }
    

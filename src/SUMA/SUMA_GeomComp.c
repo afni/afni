@@ -122,7 +122,7 @@ int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt)
    float *NodePos = NULL, *p1=NULL, *p2=NULL, *p3 = NULL, p[3], *ep1=NULL, *ep2=NULL;
    int hit = 0, k, t1, t2, it, it3, n1, n2, n3;
    SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -272,7 +272,7 @@ byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, i
    DListElmt *dothiselm=NULL;
    int dothisvoxel, itmp;
    int nl[50], N_n, in ,neighb, nijk, i, j, k, nij;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

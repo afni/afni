@@ -252,7 +252,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 /*!
    Pause prompt, stdin
 */
-#define SUMA_PAUSE_PROMPT(s) { int m_jnk; fprintf(SUMA_STDOUT,"Pausing: %s  ...", s); m_jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); }
+#define SUMA_PAUSE_PROMPT(s) { int m_jnk; fprintf(SUMA_STDOUT,"Pausing: %s  ...", s); fflush(SUMA_STDOUT); m_jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); }
 
 /*!
    A macro to recalculate a surface's center and its bounding box 

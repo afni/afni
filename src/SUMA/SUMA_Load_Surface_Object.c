@@ -2482,10 +2482,10 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
    if (DoArea) {
       /* create the triangle Area  */
       if (SO->NodeDim == 3) {
-         if (debug) fprintf(SUMA_STDOUT, "%s: Calculating triangle areas ...\n", FuncName); 
+         if (debug) fprintf(SUMA_STDOUT, "%s: Calculating triangle areas ...\n", FuncName); fflush(SUMA_STDOUT); 
          SO->PolyArea = SUMA_TriSurf3v (SO->NodeList, SO->FaceSetList, SO->N_FaceSet);
       } else {
-         if (debug) fprintf(SUMA_STDOUT, "%s: Calculating polygon areas ...\n", FuncName); 
+         if (debug) fprintf(SUMA_STDOUT, "%s: Calculating polygon areas ...\n", FuncName); fflush(SUMA_STDOUT); 
          SO->PolyArea = SUMA_PolySurf3 (SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->NodeDim, SO->FaceNormList, NOPE);
          #if 0
             /* a test of the functions for calculating areas */
