@@ -597,8 +597,13 @@ STATUS("making imag->rowcol") ;
             XmNseparatorType , XmNO_LINE ,
          NULL ) ;
 
+#ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
    imag->popmenu =
-      XmCreatePopupMenu( imag->topper , "menu" , NULL , 0 ) ;
+      XmCreatePopupMenu( vwid->top_form, "menu" , NULL , 0 ) ;
+#else
+   imag->popmenu =
+      XmCreatePopupMenu( imag->topper  , "menu" , NULL , 0 ) ;
+#endif
 
    SAVEUNDERIZE(XtParent(imag->popmenu)) ; /* 27 Feb 2001 */
 
@@ -2341,7 +2346,7 @@ STATUS("making func->rowcol") ;
 
    /**-- 17 Dec 1997: pbar menu hidden on the inten_label --**/
 
-#ifdef BAD_BUTTON3_POPUPS
+#ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
    func->pbar_menu = XmCreatePopupMenu( func->inten_rowcol, "menu", NULL, 0 ) ;
 #else
    func->pbar_menu = XmCreatePopupMenu( func->inten_label , "menu", NULL, 0 ) ;
@@ -3948,14 +3953,15 @@ STATUS("making prog->rowcol") ;
 
       /** popup on picture widget (right of Quit button) **/
 
-#ifdef BAD_BUTTON3_POPUPS
+#ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
       prog->hidden_menu =
-         XmCreatePopupMenu( vwid->top_form, "menu" , NULL , 0 ) ;
+        XmCreatePopupMenu( prog->quit_pb , "menu" , NULL , 0 ) ;
 #else
       prog->hidden_menu =
-         XmCreatePopupMenu( vwid->picture , "menu" , NULL , 0 ) ;
+        XmCreatePopupMenu( vwid->picture , "menu" , NULL , 0 ) ;
 #endif
 
+      if( prog->hidden_menu != NULL ){
       SAVEUNDERIZE(XtParent(prog->hidden_menu)) ; /* 27 Feb 2001 */
 
       VISIBILIZE_WHEN_MAPPED(prog->hidden_menu) ;
@@ -4106,6 +4112,7 @@ STATUS("making prog->rowcol") ;
       XtAddCallback( prog->hidden_mission_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
 
+    } /* if prog->hidden_menu isn't NULL */
    }
 #endif  /* USE_HIDDEN */
 
