@@ -88,15 +88,15 @@ struct nifti_1_header { /* NIFTI-1 usage         */  /* ANALYZE 7.5 field(s) */
   int   extents;        /* ++UNUSED++            */  /* int extents;         */
   short session_error;  /* ++UNUSED++            */  /* short session_error; */
   char  regular;        /* ++UNUSED++            */  /* char regular;        */
-  char  stat_dim;       /* Stat params in data?  */  /* char hkey_un0;       */
+  char  intent_vector;  /* Last dim=vector data? */  /* char hkey_un0;       */
 
                                       /*--- was image_dimension substruct ---*/
   short dim[8];         /* Data array dimensions.*/  /* short dim[8];        */
-  float statpar_1 ;     /* Data values can be    */  /* short unused8;       */
+  float intent_p1 ;     /* Data values can be    */  /* short unused8;       */
                         /*  interpreted as from  */  /* short unused9;       */
-  float statpar_2 ;     /*  a given statistical  */  /* short unused10;      */
+  float intent_p2 ;     /*  a given statistical  */  /* short unused10;      */
                         /*  distribution using   */  /* short unused11;      */
-  float statpar_3 ;     /*  intent_code and up   */  /* short unused12;      */
+  float intent_p3 ;     /*  intent_code and up   */  /* short unused12;      */
                         /*  to 3 parameters.     */  /* short unused13;      */
   short intent_code ;   /* NIFTI_INTENT_* code.  */  /* short unused14;      */
   short datatype;       /* Defines data type!    */  /* short datatype;      */
@@ -273,31 +273,55 @@ typedef struct { long double r,i; } complex_longdouble ;
    The intent_code field can be used to indicate that the voxel data has
    some particular meaning.  In particular, a large number of codes is
    given to indicate that the the voxel data should be interpreted as
-   being drawn from a given probablity distribution.
+   being drawn from a given probability distribution.
 
-   intent_code values 2..10 are compatible with AFNI 1.5x (which is why
-   there is no code with value==1, which is obsolescent in AFNI).
+   VECTOR-VALUED DATASETS:
+   If the intent_vector field is nonzero, this indicates that the last
+   dimension of the dataset is not a physical dimension, but is just
+   a way of storing multiple values (e.g., a vector) at each location.
+   For example, the header values
+     dim[0] = 4
+     dim[1] = 64
+     dim[2] = 64
+     dim[3] = 20
+     dim[4] = 3
+     intent_vector = 1
+     datatype = DT_FLOAT
+   mean that this dataset should be interpreted as a 3D volume (64x64x20),
+   with a 3-vector of floats defined at each point in the 3D grid.  Note
+   that when intent_code != 0, then the true dimensionality of the dataset
+   is dim[0]-1, rather than dim[0].
 
-   Conventions for statistical distributional parameters:
-     If stat_dim == 0, then the distributional parameters are the same
-     for each voxel, and are stored in the statpar_* fields.
+   STATISTICAL PARAMETRIC DATASETS (i.e., SPMs):
+   Values of intent_code from NIFTI_FIRST_STATCODE to NIFTI_LAST_STATCODE
+   (inclusive) indicate that the numbers in the dataset should be interpreted
+   as being drawn from a given distribution.  Most such distributions have
+   auxiliary parameters (e.g., NIFTI_INTENT_TTEST has 1 DOF parameter).
 
-     If stat_dim != 0, then the parameters are voxel dependent.  They are
-     stored in the last dimension of the dataset (i.e., #dim[0]).
-     For example, for a 3D dataset of t-statistics where the DOF parameter
-     is spatially variable, we would have
-       stat_dim    = 1 (say)
-       intent_code = 3 (t-test)
-       dim[0]      = 4
-       dim[1]      = number of voxels along the x-axis
-       dim[2]      = number of voxels along the y-axis
-       dim[3]      = number of voxels along the z-axis
-       dim[4]      = 2
-     Then the first 3D volume stored in the voxel data file comprises the
-     t-statistic at each location, and the second volume comprises the
-     degrees-of-freedom at each location.  Although dim[0] = 4, this should
-     be treated as a 3D dataset.  For such datasets, we would normally
-     expect the datatype to be a floating point type.
+   If intent_vector == 0, then the auxiliary parameters are the same for
+   each voxel, and are given in header fields intent_p1, intent_p2, and
+   intent_p3.
+
+   If intent_vector != 0, then the auxiliary parameters are different for
+   each voxel.  For example, the header values
+     dim[0] = 3
+     dim[1] = 128
+     dim[2] = 128
+     dim[3] = 2
+     intent_vector = 1
+     datatype = DT_FLOAT
+     intent_code = NIFTI_INTENT_TTEST
+   mean that this is a 2D dataset (128x128) of t-statistics, with the
+   t-statistic being in the first "plane" of data and the degrees-of-freedom
+   parameter being in the second "plane" of data.
+
+   Note: intent_code values 2..10 are compatible with AFNI 1.5x (which is
+   why there is no code with value==1, which is obsolescent in AFNI).
+
+   OTHER INTENTIONS:
+   The purpose of the intent_code field is to help interpret the values
+   stored in the dataset.
+
 -----------------------------------------------------------------------------*/
 
 #define NIFTI_INTENT_NONE        0   /* the default             */
@@ -340,6 +364,8 @@ typedef struct { long double r,i; } complex_longdouble ;
 #define NIFTI_INTENT_ESTIMATE 1001   /* =estimate of some param */
 
 #define NIFTI_INTENT_LABEL    1002   /* =index for some label   */
+
+#define NIFTI_INTENT_TENSOR
 
 /*---------------------------------------------------------------------------*/
 /* 3D IMAGE (VOLUME) ORIENTATION AND LOCATION IN SPACE:
