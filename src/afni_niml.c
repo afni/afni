@@ -657,6 +657,160 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      EXRETURN ;
    }
 
+   /********* node normals from SUMA       05 Oct 2004 [rickr] **********/
+
+   if( strcmp(nel->name,"SUMA_node_normals") == 0 ){
+     THD_3dim_dataset *dset ;
+     SUMA_surface *ag ;
+     float *xc, *yc, *zc ;
+     char  *idc ;
+     int num , ii ;
+     THD_session *sess ;
+     THD_slist_find find ;
+
+     if( dont_hear_suma ) EXRETURN ;
+
+     /*-- check element for suitability --*/
+
+     if( nel->vec_len    <  1        ||  /* empty element?        */
+         nel->vec_filled <  1        ||  /* no data was filled in? */
+         nel->vec_num    <  3        ||  /* less than 3 columns?  */
+         nel->vec_typ[0] != NI_FLOAT ||  /* must be float,float,float */
+         nel->vec_typ[1] != NI_FLOAT ||
+         nel->vec_typ[2] != NI_FLOAT ){
+
+       AFNI_popup_message( "*** ERROR:\n\n"
+                           " SUMA_node_normals data \n"
+                           " is badly formatted!\n" ) ;
+       EXRETURN ;
+     }
+
+     /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
+          so that we can attach this surface to a dataset for display;
+          if we don't find the attribute or the dataset, then we quit --*/
+
+     idc = NI_get_attribute( nel , "volume_idcode" ) ;
+     if( idc == NULL )
+       idc = NI_get_attribute( nel , "dataset_idcode" ) ;
+     if( idc == NULL ){
+        AFNI_popup_message( "*** ERROR:\n "
+                            " SUMA_node_normals input\n"
+                            " does not identify dataset! \n" ) ;
+        EXRETURN ;
+     }
+     find = PLUTO_dset_finder( idc ) ; dset = find.dset ;
+     if( dset == NULL ){
+        sprintf(msg, "*** ERROR:\n\n"
+                     " SUMA_node_normals surface dataset idcode is \n"
+                     "   %s\n"
+                     " Can't find this in AFNI\n", idc ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
+     sess = GLOBAL_library.sslist->ssar[find.sess_index] ;
+
+     /*-- session must already have a surface --*/
+
+     num = sess->su_num ;
+     if( num == 0 ){
+        sprintf(msg,"*** ERROR:\n\n"
+                    " SUMA_node_normals surface data\n"
+                    " received for dataset\n"
+                    "  %.222s\n"
+                    " before any SUMA_ixyz data! \n" ,
+                DSET_FILECODE(dset) ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
+
+     idc = NI_get_attribute( nel , "surface_idcode" ) ;
+     if( idc == NULL )
+       idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+     if( idc == NULL ){
+        AFNI_popup_message( "*** ERROR:\n\n"
+                            " SUMA_node_normals surface input\n"
+                            " does not have surface idcode! \n" ) ;
+        EXRETURN ;
+     }
+
+     /* find surface idcode in dataset's list of surfaces */
+
+     for( ii=0 ; ii < num ; ii++ )
+       if( strstr(sess->su_surf[ii]->idcode,idc) != NULL ) break ;
+
+     if( ii == num ){
+        sprintf(msg, "*** ERROR:\n\n"
+                     " SUMA_node_normals surface input surface idcode\n"
+                     "  %s\n"
+                     " does not match any surface in session \n"
+                     "  %.222s\n" ,
+                idc, sess->sessname ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
+
+     ag = sess->su_surf[ii] ; /* set surface to run with */
+
+     if( nel->vec_filled != ag->num_ixyz ){
+        sprintf(msg, "*** ERROR:\n\n"
+                     " SUMA_node_normals surface input surface idcode\n"
+                     "  %s\n"
+                     " has %d nodes, but has been sent %d normals\n" ,
+                     idc, ag->num_ixyz, nel->vec_filled ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
+
+     if( ag->norm != NULL ){
+        sprintf(msg, "*** WARNING:\n\n"
+                     " SUMA_node_normals surface input surface idcode\n"
+                     "  %s\n"
+                     " already has normals associated with it,\n"
+                     " replacing old normals with new ones\n" , idc ) ;
+        AFNI_popup_message( msg ) ;
+     }
+
+     /*-- pointers to the data columns in the NI_element --*/
+
+     xc = (float *) nel->vec[0] ;  /* norm.x     */
+     yc = (float *) nel->vec[1] ;  /* norm.y     */
+     zc = (float *) nel->vec[2] ;  /* norm.z     */
+
+     /*-- add normals to the surface --*/
+
+     if( SUMA_add_norms_xyz( ag , nel->vec_filled , xc,yc,zc ) ){
+        sprintf(msg, "*** ERROR:SUMA_add_norms_ixyz failure!\n");
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
+
+     /*-- we're done! --*/
+
+     if( ct_start >= 0 )                      /* keep track    */
+       ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
+
+     sprintf(msg,"+++ NOTICE:\n\n"
+                 " SUMA_node_normals normals received:\n"
+                 " %d normals attached to surface\n"
+                 "  %-14.14s\n"
+                 " in session \n"
+                 "  %.222s\n" ,
+                 nel->vec_filled , ag->label , sess->sessname ) ;
+
+     if( ct_tot > 0 ) sprintf(msg+strlen(msg),"\n"
+                                              "I/O time  =%4d ms\n"
+                                              "Processing=%4d ms\n" ,
+                              ct_read , ct_tot-ct_read ) ;
+
+     AFNI_popup_message( msg ) ;
+
+     dont_tell_suma = 1 ;
+     PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
+     dont_tell_suma = 0 ;
+
+     EXRETURN ;
+   }
+
    /********* new focus position **********/
 
    if( strcmp(nel->name,"SUMA_crosshair_xyz") == 0 ){
@@ -1176,10 +1330,7 @@ static void AFNI_niml_viewpoint_CB( int why, int q, void *qq, void *qqq )
    NI_element *nel ;
    float xyz[3] ;
    static float xold=-666,yold=-777,zold=-888 ;
-   int ks , kbest=-1,ibest=-1     ,ii , nnod ;
-   float             dbest=WAY_BIG,dd , xbot,xtop,ybot,ytop,zbot,ztop ;
-   SUMA_surface *ag ;
-   SUMA_ixyz *nod ;
+   int kbest=-1,ibest=-1 ;
 
 ENTRY("AFNI_niml_viewpoint_CB") ;
 
