@@ -150,6 +150,11 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->light1_position[2] = 1.0;
       SV->light1_position[3] = 0.0;
 
+      SV->clear_color[0] = SUMA_CLEAR_COLOR_R;
+      SV->clear_color[1] = SUMA_CLEAR_COLOR_G;
+      SV->clear_color[2] = SUMA_CLEAR_COLOR_B;
+      SV->clear_color[3] = SUMA_CLEAR_COLOR_A;
+      
       SV->WindWidth = 350;
       SV->WindHeight = 350;
       

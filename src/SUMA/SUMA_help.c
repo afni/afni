@@ -61,6 +61,7 @@ void SUMA_help_message(FILE *Out)
 	 fprintf (Out, "\t  F3: cross hair, toggle. \n");
 	 fprintf (Out, "\t  F4: node selection highlight, toggle. \n");
 	 fprintf (Out, "\t  F5: FaceSet selection highlight, toggle.\n");
+    fprintf (Out, "\t  F6: Viewer background color, toggle.\n");
 	 fprintf (Out, "\t  F12: Time 20 scene renderings.\n");
 	 fprintf (Out, "\t  HOME: reset view to startup\n");
 	 fprintf (Out, "\t  ESCAPE: close the surface viewer window.\n");

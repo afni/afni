@@ -51,7 +51,7 @@ SUMA_handleRedisplay(XtPointer closure)
    if (Last_isv >= 0) { /* first time function is called, no use for this variable yet */
       if (isv != Last_isv) {/* need to call glXMakeCurrent */
          if (!sv->Open) {
-            fprintf (SUMA_STDERR, "%s: Redisplay request for a closed window. Skipping.\n", FuncName);
+            if (LocalHead) fprintf (SUMA_STDERR, "%s: Redisplay request for a closed window. Skipping.\n", FuncName);
             SUMA_RETURN(NOPE);
          }else {
             /* An OpenGL rendering context is a port through which all OpenGL commands pass. */
@@ -132,6 +132,9 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
     
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+
+   /* now you need to set the clear_color since it can be changed per viewer Thu Dec 12 2002 */
+   glClearColor (csv->clear_color[0], csv->clear_color[1], csv->clear_color[2], csv->clear_color[3]);
    
    /* You cannot just rely on csv->ResetGLStateVariables because it is hard to set 
    for all conditions. For example, if you have multiple viewers open and you have surfaces 
@@ -329,7 +332,7 @@ SUMA_context_Init(SUMA_SurfaceViewer *sv)
 
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-   glClearColor (SUMA_CLEAR_COLOR);
+   glClearColor (sv->clear_color[0], sv->clear_color[1],sv->clear_color[2],sv->clear_color[3]);
    glShadeModel (GL_SMOOTH);
 
    switch (sv->PolyMode) {
@@ -1039,7 +1042,6 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
       SUMA_SurfaceObject *SO;
       SUMA_Boolean OKname = NOPE;
       
-      fprintf (SUMA_STDERR, "dH;;ERE\n");
       /* get the SO in focus, use it's label for output filename */
       if (csv->Focus_SO_ID >= 0) {
          SO = (SUMA_SurfaceObject *)(SUMAg_DOv[csv->Focus_SO_ID].OP);

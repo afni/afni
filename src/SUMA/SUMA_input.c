@@ -1054,6 +1054,18 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             } 
             break;
 
+         case XK_F6: /*F6 */
+            if (sv->clear_color[0] == 0.0) { /* flip background from black to white */
+               sv->clear_color[0] = sv->clear_color[1] = sv->clear_color[2] = sv->clear_color[3] = 1.0;
+            } else { /* goto black */
+               sv->clear_color[0] = sv->clear_color[1] = sv->clear_color[2] = sv->clear_color[3] = 0.0;
+            }
+            sprintf(CommString, "Redisplay~");
+            if (!SUMA_Engine (CommString, &EngineData, sv)) {
+               fprintf(stderr,"Error SUMA_input: Failed SUMA_Engine\n");
+            }
+            break; 
+            
          case XK_F12: /* F12 */
             /* time display speed */
             {
@@ -1449,10 +1461,10 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }
                   }
                   if (DrawnROI->N_CtrlNodev > 1) {/* have a segment, need a plane */
-                     float *Eq, NodeDist, NodeDist2, dx = 0.0, dy = 0.0, dz = 0.0;
-                     SUMA_SURF_PLANE_INTERSECT *SPI;
+                     float *Eq = NULL, NodeDist, NodeDist2, dx = 0.0, dy = 0.0, dz = 0.0, d_surf = 0.0;
+                     SUMA_SURF_PLANE_INTERSECT *SPI = NULL;
                      SUMA_ROI *ROIe = NULL, *ROIt = NULL, *ROIn = NULL, *ROIts = NULL;
-                     int N_left, *Path, N_Path, Nx, Ny, N_Bv, iloc, *tPath, N_Tri, iloc3_0 = 0, iloc3_1= 0;
+                     int N_left, *Path = NULL, N_Path, Nx, Ny, N_Bv = 0, iloc, *tPath = NULL, N_Tri, iloc3_0 = 0, iloc3_1= 0;
                      SUMA_TRI_BRANCH *Bv = NULL; 
                      
                      /* For node i (> 0) find the equation of the plane formed by
@@ -1516,17 +1528,17 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         DrawnROI->N_CtrlNodev = DrawnROI->N_CtrlNodev - 1;
                         
                         /* clean up */
-                        SUMA_free_SPI (SPI); 
+                        if (SPI) SUMA_free_SPI (SPI); 
                         SPI = NULL;
                         if (Path) SUMA_free (Path);
                         break;   
                      }
-                     fprintf (SUMA_STDERR, "%s: Shortest inter nodal distance along edges between nodes %d <--> %d is %f.\n", 
-                        FuncName, Nx, Ny, NodeDist);
+                     fprintf (SUMA_STDERR, "%s: Shortest inter nodal distance along edges between nodes %d <--> %d (%d nodes) is %f.\n", 
+                        FuncName, Nx, Ny, N_Path, NodeDist);
                      
                         #if 0 /* this uses the first method implemented for shortest path. Slow but works. keep for debugging. */
                            /* the old intersection structure had isNodeInMesh irreversibly modified, recompute intersection */
-                           SUMA_free_SPI (SPI);
+                           if (SPI) SUMA_free_SPI (SPI);
                            if (Path) SUMA_free (Path);
                            /* now repeat with method 1 */
                            SPI = SUMA_Surf_Plane_Intersect (SO, Eq);
@@ -1542,7 +1554,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                            fprintf (SUMA_STDERR, "%s: Shortest inter nodal distance along edges between nodes %d <--> %dis %f.\n", FuncName, Nx, Ny , NodeDist);
                         #endif
                         
-                     #if 1
+                     #if 0
                         /* Show all intersected edges */
                         ROIe =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_EdgeGroup, "SurfPlane Intersection - Edges", SPI->N_IntersEdges, SPI->IntersEdges);
                         if (!ROIe) {
@@ -1569,7 +1581,15 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      /* calculate shortest path along the intersection of the plane with the surface */
                      
                      
+                     #if 0
                      /* another way to determine intersection, using triangle strips instead of connected nodes */
+                     
+                     /* the intersection strips are arranged in branches and although you are likely to have Nx 
+                     be a part of the first edge of the first Branch, that may not be the case all the time.
+                     See SUMA_AssignTriBranch for more info. Also, while the list of triangles forming a branch is 
+                     in the correct order, you cannot readily tell which traveling direction is shortest between two
+                     nodes. Instead of these functions, you can use SUMA_IntersectionStrip to find the shortest triangle
+                     strip between two nodes but these functions may prove useful some other time. */
                      if (LocalHead) fprintf(SUMA_STDERR,"%s: Calling SUMA_AssignTriBranch ...\n", FuncName); 
 
                      Bv = SUMA_AssignTriBranch (SO, SPI, Nx, &N_Bv, NOPE);
@@ -1579,7 +1599,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }
                      fprintf(SUMA_STDERR,"%s: %d branches.\n", FuncName, N_Bv);
 
-                     #if 0
+                     
                      /* show me the first branch, it should contain Nx and Ny if the surface has no cuts in it*/
                      if (!SUMA_show_STB (&(Bv[0]), NULL)) {
                         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_show_STB.\n", FuncName);
@@ -1587,15 +1607,25 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      }
                      #endif
                      
-                     /* get the triangle path corresponding to shortest distance between Nx and Ny */
-                     tPath = SUMA_NodePath_to_TriPath_Inters (SO, SPI, Path, N_Path, &N_Tri);
-                     if (!tPath) {
-                        fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_NodePath_to_TriPath_Inters.\n", FuncName);
-                        break;
-                     }
-                     
                      
                      #if 1
+                     /* get the triangle path corresponding to shortest distance between Nx and Ny */
+                     
+                     /* Old Method: Does not result is a strip of triangle that is continuous or connected
+                     by an intersected edge. Function is left here for historical reasons. 
+                        tPath = SUMA_NodePath_to_TriPath_Inters (SO, SPI, Path, N_Path, &N_Tri); */
+                        
+                     /* you should not need to go much larger than NodeDist except when you are going for 
+                     1 or 2 triangles away where discrete jumps in d might exceed the limit. 
+                     Ideally, you want this measure to be 1.5 NodeDist or say, 15 mm, whichever is less.... */
+                     tPath = SUMA_IntersectionStrip (SO, SPI, Path, N_Path, &d_surf, 2.5 *NodeDist, &N_Tri);                      if (!tPath) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_IntersectionStrip.\n", FuncName);
+                        break;
+                     }
+                     fprintf (SUMA_STDERR, "%s: Shortest inter nodal distance along surface between nodes %d <--> %d is %f.\n", 
+                        FuncName, Nx, Ny, d_surf);
+
+                     
                      /* Show intersected triangles, along shortest path */
                      ROIts =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_FaceGroup, "SurfPlane Intersection - Triangles- Shortest", N_Tri, tPath);
                      if (!ROIts) {
@@ -1606,6 +1636,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
                         break;
                      }
+                     
                      #endif
                         
                      if (Path) {
