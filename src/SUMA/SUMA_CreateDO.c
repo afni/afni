@@ -1976,6 +1976,8 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO)
       SS = SUMA_StringAppend (SS,stmp);
       sprintf (stmp,"VOLREG_APPLIED: %d\n", SO->VOLREG_APPLIED);
       SS = SUMA_StringAppend (SS,stmp);
+      sprintf (stmp,"TAGALIGN_APPLIED: %d\n", SO->TAGALIGN_APPLIED);
+      SS = SUMA_StringAppend (SS,stmp);
       sprintf (stmp,"ShowSelecetedNode: %d\tSelectedNode %d\n",\
          SO->ShowSelectedNode, SO->SelectedNode);
       SS = SUMA_StringAppend (SS,stmp);
@@ -2299,6 +2301,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].Name_topo.FileName = NULL;
       SO[i].SUMA_VolPar_Aligned = NOPE;
       SO[i].VOLREG_APPLIED = NOPE;
+      SO[i].TAGALIGN_APPLIED = NOPE;
       SO[i].SurfCont = SUMA_CreateSurfContStruct();
       SO[i].PolyMode = SRM_ViewerDefault;
       SO[i].Show = YUP;

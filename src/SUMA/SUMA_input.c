@@ -381,7 +381,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;            
 
          case XK_H:
-            if (SUMAg_CF->Dev) {
                sv->X->HighlightBox_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
                                                       "Enter XYZ of box's center\n"
                                                       "followed by it's size (6 values)", 
@@ -396,7 +395,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                
                sv->X->HighlightBox_prmpt = SUMA_CreatePromptDialog(sv->X->Title, sv->X->HighlightBox_prmpt);
                
-            }
             break;
 
          case XK_h:
@@ -452,7 +450,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   
                } else {
                   sv->X->JumpIndex_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
-                                                      "Enter index of node to send the cross hair to:", 
+                                                      "Enter index of node \nto send the cross hair to:", 
                                                       "",
                                                       sv->X->TOPLEVEL, YUP,
                                                       SUMA_APPLY_BUTTON,
@@ -469,7 +467,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          
          case XK_J:
                sv->X->JumpFocusFace_prmpt = SUMA_CreatePromptDialogStruct (SUMA_OK_APPLY_CLEAR_CANCEL, 
-                                                   "Enter index of FaceSet\nto highlight:", 
+                                                   "Enter index of FaceSet\nto highlight (this viewer only):", 
                                                    "",
                                                    sv->X->TOPLEVEL, YUP,
                                                    SUMA_APPLY_BUTTON,
@@ -608,7 +606,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   } 
                }else {
                   if (SUMAg_CF->Dev) {
-                     fprintf(stdout,"Enter XYZ of center followed by size of Box (enter nothing to cancel):\n");
+                     fprintf(stdout,"BAD IDEA Enter XYZ of center followed by size of Box (enter nothing to cancel):\n");
 
                      it = SUMA_ReadNumStdin (fv15, 6);
                      if (it > 0 && it < 6) {
@@ -669,6 +667,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             sv->Record = !sv->Record;
             if (sv->Record) { SUMA_SLP_Note ("Recording ON"); }
             else { SUMA_SLP_Note ("Recording OFF"); }
+            SUMA_UpdateViewerTitle(sv);
             break;
             
          case XK_S:
@@ -781,7 +780,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_t:
             if ((Kev.state & ControlMask) && SUMAg_CF->Dev){
-                  fprintf(SUMA_STDOUT, "%s: Forcing a resend of Surfaces to Afni...\n", FuncName);
+                  SUMA_SLP_Note("Forcing a resend of Surfaces to Afni...");
                   if (!list) list = SUMA_CreateList();
                   SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_SetForceAfniSurf, SES_Suma, sv);
                   
@@ -805,65 +804,31 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_W:
-            if (SUMAg_CF->Dev) {
-               FILE *Fout;
+            {
                SUMA_SurfaceObject *SO;
-               char stmploc[SUMA_MAX_LABEL_LENGTH+50];
                
                SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
-               ND = SO->NodeDim;
-               NP = SO->FaceSetDim;
-
-               sprintf (stmploc, "%s_NodeList.txt", SO->Label); 
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: Preparing to write %s.\n", FuncName, stmploc); 
-               Fout = fopen(stmploc, "w");
-               if (Fout == NULL) {
-                  fprintf(SUMA_STDERR, "Error %s: Could not open file %s for writing.\n", FuncName, stmploc);
-                  break;
+               if (SO) {
+                  if (!list) list = SUMA_CreateList();
+                  ED = SUMA_InitializeEngineListData (SE_SaveSOFileSelection);
+                  if (!(NextElm = SUMA_RegisterEngineListCommand (  list, ED,
+                                                   SEF_vp, (void *)SO,
+                                                   SES_Suma, (void *)sv, NOPE,
+                                                   SEI_Head, NULL))) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+                  }
+            
+                  if (!SUMA_RegisterEngineListCommand (  list, ED,
+                                             SEF_ip, sv->X->TOPLEVEL,
+                                             SES_Suma, (void *)sv, NOPE,
+                                             SEI_In, NextElm)) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);
+                  }  
+            
+                  if (!SUMA_Engine (&list)) {
+                     fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                  }
                }
-               
-               for (ii=0; ii < SO->N_Node; ++ii) {
-                  id = ND * ii;
-                  fprintf(Fout, "%f\t%f\t%f\n", \
-                     SO->NodeList[id], SO->NodeList[id+1],SO->NodeList[id+2]);
-               }
-               fclose (Fout);
-
-               sprintf (stmploc, "%s_FaceSetList.txt", SO->Label);
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: Preparing to write %s.\n", FuncName, stmploc); 
-               Fout = fopen(stmploc, "w");
-               if (Fout == NULL) {
-                  fprintf(SUMA_STDERR, "Error %s: Could not open file %s for writing.\n", FuncName, stmploc);
-                  break;
-               }
-               for (ii=0; ii < SO->N_FaceSet; ++ii) {
-                  ip = NP * ii;
-                  fprintf(Fout, "%d\t%d\t%d\n", \
-                     SO->FaceSetList[ip], SO->FaceSetList[ip+1],SO->FaceSetList[ip+2]);
-               }
-               fclose (Fout);
-
-               sprintf (stmploc, "%s_NodeColList.txt", SO->Label);
-               if (LocalHead) fprintf (SUMA_STDERR,"%s: Preparing to write %s.\n", FuncName, stmploc); 
-               Fout = fopen(stmploc, "w");
-               if (Fout == NULL) {
-                  fprintf(SUMA_STDERR, "Error %s: Could not open file %s for writing.\n", FuncName, stmploc);
-                  break;
-               }
-                glar_ColorList = SUMA_GetColorList (sv, SO->idcode_str);
-                if (!glar_ColorList) {
-                  fprintf(SUMA_STDERR, "Error %s: NULL glar_ColorList. BAD.\n", FuncName);
-                  break;
-                }
-               for (ii=0; ii < SO->N_Node; ++ii) {
-                  ip = 4 * ii;
-                  fprintf(Fout, "%d\t%f\t%f\t%f\n", \
-                     ii, glar_ColorList[ip], glar_ColorList[ip+1], glar_ColorList[ip+2]);
-               }
-               fclose (Fout);
-
-
-               fprintf(SUMA_STDERR, "%s: Wrote %s_NodeList.txt, %s_FaceSetList.txt & %s_NodeColList.txt to disk.\n", FuncName, SO->Label, SO->Label, SO->Label);
             }
             break;
 
@@ -1058,24 +1023,38 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             {
                /* switch state, back one */
                int nxtstateID = -1;
-
+               int origState = sv->iState;
+               char *note=NULL;
+               
                if (sv->N_VSv < 2) break;
 
-               /*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, sv->State);*/
-               /* toggle to the next view state */
-               nxtstateID = SUMA_PrevState(sv);
-               if (nxtstateID < 0) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_PrevState.\n", FuncName);
-                  break;
-               }
-               fprintf(SUMA_STDERR,"%s: Switching from %s to %s viewing state.\n", \
-                  FuncName, sv->State, sv->VSv[nxtstateID].Name);
+               do {
+                  if (nxtstateID > -1) {
+                     note = SUMA_append_string("Skipping state ",sv->State);
+                     note = SUMA_append_replace_string(note, ".\nNo surfaces visible.", "", 1);
+                     SUMA_SLP_Note(note);
+                     free(note);   note = NULL;
+                  }
 
-               if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
-                  break;
-               }
+                  /*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, sv->State);*/
+                  /* toggle to the next view state */
+                  nxtstateID = SUMA_PrevState(sv);
+                  if (nxtstateID < 0) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_PrevState.\n", FuncName);
+                     break;
+                  }
+                  fprintf(SUMA_STDERR,"%s: Switching from %s to %s viewing state.\n", \
+                     FuncName, sv->State, sv->VSv[nxtstateID].Name);
 
+                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
+                     break;
+                  }
+                  
+                  /* find out if there are any surfaces that will be rendered */
+                  
+               } while (!SUMA_VisibleSOs (sv, SUMAg_DOv, NULL) && sv->iState != origState);
+               
                /* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
                if (!list) list = SUMA_CreateList();
                SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
@@ -1089,23 +1068,34 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             {
                /* switch state, forward one */
                int nxtstateID=-1;
-
+               int origState = sv->iState;
+               char *note=NULL;
+               
                if (sv->N_VSv < 2) break;
 
-               /*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, sv->State);*/
-               /* toggle to the next view state */
-               nxtstateID = SUMA_NextState(sv);
-               if (nxtstateID < 0) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_NextState.\n", FuncName);
-                  break;
-               }
-               fprintf(SUMA_STDERR,"%s: Switching from %s to %s viewing state.\n", FuncName, sv->State, sv->VSv[nxtstateID].Name);
+               do {
+                  if (nxtstateID > -1) {
+                     note = SUMA_append_string("Skipping state ",sv->State);
+                     note = SUMA_append_replace_string(note, ".\nNo surfaces visible.", "", 1);
+                     SUMA_SLP_Note(note);
+                     free(note);   note = NULL;
+                  }
+                  
+                  /*fprintf(SUMA_STDERR,"%s: Current viewing state is %s ...\n", FuncName, sv->State);*/
+                  /* toggle to the next view state */
+                  nxtstateID = SUMA_NextState(sv);
+                  if (nxtstateID < 0) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_NextState.\n", FuncName);
+                     break;
+                  }
+                  fprintf(SUMA_STDERR,"%s: Switching from %s to %s viewing state.\n", FuncName, sv->State, sv->VSv[nxtstateID].Name);
 
-               if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
-                  break;
-               }
+                  if (!SUMA_SwitchState (SUMAg_DOv, SUMAg_N_DOv, sv, nxtstateID)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_SwitchState.\n", FuncName);
+                     break;
+                  }
 
+               } while (!SUMA_VisibleSOs (sv, SUMAg_DOv, NULL) && sv->iState != origState);
                /* register a call to redisplay (you also need to copy the color data, in case the next surface is of the same family*/
                if (!list) list = SUMA_CreateList();
                SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
@@ -1171,11 +1161,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             break;
 
          case XK_F6: /*F6 */
-            if (sv->clear_color[0] == 0.0) { /* flip background from black to white */
-               sv->clear_color[0] = sv->clear_color[1] = sv->clear_color[2] = sv->clear_color[3] = 1.0;
-            } else { /* goto black */
-               sv->clear_color[0] = sv->clear_color[1] = sv->clear_color[2] = sv->clear_color[3] = 0.0;
-            }
+            sv->clear_color[0] = 1 - sv->clear_color[0];
+            sv->clear_color[1] = 1 - sv->clear_color[1];
+            sv->clear_color[2] = 1 - sv->clear_color[2];
+            
             if (!list) list = SUMA_CreateList();
             SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, SE_Redisplay, SES_Suma, sv);
             if (!SUMA_Engine (&list)) {
@@ -1186,13 +1175,19 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case XK_F12: /* F12 */
             /* time display speed */
             {
-               int i, nd = 20;
+               int i, nd = 20, N_vis, *Vis_IDs=NULL, NodeTot, FaceTot;
                GLfloat buf; 
                float delta_t;
+               SUMA_SurfaceObject *SO=NULL;
                struct  timeval tti;
+               char stmp[500];
+               SUMA_STRING *SS = NULL;
                
+               SS = SUMA_StringAppend (NULL, NULL);
+
                buf = sv->light0_position[2];
-               fprintf (SUMA_STDOUT,"%s: Timing Display speed (20 displays): ", FuncName); fflush (SUMA_STDOUT);
+               SUMA_SLP_Note ("Timing Display speed\n"
+                              "(20 displays): \n"); 
                SUMA_etime (&tti, 0);
                for (i=0; i< nd-1; ++i) {
                   fprintf (SUMA_STDOUT,"%d\t", i); fflush (SUMA_STDOUT);
@@ -1207,7 +1202,33 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                sv->light0_position[2] = buf;
                glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
                SUMA_postRedisplay(w, clientData, callData);
-               fprintf (SUMA_STDOUT,"Done.\nElapsed time: %f seconds. %.2f displays/second.\n", delta_t, nd/delta_t);
+               sprintf (stmp,"Elapsed time: %f seconds.\n%.2f displays/second.\n", delta_t, nd/delta_t);
+               SS = SUMA_StringAppend (SS, stmp);
+               
+               /* Estimate how many nodes and triangles were rendered */
+               Vis_IDs = (int *)SUMA_malloc(sizeof(int)*SUMAg_N_DOv);
+               N_vis = SUMA_VisibleSOs (sv, SUMAg_DOv, Vis_IDs);
+               NodeTot = 0;
+               FaceTot = 0;
+               for (i=0; i<N_vis;++i) {
+                  SO = (SUMA_SurfaceObject *)SUMAg_DOv[Vis_IDs[i]].OP;
+                  FaceTot += SO->N_FaceSet;
+                  NodeTot += SO->N_Node;   
+               }
+               if (N_vis) {
+                  sprintf (stmp,"In Polymode %d, rendered \n%.2f Ktri/sec %.2f Kpnt/sec.\n",
+                     sv->PolyMode,
+                     (float)FaceTot / 1000.0 / delta_t  , 
+                     (float)NodeTot / 1000.0 / delta_t );
+                  SS = SUMA_StringAppend (SS, stmp);
+               }
+               
+               SUMA_SLP_Note(SS->s);
+               
+               if (Vis_IDs) SUMA_free(Vis_IDs);
+               SUMA_free(SS->s);
+               SUMA_free(SS);
+               
             } 
             break;
          

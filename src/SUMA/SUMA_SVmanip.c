@@ -152,10 +152,33 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->light1_position[2] = 1.0;
       SV->light1_position[3] = 0.0;
 
-      SV->clear_color[0] = SUMA_CLEAR_COLOR_R;
-      SV->clear_color[1] = SUMA_CLEAR_COLOR_G;
-      SV->clear_color[2] = SUMA_CLEAR_COLOR_B;
-      SV->clear_color[3] = SUMA_CLEAR_COLOR_A;
+      {
+         static SUMA_Boolean err = NOPE;
+         float fv3[3];
+         char *eee = getenv("SUMA_BackgroundColor");
+         if (eee && !err) {
+            if (SUMA_StringToNum (eee, fv3, 3) != 3) { 
+               err = YUP;
+               SUMA_SL_Err("Syntax error in environment\n"
+                           "variable SUMA_BackgroundColor");
+               SV->clear_color[0] = SUMA_CLEAR_COLOR_R;
+               SV->clear_color[1] = SUMA_CLEAR_COLOR_G;
+               SV->clear_color[2] = SUMA_CLEAR_COLOR_B;
+               SV->clear_color[3] = SUMA_CLEAR_COLOR_A;
+            }else {
+               SV->clear_color[0] = fv3[0];
+               SV->clear_color[1] = fv3[1];
+               SV->clear_color[2] = fv3[2];
+               SV->clear_color[3] = SUMA_CLEAR_COLOR_A;  
+            }
+         }else {
+            SV->clear_color[0] = SUMA_CLEAR_COLOR_R;
+            SV->clear_color[1] = SUMA_CLEAR_COLOR_G;
+            SV->clear_color[2] = SUMA_CLEAR_COLOR_B;
+            SV->clear_color[3] = SUMA_CLEAR_COLOR_A;   
+         } 
+      }
+      
       
       SV->WindWidth = 350;
       SV->WindHeight = 350;
@@ -1680,10 +1703,10 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
 {  
    static char FuncName[]={"SUMA_UpdateViewerTitle"};
    int isv, i, N_SOlist, nalloc;  
-   char slabel[30], sside[30];   
+   char slabel[30], sside[30], srec[10], cl='\0', cr='\0';   
    SUMA_SurfaceObject *SO = NULL;   
    int SOlist[SUMA_MAX_DISPLAYABLE_OBJECTS];   
-   SUMA_Boolean LeftSide, RightSide, LocalHead = NOPE;
+   SUMA_Boolean LeftSide, RightSide, RightShown, LeftShown, LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -1703,27 +1726,38 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
    i = 0; 
    nalloc = 0;  
    LeftSide = NOPE;
+   LeftShown = NOPE;
    RightSide = NOPE;
+   RightShown = NOPE;
    while (i < N_SOlist) {   
       SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);   
       if (SO->Label) { 
          nalloc +=  (strlen(SO->Label)+5);  
       }
-      if (SO->Side == SUMA_LEFT && sv->ShowLeft) {
+      if (SO->Side == SUMA_LEFT) {
          SUMA_LH("Left found");
          LeftSide = YUP;
-      } else if (SO->Side == SUMA_RIGHT && sv->ShowRight) { 
+         if (sv->ShowLeft) LeftShown = YUP;
+      } else if (SO->Side == SUMA_RIGHT) {
          SUMA_LH("Right found");
          RightSide = YUP;  
+         if (sv->ShowRight) RightShown = YUP; 
       }
       
       ++i;   
    }
+   if (LeftSide && LeftShown) cl = 'L';
+   else if (LeftSide && !LeftShown) cl = 'h';
+   else cl = 'x';
+   if (RightSide && RightShown) cr = 'R';
+   else if (RightSide && !RightShown) cr = 'h';
+   else cr = 'x';
    
-   if (LeftSide && RightSide) sprintf(sside, "LR");
-   else if (LeftSide && !RightSide) sprintf(sside, "L-");
-   else if (!LeftSide && RightSide) sprintf(sside, "-R");
-   else sprintf(sside, "--");
+   
+   sprintf(sside, ":%c%c:", cl, cr);
+   
+   if (sv->Record) sprintf(srec,":Rec:");
+   else srec[0] = '\0';
    
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d surface models.\n", FuncName, N_SOlist);
    
@@ -1735,7 +1769,7 @@ void SUMA_UpdateViewerTitle(SUMA_SurfaceViewer *sv)
       while (i < N_SOlist) {   
          SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SOlist[i]].OP);   
          if (!i)  {
-            sprintf (sv->X->Title,"%s:%s:%s", slabel, sside, SO->Label); 
+            sprintf (sv->X->Title,"%s%s%s%s", slabel, srec, sside, SO->Label); 
          } else {
             sv->X->Title = strcat (sv->X->Title, " & ");
             sv->X->Title = strcat (sv->X->Title, SO->Label); 

@@ -86,27 +86,7 @@ char * SUMA_help_message_Info(void)
       "\t  F: Flip light position between +z and -z.\n");
    SS = SUMA_StringAppend (SS, 
       "\t  f: functional overlay, toggle.\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  J: Set the selected FaceSet on SO in Focus.\n"
-      "\t     Does not update in other viewers\n"
-      "\t     or in AFNI\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  j: Set the cross hair to a certain node on \n"
-      "\t     SO in Focus.\n"
-      "\t     Does update in other viewers\n"
-      "\t     if linked by index"
-      "\t     and AFNI if connected\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  Ctrl+j: Set the cross hair's XYZ location. \n"
-      "\t     Does update in other viewers\n"
-      "\t     if linked by XYZ"
-      "\t     and AFNI if connected\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  Alt+j: Set the Focus node. \n"
-      "\t     Cross hair's XYZ remain unchanged.\n"
-      "\t     Does not update in other viewers\n"
-      "\t     or in AFNI\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+   SS = SUMA_StringAppend (SS, 
       "\t  H: Highlight nodes inside a specified box.\n"
       "\t     Does not update other viewers\n"
       "\t     Paints into existing colors\n"
@@ -117,11 +97,31 @@ char * SUMA_help_message_Info(void)
       "\t     Please use Ctrl+h instead.\n");
    SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+h: help message\n\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  L: look from point\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  J: Set the selected FaceSet on Surface Object\n"
+      "\t     in Focus. Does not update in other viewers\n"
+      "\t     or in AFNI.\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  j: Set the cross hair to a certain node on \n"
+      "\t     SO in Focus.\n"
+      "\t     Does update in other viewers\n"
+      "\t     if linked by index"
+      "\t     and AFNI if connected\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  Ctrl+j: Set the cross hair's XYZ location. \n"
+      "\t     Does update in other viewers\n"
+      "\t     if linked by XYZ"
+      "\t     and AFNI if connected\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  Alt+j: Set the Focus node. \n"
+      "\t     Cross hair's XYZ remain unchanged.\n"
+      "\t     Does not update in other viewers\n"
+      "\t     or in AFNI\n\n");
+   SS = SUMA_StringAppend (SS, 
+      "\t  L: Light's XYZ coordinates\n");
    SS = SUMA_StringAppend (SS, 
       "\t  l: look at point\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+   SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+l: Switch locking mode for all viewers \n"
       "\t          between: No Lock, Index Lock and \n"
       "\t          XYZ Lock. The switching is order is \n"
@@ -133,7 +133,7 @@ char * SUMA_help_message_Info(void)
    SS = SUMA_StringAppend (SS, 
       "\t  m: momentum, toggle\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
-      "\t  n: bring a node to direct view (does not work yet)\n");
+      "\t  n: bring a node to direct view (does not work AT ALL)\n");
    SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+n: Open a new surface viewer window.\n\n");
    SS = SUMA_StringAppend (SS, 
@@ -157,8 +157,10 @@ char * SUMA_help_message_Info(void)
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  S: Show all surface objects registered in DOv.\n\n");
    SS = SUMA_StringAppend (SS, 
+      "\t  Alt+s: Switch mouse buttons 1 and 3.\n\n");
+   SS = SUMA_StringAppend (SS, 
       "\t  t: talk to AFNI, toggle.\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+   SS = SUMA_StringAppend (SS, 
       "\t  Ctrl+t: Force a resend of surfaces to AFNI.\n\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
       "\t  v: Show current surface viewer structure (cSV).\n\n");
@@ -170,7 +172,7 @@ char * SUMA_help_message_Info(void)
       "\t     Instead, use 'r' or 'R' recording options\n"
       "\t     or use a screen grab instead. \n"
       "\t     (like xv on unix systems, and grab on Macs.)\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, 
+   SS = SUMA_StringAppend (SS, 
       "\t  W: Write ascii files containing the NodeList,\n"
       "\t     the FaceSetList and the nodecolors of the \n"
       "\t     surface in focus.\n\n");

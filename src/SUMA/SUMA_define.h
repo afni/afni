@@ -142,7 +142,7 @@ typedef enum { SE_Empty,
                SE_ToggleLockAllCrossHair, SE_SetLockAllCrossHair, SE_ToggleLockView, SE_ToggleLockAllViews, 
                SE_Load_Group, SE_Home_AllVisible, SE_Help, SE_Log, SE_UpdateLog, SE_SetRenderMode, SE_OpenDrawROI,
                SE_RedisplayNow_AllVisible, SE_RedisplayNow_AllOtherVisible,  SE_SetLight0Pos, SE_OpenColFileSelection,
-               SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, 
+               SE_SaveDrawnROIFileSelection, SE_OpenDrawnROIFileSelection, SE_SendColorMapToAfni, SE_SaveSOFileSelection,
                SE_BadCode} SUMA_ENGINE_CODE; /* DO not forget to modify SUMA_CommandCode */
                
 typedef enum { SEF_Empty, 
@@ -1219,6 +1219,7 @@ typedef struct {
    float *VOLREG_CENTER_OLD; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
    float *VOLREG_CENTER_BASE; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
    float *VOLREG_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the experiment-aligned Parent Volume */
+   float *TAGALIGN_MATVEC; /*!< pointer to the named attribute (12x1) in the .HEAD file of the tag aligned Parent Volume */
 } SUMA_VOLPAR;
 
 typedef struct {
@@ -1242,6 +1243,7 @@ typedef struct {
    
    SUMA_Boolean SUMA_VolPar_Aligned; /*!< Surface aligned to Parent Volume data sets ?*/
    SUMA_Boolean VOLREG_APPLIED; /*!< YUP if VP->VOLREG_CENTER_BASE, VP->VOLREG_CENTER_OLD, VP->VOLREG_MATVEC were successfully applied*/
+   SUMA_Boolean TAGALIGN_APPLIED; /*!< YUP if VP->TAGALIGN_MATVEC was successfully applied */
    SUMA_Boolean SentToAfni; /*!< YUP if the surface has been niml-sent to AFNI */
    SUMA_Boolean Show; /*!< YUP then the surface is visible in the viewer. Not used that much I'd say*/
    
@@ -1546,5 +1548,11 @@ typedef struct {
    void *Previous; /*!< pointer to path leading up to the previous node. NULL for starting node. This pointer is to be typecast to SUMA_DIJKSTRA_PATH_CHAIN **/
 } SUMA_DIJKSTRA_PATH_CHAIN;
 
-
+/*!
+   Structure for passing info to function SUMA_SaveSOascii
+*/
+typedef struct {
+   SUMA_SurfaceObject *SO;
+   SUMA_SurfaceViewer *sv;
+} SUMA_SAVESO_STRUCT;
 #endif

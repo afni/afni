@@ -246,20 +246,57 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
                                                         SUMA_SaveDrawnROI, (void *)EngineData->vp,
                                                         NULL, NULL,
-                                                        NULL,
+                                                        "*.roi",
                                                         SUMAg_CF->X->FileSelectDlg);
             } else {
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
                                                         SUMA_SaveDrawnROI, (void *)EngineData->vp,
                                                         NULL, NULL,
-                                                        NULL,
+                                                        "*.roi",
                                                         SUMAg_CF->X->FileSelectDlg);
             }
             
-            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select ROI File to Save", &SUMAg_CF->X->FileSelectDlg);
+            SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select ROI Filename", &SUMAg_CF->X->FileSelectDlg);
             
             break;
 
+         case SE_SaveSOFileSelection:
+            /* saves a surface and its node colors to ascii files */
+            /* expects SO in vp and a position reference widget typecast to ip, the latter can be null.*/
+            if (EngineData->vp_Dest != NextComCode || EngineData->ip_Dest != NextComCode ) {
+               fprintf (SUMA_STDERR,"Error %s: Data not destined correctly for %s (%d).\n", \
+                  FuncName, NextCom, NextComCode);
+               break;
+            }
+            if (!sv) sv = &(SUMAg_SVv[0]);
+            
+            {
+               SUMA_SAVESO_STRUCT *SaveSO_data = NULL;
+               
+               SaveSO_data = (SUMA_SAVESO_STRUCT *) SUMA_malloc(sizeof(SUMA_SAVESO_STRUCT)); /* DO NOT FREE THIS POINTER,
+                                                                                                It is freed by the function 
+                                                                                                SUMA_SaveSOascii */
+               SaveSO_data->SO = (SUMA_SurfaceObject *)EngineData->vp;
+               SaveSO_data->sv = sv;
+               
+               if (!EngineData->ip) {
+                  SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_SAVE, YUP,
+                                                           SUMA_SaveSOascii, (void *)SaveSO_data,
+                                                           NULL, NULL,
+                                                           "*.xyz",
+                                                           SUMAg_CF->X->FileSelectDlg);
+               } else {
+                  SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct ((Widget) EngineData->ip, SUMA_FILE_SAVE, YUP,
+                                                           SUMA_SaveSOascii, (void *)SaveSO_data,
+                                                           NULL, NULL,
+                                                           "*.xyz",
+                                                           SUMAg_CF->X->FileSelectDlg);
+               }
+
+               SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select SO file prefix.", &SUMAg_CF->X->FileSelectDlg);
+            }
+            break;
+            
          case SE_OpenColFileSelection:
             /* opens the color file selection window. 
             Expect SO in vp and a position reference widget typecast to ip, the latter can be null.*/
@@ -289,6 +326,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialog ("Select Node Color File", &SUMAg_CF->X->FileSelectDlg);
             
             break;
+         
             
          case SE_OpenDrawROI:
             /* opens the DrawROI window, expects a surface viewer pointer in EngineData->Srcp*/
@@ -1297,6 +1335,8 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             
          case SE_FlipLight0Pos:
             /* expects nothing in EngineData */
+            sv->light0_position[0] *= -1;
+            sv->light0_position[1] *= -1;
             sv->light0_position[2] *= -1;
             glLightfv(GL_LIGHT0, GL_POSITION, sv->light0_position);
             break;
@@ -1522,7 +1562,7 @@ int SUMA_RegisteredSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    ans = SUMA_VisibleSOs (sv, dov, SO_IDs);
    gets the IDs (indices into dov) and number of the Surface Objects 
          registered with sv and with the SO->Side matching sv->ShowRight/
-         sv->ShowLeft
+         sv->ShowLeft and with SO->Show set to YUP
    \param sv (SUMA_SurfaceViewer *) the surface viewer structure
    \param dov (SUMA_DO *) the Displayable Objects vector (accessible to sv)
    \param SO_IDs (int *) pre-allocated integer vector that will contain the IDs of the SO shown in sv
@@ -1541,17 +1581,19 @@ int SUMA_VisibleSOs (SUMA_SurfaceViewer *sv, SUMA_DO *dov, int *SO_IDs)
    for (i=0; i< sv->N_DO; ++i) {
       if (SUMA_isSO(dov[sv->RegisteredDO[i]])) {
          SO = (SUMA_SurfaceObject *)dov[sv->RegisteredDO[i]].OP;
-         if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR ) {
-            if (SO_IDs) {
-               SO_IDs[k] = sv->RegisteredDO[i];
+         if (SO->Show) {
+            if ( SO->Side == SUMA_NO_SIDE || SO->Side == SUMA_SIDE_ERROR ) {
+               if (SO_IDs) {
+                  SO_IDs[k] = sv->RegisteredDO[i];
+               }
+               ++k;
+            } else if (  (SO->Side == SUMA_RIGHT && sv->ShowRight) || 
+                         (SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
+               if (SO_IDs) {
+                  SO_IDs[k] = sv->RegisteredDO[i];
+               }
+               ++k;
             }
-            ++k;
-         } else if (  (SO->Side == SUMA_RIGHT && sv->ShowRight) || 
-                      (SO->Side == SUMA_LEFT && sv->ShowLeft) ) {
-            if (SO_IDs) {
-               SO_IDs[k] = sv->RegisteredDO[i];
-            }
-            ++k;
          }
       }
    }
@@ -1746,7 +1788,7 @@ SUMA_Boolean SUMA_SwitchState (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer *sv, 
    SUMA_SurfaceObject *SO_nxt, *SO_prec;
    float *XYZ, *XYZmap;
    DList *list = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
