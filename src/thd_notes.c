@@ -565,11 +565,19 @@ char * tross_Expand_String( char * ch )
             case 'a'  : cn[i++] = '\a' ; break;
             case 'v'  : cn[i++] = '\v' ; break;
             case 'b'  : cn[i++] = '\b' ; break;
+            default:    cn[i++] = '\\' ;         /* 13 Mar 2003 */
+                        cn[i++] = ch[j]; break;
          }
       }
    }
    cn[i] = '\0' ; return cn ;
 }
+
+/*--------------------------------------------------------------------------*/
+
+static int Dont_Encode_Slash = 0 ;
+
+void tross_Dont_Encode_Slash( int q ){ Dont_Encode_Slash = q ; return ; }
 
 /*--------------------------------------------------------------------------*/
 /*!  Reverse of tross_Expand_String
@@ -594,7 +602,10 @@ char * tross_Encode_String( char * cn )
          case '\a': ch[i++] = '\\' ; ch[i++] = 'a' ; break ;
          case '\v': ch[i++] = '\\' ; ch[i++] = 'v' ; break ;
          case '\b': ch[i++] = '\\' ; ch[i++] = 'b' ; break ;
-         case '\\': ch[i++] = '\\' ; ch[i++] = '\\'; break ;
+
+         case '\\':                          ch[i++] = '\\';
+                    if( !Dont_Encode_Slash ) ch[i++] = '\\';
+         break ;
       }
    }
    ch[i] = '\0' ;

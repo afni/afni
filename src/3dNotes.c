@@ -167,6 +167,7 @@ int main (int argc, char * argv[]) {
    } while (delnum);  /* loop ends when no more to delete */
 
    /* Next, add notes */
+   tross_Dont_Encode_Slash( 1 ) ;   /* 13 Mar 2003 */
    for (i=0; i<curr_note; i++)
       tross_Add_Note(dset, notes[i]);
    
