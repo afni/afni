@@ -324,8 +324,8 @@ ENTRY("AFNI_parse_args") ;
    SESSTRAIL = 1 ;
    env = getenv( "AFNI_SESSTRAIL" ) ;
    if( env != NULL ){
-      SESSTRAIL = strtol(env,NULL,10) ;
-      if( SESSTRAIL < 0 ) SESSTRAIL = 0 ;  /* 24 Aug 2000 */
+     SESSTRAIL = strtol(env,NULL,10) ;
+     if( SESSTRAIL < 0 ) SESSTRAIL = 0 ;  /* 24 Aug 2000 */
    }
 
    GLOBAL_argopt.elide_quality = AFNI_yesenv("AFNI_MARKERS_NOQUAL") ;
@@ -999,8 +999,14 @@ int main( int argc , char * argv[] )
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
+   /* 12 Dec 2002: scan for "-rt" now,
+                   to see if we want to start the version check */
+
+   for( ii=1 ; ii < argc ; ii++ )
+     if( strcmp(argv[ii],"-rt") == 0 ){ GLOBAL_argopt.allow_rt = 1; break; }
+
    if( !GLOBAL_argopt.quiet && !ALLOW_real_time )
-     AFNI_start_version_check() ;                    /* 21 Nov 2002 */
+     AFNI_start_version_check() ;               /* 21 Nov 2002 */
 
    mainENTRY("AFNI:main") ; /* 26 Jan 2001: replace ENTRY w/ mainENTRY */
 
@@ -1605,8 +1611,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    /* 21 Nov 2002: check the AFNI version */
 
-   if( !GLOBAL_argopt.quiet && !ALLOW_real_time )
-     AFNI_version_check() ;
+   AFNI_version_check() ; /* does nada if AFNI_start_version_check() not called */
 
    /* finish up getting AFNI ready to be presented to the world */
 

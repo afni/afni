@@ -24,11 +24,15 @@ typedef struct {
   float z ;         /*!< z-coordinate */
 } SUMA_ixyz ;
 
+#define SUMA_ixyz_defn "int,3*float"
+
 /*! Type to store a triangle (a triple of node identifiers). */
 
 typedef struct {
   float id,jd,kd ;
 } SUMA_ijk ;
+
+#define SUMA_ijk_defn "3*int"
 
 /*! Type to store a node+color list */
 
@@ -36,6 +40,8 @@ typedef struct {
   int id ;
   unsigned char r,g,b,a ;
 } SUMA_irgba ;
+
+#define SUMA_irgba_defn "int,4*byte"
 
 /*! Type code for SUMA_surface structs */
 
