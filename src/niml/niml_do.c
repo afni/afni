@@ -1,5 +1,46 @@
 #include "niml_private.h"
 
+/**** Tables for ni_do callbacks *****/
+
+static int       doer_num  = 0    ;
+static char    **doer_verb = NULL ;
+static NI_doer **doer_func = NULL ;
+
+/*---------------------------------------------------------------------------*/
+/*! Register a callback for a "ni_do" verb.  [12 Feb 2003]
+-----------------------------------------------------------------------------*/
+
+void NI_register_doer( char *verb , NI_doer *func )
+{
+   int ii ;
+
+   if( verb == NULL || *verb == '\0' ) return ;
+
+   /* see if verb already in table */
+
+   for( ii=0 ; ii < doer_num ; ii++ )
+     if( strcmp(verb,doer_verb[ii]) == 0 ) break ;
+
+   /* if was in table, replace func */
+
+   if( ii < doer_num ){
+     doer_func[ii] = func ; return ;
+   }
+
+   if( func == NULL ) return ;   /* quit if no func */
+
+   /* expand table */
+
+   ii = doer_num ; doer_num++ ;
+
+   doer_verb = NI_realloc( doer_verb , sizeof(char *)*doer_num ) ;
+   doer_verb[ii] = NI_strdup(verb) ;
+
+   doer_func = NI_realloc( doer_func , sizeof(NI_doer *)*doer_num ) ;
+   doer_func[ii] = func ;
+   return ;
+}
+
 /*---------------------------------------------------------------------------*/
 /*! Carry out an action ordered by a "ni_do" element received on
     the input stream.  Actions we know about:
@@ -13,6 +54,7 @@
 int NI_do( NI_stream_type *ns , NI_element *nel )
 {
    char *verb , *object ;
+   int ii ;
 
    /*- check inputs for OK-ositiness -*/
 
@@ -51,6 +93,29 @@ int NI_do( NI_stream_type *ns , NI_element *nel )
      return 0 ;
 
    } /****------------------------ end close_this ------------------------****/
+
+   if( strcmp(verb,"typedef") == 0 ){    /****---- define a NIML type ----****/
+
+     char tnam[256] , tdef[8200] ;
+     int tt ;
+
+     if( object == NULL || object[0] == '\0' ) return -1 ;  /* bad */
+
+     tnam[0] = tdef[0] = '\0' ;
+     sscanf(object,"%255s %8199s",tnam,tdef) ;
+     tt = NI_rowtype_define( tnam , tdef ) ;
+     return (tt >0) ? 0 : -1 ;
+
+   } /****------------------------ end typedef ---------------------------****/
+
+   /**** Here, check for user-defined callbacks ****/
+
+   for( ii=0 ; ii < doer_num ; ii++ ){
+     if( strcmp(verb,doer_verb[ii]) == 0 ){
+       if( doer_func[ii] != NULL ) doer_func[ii]( nel ) ;
+       return 0 ;
+     }
+   }
 
    /*--- if we get here, we got a verb we don't recognize ---*/
 

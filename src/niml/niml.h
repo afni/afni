@@ -166,6 +166,10 @@ extern void NI_rowtype_debug( int ) ;
 
 #define ROWTYPE_is_basic_code  NI_is_basic_type
 
+/*! Integer type code to name string. */
+
+#define NI_type_name(tc) NI_rowtype_code_to_name(tc)
+
 /*****------------------------------------------------------------------*****/
 
 #define NI_ELEMENT_TYPE  17
@@ -466,7 +470,6 @@ extern void   NI_swap8( int, void * ) ;
 
 extern char * NI_mktemp( char * ) ;  /* 21 Aug 2002 */
 
-extern char * NI_type_name( int ) ;
 extern int    NI_type_size( int ) ;
 
 extern int NI_element_rowsize( NI_element * ) ;
@@ -1031,6 +1034,12 @@ extern void * NI_dataset_transpose( void * ) ;
 
 #define NI_datatype_size(n) NI_rowtype_code_to_size(n)
 
+/*-------------------------------------------------------------------------*/
+
+typedef void NI_doer() ;
+
+extern int NI_do( NI_stream_type * , NI_element * ) ;
+extern void NI_register_doer( char *verb , NI_doer *func ) ;
 /*-------------------------------------------------------------------------*/
 
 #endif /* _NIML_HEADER_FILE */

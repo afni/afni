@@ -217,10 +217,25 @@ NI_dpr("   parse_header_stuff: next string = %.*s\n",ss.j-ss.i,dat+ss.i) ;
 intpair decode_type_field( char *tf )
 {
    intpair ans = {-1,1} ;  /* default answer */
+   char tname[256] ;
+   int jj ;
 
    /* check input for goodness */
 
-   if( tf == NULL ) return ans ;  /* should never happen */
+   if( tf == NULL || !isalpha(*tf) ) return ans ;  /* prima facie bad */
+
+#if 1    /*** The new way! Look for full names, not initials - RWCcox ***/
+
+   /* copy input into local string,
+      as long as 'name' characters are found,
+      then get the integer code for this type name */
+
+   for( jj=0 ; jj < 255 && IS_NAME_CHAR(tf[jj]) ; jj++ ) tname[jj] = tf[jj];
+   tname[jj] = '\0' ;
+   ans.i = NI_rowtype_name_to_code( tname ) ;  /* where the names are stored */
+   ans.j = jj ;
+
+#else    /*** This is the old way! Replaced on 12 Feb 2003 - RWCox ***/
 
    /* check if tf[0] starts a full datum name,
       or if it is just an initial              */
@@ -274,6 +289,7 @@ intpair decode_type_field( char *tf )
         if( strncmp(tf,"STRING" ,6) == 0 ) ans.j = 6 ;
       break ;
    }
+#endif
 
    return ans ;
 }
@@ -409,8 +425,12 @@ int_array * decode_type_string( char *ts )
          }
          id += nn ;                  /* skip count prefix characters */
          if( ts[id] == '*' ) id++ ;  /* allow for "3*float" */
+
+      } else if( isalpha(ts[id]) ){   /* start of a type name */
+         jd = 1 ;                    /* default count of 1 */
+
       } else {
-         jd = 1 ;       /* default count of 1 */
+         id++ ; continue ;           /* skip this character */
       }
 
       dc = decode_type_field( ts+id ) ;
@@ -441,6 +461,7 @@ int_array * decode_type_string( char *ts )
    iar->num = num ; return iar ;
 }
 
+#if 0  /*** 12 Feb 2003 - no longer use single letters for types - RWC ***/
 /*-----------------------------------------------------------------------*/
 /* Given a type code, return the character code.
 -------------------------------------------------------------------------*/
@@ -460,7 +481,9 @@ char NI_type_char( int typ )
         default:          return '\0';
    }
 }
+#endif
 
+#if 0   /*** 12 Feb 2003 - NI_typedef is history - RWC ***/
 /*--------------------------------------------------------------------*/
 
 int     typedef_nib = 0    ; /*!< Block ni_ typedefs? */
@@ -610,3 +633,4 @@ void enhance_header_stuff( header_stuff *hs )
 
    return ;
 }
+#endif  /*** end of removed NI_typedef stuff ***/

@@ -1429,7 +1429,7 @@ cdf_00.o:
 #######
 # Ditto for NIML objects
 
-niml_b64.o:niml.h
+$(NIML_OBJS):niml.h
 	( cd niml/ ; make all 'CC=$(CC)' ; $(MV) *.o .. ; )
 
 niml.h:niml/niml.h

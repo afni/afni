@@ -229,22 +229,6 @@ NI_group * make_empty_group_element( header_stuff *hs )
 }
 
 /*-------------------------------------------------------------------------*/
-/*! Name for a given integer type code.  Return value is to static string.
----------------------------------------------------------------------------*/
-
-char * NI_type_name( int tval )
-{
-   static char *NI_names[NI_NUM_TYPES] =
-    { "byte"  , "short"  , "int"     ,
-      "float" , "double" , "complex" ,
-      "rgb"   , "Rgba"   , "String"  
-    } ;
-
-   if( tval < 0 || tval >= NI_NUM_TYPES ) return NULL ;
-   return NI_names[tval] ;
-}
-
-/*-------------------------------------------------------------------------*/
 /*! Byte size of a given integer type code.
 ---------------------------------------------------------------------------*/
 
