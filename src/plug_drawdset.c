@@ -465,7 +465,7 @@ void DRAW_make_widgets(void)
    /*** arrowval to choose drawing mode ***/
 
    mode_av = new_MCW_optmenu( rowcol , "Drawing Mode  " ,
-                              0 , NUM_modes-1 , 0,0 ,
+                              0 , NUM_modes-1 , mode_ival,0 ,
                               DRAW_mode_CB , NULL ,
                               MCW_av_substring_CB , mode_strings ) ;
 
