@@ -133,11 +133,14 @@ typedef struct {
    int bin_thresh ;  /*!< Threshold size for binary write. */
 
    int nbuf ;              /*!< Number of bytes left in buf. */
-   char buf[NI_BUFSIZE] ;  /*!< I/O buffer. */
+   int npos ;              /*!< Index of next unscanned byte in buf. */
+   int bufsize ;           /*!< Length of buf array. */
+   char *buf ;             /*!< I/O buffer (may be NULL). */
 } NI_stream_type ;
 
 #define NI_TCP_TYPE    1
 #define NI_FILE_TYPE   2
+#define NI_STRING_TYPE 3
 
 #define TCP_WAIT_ACCEPT   7
 #define TCP_WAIT_CONNECT  8

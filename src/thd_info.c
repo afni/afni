@@ -203,6 +203,7 @@ ENTRY("THD_dataset_info") ;
    }
 
    if( verbose && ntimes > 1 ) nval_per = dset->dblk->nvals ;
+   else                        nval_per = 1 ;                 /* 12 Feb 2002 */
 
    for( ival=0 ; ival < nval_per ; ival++ ){
 

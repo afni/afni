@@ -2229,6 +2229,7 @@ extern char * THD_newprefix(THD_3dim_dataset * dset, char * suffix); /* 16 Feb 2
 /*! \brief Return number of values stored at each time point for dataset ds.
 
     Will always be 1 in the current version of AFNI!
+    (Except for bucket datasets, that is, damn it.)
 */
 #define DSET_NVALS_PER_TIME(ds)  ( (ds)->dblk->nvals / DSET_NUM_TIMES(ds) )
 
