@@ -4988,7 +4988,7 @@ ENTRY("AFNI_hidden_CB") ;
    }
 
    else if( w == im3d->vwid->prog->hidden_gamberi_pb ){
-     AFNI_speak( "Gamberi Cattivi" , 0 ) ;
+     AFNI_speak( "The Rime of the Gamberi Cattivi" , 0 ) ;
      (void) MCW_popup_message( im3d->vwid->imag->topper ,
        " \n"
        "       The Rime of the Ancient Gamberi Cattivi\n"
@@ -5049,6 +5049,29 @@ ENTRY("AFNI_hidden_CB") ;
      if( poem == NULL ) EXRETURN ;
      (void) MCW_popup_message( im3d->vwid->imag->topper, poem, MCW_USER_KILL );
      free( poem ) ;
+   }
+
+   /*------- random speaking --------*/
+
+   else if( w == im3d->vwid->prog->hidden_speech_pb && w != NULL ){
+     static char *words[] = { "What do you want?"               ,
+                              "Nice to see you"                 ,
+                              "Words fail me now"               ,
+                              "I do not know what to say"       ,
+                              "How are you feeling?"            ,
+                              "Do you like, afnee?"             ,
+                              "Do you use ess, pee, emm?"       ,
+                              "Do you use eff, ess, ell?"       ,
+                              "Exercise your hippocampus daily"
+                            } ;
+     if( AFNI_noenv("AFNI_SPEECH") )
+       XBell( im3d->dc->display , 100 ) ;
+     else {
+       static int nold=-1 ;
+       int nn = sizeof(words)/sizeof(char *) , jj ;
+       do{ jj = lrand48()%nn ; } while( jj == nold ) ;
+       AFNI_speak( words[jj] , 1 ) ; nold = jj ;
+     }
    }
 
    /****----- Get Outta Here -----****/
