@@ -3641,7 +3641,13 @@ SUMA_EDGE_LIST * SUMA_Make_Edge_List (int *FL, int N_FL, int N_Node, float *Node
       i += lu;
    }
    
-   fprintf(SUMA_STDERR,"%s: Min/Max number of hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+   fprintf(SUMA_STDERR,"%s: Min/Max number of edge hosting triangles: [%d/%d] \n", FuncName, SEL->min_N_Hosts, SEL->max_N_Hosts);
+   if (SEL->min_N_Hosts == 1 || SEL->max_N_Hosts == 1) {
+      fprintf(SUMA_STDERR,"Warning %s: You have edges that form a border in the surface.\n", FuncName);
+   }
+   if (SEL->min_N_Hosts > 2 || SEL->max_N_Hosts > 2) {
+      fprintf(SUMA_STDERR,"Warning %s: You have edges that belong to more than two triangles. Bad for analysis assuming surface is a 2-manifold..\n", FuncName);
+   }
    
    #if 0
       fprintf(SUMA_STDERR,"%s:(ELindex) Node1 Node2 | FlipVal Triangle N_hosts\n", FuncName); 
@@ -4354,8 +4360,14 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node)
             }
         }
         if (jj != FN->N_Neighb[i]) {
-            fprintf (SUMA_STDERR, "Error %s: Failed in copying neighbor list! jj=%d, FN->N_Neighb[%d]=%d\nProceeding ...\n", 
+            fprintf (SUMA_STDERR, "Error %s: Failed in copying neighbor list! jj=%d, FN->N_Neighb[%d]=%d\n", 
                FuncName, jj, i, FN->N_Neighb[i]);
+            fprintf (SUMA_STDERR, "\tThis is likely due to a tessellation error, one or more edges may not be part of 2 and only 2 triangles.\n\tNeighbor list for node %d is not ordered as connected vertices.\n", 
+               i);
+            while (jj < FN->N_Neighb[i]) {
+               FirstNeighb[i][jj] = FN->FirstNeighb[i][jj];
+               ++jj;
+            }
         }    
       #endif
    }

@@ -1004,15 +1004,41 @@ void SUMA_Print_Surface_Object (SUMA_SurfaceObject *SO, FILE *Out)
       fprintf (Out,"Label: %s\n", SO->Label);
    }
 
-   if (SO->FileType != SUMA_SUREFIT) {
-      fprintf (Out,"FileName: %s\n", SO->Name.FileName);
-      fprintf (Out,"Path: %s\n", SO->Name.Path);
-   } else {
-      fprintf (Out,"Coord FileName: %s \n", SO->Name_coord.FileName);
-      fprintf (Out,"Coord Path: %s \n", SO->Name_coord.Path);
-      fprintf (Out,"Topo FileName: %s \n", SO->Name_topo.FileName);
-      fprintf (Out,"Topo Path: %s \n", SO->Name_topo.Path);
-   }   
+   switch (SO->FileType) {
+      case SUMA_SUREFIT:
+         fprintf (Out,"SureFit surface.\n");
+         fprintf (Out,"Coord FileName: %s \n", SO->Name_coord.FileName);
+         fprintf (Out,"Coord Path: %s \n", SO->Name_coord.Path);
+         fprintf (Out,"Topo FileName: %s \n", SO->Name_topo.FileName);
+         fprintf (Out,"Topo Path: %s \n", SO->Name_topo.Path);
+         break;
+      case SUMA_VEC:
+         fprintf (Out,"VEC surface.\n");
+         fprintf (Out,"NodeList FileName: %s \n", SO->Name_coord.FileName);
+         fprintf (Out,"NodeList Path: %s \n", SO->Name_coord.Path);
+         fprintf (Out,"FaceSetList FileName: %s \n", SO->Name_topo.FileName);
+         fprintf (Out,"FaceSetList Path: %s \n", SO->Name_topo.Path);
+         break;
+      case SUMA_FREE_SURFER:
+         fprintf (Out,"FreeSurfer surface.\n");
+         fprintf (Out,"FileName: %s\n", SO->Name.FileName);
+         fprintf (Out,"Path: %s\n", SO->Name.Path);
+      case SUMA_INVENTOR_GENERIC:
+         fprintf (Out,"Inventor generic surface.\n");
+         fprintf (Out,"FileName: %s\n", SO->Name.FileName);
+         fprintf (Out,"Path: %s\n", SO->Name.Path);
+      case SUMA_PLY: 
+         fprintf (Out,"PLY surface.\n");
+         fprintf (Out,"FileName: %s\n", SO->Name.FileName);
+         fprintf (Out,"Path: %s\n", SO->Name.Path);
+      case SUMA_FT_NOT_SPECIFIED:
+         fprintf (Out,"File Type not specified.\n");
+         break;
+      default:
+         fprintf (Out,"Unknown surface type.\n");
+         break;
+   }
+   
    fprintf (Out,"FileType: %d\t FileFormat: %d\n", SO->FileType, SO->FileFormat);
    
    fprintf (Out,"IDcode: %s\n", SO->idcode_str);

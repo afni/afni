@@ -30,15 +30,6 @@ extern SUMA_CommonFields *SUMAg_CF;
    
    
    
-/*!**
-File : SUMA_SureFit.c
-\author Ziad Saad
-Date : Fri Feb 8 16:29:06 EST 2002
-   
-Purpose : 
-   Read SureFit data
-   
-*/
 /*!**  
 Function: SUMA_SureFit_Read_Coord 
 Usage : 
@@ -387,7 +378,142 @@ void SUMA_Show_SureFit (SUMA_SureFit_struct *SF, FILE *Out)
 
 	SUMA_RETURNe;
 }
-  
+
+/*!
+   \brief writes a surface in SureFit format
+   ans = SUMA_SureFit_Write (Fname,SO);
+   
+   \param  Fname (SUMA_SFname *) uses the SureFit filename structure to store
+                                 the names (and paths) of the NodeList (name_coord)
+                                 and the FaceSetList (name_topo) files.
+   \param SO (SUMA_SurfaceObject *) pointer to SO structure.
+   \return YUP/NOPE
+   
+   \sa SUMA_SureFit_Read_Topo() 
+   \sa SUMA_SureFit_Read_Coord() 
+   
+   The function will not overwrite pre-existing files.
+   
+
+NOTE: Header info is incomplete. 
+for .coord:
+BeginHeader
+configuration_id NA
+coordframe_id NA
+encoding ASCII
+EndHeader
+
+for .topo:
+BeginHeader
+date NA
+encoding ASCII
+perimeter_id NA
+EndHeader
+
+also, the last 4 integers in the node neighbor list lines are set to 0. I have never used them and do not know what they are for.
+
+The naming convention of SureFit surfaces is not enforced.
+
+*/  
+SUMA_Boolean SUMA_SureFit_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
+{
+   
+   static char FuncName[]={"SUMA_SureFit_Write"};
+   int i, j;
+   FILE *outFile = NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if (SUMA_filexists(Fname->name_coord)) {
+      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, Fname->name_coord);
+      SUMA_RETURN (NOPE);
+   }
+   if (SUMA_filexists(Fname->name_topo)) {
+      fprintf (SUMA_STDERR, "Error %s: file %s exists, will not overwrite.\n",FuncName, Fname->name_topo);
+      SUMA_RETURN (NOPE);
+   }
+   if (SO->NodeDim != 3 || SO->FaceSetDim != 3) {
+      fprintf (SUMA_STDERR, "Error %s: Must have NodeDim and FaceSetDim = 3.\n",FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   outFile = fopen(Fname->name_coord, "w");
+   if (!outFile) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in opening %s for writing.\n",FuncName, Fname->name_coord);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* write header */
+   fprintf (outFile,"BeginHeader\nconfiguration_id NA\ncoordframe_id NA\nencoding ASCII\nEndHeader\n");
+   fprintf (outFile,"%d\n", SO->N_Node);
+
+   j=0;
+   for (i=0; i<SO->N_Node; ++i) {
+      j=SO->NodeDim * i;
+      fprintf (outFile, "%d %f %f %f\n", i, SO->NodeList[j], SO->NodeList[j+1], SO->NodeList[j+2]);
+   }
+   
+   fclose (outFile);
+   
+   outFile = fopen(Fname->name_topo, "w");
+   if (!outFile) {
+      fprintf (SUMA_STDERR, "Error %s: Failed in opening %s for writing.\n",FuncName, Fname->name_topo);
+      SUMA_RETURN (NOPE);
+   }
+
+   /* make sure you have the first neighbor list ! */
+   if (!SO->FN) {
+      fprintf (SUMA_STDERR, "%s: Must compute Node Neighborhood list.\n", FuncName);
+      if (!SUMA_SurfaceMetrics(SO, "EdgeList", NULL)){
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
+         SUMA_RETURN (NOPE);
+      }
+      #if 0 /* better to use SUMA_SurfaceMetrics */
+      if (!SO->EL) {
+         fprintf (SUMA_STDERR, "%s: Computing Edge List...\n", FuncName);
+         SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList);
+      }
+      if (!SO->EL) {
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Make_Edge_List.\n", FuncName);
+         SUMA_RETURN (NOPE);
+      }
+      fprintf (SUMA_STDERR, "%s: Computing FirstNeighb list.\n", FuncName);
+      SO->FN = SUMA_Build_FirstNeighb (SO->EL, SO->N_Node);
+      if (!SO->FN) {
+         fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Build_FirstNeighb.\n", FuncName);
+         SUMA_RETURN (NOPE);
+      }
+      #endif
+      
+   }
+   /* write header */
+   fprintf (outFile,"BeginHeader\ndate NA\nencoding ASCII\nperimeter_id NA\nEndHeader\n");
+   fprintf (outFile,"%d\n", SO->N_Node);
+	j = 0;
+	while (j < SO->FN->N_Node)	{
+      /* dunno what last 4 ints of upcoming line are */
+		fprintf (outFile,"%d %d 0 0 0 0\n", SO->FN->NodeId[j], SO->FN->N_Neighb[j]);
+		
+		/* Now write the Neighbors info */
+		for (i=0; i < SO->FN->N_Neighb[j]; ++ i) {
+			fprintf (outFile,"%d %d\n", i, SO->FN->FirstNeighb[j][i]);
+		}
+		++j;
+	}
+
+	fprintf (outFile,"%d\n", SO->N_FaceSet);
+	
+   j=0;
+   for (i=0; i<SO->N_FaceSet; ++i) {
+      j = SO->FaceSetDim * i;
+      fprintf (outFile, "%d %d %d\n", SO->FaceSetList[j], SO->FaceSetList[j+1], SO->FaceSetList[j+2]);
+   }
+
+   fclose (outFile);
+   SUMA_RETURN (YUP);
+
+}
+
 /*!
 free data structure containing SureFit surface object
 */
@@ -620,18 +746,7 @@ int main (int argc,char *argv[])
    
    
    
-/*!**
-File : SUMA_SureFit.c
-\author Ziad Saad
-Date : Fri Feb 8 16:29:06 EST 2002
-   
-Purpose : 
-   Read SureFit data
-   
-*/
-
 /*!**  
-Function: SUMA_FreeSurfer_Read 
 Usage : 
 Ret = SUMA_FreeSurfer_Read (surfname, FreeSurfer)
 	
@@ -1960,7 +2075,7 @@ int main (int argc,char *argv[])
          }
          SO_name = (void *)SF_name;
          fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, vp_name);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, sv_name);
          break;
       case SUMA_VEC:
          SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
@@ -1968,17 +2083,17 @@ int main (int argc,char *argv[])
          sprintf(SF_name->name_topo,"%s", if_name2); 
          SO_name = (void *)SF_name;
          fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, NULL);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, sv_name);
          break;
       case SUMA_FREE_SURFER:
          SO_name = (void *)if_name; 
          fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, NULL);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
          break;  
       case SUMA_PLY:
          SO_name = (void *)if_name; 
          fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL);
+         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, sv_name);
          break;  
       default:
          fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
