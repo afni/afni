@@ -22,9 +22,16 @@ static char g_help[] =
     " If the vol2surf options are not used, afni will default to the basic\n"
     " surface intersection technique.\n"
     " \n"
-    " The minimum choices that should be made are those on the first two\n"
-    " lines: 'function' and 'surfaces'.  To use this functionality, please\n"
-    " start by answering 'use vol2surf?' with 'yes'.  :)\n"
+    " The minimum choices that must be made are on the 'function' line:\n"
+    " 'use vol2surf?' (should be 'yes' :), and 'map func' (should be valid).\n"
+    " \n"
+    " ** Note that as a plugin, surfaces will be unknown at initialization\n"
+    "    time.  Therefore the interface is via afni's surface index list.\n"
+    "    To see the surface index list, set the debug level to 2, and then\n"
+    "    press 'Set+Keep'.  Part of the text output to the _terminal window_\n"
+    "    will be '+d valid surface indices and labels: ...'.\n"
+    " \n"
+    " ** For detailed infomation, please try the command: '3dVol2Surf -help'.\n"
     " \n"
     " ----------------------------- options --------------------------------\n"
     " function:\n"
@@ -95,9 +102,6 @@ static char g_help[] =
     " \n"
     "   level         : provide this level of debug output (0-5)\n"
     "   node          : provide additional debug output for this node\n"
-    " \n"
-    " \n"
-    " *  for more infomation, please try the command: '3dVol2Surf -help'   *\n"
     " \n"
     " \n"
     " Author: R Reynolds\n"
@@ -341,7 +345,7 @@ ENTRY("PV2S_process_args");
     while ( (tag = PLUTO_get_optiontag(plint)) != NULL )
     {
 	if ( sopt->debug > 2 )
-	    fprintf(stderr,"++ received option tag: %s\n", tag);
+	    fprintf(stderr,"+d received option tag: %s\n", tag);
 
 	if ( ! strcmp(tag, "op_st") )
 	{
@@ -589,15 +593,15 @@ ENTRY("PV2S_check_surfaces");
     if ( debug > 0 && ss->su_surf )
     {
 	if ( ss->su_surf[sa] )      /* we have checked sa >= 0, above */
-	    fprintf(stderr,"++ surf_A label: '%s'\n",
+	    fprintf(stderr,"+d surf_A label: '%s'\n",
 		*ss->su_surf[sa]->label ? ss->su_surf[sa]->label : "not set");
 	else
 	    fprintf(stderr,"** surf_A (#%d) pointer not set??\n", sa);
 
 	if ( sb < 0 )
-	    fprintf(stderr,"-- surf_B not in use\n");
+	    fprintf(stderr,"-d surf_B not in use\n");
 	else if ( ss->su_surf[sb] )
-	    fprintf(stderr,"++ surf_B label: '%s'\n",
+	    fprintf(stderr,"+d surf_B label: '%s'\n",
 		*ss->su_surf[sb]->label ? ss->su_surf[sb]->label : "not set");
 	else
 	    fprintf(stderr,"** surf_B (#%d) pointer not set??\n", sb);
@@ -605,7 +609,7 @@ ENTRY("PV2S_check_surfaces");
 	if ( debug > 1 )
 	{
 	    int c;
-	    fprintf(stderr,"++ valid surface indices and labels:\n");
+	    fprintf(stderr,"+d valid surface indices and labels:\n");
 	    for ( c = 0; c < ss->su_num; c++ )
 		if ( * ss->su_surf[c]->label )
 		    fprintf(stderr,"   index %2d, label '%s'\n",
