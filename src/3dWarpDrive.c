@@ -214,6 +214,8 @@ int main( int argc , char * argv[] )
    int kim , nvals , kpar , np , nfree ;
    MRI_IMAGE *qim , *tim , *fim ;
    float clip_baset=0.0f , clip_inset=0.0f ;
+   char *W_1Dfile=NULL ;                      /* 04 Jan 2005 */
+   float **parsave=NULL ;
 
    /*-- help? --*/
 
@@ -280,6 +282,10 @@ int main( int argc , char * argv[] )
             "  -parfix n v   = Fix the n'th parameter of the warp model to\n"
             "                   the value 'v'.  More than one -parfix option\n"
             "                   can be used, to fix multiple parameters.\n"
+            "  -1Dfile ename = Write out the warping parameters to the file\n"
+            "                   named 'ename'.  Each sub-brick of the input\n"
+            "                   dataset gets one line in this file.  Each\n"
+            "                   parameter in the model gets one column.\n"
             "\n"
             "----------------------\n"
             "AFFINE TRANSFORMATIONS:\n"
@@ -317,6 +323,7 @@ int main( int argc , char * argv[] )
             "\n"
             " For example, the default (-SDU/-ashift/-Slower) has the warp\n"
             " specified as [x]_warped = [S] [D] [U] [x]_in + [shift].\n"
+            " The shift vector comprises parameters #1, #2, and #3.\n"
             "\n"
             " The goal of the program is to find the warp parameters such that\n"
             "   I([x]_warped) = s * J([x]_in)\n"
@@ -373,8 +380,24 @@ int main( int argc , char * argv[] )
 
      /*-----*/
 
+     if( strcmp(argv[nopt],"-1Dfile") == 0 ){
+       if( ++nopt >= argc ){
+         fprintf(stderr,"** ERROR: need 1 parameter afer -1Dfile!\n"); exit(1);
+       }
+       W_1Dfile = strdup( argv[nopt] ) ;
+       if( !THD_filename_ok(W_1Dfile) ){
+         fprintf(stderr,"** ERROR: name after -1Dfile has bad characters!\n") ;
+         exit(1) ;
+       }
+       nopt++ ; continue ;
+     }
+
+     /*-----*/
+
      if( strcmp(argv[nopt],"-twopass") == 0 ){
-       abas.twoblur = 3.0f ; nopt++ ; continue ;
+       float bbb = AFNI_numenv("AFNI_WARPDRIVE_TWOBLUR") ;
+       abas.twoblur = (bbb==0.0f) ? 3.0f : bbb ;
+       nopt++ ; continue ;
      }
 
      /*-----*/
@@ -879,6 +902,12 @@ int main( int argc , char * argv[] )
 
    if( abas.verb ) fprintf(stderr,"++ Beginning alignment setup\n") ;
 
+   /* 04 Jan 2005: set up to save the computed parameters */
+
+   parsave = (float **)malloc( sizeof(float *) * abas.nparam ) ;
+   for( kpar=0 ; kpar < abas.nparam ; kpar++ )
+     parsave[kpar] = (float *)calloc( sizeof(float) , nvals ) ;
+
    mri_warp3D_align_setup( &abas ) ;
 
    if( abas.verb ) fprintf(stderr,"++ Beginning alignment loop\n") ;
@@ -894,6 +923,10 @@ int main( int argc , char * argv[] )
                                DSET_BRICK(inset,kim)         ) ;
      tim = mri_warp3d_align_one( &abas , qim ) ;
      mri_free( qim ) ; DSET_unload_one( inset , kim ) ;
+
+     for( kpar=0 ; kpar < abas.nparam ; kpar++ )
+       parsave[kpar][kim] = abas.param[kpar].val_out ;  /* 04 Jan 2005 */
+
      switch( DSET_BRICK_TYPE(inset,kim) ){
 
          default:
@@ -934,6 +967,39 @@ int main( int argc , char * argv[] )
 
    if( abas.verb )
      fprintf(stderr,"++ Writing dataset: %s\n",DSET_FILECODE(outset));
-   DSET_write( outset ) ;
+   DSET_write( outset ) ;  DSET_unload( outset ) ;
+
+   if( W_1Dfile != NULL ){
+     FILE *fp ;
+     if( abas.verb ) fprintf(stderr,"++ Writing 1Dfile: %s\n",W_1Dfile) ;
+     if( THD_is_file(W_1Dfile) )
+       fprintf(stderr,"++ WARNING: overwriting file %s\n",W_1Dfile) ;
+
+     fp = fopen( W_1Dfile , "w" ) ;
+     if( fp != NULL ){
+
+       fprintf(fp,"#") ;
+       for( kim=0 ; kim < argc ; kim++ ) fprintf(fp," %s",argv[kim]) ;
+       fprintf(fp,"\n") ;
+
+       fprintf(fp,"#") ;
+       for( kpar=0 ; kpar < abas.nparam ; kpar++ )
+         fprintf(fp," %-13.13s",abas.param[kpar].name) ;
+       fprintf(fp,"\n") ;
+
+       fprintf(fp,"#") ;
+       for( kpar=0 ; kpar < abas.nparam ; kpar++ )
+         fprintf(fp," -------------") ;
+       fprintf(fp,"\n") ;
+
+       for( kim=0 ; kim < nvals ; kim++ ){
+         for( kpar=0 ; kpar < abas.nparam ; kpar++ )
+           fprintf(fp," %13.6g",parsave[kpar][kim]) ;
+         fprintf(fp,"\n") ;
+       }
+       fclose(fp) ;
+     }
+   }
+
    exit(0) ;
 }
