@@ -2,10 +2,10 @@
 ## (change gcc <-> cc to use GCC or SGI compiler, as case may be)
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = gcc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE
-CCVOL  = gcc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE
+CC     = cc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE
+CCVOL  = cc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE
 CCFAST = $(CC)
-CCMIN  = gcc
+CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/Motif-2.1/include
 LFLAGS = -s -L. -L/usr/Motif-2.1/lib
