@@ -96,5 +96,6 @@ void PBAR_set_panecolor( MCW_pbar *, int , int ) ;  /* 17 Jan 2003 */
 void PBAR_set_bigmode( MCW_pbar *, int, float,float ) ;     /* 30 Jan 2003 */
 void PBAR_bigexpose_CB( Widget , XtPointer , XtPointer ) ;  /* 30 Jan 2003 */
 void PBAR_add_bigmap( char * , rgbyte * ) ;                 /* 31 Jan 2003 */
+void PBAR_read_bigmap( char *, MCW_DC * ) ;                 /* 01 Feb 2003 */
 
 #endif
