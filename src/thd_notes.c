@@ -339,6 +339,87 @@ void tross_Store_Note( THD_3dim_dataset * dset , int inote , char * cn )
 }
 
 /*-----------------------------------------------------------------------
+  Break a string up into lines of length between lbot and ltop bytes;
+  free() the result when done with it.
+  NULL return means illegal input was found.
+-------------------------------------------------------------------------*/
+
+char * tross_breakup_string( char * str , int lbot , int ltop )
+{
+   char * sout ;
+   int slen , ii , ibot,itop , ldif ;
+
+   if( str == NULL || str[0] == '\0' || lbot > ltop || lbot < 4 ) return NULL ;
+
+   slen = strlen(str) ; sout = malloc(slen+4) ;
+
+   while( slen > lbot && isspace(str[slen-1]) ) slen-- ;  /* trim blanks off end */
+
+   ibot = 0 ; ldif = ltop-lbot ;
+   while(1){
+      itop = ibot + ltop-1 ;    /* want to output str[ibot..itop] */
+
+      /* if past end of str, then just output the rest and exit */
+
+      if( itop >= slen ){
+         memcpy( sout+ibot , str+ibot , slen-ibot ) ;
+         sout[slen] = '\0' ;
+         return sout ;
+      }
+
+      /* scan forwards to find a newline character before itop; */
+      /* if one is present, output the string up to there,     */
+      /* and continue again starting after the newline        */
+
+      for( ii=ibot ; ii <= itop ; ii++ )
+         if( str[ii] == '\n' ) break ;
+
+      if( ii <= itop ){  /* found it! */
+         memcpy( sout+ibot , str+ibot , ii-ibot+1 ) ;
+         ibot = ii+1 ;
+         if( ibot >= slen ){ sout[slen] = '\0'; return sout; }
+         continue ;
+      }
+
+      /* scan backwards to find a whitespace character */
+
+      for( ii=itop ; ii > itop-ldif ; ii-- )
+         if( isspace(str[ii]) ) break ;
+
+      /* found one before the minimum location      */
+      /* copy up to the previous char into output, */
+      /* then put a newline in for the whitespace */
+
+      if( ii > itop-ldif ){
+         memcpy( sout+ibot , str+ibot , ii-ibot ) ;
+         sout[ii] = '\n' ;
+         ibot = ii+1 ;
+         continue ;         /* try to do next line */
+      }
+
+      /* scan ahead to next whitespace instead */
+
+      for( ii=itop ; ii < slen ; ii++ )
+         if( isspace(str[ii]) ) break ;
+
+      /* found one */
+
+      if( ii < slen ){
+         memcpy( sout+ibot , str+ibot , ii-ibot ) ;
+         sout[ii] = '\n' ;
+         ibot = ii+1 ;
+         continue ;
+      }
+
+      /* copy rest of input and exit */
+
+      memcpy( sout+ibot , str+ibot , slen-ibot ) ;
+      sout[slen] = '\0' ;
+      return sout ;
+   }
+}
+
+/*-----------------------------------------------------------------------
    return a printable version of a note string; free() this when done
 -------------------------------------------------------------------------*/
 

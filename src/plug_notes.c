@@ -24,6 +24,7 @@ static void NOTES_choose_CB ( Widget , XtPointer , XtPointer ) ;
 static void NOTES_add_CB    ( Widget , XtPointer , XtPointer ) ;
 static void NOTES_delete_CB ( Widget , XtPointer , XtPointer ) ;
 static void NOTES_restore_CB( Widget , XtPointer , XtPointer ) ;
+static void NOTES_refit_CB  ( Widget , XtPointer , XtPointer ) ;
 
 static void NOTES_finalize_dset_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 
@@ -33,7 +34,7 @@ static PLUGIN_interface * plint = NULL ;
 #define newstring(str) strcpy(malloc(strlen(str)+1),str)
 static int line_count( char * ) ;
 
-#define THEIGHT 4
+#define THEIGHT 9
 static int max_tlines = 0 ;
 
 /***********************************************************************
@@ -75,7 +76,7 @@ static NOTE_wind * NOTES_make_note(void) ;
 
 static Widget shell=NULL , topman , info_lab , choose_pb ;
 static Widget done_pb , help_pb , quit_pb , save_pb , add_pb ;
-static Widget notesw , noterc ;
+static Widget notesw , noterc , refit_pb ;
 
 static int text_width = 0 ;
 static int text_height = 0 ;
@@ -91,7 +92,7 @@ static MCW_idcode         dset_idc ; /* 31 Mar 1999     */
 
 static int editor_open  = 0 ;
 
-#define NUM_DH 4
+#define NUM_DH 7
 static char * default_history[NUM_DH] = {
 
    "Those who cannot remember the past are condemned to repeat it.\n"
@@ -108,7 +109,17 @@ static char * default_history[NUM_DH] = {
    "There was a time - we see it in the marvellous dawn of Hellenic life -\n"
    "when history was distinguished neither from poetry, from mythology,\n"
    "nor from the first dim beginnings of science.\n"
-   "-- Theodore Roosevelt"
+   "-- Theodore Roosevelt" ,
+
+   "You cannot escape the responsibility of tomorrow by evading it today.\n"
+   "-- Abraham Lincoln" ,
+
+   "Once you get into this great stream of history, you can't get out.\n"
+   "-- Richard Nixon" ,
+
+   "History is the version of past events that people have decided to\n"
+   "agree upon.\n"
+   "--Napoleon"
 
 } ;
 
@@ -179,7 +190,7 @@ char * NOTES_main( PLUGIN_interface * plint )
 
 /*-- structures defining action buttons (at bottom of popup) --*/
 
-#define NACT 5  /* number of action buttons */
+#define NACT 6  /* number of action buttons */
 
 static MCW_action_item NOTES_actor[NACT] = {
  {"Quit",NOTES_quit_CB,NULL,
@@ -191,6 +202,10 @@ static MCW_action_item NOTES_actor[NACT] = {
 
  {"Add",NOTES_add_CB,NULL,
   "Add a new Note to the\nlist (at the end)", "Add a new Note" , 0 } ,
+
+ {"Refit",NOTES_refit_CB,NULL,
+  "Resize the Notes' sub-windows\nto fit the Notes' texts." ,
+  "Resize Notes sub-windows" , 0 } ,
 
  {"Save",NOTES_save_CB,NULL,
   "Save edits to disk\nand continue" , "Save to disk; continue",0} ,
@@ -257,7 +272,7 @@ static void NOTES_make_widgets(void)
                 XmNleftAttachment , XmATTACH_FORM ,
                 XmNrightAttachment, XmATTACH_FORM ,
                 XmNtopAttachment  , XmATTACH_FORM ,
-                XmNtopOffset      , 5 ,
+                XmNtopOffset      , 1 ,
              NULL ) ;
 
    /*** button to let user choose dataset to edit ***/
@@ -315,11 +330,12 @@ static void NOTES_make_widgets(void)
                      XmNtopOffset      , 1 ,
                   NULL ) ;
 
-   quit_pb = (Widget) NOTES_actor[0].data ;
-   help_pb = (Widget) NOTES_actor[1].data ;
-   add_pb  = (Widget) NOTES_actor[2].data ;
-   save_pb = (Widget) NOTES_actor[3].data ;
-   done_pb = (Widget) NOTES_actor[4].data ;
+   quit_pb  = (Widget) NOTES_actor[0].data ;
+   help_pb  = (Widget) NOTES_actor[1].data ;
+   add_pb   = (Widget) NOTES_actor[2].data ;
+   refit_pb = (Widget) NOTES_actor[3].data ;
+   save_pb  = (Widget) NOTES_actor[4].data ;
+   done_pb  = (Widget) NOTES_actor[5].data ;
 
    /*** separator for visual neatness ***/
 
@@ -354,6 +370,8 @@ static void NOTES_make_widgets(void)
              "AFNI" , xmRowColumnWidgetClass , notesw ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
+                XmNmarginHeight, 0 ,
+                XmNmarginWidth , 0 ,
                 XmNtraversalOn , False ,
              NULL ) ;
 
@@ -411,7 +429,7 @@ static NOTE_wind * NOTES_make_note( void )
    nw->frame = XtVaCreateWidget(
                   "AFNI" , xmFrameWidgetClass , noterc ,
                   XmNshadowType , XmSHADOW_IN ,
-                  XmNshadowThickness , 5 ,
+                  XmNshadowThickness , 1 ,
                   XmNtraversalOn , False ,
                NULL ) ;
 
@@ -420,6 +438,8 @@ static NOTE_wind * NOTES_make_note( void )
                        XmNpacking     , XmPACK_TIGHT ,
                        XmNorientation , XmVERTICAL ,
                        XmNtraversalOn , False ,
+                       XmNmarginHeight, 0 ,
+                       XmNmarginWidth , 0 ,
                     NULL ) ;
 
    nw->horz_rc = XtVaCreateWidget(
@@ -427,10 +447,14 @@ static NOTE_wind * NOTES_make_note( void )
                        XmNpacking     , XmPACK_TIGHT ,
                        XmNorientation , XmHORIZONTAL ,
                        XmNtraversalOn , False ,
+                       XmNmarginHeight, 0 ,
+                       XmNmarginWidth , 0 ,
                     NULL ) ;
 
    nw->note_label = XtVaCreateManagedWidget(
                        "AFNI" , xmLabelWidgetClass , nw->horz_rc ,
+                       XmNmarginHeight, 0 ,
+                       XmNmarginWidth , 0 ,
                        NULL ) ;
 
    xstr = XmStringCreateLtoR( "Delete" , XmFONTLIST_DEFAULT_TAG ) ;
@@ -438,6 +462,8 @@ static NOTE_wind * NOTES_make_note( void )
                       "AFNI" , xmPushButtonWidgetClass , nw->horz_rc ,
                          XmNlabelString , xstr ,
                          XmNtraversalOn , False ,
+                         XmNmarginHeight, 0 ,
+                         XmNmarginWidth , 0 ,
                       NULL ) ;
    XmStringFree(xstr) ;
    XtAddCallback( nw->delete_pb, XmNactivateCallback, NOTES_delete_CB, NULL ) ;
@@ -452,6 +478,8 @@ static NOTE_wind * NOTES_make_note( void )
                       "AFNI" , xmPushButtonWidgetClass , nw->horz_rc ,
                          XmNlabelString , xstr ,
                          XmNtraversalOn , False ,
+                         XmNmarginHeight, 0 ,
+                         XmNmarginWidth , 0 ,
                       NULL ) ;
    XmStringFree(xstr) ;
    XtAddCallback( nw->restore_pb, XmNactivateCallback, NOTES_restore_CB, NULL ) ;
@@ -601,32 +629,43 @@ static void NOTES_help_CB( Widget w, XtPointer client_data, XtPointer call_data 
 
    "This plugin is used to view and edit the Notes attached to a dataset.\n"
    "\n"
-   "  Choose Dataset button: Use this to select a dataset.\n"
+   "  Choose Dataset button:\n"
+   "                Use this to select a dataset to deal with.\n"
    "\n"
-   "  Quit button: Exit the plugin without saving any edits to Notes\n"
-   "               made since the last 'Save' button press.\n"
+   "  Quit button:  Exit the plugin without saving any edits to Notes\n"
+   "                made since the last 'Save' button press.\n"
    "\n"
-   "  Help button: I think you already get the idea for this one.\n"
+   "  Help button:  I hope you already got the idea for this widget.\n"
    "\n"
-   "  Add button:  Add a new Note at the end of the existing notes.\n"
+   "  Add button:   Add a new Note at the end of the existing notes.\n"
    "\n"
-   "  Save button: Save the current Notes to the dataset .HEAD file.\n"
+   "  Refit button: Resize all Notes' sub-windows to fit the number of\n"
+   "                lines of text in each Note.  The maximum line count\n"
+   "                for each sub-window is set by the Unix environment\n"
+   "                variable AFNI_NOTES_DLINES; if this is not defined,\n"
+   "                the default maximum is 9.\n"
    "\n"
-   "  Done button: Save then Quit.\n"
+   "  Save button:  Save the current Notes to the dataset .HEAD file.\n"
    "\n"
-   "Below these buttons are the Notes windows.  The first Note window shows\n"
-   "the dataset History Note.  This Note cannot be edited by the user - it\n"
-   "is created by each AFNI program as a record of the actions that led here.\n"
-   "If no History Note is present in the dataset .HEAD file, some text will\n"
-   "be shown here anyway.\n"
+   "  Done button:  Save then Quit.\n"
    "\n"
-   "Each other Note window shows the Note number, the date of the Note's\n"
+   "Below these buttons are the Notes sub-windows.  The first Note sub-window \n"
+   "shows the dataset History Note.  This Note cannot be edited by the user\n"
+   "- it is created by each AFNI program as a record of the actions that led\n"
+   "here. If no History Note is present in the dataset .HEAD file, some\n"
+   "edifying text will be shown here anyway.\n"
+   "\n"
+   "Each other Note sub-window shows the Note number, the date of the Note's\n"
    "creation (or last change), and the Note itself.  These windows are\n"
    "editable.  If you want to remove a Note from the dataset, use the\n"
    "Delete button for that Note.  (This operation is NOT reversible - using\n"
    "the Quit button will not get a deleted Note back!)  If you edit a note\n"
-   "badly and want to restore it to the value saved in the dataset .HEAD\n"
-   "file, use the Restore button.\n"
+   "badly and want to restore it to the value saved in the dataset header,\n"
+   "use the Restore button.\n"
+   "\n"
+   "Notes can also be viewed with the program 3dinfo, and with the Info\n"
+   "buttons from the Datamode/Misc menu.  The command line program 3dNotes\n"
+   "lets you create dataset Notes in a batch script file.\n"
    "\n"
    "--- Bob Cox - September 1999\n"
    "    (Based on ideas and some code from Tom Ross of MCW)\n"
@@ -768,7 +807,7 @@ static void NOTES_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs
    int id = cbs->ival ;
    THD_3dim_dataset * qset ;
    XmString xstr ;
-   char str[256] ;
+   char str[256] , * his ;
    int ii , nl , nltot , ww,hh,qh ;
 
    /* check for errors */
@@ -822,12 +861,15 @@ static void NOTES_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs
 
    /* get and set Notes text for each window */
 
-   notar[0]->note_orig = tross_Get_History( dset ) ;
-   notar[0]->date_orig = NULL ;
-   if( notar[0]->note_orig == NULL ){
+   his = tross_Get_History( dset ) ;
+   if( his == NULL ){
       ii = ( lrand48() >> 8) % NUM_DH ;
       notar[0]->note_orig = newstring(default_history[ii]) ;
+   } else {
+      notar[0]->note_orig = tross_breakup_string( his , 2*TWIDTH/3 , TWIDTH-1 ) ;
+      free(his) ;
    }
+   notar[0]->date_orig = NULL ;
 
    xstr = XmStringCreateLtoR( "----- HISTORY -----" , XmFONTLIST_DEFAULT_TAG ) ;
    XtVaSetValues( notar[0]->note_label , XmNlabelString , xstr , NULL ) ;
@@ -936,13 +978,37 @@ static void NOTES_add_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
    /* set size of scrolling area for notes */
 
-   MCW_widget_geom( noterc , NULL,&hh , NULL,NULL ) ;
-   qh = hh ;
+   MCW_widget_geom( noterc , NULL,&hh , NULL,NULL ) ; hh +=4 ; qh = hh ;
    if( hh > dc->height- 128 ) hh = dc->height- 128 ;
 
    XtVaSetValues( notesw , XmNheight,hh , NULL ) ;
 
    if( qh > hh ) scroll_topbot( notesw , 1 ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static void NOTES_refit_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   int ii , hh , nl , qh ;
+   char * ts ;
+
+   if( dset == NULL ){ XBell(dc->display,100) ; return ; }
+
+   for( ii=0 ; ii <= num_notes ; ii++ ){
+      ts =  XmTextGetString( notar[ii]->textw ) ;  /* get text in window */
+      nl = line_count( ts ) ; XtFree( ts ) ;       /* count lines */
+      if( nl > max_tlines ) nl = max_tlines ;
+      XtVaSetValues( notar[ii]->textw , XmNrows , nl , NULL ) ;
+   }
+
+   /* set size of scrolling area for notes */
+
+   MCW_widget_geom( noterc , NULL,&hh , NULL,NULL ) ; hh += 4 ; qh = hh ;
+   if( hh > dc->height- 128 ) hh = dc->height- 128 ;
+
+   XtVaSetValues( notesw , XmNheight,hh , NULL ) ;
    return ;
 }
 

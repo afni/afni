@@ -8,12 +8,12 @@
 void Syntax(void)
 {
    printf(
-    "Copyright 1994-6 Medical College of Wisconsin\n\n"
     "Prints out sort-of-useful information from a 3D dataset's header\n"
     "Usage: 3dinfo [-v] dataset [dataset ...]\n"
-    "  The -v option means print out verbose information.  At present,\n"
-    "  it just causes the printing of all the statistics for each time\n"
-    "  in a time-dependent dataset.\n"
+    "  The -v option means print out verbose information:\n"
+    "  * All the statistics for each time in a time-dependent dataset.\n"
+    "  * All the Notes in a dataset header\n"
+    "    (without -v, only the first 5 Notes will be printed).\n"
    ) ;
    exit(0) ;
 }

@@ -2347,4 +2347,6 @@ extern void   tross_Copy_History  ( THD_3dim_dataset *, THD_3dim_dataset * ) ;
 
 #define tross_Erase_History(ds) THD_erase_one_atr((ds)->dblk,"HISTORY_NOTE")
 
+extern char * tross_breakup_string( char *, int , int ) ;
+
 #endif /* _MCW_3DDATASET_ */

@@ -1,0 +1,118 @@
+Programming Information for Notes and History
+=============================================
+The Notes and History attributes in dataset headers are manipulated by
+the following routines in file thd_notes.c (which is compiled into the
+AFNI library libmri.a).  All functions that return a string (char *)
+return a copy of the information requested.  This string will have
+been malloc()-ed and should be free()-ed when it is no longer needed.
+
+Notes are numbered 1, 2, ..., up to the value returned by
+tross_Get_Notecount().  Note are always numbered contiguously.
+The maximum number of Notes per dataset is 999.
+
+Programs and plugins that create new datasets should also create a
+History for the dataset, using one of the methods described below.
+----------------------------------------------------------------------
+int tross_Get_Notecount( THD_3dim_dataset * dset );
+
+This routine returns the number of Notes stored in dataset "dset".
+If -1 is returned, dset is not a valid dataset pointer.  If 0 is
+returned, the dataset has no Notes at this time.
+----------------------------------------------------------------------
+char * tross_Get_Note( THD_3dim_dataset * dset, int inote );
+
+This routine returns a copy of the "inote"-th Note in dataset "dset".
+If NULL is returned, some error occurred (e.g., you asked for a non-
+existent Note).
+----------------------------------------------------------------------
+char * tross_Get_Notedate( THD_3dim_dataset * dset, int inote );
+
+This routine returns a string with the date that the "inote"-th Note
+in dataset "dset" was created.  If NULL is returned, an error
+occurred.
+----------------------------------------------------------------------
+void tross_Add_Note( THD_3dim_dataset *dset, char *cn );
+
+This routine adds the string stored in "cn" to the dataset "dset".
+A new Note is created at the end of all existing Notes.
+----------------------------------------------------------------------
+void tross_Store_Note( THD_3dim_dataset * dset, int inote, char * cn );
+
+This routine stores string "cn" into dataset "dset" as Note number
+"inote".  If this Note already exists, then it is replaced by the new
+text.  If this Note number does not exist, then the new Note is
+created by called tross_Add_Note(), which means that it's number may
+not end up as "inote".
+----------------------------------------------------------------------
+void tross_Delete_Note(THD_3dim_dataset *dset, int inote);
+
+This routine removes the "inote"-th Note from dataset "dset".  Any
+notes above this Note are renumbered downwards by 1.
+----------------------------------------------------------------------
+char * tross_Get_History( THD_3dim_dataset *dset );
+
+This function returns a copy of the History Note for dataset "dset".
+----------------------------------------------------------------------
+void tross_Make_History( char * pname, int argc, char ** argv,
+                                       THD_3dim_dataset *dset );
+
+This routine uses tross_commandline() to make an entry in the History
+Note for dataset "dset".  If no History Note currently exists for
+this dataset, one is created; otherwise, the command line is appended
+to the History Note.
+----------------------------------------------------------------------
+void tross_Copy_History( THD_3dim_dataset * old_dset,
+                         THD_3dim_dataset * new_dset );
+
+This routine erases the History Note in dataset "new_dset" and
+replaces it with the History Note in dataset "old_dset".  By combining
+this routine with tross_Make_History(), a cumulative history of the
+commands that led up to a dataset can be maintained.  The existing
+AFNI programs use this function when creating a dataset from a single
+input dataset (e.g., 3dmerge with one input), but do NOT use this
+function when a dataset is created from many inputs (e.g., 3dmerge
+with several input datasets being averaged).
+----------------------------------------------------------------------
+void tross_Append_History( THD_3dim_dataset *dset, char *cn );
+
+This function appends the string "cn" to the History Note in dataset
+"dset".  If you use tross_Make_History(), you don't need to use this
+routine - it is only necessary if you have some custom history to add.
+This routine adds the "[date time] " string to the front of "cn"
+before storing it into the History Note.
+----------------------------------------------------------------------
+char * tross_commandline( char * pname, int argc, char ** argv );
+
+This routine is designed to produce an approximate copy of the command
+line used to invoke a program.
+  pname = Program name
+  argc  = argc from main()
+  argv  = argv from main()
+This function is invoked by tross_Make_History() and so doesn't often
+need to be called directly by an AFNI program.
+----------------------------------------------------------------------
+char * tross_datetime(void);
+
+This routine produces a string with the current date and time.  It
+does not usually need to be called directly by an AFNI program.
+----------------------------------------------------------------------
+char * PLUTO_commandstring( PLUGIN_interface * plint );
+
+This function (in afni_plugin.c) is used from within a plugin to
+create a History string for storage in a dataset.  It is something
+like tross_commandline(), in that it will produce a line that will
+summarize how the plugin was run.  PLUTO_commandstring() can only
+be invoked from plugins using standard (AFNI-generated) interfaces -
+plugins that create there own interfaces must create their own
+History as well.  A sample use of this function:
+
+    char * his ;
+    his = PLUTO_commandstring(plint) ;
+    tross_Copy_History( old_dset , new_dset ) ;
+    tross_Append_History( new_dset , his ) ;
+    free(his) ;
+
+This is for a plugin that is manipulating the input "old_dset" to
+create the output "new_dset".  This example is drawn directly from
+plug_power.c (the Power Spectrum plugin).
+----------------------------------------------------------------------
