@@ -690,13 +690,45 @@ ENTRY("DC_add_overlay_color") ;
    RETURN(ii) ;
 }
 
-int DC_find_overlay_color( MCW_DC * dc , char * label )
+/*-------------------------------------------------------------------------*/
+
+int DC_find_overlay_color( MCW_DC *dc , char *label )
 {
    int ii ;
    if( dc == NULL || label == NULL ) return -1 ;
    for( ii=0 ; ii < dc->ovc->ncol_ov ; ii++ )
-      if( strcasecmp(label,dc->ovc->label_ov[ii]) == 0 ) return ii ;
+     if( strcasecmp(label,dc->ovc->label_ov[ii]) == 0 ) return ii ;
    return -1 ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+int DC_find_closest_overlay_color( MCW_DC *dc , char *cname )
+{
+   float rr,gg,bb ; int b_rr,b_gg,b_bb ;
+   int ii , jj;
+
+   if( dc == NULL || cname == NULL || *cname == '\0' ) return -1 ;
+
+   ii = DC_find_overlay_color( dc , cname ) ;
+   if( ii >= 0 ) return ii ;
+
+   ii = DC_parse_color( dc, cname, &rr,&gg,&bb ) ;
+   if( ii ) return -1 ;
+
+   b_rr = (int)(255.9*rr) ;
+   b_gg = (int)(255.9*gg) ;
+   b_bb = (int)(255.9*bb) ;
+
+   jj = 0 ; rr = 9999999.9 ;
+   for( ii=0 ; ii < dc->ovc->ncol_ov ; ii++ ){
+     gg = abs(b_rr-(int)dc->ovc->r_ov[ii])
+         +abs(b_gg-(int)dc->ovc->g_ov[ii])
+         +abs(b_bb-(int)dc->ovc->b_ov[ii]) ;
+     if( gg < rr ){ jj = ii ; rr = gg ; }
+   }
+
+   return jj ;
 }
 
 /*-------------------------------------------------------------------------
@@ -707,7 +739,7 @@ int DC_find_overlay_color( MCW_DC * dc , char * label )
 static unsigned short tmp1[MAX_COLORS] , tmp2[MAX_COLORS] , tmp3[MAX_COLORS] ;
 static int            tmpi[MAX_COLORS] ;
 
-void load_tmp_colors( int nc , XColor * ccc )
+void load_tmp_colors( int nc , XColor *ccc )
 {
    register int i ;
 

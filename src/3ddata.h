@@ -2017,34 +2017,11 @@ typedef struct THD_3dim_dataset {
       KILL_list kl ;              /*!< Stuff to delete if this dataset is deleted (see killer.h) */
       XtPointer parent ;          /*!< Somebody that "owns" this dataset */
 
-   /* 14 Aug 2002: modified to make each of this an array of pointers */
-
-      SUMA_surface **su_surf ;    /*!< surface data */
-      char **su_sname ;           /*!< name of surface file */
-      int **su_vmap ;             /*!< voxel-to-node map */
-      SUMA_vnlist **su_vnlist ;   /*!< list of surfaces nodes in voxels */
-
-      int su_num ;                /*!< Number of surfaces */
-
    /* 26 Aug 2002: self warp (for w-o-d) */
 
       THD_warp *self_warp ;
 
 } THD_3dim_dataset ;
-
-/*! Determine if dataset ds has SUMA surface data attached. */
-#define DSET_HAS_SUMA(ds) ( (ds)!=NULL           &&  \
-                            (ds)->su_sname!=NULL &&  \
-                            (ds)->su_surf!=NULL  &&  \
-                            (ds)->su_num > 0        )
-
-/*! Clear out the AFNI surface data pointers in dataset ds [does not erase data]. */
-# define DSET_NULL_SUMA(ds)                         \
-  do{ if( (ds) != NULL ){                           \
-        (ds)->su_sname=NULL; (ds)->su_surf=NULL  ;  \
-        (ds)->su_vmap=NULL ; (ds)->su_vnlist=NULL;  \
-        (ds)->su_num=0     ;                        \
-      } } while(0)
 
 /*! A marker that defines a dataset that is about to be killed. */
 
@@ -2251,7 +2228,6 @@ typedef struct THD_3dim_dataset {
 #define PURGE_DSET(ds)                                                  \
   do{ if( ISVALID_3DIM_DATASET(ds) && DSET_ONDISK(ds) )                 \
          (void) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY ) ; \
-      SUMA_unload(ds) ;                                                 \
   } while(0)
 
 /*! Determine if dataset ds is loadable into memory */
@@ -2844,7 +2820,9 @@ typedef struct THD_3dim_dataset_array {
 #define SESSION_TYPE 97
 
 /*! Holds all the datasets from a directory (session).
-    [28 Jul 2003: modified to put elide distinction between anat and func] */
+    [28 Jul 2003: modified to put elide distinction between anat and func]
+    [20 Jan 2004: modified to put surfaces into here as well]
+*/
 
 typedef struct {
       int type     ;                  /*!< code indicating this is a THD_session */
@@ -2852,11 +2830,20 @@ typedef struct {
       char sessname[THD_MAX_NAME] ;   /*!< Name of directory datasets were read from */
       char lastname[THD_MAX_NAME] ;   /*!< Just/the/last/name of the directory */
 
-      THD_3dim_dataset *dsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;  /*!< array of datasets */
-
-      XtPointer parent ;        /*!< generic pointer to "owner"  */
+      THD_3dim_dataset *dsset[THD_MAX_SESSION_SIZE][LAST_VIEW_TYPE+1] ;
+                                      /*!< array of datasets */
 
       Htable *warptable ;       /*!< Table of inter-dataset warps [27 Aug 2002] */
+
+      /* 20 Jan 2004: put surfaces here, rather than in the datasets */
+
+      int su_num ;              /*!< Number of surfaces */
+      SUMA_surface **su_surf ;  /*!< Surface array */
+
+      int su_numgroup ;                  /*!< Number of surface groups */
+      SUMA_surfacegroup **su_surfgroup ; /*!< Surface group array */
+
+      XtPointer parent ;        /*!< generic pointer to "owner" of session */
 } THD_session ;
 
 /*! Determine if ss points to a valid THD_session. */
@@ -2871,7 +2858,15 @@ typedef struct {
       for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
         for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) (ss)->dsset[id][vv] = NULL; \
       (ss)->num_dsset = 0 ;                                                   \
+      (ss)->su_num    = 0 ; (ss)->su_surf = NULL ;                            \
+      (ss)->su_numgroup = 0 ; (ss)->su_surfgroup = NULL ;                     \
       (ss)->warptable = NULL ; }
+
+/*! Determine if session has SUMA surface data attached. */
+
+#define SESSION_HAS_SUMA(ss) ( (ss)!=NULL           &&  \
+                               (ss)->su_surf!=NULL  &&  \
+                               (ss)->su_num > 0        )
 
 #define SESSIONLIST_TYPE 107
 

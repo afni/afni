@@ -4,14 +4,15 @@
 
 /*-----------------------------------------------------------------------*/
 /*! Create a nodal color overlay from a voxel map.
-    - Input ks is surface index to use from anat dataset [12 Dec 2002]
+    - Input ks is surface index to use from im3d->ss_now session
     - Return value is number of nodes overlaid:
-    -  0 return ==> no overlay
-    - -1 return ==> some error (e.g., no surface nodes on this dataset)
+      -  0 return ==> no overlay was computed
+      - -1 return ==> some error (e.g., no surface nodes on this dataset)
+      = positive  ==> can use *map and *nvused
     - *map is set to a newly malloc()-ed array (if return > 0)
     - *nvused is set to the number of functional dataset voxels used to
         make the map (e.g., those that got some color)
-    - im3d->anat_now->su_vnlist->nvox will have the total number of
+    - im3d->ss_now[ks]->vn->nvox will have the total number of
        functional dataset voxels that intersected the surface
 
     Sample usage:
@@ -35,7 +36,7 @@ int AFNI_vnlist_func_overlay( Three_D_View *im3d, int ks ,
    float scale_factor , scale_thr=1.0 , scale_fim=1.0 ;
    MCW_pbar * pbar ;
    int     simult_thr , need_thr ;
-   THD_3dim_dataset *adset , *fdset ;
+   THD_3dim_dataset *fdset ;
    SUMA_irgba *mmm ;
    SUMA_ixyz  *ixyz ;
    int nvox,nnod,nout , *numnod , *voxijk , *nlist ;
@@ -46,9 +47,13 @@ int AFNI_vnlist_func_overlay( Three_D_View *im3d, int ks ,
    float fbot=0.0,ftop=0.0,ffac=0.0 , val ;
    rgbyte *cmap=NULL ;
 
+   THD_session *ss ;             /* 22 Jan 2004 */
+   SUMA_surface *surf ;
+   SUMA_vnlist *vn ;
+
 ENTRY("AFNI_vnlist_func_overlay") ;
 
-   /* check inputs for goodness */
+   /* check inputs for goodness sakes */
 
    if( map == NULL || !IM3D_VALID(im3d) ) RETURN(-1) ; /* that was easy */
 
@@ -57,12 +62,14 @@ ENTRY("AFNI_vnlist_func_overlay") ;
    /* check datasets for goodness */
    /* 12 Dec 2002: ks is now input (we used to compute it) */
 
-   adset = im3d->anat_now ;            /* anat dataset must */
-   if( adset              == NULL ||   /* have surface #ks  */
-       adset->su_num      == 0    ||
-       ks                 <  0    ||
-       adset->su_num      <= ks   ||
-       adset->su_surf[ks] == NULL   ) RETURN(-1) ;
+   ss = im3d->ss_now ;              /* session must     */
+   if( ss              == NULL ||   /* have surface #ks */
+       ss->su_num      == 0    ||
+       ks              <  0    ||
+       ss->su_num      <= ks   ||
+       ss->su_surf[ks] == NULL   ) RETURN(-1) ;
+
+   surf = ss->su_surf[ks] ;    /* the surface in question */
 
    fdset = im3d->fim_now ; if( fdset == NULL ) RETURN(-1) ;
 
@@ -109,35 +116,32 @@ ENTRY("AFNI_vnlist_func_overlay") ;
    /* maybe need to build a voxel-to-node list for func dataset  */
    /* (this is where the 3D-to-2D mapping is encapsulated, Ziad) */
 
-   if( adset->su_vnlist[ks] == NULL ||
-       !EQUIV_DATAXES(adset->su_vnlist[ks]->dset->daxes,fdset->daxes) ){
+   if( surf->vn == NULL ||
+       !EQUIV_DATAXES(surf->vn->dset->daxes,fdset->daxes) ){
 
      /* if have an old one
         (that doesn't match current dataset grid),
         then delete it from the Universe           */
 
-     if( adset->su_vnlist[ks] != NULL )
-        SUMA_destroy_vnlist( adset->su_vnlist[ks] ) ;
+     if( surf->vn != NULL ) SUMA_destroy_vnlist( surf->vn ) ;
 
      /* make the new list */
 
-     adset->su_vnlist[ks] = SUMA_make_vnlist( adset->su_surf[ks] , fdset ) ;
-     if( adset->su_vnlist[ks] == NULL ) RETURN(-1) ;
+     surf->vn = SUMA_make_vnlist( surf , fdset ) ;
+     if( surf->vn == NULL ) RETURN(-1) ;
    }
+
+   vn = surf->vn ;   /* voxel-to-node list for this surface */
 
    /* create array of voxel indexes (vlist);
       will put in there the voxels that are above threshold */
 
-   nvox   = adset->su_vnlist[ks]->nvox  ; if( nvox < 1 ) RETURN(0);
-   voxijk = adset->su_vnlist[ks]->voxijk; /* list of voxels with surface nodes */
-   numnod = adset->su_vnlist[ks]->numnod; /* number of nodes in each voxel */
+   nvox   = vn->nvox     ; if( nvox < 1 ) RETURN(0);
+   voxijk = vn->voxijk   ;      /* list of voxels with surface nodes */
+   numnod = vn->numnod   ;      /* number of nodes in each voxel */
 
-   nnod = adset->su_surf[ks]->num_ixyz  ; if( nnod < 1 ) RETURN(0);
-   ixyz = adset->su_surf[ks]->ixyz      ; /* array of surface nodes */
-
-#if 0
-fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
-#endif
+   nnod = surf->num_ixyz ; if( nnod < 1 ) RETURN(0);
+   ixyz = surf->ixyz     ;      /* array of surface nodes */
 
    DSET_load(fdset) ;                     /* if isn't in memory now */
    if( !DSET_LOADED(fdset) ) RETURN(-1) ; /* what the hell?         */
@@ -253,7 +257,7 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
           jj = vlist[ii] ; if( jj < 0 ) continue ;   /* skip voxel? */
           r = ar_fim[3*jj]; g = ar_fim[3*jj+1]; b = ar_fim[3*jj+2];
           if( r == 0 && g ==0 && b == 0 ) continue ; /* uncolored */
-          nlist = adset->su_vnlist[ks]->nlist[ii] ;  /* list of nodes */
+          nlist = vn->nlist[ii] ;  /* list of nodes */
           for( nn=0 ; nn < numnod[ii] ; nn++ ){      /* loop over nodes */
             mmm[nout].id = ixyz[nlist[nn]].id ;
             mmm[nout].r  = r ; mmm[nout].g = g ;
@@ -290,7 +294,7 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
             r = cmap[kk].r; g = cmap[kk].g; b = cmap[kk].b;
             if( r == 0 && g ==0 && b == 0 ) continue ; /* black == uncolored */
           }
-          nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
+          nlist = vn->nlist[ii] ; /* list of nodes */
           for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
             mmm[nout].id = ixyz[nlist[nn]].id ;
             mmm[nout].r  = r ; mmm[nout].g = g ;
@@ -329,7 +333,7 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
             r = cmap[kk].r; g = cmap[kk].g; b = cmap[kk].b;
             if( r == 0 && g ==0 && b == 0 ) continue ; /* black == uncolored */
           }
-          nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
+          nlist = vn->nlist[ii] ; /* list of nodes */
           for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
             mmm[nout].id = ixyz[nlist[nn]].id ;
             mmm[nout].r  = r ; mmm[nout].g = g ;
@@ -366,7 +370,7 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
             r = cmap[kk].r; g = cmap[kk].g; b = cmap[kk].b;
             if( r == 0 && g ==0 && b == 0 ) continue ; /* black == uncolored */
           }
-          nlist = adset->su_vnlist[ks]->nlist[ii] ; /* list of nodes */
+          nlist = vn->nlist[ii] ; /* list of nodes */
           for( nn=0 ; nn < numnod[ii] ; nn++ ){     /* loop over nodes */
             mmm[nout].id = ixyz[nlist[nn]].id ;
             mmm[nout].r  = r ; mmm[nout].g = g ;
@@ -446,6 +450,7 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
 /*! Make the widgets for one row of the surface control panel.
     The row itself will not be managed at this time; that comes later. */
 
+#undef  MAKE_SURF_ROW
 #define MAKE_SURF_ROW(ii)                                          \
  do{ Widget rc ; char *str[1]={"abcdefghijklmn: "} ;               \
      rc = swid->surf_rc[ii] =                                      \
@@ -465,11 +470,13 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
                            "off and back on."                  ) ; \
      swid->surf_node_av[ii] = new_MCW_colormenu( rc ,              \
                                "Nodes" , im3d->dc ,                \
-                               0 , im3d->dc->ovc->ncol_ov-1 , 0 ,  \
+                               0 , im3d->dc->ovc->ncol_ov-1 ,      \
+                               box_col ,                           \
                                AFNI_surf_redraw_CB , im3d ) ;      \
      swid->surf_line_av[ii] = new_MCW_colormenu( rc ,              \
                                "Lines" , im3d->dc ,                \
-                               0 , im3d->dc->ovc->ncol_ov-1 , 1 ,  \
+                               0 , im3d->dc->ovc->ncol_ov-1 ,      \
+                               line_col ,                          \
                                AFNI_surf_redraw_CB , im3d ) ;      \
      swid->surf_ledg_av[ii] = new_MCW_colormenu( rc ,              \
                                "+/-" , im3d->dc ,                  \
@@ -498,6 +505,9 @@ static void AFNI_surf_bbox_CB( Widget,XtPointer,XtPointer ) ; /* 19 Feb 2003 */
 
 /*------------------------------------------------------------------------*/
 /*! Make surface widgets for an AFNI controller [19 Aug 2002].
+    Called only once to create the initial set of widgets.
+    AFNI_update_surface_widgets() is used to update the list
+    when something changes.
 --------------------------------------------------------------------------*/
 
 static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
@@ -505,8 +515,8 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
    AFNI_surface_widgets *swid ;
    Widget ww , rc ;
    XmString xstr ;
-   char str[32] ;
-   int ii ;
+   char str[32] , *eee ;
+   int ii , line_col, box_col ;
 
    im3d->vwid->view->swid = swid = myXtNew( AFNI_surface_widgets ) ;
 
@@ -543,7 +553,7 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
             XmNtraversalOn , False ,
          NULL ) ;
 
-   /* top label to say what dataset we are dealing with */
+   /* top label to say what session we are dealing with */
 
    xstr = XmStringCreateLtoR( "xxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxxxxxxxxAxxxxxxxxxA [x] " ,
                               XmFONTLIST_DEFAULT_TAG ) ;
@@ -644,8 +654,16 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
    swid->surf_line_av = (MCW_arrowval **) XtCalloc( num , sizeof(MCW_arrowval *) ) ;
    swid->surf_ledg_av = (MCW_arrowval **) XtCalloc( num , sizeof(MCW_arrowval *) ) ;
 
+   eee = getenv( "AFNI_SUMA_LINECOLOR" ) ;
+   line_col = DC_find_closest_overlay_color( im3d->dc, eee ) ;
+   if( line_col < 0 ) line_col = MIN(6,im3d->dc->ovc->ncol_ov-1) ;
+
+   eee = getenv( "AFNI_SUMA_BOXCOLOR" ) ;
+   box_col = DC_find_closest_overlay_color( im3d->dc, eee ) ;
+   if( box_col < 0 ) box_col = 0 ;
+
    for( ii=0 ; ii < num ; ii++ ){
-      MAKE_SURF_ROW(ii) ;
+     MAKE_SURF_ROW(ii) ;
    }
 
    XtManageChild(swid->rowcol) ;
@@ -654,7 +672,8 @@ static AFNI_make_surface_widgets( Three_D_View *im3d, int num )
 }
 
 /*------------------------------------------------------------------------*/
-/*! Update surface widgets for this controller. */
+/*! Update surface widgets for this controller;
+    that is, set labels, manage/unmanage widget rows, et cetera. */
 
 void AFNI_update_surface_widgets( Three_D_View *im3d )
 {
@@ -664,19 +683,18 @@ void AFNI_update_surface_widgets( Three_D_View *im3d )
 
 ENTRY("AFNI_update_surface_widgets") ;
 
-   if( !IM3D_OPEN(im3d) || im3d->anat_now == NULL ) EXRETURN ;
+   if( !IM3D_OPEN(im3d) || im3d->ss_now == NULL ) EXRETURN ;  /* bad */
 
-   num  = im3d->anat_now->su_num ;  /* # of surfaces */
-   swid = im3d->vwid->view->swid ;
+   num  = im3d->ss_now->su_num ;   /* # of surfaces in current session */
+   swid = im3d->vwid->view->swid ; /* pointer to surface widget struct */
 
    SENSITIZE( im3d->vwid->view->choose_surf_pb , (Boolean)(num > 0) ) ;
 
-   if( swid == NULL ) EXRETURN ;
+   if( swid == NULL ) EXRETURN ;  /* nothing to update */
 
-   /* put dataset label in top of panel */
+   /* put session label in top of panel */
 
-   strcpy( nam , im3d->anat_now->dblk->diskptr->directory_name ) ;
-   strcat( nam , im3d->anat_now->dblk->diskptr->filecode ) ;
+   strcpy( nam , im3d->ss_now->sessname ) ;
    tnam = THD_trailname(nam,SESSTRAIL+1) ;
    ii = strlen(tnam) ; if( ii > 50 ) tnam += (ii-50) ;
    sprintf(str ,"%-.50s %s" , tnam, AFNI_controller_label(im3d) ) ;
@@ -685,11 +703,23 @@ ENTRY("AFNI_update_surface_widgets") ;
    /* make more widget rows? (1 per surface is needed) */
 
    if( swid->nall < num ){
+     char *eee ; int line_col,box_col ;
+
      swid->surf_rc      = (Widget *)        XtRealloc( (char *)swid->surf_rc     ,num*sizeof(Widget)         );
      swid->surf_bbox    = (MCW_bbox **)     XtRealloc( (char *)swid->surf_bbox   ,num*sizeof(MCW_bbox *)     );
      swid->surf_node_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_node_av,num*sizeof(MCW_arrowval *) );
      swid->surf_line_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_line_av,num*sizeof(MCW_arrowval *) );
      swid->surf_ledg_av = (MCW_arrowval **) XtRealloc( (char *)swid->surf_line_av,num*sizeof(MCW_arrowval *) );
+
+
+     eee = getenv( "AFNI_SUMA_LINECOLOR" ) ;
+     line_col = DC_find_closest_overlay_color( im3d->dc, eee ) ;
+     if( line_col < 0 ) line_col = MIN(6,im3d->dc->ovc->ncol_ov-1) ;
+
+     eee = getenv( "AFNI_SUMA_BOXCOLOR" ) ;
+     box_col = DC_find_closest_overlay_color( im3d->dc, eee ) ;
+     if( box_col < 0 ) box_col = 0 ;
+
      for( ii=swid->nall ; ii < num ; ii++ ){
        MAKE_SURF_ROW(ii) ;
      }
@@ -710,12 +740,12 @@ ENTRY("AFNI_update_surface_widgets") ;
    /* change labels for each row */
 
    for( ii=0 ; ii < num ; ii++ ){
-     sprintf(str,"%-14.14s: ",im3d->anat_now->su_surf[ii]->label) ;
+     sprintf(str,"%-14.14s: ",im3d->ss_now->su_surf[ii]->label) ;
      MCW_set_widget_label( swid->surf_bbox[ii]->wbut[0] , str ) ;
 
-     sprintf(str,"%d Nodes; %d Triangles",               /* 20 Aug 2002:  */
-             im3d->anat_now->su_surf[ii]->num_ixyz ,     /* put a hint    */
-             im3d->anat_now->su_surf[ii]->num_ijk   ) ;  /* on each label */
+     sprintf(str,"%d Nodes; %d Triangles",             /* 20 Aug 2002:  */
+             im3d->ss_now->su_surf[ii]->num_ixyz ,     /* put a hint    */
+             im3d->ss_now->su_surf[ii]->num_ijk   ) ;  /* on each label */
      MCW_register_hint( swid->surf_bbox[ii]->wbut[0] , str ) ;
    }
 
@@ -723,17 +753,16 @@ ENTRY("AFNI_update_surface_widgets") ;
 }
 
 /*------------------------------------------------------------------------*/
-/*! Update all surface widgets everywhere that touch this dataset. */
+/*! Update all surface widgets everywhere that touch this session. */
 
-void AFNI_update_all_surface_widgets( THD_3dim_dataset *dset )
+void AFNI_update_all_surface_widgets( THD_session *sess )
 {
    int ii ;
    Three_D_View *im3d ;
 ENTRY("AFNI_update_all_surface_widgets") ;
-   if( !ISVALID_DSET(dset) ) EXRETURN ;
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
      im3d = GLOBAL_library.controllers[ii] ;
-     if( IM3D_OPEN(im3d) && im3d->anat_now == dset )
+     if( IM3D_OPEN(im3d) && im3d->ss_now == sess )
        AFNI_update_surface_widgets( im3d ) ;
    }
    EXRETURN ;
@@ -751,9 +780,9 @@ void AFNI_choose_surface_CB( Widget w , XtPointer cd, XtPointer cbs )
 
 ENTRY("AFNI_choose_surface_CB") ;
 
-   if( !IM3D_OPEN(im3d) || im3d->anat_now == NULL ) EXRETURN ;
+   if( !IM3D_OPEN(im3d) || im3d->ss_now == NULL ) EXRETURN ;  /* bad */
 
-   num  = im3d->anat_now->su_num ;
+   num  = im3d->ss_now->su_num ;
    swid = im3d->vwid->view->swid ;
 
    /* no surfaces ==> nothing to do */
@@ -776,6 +805,14 @@ ENTRY("AFNI_choose_surface_CB") ;
 
    AFNI_update_surface_widgets(im3d) ;
 
+   /* Mac OS X mangles up the widgets on first display,
+      so unmanage and remanage them -- this solves that problem */
+
+   WAIT_for_window( swid->rowcol ) ;
+   XtUnmanageChild( swid->rowcol ) ;
+   WAIT_for_window( swid->rowcol ) ;
+   XtManageChild  ( swid->rowcol ) ;
+
    /* wait for user to press some button */
 
    EXRETURN ;
@@ -786,7 +823,7 @@ ENTRY("AFNI_choose_surface_CB") ;
 
 static void AFNI_surf_done_CB( Widget w , XtPointer cd, XtPointer cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    AFNI_surface_widgets *swid ;
 
 ENTRY("AFNI_surf_done_CB") ;
@@ -802,18 +839,18 @@ ENTRY("AFNI_surf_done_CB") ;
    All this does is to redraw the images, since that is where
    the actual info will be grabbed from the swid arrowvals.  */
 
-static void AFNI_surf_redraw_CB( MCW_arrowval * av , XtPointer cd )
+static void AFNI_surf_redraw_CB( MCW_arrowval *av , XtPointer cd )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    AFNI_surface_widgets *swid ;
 
 ENTRY("AFNI_surf_redraw_CB") ;
 
    if( im3d == NULL ) EXRETURN ;
    swid = im3d->vwid->view->swid ;
-   if( swid == NULL ) EXRETURN ;  /* should be impossible */
+   if( swid == NULL ) EXRETURN ;    /* should be impossible */
 
-   if( !IM3D_OPEN(im3d) ){
+   if( !IM3D_OPEN(im3d) ){          /* bad user, bad bad bad! */
      XtUnmapWidget( swid->wtop ) ;
      EXRETURN ;
    }
@@ -829,7 +866,7 @@ ENTRY("AFNI_surf_redraw_CB") ;
 
 static void AFNI_surf_bbox_CB( Widget w , XtPointer cd , XtPointer qd )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    AFNI_surface_widgets *swid ;
 
 ENTRY("AFNI_surf_bbox_CB") ;
@@ -838,7 +875,7 @@ ENTRY("AFNI_surf_bbox_CB") ;
    swid = im3d->vwid->view->swid ;
    if( swid == NULL ) EXRETURN ;  /* should be impossible */
 
-   if( !IM3D_OPEN(im3d) ){
+   if( !IM3D_OPEN(im3d) ){        /* bad user! */
      XtUnmapWidget( swid->wtop ) ;
      EXRETURN ;
    }

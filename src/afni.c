@@ -1028,6 +1028,7 @@ static int check_string( char *targ , int ns , char *ss[] )
 int main( int argc , char * argv[] )
 {
    int ii ;
+   char *eenv ;
 
    /*--- help the pitiful user? ---*/
 
@@ -1096,6 +1097,11 @@ int main( int argc , char * argv[] )
 
    if( !GLOBAL_argopt.quiet && !ALLOW_real_time )
      AFNI_start_version_check() ;               /* 21 Nov 2002 */
+
+   /** set default values of some environment variables **/
+
+   eenv = getenv("AFNI_SUMA_LINECOLOR") ;
+   if( eenv == NULL ) putenv("AFNI_SUMA_LINECOLOR=blue3");  /* 23 Jan 2004 */
 
    /** Start the debug traceback stuff **/
 
@@ -1869,28 +1875,18 @@ STATUS("get status") ;
 #define RX 0.2
    if( type == isqCR_getmemplot ){
      Three_D_View *im3d = (Three_D_View *) br->parent ;
-     int do_surf= SUMA_ENABLED ;
      int do_xhar=(im3d->vinfo->crosshair_visible && AFNI_yesenv("AFNI_CROSSHAIR_LINES"));
+     int do_surf;
      MEM_plotdata *mp ;
      AFNI_surface_widgets *swid = im3d->vwid->view->swid ;  /* 19 Aug 2002 */
-     THD_3dim_dataset *suset=br->dset ;                     /* 08 Jan 2004 */
+     THD_session *suss=im3d->ss_now ;                       /* 20 Jan 2004 */
      THD_dataxes *daxes=CURRENT_DAXES(br->dset) ;
 
      if( !IM3D_OPEN(im3d) )     RETURN(NULL) ;
-     if( !do_surf && !do_xhar ) RETURN(NULL) ;  /* nothing to do */
 
-     /* 08 Jan 2004: check all datasets in this session for surfaces,
-                     if current dataset doesn't have any of them that is */
+     /* 20 Jan 2004: surfaces are now in the session, not on the dataset! */
 
-     do_surf = DSET_HAS_SUMA(suset) ;
-     if( !do_surf ){
-       int vv = im3d->vinfo->view_type , dd ;
-       for( dd=0 ; dd < im3d->ss_now->num_dsset ; dd++ ){
-         suset = im3d->ss_now->dsset[dd][vv] ;
-         if( DSET_HAS_SUMA(suset) ) break ;
-       }
-       do_surf = (dd < im3d->ss_now->num_dsset) ;
-     }
+     do_surf = SUMA_ENABLED && SESSION_HAS_SUMA(suss) ;
      if( !do_surf && !do_xhar ) RETURN(NULL) ;  /* nothing to do */
 
      /* get ready to plot */
@@ -1907,8 +1903,8 @@ STATUS("creating memplot for image overlay") ;
 
      AFNI_get_xhair_node( im3d , &kbest , &ibest ) ;   /* 24 Feb 2003 */
 
-     for( ks=0 ; ks < suset->su_num ; ks++ ){  /* 14 Aug 2002: loop over surfaces */
-      SUMA_surface *ag = suset->su_surf[ks] ;
+     for( ks=0 ; ks < suss->su_num ; ks++ ){  /* 14 Aug 2002: loop over surfaces */
+      SUMA_surface *ag = suss->su_surf[ks] ;
       int nn , ii,jj ;
       SUMA_ixyz *nod ;
       THD_ivec3 iv,ivp,ivm ;
@@ -1922,9 +1918,9 @@ STATUS("creating memplot for image overlay") ;
       int   kkk=0 ;
       float xyz=0.0,xyzp,xyzm , rxm,rxp ;
       int skip_boxes=1 , skip_lines=0 , skip_lcen=0, skip_ledg=1 ;
-      float boxsize=RX , linewidth=0.0 ;   /* 23 Feb 2003 */
+      float boxsize=RX , linewidth=0.0 ;      /* 23 Feb 2003 */
 
-      if( ag == NULL ) continue ;          /* skip this one */
+      if( ag == NULL ) continue ;             /* skip this non-existent one */
       nn = ag->num_ixyz ; nod = ag->ixyz ;
       if( nn < 1 || nod == NULL ) continue ;  /* nothing to do */
 
@@ -5581,26 +5577,6 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       }
    }
 
-#if 0
-   if( new_xyz                         &&
-       SUMA_ENABLED                    &&
-       DSET_HAS_SUMA(im3d->anat_now)   &&
-       im3d->anat_now->su_surf[0] != NULL &&
-       im3d->anat_now->su_vmap[0] != NULL &&
-      !im3d->anat_wod_flag               ){
-
-      int pp = im3d->anat_now->su_vmap[0][ i1 + j2*dim1 + k3*dim1*dim2 ] ;
-
-      if( pp >= 0 ){
-        int ll = SUMA_VMAP_LEVEL(pp) ;
-        pp = SUMA_VMAP_UNMASK(pp) ;
-        pp = im3d->anat_now->su_surf[0]->ixyz[pp].id ;
-
-        fprintf(stderr,"surface[0] node ID = %d (level %d)\n" , pp,ll ) ;
-      }
-   }
-#endif
-
    EXRETURN ;
 }
 
@@ -6662,10 +6638,6 @@ STATUS("purging old datasets from memory (maybe)") ;
       im3d->fim_now  = new_func ;
       AFNI_purge_unused_dsets() ;
    }
-   if( SUMA_ENABLED ){                                    /* 29 Aug 2001 */
-      if( old_anat != new_anat ) SUMA_unload( old_anat ) ;
-      SUMA_load( new_anat ) ;
-   }
 
    /*---------------------------------------------------------*/
    /* set the new datasets that we will deal with from now on */
@@ -7249,7 +7221,7 @@ STATUS(" -- processing points in this dataset") ;
    /*------ 06 Mar 2002: turn "SUMA to" on image popup on or off ------*/
 
    if( im3d->vwid->imag->pop_sumato_pb != NULL ){
-     if( DSET_HAS_SUMA(im3d->anat_now) )
+     if( SESSION_HAS_SUMA(im3d->ss_now) )
        XtManageChild( im3d->vwid->imag->pop_sumato_pb ) ;
      else
        XtUnmanageChild( im3d->vwid->imag->pop_sumato_pb ) ;
@@ -7893,7 +7865,7 @@ ENTRY("AFNI_imag_pop_CB") ;
    /*-- 06 Mar 2002: jump to a node in a surface --*/
 
    else if( w == im3d->vwid->imag->pop_sumato_pb &&
-            DSET_HAS_SUMA(im3d->anat_now)        &&
+            SESSION_HAS_SUMA(im3d->ss_now)       &&
             im3d->type == AFNI_3DDATA_VIEW         ){
 
       if( ISQ_REALZ(seq) ){
@@ -8326,18 +8298,18 @@ void AFNI_sumato_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
 ENTRY("AFNI_sumato_CB") ;
 
    if( !IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
-   if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
-   if( !DSET_HAS_SUMA(im3d->anat_now) ) EXRETURN ;
+   if( cbs->reason != mcwCR_string )                         EXRETURN ;
+   if( !SESSION_HAS_SUMA(im3d->ss_now) )                     EXRETURN ;
 
    nn = -1 ;
    sscanf( cbs->cval , "%d" , &nn ) ;
-   ii = SUMA_find_node_id( im3d->anat_now->su_surf[0] , nn ) ;
+   ii = SUMA_find_node_id( im3d->ss_now->su_surf[0] , nn ) ;
    if( ii < 0 ){ XBell(im3d->dc->display,100); EXRETURN; }
 
    (void) AFNI_jumpto_dicom( im3d ,
-                             im3d->anat_now->su_surf[0]->ixyz[ii].x ,
-                             im3d->anat_now->su_surf[0]->ixyz[ii].y ,
-                             im3d->anat_now->su_surf[0]->ixyz[ii].z  ) ;
+                             im3d->ss_now->su_surf[0]->ixyz[ii].x ,
+                             im3d->ss_now->su_surf[0]->ixyz[ii].y ,
+                             im3d->ss_now->su_surf[0]->ixyz[ii].z  ) ;
 
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;

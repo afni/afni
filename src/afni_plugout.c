@@ -448,7 +448,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
       /* set surface node ID */
 
       } else if( strncmp(str[ss],"SURFID",6) == 0 ){
-        if( SUMA_ENABLED && DSET_HAS_SUMA(im3d->anat_now) ){
+        if( SUMA_ENABLED && SESSION_HAS_SUMA(im3d->ss_now) ){
            int id ;
 
            ii = sscanf( str[ss] , "SURFID %d" , &id ) ;
@@ -462,15 +462,15 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
               if( verbose )
                  fprintf(stderr,"PO: command SURFID %d\n",id) ;
 
-              ii = SUMA_find_node_id( im3d->anat_now->su_surf[0] , id ) ;
+              ii = SUMA_find_node_id( im3d->ss_now->su_surf[0] , id ) ;
               if( ii < 0 ){
                  fprintf(stderr,"PO: unknown SURFID node number %d\n",id) ;
                  if( pp->do_ack ) PO_ACK_BAD( pp->ioc ) ;
               } else {
                  AFNI_jumpto_dicom( im3d ,
-                                    im3d->anat_now->su_surf[0]->ixyz[ii].x ,
-                                    im3d->anat_now->su_surf[0]->ixyz[ii].y ,
-                                    im3d->anat_now->su_surf[0]->ixyz[ii].z  ) ;
+                                    im3d->ss_now->su_surf[0]->ixyz[ii].x ,
+                                    im3d->ss_now->su_surf[0]->ixyz[ii].y ,
+                                    im3d->ss_now->su_surf[0]->ixyz[ii].z  ) ;
                  if( pp->do_ack ) PO_ACK_OK ( pp->ioc ) ;
               }
            }
@@ -573,35 +573,6 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
 
                    sprintf( pobuf + npobuf , "OVERLAY %s\n" ,
                             DSET_HEADNAME(im3d->fim_now) ) ;
-               }
-            }
-            break ;
-
-            case POMODE_SURFID_DELTA:{          /* 05 Sep 2001 */
-               int ix , jy , kz , new_xyz ;
-               ix = im3d->vinfo->i1 ;
-               jy = im3d->vinfo->j2 ;
-               kz = im3d->vinfo->k3 ;
-               new_xyz = (ix != pp->ix || jy != pp->jy || kz != pp->kz) ;
-
-               if( new_xyz                            &&
-                   SUMA_ENABLED                       &&
-                   DSET_HAS_SUMA(im3d->anat_now)      &&
-                   im3d->anat_now->su_surf[0] != NULL &&
-                   im3d->anat_now->su_vmap[0] != NULL   ){
-
-                   int nx = DSET_NX(im3d->anat_now) ;
-                   int ny = DSET_NY(im3d->anat_now) ;
-                   int qq = im3d->anat_now->su_vmap[0][ix + jy*nx + kz*nx*ny] ;
-
-                   if( qq > 0 ){
-                     qq = SUMA_VMAP_UNMASK(qq) ;
-                     if( qq != pp->surfindex ){
-                       sprintf( pobuf + npobuf , "SURFID %d\n" ,
-                                im3d->anat_now->su_surf[0]->ixyz[qq].id ) ;
-                       pp->surfindex = qq ;
-                     }
-                   }
                }
             }
             break ;

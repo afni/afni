@@ -4904,3 +4904,6 @@
 
 16 Jan 2004
  * Modified 3dFDR.c to produce some output when -input1D option is used!
+
+23 Jan 2004
+ * Modifications to put surfaces into sessions rather than directories.

@@ -1,11 +1,14 @@
-#ifndef _SUMA_HEADER_FILE_
-#define _SUMA_HEADER_FILE_
+#ifndef _AFNI_SUMA_HEADER_FILE_
+#define _AFNI_SUMA_HEADER_FILE_
 
 /**************************************************************/
 /**** Header for SUMA functions (SUrface Mapping to AFNI?) ****/
 /**** Strawman version: 24 Aug 2001 - RWCox                ****/
 /**** Woodman         : 01 Mar 2002                        ****/
+/**** Tinman          : 20 Jan 2004                        ****/
 /**************************************************************/
+
+#include "vecmat.h"   /* for THD_fvec3 type */
 
 /*! Port number for talking to AFNI */
 
@@ -13,7 +16,7 @@
 #define SUMA_TCP_PORT 53211   /* my Zip code in Wisconsin */
 #endif
 
-/*--- define types ---*/
+/*---------------------------- define types ----------------------------*/
 
 /*! Type to store a node in 3D space. */
 
@@ -25,6 +28,7 @@ typedef struct {
 } SUMA_ixyz ;
 
 /*! NIML rowtype definition for SUMA_ixyz struct */
+
 #define SUMA_ixyz_defn "int,3*float"
 
 /*! Type to store a triangle (a triple of node identifiers). */
@@ -47,6 +51,18 @@ typedef struct {
 /*! NIML rowtype definition for SUMA_irgba struct */
 
 #define SUMA_irgba_defn "int,4*byte"
+
+/*! Typedef for a voxel-node list */
+
+typedef struct {
+   int nvox ;       /*!< Number of voxels stored herein            */
+   int *voxijk ;    /*!< [i] = voxel index in dataset, i=0..nvox-1 */
+   int *numnod ;    /*!< [i] = number of nodes in voxel #i         */
+   int **nlist ;    /*!< [i] = array of node indexes for voxel #i;
+                         nnlist[i][j] for j=0..numnod[i]-1         */
+
+   struct THD_3dim_dataset * dset ;  /*!< Dataset to which this is linked */
+} SUMA_vnlist ;
 
 /*! Type code for SUMA_surface structs */
 
@@ -91,21 +107,27 @@ typedef struct {
   int sorted   ;               /*!< If 1, node .id's are sorted */
 
   SUMA_ixyz *ixyz ;            /*!< Node list: num_ixyz long */
+  THD_fvec3 *norm ;            /*!< Normals list: num_ixyz long */
   SUMA_ijk  *ijk  ;            /*!< Triangle list: num_ijk long */
 
-  float xbot ;                 /*!< Smallest x-coordinate in nodes */
-  float ybot ;                 /*!< Smallest y-coordinate in nodes */
-  float zbot ;                 /*!< Smallest z-coordinate in nodes */
-  float xtop ;                 /*!< Largest x-coordinate in nodes */
-  float ytop ;                 /*!< Largest y-coordinate in nodes */
-  float ztop ;                 /*!< Largest z-coordinate in nodes */
+  float xbot ;                 /*!< Smallest  x-coordinate in ixyz */
+  float ybot ;                 /*!< Smallest  y-coordinate in ixyz */
+  float zbot ;                 /*!< Smallest  z-coordinate in ixyz */
+  float xtop ;                 /*!< Largest   x-coordinate in ixyz */
+  float ytop ;                 /*!< Largest   y-coordinate in ixyz */
+  float ztop ;                 /*!< Largest   z-coordinate in ixyz */
+  float xcen ;                 /*!< Averagest x-coordinate in ixyz */
+  float ycen ;                 /*!< Averagest y-coordinate in ixyz */
+  float zcen ;                 /*!< Averagest z-coordinate in ixyz */
 
-  char idcode[32] ;            /*!< IDCODE string for this structure */
-  char idcode_dset[32] ;       /*!< IDCODE string for AFNI dataset */
+  char idcode[32] ;            /*!< IDCODE for this structure */
+  char idcode_domaingroup[32]; /*!< IDCODE for group of associated surfaces */
+  char idcode_dset[32] ;       /*!< IDCODE for AFNI dataset domain parent */
 
-  char label[32] ;             /*!< Label for user-interaction [19 Aug 2002] */
+  char label[64] ;             /*!< Label for user interaction */
 
-  SUMA_vvlist *vv ;            /*!< For ROIs from SUMA [16 Jun 2003] */
+  SUMA_vvlist *vv ;            /*!< For ROIs from SUMA */
+  SUMA_vnlist *vn ;            /*!< Voxel-to-node mapping, for overlays */
 } SUMA_surface ;
 
 /*! Macro for node count in a SUMA_surface struct */
@@ -132,19 +154,20 @@ typedef struct {
 
 #define SUMA_VMAP_TO_ID(ag,v)  ((ag)->ixyz[SUMA_VMAP_UNMASK(v)])
 
-/*! Typedef for a voxel-node list */
+/*! For the SUMA_surfacegroup typedef below. */
+
+#define SUMA_SURFACEGROUP_TYPE 53003
+
+/*! A typedef for a struct that contains a bunch of associated surfaces. */
 
 typedef struct {
-   int nvox ;       /*!< Number of voxels stored herein            */
-   int *voxijk ;    /*!< [i] = voxel index in dataset, i=0..nvox-1 */
-   int *numnod ;    /*!< [i] = number of nodes in voxel #i         */
-   int **nlist ;    /*!< [i] = array of node indexes for voxel #i;
-                         nnlist[i][j] for j=0..numnod[i]-1         */
+  int type ;                   /*!< == SUMA_SURFACEGROUP_TYPE */
+  int num_surf ;               /*!< number of surfaces herein */
+  SUMA_surface **surf ;        /*!< array of pointers to surface */
+  char idcode[32] ;            /*!< IDCODE for this group of surfaces */
+} SUMA_surfacegroup ;
 
-   struct THD_3dim_dataset * dset ;  /*!< Dataset to which this is linked */
-} SUMA_vnlist ;
-
-/*--- -------------------- function prototypes -----------------------*/
+/*------------------------ function prototypes -----------------------*/
 
 extern SUMA_surface * SUMA_create_empty_surface(void) ;
 extern void SUMA_destroy_surface( SUMA_surface * ) ;
@@ -171,7 +194,7 @@ extern int * SUMA_map_vol_to_surf( SUMA_surface * ,
 
 extern int * SUMA_map_dset_to_surf( SUMA_surface *, struct THD_3dim_dataset *);
 
-extern SUMA_vnlist *SUMA_make_vnlist(SUMA_surface *,struct THD_3dim_dataset *);
+extern SUMA_vnlist * SUMA_make_vnlist(SUMA_surface *,struct THD_3dim_dataset *);
 
 extern int AFNI_find_closest_node( int , SUMA_ixyz *,    /* 20 Feb 2003 */
                                    float,float,float ,

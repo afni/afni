@@ -1284,7 +1284,7 @@ extern void AFNI_init_niml( void ) ; /* 28 Feb 2002 */
 
 extern void AFNI_choose_surface_CB( Widget , XtPointer , XtPointer ) ; /* 19 Aug 2002 */
 extern void AFNI_update_surface_widgets( Three_D_View * ) ;
-extern void AFNI_update_all_surface_widgets( THD_3dim_dataset * ) ;
+extern void AFNI_update_all_surface_widgets( THD_session * ) ;
 
 extern void AFNI_disable_suma_overlay( int ) ;  /* 16 Jun 2003 */
 
