@@ -1417,9 +1417,9 @@ if( PRINT_TRACING ){
                       "image aspect ratio"       ) ;
 
 #ifdef BAD_BUTTON3_POPUPS   /* 21 Jul 2003 */
-   newseq->wbar_menu = XmCreatePopupMenu( newseq->wscale, "imseq",NULL,0 ) ;
+   newseq->wbar_menu = XmCreatePopupMenu( newseq->wscale, "menu",NULL,0 ) ;
 #else
-   newseq->wbar_menu = XmCreatePopupMenu( newseq->wbar  , "imseq",NULL,0 ) ;
+   newseq->wbar_menu = XmCreatePopupMenu( newseq->wbar  , "menu",NULL,0 ) ;
 #endif
 
    SAVEUNDERIZE(XtParent(newseq->wbar_menu)) ;  /* 27 Feb 2001 */
@@ -1428,7 +1428,7 @@ if( PRINT_TRACING ){
 
    newseq->wbar_rng_but =
       XtVaCreateManagedWidget(
-         "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+         "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Display Range") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1438,7 +1438,7 @@ if( PRINT_TRACING ){
 
    newseq->wbar_zer_but =
       XtVaCreateManagedWidget(
-         "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+         "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Zero Color") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1448,7 +1448,7 @@ if( PRINT_TRACING ){
 
    newseq->wbar_flat_but =
       XtVaCreateManagedWidget(
-         "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+         "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Flatten Range") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1458,7 +1458,7 @@ if( PRINT_TRACING ){
 
    newseq->wbar_sharp_but =
       XtVaCreateManagedWidget(
-         "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+         "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
             LABEL_ARG("Choose Sharpen factor") ,
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
@@ -1573,7 +1573,7 @@ STATUS("creation: widgets created") ;
      static char *slabel[5] = { "Small" , "Medium" , "Large" , "Huge" , "Enormous" } ;
      char *eee ; int iii ;
 
-     (void) XtVaCreateManagedWidget( "imseq",
+     (void) XtVaCreateManagedWidget( "menu",
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
                                        XmNseparatorType , XmSINGLE_LINE ,
                                      NULL ) ;
@@ -1588,14 +1588,14 @@ STATUS("creation: widgets created") ;
 
      newseq->wbar_graymap_pb =
         XtVaCreateManagedWidget(
-           "imseq" , xmPushButtonWidgetClass , newseq->wbar_menu ,
+           "menu" , xmPushButtonWidgetClass , newseq->wbar_menu ,
               LABEL_ARG("Display Graymap Plot") ,
               XmNtraversalOn , False ,
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
      XtAddCallback( newseq->wbar_graymap_pb, XmNactivateCallback, ISQ_wbar_menu_CB, newseq ) ;
 
-     (void) XtVaCreateManagedWidget( "imseq",
+     (void) XtVaCreateManagedWidget( "menu",
                                      xmSeparatorWidgetClass, newseq->wbar_menu,
                                        XmNseparatorType , XmSINGLE_LINE ,
                                      NULL ) ;
@@ -5292,7 +5292,7 @@ ENTRY("ISQ_but_disp_CB") ;
         SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
 
    seq->dialog = XtVaCreatePopupShell(
-                    "imseq" , xmDialogShellWidgetClass , seq->wtop ,
+                    "menu" , xmDialogShellWidgetClass , seq->wtop ,
                        XmNtitle , "Display Options" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
@@ -5323,7 +5323,7 @@ ENTRY("ISQ_but_disp_CB") ;
 
    if( AFNI_yesenv("AFNI_DISP_SCROLLBARS") ){  /* 31 Jan 2002 */
       shtop = swtop = XtVaCreateManagedWidget(
-                 "imseq" , xmScrolledWindowWidgetClass , seq->dialog ,
+                 "menu" , xmScrolledWindowWidgetClass , seq->dialog ,
                     XmNscrollingPolicy        , XmAUTOMATIC ,
                     XmNvisualPolicy           , XmVARIABLE ,
 #if 0
@@ -5338,7 +5338,7 @@ ENTRY("ISQ_but_disp_CB") ;
    }
 
    rctop = XtVaCreateWidget(
-              "imseq" , xmRowColumnWidgetClass , shtop ,
+              "menu" , xmRowColumnWidgetClass , shtop ,
                  XmNpacking    , XmPACK_TIGHT ,
                  XmNnumColumns , 1 ,
 
@@ -5346,7 +5346,7 @@ ENTRY("ISQ_but_disp_CB") ;
               NULL ) ;
 
    rcboxes = XtVaCreateWidget(
-                "imseq" , xmRowColumnWidgetClass , rctop ,
+                "menu" , xmRowColumnWidgetClass , rctop ,
                    XmNpacking    , XmPACK_TIGHT ,
                    XmNnumColumns , 2 ,
 
@@ -5423,7 +5423,7 @@ ENTRY("ISQ_but_disp_CB") ;
              seq->status->slice_proj->num > 0  ){  /* 31 Jan 2002 */
 
              (void) XtVaCreateManagedWidget(
-                      "imseq" , xmSeparatorWidgetClass , rcboxes ,
+                      "menu" , xmSeparatorWidgetClass , rcboxes ,
                          XmNseparatorType , XmSINGLE_LINE ,
                          XmNinitialResourcesPersistent , False ,
                       NULL ) ;
@@ -5476,7 +5476,7 @@ ENTRY("ISQ_but_disp_CB") ;
              seq->status->transforms0D->num > 0  ){
 
              (void) XtVaCreateManagedWidget(
-                      "imseq" , xmSeparatorWidgetClass , rcboxes ,
+                      "menu" , xmSeparatorWidgetClass , rcboxes ,
                          XmNseparatorType , XmSINGLE_LINE ,
                          XmNinitialResourcesPersistent , False ,
                       NULL ) ;
@@ -5507,7 +5507,7 @@ ENTRY("ISQ_but_disp_CB") ;
              seq->status->transforms2D->num > 0  ){
 
              (void) XtVaCreateManagedWidget(
-                      "imseq" , xmSeparatorWidgetClass , rcboxes ,
+                      "menu" , xmSeparatorWidgetClass , rcboxes ,
                          XmNseparatorType , XmSINGLE_LINE ,
                          XmNinitialResourcesPersistent , False ,
                       NULL ) ;
@@ -5536,7 +5536,7 @@ ENTRY("ISQ_but_disp_CB") ;
 
          if( nav > 0 && seq->status->send_CB != NULL ){
             (void) XtVaCreateManagedWidget(
-                     "imseq" , xmSeparatorWidgetClass , rcboxes ,
+                     "menu" , xmSeparatorWidgetClass , rcboxes ,
                         XmNseparatorType , XmSINGLE_LINE ,
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
@@ -5573,7 +5573,7 @@ ENTRY("ISQ_but_disp_CB") ;
 
          if( nav > 0 && seq->status->send_CB != NULL ){
             (void) XtVaCreateManagedWidget(
-                     "imseq" , xmSeparatorWidgetClass , rcboxes ,
+                     "menu" , xmSeparatorWidgetClass , rcboxes ,
                         XmNseparatorType , XmSINGLE_LINE ,
                         XmNinitialResourcesPersistent , False ,
                      NULL ) ;
@@ -5611,7 +5611,7 @@ ENTRY("ISQ_but_disp_CB") ;
          /* final separator */
 
          if( nav ) (void) XtVaCreateManagedWidget(
-                            "imseq" , xmSeparatorWidgetClass , rcboxes ,
+                            "menu" , xmSeparatorWidgetClass , rcboxes ,
                                XmNseparatorType , XmSINGLE_LINE ,
                                XmNinitialResourcesPersistent , False ,
                             NULL ) ;
@@ -7677,7 +7677,7 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
        SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
 
    seq->dialog = XtVaCreatePopupShell(
-                    "imseq" , xmDialogShellWidgetClass , seq->wtop ,
+                    "menu" , xmDialogShellWidgetClass , seq->wtop ,
                        XmNtitle , "Montage" ,
                        XmNdeleteResponse , XmDO_NOTHING ,
                        XmNinitialResourcesPersistent , False ,
@@ -7704,7 +7704,7 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
            ISQ_montage_action_CB , seq ) ;
 
    wrc  = XtVaCreateWidget(                    /* RowColumn to hold all */
-             "imseq" , xmRowColumnWidgetClass , seq->dialog ,
+             "menu" , xmRowColumnWidgetClass , seq->dialog ,
                 XmNpacking     , XmPACK_TIGHT ,
                 XmNorientation , XmVERTICAL ,
                 XmNtraversalOn , False ,
@@ -7712,14 +7712,14 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
              NULL ) ;
 
    (void) XtVaCreateManagedWidget(
-            "imseq" , xmLabelWidgetClass , wrc ,
+            "menu" , xmLabelWidgetClass , wrc ,
                LABEL_ARG("-- Montage Controls --") ,
                XmNalignment  , XmALIGNMENT_CENTER ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 
    (void) XtVaCreateManagedWidget(
-            "imseq" , xmSeparatorWidgetClass , wrc ,
+            "menu" , xmSeparatorWidgetClass , wrc ,
                XmNseparatorType , XmSHADOW_ETCHED_IN ,
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
@@ -9369,7 +9369,7 @@ ENTRY("ISQ_record_button") ;
 
    /* the menu pane */
 
-   menu = XmCreatePulldownMenu( mbar , "imseq" , NULL,0 ) ;
+   menu = XmCreatePulldownMenu( mbar , "menu" , NULL,0 ) ;
    VISIBILIZE_WHEN_MAPPED(menu) ;
 
    /* the cascade button (what the user sees) */
@@ -9445,7 +9445,7 @@ ENTRY("ISQ_record_button") ;
 
    xstr = XmStringCreateLtoR( "-- Cancel --" , XmFONTLIST_DEFAULT_TAG ) ;
    (void) XtVaCreateManagedWidget(
-            "imseq" , xmLabelWidgetClass , menu ,
+            "menu" , xmLabelWidgetClass , menu ,
                XmNlabelString , xstr ,
                XmNrecomputeSize , False ,
                XmNinitialResourcesPersistent , False ,
@@ -9453,7 +9453,7 @@ ENTRY("ISQ_record_button") ;
    XmStringFree(xstr) ;
 
    (void) XtVaCreateManagedWidget(
-            "imseq" , xmSeparatorWidgetClass , menu ,
+            "menu" , xmSeparatorWidgetClass , menu ,
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
@@ -9475,7 +9475,7 @@ ENTRY("ISQ_record_button") ;
       seq->record_status = RECORD_STATUS_OFF ;
 
       (void) XtVaCreateManagedWidget(
-               "imseq" , xmSeparatorWidgetClass , menu ,
+               "menu" , xmSeparatorWidgetClass , menu ,
                   XmNseparatorType , XmSINGLE_LINE ,
                NULL ) ;
 

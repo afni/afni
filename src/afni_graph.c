@@ -4604,7 +4604,7 @@ ENTRY("GRA_setshift_startup") ;
    MCW_widget_geom( grapher->fdw_graph , NULL,NULL,&xx,&yy ) ;  /* geometry of shell */
 
    grapher->dialog = XtVaCreatePopupShell(
-                      "dialog" , xmDialogShellWidgetClass , grapher->fdw_graph ,
+                      "menu" , xmDialogShellWidgetClass , grapher->fdw_graph ,
                          XmNx , xx+15 ,
                          XmNy , yy+15 ,
                          XmNtitle , "Shifts" ,

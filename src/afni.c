@@ -966,20 +966,20 @@ static char * FALLback[] =
   {   "AFNI*fontList:              9x15bold=charset1"    ,
       "AFNI*pbar*fontList:         6x10=charset1"        ,
       "AFNI*imseq*fontList:        7x13=charset1"        ,
-      "AFNI*background:            gray30"               ,
-      "AFNI*menu*background:       gray30"               ,
-      "AFNI*borderColor:           gray30"               ,
+      "AFNI*background:            gray25"               ,
+      "AFNI*menu*background:       gray15"               ,
+      "AFNI*borderColor:           gray25"               ,
       "AFNI*foreground:            yellow"               ,
       "AFNI*borderWidth:           0"                    ,
-      "AFNI*troughColor:           green"                ,
+      "AFNI*troughColor:           blue3"                ,
       "AFNI*XmLabel.translations:  #override<Btn2Down>:" , /* Motif 2.0 bug */
       "AFNI*help*background:       black"                ,
-      "AFNI*help*foreground:       yellow"               ,
+      "AFNI*help*foreground:       #ffff88"              ,
       "AFNI*help*helpborder:       False"                ,
       "AFNI*help*waitPeriod:       1066"                 ,
       "AFNI*help*fontList:         9x15bold=charset1"    ,
       "AFNI*cluefont:              9x15bold"             ,
-      "AFNI*help*cancelWaitPeriod: 50"                   ,
+      "AFNI*help*cancelWaitPeriod: 333"                  ,
    NULL } ;
 
 /*-----------------------------------------------------------------------*/

@@ -1495,7 +1495,7 @@ ENTRY("MCW_choose_ovcolor") ;
    /*--- create popup widget ---*/
 
    wpop = XtVaCreatePopupShell(                        /* Popup Shell */
-             "AFNI" , xmDialogShellWidgetClass , wpar ,
+             "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , False ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
@@ -1614,7 +1614,7 @@ ENTRY("MCW_choose_integer") ;
    /*--- create popup widget ---*/
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
-             "AFNI" , xmDialogShellWidgetClass , wpar ,
+             "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , False ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
@@ -1923,7 +1923,7 @@ ENTRY("MCW_choose_string") ;
    /*--- create popup widget ---*/
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
-             "AFNI" , xmDialogShellWidgetClass , wpar ,
+             "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , False ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
@@ -2120,7 +2120,7 @@ ENTRY("MCW_choose_multi_strlist") ;
    /*--- create popup widget ---*/
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
-             "AFNI" , xmDialogShellWidgetClass , wpar ,
+             "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , False ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
@@ -2380,7 +2380,7 @@ printf("MCW_choose_timeseries: creation with %d choices\n",num_ts) ;
    /*--- create popup widget ---*/
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
-             "AFNI" , xmDialogShellWidgetClass , wpar ,
+             "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNtraversalOn , False ,
                 XmNinitialResourcesPersistent , False ,
              NULL ) ;
@@ -2596,7 +2596,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
    /*--- create popup widget ---*/
 
    wpop = XtVaCreatePopupShell(                           /* Popup Shell */
-             "AFNI" , xmDialogShellWidgetClass , wpar ,
+             "menu" , xmDialogShellWidgetClass , wpar ,
                 XmNallowShellResize , True ,
                 XmNtraversalOn , False ,
                 XmNinitialResourcesPersistent , False ,
