@@ -1396,6 +1396,20 @@ way to check is with a command like so
 then check if the "Spacing Between Slices" and "Slice Thickness" values are
 correct for the given acquisition.
 
+-----------------------
+Variable: IDCODE_PREFIX
+-----------------------
+AFNI stores with each dataset a unique string, called an "idcode".  An example
+is "XYZ_MoNLqdNOwMNEYmKSBytfJg".  You can alter the first three characters of
+the idcode with this variable.  For example,
+  setenv IDCODE_PREFIX RWC
+sets the first 3 characters of newly generated idcodes to be the initials of
+AFNI's author.  I find this a handy way to "brand" my datasets.
+
+Idcodes are used to store links between datasets.  In particular, when SUMA
+sends a surface to AFNI, it identifies the dataset to which the surface is
+to be attached with the dataset's idcode.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |
