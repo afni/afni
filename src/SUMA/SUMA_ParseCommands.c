@@ -175,6 +175,8 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"Log")) SUMA_RETURN(SE_Log);
    if (!strcmp(Scom,"SetRenderMode")) SUMA_RETURN(SE_SetRenderMode);
    if (!strcmp(Scom,"OpenDrawROI")) SUMA_RETURN(SE_OpenDrawROI);
+   if (!strcmp(Scom,"RedisplayNow_AllVisible")) SUMA_RETURN(SE_RedisplayNow_AllVisible);
+   if (!strcmp(Scom,"RedisplayNow_AllOtherVisible")) SUMA_RETURN(SE_RedisplayNow_AllOtherVisible);
    /*if (!strcmp(Scom,"")) SUMA_RETURN(SE_);*/
    
    /* Last one is Bad Code */
@@ -276,6 +278,10 @@ const char *SUMA_CommandString (SUMA_ENGINE_CODE code)
          SUMA_RETURN("SetRenderMode");
       case SE_OpenDrawROI:
          SUMA_RETURN("OpenDrawROI"); 
+      case SE_RedisplayNow_AllVisible:
+         SUMA_RETURN("RedisplayNow_AllVisible");
+      case SE_RedisplayNow_AllOtherVisible:
+         SUMA_RETURN("RedisplayNow_AllOtherVisible");
       /*case SE_:
          SUMA_RETURN("");      */
       default:        
@@ -1363,7 +1369,9 @@ SUMA_EngineData *SUMA_InitializeEngineListData (SUMA_ENGINE_CODE CommandCode)
    ED->CommandCode = CommandCode;
    ED->Srcp = NULL;
    ED->fm = NULL;
+   ED->fm_LocalAlloc = NOPE;
    ED->im = NULL;
+   ED->im_LocalAlloc = NOPE;
    ED->N_rows = 0;
    ED->N_cols = 0;
    ED->i = 0;
@@ -1442,6 +1450,57 @@ SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *ED)
 }
 
 /*!
+   Free an action stack data structure 
+   -frees AS_data->ActionData by calling destructor function 
+   -frees AS_data
+*/
+void SUMA_FreeActionStackData(void *asdata)
+{
+   static char FuncName[]={"SUMA_FreeActionStackData"};
+   SUMA_ACTION_STACK_DATA *AS_data=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   AS_data=(SUMA_ACTION_STACK_DATA *)asdata;
+   if (AS_data) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Destroying Action Stack Data \n", FuncName);
+      /* first you want to free the Action Data */
+      AS_data->ActionDataDestructor(AS_data->ActionData);
+      
+      /* Now you can free the Action Stucture Data */
+      SUMA_free(AS_data);
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   Releases an action stack data structure 
+   -frees AS_data->ActionData WITHOUT calling destructor function 
+   -frees AS_data
+*/
+void SUMA_ReleaseActionStackData (void *asdata)
+{
+   static char FuncName[]={"SUMA_ReleaseActionStackData"};
+   SUMA_ACTION_STACK_DATA *AS_data=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   AS_data=(SUMA_ACTION_STACK_DATA *)asdata;
+   if (AS_data) {
+      if (LocalHead) fprintf (SUMA_STDERR, "%s: Releasing Action Stack Data structure\n", FuncName);
+      /* first you want to free the Action Data */
+      if (AS_data->ActionData) SUMA_free(AS_data->ActionData);
+
+      /* Now you can free the Action Stucture Data */
+      SUMA_free(AS_data);
+   }
+   
+   SUMA_RETURNe;
+}
+/*!
    \brief free a message structure and any allocated space in its fields
    
    \param Hv (void *) pointer to Message structure. 
@@ -1451,12 +1510,13 @@ void SUMA_FreeMessageListData(void *Hv)
 {
    static char FuncName[]={"SUMA_FreeMessageListData"};
    SUMA_MessageData *H = NULL;
+   
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    H = (SUMA_MessageData *)Hv;
    
-   if (H) {
-      fprintf(SUMA_STDERR,"Warning %s: ED is null, nothing to do!\n", FuncName);
+   if (!H) {
+      fprintf(SUMA_STDERR,"Warning %s: H is null, nothing to do!\n", FuncName);
       SUMA_RETURNe;
    }
    
@@ -1605,7 +1665,7 @@ SUMA_Boolean SUMA_ReleaseEngineListElement (DList *list, DListElmt *element)
       fprintf (SUMA_STDERR, "Error %s: Failed to remove element from list.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
-   if (!ED) {
+   if (ED) { /* had an if (!ED) here..... */
       SUMA_FreeEngineListData((SUMA_EngineData *)ED);
    }
    
@@ -1633,7 +1693,7 @@ SUMA_Boolean SUMA_ReleaseMessageListElement (DList *list, DListElmt *element)
       fprintf (SUMA_STDERR, "Error %s: Failed to remove element from list.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
-   if (!H) {
+   if (H) {/* had an if (!H) here..... */
       SUMA_FreeMessageListData((SUMA_MessageData *)H);
    }
    
@@ -1642,10 +1702,13 @@ SUMA_Boolean SUMA_ReleaseMessageListElement (DList *list, DListElmt *element)
 
 
 /*!
-   \brief destroys a list
+   \brief destroys a list IF IT IS EMPTY !
    list = SUMA_DestroyList (list);
+   
    \param list (DList *)
    \return ans (DList *) NULL if function succeeds, list if function fails
+   
+   \sa SUMA_EmptyDestroyList
 */
 DList * SUMA_DestroyList (DList *list) 
 {
@@ -1661,6 +1724,74 @@ DList * SUMA_DestroyList (DList *list)
    dlist_destroy(list);
    SUMA_RETURN (NULL);   
 } 
+
+/*!
+   \brief destroys a list even if it is not empty
+   list = SUMA_DestroyList (list);
+   
+   \param list (DList *)
+   \return ans (DList *) NULL always
+   \sa SUMA_DestroyList
+*/
+DList * SUMA_EmptyDestroyList (DList *list) 
+{
+   static char FuncName[]={"SUMA_EmptyDestroyList"};
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   dlist_destroy(list);
+   SUMA_RETURN (NULL);   
+} 
+
+/*!
+   \brief creates a list for the Action Stack
+   list = SUMA_CreateActionStack ();
+   \return list (DList *) pointer to doubly linked list
+            NULL if function fails
+            
+*/
+DList *SUMA_CreateActionStack (void)
+{
+   static char FuncName[]={"SUMA_CreateActionStack"};
+   DList *list=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   list = (DList *)malloc (sizeof(DList));
+   if (!list) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate for list.\n", FuncName);
+      SUMA_RETURN(NULL);
+   }
+   
+   /* 
+      Do not use: dlist_init(list, SUMA_FreeActionStackData);
+      You do not want to destroy data stored inside the ActionStack because
+      the data is used elsewhere. Destruction of ActionStackData should
+      only be done when a stack element is above the new Do element and will
+      therefore never be used again. */
+   
+   dlist_init(list, SUMA_ReleaseActionStackData);
+   
+   SUMA_RETURN (list);
+}
+
+/*!
+   \brief destroys the Action Stack
+   ans = SUMA_DestroyActionStack (DList *AS);
+   
+   \returns NULL 
+            
+*/
+DList *SUMA_EmptyDestroyActionStack (DList *AS)
+{
+   static char FuncName[]={"SUMA_DestroyActionStack"};
+
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   dlist_destroy(AS);
+   
+   SUMA_RETURN (NULL);
+}
 
 /*!
    \brief creates a list for the message list

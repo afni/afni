@@ -41,6 +41,41 @@
             }  \
    }         
 
+/*!
+   Macro that sets Ntail to be the index of the last node of the last ROIdatum in a 
+   DrawnROI. Ntail is -1 if the macro fails
+*/
+#define SUMA_DRAWN_ROI_TAIL_NODE(D_ROI, Ntail)  \
+   {\
+      DListElmt *m_Tail=NULL; \
+      SUMA_ROI_DATUM *m_ROId=NULL; \
+      Ntail = -1; \
+      m_Tail = dlist_tail(D_ROI->ROIstrokelist); \
+      if (m_Tail) {  \
+         m_ROId = (SUMA_ROI_DATUM *)m_Tail->data;  \
+         if (m_ROId->N_n) Ntail = m_ROId->nPath[m_ROId->N_n-1];   \
+      }  \
+   }
+
+/*!
+   Macro that sets Nhead to be the index of the 1st node of the 1st ROIdatum in a 
+   DrawnROI. Nhead is -1 if the macro fails
+*/
+#define SUMA_DRAWN_ROI_HEAD_NODE(D_ROI, Nhead)  \
+   {\
+      DListElmt *m_Head=NULL; \
+      SUMA_ROI_DATUM *m_ROId=NULL; \
+      Nhead = -1; \
+      m_Head = dlist_head(D_ROI->ROIstrokelist); \
+      if (m_Head) {  \
+         m_ROId = (SUMA_ROI_DATUM *)m_Head->data;  \
+         if (m_ROId->N_n) Nhead = m_ROId->nPath[0];   \
+      }  \
+   }
+
+
+
+   
 /* definitions for SUMA_MT_intersect */
 #define SUMA_MT_CROSS(m_MTCR_dest,m_MTCR_v1,m_MTCR_v2) \
           m_MTCR_dest[0]=m_MTCR_v1[1]*m_MTCR_v2[2]-m_MTCR_v1[2]*m_MTCR_v2[1]; \

@@ -22,6 +22,7 @@ DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * Engin
                                              SUMA_ENGINE_INSERT_LOCATION InsertAt, DListElmt *Element);
 SUMA_Boolean SUMA_ReleaseEngineListElement (DList *list, DListElmt *element);
 DList * SUMA_DestroyList (DList *list);
+DList * SUMA_EmptyDestroyList (DList *list);
 void SUMA_FreeEngineListData(void *MTI);
 SUMA_ENGINE_CODE SUMA_GetListNextCommand (DList *list);
 void SUMA_ShowList (DList *list, FILE *Out);
@@ -30,6 +31,11 @@ SUMA_Boolean SUMA_ReleaseMessageListElement (DList *list, DListElmt *element) ;
 DList *SUMA_CreateMessageList (void);
 SUMA_Boolean SUMA_RegisterMessage ( DList *list, char *Message, char *Source, SUMA_MESSAGE_TYPES Type, SUMA_MESSAGE_ACTION Action);
 char *SUMA_BuildMessageLog (DList *ML);
+void SUMA_FreeActionStackData(void *asdata);
+DList *SUMA_CreateActionStack (void);
+void SUMA_ReleaseActionStackData (void *asdata);
+DList *SUMA_EmptyDestroyActionStack (DList *AS);
+
 
 
 /*!
@@ -70,6 +76,99 @@ char *SUMA_BuildMessageLog (DList *ML);
                                           SEI_Tail, NULL)) {   \
       fprintf (SUMA_STDERR, "Error %s: Failed to register command.\n", FuncName);   \
    }  \
+}
+
+/*!
+   \brief Macro that reports an error to the log 
+
+*/
+#define SUMA_L_Err(msg) {\
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Error, SMA_Log); \
+}
+/*!
+   \brief Macro that reports an error to stderr 
+
+*/
+#define SUMA_S_Err(msg) {\
+   fprintf (SUMA_STDERR, "Error %s: %s\n", FuncName, msg);  \
+}
+/*!
+   \brief Macro that reports an error to stderr and log 
+
+*/
+#define SUMA_SL_Err(msg) {\
+   fprintf (SUMA_STDERR, "Error %s: %s\n", FuncName, msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Error, SMA_Log); \
+}
+/*!
+   \brief Macro that reports an error to stderr and log and popup
+
+*/
+#define SUMA_SLP_Err(msg) {\
+   fprintf (SUMA_STDERR, "Error %s: %s\n", FuncName, msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Error, SMA_LogAndPopup); \
+}
+
+/*!
+   \brief Macro that reports a notice to the log 
+
+*/
+#define SUMA_L_Note(msg) {\
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_Log); \
+}
+/*!
+   \brief Macro that reports a notice to stderr 
+
+*/
+#define SUMA_S_Note(msg) {\
+   fprintf (SUMA_STDERR, "Notice %s: %s\n", FuncName, msg);  \
+}
+/*!
+   \brief Macro that reports a notice to stderr and log 
+
+*/
+#define SUMA_SL_Note(msg) {\
+   fprintf (SUMA_STDERR, "Notice %s: %s\n", FuncName, msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_Log); \
+}
+/*!
+   \brief Macro that reports a notice to stderr and log and popup
+
+*/
+#define SUMA_SLP_Note(msg) {\
+   fprintf (SUMA_STDERR, "Notice %s: %s\n", FuncName, msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Notice, SMA_LogAndPopup); \
+}
+
+/*!
+   \brief Macro that reports a warning to the log 
+
+*/
+#define SUMA_L_Warn(msg) {\
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_Log); \
+}
+/*!
+   \brief Macro that reports a warning to stderr 
+
+*/
+#define SUMA_S_Warn(msg) {\
+   fprintf (SUMA_STDERR, "Warning %s: %s\n", FuncName, msg);  \
+}
+/*!
+   \brief Macro that reports a warning to stderr and log 
+
+*/
+#define SUMA_SL_Warn(msg) {\
+   fprintf (SUMA_STDERR, "Warning %s: %s\n", FuncName, msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_Log); \
+}
+/*!
+   \brief Macro that reports a warning to stderr and log and popup
+
+*/
+#define SUMA_SLP_Warn(msg) {\
+   fprintf (SUMA_STDERR, "Warning %s: %s\n", FuncName, msg);  \
+   SUMA_RegisterMessage (SUMAg_CF->MessageList, msg, FuncName, SMT_Warning, SMA_LogAndPopup); \
 }
 
 

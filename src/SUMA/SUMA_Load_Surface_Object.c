@@ -1180,6 +1180,16 @@ SUMA_Boolean SUMA_LoadSpec (SUMA_SurfSpecFile *Spec, SUMA_DO *dov, int *N_dov, c
 
             brk = YUP;
          }
+         
+         if (!brk) {
+            fprintf(SUMA_STDERR,"Error %s: Unknown SurfaceFormat %s.\n", FuncName, Spec->SurfaceType[i]);
+            SUMA_RETURN(NOPE);
+         }
+         
+         if (!SurfIn) {
+            fprintf(SUMA_STDERR,"Error %s: Failed to read input surface.\n", FuncName);
+            SUMA_RETURN(NOPE);
+         }
 
          /* store the surface's idcode pointer for use in non mappable bloc below */
             Spec->IDcode[i] = SO->idcode_str;
@@ -1618,6 +1628,8 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+   fprintf (SUMA_STDERR,"%s: Calculating surface metrics, please be patient...\n", FuncName);
+   
    DoConv = DoArea = DoCurv = DoEL = DoMF = DoWind = NOPE;
    
    if (SUMA_iswordin (Metrics, "Convexity")) DoConv = YUP;
@@ -1730,7 +1742,7 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
    if (DoEL) {
       if (!SOinh) {
          /* create the edge list, it's nice and dandy */
-         fprintf(SUMA_STDOUT, "%s: Making Edge list ....\n", FuncName); 
+         if (LocalHead) fprintf(SUMA_STDOUT, "%s: Making Edge list ....\n", FuncName); 
          SO->EL = SUMA_Make_Edge_List (SO->FaceSetList, SO->N_FaceSet, SO->N_Node, SO->NodeList);
          if (SO->EL == NULL) {
             fprintf(SUMA_STDERR, "Error %s: Failed in SUMA_Make_Edge_List. Neighbor list will not be created\n", FuncName);
@@ -1741,7 +1753,7 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
             if (!SO->EL_Inode) {
                fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInode\n", FuncName);
             }
-            fprintf(SUMA_STDOUT, "%s: Making Node Neighbor list ....\n", FuncName); 
+            if (LocalHead) fprintf(SUMA_STDOUT, "%s: Making Node Neighbor list ....\n", FuncName); 
             /* create the node neighbor list */
             SO->FN = SUMA_Build_FirstNeighb (SO->EL, SO->N_Node);   
             if (SO->FN == NULL) {
@@ -1756,7 +1768,7 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
             }
          }
       } else {
-         fprintf(SUMA_STDOUT, "%s: Linking Edge List and First Neighbor Lits ...\n", FuncName);
+         if (LocalHead) fprintf(SUMA_STDOUT, "%s: Linking Edge List and First Neighbor Lits ...\n", FuncName);
          SO->EL_Inode = SUMA_CreateInodeLink (SO->EL_Inode, SOinh->EL_Inode);
          if (!SO->EL_Inode) {
             fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateInodeLink\n", FuncName);
@@ -1774,7 +1786,7 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
    
    if (DoConv) {
       /* calculate convexity */
-      fprintf(SUMA_STDOUT, "%s: Calculating convexity ...\n", FuncName);
+      if (LocalHead) fprintf(SUMA_STDOUT, "%s: Calculating convexity ...\n", FuncName);
       SO->Cx = SUMA_Convexity   (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->FN);
       if (SO->Cx == NULL) {
          fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_Convexity\n", FuncName);
@@ -1823,14 +1835,14 @@ SUMA_Boolean SUMA_SurfaceMetrics (SUMA_SurfaceObject *SO, const char *Metrics, S
    
    if (DoCurv) {
       /* calculate the curvature */
-      fprintf(SUMA_STDOUT, "%s: Calculating curvature ...\n", FuncName);
+      if (LocalHead) fprintf(SUMA_STDOUT, "%s: Calculating curvature ...\n", FuncName);
       SO->SC = SUMA_Surface_Curvature (SO->NodeList, SO->N_Node, SO->NodeNormList, SO->PolyArea, SO->N_FaceSet, SO->FN, SO->EL);
    }
    
    
    if (DoMF) {
       /* determine the MemberFaceSets */
-      fprintf(SUMA_STDOUT, "%s: Determining MemberFaceSets  ...\n", FuncName);
+      if (LocalHead) fprintf(SUMA_STDOUT, "%s: Determining MemberFaceSets  ...\n", FuncName);
       SO->MF = SUMA_MemberFaceSets(SO->N_Node, SO->FaceSetList, SO->N_FaceSet, SO->FaceSetDim);
       if (SO->MF->NodeMemberOfFaceSet == NULL) {
          fprintf(SUMA_STDERR,"Error %s: Error in SUMA_MemberFaceSets\n", FuncName);

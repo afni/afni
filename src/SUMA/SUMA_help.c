@@ -93,7 +93,7 @@ char * SUMA_help_message_Info(void)
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  n: bring a node to direct view (does not work yet)\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   Ctrl+n: Open a new surface viewer window.\n");
    SS = SUMA_StringAppend (SS, "\t  p: rendering mode (Fill, Line, Points), switch.\n");
-   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  s: NO LONGER IN USE.\n");
+   if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  s: NO LONGER IN USE. Use View->Surface Controller->More.\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t   Ctrl+Alt+s: Input filename with coordinates forming a segment (6 values) on each line.\n");
    if (SUMAg_CF->Dev) SS = SUMA_StringAppend (SS, "\t  S: Show all surface objects registered in DOv.\n");
    SS = SUMA_StringAppend (SS, "\t  t: talk to AFNI, toggle.\n");

@@ -190,7 +190,7 @@ SUMA_SURF_PLANE_INTERSECT *SUMA_Surf_Plane_Intersect (SUMA_SurfaceObject *SO, fl
    float *NodePos;
    SUMA_SURF_PLANE_INTERSECT *SPI;
    struct  timeval start_time, start_time2;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    SUMA_Boolean  Hit;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -343,6 +343,198 @@ if (NodePos) SUMA_free (NodePos);
 
 SUMA_RETURN (SPI);
 }/*SUMA_Surf_Plane_Intersect*/
+
+/*!
+   \brief a wrapper function for SUMA_Surf_Plane_Intersect that returns the intersection 
+   in the form of an ROI datum
+   
+   \param SO (SUMA_SurfaceObject *)
+   \param Nfrom (int) index of node index on SO from which the path should begin
+   \param Nto (int) index of node index on SO where the path will end
+   \param P (float *) XYZ of third point that will form the cutting plane with Nfrom and Nto's coordinates
+            This point is usually, the Near Plane clipping point of Nto's picking line.
+   \return ROId (SUMA_ROI_DATUM *) pointer to ROI datum structure which contains the NodePath from Nfrom to Nto
+   along with other goodies.      
+*/
+SUMA_ROI_DATUM *SUMA_Surf_Plane_Intersect_ROI (SUMA_SurfaceObject *SO, int Nfrom, int Nto, float *P)
+{
+   static char FuncName[]={"SUMA_Surf_Plane_Intersect_ROI"};
+   SUMA_ROI_DATUM *ROId=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   int N_left;
+   SUMA_SURF_PLANE_INTERSECT *SPI = NULL;
+   SUMA_ROI *ROIe = NULL, *ROIt = NULL, *ROIn = NULL, *ROIts = NULL;
+   float *Eq = NULL;
+   /* The 3 flags below are for debugging. */
+   SUMA_Boolean DrawIntersEdges=NOPE; /* Draw edges intersected by plane   */
+   SUMA_Boolean DrawIntersTri = NOPE; /* Draw triangles intersected by plane */
+   SUMA_Boolean DrawIntersNodeStrip = NOPE; /* Draw intersection node strip which is the shortest path between beginning and ending nodes */ 
+   SUMA_Boolean DrawIntersTriStrip=NOPE; /* Draw intersection triangle strip which is the shortest path between beginning and ending nodes */
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   /* computing plane's equation */
+   Eq = SUMA_Plane_Equation ( &(SO->NodeList[3*Nfrom]), 
+                              P,
+                              &(SO->NodeList[3*Nto]) );
+   
+   if (!Eq) {
+      fprintf(SUMA_STDOUT,"Error %s: Failed in SUMA_Plane_Equation.\n", FuncName);
+      SUMA_RETURN(ROId);
+   } 
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Computing Intersection with Surface.\n", FuncName);
+   SPI = SUMA_Surf_Plane_Intersect (SO, Eq);
+   if (!SPI) {
+      fprintf(SUMA_STDOUT,"Error %s: Failed in SUMA_Surf_Plane_Intersect.\n", FuncName);
+      SUMA_RETURN(ROId);
+   }
+   
+   if (DrawIntersEdges) {
+      /* Show all intersected edges */
+      ROIe =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_EdgeGroup, "SurfPlane Intersection - Edges", SPI->N_IntersEdges, SPI->IntersEdges);
+      if (!ROIe) {
+         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
+      } else {
+         if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIe, ROIO_type, SUMA_LOCAL)) {
+            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+         }
+      }
+   }
+   
+   if (DrawIntersTri) {
+      /* Show all intersected triangles */
+      ROIt =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_FaceGroup, "SurfPlane Intersection - Triangles", SPI->N_IntersTri, SPI->IntersTri);
+      if (!ROIt) {
+         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
+      } else {
+         if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIt, ROIO_type, SUMA_LOCAL)) {
+            fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+         }
+      }
+   }
+
+   /* create ROId */
+   ROId = SUMA_AllocROIDatum ();
+   ROId->type = SUMA_ROI_NodeSegment;
+
+   /* calculate shortest path */
+   N_left = SPI->N_NodesInMesh;
+   ROId->nPath = SUMA_Dijkstra (SO, Nfrom, Nto, SPI->isNodeInMesh, &N_left, 1, &(ROId->nDistance), &(ROId->N_n));
+   if (ROId->nDistance < 0 || !ROId->nPath) {
+      fprintf(SUMA_STDERR,"\aError %s: Failed in fast SUMA_Dijkstra.\n*** Two points are not connected by intersection. Repeat last selection.\n", FuncName);
+
+      /* clean up */
+      if (SPI) SUMA_free_SPI (SPI); 
+      SPI = NULL;
+      if (ROId) SUMA_FreeROIDatum (ROId);
+      SUMA_RETURN(NULL);   
+   }
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Shortest inter nodal distance along edges between nodes %d <--> %d (%d nodes) is %f.\n", 
+      FuncName, Nfrom, Nto, ROId->N_n, ROId->nDistance);
+   
+
+   #if 0
+   
+      /* FOR FUTURE USAGE:
+         When drawing on the surface, it is possible to end up with node paths for which the 
+         triangle strip tracing routines fail. That's paretly because it is possible for these
+         node paths to visit one node more than once, eg: ... 34 23 34 .... 
+         That is OK for drawing purposes but not for say, making measurements on the surface.
+      */
+      
+      /* calculate shortest path along the intersection of the plane with the surface */
+      /* get the triangle path corresponding to shortest distance between Nx and Ny */
+
+      /* Old Method: Does not result is a strip of triangle that is continuous or connected
+      by an intersected edge. Function is left here for historical reasons. 
+         tPath = SUMA_NodePath_to_TriPath_Inters (SO, SPI, Path, N_Path, &N_Tri); */
+
+      /* you should not need to go much larger than NodeDist except when you are going for 
+      1 or 2 triangles away where discrete jumps in d might exceed the limit. 
+      Ideally, you want this measure to be 1.5 NodeDist or say, 15 mm, whichever is less.... */
+
+      /* THIS SHOULD BE OPTIONAL */
+      ROId->tPath = SUMA_IntersectionStrip (SO, SPI, ROId->nPath, ROId->N_n, &(ROId->tDistance), 2.5 *ROId->nDistance, &(ROId->N_t));                      
+      if (!ROId->tPath) {
+         fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_IntersectionStrip. Proceeding\n", FuncName);
+         /* do not stop here, it is OK if you can't find the triangle strip */
+         /* if (ROId) SUMA_FreeROIDatum (ROId);
+         SUMA_RETURN(NULL);   */
+      } else {
+         /* ROId->tPath has a potentially enourmous chunk of memory allocated for it. Trim the fat. */
+         {
+            int *tPath_tmp=NULL, i_tmp=0;
+            tPath_tmp = (int *)SUMA_calloc (ROId->N_t, sizeof(int));
+            if (!tPath_tmp) {
+               SUMA_RegisterMessage (SUMAg_CF->MessageList, "Failed to allocate for tpath_tmp", FuncName, SMT_Critical, SMA_LogAndPopup);
+               SUMA_RETURN(NULL);
+            }
+            for (i_tmp=0; i_tmp<ROId->N_t; ++i_tmp) tPath_tmp[i_tmp] = ROId->tPath[i_tmp];
+            SUMA_free(ROId->tPath);
+            ROId->tPath = tPath_tmp;
+         } 
+
+         fprintf (SUMA_STDERR, "%s: Shortest inter nodal distance along surface between nodes %d <--> %d is %f.\nTiangle 1 is %d\n", 
+            FuncName, Nfrom, Nto, ROId->tDistance, ROId->tPath[0]);
+
+         if (DrawIntersTriStrip) {
+            /* Show intersected triangles, along shortest path */
+            ROIts =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_FaceGroup, "SurfPlane Intersection - Triangles- Shortest", ROId->N_t, ROId->tPath);
+            if (!ROIts) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
+               if (ROIn) SUMA_freeROI(ROIn);
+               if (ROIts) SUMA_freeROI(ROIts);
+               if (ROId) SUMA_FreeROIDatum (ROId);
+               SUMA_RETURN(NULL);   
+            }
+            if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIts, ROIO_type, SUMA_LOCAL)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+               if (ROIn) SUMA_freeROI(ROIn);
+               if (ROIts) SUMA_freeROI(ROIts);
+               if (ROId) SUMA_FreeROIDatum (ROId);
+               SUMA_RETURN(NULL);
+            }
+         }
+
+         if (ROId->nPath && DrawIntersNodeStrip) {
+            #if 0
+               /* Show me the Path */
+               for (ii=0; ii < ROId->N_n; ++ii) fprintf(SUMA_STDERR," %d\t", ROId->nPath[ii]);
+            #endif
+
+            /* Show Path */
+            ROIn =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_NodeGroup, "SurfPlane Intersection - Nodes", ROId->N_n, ROId->nPath);
+            if (!ROIn) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
+               if (ROIn) SUMA_freeROI(ROIn);
+               if (ROIts) SUMA_freeROI(ROIts);
+               if (ROId) SUMA_FreeROIDatum (ROId);
+               SUMA_RETURN(NULL);
+            }
+            if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIn, ROIO_type, SUMA_LOCAL)) {
+               fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+               if (ROIn) SUMA_freeROI(ROIn);
+               if (ROIts) SUMA_freeROI(ROIts);
+               if (ROId) SUMA_FreeROIDatum (ROId);
+               SUMA_RETURN(NULL);
+            }
+
+         }
+      }                        
+   #endif
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Freeing Eq...\n", FuncName);
+   if (Eq) SUMA_free(Eq);
+
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Freeing SPI...\n", FuncName);
+   if (SPI) SUMA_free_SPI (SPI);
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s:Done Freeing...\n", FuncName);      
+   
+   SUMA_RETURN(ROId);
+}
 
 /*!
 
@@ -1934,6 +2126,10 @@ int *SUMA_NodePath_to_TriPath_Inters_OLD (SUMA_SurfaceObject *SO, SUMA_TRI_BRANC
    }
    SUMA_RETURN (tPath);
 }   
+
+
+
+
 
 #if 0
    /************************** BEGIN Branch Functions **************************/ 

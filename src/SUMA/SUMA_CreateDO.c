@@ -179,11 +179,11 @@ void SUMA_MeshAxisStandard (SUMA_Axis* Ax, SUMA_SurfaceObject *cso)
    SUMA_RETURNe;
 }
 
-SUMA_Boolean SUMA_CreateSegmentDO (SUMA_SegmentDO *SDO)
+SUMA_Boolean SUMA_DrawSegmentDO (SUMA_SegmentDO *SDO)
 {
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    int i, N_n3;
-   static char FuncName[]={"SUMA_CreateSegmentDO"};
+   static char FuncName[]={"SUMA_DrawSegmentDO"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
@@ -231,10 +231,10 @@ SUMA_Boolean SUMA_CreateSegmentDO (SUMA_SegmentDO *SDO)
    SUMA_RETURN (YUP);
    
 }
-SUMA_Boolean SUMA_CreateAxis (SUMA_Axis* Ax)
+SUMA_Boolean SUMA_DrawAxis (SUMA_Axis* Ax)
 { 
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   static char FuncName[]={"SUMA_CreateAxis"};
+   static char FuncName[]={"SUMA_DrawAxis"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -247,7 +247,7 @@ SUMA_Boolean SUMA_CreateAxis (SUMA_Axis* Ax)
       case SUMA_SOLID_LINE:
          break;
       default:
-         fprintf(stderr,"Error SUMA_CreateAxis: Unrecognized Stipple option\n");
+         fprintf(stderr,"Error SUMA_DrawAxis: Unrecognized Stipple option\n");
          SUMA_RETURN(NOPE);
    }
    glBegin(GL_LINES);
@@ -288,10 +288,12 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
    GLfloat ROI_NodeGroup[] = {0.8, 0.3, 0.5, 1.0 };
    GLfloat ROI_EdgeGroup[] = {0.8, 0.8, 0.1, 1.0 };
    GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
-   int i, id, ii, id1,id2, id3, EdgeIndex, FaceIndex, Node1, Node2, Node3;
+   int i, id, ii, id1,id2, id3, EdgeIndex, FaceIndex, Node1, Node2, Node3, N_ROId=0, idFirst=0;
    float dx, dy, dz = 0.0;
    SUMA_DRAWN_ROI *D_ROI = NULL;
+   SUMA_ROI_DATUM *ROId=NULL;
    SUMA_ROI *ROI = NULL;
+   DListElmt *NextElm=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -300,65 +302,96 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
       switch (dov[i].ObjectType) { /* case Object Type */
          case ROIdO_type:
             D_ROI = (SUMA_DRAWN_ROI *)dov[i].OP;
+            if (!D_ROI->ROIstrokelist) {
+               fprintf (SUMA_STDERR, "Error %s: NULL ROIstrokeList.\n", FuncName);
+               SUMA_RETURN (NOPE);
+            }else if (!dlist_size(D_ROI->ROIstrokelist)) {
+               if (LocalHead) fprintf (SUMA_STDERR, "%s: Empty ROIstrokelist.\n", FuncName);
+               break;
+            }
             if (SUMA_isdROIrelated (D_ROI, SO)) { /* draw it */
                if (LocalHead) fprintf(SUMA_STDERR, "%s: Drawing Drawn ROI %s (Status %d)\n", FuncName, D_ROI->Label, D_ROI->DrawStatus);
-               switch (D_ROI->DrawStatus) {
-                  case SUMA_ROI_InCreation:
-                     ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.0; ROI_SphCol_frst[2] = 0.0; ROI_SphCol_frst[3] = 1.0;     
-                     ROI_SphCol[0] = 0.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;     
-                     break;   
-                  case SUMA_ROI_Finished:
-                     ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 1.0; ROI_SphCol_frst[2] = 0.0; ROI_SphCol_frst[3] = 1.0;     
-                     ROI_SphCol[0] = 0.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 1.0; ROI_SphCol[3] = 1.0;  
-                     break;   
-                  case SUMA_ROI_InEdit:
-                     ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.0; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
-                     ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;  
-                     break;   
-                  default:
-                     ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.3; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
-                     ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;     
-                     break;
+               if (D_ROI->DrawStatus == SUMA_ROI_InCreation) {
+                  switch (D_ROI->Type) {
+                     case SUMA_ROI_OpenPath:
+                        ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.0; ROI_SphCol_frst[2] = 0.0; ROI_SphCol_frst[3] = 1.0;     
+                        ROI_SphCol[0] = 0.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;     
+                        break;   
+                     case SUMA_ROI_ClosedPath:
+                        ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 1.0; ROI_SphCol_frst[2] = 0.0; ROI_SphCol_frst[3] = 1.0;     
+                        ROI_SphCol[0] = 0.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 1.0; ROI_SphCol[3] = 1.0;  
+                        break;   
+                     case SUMA_ROI_FilledArea:
+                        ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.0; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
+                        ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;  
+                        break;   
+                     default:
+                        ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.3; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
+                        ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;     
+                        break;
 
+                  }
+               } else {
+                  /* finished, mark it as such */
+                  ROI_SphCol_frst[0] = 1.0; ROI_SphCol_frst[1] = 0.3; ROI_SphCol_frst[2] = 1.0; ROI_SphCol_frst[3] = 1.0;     
+                  ROI_SphCol[0] = 1.0; ROI_SphCol[1] = 1.0; ROI_SphCol[2] = 0.0; ROI_SphCol[3] = 1.0;
                }
 
+               /* start with the first element */
+               NextElm = NULL;
+               N_ROId = 0;
+               do {
+                  if (!NextElm) {
+                     NextElm = dlist_head(D_ROI->ROIstrokelist);
+                  }else {
+                     NextElm = dlist_next(NextElm);
+                  }
+                  ROId = (SUMA_ROI_DATUM *)NextElm->data;
+                  if (ROId->type == SUMA_ROI_NodeSegment) { 
+                     if (ROId->N_n) {
+                        if (!N_ROId) {
+                           /* draw 1st sphere */
+                           glMaterialfv(GL_FRONT, GL_EMISSION, ROI_SphCol_frst);
+                           idFirst = 3 * ROId->nPath[0];
+                           glTranslatef (SO->NodeList[idFirst], SO->NodeList[idFirst+1], SO->NodeList[idFirst+2]);
+                           gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                           glTranslatef (-SO->NodeList[idFirst], -SO->NodeList[idFirst+1], -SO->NodeList[idFirst+2]);
+                        } 
 
-               /* draw 1st sphere */
-               glMaterialfv(GL_FRONT, GL_EMISSION, ROI_SphCol_frst);
-               id = 3 * D_ROI->CtrlNodev[0];
-               glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-               gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
-               glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
+                        glLineWidth(6);
+                        glMaterialfv(GL_FRONT, GL_EMISSION, ROI_SphCol);
+                        /* always start at 1 since the 0th node was draw at the end of the previous ROId */
+                        for (ii = 1; ii < ROId->N_n; ++ii) {
+                           id = 3 * ROId->nPath[ii];
+                           id2 = 3 * ROId->nPath[ii-1];
 
-               glLineWidth(1);
-               glMaterialfv(GL_FRONT, GL_EMISSION, ROI_SphCol);
-               for (ii = 1; ii < D_ROI->N_CtrlNodev; ++ii) {
-                  id = 3 * D_ROI->CtrlNodev[ii];
-                  id2 = 3 * D_ROI->CtrlNodev[ii-1];
+                           /* draw lines connecting spheres */
+                           glBegin(GL_LINES);
+                           glVertex3f(SO->NodeList[id2], SO->NodeList[id2+1], SO->NodeList[id2+2]);
+                           glVertex3f(SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]); 
+                           glEnd();
 
-                  /* draw lines connecting spheres */
-                  glBegin(GL_LINES);
-                  glVertex3f(SO->NodeList[id2], SO->NodeList[id2+1], SO->NodeList[id2+2]);
-                  glVertex3f(SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]); 
-                  glEnd();
+                           glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
+                           gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                           glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
+                        }
 
-                  glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
-                  gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
-                  glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
-               }
-
-               /* close the loop if necessary */
-               if (D_ROI->DrawStatus == SUMA_ROI_Finished) {
-                 id = 3 * D_ROI->CtrlNodev[D_ROI->N_CtrlNodev - 1];
-                 id2 = 3 * D_ROI->CtrlNodev[0];
-
-                 /* draw lines connecting spheres */
-                  glBegin(GL_LINES);
-                  glVertex3f(SO->NodeList[id2], SO->NodeList[id2+1], SO->NodeList[id2+2]);
-                  glVertex3f(SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]); 
-                  glEnd(); 
-               }
-               glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                        
+                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                        ++N_ROId;
+                     }
+                  } else { /* non segment type Drawn ROI */
+                        glMaterialfv(GL_FRONT, GL_EMISSION, ROI_NodeGroup);
+                        for (ii=0; ii < ROId->N_n; ++ii) {
+                           id = 3 * ROId->nPath[ii];
+                           glTranslatef (SO->NodeList[id], SO->NodeList[id+1], SO->NodeList[id+2]);
+                           gluSphere(SO->NodeMarker->sphobj, SO->NodeMarker->sphrad, SO->NodeMarker->slices, SO->NodeMarker->stacks);
+                           glTranslatef (-SO->NodeList[id], -SO->NodeList[id+1], -SO->NodeList[id+2]);
+                        }
+                        glMaterialfv(GL_FRONT, GL_EMISSION, NoColor);
+                  
+                  }
+               } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
             }
             break;
          case ROIO_type:
@@ -456,9 +489,9 @@ SUMA_Boolean SUMA_Draw_SO_ROI (SUMA_SurfaceObject *SO, SUMA_DO* dov, int N_do)
 }         
 
 /*! Create the cross hair */
-SUMA_Boolean SUMA_CreateCrossHair (SUMA_CrossHair* Ch)
+SUMA_Boolean SUMA_DrawCrossHair (SUMA_CrossHair* Ch)
 {
-   static char FuncName[]={"SUMA_CreateCrossHair"};
+   static char FuncName[]={"SUMA_DrawCrossHair"};
    static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -637,9 +670,9 @@ void SUMA_Free_SphereMarker (SUMA_SphereMarker *SM)
 }
 
 /*! Create the highlighted faceset  marker */
-SUMA_Boolean SUMA_CreateFaceSetMarker (SUMA_FaceSetMarker* FM)
+SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM)
 {   static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0}, dx, dy, dz;
-   static char FuncName[]={"SUMA_CreateFaceSetMarker"};
+   static char FuncName[]={"SUMA_DrawFaceSetMarker"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -700,10 +733,10 @@ void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM)
 }
 
 /*! Create a tesselated mesh */
-void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
+void SUMA_DrawMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
 {  static GLfloat NoColor[] = {0.0, 0.0, 0.0, 0.0};
    int i, ii, ND, id, ip, NP, PolyMode;
-   static char FuncName[]={"SUMA_CreateMesh"};
+   static char FuncName[]={"SUMA_DrawMesh"};
    SUMA_DRAWN_ROI *DrawnROI = NULL;
    SUMA_Boolean LocalHead = NOPE;
       
@@ -754,8 +787,8 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          
          /* Draw Axis */
          if (SurfObj->MeshAxis && SurfObj->ShowMeshAxis)   {
-            if (!SUMA_CreateAxis (SurfObj->MeshAxis)) {
-               fprintf(stderr,"Error SUMA_CreateAxis: Unrecognized Stipple option\n");
+            if (!SUMA_DrawAxis (SurfObj->MeshAxis)) {
+               fprintf(stderr,"Error SUMA_DrawAxis: Unrecognized Stipple option\n");
             }
          }
          /* Draw Selected Node Highlight */
@@ -772,8 +805,8 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          /* Draw Selected FaceSet Highlight */
          if (SurfObj->ShowSelectedFaceSet && SurfObj->SelectedFaceSet >= 0) {
             /*fprintf(SUMA_STDOUT,"Drawing FaceSet Selection \n");            */
-            if (!SUMA_CreateFaceSetMarker (SurfObj->FaceSetMarker)) {
-               fprintf(SUMA_STDERR,"Error SUMA_CreateMesh: Failed in SUMA_CreateFaceSetMarker\b");
+            if (!SUMA_DrawFaceSetMarker (SurfObj->FaceSetMarker)) {
+               fprintf(SUMA_STDERR,"Error SUMA_DrawMesh: Failed in SUMA_DrawFaceSetMarker\b");
             }
          } 
          /* This allows each node to follow the color specified when it was drawn */ 
@@ -804,7 +837,7 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
          glDisableClientState (GL_COLOR_ARRAY);   
          glDisableClientState (GL_VERTEX_ARRAY);
          glDisableClientState (GL_NORMAL_ARRAY);   
-         /*fprintf(stdout, "Out SUMA_CreateMesh, ARRAY mode\n");*/
+         /*fprintf(stdout, "Out SUMA_DrawMesh, ARRAY mode\n");*/
          
          glDisable(GL_COLOR_MATERIAL);
          
@@ -819,7 +852,7 @@ void SUMA_CreateMesh(SUMA_SurfaceObject *SurfObj, SUMA_SurfaceViewer *sv)
    }
    
    SUMA_RETURNe;
-} /* SUMA_CreateMesh */
+} /* SUMA_DrawMesh */
 
 /*!**
 File : SUMA_Load_Surface_Object.c
@@ -1490,11 +1523,12 @@ SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI)
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
-   D_ROI->N_CtrlNodev = 0;
    
    if (D_ROI->Parent_idcode_str) SUMA_free(D_ROI->Parent_idcode_str);
    if (D_ROI->idcode_str) SUMA_free(D_ROI->idcode_str);
    if (D_ROI->Label) SUMA_free(D_ROI->Label);
+   if (D_ROI->ROIstrokelist) SUMA_EmptyDestroyList(D_ROI->ROIstrokelist);
+   if (D_ROI->ActionStack) SUMA_EmptyDestroyActionStack(D_ROI->ActionStack);
    if (D_ROI) SUMA_free(D_ROI);
    
    SUMA_RETURN (YUP);
@@ -1503,6 +1537,7 @@ SUMA_Boolean SUMA_freeDrawnROI (SUMA_DRAWN_ROI *D_ROI)
 /*! 
    \brief function for creating (allocating and initializing) the contents of a SUMA_ROI structure.
    ROI = SUMA_AllocateROI (Parent_idcode_str, Type, label, int N_ElInd, int *ElInd) 
+   
    \param Parent_idcode_str (char *) idcode of parent surface
    \param Type (SUMA_ROI_TYPE) type of ROI 
    \param label  (char *) label ascii label to label ROI. If you pass NULL, a number is assigned to the ROI automatically
@@ -1523,7 +1558,7 @@ SUMA_ROI *SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char *l
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
    
    ROI = (SUMA_ROI *) SUMA_malloc (sizeof(SUMA_ROI));
-   ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
+   ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH+1, sizeof(char));
    ROI->Parent_idcode_str = (char *)SUMA_calloc (strlen(Parent_idcode_str)+1, sizeof (char));
    if (label) ROI->Label = (char *)SUMA_calloc (strlen(label)+1, sizeof(char));
    else ROI->Label = (char *)SUMA_calloc (20, sizeof(char));
@@ -1556,17 +1591,19 @@ SUMA_ROI *SUMA_AllocateROI (char *Parent_idcode_str, SUMA_ROI_TYPE Type, char *l
 
 /*! 
    \brief function for creating (allocating and initializing) the contents of a SUMA_DRAWN_ROI structure.
-   D_ROI = SUMA_AllocateDrawnROI (Parent_idcode_str, DrawStatus, Type, label ) 
+   D_ROI = SUMA_AllocateDrawnROI (Parent_idcode_str, DrawStatus, Type, label , ilabel) 
    \param Parent_idcode_str (char *) idcode of parent surface
    \param DrawStatus (SUMA_ROI_DRAWING_STATUS) status of ROI being drawn
    \param Type (SUMA_ROI_DRAWING_TYPE) type of ROI being drawn
    \param label (char *) label ascii label to label ROI. If you pass NULL, a number is assigned to the ROI automatically
+   \param ilabel (int) integer label (or value)
    \return (SUMA_DRAWN_ROI *) D_ROI pointer to ROI object created
 */
-SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_STATUS DrawStatus, SUMA_ROI_DRAWING_TYPE Type, char *label) 
+SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING_STATUS DrawStatus, 
+                                       SUMA_ROI_DRAWING_TYPE Type, char *label, int ilabel) 
 {
    SUMA_DRAWN_ROI *D_ROI = NULL;
-   static int ROI_index = 0;
+   static int ROI_index = 1;
    static char FuncName[]={"SUMA_AllocateDrawnROI"};
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
@@ -1574,6 +1611,9 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING
    D_ROI = (SUMA_DRAWN_ROI *) SUMA_malloc (sizeof(SUMA_DRAWN_ROI));
    D_ROI->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
    D_ROI->Parent_idcode_str = (char *)SUMA_calloc (strlen(Parent_idcode_str)+1, sizeof (char));
+   D_ROI->ROIstrokelist = (DList *)SUMA_malloc (sizeof(DList));
+   dlist_init(D_ROI->ROIstrokelist, SUMA_FreeROIDatum);
+   
    if (label) D_ROI->Label = (char *)SUMA_calloc (strlen(label)+1, sizeof(char));
    else D_ROI->Label = (char *)SUMA_calloc (20, sizeof(char));
    
@@ -1581,9 +1621,7 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING
       fprintf (SUMA_STDERR, "Error %s: Failed allocating.\n", FuncName);
       SUMA_RETURN (NULL);
    }
-   
-   D_ROI->N_CtrlNodev = 0;
-   
+      
    UNIQ_idcode_fill(D_ROI->idcode_str);   
    
    D_ROI->Parent_idcode_str = strcpy (D_ROI->Parent_idcode_str, Parent_idcode_str);
@@ -1593,7 +1631,516 @@ SUMA_DRAWN_ROI *SUMA_AllocateDrawnROI (char *Parent_idcode_str, SUMA_ROI_DRAWING
    D_ROI->DrawStatus = DrawStatus;
    D_ROI->Type = Type;
    
+   D_ROI->ActionStack = SUMA_CreateActionStack ();
+   D_ROI->StackPos = NULL;
+   
+   D_ROI->iLabel = ilabel;
+   
    ++ROI_index;
    SUMA_RETURN (D_ROI);
+}
+
+/*!
+   A destructor for SUMA_ROI_DATUM *
+*/
+void SUMA_FreeROIDatum (void * data) 
+{
+   static char FuncName[]={"SUMA_FreeROIDatum"};
+   SUMA_ROI_DATUM *ROId=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   ROId = (SUMA_ROI_DATUM *)data;
+   
+   if (!ROId) {
+      SUMA_RETURNe;
+   }
+   
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Freeing nPath\n", FuncName);
+   if (ROId->nPath) SUMA_free(ROId->nPath);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Freeing tPath\n", FuncName);
+   if (ROId->tPath) SUMA_free(ROId->tPath);
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Freeing ROId\n", FuncName);
+   SUMA_free(ROId);
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   A constructor for SUMA_ROI_DATUM *
+*/
+SUMA_ROI_DATUM * SUMA_AllocROIDatum (void) 
+{
+   static char FuncName[]={"SUMA_AllocROIDatum"};
+   SUMA_ROI_DATUM *ROId=NULL;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   ROId = (SUMA_ROI_DATUM *) SUMA_malloc (sizeof(SUMA_ROI_DATUM));
+   
+   if (!ROId) {
+      SUMA_RETURN (NULL);
+   }
+   
+   ROId->nPath = ROId->tPath = NULL;
+   ROId->N_n = ROId->N_t = 0;
+   ROId->nDistance = ROId->tDistance = 0.0;
+   ROId->type = SUMA_ROI_Undefined;
+   SUMA_RETURN (ROId);
+}
+
+/*!
+   \brief Determine if nPath in ROId1 and ROId2 are identical (same nodes).
+   
+   - Comparison will fail if either datum is null
+   
+   - Function not tested 
+   
+*/
+SUMA_Boolean SUMA_isROIdequal (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2)
+{
+   static char FuncName[]={"SUMA_isROIdequal"};
+   int i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!ROId1 || !ROId2) SUMA_RETURN(NOPE);
+   if (ROId1->N_n != ROId2->N_n) SUMA_RETURN(NOPE);
+   if (!ROId1->nPath || !ROId2->nPath) SUMA_RETURN(NOPE);
+   i = 0;
+   do {
+      if (ROId1->nPath[i] != ROId2->nPath[i]) SUMA_RETURN(NOPE);
+      ++i;
+   }while (i < ROId2->N_n);
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Merges two ROIdatum together. 
+   ans = SUMA_AppendToROIdatum (ROIlink, ROId);
+   ROId = [ROId ROIlink]
+   
+   \param ROIlink (SUMA_ROI_DATUM *)
+   \param ROId (SUMA_ROI_DATUM *)
+   \return ans YUP/NOPE
+   
+   - ROId becomes ROId followed by ROIlink 
+   - ROIlink is not freed
+   - It is required that the last node of ROId be the first node of ROIlink.
+   - This is not required for the tPath (the triangle path). By the same token,
+   it is not guaranteed that the resultant tPath is contiguous (not yet).
+   
+   \sa SUMA_PrependToROIdatum
+*/
+SUMA_Boolean SUMA_AppendToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2)
+{
+   static char FuncName[]={"SUMA_AppendToROIdatum"};
+   int i, N_nNew=-1, N_tNew=-1, *tPathNew=NULL, *nPathNew=NULL;
+   SUMA_Boolean CommonTip = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!ROId1) SUMA_RETURN(YUP);
+   if (!ROId1->N_n)  SUMA_RETURN(YUP);
+   if (!ROId2) {
+      fprintf (SUMA_STDERR, "Error %s: NULL ROId2.\n", FuncName);
+      SUMA_RETURN(NOPE);
+   }
+   /* make sure the last node of ROId2 and the first node of ROId1 match */
+   if (ROId2->N_n) {
+      if (ROId1->nPath[0] != ROId2->nPath[ROId2->N_n-1]) {
+         fprintf (SUMA_STDERR, "Error %s: Last node of ROId2 is not the same as the first node of ROId1.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+   }
+   /* now merge the two */
+   
+   /* FIRST the nodes */
+   /* figure out the new N_n */
+   N_nNew = ROId1->N_n + ROId2->N_n -1;
+   
+   /* create a new nPath pointer */
+   nPathNew = (int *)SUMA_calloc (N_nNew, sizeof (int));
+   if (!nPathNew) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate. \n", FuncName);
+      SUMA_RETURN(NOPE);
+   }
+   
+   for (i=0; i<ROId2->N_n; ++i) nPathNew[i] = ROId2->nPath[i];
+   for (i=1; i<ROId1->N_n; ++i) nPathNew[ROId2->N_n+i-1] = ROId1->nPath[i];
+   SUMA_free(ROId2->nPath);
+   ROId2->nPath = nPathNew;
+   ROId2->N_n = N_nNew;
+   
+   /* SECOND THE triangles */
+   CommonTip = NOPE;
+   if (!ROId1->tPath || !ROId1->N_t) {
+      /* nothing to do */
+      ROId2->tPath = NULL;
+      ROId2->N_t = 0;
+      SUMA_RETURN(YUP);
+   }else{
+      /* do the strips have a common triangle at the end ? */
+      if (ROId2->N_t) {
+         if (ROId1->tPath[0] == ROId2->tPath[ROId2->N_t-1]) CommonTip = YUP;
+      }
+   }
+   if (CommonTip) {
+      /* figure out the new N_n */
+      N_tNew = ROId1->N_t + ROId2->N_t -1;
+
+      /* create a new tPath pointer */
+      tPathNew = (int *)SUMA_calloc (N_tNew, sizeof (int));
+      if (!tPathNew) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to allocate. \n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      for (i=0; i<ROId2->N_t; ++i) tPathNew[i] = ROId2->tPath[i];
+      for (i=1; i<ROId1->N_t; ++i) tPathNew[ROId2->N_t+i-1] = ROId1->tPath[i];
+      SUMA_free(ROId2->tPath);
+   }else {
+      /* figure out the new N_n */
+      N_tNew = ROId1->N_t + ROId2->N_t;
+
+      /* create a new tPath pointer */
+      tPathNew = (int *)SUMA_calloc (N_tNew, sizeof (int));
+      if (!tPathNew) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to allocate. \n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      for (i=0; i<ROId2->N_t; ++i) tPathNew[i] = ROId2->tPath[i];
+      for (i=0; i<ROId1->N_t; ++i) tPathNew[ROId2->N_t+i] = ROId1->tPath[i];
+      SUMA_free(ROId2->tPath);
+   }
+   ROId2->tPath = tPathNew;
+   ROId2->N_t = N_tNew;
+
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Merges two ROIdatum together. 
+   ans = SUMA_PrependToROIdatum (ROIlink, ROId);
+   ROId = [ROIlink ROId]
+   
+   \param ROIlink (SUMA_ROI_DATUM *)
+   \param ROId (SUMA_ROI_DATUM *)
+   \return ans YUP/NOPE
+   
+   - ROId becomes ROIlink followed by ROId
+   - ROIlink is not freed
+   - It is required that the last node of ROIlink be the first node of ROId.
+   - This is not required for the tPath (the triangle path). By the same token,
+   it is not guaranteed that the resultant tPath is contiguous (not yet).
+   
+   \sa SUMA_AppendToROIdatum
+*/
+SUMA_Boolean SUMA_PrependToROIdatum (SUMA_ROI_DATUM *ROId1, SUMA_ROI_DATUM *ROId2)
+{
+   static char FuncName[]={"SUMA_PrependToROIdatum"};
+   int i, N_nNew=-1, N_tNew=-1, *tPathNew=NULL, *nPathNew=NULL;
+   SUMA_Boolean CommonTip = NOPE;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!ROId1) SUMA_RETURN(YUP);
+   if (!ROId1->N_n)  SUMA_RETURN(YUP);
+   if (!ROId2) {
+      fprintf (SUMA_STDERR, "Error %s: NULL ROId2.\n", FuncName);
+      SUMA_RETURN(NOPE);
+   }
+   /* make sure the last node of ROId1 and the first node of ROId2 match */
+   if (ROId2->N_n) {
+      if (ROId1->nPath[ROId1->N_n-1] != ROId2->nPath[0]) {
+         fprintf (SUMA_STDERR, "Error %s: Last node of ROId1 is not the same as the first node of ROId2.\n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+   }
+   /* now merge the two */
+   
+   /* FIRST the nodes */
+   /* figure out the new N_n */
+   N_nNew = ROId1->N_n + ROId2->N_n -1;
+   
+   /* create a new nPath pointer */
+   nPathNew = (int *)SUMA_calloc (N_nNew, sizeof (int));
+   if (!nPathNew) {
+      fprintf (SUMA_STDERR, "Error %s: Failed to allocate. \n", FuncName);
+      SUMA_RETURN(NOPE);
+   }
+   for (i=0; i<ROId1->N_n; ++i) nPathNew[i] = ROId1->nPath[i];
+   for (i=1; i<ROId2->N_n; ++i) nPathNew[ROId1->N_n+i-1] = ROId2->nPath[i];
+   SUMA_free(ROId2->nPath);
+   ROId2->nPath = nPathNew;
+   ROId2->N_n = N_nNew;
+   
+   /* SECOND THE triangles */
+   CommonTip = NOPE;
+   if (!ROId1->tPath || !ROId1->N_t) {
+      /* nothing to do */
+      ROId2->tPath = NULL;
+      ROId2->N_t = 0;
+      SUMA_RETURN(YUP);
+   }else{
+      /* do the strips have a common triangle at the end ? */
+      if (ROId2->N_t) {
+         if (ROId1->tPath[ROId1->N_t-1] == ROId2->tPath[0]) CommonTip = YUP;
+      }
+   }
+   if (CommonTip) {
+      /* figure out the new N_n */
+      N_tNew = ROId1->N_t + ROId2->N_t -1;
+
+      /* create a new tPath pointer */
+      tPathNew = (int *)SUMA_calloc (N_tNew, sizeof (int));
+      if (!tPathNew) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to allocate. \n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      for (i=0; i<ROId1->N_t; ++i) tPathNew[i] = ROId1->tPath[i];
+      for (i=1; i<ROId2->N_t; ++i) tPathNew[ROId1->N_t+i-1] = ROId2->tPath[i];
+      SUMA_free(ROId2->tPath);
+   }else {
+      /* figure out the new N_n */
+      N_tNew = ROId1->N_t + ROId2->N_t;
+
+      /* create a new tPath pointer */
+      tPathNew = (int *)SUMA_calloc (N_tNew, sizeof (int));
+      if (!tPathNew) {
+         fprintf (SUMA_STDERR, "Error %s: Failed to allocate. \n", FuncName);
+         SUMA_RETURN(NOPE);
+      }
+      for (i=0; i<ROId1->N_t; ++i) tPathNew[i] = ROId1->tPath[i];
+      for (i=0; i<ROId2->N_t; ++i) tPathNew[ROId1->N_t+i] = ROId2->tPath[i];
+      SUMA_free(ROId2->tPath);
+   }
+   ROId2->tPath = tPathNew;
+   ROId2->N_t = N_tNew;
+   
+   SUMA_RETURN(YUP);
+}
+
+/*!
+   \brief Show contents of a drawn ROI datum
+   SUMA_ShowDrawnROIDatum (ROId, Out, ShortVersion);
+   
+   \param ROId (SUMA_ROI_DATUM *) 
+   \param Out (FILE *) (stderr if NULL)
+   \param ShortVersion (SUMA_Boolean) if YUP, short version
+
+*/
+void SUMA_ShowDrawnROIDatum (SUMA_ROI_DATUM *ROId, FILE *out, SUMA_Boolean ShortVersion)
+{
+   static char FuncName[]={"SUMA_ShowDrawnROIDatum"};
+   int i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!out) out = SUMA_STDERR;
+   
+   if (!ROId) {
+      fprintf(out, "%s: NULL ROId\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   if (!ROId->N_n) {
+      fprintf(out, "%s: Empty ROId. (N_n = 0)\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   if (ROId->N_n && !ROId->nPath) {
+      fprintf(out, "Error %s: nPath is NULL with N_n != 0.\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   if (ROId->N_n == 1) {
+      fprintf(out, "%s: ROId (type %d) has 1 node (%d) in nPath.\n", 
+         FuncName, ROId->type, ROId->nPath[0]);
+   }else {
+      fprintf(out, "%s: ROId (type %d) has %d nodes in nPath [%d..%d].\n", 
+         FuncName, ROId->type, ROId->N_n, ROId->nPath[0], ROId->nPath[ROId->N_n-1]);
+      if (!ShortVersion) {
+         for (i=0; i <ROId->N_n; ++i) fprintf (out, "%d: %d\t", i, ROId->nPath[i]);
+         fprintf (out, "\n");
+      }
+   }
+   
+   if (ROId->N_t && !ROId->tPath) {
+      fprintf(out, "Error %s: tPath is NULL with N_t != 0.\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   if (!ROId->N_t) {
+      fprintf(out, "%s: Empty ROId->tPath. (N_t = 0)\n", FuncName);
+      SUMA_RETURNe;
+   }else {
+         if (ROId->N_t == 1) {
+            fprintf(out, "%s: ROId (type %d) has 1 triangle (%d) in tPath.\n", 
+               FuncName, ROId->type, ROId->tPath[0]);
+         }else {
+            fprintf(out, "%s: ROId (type %d) has %d triangles in tPath [%d..%d].\n", 
+               FuncName, ROId->type, ROId->N_t, ROId->tPath[0], ROId->tPath[ROId->N_t-1]);
+            if (!ShortVersion) {
+               for (i=0; i <ROId->N_t; ++i) fprintf (out, "%d: %d\t", i, ROId->tPath[i]);
+               fprintf (out, "\n");
+            }
+         }
+   }
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief Show contents of a drawn ROI
+   SUMA_ShowDrawnROI (ROI, Out, ShortVersion);
+   
+   \param ROId (SUMA_DRAWN_ROI *) 
+   \param Out (FILE *) (stderr if NULL)
+   \param ShortVersion (SUMA_Boolean) if YUP, short version
+
+*/
+void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, SUMA_Boolean ShortVersion)
+{
+   static char FuncName[]={"SUMA_ShowDrawnROI"};
+   int i;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!out) out = SUMA_STDERR;
+
+   fprintf(out, "--------------------------------------------\n");
+   
+   if (!D_ROI) {
+      fprintf(out, "%s: NULL D_ROI\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+   fprintf(out, "%s: ROI Label %s, Type %d, DrawStatus %d\n Idcode %s, Parent Idcode %s\n", 
+         FuncName, D_ROI->Label, D_ROI->Type, D_ROI->DrawStatus, D_ROI->idcode_str, D_ROI->Parent_idcode_str );
+   
+   if (D_ROI->ActionStack) {
+      fprintf (out, "%s: There are %d actions in the ActionStack.\n", FuncName, dlist_size(D_ROI->ActionStack));
+   }else {
+      fprintf (out, "%s: ActionStack is NULL.\n", FuncName);
+   }
+   
+   if (!D_ROI->ROIstrokelist) {
+      fprintf(out, "%s: NULL ROIstrokelist.\n", FuncName);
+      SUMA_RETURNe;
+   }
+   
+
+   if (!dlist_size(D_ROI->ROIstrokelist)) {
+      fprintf(out, "%s: ROIstrokelist is empty.\n", FuncName);
+   } else {
+      DListElmt *NextElm=NULL;
+      int cnt = 0;
+      fprintf(out, "%s: ROIstrokelist has %d elements.\n", FuncName, dlist_size(D_ROI->ROIstrokelist));
+      do {
+         
+         if (!NextElm) NextElm = dlist_head(D_ROI->ROIstrokelist);
+         else NextElm = dlist_next(NextElm);
+         ++cnt;
+         fprintf(out, "%d\t+++++++++++\n", cnt);
+         SUMA_ShowDrawnROIDatum ((SUMA_ROI_DATUM *)NextElm->data, out, ShortVersion);
+      } while (NextElm != dlist_tail(D_ROI->ROIstrokelist));
+   }
+   
+   fprintf(out, "--------------------------------------------\n");
+   
+   SUMA_RETURNe;
+}
+
+/*!
+   \brief SUMA_FillToMask_Engine (FN, Visited, Mask, seed, N_Visited);
+   the recursive function for SUMA_FillToMask.
+   Do not use logging functions here.
+*/
+
+void SUMA_FillToMask_Engine (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_Mask, int nseed, int *N_Visited)
+{  
+   int i, nnext;
+   
+   Visited[nseed] = 1;
+   ++*N_Visited;
+   for (i=0; i<FN->N_Neighb[nseed]; ++i) {
+      nnext = FN->FirstNeighb[nseed][i];
+      if (!Visited[nnext] && !ROI_Mask[nnext]) SUMA_FillToMask_Engine(FN, Visited, ROI_Mask, nnext, N_Visited);
+   }
+
+   return;
+}
+/*!
+\brief Returns the ROI formed by connected nodes that are bound by Mask
+      ROIfill = SUMA_FillToMask (SO, ROI_Mask, FirstSurfNode);
+      
+\param SO (SUMA_SurfaceObject *)
+\param ROI_Mask (int *) if (ROI_Mask[n]) then node n is a boundary
+\param FirstSurfNode (int) node index from which the fill begins.
+       
+\return ROIfill (SUMA_ROI_DATUM *) of the type SUMA_ROI_NodeGroup
+\sa SUMA_FillToMask_Engine
+*/
+SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nseed) 
+{
+   static char FuncName[]={"SUMA_FillToMask"};
+   SUMA_Boolean LocalHead = YUP;
+   SUMA_ROI_DATUM *ROIfill = NULL;
+   int *Visited = NULL;
+   int N_Visited = 0, i, nnext;
+   
+   /* register at the first call only */
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   if (!ROI_Mask) {
+      SUMA_S_Err("NULL Mask.");
+      SUMA_RETURN(NULL);
+   }
+   
+   /* make sure your seed is not on the edge */
+   if (ROI_Mask[nseed]) {
+      SUMA_S_Err("seed is on the edge.");
+      SUMA_RETURN(NULL);
+   }
+
+   if (!Visited) { /* allocate */
+      Visited = (int *)SUMA_calloc (SO->N_Node, sizeof (int));
+      if (!Visited) {
+         SUMA_S_Err("Could not allocate for Visited.");
+         SUMA_RETURN(NULL);
+      }
+   }
+   
+   N_Visited = 0;
+   SUMA_FillToMask_Engine (SO->FN, Visited, ROI_Mask, nseed, &N_Visited);
+   
+
+   if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d nodes to fill.\n", FuncName, N_Visited);
+      
+   ROIfill = SUMA_AllocROIDatum();
+   ROIfill->type = SUMA_ROI_NodeGroup;
+   
+   /* Now put the nodes in the path */
+   ROIfill->N_n = N_Visited;
+   ROIfill->nPath = (int *)SUMA_calloc (ROIfill->N_n, sizeof(int));
+   if (!ROIfill->nPath) {
+      SUMA_S_Err("Could not allocate for nPath.\n");
+      if (Visited) SUMA_free(Visited);
+      SUMA_RETURN(NULL);
+   }
+   
+   N_Visited = 0;
+   for (i=0; i<SO->N_Node; ++i) {
+      if (Visited[i]) {
+         ROIfill->nPath[N_Visited] = i;
+         ++N_Visited;
+      }
+   }
+   
+   if (Visited) SUMA_free(Visited);
+   SUMA_RETURN(ROIfill);
 }
 

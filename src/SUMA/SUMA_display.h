@@ -59,8 +59,27 @@ sets the select color of the widget to its foreground color */
       XtVaGetValues (m_w, XmNforeground, &m_fg_pix, NULL);  \
       XtVaSetValues (m_w, XmNselectColor, m_fg_pix, NULL);  \
 }
- 
-#define SUMA_MARGIN  3
+
+/*! set the string of a label */
+#define SUMA_SET_LABEL(m_w, m_s) {\
+   XmString m_str = XmStringCreateLocalized(m_s); \
+   XtVaSetValues (m_w, XmNlabelString, m_str, NULL); \
+   XmStringFree (m_str);   \
+}
+
+#define SUMA_SET_TEXT_FIELD(m_w, m_s) {\
+   XtVaSetValues (m_w, XmNvalue, m_s, NULL); \
+}
+
+/*! m_s is a char *. Do not allocate space for it, do not free it afterwards 
+*/
+#define SUMA_GET_TEXT_FIELD(m_w, m_s) {\
+   void *n; \
+   XtVaGetValues (m_w, XmNvalue, &n, NULL); \
+   m_s = (char *)n;  \
+}
+
+#define SUMA_MARGIN  1
 
 String *SUMA_get_fallbackResources ();         
 Boolean SUMA_handleRedisplay (XtPointer w);
@@ -152,7 +171,21 @@ void SUMA_ATF_cb_label_Modify (Widget w, XtPointer client_data, XtPointer call_d
 void SUMA_leave_EV( Widget w , XtPointer client_data ,
                   XEvent * ev , Boolean * continue_to_dispatch );
 void SUMA_ATF_cb_label_Focus (Widget w, XtPointer client_data, XtPointer call_data);
-
+void SUMA_PositionWindowRelative (Widget New, Widget Ref, SUMA_WINDOW_POSITION Loc);
+void SUMA_cb_DrawROI_Finish (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_DrawROI_Join (Widget w, XtPointer data, XtPointer client_data);
+void SUMA_cb_DrawROI_SwitchROI (Widget w, XtPointer data, XtPointer call_data);
+SUMA_LIST_WIDGET * SUMA_FreeScrolledList (SUMA_LIST_WIDGET *LW);
+SUMA_LIST_WIDGET * SUMA_AllocateScrolledList (char *Label, int SelectPolicy, 
+                                                SUMA_Boolean RemoveDups, SUMA_Boolean ShowSorted,
+                                                Widget PosRef, SUMA_WINDOW_POSITION Pos,
+                                                void (*Default_cb)(Widget w, XtPointer data, XtPointer calldata),
+                                                void (*Select_cb)(Widget w, XtPointer data, XtPointer calldata),
+                                                void (*CloseList_cb)(Widget w, XtPointer data, XtPointer calldata));
+void SUMA_CreateScrolledList (    char **clist, int N_clist, SUMA_Boolean Partial, 
+                                  SUMA_LIST_WIDGET *LW);
+void SUMA_cb_CloseSwitchROI(Widget w, XtPointer data, XtPointer call_data);
+void SUMA_cb_SelectSwitchROI(Widget w, XtPointer data, XtPointer call_data);
 
 
 
@@ -174,6 +207,21 @@ void SUMA_ATF_cb_label_Focus (Widget w, XtPointer client_data, XtPointer call_da
 
 #define SUMA_DrawROI_Undo_help   \
    "Undo the last action on the stack"
+
+#define SUMA_DrawROI_Join_help   \
+   "Join the first node of the path to the last.\n"   \
+   "This is done by cutting the surface\n"   \
+   "with a plane formed by the two nodes\n"  \
+   "and the projection of the center of \n"  \
+   "your window." 
+
+#define SUMA_DrawROI_Finish_help \
+   "Label ROI as finished.\n" \
+   "Allows you to start \n"   \
+   "drawing a new one."
+
+#define SUMA_DrawROI_SwitchROI_help \
+   "Switch between ROIs.\n"   \
 
 #define SUMA_help_help \
    "Click the hand\n"   \

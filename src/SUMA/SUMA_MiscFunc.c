@@ -3738,6 +3738,7 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
 {
    static char FuncName[]={"SUMA_FindEdge"};
    int eloc;
+   SUMA_Boolean LocalHead = NOPE;
    
    if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
@@ -3749,10 +3750,14 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
    }
    
    /* first location of edge starting with n1 */
-   eloc = EL->ELloc[n1];
+   if ((eloc = EL->ELloc[n1]) < 0) {
+      SUMA_S_Err ("Edge location of n1 not found. WEIRD");
+      SUMA_RETURN (-1);
+   }
    
    /* from there on, look for first occurence of n2 */
    do {
+      /* if (LocalHead) fprintf (SUMA_STDERR,"%s: eloc %d, N_EL %d\n", FuncName, eloc, EL->N_EL);*/
       if (EL->EL[eloc][1] == n2) SUMA_RETURN (eloc);
       ++eloc;
    } while (eloc < EL->N_EL && EL->EL[eloc][0] == n1); 
@@ -3761,9 +3766,55 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
    SUMA_RETURN (-1);
 }
 
-/*! finds triangles incident to an edge 
+/*!
+   \brief finds triangles incident to a node 
+   ans = SUMA_Get_NodeIncident(n1, SEL, Incident, N_Incident);
+   
+   \param n1 (int) node 1
+   \param SO (SUMA_SurfaceObject *) 
+   \param Incident (int *) a pre-allocated vector where incident triangle indices will be stored. MAKE SURE you allocate enough
+   \param N_Incident (int *) pointer where the number of incident triangles is stored
+   
+   \ret ans (SUMA_Boolean) YUP/NOPE
+   
+   \sa SUMA_Make_Edge_List
+   \sa SUMA_Get_Incident
+*/
+SUMA_Boolean SUMA_Get_NodeIncident(int n1, SUMA_SurfaceObject *SO, int *Incident, int *N_Incident)
+{
+   static char FuncName[] = {"SUMA_Get_NodeIncident"};
+   int i, n3, N_Neighb;
+   
+   if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+   
+   *N_Incident = 0;
+   
+   N_Neighb = SO->FN->N_Neighb[n1];
+   if (N_Neighb < 3) {
+      fprintf (SUMA_STDERR, "Warning %s: Node %d has less than 3 neighbors.\n", FuncName, n1);
+      /* nothing found */
+      SUMA_RETURN(YUP);
+   }
+   
+   i = 0;
+   while ((i < N_Neighb )) { 
+      if ( i+1 == N_Neighb) n3 = SO->FN->FirstNeighb[n1][0];
+      else n3 = SO->FN->FirstNeighb[n1][i+1];
+      if ((Incident[*N_Incident] = SUMA_whichTri (SO->EL, n1, SO->FN->FirstNeighb[n1][i], n3)) < 0) {
+         fprintf (SUMA_STDERR, "Error %s: Triangle formed by nodes %d %d %d not found.\n", 
+            FuncName, n1, SO->FN->FirstNeighb[n1][i], n3);
+         SUMA_RETURN(NOPE);
+      }
+      ++*N_Incident;
+      ++i;
+   }
 
-   ans = SUMA_Get_Incident( n1,  n2,  SEL, Incident, N_Incident)
+   SUMA_RETURN(YUP);   
+}
+
+/*! \brief finds triangles incident to an edge 
+   ans = SUMA_Get_Incident( n1,  n2,  SEL, Incident, N_Incident);
+   
    \param n1 (int) node 1
    \param n2 (int) node 2
    \param SEL (SUMA_EDGE_LIST *) Edge List structure
@@ -3773,6 +3824,7 @@ int SUMA_FindEdge (SUMA_EDGE_LIST *EL, int n1, int n2)
    \ret ans (SUMA_Boolean) YUP/NOPE
    
    \sa SUMA_Make_Edge_List
+   \sa SUMA_Get_NodeIncident
 */
 SUMA_Boolean SUMA_Get_Incident(int n1, int n2, SUMA_EDGE_LIST *SEL, int *Incident, int *N_Incident)
 {
@@ -5519,7 +5571,7 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
       if (SS->N_alloc < N_cur+N_inc+1) { /* must reallocate */
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Must reallocate for SS->s.\n", FuncName);
          SS->N_alloc = N_cur+N_inc+N_chunk+1;
-         SS->s = SUMA_realloc (SS->s, sizeof(char)*SS->N_alloc);
+         SS->s = (char *)SUMA_realloc (SS->s, sizeof(char)*SS->N_alloc);
          if (!SS->s) {
             fprintf (SUMA_STDERR, "Error %s: Failed to reallocate for s.\n", FuncName);
             SUMA_RETURN (NULL);
@@ -5533,7 +5585,7 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring)
       if (SS->N_alloc > N_cur+1) {
          if (LocalHead) fprintf (SUMA_STDERR, "%s: Shrink realloc for SS->s.\n", FuncName);
          SS->N_alloc = N_cur+1;
-         SS->s = SUMA_realloc (SS->s, sizeof(char)*SS->N_alloc);
+         SS->s = (char *)SUMA_realloc (SS->s, sizeof(char)*SS->N_alloc);
          if (!SS->s) {
             fprintf (SUMA_STDERR, "Error %s: Failed to reallocate for s.\n", FuncName);
             SUMA_RETURN (NULL);

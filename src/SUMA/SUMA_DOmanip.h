@@ -39,6 +39,30 @@ SUMA_Boolean SUMA_isRelated (SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2);
 SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO);
 SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov, int N_dov); 
+SUMA_Boolean SUMA_AFNI_forward_warp_xyz( THD_warp * warp , float *XYZv, int N);
+int SUMA_Build_Mask_DrawnROI (SUMA_DRAWN_ROI *D_ROI, int *Mask);
+int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_dov, SUMA_SurfaceObject *SO, int *Mask, int *N_added);
+SUMA_ASSEMBLE_LIST_STRUCT *SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, SUMA_Boolean SortByLabel); 
+SUMA_ASSEMBLE_LIST_STRUCT *SUMA_FreeAssembleListStruct(SUMA_ASSEMBLE_LIST_STRUCT *str);
+SUMA_ASSEMBLE_LIST_STRUCT *SUMA_CreateAssembleListStruct(void);
+
+/*!
+   \brief SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded)
+   Shaded is YUP unless the Switch ROI window is currently open.
+*/
+#define SUMA_IS_DRAW_ROI_SWITCH_ROI_SHADED(Shaded)   \
+{  \
+   Shaded = YUP;  \
+   if (SUMAg_CF->X) {   \
+      if (SUMAg_CF->X->DrawROI) {\
+         if (SUMAg_CF->X->DrawROI->SwitchROIlst) {\
+            if (!SUMAg_CF->X->DrawROI->SwitchROIlst->isShaded) {\
+               Shaded = NOPE;  \
+            }  \
+         }  \
+      }  \
+   }  \
+}  
 
 
 

@@ -224,7 +224,8 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->LinkAfniCrossHair = YUP;
       
       SV->ResetGLStateVariables = YUP;
-      SV->BrushStroke = NULL;
+      
+      SV->BS = NULL;
    }
    SUMA_RETURN (SVv);
 }
@@ -259,8 +260,8 @@ SUMA_Boolean SUMA_Free_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV)
       SV->N_ColList = 0;
    }
    
-   if (SV->BrushStroke) {
-      SUMA_ClearBrushStroke (SV);
+   if (SV->BS) {
+      SUMA_EmptyDestroyList(SV->BS);
    }
    
    SUMA_RETURN(YUP);
@@ -1131,7 +1132,6 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    cf->X->Log_TextShell = NULL;
    cf->MessageList = SUMA_CreateMessageList ();
    /*SUMA_ShowMemTrace (cf->Mem, NULL);*/
-   
    cf->ROI_mode = NOPE;
    return (cf);
 
@@ -1184,7 +1184,8 @@ void * SUMA_FreeLock_rbg (SUMA_rb_group *Lock_rb)
 
 /*!
    \brief DrawROI = SUMA_CreateDrawROIStruct();
-   allocates and initializes structure of type SUMA_X_DrawROI
+   allocates and initializes structure of type 
+   
    \return SUMA_X_DrawROI *
 */
 SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void) 
@@ -1197,6 +1198,9 @@ SUMA_X_DrawROI *SUMA_CreateDrawROIStruct (void)
    DrawROI->AppShell = NULL;
    DrawROI->ROIval = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
    DrawROI->ROIlbl = (SUMA_ARROW_TEXT_FIELD *)malloc(sizeof(SUMA_ARROW_TEXT_FIELD));
+   DrawROI->curDrawnROI = NULL;  /* DO NOT FREE THIS POINTER */
+   DrawROI->SwitchROIlst = NULL;
+
    return (DrawROI);
 }
 
@@ -1248,9 +1252,11 @@ void *SUMA_FreeDrawROIStruct (SUMA_X_DrawROI *DrawROI)
 {  
    static char FuncName[]={"SUMA_FreeDrawROIStruct"};
    
-   /* do not use commonfields related stuff here for obvious reasons */
+   /* do not use commonfields related stuff here for obvious reasons,
+   Well, you can, it is no big deal, memory tracing variables are wiped out at the end*/
    if (DrawROI->ROIval) free (DrawROI->ROIval);
    if (DrawROI->ROIlbl) free (DrawROI->ROIlbl);
+   if (DrawROI->SwitchROIlst) SUMA_FreeScrolledList (DrawROI->SwitchROIlst);
    if (DrawROI) free(DrawROI);
    
    return (NULL);
@@ -1324,11 +1330,11 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
    
    /* do not use commonfields related stuff here for obvious reasons */
    
-   if (cf->Mem) SUMA_Free_MemTrace (cf->Mem);
    if (cf->X->SumaCont) SUMA_FreeSumaContStruct (cf->X->SumaCont);
    if (cf->X->DrawROI) SUMA_FreeDrawROIStruct (cf->X->DrawROI);
    if (cf->X) free(cf->X);
-   if (cf->MessageList) SUMA_DestroyList(cf->MessageList);
+   if (cf->MessageList) SUMA_EmptyDestroyList(cf->MessageList);
+   if (cf->Mem) SUMA_Free_MemTrace (cf->Mem); /* always free this right before the end */
    if (cf) free(cf);
    
    return (YUP);
