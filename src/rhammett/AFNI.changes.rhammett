@@ -1,0 +1,4 @@
+25 Feb 2003
+   * modified mri_read_dicom.c to read Siemens mosaic files with less information
+     than previous versions.
+
