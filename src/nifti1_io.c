@@ -1032,6 +1032,8 @@ void swap_nifti_header( struct nifti_1_header *h , int is_nifti )
    return ;
 }
 
+/* rcr - start I/O routines here */
+
 #define USE_STAT
 #ifdef  USE_STAT
 /*---------------------------------------------------------------------------*/
@@ -1124,14 +1126,16 @@ char * nifti_find_file_extension( char * name )
 
    ext = name + len - 4;
 
-   if ( strcmp(ext, ".hdr") || strcmp(ext, ".img") || strcmp(ext, ".nii") )
+   if ( (strcmp(ext, ".hdr") == 0) || (strcmp(ext, ".img") == 0)
+                                   || (strcmp(ext, ".nii") == 0) )
       return ext;
 
 #ifdef HAVE_ZLIB
    if ( len < 7 ) return NULL;
 
    ext = name - 7;
-   if (strcmp(ext,".hdr.gz") || strcmp(ext,".img.gz") || strcmp(ext,".nii.gz"))
+   if ( (strcmp(ext, ".hdr.gz") == 0) || (strcmp(ext, ".img.gz") == 0)
+                                      || (strcmp(ext, ".nii.gz") == 0) )
       return ext;
 #endif
 
@@ -1774,6 +1778,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    /** convert all nhdr fields to nifti_image fields **/
    nim = nifti_convert_nhdr2nim(nhdr,workingname);
    free(workingname);
+/* rcr - check for nim == NULL */
 
    /* check the data file is OK */
    if (!nifti_is_gzfile(nim->iname)) { /* can't use get_filesize on a compressed file   :( */
@@ -1791,6 +1796,8 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
 /*--------------------------------------------------------------------------*/
 /* Load the image data from disk into an already-prepared image struct.
 ----------------------------------------------------------------------------*/
+
+/* rcr - change all of these ERREX definitions */
 
 #undef  ERREX
 #define ERREX(msg)                                               \
