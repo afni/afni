@@ -1077,6 +1077,10 @@ C.......................................................................
          ELSEIF( CNCODE .EQ. 'EQUALS' )THEN
             NEVAL = NEVAL - 1
             R8_EVAL(NEVAL) = 1.D+0-BOOL(R8_EVAL(NEVAL)-R8_EVAL(NEVAL+1))
+         ELSEIF( CNCODE .EQ. 'ISPOSITI' )THEN
+            R8_EVAL(NEVAL) = STEP( R8_EVAL(NEVAL) )
+         ELSEIF( CNCODE .EQ. 'ISNEGATI' )THEN
+            R8_EVAL(NEVAL) = STEP( -R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'AND'  )THEN
             NTM   = R8_EVAL(NEVAL)
@@ -1838,6 +1842,14 @@ C.......................................................................
             DO IV=IVBOT,IVTOP
                R8_EVAL(IV-IBV,NEVAL) = 1.D+0
      X              -BOOL(R8_EVAL(IV-IBV,NEVAL)-R8_EVAL(IV-IBV,NEVAL+1))
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'ISPOSITI' )THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = STEP( R8_EVAL(IV-IBV,NEVAL) )
+            ENDDO
+         ELSEIF( CNCODE .EQ. 'ISNEGATI' )THEN
+            DO IV=IVBOT,IVTOP
+               R8_EVAL(IV-IBV,NEVAL) = STEP( -R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'AND'  )THEN

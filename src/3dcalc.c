@@ -1035,6 +1035,8 @@ void CALC_Syntax(void)
     "    notzero(x)    = bool(x),\n"
     "     iszero(x)    = 1-bool(x) = { 0 if x != 0.0, 1 if x == 0.0 },\n"
     "     equals(x,y)  = 1-bool(x-y) = { 1 if x == y , 0 if x != y },\n"
+    "   ispositive(x)  = { 1 if x > 0; 0 if x <= 0 },\n"
+    "   isnegative(x)  = { 1 if x < 0; 0 if x >= 0 },\n"
     "   and(a,b,...,c) = {1 if all arguments are nonzero, 0 if any are zero}\n"
     "    or(a,b,...,c) = {1 if any arguments are nonzero, 0 if all are zero}\n"
     "  mofn(m,a,...,c) = {1 if at least 'm' arguments are nonzero, 0 otherwise}\n"
