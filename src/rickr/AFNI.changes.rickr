@@ -809,4 +809,5 @@
     (see float_list, for example)
   * modified mrilib.h to #include list_struct.h
   * modified Makefile.INCLUDE, adding list_struct.o to CS_OBJS
+  * modified vol2surf.c, changing float_list to float_list_t
 
