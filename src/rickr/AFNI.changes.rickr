@@ -923,5 +923,6 @@
       - moved static function prototypes from header to C file
       - free extensions in nifti_image_free()
   * added nifti/nifti_tool.[ch] (v 0.1) for new program, nifti_tool
-  * modifited Makefile.INCLUDE to compile nifti_tool
+  * modified Makefile.INCLUDE to compile nifti_tool
+  * modified nifti/Makefile to compile nifti_stats nifti_tool and nifti1_test
 
