@@ -119,7 +119,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePang
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h  \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
              thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h \
-             multivector.h afni_environ.h niml.h cs_sort_template.h
+             multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h
 
 ### Make everything, install it too, and cleanup
 
@@ -1197,7 +1197,7 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
-           afni_suma.o cl1.o nifti1_io.o cs_misc.o
+           afni_suma.o vol2surf.o cl1.o nifti1_io.o cs_misc.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -1241,6 +1241,7 @@ mcw_glob.o:mcw_glob.h
 thd_iochan.o:thd_iochan.h
 mcw_malloc.o:mcw_malloc.h
 afni_environ.o:afni_environ.h
+vol2surf.o:vol2surf.h
 
 ###################################################################
 # Plugin stuff
