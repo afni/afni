@@ -2128,6 +2128,9 @@ If this YES/NO variable is set to YES, then when AFNI receives surface
 nodes, triangles or normals from suma, no messages will be displayed,
 either in a popup or stderr.  Note that if errors occur, popups will
 still be shown; this just turns off the normal information messages.
+N.B.: If AFNI_SHOW_SURF_POPUPS is YES, then it wins over
+      AFNI_KILL_SURF_POPUPS being YES.  If neither is set, then
+      messages are displayed to stderr.
 
 =============================================
 | Robert W Cox, PhD                         |
