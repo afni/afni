@@ -130,6 +130,7 @@ void AFNI_start_io( void )
       } else {
          if( AFNI_verbose ) fprintf(stderr,"Entering AFNI_WAIT_CONTROL_MODE.\n") ;
          AFNI_mode = AFNI_WAIT_CONTROL_MODE ;  /* begin waiting for AFNI connection */
+         iochan_sleep(5) ;                     /* give other program a moment */
       }
    }
 
@@ -200,6 +201,7 @@ void AFNI_start_io( void )
          } else {
             if( AFNI_verbose ) fprintf(stderr,"Entering AFNI_CATCHUP_MODE.\n") ;
             AFNI_mode = AFNI_CATCHUP_MODE ;
+            iochan_sleep(5) ;                     /* give other program a moment */
          }
       }
    }
@@ -450,7 +452,7 @@ Restart:
 
    ii = 1 ;
    while( AFNI_mode > 0 && AFNI_mode != AFNI_CONTINUE_MODE && ii < 1000 ){
-     iochan_sleep( 500 ) ;  /* 500 msec wait */
+     iochan_sleep( 300 ) ;  /* 300 msec wait */
      AFNI_start_io() ;
      ii++ ;
    }
