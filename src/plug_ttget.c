@@ -229,6 +229,14 @@ static int is_nih_host( void )
    if( strstr(ipad,"165.112.") == ipad ) return 1 ;
    if( strstr(ipad,"157.98." ) == ipad ) return 1 ;
 
+   if( strstr(ipad,"129.43."      ) == ipad ) return 1 ;
+   if( strstr(ipad,"199.249.158." ) == ipad ) return 1 ;
+   if( strstr(ipad,"209.218.0."   ) == ipad ) return 1 ;
+   if( strstr(ipad,"130.14."      ) == ipad ) return 1 ;
+   if( strstr(ipad,"131.158.140." ) == ipad ) return 1 ;
+   if( strstr(ipad,"150.148.11"   ) == ipad ) return 1 ;
+   if( strstr(ipad,"150.148.21"   ) == ipad ) return 1 ;
+
    return 0 ;
 }
 
