@@ -56,7 +56,9 @@ typedef struct {
 
    int ntt , nzz , t_then_z , tunits ;
    float TR ;
-   float * tpattern ;
+   float *tpattern ;
+
+   float Torg ;   /* 23 Feb 2005 */
 } to3d_data ;
 
 #define INCODE_NONE -666

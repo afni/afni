@@ -790,9 +790,10 @@ ENTRY("T3D_create_widgets") ;
    { char buf[96] ;
      XmString xstr ;
 
-     sprintf( buf,"TR = %.3f (%s)\nNR = %d Nz = %d",
-              user_inputs.TR, UNITS_TYPE_LABEL(user_inputs.tunits) ,
-              user_inputs.ntt,user_inputs.nzz ) ;
+     sprintf( buf,"TR=%.3f%s Torg=%.3f\nNR=%d Nz=%d",
+              user_inputs.TR  , UNITS_TYPE_LABEL(user_inputs.tunits) ,
+              user_inputs.Torg,
+              user_inputs.ntt , user_inputs.nzz ) ;
      xstr = XmStringCreateLtoR( buf , XmFONTLIST_DEFAULT_TAG ) ;
 
      wset.TR_label =
@@ -1976,6 +1977,7 @@ ENTRY("T3D_initialize_user_data") ;
 
    user_inputs.ntt      = 0 ;
    user_inputs.TR       = 1.0 ;
+   user_inputs.Torg     = 0.0 ;  /* 23 Feb 2005 */
    user_inputs.nzz      = 0 ;
    user_inputs.t_then_z = 0 ;
    user_inputs.tpattern = NULL ;
@@ -2621,12 +2623,20 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;
       }
 
+      /**** 23 Feb 2005: -Torg option ****/
+
+      if( strncmp(Argv[nopt],"-Torg",5) == 0 ){
+        if( nopt+1 >= Argc ) FatalError("need 1 argument after -Torg") ;
+        user_inputs.Torg = strtod( Argv[++nopt] , NULL ) ;
+        nopt++ ; continue ;
+      }
+
       /************* Aprille 1996: New options for specifying time ***********/
 
       if( strncmp(Argv[nopt],"-time:zt",8)==0 || strncmp(Argv[nopt],"-time:tz",8)==0 ){
          int   t_then_z , ntt , nzz , nerr ;
          float TR , tframe , tsl ;
-         char * tpattern , * eptr ;
+         char *tpattern , *eptr ;
 
          if( nopt+4 >= Argc ) FatalError("need 4 arguments after -time: options") ;
 
@@ -3042,6 +3052,9 @@ void Syntax()
     "          Alternatively, the units symbol ('ms', 'msec', 's', 'sec',\n"
     "            'Hz', or 'Hertz') may be attached to TR in the '-time:' option,\n"
     "            as in '-time:zt 16 64 4.0sec alt+z'\n"
+
+    "\n"
+    "  -Torg ttt = set time origin of dataset to 'ttt' [default=0.0]\n"
 
       , NZBOT
    ) ;
@@ -4761,10 +4774,10 @@ void T3D_save_file_CB( Widget w ,
 
       dset->taxis->type       = TIMEAXIS_TYPE ;
       dset->taxis->ntt        = user_inputs.ntt ;
-      dset->taxis->ttorg      = 0.0 ;
       dset->taxis->ttdel      = user_inputs.TR ;
       dset->taxis->ttdur      = 0.0 ;
       dset->taxis->units_type = user_inputs.tunits ;  /* 21 Oct 1996 */
+      dset->taxis->ttorg      = user_inputs.Torg ;    /* 23 Feb 2005 */
 
       if( user_inputs.tpattern != NULL ){
          dset->taxis->nsl     = daxes->nzz ;
