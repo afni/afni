@@ -96,3 +96,116 @@ static int bigclustsize2D( int nx , int ny , byte *mmm )
 
    free(inow) ; free(inow) ; return nbest ;
 }
+
+/*======================================================================*/
+
+/*----------------------------------------------------------------------
+   (a) shortize input and flip brick so that orientation is RAI
+   (b) find clip level and create a binary mask
+   (c) find S-most slice that has at least 10% above clip level;
+       zero out mask above that slice and also more than 160 mm below
+   (d) apply mask to image volume
+   (e) set CM of surviving voxels to (0,20,0)
+   (f) resample to master dataset grid
+------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor )
+{
+   MRI_IMAGE *sim , *tim ;
+   short *sar , sval ;
+   int ii,jj,kk , nx,ny,nz,nxy,nxyz ;
+   float val ;
+   byte *mask , *mmm ;
+
+ENTRY("mri_brainormalize") ;
+
+   if( im == NULL || xxor < 0 || xxor > LAST_ORIENT_TYPE ||
+                     yyor < 0 || yyor > LAST_ORIENT_TYPE ||
+                     zzor < 0 || zzor > LAST_ORIENT_TYPE   ) RETURN(NULL) ;
+
+   if( im->nx < 16 || im->ny < 16 || im->nz < 16 ) RETURN(NULL) ;
+
+   val = mri_maxabs(im) ; if( val <= 0.0 ) RETURN(NULL) ;
+
+   /* make a short copy */
+
+   if( im->kind == MRI_short || im->kind == MRI_byte )
+     tim = mri_to_short(im) ;
+   else
+     tim = mri_to_short( 32767.0/val , im ) ;
+
+   /* flip to RAI orientation */
+
+   ii = jj = kk = 0 ;
+   switch( xxor ){
+     case ORI_R2L_TYPE: ii =  1 ; break ;
+     case ORI_L2R_TYPE: ii = -1 ; break ;
+     case ORI_P2A_TYPE: jj = -1 ; break ;
+     case ORI_A2P_TYPE: jj =  1 ; break ;
+     case ORI_I2S_TYPE: kk =  1 ; break ;
+     case ORI_S2I_TYPE: kk = -1 ; break ;
+   }
+   switch( yyor ){
+     case ORI_R2L_TYPE: ii =  2 ; break ;
+     case ORI_L2R_TYPE: ii = -2 ; break ;
+     case ORI_P2A_TYPE: jj = -2 ; break ;
+     case ORI_A2P_TYPE: jj =  2 ; break ;
+     case ORI_I2S_TYPE: kk =  2 ; break ;
+     case ORI_S2I_TYPE: kk = -2 ; break ;
+   }
+   switch( zzor ){
+     case ORI_R2L_TYPE: ii =  3 ; break ;
+     case ORI_L2R_TYPE: ii = -3 ; break ;
+     case ORI_P2A_TYPE: jj = -3 ; break ;
+     case ORI_A2P_TYPE: jj =  3 ; break ;
+     case ORI_I2S_TYPE: kk =  3 ; break ;
+     case ORI_S2I_TYPE: kk = -3 ; break ;
+   }
+
+   if( ii==1 && jj==2 && kk==3 ){
+     sim = tim ;
+   } else {
+     sim = mri_flip3D( ii,jj,kk , tim ) ;
+     mri_free(tim) ;
+     if( sim == NULL ) RETURN(NULL) ;
+   }
+
+   sar = MRI_SHORT_PTR(sim) ;
+   if( sar == NULL ){ mri_free(sim); RETURN(NULL); }
+
+   /* get clip level and make a binary mask */
+
+   sval = (short) THD_cliplevel( sim , 0.333 ) ;
+   if( sval <= 0 ){ mri_free(sim); RETURN(NULL); }
+
+   nx = sim->nx ; ny = sim->ny ; nz = sim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+   mask = (byte *) malloc( sizeof(byte)*nxyz ) ;
+   for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = (sar[ii] >= sval) ;
+
+   /* descend from top, searching for a slice with a large blob */
+
+   mmm = (byte *) malloc( sizeof(byte)*nxy ) ;
+   jj  = 0.1*nxy ;
+   for( kk=nz-1 ; kk > 0 ; kk-- ){
+     memcpy( mmm , mask + kk*nxy , sizeof(byte)*nxy ) ;
+     if( bigclustsize2D(nx,ny,mmm) > jj ) break ;
+   }
+   free(mmm) ;
+   if( kk == 0 ){ free(mask); mri_free(sim); RETURN(NULL); }
+
+   /* zero out all above that slice */
+
+   if( kk < nz-1 )
+     memset( mask+(kk+1)*nxy , 0 , nxy*(nz-1-kk)*sizeof(byte) ) ;
+
+   /* find slice index 160 mm below that slice */
+
+   val = fabs(sim->dz) ; if( val == 0.0 ) val = 1.0 ;
+   jj  = (int)rint( kk-160.0/val ) ;
+   if( jj >= 0 )
+     memset( mask , 0 , nxy*(jj+1)*sizeof(byte) ) ;
+
+   /* apply mask to image */
+
+   for( ii=0 ; ii < nxyz ; ii++ )
+     if( mask[ii] == 0 ) sar[ii] = 0 ;
