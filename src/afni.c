@@ -1246,26 +1246,38 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
 
         GLOBAL_library.registered_fim.num = 0 ;              /* 30 Jan 2000 */
 
-        AFNI_register_0D_function( "Log10" , log10_func ) ;  /* afni.c */
-        AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;  /* afni.c */
+        GLOBAL_library.registered_slice_proj.num = 0 ;       /* 31 Jan 2002 */
 
-        AFNI_register_1D_function( "Median3" , median3_func) ;  /* afni.c */
-        AFNI_register_1D_function( "OSfilt3" , osfilt3_func) ;  /* afni.c */
-        AFNI_register_1D_function( "|FFT()|" , absfft_func ) ;  /* afni.c */
+        /* these functions are now in afni_transforms.c [01 Feb 2002] */
 
-        AFNI_register_2D_function( "Median9" , median9_box_func ) ;  /* imseq.c */
-        AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;  /* imseq.c */
-        AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;  /* imseq.c */
+        AFNI_register_0D_function( "Log10" , log10_func ) ;
+        AFNI_register_0D_function( "SSqrt" , ssqrt_func ) ;
 
-        AFNI_register_2D_function( "Median21" , median21_box_func ); /* imseq.c */
-        AFNI_register_2D_function( "Winsor21" , winsor21_box_func ); /* imseq.c */
+        AFNI_register_1D_function( "Median3" , median3_func) ;
+        AFNI_register_1D_function( "OSfilt3" , osfilt3_func) ;
+        AFNI_register_1D_function( "|FFT()|" , absfft_func ) ;
 
-        AFNI_register_2D_function( "|FFT2D|"     , fft2D_func ) ;       /* imseq.c */
+        AFNI_register_2D_function( "Median9" , median9_box_func ) ;
+        AFNI_register_2D_function( "Winsor9" , winsor9_box_func ) ;
+        AFNI_register_2D_function( "OSfilt9" , osfilt9_box_func ) ;
+
+        AFNI_register_2D_function( "Median21", median21_box_func );
+        AFNI_register_2D_function( "Winsor21", winsor21_box_func );
+
+        AFNI_register_2D_function( "|FFT2D|" , fft2D_func ) ;
 
         /* 01 Feb 2000: see afni_fimfunc.c */
 
         AFNI_register_fimfunc("Spearman CC",1,spearman_fimfunc,NULL);
         AFNI_register_fimfunc("Quadrant CC",1,quadrant_fimfunc,NULL);
+
+        /* 31 Jan 2002 */
+
+        AFNI_register_slice_proj( "Minimum" , min_proj   ) ;
+        AFNI_register_slice_proj( "Maximum" , max_proj   ) ;
+        AFNI_register_slice_proj( "Mean"    , mean_proj  ) ;
+
+        AFNI_register_slice_proj( "Median"  , qmed_float ) ; /* in cs_qmed.c */
 
 #ifdef HUBERIZE
         AFNI_register_1D_funcstr( "Huber Fit" , huber_func ) ;
@@ -1567,6 +1579,7 @@ STATUS("get status") ;
 
       stat->transforms0D = & (GLOBAL_library.registered_0D) ;
       stat->transforms2D = & (GLOBAL_library.registered_2D) ;
+      stat->slice_proj   = & (GLOBAL_library.registered_slice_proj) ;
 
       RETURN( (XtPointer) stat ) ;
    }
@@ -8962,6 +8975,7 @@ void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
    Put a function on the list of n-dimensional transformations
    (modified 03 Nov 1996 from just 0D transforms)
    (modified 22 Apr 1997 to add int flags to each function)
+   (modified 31 Jan 2002 to add slice_proj for nd=-1)
 ------------------------------------------------------------------------*/
 
 void AFNI_register_nD_function( int nd, char * name,
@@ -8978,6 +8992,8 @@ void AFNI_register_nD_function( int nd, char * name,
       case 0: rlist = &(GLOBAL_library.registered_0D) ; break ;
       case 1: rlist = &(GLOBAL_library.registered_1D) ; break ;
       case 2: rlist = &(GLOBAL_library.registered_2D) ; break ;
+
+      case -1: rlist= &(GLOBAL_library.registered_slice_proj) ; break ;
    }
 
    num = rlist->num ;
@@ -9020,122 +9036,6 @@ void AFNI_store_dset_index( int ijk , int tin )
 
 int AFNI_needs_dset_ijk(void){ return dset_ijk ; }
 int AFNI_needs_dset_tin(void){ return dset_tin ; }
-
-/*--------------- Sample function: log10 of each input point ---------------*/
-
-void log10_func( int num , float * vec )
-{
-   int ii ;
-   float vmax , vmin ;
-
-   if( num <= 0 || vec == NULL ) return ;
-
-   /* find largest element */
-
-   vmax = vec[0] ;
-   for( ii=1 ; ii < num ; ii++ ) vmax = MAX( vmax , vec[ii] ) ;
-
-   /* if all are nonpositive, return all zeros */
-
-   if( vmax <= 0.0 ){
-      for( ii=0 ; ii < num ; ii++ ) vec[ii] = 0.0 ;
-      return ;
-   }
-
-   /* find smallest positive element */
-
-   vmin = vmax ;
-   for( ii=0 ; ii < num ; ii++ )
-      if( vec[ii] > 0.0 ) vmin = MIN( vmin , vec[ii] ) ;
-
-   /* take log10 of each positive element;
-      nonpositive elements get the log10 of vmin instead */
-
-   vmin = log10(vmin) ;
-   for( ii=0 ; ii < num ; ii++ )
-      vec[ii] = (vec[ii] > 0.0) ? log10(vec[ii]) : vmin ;
-
-   return ;
-}
-
-/*------------ Sample function: Signed sqrt of each input point ------------*/
-
-void ssqrt_func( int num , float * vec )
-{
-   int ii ;
-   double val ;
-
-   if( num <= 0 || vec == NULL ) return ;
-
-   for( ii=0 ; ii < num ; ii++ ){
-      val = sqrt(fabs(vec[ii])) ;                /* will be positive */
-      vec[ii] = (vec[ii] >= 0.0) ? val : -val ;  /* output sign = input sign */
-   }
-
-   return ;
-}
-
-/*--------------- Sample function: Order Statistics Filter ----------------*/
-
-void osfilt3_func( int num , double to,double dt, float * vec )
-{
-   int ii ;
-   float aa,bb,cc ;
-
-   bb = vec[0] ; cc = vec[1] ;
-   for( ii=1 ; ii < num-1 ; ii++ ){
-      aa = bb ; bb = cc ; cc = vec[ii+1] ;
-      vec[ii] = OSFILT(aa,bb,cc) ;         /* see mrilib.h */
-   }
-
-   return ;
-}
-
-/*--------------- Sample function: Median of 3 Filter ----------------*/
-
-void median3_func( int num , double to,double dt, float * vec )
-{
-   int ii ;
-   float aa,bb,cc ;
-
-   bb = vec[0] ; cc = vec[1] ;
-   for( ii=1 ; ii < num-1 ; ii++ ){
-      aa = bb ; bb = cc ; cc = vec[ii+1] ;
-      vec[ii] = MEDIAN(aa,bb,cc) ;         /* see mrilib.h */
-   }
-
-   return ;
-}
-
-/*---------------- Sample function: abs(FFT) [30 Jun 2000] --------------*/
-
-void absfft_func( int num , double to,double dt, float * vec )
-{
-   static complex * cx=NULL ;
-   static int      ncx=0 , numold=0 ;
-   float f0,f1 ;
-   int ii ;
-
-   if( num < 2 ) return ;
-   if( num > numold ){
-      numold = num ;
-      ncx    = csfft_nextup(numold) ;
-      if( cx != NULL ) free(cx) ;
-      cx = (complex *) malloc(sizeof(complex)*ncx) ;
-   }
-
-   get_linear_trend( num , vec , &f0,&f1 ) ;  /* thd_detrend.c */
-
-   for( ii=0 ; ii < num ; ii++ ){ cx[ii].r = vec[ii]-(f0+f1*ii); cx[ii].i = 0.0; }
-   for(      ; ii < ncx ; ii++ ){ cx[ii].r = cx[ii].i = 0.0 ; }
-
-   csfft_cox( -1 , ncx , cx ) ;               /* csfft.c */
-
-   vec[0] = 0.0 ;
-   for( ii=1 ; ii < num ; ii++ ) vec[ii] = CABS(cx[ii]) ;
-
-   return ;
-}
 
 /*-----------------------------------------------------------------------
    Add a timeseries to the global list

@@ -3442,3 +3442,5 @@
 31 Jan 2002
  * Modified imseq.c to allow scrollbars on the Disp button dialog, if
       AFNI_DISP_SCROLLBARS is yessish.
+ * Modified imseq.[ch] and afni.[ch] to provide slice_proj projection
+      functionality.

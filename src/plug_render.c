@@ -4389,6 +4389,7 @@ XtPointer REND_imseq_getim( int n , int type , XtPointer handle )
 
       stat->transforms0D = &(GLOBAL_library.registered_0D) ;
       stat->transforms2D = &(GLOBAL_library.registered_2D) ;
+      stat->slice_proj   = NULL ;
 
       return (XtPointer) stat ;
    }

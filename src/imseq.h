@@ -53,9 +53,14 @@ typedef struct {
 
       MCW_function_list * transforms0D ;
       MCW_function_list * transforms2D ;
+      MCW_function_list * slice_proj   ;  /* 31 Jan 2002 */
 
       XtPointer parent , aux ;
 } MCW_imseq_status ;
+
+#define ISQ_DOING_SLICE_PROJ(ss)      \
+ ( (ss)->slice_proj_range >  0   &&   \
+   (ss)->slice_proj_func  != NULL   )
 
 #define IM_WIDTH(im) \
   ( ((im)->dx > 0) ? ((im)->nx * (im)->dx) : ((im)->nx) )
@@ -376,6 +381,12 @@ typedef struct MCW_imseq {
      generic_func * transform2D_func ;
      int            transform2D_index ;
 
+     MCW_arrowval * slice_proj_av ;       /* 31 Jan 2002 */
+     float_func   * slice_proj_func ;
+     int            slice_proj_index ;
+     MCW_arrowval * slice_proj_range_av ;
+     int            slice_proj_range ;
+
      MCW_arrowval *      rowgraph_av  ;   /* 30 Dec 1998 */
      int                 rowgraph_num ;
      MEM_topshell_data * rowgraph_mtd ;
@@ -591,6 +602,8 @@ extern void ISQ_set_barhint( MCW_imseq * , char * ) ; /* 29 Jul 2001 */
 
 extern MRI_IMAGE * ISQ_process_mri( int , MCW_imseq * , MRI_IMAGE * ) ;
 
+extern MRI_IMAGE * ISQ_getimage( int , MCW_imseq * ) ; /* 31 Jan 2002 */
+
 extern void ISQ_free_alldata( MCW_imseq * ) ;
 
 extern int ISQ_set_image_number( MCW_imseq * , int ) ;
@@ -624,6 +637,8 @@ void ISQ_arrowpad_CB( MCW_arrowpad * , XtPointer ) ;
 extern void ISQ_transform_CB     ( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_transform_label( MCW_arrowval * , XtPointer ) ;
 
+extern void ISQ_slice_proj_CB    ( MCW_arrowval * , XtPointer ) ;
+
 #define ROWGRAPH_MAX  9
 #define SURFGRAPH_MAX 2
 
@@ -642,15 +657,7 @@ extern void ISQ_surfgraph_mtdkill( MEM_topshell_data * mp ) ;
 extern MEM_plotdata * plot_image_surface( MRI_IMAGE * , float,float,float,int,int ) ;
 extern void ISQ_surfgraph_arrowpad_CB( MCW_arrowpad * , XtPointer ) ;
 
-extern void median9_box_func( int nx , int ny , double,double , float * ar ) ;
-extern void winsor9_box_func( int nx , int ny , double,double , float * ar ) ;
-extern void osfilt9_box_func( int nx , int ny , double,double , float * ar ) ;
-extern void fft2D_func      ( int nx , int ny , double,double , float * ar ) ;
-
-extern void median21_box_func( int nx , int ny , double,double , float * ar ) ;
-extern void winsor21_box_func( int nx , int ny , double,double , float * ar ) ;
-
-/*---- temporary, I hope (yeah, sure, right) ----*/
+/*---- temporary, I hope (yeah, sure, right, uh huh) ----*/
 
 extern void ISQ_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;
 

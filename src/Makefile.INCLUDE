@@ -12,7 +12,7 @@ IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_slice_short.o afni_slice_float.o                  \
             afni_slice_byte.o  afni_slice_complex.o                \
-            afni_pcor.o afni_pcor_float.o                          \
+            afni_pcor.o afni_pcor_float.o afni_transforms.o        \
             pbar.o afni_graph.o afni_plugin.o                      \
             parser.o parser_int.o afni_plugout.o afni_fimfunc.o    \
             afni_setup.o afni_receive.o mcw_graf.o afni_splash.o   \

@@ -207,6 +207,7 @@ XtPointer PLUGIN_imseq_getim( int n , int type , XtPointer handle )
 
       stat->transforms0D = NULL ;
       stat->transforms2D = NULL ;
+      stat->slice_proj   = NULL ;
 
       return((XtPointer) stat) ;
    }
