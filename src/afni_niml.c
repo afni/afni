@@ -35,7 +35,7 @@
 /*--------------------------------------*/
 /*! Array of streams on which to listen */
 
-static NI_stream ns_listen[NUM_NIML] ;
+static NI_stream_type *ns_listen[NUM_NIML] ;
 
 /*------------------------*/
 /*! Array of stream names */
@@ -157,6 +157,7 @@ static int     slist_surfs_for_ldp(ldp_surf_list * lsurf, int * surfs, int max,
 static void AFNI_niml_atexit( void )
 {
    int cc ;
+STATUS("called AFNI_niml_atexit") ;
    for( cc=0 ; cc < NUM_NIML ; cc++ )        /* close any open sockets */
      NI_stream_closenow( ns_listen[cc] ) ;
    return ;
@@ -270,6 +271,9 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
 {
    int cc , nn , ct , ngood=0 ;
    void *nini ;
+   char str[512] ;
+
+ENTRY("AFNI_niml_workproc") ;
 
    /** loop over input NIML streams **/
 
@@ -278,9 +282,14 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
      /* open streams that aren't open */
 
      if( ns_listen[cc] == NULL && (ns_flags[cc]&FLAG_SKIP)==0 ){
+if(PRINT_TRACING){
+  sprintf(str,"call NI_stream_open('%s')",ns_name[cc]) ;
+  STATUS(str) ;
+}
        ns_listen[cc] = NI_stream_open( ns_name[cc] , "r" ) ;
        if( ns_listen[cc] == NULL ){
-          ns_flags[cc] = FLAG_SKIP ; continue ;
+STATUS("NI_stream_open failed") ;
+         ns_flags[cc] = FLAG_SKIP ; continue ;
        }
        ns_flags[cc]  = FLAG_WAITING ;
      }
@@ -290,9 +299,14 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
 
      /* now check if stream has gone bad */
 
+if(PRINT_TRACING){
+  sprintf(str,"call NI_stream_goodcheck('%s')",ns_listen[cc]->orig_name) ;
+  STATUS(str) ;
+}
      nn = NI_stream_goodcheck( ns_listen[cc] , 1 ) ;
 
      if( nn < 0 ){                          /* is bad */
+STATUS("NI_stream_goodcheck was unhappy") ;
        fprintf(stderr,"++ NIML connection closed from %s\n",
                 NI_stream_name(ns_listen[cc])               ) ;
 
@@ -301,9 +315,13 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
        continue ;              /* skip to next stream  */
      }
 
-     if( nn == 0 ) continue ;  /* waiting: skip to next stream */
+     if( nn == 0 ){
+STATUS("NI_stream_goodcheck was neutral") ;
+       continue ;  /* waiting: skip to next stream */
+     }
 
      /* if here, stream is good */
+STATUS("NI_stream_goodcheck was good!") ;
 
      /* if just became good, print a message */
 
@@ -334,11 +352,11 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
    dont_overlay_suma = 0 ;
 
    if( ngood == 0 ){
-      fprintf(stderr,"++ NIML shutting down: no listening sockets\n") ;
-      return True ;
+     fprintf(stderr,"++ NIML shutting down: no listening sockets\n") ;
+     RETURN( True ) ;
    }
 
-   return False ;
+   RETURN( False ) ;
 }
 
 
@@ -371,7 +389,7 @@ ENTRY("AFNI_process_NIML_data") ;
    /* if here, have a single data element;
       process the data based on the element name */
 
-   nel = (NI_element *) nini ;
+   nel = (NI_element *)nini ;
 
 #if 0
  fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
@@ -406,8 +424,8 @@ ENTRY("AFNI_process_NIML_data") ;
                  " Ignoring it, and hoping it goes away.\n" ,
                  nel->name) ;
      AFNI_popup_message(msg) ;
-     EXRETURN ;
    }
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -701,6 +719,7 @@ ENTRY("fill_ldp_surf_list");
    RETURN(0);
 }
 
+/*---------------------------------------------------------------------*/
 /*! Now there are 2 things to clear up for each LDP (when there is more
  *  than 1 surface).  If the user has selected any surfaces for v2s, then
  *  set sA and sB appropriately (and do some error checking).  Also, any
@@ -762,6 +781,7 @@ ENTRY("slist_choose_surfs");
    RETURN(0);
 }
 
+/*---------------------------------------------------------------------*/
 /*! sort slist (and sa,sb) by user selections         21 Oct 2004 [rickr] */
 /*  Note that sa and sb are already initialized to the first 2 surfaces.  */
 static int slist_check_user_surfs( ldp_surf_list * lsurf, int * surfs,
@@ -851,6 +871,7 @@ static int slist_check_user_surfs( ldp_surf_list * lsurf, int * surfs,
    RETURN(0);
 }
 
+/*------------------------------------------------------------------------*/
 /*! search list for test_val and return position     21 Oct 2004 [rickr] */
 static int int_list_posn(int * vals, int nvals, int test_val)
 {
@@ -864,6 +885,7 @@ ENTRY("int_list_posn");
    RETURN(-1);
 }
 
+/*------------------------------------------------------------------------*/
 /*! construct list of surfaces for this LDP          21 Oct 2004 [rickr] */
 static int slist_surfs_for_ldp( ldp_surf_list * lsurf, int * surfs, int max,
                                 THD_session * sess, int debug )
@@ -1091,7 +1113,7 @@ void AFNI_get_xhair_node( void *qq3d , int *kkbest , int *iibest )
 /**  - broken out of AFNI_process_NIML_data()    06 Oct 2004 [rickr]  **/
 /***********************************************************************/
 
-
+/*------------------------------------------------------------------------*/
 /******** Surface nodes for a dataset *********/
 static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
 {
@@ -1305,6 +1327,7 @@ ENTRY("process_NIML_SUMA_ixyz");
    RETURN(0) ;
 }
 
+/*------------------------------------------------------------------------*/
 /********* surface triangles from SUMA **********/
 static int process_NIML_SUMA_ijk( NI_element * nel, int ct_start )
 {
@@ -1463,6 +1486,7 @@ ENTRY("process_NIML_SUMA_ijk");
    RETURN(0) ;
 }
 
+/*------------------------------------------------------------------------*/
 /********* node normals from SUMA       05 Oct 2004 [rickr] **********/
 static int process_NIML_SUMA_node_normals( NI_element * nel, int ct_start )
 {
@@ -1623,6 +1647,7 @@ ENTRY("process_NIML_SUMA_node_normals");
    RETURN(0) ;
 }
 
+/*------------------------------------------------------------------------*/
 /********* new focus position **********/
 static int process_NIML_SUMA_crosshair_xyz(NI_element * nel)
 {
@@ -1650,6 +1675,7 @@ ENTRY("process_NIML_SUMA_crosshair_xyz");
    RETURN(0) ;
 }
 
+/*------------------------------------------------------------------------*/
 /*********** ROI drawing from SUMA **********/
 static int process_NIML_Node_ROI( NI_element * nel, int ct_start )
 {
