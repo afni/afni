@@ -78,6 +78,9 @@ printf("  -- dirname=%s  headname=%s\n",dirname,headname) ;
    THD_read_all_atr( headname , dblk ) ;
 
    if( dblk->natr <= 0 ){
+#ifdef THD_DEBUG
+  printf("*** THD_init_one_datablock: no attributes in %s\n",headname) ;
+#endif
       THD_delete_datablock( dblk ) ;
       myXtFree(dblk) ;
       return NULL ;
@@ -92,6 +95,14 @@ printf("  -- dirname=%s  headname=%s\n",dirname,headname) ;
    /*-- missing an attribute ==> quit now --*/
 
    if( atr_rank == NULL || atr_dimen == NULL || atr_scene == NULL ){
+#ifdef THD_DEBUG
+  if( atr_rank == NULL )
+    printf("*** THD_init_one_datablock: missing atr_rank in %s\n",headname) ;
+  if( atr_dimen == NULL )
+    printf("*** THD_init_one_datablock: missing atr_dimen in %s\n",headname) ;
+  if( atr_scene == NULL )
+    printf("*** THD_init_one_datablock: missing atr_scene in %s\n",headname) ;
+#endif
       THD_delete_datablock( dblk ) ;
       myXtFree(dblk) ;
 #ifdef THD_DEBUG

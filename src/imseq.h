@@ -550,6 +550,9 @@ extern void median9_box_func( int nx , int ny , double,double , float * ar ) ;
 extern void winsor9_box_func( int nx , int ny , double,double , float * ar ) ;
 extern void osfilt9_box_func( int nx , int ny , double,double , float * ar ) ;
 
+extern void median21_box_func( int nx , int ny , double,double , float * ar ) ;
+extern void winsor21_box_func( int nx , int ny , double,double , float * ar ) ;
+
 /*---- temporary, I hope ----*/
 
 void ISQ_saver_CB( Widget , XtPointer , MCW_choose_cbs * ) ;

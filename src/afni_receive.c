@@ -102,7 +102,7 @@ ENTRY("AFNI_receive_init") ;
 
    AFNI_toggle_drawing( im3d ) ;
 
-   RETURN(0) ;
+   RETURN(ir) ;  /* 15 Jun 1999: used to return 0, which is not correct! */
 }
 
 /*-------------------------------------------------------------------------

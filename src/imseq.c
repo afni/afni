@@ -5771,3 +5771,105 @@ void osfilt9_box_func( int nx , int ny , double dx, double dy, float * ar )
    }
    return ;
 }
+
+void median21_box_func( int nx , int ny , double dx, double dy, float * ar )
+{
+   int ii , jj , nxy , joff ;
+   float aa[21] ;
+   float * ajj , * ajm , * ajp , * ajmm , * ajpp ;
+
+   if( nx < 5 || ny < 5 ) return ;
+
+   /** make space and copy input into it **/
+
+   nxy = nx * ny ;
+   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
+#if 0
+   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+#else
+   memcpy( atemp , ar , sizeof(float)*nxy ) ;
+#endif
+
+   /** process copy of input back into the input array **/
+
+   for( jj=1 ; jj < ny-1 ; jj++ ){
+
+      joff = jj * nx ;      /* offset into this row */
+      ajj  = atemp + joff ; /* pointer to this row */
+
+      ajm  = ajj-nx ;  /* pointer to last row */
+      ajp  = ajj+nx ;  /* pointer to next row */
+
+      ajmm = (jj == 1  ) ? ajm : ajm-nx ;  /* to last last row */
+      ajpp = (jj ==ny-2) ? ajp : ajp+nx ;  /* to next next row */
+
+      /* do interior points of this row */
+
+      for( ii=2 ; ii < nx-2 ; ii++ ){
+         aa[0]=ajmm[ii-1]; aa[1]=ajmm[ii]; aa[2]=ajmm[ii+1];
+
+         aa[ 3]=ajm[ii-2]; aa[ 4]=ajm[ii-1]; aa[ 5]=ajm[ii]; aa[ 6]=ajm[ii+1]; aa[ 7]=ajm[ii+2];
+         aa[ 8]=ajj[ii-2]; aa[ 9]=ajj[ii-1]; aa[10]=ajj[ii]; aa[11]=ajj[ii+1]; aa[12]=ajj[ii+2];
+         aa[13]=ajp[ii-2]; aa[14]=ajp[ii-1]; aa[15]=ajp[ii]; aa[16]=ajp[ii+1]; aa[17]=ajp[ii+2];
+
+         aa[18]=ajpp[ii-1]; aa[19]=ajpp[ii]; aa[20]=ajpp[ii+1];
+
+         isort_float( 21 , aa ) ;
+         ar[ii+joff] = aa[10] ;
+      }
+
+   }
+   return ;
+}
+
+void winsor21_box_func( int nx , int ny , double dx, double dy, float * ar )
+{
+   int ii , jj , nxy , joff ;
+   float aa[21] ;
+   float * ajj , * ajm , * ajp , * ajmm , * ajpp ;
+
+   if( nx < 5 || ny < 5 ) return ;
+
+   /** make space and copy input into it **/
+
+   nxy = nx * ny ;
+   MAKE_ATEMP(nxy) ; if( atemp == NULL ) return ;
+#if 0
+   for( ii=0 ; ii < nxy ; ii++ ) atemp[ii] = ar[ii] ;
+#else
+   memcpy( atemp , ar , sizeof(float)*nxy ) ;
+#endif
+
+   /** process copy of input back into the input array **/
+
+   for( jj=1 ; jj < ny-1 ; jj++ ){
+
+      joff = jj * nx ;      /* offset into this row */
+      ajj  = atemp + joff ; /* pointer to this row */
+
+      ajm  = ajj-nx ;  /* pointer to last row */
+      ajp  = ajj+nx ;  /* pointer to next row */
+
+      ajmm = (jj == 1  ) ? ajm : ajm-nx ;  /* to last last row */
+      ajpp = (jj ==ny-2) ? ajp : ajp+nx ;  /* to next next row */
+
+      /* do interior points of this row */
+
+      for( ii=2 ; ii < nx-2 ; ii++ ){
+         aa[0]=ajmm[ii-1]; aa[1]=ajmm[ii]; aa[2]=ajmm[ii+1];
+
+         aa[ 3]=ajm[ii-2]; aa[ 4]=ajm[ii-1]; aa[ 5]=ajm[ii]; aa[ 6]=ajm[ii+1]; aa[ 7]=ajm[ii+2];
+         aa[ 8]=ajj[ii-2]; aa[ 9]=ajj[ii-1]; aa[10]=ajj[ii]; aa[11]=ajj[ii+1]; aa[12]=ajj[ii+2];
+         aa[13]=ajp[ii-2]; aa[14]=ajp[ii-1]; aa[15]=ajp[ii]; aa[16]=ajp[ii+1]; aa[17]=ajp[ii+2];
+
+         aa[18]=ajpp[ii-1]; aa[19]=ajpp[ii]; aa[20]=ajpp[ii+1];
+
+         isort_float( 21 , aa ) ;
+
+              if( ar[ii+joff] < aa[6]  ) ar[ii+joff] = aa[6]  ;
+         else if( ar[ii+joff] > aa[14] ) ar[ii+joff] = aa[14] ;
+      }
+
+   }
+   return ;
+}

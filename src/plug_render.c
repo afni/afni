@@ -2784,6 +2784,18 @@ void REND_xhair_recv( int why , int np , int * ijk , void * junk )
              EQUIV_DSETS(im3d->fim_now,func_dset)    ){  /* on the fim    */
 
             doit = 1 ; INVALIDATE_OVERLAY ;
+
+            /* 15 Jun 1999: fix the range labels */
+
+            { XmString xstr ;
+              xstr = REND_range_label() ;
+              XtVaSetValues( wfunc_range_label , XmNlabelString , xstr , NULL ) ;
+              XmStringFree(xstr) ;
+
+              xstr = REND_autorange_label() ;
+              XtVaSetValues( wfunc_range_bbox->wbut[0], XmNlabelString,xstr , NULL ) ;
+              XmStringFree(xstr) ;
+            }
          }
 
          if( doit && dynamic_flag && render_handle != NULL )
@@ -3868,6 +3880,7 @@ void REND_choose_av_CB( MCW_arrowval * av , XtPointer cd )
       new_dset = 1 ;           /* flag it as new         */
       FREE_VOLUMES ;           /* free the internal data */
       REND_reload_dataset() ;  /* load the data          */
+      REND_reload_renderer() ;
 
    /*--- selection of overlay color sub-brick ---*/
 

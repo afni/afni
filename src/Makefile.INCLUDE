@@ -49,7 +49,8 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
-             thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h
+             thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h \
+             multivector.h afni_environ.h
 
 all:libmri.a libcoxplot.a libvolpack.a programs
 

@@ -1053,6 +1053,10 @@ typedef struct {
 
 #define INVALIDATE_BSTAT(bst) ( (bst).min = 1.0 , (bst).max = -1.0 )
 
+#define KILL_STATISTIC(st)          \
+  do{ if( ISVALID_STATISTIC(st) ){  \
+        XtFree((char *)(st)->bstat) ; XtFree((char *)(st)) ; } } while(0)
+
 /*--------------------------------------------------------------------*/
 /*--------------------  Unique ID code for a 3D dataset  -------------*/
 #ifndef OMIT_DATASET_IDCODES
@@ -1779,6 +1783,13 @@ static char tmp_dblab[8] ;
 #define DSET_CRUSH_BSTAT(dset,ii)                                 \
   do{ if( DSET_VALID_BSTAT(dset,ii) )                             \
          INVALIDATE_BSTAT((dset)->stats->bstat[(ii)]) ; } while(0)
+
+#define DSET_KILL_STATS(ds)                                \
+  do{ if( (ds)->stats != NULL ){                           \
+         REMOVEFROM_KILL( (ds)->kl, (ds)->stats->bstat ) ; \
+         REMOVEFROM_KILL( (ds)->kl, (ds)->stats ) ;        \
+         KILL_STATISTIC( (ds)->stats ) ;                   \
+         (ds)->stats = NULL ; } } while(0)
 
 /** macro to initialize the stat_aux data in a dataset **/
 

@@ -83,6 +83,7 @@ printf("  -- atype=%d\n",atype) ;
 
          case ATR_FLOAT_TYPE:{
             ATR_float * new_atr = (ATR_float *) next_atr ;
+            char bbb[256] ;
 
             new_atr->type = ATR_FLOAT_TYPE ;
             new_atr->name = XtNewString( aname ) ;
@@ -91,7 +92,15 @@ printf("  -- atype=%d\n",atype) ;
 
             code = 0 ;
             for( ii=0 ; ii < acount ; ii++ ){
+#if 0
                code += fscanf( header_file , "%f" , &(new_atr->fl[ii]) ) ;
+#else
+               bbb[0] = '\0' ; fscanf( header_file , "%255s" , bbb ) ;
+               if( bbb[0] != '\0' ){
+                  new_atr->fl[ii] = strtod( bbb , NULL ) ;
+                  code++ ;
+               }
+#endif
             }
             code = (code != acount) ? FAIL : SUCCESS ;
 
