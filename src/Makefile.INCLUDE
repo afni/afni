@@ -5,7 +5,7 @@
 
 F2C = ./f2c -A
 
-DOCS     = docfiles/*.ps README*
+DOCS     = docfiles/*.ps README* AFNI.changes.cox
 MINDOCS  = README*
 MYDOCS   = docfiles/*.tex *.txt art12cox.sty $(DOCS) 
 

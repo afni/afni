@@ -468,6 +468,31 @@ order flag.  The default is to issue such a warning.  Only older
 versions of AFNI create datasets that don't have the byte order
 flag.  (See also the variable AFNI_BYTEORDER, described far above.)
 
+--------------------------
+Variable: AFNI_PCOR_DENEPS
+--------------------------
+The correlation coefficient calculated in FIM is calculated as the
+ratio of two quantities.  If the denominator is negative or zero,
+then this value is meaningless and may even cause the program to
+crash.  Mathematically, the denominator cannot be zero or negative,
+but this could arise due to finite precision arithmetic on the computer
+(i.e., roundoff error accumulation).  To avoid this problem, the routine
+that computes the correlation coefficient compares the denominator to a
+value (called DENEPS) - if the denominator is less than DENEPS, then
+the correlation coefficient for that voxel is set to zero.
+
+The denominator that is being computed is proportional to the variance
+of the time series.  If the voxel time series data is very small, then
+the variance will be really small - so much so that the DENEPS test
+will be failed, even though it shouldn't be.  This problem has arisen
+when people input time series whose typical value is 0.001 or smaller.
+It never occurred to me that people would input data this small to the
+AFNI FIM routines.  To get around this difficulty, set this environment
+variable to a value for DENEPS; for example
+  setenv AFNI_PCOR_DENEPS 0.0
+will turn off the checking entirely.  Or you could do
+  setenv AFNI_PCOR_DENEPS 1.e-10
+
 =================================
 | Robert W. Cox, PhD            |
 | Biophysics Research Institute |

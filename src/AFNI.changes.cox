@@ -1686,3 +1686,8 @@
  * Fixed wcsuffix bugs in afni_graph.c:
      - didn't mangle output name correctly!
      - overwrote the end of the wcsuffix string!
+
+28 Sep 1999
+ * Added environment variable AFNI_PCOR_DENEPS to afni_pcor.c,
+     so that user can set the DENEPS test for the correlation
+     coefficient calculation.

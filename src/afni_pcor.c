@@ -264,12 +264,21 @@ void PCOR_get_pcor(PCOR_references * ref, PCOR_voxel_corr * vc, float * pcor)
 {
    int vox , nv = vc->nvox , nr = vc->nref ;
    float den ;
+   static float deneps=-666.0 ; /* 28 Sep 1999 */
 
    /*** check inputs for OK-ness ***/
 
    if( vc->nref != ref->nref ){
       fprintf( stderr , "\nPCOR_get_pcor: reference size mismatch!\n" ) ;
       exit(1) ;
+   }
+
+   /* 28 Sep 1999: load user option for denominator epsilon */
+
+   if( deneps < 0.0 ){
+      char * ccc = my_getenv("AFNI_PCOR_DENEPS") ;
+      if( ccc != NULL ) deneps = strtod( ccc , NULL ) ;
+      if( deneps < 0.0 ) deneps = DENEPS ;
    }
 
    /*** Work ***/
@@ -287,8 +296,10 @@ void PCOR_get_pcor(PCOR_references * ref, PCOR_voxel_corr * vc, float * pcor)
       }
 #else
       /*----- Allow for numerical roundoff error,  26 August 1998  BDW -----*/
+      /*----- Replace DENEPS with deneps:          28 September 1999 RWC ---*/
+
       den = VCH(vc,vox,nr) + SQR(VCH(vc,vox,nr-1)) ;
-      if( den > DENEPS )
+      if( den > deneps )
          pcor[vox] = VCH(vc,vox,nr-1) / sqrt(den) ;
       else
          pcor[vox] = 0.0 ;
