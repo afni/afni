@@ -1944,7 +1944,8 @@ others immediately.
 Variable: AFNI_IMAGE_ZOOM_NN (editable)
 ----------------------------
 If this variable is set to YES, then image viewer windows will use
-nearest neighbor interpolation for zooming.
+nearest neighbor interpolation for zooming.  The default is linear
+interpolation, which produces smoother-looking images.
 
 =============================================
 | Robert W Cox, PhD                         |
