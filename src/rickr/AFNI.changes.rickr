@@ -208,6 +208,15 @@
   * modifed ge4_header.c to remove "static" warnings
 
 17 June 2003:
-  * modified SUMA_3dSurfMaskDump.[ch]
-      o added 'ave' map function -> version 2.1
+  * modified SUMA_3dSurfMaskDump.[ch] -> version 2.1
+      o added 'ave' map function
+
+19 June 2003:
+  * modified SUMA_3dSurfMaskDump.[ch] -> version 2.2
+      o added -m2_index INDEX_TYPE for the option of indexing across nodes
+      o set the default of -m2_steps to 2
+      o replace S2V with SMD in macros
+  * modified SUMA_ParseCommands.c
+      o In SUMA_FreeMessageListData(), do not free Message or Source, as
+        they are added as static or local strings (but never alloc'd).
 

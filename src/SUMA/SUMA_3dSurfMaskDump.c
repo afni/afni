@@ -1,5 +1,5 @@
 
-#define VERSION "version 2.1 (June 17, 2003)"
+#define VERSION "version 2.2 (June 19, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurfMaskDump - dump ascii dataset values corresponding to a surface
@@ -27,6 +27,8 @@
  *
  * 	-cmask      MASK_COMMAND
  * 	-debug      LEVEL
+ * 	-m2_index   INDEX_TYPE
+ * 	-m2_steps   NUM_STEPS
  * 	-outfile    OUTPUT_FILE
  * 	-no_headers
  *
@@ -47,6 +49,11 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.2  June 19, 2003
+ *   - added -m2_index INDEX_TYPE option (to index across nodes, too)
+ *   - set the default of -m2_steps to 2
+ *   - use SMD prefix for macros
  *
  * 2.1  June 10, 2003
  *   - added ave map function (see dump_ave_map)
@@ -223,7 +230,8 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
     subs = DSET_NVALS(p->gpar);
 
     /* one last precaution */
-    if ( N->depth < 2 || N->nnodes <= 0 || sopt->m2_steps < 2 )
+    if ( N->depth < 2 || N->nnodes <= 0 ||
+	 sopt->m2_steps < SMD_M2_STEPS_DEFAULT )
     {
 	fprintf( stderr, "** bad setup for ave mapping (%d,%d,%d)\n",
 		 N->depth, N->nnodes, sopt->m2_steps );
@@ -235,13 +243,14 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 		                   "(%d, %d, %d, %d)\n",
 		 	 N->depth, N->nnodes, subs, nx*ny*nz );
 
-    /* store info for each step (in case of debug), plus one for sum */
+    /* store info for each step (in case of debug), plus one for bave */
     bdata = (double *)malloc(subs * (sopt->m2_steps+1) * sizeof(double));
     if ( bdata == NULL )
     {
 	fprintf(stderr, "** can't allocate %d doubles\n", subs*sopt->m2_steps);
 	return -1;
     }
+    bave = bdata + sopt->m2_steps * subs;	/* point to our extra array */
 
     if ( ! sopt->no_head )
     {
@@ -299,8 +308,9 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	    if ( p->cmask && !p->cmask[vindex] )
 		continue;
 
-	    /* okay, so is this a different voxel than last time? */
-	    if ( vindex == prev_ind )
+	    /* or, if we index by voxel and this is the same, skip it */
+	    if ( (sopt->m2_index == SMD_M2_INDEX_VOXEL) &&
+		 (vindex == prev_ind) )
 		continue;
 
 	    /* woohoo! a new voxel to add to our bdata matrix */
@@ -323,7 +333,6 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	    continue;
 
 	/* compute sums of and using bdata */
-	bave = bdata + sopt->m2_steps * subs;	/* point to our extra array */
 	for (bcount = 0; bcount < subs; bcount++ )	/* init to zero     */
 	    bave[bcount] = 0.0;
 	for ( sindex = 0; sindex < scount; sindex++ )
@@ -335,10 +344,10 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	for (bcount = 0; bcount < subs; bcount++ )	/* and take average */
 	    bave[bcount] /= scount;
 
-	/* debug display if first node with step index greater than 1 */
-	if ( sopt->debug > 1 && scount > dcount )
+	/* debug display if first node with step index greater than last one */
+	if ( sopt->debug > 1 && scount > dcount && node > N->nnodes/10 )
 	{
-	    dcount++;
+	    dcount = scount;	/* allow for more displays as the grow */
 	    fprintf( stderr, "++ (node, vindex, scount) = "
 		     "(%d, %d, %d)\n",
 		     node, vindex, scount );
@@ -349,9 +358,8 @@ int dump_ave_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	    for ( sindex = 0; sindex < scount; sindex++ )
 	    {
 		fprintf( stderr, "   step %3d : ", sindex );
-		for (bcount = 0; bcount < subs; bcount++ )
-		    fprintf( stderr, "%10s ", MV_format_fval(*bptr) );
-		bptr++;
+		for (bcount = 0; bcount < subs; bcount++, bptr++ )
+		    fprintf( stderr, "%10s ", MV_format_fval((float)*bptr) );
 		fputc( '\n', stderr );
 	    }
 	    fprintf( stderr, "++ ave      : " );
@@ -468,8 +476,6 @@ int dump_midpt_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	if ( p->cmask && !p->cmask[vindex] )
 	    continue;
 
-	/* rcr - may want to consider threshold on separate brick */
-
 	/* output surface, volume, and ijk indices */
 	fprintf( p->outfp, "  %8d   %8d   %3d  %3d  %3d ",
 		 node, vindex, i3ind.ijk[0], i3ind.ijk[1], i3ind.ijk[2] );
@@ -550,8 +556,6 @@ int dump_single_map ( smap_opts_t * sopt, param_t * p, node_list_t * N )
 	/* if we don't want this index, skip it */
 	if ( p->cmask && !p->cmask[vindex] )
 	    continue;
-
-	/* rcr - may want to consider threshold on separate brick */
 
 	/* output surface, volume, and ijk indices */
 	fprintf( p->outfp, "  %8d   %8d   %3d  %3d  %3d ",
@@ -772,30 +776,36 @@ int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
     if ( (sopt->map = check_map_func( opts->map_str )) == E_SMAP_INVALID )
 	return -1;
 
+    /* set defaults before checking map type */
+
     sopt->debug   = opts->debug;	/* for output in library functions */
     sopt->no_head = opts->no_head;
     sopt->cmask   = p->cmask;
 
+    if ( opts->m2_steps <= SMD_M2_STEPS_DEFAULT )	/* default is 2    */
+	sopt->m2_steps = SMD_M2_STEPS_DEFAULT;
+    else
+	sopt->m2_steps = opts->m2_steps;
+
+    sopt->m2_index = SMD_M2_INDEX_VOXEL;	     /* default is "voxel" */
+
+    if ( (opts->m2_index_str != NULL) &&
+	 (!strncmp(opts->m2_index_str, "node", 4)) )
+	    sopt->m2_index = SMD_M2_INDEX_NODE;
+
+    /* great, now my switch is ineffective - save for later */
     switch (sopt->map)
     {
 	default:
+	    break;
 
 	case E_SMAP_COUNT:
 	case E_SMAP_MAX:
 	case E_SMAP_MIN:
 	case E_SMAP_MASK:
-	case E_SMAP_MIDPT:
-	    break;
-
-	case E_SMAP_AVE:
-	    if ( opts->m2_steps <= 2 )
-		sopt->m2_steps = 2;
-	    else
-		sopt->m2_steps = opts->m2_steps;
-	    break;
-
 	case E_SMAP_MASK2:
-	    sopt->m2_steps = opts->m2_steps;
+	case E_SMAP_MIDPT:
+	case E_SMAP_AVE:
 	    break;
     }
 
@@ -904,7 +914,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 
     if ( argc < 2 )
     {
-	usage( PROG_NAME, S2V_USE_LONG );
+	usage( PROG_NAME, SMD_USE_LONG );
 	return -1;
     }
 
@@ -916,7 +926,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	/* do help first, the rest alphabetically */
 	if ( ! strncmp(argv[ac], "-help", 2) )
 	{
-	    usage( PROG_NAME, S2V_USE_LONG );
+	    usage( PROG_NAME, SMD_USE_LONG );
 	    return -1;
 	}
 	else if ( ! strncmp(argv[ac], "-cmask", 6) )
@@ -924,7 +934,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
 	    {
 		fputs( "option usage: -cmask COMMAND\n\n", stderr );
-		usage( PROG_NAME, S2V_USE_SHORT );
+		usage( PROG_NAME, SMD_USE_SHORT );
 		return -1;
 	    }
 
@@ -935,16 +945,16 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
 	    {
 		fputs( "option usage: -debug LEVEL\n\n", stderr );
-		usage( PROG_NAME, S2V_USE_SHORT );
+		usage( PROG_NAME, SMD_USE_SHORT );
 		return -1;
 	    }
 
 	    opts->debug = atoi(argv[++ac]);
-	    if ( opts->debug < 0 || opts->debug > S2V_DEBUG_MAX_LEV )
+	    if ( opts->debug < 0 || opts->debug > SMD_DEBUG_MAX_LEV )
 	    {
 		fprintf( stderr, "bad debug level <%d>, should be in [0,%d]\n",
-			opts->debug, S2V_DEBUG_MAX_LEV );
-		usage( PROG_NAME, S2V_USE_SHORT );
+			opts->debug, SMD_DEBUG_MAX_LEV );
+		usage( PROG_NAME, SMD_USE_SHORT );
 		return -1;
 	    }
 	}
@@ -955,18 +965,29 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
 	    {
 		fputs( "option usage: -grid_parent INPUT_DSET\n\n", stderr );
-		usage( PROG_NAME, S2V_USE_SHORT );
+		usage( PROG_NAME, SMD_USE_SHORT );
 		return -1;
 	    }
 
 	    opts->gpar_file = argv[++ac];
 	}
-	else if ( ! strncmp(argv[ac], "-m2_steps", 6) )
+	else if ( ! strncmp(argv[ac], "-m2_index", 7) )
+	{
+	    if ( (ac+1) >= argc )
+	    {
+		fputs( "option usage: -m2_index INDEX_TYPE\n\n", stderr );
+		usage( PROG_NAME, SMD_USE_SHORT );
+		return -1;
+	    }
+
+	    opts->m2_index_str = argv[++ac];
+	}
+	else if ( ! strncmp(argv[ac], "-m2_steps", 7) )
 	{
 	    if ( (ac+1) >= argc )
 	    {
 		fputs( "option usage: -m2_steps NUM_STEPS\n\n", stderr );
-		usage( PROG_NAME, S2V_USE_SHORT );
+		usage( PROG_NAME, SMD_USE_SHORT );
 		return -1;
 	    }
 
@@ -991,7 +1012,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
             {
 		fputs( "option usage: -outfile OUTPUT_FILE\n\n", stderr );
-		usage( PROG_NAME, S2V_USE_SHORT );
+		usage( PROG_NAME, SMD_USE_SHORT );
 		return -1;
 	    }
 
@@ -1002,7 +1023,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
             {
 		fputs( "option usage: -spec SPEC_FILE\n\n", stderr );
-		usage( PROG_NAME, S2V_USE_SHORT );
+		usage( PROG_NAME, SMD_USE_SHORT );
 		return -1;
 	    }
 
@@ -1013,7 +1034,7 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	    if ( (ac+1) >= argc )
             {
 		fputs( "option usage: -sv SURFACE_VOLUME\n\n", stderr );
-		usage( PROG_NAME, S2V_USE_SHORT );
+		usage( PROG_NAME, SMD_USE_SHORT );
 		return -1;
 	    }
 
@@ -1021,13 +1042,13 @@ int init_options ( opts_t * opts, int argc, char * argv [] )
 	}
 	else if ( ! strncmp(argv[ac], "-version", 2) )
 	{
-	    usage( PROG_NAME, S2V_USE_VERSION );
+	    usage( PROG_NAME, SMD_USE_VERSION );
 	    return -1;
 	}
 	else	 /* invalid option */
 	{
 	    fprintf( stderr, "invalid option <%s>\n", argv[ac] );
-	    usage( PROG_NAME, S2V_USE_SHORT );
+	    usage( PROG_NAME, SMD_USE_SHORT );
 	    return -1;
 	}
     }
@@ -1280,14 +1301,14 @@ int validate_datasets( opts_t * opts, param_t * p )
 /*----------------------------------------------------------------------
  * usage  -  output usage information
  *
- * S2V_USE_SHORT	- display brief output
- * S2V_USE_LONG		- display long output
- * S2V_USE_VERSION	- show the VERSION of the program
+ * SMD_USE_SHORT	- display brief output
+ * SMD_USE_LONG		- display long output
+ * SMD_USE_VERSION	- show the VERSION of the program
  *----------------------------------------------------------------------
 */
 int usage ( char * prog, int level )
 {
-    if ( level == S2V_USE_SHORT )
+    if ( level == SMD_USE_SHORT )
     {
 	fprintf( stderr,
 		 "usage: %s [options] -spec SPEC_FILE -sv SURF_VOL "
@@ -1296,7 +1317,7 @@ int usage ( char * prog, int level )
 		 prog, prog );
 	return 0;
     }
-    else if ( level == S2V_USE_LONG )
+    else if ( level == SMD_USE_LONG )
     {
 	printf(
 	    "\n"
@@ -1350,6 +1371,7 @@ int usage ( char * prog, int level )
 	    "       -grid_parent  fred_anat+orig                          \\\n"
 	    "       -map_func     ave                                     \\\n"
 	    "       -m2_steps     10                                      \\\n"
+	    "       -m2_index     nodes                                   \\\n"
 	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
 	    "       -output       fred_surf_ave.txt\n"
 	    "\n"
@@ -1384,6 +1406,8 @@ int usage ( char * prog, int level )
 	    "    -map_func MAP_FUNC     : surface to dataset function\n"
 	    "\n"
 	    "        e.g. -map_func ave\n"
+	    "        e.g. -map_func ave -m2_steps 10\n"
+	    "        e.g. -map_func ave -m2_steps 10 -m2_index nodes\n"
 	    "        e.g. -map_func mask\n"
 	    "        e.g. -map_func midpoint\n"
 	    "\n"
@@ -1399,11 +1423,38 @@ int usage ( char * prog, int level )
 	    "                     values located along the segment joining\n"
 	    "                     those nodes.\n"
 	    "\n"
+	    "                  -m2_steps NUM_STEPS :\n"
+	    "\n"
 	    "                     The -m2_steps option may be added here, to\n"
 	    "                     specify the number of points to use in the\n"
-	    "                     average.  The default is 5, minimum is 2.\n"
+	    "                     average.  The default and minimum is 2.\n"
 	    "\n"
 	    "                     e.g.  -map_func ave -m2_steps 10\n"
+	    "                     default: -m2_steps 2\n"
+	    "\n"
+	    "                  -m2_index TYPE :\n"
+	    "\n"
+	    "                     The -m2_index options is used to specify\n"
+	    "                     whether the average is taken by indexing\n"
+	    "                     over distict nodes or over distict voxels.\n"
+	    "\n"
+	    "                     For instance, when taking the average along\n"
+	    "                     one node pair segment using 10 node steps,\n"
+	    "                     perhaps 3 of those nodes may occupy one\n"
+	    "                     particular voxel.  In this case, does the\n"
+	    "                     user want the voxel counted only once, or 3\n"
+	    "                     times?  Each case makes sense.\n"
+	    "                     \n"
+	    "                     Note that this will only make sense when\n"
+	    "                     used along with the '-m2_steps' option.\n"
+	    "                     \n"
+	    "                     Possible values are \"nodes\", \"voxels\".\n"
+	    "                     The default value is voxels.  So each voxel\n"
+	    "                     along a segment will be counted only once.\n"
+	    "                     \n"
+	    "                     e.g.  -m2_index nodes\n"
+	    "                     e.g.  -m2_index voxels\n"
+	    "                     default: -m2_index voxels\n"
 	    "\n"
 	    "          mask     : For each surface xyz location, output the\n"
 	    "                     dataset values of each sub-brick.\n"
@@ -1475,7 +1526,7 @@ int usage ( char * prog, int level )
 
 	return 0;
     }
-    else if ( level == S2V_USE_VERSION )
+    else if ( level == SMD_USE_VERSION )
     {
 	printf( "%s : %s, compile date: %s\n", prog, VERSION, __DATE__ );
 	return 0;
@@ -1510,11 +1561,12 @@ int disp_opts_t ( char * info, opts_t * opts )
 	    "    cmask_cmd          = %s\n"
 	    "    map_str            = %s\n"
 	    "    debug, no_head     = %d, %d\n"
+	    "    m2_index_str       = %s\n"
 	    "    m2_steps           = %d\n"
 	    , opts,
 	    opts->gpar_file, opts->out_file, opts->spec_file, opts->sv_file,
 	    opts->cmask_cmd, opts->map_str, opts->debug, opts->no_head,
-	    opts->m2_steps
+	    opts->m2_index_str, opts->m2_steps
 	    );
 
     return 0;
@@ -1566,11 +1618,12 @@ int disp_smap_opts_t ( char * info, smap_opts_t * sopt )
     }
 
     printf( "smap_opts_t struct at %p :\n"
-	    "    map, debug        = %d, %d\n"
-	    "    no_head, m2_steps = %d, %d\n"
-	    "    cmask             = %p\n"
+	    "    map, debug, no_head = %d, %d, %d\n"
+	    "    m2_index, m2_steps  = %d, %d\n"
+	    "    cmask               = %p\n"
 	    , sopt,
-	    sopt->map, sopt->debug, sopt->no_head, sopt->m2_steps, sopt->cmask
+	    sopt->map, sopt->debug, sopt->no_head,
+	    sopt->m2_index, sopt->m2_steps, sopt->cmask
 	    );
 
     return 0;
