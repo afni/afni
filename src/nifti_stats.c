@@ -10308,12 +10308,16 @@ double student_pq2s( pqpair pq , double dof )
    return s ;
 }
 
+/****************************************************************************/
+/* For the distributions below here, cdflib can't do what we want directly. */
+/****************************************************************************/
+
 /*----------------------------------------------------------------
    Null correlation distribution.
    Let x = (rr+1)/2; then x is Beta(dof/2,dof/2).
 ------------------------------------------------------------------*/
 
-static pqpair correl_s2pq( double rr , double dof )
+static pqpair correl_s2pq( double rr , double dof )  /* fake it with cdflib */
 {
    return beta_s2pq( 0.5*(rr+1.0) , 0.5*dof , 0.5*dof ) ;
 }
@@ -10330,7 +10334,7 @@ static double correl_pq2s( pqpair pq , double dof )
   Uniform U(0,1) distribution.
 ------------------------------------------------------------------*/
 
-static pqpair uniform_s2pq( double xx )
+static pqpair uniform_s2pq( double xx )  /* this isn't too hard */
 {
    pqpair pq ;
         if( xx <= 0.0 ) pq.p = 0.0 ;
@@ -10350,7 +10354,7 @@ static double uniform_pq2s( pqpair pq )
   standard Logistic distribution.
 ------------------------------------------------------------------*/
 
-static pqpair logistic_s2pq( double xx )
+static pqpair logistic_s2pq( double xx )  /* this isn't hard, either */
 {
    pqpair pq ;
    if( xx >= 0.0 ){ pq.q = 1.0/(1.0+exp( xx)); pq.p = 1.0-pq.q; }
@@ -10373,7 +10377,7 @@ static double logistic_pq2s( pqpair pq )
   standard Laplace distribution.
 ------------------------------------------------------------------*/
 
-static pqpair laplace_s2pq( double xx )
+static pqpair laplace_s2pq( double xx )  /* easy */
 {
    pqpair pq ;
 
@@ -10394,7 +10398,7 @@ static double laplace_pq2s( pqpair pq )
 }
 
 /*----------------------------------------------------------------
-   noncentral T distribution.
+   noncentral T distribution = hard
 ------------------------------------------------------------------*/
 
 /****************************************************************************
@@ -10406,7 +10410,7 @@ static double laplace_pq2s( pqpair pq )
 *****************************************************************************/
 
 #if 0
-static double alng( double x )
+static double alng( double x )   /* log(Gamma(x)) from K */
 {
    int indx ;
    double xx,fterm,sum,valg ;
@@ -10438,7 +10442,7 @@ static double alng( double x ) /*-- replace with cdflib function --*/
 /*---------------------------------------------------------------------------*/
 
 #if 0
-static double gaudf( double x )
+static double gaudf( double x )  /* N(0,1) cdf from K */
 {
    static double p0=913.16744211475570 , p1=1024.60809538333800,
                  p2=580.109897562908800, p3=202.102090717023000,
@@ -10481,7 +10485,7 @@ static double gaudf( double x ) /*-- replace with cdflib func --*/
 /*---------------------------------------------------------------------------*/
 
 #if 0
-static double betadf( double x , double p , double q )
+static double betadf( double x , double p , double q ) /* Beta cdf from K */
 {
    int check , ns ;
    double result,betf,psq,xx,cx,pp,qq ;
