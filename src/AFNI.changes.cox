@@ -4255,3 +4255,5 @@
  * Modified afni.c to de-sensitize threshold slider when not needed, rather
      than hide it.  This is to get around a problem with the size of the pbar
      being adjusted slightly incorrectly, for reasonse I don't understand.
+ * Modified pbar.c to give choice of colormaps for "big" mode.  Programmed
+     a startup set of 4 colormaps.

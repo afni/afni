@@ -437,7 +437,7 @@ void DC_init_im_gry( MCW_DC * dc )
 
 rgbyte DC_spectrum_ZSS( double an , double gamm )
 {
-   int r,g,b ;
+   int r,g,b , m ;
    rgbyte color ;
 
    if( gamm <= 0.0 ) gamm = 1.0 ;
@@ -464,6 +464,11 @@ rgbyte DC_spectrum_ZSS( double an , double gamm )
      g = 255.*mypow(4.0-an,gamm)+0.5 ;
      b = 0   ;
    }
+
+#if 0
+   m = MAX(r,g) ; m = MAX(m,b) ;
+   if( m < 255 ){ float s=255.0/m; r *= s; g *= s; b *= s; }
+#endif
 
    color.r = r ; color.g = g ; color.b = b ; return color ;
 }
