@@ -137,39 +137,40 @@ ENTRY("AFNI_splashup") ;
 
       imov = NULL ; ff = 0 ;
       if( num_face > 0 ){                       /* external face_*.jpg files */
-        static int ddold_1=-1 , ddold_2=-1;
+        static int dold_1=-1, dold_2=-1, dold_3=-1 ;
         dd = (lrand48() >> 8) % num_face ;               /* pick random file */
-        if( dd==ddold_1 || dd==ddold_2 ){ dd = (dd+1)%num_face; } /* but not */
-        if( dd==ddold_1 || dd==ddold_2 ){ dd = (dd+1)%num_face; } /* recent */
-        ddold_2 = ddold_1 ; ddold_1 = dd ;                        /* file  */
-        imov = mri_read_stuff( fname_face[dd] ) ;            /* read file */
+        if(dd==dold_1 || dd==dold_2 || dd==dold_3){ dd=(dd+1)%num_face; }
+        if(dd==dold_1 || dd==dold_2 || dd==dold_3){ dd=(dd+1)%num_face; }
+        if(dd==dold_1 || dd==dold_2 || dd==dold_3){ dd=(dd+1)%num_face; }
+        dold_3 = dold_2; dold_2 = dold_1; dold_1 = dd;
+        imov = mri_read_stuff( fname_face[dd] ) ;               /* read file */
         if( imov != NULL && (imov->nx > MAX_XOVER || imov->ny > MAX_YOVER) ){
           float xfac=MAX_XOVER/(float)(imov->nx),
-                yfac=MAX_YOVER/(float)(imov->ny) ;  /* rescale if too big */
+                yfac=MAX_YOVER/(float)(imov->ny) ;     /* rescale if too big */
           int nxnew,nynew ; MRI_IMAGE *imq ;
           if( xfac > yfac ) xfac = yfac ;
           nxnew = (int)(xfac*imov->nx) ; nynew = (int)(xfac*imov->ny) ;
-          imq = mri_resize( imov , nxnew,nynew ) ;        /* kind of slow */
-          mri_free(imov); imov = imq;      /* replace with rescaled image */
+          imq = mri_resize( imov , nxnew,nynew ) ;          /* kind of slow */
+          mri_free(imov); imov = imq;        /* replace with rescaled image */
         }
-        if( imov != NULL ){         /* ff = 2 for me, 1 for everyone else */
+        if( imov != NULL ){           /* ff = 2 for me, 1 for everyone else */
           ff = (strstr(fname_face[dd],"_rwcox") != NULL) ? 2 : 1 ;
         }
       }
-      if( imov == NULL ){                /* if didn't get face jpeg above */
+      if( imov == NULL ){                  /* if didn't get face jpeg above */
         nov  = (nov+dnov+NOVER) % NOVER ;
         imov = SPLASH_decode26( xover[nov], yover[nov], lover[nov], bover[nov] ) ;
       }
-      nxov = imov->nx ; nyov = imov->ny ;        /* size of overlay image */
-      dd = IXOVER + (MAX_XOVER-nxov)/2 ;        /* and location to put it */
+      nxov = imov->nx ; nyov = imov->ny ;          /* size of overlay image */
+      dd = IXOVER + (MAX_XOVER-nxov)/2 ;          /* and location to put it */
       ee = JYOVER + (MAX_YOVER-nyov)/2 ;
       mri_overlay_2D( imspl, imov, dd,ee ); mri_free(imov);
-      if( ff ){                               /* overlay title under face */
+      if( ff ){                                 /* overlay title under face */
         imov = SPLASH_decodexx( NX_facetitle,NY_facetitle,NLINE_facetitle,
                                 NC_facetitle,RMAP_facetitle,
                                 RMAP_facetitle,RMAP_facetitle ,
                                 BAR_facetitle ) ;
-        if( ff == 2 ) mri_invert_inplace( imov ) ;         /* for me only */
+        if( ff == 2 ) mri_invert_inplace( imov ) ;           /* for me only */
         dd = IXOVER + (MAX_XOVER-imov->nx)/2 ; ee += nyov+1 ;
         mri_overlay_2D( imspl, imov, dd,ee ) ; mri_free(imov) ;
       }

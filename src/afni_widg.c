@@ -3018,7 +3018,9 @@ STATUS("making func->rowcol") ;
 
    MCW_reghelp_children( func->range_rotate_av->wrowcol ,
                          "Rotate the colors on\n"
-                         "the 'pbar' up or down." ) ;
+                         "the 'pbar' up or down.\n"
+                         "[Press with Shift  to]\n"
+                         "[rotate in steps of 4]"  ) ;
    MCW_reghint_children( func->range_rotate_av->wrowcol ,
                          "Rotate pbar colors" ) ;
 

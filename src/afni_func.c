@@ -384,6 +384,11 @@ ENTRY("AFNI_range_rotate_av_CB") ;
    if( av->fval > av->old_fval ) ddd = +1 ;
    else                          ddd = -1 ;
 
+   if( av->xev.type == ButtonPress ){
+     XButtonEvent *event = (XButtonEvent *) (&av->xev) ;
+     if( event->state & ShiftMask ) ddd *= 4 ;
+   }
+
    rotate_MCW_pbar( pbar , ddd ) ;
    EXRETURN ;
 }

@@ -1036,15 +1036,35 @@ void MCW_set_meter( Widget wscal , int percent )
 {
    int val , old ;
 
+#undef  NCOL
+#define NCOL 11
+#ifdef NCOL
+   static int icol=0 ;
+   static char *cname[] = { "#ff0000", "#ff9900",
+                            "#ffff00", "#99ff00",
+                            "#00ff00", "#00ff99",
+                            "#0088dd", "#0000dd",
+                            "#9900ff", "#ff00ff", "#ff0099" } ;
+#endif
+
    val = percent ;
    if( wscal == NULL || val < 0 || val > 100 ) return ;
 
    XmScaleGetValue( wscal , &old ) ; if( val == old ) return ;
 
    XtVaSetValues( wscal , XmNvalue , val , NULL ) ;
-#if 0
-   XFlush( XtDisplay(wscal) ) ;
+
+#ifdef NCOL
+   { Widget ws = XtNameToWidget(wscal,"Scrollbar") ;
+     if( ws != NULL )
+     XtVaSetValues( ws ,
+                     XtVaTypedArg , XmNtroughColor , XmRString ,
+                                    cname[icol] , strlen(cname[icol])+1 ,
+                   NULL ) ;
+     icol = (icol+1) % NCOL ;
+   }
 #endif
+
    XmUpdateDisplay(wscal) ;
    return ;
 }
