@@ -4565,3 +4565,8 @@
 13 May 2003
  * Added "-Fourier_nopad" option to 3drotate.c, plug_nudge.c, and thd_rot3d.c.
  * Modified afni.c to have arrowpad keys do wraparound when they hit the edge.
+
+14 May 2003
+ * Fixed bug in thd_intlist.c, where ']' or '}' might not stop the scanning of
+     the string.  This was a problem when dealing with inputs that have both
+     types of selectors -- one might run over another in the parsing.
