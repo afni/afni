@@ -189,6 +189,7 @@ typedef struct {
 	char SureFitVolParam[SUMA_MAX_N_SURFACE_SPEC][1000];
 	char FreeSurferSurface[SUMA_MAX_N_SURFACE_SPEC][1000];
 	char InventorSurface[SUMA_MAX_N_SURFACE_SPEC][1000];
+	char VolParName[SUMA_MAX_N_SURFACE_SPEC][1000]; 
 	char *IDcode[SUMA_MAX_N_SURFACE_SPEC];
 	char State[SUMA_MAX_N_SURFACE_SPEC][100];
 	char Group[SUMA_MAX_N_SURFACE_SPEC][1000];
