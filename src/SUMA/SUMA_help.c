@@ -20,9 +20,12 @@ void SUMA_help_message(FILE *Out)
 	 fprintf (Out, "\t  f: functional overlay, toggle.\n");
 	 fprintf (Out, "\t  F: Flip light position between +z and -z.\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  H: Highlight nodes inside a specified box.\n");
-	 fprintf (Out, "\t  h: help message\n");
+	 if (SUMAg_CF->Dev) fprintf (Out, "\t  j: Set the cross hair to a certain node on SO in Focus.\nDoes not update in other viewers\n");
+    if (SUMAg_CF->Dev) fprintf (Out, "\t  J: Set the selected FaceSet on SO in Focus.\nDoes not update in other viewers.\n");
+    fprintf (Out, "\t  h: help message\n");
 	 fprintf (Out, "\t   Ctrl+h: Debug flags\n");
 	 fprintf (Out, "\t  l: look at point\n");
+    if (SUMAg_CF->Dev) fprintf (Out, "\t   ctrl+l: Switch locking mode for all viewers between:\n No Lock, Index Lock and XYZ Lock.\nThe switching is order is based on the lock of the first viewer.");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t  L: look from point\n");
 	 if (SUMAg_CF->Dev) fprintf (Out, "\t   Ctrl+M: Show memory trace if Debug flag MemTrace is on. \n");
     if (SUMAg_CF->Dev) fprintf (Out, "\t           (requires compilation with SUMA_MEMTRACE_FLAG 1).\n");

@@ -110,6 +110,7 @@ int SUMA_CommandCode(char *Scom)
    if (!strcmp(Scom,"SetLookAt")) SUMA_RETURN(SE_SetLookAt);   
    if (!strcmp(Scom,"SetLookFrom")) SUMA_RETURN(SE_SetLookFrom);
    if (!strcmp(Scom,"Redisplay")) SUMA_RETURN(SE_Redisplay);
+   if (!strcmp(Scom,"RedisplayNow")) SUMA_RETURN(SE_RedisplayNow);
    if (!strcmp(Scom,"Redisplay_AllVisible")) SUMA_RETURN(SE_Redisplay_AllVisible);
    if (!strcmp(Scom,"SetNodeColor")) SUMA_RETURN (SE_SetNodeColor);
    if (!strcmp(Scom,"FlipLight0Pos"))   SUMA_RETURN(SE_FlipLight0Pos);

@@ -8,7 +8,7 @@
 	#define BUTTON_3_MOTION 1024 /* Button3Mask */
 	#define BUTTON_12_MOTION Button1Mask+Button2Mask /* Button1Mask+Button2Mask */
 
-SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov);
+int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov);
 void SUMA_momentum(XtPointer clientData, XtIntervalId *id);
 
 

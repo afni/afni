@@ -2,6 +2,7 @@
 #define SUMA_SVMANIP_INCLUDED
 
 /*! functions defined in SUMA_SVmanip.c */
+SUMA_Boolean SUMA_LockEnum_LockType (SUMA_LINK_TYPES i, char *Name);
 SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N);
 void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out);
 SUMA_Boolean SUMA_UpdateRotaCenter (SUMA_SurfaceViewer *SV, SUMA_DO *dov, int N_dov);

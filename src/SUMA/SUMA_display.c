@@ -180,6 +180,12 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                break;
             case GO_type:
                break;
+            case ROIdO_type:
+               /* those are drawn by SUMA_CreateMesh */
+               break;
+            case ROIO_type:
+               /* those are drawn by SUMA_CreateMesh */
+               break;
          }
       }
       ++i;
@@ -217,6 +223,12 @@ void SUMA_display(SUMA_SurfaceViewer *csv, SUMA_DO *dov)
                }
                break;
             case GO_type:
+               break;
+            case ROIdO_type:
+               /* those are drawn by SUMA_CreateMesh */
+               break;
+            case ROIO_type:
+               /* those are drawn by SUMA_CreateMesh */
                break;
          }
       }

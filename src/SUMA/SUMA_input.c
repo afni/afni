@@ -22,7 +22,7 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    static char FuncName[]= {"SUMA_input"};
    char s[SUMA_MAX_STRING_LENGTH], sfield[100], sdestination[100];
    static char ssource[]={"suma"};
-   int it, ii, iv3[3];
+   int it, ii, iv3[3], hit = 0;
    float **fm, fv3[3], fv15[15];
    XKeyEvent Kev;
    XButtonEvent Bev;
@@ -30,8 +30,11 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    int isv;
    SUMA_SurfaceViewer *sv;
    GLfloat *glar_ColorList = NULL;
+   static Time B1time = 0;
+   static int pButton, mButton, rButton;
+   SUMA_Boolean ROI_mode, DoubleClick;
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
-   
+
    /*float ft;
    int **im, iv15[15];*/ /* keep unused variables undeclared to quite compiler */
 
@@ -380,33 +383,126 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             }
             break;
 
+         case XK_j:
+            if (SUMAg_CF->Dev) {
+               fprintf(stdout,"Enter index of node to send the cross hair to (nothing to cancel):\n");
+               it = SUMA_ReadNumStdin (fv3, 1);
+               if (it < 0) {
+                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+                  SUMA_RETURNe;
+               }else if (it == 0) {
+                  SUMA_RETURNe;
+               }
+               /* Set the Nodeselection  */
+               it = (int) fv3[0];
+               sprintf(sfield,"i");
+               sprintf(sdestination,"SetSelectedNode");
+               if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                  SUMA_RETURNe;
+               }
+               sprintf(CommString,"SetSelectedNode~");
+               if (!SUMA_Engine (CommString, &EngineData, sv)) {
+                  fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+                  SUMA_RETURNe;
+               }
+
+               /* Now set the cross hair position at the selected node*/
+               {
+                  SUMA_SurfaceObject *SO= NULL;
+                  SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+                  sprintf(sfield,"fv3");
+                  sprintf(sdestination,"SetCrossHair");
+                  if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)&(SO->NodeList[3*it]), sdestination, ssource,NOPE)) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                     SUMA_RETURNe;
+                  }
+                  sprintf(CommString,"SetCrossHair~");
+                  if (!SUMA_Engine (CommString, &EngineData, sv)) {
+                     fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                     SUMA_RETURNe;
+                  }
+               }
+
+               /* redisplay curent only*/
+               sv->ResetGLStateVariables = YUP;
+               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+            }
+            break;
+         
+         case XK_J:
+            if (SUMAg_CF->Dev) {
+               fprintf(stdout,"Enter index of FaceSet to highlight (nothing to cancel):\n");
+               it = SUMA_ReadNumStdin (fv3, 1);
+               if (it < 0) {
+                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+                  SUMA_RETURNe;
+               }else if (it == 0) {
+                  SUMA_RETURNe;
+               }
+               /* Set the Nodeselection  */
+               it = (int) fv3[0];
+               sprintf(sfield,"i");
+               sprintf(sdestination,"SetSelectedFaceSet");
+               if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                  SUMA_RETURNe;
+               }
+               sprintf(CommString,"SetSelectedFaceSet~");
+               if (!SUMA_Engine (CommString, &EngineData, sv)) {
+                  fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+                  SUMA_RETURNe;
+               }
+
+               /* redisplay curent only*/
+               sv->ResetGLStateVariables = YUP;
+               SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
+            }
+            break; 
+              
          case XK_l:
-            fprintf(stdout,"Enter XYZ coordinates to look at (enter nothing to cancel):\n");
+            if (Kev.state & ControlMask){
+               if (SUMAg_CF->Dev) {
+                  char LockName[100];
+                  SUMA_LockEnum_LockType (SUMAg_CF->Locked[0], LockName);
+                  fprintf (SUMA_STDERR,"%s: Switching Locktype from %s", FuncName, LockName);
+                  /* change the locking type of viewer 0 */
+                  SUMAg_CF->Locked[0] = (int)fmod(SUMAg_CF->Locked[0]+1, SUMA_N_Lock_Types);
+                  SUMA_LockEnum_LockType (SUMAg_CF->Locked[0], LockName);
+                  fprintf (SUMA_STDERR," %s\n", LockName);
+                  /* Change the locking type of all remaining viewers */
+                  for (ii=1; ii<SUMAg_N_SVv; ++ii) {
+                     SUMAg_CF->Locked[ii] = SUMAg_CF->Locked[0];                  
+                  }
+               }
+            } else {
+               fprintf(stdout,"Enter XYZ coordinates to look at (enter nothing to cancel):\n");
 
-            it = SUMA_ReadNumStdin (fv3, 3);
-            if (it > 0 && it < 3) {
-               fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
-               SUMA_RETURNe;
-            }else if (it < 0) {
-               fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
-               SUMA_RETURNe;
-            }else if (it == 0) {
-               SUMA_RETURNe;
-            }
-            
-            fprintf(stdout,"Parsed input: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
+               it = SUMA_ReadNumStdin (fv3, 3);
+               if (it > 0 && it < 3) {
+                  fprintf(SUMA_STDERR,"Error %s: read %d values, expected 3.\n", FuncName, it);
+                  SUMA_RETURNe;
+               }else if (it < 0) {
+                  fprintf(SUMA_STDERR,"Error %s: Error in SUMA_ReadNumStdin.\n", FuncName);
+                  SUMA_RETURNe;
+               }else if (it == 0) {
+                  SUMA_RETURNe;
+               }
 
-            /* register fv3 with EngineData */
-            sprintf(sfield,"fv3");
-            sprintf(sdestination,"SetLookAt");
-            if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv3, sdestination, ssource, NOPE)) {
-               fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-               break;
-            }
+               fprintf(stdout,"Parsed input: %f %f %f\n", fv3[0], fv3[1],fv3[2]);
 
-            sprintf(CommString,"Redisplay|SetLookAt~");         
-            if (!SUMA_Engine (CommString, &EngineData, sv)) {
-               fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+               /* register fv3 with EngineData */
+               sprintf(sfield,"fv3");
+               sprintf(sdestination,"SetLookAt");
+               if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)fv3, sdestination, ssource, NOPE)) {
+                  fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
+                  break;
+               }
+
+               sprintf(CommString,"SetLookAt~");         
+               if (!SUMA_Engine (CommString, &EngineData, sv)) {
+                  fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
+               }
             }
             break;
 
@@ -570,7 +666,15 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                break;
             }
          case XK_s:
-            if (SUMAg_CF->Dev) {
+            if (Kev.state & Mod1Mask){
+               /* swap buttons 1 and 3 */
+               SUMAg_CF->SwapButtons_1_3 = !SUMAg_CF->SwapButtons_1_3;
+               if (SUMAg_CF->SwapButtons_1_3) {
+                  fprintf (SUMA_STDOUT,"%s: Buttons 1 and 3 are swapped.\n", FuncName);
+               } else {
+                  fprintf (SUMA_STDOUT,"%s: Default functions for buttons 1 and 3.\n", FuncName);
+               }
+            } else if (SUMAg_CF->Dev) {
                for (ii=0; ii< sv->N_DO; ++ii) {
                   if (SUMA_isSO(SUMAg_DOv[sv->ShowDO[ii]])) 
                      SUMA_Print_Surface_Object((SUMA_SurfaceObject*)SUMAg_DOv[sv->ShowDO[ii]].OP, stdout);
@@ -1175,8 +1279,23 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    break;
    
    case ButtonPress:
-       /*fprintf(stdout,"In ButtonPress\n");      */
-      switch (Bev.button) { /* switch type of button Press */
+      if (LocalHead) fprintf(stdout,"In ButtonPress\n");      
+      pButton = Bev.button;
+      if (SUMAg_CF->SwapButtons_1_3) {
+         if (pButton == Button1) pButton = Button3;
+         else if (pButton == Button3) pButton = Button1;
+      }
+     
+     /* trap for double click */
+      if (Bev.time - B1time < SUMA_DOUBLE_CLICK_MAX_DELAY) {
+         if (LocalHead) fprintf(SUMA_STDERR, "%s: Double click.\n", FuncName);
+         DoubleClick = YUP;
+      } else {
+         DoubleClick = NOPE;
+      }
+      B1time = Bev.time; 
+            
+      switch (pButton) { /* switch type of button Press */
          case Button1:
             if (Bev.state & Button2Mask) {
                /* setup initial zooming conditions */
@@ -1213,107 +1332,408 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                if (LocalHead) fprintf(SUMA_STDERR,"%s: Button 3 downplain jane, viewer #%d : X=%f, Y = %f\n", \
                   FuncName, SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv), (float)Bev.x, (float)Bev.y);
                
-               /* make sure no viewer, other than the one clicked in is in momentum mode */
-               if (SUMAg_N_SVv > 1) {
-                  for (ii=0; ii < SUMAg_N_SVv; ++ii) {
-                     if (&(SUMAg_SVv[ii]) != sv) {
-                        if (SUMAg_SVv[ii].GVS[SUMAg_SVv[ii].StdView].ApplyMomentum) {
-                           fprintf (SUMA_STDERR,"Error %s: You cannot select while other viewers (like #%d) are in momentum mode.\n", FuncName, ii);
-                           SUMA_RETURNe;
+               if (Bev.state & ShiftMask) {
+                  /* ROI drawing mode */
+                  ROI_mode = YUP;     
+               }else {
+                  ROI_mode = NOPE;
+               }
+               
+               if (!DoubleClick) {
+               /* you do not want to waist time doing double calculations if the user clicks twice by mistake */
+                  /* make sure no viewer, other than the one clicked in is in momentum mode */
+                  if (SUMAg_N_SVv > 1) {
+                     for (ii=0; ii < SUMAg_N_SVv; ++ii) {
+                        if (&(SUMAg_SVv[ii]) != sv) {
+                           if (SUMAg_SVv[ii].GVS[SUMAg_SVv[ii].StdView].ApplyMomentum) {
+                              fprintf (SUMA_STDERR,"Error %s: You cannot select while other viewers (like #%d) are in momentum mode.\n", FuncName, ii);
+                              SUMA_RETURNe;
+                           }
                         }
                      }
+                  }  
+
+                  /* make sure all OpenGL commands are completed before proceeding 
+                  This is an attempt at reducing the picking problem when multiple
+                  viewers are open simultaneously. This may be redundant since glFinish 
+                  is also called in SUMA_handleRedisplay....*/
+                  if (0 && SUMAg_N_SVv > 1) {
+                     glFinish();
                   }
-               }  
-               
-               /* make sure all OpenGL commands are completed before proceeding 
-               This is an attempt at reducing the picking problem when multiple
-               viewers are open simultaneously. This may be redundant since glFinish 
-               is also called in SUMA_handleRedisplay....*/
-               if (0 && SUMAg_N_SVv > 1) {
-                  glFinish();
+
+                  ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
+                  if (ii == 0) { /* no surfaces, break */
+                     break;
+                  }
+
+
+                  if (!SUMA_GetSelectionLine (sv, (int)Bev.x, (int)Bev.y)) {
+                     fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_GetSelectionLine.\n", FuncName);
+                     break;
+                  } 
+
+
+                  /* perform the intersection calcluation and mark the surface */
+                  hit = SUMA_MarkLineSurfaceIntersect (sv, SUMAg_DOv);
+                  if (hit < 0) {
+                     fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MarkLineSurfaceIntersect.\n", FuncName);
+                     break;
+                  }else if (hit == 0) { /* nothing hit, get out */
+                     break;
+                  }
                }
+               
+               if (ROI_mode && sv->Focus_SO_ID >= 0) {
+                  SUMA_DRAWN_ROI *DrawnROI = NULL;
+                  SUMA_SurfaceObject *SO = NULL;
+                  SO = (SUMA_SurfaceObject *)SUMAg_DOv[sv->Focus_SO_ID].OP;
+                  /* Check to see if surface that was clicked on has any ROIs being drawn on it */
+                  /* search in DOv for an open ROI that has a parent surface related to SO */
+                  DrawnROI = SUMA_FetchROI_InCreation (SO, SUMAg_DOv, SUMAg_N_DOv); 
+                  if (!DoubleClick) {
+                     if (!DrawnROI) {
+                        /* No such ROI found, create one */
+                        fprintf (SUMA_STDERR, "%s: No ROI found, creating a new one.\n", FuncName);
+                        
+                        DrawnROI = SUMA_AllocateDrawnROI (SO->idcode_str, SUMA_ROI_InCreation, SUMA_ROI_ClosedPath, NULL);
+                        if (!DrawnROI) {
+                           fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateDrawnROI.\n", FuncName);
+                        }
+                        /* Although ROIs are stored as DOs, they are dependent on the surfaces they are related to 
+                        ROIs at this stage are node indices only (and perhaps the mesh) but the coordinates of the indices
+                        come from the surface onto which they are displayed. So when you are drawing a surface, using CreateMesh,
+                        you will search DOv for ROIs related to the surface displayed and overlay them accordingly */
+                        /* Add the ROI to DO */
+                        if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)DrawnROI, ROIdO_type, SUMA_LOCAL)) {
+                           fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+                        }
+                     } else {
+                        fprintf(SUMA_STDOUT,"%s: ROI %p fetched. Status %d.\n", FuncName, DrawnROI, DrawnROI->DrawStatus); 
+                     }
+                     
+                     /* Click is part of ROI loop, add it*/
+                     if (DrawnROI->N_CtrlNodev) {
+                        if (sv->Ch->NodeID == DrawnROI->CtrlNodev[DrawnROI->N_CtrlNodev - 1]) {
+                           fprintf (SUMA_STDERR, "%s: Same node selected twice in a row, ignoring second selection.\n", FuncName);
+                           break;
+                        }
+                     }
+                     
+                     if (LocalHead) fprintf (SUMA_STDERR, "%s: Node %d is collected as part of ROI %s.\nControl Node #%d\n", \
+                        FuncName, sv->Ch->NodeID, DrawnROI->idcode_str, DrawnROI->N_CtrlNodev);
+                     ii = 3 * DrawnROI->N_CtrlNodev;
+                     DrawnROI->Pick0v[ii] = sv->Pick0[0];
+                     DrawnROI->Pick0v[ii+1] = sv->Pick0[1];
+                     DrawnROI->Pick0v[ii+2] = sv->Pick0[2];
+
+                     DrawnROI->Pick1v[ii] = sv->Pick1[0];
+                     DrawnROI->Pick1v[ii+1] = sv->Pick1[1];
+                     DrawnROI->Pick1v[ii+2] = sv->Pick1[2];
+
+
+                     DrawnROI->CtrlNodev[DrawnROI->N_CtrlNodev] = sv->Ch->NodeID;
+                     DrawnROI->N_CtrlNodev = DrawnROI->N_CtrlNodev + 1;
+                     if (DrawnROI->N_CtrlNodev >= SUMA_MAX_ROI_CTRL_NODES) {
+                        fprintf (SUMA_STDERR, "Error %s: Exceeded maximum number of ROI control nodes allowed (%d). This can be fixed, complain to authors of the program.\n", FuncName, SUMA_MAX_ROI_CTRL_NODES);
+                        DrawnROI->N_CtrlNodev = DrawnROI->N_CtrlNodev - 1;
+                     }
+                  } else {
+                     /* Double click here */
+                     if (DrawnROI) { /*   close ROI */
+                        fprintf(SUMA_STDOUT,"%s: Now closing ROI %p. Status was %d \n", FuncName, DrawnROI, DrawnROI->DrawStatus);                        
+                        DrawnROI->DrawStatus = SUMA_ROI_Finished;
+                        fprintf(SUMA_STDOUT,"%s: Now closing ROI %p. Status is %d \n", FuncName, DrawnROI, DrawnROI->DrawStatus); 
+                     } else {
+                        /* tremors, nothing to do */
+                        break;
+                     }
+                  }
+                  if (DrawnROI->N_CtrlNodev > 1) {/* have a segment, need a plane */
+                     float *Eq, NodeDist, NodeDist2, dx = 0.0, dy = 0.0, dz = 0.0;
+                     SUMA_SURF_PLANE_INTERSECT *SPI;
+                     SUMA_ROI *ROIe = NULL, *ROIt = NULL, *ROIn = NULL, *ROIts = NULL;
+                     int N_left, *Path, N_Path, Nx, Ny, N_Bv, iloc, *tPath, N_Tri, iloc3_0 = 0, iloc3_1= 0;
+                     SUMA_TRI_BRANCH *Bv = NULL; 
+                     
+                     /* For node i (> 0) find the equation of the plane formed by
+                     Pick0v[i], Pick1v[i], Pick1v[i-1] */
+
+                     if (LocalHead) fprintf (SUMA_STDERR, "%s: Computing equation of cuting plane.\n", FuncName);
+                     /* Before: use picking points instead of closest nodes, to avoid having a triangle intersected at one node only */
+                     /* Now: using picking points is problematic once you rotate the surface between one click and the next. 
+                     So it is best to use the two nearest nodes to the clicking points and for the third point, the near
+                     clipping plane intersection */ 
+                     if (DrawnROI->DrawStatus == SUMA_ROI_InCreation) {
+                        /* set the from->to nodes for calcluating the shortest path */                           
+                        Nx = DrawnROI->CtrlNodev[DrawnROI->N_CtrlNodev - 2];
+                        Ny = DrawnROI->CtrlNodev[DrawnROI->N_CtrlNodev - 1];
+                        ii = 3 * (DrawnROI->N_CtrlNodev - 1);
+                        Eq = SUMA_Plane_Equation ( &(SO->NodeList[3*Nx]), 
+                                                   &(DrawnROI->Pick0v[ii]),
+                                                   &(SO->NodeList[3*Ny]) );
+                     } else if (DrawnROI->DrawStatus == SUMA_ROI_Finished) {
+                        /* set the from->to nodes for calcluating the shortest path */                           
+                        Nx = DrawnROI->CtrlNodev[DrawnROI->N_CtrlNodev - 1];
+                        Ny = DrawnROI->CtrlNodev[0];
+                        ii = 3 * (DrawnROI->N_CtrlNodev - 1);;
+                        Eq = SUMA_Plane_Equation ( &(SO->NodeList[3*Nx]), 
+                                                   &(DrawnROI->Pick0v[ii]),
+                                                   &(SO->NodeList[3*Ny]) );
+                     } else {
+                        fprintf(SUMA_STDOUT,"Error %s: Don't know what to do with this (%d) status.\n", FuncName, DrawnROI->DrawStatus);
+                        break;
+                     }
+                     if (!Eq) {
+                        fprintf(SUMA_STDOUT,"Error %s: Failed in SUMA_Plane_Equation.\n", FuncName);
+                        break;
+                     }
+
+                     /* compute the intersection of the plane with the surface */
+                     if (LocalHead) fprintf (SUMA_STDERR, "%s: Computing Intersection with Surface.\n", FuncName);
+                     SPI = SUMA_Surf_Plane_Intersect (SO, Eq);
+                     if (!SPI) {
+                        fprintf(SUMA_STDOUT,"Error %s: Failed in SUMA_Surf_Plane_Intersect.\n", FuncName);
+                        break;
+                     }
+                     #if 0
+                     {
+                        FILE * Outtemp;
+                        fprintf (SUMA_STDERR, "%s: Writing EL structure to disk .\n", FuncName);
+                        Outtemp = fopen ("SEL.txt", "w");
+                        SUMA_Show_Edge_List (SO->EL, Outtemp);
+                        fprintf (SUMA_STDERR, "%s: Writing SPI structure to disk .\n", FuncName);
+                        SUMA_Show_SPI (SPI, Outtemp, SO);
+                        fclose (Outtemp);
+                     }
+                     #endif
+                     
+                     /* calculate shortest path */
+                     N_left = SPI->N_NodesInMesh;
+                     Path = SUMA_Dijkstra (SO, Nx, Ny, SPI->isNodeInMesh, &N_left, 1, &NodeDist, &N_Path);
+                     if (NodeDist < 0 || !Path) {
+                        fprintf(SUMA_STDERR,"\aError %s: Failed in fast SUMA_Dijkstra.\n*** Two points are not connected by intersection. Repeat last selection.\n", FuncName);
+                        /* remove last point from path */
+                        DrawnROI->N_CtrlNodev = DrawnROI->N_CtrlNodev - 1;
+                        
+                        /* clean up */
+                        SUMA_free_SPI (SPI); 
+                        SPI = NULL;
+                        if (Path) SUMA_free (Path);
+                        break;   
+                     }
+                     fprintf (SUMA_STDERR, "%s: Shortest inter nodal distance along edges between nodes %d <--> %d is %f.\n", 
+                        FuncName, Nx, Ny, NodeDist);
+                     
+                        #if 0 /* this uses the first method implemented for shortest path. Slow but works. keep for debugging. */
+                           /* the old intersection structure had isNodeInMesh irreversibly modified, recompute intersection */
+                           SUMA_free_SPI (SPI);
+                           if (Path) SUMA_free (Path);
+                           /* now repeat with method 1 */
+                           SPI = SUMA_Surf_Plane_Intersect (SO, Eq);
+                           N_left = SPI->N_NodesInMesh;
+                           Nx = DrawnROI->CtrlNodev[DrawnROI->N_CtrlNodev - 2];
+                           Ny = DrawnROI->CtrlNodev[DrawnROI->N_CtrlNodev - 1];
+                           Path = SUMA_Dijkstra (SO, Nx, Ny, SPI->isNodeInMesh, &N_left, 0, &NodeDist, &N_Path);
+                           if (NodeDist < 0) {
+                              fprintf(SUMA_STDERR,"Error %s: SUMA_Dijkstra.\n", FuncName);
+                              SUMA_RETURNe;
+                           }
                            
-               ii = SUMA_ShownSOs(sv, SUMAg_DOv, NULL);
-               if (ii == 0) { /* no surfaces, break */
-                  break;
+                           fprintf (SUMA_STDERR, "%s: Shortest inter nodal distance along edges between nodes %d <--> %dis %f.\n", FuncName, Nx, Ny , NodeDist);
+                        #endif
+                        
+                     #if 1
+                        /* Show all intersected edges */
+                        ROIe =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_EdgeGroup, "SurfPlane Intersection - Edges", SPI->N_IntersEdges, SPI->IntersEdges);
+                        if (!ROIe) {
+                           fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
+                        }
+                        if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIe, ROIO_type, SUMA_LOCAL)) {
+                           fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+                        }
+
+                     #endif
+                     #if 0
+                        /* Show all intersected triangles */
+                        ROIt =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_FaceGroup, "SurfPlane Intersection - Triangles", SPI->N_IntersTri, SPI->IntersTri);
+                        if (!ROIt) {
+                           fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
+                           break;
+                        }
+                        if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIt, ROIO_type, SUMA_LOCAL)) {
+                           fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+                           break;
+                        }
+                     #endif
+                     
+                     /* calculate shortest path along the intersection of the plane with the surface */
+                     
+                     
+                     /* another way to determine intersection, using triangle strips instead of connected nodes */
+                     if (LocalHead) fprintf(SUMA_STDERR,"%s: Calling SUMA_AssignTriBranch ...\n", FuncName); 
+
+                     Bv = SUMA_AssignTriBranch (SO, SPI, Nx, &N_Bv, NOPE);
+                     if (!Bv) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AssignTriBranch.\n", FuncName);
+                        break;
+                     }
+                     fprintf(SUMA_STDERR,"%s: %d branches.\n", FuncName, N_Bv);
+
+                     #if 0
+                     /* show me the first branch, it should contain Nx and Ny if the surface has no cuts in it*/
+                     if (!SUMA_show_STB (&(Bv[0]), NULL)) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_show_STB.\n", FuncName);
+                        break;
+                     }
+                     #endif
+                     
+                     /* get the triangle path corresponding to shortest distance between Nx and Ny */
+                     tPath = SUMA_NodePath_to_TriPath_Inters (SO, SPI, Path, N_Path, &N_Tri);
+                     if (!tPath) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_NodePath_to_TriPath_Inters.\n", FuncName);
+                        break;
+                     }
+                     
+                     
+                     #if 1
+                     /* Show intersected triangles, along shortest path */
+                     ROIts =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_FaceGroup, "SurfPlane Intersection - Triangles- Shortest", N_Tri, tPath);
+                     if (!ROIts) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
+                        break;
+                     }
+                     if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIts, ROIO_type, SUMA_LOCAL)) {
+                        fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+                        break;
+                     }
+                     #endif
+                        
+                     if (Path) {
+                        #if 0
+                           /* Show me the Path */
+                           for (ii=0; ii < N_Path; ++ii) fprintf(SUMA_STDERR," %d\t", Path[ii]);
+                        #endif
+
+                        /* Show Path */
+                        ROIn =  SUMA_AllocateROI (SO->idcode_str, SUMA_ROI_NodeGroup, "SurfPlane Intersection - Nodes", N_Path, Path);
+                        if (!ROIn) {
+                           fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AllocateROI.\n", FuncName);
+                           break;
+                       }
+                        if (!SUMA_AddDO (SUMAg_DOv, &SUMAg_N_DOv, (void *)ROIn, ROIO_type, SUMA_LOCAL)) {
+                           fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_AddDO.\n", FuncName);
+                           break;
+                        }
+                        SUMA_free (Path); 
+                     }                        
+
+                     if (tPath) SUMA_free(tPath);
+                     
+                     if (LocalHead) fprintf(SUMA_STDERR,"%s: Freeing Bv...\n", FuncName);
+                     if (Bv) SUMA_free_STB (Bv, N_Bv);
+                     
+                     if (LocalHead) fprintf(SUMA_STDERR,"%s: Freeing Eq...\n", FuncName);
+                     if (Eq) SUMA_free(Eq);
+                     
+                     if (LocalHead) fprintf(SUMA_STDERR,"%s: Freeing SPI...\n", FuncName);
+                     if (SPI) SUMA_free_SPI (SPI);
+                     if (LocalHead) fprintf(SUMA_STDERR,"%s:Done Freeing...\n", FuncName);
+                  }
                }
                
-               
-               if (!SUMA_GetSelectionLine (sv, (int)Bev.x, (int)Bev.y)) {
-                  fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_GetSelectionLine.\n", FuncName);
-                  break;
-               } 
-
-
-               /* perform the intersection calcluation and mark the surface */
-               if (!SUMA_MarkLineSurfaceIntersect (sv, SUMAg_DOv)) {
-                  fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_MarkLineSurfaceIntersect.\n", FuncName);
-                  break;
-               }
                
                /* redisplay */
                sv->ResetGLStateVariables = YUP;
                SUMA_handleRedisplay((XtPointer)sv->X->GLXAREA);
-               
-               
-               
             break;
       } /* switch type of button Press */
       break;
       
    case ButtonRelease:
       if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease\n", FuncName); 
-      switch (Bev.button) { /* switch type of button Press */
+      rButton = Bev.button;
+      if (SUMAg_CF->SwapButtons_1_3) {
+         if (rButton == Button1) rButton = Button3;
+         else if (rButton == Button3) rButton = Button1;
+      }
+      switch (rButton) { /* switch type of button Press */
          case Button3:
                if (LocalHead) fprintf(SUMA_STDERR,"%s: In ButtonRelease3\n", FuncName); 
          break;
       } /* switch type of button Press */
       break;
-      break;
       
    case MotionNotify:
-       /*fprintf(stdout,"In MotionNotify\n"); */
-      if (((Mev.state & Button1MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
-         /*fprintf(SUMA_STDERR,"%s: In motion, Butt1 & Butt2\n", FuncName);*/
-         sv->GVS[sv->StdView].zoomDelta = 1.0 + (float)((int)Mev.y - sv->GVS[sv->StdView].zoomBegin)/MOUSE_ZOOM_FACT;
-         if (sv->GVS[sv->StdView].zoomDelta > 2.0) sv->GVS[sv->StdView].zoomDelta = 2.0;
-         else if (sv->GVS[sv->StdView].zoomDelta < 0.5) sv->GVS[sv->StdView].zoomDelta = 0.5;
-         sv->FOV[sv->iState] /= sv->GVS[sv->StdView].zoomDelta;
-         if (sv->FOV[sv->iState] < FOV_MIN) sv->FOV[sv->iState] = FOV_MIN;
-         else if (sv->FOV[sv->iState] > FOV_MAX) sv->FOV[sv->iState] = FOV_MAX;
-            sv->GVS[sv->StdView].zoomBegin = (float)(int)Mev.y;
-            /*fprintf(stdout, "FOV zoom Delta = %f=n", sv->GVS[sv->StdView].zoomDelta);*/
-         SUMA_postRedisplay(w, clientData, callData);         
-      } else if(Mev.state & Button1MotionMask) {
-         /*fprintf(SUMA_STDERR,"%s: In motion, Butt1 \n", FuncName); */
-         /* spinning mode */
-         sv->GVS[sv->StdView].spinDeltaX = ((int)Mev.x - sv->GVS[sv->StdView].spinBeginX);
-         sv->GVS[sv->StdView].spinDeltaY = ((int)Mev.y - sv->GVS[sv->StdView].spinBeginY);
-         /*fprintf(stdout,"\nspinBeginX %d spinBeginY %d\nspinDeltaX %d spinDeltaY %d\nWindWidth %d WindHeight %d\n", \
-                     sv->GVS[sv->StdView].spinBeginX, sv->GVS[sv->StdView].spinBeginY, sv->GVS[sv->StdView].spinDeltaX, sv->GVS[sv->StdView].spinDeltaY, sv->WindWidth, sv->WindHeight);*/
-         if (sv->GVS[sv->StdView].spinDeltaX || sv->GVS[sv->StdView].spinDeltaY){
-            trackball(sv->GVS[sv->StdView].deltaQuat, 
-               (float)(2*sv->GVS[sv->StdView].spinBeginX - sv->WindWidth)/(float)sv->WindWidth, (float)(sv->WindHeight - 2*sv->GVS[sv->StdView].spinBeginY)/(float)sv->WindHeight,
-                (float)(2*(int)Mev.x - sv->WindWidth)/(float)sv->WindWidth, (float)(sv->WindHeight - 2*(int)Mev.y)/(float)sv->WindHeight); /* comput the increment Quat */
-            sv->GVS[sv->StdView].spinBeginX = (int)Mev.x;
-            sv->GVS[sv->StdView].spinBeginY = (int)Mev.y;
-            add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
-            SUMA_postRedisplay(w, clientData, callData);
+      if (LocalHead) fprintf(stdout,"In MotionNotify\n"); 
+      if (SUMAg_CF->SwapButtons_1_3) {
+        if (((Mev.state & Button3MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
+            mButton = SUMA_Button_12_Motion;
+         } else if(Mev.state & Button3MotionMask) {
+            mButton = SUMA_Button_1_Motion;
+         }else if(Mev.state & Button2MotionMask) { 
+            mButton = SUMA_Button_2_Motion;
+         }else {
+            break;
+         } 
+      } else {
+         if (((Mev.state & Button1MotionMask) && (Mev.state & Button2MotionMask)) || ((Mev.state & Button2MotionMask) && (Mev.state & ShiftMask))) {
+            mButton = SUMA_Button_12_Motion;
+         } else if(Mev.state & Button1MotionMask) {
+            mButton = SUMA_Button_1_Motion;
+         }else if(Mev.state & Button2MotionMask) { 
+            mButton = SUMA_Button_2_Motion;
+         } else {
+            break;
          }
-      
-      }else if(Mev.state & Button2MotionMask) { 
-         /* fprintf(SUMA_STDERR,"%s: In motion, Butt2 \n", FuncName);*/
-         sv->GVS[sv->StdView].translateDeltaX = (float)((int)Mev.x - sv->GVS[sv->StdView].translateBeginX)/(float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
-         sv->GVS[sv->StdView].translateDeltaY = -(float)((int)Mev.y - sv->GVS[sv->StdView].translateBeginY)/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
-         if (sv->GVS[sv->StdView].translateDeltaX || sv->GVS[sv->StdView].translateDeltaY){
-            sv->GVS[sv->StdView].translateVec[0] += (GLfloat)sv->GVS[sv->StdView].translateDeltaX;
-            sv->GVS[sv->StdView].translateVec[1] += (GLfloat)sv->GVS[sv->StdView].translateDeltaY;
-            sv->GVS[sv->StdView].translateBeginX = (int)Mev.x;
-            sv->GVS[sv->StdView].translateBeginY = (int)Mev.y;
-            SUMA_postRedisplay(w, clientData, callData);
-         }
-            
       }
+      
+      switch (mButton) {
+         case SUMA_Button_12_Motion:
+         case SUMA_Button_2_Shift_Motion:
+            /*fprintf(SUMA_STDERR,"%s: In motion, Butt1 & Butt2\n", FuncName);*/
+            sv->GVS[sv->StdView].zoomDelta = 1.0 + (float)((int)Mev.y - sv->GVS[sv->StdView].zoomBegin)/MOUSE_ZOOM_FACT;
+            if (sv->GVS[sv->StdView].zoomDelta > 2.0) sv->GVS[sv->StdView].zoomDelta = 2.0;
+            else if (sv->GVS[sv->StdView].zoomDelta < 0.5) sv->GVS[sv->StdView].zoomDelta = 0.5;
+            sv->FOV[sv->iState] /= sv->GVS[sv->StdView].zoomDelta;
+            if (sv->FOV[sv->iState] < FOV_MIN) sv->FOV[sv->iState] = FOV_MIN;
+            else if (sv->FOV[sv->iState] > FOV_MAX) sv->FOV[sv->iState] = FOV_MAX;
+               sv->GVS[sv->StdView].zoomBegin = (float)(int)Mev.y;
+               /*fprintf(stdout, "FOV zoom Delta = %f=n", sv->GVS[sv->StdView].zoomDelta);*/
+            SUMA_postRedisplay(w, clientData, callData);    
+            break;
+            
+         case SUMA_Button_1_Motion:     
+            /*fprintf(SUMA_STDERR,"%s: In motion, Butt1 \n", FuncName); */
+            /* spinning mode */
+            sv->GVS[sv->StdView].spinDeltaX = ((int)Mev.x - sv->GVS[sv->StdView].spinBeginX);
+            sv->GVS[sv->StdView].spinDeltaY = ((int)Mev.y - sv->GVS[sv->StdView].spinBeginY);
+            /*fprintf(stdout,"\nspinBeginX %d spinBeginY %d\nspinDeltaX %d spinDeltaY %d\nWindWidth %d WindHeight %d\n", \
+                        sv->GVS[sv->StdView].spinBeginX, sv->GVS[sv->StdView].spinBeginY, sv->GVS[sv->StdView].spinDeltaX, sv->GVS[sv->StdView].spinDeltaY, sv->WindWidth, sv->WindHeight);*/
+            if (sv->GVS[sv->StdView].spinDeltaX || sv->GVS[sv->StdView].spinDeltaY){
+               trackball(sv->GVS[sv->StdView].deltaQuat, 
+                  (float)(2*sv->GVS[sv->StdView].spinBeginX - sv->WindWidth)/(float)sv->WindWidth, (float)(sv->WindHeight - 2*sv->GVS[sv->StdView].spinBeginY)/(float)sv->WindHeight,
+                   (float)(2*(int)Mev.x - sv->WindWidth)/(float)sv->WindWidth, (float)(sv->WindHeight - 2*(int)Mev.y)/(float)sv->WindHeight); /* comput the increment Quat */
+               sv->GVS[sv->StdView].spinBeginX = (int)Mev.x;
+               sv->GVS[sv->StdView].spinBeginY = (int)Mev.y;
+               add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
+               SUMA_postRedisplay(w, clientData, callData);
+            }
+            break;
+            
+         case SUMA_Button_2_Motion:
+            /* fprintf(SUMA_STDERR,"%s: In motion, Butt2 \n", FuncName);*/
+            sv->GVS[sv->StdView].translateDeltaX = (float)((int)Mev.x - sv->GVS[sv->StdView].translateBeginX)/(float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
+            sv->GVS[sv->StdView].translateDeltaY = -(float)((int)Mev.y - sv->GVS[sv->StdView].translateBeginY)/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+            if (sv->GVS[sv->StdView].translateDeltaX || sv->GVS[sv->StdView].translateDeltaY){
+               sv->GVS[sv->StdView].translateVec[0] += (GLfloat)sv->GVS[sv->StdView].translateDeltaX;
+               sv->GVS[sv->StdView].translateVec[1] += (GLfloat)sv->GVS[sv->StdView].translateDeltaY;
+               sv->GVS[sv->StdView].translateBeginX = (int)Mev.x;
+               sv->GVS[sv->StdView].translateBeginY = (int)Mev.y;
+               SUMA_postRedisplay(w, clientData, callData);
+            }  
+            break; 
+      }
+      
       
       break;
   }/* switch event type */
@@ -1377,11 +1797,11 @@ void SUMA_momentum(XtPointer clientData, XtIntervalId *id)
    ans = SUMA_MarkLineSurfaceIntersect (sv, dov);
    \param sv (SUMA_SurfaceViewer *) surface viewer pointer
    \param dov (SUMA_DO *) displayable object vector pointer
-   \ret ans (YUP/NOPE)
+   \ret ans (int)  -1 error, 0 no hit, hit 
    
    also requires SUMAg_DOv and SUMAg_N_DOv
 */
-SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
+int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 {/* determine intersection */
    float P0f[3], P1f[3];
    static char FuncName[]={"SUMA_MarkLineSurfaceIntersect"};
@@ -1401,7 +1821,7 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
    /* initialize EngineData */
    if (!SUMA_InitializeEngineData (&EngineData)) {
       fprintf(SUMA_STDERR,"Error %s: Failed to initialize EngineData\n", FuncName);
-      SUMA_RETURN (NOPE);
+      SUMA_RETURN (-1);
    }
 
    P0f[0] = sv->Pick0[0];
@@ -1430,7 +1850,7 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
 
          if (MTIi == NULL) {
             fprintf(SUMA_STDERR,"Error %s: SUMA_MT_intersect_triangle failed.\n", FuncName);
-            SUMA_RETURN (NOPE);
+            SUMA_RETURN (-1);
          }
          
          if (MTIi->N_hits) { /* decide on the closest surface to the clicking point */
@@ -1466,7 +1886,8 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
       ip = NP * MTI->ifacemin;
       /* print nodes about the closets faceset*/
       fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
-      fprintf(SUMA_STDOUT, "Selected surface %s (Focus_SO_ID # %d).\n", SO->Label, sv->Focus_SO_ID);
+      fprintf(SUMA_STDOUT, "Selected surface %s (Focus_SO_ID # %d). FaceSet %d, Closest Node %d\n", 
+         SO->Label, sv->Focus_SO_ID, MTI->ifacemin, MTI->inodemin);
       fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
       fprintf(SUMA_STDOUT, "%d, %d, %d\n", \
       SO->FaceSetList[ip], SO->FaceSetList[ip+1],SO->FaceSetList[ip+2]);
@@ -1499,12 +1920,12 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
       sprintf(sdestination,"SetSelectedNode");
       if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-         SUMA_RETURN (NOPE);
+         SUMA_RETURN (-1);
       }
       sprintf(CommString,"SetSelectedNode~");
       if (!SUMA_Engine (CommString, &EngineData, sv)) {
          fprintf(stderr, "Error SUMA_input: SUMA_Engine call failed.\n");
-         SUMA_RETURN (NOPE);
+         SUMA_RETURN (-1);
       }
 
 
@@ -1514,23 +1935,24 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
       sprintf(sdestination,"SetSelectedFaceSet");
       if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(&it), sdestination, ssource, NOPE)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-         SUMA_RETURN (NOPE);
+         SUMA_RETURN (-1);
       }
       sprintf(CommString,"SetSelectedFaceSet~");
       if (!SUMA_Engine (CommString, &EngineData, sv)) {
          fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-         SUMA_RETURN (NOPE);
+         SUMA_RETURN (-1);
       }
       /* Now set the cross hair position at the intersection*/
       sprintf(sfield,"fv3");
       sprintf(sdestination,"SetCrossHair");
       if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)MTI->P, sdestination, ssource,NOPE)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-         SUMA_RETURN (NOPE);
+         SUMA_RETURN (-1);
       }
       sprintf(CommString,"SetCrossHair~");
       if (!SUMA_Engine (CommString, &EngineData, sv)) {
          fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
+         SUMA_RETURN (-1);
       }
 
       /* attach the cross hair to the selected surface */
@@ -1540,12 +1962,12 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
       sprintf(sdestination,"BindCrossHair");
       if (!SUMA_RegisterEngineData (&EngineData, sfield, (void *)(iv3), sdestination, ssource, NOPE)) {
          fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
-         SUMA_RETURN (NOPE);
+         SUMA_RETURN (-1);
       }
-      sprintf(CommString,"LockCrossHair|BindCrossHair~"); /* Redisplay of current viewer is now done at button release */
+      sprintf(CommString,"LockCrossHair|BindCrossHair~"); 
       if (!SUMA_Engine (CommString, &EngineData, sv)) {
          fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
-         SUMA_RETURN (NOPE);
+         SUMA_RETURN (-1);
       }
       
    } 
@@ -1554,6 +1976,10 @@ SUMA_Boolean SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov
       if (!SUMA_Free_MT_intersect_triangle(MTI)) 
          fprintf(SUMA_STDERR,"Error %s: SUMA_Free_MT_intersect_triangle failed.\n", FuncName);
    }
-
-   SUMA_RETURN (YUP);
+   
+   if (imin >= 0) {
+      SUMA_RETURN (1); /* hit */
+   } else {
+      SUMA_RETURN (0); /* no hit */
+   }
 }/* determine intersection */
