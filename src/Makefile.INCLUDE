@@ -1696,7 +1696,7 @@ libSUMA.a:
 #link executables but check for libraries first and create them if needed	
 suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o
 	( cd SUMA ;	\
-	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap packbins 'INSTALLDIR=$(INSTALLDIR)' \
+	make -f $(SUMA_MAKEFILE_NAME) suma MakeColorMap 3dSurfMaskDump packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
