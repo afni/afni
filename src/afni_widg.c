@@ -465,7 +465,7 @@ STATUS("WANT_AFNI_BITMAP") ;
 
       if( afni16_pixmap[num_entry-1] == XmUNSPECIFIED_PIXMAP && !AFNI_noenv("AFNI_LOGO16") ){
         Pixel fg16=ICON_bg, bg16=ICON_fg ; int ic ; char ename[32] ;
-        char *fgn[7] = { "yellow", "red", "blue-cyan", "green", "violet", "gray70", "orange" };
+        char *fgn[7] = { "red", "blue-cyan", "green", "violet", "orange", "gray70", "yellow" };
 
         sprintf(ename,"AFNI_LOGO16_FOREGROUND_%c" , 'A'+num_entry-1 ) ;
                      ic = DC_find_closest_overlay_color(im3d->dc, getenv(ename) ) ;
@@ -476,7 +476,9 @@ STATUS("WANT_AFNI_BITMAP") ;
         sprintf(ename,"AFNI_LOGO16_BACKGROUND_%c" , 'A'+num_entry-1 ) ;
                      ic = DC_find_closest_overlay_color(im3d->dc, getenv(ename) ) ;
         if( ic < 0 ) ic = DC_find_closest_overlay_color(im3d->dc, getenv("AFNI_LOGO16_BACKGROUND")) ;
+#if 0
         if( ic < 0 ) ic = im3d->dc->ovc->ov_darkest ;
+#endif
         if( ic >= 0 ) bg16 = im3d->dc->ovc->pix_ov[ic] ;
 
         afni16_pixmap[num_entry-1] = XCreatePixmapFromBitmapData(
