@@ -1971,4 +1971,5 @@
 10 Jan 2000
  * Modified plug_render.c to add AFNI_RENDER_SHOWTHRU_FAC variable to
      control the compositing of ShowThru images.
-
+ * Added program afni_vcheck.c, to check the AFNI version against the
+     master copy back at the central AFNI web site.

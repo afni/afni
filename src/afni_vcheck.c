@@ -1,24 +1,68 @@
-#define VERSION_URL "ftp://141.106.106.221/pub/cox/AFNI.version"
+#include "afni.h"
 
-int AFNI_version_check( char * vnum , char * vdate )
+#define VERSION_URL "http://141.106.106.221/~cox/AFNI.version"
+
+#define VERSION_FILE "www/AFNI.version"
+
+/*------------------------------------------------------------------------
+   Program to check (or write) the AFNI version information.
+   -- RWCox, 10 January 2000
+--------------------------------------------------------------------------*/
+
+int main( int argc , char * argv[] )
 {
-   char * buf ;
-   int    nbuf ;
-   char vv[32] , dd[32] , mm[32]="\0" , yy[32]="\0" ;
+   int nbuf ;
+   char * vbuf=NULL ,
+          vv[128]="none" ,
+          r1[128]="none" , r2[128]="\0" , r3[128] ="\0" ;
 
-   if( vnum == NULL || vdate == NULL ) return -1 ;
+   /*-- for my use only: write out the new version file --*/
 
-   nbuf = read_URL( VERSION_URL , &buf ) ;
-   if( nbuf <= 0 ) return -1 ;
+   if( argc == 2 && strcmp(argv[1],"-write") == 0 ){
+      FILE * fp = fopen(VERSION_FILE,"w") ;
+      if( fp == NULL ){
+         fprintf(stderr,"** Failed to open %s!\n",VERSION_FILE); exit(1);
+      }
+      fprintf( fp , "%s\n%s\n" , VERSION , RELEASE ) ;
+      fclose(fp) ;
+      fprintf(stderr,"Wrote out %s\n",VERSION_FILE) ;
+      exit(0) ;
+   }
 
-   nbuf = sscanf( "%31s%31s%31s%31s" , vv,dd,mm,yy )
+   /*-- otherwise, any options means the user needs help --*/
 
-   if( nbuf <= 0 ) return -1 ;
+   if( argc > 1 ){
+      printf("Usage: afni_version\n"
+             " Prints out the AFNI version with which it was compiled,\n"
+             " and checks across the Web for the latest version available.\n"
+             "N.B.: Doing the check across the Web will mean that your\n"
+             "      computer's access to our server will be logged here.\n"
+             "      If you don't want this, don't use this program!\n" ) ;
+      exit(0) ;
+   }
 
-   vv[6] = '\0' ; strcpy(vnum,vv) ;
+   /*-- internal information --*/
 
-   if( nbuf == 1 ) return 1 ;
+   printf("This program was compiled with the following settings:\n"
+          "  Version ID   = %s\n"
+          "  Release date = %s\n" , VERSION , RELEASE ) ;
 
-   sprintf(vdate,"%2s %9s %4s" , dd,mm,yy ) ;
-   return 2 ;
+   fprintf(stderr,"++ now fetching %s",VERSION_URL) ;
+
+   /*-- get information from the master computer --*/
+
+   nbuf = read_URL( VERSION_URL , &vbuf ) ;  /* see thd_http.c */
+   fprintf(stderr,"\n") ;
+
+   if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ){
+      fprintf(stderr,"** Error in fetch!\n"); exit(1);
+   }
+
+   sscanf( vbuf , "%127s %127s %127s %127s" , vv , r1,r2,r3 ) ;
+
+   printf("Latest version listed at AFNI web site:\n"
+          "  Version ID   = %s\n"
+          "  Release date = %s %s %s\n" , vv , r1,r2,r3 ) ;
+
+   exit(0) ;
 }
