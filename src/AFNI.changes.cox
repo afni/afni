@@ -5069,3 +5069,11 @@
  * Modified coxplot/plot_ts.c to correctly remove labels from separate plot
      boxes if input nnayy==0.
  * Modified 1dgrayplot.c to have new '-sep' option.
+
+14 Jul 2004
+ * Modified 3dDeconvolve.c to make some basic checks:
+     - equal filenames for -stim_file options
+     - zero columns in X matrix
+     - collinear column pairs in X matrix
+     - compute matrix condition number
+ * Modified matrix.[ch] and matrix_f.[ch] to support this stuff.

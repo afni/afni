@@ -22,15 +22,15 @@
    Uses the f2c translation of EISPACK.
 ----------------------------------------------------------------------------*/
 
-void symeig_double( int n , double * a , double * e )
+void symeig_double( int n , double *a , double *e )
 {
    integer nm , matz , ierr ;
-   double * fv1 , * fv2 ;
+   double *fv1 , *fv2 ;
 
    if( a == NULL || e == NULL || n < 1 ) return ;
 
    if( n == 1 ){
-      e[0] = a[0] ; a[0] = 1.0 ; return ;  /* degenerate case */
+     e[0] = a[0] ; a[0] = 1.0 ; return ;  /* degenerate case */
    }
 
    fv1 = (double *) malloc(sizeof(double)*n) ;  /* workspaces */
@@ -46,10 +46,10 @@ void symeig_double( int n , double * a , double * e )
 
 /*------------------ just compute the eigenvalues -------------------*/
 
-void symeigval_double( int n , double * a , double * e )
+void symeigval_double( int n , double *a , double *e )
 {
    integer nm , matz , ierr ;
-   double * fv1 , * fv2 ;
+   double *fv1 , *fv2 ;
 
    if( a == NULL || e == NULL || n < 1 ) return ;
 

@@ -343,3 +343,7 @@ double vector_dotself (vector a);  /* 28 Dec 2002: RWCox */
 /*---------------------------------------------------------------------------*/
 
 double matrix_norm( matrix a ) ;   /* 03 Mar 2003: RWCox */
+
+int * matrix_check_columns( matrix a , double eps ) ; /* 14 Jul 2004: RWCox */
+
+double * matrix_singvals( matrix X ) ; /* 14 Jul 2004 */
