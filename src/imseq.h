@@ -463,7 +463,7 @@ typedef struct MCW_imseq {
 #ifdef ALLOW_ZOOM                        /* 11 Mar 2002 */
      Widget        zoom_sep ;
      MCW_arrowval *zoom_val_av ;
-     MCW_arrowpad *zoom_apad ;
+     Widget        zoom_drag_pb ;
      int    zoom_fac ;
      float  zoom_hor_off, zoom_ver_off ;
      int    zoom_pw , zoom_ph ;
@@ -473,6 +473,11 @@ typedef struct MCW_imseq {
 #endif
 
 } MCW_imseq ;
+
+#ifdef ALLOW_ZOOM
+extern void ISQ_zoom_av_CB( MCW_arrowval *, XtPointer ) ;
+extern void ISQ_zoom_pb_CB( Widget, XtPointer, XtPointer ) ;
+#endif
 
 /*--------------------------------------------------------------------*/
 
@@ -607,10 +612,6 @@ extern void ISQ_opacity_CB( MCW_arrowval * , XtPointer ) ;
 extern char * ISQ_opacity_label( int ) ;
 extern MRI_IMAGE * ISQ_index_to_rgb( MCW_DC * , int , MRI_IMAGE * ) ;
 #define ISQ_SKIP_OVERLAY(isq) ((isq)->opt.no_overlay || (isq)->ov_opacity == 0.0)
-
-#ifdef ALLOW_ZOOM
-extern void ISQ_zoom_CB( void * , XtPointer ) ;  /* 11 Mar 2002 */
-#endif
 
 extern MRI_IMAGE * ISQ_manufacture_one( int nim , int overlay , MCW_imseq * seq ) ;
 extern void ISQ_make_montage( MCW_imseq * ) ;
