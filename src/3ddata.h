@@ -1129,6 +1129,7 @@ extern void THD_store_datablock_stataux  ( THD_datablock *,int,int,int,float * )
 extern void THD_store_datablock_label    ( THD_datablock * , int , char * ) ;
 extern void THD_store_datablock_keywords ( THD_datablock * , int , char * ) ;
 extern void THD_append_datablock_keywords( THD_datablock * , int , char * ) ;
+extern int  THD_datablock_from_atr       ( THD_datablock *, char *, char * ) ;
 
 /*! Initialize all sub-bricks auxiliary data to nothing. */
 
@@ -2329,6 +2330,10 @@ extern char * THD_deplus_prefix( char *prefix ) ;                    /* 22 Nov 2
 /*! Return a pointer to the ID code of dataset ds */
 
 #define DSET_IDCODE(ds) (&((ds)->idcode))
+
+/*! Return the ID code string */
+
+#define DSET_IDCODE_STR(ds) ((ds)->idcode.str)
 
 /* 25 April 1998 */
 
@@ -3859,5 +3864,13 @@ extern MRI_IMAGE * mri_brainormalize( MRI_IMAGE *, int,int,int ) ; /* 05 Apr 200
 extern void mri_brainormalize_verbose( int ) ;
 
 extern MRI_IMAGE * mri_watershedize( MRI_IMAGE * , float ) ;
+
+/*------------------------------------------------------------------------*/
+/* 09 May 2005: stuff for converting a dataset to from a NIML group.      */
+
+extern NI_group * THD_nimlize_dsetatr( THD_3dim_dataset *) ;
+extern void       THD_dsetatr_from_niml( NI_group *, THD_3dim_dataset * ) ;
+extern void       THD_set_dataset_attributes( THD_3dim_dataset * ) ;
+
 
 #endif /* _MCW_3DDATASET_ */

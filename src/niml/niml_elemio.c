@@ -816,9 +816,31 @@ int NI_write_element( NI_stream_type *ns , void *nini , int tmode )
    int   bb=0 ,  cc=0 ;
 
    char *att_prefix , *att_equals , *att_trail ;
+   int header_only , header_sharp , outmode ;
 
-   int header_only  = ((tmode & NI_HEADERONLY_FLAG ) != 0) ;  /* 20 Feb 2003 */
-   int header_sharp = ((tmode & NI_HEADERSHARP_FLAG) != 0) ;  /* 20 Mar 2003 */
+   /*--- 09 Mar 2005: outmode overrided tmode, if present ---*/
+
+   switch( tt ){
+     default: return -1 ;    /* bad input! */
+
+     case NI_GROUP_TYPE:{
+       NI_group *ngr = (NI_group *) nini ;
+       outmode = ngr->outmode ;
+     }
+     break ;
+
+     case NI_ELEMENT_TYPE:{
+       NI_element *nel = (NI_element *) nini ;
+       outmode = nel->outmode ;
+     }
+     break ;
+   }
+   if( outmode >= 0 ) tmode = outmode ;
+
+   /*--- determine special cases from the flags above bit #7 ---*/
+
+   header_only  = ((tmode & NI_HEADERONLY_FLAG ) != 0) ;  /* 20 Feb 2003 */
+   header_sharp = ((tmode & NI_HEADERSHARP_FLAG) != 0) ;  /* 20 Mar 2003 */
 
    /* ADDOUT = after writing, add byte count if OK, else quit */
    /* AF     = thing to do if ADDOUT is quitting */

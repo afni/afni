@@ -5363,3 +5363,9 @@
 
 08 Mar 2005
  * Including retroicor stuff from Fred Tam.
+
+09 Mar 2005
+ * New functions to (a) write dataset struct stuff into attributes (moved
+     out of THD_write_dataset and THD_write_datablock); to (b) convert
+     dataset attributes to/from a NIML group; to (c) populate datablock
+     from attributes, rather than do so on-the-fly as they are read in.
