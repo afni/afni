@@ -1,8 +1,7 @@
 # This Makefile works on Linux 1.2.13
 
 # This Makefile is designed to work with LessTif (http://www.lesstiff.org).
-# It assumes you have installed LessTif in directory /usr/lesstif.
-# At LessTif v0.84, AFNI crashes and otherwise doesn't quite work.
+# It assumes you have installed LessTif in directory /usr/local
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -Wpointer-arith -DUSE_TRACING
@@ -11,13 +10,13 @@ CCVOL  = gcc -DLINUX -DNO_GAMMA $(CEXTRA)
 CCFAST = $(CC)
 CCMIN  = gcc -s
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/lesstif/include -I/usr/X11R6/include
-LFLAGS = -s -L. -L/usr/lesstif/lib -L/usr/X11R6/lib
+IFLAGS = -I. -I/usr/local/include -I/usr/X11R6/include
+LFLAGS = -s -L. -L/usr/local/lib -L/usr/X11R6/lib
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -s -rdynamic -L. -L/usr/lesstif/lib -L/usr/X11R6/lib
+PLFLAGS       = -s -rdynamic -L. -L/usr/local/lib -L/usr/X11R6/lib
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib

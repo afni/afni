@@ -82,9 +82,10 @@ static int    mode_ints[] = {
 
 #define NUM_modes (sizeof(mode_ints)/sizeof(int))
 
-static MCW_DC * dc ;                /* display context */
-static Three_D_View * im3d ;        /* AFNI controller */
-static THD_3dim_dataset * dset ;    /* The dataset!    */
+static MCW_DC * dc ;                 /* display context */
+static Three_D_View * im3d ;         /* AFNI controller */
+static THD_3dim_dataset * dset ;     /* The dataset!    */
+static MCW_idcode         dset_idc ; /* 31 Mar 1999     */
 
 static int   color_index = 1 ;               /* from color_av */
 static int   mode_ival   = MODE_CURVE ;
@@ -95,6 +96,7 @@ static float value_float = 1.0 ;             /* ditto         */
 static int editor_open  = 0 ;
 static int dset_changed = 0 ;
 static int recv_open    = 0 ;
+static int recv_key     = -1;
 
 static int undo_bufsiz = 0 ;     /* size of undo_buf in bytes */
 static int undo_bufnum = 0 ;     /* size of undo_xyz in ints */
@@ -129,15 +131,9 @@ char * DRAW_main( PLUGIN_interface * plint )
 
    /*-- set titlebar --*/
 
-   { static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ; /* see afni_func.c */
-     char ttl[PLUGIN_STRING_SIZE] ; int ic ;
-
-     ic = AFNI_controller_index(im3d) ;  /* find out which controller */
-
-     if( ic >=0 && ic < 26 ){
-        sprintf( ttl , "AFNI Editor [%c]" , clabel[ic] ) ;
-        XtVaSetValues( shell , XmNtitle , ttl , NULL ) ;
-     }
+   { char ttl[PLUGIN_STRING_SIZE] ;
+     sprintf(ttl , "AFNI Editor %s" , AFNI_controller_label(im3d) ) ;
+     XtVaSetValues( shell , XmNtitle , ttl , NULL ) ;
    }
 
    /*-- set the info label --*/
@@ -158,6 +154,7 @@ char * DRAW_main( PLUGIN_interface * plint )
    dset_changed = 0 ;      /* not yet changed */
    editor_open  = 1 ;      /* editor is now open for business */
    recv_open    = 0 ;      /* receiver is not yet open */
+   recv_key     = -1;      /* and has no identifier key */
 
    SENSITIZE(undo_pb,0) ;  undo_bufuse = 0 ;
    SENSITIZE(save_pb,0) ;
@@ -367,7 +364,8 @@ void DRAW_make_widgets(void)
 void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    if( dset != NULL ){
-      if( recv_open ) AFNI_receive_control( im3d, DRAWING_SHUTDOWN, NULL ) ;
+      if( recv_open )  /* 31 Mar 1999: changed shutdown to EVERYTHING */
+         AFNI_receive_control( im3d, recv_key,EVERYTHING_SHUTDOWN, NULL ) ;
       if( dset_changed ){
          MCW_invert_widget( done_pb ) ;
          DSET_write(dset) ;
@@ -383,7 +381,7 @@ void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
       undo_bufsiz = undo_bufnum = undo_bufuse = 0 ;
    }
 
-   XtUnmapWidget( shell ) ; editor_open = 0 ; recv_open = 0 ;
+   XtUnmapWidget( shell ) ; editor_open = 0 ; recv_open = 0 ; recv_key = -1 ;
    return ;
 }
 
@@ -407,6 +405,9 @@ void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
    DRAW_into_dataset( undo_bufuse , ux,NULL,NULL , ub ) ;
 
    free(ub) ; free(ux) ;
+
+   AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
+
    return ;
 }
 
@@ -417,10 +418,11 @@ void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
 void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    if( dset != NULL ){
-      if( recv_open ) AFNI_receive_control( im3d, DRAWING_SHUTDOWN, NULL ) ;
+      if( recv_open ) AFNI_receive_control( im3d, recv_key,DRAWING_SHUTDOWN, NULL ) ;
       DSET_unlock(dset) ;
       DSET_unload(dset) ; DSET_anyize(dset) ;
       if( dset_changed ){
+         if( recv_open ) AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
          MCW_invert_widget(quit_pb) ;
          THD_load_statistics( dset ) ;
          PLUTO_dset_redisplay( dset ) ;
@@ -435,7 +437,7 @@ void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
       undo_bufsiz = undo_bufnum = undo_bufuse = 0 ;
    }
 
-   XtUnmapWidget( shell ) ; editor_open = 0 ; recv_open = 0 ;
+   XtUnmapWidget( shell ) ; editor_open = 0 ; recv_open = 0 ; recv_key = -1 ;
    return ;
 }
 
@@ -586,6 +588,12 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "      controller's window.\n"
   "  * Peculiar and confusing things can happen using 'Warp-on-Demand'\n"
   "      with the Editor.  My advice is not to try this.\n"
+  "  * Note that using a Session rescan button (from the 'Define Datamode'\n"
+  "      control panel) will close all datasets while rescanning the\n"
+  "      session.  This can result in the loss of un-Saved edits.\n"
+  "  * It is possible to edit the same dataset that you are also viewing\n"
+  "      with the 'Render Dataset' plugin.  In this way, you can see a\n"
+  "      3D visualization of your drawing as you do it.\n"
   "  * Edit at your own risk!  Be careful out there.\n"
   "\n"
   "SUGGESTIONS?\n"
@@ -776,6 +784,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    dset = qset ; dset_changed = 0 ; SENSITIZE(save_pb,0) ;
    dax_save = *(dset->daxes) ;
+   dset_idc = qset->idcode ;   /* 31 Mar 1999 */
 
    /* write the informational label */
 
@@ -793,9 +802,11 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    /* setup AFNI for drawing */
 
    if( ! recv_open ){
-      id = AFNI_receive_init( im3d, RECEIVE_DRAWING_MASK, DRAW_receiver,NULL ) ;
+      recv_key = id = AFNI_receive_init( im3d, RECEIVE_DRAWING_MASK   |
+                                               RECEIVE_DSETCHANGE_MASK ,  /* 31 Mar 1999 */
+                                         DRAW_receiver,NULL ) ;
 
-      if( id != 0 ){
+      if( id < 0 ){
          (void) MCW_popup_message( im3d->vwid->top_shell ,
                                      "Unable to establish\n"
                                      "connection to AFNI\n"
@@ -808,8 +819,8 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    DSET_mallocize(dset) ; DSET_lock(dset) ; DSET_load(dset) ;
 
-   AFNI_receive_control( im3d, mode_index , NULL ) ;
-   AFNI_receive_control( im3d, DRAWING_OVCINDEX, (void *)color_index ) ;
+   AFNI_receive_control( im3d, recv_key,mode_index , NULL ) ;
+   AFNI_receive_control( im3d, recv_key,DRAWING_OVCINDEX, (void *)color_index ) ;
    recv_open = 1 ;
 
    undo_bufuse = 0 ; SENSITIZE(undo_pb,0) ;
@@ -826,7 +837,7 @@ void DRAW_color_CB( MCW_arrowval * av , XtPointer cd )
    color_index = av->ival ;
 
    if( dset != NULL && recv_open )
-      AFNI_receive_control( im3d, DRAWING_OVCINDEX, (void *)color_index ) ;
+      AFNI_receive_control( im3d, recv_key,DRAWING_OVCINDEX, (void *)color_index ) ;
 
    return ;
 }
@@ -841,7 +852,7 @@ void DRAW_mode_CB( MCW_arrowval * av , XtPointer cd )
    mode_index = mode_ints[mode_ival] ;
 
    if( dset != NULL && recv_open )
-      AFNI_receive_control( im3d, mode_index , NULL ) ;
+      AFNI_receive_control( im3d, recv_key,mode_index , NULL ) ;
 
    return ;
 }
@@ -1067,6 +1078,29 @@ void DRAW_receiver( int why , int np , void * vp , void * cbd )
                                            "Controller grid was altered!\n"
                                            "Editor was forced to quit.\n"
                                            "Any un-Saved changes were lost." ,
+                                         MCW_USER_KILL | MCW_TIMER_KILL ) ;
+            }
+         }
+      }
+      break ;
+
+      /*-- user changed dataset pointers on us? --*/
+
+      case RECEIVE_DSETCHANGE:{   /* 31 Mar 1999 */
+         if( dset != NULL ){
+            dset = PLUTO_find_dset( &dset_idc ) ;
+            DSET_mallocize(dset) ; DSET_lock(dset) ; DSET_load(dset) ;
+            if( dset_changed ){
+               THD_load_statistics( dset ) ;
+               PLUTO_dset_redisplay( dset ) ;
+
+               XBell( dc->display , 100 ) ;
+               (void) MCW_popup_message( im3d->vwid->top_shell ,
+                                            "********* WARNING *********\n"
+                                            "* Session rescan may have *\n"
+                                            "* caused loss of unsaved  *\n"
+                                            "* editing changes!        *\n"
+                                            "***************************"   ,
                                          MCW_USER_KILL | MCW_TIMER_KILL ) ;
             }
          }

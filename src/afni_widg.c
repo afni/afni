@@ -3887,10 +3887,11 @@ ENTRY("new_AFNI_controller") ;
 
 
    /* Feb 1998: receive stuff, including drawing */
+   /* Mar 1999: modified to allow for multiple receivers */
 
-   im3d->vinfo->receiver          = NULL ;
-   im3d->vinfo->receiver_mask     = 0 ;
-   im3d->vinfo->receiver_data     = NULL ;
+   im3d->vinfo->receiver          = malloc(sizeof(AFNI_receiver *)) ;
+   im3d->vinfo->receiver[0]       = NULL ;
+   im3d->vinfo->num_receiver      = 0 ;
    im3d->vinfo->drawing_enabled   = 0 ;
    im3d->vinfo->drawing_mode      = DRAWING_LINES ;
    im3d->vinfo->drawing_pixel     = 0 ;
@@ -3945,8 +3946,7 @@ ENTRY("new_AFNI_controller") ;
 
 void AFNI_initialize_controller( Three_D_View * im3d )
 {
-   int ii , ic ;
-   static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+   int ii ;
    char ttl[16] ;
 
 ENTRY("AFNI_initialize_controller") ;
@@ -4060,9 +4060,7 @@ ENTRY("AFNI_initialize_controller") ;
 
    CLEAR_FIMDATA(im3d) ;
 
-   ic = AFNI_controller_index( im3d ) ;
-   if( ic < 0 || ic > 26 ) strcpy( ttl , "AFNI" ) ;
-   else                    sprintf(ttl , "[%c] AFNI" , clabel[ic] ) ;
+   sprintf(ttl , "%sAFNI" , AFNI_controller_label(im3d) ) ;
    XtVaSetValues( im3d->vwid->top_shell , XmNiconName , ttl , NULL ) ;
 
    RESET_AFNI_QUIT(im3d) ;

@@ -284,7 +284,7 @@ format, set this environment variable (to anything), as in
 (For more information on the "real path" conversion, see the Unix
 man page for the realpath() function.)  Note that if you use this
 feature, then the effect of AFNI_SESSTRAIL will be limited to what
-you type on the command line, since is the realpath() function
+you type on the command line, since it is the realpath() function
 that provides the higher level hierarchies of the session names.
 
 ----------------------------
@@ -302,7 +302,7 @@ overhead (both in memory and speed).  Setting this environment variable
 Another way to permanently disable this capability (so that it isn't
 even compiled) is outlined in the file machdep.h.  Also, the interactive
 AFNI program takes the command line switch "-nomall", which will turn
-off these functions for this given run.
+off these functions for the given run.
 
 =================================
 | Robert W. Cox, PhD            |

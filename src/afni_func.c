@@ -1402,12 +1402,23 @@ STATUS("defaulted anatomy underlay") ;
    /* Feb 1998: if a receiver is open
                 send it a message that something has altered */
 
-   if( im3d->vinfo->receiver != NULL ){
-      im3d->vinfo->receiver( RECEIVE_ALTERATION , 0 , NULL ,
-                             im3d->vinfo->receiver_data ) ;
-   }
+   AFNI_process_alteration(im3d) ;
 
    EXRETURN ;
+}
+
+/*--------------------------------------------------------------------*/
+
+char * AFNI_controller_label( Three_D_View * im3d )
+{
+   static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+   static char str[8] ;
+   int ic ;
+
+   ic = AFNI_controller_index( im3d ) ;
+   if( ic < 0 || ic > 26 ) strcpy(str," ") ;
+   else                    sprintf(str,"[%c] ",clabel[ic]) ;
+   return str ;
 }
 
 /*--------------------------------------------------------------------
@@ -1419,17 +1430,12 @@ void AFNI_set_window_titles( Three_D_View * im3d )
    Boolean redo_title ;
    char ttl[THD_MAX_NAME] , nam[THD_MAX_NAME] ;
    char * tnam ;
-   static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
-   int ic ;
 
 ENTRY("AFNI_set_window_titles") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
-   ic = AFNI_controller_index( im3d ) ;
-
-   if( ic < 0 || ic > 26 ) sprintf(ttl ,      "%s: " ,              GLOBAL_argopt.title_name ) ;
-   else                    sprintf(ttl , "[%c] %s: " , clabel[ic] , GLOBAL_argopt.title_name ) ;
+   sprintf(ttl , "%s%s: " , AFNI_controller_label(im3d),GLOBAL_argopt.title_name) ;
 
    strcpy( nam , im3d->anat_now->dblk->diskptr->directory_name ) ;
    strcat( nam , im3d->anat_now->dblk->diskptr->filecode ) ;
@@ -2327,6 +2333,7 @@ ENTRY("AFNI_rescan_CB") ;
 
    SHOW_AFNI_PAUSE ;
    AFNI_rescan_session( im3d->vinfo->sess_num ) ;
+   AFNI_process_dsetchange( im3d ) ;               /* 31 Mar 1999 */
    SHOW_AFNI_READY ;
 
    EXRETURN ;
@@ -2334,13 +2341,20 @@ ENTRY("AFNI_rescan_CB") ;
 
 void AFNI_rescan_all_CB( Widget w, XtPointer cd, XtPointer cb )
 {
-   int iss ;
+   int iss , cc ;
+   Three_D_View * im3d ;
 
 ENTRY("AFNI_rescan_all_CB") ;
 
    SHOW_AFNI_PAUSE ;
    for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ )
       AFNI_rescan_session( iss ) ;
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
+      im3d = GLOBAL_library.controllers[cc] ;
+      if( IM3D_OPEN(im3d) ) AFNI_process_dsetchange( im3d ) ;
+   }
+
    SHOW_AFNI_READY ;
 
    EXRETURN ;

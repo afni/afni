@@ -7,7 +7,7 @@
        Why is this useful?  Because you can then overwrite this
        warped-on-demand dataset in AFNI.
 
-       RWCox, June 1995, March 1996
+       RWCox, June 1995, March 1996, April 1999
 *****/
 
 static char DUP_session[THD_MAX_NAME]  = "./" ;
@@ -16,11 +16,6 @@ static char DUP_prefix[THD_MAX_PREFIX] = "dup" ;
 static int anatomy_type  = ILLEGAL_TYPE ;
 static int function_type = ILLEGAL_TYPE ;
 static int dataset_type  = ILLEGAL_TYPE ;
-
-#define RMAX 3
-static THD_warp * rwarp[RMAX] = { NULL , NULL , NULL } ;
-static int        nrot        = 0 ;
-static int        crot        = 0 ;
 
 THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent ) ;
 
@@ -47,23 +42,6 @@ int main( int argc , char * argv[] )
        "  -session dirname  = Write output into given directory (default=./)\n"
        "  -prefix  pname    = Use 'pname' for the output directory prefix\n"
        "                       (default=dup)\n"
-       "\n"
-       "  -rsag angle       = Have output be rotated by 'angle' degrees in\n"
-       "  -rcor angle       = the specified plane:\n"
-       "  -raxi angle       =   A positive sagittal rotation (-rsag) causes\n"
-       "                          the head to 'look upwards';\n"
-       "                        A positive coronal rotation (-rcor) causes\n"
-       "                          the head to 'tilt rightwards';\n"
-       "                        A positive axial rotation (-raxi) causes\n"
-       "                          the head to 'look rightwards'.\n"
-       "                      Rotations are cumulative, but not commutative.\n"
-       "                  **  WARNING: this feature is experimental and will\n"
-       "                      likely be changed in the future.\n"
-       "\n"
-       "  -crot             = Make the above rotations be centered about the\n"
-       "                      middle of the data brick, rather than the\n"
-       "                      point at (x,y,z)=(0,0,0).\n"
-       "\n"
        "N.B.: Even if the new dataset is anatomical, it will not contain\n"
        "      any markers, duplicated from the original, or otherwise.\n"
      ) ;
@@ -120,58 +98,6 @@ int main( int argc , char * argv[] )
          if( nopt >= argc ) DUPERR("need argument after -prefix!") ;
          MCW_strncpy( DUP_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
          continue ;
-      }
-
-      /**** -crot ****/
-
-      if( strncmp(argv[nopt],"-crot",4) == 0 ){
-         crot = 1 ;
-         nopt++ ; continue ;
-      }
-
-      /**** -rsag angle ****/
-
-      if( strncmp(argv[nopt],"-rsag",4) == 0 ){
-         float th ;
-
-         if( ++nopt >= argc ) DUPERR("need argument after -rsag") ;
-         if( nrot   >= RMAX ) DUPERR("too many rotations") ;
-         th = strtod( argv[nopt++] , NULL ) * (PI/180.0) ;
-         if( th == 0.0 )      DUPERR("-rsag angle can't be zero") ;
-
-          rwarp[nrot] = myXtNew( THD_warp ) ;
-         *rwarp[nrot] = ROTX_WARP(th) ;
-         nrot++ ; continue ;
-      }
-
-      /**** -rcor angle ****/
-
-      if( strncmp(argv[nopt],"-rcor",4) == 0 ){
-         float th ;
-
-         if( ++nopt >= argc ) DUPERR("need argument after -rcor") ;
-         if( nrot   >= RMAX ) DUPERR("too many rotations") ;
-         th = strtod( argv[nopt++] , NULL ) * (PI/180.0) ;
-         if( th == 0.0 )      DUPERR("-rcor angle can't be zero") ;
-
-          rwarp[nrot] = myXtNew( THD_warp ) ;
-         *rwarp[nrot] = ROTY_WARP(th) ;
-         nrot++ ; continue ;
-      }
-
-      /**** -raxi angle ****/
-
-      if( strncmp(argv[nopt],"-raxi",4) == 0 ){
-         float th ;
-
-         if( ++nopt >= argc ) DUPERR("need argument after -raxi") ;
-         if( nrot   >= RMAX ) DUPERR("too many rotations") ;
-         th = strtod( argv[nopt++] , NULL ) * (PI/180.0) ;
-         if( th == 0.0 )      DUPERR("-raxi angle can't be zero") ;
-
-          rwarp[nrot] = myXtNew( THD_warp ) ;
-         *rwarp[nrot] = ROTZ_WARP(th) ;
-         nrot++ ; continue ;
       }
 
       /**** unknown switch ****/
@@ -250,22 +176,6 @@ int main( int argc , char * argv[] )
    }
 
    warp = myXtNew( THD_warp ) ; *warp = IDENTITY_WARP ;
-
-   for( ii=nrot-1 ; ii >=0 ; ii-- )
-      AFNI_concatenate_warp( warp , rwarp[ii] ) ;
-
-   if( nrot > 0 && crot ){
-      float xcen,ycen,zcen ;
-      THD_fvec3 qv , rv ;
-
-      xcen = DAXES_XCEN(dset_in->daxes) ;
-      ycen = DAXES_YCEN(dset_in->daxes) ;
-      zcen = DAXES_ZCEN(dset_in->daxes) ; LOAD_FVEC3(qv,xcen,ycen,zcen) ;
-
-      rv = THD_3dmm_to_dicomm( dset_in , qv ) ;
-      CEN_WARP( *warp , rv.xyz[0],rv.xyz[1],rv.xyz[2] ,
-                        rv.xyz[0],rv.xyz[1],rv.xyz[2]  ) ;
-   }
 
    EDIT_dset_items( dset_out ,
                        ADN_warp        , warp    ,

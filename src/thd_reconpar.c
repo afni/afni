@@ -14,12 +14,12 @@
 #define IFNOANAT(ds)                                                           \
    if( needed && (ds)->anat_parent == NULL )                                   \
       fprintf(stderr, "\n*** Cannot find anat parent %s\n*** of Dataset %s\n", \
-             (ds)->anat_parent_name , (ds)->self_name )
+             (ds)->anat_parent_name , DSET_HEADNAME(ds) )
 
 #define IFNOWARP(ds)                                                           \
    if( needed && (ds)->warp_parent == NULL && ! DSET_ONDISK(ds) )              \
       fprintf(stderr, "\n*** Cannot find warp parent %s\n*** of Dataset %s\n", \
-             (ds)->warp_parent_name , (ds)->self_name )
+             (ds)->warp_parent_name , DSET_HEADNAME(ds) )
 
 #ifdef THD_DEBUG
 # define SHOW_PARENTING(str,ds,dsp)                                            \

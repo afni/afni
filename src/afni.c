@@ -2499,21 +2499,9 @@ ENTRY("AFNI_closedown_3dview") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
-   /* Feb 1998: if a receiver is open,
-                send it a goodbye message,
-                and reset the receive status to the defaults */
+   /* Mar 1999: shutoff receivers, if any */
 
-   if( im3d->vinfo->receiver != NULL ){
-
-      im3d->vinfo->receiver( RECEIVE_CLOSURE , 0 , NULL ,
-                             im3d->vinfo->receiver_data ) ;
-
-      im3d->vinfo->receiver          = NULL ;
-      im3d->vinfo->receiver_data     = NULL ;
-      im3d->vinfo->receiver_mask     = 0 ;
-      im3d->vinfo->drawing_enabled   = 0 ;
-      im3d->vinfo->drawing_mode      = DRAWING_LINES ;
-   }
+   AFNI_receive_destroy( im3d ) ;
 
    /* destroy any viewers attached */
 
@@ -3036,7 +3024,7 @@ ENTRY("AFNI_view_xyz_CB") ;
          drive_MCW_imseq( *snew, isqDR_options , (XtPointer) &opt ) ;
       }
 
-      AFNI_toggle_drawing( im3d , im3d->vinfo->drawing_enabled ) ;
+      AFNI_toggle_drawing( im3d ) ;
 
 #ifndef DONT_INSTALL_ICONS
       if( afni48_good ){
@@ -3415,15 +3403,9 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       AFNI_lock_carryout( im3d ) ;  /* 04 Nov 1996 */
 
    /** Feb 1998: if desired, send coordinates to receiver **/
+   /** Mar 1999: do it in an external routine, not here.  **/
 
-   if( new_xyz                       &&
-       im3d->vinfo->receiver != NULL &&
-       (im3d->vinfo->receiver_mask & RECEIVE_VIEWPOINT_MASK) != 0 ){
-
-      im3d->vinfo->receiver( RECEIVE_VIEWPOINT , 3 , new_id.ijk ,
-                             im3d->vinfo->receiver_data ) ;
-
-   }
+   if( new_xyz ) AFNI_process_viewpoint( im3d ) ;
 
    EXRETURN ;
 }

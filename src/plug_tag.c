@@ -135,15 +135,9 @@ char * TAG_main( PLUGIN_interface * plint )
 
    /*-- set titlebar --*/
 
-   { static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ; /* see afni_func.c */
-     char ttl[PLUGIN_STRING_SIZE] ; int ic ;
-
-     ic = AFNI_controller_index(im3d) ;  /* find out which controller */
-
-     if( ic >=0 && ic < 26 ){
-        sprintf( ttl , "Tagset Editor [%c]" , clabel[ic] ) ;
-        XtVaSetValues( shell , XmNtitle , ttl , NULL ) ;
-     }
+   { char ttl[PLUGIN_STRING_SIZE] ;
+     sprintf( ttl , "Tagset Editor %s" , AFNI_controller_label(im3d) ) ;
+     XtVaSetValues( shell , XmNtitle , ttl , NULL ) ;
    }
 
    /*-- reset the info label --*/

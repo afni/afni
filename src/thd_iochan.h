@@ -27,6 +27,7 @@
 #include <sys/shm.h>
 #include <sys/times.h>
 #include <limits.h>
+#include <ctype.h>
 
 #ifndef MIN
 #  define MIN(a,b) (((a)<(b)) ? (a) : (b))
@@ -141,10 +142,16 @@ extern double COX_cpu_time(void) ;   /* return total cpu time used in seconds */
          iochan_clearcheck( (ic) , (ms) ) ;          \
     } while(0)
 
-/*---------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------
+   The following routines, for getting files across the Internet,
+   are in thd_http.c
+--------------------------------------------------------------------------*/
 
-extern IOCHAN * open_URL_hpf( char * host, int port, char * file, int msec ) ;
-extern IOCHAN * open_URL( char * url, int msec ) ;
-extern int      read_URL( char * url, int msec , char ** data ) ;
+extern IOCHAN * open_URL_hpf ( char * host, int port, char * file, int msec ) ;
+extern IOCHAN * open_URL_http( char * url, int msec ) ;
+extern int      read_URL_http( char * url, int msec, char ** data ) ;
+extern int      read_URL_ftp ( char * url, char ** data ) ;
+extern int      read_URL     ( char * url, char ** data ) ;
+extern void     set_URL_ftp_ident( char * name , char * pwd ) ;
 
 #endif

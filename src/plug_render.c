@@ -35,6 +35,8 @@ void REND_param_CB  ( MCW_arrowval * , XtPointer ) ;     /* Cutout arrowvals */
 void REND_precalc_CB( MCW_arrowval * , XtPointer ) ;     /* Precalc menu */
 void REND_clip_CB   ( MCW_arrowval * , XtPointer ) ;     /* Clip arrowvals */
 
+void REND_xhair_recv( int,int , int *, void * ) ;        /* 29 Mar 1999 */
+
 void   REND_choose_av_CB      ( MCW_arrowval * , XtPointer ) ; /* Sub-brick menus */
 char * REND_choose_av_label_CB( MCW_arrowval * , XtPointer ) ;
 void   REND_opacity_scale_CB  ( MCW_arrowval * , XtPointer ) ;
@@ -120,6 +122,7 @@ static int    precalc_mode[]    = { PMODE_LOW,PMODE_MEDIUM,PMODE_HIGH } ;
 static MCW_DC * dc ;                   /* display context */
 static Three_D_View * im3d ;           /* AFNI controller */
 static THD_3dim_dataset * dset ;       /* The dataset!    */
+static MCW_idcode         dset_idc ;   /* 31 Mar 1999     */
 static int new_dset = 0 ;              /* Is it new?      */
 static int dset_ival = 0 ;             /* Sub-brick index */
 static char dset_title[THD_MAX_NAME] ; /* Title string */
@@ -149,6 +152,8 @@ static int xhair_flag  = 0    ;
 static int xhair_ixold = -666 ;  /* remember the past */
 static int xhair_jyold = -666 ;
 static int xhair_kzold = -666 ;
+
+static int xhair_recv  = -1 ;    /* 29 Mar 1999 */
 
 #define CHECK_XHAIR_MOTION ( im3d->vinfo->i1 != xhair_ixold || \
                              im3d->vinfo->j2 != xhair_jyold || \
@@ -357,6 +362,8 @@ static float func_autorange     = DEFAULT_FUNC_RANGE ;
 static int   func_computed      = 0 ;
 
 static THD_3dim_dataset * func_dset = NULL ;
+static MCW_idcode         func_dset_idc ;   /* 31 Mar 1999 */
+
 static int func_color_ival  = 0 ;
 static int func_thresh_ival = 0 ;
 
@@ -442,15 +449,9 @@ char * REND_main( PLUGIN_interface * plint )
 
    /*-- set titlebar --*/
 
-   { static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ; /* see afni_func.c */
-     char ttl[PLUGIN_STRING_SIZE] ; int ic ;
-
-     ic = AFNI_controller_index(im3d) ;  /* find out which controller */
-
-     if( ic >=0 && ic < 26 ){
-        sprintf( ttl , "AFNI Renderer [%c]" , clabel[ic] ) ;
-        XtVaSetValues( shell , XmNtitle , ttl , NULL ) ;
-     }
+   { char ttl[PLUGIN_STRING_SIZE] ;
+     sprintf( ttl , "AFNI Renderer %s" , AFNI_controller_label(im3d) ) ;
+     XtVaSetValues( shell , XmNtitle , ttl , NULL ) ;
    }
 
    /*-- set some widget values --*/
@@ -518,6 +519,19 @@ char * REND_main( PLUGIN_interface * plint )
    redraw_MCW_pasgraf( his_graf ) ;
 
    xhair_ixold = -666 ; xhair_jyold = -666 ; xhair_kzold = -666 ;
+
+   /* 29 Mar 1999: register to receive updates from AFNI */
+
+#if 1
+   xhair_recv = AFNI_receive_init( im3d ,
+                                   RECEIVE_VIEWPOINT_MASK
+                                 | RECEIVE_DRAWNOTICE_MASK
+                                 | RECEIVE_DSETCHANGE_MASK ,
+                                   REND_xhair_recv , NULL   ) ;
+#else
+   xhair_recv = AFNI_receive_init( im3d ,
+                                   RECEIVE_VIEWPOINT_MASK , REND_xhair_recv , NULL ) ;
+#endif
 
    MPROBE ;
    return NULL ;
@@ -1486,6 +1500,9 @@ void REND_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
       return ;
    }
 
+   if( xhair_recv >= 0 )  /* 29 Mar 1999 */
+      AFNI_receive_control( im3d, xhair_recv,EVERYTHING_SHUTDOWN, NULL ) ;
+
    REND_destroy_imseq() ;      /* destroy the image window */
    DESTROY_IMARR(renderings) ; /* destroy the images */
 
@@ -1927,9 +1944,10 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "\n"
        " * If you depress 'See Xhairs', a 3D set of crosshairs\n"
        "     corresponding to the AFNI focus position will be drawn.\n"
-       "     However, if you move the crosshairs in the AFNI image\n"
+       "     If you move the crosshairs in one of the AFNI image\n"
        "     windows, the rendering window is not automatically updated,\n"
-       "     but the next time the rendering is redrawn for some other\n"
+       "     unless the 'DynaDraw' button is also depressed.  Otherwise,\n"
+       "     the next time the rendering is redrawn for some other\n"
        "     reason, the correct crosshair positions will be shown.\n"
        "\n"
        " * If you depress 'DynaDraw', then the image will be re-\n"
@@ -1953,6 +1971,14 @@ void REND_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
        "         AFNI_RENDER_ANGLE_DELTA and AFNI_RENDER_CUTOUT_DELTA\n"
        "         prior to running AFNI.  Once AFNI is started, these\n"
        "         stepsizes are fixed.\n"
+       "   N.B.: Other circumstances that will invoke automatic redrawing\n"
+       "         when DynaDraw is depressed include:\n"
+       "      + The crosshairs are moved in an AFNI image window belonging\n"
+       "        to the same controller, AND the 'See Xhairs' button is\n"
+       "        depressed.\n"
+       "      + You are also editing the dataset using the 'Draw Dataset'\n"
+       "        plugin (invoked from the same controller), and you have\n"
+       "        changed the dataset with a drawing operation.\n"
        "\n"
        " * If you depress 'Accumulate' IN, then rendered images are\n"
        "     saved as they are computed and can be re-viewed in the\n"
@@ -2311,6 +2337,11 @@ void REND_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
    char qnam[THD_MAX_NAME] , label[THD_MAX_NAME] ;
    static char ** strlist = NULL ;
 
+   int isl = -2 ;     /* 03 Apr 1999 */
+   MCW_idcode midc ;
+
+   /*-- decide if we want overlay (func) or underlay --*/
+
    dofunc = (w == wfunc_choose_pb) ;
 
    if( dofunc && !ISVALID_DSET(dset) ){
@@ -2391,9 +2422,22 @@ void REND_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
    strlist = (char **) XtRealloc( (char *)strlist , sizeof(char *)*ndsl ) ;
    for( id=0 ; id < ndsl ; id++ ) strlist[id] = dsl[id].title ;
 
+   /*-- 03 Apr 1999: set the initial selection in the chooser --*/
+
+        if(  dofunc && func_dset != NULL ){ midc = func_dset_idc; isl = -1; }
+   else if( !dofunc && dset      != NULL ){ midc = dset_idc     ; isl = -1; }
+
+   if( isl == -1 ){
+      for( id=0 ; id < ndsl ; id++ ){
+         if( EQUIV_IDCODES(midc,dsl[id].idcode) ){ isl = id ; break ; }
+      }
+   }
+
+   /*-- popup the chooser -- */
+
    sprintf( label , "AFNI Dataset from\nthe %s" , VIEW_typestr[vv] ) ;
 
-   MCW_choose_strlist( w , label , ndsl , -1 , strlist ,
+   MCW_choose_strlist( w , label , ndsl , isl , strlist ,
                        (dofunc) ? REND_finalize_func_CB
                                 : REND_finalize_dset_CB , NULL ) ;
 
@@ -2430,6 +2474,7 @@ void REND_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
    /* accept this dataset */
 
    dset = qset ;
+   dset_idc = qset->idcode ;  /* 31 Mar 1999 */
 
    npixels = 256 ;                             /* size of image to render */
    npixels = MAX( npixels , DSET_NX(dset) ) ;
@@ -2519,6 +2564,7 @@ void REND_finalize_func_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    oset      = func_dset ;
    func_dset = qset ;
+   func_dset_idc = qset->idcode ;  /* 31 Mar 1999 */
 
    /* refit the sub-brick selector menus */
 
@@ -2669,8 +2715,86 @@ void REND_xhair_CB( Widget w , XtPointer client_data , XtPointer call_data )
    xhair_ixold = -666 ; xhair_jyold = -666 ; xhair_kzold = -666 ; /* forget */
 
    if( dynamic_flag && render_handle != NULL ) REND_draw_CB(NULL,NULL,NULL) ;
+
    return ;
 }
+
+/*-------------------------------------------------------------------------
+  29 Mar 1999: called by AFNI when the user changes the crosshair location
+  30 Mar 1999: or when the user draws into the controller image window
+---------------------------------------------------------------------------*/
+
+void REND_xhair_recv( int why , int np , int * ijk , void * junk )
+{
+   switch( why ){
+
+      /*-- change of crosshair location --*/
+
+      case RECEIVE_VIEWPOINT:{
+         if( !xhair_flag || !dynamic_flag || render_handle == NULL ) return ;
+
+         CHECK_XHAIR_ERROR ;
+
+         if( CHECK_XHAIR_MOTION ){
+            FREE_VOLUMES ;
+            REND_draw_CB(NULL,NULL,NULL) ;
+         }
+      }
+      return ;
+
+      /*-- user drew something --*/
+
+      case RECEIVE_DRAWNOTICE:{   /* 30 Mar 1999 */
+         int doit=0 ;
+
+         if( EQUIV_DSETS(im3d->anat_now,dset) ||    /* can't tell if user */
+             EQUIV_DSETS(im3d->fim_now,dset)    ){  /* is drawing on anat */
+
+            doit = 1 ; FREE_VOLUMES ;
+
+         }
+
+         if( EQUIV_DSETS(im3d->anat_now,func_dset) ||    /* or is drawing */
+             EQUIV_DSETS(im3d->fim_now,func_dset)    ){  /* on the fim    */
+
+            doit = 1 ; INVALIDATE_OVERLAY ;
+         }
+
+         if( doit && dynamic_flag && render_handle != NULL )
+            REND_draw_CB(NULL,NULL,NULL) ;
+      }
+      return ;
+
+      /*-- dataset pointers have changed --*/
+
+      case RECEIVE_DSETCHANGE:{   /* 31 Mar 1999 */
+
+         if( dset != NULL )
+            dset = PLUTO_find_dset( &dset_idc ) ;
+
+         if( func_dset != NULL )
+            func_dset = PLUTO_find_dset( &func_dset_idc ) ;
+
+         FREE_VOLUMES ; INVALIDATE_OVERLAY ;
+
+         (void) MCW_popup_message( reload_pb ,
+                                     "********** NOTICE ***********\n"
+                                     "* Session rescan has forced *\n"
+                                     "* purge of dataset brick(s) *\n"
+                                     "* from memory.              *\n"
+                                     "*****************************" ,
+                                   MCW_USER_KILL | MCW_TIMER_KILL     ) ;
+      }
+      return ;
+
+   }  /* end of switch on "why" */
+
+   return ;
+}
+
+/*-------------------------------------------------------------------------
+   callbacks for other toggle buttons
+---------------------------------------------------------------------------*/
 
 void REND_dynamic_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {

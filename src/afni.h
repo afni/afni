@@ -118,12 +118,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.21d"
+#define VERSION "2.21e"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "09 March 1999    "
+#define RELEASE "01 April 1999    "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -191,6 +191,12 @@ extern char AFNI_abohelp[1024] ;
 #define ORIMASK_AP_IS (ORIMASK_AP | ORIMASK_IS)
 #define ORIMASK_ALL   (ORIMASK_LR | ORIMASK_AP | ORIMASK_IS)
 
+typedef struct {                           /* 29 Mar 1999 */
+      gen_func * receiver_func ;
+      void *     receiver_data ;
+      int        receiver_mask ;
+} AFNI_receiver ;
+
 typedef struct {
       int   i1 , j2 , k3 ;  /* integer coordinates of current point */
       float xi , yj , zk ;  /* float (mm) coordinates (take priority) */
@@ -233,12 +239,12 @@ typedef struct {
       char     anat_val[32] , func_val[32] , thr_val[32] ;
 
       /** Feb 1998: stuff for the "receive" modules **/
+      /** Mar 1999: modified to allow for more than one receiver **/
 
-      gen_func * receiver ;
-      void *     receiver_data ;
-      int        receiver_mask ;
-      int        drawing_enabled , drawing_mode ;
-      Pixel      drawing_pixel ;
+      AFNI_receiver ** receiver ;
+      int              num_receiver ;
+      int              drawing_enabled , drawing_mode ;
+      Pixel            drawing_pixel ;
 } AFNI_view_info ;
 
 #define SAVE_VPT(iqq)                           \
@@ -874,6 +880,7 @@ extern void AFNI_make_widgets  ( Three_D_View * im3d );
 extern void AFNI_closedown_3dview( Three_D_View * im3d );
 extern MRI_IMAGE * AFNI_overlay( int n , FD_brick * br );
 
+extern char * AFNI_controller_label( Three_D_View * im3d ); /* 01 Apr 1999 */
 extern void AFNI_set_window_titles( Three_D_View * im3d );
 
 extern void AFNI_crosshair_visible_CB( MCW_arrowval * , XtPointer ) ;
@@ -1109,8 +1116,11 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 
 #define RECEIVE_DRAWING_MASK    1
 #define RECEIVE_VIEWPOINT_MASK  2
-#define RECEIVE_OVERLAY_MASK    4
-#define RECEIVE_ALL_MASK       ( 1 | 2 | 4 )
+#define RECEIVE_OVERLAY_MASK    4    /* not implemented yet */
+#define RECEIVE_DRAWNOTICE_MASK 8    /* 30 Mar 1999 */
+#define RECEIVE_DSETCHANGE_MASK 16   /* 31 Mar 1999 */
+
+#define RECEIVE_ALL_MASK       ( 1 | 2 | 4 | 8 | 16 )
 
 /* codes for input to AFNI_receive_control */
 
@@ -1136,6 +1146,12 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define OVERLAY_STARTUP         38
 #define OVERLAY_SHUTDOWN        39
 
+#define DRAWNOTICE_STARTUP      48   /* 30 Mar 1999 */
+#define DRAWNOTICE_SHUTDOWN     49
+
+#define DSETCHANGE_STARTUP      58   /* 31 Mar 1999 */
+#define DSETCHANGE_SHUTDOWN     59
+
 #define EVERYTHING_SHUTDOWN    666
 
 /* whys for input to the receiver routine */
@@ -1145,6 +1161,8 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define RECEIVE_OVERLAY        103
 #define RECEIVE_CLOSURE        104
 #define RECEIVE_ALTERATION     105
+#define RECEIVE_DRAWNOTICE     106  /* 30 Mar 1999 */
+#define RECEIVE_DSETCHANGE     107  /* 31 Mar 1999 */
 
 /* modes for the process_drawing routine */
 
@@ -1153,10 +1171,16 @@ extern void AFNI_dicomm_to_xyz( THD_3dim_dataset * ,
 #define THREED_MODE           3000
 #define SPECIAL_MODE        100000
 
-extern void AFNI_toggle_drawing ( Three_D_View *, int ) ;
-extern void AFNI_process_drawing( Three_D_View *, int,int, int *,int *,int * ) ;
+extern void AFNI_toggle_drawing ( Three_D_View * ) ;
 extern int AFNI_receive_init    ( Three_D_View *, int, gen_func * , void * ) ;
-extern int AFNI_receive_control ( Three_D_View *, int, void * ) ;
+extern void AFNI_receive_destroy( Three_D_View * im3d ) ;
+extern int AFNI_receive_control ( Three_D_View *, int,int, void * ) ;
+
+extern void AFNI_process_viewpoint ( Three_D_View * im3d ) ;
+extern void AFNI_process_drawnotice( Three_D_View * im3d ) ;
+extern void AFNI_process_dsetchange( Three_D_View * im3d ) ;
+extern void AFNI_process_alteration( Three_D_View * im3d ) ;
+extern void AFNI_process_drawing   ( Three_D_View *, int,int, int *,int *,int * );
 
 extern void AFNI_3d_linefill( int  ,int * ,int * ,int * ,
                               int *,int **,int **,int ** ) ;

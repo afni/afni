@@ -17,6 +17,9 @@ Added ability to operate on 3D bucket datasets -- see ALLOW_BUCKETS macro.
 
 Added ability to use sub-brick selectors on input datasets -- see ALLOW_SUBV macro.
   [RW Cox, Jan 1999]
+
+Modified output to scale each sub-brick to shorts/bytes separately
+  [RW Cox, Mar 1999]
 ----------------------------------------------------------------------------*/
 
 #define ALLOW_BUCKETS
@@ -37,6 +40,7 @@ static PARSER_code *      CALC_code  = NULL ;
 static int                ntime[26] ;
 static int                ntime_max = 0 ;
 static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
+static int                CALC_gscale = 0 ;  /* 01 Apr 1999 */
 
 static THD_3dim_dataset *  CALC_dset[26] ;
 static int                 CALC_type[26] ;
@@ -133,6 +137,13 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncmp(argv[nopt],"-fscale",6) == 0 ){
          CALC_fscale = 1 ;
+         nopt++ ; continue ;
+      }
+
+      /**** -gscale [01 Apr 1999] ****/
+
+      if( strncmp(argv[nopt],"-gscale",6) == 0 ){
+         CALC_gscale = CALC_fscale = 1 ;
          nopt++ ; continue ;
       }
 
@@ -376,7 +387,16 @@ void CALC_Syntax(void)
     "                  truncation artifacts.\n"
     "                  [The default is to scale only if the computed values\n"
     "                   seem to need it -- are all less than 1 or there is\n"
-    "                   at least one value beyond the integer upper limit]\n"
+    "                   at least one value beyond the integer upper limit.]\n"
+    "             ** In earlier versions of 3dcalc, scaling (if used) was\n"
+    "                   applied to all sub-bricks equally -- a common scale\n"
+    "                   factor was used.  This would cause trouble if the values\n"
+    "                   in different sub-bricks were in vastly different scales.\n"
+    "                   In this version, each sub-brick gets its own scale factor.\n"
+    "                   To override this behaviour, use the '-gscale option'.\n"
+    "  -gscale     = Same as '-fscale', but also forces each output sub-brick to\n"
+    "                   get the same scaling factor.  This may be desirable\n"
+    "                   for 3D+time datasets, for example.\n"
     "  -a dname    = Read dataset 'dname' and call the voxel values 'a'\n"
     "                  in the expression that is input below.  'a' may be any\n"
     "                  single letter from 'a' to 'z'.\n"
@@ -754,25 +774,10 @@ int main( int argc , char * argv[] )
       }
       break ;
 
-      case MRI_byte:
-      case MRI_short:{
-         void ** dfim ;
+      case MRI_byte:             /* modified 31 Mar 1999 to scale each sub-brick  */
+      case MRI_short:{           /* with its own factor, rather than use the same */
+         void ** dfim ;          /* factor for each sub-brick -- RWCox            */
          float gtop , fimfac , gtemp ;
-
-	 gtop = 0.0 ;
-	 for ( ii = 0 ; ii < ntime_max ; ii ++ ) {
-	    gtemp = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
-	    gtop  = MAX( gtop , gtemp ) ;
-	 }
-
-         if( gtop == 0.0 ) fprintf(stderr,"Warning: output is all zeros!\n") ;
-
-         if( CALC_fscale ){   /* 16 Mar 1998 */
-            fimfac = MRI_TYPE_maxval[CALC_datum]/ gtop ;
-         } else {
-            fimfac = (gtop > MRI_TYPE_maxval[CALC_datum] || (gtop > 0.0 && gtop <= 1.0) )
-                     ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
-         }
 
          if( CALC_verbose )
             fprintf(stderr,"  ++ Scaling output to type %s brick(s)\n",
@@ -780,13 +785,43 @@ int main( int argc , char * argv[] )
 
 	 dfim = (void ** ) malloc( sizeof( void * ) * ntime_max ) ;
 
+         if( CALC_gscale ){   /* 01 Apr 1999: allow global scaling */
+            gtop = 0.0 ;
+            for( ii=0 ; ii < ntime_max ; ii++ ){
+               gtemp = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
+               gtop  = MAX( gtop , gtemp ) ;
+               if( gtemp == 0.0 )
+                  fprintf(stderr,"  ** Warning: output sub-brick %d is all zeros!\n",ii) ;
+            }
+         }
+
 	 for (ii = 0 ; ii < ntime_max ; ii ++ ) {
+
+            if( ! CALC_gscale ){
+	       gtop = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
+               if( gtop == 0.0 )
+                  fprintf(stderr,"  ** Warning: output sub-brick %d is all zeros!\n",ii) ;
+            }
+
+            if( CALC_fscale ){   /* 16 Mar 1998 */
+               fimfac = (gtop > 0.0) ? MRI_TYPE_maxval[CALC_datum] / gtop : 0.0 ;
+            } else {
+               fimfac = (gtop > MRI_TYPE_maxval[CALC_datum] || (gtop > 0.0 && gtop <= 1.0) )
+                        ? MRI_TYPE_maxval[CALC_datum]/ gtop : 0.0 ;
+            }
+
+            if( CALC_verbose ){
+               if( fimfac != 0.0 )
+                  fprintf(stderr,"  ++ Sub-brick %d scale factor = %f\n",ii,fimfac) ;
+               else
+                  fprintf(stderr,"  ++ Sub-brick %d: no scale factor\n" ,ii) ;
+            }
 
             dfim[ii] = (void *) malloc( mri_datum_size(CALC_datum) * CALC_nvox ) ;
             if( dfim[ii] == NULL ){ fprintf(stderr,"malloc fails at output\n");exit(1); }
 
 	    EDIT_coerce_scale_type( CALC_nvox , fimfac ,
-                                 MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
+                                    MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
 	    free( buf[ii] ) ;
 	    EDIT_substitute_brick(new_dset, ii, CALC_datum, dfim[ii] );
 

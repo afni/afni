@@ -7,7 +7,7 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 ){ fprintf(stderr,"Usage: myget URL > filename\n"); exit(0) ; }
 
-   nbuf = read_URL( argv[1] , 5000 , &buf ) ;
+   nbuf = read_URL( argv[1] , &buf ) ;
    if( nbuf <= 0 ){ fprintf(stderr,"Can't open URL %s\n",argv[1]) ; exit(1) ; }
 
    fwrite( buf , 1 , nbuf , stdout ) ;

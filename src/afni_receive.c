@@ -9,10 +9,12 @@
 
 /*-------------------------------------------------------------------
    Set up to have AFNI send data to a receiver:
+
      rmask = bitwise OR (|) mask of RECEIVE_*_MASK (cf. afni.h)
+
      cb    = callback function to receive data; will be called like
                cb( int why , int np , void * vp , void * cb_data )
-             where why = a RECEIVE_* code
+             where why = a RECEIVE_* code (cf. below)
                    np  = count of data in vp (may be 0)
                    vp  = pointer to data being sent (may be NULL)
                cb_data = pointer passed into this routine
@@ -21,7 +23,7 @@
                                  array of dataset voxel indices just
                                  jumped to; vp[0] = x index, etc.
 
-     why = RECEIVE_POINTS --> np = number of points drawn
+*    why = RECEIVE_POINTS --> np = number of points drawn
                               vp = int **, pointer to array of arrays
                                    of dataset voxel indices:
                                     vp[0][i] = x index of point i
@@ -29,6 +31,23 @@
                                     vp[2][i] = z index of point i,
                                     vp[3][0] = sending mode
                                    for i=0..np-1
+
+*    why = RECEIVE_DRAWNOTICE --> the user drew something and that
+                                  information was sent to a receiver.
+                                  This call will occur AFTER all the
+                                  RECEIVE_POINTS calls have been done.
+                                  If no RECEIVE_POINTS calls are made,
+                                  then no RECEIVE_DRAWNOTICE calls will
+                                  be made either.  For this call,
+                                  np and vp are unused.
+
+*    why = RECEIVE_DSETCHANGE --> the user did something (like rescan
+                                  a session) that may have changed
+                                  dataset pointers.  The receiving
+                                  routine should use dataset idcodes
+                                  to re-find the correct dataset
+                                  pointers.  For this call, np and vp
+                                  are unused.
 
 *    why = RECEIVE_CLOSURE --> the user closed the controller window,
                                which means that no more data will
@@ -44,30 +63,79 @@
                                   message.  For this call, np and
                                   vp are unused.
 
-   This function returns 0 if all is OK, and returns -1 if an error
-   occurs.  An error will occur if another receiver is attached to
-   this controller.
+   This function returns a non-negative int if all is OK -- this
+   value is the "key" that is used in calls to AFNI_receive_control
+   when you want to manipulate the status of this connection.
+
+   This function returns -1 if an error occurs.
+
+   Modified 29 Mar 1999 to allow for multiple receivers
+   (but drawing can only be done in one mode).
 ---------------------------------------------------------------------*/
 
 int AFNI_receive_init( Three_D_View * im3d , int rmask ,
                        gen_func * cb , void * cb_data   )
 {
+   int ir ;
+
 ENTRY("AFNI_receive_init") ;
 
    /* check for invalid entries */
 
    if( ! IM3D_OPEN(im3d)             ||               /* no good? */
-       im3d->vinfo->receiver != NULL ||               /* busy? */
        cb == NULL                    ||               /* no receiver? */
        (rmask & RECEIVE_ALL_MASK) == 0 ) RETURN(-1) ; /* no action? */
 
-   im3d->vinfo->receiver        = cb ;
-   im3d->vinfo->receiver_mask   = rmask ;
-   im3d->vinfo->receiver_data   = cb_data ;
-   im3d->vinfo->drawing_enabled = (rmask & RECEIVE_DRAWING_MASK) != 0 ;
-   AFNI_toggle_drawing(  im3d , im3d->vinfo->drawing_enabled ) ;
+   for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ )
+      if( im3d->vinfo->receiver[ir] == NULL ) break ;
+
+   if( ir == im3d->vinfo->num_receiver ){
+      im3d->vinfo->receiver = realloc( im3d->vinfo->receiver ,
+                                       (ir+1) * sizeof(AFNI_receiver *) ) ;
+      im3d->vinfo->num_receiver ++ ;
+   }
+   im3d->vinfo->receiver[ir] = malloc(sizeof(AFNI_receiver)) ;
+
+   im3d->vinfo->receiver[ir]->receiver_func = cb ;
+   im3d->vinfo->receiver[ir]->receiver_mask = rmask ;
+   im3d->vinfo->receiver[ir]->receiver_data = cb_data ;
+
+   AFNI_toggle_drawing( im3d ) ;
 
    RETURN(0) ;
+}
+
+/*-------------------------------------------------------------------------
+   Turn off all reception for this viewer
+---------------------------------------------------------------------------*/
+
+void AFNI_receive_destroy( Three_D_View * im3d )
+{
+   int ir ;
+
+ENTRY("AFNI_receive_destroy") ;
+
+   if( !IM3D_VALID(im3d) ) EXRETURN ;
+
+   if( im3d->vinfo->receiver != NULL && im3d->vinfo->num_receiver > 0 ){
+
+      for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
+
+         if( im3d->vinfo->receiver[ir] != NULL )
+            im3d->vinfo->receiver[ir]->receiver_func(
+                   RECEIVE_CLOSURE , 0 , NULL ,
+                   im3d->vinfo->receiver[ir]->receiver_data ) ;
+
+         free( im3d->vinfo->receiver[ir] ) ;
+         im3d->vinfo->receiver[ir] = NULL ;
+      }
+
+      im3d->vinfo->num_receiver    = 0 ;
+      im3d->vinfo->drawing_enabled = 0 ;
+      im3d->vinfo->drawing_mode    = DRAWING_LINES ;  /* default */
+   }
+
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -78,13 +146,15 @@ ENTRY("AFNI_receive_init") ;
   occurs.
 ---------------------------------------------------------------------*/
 
-int AFNI_receive_control( Three_D_View * im3d , int code , void * arg )
+int AFNI_receive_control( Three_D_View * im3d , int key , int code , void * arg )
 {
 ENTRY("AFNI_receive_control") ;
 
    /* check input for OK-osity */
 
    if( ! IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL ) RETURN(-1) ;
+   if( key < 0 || key >= im3d->vinfo->num_receiver )         RETURN(-1) ;
+   if( im3d->vinfo->receiver[key] == NULL )                  RETURN(-1) ;
 
    /* take appropriate actions */
 
@@ -92,17 +162,35 @@ ENTRY("AFNI_receive_control") ;
 
       default: RETURN(-1) ;
 
+      case DRAWNOTICE_STARTUP:{    /* 30 Mar 1999 */
+         im3d->vinfo->receiver[key]->receiver_mask |= RECEIVE_DRAWNOTICE_MASK ;
+      }
+      break ;
+
+      case DRAWNOTICE_SHUTDOWN:{   /* 30 Mar 1999 */
+         im3d->vinfo->receiver[key]->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_DRAWNOTICE_MASK) ;
+      }
+      break ;
+
+      case DSETCHANGE_STARTUP:{    /* 31 Mar 1999 */
+         im3d->vinfo->receiver[key]->receiver_mask |= RECEIVE_DSETCHANGE_MASK ;
+      }
+      break ;
+
+      case DSETCHANGE_SHUTDOWN:{   /* 30 Mar 1999 */
+         im3d->vinfo->receiver[key]->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_DSETCHANGE_MASK) ;
+      }
+      break ;
+
       case DRAWING_STARTUP:{
-         im3d->vinfo->receiver_mask  |= RECEIVE_DRAWING_MASK ;
-         im3d->vinfo->drawing_enabled = 1 ;
-         AFNI_toggle_drawing(  im3d , 1 ) ;
+         im3d->vinfo->receiver[key]->receiver_mask |= RECEIVE_DRAWING_MASK ;
+         AFNI_toggle_drawing( im3d ) ;
       }
       break ;
 
       case DRAWING_SHUTDOWN:{
-         im3d->vinfo->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_DRAWING_MASK) ;
-         im3d->vinfo->drawing_enabled = 0 ;
-         AFNI_toggle_drawing(  im3d , 0 ) ;
+         im3d->vinfo->receiver[key]->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_DRAWING_MASK) ;
+         AFNI_toggle_drawing( im3d ) ;
       }
       break ;
 
@@ -142,34 +230,46 @@ ENTRY("AFNI_receive_control") ;
       break ;
 
       case VIEWPOINT_STARTUP:{
-         im3d->vinfo->receiver_mask |= RECEIVE_VIEWPOINT_MASK ;
+         im3d->vinfo->receiver[key]->receiver_mask |= RECEIVE_VIEWPOINT_MASK ;
       }
       break ;
 
       case VIEWPOINT_SHUTDOWN:{
-         im3d->vinfo->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_VIEWPOINT_MASK) ;
+         im3d->vinfo->receiver[key]->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_VIEWPOINT_MASK) ;
       }
       break ;
 
       case OVERLAY_STARTUP:{
-         im3d->vinfo->receiver_mask |= RECEIVE_OVERLAY_MASK ;
+         im3d->vinfo->receiver[key]->receiver_mask |= RECEIVE_OVERLAY_MASK ;
       }
       break ;
 
       case OVERLAY_SHUTDOWN:{
-         im3d->vinfo->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_OVERLAY_MASK) ;
+         im3d->vinfo->receiver[key]->receiver_mask &= (RECEIVE_ALL_MASK - RECEIVE_OVERLAY_MASK) ;
       }
       break ;
 
       case EVERYTHING_SHUTDOWN:{
-         im3d->vinfo->receiver_mask = 0 ;
+         im3d->vinfo->receiver[key]->receiver_mask = 0 ;
+         AFNI_toggle_drawing( im3d ) ;
       }
       break ;
 
    } /* end of switch on codes */
 
-   if( im3d->vinfo->receiver_mask == 0 )
-      im3d->vinfo->receiver = NULL ;
+   /* possibly remove this receiver, and maybe even all receivers */
+
+   if( im3d->vinfo->receiver[key]->receiver_mask == 0 ){   /* receiving nothing at all? */
+      int ir , nn=0 ;
+
+      free( im3d->vinfo->receiver[key] ) ;                 /* toss this one fer shur */
+      im3d->vinfo->receiver[key] = NULL ;
+
+      for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ )  /* see if any are left */
+         if( im3d->vinfo->receiver[ir] != NULL ) nn++ ;
+
+      if( nn == 0 ) im3d->vinfo->num_receiver = 0 ;        /* if not, toss them all */
+   }
 
    RETURN(0) ;
 }
@@ -178,14 +278,26 @@ ENTRY("AFNI_receive_control") ;
    Turn the drawing on or off for the given controller
 ---------------------------------------------------------------------*/
 
-void AFNI_toggle_drawing( Three_D_View * im3d , int turn_on )
+void AFNI_toggle_drawing( Three_D_View * im3d )
 {
+   int turn_on = 0 ;
 
 ENTRY("AFNI_toggle_drawing") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
-   if( ! turn_on ){
+   /* count up how many receivers want the drawing */
+
+   if( im3d->vinfo->receiver != NULL ){
+      int ir ;
+      for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ )
+         if( im3d->vinfo->receiver[ir] != NULL &&
+             (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DRAWING_MASK) )
+            turn_on++ ;
+   }
+   im3d->vinfo->drawing_enabled = (turn_on != 0) ;
+
+   if( ! im3d->vinfo->drawing_enabled ){
 
    /*-- quench the flames --*/
 
@@ -196,8 +308,6 @@ ENTRY("AFNI_toggle_drawing") ;
       drive_MCW_grapher( im3d->g123 , graDR_button2_disable , NULL ) ;
       drive_MCW_grapher( im3d->g231 , graDR_button2_disable , NULL ) ;
       drive_MCW_grapher( im3d->g312 , graDR_button2_disable , NULL ) ;
-
-      im3d->vinfo->drawing_enabled = 0 ;
 
    } else {
 
@@ -227,7 +337,112 @@ ENTRY("AFNI_toggle_drawing") ;
       drive_MCW_grapher( im3d->g231 , graDR_button2_enable , NULL ) ;
       drive_MCW_grapher( im3d->g312 , graDR_button2_enable , NULL ) ;
 
-      im3d->vinfo->drawing_enabled = 1 ;
+   }
+
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------
+   Send alteration message to all receivers
+   (they don't have to register for this information)
+---------------------------------------------------------------------*/
+
+void AFNI_process_alteration( Three_D_View * im3d )
+{
+   int ir ;
+
+ENTRY("AFNI_process_alteration") ;
+
+   if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
+                            im3d->vinfo->num_receiver == 0   ) EXRETURN ;
+
+   for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
+      if( im3d->vinfo->receiver[ir] != NULL )
+         im3d->vinfo->receiver[ir]->receiver_func(
+                   RECEIVE_ALTERATION , 0 , NULL ,
+                   im3d->vinfo->receiver[ir]->receiver_data ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------
+   Send drawing notices to interested receivers
+---------------------------------------------------------------------*/
+
+void AFNI_process_drawnotice( Three_D_View * im3d )
+{
+   int ir ;
+
+ENTRY("AFNI_process_drawnotice") ;
+
+   if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
+                            im3d->vinfo->num_receiver == 0   ) EXRETURN ;
+
+   for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
+
+      if( im3d->vinfo->receiver[ir] != NULL &&
+          (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DRAWNOTICE_MASK) )
+
+         im3d->vinfo->receiver[ir]->receiver_func(
+                   RECEIVE_DRAWNOTICE , 0 , NULL ,
+                   im3d->vinfo->receiver[ir]->receiver_data ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------
+   Send dset change notices to interested receivers
+---------------------------------------------------------------------*/
+
+void AFNI_process_dsetchange( Three_D_View * im3d )
+{
+   int ir ;
+
+ENTRY("AFNI_process_dsetchange") ;
+
+   if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
+                            im3d->vinfo->num_receiver == 0   ) EXRETURN ;
+
+   for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
+
+      if( im3d->vinfo->receiver[ir] != NULL &&
+          (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DSETCHANGE_MASK) )
+
+         im3d->vinfo->receiver[ir]->receiver_func(
+                   RECEIVE_DSETCHANGE , 0 , NULL ,
+                   im3d->vinfo->receiver[ir]->receiver_data ) ;
+   }
+
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------
+   Send new (i,j,k) coordinates to all receivers that care
+---------------------------------------------------------------------*/
+
+void AFNI_process_viewpoint( Three_D_View * im3d )
+{
+   int ir , ijk[3] ;
+
+ENTRY("AFNI_process_viewpoint") ;
+
+   if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
+                            im3d->vinfo->num_receiver == 0   ) EXRETURN ;
+
+   ijk[0] = im3d->vinfo->i1 ;
+   ijk[1] = im3d->vinfo->j2 ;
+   ijk[2] = im3d->vinfo->k3 ;
+
+   for( ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
+      if( im3d->vinfo->receiver[ir] != NULL &&
+          (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_VIEWPOINT_MASK) )
+
+         im3d->vinfo->receiver[ir]->receiver_func(
+                   RECEIVE_VIEWPOINT , 3 , ijk ,
+                   im3d->vinfo->receiver[ir]->receiver_data ) ;
+
    }
 
    EXRETURN ;
@@ -253,20 +468,18 @@ ENTRY("AFNI_toggle_drawing") ;
 void AFNI_process_drawing( Three_D_View * im3d , int mode ,
                            int npts , int * xd , int * yd , int * zd )
 {
-   int ii , nn ;
+   int ii , nn , ir , nsent ;
    int * vp[4] , * xn , * yn , * zn ;
 
 ENTRY("AFNI_process_drawing") ;
 
-   if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL ||
-       npts < 0          || !im3d->vinfo->drawing_enabled   ) EXRETURN ;
+   if( !IM3D_VALID(im3d) || im3d->vinfo->receiver == NULL  ||
+                            im3d->vinfo->num_receiver == 0 ||
+       npts < 0          || im3d->vinfo->drawing_enabled == 0 ) EXRETURN ;
 
-#if 0
-   fprintf(stderr,"\n--- Received %d points:\n",npts) ;
-   for( ii=0 ; ii < npts ; ii++ )
-      fprintf(stderr,"%3d: xd=%3d  yd=%3d  zd=%3d\n",ii,xd[ii],yd[ii],zd[ii]) ;
-   EXRETURN ;
-#endif
+if(PRINT_TRACING){
+  char str[256] ; sprintf(str,"received %d points",npts) ; STATUS(str) ;
+}
 
    /*-- if no further treatment is needed,
         just flag input data to be set to receiver --*/
@@ -280,7 +493,7 @@ ENTRY("AFNI_process_drawing") ;
    /*-- must fill in the lines:
         create arrays xn, yn, zn of length nn --*/
 
-   if( im3d->vinfo->drawing_mode == DRAWING_LINES ){
+   else if( im3d->vinfo->drawing_mode == DRAWING_LINES ){
 
       AFNI_3d_linefill( npts , xd,yd,zd , &nn , &xn , &yn , &zn ) ;
    }
@@ -295,7 +508,7 @@ ENTRY("AFNI_process_drawing") ;
       AFNI_3d_linefill( npts , xd,yd,zd , &nn , &xn , &yn , &zn ) ;
    }
 
-   /*-- send data to receiver --*/
+   /*-- send data to receivers that want it --*/
 
 #if 0
 fprintf(stderr,"Sending %d points to receiver\n",nn) ;
@@ -304,8 +517,26 @@ fprintf(stderr,"Sending %d points to receiver\n",nn) ;
    vp[3] = &mode ;                        /* how the points are arranged */
 
    vp[0] = xn ; vp[1] = yn ; vp[2] = zn ;
-   im3d->vinfo->receiver( RECEIVE_POINTS , nn , (void *) vp ,
-                          im3d->vinfo->receiver_data ) ;
+
+   for( nsent=ir=0 ; ir < im3d->vinfo->num_receiver ; ir++ ){
+
+      if( im3d->vinfo->receiver[ir] != NULL &&
+          (im3d->vinfo->receiver[ir]->receiver_mask & RECEIVE_DRAWING_MASK) )
+
+if(PRINT_TRACING){
+  char str[256] ; sprintf(str,"sending %d points to receiver %d",nn,ir) ;
+  STATUS(str) ;
+}
+
+         im3d->vinfo->receiver[ir]->receiver_func(
+                   RECEIVE_POINTS , nn ,
+                   (void *) vp , im3d->vinfo->receiver[ir]->receiver_data ) ;
+         nsent++ ;
+   }
+
+   /* 30 Mar 1999: also send DRAWNOTICE to receivers that like this stuff */
+
+   if( nsent > 0 ) AFNI_process_drawnotice( im3d ) ;
 
    /*-- free any created arrays --*/
 

@@ -2899,16 +2899,9 @@ STATUS("calling plugin") ;
    /*-- set labels to go on shell widget and icon;
         include the [] controller window index, if possible --*/
 
-   { static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ; /* see afni_func.c */
-     char ttl[PLUGIN_STRING_SIZE] ;
-     int ic ;
+   { char ttl[PLUGIN_STRING_SIZE] ;
 
-     ic = AFNI_controller_index( im3d ) ;  /* find out which controller */
-
-     if( ic >=0 && ic < 26 )
-        sprintf( ttl , "[%c] %s" , clabel[ic] , plint->label ) ;
-     else
-        strcpy( ttl , plint->label ) ;
+     sprintf(ttl , "%s%s" , AFNI_controller_label(im3d) , plint->label ) ;
 
      XtVaSetValues( plint->wid->shell ,
                        XmNtitle     , ttl , /* top of window */

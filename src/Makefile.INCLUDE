@@ -35,13 +35,13 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dNLfim 3dTSgen AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
            2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat \
-           3drotate 3dvolreg 3dpc 3dstrip 3dfractionize 1dplot
+           3drotate 3dvolreg 3dpc 3dstrip 3dfractionize 1dplot adwarp
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
                   fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim \
                   p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 3drefit \
-                  waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave \
+                  waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot
 
@@ -349,6 +349,13 @@ AlphaSim:AlphaSim.o
 3dDeconvolve:3dDeconvolve.o
 	$(RM) $@
 	$(CC) -o 3dDeconvolve 3dDeconvolve.o $(LFLAGS) $(LLIBS)
+
+adwarp:adwarp.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
+                afni_slice_float.o  afni_slice_complex.o
+	$(RM) $@
+	$(CC) -o adwarp adwarp.o afni_warp.o afni_slice_byte.o \
+	         afni_slice_short.o afni_slice_float.o afni_slice_complex.o \
+	         $(LFLAGS) $(LLIBS)
 
 2dImReg:2dImReg.o
 	$(RM) $@
