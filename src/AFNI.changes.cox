@@ -3816,3 +3816,9 @@
  * Modified thd_writedset.c to allow re-writing of a VOLUMES dataset
      .HEAD file.
  * Modified plug_realtime.c to allow single slice dataset input (nzz=1).
+
+25 Jun 2002
+ * Modified rtfeedme.c a little for debugging purposes.
+ * Modified thd_iochan.c to print better messages with PERROR().
+ * Modified plug_realtime.c to popup message when disk I/O is finished
+     after an acquisition ends.
