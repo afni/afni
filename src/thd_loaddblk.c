@@ -12,7 +12,7 @@ static int no_mmap      = -1 ;
 static int floatscan    = -1 ;  /* 30 Jul 1999 */
 
 #define PRINT_SIZE 100000000
-#define PRINT_STEP 9
+#define PRINT_STEP 10
 
 static int verbose = 0 ;
 
@@ -51,7 +51,7 @@ Boolean THD_load_datablock( THD_datablock *blk )
    int nx,ny,nz , nxy,nxyz,nxyzv , nv,vv , ii , ntot , ibr , nbad ;
    char * ptr ;
    MRI_IMAGE * im ;
-   int verb = verbose ;
+   int verb=verbose , print_size=PRINT_SIZE ;
 
 ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
 
@@ -306,7 +306,20 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    /*** Below here, space for brick images was malloc()-ed,
         and now we have to read data into them             ***/
 
-   if( verb ) verb = (blk->total_bytes > PRINT_SIZE) ;
+   ptr = getenv("AFNI_LOAD_PRINTSIZE") ;   /* 23 Aug 2002 */
+   if( verb && ptr != NULL ){
+     char *ept ;
+     id = strtol( ptr , &ept , 10 ) ;
+     if( id > 0 ){
+            if( *ept == 'K' || *ept == 'k' ) id *= 1024 ;
+       else if( *ept == 'M' || *ept == 'm' ) id *= 1024*1024 ;
+       print_size = id ;
+     } else {
+       print_size = 2100000000 ;  /* 2 GB */
+     }
+   }
+
+   if( verb ) verb = (blk->total_bytes > print_size ) ;
    if( verb ) fprintf(stderr,"reading dataset %s",dkptr->filecode) ;
 
    switch( dkptr->storage_mode ){
