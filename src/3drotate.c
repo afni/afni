@@ -224,6 +224,7 @@ int main( int argc , char * argv[] )
        "           by the following options:\n"
        "\n"
        " -Fourier = Use a Fourier method (the default: most accurate; slowest).\n"
+       " -NN      = Use the nearest neighbor method.\n"
        " -linear  = Use linear (1st order polynomial) interpolation (least accurate).\n"
        " -cubic   = Use the cubic (3rd order) Lagrange polynomial method.\n"
        " -quintic = Use the quintic (5th order) Lagrange polynomial method.\n"
