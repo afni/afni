@@ -26,6 +26,7 @@ static int         VL_final  = -1 ;   /* 20 Nov 1998 */
 static int         VL_clipit = 1 ;    /* 23 Oct 1998 and 16 Apr 2002 */
 static MRI_IMAGE * VL_imbase = NULL ;
 static MRI_IMAGE * VL_imwt   = NULL ;
+static int         VL_wtinp  = 0 ;    /* 06 Jun 2002 */
 
 static int         VL_zpad   = 0 ;    /* 05 Feb 2001 */
 
@@ -439,7 +440,7 @@ int main( int argc , char *argv[] )
 
       } else {
 
-         float *far , *bar=MRI_FLOAT_PTR(tp_base) , *qar ;
+         float *far , *bar=MRI_FLOAT_PTR(tp_base) , *qar , clip ;
          int ii,jj,kk , nxy=nx*ny , nxyz=nxy*nz ;
          int nxbot,nxtop,nybot,nytop,nzbot,nztop , ee,fade,ff ;
 
@@ -489,6 +490,10 @@ int main( int argc , char *argv[] )
          EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
                               MRI_float , qar ,
                               VL_twoblur,VL_twoblur,VL_twoblur ) ;
+
+         clip = 0.01 * mri_max(qim) ;              /* 06 Jun 2002 */
+         for( ii=0 ; ii < nxyz ; ii++ )
+           if( qar[ii] < clip ) qar[ii] = 0.0 ;
 
          mri_3dalign_force_edging( 1 ) ;
          albase = mri_3dalign_setup( tp_base , qim ) ;
@@ -589,6 +594,13 @@ int main( int argc , char *argv[] )
 
    if( VL_final < 0 ) VL_final = VL_resam ;  /* 20 Nov 1998 */
    mri_3dalign_final_regmode( VL_final ) ;
+
+   /* 06 Jun 2002: create -wtinp weight now */
+
+   if( VL_wtinp ){
+     VL_imwt = mri_to_float( DSET_BRICK(VL_dset,0) ) ;
+     mri_3dalign_wproccing( 1 ) ;
+   }
 
    albase = mri_3dalign_setup( VL_imbase , VL_imwt ) ;
    if( albase == NULL ){
@@ -1189,6 +1201,13 @@ void VL_syntax(void)
     "                             N.B.: The 'del' parameter cannot be larger than\n"
     "                                   10%% of the smallest dimension of the input\n"
     "                                   dataset.\n"
+    "              -wtrim          = Attempt to trim the intermediate volumes to\n"
+    "                                  a smaller region (determined by the weight\n"
+    "                                  volume).  The purpose of this is to save\n"
+    "                                  memory.  The use of '-verbose -verbose'\n"
+    "                                  will report on the trimming usage.\n"
+    "              -wtinp          = Use sub-brick[0] of the input dataset as the\n"
+    "                                  weight brick in the final registration pass.\n"
     "\n"
     " N.B.: * This program can consume VERY large quantities of memory.\n"
     "          (Rule of thumb: 40 bytes per input voxel.)\n"
@@ -1200,7 +1219,7 @@ void VL_syntax(void)
     "          You may want to decrease it proportionally for larger datasets.\n"
     "       * -twopass resets the -maxite parameter to 66; if you want to use\n"
     "          a different value, use -maxite AFTER the -twopass option.\n"
-    "       * The -twopass option can be slow - several CPU minutes for a\n"
+    "       * The -twopass option can be slow; several CPU minutes for a\n"
     "          256x256x124 volume is a typical run time.\n"
     "       * After registering high-resolution anatomicals, you may need to\n"
     "          set their origins in 3D space to match.  This can be done using\n"
@@ -1465,6 +1484,20 @@ void VL_command_line(void)
       if( strcmp(Argv[Iarg],"-coarse") == 0 ){
          VL_coarse_del = strtol(Argv[++Iarg],NULL,10) ;
          VL_coarse_num = strtol(Argv[++Iarg],NULL,10) ;
+         Iarg++ ; continue ;
+      }
+
+      /** 06 Jun 2002: -wtrim **/
+
+      if( strcmp(Argv[Iarg],"-wtrim") == 0 ){
+         mri_3dalign_wtrimming(1) ;
+         Iarg++ ; continue ;
+      }
+
+      /** 06 Jun 2002: -wtinp **/
+
+      if( strcmp(Argv[Iarg],"-wtinp") == 0 ){
+         VL_wtinp = 1 ;
          Iarg++ ; continue ;
       }
 
@@ -1770,6 +1803,13 @@ void VL_command_line(void)
         fprintf(stderr,"++ Coarse del was %d, replaced with %d\n",VL_coarse_del,mm) ;
         VL_coarse_del = mm ;
      }
+   }
+
+   /* 06 Jun 2002 */
+
+   if( VL_imwt != NULL && VL_wtinp ){
+     fprintf(stderr,"++ Input weight file overrides -wtinp option!\n") ;
+     VL_wtinp = 0 ;
    }
 
    /*** done (we hope) ***/

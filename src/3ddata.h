@@ -3229,6 +3229,11 @@ extern byte * THD_makemask( THD_3dim_dataset *, int,float,float) ;
 extern int    THD_countmask( int , byte * ) ;
 extern byte * THD_automask( THD_3dim_dataset * ) ;         /* 13 Aug 2001 */
 
+extern void THD_autobbox( THD_3dim_dataset * ,             /* 06 Jun 2002 */
+                          int *, int * , int *, int * , int *, int * ) ;
+extern void MRI_autobbox( MRI_IMAGE * ,
+                          int *, int * , int *, int * , int *, int * ) ;
+
 extern int THD_mask_fillin_completely( int,int,int, byte *, int ) ; /* 19 Apr 2002 */
 extern int THD_mask_fillin_once      ( int,int,int, byte *, int ) ;
 
@@ -3348,11 +3353,14 @@ extern void quint_shift( int , float , float *) ;
 typedef struct {
    MRI_IMARR * fitim ;    /*< Regression basis images */
    double * chol_fitim ;  /*< Choleski decomposition of the normal equations */
+   int xa,xb , ya,yb , za,zb ; /* trim box */
 } MRI_3dalign_basis ;
 
 extern void mri_3dalign_edging( int , int , int ) ;
 extern void mri_3dalign_edging_default( int , int , int ) ;
 extern void mri_3dalign_force_edging( int ) ;
+extern void mri_3dalign_wtrimming( int ) ;
+extern void mri_3dalign_wproccing( int ) ;
 
 extern void mri_3dalign_params( int , float , float , float ,
                                 int , int , int , int ) ;

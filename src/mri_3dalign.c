@@ -25,6 +25,36 @@ static int max_iter = MAX_ITER ;
 static int ax1 = 0 , ax2 = 1 , ax3 = 2 ;
 static int dcode = -1 ;
 
+static int wproc = 0 ;   /* 06 Jun 2002: process imwt? */
+static int wtrim = 0 ;   /* 06 Jun 2002: trimming stuff */
+
+#define DOTRIM (basis->xa >= 0)
+
+#define IMTRIM(qqq) mri_cut_3D( qqq , basis->xa,basis->xb ,  \
+                                      basis->ya,basis->yb ,  \
+                                      basis->za,basis->zb  )
+
+/*! Macro to replace an image with a trimmed copy, if needed. */
+
+#define TRIM(imq)                      \
+  do{ if( DOTRIM ){                    \
+        MRI_IMAGE *qim = IMTRIM(imq) ; \
+        mri_free(imq) ; imq = qim ;    \
+  } } while(0)
+
+/*! Macro to print out a volume range in verbose mode. */
+
+#define VRANG(str,imq)                            \
+ do{ if(verbose){                                 \
+       double tt=mri_max(imq), bb=mri_min(imq) ;  \
+       fprintf(stderr,"  %s range: min=%g  max=%g\n",str,bb,tt); } } while(0)
+
+/*--------------------------------------------------------------------*/
+
+void mri_3dalign_wtrimming( int ttt ){ wtrim = ttt; } /* 06 Jun 2002 */
+
+void mri_3dalign_wproccing( int ttt ){ wproc = ttt; } /* 06 Jun 2002 */
+
 /*--------------------------------------------------------------------*/
 
 void mri_3dalign_params( int maxite ,
@@ -149,192 +179,91 @@ void mri_3dalign_edging_default( int nx , int ny , int nz )
            routine MRI_3dalign_cleanup.
 ----------------------------------------------------------------------*/
 
-MRI_3dalign_basis * mri_3dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
+MRI_3dalign_basis * mri_3dalign_setup( MRI_IMAGE *imbase , MRI_IMAGE *imwt )
 {
-   MRI_IMAGE  *bim , *pim , *mim , *dim , *imww ;
+   MRI_IMAGE *bim , *pim , *mim , *dim , *imww , *cim ;
    float *dar , *par , *mar ;
    float delta , dx,dy,dz ;
    int ii ;
    MRI_IMARR * fitim  =NULL;
    double * chol_fitim=NULL ;
-   MRI_3dalign_basis * bout = NULL ;
+   MRI_3dalign_basis *basis = NULL ;
 
 ENTRY("mri_3dalign_setup") ;
 
-   if( ! MRI_IS_3D(imbase) ){
+   if( !MRI_IS_3D(imbase) ){
       fprintf(stderr,"\n*** mri_3dalign_setup: cannot use nD images!\a\n") ;
       RETURN( NULL );
    }
 
-   /*-- base image --*/
+   /*--- create output struct ---*/
 
-   bim = mri_to_float( imbase ) ;
-   INIT_IMARR ( fitim ) ;
-   ADDTO_IMARR( fitim , bim ) ;
+   basis = (MRI_3dalign_basis *) malloc( sizeof(MRI_3dalign_basis) ) ;
 
-   dx = fabs(bim->dx) ; if( dx == 0.0 ) dx = 1.0 ;
-   dy = fabs(bim->dy) ; if( dy == 0.0 ) dy = 1.0 ;
-   dz = fabs(bim->dz) ; if( dz == 0.0 ) dz = 1.0 ;
+   /*-- local copy of input image --*/
 
-   THD_rota_method( regmode ) ;
+   cim = mri_to_float( imbase ) ;
 
-#ifndef MEGA
-#define MEGA (1024*1024)
-#endif
-   if( verbose ) fprintf(stderr ,
-                         "  mri_3dalign: using %d Mbytes of workspace\n" ,
-                         10 * bim->nvox * bim->pixel_size / MEGA ) ;
+   dx = fabs(cim->dx) ; if( dx == 0.0 ) dx = 1.0 ;
+   dy = fabs(cim->dy) ; if( dy == 0.0 ) dy = 1.0 ;
+   dz = fabs(cim->dz) ; if( dz == 0.0 ) dz = 1.0 ;
 
-   /*-- d/d(th1) image [angles in degrees here] --*/
-
-   if( verbose ) fprintf(stderr,"  initializing d/d(th1)\n") ;
-
-   delta = 2.0*delfac/( bim->nx + bim->ny + bim->nz ) ;
-
-   pim = THD_rota3D( bim , ax1,delta , ax2,0.0 , ax3,0.0 ,
-                     dcode , 0.0 , 0.0 , 0.0 ) ;
-
-   mim = THD_rota3D( bim , ax1,-delta , ax2,0.0 , ax3,0.0 ,
-                     dcode , 0.0 , 0.0 , 0.0 ) ;
-
-   dim   = mri_new_conforming( bim , MRI_float ) ;
-   delta = 0.5 * DFAC / delta ;
-   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
-   for( ii=0 ; ii < dim->nvox ; ii++ )
-      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
-   ADDTO_IMARR( fitim , dim ) ; mri_free(pim) ; mri_free(mim) ;
-
-   /*-- d/d(th2) image --*/
-
-   if( verbose ) fprintf(stderr,"  initializing d/d(th2)\n") ;
-
-   delta = 2.0*delfac/( bim->nx + bim->ny + bim->nz ) ;
-
-   pim = THD_rota3D( bim , ax1,0.0 , ax2,delta , ax3,0.0 ,
-                     dcode , 0.0 , 0.0 , 0.0 ) ;
-
-   mim = THD_rota3D( bim , ax1,0.0 , ax2,-delta , ax3,0.0 ,
-                     dcode , 0.0 , 0.0 , 0.0 ) ;
-
-   dim   = mri_new_conforming( bim , MRI_float ) ;
-   delta = 0.5 * DFAC / delta ;
-   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
-   for( ii=0 ; ii < dim->nvox ; ii++ )
-      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
-   ADDTO_IMARR( fitim , dim ) ; mri_free(pim) ; mri_free(mim) ;
-
-   /*-- d/d(th3) image --*/
-
-   if( verbose ) fprintf(stderr,"  initializing d/d(th3)\n") ;
-
-   delta = 2.0*delfac/( bim->nx + bim->ny + bim->nz ) ;
-
-   pim = THD_rota3D( bim , ax1,0.0 , ax2,0.0 , ax3,delta ,
-                     dcode , 0.0 , 0.0 , 0.0 ) ;
-
-   mim = THD_rota3D( bim , ax1,0.0 , ax2,0.0 , ax3,-delta ,
-                     dcode , 0.0 , 0.0 , 0.0 ) ;
-
-   dim   = mri_new_conforming( bim , MRI_float ) ;
-   delta = 0.5 * DFAC / delta ;
-   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
-   for( ii=0 ; ii < dim->nvox ; ii++ )
-      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
-   ADDTO_IMARR( fitim , dim ) ; mri_free(pim) ; mri_free(mim) ;
-
-   /*-- d/dx image --*/
-
-   if( verbose ) fprintf(stderr,"  initializing d/dx\n") ;
-
-   delta = delfac * dx ;
-
-   pim = THD_rota3D( bim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
-                     dcode , delta , 0.0 , 0.0 ) ;
-
-   mim = THD_rota3D( bim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
-                     dcode , -delta , 0.0 , 0.0 ) ;
-
-   dim   = mri_new_conforming( bim , MRI_float ) ;
-   delta = 0.5 / delta ;
-   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
-   for( ii=0 ; ii < dim->nvox ; ii++ )
-      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
-   ADDTO_IMARR( fitim , dim ) ; mri_free(pim) ; mri_free(mim) ;
-
-   /*-- d/dy image --*/
-
-   if( verbose ) fprintf(stderr,"  initializing d/dy\n") ;
-
-   delta = delfac * dy ;
-
-   pim = THD_rota3D( bim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
-                     dcode , 0.0 , delta , 0.0 ) ;
-
-   mim = THD_rota3D( bim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
-                     dcode , 0.0 , -delta , 0.0 ) ;
-
-   dim   = mri_new_conforming( bim , MRI_float ) ;
-   delta = 0.5 / delta ;
-   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
-   for( ii=0 ; ii < dim->nvox ; ii++ )
-      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
-   ADDTO_IMARR( fitim , dim ) ; mri_free(pim) ; mri_free(mim) ;
-
-   /*-- d/dz image --*/
-
-   if( verbose ) fprintf(stderr,"  initializing d/dz\n") ;
-
-   delta = delfac * dz ;
-
-   pim = THD_rota3D( bim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
-                     dcode , 0.0 , 0.0 , delta ) ;
-
-   mim = THD_rota3D( bim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
-                     dcode , 0.0 , 0.0 , -delta ) ;
-
-   dim   = mri_new_conforming( bim , MRI_float ) ;
-   delta = 0.5 / delta ;
-   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
-   for( ii=0 ; ii < dim->nvox ; ii++ )
-      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
-   ADDTO_IMARR( fitim , dim ) ; mri_free(pim) ; mri_free(mim) ;
-
-   /*-- get the weighting image --*/
+   /*--- get the weighting image ---*/
 
    if( imwt != NULL &&
-       (imwt->nx != bim->nx || imwt->ny != bim->ny || imwt->nz != bim->nz) ){
+       (imwt->nx != cim->nx || imwt->ny != cim->ny || imwt->nz != cim->nz) ){
 
       fprintf(stderr,"*** WARNING: in mri_3dalign_setup, weight image mismatch!\n") ;
       imwt = NULL ;
    }
 
-   /* make weight up from the base */
+   /* make weight up from the base if it isn't supplied */
 
    if( imwt == NULL ){
-      int nx=bim->nx , ny=bim->ny , nz=bim->nz , nxy = nx*ny ;
-      int ii , jj , kk ;
-      float * f ;
+      int nx=cim->nx , ny=cim->ny , nz=cim->nz , nxy = nx*ny , nxyz=nxy*nz ;
+      int ii ;
+      float * f , clip ;
 
-      imww = mri_to_float( bim ) ; f = MRI_FLOAT_PTR(imww) ;
+      /* copy base image */
 
-      if( verbose ) fprintf(stderr,"  initializing weight\n") ;
+      imww = mri_to_float( cim ) ; f = MRI_FLOAT_PTR(imww) ;
 
-      for( ii=0 ; ii < nx*ny*nz ; ii++ ) f[ii] = fabs(f[ii]) ;  /* 16 Nov 1998 */
+      if( verbose ) fprintf(stderr,"  initializing weight") ;
 
-#if 1
+      for( ii=0 ; ii < nxyz ; ii++ ) f[ii] = fabs(f[ii]) ;  /* 16 Nov 1998 */
+
       EDIT_blur_volume_3d( nx,ny,nz , dx,dy,dz ,
                            MRI_float , f , 3.0*dx , 3.0*dy , 3.0*dz ) ;
-#endif
+
+      if( verbose) fprintf(stderr,":") ;
+
+      clip  = 0.01 * mri_max(imww) ;
+      for( ii=0 ; ii < nxyz ; ii++ ) if( f[ii] < clip ) f[ii] = 0.0 ;
 
    } else {
-      imww = mri_to_float( imwt ) ;  /* just copy it */
+      imww = mri_to_float( imwt ) ;  /* just copy input weight image */
+
+      if( wproc ){  /* 06 Jun 2002: process input weight */
+        int nx=cim->nx , ny=cim->ny , nz=cim->nz , nxy = nx*ny , nxyz=nxy*nz ;
+        int ii ;
+        float * f , clip ;
+
+        if( verbose ) fprintf(stderr,"  processing weight") ;
+        f = MRI_FLOAT_PTR(imww) ;
+        for( ii=0 ; ii < nxyz ; ii++ ) f[ii] = fabs(f[ii]) ;  /* 16 Nov 1998 */
+        EDIT_blur_volume_3d( nx,ny,nz , dx,dy,dz ,
+                             MRI_float , f , 3.0*dx , 3.0*dy , 3.0*dz ) ;
+        if( verbose) fprintf(stderr,":") ;
+        clip  = 0.01 * mri_max(imww) ;
+        for( ii=0 ; ii < nxyz ; ii++ ) if( f[ii] < clip ) f[ii] = 0.0 ;
+      }
    }
 
    /*-- 10 Dec 2000: user-controlled fade out around the edges --*/
 
    if( imwt == NULL || force_edging ){
      int ff , ii,jj,kk ;
-     int nx=bim->nx , ny=bim->ny , nz=bim->nz , nxy = nx*ny ;
+     int nx=cim->nx , ny=cim->ny , nz=cim->nz , nxy = nx*ny ;
      float *f = MRI_FLOAT_PTR(imww) ;
 
      xfade = xedge ; yfade = yedge ; zfade = zedge ;  /* static variables */
@@ -360,20 +289,212 @@ ENTRY("mri_3dalign_setup") ;
                FF(ii,ff,kk) = FF(ii,ny-1-ff,kk) = 0.0 ;
    }
 
+   /*-- 06 Jun 2002: compute wtrimmed volume size --*/
+
+   basis->xa = -1 ;  /* flag for no wtrim */
+
+   if( wtrim ){
+     int xa=-1,xb , ya,yb , za,zb ;
+     MRI_autobbox( imww , &xa,&xb , &ya,&yb , &za,&zb ) ;
+     if( xa >= 0 ){
+       float nxyz = imww->nx * imww->ny * imww->nz ;
+       float nttt = (xb-xa+1)*(yb-ya+1)*(zb-za+1) ;
+       float trat = 100.0 * nttt / nxyz ;
+
+       if( verbose )
+         fprintf(stderr,"  wtrim: [%d..%d]x[%d..%d]x[%d..%d]"
+                        " = %d voxels kept, out of %d (%.1f%%)\n" ,
+                 xa,xb , ya,yb , za,zb , (int)nttt , (int)nxyz , trat ) ;
+
+       /* keep trimming if saves at least 10% per volume */
+
+       if( trat < 90.0 ){
+         basis->xa = xa ; basis->xb = xb ;
+         basis->ya = ya ; basis->yb = yb ;
+         basis->za = za ; basis->zb = yb ;
+
+         TRIM(imww) ;
+       } else if( verbose ){
+         fprintf(stderr,"  skipping use of trim - too little savings\n");
+       }
+     }
+   }
+
+   VRANG("weight",imww) ;
+
+   /*-- base image --*/
+
+   INIT_IMARR ( fitim ) ;            /* array of fitting images */
+
+   if( DOTRIM ) bim = IMTRIM(cim) ;  /* a trimmed duplicate */
+   else         bim = cim ;          /* base image */
+   ADDTO_IMARR( fitim , bim ) ;
+
+   THD_rota_method( regmode ) ;
+
+#ifndef MEGA
+#define MEGA (1024*1024)
+#endif
+   if( verbose ) fprintf(stderr ,
+                         "  mri_3dalign: using %d Mbytes of workspace\n" ,
+                         10 * bim->nvox * bim->pixel_size / MEGA ) ;
+
+   /*-- d/d(th1) image [angles in degrees here] --*/
+
+   if( verbose ) fprintf(stderr,"  initializing d/d(th1)") ;
+
+   delta = 2.0*delfac/( cim->nx + cim->ny + cim->nz ) ;
+
+   pim = THD_rota3D( cim , ax1,delta , ax2,0.0 , ax3,0.0 ,
+                     dcode , 0.0 , 0.0 , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   mim = THD_rota3D( cim , ax1,-delta , ax2,0.0 , ax3,0.0 ,
+                     dcode , 0.0 , 0.0 , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   dim   = mri_new_conforming( cim , MRI_float ) ;
+   delta = 0.5 * DFAC / delta ;
+   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
+   for( ii=0 ; ii < dim->nvox ; ii++ )
+      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
+   mri_free(pim) ; mri_free(mim) ;
+   TRIM( dim ) ; ADDTO_IMARR( fitim , dim ) ;
+   VRANG("d/d(th1)",dim) ;
+
+   /*-- d/d(th2) image --*/
+
+   if( verbose ) fprintf(stderr,"  initializing d/d(th2)") ;
+
+   delta = 2.0*delfac/( cim->nx + cim->ny + cim->nz ) ;
+
+   pim = THD_rota3D( cim , ax1,0.0 , ax2,delta , ax3,0.0 ,
+                     dcode , 0.0 , 0.0 , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   mim = THD_rota3D( cim , ax1,0.0 , ax2,-delta , ax3,0.0 ,
+                     dcode , 0.0 , 0.0 , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   dim   = mri_new_conforming( cim , MRI_float ) ;
+   delta = 0.5 * DFAC / delta ;
+   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
+   for( ii=0 ; ii < dim->nvox ; ii++ )
+      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
+   mri_free(pim) ; mri_free(mim) ;
+   TRIM( dim ) ; ADDTO_IMARR( fitim , dim ) ;
+   VRANG("d/d(th2)",dim) ;
+
+   /*-- d/d(th3) image --*/
+
+   if( verbose ) fprintf(stderr,"  initializing d/d(th3)") ;
+
+   delta = 2.0*delfac/( cim->nx + cim->ny + cim->nz ) ;
+
+   pim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,delta ,
+                     dcode , 0.0 , 0.0 , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   mim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,-delta ,
+                     dcode , 0.0 , 0.0 , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   dim   = mri_new_conforming( cim , MRI_float ) ;
+   delta = 0.5 * DFAC / delta ;
+   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
+   for( ii=0 ; ii < dim->nvox ; ii++ )
+      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
+   mri_free(pim) ; mri_free(mim) ;
+   TRIM( dim ) ; ADDTO_IMARR( fitim , dim ) ;
+   VRANG("d/d(th3)",dim) ;
+
+   /*-- d/dx image --*/
+
+   if( verbose ) fprintf(stderr,"  initializing d/dx") ;
+
+   delta = delfac * dx ;
+
+   pim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
+                     dcode , delta , 0.0 , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   mim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
+                     dcode , -delta , 0.0 , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   dim   = mri_new_conforming( cim , MRI_float ) ;
+   delta = 0.5 / delta ;
+   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
+   for( ii=0 ; ii < dim->nvox ; ii++ )
+      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
+   mri_free(pim) ; mri_free(mim) ;
+   TRIM( dim ) ; ADDTO_IMARR( fitim , dim ) ;
+   VRANG("d/dx",dim) ;
+
+   /*-- d/dy image --*/
+
+   if( verbose ) fprintf(stderr,"  initializing d/dy") ;
+
+   delta = delfac * dy ;
+
+   pim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
+                     dcode , 0.0 , delta , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   mim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
+                     dcode , 0.0 , -delta , 0.0 ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   dim   = mri_new_conforming( cim , MRI_float ) ;
+   delta = 0.5 / delta ;
+   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
+   for( ii=0 ; ii < dim->nvox ; ii++ )
+      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
+   mri_free(pim) ; mri_free(mim) ;
+   TRIM( dim ) ; ADDTO_IMARR( fitim , dim ) ;
+   VRANG("d/dy",dim) ;
+
+   /*-- d/dz image --*/
+
+   if( verbose ) fprintf(stderr,"  initializing d/dz") ;
+
+   delta = delfac * dz ;
+
+   pim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
+                     dcode , 0.0 , 0.0 , delta ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   mim = THD_rota3D( cim , ax1,0.0 , ax2,0.0 , ax3,0.0 ,
+                     dcode , 0.0 , 0.0 , -delta ) ;
+   if( verbose) fprintf(stderr,":") ;
+
+   dim   = mri_new_conforming( cim , MRI_float ) ;
+   delta = 0.5 / delta ;
+   dar   = MRI_FLOAT_PTR(dim) ; par = MRI_FLOAT_PTR(pim) ; mar = MRI_FLOAT_PTR(mim) ;
+   for( ii=0 ; ii < dim->nvox ; ii++ )
+      dar[ii] = delta * ( mar[ii] - par[ii] ) ;
+   mri_free(pim) ; mri_free(mim) ;
+   TRIM( dim ) ; ADDTO_IMARR( fitim , dim ) ;
+   VRANG("d/dz",dim) ;
+
+   /*-- done with input copy, unless it is same as base for lsqfit --*/
+
+   if( cim != bim ) mri_free(cim) ;
+
    /*-- initialize linear least squares --*/
 
    if( verbose ) fprintf(stderr,"  initializing least squares\n") ;
 
    chol_fitim = mri_startup_lsqfit( fitim , imww ) ;
+
    mri_free(imww) ;
 
    /*-- save stuff --*/
 
-   bout = (MRI_3dalign_basis *) malloc( sizeof(MRI_3dalign_basis) ) ;
-   bout->fitim      = fitim ;
-   bout->chol_fitim = chol_fitim ;
+   basis->fitim      = fitim ;
+   basis->chol_fitim = chol_fitim ;
 
-   RETURN( bout );
+   RETURN( basis );
 }
 
 /*-----------------------------------------------------------------------
@@ -401,6 +522,8 @@ ENTRY("mri_3dalign_one") ;
    fitim      = basis->fitim ;
    chol_fitim = basis->chol_fitim ;
 
+   /* use original image if possible */
+
    if( im->kind == MRI_float ) fim = im ;
    else                        fim = mri_to_float( im ) ;
 
@@ -422,7 +545,16 @@ ENTRY("mri_3dalign_one") ;
 
       good = 1 ;
    } else {
-      fit = mri_delayed_lsqfit( fim , fitim , chol_fitim ) ;  /* L2 fit input image */
+
+      /* 06 Jun 2002: do initial fit with trimmed image, if ordered */
+
+      if( DOTRIM ){
+        tim = IMTRIM(fim) ;
+        fit = mri_delayed_lsqfit( tim , fitim , chol_fitim ) ;
+        mri_free( tim ) ;
+      } else {                                /* L2 fit input image */
+        fit = mri_delayed_lsqfit( fim , fitim , chol_fitim ) ;
+      }
 
       good = ( 10.0*fabs(fit[4]) > dxt        || 10.0*fabs(fit[5]) > dyt        ||
                10.0*fabs(fit[6]) > dzt        || 10.0*fabs(fit[1]) > phi_thresh ||
@@ -440,6 +572,8 @@ ENTRY("mri_3dalign_one") ;
       tim = THD_rota3D( fim ,
                         ax1,fit[1]*DFAC , ax2,fit[2]*DFAC , ax3,fit[3]*DFAC ,
                         dcode , fit[4],fit[5],fit[6] ) ;
+
+      TRIM(tim) ; /* 06 Jun 2002: trim it if ordered to */
 
       dfit = mri_delayed_lsqfit( tim , fitim , chol_fitim ) ; /* delta angle/shift */
       mri_free( tim ) ;
