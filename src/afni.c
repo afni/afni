@@ -2521,6 +2521,7 @@ ENTRY("AFNI_read_images") ;
    dset->markers       = NULL ;
    dset->warp          = NULL ;
    dset->vox_warp      = NULL ;
+   dset->self_warp     = NULL ;  /* 26 Aug 2002 */
    dset->warp_parent   = NULL ;
    dset->anat_parent   = NULL ;
    dset->stats         = NULL ;
@@ -9006,6 +9007,7 @@ STATUS("init new_dset") ;
 
    new_dset->warp      = warp_total ;                          /* warp info */
    new_dset->vox_warp  = NULL ;
+   new_dset->self_warp = NULL ;    /* 26 Aug 2002 */
 
    new_dset->warp_parent = adam_dset ;
    MCW_strncpy( new_dset->warp_parent_name ,

@@ -335,9 +335,9 @@ typedef struct MRI_IMAGE {
 /*! Array of MRI_IMAGE pointers. */
 
 typedef struct MRI_IMARR {
-      int num ;              /*< Number of actual MRI_IMAGE here */
-      int nall ;             /*< Size of imarr array currently allocated */
-      MRI_IMAGE ** imarr ;   /*< Array of MRI_IMAGE pointers */
+      int num ;              /*!< Number of actual MRI_IMAGE here */
+      int nall ;             /*!< Size of imarr array currently allocated */
+      MRI_IMAGE ** imarr ;   /*!< Array of MRI_IMAGE pointers */
 } MRI_IMARR ;
 
 /*! Get the nn-th image from the image array "name". */
@@ -525,6 +525,7 @@ static int MRI_mm ;
 
 extern MRI_IMARR * mri_read_analyze75( char * ) ;  /* 05 Feb 2001 */
 extern MRI_IMARR * mri_read_siemens( char * ) ;    /* 12 Mar 2001 */
+extern MRI_IMARR * mri_read3D_analyze75( char * ); /* 26 Aug 2002 */
 
 extern void mri_add_name( char * , MRI_IMAGE * ) ;
 

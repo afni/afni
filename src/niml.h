@@ -269,6 +269,22 @@ typedef NI_stream_type *NI_stream ;
 #define NI_LSB_FIRST    1
 #define NI_MSB_FIRST    2
 
+/*****---------- Hash table stuff [26 Aug 2002] ----------*****/
+
+typedef struct {
+  int     len , ntot ;
+  void *** vtab ;             /* pointers */
+  char *** ctab ;             /* digests */
+  int    * ntab ;             /* counts */
+} Htable ;
+
+extern Htable * new_Htable( int ) ;
+extern void     destroy_Htable( Htable * ) ;
+extern void     addto_Htable( char *, void *, Htable * ) ;
+extern void *   findin_Htable( char *, Htable * ) ;
+extern void     removefrom_Htable( char *, Htable * ) ;
+extern void     profile_Htable( char *, Htable * ) ;
+
 /*-------------- prototypes ---------------*/
 
 extern void * NI_malloc( size_t ) ;

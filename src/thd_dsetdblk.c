@@ -437,7 +437,8 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    atr_int = THD_find_int_atr( blk , ATRNAME_WARP_TYPE ) ;
 
-   dset->vox_warp = NULL ;  /* 02 Nov 1996 */
+   dset->vox_warp  = NULL ;  /* 02 Nov 1996 */
+   dset->self_warp = NULL ;  /* 26 Aug 2002 */
 
    if( atr_int == NULL ){  /* no warp */
       dset->warp = NULL ;

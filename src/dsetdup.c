@@ -293,6 +293,8 @@ THD_3dim_dataset * duplicate_dataset( THD_3dim_dataset * parent )
    ADDTO_KILL( new_dset->kl , new_dset->wod_daxes ) ;
    ADDTO_KILL( new_dset->kl , new_dset->dblk ) ;
 
+   new_dset->self_warp = NULL ;  /* 26 Aug 2002 */
+
    if( parent->stats != NULL ){
       new_dset->stats         = myXtNew( THD_statistics ) ;  /* copy statistics */
       *(new_dset->stats)      = *(parent->stats) ;         /* of parent */

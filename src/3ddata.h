@@ -1983,6 +1983,10 @@ typedef struct THD_3dim_dataset {
 
       int su_num ;                /*!< Number of surfaces */
 
+   /* 26 Aug 2002: self warp (for w-o-d) */
+
+      THD_warp *self_warp ;
+
 } THD_3dim_dataset ;
 
 /*! Determine if dataset ds has SUMA surface data attached. */
