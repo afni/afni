@@ -3874,3 +3874,8 @@
  * Removed DEBUGTHISFILE macro from all places that used it.
  * Modified plug_realtime.c to deal with case when more channels than
      controllers are in use.
+
+06 Aug 2002
+ * Modified afni_driver.c to allow "iconify" option on OPEN_WINDOW commands.
+ * Modified afni_driver.c to return controller index only if the input
+     string is only 1 character long or the 2nd character is a '.'.

@@ -125,7 +125,7 @@ int AFNI_controller_code_to_index( char *code )
    int ic ;
 ENTRY("AFNI_controller_code_to_index") ;
    if( code    == NULL || *code   == '\0' ) RETURN(-1) ;
-   if( code[1] != '\0' && code[1] != '.'  ) RETURN(-1) ; /* 06 Aug 2002 */
+   if( code[1] != '\0' && code[1] != '.' && code[1] != ' ' ) RETURN(-1) ;
    ic = *code - 'A' ;
    if( ic < 0 || ic >= MAX_CONTROLLERS ) ic = -1 ;
    RETURN(ic) ;
@@ -418,6 +418,15 @@ ENTRY("AFNI_drive_open_window") ;
          }
       }
 
+      /* iconify [06 Aug 2002] */
+
+      cpt = strstr(cmd,"iconi") ;
+      if( cpt != NULL ){
+        XIconifyWindow( XtDisplay(isq->wtop) ,
+                         XtWindow(isq->wtop)  ,
+                         isq->dc->screen_num   ) ;
+      }
+
    /*--- opened a graph viewer: maybe modify it ---*/
 
    } else if ( gra != NULL ){
@@ -447,6 +456,15 @@ ENTRY("AFNI_drive_open_window") ;
             drive_MCW_grapher( gra , graDR_setpinnum , (XtPointer) pn ) ;
       }
 
+      /* iconify [06 Aug 2002] */
+
+      cpt = strstr(cmd,"iconi") ;
+      if( cpt != NULL ){
+        XIconifyWindow( XtDisplay(gra->fdw_graph) ,
+                         XtWindow(gra->fdw_graph)  ,
+                         gra->dc->screen_num   ) ;
+      }
+
 
    /*--- opened the controller itself: maybe move it ---*/
 
@@ -456,6 +474,15 @@ ENTRY("AFNI_drive_open_window") ;
 
       if( gxx >= 0 && gyy >= 0 )
          XtVaSetValues( im3d->vwid->top_shell, XmNx, gxx, XmNy, gyy, NULL ) ;
+
+      /* iconify [06 Aug 2002] */
+
+      cpt = strstr(cmd,"iconi") ;
+      if( cpt != NULL ){
+        XIconifyWindow( XtDisplay(im3d->vwid->top_shell) ,
+                         XtWindow(im3d->vwid->top_shell)  ,
+                         im3d->dc->screen_num   ) ;
+      }
 
    }
 
