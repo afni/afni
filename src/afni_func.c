@@ -2868,7 +2868,7 @@ ENTRY("AFNI_rescan_CB") ;
       (void) MCW_popup_message( w , str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
 
-#ifndef NEW_RESCAN_SESSION
+#if 1
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
       qq3d = GLOBAL_library.controllers[cc] ;
       if( IM3D_OPEN(qq3d) ) AFNI_process_dsetchange( qq3d ) ;
@@ -2903,7 +2903,7 @@ ENTRY("AFNI_rescan_all_CB") ;
                                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
 
-#ifndef NEW_RESCAN_SESSION
+#if 1
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
       im3d = GLOBAL_library.controllers[cc] ;
       if( IM3D_OPEN(im3d) ) AFNI_process_dsetchange( im3d ) ;
@@ -3231,6 +3231,15 @@ STATUS(old_ss->sessname) ;
      old_ss->num_func ++ ;  nf_new++ ;
    }
 
+   /*-- 15 Jan 2003: purge all datasets from memory (for Hauke Heekeren) --*/
+
+   for( ii=0 ; ii < old_ss->num_anat ; ii++ )
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+       if( old_ss->anat[ii][vv] != NULL ) DSET_unload(old_ss->anat[ii][vv]);
+   for( ii=0 ; ii < old_ss->num_func ; ii++ )
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+       if( old_ss->func[ii][vv] != NULL ) DSET_unload(old_ss->func[ii][vv]);
+
    /* assign the warp and anatomy parent pointers;
       then, make any datasets that don't exist but logically
       descend from the warp and anatomy parents just assigned */
@@ -3248,11 +3257,6 @@ STATUS(old_ss->sessname) ;
      destroy_Htable( new_ss->warptable ) ;
      new_ss->warptable = NULL ;
    }
-
-   /*--- Make sure that the dataset choosers are closed.
-         Since these are just instances of the generic strlist chooser,
-         and we can't tell what is being chosen just now, we'll just
-         forcibly close the strlist chooser (if we got new datasets). ---*/
 
    RETURN(na_new+nf_new) ;
 }

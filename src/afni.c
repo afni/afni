@@ -1609,7 +1609,7 @@ ENTRY("AFNI_startup_timeout_CB") ;
      fprintf(stderr,"*** WARNING: -np was given, but NIML is turned off.\n") ;
    }
 
-   /* 13 Jan 2002: Check if LessTif was used for this AFNI */
+   /* 13 Jan 2003: Check if LessTif was used for this AFNI */
 
 #ifdef LESSTIF_VERSION
     (void) MCW_popup_message( MAIN_im3d->vwid->picture ,
