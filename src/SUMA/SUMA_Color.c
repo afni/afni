@@ -1087,7 +1087,7 @@ The larger the number of colors in the linear color map, the close the
 approximation to the non-linear map. 
    \param SM (SUMA_COLOR_MAP*) a non-linear colormap (i.e. SM->frac != NULL)
    \param N_Lin (int) number of colors to use in the linear version of the map
-                      if N_Lin = -1, N_Lin is set to 1000
+                      if N_Lin = -1, N_Lin is set to 1024
    \return LSM (SUMA_COLOR_MAP*) linear version of the colormap
                                  NULL if SM is already linear 
                                  NULL if SM is NULL   
@@ -1112,7 +1112,7 @@ SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin)
       SUMA_RETURN(LSM);
    }
    
-   if (N_lin < 0) N_lin = 20;     /* set default linear map length */
+   if (N_lin < 0) N_lin = 2048;     /* set default linear map length */
    
    if (!N_lin) {
       SUMA_S_Err("N_lin = 0");
@@ -1581,15 +1581,6 @@ int main (int argc,char *argv[])
 }   
 #endif
 
-#ifdef STOPPED_HERE
-
-SEE afni_setup.c file for reading in colormaps from files:
-color definitions are read in starting at line 93 
-      if( strcmp(str,"***COLORS") == 0 ){
-palette definitions are read in starting at line 146
-      if( strcmp(str,"***PALETTES") == 0 ){  /* loop, looking for palettes */
-
-#endif
 
 SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR_MAP *ColMap, SUMA_SCALE_TO_MAP_OPT *Opt, SUMA_COLOR_SCALED_VECT * SV)
 {
@@ -1622,10 +1613,23 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR
    
    /* find the values to be masked out */
    if (Opt->ApplyMask){
-      for (i=0; i < N_V; ++i) {
-         if (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]) {
-            SV->isMasked[i] = YUP;
+      if (Opt->MaskZero) {
+         /* mask zeros and values in range */
+         for (i=0; i < N_V; ++i) {
+            if (!V[i] || (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]) ) SV->isMasked[i] = YUP;
          } 
+      } else {
+         /* don't mask zeros, just range */
+         for (i=0; i < N_V; ++i) {
+            if (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]) SV->isMasked[i] = YUP;
+         } 
+      }
+   } else {
+      if (Opt->MaskZero) {
+         /* mask zeros */
+         for (i=0; i < N_V; ++i) {
+            if (!V[i]) SV->isMasked[i] = YUP;
+         }
       }
    }
    
@@ -1661,6 +1665,23 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR
          SUMA_S_Warn ("Color map fractions are negative with Sgn flag = 1");
       }
       ColMap = SUMA_Linearize_Color_Map (ColMap, -1);
+      if (LocalHead) {
+         FILE *lincmap=NULL;
+         int ii = 0;
+         lincmap=fopen("./lincmap.1D", "w");
+         if (lincmap) {
+            SUMA_LH("Linearized map written to ./lincmap.1D");
+            /* use simple format to allow for easy read in matlab */
+            /* SUMA_Show_ColorMapVec (&ColMap, 1, lincmap, 2); */
+            for (ii=ColMap->N_Col-1; ii >=0; --ii) {
+               fprintf (lincmap, "%d\t%f\t%f\t%f\n", ii, ColMap->M[ii][0], ColMap->M[ii][1],ColMap->M[ii][2]);
+            }
+            fclose (lincmap); lincmap = NULL;
+         }else {
+            SUMA_SL_Err("Failed to write linearized colormap to file.\nProceeding...");
+         }
+      }
+      
    }else {
       SUMA_LH("NO Linearizing of colormap deemed necessary...");
       NewMap = NOPE;
@@ -1709,7 +1730,9 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR
                      Vscl = (V[i] - Vmin) / Vrange * ColMap->N_Col; /* used mxColindex instead of N_Col (wrong!) prior to Oct 22, 03 */
                      i0 = (int)(Vscl); 
                      if (i0 > mxColindex) i0 = mxColindex; 
-
+                     if (LocalHead) {
+                        fprintf(SUMA_STDERR,"%s: %f-->%f: Colmap index is %d\n", FuncName, V[i], Vscl, i0);
+                     }
                      if (ColMap->M[i0][0] >= 0) { /* good color */
                         SV->cM[i][0] = ColMap->M[i0][0];
                         SV->cM[i][1] = ColMap->M[i0][1];
@@ -1720,6 +1743,9 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI (float *V, int N_V, float range, SUMA_COLOR
                      }
                   } else {
                      SV->cM[i][0] = Opt->MaskColor[0]; SV->cM[i][1] = Opt->MaskColor[1]; SV->cM[i][2] = Opt->MaskColor[2]; 
+                  }
+                  if (LocalHead) {
+                        fprintf(SUMA_STDERR,"%s: %f-->[%f %f %f]\n", FuncName, V[i], SV->cM[i][0], SV->cM[i][1], SV->cM[i][2]);
                   }
                }
             } else { 
@@ -1853,13 +1879,26 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V, float Vmin, float Vmax, SUMA_CO
    
    /* find the values to be masked out */
    if (Opt->ApplyMask){
-      for (i=0; i < N_V; ++i) {
-         if (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]) {
-            SV->isMasked[i] = YUP;
-         } 
+      if (Opt->MaskZero) {
+         /* mask zeros and values in range */
+         for (i=0; i < N_V; ++i) {
+            if (!V[i] || (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1]))  SV->isMasked[i] = YUP;
+         }
+      } else {
+         /* don't mask zeros, just range */
+         for (i=0; i < N_V; ++i) {
+            if (V[i] >= Opt->MaskRange[0] && V[i] <= Opt->MaskRange[1])  SV->isMasked[i] = YUP;
+         }
+      }
+   }else {
+      if (Opt->MaskZero) {
+         /* mask zeros */
+         for (i=0; i < N_V; ++i) {
+            if (!V[i]) SV->isMasked[i] = YUP;
+         }
       }
    }
-
+   
    /* go through and clip values in V to those specified in the range */
    if (Opt->ApplyClip) {
       for (i=0; i < N_V; ++i) {
@@ -2126,7 +2165,7 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
    Opt->ClipRange[0] = Opt->ClipRange[1] = 0.0;
    Opt->BrightFact = 1.0;
    Opt->interpmode = SUMA_INTERP;
-   
+   Opt->MaskZero = NOPE;
    SUMA_RETURN (Opt);
 
 }
@@ -2581,7 +2620,14 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
                               "\t    -cmapdb below.\n");
       fprintf (SUMA_STDOUT,   "\t -cmapdb Palfile: read color maps from AFNI .pal file\n"
                               "\t    In addition to the default paned AFNI colormaps, you\n"
-                              "\t    can load colormaps from a .pal file.\n");                   
+                              "\t    can load colormaps from a .pal file.\n"
+                              "\t    To access maps in the Palfile you must use the -cmap option\n"
+                              "\t    with the label formed by the name of the palette, its sign\n"
+                              "\t    and the number of panes. For example, to following palette:\n"
+                              "\t    ***PALETTES deco [13]\n"
+                              "\t    should be accessed with -cmap deco_n13\n"
+                              "\t    ***PALETTES deco [13+]\n"
+                              "\t    should be accessed with -cmap deco_p13\n");                   
       fprintf (SUMA_STDOUT,   "\t -cmapfile Mapfile: read color map from Mapfile.\n"
                               "\t    Mapfile:1D formatted ascii file containing colormap.\n"
                               "\t            each row defines a color in one of two ways:\n"
@@ -2658,6 +2704,9 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
                               "\t    4.2 and 4.7). This mapping scheme is useful for ROI indexed type\n"
                               "\t    data. Negative data values are set to 0 and values >= N_col \n"
                               "\t    (the number of colors in the colormap) are set to N_col -1\n");
+      fprintf (SUMA_STDOUT,   "\t -msk_zero: (optional) values that are 0 will get masked no matter\n"
+                              "\t    what colormaps or mapping schemes you are using. \n"
+                              "\t    AFNI masks all zero values by default.\n");
       fprintf (SUMA_STDOUT,   "\t -msk msk0 msk1: (optinal, default is no masking) \n"
                               "\t    Values in vcol (BEFORE clipping is performed) \n");
       fprintf (SUMA_STDOUT,   "\t    between [msk0 msk1] are masked by the masking color.\n");
@@ -2676,7 +2725,8 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapcode)
       fprintf (SUMA_STDOUT,   "\t -showmap: (optional) print the colormap to the screen and quit.\n"
                               "\t    This option is for debugging and sanity checks.\n");
       fprintf (SUMA_STDOUT,   "\t -showdb: (optional) print the colors and colormaps of AFNI\n"
-                              "\t    along with any loaded from the file Palfile.\n\n");
+                              "\t    along with any loaded from the file Palfile.\n");
+      fprintf (SUMA_STDOUT,   "\t -ionot: (optional) not for the faint of heart\n\n");                        
       fprintf (SUMA_STDOUT,   "\t Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov \n"
                               "\t   July 31/02 Last Modified Nov 03 03\n\n");
    }
@@ -2692,7 +2742,7 @@ int main (int argc,char *argv[])
    float *V = NULL, *Vsort = NULL;
    float ClipRange[2], MaskColor[3], MaskRange[2], arange;
    SUMA_Boolean ApplyClip, ApplyMask, setMaskCol, ApplyPercClip, Vopt;
-   SUMA_Boolean iVopt, inopt, NoMaskCol, MapSpecified, alaAFNI;
+   SUMA_Boolean iVopt, inopt, NoMaskCol, MapSpecified, alaAFNI, MaskZero;
    SUMA_Boolean brk, frf, ShowMap, ShowMapdb;
    SUMA_COLOR_MAP *CM;
    SUMA_SCALE_TO_MAP_OPT * OptScl;
@@ -2728,6 +2778,7 @@ int main (int argc,char *argv[])
    ApplyPercClip = NOPE;
    ApplyMask = NOPE;
    NoMaskCol = NOPE;
+   MaskZero = NOPE;
    setMaskCol = NOPE;
    Vopt = NOPE;
    iVopt = NOPE;
@@ -2752,6 +2803,16 @@ int main (int argc,char *argv[])
       
       if (strcmp(argv[kar], "-verb") == 0) {
          LocalHead = YUP;
+         brk = YUP;
+      }
+      
+      if (strcmp(argv[kar], "-ionot") == 0) {
+         SUMAg_CF->InOut_Notify = YUP;
+         brk = YUP;
+      }
+      
+      if (strcmp(argv[kar], "-msk_zero") == 0) {
+         MaskZero = YUP;
          brk = YUP;
       }
       
@@ -2922,7 +2983,6 @@ int main (int argc,char *argv[])
       }
       
       if (!brk && (strcmp(argv[kar], "-nomsk_col") == 0)) {
-         kar ++;
          NoMaskCol = YUP;
          brk = YUP;
       }
@@ -3235,6 +3295,8 @@ int main (int argc,char *argv[])
    OptScl->interpmode = interpmode;
    
    OptScl->BrightFact = brfact;
+   
+   if (MaskZero) OptScl->MaskZero = YUP;
       
    /* map the values in V to the colormap */
       /* allocate space for the result */
@@ -3556,7 +3618,9 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overl
 
    function to turn color overlay planes into GL color array
    
+   --- usage prior to Fri Nov  7 15:58:57 EST 2003 ---
    ans = SUMA_Overlays_2_GLCOLAR4(Overlays, N_Overlays, glar_ColorList, N_Node, Back_Modfact, ShowBackground, ShowForeground);
+   
    
    \param Overlays (SUMA_OVERLAYS **) a pointer to the vector of overlay planes structure pointers
    \param N_Overlays (int) number of overlay plane structures
@@ -3567,9 +3631,15 @@ SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overl
    \param ShowForeground (SUMA_Boolean) flag for showing/hiding foreground colors
    \ret YUP/NOPE
    \sa SUMA_MixOverlays
+
+   --- current usage ---
+   ans = SUMA_Overlays_2_GLCOLAR4(SO, SV, glar_ColorList)
+   \param SO (SUMA_SurfaceObject *) surface structure with all the parameters listed in the old usage needed, and more
+   \param SV (SUMA_SurfaceViewer *) surface viewer structure with all the parameters listed in the old usage needed, and more
+   \param glar_ColorList (GLfloat *) pointer to vector (4*SO->N_Node long) that contains the node colors 
 */
 
-SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays, GLfloat *glcolar, int N_Node, float Back_Modfact, SUMA_Boolean ShowBackground, SUMA_Boolean ShowForeground)
+SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *SV, GLfloat *glcolar)
 {
    static char FuncName[]={"SUMA_Overlays_2_GLCOLAR4"};
    int ShowOverLays[SUMA_MAX_OVERLAYS], ShowOverLays_Back[SUMA_MAX_OVERLAYS]; 
@@ -3579,11 +3649,29 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
    SUMA_Boolean *isColored, *isColored_Fore, *isColored_Back;
    GLfloat *glcolar_Fore , *glcolar_Back;
    float avg_Back, avgfact;
+   SUMA_OVERLAYS ** Overlays;
+   int N_Overlays;  
+   int N_Node; 
+   float Back_Modfact;
+   SUMA_Boolean ShowBackground; 
+   SUMA_Boolean ShowForeground;
    SUMA_Boolean LocalHead = NOPE; /* local headline debugging messages */   
-
    
    if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
+   if (!SO || !SV || !glcolar) {
+      SUMA_SL_Err("Null input to SUMA_Overlays_2_GLCOLAR4!");
+      SUMA_RETURN(NOPE);
+   }
+   
+   /* old variable names */
+   Overlays = SO->Overlays;
+   N_Overlays = SO->N_Overlays; 
+   N_Node = SO->N_Node; 
+   Back_Modfact = SV->Back_Modfact;
+   ShowBackground = SV->ShowBackground; 
+   ShowForeground = SV->ShowForeground;
+   
    if (LocalHead)   { 
       fprintf (SUMA_STDOUT, "%s: Showing all overlay planes.\n", FuncName);
       SUMA_Show_ColorOverlayPlanes (Overlays, N_Overlays); } 
@@ -3705,6 +3793,16 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
             if (!SUMA_MixOverlays (Overlays, N_Overlays, ShowOverLays_sort, NshowOverlays, glcolar_Fore, N_Node, isColored_Fore, NOPE)) {
                fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_MixOverlays.\n", FuncName);
                SUMA_RETURN (NOPE);
+            }
+            if (SV->NumForeSmoothing > 0) { 
+               SUMA_SL_Err(   "Not implememented yet\n"
+                              "you need to create a version of SUMA_SmoothAttr_Neighb_Rec\n"
+                              "that would work with a multiplexed vector.\n"
+                              "node index is obtained from vector index...\n");
+                               
+               /* this next line does not work, at all 
+               glcolar_Fore = SUMA_SmoothAttr_Neighb_Rec (glcolar_Fore, SO->N_Node, glcolar_Fore, SO->FN, SV->NumForeSmoothing); */
+               
             }
       } else {
          ShowForeground = NOPE;
@@ -4581,8 +4679,7 @@ SUMA_Boolean SUMA_MixColors (SUMA_SurfaceViewer *sv)
             SUMA_RETURN(NOPE);
          }
          SO = (SUMA_SurfaceObject *)SUMAg_DOv[dov_id].OP;
-         if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, sv->ColList[i].glar_ColorList, SO->N_Node, \
-            sv->Back_Modfact, sv->ShowBackground, sv->ShowForeground)) {
+         if (!SUMA_Overlays_2_GLCOLAR4(SO, sv, sv->ColList[i].glar_ColorList)) {
             fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
             SUMA_RETURN(NOPE);
          }

@@ -1779,7 +1779,7 @@ void usage_SUMA_ConvertSurface ()
    
   {/*Usage*/
           printf ("\n\33[1mUsage: \33[0m ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> \n"
-                  "\t [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc] [-MNI_rai]\n");
+                  "\t [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc] [-MNI_rai/-MNI_lpi]\n");
           printf ("\t reads in a surface and writes it out in another format.\n");
           printf ("\t Note: This is a not a general utility conversion program. \n");
           printf ("\t Only fields pertinent to SUMA are preserved.\n");
@@ -1806,11 +1806,18 @@ void usage_SUMA_ConvertSurface ()
           printf ("\t    If you supply a surface volume, the coordinates of the input surface.\n");
           printf ("\t     are modified to SUMA's convention and aligned with SurfaceVolume.\n");
           printf ("\t     You must also specify a VolParam file for SureFit surfaces.\n");
-          printf ("\t -tlrc: Apply Talairach transform (which must be in talairach version of SurfaceVolume)\n");
-          printf ("\t     to the surface vertex coordinates. This option must be used with the -sv option.\n");
-          printf ("\t -MNI_rai: Apply Andreas Meyer Lindenberg's transform to turn AFNI tlrc coordinates (RAI)\n"
-                  "\t     into MNI coord space (in RAI not LPI).\n");
-          printf ("\t     this option must be used with the -tlrc option.\n"); 
+          printf ("\t -tlrc: Apply Talairach transform (which must be in talairach version of \n");
+          printf ("\t     SurfaceVolume) to the surface vertex coordinates. \n"
+                  "\t     This option must be used with the -sv option.\n");
+          printf ("\t -MNI_rai/-MNI_lpi: Apply Andreas Meyer Lindenberg's transform to turn \n"
+                  "\t     AFNI tlrc coordinates (RAI) into MNI coord space \n"
+                  "\t     in RAI (with -MNI_rai) or LPI (with -MNI_lpi)).\n"
+                  "\t     NOTE: -MNI_lpi option has not been tested yet (I have no data\n"
+                  "\t     to test it on. Verify alignment with AFNI and please report\n"
+                  "\t     any bugs.\n" );
+          printf ("\t     This option can be used without the -tlrc option.\n"
+                  "\t     But that assumes that surface nodes are already in\n"
+                  "\t     AFNI RAI tlrc coordinates .\n"); 
           printf ("\tNOTE: The vertex coordinates coordinates of the input surfaces are only\n");
           printf ("\t      transformed if -sv option is used. If you do transform surfaces, \n");
           printf ("\t      take care not to load them into SUMA with another -sv option.\n");  

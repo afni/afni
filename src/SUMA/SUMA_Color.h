@@ -14,7 +14,7 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
 SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SUMA_Boolean SkipLast, char *Name);
 SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name);
 SUMA_Boolean SUMA_FreeOverlayPointer (SUMA_OVERLAYS * Sover);
-SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays, GLfloat *glcolar, int N_Node, float Back_ModFact, SUMA_Boolean ShowBack, SUMA_Boolean ShowFore);
+SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer *sv, GLfloat *glcolar);
 SUMA_OVERLAYS * SUMA_Fetch_OverlayPointer (SUMA_OVERLAYS **Overlays, int N_Overlays, const char * Name, int * OverInd);
 SUMA_Boolean SUMA_Show_ColorOverlayPlanes (SUMA_OVERLAYS **Overlays, int N_Overlays);
 char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays); 
