@@ -4462,6 +4462,8 @@ char * get_PLUGIN_strval( PLUGIN_strval * av )   /* must be XtFree-d */
 
 /** put library routines here that must be loaded **/
 
+#include "cox_render.h"  /* 14 Feb 2002 */
+
 static vptr_func * forced_loads[] = {
 #ifndef NO_DYNAMIC_LOADING
    (vptr_func *) startup_lsqfit ,
