@@ -1,5 +1,4 @@
-#include "mrilib.h"
-#include "niml.h"
+#include "afni.h"
 
 /**************************************/
 /** global data for NIML connections **/
@@ -38,7 +37,9 @@ static int started = 0 ;
 /*---------------------*/
 /* Internal prototypes */
 
+static void    AFNI_niml_exit( void ) ;
 static Boolean AFNI_niml_workproc( XtPointer ) ;
+static void    AFNI_process_NIML_data( int , void * ) ;
 
 /*-----------------------------------------------------------------------*/
 /*! Routine executed at AFNI exit: shutdown all open NI_stream.
@@ -64,8 +65,6 @@ ENTRY("AFNI_init_niml") ;
 
    if( started ) EXRETURN ;
 
-fprintf(stderr,"AFNI_init_niml\n") ;
-
    PLUTO_register_workproc( AFNI_niml_workproc , NULL ) ;
    atexit( AFNI_niml_exit ) ;
 
@@ -80,12 +79,12 @@ fprintf(stderr,"AFNI_init_niml\n") ;
 /*! Debug printout of a NIML element.
 -------------------------------------------------------------------------*/
 
-static void NIML_to_stderr( void *nini )
+void NIML_to_stderr( void *nini )
 {
    NI_stream ns_err ;
    ns_err = NI_stream_open( "fd:2" , "w" ) ;
    if( ns_err != NULL ){
-     NI_write_element( ns_err , nel , NI_TEXT_MODE ) ;
+     NI_write_element( ns_err , nini , NI_TEXT_MODE ) ;
      NI_stream_close( ns_err ) ;
    }
 }
@@ -111,7 +110,6 @@ static Boolean AFNI_niml_workproc( XtPointer elvis )
      /* open streams that aren't open */
 
      if( ns_listen[cc] == NULL ){
-fprintf(stderr,"AFNI_niml_workproc: opening %s\n",ns_name[cc]) ;
        ns_listen[cc] = NI_stream_open( ns_name[cc] , "r" ) ;
      }
 
@@ -133,29 +131,167 @@ fprintf(stderr,"AFNI_niml_workproc: opening %s\n",ns_name[cc]) ;
      nn = NI_stream_readcheck( ns_listen[cc] , 1 ) ;
 
      if( nn > 0 ){                                   /* has data */
+       int ct = NI_clock_time() ;
+fprintf(stderr,"NIML: reading data stream") ;
+
        nini = NI_read_element( ns_listen[cc] , 1 ) ;  /* read it */
 
-       switch( NI_element_type(nini) ){            /* process it */
-         default: break ;                     /* NULL or unknown */
+fprintf(stderr," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
 
-         case NI_ELEMENT_TYPE:{                  /* data element */
-           NI_element *nel = (NI_element *) nini ;
+       if( nini != NULL )
+          AFNI_process_NIML_data( cc , nini ) ;
 
-           NIML_to_stderr( nel ) ;
-           NI_free_element( nel ) ;
-         }
-         break ;
+       NI_free_element( nini ) ;
 
-         case NI_GROUP_TYPE:{                   /* group element */
-           NI_element *ngr = (NI_element *) nini ;
+fprintf(stderr,"processing time=%d ms\n",NI_clock_time()-ct) ;
 
-           NIML_to_stderr( ngr ) ;
-           NI_free_element( ngr ) ;
-         }
-         break ;
-       }
      }
    }
 
-   return False ;
+   return False ;  /* always call me back */
+}
+
+/*----------------------------------------------------------------------*/
+/*! Process NIML data.  "chan" is the type of stream it came from;
+    this is currently not used.
+------------------------------------------------------------------------*/
+
+static void AFNI_process_NIML_data( int chan , void *nini )
+{
+   int tt = NI_element_type(nini) ;
+   NI_element *nel ;
+
+ENTRY("AFNI_process_NIML_data") ;
+
+   if( tt < 0 ) EXRETURN ;  /* should never happen */
+
+   /* process elements within a group separately */
+
+   if( tt == NI_GROUP_TYPE ){
+     NI_group *ngr = (NI_group *) nini ;
+     int ii ;
+     for( ii=0 ; ii < ngr->part_num ; ii++ )
+        AFNI_process_NIML_data( chan , ngr->part[ii] ) ; /* recursion */
+     EXRETURN ;
+   }
+
+   if( tt != NI_ELEMENT_TYPE ) EXRETURN ;  /* should never happen */
+
+   /* if here, have a single data element;
+      process the data based on the element name */
+
+   nel = (NI_element *) nini ;
+
+fprintf(stderr,"      name=%s vec_len=%d vec_filled=%d\n",nel->name,nel->vec_len,nel->vec_filled) ;
+
+   /*--- Surface nodes for a dataset ---*/
+
+   if( strcmp(nel->name,"SUMA_ixyz") == 0 ){
+     THD_3dim_dataset *dset ;
+     SUMA_surface *ag ;
+     int *ic ; float *xc,*yc,*zc ; char *idc ;
+     int ct ;
+
+     /*-- check element for suitability --*/
+
+     if( nel->vec_len    <  1        ||  /* empty element?             */
+         nel->vec_filled <  1        ||  /* no data was filled in?      */
+         nel->vec_num    <  4        ||  /* less than 4 columns?         */
+         nel->vec_typ[0] != NI_INT   ||  /* must be int,float,float,float */
+         nel->vec_typ[1] != NI_FLOAT ||
+         nel->vec_typ[2] != NI_FLOAT ||
+         nel->vec_typ[3] != NI_FLOAT   ) EXRETURN ;
+
+     /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
+          so that we can attach this surface to a dataset for display;
+          if we don't find the attribute or the dataset, then we quit --*/
+
+     idc = NI_get_attribute( nel , "volume_idcode" ) ;
+     if( idc == NULL )
+       idc = NI_get_attribute( nel , "dataset_idcode" ) ;
+     if( idc == NULL ) EXRETURN ;
+     dset = PLUTO_find_dset_idc( idc ) ;
+     if( dset == NULL ) EXRETURN ;
+
+     /*-- if the dataset already has a surface, trash it */
+
+     if( dset->su_surf != NULL ){
+        SUMA_destroy_surface( dset->su_surf ) ; dset->su_surf = NULL ;
+     }
+     if( dset->su_vmap != NULL ){
+        free( dset->su_vmap ) ; dset->su_vmap = NULL ;
+     }
+     if( dset->su_vnlist != NULL ){
+        SUMA_destroy_vnlist( dset->su_vnlist ) ; dset->su_vnlist = NULL ;
+     }
+     if( dset->su_sname != NULL ){
+        free( dset->su_sname ) ;
+     }
+
+     /*-- set the surface filename to the special "don't purge" string --*/
+
+     dset->su_sname = strdup( "++LOCK++" ) ;
+
+     /*-- initialize surface that we will fill up here */
+
+ct = NI_clock_time() ;
+fprintf(stderr,"      creating surface: %d nodes",nel->vec_filled) ;
+
+     ag = SUMA_create_empty_surface() ;
+
+     /*-- set IDCODEs of surface and of its dataset --*/
+
+     MCW_strncpy( ag->idcode_dset , dset->idcode.str , 32 ) ;
+
+     idc = NI_get_attribute( nel , "surface_idcode" ) ;
+     if( idc == NULL )
+       idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+     if( idc == NULL ){
+       idc = UNIQ_idcode(); MCW_strncpy(ag->idcode,idc,32); free(idc);
+     } else {
+       MCW_strncpy(ag->idcode,idc,32);
+     }
+
+     /*-- pointers to the data columns in the NI_element --*/
+
+     ic = (int *)   nel->vec[0] ;
+     xc = (float *) nel->vec[1] ;
+     yc = (float *) nel->vec[2] ;
+     zc = (float *) nel->vec[3] ;
+
+     /*-- add nodes to the surface --*/
+
+     SUMA_add_nodes_ixyz( ag , nel->vec_filled , ic,xc,yc,zc ) ;
+
+     /*-- prepare the surface for AFNI --*/
+
+fprintf(stderr," time=%d ms\n",NI_clock_time()-ct); ct = NI_clock_time() ;
+fprintf(stderr,"      sorting surface") ;
+
+     SUMA_ixyzsort_surface( ag ) ;
+     dset->su_surf = ag ;
+
+fprintf(stderr," time=%d ms\n",NI_clock_time()-ct); ct = NI_clock_time() ;
+fprintf(stderr,"      vmapping surface") ;
+
+     dset->su_vmap = SUMA_map_dset_to_surf( ag , dset ) ;
+
+fprintf(stderr," time=%d ms\n",NI_clock_time()-ct); ct = NI_clock_time() ;
+fprintf(stderr,"      vnlisting surface") ;
+
+     dset->su_vnlist = SUMA_make_vnlist( ag , dset ) ;
+
+     /*-- we're done! --*/
+
+     PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
+
+fprintf(stderr," time=%d ms\n",NI_clock_time()-ct); ct = NI_clock_time() ;
+
+     EXRETURN ;
+   }
+
+   /*** If here, then name of element didn't match anything ***/
+
+   fprintf(stderr,"++ Unknown NIML input: %s\n",nel->name) ;
+   EXRETURN ;
 }

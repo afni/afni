@@ -133,7 +133,11 @@ typedef struct {
 
 /*! Size of NI_stream buffer. */
 
+#if 0
 #define NI_BUFSIZE (64*1024)
+#else
+#define NI_BUFSIZE (1*1024)
+#endif
 
 /*! Data needed to process input stream. */
 
@@ -282,7 +286,8 @@ extern char * MD5_B64_string( char * string ) ;
 extern char * MD5_B64_file(char * filename) ;
 
 extern char * UNIQ_idcode(void) ;
-extern void   UNIQ_idcode_fill( char *idc ) ;
+extern void   UNIQ_idcode_fill( char * ) ;
+extern char * UNIQ_hashcode( char * ) ;
 
 /* trusted host manipulation */
 

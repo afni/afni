@@ -30,6 +30,8 @@ typedef struct { int num; char **str;} str_array ;
 /*********************** NIML Utility functions *****************************/
 /****************************************************************************/
 
+static FILE *dfp = NULL ;
+
 /*--------------------------------------------------------------------------*/
 /*! Allocate memory (actually uses calloc); calls exit() if it fails.
 ----------------------------------------------------------------------------*/
@@ -1375,24 +1377,42 @@ char * UNIQ_idcode(void)
    strcat(buf,ubuf.version ) ;
    strcat(buf,ubuf.machine ) ;
 
-   idc = calloc(1,32) ;         /* will be output string */
-
    /* get time and store into buf (along with process id and ncall) */
 
    nn = gettimeofday( &tv , NULL ) ;
    if( nn == -1 ){              /* should never happen */
       tv.tv_sec  = (long) buf ;
-      tv.tv_usec = (long) idc ;
+      tv.tv_usec = (long) buf ;
    }
 
-   /* even if called twice in rapid succession,
+   /* even if called twice in very rapid succession,
       at least ncall will differ, so we'll get different ID codes  */
 
    sprintf(buf+nbuf,"%d%d%d%d",
           (int)tv.tv_sec,(int)tv.tv_usec,(int)getpid(),ncall) ;
    ncall++ ;
 
-   /* get prefix for idcode from environment, if present */
+   /* make the output by hashing the string in buf */
+
+   idc = UNIQ_hashcode( buf ) ;
+
+   /* free workspace and get outta here */
+
+   free(buf) ; return idc ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! Make an idcode-formatted malloc-ed string from an input string.
+    Unlike UNIQ_idcode(), this will always return the same value,
+    given the same input.
+------------------------------------------------------------------------*/
+
+char *UNIQ_hashcode( char *str )
+{
+   char *idc , *eee ;
+   int ii , nn ;
+
+   idc = calloc(1,32) ;
 
    eee = getenv("IDCODE_PREFIX") ;
    if( eee != NULL && isalpha(eee[0]) ){
@@ -1403,24 +1423,14 @@ char * UNIQ_idcode(void)
    }
    strcat(idc,"_") ;  /* recall idc was calloc()-ed */
 
-   /* MD5+Base64 encode buf to be latter part of the idcode */
-
-   eee = MD5_B64_string( buf ) ;
-   if( eee != NULL ){                     /* should always work */
-      nn = strlen(eee) ;
-      for( ii=0 ; ii < nn ; ii++ ){
-              if( eee[ii] == '/' ) eee[ii] = '-' ;  /* / -> - */
-         else if( eee[ii] == '+' ) eee[ii] = '_' ;  /* + -> _ */
-      }
-      strcat(idc,eee) ; free(eee) ;
-   } else {                               /* should never happen */
-     nn = strlen(idc) ;
-     sprintf(idc+nn,"%d_%d_%d",(int)tv.tv_sec,(int)tv.tv_usec,ncall) ;
+   if( str == NULL || str[0] == '\0' ) str = "Onen i Estel Edain" ;
+   eee = MD5_B64_string(str) ;
+   nn = strlen(eee) ;
+   for( ii=0 ; ii < nn ; ii++ ){
+          if( eee[ii] == '/' ) eee[ii] = '-' ;  /* / -> - */
+     else if( eee[ii] == '+' ) eee[ii] = '_' ;  /* + -> _ */
    }
-
-   /* free workspace and get outta here */
-
-   free(buf) ; return idc ;
+   strcat(idc,eee) ; free(eee) ; return idc ;
 }
 
 /*----------------------------------------------------------------------*/
@@ -3966,7 +3976,7 @@ static int nosigpipe = 0 ;
 
 /*! This is used to set the send/receive buffer size for sockets **/
 
-#define SOCKET_BUFSIZE  (63*1024)
+#define SOCKET_BUFSIZE  (31*1024)
 
 /*! This macro is used so I can replace recv() with something else if I want. */
 
@@ -4148,9 +4158,11 @@ static int tcp_connect( char * host , int port )
 
    /* but large buffers are good */
 
+#if 1
    l = SOCKET_BUFSIZE ;
    setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
    setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *)&l, sizeof(int)) ;
+#endif
 
    /** set port on remote computer **/
 
@@ -5142,7 +5154,8 @@ int NI_stream_writecheck( NI_stream_type *ns , int msec )
 /*!  Send nbytes of data from buffer down the NI_stream.
 
   Return value is the number of bytes actually sent, or is -1 if some error
-  occurs (which means that the NI_stream is bad).
+  occurs (which means that the NI_stream is bad).  If 0 is returned, this
+  means you tried to write to something that is temporarily unavailable.
 
   - tcp: We use blocking sends, so that all the data should be sent properly
           unless the connection to the other end fails for some reason
@@ -5165,8 +5178,10 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
    if( nbytes == 0 ) return 0 ;  /* that was easy */
 
-   ii = NI_stream_writecheck(ns,1) ; /* check if stream is writable */
-   if( ii <= 0 ) return ii ;         /* if not, vamoose the ranch */
+   if( ns->type != NI_TCP_TYPE ){
+     ii = NI_stream_writecheck(ns,1) ; /* check if stream is still OK */
+     if( ii < 0 ) return ii ;          /* if not, vamoose the ranch  */
+   }
 
    switch( ns->type ){
 
@@ -5174,14 +5189,22 @@ int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes )
 
      case NI_TCP_TYPE:
 
+       if( ns->bad ) return 0 ;  /* socket not ready yet */
+
        /* turn off SIGPIPE signals, which will otherwise be
           raised if we send to a socket when the other end has crashed */
 
        if( !nosigpipe ){ signal(SIGPIPE,SIG_IGN); nosigpipe = 1; }
 
+       /* 03 Mar 2002: wait until we can write fer shur */
+
+       do{ ii=tcp_writecheck(ns->sd,1) ; } while(ii==0) ;
+       if( ii < 0 ) return -1 ;
+
+       errno = 0 ;
        nsent = tcp_send( ns->sd , buffer , nbytes , 0 ) ;
-       if( nsent < nbytes ) PERROR("NI_stream_write(send)") ;
-       if( nsent == 0 ) nsent = -1 ;
+       if( nsent < nbytes || errno != 0 ) PERROR("NI_stream_write(send)") ;
+       if( nsent == 0 ){ fprintf(stderr,"send: 0/%d\n",nbytes); nsent=-1; }
        return nsent ;
 
      /** file: ==> just fwrite **/
@@ -5257,10 +5280,18 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
      /** tcp: just use recv **/
 
      case NI_TCP_TYPE:
-       ii = NI_stream_goodcheck(ns,1) ;
-       if( ii != 1 ) return ii ;
+       ii = NI_stream_goodcheck(ns,1) ; if( ii != 1 ) return ii ;
+       do{ ii=tcp_readcheck(ns->sd,1); } while( ii==0 ) ;
+       if( ii < 0 ) return -1 ;
+       errno = 0 ;
        ii = tcp_recv( ns->sd , buffer , nbytes , 0 ) ;
-       if( ii == -1 ) PERROR("NI_stream_read(recv)") ;
+       if( ii == -1 || errno != 0 ) PERROR("NI_stream_read(recv)") ;
+#if 0
+if( dfp != NULL ){
+fprintf(dfp,"\n*** NI_stream_read got %d/%d bytes ***\n",ii,nbytes) ;
+if( ii > 0 ) fprintf(dfp,"%.*s\n***\n",ii,buffer) ;
+}
+#endif
        return ii ;
 
      /** file: just use fread **/
@@ -5838,8 +5869,14 @@ BinaryDone:
         /*......................................................*/
 
         case NI_TEXT_MODE:{
+#if 0
+dfp = fopen("niml.out","w") ;
+#endif
 
          while( row < nel->vec_len ){  /* loop over input rows */
+#if 0
+fprintf(dfp,"ROW=%d",row) ;
+#endif
           for( col=0 ; col < nel->vec_num ; col++ ){ /* over input vectors */
 
             /* decode one value from input, according to its type */
@@ -5884,6 +5921,9 @@ BinaryDone:
                  nn = decode_one_double( ns , &val ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (int) val ;
+#if 0
+fprintf(dfp," [%d]=%d",col,vpt[row]) ;
+#endif
               }
               break ;
 
@@ -5893,6 +5933,9 @@ BinaryDone:
                  nn = decode_one_double( ns , &val ) ;
                  if( nn == 0 ) goto TextDone ;
                  vpt[row] = (float) val ;
+#if 0
+fprintf(dfp," [%d]=%f",col,vpt[row]) ;
+#endif
               }
               break ;
 
@@ -5952,12 +5995,17 @@ BinaryDone:
             } /* end of switch on type of this data value */
 
           } /* end of loop over vector columns */
-
+#if 0
+fprintf(dfp,"\n") ;
+#endif
           row++ ;
          } /* end of loop over vector rows */
 
 TextDone:
          nel->vec_filled = row ;  /* how many rows were filled above */
+#if 0
+fclose(dfp);dfp=NULL ;
+#endif
         }
         break ;  /* end of text input */
 
@@ -6053,6 +6101,10 @@ Restart:
    num_restart++ ;
    if( num_restart > 19 ) return 0 ;  /*** give up ***/
 
+#if 0
+fprintf(dfp," {restart: npos=%d nbuf=%d}",ns->npos,ns->nbuf) ;
+#endif
+
    /*-- advance over useless characters in the buffer --*/
 
    while( ns->npos < ns->nbuf && IS_USELESS(ns->buf[ns->npos]) ) ns->npos++ ;
@@ -6074,12 +6126,21 @@ Restart:
 
    if( !need_data ){  /* so have at least 2 characters */
 
+#if 0
+nn = ns->nbuf-ns->npos ; if( nn > 19 ) nn = 19 ;
+fprintf(dfp," {buf=%.*s}" , nn , ns->buf+ns->npos ) ;
+#endif
+
       for( epos=ns->npos+1 ; epos < ns->nbuf ; epos++ )
         if( ns->buf[epos] == '<' || IS_USELESS(ns->buf[epos]) ) break ;
 
       /*- epos is either the delimiter position, or the end of data bytes -*/
 
       need_data = (epos == ns->nbuf) ; /* no delimiter ==> need more data */
+
+#if 0
+if( need_data ) fprintf(dfp," {eob}") ;
+#endif
 
       /*- If the string of characters we have is not delimited,
           and it is too long to be a number, throw out all the
@@ -6097,6 +6158,9 @@ Restart:
       /*- read at least 1 byte,
           waiting up to 666 ms (unless the data stream goes bad) -*/
 
+#if 0
+fprintf(dfp," {read}") ;
+#endif
       nn = NI_stream_fillbuf( ns , 1 , 666 ) ;
 
       if( nn >= 0 ) goto Restart ;  /* check if buffer is adequate now */

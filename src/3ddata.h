@@ -48,6 +48,7 @@
 
 struct THD_3dim_dataset ;  /* incomplete definition */
 
+#include "niml.h"          /* NIML */
 #include "afni_suma.h"     /* SUrface MApper */
 
 /*! \brief Enables compilation of the MINC dataset code. */
@@ -1969,9 +1970,10 @@ typedef struct THD_3dim_dataset {
       KILL_list kl ;              /*!< Stuff to delete if this dataset is deleted (see killer.h) */
       XtPointer parent ;          /*!< Somebody that "owns" this dataset */
 
-      SUMA_surface * su_surf ;  /*!< 29 Aug 2001: surface data (experimental) */
-      char * su_sname ;
-      int * su_vmap ;
+      SUMA_surface * su_surf ;  /*!< surface data */
+      char * su_sname ;         /*!< name of surface file */
+      int * su_vmap ;           /*!< voxel-to-node map */
+      SUMA_vnlist *su_vnlist ;  /*!< list of surfaces nodes in voxels */
 
 } THD_3dim_dataset ;
 
@@ -1979,7 +1981,9 @@ typedef struct THD_3dim_dataset {
 #define DSET_HAS_SUMA(ds)   ( (ds)->su_sname != NULL && (ds)->su_surf != NULL )
 
 /*! \brief Clear out the AFNI surface data pointers in dataset ds. */
-# define DSET_NULL_SUMA(ds)  ((ds)->su_sname=NULL, (ds)->su_surf=NULL, (ds)->su_vmap=NULL)
+# define DSET_NULL_SUMA(ds)                      \
+  ( (ds)->su_sname=NULL, (ds)->su_surf=NULL,     \
+    (ds)->su_vmap=NULL , (ds)->su_vnlist=NULL )
 
 /*! \brief A marker that defines a dataset that is about to be killed. */
 

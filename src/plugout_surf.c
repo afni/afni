@@ -109,8 +109,6 @@ int main( int argc , char * argv[] )
 
    /***** Loop and check in with AFNI every 100 msec *****/
 
-   setup_key() ; /* initialize keyboard I/O */
-
    while( 1 ){
       ii = afni_io() ;      /* commune with AFNI  */
       if( ii < 0 ) break ;  /* bad trip? then die */
@@ -162,6 +160,7 @@ int afni_io(void)
    static int afni_mode = AFNI_OPEN_CONTROL_MODE ;  /* status variable */
    static IOCHAN * afni_ioc = NULL ;                /* connection to AFNI */
    int ii ;
+   int need_setup_key=1 ;
 
    /***************************************************************/
    /***** Check to see if status is OK before we proceed.     *****/
@@ -327,6 +326,8 @@ int afni_io(void)
       static int  nkey=0 ;     /* number of keys */
       char afni_buf[BUF] ;     /* text to send to AFNI */
       int  id ;                /* Surface node ID code */
+
+      if( need_setup_key ){ setup_key(); need_setup_key = 0; }
 
       /* see if AFNI sent anything */
 

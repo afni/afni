@@ -18,7 +18,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
             afni_setup.o afni_receive.o mcw_graf.o afni_splash.o   \
             afni_pplug_env.o afni_pplug_2dfunc.o afni_friends.o    \
             afni_ttren.o afni_pplug_1dfunc.o afni_driver.o         \
-            afni_niml.o niml.o                                     \
+            afni_niml.o                                            \
             $(IMOBJS)
 
 T3OBJS  = to3d.o $(IMOBJS)
@@ -91,10 +91,10 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
-LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
-             editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
+LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h  \
+             editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
              thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h \
-             multivector.h afni_environ.h
+             multivector.h afni_environ.h niml.h cs_sort_template.h
 
 ### Make everything, install it too, and cleanup
 
@@ -1004,14 +1004,18 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_iochan.o thd_makefbuc.o thd_makefim.o thd_makefith.o  \
            thd_trusthost.o thd_rot3d.o thd_mastery.o thd_intlist.o  \
            thd_checkidc.o thd_floatscan.o thd_notes.o thd_makemask.o \
-           thd_shift2.o thd_1Dtodset.o thd_detrend.o thd_base64.o     \
+           thd_shift2.o thd_1Dtodset.o thd_detrend.o                  \
            thd_winsor.o thd_zeropad.o thd_rot3d_byte.o thd_shear3d.o   \
-           thd_tmask.o thd_rotangles.o thd_md5.o thd_center.o           \
+           thd_tmask.o thd_rotangles.o           thd_center.o           \
            thd_mismatch.o thd_read_vecmat.o thd_tshift.o thd_newprefix.o \
            thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o  \
            thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o            \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o       \
-           thd_outlier_count.o thd_correlate.o afni_suma.o thd_autonudge.o
+           thd_outlier_count.o thd_correlate.o thd_autonudge.o
+
+# these are now included in niml.o
+
+UNUSED_OBSJ = thd_md5.o thd_base64.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \
@@ -1021,7 +1025,8 @@ EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
 
 CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
-           cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o
+           cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
+           niml.o afni_suma.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -1481,8 +1486,12 @@ epsim:epsim.o
 	$(RM) $@
 	$(CC) -o epsim epsim.o $(LFLAGS) $(LLIBS)
 
-nimltest:nimltest.o niml.o
+nimltest:nimltest.o
 	$(RM) $@
-	$(CC) -o nimltest nimltest.o niml.o $(LFLAGS) $(LLIBS)
+	$(CC) -o nimltest nimltest.o $(LFLAGS) $(LLIBS)
+
+nicat:nicat.o
+	$(RM) $@
+	$(CC) -o nicat nicat.o $(LFLAGS) $(LLIBS)
 
 #-------------------------------------------------------------------------------
