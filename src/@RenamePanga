@@ -110,10 +110,10 @@ set Nslc = $3
 set Nreps = $4
 set TR = 0
 set BrickRoot = "$5"
-set LogFile = "$cwd/MAPLOG_Panga"
-set aDir = "$cwd/$OutDir"
+set LogFile = "./MAPLOG_Panga"
+set aDir = "$OutDir"
 set Ntot = `expr $Nslc \* $Nreps`
-set listfile = "$cwd/PangaList"
+set listfile = "./PangaList"
 
 #make directorie and check for bricks
 	test -d $aDir || mkdir $aDir
