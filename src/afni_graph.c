@@ -3540,7 +3540,7 @@ ENTRY("GRA_fim_CB") ;
 
    else if( w == grapher->fmenu->fimp_setdefault_pb ){
      char * ff = my_getenv( "AFNI_FIM_MASK" ) ; int mm=0 ;
-     if( ff != NULL ) mm = strtol(ff,NULL,10) ;
+     if( ff != NULL && isdigit(ff[0]) ) mm = strtol(ff,NULL,10) ;
      if( mm <= 0 ) mm = FIM_DEFAULT_MASK ;
      MCW_set_bbox( grapher->fmenu->fimp_opt_bbox , mm ) ;
    }
@@ -4187,7 +4187,7 @@ ENTRY("AFNI_new_fim_menu") ;
                                         NULL , NULL ) ;
 
    { char * ff = my_getenv( "AFNI_FIM_MASK" ) ; int mm=0 ;
-     if( ff != NULL ) mm = strtol(ff,NULL,10) ;
+     if( ff != NULL && isdigit(ff[0]) ) mm = strtol(ff,NULL,10) ;
      if( mm <= 0 ) mm = FIM_DEFAULT_MASK ;
      MCW_set_bbox( fmenu->fimp_opt_bbox , mm ) ;
    }

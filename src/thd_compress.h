@@ -43,6 +43,9 @@ static char * COMPRESS_unprogram[]  = { "gzip -dc %s"  ,
 
 static char * COMPRESS_enviro[] = { "GZIP" , "BZIP2" , "COMPRESS" , "BRIKCOMP" } ;
 
+#define   NUM_COMPRESS_elist 3 
+static char * COMPRESS_elist[] = { "GZIP" , "BZIP2" , "COMPRESS" } ;
+
 /*---------- prototypes ----------*/
 
 extern int COMPRESS_is_file( char * pathname ) ;

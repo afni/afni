@@ -341,10 +341,9 @@ ENTRY("AFNI_parse_args") ;
 
    SESSTRAIL = 1 ;
    env = getenv( "AFNI_SESSTRAIL" ) ;
-   if( env != NULL ) SESSTRAIL = strtol(env,NULL,10) ;
+   if( env != NULL && isdigit(env[0]) ) SESSTRAIL = strtol(env,NULL,10) ;
 
-   env = getenv( "AFNI_MARKERS_NOQUAL" ) ;             /* 17 Nov 1999 */
-   if( env != NULL ) GLOBAL_argopt.elide_quality = 1 ;
+   GLOBAL_argopt.elide_quality = AFNI_yesenv("AFNI_MARKERS_NOQUAL") ;
 
    /*-- 18 Nov 1999: Allow setting of options from environment --*/
 
@@ -357,15 +356,8 @@ ENTRY("AFNI_parse_args") ;
    }
 
 #ifdef ALLOW_PLUGINS
-   { char * en                = getenv( "AFNI_NOPLUGINS" ) ;
-     GLOBAL_argopt.noplugins  = (en != NULL) ;
-            en                = getenv( "AFNI_YESPLUGOUTS" ) ;
-     GLOBAL_argopt.noplugouts = (en == NULL) ;
-#if 0
-            en                = getenv( "AFNI_NOPLUGOUTS" ) ;
-     GLOBAL_argopt.noplugouts = (en != NULL) ;
-#endif
-   }
+   GLOBAL_argopt.noplugins  =  AFNI_yesenv( "AFNI_NOPLUGINS" ) ;
+   GLOBAL_argopt.noplugouts = !AFNI_yesenv( "AFNI_YESPLUGOUTS" ) ;
 #endif
 
    env_orient = getenv( "AFNI_ORIENT" ) ;
@@ -409,7 +401,7 @@ ENTRY("AFNI_parse_args") ;
         GLOBAL_argopt.title_name[ll-1] = '\0' ;
    }
 
-   GLOBAL_argopt.left_is_left = ( getenv("AFNI_LEFT_IS_LEFT") != NULL ) ; /* 09 Oct 1998 */
+   GLOBAL_argopt.left_is_left = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
 
    GLOBAL_argopt.read_tim = 0 ;   /* 19 Oct 1999 */
 
@@ -1045,15 +1037,15 @@ int main( int argc , char * argv[] )
    }
 
    { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
-     if( lenv != NULL ){
+     if( lenv != NULL && isdigit(lenv[0]) ){
         float bk = strtod(lenv,NULL) ;
         if( bk >= 0.0 && bk < 100.0 ) SET_FIM_bkthr(bk) ;
      }
    }
 
-   { char * lenv = getenv("AFNI_ALWAYS_LOCK") ;
-     if( lenv != NULL ) for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
-                           GLOBAL_library.controller_lock |= (1<<ii) ;
+   if( AFNI_yesenv("AFNI_ALWAYS_LOCK") ){
+      for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
+         GLOBAL_library.controller_lock |= (1<<ii) ;
    }
 
    /*-- now create first display context: MAIN_dc --*/
@@ -1119,13 +1111,13 @@ static Boolean MAIN_workprocess( XtPointer fred )
 #ifdef NO_FRIVOLITIES
         nosplash = 1 ;
 #else
-        nosplash = (getenv("AFNI_NOSPLASH") != NULL) ;
+        nosplash = AFNI_yesenv("AFNI_NOSPLASH") ;
 #endif
         if( !nosplash ){
            char * hh ;
            AFNI_splashup() ; eltime = COX_clock_time() ;
            hh = getenv("AFNI_SPLASHTIME") ;
-           if( hh != NULL ) max_splash = strtod(hh,NULL) ;
+           if( hh != NULL && isdigit(hh[0]) ) max_splash = strtod(hh,NULL) ;
         }
       }
       break ;
@@ -1264,30 +1256,21 @@ static Boolean MAIN_workprocess( XtPointer fred )
 
         /*--- Other small and quick startup stuff before AFNI can go ---*/
 
-        MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ) ;  /* initialize help */
+        MCW_help_CB( MAIN_im3d->vwid->top_shell,NULL,NULL ); /* initialize help */
 
         { char str[64] ;
           sprintf(str,"\n -orient       = %s", GLOBAL_library.cord.orcode ) ;
           REPORT_PROGRESS(str) ;
         }
 
-        { char * hh = getenv("AFNI_HINTS") ;                  /* initialize hints */
-          GLOBAL_library.hints_on = 1 ;
-          if( hh != NULL && ( strncmp(hh,"NO" ,2)==0 ||
-                              strncmp(hh,"no" ,2)==0 ||
-                              strncmp(hh,"No" ,2)==0 ||
-                              strncmp(hh,"OFF",3)==0 ||
-                              strncmp(hh,"off",3)==0 ||
-                              strncmp(hh,"Off",3)==0   ) ){
+        /* initialize hints */
 
-             MCW_hint_toggle() ;
-             GLOBAL_library.hints_on = 0 ;
-           }
+        GLOBAL_library.hints_on = !AFNI_noenv("AFNI_HINTS") ;
+        if( !GLOBAL_library.hints_on ) MCW_hint_toggle() ;
 
-           if( MAIN_im3d->vwid->dmode->misc_hints_pb != NULL )
-              MCW_set_bbox( MAIN_im3d->vwid->dmode->misc_hints_bbox ,
-                            GLOBAL_library.hints_on ) ;
-        }
+        if( MAIN_im3d->vwid->dmode->misc_hints_pb != NULL )
+           MCW_set_bbox( MAIN_im3d->vwid->dmode->misc_hints_bbox ,
+                         GLOBAL_library.hints_on ) ;
 
         /* Feb 1998: setup write compression from environment */
         /*           (read de-compression always works)       */
@@ -3796,7 +3779,7 @@ STATUS("setting image view to be L-R mirrored") ;
 #define PP 3
 #define SS 4
 #define II 5
-      if( NULL == getenv("AFNI_NO_SIDES_LABELS") ){
+      if( AFNI_yesenv("AFNI_NO_SIDES_LABELS") ){
          static char * ssix[6] = { "Left"     , "Right"     ,
                                    "Anterior" , "Posterior" ,
                                    "Superior" , "Inferior"   } ;
@@ -5451,10 +5434,10 @@ ENTRY("AFNI_setup_viewing") ;
 
    /*- The Ides of March, 2000: allow switching back to "view brick" -*/
 
-   if( anat_brick_possible                    &&
-       im3d->vinfo->force_anat_wod            &&
-       im3d->vinfo->tempflag == 0             &&
-       getenv("AFNI_VIEW_ANAT_BRICK") != NULL    ){
+   if( anat_brick_possible         &&
+       im3d->vinfo->force_anat_wod &&
+       im3d->vinfo->tempflag == 0  &&
+       AFNI_yesenv("AFNI_VIEW_ANAT_BRICK") ){
 
       im3d->vinfo->force_anat_wod = 0 ;
       MCW_set_bbox( im3d->vwid->dmode->anatmode_bbox , DMODE_BRICK_BVAL ) ;
@@ -5517,10 +5500,10 @@ STATUS("deciding whether to use function WOD") ;
 
       /*- The Ides of March, 2000: allow switching back to "view brick" -*/
 
-      if( func_brick_possible                    &&
-          im3d->vinfo->force_func_wod            &&
-          im3d->vinfo->tempflag == 0             &&
-          getenv("AFNI_VIEW_FUNC_BRICK") != NULL    ){
+      if( func_brick_possible          &&
+          im3d->vinfo->force_func_wod  &&
+          im3d->vinfo->tempflag == 0   &&
+          AFNI_yesenv("AFNI_VIEW_FUNC_BRICK") ){
 
          im3d->vinfo->force_func_wod = 0 ;
          MCW_set_bbox( im3d->vwid->dmode->funcmode_bbox , DMODE_BRICK_BVAL ) ;

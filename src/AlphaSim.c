@@ -17,6 +17,9 @@
   Mod:     Corrected problem with count overflow.
   Date:    30 July 1999
 
+  Mod:     Added -mask option.  (Adapted from: 3dpc.c)
+  Date:    15 June 2000
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -27,7 +30,8 @@
 
 #define PROGRAM_NAME "AlphaSim"                      /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "30 July 1999"              /* date of last program mod */
+#define PROGRAM_INITIAL "18 June 1997"    /* date of initial program release */
+#define PROGRAM_LATEST  "15 June 2000"    /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -35,6 +39,16 @@
 #define MAX_CLUSTER_SIZE 1000        /* max. size of cluster for freq. table */
 
 #include "mrilib.h"
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Global data 
+*/
+
+static char * mask_filename = NULL;  /* file containing the mask */
+static byte * mask_vol  = NULL;      /* mask volume */
+static int mask_ngood = 0;           /* number of good voxels in mask volume */
 
 
 /*---------------------------------------------------------------------------*/
@@ -49,30 +63,35 @@ void display_help_menu()
      "This program performs alpha probability simulations.  \n\n"
      "Usage: \n"
      "AlphaSim \n"
-     "-nx n1        n1 = number of voxels along x-axis                     \n"
-     "-ny n2        n2 = number of voxels along y-axis                     \n"
-     "-nz n3        n3 = number of voxels along z-axis                     \n"
-     "-dx d1        d1 = voxel size (mm) along x-axis                      \n"
-     "-dy d2        d2 = voxel size (mm) along y-axis                      \n"
-     "-dz d3        d3 = voxel size (mm) along z-axis                      \n"
-     "[-fwhm s]     s  = Gaussian filter width (FWHM)                      \n"
-     "[-fwhmx sx]   sx = Gaussian filter width, x-axis (FWHM)              \n"
-     "[-fwhmy sy]   sy = Gaussian filter width, y-axis (FWHM)              \n"
-     "[-fwhmz sz]   sz = Gaussian filter width, z-axis (FWHM)              \n"
-     "[-sigma s]    s  = Gaussian filter width (1 sigma)                   \n"
-     "[-sigmax sx]  sx = Gaussian filter width, x-axis (1 sigma)           \n"
-     "[-sigmay sy]  sy = Gaussian filter width, y-axis (1 sigma)           \n"
-     "[-sigmaz sz]  sz = Gaussian filter width, z-axis (1 sigma)           \n"
-     "[-power]      perform statistical power calculations                 \n"
-     "[-ax n1]      n1 = extent of active region (in voxels) along x-axis  \n"
-     "[-ay n2]      n2 = extent of active region (in voxels) along y-axis  \n"
-     "[-az n3]      n3 = extent of active region (in voxels) along z-axis  \n"
-     "[-zsep z]     z = z-score separation between signal and noise        \n" 
-     "-rmm r        r  = cluster connection radius (mm)                    \n"
-     "-pthr p       p  = individual voxel threshold probability            \n"
-     "-iter n       n  = number of Monte Carlo simulations                 \n"
-     "[-quiet]     suppress screen output                                  \n" 
-     "[-out file]  file = name of output file                              \n"
+     "-nx n1        n1 = number of voxels along x-axis                      \n"
+     "-ny n2        n2 = number of voxels along y-axis                      \n"
+     "-nz n3        n3 = number of voxels along z-axis                      \n"
+     "-dx d1        d1 = voxel size (mm) along x-axis                       \n"
+     "-dy d2        d2 = voxel size (mm) along y-axis                       \n"
+     "-dz d3        d3 = voxel size (mm) along z-axis                       \n"
+     "[-mask mset]      Use the 0 sub-brick of dataset 'mset' as a mask     \n"
+     "                    to indicate which voxels to analyze (a sub-brick  \n"
+     "                    selector is allowed)  [default = use all voxels]  \n"
+     "                  Note:  The -mask command REPLACES the -nx, -ny, -nz,\n"
+     "                         -dx, -dy, and -dz commands.                  \n"
+     "[-fwhm s]     s  = Gaussian filter width (FWHM)                       \n"
+     "[-fwhmx sx]   sx = Gaussian filter width, x-axis (FWHM)               \n"
+     "[-fwhmy sy]   sy = Gaussian filter width, y-axis (FWHM)               \n"
+     "[-fwhmz sz]   sz = Gaussian filter width, z-axis (FWHM)               \n"
+     "[-sigma s]    s  = Gaussian filter width (1 sigma)                    \n"
+     "[-sigmax sx]  sx = Gaussian filter width, x-axis (1 sigma)            \n"
+     "[-sigmay sy]  sy = Gaussian filter width, y-axis (1 sigma)            \n"
+     "[-sigmaz sz]  sz = Gaussian filter width, z-axis (1 sigma)            \n"
+     "[-power]      perform statistical power calculations                  \n"
+     "[-ax n1]      n1 = extent of active region (in voxels) along x-axis   \n"
+     "[-ay n2]      n2 = extent of active region (in voxels) along y-axis   \n"
+     "[-az n3]      n3 = extent of active region (in voxels) along z-axis   \n"
+     "[-zsep z]     z = z-score separation between signal and noise         \n"
+     "-rmm r        r  = cluster connection radius (mm)                     \n"
+     "-pthr p       p  = individual voxel threshold probability             \n"
+     "-iter n       n  = number of Monte Carlo simulations                  \n"
+     "[-quiet]     suppress screen output                                   \n"
+     "[-out file]  file = name of output file                               \n"
      );
   
   exit(0);
@@ -146,7 +165,9 @@ void get_options (int argc, char ** argv,
   int nopt = 1;                  /* input option argument counter */
   int ival;                      /* integer input */
   float fval;                    /* float input */
-  char message[MAX_NAME_LENGTH];            /* error message */
+  char message[MAX_NAME_LENGTH];         /* error message */
+  int mask_nx, mask_ny, mask_nz, mask_nvox;   /* mask dimensions */
+  float  mask_dx, mask_dy, mask_dz;            
 
   
   /*----- does user request help menu? -----*/
@@ -244,8 +265,43 @@ void get_options (int argc, char ** argv,
 	  nopt++;
 	  continue;
 	}
-
       
+
+      /**** -mask mset [14 June 2000] ****/
+
+      if (strcmp(argv[nopt],"-mask") == 0 )
+	{
+	  THD_3dim_dataset * mset ; int ii,mc ;
+	  nopt++ ;
+	  if (nopt >= argc)  AlphaSim_error ("need argument after -mask!") ;
+	  mask_filename = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+	  if (mask_filename == NULL)  
+	    AlphaSim_error ("unable to allocate memory");
+	  strcpy (mask_filename, argv[nopt]);
+	  mset = THD_open_dataset (mask_filename);
+	  if (mset == NULL)  AlphaSim_error ("can't open -mask dataset!") ;
+
+	  mask_vol = THD_makemask( mset , 0 , 1.0,0.0 ) ;
+	  if (mask_vol == NULL )  AlphaSim_error ("can't use -mask dataset!") ;
+
+	  mask_nvox = DSET_NVOX(mset) ;
+	  mask_nx   = DSET_NX(mset);
+	  mask_ny   = DSET_NY(mset);
+	  mask_nz   = DSET_NZ(mset);
+	  mask_dx   = DSET_DX(mset);
+	  mask_dy   = DSET_DY(mset);
+	  mask_dz   = DSET_DZ(mset);
+
+	  DSET_delete(mset) ;
+
+	  for( ii=mc=0 ; ii < mask_nvox ; ii++ )  if (mask_vol[ii])  mc++ ;
+	  if (mc == 0)  AlphaSim_error ("mask is all zeros!") ;
+	  printf("--- %d voxels in mask\n",mc) ;
+	  mask_ngood = mc;
+	  nopt++ ; continue ;
+	}
+
+
       /*-----   -fwhm s   -----*/
       if (strncmp(argv[nopt], "-fwhm", 6) == 0)
 	{
@@ -510,7 +566,15 @@ void get_options (int argc, char ** argv,
       /*----- unknown command -----*/
       AlphaSim_error ("unrecognized command line option ");
     }
-  
+
+
+  /*----- If mask dataset is used, set dimensions accordingly -----*/
+  if (mask_vol != NULL)
+    {
+      *nx = mask_nx;  *ny = mask_ny;  *nz = mask_nz;
+      *dx = fabs(mask_dx);  *dy = fabs(mask_dy);  *dz = fabs(mask_dz);
+    }
+
 }
 
 
@@ -1048,6 +1112,31 @@ void threshold_data (int nx, int ny, int nz, float * fim,
 
 /*---------------------------------------------------------------------------*/
 /*
+  Routine to apply mask to volume data.
+*/
+   
+void apply_mask (int nx, int ny, int nz, float * fim)
+
+{
+  int ixyz;
+  int nxyz;
+
+
+  /*----- initialize local variables -----*/
+  nxyz = nx * ny * nz;
+
+
+  /*----- apply mask to volume data -----*/
+  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+    if (! mask_vol[ixyz])
+      fim[ixyz] = 0.0;
+
+
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Routine to identify clusters.
 */
    
@@ -1172,10 +1261,13 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
   for (i = 1;  i < MAX_CLUSTER_SIZE;  i++)
     total_num_clusters += freq_table[i];
 
-  if (!power)
-    divisor = (float)(niter) * nx * ny * nz;
-  else
+  if (power)
     divisor = (float)(niter) * ax * ay * az;
+  else
+    if (mask_vol)
+      divisor = (float)(niter) * mask_ngood;
+    else
+      divisor = (float)(niter) * nx * ny * nz;
 
   for (i = 1;  i < MAX_CLUSTER_SIZE;  i++)
     {
@@ -1215,12 +1307,21 @@ void output_results (int nx, int ny, int nz, float dx, float dy, float dz,
     }
 
   /*----- print out the results -----*/
-  fprintf (fout, "\n\nProgram %s \n\n", PROGRAM_NAME);
-  fprintf (fout, "Last revision: %s \n\n", PROGRAM_DATE);
+  fprintf (fout, "\n\n");
+  fprintf (fout, "Program:          %s \n", PROGRAM_NAME);
+  fprintf (fout, "Author:           %s \n", PROGRAM_AUTHOR); 
+  fprintf (fout, "Initial Release:  %s \n", PROGRAM_INITIAL);
+  fprintf (fout, "Latest Revision:  %s \n", PROGRAM_LATEST);
+  fprintf (fout, "\n");
 
   fprintf (fout, "Data set dimensions: \n");
   fprintf (fout, "nx = %5d   ny = %5d   nz = %5d   (voxels)\n",  nx, ny, nz);
   fprintf (fout, "dx = %5.2f   dy = %5.2f   dz = %5.2f   (mm)\n", dx, dy, dz);
+
+  if (mask_vol)
+    fprintf (fout, "\nMask filename = %s \n", mask_filename);
+  if (mask_vol && !power)
+    fprintf (fout, "Voxels in mask = %5d \n", mask_ngood);
 
   fprintf (fout, "\nGaussian filter widths: \n");
   fprintf (fout, "sigmax = %5.2f   FWHMx = %5.2f \n", 
@@ -1334,9 +1435,10 @@ int main (int argc, char ** argv)
   
   /*----- Identify software -----*/
   printf ("\n\n");
-  printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
-  printf ("Date:    %s \n", PROGRAM_DATE);
+  printf ("Program:          %s \n", PROGRAM_NAME);
+  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
+  printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 
 
@@ -1381,6 +1483,10 @@ int main (int argc, char ** argv)
 	threshold_data (nx, ny, nz, 
 			fim, pthr, &count, &sum, &sumsq, 
 			quiet, iter);	
+
+
+      /*----- apply mask to volume data -----*/
+      if (mask_vol && (!power))  apply_mask (nx, ny, nz, fim);
 
 
       /*----- identify clusters -----*/

@@ -22,19 +22,23 @@ THD_datablock * THD_init_one_datablock( char * dirname , char * headname )
    char prefix[THD_MAX_NAME] ;
    MRI_IMAGE * qim ;
    int brick_ccode ;
+   int default_order ;   /* 21 Jun 2000 */
 
 ENTRY("THD_init_one_datablock") ;
 
    if( native_order < 0 ) native_order = mri_short_order() ;
-   if( no_mmap < 0 ){
-      char * hh = my_getenv("AFNI_NOMMAP") ;
-      if( hh == NULL ) no_mmap = 0 ;
-      else             no_mmap = (strcmp(hh,"YES") == 0) ;
-   }
 
-   if( no_ordwarn < 0 ){
-      char * hh = my_getenv("AFNI_NO_BYTEORDER_WARNING") ;
-      no_ordwarn = (hh != NULL) ;
+   no_mmap    = AFNI_yesenv("AFNI_NOMMAP") ;
+   no_ordwarn = AFNI_yesenv("AFNI_NO_BYTEORDER_WARNING") ;
+
+   { char * hh = getenv("AFNI_BYTEORDER_INPUT") ;    /* 21 Jun 2000 */
+     default_order = native_order ;
+     if( hh != NULL ){
+        if( strncmp(hh,LSB_FIRST_STRING,ORDER_LEN) == 0 )
+           default_order = LSB_FIRST ;
+        else if( strncmp(hh,MSB_FIRST_STRING,ORDER_LEN) == 0 )
+           default_order = MSB_FIRST ;
+     }
    }
 
    /*-- sanity check --*/
@@ -77,7 +81,11 @@ printf("  -- dirname=%s  headname=%s\n",dirname,headname) ;
    dblk->diskptr       = dkptr = myXtNew( THD_diskptr ) ;
    dkptr->type         = DISKPTR_TYPE ;
    dkptr->storage_mode = STORAGE_UNDEFINED ;
+#if 0
    dkptr->byte_order   = native_order ;  /* 25 April 1998 */
+#else
+   dkptr->byte_order   = default_order;  /* 21 June 2000 */
+#endif
 
    ADDTO_KILL(dblk->kl,dkptr) ;
 

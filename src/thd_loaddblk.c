@@ -18,18 +18,11 @@ Boolean THD_load_datablock( THD_datablock * blk , generic_func * freeup )
 ENTRY("THD_load_datablock") ;
 
    if( native_order < 0 ) native_order = mri_short_order() ;
-   if( no_mmap < 0 ){
-      char * hh = my_getenv("AFNI_NOMMAP") ;
-      if( hh == NULL ) no_mmap = 0 ;
-      else             no_mmap = (strcmp(hh,"YES") == 0) ;
-   }
 
-   if( floatscan < 0 ){                         /* 30 Jul 1999 */
-      char * hh = my_getenv("AFNI_FLOATSCAN") ;
-      if( hh == NULL ) floatscan = 0 ;
-      else             floatscan = 1 ;
-      if( floatscan ) no_mmap = 1 ;
-   }
+   floatscan = AFNI_yesenv("AFNI_FLOATSCAN") ;
+
+   if( floatscan ) no_mmap = 1 ;
+   else            no_mmap = AFNI_yesenv("AFNI_NOMMAP") ;
 
    /*-- sanity checks --*/
 

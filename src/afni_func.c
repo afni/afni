@@ -794,7 +794,7 @@ void AFNI_force_adoption( THD_session * ss , Boolean do_anats )
 {
    int aa , ff , vv , apref=0 , aset=-1 ;
    THD_3dim_dataset * dset ;
-   int quiet = (NULL != my_getenv("AFNI_NO_ADOPTION_WARNING")) ; /* 03 Dec 1999 */
+   int quiet = AFNI_yesenv("AFNI_NO_ADOPTION_WARNING") ; /* 03 Dec 1999 */
    int first = 1 ;
 
 ENTRY("AFNI_force_adoption") ;
@@ -4068,9 +4068,10 @@ ENTRY("AFNI_bucket_label_CB") ;
   Callback for all actions in the misc menu
 -----------------------------------------------------------------*/
 
-void AFNI_misc_CB( Widget w , XtPointer cd , XtPointer cbs )
+void AFNI_misc_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
+   XmAnyCallbackStruct * cbs = (XmAnyCallbackStruct *) cbd ;
 
 ENTRY("AFNI_misc_CB") ;
 
@@ -4211,6 +4212,57 @@ STATUS("got func info") ;
 #ifdef USE_WRITEOWNSIZE
    else if( w == im3d->vwid->dmode->misc_writeownsize_pb ){
       im3d->vinfo->writeownsize = MCW_val_bbox( im3d->vwid->dmode->misc_writeownsize_bbox ) ;
+   }
+#endif
+
+   /*.........................................................*/
+
+#ifdef ALLOW_PLUGINS
+   else if( w == im3d->vwid->dmode->misc_environ_pb ){ /* 20 Jun 2000 */
+      static PLUGIN_interface * plint=NULL ;
+      Widget wpop ;
+
+      /* first time in: create interface like a plugin */
+
+      if( plint == NULL ){
+         plint = ENV_init() ;
+         if( plint == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
+         PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
+      }
+
+      /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
+
+      plint->im3d = im3d ;
+      XtVaSetValues( plint->wid->shell ,
+                      XmNtitle     , "AFNI Environmentalism", /* top of window */
+                      XmNiconName  , "Green AFNI"           , /* label on icon */
+                     NULL ) ;
+      PLUTO_cursorize( plint->wid->shell ) ;
+
+      /*-- if possible, find where this popup should go --*/
+
+      wpop = plint->wid->shell ;
+
+      if( cbs != NULL && cbs->event != NULL
+                      && cbs->event->type == ButtonRelease ){
+
+         XButtonEvent * xev = (XButtonEvent *) cbs->event ;
+         int xx = (int) xev->x_root , yy = (int) xev->y_root ;
+         int ww,hh , sw,sh ;
+
+         MCW_widget_geom( wpop , &ww,&hh , NULL,NULL ) ;
+         sw = WidthOfScreen (XtScreen(wpop)) ;
+         sh = HeightOfScreen(XtScreen(wpop)) ;
+
+         if( xx+ww+3 >= sw && ww <= sw ) xx = sw-ww ;
+         if( yy+hh+3 >= sh && hh <= sh ) yy = sh-hh ;
+
+         XtVaSetValues( wpop , XmNx , xx , XmNy , yy , NULL ) ;
+      }
+
+      /*-- popup widgets --*/
+
+      XtMapWidget( wpop ) ;  /* after this, is up to user */
    }
 #endif
 

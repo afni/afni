@@ -139,3 +139,21 @@ void AFNI_process_environ( char * fname )
 
    free(fbuf) ; return ;
 }
+
+/*-----------------------------------------------------------------*/
+
+int AFNI_yesenv( char * ename )     /* 21 Jun 2000 */
+{
+   char * ept ;
+   if( ename == NULL ) return 0 ;
+   ept = getenv(ename) ;
+   return YESSISH(ept) ;
+}
+
+int AFNI_noenv( char * ename )     /* 21 Jun 2000 */
+{
+   char * ept ;
+   if( ename == NULL ) return 0 ;
+   ept = getenv(ename) ;
+   return NOISH(ept) ;
+}

@@ -259,8 +259,7 @@ THD_string_array * THD_normalize_flist( THD_string_array * star_in )
 
    if( star_in == NULL || star_in->num <= 0 ) return NULL ;
 
-   rp = my_getenv( "AFNI_NOREALPATH" ) ;    /* 03 Mar 1999 */
-   if( rp != NULL ) skip_realpath = 1 ;
+   skip_realpath = AFNI_yesenv("AFNI_NOREALPATH") ;
 
    INIT_SARR(star_out) ;
 

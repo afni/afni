@@ -2178,3 +2178,8 @@
 16 Jun 2000
  * Added "Tran 2D" to color pbar popup for AFNI controllers.
  * Fixed "Save to PPM" to save a check pattern for the "none" color.
+
+19 Jun 2000
+ * Added ability to set initial string in a "user-typein" string field
+     in PLUTO_add_string().
+ * Created plug_environ.c.

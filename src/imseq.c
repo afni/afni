@@ -2613,7 +2613,8 @@ fflush(stdout) ;
                 (event->width  != seq->sized_xim->width ) ||
                 (event->height != seq->sized_xim->height)   ){
 
-               static int enforce_aspect = -1 ;  /* 09 Oct 1999 */
+               int enforce_aspect ;  /* 09 Oct 1999 */
+               char * hh ;
 
                seq->wimage_width = seq->wimage_height = -1 ; /* Feb 1998 */
 
@@ -2621,8 +2622,8 @@ fflush(stdout) ;
 
                /*-- 09 Oct 1999: if ordered, enforce aspect --*/
 
-               if( enforce_aspect < 0 )
-                  enforce_aspect = (my_getenv("AFNI_ENFORCE_ASPECT") != NULL) ;
+               hh = my_getenv("AFNI_ENFORCE_ASPECT") ;  /* 21 Jun 2000 */
+               enforce_aspect = YESSISH(hh) ;
 
                if( enforce_aspect && !seq->opt.free_aspect )
                   ISQ_reset_dimen( seq , seq->last_width_mm , seq->last_height_mm ) ;

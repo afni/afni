@@ -277,7 +277,7 @@ void PCOR_get_pcor(PCOR_references * ref, PCOR_voxel_corr * vc, float * pcor)
 
    if( deneps < 0.0 ){
       char * ccc = my_getenv("AFNI_PCOR_DENEPS") ;
-      if( ccc != NULL ) deneps = strtod( ccc , NULL ) ;
+      if( ccc != NULL && isdigit(ccc[0]) ) deneps = strtod( ccc , NULL ) ;
       if( deneps < 0.0 ) deneps = DENEPS ;
    }
 

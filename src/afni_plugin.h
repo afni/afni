@@ -84,7 +84,7 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 
 /* dimensions of various arrays */
 
-#define PLUGIN_LABEL_SIZE           16  /* for buttons and menus */
+#define PLUGIN_LABEL_SIZE           32  /* for buttons and menus */
 #define PLUGIN_STRING_SIZE          64  /* longer things */
 
 #if 1
@@ -299,6 +299,9 @@ extern int PLUTO_dset_check ( int,int,int, THD_3dim_dataset * ) ;
 #define PLUTO_add_dataset        add_dataset_to_PLUGIN_interface
 #define PLUTO_add_timeseries     add_timeseries_to_PLUGIN_interface
 #define PLUTO_add_dataset_list   add_dataset_list_to_PLUGIN_interface
+
+#define PLUTO_register_environment_numeric ENV_add_numeric     /* 20 Jun 2000 */
+#define PLUTO_register_environment_string  ENV_add_string
 
 extern void PLUTO_add_hint( PLUGIN_interface * , char * ) ;
 

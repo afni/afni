@@ -573,6 +573,13 @@ ENTRY("PLUTO_add_hint") ;
       sv = &(opt->subvalue[nsv-1]) ;
       myXtFree(sv->hint) ;
       sv->hint = XtNewString(hh) ;
+
+#if 0
+if(PRINT_TRACING)
+{ char str[256] ; sprintf(str,"%s: %s hint=%s",
+                          plint->label,sv->label,sv->hint) ; STATUS(str) ; }
+#endif
+
    }
 
    EXRETURN ;
@@ -627,7 +634,10 @@ ENTRY("add_number_to_PLUGIN_interface") ;
    opt  = plint->option[nopt] ;
 
    nsv = opt->subvalue_count ;
-   if( nsv == PLUGIN_MAX_SUBVALUES ) EXRETURN ;
+   if( nsv == PLUGIN_MAX_SUBVALUES ){
+      fprintf(stderr,"*** Warning: maximum plugin subvalue count exceeded!\n");
+      EXRETURN ;
+   }
 
    /*-- load values into next subvalue --*/
 
@@ -686,7 +696,10 @@ ENTRY("add_string_to_PLUGIN_interface") ;
    opt  = plint->option[nopt] ;
 
    nsv = opt->subvalue_count ;
-   if( nsv == PLUGIN_MAX_SUBVALUES ) EXRETURN ;
+   if( nsv == PLUGIN_MAX_SUBVALUES ){
+      fprintf(stderr,"*** Warning: maximum plugin subvalue count exceeded!\n");
+      EXRETURN ;
+   }
 
    /*-- load values into next subvalue --*/
 
@@ -707,6 +720,12 @@ ENTRY("add_string_to_PLUGIN_interface") ;
       sv->string_range_count = 0 ;
       sv->editable           = TRUE ;
       sv->value_default      = defval ;
+
+      if( strlist != NULL && strlist[0] != NULL ){     /* 19 Jun 2000 */
+         sv->string_range_count = -1 ;
+         sv->string_range[0] = XtMalloc( PLUGIN_STRING_SIZE ) ;
+         MCW_strncpy( sv->string_range[0], strlist[0], PLUGIN_STRING_SIZE ) ;
+      }
    }
 
    (opt->subvalue_count)++ ;
@@ -800,7 +819,10 @@ ENTRY("add_dataset_to_PLUGIN_interface") ;
    opt  = plint->option[nopt] ;
 
    nsv = opt->subvalue_count ;
-   if( nsv == PLUGIN_MAX_SUBVALUES ) EXRETURN ;
+   if( nsv == PLUGIN_MAX_SUBVALUES ){
+      fprintf(stderr,"*** Warning: maximum plugin subvalue count exceeded!\n");
+      EXRETURN ;
+   }
 
    /*-- load values into next subvalue --*/
 
@@ -841,7 +863,10 @@ ENTRY("add_dataset_list_to_PLUGIN_interface") ;
    opt  = plint->option[nopt] ;
 
    nsv = opt->subvalue_count ;
-   if( nsv == PLUGIN_MAX_SUBVALUES ) EXRETURN ;
+   if( nsv == PLUGIN_MAX_SUBVALUES ){
+      fprintf(stderr,"*** Warning: maximum plugin subvalue count exceeded!\n");
+      EXRETURN ;
+   }
 
    /*-- load values into next subvalue --*/
 
@@ -884,7 +909,10 @@ ENTRY("add_timeseries_to_PLUGIN_interface") ;
    opt  = plint->option[nopt] ;
 
    nsv = opt->subvalue_count ;
-   if( nsv == PLUGIN_MAX_SUBVALUES ) EXRETURN ;
+   if( nsv == PLUGIN_MAX_SUBVALUES ){
+      fprintf(stderr,"*** Warning: maximum plugin subvalue count exceeded!\n");
+      EXRETURN ;
+   }
 
    /*-- load values into next subvalue --*/
 
@@ -1409,6 +1437,9 @@ ENTRY("PLUG_setup_widgets") ;
                            XmNtraversalOn , False ,
                            XmNinitialResourcesPersistent , False ,
                         NULL ) ;
+
+                  if( sv->string_range_count == -1 )
+                    XmTextFieldSetString( av->textf , sv->string_range[0] ) ;
 
                   XtManageChild( av->rowcol ) ;
 

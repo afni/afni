@@ -20,7 +20,12 @@ N.B.: Changes to environment variables AFTER you start a program will
       not be seen by that program, since each running program gets
       a private copy of the entire set of environment variables when
       it starts.  This is a standard Unix feature, and is not specific
-      to AFNI.
+      to AFNI.  Some variables can be set internally in AFNI using
+      the "Edit Environment" control from the "Datamode->Misc" menu.
+
+N.B.: Some variables below are described as being of "YES/NO" type.
+      This means that they should either be set to the value "YES"
+      or to the value "NO".
 
 ********************************************************
 June 1999: Setting environment variables in file .afnirc
@@ -159,14 +164,14 @@ dynamically loaded shared objects.
 ------------------------
 Variable: AFNI_NOPLUGINS
 ------------------------
-If this variable is set to anything, then AFNI will not try to read
-plugins when it starts up.  The command line switch "-noplugins"
+If this YES/NO variable is set to YES, then AFNI will not try to
+read plugins when it starts up.  The command line switch "-noplugins"
 will have the same effect.
 
 --------------------------
 Variable: AFNI_YESPLUGOUTS
 --------------------------
-If this variable is set to anything, then AFNI will try to listen
+If this YES/NO variable is set to YES, then AFNI will try to listen
 for plugouts when it starts.  The command line switch "-yesplugouts"
 will have the same effect.  (Plugouts are an experimental feature
 that allow external programs to exchange data with AFNI.)
@@ -278,15 +283,30 @@ means to set all datasets to the CPU default order, which is probably
 what you are using now.  (You can use the program 'byteorder' to
 find out the native byte ordering of your CPU.)
 
+------------------------------
+Variable: AFNI_BYTEORDER_INPUT
+------------------------------
+This variable is used to control the byte order for input files.
+If you use it, the two legal values are "LSB_FIRST" and "MSB_FIRST".
+The value of this variable is only used for old datasets that do
+not have the byte order encoded in their headers.  If this variable
+is not present, then the CPU native byte order is used.  If this
+variable is present, and its value differs from the native byte
+order, then 2 byte dataset BRIKs (short) are 2-swapped (as in
+"ab" -> "ba") when they are read from disk, and 4 byte datasets
+(float, complex) are 4-swapped ("abcd" -> "dcba").
+
+[per the request of John Koger]
+
 ---------------------
 Variable: AFNI_NOMMAP
 ---------------------
-This variable can be used to turn off the mmap feature by which AFNI
-can load datasets into memory using the map-file-to-memory functionality
-of Unix.  (Dataset .BRIK files will only be mmap-ed if they are not
-compressed and are in the native byte order of the CPU.)  On some
-systems, mmap doesn't seem to work very well (e.g., Linux 1.2.13).
-You can disable mmap by 'setenv AFNI_NOMMAP YES'.
+This YES/NO variable can be used to turn off the mmap feature by which
+AFNI can load datasets into memory using the map-file-to-memory
+functionality of Unix.  (Dataset .BRIK files will only be mmap-ed if
+they are not compressed and are in the native byte order of the CPU.)
+On some systems, mmap doesn't seem to work very well (e.g., Linux kernel
+version 1.2.13).  You can disable mmap by 'setenv AFNI_NOMMAP YES'.
 
 The penalty for disabling mmap is that all datasets must be loaded
 into actual RAM.  AFNI does not have the ability to load a dataset
@@ -320,7 +340,7 @@ displays) may get the ability to print to a PostScript file or printer.
 ---------------------------
 Variable: AFNI_LEFT_IS_LEFT
 ---------------------------
-Setting this variable (to anything) tells afni to display images with
+Setting this YES/NO variable to YES tells AFNI to display images with
 the left side of the subject on the left side of the window.  The default
 mode is to display the right side of the subject on the left side of
 the window - the radiology convention.  This "handedness" can also be
@@ -329,7 +349,7 @@ controlled with the "-flipim" and "-noflipim" command line options to afni.
 --------------------------
 Variable: AFNI_ALWAYS_LOCK
 --------------------------
-Setting this variable (to anything) tells afni to start up with all
+Setting this YES/NO variable to YES tells afni to start up with all
 the controller windows locked together.  If you mostly use multiple
 controllers to view datasets in unison, then this will be useful.
 Notice that the Time Lock feature is not automatically enabled
@@ -371,9 +391,9 @@ their names to the "real path" form, which follows symbolic links, and
 removes '/./' and '/../' components.  These converted names are used
 for display purposes in the "Switch Session" chooser and in other
 places.  If you wish to have the names NOT converted to the "real path"
-format, set this environment variable (to anything), as in
+format, set this YES/NO environment variable to YES, as in
 
-   setenv AFNI_NOREALPATH Elvis
+   setenv AFNI_NOREALPATH YES
 
 (For more information on the "real path" conversion, see the Unix
 man page for the realpath() function.)  Note that if you use this
@@ -388,10 +408,10 @@ AFNI uses a set of "wrapper" macros and functions to let itself keep
 track of the memory allocated and freed by the C malloc() library.
 This is useful for debugging purposes (see the last items on the 'Misc'
 menu in the AFNI 'Define Datamode' control panel), but carries a small
-overhead (both in memory and speed).  Setting this environment variable
-(to anything) provides one way to disable this facility, as in
+overhead (both in memory and speed).  Setting this YES/NO environment
+variable to YES provides one way to disable this facility, as in
 
-   setenv AFNI_NO_MCW_MALLOC Elbereth
+   setenv AFNI_NO_MCW_MALLOC YES
 
 Another way to permanently disable this capability (so that it isn't
 even compiled) is outlined in the file machdep.h.  Also, the interactive
@@ -419,7 +439,7 @@ interactively from the FIM->Edit Ideal submenu in a graph viewer.
 ------------------------
 Variable: AFNI_FLOATSCAN
 ------------------------
-If this variable is set (to any value), then floating point bricks
+If this YES/NO variable is set to YES, then floating point bricks
 are checked for illegal values (NaN and Infinity) when they are
 read into an AFNI program -- illegal values will be replaced by
 zeros.  If a dataset brick contains such illegal values that go
@@ -441,8 +461,8 @@ to3d must be used.
 -----------------------
 Variable: AFNI_NOSPLASH
 -----------------------
-If this variable is set (to any value), then the AFNI splash screen will
-not be displayed when the program starts.
+If this YES/NO variable is set to YES, then the AFNI splash screen
+will not be displayed when the program starts.
 
 -------------------------
 Variable: AFNI_SPLASHTIME
@@ -503,7 +523,7 @@ If you don't set this variable, the default mask is 23 = 1+2+4+16.
 -----------------------------------
 Variable: AFNI_NO_BYTEORDER_WARNING
 -----------------------------------
-If this variable is set (to anything), then AFNI program will not
+If this YES/NO variable is set to YES, then AFNI program will not
 warn you when reading in a dataset that does not contain a byte
 order flag.  The default is to issue such a warning.  Only older
 versions of AFNI create datasets that don't have the byte order
@@ -542,7 +562,7 @@ Variable: AFNI_ENFORCE_ASPECT
 Some Linux window managers do no enforce the aspect ratio (width to height
 proportion) request that the image display module makes.  This means that
 image windows can become undesirably distorted when manually resized.
-Setting this variable (to anything) will make AFNI itself enforce the
+Setting this YES/NO variable to YES will make AFNI itself enforce the
 aspect ratio whenever an image window is resized.
 
 ----------------------------------------
@@ -567,7 +587,7 @@ is easy to misplace what you need in the list.
 -----------------------------
 Variable: AFNI_MARKERS_NOQUAL
 -----------------------------
-If this variable is set (to anything), then the interactive AFNI program
+If this YES/NO variable is set to YES, then the interactive AFNI program
 behaves as if the "-noqual" command line option had been included.  This
 feature was added at the request of Dr. Michael S. Beauchamp, who has a
 rare neurological disorder called "noqaulagnosia".
@@ -594,7 +614,7 @@ beneath each image window showing which side of the image is on the left
 edge of the window.  This label is based on the anatomical directions
 encoded in the anatomical dataset .HEAD file, usually when to3d was used
 to create the file.  If you do NOT want these labels displayed (why not?),
-set this environment variable (to anything).
+set this YES/NO environment variable to YES.
 
 ----------------------------------
 Variable: AFNI_NO_ADOPTION_WARNING
@@ -604,14 +624,14 @@ parent dataset (the "forced adoption" function).  This happens when
 there a dataset does not have an anatomy parent encoded into its .HEAD
 file (either via to3d or 3drefit), and there is more than one anatomical
 dataset in the directory that has Talairach transformation markers
-attached.  If you wish to disable this warning, set this environment
-variable (to anything).  For more information on this subject, please
-see http://varda.biophysics.mcw.edu/~cox/afni_faq.html#AnatParent .
+attached.  If you wish to disable this warning, set this YES/NO variable
+to YES.  For more information on this subject, please see
+  http://varda.biophysics.mcw.edu/~cox/afni_faq.html#AnatParent .
 
 -----------------------------------
 Variable: AFNI_NO_NEGATIVES_WARNING
 -----------------------------------
-If this variable is set (to anything), then to3d will skip the usual
+If this YES/NO variable is set to YES, then to3d will skip the usual
 warning that it pops up in a message window when it discovers negative
 values in the input short images.  (The warning will still be printed
 to stdout.)
@@ -619,7 +639,7 @@ to stdout.)
 ----------------------
 Variable: AFNI_NO_XDBE
 ----------------------
-If this variable is set (to anything), then the X11 Double Buffer
+If this YES/NO variable is set to YES, then the X11 Double Buffer
 Extension (XDBE) will not be used, even if the X11 server supports it.
 This is needed when the X11 server says that it supports it, but actually
 does not implement it correctly - this is a problem on the Xsgi server
@@ -645,11 +665,11 @@ be turned on.  If you then switch to a dataset that does have a
 +tlrc.BRIK file, "Warp Anat on Demand" will still be turned on,
 although the "View Anat Data Brick" option will be enabled.
 
-If you set the environment variable AFNI_VIEW_ANAT_BRICK (to anything),
+If you set the YES/NO variable AFNI_VIEW_ANAT_BRICK to YES,
 then "View Anat Data Brick" will be turned on whenever possible after
-switching datasets.  Similarly, setting AFNI_VIEW_FUNC_BRICK will
-engage "View Func Data Brick" whenever possible (when the BRIK file
-exists and its grid spacing matches the anatomical grid spacing).
+switching datasets.  Similarly, setting AFNI_VIEW_FUNC_BRICK to YES
+will engage "View Func Data Brick" whenever possible (when the BRIK
+file exists and its grid spacing matches the anatomical grid spacing).
 Note that switching any dataset (func or anat) triggers the same
 routine, and will set either or both "View Brick" modes on.  When
 these environment variables are present, the only way to switch to
@@ -707,13 +727,11 @@ files to be skipped.
 Variable: AFNI_IMAGE_PGMFILE
 ----------------------------
 If this variable is set, it is the name of an image file to be read
-that will be shown (sometimes) in the AFNI splash window, when this
-window is popped up by left-clicking in the blank square just to the
-right of the AFNI controller "done" button.  This image should be in
-PGM format, and be 436 pixels wide and 140 deep.  (The "AFNI rocks"
-image will still be shown at startup, and your custom image will also
-share screen time with any other images I've preloaded into the system;
-at this time, the only such image is the "MCW AFNI gang" picture.)
+that will be shown in the AFNI splash window, when this window is popped
+up by left-clicking in the blank square just to the right of the AFNI
+controller "done" button.  This image should be in PGM format, and be
+436 pixels wide and 140 deep - otherwise AFNI will resize it to fit these
+dimensions.  (The "AFNI rocks" image will still be shown at startup.)
 This filename should be an absolute pathname, so that AFNI can find it
 regardless of the directory in which AFNI is started.
 

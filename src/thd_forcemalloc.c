@@ -8,13 +8,9 @@ void THD_force_malloc_type( THD_datablock * blk , int mem_type )
 {
    int new_type ;
 
-   if( native_order < 0 ) native_order = mri_short_order() ;
+   no_mmap = AFNI_yesenv("AFNI_NOMMAP") ;
 
-   if( no_mmap < 0 ){
-      char * hh = my_getenv("AFNI_NOMMAP") ;
-      if( hh == NULL ) no_mmap = 0 ;
-      else             no_mmap = (strcmp(hh,"YES") == 0) ;
-   }
+   if( native_order < 0 ) native_order = mri_short_order() ;
 
    /*-- sanity checks --*/
 

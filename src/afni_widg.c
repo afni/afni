@@ -4503,6 +4503,9 @@ ENTRY("AFNI_misc_button") ;
 #endif
                              " Anat Info         = Show 3dinfo output\n"
                              " Func Info         = for current datasets\n"
+#ifdef ALLOW_PLUGINS
+                             " Edit Environment  = Control environment vars\n"
+#endif
                              " Version Check     = Check AFNI version\n"
                              " Purge Memory      = Of dataset BRIKs\n"
 #ifdef USE_TRACING
@@ -4619,7 +4622,21 @@ ENTRY("AFNI_misc_button") ;
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_func_info_pb , "Popup func dataset info" ) ;
 
-   /*--- pushbutton to popup the README.changes file ---*/
+   /*--- 20 Jun 2000: pushbutton to popup the Environment pseudo-plugin ---*/
+
+#ifdef ALLOW_PLUGINS
+   dmode->misc_environ_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("Edit Environment") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_environ_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_environ_pb , "Control environment variables" ) ;
+#endif
 
    (void) XtVaCreateManagedWidget(
             "dialog" , xmSeparatorWidgetClass , menu ,

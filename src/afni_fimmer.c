@@ -763,7 +763,7 @@ STATUS("making new dataset") ;
 
    if( ibr_perc >= 0 || ibr_pave >= 0 || ibr_ptop >= 0 ){
       char * cp = my_getenv("AFNI_FIM_PERCENT_LIMIT") ;
-      if( cp != NULL ){
+      if( cp != NULL && isdigit(cp[0]) ){
          float tp = strtod(cp,NULL) ;
          if( tp > 0.0 ) top_perc = tp ;
       }

@@ -122,12 +122,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.26c"
+#define VERSION "2.26d"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "18 May 2000      "
+#define RELEASE "20 Jun 2000      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -537,6 +537,11 @@ typedef struct {
       MCW_bbox     * misc_writeownsize_bbox ;
 
       MCW_bbox     * misc_voxind_bbox , * misc_hints_bbox ; /* 01 Aug 1999 */
+
+#ifdef ALLOW_PLUGINS
+      Widget         misc_environ_pb ;  /* 20 Jun 2000 */
+#endif
+
 } AFNI_datamode_widgets ;
 
 /*---*/
@@ -822,6 +827,15 @@ extern int AFNI_controller_index( Three_D_View * ) ;
 
 #ifdef ALLOW_PLUGINS
 #  include "afni_plugin.h"
+
+   /*-- pseudo-plugin functions --*/
+
+   extern PLUGIN_interface * ENV_init(void) ;            /* 20 Jun 2000 */
+   extern void ENV_add_numeric( char * , char * ,
+                                int , int , int , int , generic_func * ) ;
+   extern void ENV_add_string( char * , char * ,
+                               int , char ** , generic_func * ) ;
+
 #endif
 
 typedef struct {                 /* windows and widgets */

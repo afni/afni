@@ -38,6 +38,8 @@ void REND_clip_CB   ( MCW_arrowval * , XtPointer ) ;     /* Clip arrowvals */
 
 void REND_xhair_recv( int,int , int *, void * ) ;        /* 29 Mar 1999 */
 
+void REND_environ_CB( char * ) ;                         /* 20 Jun 2000 */
+
 void   REND_choose_av_CB      ( MCW_arrowval * , XtPointer ) ; /* Sub-brick menus */
 char * REND_choose_av_label_CB( MCW_arrowval * , XtPointer ) ;
 void   REND_opacity_scale_CB  ( MCW_arrowval * , XtPointer ) ;
@@ -54,6 +56,20 @@ void REND_textact_CB( Widget , XtPointer , XtPointer ) ; /* press Enter in a tex
 static float angle_fstep  = 5.0 ;
 static float cutout_fstep = 5.0 ;
 
+#define NUM_precalc    3
+static char * precalc_strings[] = { "Low" , "Medium" , "High" } ;
+static int    precalc_mode[]    = { PMODE_LOW,PMODE_MEDIUM,PMODE_HIGH } ;
+
+#define MODE_LOW       0
+#define MODE_MEDIUM    1
+#define MODE_HIGH      2
+
+#ifdef SGI
+static int   precalc_ival   = MODE_LOW    ;
+#else
+static int   precalc_ival   = MODE_MEDIUM ;
+#endif
+
 /***********************************************************************
    Set up the interface to the user.  Note that we bypass the
    normal interface creation, and simply have the menu selection
@@ -63,6 +79,9 @@ static float cutout_fstep = 5.0 ;
 
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
+   char * env ;
+   float  val ;
+   int    ii  ;
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
 
@@ -72,6 +91,52 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_hint( plint , "Volume Rendering" ) ;
 
    PLUTO_set_sequence( plint , "A:graphics" ) ;
+
+   /***----- retrieve relevant environment variables, if any -----***/
+
+   env = getenv("AFNI_RENDER_ANGLE_DELTA") ;
+   if( env != NULL ){
+      val = strtod(env,NULL) ;
+      if( val > 0.0 && val < 100.0 ) angle_fstep = val ;
+   }
+   PLUTO_register_environment_numeric( "AFNI_RENDER_ANGLE_DELTA" ,
+                                       "Angle stepsize in deg (volume renderer)" ,
+                                       1,9,0,(int)angle_fstep, REND_environ_CB );
+
+   /*--*/
+
+   env = getenv("AFNI_RENDER_CUTOUT_DELTA") ;
+   if( env != NULL ){
+      val = strtod(env,NULL) ;
+      if( val > 0.0 && val < 100.0 ) cutout_fstep = val ;
+   }
+   PLUTO_register_environment_numeric( "AFNI_RENDER_CUTOUT_DELTA" ,
+                                       "Cutout stepsize in mm (volume renderer)" ,
+                                       1,9,0,(int)cutout_fstep, REND_environ_CB );
+
+   /*--*/
+
+   env = getenv("AFNI_RENDER_PRECALC_MODE") ;
+   if( env != NULL ){
+      for( ii=0 ; ii < NUM_precalc ; ii++ )
+         if( strcmp(env,precalc_strings[ii]) == 0 ) break ;
+      if( ii < NUM_precalc ) precalc_ival = precalc_mode[ii] ;
+   }
+
+   /*--*/
+
+   env = getenv("AFNI_RENDER_SHOWTHRU_FAC") ;
+   if( env != NULL ){
+      val = strtod(env,NULL) ;
+      if( val < 0.0 || val > 1.0 ) val = 1.0 ;
+   } else {
+      val = 1.0 ;
+   }
+   PLUTO_register_environment_numeric( "AFNI_RENDER_SHOWTHRU_FAC" ,
+                                       "ShowThru mixing factor (volume renderer)",
+                                       10,100,2,(int)rint(100.0*val) , NULL ) ;
+
+   /*-- done --*/
 
    return plint ;
 }
@@ -115,15 +180,6 @@ static char * accum_bbox_label[1]   = { "Accumulate" } ;
 
 /* Other data */
 
-#define MODE_LOW       0
-#define MODE_MEDIUM    1
-#define MODE_HIGH      2
-
-#define NUM_precalc    3
-
-static char * precalc_strings[] = { "Low" , "Medium" , "High" } ;
-static int    precalc_mode[]    = { PMODE_LOW,PMODE_MEDIUM,PMODE_HIGH } ;
-
 static MCW_DC * dc ;                   /* display context */
 static Three_D_View * im3d ;           /* AFNI controller */
 static THD_3dim_dataset * dset ;       /* The dataset!    */
@@ -146,12 +202,6 @@ static MRI_IMAGE * grim_showthru=NULL ,
       FREEIM(grim_showthru); FREEIM(opim_showthru) ; } while(0) ;
 
 #define NEED_VOLUMES (grim == NULL || opim == NULL)
-
-#ifdef SGI
-static int   precalc_ival   = MODE_LOW    ;
-#else
-static int   precalc_ival   = MODE_MEDIUM ;
-#endif
 
 static int   dynamic_flag   = 0      ;
 static int   accum_flag     = 0      ;
@@ -757,27 +807,6 @@ void REND_make_widgets(void)
    int ii ;
    char * env ;
    float val ;
-
-   /***----- retrieve relevant environment variables, if any -----***/
-
-   env = getenv("AFNI_RENDER_ANGLE_DELTA") ;
-   if( env != NULL ){
-      val = strtod(env,NULL) ;
-      if( val > 0.0 && val < 100.0 ) angle_fstep = val ;
-   }
-
-   env = getenv("AFNI_RENDER_CUTOUT_DELTA") ;
-   if( env != NULL ){
-      val = strtod(env,NULL) ;
-      if( val > 0.0 && val < 100.0 ) cutout_fstep = val ;
-   }
-
-   env = getenv("AFNI_RENDER_PRECALC_MODE") ;
-   if( env != NULL ){
-      for( ii=0 ; ii < NUM_precalc ; ii++ )
-         if( strcmp(env,precalc_strings[ii]) == 0 ) break ;
-      if( ii < NUM_precalc ) precalc_ival = precalc_mode[ii] ;
-   }
 
    /***=============================================================*/
 
@@ -2128,15 +2157,13 @@ void REND_draw_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if( func_computed && func_showthru ){
       MRI_IMAGE * cim ;
 
-      static float ccf=-666.0 , ggf ;  /* 10 Jan 2000: merger factors */
-      static int   ccm=0 ;
-      if( ccf < 0.0 ){
-         char * env = getenv("AFNI_RENDER_SHOWTHRU_FAC") ;
-         if( env != NULL ) ccf = strtod(env,NULL) ;
-         if( ccf <= 0.0 || ccf > 1.0 ) ccf = 1.0 ;
-         ggf = 1.0 - ccf ;
-         ccm = (ccf != 1.0) ;
-      }
+      float ccf=-666.0 , ggf ;  /* 10 Jan 2000: merger factors */
+      int   ccm=0 ;
+      char * env = getenv("AFNI_RENDER_SHOWTHRU_FAC") ;
+      if( env != NULL ) ccf = strtod(env,NULL) ;
+      if( ccf <= 0.0 || ccf > 1.0 ) ccf = 1.0 ;
+      ggf = 1.0 - ccf ;
+      ccm = (ccf != 1.0) ;
 
       func_showthru_pass = 1 ;
       REND_reload_renderer() ;  /* load showthru data */
@@ -7328,3 +7355,49 @@ fprintf(stderr,"** New overlay dataset doesn't match underlay dimensions!\n") ;
 }
 
 #endif /* USE_SCRIPTING */
+
+/*-------------------------------------------------------------------------
+   When a registered environment variable is changed, this
+   function will be called - 20 Jun 2000!
+---------------------------------------------------------------------------*/
+
+void REND_environ_CB( char * ename )
+{
+   char * ept ;
+   float val ;
+
+   /* sanity checks */
+
+   if( ename == NULL ) return ;
+   ept = getenv(ename) ;
+   if( ept == NULL ) return ;
+
+   /*---*/
+
+   if( strcmp(ename,"AFNI_RENDER_ANGLE_DELTA") == 0 ){
+      float val = strtod(ept,NULL) ;
+      if( val > 0.0 && val < 100.0 ){
+         angle_fstep = val ;
+         if( shell != NULL )
+            roll_av->fstep = pitch_av->fstep = yaw_av->fstep = val ;
+      }
+   }
+
+   /*---*/
+
+   else if( strcmp(ename,"AFNI_RENDER_CUTOUT_DELTA") == 0 ){
+      float val = strtod(ept,NULL) ;
+      if( val > 0.0 && val < 100.0 ){
+         int ii ;
+         cutout_fstep = val ;
+         if( shell != NULL ){
+            for( ii=0 ; ii < MAX_CUTOUTS ; ii++ )
+               cutouts[ii]->param_av->fstep = val ;
+         }
+      }
+   }
+
+   /*---*/
+
+   return ;
+}

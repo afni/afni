@@ -174,6 +174,7 @@ WHOAMI ;
 
 /*********************************************************************/
 
+#if 0
 #define NUMSCAN(var)                                                       \
    { while( isspace(ch) ) {ch = getc(imfile) ;}                            \
      if(ch == '#') do{ch = getc(imfile) ;}while(ch != '\n' && ch != EOF) ; \
@@ -181,6 +182,17 @@ WHOAMI ;
      for( nch=0 ; isdigit(ch) ; nch++,ch=getc(imfile) ) {buf[nch] = ch ;}  \
      buf[nch]='\0';                                                        \
      var = strtol( buf , NULL , 10 ) ; }
+#else
+#define SKIPCOM                                                            \
+    {if(ch == '#') do{ch = getc(imfile) ;}while(ch != '\n' && ch != EOF);}
+
+#define NUMSCAN(var)                                                       \
+   { SKIPCOM ;                                                             \
+     while( ch!=EOF && !isdigit(ch) ){ch = getc(imfile); SKIPCOM; }        \
+     for( nch=0 ; isdigit(ch) ; nch++,ch=getc(imfile) ) {buf[nch] = ch ;}  \
+     buf[nch]='\0';                                                        \
+     var = strtol( buf , NULL , 10 ) ; }
+#endif
 
 MRI_IMAGE *mri_try_mri( FILE *imfile , int *skip )
 {

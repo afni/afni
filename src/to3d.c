@@ -91,7 +91,7 @@ void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
    MCW_help_CB(NULL,NULL,NULL) ;
    MCW_alter_widget_cursor( wset.topshell , -XC_left_ptr , "yellow","blue" ) ;
 
-   if( negative_shorts && getenv("AFNI_NO_NEGATIVES_WARNING")==NULL ){ /* 19 Jan 2000 */
+   if( negative_shorts && !AFNI_yesenv("AFNI_NO_NEGATIVES_WARNING") ){ /* 19 Jan 2000 */
       sprintf(msg , " \n"
                     " WARNING: %d negative voxels were\n"
                     "          read in images of shorts.\n"
@@ -233,15 +233,7 @@ QQQ("main1");
 
 QQQ("main2");
 
-   { char * hh = my_getenv("AFNI_HINTS") ;
-     if( hh != NULL && ( strncmp(hh,"NO"  ,2)==0 ||
-                         strncmp(hh,"no"  ,2)==0 ||
-                         strncmp(hh,"No"  ,2)==0 ||
-                         strncmp(hh,"KILL",4)==0 ||
-                         strncmp(hh,"Kill",4)==0 ||
-                         strncmp(hh,"kill",4)==0   ) )
-        MCW_hint_toggle() ;
-   }
+   if( AFNI_noenv("AFNI_HINTS") ) MCW_hint_toggle() ;
 
    /* let the user do the rest */
 

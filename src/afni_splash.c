@@ -34,11 +34,13 @@ ENTRY("AFNI_splashdown") ;
 #ifdef USE_FADING
       float max_splash = 3.0 ;
       char * hh = getenv("AFNI_SPLASHTIME") ;
-      if( hh != NULL ) max_splash = strtod(hh,NULL) ;
+      if( hh != NULL && isdigit(hh[0]) ) max_splash = strtod(hh,NULL) ;
       if( max_splash > 0.0 ){
          if( imspl != NULL ){  /* fade gently away */
             byte * bspl ; int ii , nv , kk ; double et ;
-            bspl = MRI_BYTE_PTR(imspl) ; nv = imspl->nvox ; et = COX_clock_time() ;
+            bspl = mri_data_pointer(imspl) ;
+            nv   = (imspl->pixel_size) * (imspl->nvox) ;
+            et   = COX_clock_time() ;
             for( kk=0 ; kk < 10 ; kk++ ){
 #if 0
                for( ii=0 ; ii < nv ; ii++ ) bspl[ii] *= 0.92 ;
@@ -68,11 +70,8 @@ void AFNI_splashup(void)
    char   bb ;
    byte * bspl ;
    static int first=1 , nov , dnov , nm=-1 ;
-   static char * ufname=NULL ;
 
 ENTRY("AFNI_splashup") ;
-
-   if( first ) ufname = getenv("AFNI_IMAGE_PGMFILE") ;
 
    /*--- create splash image ---*/
 
@@ -90,28 +89,33 @@ ENTRY("AFNI_splashup") ;
       mri_overlay_2D( imspl, imov, IXOVER, JYOVER ) ; mri_free(imov) ;
 
 #ifdef NMAIN
-      if( !first ){                    /* 07 Jun 2000 */
-         nm = (nm+1)%(NMAIN+1) ;
-         if( nm < NMAIN ){
-            imov = SPLASH_decode26( xmain[nm], ymain[nm], lmain[nm], bmain[nm] ) ;
-            mri_overlay_2D( imspl , imov , 0,0 ) ;
-            mri_free(imov) ;
-         } else if( ufname != NULL ){  /* 08 Jun 2000 */
-            imov = mri_read(ufname) ;
+      if( !first || AFNI_yesenv("AFNI_SPLASH_OVERRIDE") ){ /* 07 Jun 2000 */
+         int good=0 ;
+         char * ufname = getenv("AFNI_IMAGE_PGMFILE") ;
+
+         if( ufname != NULL ){         /* 08 & 20 Jun 2000 */
+            imov = mri_read(ufname) ;  /* popup user-supplied image */
             if( imov != NULL ){
                if( imov->nx != xmain[0] || imov->ny != ymain[0] ){
                   MRI_IMAGE * imq = mri_resize(imov,xmain[0],ymain[0]) ;
                   mri_free(imov) ; imov = imq ;
                }
-               if( imov->kind != MRI_byte ){
+               if( imov->kind == MRI_rgb ){             /* color */
+                  MRI_IMAGE * imq = mri_to_rgb(imspl) ;
+                  mri_free(imspl) ; imspl = imq ;
+               } else if( imov->kind != MRI_byte ){     /* gray */
                   MRI_IMAGE * imq = mri_to_byte(imov) ;
                   mri_free(imov) ; imov = imq ;
                }
                mri_overlay_2D( imspl , imov , 0,0 ) ;
-               mri_free(imov) ;
-            } else {
-               ufname = NULL ;     /* mark filename as useless */
+               mri_free(imov) ; good = 1 ;
             }
+         }
+         if( !good ){                  /* no user image ==> use my own */
+            nm = (nm+1)%(NMAIN) ;
+            imov = SPLASH_decode26( xmain[nm],ymain[nm],lmain[nm],bmain[nm] ) ;
+            mri_overlay_2D( imspl , imov , 0,0 ) ;
+            mri_free(imov) ;
          }
       }
 #endif
@@ -156,7 +160,18 @@ ENTRY("AFNI_splashup") ;
                             "Help me if you can, I'm feeling down,\n"
                             "and I do appreciate you being round.\n"
                             "Help me get my feet back on the ground,\n"
-                            "won't you please, please, help me?\n" ) ;
+                            "won't you please, please, help me?" ) ;
+
+
+
+#if 0
+        {                      /* 21 Jun 2000: turn sharpening on */
+         ISQ_options opt ;
+         drive_MCW_imseq( ppp->seq , isqDR_getoptions , (XtPointer) &opt ) ;
+         opt.improc_code |= ISQ_IMPROC_SHARP ;
+         drive_MCW_imseq( ppp->seq , isqDR_options    , (XtPointer) &opt ) ;
+        }
+#endif
       }
 
    /*--- destroy splash image ---*/
