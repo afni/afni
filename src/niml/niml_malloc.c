@@ -249,16 +249,16 @@ static void probe_track( NI_mallitem *ip )
    for( ii=0 ; ii < NEXTRA ; ii++ )
      if( fred[ii] != MAGIC ){
        fprintf(stderr,"*** NI_malloc pre-corruption!  "
-                      "serial=%u size=%d source=%s line#=%d\n",
-                      ip->pss,ip->psz,ip->pfn,ip->pln ) ;
+                      "serial=%u size=%u source=%s line#=%d\n",
+                      ip->pss,(unsigned int)ip->psz,ip->pfn,ip->pln ) ;
         break ;
      }
 
    for( ii=0 ; ii < NEXTRA ; ii++ )
      if( fred[n+NEXTRA+ii] != MAGIC ){
        fprintf(stderr,"*** NI_malloc post-corruption!  "
-                      "serial=%u size=%d source=%s line#=%d\n",
-                      ip->pss,ip->psz,ip->pfn,ip->pln ) ;
+                      "serial=%u size=%u source=%s line#=%d\n",
+                      ip->pss,(unsigned int)ip->psz,ip->pfn,ip->pln ) ;
        break ;
      }
 
@@ -448,8 +448,8 @@ void NI_malloc_dump(void)
      jj = jk[ii] / JBASE ;           /* retrieve jj and kk */
      kk = jk[ii] % JBASE ;
      if( htab[jj][kk].pmt != NULL ){
-       fprintf(fp,"%7u %10d %-20.30s %5d %10p %5d %3d",
-               htab[jj][kk].pss , htab[jj][kk].psz ,
+       fprintf(fp,"%7u %10u %-20.30s %5d %10p %5d %3d",
+               htab[jj][kk].pss , (unsigned int)htab[jj][kk].psz ,
                htab[jj][kk].pfn , htab[jj][kk].pln , htab[jj][kk].pmt ,
                jj,kk ) ;
        fprintf(fp,"\n") ;
