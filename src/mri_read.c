@@ -1734,7 +1734,7 @@ ENTRY("mri_read_ppm") ;
 /*---------------------------------------------------------------*/
 
 /*! Length of line buffer for mri_read_ascii() */
-#define LBUF 65536
+#define LBUF 524288  /* 08 Jul 2004: increased to 512K from 64K */
 
 /*---------------------------------------------------------------*/
 /*! [20 Jun 2002] Like fgets, but also
@@ -1747,11 +1747,11 @@ static char * my_fgets( char *buf , int size , FILE *fts )
 {
    char *ptr ;
    int nbuf , ll,ii , cflag ;
-   static char *qbuf=NULL ;
+   char *qbuf ;
 
    if( buf == NULL || size < 1 || fts == NULL ) return NULL ;
 
-   if( qbuf == NULL ) qbuf = AFMALL(char, LBUF) ;  /* 1st time in */
+   qbuf = AFMALL(char, LBUF) ;  /* 1st time in */
 
    nbuf  = 0 ;  /* num bytes stored in buf so far */
    cflag = 0 ;  /* flag if we're catenating lines */
@@ -1797,6 +1797,8 @@ static char * my_fgets( char *buf , int size , FILE *fts )
      if( !cflag ) break ;
 
    } /* loop to get next line if catenation is turned on */
+
+   free((void *)qbuf) ;  /* 08 Jul 2004 */
 
    /* and we is done */
 
@@ -2046,11 +2048,11 @@ ENTRY("mri_read_1D") ;
 static void read_ascii_floats( char * fname, int * nff , float ** ff )
 {
    int ii,jj,val , used_tsar , alloc_tsar ;
-   float * tsar ;
+   float *tsar ;
    float ftemp ;
-   FILE * fts ;
-   char buf[LBUF] ;
-   char * ptr ;
+   FILE *fts ;
+   char *buf ;  /* 08 Jul 2004: malloc this now, instead of auto */
+   char *ptr ;
    int  bpos , blen , nrow ;
 
    /* check inputs */
@@ -2067,12 +2069,13 @@ static void read_ascii_floats( char * fname, int * nff , float ** ff )
    alloc_tsar = INC_TSARSIZE ;
    tsar       = (float *) malloc( sizeof(float) * alloc_tsar ) ;
    if( tsar == NULL ){
-      fprintf(stderr,"\n*** malloc fails: read_ascii_floats ***\n"); EXIT(1);
+     fprintf(stderr,"\n*** malloc fails: read_ascii_floats ***\n"); EXIT(1);
    }
 
    /** read lines, convert to floats, store **/
 
    nrow = 0 ;
+   buf = (char *)malloc(LBUF) ;
    while( 1 ){
       ptr = fgets( buf , LBUF , fts ) ;  /* read */
       if( ptr == NULL ) break ;          /* failure --> end of data */
@@ -2108,15 +2111,16 @@ static void read_ascii_floats( char * fname, int * nff , float ** ff )
       nrow++ ;                  /* got one more complete row! */
    }
    fclose( fts ) ; /* finished with this file! */
+   free( buf ) ;
 
-   if( used_tsar <= 1 ){ free(tsar) ; *nff=0 ; *ff=NULL ; return ; }
+   if( used_tsar <= 1 ){ free(tsar); *nff=0; *ff=NULL; return; }
 
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){
       fprintf(stderr,"\n*** final realloc fails: read_ascii_floats ***\n"); EXIT(1);
    }
 
-   *nff = used_tsar ; *ff  = tsar ; return ;
+   *nff = used_tsar; *ff  = tsar; return;
 }
 
 /*--------------------------------------------------------------

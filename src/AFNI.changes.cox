@@ -5063,3 +5063,9 @@
 23 Jun 2004
  * Modified AFNI_leave_EV in bbox.c to avoid memory leak (must free up the
      retrieved textfield string if an early exit is taken).
+
+08 Jul 2004
+ * Modified mri_read.c to allow line lengths of up to 512K in *.1D files.
+ * Modified coxplot/plot_ts.c to correctly remove labels from separate plot
+     boxes if input nnayy==0.
+ * Modified 1dgrayplot.c to have new '-sep' option.
