@@ -268,6 +268,7 @@ int main (int argc,char *argv[])
 	/* register all SOs of the first state */	
 		/*fprintf(SUMA_STDERR,"%s: Registering All SO of the first group ...", FuncName);*/
 		SUMAg_cSV->State = SUMAg_cSV->VSv[0].Name;
+		SUMAg_cSV->iState = 0;
 		for (kar=0; kar < SUMAg_cSV->VSv[0].N_MembSOs; ++ kar) {
 			/*fprintf(SUMA_STDERR," About to register DOv[%d] ...\n", SUMAg_cSV->VSv[0].MembSOs[kar]);*/
 				if (!SUMA_RegisterDO(SUMAg_cSV->VSv[0].MembSOs[kar], SUMAg_cSV)) {

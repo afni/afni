@@ -193,14 +193,17 @@ SUMA_SurfaceObject *Alloc_SurfObject_Struct(int N)
 	
 	for (i=0; i< N; ++i) {
 		SO[i].Name_NodeParent = NULL;
-
+		SO[i].EmbedDim = 3;
 		SO[i].MF = NULL;
 		SO[i].FN = NULL;
+		SO[i].FN_Inode = NULL;
 		SO[i].EL = NULL;
+		SO[i].EL_Inode = NULL;
 		SO[i].PolyArea = NULL;
 		SO[i].SC = NULL;
 		SO[i].Cx = NULL;
 		SO[i].Cx_Inode = NULL;
+		SO[i].VolPar = NULL;
 		/* create vector of pointers */
 		SO[i].Overlays = (SUMA_OVERLAYS **) malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
 		SO[i].Overlays_Inode = (SUMA_INODE **) malloc(sizeof(SUMA_INODE *) * SUMA_MAX_OVERLAYS); 

@@ -136,6 +136,7 @@ int SUMA_CommandCode(char *Scom)
 	if (!strcmp(Scom,"Remix")) return (SE_Remix);
 	if (!strcmp(Scom,"ToggleForeground")) return (SE_ToggleForeground);
 	if (!strcmp(Scom,"ToggleBackground")) return (SE_ToggleBackground);
+	if (!strcmp(Scom,"FOVreset")) return (SE_FOVreset);
 	if (!strcmp(Scom,"Home")) return (SE_Home);
 	/*if (!strcmp(Scom,"")) return(SE_);*/
 	
