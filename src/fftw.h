@@ -20,7 +20,6 @@
  */
 
 /* fftw.h -- system-wide definitions */
-/* $Id$ */
 
 #ifndef FFTW_H
 #define FFTW_H

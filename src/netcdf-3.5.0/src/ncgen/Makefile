@@ -1,6 +1,5 @@
 # Makefile for ncgen(1).
 #
-# $Id$
 
 include ../macros.make
 

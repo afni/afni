@@ -1,6 +1,5 @@
 # Makefile for netCDF (semi)exhaustive test.
 #
-# $Id$
 
 include ../macros.make
 # M4FLAGS         = -s -B7168

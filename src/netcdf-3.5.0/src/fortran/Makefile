@@ -1,6 +1,5 @@
 # Makefile for the FORTRAN interface to the netCDF library
 #
-# $Id$
 
 
 include ../macros.make

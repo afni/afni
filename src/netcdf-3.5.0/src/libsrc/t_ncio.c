@@ -2,7 +2,6 @@
  *   Copyright 1995, University Corporation for Atmospheric Research
  *   See top level COPYRIGHT file for copying and redistribution conditions.
  */
-/* $Id$ */
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,6 +1,5 @@
 /* libsrc/ncconfig.h.  Generated automatically by configure.  */
 /* libsrc/ncconfig.in.  Generated automatically from configure.in by autoheader.  */
-/* $Id$ */
 #ifndef _NCCONFIG_H_
 #define _NCCONFIG_H_
 

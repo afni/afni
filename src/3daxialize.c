@@ -230,7 +230,7 @@ int main( int argc , char * argv[] )
 
    if( verbose ){
       printf("++ Writing new dataset .BRIK"); fflush(stdout);
-      pim = brax->n3 / 5 ; if( pim < 1 ) pim = 2 ;
+      pim = brax->n3 / 5 ; if( pim <= 1 ) pim = 2 ;
    }
 
    native_order = mri_short_order() ;                           /* 23 Nov 1999 */

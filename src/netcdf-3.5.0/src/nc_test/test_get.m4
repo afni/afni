@@ -7,7 +7,6 @@ dnl
 /*********************************************************************
  *   Copyright 1996, UCAR/Unidata
  *   See netcdf/COPYRIGHT file for copying and redistribution conditions.
- *   $Id$
  *********************************************************************/
 
 undefine(`index')dnl

@@ -3,7 +3,6 @@
  *	See netcdf/COPYRIGHT file for copying and redistribution conditions.
  * 	
  */
-/* $Id$ */
 #ifndef _CRAY
 #error "ncx_cray.c is a cray specific implementation"
 #endif

@@ -1,4 +1,3 @@
-dnl $Id$
 dnl UD macros for netcdf configure
 
 
