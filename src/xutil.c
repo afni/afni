@@ -1735,3 +1735,21 @@ void RWC_drag_rectangle( Widget w, int x1, int y1, int *x2, int *y2 )
 
    *x2 = xold ; *y2 = yold ;  /* output values */
 }
+
+/*-------------------------------------------------------------------*/
+/*!  Sleep a given # of milliseconds (uses the Unix select routine).
+---------------------------------------------------------------------*/
+
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+void RWC_sleep( int msec )
+{
+   struct timeval tv ;
+   if( msec <= 0 ) return ;             /* can't wait into the past */
+   tv.tv_sec  = msec/1000 ;
+   tv.tv_usec = (msec%1000)*1000 ;
+   select( 1 , NULL,NULL,NULL , &tv ) ;
+   return ;
+}

@@ -3906,3 +3906,6 @@
  * Modified imseq.[ch] and afni.c to suppress multiple image redraws
      when an image window is first opened.
  * Modified plug_nudge.c to extend range of angle and shift choosers.
+ * Modified xutil.h WAIT_for_window() macro to wait a little longer.
+     This is in an attempt to get rid of random problems with graph
+     windows opening with bad Pixmap contents.
