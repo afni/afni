@@ -516,7 +516,7 @@ void cutlines_memplot( int nbot , int ntop , MEM_plotdata *mp )
 
 /*----------------------------------------------------------------------------
   Clip a line to a rectangle.  Return is -1 if the line is totally outside.
-  Otherwise, return is 0 and x1in (etc.) is altered to the clipped line.
+  Otherwise, return is 0 and *x1in (etc.) is altered to the clipped line.
 ------------------------------------------------------------------------------*/
 
 static INLINE int clip_line_to_rect( float xclbot , float yclbot ,
@@ -538,10 +538,11 @@ static INLINE int clip_line_to_rect( float xclbot , float yclbot ,
 
    if( x2 < xclbot || x1 > xcltop ) return -1;
 
-   if( y1 < y2 )
+   if( y1 < y2 ){
      if( y2 < yclbot || y1 > ycltop ) return -1;
-   else
+   } else {
      if( y1 < yclbot || y2 > ycltop ) return -1;
+   }
 
    /* if inside entire region, then do nothing */
 
@@ -596,7 +597,8 @@ static INLINE int clip_line_to_rect( float xclbot , float yclbot ,
 
    /* Line is now guaranteed to be totally inside the plot region.
       Copy local clipped coordinates to output values and return.
-      Note that we must restore points to original input order.   */
+      Note that we must restore points to original input order,
+      if they were interchanged at some point above.              */
 
    if( inter ){
      *x1in = x2 ; *x2in = x1 ; *y1in = y2 ; *y2in = y1 ;
