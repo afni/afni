@@ -246,7 +246,7 @@
 
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "27 February 2003"    /* latest program revision date*/
+#define PROGRAM_LATEST  "03 March 2003"       /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
@@ -352,7 +352,7 @@ void display_help_menu()
 "containing the estimated system impulse response function.                 \n"
     "                                                                       \n"
     "Usage:                                                                 \n"
-    "3dDeconvolve                                                           \n"
+    PROGRAM_NAME "\n"
     "-input fname         fname = filename of 3d+time input dataset         \n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
     "[-nodata]            Evaluate experimental design only (no input data) \n"
@@ -428,6 +428,16 @@ void display_help_menu()
     "                   significance of the estimated impulse response.     \n"
     "                   Output 'bucket' dataset is written to prefixname.   \n"
     );
+
+    printf("\n"
+           "** NOTE **\n"
+           "This version of the program has been compiled to use\n"
+#ifdef FLOATIZE
+           "single precision arithmetic for most internal calculations.\n"
+#else
+           "double precision arithmetic for most internal calculations.\n"
+#endif
+          ) ;
   
   exit(0);
 }

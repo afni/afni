@@ -60,6 +60,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
            3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI \
            dicom_hdr 3dDespike dicom_to_raw file_tool rotcom                \
+           3dDeconvolve_f                                                   \
            $(EXTRAS) Imon
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
@@ -69,7 +70,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp      \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna     \
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot    \
-                  24swap 3dTsmooth RSFgen float_scan                                 \
+                  24swap 3dTsmooth RSFgen float_scan 3dDeconvolve_f                  \
                   3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 3dTstat 1dtranspose \
                   3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot    \
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+      \
@@ -105,7 +106,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze              \
                3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile  \
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike             \
-               dicom_to_raw file_tool rotcom
+               dicom_to_raw file_tool rotcom 3dDeconvolve_f
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS \
@@ -677,6 +678,8 @@ AlphaSim:AlphaSim.o
 3dDeconvolve:3dDeconvolve.o
 	$(RM) $@
 	$(CC) -o 3dDeconvolve 3dDeconvolve.o $(LFLAGS) $(LLIBS)
+
+# The float (vs. double) version of 3dDeconvolve
 
 3dDeconvolve_f.o:3dDeconvolve.c Deconvolve.c RegAna.c matrix_f.c matrix_f.h
 	$(CCFAST) -c 3dDeconvolve.c $(IFLAGS) -DFLOATIZE
