@@ -21,7 +21,7 @@ ZNZ_LIBS	=	-L/usr/freeware/lib32 -L../lib -lznz -lm -lz
 ##ZNZ_LIBS	=	-L/usr/lib -L../lib -lznz -lm -lz
 
 
-UTILS_PROGS     =       mjtest nifti_stats nifti_tool nifti1_test
+UTILS_PROGS     =       nifti_stats nifti_tool nifti1_test
 
 
 
@@ -30,8 +30,6 @@ all:	$(UTILS_PROGS)
 clean:
 	rm -f $(UTILS_PROGS)
 
-mjtest: mjtest.c
-	$(CC) $(CFLAGS) -o mjtest mjtest.c $(NIFTI_INCS) $(ZNZ_INCS) $(ZNZ_LIBS)
 
 nifti_stats: nifti_stats.c
 	$(CC) $(CFLAGS) -o nifti_stats nifti_stats.c $(NIFTI_INCS) $(ZNZ_INCS) $(NIFTI_LIBS) $(ZNZ_LIBS)

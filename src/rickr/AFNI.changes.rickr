@@ -1019,3 +1019,6 @@
 17 Mar 2005:
   * modified 3dROIstats.c to properly check for failure to use -mask option
 
+21 Mar 2005:
+  * updated nifti tree with Kate's changes (to fsliolib, mostly)
+
