@@ -380,7 +380,7 @@ FILE *fp;
   */
  if (nextab>=MAXVAL)    
  { 
-  fprintf(stderr,"Error: GetNext nextab=%ld\n",nextab);
+  fprintf(stderr,"Error: GetNext nextab=%ld\n",(long)nextab);
   fclose(fp);
   TheEnd();
  }
@@ -403,7 +403,7 @@ register ULONG body,next,index;
 {
  if (index>MAXVAL)
  { 
-  fprintf(stderr,"Error index=%ld\n",index);
+  fprintf(stderr,"Error index=%ld\n",(long)index);
  }
  else
  {
@@ -426,7 +426,7 @@ register int index;
   index=table[index].last;
   if (i>MAXVAL)
   { 
-   fprintf(stderr,"Error: Sending i=%ld index=%ld\n",i,index);
+   fprintf(stderr,"Error: Sending i=%ld index=%ld\n",(long)i,(long)index);
    TheEnd();
   }
  } while(index>=0);
@@ -514,9 +514,9 @@ FILE *fp,*fout;
 
  if (code>MAXVAL)
  { 
-  fprintf(stderr,"\nError! in stream=%lx \n",code); 
+  fprintf(stderr,"\nError! in stream=%lx \n",(unsigned long)code); 
   fprintf(stderr,"CLEAR=%lx INCSIZE=%lx EOI=%lx code_size=%lx \n",
-                                           CLEAR,INCSIZE,EOI,code_size); 
+          (unsigned long)CLEAR,(unsigned long)INCSIZE,(unsigned long)EOI,(unsigned long)code_size); 
   code=EOI;
  }
 
@@ -568,8 +568,8 @@ int first_time;
 
  if (verbose)
   fprintf(stderr,"Screen: %ldx%ldx%ld m=%ld cres=%ld bkgnd=%ld pix=%ld\n",
-    gifscrn.width,gifscrn.height,imagec,gifscrn.m,gifscrn.cres,
-    gifscrn.bc,gifscrn.pixbits);
+    (long)gifscrn.width,(long)gifscrn.height,(long)imagec,(long)gifscrn.m,(long)gifscrn.cres,
+    (long)gifscrn.bc,(long)gifscrn.pixbits);
 
  if(global.trans.type==TRANS_RGB) global.trans.valid=0;
  if (gifscrn.m)
@@ -629,15 +629,15 @@ int first_time;
  imagey=gifimage.height;
  tnum=gif_ptwo[(1+gifimage.pixbits)];
  if (verbose)
-  fprintf(stderr,"Image: %ldx%ldx%ld (%d,%d) m=%ld i=%ld pix=%ld \n",
-    imagex,imagey,tnum,gifimage.left,gifimage.top,
-	gifimage.m,gifimage.i,gifimage.pixbits);
+  fprintf(stderr,"Image: %ldx%ldx%ld (%ld,%ld) m=%ld i=%ld pix=%ld \n",
+    (long)imagex,(long)imagey,(long)tnum,(long)gifimage.left,(long)gifimage.top,
+	(long)gifimage.m,(long)gifimage.i,(long)gifimage.pixbits);
 
  /* if there is an image cmap, then use it */
 
  if (gifimage.m)
  {
-  if(debug_flag) fprintf(stderr,"DEBUG:Transferring colormap of %d colors\n");
+/*  if(debug_flag) fprintf(stderr,"DEBUG:Transferring colormap of %d colors\n"); */
   for(i=0;i<tnum;i++)
   {
    gif_cmap[i].cmap.red   = r = fgetc(fp);
@@ -650,7 +650,7 @@ int first_time;
  }  /* else if screen was last not 1st time */
  else if (screen_was_last && (first_time==FALSE))
  {
-  if(debug_flag>1) fprintf(stderr,"DEBUG:Writing colormap of %d colors\n");
+/*  if(debug_flag>1) fprintf(stderr,"DEBUG:Writing colormap of %d colors\n"); */
   for(i=0;i<imagec;i++)
   {
    fputc(gif_cmap[i].cmap.red  ,fout);

@@ -34,7 +34,7 @@ MISC    = AFNI.Xdefaults AFNI.afnirc 3d*.lib gmovie*
 ## AFNI package, but included because they are useful.  Some of
 ## them are Open Source programs, not from the AFNI group at all.
 
-EXTRAS   = cjpeg whirlgif mpeg_encode myget Xphace rmz
+EXTRAS   = cjpeg djpeg whirlgif mpeg_encode myget Xphace rmz
 
 ## This list is the core AFNI package:
 ## other programs are experimental and/or outsiders.
@@ -1063,7 +1063,8 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_aff2d.o debugtrace.o mri_zeropad.o mri_write_angif.o            \
            mri_histoshort.o mri_shift2D.o mri_drawing.o mri_coxplot.o          \
            mri_get_cmass.o mri_scale.o mri_write_analyze.o mri_to_rgba.o       \
-           mri_rgba_compose.o mri_blur3d.o mri_dicom_hdr.o mri_read_dicom.o
+           mri_rgba_compose.o mri_blur3d.o mri_dicom_hdr.o mri_read_dicom.o    \
+           mri_read_stuff.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -1456,8 +1457,10 @@ mpeg_encode:
 #######
 # 11 Sep 2002 - for fun
 
+djpeg: cjpeg
+
 cjpeg:
-	( cd jpeg-6b ; ./configure ; make ; $(MV) cjpeg .. ; make clean ; )
+	( cd jpeg-6b ; ./configure ; make ; $(MV) cjpeg djpeg .. ; make clean ; )
 
 #######
 # FFTW - not used

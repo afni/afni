@@ -470,6 +470,9 @@ The_Old_Way:
          im = mri_read_ppm( fname ) ;      /* 15 Apr 1999 */
          if( im != NULL ) RETURN( im );
 
+         im = mri_read_stuff( fname ) ;    /* 22 Nov 2002 */
+         if( im != NULL ) RETURN( im );
+
          fprintf( stderr , "do not recognize image file %s\n" , fname );
          fprintf( stderr , "length seen as %d\n" , length ) ;
          RETURN( NULL );
@@ -900,10 +903,34 @@ ENTRY("mri_read_file") ;
 
       newar = mri_read_siemens( new_fname ) ;
 
-   } else if( strncmp(new_fname,"I.",2) == 0   ||
-              strstr(new_fname,"/I.")   != NULL  ){   /* 05 Nov 2002 */
+   } else if( strncmp(new_fname,"I.",2) == 0    ||
+              strstr(new_fname,"/I.")   != NULL ||
+              strstr(new_fname,".ppm")  != NULL ||
+              strstr(new_fname,".pgm")  != NULL ||
+              strstr(new_fname,".pnm")  != NULL   ){ /* 05 Nov 2002 */
 
       newim = mri_read( new_fname ) ;      /* read from a 2D file */
+      if( newim != NULL ){
+        INIT_IMARR(newar) ;
+        ADDTO_IMARR(newar,newim) ;
+      }
+
+   } else if( strstr(new_fname,".jpg" ) != NULL ||
+              strstr(new_fname,".JPG" ) != NULL ||
+              strstr(new_fname,".jpeg") != NULL ||
+              strstr(new_fname,".JPEG") != NULL ||
+              strstr(new_fname,".gif" ) != NULL ||
+              strstr(new_fname,".GIF" ) != NULL ||
+              strstr(new_fname,".tif" ) != NULL ||
+              strstr(new_fname,".TIF" ) != NULL ||
+              strstr(new_fname,".tiff") != NULL ||
+              strstr(new_fname,".TIFF") != NULL ||
+              strstr(new_fname,".bmp" ) != NULL ||
+              strstr(new_fname,".BMP" ) != NULL ||
+              strstr(new_fname,".png" ) != NULL ||
+              strstr(new_fname,".PNG" ) != NULL   ){ /* 22 Nov 2002 */
+
+      newim = mri_read_stuff( new_fname ) ;
       if( newim != NULL ){
         INIT_IMARR(newar) ;
         ADDTO_IMARR(newar,newim) ;
