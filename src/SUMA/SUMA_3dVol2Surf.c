@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.5 (October 20, 2003)"
+#define VERSION "version 3.6 (October 21, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -58,6 +58,10 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 3.6  October 21, 2003
+ *   - finish upates for -f_keep_surf_order option
+ *     (help and sopt)
  *
  * 3.5  October 20, 2003
  *   - call the new engine function, SUMA_LoadSpec_eng()
@@ -796,6 +800,8 @@ int set_smap_opts( opts_t * opts, param_t * p, smap_opts_t * sopt )
     else
 	sopt->f_steps = opts->f_steps;
 
+    sopt->f_kso = opts->f_kso;
+
     sopt->f_p1_fr = opts->f_p1_fr;         /* copy fractions & distances */
     sopt->f_pn_fr = opts->f_pn_fr;
     sopt->f_p1_mm = opts->f_p1_mm;
@@ -1486,6 +1492,10 @@ int usage ( char * prog, int level )
 	    "Note: if either endpoint of a segment is outside the grid parent\n"
 	    "      volume, that node (pair) will be skipped.\n"
             "\n"
+            "Note: the inner (or first) surface is defined as the one closest\n"
+            "      to its center of mass.  To override this behavior, see the\n"
+	    "      '-f_keep_surf_order' option.\n"
+            "\n"
             "By default, this segment only consists of the endpoints, NA and\n"
             "NB (the actual nodes on the two surfaces).  However the number\n"
             "of evenly spaced points along the segment may be specified with\n"
@@ -1731,6 +1741,24 @@ int usage ( char * prog, int level )
 	    "                     e.g.  -f_index nodes\n"
 	    "                     e.g.  -f_index voxels\n"
 	    "                     default: -f_index voxels\n"
+	    "\n"
+	    "          -f_keep_surf_order :\n"
+	    "\n"
+	    "                     Preserve the surface order, according to\n"
+	    "                     the spec file.\n"
+	    "\n"
+	    "                     By default, the inner and outer surfaces\n"
+	    "                     are decided based on which is, on average,\n"
+	    "                     closer to its center of mass.  This allows\n"
+	    "                     for a definition of an inner surface and an\n"
+	    "                     outer surface.\n"
+	    "\n"
+	    "                     This option is provided to override such\n"
+	    "                     behavior, resulting in the 'first' surface\n"
+	    "                     (or 'inner') corresponding to the first\n"
+	    "                     mappable surface in the spec file.  So the\n"
+	    "                     'second' surface (or 'outer') will be the\n"
+	    "                     second mappable surface in the spec file.\n"
 	    "\n"
 	    "          Note: The following -f_pX_XX options are used to alter\n"
 	    "                the lengths and locations of the computational\n"
