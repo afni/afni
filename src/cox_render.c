@@ -30,6 +30,11 @@ static void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
                              int fixdir , int fixijk , float da , float db ,
                              int ma , int mb , byte * im ) ;
 
+static void extract_rgba_nn( int nx , int ny , int nz , rgba * vol ,
+                             Tmask * tm ,
+                             int fixdir , int fixijk , float da , float db ,
+                             int ma , int mb , rgba * im ) ;
+
 static void extract_byte_tsx( int nx , int ny , int nz , byte * vol ,
                               Tmask * tm ,
                               int fixdir , int fixijk , float da , float db ,
@@ -813,12 +818,60 @@ static void extract_byte_nn( int nx , int ny , int nz , byte * vol ,
                        : tm->mask[fixdir%3] + (fixijk*nb - bdel) ;
 
    for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
-      if( mask == NULL || mask[bb] )
-         for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
-            im[aa+boff] = vol[aoff+ijkoff] ;  /* im(aa,bb) = vol(aa-adel,bb-bdel,fixijk) */
-                                              /*           = vol[ (aa-adel)*astep +
-                                                                  (bb-bdel)*bstep +
-                                                                  fixijk   *cstep   ]    */
+    if( mask == NULL || mask[bb] )
+     for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+      im[aa+boff] = vol[aoff+ijkoff]; /* im(aa,bb)=vol(aa-adel,bb-bdel,fixijk) */
+                                      /*          =vol[ (aa-adel)*astep +
+                                                        (bb-bdel)*bstep +
+                                                        fixijk   *cstep   ]    */
+
+   return ;
+}
+
+/*-----------------------------------------------------------------------
+   NN "interpolation" of rgba data - 30 Jan 2003
+-------------------------------------------------------------------------*/
+
+static void extract_rgba_nn( int nx , int ny , int nz , rgba * vol ,
+                             Tmask * tm ,
+                             int fixdir , int fixijk , float da , float db ,
+                             int ma , int mb , rgba * im )
+{
+   int adel,bdel , abot,atop , bb,bbot,btop , nxy=nx*ny ;
+   register int aa , ijkoff , aoff,boff ;
+   int astep,bstep,cstep , na,nb,nc ;
+   byte * mask ;
+
+   memset( im , 0 , sizeof(rgba)*ma*mb ) ;  /* initialize output to zero */
+
+   if( fixijk < 0 ) return ;
+
+   ASSIGN_DIRECTIONS ;
+
+   if( fixijk >= nc ) return ;
+
+   da += 0.5 ; adel = (int) da ; if( da < 0.0 ) adel-- ;  /* floor(da+0.5) */
+   db += 0.5 ; bdel = (int) db ; if( db < 0.0 ) bdel-- ;  /* floor(db+0.5) */
+
+   abot = 0       ; if( abot < adel ) abot = adel ;       /* range in im[] */
+   atop = na+adel ; if( atop > ma   ) atop = ma ;
+
+   bbot = 0       ; if( bbot < bdel ) bbot = bdel ;
+   btop = nb+bdel ; if( btop > mb   ) btop = mb ;
+
+   ijkoff = fixijk*cstep + (abot-adel)*astep + (bbot-bdel)*bstep ;
+   boff   = bbot * ma ;
+
+   mask = (tm == NULL) ? NULL
+                       : tm->mask[fixdir%3] + (fixijk*nb - bdel) ;
+
+   for( bb=bbot ; bb < btop ; bb++,boff+=ma,ijkoff+=bstep )
+    if( mask == NULL || mask[bb] )
+     for( aa=abot,aoff=0 ; aa < atop ; aa++,aoff+=astep )
+      im[aa+boff] = vol[aoff+ijkoff]; /* im(aa,bb)=vol(aa-adel,bb-bdel,fixijk) */
+                                      /*          =vol[ (aa-adel)*astep +
+                                                        (bb-bdel)*bstep +
+                                                        fixijk   *cstep   ]    */
 
    return ;
 }
