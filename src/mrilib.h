@@ -987,6 +987,18 @@ extern double poisson_p2t ( double qq , double lambda ) ;
 typedef struct { int i,j;   } int_pair ;    /* 12 Aug 2002 */
 typedef struct { int i,j,k; } int_triple ;
 
+/* generic list types    6 Dec 2004 [rickr] */
+typedef struct { int nused,nalloc;  float *  list; } float_list;
+typedef struct { int nused,nalloc;  int   *  list; } int_list;
+typedef struct { int nused,nalloc;  short *  list; } short_list;
+typedef struct { int nused,nalloc;  void  *  list; } void_list;
+                           /* nused/nalloc should be in bytes for void_list */
+
+typedef struct { int nused,nalloc;  float ** list; } floatp_list;
+typedef struct { int nused,nalloc;  int   ** list; } intp_list;
+typedef struct { int nused,nalloc;  short ** list; } shortp_list;
+typedef struct { int nused,nalloc;  void  ** list; } voidp_list;
+
 typedef struct { int nar ; float *ar ; } floatvec ;
 #define KILL_floatvec(fv)                      \
   do{ if( (fv)->ar != NULL ) free((fv)->ar);   \
