@@ -2056,7 +2056,7 @@ STATUS("get status") ;
 
             /* linearly interpolate between fvijk[id] and fvijk[jd]
                to find the point where this line hits the slice plane */
-  
+
             ci = fvijk[id].xyz[kkk] - xlev;
             cj = fvijk[id].xyz[kkk] - fvijk[jd].xyz[kkk] ;
             if( cj == 0.0 ) continue ;            /* should not happen */
@@ -2064,31 +2064,31 @@ STATUS("get status") ;
             if( ck < 0.0 || ck > 1.0 ) continue ; /* should not happen */
             cj = 1.0 - ck ;
             fvp = SCLADD_FVEC3(cj,fvijk[id],ck,fvijk[jd]) ;
-  
+
             /* linearly interpolate between fvijk[id] and fvijk[kd] */
-  
+
             cj = fvijk[id].xyz[kkk] - fvijk[kd].xyz[kkk] ;
             if( cj == 0.0 ) continue ;
             ck = ci / cj ;
             if( ck < 0.0 || ck > 1.0 ) continue ;
             cj = 1.0 - ck ;
             fvm = SCLADD_FVEC3(cj,fvijk[id],ck,fvijk[kd]) ;
-  
+
             /* transform interpolated points to FD_brick coords */
-  
+
             fvp = THD_dicomm_to_3dmm( br->dset , fvp ) ;
             fvp = THD_3dmm_to_3dfind( br->dset , fvp ) ;
             fvp = THD_3dfind_to_fdfind( br , fvp ) ;
             fvm = THD_dicomm_to_3dmm( br->dset , fvm ) ;
             fvm = THD_3dmm_to_3dfind( br->dset , fvm ) ;
             fvm = THD_3dfind_to_fdfind( br , fvm ) ;
-  
+
             /* plot a line segment between them, in the plane of the slice */
             /* [21 Mar 2002: include the 0.5 shift mentioned way up above] */
-  
+
             plotline_memplot( s1*(fvp.xyz[0]+0.5) , 1.0-s2*(fvp.xyz[1]+0.5) ,
                               s1*(fvm.xyz[0]+0.5) , 1.0-s2*(fvm.xyz[1]+0.5)  ) ;
-  
+
           } /* end of loop over triangles */
           set_thick_memplot(0.0) ;              /* 15 Jan 2003 */
         } /* end of loop over levels: 26 Feb 2003 */
@@ -2954,11 +2954,7 @@ if(PRINT_TRACING)
 
                     /* 20 Feb 2003: set plane from which viewpoint is controlled */
 
-                    MCW_imseq *sxyz=im3d->s123, *syzx=im3d->s231, *szxy=im3d->s312 ;
-                         if( seq == sxyz ) im3d->vinfo->view_setter = AXIAL   ;
-                    else if( seq == syzx ) im3d->vinfo->view_setter = SAGITTAL;
-                    else if( seq == szxy ) im3d->vinfo->view_setter = CORONAL ;
-                    else                   im3d->vinfo->view_setter = -1      ;
+                    AFNI_view_setter(im3d,seq) ;
 
                     AFNI_set_viewpoint(
                        im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
@@ -2987,11 +2983,7 @@ if(PRINT_TRACING)
 
             /* 20 Feb 2003: set plane from which viewpoint is controlled */
 
-            MCW_imseq *sxyz=im3d->s123, *syzx=im3d->s231, *szxy=im3d->s312 ;
-                 if( seq == sxyz ) im3d->vinfo->view_setter = AXIAL   ;
-            else if( seq == syzx ) im3d->vinfo->view_setter = SAGITTAL;
-            else if( seq == szxy ) im3d->vinfo->view_setter = CORONAL ;
-            else                   im3d->vinfo->view_setter = -1      ;
+            AFNI_view_setter(im3d,seq) ;
 
             AFNI_set_viewpoint(
                im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
@@ -3080,11 +3072,7 @@ if(PRINT_TRACING)
 
             /* 20 Feb 2003: set plane from which viewpoint is controlled */
 
-            MCW_imseq *sxyz=im3d->s123, *syzx=im3d->s231, *szxy=im3d->s312 ;
-                 if( seq == sxyz ) im3d->vinfo->view_setter = AXIAL   ;
-            else if( seq == syzx ) im3d->vinfo->view_setter = SAGITTAL;
-            else if( seq == szxy ) im3d->vinfo->view_setter = CORONAL ;
-            else                   im3d->vinfo->view_setter = -1      ;
+            AFNI_view_setter(im3d,seq) ;
 
             AFNI_set_viewpoint(
                im3d , id.ijk[0] , id.ijk[1] , id.ijk[2] ,
@@ -3265,7 +3253,7 @@ if(PRINT_TRACING)
           id.ijk[0],id.ijk[1],id.ijk[2] ) ; STATUS(str) ; }
 
             if( im3d->ignore_seq_callbacks == AFNI_IGNORE_NOTHING ){
-               im3d->vinfo->view_setter = -1 ;  /* 20 Feb 2003: no plane setting */
+               AFNI_view_setter(im3d,NULL) ;
                AFNI_set_viewpoint(
                   im3d ,
                   id.ijk[0] , id.ijk[1] , id.ijk[2] ,
@@ -5115,7 +5103,7 @@ ENTRY("AFNI_lock_carryout") ;
              jj >= 0 && jj < qaxes->nyy && kk >= 0 && kk < qaxes->nzz   ){
 
             SAVE_VPT(qq3d) ;
-            qq3d->vinfo->view_setter = -1 ;                  /* 20 Feb 2003 */
+            AFNI_view_setter(qq3d,NULL) ;
             AFNI_set_viewpoint( qq3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
          }
       }
@@ -5194,6 +5182,37 @@ void AFNI_do_bkgd_lab( Three_D_View * im3d )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Define the view_setter code, which says which image viewer plane
+    was used to set the current viewpoint.  [26 Feb 2003]
+--------------------------------------------------------------------------*/
+
+void AFNI_view_setter( Three_D_View *im3d , MCW_imseq *seq )
+{
+   MCW_imseq *sxyz, *syzx, *szxy ;
+   int val=-1 ;
+
+   if( !IM3D_OPEN(im3d) ) return ;
+
+   sxyz = im3d->s123 ; syzx = im3d->s231 ; szxy = im3d->s312 ;
+
+   if( !ISQ_REALZ(seq) ){
+     int code = 4*(sxyz!=NULL) + 2*(syzx!=NULL) + (szxy!=NULL) ;
+     switch(code){
+       case 4: val = AXIAL   ; break ;
+       case 2: val = SAGITTAL; break ;
+       case 1: val = CORONAL ; break ;
+     }
+   } else {
+          if( seq == sxyz ) val = AXIAL   ;
+     else if( seq == syzx ) val = SAGITTAL;
+     else if( seq == szxy ) val = CORONAL ;
+   }
+
+   im3d->vinfo->view_setter = val ;
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
 
 void AFNI_set_viewpoint( Three_D_View * im3d ,
                          int xx,int yy,int zz , int redisplay_option )
@@ -5215,7 +5234,7 @@ if(PRINT_TRACING)
 
    if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ) EXRETURN ;
 
-   if( xx < 0 && yy < 0 && zz < 0 ) im3d->vinfo->view_setter = -1 ;
+   if( xx < 0 && yy < 0 && zz < 0 ) AFNI_view_setter(im3d,NULL) ;
 
    /** 02 Nov 1996:
          Attach view-specific dataxes and warps to the datasets **/
@@ -5240,7 +5259,7 @@ if(PRINT_TRACING)
    new_xyz =
     do_lock = !( i1 == old_i1 && j2 == old_j2 && k3 == old_k3 ) ;  /* 11 Nov 1996 */
 
-   if( !redisplay_option && !new_xyz ){ im3d->vinfo->view_setter = -1; EXRETURN; }
+   if( !redisplay_option && !new_xyz ){ AFNI_view_setter(im3d,NULL); EXRETURN; }
 
    isq_driver = (redisplay_option == REDISPLAY_ALL) ? isqDR_display
                                                     : isqDR_overlay ;
@@ -5433,7 +5452,7 @@ DUMP_IVEC3("             new_ib",new_ib) ;
    }
 #endif
 
-   im3d->vinfo->view_setter = -1 ; EXRETURN ;
+   AFNI_view_setter(im3d,NULL) ; EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------
@@ -6019,7 +6038,7 @@ ENTRY("AFNI_marktog_CB") ;
    }
 
    if( im3d->anat_now->markers->numset > 0 ){
-      im3d->vinfo->view_setter = -1 ;                         /* 20 Feb 2003 */
+      AFNI_view_setter(im3d,NULL) ;
       AFNI_set_viewpoint( im3d , xx,yy,zz , REDISPLAY_OVERLAY ) ;  /* redraw */
    }
 
@@ -6648,7 +6667,7 @@ STATUS("turning markers on") ;
 
    DISABLE_LOCK ;  /* 11 Nov 1996 */
 
-   im3d->vinfo->view_setter = -1 ;                 /* 20 Feb 2003 */
+   AFNI_view_setter(im3d,NULL) ;
    AFNI_set_viewpoint( im3d, iv.ijk[0],iv.ijk[1],iv.ijk[2] , REDISPLAY_ALL ) ;
 
    ENABLE_LOCK ;   /* 11 Nov 1996 */
@@ -7776,10 +7795,13 @@ void AFNI_imag_pop_CB( Widget w ,
                        XtPointer client_data , XtPointer call_data )
 {
    Three_D_View * im3d = (Three_D_View *) client_data ;
+   MCW_imseq * seq ;
 
 ENTRY("AFNI_imag_pop_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
 
    /*-- jump back to old location --*/
 
@@ -7791,15 +7813,13 @@ ENTRY("AFNI_imag_pop_CB") ;
      kk = im3d->vinfo->k3_old ;
 
      SAVE_VPT(im3d) ;  /* save current place as old one */
-     im3d->vinfo->view_setter = -1 ;                      /* 20 Feb 2003 */
+     AFNI_view_setter(im3d,seq) ;
      AFNI_set_viewpoint( im3d , ij,jj,kk , REDISPLAY_OVERLAY ) ; /* jump */
    }
 
    /*-- switch window display mode --*/
 
    if( w == im3d->vwid->imag->pop_imageonly_pb ){
-      MCW_imseq * seq ;
-      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
       if( ISQ_REALZ(seq) )
          drive_MCW_imseq( seq , isqDR_onoffwid , (XtPointer) isqDR_togwid ) ;
    }
@@ -7809,10 +7829,8 @@ ENTRY("AFNI_imag_pop_CB") ;
    if( w == im3d->vwid->imag->pop_jumpto_pb &&
        im3d->type == AFNI_3DDATA_VIEW         ){
 
-      MCW_imseq * seq ;
       char tbuf[128] ;
 
-      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
       if( ISQ_REALZ(seq) ){
          sprintf(tbuf , "Enter new x y z (%s mm):" , GLOBAL_library.cord.orcode ) ;
          MCW_choose_string( seq->wbar , tbuf , NULL ,
@@ -7823,9 +7841,6 @@ ENTRY("AFNI_imag_pop_CB") ;
    if( w == im3d->vwid->imag->pop_jumpto_ijk_pb &&
        im3d->type == AFNI_3DDATA_VIEW             ){
 
-      MCW_imseq * seq ;
-
-      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter new i j k:" , NULL ,
                             AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
@@ -7837,9 +7852,6 @@ ENTRY("AFNI_imag_pop_CB") ;
    if( w == im3d->vwid->imag->pop_mnito_pb &&
        im3d->type == AFNI_3DDATA_VIEW        ){
 
-      MCW_imseq * seq ;
-
-      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
       if( ISQ_REALZ(seq) && CAN_TALTO(im3d) ){
          MCW_choose_string( seq->wbar , "Enter MNI x,y,z:" , NULL ,
                             AFNI_mnito_CB , (XtPointer) im3d ) ;
@@ -7854,9 +7866,6 @@ ENTRY("AFNI_imag_pop_CB") ;
        DSET_HAS_SUMA(im3d->anat_now)        &&
        im3d->type == AFNI_3DDATA_VIEW         ){
 
-      MCW_imseq * seq ;
-
-      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
       if( ISQ_REALZ(seq) ){
          MCW_choose_string( seq->wbar , "Enter SUMA node ID:" , NULL ,
                             AFNI_sumato_CB , (XtPointer) im3d ) ;
@@ -7868,9 +7877,6 @@ ENTRY("AFNI_imag_pop_CB") ;
    if( w == im3d->vwid->imag->pop_talto_pb &&
        im3d->type == AFNI_3DDATA_VIEW      &&
        CAN_TALTO(im3d)                       ){
-
-      MCW_imseq * seq ;
-      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
 
       if( ! TTO_labeled ){  /* initialize labels */
          int ii ;
@@ -7895,7 +7901,7 @@ ENTRY("AFNI_imag_pop_CB") ;
             im3d->type == AFNI_3DDATA_VIEW         &&
             CAN_TALTO(im3d)                          ){
 
-      MCW_imseq *seq ; char *tlab ;
+      char *tlab ;
 
       /*- if one is already open, kill it -*/
 
@@ -7912,7 +7918,6 @@ ENTRY("AFNI_imag_pop_CB") ;
       /*- open a window to show it -*/
 
       if( tlab != NULL ){
-         XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
 
          im3d->vwid->imag->pop_whereami_twin =
            new_MCW_textwin_2001( seq->wbar , tlab , TEXT_READONLY ,
@@ -8044,7 +8049,7 @@ ENTRY("AFNI_talto_CB") ;
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz   ){
 
       SAVE_VPT(im3d) ;
-      im3d->vinfo->view_setter = -1 ;                  /* 20 Feb 2003 */
+      AFNI_view_setter(im3d,NULL) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
    } else {
       XBell( im3d->dc->display , 100 ) ;
@@ -8215,7 +8220,7 @@ ENTRY("AFNI_jumpto_dicom") ;
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
 
       SAVE_VPT(im3d) ;
-      im3d->vinfo->view_setter = -1 ;                  /* 20 Feb 2003 */
+      AFNI_view_setter(im3d,NULL) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {
@@ -8239,7 +8244,7 @@ ENTRY("AFNI_jumpto_ijk") ;
        jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
 
       SAVE_VPT(im3d) ;
-      im3d->vinfo->view_setter = -1 ;                  /* 20 Feb 2003 */
+      AFNI_view_setter(im3d,NULL) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
       RETURN(1) ;
    } else {

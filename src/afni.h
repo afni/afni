@@ -280,7 +280,7 @@ typedef struct {
 
 } AFNI_view_info ;
 
-#define AXIAL    1       /* 20 Feb 2003 */
+#define AXIAL    1       /* 20 Feb 2003: view_setter codes */
 #define SAGITTAL 2
 #define CORONAL  3
 
@@ -1213,6 +1213,7 @@ extern Boolean AFNI_refashion_dataset( Three_D_View * ,
 
 extern void AFNI_set_viewpoint( Three_D_View * , int,int,int , int ) ;
 extern void AFNI_redisplay_func( Three_D_View * ) ; /* 05 Mar 2002 */
+extern void AFNI_view_setter( Three_D_View *, MCW_imseq *) ; /* 26 Feb 2003 */
 
 extern XmString AFNI_crosshair_label( Three_D_View * ) ;
 extern XmString AFNI_range_label( Three_D_View * ) ;
