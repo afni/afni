@@ -1,25 +1,24 @@
-# This Makefile works on my personal Linux machine - RWCox
+# This Makefile works on Linux 2.0.39
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -pipe -Wuninitialized
-CC     = gcc -O2 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCVOL  = gcc -O2 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCFAST = gcc -O3 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
-CCMIN  = gcc
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -fomit-frame-pointer -DHAVE_XDBE
+CC     = gcc -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCVOL  = gcc -O2 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCFAST = gcc -O3 -march=i586 -ffast-math -DLINUX2 -DNO_GAMMA $(CEXTRA)
+CCMIN  = gcc -s
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/X11R6/include
-LFLAGS = -L. -L/usr/X11R6/lib
+IFLAGS = -I. -I/usr/motif-build/motif/lib -I/usr/X11R6/include
+LFLAGS = -s -L. -L/usr/X11R6/lib -L/usr/motif-build/motif/lib
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -rdynamic -L. -L/usr/X11R6/lib
+PLFLAGS       = -s -rdynamic -L. -L/usr/motif-build/motif/lib -L/usr/X11R6/lib
 
 AR     = /usr/bin/ar
 RANLIB = /usr/bin/ranlib
 TAR    = /bin/tar
 MKDIR  = /bin/mkdir
-TAPE   = /dev/st0
 GZIP   = /bin/gzip
 LD     = gcc
 
@@ -29,16 +28,16 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = $(HOME)/abin
+INSTALLDIR = /home/ziad/abin
 LIBDIR = $(INSTALLDIR)
 
 # for dynamic linking
 
-# LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
 
 # for static linking to Motif, dynamic to all else
 
-LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
+#LLIBS  = -lmri /usr/X11R6/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 -lm  -ldl -lc
 
 # for static linking, as far as possible
 
