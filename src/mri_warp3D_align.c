@@ -386,8 +386,12 @@ ENTRY("mri_warp3D_align_setup") ;
    for( ii=0 ; ii < npar ; ii++ ){
      if( bas->param[ii].delta <= 0.0f )
        mri_warp3D_get_delta( bas , ii ) ;
-     if( bas->param[ii].toler <= 0.0f )   /* and set default tolerance */
-       bas->param[ii].toler = 0.02f * bas->param[ii].delta ;
+     if( bas->param[ii].toler <= 0.0f ){   /* and set default tolerance */
+       bas->param[ii].toler = 0.03f * bas->param[ii].delta ;
+       if( bas->verb )
+         fprintf(stderr,"+   set toler param#%d [%s] = %f\n",
+                 ii+1,bas->param[ii].name,bas->param[ii].toler) ;
+     }
    }
 
    /* don't need the computed weight image anymore */
@@ -480,7 +484,7 @@ ENTRY("mri_warp3D_align_setup") ;
 MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
 {
    float *fit , *dfit ;
-   int iter , good , ii , pp , skip_first ;
+   int iter , good,ngood , ii , pp , skip_first ;
    MRI_IMAGE *tim , *fim ;
    float *pmat=MRI_FLOAT_PTR(bas->imps) , /* pseudo inverse: n X m matrix */
          *tar , tv , sfit ;
@@ -519,7 +523,7 @@ ENTRY("mri_warp3D_align_one") ;
    iter = 0 ; good = 1 ;
    while( good ){
      if( skip_first ){
-       tim = fim ;
+       tim = fim ; skip_first = 0 ;
      } else {
        bas->vwset( npar , fit ) ;
        tim = mri_warp3D( fim , 0,0,0 , bas->vwfor ) ;
@@ -529,7 +533,7 @@ ENTRY("mri_warp3D_align_one") ;
      sfit = 0.0f ;
      for( pp=0 ; pp < npar ; pp++ ) dfit[pp] = 0.0f ;
      for( ii=0 ; ii < m ; ii++ ){
-       tv = tar[ima[ii]] ; sfit += PP(npar,ii) * tv ;
+       tv = tar[ima[ii]] ; sfit += P(npar,ii) * tv ;
        for( pp=0 ; pp < npar ; pp++ ) dfit[pp] += P(pp,ii) * tv ;
      }
      if( tim != fim ) mri_free( tim ) ;
@@ -540,14 +544,15 @@ ENTRY("mri_warp3D_align_one") ;
        fprintf(stderr,"+   Delta:") ;
        for( pp=0 ; pp < npar ; pp++ ) fprintf(stderr," %13.6g",dfit[pp]) ;
        fprintf(stderr,"\n") ;
-       fprintf(stderr,"+   Total: scale factor=%13.6g\n+        :",sfit) ;
+       fprintf(stderr,"+   Total: scale factor=%g\n+        :",sfit) ;
        for( pp=0 ; pp < npar ; pp++ ) fprintf(stderr," %13.6g", fit[pp]) ;
        fprintf(stderr,"\n") ;
       }
 
-      good = (++iter < bas->max_iter) ;
+      iter++ ; ngood = 0 ;
       for( pp=0 ; pp < npar ; pp++ )
-        good = good && ( fabs(dfit[pp]) <= bas->param[pp].toler ) ;
+        ngood += ( fabs(dfit[pp]) <= bas->param[pp].toler ) ;
+      good = (ngood < npar) && (iter < bas->max_iter) ;
 
    } /* end while */
 
