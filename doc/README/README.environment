@@ -1105,6 +1105,16 @@ command line, then the directory specified by this variable becomes the
 default session.  If there are no datasets there, either, then AFNI makes
 up a dummy dataset (AFNI cannot operate without at least one dataset).
 
+------------------------------
+Variable: AFNI_DISP_SCROLLBARS
+------------------------------
+If this YES/NO variable is set to YES, then the 'Disp' control window
+(on the image viewers) will have scrollbars attached.  This window has
+grown larger over the years, and for some people with pitifully small
+displays (e.g., laptops), it is now taller than their screens.  If
+activated, this option will prevent the Disp window from being so tall
+and will attach scrollbars so you can access all of its contents.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |

@@ -3899,11 +3899,13 @@ ENTRY("ISQ_button2_EV") ;
      by popping up a dialog
 -----------------------------------------------------------------------*/
 
+
 void ISQ_but_disp_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
    MCW_imseq * seq = (MCW_imseq *) client_data ;
    int ib ;
-   Widget rctop , rcboxes ;
+   Widget rctop , rcboxes , shtop ;
+   Widget swtop=NULL ;
 
 ENTRY("ISQ_but_disp_CB") ;
 
@@ -3943,8 +3945,24 @@ ENTRY("ISQ_but_disp_CB") ;
    for( ib=0 ; ib < NACT_DISP ; ib++ )
       ISQ_disp_act[ib].data = (XtPointer) seq ;
 
+   if( AFNI_yesenv("AFNI_DISP_SCROLLBARS") ){  /* 31 Jan 2002 */
+      shtop = swtop = XtVaCreateManagedWidget(
+                 "menu" , xmScrolledWindowWidgetClass , seq->dialog ,
+                    XmNscrollingPolicy        , XmAUTOMATIC ,
+                    XmNvisualPolicy           , XmVARIABLE ,
+#if 0
+                    XmNscrollBarDisplayPolicy , XmAS_NEEDED ,
+#else
+                    XmNscrollBarDisplayPolicy , XmSTATIC ,
+#endif
+                    XmNinitialResourcesPersistent , False ,
+                 NULL ) ;
+   } else {
+      shtop = seq->dialog ;
+   }
+
    rctop = XtVaCreateWidget(
-              "menu" , xmRowColumnWidgetClass , seq->dialog ,
+              "menu" , xmRowColumnWidgetClass , shtop ,
                  XmNpacking    , XmPACK_TIGHT ,
                  XmNnumColumns , 1 ,
 
@@ -4201,6 +4219,16 @@ ENTRY("ISQ_but_disp_CB") ;
    (void) MCW_action_area( rctop , ISQ_disp_act , NACT_DISP ) ;
 
    XtManageChild( rctop ) ;
+
+   if( swtop != NULL ){       /* 31 Jan 2002 */
+     int wx,hy , cmax ;
+     MCW_widget_geom( rctop  , &wx,&hy,NULL,NULL ) ;
+
+     cmax = HeightOfScreen(XtScreen(rctop)) - 128 ;
+     if( hy > cmax ) hy = cmax ;
+
+     XtVaSetValues( seq->dialog , XmNwidth,wx+29,XmNheight,hy+19 , NULL ) ;
+   }
 
    ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
 
