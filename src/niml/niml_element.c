@@ -244,19 +244,22 @@ int NI_type_size( int tval )
 /*-----------------------------------------------------------------------*/
 /*! Return the type of something that points to a NI element.
 
-    - The input should be a pointer to a NI_element or a NI_group.
-    - The return value is NI_ELEMENT_TYPE, NI_GROUP_TYPE, or -1.
+    - The input should be point to a NI_element, NI_group, or NI_procins.
+    - The return value is NI_ELEMENT_TYPE, NI_GROUP_TYPE, NI_PROCINS_TYPE,
+      or -1.
 -------------------------------------------------------------------------*/
 
 int NI_element_type( void *nini )
 {
    NI_element *nel = (NI_element *) nini ;
    NI_group   *ngr = (NI_group *)   nini ;
+   NI_procins *npi = (NI_procins *) nini ;
 
    if( nini == NULL ) return -1 ;
 
    if( nel->type == NI_ELEMENT_TYPE ) return NI_ELEMENT_TYPE ;
    if( ngr->type == NI_GROUP_TYPE   ) return NI_GROUP_TYPE   ;
+   if( npi->type == NI_PROCINS_TYPE ) return NI_PROCINS_TYPE ;
 
    return -1 ;
 }
@@ -323,6 +326,21 @@ void NI_free_element( void *nini )
       NI_free( ngr->part ) ;
       NI_free( ngr->name ) ;    /* 03 Jun 2002 */
       NI_free( ngr ) ;
+
+   /*-- erase contents of processing instruction --*/
+
+   } else if( tt == NI_PROCINS_TYPE ){
+      NI_procins *npi = (NI_procins *) nini ;
+
+      for( ii=0 ; ii < npi->attr_num ; ii++ ){
+        NI_free( npi->attr_lhs[ii] ) ;
+        NI_free( npi->attr_rhs[ii] ) ;
+      }
+      NI_free( npi->attr_lhs ) ;
+      NI_free( npi->attr_rhs ) ;
+
+      NI_free( npi->name ) ;    /* 03 Jun 2002 */
+      NI_free( npi ) ;
    }
 
    return ;
@@ -606,6 +624,25 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
 
       ngr->attr_lhs[nn] = NI_strdup(attname) ;
       ngr->attr_rhs[nn] = NI_strdup(attvalue);
+   /* input is a processing instruction */
+
+   } else if( tt == NI_PROCINS_TYPE ){
+      NI_procins *npi = (NI_procins *) nini ;
+
+      for( nn=0 ; nn < npi->attr_num ; nn++ )
+         if( strcmp(npi->attr_lhs[nn],attname) == 0 ) break ;
+
+      if( nn == npi->attr_num ){
+        npi->attr_lhs = NI_realloc( npi->attr_lhs , char*, sizeof(char *)*(nn+1) ) ;
+        npi->attr_rhs = NI_realloc( npi->attr_rhs , char*, sizeof(char *)*(nn+1) ) ;
+        npi->attr_num = nn+1 ;
+      } else {
+        NI_free(npi->attr_lhs[nn]) ;
+        NI_free(npi->attr_rhs[nn]) ;
+      }
+
+      npi->attr_lhs[nn] = NI_strdup(attname) ;
+      npi->attr_rhs[nn] = NI_strdup(attvalue);
    }
 
    return ;
@@ -654,6 +691,20 @@ char * NI_get_attribute( void *nini , char *attname )
       if( ngr->attr_rhs[nn] == NULL ) return zorkon ;
 
       return ngr->attr_rhs[nn] ;
+
+   /* input is a processing instruction */
+
+   } else if( tt == NI_PROCINS_TYPE ){
+      NI_procins *npi = (NI_procins *) nini ;
+
+      for( nn=0 ; nn < npi->attr_num ; nn++ )
+         if( strcmp(npi->attr_lhs[nn],attname) == 0 ) break ;
+
+      if( nn == npi->attr_num ) return NULL ;
+
+      if( npi->attr_rhs[nn] == NULL ) return zorkon ;
+
+      return npi->attr_rhs[nn] ;
    }
 
    return NULL ; /* should never be reached */

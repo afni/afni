@@ -189,6 +189,7 @@ extern char * NI_type_name( int ) ;
 
 #define NI_ELEMENT_TYPE  17
 #define NI_GROUP_TYPE    18
+#define NI_PROCINS_TYPE  19
 
 /*! A data element. */
 
@@ -233,6 +234,19 @@ typedef struct {
 
    char  *name ;       /*!< Name (default="ni_group") - 03 Jun 2002 */
 } NI_group ;
+#endif
+
+/*! A processing instruction. */
+
+#ifndef TYPEDEF_NI_procins
+#define TYPEDEF_NI_procins
+typedef struct {
+   int    type ;       /*!< What type of struct is this? */
+   int    attr_num ;   /*!< Number of attributes. */
+   char **attr_lhs ;   /*!< Left-hand-sides of attributes. */
+   char **attr_rhs ;   /*!< Right-hand-sides of attributes. */
+   char  *name ;       /*!< The 'PItarget', as in '<?name ...?>' */
+} NI_procins ;
 #endif
 
 /*-----------------------------------------------------------------

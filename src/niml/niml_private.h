@@ -158,8 +158,8 @@ extern char * get_header_attribute( header_stuff *hs , char *attname ) ;
 
 /****************************************************************************/
 
-extern NI_element * make_empty_data_element( header_stuff *hs ) ;
-extern NI_group * make_empty_group_element( header_stuff *hs ) ;
+extern NI_element * make_empty_data_element ( header_stuff *hs ) ;
+extern NI_group   * make_empty_group_element( header_stuff *hs ) ;
 extern void NI_fill_vector_row( NI_element *nel , int row , char *buf ) ;
 
 extern int NI_stream_writestring( NI_stream_type *ns , char *str ) ;
