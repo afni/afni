@@ -3741,3 +3741,9 @@
  * The 3dDeconvolve documentation was updated to reflect the above changes.
    In particular, see Examples 1.4.3.2 and 2.3.2 of the Deconvolution manual in
    file 3dDeconvolve.ps.
+
+11 May 2002
+ * Modified afni.c to put global session datasets into sessions as they
+    are read, rather than later - this allows the anats in the global
+    session to allow a session to be used, even if there are no funcs
+    in the directory.

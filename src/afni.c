@@ -3297,6 +3297,32 @@ ENTRY("AFNI_read_inputs") ;
       char * dname , *eee ;
       THD_session * new_ss ;
       int num_dsets=0 ;      /* 04 Jan 2000 */
+      THD_session * gss=NULL ; /* 11 May 2002: global session */
+
+      /*-- 20 Dec 2001: Try to read a "global" session --*/
+      /*-- 11 May 2002: Move read global session up here --*/
+
+      eee = getenv( "AFNI_GLOBAL_SESSION" ) ;   /* where it's supposed to be */
+      if( eee != NULL ){
+         gss =
+          GLOBAL_library.session = THD_init_session( eee ); /* try to read datasets */
+
+         if( gss != NULL ){                               /* got at least one */
+            gss->parent = NULL ;                          /* parentize them */
+            for( qd=0 ; qd < gss->num_anat ; qd++ )
+               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+                  PARENTIZE( gss->anat[qd][vv] , NULL ) ;
+                  DSET_MARK_FOR_IMMORTALITY( gss->anat[qd][vv] ) ;
+               }
+            for( qd=0 ; qd < gss->num_func ; qd++ )
+               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+                  PARENTIZE( gss->func[qd][vv] , NULL ) ;{
+                  DSET_MARK_FOR_IMMORTALITY( gss->func[qd][vv] ) ;
+               }
+         }
+      }
+
+      /* now get the list of strings to read as directories */
 
       num_ss  = argc - GLOBAL_argopt.first_file_arg ;
       no_args = (num_ss < 1) ;
@@ -3363,14 +3389,14 @@ if(PRINT_TRACING)
 
             new_ss->parent = NULL ;
             for( qd=0 ; qd < new_ss->num_anat ; qd++ )
-               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                  PARENTIZE( new_ss->anat[qd][vv] , NULL ) ;
+              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+                PARENTIZE( new_ss->anat[qd][vv] , NULL ) ;
 
             /* for funcs, just set parent pointers */
 
             for( qd=0 ; qd < new_ss->num_func ; qd++ )
-               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                  PARENTIZE( new_ss->func[qd][vv] , NULL ) ;
+              for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
+                PARENTIZE( new_ss->func[qd][vv] , NULL ) ;
 
             /* put the new session into place in the list of sessions */
 
@@ -3393,15 +3419,24 @@ if(PRINT_TRACING)
                REPORT_PROGRESS(str) ;
                break ;                            /* exit the loop over id */
             }
-         } else {
+         }
 
-            if( new_ss != NULL && new_ss->num_anat <= 0 ){  /* not enough */
-               sprintf(str,"\n*** session      %s has no anatomies!  Skipping.",dname) ;
-               REPORT_PROGRESS(str) ;
-               nskip_noanat ++ ;
-            } else {
-               STATUS("no datasets found!") ;
-            }
+         /* 11 May 2002: put global datasets into this now (instead of later),
+                         so that its anats count in the test below  */
+
+         if( new_ss != NULL && gss != NULL ){
+           AFNI_append_sessions( new_ss , gss ) ;
+         }
+
+         if( new_ss == NULL || new_ss->num_anat <= 0 ){  /* this is bad */
+
+           if( new_ss != NULL ){  /* no anats is bad */
+             sprintf(str,"\n*** session      %s has no anatomies!  Skipping.",dname) ;
+             REPORT_PROGRESS(str) ;
+             nskip_noanat ++ ;
+           } else {               /* no data at all is bad */
+             STATUS("no datasets found!") ;
+           }
 #if 0
             REMOVEFROM_SARR( dlist , id ) ;  /* no datasets --> don't keep in list */
 #endif
@@ -3420,52 +3455,21 @@ if(PRINT_TRACING)
          if( GLOBAL_library.sslist->num_sess <= 0 ) exit(1) ;
       }
 
-      /*-- 20 Dec 2001: Try to read a "global" session --*/
+      /* 11 May 2002: if have global session but no others, use it */
 
-      eee = getenv( "AFNI_GLOBAL_SESSION" ) ;   /* where it's supposed to be */
-      if( eee != NULL ){
-         new_ss =
-          GLOBAL_library.session = THD_init_session( eee ) ; /* try to read datasets */
+      if( gss != NULL && GLOBAL_library.sslist->num_sess == 0 ){
 
-         if( new_ss != NULL ){                               /* got at least one */
+        GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = gss ;
 
-            new_ss->parent = NULL ;
-            for( qd=0 ; qd < new_ss->num_anat ; qd++ )
-               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-                  PARENTIZE( new_ss->anat[qd][vv] , NULL ) ;
-                  DSET_MARK_FOR_IMMORTALITY( new_ss->anat[qd][vv] ) ;
-               }
+        sprintf(str,"\n session #%3d  = %s %d anatomical datasets,"
+                    " %d functional datasets",
+            GLOBAL_library.sslist->num_sess ,
+            gss->sessname , gss->num_anat , gss->num_func ) ;
 
+        num_dsets += (gss->num_anat + gss->num_func) ;
 
-            for( qd=0 ; qd < new_ss->num_func ; qd++ )
-               for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ )
-                  PARENTIZE( new_ss->func[qd][vv] , NULL ) ;{
-                  DSET_MARK_FOR_IMMORTALITY( new_ss->func[qd][vv] ) ;
-               }
-
-            /*-- No other sessions?  Put this session in place for viewing. --*/
-
-            if( GLOBAL_library.sslist->num_sess == 0 ){
-
-               GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
-
-               sprintf(str,"\n session #%3d  = %s %d anatomical datasets,"
-                           " %d functional datasets",
-                   GLOBAL_library.sslist->num_sess ,
-                   new_ss->sessname , new_ss->num_anat , new_ss->num_func ) ;
-
-               num_dsets += (new_ss->num_anat + new_ss->num_func) ;
-
-               REPORT_PROGRESS(str) ;
-
-            /*-- Have other sessions?  Append these datasets to them. --*/
-
-            } else {
-               for( id=0 ; id < GLOBAL_library.sslist->num_sess ; id++ )
-                  AFNI_append_sessions( GLOBAL_library.sslist->ssar[id] , new_ss ) ;
-            }
-         }
-      } /* end of dealing with AFNI_GLOBAL_SESSION */
+        REPORT_PROGRESS(str) ;
+      }
 
       /** if nothing read at all, make up a dummy **/
 
