@@ -6998,7 +6998,7 @@ STATUS(" -- function widgets ON") ;
          }
          XtManageChild( im3d->vwid->func->thr_rowcol ) ;
          qq = AFNI_controller_index(im3d) ;
-         if( zfim[qq] && im3d->fim_now->func_type == FUNC_FIM_TYPE ){
+         if( zfim[qq] && im3d->fim_now != NULL && im3d->fim_now->func_type == FUNC_FIM_TYPE ){
 STATUS(" -- set threshold to zero for FIM (once only)") ;
            XmScaleSetValue( im3d->vwid->func->thr_scale , 0 ) ;
            im3d->vinfo->func_threshold = 0.0 ; zfim[qq] = 0 ;
