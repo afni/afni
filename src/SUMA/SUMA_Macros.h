@@ -15,6 +15,11 @@
 
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
+#define SUMA_MIN_PAIR(a,b)   ( ((a) <= (b)) ? a : b )
+
+#define SUMA_MAX_PAIR(a,b)   ( ((a) <= (b)) ? b : a )
+
+
 /* largest absolute value */
 #define SUMA_LARG_ABS(a, b) ( ( fabs((double)(a)) > fabs((double)(b)) ) ? fabs((double)(a)) : fabs((double)(b)) )
  

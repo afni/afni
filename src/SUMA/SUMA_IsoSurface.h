@@ -45,6 +45,19 @@ typedef struct {
    char *in_1D;  /* name of 1D file containing XYZ coords */
    float *XYZ; /* a 3*N_XYZ vector of XYZ coordinates. This vector should be freed at the end*/
    int N_XYZ;  /* number of points in XYZ */
+   /* following fields are intended for use in BrainWarp only */
+   float ExpFrac; /* a fraction (0.01) used to control the rate of expansion of the surface (see su3 variable in SUMA_StretchToFitLeCerveau ) */
+   float Zt; /* a fraction controlling the separation between brain and non brain, see variable tb in SUMA_StretchToFitLeCerveau ) */
+   int N_it; /* number of iterations */
+   int Icold; /* number of Ico subdivisions */
+   int NodeDbg; /* node to debug */
+   float t;
+   float tm;
+   float t2;
+   float t98;
+   float r;
+   float cog[3];
+   float d1;
 } SUMA_ISOSURFACE_OPTIONS;
 
 SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_ISOSURFACE_OPTIONS * Opt);
