@@ -217,7 +217,9 @@ ENTRY("AFNI_process_NIML_data") ;
 
    nel = (NI_element *) nini ;
 
+#if 0
 fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
+#endif
 
    /******** Surface nodes for a dataset *********/
 
