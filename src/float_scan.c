@@ -84,7 +84,7 @@ int main( int argc , char * argv[] )
               "      mv Elvis.Aaron.Presley fff\n"
               "   endif\n"
              ,
-             sizeof(float)
+             (int)sizeof(float)
             ) ;
       exit(0) ;
    }
@@ -133,7 +133,7 @@ int main( int argc , char * argv[] )
    fsize = THD_filesize( argv[iarg] ) ;
    if( fsize % sizeof(float) != 0 ){
       fprintf(stderr,"*** File %s is %d bytes long: not a multiple of %d!\n",
-              argv[iarg] , fsize , sizeof(float) ) ;
+              argv[iarg] , fsize , (int)sizeof(float) ) ;
       exit(0) ;
    }
 

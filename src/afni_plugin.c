@@ -154,7 +154,7 @@ if(PRINT_TRACING)
 
       char *er ;
       fprintf(stderr,"Failed to open plugin %s",fname) ;
-      er = DYNAMIC_ERROR_STRING ;
+      er = (char *)DYNAMIC_ERROR_STRING ;
       if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
       else             fprintf(stderr,"\n") ;
 
@@ -180,7 +180,7 @@ if(PRINT_TRACING)
    /*----- if symbol not found, complain and kill this plugin -----*/
 
    if( plin->libinit_func == (vptr_func *) NULL ){
-      char *er = DYNAMIC_ERROR_STRING ;
+      char *er = (char *)DYNAMIC_ERROR_STRING ;
       fprintf(stderr,"plugin %s lacks PLUGIN_init function\n",fname) ;
       if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
       DYNAMIC_CLOSE( plin->libhandle ) ;

@@ -1407,14 +1407,14 @@ void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 /*-----------------------------------------------------------------------------*/
 
-void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
+void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
 {
    int id=cbs->ival , copied=0 ;
    THD_3dim_dataset * qset ;
    XmString xstr ;
    char str[256] , *dtit ;
    THD_slist_find slf ;   /* 29 Jul 2003 */
-   MCW_choose_cbs cbs ;
+   MCW_choose_cbs cbss ;
 
    /*-- check for errors --*/
 
@@ -1524,14 +1524,14 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
 
    slf = THD_dset_in_session( FIND_IDCODE , &(dset->idcode) , im3d->ss_now ) ;
    if( slf.dset_index >= 0 ){
-     cbs.ival = slf.dset_index ;
+     cbss.ival = slf.dset_index ;
      if( ISFUNC(dset) ){
        AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
-                                 (XtPointer) im3d ,  &cbs          ) ;
+                                 (XtPointer) im3d ,  &cbss         ) ;
        AFNI_SEE_FUNC_ON(im3d) ; /* 30 Apr 2002 */
      } else {
        AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
-                                 (XtPointer) im3d ,  &cbs          ) ;
+                                 (XtPointer) im3d ,  &cbss         ) ;
      }
    }
 

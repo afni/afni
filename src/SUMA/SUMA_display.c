@@ -7546,7 +7546,7 @@ int SUMA_ShowVisual (Display *dpy, XVisualInfo *vi, SUMA_Boolean ShowHead)
    
    glXGetConfig(dpy, vi, GLX_USE_GL, &glxCapable);
    if (glxCapable) {
-      fprintf(SUMA_STDERR, "0x%x %2d %s", vi->visualid, vi->depth, SUMA_ClassOf(vi->class));
+      fprintf(SUMA_STDERR, "0x%x %2d %s",(unsigned int)vi->visualid, vi->depth, SUMA_ClassOf(vi->class));
       glXGetConfig(dpy, vi, GLX_BUFFER_SIZE, &bufferSize);
       glXGetConfig(dpy, vi, GLX_LEVEL, &level);
       glXGetConfig(dpy, vi, GLX_RGBA, &renderType);

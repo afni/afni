@@ -213,7 +213,7 @@ fprintf(stderr,"Image %d: xbase=%g ybase=%g xcm=%g ycm=%g di=%d dj=%d\n",
 
    if( RG_verbose )
       printf("-- MAX:  %*s  dx = %6.3f  dy = %6.3f  phi = %6.3f\n" ,
-             strlen(fname) , " " , dxtop,dytop,phitop*(180.0/PI) ) ;
+             (int)strlen(fname) , " " , dxtop,dytop,phitop*(180.0/PI) ) ;
 
    exit(0) ;
 }
