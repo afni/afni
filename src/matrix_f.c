@@ -62,7 +62,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <machdep.h>    /* 07 Mar 2005: to get DONT_USE_MATRIX_MAT */
 #include "matrix_f.h"
 
 /*---------------------------------------------------------------------*/

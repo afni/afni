@@ -45,6 +45,7 @@
   Define matrix and vector data structures.
 */
 
+#include "machdep.h"  /* 07 Mar 2005: to get DONT_USE_MATRIX_MAT */
 
 typedef struct matrix
 {
