@@ -721,7 +721,7 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
      nmap = AFNI_vnlist_func_overlay( im3d,ks , &map,&nvused ) ;
 
-#if 0 
+#if 0
      if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
 #endif
 
@@ -827,6 +827,59 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
 
    /* 20 Feb 2003: find closest node */
 
+   AFNI_get_xhair_node( im3d , &kbest , &ibest ) ;
+
+   if( kbest < 0 ) kbest = 0 ;  /* default surface */
+
+   /* now send info to SUMA */
+
+   nel = NI_new_data_element( "SUMA_crosshair_xyz" , 3 ) ;
+   NI_add_column( nel , NI_FLOAT , xyz ) ;
+
+   /* 13 Mar 2002: add idcodes of what we are looking at right now */
+
+   NI_set_attribute( nel, "surface_idcode", im3d->anat_now->su_surf[kbest]->idcode ) ;
+   NI_set_attribute( nel, "volume_idcode" , im3d->anat_now->idcode.str ) ;
+
+   /* 20 Feb 2003: set attribute showing closest node ID */
+
+   if( ibest >= 0 ){
+     char str[32] ;
+     sprintf(str,"%d",ibest) ;
+     NI_set_attribute( nel, "surface_nodeid" , str ) ;
+   }
+
+   xold = xyz[0] ; yold = xyz[1] ; zold = xyz[2] ;  /* save old point */
+
+   if( sendit )
+     NI_write_element( ns_listen[NS_SUMA] , nel , NI_TEXT_MODE ) ;
+   if( serrit )
+     NIML_to_stderr(nel,1) ;
+
+   NI_free_element(nel) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void AFNI_get_xhair_node( void *qq3d , int *kkbest , int *iibest )
+{
+   Three_D_View *im3d = (Three_D_View *)qq3d ;
+   int ks , kbest=-1,ibest=-1     ,ii , nnod ;
+   float  xyz[3] ,   dbest=WAY_BIG,dd , xbot,xtop,ybot,ytop,zbot,ztop ;
+   SUMA_surface *ag ;
+   SUMA_ixyz *nod ;
+
+   if( !IM3D_OPEN(im3d) || (kkbest==NULL && iibest==NULL) ) return ;
+   if( im3d->anat_now->su_num     == 0   ||
+       im3d->anat_now->su_surf[0] == NULL  ) return ;
+
+   xyz[0] = im3d->vinfo->xi ;  /* current RAI coordinates */
+   xyz[1] = im3d->vinfo->yj ;
+   xyz[2] = im3d->vinfo->zk ;
+
+   /* 20 Feb 2003: find closest node */
+
    xbot = ybot = zbot = xtop = ytop = ztop = 0.0 ;   /* unrestricted */
 
    if( im3d->vinfo->view_setter > 0 ){   /* restrict to a thick plane */
@@ -887,43 +940,12 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
      }
    }
 
-#if 0
    if( kbest >= 0 ){
      ag = im3d->anat_now->su_surf[kbest] ; nod = ag->ixyz ;
-     fprintf(stderr,"xyz=%f,%f,%f => kbest=%d ibest=%d xyz=%f,%f,%f\n",
-             xyz[0],xyz[1],xyz[2] ,
-             kbest,nod[ibest].id,nod[ibest].x,nod[ibest].y,nod[ibest].z ) ;
-   }
-#endif
-
-   if( kbest < 0 ) kbest = 0 ;  /* default surface */
-
-   /* now send info to SUMA */
-
-   nel = NI_new_data_element( "SUMA_crosshair_xyz" , 3 ) ;
-   NI_add_column( nel , NI_FLOAT , xyz ) ;
-
-   /* 13 Mar 2002: add idcodes of what we are looking at right now */
-
-   NI_set_attribute( nel, "surface_idcode", im3d->anat_now->su_surf[kbest]->idcode ) ;
-   NI_set_attribute( nel, "volume_idcode" , im3d->anat_now->idcode.str ) ;
-
-   /* 20 Feb 2003: set attribute showing closest node ID */
-
-   if( ibest >= 0 ){
-     char str[32] ;
-     ag = im3d->anat_now->su_surf[kbest] ; nod = ag->ixyz ;
-     sprintf(str,"%d",nod[ibest].id) ;
-     NI_set_attribute( nel, "surface_nodeid" , str ) ;
+     ibest = nod[ibest].id ;
    }
 
-   xold = xyz[0] ; yold = xyz[1] ; zold = xyz[2] ;  /* save old point */
-
-   if( sendit )
-     NI_write_element( ns_listen[NS_SUMA] , nel , NI_TEXT_MODE ) ;
-   if( serrit )
-     NIML_to_stderr(nel,1) ;
-
-   NI_free_element(nel) ;
-   EXRETURN ;
+   if( kkbest != NULL ) *kkbest = kbest ;
+   if( iibest != NULL ) *iibest = ibest ;
+   return ;
 }

@@ -2338,7 +2338,7 @@ if(PRINT_TRACING)
       /* Load value of current pixel into display label */
       /* April 1996: only if image is at current slice  */
 
-      { char buf[32] = "\0" ;
+      { char buf[64] = "\0" ; int ibest=-1 ;
         AFNI_set_valabel( br , n , im , buf ) ;
         if( buf[0] != '\0' ){
            if( im3d->vinfo->underlay_type == UNDERLAY_ANAT )
@@ -2349,8 +2349,12 @@ if(PRINT_TRACING)
            if( !AFNI_noenv("AFNI_VALUE_LABEL") ) AFNI_do_bkgd_lab( im3d ) ;
 
            if( im->kind != MRI_complex && im->kind != MRI_rgb ){
-              char qbuf[32] = "bg =" ;
+              char qbuf[64] = "bg =" ;
               strcat(qbuf,buf) ; strcpy(buf,qbuf) ;
+           }
+           AFNI_get_xhair_node( im3d , NULL , &ibest ) ;   /* 21 Feb 2003 */
+           if( ibest >= 0 ){
+              char qbuf[64]; sprintf(qbuf,"\nxh = #%d",ibest); strcat(buf,qbuf);
            }
            MCW_set_widget_label( im3d->vwid->imag->pop_bkgd_lab , buf ) ;
            XtManageChild( im3d->vwid->imag->pop_bkgd_lab ) ;
