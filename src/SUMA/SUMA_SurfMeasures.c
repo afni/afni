@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.8 (March 26, 2004)"
+#define VERSION "version 1.9 (July 29, 2004)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -82,6 +82,9 @@ static char g_history[] =
     "\n"
     "1.8 March 26, 2004  [ziad]\n"
     "  - DsetList added to SUMA_LoadSpec_eng() and SUMA_SurfaceMetrics_eng()\n"
+    "\n"
+    "1.9 July 29, 2004  [rickr]\n"
+    "  - Remove check for anat correct.\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -1164,6 +1167,8 @@ ENTRY("all_mappable_surfs");
 
 /*	if ( ! SUMA_isINHmappable(so) )       -  deprecated  [v1.5] */
 
+#if 0   /* do not require this [v1.9] */
+
 	if ( ! so->AnatCorrect )
 	{
 	    if ( opts->debug )
@@ -1175,6 +1180,7 @@ ENTRY("all_mappable_surfs");
 			       "       Anatomical = Y\n");
 	    continue;
 	}
+#endif
 
 	if ( opts->debug > 1 )
 	{
