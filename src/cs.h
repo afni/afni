@@ -26,6 +26,7 @@ extern void qsort_floatstuff( int , float *  , void ** ) ;  /* 06 Feb 2000 */
 /***** Quicksort-ish median *****/
 
 extern float qmed_float( int , float * ) ;
+extern void  qmedmad_float( int,float *,float *,float * ) ; /* 08 Mar 2001 */
 
 /***** Eigensolutions *****/
 

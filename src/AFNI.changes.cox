@@ -2671,3 +2671,8 @@
  * Modified to3d.c, afni_plugin.c, and plug_render.c to turn off the
      overlay opacity arrowval for their particular image windows
      (since they don't use overlays anyhoo).
+ * Modified rwc.xbm logo bitmap to include NIH logo along with MCW logo.
+
+08 Mar 2001
+ * Added median+MAD function to cs_qmed.c.
+ * Added display of median+MAD to popup stats in afni_graph.[ch].

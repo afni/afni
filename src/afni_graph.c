@@ -1562,6 +1562,7 @@ STATUS("finding statistics of time series") ;
          if( tsim == NULL || tsim->nx < 2 ){
             grapher->tmean[ix][iy] = grapher->tbot[ix][iy] =
               grapher->ttop[ix][iy] = grapher->tstd[ix][iy] = 0.0 ;
+            grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0 ;  /* 08 Mar 2001 */
             continue ;
          }
 
@@ -1572,6 +1573,7 @@ STATUS("finding statistics of time series") ;
          if( itop-ibot < 2 ){
             grapher->tmean[ix][iy] = grapher->tbot[ix][iy] =
               grapher->ttop[ix][iy] = grapher->tstd[ix][iy] = 0.0 ;
+            grapher->tmed[ix][iy] = grapher->tmad[ix][iy] = 0.0 ;  /* 08 Mar 2001 */
             continue ;
          }
 
@@ -1587,6 +1589,10 @@ STATUS("finding statistics of time series") ;
          qsum  = qsum / (itop-ibot) ; grapher->tmean[ix][iy] = qsum ;
          qsumq = (qsumq - (itop-ibot) * qsum * qsum) / (itop-ibot-1) ;
          grapher->tstd[ix][iy] = (qsumq > 0.0) ? sqrt(qsumq) : 0.0 ;
+
+         qmedmad_float( itop-ibot , tsar+ibot ,        /* 08 Mar 2001 */
+                        &(grapher->tmed[ix][iy]) ,
+                        &(grapher->tmad[ix][iy]) ) ;
 
          if( set_scale ){        /* 03 Feb 1998 */
             nd_bot = MIN( nd_bot , qbot ) ;
@@ -2427,22 +2433,28 @@ STATUS("button press") ;
             if( ix >= 0 && ix < grapher->mat && iy >= 0 && iy < grapher->mat ){
                XmString xstr ;
                char str[256] , bmin[16],bmax[16],bmean[16],bstd[16] ;
+               char bmed[16] , bmad[16] ; /* 08 Mar 2001 */
 
                AV_fval_to_char( grapher->tbot[ix][iy]  , bmin ) ;
                AV_fval_to_char( grapher->ttop[ix][iy]  , bmax ) ;
-               AV_fval_to_char( grapher->tmean[ix][iy] , bmean ) ;
+               AV_fval_to_char( grapher->tmean[ix][iy] , bmean) ;
                AV_fval_to_char( grapher->tstd[ix][iy]  , bstd ) ;
 
-               sprintf( str , "Ignore  = %d\n"
+               AV_fval_to_char( grapher->tmed[ix][iy]  , bmed ) ; /* 08 Mar 2001 */
+               AV_fval_to_char( grapher->tmad[ix][iy]  , bmad ) ;
+
+               sprintf( str , "Ignored = %d\n"
                               "x voxel = %d\n"
                               "y voxel = %d\n"
                               "z voxel = %d\n"
-                              "min     =%s\n"
-                              "max     =%s\n"
-                              "mean    =%s\n"
-                              "sigma   =%s"   ,
+                              "Min     =%s\n"
+                              "Max     =%s\n"
+                              "Mean    =%s\n"
+                              "Sigma   =%s\n"
+                              "Median  =%s\n"     /* 08 Mar 2001 */
+                              "MAD     =%s" ,
                         grapher->init_ignore ,
-                        xloc , yloc , grapher->zpoint , bmin , bmax , bmean , bstd ) ;
+                        xloc,yloc, grapher->zpoint, bmin,bmax,bmean,bstd,bmed,bmad ) ;
 
                 /** 22 Apr 1997: incorporate user string for this voxel **/
 

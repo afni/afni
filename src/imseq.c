@@ -779,6 +779,20 @@ if( PRINT_TRACING ){
      int iov = (int)rint(newseq->ov_opacity/OPACITY_FAC) ;
      char * buf = ISQ_opacity_label(iov) ;
 
+     /** 08 Mar 2001 - put a line between the arrows above and this control **/
+
+     newseq->ov_opacity_sep = XtVaCreateManagedWidget(
+                                "dialog" , xmSeparatorWidgetClass , newseq->wform ,
+                                   XmNseparatorType , XmSINGLE_LINE ,
+                                   EDGING_RIG   , XmATTACH_FORM ,
+                                   LEADING_RIG  , XmATTACH_WIDGET ,
+                                   LEADING_WIDGET_RIG , newseq->arrow[NARROW-1]->wrowcol ,
+                                   XmNleftAttachment , XmATTACH_OPPOSITE_WIDGET ,
+                                   XmNleftWidget , newseq->arrow[NARROW-1]->wrowcol ,
+                                   XmNleftOffset , 7 ,
+                                NULL ) ;
+     newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->ov_opacity_sep ;
+
      newseq->ov_opacity_av = new_MCW_arrowval(
                                newseq->wform ,        /* parent */
                                buf ,                  /* label */
@@ -800,7 +814,7 @@ if( PRINT_TRACING ){
      XtVaSetValues( newseq->ov_opacity_av->wrowcol ,
                       EDGING_RIG   , XmATTACH_FORM ,
                       LEADING_RIG  , XmATTACH_WIDGET ,
-                      LEADING_WIDGET_RIG , newseq->arrow[NARROW-1]->wrowcol ,
+                      LEADING_WIDGET_RIG , newseq->ov_opacity_sep ,
                     NULL ) ;
 
      MCW_reghelp_children( newseq->ov_opacity_av->wrowcol,
@@ -811,7 +825,8 @@ if( PRINT_TRACING ){
      MCW_reghint_children( newseq->ov_opacity_av->wrowcol, "Color overlay opacity" );
 
    } else {
-     newseq->ov_opacity_av = NULL ;
+     newseq->ov_opacity_av  = NULL ;
+     newseq->ov_opacity_sep = NULL ;
    }
 
    /* scale for image number */
@@ -4048,10 +4063,14 @@ ENTRY("drive_MCW_imseq") ;
       case isqDR_opacitybut:{
          int val = (int ) drive_data ;
          if( seq->ov_opacity_av == NULL ) RETURN( False ) ;
-         if( val == 0 )
+         if( val == 0 ){
+            XtUnmanageChild( seq->ov_opacity_sep ) ;
             XtUnmanageChild( seq->ov_opacity_av->wrowcol ) ;
-         else
+         }
+         else {
+            XtManageChild( seq->ov_opacity_sep ) ;
             XtManageChild( seq->ov_opacity_av->wrowcol ) ;
+         }
          RETURN( True ) ;
       }
       break ;

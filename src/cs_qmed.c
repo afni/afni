@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*------------------------------------------------------------------------
@@ -100,6 +100,27 @@ float qmed_float( int n , float * ar )
    }  /* end of while sub-array is long */
 
    return (nodd) ? a[mid] : 0.5*(a[mid]+a[mid-1]) ;
+}
+
+/*---------------------------------------------------------------
+  Return median and MAD, nondestructively -- 08 Mar 2001 - RWCox
+-----------------------------------------------------------------*/
+
+void qmedmad_float( int n, float *ar, float *med, float *mad )
+{
+   float * q = (float *) malloc(sizeof(float)*n) ;
+   float me,ma ;
+   register int ii ;
+
+   memcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */
+   me = qmed_float( n , q ) ;      /* compute median */
+
+   for( ii=0 ; ii < n ; ii++ )     /* subtract off median */
+      q[ii] = fabs(q[ii]-me) ;     /* (absolute deviation) */
+
+   ma = qmed_float( n , q ) ;      /* MAD = median absolute deviation */
+
+   *med = me ; *mad = ma ; return ;
 }
 
 /*---------------------------------------------------------------*/

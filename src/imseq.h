@@ -84,11 +84,13 @@ typedef struct {
 #define LEADING_WIDGET_BOT XmNleftWidget
 #define TRAILING_BOT       XmNrightAttachment
 #define EDGING_BOT         XmNbottomAttachment
+#define SPACING_BOT        XmNleftOffset
 
 #define LEADING_RIG        XmNtopAttachment
 #define LEADING_WIDGET_RIG XmNtopWidget
 #define TRAILING_RIG       XmNbottomAttachment
 #define EDGING_RIG         XmNrightAttachment
+#define SPACING_RIG        XmNtopOffset
 
 #define NARROW 5
 
@@ -411,8 +413,9 @@ typedef struct {
 
      /* opacity of overlay */
 
-     float ov_opacity ;
+     float ov_opacity ;              /* 07 Mar 2001 */
      MCW_arrowval * ov_opacity_av ;
+     Widget ov_opacity_sep ;         /* 08 Mar 2001 */
 
 } MCW_imseq ;
 

@@ -461,6 +461,8 @@ typedef struct {
    int mirror ;
 
    XtPointer parent ;
+
+   float tmed[MAT_MAX][MAT_MAX] , tmad[MAT_MAX][MAT_MAX] ;    /* 08 Mar 2001 */
 } MCW_grapher ;
 
 static int fd_x    = 0 ;
