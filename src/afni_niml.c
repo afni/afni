@@ -365,19 +365,31 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
         EXRETURN ;
      }
 
-     /* make space for 1 more set of surface pointers */
+     /*-- make space for 1 more set of surface pointers --*/
 
-     dset->su_surf = (SUMA_surface **) realloc(dset->su_surf, (num+1)*sizeof(SUMA_surface *)) ;
+     /* the surface itself [created below] */
 
-     dset->su_vmap = (int **) realloc(dset->su_vmap, (num+1)*sizeof(int *)) ;
+     dset->su_surf = (SUMA_surface **) realloc(dset->su_surf,
+                                               (num+1)*sizeof(SUMA_surface *)) ;
+
+     /* the voxel-to-node map [created empty] */
+
+     dset->su_vmap = (int **) realloc(dset->su_vmap,
+                                      (num+1)*sizeof(int *)) ;
      dset->su_vmap[num] = NULL ;
 
-     dset->su_vnlist = (SUMA_vnlist **) realloc(dset->su_vnlist, (num+1)*sizeof(SUMA_vnlist *)) ;
+     /* the voxel-to-node list [created empty] */
+
+     dset->su_vnlist = (SUMA_vnlist **) realloc(dset->su_vnlist,
+                                                (num+1)*sizeof(SUMA_vnlist *)) ;
      dset->su_vnlist[num] = NULL ;
 
-     dset->su_sname = (char **) realloc(dset->su_sname, (num+1)*sizeof(char *)) ;
+     /* the surface filename [filled in below] */
 
-     /*-- initialize surface that we will fill up here */
+     dset->su_sname = (char **) realloc(dset->su_sname,
+                                        (num+1)*sizeof(char *)) ;
+
+     /*-- initialize surface that we will fill up here --*/
 
      dset->su_surf[num] = ag = SUMA_create_empty_surface() ;
 
@@ -394,7 +406,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      else
        sprintf(ag->label,"Surf#%d",num+1) ;
 
-     /*-- set surface filename now --*/
+     /*-- set surface filename now ["++LOCK++" ==> keep in memory] --*/
 
      dset->su_sname[num] = malloc(16+strlen(ag->idcode)) ;
      strcpy(dset->su_sname[num], "++LOCK++ ") ;
@@ -406,10 +418,10 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- pointers to the data columns in the NI_element --*/
 
-     ic = (int *)   nel->vec[0] ;
-     xc = (float *) nel->vec[1] ;
-     yc = (float *) nel->vec[2] ;
-     zc = (float *) nel->vec[3] ;
+     ic = (int *)   nel->vec[0] ;  /* index */
+     xc = (float *) nel->vec[1] ;  /* x coordinate */
+     yc = (float *) nel->vec[2] ;  /* y coordinate */
+     zc = (float *) nel->vec[3] ;  /* z coordinate */
 
      /*-- add nodes to the surface --*/
 
@@ -427,11 +439,12 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- we're done! --*/
 
-     if( ct_start >= 0 ) ct_tot = NI_clock_time() - ct_start ;
+     if( ct_start >= 0 )                     /* keep track of how */
+       ct_tot = NI_clock_time() - ct_start ; /* long this took   */
 
-     sprintf(msg,"+++NOTICE:\n\n"
-                 " SUMA_ixyz surface received:\n"
-                 "  %-14.14s\n"
+     sprintf(msg,"+++NOTICE:\n\n"                     /* and tell  */
+                 " SUMA_ixyz surface received:\n"     /* the user  */
+                 "  %-14.14s\n"                       /* some info */
                  " %d nodes attached to dataset\n"
                  "  %.222s\n"
                  " This is surface #%d for this dataset \n" ,
@@ -443,6 +456,9 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                               ct_read , ct_tot-ct_read ) ;
 
      AFNI_popup_message( msg ) ;
+
+     /* need to make the "Control Surface"
+        widgets know about this extra surface */
 
      AFNI_update_all_surface_widgets( dset ) ;  /* 19 Aug 2002 */
 
@@ -505,7 +521,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
         EXRETURN ;
      }
 
-     /*-- dataset must already have a surface */
+     /*-- dataset must already have a surface --*/
 
      num = dset->su_num ;
      if( num == 0 ){
@@ -552,7 +568,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
                      " SUMA_ijk surface input surface idcode\n"
                      "  %s\n"
                      " already has %d triangles in it, and\n"
-                     " SUMA is trying to add %d more!\n" ,
+                     " the SUMA user is trying to add %d more!\n" ,
                 idc, ag->num_ijk , nel->vec_filled ) ;
         AFNI_popup_message( msg ) ;
         EXRETURN ;
@@ -560,9 +576,9 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- pointers to the data columns in the NI_element --*/
 
-     it = (int *) nel->vec[0] ;
-     jt = (int *) nel->vec[1] ;
-     kt = (int *) nel->vec[2] ;
+     it = (int *) nel->vec[0] ;  /* node index #1 */
+     jt = (int *) nel->vec[1] ;  /* node index #2 */
+     kt = (int *) nel->vec[2] ;  /* node index #3 */
 
      /*-- add nodes to the surface --*/
 
@@ -572,14 +588,15 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      /*-- we're done! --*/
 
-     if( ct_start >= 0 ) ct_tot = NI_clock_time() - ct_start ;
+     if( ct_start >= 0 )                      /* keep track    */
+       ct_tot = NI_clock_time() - ct_start ;  /* of time spent */
 
      if( nold == 0 )
-       sprintf(msg,"+++NOTICE:\n\n"
-                   " SUMA_ijk triangles received:\n"
-                   " %d triangles attached to surface \n"
-                   "  %-14.14s\n"
-                   " in dataset\n"
+       sprintf(msg,"+++NOTICE:\n\n"                        /* let the   */
+                   " SUMA_ijk triangles received:\n"       /* pitiful   */
+                   " %d triangles attached to surface \n"  /* user see  */
+                   "  %-14.14s\n"                          /* what just */
+                   " in dataset\n"                         /* happened  */
                    "  %.222s\n" ,
                    nel->vec_filled , ag->label , DSET_FILECODE(dset) ) ;
      else
@@ -650,7 +667,7 @@ static void AFNI_niml_redisplay_CB( int why, int q, void *qq, void *qqq )
    Three_D_View *im3d = (Three_D_View *) qqq ;
    THD_3dim_dataset *adset , *fdset ;
    SUMA_irgba *map ;
-   int        nmap , nvused , nvtot , ct ;
+   int        nmap , nvused , nvtot , ct , ks ;
    NI_element *nel ;
    char msg[16] ;
 
@@ -673,53 +690,64 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    ct = NI_clock_time() ;
 
-   nmap = AFNI_vnlist_func_overlay( im3d , &map , &nvused ) ;
+   /* 12 Dec 2002:
+      Now we loop over all surfaces in the current anat
+      and send the node+color map for each and every one! */
 
-   if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
+   for( ks=0 ; ks < adset->su_num ; ks++ ){
 
-   if( nmap < 0 || adset->su_vnlist[0] == NULL ) EXRETURN ;  /* this is bad */
+     nmap = AFNI_vnlist_func_overlay( im3d,ks , &map,&nvused ) ;
 
-   if( nmap > 0 ){  /* make a data element with data */
-      nel = NI_new_data_element( "SUMA_irgba" , -1 ) ;
-      NI_define_rowmap_VA( nel ,
-                           NI_INT  , offsetof(SUMA_irgba,id) ,
-                           NI_BYTE , offsetof(SUMA_irgba,r ) ,
-                           NI_BYTE , offsetof(SUMA_irgba,g ) ,
-                           NI_BYTE , offsetof(SUMA_irgba,b ) ,
-                           NI_BYTE , offsetof(SUMA_irgba,a ) , -1 ) ;
-      NI_add_many_rows( nel , nmap , sizeof(SUMA_irgba) , map ) ;
-      free(map) ;
-   } else {         /* make an empty data element */
-      nel = NI_new_data_element( "SUMA_irgba" , 0 ) ;
-      nvused = 0 ;
-   }
-   nvtot = adset->su_vnlist[0]->nvox ;  /* 13 Mar 2002 */
+     if( serrit ) fprintf(stderr,"AFNI_niml_redisplay_CB: nmap=%d\n",nmap) ;
 
-   /* 13 Mar 2002: send idcodes of surface and datasets involved */
+     if( nmap < 0 || adset->su_vnlist[ks] == NULL ) continue ; /* this is bad */
 
-   NI_set_attribute( nel , "surface_idcode" , adset->su_surf[0]->idcode ) ;
-   NI_set_attribute( nel , "volume_idcode"  , adset->idcode.str ) ;
-   NI_set_attribute( nel , "function_idcode", fdset->idcode.str ) ;
+     if( nmap > 0 ){  /* make a data element with data */
+       nel = NI_new_data_element( "SUMA_irgba" , -1 ) ;
+       NI_define_rowmap_VA( nel ,
+                              NI_INT  , offsetof(SUMA_irgba,id) ,
+                              NI_BYTE , offsetof(SUMA_irgba,r ) ,
+                              NI_BYTE , offsetof(SUMA_irgba,g ) ,
+                              NI_BYTE , offsetof(SUMA_irgba,b ) ,
+                              NI_BYTE , offsetof(SUMA_irgba,a ) ,
+                            -1 ) ;
+       NI_add_many_rows( nel , nmap , sizeof(SUMA_irgba) , map ) ;
+       free(map) ;
+     } else {         /* make an empty data element */
+       nel = NI_new_data_element( "SUMA_irgba" , 0 ) ;
+       nvused = 0 ;
+     }
+     nvtot = adset->su_vnlist[ks]->nvox ;  /* 13 Mar 2002 */
 
-   /* 13 Mar 2002: also send the number of voxels in the surface
-                   and the number of voxels that were colored in */
+     /* 13 Mar 2002: send idcodes of surface and datasets involved */
 
-   sprintf(msg,"%d",nvtot) ;
-   NI_set_attribute( nel , "numvox_total" , msg ) ;
-   sprintf(msg,"%d",nvused) ;
-   NI_set_attribute( nel , "numvox_used" , msg ) ;
+     NI_set_attribute( nel, "surface_idcode" , adset->su_surf[ks]->idcode ) ;
+     NI_set_attribute( nel, "volume_idcode"  , adset->idcode.str ) ;
+     NI_set_attribute( nel, "function_idcode", fdset->idcode.str ) ;
 
-   if( sendit )
-     NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
-   if( serrit )
-     NIML_to_stderr(nel) ;
+     /* 13 Mar 2002: also send the number of voxels in the surface
+                     and the number of voxels that were colored in */
 
-   if( serrit || GLOBAL_argopt.yes_niml > 1 )
-      fprintf(stderr,
-              "++ NIML write colored surface: voxels=%d nodes=%d time=%d ms\n",
-              nvused , nmap , ct = NI_clock_time() - ct ) ;
+     sprintf(msg,"%d",nvtot) ;
+     NI_set_attribute( nel , "numvox_total" , msg ) ;
+     sprintf(msg,"%d",nvused) ;
+     NI_set_attribute( nel , "numvox_used" , msg ) ;
 
-   NI_free_element(nel) ;
+     if( sendit )
+       NI_write_element( ns_listen[NS_SUMA] , nel , NI_BINARY_MODE ) ;
+     if( serrit )
+       NIML_to_stderr(nel) ;
+
+     if( serrit || GLOBAL_argopt.yes_niml > 1 )
+       fprintf(stderr,
+               "++ NIML write colored surface: voxels=%d nodes=%d time=%d ms\n",
+               nvused , nmap , ct = NI_clock_time() - ct ) ;
+
+     NI_free_element(nel) ;  /* it's gone, so forget it */
+
+   } /* end of loop over surface in anat dataset */
+
+   return ;
 }
 
 /*--------------------------------------------------------------------*/

@@ -4,7 +4,8 @@
 
 /*-----------------------------------------------------------------------*/
 /*! Create a nodal color overlay from a voxel map.
-    - Return value is number of nodes overlaid
+    - Input ks is surface index to use from anat dataset [12 Dec 2002]
+    - Return value is number of nodes overlaid:
     -  0 return ==> no overlay
     - -1 return ==> some error (e.g., no surface nodes on this dataset)
     - *map is set to a newly malloc()-ed array (if return > 0)
@@ -15,14 +16,17 @@
 
     Sample usage:
     - SUMA_irgba *map ;
-    - int        nmap ;
-    - nmap = AFNI_vnlist_func_overlay( im3d , &map ) ;
+    - int        nmap , nvox ;
+    - nmap = AFNI_vnlist_func_overlay( im3d , 0 , &map , &nvox ) ;
     -      if( nmap <  0 ){ ** error ** }
     - else if( nmap == 0 ){ ** nothing to show ** }
     - else                { ** show map[0..nmap-1] ** }
+
+    Much of this function is a 3D-ification of AFNI_func_overlay().
 -------------------------------------------------------------------------*/
 
-int AFNI_vnlist_func_overlay( Three_D_View *im3d, SUMA_irgba **map, int *nvused )
+int AFNI_vnlist_func_overlay( Three_D_View *im3d, int ks ,
+                              SUMA_irgba **map, int *nvused )
 {
    MRI_IMAGE *im_thr , *im_fim ;
    short fim_ovc[NPANE_MAX+1] ;
@@ -38,7 +42,6 @@ int AFNI_vnlist_func_overlay( Three_D_View *im3d, SUMA_irgba **map, int *nvused 
    int nvox,nnod,nout , *numnod , *voxijk , *nlist ;
    int *vlist ;
    int nvout ;   /* 13 Mar 2002 */
-   int ks ;      /* 14 Aug 2002 */
 
 ENTRY("AFNI_vnlist_func_overlay") ;
 
@@ -46,21 +49,19 @@ ENTRY("AFNI_vnlist_func_overlay") ;
 
    if( map == NULL || !IM3D_VALID(im3d) ) RETURN(-1) ; /* that was easy */
 
-   if( nvused != NULL ) *nvused = 0 ;      /* default return value here */
+   if( nvused != NULL ) *nvused = 0 ;  /* set default return value here */
 
    /* check datasets for goodness */
+   /* 12 Dec 2002: ks is now input (we used to compute it) */
 
-   adset = im3d->anat_now ;                /* anat dataset */
-   if( adset == NULL      ||               /* must have surface */
-       adset->su_num == 0   ) RETURN(-1) ;
+   adset = im3d->anat_now ;            /* anat dataset must */
+   if( adset              == NULL ||   /* have surface #ks  */
+       adset->su_num      == 0    ||
+       ks                 <  0    ||
+       adset->su_num      <= ks   ||
+       adset->su_surf[ks] == NULL   ) RETURN(-1) ;
 
-   /* 14 Aug 2002: find surface index [ks] to use */
-
-   for( ks=0 ; ks < adset->su_num ; ks++ )
-     if( adset->su_surf[ks] != NULL ) break ;
-   if( ks == adset->su_num ) RETURN(-1) ;  /* no valid surface? */
-
-   fdset = im3d->fim_now  ; if( fdset == NULL ) RETURN(-1) ;
+   fdset = im3d->fim_now ; if( fdset == NULL ) RETURN(-1) ;
 
    /* figure out what we are showing from the func dataset */
 
@@ -69,15 +70,15 @@ ENTRY("AFNI_vnlist_func_overlay") ;
    have_thr      = FUNC_HAVE_THR( fdset_type ) ;
 
    if( ISFUNCBUCKET(fdset) )
-      ival = im3d->vinfo->thr_index ;
+     ival = im3d->vinfo->thr_index ;
    else
-      ival = FUNC_ival_thr[fdset_type] ;    /* sub-brick for threshold */
+     ival = FUNC_ival_thr[fdset_type] ;    /* sub-brick for threshold */
 
    if( function_type == SHOWFUNC_THR && !have_thr ) RETURN(-1) ;
 
    /* get the component images */
 
-   need_thr = have_thr && ( function_type == SHOWFUNC_THR ||      /* 10 Dec 1997 */
+   need_thr = have_thr && ( function_type == SHOWFUNC_THR ||
                             im3d->vinfo->func_threshold > 0.0 ) ;
 
    if( need_thr ) im_thr = DSET_BRICK(fdset,ival) ;
@@ -91,43 +92,46 @@ ENTRY("AFNI_vnlist_func_overlay") ;
    }
 
    if( function_type == SHOWFUNC_FIM || !have_thr ){
-      int ind ;
+     int ind ;
 
-      if( fdset_type == FUNC_FIM_TYPE ){   /* Mar 1997: allow for 3D+t FIM */
-         ind = im3d->vinfo->time_index ;
-         if( ind >= DSET_NUM_TIMES(fdset) )
-            ind = DSET_NUM_TIMES(fdset) - 1 ;
-      } else {
-         if( ISFUNCBUCKET(fdset) )         /* 30 Nov 1997 */
-            ind = im3d->vinfo->fim_index ;
-         else
-            ind = FUNC_ival_fim[fdset_type] ;
-      }
-      im_fim       = DSET_BRICK(fdset,ind) ;
-      scale_factor = im3d->vinfo->fim_range ;
-      if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
+     /* figure out which sub-brick to show = ind */
 
-      scale_fim = DSET_BRICK_FACTOR(fdset,ind) ;
-      if( scale_fim == 0.0 ) scale_fim = 1.0 ;
+     if( fdset_type == FUNC_FIM_TYPE ){   /* allow for 3D+t FIM */
+       ind = im3d->vinfo->time_index ;
+       if( ind >= DSET_NUM_TIMES(fdset) ) /* be careful */
+         ind = DSET_NUM_TIMES(fdset) - 1 ;
+     } else {
+       if( ISFUNCBUCKET(fdset) )          /* allow for func bucket */
+         ind = im3d->vinfo->fim_index ;
+       else
+         ind = FUNC_ival_fim[fdset_type] ;
+     }
+     im_fim       = DSET_BRICK(fdset,ind) ;  /* the sub-brick to show */
+     scale_factor = im3d->vinfo->fim_range ;
+     if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
 
-   } else {
-      im_fim = im_thr ;
-      scale_factor = im3d->vinfo->fim_range ;
-      if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
-      scale_fim = scale_thr ;
+     scale_fim = DSET_BRICK_FACTOR(fdset,ind) ;
+     if( scale_fim == 0.0 ) scale_fim = 1.0 ;
+
+   } else {                            /* show the threshold sub-brick */
+     im_fim = im_thr ;
+     scale_factor = im3d->vinfo->fim_range ;
+     if( scale_factor == 0.0 ) scale_factor = im3d->vinfo->fim_autorange ;
+     scale_fim = scale_thr ;
    }
 
    /* if component images not good, quit now */
 
-   if( im_fim == NULL ) RETURN(-1) ;
+   if( im_fim == NULL ) RETURN(-1) ;  /* no function!? */
 
    if( !AFNI_GOOD_FUNC_DTYPE(im_fim->kind) ||
        ( im_thr != NULL && !AFNI_GOOD_FUNC_DTYPE(im_thr->kind) ) ){
 
-      RETURN(-1) ;
+      RETURN(-1) ;  /* bad function - bad bad bad - no soup for you */
    }
 
-   /* maybe need to build a voxel-to-node list for func dataset */
+   /* maybe need to build a voxel-to-node list for func dataset  */
+   /* (this is where the 3D-to-2D mapping is encapsulated, Ziad) */
 
    if( adset->su_vnlist[ks] == NULL ||
        !EQUIV_DATAXES(adset->su_vnlist[ks]->dset->daxes,fdset->daxes) ){
@@ -142,12 +146,12 @@ ENTRY("AFNI_vnlist_func_overlay") ;
    /* create array of voxel indexes (vlist);
       will put in there the voxels that are above threshold */
 
-   nvox   = adset->su_vnlist[ks]->nvox   ; if( nvox < 1 ) RETURN(0);
-   voxijk = adset->su_vnlist[ks]->voxijk ;  /* list of voxels with surface nodes */
-   numnod = adset->su_vnlist[ks]->numnod ;  /* number of nodes in each voxel */
+   nvox   = adset->su_vnlist[ks]->nvox  ; if( nvox < 1 ) RETURN(0);
+   voxijk = adset->su_vnlist[ks]->voxijk; /* list of voxels with surface nodes */
+   numnod = adset->su_vnlist[ks]->numnod; /* number of nodes in each voxel */
 
-   nnod = adset->su_surf[ks]->num_ixyz   ; if( nnod < 1 ) RETURN(0);
-   ixyz = adset->su_surf[ks]->ixyz ;
+   nnod = adset->su_surf[ks]->num_ixyz  ; if( nnod < 1 ) RETURN(0);
+   ixyz = adset->su_surf[ks]->ixyz      ; /* array of surface nodes */
 
 #if 0
 fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
@@ -155,13 +159,13 @@ fprintf(stderr,"AFNI_vnlist_func_overlay: nvox=%d nnod=%d\n",nvox,nnod) ;
 
    /** if don't have threshold, will process all voxels for color **/
 
-   DSET_load(fdset) ;  /* just in case isn't in memory yet */
-   if( !DSET_LOADED(fdset) ) RETURN(-1) ;
+   DSET_load(fdset) ;                     /* if isn't in memory now */
+   if( !DSET_LOADED(fdset) ) RETURN(-1) ; /* what the hell?         */
 
    if( im_thr == NULL ){
 
-      vlist = voxijk ;  /* list of voxels to process */
-      nout  = nnod   ;  /* number of output nodes */
+     vlist = voxijk ;  /* list of voxels to process */
+     nout  = nnod   ;  /* number of output nodes */
 
    /** if have threshold, cut out voxels below threshold (set vlist[]=-1) **/
 
@@ -294,6 +298,7 @@ fprintf(stderr,"  fim_thr[%d]=%f\n",lp,fim_thr[lp]) ;
          nvout = nout = 0 ;                           /* num output nodes */
          for( ii=0 ; ii < nvox ; ii++ ){
             jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
+            if( ar_fim[jj] == 0 )         continue ;  /* no func? */
             /* find pane this voxel is in */
             for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
             if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
@@ -327,6 +332,7 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
          nvout = nout = 0 ;                           /* num output nodes */
          for( ii=0 ; ii < nvox ; ii++ ){
             jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
+            if( ar_fim[jj] == 0 )         continue ;  /* no func? */
             /* find pane this voxel is in */
             for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
             if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
@@ -353,6 +359,7 @@ fprintf(stderr,"voxel=%d node index=%d ID=%d rgb=%d %d %d (%02x %02x %02x)\n",
          nvout = nout = 0 ;                           /* num output nodes */
          for( ii=0 ; ii < nvox ; ii++ ){
             jj = vlist[ii] ; if( jj < 0 ) continue ;  /* skip voxel? */
+            if( ar_fim[jj] == 0.0 )       continue ;  /* no func? */
             /* find pane this voxel is in */
             for( lp=0; lp < num_lp && ar_fim[jj] < fim_thr[lp]; lp++ ) ; /*nada*/
             if( fim_ovc[lp] == 0 ) continue ;         /* uncolored pane */
