@@ -48,7 +48,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI             \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
-           3dThreetoRGB
+           3dThreetoRGB Ifile
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -66,7 +66,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
                   mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC          \
-                  3dThreetoRGB
+                  3dThreetoRGB Ifile
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -89,9 +89,9 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dExtrema qhull.exe strblast 3dConvolve 3dZcutup 3dZcat 3dTqual    \
                3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI               \
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze              \
-               3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB
+               3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile
 
-SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
+SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h  \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
@@ -143,6 +143,9 @@ quotize:quotize.o
 
 license.h:quotize
 	./quotize license < ../doc/README/README.copyright > license.h
+
+Ifile:Ifile.o
+	$(CC) -o Ifile Ifile.o $(LFLAGS) $(LLIBS)
 
 3dUndump:3dUndump.o
 	$(CC) -o 3dUndump 3dUndump.o $(LFLAGS) $(LLIBS)
