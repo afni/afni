@@ -1,4 +1,4 @@
-#include "nifti1.c"
+#include "nifti1_io.c"
 
 /* cc -o nifti1_test -O2 nifti1_test.c -lm */
 
@@ -13,10 +13,10 @@ int main( int argc , char *argv[] )
      printf("Usage: nifti1_test [-n2|-n1|-na|-a2] infile [prefix]\n"
             "\n"
             " If prefix is given, then the options mean:\n"
+            "  -a2 ==> write an ANALYZE 7.5 file pair: prefix.hdr/prefix.img\n"
             "  -n2 ==> write a NIFTI-1 file pair: prefix.hdr/prefix.img\n"
             "  -n1 ==> write a NIFTI-1 single file: prefix.nii\n"
-            "  -na ==> write a NIFTI-1 ASCII+binary file: prefix.nii\n"
-            "  -a2 ==> write an ANALYZE 7.5 file pair: prefix.hdr/prefix.img\n"
+            "  -na ==> write a NIFTI-1 ASCII+binary file: prefix.nia\n"
             " The default is '-n1'.\n"
             "\n"
             " If prefix is not given, then the header info from infile\n"
@@ -31,8 +31,8 @@ int main( int argc , char *argv[] )
        outmode = 0 ;
      } else if( argv[1][1] == 'n' ){
        switch( argv[1][2] ){
+         case '1': outmode = 1 ; break ;
          default:  outmode = 2 ; break ;
-         case 1:   outmode = 1 ; break ;
          case 'a': outmode = 3 ; break ;
        }
      }
@@ -53,13 +53,14 @@ int main( int argc , char *argv[] )
    if( nim->iname != NULL ) free(nim->iname) ;
 
    ll = strlen(argv[iarg]) ;
-   nim->fname = calloc(1,ll+6) ;
-   nim->iname = calloc(1,ll+6) ;
-   strcpy(nim->fname,argv[iarg]) ;
-   strcpy(nim->iname,argv[iarg]) ;
-   if( nim->nifti_type == 1 || nim->nifti_type == 3 ){
+   nim->fname = calloc(1,ll+6) ; strcpy(nim->fname,argv[iarg]) ;
+   nim->iname = calloc(1,ll+6) ; strcpy(nim->iname,argv[iarg]) ;
+   if( nim->nifti_type == 1 ){
      strcat(nim->fname,".nii") ;
      strcat(nim->iname,".nii") ;
+   } else if ( nim->nifti_type == 3 ){
+     strcat(nim->fname,".nia") ;
+     strcat(nim->iname,".nia") ;
    } else {
      strcat(nim->fname,".hdr") ;
      strcat(nim->iname,".img") ;
