@@ -31,6 +31,7 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
 INSTALLDIR = ./linux_glibc22
 LIBDIR = $(INSTALLDIR)
+SHOWOFF = linux_glibc22
 
 # for dynamic linking
 

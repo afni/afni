@@ -4307,3 +4307,7 @@
      define its own verb/callback pairs.
  * Modified afni_niml.c to define a "ni_do" verb "DRIVE_AFNI", to let external
      program (hint: SUMA) access this stuff.
+
+18 Feb 2003
+ * Modified afni_func.c to add a hint to the colorscale.
+ * Modified NIML stuff to use rowtypes more properly (niml_element.c, etc.).

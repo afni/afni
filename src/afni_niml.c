@@ -716,21 +716,35 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
      if( nmap < 0 || adset->su_vnlist[ks] == NULL ) continue ; /* this is bad */
 
-     if( nmap > 0 ){  /* make a data element with data */
-       nel = NI_new_data_element( "SUMA_irgba" , -1 ) ;
-       NI_define_rowmap_VA( nel ,
-                              NI_INT  , offsetof(SUMA_irgba,id) ,
-                              NI_BYTE , offsetof(SUMA_irgba,r ) ,
-                              NI_BYTE , offsetof(SUMA_irgba,g ) ,
-                              NI_BYTE , offsetof(SUMA_irgba,b ) ,
-                              NI_BYTE , offsetof(SUMA_irgba,a ) ,
-                            -1 ) ;
-       NI_add_many_rows( nel , nmap , sizeof(SUMA_irgba) , map ) ;
-       free(map) ;
-     } else {         /* make an empty data element */
+     if( nmap > 0 ){  /*--- make a data element with data ---*/
+
+       int *icol ; byte *rcol, *gcol, *bcol, *acol ; int ii ;
+
+       nel = NI_new_data_element( "SUMA_irgba" , nmap ) ;
+
+       /* adding a NULL column creates it, full of zeros */
+
+       NI_add_column( nel , NI_INT  , NULL ) ; icol = nel->vec[0] ;
+       NI_add_column( nel , NI_BYTE , NULL ) ; rcol = nel->vec[1] ;
+       NI_add_column( nel , NI_BYTE , NULL ) ; gcol = nel->vec[2] ;
+       NI_add_column( nel , NI_BYTE , NULL ) ; bcol = nel->vec[3] ;
+       NI_add_column( nel , NI_BYTE , NULL ) ; acol = nel->vec[4] ;
+
+       for( ii=0 ; ii < nmap ; ii++ ){   /* copy data into element */
+         icol[ii] = map[ii].id ;
+         rcol[ii] = map[ii].r  ; gcol[ii] = map[ii].g ;
+         bcol[ii] = map[ii].b  ; acol[ii] = map[ii].a ;
+       }
+
+       free(map) ;       /* data in nel, so don't need map no more */
+
+     } else {         /*--- make an empty data element ---*/
+
        nel = NI_new_data_element( "SUMA_irgba" , 0 ) ;
        nvused = 0 ;
+
      }
+
      nvtot = adset->su_vnlist[ks]->nvox ;  /* 13 Mar 2002 */
 
      /* 13 Mar 2002: send idcodes of surface and datasets involved */
@@ -761,7 +775,7 @@ ENTRY("AFNI_niml_redisplay_CB") ;
 
    } /* end of loop over surface in anat dataset */
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -810,4 +824,5 @@ ENTRY("AFNI_niml_viewpoint_CB") ;
      NIML_to_stderr(nel) ;
 
    NI_free_element(nel) ;
+   EXRETURN ;
 }

@@ -239,9 +239,9 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
 NI_dpr("NI_read_element: returning empty element\n") ;
 #endif
 
-        /*-- 23 Aug 2002: do something? --*/
+        /*-- 23 Aug 2002: do something, instead of returning data? --*/
 
-        if( strcmp(nel->name,"ni_do") == 0 ){
+        if( nel != NULL && strcmp(nel->name,"ni_do") == 0 ){
            NI_do( ns , nel ) ;
            NI_free_element( nel ) ;
            return NULL ;
@@ -276,6 +276,20 @@ NI_dpr("NI_read_element: returning empty element\n") ;
             swap = ( order != NI_byteorder() ) ;  /* swap bytes? */
          }
       }
+
+#ifdef USE_NEW_IOFUN
+
+      if( form == NI_TEXT_MODE ) ii = NI_LTEND_MASK ;  /* end on '<' char  */
+      else if( swap )            ii = NI_SWAP_MASK  ;  /* swap binary data */
+      else                       ii = 0 ;              /* no special flag  */
+
+      row = NI_read_columns( ns ,
+                             nel->vec_num, nel->vec_typ,
+                             nel->vec_len, nel->vec    , form, ii );
+
+      nel->vec_filled = (row >= 0) ? row : 0 ;
+
+#else                   /** OLD way of reading data; replaced 13 Feb 2003 **/
 
       /*-- Now must actually read data and put it somewhere (oog). */
 
@@ -653,6 +667,8 @@ TextDone:
           NI_swap_vector( nel->vec_typ[col], nel->vec_len, nel->vec[col] ) ;
       }
 
+#endif  /* USE_NEW_IOFUN */
+
       /*-- Now scan for the end-of-element marker '</something>' and
            skip all input bytes up to (and including) the final '>'. --*/
 
@@ -697,7 +713,7 @@ NI_dpr("NI_read_element: TailRestart scan_for_angles; num_restart=%d\n" ,
 NI_dpr("NI_read_element: returning filled data element\n") ;
 #endif
 
-      /*-- 23 Aug 2002: do something? --*/
+      /*-- 23 Aug 2002: do something, instead of returning data? --*/
 
       if( strcmp(nel->name,"ni_do") == 0 ){
          NI_do( ns , nel ) ;
@@ -1197,7 +1213,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       nout = NI_stream_writestring( ns , ">\n" ) ;
       ADDOUT ;
 
-      /*- write the group parts -*/
+      /*- write the group parts (recursively) -*/
 
       for( ii=0 ; ii < ngr->part_num ; ii++ ){
          nout = NI_write_element( ns , ngr->part[ii] , tmode ) ;
@@ -1440,21 +1456,24 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          default:
          case NI_TEXT_MODE:
             btt = ">\n" ;                             /* add a newline */
+#ifndef USE_NEW_IOFUN
             nwbuf = 5*NI_element_rowsize(nel) + 16 ;  /* text buffer  */
-#ifdef NIML_DEBUG
-NI_dpr("NI_write_element: nwbuf=%d\n",nwbuf) ;
 #endif
          break ;
 
          case NI_BINARY_MODE:
             btt = ">" ;                               /* no newline   */
+#ifndef USE_NEW_IOFUN
             nwbuf = NI_element_rowsize(nel) ;         /* binary buffer */
+#endif
          break ;
 
          case NI_BASE64_MODE:
             btt = ">\n" ;                             /* add a newline */
+#ifndef USE_NEW_IOFUN
             nwbuf = NI_element_rowsize(nel) ;         /* binary buffer */
             load_encode_table() ;                     /* initialize B64 */
+#endif
          break ;
       }
 
@@ -1462,6 +1481,14 @@ NI_dpr("NI_write_element: nwbuf=%d\n",nwbuf) ;
       ADDOUT ;
       nout = NI_stream_writestring( ns , btt ) ;
       ADDOUT ;
+
+#ifdef USE_NEW_IOFUN   /** 13 Feb 2003: output is now done elsewhere **/
+
+      nout = NI_write_columns( ns, nel->vec_num, nel->vec_typ,
+                                   nel->vec_len, nel->vec    , tmode ) ;
+      ADDOUT ;
+
+#else                  /** OLD way of doing output **/
 
       /* allocate output buffer */
 
@@ -1760,6 +1787,8 @@ NI_dpr("  and writing it [%d]\n",strlen(wbuf) ) ;
 #undef  AF
 #define AF 0  /* nothing to do if we quit early now */
 
+#endif  /* USE_NEW_IOFUN [13 Feb 2003] */
+
       /*- write element trailer -*/
 
 #if 0
@@ -1772,32 +1801,6 @@ NI_dpr("  and writing it [%d]\n",strlen(wbuf) ) ;
       ADDOUT ;
       nout = NI_stream_writestring( ns , ">\n\n" ) ;
       ADDOUT ;
-
-      /* 06 Mar 2002: hack hack hack */
-      /* 11 Jun 2002: more hack hack hack */
-      /* 15 Oct 2002: un-hack hack hack */
-
-#undef  USE_MINOUT
-#ifdef  USE_MINOUT
-      if( ns->type == NI_TCP_TYPE ){
-        char *eee = getenv("NIML_TCP_MINOUT") ;
-        int minout=128 , nn ;
-        if( eee != NULL ){
-           nn = strtol( eee , NULL , 10 ) ;
-           if( nn >= 0 ) minout = nn ;
-        }
-        nn = minout-ntot ;
-        if( nn > 0 ){
-          char *str = calloc(1,nn+16) ;
-#ifdef NIML_DEBUG
-NI_dpr("NI_write_element: adding %d blanks\n",nn) ;
-#endif
-          sprintf(str,"%*.*s\n",nn,nn," ") ;
-          NI_stream_write( ns , str , strlen(str) ) ;
-          free(str) ;
-        }
-      }
-#endif  /* USE_MINOUT */
 
       return ntot ;
    } /* end of write data element */

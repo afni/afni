@@ -324,7 +324,8 @@ ENTRY("AFNI_hintize_pbar") ;
    if( pbar == NULL || fac == 0.0 ) EXRETURN ;  /* bad */
 
    if( pbar->bigmode ){
-     MCW_unregister_hint( pbar->panes[0] ) ;   /* 30 Jan 2003 */
+     MCW_register_hint( pbar->panes[0] ,
+                        "Button-1=flip;  Button-3=menu" ) ;
      pbar->bigfac = fac ;                      /* 11 Feb 2003 */
    } else {
      np = pbar->num_panes ;

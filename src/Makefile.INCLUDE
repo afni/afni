@@ -1653,7 +1653,7 @@ epsim:epsim.o
 	$(RM) $@
 	$(CC) -o epsim epsim.o $(LFLAGS) $(LLIBS)
 
-nimltest:nimltest.o
+nimltest:nimltest.o niml.h
 	$(RM) $@
 	$(CC) -o nimltest nimltest.o $(LFLAGS) $(LLIBS)
 
