@@ -54,7 +54,8 @@ static AFNI_friend afni_friends[] = {
   { "K Bove-Bettis"  , (                 16 |           128             ) } ,
   { "E Kapler"       , (                                128             ) } ,
   { "R Doucette"     , (                           64                   ) } ,
-  { "RC Reynolds"    , (                           64                   ) }
+  { "RC Reynolds"    , (                           64       | 512       ) } ,
+  { "PP Christidis"  , (                           64                   ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
@@ -65,7 +66,7 @@ char * AFNI_get_friend(void)
    nf = lrand48() % NUM_FRIENDS ;
    do{
       nh = lrand48() % NUM_HELPTYPES ; hmask = 1 << nh ; qq++ ;
-   } while( qq < 23 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
+   } while( qq < 73 && (hmask & afni_friends[nf].helpmask) == 0 ) ;
 
    if( nh == YOU_KNOW_WHAT && nf != KLOSEK ) nh = INSPIRATION ; /* only for Gosia */
 

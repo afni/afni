@@ -50,7 +50,7 @@ int main( int argc , char *argv[] )
 
    ech = (argv[1][1] == 'r') ;
 
-   ns = NI_stream_open( argv[2], "r" ) ;
+   ns = NI_stream_open( argv[2], (argv[1][2]=='\0') ? "r" : "w" ) ;
    if( ns == NULL ){
       fprintf(stderr,"NI_stream_open fails\n") ; exit(1) ;
    }
