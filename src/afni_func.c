@@ -1783,7 +1783,7 @@ int DSET_in_global_session( THD_3dim_dataset *dset )
 
 /** labels for the chooser window **/
 
-static char * dset_choice[] = { "Session" , "Anatomy" , "Function" } ;
+static char * dset_choice[] = { "Session" , "Underlay" , "Overlay" } ;
 
 /** max size of strings in the list **/
 

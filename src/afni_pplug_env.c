@@ -317,7 +317,7 @@ PLUGIN_interface * ENV_init(void)
    /* 18 Mar 2002 */
 
    ENV_add_string( "AFNI_VALUE_LABEL" ,
-                   "Turn on the Define Function dataset value label?" ,
+                   "Turn on the Define Overlay dataset value label?" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
 
    /* 22 Mar 2002 */

@@ -4100,7 +4100,7 @@ r_afni_set_fill_point(
 	DSET_load(A->anat);*/
 	fputs("r_afni_set_fill_point(): Error: No anatomical data. ( A->adata = NULL )\n",stderr);
 	fputs("This may have been caused by selecting Talairach\n",stderr);
-	fputs("view before Switch Anatomy or Switch Function.\n",stderr);
+	fputs("view before Switch Underlay or Switch Overlay.\n",stderr);
 	fputs("Try setting the environment variable AFNI_VIEW_ANAT_BRICK\n",stderr);
 	fputs("(The value is irrelevant) and run afni again.\n",stderr);
 	exit(1);

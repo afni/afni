@@ -1931,7 +1931,7 @@ ENTRY("AFNI_open_panel") ;
 
    /* do the right thing (simulate a button press) */
 
-   if( strcmp(cmd+dadd,"Define_Function") == 0 ){
+   if( strcmp(cmd+dadd,"Define_Function") == 0 || strcmp(cmd+dadd,"Define_Overlay") == 0 ){
      if( !XtIsManaged(im3d->vwid->func->frame) )
        AFNI_define_CB( im3d->vwid->view->define_func_pb, im3d, NULL ) ;
    } else if( strcmp(cmd+dadd,"Define_Datamode") == 0 ){

@@ -4984,3 +4984,4 @@
 12 Mar 2004
  * Modified afni.[ch], afni_widg.c, to put popup DICOM/SPM coordinate menu
      on crosshair coordinate label.
+ * "Anatomy" -> "Underlay" and "Function" -> "Overlay" in several places.
