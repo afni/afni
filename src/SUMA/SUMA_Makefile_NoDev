@@ -1,5 +1,9 @@
 #Version of SUMA_Makefile with no ifdef statements
 
+SUMALIB = libSUMA.a
+AFNILIB = -lmrix -lcoxplot -lf2c -lmri -lrickr
+MAINCODE = SUMA
+
 SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV_XYZextract.c	\
 		 SUMA_IV_FaceSetsextract.c  SUMA_SurfNorm.c SUMA_DOmanip.c SUMA_StripPath.c 	\
 		 SUMA_Load_Surface_Object.c SUMA_CreateDO.c SUMA_help.c SUMA_display.c SUMA_ParseCommands.c	\
