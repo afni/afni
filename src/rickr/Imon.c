@@ -1,4 +1,59 @@
 
+#define IFM_VERSION "version 1.2 (November, 2002)"
+
+/*----------------------------------------------------------------------
+ * history:
+ *
+ * 1.2  November 27, 2002
+ *   - after N idle mid-run TRs, print warning message
+ *   - added '-nice INCR' option
+ *   - added BEEP on error
+ *   - replaced '-status' with '-quiet', so '-debug 1' is default
+ *   - no fatal error during volume search, try to recover
+ *   - display that the user should use <ctrl-c> to quit
+ *   - adjust globbing to be "...[0-9][02468]?/I.*"  (or w/[13579])
+ *
+ * 1.1  November 27, 2002
+ *   - renamed from Hfile to Imon (I-file monitor)
+ *
+ * 1.0  November 21, 2002
+ *   - initial release
+ *----------------------------------------------------------------------
+*/
+
+/*----------------------------------------------------------------------
+ * todo:
+ *
+ * - check for missing first slice
+ * - add '-first_file FILE' option, for a new starting point
+ *----------------------------------------------------------------------
+*/
+
+/*----------------------------------------------------------------------
+ * Imon - monitor real-time aquisition of I-files
+ *
+ *     This program is intended to be run during a scanning session
+ *     on a GE scanner, to monitor the collection of I-files.  The
+ *     user will be notified of any missing slice or any slice that
+ *     is aquired out of order.
+ *
+ *     It is recommended that the user runs 'Imon' before scanning
+ *     begins, and then watches for error messages during the
+ *     scanning session.  The user should terminate the program
+ *     whey they are done with all runs.
+ *
+ *     At the present time, the user must use <ctrl-c> to terminate
+ *     the program.
+ *
+ *   usage: Imon [options] -start_dir DIR
+ *
+ *   examples:    Imon -start_dir 003
+ *                Imon -help
+ *                Imon -version
+ *                Imon -debug 2 -start_dir 003
+ *----------------------------------------------------------------------
+*/
+
 #include <stdio.h>
 #include <ctype.h>
 #include <dirent.h>
@@ -8,50 +63,19 @@
 
 #include "mrilib.h"
 #include "machdep.h"
-#include "Hfile.h"
+#include "Imon.h"
 #include "r_idisp.h"
 
 #define MAIN
 
-#define HF_VERSION "version 1.0 <November, 2002>"
+/***********************************************************************/
+/* globals */
 
-/*----------------------------------------------------------------------
- * history:
- *
- * 1.0  November 21, 2002
- *   - initial release
- *----------------------------------------------------------------------
-*/
+IFM_debug gD;		/* debug information       */
+param_t   gP;		/* main parameter struct   */
+stats_t   gS;		/* general run information */
 
-/*----------------------------------------------------------------------
- * Hfile - monitor real-time aquisition of I-files
- *
- *     This program is intended to be run during a scanning session
- *     on a GE scanner, to monitor the collection of I-files.  The
- *     user will be notified of any missing slice or any slice that
- *     is aquired out of order.
- *
- *     It is recommended that the user runs 'Hfile' before scanning
- *     begins, and then watches for error messages during the.
- *     scanning session.  The user should terminate the program
- *     whey they are done with all runs.
- *
- *     At the present time, the user must use <ctrl-c> to terminate
- *     the program.
- *
- *   usage: Hfile [options] -start_dir DIR
- *
- *   examples:    Hfile -status -start_dir 003
- *                Hfile -help
- *                Hfile -version
- *----------------------------------------------------------------------
-*/
-
-/* -- globals -- */
-HF_debug gD;		/* debug information       */
-param_t  gP;		/* main parameter struct   */
-stats_t  gS;		/* general run information */
-
+/***********************************************************************/
 int main( int argc, char * argv[] )
 {
     param_t * p = &gP;			/* access the global as local  */
@@ -62,10 +86,13 @@ int main( int argc, char * argv[] )
     if ( (ret_val = init_options( p, argc, argv )) != 0 )
 	return ret_val;
 
+    if ( gD.level > 0 )
+	fprintf( stderr, "\n%s running, use <ctrl-c> to quit...\n\n",
+		 IFM_PROG_NAME );
+
     if ( (ret_val = find_first_volume( &baseV, p )) != 0 )
 	return ret_val;
 
-    /* rcr - may never return? */
     if ( (ret_val = find_more_volumes( &baseV, p )) != 0 )
 	return ret_val;
 
@@ -109,7 +136,7 @@ static int find_first_volume( vol_t * v, param_t * p )
 	    if ( gD.level > 0 ) 		             /* status */
 		fprintf( stderr, "." );
 
-	    sleep( 5 );					  /* nap time! */
+	    sleep( 4 );					  /* nap time! */
 	}
 	else if ( ret_val > 0 )		/* success - we have a volume! */
 	{
@@ -120,6 +147,8 @@ static int find_first_volume( vol_t * v, param_t * p )
 		    idisp_hf_vol_t( "first volume : ", v );
 	    }
 	}
+	else
+	    return ret_val;		/* fatal error condition */
     }
 
     if ( ret_val > 0 )
@@ -143,7 +172,9 @@ static int find_more_volumes( vol_t * v0, param_t * p )
     vol_t vn;
     int   ret_val, done;
     int   run, seq_num, next_im;
-    int   fl_index;			/* current index into p->flist */
+    int   fl_index;			/* current index into p->flist    */
+    int   naps;				/* keep track of consecutive naps */
+    int   nap_time;			/* sleep time, in seconds         */
 
     if ( v0 == NULL || p == NULL )
     {
@@ -152,10 +183,14 @@ static int find_more_volumes( vol_t * v0, param_t * p )
     }
 
     done     = 0;
+    naps     = 0;
+
     run      = v0->run;
     seq_num  = v0->seq_num = 1;		/* set first seq_num to 1 */
     fl_index = v0->last_im + 1;		/* start looking past first volume */
     next_im  = v0->last_im + 1;		/* for read_ge_files()             */
+
+    nap_time = nap_time_from_tr( v0->geh.tr );
 
     if ( gD.level > 0 ) 		/* status */
     {
@@ -209,20 +244,30 @@ static int find_more_volumes( vol_t * v0, param_t * p )
 
 		if ( set_volume_stats( &vn ) )
 		    return -1;
+
+		naps = 0;			/* reset on existing volume */
 	    }
 	}
 
 	/* now we need new data - skip past last file name index */
 
 	ret_val = read_ge_files( p, next_im, p->nalloc );
-	fl_index = 0;			/* reset flist index    */
+	fl_index = 0;			/* reset flist index          */
 
-	while ( ret_val < v0->nim )	/* didn't read full run yet */
+	while ( (ret_val >= 0 ) &&	/* no fatal error, and        */
+	        (ret_val < v0->nim) )	/* didn't see full volume yet */
 	{
-	    if ( gD.level > 0 ) 	/* status */
-		fprintf( stderr, ". " );
+	    if ( naps > 0 )
+	    {
+		/* continue, regardless */
+		(void)check_stalled_run( run, seq_num, naps, nap_time );
 
-	    sleep( 4 );			/* rcr - update this with the TR */
+		if ( gD.level > 0 ) 	/* status */
+		    fprintf( stderr, ". " );
+	    }
+
+	    sleep( nap_time );		/* wake after a couple of TRs */
+	    naps ++;
 
 	    ret_val = read_ge_files( p, next_im, p->nalloc );
 	}
@@ -285,7 +330,7 @@ static int volume_search(
     run1  = p->flist[first+1].geh.uv17;
 
     /* if apparent 1-slice volume, skip and start over */
-    if ( (fabs(delta) < HF_EPSILON) || (run1 != run0) )
+    if ( (fabs(delta) < IFM_EPSILON) || (run1 != run0) )
     {
 	if ( gD.level > 1 )
 	    fprintf( stderr, "-- skipping single slice volume <%s>\n",
@@ -295,7 +340,7 @@ static int volume_search(
 	delta = p->flist[first+1].geh.zoff - p->flist[first].geh.zoff;
 	run0  = run1;
 
-	if ( fabs(delta) < HF_EPSILON )
+	if ( fabs(delta) < IFM_EPSILON )
 	{
 	    fprintf( stderr, "Error: 3 slices with 0 delta, beginning with"
 		     "file <%s>\n", p->fnames[p->flist[*start].index] );
@@ -317,7 +362,7 @@ static int volume_search(
 
     /* scan for volume break */
     next = first + 2;				/* next z to look at      */
-    while ( (next < bound) && (fabs(dz - delta) < HF_EPSILON) &&
+    while ( (next < bound) && (fabs(dz - delta) < IFM_EPSILON) &&
 	    (run1 == run0) )
     {
 	fp++;				  /* good index so get new values */
@@ -331,16 +376,16 @@ static int volume_search(
 
     last = next - 2;			    /* note final image in volume */
 
-    if ( (fabs(dz - delta) < HF_EPSILON) && (run1 == run0) )
+    if ( (fabs(dz - delta) < IFM_EPSILON) && (run1 == run0) )
 	return 0;			    /* we did not finish a volume */
-    else if ( abs(p->flist[first].geh.zoff - fp->geh.zoff) > HF_EPSILON )
+    else if ( abs(p->flist[first].geh.zoff - fp->geh.zoff) > IFM_EPSILON )
     {
 	/* the next slice does not match the original - interleaving? */
 	int testc;
 
 	for ( testc = next - 1; testc < bound; testc++ )
 	    if ( abs( p->flist[first].geh.zoff -
-		      p->flist[testc].geh.zoff ) < HF_EPSILON )
+		      p->flist[testc].geh.zoff ) < IFM_EPSILON )
 	    {
 		/* aaaaagh!  we are missing data from the first volume!   */
 		/* print error, and fix start (try to skip this volume)   */
@@ -397,7 +442,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
     finfo_t * fp;
     finfo_t * fp_test;
     float     z;
-    int       count;
+    int       count, next_start = -1;
     int       missing = 0;
 
     if ( vin == NULL || vout == NULL ||
@@ -417,78 +462,102 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
     {
 	z = vin->z_first + count * vin->z_delta; 	/* note expected z */
 
-	if ( fabs( z - fp->geh.zoff ) > HF_EPSILON )
+	if ( fabs( z - fp->geh.zoff ) > IFM_EPSILON )
 	{
 	    /* slice is either missing or out of order */
 
 	    fp_test = fp + 1;			       /* check next image */
-	    if ( fabs( z + vin->z_delta - fp_test->geh.zoff ) < HF_EPSILON )
+	    if ( fabs( z + vin->z_delta - fp_test->geh.zoff ) < IFM_EPSILON )
 	    {
 		/* next slice as expected, so current is out of order */
 		/* nothing to do but warn the user and continue */
 
-		HF_BIG_ERROR_MESG( "slice out of order!",
+		IFM_BIG_ERROR_MESG( "slice out of order!",
 			p->fnames[fp->index], z, fp->geh.zoff,
-			fp->geh.uv17, vin->run, count + 1, vin->nim );
+			fp->geh.uv17, count + 1, vin->nim );
 	    }
-	    else if ( fabs(z + vin->z_delta - fp->geh.zoff) < HF_EPSILON )
+	    else if ( fabs(z + vin->z_delta - fp->geh.zoff) < IFM_EPSILON )
 	    {
 		/* current slice matches next expected - slice missing */
 
 		/* nothing to do but note error, warn user and continue */
 		missing++;
 
-		HF_BIG_ERROR_MESG( "slice missing!",
+		IFM_BIG_ERROR_MESG( "slice missing!",
 			p->fnames[fp->index], z, fp->geh.zoff,
-			fp->geh.uv17, vin->run, count + 1, vin->nim );
+			fp->geh.uv17, count + 1, vin->nim );
 
 		count++;    /* attempt to continue by skipping this slice */
 	    }
-	    else	/* unknown error condition - bail out! */
+	    else	/* unknown error - find start of next volume */
 	    {
-		HF_BIG_ERROR_MESG( "PANIC, UNKNOWN!",
-			p->fnames[fp->index], z, fp->geh.zoff,
-			fp->geh.uv17, vin->run, count + 1, vin->nim );
+		/* search for a next starting point */
+		next_start = find_next_zoff( p, start+count+1, vin->z_first );
 
-		return -2;
+		if ( next_start < 0 )	/* come back and try again later */
+		    return 0;
+		else
+		{
+		    IFM_BIG_ERROR_MESG( "volume severely toasted!",
+			    p->fnames[fp->index], z, fp->geh.zoff,
+			    fp->geh.uv17, count + 1, vin->nim );
+
+		    break;	/* terminate for loop and try to recover */
+		}
 	    }
 	}
 
 	fp++;
     }
-    
+
     /* check last slice - count and fp should be okay*/
     z = vin->z_first + count * vin->z_delta;	      /* note expected z   */
 
-    if ( fabs( z - fp->geh.zoff ) > HF_EPSILON )
+    if ( (next_start < 0) && (fabs( z - fp->geh.zoff ) > IFM_EPSILON) )
     {
 	if ( (p->nused - start) <= vin->nim )   /* no more images to check */
 	    return 0;                           /* wait for more data      */
 	
 	fp_test = fp + 1;			       /* check next image */
-	if ( fabs( vin->z_first - fp_test->geh.zoff ) < HF_EPSILON )
+	if ( fabs( vin->z_first - fp_test->geh.zoff ) < IFM_EPSILON )
 	{
 	    /* next image starts next run, slice is probably out of order */
 
-	    HF_BIG_ERROR_MESG( "slice out of order!",
+	    IFM_BIG_ERROR_MESG( "slice out of order!",
 		    p->fnames[fp->index], z, fp->geh.zoff,
-		    fp->geh.uv17, vin->run, count + 1, vin->nim );
+		    fp->geh.uv17, count + 1, vin->nim );
 	}
-	else if ( fabs(vin->z_first - fp->geh.zoff) < HF_EPSILON )
+	else if ( fabs(vin->z_first - fp->geh.zoff) < IFM_EPSILON )
 	{
-	    /* this image starts next run, slice is probably missing */
+	    /* this image starts next run, slice is missing */
 	    missing++;
 
-	    HF_BIG_ERROR_MESG( "slice missing!",
+	    IFM_BIG_ERROR_MESG( "slice missing!",
 		    p->fnames[fp->index], z, fp->geh.zoff,
-		    fp->geh.uv17, vin->run, count + 1, vin->nim );
+		    fp->geh.uv17, count + 1, vin->nim );
+	}
+	else	/* unknown error - find start of next volume */
+	{
+	    /* search for a next starting point */
+	    next_start = find_next_zoff( p, start+count+1, vin->z_first );
+
+	    if ( next_start < 0 )	/* come back and try again later */
+		return 0;
+	    else
+	    {
+		IFM_BIG_ERROR_MESG( "Volume severely toasted!",
+			p->fnames[fp->index], z, fp->geh.zoff,
+			fp->geh.uv17, count + 1, vin->nim );
+	    }
 	}
     }
+    else if ( next_start < 0)
+        next_start = start + vin->nim - missing;
 
     /* fill volume structure */
 
     vout->geh      = p->flist[start].geh;
-    vout->nim      = vin->nim - missing;
+    vout->nim      = next_start - start;
     vout->first_im = p->flist[start].index;
     vout->last_im  = p->flist[start+vout->nim-1].index;
     strncpy( vout->first_file, p->fnames[vout->first_im], MAX_FLEN );
@@ -499,7 +568,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
     vout->seq_num  = -1;				/* uninitialized */
     vout->run      = vout->geh.uv17;
 
-    if ( missing )
+    if ( vout->nim != vin->nim )
 	return -1;
     else
 	return 1;
@@ -600,8 +669,9 @@ static int scan_ge_files (
 	int        next,		/* index of next file to scan  */
 	int        nfiles )		/* number of files to scan     */
 {
-    finfo_t * fp;
-    int       count, rv;
+    static int   read_failure = -1;	/* last read_ge_header failure */
+    finfo_t    * fp;
+    int          count, files_read, rv;
 
     if ( flist == NULL || fnames == NULL )
     {
@@ -619,37 +689,53 @@ static int scan_ge_files (
 	rv = read_ge_header( fnames[count], &fp->geh, &fp->gex );
 	if ( rv != 0 )
 	{
-	    fprintf( stderr, "failure: cannot read GE header for file <%s>\n",
-		     fnames[count] );
-	    return -1;
-	}
-	fp->index = count;		/* store index into fnames array */
+	    if ( read_failure != count )
+	    {
+		/* first time to fail with this file - wait and try again */
+		if ( gD.level > 1 )
+		    fprintf( stderr, "\n** failure to read GE header for "
+			     "file <%s>\n", fnames[count] );
+		read_failure = count;
 
-	if ( gD.level > 2 )
+		break;
+	    }
+	    else
+	    {
+		fprintf( stderr, "\nfailure: cannot read GE header for "
+			 "file <%s>\n", fnames[count] );
+		return -1;
+	    }
+	}
+	else
 	{
-	    idisp_ge_header_info( fnames[fp->index], &fp->geh );
-	    idisp_ge_extras     ( fnames[fp->index], &fp->gex );
+	    fp->index = count;		/* store index into fnames array */
+
+	    if ( gD.level > 2 )
+		idisp_ge_header_info( fnames[fp->index], &fp->geh );
 	}
     }
 
+    /* even on failure, this non-negative integer is accurate */
+    files_read = count - next;
+
     if ( gD.level > 1 )
 	printf( "-- scanned %d GE files, from <%s> to <%s>\n",
-		nfiles, fnames[next], fnames[next+nfiles-1] );
+		files_read, fnames[next], fnames[next+files_read-1] );
 
-    return nfiles;
+    return files_read;
 }
 
 
 /*----------------------------------------------------------------------
  * init_options:
  *
- *     1. check usage: Hfile -start_dir DIR
+ *     1. check usage: Imon -start_dir DIR
  *     2. do initial allocation of data structures
  *----------------------------------------------------------------------
 */
 static int init_options( param_t * p, int argc, char * argv[] )
 {
-    int ac;
+    int ac, rv;
 
     if ( p == NULL )
 	return 2;
@@ -660,20 +746,23 @@ static int init_options( param_t * p, int argc, char * argv[] )
 
     if ( argc < 2 )
     {
-	usage( HF_PROG_NAME, HF_USE_SHORT );
+	usage( IFM_PROG_NAME, IFM_USE_SHORT );
 	return 1;
     }
+
+    /* debug level 1 is now the default - by order of Wen Ming :) */
+    gD.level = 1;
 
     for ( ac = 1; ac < argc; ac++ )
     {
 	if ( ! strncmp( argv[ac], "-help", 2 ) )
 	{
-	    usage( HF_PROG_NAME, HF_USE_LONG );
+	    usage( IFM_PROG_NAME, IFM_USE_LONG );
 	    return 1;
 	}
 	else if ( ! strncmp( argv[ac], "-version", 2 ) )
 	{
-	    usage( HF_PROG_NAME, HF_USE_VERSION );
+	    usage( IFM_PROG_NAME, IFM_USE_VERSION );
 	    return 1;
 	}
 	else if ( ! strncmp( argv[ac], "-start_dir", 6 ) )
@@ -681,7 +770,7 @@ static int init_options( param_t * p, int argc, char * argv[] )
 	    if ( ++ac >= argc )
 	    {
 		fputs( "option usage: -start_dir DIRECTORY\n", stderr );
-		usage( HF_PROG_NAME, HF_USE_SHORT );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
 		return 1;
 	    }
 
@@ -692,31 +781,55 @@ static int init_options( param_t * p, int argc, char * argv[] )
 	    if ( ++ac >= argc )
 	    {
 		fputs( "option usage: -debug LEVEL\n", stderr );
-		usage( HF_PROG_NAME, HF_USE_SHORT );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
 		return 1;
 	    }
 
 	    gD.level = atoi(argv[ac]);
-	    if ( gD.level < 0 || gD.level > HF_MAX_DEBUG )
+	    if ( gD.level < 0 || gD.level > IFM_MAX_DEBUG )
 	    {
 		fprintf( stderr, "error: debug level must be in [0,%d]\n",
-			 HF_MAX_DEBUG );
-		usage( HF_PROG_NAME, HF_USE_SHORT );
+			 IFM_MAX_DEBUG );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
 		return 1;
 	    }
 	}
-	else if ( ! strncmp( argv[ac], "-status", 3 ) )
+	else if ( ! strncmp( argv[ac], "-quiet", 3 ) )
 	{
-	    /* status is debug level 1 - but a kinder, gentler user option */
-	    if ( gD.level == 0 )
-		gD.level = 1;
+	    /* only go quiet if '-debug' option has not changed it */
+	    if ( gD.level == IFM_DEBUG_DEFAULT )
+		gD.level = 0;
+	}
+	else if ( ! strncmp( argv[ac], "-nice", 4 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -nice INCREMENT\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    p->nice = atoi(argv[ac]);
+	    if ( p->nice < IFM_MIN_NICE_INC || p->nice > IFM_MAX_NICE_INC )
+	    {
+		fprintf( stderr, "error: nice incrment must be in [%d,%d]\n",
+			 IFM_MIN_NICE_INC, IFM_MAX_NICE_INC );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+	}
+	else
+	{
+	    fprintf( stderr, "error: invalid option <%s>\n\n", argv[ac] );
+	    usage( IFM_PROG_NAME, IFM_USE_SHORT );
+	    return 1;
 	}
     }
 
     if ( p->start_dir == NULL )
     {
 	fputs( "error: missing '-start_dir DIR' option\n", stderr );
-	usage( HF_PROG_NAME, HF_USE_SHORT );
+	usage( IFM_PROG_NAME, IFM_USE_SHORT );
 	return 1;
     }
 
@@ -725,6 +838,26 @@ static int init_options( param_t * p, int argc, char * argv[] )
 
     if ( p->glob_dir == NULL )			/* error message from DEF() */
 	return 1;
+
+    if ( p->nice != 0 )
+    {
+	rv = nice( p->nice );
+	if ( rv == -1 )
+	{
+	    if ( p->nice < 0 )
+		fprintf( stderr, "error: only root may decrement nice value\n"
+			         "       (errno = %d, rv = %d)\n", errno, rv );
+	    else
+		fprintf( stderr,
+			 "error: failure to adjust nice by %d\n"
+			 "       (errno = %d, rv = %d)\n", p->nice, errno, rv );
+	    return 1;
+	}
+
+	if ( gD.level > 1 )
+	    fprintf( stderr, "-- nice value incremented by %d (rv = %d)\n",
+		     p->nice, rv );
+    }
 
     if ( gD.level > 1 )
 	idisp_hf_param_t( "end init_options : ", p );
@@ -735,10 +868,10 @@ static int init_options( param_t * p, int argc, char * argv[] )
 /*------------------------------------------------------------
  *  dir_expansion_form
  *
- *  sin    : must be in the form "...00n", where n is a digit
- *           (note that "...00n/..." is okay)
+ *  sin    : must be in the form "...0[01]n", where n is a digit
+ *           (note that "...0[01]n/..." is okay)
  *  sexp   : memory is allocated for the output string of the
- *           form: "...??n/I.*"
+ *           form: "...[0-9][02468]n/I.*"
  *
  *  returns:    0 : on success
  *           else : error
@@ -748,6 +881,7 @@ int dir_expansion_form( char * sin, char ** sexp )
 {
     char * out;
     char * cp;
+    char   d0, d1, d2;			/* the three relevant digits */
     int    len;
 
     if ( (sin == NULL) || (sexp == NULL) )
@@ -756,7 +890,7 @@ int dir_expansion_form( char * sin, char ** sexp )
     *sexp = NULL;
     len = strlen(sin);
 
-    out = (char *)malloc((len + HF_PAD_LEN) * sizeof(char));
+    out = (char *)malloc((len + IFM_PAD_LEN) * sizeof(char));
     if ( out == NULL )
     {
 	fprintf( stderr, "failure: dir_expansion_form malloc\n" );
@@ -781,21 +915,34 @@ int dir_expansion_form( char * sin, char ** sexp )
 	return -1;
     }
 
-    cp -= 2;					/* should be first zero */
-    if ( (cp[0] != '0') || (cp[1] != '0') )	/* check for "00"       */
+    cp -= 2;					/* should be first zero  */
+
+    d0 = cp[0];					/* note the three digits */
+    d1 = cp[1];
+    d2 = cp[2];
+
+    if ( (d0 != '0') ||				/* first is not a zero   */
+	 ( (d1 != '0') && (d1 != '1')) )	/* second is not 0 or 1  */
     {
-	fprintf( stderr, "error: dir <%s> is not of the form 00n (e.g. 003)\n",
-		 sin );
+	fprintf( stderr, "error: dir <%s> is not of the form 0[01]n"
+	                 " (e.g. 003)\n", sin );
 	free(out);
 	return -1;
     }
 
     /* woohooo!  we're good to go! */
-    /* set to "...??n/I."          */
+    /* set to "...[0-9][02468]n/I.*" (or with [13579]) */
 
-    *cp++ = '?';
-    *cp++ = '?';
-     cp++;					/* and skip the good digit */
+    strcpy( cp, "[0-9]" );			/* add and skip "[0-9]" */
+    cp += strlen( "[0-9]" );
+
+    if ( d1 == '0' )				/* adding 2 to each     */
+	strcpy( cp, "[02468]" );
+    else
+	strcpy( cp, "[13579]" );
+    cp += strlen( "[02468]" );
+
+    *cp++ = d2;					/* insert final digit */
 
     strcpy( cp, "/I.*" );			/* the big finish */
 
@@ -1030,9 +1177,10 @@ static int idisp_hf_param_t( char * info, param_t * p )
 	    "   start_dir         = %s\n"
 	    "   glob_dir          = %s\n"
 	    "   nfiles            = %d\n"
-	    "   fnames            = %p\n",
-	    p, p->nused, p->nalloc, p->flist,
-	    p->start_dir, p->glob_dir, p->nfiles, p->fnames );
+	    "   fnames            = %p\n"
+	    "   nice              = %d\n",
+	    p, p->nused, p->nalloc, p->flist, p->start_dir, p->glob_dir,
+	    p->nfiles, p->fnames, p->nice );
 
     return 0;
 }
@@ -1138,7 +1286,7 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
 */
 static int usage ( char * prog, int level )
 {
-    if ( level == HF_USE_SHORT )
+    if ( level == IFM_USE_SHORT )
     {
 	fprintf( stderr,
 	    "usage: %s [options] -start_dir DIR\n"
@@ -1146,7 +1294,7 @@ static int usage ( char * prog, int level )
 	    prog, prog );
 	return 0;
     }
-    else if ( level == HF_USE_LONG )
+    else if ( level == IFM_USE_LONG )
     {
 	printf(
 	  "\n"
@@ -1169,10 +1317,11 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "  examples:\n"
 	  "\n"
-	  "    %s -status -start_dir 003\n"
+	  "    %s -start_dir 003\n"
+	  "    %s -quiet -start_dir 003\n"
 	  "    %s -help\n"
 	  "    %s -version\n"
-	  "    %s -debug 2 -start_dir 003\n"
+	  "    %s -debug 2 -nice 10 -start_dir 003\n"
 	  "\n"
 	  "  notes:\n"
 	  "\n"
@@ -1182,19 +1331,7 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "    - To terminate this program, use <ctrl-c>.\n"
 	  "\n"
-	  "  options:\n"
-	  "\n"
-	  "    -help              : show this help information\n"
-	  "\n"
-	  "    -debug LEVEL       : show debug information during execution\n"
-	  "\n"
-	  "        e.g.  -debug 2\n"
-	  "        the default level is 0, the maximum is 3\n"
-	  "        the '-status' option is equivalent to '-debug 1'\n"
-	  "\n"
-	  "    -status            : show status information during execution\n"
-	  "\n"
-	  "    -version           : show the version information\n"
+	  "  main option:\n"
 	  "\n"
 	  "    -start_dir DIR     : REQUIRED - specify starting directory\n"
 	  "\n"
@@ -1207,17 +1344,41 @@ static int usage ( char * prog, int level )
 	  "        For instance, with the option '-start_dir 003', this\n"
 	  "        program watches for new directories 003, 023, 043, etc.\n"
 	  "\n"
+	  "  other options:\n"
+	  "\n"
+	  "    -debug LEVEL       : show debug information during execution\n"
+	  "\n"
+	  "        e.g.  -debug 2\n"
+	  "        the default level is 1, the domain is [0,3]\n"
+	  "        the '-quiet' option is equivalent to '-debug 0'\n"
+	  "\n"
+	  "    -help              : show this help information\n"
+	  "\n"
+	  "    -nice              : adjust the nice value for the process\n"
+	  "\n"
+	  "        e.g.  -nice 10\n"
+	  "        the default is 0, and the maximum is 20\n"
+	  "        a superuser may use through the minimum of -19\n"
+	  "\n"
+	  "        A positive increment to the nice value of a process will\n"
+	  "        lower its priority, allowing other processes more CPU\n"
+	  "        time.\n"
+	  "\n"
+	  "    -quiet             : show only errors and final information\n"
+	  "\n"
+	  "    -version           : show the version information\n"
+	  "\n"
 	  "  Author: R. Reynolds - %s\n"
 	  "\n",
-	  prog, prog, prog, prog, prog, prog, prog, HF_VERSION
+	  prog, prog, prog, prog, prog, prog, prog, prog, IFM_VERSION
 	);
 
 	return 0;
     }
-    else if ( level == HF_USE_VERSION )
+    else if ( level == IFM_USE_VERSION )
     {
 	printf( "%s: %s, compile date: %s\n",
-		prog, HF_VERSION, __DATE__ );
+		prog, IFM_VERSION, __DATE__ );
 	return 0;
     }
 
@@ -1259,8 +1420,6 @@ static int set_volume_stats( vol_t * v )
     run_t * rp;		  /* for a little speed, this will be called often */
     int     seq_num, run;
 
-    /* rcr - fix! */
-
     if ( v == NULL || v->seq_num < 0 || v->run < 0 )
     {
 	fprintf( stderr, "failure: SVS - insufficient data\n\n" );
@@ -1269,7 +1428,7 @@ static int set_volume_stats( vol_t * v )
 
     if ( gS.nalloc == 0 )
     {
-	gS.runs = (run_t *)calloc( HF_STAT_ALLOC, sizeof(run_t) );
+	gS.runs = (run_t *)calloc( IFM_STAT_ALLOC, sizeof(run_t) );
 	if ( gS.runs == NULL )
 	{
 	    fprintf( stderr, "failure: cannot allocate space for run info\n" );
@@ -1277,7 +1436,7 @@ static int set_volume_stats( vol_t * v )
 	}
 
 	/* first time caller - fill initial stats info */
-	gS.nalloc  = HF_STAT_ALLOC;
+	gS.nalloc  = IFM_STAT_ALLOC;
 	gS.nused   = 0;
 	gS.slices  = v->nim;
 	gS.z_first = v->z_first;
@@ -1292,7 +1451,7 @@ static int set_volume_stats( vol_t * v )
     if ( v->run >= gS.nalloc )		/* run is 0-based */
     {
 	/* make space for many more runs - we don't want to do this often */
-	gS.runs = (run_t *)realloc( gS.runs, (v->run + HF_STAT_ALLOC) *
+	gS.runs = (run_t *)realloc( gS.runs, (v->run + IFM_STAT_ALLOC) *
 		                             sizeof(run_t) );
 	if ( gS.runs == NULL )
 	{
@@ -1300,7 +1459,7 @@ static int set_volume_stats( vol_t * v )
 	    return -1;
 	}
 
-	gS.nalloc = v->run + HF_STAT_ALLOC;
+	gS.nalloc = v->run + IFM_STAT_ALLOC;
 
 	/* zero out any new memory */
 	memset( gS.runs + gS.nused, 0, (gS.nalloc - gS.nused)*sizeof(run_t) );
@@ -1324,7 +1483,7 @@ static int set_volume_stats( vol_t * v )
 
     rp->volumes = v->seq_num;
 
-    if ( gD.level > 1 )
+    if ( gD.level > 2 )
 	fprintf( stderr, "\n-- svs: run %d, seq_num %d\n", v->run, v->seq_num );
 
     return 0;
@@ -1347,9 +1506,9 @@ static int show_run_stats( stats_t * s )
 	    "final run statistics:\n"
 	    "    volume info :\n"
 	    "        slices  : %d\n"
-	    "        z_first : %f\n"
-	    "        z_last  : %f\n"
-	    "        z_delta : %f\n"
+	    "        z_first : %.4f\n"
+	    "        z_last  : %.4f\n"
+	    "        z_delta : %.4f\n"
 	    "\n",
 	    s->slices, s->z_first, s->z_last, s->z_delta );
 
@@ -1363,6 +1522,121 @@ static int show_run_stats( stats_t * s )
     putchar( '\n' );
 
     fflush( stdout );
+
+    return 0;
+}
+
+
+/* ----------------------------------------------------------------------
+ * given tr, compute a sleep time of approximate 2*TR
+ * ----------------------------------------------------------------------
+*/
+static int nap_time_from_tr( float tr )
+{
+    float tr2 = 2 * tr;
+
+    if ( tr2 < 1 )
+	return 1;
+
+    if ( tr2 > 10 )
+	return 10;			/* ??? tres big */
+
+    return( (int)(tr + 0.9) );  	/* basically, use ceiling */
+}
+
+
+/* ----------------------------------------------------------------------
+ * find_next_zoff
+ *
+ * Given p->flist, search from index start for an image with
+ * geh.zoff equal to zoff.
+ *
+ * return   index : upon succes		(start <= index <= p->nused)
+ *             -1 : not found
+ *             -2 : error
+ * ----------------------------------------------------------------------
+*/
+static int find_next_zoff( param_t * p, int start, float zoff )
+{
+    int count;
+
+    if ( (p == NULL) || (start < 0) )
+	return -2;
+
+    if ( start > p->nused )			/* say not found */
+	return -1;
+
+    for ( count = start; count <= p->nused; count++ )
+	if ( fabs( zoff - p->flist[count].geh.zoff ) < IFM_EPSILON )
+	    return count;			/* found! */
+
+    return -1;
+}
+
+
+/* ----------------------------------------------------------------------
+ * check_stalled_run
+ *
+ * Given:  run     > 0
+ *         seq_num > 0
+ *         naps
+ *
+ * If this is not run 1, and naps is too big, and the run is incomplete,
+ * print a warning message to the user.
+ *
+ * notes:   - print only 1 warning message per seq_num, per run
+ *          - run and seq_num are for the previously found volume
+ *
+ * returns:
+ *          1 : run is stalled - message printed
+ *          0 : no stall, or if a message has already been printed
+ *         -1 : function failure
+ * ----------------------------------------------------------------------
+*/
+static int check_stalled_run ( int run, int seq_num, int naps, int nap_time )
+{
+    static int func_failure =  0;
+    static int prev_run     = -1;
+    static int prev_seq     = -1;
+
+    if ( func_failure != 0 )
+	return 0;
+
+    if ( ( run <= 1 ) || ( seq_num < 1 ) || ( naps <= IFM_MAX_RUN_NAPS ) )
+	return 0;
+
+    /* verify that we have already taken note of the previous volume */
+    if ( ((gS.nused + 1) < run) || (gS.runs[run].volumes < seq_num) )
+    {
+	fprintf( stderr, "** warning: CSR - stats inconsistancy!\n" );
+	func_failure = 1;
+
+	return -1;
+    }
+
+    if ( seq_num < gS.runs[1].volumes )		/* are we done with a run? */
+    {
+	/* if we haven't printed before, this is the first stalled case */
+	if ( (run != prev_run) || (seq_num != prev_seq) )
+	{
+	    fprintf( stderr, "\007\n"
+		     "****************************************************\n"
+		     "Warning: run seems to be stalled\n"
+		     "\n"
+		     "    run                    : %d\n"
+		     "    TRs completed          : %d (of %d)\n"
+		     "    approximate idle time  : %d seconds\n"
+		     "    first file of this run : %s\n"
+		     "****************************************************\n",
+		     run, seq_num, gS.runs[1].volumes,
+		     naps*nap_time, gS.runs[run].first_im );
+
+	    prev_run = run;
+	    prev_seq = seq_num;
+
+	    return 1;
+	}
+    }
 
     return 0;
 }
