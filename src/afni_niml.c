@@ -254,7 +254,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
          nel->vec_typ[3] != NI_FLOAT   ){
 
        AFNI_popup_message( "*** ERROR:\n\n"
-                           " SUMA surface input\n"
+                           " SUMA_ixyz surface data\n"
                            " is badly formatted! \n" ) ;
        EXRETURN ;
      }
@@ -268,14 +268,14 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
        idc = NI_get_attribute( nel , "dataset_idcode" ) ;
      if( idc == NULL ){
         AFNI_popup_message( "***ERROR:\n "
-                            " SUMA surface input does \n"
-                            " not identify dataset!\n" ) ;
+                            " SUMA_ixyz surface input\n"
+                            " does not identify dataset!\n " ) ;
         EXRETURN ;
      }
      dset = PLUTO_find_dset_idc( idc ) ;
      if( dset == NULL ){
         sprintf(msg, "***ERROR:\n\n"
-                     " SUMA surface dataset idcode is \n"
+                     " SUMA_ixyz surface dataset idcode is \n"
                      "   %s\n"
                      " Can't find this in AFNI\n", idc ) ;
         AFNI_popup_message( msg ) ;
@@ -341,9 +341,9 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      /*-- we're done! --*/
 
      sprintf(msg,"+++NOTICE:\n\n"
-                 " SUMA surface received:\n"
-                 "  %d nodes attached to \n"
-                 "  dataset %.222s \n" ,
+                 " SUMA_ixyz surface received:\n"
+                 "  %d nodes attached to dataset \n"
+                 "  %.222s \n" ,
                  nel->vec_filled , DSET_FILECODE(dset) ) ;
      AFNI_popup_message( msg ) ;
 
@@ -353,6 +353,113 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      XtSetSensitive( GLOBAL_library.controllers[0]->vwid->imag->pop_sumato_pb,
                      True  ) ;
+     EXRETURN ;
+   }
+
+   /********* surface triangles from SUMA **********/
+
+   if( strcmp(nel->name,"SUMA_ijk") == 0 ){
+     THD_3dim_dataset *dset ;
+     SUMA_surface *ag ;
+     int *it, *jt , *kt ; char *idc ;
+
+     if( dont_hear_suma ) EXRETURN ;
+
+     /*-- check element for suitability --*/
+
+     if( nel->vec_len    <  1      ||  /* empty element?        */
+         nel->vec_filled <  1      ||  /* no data was filled in? */
+         nel->vec_num    <  3      ||  /* less than 4 columns?  */
+         nel->vec_typ[0] != NI_INT ||  /* must be int,int,int  */
+         nel->vec_typ[1] != NI_INT ||
+         nel->vec_typ[2] != NI_INT   ){
+
+       AFNI_popup_message( "*** ERROR:\n\n"
+                           " SUMA_ijk surface data\n"
+                           " is badly formatted! \n" ) ;
+       EXRETURN ;
+     }
+
+     /*-- we need a "volume_idcode" or "dataset_idcode" attribute,
+          so that we can attach this surface to a dataset for display;
+          if we don't find the attribute or the dataset, then we quit --*/
+
+     idc = NI_get_attribute( nel , "volume_idcode" ) ;
+     if( idc == NULL )
+       idc = NI_get_attribute( nel , "dataset_idcode" ) ;
+     if( idc == NULL ){
+        AFNI_popup_message( "***ERROR:\n "
+                            " SUMA_ijk surface input\n"
+                            " does not identify dataset! \n" ) ;
+        EXRETURN ;
+     }
+     dset = PLUTO_find_dset_idc( idc ) ;
+     if( dset == NULL ){
+        sprintf(msg, "***ERROR:\n\n"
+                     " SUMA_ijk surface dataset idcode is \n"
+                     "   %s\n"
+                     " Can't find this in AFNI\n", idc ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
+
+     /*-- dataset musst already have a surface */
+
+     ag = dset->su_surf ;
+     if( ag == NULL ){
+        sprintf(msg,"***ERROR:\n\n"
+                    " SUMA_ijk surface data\n"
+                    " received for dataset\n"
+                    "  %.222s\n"
+                    " before SUMA_ixyz data! \n" ,
+                DSET_FILECODE(dset) ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
+
+     idc = NI_get_attribute( nel , "surface_idcode" ) ;
+     if( idc == NULL )
+       idc = NI_get_attribute( nel , "SUMA_idcode" ) ;
+     if( idc == NULL ){
+        AFNI_popup_message( "***ERROR:\n\n"
+                            " SUMA_ijk surface input\n"
+                            " does not have surface idcode! \n" ) ;
+        EXRETURN ;
+     }
+     if( strcmp(dset->su_surf->idcode,idc) != 0 ){
+        sprintf(msg,"***ERROR:\n\n"
+                    "SUMA_ijk surface idcode = %s\n"
+                    "but SUMA_ixyz had idcode= %s\n" ,
+                idc , dset->su_surf->idcode ) ;
+        AFNI_popup_message( msg ) ;
+        EXRETURN ;
+     }
+
+     /*-- pointers to the data columns in the NI_element --*/
+
+     it = (int *) nel->vec[0] ;
+     jt = (int *) nel->vec[1] ;
+     kt = (int *) nel->vec[2] ;
+
+     /*-- add nodes to the surface --*/
+
+     SUMA_add_triangles( ag , nel->vec_filled , it,jt,kt ) ;
+
+     /*-- we're done! --*/
+
+     sprintf(msg,"+++NOTICE:\n\n"
+                 " SUMA_ijk triangles received:\n"
+                 "  %d triangles attached to dataset \n"
+                 "  %.222s \n" ,
+                 nel->vec_filled , DSET_FILECODE(dset) ) ;
+     AFNI_popup_message( msg ) ;
+
+#if 0
+     dont_tell_suma = 1 ;
+     PLUTO_dset_redisplay( dset ) ;  /* redisplay windows with this dataset */
+     dont_tell_suma = 0 ;
+#endif
+
      EXRETURN ;
    }
 

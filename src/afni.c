@@ -1385,9 +1385,24 @@ if(PRINT_TRACING){ char str[256]; sprintf(str,"MAIN_calls=%d",MAIN_calls); STATU
            anything else that needs fixing up once AFNI is fully started   */
 
         PICTURE_ON(MAIN_im3d) ;
-        (void) XtAppAddTimeOut( MAIN_app , 1234 , AFNI_startup_timeout_CB , MAIN_im3d ) ;
+        (void) XtAppAddTimeOut( MAIN_app, 1234, AFNI_startup_timeout_CB, MAIN_im3d ) ;
 
         (void) TRUST_host(NULL) ; /* 21 Feb 2001: initialize trust mechanism */
+
+        /* see if there is an initial FIM ideal timeseries */
+
+        { char *eee = getenv( "AFNI_FIM_IDEAL" ) ;
+          static MRI_IMAGE *tsim ;
+          tsim = mri_read_1D( eee ) ;
+          if( tsim != NULL ){
+            float *far = MRI_FLOAT_PTR(tsim) ; int ii ; char *tname ;
+            for( ii=0 ; ii < tsim->nvox ; ii++ )
+               if( fabs(far[ii]) >= 33333.0 ) far[ii] = WAY_BIG ;
+            tname = THD_trailname(eee,1) ;
+            mri_add_name( tname , tsim ) ;
+            AFNI_fimmer_setref( MAIN_im3d , tsim ) ;
+          }
+        }
 
         REPORT_PROGRESS("\n") ;
       }
@@ -1615,7 +1630,11 @@ STATUS("get status") ;
       THD_fvec3 fv,fvp,fvm ;
       float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz , rr=1.0,gg=0.8,bb=0.0 ;
       char str[32] , *eee ;
-      float rx=RX ;
+      float rx=RX ;         /* default rectangle halfsize */
+      int   kkk=0 ;
+      float xyz=0 ;
+
+      if( nn < 1 || nod == NULL ) RETURN(NULL) ;  /* nothing to do */
 
       /* find DICOM coordinates of next slice and previous slice */
 
@@ -1631,7 +1650,7 @@ STATUS("get status") ;
       create_memplot_surely( "SUMA_plot" , 1.0 ) ;
       mp = get_active_memplot() ;
 
-      eee = getenv("AFNI_SUMA_COLOR") ;    /* define overlay color */
+      eee = getenv("AFNI_SUMA_BOXCOLOR") ;    /* define overlay color */
       if( eee == NULL )
         eee = getenv("AGNI_OVERLAY_COLOR") ;  /* 21 Sep 2001 */
       if( eee != NULL )
@@ -1665,6 +1684,7 @@ STATUS("get status") ;
                                  s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
             }
          }
+         kkk = 0 ; xyz = xm ;
       } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* search y */
          float yb=fvm.xyz[1] , yt=fvp.xyz[1] , ym,yw ;
          if( yb > yt ){ float t=yb ; yb=yt ; yt=t ; }
@@ -1679,6 +1699,7 @@ STATUS("get status") ;
                                  s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
             }
          }
+         kkk = 1 ; xyz = ym ;
       } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* search z */
          float zb=fvm.xyz[2] , zt=fvp.xyz[2] , zm,zw ;
          if( zb > zt ){ float t=zb ; zb=zt ; zt=t ; }
@@ -1693,8 +1714,117 @@ STATUS("get status") ;
                                  s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
             }
          }
+         kkk = 2 ; xyz = zm ;
       }
       if( MEMPLOT_NLINE(mp) < 1 ){ delete_memplot(mp) ; mp = NULL ; }
+
+      /* 10 Mar 2002:
+         For each triangle that crosses the plane of the slice,
+         plot a line segment at the intersection of the plane and triangle
+         (the plane is along DICOM axis #kkk at coordinate xyz).           */
+
+      if( mp != NULL                     &&
+          br->dset->su_surf->num_ijk > 0 &&
+          br->dset->su_surf->ijk != NULL    ){
+
+        SUMA_ijk *tr = br->dset->su_surf->ijk ;
+        int      ntr = br->dset->su_surf->num_ijk ;
+        int id,jd,kd ;
+        THD_fvec3 fvijk[3] ;
+        float ci,cj,ck ;
+
+        eee = getenv("AFNI_SUMA_LINECOLOR") ;    /* define overlay color */
+        if( eee != NULL )
+           DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
+        else
+           rr = gg = bb = 1.0 ;
+        set_color_memplot(rr,gg,bb) ;
+
+        /* loop over triangles */
+
+        for( ii=0 ; ii < ntr ; ii++ ){
+
+          /* get indexes of triangle's nodes */
+
+          id = SUMA_find_node_id(br->dset->su_surf,tr[ii].id); if(id<0)continue;
+          jd = SUMA_find_node_id(br->dset->su_surf,tr[ii].jd); if(jd<0)continue;
+          kd = SUMA_find_node_id(br->dset->su_surf,tr[ii].kd); if(kd<0)continue;
+
+          /* load DICOM coords of triangle's nodes */
+
+          LOAD_FVEC3(fvijk[0],nod[id].x,nod[id].y,nod[id].z) ;
+          LOAD_FVEC3(fvijk[1],nod[jd].x,nod[jd].y,nod[jd].z) ;
+          LOAD_FVEC3(fvijk[2],nod[kd].x,nod[kd].y,nod[kd].z) ;
+
+          /* want 1 node on one size of plane, and 2 on the other */
+
+          ci = fvijk[0].xyz[kkk] - xyz ;      /* differences from center */
+          cj = fvijk[1].xyz[kkk] - xyz ;      /* of current slice plane */
+          ck = fvijk[2].xyz[kkk] - xyz ;
+          jj = 4*(ci > 0.0) + 2*(cj > 0.0) + (ck > 0.0) ;
+          if( jj == 0 || jj == 7 ) continue ; /* all have same sign */
+
+          /* setup so fvijk[id] is on one side of plane
+             and fvijk[jd] and fvijk[kd] are on other side */
+
+          switch( jj ){
+             case 6:
+             case 1: id = 2 ; jd = 0 ; kd = 1 ; break ;  /* kd is the 1 */
+             case 5:
+             case 2: id = 1 ; jd = 0 ; kd = 2 ; break ;  /* jd is the 1 */
+             case 4:
+             case 3: id = 0 ; jd = 1 ; kd = 2 ; break ;  /* id is the 1 */
+          }
+
+          /* linearly interpolate between fvijk[id] and fvijk[jd] */
+
+          ci = fvijk[id].xyz[kkk] - xyz ;
+          cj = fvijk[id].xyz[kkk] - fvijk[jd].xyz[kkk] ;
+          if( cj == 0.0 ) continue ;            /* should not happen */
+          ck = ci / cj ;
+          if( ck < 0.0 || ck > 1.0 ) continue ; /* should not happen */
+          cj = 1.0 - ck ;
+          fvp = SCLADD_FVEC3(cj,fvijk[id],ck,fvijk[jd]) ;
+
+          /* linearly interpolate between fvijk[id] and fvijk[kd] */
+
+          cj = fvijk[id].xyz[kkk] - fvijk[kd].xyz[kkk] ;
+          if( cj == 0.0 ) continue ;
+          ck = ci / cj ;
+          if( ck < 0.0 || ck > 1.0 ) continue ;
+          cj = 1.0 - ck ;
+          fvm = SCLADD_FVEC3(cj,fvijk[id],ck,fvijk[kd]) ;
+
+          /* transform interpolated vectors to FD_brick coords */
+
+          fvp = THD_dicomm_to_3dmm( br->dset , fvp ) ;
+          fvp = THD_3dmm_to_3dfind( br->dset , fvp ) ;
+          fvp = THD_3dfind_to_fdfind( br , fvp ) ;
+          fvm = THD_dicomm_to_3dmm( br->dset , fvm ) ;
+          fvm = THD_3dmm_to_3dfind( br->dset , fvm ) ;
+          fvm = THD_3dfind_to_fdfind( br , fvm ) ;
+
+#if 0
+if( fabs(fvp.xyz[0]-fvm.xyz[0])+fabs(fvp.xyz[1]-fvm.xyz[1]) > 5.0 ){
+fprintf(stderr,"  fvp=%f %f %f   fvm=%f %f %f\n",
+        fvp.xyz[0], fvp.xyz[1], fvp.xyz[2],
+        fvm.xyz[0], fvm.xyz[1], fvm.xyz[2] ) ;
+id = SUMA_find_node_id(br->dset->su_surf,tr[ii].id) ;
+jd = SUMA_find_node_id(br->dset->su_surf,tr[ii].jd) ;
+kd = SUMA_find_node_id(br->dset->su_surf,tr[ii].kd) ;
+fprintf(stderr,"  triangle: id=%d x=%f y=%f z=%f\n",nod[id].id,nod[id].x,nod[id].y,nod[id].z) ;
+fprintf(stderr,"  triangle: jd=%d x=%f y=%f z=%f\n",nod[jd].id,nod[jd].x,nod[jd].y,nod[jd].z) ;
+fprintf(stderr,"  triangle: kd=%d x=%f y=%f z=%f\n",nod[kd].id,nod[kd].x,nod[kd].y,nod[kd].z) ;
+}
+#endif
+
+          /* and plot a line in the plane of the slice */
+
+          plotline_memplot( s1*fvp.xyz[0] , 1.0-s2*fvp.xyz[1] ,
+                            s1*fvm.xyz[0] , 1.0-s2*fvm.xyz[1]  ) ;
+        }
+      }
+
       RETURN(mp) ; /* will be destroyed in imseq */
      }
    }
@@ -3128,6 +3258,9 @@ if(PRINT_TRACING)
          int ii , nbar , jj ;
          THD_ivec3 nxyz ;
          THD_fvec3 fxyz , oxyz ;
+         char *snam = dlist->ar[0] ; /* 10 Mar 2002 */
+
+         if( !THD_is_directory(snam) ) snam = "./" ;
 
          REPORT_PROGRESS("\n*** No datasets or sessions input -- Dummy dataset created.") ;
 
@@ -3137,8 +3270,8 @@ if(PRINT_TRACING)
          new_ss->type   = SESSION_TYPE ;
          new_ss->parent = NULL ;
          BLANK_SESSION(new_ss) ;
-         strcpy( new_ss->sessname , "./" ) ;    /* pretend the dummy session */
-         strcpy( new_ss->lastname , "./" ) ;    /* is the current directory */
+         strcpy( new_ss->sessname , snam ) ; /* pretend the dummy session */
+         strcpy( new_ss->lastname , snam ) ; /* is the first argv directory */
          GLOBAL_library.sslist->num_sess   = 1 ;
          GLOBAL_library.sslist->ssar[0]    = new_ss ;
          GLOBAL_library.have_dummy_dataset = 1 ;
@@ -3150,18 +3283,18 @@ if(PRINT_TRACING)
          nxyz.ijk[0] = nxyz.ijk[1] = nxyz.ijk[2] = QQ_NXYZ ;
          fxyz.xyz[0] = fxyz.xyz[1] = fxyz.xyz[2] = QQ_FOV / QQ_NXYZ ;
          oxyz.xyz[0] = oxyz.xyz[1] = oxyz.xyz[2] = -0.5 * QQ_FOV ;
-         ii = EDIT_dset_items( new_ss->anat[0][0] ,
-                                 ADN_datum_all      , MRI_byte             ,
-                                 ADN_nxyz           , nxyz                 ,
-                                 ADN_xyzdel         , fxyz                 ,
-                                 ADN_xyzorg         , oxyz                 ,
-                                 ADN_directory_name , "./"                 ,
-                                 ADN_prefix         , "Dummy"              ,
-                                 ADN_nvals          , QQ_NT                ,
-                                 ADN_malloc_type    , DATABLOCK_MEM_MALLOC ,
-                                 ADN_type           , HEAD_ANAT_TYPE       ,
-                                 ADN_view_type      , VIEW_ORIGINAL_TYPE   ,
-                                 ADN_func_type      , ANAT_EPI_TYPE        ,
+         ii = EDIT_dset_items( new_ss->anat[0][0]  ,
+                                 ADN_datum_all     , MRI_byte            ,
+                                 ADN_nxyz          , nxyz                ,
+                                 ADN_xyzdel        , fxyz                ,
+                                 ADN_xyzorg        , oxyz                ,
+                                 ADN_directory_name, snam                ,
+                                 ADN_prefix        , "Dummy"             ,
+                                 ADN_nvals         , QQ_NT               ,
+                                 ADN_malloc_type   , DATABLOCK_MEM_MALLOC,
+                                 ADN_type          , HEAD_ANAT_TYPE      ,
+                                 ADN_view_type     , VIEW_ORIGINAL_TYPE  ,
+                                 ADN_func_type     , ANAT_EPI_TYPE       ,
 #if QQ_NT > 1
                                  ADN_ntt            , QQ_NT                ,
                                  ADN_ttdel          , 1.0                  ,

@@ -3521,3 +3521,7 @@
      SUMA overlay box size and color.
  * Modified imseq.c so that 'q' keypress causes a window close (to make
      this window like the various graph windows).
+ * Modified afni_niml.c to receive SUMA_ijk triangles.
+ * Modified afni.c to draw triangle/slice intersection lines.
+ * Modified afni.c to allow specification of AFNI_FIM_IDEAL on startup.
+ * Modified afni.c to set Dummy session directory to 1st argv directory.
