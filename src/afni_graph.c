@@ -4305,6 +4305,7 @@ ENTRY("GRA_file_pixmap") ;
    mri_write_pnm( fname , tim ) ;
    fprintf(stderr,"Writing one PNM image to file %s\n",fname) ;
    mri_free( tim ) ;
+   MCW_kill_XImage( xim ) ;  /* 10 Mar 1999 */
    EXRETURN ;
 }
 

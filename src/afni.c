@@ -1054,7 +1054,7 @@ ENTRY("AFNI_quit_CB") ;
        (ShiftMask|ControlMask|Button2Mask|Button3Mask) ){
 
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
-      MCHECK ;
+      /* MCHECK ; */
       exit(0) ;
    }
 
@@ -1080,7 +1080,7 @@ ENTRY("AFNI_quit_CB") ;
 
    if( AFNI_count_controllers() <= 1 ){
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
-      MCHECK ;
+      /* MCHECK ; */
       exit(0) ;
 
    } else {  /* otherwise, patch up the other windows and continue */

@@ -290,20 +290,19 @@ that provides the higher level hierarchies of the session names.
 ----------------------------
 Variable: AFNI_NO_MCW_MALLOC
 ----------------------------
-AFNI uses a set of "wrapper" macros and functions to let itself
-keep track of the memory allocated and freed by the C malloc()
-library.  This is useful for debugging purposes, but carries
-a small overhead (both in memory and speed).  Setting this
-environment variable to anything provides one way to disable
-this facility, as in
+AFNI uses a set of "wrapper" macros and functions to let itself keep
+track of the memory allocated and freed by the C malloc() library.
+This is useful for debugging purposes (see the last items on the 'Misc'
+menu in the AFNI 'Define Datamode' control panel), but carries a small
+overhead (both in memory and speed).  Setting this environment variable
+(to anything) provides one way to disable this facility, as in
 
-   setenv AFNI_NO_MCW_MALLOC Daeron
+   setenv AFNI_NO_MCW_MALLOC Tinuviel
 
-Another way to permanently disable this capability (so that
-it isn't even compiled) is outlined in the file machdep.h.
-Also, the interactive AFNI program takes the command line
-switch "-nomall", which will turn off these functions for
-for this given run.
+Another way to permanently disable this capability (so that it isn't
+even compiled) is outlined in the file machdep.h.  Also, the interactive
+AFNI program takes the command line switch "-nomall", which will turn
+off these functions for this given run.
 
 =================================
 | Robert W. Cox, PhD            |

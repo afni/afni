@@ -200,7 +200,7 @@ char * mcw_malloc_status(void)
 void mcw_malloc_dump(void)
 {
    int ii ;
-   char fname[32] ;
+   char fname[32] , * str ;
    FILE * fp = NULL ;
 
    if( ! use_tracking ) return ;
@@ -233,10 +233,12 @@ void mcw_malloc_dump(void)
          fprintf(fp,"%5d FREE\n",ii) ;
    }
 
-   fprintf(fp,"----- Summary: %s\n",mcw_malloc_status()) ;
+   str = mcw_malloc_status() ;
+   fprintf(fp,"----- Summary: %s\n",str) ;
    fclose(fp) ;
 
    fprintf(stderr,"** Malloc table dumped to file %s\n",fname) ;
+   fprintf(stderr,"** Summary: %s\n",str) ;
    return ;
 }
 
@@ -244,7 +246,7 @@ void mcw_malloc_dump(void)
 
 void enable_mcw_malloc()       /* cannot be disabled */
 {
-   char * str = getenv("AFNI_NO_MCW_MALLOC") ; 
+   char * str = getenv("AFNI_NO_MCW_MALLOC") ;
    if( str == NULL ) use_tracking = 1 ;
    return ;
 }

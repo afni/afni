@@ -734,10 +734,12 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
 
 # Contributed plugins go last, since they might not compile well
 
-contrib_plugins: ziad_plugins
+contrib_plugins: ziad_plugins birn_plugins
 
 ziad_plugins: plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
               plug_delay_V2.$(SO)  plug_extract.$(SO)
+
+birn_plugins: plug_stavg.$(SO)
 
 install_plugins:
 	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)
