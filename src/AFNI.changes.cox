@@ -4721,3 +4721,5 @@
 28 Aug 2003
  * Widespread changes, including addition of thd_niftiread.c, to read
      NIFTI-1 formatted files as datasets.
+ * Modified afni.c to read datasets individually from command line argv's
+     if they can't be read as sessions.
