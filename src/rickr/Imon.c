@@ -1,8 +1,11 @@
 
-#define IFM_VERSION "version 2.6 (March, 2003)"
+#define IFM_VERSION "version 2.7 (June 25, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.7  June 25. 2003
+ *   - added axes offsets (see xorg and realtime.c: XYZFIRST)
  *
  * 2.6  March 25. 2003
  *   - added -GERT_Reco2 option
@@ -65,7 +68,6 @@
 /*----------------------------------------------------------------------
  * todo:
  *
- * - add axes offsets
  * - add -full_prefix option
  * - update plug_realtime for BYTEORDER command
  *----------------------------------------------------------------------
@@ -558,6 +560,7 @@ static int volume_search(
 	/* So deltas are consistent from slice 'first' to slice 'last'. */
 
 	V->geh      = p->flist[first].geh;	   /* copy GE structure  */
+	V->gex      = p->flist[first].gex;	   /* copy GE extras     */
 	V->nim      = last - first + 1;
 	V->fl_1     = first;
 	V->fn_1     = p->flist[first].index;
@@ -755,6 +758,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
     /* fill volume structure */
 
     vout->geh      = p->flist[start].geh;
+    vout->gex      = p->flist[start].gex;
     vout->nim      = next_start - start;
     vout->fl_1     = start;
     vout->fn_1     = p->flist[start].index;
@@ -984,7 +988,10 @@ static int scan_ge_files (
 	    fp->index = fnum;		/* store index into fnames array */
 
 	    if ( gD.level > 2 )
+	    {
 		idisp_ge_header_info( p->fnames[fp->index], &fp->geh );
+		idisp_ge_extras( p->fnames[fp->index], &fp->gex );
+	    }
 	}
     }
 
@@ -1533,6 +1540,11 @@ static int read_ge_image( char * pathname, finfo_t * fp,
        hi->zoff = zz ;
        strcpy(hi->orients,orients) ;
 
+       /* similarly (with zoff), store x and y origins in ge_extras */
+       /*                                       2003 Jun 25 [rickr] */
+       fp->gex.xorg = xyz[abs(ii)-1];
+       fp->gex.yorg = xyz[abs(jj)-1];
+
        /*-- get TR in seconds --*/
 
        fseek( imfile , hdroff+194 , SEEK_SET ) ;
@@ -1737,6 +1749,7 @@ static int idisp_hf_vol_t( char * info, vol_t * v )
 	    v->seq_num, v->run );
 
     idisp_ge_header_info( info, &v->geh );
+    idisp_ge_extras( info, &v->gex );
 
     return 0;
 }
@@ -1765,10 +1778,13 @@ static int idisp_ge_extras( char * info, ge_extras * E )
 	    "    skip             = %d\n"
 	    "    swap             = %d\n"
 	    "    kk               = %d\n"
+	    "    xorg             = %f\n"
+	    "    yorg             = %f\n"
 	    "    (xyz0,xyz1,xyz2) = (%f,%f,%f)\n"
 	    "    (xyz3,xyz4,xyz5) = (%f,%f,%f)\n"
 	    "    (xyz6,xyz7,xyz8) = (%f,%f,%f)\n",
 	    E, E->bpp, E->cflag, E->hdroff, E->skip, E->swap, E->kk,
+	    E->xorg,   E->yorg,
 	    E->xyz[0], E->xyz[1], E->xyz[2],
 	    E->xyz[3], E->xyz[4], E->xyz[5],
 	    E->xyz[6], E->xyz[7], E->xyz[8]

@@ -220,3 +220,7 @@
       o In SUMA_FreeMessageListData(), do not free Message or Source, as
         they are added as static or local strings (but never alloc'd).
 
+26 June 2003:
+  * modified Imon.[ch], realtime.c to add axis offset functionality
+      o -> Imon version 2.7
+
