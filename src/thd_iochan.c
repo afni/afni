@@ -1689,6 +1689,8 @@ pid_t iochan_fork_relay( char * name_in , char * name_out )
   Return time elapsed since first call to this routine
 -------------------------------------------------------------------*/
 
+#include <time.h>
+
 double COX_clock_time(void) /* in seconds */
 {
    struct timeval  new_tval ;
