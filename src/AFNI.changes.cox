@@ -3976,3 +3976,8 @@
 01 Oct 2002
  * Modified plug_realtime.c to allow input of notes via a NOTE command.
      Also modified rtfeedme.c with -note option to test this out.
+
+03 Oct 2002
+ * Modified imseq.c to allow use of Shift+Button1 for drawing as well as
+     Button2.  Changes also to afni_graph.c and plug_drawdset.c (the
+     latter just to change the help text).

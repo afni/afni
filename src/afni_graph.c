@@ -2562,8 +2562,10 @@ STATUS("button press") ;
          if (yloc >= grapher->status->ny) yloc -= grapher->status->ny ;
 
          /* Feb 1998: button 2 --> send message back to AFNI, maybe */
+         /* 03 Oct 2002: Shift+Button1 has the same effect */
 
-         if( but == Button2 ){
+         if( but == Button2 ||
+             ( but == Button1 && (event->state & ShiftMask) && !(event->state & ControlMask) ) ){
             if( grapher->button2_enabled && (bx > GL_DLX) ){
                GRA_cbs cbs ;
                cbs.reason = graCR_button2_points ;
