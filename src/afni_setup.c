@@ -799,7 +799,7 @@ ENTRY("AFNI_set_pbar_top_CB") ;
    if( pbar->bigmode ){              /* 30 Jan 2003 */
      pbar->bigset = 0 ;
      pmin = (pbar->mode) ? 0.0 : -pmax ;
-     PBAR_set_bigmode( pbar , 1 , pmin,pmax , NULL ) ;
+     PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
      AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
    } else {
      fac = pmax / pbar->pval[0] ;

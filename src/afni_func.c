@@ -450,7 +450,7 @@ void AFNI_inten_av_CB( MCW_arrowval * av , XtPointer cd )
      int npane=pbar->num_panes , jm=pbar->mode ;
      float pmax=pbar->pval_save[npane][0][jm] ,
            pmin=pbar->pval_save[npane][npane][jm] ;
-     PBAR_set_bigmode( pbar , 1 , pmin,pmax , NULL ) ;
+     PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
      AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
    } else {
      pbar->bigmode = 0 ;
@@ -4711,7 +4711,7 @@ ENTRY("AFNI_inten_bbox_CB") ;
         float pmax=pbar->pval_save[npane][0][jm] ,
               pmin=pbar->pval_save[npane][npane][jm] ;
         pbar->bigset = 0 ;
-        PBAR_set_bigmode( pbar , 1 , pmin,pmax , NULL ) ;
+        PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
         AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
       } else {
         alter_MCW_pbar( pbar , pbar->npan_save[jm] , NULL ) ;

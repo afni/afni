@@ -7,6 +7,13 @@
 #include "pbar.h"
 #include "xim.h"
 
+static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd ) ;
+static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs );
+
+static int      bigmap_num=0 ;    /* 31 Jan 2003 */
+static char   **bigmap_name ;
+static rgbyte **bigmap ;
+
 /*----------------------------------------------------------------------
    Make a new paned-window color+threshold selection bar:
 
@@ -187,20 +194,113 @@ MCW_pbar * new_MCW_pbar( Widget parent , MCW_DC * dc ,
    for( jm=0 ; jm < PANE_MAXMODE ; jm++ )
       pbar->npan_save[jm] = pbar->num_panes ;
 
+   /*-- 31 Jan 2003: create palettes to choose between for "big" mode --*/
+
+   if( bigmap_num == 0 ){
+     bigmap_num     = 2 ;
+     bigmap_name    = (char **) malloc(sizeof(char *)*2) ;
+     bigmap_name[0] = strdup("Spectrum: red-to-blue") ;
+     bigmap_name[1] = strdup("Color cycle 360") ;
+     bigmap         = (rgbyte **) malloc(sizeof(rgbyte *)*2) ;
+     bigmap[0]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     bigmap[1]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+     for( i=0 ; i < NPANE_BIG ; i++ ){
+       bigmap[0][i] = DC_spectrum( dc , i*(250.0/(NPANE_BIG-1))-5.0) ;
+       bigmap[1][i] = DC_spectrum( dc , i*(360.0/(NPANE_BIG-1)) ) ;
+     }
+   }
+
    /*-- 30 Jan 2003: setup the "big" mode for 128 colors --*/
 
-   pbar->bigmode = 0 ;
-   pbar->bigset  = 0 ;
+   pbar->bigmode      = 0 ;
+   pbar->bigset       = 0 ;
+   pbar->bigmap_index = 0 ;
    pbar->bigbot  = -1.0 ; pbar->bigtop = 1.0 ;
    pbar->bigxim  = NULL ;
    for( i=0 ; i < NPANE_BIG ; i++ )
-     pbar->bigcolor[i] = DC_spectrum( dc , (240.0*i)/NPANE_BIG ) ;
+     pbar->bigcolor[i] = bigmap[0][i] ;
+
    XtAddCallback( pbar->panes[0], XmNexposeCallback, PBAR_bigexpose_CB, pbar ) ;
+
+   XtInsertEventHandler( pbar->panes[0] ,
+                         ButtonPressMask ,      /* get button presses */
+                         FALSE ,                /* nonmaskable events? */
+                         PBAR_button_EV ,       /* event handler */
+                         (XtPointer) pbar ,     /* client data */
+                         XtListTail ) ;         /* last in queue */
 
    /*-- go home --*/
 
    XtManageChild( pbar->top ) ;
    return pbar ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Add a color map for "big" mode.
+-------------------------------------------------------------------------*/
+
+void PBAR_add_bigmap( char *name , rgbyte *cmap )
+{
+   int ii , nn , kk ;
+
+   if( name == NULL || *name == '\0' || cmap == NULL ) return ;
+
+   nn = bigmap_num ; kk = nn+1 ;
+
+   bigmap_num      = kk ;
+   bigmap_name     = (char **) realloc(bigmap_name,sizeof(char *)*kk);
+   bigmap          = (rgbyte **) realloc(bigmap,sizeof(rgbyte *)*kk);
+   bigmap_name[nn] = strdup(name) ;
+   bigmap[nn]      = (rgbyte *) malloc(sizeof(rgbyte)*NPANE_BIG) ;
+
+   for( ii=0 ; ii < NPANE_BIG ; ii++ ) bigmap[nn][ii] = cmap[ii] ;
+
+   POPDOWN_strlist_chooser ; return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Button 3 event handler for pane #0 of a pbar, used only when
+    in "big" mode, to select a color map.
+-------------------------------------------------------------------------*/
+
+static void PBAR_button_EV( Widget w, XtPointer cd, XEvent *ev, Boolean *ctd )
+{
+   MCW_pbar *pbar = (MCW_pbar *) cd ;
+   XButtonEvent *bev = (XButtonEvent *) ev ;
+
+   if( bev->button == Button2 ){
+     XUngrabPointer( bev->display , CurrentTime ) ;
+     return ;
+   }
+   if( pbar == NULL || !pbar->bigmode || bev->button != Button3 ) return ;
+
+   MCW_choose_strlist( w , "Choose Color Bar" ,
+                       bigmap_num ,
+                       pbar->bigmap_index ,
+                       bigmap_name ,
+                       PBAR_bigmap_finalize , cd ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+
+static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
+{
+   MCW_pbar *pbar = (MCW_pbar *) cd ;
+   int ii , ind=cbs->ival ;
+
+   if( ind < 0 || ind >= bigmap_num || !pbar->bigmode ){
+     XBell( pbar->dc->display,100); POPDOWN_strlist_chooser; return;
+   }
+
+   pbar->bigmap_index = ind ;
+   for( ii=0 ; ii < NPANE_BIG ; ii++ )
+     pbar->bigcolor[ii] = bigmap[ind][ii] ;
+
+   MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
+   PBAR_bigexpose_CB(NULL,pbar,NULL) ;
+   if( pbar->pb_CB != NULL ) pbar->pb_CB( pbar, pbar->pb_data, pbCR_COLOR );
+   return ;
 }
 
 /*--------------------------------------------------------------------*/
@@ -245,15 +345,8 @@ void PBAR_bigexpose_CB( Widget w , XtPointer cd , XtPointer cb )
 /*! Set "big" mode in the pbar -- 30 Jan 2003 - RWCox.
 ----------------------------------------------------------------------*/
 
-void PBAR_set_bigmode( MCW_pbar *pbar, int bmode,
-                       float bot,float top, rgbyte *color )
+void PBAR_set_bigmode( MCW_pbar *pbar, int bmode, float bot,float top )
 {
-   if( color != NULL ){
-     int ii ;
-     MCW_kill_XImage(pbar->bigxim) ; pbar->bigxim = NULL ;
-     for( ii=0 ; ii < NPANE_BIG ; ii++ )
-       pbar->bigcolor[ii] = color[ii] ;
-   }
    if( bmode && bot < top ){ pbar->bigbot = bot; pbar->bigtop = top; }
    pbar->bigmode   = bmode ;
    pbar->update_me = 1 ;

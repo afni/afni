@@ -441,8 +441,12 @@ rgbyte DC_spectrum( MCW_DC *dc , double an )
    double gamm , ak,ab,s,c,sb,cb ;
    rgbyte color ;
 
+#if 0
    if( dc != NULL ) gamm = dc->gamma ;
    else             gamm = 1.0 ;
+#else
+   gamm = 1.000 ;
+#endif
 
 #if 0
    ak = 105.; s  = 255.0-ak; c  = s /60.;     /* AJ's choices */

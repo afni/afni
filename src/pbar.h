@@ -74,10 +74,11 @@ typedef struct {
 
   XtPointer parent ;
 
-  int    bigmode , bigset ;         /* 30 Jan 2003 */
+  int    bigmode , bigset ;     /* 30 Jan 2003 */
   float  bigtop , bigbot ;
   rgbyte bigcolor[NPANE_BIG] ;
   XImage * bigxim ;
+  int    bigmap_index ;         /* 31 Jan 2003 */
 } MCW_pbar ;
 
 MCW_pbar * new_MCW_pbar( Widget , MCW_DC * ,
@@ -92,7 +93,8 @@ void rotate_MCW_pbar( MCW_pbar * , int ) ; /* 30 Mar 2001 */
 
 void PBAR_set_panecolor( MCW_pbar *, int , int ) ;  /* 17 Jan 2003 */
 
-void PBAR_set_bigmode( MCW_pbar *, int, float,float, rgbyte * ) ;  /* 30 Jan 2003 */
+void PBAR_set_bigmode( MCW_pbar *, int, float,float ) ;     /* 30 Jan 2003 */
 void PBAR_bigexpose_CB( Widget , XtPointer , XtPointer ) ;  /* 30 Jan 2003 */
+void PBAR_add_bigmap( char * , rgbyte * ) ;                 /* 31 Jan 2003 */
 
 #endif
