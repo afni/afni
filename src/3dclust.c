@@ -205,6 +205,10 @@ int main( int argc , char * argv[] )
           "   In the report, 'Volume' will be voxel count, but the rest of\n"
           "   the coordinate dependent information will be in actual xyz\n"
           "   millimeters.\n"
+          "* The default coordinate output order is DICOM.  If you prefer\n"
+          "    the SPM coordinate order, use the option '-orient LPI' or\n"
+          "    set the environment variable AFNI_ORIENT to 'LPI'.  For more\n"
+          "    information, see file README.environment.\n"
         ) ;
       exit(0) ;
    }
