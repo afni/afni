@@ -864,4 +864,5 @@
       - nifti_set_iname_offset(): case 1 must have sizeof() cast to int
       - pass NBL to nifti_image_write_hdr_img2(), and allow NBL or data
       - added nifti_image_write_bricks() wrapper for ...write_hdr_img2()
+  * modified Makefile.INCLUDE to deal with nifti directory
 
