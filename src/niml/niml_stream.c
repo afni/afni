@@ -1279,7 +1279,17 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
 /*-------------------------------------------------------------------------*/
 /*! Open a NIML input or output stream, and return a pointer to it.
 
-    NULL is returned if an error occurs.
+  - NULL is returned if an error occurs.
+  - Otherwise, you can read and write data using NI_stream_read() and
+    NI_stream_write().
+  - Buffered input is also available using NI_stream_readbuf() to read
+    data from an internal buffer.
+
+  Several different types of streams are available.  The first two
+  ("tcp:" and "shm:") are for 2-way interprocess communication.
+  The later ones ("file:", "str:", "http:", "ftp:", and "fd:") are
+  for 1-way communication, either to read bytes or to write them.
+  The formats for the "name" input are described below:
 
   name = "tcp:host:port" to connect a socket to system "host"
              on the given port number.  One process should open
@@ -1289,13 +1299,32 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
              segment created with "keyname" for the ID and with
              I/O buffer sizes of size1 ("w" process to "r" process)
              and size2 ("r" process to "w" process).
+         - Like tcp: streams, one process should open with "w" and the
+           other with "r".
+         - The "size" strings can end in 'K' to multiply by 1024,
+            or end in 'M' to multiply by 1024*1024.
+         - If neither size is given, a default value is used.
+         - If only size1 is given, size2=size1 (symmetric stream).
+         - The total size of the shared memory segment will be
+           size1+size2+36 bytes.  (Some systems put an upper limit
+           on this size.)
+         - "keyname" is a string used to identify this shared memory segment
+         - If you are communicating a lot of data between 2 processes on the
+           same system, shm: streams are usually much faster than tcp: streams.
+         - Also see NI_stream_reopen() for a way to open a tcp: stream and then
+           re-open it to another tcp: port or to be a shm: stream.
 
   name = "file:filename" to open a file for I/O.
 
   name = "str:" to read/write data from/to a string
 
-  name = "http://hostname/filename" to read data from a Web site
-  name = "ftp://hostname/filename"  to read data from an FTP site
+  name = "http://hostname/filename" to read data from a Web server
+  name = "ftp://hostname/filename"  to read data from an FTP server
+           - The data for these types is transferred all at once from
+             the remote server and stored in a memory buffer (much like
+             the str: stream type).
+           - Data can be read from this buffer using NI_stream_read().
+           - When the stream is closed, the buffer is NI_free()-ed.
 
   name = "fd:integer" to read or write data from a pre-opened
           file descriptor (returned by the open() function).
@@ -1309,12 +1338,14 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
              FILE stream, you will have trouble if you mix I/O to this
              stream with NI_stream_read()/NI_stream_write().
 
+  The formats for the "mode" input are described below:
+
   mode = "w" to open a stream for writing
-           - tcp: host must be specified ("w" is for a tcp client)
+           - tcp: host must be specified ("w" is for a tcp client).
            - shm: keyname determines the ID of the segment to create
-                  (which can be attached to by a shm: "r" process)
+                  (which can be attached to by a shm: "r" process).
            - file: filename is opened in write mode (and will be
-                  overwritten if already exists)
+                  overwritten if already exists).
            - str: data will be written to a buffer in the NI_stream
                   struct; you can later access this buffer with the
                   function NI_stream_getbuf(), and clear it with
@@ -1324,10 +1355,10 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
 
   mode = "r" to open a stream for reading
            - tcp: host is ignored (but must be present);
-                  ("r" is for a tcp server)
+                  ("r" is for a tcp server).
            - shm: keyname determines the ID of the segment to attach to
-                  (which must be created by a shm: "w" process)
-           - file: filename is opened in read mode
+                  (which must be created by a shm: "w" process).
+           - file: filename is opened in read mode.
            - str: characters after the colon are the source of
                   the input data (will be copied to internal buffer);
                   OR, you can later set the internal buffer string
@@ -1338,11 +1369,10 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
                   much the same as str: streams for reading.
 
   For a file:, fd:, or str: stream, you can either read from or write to
-  the stream, but not both, depending on how you opened it.  For a tcp: or
-  shm: stream, once it is connected, you can both read and write.  The
-  asymmetry in tcp: and shm: streams only comes at the opening (one process
-  must make the call by using "w" and one must listen for the call by
-  using "r").
+  the stream, but not both, depending on how you opened it ("r" or "w").
+  For a tcp: or shm: stream, once it is connected, you can both read and write.
+  The asymmetry in tcp: and shm: streams only comes at the opening (one process
+  must make the call using "w" and one must listen for the call using "r").
 
   The inputs "host" (for tcp:) and "filename" (for file:) are limited to a
   maximum of 127 bytes.  For str:, there is no limit for the "r" stream
@@ -1351,16 +1381,19 @@ static int SHM_recv( SHMioc *ioc , char *buffer , int nbytes )
 
   Since opening a socket or shared memory segment requires sychronizing
   two processes, you can't read or write to a tcp: or shm: stream
-  immediately.  Instead you have to check if it is "good" first.  This\
+  immediately.  Instead you have to check if it is "good" first.  This
   can be done using the function NI_stream_goodcheck().
 
   After a tcp: "r" stream is good, then the string ns->name
   contains the IP address of the connecting host, in "dot" form
   (e.g., "201.202.203.204"); here, "ns" is the NI_stream returned
-  by this routine.  You can use the NI_add_trusted_host() function
-  to set a list of IP addresses from which the NIML library will accept
-  connections.  Systems not on the trusted list will have their sockets
-  closed immediately after the connection is accepted.
+  by this routine.
+   - You can use the NI_add_trusted_host() function
+     to set a list of IP addresses from which the NIML library will accept
+     connections.
+   - Systems not on the trusted list will have their sockets closed
+     immediately after the connection is accepted.  Nothing will be read
+     from these sockets.
 
   For a file: stream, ns->name contains the filename.
 ---------------------------------------------------------------------------*/
@@ -1841,6 +1874,43 @@ char * NI_stream_name( NI_stream_type *ns )
 {
    if( ns == NULL ) return NULL ;
    return ns->name ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Alter the input buffer size for a NI_stream.
+   Only works for tcp: & shm: streams, and for "r" file: & fd: streams.
+   Return value is 1 if it worked OK, -1 if it didn't.
+-------------------------------------------------------------------------*/
+
+int NI_stream_setbufsize( NI_stream_type *ns , int bs )   /* 03 Jan 2003 */
+{
+   char *qbuf ;
+   if( ns       == NULL             ||
+       ns->type == NI_STRING_TYPE   ||
+       ns->bad  == MARKED_FOR_DEATH ||
+       bs       <  666              ||
+       bs       <  ns->nbuf           ) return -1 ;  /* bad inputs */
+
+   if( !(  ns->type == NI_TCP_TYPE  || ns->type    == NI_SHM_TYPE    ||
+          (ns->type == NI_FILE_TYPE && ns->io_mode == NI_INPUT_MODE) ||
+          (ns->type == NI_FD_TYPE   && ns->io_mode == NI_INPUT_MODE)   ) )
+    return -1 ;
+
+   qbuf = NI_realloc( ns->buf , bs ) ;
+   if( qbuf == NULL ) return -1 ;         /* this is bad */
+   ns->buf     = qbuf ;
+   ns->bufsize = bs ;
+   return 1 ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Get the input buffer size for a NI_stream.
+-------------------------------------------------------------------------*/
+
+int NI_stream_getbufsize( NI_stream_type *ns )            /* 03 Jan 2003 */
+{
+   if( ns == NULL || ns->bad  == MARKED_FOR_DEATH ) return -1 ;
+   return ns->bufsize ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -2378,8 +2448,7 @@ int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes )
 
    /** check for reasonable inputs **/
 
-   if( ns     == NULL || ns->bad    ||
-       buffer == NULL || nbytes < 0 || ns->bad == MARKED_FOR_DEATH ) return -1;
+   if( ns == NULL || ns->bad  || buffer == NULL || nbytes < 0 ) return -1 ;
 
    if( nbytes == 0 ) return 0 ;
 
@@ -2476,7 +2545,8 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
       if( ngood < 0 ) break ;                /* data stream gone bad, so exit */
 
-      if( ngood > 0 ){                       /* we can read! */
+      if( ngood > 0 ){                       /* we can read ==> */
+                                             /* try to fill buffer completely */
 
          ii = NI_stream_read( ns, ns->buf+ns->nbuf, ns->bufsize-ns->nbuf ) ;
 
@@ -2513,4 +2583,73 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
    if( ntot == 0 && ngood < 0 ) ntot = -1 ;
 
    return ntot ;  /* otherwise, return # of bytes read (may be 0) */
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Buffered read from a NI_stream.  Unlike NI_stream_read(), will try
+    to read all nbytes of data, waiting if necessary.  Also works through
+    the internal buffer, rather than directly to the stream.
+
+    Return value is number of bytes read.  May be less than nbytes if
+    the stream closed (or was used up) before nbytes of data was read.
+    Will return -1 if something is rotten.
+-------------------------------------------------------------------------*/
+
+int NI_stream_readbuf( NI_stream_type *ns , char *buffer , int nbytes )
+{
+   int ii , jj , bs , nout=0 ;
+
+   /** check for reasonable inputs **/
+
+   if( nbytes  == 0                        ) return  0; /* that was real easy */
+   if( buffer  == NULL || nbytes      <  0 ) return -1; /* stupid caller */
+   if( ns->buf == NULL || ns->bufsize == 0 ) return -1; /* shouldn't happen */
+
+   if( !NI_stream_readable(ns) )                 return -1 ; /* stupid stream */
+   ii = NI_stream_readcheck(ns,1) ; if( ii < 1 ) return ii ; /* unready */
+
+   /* see how many unused bytes are already in the input buffer */
+
+   ii = ns->nbuf - ns->npos ;
+
+   if( ii >= nbytes ){    /* have all the data we need already */
+     memcpy( buffer , ns->buf + ns->npos , nbytes ) ;
+     ns->npos += nbytes ;
+     if( ns->npos == ns->nbuf ) ns->nbuf = ns->npos = 0 ;  /* buffer used up */
+     return nbytes ;
+   }
+
+   /* copy what data we already have, if any */
+
+   if( ii > 0 ){
+     memcpy( buffer , ns->buf + ns->npos , ii ) ; nout = ii ;
+   }
+   ns->nbuf = ns->npos = 0 ;                               /* buffer used up */
+
+   /* input streams with fixed length buffers ==> can't do no more */
+
+   if( ns->type == NI_REMOTE_TYPE || ns->type == NI_STRING_TYPE )
+     return (nout > 0) ? nout : -1 ;
+
+   /* otherwise, fill the buffer and try again */
+
+   bs = ns->bufsize ;
+
+   while( nout < nbytes ){
+
+     jj = MIN( bs , nbytes-nout ) ;         /* how much to try to read */
+     ii = NI_stream_fillbuf( ns,jj,6666 ) ; /* read into stream buffer */
+
+     if( ii > 0 ){                          /* got something */
+       ii = ns->nbuf ;                      /* how much now in buffer */
+       if( ii > nbytes-nout ) ii = nbytes-nout ;
+       memcpy( buffer+nout , ns->buf , ii ) ; nout += ii ;
+       ns->npos += ii ; NI_reset_buffer( ns ) ;
+     } else {                               /* got nothing */
+       break ;                              /* so quit */
+     }
+   }
+
+   if( nout == 0 && ii < 0 ) nout = -1 ;    /* no data and an I/O error */
+   return nout ;
 }

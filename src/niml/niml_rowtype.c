@@ -960,6 +960,12 @@ int NI_write_rowtype( NI_stream_type *ns , NI_rowtype *rt ,
       - col_typ[i] = type code for column #i (i=0..col_num-1)
       - col_len    = number of elements in each column
       - col_dpt[i] = pointer to data in column #i
+      - tmode is one of
+         - NI_TEXT_MODE   ==> ASCII output
+           - text mode is required if any data component is a String
+           - text mode is required to "str:" streams
+         - NI_BINARY_MODE ==> binary output (endian-ness of this CPU)
+         - NI_BASE64_MODE ==> binary/base64 output (ditto)
       - return value is number of bytes written to stream
         (-1 if something bad happened, 0 if can't write to stream yet)
 
@@ -1011,12 +1017,21 @@ int NI_write_columns( NI_stream_type *ns,
    fsiz = NI_malloc( sizeof(int)          * col_num ) ;
    for( col=0 ; col < col_num ; col++ ){
      rt[col] = NI_rowtype_find_code( col_typ[col] ) ;
-     if( rt[col] == NULL ){ FREEUP; return -1; }
+     if( rt[col] == NULL || col_dat[col] == NULL ){ FREEUP; return -1; }
      vsiz[col] = (rt[col]->psiz == 0) ;  /* is this a variable size type */
      fsiz[col] = rt[col]->size ;         /* fixed size of struct (w/padding) */
      vsiz_tot += vsiz[col] ;
      fsiz_tot += fsiz[col] ;
      if( tmode != NI_TEXT_MODE && NI_has_String(rt[col]) ) tmode = NI_TEXT_MODE;
+   }
+
+   /*-- Special (and fast) case:
+        one compact (no padding) fixed-size rowtype,
+        and binary output ==> can write all data direct to stream at once --*/
+
+   if( col_num == 1 && tmode == NI_BINARY_MODE && fsiz[0] == rt[0]->psiz ){
+     nout = NI_stream_write( ns , col_dat[0] , fsiz[0]*col_num ) ;
+     FREEUP ; return nout ;
    }
 
    /*-- allocate space for the write buffer (1 row at a time) --*/
@@ -1216,22 +1231,33 @@ int NI_write_columns( NI_stream_type *ns,
       - col_typ[i] = type code for column #i (i=0..col_num-1)
       - col_len    = number of elements in each column
       - col_dpt[i] = pointer to data in column #i
-        - col_dpt can't be NULL
-        - but if col_dpt[i] is NULL, it will be NI_malloc()-ed
-      - return value is
-        - number of rows actually read (<= col_len)
-        - zero if stream isn't ready to read
-        - -1 if something bad happened
+         - col_dpt can't be NULL
+         - but if col_dpt[i] is NULL, it will be NI_malloc()-ed
+         - if col_dpt[i] isn't NULL, it must point to space big
+           enough to hold the input (col_num * fixed size of rowtype #i)
+      - tmode is one of
+         - NI_TEXT_MODE   ==> ASCII input
+            - text mode is required if any rowtype component is a String
+            - text mode is required from "str:" streams
+         - NI_BINARY_MODE ==> binary input
+         - NI_BASE64_MODE ==> binary/base64 input
+      - flags is the OR of various bit masks
+         - NI_SWAP_MASK  ==> binary input must be byte-swapped
+         - NI_LTEND_MASK ==> text input stops at a '<' in the input
+      - return value is:
+         - number of complete rows actually read (<= col_len)
+         - zero if stream isn't ready to read
+         - -1 if something bad happened
 
    Only the data is read from the stream - no header or footer.
    This function is adapted from the 1st edition of NI_read_element().
 --------------------------------------------------------------------------*/
 
 int NI_read_columns( NI_stream_type *ns,
-                     int col_num , int   *col_typ ,
-                     int col_len , void **col_dpt , int tmode )
+                     int col_num, int   *col_typ,
+                     int col_len, void **col_dpt, int tmode, int flags )
 {
-   int ii,jj , row , dim , ntot,nout , col ;
+   int ii,jj , row , dim , nin , col ;
    char *ptr , **col_dat=(char **)col_dpt ;
    int  nwbuf,bb=0,cc=0;
    char *wbuf=NULL ; /* write buffer */
@@ -1269,12 +1295,31 @@ int NI_read_columns( NI_stream_type *ns,
    for( col=0 ; col < col_num ; col++ ){
      rt[col] = NI_rowtype_find_code( col_typ[col] ) ;
      if( rt[col] == NULL ){ FREEUP; return -1; }
+     if( tmode != NI_TEXT_MODE && NI_has_String(rt[col]) ){ FREEUP; return -1; }
      vsiz[col] = (rt[col]->psiz == 0) ;  /* is this a variable size type */
      fsiz[col] = rt[col]->size ;         /* fixed size of struct (w/padding) */
      vsiz_tot += vsiz[col] ;
      fsiz_tot += fsiz[col] ;
      if( col_dat[col] == NULL )
-       col_dat[col] = NI_malloc( fsiz[col] * col_len ) ;
+       col_dat[col] = NI_malloc( fsiz[col]*col_len ) ; /* make space */
+     else
+       memset( col_dat[col], 0 , fsiz[col]*col_len ) ; /* set space to 0 */
    }
+
+#if 0
+   /*-- Special (and fast) case:
+        one compact (no padding) fixed-size rowtype,
+        and binary input ==> can read all data direct from stream at once --*/
+
+   if( col_num == 1 && tmode == NI_BINARY_MODE && fsiz[0] == rt[0]->psiz ){
+     nin = NI_stream_read( ns , col_dat[0] , fsiz[0]*col_num ) ;
+     if( nin <= 0 ){ FREEUP; return nin; }
+     goto ReadFinality ;
+   }
+#endif
+
+   /*-- Have read all data; byte swap if needed, then get outta here --*/
+
+ReadFinality:
 
 }
