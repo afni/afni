@@ -17,8 +17,16 @@ byte * THD_automask( THD_3dim_dataset * dset )
 
 ENTRY("THD_automask") ;
 
+   /* median at each voxel */
+
    medim    = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL);
+
+   /* clip value to excise small stuff */
+
    clip_val = THD_cliplevel(medim,0.5) ;
+
+   /* create mask of values above clip value */
+
    nvox     = medim->nvox ;
    mar      = MRI_FLOAT_PTR(medim) ;
    mmm      = (byte *) calloc( sizeof(byte)*nvox , 1 ) ;
@@ -28,7 +36,7 @@ ENTRY("THD_automask") ;
    mri_free(medim) ;
    if( nmm == 0 ) RETURN(mmm) ;  /* should not happen */
 
-   /*-- 10 Apr 2002: only keep the largest component --*/
+   /*-- 10 Apr 2002: only keep the largest connected component --*/
 
    nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
 
@@ -53,7 +61,6 @@ ENTRY("THD_automask") ;
 
    DESTROY_CLARR(clar) ;
 
-#if 1
    /* 18 Apr 2002: now erode the resulting volume */
 
    MCW_erode_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
@@ -75,13 +82,45 @@ ENTRY("THD_automask") ;
    MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
 
    DESTROY_CLARR(clar) ;
-#endif
-
-   /* 19 Apr 2002: fill in small holes */
 
 #if 1
+   /* 19 Apr 2002: fill in small holes */
+
    (void) THD_mask_fillin_completely( nx,ny,nz, mmm , 1 ) ;
 #endif
+
+   /* 28 May 2002:
+      invert the mask, then find the largest cluster of 1's;
+      this will be the outside of the brain;
+      put this back into the mask, then invert again;
+      the effect will be to fill in holes inside the brain */
+
+   for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
+
+   /* get the clusters of what were 0's */
+
+   clar = MCW_find_clusters( nx,ny,nz , 1.0,1.0,1.0 ,
+                             MRI_byte , mmm , 1.01   ) ;
+
+   if( clar == NULL ) RETURN(mmm) ; /* should not happen */
+
+   /* find the largest cluster (yet again) */
+
+   for( nmm=iclu=kclu=0 ; iclu < clar->num_clu ; iclu++ ){
+     if( clar->clar[iclu]->num_pt > nmm ){
+       nmm = clar->clar[iclu]->num_pt; kclu = iclu;
+     }
+   }
+
+   /* put this cluster back into the mask volume (yet again) */
+
+   MCW_cluster_to_vol( nx,ny,nz , MRI_byte,mmm , clar->clar[kclu] ) ;
+
+   DESTROY_CLARR(clar) ;
+
+   /* and re-invert mask */
+
+   for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
 
    RETURN(mmm) ;
 }
