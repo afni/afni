@@ -365,6 +365,7 @@ static int nSymStim = 0 ;             /* 29 Jul 2004: symbols for stimuli */
 static SYM_irange *SymStim = NULL ;
 
 void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat ) ;
+static void vstep_print(void) ;
 
 /*---------------------------------------------------------------------------*/
 
@@ -1826,6 +1827,13 @@ void read_input_data
     SymStim[is].ntop = max_lag[is] ;
     SymStim[is].gbot = it ;
     it += max_lag[is] - min_lag[is] + 1 ;
+    if( strchr(SymStim[is].name,' ') != NULL ||
+        strchr(SymStim[is].name,'*') != NULL ||
+        strchr(SymStim[is].name,';') != NULL   ){
+      fprintf(stderr,
+           "** WARNING: -stim_label #%d '%s' has characters bad for -gltsym\n",
+           is+1 , SymStim[is].name ) ;
+    }
   }
 
   /*----- Read the general linear test matrices -----*/
@@ -3176,6 +3184,8 @@ void calculate_results
   float * fitts = NULL;        /* full model fitted time series */
   float * errts = NULL;        /* full model residual error time series */
 
+  int vstep ;                  /* interval progress meter dots */
+
 
   /*----- Initialize local variables -----*/
   nodata = option_data->nodata;
@@ -3442,9 +3452,20 @@ void calculate_results
       if( proc_numjob == 1 && !option_data->quiet )
         fprintf(stderr,"++ Calculations starting; elapsed time=%.3f\n",COX_clock_time()) ;
 
+      vstep = nxyz / 50 ;
+      if( option_data->quiet        ||
+          option_data->fdisp >= 0.0 ||
+          option_data->progress > 0 ||
+          proc_numjob > 1             ) vstep = 0 ;
+
+      if( vstep > 0 ) fprintf(stderr,"++ start voxel loop ") ;
+
       /*----- Loop over all voxels -----*/
       for (ixyz = ixyz_bot;  ixyz < ixyz_top;  ixyz++)
 	{
+
+          if( vstep > 0 && ixyz%vstep==vstep-1 ) vstep_print() ;
+
 	  /*----- Apply mask? -----*/
 	  if (mask_vol != NULL)
 	    if (mask_vol[ixyz] == 0)  continue;
@@ -3525,6 +3546,8 @@ void calculate_results
 	    }
 	
 	}  /*----- Loop over voxels -----*/
+
+        if( vstep > 0 ) fprintf(stderr,"\n") ;
 
 #ifdef USE_GET
         if( do_get ){
@@ -5850,11 +5873,11 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
             - compute SSE of full model
             - compute and store new GLT results in arrays -----*/
 
-   if( verb ) fprintf(stderr,"++ starting voxel loop") ;
-   vstep = nxyz/20 ; if( vstep < 1 ) vstep = 1 ;
+   vstep = nxyz / 50 ; if( !verb ) vstep = 0 ;
+   if( vstep > 0 ) fprintf(stderr,"++ start voxel loop ") ;
    for( ixyz=0 ; ixyz < nxyz ; ixyz++ ){
 
-     if( verb && ixyz%vstep == 0 ) fprintf(stderr,".") ;  /* progress meter */
+     if( vstep > 0 && ixyz%vstep == vstep-1 ) vstep_print() ;
 
      /*** race ahead and extract a bunch of voxel time series at once ***/
 
@@ -5923,7 +5946,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
    } /*** end of loop over voxels */
 
-   if( verb ) fprintf(stderr,"\n") ;  /* end of progress meter */
+   if( vstep > 0 ) fprintf(stderr,"\n") ;  /* end of progress meter */
 
    /*** unload input datasets to save memory ***/
 
@@ -6050,13 +6073,16 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 
 void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
 {
-   if( *nrows > 0 ){    /* standard read */
+   int ii,jj ;
+
+   if( *nrows > 0 ){    /* standard read of numbers from a file*/
+
      matrix_file_read( fname , *nrows , ncol , cmat , 1 ) ;  /* mri_read_1D */
      if( cmat->elts == NULL ) GLT_ERR ;
 
-   } else {  /* symbolic read */
+   } else {             /* symbolic read of stim_labels */
      floatvec *fv ;
-     int nr=0 , ii ;
+     int nr=0 ;
      float **far=NULL ;
 
      if( nSymStim < 1 ){
@@ -6097,5 +6123,23 @@ void read_glt_matrix( char *fname, int *nrows, int ncol, matrix *cmat )
 #endif
    }
 
+   /** check for all zero rows, which will cause trouble later **/
+
+   for( ii=0 ; ii < *nrows ; ii++ ){
+     for( jj=0 ; jj < ncol && cmat->elts[ii][jj] == 0.0 ; jj++ ) ; /* nada */
+     if( jj == ncol )
+       fprintf(stderr,"** ERROR: row #%d of matrix '%s' is all zero!\n",
+               ii+1 , fname ) ;
+   }
+
    return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void vstep_print(void)
+{
+   static int nn=0 ;
+   static char xx[10] = "0123456789" ;
+   fprintf(stderr , "%c" , xx[nn%10] ) ; nn++ ;
 }
