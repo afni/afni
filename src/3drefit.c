@@ -116,6 +116,9 @@ void Syntax(char * str)
     "                  to use '-view'.  If you COPY the files and then use\n"
     "                  '-view', don't forget to use '-newid' as well!\n"
     "\n"
+    "  -label2 llll    Set the 'label2' field in a dataset .HEAD file to the\n"
+    "                  string 'llll'.  (Can be used as in AFNI window titlebars.)\n"
+    "\n"
     "  -byteorder bbb  Sets the byte order string in the header.\n"
     "                  Allowable values for 'bbb' are:\n"
     "                     LSB_FIRST   MSB_FIRST   NATIVE_ORDER\n"
@@ -226,6 +229,8 @@ int main( int argc , char * argv[] )
    int clear_bstat    = 0 ;          /* 28 May 2002 */
    int copyaux        = 0 ;          /* 08 Jun 2004 */
    THD_3dim_dataset *auxset=NULL ;   /* 08 Jun 2004 */
+   char *new_label2   = NULL ;       /* 21 Dec 2004 */
+
    char str[256] ;
    int  iarg , ii ;
 
@@ -719,6 +724,13 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;  /* go to next arg */
       }
 
+      /** -label2 [21 Dec 2004] **/
+
+      if( strcmp(argv[iarg],"-label2") == 0 ){
+        new_label2 = argv[++iarg] ; new_stuff++ ;
+        iarg++ ; continue ;  /* go to next arg */
+      }
+
       /** -view code **/
 
       if( strncmp(argv[iarg],"-view",4) == 0 ){
@@ -811,6 +823,11 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"++ 3drefit: Processing AFNI dataset %s\n",argv[iarg]) ;
 
       tross_Make_History( "3drefit" , argc,argv, dset ) ;
+
+      /* 21 Dec 2004: -label2 option */
+
+      if( new_label2 != NULL )
+        EDIT_dset_items( dset , ADN_label2 , new_label2 , ADN_none ) ;
 
       /* 14 Oct 1999: change anat parent */
       /* 14 Dec 1999: allow special cases: SELF and NULL */

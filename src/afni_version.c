@@ -199,8 +199,7 @@ int AFNI_version_check(void)
 {
    int jj , nbuf=0 , ii ;
    char *vbuf=NULL ;
-   char vv[128]="none" ,
-        r1[128]="none" , r2[128]="\0" , r3[128] ="\0" ;
+   char vv[128]="none" ;
    char *sname ;
 
    /* if something is rotten, then toss it out */
@@ -245,7 +244,7 @@ int AFNI_version_check(void)
 
    /* extract version and data/time strings from data */
 
-   sscanf( vbuf , "%127s %127s %127s %127s" , vv,r1,r2,r3 ); free(vbuf);
+   sscanf( vbuf , "%127s" , vv ); free(vbuf);
 
    /* record the current time, so we don't check too often */
 
@@ -281,10 +280,8 @@ int AFNI_version_check(void)
                    "****************************************************\n"
                    " This AFNI was compiled with the following settings:\n"
                    "   Version ID   = %s\n"
-                   "   Release date = %s\n"
                    " Latest version at %s\n"
                    "   Version ID   = %s\n"
-                   "   Release date = %s %s %s\n"
                    "****************************************************\n"
                    "  %s\n"
                    " has information about features in the latest\n"
@@ -293,7 +290,7 @@ int AFNI_version_check(void)
                    " To disable version check:\n"
                    " set environment variable AFNI_VERSION_CHECK to NO\n"
                    "****************************************************\n"
-          , VERSION,RELEASE , AFNI_HOST , vv,r1,r2,r3 , AFNI_LATEST ) ;
+          , VERSION, AFNI_HOST , vv, AFNI_LATEST ) ;
 
 
 #if 0

@@ -36,7 +36,7 @@
 
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
- "This is Version " VERSION " of " RELEASE"\n\n"                               \
+ "This is Version " VERSION               "\n\n"                               \
  " ** This software was designed to be used only for research purposes. **\n"  \
  " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
  " ** This software comes with no warranties of any kind whatsoever,    **\n"  \
@@ -459,11 +459,15 @@ ENTRY("AFNI_parse_args") ;
 
    strcpy(GLOBAL_argopt.orient_code,"---") ;
 
+#if 0
    strcpy(GLOBAL_argopt.title_name,"AFNI " VERSION) ;   /* default title bar name */
    { int ll = strlen(GLOBAL_argopt.title_name) ;
      if( GLOBAL_argopt.title_name[ll-1] == ' ' )
         GLOBAL_argopt.title_name[ll-1] = '\0' ;
    }
+#else
+   strcpy(GLOBAL_argopt.title_name,"AFNI") ;           /* default title bar name */
+#endif
 
    GLOBAL_argopt.left_is_left = AFNI_yesenv( "AFNI_LEFT_IS_LEFT" ) ;
 
@@ -1064,7 +1068,7 @@ int main( int argc , char * argv[] )
    /** Check for -version [15 Aug 2003] **/
 
    if( check_string("-ver",argc,argv) || check_string("--ver",argc,argv) ){
-     printf("AFNI. Version " VERSION " of " RELEASE "\n") ;
+     printf("AFNI. Version " VERSION  "\n") ;
 #ifdef SHOWOFF
 #undef SHSH
 #undef SHSHSH
