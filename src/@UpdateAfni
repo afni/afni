@@ -8,6 +8,10 @@ set RemoteServer = 'ftp://afni.nimh.nih.gov/'
 set RemoteSRC = $RemoteServer'AFNI/src'
 set RemoteDOC = $RemoteServer'AFNI/doc'
 set MacName = `hostname -s`
+if ($status) then
+	#maybe you're on a Natalia's SUN, try this option
+	set MacName = $_INIT_UTS_NODENAME
+endif
 
 #set up the desitnation, based on the machine you're using
 	goto SETDESTIN
@@ -28,7 +32,7 @@ GetIt:
 	#Get the source
 	if ("$localSRC" != "") then
 		echo "Downloading Source Code ..."
-		wget -r -l10 -nv -m -np -nH -P $localSRC --cut-dirs=3 $RemoteSRC
+		wget -x -r -l10 -nv -m -np -nH -P $localSRC --cut-dirs=2 $RemoteSRC
 	endif
 	
 	#Backup Old version -binaries only-
@@ -37,13 +41,13 @@ GetIt:
 		test -d $localBIN.Bak || mkdir $localBIN.Bak
 		cp -r $localBIN/* $localBIN.Bak
 		#Get the binaries
-		wget -r -l10 -nv -m -np -nH -P $localBIN --cut-dirs=3 $RemoteBIN
+		wget -x -r -l10 -nv -m -np -nH -P $localBIN --cut-dirs=3 $RemoteBIN
 	endif
 	
 	#Get the documentation
 	if ("$localDOC" != "") then
 		echo "Downloading Documentation ..."
-		wget -r -l10 -nv -m -np -nH -P $localDOC --cut-dirs=3 $RemoteDOC
+		wget -x -r -l10 -nv -m -np -nH -P $localDOC --cut-dirs=2 $RemoteDOC
 	endif
 	
 	goto END
@@ -61,6 +65,38 @@ SETDESTIN:
 		goto GetIt
 	endif
 
+	if ("$MacName" == 'finrod') then #Change MY_MACHINE to your machine name
+		#for MY_MACHINE
+		set localSRC = '/usr/Software/AFNI98' #The full path indicating where AFNI source code are to be stored
+		set localBIN = '/usr/Software/AFNI98/abin' #The full path indicating where AFNI executables are to be stored
+		set localDOC = '/usr/Software/AFNI98/DOC' #The full path indicating where AFNI Documentation is to be stored
+			
+		#The location of the AFNI executables distribution for your computer
+		set RemoteBIN = $RemoteServer'AFNI/bin/sgi10k_6.5'	
+		goto GetIt
+	endif
+	
+	if ("$MacName" == 'ashlar') then #Change MY_MACHINE to your machine name
+		#for MY_MACHINE
+		set localSRC = '/usr/local/Afni/' #The full path indicating where AFNI source code are to be stored
+		set localBIN = '/usr/local/Afni/abin' #The full path indicating where AFNI executables are to be stored
+		set localDOC = '/usr/local/Afni/DOC' #The full path indicating where AFNI Documentation is to be stored
+			
+		#The location of the AFNI executables distribution for your computer
+		set RemoteBIN = $RemoteServer'AFNI/bin/solaris26_gcc'	
+		goto GetIt
+	endif
+
+	if ("$MacName" == 'safni') then #Change MY_MACHINE to your machine name
+		#for safni
+		set localSRC = '/home/ziad/Software/AFNI98/' #The full path indicating where AFNI source code are to be stored
+		set localBIN = '/home/ziad/abin' #The full path indicating where AFNI executables are to be stored
+		set localDOC = '/home/ziad/Software/AFNI98/DOC' #The full path indicating where AFNI Documentation is to be stored
+			
+		#The location of the AFNI executables distribution for your computer
+		set RemoteBIN = $RemoteServer'AFNI/bin/linux_mdk72'	
+		goto GetIt
+	endif
 	if ("$MacName" == 'potassium') then 
 		#for potassium
 		set localSRC = '' #The full path indicating where AFNI source code are to be stored
@@ -72,7 +108,7 @@ SETDESTIN:
 		goto GetIt
 	endif
 
-	if ("$MacName" == 'iodine') then
+	if ("$MacName" == 'iodine' || "$MacName" == 'rhodium' ) then
 		#for iodine 
 		set localSRC = '/home/ziad/Software/AFNI98'
 		set localBIN = '/home/ziad/Software/AFNI98/abin'
@@ -113,15 +149,15 @@ BadMachine:
 	goto END	
 
 NoSRCDir:
-	echo "You must create the directory : $NoSRCDir" 
+	echo "You must create the directory : $localSRC" 
 	goto END
 	
 NoNINDir:
-	echo "You must create the directory : $NoNINDir" 
+	echo "You must create the directory : $localBIN" 
 	goto END
 
 NoDOCDir:
-	echo "You must create the directory : $NoDOCDir" 
+	echo "You must create the directory : $localDOC" 
 	goto END
 
 USAGE:
