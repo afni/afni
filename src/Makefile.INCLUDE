@@ -6,7 +6,7 @@
 F2C = ./f2c -A
 
 DOCS     = docfiles/*.ps README* AFNI.changes.cox
-MINDOCS  = README*
+MINDOCS  = README* AFNI.changes.cox
 MYDOCS   = docfiles/*.tex *.txt art12cox.sty $(DOCS) 
 
 IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o
@@ -587,6 +587,7 @@ cleaner:
 backup:
 	rsh manwe chmod -R u+w /usr3/cox/AFNI98
 	rcp -prv * manwe:/usr3/cox/AFNI98
+	rsh manwe /bin/rm -rf /usr3/cox/AFNI98/www/AFNI98/binaries
 
 backtape:
 	$(TAR) cvf $(TAPE) ../AFNI98/
@@ -785,7 +786,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_nlfit.$(SO)    plug_realtime.$(SO) plug_3ddot.$(SO)       \
         plug_coorder.$(SO)  plug_compress.$(SO) plug_volreg.$(SO)      \
         plug_drawdset.$(SO) plug_maskave.$(SO)  plug_deconvolve.$(SO)  \
-        plug_render.$(SO)   plug_notes.$(SO)                           \
+        plug_render.$(SO)   plug_notes.$(SO)    plug_histog.$(SO)      \
         models contrib_plugins
 
 models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \

@@ -3704,12 +3704,16 @@ ENTRY("PLUTO_remove_workproc") ;
       if( workp[ii] != NULL ) ngood++ ;
 
    if( ngood == 0 ){
+/**
 fprintf(stderr,"No workprocs left\n") ;
+**/
       XtRemoveWorkProc( wpid ) ;
       free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
       num_workp = 0 ;
    } else {
+/**
 fprintf(stderr,"%d workprocs left\n",ngood) ;
+**/
    }
 
    EXRETURN ;
@@ -3731,7 +3735,9 @@ Boolean PLUG_workprocess( XtPointer fred )
    }
 
    if( ngood == 0 ){
+/**
 fprintf(stderr,"Found no workprocs left\n") ;
+**/
       free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
       num_workp = 0 ;
       return True ;
@@ -3935,4 +3941,51 @@ char * get_PLUGIN_strval( PLUGIN_strval * av )   /* must be XtFree-d */
 {
    if( av == NULL ) return NULL ;
                     return XmTextFieldGetString( av->textf ) ;
+}
+
+/*-----------------------------------------------------------------
+   Plot a histogram; input might be from mri_histogram():
+     nbin = # of bins in hist[]
+     bot  = bottom of hist[0] bin   } bin size is
+     top  = top of hist[nbin-1] bin } (top-bot)/nbin
+     hist = array of counts in each bin
+     xlab } labels for x-axis,
+     ylab }            y-axis
+     tlab }        and top of graph (NULL => skip this label)
+   Graph is popped up and then "forgotten" -- RWCox - 30 Sep 1999.
+-------------------------------------------------------------------*/
+
+void PLUTO_histoplot( int nbin, float bot, float top, int * hist ,
+                      char * xlab , char * ylab , char * tlab     )
+{
+   int ii , nx ;
+   float * xar , * yar ;
+   float dx ;
+
+ENTRY("PLUTO_histoplot") ;
+
+   if( nbin < 2 || hist == NULL ) EXRETURN ;
+   if( bot >= top ){ bot = 0.0 ; top = nbin ; }
+
+   nx  = 2*(nbin+1) ;
+   dx  = (top-bot)/nbin ;
+   xar = (float *) malloc(sizeof(float)*nx) ;
+   yar = (float *) malloc(sizeof(float)*nx) ;
+
+   xar[0] = bot ; yar[0] = 0.0 ;
+   for( ii=0 ; ii < nbin ; ii++ ){
+      xar[2*ii+1] = bot+ii*dx     ; yar[2*ii+1] = (float) hist[ii] ;
+      xar[2*ii+2] = bot+(ii+1)*dx ; yar[2*ii+2] = (float) hist[ii] ;
+   }
+   xar[2*nbin+1] = top ; yar[2*nbin+1] = 0.0 ;
+
+/**
+fprintf(stderr,"About to plot_ts_lab()\n") ;
+**/
+
+   plot_ts_lab( GLOBAL_library.dc->display ,
+                nx , xar , 1 , &yar ,
+                xlab,ylab,tlab , NULL , NULL ) ;
+
+   free(xar) ; free(yar) ; EXRETURN ;
 }

@@ -5,11 +5,10 @@
   See the file README.Copyright for details.
 ******************************************************************************/
 
-
 /*** 7D SAFE ***/
 
- void mri_histogram( MRI_IMAGE * im , float hbot,float htop ,
-                                      int initialize , int nbin, int hist[] )
+void mri_histogram( MRI_IMAGE * im , float hbot,float htop ,
+                                     int initialize , int nbin, int hist[] )
 {
    register int ih , npix , ii ;
    register float sbin ;

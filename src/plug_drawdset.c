@@ -114,12 +114,13 @@ char * DRAW_main( PLUGIN_interface * plint )
 
    /*-- sanity checks --*/
 
-   if( ! IM3D_OPEN(plint->im3d) ) return "AFNI Controller\nnot opened?!" ;
+   if( ! IM3D_OPEN(plint->im3d) )
+      return " \n AFNI Controller\nnot opened?! \n " ;
 
    if( editor_open ){
       XtMapWidget(shell) ;
       XRaiseWindow( XtDisplay(shell) , XtWindow(shell) ) ;
-      return ;
+      return NULL ;
    }
 
    im3d = plint->im3d ;  /* save for local use */

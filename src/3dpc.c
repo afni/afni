@@ -298,7 +298,7 @@ void PC_syntax(char * msg)
     "Principal Component Analysis of 3D Datasets\n"
     "Usage: 3dpc [options] dataset dataset ...\n"
     "\n"
-    "Each dataset may have a sub-brick selector list.\n"
+    "Each input dataset may have a sub-brick selector list.\n"
     "Otherwise, all sub-bricks from a dataset will be used.\n"
     "\n"
     "OPTIONS:\n"
@@ -328,8 +328,8 @@ void PC_syntax(char * msg)
     "  -float        = Save eigen-bricks as floats\n"
     "                    [default = shorts, scaled so that |max|=10000]\n"
     "  -mask mset    = Use the 0 sub-brick of dataset 'mset' as a mask\n"
-    "                    to indicate which voxels to analyze\n"
-    "                    [default = use all voxels]\n"
+    "                    to indicate which voxels to analyze (a sub-brick\n"
+    "                    selector is allowed) [default = use all voxels]\n"
    ) ;
 
    exit(0) ;
