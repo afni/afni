@@ -55,14 +55,19 @@ char *iochan_error_string(void){ return error_string; }
   by using the new "size1+size2" specification.
 *****************************************************************/
 
+/*---------------------------------------------------------------*/
+static int pron = 1 ;                             /* 22 Nov 2002 */
+void iochan_enable_perror( int q ){ pron = q; }   /* ditto */
+
 #undef DEBUG
 #ifdef DEBUG
 #  define PERROR(x) perror(x)
 #  define STATUS(x) fprintf(stderr,"%s\n",x)
 #else
-#  define PERROR(x) perror(x)
+#  define PERROR(x) do{ if(pron) perror(x); } while(0)
 #  define STATUS(x) /* nada */
 #endif
+/*---------------------------------------------------------------*/
 
 #include <signal.h>
 static int nosigpipe = 0 ;  /* 20 Apr 1997: turn off SIGPIPE signals */

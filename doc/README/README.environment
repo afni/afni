@@ -1370,6 +1370,13 @@ first voxel in the dataset is set to (0,0,0).  If you set this variable
 center of the 3D ANALYZE array.  This is the default that would be applied
 if you read the ANALYZE array into program to3d.
 
+----------------------------
+Variable: AFNI_VERSION_CHECK
+----------------------------
+If this YES/NO variable is set to NO, then AFNI will not try to check if its
+version is up-to-date when it starts.  Otherwise, it will try to check the
+program version with the AFNI web server.
+
 =======================================
 | Robert W Cox, PhD                   |
 | National Institute of Mental Health |
