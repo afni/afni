@@ -1,27 +1,26 @@
 #include "mrilib.h"
-#ifdef ALLOW_AGNI
 
 /*------------------------------------------------------------------
   Create an empty surface description
 --------------------------------------------------------------------*/
 
-#define AGNI_EXTEND_NUM 64
-#define AGNI_EXTEND_FAC 1.1
+#define SUMA_EXTEND_NUM 64
+#define SUMA_EXTEND_FAC 1.1
 
-AGNI_surface * AGNI_create_empty_surface(void)
+SUMA_surface * SUMA_create_empty_surface(void)
 {
-   AGNI_surface *ag ;
+   SUMA_surface *ag ;
 
-ENTRY("AGNI_create_empty_surface") ;
+ENTRY("SUMA_create_empty_surface") ;
 
-   ag = (AGNI_surface *) calloc(1,sizeof(AGNI_surface)) ;
+   ag = (SUMA_surface *) calloc(1,sizeof(SUMA_surface)) ;
    ag->num_nod  = ag->num_tri  = 0 ;
    ag->nall_nod = ag->nall_tri = 1 ;
-   ag->nod = (AGNI_nod *) malloc(sizeof(AGNI_nod)) ; /* space for */
-   ag->tri = (AGNI_tri *) malloc(sizeof(AGNI_tri)) ; /* 1 of each */
+   ag->nod = (SUMA_nod *) malloc(sizeof(SUMA_nod)) ; /* space for */
+   ag->tri = (SUMA_tri *) malloc(sizeof(SUMA_tri)) ; /* 1 of each */
 
    if( ag->nod == NULL || ag->tri == NULL ){
-      fprintf(stderr,"AGNI_create_empty_surface: can't malloc!\n"); exit(1);
+      fprintf(stderr,"SUMA_create_empty_surface: can't malloc!\n"); exit(1);
    }
 
    ag->sparent = NULL ;
@@ -38,9 +37,9 @@ ENTRY("AGNI_create_empty_surface") ;
   Throw out some trash
 --------------------------------------------------------------------*/
 
-void AGNI_destroy_surface( AGNI_surface *ag )
+void SUMA_destroy_surface( SUMA_surface *ag )
 {
-ENTRY("AGNI_destroy_surface") ;
+ENTRY("SUMA_destroy_surface") ;
 
    if( ag == NULL ) EXRETURN ;
    if( ag->nod != NULL ) free(ag->nod) ;
@@ -53,30 +52,30 @@ ENTRY("AGNI_destroy_surface") ;
   Add a bunch of nodes to a surface
 --------------------------------------------------------------------*/
 
-void AGNI_add_nodes_ixyz( AGNI_surface *ag, int nadd,
+void SUMA_add_nodes_ixyz( SUMA_surface *ag, int nadd,
                           int *iadd, float *xadd, float *yadd, float *zadd )
 {
    int ii , nup ;
 
-ENTRY("AGNI_add_nodes_ixyz") ;
+ENTRY("SUMA_add_nodes_ixyz") ;
 
    if( ag == NULL || nadd < 1 ) EXRETURN ;
    if( xadd == NULL || yadd == NULL || zadd == NULL || iadd == NULL ) EXRETURN ;
 
    nup = ag->num_nod + nadd ;
 
-   if( nup >= AGNI_MAX_NODES ){  /* 07 Sep 2001 */
+   if( nup >= SUMA_MAX_NODES ){  /* 07 Sep 2001 */
       fprintf(stderr,
-              "** AGNI surface can't have more than %d nodes!\n",
-              AGNI_MAX_NODES-1 ) ;
+              "** SUMA surface can't have more than %d nodes!\n",
+              SUMA_MAX_NODES-1 ) ;
       EXRETURN ;
    }
 
    if( nup > ag->nall_nod ){ /* extend length of array */
-      ag->nall_nod = nup = nup*AGNI_EXTEND_FAC + AGNI_EXTEND_NUM ;
-      ag->nod = (AGNI_nod *) realloc( ag->nod , sizeof(AGNI_nod)*nup ) ;
+      ag->nall_nod = nup = nup*SUMA_EXTEND_FAC + SUMA_EXTEND_NUM ;
+      ag->nod = (SUMA_nod *) realloc( ag->nod , sizeof(SUMA_nod)*nup ) ;
       if( ag->nod == NULL ){
-         fprintf(stderr,"AGNI_add_nodes_ixyz: can't malloc!\n"); exit(1);
+         fprintf(stderr,"SUMA_add_nodes_ixyz: can't malloc!\n"); exit(1);
       }
    }
 
@@ -98,30 +97,30 @@ ENTRY("AGNI_add_nodes_ixyz") ;
   Add 1 pitiful node to a surface
 --------------------------------------------------------------------*/
 
-void AGNI_add_node_ixyz( AGNI_surface *ag , int i,float x,float y,float z )
+void SUMA_add_node_ixyz( SUMA_surface *ag , int i,float x,float y,float z )
 {
-   AGNI_add_nodes_ixyz( ag , 1 , &i,&x,&y,&z ) ;
+   SUMA_add_nodes_ixyz( ag , 1 , &i,&x,&y,&z ) ;
 }
 
 /*------------------------------------------------------------------
   Add a bunch of triangles (node id triples) to a surface
 --------------------------------------------------------------------*/
 
-void AGNI_add_triangles( AGNI_surface *ag, int nadd, int *it, int *jt, int *kt )
+void SUMA_add_triangles( SUMA_surface *ag, int nadd, int *it, int *jt, int *kt )
 {
    int ii , nup ;
 
-ENTRY("AGNI_add_triangles") ;
+ENTRY("SUMA_add_triangles") ;
 
    if( ag == NULL || nadd < 1 ) EXRETURN ;
    if( it == NULL || jt == NULL || kt == NULL ) EXRETURN ;
 
    nup = ag->num_tri + nadd ;
    if( nup > ag->nall_tri ){ /* extend length of array */
-      ag->nall_tri = nup = nup*AGNI_EXTEND_FAC + AGNI_EXTEND_NUM ;
-      ag->tri = (AGNI_tri *) realloc( ag->tri , sizeof(AGNI_tri)*nup ) ;
+      ag->nall_tri = nup = nup*SUMA_EXTEND_FAC + SUMA_EXTEND_NUM ;
+      ag->tri = (SUMA_tri *) realloc( ag->tri , sizeof(SUMA_tri)*nup ) ;
       if( ag->tri == NULL ){
-         fprintf(stderr,"AGNI_add_triangles: can't malloc!\n"); exit(1);
+         fprintf(stderr,"SUMA_add_triangles: can't malloc!\n"); exit(1);
       }
    }
 
@@ -139,9 +138,9 @@ ENTRY("AGNI_add_triangles") ;
   Add 1 pitiful triangle to a surface
 --------------------------------------------------------------------*/
 
-void AGNI_add_triangle( AGNI_surface *ag, int it, int jt, int kt )
+void SUMA_add_triangle( SUMA_surface *ag, int it, int jt, int kt )
 {
-   AGNI_add_triangles( ag , 1 , &it,&jt,&kt ) ;
+   SUMA_add_triangles( ag , 1 , &it,&jt,&kt ) ;
 }
 
 /*------------------------------------------------------------------
@@ -149,50 +148,50 @@ void AGNI_add_triangle( AGNI_surface *ag, int it, int jt, int kt )
   to the minimum they need
 --------------------------------------------------------------------*/
 
-void AGNI_truncate_memory( AGNI_surface *ag )
+void SUMA_truncate_memory( SUMA_surface *ag )
 {
    int nn ;
 
-ENTRY("AGNI_truncate_memory") ;
+ENTRY("SUMA_truncate_memory") ;
 
    if( ag == NULL ) EXRETURN ;
 
    if( ag->num_nod < ag->nall_nod && ag->num_nod > 0 ){
       ag->nall_nod = nn = ag->num_nod ;
-      ag->nod = (AGNI_nod *) realloc( ag->nod , sizeof(AGNI_nod)*nn ) ;
+      ag->nod = (SUMA_nod *) realloc( ag->nod , sizeof(SUMA_nod)*nn ) ;
    }
 
    if( ag->num_tri < ag->nall_tri && ag->num_tri > 0 ){
       ag->nall_tri = nn = ag->num_tri ;
-      ag->tri = (AGNI_tri *) realloc( ag->tri , sizeof(AGNI_tri)*nn ) ;
+      ag->tri = (SUMA_tri *) realloc( ag->tri , sizeof(SUMA_tri)*nn ) ;
    }
 
    EXRETURN ;
 }
 
 /*------------------------------------------------------------------
-  Generate a function to sort array of AGNI_nod-s by their id-s
+  Generate a function to sort array of SUMA_nod-s by their id-s
 --------------------------------------------------------------------*/
 
-#define STYPE     AGNI_nod
+#define STYPE     SUMA_nod
 #define SLT(a,b)  ((a).id < (b).id)
-#define SNAME     AGNI_nod
+#define SNAME     SUMA_nod
 #include "cs_sort_template.h"
 
 /*------------------------------------------------------------------
   Sort the nod-s by id-s, and mark if the id-s are sequential
 --------------------------------------------------------------------*/
 
-void AGNI_nodesort_surface( AGNI_surface *ag )
+void SUMA_nodesort_surface( SUMA_surface *ag )
 {
    int nn , ii , ndup ;
    float xb,yb,zb , xt,yt,zt ;
 
-ENTRY("AGNI_nodesort_surface") ;
+ENTRY("SUMA_nodesort_surface") ;
 
    if( ag == NULL || ag->num_nod < 1 ) EXRETURN ;
 
-   AGNI_truncate_memory( ag ) ;
+   SUMA_truncate_memory( ag ) ;
 
    nn = ag->num_nod ;
 
@@ -204,8 +203,8 @@ ENTRY("AGNI_nodesort_surface") ;
    /* if not in increasing order, sort them */
 
    if( ii < nn ){
-fprintf(stderr,"AGNI: Sorting nodes") ;
-      qsort_AGNI_nod( nn , ag->nod ) ;
+fprintf(stderr,"SUMA: Sorting nodes") ;
+      qsort_SUMA_nod( nn , ag->nod ) ;
 fprintf(stderr," .. done\n") ;
    }
 
@@ -226,7 +225,7 @@ fprintf(stderr," .. done\n") ;
       if( ag->nod[ii].id == ag->nod[ii-1].id ) ndup++ ;
 
    if( ndup > 0 )
-      fprintf(stderr,"** AGNI: WARNING: %d duplicate surface node id's found!\n",ndup) ;
+      fprintf(stderr,"** SUMA: WARNING: %d duplicate surface node id's found!\n",ndup) ;
 
    /* find bounding box of all nodes (its useful on occasion) */
 
@@ -256,15 +255,15 @@ fprintf(stderr," .. done\n") ;
    array; return -1 if not found
 ----------------------------------------------------------------------*/
 
-int AGNI_find_node_id( AGNI_surface *ag , int target )
+int SUMA_find_node_id( SUMA_surface *ag , int target )
 {
    int nn , ii,jj,kk ;
 
-ENTRY("AGNI_find_node_id") ;
+ENTRY("SUMA_find_node_id") ;
 
    if( ag == NULL || ag->num_nod < 1 || target < 0 ) RETURN( -1 );
 
-   if( !ag->sorted ) AGNI_nodesort_surface( ag ) ;
+   if( !ag->sorted ) SUMA_nodesort_surface( ag ) ;
 
    if( ag->seq ){  /* node id-s are sequential (the easy case) */
 
@@ -305,9 +304,9 @@ ENTRY("AGNI_find_node_id") ;
 
 #define NBUF 64
 
-AGNI_surface * AGNI_read_surface( char *fname , THD_3dim_dataset *dset )
+SUMA_surface * SUMA_read_surface( char *fname , THD_3dim_dataset *dset )
 {
-   AGNI_surface *ag ;
+   SUMA_surface *ag ;
    FILE *fp ;
    char lbuf[1024] , *cpt ;
    int  do_nod=1 , ii ;
@@ -317,7 +316,7 @@ AGNI_surface * AGNI_read_surface( char *fname , THD_3dim_dataset *dset )
    THD_vecmat mv ;
    int have_mv=0 ;
 
-ENTRY("AGNI_read_surface") ;
+ENTRY("SUMA_read_surface") ;
 
    if( fname == NULL || fname[0] == '\0' ) RETURN( NULL );
 
@@ -328,12 +327,12 @@ ENTRY("AGNI_read_surface") ;
    } else {
       fp = fopen( fname , "r" ) ;
       if( fp == NULL ) RETURN( NULL );
-fprintf(stderr,"\nAGNI: Reading surface file %s\n",fname) ;
+fprintf(stderr,"\nSUMA: Reading surface file %s\n",fname) ;
    }
 
    /*-- read data --*/
 
-   ag = AGNI_create_empty_surface() ;
+   ag = SUMA_create_empty_surface() ;
 
    nn = 0 ;
 
@@ -354,7 +353,7 @@ fprintf(stderr,"\nAGNI: Reading surface file %s\n",fname) ;
                       &a31,&a32,&a33 , &v3  ) ;
 
          if( ii < 12 ){
-            fprintf(stderr,"** AGNI: Illegal MATVEC in %s\n",fname) ;
+            fprintf(stderr,"** SUMA: Illegal MATVEC in %s\n",fname) ;
             have_mv = 0 ;
          } else {
             LOAD_FVEC3(mv.vv , v1,v2,v3 ) ;
@@ -370,13 +369,13 @@ fprintf(stderr,"\nAGNI: Reading surface file %s\n",fname) ;
 
          if( nn > 0 ){   /* process existing inputs, if any */
             if( do_nod )
-               AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
+               SUMA_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
             else
-               AGNI_add_triangles( ag,nn , pp,qq,rr ) ;
+               SUMA_add_triangles( ag,nn , pp,qq,rr ) ;
             nn = 0 ;
          }
 
-         AGNI_import_surefit( ag , lbuf , dset ) ;
+         SUMA_import_surefit( ag , lbuf , dset ) ;
          continue ; /* skip to next input line */
 
       } /* end of SureFit input */
@@ -385,7 +384,7 @@ fprintf(stderr,"\nAGNI: Reading surface file %s\n",fname) ;
 
       if( strstr(lbuf,"</NODES>") != NULL ){
          if( do_nod && nn > 0 ){
-            AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
+            SUMA_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
             nn = 0 ;
          }
 #if 0
@@ -410,7 +409,7 @@ fprintf(stderr,"\nAGNI: Reading surface file %s\n",fname) ;
          }
          nn++ ;
          if( nn == NBUF ){
-            AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
+            SUMA_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
             nn = 0 ;
          }
 
@@ -422,7 +421,7 @@ fprintf(stderr,"\nAGNI: Reading surface file %s\n",fname) ;
          if( ii < 3 ) continue ;
          nn++ ;
          if( nn == NBUF ){
-            AGNI_add_triangles( ag,nn , pp,qq,rr ) ;
+            SUMA_add_triangles( ag,nn , pp,qq,rr ) ;
             nn = 0 ;
          }
       }
@@ -433,16 +432,16 @@ fprintf(stderr,"\nAGNI: Reading surface file %s\n",fname) ;
    if( fp != stdin ) fclose(fp) ;
    if( nn > 0 ){
       if( do_nod )
-         AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
+         SUMA_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
       else
-         AGNI_add_triangles( ag,nn , pp,qq,rr ) ;
+         SUMA_add_triangles( ag,nn , pp,qq,rr ) ;
    }
 
    if( ag->num_nod < 1 ){
-      AGNI_destroy_surface(ag) ; RETURN(NULL) ;
+      SUMA_destroy_surface(ag) ; RETURN(NULL) ;
    }
 
-   AGNI_nodesort_surface(ag) ;
+   SUMA_nodesort_surface(ag) ;
 
    /*-- done --*/
 
@@ -465,7 +464,7 @@ static int ip[26][3] = { {-1,-1,-1},{-1,-1, 0},{-1,-1, 1},
 
 /*------------------------------------------------------------------------*/
 
-int * AGNI_map_dset_to_surf( AGNI_surface *ag , THD_3dim_dataset *dset )
+int * SUMA_map_dset_to_surf( SUMA_surface *ag , THD_3dim_dataset *dset )
 {
    int *vmap , ii,jj,kk , nx,ny,nz , nxy,nxyz , pp,qq,pbest ;
    THD_fvec3 fv ;
@@ -474,19 +473,19 @@ int * AGNI_map_dset_to_surf( AGNI_surface *ag , THD_3dim_dataset *dset )
    float xv,yv,zv , dd,dbest=0 , xp,yp,zp ;
    char *elev ; int ltop , ntop , lmask ;
 
-ENTRY("AGNI_map_dset_to_surf") ;
+ENTRY("SUMA_map_dset_to_surf") ;
 
    if( ag == NULL || ag->num_nod < 1 || !ISVALID_DSET(dset) ) RETURN( NULL );
 
    /* setup */
 
-fprintf(stderr,"AGNI: Mapping surface nodes to voxel indexes") ;
+fprintf(stderr,"SUMA: Mapping surface nodes to voxel indexes") ;
 
    nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
    nxy = nx*ny ; nxyz = nxy*nz ;
    vmap = (int *) malloc(sizeof(int)*nxyz) ;
    if( vmap == NULL ){
-      fprintf(stderr,"AGNI_map_dset_to_surf: can't malloc!\n"); exit(1);
+      fprintf(stderr,"SUMA_map_dset_to_surf: can't malloc!\n"); exit(1);
    }
    for( ii=0 ; ii < nxyz ; ii++ ) vmap[ii] = -1 ; /* not mapped yet */
 
@@ -543,7 +542,7 @@ fprintf(stderr,".") ;
 
    /* scan for voxels that are next to those already mapped */
 
-   elev = getenv("AGNI_NBHD_LEVEL") ;  /* find level for expanding out */
+   elev = getenv("SUMA_NBHD_LEVEL") ;  /* find level for expanding out */
    if( elev != NULL ){
       char *cpt ;
       ltop = strtol( elev , &cpt , 10 ) ;
@@ -575,7 +574,7 @@ fprintf(stderr,".") ;
           pp = vmap[(ii+ip[qq][0]) + (jj+ip[qq][1])*nx + (kk+ip[qq][2])*nxy];
 
           if( pp >= 0 ){
-             pp = AGNI_VMAP_UNMASK(pp) ;      /* index of mapped pt */
+             pp = SUMA_VMAP_UNMASK(pp) ;      /* index of mapped pt */
              xp=xv-ag->nod[pp].x; yp=yv-ag->nod[pp].y; zp=zv-ag->nod[pp].z;
              dd=xp*xp+yp*yp+zp*zp ;           /* dist^2 to mapped pt */
              if( pbest >= 0 ){
@@ -596,7 +595,7 @@ fprintf(stderr,".") ;
 
     STATUS(".. masking") ;
 
-    lmask = AGNI_VMAP_LEVMASK(lev) ;   /* 07 Sep 2001: put on a mask */
+    lmask = SUMA_VMAP_LEVMASK(lev) ;   /* 07 Sep 2001: put on a mask */
                                        /* to indicate which level of */
                                        /* indirection this voxel was */
 
@@ -618,62 +617,62 @@ fprintf(stderr,"\n") ;
 
 /*-------------------------------------------------------------------------*/
 
-void AGNI_get_sname( THD_3dim_dataset *dset )
+void SUMA_get_sname( THD_3dim_dataset *dset )
 {
    char *snam ;
    int ii ;
 
-ENTRY("AGNI_get_sname") ;
+ENTRY("SUMA_get_sname") ;
 
-   if( !ISVALID_DSET(dset) || dset->ag_sname != NULL ) EXRETURN ;
+   if( !ISVALID_DSET(dset) || dset->su_sname != NULL ) EXRETURN ;
 
    snam = strdup( DSET_HEADNAME(dset) ) ;
    ii = strlen(snam) ;
    if( ii > 5 ){
       strcpy(snam+ii-4,"SURF") ;
-      if( THD_is_file(snam) ){ dset->ag_sname = snam; EXRETURN; }
+      if( THD_is_file(snam) ){ dset->su_sname = snam; EXRETURN; }
    }
    free(snam) ; EXRETURN ;
 }
 
 /*-------------------------------------------------------------------------*/
 
-void AGNI_load( THD_3dim_dataset *dset )
+void SUMA_load( THD_3dim_dataset *dset )
 {
 
-ENTRY("AGNI_load") ;
+ENTRY("SUMA_load") ;
 
    if( !ISVALID_DSET(dset)    ||
-       dset->ag_sname == NULL || dset->ag_surf != NULL ) EXRETURN ;
+       dset->su_sname == NULL || dset->su_surf != NULL ) EXRETURN ;
 
-   dset->ag_surf = AGNI_read_surface( dset->ag_sname , dset ) ;
+   dset->su_surf = SUMA_read_surface( dset->su_sname , dset ) ;
 
-   if( dset->ag_surf == NULL ){
-      free(dset->ag_sname) ; dset->ag_sname = NULL ; EXRETURN ;
+   if( dset->su_surf == NULL ){
+      free(dset->su_sname) ; dset->su_sname = NULL ; EXRETURN ;
    }
 
-   if( dset->ag_vmap != NULL ) free(dset->ag_vmap) ;
+   if( dset->su_vmap != NULL ) free(dset->su_vmap) ;
 
-   dset->ag_vmap = AGNI_map_dset_to_surf( dset->ag_surf , dset ) ;
+   dset->su_vmap = SUMA_map_dset_to_surf( dset->su_surf , dset ) ;
 
    EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
 
-void AGNI_unload( THD_3dim_dataset *dset )
+void SUMA_unload( THD_3dim_dataset *dset )
 {
 
-ENTRY("AGNI_unload") ;
+ENTRY("SUMA_unload") ;
 
-   if( !ISVALID_DSET(dset) || dset->ag_sname == NULL ) EXRETURN ;
+   if( !ISVALID_DSET(dset) || dset->su_sname == NULL ) EXRETURN ;
 
-   if( dset->ag_surf != NULL ){
-      AGNI_destroy_surface( dset->ag_surf ) ; dset->ag_surf = NULL ;
+   if( dset->su_surf != NULL ){
+      SUMA_destroy_surface( dset->su_surf ) ; dset->su_surf = NULL ;
    }
 
-   if( dset->ag_vmap != NULL ){
-      free( dset->ag_vmap ) ; dset->ag_vmap = NULL ;
+   if( dset->su_vmap != NULL ){
+      free( dset->su_vmap ) ; dset->su_vmap = NULL ;
    }
 
    EXRETURN ;
@@ -747,7 +746,7 @@ THD_fvec3 THD_surefit_to_dicomm( THD_3dim_dataset *dset , THD_fvec3 fv )
     dset = dataset for SureFit-to-DICOM coordinate conversion
 -----------------------------------------------------------------------*/
 
-void AGNI_import_surefit( AGNI_surface *ag, char *lbuf, THD_3dim_dataset *dset )
+void SUMA_import_surefit( SUMA_surface *ag, char *lbuf, THD_3dim_dataset *dset )
 {
    float xx[NBUF],yy[NBUF],zz[NBUF] ;
    int   pp[NBUF] ;
@@ -756,30 +755,30 @@ void AGNI_import_surefit( AGNI_surface *ag, char *lbuf, THD_3dim_dataset *dset )
    char sname[1024] , *cpt ;
    THD_fvec3 fv ;
 
-ENTRY("AGNI_import_surefit") ;
+ENTRY("SUMA_import_surefit") ;
 
    /* scan input line for coord=sname, and extract into sname */
 
    cpt = strstr(lbuf,"coord=") ;
    if( cpt == NULL ){
-      fprintf(stderr,"** AGNI: Illegal SureFit: no coord=\n** %s\n",lbuf) ;
+      fprintf(stderr,"** SUMA: Illegal SureFit: no coord=\n** %s\n",lbuf) ;
       EXRETURN ;
    }
    cpt += 6 ;                                  /* skip coord= */
    if( *cpt == '\"' || *cpt == '\'' ) cpt++ ;  /* skip quote  */
    ii = sscanf(cpt,"%s",sname) ;               /* get sname   */
    if( ii == 0 ){
-      fprintf(stderr,"** AGNI: Illegal SureFit: bad coord=\n** %s\n",lbuf) ;
+      fprintf(stderr,"** SUMA: Illegal SureFit: bad coord=\n** %s\n",lbuf) ;
       EXRETURN ;
    }
    ii = strlen(sname) ;
    if( ii == 0 ){
-      fprintf(stderr,"** AGNI: Illegal SureFit: bad coord=\n** %s\n",lbuf) ;
+      fprintf(stderr,"** SUMA: Illegal SureFit: bad coord=\n** %s\n",lbuf) ;
       EXRETURN ;
    }
    if( sname[ii-1] == '\'' || sname[ii-1] == '\"' ) sname[ii-1] = '\0' ;
    if( strlen(sname) == 0 ){
-      fprintf(stderr,"** AGNI: Illegal SureFit: bad coord=\n** %s\n",lbuf) ;
+      fprintf(stderr,"** SUMA: Illegal SureFit: bad coord=\n** %s\n",lbuf) ;
       EXRETURN ;
    }
 
@@ -799,18 +798,18 @@ ENTRY("AGNI_import_surefit") ;
       if( *cpt == '\"' || *cpt == '\'' ) cpt++ ;
       ii = sscanf(cpt,"%d",&idadd) ;
       if( ii == 0 || idadd < 0 ){
-         fprintf(stderr,"** AGNI: Illegal SureFit: bad IDadd=\n** %s\n",lbuf) ;
+         fprintf(stderr,"** SUMA: Illegal SureFit: bad IDadd=\n** %s\n",lbuf) ;
          EXRETURN ;
       }
    }
 
    /* open sname */
 
-fprintf(stderr,"AGNI: Opening SureFit file %s with IDadd=%d\n",sname,idadd) ;
+fprintf(stderr,"SUMA: Opening SureFit file %s with IDadd=%d\n",sname,idadd) ;
 
    sfp = fopen( sname , "r" ) ;
    if( sfp == NULL ){
-      fprintf(stderr,"** AGNI: Illegal SureFit: can't open file %s\n** %s\n",sname,lbuf) ;
+      fprintf(stderr,"** SUMA: Illegal SureFit: can't open file %s\n** %s\n",sname,lbuf) ;
       EXRETURN ;
    }
 
@@ -842,7 +841,7 @@ fprintf(stderr,"AGNI: Opening SureFit file %s with IDadd=%d\n",sname,idadd) ;
 
       nn++ ;
       if( nn == NBUF ){
-         AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
+         SUMA_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
          nn = 0 ;
       }
    } /* end of loop over input lines */
@@ -850,11 +849,8 @@ fprintf(stderr,"AGNI: Opening SureFit file %s with IDadd=%d\n",sname,idadd) ;
    fclose(sfp) ;
 
    if( nn > 0 ){
-      AGNI_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
+      SUMA_add_nodes_ixyz( ag,nn , pp,xx,yy,zz ) ;
    }
 
    EXRETURN ;
 }
-
-/*===================*/
-#endif /* ALLOW_AGNI */

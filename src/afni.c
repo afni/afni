@@ -301,9 +301,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.install_cmap   = 0 ;      /* 14 Sep 1998 */
    GLOBAL_argopt.read_1D        = 1 ;      /* 27 Jan 2000 */
 
-#ifdef ALLOW_AGNI
-   GLOBAL_argopt.enable_agni    = 0 ;      /* 29 Aug 2001 */
-#endif
+   GLOBAL_argopt.enable_suma    = 1 ;      /* 29 Aug 2001 */
 
 #if 0
    GLOBAL_argopt.allow_rt = 0 ;            /* April 1997 */
@@ -459,14 +457,12 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
-#ifdef ALLOW_AGNI
       /*---- -agni [29 Aug 2001] -----*/
 
-      if( strcmp(argv[narg],"-agni") == 0 ){
-         GLOBAL_argopt.enable_agni = 1 ;
+      if( strcmp(argv[narg],"-agni") == 0 || strcmp(argv[narg],"-suma") ){
+         GLOBAL_argopt.enable_suma = 1 ;
          narg++ ; continue ;  /* go to next arg */
       }
-#endif
 
       /*----- -tbar 'name' option -----*/
 
@@ -1589,15 +1585,12 @@ STATUS("get status") ;
    /*--- 26 Feb 2001: return a memplot drawing struct ---*/
 
    if( type == isqCR_getmemplot ){
-#ifndef ALLOW_AGNI
-     RETURN(NULL) ;
-#else
-# define RX 0.25
-     if( !AGNI_ENABLED || br->dset->ag_surf == NULL ) RETURN(NULL) ;
+#define RX 0.25
+     if( !SUMA_ENABLED || br->dset->su_surf == NULL ) RETURN(NULL) ;
      {
       Three_D_View * im3d = (Three_D_View *) br->parent ;
-      int nn=br->dset->ag_surf->num_nod , ii,jj ;
-      AGNI_nod *nod = br->dset->ag_surf->nod ;
+      int nn=br->dset->su_surf->num_nod , ii,jj ;
+      SUMA_nod *nod = br->dset->su_surf->nod ;
       MEM_plotdata * mp ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
@@ -1613,10 +1606,12 @@ STATUS("get status") ;
       fvm = THD_3dind_to_3dmm ( br->dset , ivm ) ;
       fvm = THD_3dmm_to_dicomm( br->dset , fvm ) ;
 
-      create_memplot_surely( "AGNI_plot" , 1.0 ) ;
+      create_memplot_surely( "SUMA_plot" , 1.0 ) ;
       mp = get_active_memplot() ;
 
-      eee = getenv("AGNI_OVERLAY_COLOR") ;  /* 21 Sep 2001 */
+      eee = getenv("SUMA_OVERLAY_COLOR") ;
+      if( eee == NULL )
+        eee = getenv("AGNI_OVERLAY_COLOR") ;  /* 21 Sep 2001 */
       if( eee != NULL )
          DC_parse_color( im3d->dc , eee , &rr,&gg,&bb ) ;
       set_color_memplot(rr,gg,bb) ;
@@ -1670,7 +1665,6 @@ STATUS("get status") ;
       if( MEMPLOT_NLINE(mp) < 1 ){ delete_memplot(mp) ; mp = NULL ; }
       RETURN(mp) ; /* will be destroyed in imseq */
      }
-#endif
    }
 
    /*--- 20 Sep 2001: image label ---*/
@@ -4654,24 +4648,22 @@ DUMP_IVEC3("             new_ib",new_ib) ;
       }
    }
 
-#ifdef ALLOW_AGNI                              /* 05 Sep 2001 */
    if( new_xyz                         &&
-       AGNI_ENABLED                    &&
-       im3d->anat_now->ag_surf != NULL &&
-       im3d->anat_now->ag_vmap != NULL &&
+       SUMA_ENABLED                    &&
+       im3d->anat_now->su_surf != NULL &&
+       im3d->anat_now->su_vmap != NULL &&
       !im3d->anat_wod_flag               ){
 
-      int pp = im3d->anat_now->ag_vmap[ i1 + j2*dim1 + k3*dim1*dim2 ] ;
+      int pp = im3d->anat_now->su_vmap[ i1 + j2*dim1 + k3*dim1*dim2 ] ;
 
       if( pp >= 0 ){
-        int ll = AGNI_VMAP_LEVEL(pp) ;
-        pp = AGNI_VMAP_UNMASK(pp) ;
-        pp = im3d->anat_now->ag_surf->nod[pp].id ;
+        int ll = SUMA_VMAP_LEVEL(pp) ;
+        pp = SUMA_VMAP_UNMASK(pp) ;
+        pp = im3d->anat_now->su_surf->nod[pp].id ;
 
         fprintf(stderr,"surface node ID = %d (level %d)\n" , pp,ll ) ;
       }
    }
-#endif
 
    EXRETURN ;
 }
@@ -5734,12 +5726,10 @@ STATUS("purging old datasets from memory (maybe)") ;
       im3d->fim_now  = new_func ;
       AFNI_purge_unused_dsets() ;
    }
-#ifdef ALLOW_AGNI
-   if( AGNI_ENABLED ){                                    /* 29 Aug 2001 */
-      if( old_anat != new_anat ) AGNI_unload( old_anat ) ;
-      AGNI_load( new_anat ) ;
+   if( SUMA_ENABLED ){                                    /* 29 Aug 2001 */
+      if( old_anat != new_anat ) SUMA_unload( old_anat ) ;
+      SUMA_load( new_anat ) ;
    }
-#endif
 
    /*---------------------------------------------------------*/
    /* set the new datasets that we will deal with from now on */
