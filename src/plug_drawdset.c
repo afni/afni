@@ -1164,8 +1164,10 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            setup a standard value-label table in a file, whose\n"
   "            name is specified by setting environment variable\n"
   "            AFNI_VALUE_LABEL_DTABLE -- cf. file README.environment.\n"
-  "        * Right-clicking in the 'Label' next to the text-entry field\n"
+  "        * Button-3-clicking in the 'Label' next to the text-entry field\n"
   "            will bring up a menu of all current value-label pairs.\n"
+  "        * Button-1-clicking in the 'Label' will ask for a filename\n"
+  "            to read that loads the value-label pairs.\n"
   "\n"
   "Step 3) Choose a drawing color.\n"
   "        * This is the color that will be shown in the image windows\n"
@@ -1634,10 +1636,7 @@ void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs *cbs )
        vl_dtable = Dtable_from_nimlstring( atr->ch ) ;
      if( vl_dtable == NULL ){
        char *str = AFNI_suck_file( getenv("AFNI_VALUE_LABEL_DTABLE") ) ;
-       if( str != NULL ){
-         vl_dtable = Dtable_from_nimlstring( str ) ;
-         free(str) ;
-       }
+       if( str != NULL ){ vl_dtable = Dtable_from_nimlstring(str); free(str); }
      }
      DRAW_set_value_label() ;
    }
@@ -1820,7 +1819,7 @@ void DRAW_label_CB( Widget wtex , XtPointer cld, XtPointer cad )
 static char **vl_strlist=NULL ;
 static  int  vl_nstrlist=0 ;
 
-static void DRAW_label_finalize( Widget w, XtPointer cd, MCW_choose_cbs * cbs )
+static void DRAW_label_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 {
    int ival = cbs->ival , nn ;
    float val=0.0 ;
@@ -1834,6 +1833,25 @@ static void DRAW_label_finalize( Widget w, XtPointer cd, MCW_choose_cbs * cbs )
    value_int   = value_av->ival ;
    value_float = value_av->fval ;
    DRAW_set_value_label() ;
+   return ;
+}
+
+/*---------------------------------------------------------------------*/
+
+static void DRAW_label_getfile( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
+{
+   char *str ;
+
+   if( !editor_open ){ PLUTO_beep(); POPDOWN_string_chooser; return; }
+
+   str = AFNI_suck_file( cbs->cval ) ;
+   if( str != NULL ){
+     if( vl_dtable != NULL ) destroy_Dtable(vl_dtable) ;
+     vl_dtable = Dtable_from_nimlstring(str) ;
+     DRAW_set_value_label() ;
+   } else {
+     PLUTO_beep() ;
+   }
    return ;
 }
 
@@ -1859,7 +1877,11 @@ void DRAW_label_EV( Widget w , XtPointer cld ,
      XButtonEvent *bev = (XButtonEvent *) ev ;
      int nn,ic,ll ; char **la, **lb ; float val ;
 
-     if( bev->button == Button2 ) XUngrabPointer(bev->display,CurrentTime) ;
+     if( bev->button == Button1 ){
+       MCW_choose_string( w , "Enter Value-Label filename:" ,
+                          NULL , DRAW_label_getfile , NULL   ) ;
+       return ;
+     }
      if( bev->button != Button3 ) return ;
      nn = listize_Dtable( vl_dtable , &la , &lb ) ;
      if( nn <= 0 || la == NULL || lb == NULL ) return ;
