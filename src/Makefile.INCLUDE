@@ -1563,7 +1563,8 @@ mpeg_encode:
 
 mpegtoppm:
 	( cd mpegtoppm_dir ; \
-	  ./configure ; make ; mv doc/sample2 ../mpegtoppm ; make clean ; )
+	  ./configure --disable-sdl --disable-mlib --without-x ; \
+	  make ; mv doc/sample2 ../mpegtoppm ; make clean ; )
 
 #######
 # 11 Sep 2002 - for fun
