@@ -139,6 +139,7 @@ ENTRY("THD_open_minc") ;
 
    /*---------- get info about spatial axes ---------*/
    /*[[ MINC x and y are reversed relative to AFNI ]]*/
+   /*[[ MINC x=L-R y=P-A;  AFNI x=R-L y=A-P; z=I-S ]]*/
 
    xspace = read_mincdim( ncid , "xspace" ) ;
    xspace.step = -xspace.step ; xspace.start = -xspace.start ;
@@ -150,6 +151,8 @@ ENTRY("THD_open_minc") ;
 
    zspace = read_mincdim( ncid , "zspace" ) ;
    zspace.afni_orient = (zspace.step > 0.0) ? ORI_I2S_TYPE : ORI_S2I_TYPE ;
+
+   /*-- if don't have all 3 named dimensions, quit --*/
 
    if( !xspace.good || !yspace.good || !zspace.good ){
       nc_close(ncid) ; RETURN(NULL) ;
@@ -292,7 +295,8 @@ ENTRY("THD_open_minc") ;
                       ADN_nvals       , nvals ,
                       ADN_type        , HEAD_ANAT_TYPE ,
                       ADN_view_type   , iview ,
-                      ADN_func_type   , (nvals==1) ? ANAT_MRAN_TYPE : ANAT_BUCK_TYPE ,
+                      ADN_func_type   , (nvals==1) ? ANAT_MRAN_TYPE
+                                                   : ANAT_BUCK_TYPE ,
                     ADN_none ) ;
 
    if( nvals > 9 )              /* pretend it is 3D+time */
@@ -305,6 +309,8 @@ ENTRY("THD_open_minc") ;
                          ADN_tunits   , UNITS_SEC_TYPE ,
                        ADN_none ) ;
 
+   /*-- flag to read data from disk using MINC/netCDF functions --*/
+
    dset->dblk->diskptr->storage_mode = STORAGE_BY_MINC ;
    strcpy( dset->dblk->diskptr->brick_name , pathname ) ;
 
@@ -313,7 +319,7 @@ ENTRY("THD_open_minc") ;
       EDIT_BRICK_LABEL( dset , ibr , prefix ) ;
    }
 
-   /*-- read the global:history attribute --*/
+   /*-- read and save the global:history attribute --*/
 
    sprintf(prefix,"THD_open_minc(%s)",pathname) ;
    tross_Append_History( dset , prefix ) ;
@@ -329,11 +335,14 @@ ENTRY("THD_open_minc") ;
       free(ppp) ;
    }
 
+   /*-- close file and return the empty dataset */
+
    nc_close(ncid) ; RETURN(dset) ;
 }
 
 /*-----------------------------------------------------------------
   Load a MINC dataset's data into memory
+  (called from THD_load_datablock in thd_loaddblk.c)
 -------------------------------------------------------------------*/
 
 void THD_load_minc( THD_datablock *dblk )
@@ -363,7 +372,7 @@ ENTRY("THD_load_minc") ;
    code = nc_inq_varid( ncid , "image" , &im_varid ) ;
    if( code != NC_NOERR ){ EPR(code,dkptr->brick_name,"image varid"); nc_close(ncid); EXRETURN; }
 
-   /*-- allocate data space --*/
+   /*-- allocate space for data --*/
 
    nx = dkptr->dimsizes[0] ;
    ny = dkptr->dimsizes[1] ;  nxy   = nx * ny   ;
@@ -382,7 +391,7 @@ ENTRY("THD_load_minc") ;
       }
    }
 
-   /** if couldn't get them all, take our ball and go home in a sulk **/
+   /** if couldn't get them all, take our ball and go home in a snit **/
 
    if( nbad > 0 ){
       fprintf(stderr,"\n** failed to malloc %d MINC bricks out of %d\n\a",nbad,nv) ;
@@ -400,6 +409,9 @@ ENTRY("THD_load_minc") ;
    (void) nc_inq_vartype( ncid , im_varid , &im_type ) ;
 
    code = nc_get_att_float( ncid,im_varid , "valid_range" , im_valid_range ) ;
+
+   /** if can't get valid_range, make something up **/
+
    if( code != NC_NOERR || im_valid_range[0] >= im_valid_range[1] ){
 
       im_valid_range[0] = 0.0 ;
@@ -416,6 +428,8 @@ ENTRY("THD_load_minc") ;
    inbot = im_valid_range[0] ;
    intop = im_valid_range[1] ;
    denom = intop - inbot  ;  /* always positive */
+
+   /** get range of image to which valid_range will be scaled **/
 
    code = nc_inq_varid( ncid , "image-min" , &im_min_varid ) ;
    if( code == NC_NOERR ){
@@ -452,6 +466,8 @@ ENTRY("THD_load_minc") ;
          }
       break ;
 
+      /* data is stored as bytes in AFNI */
+
       case MRI_byte:{
          int kk,ii,qq ; byte *br ;
 
@@ -486,6 +502,8 @@ ENTRY("THD_load_minc") ;
       }
       break ;
 
+      /* data is stored as shorts in AFNI */
+
       case MRI_short:{
          int kk,ii,qq ; short *br ;
 
@@ -519,6 +537,8 @@ ENTRY("THD_load_minc") ;
          }
       }
       break ;
+
+      /* data is stored as floats in AFNI */
 
       case MRI_float:{
          int kk,ii,qq ; float *br ;
@@ -561,7 +581,10 @@ ENTRY("THD_load_minc") ;
          }
       }
       break ;
-   }
+
+   } /* end of switch on output datum */
+
+   /*-- throw away the trash and return --*/
 
    if( im_min != NULL ) free(im_min) ;
    if( im_max != NULL ) free(im_max) ;
