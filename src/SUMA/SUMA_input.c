@@ -518,7 +518,22 @@ SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 					}
 					fclose (Fout);
 
-					fprintf(SUMA_STDERR, "%s: Wrote %s_NodeList.txt & %s_FaceSetList.txt to disk.\n", FuncName, SO->Label, SO->Label);
+					sprintf (stmploc, "%s_NodeColList.txt", SO->Label);
+					if (LocalHead) fprintf (SUMA_STDERR,"%s: Preparing to write %s.\n", FuncName, stmploc); 
+					Fout = fopen(stmploc, "w");
+					if (Fout == NULL) {
+						fprintf(SUMA_STDERR, "Error %s: Could not open file %s for writing.\n", FuncName, stmploc);
+						break;
+					}
+					for (ii=0; ii < SO->N_Node; ++ii) {
+						ip = 4 * ii;
+						fprintf(Fout, "%d\t%f\t%f\t%f\n", \
+							ii, SO->glar_ColorList[ip], SO->glar_ColorList[ip+1],SO->glar_ColorList[ip+2]);
+					}
+					fclose (Fout);
+
+
+					fprintf(SUMA_STDERR, "%s: Wrote %s_NodeList.txt, %s_FaceSetList.txt & %s_NodeColList.txt to disk.\n", FuncName, SO->Label, SO->Label, SO->Label);
 				}
 				break;
 
