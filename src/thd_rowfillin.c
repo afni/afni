@@ -97,6 +97,43 @@ static int THD_rowfillin_byte( int nrow , byte * row , int maxgap )
    } /* endless loop */
 }
 
+/*------------------------------------------------------------------------*/
+
+static int THD_rowfillin_float( int nrow , float * row , int maxgap )
+{
+   int ii , nfill=0 , jj ;
+   float vbot ;
+
+   /*-- skip zeros --*/
+
+   for( ii=0 ; ii < nrow && row[ii] == 0 ; ii++ ) ; /* nada */
+   if( ii == nrow ) return nfill ;                    /*** was all zeros ***/
+
+   /*-- row[ii] is not zero here; now find a gap at or above this --*/
+
+   while( 1 ){
+      /*-- find next zero value --*/
+
+      for( ; ii < nrow && row[ii] != 0 ; ii++ ) ; /* nada */
+      if( ii == nrow ) return nfill ;          /*** didn't find any zero ***/
+
+      vbot = row[ii-1] ;                          /* value at start of gap */
+
+      /*-- find next nonzero value above this zero --*/
+
+      for( jj=ii+1 ; jj < nrow && row[jj] == 0 ; jj++ ) ; /* nada */
+      if( jj == nrow ) return nfill ;      /*** was all zeros to the end ***/
+
+      if( row[jj] == vbot && jj-ii <= maxgap ){ /*** fill in this gap!!! ***/
+         nfill += (jj-ii) ;
+         for( ; ii < jj ; ii++ ) row[ii] = vbot ;
+      }
+
+      ii = jj ;                      /* loop back and look for another gap */
+
+   } /* endless loop */
+}
+
 /*---------------------------------------------------------------------------
    Do the fillin thing on each 1D row from a dataset sub-brick.
    Return value is number of voxels filled in (-1 if an error transpired).
@@ -115,7 +152,7 @@ ENTRY("THD_dataset_rowfillin") ;
        maxgap < 1                 ) RETURN(-1) ;  /* bad things */
 
    kind = DSET_BRICK_TYPE(dset,ival) ;
-   if( kind != MRI_short && kind != MRI_byte ) RETURN(-1) ;  /* bad */
+   if( kind != MRI_short && kind != MRI_byte && kind != MRI_float ) RETURN(-1) ;  /* bad */
 
    nrow = THD_get_dset_rowcount( dset , dcode ) ;
    if( nrow < 1 ) RETURN(-1) ;  /* bad */
@@ -151,6 +188,22 @@ ENTRY("THD_dataset_rowfillin") ;
 
       case MRI_byte:{
          byte * row ;
+         for( zz=0 ; zz < ztop ; zz++ )
+          for( yy=0 ; yy < ytop ; yy++ )
+            for( xx=0 ; xx < xtop ; xx++ ){
+               row = THD_get_dset_row( dset,ival , dcode,xx,yy,zz ) ;
+               nff = THD_rowfillin_byte( nrow , row , maxgap ) ;
+               if( nff > 0 ){
+                  THD_put_dset_row( dset,ival , dcode,xx,yy,zz , row ) ;
+                  nfftot += nff ;
+               }
+               free(row) ;
+            }
+      }
+      break ;
+
+      case MRI_float:{
+         float * row ;
          for( zz=0 ; zz < ztop ; zz++ )
           for( yy=0 ; yy < ytop ; yy++ )
             for( xx=0 ; xx < xtop ; xx++ ){

@@ -147,6 +147,8 @@
   Mod:     Set slice offset times to 0 if -tshift option is used.
   Date:    11 January 2001
 
+  Mod:     Increased max. number of input stimulus time series.
+  Date:    19 March 2001 
 
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -157,14 +159,14 @@
 
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
-#define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "11 Jan  2001"    /* date of latest program revision */
+#define PROGRAM_INITIAL "02 Sept  1998"   /* date of initial program release */
+#define PROGRAM_LATEST  "19 March 2001"   /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
 #define MAX_XVARS 250                           /* max. number of parameters */
-#define MAX_STIMTS 50               /* max. number of stimulus time series */
+#define MAX_STIMTS 100              /* max. number of stimulus time series */
 #define MAX_GLT 50                    /* max. number of general linear tests */
 #define MAX_CONSTR 50                 /* max. number of linear constraints   */
 

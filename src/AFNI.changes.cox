@@ -2701,3 +2701,9 @@
  * Fixed bug in thd_shift2.c: when the shift was larger than the data
      line size, buffer overrun could occur.  In this case, the proper
      result is all zeros, so that's what I substituted.
+
+19 Mar 2001
+ * Fixed bug in thd_dsetrow.c, where putting a row back in for byte
+     or float cases didn't have break statements, so it would be
+     put twice, which is real bad (i.e., segment fault).
+ * Added Linear Fillin to plug_drawdset.c.

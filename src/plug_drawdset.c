@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -30,6 +30,7 @@ void DRAW_choose_CB( Widget , XtPointer , XtPointer ) ;
 void DRAW_color_CB ( MCW_arrowval * , XtPointer ) ;
 void DRAW_mode_CB  ( MCW_arrowval * , XtPointer ) ;
 void DRAW_value_CB ( MCW_arrowval * , XtPointer ) ;
+void DRAW_fillin_CB( Widget , XtPointer , XtPointer ) ; /* 19 Mar 2001 */
 
 void DRAW_receiver( int , int , void * , void * ) ;
 void DRAW_into_dataset( int , int * , int * , int * , void * ) ;
@@ -70,6 +71,9 @@ static Widget shell=NULL , rowcol , info_lab , choose_pb ;
 static Widget done_pb , undo_pb , help_pb , quit_pb , save_pb ;
 static MCW_arrowval * value_av , * color_av , * mode_av ;
 
+static MCW_arrowval * fillin_dir_av , * fillin_gap_av ; /* 19 Mar 2001 */
+static Widget fillin_doit_pb ;
+
 /* Other data */
 
 #define MODE_CURVE       0
@@ -89,6 +93,10 @@ static int    mode_ints[] = {
   DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS , DRAWING_POINTS } ;
 
 #define NUM_modes (sizeof(mode_ints)/sizeof(int))
+
+#define NFILLIN_DIR 3
+static char * fillin_dir_strings[NFILLIN_DIR] = { "A-P" , "I-S" , "R-L" } ;
+#define NFILLIN_GAP 9
 
 static MCW_DC * dc ;                 /* display context */
 static Three_D_View * im3d ;         /* AFNI controller */
@@ -343,6 +351,48 @@ void DRAW_make_widgets(void)
                        ) ;
    MCW_reghint_children( mode_av->wrowcol , "How voxels are chosen") ;
 
+   /*** 19 Mar 2001: stuff for linear fillin ***/
+
+   { Widget rc ;
+
+   /*** separator for visual neatness ***/
+
+      (void) XtVaCreateManagedWidget(
+                "AFNI" , xmSeparatorWidgetClass , rowcol ,
+                   XmNseparatorType , XmSHADOW_ETCHED_IN ,
+                   XmNinitialResourcesPersistent , False ,
+                NULL ) ;
+
+     rc = XtVaCreateWidget( "AFNI" , xmRowColumnWidgetClass , rowcol ,
+                       XmNpacking      , XmPACK_TIGHT ,
+                       XmNorientation  , XmHORIZONTAL ,
+                       XmNmarginHeight , 0 ,
+                       XmNmarginWidth  , 0 ,
+                       XmNspacing      , 0 ,
+                       XmNinitialResourcesPersistent , False ,
+                       XmNtraversalOn , False ,
+                    NULL ) ;
+
+     fillin_dir_av = new_MCW_optmenu( rc , "Linear Fillin " ,
+                                      0 , NFILLIN_DIR-1 , 0 , 0 ,
+                                      NULL , NULL ,
+                                      MCW_av_substring_CB , fillin_dir_strings ) ;
+
+     fillin_gap_av = new_MCW_optmenu( rc , "Gap" ,
+                                      1 , NFILLIN_GAP , 4 , 0 ,
+                                      NULL,NULL,NULL,NULL ) ;
+
+     xstr = XmStringCreateLtoR( "Fill" , XmFONTLIST_DEFAULT_TAG ) ;
+     fillin_doit_pb = XtVaCreateManagedWidget( "AFNI" , xmPushButtonWidgetClass , rc ,
+                                                XmNlabelString , xstr ,
+                                                XmNtraversalOn , False ,
+                                                XmNinitialResourcesPersistent , False ,
+                                               NULL ) ;
+     XtAddCallback( fillin_doit_pb , XmNactivateCallback, DRAW_fillin_CB, NULL ) ;
+     XmStringFree(xstr) ;
+     XtManageChild(rc) ;
+   }
+
    /*** separator for visual neatness ***/
 
    (void) XtVaCreateManagedWidget(
@@ -549,6 +599,14 @@ void DRAW_help_CB( Widget w, XtPointer client_data, XtPointer call_data )
   "            sub-graph will cause that single voxel to get the\n"
   "            drawing value, as well.  You cannot select a group\n"
   "            of voxels in a graph window -- only one voxel per click.\n"
+  "        * Linear Fillin provides the same functionality as program\n"
+  "            3dRowFillin.  It lets you fill in gaps (zeros) between\n"
+  "            the same value in a particular anatomical direction.\n"
+  "            For example, you could draw on every 4th coronal slice,\n"
+  "            and then use Fill in the A-P direction with a maximum\n"
+  "            gap setting of 3 to fill in the slices you didn't draw.\n"
+  "            (Then you could manually fix up the intermediate slices.)\n"
+  "      N.B.: Linear Fillin cannot be undone!!!\n"
   "\n"
   "Step 6) Undo.\n"
   "        * The last drawing operation can be undone -- that is,\n"
@@ -1314,6 +1372,50 @@ void DRAW_2dfiller( int nx , int ny , int ix , int jy , byte * ar )
          }
       }
    } while( num > 0 ) ;
+
+   return ;
+}
+
+/*----------------------------------------------------------------------------------*/
+
+void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
+{
+   int dcode=-1 , maxgap , nftot ;
+   char dir ;
+
+   /* check for errors */
+
+   if( !editor_open || dset == NULL ){ XBell(dc->display,100) ; return ; }
+
+   dir = fillin_dir_strings[ fillin_dir_av->ival ][0] ;
+
+   if( dir == ORIENT_tinystr[dset->daxes->xxorient][0] ||
+       dir == ORIENT_tinystr[dset->daxes->xxorient][1]   ) dcode = 1 ;
+
+   if( dir == ORIENT_tinystr[dset->daxes->yyorient][0] ||
+       dir == ORIENT_tinystr[dset->daxes->yyorient][1]   ) dcode = 2 ;
+
+   if( dir == ORIENT_tinystr[dset->daxes->zzorient][0] ||
+       dir == ORIENT_tinystr[dset->daxes->zzorient][1]   ) dcode = 3 ;
+
+   if( dcode < 0 ){ XBell(dc->display,100) ; return ; } /* should not happen! */
+
+   maxgap = fillin_gap_av->ival ;
+   if( maxgap < 1 ){ XBell(dc->display,100) ; return ; } /* should not happen! */
+
+   nftot = THD_dataset_rowfillin( dset , 0 , dcode , maxgap ) ;
+   if( nftot > 0 ){
+     fprintf(stderr,"++ Fillin filled %d voxels\n",nftot) ;
+     PLUTO_dset_redisplay( dset ) ;
+     dset_changed = 1 ;
+     SENSITIZE(save_pb,1) ; 
+     if( recv_open ) AFNI_process_drawnotice( im3d ) ;
+   } else if( nftot < 0 ) {
+      fprintf(stderr,"** Fillin failed for some reason!\n") ;
+      XBell(dc->display,100) ;
+   } else {
+      fprintf(stderr,"++ No Fillin voxels found\n") ;
+   }
 
    return ;
 }

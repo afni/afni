@@ -205,6 +205,7 @@ ENTRY("THD_put_dset_row") ;
          else
             for( ii=kk=0 ; ii < nrow ; ii++,kk+=kdel ) bb[kk+kbot] = rr[nrow-1-ii] ;
       }
+      break ;
 
       case MRI_complex:{
          complex *rr = (complex *)row , *bb = (complex *)brick ;
@@ -213,6 +214,7 @@ ENTRY("THD_put_dset_row") ;
          else
             for( ii=kk=0 ; ii < nrow ; ii++,kk+=kdel ) bb[kk+kbot] = rr[nrow-1-ii] ;
       }
+      break ;
 
       case MRI_float:{
          float *rr = (float *)row , *bb = (float *)brick ;
@@ -221,6 +223,7 @@ ENTRY("THD_put_dset_row") ;
          else
             for( ii=kk=0 ; ii < nrow ; ii++,kk+=kdel ) bb[kk+kbot] = rr[nrow-1-ii] ;
       }
+      break ;
 
 #if 0
       /*** the following data type is not allowed in AFNI (yet) ***/

@@ -40,7 +40,9 @@ static AFNI_friend afni_friends[] = {
   { "B Biswal"       , (                 16                       ) } ,
   { "RM Birn"        , (             8 | 16 |           128       ) } ,
   { "V Roopchansingh", (         4 | 8 | 16                       ) } ,
-  { "J Ratke"        , (                 16                       ) }
+  { "J Ratke"        , (                 16                       ) } ,
+  { "PSF Bellgowan"  , (             8 | 16                       ) } ,
+  { "S Durgerian"    , (             8 | 16                       ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))

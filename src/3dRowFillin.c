@@ -8,6 +8,8 @@ int main( int argc , char * argv[] )
    MRI_IMAGE * brim ;
    int verb=0 ;
 
+mainENTRY("3dRowFillin main") ;
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dRowFillin [options] dataset\n"
              "Extracts 1D rows in the given direction from a 3D dataset,\n"
