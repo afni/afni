@@ -191,7 +191,7 @@ ConvexHull: SUMA_ConvexHull.c
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
-BrainWrap: SUMA_BrainWrap.c
+3dSkullStrip: SUMA_BrainWrap.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED -DSUMA_BrainWrap_STANDALONE ${CCOPT} ${WARNOPT} -o $@ ${AFNI_OBJS} SUMA_BrainWrap.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
@@ -358,6 +358,7 @@ install:
 	@if [ -f ShowCmap ]; then mv ShowCmap ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfMesh ]; then mv SurfMesh ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SampBias ]; then mv SampBias ${INSTALLDIR_SUMA}; fi;
+	@if [ -f 3dSkullStrip ]; then mv 3dSkullStrip ${INSTALLDIR_SUMA}; fi;
 
 packbins:
 	if [ ! -d SUMA_bin	]; then $(MKDIR) SUMA_bin; fi
@@ -398,6 +399,7 @@ packbins:
 	@if [ -f ShowCmap ]; then $(CP) -p ShowCmap SUMA_bin/; fi;	
 	@if [ -f SampBias ]; then $(CP) -p SampBias SUMA_bin/; fi;	
 	@if [ -f SurfMesh ]; then $(CP) -p SurfMesh SUMA_bin/; fi;	
+	@if [ -f 3dSkullStrip ]; then $(CP) -p 3dSkullStrip SUMA_bin/; fi;
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
 	${RM} -r SUMA_bin
@@ -411,7 +413,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	SUMA_inflate_compare SUMA_Ply_Read SUMA_ParseName ConvertSurface      \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics    \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
-   SUMA_TestDsetIO ConvertDset ShowCmap SurfClust IsoSurface
+   SUMA_TestDsetIO ConvertDset ShowCmap SurfClust IsoSurface 3dSkullStrip
    
 #SUMA_TestDataSets
  

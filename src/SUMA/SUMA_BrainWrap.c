@@ -1415,7 +1415,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "  3- The creation of various masks and surfaces modeling brain\n"
                "     and portions of the skull\n"  
                "\n"
-               "  BrainWrap  < -input VOL >\n"
+               "  3dSkullStrip  < -input VOL >\n"
                "             [< -o_TYPE PREFIX >] [< -prefix Vol_Prefix >] \n"
                "             [< -niter N_ITER >]\n"
                "             [< -ld LD >] [< -shrink_fac SF >]\n"
@@ -1440,7 +1440,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             where t2 is the 2 percentile value and Imax is the local\n"
                "             maximum, limited to the median intensity value.\n"
                "             For more information on tb, t2, etc. read the BET paper\n"
-               "             mentioned above. Note that in BrainWrap, SF can vary across \n"
+               "             mentioned above. Note that in 3dSkullStrip, SF can vary across \n"
                "             iterations and might be automatically clipped in certain areas.\n"
                "             SF can vary between 0 and 1.\n"
                "             0: Intensities < median inensity are considered non-brain\n"
@@ -1488,7 +1488,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                           automatically increases the amount of smoothing\n"
                "                           to get rid of intersections. Default is 4\n"
                "     -demo_pause: Pause at various step in the process to facilitate\n"
-               "                  interactive demo while BrainWrap is communicating\n"
+               "                  interactive demo while 3dSkullStrip is communicating\n"
                "                  with AFNI and SUMA. See 'Eye Candy' mode below and\n"
                "                  -talk_suma option. \n"
                "     -o_TYPE PREFIX: prefix of output surface.\n"
@@ -1518,7 +1518,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                " Example:\n"
                "     afni -niml -yesplugouts &\n"
                "     suma -niml &\n"
-               "     BrainWrap -input Anat+orig -o_ply anat_brain -talk_suma -feed_afni -send_kth 5\n"
+               "     3dSkullStrip -input Anat+orig -o_ply anat_brain -talk_suma -feed_afni -send_kth 5\n"
                "\n"
                " Tips:\n"
                " I ran the program with the default parameters on 200+ datasets.\n"
@@ -1979,7 +1979,7 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_BrainWrap_ParseInput (char *argv[], int argc, SUMA
 
 int main (int argc,char *argv[])
 {/* Main */    
-   static char FuncName[]={"BrainWrap"}; 
+   static char FuncName[]={"3dSkullStrip"}; 
 	int i, N_in = 0, i3, kth_buf, hull_ld;
    int ii,jj,kk,ll,ijk , nx,ny,nz , nxyz , nn, nint = 0 , nseg;
    void *SO_name=NULL, *SO_name_hull=NULL;
@@ -2090,8 +2090,8 @@ int main (int argc,char *argv[])
       SO->VolPar = SUMA_VolPar_Attr (Opt->in_name);
       SO->SUMA_VolPar_Aligned = YUP; /* Surface is in alignment with volume, should not call SUMA_Align_to_VolPar ... */
    
-      if (!SO->State) {SO->State = SUMA_copy_string("BrainWrap"); }
-      if (!SO->Group) {SO->Group = SUMA_copy_string("BrainWrap"); }
+      if (!SO->State) {SO->State = SUMA_copy_string("3dSkullStrip"); }
+      if (!SO->Group) {SO->Group = SUMA_copy_string("3dSkullStrip"); }
       if (!SO->Label) {SO->Label = SUMA_copy_string(stmp); }
       /* make the idcode_str depend on the Label, it is convenient to
       send the same surface all the time to SUMA */
@@ -2101,8 +2101,8 @@ int main (int argc,char *argv[])
          SOhull->VolPar = SUMA_VolPar_Attr (Opt->in_name);
          SOhull->SUMA_VolPar_Aligned = YUP; /* Surface is in alignment with volume, should not call SUMA_Align_to_VolPar ... */
    
-         if (!SOhull->State) {SOhull->State = SUMA_copy_string("BrainWrap"); }
-         if (!SOhull->Group) {SOhull->Group = SUMA_copy_string("BrainWrap"); }
+         if (!SOhull->State) {SOhull->State = SUMA_copy_string("3dSkullStrip"); }
+         if (!SOhull->Group) {SOhull->Group = SUMA_copy_string("3dSkullStrip"); }
          if (!SOhull->Label) {SOhull->Label = SUMA_copy_string(stmphull); }
          if (SOhull->Label) { if (SOhull->idcode_str) SUMA_free(SOhull->idcode_str); SOhull->idcode_str = UNIQ_hashcode(SOhull->Label); }
       }
@@ -2306,7 +2306,7 @@ int main (int argc,char *argv[])
       OptDs->prefix = NewName.FileName; NewName.FileName = NULL;
       OptDs->prefix_path = NewName.Path; NewName.Path = NULL;
    }  else {
-      OptDs->prefix = SUMA_copy_string("BrainWrap");
+      OptDs->prefix = SUMA_copy_string("3dSkullStrip");
       OptDs->prefix_path = SUMA_copy_string("./");
    }
    OptDs->master = SUMA_copy_string(Opt->in_name);
