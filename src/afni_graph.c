@@ -585,15 +585,19 @@ ENTRY("new_MCW_grapher") ;
            new_MCW_colormenu( grapher->opt_colors_menu ,
                               gr_color_label[ii] ,
                               grapher->dc ,
-                              gr_color_start[ii] , grapher->dc->ovc->ncol_ov - 1 ,
+                              gr_color_start[ii] , grapher->dc->ovc->ncol_ov-1,
                               grapher->color_index[ii] ,
                               GRA_color_CB , (XtPointer) grapher ) ;
+        MCW_reghint_children( grapher->opt_color_av[ii]->wrowcol ,
+                              gr_color_hint[ii] ) ;           /* 28 Jan 2004 */
 
         if( grapher->thick_index[ii] >= 0 ){
            grapher->opt_thick_bbox[ii] =
               new_MCW_bbox( grapher->opt_colors_menu ,
                             1 , bbox_label , MCW_BB_check , MCW_BB_noframe ,
                             GRA_thick_CB , (XtPointer) grapher ) ;
+           MCW_reghint_children( grapher->opt_thick_bbox[ii]->wrowcol ,
+                                 "Draw these lines thicker" ) ;
 
            if( grapher->thick_index[ii] )
               MCW_set_bbox( grapher->opt_thick_bbox[ii] , 1 ) ;
@@ -609,6 +613,8 @@ ENTRY("new_MCW_grapher") ;
               new_MCW_bbox( grapher->opt_colors_menu ,
                             2 , pts_label , MCW_BB_radio_zero , MCW_BB_noframe ,
                             GRA_thick_CB , (XtPointer) grapher ) ;
+           MCW_reghint_children(  grapher->opt_points_bbox[ii]->wrowcol ,
+                                  "Plot graph as Points only, or as Points and Lines" ) ;
 
            if( grapher->points_index[ii] )
               MCW_set_bbox( grapher->opt_points_bbox[ii] ,
@@ -627,6 +633,8 @@ ENTRY("new_MCW_grapher") ;
                          0 , 19 , INIT_GR_ggap , 0 ,
                          GRA_ggap_CB , (XtPointer) grapher , NULL , NULL ) ;
      AVOPT_columnize( grapher->opt_ggap_av , 4 ) ;
+     MCW_reghint_children( grapher->opt_ggap_av->wrowcol ,
+                           "Space sub-graphs apart" ) ;
 
    }
    /***** end colors submenu creation *****/
@@ -5022,7 +5030,7 @@ ENTRY("AFNI_new_fim_menu") ;
 
    /* macro to create a new FIM menu button */
 
-#define FIM_MENU_BUT(wname,label)                                  \
+#define FIM_MENU_BUT(wname,label,hhh)                              \
    fmenu -> wname =                                                \
          XtVaCreateManagedWidget(                                  \
             "dialog" , xmPushButtonWidgetClass , fmenu->fim_menu , \
@@ -5032,12 +5040,13 @@ ENTRY("AFNI_new_fim_menu") ;
                XmNinitialResourcesPersistent , False ,             \
             NULL ) ;                                               \
       XtAddCallback( fmenu -> wname , XmNactivateCallback ,        \
-                     cbfunc , (XtPointer) fmenu ) ;
+                     cbfunc , (XtPointer) fmenu ) ;                \
+      MCW_register_hint( fmenu -> wname , hhh ) ;
 
    /** macro to create a new fim pullright menu **/
    /** 07 Jan 1999: added the mapCallback to fix position **/
 
-#define FIM_MENU_PULLRIGHT(wmenu,wcbut,label)                      \
+#define FIM_MENU_PULLRIGHT(wmenu,wcbut,label,hhh)                  \
    fmenu -> wmenu =                                                \
      XmCreatePulldownMenu( fmenu->fim_menu , "menu" , NULL , 0 ) ; \
    fmenu -> wcbut =                                                \
@@ -5048,11 +5057,12 @@ ENTRY("AFNI_new_fim_menu") ;
           XmNtraversalOn , False ,                                 \
           XmNinitialResourcesPersistent , False ,                  \
        NULL ) ;                                                    \
+   MCW_register_hint( fmenu -> wcbut , hhh ) ;                     \
    XtAddCallback( fmenu -> wmenu, XmNmapCallback, GRA_mapmenu_CB, NULL ) ;
 
    /** macro to create a new button on a pullright menu **/
 
-#define FIM_MENU_PULL_BUT(wmenu,wname,label) \
+#define FIM_MENU_PULL_BUT(wmenu,wname,label,hhh)                  \
    fmenu -> wname =                                               \
          XtVaCreateManagedWidget(                                 \
             "dialog" , xmPushButtonWidgetClass , fmenu -> wmenu , \
@@ -5062,13 +5072,14 @@ ENTRY("AFNI_new_fim_menu") ;
                XmNinitialResourcesPersistent , False ,            \
             NULL ) ;                                              \
       XtAddCallback( fmenu -> wname , XmNactivateCallback ,       \
-                     cbfunc , (XtPointer) fmenu ) ;
+                     cbfunc , (XtPointer) fmenu ) ;               \
+      MCW_register_hint( fmenu -> wname , hhh ) ;
 
 #define EMPTY_BUT(wname) fmenu -> wname = NULL
 
    /** 15 Dec 1997: a pullright menu with a single button **/
 
-#define FIM_MENU_QBUT(wname,label,qlab)                                   \
+#define FIM_MENU_QBUT(wname,label,qlab,hhh)                               \
  do { Widget ccc ;                                                        \
       qbut_menu = XmCreatePulldownMenu(fmenu->fim_menu,"menu",NULL,0);    \
             ccc = XtVaCreateManagedWidget( "dialog" ,                     \
@@ -5083,6 +5094,7 @@ ENTRY("AFNI_new_fim_menu") ;
                          XmNmarginHeight , 0 ,                            \
                          XmNtraversalOn , False ,                         \
                          XmNinitialResourcesPersistent , False , NULL ) ; \
+      MCW_register_hint( fmenu -> wname , hhh ) ;                         \
       XtAddCallback( fmenu -> wname , XmNactivateCallback ,               \
                      cbfunc , (XtPointer) fmenu ) ;                       \
       XtAddCallback( qbut_menu, XmNmapCallback, GRA_mapmenu_CB, NULL ) ;  \
@@ -5102,22 +5114,22 @@ ENTRY("AFNI_new_fim_menu") ;
    if( graphable ){
       EMPTY_BUT(fim_pickdset_pb) ;
    } else {
-      FIM_MENU_BUT( fim_pickdset_pb , "Pick Dataset" ) ;
+      FIM_MENU_BUT( fim_pickdset_pb , "Pick Dataset" , "Choose Dataset to Graph" ) ;
    }
 
-   FIM_MENU_BUT( fim_pickref_pb , "Pick Ideal") ;
-   FIM_MENU_BUT( fim_pickort_pb , "Pick Ort"  ) ;
+   FIM_MENU_BUT( fim_pickref_pb , "Pick Ideal" , "Pick Ideal Timeseries to Graph" ) ;
+   FIM_MENU_BUT( fim_pickort_pb , "Pick Ort"   , "Pick Ort Timeseries to Graph"   ) ;
 
    if( graphable ){
       char *bbox_label[1] = { "Ideal=WinAver" } ;
       MENU_SLINE(fim_menu) ;
-      FIM_MENU_PULLRIGHT(fim_editref_menu,fim_editref_cbut       ,"Edit Ideal"    ) ;
-      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_equals_pb  ,"Ideal = Center") ;
-      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_add_pb     ,"Ideal+= Center") ;
-      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_smooth_pb  ,"Smooth Ideal"  ) ;
-      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_setshift_pb,"Shift Ideal"   ) ;
-      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_clear_pb   ,"Clear Ideal"   ) ;
-      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editort_clear_pb   ,"Clear Ort"     ) ;
+      FIM_MENU_PULLRIGHT(fim_editref_menu,fim_editref_cbut       ,"Edit Ideal"    , "Modify Ideal Timeseries" ) ;
+      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_equals_pb  ,"Ideal = Center", "Set to Center Sub-graph" ) ;
+      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_add_pb     ,"Ideal+= Center", "Add in Center Sub-graph" ) ;
+      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_smooth_pb  ,"Smooth Ideal"  , "Lowpass Filter Ideal"    ) ;
+      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_setshift_pb,"Shift Ideal"   , "Time Shift Ideal"        ) ;
+      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_clear_pb   ,"Clear Ideal"   , "Turn Ideal Off"          ) ;
+      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editort_clear_pb   ,"Clear Ort"     , "Turn Ort Off"            ) ;
 
       fmenu->fim_editref_winaver_bbox                      /* 27 Jan 2004 */
        = new_MCW_bbox( fmenu->fim_editref_menu ,
@@ -5130,14 +5142,15 @@ ENTRY("AFNI_new_fim_menu") ;
          new_MCW_optmenu( fmenu->fim_editref_menu , "Polort " , 0,MAX_POLORT,1,0 ,
                           GRA_fmenu_av_CB , (XtPointer) fmenu , NULL , NULL ) ;
       fmenu->fim_polort_choose_pb = fmenu->fim_polort_choose_av->wrowcol ;
+      MCW_reghint_children( fmenu->fim_polort_choose_av->wrowcol , "Order of Polynomial Baseline for FIM" ) ;
 #else
-      FIM_MENU_PULL_BUT( fim_editref_menu,fim_polort_choose_pb ,"Polort?") ;
+      FIM_MENU_PULL_BUT( fim_editref_menu,fim_polort_choose_pb ,"Polort?", "Order of Polynomial Baseline for FIM") ;
 #endif
-      FIM_MENU_PULL_BUT( fim_editref_menu,fim_bkthr_choose_pb  ,"Bkg Thresh") ;
+      FIM_MENU_PULL_BUT( fim_editref_menu,fim_bkthr_choose_pb  ,"Bkg Thresh" , "Choose Background Threshold for FIM") ;
       MENU_SLINE        (fim_editref_menu) ;
-      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_read_pb    ,"Read Ideal"    ) ;
-      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_write_pb   ,"Write Ideal"   ) ;
-      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_store_pb   ,"Store Ideal"   ) ;
+      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_read_pb    ,"Read Ideal" , "Read from .1D file"   ) ;
+      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_write_pb   ,"Write Ideal", "Write to .1D file"    ) ;
+      FIM_MENU_PULL_BUT (fim_editref_menu,fim_editref_store_pb   ,"Store Ideal", "Save in internal list of timeseries" ) ;
    } else {
       EMPTY_BUT(fim_editref_cbut) ;
       EMPTY_BUT(fim_editref_equals_pb) ;
@@ -5153,22 +5166,23 @@ ENTRY("AFNI_new_fim_menu") ;
       fmenu->fim_editref_winaver_bbox = NULL ;  /* 27 Jan 2004 */
    }
 
-   FIM_MENU_PULLRIGHT(fim_ignore_menu,fim_ignore_cbut      ,"Ignore") ;
-   FIM_MENU_PULL_BUT( fim_ignore_menu,fim_ignore_down_pb   ,"Down"  ) ;
-   FIM_MENU_PULL_BUT( fim_ignore_menu,fim_ignore_up_pb     ,"Up"    ) ;
+   FIM_MENU_PULLRIGHT(fim_ignore_menu,fim_ignore_cbut      ,"Ignore", "Number of initial timepoints to ignore" ) ;
+   FIM_MENU_PULL_BUT( fim_ignore_menu,fim_ignore_down_pb   ,"Down"  , "Ignore fewer points" ) ;
+   FIM_MENU_PULL_BUT( fim_ignore_menu,fim_ignore_up_pb     ,"Up"    , "Ignore more points"  ) ;
 #ifdef USE_OPTMENUS
    fmenu->fim_ignore_choose_av =
       new_MCW_optmenu( fmenu->fim_ignore_menu , "# " , 0,2,0,0 ,
                        GRA_fmenu_av_CB , (XtPointer) fmenu , NULL , NULL ) ;
    fmenu->fim_ignore_choose_pb = fmenu->fim_ignore_choose_av->wrowcol ;
+   MCW_reghint_children( fmenu->fim_ignore_choose_av->wrowcol , "Pick number of ignored points" ) ;
 #else
-   FIM_MENU_PULL_BUT( fim_ignore_menu,fim_ignore_choose_pb ,"Choose") ;
+   FIM_MENU_PULL_BUT( fim_ignore_menu,fim_ignore_choose_pb ,"Choose" , "Pick number of ignored points") ;
 #endif
 
    if( graphable ){
-      FIM_MENU_PULLRIGHT(fim_plot_menu,fim_plot_cbut        ,"FIM Plots" ) ;
-      FIM_MENU_PULL_BUT( fim_plot_menu,fim_plot_firstref_pb ,"First Ideal" ) ;
-      FIM_MENU_PULL_BUT( fim_plot_menu,fim_plot_allrefs_pb  ,"All Ideals"  ) ;
+      FIM_MENU_PULLRIGHT(fim_plot_menu,fim_plot_cbut        ,"FIM Plots"   , "Number of Ideals to plot" ) ;
+      FIM_MENU_PULL_BUT( fim_plot_menu,fim_plot_firstref_pb ,"First Ideal" , "Only plot 1 Ideal" ) ;
+      FIM_MENU_PULL_BUT( fim_plot_menu,fim_plot_allrefs_pb  ,"All Ideals"  , "Plot all Ideals"   ) ;
    } else {
       EMPTY_BUT(fim_plot_cbut) ;
       EMPTY_BUT(fim_plot_firstref_pb) ;
@@ -5176,7 +5190,7 @@ ENTRY("AFNI_new_fim_menu") ;
    }
 
    MENU_DLINE(fim_menu) ;
-   FIM_MENU_QBUT( fim_execute_pb   , "Compute FIM" , "-> fico") ;
+   FIM_MENU_QBUT( fim_execute_pb   , "Compute FIM" , "-> fico" , "Correlation Analysis" ) ;
    MCW_set_widget_bg( fmenu->fim_execute_pb ,
                       MCW_hotcolor(fmenu->fim_execute_pb) , 0 ) ;
 
@@ -5188,10 +5202,11 @@ ENTRY("AFNI_new_fim_menu") ;
      fmenu->fim_opt_bbox = new_MCW_bbox( qbut_menu , 4 , blab ,
                                          MCW_BB_radio_one , MCW_BB_noframe ,
                                          NULL , NULL ) ;
+     MCW_reghint_children( fmenu->fim_opt_bbox->wrowcol , "What to Compute" ) ;
    }
 
    MENU_DLINE(fim_menu) ;
-   FIM_MENU_QBUT( fim_execfimp_pb  , "Compute FIM+" , "-> fbuc") ;
+   FIM_MENU_QBUT( fim_execfimp_pb  , "Compute FIM+" , "-> fbuc" , "Extended Correlation Analysis" ) ;
    MCW_set_widget_bg( fmenu->fim_execfimp_pb ,
                       MCW_hotcolor(fmenu->fim_execfimp_pb) , 0 ) ;
 
@@ -5202,6 +5217,7 @@ ENTRY("AFNI_new_fim_menu") ;
    fmenu->fimp_opt_bbox = new_MCW_bbox( qbut_menu, FIM_NUM_OPTS, fim_opt_labels,
                                         MCW_BB_check , MCW_BB_noframe ,
                                         NULL , NULL ) ;
+   MCW_reghint_children( fmenu->fimp_opt_bbox->wrowcol , "What to Compute" ) ;
 
    { char * ff = my_getenv( "AFNI_FIM_MASK" ) ; int mm=0 ;
      if( ff != NULL ) mm = strtol(ff,NULL,10) ;
@@ -5217,33 +5233,36 @@ ENTRY("AFNI_new_fim_menu") ;
 
    fmenu->fimp_setdefault_pb =
       XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , qbut_menu ,
-                                 LABEL_ARG( "Set Defaults") ,
+                                 LABEL_ARG( "Set Defaults" ) ,
                                  XmNmarginHeight , 0 ,
                                  XmNtraversalOn , False ,
                                  XmNinitialResourcesPersistent , False ,
                                NULL ) ;
    XtAddCallback( fmenu->fimp_setdefault_pb ,
                   XmNactivateCallback , cbfunc , (XtPointer) fmenu ) ;
+   MCW_register_hint( fmenu->fimp_setdefault_pb , "Default computing options" ) ;
 
    fmenu->fimp_setall_pb =
       XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , qbut_menu ,
-                                 LABEL_ARG( "Set All") ,
+                                 LABEL_ARG( "Set All" ) ,
                                  XmNmarginHeight , 0 ,
                                  XmNtraversalOn , False ,
                                  XmNinitialResourcesPersistent , False ,
                                NULL ) ;
    XtAddCallback( fmenu->fimp_setall_pb ,
                   XmNactivateCallback , cbfunc , (XtPointer) fmenu ) ;
+   MCW_register_hint( fmenu->fimp_setall_pb , "Set all computing options on" ) ;
 
    fmenu->fimp_unsetall_pb =
       XtVaCreateManagedWidget( "dialog" , xmPushButtonWidgetClass , qbut_menu ,
-                                 LABEL_ARG( "Unset All") ,
+                                 LABEL_ARG( "Unset All" ) ,
                                  XmNmarginHeight , 0 ,
                                  XmNtraversalOn , False ,
                                  XmNinitialResourcesPersistent , False ,
                                NULL ) ;
    XtAddCallback( fmenu->fimp_unsetall_pb ,
                   XmNactivateCallback , cbfunc , (XtPointer) fmenu ) ;
+   MCW_register_hint( fmenu->fimp_unsetall_pb , "Set all computing options off" ) ;
 
    /* 01 Feb 2000: add user-contributed options (if any) */
 
@@ -5267,6 +5286,7 @@ ENTRY("AFNI_new_fim_menu") ;
                                             GLOBAL_library.registered_fim.labels ,
                                             MCW_BB_check , MCW_BB_noframe ,
                                             NULL , NULL ) ;
+      MCW_reghint_children( fmenu->fimp_user_bbox->wrowcol , "Other correlation functions" ) ;
    }
 
    RETURN(fmenu) ;

@@ -4924,3 +4924,6 @@
      dataset becomes available, the controller will get set to the middle
      of THAT dataset's coordinates, rather than the dummy's middle.  This
      is useful for realtime imaging (which is why the dummy is there).
+
+28 Aug 2004
+ * Added hints to various menu items that were lacking them in afni_graph.c.
