@@ -4,6 +4,10 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+#if 1             /* set this to 0 to disable multiple gets */
+#define USE_GET   /* RWCox: extract multiple timeseries at once for speed */
+#endif
+
 /*---------------------------------------------------------------------------*/
 /*
   Program to calculate the deconvolution of a measured 3d+time dataset
@@ -224,6 +228,9 @@
 
   Mod:     Increased size of screen output buffer (again).
   Date:    02 December 2002
+
+  Mod:     Added "multi-get" feature with USE_GET macro -- RWCox.
+  Date:    27 Feb 2003
 */
 
 /*---------------------------------------------------------------------------*/
@@ -231,7 +238,7 @@
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 September 1998"   /* initial program release date*/
-#define PROGRAM_LATEST  "02 December 2002"    /* latest program revision date*/
+#define PROGRAM_LATEST  "27 February 2003"    /* latest program revision date*/
 
 /*---------------------------------------------------------------------------*/
 
@@ -2264,6 +2271,7 @@ void initialize_program
 }
 
 
+#ifndef USE_GET
 /*---------------------------------------------------------------------------*/
 /*
   Get the time series for one voxel from the AFNI 3d+time data set.
@@ -2294,16 +2302,21 @@ void extract_ts_array
   /*----- Now extract time series from MRI_IMAGE -----*/
   ts_length = DSET_NUM_TIMES (dset_time);
   ar = MRI_FLOAT_PTR (im);
+#if 0
   for (it = 0;  it < ts_length;  it++)
     {
       ts_array[it] = ar[it];
     }
+#else
+  memcpy( ts_array , ar , sizeof(float)*ts_length ) ;  /* RWCox */
+#endif
 
 
   /*----- Release memory -----*/
   mri_free (im);   im = NULL;
 
 }
+#endif /* USE_GET */
 
 
 /*---------------------------------------------------------------------------*/
@@ -2560,6 +2573,10 @@ void calculate_results
 {
   float * ts_array = NULL;    /* array of measured data for one voxel */
 
+#ifdef USE_GET
+  int do_get = 0 ;            /* flag to use multi-gets */
+#endif
+
   int qp;                     /* number of poly. trend baseline parameters */
   int q;                      /* number of baseline model parameters */
   int p;                      /* number of full model parameters */
@@ -2705,7 +2722,11 @@ void calculate_results
 
   if (option_data->input1D_filename == NULL)
     {
+#ifdef USE_GET
+      do_get = 1 ;    /* don't need a pre-malloc-ed array for multi-gets */
+#else
       ts_array = (float *) malloc (sizeof(float) * nt);   MTEST (ts_array);
+#endif
     }
   fitts  = (float *) malloc (sizeof(float) * nt);   MTEST (fitts);
   errts  = (float *) malloc (sizeof(float) * nt);   MTEST (errts);
@@ -2743,6 +2764,16 @@ void calculate_results
 
   else
     {
+
+#ifdef USE_GET
+#define NGET 32               /* number to get at one time */
+      int nget=0 ,            /* number of time series current gotten */
+          cget=0 ,            /* index of next timeseries in iget & imget */
+          jget   ,            /* loop index for iget */
+          iget[NGET] ;        /* voxel index of timeseries */
+      MRI_IMARR *imget=NULL ; /* array of timeseries */
+#endif
+
       /*----- Loop over all voxels -----*/
       for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	{
@@ -2750,12 +2781,32 @@ void calculate_results
 	  if (mask_vol != NULL)
 	    if (mask_vol[ixyz] == 0)  continue; 
 
+#ifdef USE_GET
+          /*** race ahead and extract a bunch of voxel time series at once ***/
+
+          if( do_get && cget == nget ){
+            if( imget != NULL ) DESTROY_IMARR(imget) ;
+            iget[0] = ixyz ; nget = 1 ;
+            for( jget=ixyz+1 ; jget < nxyz && nget < NGET ; jget++ ){
+              if( mask_vol == NULL || mask_vol[jget] != 0 )
+                iget[nget++] = jget ;
+            }
+            imget = THD_extract_many_series( nget, iget, dset ) ;
+            cget  = 0 ;  /* the next one to take out of imget */
+          }
+#endif
 
 	  /*----- Extract Y-data for this voxel -----*/
 	  if (option_data->input1D_filename != NULL)
 	    ts_array = fmri_data;
-	  else
-	    extract_ts_array (dset, ixyz, ts_array);
+	  else {
+#ifdef USE_GET
+            ts_array = MRI_FLOAT_PTR(IMARR_SUBIM(imget,cget));  /* the GET way */
+            cget++ ;  /* take this one next time */
+#else
+            extract_ts_array (dset, ixyz, ts_array);            /* the OLD way */
+#endif
+          }
 
 	  for (i = 0;  i < N;  i++)
 	    y.elts[i] = ts_array[good_list[i]];
@@ -2803,6 +2854,13 @@ void calculate_results
 	    }
 	  
 	}  /*----- Loop over voxels -----*/
+
+#ifdef USE_GET
+        if( do_get ){
+          if( imget != NULL ) DESTROY_IMARR(imget) ;
+          ts_array = NULL ;
+        }
+#endif
       
     }  /*----- NOT nodata -----*/
 

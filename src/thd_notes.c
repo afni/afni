@@ -17,9 +17,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-/*---------------------------------------------------------------------------
-   Assemble a sort-of command line string from the arguments;
-   free() this when done.
+/*---------------------------------------------------------------------------*/
+/*!  Assemble a sort-of command line string from the arguments;
+     free() this when done.
 -----------------------------------------------------------------------------*/
 
 char * tross_commandline( char * pname , int argc , char ** argv )
@@ -57,8 +57,8 @@ char * tross_commandline( char * pname , int argc , char ** argv )
    return ch ;
 }
 
-/*---------------------------------------------------------------------------
-  Get the current date/time string;  free() this when done.
+/*---------------------------------------------------------------------------*/
+/*!  Get the current date/time string;  free() this when done.
 -----------------------------------------------------------------------------*/
 
 char * tross_datetime(void)
@@ -95,8 +95,8 @@ static char * tross_username(void)  /* 20 Sep 1999 */
    return cn ;
 }
 
-/*---------------------------------------------------------------------------
-   Add a note after the last current note
+/*---------------------------------------------------------------------------*/
+/*!   Add a note after the last current note
 -----------------------------------------------------------------------------*/
 
 void tross_Add_Note( THD_3dim_dataset *dset, char *cn )
@@ -133,8 +133,8 @@ void tross_Add_Note( THD_3dim_dataset *dset, char *cn )
    return ;
 }
 
-/*---------------------------------------------------------------------------
-   Delete a particular note
+/*---------------------------------------------------------------------------*/
+/*!   Delete a particular note
 -----------------------------------------------------------------------------*/
 
 void tross_Delete_Note(THD_3dim_dataset *dset, int inote)
@@ -193,6 +193,9 @@ void tross_Delete_Note(THD_3dim_dataset *dset, int inote)
 }
 
 /*---------------------------------------------------------------------------*/
+/*! Get the number of Notes currently attached to the dataset.
+    Doesn't include the History note.
+-----------------------------------------------------------------------------*/
 
 int tross_Get_Notecount( THD_3dim_dataset * dset )
 {
@@ -205,8 +208,9 @@ int tross_Get_Notecount( THD_3dim_dataset * dset )
    return notecount->in[0];
 }
 
-/*---------------------------------------------------------------------------
-  free() this string when done with it - it is a copy
+/*---------------------------------------------------------------------------*/
+/*! Get the inote-th Note attached to the dataset.
+    free() this string when done with it - it is a copy
 -----------------------------------------------------------------------------*/
 
 char * tross_Get_Note( THD_3dim_dataset * dset , int inote )
@@ -230,6 +234,8 @@ char * tross_Get_Note( THD_3dim_dataset * dset , int inote )
    return ch ;
 }
 
+/*------------------------------------------------------------------------------*/
+
 char * tross_Get_Notedate( THD_3dim_dataset * dset , int inote )
 {
    ATR_int *notecount;
@@ -250,13 +256,13 @@ char * tross_Get_Notedate( THD_3dim_dataset * dset , int inote )
    return tross_Expand_String( note->ch ) ;
 }
 
-/*---------------------------------------------------------------------------
-   Let's make HISTORY!
+/*---------------------------------------------------------------------------*/
+/*! Add the history from the command line to the dataset.
 -----------------------------------------------------------------------------*/
 
-void tross_Make_History( char * pname, int argc, char ** argv, THD_3dim_dataset *dset )
+void tross_Make_History( char *pname, int argc, char **argv, THD_3dim_dataset *dset )
 {
-   char * ch ;
+   char *ch ;
 
    if( argc < 2 || argv == NULL || !ISVALID_DSET(dset) ) return ;
 
@@ -265,8 +271,8 @@ void tross_Make_History( char * pname, int argc, char ** argv, THD_3dim_dataset 
    free(ch) ; return ;
 }
 
-/*---------------------------------------------------------------------------
-   Replace the History in new_dset with that from old_dset
+/*---------------------------------------------------------------------------*/
+/*!  Replace the History in new_dset with that from old_dset
 -----------------------------------------------------------------------------*/
 
 void tross_Copy_History( THD_3dim_dataset * old_dset , THD_3dim_dataset * new_dset )
@@ -281,8 +287,24 @@ void tross_Copy_History( THD_3dim_dataset * old_dset , THD_3dim_dataset * new_ds
    free(cn) ; return ;
 }
 
-/*---------------------------------------------------------------------------
-   09 Dec 2000 - use this wisely
+/*---------------------------------------------------------------------------*/
+/*! Add the History in old_dset to that in new_dset [27 Feb 2003]
+-----------------------------------------------------------------------------*/
+
+void tross_Addto_History( THD_3dim_dataset *old_dset , THD_3dim_dataset *new_dset )
+{
+   char *ch , *cn ;
+
+   if( !ISVALID_DSET(old_dset) || !ISVALID_DSET(new_dset) ) return ;
+
+   ch = tross_Get_History( old_dset ) ;      if( ch == NULL ) return ;
+   cn = tross_Encode_String(ch) ; free(ch) ; if( cn == NULL ) return;
+   tross_Append_History( new_dset , cn ) ; free(cn) ; return ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Erase the old History and replace it with this one.
+   09 Dec 2000 - use this wisely.
 -----------------------------------------------------------------------------*/
 
 void tross_Replace_History( THD_3dim_dataset * dset , char * ch )
@@ -296,8 +318,8 @@ void tross_Replace_History( THD_3dim_dataset * dset , char * ch )
    free(cn) ; return ;
 }
 
-/*---------------------------------------------------------------------------
-   Append a string to the dataset history (create the history if need be).
+/*---------------------------------------------------------------------------*/
+/*!  Append a string to the dataset history (create the history if need be).
 -----------------------------------------------------------------------------*/
 
 void tross_Append_History( THD_3dim_dataset *dset, char *cn )
@@ -343,11 +365,12 @@ void tross_Append_History( THD_3dim_dataset *dset, char *cn )
    free(cdate) ; free(cname) ; free(cuser) ; return ;
 }
 
-/*----------------------------------------------------------------------------
-   Append multiple strings to the History, all on one line.  Usage:
-     tross_multi_Append_History(dset,str1,str2,str3,NULL) ;
-   As many str variables as desired (at least 1), of type char *, can be
-   passed in.  The last one must be NULL.
+/*----------------------------------------------------------------------------*/
+/*! Append multiple strings to the History, all on one line.  Usage:
+      - tross_multi_Append_History(dset,str1,str2,str3,NULL) ;
+      - As many str variables as desired (at least 1), of type char *, can be
+        passed in.
+      - The last one must be NULL.
 ------------------------------------------------------------------------------*/
 
 #include <stdarg.h>
@@ -383,8 +406,8 @@ void tross_multi_Append_History( THD_3dim_dataset *dset, ... )
    free(str) ; return ;
 }
 
-/*----------------------------------------------------------------------------
-  Get the history string; free() this when done.  If NULL is returned,
+/*----------------------------------------------------------------------------*/
+/*!  Get the history string; free() this when done.  If NULL is returned,
   there is no history (cf. Santayana).
 ------------------------------------------------------------------------------*/
 
@@ -401,8 +424,8 @@ char * tross_Get_History( THD_3dim_dataset *dset )
    ch = tross_Expand_String(hist->ch) ; return ch ;
 }
 
-/*-----------------------------------------------------------------------------
-   Store string at location inote;
+/*-----------------------------------------------------------------------------*/
+/*!  Store string at location inote;
    if inote > number of notes now present, gets added at the end of the list;
    otherwise, replaces existing note
 -------------------------------------------------------------------------------*/
@@ -435,8 +458,8 @@ void tross_Store_Note( THD_3dim_dataset * dset , int inote , char * cn )
    return ;
 }
 
-/*-----------------------------------------------------------------------
-  Break a string up into lines of length between lbot and ltop bytes;
+/*-----------------------------------------------------------------------*/
+/*!  Break a string up into lines of length between lbot and ltop bytes;
   free() the result when done with it.
   NULL return means illegal input was found.
 -------------------------------------------------------------------------*/
@@ -516,8 +539,8 @@ char * tross_breakup_string( char * str , int lbot , int ltop )
    }
 }
 
-/*-----------------------------------------------------------------------
-   return a printable version of a note string; free() this when done
+/*-----------------------------------------------------------------------*/
+/*!  Return a printable version of a note string; free() this when done
 -------------------------------------------------------------------------*/
 
 char * tross_Expand_String( char * ch )
@@ -548,8 +571,8 @@ char * tross_Expand_String( char * ch )
    cn[i] = '\0' ; return cn ;
 }
 
-/*--------------------------------------------------------------------------
-  reverse of tross_Expand_String
+/*--------------------------------------------------------------------------*/
+/*!  Reverse of tross_Expand_String
 ----------------------------------------------------------------------------*/
 
 char * tross_Encode_String( char * cn )

@@ -39,7 +39,7 @@
   Date:     08 May 2000
 
   Mod:      Added "register" declarations and a few other things to speed
-            up calculations (including vector_create_noinit) -- RW Cox.
+            up calculations (including vector_create_noinit) -- RWCox.
   Date:     28 Dec 2001
 
   Mod:      Allow matrices and vectors with zero rows and columns. 
@@ -102,7 +102,6 @@ void matrix_destroy (matrix * m)
 void matrix_create (int rows, int cols, matrix * m)
 {
   register int i, j;
-
 
   matrix_destroy (m);
 
@@ -332,8 +331,12 @@ void matrix_equate (matrix a, matrix * b)
   matrix_create (rows, cols, b);
 
   for (i = 0;  i < rows;  i++)
+#if 0
     for (j = 0;  j < cols;  j++)
       b->elts[i][j] = a.elts[i][j];
+#else
+    memcpy( b->elts[i] , a.elts[i] , sizeof(double)*cols ) ;  /* RWCox */
+#endif
 }
 
 
@@ -490,7 +493,6 @@ void matrix_scale (double k, matrix a, matrix * c)
   register int rows, cols;
   register int i, j;
 
-
   rows = a.rows;
   cols = a.cols;
 
@@ -534,8 +536,8 @@ int matrix_inverse (matrix a, matrix * ainv)
   matrix tmp;
   register int i, j, ii, n;
   register double fval;
-  double fmax;
-  double * p;
+  register double fmax;
+  register double * p;
 
   matrix_initialize (&tmp);
 
@@ -570,11 +572,11 @@ int matrix_inverse (matrix a, matrix * ainv)
 	}
 	
 
-      fval = tmp.elts[i][i];
-      for (j = 0;  j < n;  j++)
+      fval = 1.0 / tmp.elts[i][i];   /* RWCox: change division by this to */
+      for (j = 0;  j < n;  j++)      /*        multiplication by 1.0/this */
 	{
-	  tmp.elts[i][j] /= fval;
-	  ainv->elts[i][j] /= fval;
+	  tmp.elts[i][j]   *= fval;
+	  ainv->elts[i][j] *= fval;
 	}
       for (ii = 0;  ii < n;  ii++)
 	if (ii != i)
@@ -704,8 +706,12 @@ void vector_create (int dim, vector * v)
   if (v->elts == NULL)
     matrix_error ("Memory allocation error");
 
+#if 0
   for (i = 0;  i < dim;  i++)
      v->elts[i] = 0.0;
+#else
+  memset( v->elts , 0 , sizeof(double)*dim ) ;
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -767,8 +773,12 @@ void vector_equate (vector a, vector * b)
 
   vector_create_noinit (dim, b);
 
+#if 0
   for (i = 0;  i < dim;  i++)
     b->elts[i] = a.elts[i];
+#else
+  memcpy( b->elts , a.elts , sizeof(double)*dim ) ;  /* RWCox */
+#endif
 }
 
 
@@ -816,7 +826,7 @@ void column_to_vector (matrix m, int c, vector * v)
 void vector_to_array (vector v, float * f)
 {
   register int i;
-  
+ 
   for (i = 0;  i < v.dim;  i++)
     f[i] = v.elts[i];
 }
@@ -851,6 +861,7 @@ void vector_add (vector a, vector b, vector * c)
 void vector_subtract (vector a, vector b, vector * c)
 {
   register int i, dim;
+  register double *aa,*bb,*cc ;
 
   if (a.dim != b.dim)
     matrix_error ("Incompatible dimensions for vector subtraction");
@@ -859,8 +870,13 @@ void vector_subtract (vector a, vector b, vector * c)
 
   vector_create_noinit (dim, c);
 
+  aa = a.elts ; bb = b.elts ; cc = c->elts ;
   for (i = 0;  i < dim;  i++)
+#if 0
     c->elts[i] = a.elts[i] - b.elts[i];
+#else
+    cc[i] = aa[i] - bb[i] ;
+#endif
 }
 
 
@@ -874,6 +890,7 @@ void vector_multiply (matrix a, vector b, vector * c)
   register int rows, cols;
   register int i, j;
   register double sum ;
+  register double *bb , *aa ;
 
   if (a.cols != b.dim)
     matrix_error ("Incompatible dimensions for vector multiplication");
@@ -883,11 +900,16 @@ void vector_multiply (matrix a, vector b, vector * c)
 
   vector_create_noinit (rows, c);
 
+  bb = b.elts ;
   for (i = 0;  i < rows;  i++)
     {
-      sum = 0.0 ;
+      sum = 0.0 ; aa = a.elts[i] ;
       for (j = 0;  j < cols;  j++)
+#if 0
         sum += a.elts[i][j] * b.elts[j];
+#else
+        sum += aa[j] * bb[j] ;
+#endif
       c->elts[i] = sum ;
     }
 }
@@ -895,13 +917,15 @@ void vector_multiply (matrix a, vector b, vector * c)
 /*---------------------------------------------------------------------------*/
 /*!
   Compute d = c-a*b: a is a matrix; b,c,d are vectors -- RWCox
+  26 Feb 2002: return value is sum of squares of d vector
 */
 
-void vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
+double vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 {
   register int rows, cols;
   register int i, j;
-  register double sum ;
+  register double sum , qsum ;
+  register double *aa,*bb ;
 
   if (a.cols != b.dim || a.rows != c.dim )
     matrix_error ("Incompatible dimensions for vector multiplication-subtraction");
@@ -911,13 +935,19 @@ void vector_multiply_subtract (matrix a, vector b, vector c, vector * d)
 
   vector_create_noinit (rows, d);
 
+  qsum = 0.0 ; bb = b.elts ;
   for (i = 0;  i < rows;  i++)
     {
-      sum = c.elts[i] ;
+      sum = c.elts[i] ; aa = a.elts[i] ;
       for (j = 0;  j < cols;  j++)
+#if 0
         sum -= a.elts[i][j] * b.elts[j];
-      d->elts[i] = sum ;
+#else
+        sum -= aa[j] * bb[j] ;
+#endif
+      d->elts[i] = sum ; qsum += sum*sum ;
     }
+  return qsum ;  /* 26 Feb 2003 */
 }
 
 /*---------------------------------------------------------------------------*/
@@ -929,6 +959,7 @@ double vector_dot (vector a, vector b)
 {
   register int i, dim;
   register double sum;
+  register double *aa , *bb ;
 
   if (a.dim != b.dim)
     matrix_error ("Incompatible dimensions for vector dot product");
@@ -936,8 +967,13 @@ double vector_dot (vector a, vector b)
   dim = a.dim;
 
   sum = 0.0;
+  aa = a.elts ; bb = b.elts ;
   for (i = 0;  i < dim;  i++)
+#if 0
     sum += a.elts[i] * b.elts[i];
+#else
+    sum += aa[i] * bb[i] ;
+#endif
 
   return (sum);
 }
@@ -951,11 +987,17 @@ double vector_dotself( vector a )
 {
   register int i, dim;
   register double sum;
+  register double *aa ;
 
   dim = a.dim;
   sum = 0.0;
+  aa = a.elts ;
   for (i = 0;  i < dim;  i++)
+#if 0
     sum += a.elts[i] * a.elts[i];
+#else
+    sum += aa[i] * aa[i] ;
+#endif
 
   return (sum);
 }
