@@ -14,6 +14,9 @@
   Mod:      Added routines matrix_sprint and vector_sprint.
   Date:     04 October 1999
 
+  Mod:      Modified matrix_file_read to use mri_read_ascii routine.
+  Date:     12 January 2000
+
 */
 
 
@@ -111,10 +114,13 @@ void matrix_enter (matrix * m);
 /*---------------------------------------------------------------------------*/
 /*
   Read contents of matrix m from specified file.
-  Return null matrix if unable to read matrix from file.
+  If unable to read matrix from file, or matrix has wrong dimensions:
+     If error_exit flag is set, then print error message and exit.
+     Otherwise, return null matrix.
 */
 
-void matrix_file_read (char * filename, int rows, int cols,  matrix * m);
+void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
+		       int error_exit);
 
 
 /*---------------------------------------------------------------------------*/

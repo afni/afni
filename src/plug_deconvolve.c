@@ -55,6 +55,13 @@
 
   Mod:     Small change to order of print out to screen.
   Date:    29 November 1999
+
+  Mod:     Increased maximum number of GLT matrices and linear constraints.
+  Date:    03 January 2000
+
+  Mod:     Modified matrix_file_read to use mri_read_ascii routine.
+  Date:    12 January 2000
+
   
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
@@ -72,8 +79,8 @@
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
 #define MAX_XVARS 250                           /* max. number of parameters */
 #define MAX_STIMTS 20                 /* max. number of stimulus time series */
-#define MAX_GLT 10                    /* max. number of general linear tests */
-#define MAX_CONSTR 10                 /* max. number of linear constraints   */
+#define MAX_GLT 20                    /* max. number of general linear tests */
+#define MAX_CONSTR 20                 /* max. number of linear constraints   */
 
 #define RA_error DC_error
 
@@ -417,7 +424,7 @@ char * DC_main( PLUGIN_interface * plint )
 	matrix_file_read (glt_filename[iglt],
 			  glt_rows[iglt],
 			  plug_p,
-			  &(glt_cmat[iglt]));
+			  &(glt_cmat[iglt]), 0);
 	if (glt_cmat[iglt].elts == NULL)
 	  { 
 	    return "**************************\n"

@@ -20,6 +20,9 @@
   Mod:      Added routines matrix_sprint and vector_sprint.
   Date:     04 October 1999
 
+  Mod:      Modified matrix_file_read to use mri_read_ascii routine.
+  Date:     12 January 2000
+
 */
 
 
@@ -206,39 +209,68 @@ void matrix_enter (matrix * m)
 /*---------------------------------------------------------------------------*/
 /*
   Read contents of matrix m from specified file.
-  Return null matrix if unable to read matrix from file.
+  If unable to read matrix from file, or matrix has wrong dimensions:
+     If error_exit flag is set, then print error message and exit.
+     Otherwise, return null matrix.
 */
 
-void matrix_file_read (char * filename, int rows, int cols,  matrix * m)
+void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
+		       int error_exit)
 {
   int i, j;
-  float fval;
-  FILE * infile = NULL;
 
+  MRI_IMAGE * im, * flim;  /* pointers to image structures 
+			      -- used to read ASCII file */
+  float * far;             /* pointer to MRI_IMAGE floating point data */
+  char message [80];       /* error message */
+
+
+  /*----- Read the matrix file -----*/
+  im = mri_read_ascii (filename); 
+  if (im == NULL)
+    if (error_exit)
+      {
+	sprintf (message,  "Unable to read matrix from file: %s",  filename);
+	matrix_error (message);
+      }
+    else
+      {
+	matrix_destroy (m);
+	return;
+      }
+
+  
+  /*----- Set pointer to data  -----*/
+  flim = mri_transpose (im);  mri_free(im);
+  far = MRI_FLOAT_PTR(flim);
+
+
+  /*----- Test for correct dimensions -----*/
+  if ( (rows != flim->nx) || (cols != flim->ny) )
+    if (error_exit)
+      {
+	sprintf (message, 
+		 "In matrix file: %s   Expected: %d x %d   Actual: %d x %d",
+		 filename, rows, cols, flim->nx, flim->ny);
+	matrix_error (message);
+      }
+    else
+      {
+	matrix_destroy (m);
+	return;
+      }
+  
 
   matrix_create (rows, cols, m);
 
-  infile = fopen (filename, "r");
-  if (infile == NULL) 
-    {
-      matrix_destroy (m);
-      return;
-    }
- 
 
+  /*----- Copy data from image structure to matrix structure -----*/
   for (i = 0;  i < rows;  i++)
-    {
-      for (j = 0;  j < cols;  j++)
-        if (fscanf(infile,"%f", &fval) == EOF)  
-	  {
-	    matrix_destroy (m);
-	    return;
-	  }
-        else
-          m->elts[i][j] = fval;
-    }
+    for (j = 0;  j < cols;  j++)
+      m->elts[i][j] = far[i + j*rows];
 
-  fclose (infile);
+
+  mri_free (flim);  flim = NULL;
 
 }
 

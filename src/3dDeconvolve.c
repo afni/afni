@@ -94,6 +94,17 @@
            number of parameters in the full model.
   Date:    29 November 1999
 
+  Mod:     Increased maximum number of GLT matrices and linear constraints.
+  Date:    03 January 2000
+
+  Mod:     Added -mask option to speed up processing by performing calculations
+           on brain voxels only.
+  Date:    11 January 2000  
+
+  Mod:     Modified matrix_file_read to use mri_read_ascii routine.
+  Date:    12 January 2000
+
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -103,15 +114,15 @@
 
 #define PROGRAM_NAME "3dDeconvolve"                  /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "29 November 1999"          /* date of last program mod */
+#define PROGRAM_DATE "12 January 2000"           /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
 #define MAX_NAME_LENGTH 80              /* max. streng length for file names */
 #define MAX_XVARS 250                           /* max. number of parameters */
 #define MAX_STIMTS 20               /* max. number of stimulus time series */
-#define MAX_GLT 10                    /* max. number of general linear tests */
-#define MAX_CONSTR 10                 /* max. number of linear constraints   */
+#define MAX_GLT 20                    /* max. number of general linear tests */
+#define MAX_CONSTR 20                 /* max. number of linear constraints   */
 
 #define RA_error DC_error
 
@@ -139,6 +150,7 @@ typedef struct DC_options
   float rms_min;           /* minimum rms error to reject reduced model */
   float fdisp;             /* minimum f-statistic for display */ 
   char * input_filename;   /* input 3d+time dataset */
+  char * mask_filename;    /* input mask dataset */
   char * input1D_filename; /* input fMRI measurement time series */
   int nodata;              /* flag for 'no data' option */
   int p;                   /* total number of parameters in the model */
@@ -202,6 +214,7 @@ void display_help_menu()
     "Usage:                                                                 \n"
     "3dDeconvolve                                                           \n"
     "-input fname         fname = filename of 3d+time input dataset         \n"
+    "[-mask mname]        mname = filename of 3d mask dataset               \n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
     "[-nodata]            Evaluate experimental design only (no input data) \n"
     "[-nfirst fnum]       fnum = number of first dataset image to use in    \n"
@@ -315,6 +328,7 @@ void initialize_options
 
   /*----- initialize character strings -----*/
   option_data->input_filename = NULL;
+  option_data->mask_filename = NULL;  
   option_data->input1D_filename = NULL;
   option_data->bucket_filename = NULL;
   option_data->fitts_filename = NULL;
@@ -387,6 +401,19 @@ void get_options
 	  option_data->input_filename = malloc (sizeof(char)*MAX_NAME_LENGTH);
 	  MTEST (option_data->input_filename);
 	  strcpy (option_data->input_filename, argv[nopt]);
+	  nopt++;
+	  continue;
+	}
+      
+
+      /*-----   -mask filename   -----*/
+      if (strncmp(argv[nopt], "-mask", 5) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  DC_error ("need argument after -mask ");
+	  option_data->mask_filename = malloc (sizeof(char)*MAX_NAME_LENGTH);
+	  MTEST (option_data->mask_filename);
+	  strcpy (option_data->mask_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
@@ -876,6 +903,7 @@ void read_input_data
 (
   DC_options * option_data,         /* deconvolution program options */
   THD_3dim_dataset ** dset_time,    /* input 3d+time data set */
+  THD_3dim_dataset ** mask_dset,    /* input mask data set */
   float ** fmri_data,               /* input fMRI time series data */
   int * fmri_length,                /* length of fMRI time series */
   float ** stimulus,                /* stimulus time series arrays */
@@ -942,13 +970,26 @@ void read_input_data
     {
       /*----- Read the input 3d+time dataset -----*/
       *dset_time = THD_open_one_dataset (option_data->input_filename);
-      if ((*dset_time) == NULL)  
+      if (!ISVALID_3DIM_DATASET(*dset_time))  
 	{ 
 	  sprintf (message,  "Unable to open data file: %s", 
 		   option_data->input_filename);
 	  DC_error (message);
 	}  
       THD_load_datablock ((*dset_time)->dblk, NULL);
+
+      if (option_data->mask_filename != NULL)
+	{
+	  /*----- Read the input mask dataset -----*/
+	  *mask_dset = THD_open_dataset (option_data->mask_filename);
+	  if (!ISVALID_3DIM_DATASET(*mask_dset))  
+	    { 
+	      sprintf (message,  "Unable to open mask file: %s", 
+		       option_data->mask_filename);
+	      DC_error (message);
+	    }  
+	  THD_load_datablock ((*mask_dset)->dblk, NULL);
+	}
     }
   else
     DC_error ("Must specify input data");
@@ -975,7 +1016,7 @@ void read_input_data
       {
 	matrix_file_read (option_data->glt_filename[iglt],
 			  option_data->glt_rows[iglt],
-			  p, &(glt_cmat[iglt]));
+			  p, &(glt_cmat[iglt]), 1);
 	if (glt_cmat[iglt].elts == NULL)
 	  { 
 	    sprintf (message,  "Unable to read GLT matrix from file: %s", 
@@ -1153,6 +1194,7 @@ void check_for_valid_inputs
 (
   DC_options * option_data,       /* deconvolution program options */
   THD_3dim_dataset * dset_time,   /* input 3d+time data set */
+  THD_3dim_dataset * mask_dset,   /* input mask data set */
   int fmri_length,                /* length of input fMRI time series */
   int * stim_length               /* length of stimulus time series arrays */
 )
@@ -1213,7 +1255,24 @@ void check_for_valid_inputs
   N = NLast - NFirst + 1;
   option_data->N = N;
 
-  
+
+  /*----- If mask is used, check for compatible dimensions -----*/
+  if (mask_dset != NULL)
+    {
+      if ( (DSET_NX(dset_time) != DSET_NX(mask_dset))
+	   || (DSET_NY(dset_time) != DSET_NY(mask_dset))
+	   || (DSET_NZ(dset_time) != DSET_NZ(mask_dset)) )
+	{
+	  sprintf (message, "%s and %s have incompatible dimensions",
+		   option_data->input_filename, option_data->mask_filename);
+	  DC_error (message);
+	}
+
+      if (DSET_NVALS(mask_dset) != 1 )
+	DC_error ("Must specify 1 sub-brick from mask dataset");
+    }
+
+
   /*----- Check number of stimulus time series -----*/
   if ((num_stimts < 0) || (num_stimts > MAX_STIMTS))
     {
@@ -1318,6 +1377,7 @@ void allocate_memory
   int ip;                    /* parameter index */
   int p;                     /* total number of parameters */
   int nxyz;                  /* total number of voxels */
+  int ixyz;                  /* voxel index */
   int is;                    /* stimulus index */
   int num_stimts;            /* number of stimulus time series */
   int glt_num;               /* number of general linear tests */
@@ -1349,6 +1409,12 @@ void allocate_memory
       MTEST((*coef_vol)[ip]);    
       MTEST((*scoef_vol)[ip]);    
       MTEST((*tcoef_vol)[ip]);  
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  (*coef_vol)[ip][ixyz]  = 0.0;
+	  (*scoef_vol)[ip][ixyz] = 0.0;
+	  (*tcoef_vol)[ip][ixyz] = 0.0;
+	}
     }
 
   *fpart_vol = (float **) malloc (sizeof(float *) * num_stimts);
@@ -1357,6 +1423,8 @@ void allocate_memory
     {
       (*fpart_vol)[is] = (float *) malloc (sizeof(float) * nxyz);   
       MTEST((*fpart_vol)[is]);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	(*fpart_vol)[is][ixyz] = 0.0;
     }
 
   *rpart_vol = (float **) malloc (sizeof(float *) * num_stimts);
@@ -1365,11 +1433,19 @@ void allocate_memory
     {
       (*rpart_vol)[is] = (float *) malloc (sizeof(float) * nxyz);   
       MTEST((*rpart_vol)[is]);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	(*rpart_vol)[is][ixyz] = 0.0;
     }
 
   *mse_vol   = (float *) malloc (sizeof(float) * nxyz);   MTEST(*mse_vol);
   *ffull_vol = (float *) malloc (sizeof(float) * nxyz);   MTEST(*ffull_vol);
   *rfull_vol = (float *) malloc (sizeof(float) * nxyz);   MTEST(*rfull_vol);
+  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+    {
+      (*mse_vol)[ixyz]   = 0.0;
+      (*ffull_vol)[ixyz] = 0.0;
+      (*rfull_vol)[ixyz] = 0.0;
+    }
 
 
   /*----- Allocate memory space for GLT volume data -----*/
@@ -1387,6 +1463,8 @@ void allocate_memory
 	{
 	  (*glt_coef_vol)[iglt][ilc] = (float *) malloc (sizeof(float) * nxyz);
 	  MTEST((*glt_coef_vol)[iglt][ilc]);	  
+	  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	    (*glt_coef_vol)[iglt][ilc][ixyz] = 0.0;
 	}
 
       (*glt_fstat_vol)[iglt] = (float *) malloc (sizeof(float) * nxyz);   
@@ -1394,6 +1472,12 @@ void allocate_memory
 
       (*glt_rstat_vol)[iglt] = (float *) malloc (sizeof(float) * nxyz);   
       MTEST((*glt_rstat_vol)[iglt]);
+
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  (*glt_fstat_vol)[iglt][ixyz] = 0.0;
+	  (*glt_rstat_vol)[iglt][ixyz] = 0.0;
+	}
       
     }
 
@@ -1407,6 +1491,8 @@ void allocate_memory
 	{
 	  (*fitts_vol)[it] = (float *) malloc (sizeof(float *) * nxyz);
 	  MTEST ((*fitts_vol)[it]);
+	  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	    (*fitts_vol)[it][ixyz] = 0.0;
 	}
     }
 
@@ -1418,6 +1504,8 @@ void allocate_memory
 	{
 	  (*errts_vol)[it] = (float *) malloc (sizeof(float *) * nxyz);
 	  MTEST ((*errts_vol)[it]);
+	  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	    (*errts_vol)[it][ixyz] = 0.0;
 	}
     }
 }
@@ -1434,6 +1522,7 @@ void initialize_program
   char ** argv,                     /* array of input arguments */ 
   DC_options ** option_data,        /* deconvolution algorithm options */
   THD_3dim_dataset ** dset_time,    /* input 3d+time data set */
+  THD_3dim_dataset ** mask_dset,    /* input mask data set */
   float ** fmri_data,               /* input fMRI time series data */
   int * fmri_length,                /* length of fMRI time series */
   float ** stimulus,                /* stimulus time series arrays */
@@ -1475,7 +1564,7 @@ void initialize_program
 
 
   /*----- Read input data -----*/
-  read_input_data (*option_data, dset_time, fmri_data, fmri_length,
+  read_input_data (*option_data, dset_time, mask_dset, fmri_data, fmri_length,
 		   stimulus, stim_length, glt_cmat);
 
 
@@ -1484,7 +1573,8 @@ void initialize_program
  
 
   /*----- Check for valid inputs -----*/
-  check_for_valid_inputs (*option_data, *dset_time, *fmri_length, stim_length);
+  check_for_valid_inputs (*option_data, *dset_time, *mask_dset, 
+			  *fmri_length, stim_length);
   
 
   /*----- Allocate memory for output volumes -----*/
@@ -1713,6 +1803,7 @@ void calculate_results
 (
   DC_options * option_data,         /* deconvolution algorithm options */
   THD_3dim_dataset * dset,          /* input 3d+time data set */
+  THD_3dim_dataset * mask,          /* input mask data set */
   float * fmri_data,                /* input fMRI time series data */
   int fmri_length,                  /* length of fMRI time series */
   float ** stimulus,                /* stimulus time series arrays */
@@ -1736,6 +1827,7 @@ void calculate_results
   
 {
   float * ts_array = NULL;    /* array of measured data for one voxel */
+  float mask_val[1];          /* value of mask at current voxel */
 
   int p;                      /* number of parameters in the full model */
   int q;                      /* number of parameters in the baseline model */
@@ -1890,6 +1982,13 @@ void calculate_results
       /*----- Loop over all voxels -----*/
       for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	{
+	  /*----- Apply mask? -----*/
+	  if (mask != NULL)
+	    {
+	      extract_ts_array (mask, ixyz, mask_val);
+	      if (mask_val[0] == 0.0)  continue; 
+	    }
+
 	  
 	  /*----- Extract Y-data for this voxel -----*/
 	  if (option_data->input1D_filename != NULL)
@@ -1931,7 +2030,8 @@ void calculate_results
 	  
 	  
 	  /*----- Report results for this voxel -----*/
-	  if ((ffull > option_data->fdisp) && (option_data->fdisp >= 0.0))
+	  if ( ((ffull > option_data->fdisp) && (option_data->fdisp >= 0.0))
+	       || (option_data->input1D_filename != NULL) )
 	    {
 	      printf ("\n\nResults for Voxel #%d: \n", ixyz);
 	      report_results (q, num_stimts, stim_label, min_lag, max_lag,
@@ -2913,6 +3013,7 @@ int main
 {
   DC_options * option_data;               /* deconvolution algorithm options */
   THD_3dim_dataset * dset_time = NULL;    /* input 3d+time data set */
+  THD_3dim_dataset * mask_dset = NULL;    /* input mask data set */
   float * fmri_data = NULL;               /* input fMRI time series data */
   int fmri_length;                        /* length of fMRI time series */
   float * stimulus[MAX_STIMTS];           /* stimulus time series arrays */
@@ -2947,7 +3048,7 @@ int main
   
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, 
-		      &dset_time, &fmri_data, &fmri_length,
+		      &dset_time, &mask_dset, &fmri_data, &fmri_length,
 		      stimulus, stim_length, glt_cmat, &coef_vol, &scoef_vol, 
 		      &tcoef_vol, &fpart_vol, &rpart_vol, &mse_vol, &ffull_vol,
 		      &rfull_vol, &glt_coef_vol, &glt_fstat_vol, 
@@ -2955,16 +3056,18 @@ int main
 
 
   /*----- Perform deconvolution -----*/
-  calculate_results (option_data, dset_time, fmri_data, fmri_length,
+  calculate_results (option_data, dset_time, mask_dset, fmri_data, fmri_length,
 		     stimulus, stim_length, glt_cmat,
 		     coef_vol, scoef_vol, tcoef_vol, fpart_vol, rpart_vol, 
 		     mse_vol, ffull_vol, rfull_vol, glt_coef_vol, 
 		     glt_fstat_vol, glt_rstat_vol, fitts_vol, errts_vol);
   
 
-  /*----- Deallocate memory for input dataset -----*/   
+  /*----- Deallocate memory for input datasets -----*/   
   if (dset_time != NULL)  
     { THD_delete_3dim_dataset (dset_time, False);  dset_time = NULL; }
+  if (mask_dset != NULL)  
+    { THD_delete_3dim_dataset (mask_dset, False);  mask_dset = NULL; }
 
 
   /*----- Write requested output files -----*/

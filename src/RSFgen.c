@@ -16,6 +16,13 @@
   Mod:     Changed option label "-nstim" to "-num_stimts".
   Date:    29 November 1999
 
+  Mod:     Added option "-nblock" to specify block length for each stim fn.
+  Date:    15 December 1999
+
+  Mod:     Added flag to expand array for block type design.
+  Date:    14 January 2000
+
+
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
@@ -25,7 +32,7 @@
 
 #define PROGRAM_NAME "RSFgen"                        /* name of this program */
 #define PROGRAM_AUTHOR "B. Douglas Ward"                   /* program author */
-#define PROGRAM_DATE "29 November 1999"          /* date of last program mod */
+#define PROGRAM_DATE "14 January 2000"           /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -46,9 +53,12 @@
 #define MAX_STRING_LENGTH 80   /* max. length of input string */
 
 
-int nt = 0;             /* length of time series */
-int num_stimts = 0;       /* number of input stimuli (experimental conditions) */
+int NT = 0;             /* length of stimulus time series */
+int nt = 0;             /* length of simple time series (block length = 1) */
+int num_stimts = 0;     /* number of input stimuli (experimental conditions) */
 int num_reps[MAX_STIM]; /* number of repetitions for each stimulus */
+int nblock[MAX_STIM];   /* block length for each stimulus */
+int expand = 0;         /* flag to expand the array for block type design */
 long seed = 1234567;    /* random number seed */
 char * prefix = NULL;   /* prefix for output .1D stimulus functions */
 int one_file = 0;       /* flag for place stim functions into a single file */
@@ -90,12 +100,20 @@ void display_help_menu()
     "-nt n            n = length of time series                             \n"
     "-num_stimts p    p = number of input stimuli (experimental conditions) \n"
     "-nreps i r       r = number of repetitions for stimulus i  (1<=i<=p)   \n"
+    "[-nblock i k]    k = block length for stimulus i  (1<=i<=p)            \n"
+    "                     (default: k = 1)                                  \n"
     "[-seed s]        s = random number seed                                \n"
     "[-one_file]      place stimulus functions into a single .1D file       \n"
     "[-prefix pname]  pname = prefix for p output .1D stimulus functions    \n"
     "                   e.g., pname1.1D, pname2.1D, ..., pnamep.1D          \n"
     "                 Warning:  This will overwrite pre-existing .1D files  \n"
     "                           that have the same name.                    \n"
+    "                                                                       \n"
+    "                    p                                                  \n"
+    "Note: Require n >= Sum (r[i] * k[i])                                   \n"
+    "                   i=1                                                 \n"
+    "                                                                       \n"
+    "Warning: This program will overwrite pre-existing .1D files            \n"
     );
   
   exit(0);
@@ -137,7 +155,7 @@ void get_options
 	  sscanf (argv[nopt], "%d", &ival);
 	  if (ival <= 0)
 	    RSF_error ("illegal argument after -nt ");
-	  nt = ival;
+	  NT = ival;
 	  nopt++;
 	  continue;
 	}
@@ -172,6 +190,27 @@ void get_options
 	  if (ival <= 0)
 	    RSF_error ("illegal r argument for -nreps i r ");
 	  num_reps[i] = ival;
+	  nopt++;
+	  continue;
+	}
+
+
+      /*-----  -nblock i k  -----*/
+      if (strncmp(argv[nopt], "-nblock", 7) == 0)
+	{
+	  nopt++;
+	  if (nopt+1 >= argc)  RSF_error ("need 2 arguments after -nblock ");
+	  sscanf (argv[nopt], "%d", &ival);
+	  if ((ival <= 0) || (ival > num_stimts))
+	    RSF_error ("illegal i argument for -nblock i k ");
+	  i = ival - 1;
+	  nopt++;
+
+	  sscanf (argv[nopt], "%d", &ival);
+	  if (ival <= 0)
+	    RSF_error ("illegal k argument for -nblock i k ");
+	  nblock[i] = ival;
+	  if (ival > 1)  expand = 1;
 	  nopt++;
 	  continue;
 	}
@@ -220,10 +259,11 @@ void get_options
     }
 
   /*----- Print options -----*/
-  printf ("nt         = %d \n", nt);
+  printf ("nt         = %d \n", NT);
   printf ("num_stimts = %d \n", num_stimts);
   for (i = 0;  i < num_stimts;  i++)
-    printf ("nreps[%d]  = %d \n", i+1, num_reps[i]);
+    printf ("nreps[%d]  = %d    nblock[%d] = %d \n", 
+	    i+1, num_reps[i], i+1, nblock[i]);
   printf ("seed       = %ld \n", seed);
 }
 
@@ -237,7 +277,8 @@ void initialize
 (  
   int argc,                /* number of input arguments */
   char ** argv,            /* array of input arguments */ 
-  int ** design            /* experimental design array */  
+  int ** darray,           /* original design array (block length = 1) */
+  int ** earray            /* expanded design array (arbitrary block length) */
 )
 
 { 
@@ -249,26 +290,33 @@ void initialize
     num_reps[i] = 0;
 
 
+  /*----- Initialize block length array -----*/
+  for (i = 0;  i < MAX_STIM;  i++)
+    nblock[i] = 1;
+
+
   /*----- Get command line inputs -----*/
   get_options (argc, argv);
 
 
   /*----- Check for valid inputs -----*/
-  if (nt == 0)        RSF_error ("Must specify nt");
+  if (NT == 0)          RSF_error ("Must specify nt");
   if (num_stimts == 0)  RSF_error ("Must specify num_stimts");
   total = 0;
+  nt = NT;
   for (i = 0;  i < num_stimts;  i++)
     {
       if (num_reps[i] == 0)  
-	RSF_error ("Must specify nreps >0 for each stimulus");
-      total += num_reps[i];
+	RSF_error ("Must specify nreps > 0 for each stimulus");
+      total += num_reps[i] * nblock[i];
+      nt -= num_reps[i] * (nblock[i] - 1);
     }
-  if (total > nt)  RSF_error ("Can't have sum of nreps > nt ");
+  if (total > NT)  RSF_error ("nt < Sum (r[i] * k[i]) ");
  
 
   /*----- Allocate memory for experimental design -----*/
-  *design = (int *) malloc (sizeof(int) * nt);
-  MTEST (*design);
+  *darray = (int *) malloc (sizeof(int) * nt);   MTEST (*darray);
+  *earray = (int *) malloc (sizeof(int) * NT);   MTEST (*earray);
 
 
   /*----- Initialize random number seed -----*/
@@ -321,6 +369,10 @@ void shuffle_array (int * design)
     {
       j = rand_uniform(0.0,1.0) * nt;
 
+      /*----- Just in case -----*/
+      if (j < 0)  j = 0;
+      if (j > nt-1)  j = nt-1;
+
       temp = design[i];
       design[i] = design[j];
       design[j] = temp;
@@ -332,21 +384,73 @@ void shuffle_array (int * design)
 
 /*---------------------------------------------------------------------------*/
 /*
-  Print the randomized experimental design array.
+  Expand the experimental design array, to allow for block-type designs.
 */
 
-void print_array (int * design)
+void expand_array (int * darray, int * earray)
+
+{
+  int i, j, k, m;
+
+  j = 0;
+  for (i = 0;  i < nt;  i++)
+    {
+      m = darray[i];
+
+      if (m == 0)
+	{
+	  earray[j] = 0;
+	  j++;
+	}
+      else
+	{
+	  for (k = 0;  k < nblock[m-1];  k++)
+	    {
+	      earray[j] = m;
+	      j++;
+	    }  
+	}
+    }
+      
+  return;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Print array.
+*/
+
+void print_array (int * array, int n)
 
 {
   int i;
 
-  for (i = 0;  i < nt;  i++)
+  for (i = 0;  i < n;  i++)
     {
-      printf (" %2d ", design[i]);
+      printf (" %2d ", array[i]);
       if ((i+1) % 20 == 0)  printf ("\n");
     }
 
   printf ("\n");
+
+  return;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Print labeled array.
+*/
+
+void sprint_array (char * str, int * array, int n)
+
+{
+  int i;
+
+  printf ("%s \n", str);
+
+  print_array (array, n);
 
   return;
 }
@@ -366,7 +470,7 @@ void write_one_ts (char * filename, int * array)
   outfile = fopen (filename, "w");
 
 
-  for (i = 0;  i < nt;  i++)
+  for (i = 0;  i < NT;  i++)
     {
       fprintf (outfile, "%d", array[i]);
       fprintf (outfile, " \n");
@@ -391,7 +495,7 @@ void write_many_ts (char * filename, int * design)
   outfile = fopen (filename, "w");
 
 
-  for (it = 0;  it < nt;  it++)
+  for (it = 0;  it < NT;  it++)
     {
       for (is = 0;  is < num_stimts;  is++)
 	if (design[it] == is+1)
@@ -427,14 +531,14 @@ void write_results (int * design)
   else
     {
       /*----- Allocate memory for output array -----*/
-      array = (int *) malloc (sizeof(int) * nt);
+      array = (int *) malloc (sizeof(int) * NT);
       MTEST (array);
 
       for (is = 1;  is <= num_stimts; is++)
 	{
 	  sprintf (filename, "%s%d.1D", prefix, is);
 	  printf ("\nWriting file: %s\n", filename);
-	  for (i = 0;  i < nt;  i++)
+	  for (i = 0;  i < NT;  i++)
 	    {
 	      if (design[i] == is)  array[i] = 1;
 	      else                  array[i] = 0;
@@ -458,7 +562,8 @@ int main
 )
 
 {
-  int * design = NULL;
+  int * darray = NULL;     /* design array (block length = 1) */
+  int * earray = NULL;     /* expanded array (arbitrary block length) */
 
   
   /*----- Identify software -----*/
@@ -470,27 +575,39 @@ int main
 
   
   /*----- Perform program initialization -----*/
-  initialize (argc, argv, &design);
+  initialize (argc, argv, &darray, &earray);
 
 
-  /*----- Generate random stimulus functions -----*/
-  fill_array (design);
-
-  printf ("\nOriginal array: \n");
-  print_array (design);
-
-  shuffle_array (design);
+  /*----- Generate required number of repetitions of stim. fns. -----*/
+  fill_array (darray);
+  sprint_array ("\nOriginal array: ", darray, nt);
 
 
-  /*----- Output results -----*/
-  printf ("\nShuffled array: \n");
-  print_array (design);
+  /*----- Randomize the order of the stimulus functions -----*/
+  shuffle_array (darray);
+  sprint_array ("\nShuffled array: ", darray, nt);
 
-  if (prefix != NULL)  write_results (design);
+  
+  if (expand)
+    {
+      /*----- Expand the array for block type designs -----*/
+      expand_array (darray, earray);
+      sprint_array ("\nExpanded array: ", earray, NT);
+  
+      /*----- Output results -----*/
+      if (prefix != NULL)  write_results (earray);
+    }
+  else
+    {
+ 
+      /*----- Output results -----*/
+      if (prefix != NULL)  write_results (darray);
+    }
 
 
   /*----- Deallocate memory -----*/
-  if (design != NULL)  { free (design); design = NULL; }
+  if (darray != NULL)  { free (darray); darray = NULL; }
+  if (earray != NULL)  { free (earray); earray = NULL; }
 
   return;
 }
