@@ -1611,10 +1611,11 @@ ENTRY("ISQ_zoom_CB") ;
 
    } else {
 
-     /*-- if here, change offset from arrowpad --*/
-
-     int zlev=seq->zoom_fac ;
-     float mh=(zlev-1.001)/zlev , dh = 0.25/zlev ,
+     /*-- if here, change panning offset from arrowpad --*/
+                        /* step size = 0.05 of window size */
+                                     /* || */
+     int zlev=seq->zoom_fac ;        /* VV */
+     float mh=(zlev-1.001)/zlev , dh = 0.05/zlev ,
            hh=seq->zoom_hor_off , hhold=hh , vv=seq->zoom_ver_off , vvold=vv ;
 
      if( zlev == 1 ) EXRETURN ;  /* should not happen */
