@@ -101,8 +101,9 @@ MRI_IMARR * mri_read_mpeg( char *fname )
 
 int mri_imcount_mpeg( char *fname )
 {
-   char *pg , **ff ;
-   int ii , nf ;
+   char *pg , **ff , *fn ;
+   int ii , nf=0 ;
+   FILE *fp ;
 
    /*--- check input for OK-ness ---*/
 
@@ -114,22 +115,21 @@ int mri_imcount_mpeg( char *fname )
 
    /*--- create the filter for this file and run it to create .ppm files ---*/
 
-   pg = malloc(strlen(fname)+strlen(mpeg_filter)+32) ;  /* string to hold filter */
-   sprintf( pg , mpeg_filter , fname ) ;
+   pg = malloc(strlen(fname)+strlen(mpeg_filter)+64) ;  /* string to hold filter */
+   fn = malloc(strlen(fname)+32) ;
+   sprintf(fn,"-count %s",fname) ;
+   sprintf( pg , mpeg_filter , fn ) ;
+   free(fn) ;
    THD_mkdir( tmpdir ) ;                 /* create the temp directory */
    if( !THD_is_directory(tmpdir) ){ free(pg); return 0; }  /* can't?  */
 
    system( pg ) ;    /* run the command */
 
-   /*-- count files in the temp directory --*/
+   /*-- open the COUNT file in the temp directory --*/
 
-   sprintf( pg , "%s*.ppm" , tmpdir ) ;
-   MCW_wildcards( pg , &nf , &ff ) ;
-
-   /* delete files from the temp directory */
-
-   for( ii=0 ; ii < nf ; ii++ ) remove( ff[ii] ) ;
+   sprintf( pg , "%sCOUNT" , tmpdir ) ;
+   fp = fopen(pg,"rb") ;
+   if( fp != NULL ){ fscanf(fp,"%d",&nf); fclose(fp); remove(pg); }
    remove( tmpdir ) ; free(pg) ;
-
    return nf ;
 }

@@ -29,6 +29,8 @@
 #include "convert.h"
 
 char *prefix = NULL ;  /* RWCox */
+int   count  = 0    ;
+int docount  = 0    ;
 #include <string.h>
 
 static void save_ppm (int width, int height, uint8_t * buf, int num)
@@ -36,13 +38,15 @@ static void save_ppm (int width, int height, uint8_t * buf, int num)
     char filename[1000];
     FILE * ppmfile;
 
+    count++ ;
+    if( docount ) return ;
+
     if( prefix == NULL )
       sprintf (filename, "%06d.ppm", num);
     else
       sprintf (filename, "%s%06d.ppm", prefix,num);
     ppmfile = fopen (filename, "wb");
-    if (!ppmfile)
-	return;
+    if (!ppmfile) return;
     fprintf (ppmfile, "P6\n%d %d\n255\n", width, height);
     fwrite (buf, 3 * width, height, ppmfile);
     fclose (ppmfile);
@@ -91,8 +95,20 @@ int main (int argc, char ** argv)
     FILE * file;
     int iarg=1 ;
 
-    if( iarg < argc && strncmp(argv[iarg],"-p",2) == 0 ){  /* RWCox */
-      prefix = argv[++iarg] ; ++iarg ;
+    if( argc < 2 || strstr(argv[1],"-help") != NULL ){       /* RWCox */
+      printf("Usage:  mpegtoppm [-prefix ppp] file.mpg\n"
+             "Writes files named 'ppp'000001.ppm, etc.\n" ) ;
+      exit(0) ;
+    }
+
+    while( iarg < argc && argv[iarg][0] == '-' ){   /* RWCox: options */
+      if( strncmp(argv[iarg],"-c",2) == 0 ){
+        docount = 1 ; ++iarg ; continue ;
+      }
+
+      if( strncmp(argv[iarg],"-p",2) == 0 ){
+        prefix = argv[++iarg] ; ++iarg ; continue ;
+      }
     }
 
     if( iarg < argc ){
@@ -105,6 +121,16 @@ int main (int argc, char ** argv)
 	file = stdin;
 
     sample2 (file);
+
+    if( docount && count > 0 ){   /* RWCox */
+      char filename[1000] = "\0" ;
+      FILE *fp ;
+      if( prefix != NULL ) strcpy(filename,prefix) ;
+      strcat(filename,"COUNT") ;
+      fp = fopen (filename, "wb");
+      fprintf(fp,"%d\n",count) ;
+      fclose(fp) ;
+    }
 
     return 0;
 }
