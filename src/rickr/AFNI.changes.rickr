@@ -383,4 +383,8 @@
       - fixed loss of default node indices (from -nodes_1D change)
       - added '-hist' option
       - display angle averages only if at least 1 total is computed
+  * modified SUMA_3dVol2Surf.[ch] (-> 3dVol2Surf v3.8)
+      - added '-surf_A' and '-surf_B' to specify surfaces from the spec file
+      - depreciated option '-kso'
+      - added '-hist' option
   

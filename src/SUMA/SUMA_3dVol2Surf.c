@@ -1,5 +1,5 @@
 
-#define VERSION "version 3.7 (November 4, 2003)"
+#define VERSION "version 3.8 (December 15, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dVol2Surf - dump ascii dataset values corresponding to a surface
@@ -56,82 +56,92 @@
  *----------------------------------------------------------------------
 */
 
-/*----------------------------------------------------------------------
- * history:
- *
- * 3.7  November 4, 2003
- *   - added ENTRY() stuff
- *
- * 3.6  October 21, 2003
- *   - finish upates for -f_keep_surf_order option
- *     (help and sopt)
- *
- * 3.5  October 20, 2003
- *   - call the new engine function, SUMA_LoadSpec_eng()
- *     (this will restrict the debug output from SUMA_LoadSpec())
- *
- * 3.4  October 1, 2003
- *   - added -oom_value option
- *   - added additional help example (for -oob and -oom options)
- *
- * 3.3  September 23, 2003
- *   - added help for -no_headers option
- *
- * 3.2  September 20, 2003
- *   - added max_abs mapping function
- *   - added options '-oob_index' and '-oob_value'
- *   - added CHECK_NULL_STR macro
- *
- * 3.1  September 17, 2003
- *   - fixed the help instructions for '-cmask'
- *
- * 3.0  August 05, 2003
- *   - renamed SUMA_3dSurfMaskDump.[ch] to SUMA_3dVol2Surf.[ch]
- *   - all output functions now go through dump_surf_3dt
- *   - dump_surf_3dt() is a generalized function to get an MRI_IMARR for one
- *     or a pair of nodes, by converting to a segment of points
- *   - added v2s_adjust_endpts() to apply segment endpoint modifications
- *   - added segment_imarr() to get the segment of points and fill the
- *     MRI_IMARR list (along with other info)
- *   - filter functions have been taken to v2s_apply_filter()
- *   - added min, max and seg_vals map functions (filters)
- *   - added options of the form -f_pX_XX to adjust segment endpoints
- *   - added -dnode option for specific node debugging
- *   - changed -output option to -out_1D
- *   - added new debug info
- *   - added checking of surface order (process from inner to outer)
- *
- * 2.3  July 21, 2003
- *   - fixed problem with nodes outside grid_par dataset
- *   - added min/max distance info
- *
- * 2.2  June 19, 2003
- *   - added -f_index INDEX_TYPE option (to index across nodes, too)
- *   - set the default of -f_steps to 2
- *   - use SMD prefix for macros
- *
- * 2.1  June 10, 2003
- *   - added ave map function (see dump_ave_map)
- *
- * 2.0  June 06, 2003
- *   - re-wrote program according to 3dSurf2Vol (which was written
- *     according to this :) - using map functions and node lists
- *   - added midpoint map function
- *
- * 1.3  February 14, 2003
- *   - optionally enable more SUMA debugging
- *
- * 1.2  February 13, 2003
- *   - init SUMAg array pointers, check before calling Free_()
- *
- * 1.1  February 11, 2003
- *   - handle no arguments as with -help
- *   - minor updates to -help
- *
- * 1.0  February 10, 2003
- *   - initial release
- *----------------------------------------------------------------------
-*/
+/* define program history for -hist option */
+
+static char g_history[] = 
+
+    "----------------------------------------------------------------------\n"
+    "history:\n"
+    "\n"
+    "3.8  December 15, 2003  [rickr]\n"
+    "  - added options '-surf_A' and '-surf_B'\n"
+    "  - called SUMA_spec_select_surfs() and SUMA_spec_set_map_refs()\n"
+    "    to pick requested surfaces from spec file\n"
+    "  - removed option '-kso'\n"
+    "  - added '-hist' option\n"
+    "\n"
+    "3.7  November 04, 2003  [rickr]\n"
+    "  - added ENTRY() stuff\n"
+    "\n"
+    "3.6  October 21, 2003  [rickr]\n"
+    "  - finish upates for -f_keep_surf_order option\n"
+    "    (help and sopt)\n"
+    "\n"
+    "3.5  October 20, 2003  [rickr]\n"
+    "  - call the new engine function, SUMA_LoadSpec_eng()\n"
+    "    (this will restrict the debug output from SUMA_LoadSpec())\n"
+    "\n"
+    "3.4  October 01, 2003  [rickr]\n"
+    "  - added -oom_value option\n"
+    "  - added additional help example (for -oob and -oom options)\n"
+    "\n"
+    "3.3  September 23, 2003  [rickr]\n"
+    "  - added help for -no_headers option\n"
+    "\n"
+    "3.2  September 20, 2003  [rickr]\n"
+    "  - added max_abs mapping function\n"
+    "  - added options '-oob_index' and '-oob_value'\n"
+    "  - added CHECK_NULL_STR macro\n"
+    "\n"
+    "3.1  September 17, 2003  [rickr]\n"
+    "  - fixed the help instructions for '-cmask'\n"
+    "\n"
+    "3.0  August 05, 2003  [rickr]\n"
+    "  - renamed SUMA_3dSurfMaskDump.[ch] to SUMA_3dVol2Surf.[ch]\n"
+    "  - all output functions now go through dump_surf_3dt\n"
+    "  - dump_surf_3dt() is a generalized function to get an MRI_IMARR for\n"
+    "    one or a pair of nodes, by converting to a segment of points\n"
+    "  - added v2s_adjust_endpts() to apply segment endpoint modifications\n"
+    "  - added segment_imarr() to get the segment of points and fill the\n"
+    "    MRI_IMARR list (along with other info)\n"
+    "  - filter functions have been taken to v2s_apply_filter()\n"
+    "  - added min, max and seg_vals map functions (filters)\n"
+    "  - added options of the form -f_pX_XX to adjust segment endpoints\n"
+    "  - added -dnode option for specific node debugging\n"
+    "  - changed -output option to -out_1D\n"
+    "  - added new debug info\n"
+    "  - added checking of surface order (process from inner to outer)\n"
+    "\n"
+    "2.3  July 21, 2003  [rickr]\n"
+    "  - fixed problem with nodes outside grid_par dataset\n"
+    "  - added min/max distance info\n"
+    "\n"
+    "2.2  June 19, 2003  [rickr]\n"
+    "  - added -f_index INDEX_TYPE option (to index across nodes, too)\n"
+    "  - set the default of -f_steps to 2\n"
+    "  - use SMD prefix for macros\n"
+    "\n"
+    "2.1  June 10, 2003  [rickr]\n"
+    "  - added ave map function (see dump_ave_map)\n"
+    "\n"
+    "2.0  June 06, 2003  [rickr]\n"
+    "  - re-wrote program according to 3dSurf2Vol (which was written\n"
+    "    according to this :) - using map functions and node lists\n"
+    "  - added midpoint map function\n"
+    "\n"
+    "1.3  February 14, 2003  [rickr]\n"
+    "  - optionally enable more SUMA debugging\n"
+    "\n"
+    "1.2  February 13, 2003  [rickr]\n"
+    "  - init SUMAg array pointers, check before calling Free_()\n"
+    "\n"
+    "1.1  February 11, 2003  [rickr]\n"
+    "  - handle no arguments as with -help\n"
+    "  - minor updates to -help\n"
+    "\n"
+    "1.0  February 10, 2003  [rickr]\n"
+    "  - initial release\n"
+    "---------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
  * todo:
@@ -723,8 +733,10 @@ ENTRY("alloc_node_list");
 	    radp++;
     }
 
+#if 0		/* with -surf_A and -surf_B, intended order is known   v3.8 */
     if ( nsurf == 2 && !sopt->f_kso )
 	verify_2surf_order(radius, N, sopt->debug);
+#endif
 
     if ( sopt->debug > 1 )
 	fprintf(stderr, "++ allocated %d x %d (x %d) node list\n",
@@ -817,7 +829,9 @@ ENTRY("set_smap_opts");
     else
 	sopt->f_steps = opts->f_steps;
 
+#if 0
     sopt->f_kso = opts->f_kso;
+#endif
 
     sopt->f_p1_fr = opts->f_p1_fr;         /* copy fractions & distances */
     sopt->f_pn_fr = opts->f_pn_fr;
@@ -890,7 +904,7 @@ ENTRY("final_clean_up");
 */
 int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec )
 {
-    int debug;						/* v3.5 [rickr] */
+    int debug, rv;					/* v3.5 [rickr] */
     
 ENTRY("read_surf_files");
 
@@ -923,13 +937,30 @@ ENTRY("read_surf_files");
     SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct(SUMA_MAX_DISPLAYABLE_OBJECTS);
 
     if ( debug )
+    {
 	fputs( "-- SUMA_Read_SpecFile()...\n", stderr );
+	SUMA_ShowSpecStruct(spec, stderr, 3);
+    }
 
     if ( SUMA_Read_SpecFile( opts->spec_file, spec) == 0 )
     {
 	fprintf( stderr, "** failed SUMA_Read_SpecFile(), exiting...\n" );
 	RETURN(-1);
     }
+
+    rv = SUMA_spec_select_surfs(spec, opts->snames, V2S_MAX_SURFS, opts->debug);
+    if ( rv < 1 )
+    {
+	if ( rv == 0 )
+	    fprintf(stderr,"** no named surfaces found in spec file\n");
+	RETURN(-1);
+    }
+
+    if ( debug )
+	SUMA_ShowSpecStruct(spec, stderr, debug > 0 ? 3 : 1);
+
+    if ( SUMA_spec_set_map_refs(spec, opts->debug) != 0 )
+	RETURN(-1);
 
     /* make sure only group was read from spec file */
     if ( spec->N_Groups != 1 )
@@ -962,7 +993,7 @@ ENTRY("read_surf_files");
 */
 int init_options ( opts_t * opts, int argc, char * argv [] )
 {
-    int ac;
+    int ac, ind;
 
 ENTRY("init_options");
 
@@ -972,20 +1003,24 @@ ENTRY("init_options");
 	RETURN(-1);
     }
 
-    /* clear out the options and parameter structures */
+    /* clear out the options structure */
     memset( opts, 0, sizeof( opts_t) );
+    opts->gpar_file   = NULL;
+    opts->out_file    = NULL;
+    opts->spec_file   = NULL;
+    opts->sv_file     = NULL;
+    opts->cmask_cmd   = NULL;
+    opts->map_str     = NULL;
+    opts->snames[0]   = NULL;
+    opts->snames[1]   = NULL;
+    opts->f_index_str = NULL;
 
     opts->dnode = -1;			/* init to something invalid */
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	/* do help first, the rest alphabetically */
-	if ( ! strncmp(argv[ac], "-help", 2) )
-	{
-	    usage( PROG_NAME, V2S_USE_LONG );
-	    RETURN(-1);
-	}
-	else if ( ! strncmp(argv[ac], "-cmask", 6) )
+	/* alphabetical... */
+	if ( ! strncmp(argv[ac], "-cmask", 6) )
 	{
 	    if ( (ac+1) >= argc )
 	    {
@@ -1038,7 +1073,11 @@ ENTRY("init_options");
 	}
 	else if ( ! strncmp(argv[ac], "-f_keep_surf_order", 9) )
 	{
-	    opts->f_kso = 1;
+	    /*  opts->f_kso = 1;		v3.8 */
+
+	    fprintf(stderr,"** the -f_keep_surf_order option is depreciated\n"
+		    "   in favor of -surf_A and -surf_B (version 3.8)\n");
+	    RETURN(-1);
 	}
 	else if ( ! strncmp(argv[ac], "-f_p1_fr", 9) )
 	{
@@ -1094,6 +1133,16 @@ ENTRY("init_options");
 	    }
 
 	    opts->f_steps = atoi(argv[++ac]);
+	}
+	else if ( ! strncmp(argv[ac], "-help", 5) )
+	{
+	    usage( PROG_NAME, V2S_USE_LONG );
+	    RETURN(-1);
+	}
+	else if ( ! strncmp(argv[ac], "-hist", 5) )
+	{
+	    usage( PROG_NAME, V2S_USE_HIST );
+	    RETURN(-1);
 	}
 	else if ( ! strncmp(argv[ac], "-grid_parent", 5) ||
 		  ! strncmp(argv[ac], "-inset", 6)       ||
@@ -1180,6 +1229,25 @@ ENTRY("init_options");
 
             opts->spec_file = argv[++ac];
 	}
+	else if ( ! strncmp(argv[ac], "-surf_", 6) )
+	{
+	    if ( (ac+1) >= argc )
+            {
+		fputs( "option usage: -surf_X SURF_NAME\n\n", stderr );
+		usage( PROG_NAME, V2S_USE_SHORT );
+		RETURN(-1);
+	    }
+	    ind = argv[ac][6] - 'A';
+	    if ( (ind < 0) || (ind >= V2S_MAX_SURFS) )
+	    {
+		fprintf(stderr,"** -surf_X option: '%s' out of range,\n"
+			"   use one of '-surf_A' through '-surf_%c'\n",
+			argv[ac], 'A'+V2S_MAX_SURFS-1);
+		RETURN(-1);
+	    }
+
+            opts->snames[ind] = argv[++ac];
+	}
 	else if ( ! strncmp(argv[ac], "-sv", 3) )
 	{
 	    if ( (ac+1) >= argc )
@@ -1219,6 +1287,9 @@ int validate_options ( opts_t * opts, param_t * p )
 ENTRY("validate_options");
 
     memset( p, 0, sizeof(*p) );
+    p->gpar  = NULL;
+    p->outfp = NULL;
+    p->cmask = NULL;
 
     if ( opts->debug > 0 )
     {
@@ -1227,9 +1298,6 @@ ENTRY("validate_options");
     }
 
     if ( check_map_func( opts->map_str ) == E_SMAP_INVALID )
-	RETURN(-1);
-
-    if ( set_outfile( opts, p ) != 0 )
 	RETURN(-1);
 
     if ( opts->spec_file == NULL )
@@ -1243,6 +1311,15 @@ ENTRY("validate_options");
 	fprintf( stderr, "** missing '-sv SURF_VOL' option\n" );
 	RETURN(-1);
     }
+
+    if ( opts->snames[0] == NULL )
+    {
+	fprintf(stderr,"** missing '-surf_A SURF_NAME' option\n");
+	RETURN(-1);
+    }
+
+    if ( set_outfile( opts, p ) != 0 )
+	RETURN(-1);
 
     if ( validate_datasets( opts, p ) != 0 )
 	RETURN(-1);
@@ -1490,7 +1567,6 @@ ENTRY("usage");
 		                    " -grid_parent AFNI_DSET\n"
 		 "usage: %s -help\n",
 		 prog, prog );
-	RETURN(0);
     }
     else if ( level == V2S_USE_LONG )
     {
@@ -1512,23 +1588,22 @@ ENTRY("usage");
             "data values destined for output.\n"
             "\n"
             "Typically, two corresponding surfaces will be input (via the\n"
-            "spec file), along with a mapping function and relevant options.\n"
-            "The mapping function will act as a filter over the values in\n"
-            "the AFNI volume.\n"
+            "spec file and the '-surf_A' and '-surf_B' options), along with\n"
+	    "a mapping function and relevant options.  The mapping function\n"
+	    "will act as a filter over the values in the AFNI volume.\n"
             "\n"
             "For each pair of corresponding surface nodes, let NA be the node\n"
-            "on the inner surface (such as a white/grey boundary) and NB be\n"
-            "the corresponding node on the outer surface (such as a pial\n"
-            "surface).  The filter is applied to the volume data values along\n"
-            "the segment from NA to NB (consider the average or maximum as\n"
-            "filter examples).\n"
+            "on surface A (such as a white/grey boundary) and NB be the\n"
+            "corresponding node on surface B (such as a pial surface).  The\n"
+	    "filter is applied to the volume data values along the segment\n"
+	    "from NA to NB (consider the average or maximum as examples of\n"
+	    "filters).\n"
 	    "\n"
 	    "Note: if either endpoint of a segment is outside the grid parent\n"
 	    "      volume, that node (pair) will be skipped.\n"
             "\n"
-            "Note: the inner (or first) surface is defined as the one closest\n"
-            "      to its center of mass.  To override this behavior, see the\n"
-	    "      '-f_keep_surf_order' option.\n"
+            "Note: surface A corresponds to the required '-surf_A' argument,\n"
+            "      while surface B corresponds to '-surf_B'.\n"
             "\n"
             "By default, this segment only consists of the endpoints, NA and\n"
             "NB (the actual nodes on the two surfaces).  However the number\n"
@@ -1566,19 +1641,22 @@ ENTRY("usage");
 	    "       each surface node.  Output is one value per sub-brick\n"
 	    "       (per surface node).\n"
 	    "\n"
-	    "    %s                       \\\n"
+	    "    %s                                \\\n"
 	    "       -spec         fred.spec                \\\n"
+	    "       -surf_A       smoothwm                 \\\n"
 	    "       -sv           fred_anat+orig           \\\n"
 	    "       -grid_parent  fred_anat+orig           \\\n"
 	    "       -map_func     mask                     \\\n"
+	    "       -out_1D       fred_surf_vals.1D\n"
 	    "\n"
 	    "    2. Apply a single surface mask to output volume values over\n"
 	    "       each surface node.  In this case restrict input to the\n"
 	    "       mask implied by the -cmask option.  Supply additional\n"
 	    "       debug output, and more for surface node 1874\n"
 	    "\n"
-	    "    %s                       \\\n"
+	    "    %s                                                \\\n"
 	    "       -spec         fred.spec                                \\\n"
+	    "       -surf_A       smoothwm                                 \\\n"
 	    "       -sv           fred_anat+orig                           \\\n"
 	    "       -grid_parent 'fred_epi+orig[0]'                        \\\n"
 	    "       -cmask       '-a fred_func+orig[2] -expr step(a-0.6)'  \\\n"
@@ -1598,8 +1676,10 @@ ENTRY("usage");
 	    "       Output is one average value per sub-brick (per surface\n"
 	    "       node).\n"
 	    "\n"
-	    "    %s                       \\\n"
-	    "       -spec         fred.spec                                \\\n"
+	    "    %s                                                \\\n"
+	    "       -spec         fred2.spec                               \\\n"
+	    "       -surf_A       smoothwm                                 \\\n"
+	    "       -surf_B       pial                                     \\\n"
 	    "       -sv           fred_anat+orig                           \\\n"
 	    "       -grid_parent  fred_anat+orig                           \\\n"
 	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
@@ -1618,8 +1698,10 @@ ENTRY("usage");
 	    "       would give a zero length vector identical to that of the\n"
 	    "       'midpoint' filter.\n"
 	    "\n"
-	    "    %s                       \\\n"
-	    "       -spec         fred.spec                                \\\n"
+	    "    %s                                                \\\n"
+	    "       -spec         fred2.spec                               \\\n"
+	    "       -surf_A       smoothwm                                 \\\n"
+	    "       -surf_B       pial                                     \\\n"
 	    "       -sv           fred_anat+orig                           \\\n"
 	    "       -grid_parent  fred_anat+orig                           \\\n"
 	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
@@ -1638,8 +1720,10 @@ ENTRY("usage");
 	    "       voxels along each segment with '-f_index voxels'.\n"
 	    "       Note that only sub-brick 0 will be considered here.\n"
 	    "\n"
-	    "    %s                       \\\n"
-	    "       -spec         fred.spec                                \\\n"
+	    "    %s                                                \\\n"
+	    "       -spec         fred2.spec                               \\\n"
+	    "       -surf_A       smoothwm                                 \\\n"
+	    "       -surf_B       pial                                     \\\n"
 	    "       -sv           fred_anat+orig                           \\\n"
 	    "       -grid_parent  fred_anat+orig                           \\\n"
 	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
@@ -1661,8 +1745,10 @@ ENTRY("usage");
 	    "       the '-oom_value' was added to output the same default\n"
 	    "       value of 0.0.\n"
 	    "\n"
-	    "    %s                       \\\n"
-	    "       -spec         fred.spec                                \\\n"
+	    "    %s                                                \\\n"
+	    "       -spec         fred2.spec                               \\\n"
+	    "       -surf_A       smoothwm                                 \\\n"
+	    "       -surf_B       pial                                     \\\n"
 	    "       -sv           fred_anat+orig                           \\\n"
 	    "       -grid_parent  fred_anat+orig                           \\\n"
 	    "       -cmask        '-a fred_func+orig[2] -expr step(a-0.6)' \\\n"
@@ -1685,6 +1771,26 @@ ENTRY("usage");
 	    "        mappable surfaces that are used.\n"
 	    "\n"
 	    "        See @SUMA_Make_Spec_FS and @SUMA_Make_Spec_SF.\n"
+	    "\n"
+	    "    -surf_A SURF_NAME      : name of surface A (from spec file)\n"
+	    "    -surf_B SURF_NAME      : name of surface B (from spec file)\n"
+	    "\n"
+	    "        e.g. -surf_A smoothwm\n"
+	    "        e.g. -surf_A lh.smoothwm\n"
+	    "        e.g. -surf_B lh.pial\n"
+	    "\n"
+	    "        This is used to specify which surface(s) will be used by\n"
+	    "        the program.  The '-surf_A' parameter is required, as it\n"
+	    "        specifies the first surface, where '-surf_B' is used to\n"
+	    "        specify a second surface, if the user wishes.\n"
+	    "\n"
+	    "        Note that any name provided must be in the spec file,\n"
+	    "        uniquely matching the name of a surface node file (such\n"
+	    "        as lh.smoothwm.asc, for example).  Note that if both\n"
+	    "        hemispheres are represented in the spec file, then there\n"
+	    "        may be both lh.pial.asc and rh.pial.asc, for instance.\n"
+	    "        In such a case, 'pial' would not uniquely determine a\n"
+	    "        a surface, but the name 'lh.pial' would.\n"
 	    "\n"
 	    "    -sv SURFACE_VOLUME     : AFNI volume dataset\n"
 	    "\n"
@@ -1738,6 +1844,8 @@ ENTRY("usage");
 	    "                     connecting segment.  Here, only sub-brick\n"
 	    "                     number 0 will be considered.\n"
 	    "\n"
+	    "  ------------------------------\n"
+	    "\n"
 	    "  options specific to functions on 2 surfaces:\n"
 	    "\n"
 	    "          -f_steps NUM_STEPS :\n"
@@ -1778,21 +1886,10 @@ ENTRY("usage");
 	    "\n"
 	    "          -f_keep_surf_order :\n"
 	    "\n"
-	    "                     Preserve the surface order, according to\n"
-	    "                     the spec file.\n"
+	    "                     Depreciated.\n"
 	    "\n"
-	    "                     By default, the inner and outer surfaces\n"
-	    "                     are decided based on which is, on average,\n"
-	    "                     closer to its center of mass.  This allows\n"
-	    "                     for a definition of an inner surface and an\n"
-	    "                     outer surface.\n"
-	    "\n"
-	    "                     This option is provided to override such\n"
-	    "                     behavior, resulting in the 'first' surface\n"
-	    "                     (or 'inner') corresponding to the first\n"
-	    "                     mappable surface in the spec file.  So the\n"
-	    "                     'second' surface (or 'outer') will be the\n"
-	    "                     second mappable surface in the spec file.\n"
+	    "                     See required arguments -surf_A and -surf_B,\n"
+	    "                     above.\n"
 	    "\n"
 	    "          Note: The following -f_pX_XX options are used to alter\n"
 	    "                the lengths and locations of the computational\n"
@@ -1872,6 +1969,8 @@ ENTRY("usage");
 	    "\n"
 	    "                     e.g.  -f_p1_fr 1.0 -f_pn_fr -1.0\n"
 	    "\n"
+	    "  ------------------------------\n"
+	    "\n"
 	    "  general options:\n"
 	    "\n"
 	    "    -cmask MASK_COMMAND    : (optional) command for dataset mask\n"
@@ -1905,6 +2004,10 @@ ENTRY("usage");
 	    "    -help                  : show this help\n"
 	    "\n"
 	    "        If you can't get help here, please get help somewhere.\n"
+	    "\n"
+	    "    -hist                  : show revision history\n"
+	    "\n"
+	    "        Display module history over time.\n"
 	    "\n"
 	    "    -no_headers            : do not output column headers\n"
 	    "\n"
@@ -2027,16 +2130,13 @@ ENTRY("usage");
 	    prog, prog,
 	    prog, prog, prog, prog, prog, prog,
 	    VERSION );
-
-	RETURN(0);
     }
+    else if ( level == V2S_USE_HIST )
+	fputs(g_history, stdout);
     else if ( level == V2S_USE_VERSION )
-    {
 	fprintf(stderr,"%s : %s, compile date: %s\n", prog, VERSION, __DATE__);
-	RETURN(0);
-    }
-
-    fprintf( stderr, "usage called with illegal level <%d>\n", level );
+    else 
+	fprintf( stderr, "usage called with illegal level <%d>\n", level );
 
     RETURN(-1);
 }
@@ -2332,6 +2432,8 @@ ENTRY("v2s_apply_filter");
 }
 
 
+#if 0								/* v3.8 */
+
 /*---------------------------------------------------------------------------
  * verify_2surf_order  - if surfaces are not inner to outer, swap them
  *---------------------------------------------------------------------------
@@ -2380,6 +2482,8 @@ ENTRY("verify_2surf_order");
 
     RETURN(0);
 }
+
+#endif
 
 
 /*---------------------------------------------------------------------------
@@ -2486,18 +2590,20 @@ ENTRY("disp_opts_t");
 	    "    sv_file            = %s\n"
 	    "    cmask_cmd          = %s\n"
 	    "    map_str            = %s\n"
+	    "    snames[0,1]        = %s, %s\n"
 	    "    no_head            = %d\n"
 	    "    debug, dnode       = %d, %d\n"
 	    "    f_index_str        = %s\n"
-	    "    f_steps, f_kso     = %d, %d\n"
+	    "    f_steps            = %d\n"
 	    "    f_p1_fr, f_pn_fr   = %f, %f\n"
 	    "    f_p1_mm, f_pn_mm   = %f, %f\n"
 	    , opts,
 	    CHECK_NULL_STR(opts->gpar_file), CHECK_NULL_STR(opts->out_file),
 	    CHECK_NULL_STR(opts->spec_file), CHECK_NULL_STR(opts->sv_file),
 	    CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->map_str),
+	    CHECK_NULL_STR(opts->snames[0]), CHECK_NULL_STR(opts->snames[1]),
 	    opts->no_head, opts->debug, opts->dnode,
-	    CHECK_NULL_STR(opts->f_index_str), opts->f_steps, opts->f_kso,
+	    CHECK_NULL_STR(opts->f_index_str), opts->f_steps,
 	    opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
 	    );
 
@@ -2526,13 +2632,13 @@ ENTRY("disp_smap_opts_t");
 	    "smap_opts_t struct at %p :\n"
 	    "    map, debug, dnode   = %d, %d, %d\n"
 	    "    no_head, f_index    = %d, %d\n"
-	    "    f_steps, f_kso      = %d, %d\n"
+	    "    f_steps             = %d\n"
 	    "    f_p1_fr, f_pn_fr    = %f, %f\n"
 	    "    f_p1_mm, f_pn_mm    = %f, %f\n"
 	    "    cmask               = %p\n"
 	    , sopt,
 	    sopt->map, sopt->debug, sopt->dnode, sopt->no_head,
-	    sopt->f_index, sopt->f_steps, sopt->f_kso,
+	    sopt->f_index, sopt->f_steps,
 	    sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm,
 	    sopt->cmask
 	    );

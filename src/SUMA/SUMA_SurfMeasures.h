@@ -5,7 +5,8 @@
 
 #define ST_USE_LONG		1
 #define ST_USE_SHORT		2
-#define ST_USE_VERSION		3
+#define ST_USE_HIST		3
+#define ST_USE_VERSION		4
 
 #define ST_INFO_NONE		0
 #define ST_INFO_AREA		1
@@ -13,6 +14,8 @@
 #define ST_INFO_THICK           4
 #define ST_INFO_VOL             8
 #define ST_INFO_ALL        0xffff
+
+#define ST_MAX_SURFS		2
 
 #define ST_DEBUG_MAX_LEVEL      5
 #define ST_DEFAULT_FALLOC      10	/* init alloc for num functions  */
@@ -81,6 +84,7 @@ typedef struct
     char   * out_1D_file;		/* surface output filename     */
     char   * cmask_cmd;                 /* 3dcalc style cmask command  */
     char   * nodes_1D_file;             /* node list to apply cmask to */
+    char   * surf_names[ST_MAX_SURFS];  /* list of surfaces to be used */
     int      info;			/* display final information   */
     int      debug;			/* level of debug output       */
     int      dnode;			/* node watched for debug      */
@@ -120,8 +124,7 @@ int	init_options         ( opts_t * opts, int argc, char * argv[] );
 int	init_opts_t          ( opts_t * opts );
 int	print_column_headers ( opts_t * opts, param_t * p );
 int	read_nodes_file      ( opts_t * opts, param_t * p );
-int	spec2SUMA            ( SUMA_SurfSpecFile * spec, char * spec_file,
-	                       char * sv_file, int debug );
+int	spec2SUMA            ( SUMA_SurfSpecFile * spec, opts_t * opts );
 int	usage                ( char * prog, int use_type );
 int	validate_option_lists( opts_t * opts, param_t * p );
 int	validate_options     ( opts_t * opts, param_t * p );

@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.2 (December 03, 2003)"
+#define VERSION "version 1.3 (December 11, 2003)"
 
 /*----------------------------------------------------------------------
  * SurfMeasures - compute measures from the surface dataset(s)
@@ -37,26 +37,37 @@
  *----------------------------------------------------------------------
 */
 
+/* use history as a global string to print out with '-hist' option */
 
-/*----------------------------------------------------------------------
- * history
- *
- * 1.2 December 3, 2003
- *   - added '-cmask' and '-nodes_1D' options
- *
- * 1.1 December 2, 2003
- *   - fixed stupid macro error, grrrr...
- *
- * 1.0 December 1, 2003
- *   - initial release
- *----------------------------------------------------------------------
-*/
-
+static char g_history[] =
+    "----------------------------------------------------------------------\n"
+    "history :\n"
+    "\n"
+    "1.3 December 11, 2003  [rickr]\n"
+    "  - added required program argument(s): '-surf_A' (and 'B' for 2 surfs)\n"
+    "      o  see '-help' for a description and examples\n"
+    "  - added SUMA_spec_select_surfs() and SUMA_spec_set_map_refs() so that:\n"
+    "      o  only requested surfaces are loaded\n"
+    "      o  spec files no longer need 'SAME' as MappingRef\n"
+    "  - fixed loss of default node indices (from nodes_1D change)\n"
+    "  - added '-hist' option\n"
+    "  - display angle averages only if at least 1 total is computed\n"
+    "\n"
+    "1.2 December 03, 2003  [rickr]\n"
+    "  - added '-cmask' and '-nodes_1D' options\n"
+    "\n"
+    "1.1 December 02, 2003  [rickr]\n"
+    "  - fixed stupid macro error, grrrr...\n"
+    "\n"
+    "1.0 December 01, 2003  [rickr]\n"
+    "  - initial release\n"
+    "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
  * todo:
  *
  * - allow (okay, force) users to specify surfaces by name
+ * - add -hist option
  *----------------------------------------------------------------------
 */
 
@@ -161,8 +172,8 @@ int write_output( opts_t * opts, param_t * p )
     float     * fp0, * fp1;
     float     * norms0, * norms1;
     float       ave_dist;
-    int       * fcodes;
     int         c, fnum, node, nindex;
+    int       * fcodes;
     int         skipped = 0;
 
 ENTRY("write_output");
@@ -333,7 +344,8 @@ ENTRY("write_output");
 	    printf("-- total area 1 = %.1f\n", tarea1);
     }
 
-    if ( opts->info & ST_INFO_NORMS )
+    if ( (opts->info & ST_INFO_NORMS) &&
+	 (atn > 0.0 || atna > 0.0 || atnb > 0.0) )
     {
 	printf( "-- ave. angles to normals: (nA_nB, sA, sB) = "
 		"(%.4f, %.4f, %.4f)\n",
@@ -517,7 +529,7 @@ ENTRY("verify_surf_t");
 
 	/* now fill the list with trivial indices */
 	for ( c = 0; c < p->nnodes; c++ )
-	    p->nodes[c] = 0;
+	    p->nodes[c] = c;
     }
     else				/* verify that the indices are valid */
     {
@@ -563,7 +575,7 @@ int get_surf_data( opts_t * opts, param_t * p )
 
 ENTRY("get_surf_data");
 
-    rv = spec2SUMA(&p->S.spec, opts->spec_file, opts->sv_file, opts->debug);
+    rv = spec2SUMA(&p->S.spec, opts);
     if ( rv != 0 )
 	RETURN(rv);
 
@@ -1142,9 +1154,9 @@ ENTRY("all_mappable_surfs");
  *
  *----------------------------------------------------------------------
 */
-int spec2SUMA( SUMA_SurfSpecFile * spec, char * spec_file,
-	       char * sv_file, int debug )
+int spec2SUMA( SUMA_SurfSpecFile * spec, opts_t * opts )
 {
+    int rv;
 
 ENTRY("spec2SUMA");
 
@@ -1158,38 +1170,56 @@ ENTRY("spec2SUMA");
     }
 
     /* for SUMA type notifications */
-    if ( debug > 3 )
+    if ( opts->debug > 3 )
     {
 	SUMAg_CF->MemTrace = 1;
 
-	if ( debug > 4 )
+	if ( opts->debug > 4 )
 	    SUMAg_CF->InOut_Notify = 1;
     }
 
     SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct(SUMA_MAX_DISPLAYABLE_OBJECTS);
 
-    if ( SUMA_Read_SpecFile( spec_file, spec) == 0 )
+    if ( SUMA_Read_SpecFile( opts->spec_file, spec) == 0 )
     {
 	fprintf( stderr, "** failed SUMA_Read_SpecFile(), exiting...\n" );
 	RETURN(-1);
     }
 
+    if ( opts->debug > 2 )
+	SUMA_ShowSpecStruct(spec, stderr, 3);
+
+    rv = SUMA_spec_select_surfs(spec,opts->surf_names,ST_MAX_SURFS,opts->debug);
+    if ( rv < 1 )
+    {
+	if ( rv == 0 )
+	    fprintf(stderr,"** no given surfaces found in spec file\n");
+	RETURN(-1);
+    }
+
+    if ( opts->debug > 1 )
+	SUMA_ShowSpecStruct(spec, stderr, opts->debug > 2 ? 3 : 1);
+
+    if ( SUMA_spec_set_map_refs(spec, opts->debug) != 0 )
+	RETURN(-1);
+
     /* make sure only group was read from spec file */
     if ( spec->N_Groups != 1 )
     {
 	fprintf( stderr,"** error: N_Groups <%d> must be 1 in spec file <%s>\n",
-		 spec->N_Groups, spec_file );
+		 spec->N_Groups, opts->spec_file );
 	RETURN(-1);
     }
 
     /* actually load the surface(s) from the spec file */
-    if (SUMA_LoadSpec_eng(spec, SUMAg_DOv, &SUMAg_N_DOv, sv_file, debug>3) == 0)
+    if (SUMA_LoadSpec_eng(spec, SUMAg_DOv, &SUMAg_N_DOv, opts->sv_file,
+	                  opts->debug>3) == 0)
     {
 	fprintf( stderr, "** error: failed SUMA_LoadSpec(), exiting...\n" );
 	RETURN(-1);
     }
 
-    if ( debug > 0 )
+    if ( opts->debug > 0 )
 	fputs( "++ surfaces loaded.\n", stderr );
 
     RETURN(0);
@@ -1240,6 +1270,8 @@ ENTRY("add_to_flist");
 */
 int init_opts_t( opts_t * opts )
 {
+    int c;
+
 ENTRY("init_opts_t");
 
     memset(opts, 0, sizeof(opts_t));
@@ -1263,6 +1295,10 @@ ENTRY("init_opts_t");
     opts->out_1D_file   = NULL;
     opts->cmask_cmd     = NULL;
     opts->nodes_1D_file = NULL;
+
+    for ( c = 0; c < ST_MAX_SURFS; c++ )
+	opts->surf_names[c] = NULL;
+
     opts->dnode         = -1;		/* init to something invalid */
 
     RETURN(0);
@@ -1286,7 +1322,7 @@ ENTRY("init_opts_t");
 */
 int init_options( opts_t * opts, int argc, char * argv[] )
 {
-    int ac;
+    int ac, ind;
 
 ENTRY("init_options");
 
@@ -1299,10 +1335,7 @@ ENTRY("init_options");
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	/* check for help first, the rest alphabetically */
-	if ( ! strncmp(argv[ac], "-help", 2) )
-	    RETURN(usage(PROG_NAME, ST_USE_LONG));
-	else if ( ! strncmp(argv[ac], "-debug", 6) )
+	if ( ! strncmp(argv[ac], "-debug", 6) )
 	{
 	    CHECK_ARG_COUNT(ac,"option usage: -debug LEVEL\n");
 
@@ -1331,6 +1364,10 @@ ENTRY("init_options");
 	    if ( add_to_flist(&opts->F, argv[ac]) != 0 )
 		RETURN(-1);
 	}
+	else if ( ! strncmp(argv[ac], "-help", 5) )
+	    RETURN(usage(PROG_NAME, ST_USE_LONG));
+	else if ( ! strncmp(argv[ac], "-hist", 5) )
+	    RETURN(usage(PROG_NAME, ST_USE_HIST));
 	else if ( ! strncmp(argv[ac], "-info_all",9) )
 	{
 	    opts->info |= ST_INFO_ALL;
@@ -1365,6 +1402,19 @@ ENTRY("init_options");
 	{
 	    CHECK_ARG_COUNT(ac,"option usage: -spec SPEC_FILE\n");
 	    opts->spec_file = argv[++ac];
+	}
+	else if ( ! strncmp(argv[ac], "-surf_", 6) )
+	{
+	    CHECK_ARG_COUNT(ac,"option usage: -surf_X SURF_NAME\n");
+	    ind = argv[ac][6] - 'A';
+	    if ( (ind < 0) || (ind >= ST_MAX_SURFS) )
+	    {
+		fprintf(stderr,"** -surf_X option '%s' out of range,\n"
+			"   use one of '-surf_A' through '-surf_%c'\n",
+			argv[ac], 'A'+ST_MAX_SURFS-1);
+		RETURN(-1);
+	    }
+	    opts->surf_names[ind] = argv[++ac];
 	}
 	else if ( ! strncmp(argv[ac], "-sv", 3) )
 	{
@@ -1411,6 +1461,12 @@ ENTRY("validate_options");
     if ( ! opts->spec_file )
     {
 	fprintf(stderr,"** missing argument: -spec\n");
+	errs++;
+    }
+
+    if ( ! opts->surf_names[0] )
+    {
+	fprintf(stderr,"** missing argument -surf_A\n");
 	errs++;
     }
 
@@ -1710,14 +1766,10 @@ ENTRY("usage");
 	    "\n"
 	    "    This program is meant to read in a surface or surface pair,\n"
 	    "    and to output and user-requested measures over the surfaces.\n"
-	    "    The surfaces must be specified in the SPEC_FILE, with their\n"
-	    "    MappingRef set to SAME:\n"
-	    "\n"
-	    "        MappingRef = SAME\n"
+	    "    The surfaces must be specified in the SPEC_FILE.\n"
 	    "\n"
 	    " ** Use the 'inspec' command for getting information about the\n"
-	    "    surfaces (and optionally, their mapping references) from a\n"
-	    "    spec file.\n"
+	    "    surfaces in a spec file.\n"
 	    "\n"
 	    "    The output will be a 1D format text file, with one column\n"
 	    "    (or possibly 3) per user-specified measure function.  Some\n"
@@ -1737,19 +1789,21 @@ ENTRY("usage");
 	    "\n"
 	    "  examples:\n"
 	    "\n"
-	    "    1. For each node on the single (directly mappable) surface\n"
-	    "       in the spec file fred.spec, output the node number (the\n"
-	    "       default action), the xyz coordinates, and the area\n"
-	    "       associated with the node (1/3 of the total area of\n"
-	    "       triangles having that node as a vertex).\n"
+	    "    1. For each node on the surface smoothwm in the spec file,\n"
+	    "       fred.spec, output the node number (the default action),\n"
+	    "       the xyz coordinates, and the area associated with the\n"
+	    "       node (1/3 of the total area of triangles having that node\n"
+	    "       as a vertex).\n"
 	    "\n"
 	    "        %s                                   \\\n"
 	    "            -spec       fred1.spec                     \\\n"
+	    "            -surf_A     smoothwm                       \\\n"
 	    "            -func       coord_A                        \\\n"
 	    "            -func       n_area_A                       \\\n"
 	    "            -out_1D     fred1_areas.1D                   \n"
 	    "\n"
-	    "    2. For each node of the surface pair, display the:\n"
+	    "    2. For each node of the surface pair smoothwm and pial,\n"
+	    "       display the:\n"
 	    "         o  node index\n"
 	    "         o  node's area from the first surface\n"
 	    "         o  node's area from the second surface\n"
@@ -1764,6 +1818,8 @@ ENTRY("usage");
 	    "\n"
 	    "        %s                                   \\\n"
 	    "            -spec       fred2.spec                     \\\n"
+	    "            -surf_A     smoothwm                       \\\n"
+	    "            -surf_B     pial                           \\\n"
 	    "            -func       n_area_A                       \\\n"
 	    "            -func       n_area_B                       \\\n"
 	    "            -func       node_vol                       \\\n"
@@ -1786,6 +1842,8 @@ ENTRY("usage");
 	    "\n"
 	    "        %s                                   \\\n"
 	    "            -spec       fred2.spec                     \\\n"
+	    "            -surf_A     smoothwm                       \\\n"
+	    "            -surf_B     pial                           \\\n"
 	    "            -func       ang_norms                      \\\n"
 	    "            -func       ang_ns_A                       \\\n"
 	    "            -func       ang_ns_B                       \\\n"
@@ -1798,6 +1856,8 @@ ENTRY("usage");
 	    "\n"
 	    "        %s                                   \\\n"
 	    "            -spec       fred2.spec                     \\\n"
+	    "            -surf_A     smoothwm                       \\\n"
+	    "            -surf_B     pial                           \\\n"
 	    "            -func       ang_norms                      \\\n"
 	    "            -func       ang_ns_A                       \\\n"
 	    "            -func       ang_ns_B                       \\\n"
@@ -1812,6 +1872,8 @@ ENTRY("usage");
 	    "\n"
 	    "        %s                                         \\\n"
 	    "            -spec       fred2.spec                           \\\n"
+	    "            -surf_A     smoothwm                       \\\n"
+	    "            -surf_B     pial                           \\\n"
 	    "            -func       node_vol                             \\\n"
 	    "            -func       thick                                \\\n"
 	    "            -func       n_area_A                             \\\n"
@@ -1830,12 +1892,26 @@ ENTRY("usage");
 	    "\n"
 	    "        The surface specification file contains a list of\n"
 	    "        related surfaces.  In order for a surface to be\n"
-	    "        processed by this program, it must be its own mapping\n"
-	    "        reference.\n"
+	    "        processed by this program, it must exist in the spec\n"
+	    "        file.\n"
 	    "\n"
-	    "            MappingRef = SAME\n"
+	    "    -surf_A SURF_NAME     : surface name (in spec file)\n"
+	    "    -surf_B SURF_NAME     : surface name (in spec file)\n"
 	    "\n"
-	    "        See @SUMA_Make_Spec_FS for more information.\n"
+	    "        e.g. -surf_A smoothwm\n"
+	    "        e.g. -surf_A lh.smoothwm\n"
+	    "        e.g. -surf_B lh.pial\n"
+	    "\n"
+	    "        This is used to specify which surface(s) will be used\n"
+	    "        by the program.  The 'A' and 'B' correspond to other\n"
+	    "        program options (e.g. the 'A' in n_area_A).\n"
+	    "\n"
+	    "        The '-surf_B' parameter is required only when the user\n"
+	    "        wishes to input two surfaces.\n"
+	    "\n"
+	    "        Any surface name provided must be unique in the spec\n"
+	    "        file, and must match the name of the surface data file\n"
+	    "        (e.g. lh.smoothwm.asc).\n"
 	    "\n"
 	    "    -out_1D OUT_FILE.1D   : 1D output filename\n"
 	    "\n"
@@ -1911,6 +1987,11 @@ ENTRY("usage");
 	    "\n"
 	    "    -help                 : show this help menu\n"
 	    "\n"
+	    "    -hist                 : display program revision history\n"
+	    "\n"
+	    "        This option is used to provide a history of changes\n"
+	    "        to the program, along with version numbers.\n"
+	    "\n"
 	    "  NOTE: the following '-info_XXXX' options are used to display\n"
 	    "        pieces of 'aggregate' information about the surface(s).\n"
 	    "\n"
@@ -1980,6 +2061,10 @@ ENTRY("usage");
 	    "  Author: R. Reynolds  - %s\n"
 	    "\n",
 	    VERSION );
+    }
+    else if ( use_type == ST_USE_HIST )
+    {
+	fputs (g_history, stdout);
     }
     else if ( use_type == ST_USE_VERSION )
     {
@@ -2209,19 +2294,22 @@ int disp_opts_t( char * info, opts_t * d )
 
     fprintf(stderr,
 	    "opts_t struct at %p:\n"
-	    "    spec_file     = %s\n"
-	    "    sv_file       = %s\n"
-	    "    out_1D_file   = %s\n"
-	    "    cmask_cmd     = %s\n"
-	    "    nodes_1D_file = %s\n"
-	    "    info          = %0x\n"
-	    "    debug, dnode  = %d, %d\n",
+	    "    spec_file       = %s\n"
+	    "    sv_file         = %s\n"
+	    "    out_1D_file     = %s\n"
+	    "    cmask_cmd       = %s\n"
+	    "    nodes_1D_file   = %s\n"
+	    "    surf_names[0,1] = %s, %s\n"
+	    "    info            = %0x\n"
+	    "    debug, dnode    = %d, %d\n",
 	    d,
 	    CHECK_NULL_STR(d->spec_file),
 	    CHECK_NULL_STR(d->sv_file),
 	    CHECK_NULL_STR(d->out_1D_file),
 	    CHECK_NULL_STR(d->cmask_cmd),
 	    CHECK_NULL_STR(d->nodes_1D_file),
+	    CHECK_NULL_STR(d->surf_names[0]),
+	    CHECK_NULL_STR(d->surf_names[1]),
 	    d->info, d->debug, d->dnode);
 
     return 0;

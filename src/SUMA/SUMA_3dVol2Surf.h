@@ -5,10 +5,13 @@
 
 #define V2S_USE_LONG      	  1
 #define V2S_USE_SHORT     	  2
-#define V2S_USE_VERSION   	  3
+#define V2S_USE_HIST     	  3
+#define V2S_USE_VERSION   	  4
 
 #define V2S_DEBUG_MAX_LEV	  5
 #define V2S_DEBUG_TEST_NODE	  7
+
+#define V2S_MAX_SURFS             2
 
 #define V2S_M2_INDEX_VOXEL        0
 #define V2S_M2_INDEX_NODE         1
@@ -46,12 +49,12 @@ typedef struct
     char   * sv_file;			/* AFNI surface volume dataset */
     char   * cmask_cmd;      		/* 3dcalc style mask command   */
     char   * map_str;			/* how to map surf(s) to dset  */
+    char   * snames[V2S_MAX_SURFS];	/* list of surfaces to use     */
     int      no_head;			/* do not write output headers */
     int      debug;			/* level of debug output       */
     int      dnode;			/* node watched for debug      */
     char   * f_index_str;		/* node or voxel index type    */
     int      f_steps;			/* # int steps for mask2 map   */
-    int      f_kso;			/* keep spec file surf order   */
     float    f_p1_fr;			/* fractional dist: add to p1  */
     float    f_pn_fr;			/* fractional dist: add to pn  */
     float    f_p1_mm;			/* mm distance to add to p1    */
@@ -68,7 +71,6 @@ typedef struct
     int    no_head;			/* do not write output headers */
     int    f_index;			/* node or voxel index type    */
     int    f_steps;			/* # int steps for mask2 map   */
-    int    f_kso;			/* keep spec file surf order   */
     float  f_p1_fr;			/* fractional dist: add to p1  */
     float  f_pn_fr;			/* fractional dist: add to pn  */
     float  f_p1_mm;			/* mm distance to add to p1    */
@@ -150,7 +152,6 @@ int validate_datasets ( opts_t * opts, param_t * p );
 int validate_options  ( opts_t * opts, param_t * p );
 int validate_surface  ( opts_t * opts, param_t * p );
 int vals_over_steps   ( int map );
-int verify_2surf_order( float radii[2], node_list_t * N, int debug );
 int write_output      ( smap_opts_t * sopt, opts_t * opts, param_t * p,
 	                node_list_t * N );
 
