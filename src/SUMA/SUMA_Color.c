@@ -3204,8 +3204,8 @@ int main (int argc,char *argv[])
    /* fprintf (SUMA_STDERR,"%s: Vmin=%f, Vmax = %f\n", FuncName, Vmin, Vmax);*/ 
    
    if (arange == 0.0) {
-      if (fabsf(Vmin) > fabsf(Vmax)) arange = fabsf(Vmin);
-      else arange = fabsf(Vmax);
+      if (fabs((double)Vmin) > fabs((double)Vmax)) arange = (float)fabs((double)Vmin);
+      else arange = (float)fabs((double)Vmax);
    }
    /* figure out the range if PercRange is used */
    if (ApplyPercClip) {
