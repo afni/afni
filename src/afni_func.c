@@ -3607,7 +3607,6 @@ ENTRY("AFNI_modify_viewing") ;
    /* and redisplay the images */
 
    DISABLE_LOCK ;
-   AFNI_view_setter(im3d,NULL) ;
    AFNI_set_viewpoint( im3d, iv.ijk[0],iv.ijk[1],iv.ijk[2] , REDISPLAY_ALL ) ;
    ENABLE_LOCK ;
 
