@@ -375,19 +375,20 @@ ENTRY("SPLASH_imseq_getim") ;
       if( ii == 0 ){
          MEM_plotdata * mp = get_active_memplot() ;
 
-         set_color_memplot(1.0,1.0,1.0) ;
-         set_thick_memplot(0.0) ;
+         set_thick_memplot(0.003) ;
 
          if( do_write == 2 ){
            char *sf = AFNI_get_date_trivia() ;
            int   nn = strlen(sf) , ss=28 ;
            if( nn > 36 ) ss = (int)(28.0*36.0/nn) ;
+           set_color_memplot(1.0,1.0,0.0) ;
            plotpak_pwritf( 0.5,0.089 , "Today is"  , 28 , 0 , 0 ) ;
            plotpak_pwritf( 0.5,0.033 , sf          , ss , 0 , 0 ) ;
          } else {
            char * sf = AFNI_get_friend() ;
            char * mf = strstr(sf," for ") ;
            int    nn = strlen(sf) ;
+           set_color_memplot(1.0,1.0,0.5) ;
            if( nn < 36 || mf == NULL ){
               plotpak_pwritf( 0.5,0.060 , sf , 28 , 0 , 0 ) ;
            } else {
