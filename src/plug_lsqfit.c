@@ -78,7 +78,7 @@ static PLUGIN_interface * global_plint = NULL ;
 
 #define NRMAX_SIN 2
 #define NRMAX_TS  2
-#define HARM_MAX  11
+#define HARM_MAX  22
 
 static int polort=1 , ignore=3 , nrsin=0 , nrts=0 , initialize=1 ;
 static float sinper[NRMAX_SIN] ;
