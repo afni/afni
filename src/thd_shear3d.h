@@ -66,9 +66,11 @@ extern MCW_3shear rot_to_shear( int ax1 , double th1 ,
 extern MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec , 
                                 double xdel , double ydel , double zdel )  ;
 extern THD_dmat33 DMAT_xt_x( THD_dmat33 inmat ) ;
+extern THD_dmat33 DMAT_x_xt( THD_dmat33 inmat ) ;   /* 09 Apr 2003 */
 extern THD_dvecmat DMAT_symeig( THD_dmat33 inmat ) ;
 extern THD_dmat33 DMAT_pow( THD_dmat33 inmat , double pp ) ;
-extern THD_dmat33 DMAT_svdrot( THD_dmat33 inmat ) ;
+extern THD_dmat33 DMAT_svdrot_old( THD_dmat33 inmat ) ;
+extern THD_dmat33 DMAT_svdrot_new( THD_dmat33 inmat ) ;  /* 09 Apr 2003 */
 extern THD_dvecmat DLSQ_rot_trans( int n, THD_dfvec3 * xx, THD_dfvec3 * yy, double * ww ) ;
 
 #endif /* _THD_SHEAR3D_HEADER_ */

@@ -238,7 +238,7 @@ int main( int argc , char * argv[] )
    for( ii=jj=0 ; ii < nvec ; ii++ ){
       if( TAG_SET(TAGLIST_SUBTAG(mset->tagset,ii)) ){
 
-         LOAD_DFVEC3( xx[jj] ,                                       /* N.B.:     */
+         LOAD_DFVEC3( xx[jj] ,                                      /* N.B.:     */
                      TAG_X( TAGLIST_SUBTAG(mset->tagset,ii) ) ,     /* these are */
                      TAG_Y( TAGLIST_SUBTAG(mset->tagset,ii) ) ,     /* in Dicom  */
                      TAG_Z( TAGLIST_SUBTAG(mset->tagset,ii) )  ) ;  /* order now */
@@ -282,10 +282,10 @@ int main( int argc , char * argv[] )
    dsum = DMAT_DET(rt.mm) ;
    if( fabs(dsum-1.0) > 0.01 ){
      fprintf(stderr,"*** Invalid rotation matrix computed: tags dependent?\n"
-                    "*** computed [R] and follow:\n" ) ;
+                    "*** computed [matrix] and [vector] follow:\n" ) ;
 
      for( ii=0 ; ii < 3 ; ii++ )
-       fprintf(stderr,"    %8.5f %8.5f %8.5f   %10.5f\n",
+       fprintf(stderr,"  [ %8.5f %8.5f %8.5f ]   [ %10.5f ] \n",
                rt.mm.mat[ii][0],rt.mm.mat[ii][1],rt.mm.mat[ii][2],rt.vv.xyz[ii] );
 
      exit(1) ;
