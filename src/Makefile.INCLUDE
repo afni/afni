@@ -36,7 +36,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
            2dImReg 3dmaskave 3dbuc2fim byteorder imstack 3dDeconvolve 3dTcat \
            3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam \
-           3dIntracranial 24swap 3dTsmooth RSFgen float_scan
+           3dIntracranial 24swap 3dTsmooth RSFgen float_scan \
+           3dFourier 3dNotes 3dROIstats
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise \
@@ -45,7 +46,8 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   waver 3dnewid 3dcalc ccalc imcalc 2dImReg 3dmaskave adwarp \
                   3dMannWhitney 3dWilcoxon 3dKruskalWallis 3dFriedman 3dRegAna \
                   imstack byteorder 3dDeconvolve 3dTcat 3drotate 3dvolreg 1dplot \
-                  3dIntracranial 24swap 3dTsmooth RSFgen float_scan
+                  3dIntracranial 24swap 3dTsmooth RSFgen float_scan \
+                  3dFourier 3dNotes 3dROIstats
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h  \
@@ -560,6 +562,22 @@ iotest:iotest.o
 	$(RM) $@
 	$(CC) -o iotest iotest.o $(LFLAGS) $(LLIBS)
 
+# These programs are from Tom Ross
+
+3dFourier:3dFourier.o
+	$(RM) $@
+	$(CC) -o 3dFourier 3dFourier.o $(LFLAGS) $(LLIBS)
+
+3dNotes:3dNotes.o
+	$(RM) $@
+	$(CC) -o 3dNotes 3dNotes.o $(LFLAGS) $(LLIBS)
+
+3dROIstats:3dROIstats.o
+	$(RM) $@
+	$(CC) -o 3dROIstats 3dROIstats.o $(LFLAGS) $(LLIBS)
+
+# Sort of clean
+
 clean:
 	$(RM) *.o
 
@@ -780,7 +798,8 @@ models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
 
 # Contributed plugins go last, since they might not compile well
 
-contrib_plugins: ziad_plugins birn_plugins kummer_plugins rickr_plugins
+contrib_plugins: ziad_plugins birn_plugins kummer_plugins \
+                 rickr_plugins tross_plugins
 
 ziad_plugins: plug_3Ddump_V2.$(SO) plug_4Ddump.$(SO) \
               plug_delay_V2.$(SO)  plug_extract.$(SO)
@@ -791,6 +810,8 @@ kummer_plugins: plug_reorder.$(SO)
 
 rickr_plugins: plug_roiedit.$(SO) plug_hemisub.$(SO) \
                plug_maskcalc.$(SO) plug_maxima.$(SO)
+
+tross_plugins: plug_fourier.$(SO)
 
 install_plugins:
 	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)
