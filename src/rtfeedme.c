@@ -450,7 +450,7 @@ Restart:
 
    ii = 1 ;
    while( AFNI_mode > 0 && AFNI_mode != AFNI_CONTINUE_MODE && ii < 1000 ){
-     iochan_sleep( 30 ) ;  /* 30 msec wait */
+     iochan_sleep( 500 ) ;  /* 500 msec wait */
      AFNI_start_io() ;
      ii++ ;
    }
