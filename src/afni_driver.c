@@ -47,6 +47,7 @@ static int AFNI_set_func_resam         ( char *cmd ) ; /* 21 Jan 2003 */
 static int AFNI_sleeper                ( char *cmd ) ; /* 22 Jan 2003 */
 static int AFNI_setenv                 ( char *cmd ) ; /* 22 Jan 2003 */
 static int AFNI_define_colorscale      ( char *cmd ) ; /* 03 Feb 2003 */
+static int AFNI_open_panel             ( char *cmd ) ; /* 05 Feb 2003 */
 
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
@@ -103,6 +104,7 @@ static AFNI_driver_pair dpair[] = {
  { "SLEEP"              , AFNI_sleeper                 } ,
  { "SETENV"             , AFNI_setenv                  } ,
  { "DEFINE_COLORSCALE"  , AFNI_define_colorscale       } ,
+ { "OPEN_PANEL"         , AFNI_open_panel              } ,
 
  { NULL , NULL } } ;
 
@@ -1850,4 +1852,39 @@ static int AFNI_define_colorscale( char *cmd )
     for( ii=0 ; ii < neq ; ii++ ) val[ii] = neq-ii ;
 
   PBAR_make_bigmap( name , neq, val, col, GLOBAL_library.dc ); return(0);
+}
+
+/*---------------------------------------------------------------------*/
+/*! OPEN_PANEL [c.]Define_Function, etc. */
+
+static int AFNI_open_panel( char *cmd )
+{
+   int ic , dadd=2 , fr=-1 , tr=-1 ;
+   Three_D_View *im3d ;
+
+ENTRY("AFNI_open_panel") ;
+
+   if( cmd == NULL || strlen(cmd) < 2 ) RETURN(-1) ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   /* do the right thing (simulate a button press) */
+
+   if( strcmp(cmd+dadd,"Define_Function") == 0 ){
+     if( !XtIsManaged(im3d->vwid->dmode->frame) )
+       AFNI_define_CB( im3d->vwid->view->define_dmode_pb, im3d, NULL ) ;
+   } else if( strcmp(cmd+dadd,"Define_Datamode") == 0 ){
+     if( !XtIsManaged(im3d->vwid->marks->frame) )
+       AFNI_define_CB( im3d->vwid->view->define_marks_pb, im3d, NULL ) ;
+   } else if( strcmp(cmd+dadd,"Define_Markers")  == 0 ){
+     if( !XtIsManaged(im3d->vwid->marks->frame) )
+       AFNI_define_CB( im3d->vwid->view->define_marks_pb, im3d, NULL ) ;
+   } else {
+     RETURN(-1) ;
+   }
+   RETURN(0) ;
 }
