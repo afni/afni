@@ -40,3 +40,19 @@ int thd_floatscan( int nbuf , float * fbuf )
 
    return nerr ;
 }
+
+typedef struct complex { float r , i ; } complex ;
+
+int thd_complexscan( int nbuf , complex * cbuf )
+{
+   int ii , nerr ;
+
+   if( nbuf <= 0 || cbuf == NULL ) return 0 ;
+
+   for( nerr=ii=0 ; ii < nbuf ; ii++ ){
+      if( ! IS_FINITE(cbuf[ii].r) ){ cbuf[ii].r = 0.0 ; nerr++ ; }
+      if( ! IS_FINITE(cbuf[ii].i) ){ cbuf[ii].i = 0.0 ; nerr++ ; }
+   }
+
+   return nerr ;
+}

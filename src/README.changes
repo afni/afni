@@ -4,13 +4,17 @@
    *********************************************************************
 
 --------------------------------------------------------------------------
+14 Sep 1999:
+   Program to3d will now scan input float and complex images for illegal
+     values, and patch them in the output dataset.
+--------------------------------------------------------------------------
 02 Sep 1999:
    The new 'Dataset NOTES' plugin allows you to attach text notes to a
      dataset.  These will be stored in the .HEAD file, and are intended
      to be a way to keep track of information about the dataset.  Notes
      can also be viewed with program 3dinfo, and can be attached with
      the command line program 3dNotes.
-   Many AFNI programs and plugins that create datasets now attach a
+   Most AFNI programs and plugins that create datasets now attach a
      History note, giving the command line that was used.  The History
      note can be viewed, but not edited by the casual user.
    The built-in FIM commands in AFNI now can place an upper limit on the

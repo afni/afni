@@ -2,7 +2,8 @@
 #include <unistd.h>
 
 #define NBUF 4096
-static unsigned char buf[NBUF] ;
+static unsigned char buf1[NBUF] ;
+static unsigned char buf2[NBUF] ;
 
 int main( int argc , char * argv[] )
 {
@@ -18,7 +19,8 @@ int main( int argc , char * argv[] )
    iarg = 1 ;
    if( strcmp(argv[iarg],"-q") == 0 ){ verb = 0 ; iarg++ ; }
 
-   for( ii=0 ; ii < NBUF ; ii++ ) buf[ii] = (7*ii) % 255  ;
+   for( ii=0 ; ii < NBUF ; ii++ ) buf1[ii] = (7*ii)    % 255 ;
+   for( ii=0 ; ii < NBUF ; ii++ ) buf2[ii] = (11*ii+3) %  61 ;
 
    for( ; iarg < argc ; iarg++ ){
       ii = THD_is_directory( argv[iarg] ) ;
@@ -28,13 +30,18 @@ int main( int argc , char * argv[] )
       }
 
       ll = THD_filesize( argv[iarg] ) ;
-      if( ll >= 0 ){
+      if( ll >= 0 && THD_is_file(argv[iarg]) ){
          fp = fopen( argv[iarg], "w" ) ;
          if( fp != NULL ){
             for( jj=0 ; jj < ll ; jj += NBUF ){
-               nw = MIN(ll-jj,NBUF) ; fwrite( buf, 1, nw, fp ) ;
+               nw = MIN(ll-jj,NBUF) ; fwrite( buf1, 1, nw, fp ) ;
             }
-            fsync(fileno(fp)) ; fclose(fp) ; unlink(argv[iarg]) ;
+            fsync(fileno(fp)) ;
+            for( jj=0 ; jj < ll ; jj += NBUF ){
+               nw = MIN(ll-jj,NBUF) ; fwrite( buf2, 1, nw, fp ) ;
+            }
+            fsync(fileno(fp)) ;
+            fclose(fp) ; unlink(argv[iarg]) ;
             if( verb ) fprintf(stderr," -- Removed file %s\n",argv[iarg]) ;
          } else {
             fprintf(stderr," ** Can't write to file %s\n",argv[iarg]) ;

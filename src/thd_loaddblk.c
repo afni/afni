@@ -254,6 +254,7 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
                      mri_swap2( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
                   break ;
 
+                  case MRI_complex:  /* 14 Sep 1999: swap complex also! */
                   case MRI_float:
                   case MRI_int:
                      mri_swap4( DBLK_BRICK_NVOX(blk,ibr) , DBLK_ARRAY(blk,ibr) ) ;
@@ -263,6 +264,7 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
          }
 
          /* 30 July 1999: check float sub-brick for errors? */
+         /* 14 Sep  1999: also check complex sub-bricks!    */
 
          if( floatscan ){
             int nerr=0 ;
@@ -270,6 +272,10 @@ printf("THD_load_datablock: mmap-ed file %s\n",dkptr->brick_name) ;
                if( DBLK_BRICK_TYPE(blk,ibr) == MRI_float ){
                   nerr += thd_floatscan( DBLK_BRICK_NVOX(blk,ibr) ,
                                          DBLK_ARRAY(blk,ibr)        ) ;
+
+               } else if( DBLK_BRICK_TYPE(blk,ibr) == MRI_complex ) {  /* 14 Sep 1999 */
+                  nerr += thd_complexscan( DBLK_BRICK_NVOX(blk,ibr) ,
+                                           DBLK_ARRAY(blk,ibr)        ) ;
                }
             }
             if( nerr > 0 )

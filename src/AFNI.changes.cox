@@ -1647,3 +1647,8 @@
 
 11 Sep 1999:
  * Got History changes from Doug Ward.
+
+14 Sep 1999:
+ * Added complexscan function to thd_floatscan.c.
+ * to3d.c now scans float and complex input images for errors.
+ * thd_loaddblk.c now scans complex inputs for errors, if requested.

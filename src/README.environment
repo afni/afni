@@ -393,6 +393,15 @@ been known to go into nearly-infinite loops.
 Setting this variable implies setting AFNI_NOMMAP to YES, since
 only in-memory bricks can be altered (mmap-ed bricks are readonly).
 
+The command line program 'float_scan' can be used to check and
+patch floating point files.
+
+[14 Sep 1999] The program to3d will scan input float and complex
+files for illegal values, and patch illegal input numbers with
+zeros in the output dataset.  If this behavior is not desired for
+some bizarre reason, the '-nofloatscan' command line option to
+to3d must be used.
+
 -----------------------
 Variable: AFNI_NOSPLASH
 -----------------------

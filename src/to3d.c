@@ -52,6 +52,8 @@ static struct {
 
    int swap_two , swap_four ;  /* 14 Sep 1998 */
 
+   int nofloatscan ;           /* 14 Sep 1999 */
+
 } argopt  ;
 
 /*----------------------------------------------------------------------*/
@@ -118,6 +120,8 @@ int main( int argc , char * argv[] )
    argopt.editing     = FALSE ;
 
    argopt.swap_two = argopt.swap_four = 0 ;  /* 14 Sep 1998 */
+
+   argopt.nofloatscan = 0 ;                  /* 14 Sep 1999 */
 
    /* read the inputs */
 
@@ -2577,6 +2581,13 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          nopt++ ; continue ;  /* go to next arg */
       }
 
+      /*----- -nofloatscan -----*/
+
+      if( strncmp(Argv[nopt],"-nofloatscan",6) == 0 ){
+         argopt.nofloatscan = 1 ;
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
       /*--- illegal option ---*/
 
       printf("*** ILLEGAL OPTION: %s\n\n",Argv[nopt]) ;
@@ -2865,6 +2876,11 @@ void Syntax()
     "     grow in the future, so you should not rely on the automatic\n"
     "     conversion scheme.  Also note that floating point datasets may\n"
     "     not be portable between CPU architectures.\n"
+    "\n"
+    "  -nofloatscan\n"
+    "     tells to3d NOT to scan input float and complex data files for\n"
+    "     illegal values - the default is to scan and replace illegal\n"
+    "     floating point values with zeros (cf. program float_scan).\n"
 #ifdef USE_MRI_DELAY
     "\n"
     "  -in:1\n"
@@ -3359,6 +3375,7 @@ void T3D_read_images(void)
    int     gnim ;
    char ** gname ;
    int time_dep , ltt,kzz , ntt,nzz ;
+   int nfloat_err=0 ;  /* 14 Sep 1999 */
 
 #ifdef AFNI_DEBUG
 printf("T3D_read_images: entry\n") ;
@@ -3535,10 +3552,18 @@ printf("T3D_read_images: file %d (%s) has #im=%d\n",lf,gname[lf],arr->num) ;
             swap_fourbytes( im->nvox , mri_data_pointer(im) ) ;
          }
 
+         /* 14 Sep 1999: check float inputs for errors */
+
+         if( !argopt.nofloatscan && im->kind == MRI_float )
+            nfloat_err += thd_floatscan( im->nvox , MRI_FLOAT_PTR(im) ) ;
+         else if( !argopt.nofloatscan && im->kind == MRI_complex )
+            nfloat_err += thd_complexscan( im->nvox , MRI_COMPLEX_PTR(im) ) ;
+
          /*--- convert input image to desired type:  im --> shim ---*/
 
          if( im->kind == argopt.datum_all ){    /* data is desired type */
             shim = im ;
+
          } else {                               /* must convert data */
             switch( argopt.datum_all ){
 
@@ -3667,6 +3692,10 @@ printf("T3D_read_images: putting data into slice %d\n",kz) ;
 #ifndef AFNI_DEBUG
    printf("\n");fflush(stdout);
 #endif
+
+   if( nfloat_err > 0 )  /* 14 Sep 1999 */
+      printf("*** Found %d float errors in inputs - see program float_scan!\n",
+             nfloat_err) ;
 
    MCW_free_expand( gnim , gname ) ;
 
