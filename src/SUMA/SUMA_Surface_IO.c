@@ -1769,7 +1769,8 @@ int main (int argc,char *argv[])
 void usage_SUMA_ConvertSurface ()
    
   {/*Usage*/
-          printf ("\n\33[1mUsage: \33[0m ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc]\n");
+          printf ("\n\33[1mUsage: \33[0m ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> \n"
+                  "\t [<-sv SurfaceVolume [VolParam for sf surfaces]>] [-tlrc] [-MNI_app]\n");
           printf ("\t reads in a surface and writes it out in another format.\n");
           printf ("\t Note: This is a not a general utility conversion program. \n");
           printf ("\t Only fields pertinent to SUMA are preserved.\n");
@@ -1796,8 +1797,11 @@ void usage_SUMA_ConvertSurface ()
           printf ("\t    If you supply a surface volume, the coordinates of the input surface.\n");
           printf ("\t     are modified to SUMA's convention and aligned with SurfaceVolume.\n");
           printf ("\t     You must also specify a VolParam file for SureFit surfaces.\n");
-          printf ("\t -tlrc: Apply taliairach transform (which must be in talairach version of SurfaceVolume)\n");
+          printf ("\t -tlrc: Apply Talairach transform (which must be in talairach version of SurfaceVolume)\n");
           printf ("\t     to the surface vertex coordinates. This option must be used with the -sv option.\n");
+          printf ("\t -MNI_app: Apply Andreas Meyer Lindenberg's transform to turn AFNI tlrc coordinates (RAI)\n"
+                  "\t     into MNI coord space (in RAI not LPI).\n");
+          printf ("\t     this option must be used with the -tlrc option.\n"); 
           printf ("\tNOTE: The vertex coordinates coordinates of the input surfaces are only\n");
           printf ("\t      transformed if -sv option is used. If you do transform surfaces, \n");
           printf ("\t      take care not to load them into SUMA with another -sv option.\n");  
@@ -1819,7 +1823,8 @@ int main (int argc,char *argv[])
    void *SO_name = NULL;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc, LocalHead = NOPE;
+   SUMA_Boolean brk, Do_tlrc, Do_mni ;
+   SUMA_Boolean LocalHead = NOPE;
    
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
@@ -1837,6 +1842,7 @@ int main (int argc,char *argv[])
    kar = 1;
 	brk = NOPE;
    Do_tlrc = NOPE;
+   Do_mni = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
@@ -1964,6 +1970,10 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-MNI_app") == 0)) {
+         Do_mni = YUP;
+         brk = YUP;
+      }
       if (!brk) {
 			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -2007,6 +2017,10 @@ int main (int argc,char *argv[])
       }
    }
 
+   if (Do_mni && !Do_tlrc) {
+      SUMA_SL_Warn ("I hope you know what you're doing.\nThe MNI transform should only be applied to a\nSurface in the AFNI tlrc coordinate space.\n");
+   }
+   
    if (oType == SUMA_SUREFIT) {
       if (!of_name2) {
        fprintf (SUMA_STDERR,"Error %s: output SureFit surface incorrectly specified. \n", FuncName);
@@ -2179,9 +2193,16 @@ int main (int argc,char *argv[])
       }
 
       
-      
    }
    
+   if (Do_mni) {
+      /* apply the mni warp */
+      if (!SUMA_AFNItlrc_toMNI(SO->NodeList, SO->N_Node, "RAI")) {
+         fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
+         exit(1);
+      }
+   }
+  
    if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
    
    fprintf (SUMA_STDOUT,"Writing surface...\n");

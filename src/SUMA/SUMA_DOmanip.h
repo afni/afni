@@ -42,6 +42,7 @@ SUMA_Boolean SUMA_isdROIrelated (SUMA_DRAWN_ROI *ROI, SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_isROIrelated (SUMA_ROI *ROI, SUMA_SurfaceObject *SO);
 SUMA_DRAWN_ROI * SUMA_FetchROI_InCreation (SUMA_SurfaceObject *SO, SUMA_DO * dov, int N_dov); 
 SUMA_Boolean SUMA_AFNI_forward_warp_xyz( THD_warp * warp , float *XYZv, int N);
+SUMA_Boolean SUMA_AFNItlrc_toMNI(float *NodeList, int N_Node, char *Coord);
 int SUMA_Build_Mask_DrawnROI (SUMA_DRAWN_ROI *D_ROI, int *Mask);
 int * SUMA_Build_Mask_AllROI (SUMA_DO *dov, int N_dov, SUMA_SurfaceObject *SO, int *Mask, int *N_added);
 SUMA_ASSEMBLE_LIST_STRUCT *SUMA_AssembleAllROIList (SUMA_DO * dov, int N_dov, SUMA_Boolean SortByLabel); 
