@@ -223,7 +223,7 @@ SampBias: SUMA_SampBias.c ${SUMALIB}
 	${CC} -DSUMA_COMPILED \
    	${CCOPT} ${WARNOPT} -o $@ SUMA_SampBias.c ${SUMA_INCLUDE_PATH}		\
 		${AFNI_3dOBJS} ${AFNI_OBJS} -lf2c			\
-		${SUMALIBLIST} -lglib ${AFNILIB} ${ZLIB}			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} 
 
 SurfMesh: SUMA_coarsen.c libgts.a ${SUMALIB}
