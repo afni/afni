@@ -5753,7 +5753,7 @@ if(PRINT_TRACING)
 
 XmString AFNI_crosshair_label( Three_D_View * im3d )
 {
-   char buf[64] ;
+   char buf[128] ;
    XmString xstr ;
    static char * RR="[R]" , * LL="[L]" ,
                * PP="[P]" , * AA="[A]" ,
@@ -7626,19 +7626,24 @@ void AFNI_crosshair_relabel( Three_D_View *im3d )
 ENTRY("AFNI_crosshair_relabel") ;
 
    if( !IM3D_OPEN(im3d) ) EXRETURN ;
-   xstr = AFNI_crosshair_label( im3d ) ;
-   same = XmStringCompare( xstr , im3d->vinfo->old_crosshair_label ) ;
+   xstr = AFNI_crosshair_label( im3d ) ; if( xstr == NULL ) EXRETURN ;
+   if( im3d->vinfo->old_crosshair_label == (XmString)NULL ) /* shouldn't */
+     same = False ;                                         /* happen   */
+   else
+     same = XmStringCompare( xstr , im3d->vinfo->old_crosshair_label ) ;
 
    if( same == False ){
       XtVaSetValues( im3d->vwid->imag->crosshair_label ,       /* redisplay */
                         XmNlabelString , xstr ,                /* if changed */
                      NULL ) ;
       MCW_expose_widget( im3d->vwid->imag->crosshair_label ) ; /* redraw now! */
-      XmStringFree(im3d->vinfo->old_crosshair_label) ;         /* toss old */
+      if( im3d->vinfo->old_crosshair_label != (XmString)NULL )
+        XmStringFree(im3d->vinfo->old_crosshair_label) ;       /* toss old */
       im3d->vinfo->old_crosshair_label = xstr ;                /* new old */
    } else {
       XmStringFree( xstr ) ;  /* was same --> don't need this copy */
    }
+
    EXRETURN ;
 }
 
