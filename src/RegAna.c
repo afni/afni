@@ -88,7 +88,7 @@ int calc_matrices
 
 
   /*----- calculate various matrices which will be needed later -----*/
-  if( !use_psinv ){
+  if( p <= 1 || !use_psinv ){
     matrix_initialize (&xt);
     matrix_initialize (&xtx);
     matrix_transpose (*x, &xt);
