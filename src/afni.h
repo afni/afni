@@ -860,7 +860,8 @@ extern void AFNI_popup_message( char * ) ;
 extern void AFNI_start_version_check(void) ;   /* 21 Nov 2002 */
 extern void AFNI_version_check      (void) ;
 
-extern char * AFNI_get_friend(void) ;  /* 26 Feb 2001 */
+extern char * AFNI_get_friend(void) ;      /* 26 Feb 2001 */
+extern char * AFNI_get_date_trivia(void) ; /* 25 Nov 2002 */
 
 #define OPEN_CONTROLLER(iq)                                  \
  do{ XtRealizeWidget((iq)->vwid->top_shell) ;                \

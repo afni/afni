@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <time.h>
+#include <stdio.h>
 
 static char * afni_helptypes[] = {
    "advice and help"                ,  /* mask =   1 */
@@ -57,10 +60,13 @@ static AFNI_friend afni_friends[] = {
   { "RC Reynolds"    , (                           64       | 512       ) } ,
   { "PP Christidis"  , (                           64                   ) } ,
   { "G Fong"         , (                 16 |           128             ) } ,
-  { "LR Frank"       , (             8                                  ) }
+  { "LR Frank"       , (             8                                  ) } ,
+  { "R Desimone"     , (     2                                          ) }
 } ;
 
 #define NUM_FRIENDS (sizeof(afni_friends)/sizeof(AFNI_friend))
+
+/*---------------------------------------------------------------------*/
 
 char * AFNI_get_friend(void)
 {
@@ -76,4 +82,117 @@ char * AFNI_get_friend(void)
             "Thanks go to %s for %s" ,
             afni_friends[nf].name , afni_helptypes[nh] ) ;
    return buf ;
+}
+
+/*---------------------------------------------------------------------------------*/
+
+#define JAN  1
+#define FEB  2
+#define MAR  3
+#define APR  4
+#define MAY  5
+#define JUN  6
+#define JUL  7
+#define AUG  8
+#define SEP  9
+#define OCT 10
+#define NOV 11
+#define DEC 12
+
+typedef struct { int mon,day; char *label; } mday ;
+
+static mday holiday[] = {
+   {JAN, 1,"New Year's Day"                                          } ,
+   {JAN, 3,"John Ronald Reuel Tolkien's birthday"                    } ,
+   {JAN, 6,"Sherlock Holmes' birthday"                               } ,
+   {JAN, 9,"Richard Nixon's birthday"                                } ,
+   {JAN,11,"Alexander Hamilton's birthday"                           } ,
+   {JAN,15,"Martin Luther King Jr's birthday"                        } ,
+   {JAN,17,"Benjamin Franklin's birthday"                            } ,
+   {FEB, 8,"William Tecumseh Sherman's birthday"                     } ,
+   {FEB,12,"Abraham Lincoln's birthday"                              } ,
+   {FEB,14,"Saint Valentine's Day"                                   } ,
+   {FEB,15,"Anniversary of release of AFNI to the world"             } ,
+   {FEB,21,"Anniversary of the start of the Battle of Verdun"        } ,
+   {FEB,22,"George Washington's birthday"                            } ,
+   {FEB,29,"Leap Day"                                                } ,
+   {MAR, 1,"Frederic Chopin's birthday"                              } ,
+   {MAR,15,"The Ides of March"                                       } ,
+   {MAR,17,"Saint Patrick's Day"                                     } ,
+   {APR, 1,"April Fool's Day"                                        } ,
+   {APR, 9,"Anniversary of Lee's surrender at Appomattox"            } ,
+   {APR,12,"Anniversary of attack on Fort Sumter"                    } ,
+   {APR,13,"Thomas Jefferson's birthday"                             } ,
+   {APR,14,"Anniversary of Lincoln's assasination"                   } ,
+   {APR,21,"Queen Elizabeth II's birthday"                           } ,
+   {APR,22,"Earth Day"                                               } ,
+   {APR,23,"Saint George's Day"                                      } ,
+   {APR,25,"Oliver Cromwell's birthday"                              } ,
+   {APR,26,"William Shakespeare's birthday"                          } ,
+   {APR,27,"Ulysses Grant's birthday"                                } ,
+   {APR,29,"Duke Ellington's birthday"                               } ,
+   {MAY, 7,"Anniversary of sinking of the Lusitania"                 } ,
+   {MAY, 8,"VE Day"                                                  } ,
+   {MAY,18,"John Paul II's birthday"                                 } ,
+   {MAY,22,"Arthur Conan Doyle's birthday"                           } ,
+   {MAY,24,"Queen Victoria's birthday"                               } ,
+   {MAY,27,"Wild Bill Hickock's birthday"                            } ,
+   {MAY,29,"John F Kennedy's birthday"                               } ,
+   {MAY,31,"Walt Whitman's birthday"                                 } ,
+   {JUN, 8,"Frank Lloyd Wright's birthday"                           } ,
+   {JUN,25,"Anniversary of the Battle of the Little Big Horn"        } ,
+   {JUL, 1,"Canada Day"                                              } ,
+   {JUL, 2,"Anniversay of American Independence"                     } ,
+   {JUL, 4,"Anniversary of adoption of Declaration of Independence"  } ,
+   {JUL, 7,"Satchel Paige's birthday"                                } ,
+   {JUL,13,"Gaius Julius Caesar's birthday"                          } ,
+   {JUL,14,"Bastille Day"                                            } ,
+   {JUL,28,"Gerard Manley Hopkin's birthday"                         } ,
+   {JUL,31,"Anniversary of the start of the battle of Passchendaele" } ,
+   {AUG,15,"Napoleon's birthday"                                     } ,
+   {AUG,26,"Anniversary of ratification of Nineteenth Amendment"     } ,
+   {SEP, 2,"VJ Day"                                                  } ,
+   {SEP, 7,"Queen Elizabeth I's birthday"                            } ,
+   {SEP, 8,"Anniversary of Star Trek TV premiere"                    } ,
+   {SEP,17,"Anniversary of signing of American Constitution"         } ,
+   {SEP,22,"Anniversary of Preliminary Emancipation Proclamation"    } ,
+   {SEP,29,"Lech Walesa's birthday"                                  } ,
+   {OCT,12,"Columbus Day"                                            } ,
+   {OCT,19,"Anniversary of Cornwallis' surrender at Yorktown"        } ,
+   {OCT,24,"Anniversary of founding of United Nations"               } ,
+   {OCT,25,"Saint Crispin's (or Crispian's) Day"                     } ,
+   {OCT,27,"Theodore Roosevelt's birthday"                           } ,
+   {OCT,31,"Halloween"                                               } ,
+   {NOV, 1,"All Saint's Day"                                         } ,
+   {NOV,11,"Veteran's and Remembrance Day"                           } ,
+   {NOV,12,"Sun Yat Sen's birthday"                                  } ,
+   {NOV,22,"Anniversary of Kennedy's assasination"                   } ,
+   {NOV,25,"Joe DiMaggio's birthday"                                 } ,
+   {NOV,28,"William Blake's birthday"                                } ,
+   {NOV,30,"Winston Churchill's birthday"                            } ,
+   {DEC, 7,"Anniversary of attack on Pearl Harbor"                   } ,
+   {DEC,19,"William Pitt's (the younger) birthday"                   } ,
+   {DEC,24,"Adam Mickiewicz's birthday"                              } ,
+   {DEC,25,"Christmas Day"                                           } ,
+   {DEC,26,"Boxing Day"                                              } ,
+   {DEC,31,"New Year's Eve"                                          } ,
+
+ {0,0,NULL} } ;  /* the last element, a flag to stop searching */
+
+/*---------------------------------------------------------------------------------*/
+
+char * AFNI_get_date_trivia(void)
+{
+   time_t tt ;
+   struct tm *lt ;
+   int ii ;
+
+   tt = time(NULL) ;
+   lt = localtime( &tt ) ;
+
+   for( ii=0 ; holiday[ii].day != 0 ; ii++ )
+     if( holiday[ii].mon == lt->tm_mon+1 && holiday[ii].day == lt->tm_mday )
+       return holiday[ii].label ;
+
+   return "[not yet claimed]" ;
 }
