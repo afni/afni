@@ -63,6 +63,7 @@ void memplot_to_postscript( char * fname , MEM_plotdata * mp )
                ps_rect( x1,y1 , x2,y2 ) ;
                skip = 1 ;
             }
+            break ;
 
             case THCODE_CIRC:{        /* circle */
                x1 = 0.499 + PSIZE * (1.0 - MEMPLOT_Y1(mp,ii)) ;
