@@ -4063,3 +4063,7 @@
 27 Nov 2002
  * Modified mri_read_dicom.c to allow for stupid GE case where slice spacing is
     incorrectly set to slice gap instead.
+
+29 Nov 2002
+ * Modified mri_read_stuff.c to allow for case when initial 4096 byte buffer
+     contains all the image data (i.e., for tiny images).
