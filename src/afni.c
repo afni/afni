@@ -474,6 +474,11 @@ ENTRY("AFNI_parse_args") ;
          narg++ ; continue ;  /* go to next arg */
       }
 
+      if( strcmp(argv[narg],"-noniml") == 0 ){
+         GLOBAL_argopt.yes_niml-- ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
       /*----- -tbar 'name' option -----*/
 
       if( strncmp(argv[narg],"-tbar",5) == 0 ){

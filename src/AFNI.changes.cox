@@ -3554,15 +3554,15 @@
  * Modified thd_loaddblk.c to check if sub-bricks are all the same datum; if
      not, always uses malloc() and also prints a warning to stderr.
  * Incorporated changes from Doug Ward:
-   * The group statistical analysis programs (3dANOVA, 3dANOVA2, 3dANOVA3, 
-       3dRegAna, 3dMannWhitney, 3dWilcoxon, 3dKruskalWallis, 3dFriedman), when 
+   * The group statistical analysis programs (3dANOVA, 3dANOVA2, 3dANOVA3,
+       3dRegAna, 3dMannWhitney, 3dWilcoxon, 3dKruskalWallis, 3dFriedman), when
        creating an AFNI 2-subbrick dataset or a bucket-type dataset, previously
        used the following format for the output datum types:
           "intensity" sub-bricks -- same as input dataset
           statistical sub-bricks -- scaled short integer
        The above programs have been changed so that all output subbricks
        will now have the scaled short integer format.
-   * Modified program 3dbucket, so that if there is more than one input 
+   * Modified program 3dbucket, so that if there is more than one input
      dataset, it will copy the command line history from the first input
      to the output bucket dataset.
 
@@ -3581,3 +3581,11 @@
      processing time for large data elements.
  * Modified imseq.c (and afni_pplug_env.c) to keep panning mode on if
      AFNI_KEEP_PANNING is yessish.
+ * Modified xim.c to speed up rgb_to_XImage(), by doing TrueColor and
+     PseudoColor in separate functions.
+
+17 Mar 2002
+ * Modified afni_niml.c to disable NIML listening if all potential sockets
+     are busy.  This is to prevent an endless series of error messages
+     when 2 AFNIs are running at once.
+ * Modified afni.c to add option "-noniml".
