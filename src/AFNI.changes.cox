@@ -3663,3 +3663,6 @@
  * Modified afni_plugin.h and NLfit_model.h to read dlfcn.h from
      dlcompat/ subdirectory on Darwin systems.
  * Modified afni.c to allow environment variables to set +tlrc box size.
+
+17 Apr 2002
+ * Modified afni_sumafunc.c to allow for MRI_rgb fim overlays.
