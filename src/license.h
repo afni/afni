@@ -18,7 +18,9 @@ static char * license[] = {
    "  imply any warranty of usefulness of this software for any particular\n" ,
    "  purpose, and do not assume any liability for damages, incidental or\n" ,
    "  otherwise, caused by the installation or use of this software.  If\n" ,
-   "  these condition are not acceptable, do not use this software.\n" ,
+   "  these conditions are not acceptable to you or your institution, or are\n" ,
+   "  not enforceable by the laws of your jurisdiction, you do not have the\n" ,
+   "  right use this software.\n" ,
    "\n" ,
    "  The MCW-copyrighted part of this software is released to the public under\n" ,
    "  the GNU General Public License, Version 2.  A copy of this License is\n" ,
@@ -475,4 +477,4 @@ static char * license[] = {
    "     POSSIBILITY OF SUCH DAMAGES.\n" ,
    "\n" ,
    NULL } ;
-#define NUM_license 475
+#define NUM_license 477
