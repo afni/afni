@@ -8,7 +8,7 @@
 #include "thd.h"
 
 /*-------------------------------------------------------------*/
-/*!\brief Return the time at which the file was last modified. */
+/*! Return the time at which the file was last modified. */
 
 time_t THD_file_mtime( char * pathname )  /* 05 Dec 2001 */
 {
@@ -20,7 +20,7 @@ time_t THD_file_mtime( char * pathname )  /* 05 Dec 2001 */
 }
 
 /*-----------------------------------------------------------*/
-/*!\brief Determine if this is really a regular file or not. */
+/*! Determine if this is really a regular file or not. */
 
 int THD_is_file( char * pathname )
 {
@@ -32,7 +32,7 @@ int THD_is_file( char * pathname )
 }
 
 /*------------------------------------------------------------*/
-/*!\brief Determine if this is really a symbolic link or not. */
+/*! Determine if this is really a symbolic link or not. */
 
 int THD_is_symlink( char * pathname )  /* 03 Mar 1999 */
 {
@@ -43,7 +43,7 @@ int THD_is_symlink( char * pathname )  /* 03 Mar 1999 */
 }
 
 /*-------------------------------------------------------*/
-/*!\brief Return the file length (-1 if file not found). */
+/*! Return the file length (-1 if file not found). */
 
 unsigned long THD_filesize( char * pathname )
 {
@@ -55,7 +55,7 @@ unsigned long THD_filesize( char * pathname )
 }
 
 /*--------------------------------------------------------*/
-/*!\brief Determine if this is really a directory or not. */
+/*! Determine if this is really a directory or not. */
 
 int THD_is_directory( char * pathname )
 {
@@ -67,7 +67,7 @@ int THD_is_directory( char * pathname )
 }
 
 /*---------------------------------------------------------------*/
-/*!\brief Determine if this is really an executable file or not. */
+/*! Determine if this is really an executable file or not. */
 
 int THD_is_executable( char * pathname )  /* 26 Jun 2001 */
 {
@@ -85,7 +85,7 @@ int THD_is_executable( char * pathname )  /* 26 Jun 2001 */
 }
 
 /*--------------------------------------------------------------*/
-/*!\brief Determine if two filenames are really the same thing. */
+/*! Determine if two filenames are really the same thing. */
 
 int THD_equiv_files( char * path1 , char * path2 )
 {
@@ -100,7 +100,7 @@ int THD_equiv_files( char * path1 , char * path2 )
 }
 
 /*-----------------------------------------------------------------*/
-/*!\brief Find a 'trailing name in a pathname.
+/*! Find a 'trailing name in a pathname.
 
    For example, for fname = "/bob/cox/is/the/author/of/AFNI",
      - the lev=0 trailing name is "AFNI",
@@ -140,7 +140,7 @@ char * THD_trailname( char * fname , int lev )
 }
 
 /*----------------------------------------------------------------------*/
-/*!\brief Check if a filename is OK - that is, has no crummy characters.
+/*! Check if a filename is OK - that is, has no crummy characters.
 
   The filename can have a '/' in it.  To insist that there be not '/',
   use THD_filename_pure().
@@ -170,7 +170,7 @@ int THD_filename_ok( char * name )  /* 24 Apr 1997 */
 }
 
 /*--------------------------------------------------------------------*/
-/*!\brief Check if a filename is pure - no crummy characters, no '/'. */
+/*! Check if a filename is pure - no crummy characters, no '/'. */
 
 int THD_filename_pure( char * name )  /* 28 Feb 2001 */
 {
