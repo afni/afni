@@ -318,7 +318,7 @@ ENTRY("AFNI_thresh_lock_carryout") ;
    eee = getenv( "AFNI_THRESH_LOCK" ) ;          /* determine how to lock */
    if( eee == NULL ) EXRETURN ;
    dothresh = (*eee == 'V' || *eee == 'v') ;
-   dopval   = (*eee == 'P' || *eee == 'p') ;
+   dopval   = (*eee == 'P' || *eee == 'p') && im3d->fim_now != NULL ;
    if( !dothresh && !dopval ) EXRETURN ;         /* no command? */
 
    ii = AFNI_controller_index(im3d) ;           /* which one am I? */
@@ -451,6 +451,91 @@ ENTRY("AFNI_pbar_lock_carryout") ;
 
          AFNI_equate_pbars( qq3d , im3d ) ;
       }
+   }
+
+   busy = 0 ;  /* OK, let this routine be activated again */
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void AFNI_thrdrag_lock_carryout( Three_D_View *im3d )
+{
+   Three_D_View *qq3d ;
+   static int busy = 0 ;  /* !=0 if this routine is "busy" */
+   int glock , cc,ii , dothresh,dopval , ival , stop ;
+   float thresh , pval , tval ;
+   char *eee ;
+
+ENTRY("AFNI_thrdrag_lock_carryout") ;
+
+   /* first, determine if there is anything to do */
+
+   glock = GLOBAL_library.controller_lock ;     /* not a handgun */
+
+   if( busy )                         EXRETURN;  /* routine already busy */
+   if( glock == 0 )                   EXRETURN;  /* nothing to do */
+   if( !IM3D_OPEN(im3d) )             EXRETURN;  /* bad input */
+   if( GLOBAL_library.ignore_lock )   EXRETURN;  /* ordered not to do anything */
+
+   eee = getenv( "AFNI_THRESH_LOCK" ) ;          /* determine how to lock */
+   if( eee == NULL ) EXRETURN ;
+   dothresh = (*eee == 'V' || *eee == 'v') ;
+   dopval   = (*eee == 'P' || *eee == 'p') && im3d->fim_now != NULL ;
+   if( !dothresh && !dopval ) EXRETURN ;         /* no command? */
+
+   ii = AFNI_controller_index(im3d) ;           /* which one am I? */
+
+   if( ii < 0 ) EXRETURN ;                      /* nobody? bad input! */
+   if( ((1<<ii) & glock) == 0 ) EXRETURN ;      /* input not locked */
+
+   /* something to do? */
+
+   busy = 1 ;  /* don't let this routine be called recursively */
+
+   ival   = rint(im3d->vinfo->func_threshold/THR_FACTOR) ;
+   thresh = im3d->vinfo->func_threshold * im3d->vinfo->func_thresh_top ;
+   stop   = (int)( rint( pow(10.0,THR_TOP_EXPON) ) - 1.0 ) ;
+
+   if( dopval ){
+     pval = THD_stat_to_pval( thresh ,
+                DSET_BRICK_STATCODE(im3d->fim_now,im3d->vinfo->thr_index) ,
+                DSET_BRICK_STATAUX (im3d->fim_now,im3d->vinfo->thr_index)  ) ;
+     if( pval < 0.0 || pval > 1.0 ){ dopval = 0; dothresh = 1; }
+   }
+
+   /* loop through other controllers:
+        for those that ARE open, ARE NOT the current
+        one, and ARE locked, set the new threshold */
+
+   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+
+     qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+
+     if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+
+       if( qq3d->vinfo->func_thresh_top == im3d->vinfo->func_thresh_top ){
+
+         if( dopval && qq3d->fim_now != NULL &&
+             DSET_BRICK_STATCODE(qq3d->fim_now,qq3d->vinfo->thr_index) > 0 ){
+
+           tval = THD_pval_to_stat( pval ,
+                    DSET_BRICK_STATCODE(qq3d->fim_now,im3d->vinfo->thr_index),
+                    DSET_BRICK_STATAUX (qq3d->fim_now,im3d->vinfo->thr_index) );
+           ival = rint( tval/(THR_FACTOR*qq3d->vinfo->func_thresh_top) ) ;
+           if( ival < 0 ) ival = 0 ; else if( ival > stop ) ival = stop ;
+
+         } else if( !dothresh ){
+           continue ;  /* skip this [dopval set, but not a statistic] */
+         }
+
+         /* set the slider and pval marker */
+
+         XmScaleSetValue( qq3d->vwid->func->thr_scale , ival ) ;
+         qq3d->vinfo->func_threshold = THR_FACTOR * ival ;
+         AFNI_set_thr_pval( qq3d ) ;
+       }
+     }
    }
 
    busy = 0 ;  /* OK, let this routine be activated again */

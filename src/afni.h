@@ -1060,6 +1060,7 @@ extern void AFNI_time_lock_change_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_thresh_lock_carryout( Three_D_View * ) ; /* 06 Feb 2004 */
 extern void AFNI_pbar_lock_carryout  ( Three_D_View * ) ; /* 07 Feb 2004 */
 extern void AFNI_equate_pbars        ( Three_D_View *, Three_D_View * ) ;
+extern void AFNI_thrdrag_lock_carryout( Three_D_View * ) ;
 
 extern void AFNI_ijk_lock_change_CB( Widget , XtPointer , XtPointer ) ;
 
