@@ -197,6 +197,7 @@ static void * AIVVV_imseq_popup( MRI_IMARR *imar, generic_func *kfunc, void *kda
      opt.save_pnm = False ;
      drive_MCW_imseq( psq->seq , isqDR_options      , (XtPointer) &opt ) ;
      drive_MCW_imseq( psq->seq , isqDR_periodicmont , (XtPointer) 0    ) ;
+     drive_MCW_imseq( psq->seq , isqDR_penbbox      , (XtPointer) 0    ) ;
    }
 
    /* make it popup */

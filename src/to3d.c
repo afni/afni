@@ -4527,6 +4527,7 @@ void T3D_open_view_CB( Widget w ,
    drive_MCW_imseq(wset.seq,isqDR_opacitybut    ,(XtPointer)0); /* 07 Mar 2001 */
    drive_MCW_imseq(wset.seq,isqDR_record_disable,(XtPointer)0); /* 24 Apr 2001 */
    drive_MCW_imseq(wset.seq,isqDR_zoombut       ,(XtPointer)0); /* 12 Mar 2002 */
+   drive_MCW_imseq(wset.seq,isqDR_penbbox       ,(XtPointer)0); /* 12 Mar 2002 */
 
    /* 01 Dec 1999: add "sides" markers for image viewer */
 

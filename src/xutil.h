@@ -88,6 +88,11 @@ extern void RWC_sleep( int ) ;  /* 16 Aug 2002 */
       MCW_set_widget_cursor( (w) , -XC_pencil ) ;              \
  } while(0)
 
+#define CROSSHAIR_cursorize(w)                                 \
+ do{ if( (w) != (Widget)NULL && XtWindow(w) != (Window)NULL )  \
+      MCW_set_widget_cursor( (w) , -XC_crosshair ) ;           \
+ } while(0)
+
 extern void MCW_register_hint( Widget , char * ) ;
 extern void MCW_reghint_children( Widget , char * ) ;
 extern void MCW_hint_toggle(void) ;

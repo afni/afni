@@ -1275,6 +1275,40 @@ if( PRINT_TRACING ){
 
      wtemp = newseq->crop_drag_pb ;
 
+   /* 18 Jul 2003: toggle button for pen (drawing mode) */
+
+   { char *lbl = "pen" ;
+     newseq->pen_bbox = new_MCW_bbox( newseq->wform ,
+                                      1 , &lbl ,
+                                      MCW_BB_check , MCW_BB_noframe ,
+                                      ISQ_pen_bbox_CB , (XtPointer)newseq ) ;
+
+     newseq->onoff_widgets[(newseq->onoff_num)++] = newseq->pen_bbox->wrowcol ;
+
+     XtVaSetValues( newseq->pen_bbox->wrowcol ,
+                      EDGING_RIG   , XmATTACH_FORM ,
+                      LEADING_RIG  , XmATTACH_WIDGET ,
+                      LEADING_WIDGET_RIG , wtemp ,
+                  NULL ) ;
+
+     MCW_reghelp_children( newseq->pen_bbox->wrowcol ,
+                           "In ROI drawing mode, toggles\n"
+                           "the cursor to a pen shape,\n"
+                           "and turn on drawing with\n"
+                           "mouse Button-1."
+                         ) ;
+     MCW_reghint_children( newseq->pen_bbox->wrowcol ,
+                           "Toggle pen drawing" ) ;
+
+#define HIDE_PENBBOX
+#ifndef HIDE_PENBBOX
+     XtSetSensitive( newseq->pen_bbox->wrowcol , False ) ;
+#else
+     XtUnmanageChild( newseq->pen_bbox->wrowcol ) ;
+#endif
+     wtemp = newseq->pen_bbox->wrowcol ;
+   }
+
    /* scale for image number */
 
    ii = (one_image) ? 1 : newseq->status->num_total - 1 ;
@@ -1856,7 +1890,7 @@ ENTRY("ISQ_zoom_pb_CB") ;
        w != seq->zoom_drag_pb ||
        seq->zoom_fac == 1       ) EXRETURN ; /* bad */
 
-   if( seq->cursor_state == CURSOR_PENCIL ){ /* really bad */
+   if( seq->cursor_state != CURSOR_NORMAL ){ /* really bad */
      XBell(XtDisplay(w),100); EXRETURN;
    }
 
@@ -4193,14 +4227,27 @@ void ISQ_set_cursor_state( MCW_imseq *seq , int cstat )  /* 10 Mar 2003 */
      XBell(seq->dc->display,100); return;
    }
 
-   if( cstat >= 0 ) seq->cursor_state = cstat ;
-   switch( seq->cursor_state ){
+#if 0
+fprintf(stderr,"ISQ_set_cursor_state: old=%d new=%d\n",seq->cursor_state,cstat);
+#endif
+
+   switch( cstat ){
      default:
        POPUP_cursorize( seq->wimage ) ;
+       seq->cursor_state = CURSOR_NORMAL ;
+       MCW_set_bbox( seq->pen_bbox , 0 ) ;
      break ;
 
      case CURSOR_PENCIL:
        PENCIL_cursorize( seq->wimage ) ;
+       seq->cursor_state = CURSOR_PENCIL ;
+       MCW_set_bbox( seq->pen_bbox , 1 ) ;
+     break ;
+
+     case CURSOR_CROSSHAIR:
+       CROSSHAIR_cursorize( seq->wimage ) ;
+       seq->cursor_state = CURSOR_CROSSHAIR ;
+       MCW_set_bbox( seq->pen_bbox , 0 ) ;
      break ;
    }
    return ;
@@ -4465,7 +4512,11 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
              /* 10 Mar 2003: change cursor state to drawing pencil */
 
              case XK_F2:{
-               if( !seq->button2_enabled ){ XBell(seq->dc->display,100); EXRETURN; }
+               if( !seq->button2_enabled ){
+                 MCW_popup_message( w, " \n Only when \n"
+                                          " Drawing!! \n ", MCW_USER_KILL );
+                 XBell(seq->dc->display,100); EXRETURN;
+               }
 
                ISQ_set_cursor_state( seq ,
                                      (seq->cursor_state == CURSOR_PENCIL)
@@ -4485,6 +4536,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
              case XK_F11:
              case XK_F12:
                XBell(seq->dc->display,100) ;
+               MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );
            }
            EXRETURN ;
          }
@@ -4660,7 +4712,10 @@ DPR(" .. ButtonPress") ;
 
               /* while Button2 is active, nothing else is allowed */
 
-              if( seq->button2_active ){ XBell(seq->dc->display,100); EXRETURN; }
+              if( seq->button2_active ){
+                /*** XBell(seq->dc->display,100) ; ***/
+                EXRETURN ;
+              }
 
               /* Button3 presses in the image with a modifier
                  key pressed also means to popup some menu    */
@@ -6059,6 +6114,7 @@ ENTRY("ISQ_but_cnorm_CB") ;
 *    isqDR_getopacity      (int *) get opacity setting
 
 *    isqDR_zoombut         (int) turns zoom control on/off
+*    isqDR_penbbox         (int) turns pen bbox on/off
 
 *    isqDR_record_mode     (ignored)
                            makes this an image recorder (irreversibly)
@@ -6233,6 +6289,7 @@ static unsigned char record_bits[] = {
          ISQ_remove_widget( seq , seq->zoom_val_av->wrowcol ) ;
          ISQ_remove_widget( seq , seq->zoom_drag_pb ) ;
          ISQ_remove_widget( seq , seq->crop_drag_pb ) ;
+         ISQ_remove_widget( seq , seq->pen_bbox->wrowcol ) ;
 
          ISQ_remove_widget( seq , seq->arrowpad->wform ) ;
          ISQ_remove_widget( seq , seq->wbar ) ;
@@ -6361,6 +6418,18 @@ static unsigned char record_bits[] = {
             XtManageChild( seq->zoom_drag_pb ) ;
             XtManageChild( seq->crop_drag_pb ) ;
          }
+         RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- pen bbox [18 Jul 2003] ----------*/
+
+      case isqDR_penbbox:{
+         int val = (int) drive_data ;
+         if( val == 0 )
+           XtUnmanageChild( seq->pen_bbox->wrowcol ) ;
+         else
+           XtManageChild( seq->pen_bbox->wrowcol ) ;
          RETURN( True ) ;
       }
       break ;
@@ -6546,6 +6615,12 @@ static unsigned char record_bits[] = {
 
          seq->button2_enabled = 1 ;
          seq->button2_active  = 0 ;
+
+#ifndef HIDE_PENBBOX
+         XtSetSensitive( seq->pen_bbox->wrowcol , True ) ;
+#else
+         XtManageChild( seq->pen_bbox->wrowcol ) ;
+#endif
          RETURN( True );
       }
 
@@ -6567,6 +6642,11 @@ static unsigned char record_bits[] = {
 
          seq->button2_enabled = seq->button2_active = 0 ;
          ISQ_set_cursor_state( seq , CURSOR_NORMAL ) ;
+#ifndef HIDE_PENBBOX
+         XtSetSensitive( seq->pen_bbox->wrowcol , False ) ;
+#else
+         XtUnmanageChild( seq->pen_bbox->wrowcol ) ;
+#endif
          RETURN( True );
       }
 
@@ -9883,9 +9963,9 @@ ENTRY("SNAP_store_image") ;
 
      snap_isq = open_MCW_imseq( snap_dc, SNAP_imseq_getim, NULL ) ;
 
-     drive_MCW_imseq( snap_isq, isqDR_periodicmont, (XtPointer) 0    ) ;
-     drive_MCW_imseq( snap_isq, isqDR_realize     , NULL ) ;
-     drive_MCW_imseq( snap_isq, isqDR_title       , "Snapshots" ) ;
+     drive_MCW_imseq( snap_isq, isqDR_periodicmont, (XtPointer) 0 ) ;
+     drive_MCW_imseq( snap_isq, isqDR_realize     , NULL          ) ;
+     drive_MCW_imseq( snap_isq, isqDR_title       , "Snapshots"   ) ;
 
      /* put next to top shell of widget we are snapshotting */
 
@@ -9921,6 +10001,7 @@ ENTRY("SNAP_store_image") ;
      XtUnmanageChild( snap_isq->ov_opacity_sep ) ;
      XtUnmanageChild( snap_isq->ov_opacity_av->wrowcol ) ;
      XtUnmanageChild( snap_isq->winfo ) ;
+     XtUnmanageChild( snap_isq->pen_bbox->wrowcol ) ;
 
    } else {
      drive_MCW_imseq( snap_isq, isqDR_onoffwid    , (XtPointer)isqDR_offwid );
@@ -9995,5 +10076,20 @@ ENTRY("ISQ_snapsave") ;
    }
 
    SNAP_store_image( tim , w ) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void ISQ_pen_bbox_CB( Widget w, XtPointer client_data, XtPointer call_data )
+{
+   MCW_imseq *seq = (MCW_imseq *)client_data ;
+   int val ;
+
+ENTRY("ISQ_pen_bbox_CB") ;
+   if( !ISQ_REALZ(seq) || !seq->button2_enabled ) EXRETURN ;
+
+   val = MCW_val_bbox( seq->pen_bbox ) ;
+   ISQ_set_cursor_state( seq, (val==0) ? CURSOR_NORMAL : CURSOR_PENCIL ) ;
    EXRETURN ;
 }
