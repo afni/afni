@@ -5233,3 +5233,7 @@
 
 21 Oct 2004
  * Also added ISPOSITIVE and ISNEGATIVE functions to parser.f
+
+22 Oct 2004
+ * Modifed thd_shear3d.c to use true SVD in computing the rotation for
+     3dTagalign, rather than the symmetric eigensolution method.
