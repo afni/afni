@@ -264,8 +264,8 @@ SUMA_Boolean SUMA_PrepSO_GeomProp_GL(SUMA_SurfaceObject *SO)
    
    /*create the structures for GL rendering */
    /*The data is being duplicated at the moment and perhaps I should just stick with the 1D stuf */
-   if (sizeof(GLfloat) != sizeof(float)) { SUMA_SL_Crit("GLfloat and float have differing sizes!\n"); SUMA_RETURN(NULL); }
-   if (sizeof(GLint) != sizeof(int)) { SUMA_SL_Crit("GLint and int have differing sizes!\n"); SUMA_RETURN(NULL); }
+   if (sizeof(GLfloat) != sizeof(float)) { SUMA_SL_Crit("GLfloat and float have differing sizes!\n"); SUMA_RETURN(NOPE); }
+   if (sizeof(GLint) != sizeof(int)) { SUMA_SL_Crit("GLint and int have differing sizes!\n"); SUMA_RETURN(NOPE); }
    
    SO->glar_NodeList = (GLfloat *) SO->NodeList; /* just copy the pointer, not the data */
    SO->glar_FaceSetList = (GLint *) SO->FaceSetList; /* just copy the pointer, not the data */
