@@ -627,17 +627,17 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
 			
 			/* done cleaning up, deal with windows ... */
 			#ifdef SUMA_USE_UNREALIZE 
-				fprintf (SUMA_STDERR,"%s: Unrealizing it.\n", FuncName);
+				if (LocalHead) fprintf (SUMA_STDERR,"%s: Unrealizing it.\n", FuncName);
 				XtUnrealizeWidget(SUMAg_SVv[ic].X->TOPLEVEL); 
 			#endif
 			#ifdef SUMA_USE_WITDRAW 
-				fprintf (SUMA_STDERR,"%s: Withdrawing it.\n", FuncName);
+				if (LocalHead) fprintf (SUMA_STDERR,"%s: Withdrawing it.\n", FuncName);
 				XWithdrawWindow(SUMAg_SVv[ic].X->DPY, 
 					XtWindow(SUMAg_SVv[ic].X->TOPLEVEL), 
 					XScreenNumberOfScreen(XtScreen(SUMAg_SV[ic].X->TOPLEVEL)));
 			#endif
 			#ifdef SUMA_USE_DESTROY 
-				fprintf (SUMA_STDERR,"%s: Destroying it.\n", FuncName);
+				if (LocalHead) fprintf (SUMA_STDERR,"%s: Destroying it.\n", FuncName);
 				XtDestroyWidget(SUMAg_SVv[ic].X->TOPLEVEL);
 				SUMAg_SV[ic].X->TOPLEVEL = NULL;
 			#endif
@@ -645,7 +645,7 @@ void SUMA_ButtClose_pushed (Widget w, XtPointer cd1, XtPointer cd2)
 			SUMAg_SVv[ic].Open = NOPE;
 		   --SUMAg_CF->N_OpenSV;
 			if (SUMAg_CF->N_OpenSV == 0) {
-				fprintf (SUMA_STDERR,"%s: No more viewers, exiting.\n", FuncName);
+				if (LocalHead) fprintf (SUMA_STDERR,"%s: No more viewers, exiting.\n", FuncName);
 				exit(0);
 			}
 	} else {
@@ -923,13 +923,32 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 
 	/* find out the next best name and write it*/
 	{
-  		char tmpprfx[100], *padprfx, padname[100];
+  		char tmpprfx[100], *padprfx, *padname;
 		int cntindx=0;
+		SUMA_SurfaceObject *SO;
 		SUMA_Boolean OKname = NOPE;
+		
+		/* get the SO in focus, use it's label for output filename */
+		if (csv->Focus_SO_ID >= 0) {
+			SO = (SUMA_SurfaceObject *)(SUMAg_DOv[csv->Focus_SO_ID].OP);
+		}else {
+			SO = NULL;
+		}
+		
+		if (!SO){
+			padname = (char *)calloc(100, sizeof(char));
+		}else {
+			padname = (char *)calloc(strlen(SO->Label)+10, sizeof(char));
+		}
+		
 		while (!OKname) {
 			sprintf (tmpprfx, "%d", cntindx);
 			padprfx = SUMA_pad_str (tmpprfx, '0', 4, 0);
-			sprintf(padname,"suma_img%s.eps", padprfx);
+			if (!SO) {
+				sprintf(padname,"suma_img%s.eps", padprfx);
+			}else {
+				sprintf(padname,"%s_%s.eps", SO->Label, padprfx);
+			}
 			if (SUMA_filexists(padname)) {
 				++cntindx;
 			} else { OKname = YUP; }
@@ -940,6 +959,7 @@ SUMA_Boolean SUMA_RenderToPixMap (SUMA_SurfaceViewer *csv, SUMA_DO *dov)
 	  fprintf (SUMA_STDOUT,"%s: Writing image to %s ...", FuncName, padname);
 	  SUMA_generateEPS(padname, /* color */ 1, csv->X->WIDTH, csv->X->HEIGHT);
 	  fprintf (SUMA_STDOUT,"Done.\n");
+	  free (padname);
 	}
 
 	/* render to original context */

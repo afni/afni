@@ -46,3 +46,5 @@
 #include "SUMA_trackball.h"
 #include "SUMA_Color.h"
 #include "SUMA_GeomComp.h"
+#include "SUMA_CreateDO.h"
+#include "SUMA_Load_Surface_Object.h"
