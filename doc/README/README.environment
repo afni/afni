@@ -1611,6 +1611,23 @@ are needed, they will cycle back to color 01.  If you leave a gap in the
 numbering (e.g., you define color 07 but not 05 or 06), then the undefined
 colors will be black.
 
+---------------------------------
+Variable: AFNI_SIEMENS_INTERLEAVE
+---------------------------------
+The old (pre-DICOM) Siemens .ima image mosaic format sometimes stores the
+multi-slice EPI data in correct spatial order and sometimes in correct
+time acquisition order.  In the latter case, the images are stored in
+a spatially-interleaved fashion.  As far as I know, there is no way to
+tell this from the .ima file header itself.  Therefore, if you have a
+problem with such files, set this variable to YES to un-interleave the
+images when to3d reads them.  One way to tell if the images need to be
+un-interleaved is to do
+  afni -im fred.ima
+then look at the images in an Axial image viewer.  If the slices make up
+a single coherent volume, then they are NOT interleaved.  If the slices
+look like they make up 2 separate brain volumes, then they need to be
+un-interleaved, and you need to set this variable to YES.
+
 =========================================
 | Robert W Cox, PhD                     |
 | National Institute of Mental Health   |
