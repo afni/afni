@@ -68,7 +68,7 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 	/* intialize the number of points read to 0 */
 	*N_FaceSetList = 0;
 	
-	linv = (int *)malloc (MaxAlloc*sizeof(int));
+	linv = (int *)SUMA_malloc (MaxAlloc*sizeof(int));
 	if (!linv)
 		{
 				SUMA_alloc_problem ("Allocation error in IV-FaceSetExtract");
@@ -180,7 +180,7 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 						if (cnt >= MaxAlloc - 1)
 							{
 								MaxAlloc = MaxAlloc + 100;
-								linv = (int *)realloc ((void*) linv, MaxAlloc * sizeof(int));
+								linv = (int *)SUMA_realloc ((void*) linv, MaxAlloc * sizeof(int));
 								if (!linv)
 									{
 										SUMA_alloc_problem ("Re-Allocation error in IV-FaceSetExtract");
@@ -244,7 +244,7 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 	
 	/* Now allocate space for SUMA_IV_FaceSetsextract and fill it up */
 	NP = 3;
-	FaceSetList = (int *) calloc (*N_FaceSetList * NP, sizeof(int));
+	FaceSetList = (int *) SUMA_calloc (*N_FaceSetList * NP, sizeof(int));
 	if (!FaceSetList)
 		{
 			SUMA_alloc_problem("IV_FaceSetextract : Could not allocate");

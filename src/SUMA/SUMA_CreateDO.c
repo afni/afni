@@ -11,7 +11,7 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
 
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	Ax = malloc (sizeof (SUMA_Axis));
+	Ax = SUMA_malloc (sizeof (SUMA_Axis));
 	if (Ax == NULL) {
 		fprintf(stderr,"SUMA_Alloc_Axis Error: Failed to allocate Ax\n");
 		SUMA_RETURN (Ax);
@@ -46,8 +46,8 @@ SUMA_Axis* SUMA_Alloc_Axis (const char *Name)
 			Ax->Name = NULL;
 			Ax->idcode_str = NULL;
 		} else {
-			Ax->Name = (char *)calloc (strlen(Name)+1, sizeof(char));
-			Ax->idcode_str = (char *)calloc (SUMA_IDCODE_LENGTH, sizeof(char));
+			Ax->Name = (char *)SUMA_calloc (strlen(Name)+1, sizeof(char));
+			Ax->idcode_str = (char *)SUMA_calloc (SUMA_IDCODE_LENGTH, sizeof(char));
 			if (Ax->Name == NULL) {
 				fprintf(SUMA_STDERR,"Error %s: Failed to allocate for Ax->Name.\n", \
 					FuncName);
@@ -215,7 +215,7 @@ SUMA_CrossHair* SUMA_Alloc_CrossHair (void)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	Ch = malloc (sizeof (SUMA_CrossHair));
+	Ch = SUMA_malloc (sizeof (SUMA_CrossHair));
 	if (Ch == NULL) {
 		fprintf(stderr,"SUMA_Alloc_CrossHair Error: Failed to allocate Ch\n");
 		SUMA_RETURN (NULL);
@@ -288,7 +288,7 @@ SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	SM = malloc (sizeof (SUMA_SphereMarker));
+	SM = SUMA_malloc (sizeof (SUMA_SphereMarker));
 	if (SM == NULL) {
 		fprintf(stderr,"SUMA_Alloc_SphereMarker Error: Failed to allocate SM\n");
 		SUMA_RETURN (NULL);
@@ -366,7 +366,7 @@ SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	FM = malloc (sizeof (SUMA_FaceSetMarker));
+	FM = SUMA_malloc (sizeof (SUMA_FaceSetMarker));
 	if (FM == NULL) {
 		fprintf(stderr,"SUMA_Alloc_FaceSetMarker Error: Failed to allocate FM\n");
 		SUMA_RETURN (NULL);
@@ -891,7 +891,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	SO = (SUMA_SurfaceObject *)malloc(sizeof(SUMA_SurfaceObject)*N);
+	SO = (SUMA_SurfaceObject *)SUMA_malloc(sizeof(SUMA_SurfaceObject)*N);
 	if (SO == NULL) {
 		SUMA_alloc_problem("SUMA_Alloc_SurfObject_Struct: could not allocate memory for SO");
 	}
@@ -912,8 +912,8 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
 		SO[i].VolPar = NULL;
 		SO[i].glar_NodeList = NULL; 
 		/* create vector of pointers */
-		SO[i].Overlays = (SUMA_OVERLAYS **) malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
-		SO[i].Overlays_Inode = (SUMA_INODE **) malloc(sizeof(SUMA_INODE *) * SUMA_MAX_OVERLAYS); 
+		SO[i].Overlays = (SUMA_OVERLAYS **) SUMA_malloc(sizeof(SUMA_OVERLAYS *) * SUMA_MAX_OVERLAYS);
+		SO[i].Overlays_Inode = (SUMA_INODE **) SUMA_malloc(sizeof(SUMA_INODE *) * SUMA_MAX_OVERLAYS); 
 		/* fill pointers with NULL */
 		for (j=0; j < SUMA_MAX_OVERLAYS; ++j) {
 			SO[i].Overlays[j] = NULL;

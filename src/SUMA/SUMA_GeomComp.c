@@ -30,8 +30,8 @@ SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int *Full_FaceSetLi
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 	
 	NP = 3;
-	BeenSelected = (int *)calloc (N_Full_FaceSetList, sizeof(int));
-	Patch = (SUMA_PATCH *)malloc(sizeof(Patch));
+	BeenSelected = (int *)SUMA_calloc (N_Full_FaceSetList, sizeof(int));
+	Patch = (SUMA_PATCH *)SUMA_malloc(sizeof(Patch));
 	
 	if (!BeenSelected || !Patch) {
 		fprintf (SUMA_STDERR,"Error %s: Could not allocate for BeenSelected or patch.\n", FuncName);
@@ -52,8 +52,8 @@ SUMA_PATCH * SUMA_getPatch (int *NodesSelected, int N_Nodes, int *Full_FaceSetLi
 	
 	/* now load these facesets into a new matrix */
 	
-	Patch->FaceSetList = (int *) calloc (Patch->N_FaceSet * 3, sizeof(int));
-	Patch->FaceSetIndex = (int *) calloc (Patch->N_FaceSet, sizeof(int));
+	Patch->FaceSetList = (int *) SUMA_calloc (Patch->N_FaceSet * 3, sizeof(int));
+	Patch->FaceSetIndex = (int *) SUMA_calloc (Patch->N_FaceSet, sizeof(int));
 	
 	if (!Patch->FaceSetList || !Patch->FaceSetIndex) {
 		fprintf (SUMA_STDERR,"Error %s: Could not allocate for Patch->FaceSetList || Patch_FaceSetIndex.\n", FuncName);

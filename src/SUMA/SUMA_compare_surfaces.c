@@ -191,7 +191,7 @@ int main (int argc,char *argv[])
   }
   else 
     if (SUMA_iswordin(Spec.SurfaceType[0], "SureFit") == 1) {
-      Surf1_SFName = malloc(sizeof(SUMA_SFname));
+      Surf1_SFName = SUMA_malloc(sizeof(SUMA_SFname));
       strcpy(Surf1_SFName->name_coord,Spec.SureFitCoord[0]);
       strcpy(Surf1_SFName->name_topo, Spec.SureFitTopo[0]);
       strcpy(Surf1_SFName->name_param, Spec.SureFitVolParam[0]);
@@ -209,7 +209,7 @@ int main (int argc,char *argv[])
   }
   else 
     if (SUMA_iswordin(Spec.SurfaceType[1], "SureFit") == 1) {
-      Surf2_SFName = malloc(sizeof(SUMA_SFname));
+      Surf2_SFName = SUMA_malloc(sizeof(SUMA_SFname));
       strcpy(Surf2_SFName->name_coord, Spec.SureFitCoord[1]);
       strcpy(Surf2_SFName->name_topo, Spec.SureFitTopo[1]);
       strcpy(Surf2_SFName->name_param, Spec.SureFitVolParam[1]);
@@ -262,7 +262,7 @@ int main (int argc,char *argv[])
      So each node is P0.  P1 is computed as some point along the normal vector to that node.  Lets say P0 is P1 + 20 mm along the normal. 
      Now feed P0 and P1 into the intersect triangle routine and feed the node and face list of surface 2 */
   
-  distance = malloc(num_nodes1*sizeof(float));
+  distance = SUMA_malloc(num_nodes1*sizeof(float));
 
   /* for each node on the first surface do the following */
   SUMA_etime (&tt, 0);

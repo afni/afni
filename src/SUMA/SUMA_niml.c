@@ -315,7 +315,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 				int OverInd, _ID;
 				SUMA_SurfaceObject *SOmap;
 				/* create a color overlay plane */
-				/* you could create an overlay plane with partial node coverage but you'd have to clean up and reallocate
+				/* you could create an overlay plane with partial node coverage but you'd have to clean up and SUMA_reallocate
 				with each new data sent since the number of colored nodes will change. So I'll allocate for the entire node list 
 				for the FuncAfni_0 color plane although only some values will be used*/
 				
@@ -462,10 +462,10 @@ NI_element * SUMA_makeNI_SurfIXYZ (SUMA_SurfaceObject *SO)
    nel = NI_new_data_element( "SUMA_ixyz" , SO->N_Node) ;
 	
    /* make the columns to be put in the element */
-   ic = (int *)   malloc( sizeof(int)   * SO->N_Node ) ;
-   xc = (float *) malloc( sizeof(float) * SO->N_Node ) ;
-   yc = (float *) malloc( sizeof(float) * SO->N_Node ) ;
-   zc = (float *) malloc( sizeof(float) * SO->N_Node ) ;
+   ic = (int *)   SUMA_malloc( sizeof(int)   * SO->N_Node ) ;
+   xc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
+   yc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
+   zc = (float *) SUMA_malloc( sizeof(float) * SO->N_Node ) ;
 
 	if (!nel || !ic || !xc || !yc || !zc) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel, ic, xc, yc or zc.\n", FuncName);
@@ -526,9 +526,9 @@ NI_element * SUMA_makeNI_SurfIJK (SUMA_SurfaceObject *SO)
    nel = NI_new_data_element( "SUMA_ijk" , SO->N_FaceSet) ;
 	
    /* make the columns to be put in the element */
-   I = (int *)   malloc( sizeof(int)   * SO->N_FaceSet ) ;
-   J = (int *) malloc( sizeof(int) * SO->N_FaceSet ) ;
-   K = (int *) malloc( sizeof(int) * SO->N_FaceSet ) ;
+   I = (int *)   SUMA_malloc( sizeof(int)   * SO->N_FaceSet ) ;
+   J = (int *) SUMA_malloc( sizeof(int) * SO->N_FaceSet ) ;
+   K = (int *) SUMA_malloc( sizeof(int) * SO->N_FaceSet ) ;
 
 	if (!nel || !I || !J || !K ) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for nel, I, J or K.\n", FuncName);
@@ -602,7 +602,7 @@ NI_element * SUMA_makeNI_CrossHair (SUMA_SurfaceViewer *sv)
 	
 	if (XYZmap == NULL){
 		fprintf(SUMA_STDERR,"%s: Linkage is not posible, using current XYZ\n", FuncName);
-		XYZmap = (float *)calloc (3, sizeof(float));
+		XYZmap = (float *)SUMA_calloc (3, sizeof(float));
 		if (XYZmap == NULL) {
 			fprintf (SUMA_STDERR, "Error %s: Give me a break !\n", FuncName);
 			SUMA_RETURN (NULL); 
@@ -677,15 +677,15 @@ void SUMA_register_workproc( XtWorkProc func , XtPointer data )
    }
 
    if( num_workp == 0 ){
-      workp = (XtWorkProc *) malloc( sizeof(XtWorkProc) ) ;
-      datap = (XtPointer *)  malloc( sizeof(XtPointer) ) ;
+      workp = (XtWorkProc *) SUMA_malloc( sizeof(XtWorkProc) ) ;
+      datap = (XtPointer *)  SUMA_malloc( sizeof(XtPointer) ) ;
       wpid  = XtAppAddWorkProc(SUMAg_CF->App, SUMA_workprocess, NULL ) ;
 #ifdef WPDEBUG
       fprintf(stderr,"SUMA_register_workproc: wpid = %x\n",(int)wpid) ;
 #endif
    } else {
-      workp = (XtWorkProc *) realloc( workp, sizeof(XtWorkProc)*(num_workp+1) ) ;
-      datap = (XtPointer*)   realloc( datap, sizeof(XtPointer) *(num_workp+1) ) ;
+      workp = (XtWorkProc *) SUMA_realloc( workp, sizeof(XtWorkProc)*(num_workp+1) ) ;
+      datap = (XtPointer*)   SUMA_realloc( datap, sizeof(XtPointer) *(num_workp+1) ) ;
    }
 
    workp[num_workp] = func ;

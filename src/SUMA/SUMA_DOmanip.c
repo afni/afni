@@ -182,7 +182,7 @@ SUMA_INODE *SUMA_CreateInode (void *data, char *ID)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	IN = (SUMA_INODE *)malloc (sizeof(SUMA_INODE));
+	IN = (SUMA_INODE *)SUMA_malloc (sizeof(SUMA_INODE));
 	if (IN == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: failed to allocate for Inode.\n", FuncName);
 		SUMA_RETURN(NULL);
@@ -205,7 +205,7 @@ SUMA_DO *SUMA_Alloc_DisplayObject_Struct (int N)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	dov = (SUMA_DO *)malloc(sizeof(SUMA_DO)*N);
+	dov = (SUMA_DO *)SUMA_malloc(sizeof(SUMA_DO)*N);
 	if (dov == NULL) {
 		SUMA_alloc_problem("SUMA_Alloc_DisplayObject_Struct: could not allocate memory for SO");
 	}
@@ -420,7 +420,7 @@ int * SUMA_GetDO_Type(SUMA_DO *dov, int N_dov, SUMA_DO_Types DO_Type, int *N)
 
 	*N = 0;
 
-	do_id = (int *)calloc (sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
+	do_id = (int *)SUMA_calloc (sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
 
 	if (do_id == NULL) {
 		fprintf(stderr,"Error SUMA_GetDO_Type: Could not allocate for do_id\n");

@@ -556,7 +556,7 @@ SUMA_Boolean SUMA_InitializeEngineData (SUMA_EngineData *MTI)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	
-	if (MTI == NULL) MTI = malloc(sizeof(SUMA_EngineData));
+	if (MTI == NULL) MTI = SUMA_malloc(sizeof(SUMA_EngineData));
 		
 	if (MTI == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for MTI.\n", FuncName);

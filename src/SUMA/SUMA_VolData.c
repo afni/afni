@@ -24,7 +24,7 @@ SUMA_VOLPAR *SUMA_Alloc_VolPar (void)
 
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	VP = (SUMA_VOLPAR *)malloc(sizeof(SUMA_VOLPAR));
+	VP = (SUMA_VOLPAR *)SUMA_malloc(sizeof(SUMA_VOLPAR));
 	if (VP == NULL) {
 		fprintf(SUMA_STDERR,"Error SUMA_Alloc_VolPar: Failed to allocate for VolPar\n");
 		SUMA_RETURN (NULL);
@@ -86,15 +86,15 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	VP->yorg = DSET_YORG(dset);
 	VP->zorg = DSET_ZORG(dset);
 	ii = strlen(DSET_PREFIX(dset));
-	VP->prefix = (char *)malloc(ii+1);
+	VP->prefix = (char *)SUMA_malloc(ii+1);
 	ii = strlen(DSET_FILECODE(dset));
-	VP->filecode = (char *)malloc(ii+1);
+	VP->filecode = (char *)SUMA_malloc(ii+1);
 	ii = strlen(DSET_DIRNAME(dset));
-	VP->dirname = (char *)malloc(ii+1);
+	VP->dirname = (char *)SUMA_malloc(ii+1);
 	ii = strlen(dset->idcode.str);
-	VP->idcode_str = (char *)malloc(ii+1);
+	VP->idcode_str = (char *)SUMA_malloc(ii+1);
 	ii = strlen(dset->idcode.date);
-	VP->idcode_date = (char *)malloc(ii+1);
+	VP->idcode_date = (char *)SUMA_malloc(ii+1);
 	if (VP->prefix == NULL || VP->filecode == NULL || VP->idcode_date == NULL || VP->dirname == NULL || VP->idcode_str == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate for strings. Kill me, please.\n", FuncName);
 		SUMA_Free_VolPar(VP);
@@ -114,7 +114,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	if (atr == NULL) {
 		VP->VOLREG_MATVEC = NULL;
 	}else {
-		VP->VOLREG_MATVEC = (float *)calloc(12, sizeof(float));
+		VP->VOLREG_MATVEC = (float *)SUMA_calloc(12, sizeof(float));
 		if (VP->VOLREG_MATVEC != NULL) {
 			if (atr->nfl == 12) {
 				for (ii=0; ii<12; ++ii) VP->VOLREG_MATVEC[ii] = atr->fl[ii];
@@ -130,7 +130,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	if (atr == NULL) {
 		VP->VOLREG_CENTER_BASE = NULL;
 	} else {
-		VP->VOLREG_CENTER_BASE = (float *)calloc(3, sizeof(float));
+		VP->VOLREG_CENTER_BASE = (float *)SUMA_calloc(3, sizeof(float));
 		if (VP->VOLREG_CENTER_BASE != NULL) {
 			if (atr->nfl == 3) {
 				for (ii=0; ii<3; ++ii) VP->VOLREG_CENTER_BASE[ii] = atr->fl[ii];
@@ -147,7 +147,7 @@ SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name)
 	if (atr == NULL) {
 		VP->VOLREG_CENTER_OLD = NULL;
 	} else {
-		VP->VOLREG_CENTER_OLD = (float *)calloc(3, sizeof(float));
+		VP->VOLREG_CENTER_OLD = (float *)SUMA_calloc(3, sizeof(float));
 		if (VP->VOLREG_CENTER_OLD != NULL) {
 			if (atr->nfl == 3) {
 				for (ii=0; ii<3; ++ii) VP->VOLREG_CENTER_OLD[ii] = atr->fl[ii];
@@ -231,8 +231,8 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	/* allocate for cord structure */
-	cord_surf = (THD_coorder *)malloc(sizeof(THD_coorder));
-	cord_RAI = (THD_coorder *)malloc(sizeof(THD_coorder));
+	cord_surf = (THD_coorder *)SUMA_malloc(sizeof(THD_coorder));
+	cord_RAI = (THD_coorder *)SUMA_malloc(sizeof(THD_coorder));
 	if (cord_surf == NULL || cord_RAI == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: failed to allocate for cord\n", FuncName);
 		SUMA_RETURN (NOPE);

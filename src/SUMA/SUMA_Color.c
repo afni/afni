@@ -126,13 +126,13 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap (float **Fiducials, int Nfid, int Ncols, SUMA_
 	}
 	
 	/* package the resutls */
-	SM = (SUMA_COLOR_MAP *)malloc(sizeof(SUMA_COLOR_MAP));
+	SM = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
 	if (SM == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
 		SUMA_RETURN (NULL);
 	}
 	
-	SM->Name = (char *)calloc(strlen(Name)+1, sizeof(char));
+	SM->Name = (char *)SUMA_calloc(strlen(Name)+1, sizeof(char));
 	if (SM->Name == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM->Name.\n", FuncName);
 		SUMA_RETURN (NULL);
@@ -232,13 +232,13 @@ SUMA_COLOR_MAP* SUMA_MakeColorMap_v2 (float **Fiducials, int Nfid, int *Nint, SU
 	}
 	
 	/* package the resutls */
-	SM = (SUMA_COLOR_MAP *)malloc(sizeof(SUMA_COLOR_MAP));
+	SM = (SUMA_COLOR_MAP *)SUMA_malloc(sizeof(SUMA_COLOR_MAP));
 	if (SM == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM.\n", FuncName);
 		SUMA_RETURN (NULL);
 	}
 	
-	SM->Name = (char *)calloc(strlen(Name)+1, sizeof(char));
+	SM->Name = (char *)SUMA_calloc(strlen(Name)+1, sizeof(char));
 	if (SM->Name == NULL) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for SM->Name.\n", FuncName);
 		SUMA_RETURN (NULL);
@@ -531,7 +531,7 @@ int main (int argc,char *argv[])
 		}
 
 		Fid = (float **) SUMA_allocate2D (N_Fid / 4, 4, sizeof(float));
-		Nind = (int *) calloc (N_Fid/4, sizeof(int));
+		Nind = (int *) SUMA_calloc (N_Fid/4, sizeof(int));
 		if (Fid == NULL || !Nind) {
 			fprintf (SUMA_STDERR,"Error %s: Could not allocate for Fid or Nind.\n", FuncName);
 			exit(1);
@@ -743,14 +743,14 @@ SUMA_COLOR_SCALED_VECT * SUMA_Create_ColorScaledVect(int N_Node)
 	
 	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
-	S = (SUMA_COLOR_SCALED_VECT *)malloc(sizeof(SUMA_COLOR_SCALED_VECT));
+	S = (SUMA_COLOR_SCALED_VECT *)SUMA_malloc(sizeof(SUMA_COLOR_SCALED_VECT));
 	if (S == NULL) {
 		fprintf(SUMA_STDERR, "Error %s: Failed to allocate for S.\n", FuncName);
 		SUMA_RETURN (S);
 	}
 	
 	S->cM = (float **) SUMA_allocate2D(N_Node, 3, sizeof(float));
-	S->isMasked = (SUMA_Boolean *)calloc(N_Node, sizeof(SUMA_Boolean));
+	S->isMasked = (SUMA_Boolean *)SUMA_calloc(N_Node, sizeof(SUMA_Boolean));
 	
 	if (!S->cM || !S->isMasked) {
 		fprintf(SUMA_STDERR, "Error %s: Failed to allocate for S->cM or S->isMasked.\n", FuncName);
@@ -805,7 +805,7 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
 	
 	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
-	Opt = (SUMA_SCALE_TO_MAP_OPT *)malloc(sizeof(SUMA_SCALE_TO_MAP_OPT));
+	Opt = (SUMA_SCALE_TO_MAP_OPT *)SUMA_malloc(sizeof(SUMA_SCALE_TO_MAP_OPT));
 	
 	if (Opt == NULL) {
 		fprintf (SUMA_STDERR, "Error %s: Could not allocate for Opt.\n", FuncName);
@@ -989,7 +989,7 @@ SUMA_COLOR_MAP * SUMA_GetStandardMap (SUMA_STANDARD_CMAP mapname)
 					NFid = 10;
 					
 					Fiducials = (float **)SUMA_allocate2D(NFid, 3, sizeof(float));
-					Nind = (int *) calloc (NFid, sizeof (int));
+					Nind = (int *) SUMA_calloc (NFid, sizeof (int));
 					
 					if (!Fiducials || !Nind) {
 						fprintf (SUMA_STDERR,"Error %s: Failed to allocate for Fiducials or Nind.\n", FuncName);
@@ -1254,7 +1254,7 @@ int main (int argc,char *argv[])
 		}
 	
 	/* allocate for Nodes */
-	Va = (float *) calloc (N_Va, sizeof(float));
+	Va = (float *) SUMA_calloc (N_Va, sizeof(float));
 	if (!Va) {
 		fprintf (SUMA_STDERR,"Error %s: Could not allocate for Va.\n", FuncName);
 		exit(1);
@@ -1266,8 +1266,8 @@ int main (int argc,char *argv[])
 		N_V = N_Va;
 	} else {
 		N_V = N_Va/2;
-		V = (float *) calloc (N_V, sizeof(float));
-		iV = (int *) calloc (N_V, sizeof(int));
+		V = (float *) SUMA_calloc (N_V, sizeof(float));
+		iV = (int *) SUMA_calloc (N_V, sizeof(int));
 		if (!V || !iV) {
 			fprintf (SUMA_STDERR,"Error %s: Could not allocate for V or iV.\n", FuncName);
 			exit(1);
@@ -1404,7 +1404,7 @@ float * SUMA_PercRange (float *V, float *Vsort, int N_V, float *PercRange, float
 	 
 	if (!Vsort) {
 		/* need to create my own sorted version */
-	  	Vsort = (float *)calloc (N_V, sizeof(float));
+	  	Vsort = (float *)SUMA_calloc (N_V, sizeof(float));
 		if (!Vsort) {
 			fprintf (SUMA_STDERR, "Error %s: Failed to allocate for Vsort.\n", FuncName);
 			SUMA_RETURN (NULL);
@@ -1453,7 +1453,7 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
 	
 	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_IN_NOTIFY(FuncName); }
 
-	Sover = (SUMA_OVERLAYS *)malloc(sizeof(SUMA_OVERLAYS));
+	Sover = (SUMA_OVERLAYS *)SUMA_malloc(sizeof(SUMA_OVERLAYS));
 	if (!Sover) {
 		fprintf (SUMA_STDERR,"Error %s: Could not allocate for Sover.\n", FuncName);
 		SUMA_RETURN (NULL);
@@ -1467,9 +1467,9 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name)
 	}
 	Sover->N_Alloc = N_Nodes;
 	
-	Sover->NodeDef = (int *) calloc(Sover->N_Alloc, sizeof(int));
+	Sover->NodeDef = (int *) SUMA_calloc(Sover->N_Alloc, sizeof(int));
 	Sover->ColMat = (float **) SUMA_allocate2D(Sover->N_Alloc, 3, sizeof(float));
-	Sover->LocalOpacity = (float *)calloc(Sover->N_Alloc, sizeof(float));
+	Sover->LocalOpacity = (float *)SUMA_calloc(Sover->N_Alloc, sizeof(float));
 	
 	if (!Sover->NodeDef || !Sover->ColMat || !Sover->LocalOpacity) {
 		fprintf (SUMA_STDERR,"Error %s: Could not allocate for Sover fields.\n", FuncName);
@@ -1612,7 +1612,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 	
 	/* vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv allocate space ------------------------------------*/
 	
-	isColored = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));/* allocate for flag indicating the a node is colored */
+	isColored = (SUMA_Boolean *) SUMA_calloc (N_Node, sizeof(SUMA_Boolean));/* allocate for flag indicating the a node is colored */
 	if (!isColored) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored.\n", FuncName);
 		SUMA_RETURN (NOPE);
@@ -1622,8 +1622,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 	isColored_Back = NULL;
 	if (ShowBackground) {
 		if (NshowOverlays_Back) {
-			glcolar_Back = (GLfloat *) calloc (4*N_Node, sizeof(GLfloat));
-			isColored_Back = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
+			glcolar_Back = (GLfloat *) SUMA_calloc (4*N_Node, sizeof(GLfloat));
+			isColored_Back = (SUMA_Boolean *) SUMA_calloc (N_Node, sizeof(SUMA_Boolean));
 
 			if (!isColored_Back || !glcolar_Back) {
 				fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored_Back || glcolar_Back.\n", FuncName);
@@ -1636,8 +1636,8 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_OVERLAYS ** Overlays, int N_Overlays,
 	glcolar_Fore = NULL;
 	if (ShowForeground) {
 		if (NshowOverlays) {
-			glcolar_Fore = (GLfloat *) calloc (4*N_Node, sizeof(GLfloat));
-			isColored_Fore = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
+			glcolar_Fore = (GLfloat *) SUMA_calloc (4*N_Node, sizeof(GLfloat));
+			isColored_Fore = (SUMA_Boolean *) SUMA_calloc (N_Node, sizeof(SUMA_Boolean));
 
 			if (!isColored_Fore || !glcolar_Fore) {
 				fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored_Fore || glcolar_Fore.\n", FuncName);
@@ -1993,7 +1993,7 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4_old(SUMA_OVERLAYS ** Overlays, int N_Overl
 		}
 	}
 
-	isColored = (SUMA_Boolean *) calloc (N_Node, sizeof(SUMA_Boolean));
+	isColored = (SUMA_Boolean *) SUMA_calloc (N_Node, sizeof(SUMA_Boolean));
 	if (!isColored) {
 		fprintf (SUMA_STDERR,"Error %s: Failed to allocate for isColored.\n", FuncName);
 		SUMA_RETURN (NOPE);

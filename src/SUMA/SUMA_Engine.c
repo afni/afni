@@ -1136,7 +1136,7 @@ float * SUMA_XYZ_XYZmap (float *XYZ, SUMA_SurfaceObject *SO, SUMA_DO* dov, int N
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	/* allocate for return */
-	XYZmap = (float *)calloc (3, sizeof(float));
+	XYZmap = (float *)SUMA_calloc (3, sizeof(float));
 	if (XYZmap == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for XYZmap.\n", FuncName);
 		SUMA_RETURN (NULL);
@@ -1245,7 +1245,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
 	/* allocate for return */
-	XYZ = (float *)calloc (3, sizeof(float));
+	XYZ = (float *)SUMA_calloc (3, sizeof(float));
 	if (XYZ == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for XYZ.\n", FuncName);
 		SUMA_RETURN (NULL);

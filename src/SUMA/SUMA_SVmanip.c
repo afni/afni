@@ -15,16 +15,16 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	SVv =  (SUMA_SurfaceViewer *)malloc(sizeof(SUMA_SurfaceViewer)*N);
+	SVv =  (SUMA_SurfaceViewer *)SUMA_malloc(sizeof(SUMA_SurfaceViewer)*N);
 	if (SVv == NULL) {
-		fprintf(SUMA_STDERR,"Error %s: Failed to malloc SV\n", FuncName);
+		fprintf(SUMA_STDERR,"Error %s: Failed to SUMA_malloc SV\n", FuncName);
 		SUMA_RETURN (NULL);
 	}
 	for (i=0; i < N; ++i) {
 		SV = &(SVv[i]);
 		
 		SV->N_GVS = SUMA_N_STANDARD_VIEWS;
-		SV->GVS = (SUMA_GEOMVIEW_STRUCT *)malloc(sizeof(SUMA_GEOMVIEW_STRUCT)*SV->N_GVS);
+		SV->GVS = (SUMA_GEOMVIEW_STRUCT *)SUMA_malloc(sizeof(SUMA_GEOMVIEW_STRUCT)*SV->N_GVS);
 		if (!SV->GVS) {
 			fprintf(SUMA_STDERR,"Error %s: Could not allocate for N_GVS.\n", FuncName);
 			SUMA_RETURN (NULL);
@@ -122,9 +122,9 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 		
 		SV->Open = NOPE;
 		
-		SV->ShowDO = (int *)calloc(sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
+		SV->ShowDO = (int *)SUMA_calloc(sizeof(int), SUMA_MAX_DISPLAYABLE_OBJECTS);
 		if (SV->ShowDO == NULL) {
-			fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to malloc SV->ShowDO\n");
+			fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to SUMA_malloc SV->ShowDO\n");
 			SUMA_RETURN (NULL);
 		}
 		SV->N_DO = 0; /* Nothing is registered with the viewer yet */
@@ -138,9 +138,9 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
 			SUMA_RETURN (NULL); 
 		} else SV->ShowCrossHair = 1;
 		
-		SV->X = (SUMA_X *)malloc(sizeof(SUMA_X));
+		SV->X = (SUMA_X *)SUMA_malloc(sizeof(SUMA_X));
 		if (SV->X == NULL) {
-			fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to malloc SV->X\n");
+			fprintf(stderr,"Error SUMA_Alloc_SurfaceViewer_Struct: Failed to SUMA_malloc SV->X\n");
 			SUMA_RETURN (NULL);
 		}
 
@@ -447,7 +447,7 @@ SUMA_ViewState_Hist *SUMA_Alloc_ViewState_Hist (void)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	vsh = (SUMA_ViewState_Hist *)malloc(sizeof(SUMA_ViewState_Hist));
+	vsh = (SUMA_ViewState_Hist *)SUMA_malloc(sizeof(SUMA_ViewState_Hist));
 	if (vsh == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for vsh.\n", FuncName);
 		SUMA_RETURN (NULL);
@@ -479,7 +479,7 @@ SUMA_ViewState *SUMA_Alloc_ViewState (int N)
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
-	vs = (SUMA_ViewState *)malloc(sizeof(SUMA_ViewState)*N);
+	vs = (SUMA_ViewState *)SUMA_malloc(sizeof(SUMA_ViewState)*N);
 	if (vs == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Could not allocate for vs.\n", FuncName);
 		SUMA_RETURN (NULL);
@@ -563,7 +563,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 			SO = (SUMA_SurfaceObject *)(dov[i].OP);
 			if (csv->N_VSv == 0) {
 				/* delaware encountered, snag it*/
-				csv->VSv[csv->N_VSv].Name = (char *)malloc(sizeof(char)*strlen(SO->State));
+				csv->VSv[csv->N_VSv].Name = (char *)SUMA_malloc(sizeof(char)*strlen(SO->State));
 				if (csv->VSv[csv->N_VSv].Name == NULL) {
 					fprintf(SUMA_STDERR,"Error %s: Failed to allocate for csv->VSv[csv->N_VSv].Name.\n", FuncName);
 					SUMA_RETURN (NOPE);
@@ -575,7 +575,7 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 				is = SUMA_WhichState (SO->State, csv);
 				if (is < 0) {
 					/* add state if it is a new one */
-					csv->VSv[csv->N_VSv].Name = (char *)malloc(sizeof(char)*strlen(SO->State));
+					csv->VSv[csv->N_VSv].Name = (char *)SUMA_malloc(sizeof(char)*strlen(SO->State));
 					if (csv->VSv[csv->N_VSv].Name == NULL) {
 						fprintf(SUMA_STDERR,"Error %s: Failed to allocate for csv->VSv[csv->N_VSv].Name.\n", FuncName);
 						SUMA_RETURN (NOPE);
@@ -595,13 +595,13 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
 	/*fprintf(SUMA_STDERR,"%s: allocating ...\n", FuncName);*/
 	
 	/* allocate for FOV */
-	csv->FOV = (float *)calloc(csv->N_VSv, sizeof(float));
+	csv->FOV = (float *)SUMA_calloc(csv->N_VSv, sizeof(float));
 	
 	/* allocate space for MembSOs counters will be reset for later use counting proceeds
 	also initialize FOV*/
 	for (i=0; i < csv->N_VSv; ++i) {
 		csv->FOV[i] = FOV_INITIAL;
-		csv->VSv[i].MembSOs = (int *) calloc(csv->VSv[i].N_MembSOs, sizeof(int));
+		csv->VSv[i].MembSOs = (int *) SUMA_calloc(csv->VSv[i].N_MembSOs, sizeof(int));
 		if (csv->VSv[i].MembSOs == NULL) {
 			fprintf(SUMA_STDERR,"Error %s: Failed to allocate for csv->VSv[i].MembSOs.\n", FuncName);
 			SUMA_RETURN (NOPE);
@@ -644,11 +644,11 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 	SUMA_CommonFields *cf;
 	
 	/* This is the function that creates the debugging flags, do not use them here */
-
 	cf = NULL;
 	
 	/* allocate */
-	cf = (SUMA_CommonFields *)malloc(sizeof(SUMA_CommonFields));
+	/* DO NOT USE SUMA_malloc here, too early for that */
+   cf = (SUMA_CommonFields *)malloc(sizeof(SUMA_CommonFields));
 	
 	if (cf == NULL) {
 		fprintf(SUMA_STDERR,"Error %s: Failed to allocate.\n", FuncName);
@@ -658,7 +658,9 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
 	cf->Dev = NOPE;
 	cf->InOut_Notify = NOPE;
 	cf->InOut_Level = 0;
-	return (cf);
+	cf->MemTrace = NOPE;
+   cf->Mem = SUMA_Create_MemTrace ();
+   return (cf);
 
 }
 
@@ -667,7 +669,8 @@ SUMA_Boolean SUMA_Free_CommonFields (SUMA_CommonFields *cf)
 {
 	static char FuncName[]={"SUMA_Free_CommonFields"};
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
-
+   
+   if (cf->Mem) SUMA_Free_MemTrace (cf->Mem);
 	if (cf) free(cf);
 	
 	SUMA_RETURN (YUP);
