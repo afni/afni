@@ -229,6 +229,8 @@ int INIT_GR_boxes_thick  = 0 ,
     INIT_GR_dplot_thick  = 0  ;
 
 int INIT_GR_ggap         = 0 ;  /* 27 May 1999 */
+
+int INIT_GR_gmat         = 3 ;  /* 10 Feb 2003 */
 #else
 extern int INIT_GR_boxes_color  ,
            INIT_GR_backg_color  ,
@@ -248,6 +250,7 @@ extern int INIT_GR_boxes_thick ,
            INIT_GR_dplot_thick  ;
 
 extern int INIT_GR_ggap ;
+extern int INIT_GR_gmat ;
 #endif /* MAIN */
 
 #define NUM_COLOR_ITEMS 9

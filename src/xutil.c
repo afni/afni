@@ -1381,8 +1381,8 @@ char * RWC_getname( Display * display , char * name )
    /* try X11 */
 
    if( display != NULL ){
-      cval = XGetDefault(display,"AFNI",name) ;
-      if( cval != NULL ) return cval ;
+     cval = XGetDefault(display,"AFNI",name) ;
+     if( cval != NULL ) return cval ;
    }
 
    /* try AFNI_name */
@@ -1391,11 +1391,11 @@ char * RWC_getname( Display * display , char * name )
    cval = my_getenv(qqq) ;
    if( cval != NULL ) return cval ;
 
-   /* try AFNI_NAME */
+   /* try AFNI_NAME (uppercase it) */
 
    strcpy(qqq,"AFNI_") ; nn = strlen(name) ;
-   for( ii=0 ; ii < nn ; ii++ ) qqq[ii+5] = toupper(name[ii]) ;
-   qqq[nn+5] = '\0' ;
+   for( ii=0 ; ii < nn && ii < 250 ; ii++ ) qqq[ii+5] = toupper(name[ii]) ;
+   qqq[ii+5] = '\0' ;
    cval = my_getenv(qqq) ;
    return cval ;
 }
