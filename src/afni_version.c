@@ -197,7 +197,7 @@ void AFNI_start_version_check(void)
 
 int AFNI_version_check(void)
 {
-   int jj , nbuf=0 , ii ;
+   int jj , nbuf=0 ;
    char *vbuf=NULL ;
    char vv[128]="none" ;
    char *sname ;
@@ -266,8 +266,7 @@ int AFNI_version_check(void)
 
    /* compare version strings */
 
-   ii = strlen(vv) ; jj = strlen(VERSION) ; jj = MIN(ii,jj) ;
-   if( strncmp(vv,VERSION,jj) == 0 ){                /* versions match */
+   if( strcmp(vv,VERSION) == 0 ){                    /* versions match */
      fprintf(stderr,"\n** Version check: you are up-to-date!\n"
                       "** To disable version check:\n"
                       "** set environment variable AFNI_VERSION_CHECK to NO\n");
