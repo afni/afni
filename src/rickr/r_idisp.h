@@ -2,6 +2,8 @@
 #ifndef _R_IDISP_H_
 #define _R_IDISP_H_
 
+#define CHECK_NULL_STR(str) ( str ? str : "(nil)" )
+
 /*    --- 3ddata.h ---              */
 
 int r_idisp_fd_brick         ( char * info, FD_brick         * bp );

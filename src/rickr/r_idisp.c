@@ -3,6 +3,14 @@
 #include "r_idisp.h"
 
 /*----------------------------------------------------------------------
+ * history:
+ *
+ * 1.2   2003 July 27
+ *   - apply CHECK_NULL_STR() to questionable string prints
+ *----------------------------------------------------------------------
+*/
+
+/*----------------------------------------------------------------------
  * The following routines are to display data structures.
  * The functions are of the form r_idisp_XXX, meaning :
  *     "Information Display of data structure XXX"
@@ -108,7 +116,7 @@ int r_idisp_fd_brick( char * info, FD_brick * bp )
             bp->n3, bp->d3, bp->start,
             bp->del1, bp->del2, bp->del3,
             bp->dset, bp->resam_code, bp->thr_resam_code,
-            bp->namecode, bp->parent );
+            CHECK_NULL_STR(bp->namecode), bp->parent );
 
     return 0;
 }
@@ -155,7 +163,7 @@ int r_idisp_mri_image( char * info, MRI_IMAGE * ip )
             ip,
             ip->nx, ip->ny, ip->nz, ip->nt, ip->nu, ip->nv, ip->nw,
             ip->nxy, ip->nxyz, ip->nxyzt, ip->nvox, ip->pixel_size,
-            (int)ip->kind, ip->im.byte_data, ip->name,
+            (int)ip->kind, ip->im.byte_data, CHECK_NULL_STR(ip->name),
             ip->dx, ip->dy, ip->dz, ip->dt, ip->du, ip->dv, ip->dw,
             ip->xo, ip->yo, ip->zo, ip->to, ip->uo, ip->vo, ip->wo,
             ip->was_swapped );
@@ -298,9 +306,12 @@ int r_idisp_thd_3dim_dataset( char * info, THD_3dim_dataset * dp )
 	    dp->anat_parent, dp->stats, dp->pts,
             dp->pts_original, dp->death_mark,
 #ifndef OMIT_DATASET_IDCODES
-            dp->idcode.str, dp->idcode.date,
-            dp->anat_parent_idcode.str, dp->anat_parent_idcode.date,
-            dp->warp_parent_idcode.str, dp->warp_parent_idcode.date,
+            CHECK_NULL_STR(dp->idcode.str),
+	    CHECK_NULL_STR(dp->idcode.date),
+            CHECK_NULL_STR(dp->anat_parent_idcode.str),
+	    CHECK_NULL_STR(dp->anat_parent_idcode.date),
+            CHECK_NULL_STR(dp->warp_parent_idcode.str),
+	    CHECK_NULL_STR(dp->warp_parent_idcode.date),
 #endif
             dp->keywords, dp->tagset,
 	    dp->kl.num, dp->kl.nalloc, dp->kl.kill, dp->parent,
@@ -340,8 +351,9 @@ int r_idisp_thd_diskptr( char * info, THD_diskptr * dp )
 	    dp, DISKPTR_TYPE, dp->type, dp->rank,
 	    dp->dimsizes[0], dp->dimsizes[1], dp->dimsizes[2],
 	    dp->storage_mode, dp->byte_order,
-            dp->prefix, dp->viewcode, dp->filecode,
-	    dp->directory_name, dp->header_name, dp->brick_name
+            CHECK_NULL_STR(dp->prefix),      CHECK_NULL_STR(dp->viewcode),
+	    CHECK_NULL_STR(dp->filecode),    CHECK_NULL_STR(dp->directory_name),
+	    CHECK_NULL_STR(dp->header_name), CHECK_NULL_STR(dp->brick_name)
 	  );
 
     return 0;
@@ -391,7 +403,7 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
 		printf( "%15s", "" );
 
 	    if ( dp->brick_lab )
-		printf( "%s\n", dp->brick_lab[c] );
+		printf( "%s\n", CHECK_NULL_STR(dp->brick_lab[c]) );
 	    else
 		printf( "\n" );
 	}

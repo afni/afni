@@ -1,5 +1,11 @@
+
+#define VERSION         "2.2 - July 27, 2003"
+
 /*----------------------------------------------------------------------
- * history:
+ * file_tool history:
+ *
+ * 2.2  July 27, 2003
+ *   - wrap unknown printed strings in NULL check
  *
  * 2.1  June 02, 2003
  *   - changed format of call to ge4_read_header()
@@ -1192,7 +1198,8 @@ disp_param_data( param_t * p )
 	    "\n",
 	    p->num_files, p->flist, p->debug, p->data_len,
 	    p->ge_disp, p->ge4_disp, p->ndisp, p->swap, p->modify,
-	    p->mod_type, p->offset, p->length, p->quiet, p->mod_data
+	    p->mod_type, p->offset, p->length, p->quiet,
+	    CHECK_NULL_STR(p->mod_data)
 	  );
 
     if ( p->debug > 1 )
@@ -1267,7 +1274,8 @@ r_idisp_ge_header_info( char * info, ge_header_info * I )
 	    "    (tr,te)     = (%f,%f)\n"
 	    "    orients     = %8s\n",
 	    I, I->good, I->nx, I->ny, I->uv17,
-	    I->dx, I->dy, I->dz, I->zoff, I->tr, I->te, I->orients
+	    I->dx, I->dy, I->dz, I->zoff, I->tr, I->te,
+	    CHECK_NULL_STR(I->orients)
 	  );
 
     return 0;
