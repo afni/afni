@@ -916,6 +916,10 @@ fprintf(stderr,"\ncoorder: signs = %d %d %d  order = %d %d %d\n" ,
 
 void AFNI_handler(char * msg){ return ; }
 
+/*! Avoid fatal X11 errors. */
+
+int AFNI_xerrhandler( Display *d , XErrorEvent *x ){ return 0; }
+
 /*-----------------------------------------------------------------------
    Fallback resources for AFNI.  May be overridden by the user's
    .Xdefaults file, or other resource sources.  AFNI does not come
@@ -1152,9 +1156,10 @@ int main( int argc , char * argv[] )
 
    AFNI_parse_args( argc , argv ) ;  /* after Xt init above, only my args left */
 
-   if( GLOBAL_argopt.xtwarns == False ){
-      MAIN_old_handler = XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
-   }
+   if( GLOBAL_argopt.xtwarns == False )
+     MAIN_old_handler = XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
+
+   (void ) XSetErrorHandler( AFNI_xerrhandler ) ;      /* 26 Jun 2003 */
 
    { char * lenv = getenv("AFNI_FIM_BKTHR") ;          /* 04 Jun 1999 */
      if( lenv != NULL ){

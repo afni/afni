@@ -4608,3 +4608,4 @@
 
 26 Jun 2003
  * Moved some snapshot stuff to xim.c rather than imseq.c.
+ * Modified afni.c to have it continue after fatal X11 errors.
