@@ -20,6 +20,8 @@
 static INLINE float mytanh( float x )
 {
   register float ex , exi ;
+       if( x >  7.0 ) return  1.0 ;  /* 03 Sep: check for stupid inputs */
+  else if( x < -7.0 ) return -1.0 ;
   ex = exp(x) ; exi = 1.0/ex ;
   return (ex-exi)/(ex+exi) ;
 }
