@@ -989,7 +989,7 @@ iochan_relay:iochan_relay.o
 
 3dSpatNorm:3dSpatNorm.o
 	$(RM) $@
-	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(AFWARPOBJS) -lrickr $(LFLAGS) $(LLIBS) 
 
 ### These programs are from Fred Tam
 

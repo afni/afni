@@ -3858,7 +3858,7 @@ extern THD_fvec3 THD_autonudge( THD_3dim_dataset *dsepi, int ivepi,
                                 float step,
                                 int xstep, int ystep, int zstep, int code ) ;
 
-extern MRI_IMAGE * mri_brainormalize( MRI_IMAGE *, int,int,int ) ; /* 05 Apr 2004 */
+extern MRI_IMAGE * mri_brainormalize( MRI_IMAGE *, int,int,int , MRI_IMAGE **) ; /* 05 Apr 2004 */
 extern void mri_brainormalize_verbose( int ) ;
 extern void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
                            float *iorig, float *jorig, float *korig ,
