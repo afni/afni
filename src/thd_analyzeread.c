@@ -116,7 +116,7 @@ THD_3dim_dataset * THD_open_analyze( char *hname )
    float fac=0.0 ;     /* brick scaling factor */
 
    THD_3dim_dataset *dset=NULL ;
-   char prefix[THD_MAX_PREFIX] , *ppp , tname[12] ;
+   char prefix[THD_MAX_PREFIX] , *ppp ;
    THD_ivec3 nxyz , orixyz ;
    THD_fvec3 dxyz , orgxyz ;
    int iview ;
