@@ -494,6 +494,8 @@ typedef struct MCW_imseq {
 
      XtIntervalId timer_id ;                          /* 03 Dec 2003 */
      int          timer_func, timer_param, timer_delay ;
+
+     int dont_place_dialog ;                          /* 23 Jan 2004 */
 } MCW_imseq ;
 
 #define ISQ_TIMERFUNC_INDEX  701

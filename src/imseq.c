@@ -714,6 +714,7 @@ if( PRINT_TRACING ){
    newseq->dialog         = NULL ;               /* no dialog at present */
    newseq->num_bbox       = 0 ;
    newseq->dialog_starter = -1 ;
+   newseq->dont_place_dialog = 0 ;         /* 23 Jan 2004 */
 
    newseq->imim = newseq->ovim = NULL ;    /* NULL out all images */
 
@@ -4010,7 +4011,7 @@ int ISQ_show_zoom( MCW_imseq *seq )   /* 11 Mar 2002 */
 
 ENTRY("ISQ_show_zoom") ;
 
-   if( busy ) RETURN(-1) ;            /* recursion = bad */
+   if( busy ){ STATUS(" recursive entry!"); RETURN(-1); }          /* recursion = bad */
    busy = 1 ;
 
    /* find the size of the image window */
@@ -4025,6 +4026,7 @@ ENTRY("ISQ_show_zoom") ;
    if( seq->zoom_pixmap != (Pixmap) 0 &&
        (pw != seq->zoom_pw || ph != seq->zoom_ph) ){
 
+STATUS("freeing old pixmap") ;
       XFreePixmap( seq->dc->display , seq->zoom_pixmap ) ;
       seq->zoom_pixmap = (Pixmap) 0 ;
       newim++ ;
@@ -4036,6 +4038,7 @@ ENTRY("ISQ_show_zoom") ;
    if( seq->zoom_pixmap == (Pixmap) 0 ){
       xhandler old_handler = XSetErrorHandler(qhandler); xwasbad = 0;
 
+STATUS("creating new pixmap") ;
       seq->zoom_pixmap = XCreatePixmap( seq->dc->display ,
                                         XtWindow(seq->wimage) ,
                                         pw , ph , seq->dc->depth ) ;
@@ -4058,6 +4061,7 @@ ENTRY("ISQ_show_zoom") ;
    /* if we made a new pixmap, we'll need a new zoomed image for it */
 
    if( newim && seq->zoom_xim != NULL ){
+STATUS("killing old XImage because have new image") ;
      MCW_kill_XImage( seq->zoom_xim ) ; seq->zoom_xim = NULL ;
    }
 
@@ -4068,9 +4072,13 @@ ENTRY("ISQ_show_zoom") ;
 
    if( seq->zoom_xim == NULL ){
      MRI_IMAGE *im , *tim ;
+STATUS("inverting zoom label") ;
      flash = 1 ; MCW_invert_widget( seq->zoom_val_av->wlabel ) ;
+STATUS("converting given XImage to MRI_IMAGE") ;
      im  = XImage_to_mri( seq->dc, seq->given_xim, X2M_USE_CMAP|X2M_FORCE_RGB ) ;
+STATUS("zooming up MRI_IMAGE") ;
      tim = mri_dup2D(zlev,im) ; mri_free(im) ;
+STATUS("converting zoomed MRI_IMAGE back to XImage") ;
      seq->zoom_xim = mri_to_XImage(seq->dc,tim) ; mri_free(tim) ;
      newim++ ;
    }
@@ -4080,6 +4088,7 @@ ENTRY("ISQ_show_zoom") ;
    if( pw != seq->zoom_xim->width || ph != seq->zoom_xim->height ){
      XImage *sxim ;
      sxim = resize_XImage( seq->dc , seq->zoom_xim , pw , ph ) ;
+STATUS("killing old XImage because doesn't fit pixmap") ;
      MCW_kill_XImage( seq->zoom_xim ) ;
      seq->zoom_xim = sxim ;
      newim++ ;
@@ -4088,6 +4097,7 @@ ENTRY("ISQ_show_zoom") ;
    /* if have a new image, put the zoomed XImage into the Pixmap */
 
    if( newim ){
+STATUS("putting new image into pixmap") ;
      XPutImage( seq->dc->display ,
                 seq->zoom_pixmap ,
                 seq->dc->origGC  , seq->zoom_xim , 0,0,0,0 , pw,ph ) ;
@@ -4095,6 +4105,7 @@ ENTRY("ISQ_show_zoom") ;
      /* draw the overlay graph into the Pixmap */
 
      if( !seq->opt.no_overlay && seq->mplot != NULL ){
+STATUS("drawing overlay plot into pixmap") ;
         memplot_to_X11_sef( seq->dc->display ,
                             seq->zoom_pixmap , seq->mplot ,
                             0,0,MEMPLOT_FREE_ASPECT        ) ;
@@ -4107,6 +4118,7 @@ ENTRY("ISQ_show_zoom") ;
    xoff = seq->zoom_hor_off * pw ; if( xoff+iw > pw ) xoff = pw-iw ;
    yoff = seq->zoom_ver_off * ph ; if( yoff+ih > ph ) yoff = ph-ih ;
 
+STATUS("copying from pixmap to image window") ;
    XCopyArea( seq->dc->display ,
               seq->zoom_pixmap ,
               XtWindow(seq->wimage) , seq->dc->origGC ,
@@ -4115,6 +4127,7 @@ ENTRY("ISQ_show_zoom") ;
    if( flash ) MCW_invert_widget( seq->zoom_val_av->wlabel ) ;
 
 #ifdef DISCARD_EXCESS_EXPOSES
+STATUS("discarding excess Expose events") ;
     MCW_discard_events( seq->wimage , ExposureMask ) ;
 #endif
 
@@ -4417,19 +4430,22 @@ void ISQ_drawing_EV( Widget w , XtPointer client_data ,
 {
    MCW_imseq * seq = (MCW_imseq *) client_data ;
    static ISQ_cbs cbs ;
+   static int busy=0 ;   /* 23 Jan 2004: prevent recursion */
 
 ENTRY("ISQ_drawing_EV") ;
 
-   if( ! ISQ_REALZ(seq) ) EXRETURN ;
+   if( busy ){ STATUS("recursive entry!"); EXRETURN; }  /* bad! */
+   if( !ISQ_REALZ(seq) ) EXRETURN ;
+   busy = 1 ;
 
-  if(PRINT_TRACING){
-    char str[256], *wn ;
-         if( w == seq->wimage ) wn = "wimage" ;
-    else if ( w == seq->wbar  ) wn = "wbar"   ;
-    else                        wn = XtName(w) ;
-    sprintf(str,"Widget=%s Event type=%d",wn,ev->type);
-    STATUS(str) ;
-  }
+   if(PRINT_TRACING){
+     char str[256], *wn ;
+          if( w == seq->wimage ) wn = "wimage" ;
+     else if ( w == seq->wbar  ) wn = "wbar"   ;
+     else                        wn = XtName(w) ;
+     sprintf(str,"Widget=%s Event type=%d",wn,ev->type);
+     STATUS(str) ;
+   }
 
    switch( ev->type ){
 
@@ -4448,7 +4464,7 @@ ENTRY("ISQ_drawing_EV") ;
            if( seq->button2_enabled && w == seq->wimage )
               ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
            else
-              { XBell(seq->dc->display,100); EXRETURN; }
+              { XBell(seq->dc->display,100); busy=0;EXRETURN; }
          }
 
          /* Button1 release: turn off zoom-pan mode, if it was on */
@@ -4502,8 +4518,8 @@ ENTRY("ISQ_drawing_EV") ;
           if( seq->button2_enabled && w == seq->wimage )
              ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
           else
-             { XBell(seq->dc->display,100); EXRETURN; }
-          EXRETURN ;
+             { XBell(seq->dc->display,100); busy=0;EXRETURN; }
+          busy=0;EXRETURN ;
         }
 
         /* Button1 motion: if not panning, grayscaling? */
@@ -4514,7 +4530,7 @@ ENTRY("ISQ_drawing_EV") ;
           if( !seq->dc->use_xcol_im && (xdif || ydif) ){
             double denom = AFNI_numenv("AFNI_STROKE_THRESHOLD") ;
             if( denom < 1.0l ){
-              if( getenv("AFNI_STROKE_THRESHOLD") != NULL ) EXRETURN ;
+              if( getenv("AFNI_STROKE_THRESHOLD") != NULL ){ busy=0;EXRETURN ;}
               denom = 32.0l ;
             }
             xdif = rint(xdif/denom) ; ydif = rint(ydif/denom) ;
@@ -4532,7 +4548,7 @@ ENTRY("ISQ_drawing_EV") ;
               }
             }
           }
-          EXRETURN ;
+          busy=0; EXRETURN ;
         }
 
         /* Button1 motion: check for being in zoom-pan mode */
@@ -4540,7 +4556,7 @@ ENTRY("ISQ_drawing_EV") ;
         if( !seq->zoom_button1              ||
             seq->zoom_fac == 1              ||
             seq->zoom_xim == NULL           ||
-            (event->state & Button1Mask)==0   ) EXRETURN ;  /* not zoom-pan? */
+            (event->state & Button1Mask)==0   ){ busy=0; EXRETURN; } /* not zoom-pan? */
 
         /*-- if here, change panning offset --*/
 
@@ -4552,7 +4568,7 @@ ENTRY("ISQ_drawing_EV") ;
 
         seq->zoom_xp = bx ; seq->zoom_yp = by ;
 
-        EXRETURN ;
+        busy=0; EXRETURN ;
       }
       break ;
 
@@ -4605,7 +4621,7 @@ DPR(" .. KeyPress") ;
          /* discard if a mouse button is also pressed at this time */
 
          if( event->state & (Button1Mask|Button2Mask|Button3Mask) ){
-           XBell(seq->dc->display,100); EXRETURN;
+           XBell(seq->dc->display,100); busy=0; EXRETURN;
          }
 
          /* get the string corresponding to the key pressed */
@@ -4620,7 +4636,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
          /* 24 Jan 2003: deal with special function keys */
 
          if( nbuf == 0 || ks > 255 ){
-           if( seq->record_mode ) EXRETURN ;
+           if( seq->record_mode ){ busy=0; EXRETURN ; }
            switch( ks ){
 
              case XK_Left:
@@ -4689,7 +4705,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                if( !seq->button2_enabled ){
                  MCW_popup_message( w, " \n Only when \n"
                                           " Drawing!! \n ", MCW_USER_KILL );
-                 XBell(seq->dc->display,100); EXRETURN;
+                 XBell(seq->dc->display,100); busy=0; EXRETURN;
                }
 
                ISQ_set_cursor_state( seq ,
@@ -4713,7 +4729,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                MCW_popup_message( w, " \n Ouch! \n ", MCW_USER_KILL );
                AFNI_speak( "Ouch!" , 0 ) ;
            }
-           EXRETURN ;
+           busy=0; EXRETURN ;
          }
 
          if( buf[0] == '\0' ) break ;                  /* nada */
@@ -4727,7 +4743,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
            case 'q':
            case 'Q':{
              ISQ_but_done_CB( NULL, (XtPointer)seq, NULL ) ;
-             EXRETURN ;
+             busy=0; EXRETURN ;
            }
            break ;
 
@@ -4748,7 +4764,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                  XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
                                   seq->timer_delay , ISQ_timer_CB , seq ) ;
              }
-             EXRETURN ;
+             busy=0; EXRETURN ;
            }
            break ;
 
@@ -4767,7 +4783,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                  XtAppAddTimeOut( XtWidgetToApplicationContext(seq->wform) ,
                                   seq->timer_delay , ISQ_timer_CB , seq ) ;
              }
-             EXRETURN ;
+             busy=0; EXRETURN ;
            }
            break ;
 
@@ -4786,7 +4802,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                ISQ_set_image_number( seq , nn ) ;
 #endif
              }
-             EXRETURN ;
+             busy=0; EXRETURN ;
            }
            break ;
 
@@ -4804,7 +4820,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                ISQ_zoom_av_CB( seq->zoom_val_av , (XtPointer)seq ) ;
              else
                XBell(seq->dc->display,100) ;
-             EXRETURN ;
+             busy=0; EXRETURN ;
            }
            break ;
 
@@ -4816,7 +4832,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                ISQ_zoom_pb_CB( seq->zoom_drag_pb , (XtPointer)seq , NULL ) ;
              else
                XBell(seq->dc->display,100) ;
-             EXRETURN ;
+             busy=0; EXRETURN ;
            }
            break ;
 
@@ -4825,7 +4841,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
            case 'c':
            case 'C':{
              ISQ_crop_pb_CB( seq->crop_drag_pb , (XtPointer)seq , NULL ) ;
-             EXRETURN ;
+             busy=0; EXRETURN ;
            }
            break ;
 
@@ -4839,7 +4855,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
              else if( buf[0] == 'I' )
                AV_assign_ival( seq->arrow[NARR_FRAC] , iv+1 ) ;
              ISQ_arrow_CB( seq->arrow[NARR_FRAC] , seq ) ;
-             EXRETURN ;
+             busy=0; EXRETURN ;
            }
            break ;
 
@@ -4848,7 +4864,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
          /* in special modes (record, Button2, zoom-pan) mode, this is bad */
 
          if( seq->record_mode || seq->button2_active || seq->zoom_button1 ){
-           XBell(seq->dc->display,100); EXRETURN;
+           XBell(seq->dc->display,100); busy=0; EXRETURN;
          }
 
          /* otherwise, notify the master, if we have one */
@@ -4879,7 +4895,7 @@ DPR(" .. ButtonPress") ;
 
          if( seq->record_mode || seq->zoom_button1 ){
            if( seq->record_mode || event->button != Button1 ) XBell(seq->dc->display,100);
-           EXRETURN;
+           busy=0; EXRETURN;
          }
 
          /* button press in the wbar => popup menu */
@@ -4899,7 +4915,7 @@ DPR(" .. ButtonPress") ;
 #else
              XBell(seq->dc->display,100) ;
 #endif
-           EXRETURN ;
+           busy=0; EXRETURN ;
          }
 
          /* below here, button press was in the image */
@@ -4922,7 +4938,7 @@ DPR(" .. ButtonPress") ;
                (seq->crop_drag)                            )  ){
 
            ISQ_cropper( seq , event ) ;
-           EXRETURN ;
+           busy=0; EXRETURN ;
 
          } /* end of cropping stuff */
 
@@ -4945,7 +4961,7 @@ DPR(" .. ButtonPress") ;
 
               if( seq->button2_active ){
                 /*** XBell(seq->dc->display,100) ; ***/
-                EXRETURN ;
+                busy=0; EXRETURN ;
               }
 
               /* Button3 presses in the image with a modifier
@@ -5012,7 +5028,7 @@ DPR(" .. ButtonPress") ;
               if( seq->button2_enabled && w == seq->wimage )
                  ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
               else
-                 { XBell(seq->dc->display,100); EXRETURN; }
+                 { XBell(seq->dc->display,100); busy=0; EXRETURN; }
             }
             break ;
 
@@ -5104,7 +5120,7 @@ else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
 
    } /* end of switch ev->type */
 
-   EXRETURN ;
+   busy=0; EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -5710,7 +5726,9 @@ ENTRY("ISQ_but_disp_CB") ;
 
 void ISQ_place_dialog( MCW_imseq *seq )
 {
-   if( ISQ_REALZ(seq) ) ISQ_place_widget( seq->wtop , seq->dialog ) ;
+   if( ISQ_REALZ(seq) && !seq->dont_place_dialog )
+     ISQ_place_widget( seq->wtop , seq->dialog ) ;
+
    return ;
 }
 
@@ -7918,9 +7936,10 @@ ENTRY("ISQ_montage_action_CB") ;
    close_window = (ib == MONT_DONE || ib == MONT_QUIT || ib == NUM_MONT_ACT) ;
 
    if( close_window ){
-      RWC_XtPopdown( seq->dialog ) ;
-      XSync( XtDisplay(w) , False ) ;
-      XmUpdateDisplay( w ) ;
+     RWC_XtPopdown( seq->dialog ) ;
+     XSync( XtDisplay(w) , False ) ;
+     XmUpdateDisplay( w ) ;
+     seq->dont_place_dialog = 1 ;  /* 23 Jan 2004 */
    }
 
    switch( ib ){
@@ -8015,6 +8034,7 @@ ENTRY("ISQ_montage_action_CB") ;
       seq->mont_gapcolor_av = NULL ;
 
       seq->dialog_starter = -1 ;
+      seq->dont_place_dialog = 0 ;  /* 23 Jan 2004 */
    }
 
    EXRETURN ;
