@@ -233,7 +233,7 @@ if (unbalanced.yes == 1)
    sindices = [(1:size(termlist,1)), (1:size(termlist,1))]';	
 else	
 termsize = sum(termlist,2)';      %sum of all the elements along 2nd dimension (row)
-[stermsize,sindices] = sort(termsize); % sort in ascending order, output is stored in stermszie; sindices is the index for the new array
+[stermsize,sindices] = sort(termsize); % sort in ascending order, output is stored in stermsize; sindices is the index for the new array
 sindices = [sindices(:); sindices(:)];
 
 end % if (unbalanced.yes == 1)
@@ -321,18 +321,16 @@ if (Contr.do == 1),
       end
    end
 
-   % The following two are not used right now: num_col(3) and num_col(4)
-
-   %if (NF > 2),
-   %   num_col(3) = 0;
-   %   for (i = 1:1:(NF-2)),
-   %   for (j = (i+1):1:(NF-1)),
-   %	for (k = (j+1):1:NF),
-   %      num_col(3) = num_col(3) + FL(i).N_level*FL(j).N_level*FL(k).N_level;    %Columns for 3rd order interactions
-   %   end
-   %   end
-   %	end
-   %end
+   if (NF > 2),
+      num_col(3) = 0;
+      for (i = 1:1:(NF-2)),
+      for (j = (i+1):1:(NF-1)),
+   	for (k = (j+1):1:NF),
+         num_col(3) = num_col(3) + FL(i).N_level*FL(j).N_level*FL(k).N_level;    %Columns for 3rd order interactions
+      end
+      end
+   	end
+   end
 
    %if (NF == 4),
    %   num_col(4) = 1;
@@ -352,6 +350,10 @@ if (Contr.do == 1),
 
    if (NF > 2 & Contr.ord3.tot > 0),  % 3rd order contrasts   
       [err, Contr] = ContrVec(3, n, NF, group, dmat, Contr, FL, num_col);
+   end   % if (Contr3.tot > 0)
+	
+	if (NF > 3 & Contr.ord4.tot > 0),  % 4th order contrasts   
+      [err, Contr] = ContrVec(4, n, NF, group, dmat, Contr, FL, num_col);
    end   % if (Contr3.tot > 0)
 
 end % if (Contr.do == 1)
