@@ -188,6 +188,7 @@ nifti_image *nifti_image_from_ascii( char *str, int * bytes_read ) ;
 size_t       nifti_get_volsize(nifti_image *nim) ;
 
 /* basic file operations */
+int    nifti_set_filenames(nifti_image * nim, char * prefix, int check);
 char * nifti_makehdrname  (char * prefix, int nifti_type, int check, int comp);
 char * nifti_makeimgname  (char * prefix, int nifti_type, int check, int comp);
 int    is_nifti_file      (char *hname);
@@ -240,12 +241,15 @@ char * nifti_makebasename(char* fname);
 
 
 /* other routines */
+nifti_1_header *       nifti_read_header(char * hname, int * swap);
 nifti_image *          nifti_copy_nim_info(nifti_image* src);
 nifti_image *          nifti_simple_init_nim();
 struct nifti_1_header  nifti_convert_nim2nhdr(nifti_image* nim);
 nifti_image *          nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
                                               char* fname);
 void                   nifti_set_iname_offset(nifti_image *nim);
+int                    nifti_add_exten_to_list( nifti1_extension *  new_ext,
+                                    nifti1_extension ** list, int new_length );
 
 /*-------------------- Some C convenience macros ----------------------------*/
 

@@ -155,11 +155,22 @@ static char gni_history[] =
   "   - added debug to top-level write functions, and free the znzFile\n"
   "   - removed unused internal function nifti_image_open()\n"
   "\n"
-  "1.0  30 Dec 2004 [rickr] - initial release version, woohooo!\n"
+  "0.11 30 Dec 2004 [rickr] - small mods\n"
   "   - moved static function prototypes from header to C file\n"
   "   - free extensions in nifti_image_free()\n"
+  "\n"
+  "1.0  07 Jan 2005 [rickr] - INITIAL RELEASE VERSION\n"
+  "   - added function nifti_set_filenames()\n"
+  "   - added function nifti_read_header()\n"
+  "   - added static function nhdr_looks_good()\n"
+  "   - added static function need_nhdr_swap()\n"
+  "   - exported nifti_add_exten_to_list symbol\n"
+  "   - fixed #bytes written in nifti_write_extensions()\n"
+  "   - only modify offset if it is too small (nifti_set_iname_offset)\n"
+  "   - added nifti_type 3 to nifti_makehdrname and nifti_makeimgname\n"
+  "   - added function nifti_set_filenames()\n"
   "----------------------------------------------------------------------\n";
-static char gni_version[] = "nifti library version 1.0 (December 30, 2004)";
+static char gni_version[] = "nifti library version 1.0 (January 7, 2004)";
 
 /* global debug level */
 static int gni_debug = 1;  /* default to basic output */
@@ -171,8 +182,6 @@ static int gni_debug = 1;  /* default to basic output */
 static int  valid_nifti_extensions(nifti_image *nim);
 static int  nifti_read_extensions( nifti_image *nim, znzFile fp, int remain );
 static int  nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,                                       int remain, znzFile fp );
-static int  nifti_add_exten_to_list( nifti1_extension *  new_ext,
-                                     nifti1_extension ** list, int new_length );static int  nifti_write_extensions(znzFile fp, nifti_image *nim);
 static int  nifti_check_extension(nifti_image *nim, int size,int code, int rem);static void update_nifti_image_for_brick_list(nifti_image * nim , int nbricks);
 
 /* NBL routines */
@@ -182,7 +191,9 @@ static int  nifti_alloc_NBL_mem(  nifti_image * nim, int nbricks,
 static int  nifti_copynsort(int nbricks, int *blist, int **slist, int **sindex);
 
 /* misc */
+static int   nhdr_looks_good   (nifti_1_header * hdr);
 static int   int_force_positive(int * list, int nel);
+static int   need_nhdr_swap    (short dim0, int hdrsize);
 static int   print_hex_vals    (char * data, int nbytes, FILE * fp);
 static int   unescape_string   (char *str);  /* string utility functions */
 static char *escapize_string   (char *str);
@@ -2002,8 +2013,9 @@ char * nifti_makehdrname(char * prefix, int nifti_type, int check, int comp)
    /* nuke any old extension */
    if( (ext = nifti_find_file_extension(iname)) != NULL ) *ext = '\0';
 
-   if( nifti_type == 1 ) strcat(iname, ".nii");
-   else                  strcat(iname, ".hdr");
+   if( nifti_type == 1 )      strcat(iname, ".nii");
+   else if( nifti_type == 3 ) strcat(iname, ".nia");
+   else                       strcat(iname, ".hdr");
 
 #ifdef HAVE_ZLIB  /* then also check for .gz */
    if( comp ) strcat(iname,".gz");
@@ -2046,8 +2058,9 @@ char * nifti_makeimgname(char * prefix, int nifti_type, int check, int comp)
    /* nuke any old extension */
    if( (ext = nifti_find_file_extension(iname)) != NULL ) *ext = '\0';
 
-   if( nifti_type == 1 ) strcat(iname, ".nii");
-   else                  strcat(iname, ".img");
+   if( nifti_type == 1 )      strcat(iname, ".nii");
+   else if( nifti_type == 3 ) strcat(iname, ".nia");
+   else                       strcat(iname, ".img");
 
 #ifdef HAVE_ZLIB  /* then also check for .gz */
    if( comp ) strcat(iname,".gz");
@@ -2064,7 +2077,41 @@ char * nifti_makeimgname(char * prefix, int nifti_type, int check, int comp)
 
    return iname;
 }
-   
+
+
+/*----------------------------------------------------------------------
+ * set new filenames, based on prefix and image type
+ *
+ * note: this will free() any existing names and create new ones
+ *----------------------------------------------------------------------*/
+int nifti_set_filenames( nifti_image * nim, char * prefix, int check )
+{
+   int comp = nifti_is_gzfile(prefix);
+
+   if( !nim || !prefix ){
+      fprintf(stderr,"** nifti_set_filenames, bad params %p, %p\n",nim,prefix);
+      return -1;
+   }
+
+   if( gni_debug > 1 )
+      fprintf(stderr,"+d modifying output filenames using prefix %s\n", prefix);
+
+   if( nim->fname ) free(nim->fname);
+   if( nim->iname ) free(nim->iname);
+   nim->fname = nifti_makehdrname(prefix, nim->nifti_type, check, comp);
+   nim->iname = nifti_makeimgname(prefix, nim->nifti_type, check, comp);
+   if( !nim->fname || !nim->iname ){
+      LNI_FERR("nifti_set_filename","failed to set prefix for",prefix);
+      return -1;
+   }
+
+   if( gni_debug > 2 )
+      fprintf(stderr,"+d have new filenames %s and %s\n",nim->fname,nim->iname);
+
+   return 0;
+}
+
+
 /*--------------------------------------------------------------------------*/
 /* Determine if this is a NIFTI-formatted file.
    - returns 0 if file looks like ANALYZE 7.5 [checks sizeof_hdr field == 348]
@@ -2226,7 +2273,6 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
 {
   int   ii , doswap , ioff, ndim, nvox ;
   int   is_nifti , is_onefile ;
-  short ss ;
   char *iname=NULL;
   nifti_image *nim;
 
@@ -2240,22 +2286,11 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
 
   /** check if have to swap bytes **/
   
-   doswap = 0 ;                                           /* swap data flag */
-   ss = nhdr.dim[0] ;
-   if( ss != 0 ){                            /* check dim[0] for good value */
-     if( ss < 0 || ss > 7 ){
-       swap_2(ss) ;
-       if( ss < 0 || ss > 7 )            ERREX("bad dim[0]") ;
-       doswap = 1 ;
-     }
-   } else {                       /* dim[0] == 0 is illegal, but does occur */
-     ii = nhdr.sizeof_hdr ;            /* so check sizeof_hdr field instead */
+   doswap = need_nhdr_swap(nhdr.dim[0], nhdr.sizeof_hdr); /* swap data flag */
 
-     if( ii != sizeof(nhdr) ){
-       swap_4(ii) ;
-       if( ii != sizeof(nhdr) )          ERREX("bad sizeof_hdr") ;
-       doswap = 1 ;
-     }
+   if( doswap < 0 ){
+      if( doswap == -1 ) ERREX("bad dim[0]") ;
+      ERREX("bad sizeof_hdr") ;  /* else */
    }
 
    /** determine if this is a NIFTI-1 compliant header **/
@@ -2489,6 +2524,147 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
 }
 
 
+/*----------------------------------------------------------------------
+ * just return a filled nifti_1_header struct (ASCII header not supported)
+ *----------------------------------------------------------------------*/
+nifti_1_header * nifti_read_header( char * hname, int * swap )
+{
+   nifti_1_header   nhdr, * hptr;
+   znzFile          fp;
+   int              bytes, lswap;
+   char           * hfile;
+   char             fname[] = { "nifti_read_header" };
+   
+   /* determine file name to use for header */
+   hfile = nifti_findhdrname(hname);
+   if( hfile == NULL ){
+      if(gni_debug > 0) LNI_FERR(fname,"failed to find header file for", hname);
+      return NULL;
+   } else if( gni_debug > 1 )
+      fprintf(stderr,"-d %s: found header filename '%s'\n",fname,hfile);
+
+   fp = znzopen(hfile,"rb",1);
+   if( znz_isnull(fp) ){
+      if( gni_debug > 0 ) LNI_FERR(fname,"failed to open header file",hfile);
+      free(hfile);
+      return NULL;
+   }
+
+   free(hfile);  /* done with filename */
+
+   if( has_ascii_header(fp) == 1 ){
+      znzclose( fp );
+      if(gni_debug > 0) LNI_FERR(fname,"ASCII header type not supported",hname);
+      return NULL;
+   }
+
+   /* read the binary header */ 
+   bytes = znzread( &nhdr, 1, sizeof(nhdr), fp );
+   znzclose( fp );                      /* we are done with the file now */
+
+   if( bytes < sizeof(nhdr) ){
+      if( gni_debug > 0 ){
+         LNI_FERR(fname,"bad binary header read for file", hname);
+         fprintf(stderr,"  - read %d of %d bytes\n",bytes, (int)sizeof(nhdr));
+      }
+      return NULL;
+   }
+
+   /* now just decide on byte swapping */
+   lswap = need_nhdr_swap(nhdr.dim[0], nhdr.sizeof_hdr); /* swap data flag */
+   if( lswap < 0 ){
+      LNI_FERR(fname,"bad nifti_1_header for file", hname);
+      return NULL;
+   }
+
+   if ( ! nhdr_looks_good(&nhdr) ){
+      LNI_FERR(fname,"nifti_1_header looks bad for file", hname);
+      return NULL;
+   }
+
+   /* all looks good, so allocate memory for and return the header */
+   hptr = (nifti_1_header *)malloc(sizeof(nifti_1_header));
+   if( ! hptr ){
+      fprintf(stderr,"** nifti_read_hdr: failed to alloc nifti_1_header\n");
+      return NULL;
+   }
+
+   if( swap ) *swap = lswap;  /* only if they care <sniff!> */
+
+   memcpy(hptr, &nhdr, sizeof(nifti_1_header));
+
+   return hptr;
+}
+
+
+/*----------------------------------------------------------------------
+ * do various checks to determine if the header seems reasonable
+ * return 1 on okay
+ *----------------------------------------------------------------------*/
+static int nhdr_looks_good( nifti_1_header * hdr )
+{
+   int    nbyper, swapsize;
+
+   if( need_nhdr_swap(hdr->dim[0], hdr->sizeof_hdr) < 0 ){
+      if( gni_debug > 0 )
+         fprintf(stderr,"** bad nhdr fields: dim0, sizeof_hdr = %d, %d\n",
+                 hdr->dim[0], hdr->sizeof_hdr);
+      return 0;
+   }
+
+   if( hdr->datatype == DT_BINARY || hdr->datatype == DT_UNKNOWN ){
+      if( gni_debug > 0 )
+         fprintf(stderr,"** bad nhdr field: datatype = %d\n",hdr->datatype);
+      return 0;
+   }
+
+   if( hdr->dim[1] <= 0 ){
+      if( gni_debug > 0 )
+         fprintf(stderr,"** bad nhdr field: dim[1] = %d\n",hdr->dim[1]);
+      return 0;
+   }
+
+   nifti_datatype_sizes(hdr->datatype, &nbyper, &swapsize);
+   if( nbyper == 0 ){
+      if( gni_debug > 0 )
+         fprintf(stderr,"** bad nhdr field: datatype = %d\n",hdr->datatype);
+      return 0;
+   }
+
+   return 1;   /* looks good */
+}
+
+
+/*----------------------------------------------------------------------
+ * check whether byte swapping is needed
+ * 
+ * dim[0] should be in [0,7], and sizeof_hdr should be accurate
+ *
+ * returns:  > 0 : needs swap
+ *             0 : does not need swap
+ *           < 0 : error condition
+ *----------------------------------------------------------------------*/
+static int need_nhdr_swap( short dim0, int hdrsize )
+{
+   if( dim0 != 0 ){     /* then use it for the check */
+      if( dim0 > 0 && dim0 <= 7 ) return 0;
+
+      swap_2bytes(1, &dim0);        /* swap? */
+      if( dim0 > 0 && dim0 <= 7 ) return 1;
+
+      return -1;        /* bad, naughty dim0 */
+   } 
+
+   /* dim[0] == 0 should not happen, but could, so try hdrsize */
+   if( hdrsize == sizeof(nifti_1_header) ) return 0;
+
+   swap_4bytes(1, &hdrsize);     /* swap? */
+   if( hdrsize == sizeof(nifti_1_header) ) return 1;
+
+   return -2;     /* bad, naughty hdrsize */
+}
+
+
 /*--------------------------------------------------------------------------*/
 /* Read in a NIFTI-1 or ANALYZE-7.5 file (pair) into a nifti_image struct.
     - Input is .hdr or .nii filename.
@@ -2561,6 +2737,7 @@ nifti_image *nifti_image_read( char *hname , int read_data )
          LNI_FERR(fname,"bad binary header read for file", hfile);
          fprintf(stderr,"  - read %d of %d bytes\n",ii, (int)sizeof(nhdr));
       }
+      znzclose(fp) ;
       free(hfile);
       return NULL;
    }
@@ -2798,8 +2975,8 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
  *     0 on success
  *    -1 on error     (and free the entire list)
  *----------------------------------------------------------------------*/
-static int nifti_add_exten_to_list( nifti1_extension *  new_ext,
-                                    nifti1_extension ** list, int new_length )
+int nifti_add_exten_to_list( nifti1_extension *  new_ext,
+                             nifti1_extension ** list, int new_length )
                                       
 {
    nifti1_extension * tmplist;
@@ -3348,11 +3525,14 @@ static int nifti_write_extensions(znzFile fp, nifti_image *nim)
    for ( c = 0; c < nim->num_ext; c++ ){
       size = nifti_write_buffer(fp, &list->esize, sizeof(int));
       ok = (size == (int)sizeof(int));
-      if( ok )
+      if( ok ){
          size = nifti_write_buffer(fp, &list->ecode, sizeof(int));
-      ok = (size == (int)sizeof(int));
-      if( ok )
-         size = nifti_write_buffer(fp, list->edata, list->esize);
+         ok = (size == (int)sizeof(int));
+      }
+      if( ok ){
+         size = nifti_write_buffer(fp, list->edata, list->esize - 8);
+         ok = (size == list->esize - 8);
+      }
 
       if( !ok ){
          fprintf(stderr,"** failed while writing extension #%d\n",c);
@@ -3530,6 +3710,7 @@ int nifti_extension_size(nifti_image *nim)
    return size;
 }
 
+
 void nifti_set_iname_offset(nifti_image *nim)
 {
    int offset;
@@ -3541,28 +3722,24 @@ void nifti_set_iname_offset(nifti_image *nim)
        nim->iname_offset = 0 ;
      break ;
 
-     case 1:   /* NIFTI-1 single binary file */
-       /* need to cast sizeof to int, else -1 may be promoted to unsigned */
-       if (nim->iname_offset < (int)sizeof(struct nifti_1_header)) {
-           offset = nifti_extension_size(nim)+sizeof(struct nifti_1_header)+4;
-	   /* be sure offset is aligned to a 16 byte boundary */
-	   if ( ( offset % 16 ) != 0 )  offset = ((offset + 0xf) & ~0xf);
-
-           if( nim->iname_offset != offset && gni_debug > 1 ){
-              fprintf(stderr,"+d changing offset from %d to %d\n",
-                      nim->iname_offset, offset);
-           }
-	   nim->iname_offset = offset;
+     case 1:   /* NIFTI-1 single binary file - always update */
+       offset = nifti_extension_size(nim)+sizeof(struct nifti_1_header)+4;
+       /* be sure offset is aligned to a 16 byte boundary */
+       if ( ( offset % 16 ) != 0 )  offset = ((offset + 0xf) & ~0xf);
+       if( nim->iname_offset < offset ){
+          if( gni_debug > 1 )
+             fprintf(stderr,"+d changing offset from %d to %d\n",
+                  nim->iname_offset, offset);
+          nim->iname_offset = offset;
        }
      break ;
 
                /* non-standard case: */
-     case 3:{  /* NIFTI-1 ASCII header + binary data (single file) */
+     case 3:   /* NIFTI-1 ASCII header + binary data (single file) */
        nim->iname_offset = -1 ;              /* compute offset from filesize */
-     }
+     break ;
    }
 }
-
 
 
 #undef  ERREX
