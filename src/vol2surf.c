@@ -82,12 +82,8 @@ char gv2s_history[] =
 
 /*----------------------------------------------------------------------*/
 /* local typedefs							*/
-typedef struct
-{
-    int     nused;
-    int     nalloc;
-    float * list;
-} float_list;
+
+/* put float_list in mrilib.h   - 6 Dec 2004 [rickr] */
 
 typedef struct
 {
