@@ -18,7 +18,7 @@
 
 
 /* global version and history strings, for printing */
-static char gni_version[] = "nifti library version 0.4 (December 10, 2004)";
+static char gni_version[] = "nifti library version 0.5 (December 14, 2004)";
 static char gni_history[] = 
   "----------------------------------------------------------------------\n"
   "history (of nifti library changes):\n"
@@ -94,6 +94,18 @@ static char gni_history[] =
   "   - in nifti_image_from_ascii():\n"
   "       o return bytes_read as a parameter, computed from the final spos\n"
   "       o extract num_ext from ASCII header\n"
+  "\n"
+  "0.5  14 Dec 2004 [rickr]  - added sub-brick reading functions\n"
+  "   - added nifti_brick_list type to nifti1_io.h, along with new prototypes\n"
+  "   - added main nifti_image_read_bricks() function, with description\n"
+  "   - added nifti_image_load_bricks() - library function (requires nim)\n"
+  "   - added valid_nifti_brick_list() - library function\n"
+  "   - added free_NBL() - library function\n"
+  "   - added update_nifti_image_for_brick_list() for dimension update\n"
+  "   - added nifti_load_NBL_bricks(), nifti_alloc_NBL_mem(),\n"
+  "           nifti_copynsort() and force_positive() (static functions)\n"
+  "   - in nifti_image_read(), check for failed load only if read_data is set\n"
+  "   - broke most of nifti_image_load() into nifti_image_load_prep()\n"
   "----------------------------------------------------------------------\n";
 
 /* global debug level */
@@ -114,6 +126,471 @@ void nifti_disp_lib_version( void )
 {
    printf("%s, compiled %s\n", gni_version, __DATE__);
 }
+
+
+/*----------------------------------------------------------------------
+ * nifti_image_read_bricks          - read nifti data as array of bricks
+ *                                    13 Dec 2004 [rickr]
+ * inputs:
+ *          hname    - filename of dataset to read
+ *                   - must be valid
+ *          nbricks  - number of sub-bricks to read
+ *                   - if blist is valid, nbricks must be > 0
+ *          blist    - list of sub-bricks to read (can be NULL)
+ *                   - if NULL, read complete dataset
+ *          NBL      - pointer to empty nifti_brick_list struct
+ *                   - must be a valid pointer
+ *
+ * return:
+ *          nim      - same as nifti_image_read, but data is always NULL
+ *          NBL      - filled with data
+ *
+ * By default, this function will read the nifti dataset and break the data
+ * into a list of nt*nu*nv*nw sub-bricks, each having size nx*ny*nz elements.
+ * That is to say, instead of reading the entire dataset as a single array,
+ * break it up into sub-bricks, each of size nx*ny*nz elements.
+ *
+ * If 'blist' is valid, it is taken to be a list of sub-bricks, of length
+ * 'nbricks'.  The data will still be separated into sub-bricks of size
+ * nx*ny*nz elements, but now 'nbricks' sub-bricks will be returned, of the
+ * caller's choosing via 'blist'.
+ *
+ * E.g. consider a dataset with 12 sub-bricks (numbered 0..11), and the
+ * following code:
+ *
+ * { nifti_brick_list   NB_orig, NB_select;
+ *   nifti_image      * nim_orig, * nim_select;
+ *   int                blist[5] = { 7, 0, 5, 5, 9 };
+ *
+ *   nim_orig   = nifti_image_read_bricks("myfile.nii", 0, NULL,  &NB_orig);
+ *   nim_select = nifti_image_read_bricks("myfile.nii", 5, blist, &NB_select);
+ * }
+ *
+ * Here, nim_orig gets the entire dataset, where NB_orig.nbricks = 11.  But
+ * nim_select has NB_select.nbricks = 5.
+ *
+ * Note that the first case is not quite the same as just calling the
+ * nifti_image_read function, as here the data is separated into sub-bricks.
+ *
+ * Note that valid values for blist are in [0..nt*nu*nv*nw-1],
+ * or written [ 0 .. (dim[4]*dim[5]*dim[6]*dim[7] - 1) ].
+ *----------------------------------------------------------------------*/
+nifti_image *nifti_image_read_bricks( char *hname , int nbricks, int * blist,
+                                      nifti_brick_list * NBL )
+{
+   nifti_image * nim;
+
+   if( !hname || !NBL ){
+      fprintf(stderr,"** nifti_image_read_bricks: bad params (%p,%p)\n",
+              hname, NBL);
+      return NULL;
+   }
+
+   if( blist && nbricks <= 0 ){
+      fprintf(stderr,"** nifti_image_read_bricks: bad nbricks, %d\n", nbricks);
+      return NULL;
+   }
+
+   nim = nifti_image_read(hname, 0);  /* read header, but not data */
+
+   if( !nim ) return NULL;   /* errors were already printed */
+
+   /* if we fail, free image and return */
+   if( nifti_image_load_bricks(nim, nbricks, blist, NBL) <= 0 ){
+      nifti_image_free(nim);
+      return NULL;
+   }
+
+   if( blist ) update_nifti_image_for_brick_list(nim, nbricks);
+
+   return nim;
+}
+
+
+/*----------------------------------------------------------------------
+ * update_nifti_image_for_brick_list  - update nifti_image
+ *
+ * When loading a specific brick list, the distinction between
+ * nt, nu, nv and nw is lost.  So put everything in t, and set
+ * dim[0] = 4.
+ *----------------------------------------------------------------------*/
+static void update_nifti_image_for_brick_list( nifti_image * nim , int nbricks )
+{
+   int ndim;
+
+   if( gni_debug > 2 ){
+      fprintf(stderr,"+d updating image dimensions for %d bricks in list\n",
+              nbricks);
+      fprintf(stderr,"   ndim = %d\n",nim->ndim);
+      fprintf(stderr,"   nx,ny,nz,nt,nu,nv,nw: (%d,%d,%d,%d,%d,%d,%d)",
+              nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->nv, nim->nw);
+   }
+
+   nim->nt = nbricks;
+   nim->nu = nim->nv = nim->nw = 1;
+
+   nim->dim[4] = nbricks;
+   nim->dim[5] = nim->dim[6] = nim->dim[7] = 1;
+
+   /* update the dimensions to 4 or lower */
+   for( ndim = 4; (ndim > 1) && (nim->dim[ndim] <= 1); ndim-- )
+       ;
+   nim->dim[0] = nim->ndim = ndim;
+
+   if( gni_debug > 2 ){
+      fprintf(stderr," --> (%d,%d,%d,%d,%d,%d,%d)\n",
+              nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->nv, nim->nw);
+      fprintf(stderr,"+d new ndim = %d\n",nim->ndim);
+   }
+}
+
+
+/*----------------------------------------------------------------------
+ * Load the image data from disk into an already-prepared image struct.
+ *                                                  13 Dec 2004 [rickr]
+ * 
+ * If blist is NULL, read the dataset normally.
+ * 
+ * return the number of loaded bricks (NBL->nbricks)
+ *
+ *  > 0 : success
+ *    0 : failure
+ *  < 0 : error
+ *----------------------------------------------------------------------*/
+int nifti_image_load_bricks( nifti_image * nim , int nbricks, int * blist,
+                             nifti_brick_list * NBL )
+{
+   int     * slist = NULL, * sindex = NULL, rv;
+   znzFile   fp;
+
+   /* we can have blist == NULL */
+   if( !nim || !NBL ){
+      fprintf(stderr,"** nifti_image_load_bricks, bad params (%p,%p)\n",
+              nim, NBL);
+      return -1;
+   }
+
+   if( blist && ! valid_nifti_brick_list( nim, nbricks, blist, 1 ) )
+      return -1;
+
+   /* for efficiency, let's read the file in order */
+   if( blist && nifti_copynsort( nbricks, blist, &slist, &sindex ) != 0 )
+      return -1;
+
+   /* open the file and position the FILE pointer */
+   fp = nifti_image_load_prep( nim );
+   if( !fp ){
+      if( gni_debug > 0 )
+         fprintf(stderr,"** nifti_image_load_bricks, failed load_prep\n");
+      if( blist ){ free(slist); free(sindex); }
+      return -1;
+   }
+
+   /* this will flag to allocate defaults */
+   if( !blist ) nbricks = 0;
+   if( nifti_alloc_NBL_mem( nim, nbricks, NBL ) != 0 ){
+      if( blist ){ free(slist); free(sindex); }
+      znzclose(fp);
+      return -1;
+   }
+
+   rv = nifti_load_NBL_bricks(nim, slist, sindex, NBL, fp);
+
+   if( rv != 0 ){
+      free_NBL( NBL );  /* failure! */
+      NBL->nbricks = 0; /* repetative, but clear */
+   }
+
+   if( slist ){ free(slist); free(sindex); }
+
+   znzclose(fp);
+
+   return NBL->nbricks;
+}
+
+
+/*----------------------------------------------------------------------
+ * free_NBL      - free all pointers and clear structure
+ *
+ * note: this does not presume to free the structure pointer
+ *----------------------------------------------------------------------*/
+void free_NBL( nifti_brick_list * NBL )
+{
+   int c;
+
+   if( NBL->bricks ){
+      for( c = 0; c < NBL->nbricks; c++ )
+         if( NBL->bricks[c] ) free(NBL->bricks[c]);
+      free(NBL->bricks);
+      NBL->bricks = NULL;
+   }
+
+   NBL->nbricks = NBL->bsize = 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * nifti_load_NBL_bricks      - read the file data into the NBL struct
+ *
+ * return 0 on success, -1 on failure
+ *----------------------------------------------------------------------*/
+static int nifti_load_NBL_bricks( nifti_image * nim , int * slist, int * sindex,
+                                  nifti_brick_list * NBL, znzFile fp )
+{
+   int c, rv;
+   int oposn, fposn;      /* orig and current file positions */
+   int prev, isrc, idest; /* previous and current sub-brick, and new index */
+
+   oposn = znztell(fp);  /* store current file position */
+   fposn = oposn;
+   if( fposn < 0 ){
+      fprintf(stderr,"** load bricks: ztell failed??\n");
+      return -1;
+   }
+
+   /* first, handle the default case, no passed blist */
+   if( !slist ){
+      for( c = 0; c < NBL->nbricks; c++ ) {
+         rv = nifti_read_buffer(fp, NBL->bricks[c], NBL->bsize, nim);
+         if( rv != NBL->bsize ){
+            fprintf(stderr,"** load bricks: cannot read brick %d from '%s'\n",
+                    c, nim->iname ? nim->iname : nim->fname);
+            return -1;
+         }
+      }
+      if( gni_debug > 1 )
+         fprintf(stderr,"+d read %d default bricks from file %s\n",
+                 NBL->nbricks, nim->iname ? nim->iname : nim->fname );
+      return 0;
+   }
+
+   if( !sindex ){
+      fprintf(stderr,"** load_NBL_bricks: missing index list\n");
+      return -1;
+   }
+
+   prev = -1;   /* use prev for previous sub-brick */
+   for( c = 0; c < NBL->nbricks; c++ ){
+       isrc = slist[c];   /* this is original brick index (c is new one) */
+       idest = sindex[c]; /* this is the destination index for this data */
+
+       /* if this sub-brick is not the previous, we must read from disk */
+       if( isrc != prev ){
+
+          /* if we are not looking at the correct sub-brick, scan forward */
+          if( fposn != (oposn + isrc*NBL->bsize) ){
+             fposn = oposn + isrc*NBL->bsize;
+             if( znzseek(fp, fposn, SEEK_SET) < 0 ){
+                fprintf(stderr,"** failed to locate brick %d in file '%s'\n",
+                        isrc, nim->iname ? nim->iname : nim->fname);
+                return -1;
+             }
+          }
+
+          /* only 10,000 lines later and we're actually reading something! */
+          rv = nifti_read_buffer(fp, NBL->bricks[idest], NBL->bsize, nim);
+          if( rv != NBL->bsize ){
+             fprintf(stderr,"** failed to read brick %d from file '%s'\n",
+                     isrc, nim->iname ? nim->iname : nim->fname);
+             return -1;
+          }
+          fposn += NBL->bsize;
+       } else {
+          /* we have already read this sub-brick, just copy the previous one */
+          /* note that this works because they are sorted */
+          memcpy(NBL->bricks[idest], NBL->bricks[sindex[c-1]], NBL->bsize);
+       }
+
+       prev = isrc;  /* in any case, note the now previous sub-brick */
+   }
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * nifti_alloc_NBL_mem      - allocate memory for bricks
+ *
+ * return 0 on success, -1 on failure
+ *----------------------------------------------------------------------*/
+static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
+                               nifti_brick_list * nbl)
+{
+   int c;
+
+   /* if nbricks is not specified, use the default */
+   if( nbricks > 0 ) nbl->nbricks = nbricks;
+   else              nbl->nbricks = nim->nt * nim->nu * nim->nv * nim->nw;
+
+   nbl->bsize   = nim->nx * nim->ny * nim->nz;
+   nbl->bricks  = (void **)malloc(nbl->nbricks * sizeof(void *));
+
+   if( ! nbl->bricks ){
+      fprintf(stderr,"** NANM: failed to alloc %d void ptrs\n",nbricks);
+      return -1;
+   }
+
+   for( c = 0; c < nbl->nbricks; c++ ){
+      nbl->bricks[c] = (void *)malloc(nbl->bsize * nim->nbyper);
+      if( ! nbl->bricks[c] ){
+         fprintf(stderr,"** NANM: failed to alloc %d bytes for brick %d\n",
+                 nbl->bsize*nim->nbyper, c);
+         /* so free and clear everything before returning */
+         while( c > 0 ){
+            c--;
+            free(nbl->bricks[c]);
+         }
+         free(nbl->bricks);
+         nbl->bricks = NULL;
+         nbl->nbricks = nbl->bsize = 0;
+         return -1;
+      }
+   }
+
+   if( gni_debug > 2 )
+      fprintf(stderr,"+d NANM: alloc'd %d bricks of %d bytes for NBL\n",
+              nbl->nbricks, nbl->bsize*nim->nbyper);
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * nifti_copynsort      - copy int list, and sort with indices
+ *
+ * 1. duplicate the incoming list
+ * 2. create an sindex list, and init with 0..nbricks-1
+ * 3. do a slow insertion sort on the small slist, along with sindex list
+ * 4. check results, just to be positive
+ * 
+ * So slist is sorted, and sindex hold original positions.
+ *
+ * return 0 on success, -1 on failure
+ *----------------------------------------------------------------------*/
+static int nifti_copynsort(int nbricks, int * blist, int ** slist,
+                           int ** sindex)
+{
+   int * stmp, * itmp;   /* for ease of typing/reading */
+   int   c1, c2, spos, tmp;
+
+   *slist  = (int *)malloc(nbricks * sizeof(int));
+   *sindex = (int *)malloc(nbricks * sizeof(int));
+
+   if( !*slist || !*sindex ){
+      fprintf(stderr,"** NCS: failed to alloc %d ints for sorting\n",nbricks);
+      if(*slist)  free(*slist);   /* maybe one succeeded */
+      if(*sindex) free(*sindex);
+      return -1;
+   }
+
+   /* init the lists */
+   memcpy(*slist, blist, nbricks*sizeof(int));
+   for( c1 = 0; c1 < nbricks; c1++ ) (*sindex)[c1] = c1;
+
+   /* now actually sort slist */
+   stmp = *slist;
+   itmp = *sindex;
+   for( c1 = 0; c1 < nbricks-1; c1++ ) {
+      /* find smallest value, init to current */
+      spos = c1;
+      for( c2 = c1+1; c2 < nbricks; c2++ )
+         if( stmp[c2] < stmp[spos] ) spos = c2;
+      if( spos != c1 ) /* swap: fine, don't maintain sub-order, see if I care */
+      {
+         tmp        = stmp[c1];      /* first swap the sorting values */
+         stmp[c1]   = stmp[spos];
+         stmp[spos] = tmp;
+
+         tmp        = itmp[c1];      /* then swap the index values */
+         itmp[c1]   = itmp[spos];
+         itmp[spos] = tmp;
+      }
+   }
+
+   if( gni_debug > 2 ){
+      fprintf(stderr,  "+d sorted indexing list:\n");
+      fprintf(stderr,  "  orig   : ");
+      for( c1 = 0; c1 < nbricks; c1++ ) fprintf(stderr,"  %d",blist[c1]);
+      fprintf(stderr,"\n  new    : ");
+      for( c1 = 0; c1 < nbricks; c1++ ) fprintf(stderr,"  %d",stmp[c1]);
+      fprintf(stderr,"\n  indices: ");
+      for( c1 = 0; c1 < nbricks; c1++ ) fprintf(stderr,"  %d",itmp[c1]);
+      fputc('\n', stderr);
+   }
+
+   /* check the sort (why not?  I've got time...) */
+   for( c1 = 0; c1 < nbricks-1; c1++ ){
+       if( (stmp[c1] > stmp[c1+1]) || (blist[itmp[c1]] != stmp[c1]) ){
+          fprintf(stderr,"** sorting screw-up, way to go, rick!\n");
+          free(stmp); free(itmp); *slist = NULL; *sindex = NULL;
+          return -1;
+       }
+   }
+
+   if( gni_debug > 2 ) fprintf(stderr,"-d sorting is okay\n");
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * valid_nifti_brick_list      - check sub-brick list for image
+ *
+ * return 1 if valid, 0 if not
+ *----------------------------------------------------------------------*/
+int valid_nifti_brick_list(nifti_image * nim , int nbricks, int * blist,
+                           int disp_error)
+{
+   int c, nsubs;
+
+   if( !nim ){
+      if( disp_error || gni_debug > 0 )
+         fprintf(stderr,"** valid_nifti_brick_list: missing nifti image\n");
+      return 0;
+   }
+
+   if( nbricks <= 0 || !blist ){
+      if( disp_error || gni_debug > 1 )
+         fprintf(stderr,"** valid_nifti_brick_list: no brick list to check\n");
+      return 0;
+   }
+
+   /* nsubs sub-brick is nt*nu*nv*nw */
+   nsubs = nim->dim[4] * nim->dim[5] * nim->dim[6] * nim->dim[7];
+
+   if( nsubs <= 0 ){
+      fprintf(stderr,"** VNBL warning: bad dim list (%d,%d,%d,%d)\n",
+                     nim->dim[4], nim->dim[5], nim->dim[6], nim->dim[7]);
+      int_force_positive(nim->dim+4, 4);
+      nsubs = nim->dim[4] * nim->dim[5] * nim->dim[6] * nim->dim[7];
+   }
+
+   for( c = 0; c < nbricks; c++ )
+      if( (blist[c] < 0) || (blist[c] >= nsubs) ){
+         if( disp_error || gni_debug > 1 )
+            fprintf(stderr,
+               "-d ** bad sub-brick chooser %d (#%d), valid range is [0,%d]\n",
+               blist[c], c, nsubs-1);
+         return 0;
+      }
+
+   return 1;  /* all is well */
+}
+
+/* set any non-positive values to 1 */
+static int int_force_positive( int * list, int nel )
+{
+   int c;
+   if( *list || nel <= 0 ){
+      if( gni_debug > 0 )
+         fprintf(stderr,"** int_force_positive: bad params (%p,%d)\n",list,nel);
+      return -1;
+   }
+   for( c = 0; c < nel; c++ )
+      if( list[c] <= 0 ) list[c] = 1;
+   return 0;
+}
+/* end of new nifti_image_read_bricks() functionality */
 
 /*----------------------------------------------------------------------
  * display the orientation from the quaternian fields
@@ -1582,7 +2059,6 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
    } else {                       /* dim[0] == 0 is illegal, but does occur */
      ii = nhdr.sizeof_hdr ;            /* so check sizeof_hdr field instead */
 
-     /* rcr - we may have to allow for extensions here */
      if( ii != sizeof(nhdr) ){
        swap_4(ii) ;
        if( ii != sizeof(nhdr) )          ERREX("bad sizeof_hdr") ;
@@ -1949,7 +2425,7 @@ nifti_image *nifti_image_read( char *hname , int read_data )
      free(workingname);
 
      /* check for nifti_image_load() failure, maybe bail out */
-     if( ii != 0 ){
+     if( read_data && ii != 0 ){
         if( gni_debug > 1 )
            fprintf(stderr,"-d failed image_load, free nifti image struct\n");
         free(nim);
@@ -2204,7 +2680,7 @@ static int nifti_read_next_extension( nifti1_extension * nex,
    /* since size includes the space for size and code, it should be > 8 */
    if( size < 8 ){
       if( gni_debug > 0 )
-         fprintf(stderr,"** extension size cannot be less than 8: %d\n",size);
+         fprintf(stderr,"-d extension size cannot be less than 8: %d\n",size);
       return -1;
    } else if( size == 8 ){
       if( gni_debug > 1 )
@@ -2228,7 +2704,7 @@ static int nifti_read_next_extension( nifti1_extension * nex,
    count = znzread(nex->edata, 1, size, fp);
    if( count < size ){
       if( gni_debug > 0 )
-         fprintf(stderr,"** read only %d (of %d) bytes for extension\n",
+         fprintf(stderr,"-d read only %d (of %d) bytes for extension\n",
                  count, size);
       free(nex->edata);
       nex->edata = NULL;
@@ -2274,18 +2750,19 @@ static int nifti_valid_extension( nifti_image *nim, int size, int code )
 
 
 /*----------------------------------------------------------------------
- * Load the image data from disk into an already-prepared image struct.
+ * nifti_image_load_prep  - prepare to read data
  *
- * change to return an int:                    29 Nov 2004 [rickr]
- *    0 : success (image data space will be allocated if it wasn't already)
- *  < 0 : error
+ * Check nifti_image fields, open the file and seek to the appropriate
+ * offset for reading.
+ *
+ * return NULL on failure
  *----------------------------------------------------------------------*/
-int nifti_image_load( nifti_image *nim )
+static znzFile nifti_image_load_prep( nifti_image *nim )
 {
    /* set up data space, open data file and seek, then call nifti_read_buffer */
-   size_t ntot , ii , ioff ;
-   znzFile fp ;
-   char    fname[] = { "nifti_image_load" };
+   size_t ntot , ii , ioff;
+   znzFile fp;
+   char    fname[] = { "nifti_image_load_prep" };
 
    if( nim == NULL      || nim->iname == NULL ||
        nim->nbyper <= 0 || nim->nvox <= 0       )
@@ -2295,7 +2772,7 @@ int nifti_image_load( nifti_image *nim )
          else fprintf(stderr,"** ERROR: N_image_load: bad params (%p,%d,%d)\n",
                       nim->iname, nim->nbyper, nim->nvox);
       }
-      return -1;
+      return NULL;
    }
 
    ntot = nifti_get_volsize(nim) ; /* total bytes to read */
@@ -2306,7 +2783,7 @@ int nifti_image_load( nifti_image *nim )
    if( znz_isnull(fp) ){
       if( gni_debug > 0 )
          LNI_FERR(fname,"cannot open data file",nim->iname);
-      return -1;
+      return NULL;
    }
 
    /* negative offset means to figure from end of file */
@@ -2315,14 +2792,14 @@ int nifti_image_load( nifti_image *nim )
         if( gni_debug > 0 )
            LNI_FERR(fname,"negative offset for compressed file",nim->iname);
         znzclose(fp);
-        return -1;
+        return NULL;
      }
      ii = get_filesize( nim->iname ) ;
      if( ii <= 0 ){
         if( gni_debug > 0 )
            LNI_FERR(fname,"empty data file",nim->iname);
         znzclose(fp);
-        return -1;
+        return NULL;
      }
      ioff = (ii > ntot) ? ii-ntot : 0 ;
    } else {                              /* non-negative offset   */
@@ -2330,12 +2807,38 @@ int nifti_image_load( nifti_image *nim )
    }
    znzseek( fp , ioff , SEEK_SET ) ;
 
+   return fp;
+}
+
+
+/*----------------------------------------------------------------------
+ * Load the image data from disk into an already-prepared image struct.
+ *
+ * change to return an int:                    29 Nov 2004 [rickr]
+ *    0 : success (image data space will be allocated if it wasn't already)
+ *  < 0 : error
+ *----------------------------------------------------------------------*/
+int nifti_image_load( nifti_image *nim )
+{
+   /* set up data space, open data file and seek, then call nifti_read_buffer */
+   size_t ntot , ii ;
+   znzFile fp ;
+
+   fp = nifti_image_load_prep( nim );
+
+   if( fp == NULL ){
+      if( gni_debug > 0 )
+         fprintf(stderr,"** nifti_image_load, failed load_prep\n");
+      return -1;
+   }
+
+   ntot = nifti_get_volsize(nim);
+
    /* if the data pointer is already set, use the given space */
 
    if( nim->data == NULL )
    {
      nim->data = (void *)calloc(1,ntot) ;  /* create image memory */
-
      if( nim->data == NULL ){
         if( gni_debug > 0 )
            fprintf(stderr,"** failed to alloc %d bytes for image data\n",
@@ -2753,13 +3256,17 @@ void nifti_set_iname_offset(nifti_image *nim)
      break ;
 
      case 1:   /* NIFTI-1 single binary file */
-       if (nim->iname_offset < sizeof(struct nifti_1_header))  
-	 {
+       if (nim->iname_offset < sizeof(struct nifti_1_header))  {
 	   offset += sizeof(struct nifti_1_header) + 4 ;
 	   /* be sure offset is aligned to a 16 byte word boundary */
 	   if ( ( offset % 16 ) != 0 )  offset = ((offset + 0xf) & ~0xf);
+
+           if( nim->iname_offset != offset && gni_debug > 1 ){
+              fprintf(stderr,"+d changing offset from %d to %d\n",
+                      nim->iname_offset, offset);
+           }
 	   nim->iname_offset = offset;
-	 }
+       }
      break ;
 
                /* non-standard case: */
