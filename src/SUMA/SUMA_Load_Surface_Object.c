@@ -3098,6 +3098,22 @@ void usage_SUMA_SurfaceMetrics ()
                "         Col.2: Index of the second node forming the edge\n"
                "         Col.3: Number of triangles containing edge\n"
                "         Col.4: Length of edge.\n"
+               "      -coords: Output coords of each node after any transformation \n"
+               "         that is normally carried out by SUMA on such a surface.\n"
+               "         Col. 0: Node Index\n"
+               "         Col. 1: X\n"
+               "         Col. 2: Y\n"
+               "         Col. 3: Z\n"     
+               "      -sph_coords: Output spherical coords of each node.\n"
+               "      -sph_coords_center x y z: Shift each node by  x y z\n"
+               "                                before calculating spherical\n"
+               "                                coordinates. Default is the\n"
+               "                                center of the surface.\n"
+               "          Both sph_coords options output the following:\n"
+               "          Col. 0: Node Index\n"
+               "          Col. 1: R (radius)\n"
+               "          Col. 2: T (azimuth)\n"
+               "          Col. 3: P (elevation)\n" 
                "\n"
                "      You can use any or all of these metrics simultaneously.\n"
                "\n"
@@ -3130,7 +3146,7 @@ int main (int argc,char *argv[])
    char  *OutName=NULL, *OutPrefix = NULL, *if_name = NULL, 
          *if_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
          *tlrc_name = NULL;
-   float *Cx = NULL;
+   float *Cx = NULL, sph_center[3], NormScale;
    SUMA_STRING *MetricList = NULL;
    int i, n1, n2, n1_3, n2_3, kar, nt, SO_read;
    double edgeL2;
@@ -3146,7 +3162,7 @@ int main (int argc,char *argv[])
    char *spec_file, *histnote;
    int insurf_method = 0, N_surf = 0, ind = 0;
    SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
-                  Do_area, Do_edges, Do_vol, LocalHead = NOPE;  
+                  Do_area, Do_edges, Do_vol, Do_sph, NewCent, Do_cord, Do_TriNorm, Do_NodeNorm, LocalHead = NOPE;  
    
    SUMA_mainENTRY;
    
@@ -3165,12 +3181,18 @@ int main (int argc,char *argv[])
    MetricList = SUMA_StringAppend (NULL, NULL);
    kar = 1;
 	brk = NOPE;
+   Do_cord = NOPE;
+   Do_sph = NOPE;
    Do_vol = NOPE;
    Do_tlrc = NOPE;
    Do_conv = NOPE;
    Do_area = NOPE;
    Do_curv = NOPE;
    Do_edges = NOPE;
+   Do_TriNorm = NOPE;
+   Do_NodeNorm = NOPE;
+   NormScale = 5.0;
+   NewCent = NOPE;
    OutPrefix = NULL;
    for (i=0; i<SURFACEMETRICS_MAX_SURF; ++i) { surf_names[i] = NULL; }   
    spec_file = NULL;
@@ -3274,6 +3296,29 @@ int main (int argc,char *argv[])
          brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-sph_coords_center") == 0)) {
+         kar ++;
+			if (kar+2 >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 3 arguments after -sph_coords_center \n");
+				exit (1);
+			}
+			sph_center[0] = atof(argv[kar]); kar ++;
+         sph_center[1] = atof(argv[kar]); kar ++;
+         sph_center[2] = atof(argv[kar]);
+         NewCent = YUP;
+         Do_sph = YUP;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-sph_coords") == 0)) {
+         Do_sph = YUP;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-coords") == 0)) {
+         Do_cord = YUP;
+			brk = YUP;
+		}
       
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
@@ -3310,6 +3355,23 @@ int main (int argc,char *argv[])
 
       if (!brk && (strcmp(argv[kar], "-tlrc") == 0)) {
          Do_tlrc = YUP;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-node_normals") == 0)) {
+         Do_NodeNorm = YUP;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-face_normals") == 0)) {
+         Do_TriNorm = YUP;
+         brk = YUP;
+      }
+      if (!brk && (strcmp(argv[kar], "-normals_scale") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -normals_scale ");
+				exit (1);
+			}
+         NormScale = atof(argv[kar]);
          brk = YUP;
       }
       
@@ -3360,54 +3422,11 @@ int main (int argc,char *argv[])
    MetricList = SUMA_StringAppend (MetricList, NULL); 
    
    /* sanity checks */
-   if (!strlen(MetricList->s) && !Do_vol) {
+   if (!strlen(MetricList->s) && !Do_vol && !Do_sph && !Do_cord && !Do_TriNorm && !Do_NodeNorm) {
       SUMA_S_Err("No Metrics specified.\nNothing to do.\n");
       exit(1);
    }
    
-#if 0
-   if (!if_name) {
-      SUMA_S_Err("Input surface not specified.\n");
-      exit(1);
-   }
-   
-   if (iType == SUMA_FT_NOT_SPECIFIED) {
-      SUMA_S_Err("Input type not recognized.\n");
-      exit(1);
-   }
-   
-   if (iType == SUMA_SUREFIT) {
-      if (!if_name2) {
-         SUMA_S_Err("Input SureFit surface incorrectly specified.\n");
-         exit(1);
-      }
-      if (sv_name && !vp_name) {
-         SUMA_S_Err("VolParent must specified with -sv potion for SureFit surfaces. \n");
-         exit(1);
-      }
-   }
-   
-   if (iType == SUMA_VEC) {
-      if (!if_name2) {
-         SUMA_S_Err("Input vec surface incorrectly specified.\n");
-         exit(1);
-      }
-   }
-   
-   /* test for existence of input files */
-   if (!SUMA_filexists(if_name)) {
-      fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name);
-      exit(1);
-   }
-   
-   if (if_name2) {
-      if (!SUMA_filexists(if_name2)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, if_name2);
-         exit(1);
-      }
-   }
-#endif
-
    if (sv_name) {
       if (!SUMA_filexists(sv_name)) {
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, sv_name);
@@ -3427,49 +3446,6 @@ int main (int argc,char *argv[])
       }
    }
 
-   /* read the surface */
-   
-#if 0
-   /* prepare the name of the surface object to read*/
-   switch (iType) {
-      case SUMA_SUREFIT:
-         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         sprintf(SF_name->name_coord,"%s", if_name);
-         sprintf(SF_name->name_topo,"%s", if_name2); 
-         if (!vp_name) { /* initialize to empty string */
-            SF_name->name_param[0] = '\0'; 
-         }
-         else {
-            sprintf(SF_name->name_param,"%s", vp_name);
-         }
-         SO_name = (void *)SF_name;
-         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_SUREFIT, SUMA_ASCII, sv_name);
-         break;
-      case SUMA_VEC:
-         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         sprintf(SF_name->name_coord,"%s", if_name);
-         sprintf(SF_name->name_topo,"%s", if_name2); 
-         SO_name = (void *)SF_name;
-         fprintf (SUMA_STDOUT,"Reading %s and %s...\n", SF_name->name_coord, SF_name->name_topo);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_VEC, SUMA_ASCII, sv_name);
-         break;
-      case SUMA_FREE_SURFER:
-      case SUMA_FREE_SURFER_PATCH:
-         SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_FREE_SURFER, SUMA_ASCII, sv_name);
-         break;  
-      case SUMA_PLY:
-         SO_name = (void *)if_name; 
-         fprintf (SUMA_STDOUT,"Reading %s ...\n",if_name);
-         SO = SUMA_Load_Surface_Object (SO_name, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, sv_name);
-         break;  
-      default:
-         fprintf (SUMA_STDERR,"Error %s: Bad format.\n", FuncName);
-         exit(1);
-   }
-#endif
    
    /* read all surfaces */
    if (!SUMA_Read_SpecFile (spec_file, &Spec)) {
@@ -3528,6 +3504,11 @@ int main (int argc,char *argv[])
       
    }
    
+   /* check on normals */
+   if ((Do_TriNorm || Do_NodeNorm) && (!SO->NodeNormList || !SO->FaceNormList)) {
+      SUMA_RECOMPUTE_NORMALS(SO);
+   }
+   
    /* create the surface label*/
    SO->Label = SUMA_SurfaceFileName (SO, NOPE);
    if (!SO->Label) {
@@ -3555,6 +3536,111 @@ int main (int argc,char *argv[])
    
    OutName = (char*) SUMA_malloc((strlen(OutPrefix) + 30) * sizeof(char));
    histnote = SUMA_HistString (NULL, argc, argv, NULL);
+   
+   if (Do_sph) {
+      float *sph=NULL;
+      sprintf(OutName, "%s.sphcoord.1D.dset", OutPrefix);
+      if (SUMA_filexists(OutName)) {
+         SUMA_S_Err("Edge output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      if (NewCent) ;
+      else if (SO->Center) { SUMA_COPY_VEC(SO->Center, sph_center, 3, float, float); }
+      else {
+         SUMA_SL_Err("SO has no center");
+         exit(1);
+      }
+      sph = SUMA_Cart2Sph(SO->NodeList, SO->N_Node, sph_center);
+
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Spherical coords, \n");
+      fprintf (fout,"#  cartesian coords shifted by [%f %f %f] prior to xform\n", sph_center[0], sph_center[1], sph_center[2]);
+      fprintf (fout,"#nI = Node Index\n");
+      fprintf (fout,"#r  = Rho (radius)\n");
+      fprintf (fout,"#t  = theta(azimuth)\n");
+      fprintf (fout,"#p  = phi(elevation)\n");
+      fprintf (fout,"#nI\tr\tt\tp\n\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      
+      for (i=0; i < SO->N_Node; ++i) {
+            fprintf (fout,"%d\t%f\t%f\t%f\n",
+                  i, sph[3*i], sph[3*i+1],sph[3*i+2]);
+      }
+      
+      fclose(fout); fout = NULL;
+      
+      if (sph) SUMA_free(sph); sph = NULL;
+   }  
+   
+   if (Do_TriNorm) {
+      float tc[3], norm[3];
+      int n1, n2, n3;
+      sprintf(OutName, "%s.TriNormSeg.1D", OutPrefix);
+      if (SUMA_filexists(OutName)) {
+         SUMA_S_Err("Triangle normals output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Triangle normals.\n");
+      fprintf (fout,"#  Segments from centroid of triangle along the direction of the normal (of magnitude %f)\n", NormScale);
+      fprintf (fout,"#  1st three columns are centroid's coordinates\n");
+      fprintf (fout,"#  2nd three columns are the coordinate of a second point along the normal\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      
+      for (i=0; i<SO->N_FaceSet; ++i) {
+         n1 = SO->FaceSetList[3*i]; n2 = SO->FaceSetList[3*i+1]; n3 = SO->FaceSetList[3*i+2];
+         /* coordinate of centroid */
+         tc[0] = (SO->NodeList[3*n1]   + SO->NodeList[3*n2]   + SO->NodeList[3*n3]  )/3; /* centroid of triangle */
+         tc[1] = (SO->NodeList[3*n1+1] + SO->NodeList[3*n2+1] + SO->NodeList[3*n3+1])/3; 
+         tc[2] = (SO->NodeList[3*n1+2] + SO->NodeList[3*n2+2] + SO->NodeList[3*n3+2])/3;
+         norm[0] = SO->FaceNormList[3*i]; norm[1] = SO->FaceNormList[3*i+1]; norm[2] = SO->FaceNormList[3*i+2];
+         /* normal is expected to be normalized...*/
+         norm[0] *= NormScale; norm[1] *= NormScale; norm[2] *= NormScale;
+         fprintf (fout,"%f %f %f \t%f %f %f\n", tc[0], tc[1], tc[2], tc[0]+norm[0], tc[1]+norm[1], tc[2]+norm[2]);            
+      }
+      
+      fclose(fout); fout = NULL;
+   }
+   
+   if (Do_cord) {
+      sprintf(OutName, "%s.coord.1D.dset", OutPrefix);
+      if (SUMA_filexists(OutName)) {
+         SUMA_S_Err("Edge output file exists.\nWill not overwrite.");
+         exit(1);
+      }
+      
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }
+      
+      fprintf (fout,"#Cartesian coords, \n");
+      fprintf (fout,"#  Center is: [%f %f %f] \n", SO->Center[0], SO->Center[1], SO->Center[2]);
+      fprintf (fout,"#nI = Node Index\n");
+      fprintf (fout,"#x  = X \n");
+      fprintf (fout,"#y  = Y\n");
+      fprintf (fout,"#z  = Z\n");
+      fprintf (fout,"#nI\tx\ty\tz\n\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      
+      for (i=0; i < SO->N_Node; ++i) {
+            fprintf (fout,"%d\t%f\t%f\t%f\t\n",
+                  i, SO->NodeList[3*i], SO->NodeList[3*i+1],SO->NodeList[3*i+2]);
+      }
+      
+      fclose(fout); fout = NULL;
+   }  
    
    if (Do_edges) {
       
@@ -3646,7 +3732,7 @@ int main (int argc,char *argv[])
          exit(1);
       }
       
-      sprintf(OutName, "%s.curv", OutPrefix);
+      sprintf(OutName, "%s.curv.1D.dset", OutPrefix);
       if (SUMA_filexists(OutName)) {
          SUMA_S_Err("Curvature output file exists.\nWill not overwrite.");
          exit(1);
@@ -3685,7 +3771,7 @@ int main (int argc,char *argv[])
          exit(1);
       }
       
-      sprintf(OutName, "%s.conv", OutPrefix);
+      sprintf(OutName, "%s.conv.1D.dset", OutPrefix);
       if (SUMA_filexists(OutName)) {
          SUMA_S_Err("Convexities output file exists.\nWill not overwrite.");
          exit(1);

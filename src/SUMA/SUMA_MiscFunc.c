@@ -251,7 +251,107 @@ SUMA_MEMTRACE_STRUCT * SUMA_Create_MemTrace (void) {
    return(NULL);
    #endif
 }
+ 
+/*!
+   \brief Function to change a bunch of spherical coordinates to
+    cartesian ones
+   \param sph (float *) Nval*3 [rho, theta(azimuth), phi(elevation)] spherical  coords
+   \param Nval (int) number of coord triplets
+   \param center (float *) 3x1 XYZ of center (CARTESIAN). If NULL center is 0 0 0
+                           center is ADDED to each coord triplet
+                           after xformation to cartesian
+   \return coord (float *) Nval*3 XYZ coords
+   
+   \sa SUMA_SPH_2_CART
+*/
+float * SUMA_Sph2Cart (float *sph, int Nval, float *center ) 
+{
+   static char FuncName[]={"SUMA_Sph2Cart"};
+   float v[3], *f;
+   int i, i3;
+   float *coord=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (Nval <= 0) {
+      SUMA_RETURN(NULL);
+   }
+   
+   coord = (float *)SUMA_malloc(Nval*sizeof(float)*3);
+   if (!coord) {
+      SUMA_SL_Crit("Failed to allocate");
+      SUMA_RETURN(NULL);
+   }
+   
+   for (i=0; i<Nval; ++i) {
+      i3 = 3*i;
+      f = &(sph[i3]);
+      SUMA_SPH_2_CART(f, v);
+      
+      if (center) {
+         coord[i3+0] = v[0] + center[0]; 
+         coord[i3+1] = v[1] + center[1]; 
+         coord[i3+2] = v[2] + center[2]; 
+      } else {
+         coord[i3+0] = v[0]; 
+         coord[i3+1] = v[1]; 
+         coord[i3+2] = v[2]; 
+      }
+   
+   }
+   
+   SUMA_RETURN(coord);
+}
 
+
+/*!
+   \brief Function to change a bunch of cartesian coordinates to
+   spherical ones
+   \param coord (float *) Nval*3 XYZ coords
+   \param Nval (int) number of coord triplets
+   \param center (float *) 3x1 XYZ of center (CARTESIAN). If NULL center is 0 0 0
+                           center is subtracted from each coord triplet
+                           before xformation
+   \return sph (float *) Nval*3 [rho, theta(azimuth), phi(elevation)] spherical  coords
+   
+   \sa SUMA_CART_2_SPH
+*/
+float * SUMA_Cart2Sph (float *coord, int Nval, float *center ) 
+{
+   static char FuncName[]={"SUMA_Cart2Sph"};
+   float v[3], *f;
+   int i, i3;
+   float *sph=NULL;
+   
+   SUMA_ENTRY;
+   
+   if (Nval <= 0) {
+      SUMA_RETURN(NULL);
+   }
+   
+   sph = (float *)SUMA_malloc(Nval*sizeof(float)*3);
+   if (!sph) {
+      SUMA_SL_Crit("Failed to allocate");
+      SUMA_RETURN(NULL);
+   }
+   
+   for (i=0; i<Nval; ++i) {
+      i3 = 3*i;
+      if (center) {
+         v[0] = coord[i3+0] - center[0]; 
+         v[1] = coord[i3+1] - center[1]; 
+         v[2] = coord[i3+2] - center[2]; 
+      } else {
+         v[0] = coord[i3+0]; 
+         v[1] = coord[i3+1]; 
+         v[2] = coord[i3+2]; 
+      }
+      f = &(sph[i3]);
+      SUMA_CART_2_SPH(v,f);
+   }
+   
+   SUMA_RETURN(sph);
+}
 
 void SUMA_ShowMemTrace (SUMA_MEMTRACE_STRUCT *Mem, FILE *Out) 
 {
@@ -1753,17 +1853,19 @@ SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , i
             /* relative distance to center */
                id = ND * k;
                t0 = hdim0 - fabs(XYZ[id] - S_cent[0]);   
-               t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);   
-               t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);   
                
-               if (t0 >= 0)
-                  if (t1 >= 0)
+               if (t0 >= 0) {
+                  t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);   
+                  if (t1 >= 0) {
+                     t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);   
                      if (t2 >= 0)
                         {
                            IsIn[IsIn_strct.nIsIn] = k;
                            d[IsIn_strct.nIsIn] = sqrt(t0*t0+t1*t1+t2*t2);
                            ++(IsIn_strct.nIsIn);
                         }
+                  }
+               }
             }         
             /*fprintf(SUMA_STDERR,"%s: outbound\n", FuncName);*/
 
@@ -1775,17 +1877,19 @@ SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , i
                /* relative distance to center */
                id = ND * k;
                t0 = hdim0 - fabs(XYZ[id] - S_cent[0]);   
-               t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);   
-               t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);   
                
-               if (t0 > 0)
-                  if (t1 > 0)
+               if (t0 > 0) {
+                  t1 = hdim1 - fabs(XYZ[id+1] - S_cent[1]);   
+                  if (t1 > 0) {
+                     t2 = hdim2 - fabs(XYZ[id+2] - S_cent[2]);   
                      if (t2 > 0)
                         {
                            IsIn[IsIn_strct.nIsIn] = k;
                            d[IsIn_strct.nIsIn] = sqrt(t0*t0+t1*t1+t2*t2);
                            ++(IsIn_strct.nIsIn);
                         }
+                  }
+               }
             }
       }
    
@@ -1839,16 +1943,106 @@ SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB)
    IB->nIsIn = 0;
    SUMA_RETURN (YUP);   
 }
-/*!**
-File : SUMA_MiscFunc.c
-\author Ziad Saad
-Date : Fri Feb 8 16:29:06 EST 2002
-   
-Purpose : 
-   Read SureFit data
-   
-*/
 
+/*!
+   \brief Determines is a point in 2D is inside a polygon with no holes.
+   The function's parameters are abit strange because of the intended use.
+   
+   \param P (float *) 3x1 vector containing XYZ of the point to test
+   \param NodeList (float *) the proverbial nodelist xyz xyz xyz etc.
+   \param FaceSetList (int *) the proverbial FaceSetList defining polygons 
+   \param N_FaceSet (int) number of polygons in each list
+   \param FaceSetDim (int) number of points forming polygon
+   \param dims (int) 2x1 vector indicating which dimensions to consider.
+                     Recall this a 2D inclusion function! For example, 
+                     if dims = [ 0 1] then the z coordinate (2) is not considered
+                     if dims = [ 0 2] then the y coordinate (1) is not considered
+                     if dims = [ 2 1] then the x coordinate (0) is not considered
+   \params N_in (int *) to contain the number of polygons that contain p
+   \param usethis (byte *) use this vector to store results (see return param)
+   \return isin (byte *) if isin[iv] the point P is in polygon iv
+                           
+   
+   core based on code by Paul Bourke, see copyright notice in suma -sources
+   Does not work for polys with holes 
+*/
+byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet, int FaceSetDim, int *dims, int *N_in, byte *usethis, byte *culled)
+{
+   static char FuncName[]={"SUMA_isinpoly"};
+   byte *isin=NULL;
+   int iv, i, ip, counter, ni;
+   double xinters;
+   float p1[2], p2[2], p[2], poly[300];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   *N_in = 0;
+   if (!usethis) {
+      isin = (byte *)SUMA_malloc(sizeof(byte)*N_FaceSet);
+      if (!isin) {
+         SUMA_SL_Crit("Failed to allocate!");
+         SUMA_RETURN(NOPE);
+      }
+   } else isin = usethis;
+   if (FaceSetDim > 99) {
+      SUMA_SL_Err("max FaceSetDim = 99");
+      SUMA_RETURN(NULL);
+   }
+   if (dims[0] < 0 || dims[0] > 2 || dims[1] < 0 || dims[1] > 2) {
+      SUMA_SL_Err("dims is a 2x1 vector with allowed values of 0 1 or 2 only.");
+      SUMA_RETURN(NULL);
+   }
+
+   p[0] = P[dims[0]]; p[1] = P[dims[1]]; /* the point of interest */
+   for (iv = 0; iv < N_FaceSet; ++iv) {
+      counter = 0;
+      for (i=0; i<FaceSetDim; ++i) { /* form the polygon coordinate vector */
+         ni = FaceSetList[FaceSetDim*iv+i];
+         poly[3*i] = NodeList[3*ni];  poly[3*i+1] = NodeList[3*ni+1]; poly[3*i+2] = NodeList[3*ni+2];
+      }
+      if (culled) if (culled[iv]) continue;
+      
+      p1[0] = poly[dims[0]]; p1[1] = poly[dims[1]]; /* the very first point */
+      for (i=1; i <=FaceSetDim; ++i) {
+         ip = i % FaceSetDim;
+         p2[0] = poly[3*ip+dims[0]]; p2[1] = poly[3*ip+dims[1]];
+         if (p[1] > SUMA_MIN_PAIR(p1[1], p2[1])) {
+            if (p[1] <= SUMA_MAX_PAIR(p1[1], p2[1])) {
+               if (p[0] <= SUMA_MAX_PAIR(p1[0], p2[0])) {
+                  if (p1[1] != p2[1]) {
+                     xinters = (p[1] - p1[1]) * (p2[0] - p1[0]) / (p2[1] - p1[1]) + p1[0];
+                     if (p1[0] == p2[0] || p[0] <= xinters) {
+                        counter++; 
+                     }
+                  }
+               }
+            }
+         }
+         p1[0] = p2[0]; p1[1] = p2[1];
+      }
+   
+      if (counter % 2 == 0) { 
+         isin[iv] = 0;
+      } else {
+         isin[iv] = 1; ++(*N_in); /* p is inside polygon iv */
+         #if 0
+         if (LocalHead) 
+         {
+            int kk;
+            fprintf(SUMA_STDERR,"\n%%hit!\nPoly = [");
+            for (kk=0; kk < FaceSetDim; ++kk) {
+               fprintf(SUMA_STDERR,"%.2f %.2f; ", poly[3*kk+dims[0]] , poly[3*kk+dims[1]]);
+            } fprintf(SUMA_STDERR,"%.2f %.2f] \np = [%.3f %.3f];", poly[dims[0]], poly[dims[1]], p[0], p[1]);   
+         }
+         #endif
+      }
+   }
+
+   SUMA_RETURN(isin);
+}
+
+       
 /*!**  
 Function: SUMA_Point_At_Distance 
 Usage : 
@@ -1870,6 +2064,8 @@ Returns :
 Support : 
 \sa   Point_At_Distance.m
 \sa  To free P2, use: SUMA_free2D((char **)P2, 2);
+
+\sa SUMA_POINT_AT_DISTANCE and SUMA_POINT_AT_DISTANCE_NORM macro
    
 ***/
 float **SUMA_Point_At_Distance(float *U, float *P1, float d)
@@ -1882,6 +2078,8 @@ float **SUMA_Point_At_Distance(float *U, float *P1, float d)
    
    SUMA_ENTRY;
 
+   SUMA_SL_Warn ("useless piece of junk, use SUMA_POINT_AT_DISTANCE instead!");
+   
    if (d == 0) {
       fprintf(SUMA_STDERR,"Error %s: d is 0. Not good, Not good at all.\n", FuncName);
       SUMA_RETURN (NULL);
@@ -2034,6 +2232,8 @@ double **SUMA_dPoint_At_Distance(double *U, double *P1, double d)
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+  
+   SUMA_SL_Warn ("useless piece of junk, use SUMA_POINT_AT_DISTANCE instead!");
 
    if (d == 0) {
       fprintf(SUMA_STDERR,"Error %s: d is 0. Not good, Not good at all.\n", FuncName);
@@ -2497,7 +2697,7 @@ int *SUMA_z_qsort (float *x , int nx )
 
 int *SUMA_z_doubqsort (double *x , int nx )
 {/*SUMA_z_qsort*/
-   static char FuncName[]={"SUMA_z_qsort"}; 
+   static char FuncName[]={"SUMA_z_doubqsort"}; 
    int *I, k;
    SUMA_Z_QSORT_DOUBLE *Z_Q_doubStrct;
    
@@ -2837,7 +3037,8 @@ ans = SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, d, closest_
 */
 
 SUMA_Boolean SUMA_MT_isIntersect_Triangle (float *P0, float *P1, float *vert0, float *vert1, float *vert2, float *iP, float *d, int *closest_vert)
-{  static char FuncName[]={"SUMA_MT_isIntersect_Triangle"};
+{  
+   static char FuncName[]={"SUMA_MT_isIntersect_Triangle"};
    double edge1[3], edge2[3], tvec[3], pvec[3], qvec[3];
    double det,inv_det, u, v, t;
    double dir[3], dirn, orig[3];
@@ -3034,7 +3235,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
       }
    }
    
-   MTI->N_hits = 0;
+   MTI->N_hits = 0; MTI->N_poshits = 0; 
    ND = 3;
    NP = 3;
    for (iface= 0; iface < N_FaceSet; ++iface) {/* iface */
@@ -3093,10 +3294,10 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
                MTI->u[iface] *= (float)inv_det;
                MTI->v[iface] *= (float)inv_det;         
                MTI->isHit[iface] = YUP;
-               ++MTI->N_hits;
+               ++MTI->N_hits; 
                /* store shortest distance triangle info */
                if (MTI->t[iface] < 0) disttest = -MTI->t[iface];
-                  else disttest = MTI->t[iface];
+                  else { disttest = MTI->t[iface]; ++MTI->N_poshits;}
                    
                if (disttest < tmin) {
                   tmin = disttest;
@@ -3155,7 +3356,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
                ++MTI->N_hits;
                /* store shortest distance triangle info */
                if (MTI->t[iface] < 0) disttest = -MTI->t[iface];
-                  else  disttest = MTI->t[iface];
+                  else  { disttest = MTI->t[iface]; ++MTI->N_poshits;}
                
                if (disttest < tmin) {
                   tmin = disttest;
@@ -3235,7 +3436,7 @@ SUMA_Boolean SUMA_Show_MT_intersect_triangle(SUMA_MT_INTERSECT_TRIANGLE *MTI, FI
          fprintf (Out, "\n");
       
       if (MTI->N_hits) {
-         fprintf (Out, "\n%d hits.\n", MTI->N_hits);
+         fprintf (Out, "\n%d hits, (%d hists with positive distance).\n", MTI->N_hits, MTI->N_poshits);
          fprintf (Out, "Minimum Distance: %d t %f u %f v %f\n", \
                   MTI->ifacemin, MTI->t[MTI->ifacemin], MTI->u[MTI->ifacemin],MTI->v[MTI->ifacemin]);
          fprintf (Out, "Intersection point P at Minimum Distance FaceSet:\n%f, %f, %f\n", \
@@ -4558,9 +4759,9 @@ SUMA_FACESET_FIRST_EDGE_NEIGHB *SUMA_FaceSet_Edge_Neighb (int **EL, int **ELps, 
 */
 SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int detail, int *trouble) 
 {
+   static char FuncName[]={"SUMA_MakeConsistent"};
    /* see for more documentation labbook NIH-2 test mesh  p61 */
    int i, it, NP, ip, N_flip=0, *isflip, *ischecked, ht0, ht1, NotConsistent, miss, miss_cur, N_iter, EdgeSeed, TriSeed, N_checked;
-   static char FuncName[]={"SUMA_MakeConsistent"};
    SUMA_FACESET_FIRST_EDGE_NEIGHB *SFFN;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -5632,7 +5833,7 @@ SUMA_SURFACE_CURVATURE * SUMA_Surface_Curvature (float *NodeList, int N_Node, fl
             }
             
          #ifdef DBG_3
-            { int jnk; fprintf(SUMA_STDOUT,"Pausing ..."); jnk = getchar(); fprintf(SUMA_STDOUT,"\n"); }
+            SUMA_PAUSE_PROMPT("Done with node, waiting to move to next");
          #endif
          
       } /* not skipped (yet)*/

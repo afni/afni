@@ -18,6 +18,7 @@ SUMA_Boolean SUMA_Free_MemberFaceSets (SUMA_MEMBER_FACE_SETS *MF);
 SUMA_VOLPAR *SUMA_VolPar_Attr (char *volparent_name);
 SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP);
 SUMA_VOLPAR *SUMA_Alloc_VolPar (void);
+byte * SUMA_isSkin(THD_3dim_dataset *dset, double *dvec, double thresh, int *N_skin);
 void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out);
 char *SUMA_VolPar_Info (SUMA_VOLPAR *VP);
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void* S_struct);

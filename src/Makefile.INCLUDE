@@ -1922,7 +1922,7 @@ suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
 	3dSurf2Vol SurfMeasures ConvertSurface ConvertDset SurfClust IsoSurface ConvexHull MapIcosahedron CreateIcosahedron SurfaceMetrics \
-   SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias packbins 'INSTALLDIR=$(INSTALLDIR)' \
+   SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias BrainWrap packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
@@ -2032,6 +2032,8 @@ suma_clean:
 	if [ -f SUMA/SurfMesh ]; then $(RM) SUMA/SurfMesh; fi;
 	if [ -f SampBias ]; then $(RM) SampBias; fi;
 	if [ -f SUMA/SampBias ]; then $(RM) SUMA/SampBias; fi;
+	if [ -f BrainWrap  ]; then $(RM) BrainWrap ; fi;
+	if [ -f SUMA/BrainWrap  ]; then $(RM) SUMA/BrainWrap ; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -2042,10 +2044,10 @@ suma_link:
 	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol SurfMeasures ScaleToMap MapIcosahedron \
    CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset SurfClust IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
-   quickspec FSread_annot SurfPatch SurfQual SampBias;\
+   quickspec FSread_annot SurfPatch SurfQual SampBias BrainWrap;\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
 	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset SurfClust IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
-   quickspec FSread_annot SurfPatch SurfQual SampBias\
+   quickspec FSread_annot SurfPatch SurfQual SampBias BrainWrap\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -2065,7 +2067,7 @@ suma_install:
 	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron SUMA/CompareSurfaces \
 	SUMA/ConvertSurface SUMA/ConvertDset SUMA/SurfClust SUMA/IsoSurface SUMA/ConvexHull SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics \
    SUMA/inspec SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual SUMA/SurfSmooth \
-   SUMA/SampBias \
+   SUMA/SampBias SUMA/BrainWrap\
    ${INSTALLDIR} ; \
    if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)

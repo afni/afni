@@ -152,7 +152,7 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
    SUMA_ISOSURFACE_OPTIONS *Opt;
    char sid[100]; 
    int i, N_i;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    

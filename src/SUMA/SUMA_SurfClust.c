@@ -235,6 +235,8 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node(int dothisnode, SUMA_CLUST_DATUM
       }      
    }
    
+   /* If you ever use this function again, you should probably SUMA_free(offlist); dlist_destroy(candlist); SUMA_free(candlist); */
+
    SUMA_RETURN(Clust);
 }
 
@@ -323,7 +325,6 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
    ToBeAssigned[dothisnode] = 0; --(*N_TobeAssigned);
    visited[dothisnode] = YUP;
    dlist_ins_next(candlist, dlist_tail(candlist), (void *)dothisnode);
-      /* Tres bad memory utilization due to recursive calls */
       while (*N_TobeAssigned && dlist_size(candlist)) {
          /* look in its vicinity */
          dothiselm = dlist_head(candlist); dothisnode = (int) dothiselm->data;
@@ -362,6 +363,8 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
    /* free this OffS structure  */
    if (OffS) SUMA_Free_getoffsets(OffS); OffS = NULL;
    if (Opt->update) fprintf(SUMA_STDERR,"\n");
+   /* destroy the list */
+   if (candlist) { dlist_destroy(candlist); SUMA_free(candlist); candlist  = NULL; }
    SUMA_RETURN(Clust);
 }
 

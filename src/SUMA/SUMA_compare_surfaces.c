@@ -55,7 +55,7 @@ int main (int argc,char *argv[])
   float N0[3];
   float maxdistance, mindistance;
   float *distance, distanceneg, distancepos;
-  float **Points;
+  float Points[2][3];
   SUMA_COLOR_MAP *MyColMap;
   SUMA_SCALE_TO_MAP_OPT *MyOpt;
   SUMA_COLOR_SCALED_VECT * MySV;
@@ -372,44 +372,35 @@ int main (int argc,char *argv[])
     N0[1] = SN1.NodeNormList[id+1];
     N0[2] = SN1.NodeNormList[id+2];
 
-   Points = SUMA_Point_At_Distance(N0, P0, 100);
-   if (Points) {
-      P1[0] = Points[0][0];
-      P1[1] = Points[0][1];
-      P1[2] = Points[0][2];
-      P2[0] = Points[1][0];
-      P2[1] = Points[1][1];
-      P2[2] = Points[1][2];
-      SUMA_free2D((char **)Points, 2);
-      
-      /* now determine the distance along normal */
-      triangle = SUMA_MT_intersect_triangle(P0,P1, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, triangle);
-      /* fprintf(SUMA_STDERR,"number of hits for node %d : %d\n", i,triangle->N_hits); */ 
-      if (triangle->N_hits ==0) {
-      fprintf(SUMA_STDERR, "Could not find hit for node %d in either direction.\n", i);
-      fprintf(segfile3,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
-      distance[i] = 0.0;
-      }
-      else {
-      fprintf(trianglesfile,"distance for surf 1 node %d:\n",i);
-      for (k = 0; k < triangle->N_el; k++) {
-      if (triangle->isHit[k] == YUP)
-      fprintf(trianglesfile, "hit %d: %f (%f, %f)\n",k,triangle->t[k], triangle->u[k], triangle->v[k]);
-      }
-      //distance[i] = sqrtf(pow(triangle->P[0]-P0[0],2)+pow(triangle->P[1]-P0[1],2)+pow(triangle->P[2]-P0[2],2));
-      distance[i] = triangle->t[triangle->ifacemin];
-      fprintf(segfile2,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
-      }
+   SUMA_POINT_AT_DISTANCE(N0, P0, 100, Points);
+   P1[0] = Points[0][0];
+   P1[1] = Points[0][1];
+   P1[2] = Points[0][2];
+   P2[0] = Points[1][0];
+   P2[1] = Points[1][1];
+   P2[2] = Points[1][2];
 
-      if (!KeepMTI) triangle = SUMA_Free_MT_intersect_triangle(triangle); 
-    
-   } else {
-      ++FailedDistance;
-      fprintf(SUMA_STDERR, "\nWarning %s (#%d):\nFailed to find point at a distance for node %d\n"
-                           "Setting distance to 0.0\n", FuncName, FailedDistance, i);
-      P1[0] = P1[1] = P1[2] = P2[0] = P2[1] = P2[2] = 0.0;
-      distance[i] = 0.0; 
+   /* now determine the distance along normal */
+   triangle = SUMA_MT_intersect_triangle(P0,P1, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, triangle);
+   /* fprintf(SUMA_STDERR,"number of hits for node %d : %d\n", i,triangle->N_hits); */ 
+   if (triangle->N_hits ==0) {
+   fprintf(SUMA_STDERR, "Could not find hit for node %d in either direction.\n", i);
+   fprintf(segfile3,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
+   distance[i] = 0.0;
    }
+   else {
+   fprintf(trianglesfile,"distance for surf 1 node %d:\n",i);
+   for (k = 0; k < triangle->N_el; k++) {
+   if (triangle->isHit[k] == YUP)
+   fprintf(trianglesfile, "hit %d: %f (%f, %f)\n",k,triangle->t[k], triangle->u[k], triangle->v[k]);
+   }
+   /* distance[i] = sqrtf(pow(triangle->P[0]-P0[0],2)+pow(triangle->P[1]-P0[1],2)+pow(triangle->P[2]-P0[2],2)); */
+   distance[i] = triangle->t[triangle->ifacemin];
+   fprintf(segfile2,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
+   }
+
+   if (!KeepMTI) triangle = SUMA_Free_MT_intersect_triangle(triangle); 
+    
 
    fprintf(segfile1,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
 

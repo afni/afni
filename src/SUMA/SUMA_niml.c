@@ -499,7 +499,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
                   if (LocalHead) fprintf (SUMA_STDERR,"%s: None of the displayed surfaces (or their parents) match nel_surfidcode. Trying all of DOv...\n", FuncName);
                   dest_SO_ID = SUMA_findSO_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
                   if (dest_SO_ID < 0) {
-                     if (LocalHead) fprintf(SUMA_STDERR,"%s: nel idcode is not found in DOv.\n", FuncName);            
+                     if (LocalHead) fprintf(SUMA_STDERR,"%s:%s: nel idcode is not found in DOv.\n", FuncName, nel->name);            
                      dest_SO_ID = svi->Focus_SO_ID; 
                   } else { /* good, set SO accordingly */
                       if (LocalHead) fprintf(SUMA_STDOUT,"%s: DOv[%d] Matched idcode\n", FuncName, dest_SO_ID);
@@ -866,7 +866,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       
       SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
       if (!SO) {
-         fprintf(SUMA_STDERR,"Error %s: nel idcode is not found in DOv.\n", FuncName);
+         fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n", FuncName, nel->name);
          SUMA_RETURN(NOPE);
       }
       
@@ -907,7 +907,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       
       SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
       if (!SO) {
-         fprintf(SUMA_STDERR,"Error %s: nel idcode is not found in DOv.\n", FuncName);
+         fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n", FuncName, nel->name);
          SUMA_RETURN(NOPE);
       }
       
@@ -1001,7 +1001,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
       
       SO = SUMA_findSOp_inDOv (nel_surfidcode, SUMAg_DOv, SUMAg_N_DOv);
       if (!SO) {
-         fprintf(SUMA_STDERR,"Error %s: nel idcode is not found in DOv.\n", FuncName);
+         fprintf(SUMA_STDERR,"Error %s:%s: nel idcode is not found in DOv.\n", FuncName, nel->name);
          SUMA_RETURN(NOPE);
       }
       

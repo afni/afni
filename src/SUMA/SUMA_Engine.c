@@ -1422,7 +1422,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             } 
             
             { float CurrentDistance;
-              float **fm2_3;
+              float fm2_3[2][3], *dir;
               
             /* modify the ViewFrom Value such that the viewing distance remains the same */
             CurrentDistance = sqrt((sv->GVS[sv->StdView].ViewFrom[0]-sv->GVS[sv->StdView].ViewCenter[0])*(sv->GVS[sv->StdView].ViewFrom[0]-sv->GVS[sv->StdView].ViewCenter[0]) +\
@@ -1435,11 +1435,9 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             sv->GVS[sv->StdView].ViewCenter[2] = EngineData->fv15[2];
             
             /* obtain the LookFrom point based on CurrentDistance and the normal vector */
-            fm2_3 = SUMA_Point_At_Distance(&(EngineData->fv15[3]), sv->GVS[sv->StdView].ViewCenter, CurrentDistance);
-            if (fm2_3 == NULL) {
-               fprintf(SUMA_STDOUT,"Error %s: SUMA_Point_At_Distance failed.\n", FuncName);
-               break;
-            }
+            dir = &(EngineData->fv15[3]);
+            SUMA_POINT_AT_DISTANCE(dir, sv->GVS[sv->StdView].ViewCenter, CurrentDistance, fm2_3);
+            
             fprintf(SUMA_STDOUT,"\nPoints: %f %f %f\n%f %f %f\n", \
                fm2_3[0][0], fm2_3[0][1], fm2_3[0][2], \
                fm2_3[1][0], fm2_3[1][1], fm2_3[1][2]);
@@ -1447,10 +1445,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             sv->GVS[sv->StdView].ViewFrom[0] = fm2_3[0][0]; 
             sv->GVS[sv->StdView].ViewFrom[1] = fm2_3[0][1]; 
             sv->GVS[sv->StdView].ViewFrom[2] = fm2_3[0][2]; 
-            
-            /* fm2_3 not needed anymore */
-            SUMA_free2D((char **)fm2_3, 2);
-            
+                        
             gluLookAt (sv->GVS[sv->StdView].ViewFrom[0], sv->GVS[sv->StdView].ViewFrom[1], sv->GVS[sv->StdView].ViewFrom[2], sv->GVS[sv->StdView].ViewCenter[0], sv->GVS[sv->StdView].ViewCenter[1], sv->GVS[sv->StdView].ViewCenter[2], sv->GVS[sv->StdView].ViewCamUp[0], sv->GVS[sv->StdView].ViewCamUp[1], sv->GVS[sv->StdView].ViewCamUp[2]);
             }
             

@@ -5962,3 +5962,423 @@ SUMA_Boolean SUMA_Write_DrawnROI_1D (SUMA_DRAWN_ROI **ROIv, int N_ROI, char *fil
 }
 
 
+SUMA_FORM_AFNI_DSET_STRUCT *SUMA_New_FormAfniDset_Opt(void)
+{
+   static char FuncName[]={"SUMA_New_FormAfniDset_Opt"};
+   SUMA_FORM_AFNI_DSET_STRUCT *Opt=NULL;
+   
+   SUMA_ENTRY;
+   
+   Opt = (SUMA_FORM_AFNI_DSET_STRUCT*)SUMA_malloc(sizeof(SUMA_FORM_AFNI_DSET_STRUCT));
+   
+   Opt->master = NULL;
+   Opt->mask = NULL;
+   Opt->prefix = NULL;
+   Opt->prefix_path = NULL;
+   Opt->orcode = NULL;
+   Opt->do_ijk = 1;
+   Opt->dimen_ii=0;
+   Opt->dimen_jj=0;
+   Opt->dimen_kk=0;
+   Opt->datum=MRI_short;
+   Opt->dval=1.0;
+   Opt->fval=0.0;
+   Opt->mmask=NULL;
+   Opt->full_list = 0;
+   
+   SUMA_RETURN(Opt);
+}
+
+SUMA_FORM_AFNI_DSET_STRUCT *SUMA_Free_FormAfniDset_Opt(SUMA_FORM_AFNI_DSET_STRUCT *Opt)
+{
+   static char FuncName[]={"SUMA_Free_FormAfniDset_Opt"};
+   SUMA_ENTRY;
+   
+   if (!Opt) SUMA_RETURN(NULL);
+   
+   if (Opt->master) SUMA_free(Opt->master);
+   if (Opt->mask) SUMA_free(Opt->mask);   
+   if (Opt->prefix) SUMA_free(Opt->prefix);
+   if (Opt->prefix_path) SUMA_free(Opt->prefix_path);
+   if (Opt->mmask) SUMA_free(Opt->mmask);
+   if (Opt->orcode) SUMA_free(Opt->orcode);
+   SUMA_free(Opt);
+   
+   SUMA_RETURN(NULL);
+}
+
+/*!
+   (stolen from 3dUndump)
+   \param NodeList (float *) (3*N_valsx1) XYZ or IJK coordinates. 
+                             Can be NULL if Opt->full_list = 1.
+                             &(NodeList[3*n]) is the pointer for the coordinates of entry ni  
+   \param vals     (float *) (N_valsx1) vector of values. Can be NULL, in which case the
+                             default value in Opt is used.
+   \param N_vals   (int) number of values. If Opt->full_list then N_vals must be equal to the 
+                             number of voxels in the data set (dimen_ii*dimen_jj*dimen_kk) 
+                             as specified by Opt's fields or the master set.
+   \param Opt (SUMA_FORM_AFNI_DSET_STRUCT *) The famed options structure:
+      master: Name of master dset. NULL if none
+      mask: Name of mask dset. NULL if none. 
+      prefix: Prefix of output. Must have.
+      orcode: Orientation string. NULL if none, like RAI, LPI, etc.
+      do_ijk: 1 = coordinates in NodeList are voxel indices (i j k)
+              0 = coordinates in NodeList are voxel dicomm coordinates (x y z)
+      dimen_ii(_jj, _kk): Number of voxels in ii (jj, kk) directions. 
+                          Do not use with master option
+                          Must use either master or dimen options.
+      datum: output data type: MRI_short(default), MRI_byte, MRI_float only.
+      dval: Default data value (default 1). Used if vals is NULL
+      fval: Default fill value (default 0). 
+      mmask: (byte *) mask of (dimen_ii*dimen_jj*dimen_kk x 1) values always. This can
+                      be used to pass a predefined mask. NULL if not
+                      interested in it. Cannot specify it along with mask
+                      option above. If both NodeList and Vals are null, then
+                      mmask is used as data, replaces vals in a way. If mmask points
+                      to non NULL, the memory at that pointer is freed when Opt is freed.
+      full_list: 1 = full list, coordinates are inferred from 1D index of array.
+                     N_vals == dimen_ii*dimen_jj*dimen_kk. Requires NodeList == NULL
+                 0 = not a full list NodeList != NULL
+   - See  SUMA_Free_FormAfniDset_Opt for freeing Opt and its contents
+   
+   \return dset (THD_3dim_dataset *) output dset.
+                                     Write it to disk with :   DSET_write(dset) ;
+                                     Delete it with: DSET_delete(dset); dset = NULL;
+
+   - FUNCTION NOT FULLY TESTED for all options, USE WITH CARE : Feb 08 05
+*/
+THD_3dim_dataset *SUMA_FormAfnidset (float *NodeList, float *vals, int N_vals, SUMA_FORM_AFNI_DSET_STRUCT *Opt)
+{
+   static char FuncName[]={"SUMA_FormAfnidset"};
+   THD_coorder cord;
+   int ii=0,jj=0,kk=0,ll=0,ijk=0 , nx=0,ny=0,nz=0 , nxyz=0 ;
+   float      xx,yy,zz,vv=0.0 , dx,dy,dz;
+   short               sv=0   ;
+   byte                bv=0   ;
+   float *fbr=NULL, fval_float, dval_float;
+   byte *bbr=NULL, *mmask=NULL, fval_byte, dval_byte;
+   short *sbr=NULL, fval_short, dval_short;
+   char *orcode=NULL;
+   float xxdown =0.0,xxup=0.0 , yydown=0.0,yyup=0.0 , zzdown=0.0,zzup=0.0 ;
+   
+   THD_3dim_dataset *dset=NULL, *mset=NULL, *maskset=NULL;
+
+   /* check for badiosity */
+   if( Opt->do_ijk == 0 && Opt->master == NULL ) {
+      SUMA_SL_Err("Can't use mm coords without master.") ;
+      SUMA_RETURN(NULL);
+   }
+   if( Opt->master == NULL && Opt->dimen_ii < 2 ) {
+      SUMA_SL_Err("Must use exactly one of Opt->master or Opt->dimen options");
+      SUMA_RETURN(NULL);
+   }
+   
+   fval_byte = (byte)Opt->fval;
+   fval_short = (short)Opt->fval;
+   fval_float = (float)Opt->fval;
+   dval_byte = (byte)Opt->dval;
+   dval_short = (short)Opt->dval;
+   dval_float = (float)Opt->dval;
+   
+   if( (Opt->datum == MRI_short && dval_short == fval_short) ||
+    (Opt->datum == MRI_float && dval_float == fval_float) ||
+    (Opt->datum == MRI_byte  && dval_byte  == fval_byte )   ){
+
+      SUMA_SL_Warn("dval and fval are the same!") ;
+   }
+
+   if (Opt->full_list && NodeList) {
+      SUMA_SL_Err("Opt->full_list && NodeList");
+      SUMA_RETURN(NULL);
+   }
+   if (!Opt->full_list && !NodeList &&!Opt->mmask) {
+      SUMA_SL_Err("!Opt->full_list && !NodeList && !Opt->mmask");
+      SUMA_RETURN(NULL);
+   }
+
+   if (!Opt->prefix || !Opt->prefix_path) {
+      SUMA_SL_Err("Need a prefix and a prefix_path Joe.");
+      SUMA_RETURN(NULL);
+   }
+
+   if (!NodeList && !vals && !Opt->mmask) {
+      SUMA_SL_Warn("Creating a dataset of constants. (!NodeList && !vals && !Opt->mmask)");
+   }
+   
+   if (Opt->master) {
+      mset = THD_open_dataset(Opt->master);
+      if( mset == NULL ) {
+         SUMA_SL_Err("-master: can't open dataset" ) ; 
+         SUMA_RETURN(dset);
+      }
+   }
+   if (Opt->master && Opt->orcode) {
+      SUMA_SL_Err("Cannot have bothpt->master && Opt->orcode");
+      SUMA_RETURN(dset);      
+   }
+   
+   if (Opt->mask && Opt->mmask) {
+      SUMA_SL_Err("Cannot have both Opt->mask && Opt->mmask");
+      SUMA_RETURN(dset);
+   }
+
+   if (Opt->mask) {
+      maskset = THD_open_dataset( Opt->mask) ;
+      if( maskset == NULL ) {
+         SUMA_SL_Err("-mask: can't open dataset" ) ; 
+         if (mset) {  DSET_delete(mset); mset = NULL; }
+         SUMA_RETURN(dset);
+      }
+   }
+   
+   
+  /*-- set orcode to value from -master, if this is needed --*/
+
+  if( mset != NULL ){
+      orcode = malloc(4) ;
+      orcode[0] = ORIENT_typestr[mset->daxes->xxorient][0] ;
+      orcode[1] = ORIENT_typestr[mset->daxes->yyorient][0] ;
+      orcode[2] = ORIENT_typestr[mset->daxes->zzorient][0] ;
+      orcode[3] = '\0' ;
+   } else if (Opt->orcode) {
+      orcode = malloc(4) ; orcode = strcpy(orcode, Opt->orcode);
+   } else {
+      SUMA_SL_Err("Huh?");
+      if (mset) {  DSET_delete(mset); mset = NULL; }
+      if (maskset) {  DSET_delete(maskset); maskset = NULL; }
+      SUMA_RETURN(dset);
+   }
+
+   THD_coorder_fill( orcode , &cord ) ;  /* setup coordinate order */ 
+
+   /*-- make empty dataset --*/
+   if( mset != NULL ){                 /* from -master */
+
+      dset = EDIT_empty_copy( mset ) ;
+      EDIT_dset_items( dset ,
+                          ADN_prefix    , Opt->prefix ,
+                          ADN_datum_all , Opt->datum ,
+                          ADN_nvals     , 1 ,
+                          ADN_ntt       , 0 ,
+                          ADN_func_type , ISANAT(mset) ? mset->func_type
+                                                       : FUNC_FIM_TYPE ,
+
+                          ADN_directory_name , Opt->prefix_path ,
+                          ADN_none ) ;
+
+   } else {                            /* from nothing */
+     THD_ivec3 iv_nxyz   , iv_xyzorient ;
+     THD_fvec3 fv_xyzorg , fv_xyzdel ;
+
+     LOAD_IVEC3( iv_nxyz , Opt->dimen_ii , Opt->dimen_jj , Opt->dimen_kk ) ;
+     LOAD_IVEC3( iv_xyzorient , cord.xxor , cord.yyor , cord.zzor ) ;
+     LOAD_FVEC3( fv_xyzdel ,
+                 ORIENT_sign[iv_xyzorient.ijk[0]]=='+' ? 1.0 : -1.0 ,
+                 ORIENT_sign[iv_xyzorient.ijk[1]]=='+' ? 1.0 : -1.0 ,
+                 ORIENT_sign[iv_xyzorient.ijk[2]]=='+' ? 1.0 : -1.0  ) ;
+     LOAD_FVEC3( fv_xyzorg ,
+                 ORIENT_sign[iv_xyzorient.ijk[0]]=='+' ? -0.5*Opt->dimen_ii : 0.5*Opt->dimen_ii,
+                 ORIENT_sign[iv_xyzorient.ijk[1]]=='+' ? -0.5*Opt->dimen_jj : 0.5*Opt->dimen_jj,
+                 ORIENT_sign[iv_xyzorient.ijk[2]]=='+' ? -0.5*Opt->dimen_kk : 0.5*Opt->dimen_kk ) ;
+
+     dset = EDIT_empty_copy( NULL ) ;
+
+     EDIT_dset_items( dset ,
+                       ADN_nxyz      , iv_nxyz ,
+                       ADN_xyzdel    , fv_xyzdel ,
+                       ADN_xyzorg    , fv_xyzorg ,
+                       ADN_xyzorient , iv_xyzorient ,
+                       ADN_prefix    , Opt->prefix ,
+                       ADN_datum_all , Opt->datum ,
+                       ADN_nvals     , 1 ,
+                       ADN_ntt       , 0 ,
+                       ADN_type      , HEAD_FUNC_TYPE ,
+                       ADN_func_type , FUNC_FIM_TYPE ,
+                       ADN_directory_name , Opt->prefix_path ,
+                    ADN_none ) ;
+
+   }
+
+   if( THD_is_file(DSET_HEADNAME(dset)) ) {
+      SUMA_SL_Err("Output dataset already exists -- can't overwrite") ;
+      exit(1);
+   }
+   /*-- make empty brick array for dataset --*/
+
+   EDIT_substitute_brick( dset , 0 , Opt->datum , NULL ) ;  /* will make array */
+
+   nx = DSET_NX(dset); ny = DSET_NY(dset); nz = DSET_NZ(dset); nxyz = nx*ny*nz;
+
+   if (Opt->full_list && N_vals != nxyz) {
+      SUMA_SL_Err("Opt->full_list && N_vals != nx*ny*nz");
+      SUMA_RETURN(NULL);
+   }
+   /* 19 Feb 2004: check and make mask if desired */
+
+   if( maskset != NULL &&
+       ( DSET_NX(maskset) != nx ||
+         DSET_NY(maskset) != ny ||
+         DSET_NZ(maskset) != nz   ) ) {
+     SUMA_SL_Err("mask dataset doesn't match dimension of output dataset") ;
+     if (mset) {  DSET_delete(mset); mset = NULL; }
+     if (maskset) {  DSET_delete(maskset); maskset = NULL; }
+     SUMA_RETURN(NULL);
+   }
+
+   if( maskset != NULL ){
+     mmask = THD_makemask( maskset , 0 , 1.0,-1.0 ) ;
+     SUMA_SL_Warn("can't create mask for some reason!") ;
+     DSET_delete(maskset) ;
+   } else mmask = Opt->mmask;
+
+   if( mmask == NULL ){
+   } else {
+      int nmask = THD_countmask( nxyz , mmask ) ;
+      if( nmask == 0 ){
+         SUMA_SL_Warn("0 voxels in mask -- ignoring it!") ;
+         if (!Opt->mmask) free((void *)mmask) ; mmask = NULL ;
+      } else {
+         fprintf(SUMA_STDERR,"%s:++ %d voxels found in mask\n", FuncName, nmask) ;
+      }
+   }
+
+   /*-- fill new dataset brick with the -fval value --*/
+   switch( Opt->datum ){
+      case MRI_short:
+         fprintf(SUMA_STDERR,"%s: Filling with %d\n", FuncName, fval_short);
+         sbr = (short *) DSET_BRICK_ARRAY(dset,0) ;
+         for( ii=0 ; ii < nxyz ; ii++ ) sbr[ii] = fval_short ;
+      break ;
+
+      case MRI_float:
+         fbr = (float *) DSET_BRICK_ARRAY(dset,0) ;
+         for( ii=0 ; ii < nxyz ; ii++ ) fbr[ii] = fval_float ;
+      break ;
+
+      case MRI_byte:
+         bbr = (byte *) DSET_BRICK_ARRAY(dset,0) ;
+         for( ii=0 ; ii < nxyz ; ii++ ) bbr[ii] = fval_byte ;
+      break ;
+   }
+
+   /* 24 Nov 2000: get the bounding box for the dataset */
+
+   dx = fabs(dset->daxes->xxdel) ; if( dx <= 0.0 ) dx = 1.0 ;
+   dy = fabs(dset->daxes->yydel) ; if( dy <= 0.0 ) dy = 1.0 ;
+   dz = fabs(dset->daxes->zzdel) ; if( dz <= 0.0 ) dz = 1.0 ;
+
+   if( !Opt->do_ijk ){
+#ifndef EXTEND_BBOX
+      xxdown = dset->daxes->xxmin - 0.501 * dx ;
+      xxup   = dset->daxes->xxmax + 0.501 * dx ;
+      yydown = dset->daxes->yymin - 0.501 * dy ;
+      yyup   = dset->daxes->yymax + 0.501 * dy ;
+      zzdown = dset->daxes->zzmin - 0.501 * dz ;
+      zzup   = dset->daxes->zzmax + 0.501 * dz ;
+#else
+      xxdown = dset->daxes->xxmin ;
+      xxup   = dset->daxes->xxmax ;
+      yydown = dset->daxes->yymin ;
+      yyup   = dset->daxes->yymax ;
+      zzdown = dset->daxes->zzmin ;
+      zzup   = dset->daxes->zzmax ;
+#endif
+   }
+
+   for (ll=0; ll<N_vals; ++ll) {
+      /* stick 'em in */
+      if (!Opt->full_list) {
+         xx = NodeList[3*ll]; yy = NodeList[3*ll+1]; zz = NodeList[3*ll+2]; 
+         if (Opt->do_ijk) {
+            ii = (int) rint(xx) ; jj = (int) rint(yy) ; kk = (int) rint(zz) ;
+            if( ii < 0 || ii >= nx ){
+               fprintf(stderr,
+                       "Warning %s: entry %d: i index=%d is invalid, ignoring...\n",
+                       FuncName,ll,ii) ;
+               continue ;
+            }
+            if( jj < 0 || jj >= ny ){
+               fprintf(stderr,
+                       "Warning %s: entry %d: j index=%d is invalid, ignoring...\n",
+                       FuncName, ll,jj) ;
+               continue ;
+            }
+            if( kk < 0 || kk >= nz ){
+               fprintf(stderr,
+                       "Warning %s: entry %d: k index=%d is invalid\n",
+                       FuncName,ll,kk) ;
+               continue ;
+            }
+         } else {   /* inputs are coordinates => must convert to index */
+
+            THD_fvec3 mv , dv ;                              /* temp vectors */
+            THD_ivec3 iv ;
+
+            THD_coorder_to_dicom( &cord , &xx,&yy,&zz ) ;    /* to Dicom order */
+            LOAD_FVEC3( dv , xx,yy,zz ) ;
+            mv = THD_dicomm_to_3dmm( dset , dv ) ;           /* to Dataset order */
+
+            /* 24 Nov 2000: check (xx,yy,zz) for being inside the box */
+
+            if( mv.xyz[0] < xxdown || mv.xyz[0] > xxup ){
+               fprintf(stderr,"+++ Warning %s: line %d: x coord=%g is outside %g .. %g\n" ,
+                       FuncName,ll,mv.xyz[0] , xxdown,xxup ) ;
+               continue ;
+            }
+            if( mv.xyz[1] < yydown || mv.xyz[1] > yyup ){
+               fprintf(stderr,"+++ Warning %s: line %d: y coord=%g is outside %g .. %g\n" ,
+                       FuncName,ll,mv.xyz[1] , yydown , yyup ) ;
+               continue ;
+            }
+            if( mv.xyz[2] < zzdown || mv.xyz[2] > zzup ){
+               fprintf(stderr,"+++ Warning %s: line %d: z coord=%g is outside %g .. %g\n" ,
+                       FuncName,ll,mv.xyz[2] , zzdown , zzup ) ;
+               continue ;
+            }
+
+            iv = THD_3dmm_to_3dind( dset , mv ) ;            /* to Dataset index */
+            ii = iv.ijk[0]; jj = iv.ijk[1]; kk = iv.ijk[2];  /* save */
+         }
+
+         ijk = ii + jj*nx + kk*nx*ny ;
+      } else {
+         ijk = ll; 
+      }
+
+      if (vals) vv = vals[ll];
+      else vv = dval_float ;   
+
+      if( mmask == NULL || mmask[ijk] ){
+         switch( Opt->datum ){
+            case MRI_float:{
+              if( fbr[ijk] != fval_float && fbr[ijk] != vv )
+                fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+              fbr[ijk] = vv ;
+            }
+            break ;
+            case MRI_short:{
+              sv = SHORTIZE(vv) ;
+              if( sbr[ijk] != fval_short && sbr[ijk] != sv )
+                fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+              sbr[ijk] = sv ;
+            }
+            break ;
+            case MRI_byte:{
+              bv = BYTEIZE(vv) ;
+              if( bbr[ijk] != fval_byte && bbr[ijk] != bv )
+                fprintf(stderr,"Overwrite voxel %d %d %d\n",ii,jj,kk) ;
+              bbr[ijk] = bv ;
+            }
+            break ;
+         }
+      }
+
+   }
+   
+   if (orcode) free(orcode); orcode = NULL;
+   if (mmask && !Opt->mmask) free(mmask); mmask = NULL;
+   if (mset) DSET_delete(mset); mset = NULL; 
+
+   SUMA_RETURN(dset);      
+}
+

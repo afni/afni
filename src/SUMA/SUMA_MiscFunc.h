@@ -1,7 +1,8 @@
 #ifndef SUMA_MISCFUNC_INCLUDED
 #define SUMA_MISCFUNC_INCLUDED
 
-      
+float * SUMA_Sph2Cart (float *sph, int Nval, float *center ) ;
+float * SUMA_Cart2Sph (float *coord, int Nval, float *center ) ;      
 void* SUMA_free_fn(const char *CallingFunc, void *ptr);
 void *SUMA_calloc_fn (const char *CallingFunc, size_t nmemb, size_t size);
 void *SUMA_malloc_fn (const char *CallingFunc, size_t size);
@@ -15,6 +16,7 @@ void SUMA_free2D(char **a,int rows);
 void SUMA_error_message (char *s1,char *s2,int ext);
 int SUMA_iswordin (const char *sbig,const char *ssub);
 float SUMA_etime (struct  timeval  *t, int Report);
+byte * SUMA_isinpoly(float *P, float *NodeList, int *FaceSetList, int N_FaceSet, int FaceSetDim, int *dims, int *N_in, byte *usethis, byte *mask);
 SUMA_ISINBOX SUMA_isinbox (float * NodeList, int nr, float *S_cent , float *S_dim , int BoundIn);
 SUMA_Boolean SUMA_Free_IsInBox (SUMA_ISINBOX *IB);
 SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float S_rad , int BoundIn);
