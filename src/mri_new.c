@@ -54,6 +54,14 @@ ENTRY("mri_new_7D_generic") ;
       MRI_FATAL_ERROR ;
    }
 
+   if( nx < 1 ) nx = 1 ;  /* 18 Mar 2005: fix stupid user problems */
+   if( ny < 1 ) ny = 1 ;
+   if( nz < 1 ) nz = 1 ;
+   if( nt < 1 ) nt = 1 ;
+   if( nu < 1 ) nu = 1 ;
+   if( nv < 1 ) nv = 1 ;
+   if( nw < 1 ) nw = 1 ;
+
    newim->nx   = nx ;
    newim->ny   = ny ; newim->nxy   = nx*ny ;
    newim->nz   = nz ; newim->nxyz  = nx*ny*nz ;

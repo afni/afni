@@ -103,11 +103,11 @@ void THD_set_freeup( generic_func *ff ){ freeup = ff; }
 
 Boolean THD_load_datablock( THD_datablock *blk )
 {
-   THD_diskptr * dkptr ;
+   THD_diskptr *dkptr ;
    int id , offset ;
    int nx,ny,nz , nxy,nxyz,nxyzv , nv,vv , ii , ntot , ibr , nbad ;
-   char * ptr ;
-   MRI_IMAGE * im ;
+   char *ptr ;
+   MRI_IMAGE *im ;
    int verb=verbose , print_size=PRINT_SIZE ;
 
 ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
@@ -378,7 +378,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       /*-- read everything from .BRIK file --*/
 
       case STORAGE_BY_BRICK:{
-         FILE * far ;
+         FILE *far ;
 
          STATUS("reading from BRIK file") ;
 
@@ -409,7 +409,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
          } else {  /* 11 Jan 1999: read brick from master, put into place(s) */
 
             int nfilled = 0 , nbuf=0 , jbr, nbr ;
-            char * buf=NULL ;  /* temp buffer for master sub-brick */
+            char *buf=NULL ;  /* temp buffer for master sub-brick */
 
             /* loop over master sub-bricks until dataset is filled */
             /* [because dataset might be compressed, must read them in
@@ -467,7 +467,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       case STORAGE_BY_VOLUMES:{
         ATR_string *atr ;
         char **fnam , *ptr , *flist ;
-        FILE * far ;
+        FILE *far ;
 
         STATUS("reading from volume files") ;
 
@@ -829,7 +829,7 @@ ENTRY("THD_alloc_datablock") ;
                "\n** failed to malloc %d dataset bricks out of %d - is memory exhausted?\n",
                nbad,nv ) ;
 #ifdef USING_MCW_MALLOC
-       { char * str = MCW_MALLOC_status ;
+       { char *str = MCW_MALLOC_status ;
          if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str); }
 #endif
 
@@ -862,7 +862,7 @@ ENTRY("THD_alloc_datablock") ;
        if( THD_count_databricks(blk) < nv ){
          fprintf(stderr,"** cannot free up enough memory\n") ;
 #ifdef USING_MCW_MALLOC
-         { char * str = MCW_MALLOC_status ;
+         { char *str = MCW_MALLOC_status ;
            if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str); }
 #endif
          for( ibr=0 ; ibr < nv ; ibr++ ){  /* 18 Oct 2001 */
@@ -879,7 +879,7 @@ ENTRY("THD_alloc_datablock") ;
        STATUS("malloc failed; freeup worked") ;
        fprintf(stderr,"*** was able to free up enough memory\n") ;
 #ifdef USING_MCW_MALLOC
-       { char * str = MCW_MALLOC_status ;
+       { char *str = MCW_MALLOC_status ;
          if( str != NULL ) fprintf(stderr,"*** MCW_malloc summary: %s\n",str); }
 #endif
      }
@@ -916,4 +916,26 @@ ENTRY("THD_alloc_datablock") ;
    }
 
    RETURN(0) ; /* should never get to here */
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Fill up a dataset with zero-ed out sub-bricks, if needed.
+------------------------------------------------------------------------------*/
+
+void THD_zerofill_dataset( THD_3dim_dataset *dset )
+{
+   int ii ;
+   void *vpt ;
+
+ENTRY("THD_zerofill_dataset") ;
+
+   if( !ISVALID_DSET(dset) || !ISVALID_DATABLOCK(dset->dblk) ) EXRETURN ;
+
+   for( ii=0 ; ii < DSET_NVALS(dset) ; ii++ ){
+     if( DSET_ARRAY(dset,ii) == NULL ){
+       vpt = calloc(1,DSET_BRICK_BYTES(dset,ii)) ;
+       mri_fix_data_pointer( vpt , DSET_BRICK(dset,ii) ) ;
+     }
+   }
+   EXRETURN ;
 }

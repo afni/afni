@@ -408,22 +408,35 @@ ENTRY("AFNI_niml_workproc") ;
        if( nini != NULL ){                                  /* handle it */
          if( serrit ) NIML_to_stderr(nini,0) ;
 
-         /* a processing instruction? */
+         /*--- a processing instruction? ---*/
 
          if( NI_element_type(nini) == NI_PROCINS_TYPE ){  /* 17 Mar 2005 */
            NI_procins *npi = (NI_procins *)nini ;
 
-           STATUS("A processing instruction!") ;
+           /* deal with PI's we understand, skip the rest:
+                "keep_reading"  ==> loop back to read again immediately
+                "pause_reading" ==> turn "keep_reading" off
+                "drive_afni"    ==> execute a DRIVE_AFNI command right now */
+
+           if(PRINT_TRACING){
+             char sss[256]; sprintf("Processing instruction: '%s'",npi->name);
+             STATUS(sss) ;
+           }
            if( strcasecmp(npi->name,"keep_reading") == 0 )
              keep_reading = 1 ;
            else if( strcasecmp(npi->name,"pause_reading") == 0 )
              keep_reading = 0 ;
+           else if( strncasecmp(npi->name,"drive_afni ",11) == 0 ){
+             if( strlen(npi->name) > 13 ) (void) AFNI_driver( npi->name+11 ) ;
+           }
 
-         /* actual data (single element or group)? */
+         /*--- actual data (single element or group)? ---*/
 
          } else {
+
            STATUS("Actual NIML data!") ;
            AFNI_process_NIML_data( cc , nini , ct ) ;    /* do something */
+
          }
 
          STATUS("Freeing NIML element") ;
