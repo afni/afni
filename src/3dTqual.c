@@ -182,13 +182,16 @@ int main( int argc , char *argv[] )
              "               quality index.\n"
              "\n"
              "  -autoclip = Clip off low-intensity regions in the median sub-brick,\n"
-             "               so that the correlation is only computed between\n"
+             "  -automask =  so that the correlation is only computed between\n"
              "               high-intensity (presumably brain) voxels.  The\n"
              "               intensity level is determined the same way that\n"
              "               3dClipLevel works.  This prevents the vast number\n"
              "               of nearly 0 voxels outside the brain from biasing\n"
              "               the correlation coefficient calculations.\n"
+#if 1
+             "\n"
              "  -clip val = Clip off values below 'val' in the median sub-brick.\n"
+#endif
              "\n"
              "  -range    = Print the median-3.5*MAD and median+3.5*MAD values\n"
              "               out with EACH quality index, so that they\n"
@@ -199,7 +202,7 @@ int main( int argc , char *argv[] )
              "                to go below 0.\n"
              "\n"
              "Example:\n"
-             "   3dTqual -range -autoclip fred+orig | 1dplot -one -stdin\n"
+             "   3dTqual -range -automask fred+orig | 1dplot -one -stdin\n"
              "will calculate the time series of quality indexes and plot them\n"
              "to an X11 window, along with the median+/-3.5*MAD bands.\n"
              "\n"
@@ -216,10 +219,13 @@ int main( int argc , char *argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
-      if( strcmp(argv[nopt],"-autoclip") == 0 ){
+      if( strcmp(argv[nopt],"-autoclip") == 0 ||
+          strcmp(argv[nopt],"-automask") == 0   ){
+
          do_autoclip = 1 ; nopt++ ; continue ;
       }
 
+#if 1
       if( strcmp(argv[nopt],"-clip") == 0 ){
          do_autoclip = 0 ;
          clip_val = strtod(argv[++nopt],NULL) ;
@@ -228,6 +234,7 @@ int main( int argc , char *argv[] )
          }
          nopt++ ;continue ;
       }
+#endif
 
       if( strcmp(argv[nopt],"-range") == 0 ){
          do_range = 1 ; nopt++ ; continue ;

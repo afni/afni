@@ -35,7 +35,7 @@ int main( int argc , char *argv[] )
              "                for data/information that has been pre-processed.\n"
              "\n"
              "  -autoclip = Clip off low-intensity regions in the two datasets,\n"
-             "               so that the correlation is only computed between\n"
+             "  -automask =  so that the correlation is only computed between\n"
              "               high-intensity (presumably brain) voxels.  The\n"
              "               intensity level is determined the same way that\n"
              "               3dClipLevel works.\n"
@@ -62,7 +62,9 @@ int main( int argc , char *argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
-      if( strcmp(argv[nopt],"-autoclip") == 0 ){
+      if( strcmp(argv[nopt],"-autoclip") == 0 ||
+          strcmp(argv[nopt],"-automask") == 0   ){
+
          do_autoclip = 1 ; nopt++ ; continue ;
       }
 

@@ -12,7 +12,6 @@ int main( int argc , char * argv[] )
    int    mmvox=0 ;
    char * prefix=NULL ;
    int do_autoclip=0 , npass=0 , do_range=0 ;   /* 12 Aug 2001 */
-   float clip_val=0.0 ;
 
    /*----- Read command line -----*/
 
@@ -25,7 +24,10 @@ int main( int argc , char * argv[] )
              " -mask mset = Only count voxels in the mask dataset.\n"
              " -qthr q    = Use 'q' instead of 0.001 in the calculation\n"
              "                of alpha (below): 0 < q < 1.\n"
-             " -autoclip  = Clip off 'small' voxels (as in 3dClipLevel).\n"
+             "\n"
+             " -autoclip }= Clip off 'small' voxels (as in 3dClipLevel);\n"
+             " -automask }=   you can't use this with -mask!\n"
+             "\n"
              " -range     = Print out median+3.5*MAD of outlier count with\n"
              "                each time point; use with 1dplot as in\n"
              "                3dToutcount -range fred+orig | 1dplot -stdin -one\n"
@@ -48,7 +50,7 @@ int main( int argc , char * argv[] )
              "\n"
              "Since the results are written to stdout, you probably want to redirect\n"
              "them to a file or another program, as in this example:\n"
-             "  3dToutcount -autoclip v1+orig | 1dplot -stdin\n"
+             "  3dToutcount -automask v1+orig | 1dplot -stdin\n"
              "\n"
              "NOTE: also see program 3dTqual for a similar quality check.\n"
            ) ;
@@ -61,7 +63,13 @@ int main( int argc , char * argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-      if( strcmp(argv[iarg],"-autoclip") == 0 ){  /* 12 Aug 2001 */
+      if( strcmp(argv[iarg],"-autoclip") == 0 ||
+          strcmp(argv[iarg],"-automask") == 0   ){
+
+         if( mmm != NULL ){
+           fprintf(stderr,"** ERROR: can't use -autoclip/mask with -mask!\n");
+           exit(1) ;
+         }
          do_autoclip = 1 ; iarg++ ; continue ;
       }
 
@@ -87,7 +95,12 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
          int mcount ;
-         THD_3dim_dataset * mask_dset = THD_open_dataset(argv[++iarg]) ;
+         THD_3dim_dataset * mask_dset ;
+         if( do_autoclip ){
+           fprintf(stderr,"** ERROR: can't use -mask with -autoclip/mask!\n");
+           exit(1) ;
+         }
+         mask_dset = THD_open_dataset(argv[++iarg]) ;
          if( mask_dset == NULL ){
             fprintf(stderr,"** ERROR: can't open -mask dataset!\n"); exit(1);
          }
@@ -135,11 +148,8 @@ int main( int argc , char * argv[] )
 
    /*-- 12 Aug 2001: compute clip, if desired --*/
 
-   if( do_autoclip ){
-      MRI_IMAGE * medim = THD_median_brick( dset ) ;
-      clip_val = THD_cliplevel( medim , 0.5 ) ;
-      fprintf(stderr,"++ Autoclip value = %g\n",clip_val) ;
-      mri_free(medim) ;
+   if( do_autoclip && mmm == NULL ){
+      mmm = THD_automask( dset ) ;
    }
 
    /*-- setup to save a new dataset, if desired --*/
@@ -183,7 +193,6 @@ int main( int argc , char * argv[] )
       memcpy(var,far,sizeof(float)*nvals ) ;
 
       fmed = qmed_float( nvals , far ) ;
-      if( clip_val > 0.0 && fmed < clip_val ) continue ; /* 12 Aug 2001 */
       npass++ ;
       for( iv=0 ; iv < nvals ; iv++ ) far[iv] = fabs(far[iv]-fmed) ;
       fmad = qmed_float( nvals , far ) ;
@@ -226,7 +235,7 @@ int main( int argc , char * argv[] )
 #endif
 
    if( npass < nxyz )
-      fprintf(stderr,"++ %d voxels pass mask/clip\n",npass) ;
+      fprintf(stderr,"++ %d voxels passed mask/clip\n",npass) ;
 
    exit(0) ;
 }
