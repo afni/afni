@@ -461,7 +461,11 @@ ENTRY("mri_read_dicom") ;
      if( stupid_ge_fix ){                                  /* always be stupid */
        dz = sp+th ;
      } else {
-       dz = (sp > th) ? sp : th ;                          /* the correct DICOM way */
+
+       if( no_stupidity && sp > 0.0 )                      /* 13 Jan 2004: if 'NO', then */
+         dz = sp ;                                         /* always use spacing if present */
+       else
+         dz = (sp > th) ? sp : th ;                        /* the correct-ish DICOM way */
 
 #define GFAC 0.99
 
@@ -484,6 +488,11 @@ ENTRY("mri_read_dicom") ;
               "++   to be necessary for some GE scanners.                       ++\n"
               "++                                                               ++\n"
               "++  This correction has been made on this data: dz=%6.3f.       ++\n"
+              "++                                                               ++\n"
+              "++  Setting AFNI_SLICE_SPACING_IS_GAP to NO means that the       ++\n"
+              "++  DICOM Slice_Spacing variable will be used for dz, replacing  ++\n"
+              "++  the Slice_Thickness variable.  This usage may be required    ++\n"
+              "++  for some pulse sequences on Phillips scanners.               ++\n"
               "\n\a" ,
              sp+th , dz ) ;
          }
