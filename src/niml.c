@@ -1364,22 +1364,28 @@ char * MD5_B64_file(char *filename)
 
 static char * get_UNIQ_string(void)
 {
-   struct utsname ubuf ;
+   static struct utsname ubuf ;
+   static int ncall=0 ;                /* number of times I've been called */
    struct timeval tv ;
    int    nn , ii ;
    int  nbuf ;
    char *buf ;
-   static int ncall=0 ;                /* number of times I've been called */
+#define NURR 32                        /* # bytes from /dev/urandom at a time */
+#ifdef NURR
+   static int urr[NURR] , nurr=0 ;     /* will use 1 byte from urr[nurr] */
+#endif
 
    /* get info about this system */
 
-   nn = uname( &ubuf ) ;               /* get info about this system */
-   if( nn == -1 ){                     /* should never happen */
-      strcpy( ubuf.nodename , "E" ) ;
-      strcpy( ubuf.sysname  , "L" ) ;
-      strcpy( ubuf.release  , "V" ) ;
-      strcpy( ubuf.version  , "I" ) ;
-      strcpy( ubuf.machine  , "S" ) ;
+   if( ncall == 0 ){                   /* 21 Aug 2002: only 1st time in */
+     nn = uname( &ubuf ) ;             /* get info about this system */
+     if( nn == -1 ){                   /* should never happen */
+       strcpy( ubuf.nodename , "E" ) ;
+       strcpy( ubuf.sysname  , "L" ) ;
+       strcpy( ubuf.release  , "V" ) ;
+       strcpy( ubuf.version  , "I" ) ;
+       strcpy( ubuf.machine  , "S" ) ;
+     }
    }
 
    /* store system info into a string buffer */
@@ -1387,7 +1393,7 @@ static char * get_UNIQ_string(void)
    nbuf = strlen(ubuf.nodename)+strlen(ubuf.sysname)
          +strlen(ubuf.release )+strlen(ubuf.version)+strlen(ubuf.machine) ;
 
-   buf = malloc(nbuf+128) ;      /* include some extra space */
+   buf = malloc(nbuf+192) ;      /* include some extra space */
    strcpy(buf,ubuf.nodename) ;
    strcat(buf,ubuf.sysname ) ;
    strcat(buf,ubuf.release ) ;
@@ -1398,29 +1404,37 @@ static char * get_UNIQ_string(void)
 
    nn = gettimeofday( &tv , NULL ) ;
    if( nn == -1 ){              /* should never happen */
-      tv.tv_sec  = (long) buf ;
-      tv.tv_usec = (long) buf ;
+     tv.tv_sec  = (long) time(NULL) ;
+     tv.tv_usec = (long) buf ;
    }
 
    /* even if called twice in very rapid succession,
       at least ncall will differ, so we'll get different ID codes  */
 
-   sprintf(buf+nbuf,"%d%d%d%d%d",
-           (int)tv.tv_sec,(int)tv.tv_usec,(int)getpid(),(int)getuid(),ncall) ;
+   sprintf( buf+nbuf,"%d%d%d%d%d%d",
+            (int)tv.tv_sec,(int)tv.tv_usec,
+            (int)getpid(),(int)getppid(),(int)getuid(),
+            ncall ) ;
    ncall++ ;
 
-   /* 24 Jul 2002: get random bytes from /dev/urandom */
+#ifdef NURR
+   /* 24 Jul 2002: get random bytes from /dev/urandom  */
+   /* 21 Aug 2002: read NURR bytes at a time, but only use 1 per call */
 
-#define NURR 4   /* 32 random bits should be enough */
-   { FILE *ufp = fopen("/dev/urandom","rb") ;
-     if( ufp != NULL ){
-       unsigned char urr[NURR] ; int ii ;
-       fread( &urr , 1,NURR, ufp ) ; fclose(ufp) ;
-       nbuf = strlen(buf) ;
-       for( ii=0 ; ii < NURR ; ii++ )
-         sprintf(buf+nbuf+2*ii,"%02x",urr[ii]) ;
+   if( nurr >= 0 ){
+     if( nurr == 0 ){                              /* need to read more bytes */
+       FILE *ufp=fopen("/dev/urandom","rb") ;
+       if( ufp == NULL ){                          /* fails on open */
+         nurr = -1; goto URR_DONE;                 /* so never try again */
+       } else {                                    /* read some bytes */
+         fread( &urr , 1,NURR, ufp ); fclose(ufp);
+       }
      }
+     nbuf = strlen(buf); sprintf(buf+nbuf,"%02x",urr[nurr]);
+     nurr = (nurr+1) % NURR ;
+URR_DONE:
    }
+#endif /* NURR */
 
    return buf ;
 }
