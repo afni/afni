@@ -268,4 +268,5 @@
       - changed -output option to -out_1D
       - added new debug info
       - added checking of surface order (process from inner to outer)
+  * modified Imon (-> v2.10): added '-sp SLICE_PATTERN' option
 

@@ -1,8 +1,11 @@
 
-#define IFM_VERSION "version 2.9 (July 27, 2003)"
+#define IFM_VERSION "version 2.10 (August 5, 2003)"
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 2.10 August 5, 2003
+ *   - added '-sp SLICE_PATTERN' option (see spat and opts.sp)
  *
  * 2.9  July 27, 2003
  *   - wrap unknown printed strings in NULL check
@@ -134,7 +137,7 @@ static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
 static int check_im_store_space( im_store_t * is, int num_images );
 static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
-static int create_gert_script  ( stats_t * s );
+static int create_gert_script  ( stats_t * s, char * spat );
 static int dir_expansion_form  ( char * sin, char ** sexp );
 static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_fl_file_index  ( param_t * p, char * file );
@@ -1129,6 +1132,17 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	    if ( gD.level == IFM_DEBUG_DEFAULT )
 		gD.level = 0;
 	}
+	else if ( ! strncmp( argv[ac], "-sp", 3 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -sp PATTERN\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    p->opts.sp = argv[ac];
+	}
 	else if ( ! strncmp( argv[ac], "-start_dir", 8 ) )
 	{
 	    if ( ++ac >= argc )
@@ -1714,6 +1728,7 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 	    "   start_file         = %s\n"
 	    "   start_dir          = %s\n"
 	    "   drive_cmd          = %s\n"
+	    "   sp                 = %s\n"
 	    "   (argv, argc)       = (%p, %d)\n"
 	    "   (nt, nice)         = (%d, %d)\n"
 	    "   (debug, gert_reco) = (%d, %d)\n"
@@ -1723,6 +1738,7 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 	    CHECK_NULL_STR(opt->start_file),
 	    CHECK_NULL_STR(opt->start_dir),
 	    CHECK_NULL_STR(opt->drive_cmd),
+	    CHECK_NULL_STR(opt->sp),
 	    opt->argv, opt->argc,
 	    opt->nt, opt->nice, opt->debug, opt->gert_reco,
 	    opt->rt, opt->swap, opt->rev_bo,
@@ -2025,6 +2041,16 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "    -quiet             : show only errors and final information\n"
 	  "\n"
+	  "    -sp SLICE_PATTERN  : set output slice pattern in GERT_Reco2\n"
+	  "\n"
+	  "        e.g. -sp alt-z\n"
+	  "        the default is 'alt+z'\n"
+	  "\n"
+	  "        This options allows the user to alter the slice\n"
+	  "        acquisition pattern in the GERT_Reco2 script.\n"
+	  "\n"
+	  "        See 'to3d -help' for more information.\n"
+	  "\n"
 	  "    -start_file S_FILE : have %s process starting at S_FILE\n"
 	  "\n"
 	  "        e.g.  -start_file 043/I.901\n"
@@ -2179,11 +2205,14 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
  * Note - stats struct parameters have been checked.
  * ----------------------------------------------------------------------
 */
-static int create_gert_script( stats_t * s )
+static int create_gert_script( stats_t * s, char * spat )
 {
     FILE * fp;
     char   cdir[4], csuff[IFM_SUFFIX_LEN];
     int    num_valid, c;
+
+    if ( !spat )
+	spat = IFM_SLICE_PAT;
 
     for ( c = 0, num_valid = 0; c < s->nused; c++ )
 	if ( s->runs[c].volumes > 0 )
@@ -2227,8 +2256,9 @@ static int create_gert_script( stats_t * s )
 		return -1;
 	    }
 
-	    fprintf( fp, "@RenamePanga %s %s %d %d $OutPrefix $OutlierCheck\n",
-		     cdir, csuff, s->slices, s->runs[c].volumes );
+	    fprintf( fp, "@RenamePanga %s %s %d %d $OutPrefix "
+		         "-sp %s $OutlierCheck\n",
+		     cdir, csuff, s->slices, s->runs[c].volumes, spat );
 	}
 
     fputc( '\n', fp );
@@ -2279,7 +2309,7 @@ static int show_run_stats( stats_t * s )
     putchar( '\n' );
 
     if ( gP.opts.gert_reco )
-	(void)create_gert_script( s );
+	(void)create_gert_script( s, gP.opts.sp );
 
     fflush( stdout );
 
