@@ -6,7 +6,8 @@
 
 /*! \file
     This file contains all the functions for reading image files.
-    It is primarily used by to3d.c
+    It is primarily used by to3d.c.  It reads 2D images (into MRI_IMAGE struct)
+    and arrays of 2D images (into MRI_IMARR struct).
 */
 
 #include <stdio.h>
@@ -128,8 +129,8 @@ static void swap_2(void *ppp)
 /*! \brief Earliest image reading function in the AFNI package.
 
     \param  fname is the name of the file to try to read
-    \return is NULL if an image couldn't be read, otherwise it
-            is a pointer to an MRI_IMAGE with data, etc.
+    \return NULL if an image couldn't be read, otherwise
+            a pointer to an MRI_IMAGE with data, dimensions, etc.
 */
 
 MRI_IMAGE *mri_read( char *fname )
@@ -485,7 +486,7 @@ Ready_To_Roll:
     \param imfile is a pointer to an open FILE.
     \param skip is a pointer to an int that will be set to the number
            of bytes to skip from the file start to find the image data
-    \return is NULL if the file doesn't work for "Cox MRI" format;
+    \return NULL if the file doesn't work for "Cox MRI" format;
             otherwise, the return is a pointer to an MRI_IMAGE ready
             to have its data read from imfile.
 */
@@ -571,8 +572,8 @@ MRI_IMAGE *mri_try_7D( FILE *imfile , int *skip )
     \param imfile is a pointer to an open FILE
     \param skip is a pointer to an int; *skip will be set to the
            byte offset at which to start reading data
-    \return is a pointer to an MRI_IMAGE ready to have its data read in
-            (if the file is a PGM file), or is NULL.
+    \return A pointer to an MRI_IMAGE ready to have its data read in
+            (if the file is a PGM file), or NULL.
 */
 
 MRI_IMAGE *mri_try_pgm( FILE *imfile , int *skip )
@@ -782,8 +783,8 @@ MRI_IMARR * mri_read_3D( char * tname )
            - List of ASCII numbers
            - pre-defined 2D file size in mri_read()
            - "Cox MRI" (god help you, no one else can)
-          
-   \return is a pointer to an array of 2D images.  If nothing
+
+   \return A pointer to an array of 2D images.  If nothing
            could be read, NULL is returned.
 */
 
@@ -968,7 +969,15 @@ int mri_imcount( char * tname )
 }
 
 /*--------------------------------------------------------------*/
-/* added 07 Mar 1995 */
+
+/*! \brief Like mri_read_file(), but returns images from many files.
+
+    \param nf = Number of file names
+    \param fn = Array of file name strings
+    \return An array of 2D images (NULL if nothing was found)
+
+    Added 07 Mar 1995
+*/
 
 MRI_IMARR * mri_read_many_files( int nf , char * fn[] )
 {
@@ -996,8 +1005,12 @@ MRI_IMARR * mri_read_many_files( int nf , char * fn[] )
    return outar ;
 }
 
-/*---------------------------------------------------------------
-  May 16, 1995: reads a raw PPM file into 3 images in RGB order
+/*---------------------------------------------------------------*/
+
+/*! \brief Read a raw PPM file into 3 byte-valued MRI_IMAGEs.
+
+    \date 16 May 1995
+*/
 -----------------------------------------------------------------*/
 
 MRI_IMARR * mri_read_ppm3( char * fname )
@@ -1081,6 +1094,14 @@ WHOAMI ;
    routines added 1 Oct 1995
 -------------------------------------------------------------------*/
 
+/*! \brief Read 1 2D image, then "nsize" it - make it a power of 2 in sizes.
+
+    This was developed in the days when FD/FD2/fim ruled the world, and
+    those programs (AJ's legacy) only deal with square images that are
+    a power of 2 in size.
+    \date 01 Oct 1995
+*/
+
 MRI_IMAGE *mri_read_nsize( char * fname )
 {
    MRI_IMARR *imar ;
@@ -1096,6 +1117,8 @@ MRI_IMAGE *mri_read_nsize( char * fname )
    DESTROY_IMARR(imar) ;
    return imout ;
 }
+
+/*! \brief Read many 2D images from many files. */
 
 MRI_IMARR *mri_read_many_nsize( int nf , char * fn[] )
 {
@@ -1117,9 +1140,16 @@ MRI_IMARR *mri_read_many_nsize( int nf , char * fn[] )
    return outar ;
 }
 
-/*------------------------------------------------------------------------
-  Set up MCW_SIZE_# database for input (added 07-Nov-95)
---------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------*/
+
+/*! \brief Set up MCW_SIZE_# database for input.
+
+    This implements the facility for the user to define MCW_IMSIZE_1
+    (or AFNI_IMSIZE_1) et cetera, for pre-defining a relationship between
+    a file size in bytes and a 3D: prefix.  This function is only called
+    once to setup the table.
+    \date 07 Nov 95
+*/
 
 void init_MCW_sizes(void)
 {
@@ -1182,12 +1212,8 @@ void init_MCW_sizes(void)
    return ;
 }
 
-/*------------------------------------------------------------------------------
-  Check if a filesize fits an MCW_IMSIZE setup.
-  Return new "filename" with 3D header attached if so.
-  If not, return a copy of the filename.  In any case the
-  returned string should be free-d when it is no longer needed.
---------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------*/
+/*! \brief My version of strdup(), which won't fail if the input is NULL. */
 
 char * my_strdup( char * str )
 {
@@ -1197,6 +1223,16 @@ char * my_strdup( char * str )
    if( new_str != NULL ) strcpy( new_str , str ) ;
    return new_str ;
 }
+
+/*------------------------------------------------------------------------------*/
+
+/*! \brief Check if a filesize fits an MCW_IMSIZE setup.
+
+    \param fname = Filename
+    \return A new "filename" with 3D header attached if it fits.
+            If not, return a copy of the filename.  In any case the
+            returned string should be free()-d when it is no longer needed.
+*/
 
 char * imsized_fname( char * fname )
 {
@@ -1252,6 +1288,14 @@ char * imsized_fname( char * fname )
    return new_name ;
 }
 
+/*------------------------------------------------------------------------*/
+/*!\brief Return the size of a file in bytes.
+
+  \param pathname = input filename
+  \return File length if file exists; -1 if it doesn't.
+  \see THD_filesize() in thd_filestuff.c.
+*/
+
 long mri_filesize( char * pathname )
 {
    static struct stat buf ;
@@ -1262,10 +1306,16 @@ long mri_filesize( char * pathname )
    return buf.st_size ;
 }
 
-/*---------------------------------------------------------------
-  17 Sep 2001: read only the PPM header, and return its info
-               *nx = *ny = 0 means an error transpirificated
------------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
+
+/*!\brief Read the header from PPM file and return its info.
+
+  \param fname = file name
+  \return *nx and *ny are set to the image dimensions;
+          if they are set to 0, something bad happened
+          (e.g., the file isn't a PPM file, or doesn't exist).
+  \date 17 Sep 2001
+*/
 
 void mri_read_ppm_header( char *fname , int *nx, int *ny )
 {
