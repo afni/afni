@@ -3957,8 +3957,14 @@ ENTRY("ISQ_free_alldata") ;
    myXtFree(seq->status) ;                         /* 05 Feb 2000 */
 #endif
 
-   /* 24 Apr 2001: destroy any recordings */
+   /* 24 Apr 2001: destroy any recorded images */
 
+                   /* 05 Jan 2005: include the memplot recordings */
+   if( seq->record_mplot != NULL && seq->record_imarr != NULL ){
+     for( ib=0 ; ib < IMARR_COUNT(seq->record_imarr) ; ib++ )
+       delete_memplot( seq->record_mplot[ib] ) ;
+     free((void *)seq->record_mplot) ; seq->record_mplot = NULL ;
+   }
    if( seq->record_imarr != NULL ) DESTROY_IMARR(seq->record_imarr) ;
    if( seq->record_imseq != NULL )
       drive_MCW_imseq( seq->record_imseq , isqDR_destroy , NULL ) ;
@@ -9768,6 +9774,7 @@ ENTRY("ISQ_record_button") ;
    seq->record_mode  = 0 ;    /* not a recorder itself (yet) */
    seq->record_imseq = NULL ; /* doesn't have a recorder */
    seq->record_imarr = NULL ; /* doesn't have a recorded sequence */
+   seq->record_mplot = NULL ; /* 05 Jan 2005 */
 
    EXRETURN ;
 }
@@ -9830,8 +9837,10 @@ ENTRY("ISQ_record_addim") ;
    /* if recorded image sequence doesn't exist, create it */
 
    if( seq->record_imarr == NULL ){
-      INIT_IMARR(seq->record_imarr) ;
-      meth = 1 ;  /* change meth for this special case */
+     INIT_IMARR(seq->record_imarr) ;
+     meth = 1 ;  /* change meth for this special case */
+
+     seq->record_mplot = NULL ;  /* 05 Jan 2005 */
    }
 
    /* convert current XImage to RGB format */
@@ -9865,21 +9874,31 @@ ENTRY("ISQ_record_addim") ;
    if( meth != 0 ){
 
       ADDTO_IMARR( seq->record_imarr , NULL ) ;  /* add at end */
+      seq->record_mplot =(MEM_plotdata **)       /* 05 Jan 2005 */
+                         realloc( (void *)seq->record_mplot ,
+                                  sizeof(MEM_plotdata *)
+                                 *IMARR_COUNT(seq->record_imarr) ) ;
       bot = (meth < 0) ? opos : opos+1 ;         /* move images up */
       top = IMARR_COUNT(seq->record_imarr)-2 ;
-      for( ii=top ; ii >= bot ; ii-- )
-         IMARR_SUBIM(seq->record_imarr,ii+1) = IMARR_SUBIM(seq->record_imarr,ii);
+      for( ii=top ; ii >= bot ; ii-- ){
+        IMARR_SUBIM(seq->record_imarr,ii+1) = IMARR_SUBIM(seq->record_imarr,ii);
+        seq->record_mplot[ii+1] = seq->record_mplot[ii] ;  /* 05 Jan 2005 */
+      }
 
       IMARR_SUBIM(seq->record_imarr,bot) = tim ; /* insert */
+      seq->record_mplot[bot]             = copy_memplot( seq->mplot ) ;
 
    } else {  /* overwrite image */
 
       bot = opos ;
       mri_free( IMARR_SUBIM(seq->record_imarr,bot) ) ; /* out with the old */
       IMARR_SUBIM(seq->record_imarr,bot) = tim ;       /* in with the new */
+
+      delete_memplot( seq->record_mplot[bot] ) ;       /* 05 Jan 2005 */
+      seq->record_mplot[bot] = copy_memplot( seq->mplot ) ;
    }
 
-   /* at this point, we put the new image into location bot in the array */
+   /* at this point, we have put the new image into location bot in the array */
 
    /* if the recorder isn't open now, open it, otherwise update it */
 
@@ -9992,9 +10011,17 @@ ENTRY("ISQ_record_getim") ;
       RETURN( (XtPointer)stat ) ;
    }
 
-   /*--- no overlay, never ---*/
+   /*--- overlay [05 Jan 2005] ---*/
 
-   if( type == isqCR_getoverlay ) RETURN( NULL ) ;
+   if( type == isqCR_getoverlay ) RETURN(NULL) ;  /* no image overlay */
+
+   if( type == isqCR_getmemplot ){                /* graphics overlay */
+     MEM_plotdata *mp ;
+     if( seq->record_mplot == NULL ) RETURN(NULL) ;
+     if( n < 0 ) n = 0 ; else if( n >= ntot ) n = ntot-1 ;
+     mp = copy_memplot( seq->record_mplot[n] ) ;
+     RETURN( (XtPointer)mp ) ;   /* may be NULL */
+   }
 
    /*--- return a copy of a recorded image
          (since the imseq will delete it when it is done) ---*/
@@ -10031,6 +10058,12 @@ ENTRY("ISQ_record_send_CB") ;
          /* turn off recording in the parent */
 
          pseq->record_imseq = NULL ;
+         if( pseq->record_mplot != NULL && pseq->record_imarr != NULL ){
+           int ib ;
+           for( ib=0 ; ib < IMARR_COUNT(pseq->record_imarr) ; ib++ )
+             delete_memplot( pseq->record_mplot[ib] ) ;
+           free((void *)pseq->record_mplot) ; pseq->record_mplot = NULL ;
+         }
          if( pseq->record_imarr != NULL ) DESTROY_IMARR(pseq->record_imarr) ;
          if( RECORD_ISON(pseq->record_status) ){
             pseq->record_status = RECORD_STATUS_OFF ;
@@ -10073,6 +10106,8 @@ ENTRY("ISQ_record_kill_CB") ;
 
    mri_free( IMARR_SUBIM(pseq->record_imarr,pos) ) ;
    IMARR_SUBIM(pseq->record_imarr,pos) = NULL ;
+   delete_memplot( pseq->record_mplot[pos] ) ;  /* 05 Jan 2005 */
+   pseq->record_mplot[pos] = NULL ;
 
    ISQ_redisplay( seq , -1 , isqDR_display ) ;  /* show the empty image */
 

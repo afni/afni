@@ -453,6 +453,7 @@ typedef struct MCW_imseq {
      int record_mode ;
      struct MCW_imseq * record_imseq ;
      MRI_IMARR * record_imarr ;
+     MEM_plotdata ** record_mplot ;  /* 05 Jan 2005 */
 
      MCW_bbox * save_one_bbox ;      /* 26 Jul 2001 */
      MCW_bbox * save_agif_bbox ;     /* 27 Jul 2001 */

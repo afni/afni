@@ -5294,3 +5294,5 @@
  * Modified 1dsvd.c to add -1Dright option.
  * Fixed bug in 1dplot.c -stdin option: failed to skip leading blanks properly
      when scanning input lines for '#' comment characters!  (Stupid)
+ * Modified imseq.[ch] to add saving of overlay MEM_plotdata stuff with the
+     recorder, as well as the images.
