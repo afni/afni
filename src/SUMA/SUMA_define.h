@@ -375,6 +375,7 @@ typedef struct {
    SUMA_Boolean ApplyClip; /*!< if YUP then values that range clipping using Range is applied */
    float ClipRange[2]; /*!< nodes with values <= Range[0] are given the first color in the color map, values >= Range[1] get the last color in the map */
    float BrightFact; /*!< a brightness factor to apply to the color map. This factor is applied to the colors in the colormap and the mask colors*/
+   SUMA_Boolean MaskZero; /*!< values equal to zero will be masked no matter what */
    SUMA_COLORMAP_INTERP_MODE interpmode; /*!< If YUP then no interpolation is done between colors of the colormap.
                               AFNI does not interpolate colors when using the paned colormaps.
                               The default in SUMA is NOPE, i.e. interpolation is performed*/
@@ -1109,6 +1110,10 @@ typedef struct {
                                           see functions SUMA_display and SUMA_OpenGLStateReset for more info */
                                           
    DList *BS; /*!< The new version of BrushStroke, in doubly linked list form */
+   int NumForeSmoothing;   /*!< Number of steps for smoothing the foreground colors 
+                                 prior to mixing with background. Default is set
+                                 by environment variable SUMA_NumForeSmoothing which 
+                                 is set to 0 (No smoothing). */
 }SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */

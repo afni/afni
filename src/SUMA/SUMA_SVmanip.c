@@ -270,6 +270,17 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       SV->ShowRight = YUP;
       SV->ShowLeft = YUP;
       SV->Record = NOPE;
+      {
+         char *eee = getenv("SUMA_NumForeSmoothing");
+         if (eee) {
+            int rotval = (int)strtod(eee, NULL);
+            if (rotval >= 0) SV->NumForeSmoothing = rotval;
+            else {
+               SUMA_SL_Warn("Bad value for environment variable SUMA_NumForeSmoothing\nAssuming default of 0");
+               SV->NumForeSmoothing = 0;
+            }
+         } else SV->NumForeSmoothing = 0;
+      }
    }
    SUMA_RETURN (SVv);
 }
@@ -863,6 +874,7 @@ void SUMA_Show_SurfaceViewer_Struct (SUMA_SurfaceViewer *SV, FILE *Out)
    }
    fprintf(Out, "\nStandard viewing mode: %d\n", SV->StdView );
    fprintf(Out, "\nBackground Modulation Factor= %f\n", SV->Back_Modfact);
+   fprintf(Out, "\nNumber of foreground smoothing steps = %d\n", SV->NumForeSmoothing);
    fprintf(Out, "\nLast non mappable visited %d\n", SV->LastNonMapStateID);
    
    /*fprintf(Out,"\t\n", SV->);

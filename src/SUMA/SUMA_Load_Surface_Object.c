@@ -579,7 +579,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          SO->idcode_str = UNIQ_hashcode(stmp);
          break;
    } /* SO_FileType*/
-
+   
+   /* sanity check (this one's here for a reason) */
+   if (SO->N_Node <=0 || SO->N_FaceSet<=0) {
+      SUMA_SL_Crit("0 nodes or 0 facesets.\nProceed I will not.\n");
+      SUMA_Free_Surface_Object (SO);
+      SUMA_RETURN (NULL);
+   }
    /* Calculate Min, Max, Mean */
    
    SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);
@@ -687,6 +693,7 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          SUMA_Free_Surface_Object (SO);
          SUMA_RETURN (NULL);
       }
+      
    SUMA_RETURN (SO);
    
 }/*SUMA_Load_Surface_Object_eng*/
