@@ -4296,6 +4296,8 @@ ENTRY("AFNI_reset_func_range") ;
       (im3d->vinfo->use_autorange) ? (im3d->vinfo->fim_autorange)
                                    : (im3d->vwid->func->range_av->fval) ;
 
+   HINTIZE_pbar(im3d) ; /* 22 Aug 2001 */
+
    EXRETURN ;
 }
 

@@ -2381,9 +2381,18 @@ extern void THD_quadratic_detrend( int, float *, float *, float *, float * ) ;
 extern void THD_normalize        ( int, float * ) ;
 extern void THD_cubic_detrend    ( int, float * ) ;  /* 15 Nov 1999 */
 
+extern void THD_const_detrend    ( int, float *, float * ); /* 24 Aug 2001 */
+
 #define DETREND_linear(n,f)    THD_linear_detrend(n,f,NULL,NULL)
 #define DETREND_quadratic(n,f) THD_quadratic_detrend(n,f,NULL,NULL,NULL)
 #define DETREND_cubic(n,f)     THD_cubic_detrend(n,f)
+#define DETREND_const(n,f)     THD_const_detrend(n,f,NULL)
+
+#define DETREND_polort(p,n,f)                            \
+ do{ switch(p){  case 0: DETREND_const(n,f)    ; break;  \
+        default: case 1: DETREND_linear(n,f)   ; break;  \
+                 case 2: DETREND_quadratic(n,f); break;  \
+                 case 3: DETREND_cubic(n,f)    ; break; } } while(0)
 
 /*------------------------------------------------------------------*/
 
@@ -2648,6 +2657,8 @@ extern THD_3dim_dataset * TT_retrieve_atlas(void) ;
 extern THD_3dim_dataset * TT_retrieve_atlas_big(void) ; /* 01 Aug 2001 */
 extern void TT_purge_atlas_big(void);
 
+extern THD_3dim_dataset * TT_retrieve_atlas_either(void); /* 22 Aug 2001 */
+
 #define TT_ATLAS_NZ_SMALL 141 /* 01 Aug 2001 */
 #define TT_ATLAS_NZ_BIG   151
 
@@ -2657,5 +2668,9 @@ extern void TT_purge_atlas_big(void);
     : ((nz)==TT_ATLAS_NZ_BIG) ? TT_retrieve_atlas_big() : NULL )
 
 /*------------------------------------------------------------------------*/
+
+float THD_spearman_corr( int,float *,float *) ;  /* 23 Aug 2001 */
+float THD_quadrant_corr( int,float *,float *) ;
+float THD_pearson_corr ( int,float *,float *) ;
 
 #endif /* _MCW_3DDATASET_ */

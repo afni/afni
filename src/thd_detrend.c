@@ -8,6 +8,22 @@
 
 /*-------------------------------------------------------------------------*/
 
+void THD_const_detrend( int npt, float *xx, float *xx0 ) /* 24 Aug 2001 */
+{
+   int ii ; float xbar ;
+
+   if( npt < 2 || xx == NULL ) return ;
+
+   xbar = 0.0 ;
+   for( ii=0 ; ii < npt ; ii++ ) xbar += xx[ii] ;
+   xbar /= npt ;
+   for( ii=0 ; ii < npt ; ii++ ) xx[ii] -= xbar ;
+   if( xx0 != NULL ) *xx0 = xbar ;
+   return ;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void get_linear_trend( int npt, float *xx, float *f0, float *f1 )
 {
    double t1,t3,t10 , x0,x1 ;

@@ -44,7 +44,8 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
            3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum \
-           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual
+           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual \
+           3dTcorrelate
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -59,7 +60,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   imcutup 3dMean 3dAttribute 3dZeropad 3dWinsor 3dmaskdump 3dfim+      \
                   3dUndump cat_matvec 3dOverlap 3dClipLevel 3dZregrid 3dEntropy 3ddelay \
                   ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum 3dExtrema strblast      \
-                  3dConvolve 3dZcutup 3dZcat 3dTqual
+                  3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni
 
@@ -296,6 +297,10 @@ dsetdup:dsetdup.o
 3dTcat:3dTcat.o
 	$(RM) $@
 	$(CC) -o 3dTcat 3dTcat.o $(LFLAGS) $(LLIBS)
+
+3dTcorrelate:3dTcorrelate.o
+	$(RM) $@
+	$(CC) -o 3dTcorrelate 3dTcorrelate.o $(LFLAGS) $(LLIBS)
 
 3dTagalign:3dTagalign.o
 	$(RM) $@
@@ -980,7 +985,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_entropy16.o thd_dsetrow.o thd_rowfillin.o thd_fetchdset.o  \
            thd_getpathprogs.o thd_zfillin.o thd_ttatlas_query.o          \
            thd_dsetto3D.o thd_median.o thd_cliplevel.o thd_automask.o   \
-           thd_outlier_count.o
+           thd_outlier_count.o thd_correlate.o
 
 EDT_OBJS = edt_addbrick.o edt_blur.o edt_buildmask.o edt_checkargv.o \
            edt_clust.o edt_clustarr.o edt_coerce.o edt_dsetitems.o   \

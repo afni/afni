@@ -3032,3 +3032,18 @@
 16 Aug 2001
  * Modified afni_func.c to hintize the pbar in function AFNI_underlay_CB().
  * Modified the outlier stuff in to3d.c some.
+
+20 Aug 2001
+ * Incorporated revised TD database from San Antone.  Also penciled in
+     the Nucleus Accumbens, since they seem to have missed it.
+
+22 Aug 2001
+ * Modified plug_drawdset.c to allow loading of overlay data from the
+     TTatlas+tlrc dataset, on a region-by-region basis.
+
+23 Aug 2001
+ * Added program 3dTcorrelate.c to compute correlation coefficient of
+     2 3D+time datasets, voxel by voxel.
+ * New file thd_correlate.c computes various correlation coefficients
+     between vectors.
+ * Added constant detrending to thd_detrend.c.

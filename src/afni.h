@@ -125,12 +125,12 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 5 characters! **/
 /**             "12345" **/
 
-#define VERSION "2.31d"
+#define VERSION "2.31f"
 
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "15 Aug 2001      "
+#define RELEASE "22 Aug 2001      "
 
 #ifdef MAIN
 #define AFNI_about \
@@ -1482,8 +1482,8 @@ typedef struct {
       {-20,  5,  0,4,145,"Right Lateral Globus Pallidus..........."} ,
       { 24,  0,  3,4,151,"Left  Putamen..........................."} ,
       {-24,  0,  3,4,151,"Right Putamen..........................."} ,
-      { 25, -3,-16,4,146,"Left  Nucleus Accumbens................."} ,
-      {-25, -3,-16,4,146,"Right Nucleus Accumbens................."} ,
+      { 12, -8, -8,4,146,"Left  Nucleus Accumbens................."} , /* 20 Aug */
+      {-12, -8, -8,4,146,"Right Nucleus Accumbens................."} , /* 2001 */
       { 17, 24, -2,4,147,"Left  Medial Geniculum Body............."} ,
       {-17, 24, -2,4,147,"Right Medial Geniculum Body............."} ,
       { 22, 24, -1,4,148,"Left  Lateral Geniculum Body............"} ,

@@ -31,6 +31,16 @@ THD_3dim_dataset * TT_retrieve_atlas_big(void) /* 01 Aug 2001 */
 
 /*-----------------------------------------------------------------------*/
 
+THD_3dim_dataset * TT_retrieve_atlas_either(void) /* 22 Aug 2001 */
+{
+   if( dseTT_big != NULL ) return dseTT_big ;
+   if( dseTT     != NULL ) return dseTT     ;
+   if( have_dseTT < 0    ) TT_load_atlas()  ;
+   return dseTT ;
+}
+
+/*-----------------------------------------------------------------------*/
+
 int TT_load_atlas(void)
 {
    char *epath , *elocal , ename[THD_MAX_NAME] , *eee ;
@@ -41,6 +51,16 @@ ENTRY("TT_load_atlas") ;
    if( have_dseTT >= 0 ) RETURN(have_dseTT) ;  /* for later calls */
 
    have_dseTT = 0 ;  /* don't have it yet */
+
+   /*----- 20 Aug 2001: see if user specified alternate database -----*/
+
+   epath = getenv("AFNI_TTATLAS_DATASET") ;
+   if( epath != NULL ){
+      dseTT = THD_open_one_dataset( epath ) ;  /* try to open it */
+      if( dseTT != NULL ){                     /* got it!!! */
+         have_dseTT = 1; RETURN(1);
+      }
+   }
 
    /*----- get path to search -----*/
 
@@ -219,7 +239,8 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
 
 #define WAMI_HEAD "+++++++ nearby Talairach Daemon structures +++++++\n"
 #define WAMI_TAIL "\n******* Please use results with caution! *******"   \
-                  "\n******* Brain anatomy is quite variable! *******"
+                  "\n******* Brain anatomy is quite variable! *******"   \
+                  "\n******* The database may contain errors! *******"
 
    if( nfind == 0 ){
       rbuf = strdup( WAMI_HEAD

@@ -28,7 +28,7 @@ static TTRR_controls *ttc = NULL ;
 
 static void TTRR_action_CB       ( Widget, XtPointer, XtPointer ) ;
 static void TTRR_delete_window_CB( Widget, XtPointer, XtPointer ) ;
-static void TTRR_av_CB           (MCW_arrowval * , XtPointer )    ;
+static void TTRR_av_CB           ( MCW_arrowval * , XtPointer   ) ;
 
 /*----------------------------------------------------------------------------
   Routine to create widgets for the TT atlas rendering controls

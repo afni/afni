@@ -668,7 +668,7 @@ STATUS("making imag->rowcol") ;
          imag->pop_ttren_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-                  LABEL_ARG("-Atlas colors") ,
+                  LABEL_ARG("-Atlas Colors") ,
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , False ,
                   XmNinitialResourcesPersistent , False ,
