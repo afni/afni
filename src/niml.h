@@ -4,15 +4,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/time.h>
+#include <fcntl.h>
+#include <sys/times.h>
+#include <limits.h>
+
+/*-----------------------------------------*/
+
+typedef unsigned char byte ;
+
+typedef struct { byte r,g,b ; } rgb ;
+
+typedef struct { byte r,g,b,a ; } rgba ;
+
+typedef struct { float r,i ; } complex ;
 
 /*-----------------------------------------*/
 
 /*! Holds strings from the <header and=attributes> */
 
 typedef struct {
-   int nattr , empty ;
-   char *name ;
-   char **lhs , **rhs ;
+   int nattr ;            /*!< Number of attributes. */
+   int empty ;            /*!< Did header end in '/>'? */
+   char *name ;           /*!< Header name string. */
+   char **lhs ;           /*!< Left-hand-sides of attributes. */
+   char **rhs ;           /*!< Right-hand-sides of attributes (may be NULL). */
 } header_stuff ;
 
 /*! A pair of integers. */
@@ -49,42 +75,44 @@ typedef struct { int num; int *ar; } intarray ;
 #define NI_RGB         6
 #define NI_STRING      7
 #define NI_LINE        8
+#define NI_RGBA        9
 
 /*! One more than the last NI_ data type code defined above. */
 
-#define NI_NUM_TYPES   9
+#define NI_NUM_TYPES   10
 
 /*! Valid data type character codes. */
 
 #define IS_DATUM_CHAR(c) ( (c) == 'b' || (c) == 's' || (c) == 'i' ||  \
                            (c) == 'f' || (c) == 'd' || (c) == 'c' ||  \
-                           (c) == 'r' || (c) == 'S' || (c) == 'L'    )
+                           (c) == 'r' || (c) == 'S' || (c) == 'L' ||  \
+                           (c) == 'R'                               )
 
 /*-----------------------------------------*/
 
 /*! A data element. */
 
 typedef struct {
-   char  *name ;
-   int    attr_num ;
-   char **attr_lhs ;
-   char **attr_rhs ;
-   int    vec_num ;
-   int    vec_len ;
-   int   *vec_type ;
-   void **vec ;
+   char  *name ;       /*!< Name of element. */
+   int    attr_num ;   /*!< Number of attributes. */
+   char **attr_lhs ;   /*!< Left-hand-sides of attributes. */
+   char **attr_rhs ;   /*!< Right-hand-sides of attributes. */
+   int    vec_num ;    /*!< Number of vectors (may be 0). */
+   int    vec_len ;    /*!< Length of each vector. */
+   int   *vec_typ ;    /*!< Type code for each vector. */
+   void **vec ;        /*!< Pointer to each vector. */
 } NI_element ;
 
 /*! A bunch of elements. */
 
 typedef struct {
-   int    attr_num ;
-   char **attr_lhs ;
-   char **attr_rhs ;
+   int    attr_num ;   /*!< Number of attributes. */
+   char **attr_lhs ;   /*!< Left-hand-sides of attributes. */
+   char **attr_rhs ;   /*!< Right-hand-sides of attributes. */
 
-   int    part_num ;
-   int   *part_typ ;
-   void **part ;
+   int    part_num ;   /*!< Number of parts within this group. */
+   int   *part_typ ;   /*!< Type of each part (element or group). */
+   void **part ;       /*!< Pointer to each part. */
 } NI_group ;
 
 /* Part type codes. */
@@ -99,18 +127,41 @@ typedef struct {
 /*! Data needed to process input stream. */
 
 typedef struct {
-   void *user_handle ;
-   int (*getdata)(void *, char *, int) ;
+   int type ;        /*!< NI_TCP_TYPE or NI_FILE_TYPE */
+   int bad ;         /*!< Tells whether I/O is OK for this yet */
 
-   int mode ;
-   int nbuf ;
-   char buf[NI_BUFSIZE] ;
+   int port ;        /*!< TCP only: port number */
+   int sd ;          /*!< TCP only: socket descriptor */
+
+   FILE *fp ;        /*!< FILE only: pointer to open file */
+
+   char name[128] ;  /*!< Hostname or filename */
+
+   int io_mode ;     /*!< Input or output? */
+   int data_mode ;   /*!< Text, binary, or base64? */
+
+   int nbuf ;              /*!< Number of bytes left in buf. */
+   char buf[NI_BUFSIZE] ;  /*!< I/O buffer. */
 } NI_stream_type ;
 
-/* Modes for a NI_stream_type: input or output. */
+#define NI_TCP_TYPE    1
+#define NI_FILE_TYPE   2
+
+#define TCP_WAIT_ACCEPT   7
+#define TCP_WAIT_CONNECT  8
+
+/* I/O Modes for a NI_stream_type: input or output. */
 
 #define NI_INPUT_MODE  0
 #define NI_OUTPUT_MODE 1
+
+/* Data modes for a NI_stream_type: text, binary, base64. */
+
+#define NI_TEXT_MODE            0
+#define NI_BINARY_MSBFIRST_MODE 1
+#define NI_BINARY_LSBFIRST_MODE 2
+#define NI_BASE64_MSBFIRST_MODE 3
+#define NI_BASE64_LSBFIRST_MODE 4
 
 /*! Opaque type for the C API. */
 
@@ -146,5 +197,18 @@ int NI_readcheck( NI_stream ) ;
 
 void NI_free_group  ( NI_group *   ) ;
 void NI_free_element( NI_element * ) ;
+
+NI_stream NI_stream_open( char *name , char *mode ) ;
+int NI_stream_goodcheck( NI_stream_type *ns , int msec ) ;
+void NI_stream_close( NI_stream_type *ns ) ;
+int NI_stream_readcheck( NI_stream_type *ns , int msec ) ;
+int NI_stream_writecheck( NI_stream_type *ns , int msec ) ;
+int NI_stream_write( NI_stream_type *ns , char *buffer , int nbytes ) ;
+int NI_stream_read( NI_stream_type *ns , char *buffer , int nbytes ) ;
+void NI_sleep( int msec ) ;
+
+/*! Close a NI_stream, and set the pointer to NULL. */
+
+#define NI_STREAM_CLOSE(nn) do{ NI_stream_close(nn); (nn)=NULL; } while(0)
 
 #endif /* _NIML_HEADER_FILE */
