@@ -612,7 +612,7 @@ static void ENV_sesstrail( char * vname )
    for( ii=0 ; ii < GLOBAL_library.sslist->num_sess ; ii++ ){
      sess = GLOBAL_library.sslist->ssar[ii] ;
      str  = THD_trailname(sess->sessname,SESSTRAIL) ;
-     tt   = 1+strlen(str) - THD_MAX_LABEL ; if( tt < 0 ) tt = 0 ;
+     tt   = 1+strlen(str) - THD_MAX_NAME ; if( tt < 0 ) tt = 0 ;
      strcpy( sess->lastname , str+tt ) ;
    }
 }

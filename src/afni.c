@@ -3279,7 +3279,7 @@ ENTRY("AFNI_read_inputs") ;
       MCW_strncpy( new_ss->sessname ,
                    argv[GLOBAL_argopt.first_file_arg] , THD_MAX_NAME ) ;
       MCW_strncpy( new_ss->lastname ,
-                   argv[GLOBAL_argopt.first_file_arg] , THD_MAX_LABEL ) ;
+                   argv[GLOBAL_argopt.first_file_arg] , THD_MAX_NAME ) ;
 
       GLOBAL_library.sslist->num_sess   = 1 ;
       GLOBAL_library.sslist->ssar[0]    = new_ss ;
