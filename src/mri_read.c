@@ -1167,7 +1167,7 @@ static int mri_imcount_siemens( char * ) ;
 
 int mri_imcount( char * tname )
 {
-   int hglobal , himage , nx=0 , ny=0 , nz=0 , ngood ;
+   int hglobal , himage , nx , ny , nz , ngood ;
    char fname[256]="\0" ;
    char * new_fname ;
 
@@ -1179,10 +1179,9 @@ ENTRY("mri_imcount") ;
 
    /*** a 3D filename ***/
 
-   if( strlen(new_fname) > 9 &&
-      new_fname[0] == '3'    && new_fname[1] == 'D' &&
-      (new_fname[2] == ':' || new_fname[3] == ':')    ){
-
+   if( strlen(new_fname) > 9 && new_fname[0] == '3' && new_fname[1] == 'D' &&
+       (new_fname[2] == ':' || new_fname[3] == ':') ){
+                               /* check for ':', too   3 Jan 2005 [rickr] */
       switch( new_fname[2] ){
 
          default:
@@ -1227,9 +1226,11 @@ ENTRY("mri_imcount") ;
             break ;
       }
 
-      if( ngood == 6 && nx > 0 && ny > 0 && nz > 0 ){
-        free(new_fname); RETURN(nz);
-      }
+      free( new_fname ) ;
+      if( ngood < 6 || himage < 0 ||
+          nx <= 0   || ny <= 0    || nz <= 0 ||
+          strlen(fname) <= 0                       ) RETURN( 0 );
+      else                                           RETURN( nz );
    }
 
    /*** a 3A filename ***/
@@ -1254,9 +1255,9 @@ ENTRY("mri_imcount") ;
             break ;
       }
 
-      if( ngood == 4 && nx > 0 && ny > 0 && nz > 0 ){
-        free(new_fname) ; RETURN(nz) ;
-      }
+      free( new_fname ) ;
+      if( ngood < 4 || nx <= 0 || ny <= 0 || nz <= 0 || strlen(fname) <= 0 ) RETURN( 0 );
+      else                                                                   RETURN( nz );
    }
 
    /*** 05 Feb 2001: deal with ANALYZE .hdr files ***/
@@ -3201,9 +3202,7 @@ MRI_IMARR * mri_read_file_delay( char * fname )
    new_fname = imsized_fname( fname ) ;
    if( new_fname == NULL ) return NULL ;
 
-   if( strlen(new_fname) > 9 &&
-       new_fname[0] == '3'   && new_fname[1] == 'D' &&
-       (new_fname[2] == ':' || new_fname[3] == ':')   ){
+   if( strlen(new_fname) > 9 && new_fname[0] == '3' && new_fname[1] == 'D' ){
 
       newar = mri_read_3D_delay( new_fname ) ;   /* read from a 3D file, later */
 
