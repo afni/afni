@@ -65,7 +65,9 @@ static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
 
    /*--- scan through array, find nonzero point, build a cluster, ... ---*/
 
+#if 0
    if( verb ) fprintf(stderr," + clustedit3D: threshold size=%d voxels\n",csize) ;
+#endif
 
    ijk_last = 0 ;
    while(1) {
@@ -116,8 +118,10 @@ static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
        memcpy(jsav+nsav,jnow,sizeof(short)*nnow) ;
        memcpy(ksav+nsav,know,sizeof(short)*nnow) ;
        nsav = kk ;
+#if 0
        if( verb )
          fprintf(stderr," + clustedit3D: saved cluster with %d voxels\n",nnow);
+#endif
      } else {
        nkill += nnow ;
      }
@@ -133,9 +137,11 @@ static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
 
    free((void *)isav); free((void *)jsav); free((void *)ksav) ;
 
+#if 0
    if( verb )
      fprintf(stderr," + clustedit3D totals:"
                     " saved=%d killed=%d nxyz=%d\n",nsav,nkill,nxyz) ;
+#endif
    return ;
 }
 
@@ -222,13 +228,14 @@ typedef struct {
    float clip_000, clip_100, clip_010, clip_110,
          clip_001, clip_101, clip_011, clip_111 ;
    float x0,x1,dxi , y0,y1,dyi , z0,z1,dzi ;
+   float clip_min , clip_max ;
 } clipvec ;
 
 /*! Get the cliplevel for each octant about the center-of-mass. */
 
 static clipvec get_octant_clips( MRI_IMAGE *im , float mfrac )
 {
-   float xcm,ycm,zcm , sum,val ;
+   float xcm,ycm,zcm , sum,val , clip_min , clip_max ;
    int ii,jj,kk , nx,ny,nz,nxy , ic,jc,kc , it,jt,kt , ijk ;
    short *sar ;
    clipvec cv ;
@@ -281,6 +288,24 @@ ENTRY("get_octant_clips") ;
    if( cv.clip_011 < val ) cv.clip_011 = val ;
    if( cv.clip_111 < val ) cv.clip_111 = val ;
 
+   clip_min =              cv.clip_000  ;
+   clip_min = MIN(clip_min,cv.clip_100) ;
+   clip_min = MIN(clip_min,cv.clip_010) ;
+   clip_min = MIN(clip_min,cv.clip_110) ;
+   clip_min = MIN(clip_min,cv.clip_001) ;
+   clip_min = MIN(clip_min,cv.clip_101) ;
+   clip_min = MIN(clip_min,cv.clip_011) ;
+   clip_min = MIN(clip_min,cv.clip_111) ;  cv.clip_min = clip_min ;
+
+   clip_max =              cv.clip_000  ;
+   clip_max = MAX(clip_max,cv.clip_100) ;
+   clip_max = MAX(clip_max,cv.clip_010) ;
+   clip_max = MAX(clip_max,cv.clip_110) ;
+   clip_max = MAX(clip_max,cv.clip_001) ;
+   clip_max = MAX(clip_max,cv.clip_101) ;
+   clip_max = MAX(clip_max,cv.clip_011) ;
+   clip_max = MAX(clip_max,cv.clip_111) ;  cv.clip_max = clip_max ;
+
    /* (x0,y0,z0) = center of lowest octant
       (x1,y1,z1) = center of highest octant */
 
@@ -291,6 +316,7 @@ ENTRY("get_octant_clips") ;
    cv.dyi = (cv.y1 > cv.y0) ? 1.0/(cv.y1-cv.y0) : 0.0 ;
    cv.dzi = (cv.z1 > cv.z0) ? 1.0/(cv.z1-cv.z0) : 0.0 ;
 
+#if 0
    if( verb )
     fprintf(stderr," + get_octant_clips:  min clip=%.1f\n"
                    "   clip_000=%.1f  clip_100=%.1f  clip_010=%.1f  clip_110=%.1f\n"
@@ -300,6 +326,7 @@ ENTRY("get_octant_clips") ;
             cv.clip_000 , cv.clip_100 , cv.clip_010 , cv.clip_110 ,
             cv.clip_001 , cv.clip_101 , cv.clip_011 , cv.clip_111 ,
             cv.x0 , cv.y0 , cv.z0 , cv.x1 , cv.y1 , cv.z1  ) ;
+#endif
 
    RETURN(cv) ;
 }
@@ -345,7 +372,7 @@ ENTRY("mri_short2mask") ;
 
    nx = im->nx ; ny = im->ny ; nz = im->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
 
-   bvec = get_octant_clips( im , 0.40 ) ;
+   bvec = get_octant_clips( im , 0.40f ) ;
    if( bvec.clip_000 < 0.0 ) RETURN(NULL) ;
 
    tvec = bvec ;
@@ -360,7 +387,9 @@ ENTRY("mri_short2mask") ;
 
    /* create mask, clipping at a level that varies spatially */
 
+#if 0
    if( verb ) fprintf(stderr," + mri_short2mask: clipping\n") ;
+#endif
 
    mask = (byte *) malloc( sizeof(byte)*nxyz ) ;
    for( ijk=kk=0 ; kk < nz ; kk++ ){
@@ -375,12 +404,12 @@ ENTRY("mri_short2mask") ;
 #endif
    }}}
 
-   if( verb ) fprintf(stderr," + mri_short2mask: %d voxels survive clip\n",
-                             mask_count(nxyz,mask) ) ;
-
    /* remove small clusters */
 
    clustedit3D( nx,ny,nz , mask , (int)rint(0.02*nxyz) ) ;
+
+   if( verb ) fprintf(stderr," + mri_short2mask: %d voxels survive\n",
+                             mask_count(nxyz,mask) ) ;
 
    RETURN(mask) ;
 }
@@ -818,7 +847,7 @@ static void zedit_mask( int nx, int ny, int nz, byte *mmm, int zdepth, int zbot 
    if( zd < 1  ) zd = 1  ;
    if( zb < zd ) zb = zd ;
    zslab = 2*zd+1 ;
- 
+
    for( kk=nz-1 ; kk >= zb ; kk-- ){
      jj = mask_count( nxy , mmm+kk*nxy ) ;
      if( jj > 0.005*nxy ) break ;
@@ -893,7 +922,7 @@ MRI_IMAGE * mri_brainormalize( MRI_IMAGE *im, int xxor, int yyor, int zzor )
    int ii,jj,kk,ijk,ktop,kbot , nx,ny,nz,nxy,nxyz ;
    float val , icm,jcm,kcm,sum , dx,dy,dz ;
    byte *mask , *bar ;
-   int *zcount , *hist , z1,z2,z3 ;
+   int *zcount , *hist,*gist , z1,z2,z3 ;
 
 ENTRY("mri_brainormalize") ;
 
@@ -975,7 +1004,7 @@ ENTRY("mri_brainormalize") ;
 
    kk = mask_count(nxyz,mask) ;
    if( verb )
-     fprintf(stderr,"++mri_brainormalize: mask now has %d voxels\n",kk) ;
+     fprintf(stderr,"++mri_brainormalize: filled in mask now has %d voxels\n",kk) ;
 
    if( kk <= 999 ){ free((void *)mask); mri_free(sim); RETURN(NULL); }
 
@@ -990,6 +1019,7 @@ ENTRY("mri_brainormalize") ;
      zcount[kk] = mask_count( nxy , mask+kk*nxy ) ;
    }
 
+#if 0
    if( verb ){
      fprintf(stderr,"++mri_brainormalize: zcount from top slice #%d\n",nz-1) ;
      for( kk=nz-1 ; kk >= 0 ; kk-- ){
@@ -998,6 +1028,7 @@ ENTRY("mri_brainormalize") ;
      }
      fprintf(stderr,"\n") ;
    }
+#endif
 
    /* search down for topmost slice that meets the criterion */
 
@@ -1034,9 +1065,10 @@ ENTRY("mri_brainormalize") ;
    /* apply mask to image (will also remove any negative values) */
 
    if( verb )
-     fprintf(stderr,"++mri_brainormalize: applying mask to image; %d\n",kk) ;
+     fprintf(stderr,"++mri_brainormalize: applying mask to image; %d voxels\n",kk) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( !mask[ii] ) sar[ii] = 0 ;
-   free((void *)mask) ;
+
+   free((void *)mask) ;  /* done with this mask */
 
    /* compute CM of masked image (indexes, not mm) */
 
@@ -1076,63 +1108,190 @@ ENTRY("mri_brainormalize") ;
    nx = tim->nx ; ny = tim->ny ; nz = tim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
    sar = MRI_SHORT_PTR(tim) ;
 
+   /*-- rescale to partially uniformize --*/
+
+   { clipvec bvec ; float bval , sv ;
+     bvec = get_octant_clips( tim , 0.40f ) ;
+     if( bvec.clip_000 > 0.0f ){
+       for( ijk=kk=0 ; kk < nz ; kk++ ){
+        for( jj=0 ; jj < ny ; jj++ ){
+         for( ii=0 ; ii < nx ; ii++,ijk++ ){
+           bval = pointclip( ii,jj,kk , &bvec ) ; /* cliplevel here */
+           sv   = 1000.0f * sar[ijk] / bval ;
+           sar[ijk] = SHORTIZE(sv) ;
+         }
+     }}}
+   }
+
    /*-- build another mask now --*/
 
    if( !AFNI_noenv("REMASK") ){
-     if( verb ) fprintf(stderr,"++mri_brainormalize: masking standard image\n") ;
+     int sbot,stop , nwid , cbot,ctop , ibot,itop ;
+     float dsum , ws , *wt ;
+     int pval[128] , wval[128] , npk , tval , nmask,nhalf ;
+     float pdif ;
+     short mbot,mtop ;
 
-     THD_automask_verbose(verb) ;
+     /* build histogram */
 
-     mask = mri_short2mask( tim ) ;
-#if 1
-     { byte *ppp ; int pd ;
-       pd = (int)AFNI_numenv("PEELDEPTH") ; if( pd < 2 ) pd = 3 ;
-       ppp = make_peel_mask( nx,ny,nz , mask , pd ) ;
-       if( ppp != NULL ){
-         for( ii=0 ; ii < nxyz ; ii++ ) if( ppp[ii] ) mask[ii] = 0 ;
-         free((void *)ppp) ;
-       }
-     }
-#endif
+     hist = (int *) calloc(sizeof(int),32768) ;
+     gist = (int *) calloc(sizeof(int),32768) ;
 
-#if 1
-     { int zd = (int)AFNI_numenv("ZDEPTH") ;
-       if( zd > 0 ){
-         zedit_mask( nx,ny,nz,mask,zd, (int)(-(ZORG/DXYZ)) ) ;
-       } else {
-         THD_mask_erode( nx,ny,nz, mask ) ;
-         THD_mask_clust( nx,ny,nz, mask ) ;
-       }
-     }
-#endif
+     memset( hist , 0 , sizeof(int)*32768 ) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) hist[sar[ii]]++ ;
+     for( sbot=1 ; sbot < 32768 && hist[sbot]==0 ; sbot++ ) ; /* nada */
+     if( sbot == 32768 ) goto Remask_Done ;
+     for( stop=32768 ; stop > sbot && hist[stop]==0 ; stop-- ) ; /* nada */
+     if( stop == sbot ) goto Remask_Done ;
+
+     /* find median */
+
+     nmask = 0 ;
+     for( ii=sbot ; ii <= stop ; ii++ ) nmask += hist[ii] ;
+     nhalf = nmask / 2 ; nmask = 0 ;
+     for( ii=sbot ; ii <= stop && nmask < nhalf ; ii++ ) nmask += hist[ii] ;
+     cbot = 0.40 * ii ;
+     ctop = 1.60 * ii ;
 
 #if 0
-     (void) THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
-     (void) THD_mask_fillin_completely( nx,ny,nz , mask , 2 ) ;
-#else
+     /* smooth histogram */
+
+     nwid = rint(0.10*cbot) ;
+
+     if( nwid <= 0 ){
+       memcpy( gist , hist , sizeof(int)*32768 ) ;
+     } else {
+       ws = 0.0f ;
+       wt = (float *)malloc(sizeof(float)*(2*nwid+1)) ;
+       for( ii=0 ; ii <= 2*nwid ; ii++ ){
+         wt[ii] = nwid-abs(nwid-ii) + 0.5f ;
+         ws += wt[ii] ;
+       }
+       for( ii=0 ; ii <= 2*nwid ; ii++ ) wt[ii] /= ws ;
+       for( jj=cbot ; jj <= ctop ; jj++ ){
+         ibot = jj-nwid ; if( ibot < sbot ) ibot = sbot ;
+         itop = jj+nwid ; if( itop > stop ) itop = stop ;
+         ws = 0.0 ;
+         for( ii=ibot ; ii <= itop ; ii++ )
+           ws += wt[nwid-jj+ii] * hist[ii] ;
+         gist[jj] = rint(ws) ;
+       }
+       free(wt) ;
+     }
+
+     /* scan for peaks */
+
+     npk = 0 ;
+     for( ii=cbot+2 ; ii <= ctop-2 ; ii++ ){
+       if( gist[ii] > gist[ii-1] &&
+           gist[ii] > gist[ii-2] &&
+           gist[ii] > gist[ii+1] &&
+           gist[ii] > gist[ii+2]   ){
+             pval[npk]=ii; wval[npk++] = gist[ii];
+           }
+
+       else if( gist[ii] == gist[ii+1] &&   /* very special case */
+                gist[ii] >  gist[ii-1] &&
+                gist[ii] >  gist[ii-2] &&
+                gist[ii] >  gist[ii+2]   ){
+                  pval[npk]=ii+0.5; wval[npk++] = gist[ii];
+                }
+
+       else if( gist[ii] == gist[ii+1] &&   /* super special case */
+                gist[ii] == gist[ii-1] &&
+                gist[ii] >  gist[ii-2] &&
+                gist[ii] >  gist[ii+2]   ){
+                  pval[npk]=ii; wval[npk++] = gist[ii];
+                }
+     }
+
+     if( npk > 2 ){  /* find largest two peaks and keep only them */
+       float pval_top, pval_2nd, wval_top, wval_2nd , www; int iii,itop ;
+       www = wval[0] ; iii = 0 ;
+       for( ii=1 ; ii < npk ; ii++ ){
+         if( wval[ii] > www ){ www = wval[ii] ; iii = ii ; }
+       }
+       pval_top = pval[iii] ; wval_top = www ; itop = iii ;
+       www = -1 ; iii = -1 ;
+       for( ii=0 ; ii < npk ; ii++ ){
+         if( ii != itop && wval[ii] > www ){ www = wval[ii] ; iii = ii ; }
+       }
+       pval_2nd = pval[iii] ; wval_2nd = www ;
+
+       /* make sure peaks are increasing in pval */
+
+       if( pval_top < pval_2nd ){
+         pval[0] = pval_top ; wval[0] = wval_top ;
+         pval[1] = pval_2nd ; wval[1] = wval_2nd ;
+       } else {
+         pval[0] = pval_2nd ; wval[0] = wval_2nd ;
+         pval[1] = pval_top ; wval[1] = wval_top ;
+       }
+       npk = 2 ;
+     }
+
+     if( npk == 2 ){
+       jj = gist[pval[0]] ; tval = pval[0] ;
+       for( ii=pval[0]+1 ; ii < pval[1] ; ii++ ){
+         if( gist[ii] < jj ){ tval = ii ; jj = gist[ii] ; }
+       }
+
+       pdif = 1.5f * (tval-pval[0]) ;
+       if( pdif < pval[1]-pval[0] ) pdif = pval[1]-pval[0] ;
+       mbot = (short)(pval[0]-pdif) ;
+       if( mbot < cbot ) mbot = cbot ;
+
+       pdif = 1.5f * (pval[1]-tval) ;
+       if( pdif < pval[1]-pval[0] ) pdif = pval[1]-pval[0] ;
+       mtop = (short)(pval[1]+pdif) ;
+       if( mtop > ctop ) mtop = ctop ;
+     } else {
+       mbot = cbot ; mtop = ctop ;
+     }
+     mtop = stop+1 ;  /* effectively, no threshold here */
+#endif
+
+     mbot = cbot ; mtop = stop+1 ;
+
+     if( verb )
+      fprintf(stderr,"++mri_brainormalize: masking standard image %d..%d\n",mbot,mtop) ;
+
+     mask = (byte *) malloc( sizeof(byte)*nxyz ) ;
+     for( ii=0 ; ii < nxyz ; ii++ )
+       mask[ii] = (sar[ii] > mbot) && (sar[ii] < mtop) ;
+
+     THD_mask_erode( nx,ny,nz, mask ) ;
+     THD_mask_clust( nx,ny,nz, mask ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
      THD_mask_clust( nx,ny,nz, mask ) ;
      for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
-#endif
 
      for( ii=0 ; ii < nxyz ; ii++ ) if( !mask[ii] ) sar[ii] = 0 ;
      free((void *)mask) ;
+
+   Remask_Done:
+     free((void *)hist) ; free((void *)gist) ;
+
    }
+#if 0
+   else
+#endif
+   {
+     /*-- clip top 1% of values that have survived --*/
 
-   /*-- clip top 1% of values that have survived --*/
+     hist = (int *) calloc(sizeof(int),32768) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) hist[sar[ii]]++ ;
+     for( ii=kk=0 ; ii < 32767 ; ii++ ) kk += hist[ii] ;
+     kk = (int)(0.01*kk) ; ktop = 0 ;
+     for( jj=0,ii=32767 ; ii > 0 && jj < kk ; ii-- ){
+       jj += hist[ii] ; if( hist[ii] > 0 && ktop == 0 ) ktop = ii ;
+     }
+     jj = ii ;
+     if( verb ) fprintf(stderr," + 99%% clipping at %d (from %d)\n",jj,ktop) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) if( sar[ii] > jj ) sar[ii] = jj ;
 
-   hist = (int *) calloc(sizeof(int),32768) ;
-   for( ii=0 ; ii < nxyz ; ii++ ) hist[sar[ii]]++ ;
-   for( ii=kk=0 ; ii < 32767 ; ii++ ) kk += hist[ii] ;
-   kk = (int)(0.01*kk) ; ktop = 0 ;
-   for( jj=0,ii=32767 ; ii > 0 && jj < kk ; ii-- ){
-     jj += hist[ii] ; if( hist[ii] > 0 && ktop == 0 ) ktop = ii ;
+     free((void *)hist) ;
    }
-   jj = ii ;
-   if( verb ) fprintf(stderr," + 99%% clipping at %d (from %d)\n",jj,ktop) ;
-   for( ii=0 ; ii < nxyz ; ii++ ) if( sar[ii] > jj ) sar[ii] = jj ;
-
-   free((void *)hist) ;
 
    /*-- convert output to bytes --*/
 
