@@ -11,6 +11,8 @@
 static char prefix[THD_MAX_PREFIX] = "DT" ;
 static int datum                   = MRI_float ;
 static matrix Rtmat;
+static byte *maskptr;
+static int automask = 0;
 static void Form_R_Matrix(MRI_IMAGE *grad1Dptr);
 static void DWItoDT_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
@@ -19,20 +21,27 @@ static void DWItoDT_tsfunc( double tzero , double tdelta ,
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
-   int nopt, nbriks, ii ;
+   int nopt, nbriks, ii, nvox ;
    int addBriks = 0;
    int numMultBriks,methIndex,brikIndex;
    MRI_IMAGE *grad1Dptr = NULL;
+   MRI_IMAGE *anat_im = NULL;
+   short *sar;
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dDWItoDT [options] gradient-file dataset\n"
              "Computes 6 principle direction tensors from multiple gradient vectors\n"
              " and corresponding DTI image volumes.\n"
-             " The program takes two parameters as input: \n"
+             " The program takes two parameters as input :  \n"
              "    a 1D file of the gradient vectors with lines of ASCII floats Gxi,Gyi,Gzi\n."
              "    a 3D bucket dataset with Np+1 sub-briks where the first sub-brik is the volume\n"
              "    acquired with no diffusion weighting.\n"
+             " Options:\n"
+             "   -automask =  so that the correlation is only computed between\n"
+             "   high-intensity (presumably brain) voxels.  The\n"
+             "   intensity level is determined the same way that\n"
+             "   3dClipLevel works.\n"
              " The output is a 6 sub-brick bucket dataset containing Dxx,Dxy,Dxz,Dyy,Dyz,Dzz.\n"
 	     " These results are appropriate as the input to the 3dDTeig program.\n"
              "\n"
@@ -60,6 +69,7 @@ int main( int argc , char * argv[] )
          }
          nopt++ ; continue ;
       }
+      /* check file name to be sure not to overwrite - mod drg 12/9/2004 */
 
       /*-- datum --*/
 
@@ -79,6 +89,9 @@ int main( int argc , char * argv[] )
             exit(1) ;
          }
          nopt++ ; continue ;
+      }
+      if( strcmp(argv[nopt],"-automask") == 0 ){
+	automask = 1;
       }
    }
 
@@ -112,7 +125,7 @@ int main( int argc , char * argv[] )
    }
    
 
-   Form_R_Matrix(grad1Dptr);              /* use grad1Dptr to computer R matrix */
+   Form_R_Matrix(grad1Dptr);              /* use grad1Dptr to compute R matrix */
 
    nopt++;
 
@@ -137,6 +150,17 @@ int main( int argc , char * argv[] )
 
    mri_free(grad1Dptr);
 
+   if(automask) {
+      DSET_load(old_dset);              /* get B0 (anatomical image) from dataset */
+      anat_im = DSET_BRICK(old_dset, 0); /* set the pointer to the 0th sub-brik of the dataset */
+      maskptr =  mri_automask_image(anat_im); /* maskptr is a byte pointer for volume */
+      /* convert byte mask to same format type as dataset */
+      nvox = DSET_NVOX(old_dset); 
+      sar = (short *) calloc( nvox , sizeof(short) ) ;
+      /* copy maskptr values to sar ptr */
+      EDIT_add_brick( old_dset , MRI_short , 0.0 , sar);  /* add sub-brik to end */
+      }  
+
    /* temporarily set artificial timing to 1 second interval */
    EDIT_dset_items( old_dset ,
                     ADN_ntt    , DSET_NVALS(old_dset) ,
@@ -144,6 +168,7 @@ int main( int argc , char * argv[] )
                     ADN_ttdel  , 1.0 ,
                     ADN_tunits , UNITS_SEC_TYPE ,
                     NULL ) ;
+ 
 
    /*------------- ready to compute new dataset -----------*/
 
@@ -159,6 +184,8 @@ int main( int argc , char * argv[] )
               ) ;
 
    matrix_destroy(&Rtmat);              /* clean up */
+   if(automask)
+     free(maskptr);
 
    if( new_dset != NULL ){
       tross_Copy_History( old_dset , new_dset ) ;
@@ -261,9 +288,17 @@ static void DWItoDT_tsfunc( double tzero, double tdelta ,
       return ;
    }
    ncall++;
-
+   /* if there is an automask turned on, use corresponding voxel in the last sub-brik as a flag */
+   if(automask){
+     if (ts[npts-1]==0.0){                              /* don't include this voxel for mask */
+       for(i=0;i<6;i++)                                 /* faster to copy preset vector */
+	 val[i] = 0.0;                                  /* return 0 for all Dxx,Dxy,... */
+       EXRETURN;
+     }
+   }       
    /* load the symmetric matrix vector from the "timeseries" subbrik vector values */
    vector_initialize(&lnvector);
+   vector_initialize(&Dvector);   /* need to initialize vectors before 1st use-mod drg 12/20/2004 */
    vector_create_noinit(npts-1, &lnvector);
    dv0 = ts[0];
    if(dv0>0.0)
@@ -276,9 +311,10 @@ static void DWItoDT_tsfunc( double tzero, double tdelta ,
        lnvector.elts[i] = 0.0;
    }
 
-   vector_multiply(Rtmat,lnvector, &Dvector);    /* D = Rt * ln(I0/Ip) */
+   vector_multiply(Rtmat,lnvector, &Dvector);  /* D = Rt * ln(I0/Ip), allocated Dvector here */ 
    vector_to_array(Dvector, val);
-   vector_destroy(&lnvector);
+   vector_destroy(&lnvector);           /* free vector elements allocated */
+   vector_destroy(&Dvector);            /* need to free elements of Dvector - mod-drg 12/20/2004*/
   EXRETURN;
 }
 
