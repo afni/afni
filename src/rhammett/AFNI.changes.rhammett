@@ -1,3 +1,8 @@
+04 Mar 2003
+   * modified mri_read_dicom.c to allow to3d to read and process 
+     Siemens mosaic files while ignoring seemingly meaningful
+     garbage text.
+
 25 Feb 2003
    * modified mri_read_dicom.c to allow to3d to read and process 
      Siemens mosaic files with less information than previous versions.
