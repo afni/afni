@@ -4493,3 +4493,7 @@
 11 Apr 2003
  * Modified coxplot/plot_ts.c to allow setting of line colors using
      AFNI_1DPLOT_COLOR_xx environment variables.
+
+12 Apr 2003
+ * Modified waver.c -tstim option to skip argv[]'s that start with whitespace
+     -- this is to deal with evil Microsoft CR-LF line breaks.
