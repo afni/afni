@@ -158,16 +158,16 @@ void memplot_to_X11_sef( Display * dpy , Window w , MEM_plotdata * mp ,
 
    if( box_xbot >= box_xtop || box_ybot >= box_ytop ){
 
-      xscal = w_width / mp->aspect ; /* aspect = x-axis objective size */
-      yscal = w_height / 1.0 ;       /* 1.0    = y-axis objective size */
-      xoff  = yoff = 0.499 ;
+      xscal = (w_width -0.001) / mp->aspect ; /* aspect = x-axis objective size */
+      yscal = (w_height-0.001) / 1.0 ;        /* 1.0    = y-axis objective size */
+      xoff  = yoff = 0.0 ;
 
    } else {  /* 26 Feb 2001: scale to a given sub-box in the window */
 
       xscal = box_xtop - box_xbot ;
       yscal = box_ytop - box_ybot ;
-      xoff  = box_xbot + 0.499    ;
-      yoff  = box_ybot + 0.499    ;
+      xoff  = box_xbot + 0.0      ;
+      yoff  = box_ybot + 0.0      ;
    }
 
    if( !freee ){                           /* no aspect freedom ==> */
