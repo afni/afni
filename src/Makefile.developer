@@ -1,0 +1,71 @@
+## for SGI (nimloth in particular)
+
+# use the following line for the R10000 chip
+# CC     = cc -woff all -O3 -64 -r10000 -DSGI
+
+# use the following line for the R4400 chip
+# CC     = cc -xansi -O2 -mips2 -DSGI
+
+# I don't have access to a R5000 or R8000 system -- RWCox.
+
+CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+CC     = cc -xansi -O2 -DSGI
+CCMIN  = cc -s
+CCD    = $(CC) $(CCDEBS)
+IFLAGS = -I.
+LFLAGS = -s -L.
+
+PLUGIN_SUFFIX = so
+PLUGIN_LFLAGS = -shared
+PLUGIN_CC     = $(CC)
+PLFLAGS       = -L.
+
+AR     = /usr/bin/ar
+RANLIB = /sbin/touch
+TAR    = /bin/tar
+MKDIR  = /bin/mkdir
+LD     = /bin/ld
+GZIP   = /usr/local/bin/gzip
+
+RM = /bin/rm -f
+MV = /bin/mv -f
+CP = /bin/cp
+
+LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+
+INSTALLDIR = $(HOME)/abin
+LIBDIR     = $(HOME)/lib
+
+LLIBS  = -lmri -lXm -lXt -lX11 -lm -ldl -lc
+
+###############################################################
+# Stuff used with the central repository in RCS
+
+restore:
+	co -q -u RCS/*,v
+	chmod u+w $(RCSFILES)
+
+RCSFILES = *.c *.h *.f *.xbm Makefile.* README* *.tex AFNI.Xdef*
+
+putaway:
+	chmod u+w $(RCSFILES)
+	rcsclean -q
+	ci -q -t-"AFNI" -m"AFNI" $(RCSFILES)
+	co Makefile.INCLUDE
+
+lockall:
+	chmod u+w $(RCSFILES)
+	rcs -l $(RCSFILES)
+
+rcsclean:
+	chmod u+w $(RCSFILES)
+	rcsclean -q
+	co -q Makefile.INCLUDE
+	ls -al $(RCSFILES)
+
+ls:
+	chmod u+w $(RCSFILES)
+	ls -al $(RCSFILES)
+###############################################################
+
+include Makefile.INCLUDE

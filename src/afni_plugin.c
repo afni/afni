@@ -2169,9 +2169,9 @@ void PLUG_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cbs )
                     ANAT_prefixstr[dset->func_type] ) ;
 
          else
-            sprintf(qnam,"%-*s [%s:3D+t]" ,
+            sprintf(qnam,"%-*s [%s:3D+t:%d]" ,
                     ltop,av->dset_link[id].title ,
-                    ANAT_prefixstr[dset->func_type] ) ;
+                    ANAT_prefixstr[dset->func_type] , DSET_NUM_TIMES(dset) ) ;
 
       } else {
          if( ISFUNCBUCKET(dset) )         /* 30 Nov 1997 */
@@ -2185,10 +2185,13 @@ void PLUG_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cbs )
                     FUNC_prefixstr[dset->func_type] ) ;
 
          else
-            sprintf(qnam,"%-*s [%s:3D+t]" ,
+            sprintf(qnam,"%-*s [%s:3D+t:%d]" ,
                     ltop,av->dset_link[id].title ,
-                    FUNC_prefixstr[dset->func_type] ) ;
+                    FUNC_prefixstr[dset->func_type] , DSET_NVALS(dset) ) ;
       }
+
+      if( DSET_COMPRESSED(dset) ) strcat(qnam,"z") ;
+
       strcpy( av->dset_link[id].title , qnam ) ;
    }
 

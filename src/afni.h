@@ -465,6 +465,7 @@ typedef struct {
       Widget         misc_voxind_pb ;
       Widget         misc_hints_pb ;
       Widget         misc_anat_info_pb , misc_func_info_pb ;
+      Widget         misc_newstuff_pb ;
 } AFNI_datamode_widgets ;
 
 /*---*/

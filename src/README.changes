@@ -1,156 +1,100 @@
-     Changes to the MCW AFNI package that are not in the manuals (yet)
-==========================================================================
-27 December 1996:
-   The new auxiliary program "3dnewid" is mentioned in the AFNI
-     user's manual, but not in the auxiliary programs manual.
-     This program will assign a new identifier (ID) code to a
-     dataset.  This is useful if you use "cp" to copy a dataset's
-     files: the new copy should have "3dnewid" run on it.
---------------------------------------------------------------------------
-01 January 1997:
-   Added the switch "-in:1" to to3d.  This is to aid in the reading
-     of huge "3D:" files, and will prevent the duplication in memory
-     of entire data files while the dataset brick is being assembled.
-     With this switch, only one slice at a time will be read from
-     disk, so very large "3D:" files (e.g., containing all the data
-     from an FMRI run) can be imported.  The penalty for this is
-     somewhat more I/O overhead.  On the other hand, if the lower
-     memory requirements reduce paging to disk, the effective input
-     rate may actually be faster than without this switch.
-   [Per the request of Anders Andersen of the University of Kentucky.]
---------------------------------------------------------------------------
-01 January 1997:
-   Added a toggle button labeled "X+" next to the "Xhairs" button
-     in the first column of each AFNI controller window.  This is
-     there to allow the display of the crosshairs in all slices of
-     an AFNI montage, not just the slice containing the viewpoint.
-     The main use for this seems to be when applying "Save:one", so
-     that the captured image has the crosshairs in each slice as a
-     common reference.  For this application, closing the gap in the
-     crosshairs will probably look best.
-   N.B.: When "X+" is turned on, there is no visual cue in the
-         montage to tell you which slice contains the viewpoint.
-   [Per the request of Jeffrey Binder of MCW Neurology.]
---------------------------------------------------------------------------
-02 January 1997:
-   Added the filename "globbing" ability to FD2.  This program still
-     requires 1 image per file (3D: can only be used to specify the
-     offset and shape of the images), but now wildcards can be escaped
-     using the "\*", "\?", and "\[\]" constructions of the C shell.
-     This allows input of more files than the C shell may allow to
-     appear on the command line (in particular, on SGI systems).
-   [Per the request of Kathleen Donahue of MCW Biophysics.]
---------------------------------------------------------------------------
-03 January 1997:
-   Added the new program "waver".  This will generate an ideal waveform
-     vector with adjustable parameters (such as rise and fall times).
-     At present, the only documentation is "waver -help".
-   [Per the request of Peter Bandettini of MCW Biophysics.]
---------------------------------------------------------------------------
-10 January 1997:
-   The distribution is now split into "afni96.tgz" (source code)
-     and "doc.tgz" (PostScript documentation).  This is because
-     I've included a couple of new PostScript files in the
-     documentations set, and it's getting pretty damn big.
-   Also, added a Makefile.sgi5k for the R5000 O2 systems (now that
-     Marquette Biomedical Engineering has one I can play with).
---------------------------------------------------------------------------
-20 January 1997:
-   A Makefile for DEC Alpha OSF/1 is included.  This was devised on a
-     system at University of Maryland.
-   The script file "gmovie" can be used to create GIF animations from
-     a sequence of PNM files, as might be output from the "Save:pnm"
-     button in AFNI.  This is intended mostly as a prototype of how
-     to make animated GIFs (using the program whirlgif).
---------------------------------------------------------------------------
-21 January 1997:
-   The "Slice", "Matrix", and "Ignore" menus on the graphing windows
-     have had the "Choose" item replaced with an option menu that
-     lets you directly select the desired values, rather than have
-     to go through a popup chooser dialog.
-   The "Scale" menu "Choose" item now accepts floating point scale
-     factors, which allows for finer control of the scale of a graph.
-     Previously, it only accepted integer inputs.
---------------------------------------------------------------------------
-30 January 1997:
-   The program "3dcalc" is provided to perform voxel-by-voxel arithmetic
-     on collections of AFNI datasets.  See "3dcalc -help" for details.
---------------------------------------------------------------------------
-05 February 1997:
-   The program 3dANOVA3 is provided to perform 3-way ANOVA, voxel-by-voxel,
-     on collections of AFNI datasets.  This program is documented in
-     3dANOVA3.ps (which is also included in the new afni_aux.ps).
-   [Per the request of lots of neuroscientists at MCW.]
-==========================================================================
-06 February 1997:
-   All the changes above are collectively now called AFNI 2.01a.  Changes
-     after this date will start a new cycle.
-==========================================================================
-18 February 1997:
-   Fixed a bug in the graphing windows that caused AFNI to crash on
-     some computer systems.
-   Added some "logical" functions to 3dcalc to make it easier to perform
-     masking operations on datasets.  Also added a "-session" option to
-     all the output directory to be specified on the command line.
-   The machdep.h file now has a #define that allows the "frivolous"
-     features of afni to be avoided.  (If you don't know that they
-     are, don't ask.)
---------------------------------------------------------------------------
-23 February 1997:
-   Added the '2D Registration' plugin, which does image registration on
-     3D+time datasets, using the same routines as programs imreg and fim2.
---------------------------------------------------------------------------
-05 March 1997:
-   Added two "Read" buttons on the "Define Datamode" control panel.
-     "Sess" will read in an entirely new session, unlike the "Rescan"
-     buttons, which will just re-read already input sessions.  "1D"
-     will read in a new time series file.
-   You can now start afni without any data being present, and then read
-     datasets and time series in with the new buttons.  Note that the
-     program will create a dummy dataset that will be viewable until
-     a real session is input.
 
-   Afni has been reported to crash on startup at a couple of sites.
-     This seems to be the result of the plugin startup code, which scans
-     all the directories in the environment variable PATH for plugins.
-     This scan, and the resulting problems, can be avoided by defining
-     the environment variable AFNI_PLUGINPATH to point to the desired
-     directory where the plugins are stored.  In the C shell:
-        setenv AFNI_PLUGINPATH /plugin/directory
-     In the Bourne or Korn shells
-        AFNI_PLUGINPATH=/plugin/directory
-        export AFNI_PLUGINPATH
-     Logically, these go best in your startup files (e.g., .cshrc).
-   If you wish to avoid trying to load plugins altogther, the new
-     switch "-noplugins" can be used on the afni command line.
-     You may also set the environment variable AFNI_NOPLUGINS; this
-     will also prevent the plugin startup code from being executed.
+   *********************************************************************
+   * Changes to the MCW AFNI package that are not in the manuals (yet) *
+   *********************************************************************
 
-   Afni has also been reported to crash on Sun workstations when
-     a graph window gets closed.  Since this error does not occur
-     on the SGI, HP, and Linux workstations to which I have access,
-     I can't debug this problem.  The same remark applies to the
-     plugin startup code problem.
+--------------------------------------------------------------------------
+05 January 1998:
+   AFNI will now read compressed .BRIK files.  Programs gzip, compress, or
+     bzip2 can be used for the compressor.  AFNI will not write out such
+     compressed files -- you have to do this manually.  See the file
+     README.compression for the details.
+   AFNI can now read/write colors and palettes for the functional
+     overlay "pbar" from setup files.  The file $(HOME)/.afnirc will
+     be read on startup, if it exists.  (This file can be used to do most
+     of what is described under ".Xdefaults" far below.)  A popup menu is
+     hidden under the label on top of the color pbar.  See the file
+     README.setup for the details.
+--------------------------------------------------------------------------
+18 December 1997:
+   Added -noqual option to AFNI to make it skip quality checks when doing
+      marker transformations.
+   Added -view option to 3drefit to let it change coordinate systems.
+--------------------------------------------------------------------------
+09 December 1997:
+   Added a new chooser to let user pick interpolation method for threshold
+      (statistical) sub-bricks.
+   Removed FIM menu from Define Function control panel.
+--------------------------------------------------------------------------
+21 November 1997:
+   In to3d, added the ability to specify brick dimensions on the command
+     line using either form "120A" or "A120".  This is to make to3d
+     consistent with the way that some scanners print slice locations
+     on film.
+--------------------------------------------------------------------------
+06 November 1997:
+   Added program 3dRegAna to perform linear regression analysis on
+     voxels across multiple 3D datasets.  This could be used to detect
+     trends in activation data with some stimulus parameter, for example.
+     See the file 3dRegAna.ps (in doc.tgz) for more information.
+   [By BD Ward of MCW.]
+--------------------------------------------------------------------------
+30 October 1997:
+   Added popup "hints" to AFNI controls.  See the file README.environment
+     for information on how to turn them on and off.  These may also
+     be attached to plugins -- see plug_stats.c for an example.
+--------------------------------------------------------------------------
+06 October 1997:
+   Fixed a bug in the registration code that produced somewhat less than
+     optimal fits.  This affects imreg, fim2, and plug_imreg.
+   [Modified by BD Ward of MCW.]
+--------------------------------------------------------------------------
+04 September 1997:
+   Some Sun workstations don't have the standard library routine "rand"
+     working properly, it seems.  All the programs that use "rand" have
+     had that replaced with the "rand48" series of routines.
+   [Modified by BD Ward and RW Cox of MCW.]
+--------------------------------------------------------------------------
+22 August 1997:
+   3dcalc has been modified to allow processing of 3D+time datasets.
+     Also, it has been made more efficient (2-4 times as fast, in some
+     quick tests here at MCW).
+   [Modified by Raoquiong Tong of MCW.]
+--------------------------------------------------------------------------
+01 August 1997:
+   A label showing the values of the Anatomy, Function, and Threshold
+     at the crosshair point was added at the bottom of the rightmost
+     column in the "Define Function" control panel.  This label is
+     only active when all three viewing windows are open at once.
+     (This is due to the way that AFNI accesses data bricks.)
 
-   It is now possible to create 3D+time "fim" datasets using to3d.
-     These can be displayed within afni as the color overlay, and
-     the time "Index" button can be used to select which one is
-     displayed.  No other program in the AFNI package can deal with
-     such time-dependent functional datasets.
+   The number of levels of filename displayed in the "Switch Session"
+     chooser is now controllable with the new AFNI_SESSTRAIL environment
+     variable.  See the file README.environment for details.
+     [Both changes per the request of Paul Reber of UCSD.]
 --------------------------------------------------------------------------
-04 April 1997:
-   The program "imcalc" is available to do pixel-by-pixel calculations
-     on 2D images, providing capabilities similar to those that 3dcalc
-     supplies for 3D datasets.  Type "imcalc -help" for usage info.
---------------------------------------------------------------------------
-19 June 1997:
-   The graphing windows "Opt" menu now has items to allow you to save
-     the graph window to a PNM format image file, and to control the
-     colors used for graphing.
-   The new plugin '3D Edit' allows interactive editing of datasets
-     using all the "-1option" functions of program 3dmerge (e.g.,
-     blurring, clustering, ...).
---------------------------------------------------------------------------
+29 July 1997:
+   The new command-line program "3drefit" allows you to change some of
+     the values stored inside a 3D dataset's .HEAD file.  This makes it
+     easier to fix up mistakes made with to3d, or simply to experiment.
+     Type "3drefit -help" to get the list of command line options.
+     [Per the request of Sandy Kindermann at UCSD.]
+
+   AFNI now allows you to control the order in which coordinates are
+     displayed in the main control window (upper left) and in the
+     output of 3dclust.  This is done with the new "-orient" option,
+     or can be set with the Unix environment variable AFNI_ORIENT.
+     The new file "README.environment" documents how to use this feature.
+     Several other Unix environment variables that can affect AFNI are
+     also described therein.
+
+   The new programs "3dFriedman", "3dKruskalWallis", "3dMannWhitney", and
+     "3dWilcoxon" have been added to the package by Doug Ward.  PostScript
+     documentation is in the file "Nonparametric.ps".  These programs
+     perform voxelwise nonparametric statistics on collections of 3D
+     datasets.  They are intended to complement and provide alternatives
+     to the existing parametric programs 3dttest and 3dANOVA*.
+------------------------------------------------------------------------
 25 June 1997:
    The color "pbar" used to control the mapping from function value to
      color overlay has been extended to allow up to 20 different colors
@@ -217,79 +161,151 @@
      - AlphaSim_fig.ps:  figures for AlphaSim.ps
      - afni_aux.ps:      for all the auxiliary programs, updated to
                            include the changes to 3dfim and 3dhistog
-==========================================================================
-   All the changes above are collectively now called AFNI 2.10.  Changes
-     after this date will start a new cycle.
-==========================================================================
-29 July 1997:
-   The new command-line program "3drefit" allows you to change some of
-     the values stored inside a 3D dataset's .HEAD file.  This makes it
-     easier to fix up mistakes made with to3d, or simply to experiment.
-     Type "3drefit -help" to get the list of command line options.
-     [Per the request of Sandy Kindermann at UCSD.]
+--------------------------------------------------------------------------
+19 June 1997:
+   The graphing windows "Opt" menu now has items to allow you to save
+     the graph window to a PNM format image file, and to control the
+     colors used for graphing.
+   The new plugin '3D Edit' allows interactive editing of datasets
+     using all the "-1option" functions of program 3dmerge (e.g.,
+     blurring, clustering, ...).
+--------------------------------------------------------------------------
+04 April 1997:
+   The program "imcalc" is available to do pixel-by-pixel calculations
+     on 2D images, providing capabilities similar to those that 3dcalc
+     supplies for 3D datasets.  Type "imcalc -help" for usage info.
+--------------------------------------------------------------------------
+05 March 1997:
+   Added two "Read" buttons on the "Define Datamode" control panel.
+     "Sess" will read in an entirely new session, unlike the "Rescan"
+     buttons, which will just re-read already input sessions.  "1D"
+     will read in a new time series file.
+   You can now start afni without any data being present, and then read
+     datasets and time series in with the new buttons.  Note that the
+     program will create a dummy dataset that will be viewable until
+     a real session is input.
 
-   AFNI now allows you to control the order in which coordinates are
-     displayed in the main control window (upper left) and in the
-     output of 3dclust.  This is done with the new "-orient" option,
-     or can be set with the Unix environment variable AFNI_ORIENT.
-     The new file "README.environment" documents how to use this feature.
-     Several other Unix environment variables that can affect AFNI are
-     also described therein.
+   Afni has been reported to crash on startup at a couple of sites.
+     This seems to be the result of the plugin startup code, which scans
+     all the directories in the environment variable PATH for plugins.
+     This scan, and the resulting problems, can be avoided by defining
+     the environment variable AFNI_PLUGINPATH to point to the desired
+     directory where the plugins are stored.  In the C shell:
+        setenv AFNI_PLUGINPATH /plugin/directory
+     In the Bourne or Korn shells
+        AFNI_PLUGINPATH=/plugin/directory
+        export AFNI_PLUGINPATH
+     Logically, these go best in your startup files (e.g., .cshrc).
+   If you wish to avoid trying to load plugins altogther, the new
+     switch "-noplugins" can be used on the afni command line.
+     You may also set the environment variable AFNI_NOPLUGINS; this
+     will also prevent the plugin startup code from being executed.
 
-   The new programs "3dFriedman", "3dKruskalWallis", "3dMannWhitney", and
-     "3dWilcoxon" have been added to the package by Doug Ward.  PostScript
-     documentation is in the file "Nonparametric.ps".  These programs
-     perform voxelwise nonparametric statistics on collections of 3D
-     datasets.  They are intended to complement and provide alternatives
-     to the existing parametric programs 3dttest and 3dANOVA*.
-==========================================================================
-   All the changes above are collectively now called AFNI 2.11.  Changes
-     after this date will start a new cycle.
-==========================================================================
-01 August 1997:
-   A label showing the values of the Anatomy, Function, and Threshold
-     at the crosshair point was added at the bottom of the rightmost
-     column in the "Define Function" control panel.  This label is
-     only active when all three viewing windows are open at once.
-     (This is due to the way that AFNI accesses data bricks.)
+   Afni has also been reported to crash on Sun workstations when
+     a graph window gets closed.  Since this error does not occur
+     on the SGI, HP, and Linux workstations to which I have access,
+     I can't debug this problem.  The same remark applies to the
+     plugin startup code problem.
 
-   The number of levels of filename displayed in the "Switch Session"
-     chooser is now controllable with the new AFNI_SESSTRAIL environment
-     variable.  See the file README.environment for details.
-     [Both changes per the request of Paul Reber of UCSD.]
+   It is now possible to create 3D+time "fim" datasets using to3d.
+     These can be displayed within afni as the color overlay, and
+     the time "Index" button can be used to select which one is
+     displayed.  No other program in the AFNI package can deal with
+     such time-dependent functional datasets.
 --------------------------------------------------------------------------
-22 August 1997:
-   3dcalc has been modified to allow processing of 3D+time datasets.
-     Also, it has been made more efficient (2-4 times as fast, in some
-     quick tests here at MCW).
-   [Modified by Raoquiong Tong of MCW.]
+23 February 1997:
+   Added the '2D Registration' plugin, which does image registration on
+     3D+time datasets, using the same routines as programs imreg and fim2.
 --------------------------------------------------------------------------
-04 September 1997:
-   Some Sun workstations don't have the standard library routine "rand"
-     working properly, it seems.  All the programs that use "rand" have
-     had that replaced with the "rand48" series of routines.
-   [Modified by BD Ward and RW Cox of MCW.]
+18 February 1997:
+   Fixed a bug in the graphing windows that caused AFNI to crash on
+     some computer systems.
+   Added some "logical" functions to 3dcalc to make it easier to perform
+     masking operations on datasets.  Also added a "-session" option to
+     all the output directory to be specified on the command line.
+   The machdep.h file now has a #define that allows the "frivolous"
+     features of afni to be avoided.  (If you don't know that they
+     are, don't ask.)
 --------------------------------------------------------------------------
-06 October 1997:
-   Fixed a bug in the registration code that produced somewhat less than
-     optimal fits.  This affects imreg, fim2, and plug_imreg.
-   [Modified by BD Ward of MCW.]
+05 February 1997:
+   The program 3dANOVA3 is provided to perform 3-way ANOVA, voxel-by-voxel,
+     on collections of AFNI datasets.  This program is documented in
+     3dANOVA3.ps (which is also included in the new afni_aux.ps).
+   [Per the request of lots of neuroscientists at MCW.]
 --------------------------------------------------------------------------
-30 October 1997:
-   Added popup "hints" to AFNI controls.  See the file README.environment
-     for information on how to turn them on and off.  These may also
-     be attached to plugins -- see plug_stats.c for an example.
+30 January 1997:
+   The program "3dcalc" is provided to perform voxel-by-voxel arithmetic
+     on collections of AFNI datasets.  See "3dcalc -help" for details.
 --------------------------------------------------------------------------
-06 November 1997:
-   Added program 3dRegAna to perform linear regression analysis on
-     voxels across multiple 3D datasets.  This could be used to detect
-     trends in activation data with some stimulus parameter, for example.
-     See the file 3dRegAna.ps (in doc.tgz) for more information.
-   [By BD Ward of MCW.]
+21 January 1997:
+   The "Slice", "Matrix", and "Ignore" menus on the graphing windows
+     have had the "Choose" item replaced with an option menu that
+     lets you directly select the desired values, rather than have
+     to go through a popup chooser dialog.
+   The "Scale" menu "Choose" item now accepts floating point scale
+     factors, which allows for finer control of the scale of a graph.
+     Previously, it only accepted integer inputs.
 --------------------------------------------------------------------------
-21 November 1997:
-   In to3d, added the ability to specify brick dimensions on the command
-     line using either form "120A" or "A120".  This is to make to3d
-     consistent with the way that some scanners print slice locations
-     on film.
+20 January 1997:
+   A Makefile for DEC Alpha OSF/1 is included.  This was devised on a
+     system at University of Maryland.
+   The script file "gmovie" can be used to create GIF animations from
+     a sequence of PNM files, as might be output from the "Save:pnm"
+     button in AFNI.  This is intended mostly as a prototype of how
+     to make animated GIFs (using the program whirlgif).
+--------------------------------------------------------------------------
+10 January 1997:
+   The distribution is now split into "afni96.tgz" (source code)
+     and "doc.tgz" (PostScript documentation).  This is because
+     I've included a couple of new PostScript files in the
+     documentations set, and it's getting pretty damn big.
+   Also, added a Makefile.sgi5k for the R5000 O2 systems (now that
+     Marquette Biomedical Engineering has one I can play with).
+--------------------------------------------------------------------------
+03 January 1997:
+   Added the new program "waver".  This will generate an ideal waveform
+     vector with adjustable parameters (such as rise and fall times).
+     At present, the only documentation is "waver -help".
+   [Per the request of Peter Bandettini of MCW Biophysics.]
+--------------------------------------------------------------------------
+02 January 1997:
+   Added the filename "globbing" ability to FD2.  This program still
+     requires 1 image per file (3D: can only be used to specify the
+     offset and shape of the images), but now wildcards can be escaped
+     using the "\*", "\?", and "\[\]" constructions of the C shell.
+     This allows input of more files than the C shell may allow to
+     appear on the command line (in particular, on SGI systems).
+   [Per the request of Kathleen Donahue of MCW Biophysics.]
+--------------------------------------------------------------------------
+01 January 1997:
+   Added a toggle button labeled "X+" next to the "Xhairs" button
+     in the first column of each AFNI controller window.  This is
+     there to allow the display of the crosshairs in all slices of
+     an AFNI montage, not just the slice containing the viewpoint.
+     The main use for this seems to be when applying "Save:one", so
+     that the captured image has the crosshairs in each slice as a
+     common reference.  For this application, closing the gap in the
+     crosshairs will probably look best.
+   N.B.: When "X+" is turned on, there is no visual cue in the
+         montage to tell you which slice contains the viewpoint.
+   [Per the request of Jeffrey Binder of MCW Neurology.]
+--------------------------------------------------------------------------
+01 January 1997:
+   Added the switch "-in:1" to to3d.  This is to aid in the reading
+     of huge "3D:" files, and will prevent the duplication in memory
+     of entire data files while the dataset brick is being assembled.
+     With this switch, only one slice at a time will be read from
+     disk, so very large "3D:" files (e.g., containing all the data
+     from an FMRI run) can be imported.  The penalty for this is
+     somewhat more I/O overhead.  On the other hand, if the lower
+     memory requirements reduce paging to disk, the effective input
+     rate may actually be faster than without this switch.
+   [Per the request of Anders Andersen of the University of Kentucky.]
+--------------------------------------------------------------------------
+27 December 1996:
+   The new auxiliary program "3dnewid" is mentioned in the AFNI
+     user's manual, but not in the auxiliary programs manual.
+     This program will assign a new identifier (ID) code to a
+     dataset.  This is useful if you use "cp" to copy a dataset's
+     files: the new copy should have "3dnewid" run on it.
 --------------------------------------------------------------------------

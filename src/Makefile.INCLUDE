@@ -52,6 +52,13 @@ programs:$(PROGRAMS)
 
 programs_noplug:$(PROGRAMS_NOPLUG)
 
+quotize:quotize.o
+	$(CC) -o quotize quotize.o $(LFLAGS) $(LLIBS)
+
+newstuff.hhh:quotize README.changes
+	$(RM) newstuff.hhh
+	./quotize newstuff < README.changes > newstuff.hhh
+
 3dnoise:3dnoise.o 3ddata.o
 	$(CC) -o 3dnoise 3dnoise.o 3ddata.o $(LFLAGS) $(LLIBS)
 
@@ -468,6 +475,14 @@ afni96.tgz:
 	$(TAR) cf - AFNI96 | $(GZIP) -9v > afni96.tgz
 	$(RM) -r AFNI96
 
+afni98.tgz:
+	$(RM) $@
+	$(MKDIR) AFNI98
+	$(CP) *.c *.f *.inc *.h Makefile.* *.xbm $(MINDOCS) $(MISC) ./AFNI98
+	$(CP) -r f2cdir ./AFNI98
+	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
+	$(RM) -r AFNI98
+
 src.tgz:
 	$(RM) $@
 	$(MKDIR) ./SRC
@@ -509,7 +524,7 @@ install_lib:
 afni.o:imseq.h 3ddata.h xutil.h pbar.h afni.h bbox.h afni_warp.h \
        afni_graph.h afni_setup.h machdep.h
 
-afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h machdep.h
+afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h machdep.h newstuff.hhh
 afni_widg.o:imseq.h 3ddata.h xutil.h pbar.h afni.h mcw.h machdep.h
 afni_warp.o:afni_warp.h 3ddata.h machdep.h
 afni_graph.o:afni_graph.h 3ddata.h xutil.h bbox.h afni.h machdep.h

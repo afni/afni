@@ -1563,6 +1563,7 @@ typedef struct THD_3dim_dataset {
 
 #ifdef ALLOW_COMPRESSOR
 #  define DSET_COMPRESSED(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
+                                (ds)->dblk->diskptr != NULL          && \
                                 COMPRESS_filecode((ds)->dblk->diskptr->brick_name) >= 0 )
 #else
 #  define DSET_COMPRESSED(ds) 0

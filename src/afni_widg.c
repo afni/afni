@@ -1343,9 +1343,11 @@ ENTRY("AFNI_make_wid1") ;
         "Use this to choose which\n"
         "anatomical 3D dataset to view\n"
         "(from the current session).\n\n"
-        "N.B.: datasets which can be\n"
+        "N.B.: Datasets which can be\n"
         "  graphed are marked with a\n"
-        "  * after their names."
+        "  '*' after their names.\n"
+        "  Datasets that are compressed\n"
+        "  have 'z' after their names."
    ) ;
    MCW_register_hint( view->choose_anat_pb ,
                       "Switch between anatomical datasets" ) ;
@@ -1366,7 +1368,10 @@ ENTRY("AFNI_make_wid1") ;
    MCW_register_help( view->choose_func_pb ,
      "Use this to choose which\n"
      "functional 3D dataset to view\n"
-     "(from the current session)." ) ;
+     "(from the current session).\n"
+     "N.B.: Datasets that are compressed\n"
+     "  have 'z' after their names."
+    ) ;
    MCW_register_hint( view->choose_func_pb ,
                       "Switch between functional datasets" ) ;
 
@@ -4416,6 +4421,18 @@ void AFNI_misc_button( Three_D_View * im3d )
    XtAddCallback( dmode->misc_func_info_pb , XmNactivateCallback ,
                   AFNI_misc_CB , im3d ) ;
    MCW_register_hint( dmode->misc_func_info_pb , "Popup func dataset info" ) ;
+
+   dmode->misc_newstuff_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , menu ,
+               LABEL_ARG("New Stuff") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   XtAddCallback( dmode->misc_newstuff_pb , XmNactivateCallback ,
+                  AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( dmode->misc_newstuff_pb , "List New Features" ) ;
 
    XtManageChild( rc ) ;
    return ;

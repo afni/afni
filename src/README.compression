@@ -3,7 +3,9 @@ Compressed Dataset .BRIK Files
 AFNI now supports the use of compressed .BRIK files.  The routines
 that open and read these files detect the compression mode using
 the filename suffix, and will use the correct decompression program
-to read them in from disk.
+to read them in from disk.  The character 'z' is added to the end
+of a dataset's listing in the AFNI menus if the .BRIK is compressed;
+for example, "elvis [epan]z".
 
 How to Compress
 ===============

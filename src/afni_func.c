@@ -1507,7 +1507,9 @@ ENTRY("AFNI_choose_dataset_CB") ;
                     ANAT_prefixstr[ im3d->ss_now->anat[ii][vv]->func_type ] ) ;
 
             if( DSET_NUM_TIMES(im3d->ss_now->anat[ii][vv]) > 1 ){
-               strcat( strlist[ii] , ":3D+t]" ) ;
+               int ll = strlen(strlist[ii]) ;
+               sprintf( strlist[ii]+ll , ":3D+t:%d]" ,
+                        DSET_NUM_TIMES(im3d->ss_now->anat[ii][vv]) ) ;
             } else if( ISANATBUCKET(im3d->ss_now->anat[ii][vv]) ){
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":%d]" ,
@@ -1518,6 +1520,9 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
             if( DSET_GRAPHABLE(im3d->ss_now->anat[ii][vv]) )
                strcat( strlist[ii] , "*" ) ;
+
+            if( DSET_COMPRESSED(im3d->ss_now->anat[ii][vv]) )
+               strcat( strlist[ii] , "z" ) ;
 
          } else
             MCW_strncpy( strlist[ii] , "?????????" , THD_MAX_PREFIX ) ;
@@ -1559,7 +1564,9 @@ ENTRY("AFNI_choose_dataset_CB") ;
                     FUNC_prefixstr[ im3d->ss_now->func[ii][vv]->func_type ] ) ;
 
             if( DSET_NUM_TIMES(im3d->ss_now->func[ii][vv]) > 1 ){
-               strcat( strlist[ii] , ":3D+t]" ) ;
+               int ll = strlen(strlist[ii]) ;
+               sprintf( strlist[ii]+ll , ":3D+t:%d]" ,
+                        DSET_NUM_TIMES(im3d->ss_now->func[ii][vv]) ) ;
             } else if( ISFUNCBUCKET(im3d->ss_now->func[ii][vv]) ){
                int ll = strlen(strlist[ii]) ;
                sprintf( strlist[ii]+ll , ":%d]" ,
@@ -1567,6 +1574,9 @@ ENTRY("AFNI_choose_dataset_CB") ;
             } else {
                strcat( strlist[ii] , "]" ) ;
             }
+
+            if( DSET_COMPRESSED(im3d->ss_now->anat[ii][vv]) )
+               strcat( strlist[ii] , "z" ) ;
 
          } else
             MCW_strncpy( strlist[ii] , "*********" , THD_MAX_PREFIX ) ;
@@ -3893,6 +3903,8 @@ char * AFNI_bucket_label_CB( MCW_arrowval * av , XtPointer cd )
   Callback for all actions in the misc menu
 -----------------------------------------------------------------*/
 
+#include "newstuff.hhh"
+
 void AFNI_misc_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
@@ -3915,8 +3927,8 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_anat_info_pb ){
       char * inf = THD_dataset_info( im3d->anat_now , 0 ) ;
       if( inf != NULL ){
-         (void)  new_MCW_textwin( im3d->vwid->imag->topper ,
-                                  inf , TEXT_READONLY ) ;
+         (void) new_MCW_textwin( im3d->vwid->imag->topper ,
+                                 inf , TEXT_READONLY ) ;
          free(inf) ;
       } else
          XBell( im3d->dc->display , 100 ) ;
@@ -3925,11 +3937,28 @@ ENTRY("AFNI_misc_CB") ;
    else if( w == im3d->vwid->dmode->misc_func_info_pb ){
       char * inf = THD_dataset_info( im3d->fim_now , 0 ) ;
       if( inf != NULL ){
-         (void)  new_MCW_textwin( im3d->vwid->imag->topper ,
-                                  inf , TEXT_READONLY ) ;
+         (void) new_MCW_textwin( im3d->vwid->imag->topper ,
+                                 inf , TEXT_READONLY ) ;
          free(inf) ;
       } else
          XBell( im3d->dc->display , 100 ) ;
+   }
+
+   else if( w == im3d->vwid->dmode->misc_newstuff_pb ){
+      char * inf ;
+      int lsum=8 , ii ;
+
+      for( ii=0 ; ii < NUM_newstuff ; ii++ )
+         lsum += strlen( newstuff[ii] ) ;
+
+      inf = (char *) malloc(sizeof(char)*lsum) ; inf[0] = '\0' ;
+      for( ii=0 ; ii < NUM_newstuff ; ii++ )
+         strcat( inf , newstuff[ii] ) ;
+
+      (void) new_MCW_textwin( im3d->vwid->imag->topper ,
+                              inf , TEXT_READONLY ) ;
+
+      free(inf) ;
    }
 
    /****----- Get Outta Here -----****/
