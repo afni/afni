@@ -342,13 +342,17 @@ switch NF
 		         Contr.ord1.cnt(i).code(j).pos = 0;
 					shift = num_col0;   % Grand mean 
 		         for (k = 1:1:NF),
-                  if (str2num(Contr.ord1.cnt(i).code(j).str(k)) ~= 0), 
+                  if (Contr.ord1.cnt(i).code(j).str(k) >= 'a' & Contr.ord1.cnt(i).code(j).str(k) <= 'z'), 
+						   tmpv = 10 + Contr.ord1.cnt(i).code(j).str(k) - 'a';
+						else tmpv = Contr.ord1.cnt(i).code(j).str(k) - '0'; end						
+						
+						if (tmpv ~= 0), 
 	                  first = first + 1;  % the first non-zero index backward!
 				         if (first == 1),
 				            Contr.ord1.cnt(i).idx1 = k;
 					         tmp = FL(k).N_level;
 		               elseif (first > 1), 
-		                  fprintf('\nError in contrast coding: more than one non-zero indice in 1st order constrasts!\n');
+		                  fprintf('\nError in contrast coding: more than one non-zero index in 1st order constrasts!\n');
 		                  fprintf(2,'Halted: Ctrl+c to exit'); pause;
 				         end
 		            end
@@ -358,7 +362,12 @@ switch NF
 					   shift = shift + FL(k).N_level;
 					end					
 					end
-		         Contr.ord1.cnt(i).code(j).pos = shift + str2num(Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1)); 
+					
+					if (Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) >= 'a' & Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) <= 'z'),
+					   tmpv = 10 + Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) - 'a';
+					else tmpv = Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) - '0'; end
+					
+		         Contr.ord1.cnt(i).code(j).pos = shift + tmpv; 
 		         tmp = FL(Contr.ord1.cnt(i).idx1).N_level/n;
 		         Contr.ord1.cnt(i).scalar = tmp * Contr.ord1.cnt(i).coef*Contr.ord1.cnt(i).coef';		
 		         Contr.ord1.cnt(i).vec = Contr.ord1.cnt(i).vec + Contr.ord1.cnt(i).coef(j) * dmat(:, Contr.ord1.cnt(i).code(j).pos)';			
@@ -376,13 +385,17 @@ switch NF
 		         Contr.ord1.cnt(i).code(j).pos = 0;
 					shift = num_col0;   % Grand mean 
 		         for (k = 1:1:NF),
-                  if (str2num(Contr.ord1.cnt(i).code(j).str(k)) ~= 0), 
+                  if (Contr.ord1.cnt(i).code(j).str(k) >= 'a' & Contr.ord1.cnt(i).code(j).str(k) <= 'z'), 
+						   tmpv = 10 + Contr.ord1.cnt(i).code(j).str(k) - 'a';
+						else tmpv = Contr.ord1.cnt(i).code(j).str(k) - '0'; end
+						
+						if (tmpv ~= 0), 
 	                  first = first + 1;  % the first non-zero index backward!
 				         if (first == 1),
 				            Contr.ord1.cnt(i).idx1 = k;
 					         tmp = FL(k).N_level;
 		               elseif (first > 1), 
-		                  fprintf('\nError in contrast coding: more than one non-zero indice in 1st order constrasts!\n');
+		                  fprintf('\nError in contrast coding: more than one non-zero index in 1st order constrasts!\n');
 		                  fprintf(2,'Halted: Ctrl+c to exit'); pause;
 				         end
 		            end
@@ -392,7 +405,12 @@ switch NF
 					   shift = shift + FL(k).N_level;
 					end					
 					end
-		         Contr.ord1.cnt(i).code(j).pos = shift + str2num(Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1)); 
+					
+					if (Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) >= 'a' & Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) <= 'z'),
+					   tmpv = 10 + Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) - 'a';
+					else tmpv = Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) - '0'; end
+					
+		         Contr.ord1.cnt(i).code(j).pos = shift + tmpv; 
 		         tmp = FL(Contr.ord1.cnt(i).idx1).N_level/n;
 		         Contr.ord1.cnt(i).scalar = tmp * Contr.ord1.cnt(i).coef*Contr.ord1.cnt(i).coef';		
 		         Contr.ord1.cnt(i).vec = Contr.ord1.cnt(i).vec + Contr.ord1.cnt(i).coef(j) * dmat(:, Contr.ord1.cnt(i).code(j).pos)';			
@@ -411,7 +429,11 @@ switch NF
                first = 0;
 		         Contr.ord2.cnt(i).code(j).pos = 0;
 		         for (k = 1:1:NF),
-                  if (str2num(Contr.ord2.cnt(i).code(j).str(k)) ~= 0), 
+                  if (Contr.ord2.cnt(i).code(j).str(k) >= 'a' & Contr.ord2.cnt(i).code(j).str(k) <= 'z'), 
+						   tmpv = 10 + Contr.ord2.cnt(i).code(j).str(k) - 'a';
+						else tmpv = Contr.ord2.cnt(i).code(j).str(k) - '0'; end
+						
+						if (tmpv ~= 0), 
          	         first = first + 1;  % the first non-zero index backward!
 			         	if (first == 1),
 				            Contr.ord2.cnt(i).idx1 = k;
@@ -424,18 +446,38 @@ switch NF
 		            case 1,
 			            switch Contr.ord2.cnt(i).idx2
 				            case 2, 
-					            Contr.ord2.cnt(i).code(j).pos = shift + (str2num(Contr.ord2.cnt(i).code(j).str(1)) - 1) * FL(2).N_level + ...
-					               str2num(Contr.ord2.cnt(i).code(j).str(2)); % AB
+					            if (Contr.ord2.cnt(i).code(j).str(1) >= 'a' & Contr.ord2.cnt(i).code(j).str(1) <= 'z'),
+									   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(1) - 'a';
+					            else tmpv1 = Contr.ord2.cnt(i).code(j).str(1) - '0'; end
+									if (Contr.ord2.cnt(i).code(j).str(2) >= 'a' & Contr.ord2.cnt(i).code(j).str(2) <= 'z'),
+									   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(2) - 'a';
+					            else tmpv2 = Contr.ord2.cnt(i).code(j).str(2) - '0'; end
+									
+									Contr.ord2.cnt(i).code(j).pos = shift + (tmpv1 - 1) * FL(2).N_level + tmpv2; % AB
 						         tmp = FL(1).N_level*FL(2).N_level/n;
 					         case 3, 
-					            Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*FL(2).N_level+ ... 
-					               (str2num(Contr.ord2.cnt(i).code(j).str(1)) - 1) * FL(3).N_level + str2num(Contr.ord2.cnt(i).code(j).str(3)); % AC	
+					            if (Contr.ord2.cnt(i).code(j).str(1) >= 'a' & Contr.ord2.cnt(i).code(j).str(1) <= 'z'),
+									   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(1) - 'a';
+					            else tmpv1 = Contr.ord2.cnt(i).code(j).str(1) - '0'; end
+									if (Contr.ord2.cnt(i).code(j).str(3) >= 'a' & Contr.ord2.cnt(i).code(j).str(3) <= 'z'),
+									   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(3) - 'a';
+					            else tmpv2 = Contr.ord2.cnt(i).code(j).str(3) - '0'; end									
+									
+									Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*FL(2).N_level+ ... 
+					               (tmpv1 - 1) * FL(3).N_level + tmpv2; % AC	
 						         tmp = FL(1).N_level*FL(3).N_level/n;	
 				         end				
-			         case 2,
-			            if (Contr.ord2.cnt(i).idx2 == 3),
-					            Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level) + ...
-					               (str2num(Contr.ord2.cnt(i).code(j).str(2)) - 1) * FL(3).N_level + str2num(Contr.ord2.cnt(i).code(j).str(3)); % BC
+			         case 2,							
+							if (Contr.ord2.cnt(i).idx2 == 3),
+					            if (Contr.ord2.cnt(i).code(j).str(2) >= 'a' & Contr.ord2.cnt(i).code(j).str(2) <= 'z'),
+									   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(2) - 'a';
+					            else tmpv1 = Contr.ord2.cnt(i).code(j).str(2) - '0'; end
+									if (Contr.ord2.cnt(i).code(j).str(3) >= 'a' & Contr.ord2.cnt(i).code(j).str(3) <= 'z'),
+									   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(3) - 'a';
+					            else tmpv2 = Contr.ord2.cnt(i).code(j).str(3) - '0'; end	
+									
+									Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level) + ...
+					               (tmpv1 - 1) * FL(3).N_level + tmpv2; % BC
 						         tmp = FL(2).N_level*FL(3).N_level/n; 
 							else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
 			         case 3, 
@@ -458,13 +500,17 @@ switch NF
 		         Contr.ord1.cnt(i).code(j).pos = 0;
 					shift = num_col0;   % Grand mean 
 		         for (k = 1:1:NF),
-                  if (str2num(Contr.ord1.cnt(i).code(j).str(k)) ~= 0), 
+                  if (Contr.ord1.cnt(i).code(j).str(k) >= 'a' & Contr.ord1.cnt(i).code(j).str(k) <= 'z'), 
+						   tmpv = 10 + Contr.ord1.cnt(i).code(j).str(k) - 'a';
+						else tmpv = Contr.ord1.cnt(i).code(j).str(k) - '0'; end
+						
+						if (tmpv ~= 0), 
 	                  first = first + 1;  % the first non-zero index backward!
 				         if (first == 1),
 				            Contr.ord1.cnt(i).idx1 = k;
 					         tmp = FL(k).N_level;
 		               elseif (first > 1), 
-		                  fprintf('\nError in contrast coding: more than one non-zero indice in 1st order constrasts!\n');
+		                  fprintf('\nError in contrast coding: more than one non-zero index in 1st order constrasts!\n');
 		                  fprintf(2,'Halted: Ctrl+c to exit'); pause;
 				         end
 		            end
@@ -474,7 +520,11 @@ switch NF
 					   shift = shift + FL(k).N_level;
 					end					
 					end
-		         Contr.ord1.cnt(i).code(j).pos = shift + str2num(Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1)); 
+					if (Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) >= 'a' & Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) <= 'z'),
+					   tmpv = 10 + Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) - 'a';
+					else tmpv = Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) - '0'; end
+					
+		         Contr.ord1.cnt(i).code(j).pos = shift + tmpv; 
 		         tmp = FL(Contr.ord1.cnt(i).idx1).N_level/n;
 		         Contr.ord1.cnt(i).scalar = tmp * Contr.ord1.cnt(i).coef*Contr.ord1.cnt(i).coef';		
 		         Contr.ord1.cnt(i).vec = Contr.ord1.cnt(i).vec + Contr.ord1.cnt(i).coef(j) * dmat(:, Contr.ord1.cnt(i).code(j).pos)';			
@@ -493,7 +543,11 @@ switch NF
                first = 0;
 		         Contr.ord2.cnt(i).code(j).pos = 0;
 		         for (k = 1:1:NF),
-                  if (str2num(Contr.ord2.cnt(i).code(j).str(k)) ~= 0), 
+                  if (Contr.ord2.cnt(i).code(j).str(k) >= 'a' & Contr.ord2.cnt(i).code(j).str(k) <= 'z'), 
+						   tmpv = 10 + Contr.ord2.cnt(i).code(j).str(k) - 'a';
+						else tmpv = Contr.ord2.cnt(i).code(j).str(k) - '0'; end
+						
+						if (tmpv ~= 0), 
          	         first = first + 1;  % the first non-zero index backward!
 			         	if (first == 1),
 				            Contr.ord2.cnt(i).idx1 = k;
@@ -506,18 +560,38 @@ switch NF
 		            case 1,
 			            switch Contr.ord2.cnt(i).idx2
 				            case 2, 
-					            Contr.ord2.cnt(i).code(j).pos = shift + (str2num(Contr.ord2.cnt(i).code(j).str(1)) - 1) * FL(2).N_level + ...
-					               str2num(Contr.ord2.cnt(i).code(j).str(2)); % AB
+					            if (Contr.ord2.cnt(i).code(j).str(1) >= 'a' & Contr.ord2.cnt(i).code(j).str(1) <= 'z'),
+									   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(1) - 'a';
+					            else tmpv1 = Contr.ord2.cnt(i).code(j).str(1) - '0'; end
+									if (Contr.ord2.cnt(i).code(j).str(2) >= 'a' & Contr.ord2.cnt(i).code(j).str(2) <= 'z'),
+									   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(2) - 'a';
+					            else tmpv2 = Contr.ord2.cnt(i).code(j).str(2) - '0'; end
+									
+									Contr.ord2.cnt(i).code(j).pos = shift + (tmpv1 - 1) * FL(2).N_level + tmpv2; % AB
 						         tmp = FL(1).N_level*FL(2).N_level/n;
 					         case 3, 
-					            Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*FL(2).N_level+ ... 
-					               (str2num(Contr.ord2.cnt(i).code(j).str(1)) - 1) * FL(3).N_level + str2num(Contr.ord2.cnt(i).code(j).str(3)); % AC	
+					            if (Contr.ord2.cnt(i).code(j).str(1) >= 'a' & Contr.ord2.cnt(i).code(j).str(1) <= 'z'),
+									   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(1) - 'a';
+					            else tmpv1 = Contr.ord2.cnt(i).code(j).str(1) - '0'; end
+									if (Contr.ord2.cnt(i).code(j).str(3) >= 'a' & Contr.ord2.cnt(i).code(j).str(3) <= 'z'),
+									   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(3) - 'a';
+					            else tmpv2 = Contr.ord2.cnt(i).code(j).str(3) - '0'; end									
+									
+									Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*FL(2).N_level+ ... 
+					               (tmpv1 - 1) * FL(3).N_level + tmpv2; % AC	
 						         tmp = FL(1).N_level*FL(3).N_level/n;	
 				         end				
 			         case 2,
 			            if (Contr.ord2.cnt(i).idx2 == 3),
-					            Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level) + ...
-					               (str2num(Contr.ord2.cnt(i).code(j).str(2)) - 1) * FL(3).N_level + str2num(Contr.ord2.cnt(i).code(j).str(3)); % BC
+					            if (Contr.ord2.cnt(i).code(j).str(2) >= 'a' & Contr.ord2.cnt(i).code(j).str(2) <= 'z'),
+									   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(2) - 'a';
+					            else tmpv1 = Contr.ord2.cnt(i).code(j).str(2) - '0'; end
+									if (Contr.ord2.cnt(i).code(j).str(3) >= 'a' & Contr.ord2.cnt(i).code(j).str(3) <= 'z'),
+									   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(3) - 'a';
+					            else tmpv2 = Contr.ord2.cnt(i).code(j).str(3) - '0'; end	
+									
+									Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level) + ...
+					               (tmpv1 - 1) * FL(3).N_level + tmpv2; % BC
 						         tmp = FL(2).N_level*FL(3).N_level/n; 
 							else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
 			         case 3, 
@@ -541,7 +615,11 @@ for (i = 1:1:Contr.ord3.tot),
       first = 0;
 		Contr.ord3.cnt(i).code(j).pos = 0;
 		for (k = 1:1:NF),
-         if (str2num(Contr.ord3.cnt(i).code(j).str(k)) ~= 0), 
+         if (Contr.ord3.cnt(i).code(j).str(k) >= 'a' & Contr.ord3.cnt(i).code(j).str(k) <= 'z'), 
+				tmpv = 10 + Contr.ord3.cnt(i).code(j).str(k) - 'a';
+			else tmpv = Contr.ord3.cnt(i).code(j).str(k) - '0'; end
+			
+			if (tmpv ~= 0), 
 	         first = first + 1;  % the first non-zero index backward!
 				if (first == 1),
 				   Contr.ord3.cnt(i).idx1 = k;
@@ -557,8 +635,18 @@ for (i = 1:1:Contr.ord3.tot),
 			   switch Contr.ord3.cnt(i).idx2
 				   case 2,
 					   if (Contr.ord3.cnt(i).idx3 == 3),
-						   Contr.ord3.cnt(i).code(j).pos = shift + (str2num(Contr.ord3.cnt(i).code(j).str(1)) - 1) * FL(2).N_level * FL(3).N_level + ...
-					         (str2num(Contr.ord3.cnt(i).code(j).str(2)) - 1) * FL(3).N_level + str2num(Contr.ord3.cnt(i).code(j).str(3)); % ABC
+						   if (Contr.ord3.cnt(i).code(j).str(1) >= 'a' & Contr.ord3.cnt(i).code(j).str(1) <= 'z'),
+								tmpv1 = 10 + Contr.ord3.cnt(i).code(j).str(1) - 'a';
+					      else tmpv1 = Contr.ord3.cnt(i).code(j).str(1) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(2) >= 'a' & Contr.ord3.cnt(i).code(j).str(2) <= 'z'),
+							   tmpv2 = 10 + Contr.ord3.cnt(i).code(j).str(2) - 'a';
+					      else tmpv2 = Contr.ord3.cnt(i).code(j).str(2) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(3) >= 'a' & Contr.ord3.cnt(i).code(j).str(3) <= 'z'),
+							   tmpv3 = 10 + Contr.ord3.cnt(i).code(j).str(3) - 'a';
+					      else tmpv3 = Contr.ord3.cnt(i).code(j).str(3) - '0'; end
+							
+							Contr.ord3.cnt(i).code(j).pos = shift + (tmpv1 - 1) * FL(2).N_level * FL(3).N_level + ...
+					         (tmpv2 - 1) * FL(3).N_level + tmpv3; % ABC
 							tmp = FL(1).N_level*FL(2).N_level*FL(3).N_level/n;
 						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;		
 						end  %if (Contr.ord3.cnt(i).idx3 == 3)
@@ -586,13 +674,17 @@ end   % if (Contr3.tot > 0)
 		         Contr.ord1.cnt(i).code(j).pos = 0;
 					shift = num_col0;   % Grand mean 
 		         for (k = 1:1:NF),
-                  if (str2num(Contr.ord1.cnt(i).code(j).str(k)) ~= 0), 
+                  if (Contr.ord1.cnt(i).code(j).str(k) >= 'a' & Contr.ord1.cnt(i).code(j).str(k) <= 'z'), 
+						   tmpv = 10 + Contr.ord1.cnt(i).code(j).str(k) - 'a';
+						else tmpv = Contr.ord1.cnt(i).code(j).str(k) - '0'; end
+						
+						if (tmpv ~= 0), 
 	                  first = first + 1;  % the first non-zero index backward!
 				         if (first == 1),
 				            Contr.ord1.cnt(i).idx1 = k;
 					         tmp = FL(k).N_level;
 		               elseif (first > 1), 
-		                  fprintf('\nError in contrast coding: more than one non-zero indice in 1st order constrasts!\n');
+		                  fprintf('\nError in contrast coding: more than one non-zero index in 1st order constrasts!\n');
 		                  fprintf(2,'Halted: Ctrl+c to exit'); pause;
 				         end
 		            end
@@ -602,7 +694,11 @@ end   % if (Contr3.tot > 0)
 					   shift = shift + FL(k).N_level;
 					end					
 					end
-		         Contr.ord1.cnt(i).code(j).pos = shift + str2num(Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1)); 
+		         if (Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) >= 'a' & Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) <= 'z'),
+					   tmpv = 10 + Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) - 'a';
+					else tmpv = Contr.ord1.cnt(i).code(j).str(Contr.ord1.cnt(i).idx1) - '0'; end
+					
+		         Contr.ord1.cnt(i).code(j).pos = shift + tmpv;
 		         tmp = FL(Contr.ord1.cnt(i).idx1).N_level/n;
 		         Contr.ord1.cnt(i).scalar = tmp * Contr.ord1.cnt(i).coef*Contr.ord1.cnt(i).coef';		
 		         Contr.ord1.cnt(i).vec = Contr.ord1.cnt(i).vec + Contr.ord1.cnt(i).coef(j) * dmat(:, Contr.ord1.cnt(i).code(j).pos)';			
@@ -637,7 +733,11 @@ for (i = 1:1:Contr.ord2.tot),
       first = 0;
 		Contr.ord2.cnt(i).code(j).pos = 0;
 		for (k = 1:1:NF),
-         if (str2num(Contr.ord2.cnt(i).code(j).str(k)) ~= 0), 
+         if (Contr.ord2.cnt(i).code(j).str(k) >= 'a' & Contr.ord2.cnt(i).code(j).str(k) <= 'z'), 
+			   tmpv = 10 + Contr.ord2.cnt(i).code(j).str(k) - 'a';
+			else tmpv = Contr.ord2.cnt(i).code(j).str(k) - '0'; end
+						
+			if (tmpv ~= 0), 						 
 	         first = first + 1;  % the first non-zero index backward!
 		      % if (first == 1), tmp = str2num(Contr2.cnt(i).code(j).str(k)) - 1;	  % (level# - 1) for the first collapsed index	   		
 				% elseif (first == 2), Contr2.cnt(i).code(j).shift = Contr2.cnt(i).code(j).shift + tmp * FL(k).N_level str2num(Contr2.cnt(i).code(j).str(k);
@@ -657,34 +757,74 @@ for (i = 1:1:Contr.ord2.tot),
 		   case 1,
 			   switch Contr.ord2.cnt(i).idx2
 				   case 2, 
-					   Contr.ord2.cnt(i).code(j).pos = shift + (str2num(Contr.ord2.cnt(i).code(j).str(1)) - 1) * FL(2).N_level + ...
-					      str2num(Contr.ord2.cnt(i).code(j).str(2)); % AB
+					   if (Contr.ord2.cnt(i).code(j).str(1) >= 'a' & Contr.ord2.cnt(i).code(j).str(1) <= 'z'),
+						   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(1) - 'a';
+					   else tmpv1 = Contr.ord2.cnt(i).code(j).str(1) - '0'; end
+						if (Contr.ord2.cnt(i).code(j).str(2) >= 'a' & Contr.ord2.cnt(i).code(j).str(2) <= 'z'),
+						   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(2) - 'a';
+					   else tmpv2 = Contr.ord2.cnt(i).code(j).str(2) - '0'; end
+									
+						Contr.ord2.cnt(i).code(j).pos = shift + (tmpv1 - 1) * FL(2).N_level + tmpv2; % AB
 						tmp = FL(1).N_level*FL(2).N_level/n;
 					case 3, 
-					   Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*FL(2).N_level+ ... 
-					      (str2num(Contr.ord2.cnt(i).code(j).str(1)) - 1) * FL(3).N_level + str2num(Contr.ord2.cnt(i).code(j).str(3)); % AC	
+					   if (Contr.ord2.cnt(i).code(j).str(1) >= 'a' & Contr.ord2.cnt(i).code(j).str(1) <= 'z'),
+						   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(1) - 'a';
+					   else tmpv1 = Contr.ord2.cnt(i).code(j).str(1) - '0'; end
+						if (Contr.ord2.cnt(i).code(j).str(3) >= 'a' & Contr.ord2.cnt(i).code(j).str(3) <= 'z'),
+						   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(3) - 'a';
+					   else tmpv2 = Contr.ord2.cnt(i).code(j).str(3) - '0'; end									
+									
+						Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*FL(2).N_level+ ... 
+					   (tmpv1 - 1) * FL(3).N_level + tmpv2; % AC	
 						tmp = FL(1).N_level*FL(3).N_level/n;	
 					case 4, 
-					   Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level+FL(3).N_level) + ...
-					      (str2num(Contr.ord2.cnt(i).code(j).str(1)) - 1) * FL(4).N_level + str2num(Contr.ord2.cnt(i).code(j).str(4)); % AD
+					   if (Contr.ord2.cnt(i).code(j).str(1) >= 'a' & Contr.ord2.cnt(i).code(j).str(1) <= 'z'),
+						   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(1) - 'a';
+					   else tmpv1 = Contr.ord2.cnt(i).code(j).str(1) - '0'; end
+						if (Contr.ord2.cnt(i).code(j).str(4) >= 'a' & Contr.ord2.cnt(i).code(j).str(4) <= 'z'),
+						   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(4) - 'a';
+					   else tmpv2 = Contr.ord2.cnt(i).code(j).str(4) - '0'; end	
+						
+						Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level+FL(3).N_level) + ...
+					      (tmpv1 - 1) * FL(4).N_level + tmpv2; % AD
 						tmp = FL(1).N_level*FL(4).N_level/n;
 				end				
 			case 2,
 			   switch Contr.ord2.cnt(i).idx2
 				   case 3, 
-					   Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level + FL(4).N_level) + ...
-					      (str2num(Contr.ord2.cnt(i).code(j).str(2)) - 1) * FL(3).N_level + str2num(Contr.ord2.cnt(i).code(j).str(3)); % BC
+					   if (Contr.ord2.cnt(i).code(j).str(2) >= 'a' & Contr.ord2.cnt(i).code(j).str(2) <= 'z'),
+						   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(2) - 'a';
+					   else tmpv1 = Contr.ord2.cnt(i).code(j).str(2) - '0'; end
+						if (Contr.ord2.cnt(i).code(j).str(3) >= 'a' & Contr.ord2.cnt(i).code(j).str(3) <= 'z'),
+						   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(3) - 'a';
+					   else tmpv2 = Contr.ord2.cnt(i).code(j).str(3) - '0'; end	
+									
+						Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level) + ...
+					               (tmpv1 - 1) * FL(3).N_level + tmpv2; % BC
 						tmp = FL(2).N_level*FL(3).N_level/n; 
 					case 4, 
-					   Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level + FL(4).N_level) + ...
-					      FL(2).N_level*FL(3).N_level + (str2num(Contr.ord2.cnt(i).code(j).str(2)) - 1) * FL(4).N_level + str2num(Contr.ord2.cnt(i).code(j).str(4)); % BD
+					   if (Contr.ord2.cnt(i).code(j).str(2) >= 'a' & Contr.ord2.cnt(i).code(j).str(2) <= 'z'),
+						   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(2) - 'a';
+					   else tmpv1 = Contr.ord2.cnt(i).code(j).str(2) - '0'; end
+						if (Contr.ord2.cnt(i).code(j).str(4) >= 'a' & Contr.ord2.cnt(i).code(j).str(4) <= 'z'),
+						   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(4) - 'a';
+					   else tmpv2 = Contr.ord2.cnt(i).code(j).str(4) - '0'; end
+						
+						Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level + FL(4).N_level) + ...
+					      FL(2).N_level*FL(3).N_level + (tmpv1 - 1) * FL(4).N_level + tmpv2; % BD
 						tmp = FL(2).N_level*FL(4).N_level/n;
 			   end			
 			case 3, 
 			   if (Contr.ord2.cnt(i).idx2 == 4),
-				   Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level + FL(4).N_level) + ...
-					   FL(2).N_level*(FL(3).N_level + FL(4).N_level) + (str2num(Contr.ord2.cnt(i).code(j).str(3)) - 1) * FL(4).N_level + ...
-						str2num(Contr.ord2.cnt(i).code(j).str(4)); % CD
+				   if (Contr.ord2.cnt(i).code(j).str(3) >= 'a' & Contr.ord2.cnt(i).code(j).str(3) <= 'z'),
+						   tmpv1 = 10 + Contr.ord2.cnt(i).code(j).str(3) - 'a';
+					   else tmpv1 = Contr.ord2.cnt(i).code(j).str(3) - '0'; end
+						if (Contr.ord2.cnt(i).code(j).str(4) >= 'a' & Contr.ord2.cnt(i).code(j).str(4) <= 'z'),
+						   tmpv2 = 10 + Contr.ord2.cnt(i).code(j).str(4) - 'a';
+					   else tmpv2 = Contr.ord2.cnt(i).code(j).str(4) - '0'; end					
+					
+					Contr.ord2.cnt(i).code(j).pos = shift + FL(1).N_level*(FL(2).N_level + FL(3).N_level + FL(4).N_level) + ...
+					   FL(2).N_level*(FL(3).N_level + FL(4).N_level) + (tmpv1 - 1) * FL(4).N_level + tmpv2; % CD
 					tmp = FL(3).N_level*FL(4).N_level/n; 
 				else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause; end 			
 			case 4,
@@ -708,7 +848,11 @@ for (i = 1:1:Contr.ord3.tot),
       first = 0;
 		Contr.ord3.cnt(i).code(j).pos = 0;
 		for (k = 1:1:NF),
-         if (str2num(Contr.ord3.cnt(i).code(j).str(k)) ~= 0), 
+         if (Contr.ord3.cnt(i).code(j).str(k) >= 'a' & Contr.ord3.cnt(i).code(j).str(k) <= 'z'), 
+				tmpv = 10 + Contr.ord3.cnt(i).code(j).str(k) - 'a';
+			else tmpv = Contr.ord3.cnt(i).code(j).str(k) - '0'; end
+			
+			if (tmpv ~= 0),  
 	         first = first + 1;  % the first non-zero index backward!
 		      % if (first == 1), tmp = str2num(Contr3.cnt(i).code(j).str(k)) - 1;	  % (level# - 1) for the first collapsed index	   		
 				% elseif (first == 2), Contr3.cnt(i).code(j).shift = Contr3.cnt(i).code(j).shift + tmp * FL(k).N_level str2num(Contr3.cnt(i).code(j).str(k);
@@ -730,19 +874,53 @@ for (i = 1:1:Contr.ord3.tot),
 			   switch Contr.ord3.cnt(i).idx2
 				   case 2,
 					   switch Contr.ord3.cnt(i).idx3
-						   case 3, Contr.ord3.cnt(i).code(j).pos = shift + (str2num(Contr.ord3.cnt(i).code(j).str(1)) - 1) * FL(2).N_level * FL(3).N_level + ...
-					         (str2num(Contr.ord3.cnt(i).code(j).str(2)) - 1) * FL(3).N_level + str2num(Contr.ord3.cnt(i).code(j).str(3)); % ABC
-							   tmp = FL(1).N_level*FL(2).N_level*FL(3).N_level/n;
-							case 4, Contr.ord3.cnt(i).code(j).pos = shift + FL(1).N_level * FL(2).N_level * FL(3).N_level + ...
-							   (str2num(Contr.ord3.cnt(i).code(j).str(1)) - 1) * FL(2).N_level * FL(4).N_level + ...
-					         (str2num(Contr.ord3.cnt(i).code(j).str(2)) - 1) * FL(4).N_level + str2num(Contr.ord3.cnt(i).code(j).str(4)); % ABD
+						   case 3, % ABC
+							
+							if (Contr.ord3.cnt(i).code(j).str(1) >= 'a' & Contr.ord3.cnt(i).code(j).str(1) <= 'z'),
+								tmpv1 = 10 + Contr.ord3.cnt(i).code(j).str(1) - 'a';
+					      else tmpv1 = Contr.ord3.cnt(i).code(j).str(1) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(2) >= 'a' & Contr.ord3.cnt(i).code(j).str(2) <= 'z'),
+							   tmpv2 = 10 + Contr.ord3.cnt(i).code(j).str(2) - 'a';
+					      else tmpv2 = Contr.ord3.cnt(i).code(j).str(2) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(3) >= 'a' & Contr.ord3.cnt(i).code(j).str(3) <= 'z'),
+							   tmpv3 = 10 + Contr.ord3.cnt(i).code(j).str(3) - 'a';
+					      else tmpv3 = Contr.ord3.cnt(i).code(j).str(3) - '0'; end
+							
+							Contr.ord3.cnt(i).code(j).pos = shift + (tmpv1 - 1) * FL(2).N_level * FL(3).N_level + ...
+					         (tmpv2 - 1) * FL(3).N_level + tmpv3; % ABC
+							tmp = FL(1).N_level*FL(2).N_level*FL(3).N_level/n;
+							
+							case 4, % ABD
+							
+							if (Contr.ord3.cnt(i).code(j).str(1) >= 'a' & Contr.ord3.cnt(i).code(j).str(1) <= 'z'),
+								tmpv1 = 10 + Contr.ord3.cnt(i).code(j).str(1) - 'a';
+					      else tmpv1 = Contr.ord3.cnt(i).code(j).str(1) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(2) >= 'a' & Contr.ord3.cnt(i).code(j).str(2) <= 'z'),
+							   tmpv2 = 10 + Contr.ord3.cnt(i).code(j).str(2) - 'a';
+					      else tmpv2 = Contr.ord3.cnt(i).code(j).str(2) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(4) >= 'a' & Contr.ord3.cnt(i).code(j).str(4) <= 'z'),
+							   tmpv3 = 10 + Contr.ord3.cnt(i).code(j).str(4) - 'a';
+					      else tmpv3 = Contr.ord3.cnt(i).code(j).str(4) - '0'; end
+							
+							
+							Contr.ord3.cnt(i).code(j).pos = shift + FL(1).N_level * FL(2).N_level * FL(3).N_level + ...
+							   (tmpv1 - 1) * FL(2).N_level * FL(4).N_level + (tmpv2 - 1) * FL(4).N_level + tmpv3; % ABD
 							   tmp = FL(1).N_level*FL(2).N_level*FL(4).N_level/n;
 						end
 					case 3, 
-					   if (Contr.ord3.cnt(i).idx3 == 4),
-						   Contr.ord3.cnt(i).code(j).pos = shift + FL(1).N_level * FL(2).N_level * FL(3).N_level + FL(1).N_level * FL(2).N_level * FL(4).N_level + ...
-							   (str2num(Contr.ord3.cnt(i).code(j).str(1)) - 1) * FL(3).N_level * FL(4).N_level + ...
-					         (str2num(Contr.ord3.cnt(i).code(j).str(3)) - 1) * FL(4).N_level + str2num(Contr.ord3.cnt(i).code(j).str(4)); % ACD
+					   if (Contr.ord3.cnt(i).idx3 == 4),  % ACD
+						   if (Contr.ord3.cnt(i).code(j).str(1) >= 'a' & Contr.ord3.cnt(i).code(j).str(1) <= 'z'),
+								tmpv1 = 10 + Contr.ord3.cnt(i).code(j).str(1) - 'a';
+					      else tmpv1 = Contr.ord3.cnt(i).code(j).str(1) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(3) >= 'a' & Contr.ord3.cnt(i).code(j).str(3) <= 'z'),
+							   tmpv2 = 10 + Contr.ord3.cnt(i).code(j).str(3) - 'a';
+					      else tmpv2 = Contr.ord3.cnt(i).code(j).str(3) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(4) >= 'a' & Contr.ord3.cnt(i).code(j).str(4) <= 'z'),
+							   tmpv3 = 10 + Contr.ord3.cnt(i).code(j).str(4) - 'a';
+					      else tmpv3 = Contr.ord3.cnt(i).code(j).str(4) - '0'; end
+							
+							Contr.ord3.cnt(i).code(j).pos = shift + FL(1).N_level * FL(2).N_level * FL(3).N_level + FL(1).N_level * FL(2).N_level * FL(4).N_level + ...
+							   (tmpv1 - 1) * FL(3).N_level * FL(4).N_level + (tmpv2 - 1) * FL(4).N_level + tmpv3; % ACD
 							tmp = FL(1).N_level*FL(3).N_level*FL(4).N_level/n;
 						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;		
 						end
@@ -751,10 +929,20 @@ for (i = 1:1:Contr.ord3.tot),
 			case 2,
 			   switch Contr3.cnt(i).idx2
 				   case 3, 
-					   if (Contr.ord3.cnt(i).idx3 == 4),					
-					      Contr3.cnt(i).code(j).pos = shift + FL(1).N_level*FL(2).N_level*FL(3).N_level + FL(1).N_level*FL(2).N_level*FL(4).N_level + ...
-						      FL(1).N_level*FL(3).N_level*FL(4).N_level + (str2num(Contr3.cnt(i).code(j).str(2)) - 1) * FL(3).N_level * FL(4).N_level +...
-								(str2num(Contr3.cnt(i).code(j).str(3)) - 1)* FL(4).N_level + str2num(Contr.ord3.cnt(i).code(j).str(4)); % BCD
+					   if (Contr.ord3.cnt(i).idx3 == 4),	% BCD				
+					      if (Contr.ord3.cnt(i).code(j).str(2) >= 'a' & Contr.ord3.cnt(i).code(j).str(2) <= 'z'),
+								tmpv1 = 10 + Contr.ord3.cnt(i).code(j).str(2) - 'a';
+					      else tmpv1 = Contr.ord3.cnt(i).code(j).str(2) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(3) >= 'a' & Contr.ord3.cnt(i).code(j).str(3) <= 'z'),
+							   tmpv2 = 10 + Contr.ord3.cnt(i).code(j).str(3) - 'a';
+					      else tmpv2 = Contr.ord3.cnt(i).code(j).str(3) - '0'; end
+							if (Contr.ord3.cnt(i).code(j).str(4) >= 'a' & Contr.ord3.cnt(i).code(j).str(4) <= 'z'),
+							   tmpv3 = 10 + Contr.ord3.cnt(i).code(j).str(4) - 'a';
+					      else tmpv3 = Contr.ord3.cnt(i).code(j).str(4) - '0'; end
+							
+							Contr3.cnt(i).code(j).pos = shift + FL(1).N_level*FL(2).N_level*FL(3).N_level + FL(1).N_level*FL(2).N_level*FL(4).N_level + ...
+						      FL(1).N_level*FL(3).N_level*FL(4).N_level + (tmpv1 - 1) * FL(3).N_level * FL(4).N_level +...
+								(tmpv2 - 1)* FL(4).N_level + tmpv3; % BCD
 						   tmp = FL(2).N_level*FL(3).N_level*FL(4).N_level/n; 
 						else fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;		
 						end	
