@@ -5,17 +5,17 @@ CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = gcc -O2 -ffast-math -DSOLARIS -D_ILP32
 CCMIN  = gcc
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include -I/usr/ucbinclude
-LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib -L/usr/ucblib
+IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include
+LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
 
 # These extra libraries are for Suns
 
-EXTRA_LIBS = -lsocket -lnsl -lgen -lc -lucb -ldl
+EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -G
 PLUGIN_CC     = $(CC)
-PLFLAGS       = -L. -L/usr/dt/lib -L/usr/openwin/lib -L/usr/ucblib
+PLFLAGS       = -L. -L/usr/dt/lib -L/usr/openwin/lib
 
 AR     = /usr/ccs/bin/ar
 RANLIB = /usr/bin/touch

@@ -61,8 +61,8 @@ distribution site.
 
 COMPILATION
 -----------
-To compile AFNI, you will have to choose a Makefile.  Versions in the
-distribution file are
+To compile AFNI, you will have to choose a Makefile.  Some of the versions
+in the distribution file are
 
   filename             target system            compiler
   -------------        ---------------          -----------------------
@@ -141,9 +141,9 @@ If you are using a Sun workstation and SunOS 4.1.3, you should be aware that
 older versions of Sun's X11 graphics server ("xnews") is prone to crash with
 Motif programs, including AFNI.  A new version of this server is available
 in the "Public Patch" section of SunSolve's WWW pages, at
-http://sunsolve1.sun.com/pub-cgi/patchpage.pl (I have heard that the new
-server is also on the SunSolve CD).  To use the programs AFNI and to3d
-successfully, you MUST install this new server.  (It is quite easy, if you
+  http://sunsolve1.sun.com/pub-cgi/us/pubpatchpage.pl
+The last time I checked, the patch number was 100444-76.  To use the programs
+AFNI and to3d, you MUST install this new server.  (It is quite easy, if you
 have super-user access.)
 
 Sun's ANSI C compiler will produce lots of warning messages.  The
@@ -186,17 +186,26 @@ Using the Bourne or Korn shells:
 Again, these should go in your startup files (e.g., .cshrc) so that
 they are executed whenever you login.
 
-There seem to be some bugs in Sun's Motif.  In particular, the
-File Selection Box used in the "Read Session" (and other) buttons
-in AFNI doesn't work too well.  I don't know how to fix this
-problem.  Also, AFNI sometimes crashes under Solaris if the graph
-windows are used.  You need to install some patches that Sun has
-released for X11, Xt, and Motif.  For Solaris 2.5, these can be
-found at the USA Web page
+There seem to be some bugs in Sun's Motif as distributed with Solaris 2.5.
+AFNI sometimes crashes under Solaris if the graph windows are used.  You
+need to install some patches that Sun has released for X11, Xt, and Motif.
+For Solaris 2.5, these can be found at the USA Web pages
    http://access1.sun.com/patch.recommended/2.5.html
+   http://sunsolve1.sun.com/pub-cgi/us/pubpatchpage.pl
 or you can scout around on Sun's Web site to find them,
-if this link becomes void.  (Only the root user can install
-these patches.)
+if these link becomes void.  (Only the root user can install these patches.
+I don't know which patches are absolutely necessary -- I simply installed
+all of the OpenWindows, X11, Xt, and Motif patches I could get.  That fixed
+the problems with the graph window.)  I'm not sure if these patches are
+all incorporated into Solaris 2.6.
+
+The problem with the Motif file selection box (used by the "Read" buttons
+in AFNI) has been fixed.  This was due to an incompatibility between the
+BSD Unix "scandir" routine and the Motif FileSelectionBox widget.  AFNI
+has been rewritten to avoid scandir, and this problem should now be
+resolved (as of Feb 1998 and AFNI v2.20).  As a result of this fix, all
+reference to the "ucblib" libraries has been removed from the Solaris
+Makefiles.
 
 WOES: Hewlett Packard
 ---------------------

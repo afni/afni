@@ -12,10 +12,15 @@
 
 static char helpstring[] =
   "Purpose: 2D (slice-wise) registration of 3D+time dataset\n"
-  "Input items are:\n"
+  "[See also programs 'imreg' and '2dImReg']\n"
+  "\n"
+  "Input items to this plugin are:\n"
   "   Datasets:   Input  = 3D+time dataset to process\n"
   "               Output = Prefix for new dataset\n"
   "   Parameters: Base   = Time index for base image\n"
+  "----\n"
+  "This option is only for experimenting with the parameters\n"
+  "of the final (fine) step of the registration algorithm:\n"
   "   Fine Fit:   Blur   = FWHM of blurring prior to registration\n"
   "               Dxy    = Convergence tolerance for translations\n"
   "               Dphi   = Convergence tolerance for rotations\n"
@@ -209,7 +214,7 @@ fprintf(stderr,"\nIMREG: nx=%d ny=%d nz=%d  dx=%f dy=%f dz=%f\n",
    str = PLUTO_get_optiontag( plint ) ;
    if( str != NULL ){
       float fsig , fdxy , fdph ;
-      fsig = PLUTO_get_number(plint) ;
+      fsig = PLUTO_get_number(plint) * 0.42466090 ;
       fdxy = PLUTO_get_number(plint) ;
       fdph = PLUTO_get_number(plint) ;
       mri_align_params( 0 , 0.0,0.0,0.0 , fsig,fdxy,fdph ) ;

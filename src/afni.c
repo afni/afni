@@ -295,7 +295,11 @@ ENTRY("AFNI_parse_args") ;
 
    strcpy(GLOBAL_argopt.orient_code,"---") ;
 
-   strcpy(GLOBAL_argopt.title_name,"AFNI") ;   /* default title bar name */
+   strcpy(GLOBAL_argopt.title_name,"AFNI " VERSION) ;   /* default title bar name */
+   { int ll = strlen(GLOBAL_argopt.title_name) ;
+     if( GLOBAL_argopt.title_name[ll-1] == ' ' )
+        GLOBAL_argopt.title_name[ll-1] = '\0' ;
+   }
 
    if( argc > 1 && strncmp(argv[1],"-help",2) == 0 ) AFNI_syntax() ;
 
@@ -321,7 +325,7 @@ ENTRY("AFNI_parse_args") ;
 
       if( strncmp(argv[narg],"-tbar",5) == 0 ){
          if( narg+1 >= argc ) FatalError("need an argument after -tbar!");
-         MCW_strncpy(GLOBAL_argopt.title_name,argv[++narg],8) ;
+         MCW_strncpy(GLOBAL_argopt.title_name,argv[++narg],32) ;
          narg++ ; continue ;  /* go to next arg */
       }
 

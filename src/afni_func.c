@@ -1825,7 +1825,10 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    EXRETURN ;
 }
 
-/*-----------------------------------------------------------------------*/
+/*----------------------------------------------------------------------
+   Routines to close and open a file selection
+   dialog associated with the im3d viewer.
+------------------------------------------------------------------------*/
 
 void AFNI_close_file_dialog_CB( Widget w, XtPointer cd, XtPointer cb )
 {
@@ -1838,6 +1841,11 @@ ENTRY("AFNI_close_file_dialog") ;
 
    EXRETURN ;
 }
+
+/*----------------------------------------------------------------------
+   After this is called, the calling routine must set the callbacks,
+   window title, etc., appropriately.
+------------------------------------------------------------------------*/
 
 void AFNI_make_file_dialog( Three_D_View * im3d )
 {
@@ -1908,6 +1916,8 @@ STATUS("re-initializing old dialog") ;
 
       XtRemoveCallback( im3d->vwid->file_sbox , XmNhelpCallback ,
                         im3d->vwid->file_cb , im3d->vwid->file_cd ) ;
+
+      XtVaSetValues( im3d->vwid->file_sbox , XmNpattern,NULL , NULL ) ;
 
       im3d->vwid->file_cb = NULL ;
       im3d->vwid->file_cd = NULL ;
@@ -2190,6 +2200,7 @@ STATUS("freeing 'text' variable") ;
 void AFNI_read_1D_CB( Widget w, XtPointer cd, XtPointer cb )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
+   XmString xstr ;
 
 ENTRY("AFNI_read_1D_CB") ;
 
@@ -2203,6 +2214,14 @@ ENTRY("AFNI_read_1D_CB") ;
 
    XtAddCallback( im3d->vwid->file_sbox , XmNhelpCallback ,
                   AFNI_finalize_read_1D_CB , cd ) ;
+
+   /* 02 Feb 1998: put *.1D* in the filename pattern */
+
+   xstr = XmStringCreateLtoR( "*.1D*" , XmFONTLIST_DEFAULT_TAG ) ;
+   XtVaSetValues( im3d->vwid->file_sbox ,
+                     XmNpattern , xstr ,
+                  NULL ) ;
+   XmStringFree(xstr) ;
 
    im3d->vwid->file_cb = AFNI_finalize_read_1D_CB ;
    im3d->vwid->file_cd = cd ;

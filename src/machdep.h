@@ -30,7 +30,9 @@
                           flag will avoid some stupid compiler warnings
 
     DONT_USE_SCANDIR   = if #define-d, the Unix routine scandir won't
-                          be used.  This seems to help on Solaris.
+                          be used.  This seems to help on Solaris, and
+                          doesn't hurt on other systems, so it is now
+                          the default.
 
     DONT_INSTALL_ICONS = if #define-d, won't try to install icons for the
                           various windows (Sun's OpenWindows complains when
@@ -113,7 +115,9 @@
 # define BOXUP_SCALE
 # define DYNAMIC_LOADING_VIA_DL
 # define FIX_SCALE_SIZE_PROBLEM
-extern int alphasort(struct dirent **, struct dirent **) ;
+# ifndef DONT_USE_SCANDIR
+    extern int alphasort(struct dirent **, struct dirent **) ;
+# endif
 #endif
 
 /*** SunOS or Solaris ***/
@@ -125,7 +129,9 @@ extern int alphasort(struct dirent **, struct dirent **) ;
 # define DONT_INSTALL_ICONS
 # define NO_FRIVOLITIES
 # define FIX_SCALE_SIZE_PROBLEM
-extern int alphasort(struct dirent **, struct dirent **) ;
+# ifndef DONT_USE_SCANDIR
+    extern int alphasort(struct dirent **, struct dirent **) ;
+# endif
 
 extern double strtod() ;
 extern long   strtol() ;
@@ -142,14 +148,16 @@ extern long   strtol() ;
 
 #if defined(SOLARIS) || defined(SUN)
 # include <sys/types.h>
-# include <sys/dir.h>
+# ifndef DONT_USE_SCANDIR
+#   include <sys/dir.h>
+    extern int alphasort(struct dirent **, struct dirent **) ;
+# endif
 # define THD_MMAP_FLAG  (MAP_SHARED | MAP_NORESERVE)
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define dirent direct
 # define FIX_SCALE_SIZE_PROBLEM
 # define DONT_INSTALL_ICONS
 # define DYNAMIC_LOADING_VIA_DL
-extern int alphasort(struct dirent **, struct dirent **) ;
 #endif
 
 /*** IBM RS6000 courtesy Doug Morris of UIUC ***/
@@ -159,7 +167,9 @@ extern int alphasort(struct dirent **, struct dirent **) ;
 # define THD_MMAP_FLAG  MAP_SHARED
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define FIX_SCALE_SIZE_PROBLEM
-extern int alphasort(struct dirent **, struct dirent **) ;
+# ifndef DONT_USE_SCANDIR
+    extern int alphasort(struct dirent **, struct dirent **) ;
+# endif
 #endif
 
 /*** Linux 1.2.x ***/

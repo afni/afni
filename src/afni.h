@@ -39,7 +39,7 @@ typedef struct {
               destruct , tlrc_big , warp_4D , unique_dcs ;
       int ncolor , datum , ignore , allow_rt ;
       char orient_code[4] ;
-      char title_name[8] ;
+      char title_name[32] ;
 #ifdef ALLOW_PLUGINS
       int noplugins , noplugouts ;
 #endif
@@ -116,7 +116,7 @@ static char * SHOWFUNC_typestr[] = { "Func=Intensity" , "Func=Threshold" } ;
 /** this should always be exactly 17 characters! **/
 /*              "12345678901234567" **/
 
-#define RELEASE "31 Jan 1998      "
+#define RELEASE "14 Feb 1998      "
 
 #ifdef MAIN
 #define AFNI_about \
