@@ -1,5 +1,5 @@
 
-#define VERSION "version 2.0 (October 2, 2003)"
+#define VERSION "version 2.1 (October 20, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -69,6 +69,10 @@
 /*----------------------------------------------------------------------
  * history:
  *
+ * 2.1  October 20, 2003
+ *   - call the new engine function, SUMA_LoadSpec_eng()
+ *     (this will restrict the debug output from SUMA_LoadSpec())
+ *
  * 2.0  October 2, 2003
  *   - Major changes accepting surface data, surface coordinates, output data
  *     type, debug options, multiple sub-brick output, and node pair segment
@@ -93,6 +97,7 @@
 /*----------------------------------------------------------------------
  * todo:
  *   - verify that the inner surface is the first surface
+ *   - allow a single surface input for most functions
  *   - handle niml input
  *----------------------------------------------------------------------
 */
@@ -1548,9 +1553,13 @@ ENTRY("sdata_from_1D");
 */
 int fill_SUMA_structs ( opts_t * opts, SUMA_SurfSpecFile * spec )
 {
+    int debug = 0;
 ENTRY("fill_SUMA_structs");
 
     if ( opts->debug > 2 )
+	debug = 1;
+
+    if ( debug )
 	fputs( "-- SUMA_Create_CommonFields()...\n", stderr );
 
     if ( opts->spec_file == NULL )
@@ -1574,12 +1583,12 @@ ENTRY("fill_SUMA_structs");
 	    SUMAg_CF->InOut_Notify = 1;
     }
 
-    if ( opts->debug > 2 )
+    if ( debug )
 	fputs( "-- SUMA_Alloc_DisplayObject_Struct()...\n", stderr );
 
     SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct(SUMA_MAX_DISPLAYABLE_OBJECTS);
 
-    if ( opts->debug > 2 )
+    if ( debug )
 	fputs( "-- SUMA_Read_SpecFile()...\n", stderr );
 
     if ( SUMA_Read_SpecFile( opts->spec_file, spec) == 0 )
@@ -1596,13 +1605,13 @@ ENTRY("fill_SUMA_structs");
 	RETURN(-1);
     }
 
-    if ( opts->debug > 2 )
-	fputs( "-- SUMA_LoadSpec()...\n", stderr );
+    if ( debug )
+	fputs( "-- SUMA_LoadSpec_eng()...\n", stderr );
 
     /* actually load the surface(s) from the spec file */
-    if ( SUMA_LoadSpec(spec, SUMAg_DOv, &SUMAg_N_DOv, opts->sv_file) == 0 )
+    if (SUMA_LoadSpec_eng(spec,SUMAg_DOv,&SUMAg_N_DOv,opts->sv_file,debug) == 0)
     {
-	fprintf( stderr, "** error: failed SUMA_LoadSpec(), exiting...\n" );
+	fprintf( stderr, "** error: failed SUMA_LoadSpec_eng(), exiting...\n" );
 	RETURN(-1);
     }
 
@@ -2114,7 +2123,7 @@ ENTRY("validate_surface");
  * validate_datasets
  *
  * Note that we do not validate the SURFACE_VOLUME AFNI dataset here.
- * That is done in SUMA_LoadSpec().
+ * That is done in SUMA_LoadSpec_eng().
  *
  * Verify the AFNI dataset used for value output.
  * Check for a cmask dataset and command.
