@@ -70,6 +70,8 @@
     (aa)=='P' ? ORI_P2A_TYPE : (aa)=='A' ? ORI_A2P_TYPE : \
     (aa)=='I' ? ORI_I2S_TYPE : (aa)=='S' ? ORI_S2I_TYPE : ILLEGAL_TYPE )
 
+#define MAX_DSET 32    /* 30 Jul 2002 */
+
 typedef struct {
 
    int info_ok , no_data ;        /* status flags */
