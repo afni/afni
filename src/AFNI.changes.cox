@@ -4402,3 +4402,10 @@
 
 06 Mar 2003
  * Modified 3dWinsor.c to use -mask option.
+
+07 Mar 2003
+ * New program 3dAnhist.c.
+
+10 Mar 2003
+ * Modified imseq.[ch] to make F2 button have Button1 operate as Button2,
+     and to show cursor as a pencil shape for drawing when this mode is on.

@@ -716,6 +716,8 @@ if( PRINT_TRACING ){
    newseq->wimage_width     = -1 ;
    newseq->wimage_height    = -1 ;
 
+   newseq->cursor_state     = CURSOR_NORMAL ;   /* 10 Mar 2003 */
+
    /* initialize image statistics */
 
    newseq->imstat = (ISQ_indiv_statistics *)
@@ -1821,6 +1823,10 @@ ENTRY("ISQ_zoom_pb_CB") ;
    if( ! ISQ_REALZ(seq)       ||
        w != seq->zoom_drag_pb ||
        seq->zoom_fac == 1       ) EXRETURN ; /* bad */
+
+   if( seq->cursor_state == CURSOR_PENCIL ){ /* really bad */
+     XBell(XtDisplay(w),100); EXRETURN;
+   }
 
    seq->zoom_button1 = !seq->zoom_button1 ; /* toggle dragging */
 
@@ -4147,6 +4153,27 @@ ENTRY("ISQ_set_barhint") ;
    EXRETURN ;
 }
 
+/*-------------------------------------------------------------------*/
+
+void ISQ_set_cursor_state( MCW_imseq *seq , int cstat )  /* 10 Mar 2003 */
+{
+   if( seq->zoom_button1 || seq->record_mode ){
+     XBell(seq->dc->display,100); return;
+   }
+
+   if( cstat >= 0 ) seq->cursor_state = cstat ;
+   switch( seq->cursor_state ){
+     default:
+       POPUP_cursorize( seq->wimage ) ;
+     break ;
+
+     case CURSOR_PENCIL:
+       PENCIL_cursorize( seq->wimage ) ;
+     break ;
+   }
+   return ;
+}
+
 /*-------------------------------------------------------------------
   actually put the color bar into its window
 ---------------------------------------------------------------------*/
@@ -4221,7 +4248,9 @@ ENTRY("ISQ_drawing_EV") ;
 
          /** 03 Oct 2002: change Shift+Button1 into Button2, then send to that event handler **/
 
-         if( but == Button1 && (event->state & ShiftMask) && !(event->state & ControlMask) ){
+         if( but == Button1 &&
+             ( seq->cursor_state == CURSOR_PENCIL ||
+               ((event->state & ShiftMask) && !(event->state & ControlMask)) ) ){
            event->button = but = Button2 ;
            if( seq->button2_enabled && w == seq->wimage )
               ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
@@ -4249,7 +4278,9 @@ ENTRY("ISQ_drawing_EV") ;
 
         /** 03 Oct 2002: change Shift+Button1 into Button2, then send to that event handler **/
 
-        if( (event->state & Button1Mask) && (event->state & ShiftMask) && !(event->state & ControlMask) ){
+        if( (event->state & Button1Mask) &&
+             ( seq->cursor_state == CURSOR_PENCIL ||
+               ((event->state & ShiftMask) && !(event->state & ControlMask)) ) ){
           event->state |= Button2Mask ;
           if( seq->button2_enabled && w == seq->wimage )
              ISQ_button2_EV( w , client_data , ev , continue_to_dispatch ) ;
@@ -4399,20 +4430,29 @@ fprintf(stderr,"KeySym=%04x nbuf=%d\n",(unsigned int)ks,nbuf) ;
                }
              break ;
 
-#if 0
-             case XK_Home:    break ;
-             case XK_F2:      break ;
-             case XK_F3:      break ;
-             case XK_F4:      break ;
-             case XK_F5:      break ;
-             case XK_F6:      break ;
-             case XK_F7:      break ;
-             case XK_F8:      break ;
-             case XK_F9:      break ;
-             case XK_F10:     break ;
-             case XK_F11:     break ;
-             case XK_F12:     break ;
-#endif
+             /* 10 Mar 2003: change cursor state to drawing pencil */
+
+             case XK_F2:{
+               if( !seq->button2_enabled ){ XBell(seq->dc->display,100); EXRETURN; }
+
+               ISQ_set_cursor_state( seq ,
+                                     (seq->cursor_state == CURSOR_PENCIL)
+                                     ? CURSOR_NORMAL : CURSOR_PENCIL ) ;
+             }
+             break ;
+
+             case XK_Home:
+             case XK_F3:
+             case XK_F4:
+             case XK_F5:
+             case XK_F6:
+             case XK_F7:
+             case XK_F8:
+             case XK_F9:
+             case XK_F10:
+             case XK_F11:
+             case XK_F12:
+               XBell(seq->dc->display,100) ;
            }
            EXRETURN ;
          }
@@ -4573,7 +4613,9 @@ DPR(" .. ButtonPress") ;
 
          /** 03 Oct 2002: change Shift+Button1 into Button2 **/
 
-         if( but == Button1 && (event->state & ShiftMask) && !(event->state & ControlMask) )
+         if( but == Button1 &&
+             ( seq->cursor_state == CURSOR_PENCIL ||
+               ((event->state & ShiftMask) && !(event->state & ControlMask)) ) )
            event->button = but = Button2 ;
 
          /*-- default processing --*/
@@ -6492,6 +6534,7 @@ static unsigned char record_bits[] = {
          ) ;
 
          seq->button2_enabled = seq->button2_active = 0 ;
+         ISQ_set_cursor_state( seq , CURSOR_NORMAL ) ;
          RETURN( True );
       }
 
@@ -9064,7 +9107,7 @@ ENTRY("ISQ_record_open") ;
 
    drive_MCW_imseq( seq->record_imseq , isqDR_reimage , (XtPointer) (ntot-1) ) ;
 
-   NORMAL_cursorize( seq->wimage ) ; /* 07 Dec 2001 */
+   ISQ_set_cursor_state( seq , -1 ) ;  /* 10 Mar 2003 */
    NORMAL_cursorize( seq->wbar ) ;
 
    EXRETURN ;
