@@ -146,7 +146,7 @@ int main( int argc , char * argv[] )
       if( TF_use_bval == 1 ){
          dofbar = dofar[0] ;
          thr    = stinv( TF_pthresh , dofbar ) ;
-         printf("-- fixed t-threshold = %g\n",TF_pthresh,thr) ;
+         printf("-- fixed t-threshold = %g\n",thr) ;
       } else {
          dofbar = 0.0 ;
          for( ii=0 ; ii < npix ; ii++ ) dofbar += dofar[ii] ;

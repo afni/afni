@@ -612,7 +612,7 @@ int alloc_node_list ( s2v_opts_t * sopt, node_list_t * N, int nsurf )
 
     if ( sopt->debug > 1 )
 	fprintf( stderr, "++ allocated %d x %d (x %d) node list\n",
-		 N->depth, N->nnodes, sizeof(THD_fvec3) );
+		 N->depth, N->nnodes, (int)sizeof(THD_fvec3) );
 
     free(so);
     return 0;

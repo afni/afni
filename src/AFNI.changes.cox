@@ -4680,3 +4680,4 @@
  * Modified thd_1Ddset.c to read a multi-column .1D file as a 3D+time dataset
      rather than a bucket, if AFNI_1D_TIME is set to YES.
  * Modified mri_write_ascii() to write the stdout if the filename is "-".
+ * Modified various *.c files to avoid warning messages on OS X compiles.

@@ -190,7 +190,7 @@ static void * malloc_track( size_t n , char * fn , int ln )
    if( fred == NULL ){                                     /* real bad news */
       fprintf(stderr,
               "\n*** MCW_malloc(%d) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
-              n , fn , ln ) ;
+              (int)n , fn , ln ) ;
       return NULL ;
    }
 
@@ -221,7 +221,7 @@ static void probe_track( mallitem * ip )
       if( fred[ii] != MAGIC ){
          fprintf(stderr,"*** MCW_malloc pre-corruption!  "
                         "serial=%u size=%d source=%s line#=%d\n",
-                        ip->pss,ip->psz,ip->pfn,ip->pln ) ;
+                        ip->pss,(int)ip->psz,ip->pfn,ip->pln ) ;
          break ;
       }
 
@@ -229,7 +229,7 @@ static void probe_track( mallitem * ip )
       if( fred[n+NEXTRA+ii] != MAGIC ){
          fprintf(stderr,"*** MCW_malloc post-corruption!  "
                         "serial=%u size=%d source=%s line#=%d\n",
-                        ip->pss,ip->psz,ip->pfn,ip->pln ) ;
+                        ip->pss,(int)ip->psz,ip->pfn,ip->pln ) ;
          break ;
       }
 
@@ -255,7 +255,7 @@ static void * realloc_track( mallitem * ip, size_t n, char * fn, int ln )
    if( nfred == NULL ){                                       /* real bad */
       fprintf(stderr,
               "\n*** MCW_realloc(%d) from %s#%d FAILS!\a\n",  /* 02 Jan 2002 */
-              n , fn , ln ) ;
+              (int)n , fn , ln ) ;
       return NULL ;
    }
 
@@ -427,7 +427,7 @@ void mcw_malloc_dump(void)
       kk = jk[ii] % JBASE ;
       if( htab[jj][kk].pmt != NULL ){
          fprintf(fp,"%7u %10d %-20.30s %5d %10p %5d %3d",
-                 htab[jj][kk].pss , htab[jj][kk].psz ,
+                 htab[jj][kk].pss , (int)htab[jj][kk].psz ,
                  htab[jj][kk].pfn , htab[jj][kk].pln , htab[jj][kk].pmt ,
                  jj,kk ) ;
 #ifdef USE_TRACING

@@ -67,6 +67,7 @@
 /** the following were in "sh.h",
     but I put them here to get rid of the need for that file -- RWCox **/
 
+#undef  __P
 #define __P(a) a
 
 #define xfree     free

@@ -222,6 +222,7 @@ static char * yn_strings[] = { "n" , "y" };
 #define METH_RADIANS 1
 #define METH_DEGREES 2
 
+#undef  DELAY
 #define DELAY    0
 #define XCOR     1
 #define XCORCOEF 2
