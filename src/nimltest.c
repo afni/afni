@@ -8,7 +8,7 @@
 int main( int argc , char *argv[] )
 {
    NI_stream ns , nsout , nsf=NULL ;
-   int nn , tt , nopt=1 ;
+   int nn , tt , nopt=1 , bmode ;
    void *nini ;
 
    if( argc < 2 ){
@@ -40,7 +40,7 @@ int main( int argc , char *argv[] )
       }
    }
 
-   if( strcmp(argv[1],"-b") == 0 ){
+   if( strcmp(argv[1],"-b") == 0 || strcmp(argv[1],"-B") == 0 ){
       char fname[256] ;
       nopt = 3 ;
       if( argc < 4 ){ fprintf(stderr,"Too few args\n"); exit(1); }
@@ -48,9 +48,14 @@ int main( int argc , char *argv[] )
       sprintf(fname,"file:%s",argv[2]) ;
       nsf = NI_stream_open( fname, "w" ) ;
       if( nsf == NULL ) fprintf(stderr,"Can't open %s\n",fname) ;
+
+      bmode = (strcmp(argv[1],"-b") == 0) ? NI_BINARY_MODE
+                                          : NI_BASE64_MODE ;
    }
 
    /* reading! */
+
+   NI_add_trusted_host(NULL) ;
 
    ns = NI_stream_open( argv[nopt] , "r" ) ;
    if( ns == NULL ){
@@ -64,7 +69,7 @@ int main( int argc , char *argv[] )
    }
 
 GetElement:
-   nini = NI_read_element( ns , -1 ) ;
+   nini = NI_read_element( ns , -1 ) ;  /* wait forever */
    if( nini == NULL ){
       if( NI_stream_goodcheck(ns,0) < 0 ){
          fprintf(stderr,"NI_read_element fails\n") ; exit(1) ;
@@ -119,7 +124,7 @@ GetElement:
            nn, NI_stream_getbuf(nsout) ) ;
 
    if( nsf != NULL ){
-      nn = NI_write_element( nsf , nini , NI_BINARY_MODE ) ;
+      nn = NI_write_element( nsf , nini , bmode ) ;
       fprintf(stderr,"NI_write_element to file = %d\n",nn) ;
    }
 
