@@ -789,15 +789,15 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
 					postRedisplay();
 				}else if (Kev.state & ControlMask){
-					float a[3];
+					float a[3], cQ[4], dQ[4];
 					/* From top view, rotate about x 90 degrees.*/ 
 					a[0] = 1.0; a[1] = 0.0;
-					axis_to_quat(a, SUMA_PI/2, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					axis_to_quat(a, SUMA_PI/2.0, cQ);
 					/* then rotate about y 90 degrees */
-					a[0] = 0.0; a[1] = 1.0;
-					axis_to_quat(a, SUMA_PI/2, SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat);
+					a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
+					axis_to_quat(a, SUMA_PI/2.0, dQ);
 					/*add and apply rotation*/
-					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					add_quats (dQ, cQ, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					postRedisplay();
 				}else if (Kev.state & Mod1Mask) {
 					/*ffprintf (SUMA_STDERR,"%s: alt down\n", FuncName);*/
@@ -824,16 +824,15 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/*SUMAg_cSV->GVS[SUMAg_cSV->StdView].translateVec[1] -= 0;*/
 					postRedisplay();
 				}else if (Kev.state & ControlMask){
-					/*fprintf (SUMA_STDERR,"%s: Control down\n", FuncName);*/
-					float a[3];
+					float a[3], cQ[4], dQ[4];
 					/* From top view, rotate about x 90 degrees */ 
-					a[0] = 1.0; a[1] = 0.0;
-					axis_to_quat(a, SUMA_PI/2, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
+					axis_to_quat(a, SUMA_PI/2.0, cQ);
 					/* then rotate about y -90 degrees */
 					a[0] = 0.0; a[1] = 1.0;
-					axis_to_quat(a, -SUMA_PI/2, SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat);
+					axis_to_quat(a, -SUMA_PI/2.0, dQ);
 					/*add and apply rotation*/
-					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					add_quats (dQ, cQ, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					postRedisplay();
 					
 				}else if (Kev.state & Mod1Mask) {
@@ -853,16 +852,16 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 			case XK_Down:	/*KEY_DOWN*/
 				/*printf("Down Key\n");*/
 				if ((Kev.state & ControlMask) && (Kev.state & ShiftMask)) {
-					float a[3];
+					float a[3], cQ[4], dQ[4];
 					/* Posterior view ctrl+shift+down*/
 					/* From top view, first rotate by 90 degrees about x axis */
-					a[0] = 1.0; a[1] = 0.0;
-					axis_to_quat(a, SUMA_PI/2, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
+					axis_to_quat(a, SUMA_PI/2, cQ);
 					/* then rotate by 180 degrees about y axis */
-					a[0] = 0.0; a[1] = 1.0;
-					axis_to_quat(a, SUMA_PI, SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat);
-					/*add and apply rotation*/
-					add_quats (SUMAg_cSV->GVS[SUMAg_cSV->StdView].deltaQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
+					a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
+					axis_to_quat(a, SUMA_PI, dQ);
+					/*add rotation */
+					add_quats (dQ, cQ, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					postRedisplay();
 				}else if (Kev.state & ShiftMask) {
 					/*fprintf (SUMA_STDERR,"%s: Shift down\n", FuncName);*/
@@ -874,7 +873,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/* Inferior view ctrl+down*/
 					float a[3];
 					/* From top view, rotate by 180 degrees about y axis */
-					a[0] = 0.0; a[1] = 1.0;
+					a[0] = 0.0; a[1] = 1.0; a[2] = 0.0;
 					axis_to_quat(a, SUMA_PI, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					postRedisplay();
 				}else if (Kev.state & Mod1Mask) {
@@ -901,7 +900,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					float a[3];
 					/* Posterior view ctrl+shift+up*/
 					/* From top view, rotate by 90 degrees about x axis */
-					a[0] = 1.0; a[1] = 0.0;
+					a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
 					axis_to_quat(a, SUMA_PI/2, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					postRedisplay();
 				}else if (Kev.state & ShiftMask) {
@@ -924,7 +923,7 @@ input(Widget w, XtPointer clientData, XtPointer callData)
 					/* Top view ctrl+up*/
 					float a[3];
 					/* Default top view, rotate by nothing */
-					a[0] = 1.0; a[1] = 0.0;
+					a[0] = 1.0; a[1] = 0.0; a[2] = 0.0;
 					axis_to_quat(a, 0, SUMAg_cSV->GVS[SUMAg_cSV->StdView].currentQuat);
 					postRedisplay();
 				}else if (Kev.state & Mod1Mask) {
