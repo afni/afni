@@ -5346,3 +5346,6 @@
 28 Feb 2005
  * Oops -- used '&&' instead of '||' in byte swap test in new thd_ctfread.c.
  * More surgery on NIML registry and Htables.
+
+01 Mar 2005
+ * Modified matrix.c and matrix_f.c to use BLAS-1 on the SGI Altix.
