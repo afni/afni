@@ -330,9 +330,6 @@ extern long   strtol() ;
 # define DONT_USE_STRPTIME
 # define NEED_XSETLOCALE
 # define NEED_NL_LANGINFO
-# ifndef DONT_USE_MCW_MALLOC
-#  define DONT_USE_MCW_MALLOC
-# endif
 # define ENFORCE_ASPECT           /* 29 Apr 2003 */
 #endif
 
