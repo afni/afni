@@ -4413,7 +4413,7 @@
 11 Mar 2003
  * Modified tagset.h to increase number of allowed tags.
 
-12 Mar 2003
+13 Mar 2003
  * Changes to 3dAnhist to regress histogram and plot it.
  * Changes to coxplot/plot_ts.c to have it avoid "pushing" data limits out.
  * Changes to 1dplot.c: -xzero and -nopush options.
@@ -4421,3 +4421,6 @@
      -ort option to 3dTcorrelate.
  * Modified thd_notes.c and 3dNotes.c to avoid escaping the '\' character
      for notes input from the command line.
+
+14 Mar 2003
+ * A few more changes to 3dAnhist.c.
