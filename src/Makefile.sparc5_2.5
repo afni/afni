@@ -1,8 +1,3 @@
-# This worked on a Sun UltraSPARC with Solaris 2.5,
-# during the brief period that I had access to one.
-# Do NOT go to higher optimization levels, since the
-# compiler seems to introduce bugs in AFNI.
-
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CC     = cc -fast -Xa -w -DSOLARIS
 CCMIN  = cc -s
@@ -32,7 +27,7 @@ CP = /bin/cp
 
 LINT = /usr/bin/lint -b -u -v -x -Aa $(IFLAGS) $(CCDEFS)
 
-INSTALLDIR = ./solaris
+INSTALLDIR = ./sparc5_2.5
 LIBDIR = $(INSTALLDIR)
 
 LLIBS  = -lmri -lXm -lXt -lX11 -lm $(EXTRA_LIBS)
