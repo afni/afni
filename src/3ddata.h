@@ -2208,8 +2208,9 @@ extern THD_fvec3 THD_3dmm_to_3dfind( THD_3dim_dataset * , THD_fvec3 ) ;
 extern THD_fvec3 THD_3dmm_to_dicomm( THD_3dim_dataset * , THD_fvec3 ) ;
 extern THD_fvec3 THD_dicomm_to_3dmm( THD_3dim_dataset * , THD_fvec3 ) ;
 
-extern float THD_timeof    ( int , float , THD_timeaxis * ) ;
-extern float THD_timeof_vox( int , int , THD_3dim_dataset * ) ;
+extern float THD_timeof      ( int , float , THD_timeaxis * ) ;
+extern float THD_timeof_vox  ( int , int , THD_3dim_dataset * ) ;
+extern float THD_timeof_slice( int , int , THD_3dim_dataset * ) ;  /* BDW */
 
 /*----------------------------------------------------------------*/
 /*--------  FD_brick type: for rapid extraction of slices --------*/

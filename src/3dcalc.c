@@ -20,6 +20,10 @@ Added ability to use sub-brick selectors on input datasets -- see ALLOW_SUBV mac
 
 Modified output to scale each sub-brick to shorts/bytes separately
   [RW Cox, Mar 1999]
+
+Modifed sub-brick selection of type "-b3 name+view" to mangle dataset
+into form "name+view[3]", since that code works better on 3D+time.
+  [RW Cox, Nov 1999]
 ----------------------------------------------------------------------------*/
 
 #define ALLOW_BUCKETS
@@ -217,6 +221,10 @@ void CALC_read_opts( int argc , char * argv[] )
          }
 
          isub = (ids == 2) ? 0 : strtol(argv[nopt]+2,NULL,10) ;
+         if( isub < 0 ){
+            fprintf(stderr,"*** Illegal sub-brick value: %s\n",argv[nopt]) ;
+            exit(1) ;
+         }
 
          nopt++ ;
          if( nopt >= argc ){
@@ -234,20 +242,39 @@ void CALC_read_opts( int argc , char * argv[] )
          }
 
          /*-- back to the normal dataset opening routine --*/
+
 #ifndef ALLOW_SUBV
          dset = THD_open_one_dataset( argv[nopt++] ) ;
-#else
-         dset = THD_open_dataset( argv[nopt++] ) ;
-#endif
          if( dset == NULL ){
             fprintf(stderr,"can't open dataset %s\n",argv[nopt-1]) ; exit(1) ;
          }
-
          if( isub >= DSET_NVALS(dset) ){
             fprintf(stderr,"dataset %s only has %d sub-bricks\n",
                     argv[nopt-1],DSET_NVALS(dset)) ;
             exit(1) ;
          }
+#else
+         { char dname[512] ;                               /* 02 Nov 1999 */
+
+           if( ids > 2 ){                                  /* mangle name */
+              if( strstr(argv[nopt],"[") != NULL ){
+                 fprintf(stderr,
+                         "*** Illegal combination of sub-brick specifiers: "
+                         "%s %s\n" ,
+                         argv[nopt-1] , argv[nopt] ) ;
+                 exit(1) ;
+              }
+              sprintf(dname,"%s[%d]",argv[nopt++],isub) ;  /* use sub-brick */
+              isub = 0 ;                                   /* 0 of dname    */
+           } else {
+              strcpy(dname,argv[nopt++]) ;                 /* don't mangle */
+           }
+           dset = THD_open_dataset( dname ) ;              /* open it */
+           if( dset == NULL ){
+              fprintf(stderr,"can't open dataset %s\n",dname) ; exit(1) ;
+           }
+         }
+#endif
 
          /* set some parameters based on the dataset */
 
@@ -480,6 +507,13 @@ void CALC_Syntax(void)
     "\n"
     "INPUT DATASET SPECIFICATION:\n"
     MASTER_HELP_STRING
+
+    "\n"
+    "** WARNING: you cannot combine sub-brick selection of the form\n"
+    "               -b3 bambam+orig       (the old method)\n"
+    "            with sub-brick selection of the form\n"
+    "               -b  'bambam+orig[3]'  (the new method)\n"
+    "            If you try, the Doom of Mandos will fall upon you!\n"
 #endif
 
     "\n"

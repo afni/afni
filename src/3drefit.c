@@ -62,7 +62,7 @@ void Syntax(char * str)
     "\n"
     "  -nowarp         Removes all warping information from dataset.\n"
     "\n"
-    "  -apar aset      Set the dataset's anatomy dataset to 'aset'\n"
+    "  -apar aset      Set the dataset's anatomy parent dataset to 'aset'\n"
     "               ** N.B.: The anatomy parent is the dataset from which the\n"
     "                  transformation from +orig to +acpc and +tlrc coordinates\n"
     "                  is taken.  It is appropriate to use -apar when there is\n"

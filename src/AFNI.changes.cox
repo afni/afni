@@ -1779,3 +1779,13 @@
  * Added MCW_hotcolor() to xutil.[ch], to get rid of HOTCOLOR macro usage.
  * Added function PLUTO_set_butcolor() to afni_plugin.[ch], to let plugin
      set its menu button color.
+
+02 Nov 1999
+ * Modified 3dcalc.c to fix problem with using sub-brick selectors of the
+     form "-b3 zork+orig" -- if zork+orig was a 3D+time dataset, and it
+     was used as the template for the output, the output would be marked
+     as 3D+time even though it was not.  The solution was to mangle such
+     inputs to the form "zork+orig[3]", which already worked fine.
+
+03 Nov 1999
+ * Fixed the -help output for 3drefit.c, in the description of "-apar".

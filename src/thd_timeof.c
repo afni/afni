@@ -46,3 +46,25 @@ float THD_timeof_vox( int it , int nvox , THD_3dim_dataset * dset )
 
    return tof + dset->taxis->toff_sl[isl] ;
 }
+
+
+/*---------------------------------------------------------------------------*/
+/*
+   Get the time at slice # isl, at the it-th time step.
+   21 October 1999 -- B.D.Ward
+*/
+
+float THD_timeof_slice( int it , int isl , THD_3dim_dataset * dset )
+{
+   float tof ;
+
+   if( !ISVALID_DSET(dset) || !ISVALID_TIMEAXIS(dset->taxis) ) return 0.0 ;
+
+   tof = dset->taxis->ttorg + it * dset->taxis->ttdel ;
+
+   if( dset->taxis->nsl <= 0 || dset->taxis->toff_sl == NULL ) return tof ;
+
+   if( isl < 0 || isl >= dset->taxis->nsl ) return tof ;
+
+   return tof + dset->taxis->toff_sl[isl] ;
+}
