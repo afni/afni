@@ -53,7 +53,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI             \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze            \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC          \
-           3dThreetoRGB Ifile 3dresample 3dAutobox
+           3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count \
                   sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnoise       \
@@ -71,7 +71,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge c
                   3dConvolve 3dZcutup 3dZcat 3dTqual 3dTcorrelate 3dAnatNudge 3dcopy     \
                   Vecwarp 3dMINCtoAFNI 3dAFNItoANALYZE siemens_vision ge_header         \
                   mayo_analyze 3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC          \
-                  3dThreetoRGB Ifile 3dresample 3dAutobox
+                  3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -95,7 +95,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI               \
                3dAFNItoANALYZE siemens_vision ge_header mayo_analyze              \
                3dAutoTcorrelate 3dFDR 3dAutomask 3dAFNItoMINC 3dThreetoRGB Ifile  \
-               3dAutobox
+               3dAutobox 3dLRflip
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS
@@ -548,6 +548,10 @@ strblast:strblast.o
 3dAutomask:3dAutomask.o
 	$(RM) $@
 	$(CC) -o 3dAutomask 3dAutomask.o $(LFLAGS) $(LLIBS)
+
+3dLRflip:3dLRflip.o
+	$(RM) $@
+	$(CC) -o 3dLRflip 3dLRflip.o $(LFLAGS) $(LLIBS)
 
 3dAutobox:3dAutobox.o
 	$(RM) $@
