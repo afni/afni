@@ -464,11 +464,12 @@ typedef struct MCW_imseq {
      Widget        zoom_sep ;
      MCW_arrowval *zoom_val_av ;
      MCW_arrowpad *zoom_apad ;
-     int    zoom_fac     ;
+     int    zoom_fac ;
      float  zoom_hor_off, zoom_ver_off ;
      int    zoom_pw , zoom_ph ;
      Pixmap zoom_pixmap  ;
      XImage *zoom_xim  ;
+     int    zoom_button1 , zoom_xp,zoom_yp ; /* 15 Mar 2002 */
 #endif
 
 } MCW_imseq ;
