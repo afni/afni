@@ -5280,3 +5280,4 @@
 22 Dec 2004
  * Incorporated 3dMean.c changes from Mike Beauchamp to add standard deviation
     option.
+ * Fixed stupid scale_thr bug in afni_func.c.
