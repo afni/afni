@@ -10,11 +10,9 @@ void Syntax(void)
 {
    printf(
     "Prints out sort-of-useful information from a 3D dataset's header\n"
-    "Usage: 3dinfo [-verb] dataset [dataset ...]\n"
-    "  The -verb option means print out verbose information:\n"
-    "  * All the statistics for each time in a time-dependent dataset.\n"
-    "  * All the Notes in a dataset header\n"
-    "    (without -verb, only the first 5 Notes will be printed).\n"
+    "Usage: 3dinfo [-verb OR -short] dataset [dataset ...]\n"
+    "  -verb means to print out lots of stuff\n"
+    "  -short means to print out less stuff\n"
    ) ;
    exit(0) ;
 }
@@ -28,7 +26,8 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
    iarg = 1 ;
-   if( strncmp(argv[iarg],"-verb",5) == 0 ){ verbose = 1 ; iarg++ ; }
+        if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  1; iarg++; }
+   else if( strncmp(argv[iarg],"-short",5) == 0 ){ verbose = -1; iarg++; }
 
    for( ; iarg < argc ; iarg++ ){
 #if 0

@@ -7,9 +7,10 @@
 #include "mrilib.h"
 #include "thd.h"
 
-/*--------------------------------------------------------------------
-   Inline version of 3dinfo.  You must free() the output string
-   when done with it.
+/*--------------------------------------------------------------------*/
+/*! Inline version of 3dinfo.
+    - You must free() the output string when done with it.
+    - verbose is -1 (shortest output), 0, or 1 (longest output)
 ----------------------------------------------------------------------*/
 
 #include <stdarg.h>
@@ -83,12 +84,15 @@ ENTRY("THD_dataset_info") ;
 
    /*-- keywords --*/
 
-   cpt = DSET_KEYWORDS(dset) ;
-   if( cpt != NULL && cpt[0] != '\0' )
-      outbuf = THD_zzprintf(outbuf,"Keywords:        %s\n" , cpt ) ;
+   if( verbose >= 0 ){
+    cpt = DSET_KEYWORDS(dset) ;
+    if( cpt != NULL && cpt[0] != '\0' )
+       outbuf = THD_zzprintf(outbuf,"Keywords:        %s\n" , cpt ) ;
+   }
 
    /*-- idcodes --*/
 
+   if( verbose >= 0 ){
 #ifdef OMIT_DATASET_IDCODES
    if( strlen(dset->anat_parent_name) > 0 )
       outbuf = THD_zzprintf(outbuf,"Anatomy Parent:  %s\n" , dset->anat_parent_name ) ;
@@ -108,10 +112,11 @@ ENTRY("THD_dataset_info") ;
    else if( strlen(dset->warp_parent_name) > 0 )
       outbuf = THD_zzprintf(outbuf,"Warp Parent:     %s\n" , dset->warp_parent_name ) ;
 #endif
+   }
 
    /*-- tagset --*/
 
-   if( dset->tagset != NULL && dset->tagset->num > 0 ){
+   if( verbose > 0 && dset->tagset != NULL && dset->tagset->num > 0 ){
       int ii , ns=0 ;
       for( ii=0 ; ii < dset->tagset->num ; ii++ )
          if( dset->tagset->tag[ii].set ) ns++ ;
@@ -164,17 +169,19 @@ ENTRY("THD_dataset_info") ;
 
    /*-- 01 Feb 2001: print the center of the dataset as well --*/
 
-   fv1.xyz[0] = 0.5*(fv1.xyz[0]+fv2.xyz[0]) ; XLAB(xlbot,fv1.xyz[0]) ;
-   fv1.xyz[1] = 0.5*(fv1.xyz[1]+fv2.xyz[1]) ; YLAB(ylbot,fv1.xyz[1]) ;
-   fv1.xyz[2] = 0.5*(fv1.xyz[2]+fv2.xyz[2]) ; ZLAB(zlbot,fv1.xyz[2]) ;
+   if( verbose > 0 ){
+    fv1.xyz[0] = 0.5*(fv1.xyz[0]+fv2.xyz[0]) ; XLAB(xlbot,fv1.xyz[0]) ;
+    fv1.xyz[1] = 0.5*(fv1.xyz[1]+fv2.xyz[1]) ; YLAB(ylbot,fv1.xyz[1]) ;
+    fv1.xyz[2] = 0.5*(fv1.xyz[2]+fv2.xyz[2]) ; ZLAB(zlbot,fv1.xyz[2]) ;
 
-   outbuf = THD_zzprintf(outbuf,
-                           "R-to-L center: %9.3f %s\n"
-                           "A-to-P center: %9.3f %s\n"
-                           "I-to-S center: %9.3f %s\n" ,
-                         fv1.xyz[0],xlbot ,
-                         fv1.xyz[1],ylbot ,
-                         fv1.xyz[2],zlbot  ) ;
+    outbuf = THD_zzprintf(outbuf,
+                            "R-to-L center: %9.3f %s\n"
+                            "A-to-P center: %9.3f %s\n"
+                            "I-to-S center: %9.3f %s\n" ,
+                          fv1.xyz[0],xlbot ,
+                          fv1.xyz[1],ylbot ,
+                          fv1.xyz[2],zlbot  ) ;
+   }
 
    ntimes   = DSET_NUM_TIMES(dset) ;
    nval_per = DSET_NVALS_PER_TIME(dset) ;
@@ -191,7 +198,7 @@ ENTRY("THD_dataset_info") ;
                   dset->taxis->nsl , fabs(dset->taxis->dz_sl) ) ;
       outbuf = THD_zzprintf(outbuf,"\n") ;
 
-      if( verbose && dset->taxis->nsl > 0 ){
+      if( verbose > 0 && dset->taxis->nsl > 0 ){
          outbuf = THD_zzprintf(outbuf,"Time-offsets per slice:") ;
          for( ival=0 ; ival < dset->taxis->nsl ; ival++ )
            outbuf = THD_zzprintf(outbuf, " %.3f" , dset->taxis->toff_sl[ival] ) ;
@@ -203,11 +210,14 @@ ENTRY("THD_dataset_info") ;
    }
 
 #if 0
-   if( verbose && ntimes > 1 ) nval_per = dset->dblk->nvals ;
-   else                        nval_per = 1 ;                 /* 12 Feb 2002 */
+   if( verbose > 0 && ntimes > 1 ) nval_per = dset->dblk->nvals ;
+   else                            nval_per = 1 ;                 /* 12 Feb 2002 */
 #else
    nval_per = dset->dblk->nvals ;
+   if( verbose < 0 ) nval_per = 1 ;                               /* 27 Mar 2002 */
 #endif
+
+   /* print out stuff for each sub-brick */
 
    for( ival=0 ; ival < nval_per ; ival++ ){
 
@@ -282,7 +292,8 @@ ENTRY("THD_dataset_info") ;
 
    /** If present, print out Notes **/
 
-   { ATR_int *notecount;
+   if( verbose >= 0 ){
+     ATR_int *notecount;
      ATR_string *note;
      int num_notes, i, j, num_char , mmm ;
      char note_name[20], *chn , *chd ;
@@ -290,8 +301,8 @@ ENTRY("THD_dataset_info") ;
      notecount = THD_find_int_atr(dset->dblk, "NOTES_COUNT");
      if( notecount != NULL ){
         num_notes = notecount->in[0] ;
-        if( !verbose && num_notes > 5 ) num_notes = 5 ;
-        mmm = (verbose) ? ZMAX : 400 ;
+        if( verbose == 0 && num_notes > 5 ) num_notes = 5 ;
+        mmm = (verbose > 0) ? ZMAX : 400 ;
         for (i=1; i<= num_notes; i++) {
            chn = tross_Get_Note( dset , i ) ;
            if( chn != NULL ){
@@ -307,6 +318,8 @@ ENTRY("THD_dataset_info") ;
 
    RETURN(outbuf) ;
 }
+
+/*-----------------------------------------------------------*/
 
 char * THD_zzprintf( char * sss , char * fmt , ... )
 {
