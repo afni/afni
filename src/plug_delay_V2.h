@@ -15,7 +15,7 @@
 /*-------------------------------------------------------------------*/
 /* taken from #include "/usr/people/ziad/Programs/C/Z/Zlib/prototype.h" */
 
-#ifdef SCO
+#if defined(SCO) || defined(SOLARIS)
 #define drem remainder
 #endif
 #ifndef NOWAYXCORCOEF
