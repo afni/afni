@@ -318,7 +318,7 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
      if( idc == NULL ){
         AFNI_popup_message( "***ERROR:\n "
                             " SUMA_ixyz surface input\n"
-                            " does not identify dataset!\n " ) ;
+                            " does not identify dataset! \n " ) ;
         EXRETURN ;
      }
      dset = PLUTO_find_dset_idc( idc ) ;
@@ -458,8 +458,8 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
          nel->vec_typ[2] != NI_INT   ){
 
        AFNI_popup_message( "*** ERROR:\n\n"
-                           " SUMA_ijk surface data\n"
-                           " is badly formatted! \n" ) ;
+                           " SUMA_ijk surface data \n"
+                           " is badly formatted!\n" ) ;
        EXRETURN ;
      }
 
@@ -545,9 +545,9 @@ fprintf(stderr,"AFNI received NIML element name=%s\n",nel->name) ;
 
      sprintf(msg,"+++NOTICE:\n\n"
                  " SUMA_ijk triangles received:\n"
-                 "  %d triangles attached to surface\n"
+                 " %d triangles attached to surface \n"
                  "  %-14.14s\n"
-                 " in dataset \n"
+                 " in dataset\n"
                  "  %.222s\n" ,
                  nel->vec_filled , ag->label , DSET_FILECODE(dset) ) ;
 
