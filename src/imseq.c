@@ -228,7 +228,7 @@ static int     ppmto_num     = -1 ;
 static char *  ppmto_gif_filter  = NULL ;   /* 27 Jul 2001 */
 static char *  ppmto_agif_filter = NULL ;
 
-#define USE_GIFF
+#define USE_GIFF  /* use Fixed colormap GIF for animations */
 #ifdef  USE_GIFF
 static char *  ppmto_giff_filter = NULL ;   /* 05 Oct 2004 */
 #define GIFF_MAPFILE "Qwerty53211.ppm"
@@ -328,7 +328,7 @@ static void ISQ_setup_ppmto_filters(void)
 
       ppmto_gif_filter = str ;  /* save this filter string */
 
-#ifdef USE_GIFF
+#ifdef USE_GIFF                       /* filter for Fixed GIF colormap */
       str = AFMALL( char , strlen(pg)+128 ) ;           /* 05 Oct 2004 */
       sprintf(str,"%s -map %s > %%s",pg,GIFF_MAPFILE) ;
       ppmto_giff_filter = str ;
@@ -3262,9 +3262,10 @@ ENTRY("ISQ_saver_CB") ;
      tsuf[0] = '\0' ;                      /* not used */
    }
 
-#ifdef USE_GIFF
+#ifdef USE_GIFF          /* create the fixed GIF colormap for animations */
    if( DO_AGIF(seq) ){
-     MRI_IMAGE *im = mri_colorsetup( 76 , 6,6,5 ) ;
+     MRI_IMAGE *im = mri_colorsetup( 76 , 6,6,5 ); /* 76 grays + */
+     remove( GIFF_MAPFILE ) ;                     /* 6*red X 6*green X 5*blue */
      mri_write_pnm( GIFF_MAPFILE , im ) ;
      mri_free( im ) ;
    }
@@ -3420,9 +3421,9 @@ ENTRY("ISQ_saver_CB") ;
          } else if( DO_AGIF(seq) ){                    /* use the gif filter */
            sprintf( fname, "%s%s.%05d.gif" , seq->saver_prefix,tsuf, kf) ;
 #ifndef USE_GIFF
-           sprintf( filt , ppmto_gif_filter , fname ) ;
+           sprintf( filt , ppmto_gif_filter  , fname ) ;  /* free colormap */
 #else
-           sprintf( filt , ppmto_giff_filter , fname ) ;
+           sprintf( filt , ppmto_giff_filter , fname ) ;  /* fixed colormap */
 #endif
            if( agif_list == NULL ) INIT_SARR(agif_list) ;
            ADDTO_SARR(agif_list,fname) ;
@@ -3469,6 +3470,10 @@ ENTRY("ISQ_saver_CB") ;
             if( DO_AGIF(seq) ){
                int alen ; char *alc , *alf , *oof ;
 
+#ifdef USE_GIFF
+               remove( GIFF_MAPFILE ) ;   /* don't need this any longer */
+#endif
+
                for( alen=af=0 ; af < agif_list->num ; af++ ) /* size of all */
                   alen += strlen( agif_list->ar[af] ) ;      /* filenames  */
 
@@ -3487,9 +3492,6 @@ ENTRY("ISQ_saver_CB") ;
                fprintf(stderr,"Running '%s'\n",alf) ;
                system(alf) ;                                 /* so run it!    */
                free(alf) ; free(oof) ; free(alc) ;           /* free trash   */
-#ifdef USE_GIFF
-               remove( GIFF_MAPFILE ) ;
-#endif
             }
 
             /* MPEG-1 */
