@@ -222,9 +222,11 @@ ENTRY("THD_dataset_info") ;
          "Number of time steps = %d  Number of values at each pixel = %d\n",
          ntimes , nval_per ) ;
 
-      outbuf = THD_zzprintf(outbuf, "Time step = %.3f (%s)" ,
+      outbuf = THD_zzprintf(outbuf, "Time step = %.3f%s  Origin = %.3f%s" ,
                  dset->taxis->ttdel ,
-                 UNITS_TYPE_LABEL(dset->taxis->units_type) ) ;
+                 UNITS_TYPE_LABEL(dset->taxis->units_type) ,
+                 dset->taxis->ttorg ,
+                 UNITS_TYPE_LABEL(dset->taxis->units_type)  ) ;
       if( dset->taxis->nsl > 0 )
         outbuf = THD_zzprintf(outbuf,"  Number time-offset slices = %d  Thickness = %.3f",
                   dset->taxis->nsl , fabs(dset->taxis->dz_sl) ) ;
