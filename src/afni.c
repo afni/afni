@@ -470,13 +470,15 @@ ENTRY("AFNI_parse_args") ;
       /*---- -niml [28 Feb 2002] -----*/
 
       if( strcmp(argv[narg],"-niml") == 0 ){
-         fprintf(stderr,"\n-niml is now turned on by default\n") ;
+         if( GLOBAL_argopt.yes_niml )
+           fprintf(stderr,"\n-niml is already turned on\n") ;
          GLOBAL_argopt.yes_niml++ ;
          narg++ ; continue ;  /* go to next arg */
       }
 
       if( strcmp(argv[narg],"-noniml") == 0 ){
          GLOBAL_argopt.yes_niml-- ;
+         if( GLOBAL_argopt.yes_niml < 0 ) GLOBAL_argopt.yes_niml = 0 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
