@@ -245,14 +245,15 @@ int main( int argc , char * argv[] )
      int nval ;
      float val[9] ;
 
-     cpt = fgets(lbuf,2560,stdin) ;
-     if( cpt == NULL ){
-        fprintf(stderr,"*** Can't read from stdin!\n"); exit(1);
-     }
+     do{                  /* read lines until 1st char is non-blank and non-# */
+       cpt = fgets(lbuf,2560,stdin) ;
+       if( cpt==NULL ){ fprintf(stderr,"** Can't read from stdin!\n"); exit(1); }
+       for( ii=0 ; cpt[ii] != '\0' && !isspace(cpt[ii]) ; ii++ ) ; /* nada */
+     } while( cpt[ii] == '\0' || cpt[ii] == '#' ) ;
      nval = sscanf(lbuf,"%f%f%f%f%f%f%f%f%f",
                    val+0,val+1,val+2,val+3,val+4,val+5,val+6,val+7,val+8) ;
      if( nval < 1 ){
-        fprintf(stderr,"*** Can't read numbers from stdin!\n"); exit(1);
+       fprintf(stderr,"** Can't read numbers from stdin!\n"); exit(1);
      }
 
      nx = nval ; ny = 1 ;
@@ -260,7 +261,10 @@ int main( int argc , char * argv[] )
      memcpy(far,val,sizeof(float)*nx) ;
      while(1){  /* read from stdin */
         cpt = fgets(lbuf,2560,stdin) ;
-        if( cpt == NULL ) break ;
+        if( cpt == NULL ) break ;            /* done */
+        for( ii=0 ; cpt[ii] != '\0' && !isspace(cpt[ii]) ; ii++ ) ; /* nada */
+        if( cpt[ii] == '\0' || cpt[ii] == '#' ) continue ;          /* skip */
+        memset(val,0,sizeof(float)*nx) ;
         nval = sscanf(lbuf,"%f%f%f%f%f%f%f%f%f",
                       val+0,val+1,val+2,val+3,val+4,val+5,val+6,val+7,val+8) ;
         if( nval < 1 ) break ;
@@ -269,10 +273,11 @@ int main( int argc , char * argv[] )
         ny++ ;
      }
      if( ny < 2 ){
-        fprintf(stderr,"** Can't read enough data from stdin\n"); exit(1);
+       fprintf(stderr,"** Can't read at least 2 lines from stdin\n"); exit(1);
      }
-     inim = mri_new_vol_empty( nx,ny,1 , MRI_float ) ;
-     mri_fix_data_pointer( far , inim ) ;
+     flim = mri_new_vol_empty( nx,ny,1 , MRI_float ) ;
+     mri_fix_data_pointer( far , flim ) ;
+     inim = mri_transpose(flim) ; mri_free(flim) ;
 
    } else {  /*-- old code: read from a file --*/
              /*-- 05 Mar 2003: or more than 1 file --*/
