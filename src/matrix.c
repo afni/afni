@@ -104,11 +104,11 @@
 #ifdef SETUP_BLAS2
 # define MATVEC(m,v,z) dgemv( TRANSA , (m).cols , (m).rows ,       \
                               1.0 , (m).mat , (m).cols ,           \
-                              (v).elts , 1 , 0.0 , (z).elts , 1 )  \
+                              (v).elts , 1 , 0.0 , (z).elts , 1 )
 
 # define SUBMATVEC(m,v,z) dgemv( TRANSA , (m).cols , (m).rows ,      \
                                  -1.0 , (m).mat , (m).cols ,         \
-                                 (v).elts , 1 , 1.0 , (z).elts , 1 ) \
+                                 (v).elts , 1 , 1.0 , (z).elts , 1 )
 #endif
 
 /*---------------------------------------------------------------------------*/
