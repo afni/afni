@@ -5820,6 +5820,18 @@ ENTRY("AFNI_imag_pop_CB") ;
       }
    }
 
+   if( w == im3d->vwid->imag->pop_jumpto_ijk_pb &&
+       im3d->type == AFNI_3DDATA_VIEW             ){
+
+      MCW_imseq * seq ;
+
+      XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
+      if( ISQ_REALZ(seq) ){
+         MCW_choose_string( seq->wbar , "Enter new i j k:" , NULL ,
+                            AFNI_jumpto_ijk_CB , (XtPointer) im3d ) ;
+      }
+   }
+
 #ifdef USE_TALAIRACH_TO
    /*-- jump to a predetermined Talairach anatomical reference point --*/
 
@@ -5950,7 +5962,7 @@ ENTRY("AFNI_jumpto_dicom") ;
 
    daxes = CURRENT_DAXES(im3d->anat_now) ;
    if( ii >= 0 && ii < daxes->nxx &&
-       jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz   ){
+       jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
 
       SAVE_VPT(im3d) ;
       AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
@@ -5959,6 +5971,50 @@ ENTRY("AFNI_jumpto_dicom") ;
       XBell( im3d->dc->display , 100 ) ;
       RETURN(-1) ;
    }
+}
+
+/*-- the two functions below date to 19 Aug 1999 --*/
+
+int AFNI_jumpto_ijk( Three_D_View * im3d , int ii, int jj, int kk )
+{
+   THD_dataxes * daxes ;
+
+ENTRY("AFNI_jumpto_ijk") ;
+
+   LOAD_ANAT_VIEW(im3d) ;
+
+   daxes = CURRENT_DAXES(im3d->anat_now) ;
+   if( ii >= 0 && ii < daxes->nxx &&
+       jj >= 0 && jj < daxes->nyy && kk >= 0 && kk < daxes->nzz ){
+
+      SAVE_VPT(im3d) ;
+      AFNI_set_viewpoint( im3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
+      RETURN(1) ;
+   } else {
+      XBell( im3d->dc->display , 100 ) ;
+      RETURN(-1) ;
+   }
+}
+
+void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+{
+   Three_D_View * im3d = (Three_D_View *) cd ;
+   int ii,jj,kk ;
+   int nn ;
+
+ENTRY("AFNI_jumpto_CB") ;
+
+   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
+
+   nn = sscanf( cbs->cval , "%d %d %d" , &ii,&jj,&kk ) ;
+   if( nn != 3 ){ XBell( im3d->dc->display , 100 ) ; EXRETURN ; }
+
+   nn = AFNI_jumpto_ijk( im3d , ii,jj,kk ) ;
+   if( nn < 0 ) XBell( im3d->dc->display , 100 ) ;
+
+   RESET_AFNI_QUIT(im3d) ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------

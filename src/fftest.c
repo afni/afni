@@ -13,7 +13,8 @@ void main( int argc , char * argv[] )
    float kbytes ;
    if( argc < 4 ){printf("Usage: fftest [-q] len num nvec\n");exit(0);}
 
-   if( strcmp(argv[narg],"-q") == 0 ){ quiet = 1 ; narg++ ; }
+   if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
+   if( strcmp(argv[narg],"-q") == 0 ){ quiet++ ; narg++ ; }
 
    len = strtol( argv[narg++] , NULL , 10 ) ;
    num = strtol( argv[narg++] , NULL , 10 ) ;
@@ -60,8 +61,10 @@ void main( int argc , char * argv[] )
      m = log( (double)len ) / log( (double)2.0 ) ;
      flops = (5.0 * m - 1.0 ) * len * num / tcpu / 1.e6;
 
-     if( quiet )
+     if(quiet == 1)
         printf("%8f %8f\n",kbytes,flops) ;
+     else if(quiet == 2)
+        printf("%8f\n",flops) ;
      else
         printf(" CPU = %f  ELAPSED = %f  Kbytes = %f  Megaflops = %f\n",
                tcpu,tclock,kbytes,flops);

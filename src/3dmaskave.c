@@ -14,6 +14,7 @@ int main( int argc , char * argv[] )
    int miv = 0 ;                              /* 06 Aug 1998 */
    int div = -1 , div_bot,div_top , drange=0; /* 16 Sep 1998 */
    float data_bot=666.0 , data_top=-666.0 ;
+   int indump = 0 ;                           /* 19 Aug 1999 */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dmaskave [options] dataset\n"
@@ -45,13 +46,19 @@ int main( int argc , char * argv[] )
              "  -sigma       Means to compute the standard deviation as well\n"
              "                 as the mean.\n"
              "  -dump        Means to print out all the voxel values that\n"
-             "                 go into the average.  This option cannot be\n"
-             "                 used unles the -mask option is also used.\n"
+             "                 go into the average.\n"
              "  -udump       Means to print out all the voxel values that\n"
              "                 go into the average, UNSCALED by any internal\n"
-             "                 factors.  Also requires -mask.\n"
+             "                 factors.\n"
              "                 N.B.: the scale factors for a sub-brick\n"
              "                       can be found using program 3dinfo.\n"
+             "  -indump      Means to print out the voxel indexes (i,j,k) for\n"
+             "                 each dumped voxel.  Has no effect if -dump\n"
+             "                 or -udump is not also used.\n"
+             "                 N.B.: if nx,ny,nz are the number of voxels in\n"
+             "                       each direction, then the array offset\n"
+             "                       in the brick corresponding to (i,j,k)\n"
+             "                       is i+j*nx+k*nx*ny.\n"
              "\n"
              "The output is printed to stdout (the terminal), and can be\n"
              "saved to a file using the usual redirection operation '>'.\n"
@@ -139,6 +146,11 @@ int main( int argc , char * argv[] )
 
       if( strncmp(argv[narg],"-udump",5) == 0 ){
          dumpit = 2 ;
+         narg++ ; continue ;
+      }
+
+      if( strncmp(argv[narg],"-indump",5) == 0 ){  /* 19 Aug 1999 */
+         indump = 1 ;
          narg++ ; continue ;
       }
 
@@ -313,8 +325,15 @@ int main( int argc , char * argv[] )
                int noscal = (dumpit==2) || (mfac==1.0) ;
                printf("+++ Dump for sub-brick %d:\n",iv) ;
                for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ){
-                                                 if( noscal ) printf(" %d\n",bar[ii]) ;
-                                                 else         printf(" %g\n",bar[ii]*mfac) ;
+                                                 if( noscal ) printf(" %d",bar[ii]) ;
+                                                 else         printf(" %g",bar[ii]*mfac) ;
+
+                                                 if( indump )
+                                                    printf(" (%d,%d,%d)",
+                                                           DSET_index_to_ix(input_dset,ii),
+                                                           DSET_index_to_jy(input_dset,ii),
+                                                           DSET_index_to_kz(input_dset,ii) ) ;
+                                                 printf("\n") ;
                                               }
             }
 
@@ -349,8 +368,15 @@ int main( int argc , char * argv[] )
                int noscal = (dumpit==2) || (mfac==1.0) ;
                printf("+++ Dump for sub-brick %d:\n",iv) ;
                for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ){
-                                                 if( noscal ) printf(" %d\n",bar[ii]) ;
-                                                 else         printf(" %g\n",bar[ii]*mfac) ;
+                                                 if( noscal ) printf(" %d",bar[ii]) ;
+                                                 else         printf(" %g",bar[ii]*mfac) ;
+
+                                                 if( indump )
+                                                    printf(" (%d,%d,%d)",
+                                                           DSET_index_to_ix(input_dset,ii),
+                                                           DSET_index_to_jy(input_dset,ii),
+                                                           DSET_index_to_kz(input_dset,ii) ) ;
+                                                 printf("\n") ;
                                               }
             }
 
@@ -385,8 +411,15 @@ int main( int argc , char * argv[] )
                int noscal = (dumpit==2) || (mfac==1.0) ;
                printf("+++ Dump for sub-brick %d:\n",iv) ;
                for( ii=0 ; ii < nvox ; ii++ ) if( GOOD(ii) ){
-                                                 if( noscal ) printf(" %g\n",bar[ii]) ;
-                                                 else         printf(" %g\n",bar[ii]*mfac) ;
+                                                 if( noscal ) printf(" %g",bar[ii]) ;
+                                                 else         printf(" %g",bar[ii]*mfac) ;
+
+                                                 if( indump )
+                                                    printf(" (%d,%d,%d)",
+                                                           DSET_index_to_ix(input_dset,ii),
+                                                           DSET_index_to_jy(input_dset,ii),
+                                                           DSET_index_to_kz(input_dset,ii) ) ;
+                                                 printf("\n") ;
                                               }
             }
 

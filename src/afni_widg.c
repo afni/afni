@@ -611,7 +611,7 @@ STATUS("making imag->rowcol") ;
       imag->pop_jumpto_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
-               LABEL_ARG("Jump to") ,
+               LABEL_ARG("Jump to (xyz)") ,
                XmNmarginHeight , 0 ,
                XmNtraversalOn , False ,
                XmNinitialResourcesPersistent , False ,
@@ -621,6 +621,22 @@ STATUS("making imag->rowcol") ;
                      AFNI_imag_pop_CB , im3d ) ;
    } else {
       imag->pop_jumpto_pb = NULL ;
+   }
+
+   if( im3d->type == AFNI_3DDATA_VIEW ){
+      imag->pop_jumpto_ijk_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+               LABEL_ARG("Jump to (ijk)") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , False ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+
+      XtAddCallback( imag->pop_jumpto_ijk_pb , XmNactivateCallback ,
+                     AFNI_imag_pop_CB , im3d ) ;
+   } else {
+      imag->pop_jumpto_ijk_pb = NULL ;
    }
 
    /*--- Talairach To button in menu ---*/

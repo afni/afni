@@ -20,15 +20,21 @@
 void csfft_cox( int mode , int idim , complex * xc ) ;
 int csfft_nextup( int idim ) ;
 
-/*** 08 Aug 1999:                                                        ***
- ***   idim can now also have a single factor of 3 or 5 (or both).       ***
- ***   Examples:  48,  80,  96, 120, 160, 192, 240 , 320,  384, ...      ***
- ***          [ 3*16,5*16,3*32,15*8,5*32,3*64,15*16,5*64,3*128 ]         ***
+/*** Aug 1999:                                                           ***
+ ***   idim can now contain factors of 3 and/or 5, up to and including   ***
+ ***   3^3 * 5^3.  Some examples:                                        ***
+ ***       135 144 150 160 180 192 200 216 225 240 250                   ***
  ***   The routine csfft_nextup(n) returns the smallest size FFT         ***
- ***    >= n that csfft_cox() knows how to do.                           ***/
+ ***    >= n that csfft_cox() knows how to do.                           ***
+ ***   Note that efficiency of the different lengths can be quite        ***
+ ***   different.  In general, powers of 2 are fastest, but a            ***
+ ***   single factor of 3 and/or 5 doesn't cause too much slowdown.      ***/
 
-static void fft_3dec( int , int , complex * ) ;  /* 08 Aug 1999  */
+static void fft_3dec( int , int , complex * ) ;  /* Aug 1999  */
 static void fft_5dec( int , int , complex * ) ;
+
+#undef  RMAX
+#define RMAX 3   /* maximum levels of recursion for radix-3 and radix-5 */
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
@@ -41,7 +47,6 @@ static void fft_5dec( int , int , complex * ) ;
 /*---------- For the unrolled FFT routines: November 1998 ----------*/
 
 #ifndef DONT_UNROLL_FFTS
-   static void fft4  ( int mode , complex * xc ) ;
    static void fft8  ( int mode , complex * xc ) ;
    static void fft16 ( int mode , complex * xc ) ;
    static void fft32 ( int mode , complex * xc ) ;  /* prototypes   */
@@ -54,6 +59,32 @@ static void fft_5dec( int , int , complex * ) ;
 
 #  define fft1024(m,x) fft_4dec(m,1024,x)
 #  define fft2048(m,x) fft_4dec(m,2048,x)
+
+#  define fft2(m,x) do{ float a,b,c,d ;                             \
+                        a = x[0].r + x[1].r ; b = x[0].i + x[1].i ; \
+                        c = x[0].r - x[1].r ; d = x[0].i - x[1].i ; \
+                        x[0].r = a ; x[0].i = b ;                   \
+                        x[1].r = c ; x[1].i = d ; } while(0)
+
+# define USE_FFT4_MACRO
+# ifndef USE_FFT4_MACRO
+   static void fft4( int mode , complex * xc ) ;
+# else
+#  define fft4(m,x) do{ float acpr,acmr,bdpr,bdmr, acpi,acmi,bdpi,bdmi; \
+                        acpr = x[0].r + x[2].r; acmr = x[0].r - x[2].r; \
+                        bdpr = x[1].r + x[3].r; bdmr = x[1].r - x[3].r; \
+                        acpi = x[0].i + x[2].i; acmi = x[0].i - x[2].i; \
+                        bdpi = x[1].i + x[3].i; bdmi = x[1].i - x[3].i; \
+                        x[0].r = acpr+bdpr ; x[0].i = acpi+bdpi ;       \
+                        x[2].r = acpr-bdpr ; x[2].i = acpi-bdpi ;       \
+                        if(m > 0){                                      \
+                          x[1].r = acmr-bdmi ; x[1].i = acmi+bdmr ;     \
+                          x[3].r = acmr+bdmi ; x[3].i = acmi-bdmr ;     \
+                        } else {                                        \
+                          x[1].r = acmr+bdmi ; x[1].i = acmi-bdmr ;     \
+                          x[3].r = acmr-bdmi ; x[3].i = acmi+bdmr ;     \
+                        } } while(0)
+# endif
 #endif
 
 /*----------------------------------------------------------------------
@@ -143,6 +174,8 @@ void csfft_cox( int mode , int idim , complex * xc )
 
 #ifndef DONT_UNROLL_FFTS
    switch( idim ){
+      case    1:                    return ;
+      case    2: fft2   (mode,xc) ; return ;
       case    4: fft4   (mode,xc) ; return ;
       case    8: fft8   (mode,xc) ; return ;
       case   16: fft16  (mode,xc) ; return ;
@@ -153,10 +186,15 @@ void csfft_cox( int mode , int idim , complex * xc )
       case  512: fft512 (mode,xc) ; return ;
       case 1024: fft1024(mode,xc) ; return ;
       case 2048: fft2048(mode,xc) ; return ;
+
+      case  4096: fft_4dec(mode, 4096,xc) ; return ;
+      case  8192: fft_4dec(mode, 8192,xc) ; return ;
+      case 16384: fft_4dec(mode,16384,xc) ; return ;
+      case 32768: fft_4dec(mode,32768,xc) ; return ;
    }
 #endif  /* end of unrollificationizing */
 
-   if( idim % 3 == 0 ){ fft_3dec(mode,idim,xc); return; } /* 08 Aug 1999 */
+   if( idim % 3 == 0 ){ fft_3dec(mode,idim,xc); return; } /* Aug 1999 */
    if( idim % 5 == 0 ){ fft_5dec(mode,idim,xc); return; }
 
    /**-- perhaps initialize --**/
@@ -240,7 +278,7 @@ void csfft_many( int mode , int idim , int nvec , complex * xc )
 
    if( nvec == 1 ){ csfft_cox( mode , idim , xc ) ; return ; }
 
-   if( idim % 3 == 0 ){                           /* 08 Aug 1999 */
+   if( idim % 3 == 0 ){                           /* Aug 1999 */
       for( m=0 ; m < nvec ; m++ )
          fft_3dec( mode , idim , xc + m*idim ) ;
       return ;
@@ -332,6 +370,7 @@ void csfft_many( int mode , int idim , int nvec , complex * xc )
 
 #ifndef DONT_UNROLL_FFTS
 
+#ifndef USE_FFT4_MACRO
 /**************************************/
 /* FFT routine unrolled of length   4 */
 
@@ -377,6 +416,7 @@ static void fft4( int mode , complex * xc )
 
    return ;
 }
+#endif /* USE_FFT4_MACRO */
 
 /**************************************/
 /* FFT routine unrolled of length   8 */
@@ -1586,35 +1626,53 @@ static void fft512( int mode , complex * xc )
 
 /*------------------------------------------------------------------
    fft_4dec: do a decimation by 4 for N=1024 and 2048.
-   This routine must not be called recursively!
+   At most RMAX levels of recursion are allowed.
 --------------------------------------------------------------------*/
 
 static void fft_4dec( int mode , int idim , complex * xc )
 {
+   static int rec=0 ;
+   static int rmold[RMAX] = {-1,-1,-1} ;
+   static complex *rcs[RMAX] = {NULL,NULL,NULL} ;
+   static complex *raa[RMAX], *rbb[RMAX], *rcc[RMAX] , *rdd[RMAX] ;
+
    int N=idim , M=idim/4 , M2=2*M , M3=3*M ;
-   static int mold=-1 ;
-   static complex * cs=NULL , * aa , * bb , * cc , * dd ;
+   int mold=-1 ;
+   complex * cs , * aa , * bb , * cc , * dd ;
    register int k , i ;
    register float aar,aai, tr,ti, bbr,bbi, ccr,cci , ddr,ddi , t1,t2 ,
                   acpr,acmr , bdpr,bdmr , acpi,acmi , bdpi,bdmi ;
 
    /*-- initialize cosine/sine table and memory space --*/
 
+   if( rec >= RMAX ){
+      fprintf(stderr,"\n*** fft_4dec: too many recursions!\n"); exit(1);
+   }
+
+   mold = rmold[rec] ;  /* what was done before at this recursion level */
+
    if( M != mold ){
       double th = (2.0*PI/N) ;
       if( M > mold ){
-         if( cs != NULL ){free(cs);free(aa);free(bb);free(cc);free(dd);}
-         cs = (complex *) malloc(sizeof(complex)*M3) ;
-         aa = (complex *) malloc(sizeof(complex)*M ) ;
-         bb = (complex *) malloc(sizeof(complex)*M ) ;
-         cc = (complex *) malloc(sizeof(complex)*M ) ;
-         dd = (complex *) malloc(sizeof(complex)*M ) ;
+         if( rcs != NULL ){
+            free(rcs[rec]);free(raa[rec]);
+            free(rbb[rec]);free(rcc[rec]);free(rdd[rec]);
+         }
+         rcs[rec] = (complex *) malloc(sizeof(complex)*M3) ;
+         raa[rec] = (complex *) malloc(sizeof(complex)*M ) ;
+         rbb[rec] = (complex *) malloc(sizeof(complex)*M ) ;
+         rcc[rec] = (complex *) malloc(sizeof(complex)*M ) ;
+         rdd[rec] = (complex *) malloc(sizeof(complex)*M ) ;
       }
 
-      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
-      for( k=1 ; k < M3 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
-      mold = M ;
+      rcs[rec][0].r = 1.0 ; rcs[rec][0].i = 0.0 ;
+      for( k=1 ; k < M3 ; k++ ){
+         rcs[rec][k].r = cos(k*th); rcs[rec][k].i = sin(k*th);
+      }
+      rmold[rec] = M ;
    }
+
+   cs = rcs[rec] ; aa = raa[rec] ; bb = rbb[rec] ; cc = rcc[rec] ; dd = rdd[rec] ;
 
    /*-- load subarrays, and FFT each one --*/
 
@@ -1622,6 +1680,7 @@ static void fft_4dec( int mode , int idim , complex * xc )
       aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; dd[k]=xc[i++];
    }
 
+   rec++ ;
    switch( N ){
 
       default: fprintf(stderr,"\n*** Illegal call to fft_4dec: N=%d\n",N);
@@ -1632,7 +1691,20 @@ static void fft_4dec( int mode , int idim , complex * xc )
 
       case 2048: fft512(mode,aa); fft512(mode,bb);
                  fft512(mode,cc); fft512(mode,dd); break;
+
+      case 4096: fft_4dec(mode,1024,aa); fft_4dec(mode,1024,bb);         /* recurse once */
+                 fft_4dec(mode,1024,cc); fft_4dec(mode,1024,dd); break ;
+
+      case 8192: fft_4dec(mode,2048,aa); fft_4dec(mode,2048,bb);         /* recurse once */
+                 fft_4dec(mode,2048,cc); fft_4dec(mode,2048,dd); break ;
+
+      case 16384: fft_4dec(mode,4096,aa); fft_4dec(mode,4096,bb);        /* recurse twice */
+                  fft_4dec(mode,4096,cc); fft_4dec(mode,4096,dd); break ;
+
+      case 32768: fft_4dec(mode,8192,aa); fft_4dec(mode,8192,bb);        /* recurse twice */
+                  fft_4dec(mode,8192,cc); fft_4dec(mode,8192,dd); break ;
    }
+   rec-- ;
 
    /*-- recombination --*/
 
@@ -1695,14 +1767,14 @@ static void fft_4dec( int mode , int idim , complex * xc )
 #endif /* DONT_UNROLL_FFTS */
 
 /*=======================================================================
-  The following radix-3 and radix-5 routines are by RWCox -- 08 Aug 1999.
+  The following radix-3 and radix-5 routines are by RWCox -- Aug 1999.
   They are not inside unrolled code.
 =========================================================================*/
 
 /*------------------------------------------------------------------
    fft_3dec: do a decimation-by-3, plus a power-of-2.
-   idim must be equal to a power-of-2 times 3 -- this routine must
-     not be called recursively!
+   At most RMAX levels of recursion are allowed, which means
+   that at most 3**RMAX can be a factor of idim.
 --------------------------------------------------------------------*/
 
 #undef  CC3
@@ -1712,29 +1784,46 @@ static void fft_4dec( int mode , int idim , complex * xc )
 
 static void fft_3dec( int mode , int idim , complex * xc )
 {
+   static int rec=0 ;
+   static int rmold[RMAX] = {-1,-1,-1} ;
+   static complex *rcs[RMAX] = {NULL,NULL,NULL} ;
+   static complex *raa[RMAX], *rbb[RMAX], *rcc[RMAX] ;
+
    int N=idim , M=idim/3 , M2=2*M ;
-   static int mold=-1 ;
-   static complex * cs=NULL , * aa , * bb , * cc ;
+   int mold ;
+   complex * cs=NULL , * aa , * bb , * cc ;
    register int k , i ;
    register float aar,aai, tr,ti, bbr,bbi, ccr,cci,
                   t1,t2,t4,t5,t6,t8 ;
 
    /*-- initialize cosine/sine table and memory space --*/
 
+   if( rec >= RMAX ){
+      fprintf(stderr,"\n*** fft_3dec: too many recursions!\n"); exit(1);
+   }
+
+   mold = rmold[rec] ;  /* what was done before at this recursion level */
+
    if( M != mold ){
       double th = (2.0*PI/N) ;
       if( M > mold ){
-         if( cs != NULL ){free(cs);free(aa);free(bb);free(cc);}
-         cs = (complex *) malloc(sizeof(complex)*M2) ;
-         aa = (complex *) malloc(sizeof(complex)*M ) ;
-         bb = (complex *) malloc(sizeof(complex)*M ) ;
-         cc = (complex *) malloc(sizeof(complex)*M ) ;
+         if( rcs[rec] != NULL ){
+            free(rcs[rec]);free(raa[rec]);free(rbb[rec]);free(rcc[rec]);
+         }
+         rcs[rec] = (complex *) malloc(sizeof(complex)*M2) ;
+         raa[rec] = (complex *) malloc(sizeof(complex)*M ) ;
+         rbb[rec] = (complex *) malloc(sizeof(complex)*M ) ;
+         rcc[rec] = (complex *) malloc(sizeof(complex)*M ) ;
       }
 
-      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
-      for( k=1 ; k < M2 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
-      mold = M ;
+      rcs[rec][0].r = 1.0 ; rcs[rec][0].i = 0.0 ;
+      for( k=1 ; k < M2 ; k++ ){
+         rcs[rec][k].r = cos(k*th); rcs[rec][k].i = sin(k*th);
+      }
+      rmold[rec] = M ;
    }
+
+   cs = rcs[rec] ; aa = raa[rec] ; bb = rbb[rec] ; cc = rcc[rec] ;
 
    /*-- load subarrays, and FFT each one --*/
 
@@ -1742,6 +1831,9 @@ static void fft_3dec( int mode , int idim , complex * xc )
 
 #ifndef DONT_UNROLL_FFTS
    switch( M ){
+      case   1: break ;
+
+      case   2: fft2  (mode,aa) ; fft2  (mode,bb) ; fft2  (mode,cc) ; break;
       case   4: fft4  (mode,aa) ; fft4  (mode,bb) ; fft4  (mode,cc) ; break;
       case   8: fft8  (mode,aa) ; fft8  (mode,bb) ; fft8  (mode,cc) ; break;
       case  16: fft16 (mode,aa) ; fft16 (mode,bb) ; fft16 (mode,cc) ; break;
@@ -1751,11 +1843,18 @@ static void fft_3dec( int mode , int idim , complex * xc )
       case 256: fft256(mode,aa) ; fft256(mode,bb) ; fft256(mode,cc) ; break;
       case 512: fft512(mode,aa) ; fft512(mode,bb) ; fft512(mode,cc) ; break;
 
-      default:  csfft_cox(mode,M,aa) ;
-                csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ; break ;
+      case 1024: fft1024(mode,aa) ; fft1024(mode,bb) ; fft1024(mode,cc) ; break;
+      case 2048: fft2048(mode,aa) ; fft2048(mode,bb) ; fft2048(mode,cc) ; break;
+
+      default:  rec++ ;
+                csfft_cox(mode,M,aa) ;
+                csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
+                rec-- ; break ;
    }
 #else
+      rec++ ;
       csfft_cox(mode,M,aa) ; csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
+      rec-- ;
 #endif
 
    /*-- recombination --*/
@@ -1807,8 +1906,8 @@ static void fft_3dec( int mode , int idim , complex * xc )
 
 /*------------------------------------------------------------------
    fft_5dec: do a decimation-by-5, plus a power-of-2.
-   idim must be equal to a power-of-2 times 5 -- this routine must
-     not be called recursively!
+   At most RMAX levels of recursion are allowed, which means
+   that at most 5**RMAX can be a factor of idim.
 --------------------------------------------------------------------*/
 
 #undef  COS72
@@ -1818,9 +1917,14 @@ static void fft_3dec( int mode , int idim , complex * xc )
 
 static void fft_5dec( int mode , int idim , complex * xc )
 {
+   static int rec=0 ;
+   static int rmold[RMAX] = {-1,-1,-1} ;
+   static complex *rcs[RMAX] = {NULL,NULL,NULL} ;
+   static complex *raa[RMAX], *rbb[RMAX], *rcc[RMAX], *rdd[RMAX], *ree[RMAX] ;
+
    int N=idim , M=idim/5 , M2=2*M , M3=3*M , M4=4*M ;
-   static int mold=-1 ;
-   static complex * cs=NULL, *aa, *bb, *cc, *dd, *ee ;
+   int mold ;
+   complex * cs, *aa, *bb, *cc, *dd, *ee ;
    register int k , i ;
    register float aar,aai,bbr,bbi,ccr,cci,ddr,ddi,eer,eei ;
    register float akp,akm,bkp,bkm , ajp,ajm,bjp,bjm ;
@@ -1830,22 +1934,36 @@ static void fft_5dec( int mode , int idim , complex * xc )
 
    /*-- initialize cosine/sine table and memory space --*/
 
-   if( M != mold ){
+   if( rec >= RMAX ){
+      fprintf(stderr,"\n*** fft_5dec: too many recursions!\n"); exit(1);
+   }
+
+   mold = rmold[rec] ;  /* what was done before at this recursion level */
+
+   if( M != mold ){     /* new value of M? */
       double th = (2.0*PI/N) ;
-      if( M > mold ){
-         if( cs != NULL ){free(cs);free(aa);free(bb);free(cc);free(dd);free(ee);}
-         cs = (complex *) malloc(sizeof(complex)*M4) ;
-         aa = (complex *) malloc(sizeof(complex)*M ) ;
-         bb = (complex *) malloc(sizeof(complex)*M ) ;
-         cc = (complex *) malloc(sizeof(complex)*M ) ;
-         dd = (complex *) malloc(sizeof(complex)*M ) ;
-         ee = (complex *) malloc(sizeof(complex)*M ) ;
+      if( M > mold ){             /* need more space */
+         if( rcs[rec] != NULL ){
+            free(rcs[rec]);free(raa[rec]);free(rbb[rec]);
+            free(rcc[rec]);free(rdd[rec]);free(ree[rec]);
+         }
+         rcs[rec] = (complex *) malloc(sizeof(complex)*M4) ;
+         raa[rec] = (complex *) malloc(sizeof(complex)*M ) ;
+         rbb[rec] = (complex *) malloc(sizeof(complex)*M ) ;
+         rcc[rec] = (complex *) malloc(sizeof(complex)*M ) ;
+         rdd[rec] = (complex *) malloc(sizeof(complex)*M ) ;
+         ree[rec] = (complex *) malloc(sizeof(complex)*M ) ;
       }
 
-      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
-      for( k=1 ; k < M4 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
-      mold = M ;
+      rcs[rec][0].r = 1.0 ; rcs[rec][0].i = 0.0 ;
+      for( k=1 ; k < M4 ; k++ ){
+         rcs[rec][k].r = cos(k*th); rcs[rec][k].i = sin(k*th);
+      }
+      rmold[rec] = M ;  /* you must remember this */
    }
+
+   cs = rcs[rec] ; aa = raa[rec] ; bb = rbb[rec] ;
+                   cc = rcc[rec] ; dd = rdd[rec] ; ee = ree[rec] ;
 
    /*-- load subarrays, and FFT each one --*/
 
@@ -1855,6 +1973,11 @@ static void fft_5dec( int mode , int idim , complex * xc )
 
 #ifndef DONT_UNROLL_FFTS
    switch( M ){
+      case   1: break ;
+
+      case   2: fft2  (mode,aa) ; fft2  (mode,bb) ; fft2  (mode,cc) ;
+                fft2  (mode,dd) ; fft2  (mode,ee) ;                   break;
+
       case   4: fft4  (mode,aa) ; fft4  (mode,bb) ; fft4  (mode,cc) ;
                 fft4  (mode,dd) ; fft4  (mode,ee) ;                   break;
 
@@ -1879,13 +2002,23 @@ static void fft_5dec( int mode , int idim , complex * xc )
       case 512: fft512(mode,aa) ; fft512(mode,bb) ; fft512(mode,cc) ;
                 fft512(mode,dd) ; fft512(mode,ee) ;                   break;
 
-      default:  csfft_cox(mode,M,aa) ;
+      case 1024: fft1024(mode,aa) ; fft1024(mode,bb) ; fft1024(mode,cc) ;
+                 fft1024(mode,dd) ; fft1024(mode,ee) ;                   break;
+
+      case 2048: fft2048(mode,aa) ; fft2048(mode,bb) ; fft2048(mode,cc) ;
+                 fft2048(mode,dd) ; fft2048(mode,ee) ;                   break;
+
+      default:  rec++ ;
+                csfft_cox(mode,M,aa) ;
                 csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
-                csfft_cox(mode,M,dd) ; csfft_cox(mode,M,ee) ; break ;
+                csfft_cox(mode,M,dd) ; csfft_cox(mode,M,ee) ;
+                rec-- ; break ;
    }
 #else
+      rec++ ;
       csfft_cox(mode,M,aa) ; csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
       csfft_cox(mode,M,dd) ; csfft_cox(mode,M,ee) ;
+      rec-- ;
 #endif
 
    /*-- recombination --*/
@@ -1945,19 +2078,66 @@ static void fft_5dec( int mode , int idim , complex * xc )
    Return the smallest integer >= idim for which we can do an FFT.
 ----------------------------------------------------------------------*/
 
+#define N35 ((RMAX+1)*(RMAX+1))
+
 int csfft_nextup( int idim )
 {
-   int ibase ;
+   static int * tf = NULL , * dn = NULL ;
+   int ibase , ii ;
 
-   if( idim <=  8 ) return  8 ;
-   if( idim <= 16 ) return 16 ;
+   /*-- build table of allowable powers of 3 and 5 [tf],
+        the powers of 2 just less than them        [dn],
+        and their ratios tf/dn                     [rat].
+        Then sort tf and dn to be increasing in rat.     --*/
 
-   ibase = 8 ;
+   if( tf == NULL ){
+      int p , q , tt,ff , i=0 , j ; float * rat ; float r ;
+
+      tf  = (int *)   malloc(sizeof(int)  *N35) ;
+      dn  = (int *)   malloc(sizeof(int)  *N35) ;
+      rat = (float *) malloc(sizeof(float)*N35) ;
+
+      /* create tables */
+
+      for( p=0,tt=1 ; p <= RMAX ; p++,tt*=3 ){         /* tt = 3^p */
+         for( q=0,ff=1 ; q <= RMAX ; q++,ff*=5,i++ ){  /* ff = 5^q */
+            tf[i] = tt * ff ;
+
+            j=2; while( j < tf[i] ){ j*=2; } /* j = power of 2 just >= tf */
+            dn[i] = j/2 ;                    /* dn = power of 2 just < tf */
+
+            rat[i] = (float)(tf[i]) / (float)(dn[i]) ;
+         }
+      }
+
+      /* sort on rat (crude, but it works) */
+
+      do{
+         for( i=1,p=0 ; i < N35 ; i++ ){
+            if( rat[i-1] > rat[i] ){
+               r = rat[i-1] ; rat[i-1] = rat[i] ; rat[i] = r ;
+               q = tf [i-1] ; tf [i-1] = tf [i] ; tf [i] = q ;
+               q = dn [i-1] ; dn [i-1] = dn [i] ; dn [i] = q ;
+               p++ ;
+            }
+         }
+      } while( p > 0 ) ;
+
+      free(rat) ;
+   }
+
+   /*-- loop on powers of 2 (ibase);
+        we can do FFTs of size = tf*ibase/dn (note 1 < tf/dn < 2);
+        sinc tf/dn is sorted, we're scanning in increasing sizes  --*/
+
+   ibase = 1 ;
    while(1){
-      if( idim <= 3*ibase    ) return 3*ibase    ;
-      if( idim <= 15*ibase/4 ) return 15*ibase/4 ;
-      if( idim <= 4*ibase    ) return 4*ibase    ;
-      if( idim <= 5*ibase    ) return 5*ibase    ;
+      if( idim <= ibase ) return ibase ;
+
+      for( ii=0 ; ii < N35 ; ii++ )
+         if( dn[ii] <= ibase && idim <= tf[ii]*ibase/dn[ii] )
+            return tf[ii]*ibase/dn[ii] ;
+
       ibase *= 2 ;
    }
 }

@@ -307,6 +307,7 @@ typedef struct {
       Widget frame , rowcol ;
       Widget topper , popmenu , pop_bkgd_lab ,
              pop_jumpback_pb , pop_imageonly_pb , pop_jumpto_pb , pop_talto_pb ;
+      Widget pop_jumpto_ijk_pb ;
 
       Widget crosshair_frame , crosshair_rowcol , crosshair_label ;
 
@@ -957,6 +958,8 @@ extern void AFNI_do_many_writes      ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_finalize_dataset_CB ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_jumpto_CB           ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern int  AFNI_jumpto_dicom        ( Three_D_View * , float, float, float  ) ;
+extern int  AFNI_jumpto_ijk          ( Three_D_View * , int, int, int  ) ;
+extern void AFNI_jumpto_ijk_CB       ( Widget , XtPointer , MCW_choose_cbs * ) ;
 
 extern void AFNI_fimmer_pickref_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;
 extern void AFNI_fimmer_pickort_CB   ( Widget , XtPointer , MCW_choose_cbs * ) ;

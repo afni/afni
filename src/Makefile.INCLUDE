@@ -938,6 +938,12 @@ imcalc:imcalc.o parser.o parser_int.o
 fftest:fftest.o
 	$(CC) -o fftest fftest.o $(LFLAGS) $(LLIBS)
 
+fftnext:fftnext.o
+	$(CC) -o fftnext fftnext.o $(LFLAGS) $(LLIBS)
+
+fftcheck:fftcheck.o
+	$(CC) -o fftcheck fftcheck.o $(LFLAGS) $(LLIBS)
+
 fftest_dj:fftest_dj.o csfft_dj.o fft_dj.o
 	$(CC) -o fftest_dj fftest_dj.o csfft_dj.o fft_dj.o $(LFLAGS) $(LLIBS)
 

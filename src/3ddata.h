@@ -1694,6 +1694,13 @@ extern int THD_need_brick_factor( THD_3dim_dataset * ) ;
 #define DSET_DY(ds) ((ds)->daxes->yydel)
 #define DSET_DZ(ds) ((ds)->daxes->zzdel)
 
+  /* these next 4 added 19 Aug 1999 */
+
+#define DSET_index_to_ix(ds,ii)         (  (ii) % (ds)->daxes->nxx)
+#define DSET_index_to_jy(ds,ii)         ( ((ii) / (ds)->daxes->nxx) % (ds)->daxes->nyy )
+#define DSET_index_to_kz(ds,ii)         (  (ii) /((ds)->daxes->nxx * (ds)->daxes->nyy ))
+#define DSET_ixyz_to_index(ds,ix,jy,kz) ((ix)+((jy)+(kz)*(ds)->daxes->nyy)*(ds)->daxes->nxx)
+
 #define DSET_CUBICAL(ds) ( fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->yydel) && \
                            fabs((ds)->daxes->xxdel) == fabs((ds)->daxes->zzdel)   )
 

@@ -9,13 +9,16 @@
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 
+
+  Mod:   Corrected initialization of PDF estimation flag.
+  Date:  06 August 1999
 */
 
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3dIntracranial"                /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
-#define PROGRAM_DATE "04 June 1999"              /* date of last program mod */
+#define PROGRAM_DATE "06 August 1999"            /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -307,7 +310,7 @@ void initialize_program
 
 {
   float parameters [DIMENSION];    /* parameters for PDF estimation */
-  Boolean ok;                      /* flag for successful PDF estimation */
+  Boolean ok = TRUE;               /* flag for successful PDF estimation */
 
 
   /*----- Get operator inputs -----*/
@@ -575,7 +578,7 @@ void SEGMENT_auto ()
   This is the main routine for program 3dIntracranial.
 */
 
-void main
+int main
 (
   int argc,                /* number of input arguments */
   char ** argv             /* array of input arguments */ 
