@@ -838,9 +838,9 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
    The (x,y,z) coordinates are given by a general affine transformation
    of the (i,j,k) indexes:
 
-     x = srow_x[0] * i + srow_x[1] * j + srow_x[2] * j + srow_x[3]
-     y = srow_y[0] * i + srow_y[1] * j + srow_y[2] * j + srow_y[3]
-     z = srow_z[0] * i + srow_z[1] * j + srow_z[2] * j + srow_z[3]
+     x = srow_x[0] * i + srow_x[1] * j + srow_x[2] * k + srow_x[3]
+     y = srow_y[0] * i + srow_y[1] * j + srow_y[2] * k + srow_y[3]
+     z = srow_z[0] * i + srow_z[1] * j + srow_z[2] * k + srow_z[3]
 
    The srow_* vectors are in the NIFTI_1 header.  Note that no use is
    made of pixdim[] in this method.
