@@ -437,49 +437,43 @@ void DC_init_im_gry( MCW_DC * dc )
 
 rgbyte DC_spectrum( MCW_DC *dc , double an )
 {
-   int r,g,b ;
+   int r,g,b , m ;
    double gamm , ak,ab,s,c,sb,cb ;
    rgbyte color ;
 
    if( dc != NULL ) gamm = dc->gamma ;
    else             gamm = 1.0 ;
 
-   ak = 105.; s  = 255.0-ak; c  = s/60.;
+#if 0
+   ak = 105.; s  = 255.0-ak; c  = s /60.;     /* AJ's choices */
    ab =  65.; sb = 255.0-ab; cb = sb/60.;
+#else
+   ak =   5.; s  = 255.0-ak; c  = s /60.;     /* RWC's choices */
+   ab =   5.; sb = 255.0-ab; cb = sb/60.;
+#endif
 
    while( an <   0.0 ) an += 360.0 ;
    while( an > 360.0 ) an -= 360.0 ;
 
-#if 1
-   if( (an < 120.)) {
+   if( an < 120. ){
      r = 255.*mypow((ak + MIN(s,(120. - an)*c))/255., gamm) +.5;
      g = 255.*mypow((ak + MIN(s,an*c))/255., gamm) +.5;
+     m = MAX(r,g) ;
      b = 0;
-   } else if((an >= 120.) && (an < 240.)) {
+   } else if( an < 240. ){
      r = 0;
      g = 255.*mypow((ak + MIN(s ,(240. - an)*c ))/255., gamm) +.5;
      b = 255.*mypow((ab + MIN(sb,(an - 120.)*cb))/255., gamm) +.5;
+     m = MAX(g,b) ;
    } else {
      r = 255.*mypow((ak + MIN(s,(an - 240.)*c ))/255., gamm) +.5;
      g = 0;
      b = 255.*mypow((ab + MIN(s,(360. - an)*cb))/255., gamm) +.5;
+     m = MAX(r,b) ;
    }
-#else
-# define LUP(x) ((x)/120.0)
-# define LDN(x) ((120.0-(x))/120.0)
-   if( an < 120. ){
-     r = 255.0 * mypow( LDN(an) , gamm ) + 0.5 ;
-     g = 255.0 * mypow( LUP(an) , gamm ) + 0.5 ;
-     b = 0 ;
-   } else if( an < 240. ){
-     r = 0 ;
-     g = 255.0 * mypow( LDN(an-120.) , gamm ) + 0.5 ;
-     b = 255.0 * mypow( LUP(an-120.) , gamm ) + 0.5 ;
-   } else {
-     r = 255.0 * mypow( LUP(an-240.) , gamm ) + 0.5 ;
-     g = 0 ;
-     b = 255.0 * mypow( LDN(an-240.) , gamm ) + 0.5 ;
-   }
+
+#if 0
+   if( m < 255 ){ s = 255.0/m ; r *= s ; g *= s ; b *= s ; }
 #endif
 
    color.r = r ; color.g = g ; color.b = b ; return color ;
