@@ -72,7 +72,7 @@ static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
 
    /*--- scan through array, find nonzero point, build a cluster, ... ---*/
 
-   if( verb ) fprintf(stderr,"++ clustedit3D: threshold size=%d voxels\n",csize) ;
+   if( verb ) fprintf(stderr," + clustedit3D: threshold size=%d voxels\n",csize) ;
 
    ijk_last = 0 ;
    while(1) {
@@ -124,7 +124,7 @@ static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
        memcpy(ksav+nsav,know,sizeof(short)*nnow) ;
        nsav = kk ;
        if( verb )
-         fprintf(stderr,"++ clustedit3D: saved cluster with %d voxels\n",nnow);
+         fprintf(stderr," + clustedit3D: saved cluster with %d voxels\n",nnow);
      } else {
        nkill += nnow ;
      }
@@ -141,7 +141,7 @@ static void clustedit3D( int nx, int ny, int nz, byte *mmm, int csize )
    free((void *)isav); free((void *)jsav); free((void *)ksav) ;
 
    if( verb )
-     fprintf(stderr,"++ clustedit3D totals:"
+     fprintf(stderr," + clustedit3D totals:"
                     " saved=%d killed=%d nxyz=%d\n",nsav,nkill,nxyz) ;
    return ;
 }
@@ -299,7 +299,7 @@ ENTRY("get_octant_clips") ;
    cv.dzi = (cv.z1 > cv.z0) ? 1.0/(cv.z1-cv.z0) : 0.0 ;
 
    if( verb )
-    fprintf(stderr,"++ get_octant_clips:  min clip=%.1f\n"
+    fprintf(stderr," + get_octant_clips:  min clip=%.1f\n"
                    "   clip_000=%.1f  clip_100=%.1f  clip_010=%.1f  clip_110=%.1f\n"
                    "   clip_001=%.1f  clip_101=%.1f  clip_011=%.1f  clip_111=%.1f\n"
                    "   (x0,y0,z0)=(%.1f,%.1f,%.1f) (x1,y1,z1)=(%.1f,%.1f,%.1f)\n" ,
@@ -356,18 +356,18 @@ ENTRY("mri_short2mask") ;
    if( bvec.clip_000 < 0.0 ) RETURN(NULL) ;
 
    tvec = bvec ;
-   tvec.clip_000 *= 3.91 ;
-   tvec.clip_100 *= 3.91 ;
-   tvec.clip_010 *= 3.91 ;
-   tvec.clip_110 *= 3.91 ;
-   tvec.clip_001 *= 3.91 ;
-   tvec.clip_101 *= 3.91 ;
-   tvec.clip_011 *= 3.91 ;
-   tvec.clip_111 *= 3.91 ;
+   tvec.clip_000 *= 9.91 ;
+   tvec.clip_100 *= 9.91 ;
+   tvec.clip_010 *= 9.91 ;
+   tvec.clip_110 *= 9.91 ;
+   tvec.clip_001 *= 9.91 ;
+   tvec.clip_101 *= 9.91 ;
+   tvec.clip_011 *= 9.91 ;
+   tvec.clip_111 *= 9.91 ;
 
    /* create mask, clipping at a level that varies spatially */
 
-   if( verb ) fprintf(stderr,"++ mri_short2mask: clipping\n") ;
+   if( verb ) fprintf(stderr," + mri_short2mask: clipping\n") ;
 
    mask = (byte *) malloc( sizeof(byte)*nxyz ) ;
    for( ijk=kk=0 ; kk < nz ; kk++ ){
@@ -378,7 +378,7 @@ ENTRY("mri_short2mask") ;
        mask[ijk] = (sar[ijk] >= bval && sar[ijk] <= tval) ; /* binarize */
    }}}
 
-   if( verb ) fprintf(stderr,"++ mri_short2mask: %d voxels survive clip\n",
+   if( verb ) fprintf(stderr," + mri_short2mask: %d voxels survive clip\n",
                              mask_count(nxyz,mask) ) ;
 
    /* remove small clusters */
@@ -435,7 +435,7 @@ static sort_shortvox( int n , shortvox *ar , int dec , float botperc, float topp
      jj = (int)rint(0.01*botperc*n) ;
      for( ii=0 ; ii < nsv && csv[ii] <= jj ; ii++ ) ;
      pbot = ii+sbot ;
-     if( verb ) fprintf(stderr,"++ sort_shortvox: sbot=%d pbot=%d\n",sbot,pbot) ;
+     if( verb ) fprintf(stderr," + sort_shortvox: sbot=%d pbot=%d\n",sbot,pbot) ;
    } else {
      pbot = sbot ;
    }
@@ -444,7 +444,7 @@ static sort_shortvox( int n , shortvox *ar , int dec , float botperc, float topp
      jj = (int)rint(0.01*(100.0-topperc)*n) ;
      for( ii=0 ; ii < nsv && csv[ii] <= jj ; ii++ ) ;
      ptop = ii+sbot ;
-     if( verb ) fprintf(stderr,"++ sort_shortvox: stop=%d ptop=%d\n",stop,ptop) ;
+     if( verb ) fprintf(stderr," + sort_shortvox: stop=%d ptop=%d\n",stop,ptop) ;
    } else {
      ptop = stop ;
    }
@@ -566,7 +566,7 @@ ENTRY("watershedize") ;
    for( nvox=0,pp=0 ; pp < nxyz ; pp++ ) if( sar[pp] > 0 ) nvox++ ;
    if( nvox <= 999 ) RETURN(NULL) ;
 
-   if( verb ) fprintf(stderr,"++mri_watershedize: %d voxels input\n",nvox) ;
+   if( verb ) fprintf(stderr," + mri_watershedize: %d voxels input\n",nvox) ;
 
    /* create voxel lists */
 
@@ -591,7 +591,7 @@ ENTRY("watershedize") ;
 
    /* sort voxel list into descending order */
 
-   if( verb ) fprintf(stderr,"++mri_watershedize: sorting voxels\n") ;
+   if( verb ) fprintf(stderr," + mri_watershedize: sorting voxels\n") ;
 
    sort_shortvox( nvox , svox , 1 , 0.00 , 0.02 ) ;
 
@@ -608,7 +608,7 @@ ENTRY("watershedize") ;
    /* scan voxels as they get shallower, and basinate them */
 
    if( verb ){
-     fprintf(stderr,"++mri_watershedize: basinating voxels\n") ;
+     fprintf(stderr," + mri_watershedize: basinating voxels\n") ;
      fprintf(stderr,"  data range: %d..%d preflood_height=%d\n",
              svox[nvox-1].val , svox[0].val , hpf ) ;
    }
@@ -709,7 +709,7 @@ ENTRY("watershedize") ;
    for( ii=0 ; ii < mu ; ii++ ) bcount[ii] = -bcount[ii] ;
 
    if( verb )
-     fprintf(stderr,"++ top 9 basin counts: %d %d %d %d %d %d %d %d %d\n",
+     fprintf(stderr," + top 9 basin counts: %d %d %d %d %d %d %d %d %d\n",
              bcount[0] , bcount[1] , bcount[2] , bcount[3] ,
              bcount[4] , bcount[5] , bcount[6] , bcount[7] , bcount[8] ) ;
 
@@ -725,6 +725,73 @@ ENTRY("watershedize") ;
    free((void *)bcount); free((void *)bname);
 
    return tim ;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth )
+{
+   int nxy=nx*ny , ii,jj,kk , ijk , bot,top , pd=pdepth ;
+   int nxp=nx-pd , nyp=ny-pd , nzp=nz-pd ;
+   int num=0 , dnum , nite ;
+
+   for( nite=0 ; nite < pd ; nite++ ){
+    dnum = 0 ;
+
+    for( kk=0 ; kk < nz ; kk++ ){
+     for( jj=0 ; jj < ny ; jj++ ){
+       ijk = jj*nx + kk*nxy ;
+       for( bot=0 ; bot < nx && !mmm[bot+ijk]; bot++ ) ;
+       top = bot+pd ; if( top >= nx ) continue ;
+       for( ii=bot+1 ; ii <= top && mmm[ii+ijk] ; ii++ ) ;
+       if( ii <= top ){ mmm[bot+ijk] = 0; dnum++; }
+    }}
+
+    for( kk=0 ; kk < nz ; kk++ ){
+     for( jj=0 ; jj < ny ; jj++ ){
+       ijk = jj*nx + kk*nxy ;
+       for( top=nx-1 ; top >= 0 && !mmm[top+ijk]; top-- ) ;
+       bot = top-pd ; if( bot < 0 ) continue ;
+       for( ii=top-1 ; ii >= bot && mmm[ii+ijk] ; ii-- ) ;
+       if( ii >= bot ){ mmm[top+ijk] = 0; dnum++; }
+    }}
+
+    for( kk=0 ; kk < nz ; kk++ ){
+     for( ii=0 ; ii < nx ; ii++ ){
+       ijk = ii + kk*nxy ;
+       for( bot=0 ; bot < ny && !mmm[bot*nx+ijk] ; bot++ ) ;
+       top = bot+pd ;
+       if( top >= ny ) continue ;
+       for( jj=bot+1 ; jj <= top && mmm[jj*nx+ijk] ; jj++ ) ;
+       if( jj <= top ){ mmm[bot*nx+ijk] = 0; dnum++; }
+    }}
+
+    for( kk=0 ; kk < nz ; kk++ ){
+     for( ii=0 ; ii < nx ; ii++ ){
+       ijk = ii + kk*nxy ;
+       for( top=ny-1 ; top >= 0 && !mmm[top*nx+ijk] ; top-- ) ;
+       bot = top-pd ; if( bot < 0 ) continue ;
+       for( jj=top-1 ; jj >= bot && mmm[jj*nx+ijk] ; jj-- ) ;
+       if( jj >= bot ){ mmm[top*nx+ijk] = 0; dnum++; }
+    }}
+
+#if 0
+    for( jj=0 ; jj < ny ; jj++ ){
+     for( ii=0 ; ii < nx ; ii++ ){
+       ijk = ii + jj*nx ;
+       for( top=nz-1 ; top >= 0 && !mmm[top*nxy+ijk] ; top-- ) ;
+       bot = top-pd ; if( bot < 0 ) continue ;
+       for( kk=top-1 ; kk >= bot && mmm[kk*nxy+ijk] ; kk-- ) ;
+       if( kk >= bot ){ mmm[top*nxy+ijk] = 0; dnum++; }
+    }}
+#endif
+
+    num += dnum ;
+    if( dnum == 0 ) break ;
+   }
+
+   if( verb ) fprintf(stderr," + Peeled %d voxels from surface\n",num) ;
+   return ;
 }
 
 /*======================================================================*/
@@ -791,7 +858,7 @@ ENTRY("mri_brainormalize") ;
 
    /* make a short copy */
 
-   if( verb ) fprintf(stderr,"++ mri_brainormalize: copying input\n") ;
+   if( verb ) fprintf(stderr,"++mri_brainormalize: copying input\n") ;
 
    if( im->kind == MRI_short || im->kind == MRI_byte || im->kind == MRI_rgb )
      tim = mri_to_short( 1.0 , im ) ;
@@ -957,35 +1024,34 @@ ENTRY("mri_brainormalize") ;
    tim->yo = YORG ;
    tim->zo = ZORG ;
 
+   nx = tim->nx ; ny = tim->ny ; nz = tim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+   sar = MRI_SHORT_PTR(tim) ;
+
    /*-- build another mask now --*/
 
-   if( verb ) fprintf(stderr,"++mri_brainormalize: masking standard image\n") ;
+   if( !AFNI_noenv("REMASK") ){
+     if( verb ) fprintf(stderr,"++mri_brainormalize: masking standard image\n") ;
 
-   nx = tim->nx ; ny = tim->ny ; nz = tim->nz ; nxy = nx*ny ; nxyz = nxy*nz ;
+     THD_automask_verbose(verb) ;
 
-   mask = mri_short2mask( tim ) ;
-   THD_mask_clust( nx,ny,nz, mask ) ;
-   THD_mask_erode( nx,ny,nz, mask ) ;
-   THD_mask_clust( nx,ny,nz, mask ) ;
-   ii = THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
-   if( ii > 0 ){
-     ii = THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
-     if( ii > 0 ){
-       ii = THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
-     }
+     mask = mri_short2mask( tim ) ;
+     THD_mask_clust( nx,ny,nz, mask ) ;
+     THD_mask_erode( nx,ny,nz, mask ) ;
+     THD_mask_clust( nx,ny,nz, mask ) ;
+     (void) THD_mask_fillin_once( nx,ny,nz , mask , 1 ) ;
+     peel_mask( nx,ny,nz , mask , 7 ) ;
+     THD_mask_erode( nx,ny,nz, mask ) ;
+     THD_mask_clust( nx,ny,nz, mask ) ;
+     (void) THD_mask_fillin_completely( nx,ny,nz , mask , 2 ) ;
+#if 0
+     for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
+     THD_mask_clust( nx,ny,nz, mask ) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
+#endif
+
+     for( ii=0 ; ii < nxyz ; ii++ ) if( !mask[ii] ) sar[ii] = 0 ;
+     free((void *)mask) ;
    }
-   (void) THD_peel_mask( nx,ny,nz , mask , 9 ) ;
-   THD_mask_erode( nx,ny,nz, mask ) ;
-   THD_mask_clust( nx,ny,nz, mask ) ;
-   (void) THD_mask_fillin_completely( nx,ny,nz , mask , 2 ) ;
-   for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
-   THD_mask_clust( nx,ny,nz, mask ) ;
-   for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = !mask[ii] ;
-
-   sar = MRI_SHORT_PTR(tim) ;
-   for( ii=0 ; ii < nxyz ; ii++ ) if( !mask[ii] ) sar[ii] = 0 ;
-
-   free((void *)mask) ;
 
    /*-- clip top 1% of values that have survived --*/
 
@@ -995,6 +1061,7 @@ ENTRY("mri_brainormalize") ;
    kk = (int)(0.01*kk) ;
    for( jj=0,ii=32767 ; ii > 0 && jj < kk ; ii-- ) jj += hist[ii] ;
    jj = ii ;
+   if( verb ) fprintf(stderr," + 99%% clipping at %d\n",jj) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( sar[ii] > jj ) sar[ii] = jj ;
 
    free((void *)hist) ;

@@ -370,7 +370,7 @@ PLUGIN_interface * ENV_init(void)
 
    ENV_add_numeric( "AFNI_VIDEO_DELAY" ,                        /* 04 Dec 2003 */
                     "Image redraw interval for 'V' or 'v' (ms)." ,
-                    1,1000,0,1 , NULL              ) ;
+                    1,9000,0,1 , NULL              ) ;
 
    ENV_add_numeric( "AFNI_IMAGE_ENTROPY" ,
                     "Entropy threshold: below this, 2%-98% is off." ,
