@@ -150,6 +150,14 @@ ENTRY("mri_new_7D_generic") ;
          newim->pixel_size = 3 * sizeof(byte) ;
       break ;
 
+      case MRI_rgba:
+         if( make_space )
+            newim->im.rgba_data = (byte *)calloc( npix,sizeof(rgba) ) ;
+         else
+            newim->im.rgb_data = NULL ;
+         newim->pixel_size = sizeof(rgba) ;
+      break ;
+
       default:
          fprintf( stderr , "mri_new: unrecognized image kind %d\n",(int)kind ) ;
          MRI_FATAL_ERROR ;

@@ -231,11 +231,11 @@ FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset * dset ,
    /*-- the inputs are good, so create a brick: --*/
 
    br             = myXtNew(FD_brick) ;  /* new brick */
-   br->dset       = dset ;             /* dataset */
-   br->resam_code = RESAM_NN_TYPE ;    /* crudest type */
+   br->dset       = dset ;               /* dataset */
+   br->resam_code = RESAM_NN_TYPE ;      /* crudest type */
    br->parent     = NULL ;
 
-   br->thr_resam_code = RESAM_NN_TYPE ;    /* 09 Dec 1997 */
+   br->thr_resam_code = RESAM_NN_TYPE ;  /* 09 Dec 1997 */
 
    /*-- at this point, x_dir is +1 or -1, y_dir is +2 or -2, etc. --*/
 
@@ -270,7 +270,7 @@ FD_brick * THD_3dim_dataset_to_brick( THD_3dim_dataset * dset ,
    xyz_org[2] = daxes->yyorg ;
    xyz_org[3] = daxes->zzorg ;
 
-   br->n1 = xyz_dim[aax_1] ;  /* permute dimensions, etc. */
+   br->n1 = xyz_dim[aax_1] ;   /* permute dimensions, etc. */
    br->n2 = xyz_dim[aax_2] ;
    br->n3 = xyz_dim[aax_3] ;
 

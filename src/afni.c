@@ -1631,23 +1631,35 @@ STATUS("get status") ;
    }
 
    /*--- 26 Feb 2001: return a memplot drawing struct ---*/
+   /*--- 22 Mar 2002: add crosshairs to surface stuff ---*/
 
-   if( type == isqCR_getmemplot ){
 #define RX 0.25
-     if( !SUMA_ENABLED || br->dset->su_surf == NULL ) RETURN(NULL) ;
-     {
-      Three_D_View * im3d = (Three_D_View *) br->parent ;
+   if( type == isqCR_getmemplot ){
+     Three_D_View * im3d = (Three_D_View *) br->parent ;
+     int do_surf=(SUMA_ENABLED                   && (br->dset->su_surf != NULL)) ;
+     int do_xhar=(im3d->vinfo->crosshair_visible && AFNI_yesenv("AFNI_CROSSHAIR_LINES")) ;
+     MEM_plotdata * mp ;
+
+     if( !do_surf && !do_xhar ) RETURN(NULL) ;
+
+     /* get ready to plot */
+
+     create_memplot_surely( "AGNI_plot" , 1.0 ) ;
+     mp = get_active_memplot() ;
+
+     /* plot surface stuff, if any */
+
+     if( do_surf ){
       SUMA_surface *ag = br->dset->su_surf ;
       int nn=ag->num_ixyz , ii,jj ;
       SUMA_ixyz *nod = ag->ixyz ;
-      MEM_plotdata * mp ;
       THD_ivec3 iv,ivp,ivm ;
       THD_fvec3 fv,fvp,fvm ;
       float s1=1.0/br->n1 , s2=1.0/br->n2 , dxyz , rr=1.0,gg=0.8,bb=0.0 ;
       char str[32] , *eee ;
       float rx=RX ;         /* default rectangle halfsize */
       int   kkk=0 ;
-      float xyz=0 ;
+      float xyz=0 , rxm,rxp ;
       int skip_boxes=0 , skip_lines=0 ;
 
       if( nn < 1 || nod == NULL ) RETURN(NULL) ;  /* nothing to do */
@@ -1676,6 +1688,25 @@ STATUS("get status") ;
          if( val > 0.0 ) rx = val ;
       }
 
+      /** 21 Mar 2002:
+          We calculate plotting coordinates in "fdfind" coordinates,
+          which are floating point indexes into the FD_brick.  However,
+          these run from 0..n1-1 (in x), which are the centers of the
+          voxels.  In turn these must be mapped to screen locations.
+          For example, with n1=5, we have these voxels
+
+              0   1   2   3   4    = index of voxel
+            ---------------------
+            |   |   |   |   |   |
+            ---------------------
+           0.0                 1.0 = screen coordinate (for memplot)
+
+          Thus voxel index i maps to screen location (i+0.5)/n1.
+          Previously, I forgot the +0.5, which didn't matter much,
+          until the introduction of the image zoom feature last week. **/
+
+      rxm = rx-0.5 ; rxp = rx+0.5 ;  /* The 0.5 voxel shift */
+
       /* find DICOM coordinates of next slice and previous slice */
 
       LOAD_IVEC3(iv,0,0,n+1) ;                     /* next */
@@ -1692,10 +1723,6 @@ STATUS("get status") ;
       dxyz = MIN(br->del1,br->del2) ;
       dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1 ;
 
-      /* get ready to plot */
-
-      create_memplot_surely( "SUMA_plot" , 1.0 ) ;
-      mp = get_active_memplot() ;
       set_color_memplot(rr,gg,bb) ;
 
       /* find nodes inside this slice */
@@ -1711,8 +1738,8 @@ STATUS("get status") ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;     /* coords   */
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;     /* to slice */
                fv = THD_3dfind_to_fdfind( br , fv ) ;         /* indexes  */
-               plotrect_memplot( s1*(fv.xyz[0]-rx), 1.0-s2*(fv.xyz[1]-rx),
-                                 s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
+               plotrect_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
+                                 s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  ) ;
             }
           }
          }
@@ -1729,8 +1756,8 @@ STATUS("get status") ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
-               plotrect_memplot( s1*(fv.xyz[0]-rx), 1.0-s2*(fv.xyz[1]-rx),
-                                 s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
+               plotrect_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
+                                 s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  ) ;
             }
           }
          }
@@ -1747,8 +1774,8 @@ STATUS("get status") ;
                fv = THD_dicomm_to_3dmm( br->dset , fv ) ;
                fv = THD_3dmm_to_3dfind( br->dset , fv ) ;
                fv = THD_3dfind_to_fdfind( br , fv ) ;
-               plotrect_memplot( s1*(fv.xyz[0]-rx), 1.0-s2*(fv.xyz[1]-rx),
-                                 s1*(fv.xyz[0]+rx), 1.0-s2*(fv.xyz[1]+rx)  ) ;
+               plotrect_memplot( s1*(fv.xyz[0]-rxm), 1.0-s2*(fv.xyz[1]-rxm),
+                                 s1*(fv.xyz[0]+rxp), 1.0-s2*(fv.xyz[1]+rxp)  ) ;
             }
           }
          }
@@ -1762,8 +1789,8 @@ STATUS("get status") ;
          these variables were set just above in the node display code. */
 
       if( !skip_lines && ag->num_ijk > 0 && ag->ijk != NULL ){
-        SUMA_ijk *tr = ag->ijk ;
-        int      ntr = ag->num_ijk ;
+        SUMA_ijk *tr = ag->ijk ;        /* triangle list  */
+        int      ntr = ag->num_ijk ;    /* number of triangles */
         int id,jd,kd ;
         THD_fvec3 fvijk[3] ;
         float ci,cj,ck ;
@@ -1841,32 +1868,179 @@ STATUS("get status") ;
           fvm = THD_3dfind_to_fdfind( br , fvm ) ;
 
           /* plot a line segment between them, in the plane of the slice */
+          /* [21 Mar 2002: include the 0.5 shift mentioned way up above] */
 
-          plotline_memplot( s1*fvp.xyz[0] , 1.0-s2*fvp.xyz[1] ,
-                            s1*fvm.xyz[0] , 1.0-s2*fvm.xyz[1]  ) ;
-#if 0
-if( fabs(fvp.xyz[0]-fvm.xyz[0])+fabs(fvp.xyz[1]-fvm.xyz[1]) > 5.0 ){
-fprintf(stderr,"  fvp=%f %f %f   fvm=%f %f %f\n",
-        fvp.xyz[0], fvp.xyz[1], fvp.xyz[2],
-        fvm.xyz[0], fvm.xyz[1], fvm.xyz[2] ) ;
-id = SUMA_find_node_id(ag,tr[ii].id) ;
-jd = SUMA_find_node_id(ag,tr[ii].jd) ;
-kd = SUMA_find_node_id(ag,tr[ii].kd) ;
-fprintf(stderr,"  triangle: id=%d x=%f y=%f z=%f\n",nod[id].id,nod[id].x,nod[id].y,nod[id].z) ;
-fprintf(stderr,"  triangle: jd=%d x=%f y=%f z=%f\n",nod[jd].id,nod[jd].x,nod[jd].y,nod[jd].z) ;
-fprintf(stderr,"  triangle: kd=%d x=%f y=%f z=%f\n",nod[kd].id,nod[kd].x,nod[kd].y,nod[kd].z) ;
-}
-#endif
+          plotline_memplot( s1*(fvp.xyz[0]+0.5) , 1.0-s2*(fvp.xyz[1]+0.5) ,
+                            s1*(fvm.xyz[0]+0.5) , 1.0-s2*(fvm.xyz[1]+0.5)  ) ;
 
         } /* end of loop over triangles */
       } /* end of if over doing lines */
+     } /* end of plotting surface stuff */
 
-      /* return to sender */
+     /*----- put crosshairs on with lines, if desired -----*/
+     /****** 22 Mar 2002: adapted from pixel overlay  ******/
 
-      if( MEMPLOT_NLINE(mp) < 1 ) DESTROY_MEMPLOT(mp) ;
+     if( do_xhar ){
+      MCW_grapher * grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
 
-      RETURN(mp) ; /* will be destroyed in imseq */
-     }
+      THD_ivec3 ib = THD_3dind_to_fdind( br ,
+                                         TEMP_IVEC3( im3d->vinfo->i1 ,
+                                                     im3d->vinfo->j2 ,
+                                                     im3d->vinfo->k3  ) ) ;
+
+      if( n == ib.ijk[2] || im3d->vinfo->xhairs_all ){
+         int jp,ip , jcen,icen , gappp , jj,ii ;
+         int idown,iup,iskip , jdown,jup,jskip , imon,jmon ;
+         int a1 = br->a123.ijk[0] ,   /* x axis of the brick?    */
+             ax = abs(a1) - 1       ; /* 0,1,2 for dataset x,y,z */
+         int a2 = br->a123.ijk[1] ,   /* y axis of the brick?    */
+             ay = abs(a2) - 1       ; /* 0,1,2 for dataset x,y,z */
+         int a3 = br->a123.ijk[2] ,   /* z axis of the brick?    */
+             az = abs(a3) - 1       ; /* 0,1,2 for dataset x,y,z */
+
+         int gap,icr,jcr , nx=br->n1 , ny=br->n2 ;
+
+         float rr,gg,bb ;             /* colors */
+         float s1=1.0/br->n1 , s2=1.0/br->n2 ;  /* scale pixels to plot coords */
+#define PSX(i) (s1*((i)+0.5))
+#define PSY(j) (1.0-s2*((j)+0.5))
+
+         /* spatial orientations of image axes */
+
+         int ox = (ax==0) ? br->dset->daxes->xxorient :
+                  (ax==1) ? br->dset->daxes->yyorient : br->dset->daxes->zzorient ;
+
+         int oy = (ay==0) ? br->dset->daxes->xxorient :
+                  (ay==1) ? br->dset->daxes->yyorient : br->dset->daxes->zzorient ;
+
+         jp = im3d->vinfo->crosshair_ovcolor ;
+         rr = DCOV_REDBYTE  (im3d->dc,jp) / 255.0 ;
+         gg = DCOV_GREENBYTE(im3d->dc,jp) / 255.0 ;
+         bb = DCOV_BLUEBYTE (im3d->dc,jp) / 255.0 ;
+         set_color_memplot(rr,gg,bb) ;
+
+         gap  = (grapher==NULL) ? im3d->vinfo->crosshair_gap : (grapher->mat+1)/2 ;
+
+         icen = ib.ijk[0] ;  /* x-index of image pixel at focus */
+         jcen = ib.ijk[1] ;  /* y-index */
+
+         /** initialize montage steps **/
+
+         if( im3d->vinfo->xhairs_show_montage ){           /* in "Multi" mode */
+            iskip = im3d->vinfo->xhairs_nskip.ijk[ax] + 1 ;
+            jskip = im3d->vinfo->xhairs_nskip.ijk[ay] + 1 ;
+            if( a1 > 0 ){
+               idown = im3d->vinfo->xhairs_ndown.ijk[ax] ;
+               iup   = im3d->vinfo->xhairs_nup.ijk[ax] ;
+            } else {
+               iup   = im3d->vinfo->xhairs_ndown.ijk[ax] ;
+               idown = im3d->vinfo->xhairs_nup.ijk[ax] ;
+            }
+            if( a2 > 0 ){
+               jdown = im3d->vinfo->xhairs_ndown.ijk[ay] ;
+               jup   = im3d->vinfo->xhairs_nup.ijk[ay] ;
+            } else {
+               jup   = im3d->vinfo->xhairs_ndown.ijk[ay] ;
+               jdown = im3d->vinfo->xhairs_nup.ijk[ay] ;
+            }
+
+         } else {                                          /* in "Single" Mode */
+           idown = iup = jdown = jup = iskip = jskip = 0 ;
+           if( grapher != NULL ){ idown=-(iup+1); jdown=-(jup+1); } /* skip lines? */
+         }
+
+         /* draw vertical lines first */
+
+         if( (im3d->vinfo->xhairs_orimask & (1<<oy)) != 0 ){
+           for( imon=-idown ; imon <= iup ; imon++ ){
+             icr = icen + imon * iskip ;
+
+             if( im3d->vinfo->xhairs_periodic ){
+                while( icr < 0 )   icr += nx ;
+                while( icr >= nx ) icr -= nx ;
+             } else {
+                if( icr < 0 || icr >= nx ) continue ;
+             }
+
+             gappp = (abs(icr-icen) <= gap) ? gap : -1 ; /* no gap if far from center */
+
+             if( gappp < 0 ){  /* no gap => 1 vertical line */
+
+                plotline_memplot( PSX(icr) , 0.0 , PSX(icr) , 1.0 ) ;
+
+             } else {          /* gap => 2 vertical lines */
+
+                jj = jcen-gappp-1 ;
+                if( jj >= 0 )
+                  plotline_memplot( PSX(icr) , 1.0 , PSX(icr) , PSY(jj+0.5) ) ;
+
+                jj = jcen+gappp+1 ;
+                if( jj < ny )
+                  plotline_memplot( PSX(icr) , PSY(jj-0.5) , PSX(icr) , 0.0 ) ;
+             }
+
+           }
+         }
+
+         /* draw horizontal lines */
+
+         if( (im3d->vinfo->xhairs_orimask & (1<<ox)) != 0 ){  /* 31 Dec 1998 */
+           for( jmon=-jdown ; jmon <= jup ; jmon++ ){
+             jcr = jcen + jmon * jskip ;
+             if( im3d->vinfo->xhairs_periodic ){
+                while( jcr < 0 )   jcr += ny ;
+                while( jcr >= ny ) jcr -= ny ;
+             } else {
+                if( jcr < 0 || jcr >= ny ) continue ;
+             }
+
+             gappp = (abs(jcr-jcen) <= gap) ? gap : -1 ; /* no gap if far from center */
+
+             if( gappp < 0 ){  /* no gap => 1 horizontal line */
+
+                plotline_memplot( 0.0 , PSY(jcr) , 1.0 , PSY(jcr) ) ;
+
+             } else {          /* gap => 2 horizontal lines */
+
+                ii = icen-gappp-1 ;
+                if( ii >= 0 )
+                  plotline_memplot( 0.0 , PSY(jcr) , PSX(ii+0.5) , PSY(jcr) ) ;
+
+                ii = icen+gappp+1 ;
+                if( ii < nx )
+                  plotline_memplot( PSX(ii-0.5) , PSY(jcr) , 1.0 , PSY(jcr) ) ;
+             }
+           }
+         }
+
+         /* draw grapher frame, if needed */
+
+         if( grapher != NULL ){
+            int gs = gap , gb = (grapher->mat +2)/2 ;
+
+            jcr = jcen ; icr = icen ;
+
+            ip = icr - gb ; if( ip < 0   ) ip = 0 ;
+            ii = icr + gs ; if( ii >= nx ) ii = nx-1 ;
+
+            jp = jcr - gb ; if( jp <  0  ) jp = 0 ;
+            jj = jcr + gs ; if( jj >= ny ) jj = ny-1 ;
+
+            plotline_memplot( PSX(ip+0.5),PSY(jp+0.5) , PSX(ii-0.5),PSY(jp+0.5) ) ;
+            plotline_memplot( PSX(ii-0.5),PSY(jp+0.5) , PSX(ii-0.5),PSY(jj-0.5) ) ;
+            plotline_memplot( PSX(ii-0.5),PSY(jj-0.5) , PSX(ip+0.5),PSY(jj-0.5) ) ;
+            plotline_memplot( PSX(ip+0.5),PSY(jj-0.5) , PSX(ip+0.5),PSY(jp+0.5) ) ;
+
+         } /* end if "if grapher exists" */
+
+      } /* end of "if correct slice" (or do all slices) */
+     } /* end of crosshairs */
+
+     /*----- return the completed plot -----*/
+
+     if( MEMPLOT_NLINE(mp) < 1 ) DESTROY_MEMPLOT(mp) ;
+
+     RETURN(mp) ; /* will be destroyed in imseq */
    }
 
    /*--- 20 Sep 2001: image label ---*/
@@ -4924,6 +5098,7 @@ MRI_IMAGE * AFNI_overlay( int n , FD_brick * br )
    THD_ivec3 ib ;
    THD_3dim_dataset * dset ;
    FD_brick * br_fim ;
+   int do_xhar ;         /* 22 Mar 2002 */
 
 ENTRY("AFNI_overlay") ;
 
@@ -4931,9 +5106,11 @@ ENTRY("AFNI_overlay") ;
 
    /*--- check if crosshairs, markers, or functions are visible ---*/
 
+   do_xhar = (im3d->vinfo->crosshair_visible && !AFNI_yesenv("AFNI_CROSSHAIR_LINES")) ;
+
    dset = im3d->anat_now ;
 
-   ovgood = (im3d->vinfo->crosshair_visible == True)                  ||
+   ovgood =  do_xhar                                                  ||
 
             (  dset->markers != NULL       &&
               (dset->markers->numset > 0)  &&
@@ -5016,7 +5193,7 @@ STATUS("new overlay is created de novo") ;
 
    /*----- put crosshairs on, if desired -----*/
 
-   if( im3d->vinfo->crosshair_visible ){
+   if( do_xhar ){
       MCW_grapher * grapher = UNDERLAY_TO_GRAPHER(im3d,br) ;
 
       ib = THD_3dind_to_fdind( br ,

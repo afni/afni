@@ -3593,3 +3593,9 @@
 18 Mar 2002
  * Modified afni.c to make it necessary to use -niml or AFNI_NIML_START to
      have NIML listening activated from the beginning.
+
+22 Mar 2002
+ * Modified mri_dup.c to correctly shift RGB images by 1/2 pixel.
+ * Modified afni.c to correctly draw coordinates for lines shifted by 1/2 pixel.
+ * Modified afni.c and afni_pplug_env.c to allow user to draw crosshairs with
+     lines instead of overlay pixels.
