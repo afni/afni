@@ -1572,7 +1572,7 @@ libSUMA.a:
 	'CC=$(CC)'	;	\
 	$(CP) libSUMA.a ../ ; )
 	
-suma:libSUMA.a librickr.a
+suma:libSUMA.a libmri.a librickr.a
 	( cd SUMA ;	\
 	make -f SUMA_Makefile all 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \

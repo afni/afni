@@ -11,7 +11,12 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glx.h>
-#include <GL/GLwDrawA.h>  /* Motif OpenGL drawing area. */
+
+#ifdef SUMA_MOTIF_GLXAREA
+	#include <GL/GLwMDrawA.h>  /* Motif OpenGL drawing area. */
+#else
+	#include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
+#endif
 
 #include "SUMA_suma.h"
 
@@ -349,14 +354,22 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (SUMA_SurfaceViewer *csv, int argc,char
   csv->X->CMAP = SUMA_getShareableColormap(csv);
 
   /* Step 6. */
-  /* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
-  /* glwDrawingAreaWidgetClass requires libMesaGLw.a */
-  csv->X->GLXAREA = XtVaCreateManagedWidget("glxarea",
-    glwDrawingAreaWidgetClass, csv->X->FRAME,
-    GLwNvisualInfo, csv->X->VISINFO,
-    XtNcolormap, csv->X->CMAP,
-    NULL);
-
+  #ifdef SUMA_MOTIF_GLXAREA
+  	/* glwMDrawingAreaWidgetClass requires libMesaGLwM.a */
+	  csv->X->GLXAREA = XtVaCreateManagedWidget("glxarea",
+   	 glwMDrawingAreaWidgetClass, csv->X->FRAME,
+   	 GLwNvisualInfo, csv->X->VISINFO,
+   	 XtNcolormap, csv->X->CMAP,
+   	 NULL);
+  #else
+  	/* glwDrawingAreaWidgetClass requires libMesaGLw.a */
+	  csv->X->GLXAREA = XtVaCreateManagedWidget("glxarea",
+   	 glwDrawingAreaWidgetClass, csv->X->FRAME,
+   	 GLwNvisualInfo, csv->X->VISINFO,
+   	 XtNcolormap, csv->X->CMAP,
+   	 NULL);
+	#endif
+	
   /* Step 7. */
   XtAddCallback(csv->X->GLXAREA, GLwNginitCallback, graphicsInit, NULL);
   XtAddCallback(csv->X->GLXAREA, GLwNexposeCallback, expose, NULL);
