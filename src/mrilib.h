@@ -904,6 +904,8 @@ extern void mri_drawtext( MRI_IMAGE *im ,
                           int x, int y, int height, int angle, char *s,
                           byte r,byte g,byte b );
 
+extern void mri_draw_opacity( float ) ;
+
 /**********************************************************************/
 
 #include "coxplot.h"

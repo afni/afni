@@ -13,6 +13,8 @@ static int             active_plot = -1 ;
 static float           active_color = (float) RGB_TO_COL(1.0,1.0,1.0) ;
 static float           active_thick = 0.0 ;
 
+static float           active_opacity = 1.0 ;   /* 22 Jul 2004 */
+
 #define STATUS(str) fprintf(stderr,"** " str "\n")
 
 /*------------------------------------------------------------------------
@@ -64,6 +66,8 @@ int create_memplot( char * id , float aspect )
 
    active_plot = num_plotar ;
    plotar[num_plotar++] = pd ;
+
+   ADDTO_MEMPLOT( pd , 1.0,0.0,0.0,0.0 , 0.0 , -THCODE_OPAC ) ;  /* 22 Jul 2004 */
 
    if( aspect <= 0.0 ) aspect = 1.3 ;
    asp        = aspect ;
@@ -173,6 +177,30 @@ void set_thick_memplot( float th )
 float get_thick_memplot( void )
 {
    return active_thick ;
+}
+
+void set_opacity_memplot( float th )  /* 22 Jul 2004 */
+{
+   MEM_plotdata *mp ;
+
+        if( th < 0.0 ) th = 0.0 ;
+   else if( th > 1.0 ) th = 1.0 ;
+   active_opacity = th ;
+
+   /* Set opacity for further drawing [22 Jul 2004] */
+
+   if( active_plot < 0 || active_plot >= num_plotar ||
+       num_plotar == 0 || plotar == NULL            ||
+       plotar[active_plot] == NULL                    ) return ;
+
+   mp = plotar[active_plot] ;
+   ADDTO_MEMPLOT( mp , th,0.0,0.0,0.0 , 0.0 , -THCODE_OPAC ) ;
+   return ;
+}
+
+float get_opacity_memplot( void )
+{
+   return active_opacity ;
 }
 
 /*------------------------------------------------------------------

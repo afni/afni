@@ -115,6 +115,7 @@ typedef struct {
 
 #define THCODE_RECT       1  /* 21 Mar 2001: rectangle from (x1,y1)..(x2,y2) */
 #define THCODE_CIRC       2  /* 10 Mar 2002: circle at (x1,y1), radius x2 */
+#define THCODE_OPAC       3  /* 22 Jul 2004: set opacity of further drawing to x1 */
 #define THCODE_INVALID  666
 
 /* convert (r,g,b) in [0,1]**3 into a single number, and vice-versa */
@@ -164,6 +165,8 @@ extern int            nline_active_memplot(void) ;
 extern void           plotrect_memplot( float,float,float,float ) ; /* 21 Mar 2001 */
 extern void           plotcirc_memplot( float,float,float ) ;       /* 10 Mar 2002 */
 extern int            create_memplot_surely( char *, float ) ;      /* 20 Sep 2001 */
+extern void           set_opacity_memplot( float ) ;                /* 22 Jul 2004 */
+extern float          get_opacity_memplot(void) ;
 
 extern MEM_plotdata * copy_memplot( MEM_plotdata * ) ; /*-- 26 Feb 2001 --*/
 extern void           append_to_memplot( MEM_plotdata *,MEM_plotdata * ) ;
