@@ -10,14 +10,24 @@
 #  include "mrilib.h"   /* for use in AFNI package */
 #endif
 
-/*** Prototype:
-        Complex-to-complex FFT in place:
-          mode = -1 or +1 (NO SCALING ON INVERSE!)
-          idim = dimension (power of 2)
-          xc   = input/output array
-        Re-initializes itself only when idim changes from previous call. ***/
+/*** Prototype:                                                          ***
+ ***    Complex-to-complex FFT in place:                                 ***
+ ***      mode = -1 or +1 (NO SCALING ON INVERSE!)                       ***
+ ***      idim = dimension (power of 2)                                  ***
+ ***      xc   = input/output array                                      ***
+ ***    Re-initializes itself only when idim changes from previous call. ***/
 
 void csfft_cox( int mode , int idim , complex * xc ) ;
+int csfft_nextup( int idim ) ;
+
+/*** 08 Aug 1999:                                                        ***
+ ***   idim can now also have a single factor of 3 or 5 (not both).      ***
+ ***   Examples: 48, 80, 96, 160, 192, 320, 384, ...                     ***
+ ***   The routine csfft_nextup(n) returns the smallest size FFT         ***
+ ***    >= n that csfft_cox() knows how to do.                           ***/
+
+static void fft_3dec( int , int , complex * ) ;  /* 08 Aug 1999  */
+static void fft_5dec( int , int , complex * ) ;
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
@@ -44,8 +54,6 @@ void csfft_cox( int mode , int idim , complex * xc ) ;
    SGI R10000 175 MHz:  47% (32) to 18% (256)  [cc -Ofast]
    HP PA-8000 200 MHz:  58% (32) to 40% (256)  [cc +O3 +Oaggressive]
 ------------------------------------------------------------------------*/
-
-static void fft_3dec( int , int , complex * ) ;  /* 08 Aug 1999  */
 
 /*----------------- the csfft trig constants tables ------------------*/
 
@@ -137,6 +145,7 @@ void csfft_cox( int mode , int idim , complex * xc )
 #endif  /* end of unrollificationizing */
 
    if( idim % 3 == 0 ){ fft_3dec(mode,idim,xc); return; } /* 08 Aug 1999 */
+   if( idim % 5 == 0 ){ fft_5dec(mode,idim,xc); return; }
 
    /**-- perhaps initialize --**/
 
@@ -222,6 +231,10 @@ void csfft_many( int mode , int idim , int nvec , complex * xc )
    if( idim % 3 == 0 ){                           /* 08 Aug 1999 */
       for( m=0 ; m < nvec ; m++ )
          fft_3dec( mode , idim , xc + m*idim ) ;
+      return ;
+   } else if( idim % 5 == 0 ){
+      for( m=0 ; m < nvec ; m++ )
+         fft_5dec( mode , idim , xc + m*idim ) ;
       return ;
    }
 
@@ -310,7 +323,7 @@ void csfft_many( int mode , int idim , int nvec , complex * xc )
 /**************************************/
 /* FFT routine unrolled of length   8 */
 
-void fft8( int mode , complex * xc )
+static void fft8( int mode , complex * xc )
 {
    register complex * csp , * xcx=xc;
    register float f1,f2,f3,f4 ;
@@ -626,7 +639,7 @@ static void fft16( int mode , complex * xc )
 /**************************************/
 /* FFT routine unrolled of length  32 */
 
-void fft32( int mode , complex * xc )
+static void fft32( int mode , complex * xc )
 {
    register complex * csp , * xcx=xc;
    register float f1,f2,f3,f4 ;
@@ -1355,15 +1368,9 @@ static void fft256( int mode , complex * xc )
 }
 #endif /* DONT_UNROLL_FFTS */
 
-/*===================================================================
-   Macros and routines for a radix-3 step combined with powers of 2.
-   RWCox -- 08 Aug 1999.
-=====================================================================*/
-
-#undef  CC3
-#undef  SS3
-#define CC3 (-0.5)         /* cos(2*Pi/3) */
-#define SS3 (0.8660254038) /* sin(2*Pi/3) */
+/*=======================================================================
+  The following radix-3 and radix-5 routines are by RWCox -- 08 Aug 1999
+=========================================================================*/
 
 /*------------------------------------------------------------------
    fft_3dec: do a decimation-by-3, plus a power-of-2.
@@ -1371,13 +1378,18 @@ static void fft256( int mode , complex * xc )
      note be called recursively!
 --------------------------------------------------------------------*/
 
+#undef  CC3
+#undef  SS3
+#define CC3 (-0.5)         /* cos(2*Pi/3) */
+#define SS3 (0.8660254038) /* sin(2*Pi/3) */
+
 static void fft_3dec( int mode , int idim , complex * xc )
 {
    int N=idim , M=idim/3 , M2=2*M ;
    static int mold=-1 ;
    static complex * cs=NULL , * aa , * bb , * cc ;
    register int k , i ;
-   register float akr,aki, bkr,bki, ckr,cki, tr,ti, bbr,bbi, ccr,cci,
+   register float aar,aai, tr,ti, bbr,bbi, ccr,cci,
                   t1,t2,t4,t5,t6,t8 ;
 
    /*-- initialize cosine/sine table and memory space --*/
@@ -1421,45 +1433,195 @@ static void fft_3dec( int mode , int idim , complex * xc )
 
    if( mode > 0 ){
       for( k=0 ; k < M ; k++ ){
-         bkr = bb[k].r; bki = bb[k].i;
+         t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*bkr - ti*bki ; bbi = tr*bki + ti*bkr ;  /* b[k]*exp(+2*Pi*k/N) */
+         bbr = tr*t1  - ti*t2  ; bbi = tr*t2  + ti*t1  ;  /* b[k]*exp(+2*Pi*k/N) */
 
-         ckr = cc[  k].r; cki = cc[  k].i;
+         t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*ckr - ti*cki ; cci = tr*cki + ti*ckr ;  /* c[k]*exp(+4*Pi*k/N) */
+         ccr = tr*t1  - ti*t2  ; cci = tr*t2  + ti*t1  ;  /* c[k]*exp(+4*Pi*k/N) */
 
          t4 = bbr+ccr      ; t1 = t4*CC3       ;
          t8 = bbi+cci      ; t6 = t8*CC3       ;
          t5 = (bbr-ccr)*SS3; t2 = (bbi-cci)*SS3;
 
-         akr = aa[k].r; aki = aa[k].i;                    /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                    /* a[k] */
 
-         xc[k   ].r = akr+t4    ; xc[k   ].i = aki+t8    ;
-         xc[k+M ].r = akr+t1-t2 ; xc[k+M ].i = aki+t5+t6 ;
-         xc[k+M2].r = akr+t1+t2 ; xc[k+M2].i = aki-t5+t6 ;
+         xc[k   ].r = aar+t4    ; xc[k   ].i = aai+t8    ;
+         xc[k+M ].r = aar+t1-t2 ; xc[k+M ].i = aai+t6+t5 ;
+         xc[k+M2].r = aar+t1+t2 ; xc[k+M2].i = aai+t6-t5 ;
       }
    } else {
       for( k=0 ; k < M ; k++ ){
-         bkr = bb[k].r; bki = bb[k].i;
+         t1  = bb[k].r; t2  = bb[k].i;
          tr  = cs[k].r; ti  = cs[k].i;
-         bbr = tr*bkr + ti*bki ; bbi = tr*bki - ti*bkr ;  /* b[k]*exp(-2*Pi*k/N) */
+         bbr = tr*t1  + ti*t2  ; bbi = tr*t2  - ti*t1  ;  /* b[k]*exp(-2*Pi*k/N) */
 
-         ckr = cc[  k].r; cki = cc[  k].i;
+         t1  = cc[  k].r; t2  = cc[  k].i;
          tr  = cs[2*k].r; ti  = cs[2*k].i;
-         ccr = tr*ckr + ti*cki ; cci = tr*cki - ti*ckr ;  /* c[k]*exp(-4*Pi*k/N) */
+         ccr = tr*t1  + ti*t2  ; cci = tr*t2  - ti*t1  ;  /* c[k]*exp(-4*Pi*k/N) */
 
          t4 = bbr+ccr      ; t1 = t4*CC3       ;
          t8 = bbi+cci      ; t6 = t8*CC3       ;
          t5 = (bbr-ccr)*SS3; t2 = (bbi-cci)*SS3;
 
-         akr = aa[k].r; aki = aa[k].i;                    /* a[k] */
+         aar = aa[k].r; aai = aa[k].i;                    /* a[k] */
 
-         xc[k   ].r = akr+t4    ; xc[k   ].i = aki+t8    ;
-         xc[k+M ].r = akr+t1+t2 ; xc[k+M ].i = aki-t5+t6 ;
-         xc[k+M2].r = akr+t1-t2 ; xc[k+M2].i = aki+t5+t6 ;
+         xc[k   ].r = aar+t4    ; xc[k   ].i = aai+t8    ;
+         xc[k+M ].r = aar+t1+t2 ; xc[k+M ].i = aai+t6-t5 ;
+         xc[k+M2].r = aar+t1-t2 ; xc[k+M2].i = aai+t6+t5 ;
       }
    }
 
    return ;
+}
+
+/*------------------------------------------------------------------
+   fft_5dec: do a decimation-by-5, plus a power-of-2.
+   idim must be equal to a power-of-2 times 5 -- this routine must
+     note be called recursively!
+--------------------------------------------------------------------*/
+
+#undef  COS72
+#undef  SIN72
+#define COS72  0.30901699   /* cos(72 deg) */
+#define SIN72  0.95105652   /* sin(72 deg) */
+
+static void fft_5dec( int mode , int idim , complex * xc )
+{
+   int N=idim , M=idim/5 , M2=2*M , M3=3*M , M4=4*M ;
+   static int mold=-1 ;
+   static complex * cs=NULL, *aa, *bb, *cc, *dd, *ee ;
+   register int k , i ;
+   register float aar,aai,bbr,bbi,ccr,cci,ddr,ddi,eer,eei ;
+   register float akp,akm,bkp,bkm , ajp,ajm,bjp,bjm ;
+   register float ak,bk,aj,bj ;
+   float c72 , s72 , c2,s2 ;
+   int ss ;
+
+   /*-- initialize cosine/sine table and memory space --*/
+
+   if( M != mold ){
+      double th = (2.0*PI/N) ;
+      if( M > mold ){
+         if( cs != NULL ){free(cs);free(aa);free(bb);free(cc);free(dd);free(ee);}
+         cs = (complex *) malloc(sizeof(complex)*M4) ;
+         aa = (complex *) malloc(sizeof(complex)*M ) ;
+         bb = (complex *) malloc(sizeof(complex)*M ) ;
+         cc = (complex *) malloc(sizeof(complex)*M ) ;
+         dd = (complex *) malloc(sizeof(complex)*M ) ;
+         ee = (complex *) malloc(sizeof(complex)*M ) ;
+      }
+
+      cs[0].r = 1.0 ; cs[0].i = 0.0 ;
+      for( k=1 ; k < M4 ; k++ ){ cs[k].r = cos(k*th); cs[k].i = sin(k*th); }
+      mold = M ;
+   }
+
+   /*-- load subarrays, and FFT each one --*/
+
+   for( i=k=0; k < M; k++ ){
+      aa[k]=xc[i++]; bb[k]=xc[i++]; cc[k]=xc[i++]; dd[k]=xc[i++]; ee[k]=xc[i++];
+   }
+
+#ifndef DONT_UNROLL_FFTS
+   switch( M ){
+      case   8: fft8  (mode,aa) ; fft8  (mode,bb) ; fft8  (mode,cc) ;
+                fft8  (mode,dd) ; fft8  (mode,ee) ;                   break;
+
+      case  16: fft16 (mode,aa) ; fft16 (mode,bb) ; fft16 (mode,cc) ;
+                fft16 (mode,dd) ; fft16 (mode,ee) ;                   break;
+
+      case  32: fft32 (mode,aa) ; fft32 (mode,bb) ; fft32 (mode,cc) ;
+                fft32 (mode,dd) ; fft32 (mode,ee) ;                   break;
+
+      case  64: fft64 (mode,aa) ; fft64 (mode,bb) ; fft64 (mode,cc) ;
+                fft64 (mode,dd) ; fft64 (mode,ee) ;                   break;
+
+      case 128: fft128(mode,aa) ; fft128(mode,bb) ; fft128(mode,cc) ;
+                fft128(mode,dd) ; fft128(mode,ee) ;                   break;
+
+      case 256: fft256(mode,aa) ; fft256(mode,bb) ; fft256(mode,cc) ;
+                fft256(mode,dd) ; fft256(mode,ee) ;                   break;
+
+      default:  csfft_cox(mode,M,aa) ;
+                csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
+                csfft_cox(mode,M,dd) ; csfft_cox(mode,M,ee) ; break ;
+   }
+#else
+      csfft_cox(mode,M,aa) ; csfft_cox(mode,M,bb) ; csfft_cox(mode,M,cc) ;
+      csfft_cox(mode,M,dd) ; csfft_cox(mode,M,ee) ;
+#endif
+
+   /*-- recombination --*/
+
+   if( mode > 0 ){ s72 =  SIN72 ; ss =  1 ; }
+   else          { s72 = -SIN72 ; ss = -1 ; }
+
+   c72 = COS72 ;
+   c2  = c72 * c72 - s72 * s72 ;
+   s2  = 2.0 * c72 * s72 ;
+
+   for( k=0 ; k < M ; k++ ){
+      ak  = bb[k].r ; bk  = bb[k].i      ;
+      aj  = cs[k].r ; bj  = cs[k].i * ss ;
+      bbr = aj*ak - bj*bk ; bbi = aj*bk + bj*ak  ;  /* b[k]*exp(ss*2*Pi*k/N) */
+
+      ak  = cc[  k].r ; bk  = cc[  k].i      ;
+      aj  = cs[2*k].r ; bj  = cs[2*k].i * ss ;
+      ccr = aj*ak - bj*bk ; cci = aj*bk + bj*ak  ;  /* c[k]*exp(ss*4*Pi*k/N) */
+
+      ak  = dd[  k].r ; bk  = dd[  k].i      ;
+      aj  = cs[3*k].r ; bj  = cs[3*k].i * ss ;
+      ddr = aj*ak - bj*bk ; ddi = aj*bk + bj*ak  ;  /* d[k]*exp(ss*6*Pi*k/N) */
+
+      ak  = ee[  k].r ; bk  = ee[  k].i      ;
+      aj  = cs[4*k].r ; bj  = cs[4*k].i * ss ;
+      eer = aj*ak - bj*bk ; eei = aj*bk + bj*ak  ;  /* e[k]*exp(ss*8*Pi*k/N) */
+
+      aar = aa[k].r ; aai = aa[k].i ;               /* a[k] */
+
+      /* the code below is adapted from fftn.c */
+
+      akp = bbr + eer ; akm = bbr - eer ;
+      bkp = bbi + eei ; bkm = bbi - eei ;
+      ajp = ccr + ddr ; ajm = ccr - ddr ;
+      bjp = cci + ddi ; bjm = cci - ddi ;
+
+      xc[k].r = aar + akp + ajp ; xc[k].i = aai + bkp + bjp ;
+
+      ak = akp * c72 + ajp * c2 + aar ; bk = bkp * c72 + bjp * c2 + aai ;
+      aj = akm * s72 + ajm * s2       ; bj = bkm * s72 + bjm * s2       ;
+
+      xc[k+M ].r = ak - bj ; xc[k+M ].i = bk + aj ;
+      xc[k+M4].r = ak + bj ; xc[k+M4].i = bk - aj ;
+
+      ak = akp * c2 + ajp * c72 + aar ; bk = bkp * c2 + bjp * c72 + aai ;
+      aj = akm * s2 - ajm * s72       ; bj = bkm * s2 - bjm * s72       ;
+
+      xc[k+M2].r = ak - bj ; xc[k+M2].i = bk + aj ;
+      xc[k+M3].r = ak + bj ; xc[k+M3].i = bk - aj ;
+   }
+
+   return ;
+}
+
+/*--------------------------------------------------------------------
+   Return the smallest integer >= idim for which we can do an FFT.
+----------------------------------------------------------------------*/
+
+int csfft_nextup( int idim )
+{
+   int ibase ;
+
+   if( idim <=  8 ) return  8 ;
+   if( idim <= 16 ) return 16 ;
+
+   ibase = 8 ;
+   while(1){
+      if( idim <= 3*ibase ) return 3*ibase ;
+      if( idim <= 4*ibase ) return 4*ibase ;
+      if( idim <= 5*ibase ) return 5*ibase ;
+      ibase *= 2 ;
+   }
 }

@@ -12,6 +12,10 @@ int main( int argc , char * argv[] )
    N = strtod( argv[1] , NULL ) ;
    f = strtod( argv[2] , NULL ) / N ;
 
+   if( N != csfft_nextup(N) ){
+      fprintf(stderr,"Can't do FFT of length %d\n",N) ; exit(1) ;
+   }
+
    cs = (complex *) malloc(sizeof(complex)*N) ;
    cx = (complex *) malloc(sizeof(complex)*N) ;
 

@@ -19,6 +19,10 @@ void main( int argc , char * argv[] )
    num = strtol( argv[narg++] , NULL , 10 ) ;
    nvec_in = strtol( argv[narg++] , NULL , 10 ) ;
 
+   if( len != csfft_nextup(len) ){
+      fprintf(stderr,"Can't do FFT of length %d\n",len) ; exit(1) ;
+   }
+
    if( nvec_in < 1 ){fprintf(stderr,"Illegal nvec value!\n"); exit(1) ;}
 
    cx = (complex *) malloc( sizeof(complex) * len * nvec_in) ;
