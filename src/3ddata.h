@@ -3799,4 +3799,6 @@ extern THD_fvec3 THD_autonudge( THD_3dim_dataset *dsepi, int ivepi,
 extern MRI_IMAGE * mri_brainormalize( MRI_IMAGE *, int,int,int ) ; /* 05 Apr 2004 */
 extern void mri_brainormalize_verbose( int ) ;
 
+extern MRI_IMAGE * mri_watershedize( MRI_IMAGE * , float ) ;
+
 #endif /* _MCW_3DDATASET_ */

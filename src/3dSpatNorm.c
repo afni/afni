@@ -101,6 +101,11 @@ int main( int argc , char *argv[] )
      fprintf(stderr,"**ERROR: normalization fails!?\n"); exit(1);
    }
 
+   if( AFNI_yesenv("WATERSHED") ){
+     imin = mri_watershedize( imout , 0.125 ) ;
+     if( imin != NULL ){ mri_free(imout); imout = imin; }
+   }
+
    /*--- create output dataset ---*/
 
    oset = EDIT_empty_copy( NULL ) ;

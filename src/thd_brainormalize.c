@@ -531,7 +531,7 @@ ENTRY("watershedize") ;
 
 #undef  BASECHECK
 #define BASECHECK(a,b,c)                                   \
-  do{ qq = isvox[IJK(a,b,c)] ;                             \
+    { qq = isvox[IJK(a,b,c)] ;                             \
       if( qq >= 0 && svox[qq].basin >= 0 ){                \
         qq = svox[qq].basin ;                              \
         for( m=0 ; m < nb && bp[m] != qq ; qq++ ) ;        \
@@ -541,7 +541,7 @@ ENTRY("watershedize") ;
           nb++ ;                                           \
         }                                                  \
       }                                                    \
-  } while(0)
+    }
 
      nb = 0 ; vb = -1 ; mb = -1 ;         /* initialize counters */
      if( ip < nx ) BASECHECK(ip,jj,kk) ;  /* check each neighbor */
@@ -555,33 +555,39 @@ ENTRY("watershedize") ;
 
        /* scan for free basin (will have depth < 0) */
 
+       if( verb )
+         fprintf(stderr,"++ new basin: pp=%d depth=%d nball=%d ",pp,(int)svox[pp].val,nball) ;
+
        for( m=1 ; m < nball && basin[m] > 0 ; m++ ) ;
 
        /* didn't find one ==> add more basin space */
 
        if( m == nball ){
-         mu = m; nball += DBALL; basin = (int *)realloc((void *)basin,nball);
+         if( verb ) fprintf(stderr,"[realloc ") ;
+         mu = m; nball += DBALL; basin = (int *)realloc((void *)basin,sizeof(int)*nball);
+         if( verb ) fprintf(stderr,"%d] ",nball) ;
          for( ; m < nball ; m++ ) basin[m] = -1 ;
          m = mu ;
        }
        basin[m] = svox[pp].val ;  /* depth of this basin */
        svox[pp].basin = m ;       /* assign voxel to new basin */
 
-       if( verb ) fprintf(stderr,"++ new basin: pp=%d m=%d depth=%d\n",pp,m,basin[m]) ;
+       if( verb ) fprintf(stderr,"m=%d\n",m) ;
 
      } else {        /*** this voxel has deeper neighbors ***/
+
+       fprintf(stderr,"++ neighbors=%d pp=%d:\n",nb,pp) ;
 
        svox[pp].basin = mq = bp[mb] ;   /* assign voxel to best basin */
 
                        /* if have more than one neighbor, other */
        if( nb > 1 ){   /* basins could be merged with the best  */
-         if( verb ) fprintf(stderr,"++ %d basins touch at pp=%d\n",nb,pp) ;
          mz = svox[pp].val ;          /* depth of this voxel */
          for( m=0 ; m < nb ; m++ ){
            if( m == mb ) continue ;        /* can't merge with itself */
            mu = bp[m] ;
            if( basin[mu]-mz <= hpf ){      /* basin not TOO much deeper */
-             if( verb ) fprintf(stderr,"++ merging basin %d into %d\n",mu,mq);
+             if( verb ) fprintf(stderr,"   - merging basin %d into %d\n",mu,mq);
              for( qq=1 ; qq < pp ; qq++ )  /* change all mu's to mq's */
                if( svox[qq].basin == mu ) svox[qq].basin = mq ;
              basin[m] = -1 ;          /* mark basin as unused */
