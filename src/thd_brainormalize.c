@@ -27,6 +27,7 @@ static int mask_count( int nvox , byte *mmm )
 #undef  DPUT
 #define DPUT(i,j,k,d)                                               \
   do{ ijk = (i)+(j)*nx+(k)*nxy ;                                    \
+      if( mmm[ijk] == 0 ) break ;                                   \
       if( nnow == nall ){ /* increase array lengths */              \
         nall += DALL ;                                              \
         inow = (short *) realloc((void *)inow,sizeof(short)*nall) ; \
@@ -35,26 +36,27 @@ static int mask_count( int nvox , byte *mmm )
       }                                                             \
       inow[nnow] = (i); jnow[nnow] = (j); know[nnow] = (k);         \
       nnow++ ; mmm[ijk] = 0 ; ddd[ijk] = (d) ;                      \
-    } } while(0)
+    } while(0)
 
 /*--------------------------------------------------------------------------*/
 
-float * THD_mask_distize( int nx, int ny, int nz, byte *mmm, byte *ccc )
+short * THD_mask_distize( int nx, int ny, int nz, byte *mmm, byte *ccc )
 {
-   float *ddd ;
+   short *ddd , dnow ;
    int ii,jj,kk , nxy=nx*ny , nxyz=nx*ny*nz , ijk ;
-   int ip,jp,kp , im,jm,km ;
+   int ip,jp,kp , im,jm,km , icl ;
    int nccc,nmmm , nall,nnow ;
    short *inow , *jnow , *know ;
+   float drat ;
 
    if( mmm == NULL || ccc == NULL ) return NULL ;
 
-   ddd = (float *)malloc( sizeof(float)*nxyz ) ;
+   ddd = (short *)malloc( sizeof(short)*nxyz ) ;
    nccc = nmmm = 0 ;
    for( ii=0 ; ii < nxyz ; ii++ ){
-          if( ccc[ii] ){ ddd[ii] =  1.0f; nccc++; nmmm++; }
-     else if( mmm[ii] ){ ddd[ii] = -1.0f; nmmm++; }
-     else              { ddd[ii] =  0.0f; }
+          if( ccc[ii] ){ ddd[ii] =  1; nccc++; nmmm++; }
+     else if( mmm[ii] ){ ddd[ii] = -1; nmmm++; }
+     else              { ddd[ii] =  0; }
    }
    if( nccc == 0 ){ free((void *)ddd); return NULL; }
 
@@ -66,13 +68,30 @@ float * THD_mask_distize( int nx, int ny, int nz, byte *mmm, byte *ccc )
 
    for( ii=0 ; ii < nxyz ; ii++ ){
      if( ccc[ii] ){
-       inow[nnow] = ijk % nx ;
-       jnow[nnow] = (ijk%nxy)/nx ;
-       know[nnow] = ijk / nxy ;
+       inow[nnow] = ii % nx ;
+       jnow[nnow] = (ii%nxy)/nx ;
+       know[nnow] = ii / nxy ;
        mmm[ii]    = 0 ;
        nnow++ ;
      }
    }
+
+   for( icl=0 ; icl < nnow ; icl++ ){
+     ii = inow[icl] ; jj = jnow[icl] ; kk = know[icl] ; ijk = ii+jj*nx+kk*nxy ;
+     im = ii-1      ; jm = jj-1      ; km = kk-1      ;
+     ip = ii+1      ; jp = jj+1      ; kp = kk+1      ; dnow = ddd[ijk]+1 ;
+
+     if( im >= 0 ) DPUT(im,jj,kk,dnow) ;
+     if( ip < nx ) DPUT(ip,jj,kk,dnow) ;
+     if( jm >= 0 ) DPUT(ii,jm,kk,dnow) ;
+     if( jp < ny ) DPUT(ii,jp,kk,dnow) ;
+     if( km >= 0 ) DPUT(ii,jj,km,dnow) ;
+     if( kp < nz ) DPUT(ii,jj,kp,dnow) ;
+   }
+
+   for( ii=0 ; ii < nxyz ; ii++ ) mmm[ii] = (ddd[ii] > 0) ;
+
+   free((void *)inow); free((void *)jnow); free((void *)know);
 
    return ddd ;
 }
@@ -1307,7 +1326,7 @@ ENTRY("mri_brainormalize") ;
      mtop = stop+1 ;  /* effectively, no threshold here */
 #endif
 
-     mbot = cbot ; mtop = stop+1 ;
+     mbot = cbot ; mtop = 32767 ;
 
      if( verb )
       fprintf(stderr,"++mri_brainormalize: masking standard image %d..%d\n",mbot,mtop) ;
@@ -1349,14 +1368,60 @@ ENTRY("mri_brainormalize") ;
      free((void *)hist) ;
    }
 
+   /* distize? */
+
+   if( AFNI_yesenv("DISTIZE") ){
+     byte *ccc = (byte *)calloc(sizeof(byte),nxyz);
+     short *ddd ;
+     int kbot=rint(0.4*nz),ktop=rint(0.6*nz) ,
+         jbot=rint(0.4*ny),jtop=rint(0.6*ny) ,
+         ibot=rint(0.4*nx),itop=rint(0.6*nx) ;
+
+     mask = (byte *)malloc( sizeof(byte)*nxyz ) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) mask[ii] = (sar[ii] > 0) ;
+     for( kk=kbot ; kk <= ktop ; kk++ ){
+      for( jj=jbot ; jj <= jtop ; jj++ ){
+       for( ii=ibot ; ii <= itop ; ii++ ){
+         ijk = ii + jj*nx + kk*nxy ;
+         ccc[ijk] = mask[ijk] ;
+     }}}
+     if( verb ) fprintf(stderr," + distizing\n") ;
+     ddd = THD_mask_distize( nx,ny,nz , mask , ccc ) ;
+     if( ddd != NULL ){
+       int id,jd,kd , ijk , dijk ; float ff ;
+       for( ijk=0 ; ijk < nxyz ; ijk++ ){
+         if( ddd[ijk] > 0 ){
+           ii = ijk % nx ; jj = (ijk%nxy)/nx ; kk = ijk / nxy ;
+                if( ii < ibot ) id = ibot-ii ;
+           else if( ii > itop ) id = ii-itop ; else id = 0 ;
+                if( jj < jbot ) jd = jbot-jj ;
+           else if( jj > jtop ) jd = jj-jtop ; else jd = 0 ;
+                if( kk < kbot ) kd = kbot-kk ;
+           else if( kk > ktop ) kd = kk-ktop ; else kd = 0 ;
+           dijk = id+jd+kd+1 ;
+           ff = rint( 100.0f * ddd[ijk] / (float)dijk ) ;
+           sar[ijk] = SHORTIZE(ff) ;
+         } else {
+           sar[ijk] = 0 ;
+         }
+       }
+       free((void *)ddd) ;
+     }
+     free((void *)mask); free((void *)ccc);
+   }
+
    /*-- convert output to bytes --*/
 
    bim = mri_new_conforming( tim , MRI_byte ) ;
    MRI_COPY_AUX(bim,tim) ;
    bar = MRI_BYTE_PTR(bim) ;
 
+   jj = 0 ;
+   for( ii=0 ; ii < nxyz ; ii++ ) if( sar[ii] > jj ) jj = sar[ii] ;
+
    if( jj > 255 ){
      float fac = 255.0 / jj ;
+     if( verb ) fprintf(stderr," + scaling by fac=%g\n",fac) ;
      for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)(fac*sar[ii]+0.49) ;
    } else {
      for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)sar[ii] ;
