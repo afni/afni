@@ -1322,7 +1322,7 @@ STATUS("call 0") ;
       break ;
 
       case 1:
-        AFNI_speak("[[inpt PHON; rate -10; pbas +5]]1AEf=nnnIY",0) ;  /* fall thru */
+        AFNI_speak("[[volm 0.65; inpt PHON; rate -10; pbas +5]]1AEf=nnnIY",0) ;  /* fall thru */
 
       case 2:
       case 3:
@@ -1585,7 +1585,9 @@ void FatalError(char * str)
 
 static char * random_goodbye(void)
 {
-   static char *bye[] = { "Farewell", "Goodbye" , "Until next time" } ;
+   static char *bye[] = { "[[volm 0.64]] Farewell",
+                          "[[volm 0.64]] Goodbye" ,
+                          "[[volm 0.64]] Until next time" } ;
    int nn = sizeof(bye)/sizeof(char *) ;
    return bye[ lrand48() % nn ] ;
 }
@@ -1625,7 +1627,7 @@ ENTRY("AFNI_quit_CB") ;
        (ShiftMask|ControlMask|Button2Mask|Button3Mask) ){
 
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
-      AFNI_speak(random_goodbye(),1) ;
+      AFNI_speak(random_goodbye(),0) ;
       exit(0) ;
    }
 
@@ -1651,7 +1653,7 @@ ENTRY("AFNI_quit_CB") ;
 
    if( AFNI_count_controllers() <= 1 ){
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
-      AFNI_speak(random_goodbye(),1) ;
+      AFNI_speak(random_goodbye(),0) ;
       exit(0) ;
 
    } else {  /* otherwise, patch up the other windows and continue */

@@ -3575,7 +3575,7 @@ ENTRY("T3D_quit_CB") ;
 
      EXRETURN ;
   }
-  AFNI_speak("Done",1) ;
+  AFNI_speak("Done",0) ;
   exit(0) ;
 }
 

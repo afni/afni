@@ -1276,7 +1276,7 @@ belmonte_plugins: plug_threshold.$(SO) plug_permtest.$(SO)
 
 install_plugins: $(INSTALLDIR)
 	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)
-	$(CP) faces/face_*.jpg poems/poem_*.txt $(INSTALLDIR)
+	$(CP) faces/face_*.jpg faces/splash_*.jpg poems/poem_*.txt $(INSTALLDIR)
 	echo Plugins put in directory $(INSTALLDIR):
 	echo Do not forget to setenv AFNI_PLUGINPATH appropriately
 

@@ -33,13 +33,13 @@ static void * handle = NULL ;
 #define USE_WRITING     /* 26 Feb 2001 */
 static int do_write=2 ;
 
-static int    num_ppms  =0 ;     /* 17 Sep 2001 */
-static char **fname_ppms=NULL ;
-static void AFNI_find_splash_ppms(void) ;
+static int    num_splash  =0 ;   /* 26 Nov 2003 */
+static char **fname_splash=NULL ;
 
 static int    num_face  = 0 ;    /* 28 Mar 2003 */
 static char **fname_face=NULL ;
-static void AFNI_find_face_jpegs(void) ;
+
+static int AFNI_find_jpegs( char *, char ***) ;  /* 26 Nov 2003 */
 
 /*----------------------------------------------------------------------------*/
 
@@ -117,8 +117,8 @@ ENTRY("AFNI_splashup") ;
       /* get some fun stuff, first time in */
 
       if( ncall == 0 ){
-        AFNI_find_splash_ppms() ; /* 17 Sep 2001 */
-        AFNI_find_face_jpegs()  ; /* 28 Mar 2003 */
+        num_face   = AFNI_find_jpegs( "face_"   , &fname_face   ) ;
+        num_splash = AFNI_find_jpegs( "splash_" , &fname_splash ) ;
       }
 
       /* create basic splash image */
@@ -184,82 +184,33 @@ ENTRY("AFNI_splashup") ;
         mri_overlay_2D( imspl, imov, dd,ee ) ; mri_free(imov) ;
       }
 
-      /* possibly replace the splash image at the top [07 Jun 2000] */
+      /* possibly replace the splash image at the top [26 Nov 2003] */
 
-      if( ncall > 0 || AFNI_yesenv("AFNI_SPLASH_OVERRIDE") || num_ppms > 0 ){
-        int good=0 , qq,nq=0 , sov=0 ;
-        char *ufname , *qname[10] , str[32] ;
+      if( ncall > 0 && num_splash > 0 &&
+          (ncall <= num_splash  || ((lrand48() >> 8 ) % 7) != 0) ){
 
-#ifdef NMAIN
-        sov = (ncall == 1) ;
+        static int np=-1 ;
+        if( np < 0 ){
+          for( np=0 ; np < num_splash ; np++ )
+            if( strstr(fname_splash[np],"sscc") != NULL ) break ;
+          if( np == num_splash ) np = (lrand48() >> 8) % num_splash ;
+        }
+        else
+          np = (np+1)%(num_splash) ;
+        imov = mri_read( fname_splash[np] ) ;
+        if( imov != NULL ){
+          reload_DC_colordef( GLOBAL_library.dc ) ;
+#if 0
+          if( imov->nx != NX_TOPOVER || imov->ny != NY_TOPOVER ){
+            MRI_IMAGE *imq ;
+            imq = mri_resize( imov , NX_TOPOVER,NY_TOPOVER ) ; /* kind of slow */
+            if( imq != NULL ){ mri_free(imov); imov = imq; }
+          }
 #endif
-        if( !sov )
-          sov = ( (lrand48() >> 8 ) % 4 ) == 0 ;   /* 13 Nov 2002: skip overlay? */
-
-        /* select a user specified main image name, if any */
-
-        if( AFNI_yesenv("AFNI_SPLASH_OVERRIDE") && !sov ){
-          ufname = getenv("AFNI_IMAGE_PGMFILE") ;
-          if( ufname != NULL ) qname[nq++] = ufname ;
-          for( qq=1 ; qq < 10 ; qq++ ){
-            sprintf(str,"AFNI_IMAGE_PGMFILE_%d",qq) ;
-            ufname = getenv(str); if( ufname != NULL) qname[nq++] = ufname;
-          }
+          mri_overlay_2D( imspl , imov , 0,0 ) ;
+          mri_free(imov) ;
         }
 
-        switch( nq ){
-          case 0:  ufname = NULL                           ; break ;
-          case 1:  ufname = qname[0]                       ; break ;
-          default: ufname = qname[ (lrand48() >> 8) % nq ] ; break ;
-        }
-
-        /* popup user specified main image, if any */
-
-        if( ufname != NULL ){         /* 08 & 20 Jun 2000 */
-          imov = mri_read(ufname) ;  /* popup user-supplied image */
-          if( imov != NULL ){
-            if( imov->nx != NX_TOPOVER || imov->ny != NY_TOPOVER ){
-              MRI_IMAGE *imq = mri_resize(imov,NX_TOPOVER,NY_TOPOVER) ;
-              mri_free(imov) ; imov = imq ;
-            }
-            reload_DC_colordef( GLOBAL_library.dc ) ;
-            mri_overlay_2D( imspl , imov , 0,0 ) ;
-            mri_free(imov) ; good = 1 ;
-          }
-        }
-
-        if( !good ){    /* no user specified image ==> use my own */
-
-          if( num_ppms > 0 && !sov ){  /* 17 Sep 2001: external image */
-            static int np=-1 ;
-            if( np < 0 ) np = (lrand48() >> 8) % num_ppms ;
-            else         np = (np+1)%(num_ppms) ;
-            imov = mri_read_ppm(fname_ppms[np]) ;
-            if( imov != NULL ){
-              reload_DC_colordef( GLOBAL_library.dc ) ;
-              mri_overlay_2D( imspl , imov , 0,0 ) ;
-              mri_free(imov) ; good = 1 ;
-            }
-          }
-
-#ifdef NMAIN
-          if( !good ){                            /* internal image */
-            nm = (nm+1)%(NMAIN+1) ;
-            if( nm < NMAIN ){                     /* don't always overlay */
-              if( rmapm[nm] == NULL ){             /* grayscale overlay */
-                imov = SPLASH_decode26( xmain[nm],ymain[nm],lmain[nm],bmain[nm] ) ;
-              } else {                             /* color overlay */
-                imov = SPLASH_decodexx( xmain[nm],ymain[nm],lmain[nm],nmapm[nm],
-                                        rmapm[nm],gmapm[nm],bmapm[nm],bmain[nm] ) ;
-              }
-              reload_DC_colordef( GLOBAL_library.dc ) ;
-              mri_overlay_2D( imspl , imov , 0,0 ) ;
-              mri_free(imov) ; good = 1 ;
-            }
-          } /* end of internal image */
-#endif
-
-        } /* end of "my own" image */
       } /* end of replacing splash image */
 
       /*-- show the image at last! --*/
@@ -405,8 +356,8 @@ ENTRY("SPLASH_imseq_getim") ;
       if( imp->im != NULL ) im = mri_copy( imp->im ) ;
 #else
       if( imp->im != NULL ){
-         if( do_write ) im = mri_zeropad_2D( 0,0,0,50 , imp->im ) ; /* 26 Feb 2001 */
-         else           im = mri_copy( imp->im ) ;
+        if( do_write ) im = mri_zeropad_2D( 0,0,0,50 , imp->im ) ; /* 26 Feb 2001 */
+        else           im = mri_copy( imp->im ) ;
       }
 #endif
       RETURN((XtPointer) im) ;
@@ -572,23 +523,24 @@ ENTRY("SPLASH_decodexx") ;
 
 /*--------------------------------------------------------------------------*/
 
-void AFNI_find_splash_ppms(void)  /* 17 Sep 2001 */
+int AFNI_find_jpegs( char *prefix , char ***fname )  /* 26 Nov 2003 */
 {
    char *epath , *elocal , *eee ;
    char edir[THD_MAX_NAME] , **ename ;
-   int epos , ll , ii , id , nppm , nx,ny ;
-   char **fppm ;
+   int epos , ll , ii , id , nfile , nx,ny , num_file=0 ;
+   char **ffile , **fflist=NULL ;
 
-ENTRY("AFNI_find_splash_ppms") ;
+ENTRY("AFNI_find_jpegs") ;
 
-   if( num_ppms > 0 ) EXRETURN ; /* should never happen */
+   if( prefix == NULL || *prefix == '\0' || fname == NULL ) RETURN(-1) ;
 
    /*----- get path to search -----*/
 
                        epath = getenv("AFNI_PLUGINPATH") ;
    if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
    if( epath == NULL ) epath = getenv("PATH") ;
-   if( epath == NULL ) EXRETURN ;                          /* bad */
+   if( epath == NULL ) epath = getenv("HOME") ;
+   if( epath == NULL ){ RETURN(-1) ; }
 
    /*----- copy path list into local memory -----*/
 
@@ -602,7 +554,7 @@ ENTRY("AFNI_find_splash_ppms") ;
    /*----- replace colons with blanks -----*/
 
    for( ii=0 ; ii < ll ; ii++ )
-      if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
+     if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
 
    /*----- extract blank delimited strings;
            use as directory names to look for files -----*/
@@ -614,141 +566,41 @@ ENTRY("AFNI_find_splash_ppms") ;
    epos = 0 ;
 
    do{
-      ii = sscanf( elocal+epos , "%s%n" , edir , &id ); /* next substring */
-      if( ii < 1 ) break ;                              /* none -> done   */
+     ii = sscanf( elocal+epos , "%s%n" , edir , &id ); /* next substring */
+     if( ii < 1 ) break ;                              /* none -> done   */
 
-      /** check if edir occurs earlier in elocal **/
+     /** check if edir occurs earlier in elocal **/
 
-      eee = strstr( elocal , edir ) ;
-      if( eee != NULL && (eee-elocal) < epos ){ epos += id ; continue ; }
+     eee = strstr( elocal , edir ) ;
+     if( eee != NULL && (eee-elocal) < epos ){ epos += id ; continue ; }
 
-      epos += id ;                                 /* char after last scanned */
+     epos += id ;                                 /* char after last scanned */
 
-      ii = strlen(edir) ;                          /* make sure name has   */
-      if( edir[ii-1] != '/' ){                     /* a trailing '/' on it */
-          edir[ii]  = '/' ; edir[ii+1] = '\0' ;
-      }
-      strcpy(ename[0],edir) ;
-      strcat(ename[0],".afnisplash*.ppm") ;        /* add filenname pattern */
-      strcpy(ename[1],edir) ;
-      strcat(ename[1],"afnisplash*.ppm") ;         /* add filenname pattern */
+     ii = strlen(edir) ;                          /* make sure name has   */
+     if( edir[ii-1] != '/' ){                     /* a trailing '/' on it */
+       edir[ii]  = '/' ; edir[ii+1] = '\0' ;
+     }
+     strcpy(ename[0],edir) ; strcat(ename[0],prefix) ; strcat(ename[0],"*.jpg") ;
+     strcpy(ename[1],edir) ; strcat(ename[1],prefix) ; strcat(ename[1],"*.JPG") ;
 
-      MCW_file_expand( 2,ename, &nppm , &fppm );   /* find files that match */
-      if( nppm <= 0 ) continue ;                   /* no files found */
-
-      /** add files we found to list, if they are good **/
-
-      for( ii=0 ; ii < nppm ; ii++ ){
-         mri_read_ppm_header( fppm[ii] , &nx , &ny ) ;
-         if( nx == NX_TOPOVER || ny == NY_TOPOVER ){      /* PPM file of good size? */
-            if( fname_ppms == NULL )
-               fname_ppms = (char **)malloc(sizeof(char *)) ;
-            else
-               fname_ppms = (char **)realloc(fname_ppms,sizeof(char *)*(num_ppms+1));
-
-            STATUS(fppm[ii]) ;
-
-            fname_ppms[num_ppms++] = strdup(fppm[ii]) ;
-         }
-      }
-
-      MCW_free_expand( nppm , fppm ) ;
-
-   } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
-
-   free(elocal) ; free(ename[0]) ; free(ename[1]) ; free(ename) ;
-   EXRETURN ;
-}
-
-/*--------------------------------------------------------------------------*/
-
-void AFNI_find_face_jpegs(void)  /* 28 Mar 2003 */
-{
-   char *epath , *elocal , *eee ;
-   char edir[THD_MAX_NAME] , **ename ;
-   int epos , ll , ii , id , nface , nx,ny , nep ;
-   char **fface ;
-
-ENTRY("AFNI_find_face_jpegs") ;
-
-   if( num_face != 0 ) EXRETURN ; /* should never happen */
-
-   /*----- get path to search -----*/
-
-                       epath = getenv("AFNI_PLUGINPATH") ;
-   if( epath == NULL ) epath = getenv("AFNI_PLUGIN_PATH") ;
-   if( epath == NULL ) epath = getenv("PATH") ;
-   if( epath == NULL ){ num_face=-1; EXRETURN ; }
-
-   /*----- copy path list into local memory -----*/
-
-   ll = strlen(epath) ;
-   elocal = malloc( sizeof(char) * (ll+2) ) ;
-
-   /*----- put a blank at the end -----*/
-
-   strcpy( elocal , epath ) ; elocal[ll] = ' ' ; elocal[ll+1] = '\0' ;
-
-   /*----- replace colons with blanks -----*/
-
-   for( ii=0 ; ii < ll ; ii++ )
-      if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
-
-   /*----- extract blank delimited strings;
-           use as directory names to look for files -----*/
-
-   ename    = (char **) malloc(sizeof(char *)*2) ;
-   ename[0] = (char *)  malloc(THD_MAX_NAME) ;
-   ename[1] = (char *)  malloc(THD_MAX_NAME) ;
-
-   epos = 0 ;
-
-   do{
-      ii = sscanf( elocal+epos , "%s%n" , edir , &id ); /* next substring */
-      if( ii < 1 ) break ;                              /* none -> done   */
-
-      /** check if edir occurs earlier in elocal **/
-
-      eee = strstr( elocal , edir ) ;
-      if( eee != NULL && (eee-elocal) < epos ){ epos += id ; continue ; }
-
-      epos += id ;                                 /* char after last scanned */
-
-      ii = strlen(edir) ;                          /* make sure name has   */
-      if( edir[ii-1] != '/' ){                     /* a trailing '/' on it */
-          edir[ii]  = '/' ; edir[ii+1] = '\0' ;
-      }
-      strcpy(ename[0],edir) ;
-      strcat(ename[0],"face_*.jpg") ;        /* add filename pattern */
-#if 0
-      strcpy(ename[1],edir) ;
-      strcat(ename[1],"face_*.gif") ;        /* add filename pattern */
-      nep = 2 ;
-#else
-      nep = 1 ;
-#endif
-
-      MCW_file_expand( nep,ename, &nface , &fface );   /* find files that match */
-      if( nface <= 0 ) continue ;                   /* no files found */
+     MCW_file_expand( 2,ename, &nfile , &ffile );   /* find files that match */
+     if( nfile <= 0 ) continue ;                    /* no files found */
 
       /** add files we found to list **/
 
-      if( fname_face == NULL )
-        fname_face = (char **)malloc(sizeof(char *)*nface) ;
-      else
-        fname_face = (char **)realloc(fname_face,sizeof(char *)*(num_face+nface));
+      fflist = (char **)realloc(fflist,sizeof(char *)*(num_file+nfile));
+      for( ii=0 ; ii < nfile ; ii++ )
+        fflist[num_file++] = strdup(ffile[ii]) ;
 
-      for( ii=0 ; ii < nface ; ii++ )
-        fname_face[num_face++] = strdup(fface[ii]) ;
-
-      MCW_free_expand( nface , fface ) ;
+      MCW_free_expand( nfile , ffile ) ;
 
    } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
 
    free(elocal) ; free(ename[0]) ; free(ename[1]) ; free(ename) ;
 
-   if( num_face == 0 ) num_face = -1 ;
-   EXRETURN ;
+   if( num_file == 0 ) num_file = -1 ;
+   *fname = fflist ;
+   RETURN(num_file) ;
 }
 
 #endif /* NO_FRIVOLITIES */
