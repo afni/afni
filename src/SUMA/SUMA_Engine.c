@@ -2682,7 +2682,8 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
    int iclosest, id, ND;
    SUMA_SurfaceObject *SOmap;
    int SOmapID;
-
+   SUMA_Boolean LocalHead = NOPE;
+   
    SUMA_ENTRY;
 
    /* allocate for return */
@@ -2701,7 +2702,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
 
    /* if surface is a local domain parent, do the obivious */
    if (SUMA_isLocalDomainParent(SO)){
-      fprintf(SUMA_STDERR,"%s: Surface is a local domain parent. XYZ = XYZmap.\n", FuncName);
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Surface is a local domain parent. XYZ = XYZmap.\n", FuncName);
       SUMA_COPY_VEC (XYZmap, XYZ, 3, float, float);
       SOmap = SO;
       /* do not return yet, must fix the node id too */
@@ -2727,7 +2728,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
             /* set the search box dimensions */
             Bd[0] = Bd[1] = Bd[2] = SUMA_XYZ_XFORM_BOXDIM_MM;
             IB = SUMA_isinbox (SOmap->NodeList, SOmap->N_Node, XYZmap, Bd,  YUP);
-            fprintf (SUMA_STDERR,"%s: %d nodes (out of %d) found in box\n",FuncName, IB.nIsIn, SOmap->N_Node);
+            if (LocalHead) fprintf (SUMA_STDERR,"%s: %d nodes (out of %d) found in box\n",FuncName, IB.nIsIn, SOmap->N_Node);
 
             if (IB.nIsIn) { /* found some, find the closest node */
                /* locate the closest node and store it's id in EngineData*/
@@ -2760,7 +2761,7 @@ float * SUMA_XYZmap_XYZ (float *XYZmap, SUMA_SurfaceObject *SO, SUMA_DO* dov, in
    } else { 
       iclosest = *I_C;
    }
-   fprintf (SUMA_STDERR,"%s: Node identified for linking purposes is %d\n", FuncName, *I_C);
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: Node identified for linking purposes is %d\n", FuncName, *I_C);
    ND = SO->NodeDim;
    id = ND * iclosest;
    XYZ[0]=SO->NodeList[id];

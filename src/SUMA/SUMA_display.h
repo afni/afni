@@ -371,57 +371,18 @@ SUMA_Boolean SUMA_Init_SurfCont_SurfParam(SUMA_SurfaceObject *SO);
    "Current settings are preserved\n"\
    "when controller is reopened.\n"
   
-#define  SUMA_moreSurfInfo_help  \
-   "Opens a dialog with detailed\n" \
-   "information about the surface\n"\
-   "object.\n"
 
 #define  SUMA_moreViewerInfo_help  \
    "Opens a dialog with detailed\n" \
    "information about the surface\n"\
    "viewer.\n"
 
-#define SUMA_SurfCont_ColPlaneShow_help   \
-   "View (ON)/Hide Dset node colors."
-
-#define SUMA_SurfCont_ColPlaneDim_help \
-   "Dimming factor to apply to colormap\n" \
-   "before mapping the intensity (I) data.\n" \
-   "The colormap, if displayed on the right,\n"   \
-   "is not visibly affected by Dim but the\n"   \
-   "colors mapped onto the surface are.\n"   \
-   "For RGB Dsets (.col files), Dim is\n" \
-   "applied to the RGB colors directly"
-
 #define SUMA_SurfCont_ColPlaneDim_hint \
    "Dimming factor to apply to colormap." \
-
-#define SUMA_SurfCont_ColPlaneOrder_help \
-   "Order of Dset's colorplane.\n"  \
-   "Dset with highest number is \n"   \
-   "on top of the stack. Separate \n"  \
-   "stacks exits for foreground (fg:)\n" \
-   "and background planes (bg:).\n"
 
 #define SUMA_SurfCont_ColPlaneOrder_hint \
    "Order of Dset's colorplane." \
 
-#define SUMA_SurfCont_ColPlaneOpacity_help \
-   "Opacity of Dset's colorplane.\n"  \
-   "Opaque planes have an opacity\n"   \
-   "of 1, transparent planes have\n"  \
-   "an opacity of 0. Opacities are\n" \
-   "used when mixing planes of the\n"  \
-   "same group (fg:) or (bg:).\n"   \
-   "Opacity values are not applied\n"  \
-   "to the first plane in a group.\n"   \
-   "Consequently, if you have just\n"   \
-   "one plane to work with, opacity \n"   \
-   "value is not applied.\n"  \
-   "Color mixing can be done in two \n"  \
-   "ways, use F7 to toggle between \n" \
-   "mixing modes."
-   
 #define SUMA_SurfCont_ColPlaneOpacity_hint \
    "Opacity of Dset's colorplane." \
    
