@@ -162,7 +162,7 @@ int main( int argc , char *argv[] )
                         ADN_ttdel     , 1.0            ,  /* fake TR */
                         ADN_nsl       , 0              ,  /* no slice offsets */
                         ADN_type      , HEAD_ANAT_TYPE ,
-                        ADN_func_type , ANAT_BUCK_TYPE ,
+                        ADN_func_type , ANAT_EPI_TYPE  ,
                       ADN_none ) ;
    }
 
