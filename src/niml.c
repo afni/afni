@@ -4149,11 +4149,13 @@ static int tcp_connect( char * host , int port )
 
    /** set socket options (no delays, large buffers) **/
 
-#if 1
-   /** disable the Nagle algorithm **/
-   l = 1;
-   setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
-#endif
+   { char *eee=getenv( "NIML_TCP_NAGLE" ) ;
+     if( eee == NULL || toupper(*eee) != 'Y' ){
+     /** disable the Nagle algorithm **/
+     l = 1;
+     setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
+     }
+   }
 
    /* but large buffers are good */
 
@@ -4215,11 +4217,13 @@ static int tcp_listen( int port )
 
    /** set socket options (no delays, large buffers) **/
 
-#if 1
-   /** disable the Nagle algorithm **/
-   l = 1;
-   setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
-#endif
+   { char *eee=getenv( "NIML_TCP_NAGLE" ) ;
+     if( eee == NULL || toupper(*eee) != 'Y' ){
+     /** disable the Nagle algorithm **/
+     l = 1;
+     setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&l, sizeof(int)) ;
+     }
+   }
 
    l = SOCKET_BUFSIZE ;
    setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *)&l, sizeof(int)) ;
@@ -5502,7 +5506,7 @@ fprintf(stderr,"NIML: NI_read_element found '<'\n") ;
    hs = parse_header_stuff( nn - ns->npos , ns->buf + ns->npos , &nhs ) ;
 
    if( hs == NULL ){  /* something bad happened there */
-      fprintf(stderr,"NIML_read_element: bad element header found!\n") ;
+      fprintf(stderr,"NI_read_element: bad element header found!\n") ;
       ns->npos = nn; reset_buffer(ns); /* toss the '<..>', try again */
       goto HeadRestart ;
    }
@@ -7098,13 +7102,17 @@ fprintf(stderr,"  and writing it [%d]\n",strlen(wbuf) ) ;
       nout = NI_stream_write( ns , ">\n" , 2 ) ;
       ADDOUT ;
 
-      /* 06 Mar 2002: write a bunch of blanks */
+      /* 06 Mar 2002: hack hack hack */
 
-#define MINOUT 256
-      if( nout < MINOUT ){
-         char str[MINOUT+16] ;
-         sprintf(str,"%*.*s\n",MINOUT-nout,MINOUT-nout," ") ;
-         NI_stream_write( ns , str , strlen(str) ) ;
+      { char *eee = getenv( "NIML_MINOUT" ) ; int minout=0 ;
+        if( eee != NULL ) minout = strtol(eee,NULL,10) ;
+        if( minout > 0 && ntot < minout ){
+           char *str = calloc(1,minout+16) ;
+fprintf(stderr,"NI_write_element: adding %d blanks\n",minout-ntot) ;
+           sprintf(str,"%*.*s\n",minout-ntot,minout-ntot," ") ;
+           NI_stream_write( ns , str , strlen(str) ) ;
+           free(str) ;
+        }
       }
 
       return ntot ;
