@@ -3690,21 +3690,13 @@ if(PRINT_TRACING)
 
             GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = new_ss ;
 
-            sprintf(str,"\n session #%3d  = %s %d datasets" ,
-                GLOBAL_library.sslist->num_sess ,
-                new_ss->sessname , new_ss->num_dsset ) ;
-
-            num_dsets += new_ss->num_dsset ;
-
+            sprintf(str,"\n session #%3d  = %s ==> %d dataset%s" ,
+                    GLOBAL_library.sslist->num_sess ,
+                    new_ss->sessname , new_ss->num_dsset ,
+                    (new_ss->num_dsset > 1) ? "s" : " " ) ;
             REPORT_PROGRESS(str) ;
 
-            if( GLOBAL_library.sslist->num_sess == THD_MAX_NUM_SESSION &&
-                id < num_ss-1 ){
-               sprintf(str,"\n *** reached max no. sessions (%d) ***",
-                       THD_MAX_NUM_SESSION) ;
-               REPORT_PROGRESS(str) ;
-               break ;                            /* exit the loop over id */
-            }
+            num_dsets += new_ss->num_dsset ;
 
             /* 28 Aug 2002: add any inter-dataset warps to global warptable */
 
@@ -3715,13 +3707,22 @@ if(PRINT_TRACING)
               destroy_Htable( new_ss->warptable ) ;
               new_ss->warptable = NULL ;
             }
-         }
 
-         /* 11 May 2002: put global datasets into this now (instead of later),
-                         so that its anats count in the test below  */
+            /* 11 May 2002: put global datasets into session now */
 
-         if( new_ss != NULL && gss != NULL ){
-           AFNI_append_sessions( new_ss , gss ) ;
+            if( new_ss != NULL && gss != NULL )
+              AFNI_append_sessions( new_ss , gss ) ;
+
+            /* if we've maxed out on sessions AND
+               if this isn't the last command line argument ... */
+
+            if( GLOBAL_library.sslist->num_sess == THD_MAX_NUM_SESSION &&
+                id < num_ss-1 ){
+               sprintf(str,"\n *** reached max no. sessions (%d) ***",
+                       THD_MAX_NUM_SESSION) ;
+               REPORT_PROGRESS(str) ;
+               break ;                            /* exit the loop over id */
+            }
          }
 
       }  /* end of id loop (over input directory names) */
@@ -3732,6 +3733,11 @@ if(PRINT_TRACING)
         if( GLOBAL_library.sslist->num_sess < THD_MAX_NUM_SESSION ){
           GLOBAL_library.sslist->ssar[(GLOBAL_library.sslist->num_sess)++] = dss ;
           num_dsets += dss->num_dsset ;
+          sprintf(str,"\n session #%3d  = %s ==> %d dataset%s" ,
+                  GLOBAL_library.sslist->num_sess, dss->sessname, dss->num_dsset,
+                  (dss->num_dsset > 1) ? "s" : " " ) ;
+          REPORT_PROGRESS(str) ;
+          if( gss != NULL ) AFNI_append_sessions( dss , gss ) ;
         } else {
           fprintf(stderr,"\n** Can't use command line datasets: session overflow!\n") ;
           free(dss) ;
