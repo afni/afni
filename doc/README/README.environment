@@ -1411,7 +1411,7 @@ and is less than 0.99 times "Slice Thickness", it will be treated as a gap;
 that is, the z voxel size will again be set to "Spacing Between Slices" +
 "Slice Thickness" if "Spacing Between Slices" < 0.99*"Slice Thickness".
 
-If this variable is set to NO, then this patchup will not be made at all.
+If this variable is set to NO, then this patchup will never be made.
 The voxel size will be set to the larger of "Spacing Between Slices" and
 "Slice Thickness", if both are present.
 
