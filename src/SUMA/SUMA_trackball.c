@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <GL/gl.h>
-#include "SUMA_trackball.h"
+#include "SUMA_suma.h"
+
+extern SUMA_CommonFields *SUMAg_CF; 
 
 /* Copyright (c) Mark J. Kilgard, 1996. */
 
@@ -212,25 +214,31 @@ normalize_quat(float q[4])
 
 /* Build a rotation matrix, given a quaternion rotation. */
 void
-build_rotmatrix(GLfloat m[4][4], float q[4])
+SUMA_build_rotmatrix(GLfloat m[4][4], float q[4])
 {
-  m[0][0] = 1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2]);
-  m[0][1] = 2.0 * (q[0] * q[1] - q[2] * q[3]);
-  m[0][2] = 2.0 * (q[2] * q[0] + q[1] * q[3]);
-  m[0][3] = 0.0;
+	static char FuncName[]={"SUMA_build_rotmatrix"};
+	SUMA_Boolean LocalHead = YUP;
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+	m[0][0] = 1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2]);
+	m[0][1] = 2.0 * (q[0] * q[1] - q[2] * q[3]);
+	m[0][2] = 2.0 * (q[2] * q[0] + q[1] * q[3]);
+	m[0][3] = 0.0;
 
-  m[1][0] = 2.0 * (q[0] * q[1] + q[2] * q[3]);
-  m[1][1] = 1.0 - 2.0 * (q[2] * q[2] + q[0] * q[0]);
-  m[1][2] = 2.0 * (q[1] * q[2] - q[0] * q[3]);
-  m[1][3] = 0.0;
+	m[1][0] = 2.0 * (q[0] * q[1] + q[2] * q[3]);
+	m[1][1] = 1.0 - 2.0 * (q[2] * q[2] + q[0] * q[0]);
+	m[1][2] = 2.0 * (q[1] * q[2] - q[0] * q[3]);
+	m[1][3] = 0.0;
 
-  m[2][0] = 2.0 * (q[2] * q[0] - q[1] * q[3]);
-  m[2][1] = 2.0 * (q[1] * q[2] + q[0] * q[3]);
-  m[2][2] = 1.0 - 2.0 * (q[1] * q[1] + q[0] * q[0]);
-  m[2][3] = 0.0;
+	m[2][0] = 2.0 * (q[2] * q[0] - q[1] * q[3]);
+	m[2][1] = 2.0 * (q[1] * q[2] + q[0] * q[3]);
+	m[2][2] = 1.0 - 2.0 * (q[1] * q[1] + q[0] * q[0]);
+	m[2][3] = 0.0;
 
-  m[3][0] = 0.0;
-  m[3][1] = 0.0;
-  m[3][2] = 0.0;
-  m[3][3] = 1.0;
+	m[3][0] = 0.0;
+	m[3][1] = 0.0;
+	m[3][2] = 0.0;
+	m[3][3] = 1.0;
+	
+	SUMA_RETURNe;
 }

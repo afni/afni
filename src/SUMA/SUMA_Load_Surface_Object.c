@@ -951,7 +951,7 @@ SUMA_Boolean SUMA_Read_SpecFile (char *f_name, SUMA_SurfSpecFile * Spec)
 					sprintf(Spec->StateList, "%s|", Spec->State[Spec->N_Surfs-1]);
 					Spec->N_States += 1;
 				} else  {
-					if (SUMA_iswordin (Spec->StateList, Spec->State[Spec->N_Surfs-1]) == 1) {
+					if (strcmp(Spec->StateList, Spec->State[Spec->N_Surfs-1]) == 0) {
 						/* it's a duplicate, complain and get outa here */
 						fprintf(SUMA_STDERR,"Error %s: Duplicate StateDef (%s).\n", FuncName, Spec->State[Spec->N_Surfs-1]);
 						SUMA_RETURN (NOPE);

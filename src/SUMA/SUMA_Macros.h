@@ -11,7 +11,7 @@
 #define SUMA_DBG_OUT_NOTIFY(m_fname) { \
 	int m_i;\
 	for (m_i=0; m_i < SUMAg_CF->InOut_Level; ++m_i) fprintf (SUMA_STDERR," ");\
-	fprintf (SUMA_STDERR,"--dbg: Left %s (lvl %d).\n", m_fname, SUMAg_CF->InOut_Level); \
+	fprintf (SUMA_STDERR,"--dbg: Left    %s (lvl %d).\n", m_fname, SUMAg_CF->InOut_Level); \
 	--SUMAg_CF->InOut_Level;	\
 }
 
@@ -24,6 +24,54 @@
 	if (SUMAg_CF->InOut_Notify) { SUMA_DBG_OUT_NOTIFY(FuncName); }\
 	return ;\
 }
+
+
+/*! \def SUMA_ANY_WIDGET2SV(m_w, m_sv, m_svi)
+\brief SUMA_ANY_WIDGET2SV macro for determining the SurfaceViewer structure containing any of the following widgets: GLXAREA, TOPLEVEL, FORM, FRAME. The macro searches all the SurfaceViewer structures in SUMAg_SVv.
+
+	m_w the widget in question
+	m_sv a pointer to SUMA_SurfaceViewer structure. This pointer is NULL if no matching SurfaceViewer structure is found in SUMAg_SVv
+	m_svi the index of m_sv in SUMAg_SVv vector of Surface Viewer structures. m_sv = &(SUMAg_SVv[m_svi]). -1 if no match was found 
+*/
+
+#define SUMA_ANY_WIDGET2SV(m_w, m_sv, m_svi) {\
+	int m_i = 0;	\
+	m_sv = NULL;	\
+	m_svi = -1;	\
+	while (m_i < SUMA_MAX_SURF_VIEWERS) {	\
+		if (SUMAg_SVv[m_i].X->GLXAREA == m_w || SUMAg_SVv[m_i].X->TOPLEVEL == m_w || SUMAg_SVv[m_i].X->FORM == m_w || SUMAg_SVv[m_i].X->FRAME == m_w) {	\
+			m_svi = m_i;	\
+			m_sv = &(SUMAg_SVv[m_i]);	\
+			m_i = SUMA_MAX_SURF_VIEWERS; \
+		}  else {	\
+			++m_i;	\
+		}	\
+	}	\
+}
+
+/*! \def SUMA_GLXAREA_WIDGET2SV(m_w, m_sv, m_svi)
+\brief SUMA_GLXAREA_WIDGET2SV macro for determining the SurfaceViewer structure containing the widget: GLXAREA. The macro searches all the SurfaceViewer structures in SUMAg_SVv.
+
+	m_w the widget in question
+	m_sv a pointer to SUMA_SurfaceViewer structure. This pointer is NULL if no matching SurfaceViewer structure is found in SUMAg_SVv
+	m_svi the index of m_sv in SUMAg_SVv vector of Surface Viewer structures. m_sv = &(SUMAg_SVv[m_svi]). -1 if no match was found 
+*/
+
+#define SUMA_GLXAREA_WIDGET2SV(m_w, m_sv, m_svi) {\
+	int m_i = 0;	\
+	m_sv = NULL;	\
+	m_svi = -1;	\
+	while (m_i < SUMA_MAX_SURF_VIEWERS) {	\
+		if (SUMAg_SVv[m_i].X->GLXAREA == m_w) {	\
+			m_svi = m_i;	\
+			m_sv = &(SUMAg_SVv[m_i]);	\
+			m_i = SUMA_MAX_SURF_VIEWERS;	\
+		}  else {	\
+			++m_i;	\
+		}	\
+	}	\
+}
+
 
 /* Many of these macros are taken from DSP_in_C examples in
 C Language Algorithms for Digital Signal Processing 

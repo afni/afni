@@ -73,6 +73,8 @@ endif
 # ./configure --prefix=/usr --enable-static --without-glide
 #CCOPT = -static
 #SUMA_LINK_LIB = -lGLU -lGL -lpthread -lXmu -lXm -lXp -lXext -lXt -lSM -lICE -lX11 -lm 
+
+#COPY SECTION BELOW FOR SUMA_Makefile_NoDev
  
 SUMA_SRCS = SUMA_trackball.c SUMA_SVmanip.c SUMA_input.c SUMA_MiscFunc.c SUMA_IV_XYZextract.c	\
 		 SUMA_IV_FaceSetsextract.c  SUMA_SurfNorm.c SUMA_DOmanip.c SUMA_StripPath.c 	\

@@ -28,23 +28,26 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
    void *nini ;
 	static char FuncName[]={"SUMA_niml_workproc"};
 	SUMA_Boolean LocalHead = NOPE;
+	SUMA_SurfaceViewer *sv;
 	
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
+	sv = (SUMA_SurfaceViewer *)thereiselvis;
+	
      /* check if stream is open */
 
-     if( SUMAg_cSV->ns == NULL ){
+     if( sv->ns == NULL ){
        fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream is not open. \n");
 		 SUMA_RETURN(True); /* Don't call me with that lousy stream again */
      }
 
      /* check if stream has gone bad */
 
-     nn = NI_stream_goodcheck( SUMAg_cSV->ns , 1 ) ;
+     nn = NI_stream_goodcheck( sv->ns , 1 ) ;
 
      if( nn < 0 ){                          /* is bad */
-       NI_stream_close( SUMAg_cSV->ns ) ;
-       SUMAg_cSV->ns = NULL ;
+       NI_stream_close( sv->ns ) ;
+       sv->ns = NULL ;
 		 fprintf(SUMA_STDERR,"Error SUMA_niml_workproc: Stream gone bad. Stream closed. \n");
        SUMA_RETURN(True);               /* Don't call me with that lousy stream again */
      }
@@ -54,16 +57,16 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 
 	#if 0
 		/* not good enough, checks socket only, not buffer */
-		nn = NI_stream_readcheck( SUMAg_cSV->ns , 1 ) ;
+		nn = NI_stream_readcheck( sv->ns , 1 ) ;
 	#else
-		nn = NI_stream_hasinput( SUMAg_cSV->ns , 1 ) ;
+		nn = NI_stream_hasinput( sv->ns , 1 ) ;
 	#endif
 	
      if( nn > 0 ){                                   /* has data */
        int ct = NI_clock_time() ;
-		 if (LocalHead)	fprintf(SUMA_STDERR,"$s: reading data stream", FuncName) ;
+		 if (LocalHead)	fprintf(SUMA_STDERR,"%s: reading data stream", FuncName) ;
 
-       nini = NI_read_element( SUMAg_cSV->ns , 1 ) ;  /* read it */
+       nini = NI_read_element( sv->ns , 1 ) ;  /* read it */
 
 		if (LocalHead)	fprintf(SUMA_STDERR," time=%d ms\n",NI_clock_time()-ct) ; ct = NI_clock_time() ;
 
@@ -74,7 +77,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 				fprintf(SUMA_STDERR,"%s:     name=%s vec_len=%d vec_filled=%d, vec_num=%d\n", FuncName,\
 						nel->name, nel->vec_len, nel->vec_filled, nel->vec_num );
 			}		
-		    if (!SUMA_process_NIML_data( nini )) {
+		    if (!SUMA_process_NIML_data( nini , sv)) {
 			 	fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_process_NIML_data.\n", FuncName);
 			 }
 		}
@@ -93,7 +96,7 @@ Boolean SUMA_niml_workproc( XtPointer thereiselvis )
 /*! Process NIML data.  
 ------------------------------------------------------------------------*/
 
-SUMA_Boolean SUMA_process_NIML_data( void *nini )
+SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 {
 	int tt = NI_element_type(nini) ;
    NI_element *nel ;
@@ -115,7 +118,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
 
   	/* retrieve the Surface Object in Focus*/
-		SO = (SUMA_SurfaceObject *)(SUMAg_DOv[SUMAg_cSV->Focus_SO_ID].OP);
+		SO = (SUMA_SurfaceObject *)(SUMAg_DOv[sv->Focus_SO_ID].OP);
 		
 
 	/* initialize EngineData */
@@ -173,7 +176,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 			fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel.\nLoose Crosshair\n", FuncName);
 			iv3[0] = -1;
 		} else {
-			iv3[0] = SUMAg_cSV->Focus_SO_ID;
+			iv3[0] = sv->Focus_SO_ID;
 		}
 		iv3[1] = -1; /* nothing at the monent for a node based link, from afni */
 		
@@ -184,7 +187,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 			SUMA_RETURN(NOPE);
 		}
 		sprintf(CommString,"BindCrossHair~");
-		if (!SUMA_Engine (CommString, &EngineData)) {
+		if (!SUMA_Engine (CommString, &EngineData, sv)) {
 			fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
 		}
 		
@@ -196,7 +199,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 			fprintf(SUMA_STDERR,"Error %s: Failed to register %s to %s\n", FuncName, sfield, sdestination);
 		}
 		sprintf(CommString,"Redisplay|SetCrossHair~");
-		if (!SUMA_Engine (CommString, &EngineData)) {
+		if (!SUMA_Engine (CommString, &EngineData, sv)) {
 			fprintf(stderr, "Error %s: SUMA_Engine call failed.\n", FuncName);
 		}		
 		
@@ -404,7 +407,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 				/*Do the mix thing */
 				/*fprintf(SUMA_STDERR, "%s: Mixing colors ...\n", FuncName);*/
 				if (!SUMA_Overlays_2_GLCOLAR4(SO->Overlays, SO->N_Overlays, SO->glar_ColorList, SO->N_Node, \
-						SUMAg_cSV->Back_Modfact, SUMAg_cSV->ShowBackground, SUMAg_cSV->ShowForeground)) {
+						sv->Back_Modfact, sv->ShowBackground, sv->ShowForeground)) {
 						fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Overlays_2_GLCOLAR4.\n", FuncName);
 						SUMA_RETURN(NOPE);
 				}
@@ -412,7 +415,7 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini )
 				
 				/* file a redisplay request */
 				sprintf(CommString,"Redisplay~");
-				if (!SUMA_Engine (CommString, NULL)) {
+				if (!SUMA_Engine (CommString, NULL, sv)) {
 					fprintf(SUMA_STDERR, "Error %s: SUMA_Engine call failed.\n", FuncName);
 					SUMA_RETURN(NOPE);
 				}
@@ -452,7 +455,7 @@ void SUMA_register_workproc( XtWorkProc func , XtPointer data )
    if( num_workp == 0 ){
       workp = (XtWorkProc *) malloc( sizeof(XtWorkProc) ) ;
       datap = (XtPointer *)  malloc( sizeof(XtPointer) ) ;
-      wpid  = XtAppAddWorkProc( SUMAg_cSV->X->APP, SUMA_workprocess, NULL ) ;
+      wpid  = XtAppAddWorkProc(SUMAg_CF->App, SUMA_workprocess, NULL ) ;
 #ifdef WPDEBUG
       fprintf(stderr,"SUMA_register_workproc: wpid = %x\n",(int)wpid) ;
 #endif
@@ -472,6 +475,48 @@ fprintf(stderr,"SUMA_register_workproc: have %d workprocs\n",num_workp) ;
    SUMA_RETURNe ;
 }
 
+/*! 
+The difference between SUMA_remove_workproc2 and SUMA_remove_workproc is that 
+the workprocess removed is identified not just by the function name but also the data pointer 
+*/
+void SUMA_remove_workproc2( XtWorkProc func , XtPointer data )
+{
+	int ii , ngood ;
+	static char FuncName[]={"SUMA_remove_workproc2"};
+	
+	if (SUMAg_CF->InOut_Notify) SUMA_DBG_IN_NOTIFY(FuncName);
+
+   if( func == NULL || num_workp == 0 ){
+      fprintf(SUMA_STDERR,"Error %s: *** illegal parameters!\n", FuncName) ;
+      SUMA_RETURNe ;
+   }
+
+   if( num_workp < 1 ){
+		#ifdef WPDEBUG
+      		fprintf(stderr,"SUMA_remove_workproc: No workprocs left\n") ;
+		#endif
+      XtRemoveWorkProc( wpid ) ;
+      free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
+      num_workp = 0 ;
+   } else {
+   	for( ii=0 ; ii < num_workp ; ii++ ){
+      	if( func == workp[ii] && data == datap[ii]) {	/* move last Workprocess to location of workprocess to be deleted */
+				workp[ii] = workp[num_workp-1] ;
+				datap[ii] = datap[num_workp-1] ;
+				workp[num_workp-1] = NULL;
+				num_workp--;
+   		}
+
+			#ifdef WPDEBUG
+      		fprintf(stderr,"SUMA_remove_workproc: %d workprocs left\n",ngood) ;
+			#endif
+   	}
+	}
+
+   SUMA_RETURNe ;
+
+}
+
 void SUMA_remove_workproc( XtWorkProc func )
 {
    int ii , ngood ;
@@ -484,25 +529,27 @@ void SUMA_remove_workproc( XtWorkProc func )
       SUMA_RETURNe ;
    }
 
-   for( ii=0 ; ii < num_workp ; ii++ ){
-      if( func == workp[ii] ) workp[ii] = NULL ;
-   }
-
-   for( ii=0,ngood=0 ; ii < num_workp ; ii++ )
-      if( workp[ii] != NULL ) ngood++ ;
-
-   if( ngood == 0 ){
-#ifdef WPDEBUG
-      fprintf(stderr,"SUMA_remove_workproc: No workprocs left\n") ;
-#endif
+   if( num_workp < 1 ){
+		#ifdef WPDEBUG
+      		fprintf(stderr,"SUMA_remove_workproc: No workprocs left\n") ;
+		#endif
       XtRemoveWorkProc( wpid ) ;
       free(workp) ; workp = NULL ; free(datap) ; datap = NULL ;
       num_workp = 0 ;
    } else {
-#ifdef WPDEBUG
-      fprintf(stderr,"SUMA_remove_workproc: %d workprocs left\n",ngood) ;
-#endif
-   }
+   	for( ii=0 ; ii < num_workp ; ii++ ){
+      	if( func == workp[ii] ) {	/* move last Workprocess to location of workprocess to be deleted */
+				workp[ii] = workp[num_workp-1] ;
+				datap[ii] = datap[num_workp-1] ;
+				workp[num_workp-1] = NULL;
+				num_workp--;
+   		}
+
+			#ifdef WPDEBUG
+      		fprintf(stderr,"SUMA_remove_workproc: %d workprocs left\n",ngood) ;
+			#endif
+   	}
+	}
 
    SUMA_RETURNe ;
 }
