@@ -650,7 +650,7 @@ ENTRY("AFNI_faceup") ;
 
    ctold = NI_clock_time() ;
 
-   ddss = 15000 / num_face ; if( ddss > 100 ) ddss = 100 ;  /* 27 Dec 2004 */
+   ddss = num_face + 16449/num_face ; if( ddss > 222 ) ddss = 222 ;
 
    if( num_face > 4 ){
      ii = num_face / 2 ;
@@ -698,7 +698,7 @@ ENTRY("AFNI_faceup") ;
 
      ctnew = NI_clock_time() ;      /* show 1 image every ddss ms [27 Dec 2004] */
      mmss  = ddss - (ctnew-ctold) ;
-     ctold = ctnew ;
+     ctold = ctnew ; ddss-- ;
      NI_sleep(mmss) ;
    }
    if( face_phan != NULL ){

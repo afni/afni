@@ -1123,21 +1123,27 @@ int main( int argc , char * argv[] )
 
    /** set default values of some environment variables [22 Jun 2004] **/
 
-   { char **ed , eqn[128];
-     static char *edef[] = { "AFNI_SUMA_LINECOLOR"       , "blue3"  ,
-                             "AFNI_CROSSHAIR_LINES"      , "YES"    ,
-                             "AFNI_ALWAYS_LOCK"          , "YES"    ,
-                             "AFNI_IMAGE_SAVESQUARE"     , "YES"    ,
-#if 0
-                             "AFNI_IMAGE_LABEL_MODE"     , "1"      ,
-                             "AFNI_IMAGE_LABEL_SIZE"     , "2"      ,
-                             "AFNI_IMAGE_LABEL_SETBACK"  , "01"     ,
-                             "AFNI_IMAGE_LABEL_COLOR"    , "yellow" ,
+   { char **ed , *eqn ;
+     static char *edef[] = {
+         "AFNI_SUMA_LINECOLOR"       , "blue3"  ,
+         "AFNI_CROSSHAIR_LINES"      , "YES"    ,
+         "AFNI_ALWAYS_LOCK"          , "YES"    ,
+         "AFNI_IMAGE_SAVESQUARE"     , "YES"    ,
+#ifdef DARWIN
+         "AFNI_X11_REDECORATE"       , "NO"     ,  /* 27 Dec 2004 */
 #endif
-                           NULL } ;
+
+#if 0
+         "AFNI_IMAGE_LABEL_MODE"     , "1"      ,
+         "AFNI_IMAGE_LABEL_SIZE"     , "2"      ,
+         "AFNI_IMAGE_LABEL_SETBACK"  , "01"     ,
+         "AFNI_IMAGE_LABEL_COLOR"    , "yellow" ,
+#endif
+       NULL } ;
 
      for( ed=edef ; *ed != NULL && *(ed+1) != NULL ; ed+=2 ){
        if( getenv(*ed) == NULL ){
+         eqn = (char *)malloc(128) ;
          sprintf(eqn,"%s=%s",*ed,*(ed+1)) ; putenv(eqn) ;
        }
      }
