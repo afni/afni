@@ -1,5 +1,5 @@
 
-#define VERSION "version 1.1 (June 12, 2003)"
+#define VERSION "version 1.2 (July 22, 2003)"
 
 /*----------------------------------------------------------------------
  * 3dSurf2Vol - create an AFNI volume dataset from a surface
@@ -56,6 +56,10 @@
 
 /*----------------------------------------------------------------------
  * history:
+ *
+ * 1.2  July 21, 2003
+ *   - make sure input points fit in output dataset
+ *   - add min/max distance output, along with out-of-bounds count
  *
  * 1.1  June 11, 2003
  *   - small reorg of s2v_fill_mask2() (should have no effect)
@@ -146,7 +150,7 @@ int write_output ( s2v_opts_t * sopt, opts_t * opts, param_t * p,
 	return -1;
     }
 
-    p->oset = s2v_nodes2volume( N, p->gpar, p->cmask, sopt );
+    p->oset = s2v_nodes2volume( N, p, sopt );
 
     if ( p->oset == NULL )
 	return -1;
@@ -180,29 +184,28 @@ int write_output ( s2v_opts_t * sopt, opts_t * opts, param_t * p,
  *
  * inputs:
  * 		N	- xyz coordinate node list for surfaces
- * 		gpar    - AFNI dataset to base output upon
- * 		cmask   - a mask that may be applied to the output
+ * 		p	- param_t struct
  * 		map	- the surface to dataset mapping type
  *
  * return  AFNI dataset - on success
  *         NULL         - on failure
  *----------------------------------------------------------------------
 */
-THD_3dim_dataset * s2v_nodes2volume( node_list_t * N, THD_3dim_dataset * gpar,
-				     byte * cmask, s2v_opts_t * sopt )
+THD_3dim_dataset * s2v_nodes2volume( node_list_t * N, param_t * p,
+				     s2v_opts_t * sopt )
 {
     THD_3dim_dataset * dout;
     float            * fdata, fac;
     void             * vdata = NULL;
     int                nvox, dsize, valid;
 
-    if ( N == NULL || ! ISVALID_DSET(gpar) )
+    if ( N == NULL || ! ISVALID_DSET(p->gpar) )
     {
-	fprintf( stderr, "** s2v_nodes2volume: bad params (%p,%p)\n", N, gpar);
+	fprintf(stderr,"** s2v_nodes2volume: bad params (%p,%p)\n", N, p->gpar);
 	return NULL;
     }
 
-    dout = EDIT_empty_copy( gpar );
+    dout = EDIT_empty_copy( p->gpar );
     if ( ! ISVALID_3DIM_DATASET( dout ) )
     {
 	fprintf( stderr, "** failed EDIT_empty_copy()\n" );
@@ -218,7 +221,7 @@ THD_3dim_dataset * s2v_nodes2volume( node_list_t * N, THD_3dim_dataset * gpar,
 	fprintf( stderr, "++ creating dataset '%s' of type '%s', nvals = %d\n",
 		 DSET_HEADNAME(dout), MRI_TYPE_name[sopt->datum], 1 );
 
-    nvox  = DSET_NVOX(gpar);
+    nvox  = DSET_NVOX(p->gpar);
 
     /* allocate a computational sub-brick of floats */
     if ( (fdata = (float *)calloc(nvox, sizeof(float))) == NULL )
@@ -254,14 +257,14 @@ THD_3dim_dataset * s2v_nodes2volume( node_list_t * N, THD_3dim_dataset * gpar,
 
 	case S2V_MAP_MASK2:
 	{
-	    if ( s2v_fill_mask2( N, gpar, fdata, cmask, sopt ) == 0 )
+	    if ( s2v_fill_mask2( N, p, fdata, sopt ) == 0 )
 		valid = 1;
 	    break;
 	}
 
 	case S2V_MAP_MASK:
 	{
-	    if ( s2v_fill_mask( N, gpar, fdata, cmask, sopt ) == 0 )
+	    if ( s2v_fill_mask( N, p, fdata, sopt ) == 0 )
 		valid = 1;
 	    break;
 	}
@@ -309,24 +312,26 @@ THD_3dim_dataset * s2v_nodes2volume( node_list_t * N, THD_3dim_dataset * gpar,
  * 	   else : failure
  *----------------------------------------------------------------------
 */
-int s2v_fill_mask2( node_list_t * N, THD_3dim_dataset * gpar,
-		    float * fdata, byte * mask, s2v_opts_t * sopt )
+int s2v_fill_mask2( node_list_t * N, param_t * p, float * fdata,
+	            s2v_opts_t * sopt )
 {
     THD_fvec3 * fvp;
     THD_fvec3 * f3mm;
     THD_ivec3   i3ind;
     float     * fp, *f0, *fn, *fs;
+    float       dist, min_dist, max_dist;     /* for debug checks - v1.2 */
     float       rat0, ratn;			 /* distance ratios      */
+    byte      * mask = sopt->cmask;		 /* local copy           */
     int         steps   = sopt->m2_steps;
     int         s_min_1 = sopt->m2_steps - 1;    /* repeated computation */
-    int         vindex, node, scount;
+    int         vindex, node, scount, oobc;
     int         nx, ny;
     int		mcount, fcount;
 
-    if ( N == NULL || gpar == NULL || fdata == NULL )
+    if ( N == NULL || p == NULL || fdata == NULL )
     {
 	fprintf( stderr, "** s2vfm - bad params (%p,%p,%p)\n",
-		 N, gpar, fdata );
+		 N, p, fdata );
 	return -1;
     }
 
@@ -342,18 +347,34 @@ int s2v_fill_mask2( node_list_t * N, THD_3dim_dataset * gpar,
 	return -1;
     }
 
-    nx = DSET_NX( gpar );
-    ny = DSET_NY( gpar );
+    min_dist = 9999.9;                                          /* v1.2 */
+    max_dist = -1.0;
+    oobc     = 0;                         /* init out-of-bounds counter */
+
+    nx = DSET_NX( p->gpar );
+    ny = DSET_NY( p->gpar );
 
     mcount = fcount = 0;
     for ( node = 0; node < N->nnodes; node++ )
     {
 	/* note the first and last locations */
-	f3mm[0]       = THD_dicomm_to_3dmm( gpar, N->nodes[node] );
-	f3mm[s_min_1] = THD_dicomm_to_3dmm( gpar, N->nodes[node+N->nnodes] );
+	f3mm[0]       = THD_dicomm_to_3dmm( p->gpar, N->nodes[node] );
+	f3mm[s_min_1] = THD_dicomm_to_3dmm( p->gpar, N->nodes[node+N->nnodes] );
+
+	/* if either node is outside our dataset, skip the pair */
+	if ( f3mm_out_of_bounds( &f3mm[0],       &p->f3mm_min, &p->f3mm_max ) ||
+	     f3mm_out_of_bounds( &f3mm[s_min_1], &p->f3mm_min, &p->f3mm_max ) )
+	{
+	    oobc++;
+	    continue;
+	}
 
 	f0 = f3mm[0].xyz;
 	fn = f3mm[s_min_1].xyz;
+
+	dist = dist_f3mm( &f3mm[0], &f3mm[s_min_1] );		/* v1.2 */
+	if ( dist < min_dist ) min_dist = dist;
+	if ( dist > max_dist ) max_dist = dist;
 
 	if ( sopt->debug > 1 && node == S2V_DEBUG_TEST_NODE )
 	    fprintf( stderr, "++ node %d : %f ", S2V_DEBUG_TEST_NODE, f0[0] );
@@ -382,7 +403,7 @@ int s2v_fill_mask2( node_list_t * N, THD_3dim_dataset * gpar,
 	/* for each point, get the index and fill */
 	for ( scount = 0; scount < steps; scount++ )
 	{
-	    i3ind  = THD_3dmm_to_3dind ( gpar, f3mm[scount] );
+	    i3ind  = THD_3dmm_to_3dind ( p->gpar, f3mm[scount] );
 	    vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
 
 	    if ( sopt->debug > 1 && node == S2V_DEBUG_TEST_NODE )
@@ -399,6 +420,14 @@ int s2v_fill_mask2( node_list_t * N, THD_3dim_dataset * gpar,
 	    fputc( '\n', stderr );
     }
 
+    if ( sopt->debug > 0 )					/* v1.2 */
+    {
+	fprintf( stderr,"-- node pair dist (min,max) = (%f,%f)\n",
+		 min_dist, max_dist );
+	fprintf( stderr, "-- out-of-bounds count = %d (of %d)\n",
+		 oobc,N->nnodes);
+    }
+
     free(f3mm);
 
     return 0;
@@ -412,31 +441,42 @@ int s2v_fill_mask2( node_list_t * N, THD_3dim_dataset * gpar,
  * 	   else : failure
  *----------------------------------------------------------------------
 */
-int s2v_fill_mask( node_list_t * N, THD_3dim_dataset * gpar,
-		   float * fdata, byte * mask, s2v_opts_t * sopt )
+int s2v_fill_mask( node_list_t * N, param_t * p, float * fdata,
+		   s2v_opts_t * sopt )
 {
     THD_fvec3 * fvp, f3mm;
     THD_ivec3   i3ind;
     float     * fp;
-    int         vindex, node;
+    byte      * mask = sopt->cmask;
+    int         vindex, node, oobc;
     int         nx, ny;
     int		mcount, fcount;
 
-    if ( N == NULL || gpar == NULL || fdata == NULL )
+    if ( N == NULL || p == NULL || fdata == NULL )
     {
 	fprintf( stderr, "** s2vfm - bad params (%p,%p,%p)\n",
-		 N, gpar, fdata );
+		 N, p, fdata );
 	return -1;
     }
 
-    nx = DSET_NX( gpar );
-    ny = DSET_NY( gpar );
+    oobc     = 0;                         /* init out-of-bounds counter */
+
+    nx = DSET_NX( p->gpar );
+    ny = DSET_NY( p->gpar );
 
     mcount = fcount = 0;
     for ( node = 0; node < N->nnodes; node++ )
     {
-	f3mm   = THD_dicomm_to_3dmm( gpar, N->nodes[node] );
-	i3ind  = THD_3dmm_to_3dind ( gpar, f3mm );
+	f3mm   = THD_dicomm_to_3dmm( p->gpar, N->nodes[node] );
+
+	/* if the node is outside our dataset, skip it 		 - v1.2 */
+	if ( f3mm_out_of_bounds( &f3mm, &p->f3mm_min, &p->f3mm_max ) )
+	{
+	    oobc++;
+	    continue;
+	}
+
+	i3ind  = THD_3dmm_to_3dind ( p->gpar, f3mm );
 	vindex = i3ind.ijk[0] + nx * (i3ind.ijk[1] + ny * i3ind.ijk[2] );
 
 	if ( (mask != NULL) && (mask[vindex] == 0) ) /* do we skip this? */
@@ -445,6 +485,10 @@ int s2v_fill_mask( node_list_t * N, THD_3dim_dataset * gpar,
 	/* assign value - this is just a mask */
 	fdata[vindex] = 1.0;
     }
+
+    if ( sopt->debug > 0 )                                      /* v2.3 */
+	fprintf( stderr, "-- out-of-bounds count = %d (of %d)\n",
+		 oobc,N->nnodes);
 
     return 0;
 }
@@ -1119,6 +1163,7 @@ int validate_datasets( opts_t * opts, param_t * p )
     }
 
     p->nvox = DSET_NVOX( p->gpar );
+    set_3dmm_bounds( p->gpar, &p->f3mm_min, &p->f3mm_max );
 
     if ( ! THD_filename_ok( opts->oset_file ) )
     {
@@ -1435,11 +1480,15 @@ int disp_param_t ( char * info, param_t * p )
     printf( "param_t struct at %p :\n"
 	    "    gpar  : vcheck  = %p : %s\n"
 	    "    oset  : vcheck  = %p : %s\n"
+	    "    f3mm_min (xyz)  = (%f, %f, %f)\n"
+	    "    f3mm_max (xyz)  = (%f, %f, %f)\n"
 	    "    nvox, cmask     = %d, %p\n"
 	    "    ncmask, ccount  = %d, %d\n"
 	    , p,
 	    p->gpar, ISVALID_DSET(p->gpar) ? "valid" : "invalid",
 	    p->oset, ISVALID_DSET(p->oset) ? "valid" : "invalid",
+	    p->f3mm_min.xyz[0], p->f3mm_min.xyz[1], p->f3mm_min.xyz[2],
+	    p->f3mm_max.xyz[0], p->f3mm_max.xyz[1], p->f3mm_max.xyz[2],
 	    p->nvox, p->cmask, p->ncmask, p->ccount
 	    );
 
@@ -1474,3 +1523,89 @@ int disp_s2v_opts_t ( char * info, s2v_opts_t * sopt )
 
     return 0;
 }
+
+
+/*----------------------------------------------------------------------
+ * set_3dmm_bounds	 - note 3dmm bounding values		- v1.2
+ *
+ * This is an outer bounding box, like FOV, not SLAB.
+ *----------------------------------------------------------------------
+*/
+int set_3dmm_bounds ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max)
+{
+    float tmp;
+    int   c;
+
+    if ( !dset || !min || !max )
+    {
+	fprintf(stderr, "** invalid params to set_3dmm_bounds: (%p,%p,%p)\n",
+		dset, min, max );
+	return -1;
+    }
+
+    /* get undirected bounds */
+    min->xyz[0] = DSET_XORG(dset) - 0.5 * DSET_DX(dset);
+    max->xyz[0] = min->xyz[0] + DSET_NX(dset) * DSET_DX(dset);
+
+    min->xyz[1] = DSET_YORG(dset) - 0.5 * DSET_DY(dset);
+    max->xyz[1] = min->xyz[1] + DSET_NY(dset) * DSET_DY(dset);
+
+    min->xyz[2] = DSET_ZORG(dset) - 0.5 * DSET_DZ(dset);
+    max->xyz[2] = min->xyz[2] + DSET_NZ(dset) * DSET_DZ(dset);
+
+    for ( c = 0; c < 3; c++ )
+	if ( min->xyz[c] > max->xyz[c] )
+	{
+	    tmp = min->xyz[c];
+	    min->xyz[c] = max->xyz[c];
+	    max->xyz[c] = tmp;
+	}
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
+ * dist_f3mm            - return Euclidean distance between the points
+ * 			- v1.2
+ *----------------------------------------------------------------------
+ */
+float dist_f3mm( THD_fvec3 * p1, THD_fvec3 * p2 )
+{
+    double d0, d1, d2;
+
+    if ( p1 == NULL || p2 == NULL )
+    {
+	fprintf( stderr, "** dist_f3mm: invalid params (%p,%p)\n", p1, p2 );
+	return 0.0;
+    }
+
+    d0 = p1->xyz[0] - p2->xyz[0];
+    d1 = p1->xyz[1] - p2->xyz[1];
+    d2 = p1->xyz[2] - p2->xyz[2];
+
+    return sqrt(d0*d0 + d1*d1 + d2*d2);
+}
+
+
+/*----------------------------------------------------------------------
+ * f3mm_out_of_bounds	 - check wether cp is between min and max
+ * 			 - v1.2 [rickr]
+ *----------------------------------------------------------------------
+*/
+int f3mm_out_of_bounds( THD_fvec3 * cp, THD_fvec3 * min, THD_fvec3 * max )
+{
+    int c;
+
+    if ( !cp || !min || !max )
+	return -1;
+
+    for ( c = 0; c < 3; c++ )
+    {
+	if ( ( cp->xyz[c] < min->xyz[c] ) ||
+	     ( cp->xyz[c] > max->xyz[c] ) )
+	    return 1;
+    }
+
+    return 0;
+}
+
