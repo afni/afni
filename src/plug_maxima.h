@@ -90,6 +90,7 @@ typedef struct
     int			func_type;		/* FUNC_FIM_TYPE? 	      */
 
     char 		outfile[ R_FILE_L ];	/* output prefix 	      */
+    int 		sval_style;             /* sphere vals: 1, 1toN, Nto1 */
 
     float		cutoff;		        /* acceptable value cutoff    */
     float		min_dist;	        /* distance between extrema   */
@@ -100,6 +101,7 @@ typedef struct
     int			overwrite;		/* do we allow overwrite      */
     int			quiet;			/* no text output of results  */
     int			true_max;		/* no neighbor equality       */
+    int			dicom_coords;		/* no neighbor equality       */
     int			debug;  		/* debug level                */
 } maxima_s;
 
@@ -116,7 +118,7 @@ static int	init_maxima_s	   ( maxima_s *, r_afni_s *, char * );
 static int 	init_afni_s	   ( r_afni_s * );
 static char *	process_args	   ( r_afni_s *, maxima_s *,PLUGIN_interface *);
 static int	process_data	   ( maxima_s * );
-static int	radial_fill	   ( int, int, int, maxima_s * );
+static int	radial_fill	   ( int, int, int, maxima_s *, int );
 static int	weighted_index     ( point_list_s *, maxima_s * );
 static int	write_results      ( r_afni_s *, maxima_s *,PLUGIN_interface *);
 

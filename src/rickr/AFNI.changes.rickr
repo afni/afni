@@ -974,16 +974,20 @@
   * modified nifti1.h: added doxygen comments for extension structs
   * modified nifti1_io.h: put most #defines in #ifdef _NIFTI1_IO_C_ block
   * modified nifti1_io.c:
-     - added a doxygen-style description to every exported function
-     - added doxygen-style comments within some functions
-     - re-exported many znzFile functions that I had made static
-     - re-added nifti_image_open (sorry, Mark)
-     - every exported function now has 'nifti' in the name (19 functions)
-     - made sure every alloc() has a failure test
-     - added nifti_copy_extensions function, for use in nifti_copy_nim_info
-     - nifti_is_gzfile: added initial strlen test
-     - nifti_set_filenames: added set_byte_order parameter option
-       (it seems appropriate to set the BO when new files are associated)
-     - disp_nifti_1_header: prints to stdout (a.o.t. stderr), with fflush
+      - added a doxygen-style description to every exported function
+      - added doxygen-style comments within some functions
+      - re-exported many znzFile functions that I had made static
+      - re-added nifti_image_open (sorry, Mark)
+      - every exported function now has 'nifti' in the name (19 functions)
+      - made sure every alloc() has a failure test
+      - added nifti_copy_extensions function, for use in nifti_copy_nim_info
+      - nifti_is_gzfile: added initial strlen test
+      - nifti_set_filenames: added set_byte_order parameter option
+        (it seems appropriate to set the BO when new files are associated)
+      - disp_nifti_1_header: prints to stdout (a.o.t. stderr), with fflush
   * modified thd_niftiread.c to call nifti_swap_Nbytes (nifti_ is new)
+
+14 Feb 2005:
+  * modified plug_maxima.[ch]:
+      - added 'Sphere Values' and 'Dicom Coords' interface options
 
