@@ -10,8 +10,8 @@ CC_G5  = -O3 -funroll-loops -fstrict-aliasing -fsched-interblock               \
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC
-CCFAST = cc $(CC_G5) -g -DDARWIN -DNO_GAMMA $(CEXTRA)
-# CCFAST = cc -O2 -ffast-math -g -DDARWIN -DNO_GAMMA $(CEXTRA)
+CCFAST = cc $(CC_G5) -DDARWIN -DNO_GAMMA $(CEXTRA)
+# CCFAST = cc -O2 -ffast-math -DDARWIN -DNO_GAMMA $(CEXTRA)
 CC     = $(CCFAST)
 CCVOL  = cc -O2 -ffast-math -DDARWIN -DNO_GAMMA $(CEXTRA)
 CCMIN  = cc
@@ -22,7 +22,7 @@ LFLAGS = -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -flat_namespace -bundle -undefined suppress
-PLUGIN_CC     = $(CC) -dynamic -fno-common -g3
+PLUGIN_CC     = $(CC) -dynamic -fno-common
 PLFLAGS       = -dynamic -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
 
 SPECIAL = -faltivec -framework Accelerate -DUSE_ALTIVEC
