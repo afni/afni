@@ -1,6 +1,7 @@
 #ifndef SUMA__INCLUDED
 #define SUMA__INCLUDED
 
+
 SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *tmpVolParName, int debug);
 SUMA_SurfaceObject * SUMA_Load_Surface_Object (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName);
 SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName, SUMA_SO_File_Type SO_FT, SUMA_SO_File_Format SO_FF, char *VolParName, int debug);
@@ -26,5 +27,12 @@ char * SUMA_coord_file        ( SUMA_SurfSpecFile * spec, int index );
 int    SUMA_swap_spec_entries (SUMA_SurfSpecFile *spec,int i0,int i1,int debug);
 int    SUMA_unique_name_ind   ( SUMA_SurfSpecFile * spec, char * sname );
 int    swap_strings           ( char * s0, char * s1, char * save, int len );
+void SUMA_Show_IO_args(SUMA_GENERIC_ARGV_PARSE *ps);
+SUMA_SurfSpecFile *SUMA_IO_args2_spec(SUMA_GENERIC_ARGV_PARSE *ps);
+SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags);
+SUMA_GENERIC_ARGV_PARSE *SUMA_FreeGenericArgParse(SUMA_GENERIC_ARGV_PARSE *ps);
+char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt);
+SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optflags);
+
 
 #endif

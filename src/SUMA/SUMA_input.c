@@ -369,7 +369,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_e:
             if (SUMAg_CF->Dev) {
-               if (Kev.state & Mod1Mask){ /* alt + e */
+               if (Kev.state & ControlMask){ /* used to be Mod1Mask i.e. alt + e but does not work on the mac*/
                   int error, cnt = 0;
                   fprintf (SUMA_STDERR, "%s: Looking for OpenGL errors ...\n", FuncName);
                   while ((error = glGetError()) != GL_NO_ERROR) {

@@ -3309,7 +3309,7 @@ void usage_SUMA_ConvertSurface ()
                   "            when -o_fsp is used, see below.\n"
                   "    -o_TYPE outSurf specifies the output surface, TYPE is one of the following:\n"
                   "       fs: FreeSurfer ascii surface. \n"
-                  "       fsp: FeeSurfer ascii patch surface. \n"
+                  "       fsp: FeeSurfer ascii patch surface. \n" /* this option is not used in all programs */
                   "            In addition to outSurf, you need to specify\n"
                   "            the name of the parent surface for the patch.\n"
                   "            using the -ipar_TYPE option\n"
@@ -3423,7 +3423,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-i_bv") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -i_bv ");
+		  		fprintf (SUMA_STDERR, "need argument after -i_bv\n ");
 				exit (1);
 			}
 			if_name = argv[kar];
@@ -3435,12 +3435,12 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-i_fs") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -i_fs ");
+		  		fprintf (SUMA_STDERR, "need argument after -i_fs\n ");
 				exit (1);
 			}
 			if_name = argv[kar];
          iType = SUMA_FREE_SURFER;
-         if (SUMA_isExtension(ifpar_name, ".asc")) 
+         if (SUMA_isExtension(if_name, ".asc")) 
             iparForm = SUMA_ASCII;
          else
             iparForm = SUMA_BINARY_BE;
@@ -3450,7 +3450,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-xmat_1d") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D");
+		  		fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D\n");
 				exit (1);
 			}
 			xmat_name = argv[kar]; 
@@ -3466,7 +3466,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-xcenter") == 0)) {
          kar ++;
 			if (kar+2>= argc)  {
-		  		fprintf (SUMA_STDERR, "need 3 arguments after -xcenter");
+		  		fprintf (SUMA_STDERR, "need 3 arguments after -xcenter\n");
 				exit (1);
 			}
 			xcen[0] = atof(argv[kar]); ++kar;
@@ -3479,7 +3479,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-i_sf") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -i_sf");
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -i_sf\n");
 				exit (1);
 			}
 			if_name = argv[kar]; kar ++;
@@ -3492,7 +3492,7 @@ int main (int argc,char *argv[])
       if (!brk && ( (strcmp(argv[kar], "-i_vec") == 0) || (strcmp(argv[kar], "-i_1d") == 0) ) ) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec (or -i_1D)");
+		  		fprintf (SUMA_STDERR, "need 2 argument after -i_vec (or -i_1D)\n");
 				exit (1);
 			}
 			if_name = argv[kar]; kar ++;
@@ -3505,7 +3505,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-i_ply") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -i_ply ");
+		  		fprintf (SUMA_STDERR, "need argument after -i_ply \n");
 				exit (1);
 			}
 			if_name = argv[kar];
@@ -3517,7 +3517,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-ipar_bv") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -ipar_bv ");
+		  		fprintf (SUMA_STDERR, "need argument after -ipar_bv \n");
 				exit (1);
 			}
 			ifpar_name = argv[kar];
@@ -3529,7 +3529,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-ipar_fs") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -ipar_fs ");
+		  		fprintf (SUMA_STDERR, "need argument after -ipar_fs \n");
 				exit (1);
 			}
 			ifpar_name = argv[kar];
@@ -3544,7 +3544,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-ipar_sf") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -ipar_sf");
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -ipar_sf\n");
 				exit (1);
 			}
 			ifpar_name = argv[kar]; kar ++;
@@ -3557,7 +3557,7 @@ int main (int argc,char *argv[])
       if (!brk && ( (strcmp(argv[kar], "-ipar_vec") == 0) || (strcmp(argv[kar], "-ipar_1d") == 0) ) ) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -ipar_vec (or -ipar_1D)");
+		  		fprintf (SUMA_STDERR, "need 2 argument after -ipar_vec (or -ipar_1D)\n");
 				exit (1);
 			}
 			ifpar_name = argv[kar]; kar ++;
@@ -3570,7 +3570,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-ipar_ply") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -ipar_ply ");
+		  		fprintf (SUMA_STDERR, "need argument after -ipar_ply \n");
 				exit (1);
 			}
 			ifpar_name = argv[kar];
@@ -3581,20 +3581,20 @@ int main (int argc,char *argv[])
 
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
          if (iType == SUMA_FT_NOT_SPECIFIED) {
-            fprintf (SUMA_STDERR, " -sv option must be preceeded by -i_TYPE option.");
+            fprintf (SUMA_STDERR, " -sv option must be preceeded by -i_TYPE option.\n");
             exit(1);
          }
          kar ++;
 			if (iType == SUMA_SUREFIT) {
             if (kar+1 >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need 2 argument after -sv (SurfaceVolume and VolumeParent)");
+		  		   fprintf (SUMA_STDERR, "need 2 argument after -sv (SurfaceVolume and VolumeParent)\n");
 				   exit (1);
 			   }
             sv_name = argv[kar]; kar ++;
             vp_name = argv[kar];
          } else {
             if (kar >= argc)  {
-		  		   fprintf (SUMA_STDERR, "need argument after -sv ");
+		  		   fprintf (SUMA_STDERR, "need argument after -sv \n");
 				   exit (1);
 			   }
 			   sv_name = argv[kar];
@@ -3605,7 +3605,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-o_fs") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -o_fs ");
+		  		fprintf (SUMA_STDERR, "need argument after -o_fs \n");
 				exit (1);
 			}
 			of_name = argv[kar];
@@ -3616,7 +3616,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-o_sf") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -o_sf");
+		  		fprintf (SUMA_STDERR, "need 2 arguments after -o_sf\n");
 				exit (1);
 			}
 			of_name = argv[kar]; kar ++;
@@ -3628,10 +3628,10 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-o_fsp") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 1 argument after -o_fsp");
+		  		fprintf (SUMA_STDERR, "need 1 argument after -o_fsp\n");
 				exit (1);
 			}
-			of_name = argv[kar]; kar ++;
+			of_name = argv[kar]; 
          isFSpatch = YUP;
          oType = SUMA_FREE_SURFER_PATCH;
 			brk = YUP;
@@ -3640,7 +3640,7 @@ int main (int argc,char *argv[])
       if (!brk && ( (strcmp(argv[kar], "-o_vec") == 0) || (strcmp(argv[kar], "-o_1d") == 0) ) ) {
          kar ++;
 			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 argument after -o_vec");
+		  		fprintf (SUMA_STDERR, "need 2 argument after -o_vec\n");
 				exit (1);
 			}
 			of_name = argv[kar]; kar ++;
@@ -3652,7 +3652,7 @@ int main (int argc,char *argv[])
       if (!brk && (strcmp(argv[kar], "-o_ply") == 0)) {
          kar ++;
 			if (kar >= argc)  {
-		  		fprintf (SUMA_STDERR, "need argument after -o_ply  (or -i_1D)");
+		  		fprintf (SUMA_STDERR, "need argument after -o_ply\n");
 				exit (1);
 			}
 			of_name = argv[kar];

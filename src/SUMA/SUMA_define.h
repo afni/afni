@@ -2054,6 +2054,78 @@ typedef struct {
 }  SUMA_AxisSegmentInfo;
 
 
+#define SUMA_MAX_SURF_ON_COMMAND 100
+#define SUMA_N_ARGS_MAX 1000
+
+typedef struct {
+   /* spec related input */
+   char *spec_names[SUMA_MAX_SURF_ON_COMMAND];
+   int N_spec_names;
+   
+   char *s_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *s_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *s_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   int s_N_surfnames;
+   
+   /* -i_ related input */
+   char *i_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_surftopo[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *i_state[SUMA_MAX_SURF_ON_COMMAND];
+   int i_anatomical[SUMA_MAX_SURF_ON_COMMAND];
+   int i_N_surfnames;
+   SUMA_SO_File_Format i_FF[SUMA_MAX_SURF_ON_COMMAND];
+   SUMA_SO_File_Type i_FT[SUMA_MAX_SURF_ON_COMMAND];
+   
+   /* -ipar_ related input */
+   char *ipar_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_surftopo[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *ipar_state[SUMA_MAX_SURF_ON_COMMAND];
+   int ipar_anatomical[SUMA_MAX_SURF_ON_COMMAND];
+   int ipar_N_surfnames;
+   SUMA_SO_File_Format ipar_FF[SUMA_MAX_SURF_ON_COMMAND];
+   SUMA_SO_File_Type ipar_FT[SUMA_MAX_SURF_ON_COMMAND];
+   
+   /* -o_related input */
+   char *o_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_surftopo[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *o_state[SUMA_MAX_SURF_ON_COMMAND];
+   int o_anatomical[SUMA_MAX_SURF_ON_COMMAND];
+   int o_N_surfnames;
+   SUMA_SO_File_Format o_FF[SUMA_MAX_SURF_ON_COMMAND];
+   SUMA_SO_File_Type o_FT[SUMA_MAX_SURF_ON_COMMAND];
+   
+   /* -t_related input */
+   char *t_surfnames[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_surftopo[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_surfpath[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
+   char *t_state[SUMA_MAX_SURF_ON_COMMAND];
+   int t_anatomical[SUMA_MAX_SURF_ON_COMMAND];
+   int t_N_surfnames;
+   SUMA_SO_File_Format t_FF[SUMA_MAX_SURF_ON_COMMAND];
+   SUMA_SO_File_Type t_FT[SUMA_MAX_SURF_ON_COMMAND];
+   
+   byte arg_checked[SUMA_N_ARGS_MAX];
+   int N_args;
+   char *sv[SUMA_MAX_SURF_ON_COMMAND];
+   int N_sv;
+   char *vp[SUMA_MAX_SURF_ON_COMMAND];
+   int N_vp;
+   
+   /* flags for what to read */
+   byte accept_t;
+   byte accept_s;
+   byte accept_i;
+   byte accept_o;
+   byte accept_spec;
+   byte accept_sv;
+} SUMA_GENERIC_ARGV_PARSE;
   
  
 #endif

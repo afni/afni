@@ -4911,6 +4911,78 @@ int main (int argc,char *argv[])
 } 
 #endif
 
+/* 
+   \brief a function to turn a surface patch (not all vertices are in use) into a surface where all nodes are used.
+   \param NodeList (float *) N_Nodelist * 3 vector containing xyz triplets for vertex coordinates
+   \param N_NodeList (int) you know what
+   \param PatchFaces (int *) N_PatchFaces * PatchDim vector containing node indices forming triangulation
+   \param N_PatchFaces (int) obvious
+   \param PatchDim (int) 3 for triangular, 4 for rectangular patches etc. ..
+   \return SO (SUMA_SurfaceObject *) surface object structure with NodeList, N_NodeList, FaceSetList and N_FaceSetList
+                                     filled. Note node indexing in SO is not related to the indexing in patch.
+*/
+
+SUMA_SurfaceObject *SUMA_Patch2Surf(float *NodeList, int N_NodeList, int *PatchFaces, int N_PatchFaces, int PatchDim)
+{
+   static char FuncName[]={"SUMA_Patch2Surf"};
+   SUMA_SurfaceObject *SO=NULL;
+   int i = 0, cnt = 0;
+   int *imask = NULL;
+   int N_Node = 0;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
+   
+   if (!NodeList || !PatchFaces) {
+      SUMA_SL_Err("Null input");
+      SUMA_RETURN(SO);
+   }
+   
+   imask = (int*)SUMA_calloc(N_NodeList , sizeof(int));
+   if (!imask) {
+      SUMA_SL_Err("Failed to allocate");
+      SUMA_RETURN(SO);
+   }  
+   /* count the number of nodes and initialize imask*/
+   SO = SUMA_Alloc_SurfObject_Struct(1);
+   if (!SO) {
+      SUMA_SL_Err("Failed to allocate");
+      SUMA_RETURN(SO);
+   }
+   SO->N_FaceSet = N_PatchFaces;
+   SO->N_Node = 0;
+   for (i=0; i<3*N_PatchFaces; ++i) {
+      if (!imask[PatchFaces[i]]) {
+         imask[PatchFaces[i]] = -1;
+         ++SO->N_Node;
+      }
+   }
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: %d nodes in patch\n", FuncName, SO->N_Node);
+   }
+   SO->NodeList = (float *)SUMA_malloc(sizeof(float)*3*SO->N_Node);
+   SO->FaceSetList = (int *)SUMA_malloc(sizeof(int)*PatchDim*N_PatchFaces);
+   if (!SO->NodeList || !SO->FaceSetList) {
+      SUMA_SL_Err("Failed to allocate");
+      SUMA_RETURN(SO);
+   }
+   SO->NodeDim = 3;
+   SO->FaceSetDim = PatchDim;
+   
+   cnt = 0;
+   for (i=0; i<3*N_PatchFaces; ++i) {
+      if (imask[PatchFaces[i]] < 0) {
+         imask[PatchFaces[i]] = cnt;
+         SO->NodeList[3*cnt  ] = NodeList[3*PatchFaces[i]  ];
+         SO->NodeList[3*cnt+1] = NodeList[3*PatchFaces[i]+1];
+         SO->NodeList[3*cnt+2] = NodeList[3*PatchFaces[i]+2];
+         ++cnt;
+      }
+      SO->FaceSetList[i] = imask[PatchFaces[i]];
+   }
+   
+   SUMA_RETURN(SO);
+}
 /*!
    \brief a function to return a mask indicating if a node is 
    part of a patch or not
