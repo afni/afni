@@ -15,6 +15,18 @@ static int debug = 0 ;
 extern unsigned long THD_filesize( char * pathname ) ;
 
 /*---------------------------------------------------------------------*/
+static int   use_http_10     = 0          ;
+static char *http_user_agent = "read_URL" ;
+
+void set_HTTP_10( int n ){ use_http_10 = n; }  /* 24 Mar 2005 */
+
+extern void set_HTTP_user_agent( char *ua )
+{
+   if( ua == NULL || *ua == '\0' ) http_user_agent = "read_URL" ;
+   else                            http_user_agent = strdup(ua) ;
+}
+
+/*---------------------------------------------------------------------*/
 static char tmpdir[256] = "\0" ;
 
 static void setup_tmpdir(void)  /* 02 Apr 1999 */
@@ -47,7 +59,7 @@ static void setup_tmpdir(void)  /* 02 Apr 1999 */
 IOCHAN * open_URL_hpf( char * host , int port , char * file , int msec )
 {
    IOCHAN * ioc ;
-   char str[256] ;
+   char str[512] ;
    int ii ;
 
    if( host == NULL || port <= 0 || file == NULL ) return NULL ;
@@ -63,7 +75,12 @@ IOCHAN * open_URL_hpf( char * host , int port , char * file , int msec )
    if( ii <= 0 ){ FAILED; IOCHAN_CLOSE(ioc) ; return NULL ; }
 
    DMESS(" ++GET %s",file);
-   sprintf(str,"GET %s\n",file) ;                     /* HTTP 0.9 */
+   if( use_http_10 )
+     sprintf(str,"GET %s HTTP/1.0\r\n"
+                 "User-Agent: %s\r\n"
+                 "\r\n", file , http_user_agent ) ;       /* HTTP 1.0 */
+   else
+     sprintf(str,"GET %s\r\n",file) ;                     /* HTTP 0.9 */
    ii = iochan_sendall( ioc , str , strlen(str) ) ;
    if( ii <= 0 ){ FAILED; IOCHAN_CLOSE(ioc); return NULL; }
 

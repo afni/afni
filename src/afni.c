@@ -1843,15 +1843,6 @@ ENTRY("AFNI_startup_timeout_CB") ;
    }
 #endif
 
-#if 0
-   /** Log AFNI usage to server **/
-
-   { char slog[128] ;
-     sprintf(slog,"afni/num_dsets=%d",GLOBAL_num_dsets) ;
-     AFNI_serverlog(slog) ;
-   }
-#endif
-
    /* finish up getting AFNI ready to be presented to the world */
 
    SHOW_AFNI_READY ;
