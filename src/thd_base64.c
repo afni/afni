@@ -3,8 +3,10 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
-#include "mrilib.h"
+
+#include "stdlib.h"
+
+typedef unsigned char byte ;
 
 static int  dtable_mode = -1 ;    /* 1=encode, 2=decode, -1=neither */
 static byte dtable[256] ;         /* encode/decode table */

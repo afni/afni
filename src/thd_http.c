@@ -4,7 +4,8 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-#include "mrilib.h"
+#include "thd_iochan.h"
+#include <sys/stat.h>
 
 static int debug = 0 ;
 #define FAILED     if(debug)fprintf(stderr," **FAILED\n")
@@ -19,8 +20,8 @@ static void setup_tmpdir(void)  /* 02 Apr 1999 */
 
    if( tmpdir[0] != '\0' ) return ;
 
-                    td = my_getenv("TMPDIR") ;   /* try two possibilities */
-   if( td == NULL ) td = my_getenv("TEMPDIR") ;
+                    td = getenv("TMPDIR") ;   /* try two possibilities */
+   if( td == NULL ) td = getenv("TEMPDIR") ;
 
    if( td == NULL || td[0] == '\0' || strlen(td) > 222 ){
       strcpy(tmpdir,"/tmp/") ;
@@ -137,16 +138,14 @@ int read_URL_http( char * url , int msec , char ** data )
    int cflag , first ;
    FILE * cfile ;
 
-ENTRY("read_URL_http") ;
-
    /* sanity check */
 
-   if( url == NULL || data == NULL || msec < 0 ) RETURN( -1 );
+   if( url == NULL || data == NULL || msec < 0 ) return( -1 );
 
    /* open http channel to get url */
 
    ioc = open_URL_http( url , msec ) ;
-   if( ioc == NULL ){ DMESS("%s","\n"); RETURN( -1 ); }
+   if( ioc == NULL ){ DMESS("%s","\n"); return( -1 ); }
 
    /* check if url will be returned gzip-ed */
 
@@ -159,7 +158,7 @@ ENTRY("read_URL_http") ;
 
    if( cflag ){
       setup_tmpdir() ;
-      strcpy(qname,tmpdir) ; strcat(qname,"elvisXXXXXX") ;
+      strcpy(qname,tmpdir) ; strcat(qname,"gosiaXXXXXX") ;
       mktemp(qname) ;
       if( qname[0] != '\0' ){
          strcat(qname,".gz") ; cfile = fopen( qname , "wb" ) ;
@@ -169,7 +168,7 @@ ENTRY("read_URL_http") ;
       }
 
       if( cflag == 0 ){
-         DMESS(" **Temp file %s FAILS\n",qname); IOCHAN_CLOSE(ioc); RETURN(-1);
+         DMESS(" **Temp file %s FAILS\n",qname); IOCHAN_CLOSE(ioc); return(-1);
       }
       DMESS(" ++Temp file=%s",qname);
    }
@@ -195,7 +194,7 @@ ENTRY("read_URL_http") ;
          if( cpt != NULL ){
             if( cflag ){ fclose(cfile) ; unlink(qname) ; }
             DMESS("%s"," **NOT FOUND\n");
-            free(buf) ; IOCHAN_CLOSE(ioc) ; RETURN( -1 );
+            free(buf) ; IOCHAN_CLOSE(ioc) ; return( -1 );
          }
          first = 0 ;
          if( cflag ){ free(buf) ; buf = NULL ; }
@@ -206,7 +205,7 @@ ENTRY("read_URL_http") ;
          if( nall != ii ){                   /* write failed? */
             DMESS("\n** Write to temp file %s FAILED!\n",qname);
             fclose(cfile) ; unlink(qname) ;
-            IOCHAN_CLOSE(ioc) ; RETURN( -1 );
+            IOCHAN_CLOSE(ioc) ; return( -1 );
          }
       } else {                               /* save to buffer */
          if( nuse+ii > nall ){               /* enlarge buffer? */
@@ -224,7 +223,7 @@ ENTRY("read_URL_http") ;
    if( nuse <= 0 ){
       if( cflag ){ fclose(cfile) ; unlink(qname) ; }
       else       { free(buf) ; }
-      FAILED; RETURN(-1);
+      FAILED; return(-1);
    }
    if(debug)fprintf(stderr,"!\n");
 
@@ -235,15 +234,15 @@ ENTRY("read_URL_http") ;
       sprintf( qbuf , "gzip -dq %s" , qname ) ;     /* execute gzip */
       ii = system(qbuf) ;
       if( ii != 0 ){ DMESS("%s"," **gzip failed!\n");
-                     unlink(qname) ; RETURN( -1 );   }  /* gzip failed  */
+                     unlink(qname) ; return( -1 );   }  /* gzip failed  */
       ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
       nuse = THD_filesize( qname ) ;                /* find how big */
       if( nuse <= 0 ){ DMESS("%s"," **gzip failed!\n");
-                       unlink(qname) ; RETURN( -1 );   }
+                       unlink(qname) ; return( -1 );   }
 
       cfile = fopen( qname , "rb" ) ;
       if( cfile == NULL ){ DMESS("%s"," **gzip failed!\n");
-                           unlink(qname) ; RETURN( -1 );   }
+                           unlink(qname) ; return( -1 );   }
       buf = malloc(nuse) ;
       fread( buf , 1 , nuse , cfile ) ;             /* read file in */
       fclose(cfile) ; unlink(qname) ;
@@ -251,7 +250,7 @@ ENTRY("read_URL_http") ;
 
    /* data is in buf, nuse bytes of it */
 
-   DMESS("%s","\n"); *data = buf ; RETURN( nuse );
+   DMESS("%s","\n"); *data = buf ; return( nuse );
 }
 
 /*---------------------------------------------------------------------*/
@@ -283,18 +282,16 @@ int read_URL_ftp( char * url , char ** data )
    int port , ii , cflag , nuse ;
    FILE * sp ;
 
-ENTRY("read_URL_ftp") ;
-
    /* sanity check */
 
-   if( url == NULL || data == NULL || strstr(url,FTP) != url ) RETURN( -1 );
+   if( url == NULL || data == NULL || strstr(url,FTP) != url ) return( -1 );
 
    /* parse hostname */
 
    for( s=url+FTPLEN , h=hostname ;
         (*s != '\0') && (*s != ':') && (*s != '/') ; s++ , h++ ) *h = *s ;
 
-   *h = '\0' ; if( hostname[0] == '\0' ) RETURN( -1 );
+   *h = '\0' ; if( hostname[0] == '\0' ) return( -1 );
 
    /* parse port number, if present */
 
@@ -304,9 +301,9 @@ ENTRY("read_URL_ftp") ;
    /* get the file name (strip off leading "/") */
 
    if( *s == '/' ){
-      file = s+1 ; if( file[0] == '\0' ) RETURN( -1 );
+      file = s+1 ; if( file[0] == '\0' ) return( -1 );
    } else {
-                                         RETURN( -1 );
+                                         return( -1 );
    }
 
    /* check if file will be returned gzip-ed */
@@ -323,14 +320,14 @@ ENTRY("read_URL_ftp") ;
    setup_tmpdir() ;
    strcpy(qname,tmpdir) ; strcat(qname,"elvisXXXXXX") ;
    mktemp(qname) ;
-   if( qname[0] == '\0' ) RETURN( -1 );
+   if( qname[0] == '\0' ) return( -1 );
    if( cflag ) strcat(qname,".gz") ;
 
    /* write the script file that will be used to run ftp */
 
    strcpy(sname,tmpdir) ; strcat(sname,"dahmerXXXXXX") ;
-   mktemp(sname) ;             if( sname[0] == '\0' ) RETURN( -1 );
-   sp = fopen( sname , "w" ) ; if( sp == NULL )       RETURN( -1 );
+   mktemp(sname) ;             if( sname[0] == '\0' ) return( -1 );
+   sp = fopen( sname , "w" ) ; if( sp == NULL )       return( -1 );
 
    fprintf( sp , "#!/bin/sh\n" ) ;
    fprintf( sp , "ftp -n << EEEEE &> /dev/null\n") ;
@@ -354,31 +351,31 @@ ENTRY("read_URL_ftp") ;
    /* check the size of the output file */
 
    nuse = THD_filesize( qname ) ;
-   if( nuse <= 0 ){ unlink(qname) ; RETURN( -1 ); }
+   if( nuse <= 0 ){ unlink(qname) ; return( -1 ); }
 
    /* uncompress the file, if needed */
 
    if( cflag ){
       sprintf( sname , "gzip -dq %s" , qname ) ;    /* execute gzip */
       ii = system(sname) ;
-      if( ii != 0 ){ unlink(qname) ; RETURN( -1 ); }  /* gzip failed  */
+      if( ii != 0 ){ unlink(qname) ; return( -1 ); }  /* gzip failed  */
       ii = strlen(qname) ; qname[ii-3] = '\0' ;     /* fix filename */
       nuse = THD_filesize( qname ) ;                /* find how big */
-      if( nuse <= 0 ){ unlink(qname) ; RETURN( -1 ); }
+      if( nuse <= 0 ){ unlink(qname) ; return( -1 ); }
    }
 
    /* suck the file into memory */
 
    sp = fopen( qname , "rb" ) ;
-   if( sp == NULL ){ unlink(qname) ; RETURN( -1 ); }
-   buf = malloc(nuse) ; if( buf == NULL ){ unlink(qname) ; RETURN( -1 ); }
+   if( sp == NULL ){ unlink(qname) ; return( -1 ); }
+   buf = malloc(nuse) ; if( buf == NULL ){ unlink(qname) ; return( -1 ); }
 
    fread( buf , 1 , nuse , sp ) ;  /* AT LAST! */
    fclose(sp) ; unlink(qname) ;
 
    /* data is in buf, nuse bytes of it */
 
-   *data = buf ; RETURN( nuse );
+   *data = buf ; return( nuse );
 }
 
 /*-------------------------------------------------------------------
@@ -390,20 +387,19 @@ ENTRY("read_URL_ftp") ;
 int read_URL( char * url , char ** data )
 {
    int nn ;
-ENTRY("read_URL") ;
-   if( url == NULL || data == NULL ) RETURN( -1 );
+   if( url == NULL || data == NULL ) return( -1 );
 
    if( getenv("AFNI_WWW_DEBUG") != NULL ) debug = 1 ;
 
    if( strstr(url,HTTP) == url ){
-      nn = read_URL_http( url , 4000 , data ) ; RETURN(nn) ;
+      nn = read_URL_http( url , 4000 , data ) ; return(nn) ;
    }
 
    else if( strstr(url,FTP) == url ){
-      nn = read_URL_ftp( url , data ) ; RETURN(nn) ;
+      nn = read_URL_ftp( url , data ) ; return(nn) ;
    }
 
-   RETURN( -1 );
+   return( -1 );
 }
 
 /*------------------------------------------------------------------
@@ -421,12 +417,10 @@ int read_URL_tmpdir( char * url , char ** tname )
    char * data , * fname , * tt ;
    FILE * fp ;
 
-ENTRY("read_URL_tmpdir") ;
-
-   if( url == NULL || tname == NULL ) RETURN( -1 );
+   if( url == NULL || tname == NULL ) return( -1 );
 
    nn = read_URL( url , &data ) ;  /* get the data into memory */
-   if( nn <= 0 ) RETURN( -1 );       /* bad */
+   if( nn <= 0 ) return( -1 );       /* bad */
 
    /* make the output filename */
 
@@ -441,10 +435,10 @@ ENTRY("read_URL_tmpdir") ;
    fp = fopen( fname , "wb" ) ;
    if( fp == NULL ){
       fprintf(stderr,"** Can't open temporary file %s\n",fname);
-      free(data) ; RETURN( -1 );
+      free(data) ; return( -1 );
    }
    ll = fwrite(data,1,nn,fp) ; fclose(fp) ; free(data) ;
-   if( ll != nn ){ unlink(fname); RETURN( -1 ); } /* write failed */
+   if( ll != nn ){ unlink(fname); return( -1 ); } /* write failed */
 
-   *tname = fname ; RETURN( nn );
+   *tname = fname ; return( nn );
 }

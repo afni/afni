@@ -1,0 +1,316 @@
+<HTML>
+<HEAD>
+<title>Transmission and Storage of Data</title>
+</HEAD>
+<BODY>
+<center><h1>Transmission and Storage of Data</h1></center>
+<p>
+Individual data structures are encoded in a XML-like format.
+This will not be fully general XML, since many features of XML
+(e.g, arbitrary nesting, CDATA) will not be supported,
+and binary data (not allowed in XML) will be supported.
+</p>
+
+<p>
+An entire data collection will consist of a number of data
+structures.
+
+<!--------------------------------------------------------------->
+
+<hr>
+<h2>Encoding Example for One Data Structure</h2>
+A data structure encoding consists of a header in angle
+brackets <tt>&lt;...&gt;</tt> and a data stream that follows:
+<pre>
+  &lt;XVector :type=float :form=text :count=3&gt;1.3 2.2 -3.7&lt;/&gt;
+</pre>
+where the components mean:
+<blockquote>
+<table border=1 cellpadding=3>
+<tr>
+  <td><tt>&lt;</tt>              </td>
+  <td>opens the structure</td>
+</tr>
+  <td>  <tt>XVector</tt>      </td>
+  <td>is the name of the data structure (almost any string)</td>
+</tr>
+  <td>  <tt>:type=float</tt>   </td>
+  <td>says that the data stream should be read as 4-byte floats</td>
+</tr>
+  <td>  <tt>:form=text</tt>    </td>
+  <td>says that the data stream is stored in text format</td>
+</tr>
+  <td>  <tt>:count=3</tt>      </td>
+  <td>says that there are 3 floats that follow</td>
+</tr>
+  <td>  <tt>&gt;</tt>            </td>
+  <td>is the end of the header; data stream starts at the next byte</td>
+</tr>
+  <td>  <tt>1.3 2.2 -3.7</tt> </td>
+  <td>is the data stream to be decoded into numerical values</td>
+</tr>
+  <td>  <tt>&lt;/&gt;</tt>          </td>
+  <td>signifies the end of the data stream for this structure</td>
+</tr>
+</table>
+</blockquote>
+
+<!--------------------------------------------------------------->
+
+<hr>
+<h2>General Description of Single Data Structure Encoding</h2>
+<p>
+Bytes before the opening "<tt>&lt;</tt>" are skipped.  The "<tt>&lt;</tt>"
+marks the start of the structure header, which describes the contents
+of the data structure and the data stream that will populate the data
+structure.
+</p>
+
+<p>
+Immediately after the opening "<tt>&lt;</tt>" is the structure name.
+The allowable characters in a name are "<tt>A-Z</tt>", "<tt>a-z</tt>", 
+"<tt>0-9</tt>", and the special characters "<tt>_</tt>", "<tt>.</tt>",
+"<tt>:</tt>", and&nbsp;"<tt>-</tt>".
+The first character in a name must be alphabetic or&nbsp;"<tt>_</tt>".
+The first whitespace or other non-name character found
+ends the structure name.  (Whitespace is defined by the C library
+routine <tt>isspace()</tt>, which by default means blank, formfeed,
+newline, carriage-return, horizontal tab, and vertical tab.)
+Names that start with the character "<tt>:</tt>" are reserved for
+expansion of this data I/O specification.
+</p>
+
+<p>
+The minimal data structure is a structure name with no
+data stream.  (Such a construct could be used as a flag or command.)
+For example:
+<pre>
+  &lt;FIDUCIAL/&gt;
+</pre>
+could be used as a flag to indicate that the data collection stored in the
+transmission or file should be considered "fiducial" in nature
+(whatever that means in the application).
+
+<p>
+Following the structure name is a set of optional fields that define
+how the data stream that follows should be interpreted.  These have
+the general format of "<tt>fieldname=value</tt>", where "<tt>fieldname</tt>"
+is a fixed
+string that indicates the function of the field, and "<tt>value</tt>" is a
+whitespace-free string that specifies the details of this particular
+field.  The order of the fields is not important.  Fields are separated
+by whitespace.  As mentioned earlier,
+fieldnames that start with the character "<tt>:</tt>"
+are reserved to this implementation.
+</p>
+
+<!----->
+
+<p>
+<b><tt>:type</tt> field</b>:<br>
+This field is mandatory if an actual data stream is present.
+It specifies the type or types of the data in the data stream.
+The following 8 types are available:
+<blockquote><table border=1 cellpadding=3>
+<tr>
+ <td><b>Name</b></td>
+ <td>byte</td>
+ <td>short</td>
+ <td>int</td>
+ <td>float</td>
+ <td>double</td>
+ <td>complex</td>
+ <td>rgb</td>
+ <td>String</td>
+</tr>
+<tr>
+ <td><b>Initial</b></td>
+ <td>b</td>
+ <td>s</td>
+ <td>i</td>
+ <td>f</td>
+ <td>d</td>
+ <td>c</td>
+ <td>r</td>
+ <td>S</td>
+</tr>
+<tr>
+ <td><b>Size (bytes)</b></td>
+ <td>1</td>
+ <td>2</td>
+ <td>4</td>
+ <td>4</td>
+ <td>8</td>
+ <td>8 (2 floats)</td>
+ <td>3 (red grn blu)</td>
+ <td>arbitrary</td>
+</tr>
+</table></blockquote>
+</p>
+
+<p>
+An individual type is specified by its name or by the single character
+of its initial (which is why "String" starts with an uppercase letter,
+to distinguish it from "short").
+</p>
+
+<p>
+The <tt>:type</tt> field may specify a single type, as in the first example, or
+it may specify multiple types:
+<pre>
+  :type=float,int,int   <b>OR</b>   :type=f,i,i   <b>OR</b>   :type=f,2i
+</pre>
+which specifies that the values to be read from the data stream come
+in triples: 1 float followed by 2 ints, then 1 more float, 2 more ints, etc.
+In this example, the data stream <i>must</i> come in these units of
+3 numbers.
+</p>
+
+<!----->
+
+<p>
+<b><tt>:form</tt> field</b>:<br>
+This field specifies the format of the data stream.  The
+possible values are
+<pre>
+  :form=text   <b>OR</b>   :form=binary   <b>OR</b>   :form=base64
+</pre>
+The first means that the data stream is in text format, the second
+that it is binary, and the third that it is base64 encoded binary
+(which allows binary data to be encoded in a text format, at the
+cost of a 33% expansion in size).
+If the <tt>:form</tt> field is not present,
+then <tt>:form=text</tt> is assumed.
+</p>
+
+<p>
+The <tt>binary</tt> and <tt>base64</tt> attributes may optionally
+have one of the two strings <tt>,msbfirst</tt> or <tt>,lsbfirst</tt>
+appended, as in <tt>:form=binary,msbfirst</tt>.  This addition specifies the
+byte order of the binary data.  If the byte order is not specified (here
+or elsewhere),
+then the receiving program should assume that the binary data is
+in the order native to the current CPU.
+</p>
+
+<!----->
+
+<p>
+<b><tt>:count</tt> field</b>:<br>
+This field specifies how many data elements are to be read from
+the data stream.  One data element corresponds to a complete set
+of values as specified in the <tt>:type</tt> field.
+If <tt>:type=f,i,i</tt> and <tt>:count=3</tt>, then the data stream
+should contain 3 floats and 6 ints
+(in order <tt>f&nbsp;i&nbsp;i&nbsp;f&nbsp;i&nbsp;i&nbsp;f&nbsp;i&nbsp;i</tt>).
+</p>
+
+<p>
+A useful way to think of the data specified by the <tt>:type</tt> and
+<tt>:count</tt> fields is that the data stream defines a 2D array of
+values.  The <tt>:type</tt> field specifies the contents of each row
+in this array, and the <tt>:count</tt> field specifies how many rows
+will be read.
+</p>
+
+<!----->
+
+<p>
+<b>User-specific fields</b>:<br>
+Other fields of the form <tt>name=string</tt> can be included in
+the data header.  <tt>name</tt> can be any legal name string
+(except those starting with&nbsp;"<tt>:</tt>").
+<tt>string</tt> can be any sequence
+of non-whitespace characters or a "quoted string" (described in the
+data stream section below).  If no <tt>string</tt> is desired, then
+the field can simply be of the form <tt>name</tt>.  Such user-defined
+fields are read and stored, but not processed in any particular
+way by the data decoding software.
+</p>
+
+<p>
+<b>Data stream</b>:<br>
+The data stream starts at the next byte after the "<tt>&gt;</tt>" that closes
+the structure header,
+unless a "<tt>/</tt>" character immediately preceeds the "<tt>&gt;</tt>",
+as in "<tt>/&gt;</tt>".
+In that case, there is no data stream, and this "<tt>&gt;</tt>"
+is the end of the data structure encoding.
+</p>
+
+<p>
+If the data stream is in <tt>text</tt> form, then the data
+values are read from the stream as follows:
+<blockquote><table border=1 cellpadding=3>
+<tr> <td><b>Type</b></td> <td><b>C format string</b></td> </tr>
+<tr> <td>byte</td>        <td>%d (cast to unsigned char)</td> </tr>
+<tr> <td>short</td>       <td>%d (cast to signed short)</td> </tr>
+<tr> <td>int</td>         <td>%d</td> </tr>
+<tr> <td>float</td>       <td>%f</td> </tr>
+<tr> <td>double</td>      <td>%lf</td> </tr>
+<tr> <td>complex</td>     <td>%f%f (real part, imaginary part)</td> </tr>
+<tr> <td>rgb</td>         <td>%d%d%d (each cast to unsigned char)</td> </tr>
+<tr> <td>String</td>      <td>non-whitespace sequence (%s), or "quoted string"</td> </tr>
+</table></blockquote>
+Data values must be separated by at least one whitespace character.
+</p>
+
+<p>
+If a String contains whitespace, the String must be
+present in the text data stream in the quoted form.  If the first
+non-whitespace character that starts a String is <tt>"</tt>, then
+the string is assumed to be in quoted form, and everything up to
+the next <tt>"</tt> character is included in the string.  Whitespace
+characters, including newlines, are passed through to the String value.
+</p>
+
+<p>
+In keeping with the XML roots of this specification, the following
+escape sequences representing single characters will be recognized
+inside the data stream:
+<blockquote><table border=1 cellpadding=3>
+<tr> <td><b>Escape</b></td>       <td><b>Translation</b>          </td> <td><b>Note</b></td> </tr>
+<tr> <td><tt>&amp;lt;</tt></td>   <td><tt>&lt;</tt> (less than)   </td> <td>Required</td> </tr>
+<tr> <td><tt>&amp;gt;</tt></td>   <td><tt>&gt;</tt> (greater than)</td> <td>Optional</td> </tr>
+<tr> <td><tt>&amp;quot;</tt></td> <td><tt>"</tt>    (quote)       </td> <td>Required</td> </tr>
+<tr> <td><tt>&amp;apos;</tt></td> <td><tt>'</tt>    (apostrophe)  </td> <td>Optional</td> </tr>
+<tr> <td><tt>&amp;amp;</tt></td>  <td><tt>&amp;</tt> (ampersand)  </td> <td>Required</td> </tr>
+</table></blockquote>
+Characters marked as Required can only be represented in a String by
+the escape sequence.  Characters marked as Optional can be represented
+by the escape or by themselves.
+Other XML-defined escapes may not be recognized.
+(Escaped characters can only be present in a String, since they
+have no function in the text representation of a number.)
+</p>
+
+<p>
+If the data stream is in <tt>binary</tt> or <tt>base64</tt> form,
+then the data
+values are read from the stream byte-by-byte, with each value
+taking the number of bytes specified earlier.  String data values
+are <i>not</i> allowed in these forms.  This restriction is made so
+that the number
+of bytes in the data stream can be computed from the <tt>:type</tt>
+and <tt>:count</tt> fields (e.g., <tt>:type=f,i,s</tt> and <tt>:count=3</tt>
+would require a binary data stream to contain exactly (4+4+2)*3=30 bytes).
+</p>
+
+<p>
+The data stream ends with the bytes "<tt>&lt;/</tt>".  The data structure
+transmission ends with the next following&nbsp;"<tt>&gt;</tt>",
+which allows the
+closing sequence to be either "<tt>&lt;/&gt;</tt>" or
+"<tt>&lt;/fieldname&gt;</tt>" (as in strict XML).
+</p>
+
+<!--------------------------------------------------------------->
+
+<hr>
+<h2>Contents of an Entire Data Collection</h2>
+A data file or transmission stream will often contain more than one
+data structure.  Data structures can be grouped together using
+the "<tt>&lt;:GROUP&gt;...&lt/:GROUP&gt;" construction.
+
+</BODY>
+</HTML>

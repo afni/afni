@@ -3345,7 +3345,7 @@ ENTRY("AFNI_plugin_button") ;
 
    /* sort this array, if desired */
 
-   if( AFNI_yesenv("AFNI_PLUGINS_ALPHABETIZE") ){
+   if( !AFNI_noenv("AFNI_PLUGINS_ALPHABETIZE") ){
       int qq , ss ;
       PLUGIN_interface * tpl ;
 

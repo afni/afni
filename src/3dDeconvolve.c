@@ -181,6 +181,8 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
+  Mod:     Corrected error in the baseline t-stat output.
+  Date:    26 September 2001
 */
 
 /*---------------------------------------------------------------------------*/
@@ -188,7 +190,7 @@
 #define PROGRAM_NAME    "3dDeconvolve"               /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "02 Sept 1998"    /* date of initial program release */
-#define PROGRAM_LATEST  "15 August 2001"  /* date of latest program revision */
+#define PROGRAM_LATEST  "26 Sept 2001"  /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -1913,9 +1915,12 @@ void allocate_memory
       (*tcoef_vol)[ip] = NULL;
     }
 
-  for (ip = 0;  ip < q;  ip++)
-    if (cout)  zero_fill_volume (&((*coef_vol)[ip]),  nxyz);
-  
+  if (cout)
+    for (ip = 0;  ip < q;  ip++)
+      {
+	zero_fill_volume (&((*coef_vol)[ip]),  nxyz);
+	if (tout) zero_fill_volume (&((*tcoef_vol)[ip]),  nxyz);
+      }
 
   ip = q-1;
   for (is = 0;  is < num_stimts;  is++)

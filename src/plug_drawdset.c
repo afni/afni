@@ -701,6 +701,10 @@ void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
    /* since the undo_stuff will be modified by the
       drawing function, we must make temporary copies */
 
+#if 0
+fprintf(stderr,"Undo: %d voxels\n",undo_bufuse) ;
+#endif
+
    ub =         malloc(ubs) ; memcpy(ub,undo_buf,ubs) ;
    ux = (int *) malloc(uis) ; memcpy(ux,undo_xyz,uis) ;
 
@@ -724,7 +728,10 @@ void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
       DSET_unlock(dset) ;
       DSET_unload(dset) ; DSET_anyize(dset) ;
       if( dset_changed ){
-         if( recv_open ) AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
+         if( recv_open ){
+            AFNI_process_drawnotice( im3d ) ;  /* 30 Mar 1999 */
+            AFNI_receive_control( im3d, recv_key,EVERYTHING_SHUTDOWN, NULL ) ; /* 25 Sep 2001 */
+         }
          MCW_invert_widget(quit_pb) ;
          THD_load_statistics( dset ) ;
          PLUTO_dset_redisplay( dset ) ;
@@ -2103,7 +2110,7 @@ THD_3dim_dataset * DRAW_copy_dset( THD_3dim_dataset *dset ,
 
    if( !ISVALID_DSET(dset) ) return NULL ;
 
-   if( strncmp(DSET_PREFIX(dset),"COPY",4) == 0 ) strcpy(new_prefix,"C") ;
+   if( strstr(DSET_PREFIX(dset),"COPY") != NULL ) strcpy(new_prefix,"C") ;
    else                                           strcpy(new_prefix,"COPY_") ;
    ival = strlen(new_prefix) ;
    MCW_strncpy(new_prefix+ival,DSET_PREFIX(dset),THD_MAX_PREFIX-ival) ;

@@ -3,10 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 #include "thd.h"
-
 
 /**********************************************************************
   Routine to return a (hopefully) unique ID code to be used to identify
@@ -23,8 +22,14 @@
 #include <stdlib.h>
 
 /*-- 23 May 2000: modified to use upper and lower case --*/
+/*-- 27 Sep 2001: throw old code away and use new code --*/
 
-static char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+#define USE_B64  /* flag to use new id code generation function */
+
+/*---------------------------------------------------------------------*/
+#ifndef USE_B64
+static char alphabet[] =
+   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
 #define NALPH 52
 
 MCW_idcode MCW_new_idcode(void)
@@ -84,3 +89,23 @@ MCW_idcode MCW_new_idcode(void)
 
    return newid ;
 }
+
+/*---------------------------------------------------------------------*/
+#else  /* use new code */
+
+MCW_idcode MCW_new_idcode(void)
+{
+   MCW_idcode newid ;
+   time_t tnow ;
+   int nn ;
+
+   UNIQ_idcode_fill( newid.str ) ;  /* thd_md5.c */
+
+   tnow = time(NULL) ;
+   MCW_strncpy( newid.date , ctime(&tnow) , MCW_IDDATE ) ;
+   nn = strlen(newid.date) ;
+   if( nn > 0 && newid.date[nn-1] == '\n' ) newid.date[nn-1] = '\0' ;
+
+   return newid ;
+}
+#endif /* USE_B64 */

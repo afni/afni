@@ -27,6 +27,12 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
+#include <sys/utsname.h>  /* these 4 files are needed by the UNIQ_ */
+#include <sys/time.h>     /* functions at the bottom of this file  */
+#include <unistd.h>
+#include <ctype.h>
 
 typedef unsigned char *POINTER;   /* POINTER defines a generic pointer type */
 typedef unsigned short int UINT2; /* UINT2 defines a two byte word */
@@ -433,12 +439,15 @@ char * MD5_malloc_file(char * filename)
    dy = (char *) malloc(33) ; strcpy(dy,st) ; return dy ;
 }
 
-/*=============================================================================*/
-#if 0
-/*-----------------------------------------------------------------------------
+/*============================================================================*/
+
+/*----------------------------------------------------------------------------
    Return the output as a Base64 string, instead of a hex string
    -- strlen(result) is 22 instead of 32
--------------------------------------------------------------------------------*/
+   -- result is malloc()-ed and should be free()-d when appropriate
+------------------------------------------------------------------------------*/
+
+extern void B64_to_base64( int, char *, int *, char ** ) ; /* in thd_base64.c */
 
 static char * MD5_to_B64( unsigned char digest[16] )
 {
@@ -490,5 +499,108 @@ char * MD5_B64_file(char * filename)
 
   return MD5_to_B64( digest ) ;
 }
-#endif
-/*=============================================================================*/
+
+/*-----------------------------------------------------------------------
+  Return a globally unique identifier (I hope).  This is a malloc()-ed
+  string of length <= 31 (plus the NUL byte; the whole thing will fit
+  into a char[32] array).  The output does not contain any '/'s, so
+  it could be used as a temporary filename.
+  Method: generate a string from the system identfier information and
+          the current time of day; MD5 hash this to a 128 byte code;
+          Base64 encode this to a 22 byte string; replace '/' with '-'
+          and '+' with '_'; add 4 character prefix (1st 3 characters
+          of environment variable IDCODE_PREFIX plus '_').
+  -- RWCox - 27 Sep 2001
+-------------------------------------------------------------------------*/
+
+char * UNIQ_idcode(void)
+{
+   struct utsname ubuf ;
+   struct timeval tv ;
+   int    nn , ii ;
+   int  nbuf ;
+   char *buf , *idc , *eee ;
+   static int ncall=0 ;                /* number of times I've been called */
+
+   /* get info about this system */
+
+   nn = uname( &ubuf ) ;               /* get info about this system */
+   if( nn == -1 ){                     /* should never happen */
+      strcpy( ubuf.nodename , "E" ) ;
+      strcpy( ubuf.sysname  , "L" ) ;
+      strcpy( ubuf.release  , "V" ) ;
+      strcpy( ubuf.version  , "I" ) ;
+      strcpy( ubuf.machine  , "S" ) ;
+   }
+
+   /* store system info into a string buffer */
+
+   nbuf = strlen(ubuf.nodename)+strlen(ubuf.sysname)
+         +strlen(ubuf.release )+strlen(ubuf.version)+strlen(ubuf.machine) ;
+
+   buf = malloc(nbuf+64) ;      /* include some extra space */
+   strcpy(buf,ubuf.nodename) ;
+   strcat(buf,ubuf.sysname ) ;
+   strcat(buf,ubuf.release ) ;
+   strcat(buf,ubuf.version ) ;
+   strcat(buf,ubuf.machine ) ;
+
+   idc = calloc(1,32) ;         /* will be output string */
+
+   /* get time and store into buf */
+
+   nn = gettimeofday( &tv , NULL ) ;
+   if( nn == -1 ){              /* should never happen */
+      tv.tv_sec  = (long) buf ;
+      tv.tv_usec = (long) idc ;
+   }
+
+   sprintf(buf+nbuf,"%d%d%d%d",
+          (int)tv.tv_sec,(int)tv.tv_usec,(int)getpid(),ncall) ;
+   ncall++ ;
+
+   /* get prefix for idcode from environment, if present */
+
+   eee = getenv("IDCODE_PREFIX") ;
+   if( eee != NULL && isalpha(eee[0]) ){
+     for( ii=0 ; ii < 3 && isalnum(eee[ii]) ; ii++ )
+       idc[ii] = eee[ii] ;
+   } else {
+     strcpy(idc,"NIH") ;
+   }
+   strcat(idc,"_") ;  /* recall idc was calloc()-ed */
+
+   /* MD5+Base64 encode buf to be latter part of the idcode */
+
+   eee = MD5_B64_string( buf ) ;
+   if( eee != NULL ){                     /* should always work */
+      int nn = strlen(eee) ;
+      for( ii=0 ; ii < nn ; ii++ ){
+              if( eee[ii] == '/' ) eee[ii] = '-' ;  /* / -> - */
+         else if( eee[ii] == '+' ) eee[ii] = '_' ;  /* + -> _ */
+      }
+      strcat(idc,eee) ;
+   } else {                               /* should never happen */
+     nn = strlen(idc) ;
+     sprintf(idc+nn,"%d_%d",(int)tv.tv_sec,(int)tv.tv_usec) ;
+   }
+
+   /* free workspaces and get outta here */
+
+   if( eee != NULL ) free(eee) ;
+   free(buf) ; return idc ;
+}
+
+/*----------------------------------------------------------------------
+   Fill a user-supplied buffer (length at least 32) with an idcode
+------------------------------------------------------------------------*/
+
+void UNIQ_idcode_fill( char *idc )
+{
+   char *bbb ;
+   if( idc == NULL ) return ;
+   bbb = UNIQ_idcode() ;
+   strcpy(idc,bbb) ; free(bbb) ; return ;
+}
+
+/*============================================================================*/

@@ -1108,7 +1108,7 @@ typedef struct {
 #  define MCW_IDPREFIX IDCODE_PREFIX
 #endif
 
-#define MCW_IDSIZE 16
+#define MCW_IDSIZE 32  /* 27 Sep 2001; increased from 16 to 32 */
 #define MCW_IDDATE 48
 
 typedef struct { char str[MCW_IDSIZE] , date[MCW_IDDATE] ; } MCW_idcode ;
@@ -2679,11 +2679,11 @@ extern char * MD5_malloc_string(char *) ;
 extern char * MD5_static_file  (char *) ;
 extern char * MD5_malloc_file  (char *) ;
 
-#if 0
 extern char * MD5_B64_array ( int , char * ) ;
 extern char * MD5_B64_string( char * ) ;
 extern char * MD5_B64_file  (char * ) ;
-#endif
+extern char * UNIQ_idcode(void) ;            /* 27 Sep 2001 */
+extern void   UNIQ_idcode_fill(char *) ;
 
 /*------------------------------------------------------------------------*/
 

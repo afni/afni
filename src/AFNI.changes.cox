@@ -2910,7 +2910,7 @@
 13 Jul 2001
  * OK, made afni_ttren.c work with the volume renderer.
  * Modified mcw_glob.c to only print warning message if allowed to.
-     Modifed various codes that use MCW_file_expand() to turn such 
+     Modifed various codes that use MCW_file_expand() to turn such
      messages on or off, depending on what I feel like.
 
 24 Jul 2001
@@ -3175,3 +3175,21 @@
      than presented in order.
  * Modified to3d.c to have new option -sinter: sets AFNI_SIEMENS_INTERLEAVE
      to "Yes".
+ * Modified plug_drawdset.c to do EVERYTHING_SHUTDOWN after Quit is pressed.
+     For some reason, this was blocking proper Undo-ing if the user did Quit,
+     then restarted the editor.
+
+27 Sep 2001
+ * Modified thd_md5.c to add UNIQ_idcode() function, which produces strings
+     like "USA_mFs+P-tnCc1vQQM0UuL0Hg", using a modified Base64 encoding of
+     the MD5 sum of some system info and the current time.
+ * Modified thd_base64.c to avoid use of mrilib.h (so it can be easily used
+     by non-AFNI programmers).
+ * Modified thd_idcode.c to use UNIQ_idcode() instead of older method.
+ * Modified 3ddata.h to extend length of MCW_idcode string to 32 (so can
+     use results of UNIQ_idcode()).
+
+01 Oct 2001
+ * Modified afni_plugin.c to make plugin alphabetization the default (that
+     is, the user has to "setenv AFNI_PLUGINS_ALPHABETIZE NO" to get the
+     old behavior).
