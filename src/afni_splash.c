@@ -139,6 +139,7 @@ ENTRY("AFNI_splashup") ;
                if( imov->kind == MRI_rgb ){             /* color */
                   MRI_IMAGE * imq = mri_to_rgb(imspl) ;
                   mri_free(imspl) ; imspl = imq ;
+                  reload_DC_colordef( GLOBAL_library.dc ) ;
                } else if( imov->kind != MRI_byte ){     /* gray */
                   MRI_IMAGE * imq = mri_to_byte(imov) ;
                   mri_free(imov) ; imov = imq ;

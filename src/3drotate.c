@@ -1,14 +1,16 @@
-#define FLOAT_TYPE double  /* as in thd_rot3d.c */
-#include "vecmat.h"
-
-#include "mrilib.h"
-#include <string.h>
-#include <stdlib.h>
+#define FLOAT_TYPE double  /* as in thd_rot3d.c and thd_shear3d.c */
+#include "thd_shear3d.h"
 
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
+
+/*-- prototypes for funcs at end of file --*/
+
+static THD_mat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;
+
+static void rotate_stdin_points( THD_fvec3, THD_mat33, int,THD_fvec3 ) ;
 
 /*-------------------------------------------------------------------------------*/
 
@@ -74,20 +76,20 @@ int handedness( THD_3dim_dataset * dset )
 
 /*-----------------------------------------------------------------------------------*/
 
-THD_mat33 DBLE_mat_to_dicomm ( THD_3dim_dataset * ) ;    /* at end of file */
-
 #define MATVEC_DICOM 1
 #define MATVEC_ORDER 2
 
+static int verb=0 ;
+
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset * dset ;
+   THD_3dim_dataset * dset=NULL ;
    char * new_prefix = "rota" , * cpt ;
    float dx=0 , dy=0 , dz=0 ;
    int   ax1=0,ax2=1,ax3=2 , adx,ady,adz ;
    char  cdx,cdy,cdz ;
    float th1=0.0,th2=0.0,th3=0.0 ;
-   int iopt , nvox , rotarg=-1 , dcode=-1 , ival,nval , verb=0 , ihand ;
+   int iopt , nvox , rotarg=-1 , dcode=-1 , ival,nval , ihand ;
    float * fvol ;
    double cputim ;
    int clipit=0 ;  /* 11 Apr 2000 */
@@ -96,6 +98,19 @@ int main( int argc , char * argv[] )
    int matvec=0 ;    /* 19 July 2000 */
    THD_mat33 rmat , pp,ppt ;
    THD_fvec3 tvec ;
+
+   int dopoints=0 , doorigin=0 ;    /* 21 Nov 2000 */
+   double xo=0.0 , yo=0.0 , zo=0.0 ;
+
+#undef ALLOW_DOBYTE
+
+#ifdef ALLOW_DOBYTE
+   int dobyte=0 ;    /* 23 Oct 2000 */
+#else
+#  define dobyte 0   /* 10 Nov 2000 */
+#endif
+
+   LOAD_DIAG_MAT(rmat,1.0,1.0,1.0) ;
 
    /*-- read command line arguments --*/
 
@@ -106,7 +121,7 @@ int main( int argc , char * argv[] )
          "'dataset' may contain a sub-brick selector list.\n"
          "The options are:\n"
          "  -prefix fname    = Sets the output dataset prefix name to be 'fname'\n"
-         "  -verbose         = Prints out progress reports\n"
+         "  -verbose         = Prints out progress reports (to stderr)\n"
          "\n"
          "At most one of these shift options can be used:\n"
          "  -ashift dx dy dz = Shifts the dataset 'dx' mm in the x-direction, etc.,\n"
@@ -154,6 +169,35 @@ int main( int argc , char * argv[] )
          "     coordinate order of the dataset axes, whatever they may be.\n"
          "  * You can't mix -matvec_* options with -rotate and -*shift.\n"
          "\n"
+         " -points\n"
+         " -origin xo yo zo\n"
+         "   These options specify that instead of rotating a dataset, you will\n"
+         "   be rotating a set of (x,y,z) points.  The points are read from stdin.\n"
+         "   * If -origin is given, the point (xo,yo,zo) is used as the center for\n"
+         "     the rotation.\n"
+         "   * If -origin is NOT given, and a dataset is given at the end of the\n"
+         "     command line, then the center of the dataset brick is used as\n"
+         "     (xo,yo,zo).  The dataset will NOT be rotated if -points is given.\n"
+         "   * If -origin is NOT given, and NO dataset is given at the end of the\n"
+         "     command line, then xo=yo=zo=0 is assumed.  You probably don't\n"
+         "     want this.\n"
+         "   * (x,y,z) points are read from stdin as 3 ASCII-formatted numbers per\n"
+         "     line, as in 3dUndump.  Any succeeding numbers on input lines will\n"
+         "     be copied to the output, which will be written to stdout.\n"
+         "   * The input (x,y,z) coordinates are taken in the same order as the\n"
+         "     axes of the input dataset.  If there is no input dataset, then\n"
+         "       negative x = R  positive x = L  }\n"
+         "       negative y = A  positive y = P  } e.g., the DICOM order\n"
+         "       negative z = I  positive z = S  }\n"
+         "     One way to dump some (x,y,z) coordinates from a dataset is:\n"
+         "\n"
+         "      3dmaskdump -mask something+tlrc -o xyzfilename -noijk\n"
+         "                 '3dcalc( -a dset+tlrc -expr x -datum float )'\n"
+         "                 '3dcalc( -a dset+tlrc -expr y -datum float )'\n"
+         "                 '3dcalc( -a dset+tlrc -expr z -datum float )'\n"
+         "\n"
+         "     (All of this should be on one command line.)\n"
+         "\n"
          "Example: 3drotate -prefix Elvis -bshift 10S 0 0 -rotate 30R 0 0 Sinatra+orig\n"
          "\n"
          "This will shift the input 10 mm in the superior direction, followed by a 30\n"
@@ -181,6 +225,19 @@ int main( int argc , char * argv[] )
 
    iopt = 1 ;
    while( iopt < argc && argv[iopt][0] == '-' ){
+
+      if( strncmp(argv[iopt],"-points",7) == 0 ){   /* 21 Nov 2000 */
+         dopoints = 1 ;
+         iopt++ ; continue ;
+      }
+
+      if( strncmp(argv[iopt],"-origin",7) == 0 ){   /* 21 Nov 2000 */
+         xo = strtod( argv[++iopt] , NULL ) ;
+         yo = strtod( argv[++iopt] , NULL ) ;
+         zo = strtod( argv[++iopt] , NULL ) ;
+         doorigin = 1 ;
+         iopt++ ; continue ;
+      }
 
       if( strncmp(argv[iopt],"-matvec_",8) == 0 ){  /* 19 Jul 2000 */
 
@@ -269,23 +326,30 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[iopt],"-linear",4) == 0 || strncmp(argv[iopt],"-Linear",4) == 0 ){
-         THD_rota_method( MRI_LINEAR ) ;
+         THD_rota_method( MRI_LINEAR ) ; clipit = 0 ;
          iopt++ ; continue ;
       }
 
       if( strncmp(argv[iopt],"-nn",3) == 0 || strncmp(argv[iopt],"-NN",4) == 0 ){
-         THD_rota_method( MRI_NN ) ;
+         THD_rota_method( MRI_NN ) ; clipit = 0 ;
+#ifdef ALLOW_DOBYTE
+         dobyte = 1 ;
+         THD_rota_byte_mode( MRI_NN ) ;
+#endif
          iopt++ ; continue ;
       }
 
-      if( strncmp(argv[iopt],"-tsshift",6) == 0 ){  /* 12 Dec 1999 */
-         THD_rota_method( MRI_TSSHIFT ) ;
+#ifdef ALLOW_DOBYTE
+      if( strncmp(argv[iopt],"-tsshift",6) == 0 ){
+         THD_rota_method( MRI_TSSHIFT ) ; dobyte = 1 ; clipit = 0 ;
+         THD_rota_byte_mode( MRI_TSSHIFT ) ;
          iopt++ ; continue ;
       }
+#endif
 
       if( strncmp(argv[iopt],"-ashift",4) == 0 ){
-         if( dcode > 0 ){fprintf(stderr,"*** Can't use 2 shift options!\n");exit(1);}
          if( matvec    ) ERREX("*** Can't use -ashift with -matvec!") ;
+         if( dcode > 0 ){fprintf(stderr,"*** Can't use 2 shift options!\n");exit(1);}
          dx = strtod( argv[++iopt] , &cpt ) ; cdx = *cpt ;
          dy = strtod( argv[++iopt] , &cpt ) ; cdy = *cpt ;
          dz = strtod( argv[++iopt] , &cpt ) ; cdz = *cpt ;
@@ -294,8 +358,8 @@ int main( int argc , char * argv[] )
       }
 
       if( strncmp(argv[iopt],"-bshift",4) == 0 ){
-         if( dcode > 0 ){fprintf(stderr,"*** Can't use 2 shift options!\n");exit(1);}
          if( matvec    ) ERREX("*** Can't use -bshift with -matvec!") ;
+         if( dcode > 0 ){fprintf(stderr,"*** Can't use 2 shift options!\n");exit(1);}
          dx = strtod( argv[++iopt] , &cpt ) ; cdx = *cpt ;
          dy = strtod( argv[++iopt] , &cpt ) ; cdy = *cpt ;
          dz = strtod( argv[++iopt] , &cpt ) ; cdz = *cpt ;
@@ -315,7 +379,8 @@ int main( int argc , char * argv[] )
 #endif
 
       if( strncmp(argv[iopt],"-rotate",4) == 0 ){
-         if( matvec    ) ERREX("*** Can't use -rotate with -matvec!") ;
+         if( matvec     ) ERREX("*** Can't use -rotate with -matvec!") ;
+         if( rotarg > 0 ) ERREX("*** Can't have 2 -rotate options!\n") ;
          rotarg = iopt ;  /* save and process later */
          iopt += 4 ; continue ;
       }
@@ -323,17 +388,35 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Unknown option: %s\n",argv[iopt]) ; exit(1) ;
    }
 
-   if( matvec == 0 && dcode < 0 && rotarg < 0 ){
-      fprintf(stderr,"*** Don't you want to do anything?\n") ; exit(1) ;
+   /*-- check for legal combinations --*/
+
+   if( doorigin && !dopoints ){
+      fprintf(stderr,"+++ WARNING: -origin means nothing without -points!\n") ;
    }
+
+   if( matvec == 0 && dcode < 0 && rotarg < 0 )
+      ERREX("Don't you want to do anything [no -rotate, shift, or matvec!]?") ;
 
    /** read input dataset */
 
-   if( iopt >= argc ){ fprintf(stderr,"*** No input dataset?\n") ; exit(1) ; }
+   if( iopt >= argc && !dopoints ) ERREX("*** No input dataset?") ;
 
-   dset = THD_open_dataset( argv[iopt] ) ;
-   if( dset == NULL ){
-      fprintf(stderr,"*** Cannot open dataset %s!\n",argv[iopt]) ; exit(1) ;
+   if( iopt < argc ){
+      dset = THD_open_dataset( argv[iopt] ) ;
+      if( dset == NULL ){
+         fprintf(stderr,"*** Cannot open dataset %s!\n",argv[iopt]); exit(1);
+      }
+   } else {
+      dset = EDIT_empty_copy(NULL) ;  /* 21 Nov 2000: need a fake dataset */
+      if( !doorigin )
+         fprintf(stderr,"+++ WARNING: no -origin and no input dataset on command line!\n") ;
+   }
+
+   if( dopoints && !doorigin ){
+      xo = dset->daxes->xxorg + 0.5*(dset->daxes->nxx - 1)*dset->daxes->xxdel ;
+      yo = dset->daxes->yyorg + 0.5*(dset->daxes->nyy - 1)*dset->daxes->yydel ;
+      zo = dset->daxes->zzorg + 0.5*(dset->daxes->nzz - 1)*dset->daxes->zzdel ;
+      fprintf(stderr,"+++ Using -origin %g %g %g\n",xo,yo,zo) ;
    }
 
    /* now can process rotation arguments */
@@ -405,6 +488,9 @@ int main( int argc , char * argv[] )
 fprintf(stderr,"ihand=%d th1=%g th2=%g th3=%g\n",ihand,th1,th2,th3);
 fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
 #endif
+
+      if( dopoints )
+         rmat = rot_to_matrix( ax1,-th1,ax2,-th2,ax3,-th3 ) ; /* 21 Nov 2000 */
    }
 
    /* may need to process shift arguments as well */
@@ -461,6 +547,19 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
       rmat = MAT_MUL(ppt,rmat) ; rmat = MAT_MUL(rmat,pp) ; tvec = MATVEC(ppt,tvec) ;
    }
 
+   /*-- 21 Nov 2000: read (x,y,z) points from stdin, process them, quit --*/
+
+   if( dopoints ){
+      THD_fvec3 xyzorg ;
+      if( !matvec ) LOAD_FVEC3( tvec , dx,dy,dz ) ;
+      if( dcode < 0 ) dcode = DELTA_AFTER ;
+      LOAD_FVEC3(xyzorg,xo,yo,zo) ;
+      rotate_stdin_points( xyzorg , rmat , dcode,tvec ) ;  /* at end of file */
+      exit(0) ;
+   }
+
+   /*-- read dataset, prepare to process it --*/
+
    DSET_mallocize(dset) ;
    if( verb ) fprintf(stderr,"+++ Loading dataset %s from disk",dset->dblk->diskptr->header_name);
    DSET_load(dset) ;
@@ -490,13 +589,21 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
        fprintf(stderr,"+++ %d sub-bricks: ",nval) ;
        cputim = COX_cpu_time() ;
    }
+
+   /*-- loop over all sub-bricks: copy into fvol, rotate fvol, copy back --*/
+
+#ifdef ALLOW_DOBYTE
+   if( matvec ) dobyte = 0 ;  /* 06 Nov 2000 */
+#endif
+
    for( ival=0 ; ival < nval ; ival++ ){
 
       if( verb ) fprintf(stderr,"%d",ival) ;
 
-      EDIT_coerce_type( nvox ,
-                        DSET_BRICK_TYPE(dset,ival),DSET_ARRAY(dset,ival) ,
-                        MRI_float,fvol ) ;
+      if( !dobyte || DSET_BRICK_TYPE(dset,ival) != MRI_byte )
+        EDIT_coerce_type( nvox ,
+                          DSET_BRICK_TYPE(dset,ival),DSET_ARRAY(dset,ival) ,
+                          MRI_float,fvol ) ;
 
       if( verb ) fprintf(stderr,".") ;
 
@@ -510,15 +617,29 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
          cbot = bb ; ctop = tt ;
       }
 
-      if( matvec )
-        THD_rota_vol_matvec( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
-                             fabs(DSET_DX(dset)) , fabs(DSET_DY(dset)) ,
-                                                   fabs(DSET_DZ(dset)) ,
-                             fvol , rmat , tvec ) ;
-      else
-        THD_rota_vol( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
-                      fabs(DSET_DX(dset)), fabs(DSET_DY(dset)), fabs(DSET_DZ(dset)), fvol ,
-                      ax1,th1 , ax2,th2 , ax3,th3 , dcode,dx,dy,dz ) ;
+      if( dobyte && DSET_BRICK_TYPE(dset,ival) == MRI_byte ){
+#ifdef ALLOW_DOBYTE
+          THD_rota_vol_byte( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
+                            fabs(DSET_DX(dset)),
+                             fabs(DSET_DY(dset)),
+                              fabs(DSET_DZ(dset)),
+                            (byte *)DSET_ARRAY(dset,ival) ,
+                            ax1,th1, ax2,th2, ax3,th3, dcode,dx,dy,dz , NULL ) ;
+#endif
+      } else {
+        if( matvec )
+          THD_rota_vol_matvec( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
+                               fabs(DSET_DX(dset)) ,
+                                fabs(DSET_DY(dset)) ,
+                                 fabs(DSET_DZ(dset)) ,
+                               fvol , rmat , tvec ) ;
+        else
+          THD_rota_vol( DSET_NX(dset) , DSET_NY(dset) , DSET_NZ(dset) ,
+                        fabs(DSET_DX(dset)),
+                         fabs(DSET_DY(dset)),
+                          fabs(DSET_DZ(dset)), fvol ,
+                        ax1,th1, ax2,th2, ax3,th3, dcode,dx,dy,dz ) ;
+      }
 
       if( verb ) fprintf(stderr,".") ;
 
@@ -531,9 +652,12 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
          }
       }
 
-      EDIT_coerce_type( nvox , MRI_float,fvol ,
-                               DSET_BRICK_TYPE(dset,ival),DSET_ARRAY(dset,ival) ) ;
-   }
+      if( !dobyte || DSET_BRICK_TYPE(dset,ival) != MRI_byte )
+        EDIT_coerce_type( nvox , MRI_float,fvol ,
+                                 DSET_BRICK_TYPE(dset,ival),DSET_ARRAY(dset,ival) ) ;
+
+   } /* end of loop over sub-bricks */
+
    if( verb ){
       cputim = COX_cpu_time() - cputim ;
       fprintf(stderr,"\n+++ CPU time=%10.3g s" , cputim) ;
@@ -556,7 +680,7 @@ fprintf(stderr,"adx=%d dx=%g qdx=%g  ady=%d dy=%g qdy=%g  adz=%d dz=%g qdz=%g\n"
   brick axis coordinates to Dicom order coordinates.
 -----------------------------------------------------------------------*/
 
-THD_mat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
+static THD_mat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
 {
    THD_mat33 tod ;
 
@@ -596,4 +720,74 @@ THD_mat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
    }
 
    return tod ;
+}
+
+/*=================================================================================*/
+
+#include <ctype.h>
+
+#define NBUF 1024  /* line buffer size */
+
+#define DUPOUT(n) fprintf(fpout,"%s",linbuf+n)
+
+static void rotate_stdin_points( THD_fvec3 xyzorg, THD_mat33 rmat,
+                                                   int dcode, THD_fvec3 tvec )
+{
+   char linbuf[NBUF] , *cp ;
+   FILE *fpin=stdin , *fpout=stdout ;
+   int ii , kk , nbuf , ll , nn , ld ;
+   double xx,yy,zz ;
+   THD_fvec3 xyz ;
+
+   if( verb ){
+      DUMP_MAT33("Rotation",rmat) ;
+   }
+
+   /** rmat = MAT_INV(rmat) ; **/
+
+   /*-- loop over input lines --*/
+
+   ll = ld = 0 ;
+   while(1){
+      ll++ ;                               /* line count */
+      cp = fgets( linbuf , NBUF , fpin ) ; /* read the line */
+      if( cp == NULL ) break ;             /* end of file => end of loop */
+      kk = strlen(linbuf) ;
+      if( kk == 0 ) continue ;             /* empty line => get next line */
+
+      /* find 1st nonblank */
+
+      for( ii=0 ; ii < kk && isspace(linbuf[ii]) ; ii++ ) ;     /* nada */
+      if( ii == kk ||                                           /* all blanks */
+          (linbuf[ii] == '/' && linbuf[ii+1] == '/') ){         /* or comment */
+
+         DUPOUT(0) ; continue ;
+      }
+
+      /* scan line for data */
+
+      nn = sscanf(linbuf+ii , "%lf%lf%lf%n" , &xx,&yy,&zz,&nbuf ) ;
+      if( nn < 3 ){
+         fprintf(stderr,"+++ WARNING: input line %d was incomplete\n",ll) ;
+         continue ;
+      }
+      nbuf += ii ;  /* position of next character after zz */
+
+      /* process vector */
+
+
+      LOAD_FVEC3(xyz , xx,yy,zz) ;
+      xyz = SUB_FVEC3(xyz,xyzorg) ;
+      if( dcode == DELTA_BEFORE ) xyz = ADD_FVEC3(xyz,tvec) ;
+      xyz = MATVEC(rmat,xyz) ;
+      if( dcode == DELTA_AFTER ) xyz = ADD_FVEC3(xyz,tvec) ;
+      xyz = ADD_FVEC3(xyz,xyzorg) ;
+
+      fprintf(fpout,"%g %g %g%s",xyz.xyz[0],xyz.xyz[1],xyz.xyz[2],linbuf+nbuf) ;
+      ld++ ;
+
+   } /* end of loop over input lines */
+
+   if( verb )
+      fprintf(stderr,"-points: read %d lines, wrote %d lines\n",ll-1,ld) ;
 }

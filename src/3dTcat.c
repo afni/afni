@@ -831,7 +831,7 @@ int main( int argc , char * argv[] )
                }
 
                if( TCAT_rlt == 2 ){               /* 16 Sep 1999 */
-                  qmid = 0.5 * ns ;
+                  qmid = 0.5 * (ns-1) ;
                   for( iv=0 ; iv < TCAT_nvox ; iv++ ) rlt0[iv] = 0.0 ;
                } else if( TCAT_rlt == 3 ){
                   nrltsum += ns ;
@@ -872,6 +872,10 @@ int main( int argc , char * argv[] )
                         for( iv=0 ; iv < TCAT_nvox ; iv++ ){
                            val = fac*bar[iv] - rlt0[iv] - rlt1[iv]*(qq-qmid) ;
                            bar[iv] = (finv*val) ;
+#if 0
+fprintf(stderr,"kk=%d iv=%d bar=%g rlt0=%g rlt1=%g qq=%g qmid=%g val=%g\n",
+        kk,iv,bar[iv],rlt0[iv],rlt1[iv],qq,qmid,val) ;
+#endif
                         }
                      }
                      break ;

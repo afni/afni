@@ -1,24 +1,8 @@
 
-
 /*****************************************************************************
   This software is copyrighted and owned by the Medical College of Wisconsin.
   See the file README.Copyright for details.
 ******************************************************************************/
-
-/*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-  This software is Copyright 1994-6 by
-
-            Medical College of Wisconsin
-            8701 Watertown Plank Road
-            Milwaukee, WI 53226
-
-  License is granted to use this program for nonprofit research purposes only.
-  It is specifically against the license to use this program for any clinical
-  application.  The Medical College of Wisconsin makes no warranty of usefulness
-  of this program for any particular purpose.  The redistribution of this
-  program for a fee, or the derivation of for-profit works from this program
-  is not allowed.
--+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 
 #include "mrilib.h"
 
@@ -55,21 +39,22 @@ void Syntax(void)
      "        [-ALL] dataset\n"
      "\n"
      "Program to produce orthogonal projections from a 3D dataset.\n"
-     "  -sum    ==> Add the dataset voxels along the projection direction\n"
-     "  -max    ==> Take the maximum of the voxels [the default is -sum]\n"
-     "  -amax   ==> Take the absolute maximum of the voxels\n"
-     "  -smax   ==> Take the signed maximum of the voxels; for example,\n"
+     "  -sum     ==> Add the dataset voxels along the projection direction\n"
+     "  -max     ==> Take the maximum of the voxels [the default is -sum]\n"
+     "  -amax    ==> Take the absolute maximum of the voxels\n"
+     "  -smax    ==> Take the signed maximum of the voxels; for example,\n"
      "                -max  ==> -7 and 2 go to  2 as the projected value\n"
      "                -amax ==> -7 and 2 go to  7 as the projected value\n"
      "                -smax ==> -7 and 2 go to -7 as the projected value\n"
-     "  -nsize  ==> Scale the output images up to 'normal' sizes\n"
-     "              (e.g., 64x64, 128x128, or 256x256)\n"
-     "              This option only applies to byte or short datasets.\n"
-     "  -mirror ==> The radiologists' and AFNI convention is to display\n"
-     "              axial and coronal images with the subject's left on\n"
-     "              the right of the image; the use of this option will\n"
-     "              mirror the axial and coronal projections so that\n"
-     "              left is left and right is right.\n"
+     "  -first x ==> Take the first value greater than x\n"
+     "  -nsize   ==> Scale the output images up to 'normal' sizes\n"
+     "               (e.g., 64x64, 128x128, or 256x256)\n"
+     "               This option only applies to byte or short datasets.\n"
+     "  -mirror  ==> The radiologists' and AFNI convention is to display\n"
+     "               axial and coronal images with the subject's left on\n"
+     "               the right of the image; the use of this option will\n"
+     "               mirror the axial and coronal projections so that\n"
+     "               left is left and right is right.\n"
      "\n"
      "  -output root ==> Output projections will named\n"
      "                   root.sag, root.cor, and root.axi\n"
@@ -117,15 +102,18 @@ void Syntax(void)
    exit(0) ;
 }
 
-#define PROJ_SUM  0
-#define PROJ_MMAX 1
-#define PROJ_AMAX 2
-#define PROJ_SMAX 3
+#define PROJ_SUM   0
+#define PROJ_MMAX  1
+#define PROJ_AMAX  2
+#define PROJ_SMAX  3
+#define PROJ_FIRST 4 /* 02 Nov 2000 */
 
 #define MIRR_NO  0
 #define MIRR_YES 1
 
 #define BIGG 9999999.99
+
+static float first_thresh=0.0 ;
 
 int main( int argc , char * argv[] )
 {
@@ -188,6 +176,12 @@ DB("new arg:",argv[iarg]) ;
 
       if( strncmp(argv[iarg],"-smax",6) == 0 ){
          proj_code = PROJ_SMAX ;
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-first") == 0 ){  /* 02 Nov 2000 */
+         proj_code = PROJ_FIRST ;
+         first_thresh = strtod( argv[++iarg] , NULL ) ;
          iarg++ ; continue ;
       }
 
@@ -622,7 +616,7 @@ DB("new arg:",argv[iarg]) ;
       fmax = mri_max(pim) ; fmin = mri_min(pim) ;
       printf("Axial projection min = %g  max = %g\n",fmin,fmax) ;
 
-      if( mirror_code == MIRR_YES ){ 
+      if( mirror_code == MIRR_YES ){
          slim = mri_flippo( MRI_ROT_0 , TRUE , pim ) ;
          mri_free(pim) ; pim = slim ;
       }
@@ -684,6 +678,12 @@ void PR_one_slice( int proj_code , MRI_IMAGE * slim , MRI_IMAGE * prim )
       default:
       case PROJ_SUM:
          for( ii=0 ; ii < npix ; ii++ ) flar[ii] += slar[ii] ;
+      break ;
+
+      case PROJ_FIRST:                    /* 02 Nov 2000 */
+         for( ii=0 ; ii < npix ; ii++ )
+            if( flar[ii] == 0.0 && slar[ii] > first_thresh )
+               flar[ii] = slar[ii] ;
       break ;
 
       case PROJ_MMAX:

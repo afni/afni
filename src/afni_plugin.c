@@ -3009,9 +3009,10 @@ void AFNI_plugin_button( Three_D_View * im3d )
 {
    AFNI_plugin_array * exten = GLOBAL_library.plugins ;
    AFNI_plugin * plug ;
-   int pp , ipl , nbut , npbut ;
+   int pp , ipl , nbut , npbut , kpl ;
    Widget rc , mbar , menu , cbut , pbut , wpar , sep ;
    XmString xstr ;
+   PLUGIN_interface ** plintar ;  /* 28 Nov 2000 */
 
 ENTRY("AFNI_plugin_button") ;
 
@@ -3029,6 +3030,9 @@ ENTRY("AFNI_plugin_button") ;
          npbut++ ;
       }
    }
+
+   /*-- make arrays to hold the plugin buttons (etc.),
+        so that plugins can be started from layouts (in afni_splash.c) --*/
 
    im3d->vwid->nplugbut = npbut ;
    im3d->vwid->plugbut  = (Widget *)            malloc(sizeof(Widget)            *npbut) ;
@@ -3126,18 +3130,53 @@ ENTRY("AFNI_plugin_button") ;
                XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
+   /*-- 28 Nov 2000: allow user to specify that
+                     button should be alphabetized --*/
+
+   /* make single array of all plugin interfaces */
+
+   plintar = (PLUGIN_interface **) malloc(sizeof(PLUGIN_interface *)*npbut) ;
+   for( kpl=pp=0 ; pp < exten->num ; pp++ ){
+      plug = exten->plar[pp] ;
+      for( ipl=0 ; ipl < plug->interface_count ; ipl++ ){
+         plintar[kpl++] = plug->interface[ipl] ;
+      }
+   }
+
+   /* sort this array, if desired */
+
+   if( AFNI_yesenv("AFNI_PLUGINS_ALPHABETIZE") ){
+      int qq , ss ;
+      PLUGIN_interface * tpl ;
+
+      do{                                       /* bubble sort */
+        for( ss=qq=0 ; qq < npbut-1 ; qq++ ){
+           if( strcasecmp(plintar[qq]->label,plintar[qq+1]->label) > 0 ){
+             tpl           = plintar[qq+1] ;
+             plintar[qq+1] = plintar[qq] ;
+             plintar[qq]   = tpl ;
+             ss++ ;
+           }
+        }
+      } while( ss ) ;
+   }
+
+   /*-- prepare to make the actual buttons --*/
+
    nbut  = 2 ;  /* allow for the Cancel label and separator */
    npbut = 0 ;  /* actual number of buttons */
 
    /*** make buttons for each interface ***/
 
-   for( pp=0 ; pp < exten->num ; pp++ ){
+   for( kpl=pp=0 ; pp < exten->num ; pp++ ){
       plug = exten->plar[pp] ;
       for( ipl=0 ; ipl < plug->interface_count ; ipl++ ){
-         MENU_BUT( plug->interface[ipl] ) ;  /* modifies npbut */
-         nbut++ ; npbut++ ;
+         MENU_BUT( plintar[kpl] ) ;  /* uses npbut */
+         nbut++ ; npbut++ ; kpl++ ;
       }
    }
+
+   free(plintar) ;  /* don't need no more */
 
 #define COLSIZE 20
    if( nbut > COLSIZE ){

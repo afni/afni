@@ -121,6 +121,8 @@ int main( int argc , char * argv[] )
    float      xx,yy,zz,vv ;
    char linbuf[NBUF] , * cp ;
 
+   float xxdown,xxup , yydown,yyup , zzdown,zzup ;
+
    /*-- help? --*/
 
    if( argc < 3 || strcmp(argv[1],"-help") == 0 ) Syntax(NULL) ;
@@ -362,6 +364,26 @@ int main( int argc , char * argv[] )
       break ;
    }
 
+   /* 24 Nov 2000: get the bounding box for the dataset */
+
+   if( !do_ijk ){
+#ifndef EXTEND_BBOX
+      xxdown = dset->daxes->xxmin - 0.501 * fabs(dset->daxes->xxdel) ;
+      xxup   = dset->daxes->xxmax + 0.501 * fabs(dset->daxes->xxdel) ;
+      yydown = dset->daxes->yymin - 0.501 * fabs(dset->daxes->yydel) ;
+      yyup   = dset->daxes->yymax + 0.501 * fabs(dset->daxes->yydel) ;
+      zzdown = dset->daxes->zzmin - 0.501 * fabs(dset->daxes->zzdel) ;
+      zzup   = dset->daxes->zzmax + 0.501 * fabs(dset->daxes->zzdel) ;
+#else
+      xxdown = dset->daxes->xxmin ;
+      xxup   = dset->daxes->xxmax ;
+      yydown = dset->daxes->yymin ;
+      yyup   = dset->daxes->yymax ;
+      zzdown = dset->daxes->zzmin ;
+      zzup   = dset->daxes->zzmax ;
+#endif
+   }
+
    /*-- loop over input files and read them line by line --*/
 
    for( ; iarg < argc ; iarg++ ){  /* iarg is already set at start of this loop */
@@ -437,6 +459,25 @@ int main( int argc , char * argv[] )
             THD_coorder_to_dicom( &cord , &xx,&yy,&zz ) ;    /* to Dicom order */
             LOAD_FVEC3( dv , xx,yy,zz ) ;
             mv = THD_dicomm_to_3dmm( dset , dv ) ;           /* to Dataset order */
+
+            /* 24 Nov 2000: check (xx,yy,zz) for being inside the box */
+
+            if( mv.xyz[0] < xxdown || mv.xyz[0] > xxup ){
+               fprintf(stderr,"+++ Warning: file %s line %d: x coord=%g is invalid\n" ,
+                       argv[iarg],ll,xx ) ;
+               continue ;
+            }
+            if( mv.xyz[1] < yydown || mv.xyz[1] > yyup ){
+               fprintf(stderr,"+++ Warning: file %s line %d: y coord=%g is invalid\n" ,
+                       argv[iarg],ll,yy ) ;
+               continue ;
+            }
+            if( mv.xyz[0] < zzdown || mv.xyz[0] > zzup ){
+               fprintf(stderr,"+++ Warning: file %s line %d: z coord=%g is invalid\n" ,
+                       argv[iarg],ll,zz ) ;
+               continue ;
+            }
+
             iv = THD_3dmm_to_3dind( dset , mv ) ;            /* to Dataset index */
             ii = iv.ijk[0]; jj = iv.ijk[1]; kk = iv.ijk[2];  /* save */
          }
