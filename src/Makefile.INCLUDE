@@ -5,9 +5,8 @@
 
 F2C = ./f2c -A
 
-DOCS     = docfiles/*.ps README* AFNI.changes.cox
-MINDOCS  = README* AFNI.changes.cox
-MYDOCS   = docfiles/*.tex *.txt art12cox.sty $(DOCS)
+DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox
+MINDOCS  = ../doc/README/README* AFNI.changes.cox
 
 IMOBJS  = display.o imseq.o bbox.o xim.o xutil.o LiteClue.o
 AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
@@ -23,7 +22,7 @@ AFOBJS  = afni.o afni_func.o afni_widg.o afni_warp.o afni_fimmer.o \
 
 T3OBJS  = to3d.o $(IMOBJS)
 
-MISC    = afni.montage AFNI.Xdefaults AFNI.afnirc mF64 mF128 3d*.lib gmovie*
+MISC    = AFNI.Xdefaults AFNI.afnirc 3d*.lib gmovie*
 
 ## Some programs (like whirlgif) are not included in this list,
 ## and must be "made" separately.  This list is the core AFNI
@@ -852,22 +851,21 @@ backup:
 backtape:
 	$(TAR) cvf $(TAPE) ../AFNI98/
 
-afni98.tgz:
-	$(RM) $@
-	$(MKDIR) AFNI98
-	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./AFNI98
-	$(CP) -r coxplot volpack moveup moveAFNI* ./AFNI98
-	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir dlcompat ./AFNI98
-	$(CP) -r netcdf-3.5.0 ./AFNI98
-	$(TAR) cf - AFNI98 | $(GZIP) -9v > afni98.tgz
-	$(RM) -r AFNI98
+afni_src.tgz:
+	$(MKDIR) afni_src
+	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./afni_src
+	$(CP) -r coxplot volpack moveup moveAFNI* cdflib eispack ./afni_src
+	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir dlcompat ./afni_src
+	$(CP) -r netcdf-3.5.0 ./afni_src
+	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
+	$(RM) -r afni_src
 
-afnidoc.tgz:
+afni_doc.tgz:
 	$(RM) $@
-	$(MKDIR) ./AFNIDOC
-	$(CP) $(DOCS) ./AFNIDOC
-	$(TAR) cf - ./AFNIDOC | $(GZIP) -9v > afnidoc.tgz
-	$(RM) -r ./AFNIDOC
+	$(MKDIR) ./afni_doc
+	$(CP) $(DOCS) ./afni_doc
+	$(TAR) cf - ./afni_doc | $(GZIP) -9v > afni_doc.tgz
+	$(RM) -r ./afni_doc
 
 install: $(INSTALLDIR)
 	$(MV) $(PROGRAMS) $(INSTALLDIR)
