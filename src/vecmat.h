@@ -16,30 +16,49 @@
 
 /*-------------------------------------------------------------------*/
 /*-----             3-vector and matrix structures              -----*/
+/*----- Double precision versions exist at bottom of this file. -----*/
+
+/*! 3-vector of integers. */
 
 typedef struct { int ijk[3] ;      } THD_ivec3 ;
-typedef struct { float xyz[3] ;    } THD_fvec3 ;  /* see below for   */
-typedef struct { float mat[3][3] ; } THD_mat33 ;  /* double versions */
 
-typedef struct {    /* 3x3 matrix + 3-vector [16 Jul 2000] */
-   THD_fvec3 vv ;
-   THD_mat33 mm ;
+/*! 3-vector of floats. */
+
+typedef struct { float xyz[3] ;    } THD_fvec3 ;
+
+/*! 3x3 matrix of floats. */
+
+typedef struct { float mat[3][3] ; } THD_mat33 ;
+
+/*! 3x3 matrix and a 3-vector (basically an affine transform). */
+
+typedef struct {
+   THD_fvec3 vv ; /*< the vector */
+   THD_mat33 mm ; /*< the matrix */
 } THD_vecmat ;
 
 /*-------------------------------------------------------------------*/
 /*-----       macros that operate on 3 vectors and matrices     -----*/
 
+/*! Load THD_ivec3 iv with 3 integers. */
+
 #define LOAD_IVEC3(iv,i,j,k) ( (iv).ijk[0]=(i), \
                                (iv).ijk[1]=(j), \
                                (iv).ijk[2]=(k)    )
+
+/*! Take 3 integers out of THD_ivec3 iv. */
 
 #define UNLOAD_IVEC3(iv,i,j,k) ( (i)=(iv).ijk[0], \
                                  (j)=(iv).ijk[1], \
                                  (k)=(iv).ijk[2]   )
 
+/*! Load THD_fvec3 fv with 3 floats. */
+
 #define LOAD_FVEC3(fv,x,y,z) ( (fv).xyz[0]=(x), \
                                (fv).xyz[1]=(y), \
                                (fv).xyz[2]=(z)   )
+
+/*! Take 3 floats out of THD_fvec3 fv. */
 
 #define UNLOAD_FVEC3(fv,x,y,z) ( (x)=(fv).xyz[0], \
                                  (y)=(fv).xyz[1], \
@@ -50,19 +69,29 @@ static THD_fvec3 tempA_fvec3 , tempB_fvec3 ;
 static THD_mat33 tempA_mat33 , tempB_mat33 ;
 static float tempRWC ;
 
+/*! Return a temporary THD_ivec3 from 3 integers. */
+
 #define TEMP_IVEC3(i,j,k) ( tempB_ivec3.ijk[0]=(i), \
                             tempB_ivec3.ijk[1]=(j), \
                             tempB_ivec3.ijk[2]=(k), tempB_ivec3 )
+
+/*! Return a temporary THD_fvec3 from 3 floats. */
 
 #define TEMP_FVEC3(x,y,z) ( tempB_fvec3.xyz[0]=(x), \
                             tempB_fvec3.xyz[1]=(y), \
                             tempB_fvec3.xyz[2]=(z), tempB_fvec3 )
 
+/*! Debug printout of a THD_ivec3. */
+
 #define DUMP_IVEC3(str,iv) \
    fprintf(stderr,"%s: %d %d %d\n",(str),(iv).ijk[0],(iv).ijk[1],(iv).ijk[2])
 
+/*! Debug printout of a THD_fvec3. */
+
 #define DUMP_FVEC3(str,fv) \
    fprintf(stderr,"%s: %13.6g %13.6g %13.6g\n",(str),(fv).xyz[0],(fv).xyz[1],(fv).xyz[2])
+
+/*! Debug printout of a THD_mat33. */
 
 #define DUMP_MAT33(str,A)                                  \
    fprintf(stderr,                                         \
@@ -73,32 +102,34 @@ static float tempRWC ;
            (A).mat[1][0] , (A).mat[1][1] , (A).mat[1][2] , \
            (A).mat[2][0] , (A).mat[2][1] , (A).mat[2][2]  )
 
+/*! Debug printout of a THD_vecmat. */
+
 #define DUMP_VECMAT(str,vvmm) ( DUMP_MAT33(str,vvmm.mm) , DUMP_FVEC3(str,vvmm.vv) )
 
 /*--- macros for operations on floating 3 vectors,
       with heavy use of the comma operator and structure assignment! ---*/
 
-  /* negation */
+  /*! Return negation of THD_fvec3 a. */
 
 #define NEGATE_FVEC3(a) ( (a).xyz[0] = -(a).xyz[0] , \
                           (a).xyz[1] = -(a).xyz[1] , \
                           (a).xyz[2] = -(a).xyz[2]    )
 
-  /* subtraction */
+  /*! Return THD_fvec3 a-b. */
 
 #define SUB_FVEC3(a,b) \
    ( tempA_fvec3.xyz[0] = (a).xyz[0] - (b).xyz[0] , \
      tempA_fvec3.xyz[1] = (a).xyz[1] - (b).xyz[1] , \
      tempA_fvec3.xyz[2] = (a).xyz[2] - (b).xyz[2] , tempA_fvec3 )
 
-  /* addition */
+  /*! Return THD_fvec3 a+b. */
 
 #define ADD_FVEC3(a,b) \
    ( tempA_fvec3.xyz[0] = (a).xyz[0] + (b).xyz[0] , \
      tempA_fvec3.xyz[1] = (a).xyz[1] + (b).xyz[1] , \
      tempA_fvec3.xyz[2] = (a).xyz[2] + (b).xyz[2] , tempA_fvec3 )
 
-  /* make into a unit vector */
+  /*! Return THD_fvec3 a/|a| (unit vector). */
 
 #define NORMALIZE_FVEC3(a) \
    ( tempRWC =   (a).xyz[0] * (a).xyz[0]                 \
@@ -109,7 +140,7 @@ static float tempRWC ;
      tempA_fvec3.xyz[1] = (a).xyz[1] * tempRWC         , \
      tempA_fvec3.xyz[2] = (a).xyz[2] * tempRWC         , tempA_fvec3 )
 
-  /* cross product */
+  /*! Return THD_fvec3 a X b (cross product). */
 
 #define CROSS_FVEC3(a,b) \
   ( tempA_fvec3.xyz[0] = (a).xyz[1]*(b).xyz[2] - (a).xyz[2]*(b).xyz[1] , \
@@ -117,12 +148,12 @@ static float tempRWC ;
     tempA_fvec3.xyz[2] = (a).xyz[0]*(b).xyz[1] - (a).xyz[1]*(b).xyz[0] , \
     tempA_fvec3 )
 
-  /* L2 norm */
+  /*! Return float L2norm(a) from a THD_fvec3. */
 
 #define SIZE_FVEC3(a) \
    sqrt((a).xyz[0]*(a).xyz[0]+(a).xyz[1]*(a).xyz[1]+(a).xyz[2]*(a).xyz[2])
 
-  /* dot product */
+  /*! Return float a dot b from THD_fvec3 inputs. */
 
 #define DOT_FVEC3(a,b) \
    ((a).xyz[0]*(b).xyz[0] + (a).xyz[1]*(b).xyz[1] + (a).xyz[2]*(b).xyz[2])

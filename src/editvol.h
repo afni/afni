@@ -31,33 +31,41 @@
 
 #define INC_CLUSTER 8
 
-/** In a cluster struct, the (i,j,k) indexes for each voxel
+/*! In a cluster struct, the (i,j,k) indexes for each voxel
     are stored in a single integer ijk (to save space).
-    The macros below translate between (i,j,k) [THREE] and ijk. **/
+    The macros below translate between (i,j,k) [THREE] and ijk. */
 
 #define IJK_TO_THREE(ijk,i,j,k,nx,nxy) \
   ( (k) = (ijk)/(nxy) , (j)=((ijk)%(nxy))/(nx) , (i)=(ijk)%(nx) )
 
+/*! \see IJK_TO_THREE() */
+
 #define THREE_TO_IJK(i,j,k,nx,nxy) ((i)+(j)*(nx)+(k)*(nxy))
 
-/*
-   The cluster structure was modified to store the individual coordinate
-   indices for each voxel.  This avoids ambiguity in voxel identification.
-   BDW, 06 March 1997
+/*! \brief Struct to store a cluster.
+
+    The cluster structure was modified to store the individual coordinate
+    indices for each voxel.  This avoids ambiguity in voxel identification.
+     \date BDW, 06 March 1997.
 */
 
 typedef struct {
-   int num_pt , num_all ;
-   short * i;       /* store indices separately */
-   short * j;
-   short * k;
-   float * mag ;    /* stores value at each voxel */
+   int num_pt  ;    /*< Number of points in cluster */
+   int num_all ;    /*< Number of points allocated for cluster */
+   short * i;       /*< x index */
+   short * j;       /*< y index */
+   short * k;       /*< z index */
+   float * mag ;    /* stores value at each voxel in cluster */
 } MCW_cluster ;
+
+/*! Initialize a MCW_cluster. */
 
 #define INIT_CLUSTER(cc)               \
   ( (cc) = XtNew(MCW_cluster) ,        \
     (cc)->num_pt = (cc)->num_all = 0 , \
     (cc)->i = NULL , (cc)->j = NULL , (cc)->k = NULL ,(cc)->mag = NULL )
+
+/*! Delete an MCW_cluster. */
 
 #define KILL_CLUSTER(cc)       \
   do{ if( cc != NULL ){        \
@@ -75,6 +83,8 @@ typedef struct {
 #  define DBMALL(n)
 #endif
 
+/*! Add point (ii,jj,kk) with magnitude mm to a MCW_cluster. */
+
 #define ADDTO_CLUSTER(cc,ii,jj,kk,m) \
   do{ int nn ;                                              \
       if( (cc)->num_pt == (cc)->num_all ){                  \
@@ -91,14 +101,20 @@ typedef struct {
 
 /*----------------------------------------------------------------------------*/
 
+/*! Struct to store a bunch of MCW_cluster stuff. */
+
 typedef struct {
    int num_clu , num_all ;
    MCW_cluster ** clar ;
 } MCW_cluster_array ;
 
+/*! Initialize a MCW_cluster_array. */
+
 #define INIT_CLARR(cl)                \
   ( (cl) = XtNew(MCW_cluster_array) , \
     (cl)->num_clu = (cl)->num_all = 0 , (cl)->clar = NULL )
+
+/*! Add a MCW_cluster to a MCW_cluster_array. */
 
 #define ADDTO_CLARR(cl,cc)                  \
   do{ int nn ;                              \
@@ -109,6 +125,8 @@ typedef struct {
       } \
       (cl)->clar[((cl)->num_clu)++] = (cc) ; break ; } while(0)
 
+/*! Delete a MCW_cluster_array (including all MCW_cluster inside). */
+
 #define DESTROY_CLARR(cl) \
   do{ int ii ; if( cl != NULL ){                    \
          for( ii=0 ; ii < (cl)->num_clu ; ii++ )    \
@@ -116,9 +134,15 @@ typedef struct {
          myXtFree((cl)->clar) ; (cl) = NULL ; \
       } break ; } while(0)
 
+/*! Determine if 2 MCW_cluster are ordered. */
+
 #define CLUST_ORDERED(c1,c2) ( (c1)->num_pt >= (c2)->num_pt )
 
+/*! Swap 2 MCW_cluster. */
+
 #define CLUST_SWAP(c1,c2) (ct=(c1),(c1)=(c2),(c2)=ct,sss=1)
+
+/*! Bubble sort a MCW_cluster_array. */
 
 #define SORT_CLARR(name) \
    if( (name) != NULL && (name)->num_clu > 1 ){                             \
@@ -156,55 +180,63 @@ extern void MCW_sort_cluster( MCW_cluster * ) ; /* 10 Jul 2001 */
 char * EDIT_options_help(void) ;  /* was a string, now a prototype */
 /*----------------------------------------------------------------------------*/
 
-/** data structure filled in EDIT_check_argv,
-    and used to control EDIT_one_dataset (options applied in order given) **/
+/*! Data structure filled in EDIT_check_argv,
+    and used to control EDIT_one_dataset (options applied in order given).
+    \see INIT_EDOPT()
+*/
 
 typedef struct EDIT_options {
-   int thtoin ,                   /* --> copy thresh data over intensity data */
-       noneg ,                    /* --> throw away negative intensities      */
-       abss ;                     /* --> take absolute values of intensities  */
+   int thtoin ;                   /*< copy thresh data over intensity data */
+   int noneg ;                    /*< throw away negative intensities      */
+   int abss ;                     /*< take absolute values of intensities  */
 
-   float clip_bot , clip_top ;    /* --> zero out voxels with v in (bot,top)  */
-   int   clip_unscaled ;          /* --> clip without scaling? [09 Aug 1996]  */
+   float clip_bot ;               /*< zero out voxels with value in clip_bot..clip_top */
+   float clip_top ;               /*< zero out voxels with value in clip_bot..clip_top */
+   int   clip_unscaled ;          /*< clip without scaling? [09 Aug 1996]  */
 
-   float thresh ,                 /* --> zero out if threshold < thresh       */
-         clust_rmm , clust_vmul , /* --> cluster data and edit by vmul        */
-         blur ,                   /* --> Gaussian blur data with sigma = blur */
-         thrblur ;                /* --> Gaussian blur threshold data,
-                                         with sigma = thrblur (4 Oct 1996)    */
+   float thresh ;                 /*< zero out if threshold < thresh     */
+   float clust_rmm ;              /*< cluster data with rmm radius       */
+   float clust_vmul ;             /*< remove clusters smaller than vmul  */
+   float blur ;                   /*< Gaussian blur data with sigma = blur */
+   float thrblur ;                /*< Gaussian blur threshold data,
+                                      with sigma = thrblur (4 Oct 1996)    */
 
-   float erode_pv;                /* --> erosion percentage   (16 June 1998)  */
-   int dilate;                    /* --> dilation option      (16 June 1998)  */
+   float erode_pv;                /*< erosion percentage   (16 June 1998)  */
+   int dilate;                    /*< dilation option      (16 June 1998)  */
 
 
-   int edit_clust;                /* --> edit cluster option  (10 Sept 1996)  */
+   int edit_clust;                /*< edit cluster option  (10 Sept 1996)  */
 
-   float filter_rmm;              /* --> filter radius        (11 Sept 1996)  */
-   int   filter_opt;              /* --> filter option        (11 Sept 1996)  */
+   float filter_rmm;              /*< filter radius        (11 Sept 1996)  */
+   int   filter_opt;              /*< filter option        (11 Sept 1996)  */
 
-   float thrfilter_rmm;           /* --> threshold filter radius (1 Oct 1996) */
-   int   thrfilter_opt;           /* --> threshold filter option (1 Oct 1996) */
+   float thrfilter_rmm;           /*< threshold filter radius (1 Oct 1996) */
+   int   thrfilter_opt;           /*< threshold filter option (1 Oct 1996) */
 
-   int   scale ;                  /* --> linearly scale data so max = 10000   */
+   int   scale ;                  /*< linearly scale data so max = 10000   */
 
-   float mult ;                   /* --> multiply all voxels by this          */
+   float mult ;                   /*< multiply all voxels by this          */
 
-   int   do_zvol ;                /* --> zero out a 3D sub-volume             */
-   float zv_x1 , zv_x2 ,          /* --> dimensions of sub-volume to massacre */
-         zv_y1 , zv_y2 ,
-         zv_z1 , zv_z2  ;
+   int   do_zvol ;                /*< zero out a 3D sub-volume             */
+   float zv_x1 ;                  /*< dimensions of sub-volume to massacre */
+   float zv_x2 ;                  /*< dimensions of sub-volume to massacre */
+   float zv_y1 ;                  /*< dimensions of sub-volume to massacre */
+   float zv_y2 ;                  /*< dimensions of sub-volume to massacre */
+   float zv_z1 ;                  /*< dimensions of sub-volume to massacre */
+   float zv_z2 ;                  /*< dimensions of sub-volume to massacre */
 
-   int   iv_fim , iv_thr ;        /* 30 Nov 1997 --> use these sub-bricks     */
+   int   iv_fim ;                 /*< use this sub-brick for voxel values */
+   int   iv_thr ;                 /*< use this sub-brick for threshold    */
 
-   int   zscore ;                 /* 17 Sep 1998 --> convert statistic to Z   */
+   int   zscore ;                 /*< 17 Sep 1998 --> convert statistic to Z   */
 
-   int   verbose ;                /* 01 Nov 1999 --> verbose output during editing */
+   int   verbose ;                /*< 01 Nov 1999 --> verbose output during editing */
 
-   int   nfmask ;                 /* 09 Aug 2000 --> filter mask */
+   int   nfmask ;                 /*< 09 Aug 2000 --> filter mask */
    byte * fmask ;
-   char * fexpr ;                 /* 09 Aug 2000 --> filter expression */
+   char * fexpr ;                 /*< 09 Aug 2000 --> filter expression */
 
-   int fake_dxyz ;                /* 11 Sep 2000 -> use dx=dy=dz=1.0? */
+   int fake_dxyz ;                /*< 11 Sep 2000 -> use dx=dy=dz=1.0? */
 
 } EDIT_options ;
 
@@ -231,6 +263,8 @@ typedef struct EDIT_options {
 
 #define FCFLAG_ONE_STEP 100000
 #define FCFLAG_WINSOR   (2*FCFLAG_ONE_STEP)  /* 11 Sep 2000 */
+
+/*! Initialize an EDIT_options struct. */
 
 #define INIT_EDOPT(edopt)              \
       ( (edopt)->thtoin        = 0   , \
@@ -269,8 +303,11 @@ extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;
 extern void EDIT_blur_volume( int,int,int , float,float,float , int,void * , float ) ;
 extern void EDIT_blur_volume_3d( int,int,int , float,float,float , int,void * , float, float, float ) ;
 
-#define RMS_TO_SIGMA(rms) (0.57735027*(rms))  /* 1/sqrt(3) */
-#define FWHM_TO_SIGMA(fh) (0.42466090*(fh))   /* 1/sqrt(log(2)*8) */
+/*! Convert Gaussian blur RMS width to sigma [1/sqrt(3)] */
+#define RMS_TO_SIGMA(rms) (0.57735027*(rms))
+
+/*! Convert Gaussian blur FWHM width to sigma [1/sqrt(log(2)*8)] */
+#define FWHM_TO_SIGMA(fh) (0.42466090*(fh))
 
 extern int EDIT_check_argv( int , char * argv[] , int , EDIT_options * ) ;
 
@@ -383,16 +420,24 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
    These 2 macros added 14 Dec 1999
 -------------------------------------------------------------------*/
 
+/*! Copy anat parent from old datasets ods to new dataset nds. */
+
 #define EDIT_COPY_ANATOMY_PARENT_ID(nds,ods)                   \
   do{ if( ISVALID_DSET(nds) && ISVALID_DSET(ods) )              \
          (nds)->anat_parent_idcode = (ods)->anat_parent_idcode ; \
     } while(0)
+
+/*! Null out the anat parent of dataset nds. */
 
 #define EDIT_ZERO_ANATOMY_PARENT_ID(nds)                 \
   do{ if( ISVALID_DSET(nds) )                             \
          ZERO_IDCODE((nds)->anat_parent_idcode); } while(0)
 
 /*------------------------------------------------------------------*/
+
+/*! Change statistical parameters in dataset ds, sub-brick iv,
+    to statistical type ft, with paramters a,b,c,d.
+*/
 
 #define EDIT_STATAUX4(ds,iv,ft,a,b,c,d)                     \
  do{ float sqq[6] ;                                           \
@@ -404,40 +449,65 @@ extern void EDIT_filter_volume (int, int, int, float, float, float,
         EDIT_dset_items( (ds),ADN_brick_stataux_one+(iv),sqq,ADN_none ) ; \
      } } while(0)
 
+/*! Convert sub-brick iv of dataset ds to a fico (correlation) statistic. */
+
 #define EDIT_BRICK_TO_FICO(ds,iv,nsam,nfit,nort) \
   EDIT_STATAUX4(ds,iv,FUNC_COR_TYPE,nsam,nfit,nort,0)
+
+/*! Convert sub-brick iv of dataset ds to a fitt (t test) statistic. */
 
 #define EDIT_BRICK_TO_FITT(ds,iv,ndof) \
   EDIT_STATAUX4(ds,iv,FUNC_TT_TYPE,ndof,0,0,0)
 
+/*! Convert sub-brick iv of dataset ds to a fift (F test) statistic. */
+
 #define EDIT_BRICK_TO_FIFT(ds,iv,ndof,ddof) \
   EDIT_STATAUX4(ds,iv,FUNC_FT_TYPE,ndof,ddof,0,0)
+
+/*! Convert sub-brick iv of dataset ds to a fizt (z score) statistic. */
 
 #define EDIT_BRICK_TO_FIZT(ds,iv) \
   EDIT_STATAUX4(ds,iv,FUNC_ZT_TYPE,0,0,0,0)
 
+/*! Convert sub-brick iv of dataset ds to a fict (chi square) statistic. */
+
 #define EDIT_BRICK_TO_FICT(ds,iv,ndof) \
   EDIT_STATAUX4(ds,iv,FUNC_CT_TYPE,ndof,0,0,0)
+
+/*! Convert sub-brick iv of dataset ds to a fibt (beta variable) statistic. */
 
 #define EDIT_BRICK_TO_FIBT(ds,iv,a,b) \
     EDIT_STATAUX4(ds,iv,FUNC_BT_TYPE,a,b,0,0)
 
+/*! Convert sub-brick iv of dataset ds to a fibn (binomial variable) statistic. */
+
 #define EDIT_BRICK_TO_FIBN(ds,iv,ntrial,prob) \
     EDIT_STATAUX4(ds,iv,FUNC_BN_TYPE,ntrial,prob,0,0)
 
+/*! Convert sub-brick iv of dataset ds to a figt (gamma variable) statistic. */
+
 #define EDIT_BRICK_TO_FIGT(ds,iv,shape,scale) \
     EDIT_STATAUX4(ds,iv,FUNC_GT_TYPE,shape,scale,0,0)
+
+/*! Convert sub-brick iv of dataset ds to a fipt (Poisson variable) statistic. */
 
 #define EDIT_BRICK_TO_FIPT(ds,iv,mean) \
     EDIT_STATAUX4(ds,iv,FUNC_PT_TYPE,mean,0,0,0)
 
 /*------------------------------------------------------------------*/
 
+/*! Change the iv-th sub-brick label in dataset ds to str. */
+
 #define EDIT_BRICK_LABEL(ds,iv,str) \
      EDIT_dset_items( (ds), ADN_brick_label_one+(iv), (str), ADN_none )
 
+/*! Change the iv-th sub-brick scale factor in dataset ds to fac
+    (factor=0 means "don't scale"). */
+
 #define EDIT_BRICK_FACTOR(ds,iv,fac) \
      EDIT_dset_items( (ds), ADN_brick_fac_one+(iv), (fac), ADN_none )
+
+/*! Add a keyword to sub-brick #iv of dataset ds. */
 
 #define EDIT_BRICK_ADDKEY(ds,iv,str) \
      EDIT_dset_items( (ds), ADN_brick_keywords_append_one+(iv), (str), ADN_none )
