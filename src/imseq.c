@@ -3469,6 +3469,12 @@ ENTRY("ISQ_show_zoom") ;
       newim++ ;
    }
 
+   /* if we made a new pixmap, we'll need a new zoomed image for it */
+
+   if( newim && seq->zoom_xim != NULL ){
+     MCW_kill_XImage( seq->zoom_xim ) ; seq->zoom_xim = NULL ;
+   }
+
    /* scale up the given_xim, if needed;
       it will be save in the seq struct for next time,
       unless the image changes, in which case it will have been axed */
@@ -5624,7 +5630,7 @@ static unsigned char record_bits[] = {
             float nfrac = *ff ;
             seq->image_frac = nfrac ;
 
-            if( !seq->onoff_state )  /* turn widgets on first */
+            if( !seq->onoff_state )  /* turn widgets on first, recursively */
                drive_MCW_imseq( seq,isqDR_onoffwid,(XtPointer)isqDR_onwid );
 
             XtVaSetValues( seq->wimage ,

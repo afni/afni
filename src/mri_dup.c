@@ -442,12 +442,17 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
 
    bin = (rgbyte *) MRI_RGB_PTR(inim); if( bin == NULL ) return NULL;
 
-   nx = inim->nx ; ny = inim->ny ; nxup = 4*nx ; nyup = 4*ny ;
+   /* make output image **/
 
+   nx = inim->nx ; ny = inim->ny ; nxup = 4*nx ; nyup = 4*ny ;
    outim = mri_new( nxup , nyup , MRI_rgb ) ;
    bout  = (rgbyte *) MRI_RGB_PTR(outim) ;
 
-   /** macros for the 16 different interpolations */
+   /** macros for the 16 different interpolations
+       between the four corners:   ul    ur }   00 10 20 30
+                                            }=> 01 11 21 31
+                                            }=> 02 12 22 32
+                                   ll    lr }   03 13 23 33 **/
 
 #define BOUT_00(ul,ur,ll,lr) (   ul                           )
 #define BOUT_10(ul,ur,ll,lr) ((3*ul +   ur              ) >> 2)
@@ -469,8 +474,16 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
 #define BOUT_23(ul,ur,ll,lr) ((  ul +   ur + 3*ll + 3*lr) >> 3)
 #define BOUT_33(ul,ur,ll,lr) ((  ul + 3*ur + 3*ll + 9*lr) >> 4)
 
+  /** decide if a color is gray **/
+
+#define ISGRAY(ccc) ( (ccc).r == (ccc).g && (ccc).r == (ccc).b )
+
+  /** make a color gray (from the red channel) **/
+
+#define GRAYIZE(ccc) ( (ccc).g = (ccc).b = (ccc).r )
+
   /** do 16 interpolations between  ul ur
-                                    ll lr **/
+                                    ll lr  for index #k, color #c **/
 
 #define FOUR_ROWS(k,c,ul,ur,ll,lr)                    \
    { bout1[4*k  ].c = BOUT_00(ul.c,ur.c,ll.c,lr.c) ;  \
@@ -490,23 +503,38 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
      bout4[4*k+2].c = BOUT_23(ul.c,ur.c,ll.c,lr.c) ;  \
      bout4[4*k+3].c = BOUT_33(ul.c,ur.c,ll.c,lr.c) ; }
 
-   bin1  = bin       ; bin2  = bin+nx    ;  /* input rows */
-   bout1 = bout      ; bout2 = bout1+nxup;  /* output rows */
+  /** do the above for all 3 colors, or just 1 if all inputs are gray */
+
+#define FOUR_RGB(k,ul,ur,ll,lr)                                 \
+  if( ISGRAY(ul) && ISGRAY(ur) && ISGRAY(ll) && ISGRAY(lr) ){   \
+    FOUR_ROWS(k,r,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;    \
+    GRAYIZE(bout1[4*k  ]) ; GRAYIZE(bout1[4*k+1]) ;             \
+    GRAYIZE(bout1[4*k+2]) ; GRAYIZE(bout1[4*k+3]) ;             \
+    GRAYIZE(bout2[4*k  ]) ; GRAYIZE(bout2[4*k+1]) ;             \
+    GRAYIZE(bout2[4*k+2]) ; GRAYIZE(bout2[4*k+3]) ;             \
+    GRAYIZE(bout3[4*k  ]) ; GRAYIZE(bout3[4*k+1]) ;             \
+    GRAYIZE(bout3[4*k+2]) ; GRAYIZE(bout3[4*k+3]) ;             \
+    GRAYIZE(bout4[4*k  ]) ; GRAYIZE(bout4[4*k+1]) ;             \
+    GRAYIZE(bout4[4*k+2]) ; GRAYIZE(bout4[4*k+3]) ;             \
+  } else {                                                      \
+    FOUR_ROWS(ii,r,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;   \
+    FOUR_ROWS(ii,g,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;   \
+    FOUR_ROWS(ii,b,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;   \
+  }
+
+   bin1  = bin       ; bin2  = bin+nx    ;  /* 2 input rows */
+   bout1 = bout      ; bout2 = bout1+nxup;  /* 4 output rows */
    bout3 = bout2+nxup; bout4 = bout3+nxup;
 
    for( jj=0 ; jj < ny-1 ; jj++ ){   /* loop over input rows */
 
      for( ii=0 ; ii < nx-1 ; ii++ ){
-        FOUR_ROWS(ii,r,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;
-        FOUR_ROWS(ii,g,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;
-        FOUR_ROWS(ii,b,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;
+        FOUR_RGB(ii,bin1[ii],bin1[ii+1],bin2[ii],bin2[ii+1]) ;
      }
 
      /* here, ii=nx-1, so can't use ii+1 */
 
-     FOUR_ROWS(ii,r,bin1[ii],bin1[ii],bin2[ii],bin2[ii]) ;
-     FOUR_ROWS(ii,g,bin1[ii],bin1[ii],bin2[ii],bin2[ii]) ;
-     FOUR_ROWS(ii,b,bin1[ii],bin1[ii],bin2[ii],bin2[ii]) ;
+     FOUR_RGB(ii,bin1[ii],bin1[ii],bin2[ii],bin2[ii]) ;
 
      /* advance input and output rows */
 
@@ -518,16 +546,12 @@ static MRI_IMAGE * mri_dup2D_rgb4( MRI_IMAGE *inim )
    /* here, jj=ny-1, so can't use jj+1 (bin2) */
 
    for( ii=0 ; ii < nx-1 ; ii++ ){
-     FOUR_ROWS(ii,r,bin1[ii],bin1[ii+1],bin1[ii],bin1[ii+1]) ;
-     FOUR_ROWS(ii,g,bin1[ii],bin1[ii+1],bin1[ii],bin1[ii+1]) ;
-     FOUR_ROWS(ii,b,bin1[ii],bin1[ii+1],bin1[ii],bin1[ii+1]) ;
+     FOUR_RGB(ii,bin1[ii],bin1[ii+1],bin1[ii],bin1[ii+1]) ;
    }
 
    /* here, ii=nx-1 and jj=ny-1, so can only use bin1[ii] */
 
-   FOUR_ROWS(ii,r,bin1[ii],bin1[ii],bin1[ii],bin1[ii]) ;
-   FOUR_ROWS(ii,g,bin1[ii],bin1[ii],bin1[ii],bin1[ii]) ;
-   FOUR_ROWS(ii,b,bin1[ii],bin1[ii],bin1[ii],bin1[ii]) ;
+   FOUR_RGB(ii,bin1[ii],bin1[ii],bin1[ii],bin1[ii]) ;
 
    MRI_COPY_AUX(outim,inim) ;
    return outim ;
