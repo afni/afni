@@ -3657,8 +3657,6 @@
  * Modified thd_mincwrite.c to use "-range -scan_range" flags with
      rawtominc program.
  * Modified 3dvolreg.c and 3drotate.c to make -clipit the default.
- * Modified machdep.h to disable the nl_langinfo() stuff for Darwin,
-     since can use "-llanginfo" link switch instead.
  * New program 3dThreetoRGB.c to create RGB datasets from 3 bricks.
  * Modified mri_read.c to use new "3Dr:" input format for RGB files.
  * Modified 3dAutomask.c to add history note.
