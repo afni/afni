@@ -441,6 +441,29 @@ static void PBAR_bigmap_finalize( Widget w, XtPointer cd, MCW_choose_cbs *cbs )
 }
 
 /*--------------------------------------------------------------------*/
+
+void PBAR_set_bigmap( MCW_pbar *pbar , char *bnam )  /* 03 Feb 2003 */
+{
+   int ii ;
+   if( pbar == NULL || bnam == NULL || *bnam == '\0' ) return ;
+   for( ii=0 ; ii < bigmap_num ; ii++ )
+     if( strcmp(bnam,bigmap_name[ii]) == 0 ) break ;
+   if( ii < bigmap_num ){
+     MCW_choose_cbs cbs ;
+     cbs.ival = ii ;
+     PBAR_bigmap_finalize( NULL , pbar , &cbs ) ;
+   }
+   return ;
+}
+
+/*--------------------------------------------------------------------*/
+
+char * PBAR_get_bigmap( MCW_pbar *pbar )    /* 03 Feb 2003 */
+{
+   return bigmap_name[pbar->bigmap_index] ;
+}
+
+/*--------------------------------------------------------------------*/
 /*! Actually redisplay pane #0 in "big" mode.
 ----------------------------------------------------------------------*/
 
