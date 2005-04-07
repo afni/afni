@@ -118,6 +118,7 @@ ENTRY("populate_nifti_image") ;
       RETURN(0) ;
     } else {
 
+      STATUS("4D dataset") ;
       nim->ndim = 4;
 
       /*-- check sub-bricks for uniformity in type --*/
@@ -140,10 +141,12 @@ ENTRY("populate_nifti_image") ;
       }
     }
   } else {  /* we only have one brick */
+    STATUS("3D dataset") ;
     if( options.debug_level > 1 ) fprintf(stderr,"ONLY ONE BRICK!!!\n") ;
     type0 = DSET_BRICK_TYPE(dset,0);
     fac0  = DSET_BRICK_FACTOR(dset,0) ;
     if (ISFUNC(dset)) {
+      STATUS("functional dataset") ;
       if( options.debug_level > 1 )
         fprintf(stderr,"ONLY ONE BRICK, AND IT'S FUNCTIONAL!!!\n") ;
       nim->intent_code = DSET_BRICK_STATCODE(dset,0);
@@ -151,11 +154,14 @@ ENTRY("populate_nifti_image") ;
       if (nim->intent_code < 0) nim->intent_code = NIFTI_INTENT_NONE ;
       if( options.debug_level > 1 )
         fprintf(stderr,"ONLY ONE BRICK, AND ITS FUNCTIONAL STAT CODE IS %d !!!\n",nim->intent_code) ;
+      if(PRINT_TRACING){
+        char str[256]; sprintf(str,"intent_code = %d",nim->intent_code);STATUS(str);
+      }
       if (nim->intent_code > -1) {
         nparam = FUNC_need_stat_aux[nim->intent_code];
         if (nparam >= 1) nim->intent_p1 = DSET_BRICK_STATPAR(dset,0,1);
         if (nparam >= 2) nim->intent_p2 = DSET_BRICK_STATPAR(dset,0,2);
-        if (nparam = 3) nim->intent_p3 = DSET_BRICK_STATPAR(dset,0,3);
+        if (nparam == 3) nim->intent_p3 = DSET_BRICK_STATPAR(dset,0,3);
       }
     }
     if (dset->daxes->nzz > 1) {
@@ -170,6 +176,7 @@ ENTRY("populate_nifti_image") ;
 
   /*-- set datatype, size, etc. --*/
 
+  STATUS("set datatype") ;
   switch(type0) {
     case MRI_byte:
       nim->datatype = DT_UNSIGNED_CHAR;
@@ -220,6 +227,7 @@ ENTRY("populate_nifti_image") ;
 
   /*-- spatial transforms --*/
 
+  STATUS("set orientation") ;
 
   axcode[0] = ORIENT_xyz[ dset->daxes->xxorient ] ; axnum[0] = dset->daxes->nxx ;
   axcode[1] = ORIENT_xyz[ dset->daxes->yyorient ] ; axnum[1] = dset->daxes->nyy ;
@@ -291,6 +299,8 @@ ENTRY("populate_nifti_image") ;
   nim->qto_xyz.m[2][3] = nim->qoffset_z ;
 
   /*-- from the above info, calculate the quaternion qform --*/
+
+  STATUS("set quaternion") ;
 
   nifti_mat44_to_quatern( nim->qto_xyz , &nim->quatern_b, &nim->quatern_c, &nim->quatern_d,
                     &dumqx, &dumqy, &dumqz, &dumdx, &dumdy, &dumdz, &nim->qfac ) ;
