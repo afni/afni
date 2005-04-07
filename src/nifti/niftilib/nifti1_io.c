@@ -222,8 +222,11 @@ static char gni_history[] =
   "     rci_alloc_mem(), and make_pivot_list()\n"
   "   - added nifti_nim_is_valid() to check for consistency (more to do)\n"
   "   - added nifti_nim_has_valid_dims() to do many dimensions tests\n"
+  "\n"
+  "1.6a  07 April 2005 [rickr] - small fix\n"
+  "   - fixed init of NBL->bsize in nifti_alloc_NBL_mem()  {thanks, Bob}\n"
   "----------------------------------------------------------------------\n";
-static char gni_version[] = "nifti library version 1.6 (April 05, 2005)";
+static char gni_version[] = "nifti library version 1.6a (April 07, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -594,7 +597,7 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
    if( nbricks > 0 ) nbl->nbricks = nbricks;
    else              nbl->nbricks = nim->nt * nim->nu * nim->nv * nim->nw;
 
-   nbl->bsize   = nim->nx * nim->ny * nim->nz;
+   nbl->bsize   = nim->nx * nim->ny * nim->nz * nim->nbyper;  /* bytes */
    nbl->bricks  = (void **)malloc(nbl->nbricks * sizeof(void *));
 
    if( ! nbl->bricks ){
@@ -603,10 +606,10 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
    }
 
    for( c = 0; c < nbl->nbricks; c++ ){
-      nbl->bricks[c] = (void *)malloc(nbl->bsize * nim->nbyper);
+      nbl->bricks[c] = (void *)malloc(nbl->bsize);
       if( ! nbl->bricks[c] ){
          fprintf(stderr,"** NANM: failed to alloc %d bytes for brick %d\n",
-                 nbl->bsize*nim->nbyper, c);
+                 nbl->bsize, c);
          /* so free and clear everything before returning */
          while( c > 0 ){
             c--;
@@ -621,7 +624,7 @@ static int nifti_alloc_NBL_mem(nifti_image * nim, int nbricks,
 
    if( g_opts.debug > 2 )
       fprintf(stderr,"+d NANM: alloc'd %d bricks of %d bytes for NBL\n",
-              nbl->nbricks, nbl->bsize*nim->nbyper);
+              nbl->nbricks, nbl->bsize);
 
    return 0;
 }
