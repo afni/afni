@@ -105,6 +105,7 @@ ENTRY("populate_nifti_image") ;
               1. 3d+time dataset
               2. 3d func bucket
                  (not going to handle this currently, may extend later)
+                 -- RWC: modified so that 'u' dimension is for buckets
               3. 3d single brick
               4. 2d and 1d spatial
                  (if 2d or 1d spatial + time, treat as #1)
@@ -112,32 +113,25 @@ ENTRY("populate_nifti_image") ;
               6. Single 3d (or 2d or 1d) functional brik  */
 
   if (dset->dblk->nvals > 1) {
-    if (dset->taxis == NULL) {
-      fprintf(stderr,
-            "** ERROR: Can't write NIFTI file from bucket: %s\n", options.infile_name) ;
-      RETURN(0) ;
-    } else {
+    STATUS("4D dataset") ;
+    nim->ndim = (dset->taxis != NULL) ? 4 : 5 ;  /* RWC: bucket stored as 5th dimen */
 
-      STATUS("4D dataset") ;
-      nim->ndim = 4;
+    /*-- check sub-bricks for uniformity in type and scale --*/
 
-      /*-- check sub-bricks for uniformity in type --*/
+    type0 = DSET_BRICK_TYPE(dset,0) ;
+    fac0  = DSET_BRICK_FACTOR(dset,0) ;
 
-      type0 = DSET_BRICK_TYPE(dset,0) ;
-      fac0  = DSET_BRICK_FACTOR(dset,0) ;
-
-      for( ii=0 ; ii < DSET_NVALS(dset) ; ii++ ){
-        if( DSET_BRICK_TYPE(dset,ii) != type0){
-          fprintf(stderr,
-          "** ERROR: CANNOT WRITE NIFTI FILE; BRICK DATA TYPES NOT CONSISTENT\n") ;
-          RETURN(0);
-        } else if( DSET_BRICK_FACTOR(dset,ii) != fac0) {
-          fprintf(stderr,
-          "** ERROR: CANNOT WRITE NIFTI FILE; BRICK FACTORS NOT CONSISTENT\n") ;
-          fprintf(stderr,
-          "RICH HAMMETT SHOULD FIX THIS REAL SOON NOW\n") ;
-          RETURN(0);
-        }
+    for( ii=1 ; ii < DSET_NVALS(dset) ; ii++ ){
+      if( DSET_BRICK_TYPE(dset,ii) != type0){
+        fprintf(stderr,
+        "** ERROR: CANNOT WRITE NIFTI FILE; BRICK DATA TYPES NOT CONSISTENT\n") ;
+        RETURN(0);
+      } else if( DSET_BRICK_FACTOR(dset,ii) != fac0) {
+        fprintf(stderr,
+        "** ERROR: CANNOT WRITE NIFTI FILE; BRICK FACTORS NOT CONSISTENT\n") ;
+        fprintf(stderr,
+        "RICH HAMMETT SHOULD FIX THIS REAL SOON NOW\n") ;
+        RETURN(0);
       }
     }
   } else {  /* we only have one brick */
@@ -319,15 +313,15 @@ ENTRY("populate_nifti_image") ;
 
   /*-- set dimensions of grid array --*/
 
-  nim->nu = nim->nv = nim->nw = 1 ;
+  nim->nt = nim->nu = nim->nv = nim->nw = 1 ;
   nim->nx = axnum[0] ;
   nim->ny = axnum[1] ;
   nim->nz = axnum[2] ;
 
   if (dset->taxis == NULL) {
-    nim->nt = 1;
+    nim->nu = DSET_NVALS(dset) ;   /* RWC: bucket is 5th dimension */
   } else {
-    nim->nt = DSET_NUM_TIMES( dset ) ;
+    nim->nt = DSET_NUM_TIMES(dset) ;  /* time is 4th dimension */
   }
 
   if ( nim->nt > 1) nim->dt = nim->pixdim[4] = dset->taxis->ttdel ;
@@ -336,13 +330,13 @@ ENTRY("populate_nifti_image") ;
   nim->dim[1] = nim->nx;
   nim->dim[2] = nim->ny;
   nim->dim[3] = nim->nz;
-  nim->dim[4] = nim->nt;
+  nim->dim[4] = nim->nt;  /* RWC: at most one of nt and nu is > 1 */
   nim->dim[5] = nim->nu;
   nim->dim[6] = nim->nv;
   nim->dim[7] = nim->nw;
 
-  nim->nvox = nim->nx * nim->ny * nim->nz * nim->nt *
-                                 nim->nu * nim->nv * nim->nw ;
+  nim->nvox = nim->nx * nim->ny * nim->nz * nim->nt
+                                * nim->nu * nim->nv * nim->nw ;
 
   /*-- slice timing --*/
 
