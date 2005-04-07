@@ -5431,3 +5431,8 @@
  * Modified thd_niftiread.c to use the NBL functions in rickr's
      nifti1_io.c to read the data from a .nii file -- this makes
      .nii.gz files work as well, automagically.
+ * Fixed bug in imseq.c -- logic for taking the button box value
+     for animations to/from the integer flags was bad in the case
+     where an aGif filter doesn't exist.
+ * Fixed bug in thd_niftiwrite.c -- 'if( nparam = 3)' was amended
+     to '=='.

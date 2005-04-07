@@ -3041,6 +3041,21 @@ ENTRY("ISQ_saver_CB") ;
 
    dbg = AFNI_yesenv("AFNI_IMSAVE_DEBUG") ;  /* 03 Sep 2004 */
 
+   if( ppmto_agif_filter == NULL && DO_AGIF(seq) ){  /* 07 Apr 2005! */
+      (void) MCW_popup_message( seq->wtop ,
+                                "Animated GIF AFNI logic error!\n"
+                                "Report to " COXEMAIL , MCW_USER_KILL ) ;
+      seq->opt.save_agif = 0 ;
+      EXRETURN ;
+   }
+   if( ppmto_mpeg_filter == NULL && DO_MPEG(seq) ){
+      (void) MCW_popup_message( seq->wtop ,
+                                "MPEG-1 AFNI logic error!\n"
+                                "Report to " COXEMAIL , MCW_USER_KILL ) ;
+      seq->opt.save_mpeg = 0 ;
+      EXRETURN ;
+   }
+
    /*---------------*/
 
    if( seq->saver_prefix == NULL ){  /* just got a string */
@@ -5873,13 +5888,20 @@ ENTRY("ISQ_disp_options") ;
 
       seq->opt.save_one    = MCW_val_bbox(seq->save_one_bbox)   != 0 ; /* 26 Jul 2001 */
 
+      seq->opt.save_agif = seq->opt.save_mpeg = 0 ;
       if( seq->save_agif_bbox != NULL ){
          int bv = MCW_val_bbox(seq->save_agif_bbox) ;
-         seq->opt.save_agif = (bv == 1) ;
-         seq->opt.save_mpeg = (bv == 2) ;
-      } else {
-         seq->opt.save_agif = 0 ;
-         seq->opt.save_mpeg = 0 ;
+                                                        /* 07 Apr 2005: oops */
+         switch( bv ){        /* need to handle case when agif isn't allowed */
+           case 1:
+                  if( ppmto_agif_filter != NULL ) seq->opt.save_agif = 1 ;
+             else if( ppmto_mpeg_filter != NULL ) seq->opt.save_mpeg = 1 ;
+           break ;
+
+           case 2:
+                  if( ppmto_mpeg_filter != NULL ) seq->opt.save_mpeg = 1 ;
+           break ;
+         }
       }
 
       seq->opt.save_filter = -1 ;
@@ -5945,8 +5967,12 @@ ENTRY("ISQ_disp_options") ;
       MCW_set_bbox( seq->save_one_bbox ,
                     (seq->opt.save_one) ? 1 : 0 ) ; /* 26 Jul 2001 */
 
-      if( seq->save_agif_bbox != NULL ){
-         int bv = (seq->opt.save_agif) + (seq->opt.save_mpeg)*2 ;
+      if( seq->save_agif_bbox != NULL ){      /* 07 Apr 2005: oops */
+         int bv=0 ; /* need to handle case when agif isn't allowed */
+         if( ppmto_agif_filter != NULL )
+           bv = (seq->opt.save_agif) + (seq->opt.save_mpeg)*2 ;
+         else if( ppmto_mpeg_filter != NULL )
+           bv = (seq->opt.save_mpeg) ;
          MCW_set_bbox( seq->save_agif_bbox , bv ) ;
       }
 
@@ -9940,6 +9966,9 @@ void ISQ_butsave_choice_CB( Widget w , XtPointer client_data ,
    else if( pp <= ppmto_num ) seq->opt.save_filter=pp-1; /* Save.typ */
    else if( pp == agif_ind  ) seq->opt.save_agif  = 1  ; /* Sav:aGif */
    else if( pp == mpeg_ind  ) seq->opt.save_mpeg  = 1  ; /* Sav:mpeg */
+
+   if( ppmto_agif_filter == NULL ) seq->opt.save_agif = 0 ;  /* 07 Apr 2005 */
+   if( ppmto_mpeg_filter == NULL ) seq->opt.save_mpeg = 0 ;
 
    SET_SAVE_LABEL(seq) ; return ;
 }
