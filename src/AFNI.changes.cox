@@ -5436,3 +5436,5 @@
      where an aGif filter doesn't exist.
  * Fixed bug in thd_niftiwrite.c -- 'if( nparam = 3)' was amended
      to '=='.
+ * Modified thd_niftiwrite.c to allow output of func bucket as
+     the 'u' dimension.

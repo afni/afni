@@ -288,8 +288,8 @@ ENTRY("THD_open_nifti") ;
 /*-----------------------------------------------------------------
   Load a NIFTI dataset's data into memory
   (called from THD_load_datablock in thd_loaddblk.c)
-    - modified 07 Apr 2005 to read data via nifti_io.c functions,
-      rather than directly from disk
+    - RWC: modified 07 Apr 2005 to read data bricks via nifti_io.c
+      'NBL' functions, rather than directly from disk
 -------------------------------------------------------------------*/
 
 void THD_load_nifti( THD_datablock *dblk )
@@ -299,11 +299,11 @@ void THD_load_nifti( THD_datablock *dblk )
    int datum, need_copy=0 ;
    void *ptr ;
    nifti_image *nim ;
-   nifti_brick_list NBL ;
+   nifti_brick_list NBL ;  /* holds the data read from disk */
 
 ENTRY("THD_load_nifti") ;
 
-   /*-- open input [these errors should never occur] --*/
+   /*-- open and read input [these errors should never occur] --*/
 
    if( !ISVALID_DATABLOCK(dblk)                        ||
        dblk->diskptr->storage_mode != STORAGE_BY_NIFTI ||
@@ -318,8 +318,8 @@ ENTRY("THD_load_nifti") ;
 
    datum = DBLK_BRICK_TYPE(dblk,0) ;  /* destination data type */
 
-   /* determine if we need to copy the data from the
-      bricks as loaded above because of a type conversion */
+   /*-- determine if we need to copy the data from the
+        bricks as loaded above because of a type conversion --*/
 
    switch( nim->datatype ){
      case DT_INT16:
@@ -352,6 +352,7 @@ ENTRY("THD_load_nifti") ;
    /*------ don't need to copy data ==> just copy pointers from NBL ------*/
 
    if( !need_copy ){
+
      STATUS("copying brick pointers directly") ;
      for( ibr=0 ; ibr < nv ; ibr++ ){
        mri_fix_data_pointer( NBL.bricks[ibr] ,DBLK_BRICK(dblk,ibr) ) ;
