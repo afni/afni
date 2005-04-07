@@ -5423,6 +5423,11 @@
 04 Apr 2005
  * Added 'Pleg' function to parser and thence to 3dcalc, etc.
 
-06 Apr 2004
+06 Apr 2005
  * Added '.nii' output feature to THD_writedset() function, and did
      a few other similar things hither and yon.
+
+07 Apr 2005
+ * Modified thd_niftiread.c to use the NBL functions in rickr's
+     nifti1_io.c to read the data from a .nii file -- this makes
+     .nii.gz files work as well, automagically.
