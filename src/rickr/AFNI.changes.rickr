@@ -1051,3 +1051,16 @@
   * modified edt_dsetitems.c to init new brick types to that of sub-brick 0,
     in the case where a type array is not provided
 
+08 April 2005:
+  * modifited nifti_tool.[ch]  (-> v1.6)
+      - added -cbl: 'copy brick list' dataset copy functionality
+      - added -ccd: 'copy collapsed dimensions' dataset copy functionality
+      - added -disp_ts: 'disp time series' data display functionality
+      - moved raw data display to disp_raw_data()
+  * modified nifti1_io.[ch] (-> v1.7)
+      - added nifti_update_dims_from_array() - to update dimensions
+      - modified nifti_makehdrname() and nifti_makeimgname():
+          if prefix has a valid extension, use it (else make one up)
+      - added nifti_get_intlist - for making an array of ints
+      - fixed init of NBL->bsize in nifti_alloc_NBL_mem()  {thanks, Bob}
+

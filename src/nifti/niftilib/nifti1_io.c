@@ -223,10 +223,14 @@ static char gni_history[] =
   "   - added nifti_nim_is_valid() to check for consistency (more to do)\n"
   "   - added nifti_nim_has_valid_dims() to do many dimensions tests\n"
   "\n"
-  "1.6a  07 April 2005 [rickr] - small fix\n"
+  "1.7  08 April 2005 [rickr]\n"
+  "   - added nifti_update_dims_from_array() - to update dimensions\n"
+  "   - modified nifti_makehdrname() and nifti_makeimgname():\n"
+  "       if prefix has a valid extension, use it (else make one up)\n"
+  "   - added nifti_get_intlist - for making an array of ints\n"
   "   - fixed init of NBL->bsize in nifti_alloc_NBL_mem()  {thanks, Bob}\n"
   "----------------------------------------------------------------------\n";
-static char gni_version[] = "nifti library version 1.6a (April 07, 2005)";
+static char gni_version[] = "nifti library version 1.7 (April 08, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -381,7 +385,7 @@ static void update_nifti_image_for_brick_list( nifti_image * nim , int nbricks )
       fprintf(stderr,"+d updating image dimensions for %d bricks in list\n",
               nbricks);
       fprintf(stderr,"   ndim = %d\n",nim->ndim);
-      fprintf(stderr,"   nx,ny,nz,nt,nu,nv,nw: (%d,%d,%d,%d,%d,%d,%d)",
+      fprintf(stderr,"   nx,ny,nz,nt,nu,nv,nw: (%d,%d,%d,%d,%d,%d,%d)\n",
               nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->nv, nim->nw);
    }
 
@@ -405,6 +409,54 @@ static void update_nifti_image_for_brick_list( nifti_image * nim , int nbricks )
    }
 
    nim->dim[0] = nim->ndim = ndim;
+}
+
+
+/*----------------------------------------------------------------------*/
+/*! nifti_update_dims_from_array  - update nx, ny, ... from nim->dim[]
+
+    Fix all the dimension information, based on a new nim->dim[].
+*//*--------------------------------------------------------------------*/
+int nifti_update_dims_from_array( nifti_image * nim )
+{
+   int c, ndim;
+
+   if( !nim ){
+      fprintf(stderr,"** update_dims: missing nim\n");
+      return 1;
+   }
+
+   if( g_opts.debug > 2 ){
+      fprintf(stderr,"+d updating image dimensions given nim->dim:");
+      for( c = 0; c < 8; c++ ) fprintf(stderr," %d", nim->dim[c]);
+      fputc('\n',stderr);
+   }
+
+   /* set nx, ..., one by one (abusing promotion, just a little) */
+   if(nim->dim[1] <= 1){ nim->pixdim[1] = nim->dx = nim->nx = nim->dim[1] = 1; }
+   if(nim->dim[2] <= 1){ nim->pixdim[2] = nim->dy = nim->ny = nim->dim[2] = 1; }
+   if(nim->dim[3] <= 1){ nim->pixdim[3] = nim->dz = nim->nz = nim->dim[3] = 1; }
+   if(nim->dim[4] <= 1){ nim->pixdim[4] = nim->dt = nim->nt = nim->dim[4] = 1; }
+   if(nim->dim[5] <= 1){ nim->pixdim[5] = nim->du = nim->nu = nim->dim[5] = 1; }
+   if(nim->dim[6] <= 1){ nim->pixdim[6] = nim->dv = nim->nv = nim->dim[6] = 1; }
+   if(nim->dim[7] <= 1){ nim->pixdim[7] = nim->dw = nim->nw = nim->dim[7] = 1; }
+
+   nim->nvox =  nim->nx * nim->ny * nim->nz
+              * nim->nt * nim->nu * nim->nv * nim->nw;
+
+   /* compute ndim */
+   for( ndim = 7; (ndim > 1) && (nim->dim[ndim] <= 1); ndim-- )
+       ;
+
+   if( g_opts.debug > 2 ){
+      fprintf(stderr,"+d ndim = %d -> %d\n",nim->ndim, ndim);
+      fprintf(stderr," --> (%d,%d,%d,%d,%d,%d,%d)\n",
+              nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->nv, nim->nw);
+   }
+
+   nim->dim[0] = nim->ndim = ndim;
+
+   return 0;
 }
 
 
@@ -2151,9 +2203,11 @@ char * nifti_findimgname(const char* fname , int nifti_type)
 /*! creates a filename for storing the header, based on nifti_type
 
    \param   prefix      - this will be copied before the suffix is added
-   \param   nifti_type  - determines the extension
+   \param   nifti_type  - determines the extension, unless one is in prefix
    \param   check       - check for existence (fail condition)
    \param   comp        - add .gz for compressed name
+
+   Note that if prefix provides a file suffix, nifti_type is not used.
   
    NB: this allocates memory which should be freed
 
@@ -2170,15 +2224,18 @@ char * nifti_makehdrname(char * prefix, int nifti_type, int check, int comp)
    if( !iname ){ fprintf(stderr,"** small malloc failure!\n"); return NULL; }
    strcpy(iname, prefix);
 
-   /* nuke any old extension */
-   if( (ext = nifti_find_file_extension(iname)) != NULL ) *ext = '\0';
-
-   if( nifti_type == 1 )      strcat(iname, ".nii");
+   /* use any valid extension */
+   if( (ext = nifti_find_file_extension(iname)) != NULL ){
+      if( strncmp(ext,".img",4) == 0 )
+         memcpy(ext,".hdr",4);   /* then convert img name to hdr */
+   }
+   /* otherwise, make one up an */
+   else if( nifti_type == 1 ) strcat(iname, ".nii");
    else if( nifti_type == 3 ) strcat(iname, ".nia");
    else                       strcat(iname, ".hdr");
 
 #ifdef HAVE_ZLIB  /* then also check for .gz */
-   if( comp ) strcat(iname,".gz");
+   if( comp && (!ext || !strstr(iname,".gz")) ) strcat(iname,".gz");
 #endif
 
    /* check for existence failure */
@@ -2198,9 +2255,11 @@ char * nifti_makehdrname(char * prefix, int nifti_type, int check, int comp)
 /*! creates a filename for storing the image, based on nifti_type
 
    \param   prefix      - this will be copied before the suffix is added
-   \param   nifti_type  - determines the extension
+   \param   nifti_type  - determines the extension, unless provided by prefix
    \param   check       - check for existence (fail condition)
    \param   comp        - add .gz for compressed name
+  
+   Note that if prefix provides a file suffix, nifti_type is not used.
   
    NB: it allocates memory which should be freed
 
@@ -2217,15 +2276,18 @@ char * nifti_makeimgname(char * prefix, int nifti_type, int check, int comp)
    if( !iname ){ fprintf(stderr,"** small malloc failure!\n"); return NULL; }
    strcpy(iname, prefix);
 
-   /* nuke any old extension */
-   if( (ext = nifti_find_file_extension(iname)) != NULL ) *ext = '\0';
-
-   if( nifti_type == 1 )      strcat(iname, ".nii");
+   /* use any valid extension */
+   if( (ext = nifti_find_file_extension(iname)) != NULL ){
+      if( strncmp(ext,".hdr",4) == 0 )
+         memcpy(ext,".img",4);   /* then convert hdr name to img */
+   }
+   /* otherwise, make one up */
+   else if( nifti_type == 1 ) strcat(iname, ".nii");
    else if( nifti_type == 3 ) strcat(iname, ".nia");
    else                       strcat(iname, ".img");
 
 #ifdef HAVE_ZLIB  /* then also check for .gz */
-   if( comp ) strcat(iname,".gz");
+   if( comp && (!ext || !strstr(iname,".gz")) ) strcat(iname,".gz");
 #endif
 
    /* check for existence failure */
@@ -3012,7 +3074,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
       return NULL;
    }
 
-   if( g_opts.debug > 1 ){
+   if( g_opts.debug > 3 ){
       fprintf(stderr,"+d nifti_image_read(), have nifti image:\n");
       if( g_opts.debug > 2 ) nifti_image_infodump(nim);
    }
@@ -5358,3 +5420,185 @@ static int make_pivot_list(nifti_image * nim, int dims[], int pivots[],
    return 0;
 }
 
+
+#undef ISEND
+#define ISEND(c) ( (c)==']' || (c)=='}' || (c)=='\0' )
+
+/*-----------------------------------------------------------------*/
+/*! Get an integer list in the range 0..(nvals-1), from the
+   character string str.  If we call the output pointer fred,
+   then fred[0] = number of integers in the list (> 0), and
+        fred[i] = i-th integer in the list for i=1..fred[0].
+   If on return, fred == NULL or fred[0] == 0, then something is
+   wrong, and the caller must deal with that.
+
+   Syntax of input string:
+     - initial '{' or '[' is skipped, if present
+     - ends when '}' or ']' or end of string is found
+     - contains entries separated by commas
+     - entries have one of these forms:
+       - a single number
+       - a dollar sign '$', which means nvals-1
+       - a sequence of consecutive numbers in the form "a..b" or
+         "a-b", where "a" and "b" are single numbers (or '$')
+       - a sequence of evenly spaced numbers in the form
+         "a..b(c)" or "a-b(c)", where "c" encodes the step
+     - Example:  "[2,7..4,3..9(2)]" decodes to the list
+         2 7 6 5 4 3 5 7 9
+     - entries should be in the range 0..nvals-1
+
+   (borrowed, with permission, from thd_intlist.c)
+-------------------------------------------------------------------*/
+int * nifti_get_intlist( int nvals , char *str )
+{
+   int *subv = NULL ;
+   int ii , ipos , nout , slen ;
+   int ibot,itop,istep , nused ;
+   char *cpt ;
+
+   /* Meaningless input? */
+   if( nvals < 1 ) return NULL ;
+
+   /* No selection list? */
+   if( str == NULL || str[0] == '\0' ) return NULL ;
+
+   /* skip initial '[' or '{' */
+   subv    = (int *) malloc( sizeof(int) * 2 ) ;
+   subv[0] = nout = 0 ;
+
+   ipos = 0 ;
+   if( str[ipos] == '[' || str[ipos] == '{' ) ipos++ ;
+
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"-d making int_list (vals = %d) from '%s'\n", nvals, str);
+
+   /*** loop through each sub-selector until end of input ***/
+
+   slen = strlen(str) ;
+   while( ipos < slen && !ISEND(str[ipos]) ){
+
+      while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
+      if( ISEND(str[ipos]) ) break ;         /* done */
+
+      /** get starting value **/
+
+      if( str[ipos] == '$' ){  /* special case */
+         ibot = nvals-1 ; ipos++ ;
+      } else {                 /* decode an integer */
+         ibot = strtol( str+ipos , &cpt , 10 ) ;
+         if( ibot < 0 ){
+           fprintf(stderr,"** ERROR: list index %d is out of range 0..%d\n",
+                   ibot,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         if( ibot >= nvals ){
+           fprintf(stderr,"** ERROR: list index %d is out of range 0..%d\n",
+                   ibot,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         nused = (cpt-(str+ipos)) ;
+         if( ibot == 0 && nused == 0 ){
+           fprintf(stderr,"** ERROR: list syntax error '%s'\n",str+ipos) ;
+           free(subv) ; return NULL ;
+         }
+         ipos += nused ;
+      }
+
+      while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
+
+      /** if that's it for this sub-selector, add one value to list **/
+
+      if( str[ipos] == ',' || ISEND(str[ipos]) ){
+         nout++ ;
+         subv = (int *) realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv[0]    = nout ;
+         subv[nout] = ibot ;
+         if( ISEND(str[ipos]) ) break ; /* done */
+         ipos++ ; continue ;            /* re-start loop at next sub-selector */
+      }
+
+      /** otherwise, must have '..' or '-' as next inputs **/
+
+      if( str[ipos] == '-' ){
+         ipos++ ;
+      } else if( str[ipos] == '.' && str[ipos+1] == '.' ){
+         ipos++ ; ipos++ ;
+      } else {
+         fprintf(stderr,"** ERROR: index list syntax is bad: '%s'\n",
+                 str+ipos) ;
+         free(subv) ; return NULL ;
+      }
+
+      /** get ending value for loop now **/
+
+      if( str[ipos] == '$' ){  /* special case */
+         itop = nvals-1 ; ipos++ ;
+      } else {                 /* decode an integer */
+         itop = strtol( str+ipos , &cpt , 10 ) ;
+         if( itop < 0 ){
+           fprintf(stderr,"** ERROR: index %d is out of range 0..%d\n",
+                   itop,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         if( itop >= nvals ){
+           fprintf(stderr,"** ERROR: index %d is out of range 0..%d\n",
+                   itop,nvals-1) ;
+           free(subv) ; return NULL ;
+         }
+         nused = (cpt-(str+ipos)) ;
+         if( itop == 0 && nused == 0 ){
+           fprintf(stderr,"** ERROR: index list syntax error '%s'\n",str+ipos) ;
+           free(subv) ; return NULL ;
+         }
+         ipos += nused ;
+      }
+
+      /** set default loop step **/
+
+      istep = (ibot <= itop) ? 1 : -1 ;
+
+      while( isspace(str[ipos]) ) ipos++ ;                  /* skip blanks */
+
+      /** check if we have a non-default loop step **/
+
+      if( str[ipos] == '(' ){  /* decode an integer */
+         ipos++ ;
+         istep = strtol( str+ipos , &cpt , 10 ) ;
+         if( istep == 0 ){
+           fprintf(stderr,"** ERROR: index loop step is 0!\n") ;
+           free(subv) ; return NULL ;
+         }
+         nused = (cpt-(str+ipos)) ;
+         ipos += nused ;
+         if( str[ipos] == ')' ) ipos++ ;
+         if( (ibot-itop)*istep > 0 ){
+           fprintf(stderr,"** WARNING: index list '%d..%d(%d)' means nothing\n",
+                   ibot,itop,istep ) ;
+         }
+      }
+
+      /** add values to output **/
+
+      for( ii=ibot ; (ii-itop)*istep <= 0 ; ii += istep ){
+         nout++ ;
+         subv = (int *) realloc( (char *)subv , sizeof(int) * (nout+1) ) ;
+         subv[0]    = nout ;
+         subv[nout] = ii ;
+      }
+
+      /** check if we have a comma to skip over **/
+
+      while( isspace(str[ipos]) ) ipos++ ;                  /* skip blanks */
+      if( str[ipos] == ',' ) ipos++ ;                       /* skip commas */
+
+   }  /* end of loop through selector string */
+
+   if( g_opts.debug > 1 ) {
+      fprintf(stderr,"+d int_list (vals = %d): ", subv[0]);
+      for( ii = 1; ii <= subv[0]; ii++ ) fprintf(stderr,"%d ", subv[ii]);
+      fputc('\n',stderr);
+   }
+
+   if( subv[0] == 0 ){ free(subv); subv = NULL; }
+   return subv ;
+}
