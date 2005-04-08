@@ -10,9 +10,12 @@ typedef struct{
    int      diff_hdr,  diff_nim;
    int      disp_hdr,  disp_nim;
    int      disp_exts, add_exts, rm_exts;
-   int      help_hdr,  help_nim; /* show struct fields            */
    int      mod_hdr,   mod_nim;
-   int      debug, overwrite;    /* overwrite input files?        */
+   int      cbl, ccd;            /* -copy_XXX option flags        */
+   int      dts, dts_lines;      /* show_time_series flags        */
+   int      ccd_dims[8];         /* user dims list (last 7 valid) */
+   int      dts_ijk[3];          /* ijk indices for time series   */
+   int      debug, overwrite;    /* overwrite input files flag    */
    char *   prefix;              /* for output file               */
    str_list elist;               /* extensions                    */
    str_list flist;               /* fields (to display or modify) */
@@ -30,6 +33,13 @@ typedef struct{
 #define CHECK_NEXT_OPT(n,m,str)                                       \
    do { if ( (n) >= (m) ) {                                           \
            fprintf(stderr,"** option '%s': missing parameter\n",str); \
+           fprintf(stderr,"   consider: 'nifti_tool -help'\n");       \
+           return 1;      }                                           \
+      } while(0)
+
+#define CHECK_NEXT_OPT_MSG(n,m,str,msg)                               \
+   do { if ( (n) >= (m) ) {                                           \
+           fprintf(stderr,"** option '%s': %s\n",str,msg);            \
            fprintf(stderr,"   consider: 'nifti_tool -help'\n");       \
            return 1;      }                                           \
       } while(0)
@@ -68,11 +78,14 @@ typedef struct {
 /*-----  prototypes  ---------------------------------------------------*/
 /*----------------------------------------------------------------------*/
 int    act_add_exts   ( nt_opts * opts );
+int    act_cbl        ( nt_opts * opts );  /* copy brick list */
+int    act_ccd        ( nt_opts * opts );  /* copy collapsed dimensions */
 int    act_diff_hdrs  ( nt_opts * opts );
 int    act_diff_nims  ( nt_opts * opts );
 int    act_disp_exts  ( nt_opts * opts );
 int    act_disp_hdrs  ( nt_opts * opts );
 int    act_disp_nims  ( nt_opts * opts );
+int    act_disp_ts    ( nt_opts * opts );  /* display time series */
 int    act_mod_hdrs   ( nt_opts * opts );
 int    act_mod_nims   ( nt_opts * opts );
 int    act_rm_ext     ( nt_opts * opts );
@@ -94,6 +107,7 @@ int disp_nifti1_extension(char *mesg, nifti1_extension * ext);
 int disp_field       (char *mesg,field_s *fp,void *str,int nfields,int header);
 int disp_field_s_list(char * mesg, field_s *, int nfields);
 int disp_nt_opts     (char * mesg, nt_opts * opts);
+int disp_raw_data    (void * data, int type, int nvals, char space);
 int fill_field       (field_s *fp, int type, int offset, int num, char *name);
 int fill_hdr_field_array(field_s * nh_fields);
 int fill_nim_field_array(field_s * nim_fields);

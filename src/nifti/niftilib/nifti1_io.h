@@ -211,11 +211,11 @@ int    is_nifti_file      (const char *hname);
 char * nifti_find_file_extension(const char * name);
 int    nifti_validfilename(const char* fname);
 
-int          disp_nifti_1_header( char * info, nifti_1_header * hp ) ;
-void         nifti_set_debug_level( int level ) ;
+int    disp_nifti_1_header( char * info, nifti_1_header * hp ) ;
+void   nifti_set_debug_level( int level ) ;
 
-int valid_nifti_brick_list(nifti_image * nim , int nbricks, int * blist,
-                           int disp_error);
+int    valid_nifti_brick_list(nifti_image * nim , int nbricks, int * blist,
+                              int disp_error);
 
 /* znzFile operations */
 znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim);
@@ -282,11 +282,13 @@ nifti_image           * nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
 int     nifti_hdr_looks_good(nifti_1_header * hdr);
 int     nifti_nim_is_valid(nifti_image * nim, int complain);
 int     nifti_nim_has_valid_dims(nifti_image * nim, int complain);
+int     nifti_update_dims_from_array(nifti_image * nim);
 void    nifti_set_iname_offset(nifti_image *nim);
 int     nifti_add_exten_to_list( nifti1_extension *  new_ext,
                                  nifti1_extension ** list, int new_length );
 int     nifti_copy_extensions(nifti_image *nim_dest,nifti_image *nim_src);
 int     nifti_free_extensions( nifti_image *nim );
+int *   nifti_get_intlist( int nvals , char *str );
 char *  nifti_strdup(const char *str);
 int     valid_nifti_extensions(nifti_image *nim);
 
