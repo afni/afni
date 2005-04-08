@@ -1640,12 +1640,14 @@ ENTRY("AFNI_drive_set_pbar_number") ;
    if( num <= NPANE_MAX ){
      pbar->bigmode = 0 ;
      alter_MCW_pbar( pbar , num , NULL ) ;
+     NORMAL_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    } else {
      int npane=pbar->num_panes , jm=pbar->mode ;
      float pmax=pbar->pval_save[npane][0][jm] ,
            pmin=pbar->pval_save[npane][npane][jm] ;
      PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
      AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+     POPUP_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    }
    FIX_SCALE_SIZE(im3d) ;
 
@@ -1790,6 +1792,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
      AFNI_hintize_pbar( pbar , (im3d->vinfo->fim_range != 0.0)
                                 ? im3d->vinfo->fim_range
                                 : im3d->vinfo->fim_autorange ) ;
+     NORMAL_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    } else {    /* set the colorscale */
      float pmax, pmin ;
      pbar->bigset = 0 ;
@@ -1799,6 +1802,7 @@ ENTRY("AFNI_drive_set_pbar_all") ;
      rotate_MCW_pbar( pbar , rota ) ;  /* 07 Feb 2004 */
      if( flip ) PBAR_flip( pbar ) ;    /* 07 Feb 2004 */
      AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+     POPUP_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    }
    FIX_SCALE_SIZE(im3d) ;
 

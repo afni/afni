@@ -398,9 +398,11 @@ void AFNI_inten_av_CB( MCW_arrowval *av , XtPointer cd )
            pmin=pbar->pval_save[npane][npane][jm] ;
      PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
      AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+     POPUP_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    } else {
      pbar->bigmode = 0 ;
      alter_MCW_pbar( pbar , av->ival , NULL ) ;
+     NORMAL_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    }
    FIX_SCALE_SIZE(im3d) ;
 }
