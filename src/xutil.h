@@ -71,7 +71,7 @@ extern void RWC_sleep( int ) ;  /* 16 Aug 2002 */
 
 #define NORMAL_cursorize(w)                                            \
  do{ if( (w) != (Widget)NULL && XtWindow(w) != (Window)NULL )           \
-   MCW_alter_widget_cursor( (w), -XC_top_left_arrow,"#ffcc00","blue" ) ; \
+   MCW_alter_widget_cursor( (w), -XC_top_left_arrow,"#ffb700","blue" ) ; \
  } while(0)
 
 #define WATCH_cursorize(w)                                     \
