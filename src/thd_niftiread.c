@@ -24,6 +24,11 @@ ENTRY("THD_open_nifti") ;
 
    /*-- open input file --*/
 
+   { /* set the nifti_io debug level       8 Apr 2005 [rickr] */
+      char * ept = my_getenv("AFNI_NIFTI_DEBUG");
+      if( ept != NULL ) nifti_set_debug_level(atoi(ept));
+   }
+
    nim = nifti_image_read( pathname, 0 ) ;
 
    if( nim == NULL || nim->nifti_type == 0 ) RETURN(NULL) ;
