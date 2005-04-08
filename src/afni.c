@@ -4450,6 +4450,11 @@ ENTRY("AFNI_startup_3dview") ;
    im3d->vwid->func->pbar_transform2D_index = 0 ;
    im3d->vwid->func->pbar_transform2D_func  = NULL ;
 
+   /* 08 Apr 2005: the cursor on the pbar? */
+
+   if( im3d->vwid->func->inten_pbar->bigmode )
+     POPUP_cursorize( im3d->vwid->func->inten_pbar->panew ) ;
+
    /* Hey Rocky!  Watch me pull a rabbit out of my hat! */
 
    EXRETURN ;

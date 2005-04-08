@@ -828,11 +828,13 @@ ENTRY("AFNI_set_pbar_top_CB") ;
      pmin = (pbar->mode) ? 0.0 : -pmax ;
      PBAR_set_bigmode( pbar , 1 , pmin,pmax ) ;
      AFNI_inten_pbar_CB( pbar , im3d , 0 ) ;
+     POPUP_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    } else {
      fac = pmax / pbar->pval[0] ;
      for( ii=0 ; ii <= pbar->num_panes ; ii++ )
        pval[ii] = fac * pbar->pval[ii] ;
      alter_MCW_pbar( pbar , 0 , pval ) ;
+     NORMAL_cursorize( pbar->panew ) ;  /* 08 Apr 2005 */
    }
    FIX_SCALE_SIZE(im3d) ;
 
