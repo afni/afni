@@ -2733,11 +2733,15 @@ STATUS("KeyPress event") ;
          if( grapher->fd_pxWind != (Pixmap) 0 ){
             buf[0] = '\0' ;
             nbuf = XLookupString( event , buf , 32 , &ks , NULL ) ;
-            if( nbuf == 0 ){   /* 24 Jan 2003: special keys */
+            if( nbuf == 0 ){   /* 24 Jan 2003: substitution for special keys */
               switch(ks){
+                case XK_KP_Left:
                 case XK_Left:      buf[0] = '<' ; break ;
+                case XK_KP_Right:
                 case XK_Right:     buf[0] = '>' ; break ;
+                case XK_KP_Page_Up:
                 case XK_Page_Up:   buf[0] = 'Z' ; break ;
+                case XK_KP_Page_Down:
                 case XK_Page_Down: buf[0] = 'z' ; break ;
               }
             }
