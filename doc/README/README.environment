@@ -2146,6 +2146,14 @@ have their edge pixels displayed.  That is, each 'blob' will be hollowed
 out, leaving only its edges.  If you do this, you probably want to make
 the color overlay opaque, so that the results are easily seen.
 
+-------------------------
+Variable: AFNI_NIFTI_DEBUG
+-------------------------
+This integral variable determines the debug level used by the nifti_io
+library functions.  If set to 0, only error are reported by the library.
+The maximum debug level used is currently 4.  Note that if this is changed
+from within afni, a 'Rescan : This' operation should probably be performed.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |

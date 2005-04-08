@@ -1063,4 +1063,7 @@
           if prefix has a valid extension, use it (else make one up)
       - added nifti_get_intlist - for making an array of ints
       - fixed init of NBL->bsize in nifti_alloc_NBL_mem()  {thanks, Bob}
+  * modified thd_niftiread.c, thd_writedset.c and afni_pplug_env.c to use
+    the environment variable AFNI_NIFTI_DEBUG
+  * modified README.environment for AFNI_NIFTI_DEBUG
 

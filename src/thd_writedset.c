@@ -91,7 +91,11 @@ ENTRY("THD_write_3dim_dataset") ;
          !STRING_HAS_SUFFIX(options.infile_name,".nii.gz")   )
        strcat(options.infile_name,".nii") ;
 
-     options.debug_level = 0 ;
+     {  /* set the nifti_io debug level       8 Apr 2005 [rickr] */
+        char * ept = my_getenv("AFNI_NIFTI_DEBUG");
+        if( ept != NULL ) options.debug_level = atoi(ept);
+        else              options.debug_level = 0 ;
+     }
 
      if( !write_brick ){
        fprintf(stderr,
