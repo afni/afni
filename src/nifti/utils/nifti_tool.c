@@ -1,13 +1,20 @@
-/*----------------------------------------------------------------------*
- * nifti_tool    - a tool for nifti file perusal and manipulation
- * 
+/*--------------------------------------------------------------------------*/
+/*! \file   nifti_tool.c
+ *  \brief  a tool for nifti file perusal, manipulation and copying
+ *          written by Rick Reynolds, SSCC, NIMH, January 2005
+ * <pre>
+ *
  * usage: nifti_tool [options] -infiles files...
  *
  * Via this tool, one should be able to:
  * 
+ *       - copy a set of volumes (sub-bricks) from one dataset to another
+ *       - copy a dataset, restricting some dimensions to given indices
+ *
  *       - display the contents of a nifti_image (or various fields)
  *       - display the contents of a nifti1_header (or various fields)
  *       - display AFNI extensions (they are text)
+ *       - display the time series at coordinates i,j,k
  *
  *       - do a diff on two nifti_image structs (or various fields)
  *       - do a diff on two nifti1_header structs (or various fields)
@@ -41,14 +48,8 @@
  *   nifti_tool -mod_hdr  [-mod_field fieldname new_val] [...] -infiles f1 ...
  *   nifti_tool -mod_nim  [-mod_field fieldname new_val] [...] -infiles f1 ...
  *  
- * author: Rick Reynolds, NIH, January 2005
- *  
- *----------------------------------------------------------------------*/
-
-/*! \file  nifti_tool.c
-    \brief A tool for nifti file perusal and manipulation,
-           written by Rick Reynolds, SSCC, NIMH
-*/
+ * </pre> */
+/*-------------------------------------------------------------------------*/
 
 /*! module history */
 static char g_history[] =
@@ -87,8 +88,14 @@ static char g_history[] =
   "\n"
   "1.5  05 April 2005 [rickr] - small update\n"
   "   - refuse mod_hdr for gzipped files (we cannot do partial overwrites)\n"
+  "\n"
+  "1.6  08 April 2005 [rickr] - added cbl, ccd and dts functionality\n"
+  "   - added -cbl: 'copy brick list' dataset copy functionality\n"
+  "   - added -ccd: 'copy collapsed dimensions' dataset copy functionality\n"
+  "   - added -disp_ts: 'disp time series' data display functionality\n"
+  "   - moved raw data display to disp_raw_data()\n"
   "----------------------------------------------------------------------\n";
-static char g_version[] = "version 1.5 (April 05, 2005)";
+static char g_version[] = "version 1.6 (April 08, 2005)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -110,16 +117,21 @@ int main( int argc, char * argv[] )
    if( (rv = process_opts(argc, argv, &opts)) != 0)
       return rv;
 
+   if( (rv = verify_opts(&opts, argv[0])) != 0 )
+      return rv;
+
+   /* now perform the requested action(s) */
+
    if( (rv = fill_hdr_field_array(g_hdr_fields)) != 0 )
       return rv;
 
    if( (rv = fill_nim_field_array(g_nim_fields)) != 0 )
       return rv;
 
-   if( (rv = verify_opts(&opts, argv[0])) != 0 )
-      return rv;
-
-   /* now perform the requested action(s) */
+   /* copy or dts functions, first */
+   if( opts.cbl ) return act_cbl(&opts);  /* just return */
+   if( opts.ccd ) return act_ccd(&opts);  /* just return */
+   if( opts.dts ) return act_disp_ts(&opts);  /* just return */
 
    /* perform modifications first, in case we allow multiple actions */
    if( opts.add_exts  && ((rv = act_add_exts (&opts)) != 0) ) return rv;
@@ -186,6 +198,31 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          if( add_string(&opts->elist, argv[ac]) ) return 1; /* add extension */
          opts->add_exts = 1;
       }
+      else if( ! strncmp(argv[ac], "-copy_brick_list", 11) ||
+               ! strncmp(argv[ac], "-cbl", 4) )
+      {
+         opts->cbl = 1;
+      }
+      else if( ! strncmp(argv[ac], "-copy_collapsed_dims", 10) ||
+               ! strncmp(argv[ac], "-ccd", 4) )
+      {
+         /* we need to read in the 7 dimension values */
+         int index;
+         opts->ccd_dims[0] = 0;
+         for( index = 1; index < 8; index++ )
+         {
+            ac++;
+            CHECK_NEXT_OPT_MSG(ac,argc,"-ccd","7 dimension values are requred");
+            if( ! isdigit(argv[ac][0]) && strcmp(argv[ac],"-1") ){
+               fprintf(stderr,"** -ccd param %d (= '%s') is not a valid\n"
+                       "   consider: 'nifti_tool -help'\n",index,argv[ac]);
+               return 1;
+            }
+            opts->ccd_dims[index] = atoi(argv[ac]);
+         }
+
+         opts->ccd = 1;
+      }
       else if( ! strncmp(argv[ac], "-debug", 6) )
       {
          ac++;
@@ -202,6 +239,29 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          opts->disp_hdr = 1;
       else if( ! strncmp(argv[ac], "-disp_nim", 8) )
          opts->disp_nim = 1;
+      else if( ! strncmp(argv[ac], "-dts_lines", 6) )  /* before -dts */
+      {
+         opts->dts_lines = 1;
+      }
+      else if( ! strncmp(argv[ac], "-disp_ts", 10) ||
+               ! strncmp(argv[ac], "-dts", 4) )
+      {
+         /* we need to read in the ijk indices */
+         int index;
+         for( index = 0; index < 3; index++ )
+         {
+            ac++;
+            CHECK_NEXT_OPT_MSG(ac,argc,"-dts","i,j,k indices are requied\n");
+            if( ! isdigit(argv[ac][0]) ){
+               fprintf(stderr,"** -dts param %d (= '%s') is not a number\n"
+                       "   consider: 'nifti_tool -help'\n",index+1,argv[ac]);
+               return 1;
+            }
+            opts->dts_ijk[index] = atoi(argv[ac]);
+         }
+
+         opts->dts = 1;
+      }
       else if( ! strncmp(argv[ac], "-field", 2) )
       {
          ac++;
@@ -280,11 +340,13 @@ int verify_opts( nt_opts * opts, char * prog )
    int ac, errs = 0;   /* number of requested action types */
 
    /* check that only one of disp, diff, mod or add_afni_ext is used */
-   ac =  (opts->diff_hdr || opts->diff_nim)  ? 1 : 0;
-   ac += (opts->disp_hdr || opts->disp_nim 
-                         || opts->disp_exts) ? 1 : 0;
-   ac += (opts->mod_hdr  || opts->mod_nim)   ? 1 : 0;
-   ac += (opts->add_exts || opts->rm_exts)   ? 1 : 0;
+   ac =  (opts->diff_hdr || opts->diff_nim                   ) ? 1 : 0;
+   ac += (opts->disp_hdr || opts->disp_nim || opts->disp_exts) ? 1 : 0;
+   ac += (opts->mod_hdr  || opts->mod_nim                    ) ? 1 : 0;
+   ac += (opts->add_exts || opts->rm_exts                    ) ? 1 : 0;
+   ac += (opts->cbl                                          ) ? 1 : 0;
+   ac += (opts->ccd                                          ) ? 1 : 0;
+   ac += (opts->dts                                          ) ? 1 : 0;
 
    if( ac < 1 )
    {
@@ -298,7 +360,8 @@ int verify_opts( nt_opts * opts, char * prog )
    {
       fprintf(stderr,
          "** only one action option is allowed, please use only one of:\n"
-         "   '-add_...', '-diff_...', '-disp_...' or '-mod_...'\n"
+         "        '-add_...', '-diff_...', '-disp_...', '-mod_...'\n"
+         "        '-dts', '-cbl' or '-ccd'\n"
          "   (see '%s -help' for details)\n", prog);
       return 1;
    }
@@ -369,6 +432,12 @@ int verify_opts( nt_opts * opts, char * prog )
          fprintf(stderr,"** missing -prefix for output file\n");
          errs++;
       }
+   }
+
+   if( opts->dts_lines && ! opts->dts )
+   {
+      fprintf(stderr,"** option '-dts_lines' must only be used with '-dts'\n");
+      errs++;
    }
 
    if( opts->infiles.len <= 0 ) /* in any case */
@@ -454,11 +523,18 @@ int usage(char * prog, int level)
 int use_full(char * prog)
 {
    printf(
-   "%s - display, modify or compare nifti structures in datasets\n"
+   "%s\n"
+   "\n"
+   "   - display, modify or compare nifti structures in datasets\n"
+   "   - copy a dataset by selecting a list of volumes from the original\n"
+   "   - copy a dataset, collapsing any dimensions, each to a single index\n"
+   "   - display a time series for a voxel, in text, given i,j,k indices\n"
    "\n"
    "  This program can be used to display information from nifti datasets,\n"
-   "  to modify information in nifti datasets, or to look for differences\n"
-   "  between two nifti datasets (like the UNIX 'diff' command).\n"
+   "  to modify information in nifti datasets, to look for differences\n"
+   "  between two nifti datasets (like the UNIX 'diff' command), and to copy\n"
+   "  a dataset to a new one, either by restricting any dimensions, or by\n"
+   "  copying a list of volumes (the time dimension) from a dataset.\n"
    "\n"
    "  Only one action type is allowed, e.g. one cannot modify a dataset\n"
    "  and then take a 'diff'.\n"
@@ -466,6 +542,7 @@ int use_full(char * prog)
    "  one can display - any or all fields in the nifti_1_header structure\n"
    "                  - any or all fields in the nifti_image structure\n"
    "                  - the extensions in the nifti_image structure\n"
+   "                  - the time series from a 4-D dataset, given i,j,k\n"
    "\n"
    "  one can modify  - any or all fields in the nifti_1_header structure\n"
    "                  - any or all fields in the nifti_image structure\n"
@@ -474,6 +551,9 @@ int use_full(char * prog)
    "  one can compare - any or all field pairs of nifti_1_header structures\n"
    "                  - any or all field pairs of nifti_image structures\n"
    "\n"
+   "  one can copy    - an arbitrary list of dataset volumes (time points)\n"
+   "                  - a dataset, collapsing across arbitrary dimensions\n"
+   "                    (restricting those dimensions to the given indices)\n"
    "\n"
    "  Note: to learn about which fields exist in either of the structures,\n"
    "        or to learn a field's type, size of each element, or the number\n"
@@ -494,9 +574,14 @@ int use_full(char * prog)
    "    %s -nifti_ver            : show the nifti library version\n"
    "    %s -nifti_hist           : show the nifti library history\n"
    "\n"
+   "\n"
+   "    %s -copy_brick_list -infiles f1'[indices...]'\n"
+   "    %s -copy_collapsed_dims d1 d2 d3 d4 d5 d6 d7 -infiles f1\n"
+   "\n"
    "    %s -disp_hdr [-field FIELDNAME] [...] -infiles f1 ...\n"
    "    %s -disp_nim [-field FIELDNAME] [...] -infiles f1 ...\n"
    "    %s -disp_exts -infiles f1 ...\n"
+   "    %s -disp_ts I J K [-dts_lines] -infiles f1 ...\n"
    "\n"
    "    %s -mod_hdr  [-mod_field FIELDNAME NEW_VAL] [...] -infiles f1 ...\n"
    "    %s -mod_nim  [-mod_field FIELDNAME NEW_VAL] [...] -infiles f1 ...\n"
@@ -508,9 +593,87 @@ int use_full(char * prog)
    "    %s -diff_nim [-field FIELDNAME] [...] -infiles f1 f2\n"
    "\n"
    "  ------------------------------\n",
-   prog, prog, prog, prog, prog, prog,    /* 1 + 17, so far */
+   prog, prog, prog, prog, prog, prog,    /* 1 + 20, so far */
    prog, prog, prog, prog, prog, prog,
-   prog, prog, prog, prog, prog, prog);
+   prog, prog, prog, prog, prog, prog,
+   prog, prog, prog );
+
+   printf(
+   "\n"
+   "  options for copy actions:\n"
+   "\n"
+   "    -copy_brick_list   : copy a list of volumes to a new dataset\n"
+   "    -cbl               : (a shorter, alternative form)\n"
+   "\n"
+   "       This action allows the user to copy a list of volumes (over time)\n"
+   "       from one dataset to another.  The listed volumes can be in any\n"
+   "       order and contain repeats, but are of course restricted to\n"
+   "       the set of values {1, 2, ..., nt-1}, from dimension 4.\n"
+   "\n"
+   "       This option is a flag.  The index list is specified with the input\n"
+   "       dataset, contained in square brackets.  Note that square brackets\n"
+   "       are special to most UNIX shells, so they should be contained\n"
+   "       within single quotes.  Syntax of an index list:\n"
+   "\n"
+   "         - indices start at zero\n"
+   "         - indices end at nt-1, which has the special symbol '$'\n"
+   "         - single indices should be separated with commas, ','\n"
+   "             e.g. -infiles dset0.nii'[0,3,8,5,2,2,2]'\n"
+   "         - ranges may be specified using '..' or '-' \n"
+   "             e.g. -infiles dset0.nii'[2..95]'\n"
+   "             e.g. -infiles dset0.nii'[2..$]'\n"
+   "         - ranges may have step values, specified in ()\n"
+   "           example: 2 through 95 with a step of 3, i.e. {2,5,8,11,...,95}\n"
+   "             e.g. -infiles dset0.nii'[2..95(3)]'\n"
+   "\n"
+   "       This functionality applies only to 4-dimensional datasets.\n"
+   "\n"
+   "       e.g. to copy sub-bricks 0 and 7:\n"
+   "       %s -cbl -prefix new_07.nii -infiles dset0.nii'[0,7]'\n"
+   "\n"
+   "       e.g. to copy an entire dataset:\n"
+   "       %s -cbl -prefix new_all.nii -infiles dset0.nii'[0..$]'\n"
+   "\n"
+   "       e.g. to copy ever other time point, skipping the first three:\n"
+   "       %s -cbl -prefix new_partial.nii -infiles dset0.nii'[3..$(2)]'\n"
+   "\n"
+   "\n"
+   "    -copy_collapsed_dims ...  : copy a list of volumes to a new dataset\n"
+   "    -ccd D1 D2 D3 D4 D5 D6 D7 : (a shorter, alternative form)\n"
+   "\n"
+   "       This action allows the user to copy a collapsed dataset, where\n"
+   "       some dimensions are collapsed to a given index.  For instance, the\n"
+   "       X dimension could be collapsed to x=42, and the time dimensions\n"
+   "       could be collapsed to t=17.  To collapse a dimension, set Di to\n"
+   "       the desired index, where i is in {0..ni-1}.  Any dimension that\n"
+   "       should not be collapsed must be listed as -1.\n"
+   "\n"
+   "       Any number (of valid) dimensions can be collapsed, even down to a\n"
+   "       a single value, by specifying enough valid indices.  The resulting\n"
+   "       dataset will then have a reduced number of non-trivial dimensions.\n"
+   "\n"
+   "       Assume dset0.nii has nim->dim[8] = { 4, 64, 64, 21, 80, 1, 1, 1 }.\n"
+   "       Note that this is a 4-dimensional dataset.\n"
+   "\n"
+   "         e.g. copy the time series for voxel i,j,k = 5,4,17\n"
+   "         %s -ccd 5 4 17 -1 -1 -1 -1 -prefix new_5_4_17.nii\n"
+   "\n"
+   "         e.g. read the single volume at time point 26\n"
+   "         %s -ccd -1 -1 -1 26 -1 -1 -1 -prefix new_t26.nii\n"
+   "\n"
+   "       Assume dset1.nii has nim->dim[8] = { 6, 64, 64, 21, 80, 4, 3, 1 }.\n"
+   "       Note that this is a 6-dimensional dataset.\n"
+   "\n"
+   "         e.g. copy all time series for voxel i,j,k = 5,0,17, with v=2\n"
+   "         %s -ccd 5 0 17 -1 -1 2 -1 -prefix new_5_0_17_2.nii\n"
+   "\n"
+   "         e.g. copy all data where x=3, y=19 and v=2\n"
+   "              (I do not claim a good reason to do this)\n"
+   "         %s -ccd 3 19 -1 -1 -1 2 -1 -prefix new_mess.nii\n"
+   "\n"
+   "  ------------------------------\n",
+   prog, prog, prog, prog,
+   prog, prog, prog );
 
    printf(
    "\n"
@@ -549,8 +712,25 @@ int use_full(char * prog)
    "       %s -disp_exts -infiles dset0.nii\n"
    "       %s -disp_exts -infiles dset0.nii dset1.nii dset2.nii\n"
    "\n"
+   "    -disp_ts I J K    : display ASCII time series at i,j,k = I,J,K\n"
+   "\n"
+   "       This flag option is used to display the time series data for the\n"
+   "       voxel at i,j,k coordinates I,J,K.  The data is display in text,\n"
+   "       either all on one line (the default), or as one number per line\n"
+   "       (by using the '-dts_lines' flag).\n"
+   "\n"
+   "       This function applies only to 4-dimensional datasets.\n"
+   "\n"
+   "       Note that the '-quiet' option can be used to suppress the text\n"
+   "       header, leaving only the data.\n"
+   "\n"
+   "       e.g. to display the time series at voxel 23, 0, 172:\n"
+   "       %s -disp_ts 23 0 172            -infiles dset1_time.nii\n"
+   "       %s -disp_ts 23 0 172 -dts_lines -infiles dset1_time.nii\n"
+   "       %s -disp_ts 23 0 172 -quiet     -infiles dset1_time.nii\n"
+   "\n"
    "  ------------------------------\n",
-   prog, prog, prog, prog, prog, prog );
+   prog, prog, prog, prog, prog, prog, prog, prog, prog );
 
    printf(
    "\n"
@@ -777,7 +957,10 @@ int use_full(char * prog)
    "\n"
    "    -help_nim         : show nifti_image field info\n"
    "\n"
-   "       e.g.  %s -help_nim\n"
+   "       e.g.  %s -help_nim\n",
+   prog, prog, prog );
+
+   printf(
    "\n"
    "    -ver              : show the program version number\n"
    "\n"
@@ -800,7 +983,7 @@ int use_full(char * prog)
    "  R. Reynolds\n"
    "  compiled: %s\n"
    "  %s\n\n",
-   prog, prog, prog, prog, prog, prog, prog, __DATE__, g_version );
+   prog, prog, prog, prog, __DATE__, g_version );
 
    return 1;
 }
@@ -826,12 +1009,22 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
                   "   disp_exts           = %d\n"
                   "   add_exts, rm_exts   = %d, %d\n"
                   "   mod_hdr,  mod_nim   = %d, %d\n"
-                  "   debug, overwrite    = %d, %d\n"
-                  "   prefix              = '%s'\n",
+                  "   cbl, ccd            = %d, %d\n"
+                  "   dts, dts_lines      = %d, %d\n",
             (void *)opts,
             opts->diff_hdr, opts->diff_nim, opts->disp_hdr, opts->disp_nim,
             opts->disp_exts, opts->add_exts, opts->rm_exts,
-            opts->mod_hdr,  opts->mod_nim, opts->debug, opts->overwrite,
+            opts->mod_hdr, opts->mod_nim, opts->cbl, opts->ccd,
+            opts->dts, opts->dts_lines );
+
+   fprintf(stderr,"   ccd_dims[8]         = %d", opts->ccd_dims[0] );
+   for( c = 1; c < 8; c++ ) fprintf(stderr,", %d", opts->ccd_dims[c] );
+   fprintf(stderr,"\n"
+                  "   dts_ijk[3]          = %d, %d, %d\n"
+                  "   debug, overwrite    = %d, %d\n"
+                  "   prefix              = '%s'\n",
+            opts->dts_ijk[0], opts->dts_ijk[1], opts->dts_ijk[2], 
+            opts->debug, opts->overwrite,
             opts->prefix ? opts->prefix : "(NULL)" );
 
    fprintf(stderr,"   elist (%d elements)   :\n", opts->elist.len);
@@ -1652,7 +1845,7 @@ int fill_hdr_field_array( field_s * nh_fields )
                         NT_HDR_NUM_FIELDS, sizeof(nhdr)) )
       return 1;
 
-   if( g_debug > 2 )
+   if( g_debug > 3 )
       disp_field_s_list("nh_fields: ", nh_fields, NT_HDR_NUM_FIELDS);
 
    return 0;
@@ -1742,11 +1935,11 @@ int fill_nim_field_array( field_s * nim_fields )
       return 1;
    }
 
-   if( g_debug > 2 )  /* failure here is not an error condition */
+   if( g_debug > 3 )  /* failure here is not an error condition */
        check_total_size("nifti_image test: ", nim_fields,
                         NT_NIM_NUM_FIELDS, sizeof(nim));
 
-   if( g_debug > 2 )
+   if( g_debug > 3 )
       disp_field_s_list("nim_fields: ", nim_fields, NT_NIM_NUM_FIELDS);
 
    return 0;
@@ -1912,34 +2105,13 @@ int disp_field(char *mesg, field_s *fieldp, void * str, int nfields, int header)
             fprintf(stdout,"(unknown data type)\n");
             break;
 
-         case DT_INT8:
-            charp = (char *)str + fp->offset;
-            for (ind = 0; ind < fp->len; ind++, charp++ )
-               fprintf(stdout,"%d ", *charp);
-            fputc('\n', stdout);
+         case DT_INT8:    case DT_UINT8:
+         case DT_INT16:   case DT_UINT16:
+         case DT_INT32:   case DT_UINT32:
+         case DT_FLOAT32: case DT_FLOAT64:
+            disp_raw_data((char *)str+fp->offset, fp->type, fp->len, ' ');
             break;
-
-         case DT_INT16:
-            shortp = (short *)((char *)str + fp->offset);
-            for (ind = 0; ind < fp->len; ind++, shortp++ )
-               fprintf(stdout,"%d ", *shortp);
-            fputc('\n', stdout);
-            break;
-
-         case DT_FLOAT32:
-            floatp = (float *)((char *)str + fp->offset);
-            for (ind = 0; ind < fp->len; ind++, floatp++ )
-               fprintf(stdout,"%f ", *floatp);
-            fputc('\n', stdout);
-            break;
-
-         case DT_INT32:
-            intp = (int *)((char *)str + fp->offset);
-            for (ind = 0; ind < fp->len; ind++, intp++ )
-               fprintf(stdout,"%d ", *intp);
-            fputc('\n', stdout);
-            break;
-
+                
          case NT_DT_POINTER:
             fprintf(stdout,"(raw data of unknown type)\n");
             break;
@@ -2221,4 +2393,271 @@ int diff_nims_list( nifti_image * s0, nifti_image * s1, str_list * slist,
    return ndiff;
 }
 
+
+/*----------------------------------------------------------------------
+ * display the time series for voxel i,j,k
+ *----------------------------------------------------------------------*/
+int act_disp_ts( nt_opts * opts )
+{
+   nifti_image *  nim;
+   void        *  data;
+   char           space = ' ';  /* use space or newline */
+   int            dims[8] = { 0, 0, 0, 0, -1, -1, -1, -1 };
+   int            filenum, len, err;
+
+   memcpy(dims+1, opts->dts_ijk, 3 * sizeof(int));  /* copy i,j,k */
+
+   if( opts->dts_lines ) space = '\n';  /* then use newlines as separators */
+
+   if( g_debug > 2 )
+      fprintf(stderr,"-d displaying time series at (i,j,k) = (%d,%d,%d)\n"
+                     "      for %d nifti datasets...\n\n",
+              dims[1], dims[2], dims[3], opts->infiles.len);
+
+   for( filenum = 0; filenum < opts->infiles.len; filenum++ )
+   {
+      err = 0;
+      nim = nifti_image_read(opts->infiles.list[filenum], 0);
+      if( !nim ) return 1;  /* errors are printed from library */
+      if( nim->ndim != 4 )
+      {
+         fprintf(stderr,"** error: dataset '%s' is not 4-dimensional\n",
+                 nim->fname);
+         err++;
+      }
+      
+      switch( nim->datatype )
+      {
+         case DT_INT8:    case DT_INT16:   case DT_INT32:
+         case DT_UINT8:   case DT_UINT16:  case DT_UINT32:
+         case DT_FLOAT32: case DT_FLOAT64:
+               if( g_debug > 1 )
+                  fprintf(stderr,"-d datatype %d of size %d\n",
+                          nim->datatype, nim->nbyper);
+               break;
+         default:
+               fprintf(stderr,"** dataset '%s' has unknown type %d\n",
+                       nim->fname, nim->datatype);
+               err++;
+               break;
+      }
+
+      if( err )
+      {
+         nifti_image_free(nim);
+         continue;
+      }
+                                                                                
+      len = nifti_read_collapsed_image(nim, dims, &data);
+      if( len < 0 || !data )
+      {
+         fprintf(stderr,"** FAILURE for dataset '%s'\n", nim->fname);
+         err++;
+      }
+      else if( len != (nim->nt * nim->nbyper) )
+      {
+         fprintf(stderr,"** dset '%s' returned length %d instead of %d\n",
+                 len, nim->nt * nim->nbyper);
+         free(data);
+         err++;
+      }
+
+      if( err ){  nifti_image_free(nim);  continue;  }
+
+      /* now just print the results */
+      if( g_debug > 0 )
+         fprintf(stdout,"\ndataset '%s' @ (%d,%d,%d) : ",
+                 nim->fname, dims[1], dims[2], dims[3] );
+
+      disp_raw_data(data, nim->datatype, nim->nt, space);
+
+      nifti_image_free(nim);
+      free(data);
+   }
+
+   return 0;
+}
+
+
+int disp_raw_data( void * data, int type, int nvals, char space )
+{
+   char * dp;
+   int    c, size;
+
+   nifti_datatype_sizes( type, &size, NULL );   /* get nbyper */
+
+   for( c = 0, dp = (char *)data; c < nvals; c++, dp += size )
+   {
+      switch( type )
+      {
+         case DT_INT8:
+               printf("%d", *(char *)dp);
+               break;
+         case DT_INT16:
+               printf("%d", *(short *)dp);
+               break;
+         case DT_INT32:
+               printf("%d", *(int *)dp);
+               break;
+         case DT_UINT8:
+               printf("%u", *(unsigned char *)dp);
+               break;
+         case DT_UINT16:
+               printf("%u", *(unsigned short *)dp);
+               break;
+         case DT_UINT32:
+               printf("%u", *(unsigned int *)dp);
+               break;
+         case DT_FLOAT32:
+               printf("%f", *(float *)dp);
+               break;
+         case DT_FLOAT64:
+               printf("%f", *(double *)dp);
+               break;
+         default:
+               fprintf(stderr,"** disp_raw_data: unknown type %d\n", type);
+               return 1;
+      }
+      if( c < nvals - 1 ) fputc(space,stdout);
+   }
+
+   fputc('\n',stdout);
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * create a new dataset using sub-brick selection
+ *----------------------------------------------------------------------*/
+int act_cbl( nt_opts * opts )
+{
+   nifti_brick_list   NBL;
+   nifti_image      * nim;
+   char             * fname, * selstr, * cp;
+   int              * blist;
+   int                c, err = 0;
+
+   if( g_debug > 2 )
+      fprintf(stderr,"-d copying file info from '%s' to '%s'\n",
+              opts->infiles.list[0], opts->prefix);
+
+   /* sanity checks */
+   if( ! opts->prefix ) {
+      fprintf(stderr,"** error: -prefix is required with -cbl function\n");
+      return 1;
+   } else if( opts->infiles.len > 1 ) {
+      fprintf(stderr,"** sorry, at the moment -cbl allows only 1 input\n");
+      return 1;
+   }
+
+   /* remove selector from fname, and copy selector string */
+   fname = nifti_strdup(opts->infiles.list[0]);
+   cp = strchr(fname,'[');  if( !cp )  cp = strchr(fname,'{');
+
+   if( !cp ) {
+      if( g_debug > 0 )
+         fprintf(stderr,"** warning, -cbl, but no brick list in '%s'\n",fname);
+      selstr = nifti_strdup("[0..$]");
+   } else {
+      selstr = nifti_strdup(cp);
+      *cp = '\0';    /* remove selection string from fname */
+   }
+
+   if( g_debug > 1 )
+      fprintf(stderr,"+d -cbl: using '%s' for selection string\n", selstr);
+
+   nim = nifti_image_read(fname, 0);  /* get image */
+   if( !nim ) return 1;
+      
+   blist = nifti_get_intlist(nim->nt, selstr);
+   nifti_image_free(nim);             /* throw away, will re-load */
+   if( !blist ){
+      fprintf(stderr,"** failed sub-brick selection using '%s'\n",selstr);
+      free(fname);  free(selstr);  return 1;
+   }
+
+   nim = nifti_image_read_bricks(fname, blist[0], blist+1, &NBL);
+   free(blist);  /* with this */
+   if( !nim ){  free(fname);  free(selstr);  return 1; }
+
+   if( g_debug > 1 ) fprintf(stderr,"+d sub-bricks loaded\n");
+
+   /* replace filenames using prefix */
+   if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
+   {
+      fprintf(stderr,"** failed to set names, prefix = '%s'\n",opts->prefix);
+      err++;
+   }
+
+   if(g_debug>2) disp_field("new nim:\n",g_nim_fields,nim,NT_NIM_NUM_FIELDS,1);
+
+   /* and finally, write out results */
+   if( err == 0 && nifti_nim_is_valid(nim, g_debug) )
+      nifti_image_write_bricks(nim, &NBL);
+
+   nifti_image_free(nim);
+   nifti_free_NBL(&NBL);
+   free(fname);
+   free(selstr);
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * create a new dataset using read_collapsed_image
+ *----------------------------------------------------------------------*/
+int act_ccd( nt_opts * opts )
+{
+   nifti_brick_list   NBL;
+   nifti_image      * nim;
+   char             * fname, * cp;
+   int              * blist;
+   int                c, err = 0;
+
+   if( g_debug > 2 )
+      fprintf(stderr,"-d collapsing file info from '%s' to '%s'\n",
+              opts->infiles.list[0], opts->prefix);
+
+   /* sanity checks */
+   if( ! opts->prefix ) {
+      fprintf(stderr,"** error: -prefix is required with -ccd function\n");
+      return 1;
+   } else if( opts->infiles.len > 1 ) {
+      fprintf(stderr,"** sorry, at the moment -ccd allows only 1 input\n");
+      return 1;
+   }
+
+   nim = nifti_image_read(opts->infiles.list[0], 0);
+   if( !nim ) return 1;
+      
+   if( nifti_read_collapsed_image(nim, opts->ccd_dims, &nim->data) < 0 )
+   {
+      nifti_image_free(nim);
+      return 1;
+   }
+
+   /* replace filenames using prefix */
+   if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
+   {
+      fprintf(stderr,"** failed to set names, prefix = '%s'\n",opts->prefix);
+      nifti_image_free(nim);
+      return 1;
+   }
+
+   for( c = 1; c < 8; c++ )  /* nuke any collapsed dimension */
+      if( opts->ccd_dims[c] >= 0 ) nim->dim[c] = 1;
+
+   nifti_update_dims_from_array(nim);
+
+   if(g_debug>2) disp_field("new nim:\n",g_nim_fields,nim,NT_NIM_NUM_FIELDS,1);
+
+   /* and finally, write out results */
+   if( nifti_nim_is_valid(nim, g_debug) ) nifti_image_write(nim);
+
+   nifti_image_free(nim);
+
+   return 0;
+}
 
