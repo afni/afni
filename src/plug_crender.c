@@ -5998,6 +5998,10 @@ ENTRY( "RCREND_open_func_CB" );
       RCREND_init_cmap() ;                    /* setup the colormap */
 
       POPUP_cursorize(wfunc_color_label) ;
+      if( wfunc_color_pbar->bigmode )
+        POPUP_cursorize( wfunc_color_pbar->panew ) ;  /* 08 Apr 2005 */
+      else
+        NORMAL_cursorize( wfunc_color_pbar->panew ) ;  /* 08 Apr 2005 */
    }
 
    MCW_invert_widget(wfunc_open_pb) ;       /* a flag */
@@ -6341,9 +6345,11 @@ ENTRY( "RCREND_colornum_av_CB" );
 
       PBAR_set_bigmode( wfunc_color_pbar , 1 , pmin,pmax ) ;
       RCREND_color_pbar_CB( wfunc_color_pbar, im3d, 0 ) ;
+      POPUP_cursorize( wfunc_color_pbar->panew ) ;  /* 08 Apr 2005 */
    } else {
       wfunc_color_pbar->bigmode = 0 ;
       alter_MCW_pbar( wfunc_color_pbar , av->ival , NULL ) ;
+      NORMAL_cursorize( wfunc_color_pbar->panew ) ;  /* 08 Apr 2005 */
    }
    FIX_SCALE_SIZE ;
    INVALIDATE_OVERLAY ;
@@ -6374,10 +6380,10 @@ ENTRY( "RCREND_color_bbox_CB" );
       wfunc_color_pbar->bigset = 0 ;
       PBAR_set_bigmode( wfunc_color_pbar , 1 , pmin,pmax ) ;
       AFNI_inten_pbar_CB( wfunc_color_pbar , im3d , 0 ) ;
-
+      POPUP_cursorize( wfunc_color_pbar->panew ) ;  /* 08 Apr 2005 */
    } else {
-
-   alter_MCW_pbar( wfunc_color_pbar , wfunc_color_pbar->npan_save[jm] , NULL ) ;
+      alter_MCW_pbar( wfunc_color_pbar, wfunc_color_pbar->npan_save[jm], NULL );
+      NORMAL_cursorize( wfunc_color_pbar->panew ) ;  /* 08 Apr 2005 */
    }
    FIX_SCALE_SIZE ;
 
