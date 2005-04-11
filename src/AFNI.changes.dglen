@@ -20,3 +20,6 @@
 
 28 March 2005
  * 3dDWItoDT.c modified to include non-linear gradient descent method and several new options including eigenvalue,eigenvector calculations, debug briks, cumulative wts, reweighting, verbose output
+
+11 April 2005
+ * Moved ENTRY statements in 3dDWItoDT.c to come after variable declarations in 3 functions
