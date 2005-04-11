@@ -993,7 +993,7 @@ Calc_FA(float *val)
 /* calculate Fractional Anisotropy */
 /* passed float pointer to start of eigenvalues */
 {
-  ENTRY("Calc_FA");
+
 
   float FA;
   double ssq, dv0, dv1, dv2, dsq;
@@ -1001,6 +1001,7 @@ Calc_FA(float *val)
   /* calculate the Fractional Anisotropy, FA */
   /*   reference, Pierpaoli C, Basser PJ. Microstructural and physiological features 
        of tissues elucidated by quantitative-diffusion tensor MRI,J Magn Reson B 1996; 111:209-19 */
+  ENTRY("Calc_FA");
   if((val[0]<=0.0)||(val[1]<=0.0)||(val[2]<=0.0)) {   /* any negative eigenvalues*/
     RETURN(0.0);                                      /* should not see any for non-linear method. Set FA to 0 */  
   }
@@ -1344,10 +1345,10 @@ static void
 InitGlobals (int npts)
 /* allocate all the global matrices and arrays once */
 {
-  ENTRY ("InitGlobals");
   int i;
   double *cumulativewtptr;
 
+  ENTRY ("InitGlobals");
   matrix_initialize (&Fmatrix);
   matrix_create (3, 3, &Fmatrix);
   matrix_initialize (&Dmatrix);
@@ -1391,9 +1392,9 @@ static void
 FreeGlobals ()
 /* free up all the matrices and arrays */
 {
-  ENTRY ("FreeGlobals");
   int i;
 
+  ENTRY ("FreeGlobals");
   matrix_destroy (&Fmatrix);
   matrix_destroy (&Dmatrix);
   matrix_destroy (&Hplusmatrix);
@@ -1729,9 +1730,10 @@ matrix_copy (matrix a, matrix * b)
 /*  steps we don't need to do here */
 /* assumes both a and b already exist with equal dimensions */
 {
-  ENTRY ("matrix_copy");
   register int i;
   register int rows, cols;
+
+  ENTRY ("matrix_copy");
 
   rows = a.rows;
   cols = a.cols;
