@@ -23,3 +23,6 @@
 
 11 April 2005
  * Moved ENTRY statements in 3dDWItoDT.c to come after variable declarations in 3 functions
+
+12 April 2005
+ * Added AFNI NIML graphing of convergence to 3dDWItoDT.c with user option -drive_afni nnnnn
