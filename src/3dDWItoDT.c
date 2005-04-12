@@ -10,7 +10,7 @@
 # include "matrix.h"
 # include "matrix.c"
 /*#endif*/
-
+#include "afni.h"
 
 #define TINYNUMBER 1E-10
 #define SMALLNUMBER 1E-4
@@ -51,6 +51,8 @@ static int debug_briks = 0;     /* put Ed, Ed0 and Converge step sub-briks in ou
 static int verbose = 0;         /* print out info every verbose number of voxels - user option */
 static int afnitalk_flag = 0;   /* show convergence in AFNI graph - user option */
 
+static NI_stream_type * DWIstreamid = 0;     /* NIML stream ID */
+
 static void Form_R_Matrix (MRI_IMAGE * grad1Dptr);
 static void DWItoDT_tsfunc (double tzero, double tdelta, int npts, float ts[], double ts_mean, double ts_slope, void *ud, int nbriks, float *val);
 static void EIG_func (void);
@@ -74,6 +76,9 @@ static double matrix_sumabs (matrix m);
 static double *InvertSym3 (double a, double b, double c, double e, double f,
 			   double i);
 static void matrix_copy (matrix a, matrix * b);
+static int DWI_Open_NIML_stream(void);
+static int DWI_NIML_create_graph(void);
+static void DWI_AFNI_update_graph(double *Edgraph, double *dtau, int npts);
 
 int
 main (int argc, char *argv[])
@@ -121,6 +126,8 @@ main (int argc, char *argv[])
               "    May be useful as a quality control\n\n"
               "   -verbose nnnnn = print convergence steps every nnnnn voxels that survive to\n"
               "    convergence loops (can be quite lengthy)\n\n"
+              "   -drive_afni nnnnn = show convergence graphs every nnnnn voxels that survive to\n"
+              "    convergence loops\n\n"
               " Example:\n"
               "  3dDWItoDTnoise -prefix rw01 -automask -reweight -max_iter 10 \\\n"
               "            -max_iter_rw 10 tensor25.1D grad02+orig.\n\n"
@@ -297,9 +304,20 @@ main (int argc, char *argv[])
 	  continue;
         }
 
-
-     /*static int afnitalk_flag = 0;*/   /* show convergence in AFNI graph - user option */
-
+     if (strcmp (argv[nopt], "-drive_afni") == 0)
+        {
+	   if(++nopt >=argc ){
+	      fprintf(stderr,"*** need an argument after -drive_afni!\n");
+	      exit(1);
+	   }
+           afnitalk_flag = strtol(argv[nopt], NULL, 10);
+	   if (afnitalk_flag<=0) {
+	      fprintf(stderr, "*** drive_afni steps must be a positive number !\n");
+	      exit(1);
+           }
+          nopt++;
+	  continue;
+        }
 
 	fprintf(stderr, "*** unknown option %s\n", argv[nopt]);
 	exit(1);
@@ -343,6 +361,11 @@ main (int argc, char *argv[])
   if((method==0)&&(debug_briks==1)) {
       fprintf(stderr, "+++ Warning - can not compute debug sub-briks for linear method\n");
       debug_briks = 0;
+  }
+
+  if((method==0)&&(afnitalk_flag>0)) {
+      fprintf(stderr, "+++ Warning - can not graph convergence in AFNI for linear method\n");
+      afnitalk_flag = 0;
   }
 
   if(eigs_flag)
@@ -455,6 +478,20 @@ main (int argc, char *argv[])
   system("plugout_drive 'OPEN_GRAPH_1D DWIDTgraph 'DWI \\delta \\tau' 25 1 'Convergence' 1 0 200000 '\\delta \\tau' ''");
 #endif
 
+  if(afnitalk_flag) {
+     if(DWI_Open_NIML_stream()!=0) {   /* Open NIML stream */
+       afnitalk_flag = 0;
+       fprintf(stderr,"+++could not open NIML communications with AFNI\n");
+     }
+     else
+       if(DWI_NIML_create_graph()!=0) {
+          afnitalk_flag = 0;
+          fprintf(stderr,"+++could not create graph within AFNI\n");
+          /* Close NIML stream */
+          NI_stream_close(DWIstreamid);
+          DWIstreamid = 0;
+       }
+  }
 
    /*------------- ready to compute new dataset -----------*/
 
@@ -468,6 +505,11 @@ main (int argc, char *argv[])
 				     NULL	/* data for tsfunc */
     );
 
+
+  if(afnitalk_flag && (DWIstreamid!=0)) {
+/* Close NIML stream */
+    NI_stream_close(DWIstreamid);
+  }
 
   if(cumulative_flag && reweight_flag) {
     cumulativewtptr = cumulativewt;
@@ -546,6 +588,7 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
   register float *imptr, *Gxptr, *Gyptr, *Gzptr;
   matrix *nullptr = NULL;
   register double Gx, Gy, Gz;
+
   ENTRY ("Form_R_Matrix");
   nrows = grad1Dptr->nx;
   matrix_initialize (&Rmat);
@@ -597,7 +640,9 @@ DWItoDT_tsfunc (double tzero, double tdelta,
   register double dv, dv0;
   vector lnvector;
   int wtflag;          /* wtflag for recomputing wtfactor*/
-  int max_converge_step;
+  int max_converge_step, graphpoint;
+  double dtau[50], Edgraph[50];
+  int graphflag;
 
   ENTRY ("DWItoDT_tsfunc");
   /* ts is input vector data of Np+1 floating point numbers.
@@ -727,10 +772,18 @@ DWItoDT_tsfunc (double tzero, double tdelta,
     EXRETURN;
   }
 
-  if(verbose&&(!(noisecall%verbose)))
+  if(verbose&&(!(noisecall%verbose)))   /* show verbose messages every verbose=n voxels */
      recordflag = 1;
      else
      recordflag = 0;
+
+  if(afnitalk_flag&&(!(noisecall%afnitalk_flag))) {  /* graph in AFNI convergence steps every afnitalk_flag=n voxels */
+     graphflag = 1;
+     graphpoint = 0;
+   }
+  else
+     graphflag = 0;
+
   noisecall++;
 
 #ifdef TESTING4
@@ -763,9 +816,14 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 	        /* found acceptable step size of DeltaTau */
                 if(recordflag==1)
                  printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f, ntrial %d in find dtau\n", ncall, converge_step, deltatau, ED, ntrial);
-
+                if(graphflag==1) {
+                  dtau[graphpoint] = deltatau;
+                  Edgraph[graphpoint] = ED;
+                  graphpoint++;
+                }
+                                     
 #ifdef TESTING4
-	    if(recordflag==1){
+	    if(graphflag==1){
             sprintf(graphstring, "ADDTO_GRAPH_1D DWIEDgraph %f\n", ED); 
             system(graphstring);
             sprintf(graphstring, "ADDTO_GRAPH_1D DWIDTgraph %f\n", deltatau);
@@ -813,6 +871,12 @@ DWItoDT_tsfunc (double tzero, double tdelta,
             if(recordflag==1)
               printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt*2 best\n", ncall, converge_step, deltatau, ED);
 
+                if(graphflag==1) {
+                  dtau[graphpoint] = deltatau;
+                  Edgraph[graphpoint] = ED;
+                  graphpoint++;
+                }
+
 #ifdef TESTING4
 	    if(recordflag==1){
              sprintf(graphstring, "ADDTO_GRAPH_1D DWIEDgraph %f\n", ED); 
@@ -835,6 +899,12 @@ DWItoDT_tsfunc (double tzero, double tdelta,
          if(recordflag==1)
               printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt best\n", ncall, converge_step, deltatau, ED);
 
+         if(graphflag==1) {
+            dtau[graphpoint] = deltatau;
+            Edgraph[graphpoint] = ED;
+            graphpoint++;
+         }
+
 	 if (converge_step != 0) {	/* first time through recalculate*/
 	     /* now see if converged yet */
              converge = TestConvergence(Dmatrix, OldD);
@@ -843,6 +913,12 @@ DWItoDT_tsfunc (double tzero, double tdelta,
           matrix_copy (Dmatrix, &OldD);
           if(recordflag==1)
               printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f\n", ncall, converge_step, deltatau, ED);
+
+         if(graphflag==1) {
+            dtau[graphpoint] = deltatau;
+            Edgraph[graphpoint] = ED;
+            graphpoint++;
+         }
 
           converge_step++;
 	}
@@ -890,6 +966,9 @@ DWItoDT_tsfunc (double tzero, double tdelta,
   if(debug_briks) {
     val[nbriks-3] = converge_step;
     val[nbriks-2] = ED;
+  }
+  if(graphflag==1) {
+     DWI_AFNI_update_graph(Edgraph, dtau, graphpoint);
   }
 
   EXRETURN;
@@ -993,15 +1072,14 @@ Calc_FA(float *val)
 /* calculate Fractional Anisotropy */
 /* passed float pointer to start of eigenvalues */
 {
-
-
   float FA;
   double ssq, dv0, dv1, dv2, dsq;
+
+  ENTRY("Calc_FA");
 
   /* calculate the Fractional Anisotropy, FA */
   /*   reference, Pierpaoli C, Basser PJ. Microstructural and physiological features 
        of tissues elucidated by quantitative-diffusion tensor MRI,J Magn Reson B 1996; 111:209-19 */
-  ENTRY("Calc_FA");
   if((val[0]<=0.0)||(val[1]<=0.0)||(val[2]<=0.0)) {   /* any negative eigenvalues*/
     RETURN(0.0);                                      /* should not see any for non-linear method. Set FA to 0 */  
   }
@@ -1753,13 +1831,182 @@ matrix_copy (matrix a, matrix * b)
 }
 
 
-#ifdef DWIAFNITALK
-/* from SUMA_NIML.c and SUMA_main.c */
-/* Open NIML stream */
-/*   open stream with tcp, reopen with shared memory */
-/*   test writing for connection and timeout */
-/* Write NIML stream */
-/*   create NIML structure - type and parameters in columns */
-/*   send structure on stream with niml write command */
-/* Kill NIML stream */
+#define DWI_WriteCheckWaitMax 2000
+#define DWI_WriteCheckWait 400
+/*-----------------------------------------------------*/
+/* Stuff for an extra NIML port for non-SUMA programs. */
+
+#ifndef NIML_TCP_FIRST_PORT
+#define NIML_TCP_FIRST_PORT 53212
 #endif
+
+/* open NIML stream */
+static int DWI_Open_NIML_stream()
+{
+   int nn, Wait_tot, tempport;
+   char streamname[256];
+
+   ENTRY("DWI_Open_NIML_stream");
+
+   /* contact afni */
+   tempport = NIML_TCP_FIRST_PORT;
+   sprintf(streamname, "tcp:localhost:%d",tempport);
+   fprintf(stderr,"Contacting AFNI\n");
+ 
+   DWIstreamid =  NI_stream_open( streamname, "w" ) ;
+   if (DWIstreamid==0) {
+       fprintf(stderr,"***NI_stream_open failed\n");
+      DWIstreamid = NULL;
+      RETURN(1);
+   }
+
+   fprintf (stderr,"\nTrying shared memory...\n");
+   if (!NI_stream_reopen( DWIstreamid, "shm:DWIDT1M:1M" ))
+       fprintf (stderr, "Warning: Shared memory communcation failed.\n");
+   else
+     fprintf(stderr, "Shared memory connection OK.\n");
+   Wait_tot = 0;
+   while(Wait_tot < DWI_WriteCheckWaitMax){
+      nn = NI_stream_writecheck( DWIstreamid , DWI_WriteCheckWait) ;
+      if( nn == 1 ){ 
+         fprintf(stderr,"\n") ; 
+         RETURN(0) ; 
+      }
+      if( nn <  0 ){ 
+         fprintf(stderr,"Bad connection to AFNI\n"); 
+         DWIstreamid = NULL;
+         RETURN(1);
+      }
+      Wait_tot += DWI_WriteCheckWait;
+      fprintf(stderr,".") ;
+   }
+
+   fprintf(stderr,"+++ WriteCheck timed out (> %d ms).\n",DWI_WriteCheckWaitMax);
+   RETURN(1);
+}
+
+/* create the initial graph in AFNI - no points yet*/
+static int DWI_NIML_create_graph()
+{
+   NI_element *nel;
+
+   ENTRY("DWI_NIML_create_graph");
+   nel = NI_new_data_element("ni_do", 0);
+   NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
+   NI_set_attribute ( nel, "ni_object", "OPEN_GRAPH_1D DWIConvEd 'DWI Convergence' 25 1 'converge step' 1 0 300000 Ed");
+   if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
+      fprintf(stderr,"Failed to send data to AFNI\n");
+      NI_free_element(nel) ; nel = NULL;
+      RETURN(1);
+   }
+   NI_free_element(nel) ; 
+   nel = NULL;
+   RETURN(0);
+}
+
+/* create new graph with left and right y axes scaled from 0 to max1, max2*/
+static int DWI_NIML_create_newgraph(npts, max1, max2)
+int npts;
+double max1, max2;
+{
+   NI_element *nel;
+   char stmp[256];
+   static int nx = -1;
+
+   ENTRY("DWI_NIML_create_newgraph");
+   nel = NI_new_data_element("ni_do", 0);
+   NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
+   if((nx==-1) || (nx<npts))                 /* 1st time through close any existing graph by that name*/
+      NI_set_attribute ( nel, "ni_object","CLOSE_GRAPH_1D DWIConvEd\n"); /* have to close graph to change axes */
+   else
+      NI_set_attribute ( nel, "ni_object","CLEAR_GRAPH_1D DWIConvEd\n");
+
+   if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
+      fprintf(stderr,"Failed to send data to AFNI\n");
+      NI_free_element(nel) ; nel = NULL;
+      RETURN(1);
+   }
+
+   if((nx==-1) || (nx<npts)) {                              /* update the graph only first time or if x-axis not big enough */
+      nx = max_iter * 4  + 10;
+      if(reweight_flag==1)
+        nx += max_iter_rw * 4 + 10;
+      if(nx<npts)                                          /* fix graph to include largest number of steps */
+	nx = npts;
+      sprintf(stmp,"OPEN_GRAPH_1D DWIConvEd 'DWI Convergence' %d 1 'converge step' 2 0 100 %%Maximum Ed \\Delta\\tau\n",nx  );
+      NI_set_attribute ( nel, "ni_object", stmp);
+      if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
+        fprintf(stderr,"Failed to send data to AFNI\n");
+        NI_free_element(nel) ; nel = NULL;
+        RETURN(1);
+      }
+      NI_set_attribute ( nel, "ni_object", "SET_GRAPH_GEOM DWIConvEd geom=700x400+100+400\n");
+      if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
+        fprintf(stderr,"Failed to send data to AFNI\n");
+        NI_free_element(nel) ; nel = NULL;
+        RETURN(1);
+      }
+   }
+   NI_free_element(nel) ; 
+   nel = NULL;
+   RETURN(0);
+}
+
+
+/* tell AFNI to graph data for convergence steps */
+static void DWI_AFNI_update_graph(double *Edgraph, double *dtau, int npts)
+{
+   NI_element *nel;
+   char stmp[256], tmpstr[2048];
+   int i;
+   double Edmax, dtaumax;
+   double *Edptr, *dtauptr;
+   double tempEd, temptau;
+
+   ENTRY("DWI_AFNI_update_graph");
+
+   Edmax = 0.0; dtaumax = 0.0;
+   Edptr = Edgraph;
+   dtauptr = dtau;
+   for(i=0;i<npts;i++) {
+     if(*Edptr>Edmax)
+       Edmax = *Edptr;
+     if(*dtauptr>dtaumax)
+       dtaumax = *dtauptr;
+     ++Edptr; ++dtauptr;
+   }
+
+   NI_write_procins(DWIstreamid, "keep reading");
+   DWI_NIML_create_newgraph(npts, Edmax, dtaumax);
+   /* NI_sleep(250);*/
+
+   nel = NI_new_data_element("ni_do", 0);
+   NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
+   NI_set_attribute ( nel, "ni_object", "CLEAR_GRAPH_1D DWIConvEd\n");
+   /*      NI_sleep(25);*/
+   if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
+      fprintf(stderr,"Failed to send data to AFNI\n");
+   }
+
+
+   for(i=0;i<npts;i++){
+      if(Edmax!=0.0)
+         tempEd = 100*Edgraph[i] / Edmax;
+      else
+	tempEd = 0.0;
+      if(dtaumax!=0.0)
+        temptau = 100*dtau[i] / dtaumax;
+      else
+        temptau = 0.0;
+
+      sprintf(stmp,"ADDTO_GRAPH_1D DWIConvEd %4.2f %4.2f\n", tempEd, temptau);  /* put rel.error, Ed, and deltatau for all the convergence steps */
+      NI_set_attribute ( nel, "ni_object", stmp);  /* put command and data in stmp */
+      NI_sleep(25);    /* for dramatic effect */
+      if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
+        fprintf(stderr,"Failed to send data to AFNI\n");
+      }
+   }
+   NI_free_element(nel) ; nel = NULL;
+   EXRETURN;
+}
+
