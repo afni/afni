@@ -4,7 +4,14 @@
 
 void A2A_help(void)
 {
-  printf("Usage: 3dANALYZEtoAFNI [options] file1.hdr file2.hdr ...\n"
+  printf("** DON'T USE THIS PROGRAM!  REALLY!\n"
+                    "USE 3dcopy OR to3d INSTEAD.\n\n"
+                    "IF YOU CHOOSE TO USE IT ANYWAY, PERHAPS\n"
+                    "BECAUSE IT WORKS BETTER ON YOUR 12th\n"
+                    "CENTURY PLANTAGENET ANALYZE FILES,\n"
+                    "ADD THE OPTION -force TO YOUR COMMAND\n"
+                    "LINE.\n\n"
+         "Usage: 3dANALYZEtoAFNI [options] file1.hdr file2.hdr ...\n"
          "This program constructs a 'volumes' stored AFNI dataset\n"
          "from the ANALYZE-75 files file1.img file2.img ....\n"
          "In this type of dataset, there is only a .HEAD file; the\n"
@@ -69,7 +76,14 @@ void A2A_help(void)
          " It is likely that you will want to patch up the .HEAD file using\n"
          " program 3drefit.\n"
          "\n"
-         " -- RWCox - June 2002.\n"
+         " -- RWCox - June 2002.\n\n\n"
+         "** DON'T USE THIS PROGRAM!  REALLY!\n"
+                    "USE 3dcopy OR to3d INSTEAD.\n\n"
+                    "IF YOU CHOOSE TO USE IT ANYWAY, PERHAPS\n"
+                    "BECAUSE IT WORKS BETTER ON YOUR 12th\n"
+                    "CENTURY PLANTAGENET ANALYZE FILES,\n"
+                    "ADD THE OPTION -force TO YOUR COMMAND\n"
+                    "LINE.-- KRH - April 2005.\n\n"
       ) ;
 }
 
@@ -77,6 +91,7 @@ void A2A_help(void)
 
 int main( int argc , char *argv[] )
 {
+   int force=0 ; /* KRH loudly deprecating usage 04/13/05/ */
    int iarg=1 ;
    THD_3dim_dataset *dset ;    /* output dataset */
    int nvals , ii , jj , kk ;
@@ -234,9 +249,19 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
+     /* -force */
+
+     if( strcmp(argv[iarg],"-force") == 0 ){
+       force = 1 ;
+       iarg++ ; continue ;
+     }
+
      /** don't know this one **/
 
      fprintf(stderr,"** Illegal option %s\n",argv[iarg]); exit(1);
+   }
+
+   if (!force) { A2A_help(); exit(0);
    }
 
    /*-- check number of remaining args --*/
