@@ -7412,7 +7412,7 @@ void basis_write_iresp( int argc , char *argv[] ,
      tross_Append_History ( out_dset, label);
    free((void *)commandline) ;
 
-   ts_length = (int)ceil( (be->ttop - be->tbot)/dt ) ;
+   ts_length = 1 + (int)ceil( (be->ttop - be->tbot)/dt ) ; /* 13 Apr 2005: +1 */
 
    /* modify the output dataset appropriately */
 
