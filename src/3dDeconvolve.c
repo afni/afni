@@ -7549,7 +7549,7 @@ void basis_write_sresp( int argc , char *argv[] ,
      tross_Append_History ( out_dset, label);
    free((void *)commandline) ;
 
-   ts_length = (int)ceil( (be->ttop - be->tbot)/dt ) ;
+   ts_length = 1 + (int)ceil( (be->ttop - be->tbot)/dt ) ;
 
    /* modify the output dataset appropriately */
 
