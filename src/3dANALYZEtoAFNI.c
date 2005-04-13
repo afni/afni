@@ -9,7 +9,7 @@ void A2A_help(void)
                     "IF YOU CHOOSE TO USE IT ANYWAY, PERHAPS\n"
                     "BECAUSE IT WORKS BETTER ON YOUR 12th\n"
                     "CENTURY PLANTAGENET ANALYZE FILES,\n"
-                    "ADD THE OPTION -force TO YOUR COMMAND\n"
+                    "ADD THE OPTION -OK TO YOUR COMMAND\n"
                     "LINE.\n\n"
          "Usage: 3dANALYZEtoAFNI [options] file1.hdr file2.hdr ...\n"
          "This program constructs a 'volumes' stored AFNI dataset\n"
@@ -82,7 +82,7 @@ void A2A_help(void)
                     "IF YOU CHOOSE TO USE IT ANYWAY, PERHAPS\n"
                     "BECAUSE IT WORKS BETTER ON YOUR 12th\n"
                     "CENTURY PLANTAGENET ANALYZE FILES,\n"
-                    "ADD THE OPTION -force TO YOUR COMMAND\n"
+                    "ADD THE OPTION -OK TO YOUR COMMAND\n"
                     "LINE.-- KRH - April 2005.\n\n"
       ) ;
 }
@@ -249,9 +249,9 @@ int main( int argc , char *argv[] )
        iarg++ ; continue ;
      }
 
-     /* -force */
+     /* -OK */
 
-     if( strcmp(argv[iarg],"-force") == 0 ){
+     if( strcmp(argv[iarg],"-OK") == 0 ){
        force = 1 ;
        iarg++ ; continue ;
      }
