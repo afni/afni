@@ -76,9 +76,8 @@ ENTRY("THD_write_3dim_dataset") ;
    /*------ 06 Apr 2005: write a NIFTI-1 dataset??? -----*/
 
    ppp = DSET_PREFIX(dset) ;
-   if( DSET_IS_NIFTI(dset)              ||
-       STRING_HAS_SUFFIX(ppp,".nii")    ||
-       STRING_HAS_SUFFIX(ppp,".nii.gz")   ){
+   if( STRING_HAS_SUFFIX(ppp,".nii")    ||
+       STRING_HAS_SUFFIX(ppp,".nii.gz") || use_NIFTI_format ){
 
      niftiwr_opts_t options ;
 
