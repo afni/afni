@@ -2152,7 +2152,7 @@ Variable: AFNI_NIFTI_DEBUG
 This integral variable determines the debug level used by the nifti_io
 library functions.  If set to 0, only error are reported by the library.
 The maximum debug level used is currently 4.  Note that if this is changed
-from within afni, a 'Rescan : This' operation should probably be performed.
+from within AFNI, a 'Rescan : This' operation should probably be performed.
 
 =============================================
 | Robert W Cox, PhD                         |
