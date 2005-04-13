@@ -1,3 +1,29 @@
+13 Apr 2005
+   * deprecated quite LOUDLY usage of 3dANALYZEtoAFNI
+05 Apr 2005
+   * created framework for AFNI to read and write NIFTI1 format files:
+   * modified thd_initsess.c to list files in the session tree with
+       a .nii extension
+   * added thd_niftiwrite.c to write out NIFTI1 files
+   * added thd_niftiwrite.h
+   * added 3dAFNItoNIFTI.c to read in AFNI file and write out
+       NIFTI1 file using the above code
+   * modified Makefile.INCLUDE to build thd_niftiwrite.o and
+      3dAFNItoNIFTI executable target
+10 Aug 2004
+   * modified mri_read.c to check input files for the dicom magic number
+     before processing based on file name.
+16 Jun 2004
+   * modified 3dTstat.c to allow a statistical method to return
+     multiple values (that is, multiple sub-BRIKS in the output
+     data set).
+   * modified 3dTstat.c to generate an arbitrary-length autocorrelation
+     vector
+   * modified 3dTstat.c to generate an arbitrary-order autoregression
+     coefficient vector
+11 Mar 2004
+   * modified several files to allow proper reading and writing of
+     the SPM Analyze coordinate space origin field
 28 Jul 2003
    * modified mri_read_dicom.c to allow to3d to read and process 
      Siemens mosaic files while ignoring seemingly meaningful
@@ -32,17 +58,3 @@ XX Dec 2003
    * modified 3dTstat.c to add option to calculate the Durbin-Watson
      statistic (which measures first-order autocorrelation of data
      in time).
-11 Mar 2004
-   * modified several files to allow proper reading and writing of
-     the SPM Analyze coordinate space origin field
-16 Jun 2004
-   * modified 3dTstat.c to allow a statistical method to return
-     multiple values (that is, multiple sub-BRIKS in the output
-     data set).
-   * modified 3dTstat.c to generate an arbitrary-length autocorrelation
-     vector
-   * modified 3dTstat.c to generate an arbitrary-order autoregression
-     coefficient vector
-10 Aug 2004
-   * modified mri_read.c to check input files for the dicom magic number
-     before processing based on file name.
