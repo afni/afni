@@ -1,7 +1,7 @@
 # This Makefile is for Mac OSX 10.0 (Darwin)
 
-# USE_ZLIB = -DHAVE_ZLIB
-# LZLIB    = -lz
+USE_ZLIB = -DHAVE_ZLIB
+LZLIB    = -lz
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp -DDONT_USE_MCW_MALLOC
