@@ -2457,7 +2457,7 @@ int act_disp_ts( nt_opts * opts )
       else if( len != (nim->nt * nim->nbyper) )
       {
          fprintf(stderr,"** dset '%s' returned length %d instead of %d\n",
-                 len, nim->nt * nim->nbyper);
+                 nim->fname , len, nim->nt * nim->nbyper);
          free(data);
          err++;
       }
