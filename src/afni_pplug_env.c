@@ -414,7 +414,7 @@ PLUGIN_interface * ENV_init(void)
 
    /* 08 Apr 2005 [rickr] */
    ENV_add_numeric( "AFNI_NIFTI_DEBUG" ,
-                    "Set nifti_io debug level (should Rescan:This)." ,
+                    "Set nifti_io debug level (should then do Rescan:This)" ,
                     0,5,0,0 , NULL ) ;
 
    /*---------------- compute helpstring -----------------------*/
