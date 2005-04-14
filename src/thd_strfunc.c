@@ -129,6 +129,7 @@ int breakup_string( char *sin , char ***stok )
 
       /* skip the character after the end of sub-string */
 
+      if( *cpt == NUL ) break ;  /* end of the line, baby [14 Apr 2005] */
       cpt++ ;
    } /* end of loop over input string */
 
