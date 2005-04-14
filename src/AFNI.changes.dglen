@@ -26,3 +26,6 @@
 
 12 April 2005
  * Added AFNI NIML graphing of convergence to 3dDWItoDT.c with user option -drive_afni nnnnn
+
+14 April 2005
+ * Fixed bug in 3dDWItoDT.c when user requests both linear solution and eigenvalues. Removed several unused ifdef'ed debugging code sections.

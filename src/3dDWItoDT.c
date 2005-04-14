@@ -473,11 +473,6 @@ main (int argc, char *argv[])
 		   ADN_ttorg, 0.0,
 		   ADN_ttdel, 1.0, ADN_tunits, UNITS_SEC_TYPE, NULL);
 
-#ifdef TESTING4
-  system("plugout_drive 'OPEN_GRAPH_1D DWIEDgraph 'DWI Ed' 25 1 'Convergence' 1 0 200000 'Ed' ''");
-  system("plugout_drive 'OPEN_GRAPH_1D DWIDTgraph 'DWI \\delta \\tau' 25 1 'Convergence' 1 0 200000 '\\delta \\tau' ''");
-#endif
-
   if(afnitalk_flag) {
      if(DWI_Open_NIML_stream()!=0) {   /* Open NIML stream */
        afnitalk_flag = 0;
@@ -720,10 +715,10 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
      if(eigs_flag) {                            /* if user wants eigenvalues in output dataset */
         EIG_func();                              /* calculate eigenvalues, eigenvectors here */
-        for(i=0;i<12;i++)
+        for(i=0;i<12;i++) 
           val[i+6] = eigs[i];
        /* calc FA */
-       val[19] = Calc_FA(val+6);                /* calculate fractional anisotropy */
+       val[18] = Calc_FA(val+6);                /* calculate fractional anisotropy */
      }
      EXRETURN;
   }
@@ -742,8 +737,17 @@ DWItoDT_tsfunc (double tzero, double tdelta,
   if(matrix_sumabs(Dmatrix)<=TINYNUMBER) {
     for(i=0;i<nbriks;i++)
       val[i] = 0.0;
-    if(debug_briks)
-       val[6] = -2.0;  /* use -2 as flag for number of converge steps to mean exited for insignificant D values*/
+     if(debug_briks) {
+       val[nbriks-3] = -2.0; /* use -2 as flag for number of converge steps to mean exited for insignificant D values*/
+       val[nbriks-2] = 0;
+       val[nbriks-1] = 0;                  /* store original error */
+     }
+
+     if(eigs_flag) {                       /* if user wants eigenvalues in output dataset */
+        for(i=0;i<13;i++) 
+          val[i+6] = 0.0;                  /* put 0 in all sub-briks */
+     }
+
     EXRETURN;
   }
 
@@ -786,14 +790,6 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
   noisecall++;
 
-#ifdef TESTING4
-      if(recordflag==1){
-	system("plugout_drive CLEAR_GRAPH_1D DWIEDgraph\n");
-        sprintf(graphstring, "ADDTO_GRAPH_1D DWIEDgraph %f\n", ED);
-	system("plugout_drive CLEAR_GRAPH_1D DWIDTgraph\n");
-        sprintf(graphstring, "ADDTO_GRAPH_1D DWIDTgraph %f\n",deltatau);
-      }      
-#endif
       ntrial = 0;
 
       while ((converge_step < max_converge_step) && (converge!=1) && (ntrial < 10) )
@@ -822,14 +818,6 @@ DWItoDT_tsfunc (double tzero, double tdelta,
                   graphpoint++;
                 }
                                      
-#ifdef TESTING4
-	    if(graphflag==1){
-            sprintf(graphstring, "ADDTO_GRAPH_1D DWIEDgraph %f\n", ED); 
-            system(graphstring);
-            sprintf(graphstring, "ADDTO_GRAPH_1D DWIDTgraph %f\n", deltatau);
-            system(graphstring);
-            }
-#endif
 	        EDold = ED;
 	        trialstep = 0;
    	        Store_Computations (1, npts, wtflag);	/* Store current computations */
@@ -868,23 +856,14 @@ DWItoDT_tsfunc (double tzero, double tdelta,
                 Store_Computations(0, npts, wtflag);	/* Store Tau+dtau step computations */
                 EDold = ED;
 
-            if(recordflag==1)
-              printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt*2 best\n", ncall, converge_step, deltatau, ED);
+                if(recordflag==1)
+                  printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt*2 best\n", ncall, converge_step, deltatau, ED);
 
                 if(graphflag==1) {
                   dtau[graphpoint] = deltatau;
                   Edgraph[graphpoint] = ED;
                   graphpoint++;
                 }
-
-#ifdef TESTING4
-	    if(recordflag==1){
-             sprintf(graphstring, "ADDTO_GRAPH_1D DWIEDgraph %f\n", ED); 
-             system(graphstring);
-             sprintf(graphstring, "ADDTO_GRAPH_1D DWIDTgraph %f\n", deltatau);
-             system(graphstring);
-            }
-#endif
               }
             }
           }
