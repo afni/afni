@@ -264,3 +264,8 @@ typedef double 		THIS_FLOAT64;
 
 double ****d4matrix(int th, int zh,  int yh, int xh);
 double ****FslGetBufferAsScaledDouble(FSLIO *fslio);
+int  convertBufferToScaledDouble(double *outbuf, void *inbuf, long len, float slope, float inter, int nifti_datatype ) ;
+
+
+
+

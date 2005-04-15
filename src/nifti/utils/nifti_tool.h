@@ -11,10 +11,9 @@ typedef struct{
    int      disp_hdr,  disp_nim;
    int      disp_exts, add_exts, rm_exts;
    int      mod_hdr,   mod_nim;
-   int      cbl, ccd;            /* -copy_XXX option flags        */
-   int      dts, dts_lines;      /* show_time_series flags        */
-   int      ccd_dims[8];         /* user dims list (last 7 valid) */
-   int      dts_ijk[3];          /* ijk indices for time series   */
+   int      cbl, cci;            /* -copy_XXX option flags        */
+   int      dts, dci, dci_lines; /* display collapsed img flags   */
+   int      ci_dims[8];          /* user dims list (last 7 valid) */
    int      debug, overwrite;    /* overwrite input files flag    */
    char *   prefix;              /* for output file               */
    str_list elist;               /* extensions                    */
@@ -79,9 +78,10 @@ typedef struct {
 /*----------------------------------------------------------------------*/
 int    act_add_exts   ( nt_opts * opts );
 int    act_cbl        ( nt_opts * opts );  /* copy brick list */
-int    act_ccd        ( nt_opts * opts );  /* copy collapsed dimensions */
+int    act_cci        ( nt_opts * opts );  /* copy collapsed dimensions */
 int    act_diff_hdrs  ( nt_opts * opts );
 int    act_diff_nims  ( nt_opts * opts );
+int    act_disp_ci    ( nt_opts * opts );  /* display general collapsed data */
 int    act_disp_exts  ( nt_opts * opts );
 int    act_disp_hdrs  ( nt_opts * opts );
 int    act_disp_nims  ( nt_opts * opts );
@@ -102,12 +102,13 @@ int diff_nims_list(nifti_image *s0,nifti_image *s1,str_list *slist,int display);
 
 int add_string       (str_list * slist, char * str);
 int check_total_size (char *mesg, field_s *fields, int nfields, int tot_size);
+int clear_float_zeros( char * str );
 int diff_field       (field_s *fieldp, void * str0, void * str1, int nfields);
 int disp_nifti1_extension(char *mesg, nifti1_extension * ext);
 int disp_field       (char *mesg,field_s *fp,void *str,int nfields,int header);
 int disp_field_s_list(char * mesg, field_s *, int nfields);
 int disp_nt_opts     (char * mesg, nt_opts * opts);
-int disp_raw_data    (void * data, int type, int nvals, char space);
+int disp_raw_data    (void * data, int type, int nvals, char space,int newline);
 int fill_field       (field_s *fp, int type, int offset, int num, char *name);
 int fill_hdr_field_array(field_s * nh_fields);
 int fill_nim_field_array(field_s * nim_fields);

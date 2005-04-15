@@ -229,8 +229,16 @@ static char gni_history[] =
   "       if prefix has a valid extension, use it (else make one up)\n"
   "   - added nifti_get_intlist - for making an array of ints\n"
   "   - fixed init of NBL->bsize in nifti_alloc_NBL_mem()  {thanks, Bob}\n"
+  "\n"
+  "1.8  14 April 2005 [rickr]\n"
+  "   - added nifti_set_type_from_names(), for nifti_set_filenames()\n"
+  "     (only updates type if number of files does not match it)\n"
+  "   - added is_valid_nifti_type(), just to be sure\n"
+  "   - updated description of nifti_read_collapsed_image() for *data change\n"
+  "     (if *data is already set, assume memory exists for results)\n"
+  "   - modified rci_alloc_mem() to allocate only if *data is NULL\n"
   "----------------------------------------------------------------------\n";
-static char gni_version[] = "nifti library version 1.7 (April 08, 2005)";
+static char gni_version[] = "nifti library version 1.8 (April 14, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -2337,10 +2345,72 @@ int nifti_set_filenames( nifti_image * nim, char * prefix, int check,
 
    if( set_byte_order ) nim->byteorder = nifti_short_order() ;
 
+   if( nifti_set_type_from_names(nim) < 0 )
+      return -1;
+
    if( g_opts.debug > 2 )
       fprintf(stderr,"+d have new filenames %s and %s\n",nim->fname,nim->iname);
 
    return 0;
+}
+
+
+/*--------------------------------------------------------------------------*/
+/*! check whether the given type is on the "approved" list
+
+    \return 1 if valid, 0 otherwise
+*//*------------------------------------------------------------------------*/
+int is_valid_nifti_type( int nifti_type )
+{
+   if( nifti_type >= 0 && nifti_type <= 3 ) return 1;
+   return 0;
+}
+
+
+/*--------------------------------------------------------------------------*/
+/*! set the nifti_type field based on fname and iname
+
+    Note that nifti_type is changed only when it does not match
+    the filenames.
+
+    \return 0 on success, -1 on error
+*//*------------------------------------------------------------------------*/
+int nifti_set_type_from_names( nifti_image * nim )
+{
+   char * ext;
+
+   /* error checking first */
+   if( !nim ){ fprintf(stderr,"** NSTFN: no nifti_image\n");  return -1; }
+
+   if( !nim->fname || !nim->iname ){
+      fprintf(stderr,"** NSTFN: missing filename(s) fname @ %p, iname @ %p\n",
+              nim->fname, nim->iname);
+      return -1;
+   }
+
+   if( ! nifti_validfilename      ( nim->fname ) ||
+       ! nifti_validfilename      ( nim->iname ) ||
+       ! nifti_find_file_extension( nim->fname ) ||
+       ! nifti_find_file_extension( nim->iname )
+     ) {
+      fprintf(stderr,"** NSTFN: invalid filename(s) fname='%s', iname='%s'\n",
+              nim->fname, nim->iname);
+      return -1;
+   }
+
+   /* if equal, it should be nifti_type 1, (and end in .nii...) */
+   ext = nifti_find_file_extension( nim->fname );
+
+   /* not too picky here, do what must be done, and then verify */
+   if( strcmp(nim->fname, nim->iname) == 0 ) nim->nifti_type = 1;
+   else if ( nim->nifti_type == 1 )          nim->nifti_type = 2;
+
+   if( is_valid_nifti_type(nim->nifti_type) ) return 0;  /* success! */
+
+   fprintf(stderr,"** NSTFN: bad nifti_type %d, for '%s' and '%s'\n",
+           nim->nifti_type, nim->fname, nim->iname);
+
+   return -1;
 }
 
 
@@ -2538,7 +2608,7 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
 
    is_nifti = NIFTI_VERSION(nhdr) ;
    if( doswap ) {
-      if ( g_opts.debug > 2 ) disp_nifti_1_header("-d ni1 pre-swap: ", &nhdr);
+      if ( g_opts.debug > 3 ) disp_nifti_1_header("-d ni1 pre-swap: ", &nhdr);
       swap_nifti_header( &nhdr , is_nifti ) ;
    }
 
@@ -2625,6 +2695,7 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
     
     nim->qform_code = NIFTI_XFORM_UNKNOWN ;
     
+    if( g_opts.debug > 1 ) fprintf(stderr,"-d no qform provided\n");
   } else {
     /**- else NIFTI: use the quaternion-specified transformation */
     
@@ -2660,6 +2731,8 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
     /**- if not nifti or sform_code <= 0, then no sto transformation */
     
     nim->sform_code = NIFTI_XFORM_UNKNOWN ;
+
+    if( g_opts.debug > 1 ) fprintf(stderr,"-d no sform provided\n");
     
   } else {
     /**- else set the sto transformation from srow_*[] */
@@ -2689,7 +2762,7 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
     nim->sform_code = nhdr.sform_code ;
 
     if( g_opts.debug > 1 )
-       nifti_disp_matrix_orient("-d qform orientations:\n", nim->sto_xyz);
+       nifti_disp_matrix_orient("-d sform orientations:\n", nim->sto_xyz);
   }
   
   /**- set miscellaneous NIFTI stuff */
@@ -2777,7 +2850,7 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
 /***************************************************************
  * nifti_image_open
  ***************************************************************/
-/*! \fn znzFile nifti_image_open( char *hname, char *opts , nifti_image **nim)
+/*! znzFile nifti_image_open( char *hname, char *opts , nifti_image **nim)
     \brief Read in NIFTI-1 or ANALYZE-7.5 file (pair) header information into a nifti_image struct.
 
     - The image data is not read from disk (it may be read later using
@@ -2790,8 +2863,10 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
 
     \param hname filename of dataset .hdr or .nii file
     \param opts  options string for opening the header file
-    \param nim   pointer to pointer to nifti_image struct (this routine allocates the nifti_image struct)
-    \return file pointer (gzippable) to the file with the image data, ready for reading.
+    \param nim   pointer to pointer to nifti_image struct
+                 (this routine allocates the nifti_image struct)
+    \return file pointer (gzippable) to the file with the image data,
+                 ready for reading.
         <br>NULL if something fails badly.
     \sa nifti_image_load, nifti_image_free
  */
@@ -2800,7 +2875,7 @@ znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim)
   znzFile fptr=NULL;
   /* open the hdr and reading it in, but do not load the data  */
   *nim = nifti_image_read(hname,0);
-  /* open the image file, ready for reading - NB: compressed works for all reads */
+  /* open the image file, ready for reading (compressed works for all reads) */
   if( ((*nim) == NULL)      || ((*nim)->iname == NULL) ||
       ((*nim)->nbyper <= 0) || ((*nim)->nvox <= 0)       )
      ERREX("bad header info") ;
@@ -2875,7 +2950,7 @@ nifti_1_header * nifti_read_header( char * hname, int * swap, int check )
    }
 
    if( lswap ) {
-      if ( g_opts.debug > 2 ) disp_nifti_1_header("-d nhdr pre-swap: ", &nhdr);
+      if ( g_opts.debug > 3 ) disp_nifti_1_header("-d nhdr pre-swap: ", &nhdr);
       swap_nifti_header( &nhdr , NIFTI_VERSION(nhdr) ) ;
    }
 
@@ -2960,6 +3035,12 @@ static int need_nhdr_swap( short dim0, int hdrsize )
       nifti_swap_2bytes(1, &d0);        /* swap? */
       if( d0 > 0 && d0 <= 7 ) return 1;
 
+      if( g_opts.debug > 1 ){
+         fprintf(stderr,"** bad swapped d0 = %d, unswapped = ", d0);
+         nifti_swap_2bytes(1, &d0);        /* swap? */
+         fprintf(stderr,"%d\n", d0);
+      }
+
       return -1;        /* bad, naughty d0 */
    } 
 
@@ -2968,6 +3049,12 @@ static int need_nhdr_swap( short dim0, int hdrsize )
 
    nifti_swap_4bytes(1, &hsize);     /* swap? */
    if( hsize == sizeof(nifti_1_header) ) return 1;
+
+   if( g_opts.debug > 1 ){
+      fprintf(stderr,"** bad swapped hsize = %d, unswapped = ", hsize);
+      nifti_swap_4bytes(1, &hsize);        /* swap? */
+      fprintf(stderr,"%d\n", hsize);
+   }
 
    return -2;     /* bad, naughty hsize */
 }
@@ -3948,7 +4035,7 @@ static int nifti_write_extensions(znzFile fp, nifti_image *nim)
 /*----------------------------------------------------------------------*/
 /*! basic initialization of a nifti_image struct (to a 1x1x1 image)
 *//*--------------------------------------------------------------------*/
-nifti_image* nifti_simple_init_nim()
+nifti_image* nifti_simple_init_nim(void)
 {
   nifti_image *nim;
   struct nifti_1_header nhdr;
@@ -5203,8 +5290,30 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
          -> read time series for slice at i,j = 5,4, and dim 5,6,7 = 0,0,0
             (note that dims[7] is not relevant, but must be 0 or -1)
 
-    Note that *data will be set as a pointer to new memory, allocated here
-    for the resulting collapsed image data.
+    If *data is NULL, then *data will be set as a pointer to new memory,
+    allocated here for the resulting collapsed image data.
+
+      e.g. { int    dims[8] = { 0,  5,  4, 17, -1, -1, -1, -1 };
+             void * data    = NULL;
+             ret_val = nifti_read_collapsed_image(nim, dims, &data);
+             if( ret_val > 0 ){
+                process_time_series(data);
+                if( data != NULL ) free(data);
+             }
+           }
+
+    If *data is not NULL, then it will be assumed that it points to valid
+    memory, sufficient to hold the results.  This is done for speed.
+
+      e.g. { int    dims[8] = { 0,  -1, -1, -1, -1, -1, -1, -1 };
+             void * data    = NULL;
+             for( zslice = 0; zslice < nzslices; zslice++ ){
+                dims[3] = zslice;
+                ret_val = nifti_read_collapsed_image(nim, dims, &data);
+                if( ret_val > 0 ) process_slice(zslice, data);
+             }
+             if( data != NULL ) free(data);
+           }
 
     \return the total number of bytes read, or < 0 on failure            </pre>
 *//*-------------------------------------------------------------------------*/
@@ -5346,6 +5455,9 @@ static int rci_read_data(nifti_image * nim, int * pivots, int * prods,
 
 /* allocate memory for all collapsed image data
 
+   If *data is already set, do not allocate, but still calculate
+   size for debug report.
+
    return total size on success, and < 0 on failure
 */
 static int rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper )
@@ -5360,17 +5472,21 @@ static int rci_alloc_mem(void ** data, int prods[8], int nprods, int nbyper )
    for( index = 0, size = 1; index < nprods; index++ )
        size *= prods[index];
 
-   if( g_opts.debug > 1 )
-      fprintf(stderr,"+d allocating %d (= %d x %d) bytes for collapsed image\n",
-              size*nbyper, size, nbyper);
-
    size *= nbyper;
-   *data = malloc(size);
 
-   if( ! *data ){
-      fprintf(stderr,"** rci_am: failed to alloc %d bytes for data\n", size);
-      return -1;
-   }
+   if( ! *data ){   /* then allocate what is needed */
+      if( g_opts.debug > 1 )
+         fprintf(stderr,"+d alloc %d (= %d x %d) bytes for collapsed image\n",
+                 size, size/nbyper, nbyper);
+
+      *data = malloc(size);   /* actually allocate the memory */
+      if( ! *data ){
+         fprintf(stderr,"** rci_am: failed to alloc %d bytes for data\n", size);
+         return -1;
+      }
+   } else if( g_opts.debug > 1 )
+      fprintf(stderr,"-d rci_am: *data already set, need %d (%d x %d) bytes\n",
+              size, size/nbyper, nbyper);
 
    return size;
 }
@@ -5424,7 +5540,7 @@ static int make_pivot_list(nifti_image * nim, int dims[], int pivots[],
 #undef ISEND
 #define ISEND(c) ( (c)==']' || (c)=='}' || (c)=='\0' )
 
-/*-----------------------------------------------------------------*/
+/*---------------------------------------------------------------------*/
 /*! Get an integer list in the range 0..(nvals-1), from the
    character string str.  If we call the output pointer fred,
    then fred[0] = number of integers in the list (> 0), and
@@ -5448,7 +5564,7 @@ static int make_pivot_list(nifti_image * nim, int dims[], int pivots[],
      - entries should be in the range 0..nvals-1
 
    (borrowed, with permission, from thd_intlist.c)
--------------------------------------------------------------------*/
+*//*-------------------------------------------------------------------*/
 int * nifti_get_intlist( int nvals , char *str )
 {
    int *subv = NULL ;
@@ -5472,7 +5588,7 @@ int * nifti_get_intlist( int nvals , char *str )
    if( g_opts.debug > 1 )
       fprintf(stderr,"-d making int_list (vals = %d) from '%s'\n", nvals, str);
 
-   /*** loop through each sub-selector until end of input ***/
+   /** for each sub-selector until end of input... */
 
    slen = strlen(str) ;
    while( ipos < slen && !ISEND(str[ipos]) ){
@@ -5480,7 +5596,7 @@ int * nifti_get_intlist( int nvals , char *str )
       while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
       if( ISEND(str[ipos]) ) break ;         /* done */
 
-      /** get starting value **/
+      /** get starting value */
 
       if( str[ipos] == '$' ){  /* special case */
          ibot = nvals-1 ; ipos++ ;
@@ -5506,7 +5622,7 @@ int * nifti_get_intlist( int nvals , char *str )
 
       while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
 
-      /** if that's it for this sub-selector, add one value to list **/
+      /** if that's it for this sub-selector, add one value to list */
 
       if( str[ipos] == ',' || ISEND(str[ipos]) ){
          nout++ ;
@@ -5517,7 +5633,7 @@ int * nifti_get_intlist( int nvals , char *str )
          ipos++ ; continue ;            /* re-start loop at next sub-selector */
       }
 
-      /** otherwise, must have '..' or '-' as next inputs **/
+      /** otherwise, must have '..' or '-' as next inputs */
 
       if( str[ipos] == '-' ){
          ipos++ ;
@@ -5529,7 +5645,7 @@ int * nifti_get_intlist( int nvals , char *str )
          free(subv) ; return NULL ;
       }
 
-      /** get ending value for loop now **/
+      /** get ending value for loop now */
 
       if( str[ipos] == '$' ){  /* special case */
          itop = nvals-1 ; ipos++ ;
@@ -5553,13 +5669,13 @@ int * nifti_get_intlist( int nvals , char *str )
          ipos += nused ;
       }
 
-      /** set default loop step **/
+      /** set default loop step */
 
       istep = (ibot <= itop) ? 1 : -1 ;
 
       while( isspace(str[ipos]) ) ipos++ ;                  /* skip blanks */
 
-      /** check if we have a non-default loop step **/
+      /** check if we have a non-default loop step */
 
       if( str[ipos] == '(' ){  /* decode an integer */
          ipos++ ;
@@ -5577,7 +5693,7 @@ int * nifti_get_intlist( int nvals , char *str )
          }
       }
 
-      /** add values to output **/
+      /** add values to output */
 
       for( ii=ibot ; (ii-itop)*istep <= 0 ; ii += istep ){
          nout++ ;
@@ -5586,7 +5702,7 @@ int * nifti_get_intlist( int nvals , char *str )
          subv[nout] = ii ;
       }
 
-      /** check if we have a comma to skip over **/
+      /** check if we have a comma to skip over */
 
       while( isspace(str[ipos]) ) ipos++ ;                  /* skip blanks */
       if( str[ipos] == ',' ) ipos++ ;                       /* skip commas */

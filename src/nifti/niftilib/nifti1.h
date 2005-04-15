@@ -284,8 +284,9 @@ typedef struct nifti1_extender nifti1_extender ;
     \brief Data structure defining the fields of a header extension.
  */
 struct nifti1_extension {
-   int esize , ecode ;
-   char *edata ;
+   int    esize ; /*!< size of extension, in bytes (must be multiple of 16) */
+   int    ecode ; /*!< extension code, one of the NIFTI_ECODE_ values       */
+   char * edata ; /*!< raw data, with no byte swapping                      */
 } ;
 typedef struct nifti1_extension nifti1_extension ;
 
