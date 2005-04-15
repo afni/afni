@@ -2055,13 +2055,13 @@ int FslGetIgnoreMFQ()
 	<br>Array values are scaled as per fslio header slope and intercept fields.
 
     \param fslio pointer to open dataset
-    \return Pointer to 4D double array
+    \return Pointer to 4D double array, NULL on error
  */
 double ****FslGetBufferAsScaledDouble(FSLIO *fslio)
 {
   double ****newbuf;
   int xx,yy,zz,tt;
-  int i,j,k,l,m;
+  int ret;
   float inter, slope;
 
   if (fslio==NULL)  FSLIOERR("FslGetBufferAsScaledDouble: Null pointer passed for FSLIO");
@@ -2085,57 +2085,18 @@ double ****FslGetBufferAsScaledDouble(FSLIO *fslio)
 		inter = fslio->niftiptr->scl_inter;
 	}
 	
+
     /** allocate new 4D buffer */
     newbuf = d4matrix(tt-1,zz-1,yy-1,xx-1);
 
-    /** fill the buffer */
-    for (l=0,m=0;l<tt;l++)
-    for (k=0;k<zz;k++)
-    for (j=0;j<yy;j++)
-    for (i=0;i<xx;i++,m++)
-        switch(fslio->niftiptr->datatype) {
-	    case NIFTI_TYPE_UINT8:
-		newbuf[l][k][j][i] = (double) ( *((THIS_UINT8 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
-	    case NIFTI_TYPE_INT8:
-		newbuf[l][k][j][i] = (double) ( *((THIS_INT8 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
-	    case NIFTI_TYPE_UINT16:
-		newbuf[l][k][j][i] = (double) ( *((THIS_UINT16 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
-	    case NIFTI_TYPE_INT16:
-		newbuf[l][k][j][i] = (double) ( *((THIS_INT16 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
-	    case NIFTI_TYPE_UINT64:
-		newbuf[l][k][j][i] = (double) ( *((THIS_UINT64 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
-	    case NIFTI_TYPE_INT64:
-		newbuf[l][k][j][i] = (double) ( *((THIS_INT64 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
-	    case NIFTI_TYPE_UINT32:
-		newbuf[l][k][j][i] = (double) ( *((THIS_UINT32 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
-	    case NIFTI_TYPE_INT32:
-		newbuf[l][k][j][i] = (double) ( *((THIS_INT32 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
-	    case NIFTI_TYPE_FLOAT32:
-		newbuf[l][k][j][i] = (double) ( *((THIS_FLOAT32 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
-	    case NIFTI_TYPE_FLOAT64:
-		newbuf[l][k][j][i] = (double) ( *((THIS_FLOAT64 *)(fslio->niftiptr->data)+m) * slope + inter);
-		break;
+    /** cvt it */
+    ret = convertBufferToScaledDouble(newbuf[0][0][0], fslio->niftiptr->data, (long)(xx*yy*zz*tt), slope, inter, fslio->niftiptr->datatype);
 
-	    case NIFTI_TYPE_FLOAT128:
-	    case NIFTI_TYPE_COMPLEX128:
-	    case NIFTI_TYPE_COMPLEX256:
-	    case NIFTI_TYPE_COMPLEX64:
-	    default:
-		fprintf(stderr, "\nWarning, cannot support %s yet.\n",nifti_datatype_string(fslio->niftiptr->datatype));
-		newbuf = NULL;
-		break;
-        }
+    if (ret == 0)
+  	return(newbuf);
+    else
+        return(NULL);
 
-  return(newbuf);
   } /* nifti data */
 
 
@@ -2146,14 +2107,95 @@ double ****FslGetBufferAsScaledDouble(FSLIO *fslio)
   return(NULL);
 }
 
+/***************************************************************
+ * convertBufferToScaledDouble
+ ***************************************************************/
+/*! \fn int  convertBufferToScaledDouble(double *outbuf, void *inbuf, long len, float slope, float inter, int nifti_datatype )
+    \brief allocate a 4D buffer, use 1 contiguous buffer for the data 
+
+	Array is indexed as buf[0..th-1][0..zh-1][0..yh-1][0..xh-1].  
+	<br>To access all elements as a vector, use buf[0][0][0][i] where
+	i can range from 0 to th*zh*yh*xh - 1.
+
+    \param outbuf pointer to array of doubles of size len
+    \param inbuf void pointer to an array of len items of datatype nifti_datatype
+    \param len number of elements in outbuf and inbuf
+    \param slope slope term of scaling to be applied
+    \param inter intercept term of scaling to be applied:  out = (in*slope)+inter
+    \param nifti_datatype NIFTI datatype code for the datatype of the elements in inbuf
+    \return error code: 0=OK -1=error
+ */
+int  convertBufferToScaledDouble(double *outbuf, void *inbuf, long len, float slope, float inter, int nifti_datatype ) 
+{
+
+	long i;
+
+
+    /** fill the buffer */
+    for (i=0; i<len; i++)
+        switch(nifti_datatype) {
+	    case NIFTI_TYPE_UINT8:
+		outbuf[i] = (double) ( *((THIS_UINT8 *)(inbuf)+i) * slope + inter);
+		break;
+	    case NIFTI_TYPE_INT8:
+		outbuf[i] = (double) ( *((THIS_INT8 *)(inbuf)+i) * slope + inter);
+		break;
+	    case NIFTI_TYPE_UINT16:
+		outbuf[i] = (double) ( *((THIS_UINT16 *)(inbuf)+i) * slope + inter);
+		break;
+	    case NIFTI_TYPE_INT16:
+		outbuf[i] = (double) ( *((THIS_INT16 *)(inbuf)+i) * slope + inter);
+		break;
+	    case NIFTI_TYPE_UINT64:
+		outbuf[i] = (double) ( *((THIS_UINT64 *)(inbuf)+i) * slope + inter);
+		break;
+	    case NIFTI_TYPE_INT64:
+		outbuf[i] = (double) ( *((THIS_INT64 *)(inbuf)+i) * slope + inter);
+		break;
+	    case NIFTI_TYPE_UINT32:
+		outbuf[i] = (double) ( *((THIS_UINT32 *)(inbuf)+i) * slope + inter);
+		break;
+	    case NIFTI_TYPE_INT32:
+		outbuf[i] = (double) ( *((THIS_INT32 *)(inbuf)+i) * slope + inter);
+		break;
+	    case NIFTI_TYPE_FLOAT32:
+		outbuf[i] = (double) ( *((THIS_FLOAT32 *)(inbuf)+i) * slope + inter);
+		break;
+	    case NIFTI_TYPE_FLOAT64:
+		outbuf[i] = (double) ( *((THIS_FLOAT64 *)(inbuf)+i) * slope + inter);
+		break;
+
+	    case NIFTI_TYPE_FLOAT128:
+	    case NIFTI_TYPE_COMPLEX128:
+	    case NIFTI_TYPE_COMPLEX256:
+	    case NIFTI_TYPE_COMPLEX64:
+	    default:
+		fprintf(stderr, "\nWarning, cannot support %s yet.\n",nifti_datatype_string(nifti_datatype));
+		return(-1);
+	}
+
+return(0);
+}
 
 
 /***************************************************************
  * d4matrix
  ***************************************************************/
+/*! \fn double ****d4matrix(int th, int zh,  int yh, int xh)
+    \brief allocate a 4D buffer, use 1 contiguous buffer for the data 
+
+	Array is indexed as buf[0..th][0..zh][0..yh][0..xh].  
+	<br>To access all elements as a vector, use buf[0][0][0][i] where
+	i can range from 0 to th*zh*yh*xh - 1.
+	Adaptation of Numerical Recipes in C nrutil.c allocation routines. 
+
+    \param th slowest changing dimension
+    \param zh 2nd slowest changing dimension
+    \param yh 2nd fastest changing dimension
+    \param xh fastest changing dimension
+    \return Pointer to 4D double array
+ */
 double ****d4matrix(int th, int zh,  int yh, int xh)
-/* allocate a double 4matrix with range t[0..th][0..zh][0..yh][0..xh] */
-/* adaptation of Numerical Recipes in C nrutil.c allocation routines */
 {
 
 	int j;

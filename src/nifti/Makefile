@@ -121,7 +121,7 @@ utils:  nifti
 
 doc:
 	(cd docs; doxygen Doxy_nifti.txt;)
-	@echo "doxygen doc rebuilt, run netscape doc/html/index.html to view."
+	@echo "doxygen doc rebuilt, run netscape docs/html/index.html to view."
 
 znz_install:
 	($(CP) $(ZNZ)/*.a $(INSTALL_LIB_DIR); $(CP) $(ZNZ)/*.h $(INSTALL_INC_DIR);)

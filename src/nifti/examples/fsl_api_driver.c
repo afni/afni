@@ -108,10 +108,14 @@ if (!strncmp(argv[1],"peek",4)) {
 
 	/*** get data as doubles and scaled */
 	ddata = FslGetBufferAsScaledDouble(fslio);
-
-	fprintf(stderr, "\nLocation %d %d %d %d: %.4f\n",x,y,z,t,ddata[t][z][y][x]);
-
-	exit(0);
+	if (ddata == NULL) {
+		fprintf(stderr, "\nError accessing %s\n",f1name);
+		exit(1);
+	}
+	else {
+		fprintf(stderr, "\nLocation %d %d %d %d: %.4f\n",x,y,z,t,ddata[t][z][y][x]);
+		exit(0);
+	}
 }
 
 
