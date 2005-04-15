@@ -524,6 +524,7 @@ typedef struct DC_options
 
   char *xjpeg_filename; /* plot file for -xjpeg option [21 Jul 2004] */
 
+  int automask ;        /* flag to do automasking [15 Apr 2005] */
 } DC_options;
 
 
@@ -592,6 +593,8 @@ void display_help_menu()
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
     "[-nodata]            Evaluate experimental design only (no input data) \n"
     "[-mask mname]        mname = filename of 3d mask dataset               \n"
+    "[-automask]          build a mask automatically from input data        \n"
+    "                      (will be slow for long time series datasets)     \n"
     "[-censor cname]      cname = filename of censor .1D time series        \n"
     "[-concat rname]      rname = filename for list of concatenated runs    \n"
     "[-nfirst fnum]       fnum = number of first dataset image to use in the\n"
@@ -753,7 +756,6 @@ void initialize_options
 {
   int is;                     /* input stimulus time series index */
 
-
   /*----- Initialize default values -----*/
   option_data->nxyz     = -1;
   option_data->nt       = -1;
@@ -812,6 +814,7 @@ void initialize_options
   option_data->fitts_filename = NULL;
   option_data->errts_filename = NULL;
 
+  option_data->automask = 0 ;  /* 15 Apr 2005 */
 }
 
 
@@ -1044,12 +1047,21 @@ void get_options
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -mask ");
+     if( option_data->automask ) DC_error("can't use -mask AND -automask!") ;
 	  option_data->mask_filename = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->mask_filename);
 	  strcpy (option_data->mask_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
+
+      /*----    -automask   -----*/
+      if( strcmp(argv[nopt],"-automask") == 0 ){   /* 15 Apr 2005 */
+        if( option_data->mask_filename != NULL )
+          DC_error("can't use -automask AND -mask!") ;
+        option_data->automask = 1 ;
+        nopt++ ; continue ;
+      }
 
 
       /*-----   -input1D filename   -----*/
@@ -2018,41 +2030,60 @@ ENTRY("read_input_data") ;
         }
       }
 
+      if( option_data->automask ){            /* 15 Apr 2005: automasking */
+        MRI_IMAGE *qim ; int mc ;
+        qim = THD_rms_brick( *dset_time ) ;
+        *mask_vol = mri_automask_image( qim ) ;
+        mri_free( qim ) ;
+        if( *mask_vol == NULL ){
+          fprintf(stderr,"** WARNING: unable to generate automask?!\n") ;
+        } else {
+          mc = THD_countmask( DSET_NVOX(*dset_time) , *mask_vol ) ;
+          if( mc <= 1 ){
+            fprintf(stderr,"** WARNING: automask is empty!?\n") ;
+            free(*mask_vol) ; *mask_vol = NULL ;
+          } else {
+            fprintf(stderr,"++ %d voxels in automask (out of %d)\n",
+                    mc,DSET_NVOX(*dset_time)) ;
+          }
+        }
+      }
 
-      if (option_data->mask_filename != NULL)
-	{
-	  THD_3dim_dataset * mask_dset = NULL;
+      if (option_data->mask_filename != NULL)   /* read mask from file */
+	   {
+	     THD_3dim_dataset * mask_dset = NULL;
 
-	  /*----- Read the input mask dataset -----*/
-	  mask_dset = THD_open_dataset (option_data->mask_filename);
-	  if (!ISVALID_3DIM_DATASET(mask_dset))
-	    {
-	      sprintf (message,  "Unable to open mask file: %s",
-		       option_data->mask_filename);
-	      DC_error (message);
-	    }
+	     /*----- Read the input mask dataset -----*/
+	     mask_dset = THD_open_dataset (option_data->mask_filename);
+	     if (!ISVALID_3DIM_DATASET(mask_dset))
+	       {
+	         sprintf (message,  "Unable to open mask file: %s",
+		          option_data->mask_filename);
+	         DC_error (message);
+	       }
 
-	  /*----- If mask is used, check for compatible dimensions -----*/
-	  if (    (DSET_NX(*dset_time) != DSET_NX(mask_dset))
-	       || (DSET_NY(*dset_time) != DSET_NY(mask_dset))
-	       || (DSET_NZ(*dset_time) != DSET_NZ(mask_dset)) )
-	    {
-	      sprintf (message, "datasets '%s' and '%s' have incompatible dimensions",
-		      option_data->input_filename, option_data->mask_filename);
-	      DC_error (message);
-	    }
+	     /*----- If mask is used, check for compatible dimensions -----*/
+	     if (    (DSET_NX(*dset_time) != DSET_NX(mask_dset))
+	          || (DSET_NY(*dset_time) != DSET_NY(mask_dset))
+	          || (DSET_NZ(*dset_time) != DSET_NZ(mask_dset)) )
+	       {
+	         sprintf (message, "datasets '%s' and '%s' have incompatible dimensions",
+		         option_data->input_filename, option_data->mask_filename);
+	         DC_error (message);
+	       }
 	
-	  if (DSET_NVALS(mask_dset) != 1 )
-	    DC_error ("Must specify 1 sub-brick from mask dataset");
+	     if (DSET_NVALS(mask_dset) != 1 )
+	       DC_error ("Must specify exactly 1 sub-brick from mask dataset");
 
-	  *mask_vol = THD_makemask( mask_dset , 0 , 1.0,0.0 ) ;
-	  if (*mask_vol == NULL)  DC_error ("Unable to read mask dataset");
+	     *mask_vol = THD_makemask( mask_dset , 0 , 1.0,0.0 ) ;
+	     if (*mask_vol == NULL)  DC_error ("Unable to read mask dataset");
 
-	  DSET_delete(mask_dset) ;
-	}
+	     DSET_delete(mask_dset) ;
+	   }
+
+    } else {                                   /* no input data? */
+      DC_error ("Must specify input data");
     }
-  else
-    DC_error ("Must specify input data");
 
 
   /*----- Check number of data points -----*/

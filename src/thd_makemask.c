@@ -3,11 +3,11 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
-/*---------------------------------------------------------------------
-   Make a byte mask from mask dataset:
+/*---------------------------------------------------------------------*/
+/*! Make a byte mask from mask dataset:
      miv = sub-brick of input
      if( mask_bot <= mask_top ) then
        only nonzero values in this range will be used
@@ -21,10 +21,10 @@
    some grotesque error transpired.
 -----------------------------------------------------------------------*/
 
-byte * THD_makemask( THD_3dim_dataset * mask_dset ,
+byte * THD_makemask( THD_3dim_dataset *mask_dset ,
                      int miv , float mask_bot , float mask_top )
 {
-   byte * mmm = NULL ;
+   byte *mmm = NULL ;
    int nvox , ii ;
 
    if( !ISVALID_DSET(mask_dset)    ||
@@ -43,7 +43,7 @@ byte * THD_makemask( THD_3dim_dataset * mask_dset ,
 
       case MRI_short:{
          short mbot , mtop ;
-         short * mar = (short *) DSET_ARRAY(mask_dset,miv) ;
+         short *mar = (short *) DSET_ARRAY(mask_dset,miv) ;
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top ){
@@ -60,7 +60,7 @@ byte * THD_makemask( THD_3dim_dataset * mask_dset ,
 
       case MRI_byte:{
          byte mbot , mtop ;
-         byte * mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
+         byte *mar = (byte *) DSET_ARRAY(mask_dset,miv) ;
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top && mask_top > 0.0 ){
@@ -77,7 +77,7 @@ byte * THD_makemask( THD_3dim_dataset * mask_dset ,
 
       case MRI_float:{
          float mbot , mtop ;
-         float * mar = (float *) DSET_ARRAY(mask_dset,miv) ;
+         float *mar = (float *) DSET_ARRAY(mask_dset,miv) ;
          float mfac = DSET_BRICK_FACTOR(mask_dset,miv) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          if( mask_bot <= mask_top ){
@@ -96,7 +96,11 @@ byte * THD_makemask( THD_3dim_dataset * mask_dset ,
    return mmm ;
 }
 
-int THD_countmask( int nvox , byte * mmm )
+/*---------------------------------------------------------------------*/
+/*! Count the number of nonzero voxels in a mask.
+-----------------------------------------------------------------------*/
+
+int THD_countmask( int nvox , byte *mmm )
 {
    int ii,mc ;
 
