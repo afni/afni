@@ -878,7 +878,7 @@
 21 Dec 2004: nifti library update (v 0.8)
   * in nifti_image_read(), compute bytes for extensions (see remaining)
   * in nifti_read_extensions(), pass 'remain' as space for extensions,
-       pass it to nifti_read_next_ext(), and update for each one read
+      pass it to nifti_read_next_ext(), and update for each one read
   * in nifti_valid_extension(), require (size <= remain)
   * in update_nifti_image_brick_list(), update nvox
   * in nifti_image_load_bricks(), make explicit check for nbricks <= 0
@@ -891,7 +891,7 @@
 
 23 Dec 2004: nifti library update (v 0.9) - minor updates
   * broke ASCII header reading out of nifti_image_read(), into new
-       functions has_ascii_header() and read_ascii_image()
+      functions has_ascii_header() and read_ascii_image()
   * check image_read failure and znzseek failure
   * altered some debug output
   * nifti_write_all_data() now returns an int
@@ -931,7 +931,7 @@
 
 04 Jan 2005:
   * afni_niml.c to allow changing the nodes for a surface, made receive
-    message default to the terminal window
+      message default to the terminal window
   * added a description of AFNI_SHOW_SURF_POPUPS in README.environment
 
 07 Jan 2005: INITIAL RELEASE OF NIFTI LIBRARY (v 1.0)
@@ -948,7 +948,7 @@
 07 Jan 2005: INITIAL RELEASE OF nifti_tool (v 1.0)
   * lots of functions
   * modified Makefile.INCLUDE to compile nifti_test, nifti_stats and
-    nifti1_test automatically
+      nifti1_test automatically
 
 11 Jan 2005:
   * modified afni_niml.c: slist_choose_surfs() check_user_surfs on nsurf == 1
@@ -966,7 +966,7 @@
 
 21 Jan 2005:
   * modified Makefile.INCLUDE per the request of Vinai Roopchansingh,
-    adding $(IFLAGS) to the CC line for compiling whereami
+      adding $(IFLAGS) to the CC line for compiling whereami
   * submitted the updated plug_permtest.c from Matthew Belmonte
 
 10 Feb 2005:
@@ -997,7 +997,7 @@
 23 Feb 2005:
   * merged Kate's, Mark's and my own nifti code, and made other revisions
   * removed contents of nifti directory, and re-created it with the source
-    tree from sourceforge.net
+      tree from sourceforge.net
   * modified Makefile.INCLUDE to deal with the new nifti directories
   * modifed thd_analyzeread.c and thd_niftiread.c not to use include directories
       - they now have explicit targets in Makefile.INCLUDE
@@ -1013,7 +1013,7 @@
 
 08 Mar 2005:
   * modified nifti1_io.[ch], adding global options struct, and optional
-    validation in nifti_read_header()
+      validation in nifti_read_header()
   * modified nifti_tool.c to remove validation of nifti_1_header structs
 
 17 Mar 2005:
@@ -1049,7 +1049,7 @@
 06 April 2005:
   * modified thd_niftiread.c to set ADN_datum with any ADN_ntt or ADN_nvals
   * modified edt_dsetitems.c to init new brick types to that of sub-brick 0,
-    in the case where a type array is not provided
+      in the case where a type array is not provided
 
 08 April 2005:
   * modifited nifti_tool.[ch]  (-> v1.6)
@@ -1064,6 +1064,34 @@
       - added nifti_get_intlist - for making an array of ints
       - fixed init of NBL->bsize in nifti_alloc_NBL_mem()  {thanks, Bob}
   * modified thd_niftiread.c, thd_writedset.c and afni_pplug_env.c to use
-    the environment variable AFNI_NIFTI_DEBUG
+      the environment variable AFNI_NIFTI_DEBUG
   * modified README.environment for AFNI_NIFTI_DEBUG
+
+14 April 2005:
+  * modified nifti/Makefile: mention 'docs' dir, not 'doc'
+  * modified nifti/utils/Makefile: added -Wall to nifti_tool build command
+  * modified nifti/niftilib/nifti1.h: doxygen comments for extension fields
+  * modified nifti/niftilib/nifti1.[ch] (-> v1.8)
+      - added nifti_set_type_from_names(), for nifti_set_filenames()
+        (only updates type if number of files does not match it)
+      - added is_valid_nifti_type(), just to be sure
+      - updated description of nifti_read_collapsed_image() for *data change
+        (if *data is already set, assume memory exists for results)
+      - modified rci_alloc_mem() to allocate only if *data is NULL
+  * modified nt_opts in nifti/utils/niftitool.h: ccd->cci, dts_lines->dci_lines,
+      ccd_dims->ci_dims, and added dci (for display collapsed image)
+  * modified nifti/utils/niftitool.[ch] (-> v1.7)
+     - added -dci: 'display collapsed image' functionality
+     - modified -dts to use -dci
+     - modified and updated the help in use_full()
+     - changed copy_collapsed_dims to copy_collapsed_image, etc.
+     - fixed problem in disp_raw_data() for printing NT_DT_CHAR_PTR
+     - modified act_disp_ci():
+         o was act_disp_ts(), now displays arbitrary collapsed image data
+         o added missed debug filename act_disp_ci()
+         o can now save free() of data pointer for end of file loop
+     - modified disp_raw_data()
+         o takes a flag for whether to print newline
+         o trailing spaces and zeros are removed from printing floats
+     - added clear_float_zeros(), to remove trailing zeros
 
