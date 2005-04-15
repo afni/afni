@@ -3505,10 +3505,12 @@ extern void THD_mask_erode( int nx, int ny, int nz, byte *mmm ) ;
 
 extern int THD_peel_mask( int nx, int ny, int nz , byte *mmm, int pdepth ) ;
 
-extern void THD_mask_dilate( int, int, int, byte *, int ) ; /* 30 Aug 2002 */
+extern void THD_mask_dilate( int, int, int, byte *, int ) ;  /* 30 Aug 2002 */
 
-extern float THD_cliplevel( MRI_IMAGE * , float ) ;        /* 12 Aug 2001 */
-extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;
+extern float THD_cliplevel( MRI_IMAGE * , float ) ;          /* 12 Aug 2001 */
+extern MRI_IMAGE * THD_median_brick( THD_3dim_dataset * ) ;  /* 12 Aug 2001 */
+extern MRI_IMAGE * THD_mean_brick  ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
+extern MRI_IMAGE * THD_rms_brick   ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 
  /* 08 Mar 2001 - functions for dealing with rows */
 

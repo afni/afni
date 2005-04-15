@@ -5442,3 +5442,9 @@
 13 Apr 2005
  * Added one to the count of the basis function -iresp and -sresp
      counts, to ensure getting the last point!
+
+15 Apr 2005
+ * Add -automask option in 3dDeconvolve.c.
+ * Add mri_write_jpg() to mri_write.c.  Now mri_write() automatically
+     writes a .jpg file for RGB and BYTE images if the filename ends
+     in ".jpg".
