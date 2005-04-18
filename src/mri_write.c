@@ -20,26 +20,35 @@ int mri_write( char *fname , MRI_IMAGE *im )
 
 ENTRY("mri_write") ;
 
-   if( im == NULL ) RETURN(0) ;
-   if( ! MRI_IS_2D(im) ){
-      RETURN(mri_write_7D( fname , im )) ;
-   }
+   /* bad inputs? */
 
+   if( im == NULL || fname == NULL || *fname == '\0' ) RETURN(0) ;
+
+   /* special cases */
+
+   if( ! MRI_IS_2D(im)      ){ RETURN(mri_write_7D ( fname , im )) ; }
    if( im->kind == MRI_rgb  ){ RETURN(mri_write_pnm( fname , im )) ; }
    if( im->kind == MRI_byte ){ RETURN(mri_write_pnm( fname , im )) ; }
 
-   imfile = fopen( fname , "r" ) ;
-   if( imfile != NULL ){
-      fclose( imfile ) ;
-      fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
-      RETURN(0) ;
+   /* open the file for output */
+
+   if( strcmp(fname,"-") != 0 ){
+     imfile = fopen( fname , "r" ) ;
+     if( imfile != NULL ){
+       fclose( imfile ) ;
+       fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
+       RETURN(0) ;
+     }
    }
 
-   imfile = fopen( fname , "w" ) ;
+   if( strcmp(fname,"-") != 0 )
+     imfile = fopen( fname , "w" ) ;
+   else
+     imfile = stdout ;   /* 18 Apr 2005: write to stdout instead */
 
    if( imfile == NULL ){
-      fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
-      RETURN(0) ;
+     fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
+     RETURN(0) ;
    }
 
    /*** possibly write MRI header, unless a standard image type ***/
@@ -91,8 +100,8 @@ ENTRY("mri_write") ;
 
    data = mri_data_pointer( im ) ;
    fwrite( data , im->pixel_size , im->nx * im->ny , imfile ) ;
-   fclose( imfile ) ;
 
+   if( imfile != stdout ) fclose( imfile ) ;
    RETURN(1) ;
 }
 
@@ -172,7 +181,7 @@ ENTRY("mri_write_7D") ;
 
 /**************************************************************************/
 
-int mri_write_pnm( char * fname , MRI_IMAGE * im )
+int mri_write_pnm( char *fname , MRI_IMAGE *im )
 {
    FILE  *imfile ;
    void  *data ;
@@ -188,14 +197,20 @@ ENTRY("mri_write_pnm") ;
      RETURN( mri_write_jpg(fname,im) ) ;
    }
 
-   imfile = fopen( fname , "r" ) ;
-   if( imfile != NULL ){
-      fclose( imfile ) ;
-      fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
-      RETURN( 0 );
+   if( strcmp(fname,"-") != 0 ){
+     imfile = fopen( fname , "r" ) ;
+     if( imfile != NULL ){
+       fclose( imfile ) ;
+       fprintf(stderr,"(FAILED) attempt to overwrite file %s\n",fname) ;
+       RETURN( 0 );
+     }
    }
 
-   imfile = fopen( fname , "w" ) ;
+   if( strcmp(fname,"-") != 0 )
+     imfile = fopen( fname , "w" ) ;
+   else
+     imfile = stdout ;     /* 18 Apr 2005: write to stdout */
+
    if( imfile == NULL ){
       fprintf( stderr , "couldn't open for output file %s\n" , fname ) ;
       RETURN( 0 );
@@ -203,25 +218,27 @@ ENTRY("mri_write_pnm") ;
 
    switch( im->kind ){
 
-      case MRI_byte:
-         fprintf( imfile , "P5\n%d %d\n255\n" , im->nx,im->ny ) ;     /* header */
-         fwrite( MRI_BYTE_PTR(im), sizeof(byte), im->nvox, imfile ) ; /* bytes */
-      break ;
+     case MRI_byte:
+       fprintf( imfile , "P5\n%d %d\n255\n" , im->nx,im->ny ) ;     /* header */
+       fwrite( MRI_BYTE_PTR(im), sizeof(byte), im->nvox, imfile ) ; /* bytes */
+     break ;
 
-      case MRI_rgb:
-         fprintf( imfile , "P6\n%d %d\n255\n" , im->nx,im->ny ) ;      /* header */
-         fwrite( MRI_RGB_PTR(im), sizeof(byte), 3*im->nvox, imfile ) ; /* bytes */
-      break ;
+     case MRI_rgb:
+       fprintf( imfile , "P6\n%d %d\n255\n" , im->nx,im->ny ) ;      /* header */
+       fwrite( MRI_RGB_PTR(im), sizeof(byte), 3*im->nvox, imfile ) ; /* bytes */
+     break ;
+
    }
-   fclose( imfile ) ;
+
+   if( imfile != stdout ) fclose( imfile ) ;
    RETURN( 1 );
 }
 
 /*---------------------------------------------------------------------------------------*/
 
-int mri_write_1D( char * fname , MRI_IMAGE * im )  /* 16 Nov 1999 */
+int mri_write_1D( char *fname , MRI_IMAGE *im )  /* 16 Nov 1999 */
 {
-   MRI_IMAGE * fim ;
+   MRI_IMAGE *fim ;
    int jj ;
 
 ENTRY("mri_write_1D") ;
@@ -235,9 +252,9 @@ ENTRY("mri_write_1D") ;
    RETURN( jj );
 }
 
-/**-------------------------- Only good for 1D and 2D images ---------------------------**/
+/**------------------------ Only good for 1D and 2D images ---------------------------**/
 
-int mri_write_ascii( char * fname, MRI_IMAGE * im )
+int mri_write_ascii( char *fname, MRI_IMAGE *im )
 {
    int ii , jj , nx , ny ;
    FILE  *imfile ;
@@ -270,30 +287,51 @@ ENTRY("mri_write_ascii") ;
       switch( im->kind ){
 
          case MRI_float:{
-            float * iar = MRI_FLOAT_PTR(im) + (jj*nx) ;
+            float *iar = MRI_FLOAT_PTR(im) + (jj*nx) ;
             for( ii=0 ; ii < nx ; ii++ )
                fprintf(imfile," %14.7g",iar[ii]) ;
          }
          break ;
 
          case MRI_short:{
-            short * iar = MRI_SHORT_PTR(im) + (jj*nx) ;
+            short *iar = MRI_SHORT_PTR(im) + (jj*nx) ;
             for( ii=0 ; ii < nx ; ii++ )
                fprintf(imfile," %6d",iar[ii]) ;
          }
          break ;
 
          case MRI_byte:{
-            byte * iar = MRI_BYTE_PTR(im) + (jj*nx) ;
+            byte *iar = MRI_BYTE_PTR(im) + (jj*nx) ;
             for( ii=0 ; ii < nx ; ii++ )
                fprintf(imfile," %3d",iar[ii]) ;
          }
          break ;
 
          case MRI_int:{
-            int * iar = MRI_INT_PTR(im) + (jj*nx) ;
+            int *iar = MRI_INT_PTR(im) + (jj*nx) ;
             for( ii=0 ; ii < nx ; ii++ )
                fprintf(imfile," %6d",iar[ii]) ;
+         }
+         break ;
+
+         case MRI_double:{
+            double *iar = MRI_DOUBLE_PTR(im) + (jj*nx) ;
+            for( ii=0 ; ii < nx ; ii++ )
+               fprintf(imfile," %14.7g",iar[ii]) ;
+         }
+         break ;
+
+         case MRI_complex:{
+            complex *iar = MRI_COMPLEX_PTR(im) + (jj*nx) ;
+            for( ii=0 ; ii < nx ; ii++ )
+               fprintf(imfile," %14.7g %14.7g",iar[ii].r,iar[ii].i) ;
+         }
+         break ;
+
+         case MRI_rgb:{
+            byte *iar = MRI_RGB_PTR(im) + (3*jj*nx) ;
+            for( ii=0 ; ii < nx ; ii++ )
+               fprintf(imfile," %3d %3d %3d",iar[3*ii],iar[3*ii+1],iar[3*ii+2]) ;
          }
          break ;
       }

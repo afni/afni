@@ -5448,3 +5448,9 @@
  * Add mri_write_jpg() to mri_write.c.  Now mri_write() automatically
      writes a .jpg file for RGB and BYTE images if the filename ends
      in ".jpg".
+
+18 Apr 2005
+ * Modified mri_write.c functions to write to stdout if the output
+     filename is the string "-".  This mod affects mri_write_pnm(),
+     mri_write(), and mri_write_ascii().  Indirectly affects program
+     imupsam.c.
