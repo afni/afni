@@ -245,7 +245,6 @@ int NI_type_size( int tval )
 
 /*-----------------------------------------------------------------------*/
 /*! Return the type of something that points to a NI element.
-
     - The input should be point to a NI_element, NI_group, or NI_procins.
     - The return value is NI_ELEMENT_TYPE, NI_GROUP_TYPE, NI_PROCINS_TYPE,
       or -1 if the type is anything else or unknowable.
@@ -264,6 +263,27 @@ int NI_element_type( void *nini )
    if( npi->type == NI_PROCINS_TYPE ) return NI_PROCINS_TYPE ;
 
    return -1 ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Return the name of a NI element.  If the input is bad, returns
+    a NULL pointer.  Do not free this pointer!  It points to the
+    name string inside the element struct.
+-------------------------------------------------------------------------*/
+
+char * NI_element_name( void *nini )
+{
+   NI_element *nel = (NI_element *) nini ;
+   NI_group   *ngr = (NI_group *)   nini ;
+   NI_procins *npi = (NI_procins *) nini ;
+
+   if( nini == NULL ) return NULL ;
+
+   if( nel->type == NI_ELEMENT_TYPE ) return nel->name ;
+   if( ngr->type == NI_GROUP_TYPE   ) return ngr->name ;
+   if( npi->type == NI_PROCINS_TYPE ) return npi->name ;
+
+   return NULL ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -505,12 +525,11 @@ void NI_fill_column_stride( NI_element *nel, int typ, void *arr, int nn, int str
    if (!arr) return;
    if (!nel->vec[nn]) return;
    if (nn < 0 || nn >= nel->vec_num) return;
-   
 
    /* loop over inputs and put them in */
    if (nel->vec_filled > 0 && nel->vec_filled <= nel->vec_len) nf = nel->vec_filled;
    else nf = nel->vec_len;
-   
+
    idat = (char *) arr ;
 
    for( ii=0 ; ii < nf ; ii++ )
@@ -878,6 +897,30 @@ void NI_add_to_group( NI_group *ngr , void *nini )
 }
 
 /*-----------------------------------------------------------------------*/
+/*! Remove an element from a group.  Does NOT delete the element;
+    that is the caller's responsibility, if desired.
+-------------------------------------------------------------------------*/
+
+void NI_remove_from_group( NI_group *ngr , void *nini )  /* 16 Apr 2005 */
+{
+   int ii , nn , jj ;
+
+   if( ngr == NULL || ngr->type != NI_GROUP_TYPE || nini == NULL ) return ;
+
+   nn = ngr->part_num ;
+   for( ii=0 ; ii < nn ; ii++ )       /* search for part */
+     if( nini == ngr->part[ii] ) break ;
+   if( ii == nn ) return ;            /* not found */
+
+   for( jj=ii+1 ; jj < nn ; jj++ ){   /* move parts above down */
+     ngr->part_typ[jj-1] = ngr->part_typ[jj] ;
+     ngr->part    [jj-1] = ngr->part    [jj] ;
+   }
+   ngr->part[nn-1] = NULL ; ngr->part_num -- ;
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
 /*! Rename a group element from the default - 03 Jun 2002.
 -------------------------------------------------------------------------*/
 
@@ -887,4 +930,92 @@ void NI_rename_group( NI_group *ngr , char *nam )
    NI_free( ngr->name ) ;
    ngr->name = NI_strdup(nam) ;
    return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Return a list of all elements in a group that have a given name.
+      - This is a 'shallow' search: if the group itself contains
+        groups, these sub-groups are not searched.
+      - Return value of function is number of elements found (might be 0).
+      - If something is found, then *nipt is an array of 'void *', each
+        of which points to a matching element.
+      - The returned elements might be group or data elements.
+      - Sample usage:
+          - int n,i ; void **nelar ;
+          - n = NI_search_group_shallow( ngr , "fred" , &nelar ) ;
+          - for( i=0 ; i < n ; i++ ) do_something( nelar[ii] ) ;
+          - if( n > 0 ) NI_free(nelar) ;
+-------------------------------------------------------------------------*/
+
+int NI_search_group_shallow( NI_group *ngr , char *enam , void ***nipt )
+{
+   void **nelar=NULL , *nini ;
+   int ii , nn=0 ;
+   char *nm ;
+
+   if( ngr  == NULL || ngr->type != NI_GROUP_TYPE    ) return 0 ;
+   if( enam == NULL || *enam == '\0' || nipt == NULL ) return 0 ;
+   if( ngr->part_num == 0                            ) return 0 ;
+
+   for( ii=0 ; ii < ngr->part_num ; ii++ ){
+     nini = ngr->part[ii] ;
+     nm   = NI_element_name( nini ) ;
+     if( nm != NULL && strcmp(nm,enam) == 0 ){
+       nelar = (void **) NI_realloc(nelar,void *,nn+1) ;
+       nelar[nn++] = nini ;
+     }
+   }
+
+   if( nn > 0 ) *nipt = nelar ;
+   return nn ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Return a list of all elements in a group that have a given name.
+      - This is a 'deep' search: if the group itself contains
+        groups, these sub-groups are searched, etc.
+      - If a group element has the name 'enam' AND a data element within
+        that group has the name 'enam' as well, they will BOTH be returned
+        in this list.
+      - Return value of function is number of elements found (might be 0).
+      - If something is found, then *nipt is an array of 'void *', each
+        of which points to a matching element.
+      - The returned elements might be group or data elements.
+      - Sample usage:
+          - int n,i ; void **nelar ;
+          - n = NI_search_group_shallow( ngr , "fred" , &nelar ) ;
+          - for( i=0 ; i < n ; i++ ) do_something( nelar[ii] ) ;
+          - if( n > 0 ) NI_free(nelar) ;
+-------------------------------------------------------------------------*/
+
+int NI_search_group_deep( NI_group *ngr , char *enam , void ***nipt )
+{
+   void **nelar=NULL , *nini ;
+   int ii , nn=0 ;
+   char *nm ;
+
+   if( ngr  == NULL || ngr->type != NI_GROUP_TYPE    ) return 0 ;
+   if( enam == NULL || *enam == '\0' || nipt == NULL ) return 0 ;
+   if( ngr->part_num == 0                            ) return 0 ;
+
+   for( ii=0 ; ii < ngr->part_num ; ii++ ){
+     nini = ngr->part[ii] ;
+     nm   = NI_element_name( nini ) ;
+     if( nm != NULL && strcmp(nm,enam) == 0 ){
+       nelar = (void **) NI_realloc(nelar,void *,nn+1) ;
+       nelar[nn++] = nini ;
+     }
+     if( NI_element_type(nini) == NI_GROUP_TYPE ){
+       int nsub , jj ; void **esub ;
+       nsub = NI_search_group_deep( nini , enam , &esub ) ;
+       if( nsub > 0 ){
+         nelar = (void **) NI_realloc(nelar,void *,nn+nsub) ;
+         for( jj=0 ; jj < nsub ; jj++ ) nelar[nn++] = esub[jj] ;
+         NI_free(esub) ;
+       }
+     }
+   }
+
+   if( nn > 0 ) *nipt = nelar ;
+   return nn ;
 }
