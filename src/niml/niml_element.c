@@ -455,7 +455,7 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
 
    /* add 1 to the vec_typ array */
 
-   nel->vec_typ     = NI_realloc( nel->vec_typ , int, sizeof(int)*(nn+1) ) ;
+   nel->vec_typ     = NI_realloc( nel->vec_typ, int, sizeof(int)*(nn+1) ) ;
    nel->vec_typ[nn] = typ ;
 
    /* add 1 element to the vec array, and copy data into it */
@@ -554,11 +554,11 @@ void NI_insert_value( NI_element *nel, int row, int col, void *dat )
 
    /* check for reasonable inputs */
 
-   if( nel == NULL || nel->vec_len <= 0   ) return ;
+   if( nel == NULL || idat == NULL        ) return ;
+   if( nel->type    != NI_ELEMENT_TYPE    ) return ;
+   if( nel->vec_len <= 0                  ) return ;
    if( row < 0     || row >= nel->vec_len ) return ;
    if( col < 0     || col >= nel->vec_num ) return ;
-   if( nel->type   != NI_ELEMENT_TYPE     ) return ;
-   if( idat == NULL                       ) return ;
 
    rt = NI_rowtype_find_code( nel->vec_typ[col] ) ;
    if( rt == NULL )                         return ;
@@ -961,7 +961,7 @@ int NI_search_group_shallow( NI_group *ngr , char *enam , void ***nipt )
      nini = ngr->part[ii] ;
      nm   = NI_element_name( nini ) ;
      if( nm != NULL && strcmp(nm,enam) == 0 ){
-       nelar = (void **) NI_realloc(nelar,void *,nn+1) ;
+       nelar = (void **) NI_realloc(nelar,void*,nn+1) ;
        nelar[nn++] = nini ;
      }
    }
@@ -1002,14 +1002,14 @@ int NI_search_group_deep( NI_group *ngr , char *enam , void ***nipt )
      nini = ngr->part[ii] ;
      nm   = NI_element_name( nini ) ;
      if( nm != NULL && strcmp(nm,enam) == 0 ){
-       nelar = (void **) NI_realloc(nelar,void *,nn+1) ;
+       nelar = (void **) NI_realloc(nelar,void*,nn+1) ;
        nelar[nn++] = nini ;
      }
      if( NI_element_type(nini) == NI_GROUP_TYPE ){
        int nsub , jj ; void **esub ;
        nsub = NI_search_group_deep( nini , enam , &esub ) ;
        if( nsub > 0 ){
-         nelar = (void **) NI_realloc(nelar,void *,nn+nsub) ;
+         nelar = (void **) NI_realloc(nelar,void*,nn+nsub) ;
          for( jj=0 ; jj < nsub ; jj++ ) nelar[nn++] = esub[jj] ;
          NI_free(esub) ;
        }
