@@ -546,6 +546,7 @@ extern int NI_element_allsize( NI_element * ) ;
 
 extern void NI_free_element( void * ) ;
 extern int  NI_element_type( void * ) ;
+extern char * NI_element_name( void * ) ;  /* 18 Apr 2005 */
 
 extern NI_element * NI_new_data_element( char *, int ) ;
 extern void NI_add_column( NI_element *, int, void * ) ;
@@ -558,6 +559,10 @@ extern void NI_fill_column_stride( NI_element *, int, void *, int , int); /* ZSS
 extern NI_group * NI_new_group_element(void) ;
 extern void NI_add_to_group( NI_group *, void * ) ;
 extern void NI_rename_group( NI_group *, char * ) ;  /* 03 Jun 2002 */
+extern void NI_remove_from_group( NI_group *, void * ) ; /* 16 Apr 2005 */
+
+extern int NI_search_group_shallow( NI_group *, char *, void *** ) ; /* 18 Apr 2005 */
+extern int NI_search_group_deep   ( NI_group *, char *, void *** ) ; /* 18 Apr 2005 */
 
 extern NI_procins * NI_new_processing_instruction( char * ) ;       /* 16 Mar 2005 */
 
