@@ -5454,3 +5454,7 @@
      filename is the string "-".  This mod affects mri_write_pnm(),
      mri_write(), and mri_write_ascii().  Indirectly affects program
      imupsam.c.
+
+19 Apr 2005
+ * Modified niml/niml_element.c to add NI_alter_veclen() function, and
+     NI_insert_string() function.
