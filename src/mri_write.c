@@ -375,6 +375,8 @@ ENTRY("mri_write_raw") ;
 
 /*---------------------------------------------------------------*/
 
+#include <signal.h>
+
 int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
 {
    char *pg , *jpfilt ;
