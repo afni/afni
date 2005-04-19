@@ -553,17 +553,18 @@ extern void NI_add_column( NI_element *, int, void * ) ;
 extern void NI_set_attribute( void *, char *, char * ) ;
 extern char * NI_get_attribute( void *, char * ) ;
 extern void NI_insert_value( NI_element *, int,int, void * );       /* 03 Apr 2003 */
-extern void NI_insert_string( NI_element *, int,int, char * );      /* 18 Apr 2005 */
 extern void NI_add_column_stride( NI_element *, int, void *, int ); /* 29 May 2003 */
-extern void NI_fill_column_stride( NI_element *, int, void *, int , int); /* ZSS Mar 23 04 */
+extern void NI_fill_column_stride( NI_element *,int,void *,int,int);/* 23 Mar 2004 */
+extern void NI_insert_string( NI_element *, int,int, char *);       /* 19 Apr 2005 */
+extern void NI_alter_veclen( NI_element * , int ) ;                 /* 19 Apr 2005 */
 
 extern NI_group * NI_new_group_element(void) ;
 extern void NI_add_to_group( NI_group *, void * ) ;
-extern void NI_rename_group( NI_group *, char * ) ;  /* 03 Jun 2002 */
-extern void NI_remove_from_group( NI_group *, void * ) ; /* 16 Apr 2005 */
+extern void NI_rename_group( NI_group *, char * ) ;                 /* 03 Jun 2002 */
+extern void NI_remove_from_group( NI_group *, void * ) ;            /* 16 Apr 2005 */
 
-extern int NI_search_group_shallow( NI_group *, char *, void *** ) ; /* 18 Apr 2005 */
-extern int NI_search_group_deep   ( NI_group *, char *, void *** ) ; /* 18 Apr 2005 */
+extern int NI_search_group_shallow( NI_group *, char *, void *** ); /* 18 Apr 2005 */
+extern int NI_search_group_deep   ( NI_group *, char *, void *** ); /* 18 Apr 2005 */
 
 extern NI_procins * NI_new_processing_instruction( char * ) ;       /* 16 Mar 2005 */
 

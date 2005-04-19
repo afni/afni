@@ -473,6 +473,42 @@ void NI_add_column( NI_element *nel , int typ , void *arr )
 }
 
 /*------------------------------------------------------------------------*/
+/*! Change the length of all the columns in a data element.
+     - If the columns are longer, they will be zero filled.
+     - New values can be inserted later with NI_insert_value().
+     - If the columns are shorter, data will be lost.
+     - You cannot use this to convert an element to/from being empty;
+       that is, newlen > 0 is required, as is nel->vec_len on input.
+--------------------------------------------------------------------------*/
+
+void NI_alter_veclen( NI_element *nel , int newlen )
+{
+   int oldlen , ii ;
+   NI_rowtype *rt ;
+   char *pt ;
+
+   if( nel          == NULL || nel->type != NI_ELEMENT_TYPE ) return ;
+   if( nel->vec_len <= 0    || newlen    <= 0               ) return ;
+
+   if( nel->vec_num == 0 ){                       /* if have no data yet */
+     nel->vec_len = nel->vec_filled = newlen; return;
+   }
+
+   oldlen = nel->vec_len ; if( oldlen == newlen ) return ;
+
+   for( ii=0 ; ii < nel->vec_num ; ii++ ){
+     rt = NI_rowtype_find_code( nel->vec_typ[ii] ) ;
+     nel->vec[ii] = NI_realloc( nel->vec[ii] , void , rt->size * newlen ) ;
+     if( oldlen < newlen ){
+       pt = ((char *)nel->vec[ii]) + (rt->size * oldlen) ; /* zero fill */
+       memset( pt , 0 , (newlen-oldlen)*rt->size ) ;       /* new data! */
+     }
+   }
+
+   nel->vec_len = nel->vec_filled = newlen ; return ;
+}
+
+/*------------------------------------------------------------------------*/
 /*! As in NI_add_column(), but adding every stride-th element from arr.
     Thus, arr should be at least nel->vec_len * stride elements long.
 --------------------------------------------------------------------------*/
@@ -492,9 +528,9 @@ void NI_add_column_stride( NI_element *nel, int typ, void *arr, int stride )
    /* add an empty column */
 
    NI_add_column( nel , typ , NULL ) ;
-   if( arr == NULL ) return ;          /* no data ==> we're done */
+   if( arr == NULL ) return ;          /* no input data ==> we're done */
 
-   /* loop over inputs and put them in */
+   /* loop over inputs and put them in one at a time */
 
    nn   = nel->vec_num-1 ;
    idat = (char *) arr ;
@@ -510,7 +546,8 @@ void NI_add_column_stride( NI_element *nel, int typ, void *arr, int stride )
          the values in arr are inserted into nel->vec[nn]
 --------------------------------------------------------------------------*/
 
-void NI_fill_column_stride( NI_element *nel, int typ, void *arr, int nn, int stride )
+void NI_fill_column_stride( NI_element *nel, int typ,
+                            void *arr, int nn, int stride )
 {
    int  ii , nf;
    NI_rowtype *rt ;
@@ -522,14 +559,19 @@ void NI_fill_column_stride( NI_element *nel, int typ, void *arr, int nn, int str
    if( nel->type != NI_ELEMENT_TYPE )                return ;
    rt = NI_rowtype_find_code(typ) ; if( rt == NULL ) return ;
 
-   /* check for NULL column */
-   if (!arr) return;
-   if (!nel->vec[nn]) return;
-   if (nn < 0 || nn >= nel->vec_num) return;
+   /* check for NULL column or other similar errors*/
+
+   if( arr == NULL )                                 return ;
+   if( nel->vec[nn] == NULL )                        return ;
+   if( nn < 0 || nn >= nel->vec_num )                return ;
+   if( typ != nel->vec_typ[nn] )                     return ;
 
    /* loop over inputs and put them in */
-   if (nel->vec_filled > 0 && nel->vec_filled <= nel->vec_len) nf = nel->vec_filled;
-   else nf = nel->vec_len;
+
+   if( nel->vec_filled > 0 && nel->vec_filled <= nel->vec_len )
+     nf = nel->vec_filled ;
+   else
+     nf = nel->vec_len ;
 
    idat = (char *) arr ;
 
@@ -544,7 +586,21 @@ void NI_fill_column_stride( NI_element *nel, int typ, void *arr, int nn, int str
      - dat is the pointer to the data values to copy into the element.
      - The column must have been created with NI_add_column() before
        calling this function!
-     - RWCox - 03 Apr 2003
+     - NOTE WELL: When the column type is NI_STRING, it is a mistake
+       to call this function with dat being a pointer to the C string
+       to insert.  Instead, dat should be a pointer to the pointer to
+       the C string.  For example:
+        - char *me = "RWCox" ;
+        - WRONG:  NI_insert_value ( nel, 3,5,  me ) ; [Seg Fault ensues]
+        - RIGHT:  NI_insert_value ( nel, 3,5, &me ) ;
+        - RIGHT:  NI_insert_string( nel, 3,5,  me ) ;
+        - The last case illustrates the NI_insert_string() function,
+          which can be used to simplify insertion into a column
+          of Strings; that function is just a simple wrapper to call
+          NI_insert_value() properly.
+        - The reason the first example is WRONG is that dat is supposed
+          to point to the data to be stored.  In the case of a String,
+          the data is the pointer to the C string.
 --------------------------------------------------------------------------*/
 
 void NI_insert_value( NI_element *nel, int row, int col, void *dat )
