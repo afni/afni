@@ -1,25 +1,36 @@
 #ifndef _NIFTI_TOOL_H_
 #define _NIFTI_TOOL_H_
 
+#define NT_CMD_LEN 2048
+
 typedef struct{
    int     len;
    char ** list;
 } str_list;
 
 typedef struct{
+   int     len;
+   int   * list;
+} int_list;
+
+typedef struct{
    int      diff_hdr,  diff_nim;
    int      disp_hdr,  disp_nim;
    int      disp_exts, add_exts, rm_exts;
    int      mod_hdr,   mod_nim;
+   int      strip;               /* strip extras from dataset(s)  */
    int      cbl, cci;            /* -copy_XXX option flags        */
    int      dts, dci, dci_lines; /* display collapsed img flags   */
    int      ci_dims[8];          /* user dims list (last 7 valid) */
-   int      debug, overwrite;    /* overwrite input files flag    */
+   int      debug, keep_hist;    /* debug level and history flag  */
+   int      overwrite;           /* overwrite flag                */
    char *   prefix;              /* for output file               */
-   str_list elist;               /* extensions                    */
+   str_list elist;               /* extension strings             */
+   int_list etypes;              /* extension type list           */
    str_list flist;               /* fields (to display or modify) */
    str_list vlist;               /* values (to set fields to)     */
    str_list infiles;             /* input files                   */
+   char     command[NT_CMD_LEN]; /* for inserting the command     */
 } nt_opts;
 
 #define USE_SHORT      1
@@ -89,6 +100,7 @@ int    act_disp_ts    ( nt_opts * opts );  /* display time series */
 int    act_mod_hdrs   ( nt_opts * opts );
 int    act_mod_nims   ( nt_opts * opts );
 int    act_rm_ext     ( nt_opts * opts );
+int    act_strip      ( nt_opts * opts );  /* strip extras from datasets */
 
 field_s * get_hdr_field( char * fname, int show_fail );
 field_s * get_nim_field( char * fname, int show_fail );
@@ -100,21 +112,24 @@ int diff_hdrs_list(nifti_1_header *s0, nifti_1_header *s1, str_list *slist,
 int diff_nims     (nifti_image *s0,nifti_image *s1,        int display);
 int diff_nims_list(nifti_image *s0,nifti_image *s1,str_list *slist,int display);
 
+int add_int          (int_list * ilist, int val);
 int add_string       (str_list * slist, char * str);
 int check_total_size (char *mesg, field_s *fields, int nfields, int tot_size);
 int clear_float_zeros( char * str );
 int diff_field       (field_s *fieldp, void * str0, void * str1, int nfields);
-int disp_nifti1_extension(char *mesg, nifti1_extension * ext);
+int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen);
 int disp_field       (char *mesg,field_s *fp,void *str,int nfields,int header);
 int disp_field_s_list(char * mesg, field_s *, int nfields);
 int disp_nt_opts     (char * mesg, nt_opts * opts);
 int disp_raw_data    (void * data, int type, int nvals, char space,int newline);
+int fill_cmd_string  (nt_opts * opts, int argc, char * argv[]);
 int fill_field       (field_s *fp, int type, int offset, int num, char *name);
 int fill_hdr_field_array(field_s * nh_fields);
 int fill_nim_field_array(field_s * nim_fields);
 int modify_all_fields(void *basep, nt_opts *opts, field_s *fields, int flen);
 int modify_field     (void * basep, field_s * field, char * data);
 int process_opts     (int argc, char * argv[], nt_opts * opts);
+int remove_ext_list  (nifti_image * nim, char ** elist, int len);
 int usage            (char * prog, int level);
 int use_full         (char * prog);
 int verify_opts      (nt_opts * opts, char * prog);

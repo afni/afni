@@ -237,8 +237,19 @@ static char gni_history[] =
   "   - updated description of nifti_read_collapsed_image() for *data change\n"
   "     (if *data is already set, assume memory exists for results)\n"
   "   - modified rci_alloc_mem() to allocate only if *data is NULL\n"
+  "\n"
+  "1.9  19 April 2005 [rickr]\n"
+  "   - added extension codes NIFTI_ECODE_COMMENT and NIFTI_ECODE_XCEDE\n"
+  "   - added nifti_type codes NIFTI_MAX_ECODE and NIFTI_MAX_FTYPE\n"
+  "   - added nifti_add_extension() {exported}\n"
+  "   - added nifti_fill_extension() as a static function\n"
+  "   - added nifti_is_valid_ecode() {exported}\n"
+  "   - nifti_type values are now NIFTI_FTYPE_* file codes\n"
+  "   - in nifti_read_extensions(), decrement 'remain' by extender size, 4\n"
+  "   - in nifti_set_iname_offset(), case 1, update if offset differs\n"
+  "   - only output '-d writing nifti file' if debug > 1\n"
   "----------------------------------------------------------------------\n";
-static char gni_version[] = "nifti library version 1.8 (April 14, 2005)";
+static char gni_version[] = "nifti library version 1.9 (April 19, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -251,6 +262,10 @@ static int  nifti_read_extensions( nifti_image *nim, znzFile fp, int remain );
 static int  nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,                                       int remain, znzFile fp );
 static int  nifti_check_extension(nifti_image *nim, int size,int code, int rem);
 static void update_nifti_image_for_brick_list(nifti_image * nim , int nbricks);
+static int  nifti_add_exten_to_list(nifti1_extension *  new_ext,
+                                    nifti1_extension ** list, int new_length);
+static int  nifti_fill_extension(nifti1_extension * ext, char * data, int len,
+                                 int ecode );
 
 /* NBL routines */
 static int  nifti_load_NBL_bricks(nifti_image * nim , int * slist, int * sindex,                                  nifti_brick_list * NBL, znzFile fp );
@@ -2179,8 +2194,8 @@ char * nifti_findimgname(const char* fname , int nifti_type)
 
    /* if we get 3 or more extensions, can make a loop here... */
 
-   if (nifti_type == 1) first = 0;   /* type 1      should match .nii */
-   else                 first = 1;   /* type 0 or 2 should match .img */
+   if (nifti_type == NIFTI_FTYPE_NIFTI1_1) first = 0;   /* should match .nii */
+   else                                    first = 1;   /* should match .img */
 
    strcpy(imgname,basename);
    strcat(imgname,ext[first]);
@@ -2238,9 +2253,9 @@ char * nifti_makehdrname(char * prefix, int nifti_type, int check, int comp)
          memcpy(ext,".hdr",4);   /* then convert img name to hdr */
    }
    /* otherwise, make one up an */
-   else if( nifti_type == 1 ) strcat(iname, ".nii");
-   else if( nifti_type == 3 ) strcat(iname, ".nia");
-   else                       strcat(iname, ".hdr");
+   else if( nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcat(iname, ".nii");
+   else if( nifti_type == NIFTI_FTYPE_ASCII )    strcat(iname, ".nia");
+   else                                          strcat(iname, ".hdr");
 
 #ifdef HAVE_ZLIB  /* then also check for .gz */
    if( comp && (!ext || !strstr(iname,".gz")) ) strcat(iname,".gz");
@@ -2290,9 +2305,9 @@ char * nifti_makeimgname(char * prefix, int nifti_type, int check, int comp)
          memcpy(ext,".img",4);   /* then convert hdr name to img */
    }
    /* otherwise, make one up */
-   else if( nifti_type == 1 ) strcat(iname, ".nii");
-   else if( nifti_type == 3 ) strcat(iname, ".nia");
-   else                       strcat(iname, ".img");
+   else if( nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcat(iname, ".nii");
+   else if( nifti_type == NIFTI_FTYPE_ASCII )    strcat(iname, ".nia");
+   else                                          strcat(iname, ".img");
 
 #ifdef HAVE_ZLIB  /* then also check for .gz */
    if( comp && (!ext || !strstr(iname,".gz")) ) strcat(iname,".gz");
@@ -2362,7 +2377,9 @@ int nifti_set_filenames( nifti_image * nim, char * prefix, int check,
 *//*------------------------------------------------------------------------*/
 int is_valid_nifti_type( int nifti_type )
 {
-   if( nifti_type >= 0 && nifti_type <= 3 ) return 1;
+   if( nifti_type >= NIFTI_FTYPE_ANALYZE &&   /* smallest type, 0 */
+       nifti_type <= NIFTI_MAX_FTYPE )
+      return 1;
    return 0;
 }
 
@@ -2402,8 +2419,10 @@ int nifti_set_type_from_names( nifti_image * nim )
    ext = nifti_find_file_extension( nim->fname );
 
    /* not too picky here, do what must be done, and then verify */
-   if( strcmp(nim->fname, nim->iname) == 0 ) nim->nifti_type = 1;
-   else if ( nim->nifti_type == 1 )          nim->nifti_type = 2;
+   if( strcmp(nim->fname, nim->iname) == 0 )          /* one file, type 1 */
+      nim->nifti_type = NIFTI_FTYPE_NIFTI1_1;
+   else if( nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ) /* cannot be type 1 */
+      nim->nifti_type = NIFTI_FTYPE_NIFTI1_2;
 
    if( is_valid_nifti_type(nim->nifti_type) ) return 0;  /* success! */
 
@@ -2637,8 +2656,9 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr, char* fname)
 
   is_onefile = is_nifti && NIFTI_ONEFILE(nhdr) ;
 
-  if( is_nifti ) nim->nifti_type = (is_onefile) ? 1 : 2 ;
-  else           nim->nifti_type = 0 ;
+  if( is_nifti ) nim->nifti_type = (is_onefile) ? NIFTI_FTYPE_NIFTI1_1
+                                                : NIFTI_FTYPE_NIFTI1_2 ;
+  else           nim->nifti_type = NIFTI_FTYPE_ANALYZE ;
   
   ii = nifti_short_order() ;
   if( doswap )   nim->byteorder = REVERSE_ORDER(ii) ;
@@ -3254,7 +3274,7 @@ nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
       LNI_FERR(lfunc,"failed nifti_image_from_ascii()",fname);
       free(fname);  znzclose(fp);  return NULL;
    }
-   nim->nifti_type = 3 ;
+   nim->nifti_type = NIFTI_FTYPE_ASCII ;
 
    /* compute remaining space for extensions */
    remain = flen - txt_size - (int)nifti_get_volsize(nim);
@@ -3310,7 +3330,8 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
 
    posn = znztell(fp);
  
-   if( (posn != sizeof(nifti_1_header)) && (nim->nifti_type != 3) )
+   if( (posn != sizeof(nifti_1_header)) &&
+       (nim->nifti_type != NIFTI_FTYPE_ASCII) )
       fprintf(stderr,"** WARNING: posn not header size (%d, %d)\n",
               posn, (int)sizeof(nifti_1_header));
 
@@ -3339,6 +3360,10 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
       return 0;
    }
 
+   remain -= 4;
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"-d found valid 4-byte extender, remain = %d\n", remain);
+
    /* so we expect extensions, but have no idea of how many there may be */
 
    count = 0;
@@ -3355,8 +3380,12 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
       if( g_opts.debug > 1 ){
          fprintf(stderr,"+d found extension #%d, code = 0x%x, size = %d\n",
                  count, extn.ecode, extn.esize);
-         if( extn.ecode == NIFTI_ECODE_AFNI )  /* if AFNI, then ~XML */
-            fprintf(stderr,"   AFNI extension: %.*s\n",extn.esize-8,extn.edata);
+         if( extn.ecode == NIFTI_ECODE_AFNI )          /* ~XML */
+            fprintf(stderr,"   AFNI extension: %.*s\n",
+                    extn.esize-8,extn.edata);
+         else if( extn.ecode == NIFTI_ECODE_COMMENT )  /* TEXT */
+            fprintf(stderr,"   COMMENT extension: %.*s\n",
+                    extn.esize-8,extn.edata);
       }
       remain -= extn.esize;
       count++;
@@ -3372,16 +3401,39 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
 
 
 /*----------------------------------------------------------------------*/
-/*! nifti_add_exten_to_list     - add a new nifti1_extension to the list
+/*! nifti_add_extension - add an extension, with a copy of the data
+
+   Add another extension to the nim->ext_list array.
+   Fill this extension with a copy of the data, noting the
+       length and extension code.
+
+   \return 0 on success, -1 on error (and free the entire list)
+*//*--------------------------------------------------------------------*/
+int nifti_add_extension( nifti_image * nim, char * data, int len, int ecode )
+{
+   nifti1_extension ext;
+
+   /* error are printed in functions */
+   if( nifti_fill_extension(&ext, data, len, ecode) )                 return -1;
+   if( nifti_add_exten_to_list(&ext, &nim->ext_list, nim->num_ext+1)) return -1;
+
+   nim->num_ext++;  /* success, so increment */
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------*/
+/* nifti_add_exten_to_list     - add a new nifti1_extension to the list
 
    We will append via "malloc, copy and free", because on an error,
    the old data pointers must all be released (sorry realloc(), only
    quality dolphins get to become part of Starkist brand tunafish).
 
-   \return 0 on success, -1 on error (and free the entire list)
+   return 0 on success, -1 on error (and free the entire list)
 *//*--------------------------------------------------------------------*/
-int nifti_add_exten_to_list( nifti1_extension *  new_ext,
-                             nifti1_extension ** list, int new_length )
+static int nifti_add_exten_to_list( nifti1_extension *  new_ext,
+                                    nifti1_extension ** list, int new_length )
 {
    nifti1_extension * tmplist;
    int                count;
@@ -3408,6 +3460,54 @@ int nifti_add_exten_to_list( nifti1_extension *  new_ext,
    (*list)[new_length-1].esize = new_ext->esize;
    (*list)[new_length-1].ecode = new_ext->ecode;
    (*list)[new_length-1].edata = new_ext->edata;
+
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"+d allocated and appended extension #%d to list\n",
+              new_length);
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------*/
+/* nifti_fill_extension  - given data and length, fill an extension struct
+
+   Allocate memory for data, copy data, set the size and code.
+
+   return 0 on success, -1 on error (and free the entire list)
+*//*--------------------------------------------------------------------*/
+static int nifti_fill_extension( nifti1_extension *ext, char *data,
+                                int len, int ecode)
+{
+   int esize;
+
+   if( !ext || !data || len < 0 ){
+      fprintf(stderr,"** fill_ext: bad params (%p,%p,%d)\n",
+              (void *)ext, data, len);
+      return -1;
+   } else if( ! nifti_is_valid_ecode(ecode) ){
+      fprintf(stderr,"** fill_ext: invalid ecode %d\n", ecode);
+      return -1;
+   }
+
+   /* compute esize, first : len+8, and take ceiling up to a mult of 16 */
+   esize = len+8;
+   if( esize & 0xf ) esize = (esize + 0xf) & ~0xf;
+   ext->esize = esize;
+
+   /* allocate esize-8 (maybe more than len), using calloc for fill */
+   ext->edata = (char *)calloc(esize-8, sizeof(char));
+   if( !ext->edata ){
+      fprintf(stderr,"** NFE: failed to alloc %d bytes for extension\n",len);
+      return -1;
+   }
+
+   memcpy(ext->edata, data, len);  /* copy the data, using len */
+   ext->ecode = ecode;             /* set the ecode */
+
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"+d alloc %d bytes for ext len %d, ecode %d, esize %d\n",
+              esize-8, len, ecode, esize);
 
    return 0;
 }
@@ -3500,11 +3600,6 @@ static int nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,
 
 /*----------------------------------------------------------------------*/
 /*! for each extension, check code, size and data pointer
-
-    valid codes are:
-        -    0 : unregistered, not recommended, but valid
-        -    2 : DICOM
-        -    4 : AFNI
 *//*--------------------------------------------------------------------*/
 int valid_nifti_extensions(nifti_image *nim)
 {
@@ -3520,10 +3615,7 @@ int valid_nifti_extensions(nifti_image *nim)
    ext = nim->ext_list;
    errs = 0;
    for ( c = 0; c < nim->num_ext; c++ ){
-      if( ext->ecode != 0 &&     /* unregistered, not recommended, but valid */
-          ext->ecode != 2 &&     /* DICOM */
-          ext->ecode != 4   )    /* AFNI */
-      {
+      if( ! nifti_is_valid_ecode(ext->ecode) ) {
          if( g_opts.debug > 1 )
             fprintf(stderr,"-d ext %d, invalid code %d\n", c, ext->ecode);
          errs++;
@@ -3560,16 +3652,29 @@ int valid_nifti_extensions(nifti_image *nim)
 }
 
 
+/*----------------------------------------------------------------------*/
+/*! check whether the extension code is valid
+
+    \return 1 if valid, 0 otherwise
+*//*--------------------------------------------------------------------*/
+int nifti_is_valid_ecode( int ecode )
+{
+   if( ecode < NIFTI_ECODE_UNKNOWN ||   /* minimum code number (0) */
+       ecode > NIFTI_MAX_ECODE     ||   /* maximum code number     */
+       ecode & 1 )                      /* cannot be odd           */
+      return 0;
+
+   return 1;
+}
+
+
 /*----------------------------------------------------------------------
  * check for valid size and code, as well as can be done
  *----------------------------------------------------------------------*/
 static int nifti_check_extension(nifti_image *nim, int size, int code, int rem)
 {
    /* check for bad code before bad size */
-   if( code != 0 &&          /* unregistered, not recommended, but valid */
-       code != 2 &&          /* DICOM */
-       code != 4   )         /* AFNI */
-   {
+   if( ! nifti_is_valid_ecode(code) ) {
       if( g_opts.debug > 2 )
          fprintf(stderr,"-d invalid extension code %d\n",code);
       return 0;
@@ -3593,7 +3698,7 @@ static int nifti_check_extension(nifti_image *nim, int size, int code, int rem)
       return 0;
    }
 
-   if( nim->nifti_type == 3 && size > LNI_MAX_NIA_EXT_LEN ){
+   if( nim->nifti_type == NIFTI_FTYPE_ASCII && size > LNI_MAX_NIA_EXT_LEN ){
       if( g_opts.debug > 2 )
          fprintf(stderr,"-d NVE, bad nifti_type 3 size %d\n", size);
       return 0;
@@ -3855,11 +3960,17 @@ void nifti_image_free( nifti_image *nim )
 
 /*--------------------------------------------------------------------------*/
 /*! free the nifti extensions
+
+    - If any edata pointer is set in the extension list, free() it.
+    - Free ext_list, if it is set.
+    - Clear num_ext and ext_list from nim.
+
+    \return 0 on success, -1 on error
 *//*------------------------------------------------------------------------*/
 int nifti_free_extensions( nifti_image *nim )
 {
    int c ;
-   if( nim == NULL ) return 1;
+   if( nim == NULL ) return -1;
    if( nim->num_ext > 0 && nim->ext_list ){
       for( c = 0; c < nim->num_ext; c++ )
          if ( nim->ext_list[c].edata ) free(nim->ext_list[c].edata);
@@ -3869,6 +3980,9 @@ int nifti_free_extensions( nifti_image *nim )
    else if ( (nim->num_ext > 0 || nim->ext_list != NULL) && (g_opts.debug > 0) )
       fprintf(stderr,"** warning: nifti extension num/ptr mismatch (%d,%p)\n",
               nim->num_ext, (void *)nim->ext_list);
+
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"+d free'd %d extension(s)\n", nim->num_ext);
 
    nim->num_ext = 0;
    nim->ext_list = NULL;
@@ -4120,10 +4234,10 @@ struct nifti_1_header nifti_convert_nim2nhdr(nifti_image* nim)
 
    /**- Load NIFTI specific stuff into the header */
 
-   if( nim->nifti_type > 0 ){
+   if( nim->nifti_type > NIFTI_FTYPE_ANALYZE ){ /* then not ANALYZE */
 
-     if( nim->nifti_type == 1 ) strcpy(nhdr.magic,"n+1") ;   /* 1 file */
-     else                       strcpy(nhdr.magic,"ni1") ;   /* 2 files */
+     if( nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ) strcpy(nhdr.magic,"n+1") ;
+     else                                          strcpy(nhdr.magic,"ni1") ;
 
      nhdr.pixdim[1] = fabs(nhdr.pixdim[1]) ; nhdr.pixdim[2] = fabs(nhdr.pixdim[2]) ;
      nhdr.pixdim[3] = fabs(nhdr.pixdim[3]) ; nhdr.pixdim[4] = fabs(nhdr.pixdim[4]) ;
@@ -4278,11 +4392,12 @@ void nifti_set_iname_offset(nifti_image *nim)
        nim->iname_offset = 0 ;
      break ;
 
-     case 1:   /* NIFTI-1 single binary file - always update */
+     /* NIFTI-1 single binary file - always update */
+     case NIFTI_FTYPE_NIFTI1_1:
        offset = nifti_extension_size(nim)+sizeof(struct nifti_1_header)+4;
        /* be sure offset is aligned to a 16 byte boundary */
        if ( ( offset % 16 ) != 0 )  offset = ((offset + 0xf) & ~0xf);
-       if( nim->iname_offset < offset ){
+       if( nim->iname_offset != offset ){
           if( g_opts.debug > 1 )
              fprintf(stderr,"+d changing offset from %d to %d\n",
                   nim->iname_offset, offset);
@@ -4290,9 +4405,9 @@ void nifti_set_iname_offset(nifti_image *nim)
        }
      break ;
 
-               /* non-standard case: */
-     case 3:   /* NIFTI-1 ASCII header + binary data (single file) */
-       nim->iname_offset = -1 ;              /* compute offset from filesize */
+     /* non-standard case: NIFTI-1 ASCII header + binary data (single file) */
+     case NIFTI_FTYPE_ASCII:
+       nim->iname_offset = -1 ;             /* compute offset from filesize */
      break ;
    }
 }
@@ -4346,20 +4461,20 @@ znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts ,
 
    nifti_set_iname_offset(nim);
 
-   if( g_opts.debug > 0 ){
+   if( g_opts.debug > 1 ){
       fprintf(stderr,"-d writing nifti file '%s'...\n", nim->fname);
       if( g_opts.debug > 2 )
          fprintf(stderr,"-d nifti type %d, offset %d\n",
                  nim->nifti_type, nim->iname_offset);
    }
 
-   if( nim->nifti_type == 3 )   /* non-standard case */
+   if( nim->nifti_type == NIFTI_FTYPE_ASCII )   /* non-standard case */
       return nifti_write_ascii_image(nim,NBL,(char*)opts,write_data,leave_open);
 
    nhdr = nifti_convert_nim2nhdr(nim);    /* create the nifti1_header struct */
 
    /* if writing to 2 files, make sure iname is set and different from fname */
-   if( nim->nifti_type != 1 ){
+   if( nim->nifti_type != NIFTI_FTYPE_NIFTI1_1 ){
        if( nim->iname && strcmp(nim->iname,nim->fname) == 0 ){
          free(nim->iname) ; nim->iname = NULL ;
        }
@@ -4370,7 +4485,7 @@ znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts ,
    }
 
    /* if we have an imgfile and will write the header there, use it */
-   if( ! znz_isnull(imgfile) && nim->nifti_type == 1 ){
+   if( ! znz_isnull(imgfile) && nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ){
       if( g_opts.debug > 2 ) fprintf(stderr,"+d using passed file for hdr\n");
       fp = imgfile;
    }
@@ -4393,7 +4508,8 @@ znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts ,
    }
 
    /* partial file exists, and errors have been printed, so ignore return */
-   if( nim->nifti_type != 0 ) (void)nifti_write_extensions(fp,nim);
+   if( nim->nifti_type != NIFTI_FTYPE_ANALYZE )
+      (void)nifti_write_extensions(fp,nim);
 
    /* if the header is all we want, we are done */
    if( ! write_data && ! leave_open ){
@@ -4401,7 +4517,7 @@ znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts ,
       znzclose(fp); return(fp);
    }
 
-   if( nim->nifti_type != 1 ){   /* then get a new file pointer */
+   if( nim->nifti_type != NIFTI_FTYPE_NIFTI1_1 ){ /* get a new file pointer */
       znzclose(fp);         /* first, close header file */
       if( ! znz_isnull(imgfile) ){
          if(g_opts.debug > 2) fprintf(stderr,"+d using passed file for img\n");
@@ -4459,7 +4575,7 @@ znzFile nifti_write_ascii_image(nifti_image *nim, nifti_brick_list * NBL,
    The following fields of nim affect how the output appears:
     - nifti_type = 0 ==> ANALYZE-7.5 format file pair will be written
     - nifti_type = 1 ==> NIFTI-1 format single file will be written
-                         (data offset will be 348)
+                         (data offset will be 352+extensions)
     - nifti_type = 2 ==> NIFTI_1 format file pair will be written
     - nifti_type = 3 ==> NIFTI_1 ASCII single file will be written
     - fname is the name of the output file (header or header+data)
@@ -4713,9 +4829,9 @@ char *nifti_image_to_ascii( nifti_image *nim )
    sprintf( buf , "<nifti_image\n" ) ;   /* XML-ish opener */
 
    sprintf( buf+strlen(buf) , "  nifti_type = '%s'\n" ,
-              (nim->nifti_type == 1) ? "NIFTI-1+"
-             :(nim->nifti_type == 2) ? "NIFTI-1"
-             :(nim->nifti_type == 3) ? "NIFTI-1A"
+              (nim->nifti_type == NIFTI_FTYPE_NIFTI1_1) ? "NIFTI-1+"
+             :(nim->nifti_type == NIFTI_FTYPE_NIFTI1_2) ? "NIFTI-1"
+             :(nim->nifti_type == NIFTI_FTYPE_ASCII   ) ? "NIFTI-1A"
              :                         "ANALYZE-7.5" ) ;
 
    /** Strings that we don't control (filenames, etc.) that might
@@ -5044,10 +5160,14 @@ nifti_image *nifti_image_from_ascii( char *str, int * bytes_read )
         Start with special cases that don't fit the QNUM/QSTR macros. */
 
      if( strcmp(lhs,"nifti_type") == 0 ){
-            if( strcmp(rhs,"ANALYZE-7.5") == 0 ) nim->nifti_type = 0 ;
-       else if( strcmp(rhs,"NIFTI-1+")    == 0 ) nim->nifti_type = 1 ;
-       else if( strcmp(rhs,"NIFTI-1")     == 0 ) nim->nifti_type = 2 ;
-       else if( strcmp(rhs,"NIFTI-1A")    == 0 ) nim->nifti_type = 3 ;
+            if( strcmp(rhs,"ANALYZE-7.5") == 0 )
+               nim->nifti_type = NIFTI_FTYPE_ANALYZE ;
+       else if( strcmp(rhs,"NIFTI-1+")    == 0 )
+               nim->nifti_type = NIFTI_FTYPE_NIFTI1_1 ;
+       else if( strcmp(rhs,"NIFTI-1")     == 0 )
+               nim->nifti_type = NIFTI_FTYPE_NIFTI1_2 ;
+       else if( strcmp(rhs,"NIFTI-1A")    == 0 )
+               nim->nifti_type = NIFTI_FTYPE_ASCII ;
      }
      else if( strcmp(lhs,"header_filename") == 0 ){
        nim->fname = nifti_strdup(rhs) ;
