@@ -160,7 +160,8 @@ NI_dpr("   parse_header_stuff: scan start at id=%d\n",id) ;
       }
 
       if( dat[id] == '?' ){                            /* "?>" found */
-        if( id < ndat-1 ) id++ ;
+        if( id < ndat-1 ) id++ ;           /* ==> this is a procins! */
+        hs->empty = 1 ;
         break ;
       }
 

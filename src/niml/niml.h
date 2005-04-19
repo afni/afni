@@ -175,7 +175,7 @@ extern int          NI_multival_to_binary( NI_rowtype *, int, char *, char * );
 extern int          NI_has_String        ( NI_rowtype * ) ;
 extern void         NI_swap_column       ( NI_rowtype * , int , char * ) ;
 
-extern void NI_rowtype_debug( int ) ;
+extern void         NI_rowtype_debug( int ) ;
 
 /*! Used to test if a rowtype code is a basic type. */
 
@@ -248,6 +248,8 @@ typedef struct {
    char  *name ;       /*!< The 'PItarget', as in '<?name ...?>' */
 } NI_procins ;
 #endif
+
+extern NI_procins * NI_rowtype_procins( NI_rowtype * ) ; /* 19 Apr 2005 */
 
 /*-----------------------------------------------------------------
   Stuff for shared memory transport between processes
