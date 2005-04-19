@@ -504,6 +504,7 @@ void NI_add_column_stride( NI_element *nel, int typ, void *arr, int stride )
 
    return ;
 }
+
 /*------------------------------------------------------------------------*/
 /*! ZSS; Fills an already created column with values up to vec_filled
          the values in arr are inserted into nel->vec[nn]
@@ -590,6 +591,19 @@ void NI_insert_value( NI_element *nel, int row, int col, void *dat )
    }
 
    return ;
+}
+
+/*------------------------------------------------------------------------*/
+
+void NI_insert_string( NI_element *nel, int row, int col, char *str )
+{
+   if( nel == NULL || str == NULL         ) return ;
+   if( nel->type   != NI_ELEMENT_TYPE     ) return ;
+   if( row < 0     || row >= nel->vec_len ) return ;
+   if( col < 0     || col >= nel->vec_num ) return ;
+   if( nel->vec_typ[col] != NI_STRING     ) return ;
+
+   NI_insert_value( nel , row,col , &str ); return ;
 }
 
 /*------------------------------------------------------------------------*/
