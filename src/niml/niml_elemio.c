@@ -114,10 +114,10 @@ void * NI_read_element_header( NI_stream_type *ns , int msec )
    bad (i.e., will return no more data ever).  To check for the latter
    case, use NI_stream_readcheck().
 
-   If a "<ni_do ... />" element is encountered, it will not be
-   returned to the caller.  Instead, the actions it orders will
-   be carried out in function NI_do(), and the function will loop
-   back to find some other input.
+   If a "<ni_do ... />" or "<?ni_do ... ?>" element is encountered,
+   it will not be returned to the caller.  Instead, the actions it
+   orders will be carried out in function NI_do(), and the function
+   will loop back to find some other input.
 ----------------------------------------------------------------------*/
 
 void * NI_read_element( NI_stream_type *ns , int msec )
@@ -214,6 +214,18 @@ NI_dpr("NI_read_element: header parsed successfully\n") ;
 
      NI_procins *npi ;
 
+     if( strcmp(hs->name,"?ni_do") == 0 ){  /* 19 Apr 2005: special case! */
+       NI_element *nel ;
+       nel = make_empty_data_element( hs ) ;         /* temporary element */
+       destroy_header_stuff( hs ) ;
+       NI_do( ns , nel ) ;                        /* do the stuff it says */
+       NI_free_element( nel ) ;                        /* then destroy it */
+       if( ns->bad == MARKED_FOR_DEATH || ns->buf == NULL ) return NULL ;
+       num_restart = 0 ; goto HeadRestart ;
+     }
+
+     /* normal case: make a procins element */
+
      npi       = NI_malloc(NI_procins,sizeof(NI_procins)) ;
      npi->type = NI_PROCINS_TYPE ;
      npi->name = NI_strdup( hs->name + 1 ) ; /* skip the '?' */
@@ -227,6 +239,7 @@ NI_dpr("NI_read_element: header parsed successfully\n") ;
      }
 
      destroy_header_stuff( hs ) ;
+
      return npi ;
 
    } /*--- end of reading a processing instruction ---*/
