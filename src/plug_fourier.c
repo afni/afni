@@ -101,7 +101,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint , "Input" , "Input" , FALSE ) ;
    PLUTO_add_dataset(plint , "Dataset" ,
-                                    ANAT_EPI_MASK , 0 ,
+                                    ANAT_ALL_MASK , FUNC_ALL_MASK ,
                                     DIMEN_4D_MASK | BRICK_ALLREAL_MASK ) ;
 
    /*-- second line of input: Prefix for output dataset --*/

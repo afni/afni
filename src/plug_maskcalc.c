@@ -9,6 +9,9 @@
  * plug_maskcalc.c		- plugin to do mask-based computations
  *
  * $Log$
+ * Revision 1.7  2005/04/19 21:07:17  rwcox
+ * Cput
+ *
  * Revision 1.6  2004/01/07 19:50:37  rwcox
  * Cput
  *
@@ -82,7 +85,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
     PLUTO_add_option ( plint, "Dataset", "mask_st", TRUE );
     PLUTO_add_hint   ( plint, "dataset to be used as mask" );
-    PLUTO_add_dataset( plint, "Mask", 0, FUNC_FIM_MASK,
+    PLUTO_add_dataset( plint, "Mask", ANAT_ALL_MASK , FUNC_ALL_MASK,
 			    DIMEN_3D_MASK | DIMEN_4D_MASK | BRICK_SHORT_MASK );
     PLUTO_add_hint   ( plint, "dataset to be used as mask" );
 
@@ -90,7 +93,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
     PLUTO_add_option ( plint, "Dataset", "dset_st", TRUE );
     PLUTO_add_hint   ( plint, "computational dataset" );
-    PLUTO_add_dataset( plint, "Dset", ANAT_ALL_MASK, FUNC_FIM_MASK,
+    PLUTO_add_dataset( plint, "Dset", ANAT_ALL_MASK, FUNC_ALL_MASK,
 				DIMEN_ALL_MASK | BRICK_SHORT_MASK );
     PLUTO_add_hint   ( plint, "dataset to be used for computation" );
 

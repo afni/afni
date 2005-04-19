@@ -9,6 +9,9 @@
  *  plug_hemisub.c      - AFNI plugin to subtract hemispheres
  *
  *  $Log$
+ *  Revision 1.6  2005/04/19 21:07:17  rwcox
+ *  Cput
+ *
  *  Revision 1.5  2004/01/07 19:50:37  rwcox
  *  Cput
  *
@@ -84,7 +87,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
     PLUTO_add_option( plint, "Input" , "Input" , TRUE );
     PLUTO_add_hint( plint, "choose dataset for input" );
-    PLUTO_add_dataset(plint, "Dataset" , ANAT_ALL_MASK , FUNC_FIM_MASK,
+    PLUTO_add_dataset(plint, "Dataset" , ANAT_ALL_MASK , FUNC_ALL_MASK,
 					 DIMEN_3D_MASK | BRICK_SHORT_MASK );
 
     /*-- second line of input: prefix for output dataset --*/

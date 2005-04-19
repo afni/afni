@@ -1128,7 +1128,11 @@ static void TAG_get_dset_CB( int num, THD_3dim_dataset ** dslist, void * cd )
 
 static int TAG_check_dataset( THD_3dim_dataset * qset, void * cd )
 {
+#if 0
    return ISANAT(qset) ;
+#else
+   return 1 ;  /* All of them, Frank */
+#endif
 }
 
 static int TAG_check_copyset( THD_3dim_dataset * qset, void * cd )
