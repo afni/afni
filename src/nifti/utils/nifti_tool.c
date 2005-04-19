@@ -388,7 +388,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          }
          opts->rm_exts = 1;
       }
-      else if( ! strncmp(argv[ac], "-strip_extras", 3) )
+      else if( ! strncmp(argv[ac], "-strip_extras", 6) )
          opts->strip = 1;
       else
       {
@@ -752,7 +752,7 @@ int use_full(char * prog)
    "    %s -add_afni_ext    'extension in quotes' [...] -infiles f1 ...\n"
    "    %s -add_comment_ext 'extension in quotes' [...] -infiles f1 ...\n"
    "    %s -rm_ext INDEX [...] -infiles f1 ...\n"
-   "    %s -strip -infiles f1 ...\n"
+   "    %s -strip_extras -infiles f1 ...\n"
    "\n"
    "    %s -diff_hdr [-field FIELDNAME] [...] -infiles f1 f2\n"
    "    %s -diff_nim [-field FIELDNAME] [...] -infiles f1 f2\n"
@@ -975,7 +975,7 @@ int use_full(char * prog)
    "       except that the fields in question are from the nifti_image\n"
    "       structure.\n"
    "\n"
-   "    -strip            : remove extensions and descriptions from datasets\n"
+   "    -strip_extras     : remove extensions and descriptions from datasets\n"
    "\n"
    "       This action is used to attempt to 'clean' a dataset of general\n"
    "       text, in order to make it more anonymous.  Extensions and the\n"
