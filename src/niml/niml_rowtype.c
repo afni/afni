@@ -590,7 +590,7 @@ int NI_rowtype_define( char *tname , char *tdef )
                    since a recursive call via NI_rowtype_find_name()
                    might have created a new rowtype before this one.
                    An example definition: "int,VECTOR_float_32,int".  */
-                  
+
    rt->code = ROWTYPE_BASE_CODE + rowtype_num ;
 
    /** debugging printouts **/
@@ -1935,10 +1935,12 @@ void * NI_copy_column( NI_rowtype *rt , int col_len , void *cpt )
 
    /* make a quick (surface) copy */
 
-   ndat = NI_malloc(char,  rt->size * col_len ) ;
-   memcpy( ndat , dat , rt->size * col_len ) ;
+   ndat = NI_malloc(char,  rt->size * col_len ) ;  /* new data column */
+   memcpy( ndat , dat , rt->size * col_len ) ;     /* the quick copying */
 
-   /* copy any var dim arrays inside */
+   /* copy any var dim arrays inside, since the pointers
+      in ndat right now still point to data in dat,
+      but we want ndat to be entirely self-contained!  */
 
    if( ROWTYPE_is_varsize(rt) ){
      for( ii=0 ; ii < col_len ; ii++ ){                 /* loop over structs */
