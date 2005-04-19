@@ -553,6 +553,7 @@ extern void NI_add_column( NI_element *, int, void * ) ;
 extern void NI_set_attribute( void *, char *, char * ) ;
 extern char * NI_get_attribute( void *, char * ) ;
 extern void NI_insert_value( NI_element *, int,int, void * );       /* 03 Apr 2003 */
+extern void NI_insert_string( NI_element *, int,int, char * );      /* 18 Apr 2005 */
 extern void NI_add_column_stride( NI_element *, int, void *, int ); /* 29 May 2003 */
 extern void NI_fill_column_stride( NI_element *, int, void *, int , int); /* ZSS Mar 23 04 */
 
