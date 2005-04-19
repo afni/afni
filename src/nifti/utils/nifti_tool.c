@@ -45,7 +45,8 @@
  *   nifti_tool -diff_hdr [-field fieldname] [...] -infiles f1 f2
  *   nifti_tool -diff_nim [-field fieldname] [...] -infiles f1 f2
  *  
- *   nifti_tool -add_afni_ext "extension in quotes" -infiles f1 ...
+ *   nifti_tool -add_afni_ext    "extension in quotes" -infiles f1 ...
+ *   nifti_tool -add_comment_ext "extension in quotes" -infiles f1 ...
  *   nifti_tool -rm_ext ext_index -infiles f1 ...
  *  
  *   nifti_tool -mod_hdr  [-mod_field fieldname new_val] [...] -infiles f1 ...
@@ -112,8 +113,17 @@ static char g_history[] =
   "       o takes a flag for whether to print newline\n"
   "       o trailing spaces and zeros are removed from printing floats\n"
   "   - added clear_float_zeros(), to remove trailing zeros\n"
+  "\n"
+  "1.8  19 April 2005 [rickr] - COMMENT extensions\n"
+  "   - added int_list struct, and keep_hist,etypes,command fields to nt_opts\n"
+  "   - added -add_comment_ext action\n"
+  "   - allowed for removal of multiple extensions, including option of ALL\n"
+  "   - added -keep_hist option, to store the command as a COMMENT extension\n"
+  "     (includes fill_cmd_string() and add_int(), is done for all actions)\n"
+  "   - added remove_ext_list(), for removing a list of extensions by indices\n"
+  "   - added -strip action, to strip all extensions and descrip fields\n"
   "----------------------------------------------------------------------\n";
-static char g_version[] = "version 1.7 (April 14, 2005)";
+static char g_version[] = "version 1.8 (April 19, 2005)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -125,7 +135,7 @@ static int  g_debug = 1;
 
 /* these are effectively constant, and are built only for verification */
 field_s g_hdr_fields[NT_HDR_NUM_FIELDS];    /* nifti_1_header fields */
-field_s g_nim_fields [NT_NIM_NUM_FIELDS];   /* nifti_image fields    */
+field_s g_nim_fields[NT_NIM_NUM_FIELDS];    /* nifti_image fields    */
 
 int main( int argc, char * argv[] )
 {
@@ -152,6 +162,8 @@ int main( int argc, char * argv[] )
    if( opts.dts || opts.dci ) return act_disp_ci(&opts);
 
    /* perform modifications first, in case we allow multiple actions */
+   if( opts.strip     && ((rv = act_strip    (&opts)) != 0) ) return rv;
+
    if( opts.add_exts  && ((rv = act_add_exts (&opts)) != 0) ) return rv;
    if( opts.rm_exts   && ((rv = act_rm_ext   (&opts)) != 0) ) return rv;
 
@@ -209,11 +221,20 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       }
 
       /* begin normal execution options... */
-      else if( ! strncmp(argv[ac], "-add_afni_ext", 6) )
+      else if( ! strncmp(argv[ac], "-add_afni_ext", 9) )
       {
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-add_afni_ext");
          if( add_string(&opts->elist, argv[ac]) ) return 1; /* add extension */
+         if( add_int(&opts->etypes, NIFTI_ECODE_AFNI) ) return 1;
+         opts->add_exts = 1;
+      }
+      else if( ! strncmp(argv[ac], "-add_comment_ext", 9) )
+      {
+         ac++;
+         CHECK_NEXT_OPT(ac, argc, "-add_comment_ext");
+         if( add_string(&opts->elist, argv[ac]) ) return 1; /* add extension */
+         if( add_int(&opts->etypes, NIFTI_ECODE_COMMENT) ) return 1;
          opts->add_exts = 1;
       }
       else if( ! strncmp(argv[ac], "-copy_brick_list", 11) ||
@@ -334,6 +355,8 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          opts->mod_hdr = 1;
       else if( ! strncmp(argv[ac], "-mod_nim", 7) )
          opts->mod_nim = 1;
+      else if( ! strncmp(argv[ac], "-keep_hist", 5) )
+         opts->keep_hist = 1;
       else if( ! strncmp(argv[ac], "-overwrite", 6) )
          opts->overwrite = 1;
       else if( ! strncmp(argv[ac], "-prefix", 4) )
@@ -346,19 +369,27 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          opts->debug = 0;
       else if( ! strncmp(argv[ac], "-rm_ext", 7) )
       {
-         int index;
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-rm_ext");
-         if( ((index = atoi(argv[ac])) < 0) || (index > 1000) ||
-             !isdigit(*argv[ac]) ){
-            fprintf(stderr,
+         if( strcmp(argv[ac],"ALL") == 0 )  /* special case, pass -1 */
+         {
+            if( add_string(&opts->elist, "-1") ) return 1;
+         }
+         else
+         {
+            int index = atoi(argv[ac]);
+            if( (index != -1) && ((index > 1000) || !isdigit(*argv[ac])) ){
+               fprintf(stderr,
                     "** '-rm_ext' requires an extension index (read '%s')\n",
                     argv[ac]);
-            return 1;
+               return 1;
+            }
+            if( add_string(&opts->elist, argv[ac]) ) return 1;
          }
-         if( add_string(&opts->elist, argv[ac]) ) return 1;
          opts->rm_exts = 1;
       }
+      else if( ! strncmp(argv[ac], "-strip_extras", 3) )
+         opts->strip = 1;
       else
       {
          fprintf(stderr,"** unknown option: '%s'\n", argv[ac]);
@@ -366,8 +397,18 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       }
    }
 
+   /* verify for programming purposes */
+   if( opts->add_exts && ( opts->elist.len != opts->etypes.len ) )
+   {
+      fprintf(stderr,"** ext list length (%d) != etype length (%d)\n",
+              opts->elist.len, opts->etypes.len);
+      return 1;
+   }
+
    g_debug = opts->debug;
    nifti_set_debug_level(g_debug);
+
+   fill_cmd_string(opts, argc, argv);  /* copy this command */
 
    if( g_debug > 2 ) disp_nt_opts("options read: ", opts);
 
@@ -382,11 +423,12 @@ int verify_opts( nt_opts * opts, char * prog )
 {
    int ac, errs = 0;   /* number of requested action types */
 
-   /* check that only one of disp, diff, mod or add_afni_ext is used */
+   /* check that only one of disp, diff, mod or add_*_ext is used */
    ac =  (opts->diff_hdr || opts->diff_nim                   ) ? 1 : 0;
    ac += (opts->disp_hdr || opts->disp_nim || opts->disp_exts) ? 1 : 0;
    ac += (opts->mod_hdr  || opts->mod_nim                    ) ? 1 : 0;
    ac += (opts->add_exts || opts->rm_exts                    ) ? 1 : 0;
+   ac += (opts->strip                                        ) ? 1 : 0;
    ac += (opts->cbl                                          ) ? 1 : 0;
    ac += (opts->cci                                          ) ? 1 : 0;
    ac += (opts->dts      || opts->dci                        ) ? 1 : 0;
@@ -404,7 +446,7 @@ int verify_opts( nt_opts * opts, char * prog )
       fprintf(stderr,
          "** only one action option is allowed, please use only one of:\n"
          "        '-add_...', '-diff_...', '-disp_...', '-mod_...'\n"
-         "        '-dts', '-cbl' or '-cci'\n"
+         "        '-strip', '-dts', '-cbl' or '-cci'\n"
          "   (see '%s -help' for details)\n", prog);
       return 1;
    }
@@ -419,17 +461,12 @@ int verify_opts( nt_opts * opts, char * prog )
    /* can add or remove extensions, but not both */
    if( opts->add_exts && opts->rm_exts )
    {
-      fprintf(stderr,"** cannot use both '-add_afni_ext' and '-rm_ext'\n");
+      fprintf(stderr,"** cannot use both '-add_*_ext' and '-rm_ext'\n");
       return 1;
    }
    if( (opts->add_exts || opts->rm_exts) && opts->elist.len <= 0 )
    {
       fprintf(stderr,"** missing extensions to add or remove\n");
-      return 1;
-   }
-   if( opts->rm_exts && opts->elist.len > 1 )
-   {
-      fprintf(stderr,"** sorry, you may remove only 1 extension at a time\n");
       return 1;
    }
 
@@ -501,6 +538,87 @@ int verify_opts( nt_opts * opts, char * prog )
 
    return 0;
 }
+
+
+/*----------------------------------------------------------------------
+ * re-assemble the command string into opts->command
+ *----------------------------------------------------------------------*/
+int fill_cmd_string( nt_opts * opts, int argc, char * argv[])
+{
+   char * cp;
+   int    len, remain = NT_CMD_LEN;  /* NT_CMD_LEN is max command len */
+   int    c, ac;
+   int    has_space;  /* arguments containing space must be quoted */
+   int    skip = 0;   /* counter to skip some of the arguments     */
+
+   /* get the first argument separately */
+   len = sprintf( opts->command, "\n  command: %s", argv[0] );
+   cp = opts->command + len;
+   remain -= len;
+
+   /* get the rest, with special attention to input files */
+   for( ac = 1; ac < argc; ac++ )
+   {
+      if( skip ){ skip--;  continue; }  /* then skip these arguments */
+
+      len = strlen(argv[ac]);
+      if( len + 3 >= remain ) {  /* extra 3 for space and possible '' */
+         fprintf(stderr,"FCS: no space remaining for command, continuing...\n");
+         return 1;
+      }
+
+      /* put the argument in, possibly with '' */
+
+      has_space = 0;
+      for( c = 0; c < len-1; c++ )
+         if( isspace(argv[ac][c]) ){ has_space = 1; break; }
+      if( has_space ) len = sprintf(cp, " '%s'", argv[ac]);
+      else            len = sprintf(cp, " %s",   argv[ac]);
+
+      remain -= len;
+
+      /* infiles is okay, but after the *next* argument, we may skip files */
+      /* (danger, will robinson!  hack alert!) */
+      if( !strncmp(argv[ac-1],"-infiles",3) )
+      {
+         /* if more than 4 (just to be arbitrary) input files,
+            include only the first and last */
+         if( opts->infiles.len > 4 )
+            skip = opts->infiles.len - 2;
+      }
+
+      cp += len;
+   }
+
+   if( g_debug > 1 ){
+      fprintf(stderr,"+d filled command string, %d args, %d bytes\n",
+              argc, (int)(cp - opts->command));
+      if( g_debug > 2 ) fprintf(stderr,"%s\n", opts->command);
+   }
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * - only bother to alloc one pointer at a time (don't need efficiency here)
+ * - return 0 on success
+ *----------------------------------------------------------------------*/
+int add_int(int_list * ilist, int val)
+{
+   if( ilist->len == 0 ) ilist->list = NULL;  /* just to be safe */
+   ilist->len++;
+   ilist->list = (int *)realloc(ilist->list,ilist->len*sizeof(int));
+   if( ! ilist->list ){
+      fprintf(stderr,"** failed to alloc %d (int *) elements\n",ilist->len);
+      return -1;
+   }
+
+   ilist->list[ilist->len-1] = val;
+
+   return 0;
+}
+
 
 /*----------------------------------------------------------------------
  * - do not duplicate the string
@@ -592,6 +710,7 @@ int use_full(char * prog)
    "  one can modify  - any or all fields in the nifti_1_header structure\n"
    "                  - any or all fields in the nifti_image structure\n"
    "          add/rm  - any or all extensions in the nifti_image structure\n"
+   "          remove  - all extensions and descriptions from the datasets\n"
    "\n"
    "  one can compare - any or all field pairs of nifti_1_header structures\n"
    "                  - any or all field pairs of nifti_image structures\n"
@@ -630,17 +749,19 @@ int use_full(char * prog)
    "    %s -mod_hdr  [-mod_field FIELDNAME NEW_VAL] [...] -infiles f1 ...\n"
    "    %s -mod_nim  [-mod_field FIELDNAME NEW_VAL] [...] -infiles f1 ...\n"
    "\n"
-   "    %s -add_afni_ext 'extension in quotes' [...] -infiles f1 ...\n"
+   "    %s -add_afni_ext    'extension in quotes' [...] -infiles f1 ...\n"
+   "    %s -add_comment_ext 'extension in quotes' [...] -infiles f1 ...\n"
    "    %s -rm_ext INDEX [...] -infiles f1 ...\n"
+   "    %s -strip -infiles f1 ...\n"
    "\n"
    "    %s -diff_hdr [-field FIELDNAME] [...] -infiles f1 f2\n"
    "    %s -diff_nim [-field FIELDNAME] [...] -infiles f1 f2\n"
    "\n"
    "  ------------------------------\n",
-   prog, prog, prog, prog, prog, prog,    /* 1 + 20, so far */
+   prog, prog, prog, prog, prog, prog,    /* 1 + 22, so far */
    prog, prog, prog, prog, prog, prog,
    prog, prog, prog, prog, prog, prog,
-   prog, prog, prog );
+   prog, prog, prog, prog, prog );
 
    printf(
    "\n"
@@ -658,6 +779,8 @@ int use_full(char * prog)
    "       dataset, contained in square brackets.  Note that square brackets\n"
    "       are special to most UNIX shells, so they should be contained\n"
    "       within single quotes.  Syntax of an index list:\n"
+   "\n"
+   "       notes:\n"
    "\n"
    "         - indices start at zero\n"
    "         - indices end at nt-1, which has the special symbol '$'\n"
@@ -709,7 +832,8 @@ int use_full(char * prog)
    "       Note that this is a 6-dimensional dataset.\n"
    "\n"
    "         e.g. copy all time series for voxel i,j,k = 5,0,17, with v=2\n"
-   "         %s -cci 5 0 17 -1 -1 2 -1 -prefix new_5_0_17_2.nii\n"
+   "              (and add the command to the history)\n"
+   "         %s -cci 5 0 17 -1 -1 2 -1 -keep_hist -prefix new_5_0_17_2.nii\n"
    "\n"
    "         e.g. copy all data where i=3, j=19 and v=2\n"
    "              (I do not claim a good reason to do this)\n"
@@ -808,7 +932,7 @@ int use_full(char * prog)
    "\n"
    "    -mod_hdr           : modify nifti_1_header fields for datasets\n"
    "\n"
-   "       This flag is used to modify some of the nifti_1_header fields in\n"
+   "       This action is used to modify some of the nifti_1_header fields in\n"
    "       one or more datasets.  The user must specify a list of fields to\n"
    "       modify via one or more '-mod_field' options, which include field\n"
    "       names, along with the new (set of) values.\n"
@@ -847,9 +971,25 @@ int use_full(char * prog)
    "\n"
    "    -mod_nim          : modify nifti_image fields for datasets\n"
    "\n"
-   "       This flag option is used the same way that '-mod_hdr' is used,\n"
+   "       This action option is used the same way that '-mod_hdr' is used,\n"
    "       except that the fields in question are from the nifti_image\n"
    "       structure.\n"
+   "\n"
+   "    -strip            : remove extensions and descriptions from datasets\n"
+   "\n"
+   "       This action is used to attempt to 'clean' a dataset of general\n"
+   "       text, in order to make it more anonymous.  Extensions and the\n"
+   "       nifti_image descrip field are cleared by this action.\n"
+   "\n"
+   "       e.g. to strip all *.nii datasets in this directory:\n"
+   "       %s -strip -overwrite -infiles *.nii\n"
+   "\n"
+   "  ------------------------------\n",
+   prog, prog, prog, prog, prog, prog );
+
+   printf(
+   "\n"
+   "  options for adding/removing extensions:\n"
    "\n"
    "    -add_afni_ext EXT : add an AFNI extension to the dataset\n"
    "\n"
@@ -862,33 +1002,63 @@ int use_full(char * prog)
    "       '-overwrite' allows the user to overwrite the current file, or\n"
    "       to add the extension(s) to multiple files, overwriting them.\n"
    "\n"
-   "       e.g. to modify the contents of various fields:\n"
+   "       e.g. to add a generic AFNI extension:\n"
    "       %s -add_afni_ext 'wow, my first extension :)' -prefix dnew \\\n"
    "                  -infiles dset0.nii\n"
    "\n"
-   "       e.g. to modify the contents of various fields:\n"
+   "       e.g. to add multiple AFNI extensions:\n"
    "       %s -add_afni_ext 'wow, my first extension :)'      \\\n"
-   "                  -add_afni-ext 'look, my second...'              \\\n"
+   "                  -add_afni_ext 'look, my second...'              \\\n"
    "                  -prefix dnew -infiles dset0.nii\n"
    "\n"
-   "       e.g. to modify the contents of various fields:\n"
+   "       e.g. to add an extension, and overwrite the dataset:\n"
    "       %s -add_afni_ext 'some AFNI extension' -overwrite \\\n"
    "                  -infiles dset0.nii dset1.nii \n"
+   "\n"
+   "    -add_comment_ext EXT : add a COMMENT extension to the dataset\n"
+   "\n"
+   "       This option is used to add COMMENT-type extensions to one or more\n"
+   "       datasets.  This option may be used more than once to add more than\n"
+   "       one extension.  This option may also be used with '-add_afni_ext'.\n"
+   "\n"
+   "       The '-prefix' option is recommended, to create a new dataset.\n"
+   "       In such a case, only a single file may be taken as input.  Using\n"
+   "       '-overwrite' allows the user to overwrite the current file, or\n"
+   "       to add the extension(s) to multiple files, overwriting them.\n"
+   "\n"
+   "       e.g. to add a comment about the dataset:\n"
+   "       %s -add_comment 'converted from MY_AFNI_DSET+orig' \\\n"
+   "                  -prefix dnew                                    \\\n"
+   "                  -infiles dset0.nii\n"
+   "\n"
+   "       e.g. to add multiple extensions:\n"
+   "       %s -add_comment  'add a comment extension'         \\\n"
+   "                  -add_afni_ext 'and an AFNI XML style extension' \\\n"
+   "                  -add_comment  'dataset copied from dset0.nii'   \\\n"
+   "                  -prefix dnew -infiles dset0.nii\n"
    "\n"
    "    -rm_ext INDEX     : remove the extension given by INDEX\n"
    "\n"
    "       This option is used to remove any single extension from the\n"
-   "       dataset.  Only one extension may be removed per program execution.\n"
+   "       dataset.  Multiple extensions require multiple options.\n"
    "\n"
    "       notes  - extension indices begin with 0 (zero)\n"
    "              - to view the current extensions, see '-disp_exts'\n"
+   "              - all exensions can be removed using ALL or -1 for INDEX\n"
    "\n"
    "       e.g. to remove the extension #0:\n"
    "       %s -rm_ext 0 -overwrite -infiles dset0.nii\n"
    "\n"
+   "       e.g. to remove ALL extensions:\n"
+   "       %s -rm_ext ALL -prefix dset1 -infiles dset0.nii\n"
+   "       %s -rm_ext -1  -prefix dset1 -infiles dset0.nii\n"
+   "\n"
+   "       e.g. to remove the extensions #2, #3 and #5:\n"
+   "       %s -rm_ext 2 -rm_ext 3 -rm_ext 5 -overwrite -infiles dset0.nii\n"
+   "\n"
    "  ------------------------------\n",
    prog, prog, prog, prog, prog,
-   prog, prog, prog, prog);
+   prog, prog, prog, prog );
 
    printf(
    "\n"
@@ -979,6 +1149,14 @@ int use_full(char * prog)
    "            -mod_field descrip 'toga, toga, toga'\n"
    "            -mod_field qoffset_x 19.4 -mod_field qoffset_z -11\n"
    "            -mod_field pixdim '1 0.9375 0.9375 1.2 1 1 1 1'\n"
+   "\n"
+   "    -keep_hist         : add the command as COMMENT (to the 'history')\n"
+   "\n"
+   "        When this option is used, the current command will be added\n"
+   "        as a NIFTI_ECODE_COMMENT type extension.  This provides the\n"
+   "        ability to keep a history of commands affecting a dataset.\n"
+   "\n"
+   "       e.g. -keep_hist\n"
    "\n"
    "    -overwrite        : any modifications will be made to input files\n"
    "\n"
@@ -1087,29 +1265,37 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
             opts->mod_hdr, opts->mod_nim, opts->cbl, opts->cci,
             opts->dts, opts->dci_lines );
 
-   fprintf(stderr,"   ci_dims[8]          = %d", opts->ci_dims[0] );
-   for( c = 1; c < 8; c++ ) fprintf(stderr,", %d", opts->ci_dims[c] );
+   fprintf(stderr,"   ci_dims[8]          = ");
+   disp_raw_data(opts->ci_dims, DT_INT32, 8, ' ', 1);
+
    fprintf(stderr,"\n"
-                  "   debug, overwrite    = %d, %d\n"
+                  "   debug, keep_hist    = %d, %d\n"
+                  "   overwrite           = %d\n"
                   "   prefix              = '%s'\n",
-            opts->debug, opts->overwrite,
+            opts->debug, opts->keep_hist, opts->overwrite,
             opts->prefix ? opts->prefix : "(NULL)" );
 
-   fprintf(stderr,"   elist (%d elements)   :\n", opts->elist.len);
+   fprintf(stderr,"   elist   (length %d)  :\n", opts->elist.len);
    for( c = 0; c < opts->elist.len; c++ )
        fprintf(stderr,"      %d : %s\n", c, opts->elist.list[c]);
 
-   fprintf(stderr,"   flist (%d elements)   :\n", opts->flist.len);
+   fprintf(stderr,"   etypes  (length %d)  : ", opts->etypes.len);
+   disp_raw_data(opts->etypes.list, DT_INT32, opts->etypes.len, ' ', 0);
+   fputc('\n',stderr);
+
+   fprintf(stderr,"   flist   (length %d)  :\n", opts->flist.len);
    for( c = 0; c < opts->flist.len; c++ )
        fprintf(stderr,"      %d : %s\n", c, opts->flist.list[c]);
 
-   fprintf(stderr,"   vlist (%d elements)   :\n", opts->vlist.len);
+   fprintf(stderr,"   vlist   (length %d)  :\n", opts->vlist.len);
    for( c = 0; c < opts->vlist.len; c++ )
        fprintf(stderr,"      %d : %s\n", c, opts->vlist.list[c]);
 
-   fprintf(stderr,"   infiles (%d elements) :\n", opts->infiles.len);
+   fprintf(stderr,"   infiles (length %d)  :\n", opts->infiles.len);
    for( c = 0; c < opts->infiles.len; c++ )
        fprintf(stderr,"      %d : %s\n", c, opts->infiles.list[c]);
+
+   fprintf(stderr,"   command len         : %d\n",(int)strlen(opts->command));
 
    return 0;
 }
@@ -1121,13 +1307,15 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
  *----------------------------------------------------------------------*/
 int act_add_exts( nt_opts * opts )
 {
-   nifti1_extension   ext;
    nifti_image      * nim;
-   int                fc, ec, slen;
+   int                fc, ec;
 
-   if( g_debug > 2 )
-      fprintf(stderr,"+d adding %d extensions to %d files...\n",
+   if( g_debug > 2 ){
+      fprintf(stderr,"+d adding %d extensions to %d files...\n"
+                     "   extension types are: ",
               opts->elist.len, opts->infiles.len);
+      disp_raw_data(opts->etypes.list, DT_INT32, opts->etypes.len, ' ', 1);
+   }
 
    if( opts->prefix && opts->infiles.len != 1 ){
       fprintf(stderr,"** error: we have a prefix but %d files\n",
@@ -1137,35 +1325,22 @@ int act_add_exts( nt_opts * opts )
 
    if( opts->elist.len <= 0 ) return 0;
 
-   ext.ecode = NIFTI_ECODE_AFNI;
-
    for( fc = 0; fc < opts->infiles.len; fc++ )
    {
       nim = nifti_image_read( opts->infiles.list[fc], 1 );
       if( !nim ) return 1;  /* errors come from the library */
 
       for( ec = 0; ec < opts->elist.len; ec++ ){
-         slen = strlen(opts->elist.list[ec]);  /* need multiple of 16 */
-         if( slen & 0xf ){
-            if( g_debug > 2 ) 
-               fprintf(stderr,"+d add_ext #%d, changing size from %d to %d\n",
-                       ec, slen, (slen + 0xf) & ~0xf);
-            slen = (slen + 0xf) & ~0xf;
-         }
-
-         ext.esize = slen;
-         ext.edata = (char *)calloc(slen, sizeof(char));
-         if( ext.edata ) strncpy(ext.edata, opts->elist.list[ec], slen);
-         if( ext.esize <= 0 || ! ext.edata ){
-            fprintf(stderr,"** failed to dup %d byte extension, '%s'\n",
-                    ext.esize, opts->elist.list[ec]);
-         }
-         nim->num_ext++;  /* and insert */
-         if( nifti_add_exten_to_list(&ext, &nim->ext_list, nim->num_ext) ) {
+         if( nifti_add_extension(nim, opts->elist.list[ec],
+                   strlen(opts->elist.list[ec]), opts->etypes.list[ec]) ){
             nifti_image_free(nim);
-            return 1;     /* failure */
+            return 1;
          }
       }
+
+      if( opts->keep_hist && nifti_add_extension(nim, opts->command,
+                             strlen(opts->command), NIFTI_ECODE_COMMENT) )
+         fprintf(stderr,"** failed to add command to image as extension\n");
 
       if( opts->prefix &&
           nifti_set_filenames(nim, opts->prefix, !opts->overwrite, 1) )
@@ -1191,15 +1366,72 @@ int act_add_exts( nt_opts * opts )
 
 
 /*----------------------------------------------------------------------
+ * For each file, strip the extra fields.
+ *
+ * Clear extensions and descrip field.  No other generic strings will get
+ * passed to nifti_1_header struct.
+ *
+ * - this may make the datasets more anonymous
+ * - no history is appended here
+ *----------------------------------------------------------------------*/
+int act_strip( nt_opts * opts )
+{
+   nifti_image      * nim;
+   int                fc;
+
+   if( g_debug > 2 )
+      fprintf(stderr,"+d stripping extras from %d files\n", opts->infiles.len);
+
+   if( opts->prefix && opts->infiles.len != 1 ){
+      fprintf(stderr,"** error: we have a prefix but %d files\n",
+              opts->infiles.len);
+      return 1;
+   }
+
+   for( fc = 0; fc < opts->infiles.len; fc++ )
+   {
+      nim = nifti_image_read( opts->infiles.list[fc], 1 );
+      if( !nim ) return 1;  /* errors come from the library */
+
+      /* now remove the extensions */
+      nifti_free_extensions(nim);
+      memset(nim->descrip, 0, 80);
+
+      if( opts->prefix &&
+          nifti_set_filenames(nim, opts->prefix, !opts->overwrite, 1) ){
+         nifti_image_free(nim);
+         return 1;
+      }
+
+      if( g_debug > 1 )
+         fprintf(stderr,"+d writing %s without extensions or 'descrip'\n",
+                 nim->fname);
+
+      nifti_image_write(nim);
+
+      if( g_debug > 3 ) nifti_image_infodump(nim);
+      nifti_image_free(nim);
+   }
+
+   if( g_debug > 0 )
+      fprintf(stderr,"+d stripped extras from %d files\n", opts->infiles.len);
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
  * For each file, remove the given extension for the given indices.
+ *
+ * Note that index = -1 means to remove them all.
  *----------------------------------------------------------------------*/
 int act_rm_ext( nt_opts * opts )
 {
    nifti_image      * nim;
-   int                fc, ec, ext_ind;
+   int                fc, ext_ind, num_ext;
 
    if( g_debug > 2 )
-      fprintf(stderr,"+d removing %d extensions to %d files...\n",
+      fprintf(stderr,"+d removing %d extensions from %d files...\n",
               opts->elist.len, opts->infiles.len);
 
    if( opts->elist.len <= 0 ) return 0;
@@ -1209,14 +1441,14 @@ int act_rm_ext( nt_opts * opts )
               opts->infiles.len);
       return 1;
    }
-
-   if( opts->elist.len != 1 ){
-      fprintf(stderr,"** error: only 1 extension may be removed at a time\n");
+   else if( opts->overwrite && opts->infiles.len != 1 &&
+            strcmp(opts->elist.list[0], "-1") ) {
+      fprintf(stderr,"** error: for multiple files, can only delete ALL\n");
       return 1;
    }
 
    ext_ind = atoi(opts->elist.list[0]);
-   if( ext_ind < 0 ){
+   if( ext_ind < -1 ){
       fprintf(stderr,"** bad extension index to remove: %d\n", ext_ind);
       return 1;
    }
@@ -1228,24 +1460,13 @@ int act_rm_ext( nt_opts * opts )
       nim = nifti_image_read( opts->infiles.list[fc], 1 );
       if( !nim ) return 1;  /* errors come from the library */
 
-      if( ext_ind >= nim->num_ext ){
-         fprintf(stderr,"** extension index %d out of range [0,%d] for %s\n",
-                 ext_ind, nim->num_ext-1, opts->infiles.list[fc]);
-         nifti_image_free(nim);
+      /* now remove the extensions */
+      if( remove_ext_list(nim, opts->elist.list, opts->elist.len) )
          return 1;
-      }
-      else if( g_debug > 1 )
-         disp_nifti1_extension("+d removing ext: ", nim->ext_list + ext_ind);
 
-      /* now squeeze all remaining extensions, and decrement num_ext */
-      for( ec = ext_ind; ec < nim->num_ext - 1; ec++ )
-         nim->ext_list[ec] = nim->ext_list[ec+1];
-      nim->num_ext--;
-
-      if( nim->num_ext == 0 ){  /* did we trash the only extension? */
-         free(nim->ext_list);
-         nim->ext_list = NULL;
-      }
+      if( opts->keep_hist && nifti_add_extension(nim, opts->command,
+                             strlen(opts->command), NIFTI_ECODE_COMMENT) )
+         fprintf(stderr,"** failed to add command to image as extension\n");
 
       if( opts->prefix &&
           nifti_set_filenames(nim, opts->prefix, !opts->overwrite, 1) ){
@@ -1255,15 +1476,106 @@ int act_rm_ext( nt_opts * opts )
 
       if( g_debug > 1 )
          fprintf(stderr,"+d writing %s with %d fewer extension(s)\n",
-                 opts->infiles.list[fc], opts->elist.len);
+                 nim->fname, ext_ind == -1 ? num_ext : opts->elist.len);
 
       nifti_image_write(nim);
       nifti_image_free(nim);
    }
 
    if( g_debug > 0 )
-      fprintf(stderr,"+d removed %d extension(s) from %d files\n",
-              opts->elist.len, opts->infiles.len);
+      fprintf(stderr,"+d removed %s extension(s) from %d files\n",
+              ext_ind == -1 ? "ALL" : "1", opts->infiles.len);
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * remove extensions by index
+ *
+ * return: 0 on success, -1 on failure
+ *----------------------------------------------------------------------*/
+int remove_ext_list( nifti_image * nim, char ** elist, int len )
+{
+   int * marks;
+   int   c, ec, extval;
+
+   if( len > nim->num_ext ){
+      fprintf(stderr, "** cannot remove %d exts from image '%s' with only %d\n",
+              len, nim->fname, nim->num_ext);
+      return -1;
+   }
+
+   if( len <= 0 ){
+      fprintf(stderr,"** REL: (%d) no extensions to remove?\n",len);
+      return -1;
+   }
+
+   extval = atoi(elist[0]);  /* check the first value */
+
+   /* first special case, elist[0] == -1 */
+   if( extval == -1 )
+   {
+      if( g_debug > 1 )
+          fprintf(stderr,"+d removing ALL (%d) extensions from '%s'\n",
+                  nim->num_ext, nim->fname );
+      nifti_free_extensions(nim);
+      return 0;
+   }
+
+   if( g_debug > 2 )
+      fprintf(stderr,"+d removing %d exts from '%s'\n", len, nim->fname );
+
+   if( ! (marks = (int *)calloc(nim->num_ext, sizeof(int))) ) {
+      fprintf(stderr,"** failed to alloc %d marks\n",nim->num_ext);
+      return -1;
+   }
+
+   /* mark all extensions for removal */
+   for( ec = 0; ec < len; ec++ )
+   {
+      extval = atoi(elist[ec]);
+
+      if( extval < 0 || extval >= nim->num_ext ){
+         fprintf(stderr,"** ext #%d (= %d) is out of range [0,%d] for %s\n",
+                 ec, extval, nim->num_ext-1, nim->fname);
+         free(marks); return -1;
+      }
+
+      if( marks[extval] ){
+         fprintf(stderr,"** ext #%d (= %d) is a duplicate", ec, extval);
+         free(marks); return -1;
+      }
+
+      marks[extval]++;
+   }
+
+   /* now remove them - count from top down to do lazy programming */
+   for( ec = nim->num_ext-1; ec >= 0; ec-- )
+   {
+      if( !marks[ec] ) continue;   /* do not delete this one */
+
+      if( g_debug > 2 )
+         disp_nifti1_extension("+d removing ext: ",nim->ext_list+ec,-1);
+
+      /* delete this data, and shift the list down (yeah, inefficient) */
+      if( nim->ext_list[ec].edata ) free( nim->ext_list[ec].edata );
+
+      /* move anything above down one */
+      for( c = ec+1; c < nim->num_ext; c++ )
+         nim->ext_list[c-1] = nim->ext_list[c];
+
+      nim->num_ext--;
+   }
+
+   if( g_debug > 3 ) fprintf(stderr,"-d done removing extensions\n");
+
+   if( nim->num_ext == 0 ){  /* did we trash the only extension? */
+      if( g_debug > 1 )
+         fprintf(stderr,"-d removed ALL extensions from %s\n",nim->fname);
+      free(nim->ext_list);
+      nim->ext_list = NULL;
+   }
 
    return 0;
 }
@@ -1397,7 +1709,7 @@ int act_disp_exts( nt_opts * opts )
       for( ec = 0; ec < nim->num_ext; ec++ )
       {
          sprintf(mesg, "    ext #%d : ", ec);
-         disp_nifti1_extension(mesg, nim->ext_list + ec);
+         disp_nifti1_extension(mesg, nim->ext_list + ec, -1);
       }
 
       nifti_image_free(nim);
@@ -1559,12 +1871,14 @@ int act_mod_hdrs( nt_opts * opts )
       if( opts->prefix )
       {
          nim = nifti_image_read(fname, 1); /* get data */
-         if( !nim )
-         {
+         if( !nim ) {
             fprintf(stderr,"** failed to dup file '%s' before modifying\n",
                     fname);
             return 1;
          }
+         if( opts->keep_hist && nifti_add_extension(nim, opts->command,
+                                strlen(opts->command), NIFTI_ECODE_COMMENT) )
+               fprintf(stderr,"** failed to add command to image as exten\n");
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
          {
             NTL_FERR(func,"failed to set prefix for new file: ",opts->prefix);
@@ -1574,6 +1888,8 @@ int act_mod_hdrs( nt_opts * opts )
          dupname = nifti_strdup(nim->fname);  /* so we know to free it */
          fname = dupname;
          nifti_image_write(nim);  /* create the duplicate file */
+         /* if we added a history note, get the new offset into the header */
+         if( opts->keep_hist ) nhdr->vox_offset = nim->iname_offset;
          nifti_image_free(nim);
       }
       else if ( swap )
@@ -1619,6 +1935,11 @@ int act_mod_nims( nt_opts * opts )
          return 1;
       }
 
+      /* add command as COMMENT extension */
+      if( opts->keep_hist && nifti_add_extension(nim, opts->command,
+                             strlen(opts->command), NIFTI_ECODE_COMMENT) )
+         fprintf(stderr,"** failed to add command to image as extension\n");
+
       /* possibly duplicate the current dataset before writing new header */
       if( opts->prefix )
          if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
@@ -1659,6 +1980,9 @@ int write_hdr_to_file( nifti_1_header * nhdr, char * fname )
               (int)bytes,(int)sizeof(nifti_1_header));
       rv = 1;
    }
+
+   if( g_debug > 3 )
+      disp_nifti_1_header("+d writing new header to file : ", nhdr);
 
    znzclose(fp);
 
@@ -2219,7 +2543,7 @@ int disp_field(char *mesg, field_s *fieldp, void * str, int nfields, int header)
             extp = *(nifti1_extension **)((char *)str + fp->offset);
 
             /* the user may use -disp_exts to display all of them */
-            if( extp ) disp_nifti1_extension(NULL, extp);
+            if( extp ) disp_nifti1_extension(NULL, extp, 6);
             else fprintf(stdout,"(NULL)\n");
             break;
          }
@@ -2299,8 +2623,9 @@ int diff_field(field_s *fieldp, void * str0, void * str1, int nfields)
 /*----------------------------------------------------------------------
  * display a single extension
  *----------------------------------------------------------------------*/
-int disp_nifti1_extension(char *mesg, nifti1_extension * ext)
+int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen)
 {
+   int len;
    if( mesg ) fputs(mesg, stdout);
 
    if( !ext )
@@ -2314,10 +2639,17 @@ int disp_nifti1_extension(char *mesg, nifti1_extension * ext)
 
    if( !ext->edata )
       fprintf(stdout,"(NULL)\n");
-   else if ( ext->ecode == NIFTI_ECODE_AFNI )
-      fprintf(stdout,"%.*s\n", ext->esize-8, (char *)ext->edata);
+   else if ( ext->ecode == NIFTI_ECODE_AFNI ||
+             ext->ecode == NIFTI_ECODE_COMMENT )
+   {
+      len = ext->esize-8;
+      if( maxlen >= 0 && len > maxlen ) len = maxlen;
+      fprintf(stdout,"%.*s\n", len, (char *)ext->edata);
+   }
    else
       fprintf(stdout,"(unknown data type)\n");
+
+   fflush(stdout);
 
    return 0;
 }
@@ -2693,6 +3025,11 @@ int act_cbl( nt_opts * opts )
 
    if( g_debug > 1 ) fprintf(stderr,"+d sub-bricks loaded\n");
 
+   /* add command as COMMENT extension */
+   if( opts->keep_hist && nifti_add_extension(nim, opts->command,
+                          strlen(opts->command), NIFTI_ECODE_COMMENT) )
+      fprintf(stderr,"** failed to add command to image as extension\n");
+
    /* replace filenames using prefix */
    if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
    {
@@ -2745,6 +3082,11 @@ int act_cci( nt_opts * opts )
       nifti_image_free(nim);
       return 1;
    }
+
+   /* add command as COMMENT extension */
+   if( opts->keep_hist && nifti_add_extension(nim, opts->command,
+                          strlen(opts->command), NIFTI_ECODE_COMMENT) )
+      fprintf(stderr,"** failed to add command to image as extension\n");
 
    /* replace filenames using prefix */
    if( nifti_set_filenames(nim, opts->prefix, 1, 1) )

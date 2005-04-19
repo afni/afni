@@ -300,28 +300,38 @@ nifti_image           * nifti_simple_init_nim(void);
 nifti_image           * nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
                                                char* fname);
 
-int     nifti_hdr_looks_good         (nifti_1_header * hdr);
-int     nifti_nim_is_valid           (nifti_image * nim, int complain);
-int     nifti_nim_has_valid_dims     (nifti_image * nim, int complain);
-int     is_valid_nifti_type          (int nifti_type);
-int     nifti_update_dims_from_array (nifti_image * nim);
-void    nifti_set_iname_offset       (nifti_image *nim);
-int     nifti_set_type_from_names    (nifti_image * nim);
-int     nifti_add_exten_to_list      (nifti1_extension *  new_ext,
-                                      nifti1_extension ** list, int new_length);
-int     nifti_copy_extensions      (nifti_image *nim_dest,nifti_image *nim_src);
-int     nifti_free_extensions       (nifti_image *nim);
-int *   nifti_get_intlist           (int nvals , char *str);
-char *  nifti_strdup                (const char *str);
-int     valid_nifti_extensions      (nifti_image *nim);
+int    nifti_hdr_looks_good        (nifti_1_header * hdr);
+int    nifti_is_valid_ecode        (int ecode);
+int    nifti_nim_is_valid          (nifti_image * nim, int complain);
+int    nifti_nim_has_valid_dims    (nifti_image * nim, int complain);
+int    is_valid_nifti_type         (int nifti_type);
+int    nifti_update_dims_from_array(nifti_image * nim);
+void   nifti_set_iname_offset      (nifti_image *nim);
+int    nifti_set_type_from_names   (nifti_image * nim);
+int    nifti_add_extension(nifti_image * nim, char * data, int len, int ecode );
+int    nifti_copy_extensions       (nifti_image *nim_dest,nifti_image *nim_src);
+int    nifti_free_extensions       (nifti_image *nim);
+int  * nifti_get_intlist           (int nvals , char *str);
+char * nifti_strdup                (const char *str);
+int    valid_nifti_extensions      (nifti_image *nim);
 
 
 /*-------------------- Some C convenience macros ----------------------------*/
 
 /* nifti extension codes */
-#define NIFTI_ECODE_UNKNOWN  0
-#define NIFTI_ECODE_DICOM    2
-#define NIFTI_ECODE_AFNI     4
+#define NIFTI_ECODE_UNKNOWN   0
+#define NIFTI_ECODE_DICOM     2
+#define NIFTI_ECODE_AFNI      4
+#define NIFTI_ECODE_COMMENT   6
+#define NIFTI_ECODE_XCEDE     8
+#define NIFTI_MAX_ECODE       8    /* this should match the maximum code */
+
+/* nifti_type file codes */
+#define NIFTI_FTYPE_ANALYZE   0
+#define NIFTI_FTYPE_NIFTI1_1  1
+#define NIFTI_FTYPE_NIFTI1_2  2
+#define NIFTI_FTYPE_ASCII     2
+#define NIFTI_MAX_FTYPE       3    /* this should match the maximum code */
 
 /*------------------------------------------------------------------------*/
 /*-- the rest of these apply only to nifti1_io.c, check for _NIFTI1_IO_C_ */
