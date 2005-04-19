@@ -724,7 +724,7 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
       NI_procins *npi = (NI_procins *) nini ;
 
       for( nn=0 ; nn < npi->attr_num ; nn++ )
-         if( strcmp(npi->attr_lhs[nn],attname) == 0 ) break ;
+        if( strcmp(npi->attr_lhs[nn],attname) == 0 ) break ;
 
       if( nn == npi->attr_num ){
         npi->attr_lhs = NI_realloc( npi->attr_lhs , char*, sizeof(char *)*(nn+1) ) ;
@@ -792,7 +792,7 @@ char * NI_get_attribute( void *nini , char *attname )
       NI_procins *npi = (NI_procins *) nini ;
 
       for( nn=0 ; nn < npi->attr_num ; nn++ )
-         if( strcmp(npi->attr_lhs[nn],attname) == 0 ) break ;
+        if( strcmp(npi->attr_lhs[nn],attname) == 0 ) break ;
 
       if( nn == npi->attr_num ) return NULL ;
 
@@ -914,6 +914,7 @@ NI_procins * NI_new_processing_instruction( char *name )
    npi = NI_malloc(NI_procins,sizeof(NI_procins)) ;
 
    npi->type = NI_PROCINS_TYPE ;
+   npi->name = NI_strdup(name) ;
 
    npi->attr_num = 0 ;
    npi->attr_lhs = npi->attr_rhs = NULL ;

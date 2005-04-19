@@ -81,7 +81,8 @@ int NI_do( NI_stream_type *ns , NI_element *nel )
 
    if( ns == NULL || nel == NULL || nel->type != NI_ELEMENT_TYPE ) return -1 ;
 
-   if( strcmp(nel->name,"ni_do") != 0 ) return -1 ;
+   if( strcmp(nel->name  ,"ni_do") != 0 &&
+       strcmp(nel->name+1,"ni_do") != 0    ) return -1 ;
 
    verb   = NI_get_attribute( nel , "ni_verb"   ) ;
    object = NI_get_attribute( nel , "ni_object" ) ;

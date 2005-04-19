@@ -641,6 +641,26 @@ int NI_rowtype_define( char *tname , char *tdef )
 }
 
 /*--------------------------------------------------------------------*/
+/*! Make an 'ni_do' element that defines a given rowtype. */
+
+NI_procins * NI_rowtype_procins( NI_rowtype *rt )  /* 19 Apr 2005 */
+{
+   NI_procins *npi ;
+   char *rhs ;
+
+   if( rt == NULL ) return NULL ;
+
+   npi = NI_new_processing_instruction( "ni_do" ) ;
+   NI_set_attribute( npi , "ni_verb" , "typedef" ) ;
+
+   rhs = NI_malloc(char,strlen(rt->name)+strlen(rt->userdef)+4) ;
+   sprintf( rhs , "%s %s" , rt->name , rt->userdef ) ;
+   NI_set_attribute( npi , "ni_object" , rhs ) ;
+   NI_free( rhs ) ;
+   return npi ;
+}
+
+/*--------------------------------------------------------------------*/
 /*! Find a rowtype by its name.
     19 Feb 2003: or its alias.
     28 Oct 2004: If name is of form VECTOR_basictype_length,
@@ -1175,10 +1195,10 @@ fprintf(stderr,"NI_write_columns FAST case: %d bytes in %d ms\n",fsiz[0]*col_len
       if all was not well with the write, then it aborts the output */
 
 # undef  ADDOUT
-# define ADDOUT                             \
-  if( nout < 0 ){                           \
-    fprintf(stderr,"NIML: write abort!\n"); \
-    FREEUP ; return -1 ;                    \
+# define ADDOUT                              \
+  if( nout < 0 ){                            \
+    fprintf(stderr,"NIML:: write abort!\n"); \
+    FREEUP ; return -1 ;                     \
   } else ntot+=nout
 
    /*-- loop over output rows,
