@@ -319,8 +319,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_dataset(  plint ,
                        "3D+time" ,        /* label next to button   */
-                       ANAT_EPI_MASK ,    /* take only EPI datasets */
-                       0,  				   /*  No fim funcs   */
+                       ANAT_ALL_MASK ,    /* take only EPI datasets */
+                       FUNC_ALL_MASK ,    /*  No fim funcs   */
                        DIMEN_4D_MASK |    /* need 3D+time datasets  */
                        BRICK_ALLREAL_MASK /* need real-valued datasets */
                     ) ;

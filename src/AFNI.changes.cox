@@ -5458,3 +5458,5 @@
 19 Apr 2005
  * Modified niml/niml_element.c to add NI_alter_veclen() function, and
      NI_insert_string() function.
+ * Modified plug_tag.c and a couple others to allow func datasets as
+     inputs, as well as anats.

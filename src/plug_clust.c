@@ -81,7 +81,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint , "Dataset" , "Dataset" , TRUE ) ;
    PLUTO_add_dataset(plint , "Function" ,
-                                    ANAT_NONE_MASK , FUNC_ALL_MASK ,
+                                    ANAT_ALL_MASK , FUNC_ALL_MASK ,
                                     DIMEN_3D_MASK | BRICK_ALLREAL_MASK ) ;
    PLUTO_add_hint( plint , "Choose input dataset" ) ;
 
