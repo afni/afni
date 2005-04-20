@@ -597,8 +597,11 @@ extern void NI_stream_seek( NI_stream_type * , int , int ) ; /* 24 Mar 2003 */
 extern int NI_stream_setbufsize( NI_stream_type *, int ) ; /* 03 Jan 2003 */
 extern int NI_stream_getbufsize( NI_stream_type * ) ;
 extern int NI_stream_readbuf( NI_stream_type *, char *, int ) ;
+extern int NI_stream_readbuf64( NI_stream_type *, char *, int ) ;  /* 20 Apr 2005 */
 extern int NI_text_to_val  ( NI_stream_type *, NI_rowtype *, void *, int );
 extern int NI_binary_to_val( NI_stream_type *, NI_rowtype *, void *, int );
+
+extern int NI_stream_setb64( NI_stream_type * , int ) ;   /* 20 Apr 2005 */
 
 extern int NI_stream_reopen( NI_stream_type *, char * ) ; /* 23 Aug 2002 */
 
