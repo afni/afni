@@ -29,3 +29,6 @@
 
 14 April 2005
  * Fixed bug in 3dDWItoDT.c when user requests both linear solution and eigenvalues. Removed several unused ifdef'ed debugging code sections.
+
+20 April 2005
+ * slight modifications to comments in 3dDWItoDT.c for doxygen and consistent warnings and error messages
