@@ -1096,6 +1096,27 @@ void SUMA_error_message (char *s1,char *s2,int ext)
   }
 
 /*!
+   \brief case insensitive version of SUMA_iswordin 
+*/
+int SUMA_iswordin_ci ( const char *sbig, const char *ssub)
+{
+   static char FuncName[]={"SUMA_iswordin_ci"};
+   char *sbigc, *ssubc;
+   int ans;
+   
+   SUMA_ENTRY;
+   sbigc = SUMA_copy_string((char *)sbig);
+   ssubc = SUMA_copy_string((char *)ssub);
+   
+   ans = SUMA_iswordin (sbigc, ssubc);
+   if (sbigc) SUMA_free(sbigc); sbigc = NULL;
+   if (ssubc) SUMA_free(ssubc); ssubc = NULL;
+   
+   SUMA_RETURN(ans);
+   
+} 
+
+/*!
  
 File : Taken from iswordin.c
 Author : Ziad Saad
@@ -1128,17 +1149,8 @@ Returns :
           returns -1 if either Ssub or S is NULL
           returns -2 if both Ssub and S are NULL
 
- 
- 
-Support : 
- 
- 
-Side effects : 
- 
- 
- 
+\sa  SUMA_iswordin_ci
 ***/
- 
 int SUMA_iswordin (const char *sbig, const char *ssub)
 {/*SUMA_iswordin*/
    int i=0,j=0;

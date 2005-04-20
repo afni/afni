@@ -4275,7 +4275,16 @@ void usage_SUMA_getPatch ()
                "     -prefix outpref: Prefix of output patch. If more than one surface\n"
                "                      are entered, then the prefix will have _X added\n"
                "                      to it, where X is a character from A to Z.\n"
+               "                      Output format depends on the input surface's.\n"
+               "                      With that setting, checking on pre-existing files\n"
+               "                      is only done before writing the new patch, which is\n"
+               "                      annoying. You can set the output type ahead of time\n"
+               "                      using -out_type option. This way checking for pre-existing\n"
+               "                      output files can be done at the outset.\n"
+               "\n" 
                "  Optional parameters:\n"
+               "     -out_type TYPE: Type of all output patches, regardless of input surface type.\n"
+               "                     Choose from: FreeSurfer, SureFit, 1D and Ply.\n"
                "     -hits min_hits: Minimum number of nodes specified for a triangle\n"
                "                     to be made a part of the patch (1 <= min_hits <= 3)\n"
                "                     default is 2.\n"
@@ -4303,6 +4312,7 @@ void usage_SUMA_getPatch ()
 
 typedef struct {
    SUMA_SO_File_Type iType;
+   SUMA_SO_File_Type oType;
    char *out_prefix;
    char *sv_name;
    char *surf_names[SURFPATCH_MAX_SURF];
@@ -4353,6 +4363,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
    Opt->N_surf = -1;
    Opt->DoVol = 0;
    Opt->VolOnly = 0;
+   Opt->oType = SUMA_FT_NOT_SPECIFIED;
    for (i=0; i<SURFPATCH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
 	brk = NOPE;
    
@@ -4416,6 +4427,16 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-out_type") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -out_type \n");
+				exit (1);
+			}
+			Opt->oType = SUMA_guess_surftype_argv(argv[kar]);
+			brk = YUP;
+		}
+
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
 			if (kar+2 >= argc)  {
@@ -4497,6 +4518,7 @@ int main (int argc,char *argv[])
    SUMA_INDEXING_ORDER d_order;
    void *SO_name = NULL;
    SUMA_Boolean exists = NOPE;
+   SUMA_SO_File_Type typetmp;
    SUMA_Boolean LocalHead = NOPE;
 	
    SUMA_mainENTRY;
@@ -4515,7 +4537,7 @@ int main (int argc,char *argv[])
    
    Opt = SUMA_GetPatch_ParseInput (argv, argc);
    
-   if (!Opt->VolOnly) { /* just to check on output file names */
+   if (Opt->oType != SUMA_FT_NOT_SPECIFIED && !Opt->VolOnly) { 
       for (i=0; i < Opt->N_surf; ++i) {
          if (Opt->N_surf > 1) {
             sprintf(ext, "_%c", 65+i);
@@ -4523,7 +4545,8 @@ int main (int argc,char *argv[])
          } else {
             ppref = SUMA_copy_string(Opt->out_prefix);
          }
-         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, SO->FileType, &exists);
+         
+         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, Opt->oType, &exists);
          if (exists) {
             fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, ppref);
             exit(1);
@@ -4653,6 +4676,9 @@ int main (int argc,char *argv[])
          } else {
             ppref = SUMA_copy_string(Opt->out_prefix);
          }
+         /* save the original type */
+         typetmp = SO->FileType;
+         if (Opt->oType != SUMA_FT_NOT_SPECIFIED) SO->FileType = Opt->oType;
          SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, SO->FileType, &exists);
          if (ppref) SUMA_free(ppref); ppref = NULL;
          /* save the original pointers to the facesets and their number */
@@ -4666,6 +4692,7 @@ int main (int argc,char *argv[])
                exit (1);
          }
          /* bring SO back to shape */
+         SO->FileType = typetmp;
          SO->FaceSetList = FaceSetList; FaceSetList = NULL;
          SO->N_FaceSet = N_FaceSet; N_FaceSet = -1;
          if (SO_name) SUMA_free(SO_name); SO_name = NULL;
