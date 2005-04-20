@@ -1185,7 +1185,7 @@ fprintf(stderr,"NI_write_columns FAST case: %d bytes in %d ms\n",fsiz[0]*col_len
    /* create buffers for Base64 output, if needed */
 
    if( tmode == NI_BASE64_MODE ){
-     bbuf = NI_malloc(char,  nwbuf+128) ; bb = 0 ;  /* binary buffer */
+     bbuf = NI_malloc(char,   nwbuf+128) ; bb = 0 ;  /* binary buffer */
      cbuf = NI_malloc(char, 2*nwbuf+128) ; cc = 0 ;  /* base64 buffer */
      load_encode_table() ;
    }
@@ -1348,7 +1348,7 @@ if( nout != jj ) NI_dpr("NI_write_columns: col#%d sends %d bytes; nout=%d\n",col
 
    /* in Base64 mode, we might have to clean
       up if there are any leftover bytes in bbuf,
-      or at least write an end of line */
+      or at least write an end of line           */
 
    if( tmode == NI_BASE64_MODE ){
      if( bb > 0 ){                  /* num leftover bytes of data */
@@ -1583,17 +1583,7 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
    if( rt->size == rt->psiz ){        /* fixed-size type with no padding */
                                /* ==> can read directly into data struct */
 
-#ifdef NIML_DEBUG
-NI_dpr("NI_binary_to_val: ns->npos=%d ns->nbuf=%d\n",ns->npos,ns->nbuf) ;
-#endif
      jj = NI_stream_readbuf( ns , (char *)dpt , rt->size ) ;
-#ifdef NIML_DEBUG
-if( dfp != NULL ){
- char wbuf[256]="\0" ;
- NI_val_to_text( rt , (char *)dpt , wbuf ) ;
- NI_dpr("   after readbuf: ns->npos=%d ns->nbuf=%d  value=%s\n",ns->npos,ns->nbuf,wbuf) ;
-}
-#endif
      return (jj == rt->size) ;
 
    } else {                                              /* derived type */
@@ -1628,7 +1618,7 @@ if( dfp != NULL ){
                                             /* just read in a moment ago */
 
          if( dim > 0 ){                         /* need to get some data */
-           *apt = NI_malloc(char,  siz * dim );                  /* make array */
+           *apt = NI_malloc(char,  siz * dim );            /* make array */
 
            if( siz != rt->part_rtp[ii]->psiz ){     /* padded values ==> */
             for( jj=0 ; jj < dim ; jj++ ){       /* read 1 val at a time */
