@@ -868,7 +868,7 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS 
    SUMA_RETURN(YUP);
 }
 
-#define MSK_DBG 1
+#define MSK_DBG 0
 #define Meth1   /* SLOW METHOD, undefine it to have an even slower method! */
 /*!
    \brief First pass at finding voxels inside a surface. Slow baby, slow.

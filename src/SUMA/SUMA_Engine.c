@@ -383,7 +383,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                break;
             }
             
-            /*Load colors from file */
+            /*Load data from file */
             if (!sv) sv = &(SUMAg_SVv[0]);
             if (!EngineData->ip) {
                SUMAg_CF->X->FileSelectDlg = SUMA_CreateFileSelectionDialogStruct (sv->X->TOPLEVEL, SUMA_FILE_OPEN, YUP,

@@ -2290,6 +2290,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          char *TargetVol=NULL;
          
          /* form the nel for this plane */
+         SUMA_allow_nel_use(1);
          nel = SUMA_NewNel ( SUMA_NODE_ROI, /* one of SUMA_DSET_TYPE */
                        SO->LocalDomainParentID, /* idcode of Domain Parent */
                        NULL, /* idcode of geometry parent, not useful here*/
@@ -2305,6 +2306,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
          if (N_NewNode) {
             /* Add the index column */
             SUMA_LH("Adding index column...");
+            SUMA_allow_nel_use(1);
             if (!SUMA_AddNelCol (nel, "node index", SUMA_NODE_INDEX, (void *)ivect, NULL, 1)) {
                SUMA_SL_Err("Failed in SUMA_AddNelCol");
                SUMA_RETURN(NOPE);
@@ -2312,6 +2314,7 @@ SUMA_Boolean SUMA_Paint_SO_ROIplanes ( SUMA_SurfaceObject *SO,
 
             /* Add the label column */
             SUMA_LH("Adding label column...");
+            SUMA_allow_nel_use(1);
             if (!SUMA_AddNelCol (nel, "integer label", SUMA_NODE_ILABEL, (void *)labvect, NULL, 1)) {
                SUMA_SL_Err("Failed in SUMA_AddNelCol");
                SUMA_RETURN(NOPE);
@@ -3211,6 +3214,8 @@ SUMA_Boolean SUMA_Free_Surface_Object (SUMA_SurfaceObject *SO)
    if (SO->SurfCont) SUMA_FreeSurfContStruct(SO->SurfCont);
    
    if (SO->PermCol) SUMA_free(SO->PermCol);
+   
+   if (SO->VolPar) SUMA_Free_VolPar(SO->VolPar); 
    
    if (SO) SUMA_free(SO);
    
@@ -4437,22 +4442,70 @@ void SUMA_ShowDrawnROI (SUMA_DRAWN_ROI *D_ROI, FILE *out, SUMA_Boolean ShortVers
 }
 
 /*!
+   \brief SUMA_FillToMask_Engine (FN, Visited, Mask, seed, N_Visited, N_Node);
+   the engine function for SUMA_FillToMask.
+   replaces the recursive version now called SUMA_FillToMask_Engine_old
+*/
+void SUMA_FillToMask_Engine (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_Mask, int nseed, int *N_Visited, int N_Node)
+{  
+   static char FuncName[]={"SUMA_FillToMask_Engine"};
+   int i, nnext;
+   int *candidate = NULL;
+   int N_candidate = 0;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   candidate = (int *)SUMA_calloc(N_Node, sizeof(int));
+   if (!candidate) {
+      SUMA_SL_Crit("Failed to Allocate");
+      SUMA_RETURNe;
+   }
+   
+   do {
+      if (!Visited[nseed]) { Visited[nseed] = 1; ++*N_Visited; } /* add the seed, if not added yet */
+      
+      for (i=0; i<FN->N_Neighb[nseed]; ++i) {
+         nnext = FN->FirstNeighb[nseed][i];
+         /* fprintf (SUMA_STDERR,"nnext=%d\n", nnext); fflush(SUMA_STDERR); */
+         if (!Visited[nnext] && !ROI_Mask[nnext]) {
+            candidate[N_candidate] = nnext; ++N_candidate; 
+            Visited[nnext] = 1; ++*N_Visited;   /* add this candidate so you don't revisit it as a new candidate later */
+         }
+      }
+      nseed = candidate[N_candidate-1]; --N_candidate;
+   } while (N_candidate);
+   
+   if (candidate) SUMA_free(candidate); candidate = NULL; 
+   SUMA_RETURNe;
+}
+
+/*!
    \brief SUMA_FillToMask_Engine (FN, Visited, Mask, seed, N_Visited);
    the recursive function for SUMA_FillToMask.
    Do not use logging functions here.
+   
+   CAN cause Illegal instruction interrupts, bad for blood glucose levels.
+   Need non recursive version (crashes at cnt = 70676)
 */
 
-void SUMA_FillToMask_Engine (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_Mask, int nseed, int *N_Visited)
+void SUMA_FillToMask_Engine_old (SUMA_NODE_FIRST_NEIGHB *FN, int *Visited, int *ROI_Mask, int nseed, int *N_Visited)
 {  
    int i, nnext;
-   
+   /* static cnt = 0;
+   ++cnt;
+   fprintf (SUMA_STDERR,"    cnt = %d\n", cnt); fflush(SUMA_STDERR); */
    Visited[nseed] = 1;
    ++*N_Visited;
    for (i=0; i<FN->N_Neighb[nseed]; ++i) {
       nnext = FN->FirstNeighb[nseed][i];
-      if (!Visited[nnext] && !ROI_Mask[nnext]) SUMA_FillToMask_Engine(FN, Visited, ROI_Mask, nnext, N_Visited);
+      /* fprintf (SUMA_STDERR,"nnext=%d\n", nnext); fflush(SUMA_STDERR); */
+      if (!Visited[nnext] && !ROI_Mask[nnext]) {
+         /*fprintf (SUMA_STDERR,"In!\n"); fflush(SUMA_STDERR); */
+         SUMA_FillToMask_Engine_old(FN, Visited, ROI_Mask, nnext, N_Visited);
+      }
    }
-
+   /* --cnt; */
    return;
 }
 /*!
@@ -4497,9 +4550,9 @@ SUMA_ROI_DATUM * SUMA_FillToMask(SUMA_SurfaceObject *SO, int *ROI_Mask, int nsee
    }
    
    N_Visited = 0;
-   SUMA_FillToMask_Engine (SO->FN, Visited, ROI_Mask, nseed, &N_Visited);
-   
 
+   SUMA_FillToMask_Engine (SO->FN, Visited, ROI_Mask, nseed, &N_Visited, SO->N_Node);
+   
    if (LocalHead) fprintf (SUMA_STDERR, "%s: Found %d nodes to fill.\n", FuncName, N_Visited);
       
    ROIfill = SUMA_AllocROIDatum();

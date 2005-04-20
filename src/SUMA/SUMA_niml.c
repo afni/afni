@@ -495,8 +495,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             if (svi->LinkAfniCrossHair) {/* link cross hair */
                /* look for the surface idcode */
                nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-               if (!nel_surfidcode) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
-               if (nel_surfidcode == NULL) {
+               if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+               if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
                   if (LocalHead) fprintf(SUMA_STDERR,"%s: surface_idcode missing in nel (%s), using svi->Focus_SO_ID.\n", FuncName, nel->name);
                   dest_SO_ID = svi->Focus_SO_ID; /* default */
                } else {
@@ -659,8 +659,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          /* if (LocalHead) SUMA_nel_stdout (nel); */
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (!nel_surfidcode) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
-         if (nel_surfidcode == NULL) {
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
@@ -759,8 +759,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
          /* if (LocalHead) SUMA_nel_stdout (nel); */
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (!nel_surfidcode) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
-         if (nel_surfidcode == NULL) {
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
@@ -906,8 +906,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (!nel_surfidcode) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
-         if (nel_surfidcode == NULL) {
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
@@ -948,8 +948,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (!nel_surfidcode) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
-         if (nel_surfidcode == NULL) {
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
@@ -1049,8 +1049,8 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 
          /* look for the surface idcode */
          nel_surfidcode = NI_get_attribute(nel, "surface_idcode");
-         if (!nel_surfidcode) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
-         if (nel_surfidcode == NULL) {
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) nel_surfidcode = NI_get_attribute(nel, "Parent_ID");
+         if (SUMA_IS_EMPTY_STR_ATTR(nel_surfidcode)) {
             fprintf(SUMA_STDERR,"Error %s: surface_idcode missing in nel (%s).\n", FuncName, nel->name);
             SUMA_RETURN(NOPE);
          } 
@@ -1162,6 +1162,12 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
             }
             memcpy((void*)SO->FaceSetList, (void *)SOn->FaceSetList, SOn->N_FaceSet * SOn->FaceSetDim * sizeof(int));  /* this one's likely to be completely useless! */       
             memcpy((void*)SO->NodeList, (void *)SOn->NodeList, SOn->N_Node * SOn->NodeDim * sizeof(float));
+            /* swap VolPar */
+            if (SOn->VolPar) {
+               if (SO->VolPar) SUMA_Free_VolPar(SO->VolPar); 
+               SO->VolPar = SOn->VolPar;
+               SOn->VolPar = NULL;
+            }
             SUMA_Free_Surface_Object(SOn); SOn = NULL; /* alas, not needed no more. 
                                                    Perhaps you should consider eliminating SO's EdgeLists, area vectors and the like,
                                                    You should also perhaps update VolPar with SOn's... */
@@ -2299,6 +2305,7 @@ NI_element * SUMA_Mesh_IJK2Mesh_IJK_nel (SUMA_SurfaceObject *SO, int *val, SUMA_
    
    SUMA_ENTRY;
    
+   
    if (dtype != SUMA_NEW_MESH_IJK && dtype != SUMA_MESH_IJK) {
       SUMA_SL_Err("Bad dtype for this function!");
       SUMA_RETURN(NULL);
@@ -2320,6 +2327,7 @@ NI_element * SUMA_Mesh_IJK2Mesh_IJK_nel (SUMA_SurfaceObject *SO, int *val, SUMA_
    
    
    /* Now create that data element and write it out */
+   SUMA_allow_nel_use(1);
    nel = SUMA_NewNel (  dtype, /* one of SUMA_DSET_TYPE */
                         SO->idcode_str, /* idcode of Domain Parent */
                         NULL, /* idcode of geometry parent, not useful here*/
@@ -2485,6 +2493,7 @@ NI_element * SUMA_NodeXYZ2NodeXYZ_nel (SUMA_SurfaceObject *SO, float *val, SUMA_
    
    
    /* Now create that data element and write it out */
+   SUMA_allow_nel_use(1);
    nel = SUMA_NewNel (  dtype, /* one of SUMA_DSET_TYPE */
                         SO->idcode_str, /* idcode of Domain Parent Surface*/
                         NULL, /* idcode of geometry parent, not useful here*/
@@ -2663,6 +2672,7 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPa
    if (!VolPar->idcode_str) { SUMA_NEW_ID(VolPar->idcode_str, NULL); }
    
    /* Now create that data element and write it out */
+   SUMA_allow_nel_use(1);
    nel = SUMA_NewNel (  dtype, /* one of SUMA_DSET_TYPE */
                         SO->idcode_str, /* idcode of Domain Parent Surface*/
                         NULL, /* idcode of geometry parent, not useful here*/
@@ -2880,6 +2890,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
    /* now create the niml element */
    UNIQ_idcode_fill (idcode_str);
    /* Now create that data element and write it out */
+   SUMA_allow_nel_use(1);
    nel = SUMA_NewNel (  SUMA_NODE_RGBAb, /* one of SUMA_DSET_TYPE */
                         SO->idcode_str, /* idcode of Domain Parent */
                         NULL, /* idcode of geometry parent, not useful here*/
@@ -2893,6 +2904,7 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
    NI_set_attribute (nel, "surface_idcode", SO->idcode_str);   
    
    /* Add the columns */
+   SUMA_allow_nel_use(1);
    if (!SUMA_AddNelCol (nel, /* the famed nel */ 
                         "node index", 
                         SUMA_NODE_INDEX, /* the column's type (description),
@@ -2912,21 +2924,25 @@ NI_element * SUMA_NodeVal2irgba_nel (SUMA_SurfaceObject *SO, float *val, char *i
    }
 
    /* insert from multiplexed rgb vector */
+   SUMA_allow_nel_use(1);
    if (!SUMA_AddNelCol (nel, "red", SUMA_NODE_Rb, (void *)rgba, NULL ,4 )) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
       SUMA_RETURN(NULL);
    }
 
+   SUMA_allow_nel_use(1);
    if (!SUMA_AddNelCol (nel, "green", SUMA_NODE_Gb, (void *)(rgba+1), NULL ,4)) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
       SUMA_RETURN(NULL);
    }
 
+   SUMA_allow_nel_use(1);
    if (!SUMA_AddNelCol (nel, "blue", SUMA_NODE_Bb, (void *)(rgba+2), NULL ,4)) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
       SUMA_RETURN(NULL);
    }
    
+   SUMA_allow_nel_use(1);
    if (!SUMA_AddNelCol (nel, "alpha", SUMA_NODE_Ab, (void *)(rgba+3), NULL ,4)) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
       SUMA_RETURN(NULL);

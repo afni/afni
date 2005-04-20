@@ -385,6 +385,7 @@ void SUMA_SaveVisualState(char *fname, void *csvp )
    
    if (csv->StdView < 0 || csv->iState < 0 ) { SUMA_RETURNe; }
    
+   SUMA_allow_nel_use(1);
    nel = SUMA_NewNel (  SUMA_VIEWER_SETTING, /* one of SUMA_DSET_TYPE */
                         NULL, /* idcode of Domain Parent */
                         NULL, /* idcode of geometry parent, not useful here*/
@@ -4057,7 +4058,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
          SUMA_SetCmapMenuChoice(SO, ColPlane->cmapname);
 
          /* set the values for the threshold bar */
-         if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
+         if (SUMA_GetDsetColRange(SO->SurfCont->curColPlane->dset_link, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
             SUMA_SetScaleRange(SO, range );
          }
       }

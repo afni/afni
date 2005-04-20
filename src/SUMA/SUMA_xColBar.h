@@ -23,13 +23,13 @@
 #else
    #define SUMA_RANGE_STRING(m_dset, m_i, m_str_min, m_str_max, m_str_minloc, m_str_maxloc, m_range){  \
       int m_loc[2];  \
-      if (SUMA_GetColRange(m_dset->nel, m_i, m_range, m_loc)) {   \
+      if (SUMA_GetDsetColRange(m_dset, m_i, m_range, m_loc)) {   \
          SUMA_SurfaceObject *m_SOp = NULL;   \
          char *m_idcode_str = NULL; \
          int m_N_Node=-1;  \
          /* number of nodes of parent surface */   \
-         m_idcode_str = NI_get_attribute(m_dset->nel, "MeshParent_idcode"); /* obsolete */\
-         if (!m_idcode_str) m_idcode_str = NI_get_attribute(m_dset->nel, "Parent_ID"); \
+         m_idcode_str = NI_get_attribute(m_dset->ngr, "MeshParent_idcode"); /* obsolete */\
+         if (!m_idcode_str) m_idcode_str = NI_get_attribute(m_dset->ngr, "Parent_ID"); \
          if (m_idcode_str) { \
             m_SOp = SUMA_findSOp_inDOv(m_idcode_str, SUMAg_DOv, SUMAg_N_DOv);  \
             if (m_SOp) {  \

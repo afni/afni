@@ -644,8 +644,8 @@ SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO, DL
    if (LocalHead) fprintf(SUMA_STDERR,"%s:\n%d nodes in cluster list.\n", FuncName, cnt);
    
    /* now form a rowmask vector to parallel rows in idset */
-   rowmask = (byte *)SUMA_calloc(idset->nel->vec_len, sizeof(byte));
-   colmask = (byte *)SUMA_calloc(idset->nel->vec_num, sizeof(byte));
+   rowmask = (byte *)SUMA_calloc(idset->dnel->vec_len, sizeof(byte));
+   colmask = (byte *)SUMA_calloc(idset->dnel->vec_num, sizeof(byte));
    
    /* get the node index column in idset */
    ni = SUMA_GetNodeDef(idset);
@@ -655,10 +655,10 @@ SUMA_DSET *SUMA_MaskDsetByClustList(SUMA_DSET *idset, SUMA_SurfaceObject *SO, DL
       SUMA_RETURN(NULL);
    }
    /* now, fill rowmask */
-   for (i=0; i<idset->nel->vec_len; ++i) { if (ismask[ni[i]]) { rowmask[i]=1; if(LocalHead) fprintf (SUMA_STDERR,"%d,%d\t", ni[i], i); } }
+   for (i=0; i<idset->dnel->vec_len; ++i) { if (ismask[ni[i]]) { rowmask[i]=1; if(LocalHead) fprintf (SUMA_STDERR,"%d,%d\t", ni[i], i); } }
    /* fill colmask*/
-   for (i=0; i<idset->nel->vec_num; ++i) { 
-      if (SUMA_isColumn_inferred(idset->nel, i)) {
+   for (i=0; i<idset->dnel->vec_num; ++i) { 
+      if (SUMA_isDsetColumn_inferred(idset, i)) {
          colmask[i]=0;
          if (LocalHead) fprintf(SUMA_STDERR,"%s: Column %d will not be written because it is inferred.\n", FuncName, i);
       } else colmask[i]=1;
@@ -749,7 +749,7 @@ SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(SUMA_SurfaceObject *SO, DList *list, S
                            
 	/* form the dataset */
    SUMA_LH("Adding NodeDef column ...");
-   if (!SUMA_AddNelCol (   dset->nel, /* the famed nel */ 
+   if (!SUMA_AddDsetNelCol (   dset, /* the famed nel */ 
                            "le Node Def", 
                            SUMA_NODE_INDEX,
                            (void *)NodeIndex, 
@@ -760,7 +760,7 @@ SUMA_DSET *SUMA_SurfClust_list_2_DsetMask(SUMA_SurfaceObject *SO, DList *list, S
       SUMA_RETURN(NULL);                    
    }
   
-   if (!SUMA_AddNelCol (dset->nel, "Cluster Rank", SUMA_NODE_INT, (void *)Val, NULL ,1)) {
+   if (!SUMA_AddDsetNelCol (dset, "Cluster Rank", SUMA_NODE_INT, (void *)Val, NULL ,1)) {
       fprintf (stderr,"Error  %s:\nFailed in SUMA_AddNelCol", FuncName);
       SUMA_RETURN (NULL);
    }
@@ -1483,7 +1483,7 @@ int main (int argc,char *argv[])
    /* copy nip's contents because you will be modifying in the thresholding below */
    ni = (int *)SUMA_malloc(N_ni*sizeof(int));
    memcpy (ni, nip, N_ni*sizeof(int));
-   nv = SUMA_Col2Float(dset->nel, Opt->labelcol, 0);
+   nv = SUMA_DsetCol2Float(dset, Opt->labelcol, 0);
    if (!nv) {
       SUMA_S_Err("Failed to find node value column");
       exit(1);
@@ -1491,7 +1491,7 @@ int main (int argc,char *argv[])
    
    /* any thresholding ? */
    if (Opt->DoThreshold) {
-      nt = SUMA_Col2Float(dset->nel, Opt->tind, 0);
+      nt = SUMA_DsetCol2Float(dset, Opt->tind, 0);
       if (!nt) {
          SUMA_S_Err("Failed to find threshold column");
          exit(1);

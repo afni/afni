@@ -2431,6 +2431,32 @@ void SUMA_ShowList (DList *list, FILE *Out)
    SUMA_RETURNe;
 }
 
+/*!
+   \brief looks for words in str to guess what surface type
+   is being mentioned
+*/
+SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
+{
+   static char FuncName[]={"SUMA_guess_surftype_argv"};
+   SUMA_SO_File_Type tp=SUMA_FT_NOT_SPECIFIED;
+
+   SUMA_ENTRY;
+
+   if (SUMA_iswordin_ci(str, "FreeSurfer") == 1 || SUMA_iswordin_ci(str, "fs") == 1 ) {
+      SUMA_RETURN( SUMA_FREE_SURFER );
+   }
+   if (SUMA_iswordin_ci(str, "SureFit")  == 1 || SUMA_iswordin_ci(str, "sf") == 1  || SUMA_iswordin_ci(str, "caret") == 1 ) SUMA_RETURN( SUMA_SUREFIT );
+   if (SUMA_iswordin_ci(str, "Inventor")  == 1 || SUMA_iswordin_ci(str, "iv") == 1  || SUMA_iswordin_ci(str, "inv") == 1 ) SUMA_RETURN( SUMA_INVENTOR_GENERIC );
+   if (SUMA_iswordin_ci(str, "ply")  == 1 ) SUMA_RETURN( SUMA_PLY );
+   if (SUMA_iswordin_ci(str, "vec")  == 1 || SUMA_iswordin_ci(str, "1d") == 1   ) SUMA_RETURN( SUMA_VEC );
+   if (SUMA_iswordin_ci(str, "BrainVoyager") == 1  || SUMA_iswordin_ci(str, "bv") == 1 ) SUMA_RETURN( SUMA_BRAIN_VOYAGER );
+   if (SUMA_iswordin_ci(str, "cmap")  == 1 ) SUMA_RETURN( SUMA_CMAP_SO );
+
+   SUMA_RETURN(tp);
+}
+
+
+
 #ifdef STAND_ALONE
 void usage ()
    
