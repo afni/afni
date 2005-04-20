@@ -5244,7 +5244,7 @@ ENTRY("AFNI_hidden_CB") ;
        " il gambero malvagio nella bocca la camera si fionda\n"
        " e del Tirreno scuro e profondo ritorna a prender l'onda.\n"
        " \n"
-       " Roberto Cox \"il Magnifico\" di Milwuakee e il dottor Emiliano\n"
+       " Roberto Cox \"il Magnifico\" di Milwaukee e il dottor Emiliano\n"
        " corrono al grido di Ziad, ma e tutto invano.\n"
        " \n"
        " Ai nostri eroi non resta che accettare l'accaduto,\n"
