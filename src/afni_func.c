@@ -920,8 +920,13 @@ static void mri_edgize( MRI_IMAGE *im )
    return ; /* default im->kind case ==> do nothing */
 }
 
-/*-----------------------------------------------------------------------
-  Make a functional overlay -- very simple routine at present;
+/*-----------------------------------------------------------------------*/
+
+#undef  ZREG
+#define ZREJ(val) (reject_zero && (val)==0)   /* 20 Apr 2005 */
+
+/*-----------------------------------------------------------------------*/
+/*!  Make a functional overlay -- very simple routine at present;
    n = slice index , br_fim = data structure to extract slice from.
   Note that imseq requires that the overlay be an image of shorts.
   This routine requires that the function and threshold images be bytes,
@@ -939,6 +944,7 @@ MRI_IMAGE * AFNI_func_overlay( int n , FD_brick *br_fim )
    float scale_factor , scale_thr ;
    MCW_pbar *pbar ;
    int simult_thr , need_thr ;
+   int reject_zero = !AFNI_yesenv("AFNI_OVERLAY_ZERO") ; /* 20 Apr 2005 */
 
 ENTRY("AFNI_func_overlay") ;
 
@@ -1143,7 +1149,7 @@ STATUS("bad im_fim->kind!") ;
                         * im3d->vinfo->func_thresh_top / scale_thr ;
            short *ar_thr = MRI_SHORT_PTR(im_thr) ;
            for( ii=0 ; ii < npix ; ii++ ){
-             if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ar_fim[ii] == 0 ){
+             if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ZREJ(ar_fim[ii]) ){
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
@@ -1152,7 +1158,7 @@ STATUS("bad im_fim->kind!") ;
            }
          } else {
            for( ii=0 ; ii < npix ; ii++ ){
-             if( ar_fim[ii] == 0 ){
+             if( ZREJ(ar_fim[ii]) ){
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
@@ -1177,7 +1183,7 @@ STATUS("bad im_fim->kind!") ;
            byte *ar_thr = MRI_BYTE_PTR(im_thr) ;
 
            for( ii=0 ; ii < npix ; ii++ ){
-             if( ar_thr[ii] < thresh || ar_fim[ii] == 0 ){
+             if( ar_thr[ii] < thresh || ZREJ(ar_fim[ii]) ){
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
@@ -1186,7 +1192,7 @@ STATUS("bad im_fim->kind!") ;
            }
          } else {
            for( ii=0 ; ii < npix ; ii++ ){
-             if( ar_fim[ii] == 0 ){
+             if( ZREJ(ar_fim[ii]) ){
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
@@ -1209,7 +1215,7 @@ STATUS("bad im_fim->kind!") ;
            float *ar_thr = MRI_FLOAT_PTR(im_thr) ;
 
            for( ii=0 ; ii < npix ; ii++ ){
-             if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ar_fim[ii] == 0.0  ){
+             if( (ar_thr[ii] > -thresh && ar_thr[ii] < thresh) || ZREJ(ar_fim[ii])  ){
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
@@ -1218,7 +1224,7 @@ STATUS("bad im_fim->kind!") ;
            }
          } else {
            for( ii=0 ; ii < npix ; ii++ ){
-             if( ar_fim[ii] == 0.0 ){
+             if( ZREJ(ar_fim[ii]) ){
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
@@ -1302,6 +1308,7 @@ MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *im_thr , float thresh ,
    byte *ovar ;
    int ii , npix , zbot , jj ;
    float fac , val ;
+   int reject_zero = !AFNI_yesenv("AFNI_OVERLAY_ZERO") ; /* 20 Apr 2005 */
 
 ENTRY("AFNI_newfunc_overlay") ;
 
@@ -1327,7 +1334,7 @@ ENTRY("AFNI_newfunc_overlay") ;
         short *ar_fim = MRI_SHORT_PTR(im_fim) ;
 
         for( ii=0 ; ii < npix ; ii++ ){
-          if( ar_fim[ii] == 0 )        continue ;
+          if( ZREJ(ar_fim[ii]) )       continue ;
           if( zbot && ar_fim[ii] < 0 ) continue ;
           val = fac*(fimtop-ar_fim[ii]) ;
           if( val < 0.0 ) val = 0.0;
@@ -1343,7 +1350,7 @@ ENTRY("AFNI_newfunc_overlay") ;
         byte *ar_fim = MRI_BYTE_PTR(im_fim) ;
 
         for( ii=0 ; ii < npix ; ii++ ){
-          if( ar_fim[ii] == 0 ) continue ;
+          if( ZREJ(ar_fim[ii]) ) continue ;
           val = fac*(fimtop-ar_fim[ii]) ;
           if( val < 0.0 ) val = 0.0;
           jj = (int)(val+0.49); if( jj >= NPANE_BIG ) jj = NPANE_BIG-1;
@@ -1358,7 +1365,7 @@ ENTRY("AFNI_newfunc_overlay") ;
         float *ar_fim = MRI_FLOAT_PTR(im_fim) ;
 
         for( ii=0 ; ii < npix ; ii++ ){
-          if( ar_fim[ii] == 0.0 )        continue ;
+          if( ZREJ(ar_fim[ii]) )        continue ;
           if( zbot && ar_fim[ii] < 0.0 ) continue ;
           val = fac*(fimtop-ar_fim[ii]) ;
           if( val < 0.0 ) val = 0.0;

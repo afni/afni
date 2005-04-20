@@ -5460,3 +5460,7 @@
      NI_insert_string() function.
  * Modified plug_tag.c and a couple others to allow func datasets as
      inputs, as well as anats.
+
+20 Apr 2005
+ * Modified afni_func.c to let 0 values in the overlay image get color
+     if environment variable AFNI_OVERLAY_ZERO is set to YES.

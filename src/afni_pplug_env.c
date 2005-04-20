@@ -417,6 +417,11 @@ PLUGIN_interface * ENV_init(void)
                     "Set nifti_io debug level (should then do Rescan:This)" ,
                     0,5,0,0 , NULL ) ;
 
+   /* 20 Apr 2005 [RWCox] */
+   ENV_add_string( "AFNI_OVERLAY_ZERO" ,
+                   "Do 0 values get color in an Overlay?" ,
+                   NUM_yesno_list , yesno_list , ENV_redisplay ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
