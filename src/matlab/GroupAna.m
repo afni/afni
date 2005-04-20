@@ -46,7 +46,7 @@ fprintf('\n\t2. We strongly suggest that factor names be labeled with short (2 o
 fprintf('\t   so that subbrik labels can be shown on AFNI viewer.\n');
 fprintf('\n\t3. With nesting, arrange your design in such a way that the last factor is nested within the 1st factor.\n');
 %fprintf('\n\t4. The program can only handle balanced design now. \n');
-fprintf('\n\t4. Each input file should include only one subbrik (we suggest files be \n');
+fprintf('\n\t4. Each input file should include only one subbrik. We suggest files be \n');
 fprintf('\t   named by reflecting the hierarchy of the experiment design.\n');
 fprintf('\n\t5. Currently all of the following terms are modeled: main effects and applicable interactions in various orders, .\n');
 fprintf('\n\t6. One covariate is currently allowed in the analysis, which should be in the format of one-column text file.\n');
@@ -211,9 +211,11 @@ if (unbalanced.yes == 1),
          ntot = ntot * FL(i).N_level;  %total number of combinations
  	   end  % for (i=1:1:(NF-1))
 	
-	   UL_sum = 0;		
+	   FL(NF).N_level = 0;		
 	   fprintf(2, '\nLabel for No. %i ', NF); 
 	   FL(NF).expr = input('factor: ', 's');     % Label this unbalanced factor
+		fprintf(2, '\nNote: Since this is a nested design the label for levels (usuall subject names) of factor No. %i (%c - %s)', NF, 64+NF, FL(NF).expr);
+		fprintf(2, '\nhas to be DIFFERENT for each level of factor %c (%s)!!!\n\n', 64+1, FL(1).expr);  
  	
  	   for (i = 1:1:FL(1).N_level),
  	      fprintf(2,'How many levels does factor %c (%s) corresponding to level %i (%s) of factor %c (%s) ', ...
@@ -223,10 +225,10 @@ if (unbalanced.yes == 1),
  		      fprintf('Label for No. %i level of factor %c (%s) in group %i of factor %c (%s)', j, 64+4, FL(NF).expr, i, 64+1, FL(1).expr);
  		      FL(NF).UL(i).n(j).expr = input(' is: ', 's');
  		   end	
- 		   UL_sum = UL_sum + FL(NF).UL(i).N_level;
- 		   FL(NF).N_level = max([FL(NF).UL(:).N_level]);   % This is for positioning those contrast columns in the design matrix in PreProc.m
+ 		   FL(NF).N_level = FL(NF).N_level + FL(NF).UL(i).N_level;
+% 		   FL(NF).N_level = max([FL(NF).UL(:).N_level]);   % This is for positioning those contrast columns in the design matrix in PreProc.m
  	   end 
- 	   ntot = ntot * UL_sum / FL(1).N_level;	
+ 	   ntot = ntot * FL(NF).N_level / FL(1).N_level;	
 		
    end   % if (((NF == 3 | NF == 4) & dsgn == 3))
 
