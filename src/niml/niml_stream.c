@@ -2916,3 +2916,73 @@ int NI_stream_readbuf( NI_stream_type *ns , char *buffer , int nbytes )
    if( nout == 0 && ii < 0 ) nout = -1 ;    /* no data and an I/O error */
    return nout ;
 }
+
+/*-----------------------------------------------------------------------*/
+/*! Buffered read from a NI_stream.  Unlike NI_stream_read(), will try
+    to read all nbytes of data, waiting if necessary.  Also works through
+    the internal buffer, rather than directly to the stream.
+      - Also, converts from Base64 to binary 'on the fly'.
+      - Also, will stop at a '<'.
+
+    Return value is number of bytes put into the buffer.  May be less than
+    nbytes if the stream closed (or was used up, or hit a '<') before
+    nbytes of data was read.  Will return -1 if something is rotten.
+-------------------------------------------------------------------------*/
+
+int NI_stream_readbuf64( NI_stream_type *ns , char *buffer , int nbytes )
+{
+   int ii , jj , bs , nout=0 ;
+   int nneed ;
+
+   /** check for reasonable inputs **/
+
+   if( nbytes  == 0                        ) return  0; /* that was real easy */
+   if( buffer  == NULL || nbytes      <  0 ) return -1; /* stupid caller */
+   if( ns->buf == NULL || ns->bufsize == 0 ) return -1; /* shouldn't happen */
+   if( !NI_stream_readable(ns) )             return -1; /* stupid stream */
+
+   /* see how many unused bytes are already in the input buffer */
+
+   ii = ns->nbuf - ns->npos ;
+
+   if( ii >= nbytes ){    /* have all the data we need already */
+     memcpy( buffer , ns->buf + ns->npos , nbytes ) ;
+     ns->npos += nbytes ;
+     if( ns->npos == ns->nbuf ) ns->nbuf = ns->npos = 0 ;  /* buffer used up */
+     return nbytes ;
+   }
+
+   /* copy what data we already have, if any */
+
+   if( ii > 0 ){
+     memcpy( buffer , ns->buf + ns->npos , ii ) ; nout = ii ;
+   }
+   ns->nbuf = ns->npos = 0 ;                               /* buffer used up */
+
+   /* input streams with fixed length buffers ==> can't do no more */
+
+   if( ns->type == NI_REMOTE_TYPE || ns->type == NI_STRING_TYPE )
+     return (nout > 0) ? nout : -1 ;
+
+   /* otherwise, fill the buffer and try again */
+
+   bs = ns->bufsize ;
+
+   while( nout < nbytes ){
+
+     jj = MIN( bs , nbytes-nout ) ;         /* how much to try to read */
+     ii = NI_stream_fillbuf( ns,jj,6666 ) ; /* read into stream buffer */
+
+     if( ii > 0 ){                          /* got something */
+       ii = ns->nbuf ;                      /* how much now in buffer */
+       if( ii > nbytes-nout ) ii = nbytes-nout ;
+       memcpy( buffer+nout , ns->buf , ii ) ; nout += ii ;
+       ns->npos += ii ; NI_reset_buffer( ns ) ;
+     } else {                               /* got nothing */
+       break ;                              /* so quit */
+     }
+   }
+
+   if( nout == 0 && ii < 0 ) nout = -1 ;    /* no data and an I/O error */
+   return nout ;
+}
