@@ -6708,14 +6708,15 @@ ENTRY( "RCREND_finalize_saveim_CB" );
 
                      ptr = strstr(fname,".ppm") ;
    if( ptr == NULL ) ptr = strstr(fname,".pnm") ;
+   if( ptr == NULL ) ptr = strstr(fname,".jpg") ;
    if( ptr == NULL ) strcat(fname,".ppm") ;
 
    fprintf(stderr,"Writing palette image to %s\n",fname) ;
 
    ptr = getenv( "AFNI_PBAR_IMXY" );
    if( ptr != NULL ){
-      ll = sscanf( ptr , "%dx%d" , &nx , &ny ) ;
-      if( ll < 2 || nx < 1 || ny < 32 ){ nx=20; ny=256; }
+     ll = sscanf( ptr , "%dx%d" , &nx , &ny ) ;
+     if( ll < 2 || nx < 1 || ny < 32 ){ nx=20; ny=256; }
    }
 
    im = MCW_pbar_to_mri( wfunc_color_pbar , nx,ny ) ;

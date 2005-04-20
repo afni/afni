@@ -7,6 +7,11 @@
 #include "parser.h"
 #include <ctype.h>
 
+#undef USE_READLINE
+#ifdef USE_READLINE
+#include "readline.h"
+#endif
+
 int main( int argc , char * argv[] )
 {
    PARSER_code * pcode ;
@@ -14,20 +19,20 @@ int main( int argc , char * argv[] )
    double atoz[26] , value ;
    int ii , kvar, kar, brk ;
    int DoOnce;
-   
+
    DoOnce = 0;
-   
+
    kar = 1;
    brk = 0;
-   DoOnce = 0; /* flag used to indicate that program is running in batch or command line modes */ 
+   DoOnce = 0; /* flag used to indicate that program is running in batch or command line modes */
    expr[0] = '\0';
-   
-   while (kar < argc) { 
+
+   while (kar < argc) {
       if (strcmp(argv[1],"-help") == 0 ){
          printf("Usage: ccalc [-eval <expr>]\n"
                 "With no command line parameters:\n"
                 "Interactive numerical calculator, using the same\n"
-                "expression syntax as 3dcalc.  Mostly for playing.\n" 
+                "expression syntax as 3dcalc.  Mostly for playing.\n"
                 "With -eval <expr> option:\n"
                 "Calculates expr and quits. \n"
                 "Do not use variables in expr.\n"
@@ -47,7 +52,7 @@ int main( int argc , char * argv[] )
 
          /* anything after eval gets put inot an expression */
          while (kar < argc)  {
-            sprintf(expr,"%s %s", expr, argv[kar]); 
+            sprintf(expr,"%s %s", expr, argv[kar]);
             ++ kar;
          }
          /* fprintf (stdout, "%s\n", expr);*/
@@ -64,15 +69,24 @@ int main( int argc , char * argv[] )
 		}
 		
    }
-   
+
    for( ii=0 ; ii < 25 ; ii++ ) atoz[ii] = 0.0 ;
 
    do{
       if (!DoOnce){
+#ifdef USE_READLINE
+         { char *lin = readline("ccalc> ") ;
+           if(  lin == NULL ) continue ;
+           if( *lin == '\0' ){ free(lin); continue; }
+           add_history(lin) ;
+           strncpy(expr,lin,899); expr[899]='\0'; free(lin);
+         }
+#else
          printf("calc> ") ; fflush(stdout) ;
          fgets(expr,900,stdin) ;
+#endif
       }
-      
+
       if( strlen(expr) == 0 ) continue ;
       if( strstr(expr,"quit") != NULL ) exit(0) ;
 
@@ -87,7 +101,7 @@ int main( int argc , char * argv[] )
       pcode = PARSER_generate_code( cexp ) ;
       if( pcode == NULL ){
          printf("parser error!\n") ; fflush(stdout) ;
-         if (!DoOnce) continue ; 
+         if (!DoOnce) continue ;
             else exit(1);
       }
 
@@ -107,7 +121,7 @@ int main( int argc , char * argv[] )
          }
          printf(" = %g\n",value) ; fflush(stdout) ;
       } else {
-         printf("%g\n",value) ; 
+         printf("%g\n",value) ;
          exit (0);
       }
    } while(1) ;

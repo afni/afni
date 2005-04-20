@@ -5779,11 +5779,6 @@ ENTRY("GRA_saver_CB") ;
    fname = (char *) malloc( sizeof(char) * (ll+8) ) ;
    strcpy( fname , cbs->cval ) ;
 
-   if( fname[ll-1] != '.' ){  /* add a . at the end? */
-       fname[ll++] = '.' ;
-       fname[ll]   = '\0' ;
-   }
-
    for( ii=0 ; ii < ll ; ii++ )
       if( iscntrl(fname[ii]) || isspace(fname[ii]) ) break ;
 
@@ -5792,9 +5787,10 @@ ENTRY("GRA_saver_CB") ;
       free( fname ) ; EXRETURN ;
    }
 
-   ppnm = strstr( fname , ".pnm." ) ;
-   if( ppnm == fname + (ll-5) ) fname[ll-1] = '\0' ;
-   else                         strcat(fname,"pnm") ;
+                      ppnm = strstr( fname , ".ppm" ) ;
+   if( ppnm == NULL ) ppnm = strstr( fname , ".pnm" ) ;
+   if( ppnm == NULL ) ppnm = strstr( fname , ".jpg" ) ;
+   if( ppnm == NULL ) strcat(fname,".ppm") ;
 
    GRA_file_pixmap( grapher , fname ) ;
    POPDOWN_string_chooser ;

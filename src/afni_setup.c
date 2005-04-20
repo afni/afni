@@ -951,6 +951,7 @@ ENTRY("AFNI_finalize_saveim_CB") ;
 
                      ptr = strstr(fname,".ppm") ;
    if( ptr == NULL ) ptr = strstr(fname,".pnm") ;
+   if( ptr == NULL ) ptr = strstr(fname,".jpg") ;
    if( ptr == NULL ) strcat(fname,".ppm") ;
 
    fprintf(stderr,"Writing palette image to %s\n",fname) ;
