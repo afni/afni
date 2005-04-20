@@ -357,6 +357,9 @@ typedef struct {
    char orig_name[256] ;  /*!< original (input) name when opened */
 
    int goodcheck_time ;   /*!< NI_clock_time() of last NI_stream_goodcheck() */
+
+   int b64_numleft ;      /*!< For use in NI_stream_readbuf64() */
+   byte b64_left[4] ;     /*!< Leftover decoded bytes from NI_stream_readbuf64() */
 } NI_stream_type ;
 #endif
 

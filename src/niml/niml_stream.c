@@ -1697,6 +1697,7 @@ NI_stream NI_stream_open( char *name , char *mode )
                                : NI_INPUT_MODE  ;
       ns->bad      = 0 ;
       ns->shmioc   = ioc ;
+      ns->b64_numleft = 0 ;
 
       ns->buf      = NI_malloc(char, NI_BUFSIZE) ;
       ns->bufsize  = NI_BUFSIZE ;
@@ -1738,6 +1739,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->io_mode  = do_create ? NI_OUTPUT_MODE
                                : NI_INPUT_MODE  ;
       ns->bad      = 0 ;
+      ns->b64_numleft = 0 ;
 
       ns->bufsize  = do_create ? 16 : NI_BUFSIZE ;
       ns->buf      = NI_malloc(char, ns->bufsize) ;
@@ -1802,6 +1804,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->io_mode  = do_create ? NI_OUTPUT_MODE
                                : NI_INPUT_MODE  ;
       ns->bad      = 0 ;
+      ns->b64_numleft = 0 ;
 
       ns->bufsize  = do_create ? 16 : NI_BUFSIZE ;
       ns->buf      = NI_malloc(char, ns->bufsize) ;
@@ -1831,6 +1834,7 @@ NI_stream NI_stream_open( char *name , char *mode )
                                : NI_INPUT_MODE  ;
       ns->bad      = 0 ;
       ns->npos     = 0 ;             /* scan starts at 0   */
+      ns->b64_numleft = 0 ;
 
       /* Note that bufsize == nbuf+1 for str:
          This is because we don't count the terminal NUL
@@ -1881,6 +1885,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->nbuf     = nn ;
       ns->bufsize  = nn ;
       ns->buf      = data ;
+      ns->b64_numleft = 0 ;
 
       NI_strncpy( ns->name , name , 256 ) ;
 
@@ -2918,11 +2923,9 @@ int NI_stream_readbuf( NI_stream_type *ns , char *buffer , int nbytes )
 }
 
 /*-----------------------------------------------------------------------*/
-/*! Buffered read from a NI_stream.  Unlike NI_stream_read(), will try
-    to read all nbytes of data, waiting if necessary.  Also works through
-    the internal buffer, rather than directly to the stream.
-      - Also, converts from Base64 to binary 'on the fly'.
-      - Also, will stop at a '<'.
+/*! Buffered read from a NI_stream, like NI_stream_readbuf, but also:
+      - Converts from Base64 to binary 'on the fly'.
+      - Will stop at a '<'.
 
     Return value is number of bytes put into the buffer.  May be less than
     nbytes if the stream closed (or was used up, or hit a '<') before
@@ -2940,6 +2943,30 @@ int NI_stream_readbuf64( NI_stream_type *ns , char *buffer , int nbytes )
    if( buffer  == NULL || nbytes      <  0 ) return -1; /* stupid caller */
    if( ns->buf == NULL || ns->bufsize == 0 ) return -1; /* shouldn't happen */
    if( !NI_stream_readable(ns) )             return -1; /* stupid stream */
+
+   /* are there decoded leftover bytes from a previous call?
+      if so, use them up first */
+
+   if( ns->b64_numleft > 0 ){
+
+     if( ns->b64_numleft >= nbytes ){    /* have enough leftovers for all! */
+       memcpy( buffer , ns->b64_left , nbytes ) ;
+       ns->b64_numleft -= nbytes ;
+       if( ns->b64_numleft > 0 )   /* must shift remaining leftovers down */
+         memcpy( ns->b64_left , ns->b64_left + nbytes , ns->b64_numleft ) ;
+       return nbytes ;                                 /* done done done! */
+     }
+
+     /* if here, have a few bytes leftover, but not enough */
+
+     memcpy( buffer , ns->b64_left , ns->b64_numleft ) ;
+     nout            = ns->b64_numleft ;   /* how many so far */
+     ns->b64_numleft = 0 ;                 /* have none left now */
+   }
+
+   /* now need to decode some bytes from the input stream;
+      this is done 4 input bytes at a time,
+      which are decoded to 3 output bytes                   */
 
    /* see how many unused bytes are already in the input buffer */
 
