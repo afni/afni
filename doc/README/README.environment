@@ -2156,6 +2156,15 @@ from within AFNI, a 'Rescan: This' operation should probably be performed,
 which will force a re-reading of the datasets and so force an elicitation
 of the NIfTI debug messages (for .nii files, that is).
 
+---------------------------
+Variable: AFNI_OVERLAY_ZERO (editable)
+---------------------------
+If set to YES, this variable indicates that voxels in the overlay dataset
+that have the numerical value of 0 will get colored when the Inten color
+scale on the Define Datamode panel indicates that 0 has a color that isn't
+"none".  The default way that AFNI works is NOT to colorize voxels that
+are 0, even if they should otherwise get a color.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
