@@ -2612,7 +2612,7 @@ SUMA_DRAWN_ROI * SUMA_ProcessBrushStroke (SUMA_SurfaceViewer *sv, SUMA_BRUSH_STR
          break;
       case SUMA_BSA_FillArea:
          SUMA_BS_FIRST_SURF_NODE(sv->BS, FirstSurfNode, ft, El);
-         fprintf (SUMA_STDERR, "%s: Should be filling from node %d\n", FuncName, FirstSurfNode);
+         if (LocalHead) fprintf (SUMA_STDERR, "%s: Should be filling from node %d\n", FuncName, FirstSurfNode);
          
          /* create the mask from ROIs on this surface */
          switch (SUMAg_CF->ROI_FillMode) {

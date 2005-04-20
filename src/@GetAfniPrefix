@@ -25,6 +25,9 @@ USAGE:
 	echo "Wildcards are treated as regular characters:"
 	echo "example: `basename $0` 'AAzst1r*+orig'"
 	echo "returns : AAzst1r*"
-	echo "\012Ziad Saad (ziad@nih.gov)\012LBC/NIMH/ National Institutes of Health, Bethesda Maryland\012"
+	echo ""
+   echo "Ziad Saad (ziad@nih.gov)"
+   echo "  LBC/NIMH/ National Institutes of Health, Bethesda Maryland"
+   echo ""
 	goto ENDALL
 ENDALL:

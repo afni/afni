@@ -773,7 +773,7 @@ void SUMA_cb_SwitchThreshold(Widget w, XtPointer client_data, XtPointer call)
    }
    SO->SurfCont->curColPlane->OptScl->tind = imenu - 1;
    
-   if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
+   if (SUMA_GetDsetColRange(SO->SurfCont->curColPlane->dset_link, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
       SUMA_SetScaleRange(SO, range );
    }else {
       SUMA_SLP_Err("Failed to get range");
@@ -992,7 +992,7 @@ void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, XtPointer client_da
    }
    /* SUMA_SET_LABEL(SO->SurfCont->thr_lb,  slabel); */
    SUMA_INSERT_CELL_STRING(SO->SurfCont->SetThrScaleTable, 0,0,slabel); 
-   if (SUMA_GetColRange(SO->SurfCont->curColPlane->dset_link->nel, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
+   if (SUMA_GetDsetColRange(SO->SurfCont->curColPlane->dset_link, SO->SurfCont->curColPlane->OptScl->tind, range, loc)) {   
       SUMA_SetScaleRange(SO, range );
    }else {
       SUMA_SLP_Err("Failed to get range");
@@ -3148,7 +3148,6 @@ SUMA_Boolean SUMA_InitRangeTable(SUMA_SurfaceObject *SO, int what)
    TFs = SO->SurfCont->SetRangeTable; 
    if (!TF || !TFs) SUMA_RETURN(NOPE);
    OptScl = SO->SurfCont->curColPlane->OptScl;
-   nel = SO->SurfCont->curColPlane->dset_link->nel;
    fi = OptScl->find;
    ti = OptScl->tind;
    bi = OptScl->bind;
@@ -3962,7 +3961,7 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, in
    if (!SO->SurfCont->curColPlane) { SUMA_SL_Err("NULL SO->SurfCont->curColPlane"); SUMA_RETURN (menu);}
    if (!SO->SurfCont->curColPlane->dset_link) { SUMA_SL_Err("NULL SO->SurfCont->curColPlane->dset_link"); SUMA_RETURN (menu);}
 
-   nel = SO->SurfCont->curColPlane->dset_link->nel;
+   nel = SO->SurfCont->curColPlane->dset_link->dnel;
    if (!nel) { SUMA_SL_Err("NULL nel"); SUMA_RETURN (menu);}
    if (!nel->vec_num) { SUMA_SL_Err("no vecs"); SUMA_RETURN (menu);}
    
@@ -3988,7 +3987,7 @@ SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_SurfaceObject *SO, int what, in
 
    /* fillup menu */
    for (i=0; i < nel->vec_num; ++i) {
-      menu[i].label = SUMA_ColLabelCopy(nel, i);
+      menu[i].label = SUMA_DsetColLabelCopy(SO->SurfCont->curColPlane->dset_link, i, 1);
       menu[i].class = &xmPushButtonWidgetClass;
       menu[i].mnemonic = '\0';
       menu[i].accelerator = NULL;
@@ -4292,21 +4291,21 @@ SUMA_Boolean SUMA_UpdateNodeValField(SUMA_SurfaceObject *SO)
 
    if (Found >= 0) {
       /* 2- What is the value of the intensity */
-      str_int = SUMA_GetValInCol(Sover->dset_link->nel, Sover->OptScl->find, Found, &dval);
+      str_int = SUMA_GetDsetValInCol(Sover->dset_link, Sover->OptScl->find, Found, &dval);
       if (str_int) {
          SUMA_LH(str_int);
          SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 1, str_int);
       } else {
          SUMA_SL_Err("Failed to get str_int");
       }
-      str_thr = SUMA_GetValInCol(Sover->dset_link->nel, Sover->OptScl->tind, Found, &dval);
+      str_thr = SUMA_GetDsetValInCol(Sover->dset_link, Sover->OptScl->tind, Found, &dval);
       if (str_thr) {
          SUMA_LH(str_thr);
          SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 2, str_thr);
       } else {
          SUMA_SL_Err("Failed to get str_thr");
       }
-      str_brt = SUMA_GetValInCol(Sover->dset_link->nel, Sover->OptScl->bind, Found, &dval);
+      str_brt = SUMA_GetDsetValInCol(Sover->dset_link, Sover->OptScl->bind, Found, &dval);
       if (str_brt) {
          SUMA_LH(str_brt);
          SUMA_INSERT_CELL_STRING(SO->SurfCont->DataTable, 1, 3, str_brt);

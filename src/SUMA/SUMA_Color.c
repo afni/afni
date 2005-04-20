@@ -2115,7 +2115,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    Opt = Sover->OptScl;
    
    /* manually create a SUMA_COLOR_SCALED_VECT * */
-   SV = SUMA_Create_ColorScaledVect(Sover->dset_link->nel->vec_filled);
+   SV = SUMA_Create_ColorScaledVect(Sover->dset_link->dnel->vec_filled);
 
    SUMA_LH("Fetching vetors from dset");
    T = NULL; V = NULL; B = NULL;
@@ -2123,32 +2123,32 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    if (Opt->tind >= 0 && Opt->UseThr) { 
       SUMA_LH("Fetching Threshold column");
       /* got to copy values into float vectors 'cause of possible types */
-      T = SUMA_Col2Float (Sover->dset_link->nel, Opt->tind, 0);
+      T = SUMA_DsetCol2Float (Sover->dset_link, Opt->tind, 0);
       if (!T) { SUMA_SL_Err("Failed to get T"); SUMA_RETURN(NOPE); }
       switch (Opt->ThrMode) {
          case SUMA_LESS_THAN:
-            for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+            for (i=0; i<Sover->dset_link->dnel->vec_filled; ++i) {
                if (T[i] < Opt->ThreshRange[0]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
             }
             break;
          case SUMA_ABS_LESS_THAN:
-            for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+            for (i=0; i<Sover->dset_link->dnel->vec_filled; ++i) {
                if (T[i] < Opt->ThreshRange[0] && T[i] > -Opt->ThreshRange[0]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
             }
             break;
          case SUMA_THRESH_OUTSIDE_RANGE:
-            for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+            for (i=0; i<Sover->dset_link->dnel->vec_filled; ++i) {
                if (T[i] < Opt->ThreshRange[0] || T[i] > Opt->ThreshRange[1]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
             }
             break;
          case SUMA_THRESH_INSIDE_RANGE:
-            for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+            for (i=0; i<Sover->dset_link->dnel->vec_filled; ++i) {
                if (T[i] > Opt->ThreshRange[0] && T[i] < Opt->ThreshRange[1]) {
                   SV->isMasked[i] = YUP; /* Mask */
                }
@@ -2167,7 +2167,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    if (Opt->find < 0) { SUMA_SL_Crit("Bad column index.\n"); SUMA_RETURN(NOPE); }
    else { 
       /* got to copy values into float vectors 'cause of possible types */
-      V = SUMA_Col2Float (Sover->dset_link->nel, Opt->find, 0);
+      V = SUMA_DsetCol2Float (Sover->dset_link, Opt->find, 0);
       if (!V) { SUMA_SL_Err("Failed to get V"); SUMA_RETURN(NOPE); }
    }
    
@@ -2175,7 +2175,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    if (Opt->alaAFNI) {
       /* a la AFNI */
       SUMA_LH("Scaling a la AFNI");
-      if (!SUMA_ScaleToMap_alaAFNI (V, Sover->dset_link->nel->vec_filled,
+      if (!SUMA_ScaleToMap_alaAFNI (V, Sover->dset_link->dnel->vec_filled,
                                     SUMA_LARG_ABS(Opt->IntRange[0], Opt->IntRange[1]), 
                                     ColMap, Opt,
                                     SV) ) {
@@ -2185,7 +2185,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    } else { 
       /* a la SUMA */
       SUMA_LH("Scaling a la SUMA");
-      if (!SUMA_ScaleToMap( V, Sover->dset_link->nel->vec_filled,
+      if (!SUMA_ScaleToMap( V, Sover->dset_link->dnel->vec_filled,
                             Opt->IntRange[0], Opt->IntRange[1], 
                             ColMap, Opt,
                             SV) ){
@@ -2198,13 +2198,13 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    if (Opt->bind >= 0 && Opt->UseBrt) {
       SUMA_LH("Brightness modulation needed"); 
       /* got to copy values into float vectors 'cause of possible types */
-      B = SUMA_Col2Float (Sover->dset_link->nel, Opt->bind, 0);
+      B = SUMA_DsetCol2Float (Sover->dset_link, Opt->bind, 0);
       if (!B) { SUMA_SL_Err("Failed to get B"); SUMA_RETURN(NOPE); }
       /* go over B and clip it, if needed */
       if (Opt->BrightRange[0] && Opt->BrightRange[1]) {
          /* need to clip B */
          minB = Opt->BrightRange[0]; maxB = Opt->BrightRange[1];
-         for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+         for (i=0; i<Sover->dset_link->dnel->vec_filled; ++i) {
             if (!SV->isMasked[i]) {
                /* worry only about unmasked colors */
                if (B[i] < Opt->BrightRange[0]) B[i] = Opt->BrightRange[0];
@@ -2212,13 +2212,13 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
             }
          }
       } else {
-         if (!SUMA_GetColRange(Sover->dset_link->nel, Opt->bind, Range, loc)) { SUMA_SL_Err("Failed to get ColRange!"); SUMA_RETURN(NOPE); }
+         if (!SUMA_GetDsetColRange(Sover->dset_link, Opt->bind, Range, loc)) { SUMA_SL_Err("Failed to get ColRange!"); SUMA_RETURN(NOPE); }
          minB = Range[0]; maxB = Range[1];
       }
       /* Now scale B and modulate colors in SV*/
       SUMA_LH("Scaling by B");
       fact = (Opt->BrightMap[1] - Opt->BrightMap[0]) / (maxB - minB);
-      for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+      for (i=0; i<Sover->dset_link->dnel->vec_filled; ++i) {
          if (!SV->isMasked[i]) {
             /* B[i] = (B[i] - minB) * fact; SV->cV[i] = SV->cV[i] * B[i]; */
             i3 = 3*i;
@@ -2241,7 +2241,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    nd = SUMA_GetNodeDef(Sover->dset_link);
    if (nd) {
       cnt = 0;
-      for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+      for (i=0; i<Sover->dset_link->dnel->vec_filled; ++i) {
          if (!SV->isMasked[i]) {
             cnt3 = 3*cnt; i3 = 3*i;
             Sover->NodeDef[cnt] = nd[i];
@@ -2254,7 +2254,7 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
       }
    } else {
       cnt = 0;
-      for (i=0; i<Sover->dset_link->nel->vec_filled; ++i) {
+      for (i=0; i<Sover->dset_link->dnel->vec_filled; ++i) {
          if (!SV->isMasked[i]) {
             cnt3 = 3*cnt; i3 = 3*i;
             Sover->NodeDef[cnt] = i;
@@ -4604,8 +4604,8 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    SUMA_LH("Linking to Dset");
    Sover->dset_link = (SUMA_DSET *)SUMA_LinkToPointer ((void *)dset);
    /* N_Nodes is no longer used, use it for sanity check only */
-   if (Sover->dset_link->nel) {
-      if (N_Nodes != Sover->dset_link->nel->vec_len) {
+   if (Sover->dset_link->dnel) {
+      if (N_Nodes != Sover->dset_link->dnel->vec_len) {
          SUMA_SL_Err("N_Nodes not equal to vec_len.");
          SUMA_RETURN(NULL);
       }
@@ -6098,10 +6098,10 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
             SUMA_RETURN(NOPE);
          }
          /* We'll be using NodeDef here so begin by allocating space for the various entries */
-         SUMA_AddNelCol (dset->nel, "node index", SUMA_NODE_INDEX, NULL, NULL, 1);
-         SUMA_AddNelCol (dset->nel, "red", SUMA_NODE_R, NULL, NULL, 1);
-         SUMA_AddNelCol (dset->nel, "green", SUMA_NODE_G, NULL, NULL, 1);
-         SUMA_AddNelCol (dset->nel, "blue", SUMA_NODE_B, NULL, NULL, 1);
+         SUMA_AddDsetNelCol (dset, "node index", SUMA_NODE_INDEX, NULL, NULL, 1);
+         SUMA_AddDsetNelCol (dset, "red", SUMA_NODE_R, NULL, NULL, 1);
+         SUMA_AddDsetNelCol (dset, "green", SUMA_NODE_G, NULL, NULL, 1);
+         SUMA_AddDsetNelCol (dset, "blue", SUMA_NODE_B, NULL, NULL, 1);
 
          Overlay = SUMA_CreateOverlayPointer (SO->N_Node, Name, dset, SO->idcode_str);
          if (!Overlay) {
@@ -6152,7 +6152,7 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
                               FuncName, i_max);
                                     
       COLP_N_NODEDEF(SO->Overlays[OverInd]) = i_max; /* set the number of nodes filled IN THE OVERLAY PLANE*/
-      SO->Overlays[OverInd]->dset_link->nel->vec_filled = i_max; /* set the number of nodes filled IN THE DSET, For this
+      SO->Overlays[OverInd]->dset_link->dnel->vec_filled = i_max; /* set the number of nodes filled IN THE DSET, For this
                                                       type of dsets, the N_NodeDef is the same for both OVERLAY
                                                       and DSET*/
       if (COLP_N_NODEDEF(SO->Overlays[OverInd])) {
@@ -6162,18 +6162,18 @@ SUMA_Boolean SUMA_iRGB_to_OverlayPointer (SUMA_SurfaceObject *SO,
          dset = SO->Overlays[OverInd]->dset_link;
          /* find the columns you need to fill. You can't use SUMA_FillNelCol directly because
          columns (vectors) are of different types */
-         iv = SUMA_GetColIndex (dset->nel, SUMA_NODE_INDEX, &N_i);
+         iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_INDEX, &N_i);
          if (N_i != 1) { SUMA_SL_Err("Failed to find one column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
-         Nv = (int *)dset->nel->vec[iv[0]]; SUMA_free(iv); iv = NULL; 
-         iv = SUMA_GetColIndex (dset->nel, SUMA_NODE_R, &N_i);
+         Nv = (int *)dset->dnel->vec[iv[0]]; SUMA_free(iv); iv = NULL; 
+         iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_R, &N_i);
          if (N_i != 1) { SUMA_SL_Err("Failed to find one column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
-         Rv = (float *)dset->nel->vec[iv[0]];SUMA_free(iv); iv = NULL; 
-         iv = SUMA_GetColIndex (dset->nel, SUMA_NODE_G, &N_i);
+         Rv = (float *)dset->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL; 
+         iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_G, &N_i);
          if (N_i != 1) { SUMA_SL_Err("Failed to find one column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
-         Gv = (float *)dset->nel->vec[iv[0]];SUMA_free(iv); iv = NULL; 
-         iv = SUMA_GetColIndex (dset->nel, SUMA_NODE_B, &N_i);
+         Gv = (float *)dset->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL; 
+         iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_B, &N_i);
          if (N_i != 1) { SUMA_SL_Err("Failed to find one column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
-         Bv = (float *)dset->nel->vec[iv[0]];SUMA_free(iv); iv = NULL; 
+         Bv = (float *)dset->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL; 
          /* Now store these colors into the dataset */
          switch (sopd->Type) {
             case SOPT_ibbb:
@@ -6523,14 +6523,14 @@ SUMA_Boolean  SUMA_isDsetRelated(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
    SUMA_RETURN(NOPE);
 }
 
-SUMA_Boolean SUMA_isColumn_inferred(NI_element *nel, int icol)
+SUMA_Boolean SUMA_isDsetColumn_inferred(SUMA_DSET *dset, int icol)
 {
-   static char FuncName[]={"SUMA_isColumn_inferred"};
+   static char FuncName[]={"SUMA_isDsetColumn_inferred"};
    char *lblcp=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
    
-   lblcp = SUMA_ColLabelCopy(nel, icol);
+   lblcp = SUMA_DsetColLabelCopy(dset, icol, 0);
    
    SUMA_LH(lblcp);
    if (lblcp) {
@@ -6556,25 +6556,25 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
    if (!dset) SUMA_RETURN(NOPE);
    if (!SO) SUMA_RETURN(NOPE);
    /* check for obvious insult */
-   if (dset->nel->vec_len > SO->N_Node) {
+   if (dset->dnel->vec_len > SO->N_Node) {
       SUMA_SL_Err("more values in dset than nodes in surface.");
       SUMA_RETURN(NOPE);
    }
    /* Check for Col Index*/
-   iv = SUMA_GetColIndex (dset->nel, SUMA_NODE_INDEX, &N_i);
+   iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_INDEX, &N_i);
    if (!iv) {
       SUMA_LH("No node index column");
       /* would the first column work ? */
-      T = SUMA_Col2Float (dset->nel, 0, 0);
+      T = SUMA_DsetCol2Float (dset, 0, 0);
       OKfirstCol = NOPE;
       if (!T) { SUMA_LH("First column does not cut it"); OKfirstCol = NOPE;}
       else {
-         Ti = (int *)SUMA_malloc(sizeof(int)*dset->nel->vec_len);
+         Ti = (int *)SUMA_malloc(sizeof(int)*dset->dnel->vec_len);
          SUMA_LH("Testing if node indices can be in 1st column...");
          /* check if all values are ints and if they are within 0 and SO->N_Node -1 */
          i=0;
          OKfirstCol = YUP;
-         while (i <dset->nel->vec_len && OKfirstCol) {
+         while (i <dset->dnel->vec_len && OKfirstCol) {
             Ti[i] = (int)T[i];
             if ( (T[i] != Ti[i]) || (T[i] < 0) || (T[i] >= SO->N_Node) ) OKfirstCol = NOPE;
             ++i;
@@ -6585,7 +6585,7 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
                            "is explicit. \n"
                            "1st row is for node 0\n"
                            "2nd is for node 1, etc.\n" );
-            for (i=0; i <dset->nel->vec_len; ++i) Ti[i]=i;
+            for (i=0; i <dset->dnel->vec_len; ++i) Ti[i]=i;
             OKfirstCol = YUP;
          }else{
             char Name[500], Attr[500];
@@ -6605,7 +6605,7 @@ SUMA_Boolean SUMA_AddNodeIndexColumn(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
       /* Now add Ti to the dataset as a node index column ... */
       /* if you change the column label's string ("Node Index (inferred)") 
       make sure you change SUMA_isColumn_inferred accordingly */
-      if (!SUMA_AddNelCol (dset->nel, "Node Index (inferred)", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
+      if (!SUMA_AddDsetNelCol (dset, "Node Index (inferred)", SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
          SUMA_SL_Err("Failed to add column");
          if (Ti) SUMA_free(Ti); Ti = NULL;
          SUMA_RETURN(NOPE);
@@ -6652,15 +6652,15 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
    
    SUMA_LH("Has no parent, trying adoption");
    /* has no parent, check if you can adopt it*/
-   iv = SUMA_GetColIndex (dset->nel, SUMA_NODE_INDEX, &N_i);
+   iv = SUMA_GetDsetColIndex (dset, SUMA_NODE_INDEX, &N_i);
    if (!iv) {
       SUMA_LH("No node index column");
       /* No node index. Make sure vec_len <= SO->N_Node */
-      if (dset->nel->vec_len <= SO->N_Node) { 
+      if (dset->dnel->vec_len <= SO->N_Node) { 
          SUMA_LH("Number of values per column\n"
                       "is less than the number \n"
                       "of nodes in the surface.\n");
-         if (dset->nel->vec_filled != SO->N_Node) {
+         if (dset->dnel->vec_filled != SO->N_Node) {
             SUMA_LH("Need to attach a node index column, if possible");
             /* attempt to assign a node index column */
             if (!SUMA_AddNodeIndexColumn(dset, SO)) {
@@ -6688,7 +6688,7 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
          snprintf(stmp, 200*sizeof(char), 
                         "Number of values per column (%d)\n"
                         "is larger than the number \n"
-                        "of nodes (%d) in the surface.", dset->nel->vec_len, SO->N_Node);
+                        "of nodes (%d) in the surface.", dset->dnel->vec_len, SO->N_Node);
          SUMA_SLP_Err(stmp);
          SUMA_RETURN(NOPE);
       }
@@ -6696,8 +6696,8 @@ SUMA_Boolean SUMA_OKassign(SUMA_DSET *dset, SUMA_SurfaceObject *SO)
       SUMA_LH("Node index column found");
       if (N_i != 1) { SUMA_SL_Err("No support for multiple\nnode index columns"); SUMA_RETURN(NOPE); }
       /* there is a node index column, see if the range is OK */
-      if (!SUMA_GetColRange(dset->nel, iv[0], range, loc)) {
-         SUMA_SLP_Err("Unexpect error in SUMA_GetColRange");
+      if (!SUMA_GetDsetColRange(dset, iv[0], range, loc)) {
+         SUMA_SLP_Err("Unexpect error in SUMA_GetDsetColRange");
          SUMA_free(iv); iv = NULL;
          SUMA_RETURN(NOPE);
       }
@@ -6758,11 +6758,19 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    form = SUMA_GuessFormatFromExtension(filename);
    
    /* load the dude */
+   /* first, set the parent ID of the dset to be loaded,
+   This ID is only used when generating an ID for those dsets
+   that have no ID attached, like the 1D ones */
+   if (SO->LocalDomainParentID) SUMA_SetParent_DsetToLoad(SO->LocalDomainParentID);
+   else if (SO->idcode_str) SUMA_SetParent_DsetToLoad(SO->idcode_str); 
+   else SUMA_SetParent_DsetToLoad(NULL);  
+
    dset = SUMA_LoadDset (filename, &form, 0); 
    if (!dset) { SUMA_SLP_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"
                                  "and is of a supported\n"
                                  "format."); SUMA_RETURNe; }
+   SUMA_SetParent_DsetToLoad(NULL);  /* reset the parent surface flag */
    
    if (LocalHead) {
       char *si = NULL;
@@ -6781,8 +6789,8 @@ void SUMA_LoadDsetFile (char *filename, void *data)
          SUMA_FreeDset(dset); dset=NULL;
          SUMA_RETURNe;
       }
-      NI_set_attribute(dset->nel,"Parent_ID", SO->idcode_str);
-      NI_set_attribute(dset->nel,"GeomParent_idcode", SO->idcode_str);
+      NI_set_attribute(dset->ngr,"Parent_ID", SO->idcode_str);
+      NI_set_attribute(dset->ngr,"GeomParent_idcode", SO->idcode_str);
    } else {
       SUMA_SL_Note("dset has a mesh parent, Checking relationship");
       if (!SUMA_isDsetRelated(dset, SO)) {
@@ -6801,7 +6809,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    }
     
    /* set up the colormap for this dset */
-   NewColPlane = SUMA_CreateOverlayPointer (dset->nel->vec_len, filename, dset, SO->idcode_str);
+   NewColPlane = SUMA_CreateOverlayPointer (dset->dnel->vec_len, filename, dset, SO->idcode_str);
    if (!NewColPlane) {
       fprintf (SUMA_STDERR, "Error %s: Failed in SUMA_CreateOverlayPointer.\n", FuncName);
       SUMA_RETURNe;
@@ -6825,7 +6833,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    NewColPlane->OptScl->find = 0;
    NewColPlane->OptScl->tind = 0;
    NewColPlane->OptScl->bind = 0;
-   SUMA_GetColRange(dset->nel, 0, NewColPlane->OptScl->IntRange, loc);
+   SUMA_GetDsetColRange(dset, 0, NewColPlane->OptScl->IntRange, loc);
    
    
    /* stick a colormap onto that plane ? */
@@ -7305,18 +7313,18 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
          SUMA_SL_Err("Direct mapping is only supported for SUMA_NODE_RGB types");
          SUMA_RETURN(NOPE);
       }
-      iv = SUMA_GetColIndex (cp->dset_link->nel, SUMA_NODE_INDEX, &N_i);
+      iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_INDEX, &N_i);
       if (N_i != 1) { SUMA_SL_Err("Failed to find index column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
-      Nv = (int *)cp->dset_link->nel->vec[iv[0]]; SUMA_free(iv); iv = NULL;
-      iv = SUMA_GetColIndex (cp->dset_link->nel, SUMA_NODE_R, &N_i);
+      Nv = (int *)cp->dset_link->dnel->vec[iv[0]]; SUMA_free(iv); iv = NULL;
+      iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_R, &N_i);
       if (N_i != 1) { SUMA_SL_Err("Failed to find red column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
-      Rv = (float *)cp->dset_link->nel->vec[iv[0]];SUMA_free(iv); iv = NULL;
-      iv = SUMA_GetColIndex (cp->dset_link->nel, SUMA_NODE_G, &N_i);
+      Rv = (float *)cp->dset_link->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL;
+      iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_G, &N_i);
       if (N_i != 1) { SUMA_SL_Err("Failed to find green column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
-      Gv = (float *)cp->dset_link->nel->vec[iv[0]];SUMA_free(iv); iv = NULL;
-      iv = SUMA_GetColIndex (cp->dset_link->nel, SUMA_NODE_B, &N_i);
+      Gv = (float *)cp->dset_link->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL;
+      iv = SUMA_GetDsetColIndex (cp->dset_link, SUMA_NODE_B, &N_i);
       if (N_i != 1) { SUMA_SL_Err("Failed to find blue column."); SUMA_free(iv); SUMA_RETURN(NOPE); }
-      Bv = (float *)cp->dset_link->nel->vec[iv[0]];SUMA_free(iv); iv = NULL;
+      Bv = (float *)cp->dset_link->dnel->vec[iv[0]];SUMA_free(iv); iv = NULL;
       /* go ahead and populate cV */
       
       if (LocalHead) {
@@ -7327,7 +7335,7 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
       }
       
       if (cp->DimFact == 1.0) {
-         for (i=0; i < cp->dset_link->nel->vec_filled; ++i) {
+         for (i=0; i < cp->dset_link->dnel->vec_filled; ++i) {
             i3 = 3 * i;
             cp->NodeDef[i] = Nv[i];
             cp->ColVec[i3] = Rv[i]; ++i3;
@@ -7335,7 +7343,7 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
             cp->ColVec[i3] = Bv[i]; 
          } 
       } else {
-         for (i=0; i < cp->dset_link->nel->vec_filled; ++i) {   
+         for (i=0; i < cp->dset_link->dnel->vec_filled; ++i) {   
             i3 = 3 * i;
             cp->NodeDef[i] = Nv[i];
             cp->ColVec[i3] = Rv[i] * cp->DimFact; ++i3;
@@ -7343,7 +7351,7 @@ int SUMA_ColorizePlane (SUMA_OVERLAYS *cp)
             cp->ColVec[i3] = Bv[i] * cp->DimFact; 
          }
       }
-      cp->N_NodeDef = cp->dset_link->nel->vec_filled;
+      cp->N_NodeDef = cp->dset_link->dnel->vec_filled;
    } else {
       /* indirect mapping */
       if (!SUMA_ScaleToMap_Interactive (cp)) {
@@ -7476,7 +7484,7 @@ int SUMA_GetNodeOverInd (SUMA_OVERLAYS *Sover, int node)
    /* Now look for the node's location in the color overlay plane.
    Nodes that are not colored will be absent ... */
    Found = -1;
-   if (Sover->dset_link->nel->vec_filled > node) { /* try the straight shot */
+   if (Sover->dset_link->dnel->vec_filled > node) { /* try the straight shot */
       if (Sover->NodeDef[node] == node) {
          SUMA_LH("Good, found it easily");
          /* make sure node is not outside number of defined nodes */

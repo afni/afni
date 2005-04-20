@@ -38,8 +38,7 @@ DList *SUMA_EmptyDestroyActionStack (DList *AS);
 const char *SUMA_ColMixModeString (SUMA_COL_MIX_MODE mode);
 SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd);
 const char * SUMA_SurfaceTypeString (SUMA_SO_File_Type tp);
-
-
+SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str);
 
 /*!
    \brief Macro that adds a command to the head of command list.

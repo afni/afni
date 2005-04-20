@@ -426,7 +426,11 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
       case SUMA_FT_NOT_SPECIFIED:
          fprintf (SUMA_STDERR,"Error %s: No File Type specified.\n", FuncName);
          SUMA_RETURN(NULL);
-         
+      
+      case SUMA_N_SO_FILE_TYPE:
+         fprintf (SUMA_STDERR,"Error %s: This should not happen (SUMA_N_SO_FILE_TYPE)\n", FuncName);
+         SUMA_RETURN(NULL);
+      
       case SUMA_PLY:
          if (!SUMA_Ply_Read ((char *)SO_FileName_vp, SO)) {
             fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_Ply_Read.\n", FuncName);
@@ -2611,7 +2615,7 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
             SUMA_SL_Err("Failed to insert dset into list");
             SUMA_RETURN(NOPE);
          }
-         if (!SUMA_AddNelCol (dset->nel, "convexity", SUMA_NODE_CX, (void *)Cx, NULL ,1)) {
+         if (!SUMA_AddDsetNelCol (dset, "convexity", SUMA_NODE_CX, (void *)Cx, NULL ,1)) {
             SUMA_SL_Err("Failed in SUMA_AddNelCol");
             SUMA_RETURN(NOPE);
          }
@@ -4034,6 +4038,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
          else sprintf(Name,"%s__%s", SO->Name_coord.FileName, SO->Name_topo.FileName);
          break;
       case SUMA_FT_NOT_SPECIFIED:
+      case SUMA_N_SO_FILE_TYPE:
       case SUMA_CMAP_SO:
       case SUMA_FT_ERROR:
          break;
@@ -4081,6 +4086,7 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
             SUMA_RETURN('N');
          }
          break;
+      case SUMA_N_SO_FILE_TYPE:
       case SUMA_FT_NOT_SPECIFIED:
       case SUMA_CMAP_SO:
       case SUMA_FT_ERROR:
@@ -4134,6 +4140,7 @@ SUMA_SO_SIDE SUMA_GuessSide(SUMA_SurfaceObject *SO)
          break;
       case SUMA_FT_NOT_SPECIFIED:
       case SUMA_CMAP_SO:
+      case SUMA_N_SO_FILE_TYPE:
       case SUMA_FT_ERROR:
          break;
       case SUMA_PLY:

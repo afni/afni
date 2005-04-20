@@ -4681,9 +4681,9 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
       nimlROI = (SUMA_NIML_DRAWN_ROI *)SUMA_malloc(sizeof(SUMA_NIML_DRAWN_ROI));
       nimlROI->Type = (int)strtod(NI_get_attribute( nel , "Type"), NULL);
       nimlROI->idcode_str = SUMA_copy_string(NI_get_attribute( nel , "idcode_str")); /* obsolete */
-      if (!nimlROI->idcode_str) nimlROI->idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Object_ID"));
+      if (SUMA_IS_EMPTY_STR_ATTR(nimlROI->idcode_str)) nimlROI->idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Object_ID"));
       nimlROI->Parent_idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Parent_idcode_str")); /* obsolete */
-      if (!nimlROI->Parent_idcode_str) nimlROI->Parent_idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Parent_ID"));
+      if (SUMA_IS_EMPTY_STR_ATTR(nimlROI->Parent_idcode_str)) nimlROI->Parent_idcode_str = SUMA_copy_string(NI_get_attribute( nel , "Parent_ID"));
       nimlROI->Label = SUMA_copy_string(NI_get_attribute( nel , "Label"));
       nimlROI->iLabel = (int)strtod(NI_get_attribute( nel , "iLabel"), NULL);
       nimlROI->N_ROI_datum = nel->vec_len;
@@ -4783,6 +4783,185 @@ SUMA_DRAWN_ROI ** SUMA_OpenDrawnROI_NIML (char *filename, int *N_ROI, SUMA_Boole
 
 /*!
    \brief turns a bunch of ROIs into a NI dataset
+            A new version of SUMA_ROIv2dataset that allows 
+            the use of dsets as groups
+   \param ROIv (SUMA_DRAWN_ROI**) vector of ROI structures
+   \param N_ROIv (int) number of ROI structures
+   \param Parent_idcode_str (char *) idcode of parent surface
+   \param Pad_to (int)  create Dset that has a full node listing 
+                        from node 0 to node Pad_to (a total of Pad_to + 1 nodes)
+                        Use -1 to turn off padding.
+   \param Pad_val (int) use this value (usually 0) to label a node being padded
+                        as oppsed to a node being a part of an ROI. This option
+                        is only useful with Pad_to
+   \return nel (NI_element *) structure to data set
+                              NULL if failed
+*/
+SUMA_DSET *SUMA_ROIv2Grpdataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_idcode_str, int Pad_to, int Pad_val) 
+{
+   static char FuncName[]={"SUMA_ROIv2Grpdataset"};
+   int ii, i, nn, cnt, N_NodesTotal = 0, MaxIndex = 0,
+      *ip=NULL, *NodesTotal=NULL, *LabelsTotal=NULL,
+      *NodesTotal_p=NULL, *LabelsTotal_p=NULL;
+   SUMA_DSET *dset =NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   /* Now you have the ROIs, concatenate all NodesInROI vectors into 1*/
+   /* count the total number of nodes */
+   N_NodesTotal = 0;
+   for (ii=0; ii < N_ROIv; ++ii) {
+      SUMA_ROI_CRUDE_COUNT_NODES(ROIv[ii], cnt);
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s: ROI #%d: %d nodes\n", FuncName, ii, cnt);
+      }
+      N_NodesTotal += cnt;
+   }
+   if (LocalHead) fprintf (SUMA_STDERR,"%s: %d nodes total.\n", FuncName, N_NodesTotal);
+
+   NodesTotal = (int *)SUMA_calloc(N_NodesTotal, sizeof(int));
+   LabelsTotal = (int *)SUMA_calloc(N_NodesTotal, sizeof(int));
+
+   if (!NodesTotal || !LabelsTotal) {
+      SUMA_S_Err("Failed to allocate.");
+      SUMA_RETURN(dset);
+   }
+
+   cnt = 0;
+   N_NodesTotal = 0;
+   MaxIndex = -1;
+   for (ii=0; ii <  N_ROIv; ++ii) {
+      SUMA_LH("Appending ROI");
+      /* You do not need the Unique operation in SUMA_NodesInROI,
+      but it is nice to have so that you can report the nodes that 
+      were part of more than one ROI. If you do not Set the Unique 
+      flag in SUMA_NodesInROI you will likely get node duplication
+      but these nodes are in the same ROI and therefore are not
+      duplicates to be removed....*/
+      ip = SUMA_NodesInROI (ROIv[ii], &nn, YUP);
+      if (LocalHead) {
+         fprintf (SUMA_STDERR,"%s: Nodes in ROI #%d\n", FuncName, ii);
+         SUMA_disp_dvect (ip, nn);
+      }
+      for (i=0; i < nn; ++i) {
+         NodesTotal[cnt] = ip[i];
+         LabelsTotal[cnt] = ROIv[ii]->iLabel;
+         if (ip[i] > MaxIndex) MaxIndex = ip[i];
+         ++cnt;
+      }
+      N_NodesTotal += nn;
+      SUMA_freeDrawnROI (ROIv[ii]); ROIv[ii] = NULL; /* free the Drawn ROI */
+      SUMA_free(ip);ip=NULL;
+   }
+
+   if (LocalHead) {
+      SUMA_disp_dvect (NodesTotal, N_NodesTotal);
+   }
+
+   /* Now you want to make sure that no two nodes are listed twice */
+   /* sort NodesTotal and rearrange LabelsTotal accordingly */
+   {  int *isort = NULL, *LabelsTotal_r = NULL,
+         *NodesTotal_u = NULL, N_NodesTotal_u, *iu = NULL;
+      char report[100];
+
+      isort = SUMA_z_dqsort(NodesTotal, N_NodesTotal);
+      LabelsTotal_r = SUMA_reorder (LabelsTotal, isort, N_NodesTotal);
+      SUMA_free(LabelsTotal);
+      LabelsTotal = LabelsTotal_r; LabelsTotal_r = NULL;
+      SUMA_free(isort); isort = NULL;
+
+      /* now get the unique set of nodes */
+      NodesTotal_u = SUMA_UniqueInt_ind (NodesTotal, N_NodesTotal, &N_NodesTotal_u, &iu);
+      /* reorder LabelsTotal to contain data from the nodes left in NodesTotal_u */
+      LabelsTotal_r = SUMA_reorder (LabelsTotal, iu, N_NodesTotal_u);
+      SUMA_free(NodesTotal); NodesTotal = NULL;
+      SUMA_free(LabelsTotal); LabelsTotal = NULL;
+      SUMA_free(iu); iu = NULL;
+      NodesTotal = NodesTotal_u; NodesTotal_u = NULL;
+      LabelsTotal = LabelsTotal_r; LabelsTotal_r = NULL;
+
+      if (N_NodesTotal - N_NodesTotal_u) {
+         sprintf(report, "%d/%d nodes had duplicate entries.\n"
+                         "(ie same node part of more than 1 ROI)\n"
+                         "Duplicate entries were eliminated.", 
+                         N_NodesTotal - N_NodesTotal_u , N_NodesTotal);
+
+         N_NodesTotal = N_NodesTotal_u; N_NodesTotal_u = 0;
+         SUMA_SLP_Warn(report);
+      }
+   }
+
+   if (Pad_to > 0) {
+      SUMA_LH("Padding to desired length");
+      if (Pad_to < MaxIndex) {
+         SUMA_SL_Err("ROI contains node index > padding limit\nNo padding done.");
+         if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
+         if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
+         SUMA_RETURN(NULL);
+      }else {
+         NodesTotal_p =  (int *)SUMA_calloc(Pad_to+1, sizeof(int));
+         LabelsTotal_p = (int *)SUMA_calloc(Pad_to+1, sizeof(int));
+         if (!NodesTotal_p || !LabelsTotal_p) {
+            SUMA_SL_Crit("Failed to allocate for NodesTotal_p || LabelsTotal_p");
+            if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
+            if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
+            SUMA_RETURN(NULL);
+         }
+         if (Pad_val)  for(i=0; i<=Pad_to; ++i) LabelsTotal_p[i] = Pad_val;
+         for(i=0; i<=Pad_to; ++i) NodesTotal_p[i] = i;
+         for(i=0; i<N_NodesTotal; ++i) {
+            LabelsTotal_p[NodesTotal[i]] = LabelsTotal[i];
+         }
+         SUMA_free(NodesTotal); NodesTotal = NodesTotal_p; NodesTotal_p = NULL;
+         SUMA_free(LabelsTotal);  LabelsTotal = LabelsTotal_p; LabelsTotal_p = NULL;
+         N_NodesTotal = Pad_to + 1;
+      }
+   }
+   
+   /* construct a NIML data set for the output */
+   SUMA_LH("Creating dset ");
+   dset = SUMA_CreateDsetPointer(
+                                 NULL,         /* usually the filename */
+                                 SUMA_NODE_ROI,                /* mix and match */
+                                 NULL,    /* no idcode, let the function create one from the filename*/
+                                 Parent_idcode_str,       /* no domain str specified */
+                                 N_NodesTotal    /* Number of nodes allocated for */
+                                 ); /* DO NOT free dset, it is store in DsetList */
+
+   
+   
+   if (!dset) {
+      SUMA_SL_Err("Failed in SUMA_CreateDsetPointer");
+      SUMA_RETURN(NULL);
+   }
+
+   /* Add the index column */
+   SUMA_LH("Adding index column...");
+   if (!SUMA_AddDsetNelCol (dset, "node index", SUMA_NODE_INDEX, (void *)NodesTotal, NULL, 1)) {
+      SUMA_SL_Err("Failed in SUMA_AddNelCol");
+      SUMA_RETURN(dset);
+   }
+
+   /* Add the label column */
+   SUMA_LH("Adding label column...");
+   if (!SUMA_AddDsetNelCol (dset, "integer label", SUMA_NODE_ILABEL, (void *)LabelsTotal, NULL, 1)) {
+      SUMA_SL_Err("Failed in SUMA_AddNelCol");
+      SUMA_RETURN(dset);
+   }
+   
+   /* make it easy */
+   dset->dnel = SUMA_FindDsetDataAttributeElement(dset);
+
+   SUMA_LH("cleanup ...");
+   if (NodesTotal) SUMA_free(NodesTotal); NodesTotal = NULL;
+   if (LabelsTotal) SUMA_free(LabelsTotal); LabelsTotal = NULL;
+   
+   SUMA_RETURN(dset);
+}
+   
+/*!
+   \brief turns a bunch of ROIs into a NI dataset
    
    \param ROIv (SUMA_DRAWN_ROI**) vector of ROI structures
    \param N_ROIv (int) number of ROI structures
@@ -4806,6 +4985,9 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   SUMA_SL_Err("Obsolete, use SUMA_ROIv2Grpdataset");
+   SUMA_RETURN(NULL);
    
    /* Now you have the ROIs, concatenate all NodesInROI vectors into 1*/
    /* count the total number of nodes */
@@ -4953,7 +5135,6 @@ NI_element *SUMA_ROIv2dataset (SUMA_DRAWN_ROI** ROIv, int N_ROIv, char *Parent_i
    SUMA_RETURN(nel);
 }
    
-   
 #ifdef SUMA_ROI2dataset_STAND_ALONE
 void usage_ROI2dataset_Main ()
    
@@ -5022,7 +5203,7 @@ int main (int argc,char *argv[])
    char  *prefix_name, **input_name_v=NULL, *out_name=NULL, 
          *Parent_idcode_str = NULL, *dummy_idcode_str = NULL, *stmp=NULL;
    int kar, brk, N_input_name, cnt = 0, N_ROIv, N_tROI, ii, i, nn, pad_to, pad_val;
-   NI_element *nel=NULL;
+   SUMA_DSET *dset=NULL;
    NI_stream ns;
    SUMA_DSET_FORMAT Out_Format = SUMA_ASCII_NIML;
    SUMA_DRAWN_ROI ** ROIv = NULL, **tROIv = NULL;
@@ -5251,8 +5432,8 @@ int main (int argc,char *argv[])
         
    }
    
-   if (!(nel = SUMA_ROIv2dataset (ROIv, N_ROIv, Parent_idcode_str, pad_to, pad_val))) {
-      SUMA_SL_Err("Failed in SUMA_ROIv2dataset");
+   if (!(dset = SUMA_ROIv2Grpdataset (ROIv, N_ROIv, Parent_idcode_str, pad_to, pad_val))) {
+      SUMA_SL_Err("Failed in SUMA_ROIv2Grpdataset");
       exit(1);
    }
    
@@ -5263,8 +5444,8 @@ int main (int argc,char *argv[])
    }
    
    /* Add the history line */
-   if (!SUMA_AddNelHist (nel, FuncName, argc, argv)) {
-      SUMA_SL_Err("Failed in SUMA_AddNelHist");
+   if (!SUMA_AddNgrHist (dset->ngr, FuncName, argc, argv)) {
+      SUMA_SL_Err("Failed in SUMA_AddNgrHist");
       exit(1);
    }
 
@@ -5287,13 +5468,13 @@ int main (int argc,char *argv[])
    /* write nel */
    switch (Out_Format) {
       case SUMA_ASCII_NIML:
-         nn = NI_write_element(  ns , nel , NI_TEXT_MODE ); 
+         nn = NI_write_element(  ns , dset->ngr , NI_TEXT_MODE ); 
          break;
       case SUMA_BINARY_NIML:
-         nn = NI_write_element(  ns , nel , NI_BINARY_MODE ); 
+         nn = NI_write_element(  ns , dset->ngr , NI_BINARY_MODE ); 
          break;
       case SUMA_1D:
-         nn = NI_write_element(  ns , nel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG);  
+         nn = NI_write_element(  ns , dset->dnel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG);  
          break;
       default:
          SUMA_S_Err("Output format not supported");
@@ -5310,7 +5491,7 @@ int main (int argc,char *argv[])
    NI_stream_close( ns ) ; 
    
    /* free nel */
-   NI_free_element(nel) ; nel = NULL;
+   SUMA_FreeDset(dset); dset = NULL;
    
    /* free others */
    if (stmp) SUMA_free(stmp);

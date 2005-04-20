@@ -133,8 +133,10 @@ typedef enum { SUMA_DONT_KNOW = 0, SUMA_IN_TRIBOX_OUTSIDE = 1, SUMA_ON_NODE, SUM
 typedef enum { SUMA_SIDE_ERROR=-1, SUMA_NO_SIDE, SUMA_LEFT, SUMA_RIGHT } SUMA_SO_SIDE; 
 typedef enum  { SUMA_NO_ANSWER, SUMA_YES, SUMA_NO, SUMA_HELP, SUMA_CANCEL, SUMA_YES_ALL, SUMA_NO_ALL, SUMA_WHAT_THE_HELL } SUMA_QUESTION_DIALOG_ANSWER; /* DO NOT CHANGE THE ORDER OF THE FIRST 4 */
 
-typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED, SUMA_FREE_SURFER, SUMA_FREE_SURFER_PATCH, SUMA_SUREFIT, 
-               SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC, SUMA_CMAP_SO, SUMA_BRAIN_VOYAGER } SUMA_SO_File_Type;
+typedef enum  { SUMA_FT_ERROR = -1, SUMA_FT_NOT_SPECIFIED, 
+               SUMA_FREE_SURFER, SUMA_FREE_SURFER_PATCH, SUMA_SUREFIT, 
+               SUMA_INVENTOR_GENERIC, SUMA_PLY, SUMA_VEC, SUMA_CMAP_SO, SUMA_BRAIN_VOYAGER , 
+                  SUMA_N_SO_FILE_TYPE} SUMA_SO_File_Type; /* add types always between SUMA_FT_NOT_SPECIFIED AND SUMA_N_SO_FILE_TYPE */
 typedef enum { SUMA_FF_NOT_SPECIFIED, SUMA_ASCII, SUMA_BINARY, SUMA_BINARY_BE, SUMA_BINARY_LE } SUMA_SO_File_Format;
 typedef enum {SO_type, AO_type, ROIdO_type, ROIO_type, GO_type, LS_type} SUMA_DO_Types;   /*!< Displayable Object Types 
                                                                                     S: surface, A: axis, G: grid, 

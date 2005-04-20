@@ -689,7 +689,7 @@ int SUMA_whichDO(char *idcode, SUMA_DO *dov, int N_dov)
    
    SUMA_ENTRY;
 
-   if (idcode == NULL) {
+   if (SUMA_IS_EMPTY_STR_ATTR(idcode)) { /* might come in as ~ at times */
       fprintf(SUMA_STDERR,"Warning %s: NULL idcode.\n", FuncName);
       SUMA_RETURN (-1);
    }

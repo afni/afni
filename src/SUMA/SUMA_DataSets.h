@@ -16,6 +16,7 @@
                                        can use it, one hopes.
                                        Numbering is yyyymmdd */
 #define SUMA_EMPTY_ATTR "~"
+#define SUMA_NI_SS ","    /* string separator */
 
 typedef enum { NOPE, YUP} SUMA_Boolean;
 
@@ -127,12 +128,14 @@ typedef enum {
    SUMA_NODE_Ab,      /*!< Node A value in bytes*/ 
    SUMA_NODE_STRING,   /*!< Generic String */
    SUMA_NODE_SHORT,      /*!< Generic short */
-   SUMA_NODE_DOUBLE     /*!< Generic double */
+   SUMA_NODE_DOUBLE,     /*!< Generic double */
+   SUMA_NODE_XCORR      /*!< Cross Correlation Coefficient */ 
 }  SUMA_COL_TYPE; /*!<  Column types.
                         When you add a new element, you need to modify
                         SUMA_AddColAttr
                         SUMA_Col_Type 
                         SUMA_Col_Type_Name
+                        SUMA_ColType2TypeCast
                         */
 
 
@@ -206,7 +209,7 @@ typedef struct {
    int N_links;   /*!< Number of links to this pointer */
    char owner_id[SUMA_IDCODE_LENGTH];   /*!< The id of whoever created that pointer. Might never get used.... */
    
-   /* *** You can go crazy below */
+   #ifdef OLD_DSET
    NI_element *nel;  /*!< The whole deal 
       nel is a NIML data element which is briefly
       defined by a set of attributes, and a collection
@@ -298,8 +301,40 @@ typedef struct {
             SUMA_AddNelHist
                     
          Sample Code: SUMA_Test_DSET_IO_STANDALONE
-         
          */              
+   #else   /* the post april 06 05 way */
+   /* *** You can go crazy below */
+   NI_group *ngr; /*!< This is now April 06 05, the container of the dataset, as opposed to the olde days where nel
+                        contained everything. The reason that was done is to accomodate large sized attibutes that
+                        do not fit nicely in ASCII forms tucked inside the header. 
+                        What used to be called nel, is now called dnel (for data-part nel) and is nothing but a copy
+                        of the pointer under ngr to the nel that contains the tabular dataset. 
+                        
+      ngr contains two types of attributes: 
+         STRING attributes:
+            filename: The filename
+            label: A short text label identifying the data set.
+                   Typically, a short version of the filename                          
+            idcode_str: Unique identifier for the data set
+            MeshParent_idcode: Unique identifier of the surface containing the mesh  
+                               over which this set is defined
+            GeomParent_idcode: Unique identifier of the surface containing the 
+                               coordinates of the nodes whose attributes 
+                               (values) are in this set.
+            sorted_node_def: flag indicating that nodes in NodeDef are sorted
+                             see NodeDef below.
+
+         ELEMENT (data) attributes
+            ColumnRange
+            ColumnType
+            ColumnLabel
+            ColumnAttribute
+            History
+         */    
+   NI_element *dnel; /*!< a copy of the NI_element pointer that contains the tabular data inside ngr. Do not free this
+                           element separately, and make sure its value is changed in syncrony with the one in ngr. */
+                              
+   #endif     
 } SUMA_DSET;
 
 #define SUMA_COUNTER_SUFFIX(ic)  ( ((ic) == 1) ? "st" : ((ic) == 2) ? "nd" : ((ic) == 3) ? "rd" : "th" )
@@ -359,16 +394,28 @@ typedef struct {
    so don't use them in loops where the returned
    value is not expected to change
 */
-#define SDSET_FILENAME(dset) NI_get_attribute(dset->nel,"filename")
-#define SDSET_LABEL(dset) NI_get_attribute(dset->nel,"label")
-#define SDSET_ID(dset) SUMA_sdset_id(dset) 
-#define SDSET_IDGDOM(dset) NI_get_attribute(dset->nel,"GeomParent_idcode") 
-#define SDSET_IDMDOM(dset) SUMA_sdset_idmdom(dset)
-#define SDSET_SORTED(dset) NI_get_attribute(dset->nel,"sorted_node_def") 
-#define SDSET_TYPE_NAME(dset) dset->nel->name
-#define SDSET_TYPE(dset) SUMA_Dset_Type(dset->nel->name)
-#define SDEST_VECLEN(dset) dset->nel->vec_len
+#ifdef OLD_DSET
+   #define SDSET_FILENAME(dset) NI_get_attribute(dset->nel,"filename")
+   #define SDSET_LABEL(dset) NI_get_attribute(dset->nel,"label")
+   #define SDSET_ID(dset) SUMA_sdset_id(dset) 
+   #define SDSET_IDGDOM(dset) NI_get_attribute(dset->nel,"GeomParent_idcode") 
+   #define SDSET_IDMDOM(dset) SUMA_sdset_idmdom(dset)
+   #define SDSET_SORTED(dset) NI_get_attribute(dset->nel,"sorted_node_def") 
+   #define SDSET_TYPE_NAME(dset) dset->nel->name
+   #define SDSET_TYPE(dset) SUMA_Dset_Type(dset->nel->name)
+   #define SDEST_VECLEN(dset) dset->nel->vec_len
+#else
+   #define SDSET_FILENAME(dset) NI_get_attribute(dset->ngr,"filename")
+   #define SDSET_LABEL(dset) NI_get_attribute(dset->ngr,"label")
+   #define SDSET_ID(dset) SUMA_sdset_id(dset) 
+   #define SDSET_IDGDOM(dset) NI_get_attribute(dset->ngr,"GeomParent_idcode") 
+   #define SDSET_IDMDOM(dset) SUMA_sdset_idmdom(dset)
+   #define SDSET_SORTED(dset) NI_get_attribute(dset->ngr,"sorted_node_def") 
+   #define SDSET_TYPE_NAME(dset) dset->ngr->name
+   #define SDSET_TYPE(dset) SUMA_Dset_Type(dset->ngr->name)
+   #define SDEST_VECLEN(dset) dset->dnel->vec_len
 
+#endif
 /*!
    \brief Macros to access commonly used colorplane parameters
    DO NOT USE COLP_NODEDEF macro inside a loop where the returned
@@ -382,8 +429,11 @@ typedef struct {
 NodeDef might be dynamically changed in the overlay plane */
 #define COLP_NODEDEF(cop) cop->NodeDef
 #define COLP_N_NODEDEF(cop) cop->N_NodeDef
-#define COLP_N_ALLOC(cop) cop->dset_link->nel->vec_len
-
+#ifdef OLD_DSET
+   #define COLP_N_ALLOC(cop) cop->dset_link->nel->vec_len
+#else
+   #define COLP_N_ALLOC(cop) cop->dset_link->dnel->vec_len
+#endif
 /* #define DSET_(dset) NI_get_attribute(dset->nel,"") */
 
 /*!
@@ -393,18 +443,46 @@ NodeDef might be dynamically changed in the overlay plane */
 */
 #define NEL_READ(nel, frm) { \
    NI_stream m_ns = NULL;  \
-   nel = NULL; \
-   m_ns = NI_stream_open( frm , "r" ) ;   \
-   if( m_ns == NULL ) {    \
-      SUMA_SL_Err ("Failed to open stream");  \
-   } else { \
-      /* read the element */   \
-      if (!(nel = NI_read_element( m_ns , 1 )))  { \
-         SUMA_SL_Err ("Failed to read element");  \
+   int m_tt = NI_element_type((void*)nel) ; \
+   if (m_tt == NI_GROUP_TYPE) {  SUMA_SL_Err ("Group, use DSET_READ"); }/* SHOULD USE DSET_WRITE_1D */   \
+   else {   \
+      nel = NULL; \
+      m_ns = NI_stream_open( frm , "r" ) ;   \
+      if( m_ns == NULL ) {    \
+         SUMA_SL_Err ("Failed to open stream");  \
+      } else { \
+         /* read the element */   \
+         if (!(nel = NI_read_element( m_ns , 1 )))  { \
+            SUMA_SL_Err ("Failed to read element");  \
+         }  \
       }  \
+      /* close the stream */  \
+      NI_stream_close( m_ns ) ; \
    }  \
-   /* close the stream */  \
-   NI_stream_close( m_ns ) ; \
+}
+
+#define DSET_READ(dset, frm) { \
+   NI_stream m_ns = NULL;  \
+   if (dset->ngr || dset->dnel) {   SUMA_SL_Err("dset elements not empty!\nNeed a clean dset"); }  \
+   else {   \
+      m_ns = NI_stream_open( frm , "r" ) ;   \
+      if( m_ns == NULL ) {    \
+         SUMA_SL_Err ("Failed to open stream");  \
+      } else { \
+         /* read the element */   \
+         if (!(dset->ngr = NI_read_element( m_ns , 1 )))  { \
+            SUMA_SL_Err ("Failed to read element");  \
+         } else { \
+            /* Look for the _data element */ \
+            if (!(dset->dnel = SUMA_FindDsetDataAttributeElement(dset))) {  \
+               SUMA_SL_Err("Cannot find data element!\nCleaning up.\n");   \
+               NI_free_element (dset->ngr); dset->ngr = NULL;  \
+            }  \
+         }\
+      }  \
+      /* close the stream */  \
+      NI_stream_close( m_ns ) ; \
+   }  \
 }
 
 /*!
@@ -436,10 +514,64 @@ NodeDef might be dynamically changed in the overlay plane */
    /* close the stream */  \
    NI_stream_close( m_ns ) ; \
 }
+#define DSET_WRITE_1D(dset, frm, suc) { \
+   NI_stream m_ns = NULL;  \
+   int m_allnum;  \
+   suc = 1; \
+   m_allnum = SUMA_is_AllNumeric_dset(dset);   \
+   if (!m_allnum) { \
+      SUMA_SL_Err ("Element cannont be written to 1D format");    \
+      suc = 0; \
+   } else {   \
+      m_ns = NI_stream_open( frm , "w" ) ;   \
+      if( m_ns == NULL ) {    \
+         SUMA_SL_Err ("Failed to open stream");  \
+         suc = 0; \
+      } else { \
+         /* write out the element */   \
+         if (NI_write_element( m_ns , dset->dnel , NI_TEXT_MODE | NI_HEADERSHARP_FLAG) < 0) { \
+            SUMA_SL_Err ("Failed to write element");  \
+            suc = 0; \
+         }  \
+      }  \
+      /* close the stream */  \
+      NI_stream_close( m_ns ) ; \
+   }  \
+}
+#define DSET_WRITE_1D_PURE(dset, frm, suc) { \
+   FILE *m_fid = NULL;  \
+   int m_ind, m_ival;   \
+   int m_allnum;  \
+   suc = 1; \
+   m_allnum = SUMA_is_AllNumeric_dset(dset);   \
+   if (!m_allnum) { \
+      SUMA_SL_Err ("Element cannont be written to 1D format");    \
+      suc = 0; \
+   } else {   \
+      m_fid = fopen(frm,"w"); \
+      if( m_fid == NULL ) {    \
+         SUMA_SL_Err ("Failed to open file for output");  \
+         suc = 0; \
+      } else { \
+         for (m_ival=0; m_ival<dset->dnel->vec_len; ++m_ival) { \
+            for (m_ind=0; m_ind<dset->dnel->vec_num; ++m_ind) { \
+               fprintf(m_fid,"%f   ", SUMA_GetDsetValInCol2(dset, m_ind, m_ival));  \
+            }  \
+            fprintf(m_fid,"\n"); \
+         }  \
+         fclose(m_fid); m_fid = NULL;  \
+      }  \
+   }\
+}
+
 #define NEL_WRITE_1D(nel, frm, suc) { \
    NI_stream m_ns = NULL;  \
+   int m_tt = NI_element_type((void*)nel) ; \
+   int m_allnum;  \
    suc = 1; \
-   if (!SUMA_is_AllNumeric_nel(nel)) { \
+   if (m_tt == NI_GROUP_TYPE) { m_allnum = 0; SUMA_SL_Err ("Group, use DSET_WRITE_1D_PURE"); }/* SHOULD USE DSET_WRITE_1D */   \
+   else m_allnum = SUMA_is_AllNumeric_nel(nel);   \
+   if (!m_allnum) { \
       SUMA_SL_Err ("Element cannont be written to 1D format");    \
       suc = 0; \
    } else {   \
@@ -458,11 +590,19 @@ NodeDef might be dynamically changed in the overlay plane */
       NI_stream_close( m_ns ) ; \
    }  \
 }
+
+/*!
+   NEL_WRITE* macros are left for the record, they should not be used 
+*/
 #define NEL_WRITE_1D_PURE(nel, frm, suc) { \
    FILE *m_fid = NULL;  \
    int m_ind, m_ival;   \
+   int m_tt = NI_element_type((void*)nel) ; \
+   int m_allnum;  \
    suc = 1; \
-   if (!SUMA_is_AllNumeric_nel(nel)) { \
+   if (m_tt == NI_GROUP_TYPE) { m_allnum = 0;  SUMA_SL_Err ("Group, use DSET_WRITE_1D_PURE"); }   /* SHOULD USE DSET_WRITE_1D */  \
+   else m_allnum = SUMA_is_AllNumeric_nel(nel);   \
+   if (!m_allnum) { \
       SUMA_SL_Err ("Element cannont be written to 1D format");    \
       suc = 0; \
    } else {   \
@@ -499,25 +639,68 @@ NodeDef might be dynamically changed in the overlay plane */
    /* close the stream */  \
    NI_stream_close( m_ns ) ; \
 }
+
+/*!
+   get a string positioned in column col, row row in NI_element * nel.
+   str is a copy of the pointer to that string and must not be freed
+*/
+#define SUMA_NEL_GET_STRING(nel, row, col, str) {\
+   char **m_rc;   \
+   m_rc = (char **)(nel)->vec[(col)]; \
+   str = m_rc[(row)];\
+}
+/*!
+   replace a string positioned in column col, row row in NI_element * nel.
+   str is a copy of the pointer to that string and must not be freed
+*/
+#define SUMA_NEL_REPLACE_STRING(nel, row, col, str) {\
+   char **m_rc;   \
+   m_rc = (char **)(nel)->vec[(col)]; \
+   if (m_rc[(row)]) NI_free(m_rc[(row)]); \
+   m_rc[(row)] = NULL;\
+   if (str) { \
+      m_rc[(row)] = (char*)NI_malloc(char, (strlen((str))+1)*sizeof(char));\
+      strcpy( m_rc[(row)], str );   \
+   }  \
+}
+
+
+NI_element *SUMA_FindDsetDataAttributeElement(SUMA_DSET *dset);
+NI_element *SUMA_FindDsetAttributeElement(SUMA_DSET *dset, char *attname);
+NI_element *SUMA_FindNgrAttributeElement(NI_group *ngr, char *attname);
 float SUMA_LatestVersionNumber(void);
 char * SUMA_Dset_Type_Name (SUMA_DSET_TYPE tp);
 SUMA_DSET_TYPE SUMA_Dset_Type (char *Name);
 char * SUMA_Col_Type_Name (SUMA_COL_TYPE tp);
 SUMA_COL_TYPE SUMA_Col_Type (char *Name);
+char * SUMA_AttrOfDsetColNumb(SUMA_DSET *dset, int ind);
+SUMA_COL_TYPE SUMA_TypeOfDsetColNumb(SUMA_DSET *dset, int ind);
 SUMA_COL_TYPE SUMA_TypeOfColNumb(NI_element *nel, int ind) ;
 SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp); 
 int SUMA_ShowNel (NI_element *nel);
+void SUMA_allow_nel_use(int al);
+int SUMA_AddDsetNelCol ( SUMA_DSET *dset, char *col_label, 
+                     SUMA_COL_TYPE ctp, void *col, 
+                     void *col_attr, int stride);
 int SUMA_AddNelCol ( NI_element *nel, char *col_label,
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride);
+int SUMA_AddDsetColAttr (SUMA_DSET *dset, char *col_label, 
+                     SUMA_COL_TYPE ctp, void *col_attr, int col_index);
 int SUMA_AddColAttr (NI_element *nel, char *col_label,
                      SUMA_COL_TYPE ctp, void *col_attr, int col_index);
+SUMA_Boolean SUMA_NewDsetGrp (SUMA_DSET *dset, SUMA_DSET_TYPE dtp, 
+                           char* MeshParent_idcode, 
+                          char * GeomParent_idcode, int N_el, 
+                          char *filename, char *thisidcode);
 NI_element * SUMA_NewNel (SUMA_DSET_TYPE dtp, char* MeshParent_idcode, 
                           char * GeomParent_idcode, int N_el, 
                           char *name, char *thisidcode);
 SUMA_DSET_FORMAT SUMA_Dset_Format (char *Name);
 char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr);
 char *SUMA_HistString (char *CallingFunc, int N_arg, char **arg, char *sold);
+char * SUMA_GetNgrHist(NI_group *ngr);
+int SUMA_AddNgrHist(NI_group *ngr, char *CallingFunc, int N_arg, char **arg);
 int SUMA_AddNelHist(NI_element *nel, char *CallingFunc, int N_arg, char **arg);
 void SUMA_FreeDset(void *dset);
 SUMA_DSET * SUMA_FindDset (char *idcode_str, DList *DsetList);
@@ -540,12 +723,19 @@ SUMA_DSET *SUMA_UnlinkFromDset(SUMA_DSET *dset);
 void *SUMA_LinkToPointer(void *ptr);
 void *SUMA_UnlinkFromPointer(void *ptr);
 int * SUMA_GetNodeDef(SUMA_DSET *dset);
+int SUMA_FillDsetNelCol (SUMA_DSET *dset, char *col_label,
+                     SUMA_COL_TYPE ctp, void *col, 
+                     void *col_attr, int stride); 
 int SUMA_FillNelCol (NI_element *nel, char *col_label,
                      SUMA_COL_TYPE ctp, void *col, 
                      void *col_attr, int stride); 
+int *SUMA_GetDsetColIndex (SUMA_DSET *dset, SUMA_COL_TYPE tp, int *N_i);
 int *SUMA_GetColIndex (NI_element *nel, SUMA_COL_TYPE tp, int *N_i);
+float * SUMA_DsetCol2Float (SUMA_DSET *dset, int ind, int FilledOnly);
 float * SUMA_Col2Float (NI_element *nel, int ind, int FilledOnly);
+int SUMA_GetDsetColRange(SUMA_DSET *dset, int col_index, float range[2], int loc[2]);
 int SUMA_GetColRange(NI_element *nel, int col_index, float range[2], int loc[2]);
+int SUMA_AddGenDsetColAttr (SUMA_DSET *dset, SUMA_COL_TYPE ctp, void *col, int stride, int col_index);
 int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col, int stride, int col_index); 
 SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb);
 SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT *form, int verb);
@@ -555,14 +745,18 @@ char * SUMA_WriteDset (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int o
 SUMA_DSET * SUMA_far2dset( char *FullName, char *dset_id, char *dom_id, 
                                  float **farp, int vec_len, int vec_num, 
                                  int ptr_cpy);
+int SUMA_is_AllNumeric_dset(SUMA_DSET *dset); 
+int SUMA_is_AllNumeric_ngr(NI_group *ngr) ;
 int SUMA_is_AllNumeric_nel(NI_element *nel);
 SUMA_Boolean SUMA_NewDsetID (SUMA_DSET *dset);
-char *SUMA_ColLabelCopy(NI_element *nel, int i);
+char *SUMA_DsetColLabelCopy(SUMA_DSET *dset, int i, int addcolnum);
+char *SUMA_ColLabelCopy(NI_element *nel, int i, int addcolnum);
 SUMA_DSET * SUMA_MaskedCopyofDset(SUMA_DSET *odset, byte *rowmask, byte *colmask, int masked_only, int keep_node_index);
 void *SUMA_Copy_Part_Column(void *col,  NI_rowtype *rt, int N_col, byte *rowmask, int masked_only, int *n_incopy);
 char* SUMA_sdset_id(SUMA_DSET *dset);
 char* SUMA_sdset_idmdom(SUMA_DSET *dset);
-
+NI_group *SUMA_oDsetNel2nDsetNgr(NI_element *nel); 
+void SUMA_SetParent_DsetToLoad(char *parent);
 /*********************** BEGIN Miscellaneous support functions **************************** */
 #ifdef SUMA_COMPILED
    #define SUMA_STANDALONE_INIT {   \
@@ -616,10 +810,21 @@ SUMA_STRING * SUMA_StringAppend (SUMA_STRING *SS, char *newstring);
 SUMA_STRING * SUMA_StringAppend_va (SUMA_STRING *SS, char *newstring, ... );
 void SUMA_sigfunc(int sig);
 char *SUMA_pad_string(char *buf, char cp, int n, int add2end);
+char * SUMA_GetDsetValInCol(SUMA_DSET *dset, int ind, int ival, double *dval) ;
 char * SUMA_GetValInCol(NI_element *nel, int ind, int ival, double *dval); 
+double SUMA_GetDsetValInCol2(SUMA_DSET *dset, int ind, int ival) ;
 double SUMA_GetValInCol2(NI_element *nel, int ind, int ival); 
 int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node);
 int SUMA_GetNodeIndex_FromNodeRow(SUMA_DSET *dset, int row, int N_Node);
+NI_str_array *SUMA_free_NI_str_array(NI_str_array *nisa);
+NI_str_array *SUMA_comp_str_2_NI_str_ar(char *s, char *sep);
+char *SUMA_NI_str_ar_2_comp_str (NI_str_array *nisa, char *sep);
+NI_str_array *SUMA_free_NI_str_array(NI_str_array *nisa);
+char *SUMA_Get_Sub_String(char *cs, char *sep, int ii);
+int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, char *sep);
+NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep );
+char  * SUMA_NI_get_ith_string( char *ss , char *sep, int i );
+
 /*********************** END Miscellaneous support functions **************************** */
 
 
