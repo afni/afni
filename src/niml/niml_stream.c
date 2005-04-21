@@ -2,7 +2,6 @@
 
 /*************************************************************************/
 /********************* Functions for NIML I/O ****************************/
-/*** See http://www.manualy.sk/sock-faq/unix-socket-faq.html for info. ***/
 /*************************************************************************/
 
 /*! To print a system error message. */
@@ -55,9 +54,19 @@ static int sigurg = 0 ;  /* 02 Jan 2004 */
 #define NEXTDMS(dm) MIN(1.1*(dm)+1.01,66.0)
 
 /*-------------------------------------------------------------------*/
-/*! List of currently open streams. */
+/*! Number of entries on the list of currently open streams.
+
+    This list is needed so we can deal with the SIGURG signal,
+    which we use as a message to shut a socket down.  The signal
+    call itself doesn't tell us which socket was the trigger,
+    so we have to search all the open sockets for a match:
+    hence, this list of open streams.
+---------------------------------------------------------------------*/
 
 static int           num_open_streams = 0 ;
+
+/*! The actual array of open NIML streams. */
+
 static NI_stream_type ** open_streams = NULL ;
 
 /*-------------------------------------------------------------------*/
@@ -96,7 +105,9 @@ static void remove_open_stream( NI_stream_type *ns )
 
 /*------------------------------------------------------------------*/
 /*! Signal handler for SIGURG -- for incoming OOB data on a socket.
-    We just close the NI_stream that the socket is attached to.     */
+    We just close the NI_stream that the socket is attached to.
+    But first we have to find it!
+--------------------------------------------------------------------*/
 
 static void tcp_sigurg_handler( int sig )
 {
@@ -108,7 +119,7 @@ static void tcp_sigurg_handler( int sig )
 
    if( sig != SIGURG         ||
        busy                  ||
-       num_open_streams <= 0 || open_streams == NULL ) return ;
+       num_open_streams <= 0 || open_streams == NULL ) return ;  /* bad */
 
    busy = 1 ;  /* prevent recursion! */
 
@@ -151,6 +162,7 @@ static void tcp_sigurg_handler( int sig )
 
 /********************************************************************
   Routines to manipulate TCP/IP stream sockets.
+  See http://www.manualy.sk/sock-faq/unix-socket-faq.html for info.
 *********************************************************************/
 
 /*-------------------------------------------------------------------*/
@@ -2924,7 +2936,7 @@ int NI_stream_readbuf( NI_stream_type *ns , char *buffer , int nbytes )
    while( nout < nbytes ){
 
      jj = MIN( bs , nbytes-nout ) ;         /* how much to try to read */
-     ii = NI_stream_fillbuf( ns,jj,6666 ) ; /* read into stream buffer */
+     ii = NI_stream_fillbuf( ns,jj,1666 ) ; /* read into stream buffer */
 
      if( ii > 0 ){                          /* got something */
        ii = ns->nbuf ;                      /* how much now in buffer */
@@ -2953,7 +2965,9 @@ int NI_stream_readbuf( NI_stream_type *ns , char *buffer , int nbytes )
 int NI_stream_readbuf64( NI_stream_type *ns , char *buffer , int nbytes )
 {
    int ii , jj , bs , nout=0 ;
-   int nneed ;
+   byte a ,b ,c  , w,x,y,z ;
+   byte ag,bg,cg ;
+   int num_reread , bpos ;
 
    /** check for reasonable inputs **/
 
@@ -2986,48 +3000,121 @@ int NI_stream_readbuf64( NI_stream_type *ns , char *buffer , int nbytes )
       this is done 4 input bytes at a time,
       which are decoded to 3 output bytes                   */
 
-   /* see how many unused bytes are already in the input buffer */
+   load_decode_table() ;   /* prepare for Base64 decoding */
 
-   ii = ns->nbuf - ns->npos ;
+   /** loopback point for reading more data from stream into internal buffer **/
 
-   if( ii >= nbytes ){    /* have all the data we need already */
-     memcpy( buffer , ns->buf + ns->npos , nbytes ) ;
-     ns->npos += nbytes ;
-     if( ns->npos == ns->nbuf ) ns->nbuf = ns->npos = 0 ;  /* buffer used up */
-     return nbytes ;
+   num_reread = 0 ;
+ Base64Reread:
+   ag = bg = cg = 0 ;
+   num_reread++ ; if( num_reread > 5 ) goto Base64Done ; /* done waiting! */
+
+   /* read more data into buffer, if needed */
+
+   if( num_reread > 1 || ns->nbuf - ns->npos < 4 ){
+     NI_reset_buffer(ns) ;          /* discard used up data => ns->npos==0 */
+     ii = 4 - ns->nbuf ; if( ii <= 0 ) ii = 1 ;
+     (void) NI_stream_fillbuf( ns , ii , 1666 ) ;
+     if( ns->nbuf < 4 ) goto Base64Done ;     /* can't get no satisfaction! */
    }
 
-   /* copy what data we already have, if any */
+   /*** Copy Base64 bytes out of buffer,
+        converting them to binary as we get full quads,
+        putting the results into buffer.
 
-   if( ii > 0 ){
-     memcpy( buffer , ns->buf + ns->npos , ii ) ; nout = ii ;
-   }
-   ns->nbuf = ns->npos = 0 ;                               /* buffer used up */
+        Exit loop if we hit a '<' character (end of NIML element),
+        or hit an '=' character (end of Base64 data stream).
 
-   /* input streams with fixed length buffers ==> can't do no more */
+        Jump back to Base64Reread (above) if we run out of data in the
+        buffer before we fulfill the caller's demand for nbytes of output. ***/
 
-   if( ns->type == NI_REMOTE_TYPE || ns->type == NI_STRING_TYPE )
-     return (nout > 0) ? nout : -1 ;
+   while( 1 ){
+     ag = bg = cg = 0 ;
+     bpos = ns->npos ;    /* scan forward in buffer using bpos */
 
-   /* otherwise, fill the buffer and try again */
+     /* get next valid Base64 character into w;
+        skip whitespaces and other non-Base64 stuff;
+        if we hit the end token '<' first, quit;
+        if we hit the end of the buffer first, need more data */
 
-   bs = ns->bufsize ;
+     w = ns->buf[bpos++] ;
+     while( !B64_goodchar(w) && w != '<' && bpos < ns->nbuf )
+       w = ns->buf[bpos++] ;
+     ns->npos = bpos-1 ;  /** if we have to reread, will start here, at w **/
+     if( w == '<' ) goto Base64Done;
+     if( bpos == ns->nbuf ) goto Base64Reread;  /* not enuf data yet */
 
-   while( nout < nbytes ){
+     /* repeat to fill x */
 
-     jj = MIN( bs , nbytes-nout ) ;         /* how much to try to read */
-     ii = NI_stream_fillbuf( ns,jj,6666 ) ; /* read into stream buffer */
+     x = ns->buf[bpos++] ;
+     while( !B64_goodchar(x) && x != '<' && bpos < ns->nbuf )
+       x = ns->buf[bpos++] ;
+     if( x == '<' ){ ns->npos = bpos-1; goto Base64Done; }
+     if( bpos == ns->nbuf ) goto Base64Reread;
 
-     if( ii > 0 ){                          /* got something */
-       ii = ns->nbuf ;                      /* how much now in buffer */
-       if( ii > nbytes-nout ) ii = nbytes-nout ;
-       memcpy( buffer+nout , ns->buf , ii ) ; nout += ii ;
-       ns->npos += ii ; NI_reset_buffer( ns ) ;
-     } else {                               /* got nothing */
-       break ;                              /* so quit */
+     /* repeat to fill y */
+
+     y = ns->buf[bpos++] ;
+     while( !B64_goodchar(y) && y != '<' && bpos < ns->nbuf )
+       y = ns->buf[bpos++] ;
+     if( y == '<' ){ ns->npos = bpos-1; goto Base64Done; }
+     if( bpos == ns->nbuf ) goto Base64Reread;
+
+     /* repeat to fill z */
+
+     z = ns->buf[bpos++] ;
+     while( !B64_goodchar(z) && z != '<' && bpos < ns->nbuf )
+       z = ns->buf[bpos++] ;
+     if( z == '<' ){ ns->npos = bpos-1; goto Base64Done; }
+
+     /* at this point, have w,x,y,z to decode */
+
+     ns->npos = bpos ;  /* scan continues at next place in buffer */
+
+     B64_decode4(w,x,y,z,a,b,c) ;  /* decode 4 bytes into 3 */
+
+     if( z == '=' ){                        /* got to the end of Base64? */
+       int nn = B64_decode_count(w,x,y,z) ; /* see how many bytes to save */
+       ag = (nn > 0) ;  /* a byte is good? */
+       bg = (nn > 1) ;  /* b byte is good? */
+       cg = 0        ;  /* c byte is bad!! */
+
+       /* save good bytes into output buffer;
+          if we reach end of the required number of bytes, we're done */
+
+       if( ag ){ buffer[nout++]=a; ag=0; if(nout >= nbytes) goto Base64Done; }
+       if( bg ){ buffer[nout++]=b; bg=0; if(nout >= nbytes) goto Base64Done; }
+       goto Base64Done ;
      }
-   }
 
-   if( nout == 0 && ii < 0 ) nout = -1 ;    /* no data and an I/O error */
+     /* not at the end of Base64 =>
+        save bytes, and skip out if we fill up the output array */
+
+     ag = bg = cg = 1 ;  /* all 3 bytes are good */
+     buffer[nout++]=a; ag=0; if(nout >= nbytes) goto Base64Done;
+     buffer[nout++]=b; bg=0; if(nout >= nbytes) goto Base64Done;
+     buffer[nout++]=c; cg=0; if(nout >= nbytes) goto Base64Done;
+
+     /* now, loop back to decode the next 4 bytes;
+        BUT, if we don't have at least 4 bytes in the input buffer,
+             must do a re-read first!                               */
+
+     num_reread = 1 ; /* finished at least 1 quad ==> reset penalty clock */
+     if( ns->nbuf - ns->npos < 4 ){
+       NI_reset_buffer(ns) ; goto Base64Reread ;
+     }
+  } /* end of while(1) loop */
+
+  /* At this point:
+      have finished reading and decoding,
+      have nout bytes in output buffer,
+      and might have some good bytes left that need to be saved */
+
+Base64Done:
+   ns->b64_numleft = 0 ;
+   if( ag ) ns->b64_left[ ns->b64_numleft++ ] = a ;
+   if( bg ) ns->b64_left[ ns->b64_numleft++ ] = b ;
+   if( cg ) ns->b64_left[ ns->b64_numleft++ ] = c ;
+
    return nout ;
 }
