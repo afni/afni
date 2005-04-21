@@ -403,7 +403,9 @@ void PBAR_make_bigmap( char *name,
 
 ENTRY("PBAR_make_bigmap") ;
 
-   if( neq < 2 || val == NULL || col == NULL || dc == NULL ) EXRETURN ;
+   if( neq < 2 || val == NULL || col == NULL || dc == NULL ){
+     STATUS("bad inputs") ; EXRETURN ;
+   }
 
    /* bubble sort val,col pairs */
 
@@ -497,13 +499,17 @@ void PBAR_read_bigmap( char *fname , MCW_DC *dc )
 ENTRY("PBAR_read_bigmap") ;
 
   if( fname == NULL || *fname == '\0' || dc == NULL ) EXRETURN ;
-  fp = fopen(fname,"r"); if( fp == NULL ) EXRETURN;
+
+  STATUS(fname) ;
+  fp = fopen(fname,"r"); if( fp == NULL ){
+    STATUS("can't open file") ; EXRETURN;
+  }
 
   /* get name */
 
   do{
     cpt = fgets( line , 2*NSBUF , fp ) ;
-    if( cpt == NULL ){ fclose(fp); EXRETURN; }
+    if( cpt == NULL ){ STATUS("can't read title line"); fclose(fp); EXRETURN; }
     name[0] = '\0' ;
     sscanf(line,"%127s",name) ;
   } while( name[0]=='\0' || name[0]=='!' || (name[0]=='/' && name[1]=='/') ) ;
@@ -512,30 +518,33 @@ ENTRY("PBAR_read_bigmap") ;
 
   while( neq < NPANE_BIG ){
     cpt = fgets( line , 2*NSBUF , fp ) ;
-    if( cpt == NULL ) break ;              /* exit loop */
+    if( cpt == NULL ){ STATUS("!!end of file"); break; } /* exit while loop */
     lhs[0] = mid[0] = rhs[0] = '\0' ;
     sscanf(line,"%127s %127s %127s",lhs,mid,rhs) ;
     if( lhs[0]=='\0' || lhs[0]=='!' || (lhs[0]=='/' && lhs[1]=='/') ) continue;
+    STATUS(line) ;
 
          if( neq == 0 && (isalpha(lhs[0]) || lhs[0]=='#') ) nonum = 1 ;
     else if( neq == 0 && strchr(lhs,'=') != NULL          ) yeseq = 1 ;
 
     if( yeseq ){
       val[neq] = strtod(lhs,&cpt) ;
-      if( *cpt != '\0' ) cpt++ ;
+      if( *cpt != '\0' ) cpt++ ;     /* skip ending character */
     } else if( !nonum ){
       val[neq] = strtod(lhs,&cpt) ;
       if( val[neq] == 0.0 && *cpt != '\0' ){
+        STATUS("!!bad number") ;
         fprintf(stderr,"** %s: %s is a bad number\n",fname,lhs); continue;
       }
       cpt = (mid[0] == '=') ? rhs : mid ;  /* color is string #2 or #3 */
     } else {
       cpt = lhs ;                          /* no number => lhs is the color */
     }
-    if( *cpt == '\0' ) continue ;          /* no color string? */
+    if( *cpt == '\0' ){ STATUS("no color string?"); continue; } /* not good */
 
     ii = DC_parse_color( dc , cpt , &fr,&fg,&fb ) ;
     if( ii ){
+      STATUS("!!bad color") ;
       fprintf(stderr,"** %s: %s is bad colorname\n",fname,rhs); continue;
     }
     col[neq].r = (byte)(255.0*fr+0.5) ;
