@@ -2165,6 +2165,17 @@ scale on the Define Datamode panel indicates that 0 has a color that isn't
 "none".  The default way that AFNI works is NOT to colorize voxels that
 are 0, even if they should otherwise get a color.
 
+---------------------------
+Variable: NIML_TRUSTHOST_xx
+---------------------------
+These environment variables ('xx' = '01', '02', ..., '99') set the names
+and/or addresses of external computer hosts to trust with NIML TCP/IP
+connections, which are how AFNI and SUMA communicate.  Should only be
+necessary to use these if you are using AFNI and SUMA on different
+machines.  Connections from machines not on the trusted list will be
+rejected, for the sake of security.  The 'localhost' or 127.0.0.1 address
+and local class B network 192.168.0.* addresses are always trusted.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |

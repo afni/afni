@@ -67,6 +67,12 @@ static void init_colors(void)
    for( ii=0 ; ii < NCLR_MAX ; ii++ ){
      sprintf(ename,"AFNI_1DPLOT_COLOR_%02d",ii+1) ;
      eee = getenv(ename) ;
+     if( eee == NULL && ii < 9 ){    /** 21 Apr 2005: check alternatives **/
+       sprintf(ename,"AFNI_1DPLOT_COLOR_%1d",ii+1) ; eee = getenv(ename) ;
+     }
+     if( eee == NULL && ii <= 9 ){
+       sprintf(ename,"AFNI_1DPLOT_COLOR_O%1d",ii+1) ; eee = getenv(ename) ;
+     }
      if( eee != NULL ){
        rf=gf=bf = -1.0 ;
        sscanf( eee , "rgbi:%f/%f/%f" , &rf,&gf,&bf ) ;

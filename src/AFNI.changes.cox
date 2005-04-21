@@ -5464,3 +5464,8 @@
 20 Apr 2005
  * Modified afni_func.c to let 0 values in the overlay image get color
      if environment variable AFNI_OVERLAY_ZERO is set to YES.
+
+21 Apr 2005
+ * Where AFNI_COLORSCALE_0x is allowed in pbar.c, also check for
+   AFNI_COLORSCALE_x and AFNI_COLORSCALE_Ox, to allow for stupid users.
+   Similar changes in a few other places, as well.

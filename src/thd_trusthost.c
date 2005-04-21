@@ -16,14 +16,19 @@
 static int     host_num  = 0 ;
 static char ** host_list = NULL ;
 
-static char * init_hosts[] = { /* Initial list of OK computers */
-    "141.106.106." ,           /* MCW computers (we're so trustworthy) */
+static char *init_hosts[] = { /* Initial list of OK computers */
+    "141.106.106." ,            /* MCW computers (we're so trustworthy) */
     "128.231."     ,           /* NIH computers (also very trustworthy) */
     "127.0.0.1"    ,           /* localhost is always OK */
     "192.168."                 /* private class B networks */
 } ;
 #define INIT_NUM (sizeof(init_hosts)/sizeof(char *))
 #define HSIZE    32
+
+#define USE_NIML
+#ifdef  USE_NIML
+# include "niml.h"
+#endif
 
 /*----------------------------------------------------------------
    Return the Internet address (in 'dot' format, as a string)
@@ -37,10 +42,10 @@ static char * init_hosts[] = { /* Initial list of OK computers */
 #include <netdb.h>
 #include <arpa/inet.h>
 
-static char * xxx_name_to_inet( char * host )
+static char * xxx_name_to_inet( char *host )
 {
-   struct hostent * hostp ;
-   char * iname = NULL , * str ;
+   struct hostent *hostp ;
+   char *iname = NULL , *str ;
    int ll ;
 
    if( host == NULL || host[0] == '\0' ) return NULL ;
@@ -60,9 +65,9 @@ static char * xxx_name_to_inet( char * host )
 
 #include <ctype.h>
 
-static void add_TRUST_host( char * hnam )
+static void add_TRUST_host( char *hnam )
 {
-   char * hh=NULL ;
+   char *hh=NULL ;
    int nh,ii ;
 
    if( hnam == NULL || hnam[0] == '\0' ) return ;
@@ -98,7 +103,7 @@ static void add_TRUST_host( char * hnam )
 static void init_TRUST_list(void)
 {
    int ii ;
-   char ename[HSIZE] , * str ;
+   char ename[HSIZE] , *str ;
 
    if( host_num == 0 ){
       host_num = INIT_NUM ;
@@ -112,8 +117,10 @@ static void init_TRUST_list(void)
       if( str != NULL ) add_TRUST_host(str) ;
 
       for( ii=1 ; ii <= 99 ; ii++ ){
-         sprintf(ename,"AFNI_TRUSTHOST_%d",ii) ;
-         str = my_getenv(ename) ;
+         sprintf(ename,"AFNI_TRUSTHOST_%d",ii) ; str = my_getenv(ename) ;
+         if( str == NULL && ii <= 9 ){
+           sprintf(ename,"AFNI_TRUSTHOST_%02d",ii) ; str = my_getenv(ename) ;
+         }
          if( str != NULL ) add_TRUST_host(str) ;
       }
    }
@@ -125,11 +132,14 @@ static void init_TRUST_list(void)
   Externally callable routine to add a host to the trusted list
 -----------------------------------------------------------------------------*/
 
-void TRUST_addhost( char * hostname )
+void TRUST_addhost( char *hostname )
 {
    if( hostname == NULL || hostname[0] == '\0' ) return ;
    if( host_num == 0 ) init_TRUST_list() ;
    add_TRUST_host(hostname) ;
+#ifdef USE_NIML
+   NI_add_trusted_host(hostname) ;
+#endif
    return ;
 }
 
@@ -137,7 +147,7 @@ void TRUST_addhost( char * hostname )
    return 1 if we like this host (specified in 'dot' notation), 0 if we don't
 -----------------------------------------------------------------------------*/
 
-int TRUST_host( char * hostid )
+int TRUST_host( char *hostid )
 {
    int ii ;
 
