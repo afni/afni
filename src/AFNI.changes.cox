@@ -5467,5 +5467,8 @@
 
 21 Apr 2005
  * Where AFNI_COLORSCALE_0x is allowed in pbar.c, also check for
-   AFNI_COLORSCALE_x and AFNI_COLORSCALE_Ox, to allow for stupid users.
-   Similar changes in a few other places, as well.
+     AFNI_COLORSCALE_x and AFNI_COLORSCALE_Ox, to allow for stupid users.
+     Similar changes in a few other places, as well.
+ * Modified niml/niml_rowtype.c and niml_stream.c to re-enable input
+     of Base64-encoded data elements (capability had been lost with
+     the advent of rowtypes and var-dim arrays).

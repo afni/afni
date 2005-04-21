@@ -603,6 +603,7 @@ extern int NI_stream_readbuf( NI_stream_type *, char *, int ) ;
 extern int NI_stream_readbuf64( NI_stream_type *, char *, int ) ;  /* 20 Apr 2005 */
 extern int NI_text_to_val  ( NI_stream_type *, NI_rowtype *, void *, int );
 extern int NI_binary_to_val( NI_stream_type *, NI_rowtype *, void *, int );
+extern int NI_base64_to_val( NI_stream_type *, NI_rowtype *, void *, int );
 
 extern int NI_stream_setb64( NI_stream_type * , int ) ;   /* 20 Apr 2005 */
 

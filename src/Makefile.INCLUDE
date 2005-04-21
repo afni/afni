@@ -1025,11 +1025,11 @@ backup:
 
 afni_src.tgz:
 	$(MKDIR) afni_src
-	$(CP) *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./afni_src
-	$(CP) -r coxplot volpack moveup moveAFNI* cdflib eispack ./afni_src
-	$(CP) -r gifsicledir qhulldir f2cdir mpeg_encodedir mpegtoppm_dir dlcompat ./afni_src
-	$(CP) -r netcdf-3.5.0 jpeg-6b niml Makefile_* nifti ./afni_src
-	$(CP) -r SUMA matlab rickr faces poems ni_test_? README.* ./afni_src
+	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./afni_src
+	$(CP) -pr coxplot volpack moveup moveAFNI* cdflib eispack ./afni_src
+	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir mpegtoppm_dir dlcompat ./afni_src
+	$(CP) -pr netcdf-3.5.0 jpeg-6b niml Makefile_* nifti ./afni_src
+	$(CP) -pr SUMA matlab rickr faces poems ni_test_? README.* ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
 
@@ -1037,9 +1037,9 @@ afni_src.tgz:
 
 afni_matlab.tgz:
 	$(MKDIR) afni_matlab
-	$(CP) -r matlab ./afni_matlab
+	$(CP) -pr matlab ./afni_matlab
 	$(TAR) cf - afni_matlab | $(GZIP) -9v > afni_matlab.tgz
-	$(RM) -r afni_matlab
+	$(RM) -pr afni_matlab
 
 ### Make the documentation distribution: only for use by RWCox
 
