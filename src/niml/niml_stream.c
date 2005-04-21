@@ -170,7 +170,7 @@ static int tcp_readcheck( int sd , int msec )
 {
    int ii ;
    fd_set rfds ;
-   struct timeval tv , * tvp ;
+   struct timeval tv , *tvp ;
 
    if( sd < 0 ) return -1 ;                     /* bad socket id */
 
@@ -516,9 +516,10 @@ static int tcp_accept( int sd , char **hostname , char **hostaddr )
 static int     host_num  = 0 ;    /*!< Number of trusted hosts. */
 static char ** host_list = NULL ; /*!< IP addresses in dotted form. */
 
-static char * init_hosts[] = { /*!< Initial list of OK computers */
+static char *init_hosts[] = {  /*!< Initial list of OK computers */
     "127.0.0.1"    ,           /* localhost is always OK */
-    "192.168."                 /* private class B networks */
+    "192.168."     ,           /* private class B networks */
+    "128.231.21"               /* SSCC/NIMH/NIH/DHHS/USA */
 } ;
 #define INIT_NHO (sizeof(init_hosts)/sizeof(char *))
 #define HSIZE    32
@@ -532,8 +533,8 @@ static char * init_hosts[] = { /*!< Initial list of OK computers */
 
 char * NI_hostname_to_inet( char *host )
 {
-   struct hostent * hostp ;
-   char * iname = NULL , * str ;
+   struct hostent *hostp ;
+   char * iname = NULL , *str ;
    int ll ;
 
    if( host == NULL || host[0] == '\0' ) return NULL ;
@@ -595,22 +596,39 @@ static void add_trusted_host( char *hnam )
 static void init_trusted_list(void)
 {
    int ii ;
-   char ename[HSIZE] , * str ;
+   char ename[HSIZE] , *str ;
 
-   if( host_num == 0 ){
-      host_num = INIT_NHO ;
-      host_list = NI_malloc(char*, sizeof(char *) * INIT_NHO ) ;
-      for( ii=0 ; ii < INIT_NHO ; ii++ ){
-         host_list[ii] = NI_malloc(char, HSIZE) ;
-         strcpy( host_list[ii] , init_hosts[ii] ) ;
-      }
+   if( host_num == 0 ){      /** only execute this once **/
+     host_num = INIT_NHO ;
+     host_list = NI_malloc(char*, sizeof(char *) * INIT_NHO ) ;
+     for( ii=0 ; ii < INIT_NHO ; ii++ ){
+       host_list[ii] = NI_malloc(char, HSIZE) ;
+       strcpy( host_list[ii] , init_hosts[ii] ) ;
+     }
 
-      for( ii=0 ; ii <= 99 ; ii++ ){
-         sprintf(ename,"NIML_TRUSTHOST_%02d",ii) ;
-         str = getenv(ename) ;
-         if( str != NULL ) add_trusted_host(str) ;
-      }
+     for( ii=0 ; ii <= 99 ; ii++ ){
+       sprintf(ename,"NIML_TRUSTHOST_%02d",ii) ; str = getenv(ename) ;
+       if( str == NULL && ii <= 9 ){
+         sprintf(ename,"NIML_TRUSTHOST_%1d",ii) ; str = getenv(ename) ;
+       }
+       if( str == NULL && ii <= 9 ){
+         sprintf(ename,"NIML_TRUSTHOST_O%1d",ii) ; str = getenv(ename) ;
+       }
+       if( str != NULL ) add_trusted_host(str) ;
+     }
+
+     for( ii=0 ; ii <= 99 ; ii++ ){
+       sprintf(ename,"AFNI_TRUSTHOST_%02d",ii) ; str = getenv(ename) ;
+       if( str == NULL && ii <= 9 ){
+         sprintf(ename,"AFNI_TRUSTHOST_%1d",ii) ; str = getenv(ename) ;
+       }
+       if( str == NULL && ii <= 9 ){
+         sprintf(ename,"AFNI_TRUSTHOST_O%1d",ii) ; str = getenv(ename) ;
+       }
+       if( str != NULL ) add_trusted_host(str) ;
+     }
    }
+   return ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -676,7 +694,7 @@ int NI_trust_host( char *hostid )
 /*!  Convert a string to a key, for IPC operations.
 -----------------------------------------------------------------*/
 
-static key_t SHM_string_to_key( char * key_string )
+static key_t SHM_string_to_key( char *key_string )
 {
    int ii , sum ;
    key_t kk ;
@@ -699,7 +717,7 @@ static key_t SHM_string_to_key( char * key_string )
    Returns the shmid >= 0 if successful; returns -1 if failure.
 -----------------------------------------------------------------*/
 
-static int SHM_accept( char * key_string )
+static int SHM_accept( char *key_string )
 {
    key_t key ;
    int   shmid ;
@@ -714,7 +732,7 @@ static int SHM_accept( char * key_string )
    Returns the shmid >= 0 if successful; returns -1 if failure.
 -----------------------------------------------------------------*/
 
-static int SHM_create( char * key_string , int size )
+static int SHM_create( char *key_string , int size )
 {
    key_t key ;
    int   shmid ;
@@ -733,7 +751,7 @@ static int SHM_create( char * key_string , int size )
 
 static char * SHM_attach( int shmid )
 {
-   char * adr ;
+   char *adr ;
    adr = (char *) shmat( shmid , NULL , 0 ) ;
    if( adr == (char *) -1 ){ adr = NULL ; PERROR("SHM_attach") ; }
    return adr ;
@@ -804,7 +822,7 @@ static int SHM_nattach( int shmid )
 
 static int SHM_fill_accept( SHMioc *ioc )
 {
-   char * bbb ;
+   char *bbb ;
    int jj ;
 
    if( ioc == NULL || ioc->id < 0 ) return -1 ;      /* bad inputs?   */
@@ -871,7 +889,7 @@ static int SHM_fill_accept( SHMioc *ioc )
  The input "name" is limited to a maximum of 127 bytes.
 -----------------------------------------------------------------*/
 
-static SHMioc * SHM_init( char * name , char * mode )
+static SHMioc * SHM_init( char *name , char *mode )
 {
    SHMioc *ioc ;
    int do_create , do_accept ;
@@ -959,7 +977,7 @@ static SHMioc * SHM_init( char * name , char * mode )
    /** create a new shmem segment **/
 
    if( do_create ){
-      char * bbb ;
+      char *bbb ;
 
       ioc->whoami = SHM_CREATOR ;
       ioc->id = SHM_create( key, size1+size2+SHM_HSIZE+4 ) ; /* create it */
@@ -1038,10 +1056,10 @@ static int SHM_alivecheck( int shmid )
      + SHMioc is passed in as NULL
 ---------------------------------------------------------------------------*/
 
-static int SHM_goodcheck( SHMioc * ioc , int msec )
+static int SHM_goodcheck( SHMioc *ioc , int msec )
 {
    int ii , jj , ct ;
-   char * bbb ;
+   char *bbb ;
 
    /** check inputs for OK-osity **/
 

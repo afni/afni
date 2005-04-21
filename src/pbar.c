@@ -288,8 +288,10 @@ ENTRY("PBAR_enviro_bigmaps") ;
    eh = getenv("HOME") ;
    for( ii=1 ; ii <= 99 ; ii++ ){
      sprintf(nnn,"AFNI_COLORSCALE_%02d",ii) ;
-     en = getenv(nnn) ;
-     if( en == NULL ){sprintf(nnn,"AFNI_COLOR_SCALE_%02d",ii); en=getenv(nnn);}
+     en = getenv(nnn) ;              /** 21 Apr 2005: check alternatives **/
+     if( en == NULL            ){sprintf(nnn,"AFNI_COLOR_SCALE_%02d",ii); en=getenv(nnn);}
+     if( en == NULL && ii <= 9 ){sprintf(nnn,"AFNI_COLORSCALE_O%1d" ,ii); en=getenv(nnn);}
+     if( en == NULL && ii <= 9 ){sprintf(nnn,"AFNI_COLORSCALE_%1d"  ,ii); en=getenv(nnn);}
      if( en != NULL ){
        if( THD_is_file(en) ){
          fn = en ;
