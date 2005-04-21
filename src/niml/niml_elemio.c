@@ -362,8 +362,10 @@ NI_dpr("NI_read_element: returning empty element\n") ;
 
          if( strstr(nel->attr_rhs[ii],"binary") != NULL )
             form = NI_BINARY_MODE ;
-         else if( strstr(nel->attr_rhs[ii],"base64") != NULL )
+         else if( strstr(nel->attr_rhs[ii],"base64") != NULL ){
             form = NI_BASE64_MODE ;
+            ns->b64_numleft = 0 ;    /* 21 Apr 2005: reset Base64 leftovers */
+         }
 
          /* check byteorder in header vs. this CPU */
 
@@ -704,13 +706,13 @@ void NI_reset_buffer( NI_stream_type *ns )
    if( ns == NULL || ns->npos <= 0 || ns->nbuf <= 0 ) return ;
    if( ns->buf == NULL || ns->bad == MARKED_FOR_DEATH ) return ;
 
-   if( ns->npos < ns->nbuf ){           /* haven't used up all data yet */
-      memmove( ns->buf, ns->buf+ns->npos, ns->nbuf-ns->npos ) ;
-      ns->nbuf -= ns->npos ;
+   if( ns->npos < ns->nbuf ){          /* haven't used up all data yet */
+     memmove( ns->buf, ns->buf+ns->npos, ns->nbuf-ns->npos ) ;
+     ns->nbuf -= ns->npos ;
    } else {
-      ns->nbuf = 0 ;                   /* all data in buffer is used up */
+     ns->nbuf = 0 ;                   /* all data in buffer is used up */
    }
-   ns->npos = 0 ;               /* further scanning starts at beginning */
+   ns->npos = 0 ;              /* further scanning starts at beginning */
 }
 
 /*----------------------------------------------------------------------*/

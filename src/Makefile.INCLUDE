@@ -1039,7 +1039,7 @@ afni_matlab.tgz:
 	$(MKDIR) afni_matlab
 	$(CP) -pr matlab ./afni_matlab
 	$(TAR) cf - afni_matlab | $(GZIP) -9v > afni_matlab.tgz
-	$(RM) -pr afni_matlab
+	$(RM) -r afni_matlab
 
 ### Make the documentation distribution: only for use by RWCox
 

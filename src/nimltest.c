@@ -122,6 +122,7 @@ GetElement:
           fprintf(stderr,"  %2d: lhs=%s  rhs=%s\n",
                   nn , nel->attr_lhs[nn] , nel->attr_rhs[nn] ) ;
 
+#if 0
        for( nn=0 ; nn < nel->vec_rank ; nn++ ){
           fprintf(stderr,"  axis[%d]: len=%d delta=%f origin=%f unit=%s label=%s\n",
                   nn , nel->vec_axis_len[nn] ,
@@ -130,6 +131,7 @@ GetElement:
                   (nel->vec_axis_unit)   ? nel->vec_axis_unit[nn]   : "NULL" ,
                   (nel->vec_axis_label)  ? nel->vec_axis_label[nn]  : "NULL"  ) ;
        }
+#endif
    } else if( tt == NI_GROUP_TYPE ){
       NI_group *ngr = (NI_group *) nini ;
       fprintf(stderr,"Group element:\n"
@@ -149,7 +151,7 @@ GetElement:
                  nn , npi->attr_lhs[nn] , npi->attr_rhs[nn] ) ;
    }
 
-#if 0
+#if 1
    nsout = NI_stream_open( "str:" , "w" ) ;
    if( nsout == NULL ){
       fprintf(stderr,"NI_stream_open fails for output\n"); exit(1);

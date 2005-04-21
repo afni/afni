@@ -1489,13 +1489,27 @@ NI_dpr("ENTER NI_read_columns\n") ;
      goto ReadFinality ;    /* post-process input down below */
    }
 
+   /*-- 21 Apr 2005: repeat above for Base64 input --*/
+
+   if( col_num == 1              &&
+       fsiz[0] == rt[0]->psiz    &&    /* struct size == data size */
+       tmode   == NI_BASE64_MODE &&
+       !open_ended                 ){
+
+     nin = NI_stream_readbuf64( ns , col_dat[0] , fsiz[0]*col_len ) ;
+     if( nin < fsiz[0] ){ FREEUP; return (nin >= 0) ? 0 : -1 ; }  /* bad */
+     nin = nin / fsiz[0] ;  /* number of rows finished */
+     goto ReadFinality ;    /* post-process input down below */
+   }
+
    /*-- Choose function to read from stream and fill one struct --*/
 
    switch( tmode ){
      case NI_TEXT_MODE:   ReadFun = NI_text_to_val  ; ReadFlag = ltend; break;
      case NI_BINARY_MODE: ReadFun = NI_binary_to_val; ReadFlag = swap ; break;
+     case NI_BASE64_MODE: ReadFun = NI_base64_to_val; ReadFlag = swap ; break;
      default:
-       fprintf(stderr,"\n** NI_read_columns: Base64 not implemented!\n");
+       fprintf(stderr,"\n** NI_read_columns: unknown input tmode=%d\n",tmode);
        FREEUP ; return -1 ;
    }
 
@@ -1629,6 +1643,95 @@ int NI_binary_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
 
            } else {              /* unpadded values ==> read all at once */
              jj = NI_stream_readbuf( ns , *apt , siz*dim ) ;
+             nn = ( jj == siz*dim ) ;
+           }
+
+         } else {
+           *apt = NULL ;                    /* dim=0 ==> no array needed */
+         }
+         aaa[iaaa++] = *apt ;              /* save for possible deletion */
+                                          /* if read fails later in loop */
+       }
+
+       if( !nn ) break ;                            /* some read was bad */
+     } /* end of loop over parts */
+
+     /* bad news ==> delete any allocated var dim arrays */
+
+     if( !nn ){
+       for( ii=0 ; ii < iaaa ; ii++ ) NI_free( aaa[ii] ) ;
+     }
+     NI_free( aaa ) ;  /* don't need list of var dim arrays no more */
+   }
+
+   return nn ;
+}
+
+/*-------------------------------------------------------------------------*/
+/*! Decode Base64 data from the NI_stream ns into a rowtype struct *dpt.
+    - Note that String (aka NI_STRING) parts are illegal here.
+    - Return value is 1 if all was OK, 0 if something bad happened.
+    - Parameter swap indicates that the data coming in needs to be
+      byte-swapped.
+      - This is ONLY used to byte-swap the dimension for var-dimen arrays.
+      - Actual byte-swapping of the data is done in NI_swap_column().
+---------------------------------------------------------------------------*/
+
+int NI_base64_to_val( NI_stream_type *ns, NI_rowtype *rt, void *dpt, int swap )
+{
+   int nn , jj ;
+
+   if( rt->code == NI_STRING ) return 0 ;            /* shouldn't happen */
+
+   if( rt->size == rt->psiz ){        /* fixed-size type with no padding */
+                               /* ==> can read directly into data struct */
+
+     jj = NI_stream_readbuf64( ns , (char *)dpt , rt->size ) ;
+     return (jj == rt->size) ;
+
+   } else {                                              /* derived type */
+
+     char *dat = (char *)dpt , **aaa = NULL ;
+     int ii                  ,  naaa = 0 , iaaa = 0 ;
+
+     if( ROWTYPE_is_varsize(rt) ){         /* variable dim arrays inside */
+       for( naaa=ii=0 ; ii < rt->part_num ; ii++ )
+         if( rt->part_dim[ii] >= 0 ) naaa++ ;    /* count var dim arrays */
+       if( naaa > 0 )
+         aaa = NI_malloc(char*, sizeof(char *)*naaa) ;  /* save their addresses */
+     }                                    /* for possible deletion later */
+
+     /* loop over parts and load them;
+        set nn=0 if read fails at any part (and break out of read loop) */
+
+     for( nn=1,ii=0 ; ii < rt->part_num ; ii++ ){
+
+       if( rt->part_dim[ii] < 0 ){            /* read one fixed dim part */
+
+         nn = NI_base64_to_val( ns, rt->part_rtp[ii], dat+rt->part_off[ii], 0 );
+
+       } else {                                    /* read var dim array */
+
+         char **apt = (char **)(dat+rt->part_off[ii]); /* data in struct */
+                                                 /* will be ptr to array */
+         int dim = ROWTYPE_part_dimen(rt,dat,ii) ;  /* dimension of part */
+         int siz = rt->part_rtp[ii]->size ;          /* size of one part */
+
+         if( swap ) NI_swap4( 1 , &dim ) ;   /* byte-swap dim, which was */
+                                            /* just read in a moment ago */
+
+         if( dim > 0 ){                         /* need to get some data */
+           *apt = NI_malloc(char,  siz * dim );            /* make array */
+
+           if( siz != rt->part_rtp[ii]->psiz ){     /* padded values ==> */
+            for( jj=0 ; jj < dim ; jj++ ){       /* read 1 val at a time */
+              nn = NI_base64_to_val( ns, rt->part_rtp[ii],
+                                     *apt + siz * jj , 0  ) ;
+              if( !nn ) break ;                              /* bad read */
+            }
+
+           } else {              /* unpadded values ==> read all at once */
+             jj = NI_stream_readbuf64( ns , *apt , siz*dim ) ;
              nn = ( jj == siz*dim ) ;
            }
 
