@@ -127,6 +127,10 @@ ENTRY("AFNI_splashup") ;
           for( np=0 ; np < num_splash ; np++ )
             if( strstr(fname_splash[np],"sscc") != NULL ) break ;
           if( np < num_splash ) first_splash = np ;
+#if 0
+          for( np=0 ; np < num_splash ; np++ )
+           fprintf(stderr,"SPLASH: %s\n",fname_splash[np]) ;
+#endif
         }
       }
 
@@ -210,8 +214,8 @@ ENTRY("AFNI_splashup") ;
           np = (np+dp+num_splash)%(num_splash) ;
         imov = mri_read( fname_splash[np] ) ;
         if( imov != NULL ){
-          reload_DC_colordef( GLOBAL_library.dc ) ;
 #if 0
+          reload_DC_colordef( GLOBAL_library.dc ) ;
           if( imov->nx != NX_TOPOVER || imov->ny != NY_TOPOVER ){
             MRI_IMAGE *imq ;
             imq = mri_resize( imov , NX_TOPOVER,NY_TOPOVER ) ; /* kind of slow */
