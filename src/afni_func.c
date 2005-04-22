@@ -5290,6 +5290,13 @@ ENTRY("AFNI_hidden_CB") ;
      AFNI_faceup() ;
    }
 
+   /*------ Browser [22 Apr 2005] -----*/
+
+   else if( w == im3d->vwid->prog->hidden_browser_pb && w != NULL ){
+
+     system("open http://afni.nimh.nih.gov/afni") ;
+   }
+
    /*------- random speaking --------*/
 
    else if( w == im3d->vwid->prog->hidden_speech_pb && w != NULL ){

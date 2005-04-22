@@ -4354,6 +4354,23 @@ STATUS("making prog->rowcol") ;
       prog->hidden_speech_pb = NULL ;
 #endif
 
+      /*----------*/
+
+#if !defined(NO_FRIVOLITIES) && defined(DARWIN)
+      prog->hidden_browser_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Web Browser") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_browser_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+#else
+      prog->hidden_browser_pb = NULL ;
+#endif
+
     } /* if prog->hidden_menu isn't NULL */
    }
 #endif  /* USE_HIDDEN */
