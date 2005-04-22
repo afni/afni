@@ -55,7 +55,7 @@ int main( int argc , char *argv[] )
         int nbyt ;
         while(1){
           nbyt = fread( lbuf , 1,1024 , stdin ) ;
-          if( nbyt <= 0 ) exit(0) ;
+          if( nbyt <= 0 ){ NI_sleep(10) ; NI_stream_close(ns) ; exit(0) ; }
           nn = NI_stream_write( ns , lbuf , nbyt ) ;
           if( nn < 0 ){
              fprintf(stderr,"NI_stream_write fails\n"); exit(1);

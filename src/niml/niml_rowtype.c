@@ -1352,14 +1352,14 @@ if( nout != jj ) NI_dpr("NI_write_columns: col#%d sends %d bytes; nout=%d\n",col
 
    if( tmode == NI_BASE64_MODE ){
      if( bb > 0 ){                  /* num leftover bytes of data */
-       byte w,x,y,z ;
-       if( bb == 2 ) B64_encode2(bbuf[0],bbuf[1],w,x,y,z) ;
-       else          B64_encode1(bbuf[0],w,x,y,z) ;
+       byte w,x,y,z , a=bbuf[0],b=bbuf[1] ;
+       if( bb == 2 ) B64_encode2(a,b,w,x,y,z) ;
+       else          B64_encode1(a,w,x,y,z) ;
        cbuf[0] = w ; cbuf[1] = x ;
        cbuf[2] = y ; cbuf[3] = z ; cbuf[4] = B64_EOL2 ;
        nout = NI_stream_write( ns , cbuf , 5 ) ;
        ADDOUT ;
-     } else if( cc > 0 ){           /* just wrie an end of line */
+     } else if( cc > 0 ){           /* just write an end of line */
        cbuf[0] = B64_EOL2 ;
        nout = NI_stream_write( ns , cbuf , 1 ) ;
        ADDOUT ;

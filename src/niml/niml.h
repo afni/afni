@@ -324,7 +324,7 @@ extern NI_procins * NI_rowtype_procins( NI_rowtype * ) ; /* 19 Apr 2005 */
 
 /*! Size of NI_stream buffer. */
 
-#define NI_BUFSIZE (27*1024)
+#define NI_BUFSIZE (31*1024)
 
 /*! Data needed to process input stream. */
 
