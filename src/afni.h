@@ -630,10 +630,9 @@ typedef struct {
    Widget hidden_mission_pb ;  /* 06 Jun 2001 */
    Widget hidden_gamberi_pb ;  /* 14 Oct 2003 */
    Widget hidden_ranpoem_pb ;  /* 15 Oct 2003 */
-
    Widget hidden_speech_pb  ;  /* 25 Nov 2003 */
-
    Widget hidden_faces_pb   ;  /* 17 Dec 2004 */
+   Widget hidden_browser_pb ;  /* 22 Apr 2005 */
 
 #endif  /* USE_HIDDEN */
 
