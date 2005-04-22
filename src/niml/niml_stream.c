@@ -104,6 +104,23 @@ static void remove_open_stream( NI_stream_type *ns )
 }
 
 /*------------------------------------------------------------------*/
+/*! At program exit, close all open streams. */
+
+static void atexit_open_streams(void)  /* 22 Apr 2005 */
+{
+   int ii ;
+   for( ii=0 ; ii < num_open_streams ; ii++ ){
+     NI_sleep(1) ;
+     NI_stream_close_keep( open_streams[ii] , 5 ) ;
+   }
+   return ;
+}
+
+/*! Variable to indicate that the atexit() call has/hasn't been made */
+
+static int atexit_is_setup = 0 ;
+
+/*------------------------------------------------------------------*/
 /*! Signal handler for SIGURG -- for incoming OOB data on a socket.
     We just close the NI_stream that the socket is attached to.
     But first we have to find it!
@@ -1616,6 +1633,10 @@ NI_stream NI_stream_open( char *name , char *mode )
 
    if( !do_create && !do_accept ) return NULL ;
 
+   if( ! atexit_is_setup ){         /* 22 Apr 2005 */
+     atexit(atexit_open_streams) ; atexit_is_setup = 1 ;
+   }
+
    /************************************/
    /***** deal with TCP/IP sockets *****/
 
@@ -1646,6 +1667,7 @@ NI_stream NI_stream_open( char *name , char *mode )
       ns->port = port ;         /* save the port #    */
       ns->nbuf = 0 ;            /* buffer is empty    */
       ns->npos = 0 ;            /* scan starts at 0   */
+      ns->b64_numleft = 0 ;
 
       ns->buf     = NI_malloc(char, NI_BUFSIZE) ;
       ns->bufsize = NI_BUFSIZE ;
@@ -2347,6 +2369,7 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 /*! Close a NI_stream, but don't free the insides.
     If (flag&1 != 0) send a "close_this" message to the other end.
     If (flag&2 != 0) use TCP OOB data to send a SIGURG to the other end.
+    If (flag&4 != 0) don't remove from open_stream list
 -------------------------------------------------------------------------*/
 
 void NI_stream_close_keep( NI_stream_type *ns , int flag )
@@ -2358,7 +2381,8 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
      return ;
    }
 
-   remove_open_stream( ns ) ;  /* 02 Jan 2004 */
+   if( (flag & 4) != 0 )         /* 22 Apr 2005 */
+     remove_open_stream( ns ) ;  /* 02 Jan 2004 */
 
    /*-- 20 Dec 2002: write a farewell message to the other end? --*/
 
@@ -2367,7 +2391,7 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
        NI_stream_writecheck(ns,1) > 0                          ){
 
      NI_stream_writestring( ns , "<ni_do ni_verb='close_this' />\n" ) ;
-     NI_sleep(1) ;  /* give it a moment to read the message */
+     NI_sleep(1) ;  /* give it an instant to read the message */
    }
 
    /*-- mechanics of closing for different stream types --*/
@@ -2985,7 +3009,7 @@ int NI_stream_readbuf64( NI_stream_type *ns , char *buffer , int nbytes )
        memcpy( buffer , ns->b64_left , nbytes ) ;
        ns->b64_numleft -= nbytes ;
        if( ns->b64_numleft > 0 )   /* must shift remaining leftovers down */
-         memcpy( ns->b64_left , ns->b64_left + nbytes , ns->b64_numleft ) ;
+         memmove( ns->b64_left , ns->b64_left + nbytes , ns->b64_numleft ) ;
        return nbytes ;                                 /* done done done! */
      }
 
@@ -3013,12 +3037,12 @@ int NI_stream_readbuf64( NI_stream_type *ns , char *buffer , int nbytes )
 
    if( num_reread > 1 || ns->nbuf - ns->npos < 4 ){
      NI_reset_buffer(ns) ;          /* discard used up data => ns->npos==0 */
-     ii = 4 - ns->nbuf ; if( ii <= 0 ) ii = 1 ;
-     (void) NI_stream_fillbuf( ns , ii , 1666 ) ;
+     ii = 5 - ns->nbuf ; if( ii <= 1 ) ii = 2 ;
+     ii = NI_stream_fillbuf( ns , ii , 1666 ) ;
      if( ns->nbuf < 4 ) goto Base64Done ;     /* can't get no satisfaction! */
    }
 
-   /*** Copy Base64 bytes out of buffer,
+   /*** Copy valid Base64 bytes out of buffer (skipping others),
         converting them to binary as we get full quads,
         putting the results into buffer.
 
@@ -3100,10 +3124,9 @@ int NI_stream_readbuf64( NI_stream_type *ns , char *buffer , int nbytes )
              must do a re-read first!                               */
 
      num_reread = 1 ; /* finished at least 1 quad ==> reset penalty clock */
-     if( ns->nbuf - ns->npos < 4 ){
-       NI_reset_buffer(ns) ; goto Base64Reread ;
-     }
-  } /* end of while(1) loop */
+     if( ns->nbuf - ns->npos < 4 ) goto Base64Reread ;
+
+   } /* end of while(1) loop */
 
   /* At this point:
       have finished reading and decoding,
