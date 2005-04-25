@@ -84,8 +84,15 @@ int NI_do( NI_stream_type *ns , NI_element *nel )
    if( strcmp(nel->name  ,"ni_do") != 0 &&
        strcmp(nel->name+1,"ni_do") != 0    ) return -1 ;
 
-   verb   = NI_get_attribute( nel , "ni_verb"   ) ;
-   object = NI_get_attribute( nel , "ni_object" ) ;
+   /* 25 Apr 2005: check for diverse forms of the verb and object attributes */
+
+                      verb = NI_get_attribute( nel , "ni_verb" ) ;
+   if( verb == NULL ) verb = NI_get_attribute( nel , "verb"    ) ;
+
+                        object = NI_get_attribute( nel , "ni_object" ) ;
+   if( object == NULL ) object = NI_get_attribute( nel , "object"    ) ;
+   if( object == NULL ) object = NI_get_attribute( nel , "ni_obj"    ) ;
+   if( object == NULL ) object = NI_get_attribute( nel , "obj"       ) ;
 
    if( verb == NULL || verb[0] == '\0' ) return -1 ;        /* need a verb;  */
                                                            /* but not always */

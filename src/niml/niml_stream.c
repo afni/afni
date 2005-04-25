@@ -110,7 +110,7 @@ static void atexit_open_streams(void)  /* 22 Apr 2005 */
 {
    int ii ;
    for( ii=0 ; ii < num_open_streams ; ii++ ){
-     NI_sleep(1) ;
+     NI_sleep(2) ;
      NI_stream_close_keep( open_streams[ii] , 5 ) ;
    }
    return ;
@@ -817,7 +817,7 @@ static int SHM_nattach( int shmid )
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
    if( ii < 0 ){
      if( eee != NULL ) fprintf(stderr,"SHM_nattach: trying again!\n") ;
-     NI_sleep(3) ;
+     NI_sleep(9) ;
      ii = shmctl( shmid , IPC_STAT , &buf ) ;
    }
    if( ii < 0 ){
@@ -856,7 +856,7 @@ static int SHM_fill_accept( SHMioc *ioc )
 
    if( ioc == NULL || ioc->id < 0 ) return -1 ;      /* bad inputs?   */
 
-   NI_sleep(1) ;                                     /* wait a bit    */
+   NI_sleep(2) ;                                     /* wait a bit    */
    bbb = SHM_attach( ioc->id ) ;                     /* attach it     */
    if( bbb == NULL ) return -1 ;                     /* can't? quit   */
 
@@ -977,7 +977,7 @@ static SHMioc * SHM_init( char *name , char *mode )
 
    if( do_accept ){
       ioc->whoami = SHM_ACCEPTOR ;
-      for( ii=0 ; ii < 3 ; ii++ ){      /* try to find segment */
+      for( ii=0 ; ii < 4 ; ii++ ){      /* try to find segment */
          ioc->id = SHM_accept( key ) ;  /* several times       */
          if( ioc->id >= 0 ) break ;     /* works? break out    */
          NI_sleep(ii+1) ;               /* wait 1 millisecond  */
@@ -1036,11 +1036,11 @@ static SHMioc * SHM_init( char *name , char *mode )
       *(ioc->bstart2) = 0 ;                                /* init markers 2*/
       *(ioc->bend2)   = size2-1 ;
 
-      NI_sleep(1) ;
+      NI_sleep(3) ;
       jj = SHM_nattach(ioc->id) ;                          /* # processes */
 
       if( jj < 2 ){
-        NI_sleep(2) ; jj = SHM_nattach(ioc->id) ;
+        NI_sleep(3) ; jj = SHM_nattach(ioc->id) ;
       }
 
       if( jj > 2 ){                                        /* should not  */
@@ -2049,7 +2049,7 @@ NI_dpr("NI_stream_reopen: opening new stream %s\n",msg) ;
    /* send message on old stream to other
       program, telling it to open the new stream */
 
-   sprintf(msg,"<ni_do ni_verb='reopen_this' ni_object='%s' />\n",nname) ;
+   sprintf(msg,"<?ni_do ni_verb='reopen_this' ni_object='%s' ?>\n",nname) ;
    kk = strlen(msg) ;
 
 #ifdef NIML_DEBUG
@@ -2390,8 +2390,8 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
        (ns->type == NI_TCP_TYPE || ns->type == NI_SHM_TYPE) &&
        NI_stream_writecheck(ns,1) > 0                          ){
 
-     NI_stream_writestring( ns , "<ni_do ni_verb='close_this' />\n" ) ;
-     NI_sleep(1) ;  /* give it an instant to read the message */
+     NI_stream_writestring( ns , "<?ni_do ni_verb='close_this' ?>\n" ) ;
+     NI_sleep(9) ;  /* give it an instant to read the message */
    }
 
    /*-- mechanics of closing for different stream types --*/
@@ -2400,7 +2400,7 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
 
 #ifndef DONT_USE_SHM
       case NI_SHM_TYPE:
-        NI_sleep(1) ;                          /* 31 Mar 2005 */
+        NI_sleep(9) ;                          /* 31 Mar 2005 */
         SHM_close( ns->shmioc ) ;              /* detach shared memory */
       break ;
 #endif
@@ -2421,9 +2421,9 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
         if( ns->sd >= 0 ){
           if( (flag & 2) != 0 ){
             tcp_send( ns->sd , "X" , 1 , MSG_OOB ) ;   /* 02 Jan 2004 */
-            NI_sleep(1) ;
+            NI_sleep(9) ;
           }
-          NI_sleep(1) ;        /* 31 Mar 2005 */
+          NI_sleep(2) ;        /* 31 Mar 2005 */
           CLOSEDOWN(ns->sd) ;  /* close socket */
         }
       break ;
