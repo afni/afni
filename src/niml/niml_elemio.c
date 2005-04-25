@@ -163,7 +163,7 @@ NI_dpr("NI_read_element: HeadRestart scan_for_angles; num_restart=%d\n" ,
 
    if( nn < 0 ){
      if( NI_stream_readcheck(ns,0) < 0 ) return NULL ;   /* connection lost */
-     NI_sleep(1); goto HeadRestart;                      /* try again */
+     NI_sleep(2); goto HeadRestart;                      /* try again */
    }
 
 #ifdef NIML_DEBUG
@@ -446,9 +446,9 @@ NI_dpr("NI_read_element: returning filled data element\n") ;
       /*-- 23 Aug 2002: do something, instead of returning data? --*/
 
       if( strcmp(nel->name,"ni_do") == 0 ){
-         NI_do( ns , nel ) ;
-         NI_free_element( nel ) ;
-         num_restart = 0 ; goto HeadRestart ;
+        NI_do( ns , nel ) ;
+        NI_free_element( nel ) ;
+        num_restart = 0 ; goto HeadRestart ;
       }
 
       return nel ;
