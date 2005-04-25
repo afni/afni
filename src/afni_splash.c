@@ -212,7 +212,7 @@ ENTRY("AFNI_splashup") ;
           dp = 2*((lrand48() >> 8)%2)-1 ;  /* -1 or +1 */
         } else
           np = (np+dp+num_splash)%(num_splash) ;
-        imov = mri_read( fname_splash[np] ) ;
+        imov = mri_read_stuff( fname_splash[np] ) ;
         if( imov != NULL ){
 #if 0
           reload_DC_colordef( GLOBAL_library.dc ) ;
@@ -222,6 +222,7 @@ ENTRY("AFNI_splashup") ;
             if( imq != NULL ){ mri_free(imov); imov = imq; }
           }
 #endif
+          STATUS("overlaying splash image") ;
           mri_overlay_2D( imspl , imov , 0,0 ) ;
           mri_free(imov) ;
         }

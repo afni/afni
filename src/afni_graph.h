@@ -162,7 +162,7 @@ typedef struct {
 
 /*--- stuff for changing the graph length: pinning ---*/
 
-#define MIN_PIN 5
+#define MIN_PIN 2
 #define MAX_PIN 9999
 
 /* plotting range is from time index NBOT to NTOP-1 */

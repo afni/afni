@@ -789,7 +789,7 @@ STATUS("have new image") ;
 #ifdef AFNI_DEBUG
 { char str[256] ;
   sprintf(str,"writing slice %d: type=%s nx=%d ny=%d\n",
-          kk,MRI_TYPE_name[im->kind] , im->nx,im->ny ) ;
+          kk,MRI_TYPE_NAME(im) , im->nx,im->ny ) ;
   STATUS(str) ; }
 #endif
 
