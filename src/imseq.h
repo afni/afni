@@ -501,6 +501,8 @@ typedef struct MCW_imseq {
      MCW_arrowval *wbar_ticnum_av, *wbar_ticsiz_av ;  /* 23 Feb 2004 */
 
      float last_dx , last_dy ;                        /* 08 Jun 2004 */
+
+     float rgb_gamma ;                                /* 25 Apr 2005 */
 } MCW_imseq ;
 
 #define ISQ_TIMERFUNC_INDEX  701

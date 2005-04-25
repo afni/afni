@@ -5472,3 +5472,7 @@
  * Modified niml/niml_rowtype.c and niml_stream.c to re-enable input
      of Base64-encoded data elements (capability had been lost with
      the advent of rowtypes and var-dim arrays).
+
+25 Apr 2005
+ * Minor changes to NIML.
+ * Gamma variation allowed for RGB display in imseq.c.

@@ -118,6 +118,8 @@ static char * MRI_TYPE_name[8] =
 
 #define MRI_type_name MRI_TYPE_name  /* because I forget */
 
+#define MRI_TYPE_NAME(iimm) MRI_TYPE_name[(iimm)->kind]  /* 26 Apr 2005 */
+
 /*! Max value of a byte. */
 
 #define MRI_maxbyte         255
