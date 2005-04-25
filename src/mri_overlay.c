@@ -25,17 +25,29 @@ void mri_overlay_2D( MRI_IMAGE *imbase , MRI_IMAGE *imover , int ix , int jy )
 
 ENTRY("mri_overlay_2D") ;
 
-   if( imbase == NULL || imover == NULL ) EXRETURN ;  /* bad inputs */
+   if( imbase == NULL || imover == NULL ){
+STATUS("bad inputs") ;
+     EXRETURN ;  /* bad inputs */
+   }
 
    /* 13 Nov 2002: possibly do type conversion on imover to match imbase */
 
    if( imbase->kind == imover->kind ){
+     STATUS("direct overlay possible") ;
      imov = imover ;
    } else if( imbase->kind == MRI_byte && imover->kind == MRI_rgb ){
+     STATUS("conversion to byte needed") ;
      imov = mri_to_byte( imover ) ;
    } else if( imbase->kind == MRI_rgb  && imover->kind == MRI_byte ){
+     STATUS("conversion to RGB needed") ;
      imov = mri_to_rgb( imover ) ;
    } else {
+     if(PRINT_TRACING){
+       char str[256] ;
+       sprintf(str,"incompatible inputs: imbase=%s imover=%s",
+               MRI_TYPE_NAME(imbase) , MRI_TYPE_NAME(imover) ) ;
+       STATUS(str);
+     }
      EXRETURN ;   /* bad inputs */
    }
 
@@ -46,6 +58,7 @@ ENTRY("mri_overlay_2D") ;
    psiz = imbase->pixel_size ;
 
    if( ix >= nxba || jy >= nyba ){          /* bad placement */
+STATUS("overlay oompossible") ;
      if( imov != imover ) mri_free(imov) ;
      EXRETURN ;
    }
@@ -54,11 +67,15 @@ ENTRY("mri_overlay_2D") ;
 
    if( ix < 0 ){
      ix = nxba + ix ;
-     if( ix < 0 ){ if( imov != imover ) mri_free(imov); EXRETURN; } /* bad */
+     if( ix < 0 ){ /* bad */
+      STATUS("ix < 0"); if( imov != imover ) mri_free(imov); EXRETURN;
+     }
    }
    if( jy < 0 ){
      jy = nyba + jy ;
-     if( jy < 0 ){ if( imov != imover ) mri_free(imov); EXRETURN; } /* bad */
+     if( jy < 0 ){ /* bad */
+      STATUS("jy < 0"); if( imov != imover ) mri_free(imov); EXRETURN;
+     }
    }
 
    nxxov = nxov ;                           /* length of overlay row */
@@ -68,6 +85,7 @@ ENTRY("mri_overlay_2D") ;
    if( jy+nyov > nyba ) nyyov = nyba - jy ; /* too many rows for base? */
 
    /* actually overlay each row */
+STATUS("overlaying now") ;
 
    for( jj=0 ; jj < nyyov ; jj++ )
      memcpy( ba + ((jy+jj)*nxba + ix)*psiz , ov + jj*nxov*psiz , nxxov*psiz ) ;

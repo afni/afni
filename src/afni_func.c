@@ -1093,7 +1093,7 @@ STATUS("had to convert im_fim to floats?????") ;
 if( PRINT_TRACING && im_thr != NULL )
 { char str[256] ; float tmax ;
   sprintf(str,"im_thr: nx=%d ny=%d kind=%s",
-          im_thr->nx,im_thr->ny,MRI_TYPE_name[im_thr->kind]) ; STATUS(str) ;
+          im_thr->nx,im_thr->ny,MRI_TYPE_NAME(im_thr)) ; STATUS(str) ;
   tmax = (float)mri_maxabs(im_thr) ;
   sprintf(str,"maxabs(im_thr)=%g scale_thr=%g thresh=%g",tmax,scale_thr,thresh);
   STATUS(str) ;
@@ -4072,7 +4072,7 @@ STATUS("have new image") ;
 #ifdef AFNI_DEBUG
 { char str[256] ;
   sprintf(str,"writing slice %d: type=%s nx=%d ny=%d\n",
-          kk,MRI_TYPE_name[im->kind] , im->nx,im->ny ) ;
+          kk,MRI_TYPE_NAME(im) , im->nx,im->ny ) ;
   STATUS(str) ; }
 #endif
 
