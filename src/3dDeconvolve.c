@@ -3683,7 +3683,7 @@ void calculate_results
   float * errts = NULL;        /* full model residual error time series */
 
   int vstep ;                  /* interval progress meter dots */
-
+  double ct ;                  /* clock time */
 
 ENTRY("calculate_results") ;
 
@@ -3778,6 +3778,9 @@ ENTRY("calculate_results") ;
 
 
   /*----- Initialize the independent variable matrix -----*/
+
+  ct = COX_clock_time() ;
+
   init_indep_var_matrix (p, qp, polort, nt, N, good_list, block_list,
 			 num_blocks, num_stimts, stimulus, stim_length,
 			 min_lag, max_lag, nptr, option_data->stim_base , &xdata);
@@ -3949,6 +3952,9 @@ ENTRY("calculate_results") ;
   if (num_glt > 0)
     init_glt_analysis (xtxinv_full, num_glt, glt_cmat, glt_amat, cxtxinvct);
 
+  ct = COX_clock_time() - ct ;
+  fprintf(stderr,"++ Matrix setup time = %.2f s\n",ct) ;  /* 25 Apr 2005 */
+
 
   vector_create (N, &y);
 
@@ -4037,7 +4043,7 @@ ENTRY("calculate_results") ;
             }
             if( newpid == 0 ) break ;   /* I'm the child */
             proc_pid[pp] = newpid ;     /* I'm the parent */
-            iochan_sleep(10) ;
+            iochan_sleep(10) ;          /* 10 ms, to let the child get going */
           }
           if( pp == proc_numjob ){       /* only in the parent */
             ixyz_bot = proc_vox_bot[0] ; /* set the 3 control */
