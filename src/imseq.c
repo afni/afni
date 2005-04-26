@@ -11114,7 +11114,7 @@ void mri_rgb_transform_nD( MRI_IMAGE *im, int ndim, generic_func *tfunc )
    byte  *iar ;
    float *sar , *far ;
    int ii , nvox , rr,gg,bb ;
-   float fac ; 
+   float fac , smax,fmax,fsrat ;
    
 ENTRY("mri_rgb_transform_nD") ;
 
@@ -11122,6 +11122,9 @@ ENTRY("mri_rgb_transform_nD") ;
    if( tfunc == NULL || (ndim !=0 && ndim != 2) ) EXRETURN ;
 
    flim = mri_to_float( im ) ;  /* input intensity */
+   fmax = mri_max( flim ) ;
+   if( fmax == 0.0 ){ mri_free(flim); EXRETURN; }
+
    shim = mri_copy( flim ) ;    /* transformed intensity */
 
    switch( ndim ){
@@ -11136,6 +11139,10 @@ ENTRY("mri_rgb_transform_nD") ;
      break ;
    }
 
+   smax = mri_max(shim) ;
+   if( smax == 0.0 ){ mri_free(flim); mri_free(shim); EXRETURN; }
+   fsrat = fmax / smax ;
+
    iar = MRI_BYTE_PTR(im) ;
    far = MRI_FLOAT_PTR(flim) ; sar = MRI_FLOAT_PTR(shim) ;
 
@@ -11144,7 +11151,7 @@ ENTRY("mri_rgb_transform_nD") ;
      if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){
        iar[3*ii] = iar[3*ii+1] = iar[3*ii+2] = 0 ;
      } else {
-       fac = sar[ii] / far[ii] ; /* will be positive */
+       fac = fsrat * sar[ii] / far[ii] ; /* will be positive */
        rr  = fac * iar[3*ii]   ; iar[3*ii  ] = (rr > 255) ? 255 : rr ;
        gg  = fac * iar[3*ii+1] ; iar[3*ii+1] = (gg > 255) ? 255 : gg ;
        bb  = fac * iar[3*ii+2] ; iar[3*ii+2] = (bb > 255) ? 255 : bb ;
