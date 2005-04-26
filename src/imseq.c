@@ -2577,9 +2577,9 @@ ENTRY("ISQ_plot_label") ;
    -- the output will be MRI_short (grayscale index) or MRI_rgb
 -------------------------------------------------------------------------*/
 
-MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq * seq , MRI_IMAGE * im )
+MRI_IMAGE * ISQ_process_mri( int nn , MCW_imseq *seq , MRI_IMAGE *im )
 {
-   MRI_IMAGE * newim , * flipim , * lim ;
+   MRI_IMAGE *newim , *flipim , *lim ;
    int  scl_grp ;
    short clbot=0 , cltop=0 ;
    int must_rescale = 1 ;     /* 31 Jan 2002: always turn this on */
@@ -2596,7 +2596,7 @@ ENTRY("ISQ_process_mri") ;
    lim = im ;  /* local image = input image, unless complex */
 
    if( im->kind == MRI_complex ){
-      float * lar ; complex * cxar ; int ii , npix ;
+      float *lar ; complex *cxar ; int ii , npix ;
 
 DPRI("complex to real code = ",seq->opt.cx_code) ;
 
@@ -2636,6 +2636,8 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
    if( lim->kind == MRI_rgb ){
       MRI_IMAGE *tim , *qim ;
 
+      /** histogram flattening (very useless) **/
+
       qim = lim ;
       if( (seq->opt.improc_code & ISQ_IMPROC_FLAT) != 0 ){
         tim = mri_flatten_rgb( qim ) ;
@@ -2643,23 +2645,24 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
         qim = tim ;
       }
 
+      /** sharpening (sometimes OK) **/
+
       if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) != 0 ){
         tim = mri_sharpen_rgb( seq->sharp_fac , qim ) ;
         if( qim != lim ) mri_free(qim) ;
         qim = tim ;
       }
 
+      /** create output:
+           copy of input, if input was unmodified above,
+           otherwise, the edited/filtered result from above **/
+
       if( qim == lim )
         newim = mri_to_rgb( lim ) ;   /* just copy it */
       else
         newim = qim ;                 /* is already what we want */
 
-      if( seq->set_orim ){                    /* for graphs */
-        KILL_1MRI(seq->orim) ;
-        seq->orim = mri_to_float(newim) ;    /* intensity image */
-      }
-
-      /* 25 Apr 2005: modify image via rgb_gamma exponent? */
+      /** 25 Apr 2005: modify image via rgb_gamma exponent? **/
 
       if( seq->rgb_gamma < 0.98 || seq->rgb_gamma > 1.02 ){
         register int npix = newim->nx * newim->ny , ii ;
@@ -2673,7 +2676,14 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
         }
       }
 
-      /** 11 May 2004: zero color? **/
+      /** save the 'original' image in float format? **/
+
+      if( seq->set_orim ){                    /* for graphs */
+        KILL_1MRI(seq->orim) ;
+        seq->orim = mri_to_float(newim) ;    /* intensity image */
+      }
+
+      /** 11 May 2004: fill with zero color? **/
 
       if( seq->zer_color > 0 ){
         register int npix = newim->nx * newim->ny , ii ;
@@ -2686,7 +2696,7 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
             ar[3*ii] = rz ; ar[3*ii+1] = gz ; ar[3*ii+2] = bz ;
           }
       }
-   }
+   }  /** end of RGB processing **/
 
    /****** Not RGB ==>                                             ******/
    /****** process image in normal fashion if no IMPROC code given ******/
@@ -2760,7 +2770,7 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
          break ;  /* end of autoscaling */
 
          case ISQ_SCL_GRP:{         /* scale on group statistics */
-            ISQ_glob_statistics * gl = seq->glstat ;
+            ISQ_glob_statistics *gl = seq->glstat ;
 
             switch( seq->opt.scale_range ){
 
@@ -2791,7 +2801,7 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
       if( lim->kind == MRI_short && clbot < cltop ){
 
          int npix = lim->nx * lim->ny , ii ;
-         short * ar = lim->im.short_data ;
+         short *ar = lim->im.short_data ;
 
          if( seq->rng_ztop == 0 ){
             for( ii=0 ; ii < npix ; ii++ )
@@ -2829,7 +2839,7 @@ DPR("scaling to shorts") ;
    /****** end of normal processing; handle special image processing below ******/
 
    } else {
-      MRI_IMAGE * tim , * qim ;
+      MRI_IMAGE *tim , *qim ;
       double scl , lev ;
       float hbot,htop ;
 
@@ -2878,7 +2888,7 @@ DPR("mri_flatten:") ;
          if( seq->opt.scale_range == ISQ_RNG_02TO98 &&
              seq->flat_top > seq->flat_bot ){
 
-            float * qar = MRI_FLOAT_PTR(qim) ;
+            float *qar = MRI_FLOAT_PTR(qim) ;
             int ii , npix = qim->nx * qim->ny ;
 
 DPR("clip flattened image") ;
@@ -2903,7 +2913,7 @@ DPR("mri_sharpen:") ;
 
       if( (seq->opt.improc_code & ISQ_IMPROC_SOBEL) != 0 ){
          int ii , npix ;
-         float * tar ;
+         float *tar ;
 
 DPR("mri_edit_image:") ;
          tim = mri_edit_image( 0.10 , 1.0 , qim ) ;   /* soft clip small values */
@@ -2966,14 +2976,14 @@ DPR("ISQ_perpoints:") ;
 
    if( newim->kind == MRI_short && seq->zer_color > 0 ){
      short zz = -seq->zer_color ;
-     short * ar = MRI_SHORT_PTR(newim) ;
+     short *ar = MRI_SHORT_PTR(newim) ;
      int npix = newim->nx * newim->ny , ii ;
 
      for( ii=0 ; ii < npix ; ii++ )
        if( ar[ii] == seq->bot ) ar[ii] = zz ;
    }
 
-   /* copy sizes (fixup for mrilib to be happy) */
+   /** copy pixel sizes, etc. (fixup for mrilib to be happy) **/
 
    MRI_COPY_AUX( newim , lim ) ;
 
@@ -2986,11 +2996,11 @@ DPR("mri_flippo:") ;
    if( lim   != im     ) KILL_1MRI(lim) ;    /* (if there is any) */
 
    if( seq->set_orim && seq->orim != NULL ){  /* 30 Dec 1998 */
-      MRI_IMAGE * qim ;
-      qim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, seq->orim ) ;
-      if( qim != seq->orim ){ KILL_1MRI(seq->orim) ; seq->orim = qim ; } ;
-      MRI_COPY_AUX( seq->orim , flipim ) ;
-      seq->set_orim = 0 ;
+     MRI_IMAGE *qim ;
+     qim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, seq->orim ) ;
+     if( qim != seq->orim ){ KILL_1MRI(seq->orim) ; seq->orim = qim ; } ;
+     MRI_COPY_AUX( seq->orim , flipim ) ;
+     seq->set_orim = 0 ;
    }
 
    RETURN(flipim) ;
@@ -3003,7 +3013,7 @@ DPR("mri_flippo:") ;
 void ISQ_but_color_CB( Widget w , XtPointer client_data ,
                                   XtPointer call_data    )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
 
 ENTRY("ISQ_but_color_CB") ;
 
@@ -3017,10 +3027,12 @@ ENTRY("ISQ_but_color_CB") ;
    EXRETURN ;
 }
 
+/*-------------------------------------------------------------------*/
+
 void ISQ_but_cswap_CB( Widget w , XtPointer client_data ,
                                   XtPointer call_data    )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
 
 ENTRY("ISQ_but_cswap_CB") ;
 
@@ -3036,11 +3048,11 @@ ENTRY("ISQ_but_cswap_CB") ;
    image saving options
 ---------------------------------------------------------------------*/
 
-void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void ISQ_saver_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   MCW_imseq * seq = (MCW_imseq *) cd ;
+   MCW_imseq *seq = (MCW_imseq *) cd ;
    int ii , kf ;
-   MRI_IMAGE * tim , * flim ;
+   MRI_IMAGE *tim , *flim ;
    char fname[256] ;
    THD_string_array *agif_list=NULL ; /* 27 Jul 2001 */
    char tsuf[8] ;                     /* 09 Dec 2002 */
