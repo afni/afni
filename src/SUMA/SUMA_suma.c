@@ -149,14 +149,14 @@ SUMA_SurfaceObject **SUMA_GimmeSomeSOs(int *N_SOv)
 {
    static char FuncName[]={"SUMA_GimmeSomeSOs"};
    SUMA_SurfaceObject **SOv=NULL;
-   SUMA_ISOSURFACE_OPTIONS *Opt;
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    char sid[100]; 
    int i, N_i;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   Opt = (SUMA_ISOSURFACE_OPTIONS *)SUMA_malloc(sizeof(SUMA_ISOSURFACE_OPTIONS));
+   Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
 
    N_i = 1; /* just one for now */
    *N_SOv = N_i; 

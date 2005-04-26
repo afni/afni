@@ -771,7 +771,7 @@ void SUMA_SetParent_DsetToLoad(char *parent);
 		      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName); \
 		      exit(1); \
 	      }  \
-         SUMAg_CF->scm = SUMA_Build_Color_maps();  \
+         /* SUMAg_CF->scm = SUMA_Build_Color_maps();  require X connection*/\
       SUMA_ParseInput_basics (argv, argc);   \
    }
 #else
@@ -824,7 +824,7 @@ char *SUMA_Get_Sub_String(char *cs, char *sep, int ii);
 int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, char *sep);
 NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep );
 char  * SUMA_NI_get_ith_string( char *ss , char *sep, int i );
-
+SUMA_VARTYPE SUMA_VarType2TypeCast (char *vt);
 /*********************** END Miscellaneous support functions **************************** */
 
 

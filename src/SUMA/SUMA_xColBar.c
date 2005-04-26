@@ -3070,6 +3070,14 @@ void SUMA_CreateUpdatableCmapMenu(SUMA_SurfaceObject *SO)
 
    SUMA_ENTRY;
 
+   if (!SUMAg_CF->scm) {   
+      SUMAg_CF->scm = SUMA_Build_Color_maps();
+      if (!SUMAg_CF->scm) {
+         SUMA_SL_Err("Failed to build color maps.\n");
+         SUMA_RETURNe;
+      }
+   }
+   
    if (!SO->SurfCont->rc_CmapCont) { /* first pass, create placement container */
       SO->SurfCont->rc_CmapCont = XtVaCreateWidget ("rowcolumn",
       xmRowColumnWidgetClass, SO->SurfCont->rccm_swcmap,
@@ -3325,7 +3333,15 @@ SUMA_Boolean SUMA_CmapSelectList(SUMA_SurfaceObject *SO, int refresh, int bringu
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
-   
+
+   if (!SUMAg_CF->scm) {   
+      SUMAg_CF->scm = SUMA_Build_Color_maps();
+      if (!SUMAg_CF->scm) {
+         SUMA_SL_Err("Failed to build color maps.\n");
+         SUMA_RETURN(NOPE);
+      }
+   }
+      
    /* Widget is common to all SUMA */
    LW = SUMAg_CF->X->SwitchCmapLst;
    
@@ -4523,6 +4539,14 @@ void SUMA_LoadCmapFile (char *filename, void *data)
       SUMA_RETURNe;
    }
    
+   if (!SUMAg_CF->scm) {   
+      SUMAg_CF->scm = SUMA_Build_Color_maps();
+      if (!SUMAg_CF->scm) {
+         SUMA_SL_Err("Failed to build color maps.\n");
+         SUMA_RETURNe;
+      }
+   }
+   
    SO = (SUMA_SurfaceObject *)data;
    
    if (LocalHead) {
@@ -4763,6 +4787,14 @@ int main (int argc,char *argv[])
    SUMA_mainENTRY;
    
    SUMA_STANDALONE_INIT;
+   
+   if (!SUMAg_CF->scm) {   
+      SUMAg_CF->scm = SUMA_Build_Color_maps();
+      if (!SUMAg_CF->scm) {
+         SUMA_SL_Err("Failed to build color maps.\n");
+         SUMA_RETURN(0);
+      }
+   }
    
    icmap = SUMA_Find_ColorMap ("bgyr64", SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
    if (icmap < 0) { SUMA_SL_Err("Failed to find ColMap"); SUMA_RETURN(0); }

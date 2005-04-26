@@ -491,7 +491,7 @@ int SUMA_AddColAttr (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    
    SUMA_ENTRY;
    
-   if (SUMA_ALLOW_NEL_USE) SUMA_SL_Warn("Obsolete, use new version.");
+   if (!SUMA_ALLOW_NEL_USE) SUMA_SL_Warn("Obsolete, use new version.");
 
    if (!nel) SUMA_RETURN(0);
    if (col_index < 0) col_index = nel->vec_num-1;
@@ -899,7 +899,7 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    static char FuncName[]={"SUMA_AddNelCol"};
    SUMA_ENTRY;
    
-   SUMA_SL_Warn("Obsolete, use new version.");
+   if (!SUMA_ALLOW_NEL_USE) SUMA_SL_Warn("Obsolete, use new version.");
    if (!nel) { SUMA_SL_Err("Null Nel"); SUMA_RETURN(0); }
    if (!col) { 
       /* Do not complain, that is not a bad thing.
@@ -931,10 +931,13 @@ int SUMA_AddNelCol ( NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    }
    
    /* set some generic attributes */
+   SUMA_allow_nel_use(1);
    SUMA_AddGenColAttr (nel, ctp, col, stride, -1);
    /* add the attributes of that column */
+   SUMA_allow_nel_use(1);
    SUMA_AddColAttr (nel, col_label, ctp, col_attr, -1);
    
+   SUMA_allow_nel_use(0);
    SUMA_RETURN(1);
 }
 
@@ -1253,6 +1256,23 @@ int SUMA_FillNelCol (NI_element *nel, char *col_label, SUMA_COL_TYPE ctp, void *
    
    SUMA_allow_nel_use(0); 
    SUMA_RETURN(1);
+}
+
+SUMA_VARTYPE SUMA_VarType2TypeCast (char *vt)
+{
+   static char FuncName[]={"SUMA_VarType2TypeCast"};
+   
+   SUMA_ENTRY;
+   
+   if (!vt) SUMA_RETURN(SUMA_notypeset);
+   
+   if (strstr(vt,"int")) SUMA_RETURN(SUMA_int);
+   if (strstr(vt,"float")) SUMA_RETURN(SUMA_float);
+   if (strstr(vt,"byte")) SUMA_RETURN(SUMA_byte);
+   if (strstr(vt,"double")) SUMA_RETURN(SUMA_double);
+   if (strstr(vt,"short")) SUMA_RETURN(SUMA_short);
+   
+   SUMA_RETURN(SUMA_notypeset);
 }
  
 SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp) 
