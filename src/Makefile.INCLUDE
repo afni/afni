@@ -1038,6 +1038,7 @@ afni_src.tgz:
 afni_matlab.tgz:
 	$(MKDIR) afni_matlab
 	$(CP) -pr matlab ./afni_matlab
+	chmod ugo+rwx ./afni_matlab/*
 	$(TAR) cf - afni_matlab | $(GZIP) -9v > afni_matlab.tgz
 	$(RM) -r afni_matlab
 
