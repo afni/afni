@@ -34,7 +34,7 @@ extern int SUMAg_N_DOv;
       (Fast robust automated brain extraction, Stephen M. Smith, HBM 2002 v 17:3 pp 143-155)
    -3 Get convex hull of outer surface and shrink to set limit on expansion
 */         
-float SUMA_LoadPrepInVol (SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_SurfaceObject **SOhull)
+float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObject **SOhull)
 {
    static char FuncName[]={"SUMA_LoadPrepInVol"};
    int orient, i, nxx, nxy, cnt, *isort = NULL,iPercRangeVal[2], tind, znxy, *ijk=NULL, nf = 0, trouble= 0, Force = 0;
@@ -276,7 +276,7 @@ float SUMA_LoadPrepInVol (SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_SurfaceObject **SOh
                                  Means[1] mean value below node (only for vals > Opt->t),
                                  Means[2] mean value above node  (only for vals > Opt->t)
 */
-int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, int ni, 
+int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, int ni, 
                         float *MinMax, float *MinMax_dist , float *MinMax_over, float *MinMax_over_dist,
                         float *Means, float *undershish, float *overshish, int *dvecind_under, int *dvecind_over, int ShishMax)
 {
@@ -403,7 +403,7 @@ int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, in
    mask is crude, for purposes of keeping BrainWrap from leaking out when there are 
    very strong shading artifacts
 */
-int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_COMM_STRUCT *cs)
+int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs)
 {
    static char FuncName[]={"SUMA_SkullMask"};
    int it=0, in=0, Npass, Done, ShishMax, i_diffmax, kth_buf, N_it;
@@ -506,7 +506,7 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_C
    Main function to stretch a sphere to fit the brain. 
    A modification of BET's algorithm.
 */
-int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, SUMA_COMM_STRUCT *cs)
+int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs)
 {
    static char FuncName[]={"SUMA_StretchToFitLeCerveau"};
    int it=0,it0 = 0, in=0, ii, Npass, Done, ShishMax, i_diffmax, kth_buf, nit, Stage;
@@ -1276,7 +1276,7 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
    FAILS, mesh density too low. Need 3d edge mask....
    \sa SUMA_Reposition_Touchup
 */
-float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch)
+float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch)
 {
    static char FuncName[]={"SUMA_Suggest_Touchup_Grad"};
    int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0, cond4 = 0, nn, ShishMax, *dvecind_under, *dvecind_over, ni, nj, nk, nx, ny, nxy;   
@@ -1426,7 +1426,7 @@ float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS
    \brief A function to recommend node movement towards a better future.
    \sa SUMA_Reposition_Touchup
 */
-float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch)
+float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch)
 {
    static char FuncName[]={"SUMA_Suggest_Touchup"};
    int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0, cond4 = 0, nn, ShishMax;   
@@ -1543,7 +1543,7 @@ float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt
    
    This function used to be a macro gone too large. 
 */
-int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_ISOSURFACE_OPTIONS *Opt, float limtouch, SUMA_COMM_STRUCT *cs) 
+int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs) 
 {
    static char FuncName[]={"SUMA_Reposition_Touchup"};
    byte *fmask=NULL;

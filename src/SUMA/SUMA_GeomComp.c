@@ -3462,6 +3462,24 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-i_dx") == 0)) {
+         SUMA_SL_Err("Option -i_ply is obsolete.\nUse -spec and -surf_A instead.\n");
+         exit(1);
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -i_dx\n ");
+				exit (1);
+			}
+			Opt->if_name = argv[kar];
+         Opt->iType = SUMA_OPENDX_MESH;
+         if (!Opt->insurf_method) Opt->insurf_method = 1;
+         else {
+            fprintf (SUMA_STDERR, "already specified input surface.\n");
+            exit(1);
+         }
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-i_ply") == 0)) {
          SUMA_SL_Err("Option -i_ply is obsolete.\nUse -spec and -surf_A instead.\n");
          exit(1);
@@ -4179,6 +4197,13 @@ int main (int argc,char *argv[])
          case SUMA_PLY:
             SO_name = (void *)Opt->surf_out; 
             if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL)) {
+               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+               exit (1);
+            }
+            break;
+         case SUMA_OPENDX_MESH:
+            SO_name = (void *)Opt->surf_out; 
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_OPENDX_MESH, SUMA_ASCII, NULL)) {
                fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
                exit (1);
             }

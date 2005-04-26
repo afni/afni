@@ -1684,8 +1684,14 @@ SUMA_COLOR_MAP *SUMA_CmapOfPlane (SUMA_OVERLAYS *Sover )
    if (strcmp(Sover->cmapname, "explicit") == 0) {
       SUMA_RETURN(NULL);
    }
-   
-   if (!SUMAg_CF->scm) { SUMA_SL_Err("NULL scm"); SUMA_RETURN(ColMap); }
+
+   if (!SUMAg_CF->scm) { 
+      SUMAg_CF->scm = SUMA_Build_Color_maps();
+      if (!SUMAg_CF->scm) { 
+         SUMA_SL_Err("Can't build color maps"); 
+         SUMA_RETURN(ColMap); 
+      }
+   }   
    icmap = SUMA_Find_ColorMap ( Sover->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
    if (icmap < 0) { SUMA_SL_Err("Failed to find ColMap"); SUMA_RETURN(ColMap); }
    ColMap = SUMAg_CF->scm->CMv[icmap];
@@ -2107,7 +2113,13 @@ SUMA_Boolean SUMA_ScaleToMap_Interactive (   SUMA_OVERLAYS *Sover )
    
    if (!Sover) { SUMA_SL_Err("NULL Sover"); SUMA_RETURN(NOPE); }
    if (!Sover->cmapname) { SUMA_SL_Err("NULL Colormap name"); SUMA_RETURN(NOPE); }
-   if (!SUMAg_CF->scm) { SUMA_SL_Err("NULL scm"); SUMA_RETURN(NOPE); }
+   if (!SUMAg_CF->scm) { 
+      SUMAg_CF->scm = SUMA_Build_Color_maps();
+      if (!SUMAg_CF->scm) { 
+         SUMA_SL_Err("Can't build color maps"); 
+         SUMA_RETURN(NOPE);  
+      }
+   }   
    icmap = SUMA_Find_ColorMap ( Sover->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
    if (icmap < 0) { SUMA_SL_Err("Failed to find ColMap"); SUMA_RETURN(NOPE); }
    ColMap = SUMAg_CF->scm->CMv[icmap];
@@ -4104,10 +4116,14 @@ int main (int argc,char *argv[])
          }
       }
    #else
-      if (!SUMAg_CF->scm) {
-         fprintf (SUMA_STDERR,"Error %s: NULL AFNI standard colors.\n", FuncName);
-         exit(1);
+      if (!SUMAg_CF->scm) {   
+         SUMAg_CF->scm = SUMA_Build_Color_maps();
+         if (!SUMAg_CF->scm) {
+            SUMA_SL_Err("Failed to build color maps.\n");
+            exit(1);
+         }
       }
+      
       SAC = SUMAg_CF->scm;
       /* are there database files to read */
       if (dbfile) {
@@ -4655,6 +4671,9 @@ SUMA_OVERLAYS * SUMA_CreateOverlayPointer (int N_Nodes, const char *Name, SUMA_D
    /* new, from Feb 20 */
    /* default, choose something */
    SUMA_LH("SCM stuff");
+   if (!SUMAg_CF->scm) {  /* try building it */ 
+      SUMAg_CF->scm = SUMA_Build_Color_maps();
+   }
    if (!SUMAg_CF->scm) {
       SUMA_LH("SUMA color maps not set up.");
       Sover->cmapname = NULL;
@@ -5352,6 +5371,10 @@ char *SUMA_ColorOverlayPlane_Info (SUMA_OVERLAYS **Overlays, int N_Overlays, int
          if (!Overlays[i]->cmapname) SS = SUMA_StringAppend (SS,"cmapname = NULL\n");
          else SS = SUMA_StringAppend_va (SS,"cmapname = %s\n", Overlays[i]->cmapname);
          /* get the color map */
+         if (!SUMAg_CF->scm) { /* try creating since it is no longer created at initialization */
+            static int try_once=0;
+            if (!try_once) { SUMAg_CF->scm = SUMA_Build_Color_maps(); ++ try_once; }
+         }
          if (SUMAg_CF->scm) {
             icmap = SUMA_Find_ColorMap ( Overlays[i]->cmapname, SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps, -2 );
             if (icmap < 0) { SS = SUMA_StringAppend (SS,"cmap not found.\n"); }
@@ -7391,8 +7414,11 @@ SUMA_Boolean SUMA_SetConvexityPlaneDefaults(SUMA_SurfaceObject *SO, DList *DsetL
    SUMA_ENTRY;
    
    if (!SUMAg_CF->scm) { /* colors not setup, go back */
-      SUMA_SL_Warn("No color maps set up.\n");
-      SUMA_RETURN(YUP);
+      SUMAg_CF->scm = SUMA_Build_Color_maps();
+      if (!SUMAg_CF->scm) {
+         SUMA_SL_Warn("No color maps set up.\n");
+         SUMA_RETURN(YUP);
+      }
    }
    
    if (!(ConvPlane = SUMA_Fetch_OverlayPointer(SO->Overlays, SO->N_Overlays, "Convexity", &junk))) {

@@ -130,7 +130,7 @@ int SUMA_qhull_wrap( int npt , float * xyz , int ** ijk , int fliporient)
 /*!
    A function to call SUMA_qhull_wrap
 */
-SUMA_SurfaceObject *SUMA_ConvexHullSurface(SUMA_ISOSURFACE_OPTIONS * Opt)
+SUMA_SurfaceObject *SUMA_ConvexHullSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT * Opt)
 {
    static char FuncName[]={"SUMA_ConvexHullSurface"};
    SUMA_SurfaceObject *SO=NULL;
@@ -291,15 +291,15 @@ void usage_SUMA_ConvexHull (SUMA_GENERIC_ARGV_PARSE *ps)
    
    \param argv (char *)
    \param argc (int)
-   \return Opt (SUMA_ISOSURFACE_OPTIONS *) options structure.
+   \return Opt (SUMA_GENERIC_PROG_OPTIONS_STRUCT *) options structure.
                To free it, use 
                SUMA_free(Opt->out_name); 
                SUMA_free(Opt);
 */
-SUMA_ISOSURFACE_OPTIONS *SUMA_ConvexHull_ParseInput (char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
+SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_ConvexHull_ParseInput"}; 
-   SUMA_ISOSURFACE_OPTIONS *Opt=NULL;
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar, i, ind;
    char *outname;
    SUMA_Boolean brk = NOPE;
@@ -307,7 +307,7 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_ConvexHull_ParseInput (char *argv[], int argc, SUM
 
    SUMA_ENTRY;
    
-   Opt = (SUMA_ISOSURFACE_OPTIONS *)SUMA_malloc(sizeof(SUMA_ISOSURFACE_OPTIONS));
+   Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
    
    kar = 1;
    Opt->spec_file = NULL;
@@ -317,7 +317,7 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_ConvexHull_ParseInput (char *argv[], int argc, SUM
    Opt->in_name = NULL;
    Opt->cmask = NULL;
    Opt->MaskMode = SUMA_ISO_UNDEFINED;
-   for (i=0; i<ISOSURFACE_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
+   for (i=0; i<SUMA_GENERIC_PROG_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
    Opt->in_vol = NULL;
    Opt->nvox = -1;
@@ -528,7 +528,7 @@ int main (int argc,char *argv[])
 	int i, i3;
    void *SO_name=NULL;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_ISOSURFACE_OPTIONS *Opt;  
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    char  stmp[200];
    SUMA_Boolean exists = NOPE;
    SUMA_Boolean LocalHead = NOPE;

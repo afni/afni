@@ -427,14 +427,19 @@ int main (int argc,char *argv[])
                   SUMA_RETURN (NOPE);
                }
                
-               if (SUMAg_CF->scm) { /* colorization possible */
-                  if (!SUMA_SetConvexityPlaneDefaults(SOv[ipart], SUMAg_CF->DsetList)) {
-                     SUMA_SL_Err("Failed to set plane defaults."); SUMA_RETURN(NOPE);
+               if (!SUMAg_CF->scm) {   
+                  SUMAg_CF->scm = SUMA_Build_Color_maps();
+                  if (!SUMAg_CF->scm) {
+                     SUMA_SL_Err("Failed to build color maps.\n");
+                     SUMA_RETURN (NOPE);
                   }
-
-                  /* colorize the plane */
-                  SUMA_ColorizePlane(NewColPlane);
                }
+               if (!SUMA_SetConvexityPlaneDefaults(SOv[ipart], SUMAg_CF->DsetList)) {
+                  SUMA_SL_Err("Failed to set plane defaults."); SUMA_RETURN(NOPE);
+               }
+
+               /* colorize the plane */
+               SUMA_ColorizePlane(NewColPlane);
             }
 
       /* all the previous stuff is nice and dandy but it takes a lot more to
