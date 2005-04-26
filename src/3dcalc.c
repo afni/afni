@@ -1080,7 +1080,7 @@ void CALC_Syntax(void)
     " * qginv(x) = inverse function to qg\n"
     " * min, max, atan2 each take 2 arguments ONLY\n"
     " * J0, J1, Y0, Y1 are Bessel functions (see Watson)\n"
-    " * Pleg(m,n) is the m'th Legendre polynomial evaluated at x\n"
+    " * Pleg(m,x) is the m'th Legendre polynomial evaluated at x\n"
     " * erf, erfc are the error and complementary error functions\n"
     " * sind, cosd, tand take arguments in degrees (vs. radians)\n"
     " * median(a,b,c,...) computes the median of its arguments\n"
