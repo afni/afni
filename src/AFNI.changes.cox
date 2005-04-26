@@ -5476,3 +5476,7 @@
 25 Apr 2005
  * Minor changes to NIML.
  * Gamma variation allowed for RGB display in imseq.c.
+
+26 Apr 2005
+ * Modified imseq.c to apply 0D and 2D transforms to RGB images (that is,
+     in the intensity channel).
