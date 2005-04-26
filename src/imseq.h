@@ -782,4 +782,6 @@ extern void ISQ_snapsave( int,int, byte *, Widget ) ;  /* 03 Jul 2003 */
 
 extern int ISQ_handle_keypress( MCW_imseq * , unsigned long ); /* 18 Feb 2005 */
 
+extern void mri_rgb_transform_nD( MRI_IMAGE *, int, generic_func * ) ;
+
 #endif /* _MCW_IMSEQ_HEADER_ */

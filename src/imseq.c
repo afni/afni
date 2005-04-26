@@ -2636,16 +2636,26 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
    if( lim->kind == MRI_rgb ){
       MRI_IMAGE *tim , *qim ;
 
+      /** 26 Apr 2005: apply filters to the intensity channel? **/
+
+      if( have_transform ) qim = mri_copy( lim ) ;
+      else                 qim = lim ;
+
+      if( seq->transform0D_func != NULL )
+        mri_rgb_transform_nD( qim, 0, seq->transform0D_func ) ;
+
+      if( seq->transform2D_func != NULL )
+        mri_rgb_transform_nD( qim, 2, seq->transform2D_func ) ;
+
       /** histogram flattening (very useless) **/
 
-      qim = lim ;
       if( (seq->opt.improc_code & ISQ_IMPROC_FLAT) != 0 ){
         tim = mri_flatten_rgb( qim ) ;
         if( qim != lim ) mri_free(qim) ;
         qim = tim ;
       }
 
-      /** sharpening (sometimes OK) **/
+      /** sharpening (sometimes useful) **/
 
       if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) != 0 ){
         tim = mri_sharpen_rgb( seq->sharp_fac , qim ) ;
@@ -11092,4 +11102,55 @@ ENTRY("ISQ_handle_keypress") ;
    } /* end of switch on character typed */
 
    busy=0; RETURN(0);
+}
+
+/*----------------------------------------------------------------------------*/
+/*! Carry out a scalar filter on a color image. [26 Apr 2005]
+------------------------------------------------------------------------------*/
+
+void mri_rgb_transform_nD( MRI_IMAGE *im, int ndim, generic_func *tfunc )
+{
+   MRI_IMAGE *flim , *shim ; 
+   byte  *iar ;
+   float *sar , *far ;
+   int ii , nvox , rr,gg,bb ;
+   float fac ; 
+   
+ENTRY("mri_rgb_transform_nD") ;
+
+   if( im    == NULL || im->kind != MRI_rgb     ) EXRETURN ;
+   if( tfunc == NULL || (ndim !=0 && ndim != 2) ) EXRETURN ;
+
+   flim = mri_to_float( im ) ;  /* input intensity */
+   shim = mri_copy( flim ) ;    /* transformed intensity */
+
+   switch( ndim ){
+     case 0:
+       AFNI_CALL_0D_function( tfunc , shim->nvox , MRI_FLOAT_PTR(shim) ) ;
+     break ;
+
+     case 2:
+       AFNI_CALL_2D_function( tfunc ,
+                              shim->nx , shim->ny ,
+                              shim->dx , shim->dy , MRI_FLOAT_PTR(shim) ) ;
+     break ;
+   }
+
+   iar = MRI_BYTE_PTR(im) ;
+   far = MRI_FLOAT_PTR(flim) ; sar = MRI_FLOAT_PTR(shim) ;
+
+   nvox = im->nvox ;
+   for( ii=0 ; ii < nvox ; ii++ ){
+     if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){
+       iar[3*ii] = iar[3*ii+1] = iar[3*ii+2] = 0 ;
+     } else {
+       fac = sar[ii] / far[ii] ; /* will be positive */
+       rr  = fac * iar[3*ii]   ; iar[3*ii  ] = (rr > 255) ? 255 : rr ;
+       gg  = fac * iar[3*ii+1] ; iar[3*ii+1] = (gg > 255) ? 255 : gg ;
+       bb  = fac * iar[3*ii+2] ; iar[3*ii+2] = (bb > 255) ? 255 : bb ;
+     }
+   }
+
+   mri_free(flim) ; mri_free(shim) ;
+   EXRETURN ;
 }
