@@ -32,10 +32,6 @@ int    swap_strings           ( char * s0, char * s1, char * save, int len );
 void SUMA_Show_IO_args(SUMA_GENERIC_ARGV_PARSE *ps);
 SUMA_SurfSpecFile *SUMA_SOGroup_2_Spec(SUMA_SurfaceObject **SOv, int N_SOv);
 SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps);
-SUMA_GENERIC_ARGV_PARSE *SUMA_CreateGenericArgParse(char *optflags);
-SUMA_GENERIC_ARGV_PARSE *SUMA_FreeGenericArgParse(SUMA_GENERIC_ARGV_PARSE *ps);
-char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt);
-SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optflags);
 
 
 #endif

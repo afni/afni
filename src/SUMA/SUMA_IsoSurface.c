@@ -44,7 +44,7 @@ extern int SUMAg_N_DOv;
    A function version of the program mc by Thomas Lewiner
    see main.c in ./MarchingCubes
 */
-SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_ISOSURFACE_OPTIONS * Opt)
+SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_GENERIC_PROG_OPTIONS_STRUCT * Opt)
 {
    static char FuncName[]={"SUMA_MarchingCubesSurface"};
    SUMA_SurfaceObject *SO=NULL;
@@ -163,7 +163,7 @@ SUMA_SurfaceObject *SUMA_MarchingCubesSurface(SUMA_ISOSURFACE_OPTIONS * Opt)
 /*!
   contains code shamelessly stolen from Rick who stole it from Bob. 
 */
-SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_ISOSURFACE_OPTIONS * Opt)
+SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Opt)
 {
    static char FuncName[]={"SUMA_Get_isosurface_datasets"};
    int i;
@@ -421,15 +421,15 @@ void usage_SUMA_IsoSurface (SUMA_GENERIC_ARGV_PARSE *ps)
    
    \param argv (char *)
    \param argc (int)
-   \return Opt (SUMA_ISOSURFACE_OPTIONS *) options structure.
+   \return Opt (SUMA_GENERIC_PROG_OPTIONS_STRUCT *) options structure.
                To free it, use 
                SUMA_free(Opt->out_name); 
                SUMA_free(Opt);
 */
-SUMA_ISOSURFACE_OPTIONS *SUMA_IsoSurface_ParseInput (char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
+SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_IsoSurface_ParseInput"}; 
-   SUMA_ISOSURFACE_OPTIONS *Opt=NULL;
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar, i, ind;
    char *outname;
    SUMA_Boolean brk = NOPE;
@@ -437,7 +437,7 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_IsoSurface_ParseInput (char *argv[], int argc, SUM
 
    SUMA_ENTRY;
    
-   Opt = (SUMA_ISOSURFACE_OPTIONS *)SUMA_malloc(sizeof(SUMA_ISOSURFACE_OPTIONS));
+   Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
    
    kar = 1;
    Opt->spec_file = NULL;
@@ -447,7 +447,7 @@ SUMA_ISOSURFACE_OPTIONS *SUMA_IsoSurface_ParseInput (char *argv[], int argc, SUM
    Opt->in_name = NULL;
    Opt->cmask = NULL;
    Opt->MaskMode = SUMA_ISO_UNDEFINED;
-   for (i=0; i<ISOSURFACE_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
+   for (i=0; i<SUMA_GENERIC_PROG_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
    Opt->in_vol = NULL;
    Opt->nvox = -1;
@@ -632,7 +632,7 @@ int main (int argc,char *argv[])
 	int i;
    void *SO_name=NULL;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_ISOSURFACE_OPTIONS *Opt;  
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
    char  stmp[200];
    SUMA_Boolean exists = NOPE;
    SUMA_Boolean LocalHead = NOPE;

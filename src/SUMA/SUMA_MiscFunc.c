@@ -6561,3 +6561,31 @@ int *SUMA_reorder(int *y, int *isort, int N_isort)
    SUMA_RETURN(yr);
 }
 
+/*!
+   \brief A function to suck in an ascii file
+   Shamelessly stolen from Bob's suck_file
+*/
+int SUMA_suck_file( char *fname , char **fbuf )
+{
+   static char FuncName[]={"SUMA_suck_file"};
+   int len , fd , ii ;
+   char * buf ;
+
+   SUMA_ENTRY;
+   
+   if( fname == NULL || fname[0] == '\0' || fbuf == NULL ) SUMA_RETURN(0) ;
+
+   len = THD_filesize( fname ) ;
+   if( len <= 0 ) SUMA_RETURN(0) ;
+
+   buf = (char *) SUMA_malloc( sizeof(char) * (len+4) ) ;
+   if( buf == NULL ) SUMA_RETURN(0) ;
+
+   fd = open( fname , O_RDONLY ) ;
+   if( fd < 0 ) SUMA_RETURN(0) ;
+
+   ii = read( fd , buf , len ) ;
+   close( fd ) ;
+   if( ii <= 0 ){ free(buf) ; SUMA_RETURN(0); }
+   *fbuf = buf ; SUMA_RETURN(ii) ;
+}
