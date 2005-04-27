@@ -525,6 +525,9 @@ typedef struct DC_options
   char *xjpeg_filename; /* plot file for -xjpeg option [21 Jul 2004] */
 
   int automask ;        /* flag to do automasking [15 Apr 2005] */
+
+  int   nodata_NT ;     /* optional values after -nodata [27 Apr 2005] */
+  float nodata_TR ;
 } DC_options;
 
 
@@ -591,7 +594,7 @@ void display_help_menu()
     "                       (catenated  in time;   if you do this, )        \n"
     "                       ('-concat' is not needed and is ignored)        \n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
-    "[-nodata]            Evaluate experimental design only (no input data) \n"
+    "[-nodata [NT [TR]]   Evaluate experimental design only (no input data) \n"
     "[-mask mname]        mname = filename of 3d mask dataset               \n"
     "[-automask]          build a mask automatically from input data        \n"
     "                      (will be slow for long time series datasets)     \n"
@@ -773,6 +776,8 @@ void initialize_options
   option_data->qp       = 0;
   option_data->nbricks  = 0;
   option_data->nocond   = 0;   /* 15 Jul 2004 */
+  option_data->nodata_NT= 0;   /* 27 Apr 2005 */
+  option_data->nodata_TR= 0.0;
 
   option_data->xjpeg_filename = NULL ;  /* 21 Jul 2004 */
 
@@ -1111,6 +1116,15 @@ void get_options
 	{
 	  option_data->nodata = 1;
 	  nopt++;
+
+     /* 27 Apr 2005: check for additional numeric values */
+
+     if( isdigit(argv[nopt][0]) ){  /* get NT */
+       option_data->nodata_NT = (int)strtol(argv[nopt++],NULL,10) ;
+       if( isdigit(argv[nopt][0]) ){  /* get TR */
+         option_data->nodata_TR = (float)strtod(argv[nopt++],NULL) ;
+       }
+     }
 	  continue;
 	}
 
@@ -1277,7 +1291,7 @@ void get_options
         nopt++ ;
         if( nopt >= argc ) DC_error("need argument after -TR_irc") ;
         sscanf( argv[nopt] , "%f" , &irc_dt ) ;
-        if( basis_dtout <= 0.0f ){
+        if( irc_dt <= 0.0f ){
           fprintf(stderr,"** ERROR: -TR_irc '%s' is illegal\n",argv[nopt]) ;
           exit(1) ;
         }
@@ -1716,10 +1730,10 @@ void get_options
 #ifdef PROC_MAX
         proc_numjob = strtol(argv[nopt],NULL,10) ;
         if( proc_numjob < 1 ){
-          fprintf(stderr,"** WARNING: setting number of processes to 1!\n") ;
+          fprintf(stderr,"** NOTICE: setting number of processes to 1!\n") ;
           proc_numjob = 1 ;
         } else if( proc_numjob > PROC_MAX ){
-          fprintf(stderr,"** WARNING: setting number of processes to %d!\n",PROC_MAX);
+          fprintf(stderr,"** NOTICE: setting number of processes to %d!\n",PROC_MAX);
           proc_numjob = PROC_MAX ;
         }
 #else
@@ -1967,12 +1981,21 @@ ENTRY("read_input_data") ;
     {
       /*----- No input data -----*/
       if (num_stimts <= 0)
-	DC_error ("Must have num_stimts > 0 for -nodata option");
-      if( basis_count > 0 )
-	DC_error ("Can't use -stim_times with -nodata option") ;
+        DC_error ("Must have num_stimts > 0 for -nodata option");
+
+      if( basis_count > 0 ){
+             if( option_data->nodata_TR > 0.0 ) basis_TR = option_data->nodata_TR ;
+        else if( basis_dtout            > 0.0 ) basis_TR = basis_dtout ;
+        fprintf(stderr,
+            "** NOTICE: using TR=%.3f for -stim_times and -nodata\n",basis_TR);
+      }
 
       *dset_time = NULL;
-      nt = (*stim_length)[0] / option_data->stim_nptr[0];
+      if( option_data->nodata_NT > 0 )
+        nt = option_data->nodata_NT ;
+      else
+        nt = (*stim_length)[0] / option_data->stim_nptr[0];
+
       nxyz = 0;
     }
 

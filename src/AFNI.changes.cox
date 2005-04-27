@@ -5480,3 +5480,8 @@
 26 Apr 2005
  * Modified imseq.c to apply 0D and 2D transforms to RGB images (that is,
      in the intensity channel).  And afni_func.c to apply to RGB overlays.
+
+27 Apr 2005
+ * Modified 3dDeconvolve.c to allow -stim_times to be used with -nodata.
+     To do this, you use '-nodata NT TR' to specify the number of time
+     points and their TR.
