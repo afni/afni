@@ -213,9 +213,9 @@ ENTRY("mri_read_stuff") ;
 
   /*--- if was really a PBM image, inflate to PGM now ---*/
 
-  /*--- if maxval < 255, scale byte data up to that level ---*/
-
   if( pbm ) mri_inflate_pbm( im ) ;  /* 02 Jan 2003 */
+
+  /*--- if maxval < 255, scale byte data up to that level ---*/
 
   if( maxval < 255 ){
     int ii ; float fac = 255.4/maxval ;

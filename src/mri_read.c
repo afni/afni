@@ -194,10 +194,40 @@ MRI_IMAGE *mri_read( char *fname )
 
 ENTRY("mri_read") ;
 
+   if( fname == NULL || *fname == '\0' ) RETURN(NULL) ;  /* bad user */
+
+   /**-- 27 Apr 2005: check here for special filenames --**/
+
+   if( strstr(fname,".jpg" ) != NULL ||  /* various formats  */
+       strstr(fname,".JPG" ) != NULL ||  /* that we convert  */
+       strstr(fname,".jpeg") != NULL ||  /* to PPG/PGM using */
+       strstr(fname,".JPEG") != NULL ||  /* external filters */
+       strstr(fname,".gif" ) != NULL ||
+       strstr(fname,".GIF" ) != NULL ||
+       strstr(fname,".tif" ) != NULL ||
+       strstr(fname,".TIF" ) != NULL ||
+       strstr(fname,".tiff") != NULL ||
+       strstr(fname,".TIFF") != NULL ||
+       strstr(fname,".bmp" ) != NULL ||
+       strstr(fname,".BMP" ) != NULL ||
+       strstr(fname,".pbm" ) != NULL ||
+       strstr(fname,".PBM" ) != NULL ||
+       strstr(fname,".pgm" ) != NULL ||
+       strstr(fname,".PGM" ) != NULL ||
+       strstr(fname,".ppm" ) != NULL ||
+       strstr(fname,".PPM" ) != NULL ||
+       strstr(fname,".png" ) != NULL ||
+       strstr(fname,".PNG" ) != NULL   ){
+
+     im = mri_read_stuff(fname) ; if( im != NULL ) RETURN(im) ;
+   }
+
+   /*-- check if file exists and is readable --*/
+
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
-      fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
-      RETURN( NULL );
+     fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
+     RETURN( NULL );
    }
 
    fseek( imfile , 0L , SEEK_END ) ;  /* get the length of the file */
