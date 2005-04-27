@@ -726,7 +726,8 @@ ENTRY("open_MCW_imseq") ;
    newseq->last_height_mm = IM_HEIGHT(tim) ;
 
    newseq->last_dx = newseq->last_dy = 1.0 ; /* 08 Jun 2004 */
-   newseq->rgb_gamma = 1.0 ;                 /* 25 Apr 2005 */
+   newseq->rgb_gamma  = 1.0 ;                /* 25 Apr 2005 */
+   newseq->rgb_offset = 0.0 ;
 
    fac = (newseq->last_width_mm  / newseq->horig)    /* width per pixel over */
         /(newseq->last_height_mm / newseq->vorig) ;  /* height per pixel */
@@ -2674,15 +2675,31 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
 
       /** 25 Apr 2005: modify image via rgb_gamma exponent? **/
 
-      if( seq->rgb_gamma < 0.98 || seq->rgb_gamma > 1.02 ){
+      if( fabs(1.0-seq->rgb_gamma)  > 0.02 || fabs(seq->rgb_offset) > 0.01 ){
         register int npix = newim->nx * newim->ny , ii ;
         register byte *ar = MRI_RGB_PTR(newim) ;
         double gg = seq->rgb_gamma ;
+        float  aa = seq->rgb_offset , rv,gv,bv , mx ;
 
+        if( aa > 0.9 ) aa = 0.9; else if( aa < -0.9 ) aa = -0.9;
         for( ii=0 ; ii < npix ; ii++ ){
-          ar[3*ii  ] = (byte)(255.0*pow(ar[3*ii  ]/255.0,gg)) ;
-          ar[3*ii+1] = (byte)(255.0*pow(ar[3*ii+1]/255.0,gg)) ;
-          ar[3*ii+2] = (byte)(255.0*pow(ar[3*ii+2]/255.0,gg)) ;
+          if( ar[3*ii] > 0 || ar[3*ii+1] > 0 || ar[3*ii+2] > 0 ){
+            if( aa != 0.0 ){
+              rv = ar[3*ii]   ; gv = ar[3*ii+1] ; bv = ar[3*ii+2] ;
+              mx = MAX(rv,gv) ; mx = (255.0*aa) / MAX(mx,bv) ;
+              rv *= mx; gv *= mx; bv *= mx;
+            } else {
+              rv = gv = bv = 0.0 ;
+            }
+            rv += (float)(255.0*pow(ar[3*ii  ]/255.0,gg)) ;
+            gv += (float)(255.0*pow(ar[3*ii+1]/255.0,gg)) ;
+            bv += (float)(255.0*pow(ar[3*ii+2]/255.0,gg)) ;
+            mx = MAX(rv,gv) ; mx = MAX(mx,bv) ;
+            if( mx > 255.0 ){ mx = 255.0/mx; rv *= mx; gv *= mx; bv *= mx; }
+            ar[3*ii  ] = BYTEIZE(rv) ;
+            ar[3*ii+1] = BYTEIZE(gv) ;
+            ar[3*ii+2] = BYTEIZE(bv) ;
+          }
         }
       }
 
@@ -4788,15 +4805,19 @@ ENTRY("ISQ_drawing_EV") ;
               denom = 32.0l ;
             }
             xdif = rint(xdif/denom) ; ydif = rint(ydif/denom) ;
-            if( xdif || ydif ){
+            if( xdif || ydif ){                             /* if big enough change */
               if( seq->imim != NULL && seq->imim->kind == MRI_rgb ){ /* 26 Apr 2005 */
-                if( xdif ){                                 /* change the color map */
-                       if( xdif > 0 ) seq->rgb_gamma *= 0.95 ;
-                  else if( xdif < 0 ) seq->rgb_gamma /= 0.95 ;
-                  ISQ_redisplay( seq , -1 , isqDR_reimage ) ;
-                  seq->cmap_changed = 1 ; seq->last_bx=event->x ;
-                }
+
+                     if( xdif > 0 ) seq->rgb_gamma  *= 0.95 ;  /* change the RGB */
+                else if( xdif < 0 ) seq->rgb_gamma  /= 0.95 ;      /* colorizing */
+                     if( ydif < 0 ) seq->rgb_offset += 0.014;
+                else if( ydif > 0 ) seq->rgb_offset -= 0.014;
+                ISQ_redisplay( seq , -1 , isqDR_reimage ) ;
+                seq->cmap_changed = 1 ;
+                seq->last_bx=event->x ; seq->last_by=event->y;
+
               } else {                          /* the old way: change the gray map */
+
                 if( xdif ){ DC_gray_conbrio(seq->dc, xdif); seq->last_bx=event->x;}
                 if( ydif ){ DC_gray_change (seq->dc,-ydif); seq->last_by=event->y;}
                 seq->cmap_changed = 1 ;
@@ -6374,7 +6395,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
    if( ! ISQ_REALZ(seq) ) EXRETURN ;
 
    DC_palette_restore( seq->dc , 0.0 ) ;
-   seq->rgb_gamma = 1.0 ;      /* 25 Apr 2005 */
+   seq->rgb_gamma  = 1.0 ;     /* 25 Apr 2005 */
+   seq->rgb_offset = 0.0 ;
    COLORMAP_CHANGE(seq) ;      /* 22 Aug 1998 */
    ISQ_but_done_reset( seq ) ;
    EXRETURN ;

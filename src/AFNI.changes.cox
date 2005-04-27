@@ -5485,3 +5485,5 @@
  * Modified 3dDeconvolve.c to allow -stim_times to be used with -nodata.
      To do this, you use '-nodata NT TR' to specify the number of time
      points and their TR.
+ * Modified imseq.c to make up/down movement of stroking affect RGB,
+     additively, much as left/right does multiplicatively.
