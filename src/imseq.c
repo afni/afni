@@ -2636,7 +2636,7 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
    if( lim->kind == MRI_rgb ){
       MRI_IMAGE *tim , *qim ;
 
-      /** 26 Apr 2005: apply filters to the intensity channel? **/
+      /** 26 Apr 2005: apply transforms to the intensity channel? **/
 
       if( have_transform ) qim = mri_copy( lim ) ;
       else                 qim = lim ;
@@ -2668,9 +2668,9 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
            otherwise, the edited/filtered result from above **/
 
       if( qim == lim )
-        newim = mri_to_rgb( lim ) ;   /* just copy it */
+        newim = mri_copy( lim ) ;   /* just copy it */
       else
-        newim = qim ;                 /* is already what we want */
+        newim = qim ;               /* is already what we want */
 
       /** 25 Apr 2005: modify image via rgb_gamma exponent? **/
 
@@ -2693,14 +2693,14 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
         seq->orim = mri_to_float(newim) ;    /* intensity image */
       }
 
-      /** 11 May 2004: fill with zero color? **/
+      /** 11 May 2004: fill (0,0,0) pixels with zero color? **/
 
       if( seq->zer_color > 0 ){
         register int npix = newim->nx * newim->ny , ii ;
         register byte rz,gz,bz , *ar = MRI_RGB_PTR(newim) ;
-        rz = DCOV_REDBYTE  (seq->dc,seq->zer_color) ;
-        gz = DCOV_GREENBYTE(seq->dc,seq->zer_color) ;
-        bz = DCOV_BLUEBYTE (seq->dc,seq->zer_color) ;
+        rz = DCOV_REDBYTE  (seq->dc,seq->zer_color) ;  /* zero  */
+        gz = DCOV_GREENBYTE(seq->dc,seq->zer_color) ;  /* color */
+        bz = DCOV_BLUEBYTE (seq->dc,seq->zer_color) ;  /* RGBs  */
         for( ii=0 ; ii < npix ; ii++ )
           if( ar[3*ii] == 0 && ar[3*ii+1] == 0 && ar[3*ii+2] == 0 ){
             ar[3*ii] = rz ; ar[3*ii+1] = gz ; ar[3*ii+2] = bz ;
@@ -2714,8 +2714,8 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
    else if( ! have_transform && seq->opt.improc_code == ISQ_IMPROC_NONE ){
 
       if( seq->set_orim ){                   /* 30 Dec 1998 */
-         KILL_1MRI(seq->orim) ;
-         seq->orim = mri_to_float( lim ) ;
+        KILL_1MRI(seq->orim) ;
+        seq->orim = mri_to_float( lim ) ;
       }
 
       if( !must_rescale && ISQ_DOING_SLICE_PROJ(seq) ) must_rescale = 1 ;
@@ -2723,9 +2723,9 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
       /*----- first, set scaling based on user desires -----*/
 
       if( nn < seq->status->num_series ){
-         scl_grp = seq->opt.scale_group ; /* in series -> can groupscale */
+        scl_grp = seq->opt.scale_group ; /* in series -> can groupscale */
       } else {
-         scl_grp = ISQ_SCL_AUTO ;         /* not in series -> must autoscale */
+        scl_grp = ISQ_SCL_AUTO ;         /* not in series -> must autoscale */
       }
 
       if( seq->rng_bot < seq->rng_top ) scl_grp = ISQ_SCL_USER ;
@@ -2733,10 +2733,10 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
       switch( scl_grp ){
 
          case ISQ_SCL_USER:{    /* scale from user input ranges */
-            ISQ_SCLEV( seq->rng_bot,seq->rng_top ,
-                       seq->dc->ncol_im , seq->scl,seq->lev ) ;
-            clbot = seq->clbot = seq->rng_bot ;
-            cltop = seq->cltop = seq->rng_top ;
+           ISQ_SCLEV( seq->rng_bot,seq->rng_top ,
+                      seq->dc->ncol_im , seq->scl,seq->lev ) ;
+           clbot = seq->clbot = seq->rng_bot ;
+           cltop = seq->cltop = seq->rng_top ;
          }
          break ; /* end of user input range scaling */
 
@@ -2786,19 +2786,19 @@ DPRI("complex to real code = ",seq->opt.cx_code) ;
 
                default:
                case ISQ_RNG_MINTOMAX:
-                  if( ! gl->mm_done ) ISQ_statify_all( seq , True ) ;
-                  seq->scl = gl->scl_mm ;
-                  seq->lev = gl->lev_mm ;
-                  seq->clbot = gl->min ;   /* 29 Jul 2001 */
-                  seq->cltop = gl->max ;
+                 if( ! gl->mm_done ) ISQ_statify_all( seq , True ) ;
+                 seq->scl = gl->scl_mm ;
+                 seq->lev = gl->lev_mm ;
+                 seq->clbot = gl->min ;   /* 29 Jul 2001 */
+                 seq->cltop = gl->max ;
                break ;
 
                case ISQ_RNG_02TO98:
-                  if( ! gl->per_done ) ISQ_statify_all( seq , False ) ;
-                  seq->scl = gl->scl_per ;
-                  seq->lev = gl->lev_per ;
-                  clbot = seq->clbot = gl->per02 ;
-                  cltop = seq->cltop = gl->per98 ;
+                 if( ! gl->per_done ) ISQ_statify_all( seq , False ) ;
+                 seq->scl = gl->scl_per ;
+                 seq->lev = gl->lev_per ;
+                 clbot = seq->clbot = gl->per02 ;
+                 cltop = seq->cltop = gl->per98 ;
                break ;
             }
          }
@@ -2890,7 +2890,7 @@ DPR("begin IMPROCessing") ;
       /*** flatten ***/
 
       if( (seq->opt.improc_code & ISQ_IMPROC_FLAT) != 0 ){
-DPR("mri_flatten:") ;
+DPR("call mri_flatten") ;
          tim = mri_flatten( qim ) ;
          if( qim != lim ) mri_free(qim) ;
          qim = tim ;
@@ -2913,7 +2913,7 @@ DPR("clip flattened image") ;
       /*** sharpen ***/
 
       if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) != 0 ){
-DPR("mri_sharpen:") ;
+DPR("call mri_sharpen") ;
          tim = mri_sharpen( seq->sharp_fac , 0 , qim ) ;
          if( qim != lim ) mri_free(qim) ;
          qim = tim ;
@@ -2925,12 +2925,12 @@ DPR("mri_sharpen:") ;
          int ii , npix ;
          float *tar ;
 
-DPR("mri_edit_image:") ;
+DPR("call mri_edit_image") ;
          tim = mri_edit_image( 0.10 , 1.0 , qim ) ;   /* soft clip small values */
          if( qim != lim ) mri_free(qim) ;
          qim = tim ;
 
-DPR("mri_sobel:") ;
+DPR("call mri_sobel") ;
          tim  = mri_sobel( 0 , 2 , qim ) ;            /* edge detect */
 
 #if 0
@@ -2965,9 +2965,9 @@ DPR("scale to shorts") ;
             static int hist[NHISTOG] ;
             float h02 , h98 ;
 
-DPR("mri_histogram:") ;
+DPR("call mri_histogram") ;
             mri_histogram( qim , hbot,htop , True , NHISTOG,hist ) ;
-DPR("ISQ_perpoints:") ;
+DPR("call ISQ_perpoints") ;
             ISQ_perpoints( hbot,htop , hist , &h02 , &h98 ) ;
             ISQ_SCLEV( h02,h98 , seq->dc->ncol_im , scl,lev ) ;
             seq->clbot = h02 ;  /* 29 Jul 2001 */
@@ -2999,7 +2999,7 @@ DPR("ISQ_perpoints:") ;
 
    /*----- last, rotate/flip image to desired orientation -----*/
 
-DPR("mri_flippo:") ;
+DPR("call mri_flippo") ;
    flipim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot) , seq->opt.mirror , newim ) ;
 
    if( newim != flipim ) KILL_1MRI(newim) ;  /* discard the trash */
@@ -11105,29 +11105,31 @@ ENTRY("ISQ_handle_keypress") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/*! Carry out a scalar filter on a color image. [26 Apr 2005]
+/*! Carry out a scalar filter on the intensity component of an RGB image.
+    Afterwards, the color for each pixel is rescaled from the old to the
+    new by the filtered intensity.  This transform is done in-place.
 ------------------------------------------------------------------------------*/
 
 void mri_rgb_transform_nD( MRI_IMAGE *im, int ndim, generic_func *tfunc )
 {
-   MRI_IMAGE *flim , *shim ; 
+   MRI_IMAGE *flim , *shim ;
    byte  *iar ;
    float *sar , *far ;
    int ii , nvox , rr,gg,bb ;
    float fac , smax,fmax,fsrat ;
-   
+
 ENTRY("mri_rgb_transform_nD") ;
 
-   if( im    == NULL || im->kind != MRI_rgb     ) EXRETURN ;
-   if( tfunc == NULL || (ndim !=0 && ndim != 2) ) EXRETURN ;
+   if( im    == NULL || im->kind != MRI_rgb     ) EXRETURN ;  /* bad image? */
+   if( tfunc == NULL || (ndim !=0 && ndim != 2) ) EXRETURN ;  /* bad tfunc? */
 
-   flim = mri_to_float( im ) ;  /* input intensity */
+   flim = mri_to_float( im ) ;              /* input intensity image */
    fmax = mri_max( flim ) ;
-   if( fmax == 0.0 ){ mri_free(flim); EXRETURN; }
+   if( fmax == 0.0 ){ mri_free(flim); EXRETURN; }  /* nothing to do? */
 
-   shim = mri_copy( flim ) ;    /* transformed intensity */
+   shim = mri_copy( flim ) ;        /* will be transformed intensity */
 
-   switch( ndim ){
+   switch( ndim ){               /* call in-place transform function */
      case 0:
        AFNI_CALL_0D_function( tfunc , shim->nvox , MRI_FLOAT_PTR(shim) ) ;
      break ;
@@ -11139,6 +11141,8 @@ ENTRY("mri_rgb_transform_nD") ;
      break ;
    }
 
+   /* get scale factor to adjust for changes in overall amplitude */
+
    smax = mri_max(shim) ;
    if( smax == 0.0 ){ mri_free(flim); mri_free(shim); EXRETURN; }
    fsrat = fmax / smax ;
@@ -11146,9 +11150,12 @@ ENTRY("mri_rgb_transform_nD") ;
    iar = MRI_BYTE_PTR(im) ;
    far = MRI_FLOAT_PTR(flim) ; sar = MRI_FLOAT_PTR(shim) ;
 
+   /* loop over pixels,
+      adjusting the color of each one by the transformed intensity */
+
    nvox = im->nvox ;
    for( ii=0 ; ii < nvox ; ii++ ){
-     if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){
+     if( far[ii] <= 0.0 || sar[ii] <= 0.0 ){       /* inten <= 0? */
        iar[3*ii] = iar[3*ii+1] = iar[3*ii+2] = 0 ;
      } else {
        fac = fsrat * sar[ii] / far[ii] ; /* will be positive */
@@ -11158,6 +11165,6 @@ ENTRY("mri_rgb_transform_nD") ;
      }
    }
 
-   mri_free(flim) ; mri_free(shim) ;
+   mri_free(flim) ; mri_free(shim) ;  /* toss the trash */
    EXRETURN ;
 }
