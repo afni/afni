@@ -503,6 +503,7 @@ typedef struct MCW_imseq {
      float last_dx , last_dy ;                        /* 08 Jun 2004 */
 
      float rgb_gamma ;                                /* 25 Apr 2005 */
+     float rgb_offset ;
 } MCW_imseq ;
 
 #define ISQ_TIMERFUNC_INDEX  701
