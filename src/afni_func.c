@@ -1039,6 +1039,11 @@ STATUS("couldn't get Func image!") ;
        mri_threshold( -thresh,thresh , im_thr , im_fim ) ;  /* in place */
      }
 
+     /* 27 Apr 2005: transform RGB func image in place? */
+
+     mri_rgb_transform_nD( im_fim, 0, im3d->vwid->func->pbar_transform0D_func );
+     mri_rgb_transform_nD( im_fim, 2, im3d->vwid->func->pbar_transform2D_func );
+
      if( im_thr != im_fim ) KILL_1MRI(im_thr) ;  /* toss the trash */
      RETURN(im_fim) ;
    }

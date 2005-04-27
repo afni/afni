@@ -14,12 +14,12 @@
 
 /*---------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_edit_image( float pthr , float power , MRI_IMAGE * imin )
+MRI_IMAGE * mri_edit_image( float pthr , float power , MRI_IMAGE *imin )
 {
    int ii , npix , nsum ;
    float val ;
-   MRI_IMAGE * imqq ;
-   float * flin ;
+   MRI_IMAGE *imqq ;
+   float *flin ;
 
 ENTRY("mri_edit_image") ;
 
@@ -58,7 +58,7 @@ ENTRY("mri_edit_image") ;
    }  /* end of if(pthr) */
 
    if( power != 0.0 && power != 1.0 ){
-      for( ii=0 ; ii < npix ; ii++ ) flin[ii] = pow( fabs(flin[ii]) , power ) ;
+     for( ii=0 ; ii < npix ; ii++ ) flin[ii] = pow( fabs(flin[ii]) , power ) ;
    }
 
    MRI_COPY_AUX(imqq,imin) ;
