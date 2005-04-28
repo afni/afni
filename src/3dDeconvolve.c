@@ -561,7 +561,7 @@ void identify_software ()
 #elif defined(USE_SCSLBLAS)
   printf ("Compiled with BLAS-1 acceleration for SGI Altix\n") ;
 #endif
-  printf ("\n");
+  printf ("\n"); fflush(stdout);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2417,7 +2417,7 @@ ENTRY("remove_zero_stimfns") ;
       if (all_zero)  /*----- Remove this stimulus function -----*/
 	{
 	  printf("** WARNING!  -stim_file function %s comprises all zeros!\n",
-		 option_data->stim_filename[is]);
+		 option_data->stim_filename[is]); fflush(stdout);
 	  if (option_data->num_glt > 0)
 	    DC_error
             ("Cannot process -glt option(s) when -stim_file function is all zero");
@@ -3548,6 +3548,7 @@ void report_evaluation
   char ** stim_label,      /* label for each stimulus */
   int * min_lag,           /* minimum time delay for impulse response */
   int * max_lag,           /* maximum time delay for impulse response */
+  matrix x_full ,          /* matrix:  X            for full model */
   matrix xtxinv_full,      /* matrix:  1/(X'X)      for full model */
   int num_glt,             /* number of general linear tests */
   char ** glt_label,       /* label for general linear test */
@@ -3563,6 +3564,7 @@ void report_evaluation
   int ilc;                 /* linear combination index */
   float stddev;            /* normalized parameter standard deviation */
   int ibot,itop ;
+  int j ; float jnorm ;
 
 
   /*----- Print the normalized parameter standard deviations -----*/
@@ -3573,11 +3575,15 @@ void report_evaluation
       if( basis_stim[is] != NULL ){ ibot = 0 ; itop = basis_stim[is]->nfunc-1 ; }
       else                        { ibot = min_lag[is] ; itop = max_lag[is] ;   }
       for (ilag = ibot;  ilag <= itop;  ilag++)
-	{
-	  stddev = sqrt ( xtxinv_full.elts[m][m] );
-	  printf ("  h[%2d] norm. std. dev. = %8.4f  \n", ilag, stddev);
-	  m++;
-	}
+        {
+          jnorm = 0.0 ;
+          for( j=0 ; j < x_full.rows ; j++ ) jnorm += SQR(x_full.elts[j][m]) ;
+          jnorm = sqrt(jnorm) ;
+          stddev = sqrt ( xtxinv_full.elts[m][m] );
+          printf ("  h[%2d] norm. std. dev. = %8.4f   X col. norm = %8.4f\n",
+                 ilag, stddev, jnorm );
+          m++;
+        }
     }
 
   /*----- Print normalized standard deviations for GLTs -----*/
@@ -3596,6 +3602,7 @@ void report_evaluation
 	}
     }
 
+  fflush(stdout);
 }
 
 
@@ -3984,13 +3991,13 @@ ENTRY("calculate_results") ;
 
   if (nodata)
     {
-      report_evaluation
-	(qp, num_stimts, stim_label, min_lag, max_lag, xtxinv_full,
-	 num_glt, glt_label, glt_rows, cxtxinvct);
+      report_evaluation(qp, num_stimts, stim_label, min_lag, max_lag,
+                        x_full, xtxinv_full,
+                        num_glt, glt_label, glt_rows, cxtxinvct);
     }
 
   else
-    {     /* actually process data */
+    {     /*============== actually process data ====================*/
 
       int ixyz_bot=0 , ixyz_top=nxyz ;  /* voxel indexes to process */
 
@@ -4175,7 +4182,7 @@ ENTRY("calculate_results") ;
 			     coef, tcoef, fpart, rpart, ffull, rfull, mse,
 		             num_glt, glt_label, glt_rows, glt_coef,
 		             glt_tcoef, fglt, rglt, &label);
-	        printf ("%s \n", label);
+	        printf ("%s \n", label); fflush(stdout);
               }
 	    }
 	
@@ -6817,7 +6824,7 @@ ENTRY("read_glt_matrix") ;
 
      if( !AFNI_noenv("AFNI_GLTSYM_PRINT") ){
        printf("GLT matrix from '%s':\n",fname) ;
-       matrix_print( *cmat ) ; fflush(stdout) ;
+       matrix_print( *cmat ) ;
      }
    }
 
