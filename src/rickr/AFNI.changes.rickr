@@ -1115,3 +1115,6 @@
       - added remove_ext_list(), for removing a list of extensions by indices
       - added -strip action, to strip all extensions and descrip fields
 
+28 April 2005:
+  * checked in Kate's changes to fsl_api_driver.c and fslio.[ch]
+

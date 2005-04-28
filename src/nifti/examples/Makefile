@@ -30,3 +30,7 @@ clean:
 
 fsl_api_driver:	fsl_api_driver.c ../lib/libfslio.a
 	$(CC) $(CFLAGS) -o fsl_api_driver fsl_api_driver.c $(FSLIO_INCS) $(NIFTI_INCS) $(ZNZ_INCS) $(FSLIO_LIBS) $(NIFTI_LIBS) $(ZNZ_LIBS)
+
+help:
+	@echo "all:      make the fsl_api_driver program"
+	@echo "clean:    rm the fsl_api_driver program"

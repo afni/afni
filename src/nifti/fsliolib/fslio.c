@@ -218,10 +218,21 @@ int FslFileType(const char* fname)
 }
 
 
+/************************************************************
+ * FslGetReadFileType
+ ************************************************************/
+/*! \fn int FslGetReadFileType(const FSLIO *fslio)
+    \brief  return the best estimate of the true file type 
+
+  This function is used to return the best estimate of the true file type once
+   a simple open has occurred - for now it is used after a nifti open call is made 
+
+    \param  fslio data structure
+    \return FSL_TYPE filetype code
+    \sa FSL_TYPE
+*/
 int FslGetReadFileType(const FSLIO *fslio)
 {
-  /* This function is used to return the best estimate of the true file type once
-   a simple open has occurred - for now it is used after a nifti open call is made */
   int filetype=FSL_TYPE_ANALYZE;  /* unused default */
   if (fslio==NULL)  FSLIOERR("FslReadGetFileType: Null pointer passed for FSLIO");
   /* Don't use fslio->file_mode as it hasn't been set yet */
@@ -2044,6 +2055,127 @@ int FslGetIgnoreMFQ()
 }
 
 /***************************************************************
+ * FslReadHeader
+ ***************************************************************/
+/*! \fn FSLIO * FslReadHeader(char *fname)
+    \brief Reads nifti/anz header, no data is read
+	
+    \param fname 	filename specification (could be .img,.hdr,.nii, or no ext
+    \return FSLIO data structure with the nifti_image structure fields filled 
+            as per fname header.
+            NULL on error 
+ */
+FSLIO * FslReadHeader(char *fname)
+{
+   char *hdrname, *imgname;
+   FSLIO *fslio;
+
+
+   fslio = FslInit();
+  
+  /** get header file name */
+  FslGetHdrImgNames(fname, fslio, &hdrname, &imgname);
+
+  /** read header information */
+  fslio->niftiptr = nifti_image_read(hdrname, 0);
+
+  if (fslio->niftiptr == NULL) {
+  	FSLIOERR("FslReadHeader: error reading header information");
+	return(NULL);
+  }
+
+  fslio->file_mode = FslGetReadFileType(fslio);
+
+  return(fslio);
+}
+
+
+/***************************************************************
+ * FslGetVolumeAsScaledDouble
+ ***************************************************************/
+/*! \fn double *** FslGetVolumeAsScaledDouble(FSLIO *fslio, int vol)
+    \brief Return volume #vol (0-based) as a 3D array of scaled doubles. 
+
+	Volume Array is indexed as [0..zdim-1][0..ydim-1][0..xdim-1].  
+	<br>The array will be byteswapped to native-endian.
+	<br>Array values are scaled as per fslio header slope and intercept fields.
+
+    \param fslio pointer to open dataset
+    \param vol volume number to read (legal range [0..tdim-1])
+    \return Pointer to 3D double array, NULL on error
+ */
+double ***FslGetVolumeAsScaledDouble(FSLIO *fslio, int vol)
+{
+  double ***newbuf;
+  void *diskbuf;
+  int xx,yy,zz;
+  int ret;
+  float inter, slope;
+  int dims_to_get[8];
+  int i;
+
+  if (fslio==NULL)  FSLIOERR("FslGetVolumeAsScaledDouble: Null pointer passed for FSLIO");
+
+  if ((fslio->niftiptr->dim[0] < 3) || (fslio->niftiptr->dim[0] > 4))
+	FSLIOERR("FslGetVolumeAsScaledDouble: Incorrect dataset dimension, 3D-4D needed");
+
+  /***** nifti dataset */
+  if (fslio->niftiptr!=NULL) {
+	xx = (fslio->niftiptr->nx == 0 ? 1 : (long)fslio->niftiptr->nx);
+	yy = (fslio->niftiptr->ny == 0 ? 1 : (long)fslio->niftiptr->ny);
+	zz = (fslio->niftiptr->nz == 0 ? 1 : (long)fslio->niftiptr->nz);
+
+	if (fslio->niftiptr->scl_slope == 0) {
+		slope = 1.0;
+		inter = 0.0;
+	}
+	else {
+		slope = fslio->niftiptr->scl_slope;
+		inter = fslio->niftiptr->scl_inter;
+	}
+	
+
+    /** allocate new 3D buffer */
+    newbuf = d3matrix(zz-1,yy-1,xx-1);
+
+
+    /** read in the data in disk format */
+    dims_to_get[0] = 0;
+    for (i=1; i<8; i++)
+	dims_to_get[i] = -1;
+    dims_to_get[4] = vol;
+
+
+    diskbuf = NULL;
+    ret = nifti_read_collapsed_image(fslio->niftiptr, dims_to_get, &diskbuf );
+    if (ret <= 0) {
+    	fprintf(stderr,"ERROR:: read of disk buffer for volume %d from %s failed.\n",vol,fslio->niftiptr->iname);
+        return(NULL);
+    }
+
+
+    /** cvt disk buffer to scaled double buffer  */
+    ret = convertBufferToScaledDouble(newbuf[0][0], diskbuf, (long)(xx*yy*zz), slope, inter, fslio->niftiptr->datatype);
+
+    if (ret == 0)
+  	return(newbuf);
+    else
+        return(NULL);
+
+  } /* nifti data */
+
+
+  if (fslio->mincptr!=NULL) {
+    fprintf(stderr,"Warning:: Minc is not yet supported\n");
+  }
+
+  return(NULL);
+}
+
+
+
+
+/***************************************************************
  * FslGetBufferAsScaledDouble
  ***************************************************************/
 /*! \fn double **** FslGetBufferAsScaledDouble(FSLIO *fslio)
@@ -2175,6 +2307,53 @@ int  convertBufferToScaledDouble(double *outbuf, void *inbuf, long len, float sl
 	}
 
 return(0);
+}
+
+/***************************************************************
+ * d3matrix
+ ***************************************************************/
+/*! \fn double ****d3matrix(int zh,  int yh, int xh)
+    \brief allocate a 3D buffer, use 1 contiguous buffer for the data 
+
+	Array is indexed as buf[0..zh][0..yh][0..xh].  
+	<br>To access all elements as a vector, use buf[0][0][i] where
+	i can range from 0 to zh*yh*xh - 1.
+	Adaptation of Numerical Recipes in C nrutil.c allocation routines. 
+
+    \param zh slowest changing dimension
+    \param yh 2nd fastest changing dimension
+    \param xh fastest changing dimension
+    \return Pointer to 3D double array
+ */
+double ***d3matrix(int zh,  int yh, int xh)
+{
+
+	int j;
+	int nslice = zh+1;
+	int nrow = yh+1;
+	int ncol = xh+1;
+        double ***t;
+
+
+	/** allocate pointers to slices */
+        t=(double ***) malloc((size_t)((nslice)*sizeof(double**)));
+        if (!t) FSLIOERR("d3matrix: allocation failure");
+
+	/** allocate pointers for ydim */
+        t[0]=(double **) malloc((size_t)((nslice*nrow)*sizeof(double*)));
+        if (!t[0]) FSLIOERR("d3matrix: allocation failure");
+
+
+	/** allocate the data blob */
+        t[0][0]=(double *) malloc((size_t)((nslice*nrow*ncol)*sizeof(double)));
+        if (!t[0][0]) FSLIOERR("d3matrix: allocation failure");
+
+
+	/** point everything to the data blob */
+        for(j=1;j<nrow*nslice;j++) t[0][j]=t[0][j-1]+ncol;
+        for(j=1;j<nslice;j++) t[j]=t[j-1]+nrow;
+
+        return t;
 }
 
 
