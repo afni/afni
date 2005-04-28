@@ -5487,3 +5487,7 @@
      points and their TR.
  * Modified imseq.c to make up/down movement of stroking affect RGB,
      additively, much as left/right does multiplicatively.
+
+28 Apr 2005
+ * Modified 3dDeconvolve to add -basis_normall option, and a couple of
+     other minor tweaks.
