@@ -241,7 +241,7 @@ zork:
         else      printf (" %10.4g", m.elts[i][j]);
       printf (" \n");
     }
-  printf (" \n");
+  printf (" \n"); fflush(stdout) ;
 }
 
 
@@ -253,7 +253,6 @@ zork:
 void matrix_sprint (char * s, matrix m)
 {
   printf ("%s \n", s);
-
   matrix_print (m);
 }
 
@@ -301,9 +300,9 @@ void matrix_enter (matrix * m)
   int i, j;
   float fval;
 
-  printf ("Enter number of rows: ");
+  printf ("Enter number of rows: "); fflush(stdout) ;
   scanf ("%d", &rows);
-  printf ("Enter number of cols: ");
+  printf ("Enter number of cols: "); fflush(stdout) ;
   scanf ("%d", &cols);
 
   matrix_create (rows, cols, m);
@@ -311,9 +310,9 @@ void matrix_enter (matrix * m)
   for (i = 0;  i < rows;  i++)
     for (j = 0;  j < cols;  j++)
       {
-	printf ("elts[%d][%d] = ", i, j);
-	scanf ("%f", &fval);
-	m->elts[i][j] = fval;
+	     printf ("elts[%d][%d] = ", i, j); fflush(stdout);
+	     scanf ("%f", &fval);
+	     m->elts[i][j] = fval;
       }
 }
 
@@ -895,7 +894,7 @@ void vector_print (vector v)
 
   for (i = 0;  i < v.dim;  i++)
     printf ("  %10.4g \n", v.elts[i]);
-  printf (" \n");
+  printf (" \n"); fflush(stdout);
 
 }
 

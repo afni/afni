@@ -458,14 +458,14 @@ ENTRY("init_regression_analysis") ;
     {
       ibot = IBOT(is) ; itop = ITOP(is) ;
       for (im = ibot;  im <= itop;  im++)
-	{
-	  if (baseline[is])
-	    {
-	      plist[ip] = it;
-	      ip++;
-	    }
-	  it++;
-	}
+      {
+        if (baseline[is])
+        {
+          plist[ip] = it;
+          ip++;
+        }
+	     it++;
+	   }
     }
   ok = calc_matrices (xdata, ip, plist, x_base, &xtxinv_temp, xtxinvxt_base);
   if (!ok)  { matrix_destroy (&xtxinv_temp);  RETURN (0); };
