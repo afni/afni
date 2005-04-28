@@ -262,9 +262,12 @@ typedef long 		THIS_INT64;
 typedef float		THIS_FLOAT32;
 typedef double 		THIS_FLOAT64;
 
-double ****d4matrix(int th, int zh,  int yh, int xh);
+FSLIO * FslReadHeader(char *fname);
 double ****FslGetBufferAsScaledDouble(FSLIO *fslio);
+double ***FslGetVolumeAsScaledDouble(FSLIO *fslio, int vol);
 int  convertBufferToScaledDouble(double *outbuf, void *inbuf, long len, float slope, float inter, int nifti_datatype ) ;
+double ****d4matrix(int th, int zh,  int yh, int xh);
+double ***d3matrix(int zh,  int yh, int xh);
 
 
 

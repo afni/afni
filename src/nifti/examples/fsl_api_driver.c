@@ -36,7 +36,9 @@ FSLIO *fslio;
 void *buffer;
 char *f1name;
 double ****ddata;
+double ***vol;
 int x,y,z,t;
+char *hdrname, *datname;
 
 
 /*** process commandline parameters */
@@ -45,7 +47,8 @@ if (argc < 2) {
 	exit(1);
 }
 
-/***** print */
+
+/************************* PRINT ***************************/
 if (!strncmp(argv[1],"print",5)) {
 	if (argc != 3) {
 		fprintf(stderr, "\nError, print command takes one parameter: print <dataset>\n");
@@ -66,7 +69,9 @@ if (!strncmp(argv[1],"print",5)) {
 	exit(0);
 }
 
-/***** peek */
+
+
+/************************* PEEK ***************************/
 if (!strncmp(argv[1],"peek",4)) {
 	if (argc != 7) {
 		fprintf(stderr, "\nError, peek command takes five parameters: peek <dataset> X Y Z T\n");
@@ -80,11 +85,10 @@ if (!strncmp(argv[1],"peek",4)) {
 	z = atoi(argv[5]);
 	t = atoi(argv[6]);
 
-	/** open nifti dataset */
-	fslio = FslInit();
-	buffer = FslReadAllVolumes(fslio,f1name);
-	if (buffer == NULL) {
-		fprintf(stderr, "\nError opening and reading %s.\n",f1name);
+	/** open nifti dataset header */
+	fslio = FslReadHeader(f1name);
+	if (fslio == NULL) {
+		fprintf(stderr, "\nError, could not read header info for %s.\n",f1name);
 		exit(1);
 	}
 
@@ -106,16 +110,18 @@ if (!strncmp(argv[1],"peek",4)) {
 		exit(1);
 	}
 
-	/*** get data as doubles and scaled */
-	ddata = FslGetBufferAsScaledDouble(fslio);
-	if (ddata == NULL) {
+	/*** get volume data as scaled doubles */
+
+	vol = FslGetVolumeAsScaledDouble(fslio,t);
+	if (vol == NULL) {
 		fprintf(stderr, "\nError accessing %s\n",f1name);
 		exit(1);
 	}
 	else {
-		fprintf(stderr, "\nLocation %d %d %d %d: %.4f\n",x,y,z,t,ddata[t][z][y][x]);
+		fprintf(stderr, "\nLocation %d %d %d %d: %.4f\n",x,y,z,t,vol[z][y][x]);
 		exit(0);
 	}
+
 }
 
 
