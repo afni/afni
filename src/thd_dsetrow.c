@@ -17,7 +17,7 @@
   to do this calculation himself.
 -----------------------------------------------------------------------------*/
 
-int THD_get_dset_rowcount( THD_3dim_dataset * dset, int dcode )
+int THD_get_dset_rowcount( THD_3dim_dataset *dset, int dcode )
 {
    if( !ISVALID_DSET(dset) ) return 0 ;        /* bad */
    switch( dcode ){
@@ -38,10 +38,10 @@ int THD_get_dset_rowcount( THD_3dim_dataset * dset, int dcode )
   N.B.: dcode < 0 ==> data is extracted in the reverse direction.
 -----------------------------------------------------------------------------*/
 
-void * THD_get_dset_row( THD_3dim_dataset * dset, int ival,
+void * THD_get_dset_row( THD_3dim_dataset *dset, int ival,
                          int dcode , int xx,int yy,int zz  )
 {
-   void * row , * brick ;
+   void *row , *brick ;
    int nrow , kind , nx,ny,nz,nxy , kbot,kdel,kk,ii ;
 
 ENTRY("THD_get_dset_row") ;
@@ -143,10 +143,10 @@ ENTRY("THD_get_dset_row") ;
    The inverse of THD_get_dset_row: put data back into a dataset.
 -----------------------------------------------------------------------------*/
 
-void THD_put_dset_row( THD_3dim_dataset * dset, int ival,
-                       int dcode, int xx,int yy,int zz, void * row )
+void THD_put_dset_row( THD_3dim_dataset *dset, int ival,
+                       int dcode, int xx,int yy,int zz, void *row )
 {
-   void * brick ;
+   void *brick ;
    int nrow , kind , nx,ny,nz,nxy , kbot,kdel,kk,ii ;
 
 ENTRY("THD_put_dset_row") ;
