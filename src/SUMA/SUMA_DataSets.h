@@ -100,6 +100,7 @@ typedef enum {
    SUMA_NIML,                 /* 3 */
    SUMA_1D,                   /* 4 */
    SUMA_1D_PURE,              /* 5 */
+   SUMA_ASCII_OPEN_DX_DSET,   /* 6 */
 } SUMA_DSET_FORMAT; /*!<  Format of data set
                           When you add a new element, modify functions
                           SUMA_Dset_Format_Name
@@ -740,6 +741,7 @@ int SUMA_AddGenColAttr (NI_element *nel, SUMA_COL_TYPE ctp, void *col, int strid
 SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb);
 SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT *form, int verb);
 SUMA_DSET *SUMA_Load1DDset (char *Name, int verb);
+SUMA_DSET *SUMA_LoadDXDset (char *Name, int verb);
 char *SUMA_RemoveDsetExtension (char*Name, SUMA_DSET_FORMAT form);
 char * SUMA_WriteDset (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int overwrite, int verb); 
 SUMA_DSET * SUMA_far2dset( char *FullName, char *dset_id, char *dom_id, 
@@ -825,6 +827,13 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, char *sep);
 NI_str_array * SUMA_NI_decode_string_list( char *ss , char *sep );
 char  * SUMA_NI_get_ith_string( char *ss , char *sep, int i );
 SUMA_VARTYPE SUMA_VarType2TypeCast (char *vt);
+SUMA_COL_TYPE SUMA_VarType2ColType (char *vt);
+int SUMA_SizeOf(SUMA_VARTYPE vt);
+void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start, int end, int *nvals_read);
+void SUMA_swap_2(void *ppp);
+void SUMA_swap_4(void *ppp);
+void SUMA_swap_8(void *ppp);
+
 /*********************** END Miscellaneous support functions **************************** */
 
 

@@ -445,7 +445,7 @@ SUMA_SO_File_Type SUMA_SurfaceTypeCode (char *cd)
    if (!strcmp(cd, "SureFit") || !strcmp(cd, "SF")) { SUMA_RETURN( SUMA_SUREFIT); }
    if (!strcmp(cd, "GenericInventor") || !strcmp(cd, "INV")) { SUMA_RETURN(SUMA_INVENTOR_GENERIC ); }
    if (!strcmp(cd, "Ply") || !strcmp(cd, "PLY")) { SUMA_RETURN( SUMA_PLY); }
-   if (!strcmp(cd, "DX") || !strcmp(cd, "dx")) { SUMA_RETURN( SUMA_OPENDX_MESH); }
+   if (!strcmp(cd, "DX") || !strcmp(cd, "dx") || !strcmp(cd, "OpenDX") || !strcmp(cd, "opendx")) { SUMA_RETURN( SUMA_OPENDX_MESH); }
    if (!strcmp(cd, "BrainVoyager") || !strcmp(cd, "BV") || !strcmp(cd, "bv")) { SUMA_RETURN( SUMA_BRAIN_VOYAGER); }
    if (!strcmp(cd, "1D") || !strcmp(cd, "VEC") || !strcmp(cd, "1d")) { SUMA_RETURN(SUMA_VEC ); }
    if (!strcmp(cd, "Error")) { SUMA_RETURN(SUMA_FT_ERROR ); }
@@ -2461,8 +2461,106 @@ SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
 }
 
 /*!
+   \brief Reads in a sequence of numbers of an undetermined length
+   Not for reading in large numbers of numbers!
+   \param op (char *) pointing to the beginning of a 
+                     blank delimited series of numbers
+   \param opend (char **) if not NULL, *opend will contain the value
+                           of op at the end of successful reads
+   \param tp (SUMA_VARTYPE) SUMA_int, SUMA_float, SUMA_double supported 
+                           at the moment
+   \return ans (void*) if  tp == SUMA_int then ans is (SUMA_IVEC *)
+                           tp == SUMA_float then ans is (SUMA_FVEC *)
+                           tp == SUMA_double then ans is (SUMA_DVEC *)
+   \sa SUMA_strtol_vec  
+   \sa SUMA_SringToNum
+*/
+void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp)
+{
+   static char FuncName[]={"SUMA_AdvancePastNumbers"};
+   double *d=NULL, db;
+   int nrealloc = 0, Chunk = 100, nalloc = 0;
+   int Found = 0, i, nread;
+   void *ans;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   nread = 0;
+   Found = 1;
+   while (Found) {
+      SUMA_ADVANCE_PAST_NUM(op, db, Found);
+      if (Found) {
+         if (nread == nalloc) {
+            nalloc += Chunk; ++nrealloc;
+            d = (double*)SUMA_realloc(d, nalloc*sizeof(double));
+            if (!d) { SUMA_SL_Crit("Failed to allocate"); if (d) SUMA_free(d); d = NULL; SUMA_RETURN(NULL); }
+            if (!(nrealloc % 10)) { SUMA_SL_Warn("Too much reallocation, improper use of function?"); }
+         }
+         d[nread] = db;
+         ++(nread);
+      }
+   } 
+   
+   if (LocalHead) { 
+      fprintf(SUMA_STDERR,"%s: Found %d numbers:\n", FuncName, nread);
+      for (i=0; i<nread; ++i) fprintf(SUMA_STDERR,"%f\t", d[i]);
+      fprintf(SUMA_STDERR,"\n");
+   }
+   
+   if (opend) *opend = op;
+   
+   ans = NULL;
+   switch (tp) {
+      case SUMA_int:
+         {
+            SUMA_IVEC *ivec= (SUMA_IVEC *)SUMA_malloc(sizeof(SUMA_IVEC));
+            ivec->v = (int *)SUMA_calloc(nread,sizeof(int));
+            ivec->n = nread;
+            for (i=0; i<nread; ++i) ivec->v[i] = (int)d[i];
+            ans = (void *)ivec;
+         }
+         break;
+      case SUMA_float:
+         {
+            SUMA_FVEC *fvec= (SUMA_FVEC *)SUMA_malloc(sizeof(SUMA_FVEC));
+            fvec->v = (float *)SUMA_calloc(nread,sizeof(float));
+            fvec->n = nread;
+            for (i=0; i<nread; ++i) fvec->v[i] = (float)d[i];
+            ans = (void *)fvec;
+         }
+         break;
+      case SUMA_double:
+         {
+            SUMA_DVEC *dvec= (SUMA_DVEC *)SUMA_malloc(sizeof(SUMA_DVEC));
+            dvec->v = (double *)SUMA_calloc(nread,sizeof(double));
+            dvec->n = nread;
+            for (i=0; i<nread; ++i) dvec->v[i] = (double)d[i];
+            ans = (void *)dvec;
+         }
+         break;
+      case SUMA_notypeset:
+         SUMA_SL_Err("Type not set");
+         ans = NULL;
+         break;   
+      default:
+         SUMA_SL_Err("Type not supported by this function");
+         ans = NULL;
+         break;   
+         
+   }
+   if (d) SUMA_free(d); d = NULL;
+   
+   SUMA_RETURN(ans);
+   
+}   
+
+/*!
    \brief change a character string of numbers to a vector of values.
    op must be NULL terminated!
+   
+   \sa SUMA_AdvancePastNumbers
+   \sa SUMA_StringToNum
 */
 void *SUMA_strtol_vec(char *op, int nvals, int *nread, SUMA_VARTYPE vtp)
 {
@@ -3580,6 +3678,7 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
    SUMA_RETURN(ps);
 }
 
+ 
 #ifdef STAND_ALONE
 void usage ()
    

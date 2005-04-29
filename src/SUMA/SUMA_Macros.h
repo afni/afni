@@ -18,7 +18,67 @@
    /* From RickR's Imon */ \
    End = (*(char *)&m_one == 1) ? LSB_FIRST : MSB_FIRST;   \
 }
-      
+
+/*!
+   \brief a macro for reading one number at a time from a file
+   \param nip (void *) where values go
+   \param fp (FILE *)
+   \param ex (int) value returned by fread
+   \param chnk (int) sizeof(TYPE_YOU_READ)
+   
+   \sa SUMA_READ_NUM_BS
+*/   
+#define SUMA_READ_NUM(nip, fp, ex, chnk)  \
+{  \
+   ex = fread (nip, chnk, 1, fp); \
+}
+/*!
+   SUMA_READ_NUM with swapping 
+*/
+#define SUMA_READ_NUM_BS(nip, fp, ex, chnk)  \
+{  \
+   SUMA_READ_NUM(nip, fp, ex, chnk); \
+   if (chnk == 4) SUMA_swap_4( nip ) ;  \
+      else if (chnk == 8) SUMA_swap_8( nip ) ;  \
+      else if (chnk == 2) SUMA_swap_2( nip ) ;  \
+      else { SUMA_SL_Err ("No swapping performed.") } \
+}   
+/*!
+   \brief a macro for reading one integer from a file pointer.
+   
+   \param nip (int *)
+   \param bs (int) 0: no swap, 1 swap
+   \param fp (FILE *)
+   \param ex (int) value returned by fread
+*/
+#define SUMA_READ_INT(nip, bs, fp, ex)  \
+{  static int m_chnk = sizeof(int);\
+   ex = fread (nip, m_chnk, 1, fp); \
+   if (bs) {   \
+      if (m_chnk == 4) SUMA_swap_4( nip ) ;  \
+      else if (m_chnk == 8) SUMA_swap_8( nip ) ;  \
+      else if (m_chnk == 2) SUMA_swap_2( nip ) ; /* keep compiler quiet about using swap_2 */ \
+      else { SUMA_SL_Err ("No swapping performed.") } \
+   }  \
+}
+#define SUMA_READ_FLOAT(nip, bs, fp, ex)  \
+{  static int m_chnk = sizeof(float);\
+   ex = fread (nip, m_chnk, 1, fp); \
+   if (bs) {   \
+      if (m_chnk == 4) SUMA_swap_4( nip ) ;  \
+      else if (m_chnk == 8) SUMA_swap_8( nip ) ;  \
+      else { SUMA_SL_Err ("No swapping performed.") } \
+   }  \
+}
+
+#define SUMA_SWAP_VEC(vec,N_alloc,chnk) {\
+   int m_i; \
+      if (chnk == 4) { for (m_i=0; m_i<N_alloc; ++m_i) SUMA_swap_4(&(vec[m_i])); } \
+      else if (chnk == 2) { for (m_i=0; m_i<N_alloc; ++m_i) SUMA_swap_2(&(vec[m_i])); }   \
+      else if (chnk == 8) { for (m_i=0; m_i<N_alloc; ++m_i) SUMA_swap_8(&(vec[m_i])); }   \
+      else { SUMA_SL_Err("Bad chnk");   }   \
+}
+
 #define IS_STRICT_POS(a)   ( ((a) > 0) ? 1 : 0 )
 
 #define IS_POS(a)   ( ((a) >= 0) ? 1 : 0 )

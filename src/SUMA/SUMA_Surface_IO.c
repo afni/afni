@@ -37,80 +37,7 @@ extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;  
 #endif
    
-/* Swapping functions from Bob's code. He has them statically declared */
-#undef SUMA_swap_4
-#undef SUMA_swap_2
-#undef SUMA_swap_8
-/*! Swap the 4 bytes pointed to by ppp: abcd -> dcba. */
 
-static void SUMA_swap_4(void *ppp)
-{
-   unsigned char *pntr = (unsigned char *) ppp ;
-   unsigned char b0, b1, b2, b3;
-
-   b0 = *pntr; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
-   *pntr = b3; *(pntr+1) = b2; *(pntr+2) = b1; *(pntr+3) = b0;
-}
-
-/*---------------------------------------------------------------*/
-
-/*! Swap the 8 bytes pointed to by ppp: abcdefgh -> hgfedcba. */
-
-static void SUMA_swap_8(void *ppp)
-{
-   unsigned char *pntr = (unsigned char *) ppp ;
-   unsigned char b0, b1, b2, b3;
-   unsigned char b4, b5, b6, b7;
-
-   b0 = *pntr    ; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
-   b4 = *(pntr+4); b5 = *(pntr+5); b6 = *(pntr+6); b7 = *(pntr+7);
-
-   *pntr     = b7; *(pntr+1) = b6; *(pntr+2) = b5; *(pntr+3) = b4;
-   *(pntr+4) = b3; *(pntr+5) = b2; *(pntr+6) = b1; *(pntr+7) = b0;
-}
-
-/*---------------------------------------------------------------*/
-
-/*! Swap the 2 bytes pointed to by ppp: ab -> ba. */
-
-static void SUMA_swap_2(void *ppp)
-{
-   unsigned char *pntr = (unsigned char *) ppp ;
-   unsigned char b0, b1;
-
-   b0 = *pntr; b1 = *(pntr+1);
-   *pntr = b1; *(pntr+1) = b0;
-}
-
-   
-/*!
-   \brief a macro for reading one integer from a file pointer.
-   Assumes for swapping that int is 4 bytes 
-   
-   \param nip (int *)
-   \param bs (int) 0: no swap, 1 swap
-   \param fp (FILE *)
-   \param ex (int) value returned by fread
-*/
-#define SUMA_READ_INT(nip, bs, fp, ex)  \
-{  static int m_chnk = sizeof(int);\
-   ex = fread (nip, m_chnk, 1, fp); \
-   if (bs) {   \
-      if (m_chnk == 4) SUMA_swap_4( nip ) ;  \
-      else if (m_chnk == 8) SUMA_swap_8( nip ) ;  \
-      else if (m_chnk == 2) SUMA_swap_2( nip ) ; /* keep compiler quiet about using swap_2 */ \
-      else { SUMA_SL_Err ("No swapping performed.") } \
-   }  \
-}
-#define SUMA_READ_FLOAT(nip, bs, fp, ex)  \
-{  static int m_chnk = sizeof(float);\
-   ex = fread (nip, m_chnk, 1, fp); \
-   if (bs) {   \
-      if (m_chnk == 4) SUMA_swap_4( nip ) ;  \
-      else if (m_chnk == 8) SUMA_swap_8( nip ) ;  \
-      else { SUMA_SL_Err ("No swapping performed.") } \
-   }  \
-}
 
 /*!
    \brief a function to simplify loading surfaces the old way
@@ -7239,12 +7166,35 @@ SUMA_OPEN_DX_STRUCT *SUMA_Alloc_OpenDX_Struct(void)
    dx->class = NULL;
    dx->type = NULL;
    dx->data = NULL;
+   dx->data_format = 0;
+   dx->data_off = NULL;
    dx->datap = NULL;
    dx->n_comp = 0;
+   dx->counts = NULL;
+   dx->n_counts = 0;
+   dx->origin = NULL;
+   dx->n_origin = 0;
+   dx->delta = NULL;
+   dx->n_delta = 0;
    for (i=0; i<SUMA_MAX_OPEN_DX_FIELD_COMPONENTS; ++i) { dx->comp_name[i] = dx->comp_value[i] =NULL; }
    dx->n_attr = 0;
    for (i=0; i<SUMA_MAX_OPEN_DX_FIELD_ATTRIBUTES; ++i) { dx->attr_name[i] = dx->attr_string[i] =NULL; }
    SUMA_RETURN(dx);
+}
+
+SUMA_OPEN_DX_STRUCT ** SUMA_Free_OpenDX_StructVec(SUMA_OPEN_DX_STRUCT **dxv, int nobj)
+{
+   static char FuncName[]={"SUMA_Free_OpenDX_StructVec"};
+   int i;
+   
+   SUMA_ENTRY;
+   
+   if (!dxv) SUMA_RETURN(NULL);
+   for (i=0; i<nobj; ++i) {
+      dxv[i] = SUMA_Free_OpenDX_Struct(dxv[i]);
+   }
+   SUMA_free(dxv); 
+   SUMA_RETURN(NULL);
 }
 
 SUMA_OPEN_DX_STRUCT *SUMA_Free_OpenDX_Struct(SUMA_OPEN_DX_STRUCT *dx)
@@ -7258,6 +7208,7 @@ SUMA_OPEN_DX_STRUCT *SUMA_Free_OpenDX_Struct(SUMA_OPEN_DX_STRUCT *dx)
    if (dx->object) SUMA_free(dx->object); dx->object = NULL;
    if (dx->class) SUMA_free(dx->class); dx->class = NULL;
    if (dx->data) SUMA_free(dx->data); dx->data = NULL;
+   if (dx->data_off) SUMA_free(dx->data_off); dx->data_off = NULL;
    if (dx->datap) {
       if ( SUMA_OK_OPENDX_DATA_TYPE(SUMA_VarType2TypeCast (dx->type)) ) {
          SUMA_free(dx->datap); dx->datap = NULL;
@@ -7274,6 +7225,9 @@ SUMA_OPEN_DX_STRUCT *SUMA_Free_OpenDX_Struct(SUMA_OPEN_DX_STRUCT *dx)
       if (dx->attr_name[i]) SUMA_free(dx->attr_name[i]); dx->attr_name[i] = NULL;
       if (dx->attr_string[i]) SUMA_free(dx->attr_string[i]); dx->attr_string[i] =NULL; 
    }
+   if (dx->origin) SUMA_free(dx->origin); 
+   if (dx->delta) SUMA_free(dx->delta);
+   if (dx->counts) SUMA_free(dx->counts);
    SUMA_free(dx); dx = NULL;
    SUMA_RETURN(dx);
 }
@@ -7307,10 +7261,29 @@ void SUMA_Show_OpenDX_Struct(SUMA_OPEN_DX_STRUCT **dxv, int N_dxv, FILE *out)
          else SS = SUMA_StringAppend_va(SS, "shape: 0\n"); 
          if (dx->items) SS = SUMA_StringAppend_va(SS, "items: %d\n", dx->items);
          else SS = SUMA_StringAppend_va(SS, "items: 0\n"); 
+         if (dx->counts) {
+            SS = SUMA_StringAppend_va(SS, "counts: (%d vals)\n", dx->n_counts);
+            s = SUMA_ShowMeSome(dx->counts, SUMA_int, dx->n_counts, 5);
+            SS = SUMA_StringAppend_va(SS, "\t%s\n", s); SUMA_free(s); s = NULL;
+         } else SS = SUMA_StringAppend_va(SS, "counts: NULL\n");
+         if (dx->origin) {
+            SS = SUMA_StringAppend_va(SS, "origin: (%d vals)\n", dx->n_origin);
+            s = SUMA_ShowMeSome(dx->origin, SUMA_float, dx->n_origin, 5);
+            SS = SUMA_StringAppend_va(SS, "\t%s\n", s); SUMA_free(s); s = NULL;
+         } else SS = SUMA_StringAppend_va(SS, "origin: NULL\n");
+         if (dx->delta) {
+            SS = SUMA_StringAppend_va(SS, "delta: (%d vals)\n", dx->n_delta);
+            s = SUMA_ShowMeSome(dx->delta, SUMA_float, dx->n_delta, 9);
+            SS = SUMA_StringAppend_va(SS, "\t%s\n", s); SUMA_free(s); s = NULL;
+         }else SS = SUMA_StringAppend_va(SS, "delta: NULL\n");
+         
          if (dx->data) SS = SUMA_StringAppend_va(SS, "data: %s (Data load error %d)\n", dx->data, dx->bad_data);
          else SS = SUMA_StringAppend_va(SS, "data: NULL\n"); 
+         if (dx->data_off) SS = SUMA_StringAppend_va(SS, "data_off: %s \n", dx->data_off);
+         else SS = SUMA_StringAppend_va(SS, "data_off: NULL\n"); 
+         SS = SUMA_StringAppend_va(SS, "data_format: %d \n", dx->data_format);
          if (dx->datap) {
-            s = SUMA_ShowMeSome(dx->datap, SUMA_VarType2TypeCast(dx->type), dx->items * dx->shape, 5);
+            s = SUMA_ShowMeSome(dx->datap, SUMA_VarType2TypeCast(dx->type), dx->items * SUMA_NCOL_OPENDX(dx), 5);
             SS = SUMA_StringAppend_va(SS, "\t%s\n", s); SUMA_free(s); s = NULL;
          }
          if (dx->n_comp) {
@@ -7365,7 +7338,7 @@ SUMA_Boolean SUMA_OpenDX_Write(char *fname, SUMA_SurfaceObject *SO)
 SUMA_Boolean SUMA_OpenDx_Object_Data(char *op, int nchar, SUMA_OPEN_DX_STRUCT *dx)
 {
    static char FuncName[]={"SUMA_OpenDx_Object_Data"};
-   int i, Found = 0, ival,imax;
+   int i, Found = 0, ival;
    char *op_end, cend, *op2, *sval;
    char *op_orig;
    SUMA_Boolean LocalHead = NOPE;
@@ -7376,13 +7349,15 @@ SUMA_Boolean SUMA_OpenDx_Object_Data(char *op, int nchar, SUMA_OPEN_DX_STRUCT *d
    op_orig = op; /* hide this pointer from the evils that will befall it */
    cend = op_orig[nchar-1]; op_orig[nchar-1] = '\0';
    op_end = op_orig + nchar - 1; 
-   if (0 && LocalHead) { /* potential for huge dump! */
-         int j;
+   if (LocalHead) { /* potential for huge dump if you set show to nchar! */
+         int j, show;
+         show = 500; /* could also use nchar */
          fprintf(SUMA_STDERR,"%s Object\n", FuncName);
-         for (j=0; j<nchar; ++j) fprintf(SUMA_STDERR,"%c", op[j]);
+         j=0; while (op[j] && j<500) { fprintf(SUMA_STDERR,"%c", op[j]); ++j; }
          fprintf(SUMA_STDERR,"\n");
    }
-   SUMA_ADVANCE_PAST(op,op_end,"data",Found);
+   SUMA_ADVANCE_PAST(op,op_end,"data",Found,1);
+   sval = NULL;
    if (Found) {
       /* get the data's info */
       SUMA_GET_BETWEEN_BLANKS(op, op_end, op2);
@@ -7390,35 +7365,63 @@ SUMA_Boolean SUMA_OpenDx_Object_Data(char *op, int nchar, SUMA_OPEN_DX_STRUCT *d
          SUMA_LH("Empty data?");
          dx->data=NULL;
       } else {
-         imax = op2 - op;
-         if (imax > 5000) {
-            SUMA_SL_Err("Unexpectedly large field!");
-            op_orig[nchar-1] =  cend;
-            SUMA_RETURN(NOPE);
-         }else if (imax < 0) {
-            SUMA_SL_Err("Negative imax!");
-            op_orig[nchar-1] =  cend;
-            SUMA_RETURN(NOPE);
-         }
-         sval = (char *)SUMA_calloc(imax + 2, sizeof(char));
-
-         for (i=0; i < imax; ++i) sval[i] = op[i];
-         sval[imax] = '\0';
-         dx->data = sval;
+         SUMA_COPY_TO_STRING(op, op2, sval);
+         dx->data = sval; sval = NULL;
       }
       op = op2;
       /* now fill datap if possible*/
       if (dx->data && strstr(dx->data,"follows")){
          int nread=0;
          SUMA_LH("data inside");
-         dx->datap = SUMA_strtol_vec(op, dx->items*dx->shape, &nread, SUMA_VarType2TypeCast (dx->type));
+         if (LocalHead) { /* potential for huge dump! */
+            int j, show;
+            show = 500; /* could also use nchar */
+            fprintf(SUMA_STDERR,"%s Object\n", FuncName);
+            j=0; while (op[j] && j<500) { fprintf(SUMA_STDERR,"%c", op[j]); ++j; }
+            fprintf(SUMA_STDERR,"\n");
+         }  
+         dx->datap = SUMA_strtol_vec(op, dx->items*SUMA_NCOL_OPENDX(dx), &nread, SUMA_VarType2TypeCast (dx->type));
          if (LocalHead) {
-            fprintf(SUMA_STDERR,"%s: Read %d/%d values\n", FuncName, nread, dx->items*dx->shape);
+            fprintf(SUMA_STDERR,"%s: Read %d/%d values\n", FuncName, nread, dx->items*SUMA_NCOL_OPENDX(dx));
          }
-         if (nread != dx->items*dx->shape) {
-            fprintf(SUMA_STDERR,"Error %s: read in %d values, expected %d \n", FuncName, nread, dx->items*dx->shape);
+         if (nread != dx->items*SUMA_NCOL_OPENDX(dx)) {
+            fprintf(SUMA_STDERR,"Error %s: read in %d values, expected %d \n", FuncName, nread, dx->items*SUMA_NCOL_OPENDX(dx));
             op_orig[nchar-1] =  cend;
             SUMA_RETURN(NOPE);
+         }
+      }else {
+         SUMA_LH("data does not follow");
+         if (LocalHead) {
+            for (i=0; i < 500; ++i) { fprintf(SUMA_STDERR,"%c", op[i]); } fprintf(SUMA_STDERR,"\n"); fflush(SUMA_STDERR);
+         }
+         /* ? have file name ? */
+         if (strstr(dx->data,"file")) {
+            SUMA_GET_BETWEEN_BLANKS(op, op_end, op2);
+            if (op2 > op) {
+               SUMA_free(dx->data); /* free the "file" string */
+               SUMA_COPY_TO_STRING(op, op2, sval);
+               dx->data = sval; sval = NULL;
+               /* search backwards for a comma */
+               i=strlen(dx->data)-1; Found = -1;
+               while(i>=0 && Found <0) { if (dx->data[i] == ',') Found = i; --i; }
+               if (Found >= 0) { 
+                  dx->data_off = SUMA_copy_string(&(dx->data[Found+1]));
+                  dx->data[Found]='\0';
+               }  
+               /* see if you have some byte order or binary business */
+               dx->data_format = 0; /* ascii, default*/
+               op = op_orig; SUMA_ADVANCE_PAST(op,op_end,"binary",Found,1);
+               if (Found) {
+                  dx->data_format = MSB_FIRST; /* default */
+               }
+               /* endianness, regardless of what was above, "binary" might not occur */
+               op = op_orig; SUMA_ADVANCE_PAST(op,op_end,"msb",Found,1);
+               if (Found) { dx->data_format = MSB_FIRST; }
+               else {
+                  op = op_orig; SUMA_ADVANCE_PAST(op,op_end,"lsb",Found,1);
+                  if (Found) { dx->data_format = LSB_FIRST; }
+               }
+            }
          }
       }
    } else {
@@ -7449,7 +7452,8 @@ SUMA_Boolean SUMA_OpenDx_Object_Attr(char *op, int nchar, SUMA_OPEN_DX_STRUCT *d
    cend = op_orig[nchar-1]; op_orig[nchar-1] = '\0';
    op_end = op_orig + nchar - 1; 
    
-   SUMA_ADVANCE_PAST(op,op_end,"attribute",Found);
+   SUMA_ADVANCE_PAST(op,op_end,"attribute",Found, 1);
+   sval = NULL;
    while (Found) {
       /* get the attribute's name */
       SUMA_GET_BETWEEN_BLANKS(op, op_end, op2);
@@ -7474,7 +7478,7 @@ SUMA_Boolean SUMA_OpenDx_Object_Attr(char *op, int nchar, SUMA_OPEN_DX_STRUCT *d
       }
       op = op2;
       /* look for attribute string */
-      SUMA_ADVANCE_PAST(op,op_end,"string",Found);
+      SUMA_ADVANCE_PAST(op,op_end,"string",Found,1);
       if (Found) {
          SUMA_GET_BETWEEN_BLANKS(op, op_end, op2);
          if (op2 == op) {
@@ -7500,7 +7504,7 @@ SUMA_Boolean SUMA_OpenDx_Object_Attr(char *op, int nchar, SUMA_OPEN_DX_STRUCT *d
       ++dx->n_attr;
       /* look for next attribute */
       op = op2;
-      SUMA_ADVANCE_PAST(op,op_end,"attribute",Found);
+      SUMA_ADVANCE_PAST(op,op_end,"attribute",Found,1);
    }
       
    op_orig[nchar-1] =  cend;
@@ -7525,7 +7529,7 @@ SUMA_Boolean SUMA_OpenDx_Object_Components(char *op, int nchar, SUMA_OPEN_DX_STR
    cend = op_orig[nchar-1]; op_orig[nchar-1] = '\0';
    op_end = op_orig + nchar - 1; 
    
-   SUMA_ADVANCE_PAST(op,op_end,"component",Found);
+   SUMA_ADVANCE_PAST(op,op_end,"component",Found,1);
    while (Found) {
       /* get the attribute's name */
       SUMA_GET_BETWEEN_BLANKS(op, op_end, op2);
@@ -7550,7 +7554,7 @@ SUMA_Boolean SUMA_OpenDx_Object_Components(char *op, int nchar, SUMA_OPEN_DX_STR
       }
       op = op2;
       /* look for attribute string */
-      SUMA_ADVANCE_PAST(op,op_end,"value",Found);
+      SUMA_ADVANCE_PAST(op,op_end,"value",Found,1);
       if (Found) {
          SUMA_GET_BETWEEN_BLANKS(op, op_end, op2);
          if (op2 == op) {
@@ -7597,7 +7601,7 @@ SUMA_Boolean SUMA_OpenDx_Object_Components(char *op, int nchar, SUMA_OPEN_DX_STR
       ++dx->n_comp;
       /* look for next component */
       op = op2;
-      SUMA_ADVANCE_PAST(op,op_end,"component",Found);
+      SUMA_ADVANCE_PAST(op,op_end,"component",Found,1);
    }
       
    op_orig[nchar-1] =  cend;
@@ -7606,46 +7610,59 @@ SUMA_Boolean SUMA_OpenDx_Object_Components(char *op, int nchar, SUMA_OPEN_DX_STR
 
 /*!
    \brief return values of a header field from an OpenDX object string
-   if you expect an int back like when attr is "rank" or "shape"
-   then ans should be type cast to (int *) before use: int ival; ival = *((int *)ans); 
-   else ans should be type cast to (char **) before use: char *sval; sval = *((char **)ans); then free sval with SUMA_free(sval); 
+   If you expect an int back like when attr is "rank" or "shape"
+      ans should be type cast to (int *) before use: int ival; ival = *((int *)ans); 
+   If you expect a bunch of numbers like for "counts" "origin" "delta"
+      then ans is (SUMA_IVEC *) or (SUMA_FVEC*) or (SUMA_DVEC *)
+      These are freed with SUMA_free(ans->v); SUMA_free(ans);
+   else ans should be type cast to (char **) before use: 
+      char *sval; sval = *((char **)ans); then free sval with SUMA_free(sval); 
+      
 */  
-void * SUMA_OpenDx_Object_Header_Field(char *op, int nchar, const char *attr)
+void * SUMA_OpenDx_Object_Header_Field(char *op, int nchar, const char *attr, char **opeofield)
 {
    static char FuncName[]={"SUMA_OpenDx_Object_Header_Field"};
    void *ans=NULL;
-   int i, Found, ival,imax;
-   char *op_end = NULL, cend, *op2, *sval;
+   int i, Found, ival, imax, nread;
+   char *op_end = NULL, cend, *op2, *sval, *pp1, *pp2;
    char *op_orig;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
+   if (opeofield) *opeofield = op;
    
    if (!attr) SUMA_RETURN(ans);
    op_orig = op; /* hide this pointer from the evils that will befall it */
    cend = op_orig[nchar-1]; op_orig[nchar-1] = '\0';
    /* do we have a data section to signal end of header? */
-   op_end = strstr(op, "data");
+   op_end = NULL;
+   pp1 = strstr(op, "data"); 
+   if (pp1) {
+      pp2 = strstr(op, "follows");
+      if (pp2) op_end = pp2;
+   }
    if (!op_end) op_end = op_orig + nchar - 1; /* op_end all the way at end */
    
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: Object of %d chars, looking for >>>%s<<<\n", FuncName, nchar, attr );
    }
    
-   
-   /* get the header field's value name */
-   SUMA_ADVANCE_PAST(op,op_end,attr,Found);
+  /* get the header field's value name */
+   SUMA_ADVANCE_PAST(op,op_end,attr,Found,1);
    if (Found) {
       SUMA_GET_BETWEEN_BLANKS(op, op_end, op2);
       if (op2 == op) {
          SUMA_LH("No field");
       } else {
-         
          /* get the numeric fields changed*/
          if (strstr(attr,"rank") || strstr(attr,"shape") || strstr(attr,"items")) { /* rank, shape (matrix's second dim) are integer vals */
             ival = (int)strtol(op, NULL , 10);
             ans = (void*)&ival;
+         } else if (strstr(attr,"counts")) { /* are a series integer vals */
+            ans = SUMA_AdvancePastNumbers(op, &op2, SUMA_int);
+         } else if (strstr(attr,"origin") || strstr(attr,"delta")) { /* are integer vals */
+            ans = SUMA_AdvancePastNumbers(op, &op2, SUMA_float);
          } else  { /* strings*/
             imax = op2 - op;
             if (imax > 5000) {
@@ -7662,7 +7679,7 @@ void * SUMA_OpenDx_Object_Header_Field(char *op, int nchar, const char *attr)
             for (i=0; i < imax; ++i) sval[i] = op[i];
             sval[imax] = '\0';
             ans = (void*)&sval;
-         }   
+         }    
          if (LocalHead) {
             fprintf(SUMA_STDERR,"%s: attribute >>>%s<<< is:\n", FuncName, attr);
             i = 0;
@@ -7674,10 +7691,11 @@ void * SUMA_OpenDx_Object_Header_Field(char *op, int nchar, const char *attr)
          }
          
       }
+      op = op2; /* advance op */
    } else {
       if (strstr(attr,"class")) {
          /* it looks like "class" is sometimes omitted, look for string field, which is a class */
-         SUMA_ADVANCE_PAST(op,op_end,"field", Found);
+         SUMA_ADVANCE_PAST(op,op_end,"field", Found,1);
          if (Found) sval = SUMA_copy_string("field");
          ans = (void*)&sval;
       } else {
@@ -7686,6 +7704,7 @@ void * SUMA_OpenDx_Object_Header_Field(char *op, int nchar, const char *attr)
    }
       
    op_orig[nchar-1] =  cend;
+   if (opeofield) *opeofield = op; 
    SUMA_RETURN(ans);
 }
 /*!
@@ -7695,9 +7714,11 @@ SUMA_OPEN_DX_STRUCT **SUMA_OpenDX_Read(char *fname, int *nobj)
 {
    static char FuncName[]={"SUMA_OpenDX_Read"};
    int nread = 0, i = 0,  iop, *ivalp=NULL, shft=0;
-   char *fl=NULL, **opv = NULL, *op = NULL,*sbuf=NULL, **svalp=NULL;
+   char *fl=NULL, **opv = NULL, *op = NULL,*sbuf=NULL, **svalp=NULL, *ope;
    int *nchar = NULL;
    SUMA_OPEN_DX_STRUCT **dxv=NULL;
+   SUMA_FVEC *fvec=NULL;
+   SUMA_IVEC *ivec=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -7752,26 +7773,60 @@ SUMA_OPEN_DX_STRUCT **SUMA_OpenDX_Read(char *fname, int *nobj)
    }
    
    for (i=0; i<iop; ++i) { /* process each object's header field and data*/
-      if (0 && LocalHead) { /* potentially huge dump */
-         int j;
+      if ( 0 && LocalHead) { /* potentially huge dump if nmax is not controlled*/
+         int j, nmax;
+         nmax = 500; /* could also use nchar[i]*/
          fprintf(SUMA_STDERR,"%s Object %d\n", FuncName, i);
-         op = opv[i]; for (j=0; j<nchar[i]; ++j) fprintf(SUMA_STDERR,"%c", op[j]);
+         op = opv[i]; for (j=0; j<nmax; ++j) fprintf(SUMA_STDERR,"%c", op[j]);
          fprintf(SUMA_STDERR,"\n");
       }
       /* get the class */
       dxv[i] = SUMA_Alloc_OpenDX_Struct();
-      ivalp = (int *)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "rank");
+      ivalp = (int *)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "rank", NULL);
       if (ivalp) dxv[i]->rank = *ivalp;
-      ivalp = (int *)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "shape");
+      ivalp = (int *)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "shape", NULL);
       if (ivalp) dxv[i]->shape = *ivalp;
-      ivalp = (int *)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "items");
+      ivalp = (int *)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "items", NULL);
       if (ivalp) dxv[i]->items = *ivalp;
-      svalp = (char **)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "object");
+      svalp = (char **)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "object", NULL);
       if (svalp) dxv[i]->object = *svalp;
-      svalp = (char **)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "class");
+      svalp = (char **)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "class", NULL);
       if (svalp) dxv[i]->class = *svalp;
-      svalp = (char **)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "type");
+      svalp = (char **)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "type", NULL);
       if (svalp) dxv[i]->type = *svalp;
+      ivec = (SUMA_IVEC*)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "counts", NULL);
+      if (ivec) { dxv[i]->counts = ivec->v; dxv[i]->n_counts = ivec->n; SUMA_free(ivec); ivec = NULL;} 
+      fvec = (SUMA_FVEC*)SUMA_OpenDx_Object_Header_Field(opv[i], nchar[i], "origin", NULL);
+      if (fvec) { dxv[i]->origin = fvec->v; dxv[i]->n_origin = fvec->n; SUMA_free(fvec); fvec = NULL;} 
+      { /* get the deltas */
+         int j, k;
+         char *rf=opv[i];
+         j=0; 
+         while (j<dxv[i]->n_counts) {
+            fvec = (SUMA_FVEC*)SUMA_OpenDx_Object_Header_Field(rf, nchar[i], "delta", &ope);
+            if (fvec && fvec->v) { 
+               if (fvec->n < dxv[i]->n_counts) { SUMA_SL_Warn("Bad assumption about delta field.\nExpect disasters!"); }
+               if (fvec->n > dxv[i]->n_counts) { 
+                  SUMA_SL_Err("More values in delta that counts! Limiting to counts.\nExpect tragedy."); 
+                  fvec->n = dxv[i]->n_counts;
+               }
+               if (j==0) { /* allocate */ 
+                  dxv[i]->n_delta = dxv[i]->n_counts*dxv[i]->n_counts; 
+                  dxv[i]->delta = (float *)SUMA_calloc(dxv[i]->n_delta, sizeof(float));
+               }
+               for (k=0; k<fvec->n; ++k) { 
+                  dxv[i]->delta[(j*dxv[i]->n_counts) + k] = fvec->v[k];  
+               }
+               SUMA_free(fvec->v); SUMA_free(fvec); fvec = NULL;
+            } else { /* get out */
+               if (j) {
+                  SUMA_SL_Warn("Expect as many deltas as counts!\nThat was not the case.");
+               } else { /* OK, no deltas at all */ }
+               j = dxv[i]->n_counts;
+            }
+            ++j; rf = ope;
+         }
+      } 
       /* now for the data */
       if (!SUMA_OpenDx_Object_Data(opv[i], nchar[i], dxv[i])) {
          SUMA_SL_Err("Failed to get data");
@@ -7848,6 +7903,226 @@ SUMA_OPEN_DX_STRUCT *SUMA_Find_OpenDX_Object_Class(SUMA_OPEN_DX_STRUCT **dxv, in
    SUMA_RETURN(dx);
 }
 
+
+char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int LoadData)
+{
+   static char FuncName[]={"SUMA_OpenDX_Read_CruiseVolHead"};
+   int i = 0, nf, iop, chunk, End, bs, doff, data_type=SUMA_notypeset;
+   THD_ivec3 iv3;
+   THD_mat33 m33;
+   THD_ivec3 orixyz , nxyz ;
+   THD_fvec3 dxyz , orgxyz ;
+   float ep[3], sp[3];
+   char *scom=NULL, form[10], swp[10], orstr[10], xfov[100], yfov[100], zfov[100], *prefix = NULL, *dsetheadname = NULL;
+   SUMA_OPEN_DX_STRUCT **dxv=NULL, *dxp=NULL, *dxc=NULL, *dxf=NULL, *dxa=NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!dset || !fname) {
+      SUMA_SL_Err("NULL fname || NULL dset!");
+      SUMA_RETURN(NOPE);
+   }
+   
+   prefix = SUMA_AfniPrefix(fname, NULL);
+   if( !THD_filename_ok(prefix) ) {
+      SUMA_SL_Err("Bad prefix");
+      SUMA_RETURN(NOPE);
+   } 
+   dsetheadname = SUMA_append_string(prefix,"+orig.HEAD");
+   if (SUMA_filexists(dsetheadname)) {
+      SUMA_SL_Err("Bad prefix, output dset exists");
+      SUMA_RETURN(NOPE);
+   }
+   SUMA_free(dsetheadname); dsetheadname = NULL;
+   
+   SUMA_LH("Reading objects");
+   dxv = SUMA_OpenDX_Read(fname, &iop);
+   if (!dxv) {
+      SUMA_SL_Err("Failed to read DX file.");
+      SUMA_RETURN(NOPE);
+   }
+   
+   SUMA_LH("Checking for field object");
+   dxf = SUMA_Find_OpenDX_Object_Class(dxv, iop, "field", &nf);
+   if (!dxf || nf != 1) { SUMA_SL_Err("Failed to find one and only one field object"); goto CLEAN_EXIT; }
+   dxp = dxc = NULL;   
+   for (i=0; i<dxf->n_comp; ++i) {
+      if (strstr(dxf->comp_name[i],"positions")) {
+         dxp = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
+         if (!dxp || nf != 1) { SUMA_SL_Err("Failed to find one and only one positions object"); goto CLEAN_EXIT; }
+      }
+      if (strstr(dxf->comp_name[i],"connections")) {
+         dxc = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
+         if (!dxc || nf != 1) { SUMA_SL_Err("Failed to find one and only one connections object"); goto CLEAN_EXIT; }
+      }
+      if (strstr(dxf->comp_name[i],"data")) {
+         dxa = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
+         if (!dxa || nf != 1) { SUMA_SL_Err("Failed to find one and only one data object"); goto CLEAN_EXIT; }
+      }
+   }
+   
+   if (!dxp || !dxv || !dxa) {
+      SUMA_SL_Err("Failed to find necessary objects"); SUMA_RETURN(NOPE);
+   }
+   
+   /* sanity */
+   SUMA_LH("Sanity checks");
+   if (!dxa->data_format) {
+      SUMA_SL_Err("Not a binary data file!");
+      goto CLEAN_EXIT; 
+   }
+   if (!dxa->data) {
+      SUMA_SL_Err("No data file!");
+      goto CLEAN_EXIT; 
+   }
+   if (dxp->n_counts != 3) {
+      SUMA_SL_Err("counts field must have 3 values");
+      goto CLEAN_EXIT; 
+   }
+   if (dxp->n_delta != 9) {
+      SUMA_SL_Err("delta must contain 9 elements!");
+      goto CLEAN_EXIT; 
+   }
+   
+   /* form the command */
+   SUMA_LH("Forming command");
+   /* 3d what? */
+   chunk = 0;
+   form[0] = '\0';
+   data_type = SUMA_VarType2TypeCast(dxa->type);
+   switch (data_type) {
+      case SUMA_float:
+         sprintf(form,"3Df");
+         chunk = sizeof(float);
+         break;
+      case SUMA_double:
+         sprintf(form,"3Dd");
+         chunk = sizeof(double);
+         break;
+      case SUMA_int:
+         sprintf(form,"3Di");
+         chunk = sizeof(int);
+         break;
+      case SUMA_short:
+         sprintf(form,"3Ds");
+         chunk = sizeof(short);
+         break;
+      case SUMA_byte:
+         sprintf(form,"3Db");
+         chunk = sizeof(byte);
+         break;
+      default:
+         SUMA_SL_Err("No support for this type");
+         goto CLEAN_EXIT; 
+         break;
+   }
+   /* byte ordering */
+   SUMA_WHAT_ENDIAN(End);
+   bs = 0;
+   swp[0] = '\0';
+   if (End != dxa->data_format) {
+      SUMA_LH("swapping needed");
+      bs = 1;
+      switch (chunk) {
+         case 1:
+            break;
+         case 2:
+            sprintf(swp,"-2swap");
+            break;
+         case 4:
+            sprintf(swp,"-4swap");
+            break;
+         case 8:
+            sprintf(swp,"-8swap");
+            break;
+         default:
+            SUMA_SL_Err("Patchunk!");
+            break;
+      }
+   }
+   if (dxa->data_off)  doff = (int)strtol(dxa->data_off,NULL, 10);
+   else doff = 0;
+   
+   /* direction that varies the fastest (x) is in the last delta
+      count is ordered like delta. I do not know about origin yet,
+      I assume that origin follows the ordering of count
+      see http://opendx.npaci.edu/docs/html/pages/usrgu068.htm 
+      for reference, someday....*/
+   
+   /* number of voxels */
+   LOAD_IVEC3( nxyz   , dxp->counts[2]    , dxp->counts[1]    , dxp->counts[0] ) ;
+   /* dimensions */
+   {  
+      float fb[3]; 
+      SUMA_NORM_VEC((&(dxp->delta[6])),3, fb[0]);
+      SUMA_NORM_VEC((&(dxp->delta[3])),3, fb[1]);
+      SUMA_NORM_VEC((&(dxp->delta[0])),3, fb[2]);
+      LOAD_FVEC3( dxyz   , fb[0]    , fb[1]    , fb[2]    ) ;
+   }
+   /* origin , assumed to be center of first voxel*/
+   LOAD_FVEC3( orgxyz , dxp->origin[2]    , dxp->origin[1] , dxp->origin[0]  ) ;
+   
+   /* orientation */
+   /* find closest orientation in RAI, delta matrix does allow for obliqueness (non diagonal matrix) but we ignore it */
+   LOAD_MAT(m33, 
+               dxp->delta[6], dxp->delta[7], dxp->delta[8], 
+               dxp->delta[3], dxp->delta[4], dxp->delta[5],
+               dxp->delta[0], dxp->delta[1], dxp->delta[2] );
+   orixyz = THD_matrix_to_orientation( m33 );
+    
+   /* start point (edge of origin voxel) and end point (opposite to start ) */
+   sp[0] = dxp->origin[2] + SUMA_ABS(dxyz.xyz[0]) / 2.0;
+   sp[1] = dxp->origin[1] + SUMA_ABS(dxyz.xyz[1]) / 2.0;
+   sp[2] = dxp->origin[0] + SUMA_ABS(dxyz.xyz[2]) / 2.0;
+   ep[0] = dxp->origin[2] + (nxyz.ijk[0] - 0.5) * SUMA_ABS(dxyz.xyz[0]);
+   ep[1] = dxp->origin[1] + (nxyz.ijk[1] - 0.5) * SUMA_ABS(dxyz.xyz[1]);
+   ep[2] = dxp->origin[0] + (nxyz.ijk[2] - 0.5) * SUMA_ABS(dxyz.xyz[2]);
+   SUMA_orcode_to_orstring (orixyz.ijk[0], orixyz.ijk[1], orixyz.ijk[2], orstr);
+   sprintf(xfov," -xFOV %.2f%c-%.2f%c", sp[0], orstr[0], ep[0], orstr[3]);
+   sprintf(yfov," -yFOV %.2f%c-%.2f%c", sp[1], orstr[1], ep[1], orstr[4]);
+   sprintf(zfov," -zFOV %.2f%c-%.2f%c", sp[2], orstr[2], ep[2], orstr[5]);
+  
+   
+   scom = (char *)SUMA_calloc((strlen(dxa->data)+500), sizeof(char));
+   sprintf(scom,"to3d %s %s %s %s -prefix %s %s:%d:0:%d:%d:%d:%s ", swp, xfov, yfov, zfov, prefix, form, doff, dxp->counts[2], dxp->counts[1], dxp->counts[0], dxa->data);
+   
+   
+   if (dset) { /* form the dset header */
+         int nvals_read = 0;
+         EDIT_dset_items( dset ,
+                            ADN_prefix      , prefix ,
+                            ADN_datum_all   , data_type ,
+                            ADN_nxyz        , nxyz ,
+                            ADN_xyzdel      , dxyz ,
+                            ADN_xyzorg      , orgxyz ,
+                            ADN_xyzorient   , orixyz ,
+                            ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
+                            ADN_view_type   , VIEW_ORIGINAL_TYPE ,
+                            ADN_type        , HEAD_ANAT_TYPE ,
+                            ADN_func_type   , ANAT_BUCK_TYPE ,
+                          ADN_none ) ;
+
+         if (LoadData) {
+            void *vec=NULL;
+            if (!(vec = SUMA_BinarySuck(dxa->data, data_type, dxa->data_format, doff, -1, &nvals_read))) {
+               SUMA_SL_Err("Failed to read data file"); goto CLEAN_EXIT;
+            }
+            EDIT_substitute_brick( dset , 0 , data_type , vec) ;      
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: Read %d values from file.\n", FuncName, nvals_read);
+            /* DSET_write(dset) ; */
+         }
+   }
+   
+
+   
+   CLEAN_EXIT:
+   dxv = SUMA_Free_OpenDX_StructVec(dxv, iop);
+   if (prefix) SUMA_free(prefix); prefix = NULL;
+   
+   SUMA_RETURN(scom);
+}
+
 /*!
    \brief reads an OpenDX surface. Sample surfaces provided by Aaron Carass
    
@@ -7888,48 +8163,48 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    
    SUMA_LH("Checking for field object");
    dxf = SUMA_Find_OpenDX_Object_Class(dxv, iop, "field", &nf);
-   if (!dxf || nf != 1) { SUMA_SL_Err("Failed to find one and only one field object"); SUMA_RETURN(NOPE); }
+   if (!dxf || nf != 1) { SUMA_SL_Err("Failed to find one and only one field object"); goto CLEAN_EXIT; }
    /* get names of objects that contain positions and connections */
    dxp = dxc = NULL;   
    for (i=0; i<dxf->n_comp; ++i) {
       if (strstr(dxf->comp_name[i],"positions")) {
          dxp = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
-         if (!dxp || nf != 1) { SUMA_SL_Err("Failed to find one and only one positions object"); SUMA_RETURN(NOPE); }
+         if (!dxp || nf != 1) { SUMA_SL_Err("Failed to find one and only one positions object"); goto CLEAN_EXIT; }
       }
       if (strstr(dxf->comp_name[i],"connections")) {
          dxc = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
-         if (!dxc || nf != 1) { SUMA_SL_Err("Failed to find one and only one connections object"); SUMA_RETURN(NOPE); }
+         if (!dxc || nf != 1) { SUMA_SL_Err("Failed to find one and only one connections object"); goto CLEAN_EXIT; }
       }
    }
    
    if (!dxp || !dxv) {
-      SUMA_SL_Err("Failed to find necessary objects"); SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Failed to find necessary objects"); goto CLEAN_EXIT;
    }
    
    SUMA_LH("checking...");
    if (SUMA_VarType2TypeCast (dxp->type) != SUMA_float) {
-      SUMA_SL_Err("Expected floats for positions"); SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Expected floats for positions"); goto CLEAN_EXIT;
    }
    if (dxp->bad_data) {
-      SUMA_SL_Err("Problem reading data for positions"); SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Problem reading data for positions"); goto CLEAN_EXIT;
    }
    if (dxp->rank != 1) {
-      SUMA_SL_Err("Expected rank of 1 for positions"); SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Expected rank of 1 for positions"); goto CLEAN_EXIT;
    }
    if (dxp->shape != 3) {
-      SUMA_SL_Err("Expected rank of 3 for positions"); SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Expected rank of 3 for positions"); goto CLEAN_EXIT;
    }
    if (SUMA_VarType2TypeCast (dxc->type) != SUMA_int) {
-      SUMA_SL_Err("Expected ints for connections"); SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Expected ints for connections"); goto CLEAN_EXIT;
    }
    if (dxc->bad_data) {
-      SUMA_SL_Err("Problem reading data for connections"); SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Problem reading data for connections"); goto CLEAN_EXIT;
    }   
    if (dxc->rank != 1) {
-      SUMA_SL_Err("Expected rank of 1 for connections"); SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Expected rank of 1 for connections"); goto CLEAN_EXIT;
    }
    if (dxc->shape != 3) {
-      SUMA_SL_Err("Expected rank of 3 for connections"); SUMA_RETURN(NOPE);
+      SUMA_SL_Err("Expected rank of 3 for connections"); goto CLEAN_EXIT;
    }
    
    SUMA_LH("Take the gold");
@@ -7945,6 +8220,7 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    SO->N_FaceSet = dxc->items;;
    SO->Name = SUMA_StripPath(fname);
    
+   CLEAN_EXIT:
    SUMA_LH("Frenching dxv");
    for (i=0; i<iop; ++i) {
       dxv[i] = SUMA_Free_OpenDX_Struct(dxv[i]);
