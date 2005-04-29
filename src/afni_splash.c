@@ -1673,6 +1673,7 @@ static mday facials[] = {
  {JAN, 3,"face_tolkien" } ,
  {MAR,14,"face_einstein"} ,
  {APR,27,"face_grant"   } ,
+ {JUL,22,"face_rbirn"   } ,
  {SEP, 7,"face_rwcox"   } ,
 {0,0,NULL} } ;  /* last element = flag to stop searching */
 
