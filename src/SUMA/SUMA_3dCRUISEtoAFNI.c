@@ -16,8 +16,10 @@ void usage_3dCRUISEtoAFNI (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: A template code for writing SUMA programs.\n"
-               " \n"
+               "Usage: 3dCRUISEtoAFNI -input CRUISE_HEADER.dx\n"
+               " Converts a CRUISE dataset defined by a heder in OpenDX format\n"
+               " The conversion is based on sample data and information\n"
+               " provided by Aaron Carass from JHU's IACL iacl.ece.jhu.edu\n" 
                "%s"
                "%s"
                "\n", sio,  s);
@@ -58,7 +60,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dCRUISEtoAFNI_ParseInput(char *argv[], i
          Opt->in_name = argv[kar];
 			brk = YUP;
 		}
-
+      if (!brk && (strcmp(argv[kar], "-debug") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need integer argument after -debug\n");
+				exit (1);
+			}
+         Opt->debug = atoi(argv[kar]);
+			brk = YUP;
+		}
+      
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -87,7 +98,7 @@ int main (int argc,char *argv[])
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   ps = SUMA_Parse_IO_Args(argc, argv, "-o;-talk;");
+   ps = SUMA_Parse_IO_Args(argc, argv, "");
    
    if (argc < 2) {
       usage_3dCRUISEtoAFNI(ps);
@@ -100,13 +111,28 @@ int main (int argc,char *argv[])
    
    dset = EDIT_empty_copy( NULL ) ;
    tross_Make_History( "3dCRUISEtoAFNI" , argc,argv , dset) ;
-   if (!(sto3d = SUMA_OpenDX_Read_CruiseVolHead(Opt->in_name, dset))) {
-      SUMA_SL_Err("Failed to open volume");
+   if (!(sto3d = SUMA_OpenDX_Read_CruiseVolHead(Opt->in_name, dset, 1))) {
+      if (Opt->debug) SUMA_SL_Err("Failed in SUMA_OpenDX_Read_CruiseVolHead");
       exit(1);   
    }
-   SUMA_LH(sto3d);
+   if (dset) {
+      SUMA_LH("Writing Dset");
+      DSET_write(dset) ;
+      if (LocalHead) { 
+         fprintf(SUMA_STDERR,"%s: Can use the following command to create dset with to3d:\n%s\n", FuncName,sto3d); 
+      } 
+   } else {
+      /* the olde way */
+      if (system(sto3d)) {
+         fprintf(SUMA_STDERR, "Error %s: Failed while executing shell command:\n%s\n"
+                              "Check to3d's error messages, and disk writing permissions.\n", FuncName, sto3d);
+      }
+   }
+   
+   
       
    if (sto3d) SUMA_free(sto3d); sto3d = NULL;
+   if (dset) { DSET_delete(dset); dset = NULL; }
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);
