@@ -136,7 +136,7 @@
 
   Mod:     Increased max. allowed number of input stimulus functions, GLTs,
            and linear constraints per GLT.  Also, increased size of screen
-	   output buffer.
+         output buffer.
   Date:    27 July 2000
 
   Mod:     Additional output with -nodata option (norm.std.dev.'s for
@@ -193,8 +193,8 @@
 
   Mod:     Changed initialization of nt from -nlast input option.  This
            required major changes in read_input_data routine.  Also, added
-	   protection against invalid -concat inputs in check_for_valid_inputs
-	   routine.
+         protection against invalid -concat inputs in check_for_valid_inputs
+         routine.
   Date:    23 January 2002
 
   Mod:     Enhanced screen output:  Display of p-values for individual stim
@@ -491,7 +491,7 @@ typedef struct DC_options
   int p;                   /* number of parameters in the full model */
   int q;                   /* number of parameters in the baseline model */
   int qp;                  /* number of polynomial trend parameters
-			      in the baseline model  Note: qp <= q <= p  */
+                        in the baseline model  Note: qp <= q <= p  */
   int nbricks;             /* number of sub-bricks in bucket dataset output */
 
   int num_stimts;          /* number of stimulus time series */
@@ -1015,36 +1015,36 @@ void get_options
 
       /*-----   -xjpeg filename  ------*/
       if (strcmp(argv[nopt], "-xjpeg") == 0)   /* 21 Jul 2004 */
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -xjpeg ");
-	  option_data->xjpeg_filename = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->xjpeg_filename);
-	  strcpy (option_data->xjpeg_filename, argv[nopt]);
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -xjpeg ");
+        option_data->xjpeg_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->xjpeg_filename);
+        strcpy (option_data->xjpeg_filename, argv[nopt]);
           if( strstr(option_data->xjpeg_filename,".jpg") == NULL &&
               strstr(option_data->xjpeg_filename,".JPG") == NULL   )
             strcat( option_data->xjpeg_filename , ".jpg" ) ;
-	  nopt++; continue;
-	}
+        nopt++; continue;
+      }
 
 
       /*-----   -input filename   -----*/
       if (strcmp(argv[nopt], "-input") == 0)
-	{
+      {
           int iopt , slen ;
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -input ");
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -input ");
 #if 0
-	  option_data->input_filename = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->input_filename);
-	  strcpy (option_data->input_filename, argv[nopt]);
-	  nopt++;
+        option_data->input_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->input_filename);
+        strcpy (option_data->input_filename, argv[nopt]);
+        nopt++;
 #else                   /* 05 Aug 2004: multiple input datasets */
           slen = 0 ;
           for( iopt=nopt ; iopt < argc && argv[iopt][0] != '-' ; iopt++ )
             slen += strlen(argv[iopt])+8 ;
           option_data->input_filename = calloc(sizeof(char),slen) ;
-	  MTEST (option_data->input_filename);
+        MTEST (option_data->input_filename);
           for( iopt=nopt ; iopt < argc && argv[iopt][0] != '-' ; iopt++ ){
             strcat( option_data->input_filename , argv[iopt] ) ;
             strcat( option_data->input_filename , " "        ) ;
@@ -1053,22 +1053,22 @@ void get_options
           option_data->input_filename[slen-1] = '\0' ; /* trim last blank */
           nopt = iopt ;
 #endif
-	  continue;
-	}
+        continue;
+      }
 
 
       /*-----   -mask filename   -----*/
       if (strcmp(argv[nopt], "-mask") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -mask ");
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -mask ");
      if( option_data->automask ) DC_error("can't use -mask AND -automask!") ;
-	  option_data->mask_filename = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->mask_filename);
-	  strcpy (option_data->mask_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        option_data->mask_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->mask_filename);
+        strcpy (option_data->mask_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
 
       /*----    -automask   -----*/
       if( strcmp(argv[nopt],"-automask") == 0 ){   /* 15 Apr 2005 */
@@ -1081,51 +1081,51 @@ void get_options
 
       /*-----   -input1D filename   -----*/
       if (strcmp(argv[nopt], "-input1D") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -input1D ");
-	  option_data->input1D_filename =
-	    malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->input1D_filename);
-	  strcpy (option_data->input1D_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -input1D ");
+        option_data->input1D_filename =
+          malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->input1D_filename);
+        strcpy (option_data->input1D_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -censor filename   -----*/
       if (strcmp(argv[nopt], "-censor") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -censor ");
-	  option_data->censor_filename =
-	    malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->censor_filename);
-	  strcpy (option_data->censor_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -censor ");
+        option_data->censor_filename =
+          malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->censor_filename);
+        strcpy (option_data->censor_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -concat filename   -----*/
       if (strcmp(argv[nopt], "-concat") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -concat ");
-	  option_data->concat_filename =
-	    malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->concat_filename);
-	  strcpy (option_data->concat_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -concat ");
+        option_data->concat_filename =
+          malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->concat_filename);
+        strcpy (option_data->concat_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -nodata   -----*/
       if (strcmp(argv[nopt], "-nodata") == 0)
-	{
-	  option_data->nodata = 1;
-	  nopt++;
+       {
+        option_data->nodata = 1;
+        nopt++;
 
      /* 27 Apr 2005: check for additional numeric values */
 
@@ -1135,50 +1135,50 @@ void get_options
          option_data->nodata_TR = (float)strtod(argv[nopt++],NULL) ;
        }
      }
-	  continue;
-	}
+        continue;
+      }
 
 
       /*-----   -nfirst num  -----*/
       if (strcmp(argv[nopt], "-nfirst") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -nfirst ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
-	    DC_error ("illegal argument after -nfirst ");
-	  option_data->NFirst = ival;
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -nfirst ");
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 0)
+          DC_error ("illegal argument after -nfirst ");
+        option_data->NFirst = ival;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -nlast num  -----*/
       if (strcmp(argv[nopt], "-nlast") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -nlast ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
-	    DC_error ("illegal argument after -nlast ");
-	  option_data->NLast = ival;
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -nlast ");
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 0)
+          DC_error ("illegal argument after -nlast ");
+        option_data->NLast = ival;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -polort num  -----*/
       if (strcmp(argv[nopt], "-polort") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -polort ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < -1)
-	    DC_error ("illegal argument after -polort ");
-	  option_data->polort = ival;
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -polort ");
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < -1)
+          DC_error ("illegal argument after -polort ");
+        option_data->polort = ival;
+        nopt++;
+        continue;
+      }
 
       /*----- -legendre AND -nolegendre [15 Jul 2004] -----*/
 
@@ -1221,68 +1221,68 @@ void get_options
 
       /*-----   -quiet   -----*/
       if (strcmp(argv[nopt], "-quiet") == 0)
-	{
-	  option_data->quiet = 1;  verb = 0 ;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->quiet = 1;  verb = 0 ;
+        nopt++;
+        continue;
+      }
 
       /*-----   -progress n  -----*/
       if (strcmp(argv[nopt], "-progress") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -progress ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
-	    DC_error ("illegal argument after -progress ");
-	  option_data->progress = ival;
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -progress ");
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 0)
+          DC_error ("illegal argument after -progress ");
+        option_data->progress = ival;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -rmsmin r  -----*/
       if (strcmp(argv[nopt], "-rmsmin") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -rmsmin ");
-	  sscanf (argv[nopt], "%f", &fval);
-	  if (fval < 0.0)
-	    DC_error ("illegal argument after -rmsmin ");
-	  option_data->rms_min = fval;
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -rmsmin ");
+        sscanf (argv[nopt], "%f", &fval);
+        if (fval < 0.0)
+          DC_error ("illegal argument after -rmsmin ");
+        option_data->rms_min = fval;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -fdisp fval   -----*/
       if (strcmp(argv[nopt], "-fdisp") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -fdisp ");
-	  sscanf (argv[nopt], "%f", &fval);
-	  option_data->fdisp = fval;
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -fdisp ");
+        sscanf (argv[nopt], "%f", &fval);
+        option_data->fdisp = fval;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -num_stimts num  -----*/
       if (strcmp(argv[nopt], "-num_stimts") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -num_stimts ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
-	    {
-	      DC_error ("-num_stimts num   Require: num >= 0 ");
-	    }
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -num_stimts ");
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 0)
+          {
+            DC_error ("-num_stimts num   Require: num >= 0 ");
+          }
 
-	  initialize_stim_options (option_data, ival);
-	
-	  nopt++;
-	  continue;
-	}
+        initialize_stim_options (option_data, ival);
+
+        nopt++;
+        continue;
+      }
 
       /*-----  -TR_times basis_dtout [16 Aug 2004]  -----*/
       if( strcmp(argv[nopt],"-TR_times") == 0 ){
@@ -1358,15 +1358,15 @@ void get_options
 
       /*-----   -stim_file k sname   -----*/
       if (strcmp(argv[nopt], "-stim_file") == 0)
-	{
-	  nopt++;
-	  if (nopt+1 >= argc)  DC_error ("need 2 arguments after -stim_file");
+      {
+        nopt++;
+        if (nopt+1 >= argc)  DC_error ("need 2 arguments after -stim_file");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > option_data->num_stimts))
-	    DC_error ("-stim_file k sname   Require: 1 <= k <= num_stimts");
-	  k = ival-1;
-	  nopt++;
+        sscanf (argv[nopt], "%d", &ival);
+        if ((ival < 1) || (ival > option_data->num_stimts))
+          DC_error ("-stim_file k sname   Require: 1 <= k <= num_stimts");
+        k = ival-1;
+        nopt++;
           if( option_data->stim_filename[k] != NULL ){
             fprintf(stderr,
                     "** ERROR: '-stim_file %d' trying to overwrite previous stimulus\n",
@@ -1374,168 +1374,168 @@ void get_options
             exit(1) ;
           }
 
-	  option_data->stim_filename[k] = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->stim_filename[k]);
-	  strcpy (option_data->stim_filename[k], argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        option_data->stim_filename[k] = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->stim_filename[k]);
+        strcpy (option_data->stim_filename[k], argv[nopt]);
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -stim_label k slabel   -----*/
       if (strcmp(argv[nopt], "-stim_label") == 0)
-	{
-	  nopt++;
-	  if (nopt+1 >= argc)  DC_error ("need 2 arguments after -stim_label");
+      {
+        nopt++;
+        if (nopt+1 >= argc)  DC_error ("need 2 arguments after -stim_label");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > option_data->num_stimts))
-	    DC_error ("-stim_label k slabel   Require: 1 <= k <= num_stimts");
-	  k = ival-1;
-	  nopt++;
+        sscanf (argv[nopt], "%d", &ival);
+        if ((ival < 1) || (ival > option_data->num_stimts))
+          DC_error ("-stim_label k slabel   Require: 1 <= k <= num_stimts");
+        k = ival-1;
+        nopt++;
 
-	  strcpy (option_data->stim_label[k], argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        strcpy (option_data->stim_label[k], argv[nopt]);
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -stim_base k   -----*/
       if (strcmp(argv[nopt], "-stim_base") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)
-	    DC_error ("need 1 argument after -stim_base");
+      {
+        nopt++;
+        if (nopt >= argc)
+          DC_error ("need 1 argument after -stim_base");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > option_data->num_stimts))
-	    DC_error ("-stim_base k   Require: 1 <= k <= num_stimts");
-	  k = ival-1;
-	  option_data->stim_base[k] = 1;
-	  nopt++;
-	  continue;
-	}
+        sscanf (argv[nopt], "%d", &ival);
+        if ((ival < 1) || (ival > option_data->num_stimts))
+          DC_error ("-stim_base k   Require: 1 <= k <= num_stimts");
+        k = ival-1;
+        option_data->stim_base[k] = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -stim_minlag k lag   -----*/
       if (strcmp(argv[nopt], "-stim_minlag") == 0)
-	{
-	  nopt++;
-	  if (nopt+1 >= argc)
-	    DC_error ("need 2 arguments after -stim_minlag");
+      {
+        nopt++;
+        if (nopt+1 >= argc)
+          DC_error ("need 2 arguments after -stim_minlag");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > option_data->num_stimts))
-	    DC_error ("-stim_minlag k lag   Require: 1 <= k <= num_stimts");
-	  k = ival-1;
-	  nopt++;
+        sscanf (argv[nopt], "%d", &ival);
+        if ((ival < 1) || (ival > option_data->num_stimts))
+          DC_error ("-stim_minlag k lag   Require: 1 <= k <= num_stimts");
+        k = ival-1;
+        nopt++;
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
-	    DC_error ("-stim_minlag k lag   Require: 0 <= lag");
-	  option_data->stim_minlag[k] = ival;
-	  nopt++;
-	  continue;
-	}
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 0)
+          DC_error ("-stim_minlag k lag   Require: 0 <= lag");
+        option_data->stim_minlag[k] = ival;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -stim_maxlag k lag   -----*/
       if (strcmp(argv[nopt], "-stim_maxlag") == 0)
-	{
-	  nopt++;
-	  if (nopt+1 >= argc)
-	    DC_error ("need 2 arguments after -stim_maxlag");
+      {
+        nopt++;
+        if (nopt+1 >= argc)
+          DC_error ("need 2 arguments after -stim_maxlag");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > option_data->num_stimts))
-	    DC_error ("-stim_maxlag k lag   Require: 1 <= k <= num_stimts");
-	  k = ival-1;
-	  nopt++;
+        sscanf (argv[nopt], "%d", &ival);
+        if ((ival < 1) || (ival > option_data->num_stimts))
+          DC_error ("-stim_maxlag k lag   Require: 1 <= k <= num_stimts");
+        k = ival-1;
+        nopt++;
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
-	    DC_error ("-stim_maxlag k lag   Require: 0 <= lag");
-	  option_data->stim_maxlag[k] = ival;
-	  nopt++;
-	  continue;
-	}
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 0)
+          DC_error ("-stim_maxlag k lag   Require: 0 <= lag");
+        option_data->stim_maxlag[k] = ival;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -stim_nptr k p   -----*/
       if (strcmp(argv[nopt], "-stim_nptr") == 0)
-	{
-	  nopt++;
-	  if (nopt+1 >= argc)
-	    DC_error ("need 2 arguments after -stim_nptr");
+      {
+        nopt++;
+        if (nopt+1 >= argc)
+          DC_error ("need 2 arguments after -stim_nptr");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > option_data->num_stimts))
-	    DC_error ("-stim_nptr k p   Require: 1 <= k <= num_stimts");
-	  k = ival-1;
-	  nopt++;
+        sscanf (argv[nopt], "%d", &ival);
+        if ((ival < 1) || (ival > option_data->num_stimts))
+          DC_error ("-stim_nptr k p   Require: 1 <= k <= num_stimts");
+        k = ival-1;
+        nopt++;
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 1)
-	    DC_error ("-stim_nptr k p   Require: 1 <= p");
-	  option_data->stim_nptr[k] = ival;
-	  nopt++;
-	  continue;
-	}
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 1)
+          DC_error ("-stim_nptr k p   Require: 1 <= p");
+        option_data->stim_nptr[k] = ival;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -num_glt num  -----*/
       if (strcmp(argv[nopt], "-num_glt") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need argument after -num_glt ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 0)
-	    {
-	      DC_error ("-num_glt num   Require: num >= 0 ");
-	    }
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -num_glt ");
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 0)
+          {
+            DC_error ("-num_glt num   Require: num >= 0 ");
+          }
 
-	  if (option_data->num_glt > 0)
-	    DC_error ("-num_glt option must precede any -glt options ");
+        if (option_data->num_glt > 0)
+          DC_error ("-num_glt option must precede any -glt options ");
 
-	  initialize_glt_options (option_data, ival);
-	
-	  nopt++;
-	  continue;
-	}
+        initialize_glt_options (option_data, ival);
+
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -glt s gltname   -----*/
       if (strcmp(argv[nopt], "-glt") == 0)
-	{
-	  nopt++;
-	  if (nopt+1 >= argc)  DC_error ("need 2 arguments after -glt");
+      {
+        nopt++;
+        if (nopt+1 >= argc)  DC_error ("need 2 arguments after -glt");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival < 1)
-	    {
-	      DC_error ("-glt s gltname  Require: s >= 1  (s = #rows in GLT)");
-	    }
-	  s = ival;
+        sscanf (argv[nopt], "%d", &ival);
+        if (ival < 1)
+          {
+            DC_error ("-glt s gltname  Require: s >= 1  (s = #rows in GLT)");
+          }
+        s = ival;
 
-	  if (option_data->num_glt == 0)
-	    initialize_glt_options (option_data, 10);   /* default limit on GLTs */
-	
-	  if (iglt+1 > option_data->num_glt)
-	    DC_error ("Use -num_glt option to specify number of GLTs");
+        if (option_data->num_glt == 0)
+          initialize_glt_options (option_data, 10);   /* default limit on GLTs */
 
-	  option_data->glt_rows[iglt] = s;
-	  nopt++;
+        if (iglt+1 > option_data->num_glt)
+          DC_error ("Use -num_glt option to specify number of GLTs");
 
-	  option_data->glt_filename[iglt]
-	    = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->glt_filename[iglt]);
-	  strcpy (option_data->glt_filename[iglt],
-		  argv[nopt]);
-	  iglt++;
-	
-	  nopt++;
-	  continue;
-	}
+        option_data->glt_rows[iglt] = s;
+        nopt++;
+
+        option_data->glt_filename[iglt]
+          = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->glt_filename[iglt]);
+        strcpy (option_data->glt_filename[iglt],
+              argv[nopt]);
+        iglt++;
+
+        nopt++;
+        continue;
+      }
 
       /*---- -gltsym gltname [29 Jul 2004] -----*/
 
@@ -1558,191 +1558,191 @@ void get_options
 
       /*-----   -glt_label k glabel   -----*/
       if (strcmp(argv[nopt], "-glt_label") == 0)
-	{
-	  nopt++;
-	  if (nopt+1 >= argc)  DC_error ("need 2 arguments after -glt_label");
+      {
+        nopt++;
+        if (nopt+1 >= argc)  DC_error ("need 2 arguments after -glt_label");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > option_data->num_glt))
-	    DC_error ("-stim_label k slabel   Require: 1 <= k <= num_glt");
-	  k = ival-1;
-	  nopt++;
+        sscanf (argv[nopt], "%d", &ival);
+        if ((ival < 1) || (ival > option_data->num_glt))
+          DC_error ("-stim_label k slabel   Require: 1 <= k <= num_glt");
+        k = ival-1;
+        nopt++;
 
-	  strcpy (option_data->glt_label[k], argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        strcpy (option_data->glt_label[k], argv[nopt]);
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -iresp k iprefix   -----*/
       if (strcmp(argv[nopt], "-iresp") == 0)
-	{
-	  nopt++;
-	  if (nopt+1 >= argc)  DC_error ("need 2 arguments after -iresp");
+      {
+        nopt++;
+        if (nopt+1 >= argc)  DC_error ("need 2 arguments after -iresp");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > option_data->num_stimts))
-	    DC_error ("-iresp k iprefix   Require: 1 <= k <= num_stimts");
-	  k = ival-1;
-	  nopt++;
+        sscanf (argv[nopt], "%d", &ival);
+        if ((ival < 1) || (ival > option_data->num_stimts))
+          DC_error ("-iresp k iprefix   Require: 1 <= k <= num_stimts");
+        k = ival-1;
+        nopt++;
 
-	  option_data->iresp_filename[k]
-	    = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->iresp_filename[k]);
-	  strcpy (option_data->iresp_filename[k], argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        option_data->iresp_filename[k]
+          = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->iresp_filename[k]);
+        strcpy (option_data->iresp_filename[k], argv[nopt]);
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -tshift   -----*/
       if (strcmp(argv[nopt], "-tshift") == 0)
-	{
-	  option_data->tshift = 1;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->tshift = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -sresp k sprefix   -----*/
       if (strcmp(argv[nopt], "-sresp") == 0)
-	{
-	  nopt++;
-	  if (nopt+1 >= argc)  DC_error ("need 2 arguments after -sresp");
+      {
+        nopt++;
+        if (nopt+1 >= argc)  DC_error ("need 2 arguments after -sresp");
 
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival < 1) || (ival > option_data->num_stimts))
-	    DC_error ("-sresp k iprefix   Require: 1 <= k <= num_stimts");
-	  k = ival-1;
-	  nopt++;
+        sscanf (argv[nopt], "%d", &ival);
+        if ((ival < 1) || (ival > option_data->num_stimts))
+          DC_error ("-sresp k iprefix   Require: 1 <= k <= num_stimts");
+        k = ival-1;
+        nopt++;
 
-	  option_data->sresp_filename[k]
-	    = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->sresp_filename[k]);
-	  strcpy (option_data->sresp_filename[k], argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+        option_data->sresp_filename[k]
+          = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->sresp_filename[k]);
+        strcpy (option_data->sresp_filename[k], argv[nopt]);
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -fout   -----*/
       if (strcmp(argv[nopt], "-fout") == 0)
-	{
-	  option_data->fout = 1;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->fout = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -rout   -----*/
       if (strcmp(argv[nopt], "-rout") == 0)
-	{
-	  option_data->rout = 1;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->rout = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -tout   -----*/
       if (strcmp(argv[nopt], "-tout") == 0)
-	{
-	  option_data->tout = 1;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->tout = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -vout   -----*/
       if (strcmp(argv[nopt], "-vout") == 0)
-	{
-	  option_data->vout = 1;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->vout = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -xout   -----*/
       if (strcmp(argv[nopt], "-xout") == 0)
-	{
-	  option_data->xout = 1;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->xout = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -nobout   -----*/
       if (strcmp(argv[nopt], "-nobout") == 0)
-	{
-	  option_data->nobout = 1;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->nobout = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -nocout   -----*/
       if (strcmp(argv[nopt], "-nocout") == 0)
-	{
-	  option_data->nocout = 1;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->nocout = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -full_first   -----*/
       if (strcmp(argv[nopt], "-full_first") == 0)
-	{
-	  option_data->full_first = 1;
-	  nopt++;
-	  continue;
-	}
+      {
+        option_data->full_first = 1;
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -bucket filename   -----*/
       if (strcmp(argv[nopt], "-bucket") == 0 || strcmp(argv[nopt],"-prefix") == 0 )
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need file prefixname after -bucket ");
-	  option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->bucket_filename);
-	  strcpy (option_data->bucket_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need file prefixname after -bucket ");
+        option_data->bucket_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->bucket_filename);
+        strcpy (option_data->bucket_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
 
       /*-----   -cbucket filename   -----*/
       if (strcmp(argv[nopt], "-cbucket") == 0 || strcmp(argv[nopt],"-cprefix") == 0 )
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need file prefixname after -cbucket ");
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need file prefixname after -cbucket ");
           CoefFilename = strdup( argv[nopt] ) ;
-	  nopt++; continue;
-	}
+        nopt++; continue;
+      }
 
 
       /*-----   -fitts filename   -----*/
       if (strcmp(argv[nopt], "-fitts") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need file prefixname after -fitts ");
-	  option_data->fitts_filename = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->fitts_filename);
-	  strcpy (option_data->fitts_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need file prefixname after -fitts ");
+        option_data->fitts_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->fitts_filename);
+        strcpy (option_data->fitts_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
 
 
       /*-----   -errts filename   -----*/
       if (strcmp(argv[nopt], "-errts") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  DC_error ("need file prefixname after -errts ");
-	  option_data->errts_filename = malloc (sizeof(char)*THD_MAX_NAME);
-	  MTEST (option_data->errts_filename);
-	  strcpy (option_data->errts_filename, argv[nopt]);
-	  nopt++;
-	  continue;
-	}
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need file prefixname after -errts ");
+        option_data->errts_filename = malloc (sizeof(char)*THD_MAX_NAME);
+        MTEST (option_data->errts_filename);
+        strcpy (option_data->errts_filename, argv[nopt]);
+        nopt++;
+        continue;
+      }
 
       /*-----   -jobs J   -----*/
       if( strcmp(argv[nopt],"-jobs") == 0 ){   /* RWCox */
@@ -1854,7 +1854,7 @@ float * read_time_series
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
   MRI_IMAGE * im, * flim;  /* pointers to image structures
-			      -- used to read 1D ASCII */
+                        -- used to read 1D ASCII */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
   int ny;                  /* number of columns in time series file */
@@ -1978,20 +1978,20 @@ ENTRY("read_input_data") ;
       }
 
       for (is = 0;  is < num_stimts;  is++)
-	{
+      {
           if( basis_stim[is] != NULL ) continue ;  /* 11 Aug 2004: skip thisn */
 
-	  (*stimulus)[is] = read_time_series (option_data->stim_filename[is],
-					      &((*stim_length)[is]));
-	
-	  if ((*stimulus)[is] == NULL)
-	    {
-	      sprintf (message,  "Unable to read stimulus time series: %s",
-		       option_data->stim_filename[is]);
-	      DC_error (message);
-	    }
+        (*stimulus)[is] = read_time_series (option_data->stim_filename[is],
+                                    &((*stim_length)[is]));
 
-	}
+        if ((*stimulus)[is] == NULL)
+          {
+            sprintf (message,  "Unable to read stimulus time series: %s",
+                   option_data->stim_filename[is]);
+            DC_error (message);
+          }
+
+      }
     }
 
 
@@ -2012,7 +2012,7 @@ ENTRY("read_input_data") ;
       }
 
       *dset_time = NULL;
-      if( option_data->nodata_NT > 0 )
+      if( option_data->nodata_NT > 0 )  /* special case */
         nt = option_data->nodata_NT ;
       else
         nt = (*stim_length)[0] / option_data->stim_nptr[0];
@@ -2024,13 +2024,13 @@ ENTRY("read_input_data") ;
     {
       /*----- Read the input fMRI 1D time series -----*/
       *fmri_data = read_time_series (option_data->input1D_filename,
-				     fmri_length);
+                             fmri_length);
       if (*fmri_data == NULL)
-	{
-	  sprintf (message,  "Unable to read time series file: %s",
-		   option_data->input1D_filename);
-	  DC_error (message);
-	}
+      {
+        sprintf (message,  "Unable to read time series file: %s",
+               option_data->input1D_filename);
+        DC_error (message);
+      }
       *dset_time = NULL;
       nt = *fmri_length;
       nxyz = 1;
@@ -2094,36 +2094,36 @@ ENTRY("read_input_data") ;
       }
 
       if (option_data->mask_filename != NULL)   /* read mask from file */
-	   {
-	     THD_3dim_dataset * mask_dset = NULL;
+         {
+           THD_3dim_dataset * mask_dset = NULL;
 
-	     /*----- Read the input mask dataset -----*/
-	     mask_dset = THD_open_dataset (option_data->mask_filename);
-	     if (!ISVALID_3DIM_DATASET(mask_dset))
-	       {
-	         sprintf (message,  "Unable to open mask file: %s",
-		          option_data->mask_filename);
-	         DC_error (message);
-	       }
+           /*----- Read the input mask dataset -----*/
+           mask_dset = THD_open_dataset (option_data->mask_filename);
+           if (!ISVALID_3DIM_DATASET(mask_dset))
+             {
+               sprintf (message,  "Unable to open mask file: %s",
+                      option_data->mask_filename);
+               DC_error (message);
+             }
 
-	     /*----- If mask is used, check for compatible dimensions -----*/
-	     if (    (DSET_NX(*dset_time) != DSET_NX(mask_dset))
-	          || (DSET_NY(*dset_time) != DSET_NY(mask_dset))
-	          || (DSET_NZ(*dset_time) != DSET_NZ(mask_dset)) )
-	       {
-	         sprintf (message, "datasets '%s' and '%s' have incompatible dimensions",
-		         option_data->input_filename, option_data->mask_filename);
-	         DC_error (message);
-	       }
-	
-	     if (DSET_NVALS(mask_dset) != 1 )
-	       DC_error ("Must specify exactly 1 sub-brick from mask dataset");
+           /*----- If mask is used, check for compatible dimensions -----*/
+           if (    (DSET_NX(*dset_time) != DSET_NX(mask_dset))
+                || (DSET_NY(*dset_time) != DSET_NY(mask_dset))
+                || (DSET_NZ(*dset_time) != DSET_NZ(mask_dset)) )
+             {
+               sprintf (message, "datasets '%s' and '%s' have incompatible dimensions",
+                     option_data->input_filename, option_data->mask_filename);
+               DC_error (message);
+             }
 
-	     *mask_vol = THD_makemask( mask_dset , 0 , 1.0,0.0 ) ;
-	     if (*mask_vol == NULL)  DC_error ("Unable to read mask dataset");
+           if (DSET_NVALS(mask_dset) != 1 )
+             DC_error ("Must specify exactly 1 sub-brick from mask dataset");
 
-	     DSET_delete(mask_dset) ;
-	   }
+           *mask_vol = THD_makemask( mask_dset , 0 , 1.0,0.0 ) ;
+           if (*mask_vol == NULL)  DC_error ("Unable to read mask dataset");
+
+           DSET_delete(mask_dset) ;
+         }
 
     } else {                                   /* no input data? */
       DC_error ("Must specify input data");
@@ -2154,17 +2154,17 @@ ENTRY("read_input_data") ;
 
       f = read_time_series (option_data->concat_filename, num_blocks);
       if (*num_blocks < 1)
-	{
-	  sprintf (message, "Problem reading concat file: %s ",
-		   option_data->concat_filename);
-	  DC_error (message);
-	}
+      {
+        sprintf (message, "Problem reading concat file: %s ",
+               option_data->concat_filename);
+        DC_error (message);
+      }
       else
-	{
-	  *block_list = (int *) malloc (sizeof(int) * (*num_blocks));
-	  for (it = 0;  it < *num_blocks;  it++)
-	    (*block_list)[it] = floor (f[it]+0.5);
-	}
+      {
+        *block_list = (int *) malloc (sizeof(int) * (*num_blocks));
+        for (it = 0;  it < *num_blocks;  it++)
+          (*block_list)[it] = floor (f[it]+0.5);
+      }
     }
 
   /*-- Create timing for each -stim_times input [11 Aug 2004] --*/
@@ -2291,7 +2291,7 @@ for( ii=0 ; ii < nt ; ii++ ){
       p += basis_stim[is]->nfunc ;          /* number of parameters in model */
     } else {
       if (max_lag[is] < min_lag[is])
-	DC_error ("Require min lag <= max lag for all stimuli");
+      DC_error ("Require min lag <= max lag for all stimuli");
       p += max_lag[is] - min_lag[is] + 1;
       if (baseline[is])  q += max_lag[is] - min_lag[is] + 1;
     }
@@ -2305,13 +2305,13 @@ for( ii=0 ; ii < nt ; ii++ ){
     {
       /*----- Read the input censor time series array -----*/
       *censor_array = read_time_series (option_data->censor_filename,
-					censor_length);
+                              censor_length);
       if (*censor_array == NULL)
-	{
-	  sprintf (message,  "Unable to read censor time series file: %s",
-		   option_data->censor_filename);
-	  DC_error (message);
-	}
+      {
+        sprintf (message,  "Unable to read censor time series file: %s",
+               option_data->censor_filename);
+        DC_error (message);
+      }
     }
   else
     {
@@ -2320,7 +2320,7 @@ for( ii=0 ; ii < nt ; ii++ ){
       MTEST (*censor_array);
       *censor_length = nt;
       for (it = 0;  it < nt;  it++)
-	(*censor_array)[it] = 1.0;
+      (*censor_array)[it] = 1.0;
     }
 
 
@@ -2361,27 +2361,27 @@ for( ii=0 ; ii < nt ; ii++ ){
 
       /*----- Initialize general linear test matrices -----*/
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	matrix_initialize (&((*glt_cmat)[iglt]));
+      matrix_initialize (&((*glt_cmat)[iglt]));
 
 
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	{
+      {
 #if 1
           read_glt_matrix( option_data->glt_filename[iglt] ,
                            option_data->glt_rows + iglt ,
                            p , *glt_cmat + iglt              ) ;
 #else
-	  matrix_file_read (option_data->glt_filename[iglt],  /* uses MRI_read_1D() */
-			    option_data->glt_rows[iglt],
-			    p, &((*glt_cmat)[iglt]), 1);
-	  if ((*glt_cmat)[iglt].elts == NULL)
-	    {
-	      sprintf (message,  "Unable to read GLT matrix from file: %s",
-		       option_data->glt_filename[iglt]);
-	      DC_error (message);
-	    }
+        matrix_file_read (option_data->glt_filename[iglt],  /* uses MRI_read_1D() */
+                      option_data->glt_rows[iglt],
+                      p, &((*glt_cmat)[iglt]), 1);
+        if ((*glt_cmat)[iglt].elts == NULL)
+          {
+            sprintf (message,  "Unable to read GLT matrix from file: %s",
+                   option_data->glt_filename[iglt]);
+            DC_error (message);
+          }
 #endif
-	}
+      }
     }
 
    EXRETURN ;
@@ -2427,52 +2427,52 @@ ENTRY("remove_zero_stimfns") ;
       /*----- Check whether stim function consists of all zeros -----*/
       all_zero = TRUE;
       for (it = 0;  it < stim_length[is];  it++)
-	{
-	  if (stimulus[is][it] != 0.0)
-	    {
-	      all_zero = FALSE;
-	      break;
-	    }
-	}
+      {
+        if (stimulus[is][it] != 0.0)
+          {
+            all_zero = FALSE;
+            break;
+          }
+      }
 
       if (all_zero)  /*----- Remove this stimulus function -----*/
-	{
-	  printf("** WARNING!  -stim_file function %s comprises all zeros!\n",
-		 option_data->stim_filename[is]); fflush(stdout);
-	  if (option_data->num_glt > 0)
-	    DC_error
+      {
+        printf("** WARNING!  -stim_file function %s comprises all zeros!\n",
+             option_data->stim_filename[is]); fflush(stdout);
+        if (option_data->num_glt > 0)
+          DC_error
             ("Cannot process -glt option(s) when -stim_file function is all zero");
           if( basis_count > 0 )
-	    DC_error
+          DC_error
             ("Cannot process -basis_stim option(s) when -stim_file function is all zero");
 
-	  option_data->p -=
-	    option_data->stim_maxlag[is] - option_data->stim_minlag[is] + 1;
-	  if (option_data->stim_base[is])
-	    option_data->q -=
-	      option_data->stim_maxlag[is] - option_data->stim_minlag[is] + 1;
-	  for (isp = is;  isp < num_stimts-1;  isp++)
-	    {
-	      stimulus[isp] = stimulus[isp+1];
-	      stim_length[isp] = stim_length[isp+1];
-	      option_data->stim_filename[isp]
-		= option_data->stim_filename[isp+1];
-	      option_data->stim_label[isp] = option_data->stim_label[isp+1];
-	      option_data->stim_base[isp]
-		= option_data->stim_base[isp+1];
-	      option_data->stim_minlag[isp] = option_data->stim_minlag[isp+1];
-	      option_data->stim_maxlag[isp] = option_data->stim_maxlag[isp+1];
-	      option_data->iresp_filename[isp]
-		= option_data->iresp_filename[isp+1];
-	      option_data->sresp_filename[isp]
-		= option_data->sresp_filename[isp+1];
-	    }
+        option_data->p -=
+          option_data->stim_maxlag[is] - option_data->stim_minlag[is] + 1;
+        if (option_data->stim_base[is])
+          option_data->q -=
+            option_data->stim_maxlag[is] - option_data->stim_minlag[is] + 1;
+        for (isp = is;  isp < num_stimts-1;  isp++)
+          {
+            stimulus[isp] = stimulus[isp+1];
+            stim_length[isp] = stim_length[isp+1];
+            option_data->stim_filename[isp]
+            = option_data->stim_filename[isp+1];
+            option_data->stim_label[isp] = option_data->stim_label[isp+1];
+            option_data->stim_base[isp]
+            = option_data->stim_base[isp+1];
+            option_data->stim_minlag[isp] = option_data->stim_minlag[isp+1];
+            option_data->stim_maxlag[isp] = option_data->stim_maxlag[isp+1];
+            option_data->iresp_filename[isp]
+            = option_data->iresp_filename[isp+1];
+            option_data->sresp_filename[isp]
+            = option_data->sresp_filename[isp+1];
+          }
 
-	  num_stimts--;
-	  option_data->num_stimts = num_stimts;
-	}
+        num_stimts--;
+        option_data->num_stimts = num_stimts;
+      }
       else
-	is++;
+      is++;
     }
 
   EXRETURN ;
@@ -2501,27 +2501,27 @@ void check_one_output_file
 
 
   ierror = EDIT_dset_items( new_dset ,
-			    ADN_prefix , filename ,
-			    ADN_label1 , filename ,
-			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
-                               			           GEN_FUNC_TYPE ,
-			    ADN_none ) ;
+                      ADN_prefix , filename ,
+                      ADN_label1 , filename ,
+                      ADN_self_name , filename ,
+                      ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
+                                                            GEN_FUNC_TYPE ,
+                      ADN_none ) ;
 
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n",
-	       ierror);
+             "*** %d errors in attempting to create output dataset!\n",
+             ierror);
       DC_error (message);
     }
 
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
-	       "Output dataset file %s already exists "
-	       " -- cannot continue! ",
-	       new_dset->dblk->diskptr->header_name);
+             "Output dataset file %s already exists "
+             " -- cannot continue! ",
+             new_dset->dblk->diskptr->header_name);
       DC_error (message);
     }
 
@@ -2558,10 +2558,10 @@ void check_output_files
   for (is = 0;  is < option_data->num_stimts;  is++)
     {
       if (option_data->iresp_filename[is] != NULL)
-	check_one_output_file (dset_time, option_data->iresp_filename[is]);
+      check_one_output_file (dset_time, option_data->iresp_filename[is]);
 
       if (option_data->sresp_filename[is] != NULL)
-	check_one_output_file (dset_time, option_data->sresp_filename[is]);
+      check_one_output_file (dset_time, option_data->sresp_filename[is]);
     }
 }
 
@@ -2632,7 +2632,7 @@ void check_for_valid_inputs
   if (censor_length < nt)
     {
       sprintf (message, "Input censor time series file %s is too short",
-	       option_data->censor_filename);
+             option_data->censor_filename);
       DC_error (message);
     }
 
@@ -2641,13 +2641,13 @@ void check_for_valid_inputs
   for (ib = 0;  ib < num_blocks;  ib++)
     if ((block_list[ib] < 0) || (block_list[ib] >= nt))
       {
-	sprintf (message, "Invalid -concat input: %d ", block_list[ib]);
-	DC_error (message);
+      sprintf (message, "Invalid -concat input: %d ", block_list[ib]);
+      DC_error (message);
       }
   if (num_blocks > 1)
     for (ib = 1;  ib < num_blocks;  ib++)
       if (block_list[ib] <= block_list[ib-1])
-	DC_error ("Invalid concatenated runs list");
+      DC_error ("Invalid concatenated runs list");
 
 
   /*----- Create list of good (usable) time points -----*/
@@ -2666,15 +2666,15 @@ void check_for_valid_inputs
   for (it = block_list[0];  it < nt;  it++)
     {
       if (ib+1 < num_blocks)
-	if (it >= block_list[ib+1])  ib++;
+      if (it >= block_list[ib+1])  ib++;
 
       irb = it - block_list[ib];
-	
+
       if ((irb >= NFirst) && (irb <= NLast) && (censor_array[it]))
-	{
-	  (*good_list)[N] = it;
-	  N++;
-	}
+      {
+        (*good_list)[N] = it;
+        N++;
+      }
     }
 
 
@@ -2706,11 +2706,11 @@ void check_for_valid_inputs
       if( basis_stim[is] != NULL ) continue ;  /* 12 Aug 2004 */
 
       if (stim_length[is] < nt*nptr[is])
-	{
+      {
 #ifndef ALLOW_EXTEND
-	  sprintf (message, "Input stimulus time series file %s is too short",
-		   option_data->stim_filename[is]);
-	  DC_error (message);
+        sprintf (message, "Input stimulus time series file %s is too short",
+               option_data->stim_filename[is]);
+        DC_error (message);
 #else
           int nlen=nt*nptr[is], qq ;
           fprintf(stderr,
@@ -2721,7 +2721,7 @@ void check_for_valid_inputs
           for( qq=stim_length[is] ; qq < nlen ; qq++ ) stimulus[is][qq] = 0.0 ;
           stim_length[is] = nlen ; nerr++ ;
 #endif
-	}
+      }
     }
 #ifdef ALLOW_EXTEND
     if( nerr > 0 ){
@@ -2744,31 +2744,31 @@ void check_for_valid_inputs
 
       m = max_lag[is] - min_lag[is] + 1;
       if (m < 2)
-	{
-	  if (option_data->iresp_filename[is] != NULL)
-	    {
-	      sprintf (message, "Only %d time point for output dataset %s ",
-		       m, option_data->iresp_filename[is]);
-	      DC_error (message);
-	    }
+      {
+        if (option_data->iresp_filename[is] != NULL)
+          {
+            sprintf (message, "Only %d time point for output dataset %s ",
+                   m, option_data->iresp_filename[is]);
+            DC_error (message);
+          }
 
-	  if (option_data->sresp_filename[is] != NULL)
-	    {
-	      sprintf (message, "Only %d time point for output dataset %s",
-		       m, option_data->sresp_filename[is]);
-	      DC_error (message);
-	    }
-	}	
+        if (option_data->sresp_filename[is] != NULL)
+          {
+            sprintf (message, "Only %d time point for output dataset %s",
+                   m, option_data->sresp_filename[is]);
+            DC_error (message);
+          }
+      }
       if ((m < 4) && (option_data->tshift))
-	{
-	  if (option_data->iresp_filename[is] != NULL)
-	    {
-	      sprintf (message, "Only %d time points for 3d+time dataset %s\n",
- 		       m, option_data->iresp_filename[is]);
-	      strcat (message, "Require >= 4 data points for -tshift option");
-	      DC_error (message);
-	    }
-	}	
+      {
+        if (option_data->iresp_filename[is] != NULL)
+          {
+            sprintf (message, "Only %d time points for 3d+time dataset %s\n",
+                    m, option_data->iresp_filename[is]);
+            strcat (message, "Require >= 4 data points for -tshift option");
+            DC_error (message);
+          }
+      }
     }
 
 
@@ -2778,38 +2778,38 @@ void check_for_valid_inputs
   if (option_data->bucket_filename != NULL)
     {
       if (! option_data->nocout)
-	{
-	  if (! option_data->nobout)
-	    nbricks += qp * (1 + option_data->tout);
+      {
+        if (! option_data->nobout)
+          nbricks += qp * (1 + option_data->tout);
 
-	  for (is = 0;  is < num_stimts;  is++)
-	    {
-	      if ((!option_data->stim_base[is]) || (!option_data->nobout))
-		{
+        for (is = 0;  is < num_stimts;  is++)
+          {
+            if ((!option_data->stim_base[is]) || (!option_data->nobout))
+            {
                   if( basis_stim[is] != NULL ) m = basis_stim[is]->nfunc ;
                   else                         m = max_lag[is] - min_lag[is] + 1;
-		  nbricks += m * (1 + option_data->tout);
-		  nbricks += option_data->rout + option_data->fout;
-		}
-	    }
-	}
-	
+              nbricks += m * (1 + option_data->tout);
+              nbricks += option_data->rout + option_data->fout;
+            }
+          }
+      }
+
       nbricks += option_data->rout + option_data->fout + option_data->vout;
 
       if (num_glt > 0)
-	for (iglt = 0;  iglt < num_glt;  iglt++)
-	  {
-	    nbricks += glt_rows[iglt] * (1 + option_data->tout);
-	    nbricks += option_data->rout + option_data->fout;
-	  }
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+        {
+          nbricks += glt_rows[iglt] * (1 + option_data->tout);
+          nbricks += option_data->rout + option_data->fout;
+        }
 
       if (nbricks <= 0)
-	{
-	  sprintf (message,
-		   "User requested bucket dataset with only %d sub-bricks",
-		   nbricks);
-	  DC_error (message);
-	}
+      {
+        sprintf (message,
+               "User requested bucket dataset with only %d sub-bricks",
+               nbricks);
+        DC_error (message);
+      }
 
     }
   option_data->nbricks = nbricks;
@@ -2819,13 +2819,13 @@ void check_for_valid_inputs
   if (dset_time != NULL)
     if (dset_time->taxis->nsl > 0)
       for (is = 0;  is < num_stimts;  is++)
-	if (nptr[is] > 1)
-	  {
-	    sprintf (message, "Must align all slices to 0 offset time, \n ");
-	    strcat  (message, "before using -stim_nptr option.  ");
-	    strcat  (message, "See program 3dTshift. ");
-	    DC_error (message);
-	  }
+      if (nptr[is] > 1)
+        {
+          sprintf (message, "Must align all slices to 0 offset time, \n ");
+          strcat  (message, "before using -stim_nptr option.  ");
+          strcat  (message, "See program 3dTshift. ");
+          DC_error (message);
+        }
 
 
   /*----- Check for -tshift and -input1D option -----*/
@@ -3112,8 +3112,8 @@ ENTRY("allocate_memory") ;
   if (bout)
     for (ip = 0;  ip < qp;  ip++)
       {
-	zero_fill_volume (&((*coef_vol)[ip]),  nxyz);
-	if (tout) zero_fill_volume (&((*tcoef_vol)[ip]),  nxyz);
+      zero_fill_volume (&((*coef_vol)[ip]),  nxyz);
+      if (tout) zero_fill_volume (&((*tcoef_vol)[ip]),  nxyz);
       }
 
   ip = qp - 1;
@@ -3122,25 +3122,25 @@ ENTRY("allocate_memory") ;
       if( basis_stim[is] != NULL ){ ibot=0 ; itop=basis_stim[is]->nfunc-1 ; }
       else                        { ibot=min_lag[is] ; itop=max_lag[is] ;   }
       for (it = ibot;  it <= itop;  it++)
-	{
-	  ip++;
-	  if (option_data->stim_base[is])
-	    {
-	      if (bout || (option_data->iresp_filename[is] != NULL))
-		zero_fill_volume (&((*coef_vol)[ip]),  nxyz);	
-	      if (bout && tout)
-		zero_fill_volume (&((*tcoef_vol)[ip]), nxyz);
-	    }
-	  else
-	    {
-	      if (cout || (option_data->iresp_filename[is] != NULL))
-		zero_fill_volume (&((*coef_vol)[ip]),  nxyz);	
-	      if (cout && tout)
-		zero_fill_volume (&((*tcoef_vol)[ip]), nxyz);
-	    }
-	  if (option_data->sresp_filename[is] != NULL)
-	    zero_fill_volume (&((*scoef_vol)[ip]), nxyz);
-	}
+      {
+        ip++;
+        if (option_data->stim_base[is])
+          {
+            if (bout || (option_data->iresp_filename[is] != NULL))
+            zero_fill_volume (&((*coef_vol)[ip]),  nxyz);
+            if (bout && tout)
+            zero_fill_volume (&((*tcoef_vol)[ip]), nxyz);
+          }
+        else
+          {
+            if (cout || (option_data->iresp_filename[is] != NULL))
+            zero_fill_volume (&((*coef_vol)[ip]),  nxyz);
+            if (cout && tout)
+            zero_fill_volume (&((*tcoef_vol)[ip]), nxyz);
+          }
+        if (option_data->sresp_filename[is] != NULL)
+          zero_fill_volume (&((*scoef_vol)[ip]), nxyz);
+      }
     }
 
 
@@ -3149,10 +3149,10 @@ ENTRY("allocate_memory") ;
       *fpart_vol = (float **) malloc (sizeof(float *) * num_stimts);
       MTEST(*fpart_vol);
       for (is = 0;  is < num_stimts;  is++)
-	if ((! option_data->stim_base[is]) || (! option_data->nobout))
-	  zero_fill_volume (&((*fpart_vol)[is]), nxyz);
-	else
-	  (*fpart_vol)[is] = NULL;
+      if ((! option_data->stim_base[is]) || (! option_data->nobout))
+        zero_fill_volume (&((*fpart_vol)[is]), nxyz);
+      else
+        (*fpart_vol)[is] = NULL;
     }
 
 
@@ -3161,10 +3161,10 @@ ENTRY("allocate_memory") ;
       *rpart_vol = (float **) malloc (sizeof(float *) * num_stimts);
       MTEST(*rpart_vol);
       for (is = 0;  is < num_stimts;  is++)
-	if ((! option_data->stim_base[is]) || (! option_data->nobout))
-	  zero_fill_volume (&((*rpart_vol)[is]), nxyz);
-	else
-	  (*rpart_vol)[is] = NULL;
+      if ((! option_data->stim_base[is]) || (! option_data->nobout))
+        zero_fill_volume (&((*rpart_vol)[is]), nxyz);
+      else
+        (*rpart_vol)[is] = NULL;
     }
 
 
@@ -3180,47 +3180,47 @@ ENTRY("allocate_memory") ;
        MTEST(*glt_coef_vol);
 
        if (tout)
-	 {
-	   *glt_tcoef_vol  = (float ***) malloc (sizeof(float **) * num_glt);
-	   MTEST(*glt_tcoef_vol);
-	 }
+       {
+         *glt_tcoef_vol  = (float ***) malloc (sizeof(float **) * num_glt);
+         MTEST(*glt_tcoef_vol);
+       }
 
        if (fout)
-	 {
-	   *glt_fstat_vol = (float **)  malloc (sizeof(float *)  * num_glt);
-	   MTEST(*glt_fstat_vol);
-	 }
+       {
+         *glt_fstat_vol = (float **)  malloc (sizeof(float *)  * num_glt);
+         MTEST(*glt_fstat_vol);
+       }
 
        if (rout)
-	 {
-	   *glt_rstat_vol = (float **)  malloc (sizeof(float *)  * num_glt);
-	   MTEST(*glt_rstat_vol);
-	 }
+       {
+         *glt_rstat_vol = (float **)  malloc (sizeof(float *)  * num_glt);
+         MTEST(*glt_rstat_vol);
+       }
 
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	{
-	  nlc = option_data->glt_rows[iglt];
+      {
+        nlc = option_data->glt_rows[iglt];
 
-	  (*glt_coef_vol)[iglt] = (float **) malloc (sizeof(float *) * nlc);
-	  MTEST((*glt_coef_vol)[iglt]);
+        (*glt_coef_vol)[iglt] = (float **) malloc (sizeof(float *) * nlc);
+        MTEST((*glt_coef_vol)[iglt]);
 
-	  if (tout)
-	    {
-	      (*glt_tcoef_vol)[iglt]
-		= (float **) malloc (sizeof(float *) * nlc);
-	      MTEST((*glt_tcoef_vol)[iglt]);
-	    }
+        if (tout)
+          {
+            (*glt_tcoef_vol)[iglt]
+            = (float **) malloc (sizeof(float *) * nlc);
+            MTEST((*glt_tcoef_vol)[iglt]);
+          }
 
-	  for (ilc = 0;  ilc < nlc;  ilc++)
-	    {
-	      zero_fill_volume (&((*glt_coef_vol)[iglt][ilc]),  nxyz);
-	      if (tout)
-		zero_fill_volume (&((*glt_tcoef_vol)[iglt][ilc]),  nxyz);
-	    }
-	
-	  if (fout)  zero_fill_volume (&((*glt_fstat_vol)[iglt]),  nxyz);
-	  if (rout)  zero_fill_volume (&((*glt_rstat_vol)[iglt]),  nxyz);
-	}
+        for (ilc = 0;  ilc < nlc;  ilc++)
+          {
+            zero_fill_volume (&((*glt_coef_vol)[iglt][ilc]),  nxyz);
+            if (tout)
+            zero_fill_volume (&((*glt_tcoef_vol)[iglt][ilc]),  nxyz);
+          }
+
+        if (fout)  zero_fill_volume (&((*glt_fstat_vol)[iglt]),  nxyz);
+        if (rout)  zero_fill_volume (&((*glt_rstat_vol)[iglt]),  nxyz);
+      }
     }
 
 
@@ -3230,9 +3230,9 @@ ENTRY("allocate_memory") ;
       *fitts_vol = (float **) malloc (sizeof(float **) * nt);
       MTEST (*fitts_vol);
       for (it = 0;  it < nt;  it++)
-	{
-	  zero_fill_volume (&((*fitts_vol)[it]),  nxyz);
-	}
+      {
+        zero_fill_volume (&((*fitts_vol)[it]),  nxyz);
+      }
     }
 
   /*----- Allocate memory for residual errors -----*/
@@ -3241,9 +3241,9 @@ ENTRY("allocate_memory") ;
       *errts_vol = (float **) malloc (sizeof(float **) * nt);
       MTEST (*errts_vol);
       for (it = 0;  it < nt;  it++)
-	{
-	  zero_fill_volume (&((*errts_vol)[it]),  nxyz);
-	}
+      {
+        zero_fill_volume (&((*errts_vol)[it]),  nxyz);
+      }
     }
 
 #ifdef PROC_MAX
@@ -3327,8 +3327,8 @@ ENTRY("initialize_program") ;
 
   /*----- Read input data -----*/
   read_input_data (*option_data, dset_time, mask_vol, fmri_data, fmri_length,
-		   censor_array, censor_length, block_list, num_blocks,
-		   stimulus, stim_length, glt_cmat);
+               censor_array, censor_length, block_list, num_blocks,
+               stimulus, stim_length, glt_cmat);
 
 
   /*----- Remove all-zero stimulus functions -----*/
@@ -3338,16 +3338,16 @@ ENTRY("initialize_program") ;
 
   /*----- Check for valid inputs -----*/
   check_for_valid_inputs (*option_data, *dset_time,
-			  *fmri_length, *censor_array, *censor_length,
-			  *block_list, *num_blocks, *stim_length, *stimulus, good_list);
+                    *fmri_length, *censor_array, *censor_length,
+                    *block_list, *num_blocks, *stim_length, *stimulus, good_list);
 
 
   /*----- Allocate memory for output volumes -----*/
   if (!(*option_data)->nodata)
     allocate_memory (*option_data, coef_vol, scoef_vol, tcoef_vol,
-		     fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
-		     glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
-		     fitts_vol, errts_vol);
+                 fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
+                 glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
+                 fitts_vol, errts_vol);
 
   EXRETURN ;
 }
@@ -3470,26 +3470,26 @@ void save_voxel
   if (coef_vol != NULL)
     for (ip = 0;  ip < p;  ip++)
       if (coef_vol[ip] != NULL)
-	coef_vol[ip][iv]   = coef.elts[ip];
+      coef_vol[ip][iv]   = coef.elts[ip];
   if (scoef_vol != NULL)
     for (ip = 0;  ip < p;  ip++)
       if (scoef_vol[ip] != NULL)
-	scoef_vol[ip][iv]  = scoef.elts[ip];
+      scoef_vol[ip][iv]  = scoef.elts[ip];
   if (tcoef_vol != NULL)
     for (ip = 0;  ip < p;  ip++)
       if (tcoef_vol[ip] != NULL)
-	tcoef_vol[ip][iv]  = tcoef.elts[ip];
+      tcoef_vol[ip][iv]  = tcoef.elts[ip];
 
 
   /*----- Save partial F-statistics and R^2 statistics -----*/
   if (fpart_vol != NULL)
     for (is = 0;  is < num_stimts;  is++)
       if (fpart_vol[is] != NULL)
-	fpart_vol[is][iv] = fpart[is];
+      fpart_vol[is][iv] = fpart[is];
   if (rpart_vol != NULL)
     for (is = 0;  is < num_stimts;  is++)
       if (rpart_vol[is] != NULL)
-	rpart_vol[is][iv] = rpart[is];
+      rpart_vol[is][iv] = rpart[is];
 
 
   /*----- Save full model mean square error -----*/
@@ -3509,29 +3509,29 @@ void save_voxel
     {
       /*----- Save linear combinations -----*/
       if (glt_coef_vol != NULL)
-	for (iglt = 0;  iglt < num_glt;  iglt++)
-	  if (glt_coef_vol[iglt] != NULL)
-	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
-	      glt_coef_vol[iglt][ilc][iv] = glt_coef[iglt].elts[ilc];
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+        if (glt_coef_vol[iglt] != NULL)
+          for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+            glt_coef_vol[iglt][ilc][iv] = glt_coef[iglt].elts[ilc];
 
       /*----- Save GLT t-statistics -----*/
       if (glt_tcoef_vol != NULL)
-	for (iglt = 0;  iglt < num_glt;  iglt++)
-	  if (glt_tcoef_vol[iglt] != NULL)
-	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
-	      glt_tcoef_vol[iglt][ilc][iv] = glt_tcoef[iglt].elts[ilc];
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+        if (glt_tcoef_vol[iglt] != NULL)
+          for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+            glt_tcoef_vol[iglt][ilc][iv] = glt_tcoef[iglt].elts[ilc];
 
       /*----- Save GLT F-statistics -----*/
       if (glt_fstat_vol != NULL)
-	for (iglt = 0;  iglt < num_glt;  iglt++)
-	  if (glt_fstat_vol[iglt] != NULL)
-	    glt_fstat_vol[iglt][iv] = fglt[iglt];
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+        if (glt_fstat_vol[iglt] != NULL)
+          glt_fstat_vol[iglt][iv] = fglt[iglt];
 
       /*----- Save GLT R^2 statistics -----*/
       if (glt_rstat_vol != NULL)
-	for (iglt = 0;  iglt < num_glt;  iglt++)
-	  if (glt_rstat_vol[iglt] != NULL)
-	    glt_rstat_vol[iglt][iv] = rglt[iglt];
+      for (iglt = 0;  iglt < num_glt;  iglt++)
+        if (glt_rstat_vol[iglt] != NULL)
+          glt_rstat_vol[iglt][iv] = rglt[iglt];
     }
 
 
@@ -3539,19 +3539,19 @@ void save_voxel
   if (fitts_vol != NULL)
     {
       for (it = 0;  it < nt;  it++)        /* for bad points */
-	fitts_vol[it][iv] = ts_array[it];
+      fitts_vol[it][iv] = ts_array[it];
 
       for (it = 0;  it < N;  it++)         /* for good points */
-	fitts_vol[good_list[it]][iv] = fitts[it];
+      fitts_vol[good_list[it]][iv] = fitts[it];
     }
 
   if (errts_vol != NULL)
     {
       for (it = 0;  it < nt;  it++)        /* for bad points */
-	errts_vol[it][iv] = 0.0;
+      errts_vol[it][iv] = 0.0;
 
       for (it = 0;  it < N;  it++)         /* for good points */
-	errts_vol[good_list[it]][iv] = errts[it];
+      errts_vol[good_list[it]][iv] = errts[it];
     }
 
 }
@@ -3585,8 +3585,22 @@ void report_evaluation
   int ilc;                 /* linear combination index */
   float stddev;            /* normalized parameter standard deviation */
   int ibot,itop ;
-  int j ; float jnorm ;
+  int j , do_extras ; float jnorm ;
 
+
+  /*----- Print the normalized parameter standard deviations -----*/
+  do_extras = AFNI_yesenv("AFNI_3dDeconvolve_nodata_extras") ;
+  if( do_extras ){
+    printf("\nBaseline -polort parameters:\n") ;
+    for( m=0 ; m < qp ; m++ ){
+      jnorm = 0.0 ;
+      for( j=0 ; j < x_full.rows ; j++ ) jnorm += SQR(x_full.elts[j][m]) ;
+      jnorm = sqrt(jnorm) ;
+      stddev = sqrt ( xtxinv_full.elts[m][m] );
+      printf ("  h[%2d] norm. std. dev. = %8.4f   X col. norm = %8.4f\n",
+              ilag, stddev, jnorm );
+    }
+  }
 
   /*----- Print the normalized parameter standard deviations -----*/
   m = qp;
@@ -3601,8 +3615,12 @@ void report_evaluation
           for( j=0 ; j < x_full.rows ; j++ ) jnorm += SQR(x_full.elts[j][m]) ;
           jnorm = sqrt(jnorm) ;
           stddev = sqrt ( xtxinv_full.elts[m][m] );
-          printf ("  h[%2d] norm. std. dev. = %8.4f   X col. norm = %8.4f\n",
-                 ilag, stddev, jnorm );
+          if( do_extras )
+            printf ("  h[%2d] norm. std. dev. = %8.4f   X col. norm = %8.4f\n",
+                   ilag, stddev, jnorm );
+          else
+            printf ("  h[%2d] norm. std. dev. = %8.4f\n",
+                   ilag, stddev );
           m++;
         }
     }
@@ -3611,16 +3629,16 @@ void report_evaluation
   if (num_glt > 0)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	{
-	  printf ("\nGeneral Linear Test: %s \n", glt_label[iglt]);
+      {
+        printf ("\nGeneral Linear Test: %s \n", glt_label[iglt]);
 
-	  for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
-	    {
-	      stddev = sqrt ( 1.0 * cxtxinvct[iglt].elts[ilc][ilc] );
-	      printf ("  LC[%d] norm. std. dev. = %8.4f \n",
-		       ilc, stddev);
-	    }
-	}
+        for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+          {
+            stddev = sqrt ( 1.0 * cxtxinvct[iglt].elts[ilc][ilc] );
+            printf ("  LC[%d] norm. std. dev. = %8.4f \n",
+                   ilc, stddev);
+          }
+      }
     }
 
   fflush(stdout);
@@ -3781,10 +3799,10 @@ ENTRY("calculate_results") ;
       MTEST (xtxinvxt_rdcd);
 
       for (is =0;  is < num_stimts;  is++)
-	{
-	  matrix_initialize (&x_rdcd[is]);
-	  matrix_initialize (&xtxinvxt_rdcd[is]);
-	}
+      {
+        matrix_initialize (&x_rdcd[is]);
+        matrix_initialize (&xtxinvxt_rdcd[is]);
+      }
     }
 
   if (num_glt > 0)
@@ -3795,12 +3813,12 @@ ENTRY("calculate_results") ;
       glt_tcoef = (vector *) malloc (sizeof(vector) * num_glt);
 
       for (iglt =0;  iglt < num_glt;  iglt++)
-	{
-	  matrix_initialize (&cxtxinvct[iglt]);
-	  matrix_initialize (&glt_amat[iglt]);
-	  vector_initialize (&glt_coef[iglt]);
-	  vector_initialize (&glt_tcoef[iglt]);
-	}
+      {
+        matrix_initialize (&cxtxinvct[iglt]);
+        matrix_initialize (&glt_amat[iglt]);
+        vector_initialize (&glt_coef[iglt]);
+        vector_initialize (&glt_tcoef[iglt]);
+      }
     }
 
 
@@ -3833,8 +3851,8 @@ ENTRY("calculate_results") ;
   ct = COX_clock_time() ;
 
   init_indep_var_matrix (p, qp, polort, nt, N, good_list, block_list,
-			 num_blocks, num_stimts, stimulus, stim_length,
-			 min_lag, max_lag, nptr, option_data->stim_base , &xdata);
+                   num_blocks, num_stimts, stimulus, stim_length,
+                   min_lag, max_lag, nptr, option_data->stim_base , &xdata);
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
   if( option_data->xjpeg_filename != NULL )    /* 21 Jul 2004 */
@@ -3916,8 +3934,8 @@ ENTRY("calculate_results") ;
 
   /*----- Initialization for the regression analysis -----*/
   init_regression_analysis (p, qp, num_stimts, baseline, min_lag, max_lag,
-			    xdata, &x_full, &xtxinv_full, &xtxinvxt_full,
-			    &x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);
+                      xdata, &x_full, &xtxinv_full, &xtxinvxt_full,
+                      &x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);
   if ((option_data->xout) || nodata)
       matrix_sprint ("(X'X) inverse matrix:", xtxinv_full);
 
@@ -4121,13 +4139,13 @@ ENTRY("calculate_results") ;
 
       /*----- Loop over all voxels -----*/
       for (ixyz = ixyz_bot;  ixyz < ixyz_top;  ixyz++)
-	{
+      {
 
           if( vstep > 0 && ixyz%vstep==vstep-1 ) vstep_print() ;
 
-	  /*----- Apply mask? -----*/
-	  if (mask_vol != NULL)
-	    if (mask_vol[ixyz] == 0)  continue;
+        /*----- Apply mask? -----*/
+        if (mask_vol != NULL)
+          if (mask_vol[ixyz] == 0)  continue;
 
 #ifdef USE_GET
           /*** race ahead and extract a bunch of voxel time series at once ***/
@@ -4144,10 +4162,10 @@ ENTRY("calculate_results") ;
           }
 #endif
 
-	  /*----- Extract Y-data for this voxel -----*/
-	  if (option_data->input1D_filename != NULL)
-	    ts_array = fmri_data;
-	  else {
+        /*----- Extract Y-data for this voxel -----*/
+        if (option_data->input1D_filename != NULL)
+          ts_array = fmri_data;
+        else {
 #ifdef USE_GET
             ts_array = MRI_FLOAT_PTR(IMARR_SUBIM(imget,cget));  /* the GET way */
             cget++ ;  /* take this one next time */
@@ -4156,58 +4174,58 @@ ENTRY("calculate_results") ;
 #endif
           }
 
-	  for (i = 0;  i < N;  i++)
-	    y.elts[i] = ts_array[good_list[i]];
-	
-	
-	  /*----- Perform the regression analysis for this voxel-----*/
-	  regression_analysis (N, p, q, num_stimts, min_lag, max_lag,
-			       x_full, xtxinv_full, xtxinvxt_full, x_base,
-			       xtxinvxt_base, x_rdcd, xtxinvxt_rdcd,
-			       y, rms_min, &mse, &coef, &scoef, &tcoef,
-			       fpart, rpart, &ffull, &rfull, &novar,
-			       fitts, errts);
+        for (i = 0;  i < N;  i++)
+          y.elts[i] = ts_array[good_list[i]];
+
+
+        /*----- Perform the regression analysis for this voxel-----*/
+        regression_analysis (N, p, q, num_stimts, min_lag, max_lag,
+                         x_full, xtxinv_full, xtxinvxt_full, x_base,
+                         xtxinvxt_base, x_rdcd, xtxinvxt_rdcd,
+                         y, rms_min, &mse, &coef, &scoef, &tcoef,
+                         fpart, rpart, &ffull, &rfull, &novar,
+                         fitts, errts);
 
           if( voxel_base != NULL )
             voxel_base[ixyz] = baseline_mean( coef ) ;   /* 31 Aug 2004 */
-	
 
-	  /*----- Perform the general linear tests for this voxel -----*/
-	  if (num_glt > 0)
-	    glt_analysis (N, p, x_full, y, mse*(N-p), coef, novar, cxtxinvct,
-			  num_glt, glt_rows, glt_cmat, glt_amat,
-			  glt_coef, glt_tcoef, fglt, rglt);
-	
-	
-	  /*----- Save results for this voxel into arrays -----*/
-	  save_voxel (option_data, ixyz, coef, scoef, tcoef, fpart, rpart, mse,
-		      ffull, rfull, glt_coef, glt_tcoef, fglt, rglt,
-		      nt, ts_array, good_list, fitts, errts,
-		      coef_vol, scoef_vol, tcoef_vol, fpart_vol, rpart_vol,
-		      mse_vol, ffull_vol, rfull_vol, glt_coef_vol,
-		      glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
-		      fitts_vol, errts_vol);
-	
-	
-	  /*----- Report results for this voxel -----*/
-	  if ( ((ffull > option_data->fdisp) && (option_data->fdisp >= 0.0))
-	       || ((option_data->progress > 0)
-		   && (ixyz % option_data->progress == 0))
-	       || (option_data->input1D_filename != NULL) )
-	    {
+
+        /*----- Perform the general linear tests for this voxel -----*/
+        if (num_glt > 0)
+          glt_analysis (N, p, x_full, y, mse*(N-p), coef, novar, cxtxinvct,
+                    num_glt, glt_rows, glt_cmat, glt_amat,
+                    glt_coef, glt_tcoef, fglt, rglt);
+
+
+        /*----- Save results for this voxel into arrays -----*/
+        save_voxel (option_data, ixyz, coef, scoef, tcoef, fpart, rpart, mse,
+                  ffull, rfull, glt_coef, glt_tcoef, fglt, rglt,
+                  nt, ts_array, good_list, fitts, errts,
+                  coef_vol, scoef_vol, tcoef_vol, fpart_vol, rpart_vol,
+                  mse_vol, ffull_vol, rfull_vol, glt_coef_vol,
+                  glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
+                  fitts_vol, errts_vol);
+
+
+        /*----- Report results for this voxel -----*/
+        if ( ((ffull > option_data->fdisp) && (option_data->fdisp >= 0.0))
+             || ((option_data->progress > 0)
+               && (ixyz % option_data->progress == 0))
+             || (option_data->input1D_filename != NULL) )
+          {
 
               if( proc_ind == 0 ){
-	        printf ("\n\nResults for Voxel #%d: \n", ixyz);
-	        report_results (N, qp, q, p, polort, block_list, num_blocks,
-			     num_stimts, stim_label, baseline, min_lag, max_lag,
-			     coef, tcoef, fpart, rpart, ffull, rfull, mse,
-		             num_glt, glt_label, glt_rows, glt_coef,
-		             glt_tcoef, fglt, rglt, &label);
-	        printf ("%s \n", label); fflush(stdout);
+              printf ("\n\nResults for Voxel #%d: \n", ixyz);
+              report_results (N, qp, q, p, polort, block_list, num_blocks,
+                       num_stimts, stim_label, baseline, min_lag, max_lag,
+                       coef, tcoef, fpart, rpart, ffull, rfull, mse,
+                         num_glt, glt_label, glt_rows, glt_coef,
+                         glt_tcoef, fglt, rglt, &label);
+              printf ("%s \n", label); fflush(stdout);
               }
-	    }
-	
-	}  /*----- Loop over voxels -----*/
+          }
+
+      }  /*----- Loop over voxels -----*/
 
         if( vstep > 0 ) fprintf(stderr,"\n") ;
 
@@ -4312,7 +4330,7 @@ ENTRY("calculate_results") ;
 */
 
 float EDIT_coerce_autoscale_new( int nxyz ,
-				 int itype,void *ivol , int otype,void *ovol )
+                         int itype,void *ivol , int otype,void *ovol )
 {
   float fac=0.0 , top ;
 
@@ -4420,54 +4438,54 @@ void cubic_spline
 
       /*----- Get impulse response function for this voxel -----*/
       for (i = 0;  i < ts_length;  i++)
-	yarray[i] = vol_array[i][ixyz];
+      yarray[i] = vol_array[i][ixyz];
 
 
       /*----- Calculate vector for cubic spline interpolation -----*/
       for (i = 1;  i < n;  i++)
-	     v.elts[i-1] = 6.0 * (yarray[i+1] - 2.0 * yarray[i] + yarray[i-1]);
+           v.elts[i-1] = 6.0 * (yarray[i+1] - 2.0 * yarray[i] + yarray[i-1]);
       vector_multiply (minv, v, &sv);
 
 
       /*----- Set array of second derivatives -----*/
       for (i = 1;  i < n;  i++)
-	{
-	  sarray[i] = sv.elts[i-1];
-	}
+      {
+        sarray[i] = sv.elts[i-1];
+      }
       sarray[0] = 0.0;
       sarray[n] = 0.0;
 
 
       /*----- Calculate cubic spline polynomial coefficients -----*/
       for (i = 0;  i < n;  i++)
-	{
-	  a[i] = (sarray[i+1] - sarray[i]) / 6.0;
-	  b[i] = sarray[i] / 2;
-	  c[i] = (yarray[i+1]-yarray[i]) - (2.0*sarray[i]+sarray[i+1]) / 6.0;
-	  d[i] = yarray[i];
-	}
+      {
+        a[i] = (sarray[i+1] - sarray[i]) / 6.0;
+        b[i] = sarray[i] / 2;
+        c[i] = (yarray[i+1]-yarray[i]) - (2.0*sarray[i]+sarray[i+1]) / 6.0;
+        d[i] = yarray[i];
+      }
 
 
       /*----- Apply time shift to impulse response function -----*/
       for (i = 0;  i < ts_length;  i++)
-	{
-	  t = i + frac;
-	
-	  if (frac < 0.0)  k = i-1;
-	  else             k = i;
-	
-	  if (k < 0)    k = 0;
-	  if (k > n-1)  k = n-1;
-	
-	  delt = t - k;
-	
-	  yarray[i] = a[k]*delt*delt*delt + b[k]*delt*delt + c[k]*delt + d[k];
-	}
+      {
+        t = i + frac;
+
+        if (frac < 0.0)  k = i-1;
+        else             k = i;
+
+        if (k < 0)    k = 0;
+        if (k > n-1)  k = n-1;
+
+        delt = t - k;
+
+        yarray[i] = a[k]*delt*delt*delt + b[k]*delt*delt + c[k]*delt + d[k];
+      }
 
 
       /*----- Save interpolated impulse response function -----*/
       for (i = 0;  i < ts_length;  i++)
-	vol_array[i][ixyz] = yarray[i];
+      vol_array[i][ixyz] = yarray[i];
 
 
 
@@ -4556,15 +4574,15 @@ void write_ts_array
 
 
   ierror = EDIT_dset_items (new_dset,
-			    ADN_prefix,      output_filename,
-			    ADN_label1,      output_filename,
-			    ADN_self_name,   output_filename,
-			    ADN_malloc_type, DATABLOCK_MEM_MALLOC,
-			    ADN_datum_all,   MRI_short,
-			    ADN_nvals,       ts_length,
-			    ADN_ntt,         ts_length,
-			    ADN_ttdel,       newtr,
-			    ADN_none);
+                      ADN_prefix,      output_filename,
+                      ADN_label1,      output_filename,
+                      ADN_self_name,   output_filename,
+                      ADN_malloc_type, DATABLOCK_MEM_MALLOC,
+                      ADN_datum_all,   MRI_short,
+                      ADN_nvals,       ts_length,
+                      ADN_ntt,         ts_length,
+                      ADN_ttdel,       newtr,
+                      ADN_none);
 
   if( ierror > 0 ){
     fprintf(stderr,
@@ -4574,8 +4592,8 @@ void write_ts_array
 
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
-	    "** Output dataset file %s already exists--cannot continue!\a\n",
-	    new_dset->dblk->diskptr->header_name ) ;
+          "** Output dataset file %s already exists--cannot continue!\a\n",
+          new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
 
@@ -4583,10 +4601,10 @@ void write_ts_array
   /*----- Reset slice offset times to zero -----*/
   if (tshift)
     EDIT_dset_items (new_dset,
-		     ADN_nsl,     0,    /* will have no offsets when done */
-		     ADN_ttorg, 0.0,    /* in case not already set */
-		     ADN_ttdur, 0.0,    /* in case not already set */
-		     ADN_none);
+                 ADN_nsl,     0,    /* will have no offsets when done */
+                 ADN_ttorg, 0.0,    /* in case not already set */
+                 ADN_ttdur, 0.0,    /* in case not already set */
+                 ADN_none);
 
 
   /*----- attach bricks to new data set -----*/
@@ -4602,7 +4620,7 @@ void write_ts_array
 
       /*----- Convert data type to short for this sub-brick -----*/
       factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
-					  MRI_short, bar[ib]);
+                                MRI_short, bar[ib]);
       if (factor < EPSILON)  factor = 0.0;
       else factor = 1.0 / factor;
       fbuf[ib] = factor;
@@ -4615,7 +4633,7 @@ void write_ts_array
   /*----- write afni data set -----*/
   if (!  option_data->quiet){
     printf ("++ Writing 3D+time dataset into %s\n",
-	    new_dset->dblk->diskptr->header_name); fflush(stdout) ;
+          new_dset->dblk->diskptr->header_name); fflush(stdout) ;
   }
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
@@ -4790,19 +4808,19 @@ void write_bucket_data
           just make empty sub-bricks, without any data attached. -----*/
   ierror = EDIT_dset_items (new_dset,
                             ADN_prefix,          output_prefix,
-			    ADN_type,            HEAD_FUNC_TYPE,
-			    ADN_func_type,       FUNC_BUCK_TYPE,
-			    ADN_datum_all,       MRI_short ,
+                      ADN_type,            HEAD_FUNC_TYPE,
+                      ADN_func_type,       FUNC_BUCK_TYPE,
+                      ADN_datum_all,       MRI_short ,
                             ADN_ntt,             0,               /* no time */
-			    ADN_nvals,           nbricks,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
-			    ADN_none ) ;
+                      ADN_nvals,           nbricks,
+                      ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
+                      ADN_none ) ;
 
   if( ierror > 0 )
     {
       fprintf(stderr,
-	      "** %d errors in attempting to create bucket dataset!\n",
-	      ierror);
+            "** %d errors in attempting to create bucket dataset!\n",
+            ierror);
       exit(1);
     }
 
@@ -4814,8 +4832,8 @@ void write_bucket_data
   if (THD_is_file(DSET_HEADNAME(new_dset)))
     {
       fprintf(stderr,
-	      "** Bucket dataset file %s already exists--cannot continue!\n",
-	      DSET_HEADNAME(new_dset));
+            "** Bucket dataset file %s already exists--cannot continue!\n",
+            DSET_HEADNAME(new_dset));
       exit(1);
     }
 
@@ -4825,21 +4843,21 @@ void write_bucket_data
     tross_Make_History( PROGRAM_NAME , argc , argv , coef_dset ) ;
     (void) EDIT_dset_items( coef_dset,
                             ADN_prefix,          CoefFilename ,
-			    ADN_type,            HEAD_FUNC_TYPE,
-			    ADN_func_type,       FUNC_BUCK_TYPE,
-			    ADN_datum_all,       MRI_short ,
+                      ADN_type,            HEAD_FUNC_TYPE,
+                      ADN_func_type,       FUNC_BUCK_TYPE,
+                      ADN_datum_all,       MRI_short ,
                             ADN_ntt,             0,               /* no time */
-			    ADN_nvals,           p ,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
-			    ADN_none ) ;
+                      ADN_nvals,           p ,
+                      ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
+                      ADN_none ) ;
     if( strstr(CoefFilename,"/") == NULL )
       (void) EDIT_dset_items( coef_dset ,
                                 ADN_directory_name,  output_session,
                               ADN_none ) ;
     if( THD_is_file(DSET_HEADNAME(coef_dset)) ){
       fprintf(stderr,
-	      "** Coefficient dataset file %s already exists--cannot continue!\n",
-	      DSET_HEADNAME(coef_dset));
+            "** Coefficient dataset file %s already exists--cannot continue!\n",
+            DSET_HEADNAME(coef_dset));
       exit(1);
     }
   }
@@ -4887,27 +4905,27 @@ void write_bucket_data
 
       /*----- Baseline statistics -----*/
       if( bout || coef_dset != NULL )
-	{
-	  strcpy (label, "Base");
+      {
+        strcpy (label, "Base");
 
           if( legendre_polort ) strcpy(blab,"P_") ;  /* 25 Jul 2004: */
           else                  strcpy(blab,"t^") ;  /* label for polynomials */
 
-	  for (icoef = 0;  icoef < qp;  icoef++)
-	    {
-	      if (qp == polort+1)
-		strcpy (label, "Base");                            /* only 1 run */
-	      else
-		sprintf (label, "Run#%d", icoef/(polort+1) + 1);   /* multiple runs */
-	
-	      /*----- Baseline coefficient -----*/
-	      brick_type = FUNC_FIM_TYPE;
+        for (icoef = 0;  icoef < qp;  icoef++)
+          {
+            if (qp == polort+1)
+            strcpy (label, "Base");                            /* only 1 run */
+            else
+            sprintf (label, "Run#%d", icoef/(polort+1) + 1);   /* multiple runs */
+
+            /*----- Baseline coefficient -----*/
+            brick_type = FUNC_FIM_TYPE;
               sprintf (brick_label, "%s %s%d Coef", label,blab, icoef % (polort+1));
-	      volume = coef_vol[icoef];
+            volume = coef_vol[icoef];
 
               if( cout && bout )
-	        attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
-				  brick_type, brick_label, 0, 0, 0, bar);
+              attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
+                          brick_type, brick_label, 0, 0, 0, bar);
 
               sprintf(brick_label,"%s:%s%d" , label,blab,icoef%(polort+1)) ;
 
@@ -4918,30 +4936,30 @@ void write_bucket_data
               if( coef_dset != NULL ){
                 cbuck++ ;
                 attach_sub_brick( coef_dset , cbuck , volume , nxyz ,
-				  brick_type, brick_label, 0, 0, 0, NULL);
+                          brick_type, brick_label, 0, 0, 0, NULL);
               }
-	
-	      /*----- Baseline t-stat -----*/
-	      if ( cout && bout && option_data->tout)
-		{
-		  ibrick++;
-		  brick_type = FUNC_TT_TYPE;
-		  dof = N - p;
-		  sprintf (brick_label, "%s %s%d t-st",
-			   label,blab, icoef % (polort+1));
-		  volume = tcoef_vol[icoef];
-		  attach_sub_brick (new_dset, ibrick, volume, nxyz,
-				    brick_type, brick_label, dof, 0, 0, bar);
-		}
-	    }
-	}
+
+            /*----- Baseline t-stat -----*/
+            if ( cout && bout && option_data->tout)
+            {
+              ibrick++;
+              brick_type = FUNC_TT_TYPE;
+              dof = N - p;
+              sprintf (brick_label, "%s %s%d t-st",
+                     label,blab, icoef % (polort+1));
+              volume = tcoef_vol[icoef];
+              attach_sub_brick (new_dset, ibrick, volume, nxyz,
+                            brick_type, brick_label, dof, 0, 0, bar);
+            }
+          }
+      }
 
 
       /*----- Stimulus statistics -----*/
       icoef = qp;
       for (istim = 0;  istim < num_stimts;  istim++)
-	{
-	  strcpy (label, option_data->stim_label[istim]);
+      {
+        strcpy (label, option_data->stim_label[istim]);
 
           if( basis_stim[istim] != NULL ){
             ibot = 0 ; itop = basis_stim[istim]->nfunc-1 ;
@@ -4949,21 +4967,21 @@ void write_bucket_data
             ibot = option_data->stim_minlag[istim] ;
             itop = option_data->stim_maxlag[istim] ;
           }
-	
-	  /*----- Loop over stimulus time lags -----*/
+
+        /*----- Loop over stimulus time lags -----*/
           for( ilag=ibot ; ilag <= itop ; ilag++ )
-	    {
-	      if( !option_data->stim_base[istim] ||
-	          bout                           ||
+          {
+            if( !option_data->stim_base[istim] ||
+                bout                           ||
                   coef_dset != NULL                )
-		{
-		  /*----- Stimulus coefficient -----*/
-		  brick_type = FUNC_FIM_TYPE;
-		  sprintf (brick_label, "%s[%d] Coef", label, ilag);
-		  volume = coef_vol[icoef];		
+            {
+              /*----- Stimulus coefficient -----*/
+              brick_type = FUNC_FIM_TYPE;
+              sprintf (brick_label, "%s[%d] Coef", label, ilag);
+              volume = coef_vol[icoef];
                   if( cout && (!option_data->stim_base[istim] || bout) )
-		    attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
-				      brick_type, brick_label, 0, 0, 0, bar);
+                attach_sub_brick (new_dset, ++ibrick, volume, nxyz,
+                              brick_type, brick_label, 0, 0, 0, bar);
 
                   sprintf(brick_label,"%s:%d",label,ilag) ;
 
@@ -4975,52 +4993,52 @@ void write_bucket_data
                   if( coef_dset != NULL ){
                     cbuck++ ;
                     attach_sub_brick( coef_dset , cbuck , volume , nxyz ,
-				      brick_type, brick_label, 0, 0, 0, NULL);
+                              brick_type, brick_label, 0, 0, 0, NULL);
                   }
-	
-		  /*----- Stimulus t-stat -----*/
-		  if (cout && option_data->tout && (!option_data->stim_base[istim] || bout) )
-		    {
-		      ibrick++;
-		      brick_type = FUNC_TT_TYPE;
-		      dof = N - p;
-		      sprintf (brick_label, "%s[%d] t-st", label, ilag);
-		      volume = tcoef_vol[icoef];
-		      attach_sub_brick (new_dset, ibrick, volume, nxyz,
-				    brick_type, brick_label, dof, 0, 0, bar);
-		    }
-		}
-	
-	      icoef++;
-	    }
-	
-	  /*----- Stimulus R^2 stat -----*/
-	  if( cout && option_data->rout
-	           && (!option_data->stim_base[istim] || bout) )
-	    {
-	      ibrick++;
-	      brick_type = FUNC_THR_TYPE;
-	      sprintf (brick_label, "%s R^2", label);
-	      volume = rpart_vol[istim];
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz,
-				brick_type, brick_label, 0, 0, 0, bar);
-	    }
-	
-	  /*----- Stimulus F-stat -----*/
-	  if( cout && option_data->fout
-  	           && (!option_data->stim_base[istim] || bout) )
-	    {
-	      ibrick++;
-	      brick_type = FUNC_FT_TYPE;
+
+              /*----- Stimulus t-stat -----*/
+              if (cout && option_data->tout && (!option_data->stim_base[istim] || bout) )
+                {
+                  ibrick++;
+                  brick_type = FUNC_TT_TYPE;
+                  dof = N - p;
+                  sprintf (brick_label, "%s[%d] t-st", label, ilag);
+                  volume = tcoef_vol[icoef];
+                  attach_sub_brick (new_dset, ibrick, volume, nxyz,
+                            brick_type, brick_label, dof, 0, 0, bar);
+                }
+            }
+
+            icoef++;
+          }
+
+        /*----- Stimulus R^2 stat -----*/
+        if( cout && option_data->rout
+                 && (!option_data->stim_base[istim] || bout) )
+          {
+            ibrick++;
+            brick_type = FUNC_THR_TYPE;
+            sprintf (brick_label, "%s R^2", label);
+            volume = rpart_vol[istim];
+            attach_sub_brick (new_dset, ibrick, volume, nxyz,
+                        brick_type, brick_label, 0, 0, 0, bar);
+          }
+
+        /*----- Stimulus F-stat -----*/
+        if( cout && option_data->fout
+                   && (!option_data->stim_base[istim] || bout) )
+          {
+            ibrick++;
+            brick_type = FUNC_FT_TYPE;
               ndof = itop - ibot + 1 ;
-	      ddof = N - p;
-	      sprintf (brick_label, "%s F-stat", label);
-	      volume = fpart_vol[istim];
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz,
-				brick_type, brick_label, 0, ndof, ddof, bar);
-	    }
-	
-	}  /* End loop over stim functions */
+            ddof = N - p;
+            sprintf (brick_label, "%s F-stat", label);
+            volume = fpart_vol[istim];
+            attach_sub_brick (new_dset, ibrick, volume, nxyz,
+                        brick_type, brick_label, 0, ndof, ddof, bar);
+          }
+
+      }  /* End loop over stim functions */
 
     }  /*  if (! option_data->nocout)  */
 
@@ -5043,51 +5061,51 @@ void write_bucket_data
 
       /*----- Loop over rows of GLT matrix -----*/
       for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
-	{
-	  /*----- GLT coefficient -----*/
-	  ibrick++;
-	  brick_type = FUNC_FIM_TYPE;
-	  sprintf (brick_label, "%s LC[%d] coef", label, ilc);
-	  volume = glt_coef_vol[iglt][ilc];		
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz,
-			    brick_type, brick_label, 0, 0, 0, bar);
-	
-	  /*----- GLT t-stat -----*/
-	  if (option_data->tout)
-	    {
-	      ibrick++;
-	      brick_type = FUNC_TT_TYPE;
-	      dof = N - p;
-	      sprintf (brick_label, "%s LC[%d] t-st", label, ilc);
-	      volume = glt_tcoef_vol[iglt][ilc];		
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz,
-				brick_type, brick_label, dof, 0, 0, bar);
-	    }	
-	}
+      {
+        /*----- GLT coefficient -----*/
+        ibrick++;
+        brick_type = FUNC_FIM_TYPE;
+        sprintf (brick_label, "%s LC[%d] coef", label, ilc);
+        volume = glt_coef_vol[iglt][ilc];
+        attach_sub_brick (new_dset, ibrick, volume, nxyz,
+                      brick_type, brick_label, 0, 0, 0, bar);
+
+        /*----- GLT t-stat -----*/
+        if (option_data->tout)
+          {
+            ibrick++;
+            brick_type = FUNC_TT_TYPE;
+            dof = N - p;
+            sprintf (brick_label, "%s LC[%d] t-st", label, ilc);
+            volume = glt_tcoef_vol[iglt][ilc];
+            attach_sub_brick (new_dset, ibrick, volume, nxyz,
+                        brick_type, brick_label, dof, 0, 0, bar);
+          }
+      }
 
       /*----- GLT R^2 stat -----*/
       if (option_data->rout)
-	{
-	  ibrick++;
-	  brick_type = FUNC_THR_TYPE;
-	  sprintf (brick_label, "%s R^2", label);
-	  volume = glt_rstat_vol[iglt];
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz,
-			    brick_type, brick_label, 0, 0, 0, bar);
-	}
+      {
+        ibrick++;
+        brick_type = FUNC_THR_TYPE;
+        sprintf (brick_label, "%s R^2", label);
+        volume = glt_rstat_vol[iglt];
+        attach_sub_brick (new_dset, ibrick, volume, nxyz,
+                      brick_type, brick_label, 0, 0, 0, bar);
+      }
 
       /*----- GLT F-stat -----*/
       if (option_data->fout)
-	{
-	  ibrick++;
-	  brick_type = FUNC_FT_TYPE;
-	  ndof = glt_rows[iglt];
-	  ddof = N - p;
-	  sprintf (brick_label, "%s F-stat", label);
-	  volume = glt_fstat_vol[iglt];
-	  attach_sub_brick (new_dset, ibrick, volume, nxyz,
-			    brick_type, brick_label, 0, ndof, ddof, bar);
-	}
+      {
+        ibrick++;
+        brick_type = FUNC_FT_TYPE;
+        ndof = glt_rows[iglt];
+        ddof = N - p;
+        sprintf (brick_label, "%s F-stat", label);
+        volume = glt_fstat_vol[iglt];
+        attach_sub_brick (new_dset, ibrick, volume, nxyz,
+                      brick_type, brick_label, 0, ndof, ddof, bar);
+      }
 
     }  /* End loop over general linear tests */
 
@@ -5103,7 +5121,7 @@ void write_bucket_data
       sprintf (brick_label, "Full MSE");
       volume = mse_vol;
       attach_sub_brick (new_dset, ibrick, volume, nxyz,
-			brick_type, brick_label, 0, 0, 0, bar);
+                  brick_type, brick_label, 0, 0, 0, bar);
     }
 
   /*----- Full model R^2 -----*/
@@ -5114,7 +5132,7 @@ void write_bucket_data
       sprintf (brick_label, "Full R^2");
       volume = rfull_vol;
       attach_sub_brick (new_dset, ibrick, volume, nxyz,
-			brick_type, brick_label, 0, 0, 0, bar);
+                  brick_type, brick_label, 0, 0, 0, bar);
     }
 
   /*----- Full model F-stat -----*/
@@ -5127,7 +5145,7 @@ void write_bucket_data
       sprintf (brick_label, "Full F-stat");
       volume = ffull_vol;
       attach_sub_brick (new_dset, ibrick, volume, nxyz,
-			brick_type, brick_label, 0, ndof, ddof, bar);
+                  brick_type, brick_label, 0, ndof, ddof, bar);
     }
 
 
@@ -5241,8 +5259,8 @@ void output_results
   if (option_data->bucket_filename != NULL)
     if (nxyz > 1)
       write_bucket_data (argc, argv, option_data,  coef_vol, tcoef_vol,
-		   fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
-		   glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol);
+               fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
+               glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol);
     else
       write_one_ts (option_data->bucket_filename, p, coef_vol);
 
@@ -5271,19 +5289,19 @@ void output_results
 
       ts_length = max_lag[is] - min_lag[is] + 1;
       if (option_data->iresp_filename[is] != NULL)
-	{
-	  /*----- If requested, time shift the impulse response -----*/
-	  if ((option_data->tshift) && (nptr[is] == 1) && (nxyz > 1))
-	    cubic_spline (option_data, ts_length, coef_vol+ib);
+      {
+        /*----- If requested, time shift the impulse response -----*/
+        if ((option_data->tshift) && (nptr[is] == 1) && (nxyz > 1))
+          cubic_spline (option_data, ts_length, coef_vol+ib);
 
-	  if (nxyz > 1)
-	    write_ts_array (argc, argv, option_data, ts_length,
-			    nptr[is], option_data->tshift, coef_vol+ib,
-			    option_data->iresp_filename[is]);
-	  else
-	    write_one_ts (option_data->iresp_filename[is],
-			  ts_length, coef_vol+ib);
-	}
+        if (nxyz > 1)
+          write_ts_array (argc, argv, option_data, ts_length,
+                      nptr[is], option_data->tshift, coef_vol+ib,
+                      option_data->iresp_filename[is]);
+        else
+          write_one_ts (option_data->iresp_filename[is],
+                    ts_length, coef_vol+ib);
+      }
       ib += ts_length;
     }
 
@@ -5312,13 +5330,13 @@ void output_results
 
       ts_length = max_lag[is] - min_lag[is] + 1;
       if (option_data->sresp_filename[is] != NULL)
-	if (nxyz > 1)
-	  write_ts_array (argc, argv, option_data, ts_length,
-			  nptr[is], 0, scoef_vol+ib,
-			  option_data->sresp_filename[is]);
-	else
-	  write_one_ts (option_data->sresp_filename[is],
-			ts_length, scoef_vol+ib);
+      if (nxyz > 1)
+        write_ts_array (argc, argv, option_data, ts_length,
+                    nptr[is], 0, scoef_vol+ib,
+                    option_data->sresp_filename[is]);
+      else
+        write_one_ts (option_data->sresp_filename[is],
+                  ts_length, scoef_vol+ib);
 
       ib += ts_length;
     }
@@ -5328,7 +5346,7 @@ void output_results
   if (option_data->fitts_filename != NULL)
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, fitts_vol,
-		      option_data->fitts_filename);
+                  option_data->fitts_filename);
     else
       write_one_ts (option_data->fitts_filename, nt, fitts_vol);
 
@@ -5338,7 +5356,7 @@ void output_results
   if (option_data->errts_filename != NULL)
     if (nxyz > 1)
       write_ts_array (argc, argv, option_data, nt, 1, 0, errts_vol,
-		      option_data->errts_filename);
+                  option_data->errts_filename);
     else
       write_one_ts (option_data->errts_filename, nt, errts_vol);
 
@@ -5401,8 +5419,8 @@ void terminate_program
   if (*stimulus != NULL)
     {
       for (is = 0;  is < num_stimts;  is++)
-	if ((*stimulus)[is] != NULL)
-	  { free ((*stimulus)[is]);  (*stimulus)[is] = NULL; }
+      if ((*stimulus)[is] != NULL)
+        { free ((*stimulus)[is]);  (*stimulus)[is] = NULL; }
       free (*stimulus);  *stimulus = NULL;
     }
 
@@ -5411,7 +5429,7 @@ void terminate_program
   if (*glt_cmat != NULL)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	matrix_destroy (&((*glt_cmat)[iglt]));
+      matrix_destroy (&((*glt_cmat)[iglt]));
       free (*glt_cmat);  *glt_cmat = NULL;
     }
 
@@ -5420,40 +5438,40 @@ void terminate_program
   if (*coef_vol  != NULL)
     {
       for (ip = 0;  ip < p;  ip++)
-	if ((*coef_vol)[ip] != NULL)
-	  { free ((*coef_vol)[ip]);   (*coef_vol)[ip] = NULL; }
+      if ((*coef_vol)[ip] != NULL)
+        { free ((*coef_vol)[ip]);   (*coef_vol)[ip] = NULL; }
       free (*coef_vol);   *coef_vol  = NULL;
     }
 
   if (*scoef_vol  != NULL)
     {
       for (ip = 0;  ip < p;  ip++)
-	if ((*scoef_vol)[ip] != NULL)
-	  { free ((*scoef_vol)[ip]);   (*scoef_vol)[ip] = NULL; }
+      if ((*scoef_vol)[ip] != NULL)
+        { free ((*scoef_vol)[ip]);   (*scoef_vol)[ip] = NULL; }
       free (*scoef_vol);   *scoef_vol  = NULL;
     }
 
   if (*tcoef_vol  != NULL)
     {
       for (ip = 0;  ip < p;  ip++)
-	if ((*tcoef_vol)[ip] != NULL)
-	  { free ((*tcoef_vol)[ip]);   (*tcoef_vol)[ip] = NULL; }
+      if ((*tcoef_vol)[ip] != NULL)
+        { free ((*tcoef_vol)[ip]);   (*tcoef_vol)[ip] = NULL; }
       free (*tcoef_vol);   *tcoef_vol  = NULL;
     }
 
   if (*fpart_vol != NULL)
     {
       for (is = 0;  is < num_stimts;  is++)
-	if ((*fpart_vol)[is] != NULL)
-	  { free ((*fpart_vol)[is]);    (*fpart_vol)[is] = NULL; }
+      if ((*fpart_vol)[is] != NULL)
+        { free ((*fpart_vol)[is]);    (*fpart_vol)[is] = NULL; }
       free (*fpart_vol);  *fpart_vol = NULL;
     }
 
   if (*rpart_vol != NULL)
     {
       for (is = 0;  is < num_stimts;  is++)
-	if ((*rpart_vol)[is] != NULL)
-	  { free ((*rpart_vol)[is]);    (*rpart_vol)[is] = NULL; }
+      if ((*rpart_vol)[is] != NULL)
+        { free ((*rpart_vol)[is]);    (*rpart_vol)[is] = NULL; }
       free (*rpart_vol);  *rpart_vol = NULL;
     }
 
@@ -5466,48 +5484,48 @@ void terminate_program
   if (*glt_coef_vol  != NULL)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	if ((*glt_coef_vol)[iglt] != NULL)
-	  {
-	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
-	      if ((*glt_coef_vol)[iglt][ilc] != NULL)
-		{
-		  free ((*glt_coef_vol)[iglt][ilc]);
-		  (*glt_coef_vol)[iglt][ilc] = NULL;
-		}
-	    free ((*glt_coef_vol)[iglt]);   (*glt_coef_vol)[iglt] = NULL;
-	  }
+      if ((*glt_coef_vol)[iglt] != NULL)
+        {
+          for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+            if ((*glt_coef_vol)[iglt][ilc] != NULL)
+            {
+              free ((*glt_coef_vol)[iglt][ilc]);
+              (*glt_coef_vol)[iglt][ilc] = NULL;
+            }
+          free ((*glt_coef_vol)[iglt]);   (*glt_coef_vol)[iglt] = NULL;
+        }
       free (*glt_coef_vol);  *glt_coef_vol = NULL;
     }
 
   if (*glt_tcoef_vol  != NULL)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	if ((*glt_tcoef_vol)[iglt] != NULL)
-	  {
-	    for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
-	      if ((*glt_tcoef_vol)[iglt][ilc] != NULL)
-		{
-		  free ((*glt_tcoef_vol)[iglt][ilc]);
-		  (*glt_tcoef_vol)[iglt][ilc] = NULL;
-		}
-	    free ((*glt_tcoef_vol)[iglt]);   (*glt_tcoef_vol)[iglt] = NULL;
-	  }
+      if ((*glt_tcoef_vol)[iglt] != NULL)
+        {
+          for (ilc = 0;  ilc < glt_rows[iglt];  ilc++)
+            if ((*glt_tcoef_vol)[iglt][ilc] != NULL)
+            {
+              free ((*glt_tcoef_vol)[iglt][ilc]);
+              (*glt_tcoef_vol)[iglt][ilc] = NULL;
+            }
+          free ((*glt_tcoef_vol)[iglt]);   (*glt_tcoef_vol)[iglt] = NULL;
+        }
       free (*glt_tcoef_vol);  *glt_tcoef_vol = NULL;
     }
 
   if (*glt_fstat_vol != NULL)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	if ((*glt_fstat_vol)[iglt] != NULL)
-	  { free ((*glt_fstat_vol)[iglt]);   (*glt_fstat_vol)[iglt] = NULL; }
+      if ((*glt_fstat_vol)[iglt] != NULL)
+        { free ((*glt_fstat_vol)[iglt]);   (*glt_fstat_vol)[iglt] = NULL; }
       free (*glt_fstat_vol); *glt_fstat_vol = NULL;
     }
 
   if (*glt_rstat_vol != NULL)
     {
       for (iglt = 0;  iglt < num_glt;  iglt++)
-	if ((*glt_rstat_vol)[iglt] != NULL)
-	  { free ((*glt_rstat_vol)[iglt]);   (*glt_rstat_vol)[iglt] = NULL; }
+      if ((*glt_rstat_vol)[iglt] != NULL)
+        { free ((*glt_rstat_vol)[iglt]);   (*glt_rstat_vol)[iglt] = NULL; }
       free (*glt_rstat_vol); *glt_rstat_vol = NULL;
     }
 
@@ -5516,14 +5534,14 @@ void terminate_program
   if (*fitts_vol != NULL)
     {
       for (it = 0;  it < nt;  it++)
-	{ free ((*fitts_vol)[it]);   (*fitts_vol)[it] = NULL; }
+      { free ((*fitts_vol)[it]);   (*fitts_vol)[it] = NULL; }
       free (*fitts_vol);   *fitts_vol = NULL;
     }
 
   if (*errts_vol != NULL)
     {
       for (it = 0;  it < nt;  it++)
-	{ free ((*errts_vol)[it]);   (*errts_vol)[it] = NULL; }
+      { free ((*errts_vol)[it]);   (*errts_vol)[it] = NULL; }
       free (*errts_vol);   *errts_vol = NULL;
     }
 
@@ -5634,17 +5652,17 @@ int main
   /*----- Write requested output files -----*/
   if (!option_data->nodata)
     output_results (argc, argv, option_data, coef_vol, scoef_vol, tcoef_vol,
-		    fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
-		    glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
-		    fitts_vol, errts_vol);
+                fpart_vol, rpart_vol, mse_vol, ffull_vol, rfull_vol,
+                glt_coef_vol, glt_tcoef_vol, glt_fstat_vol, glt_rstat_vol,
+                fitts_vol, errts_vol);
 
 
 #if 0
   /*----- Terminate program -----*/
   terminate_program (&option_data, &stimulus, &glt_cmat, &coef_vol, &scoef_vol,
- 		     &tcoef_vol, &fpart_vol, &rpart_vol, & mse_vol, &ffull_vol,
-		     &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, &glt_fstat_vol,
- 		     &glt_rstat_vol, &fitts_vol, &errts_vol);
+                  &tcoef_vol, &fpart_vol, &rpart_vol, & mse_vol, &ffull_vol,
+                 &rfull_vol, &glt_coef_vol, &glt_tcoef_vol, &glt_fstat_vol,
+                  &glt_rstat_vol, &fitts_vol, &errts_vol);
 #endif
 
   if( proc_use_jobs == 1 && verb ){ /* output requested - 2003.08.15 [rickr] */
