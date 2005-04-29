@@ -14,7 +14,7 @@ your local Unix guru.  If you don't have one, well....
 
 You don't NEED to set any of these variables -- AFNI will still work
 correctly.  But they are an easy way to set up certain defaults to
-make AFNI a little easier on your neocortex.
+make AFNI a little easier on your neocortex and hippocampus.
 
 N.B.: Changes to environment variables AFTER you start a program will
       not be seen by that program, since each running program gets
@@ -34,6 +34,10 @@ N.B.: You can now set environment variables on the 'afni' command
         afni -DAFNI_EDGIZE_OVERLAY=YES -DAFNI_SESSTRAIL=3
       This may be useful for a 'one time' situation, or as an alias.
       -- RWCox - 22 Mar 2005
+
+N.B.: At the end of this file is a list of several environment variables
+      that affect the program 3dDeconvolve, rather than the interactive
+      AFNI program itself.
 
 ********************************************************
 June 1999: Setting environment variables in file .afnirc
@@ -1796,23 +1800,6 @@ When you 'Save' a drawn dataset from the Draw Dataset plugin, the
   .HEAD file attribute VALUE_LABEL_DTABLE will contain a table in
   exactly this XML-based format.
 
-----------------------------------
-Variable: AFNI_3dDeconvolve_extend
-----------------------------------
-If you input a stimulus time series to 3dDeconvolve that is shorter than
-needed for the regression analysis, the program will normally print a
-warning message and extend the time series with zero values to the needed
-length.  If you would rather have the program stop if it detects this
-problem (the behavior before 22 Oct 2003), then set this environment
-variable to NO.
-
----------------------------------
-Variable: AFNI_3dDeconvolve_nodup
----------------------------------
-If this variable is set to YES, then if the 3dDeconvolve program detects
-duplicate input stimulus filenames or duplicate regressors, the program
-will fail (with an error message) rather than attempt to continue.
-
 -------------------------------
 Variable: AFNI_STROKE_THRESHOLD (editable)
 -------------------------------
@@ -2067,51 +2054,6 @@ loaded when AFNI starts.  The default is 123 Kbytes.  The intention is to
 prevent loading of very large files that are not intended to be used for
 graphing/FIMming purposes.
 
---------------------------
-Variable: AFNI_XJPEG_COLOR
---------------------------
-Determines the color of the lines drawn between the column boxes in the
-output from the -xjpeg option to 3dDeconvolve.  The color format is
-"rgbi:rf/gf/bf", where each value rf,gf,bf is a number between 0.0 and 1.0
-(inclusive); for example, yellow would be "rgbi:1.0/1.0/0.0".  As a
-special case, if this value is the string "none" or "NONE", then these
-lines will not be drawn.
-
--------------------------
-Variable: AFNI_XJPEG_IMXY
--------------------------
-This variable determines the size of the image saved when via the -xjpeg
-option to 3dDeconvolve.  It should be in the format AxB, where 'A' is the
-number of pixels the image is to be wide (across the matrix rows) and 'B'
-is the number of pixels high (down the columns); for example:
-  setenv AFNI_XJPEG_IMXY 768x1024
-which means to set the x-size (horizontal) to 768 pixels and the y-size
-(vertical) to 1024 pixels.  These values are the default, by the way.
-
-If the first value 'A' is negative and less than -1, its absolute value
-is the number of pixels across PER ROW.  If the second value 'B' is
-negative, its absolute value is the number of pixels down PER ROW.
-(Usually there are many fewer columns than rows.)
-
--------------------------
-Variable: AFNI_XSAVE_TEXT
--------------------------
-If this YES/NO variable is set to YES, then the .xsave file created by
-the "-xsave" option to 3dDeconvolve will be saved in text format.  The
-default is a binary format, which preserves the full accuracy of the
-matrices stored therein.  However, if you want to look at the .xsave
-file yourself, the binary format is hard to grok.  Note that the two
-forms are not quite equivalent, since the binary format stores the
-exact matrices used internally in the program, whereas the ASCII format
-stores only a decimal approximation of these matrices.
-
----------------------------
-Variable: AFNI_GLTSYM_PRINT
----------------------------
-If this YES/NO variable is set to YES, then the GLT matrices generated
-in 3dDeconvolve by the "-gltsym" option will be printed to the screen
-when the program starts up.
-
 ---------------------------
 Variable: AFNI_TITLE_LABEL2 (editable)
 ---------------------------
@@ -2185,3 +2127,78 @@ and local class B network 192.168.0.* addresses are always trusted.
 | United States of America                  |
 | Earth, United Federation of Planets       |
 =============================================
+
+############################################################################
+##### Variables that Specifically Affect the Operation of 3dDeconvolve #####
+############################################################################
+
+----------------------------------
+Variable: AFNI_3dDeconvolve_extend
+----------------------------------
+If you input a stimulus time series (via the -stim_file option) to
+3dDeconvolve that is shorter than needed for the regression analysis, the
+program will normally print a warning message and extend the time series
+with zero values to the needed length.  If you would rather have the program
+stop if it detects this problem (the behavior before 22 Oct 2003), then set
+this environment variable to NO.
+
+---------------------------------
+Variable: AFNI_3dDeconvolve_nodup
+---------------------------------
+If this variable is set to YES, then if the 3dDeconvolve program detects
+duplicate input stimulus filenames or duplicate regressors, the program
+will fail (with an error message) rather than attempt to continue.
+
+-----------------------------------------
+Variable: AFNI_3dDeconvolve_nodata_extras
+-----------------------------------------
+When using the -nodata option in 3dDeconvolve, the default printout gives
+the 'normalized standard deviation' for each stimulus parameter.  If you
+set this variable to YES, then the printout will include the -polort
+baseline parameters as well, and also the L2 norm of each column in
+the regression matrix.
+
+--------------------------
+Variable: AFNI_XJPEG_COLOR
+--------------------------
+Determines the color of the lines drawn between the column boxes in the
+output from the -xjpeg option to 3dDeconvolve.  The color format is
+"rgbi:rf/gf/bf", where each value rf,gf,bf is a number between 0.0 and 1.0
+(inclusive); for example, yellow would be "rgbi:1.0/1.0/0.0".  As a
+special case, if this value is the string "none" or "NONE", then these
+lines will not be drawn.
+
+-------------------------
+Variable: AFNI_XJPEG_IMXY
+-------------------------
+This variable determines the size of the image saved when via the -xjpeg
+option to 3dDeconvolve.  It should be in the format AxB, where 'A' is the
+number of pixels the image is to be wide (across the matrix rows) and 'B'
+is the number of pixels high (down the columns); for example:
+  setenv AFNI_XJPEG_IMXY 768x1024
+which means to set the x-size (horizontal) to 768 pixels and the y-size
+(vertical) to 1024 pixels.  These values are the default, by the way.
+
+If the first value 'A' is negative and less than -1, its absolute value
+is the number of pixels across PER ROW.  If the second value 'B' is
+negative, its absolute value is the number of pixels down PER ROW.
+(Usually there are many fewer columns than rows.)
+
+-------------------------
+Variable: AFNI_XSAVE_TEXT
+-------------------------
+If this YES/NO variable is set to YES, then the .xsave file created by
+the "-xsave" option to 3dDeconvolve will be saved in text format.  The
+default is a binary format, which preserves the full accuracy of the
+matrices stored therein.  However, if you want to look at the .xsave
+file yourself, the binary format is hard to grok.  Note that the two
+forms are not quite equivalent, since the binary format stores the
+exact matrices used internally in the program, whereas the ASCII format
+stores only a decimal approximation of these matrices.
+
+---------------------------
+Variable: AFNI_GLTSYM_PRINT
+---------------------------
+If this YES/NO variable is set to YES, then the GLT matrices generated
+in 3dDeconvolve by the "-gltsym" option will be printed to the screen
+when the program starts up.
