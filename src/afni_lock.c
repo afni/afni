@@ -6,9 +6,9 @@
 
 void AFNI_time_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   Three_D_View * qq3d ;
-   int            bval , ii , bold ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   Three_D_View *qq3d ;
+   int           bval , ii , bold ;
 
 ENTRY("AFNI_time_lock_change_CB") ;
 
@@ -27,10 +27,10 @@ ENTRY("AFNI_time_lock_change_CB") ;
    /* set all other controller lock boxes to the same value */
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-      qq3d = GLOBAL_library.controllers[ii] ;
-      if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
 
-      MCW_set_bbox( qq3d->vwid->dmode->time_lock_bbox , bval ) ;
+     MCW_set_bbox( qq3d->vwid->dmode->time_lock_bbox , bval ) ;
    }
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -38,10 +38,10 @@ ENTRY("AFNI_time_lock_change_CB") ;
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_time_lock_carryout( Three_D_View * im3d )
+void AFNI_time_lock_carryout( Three_D_View *im3d )
 {
-   Three_D_View * qq3d ;
-   MCW_arrowval * tav ;
+   Three_D_View *qq3d ;
+   MCW_arrowval *tav ;
    int new_index , qq_index , qq_top , cc , glock , ii ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
 
@@ -76,20 +76,20 @@ ENTRY("AFNI_time_lock_carryout") ;
 
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
 
-      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+     qq3d = GLOBAL_library.controllers[cc] ; /* controller */
 
-      if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+     if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
 
-         qq_index = qq3d->vinfo->time_index ;           /* old index */
-         qq_top   = qq3d->vinfo->top_index ;            /* max allowed */
+       qq_index = qq3d->vinfo->time_index ;           /* old index */
+       qq_top   = qq3d->vinfo->top_index ;            /* max allowed */
 
-         if( qq3d->vinfo->time_on && qq_top > 1 && qq_index != new_index ){
-           tav = qq3d->vwid->imag->time_index_av ;
-           AV_assign_ival( tav , new_index ) ;         /* will check range */
-           if( tav->ival != qq_index )
-             AFNI_time_index_CB( tav , (XtPointer) qq3d ) ;
-         }
-      }
+       if( qq3d->vinfo->time_on && qq_top > 1 && qq_index != new_index ){
+         tav = qq3d->vwid->imag->time_index_av ;
+         AV_assign_ival( tav , new_index ) ;         /* will check range */
+         if( tav->ival != qq_index )
+           AFNI_time_index_CB( tav , (XtPointer) qq3d ) ;
+       }
+     }
    }
 
    busy = 0 ;  /* OK, let this routine be activated again */
@@ -102,7 +102,7 @@ ENTRY("AFNI_time_lock_carryout") ;
 
 void AFNI_lock_enforce_CB( Widget w , XtPointer cd , XtPointer calld )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
 
 ENTRY("AFNI_lock_enforce_CB") ;
    AFNI_lock_carryout( im3d ) ;
@@ -111,11 +111,13 @@ ENTRY("AFNI_lock_enforce_CB") ;
    EXRETURN ;
 }
 
+/*------------------------------------------------------------------------*/
+
 void AFNI_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   Three_D_View * qq3d ;
-   int            bval , ii , bold ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   Three_D_View *qq3d ;
+   int           bval , ii , bold ;
 
 ENTRY("AFNI_lock_change_CB") ;
 
@@ -134,58 +136,64 @@ ENTRY("AFNI_lock_change_CB") ;
    /* set all other controller lock boxes to the same value */
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-      qq3d = GLOBAL_library.controllers[ii] ;
-      if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
 
-      MCW_set_bbox( qq3d->vwid->dmode->lock_bbox , bval ) ;
+     MCW_set_bbox( qq3d->vwid->dmode->lock_bbox , bval ) ;
    }
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
 }
 
+/*------------------------------------------------------------------------*/
+
 void AFNI_lock_clear_CB( Widget w , XtPointer cd , XtPointer calld )
 {
-   Three_D_View * qq3d ;
+   Three_D_View *qq3d ;
    int ii ;
 
 ENTRY("AFNI_lock_clear_CB") ;
 
    GLOBAL_library.controller_lock = 0 ;
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-      qq3d = GLOBAL_library.controllers[ii] ;
-      if( IM3D_VALID(qq3d) )
-         MCW_set_bbox( qq3d->vwid->dmode->lock_bbox , 0 ) ;
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( IM3D_VALID(qq3d) )
+       MCW_set_bbox( qq3d->vwid->dmode->lock_bbox , 0 ) ;
    }
    EXRETURN ;
 }
 
+/*------------------------------------------------------------------------*/
+
 void AFNI_lock_setall_CB( Widget w , XtPointer cd , XtPointer calld )
 {
-   Three_D_View * qq3d ;
+   Three_D_View *qq3d ;
    int ii ;
 
 ENTRY("AFNI_lock_setall_CB") ;
 
    GLOBAL_library.controller_lock = 0 ;
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ )
-      GLOBAL_library.controller_lock |= (1<<ii) ;
+     GLOBAL_library.controller_lock |= (1<<ii) ;
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-      qq3d = GLOBAL_library.controllers[ii] ;
-      if( IM3D_VALID(qq3d) )
-         MCW_set_bbox( qq3d->vwid->dmode->lock_bbox ,
-                       GLOBAL_library.controller_lock ) ;
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( IM3D_VALID(qq3d) )
+       MCW_set_bbox( qq3d->vwid->dmode->lock_bbox ,
+                     GLOBAL_library.controller_lock ) ;
    }
    EXRETURN ;
 }
 
-void AFNI_lock_carryout( Three_D_View * im3d )
+/*------------------------------------------------------------------------*/
+
+void AFNI_lock_carryout( Three_D_View *im3d )
 {
-   Three_D_View * qq3d ;
+   Three_D_View *qq3d ;
    int ii,jj,kk , cc , glock ;
    THD_fvec3 old_fv , fv ;
    THD_ivec3 iv ;
-   THD_dataxes * qaxes , * daxes ;
+   THD_dataxes *qaxes , *daxes ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
 
 ENTRY("AFNI_lock_carryout") ;
@@ -222,36 +230,36 @@ ENTRY("AFNI_lock_carryout") ;
 
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
 
-      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+     qq3d = GLOBAL_library.controllers[cc] ; /* controller */
 
-      if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+     if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
 
-         LOAD_ANAT_VIEW(qq3d) ;  /* prepare coordinates */
-         qaxes = CURRENT_DAXES(qq3d->anat_now) ;
+       LOAD_ANAT_VIEW(qq3d) ;  /* prepare coordinates */
+       qaxes = CURRENT_DAXES(qq3d->anat_now) ;
 
-         if( !GLOBAL_library.ijk_lock ){  /* xyz coord lock */
+       if( !GLOBAL_library.ijk_lock ){  /* xyz coord lock */
 
-            fv = AFNI_transform_vector( im3d->anat_now, old_fv, qq3d->anat_now ) ;
-            fv = THD_dicomm_to_3dmm( qq3d->anat_now , fv ) ;
-            iv = THD_3dmm_to_3dind ( qq3d->anat_now , fv ) ;
-            ii = iv.ijk[0] ; jj = iv.ijk[1] ; kk = iv.ijk[2] ;
+         fv = AFNI_transform_vector( im3d->anat_now, old_fv, qq3d->anat_now ) ;
+         fv = THD_dicomm_to_3dmm( qq3d->anat_now , fv ) ;
+         iv = THD_3dmm_to_3dind ( qq3d->anat_now , fv ) ;
+         ii = iv.ijk[0] ; jj = iv.ijk[1] ; kk = iv.ijk[2] ;
 
-         } else {   /* 11 Sep 2000: ijk index lock */
+       } else {   /* 11 Sep 2000: ijk index lock */
 
-            ii = im3d->vinfo->i1 * qaxes->nxx / daxes->nxx ;
-            jj = im3d->vinfo->j2 * qaxes->nyy / daxes->nyy ;
-            kk = im3d->vinfo->k3 * qaxes->nzz / daxes->nzz ;
-         }
+         ii = im3d->vinfo->i1 * qaxes->nxx / daxes->nxx ;
+         jj = im3d->vinfo->j2 * qaxes->nyy / daxes->nyy ;
+         kk = im3d->vinfo->k3 * qaxes->nzz / daxes->nzz ;
+       }
 
-         /* if have good new ijk coords, jump to them */
+       /* if have good new ijk coords, jump to them */
 
-         if( ii >= 0 && ii < qaxes->nxx &&
-             jj >= 0 && jj < qaxes->nyy && kk >= 0 && kk < qaxes->nzz   ){
+       if( ii >= 0 && ii < qaxes->nxx &&
+           jj >= 0 && jj < qaxes->nyy && kk >= 0 && kk < qaxes->nzz   ){
 
-            SAVE_VPT(qq3d) ;
-            AFNI_set_viewpoint( qq3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
-         }
-      }
+         SAVE_VPT(qq3d) ;
+         AFNI_set_viewpoint( qq3d , ii,jj,kk , REDISPLAY_ALL ) ; /* jump */
+       }
+     }
    }
 
    busy = 0 ;  /* OK, let this routine be activated again */
@@ -264,9 +272,9 @@ ENTRY("AFNI_lock_carryout") ;
 
 void AFNI_ijk_lock_change_CB( Widget w , XtPointer cd , XtPointer calld )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   Three_D_View * qq3d ;
-   int            bval , ii , bold ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   Three_D_View *qq3d ;
+   int           bval , ii , bold ;
 
 ENTRY("AFNI_ijk_lock_change_CB") ;
 
@@ -285,10 +293,10 @@ ENTRY("AFNI_ijk_lock_change_CB") ;
    /* set all other controller lock boxes to the same value */
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
-      qq3d = GLOBAL_library.controllers[ii] ;
-      if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
+     qq3d = GLOBAL_library.controllers[ii] ;
+     if( qq3d == im3d || ! IM3D_VALID(qq3d) ) continue ;
 
-      MCW_set_bbox( qq3d->vwid->dmode->ijk_lock_bbox , bval ) ;
+     MCW_set_bbox( qq3d->vwid->dmode->ijk_lock_bbox , bval ) ;
    }
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
@@ -349,20 +357,20 @@ ENTRY("AFNI_thresh_lock_carryout") ;
 
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
 
-      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+     qq3d = GLOBAL_library.controllers[cc] ; /* controller */
 
-      if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+     if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
 
-         if( dothresh )
-           sprintf( cmd , "SET_THRESHNEW %c %.4f **" , 'A'+cc , thresh ) ;
-         else if( dopval && qq3d->fim_now != NULL &&
-                    DSET_BRICK_STATCODE(qq3d->fim_now,qq3d->vinfo->thr_index) > 0 )
-           sprintf( cmd , "SET_THRESHNEW %c %g *p" , 'A'+cc , pval ) ;
-         else
-           continue ;  /* pval, but not a statistic? */
+       if( dothresh )
+         sprintf( cmd , "SET_THRESHNEW %c %.4f **" , 'A'+cc , thresh ) ;
+       else if( dopval && qq3d->fim_now != NULL &&
+                DSET_BRICK_STATCODE(qq3d->fim_now,qq3d->vinfo->thr_index) > 0 )
+         sprintf( cmd , "SET_THRESHNEW %c %g *p" , 'A'+cc , pval ) ;
+       else
+         continue ;  /* pval, but not a statistic? */
 
-         AFNI_driver( cmd ) ;
-      }
+       AFNI_driver( cmd ) ;
+     }
    }
 
    busy = 0 ;  /* OK, let this routine be activated again */
@@ -376,7 +384,7 @@ void AFNI_equate_pbars( Three_D_View *lh3d , Three_D_View *rh3d )
    MCW_pbar *lbar , *rbar ;
    char cmd[1024] ;
    int cc , qq ;
-   MCW_DCOV * ovc = GLOBAL_library.dc->ovc ;
+   MCW_DCOV *ovc = GLOBAL_library.dc->ovc ;
 
 ENTRY("AFNI_equate_pbars") ;
 
@@ -445,12 +453,12 @@ ENTRY("AFNI_pbar_lock_carryout") ;
 
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
 
-      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+     qq3d = GLOBAL_library.controllers[cc] ; /* controller */
 
-      if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
+     if( IM3D_OPEN(qq3d) && qq3d != im3d && ((1<<cc) & glock) != 0 ){
 
-         AFNI_equate_pbars( qq3d , im3d ) ;
-      }
+       AFNI_equate_pbars( qq3d , im3d ) ;
+     }
    }
 
    busy = 0 ;  /* OK, let this routine be activated again */
@@ -548,7 +556,7 @@ void AFNI_range_lock_carryout( Three_D_View *im3d )
 {
    Three_D_View *qq3d ;
    static int busy = 0 ;  /* !=0 if this routine is "busy" */
-   int glock , cc,ii ;
+   int glock , cc,ii,nn ;
    float val ;
    char cmd[64] , *eee ;
 
@@ -556,7 +564,7 @@ ENTRY("AFNI_range_lock_carryout") ;
 
    /* first, determine if there is anything to do */
 
-   glock = GLOBAL_library.controller_lock ;     /* not a handgun */
+   glock = GLOBAL_library.controller_lock ;      /* not a handgun */
 
    if( busy )                         EXRETURN;  /* routine already busy */
    if( glock == 0 )                   EXRETURN;  /* nothing to do */
@@ -577,6 +585,15 @@ ENTRY("AFNI_range_lock_carryout") ;
    val = im3d->vinfo->fim_range ;
    if( val <= 0.0 )                   EXRETURN;  /* shouldn't happen */
 
+   /* count how OTHER controllers are are open and locked;
+      if none of them, there is nothing to do [29 Apr 2005] */
+
+   for( nn=cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
+     qq3d = GLOBAL_library.controllers[cc] ;
+     if( qq3d != im3d && IM3D_OPEN(qq3d) && ((1<<cc) & glock) != 0 ) nn++ ;
+   }
+   if( nn < 1 )                       EXRETURN ;
+
    /* something to do? */
 
    busy = 1 ;  /* don't let this routine be called recursively */
@@ -586,13 +603,16 @@ ENTRY("AFNI_range_lock_carryout") ;
 
    for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){
 
-      qq3d = GLOBAL_library.controllers[cc] ; /* controller */
+     qq3d = GLOBAL_library.controllers[cc] ; /* controller */
 
-      if( IM3D_OPEN(qq3d) && ((1<<cc) & glock) != 0 ){
-        if( qq3d == im3d && MCW_val_bbox(im3d->vwid->func->range_bbox) == 0 ) continue;
-        sprintf( cmd , "SET_FUNC_RANGE %c.%.6f" , 'A'+cc , val ) ;
-        AFNI_driver( cmd ) ;
-      }
+     if( IM3D_OPEN(qq3d) && ((1<<cc) & glock) != 0 ){  /* open and locked */
+
+       if( qq3d == im3d &&    /* no need to set current if not autoRanged */
+           MCW_val_bbox(im3d->vwid->func->range_bbox) == 0 ) continue;
+
+       sprintf( cmd , "SET_FUNC_RANGE %c.%.6f" , 'A'+cc , val ) ;
+       AFNI_driver( cmd ) ;
+     }
    }
 
    busy = 0 ;  /* OK, let this routine be activated again */
