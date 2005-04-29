@@ -1755,7 +1755,8 @@ char* SUMA_SpecStructInfo (SUMA_SurfSpecFile *Spec, int detail)
             sprintf(name_topo,"%s ", Spec->TopoFile[i]);
          } else if ( (SUMA_iswordin(Spec->SurfaceType[i], "FreeSurfer") == 1) ||
                      (SUMA_iswordin(Spec->SurfaceType[i], "Ply") == 1)        ||
-                     (SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) ) {
+                     (SUMA_iswordin(Spec->SurfaceType[i], "GenericInventor") == 1) ||
+                     (SUMA_iswordin(Spec->SurfaceType[i], "OpenDX") == 1) ) {
             sprintf(name_coord, "%s ", Spec->SurfaceFile[i]);
          }
          SS = SUMA_StringAppend_va (SS, "%d) ", i);/* print the index */
@@ -1934,7 +1935,7 @@ SUMA_SurfaceObject * SUMA_Load_Spec_Surf(SUMA_SurfSpecFile *Spec, int i, char *t
       brk = YUP;
    } /* load Ply format surface */
 
-   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "DX") == 1) {/* load SUMA_OPENDX_MESH format surface */
+   if (!brk && SUMA_iswordin(Spec->SurfaceType[i], "OpenDX") == 1) {/* load SUMA_OPENDX_MESH format surface */
 
       SO = SUMA_Load_Surface_Object_eng ((void *)Spec->SurfaceFile[i], SUMA_OPENDX_MESH, SUMA_ASCII, tmpVolParName, debug);
 
@@ -4480,7 +4481,8 @@ char * SUMA_coord_file( SUMA_SurfSpecFile * spec, int index )
 	return spec->CoordFile[index];
     else if ( strstr(spec->SurfaceType[index], "FreeSurfer") ||
 	      strstr(spec->SurfaceType[index], "Ply")        ||
-	      strstr(spec->SurfaceType[index], "GenericInventor" ) )
+	      strstr(spec->SurfaceType[index], "GenericInventor" ) ||
+         strstr(spec->SurfaceType[index], "OpenDX" ) )
 	return spec->SurfaceFile[index];
 
     return NULL;

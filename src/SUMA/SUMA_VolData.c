@@ -1077,8 +1077,61 @@ THD_fvec3 SUMA_THD_dicomm_to_3dmm( SUMA_SurfaceObject *SO ,
    imv.xyz[0] = xim ; imv.xyz[1] = yim ; imv.xyz[2] = zim ;
    SUMA_RETURN(imv) ;
 }
+/*!
+   \brief changes orientation codes to string
+   classic RAI codes: ORI_R2L_TYPE, ORI_A2P_TYPE, ORI_I2S_TYPE
+   would result in orstr being set to: RAILPS 
+*/
+void SUMA_orcode_to_orstring (int xxorient,int  yyorient,int zzorient, char *orstr)
+{
+   static char FuncName[]={"SUMA_orcode_to_orstring"};
+   
+   SUMA_ENTRY;
+   
+   if (!orstr) { SUMA_SL_Err("NULL string"); SUMA_RETURNe; }
+   
+   orstr[0]='\0';
+   switch( xxorient ){
+      case ORI_R2L_TYPE: orstr[0] = 'R'; orstr[3] = 'L'; break ;
+      case ORI_L2R_TYPE: orstr[0] = 'L'; orstr[3] = 'R'; break ;
+      case ORI_P2A_TYPE: orstr[0] = 'P'; orstr[3] = 'A'; break ;
+      case ORI_A2P_TYPE: orstr[0] = 'A'; orstr[3] = 'P'; break ;
+      case ORI_I2S_TYPE: orstr[0] = 'I'; orstr[3] = 'S'; break ;
+      case ORI_S2I_TYPE: orstr[0] = 'S'; orstr[3] = 'I'; break ;
 
+      default: 
+         fprintf(SUMA_STDERR, "SUMA_THD_dicomm_to_3dmm: illegal xxorient code.\n") ;
+         SUMA_RETURNe;
+   }
 
+   switch( yyorient ){
+      case ORI_R2L_TYPE: orstr[1] = 'R'; orstr[4] = 'L'; break ;
+      case ORI_L2R_TYPE: orstr[1] = 'L'; orstr[4] = 'R'; break ;
+      case ORI_P2A_TYPE: orstr[1] = 'P'; orstr[4] = 'A'; break ;
+      case ORI_A2P_TYPE: orstr[1] = 'A'; orstr[4] = 'P'; break ;
+      case ORI_I2S_TYPE: orstr[1] = 'I'; orstr[4] = 'S'; break ;
+      case ORI_S2I_TYPE: orstr[1] = 'S'; orstr[4] = 'I'; break ;
+
+      default: 
+         fprintf(SUMA_STDERR, "SUMA_THD_dicomm_to_3dmm: illegal yyorient code.\n ") ;
+         SUMA_RETURNe;
+   }
+
+   switch( zzorient ){
+      case ORI_R2L_TYPE: orstr[2] = 'R'; orstr[5] = 'L'; break ;
+      case ORI_L2R_TYPE: orstr[2] = 'L'; orstr[5] = 'R'; break ;
+      case ORI_P2A_TYPE: orstr[2] = 'P'; orstr[5] = 'A'; break ;
+      case ORI_A2P_TYPE: orstr[2] = 'A'; orstr[5] = 'P'; break ;
+      case ORI_I2S_TYPE: orstr[2] = 'I'; orstr[5] = 'S'; break ;
+      case ORI_S2I_TYPE: orstr[2] = 'S'; orstr[5] = 'I'; break ;
+
+      default: 
+         fprintf(SUMA_STDERR, "SUMA_THD_dicomm_to_3dmm: illegal zzorient code.\n ") ;
+         SUMA_RETURNe;
+   }
+   
+   SUMA_RETURNe;
+}
 /*!
    \brief SUMA_Boolean SUMA_vec_3dfind_to_3dmm (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar)
    SUMA_Boolean SUMA_vec_3dmm_to_3dfind (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar);

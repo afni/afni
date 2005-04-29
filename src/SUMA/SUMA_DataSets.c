@@ -1274,6 +1274,51 @@ SUMA_VARTYPE SUMA_VarType2TypeCast (char *vt)
    
    SUMA_RETURN(SUMA_notypeset);
 }
+
+int SUMA_SizeOf(SUMA_VARTYPE vt)
+{
+   static char FuncName[]={"SUMA_SizeOf"};
+   
+   SUMA_ENTRY;
+   
+   switch (vt) {
+      case SUMA_int:
+         SUMA_RETURN(sizeof(int));
+         break;
+      case SUMA_float:
+         SUMA_RETURN(sizeof(float));
+         break;
+      case SUMA_byte:
+         SUMA_RETURN(sizeof(byte));
+         break;
+      case SUMA_double:
+         SUMA_RETURN(sizeof(double));
+         break;
+      case SUMA_short:
+         SUMA_RETURN(sizeof(short));
+         break;
+      default:
+         SUMA_RETURN(-1);
+   }
+   
+}
+
+SUMA_COL_TYPE SUMA_VarType2ColType (char *vt)
+{
+   static char FuncName[]={"SUMA_VarType2ColType"};
+   
+   SUMA_ENTRY;
+   
+   if (!vt) SUMA_RETURN(SUMA_notypeset);
+   
+   if (strstr(vt,"int")) SUMA_RETURN(SUMA_NODE_INT);
+   if (strstr(vt,"float")) SUMA_RETURN(SUMA_NODE_FLOAT);
+   if (strstr(vt,"byte")) SUMA_RETURN(SUMA_NODE_BYTE);
+   if (strstr(vt,"double")) SUMA_RETURN(SUMA_NODE_DOUBLE);
+   if (strstr(vt,"short")) SUMA_RETURN(SUMA_NODE_SHORT);
+   
+   SUMA_RETURN(SUMA_ERROR_COL_TYPE);
+}
  
 SUMA_VARTYPE SUMA_ColType2TypeCast (SUMA_COL_TYPE ctp) 
 {
@@ -1343,6 +1388,9 @@ char * SUMA_Dset_Format_Name (SUMA_DSET_FORMAT fr)
       case SUMA_1D:
          SUMA_RETURN ("Afni_1D");
          break;
+      case SUMA_ASCII_OPEN_DX_DSET:
+         SUMA_RETURN ("Ascii_OpenDX_dset");
+         break;
       default:
          SUMA_RETURN("Cowabonga-gimlauron");
          break;
@@ -1362,6 +1410,7 @@ SUMA_DSET_FORMAT SUMA_Dset_Format (char *Name)
    if (!strcmp(Name,"Binary_Niml")) SUMA_RETURN (SUMA_BINARY_NIML);
    if (!strcmp(Name,"Niml")) SUMA_RETURN (SUMA_NIML);
    if (!strcmp(Name,"Afni_1D")) SUMA_RETURN (SUMA_1D);
+   if (!strcmp(Name,"Ascii_OpenDX_dset")) SUMA_RETURN (SUMA_ASCII_OPEN_DX_DSET);
    SUMA_RETURN(SUMA_ERROR_DSET_FORMAT);
 }
 
@@ -3186,9 +3235,14 @@ SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT *form, int verb)
          SUMA_LH("Loading 1D Dset");
          dset = SUMA_Load1DDset(Name, verb);
          break;
+      case SUMA_ASCII_OPEN_DX_DSET:
+         SUMA_LH("Loading DX Dset");
+         dset = SUMA_LoadDXDset(Name, verb);
+         break;
       case SUMA_NO_DSET_FORMAT:
          if (!dset) { SUMA_LH("Trying NIML Dset"); dset = SUMA_LoadNimlDset(Name, 0); *form = SUMA_NIML; }
          if (!dset) { SUMA_LH("Trying 1D Dset"); dset = SUMA_Load1DDset(Name, 0); *form = SUMA_1D; }
+         if (!dset) { SUMA_LH("Trying DX Dset"); dset = SUMA_Load1DDset(Name, 0); *form = SUMA_ASCII_OPEN_DX_DSET; }
          break;
       default:
          if (verb) SUMA_SLP_Err("Bad format specification");
@@ -3320,6 +3374,8 @@ SUMA_DSET_FORMAT SUMA_GuessFormatFromExtension(char *Name)
    if (SUMA_isExtension(Name, ".1D.dset")) form = SUMA_1D;
    if (SUMA_isExtension(Name, ".niml.cmap")) form = SUMA_NIML;
    if (SUMA_isExtension(Name, ".1D.cmap")) form = SUMA_1D; 
+   if (SUMA_isExtension(Name, ".dx")) form = SUMA_ASCII_OPEN_DX_DSET; 
+   if (SUMA_isExtension(Name, ".dx.dset")) form = SUMA_ASCII_OPEN_DX_DSET; 
    SUMA_RETURN(form);
 }
 /*!
@@ -3348,6 +3404,10 @@ char *SUMA_RemoveDsetExtension (char*Name, SUMA_DSET_FORMAT form)
       case SUMA_1D_PURE:
          tmp  =  SUMA_Extension(Name, ".1D", YUP);
          noex  =  SUMA_Extension(tmp, ".1D.dset", YUP); SUMA_free(tmp); tmp = NULL;
+         break;
+      case SUMA_ASCII_OPEN_DX_DSET:
+         tmp  =  SUMA_Extension(Name, ".dx", YUP);
+         noex  =  SUMA_Extension(tmp, ".dx.dset", YUP); SUMA_free(tmp); tmp = NULL;
          break;
       case SUMA_NO_DSET_FORMAT:
          tmp  =  SUMA_Extension(Name, ".1D", YUP);
@@ -3560,6 +3620,41 @@ SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
 }
 
 /*!
+   \brief A function to create a dataset out of an OpenDX object
+   \param FullName (char *) the filename
+   \param dset_id (char *) if null, SUMA_CreateDsetPointer will create one
+   \param dom_id (char *) domain idcode null if you have none
+   \param dx (SUMA_OPEN_DX_STRUCT *) pointer to OpenDX object
+   \return dset (SUMA_DSET *) NULL if trouble, of course. 
+*/
+SUMA_DSET *SUMA_OpenDX2dset( char *FullName, char *dset_id, char *dom_id, 
+                                SUMA_OPEN_DX_STRUCT *dx ) 
+{
+   static char FuncName[]={"SUMA_OpenDX2dset"};
+   SUMA_DSET *dset = NULL;
+   int i = 0;
+
+   SUMA_ENTRY;
+   
+   if (!FullName) { SUMA_SL_Err("Need a FullName"); SUMA_RETURN(dset); }
+   if (!dx) { SUMA_SL_Err("NULL dx"); SUMA_RETURN(dset); }
+   
+   dset = SUMA_CreateDsetPointer( FullName, SUMA_NODE_BUCKET, dset_id, dom_id,  dx->items); 
+   
+   /* now add the columns */
+   
+   for (i=0; i<SUMA_NCOL_OPENDX(dx); ++i) {
+      if (!SUMA_AddDsetNelCol (dset, "dx_col", SUMA_VarType2ColType (dx->type), dx->datap+i, NULL , SUMA_NCOL_OPENDX(dx))) {
+         SUMA_SL_Crit("Failed in SUMA_AddDsetNelCol");
+         SUMA_FreeDset((void*)dset); dset = NULL;
+         SUMA_RETURN(dset);
+      }
+   }
+
+   SUMA_RETURN(dset);
+}
+
+/*!
    \brief A function to create a dataset out of MRI_FLOAT_PTR(im)
          that is typically used to read in a 1D file   
    \param FullName (char *) the filename
@@ -3724,6 +3819,92 @@ void SUMA_SetParent_DsetToLoad(char *parent)
 
 /*!
 
+   \brief Load a surface-based data set of the DX format
+   \param Name (char *) name or prefix of dataset
+   \param verb (int) level of verbosity. 0 mute, 1 normal, 2 dramatic perhaps
+   \return dset (SUMA_DSET *)
+   
+*/
+SUMA_DSET *SUMA_LoadDXDset (char *Name, int verb)
+{
+   static char FuncName[]={"SUMA_LoadDXDset"};
+   char *FullName = NULL;
+   MRI_IMAGE *im = NULL;
+   float *far=NULL;
+   int i, ndxv=0;
+   char *idcode = NULL, *name=NULL;
+   SUMA_DSET *dset=NULL;
+   SUMA_OPEN_DX_STRUCT **dxv=NULL, *dx=NULL;
+   SUMA_ENTRY;
+   
+   if (!Name) { SUMA_SL_Err("Null Name"); SUMA_RETURN(dset); }
+   
+   /* work the name */
+   if (!SUMA_filexists(Name)) {
+      /* try the extension game */
+      FullName = SUMA_Extension(Name, ".dx.dset", NOPE);
+      if (!SUMA_filexists(FullName)) {
+         SUMA_free(FullName); FullName = NULL;
+         FullName = SUMA_Extension(Name, ".dx", NOPE);
+         if (!SUMA_filexists(FullName)) {
+            if (verb)  { SUMA_SL_Err("Failed to find dset file."); }
+            goto CLEAN_EXIT;
+         }
+      }
+   }else {
+      FullName = SUMA_copy_string(Name);
+   }
+   
+   /* load the objects */
+   if (!(dxv = SUMA_OpenDX_Read(FullName, &ndxv))) {
+      if (verb) SUMA_SL_Err("Failed to read OpenDx File");
+      goto CLEAN_EXIT;
+   }
+
+   /* if more than one, warn that only one is to be used */
+   if (ndxv < 1) {
+      SUMA_SL_Err("no objects in file");
+      goto CLEAN_EXIT;
+   }else if (ndxv > 1) {
+      SUMA_SL_Warn("More than one object found in file.\nUsing first applicable one.");
+   }
+   /* find the object that is appropriate */
+   i=0; dx = NULL;
+   while (i<ndxv && !dx) {
+      if (dxv[i]->datap && dxv[i]->items) {
+         dx = dxv[i];
+      }
+      ++i;
+   }
+   if (!dx) {
+      SUMA_SL_Err("No appropriate objects found");
+      SUMA_Show_OpenDX_Struct(dxv, ndxv, NULL); fflush(stdout);
+      goto CLEAN_EXIT;
+   }
+   /* transfer contents to dset */
+   if (ParentOfDsetToLoad) name = SUMA_append_string(ParentOfDsetToLoad, FullName);
+   else if (FullName) name = SUMA_copy_string(FullName);
+   else name = SUMA_copy_string("wow");
+   SUMA_NEW_ID(idcode, name);
+   SUMA_free(name); name = NULL;
+   dset = SUMA_OpenDX2dset(FullName, idcode, NULL, dx);
+   if (idcode) SUMA_free(idcode); idcode = NULL;
+   if (!dset) {
+      SUMA_SLP_Err("Failed in SUMA_OpenDX2dset\n");
+      goto CLEAN_EXIT;
+   }
+   
+   
+   CLEAN_EXIT:
+   if (FullName) SUMA_free(FullName); FullName = NULL;
+   for (i=0; i<ndxv; ++i) {
+      dxv[i] = SUMA_Free_OpenDX_Struct(dxv[i]);
+   }
+   if (dxv) SUMA_free(dxv); dxv = NULL;
+   SUMA_RETURN(dset);
+} 
+/*!
+
    \brief Load a surface-based data set of the 1D format
    \param Name (char *) name or prefix of dataset
    \param verb (int) level of verbosity. 0 mute, 1 normal, 2 dramatic perhaps
@@ -3882,6 +4063,8 @@ void usage_ConverDset()
             "           1D:   for AFNI's 1D ascii format.\n"
             "           1Dp:  like 1D but with no comments\n"
             "                 or other 1D formatting gimmicks.\n"
+            "           dx: OpenDX format, expects to work on 1st\n"
+            "               object only.\n"
             "           If no format is specified, the program will \n"
             "           guess however that might slow \n"
             "           operations down considerably.\n"
@@ -3950,6 +4133,16 @@ int main (int argc,char *argv[])
             exit(1);
          }
          iform = SUMA_NIML;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-i_dx") == 0))
+      {
+         if (iform != SUMA_NO_DSET_FORMAT) {
+            SUMA_SL_Err("input type already specified.");
+            exit(1);
+         }
+         iform = SUMA_ASCII_OPEN_DX_DSET;
          brk = YUP;
       }
       
@@ -4424,7 +4617,7 @@ int main (int argc,char *argv[])
          SUMA_SL_Err("Failed to insert dset into list");
          /* Now change the idcode of that baby */
          newid = UNIQ_hashcode(SDSET_ID(dset));
-         NI_set_attribute(dset->nel, "Object_ID", newid); SUMA_free(newid);
+         NI_set_attribute(dset->dnel, "Object_ID", newid); SUMA_free(newid);
          SUMA_LH("Trying to insert dset with a new id ");
          if (!SUMA_InsertDsetPointer(dset, SUMAg_CF->DsetList)) {
             SUMA_SL_Err("Failed to insert dset into list\nI failed to succeed, snif.");
@@ -5406,6 +5599,8 @@ int SUMA_isNumString (char *s, void *p)
       
       -1 in case of error
    \sa SUMA_isNumString
+   \sa SUMA_strtol_vec
+   \sa SUMA_AdvancePastNumbers
 */
 int SUMA_StringToNum (char *s, float *fv, int N)
 {
@@ -6240,5 +6435,152 @@ int SUMA_AddColAtt_CompString(NI_element *nel, int col, char *lbl, char *sep)
    SUMA_RETURN(YUP);
 }
 
+
+/*! Swap the 4 bytes pointed to by ppp: abcd -> dcba. */
+
+void SUMA_swap_4(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1, b2, b3;
+
+   b0 = *pntr; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
+   *pntr = b3; *(pntr+1) = b2; *(pntr+2) = b1; *(pntr+3) = b0;
+}
+
+/*---------------------------------------------------------------*/
+
+/*! Swap the 8 bytes pointed to by ppp: abcdefgh -> hgfedcba. */
+
+void SUMA_swap_8(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1, b2, b3;
+   unsigned char b4, b5, b6, b7;
+
+   b0 = *pntr    ; b1 = *(pntr+1); b2 = *(pntr+2); b3 = *(pntr+3);
+   b4 = *(pntr+4); b5 = *(pntr+5); b6 = *(pntr+6); b7 = *(pntr+7);
+
+   *pntr     = b7; *(pntr+1) = b6; *(pntr+2) = b5; *(pntr+3) = b4;
+   *(pntr+4) = b3; *(pntr+5) = b2; *(pntr+6) = b1; *(pntr+7) = b0;
+}
+
+/*---------------------------------------------------------------*/
+
+/*! Swap the 2 bytes pointed to by ppp: ab -> ba. */
+
+void SUMA_swap_2(void *ppp)
+{
+   unsigned char *pntr = (unsigned char *) ppp ;
+   unsigned char b0, b1;
+
+   b0 = *pntr; b1 = *(pntr+1);
+   *pntr = b1; *(pntr+1) = b0;
+}
+
+/*!
+   \brief 
+   \param endian (int)  0 : Don't know, do nothing
+                        MSB_FIRST
+                        LSB_FIRST
+*/
+void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start, int end, int *nvals_read)
+{
+   static char FuncName[]={"SUMA_BinarySuck"};
+   int bs, End, chnk, read_n, N_alloc, ex;
+   FILE *fp=NULL;
+   void *ans = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+
+   SUMA_ENTRY;
+
+   *nvals_read = 0;
+   ans = NULL;
+
+   if (!SUMA_filexists(fname)) { SUMA_SL_Err("File not found or could not be read"); goto CLEAN_EXIT; }
+   if (start < 0) { SUMA_SL_Err("Neg start val!"); goto CLEAN_EXIT; }
+
+   /* byte swapping? */
+   bs = 0;
+   SUMA_WHAT_ENDIAN(End);
+   if (endian && endian != End) bs = 1;         
+
+   /* open file */
+   fp = fopen(fname,"r");
+   if (!fp) { SUMA_SL_Err("Failed to open file for read op."); goto CLEAN_EXIT; }
+
+   /* skip top, if need be */
+   if (start) fseek(fp, start, SEEK_SET);
+
+   /* size of each value */
+   chnk = SUMA_SizeOf(data_type);
+   if (chnk <= 0) {  SUMA_SL_Err("Bad data type"); goto CLEAN_EXIT; }
+
+   /* how many values to read ? */
+   read_n = -1;
+   if (end > 0) {
+      read_n = (end-start)/chnk;
+      if (read_n < 0) { SUMA_SL_Err("Bad end, start values"); goto CLEAN_EXIT;  }
+   }
+
+   /* now start reading until you reach eof or end byte */
+   if (read_n >= 0)  N_alloc = read_n;
+   else N_alloc = ( THD_filesize( fname ) - start) / (unsigned long)chnk;
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Expecting to read %d values\n", FuncName, N_alloc);
+
+   switch (data_type) {
+      case SUMA_float:
+         {
+            float *vec = (float *)SUMA_malloc(N_alloc * sizeof(float));
+            if (!vec) { SUMA_SL_Err("Failed to allocate"); goto CLEAN_EXIT;  }
+            SUMA_LH("Reading floats");
+            ex = fread((void*)vec, chnk, N_alloc, fp);
+            if (ex != N_alloc) { SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); goto CLEAN_EXIT; }
+            if (bs) { SUMA_LH("swapping");  SUMA_SWAP_VEC(vec,N_alloc,chnk); }
+            ans = (void*)vec;
+         }
+         break;
+      case SUMA_int:
+         {
+            int *vec = (int *)SUMA_malloc(N_alloc * sizeof(int));
+            if (!vec) { SUMA_SL_Err("Failed to allocate"); goto CLEAN_EXIT;  }
+            SUMA_LH("Reading ints");
+            ex = fread((void*)vec, chnk, N_alloc, fp);
+            if (ex != N_alloc) { SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); goto CLEAN_EXIT; }
+            if (bs) { SUMA_LH("swapping");  SUMA_SWAP_VEC(vec,N_alloc,chnk); }
+            ans = (void*)vec;
+         }
+         break;
+      case SUMA_byte:
+         {
+            byte *vec = (byte *)SUMA_malloc(N_alloc * sizeof(byte));
+            if (!vec) { SUMA_SL_Err("Failed to allocate"); goto CLEAN_EXIT;  }
+            SUMA_LH("Reading bytes");
+            ex = fread((void*)vec, chnk, N_alloc, fp);
+            if (ex != N_alloc) { SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); goto CLEAN_EXIT; }
+            if (bs) { SUMA_LH("swapping");  SUMA_SWAP_VEC(vec,N_alloc,chnk); }
+            ans = (void*)vec;
+         }
+         break;
+      case SUMA_short:
+         {
+            short *vec = (short *)SUMA_malloc(N_alloc * sizeof(short));
+            if (!vec) { SUMA_SL_Err("Failed to allocate"); goto CLEAN_EXIT;  }
+            SUMA_LH("Reading shorts");
+            ex = fread((void*)vec, chnk, N_alloc, fp);
+            if (ex != N_alloc) { SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); goto CLEAN_EXIT; }
+            if (bs) { SUMA_LH("swapping");  SUMA_SWAP_VEC(vec,N_alloc,chnk); }
+            ans = (void*)vec;
+         }
+         break;
+      default:
+         SUMA_SL_Err("data type not supported");
+         break;
+   }
+
+   CLEAN_EXIT:
+   if (fp) fclose(fp);
+   
+   SUMA_RETURN(ans);
+}
 
 /*********************** END Miscellaneous support functions **************************** */
