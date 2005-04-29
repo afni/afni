@@ -644,6 +644,8 @@ void display_help_menu()
     "     'SIN(b,c,n)'  = n parameter sine series expansion                 \n"
     "     'TENT(b,c,n)' = n parameter tent function expansion               \n"
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
+    "                     (can also be called 'IGFUN' which stands)         \n"
+    "                     (for 'incomplete gamma function'        )         \n"
     "     'EXPR(b,c) exp1 ... expn' = n parameter; arbitrary expressions    \n"
     "                                                                       \n"
     "[-basis_normall a]                                                     \n"
@@ -7375,14 +7377,14 @@ basis_expansion * basis_parser( char *sym )
 
    /*--- BLOCKn(duration,peak) for n=4 or 5 ---*/
 
-   } else if( strncmp(scp,"BLOCK",5) == 0 ){
+   } else if( strncmp(scp,"BLOCK",5) == 0 || strncmp(scp,"IGFUN",5) == 0 ){
      int nb=4 ;
 
      if( scp[5] != '\0' ){
        nb = strtol( scp+5 , NULL , 10 ) ;
        if( nb != 4 && nb != 5 ){
          fprintf(stderr,
-         "** ERROR: '%s' has illegal power after 'BLOCK': only 4 or 5 allowed\n",scp) ;
+         "** ERROR: '%s' has illegal power: only 4 or 5 allowed\n",scp) ;
          free((void *)be); free(scp); return NULL;
        }
      }
