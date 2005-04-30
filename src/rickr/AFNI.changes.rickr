@@ -1118,3 +1118,6 @@
 28 April 2005:
   * checked in Kate's changes to fsl_api_driver.c and fslio.[ch]
 
+30 April 2005:
+  * modified whereami.c so that it does not crash on missing TTatlas+tlrc
+

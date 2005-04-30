@@ -434,6 +434,12 @@ int main(int argc, char **argv)
   z = atof(argv[3]);
 
   string = TT_whereami(x,y,z);
+  if (string == NULL ) {                              /* 30 Apr 2005 [rickr] */
+    fprintf(stderr,"** whereami lookup failure, is TTatlas+tlrc available?\n");
+    fprintf(stderr,"   (the TTatlas+tlrc dataset must be in your PATH)\n");
+    return 1;
+  }
+
   if (output == 1) {
     fstring = malloc(sizeof(string));
     strncpy(fstring, "Focus point", 11);
