@@ -689,7 +689,7 @@ extern void PLUTO_histoplot( int, float, float, int *,
                              char *, char *, char * , int,int ** ) ;
 
 extern void PLUTO_scatterplot( int , float *, float *,
-                               char *, char *, char * ) ;
+                               char *, char *, char * , float,float ) ;
 
 extern void PLUTO_force_redisplay( void ) ;
 extern void PLUTO_force_rebar( void ) ;

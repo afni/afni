@@ -108,20 +108,20 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   Main routine for this plugin (will be called from AFNI).
 ****************************************************************************/
 
-char * SCAT_main( PLUGIN_interface * plint )
+char * SCAT_main( PLUGIN_interface *plint )
 {
-   MCW_idcode * idc ;
-   THD_3dim_dataset * xdset, * ydset , * mask_dset=NULL ;
+   MCW_idcode *idc ;
+   THD_3dim_dataset *xdset, *ydset , *mask_dset=NULL ;
    int ivx,ivy , mcount , nvox , ii,jj , nbin=-1 ;
    float mask_bot=666.0 , mask_top=-666.0 ;
-   float xbot,xtop , ybot,ytop , pcor=0 ;
-   char * tag , * str ;
+   float xbot,xtop , ybot,ytop , pcor=0 , a=0,b=0 ;
+   char *tag , *str ;
    char xlab[THD_MAX_NAME],ylab[THD_MAX_NAME],tlab[THD_MAX_NAME] ;
    char ab[16] , bb[16] , *pab,*pbb ;
-   byte * mmm ;
-   float * xar , * yar ;
+   byte *mmm ;
+   float *xar , *yar ;
 
-   char * cname=NULL ;  /* 06 Aug 1998 */
+   char *cname=NULL ;  /* 06 Aug 1998 */
    int miv=0 ;
 
    /*--------------------------------------------------------------------*/
@@ -262,7 +262,7 @@ char * SCAT_main( PLUGIN_interface * plint )
 
    switch( DSET_BRICK_TYPE(xdset,ivx) ){
       case MRI_short:{
-         short * bar = (short *) DSET_ARRAY(xdset,ivx) ;
+         short *bar = (short *) DSET_ARRAY(xdset,ivx) ;
          float mfac = DSET_BRICK_FACTOR(xdset,ivx) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          for( ii=jj=0 ; ii < nvox ; ii++ )
@@ -271,7 +271,7 @@ char * SCAT_main( PLUGIN_interface * plint )
       break ;
 
       case MRI_byte:{
-         byte * bar = (byte *) DSET_ARRAY(xdset,ivx) ;
+         byte *bar = (byte *) DSET_ARRAY(xdset,ivx) ;
          float mfac = DSET_BRICK_FACTOR(xdset,ivx) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          for( ii=jj=0 ; ii < nvox ; ii++ )
@@ -280,7 +280,7 @@ char * SCAT_main( PLUGIN_interface * plint )
       break ;
 
       case MRI_float:{
-         float * bar = (float *) DSET_ARRAY(xdset,ivx) ;
+         float *bar = (float *) DSET_ARRAY(xdset,ivx) ;
          float mfac = DSET_BRICK_FACTOR(xdset,ivx) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          for( ii=jj=0 ; ii < nvox ; ii++ )
@@ -293,7 +293,7 @@ char * SCAT_main( PLUGIN_interface * plint )
 
    switch( DSET_BRICK_TYPE(ydset,ivy) ){
       case MRI_short:{
-         short * bar = (short *) DSET_ARRAY(ydset,ivy) ;
+         short *bar = (short *) DSET_ARRAY(ydset,ivy) ;
          float mfac = DSET_BRICK_FACTOR(ydset,ivy) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          for( ii=jj=0 ; ii < nvox ; ii++ )
@@ -302,7 +302,7 @@ char * SCAT_main( PLUGIN_interface * plint )
       break ;
 
       case MRI_byte:{
-         byte * bar = (byte *) DSET_ARRAY(ydset,ivy) ;
+         byte *bar = (byte *) DSET_ARRAY(ydset,ivy) ;
          float mfac = DSET_BRICK_FACTOR(ydset,ivy) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          for( ii=jj=0 ; ii < nvox ; ii++ )
@@ -311,7 +311,7 @@ char * SCAT_main( PLUGIN_interface * plint )
       break ;
 
       case MRI_float:{
-         float * bar = (float *) DSET_ARRAY(ydset,ivy) ;
+         float *bar = (float *) DSET_ARRAY(ydset,ivy) ;
          float mfac = DSET_BRICK_FACTOR(ydset,ivy) ;
          if( mfac == 0.0 ) mfac = 1.0 ;
          for( ii=jj=0 ; ii < nvox ; ii++ )
@@ -323,7 +323,7 @@ char * SCAT_main( PLUGIN_interface * plint )
    /* remove those voxels that aren't in the data ranges for both datasets */
 
    if( xbot < xtop || ybot < ytop ){
-      int nm ; float * tar ;
+      int nm ; float *tar ;
 
       /* make the mask of those that survive the x range */
 
@@ -407,7 +407,8 @@ char * SCAT_main( PLUGIN_interface * plint )
         yq  += (yar[ii]-ybar)*(yar[ii]-ybar) ;
         xyq += (xar[ii]-xbar)*(yar[ii]-ybar) ;
      }
-     if( xq > 0.0 && yq > 0.0 ) pcor = xyq / sqrt(xq*yq) ;
+     if( xq > 0.0 && yq > 0.0 ){
+       pcor = xyq/sqrt(xq*yq); a = xyq/xq; b = (xq*ybar-xbar*xyq)/xq; }
    }
 
    if( mask_dset == NULL ){
@@ -416,12 +417,14 @@ char * SCAT_main( PLUGIN_interface * plint )
       sprintf(tlab,"\\noesc Scatter Plot: %d Voxels (%s)",
               mcount , DSET_FILECODE(mask_dset)   ) ;
    }
-   if( pcor != 0.0 )
-      sprintf(tlab+strlen(tlab)," R^2=%7.4f",pcor) ;
+   if( pcor != 0.0 ){
+     char abuf[16] ; AV_fval_to_char(a,abuf) ;
+     sprintf(tlab+strlen(tlab)," R=%.3f a=%s",pcor,abuf) ;
+   }
 
    /*-- actually plot data --*/
 
-   PLUTO_scatterplot( mcount , xar,yar , xlab,ylab,tlab ) ;
+   PLUTO_scatterplot( mcount , xar,yar , xlab,ylab,tlab , a,b ) ;
 
    /*-- go home to papa --*/
 
