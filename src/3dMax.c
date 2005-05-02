@@ -5,7 +5,7 @@
 
 static int datum                   = MRI_float ;
 static void Print_Header_MinMax(int Minflag, int Maxflag, THD_3dim_dataset * dset);
-static void Max_func(int Minflag, int Maxflag, THD_3dim_dataset * dset);
+static void Max_func(int Minflag, int Maxflag, int Meanflag, THD_3dim_dataset * dset, byte *mmm, int mmvox);
 static void Max_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
@@ -15,7 +15,12 @@ int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    int nopt, nbriks;
-   int slow_flag, quick_flag, min_flag, max_flag;
+   int slow_flag, quick_flag, min_flag, max_flag, mean_flag, automask;
+   byte * mmm=NULL ;
+   int    mmvox=0 ;
+   int nxyz, i;
+   MRI_IMAGE *anat_im = NULL;
+
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -29,6 +34,10 @@ int main( int argc , char * argv[] )
              "  -slow = read the whole dataset to find the min and max values\n"
              "  -min = print the minimum value in dataset\n"
              "  -max = print the minimum value in dataset (default)\n"
+             "  -mean = print the mean value in dataset (implies slow)\n"
+             "  -mask dset = use dset as mask to include/exclude voxels\n"
+             "  -automask = automatically compute mask for dataset\n"
+             "    Can not be combined with -mask\n"
              "  -help = print this help screen\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -41,8 +50,10 @@ int main( int argc , char * argv[] )
 
    min_flag  = 0;
    max_flag = -1;
+   mean_flag = 0;
    slow_flag = 0;
    quick_flag = -1;
+   automask = 0;
 
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -66,36 +77,51 @@ int main( int argc , char * argv[] )
         nopt++; continue;
       }
 
-      /*-- datum --*/
+      if( strcmp(argv[nopt],"-mean") == 0 ){
+	mean_flag = 1;
+        nopt++; continue;
+      }
 
-      if( strcmp(argv[nopt],"-datum") == 0 ){
-         if( ++nopt >= argc ){
-            fprintf(stderr,"*** -datum needs an argument!\n"); exit(1);
+      if( strcmp(argv[nopt],"-autoclip") == 0 ||
+          strcmp(argv[nopt],"-automask") == 0   ){
+
+         if( mmm != NULL ){
+           fprintf(stderr,"** ERROR: can't use -autoclip/mask with -mask!\n");
+           exit(1) ;
          }
-         if( strcmp(argv[nopt],"short") == 0 ){
-            datum = MRI_short ;
-         } else if( strcmp(argv[nopt],"float") == 0 ){
-            datum = MRI_float ;
-         } else if( strcmp(argv[nopt],"byte") == 0 ){
-            datum = MRI_byte ;
-         } else {
-            fprintf(stderr,"-datum of type '%s' is not supported!\n",
-                    argv[nopt] ) ;
-            exit(1) ;
+         automask = 1 ; nopt++ ; continue ;
+      }
+
+      if( strcmp(argv[nopt],"-mask") == 0 ){
+         int mcount ;
+         THD_3dim_dataset * mask_dset ;
+         if( automask ){
+           fprintf(stderr,"** ERROR: can't use -mask with -automask!\n");
+           exit(1) ;
          }
-         nopt++ ; continue ;
+         mask_dset = THD_open_dataset(argv[++nopt]) ;
+         if( mask_dset == NULL ){
+            fprintf(stderr,"** ERROR: can't open -mask dataset!\n"); exit(1);
+         }
+         if( mmm != NULL ){
+            fprintf(stderr,"** ERROR: can't have 2 -mask options!\n"); exit(1);
+         }
+         mmm = THD_makemask( mask_dset , 0 , 1.0,-1.0 ) ;
+         mmvox = DSET_NVOX( mask_dset ) ;
+
+         DSET_delete(mask_dset) ; nopt++ ; continue ;
       }
 
       fprintf(stderr, "*** Error - unknown option %s\n", argv[nopt]);
       exit(1);
    }
 
-
-
    if((slow_flag)&&(quick_flag!=1))
       quick_flag = 0;
    if((min_flag)&&(max_flag!=1))
       max_flag = 0;
+   if(mean_flag==1)
+     slow_flag = 1;
 
    /*----- read input dataset -----*/
 
@@ -108,15 +134,32 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]); exit(1);
    }
 
+   nxyz = DSET_NVOX(old_dset) ;
+   if( mmm != NULL && mmvox != nxyz ){
+      fprintf(stderr,"** Mask and input datasets not the same size!\n") ;
+      exit(1) ;
+   }
+
+   if(automask && mmm == NULL ){
+      mmm = THD_automask( old_dset ) ;
+      for(i=0;i<nxyz;i++) {
+        if(mmm[i]!=0) ++mmvox;
+      }
+   }
+
    if(quick_flag)
       Print_Header_MinMax(min_flag, max_flag, old_dset);
  
    if(slow_flag!=1)
       exit(0);
 
-   Max_func(min_flag, max_flag, old_dset);
+   Max_func(min_flag, max_flag, mean_flag, old_dset, mmm, mmvox);
+   if(mmm!=NULL)
+     free(mmm);
    exit(0);
 
+/* unused code time series method for extracting data */
+#if 0
    EDIT_dset_items( old_dset ,
                     ADN_ntt    , DSET_NVALS(old_dset) ,
                     ADN_ttorg  , 0.0 ,
@@ -142,6 +185,7 @@ int main( int argc , char * argv[] )
      printf("%-13.6g", maxvalue); 
    printf("\n");
    exit(0) ;
+#endif
 }
 
 /*! Print the minimum and maximum values from the header */
@@ -156,6 +200,7 @@ THD_3dim_dataset * dset;
 
   overallmin = 1E10;
   overallmax = -1E10;
+
   ENTRY("Print_Header_MinMax");
    /* print out stuff for each sub-brick */
    nval_per = dset->dblk->nvals ;
@@ -202,13 +247,15 @@ THD_3dim_dataset * dset;
 
 /*! search whole dataset for minimum and maximum */
 /* load all at one time */
-static void Max_func(Minflag, Maxflag, dset)
+static void Max_func(Minflag, Maxflag, Meanflag, dset, mmm, mmvox)
 int Minflag, Maxflag;
 THD_3dim_dataset * dset;
+byte *mmm;  /* mask pointer */
+int mmvox;
 {
-   double overallmin, overallmax;
-   double voxval;
-   int nvox;
+   double overallmin, overallmax, overallmean;
+   double voxval, fac, sum;
+   int nvox, npts;
    int i,k;
 
    MRI_IMAGE *data_im = NULL;
@@ -217,33 +264,75 @@ THD_3dim_dataset * dset;
 
    overallmin = 1E10;
    overallmax = -1E10;
+   sum = 0.0;
+   npts = 0;
    DSET_mallocize (dset);
    DSET_load (dset);	                /* load dataset */
    for(i=0;i<dset->dblk->nvals; i++) {  /* for each sub-brik in dataset */
       data_im = DSET_BRICK (dset, i);	/* set pointer to the 0th sub-brik of the dataset */
-      nvox = data_im->nvox;
+      fac = DSET_BRICK_FACTOR(dset, i); /* get scale factor for each sub-brik*/
+      if(fac==0.0) fac=1.0;
+      if( mmm != NULL)                  /* masked out */
+	nvox = mmvox;
+      else
+        nvox = data_im->nvox;           /* number of voxels in the sub-brik */
+
+      npts += nvox;                     /* keep track of number of points */
       for(k=0;k<nvox;k++) {
+             if( mmm != NULL && mmm[k] == 0 ) continue ;  /* masked out */
+
               switch( data_im->kind ){
                case MRI_short:{
                   short *ar = mri_data_pointer(data_im) ;
                   voxval = ar[k];
                }
                break ;
+
                case MRI_byte:{
                   byte *ar = mri_data_pointer(data_im) ;
                   voxval = ar[k];
                }
                break ;
+
                case MRI_float:{
                   float *ar = mri_data_pointer(data_im) ;
                   voxval = ar[k];
                }
                break ;
-               default:
-               fprintf(stderr,"+++ Warning - Don't know how to calculate max for this sub-brik image - %d!\n", i) ;
+
+              case MRI_double:{
+                  double *ar = mri_data_pointer(data_im) ;
+                  voxval = ar[k];
+               }
+               break ;
+
+              case MRI_int:{
+                  int *ar = mri_data_pointer(data_im) ;
+                  voxval = ar[k];
+               }
+               break ;
+
+              case MRI_complex:{
+                  complex *ar = mri_data_pointer(data_im) ;
+                  voxval = CABS(ar[k]);
+               }
+               break ;
+
+              case MRI_rgb:{
+                  byte *ar = mri_data_pointer(data_im) ;
+                  voxval = 0.299*ar[3*k]+0.587*ar[3*k+1]+0.114*ar[3*k+2];
+               }
+               break ;
+
+	      default:                          /* unknown type */
+		 voxval = 0.0;                   /* ignore this voxel */
+                 k = nvox;                       /* skip to next sub-brik */
+                 fprintf(stderr,"Unknown type, %s, in sub-brik %d\n", MRI_TYPE_name[data_im->kind], i);
 	       break;
             }
-
+	      voxval = voxval * fac;             /* apply scale factor */
+	      sum += voxval;
+            
             if(voxval<overallmin)
 	       overallmin = voxval;
             if(voxval>overallmax)
@@ -253,14 +342,21 @@ THD_3dim_dataset * dset;
    if(Minflag)
       printf("%-13.6g ", overallmin);
    if(Maxflag)
-      printf("%-13.6g\n", overallmax);
+      printf("%-13.6g ", overallmax);
+   if(Meanflag)
+     {
+       overallmean = sum/npts;
+       printf("%-13.6g", overallmean);
+     }
+   printf("\n");
 
     mri_free (data_im);
     /*    DSET_unload_one (dset, 0);*/
     EXRETURN;
 }
 
-
+/* unused code time series method for extracting data */
+#if 0
 
 /*! search whole dataset for minimum and maximum */
 static void Max_tsfunc( double tzero, double tdelta ,
@@ -298,4 +394,4 @@ static void Max_tsfunc( double tzero, double tdelta ,
 
   EXRETURN;
 }
-
+#endif
