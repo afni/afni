@@ -243,8 +243,8 @@ int main( int argc , char *argv[] )
    /*-- 14 Feb 2001: compute -rotparent/-gridparent transformation --*/
 
    if( VL_rotpar_dset != NULL ){
-      ATR_float * atr ;
-      float * matar , sum ;
+      ATR_float *atr ;
+      float *matar , sum ;
       THD_fvec3 fv ;
       THD_dfvec3 dv,ev,qv , cv_e2, cv_e1, cv_s1, cv_s2 ;
 
