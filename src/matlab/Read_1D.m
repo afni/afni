@@ -59,15 +59,15 @@ if (nargin == 1),
 else 
    if (isstruct(p1)),
       Opt = p1;
-      if (isfield(Opt, 'verb') && ~isempty(Opt.verb)) verb = Opt.verb;
+      if (isfield(Opt, 'verb') & ~isempty(Opt.verb)) verb = Opt.verb;
       else verb = 1; end
    else
       verb = p1;
       Opt.method = 0;
    end
 end
-if (~isfield(Opt, 'method') || isempty(Opt.method)), Opt.method = 0; end
-if (~isfield(Opt, 'verb') || isempty(Opt.verb)), verb = 1; else verb = Opt.verb; end
+if (~isfield(Opt, 'method') | isempty(Opt.method)), Opt.method = 0; end
+if (~isfield(Opt, 'verb') | isempty(Opt.verb)), verb = 1; else verb = Opt.verb; end
 
 
 %initailize return variables
