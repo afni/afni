@@ -29,7 +29,7 @@ static void mangle_angle( THD_3dim_dataset *, float, char, float *, int *) ;
   If the input dataset is NULL, then it is treated as in Dicom axes order.
 ------------------------------------------------------------------------------*/
 
-void THD_rotangle_user_to_dset( THD_3dim_dataset * dset ,
+void THD_rotangle_user_to_dset( THD_3dim_dataset *dset ,
                                 float th1_in   , char ax1_code ,
                                 float th2_in   , char ax2_code ,
                                 float th3_in   , char ax3_code ,
@@ -54,7 +54,7 @@ ENTRY("THD_rotangle_user_to_dset") ;
 
 /*----------------------------------------------------------------------------*/
 
-static void mangle_angle( THD_3dim_dataset * dset ,
+static void mangle_angle( THD_3dim_dataset *dset ,
                           float thin, char ax , float *thout, int *axout )
 {
    int neg=0 , ax1 ;
@@ -90,7 +90,7 @@ static void mangle_angle( THD_3dim_dataset * dset ,
    13 Feb 2001: bad dataset -> use Dicom axes order
 -----------------------------------------------------------------------------*/
 
-int THD_axcode( THD_3dim_dataset * dset , char ori )
+int THD_axcode( THD_3dim_dataset *dset , char ori )
 {
    int xxor , yyor , zzor ;
 
@@ -121,9 +121,9 @@ ENTRY("THD_axcode") ;
    06 Feb 2001: Promoted to externally visible.
 -----------------------------------------------------------------------------*/
 
-int THD_handedness( THD_3dim_dataset * dset )
+int THD_handedness( THD_3dim_dataset *dset )
 {
-   THD_dataxes * dax ;
+   THD_dataxes *dax ;
    THD_mat33 q ;
    int col ;
    float val ;
@@ -176,11 +176,11 @@ ENTRY("THD_handedness") ;
                to a matrix/vector pair for the given dataset.
 ---------------------------------------------------------------------------*/
 
-THD_dvecmat THD_rotcom_to_matvec( THD_3dim_dataset * dset , char * rotcom )
+THD_dvecmat THD_rotcom_to_matvec( THD_3dim_dataset *dset , char *rotcom )
 {
    THD_dvecmat out ;
    int nn , rpos=0 , nrc ;
-   char * buf ;
+   char *buf ;
 
 ENTRY("THD_rotcom_to_matvec") ;
 
@@ -282,9 +282,9 @@ ENTRY("THD_rotcom_to_matvec") ;
    Sample program for above routine
 *******************************************/
 #include "mrilib.h"
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset * qset ;
+   THD_3dim_dataset *qset ;
    THD_dvecmat vm ;
    if( argc < 3 || strcmp(argv[1],"-help")==0 ){
      printf("Usage: %s dset \"-rotate a b c -ashift a b c\"\n",argv[0]);exit(0);
@@ -305,7 +305,7 @@ int main( int argc , char * argv[] )
   [14 Feb 2001 - moved here from 3drotate.c]
 -----------------------------------------------------------------------*/
 
-THD_dmat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
+THD_dmat33 DBLE_mat_to_dicomm( THD_3dim_dataset *dset )
 {
    THD_dmat33 tod ;
 
@@ -352,7 +352,7 @@ THD_dmat33 DBLE_mat_to_dicomm( THD_3dim_dataset * dset )
   brick axis coordinates to Dicom order coordinates.
 -----------------------------------------------------------------------*/
 
-THD_mat33 SNGL_mat_to_dicomm( THD_3dim_dataset * dset )
+THD_mat33 SNGL_mat_to_dicomm( THD_3dim_dataset *dset )
 {
    THD_mat33 tod ;
 
