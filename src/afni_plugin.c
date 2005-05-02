@@ -4900,11 +4900,13 @@ static float p10( float x )
      xlab } labels for x-axis,
      ylab }            y-axis
      tlab }        and top of graph (NULL => skip this label)
+     a,b  = if nonzero, plots line y=ax+b on top
    Graph is popped up and then "forgotten" -- RWCox - 13 Jan 2000
 -------------------------------------------------------------------*/
 
 void PLUTO_scatterplot( int npt , float *x , float *y ,
-                        char *xlab , char *ylab , char *tlab )
+                        char *xlab , char *ylab , char *tlab ,
+                        float a , float b )
 {
    int ii , np , nnax,mmax , nnay,mmay ;
    float xbot,xtop , ybot,ytop , pbot,ptop ,
@@ -5035,6 +5037,11 @@ ENTRY("PLUTO_scatterplot") ;
       plotpak_line( xa,yb , xb,yb ) ;
       plotpak_line( xb,yb , xb,ya ) ;
       plotpak_line( xb,ya , xa,ya ) ;
+   }
+
+   if( a != 0.0f || b != 0.0f ){              /* 02 May 2005 */
+     set_color_memplot( 0.8 , 0.0 , 0.0 ) ;
+     plotpak_line( xbot,a*xbot+b , xtop,a*xtop+b ) ;
    }
 
    mp = get_active_memplot() ;

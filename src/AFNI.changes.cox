@@ -5492,8 +5492,11 @@
  * Modified 3dDeconvolve to add -basis_normall option, and a couple of
      other minor tweaks.
 
-29 Apr 2003
+29 Apr 2005
  * Moved extras printout in 3dDeconvolve -nodata to be optional with
      an environment variable.
  * Fixed bug in range locking in afni_lock.c -- if range is locked but
      only one controller open, couldn't turn autoRange on.
+
+02 May 2005
+ * Added plot of least squares overlay line to the Scatterplot plugin.

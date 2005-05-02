@@ -288,7 +288,7 @@ static void (*BG_PLUTO_register_timeout)( int, generic_func *, XtPointer ) ;
 static void (*BG_PLUTO_register_timeseries)( char * , MRI_IMAGE * ) ;
 static void (*BG_PLUTO_register_workproc)( XtWorkProc , XtPointer ) ;
 static void (*BG_PLUTO_report)( PLUGIN_interface * , char * ) ;
-static void (*BG_PLUTO_scatterplot)( int , float *, float *, char *, char *, char * ) ;
+static void (*BG_PLUTO_scatterplot)( int , float *, float *, char *, char *, char *,float,float ) ;
 static void (*BG_PLUTO_set_butcolor)( PLUGIN_interface *, char * ) ;
 static void (*BG_PLUTO_set_meter)( PLUGIN_interface * , int ) ;
 static void (*BG_PLUTO_set_sequence)( PLUGIN_interface *, char * ) ;
