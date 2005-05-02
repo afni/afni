@@ -32,4 +32,11 @@
 
 20 April 2005
  * slight modifications to comments in 3dDWItoDT.c for doxygen and consistent warnings and error messages
- * Milwuakee to Milwaukee in afni_func.c
+ * Milwaukee in afni_func.c
+
+28 April 2005
+ * trivial program, 3dMax, for finding the minimum and maximum for a dataset
+
+2 May 2005
+ * updated formerly trivial program (now only semi-trivial), 3dMax, to calculate means, use a mask file, do automasking. The program now includes scale factors for sub-briks and extends the types of allowable datasets
+
