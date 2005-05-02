@@ -147,14 +147,14 @@ if (isempty(Opt.FileFormat)), % try to guess
    if (~isempty(xtr)),
       is1D = 1;
    end
-elseif (strcmp(Opt.FileFormat, '1D') || strcmp(Opt.FileFormat, '1d')),
+elseif (strcmp(Opt.FileFormat, '1D') | strcmp(Opt.FileFormat, '1d')),
    is1D = 1;
 end
 
 if (is1D), % 1D land
    V = []; Info = []; ErrMessage = '';
    Opt.verb = 1;
-   if (~isfield(Opt, 'method') || isempty(Opt.method)), Opt.method = 0; end
+   if (~isfield(Opt, 'method') | isempty(Opt.method)), Opt.method = 0; end
    [err, V, Info] = Read_1D(BrikName, Opt);
    if (err), 
       ErrMessage = sprintf ('%s: Failed to read %s file', FuncName, BrikName);
