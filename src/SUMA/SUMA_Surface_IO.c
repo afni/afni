@@ -8142,8 +8142,8 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_OpenDX_Read_SO"};
    int i = 0, nf, iop;
-   SUMA_OPEN_DX_STRUCT **dxv=NULL, *dxp=NULL, *dxc = NULL, *dxf = NULL;
-   
+   SUMA_OPEN_DX_STRUCT **dxv=NULL, *dxp=NULL, *dxc = NULL, *dxf = NULL, *dxo = NULL;
+   SUMA_Boolean ans = NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -8165,7 +8165,7 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    dxf = SUMA_Find_OpenDX_Object_Class(dxv, iop, "field", &nf);
    if (!dxf || nf != 1) { SUMA_SL_Err("Failed to find one and only one field object"); goto CLEAN_EXIT; }
    /* get names of objects that contain positions and connections */
-   dxp = dxc = NULL;   
+   dxp = dxc = dxo = NULL;   
    for (i=0; i<dxf->n_comp; ++i) {
       if (strstr(dxf->comp_name[i],"positions")) {
          dxp = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
@@ -8174,6 +8174,10 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
       if (strstr(dxf->comp_name[i],"connections")) {
          dxc = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
          if (!dxc || nf != 1) { SUMA_SL_Err("Failed to find one and only one connections object"); goto CLEAN_EXIT; }
+      }
+      if (strstr(dxf->comp_name[i],"origin")) {
+         dxo = SUMA_Find_OpenDX_Object_Name(dxv, iop, dxf->comp_value[i], &nf); 
+         if (!dxo || nf != 1) { SUMA_SL_Err("Failed to find one and only one origin object.\nOrigin ignored"); }
       }
    }
    
@@ -8206,6 +8210,15 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    if (dxc->shape != 3) {
       SUMA_SL_Err("Expected rank of 3 for connections"); goto CLEAN_EXIT;
    }
+   /* if dxo */
+   if (dxo) {
+      if (SUMA_VarType2TypeCast (dxo->type) != SUMA_float) {
+         SUMA_SL_Err("Expected floats for origin.\nOrigin ignored"); dxo = NULL;
+      }
+      if (!dxo->datap || dxo->shape * dxo->items != 3) {
+         SUMA_SL_Err("Unknown origin format, ignoring origin"); dxo = NULL;
+      }  
+   }
    
    SUMA_LH("Take the gold");
    SO->FileType = SUMA_OPENDX_MESH;
@@ -8220,6 +8233,20 @@ SUMA_Boolean SUMA_OpenDX_Read_SO(char *fname, SUMA_SurfaceObject *SO)
    SO->N_FaceSet = dxc->items;;
    SO->Name = SUMA_StripPath(fname);
    
+   if (dxo) {
+      float *fvec=(float*)dxo->datap;
+      SUMA_LH("Adding origin");
+      i = 0;
+      while (i < dxp->items*dxp->shape) {
+         SO->NodeList[i] += fvec[0]; ++i;
+         SO->NodeList[i] += fvec[1]; ++i;
+         SO->NodeList[i] += fvec[2]; ++i;
+      }
+   }
+   
+   /* all is well here */
+   ans = YUP;
+
    CLEAN_EXIT:
    SUMA_LH("Frenching dxv");
    for (i=0; i<iop; ++i) {
