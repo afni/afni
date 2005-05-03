@@ -3710,7 +3710,7 @@ STATUS("graCR_pickort") ;
    and create the data structures
 ------------------------------------------------------------------------*/
 
-void AFNI_read_inputs( int argc , char * argv[] )
+void AFNI_read_inputs( int argc , char *argv[] )
 {
    int id , last_color ;
    Boolean isfunc ;
@@ -3733,11 +3733,11 @@ ENTRY("AFNI_read_inputs") ;
    /*--- read directly from images (the old-fashioned way) ---*/
 
    if( GLOBAL_argopt.read_images ){
-      THD_3dim_dataset * dset ;
-      THD_session * new_ss ;
+      THD_3dim_dataset *dset ;
+      THD_session *new_ss ;
       int vv ;
       int gnim ;  /* 16 Mar 1998: names from globbing */
-      char ** gname ;
+      char **gname ;
 
       MCW_warn_expand(1) ;  /* 13 Jul 2001 */
 
@@ -3784,9 +3784,9 @@ ENTRY("AFNI_read_inputs") ;
       char str[256] ;
       Boolean good ;
       int num_ss , qd , qs , vv=0 , no_args , jj , nskip_noanat=0 ;
-      THD_string_array * flist , * dlist=NULL ;
-      char * dname , *eee ;
-      THD_session * new_ss ;
+      THD_string_array *flist , *dlist=NULL ;
+      char *dname , *eee ;
+      THD_session *new_ss ;
       int num_dsets=0 ;       /* 04 Jan 2000 */
       THD_session *gss=NULL ; /* 11 May 2002: global session */
       THD_session *dss ;      /* 28 Aug 2003: session for command-line datasets */
@@ -4392,8 +4392,35 @@ STATUS("forcible adoption of unparented datasets") ;
      fprintf(stderr,"\a\n*** Illegal Usage configuration detected!\n"); exit(1);
    }
 
-   MPROBE ;
-   EXRETURN ;
+   /** 03 May 2005: scan datasets for max label width **/
+
+   if( getenv("AFNI_BUCKET_LABELSIZE") == NULL ){
+     char *lab , buf[64] ;
+     THD_session *ss ;
+     THD_3dim_dataset *dset ;
+     int iss , blw , mblw=0 , jj , vv , kk,nvals ;
+
+     for( iss=0 ; iss <  GLOBAL_library.sslist->num_sess ; iss++ ){
+       ss = GLOBAL_library.sslist->ssar[iss] ;
+       for( jj=0 ; jj < ss->num_dsset ; jj++ ){
+         for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
+           dset = ss->dsset[jj][vv] ; if( !ISVALID_DSET(dset) ) continue ;
+           nvals = DSET_NVALS(dset) ;
+           for( kk=0 ; kk < nvals ; kk++ ){
+             lab = DSET_BRICK_LAB(dset,kk) ;
+             if( lab != NULL ){ blw=strlen(lab) ; if(blw>mblw)mblw=blw ; }
+           }
+         }
+       }
+     }
+          if( mblw < 14 ) mblw = 14 ;
+     else if( mblw > 32 ) mblw = 32 ;
+     sprintf(buf,"AFNI_BUCKET_LABELSIZE=%d",mblw) ; putenv(buf) ;
+   }
+
+   /** done at last **/
+
+   MPROBE ; EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
