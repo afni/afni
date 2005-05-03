@@ -1017,8 +1017,8 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
                      ax1,th1, ax2,th2, ax3,th3, dcode,dx,dy,dz ) ;
 
        rmat = rot_to_matrix( ax1,-th1,ax2,-th2,ax3,-th3 ) ;
-       if( dcode == DELTA_BEFORE ) tvec = DMATVEC(rmat,tvec) ;
        LOAD_DFVEC3( tvec , dx,dy,dz ) ;
+       if( dcode == DELTA_BEFORE ) tvec = DMATVEC(rmat,tvec) ;
       }
      }
 
