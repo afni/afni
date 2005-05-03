@@ -40,3 +40,5 @@
 2 May 2005
  * updated formerly trivial program (now only semi-trivial), 3dMax, to calculate means, use a mask file, do automasking. The program now includes scale factors for sub-briks and extends the types of allowable datasets
 
+3 May 2005
+ * fixed checking of options for incompatibilities and defaults in 3dMax
