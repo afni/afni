@@ -1016,6 +1016,8 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
                        fabs(DSET_DZ(dset)), fvol ,
                      ax1,th1, ax2,th2, ax3,th3, dcode,dx,dy,dz ) ;
 
+       /* 02 May 2005: save matrix+vector for recording below */
+
        rmat = rot_to_matrix( ax1,-th1,ax2,-th2,ax3,-th3 ) ;
        LOAD_DFVEC3( tvec , dx,dy,dz ) ;
        if( dcode == DELTA_BEFORE ) tvec = DMATVEC(rmat,tvec) ;
