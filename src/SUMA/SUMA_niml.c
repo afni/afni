@@ -2622,24 +2622,45 @@ SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel)
    tmp = NI_get_attribute(nel, "VOLREG_CENTER_BASE"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
       SUMA_StringToNum(tmp, fv15, 3); 
-      SO->VolPar->VOLREG_CENTER_OLD = (float*)SUMA_malloc(sizeof(float)*3);
+      SO->VolPar->VOLREG_CENTER_BASE = (float*)SUMA_malloc(sizeof(float)*3);
       SUMA_COPY_VEC(fv15, SO->VolPar->VOLREG_CENTER_BASE, 2, float, float);
    }
    
    tmp = NI_get_attribute(nel, "VOLREG_MATVEC"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
       SUMA_StringToNum(tmp, fv15, 12); 
-      SO->VolPar->VOLREG_CENTER_OLD = (float*)SUMA_malloc(sizeof(float)*12);
+      SO->VolPar->VOLREG_MATVEC = (float*)SUMA_malloc(sizeof(float)*12);
       SUMA_COPY_VEC(fv15, SO->VolPar->VOLREG_MATVEC, 2, float, float);
    }
 
    tmp = NI_get_attribute(nel, "TAGALIGN_MATVEC"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
       SUMA_StringToNum(tmp, fv15, 12); 
-      SO->VolPar->VOLREG_CENTER_OLD = (float*)SUMA_malloc(sizeof(float)*12);
+      SO->VolPar->TAGALIGN_MATVEC = (float*)SUMA_malloc(sizeof(float)*12);
       SUMA_COPY_VEC(fv15, SO->VolPar->TAGALIGN_MATVEC, 2, float, float);
    }
 
+   tmp = NI_get_attribute(nel, "ROTATE_MATVEC"); 
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
+      SUMA_StringToNum(tmp, fv15, 12); 
+      SO->VolPar->ROTATE_MATVEC = (float*)SUMA_malloc(sizeof(float)*12);
+      SUMA_COPY_VEC(fv15, SO->VolPar->ROTATE_MATVEC, 2, float, float);
+   }
+   
+   tmp = NI_get_attribute(nel, "ROTATE_CENTER_OLD"); 
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
+      SUMA_StringToNum(tmp, fv15, 3); 
+      SO->VolPar->ROTATE_CENTER_OLD = (float*)SUMA_malloc(sizeof(float)*3);
+      SUMA_COPY_VEC(fv15, SO->VolPar->ROTATE_CENTER_OLD, 2, float, float);
+   }
+
+   tmp = NI_get_attribute(nel, "ROTATE_CENTER_BASE"); 
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
+      SUMA_StringToNum(tmp, fv15, 3); 
+      SO->VolPar->ROTATE_CENTER_BASE = (float*)SUMA_malloc(sizeof(float)*3);
+      SUMA_COPY_VEC(fv15, SO->VolPar->ROTATE_CENTER_BASE, 2, float, float);
+   }
+ 
    SUMA_RETURN(YUP);
 }
 
@@ -2740,12 +2761,29 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPa
       for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->VOLREG_MATVEC[i]);
       NI_set_attribute(nel, "VOLREG_MATVEC", stmp);
    }
+   
    if (VolPar->TAGALIGN_MATVEC) {
       stmp[0] = '\0';
       for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->TAGALIGN_MATVEC[i]);
       NI_set_attribute(nel, "TAGALIGN_MATVEC", stmp);
    }
 
+   if (VolPar->ROTATE_MATVEC) {
+      stmp[0] = '\0';
+      for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->ROTATE_MATVEC[i]);
+      NI_set_attribute(nel, "ROTATE_MATVEC", stmp);
+   }
+   
+   if (VolPar->ROTATE_CENTER_OLD) {
+      stmp[0] = '\0';
+      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->ROTATE_CENTER_OLD[i]);
+      NI_set_attribute(nel, "ROTATE_CENTER_OLD", stmp);
+   }
+   if (VolPar->ROTATE_CENTER_BASE) {
+      stmp[0] = '\0';
+      for (i=0; i<3; ++i) sprintf(stmp,"%s %f", stmp, VolPar->ROTATE_CENTER_BASE[i]);
+      NI_set_attribute(nel, "ROTATE_CENTER_BASE", stmp);
+   }
    SUMA_RETURN(nel);  
 }
 
