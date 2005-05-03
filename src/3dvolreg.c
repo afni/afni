@@ -156,19 +156,19 @@ int main( int argc , char *argv[] )
 
       mm = THD_dataset_mismatch( VL_gridpar_dset , VL_dset ) ;
       if( mm & (MISMATCH_DELTA | MISMATCH_ORIENT) ){
-         fprintf(stderr,"** Fatal Error:\n"
-                        "** -gridparent dataset and input dataset don't\n"
-                        "** match in grid spacing and/or orientation!\n"  ) ;
-         exit(1) ;
+        fprintf(stderr,"** Fatal Error:\n"
+                       "** -gridparent dataset and input dataset don't\n"
+                       "** match in grid spacing and/or orientation!\n"  ) ;
+        exit(1) ;
       }
 
       if( DSET_NX(VL_gridpar_dset) != DSET_NX(VL_dset) ||
           DSET_NY(VL_gridpar_dset) != DSET_NY(VL_dset)   ){
 
-         fprintf(stderr,"** Fatal Error:\n"
-                        "** -gridparent and input datasets\n"
-                        "** don't match in x,y dimensions!\n" ) ;
-         exit(1) ;
+        fprintf(stderr,"** Fatal Error:\n"
+                       "** -gridparent and input datasets\n"
+                       "** don't match in x,y dimensions!\n" ) ;
+        exit(1) ;
       }
 
       /* check for zero padding requirment */
@@ -176,54 +176,58 @@ int main( int argc , char *argv[] )
       nz_gp = DSET_NZ(VL_gridpar_dset) ; nz_ds = DSET_NZ(VL_dset) ;
 
       if( nz_gp < nz_ds ){
-         fprintf(stderr,"** Fatal Error:\n"
-                        "** -gridparent has fewer slices than input dataset!\n") ;
-         exit(1) ;
+        fprintf(stderr,"** Fatal Error:\n"
+                       "** -gridparent has fewer slices than input dataset!\n") ;
+        exit(1) ;
       }
-      if( nz_gp > nz_ds ){                     /* must zeropad */
-         int npad1 = (nz_gp - nz_ds) / 2 ;     /* negative z padding */
-         int npad2 = (nz_gp - nz_ds) - npad1 ; /* positive z padding */
-         int add_I=0, add_S=0, add_A=0, add_P=0, add_L=0, add_R=0 ;
-         THD_3dim_dataset * pset ;
-         char *sp1,*sp2 ;
+      if( nz_gp > nz_ds ){                    /* must zeropad */
+        int npad1 = (nz_gp - nz_ds) / 2 ;     /* negative z padding */
+        int npad2 = (nz_gp - nz_ds) - npad1 ; /* positive z padding */
+        int add_I=0, add_S=0, add_A=0, add_P=0, add_L=0, add_R=0 ;
+        THD_3dim_dataset * pset ;
+        char *sp1,*sp2 ;
 
-         /* where to add slices? and how many? */
+        /* where to add slices? and how many? */
 
-         switch( VL_dset->daxes->zzorient ){
-            case ORI_R2L_TYPE:
-            case ORI_L2R_TYPE: add_R=npad1; add_L=npad2; sp1="R"; sp2="L"; break;
+        switch( VL_dset->daxes->zzorient ){
+          case ORI_R2L_TYPE:
+          case ORI_L2R_TYPE: add_R=npad1; add_L=npad2; sp1="R"; sp2="L"; break;
 
-            case ORI_P2A_TYPE:
-            case ORI_A2P_TYPE: add_A=npad1; add_P=npad2; sp1="A"; sp2="P"; break;
+          case ORI_P2A_TYPE:
+          case ORI_A2P_TYPE: add_A=npad1; add_P=npad2; sp1="A"; sp2="P"; break;
 
-            case ORI_I2S_TYPE:
-            case ORI_S2I_TYPE: add_I=npad1; add_S=npad2; sp1="I"; sp2="S"; break;
-         }
+          case ORI_I2S_TYPE:
+          case ORI_S2I_TYPE: add_I=npad1; add_S=npad2; sp1="I"; sp2="S"; break;
+        }
 
-         switch( ORIENT_sign[VL_dset->daxes->zzorient] ){  /* set padding globals */
-            default:
-            case '+': npad_neg = npad1 ; npad_pos = npad2 ; break ;
-            case '-': npad_neg = npad2 ; npad_pos = npad1 ; break ;
-         }
-         npadd = (npad_neg > 0 || npad_pos > 0 ) ;  /* flag for later padding */
+        /* set padding globals */
 
-         /* add them to output, in a virtual (empty dataset) sense */
+        switch( ORIENT_sign[VL_dset->daxes->zzorient] ){
+          default:
+          case '+': npad_neg = npad1 ; npad_pos = npad2 ; break ;
+          case '-': npad_neg = npad2 ; npad_pos = npad1 ; break ;
+        }
+        npadd = (npad_neg > 0 || npad_pos > 0 ) ;  /* flag for later padding */
 
-         if( VL_verbose )
-            fprintf(stderr,"++ Zero padding to match -gridparent: -%s %d  -%s %d\n",
-                    sp1,npad1,sp2,npad2 ) ;
+        /* add them to output, in a virtual (empty dataset) sense */
 
-         pset = THD_zeropad( new_dset,
-                             add_I,add_S,add_A,add_P,add_L,add_R,
-                             NULL , ZPAD_EMPTY ) ;
+        if( VL_verbose )
+          fprintf(stderr,"++ Zero padding to match -gridparent: -%s %d  -%s %d\n",
+                  sp1,npad1,sp2,npad2 ) ;
 
-         if( pset == NULL ){
-            fprintf(stderr,"** Fatal Error:\n"
-                           "** Can't properly zeropad output dataset!\n" ) ;
-            exit(1) ;
-         }
+        pset = THD_zeropad( new_dset,
+                            add_I,add_S,add_A,add_P,add_L,add_R,
+                            NULL , ZPAD_EMPTY ) ;
 
-         DSET_delete(new_dset); new_dset = pset; /* replace output w/ padded dataset */
+        if( pset == NULL ){
+          fprintf(stderr,"** Fatal Error:\n"
+                         "** Can't properly zeropad output dataset!\n" ) ;
+          exit(1) ;
+        }
+
+        /* replace output dataset with padded dataset */
+
+        DSET_delete(new_dset); new_dset = pset;
       }
    }
 
@@ -231,10 +235,10 @@ int main( int argc , char *argv[] )
 
    EDIT_dset_items( new_dset , ADN_prefix , VL_prefix , ADN_none ) ;
    if( THD_is_file( DSET_HEADNAME(new_dset) ) ){
-      fprintf(stderr,
-              "** Output file %s already exists -- cannot continue!\n",
-              DSET_HEADNAME(new_dset) ) ;
-      exit(1) ;
+     fprintf(stderr,
+             "** Output file %s already exists -- cannot continue!\n",
+             DSET_HEADNAME(new_dset) ) ;
+     exit(1) ;
    }
 
    tross_Copy_History( VL_dset , new_dset ) ;
@@ -250,9 +254,9 @@ int main( int argc , char *argv[] )
 
       /* load (Dicom-order) transformation from rotparent */
 
-      atr = THD_find_float_atr( VL_rotpar_dset->dblk , "VOLREG_MATVEC_000000" ) ;
+      atr = THD_find_float_atr( VL_rotpar_dset->dblk , "VOLREG_MATVEC_000000" );
       matar = atr->fl ;
-      LOAD_DMAT(rmat,matar[0],matar[1],matar[2],      /* rmat = rotation matrix */
+      LOAD_DMAT(rmat,matar[0],matar[1],matar[2],    /* rmat = rotation matrix */
                      matar[4],matar[5],matar[6],
                      matar[8],matar[9],matar[10] ) ;
       LOAD_DFVEC3(tvec,matar[3],matar[7],matar[11]) ; /* tvec = shift vector */
@@ -260,9 +264,9 @@ int main( int argc , char *argv[] )
       /* check if [rmat] is orthogonal */
 
       pp = TRANSPOSE_DMAT(rmat) ; pp = DMAT_MUL(pp,rmat) ;
-      sum = fabs(pp.mat[0][0]-1.0)+fabs(pp.mat[1][0])    +fabs(pp.mat[2][0])
-           +fabs(pp.mat[0][1])    +fabs(pp.mat[1][1]-1.0)+fabs(pp.mat[2][1])
-           +fabs(pp.mat[0][2])    +fabs(pp.mat[1][2])    +fabs(pp.mat[2][2]-1.0);
+      sum = fabs(pp.mat[0][0]-1.)+fabs(pp.mat[1][0])   +fabs(pp.mat[2][0])
+           +fabs(pp.mat[0][1])   +fabs(pp.mat[1][1]-1.)+fabs(pp.mat[2][1])
+           +fabs(pp.mat[0][2])   +fabs(pp.mat[1][2])   +fabs(pp.mat[2][2]-1.) ;
       if( sum > 0.01 ) ERREX("-rotparent matrix not orthogonal!") ;
 
       /* must alter shift [tvec] to allow for differing
@@ -289,7 +293,7 @@ int main( int argc , char *argv[] )
 
       /* cv_s1 = center of base dataset for rotparent */
 
-      atr = THD_find_float_atr( VL_rotpar_dset->dblk , "VOLREG_CENTER_BASE" ) ;
+      atr = THD_find_float_atr( VL_rotpar_dset->dblk , "VOLREG_CENTER_BASE" );
       LOAD_DFVEC3( cv_s1 , atr->fl[0] , atr->fl[1] , atr->fl[2] ) ;
 
       /* compute extra shift due to difference in
@@ -311,7 +315,8 @@ int main( int argc , char *argv[] )
 
       pp   = DBLE_mat_to_dicomm( new_dset ) ;
       ppt  = TRANSPOSE_DMAT(pp);
-      rmat = DMAT_MUL(ppt,rmat); rmat = DMAT_MUL(rmat,pp); tvec = DMATVEC(ppt,tvec);
+      rmat = DMAT_MUL(ppt,rmat); rmat = DMAT_MUL(rmat,pp);
+      tvec = DMATVEC(ppt,tvec);
 
       /* modify origin of output dataset to match -gridparent */
 
@@ -336,7 +341,7 @@ int main( int argc , char *argv[] )
       int ndz ;
       int kk,jj , nsl = new_dset->taxis->nsl ;
 
-      ndz = (int) rint( tvec.xyz[2] / fabs(new_dset->daxes->zzdel) ) ; /* shift */
+      ndz = (int)rint( tvec.xyz[2] / fabs(new_dset->daxes->zzdel) ); /* shift */
 
       if( ndz != 0 ){
          float * tsl = (float *)malloc(sizeof(float)*nsl) ;
@@ -355,10 +360,12 @@ int main( int argc , char *argv[] )
    /*-- read the input dataset into memory --*/
 
    if( VL_verbose ){
-      if( VL_tshift )
-         fprintf(stderr,"++ Time shifting input dataset %s\n",DSET_BRIKNAME(VL_dset)) ;
-      else
-         fprintf(stderr,"++ Reading input dataset %s\n",DSET_BRIKNAME(VL_dset)) ;
+     if( VL_tshift )
+       fprintf(stderr,"++ Time shifting input dataset %s\n",
+               DSET_BRIKNAME(VL_dset)) ;
+     else
+       fprintf(stderr,"++ Reading input dataset %s\n",
+               DSET_BRIKNAME(VL_dset)) ;
    }
 
    if( VL_tshift ){
@@ -382,8 +389,8 @@ int main( int argc , char *argv[] )
       VL_nbase = -1 ;  /* will not match any sub-brick index */
    }
 
-   VL_imbase->dx = fabs( DSET_DX(VL_dset) ) ;  /* must set the voxel dimensions */
-   VL_imbase->dy = fabs( DSET_DY(VL_dset) ) ;
+   VL_imbase->dx = fabs( DSET_DX(VL_dset) ) ;  /* set the voxel dimensions */
+   VL_imbase->dy = fabs( DSET_DY(VL_dset) ) ;  /* in the MRI_IMAGE struct  */
    VL_imbase->dz = fabs( DSET_DZ(VL_dset) ) ;
    imb = MRI_FLOAT_PTR( VL_imbase ) ;          /* need this to compute rms */
 
@@ -417,7 +424,7 @@ int main( int argc , char *argv[] )
       int sx=66666,sy,sz ;
 
       if( VL_verbose ){
-        fprintf(stderr,"++ Start of first pass alignment on all sub-bricks\n") ;
+        fprintf(stderr,"++ Start of first pass alignment on all sub-bricks\n");
         cputim = COX_cpu_time();
       }
 
@@ -428,7 +435,8 @@ int main( int argc , char *argv[] )
                            VL_twoblur,VL_twoblur,VL_twoblur ) ;
 
       mri_3dalign_params( VL_maxite ,
-                          VL_twoblur*VL_dxy, VL_twoblur*VL_dph, VL_twoblur*VL_del,
+                          VL_twoblur*VL_dxy, VL_twoblur*VL_dph,
+                          VL_twoblur*VL_del,
                           abs(ax1)-1 , abs(ax2)-1 , abs(ax3)-1 , -1 ) ;
 
                                               /* no reg | */
@@ -449,7 +457,8 @@ int main( int argc , char *argv[] )
          int nxbot,nxtop,nybot,nytop,nzbot,nztop , ee,fade,ff ;
 
          if( VL_verbose )
-           fprintf(stderr,"++ Computing first pass weight as sum of base and brick\n") ;
+           fprintf(stderr,
+                   "++ Computing first pass weight as sum of base and brick\n");
 
          fim = mri_to_float( DSET_BRICK(VL_dset,0) ) ; /* 1st data brick */
          far = MRI_FLOAT_PTR(fim) ;
@@ -460,7 +469,8 @@ int main( int argc , char *argv[] )
          /* find shift of 1st data brick that best overlaps with base brick */
 
          if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
-           if( VL_verbose ) fprintf(stderr,"++ Getting best coarse shift [0]:") ;
+           if( VL_verbose )
+             fprintf(stderr,"++ Getting best coarse shift [0]:") ;
            get_best_shift( nx,ny,nz , bar,far , &sx,&sy,&sz ) ;
            if( VL_verbose ) fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
          } else {
@@ -557,11 +567,12 @@ int main( int argc , char *argv[] )
                                   MRI_float , MRI_FLOAT_PTR(fim) ,
                                   VL_twoblur,VL_twoblur,VL_twoblur ) ;
 
-            if( kim > 0 || sx == 66666 ){  /* if didn't already get best shift */
+            if( kim > 0 || sx == 66666 ){ /* if didn't already get best shift */
                if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
                   if( VL_verbose )
                      fprintf(stderr,"++ Getting best coarse shift [%d]:",kim) ;
-                  get_best_shift( nx,ny,nz , MRI_FLOAT_PTR(tp_base),MRI_FLOAT_PTR(fim) ,
+                  get_best_shift( nx,ny,nz ,
+                                  MRI_FLOAT_PTR(tp_base),MRI_FLOAT_PTR(fim) ,
                                   &sx,&sy,&sz ) ;
                   if( VL_verbose )
                      fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
@@ -614,7 +625,7 @@ int main( int argc , char *argv[] )
       if have a final transformation, then don't produce output
                                                    |||||||||||||
                                                    VVVVVVVVVVVVV   */
-   mri_3dalign_method( VL_resam , (VL_verbose>1) , (matvec != 0) , VL_clipit ) ;
+   mri_3dalign_method( VL_resam , (VL_verbose>1) , (matvec != 0) , VL_clipit );
 
    if( VL_final < 0 ) VL_final = VL_resam ;  /* 20 Nov 1998 */
    mri_3dalign_final_regmode( VL_final ) ;
@@ -639,7 +650,7 @@ int main( int argc , char *argv[] )
       cputim = COX_cpu_time();
    }
 
-   dxbar = dybar = dzbar = rollbar = yawbar = pitchbar = 0.0 ;
+   dxbar = dybar = dzbar = rollbar = yawbar = pitchbar = 0.0 ;  /* stats */
 
    for( kim=0 ; kim < imcount ; kim++ ){
 
@@ -653,7 +664,7 @@ int main( int argc , char *argv[] )
 
       /*-- the actual registration [please bow your head] --*/
 
-      if( kim != VL_nbase ){ /* 16 Nov 1998: don't register base image to self */
+      if( kim != VL_nbase ){ /* 16 Nov 1998: don't register base to self */
 
          if( VL_twopass )
             mri_3dalign_initvals( roll_1[kim] , pitch_1[kim] , yaw_1[kim] ,
@@ -676,7 +687,7 @@ int main( int argc , char *argv[] )
            if we have a final transform (matvec != 0), fim = unrotated image;
            if we don't have a final transform,         tim = rotated image    */
 
-      if( VL_verbose ) fprintf(stderr,".") ;  /* mark that registration is done */
+      if( VL_verbose ) fprintf(stderr,"."); /* mark that registration is done */
 
       /*-- need to massage output parameters --*/
 
@@ -729,12 +740,12 @@ int main( int argc , char *argv[] )
          /* zero pad before final transformation? */
 
          if( npadd ){
-            MRI_IMAGE * qim = mri_zeropad_3D( 0,0,0,0,npad_neg,npad_pos , fim ) ;
-            if( qim == NULL ){
-               fprintf(stderr,"** Can't zeropad at kim=%d -- FATAL ERROR!\n",kim);
-               exit(1) ;
-            }
-            mri_free(fim) ; fim = qim ;
+           MRI_IMAGE * qim = mri_zeropad_3D( 0,0,0,0,npad_neg,npad_pos , fim ) ;
+           if( qim == NULL ){
+             fprintf(stderr,"** Can't zeropad at kim=%d -- FATAL ERROR!\n",kim);
+             exit(1) ;
+           }
+           mri_free(fim) ; fim = qim ;
          }
 
          THD_rota_method( VL_final ) ;
@@ -759,36 +770,36 @@ int main( int argc , char *argv[] )
       /*-- collect statistics --*/
 
       if( kim == 0 ){
-         dxtop    = dxbot    = dx[kim]    ;
-         dytop    = dybot    = dy[kim]    ;
-         dztop    = dzbot    = dz[kim]    ;
-         rolltop  = rollbot  = roll[kim]  ;
-         pitchtop = pitchbot = pitch[kim] ;
-         yawtop   = yawbot   = yaw[kim]   ;
+        dxtop    = dxbot    = dx[kim]    ;
+        dytop    = dybot    = dy[kim]    ;
+        dztop    = dzbot    = dz[kim]    ;
+        rolltop  = rollbot  = roll[kim]  ;
+        pitchtop = pitchbot = pitch[kim] ;
+        yawtop   = yawbot   = yaw[kim]   ;
       } else {
-         dxtop    = MAX(dxtop   ,dx[kim]   ); dxbot    = MIN(dxbot   ,dx[kim]   );
-         dytop    = MAX(dytop   ,dy[kim]   ); dybot    = MIN(dybot   ,dy[kim]   );
-         dztop    = MAX(dztop   ,dz[kim]   ); dzbot    = MIN(dzbot   ,dz[kim]   );
-         rolltop  = MAX(rolltop ,roll[kim] ); rollbot  = MIN(rollbot ,roll[kim] );
-         pitchtop = MAX(pitchtop,pitch[kim]); pitchbot = MIN(pitchbot,pitch[kim]);
-         yawtop   = MAX(yawtop  ,yaw[kim]  ); yawbot   = MIN(yawbot  ,yaw[kim]  );
+        dxtop    = MAX(dxtop   ,dx[kim]   ); dxbot    = MIN(dxbot   ,dx[kim]   );
+        dytop    = MAX(dytop   ,dy[kim]   ); dybot    = MIN(dybot   ,dy[kim]   );
+        dztop    = MAX(dztop   ,dz[kim]   ); dzbot    = MIN(dzbot   ,dz[kim]   );
+        rolltop  = MAX(rolltop ,roll[kim] ); rollbot  = MIN(rollbot ,roll[kim] );
+        pitchtop = MAX(pitchtop,pitch[kim]); pitchbot = MIN(pitchbot,pitch[kim]);
+        yawtop   = MAX(yawtop  ,yaw[kim]  ); yawbot   = MIN(yawbot  ,yaw[kim]  );
       }
 
       dxbar   += dx[kim]   ; dybar    += dy[kim]    ; dzbar  += dz[kim]  ;
       rollbar += roll[kim] ; pitchbar += pitch[kim] ; yawbar += yaw[kim] ;
 
       if( !matvec ){
-         sum = 0.0 ;
-         tar = MRI_FLOAT_PTR(tim) ;
-         for( ii=0 ; ii < tim->nvox ; ii++ ) sum += SQR( imb[ii] - tar[ii] ) ;
-         rmsnew[kim] = sqrt( sum / tim->nvox ) ;
+        sum = 0.0 ;
+        tar = MRI_FLOAT_PTR(tim) ;
+        for( ii=0 ; ii < tim->nvox ; ii++ ) sum += SQR( imb[ii] - tar[ii] ) ;
+        rmsnew[kim] = sqrt( sum / tim->nvox ) ;
 
-         sum = 0.0 ;
-         tar = MRI_FLOAT_PTR(fim) ;
-         for( ii=0 ; ii < fim->nvox ; ii++ ) sum += SQR( imb[ii] - tar[ii] ) ;
-         rmsold[kim] = sqrt( sum / fim->nvox ) ;
+        sum = 0.0 ;
+        tar = MRI_FLOAT_PTR(fim) ;
+        for( ii=0 ; ii < fim->nvox ; ii++ ) sum += SQR( imb[ii] - tar[ii] ) ;
+        rmsold[kim] = sqrt( sum / fim->nvox ) ;
       } else {
-         rmsold[kim] = rmsnew[kim] = 0.0 ;  /* can't compute these */
+        rmsold[kim] = rmsnew[kim] = 0.0 ;  /* can't compute these */
       }
 
       mri_free(fim) ;
@@ -799,29 +810,29 @@ int main( int argc , char *argv[] )
 
       switch( qim->kind ){
 
-         case MRI_float:
-            EDIT_substitute_brick( new_dset, kim, MRI_float, MRI_FLOAT_PTR(tim) );
-            mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
-         break ;
+        case MRI_float:
+          EDIT_substitute_brick( new_dset, kim, MRI_float, MRI_FLOAT_PTR(tim) );
+          mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
+        break ;
 
-         case MRI_short:
-            fim = mri_to_short(1.0,tim) ; mri_free( tim ) ;
-            EDIT_substitute_brick( new_dset, kim, MRI_short, MRI_SHORT_PTR(fim) );
-            mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
-         break ;
+        case MRI_short:
+          fim = mri_to_short(1.0,tim) ; mri_free( tim ) ;
+          EDIT_substitute_brick( new_dset, kim, MRI_short, MRI_SHORT_PTR(fim) );
+          mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
+        break ;
 
-         case MRI_byte:
-            fim = mri_to_byte(tim) ; mri_free( tim ) ;
-            EDIT_substitute_brick( new_dset, kim, MRI_byte, MRI_BYTE_PTR(fim) ) ;
-            mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
-         break ;
+        case MRI_byte:
+          fim = mri_to_byte(tim) ; mri_free( tim ) ;
+          EDIT_substitute_brick( new_dset, kim, MRI_byte, MRI_BYTE_PTR(fim) ) ;
+          mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
+        break ;
 
-         /*-- should not ever get here, but who knows? --*/
+        /*-- should not ever get here, but who knows? --*/
 
-         default:
-            fprintf(stderr,"\n*** Can't register bricks of type %s\n",
-                    MRI_TYPE_name[qim->kind] ) ;
-            exit(1) ;
+        default:
+          fprintf(stderr,"\n*** Can't register bricks of type %s\n",
+                  MRI_TYPE_name[qim->kind] ) ;
+          exit(1) ;
       }
 
       DSET_unload_one( VL_dset , kim ) ;      /* don't need this anymore */
@@ -845,37 +856,37 @@ int main( int argc , char *argv[] )
    rollbar /= imcount ; pitchbar /= imcount ; yawbar /= imcount ;
 
    if( VL_verbose ){
-      cputim = COX_cpu_time() - cputim ;
-      fprintf(stderr,"\n++ CPU time for realignment=%.3g s" , cputim) ;
-      if( imcount > 1 ) fprintf(stderr,"  [=%.3g s/sub-brick]" , cputim/imcount) ;
-      fprintf(stderr,"\n") ;
+     cputim = COX_cpu_time() - cputim ;
+     fprintf(stderr,"\n++ CPU time for realignment=%.3g s" , cputim) ;
+     if( imcount > 1 ) fprintf(stderr,"  [=%.3g s/sub-brick]" , cputim/imcount) ;
+     fprintf(stderr,"\n") ;
 
-      fprintf(stderr,"++ Min : roll=%+.3f  pitch=%+.3f  yaw=%+.3f"
-                     "  dS=%+.3f  dL=%+.3f  dP=%+.3f\n" ,
-              rollbot , pitchbot , yawbot , dxbot , dybot , dzbot ) ;
+     fprintf(stderr,"++ Min : roll=%+.3f  pitch=%+.3f  yaw=%+.3f"
+                    "  dS=%+.3f  dL=%+.3f  dP=%+.3f\n" ,
+             rollbot , pitchbot , yawbot , dxbot , dybot , dzbot ) ;
 
-      fprintf(stderr,"++ Mean: roll=%+.3f  pitch=%+.3f  yaw=%+.3f"
-                     "  dS=%+.3f  dL=%+.3f  dP=%+.3f\n" ,
-              rollbar , pitchbar , yawbar , dxbar , dybar , dzbar ) ;
+     fprintf(stderr,"++ Mean: roll=%+.3f  pitch=%+.3f  yaw=%+.3f"
+                    "  dS=%+.3f  dL=%+.3f  dP=%+.3f\n" ,
+             rollbar , pitchbar , yawbar , dxbar , dybar , dzbar ) ;
 
-      fprintf(stderr,"++ Max : roll=%+.3f  pitch=%+.3f  yaw=%+.3f"
-                     "  dS=%+.3f  dL=%+.3f  dP=%+.3f\n" ,
-              rolltop , pitchtop , yawtop , dxtop , dytop , dztop ) ;
+     fprintf(stderr,"++ Max : roll=%+.3f  pitch=%+.3f  yaw=%+.3f"
+                    "  dS=%+.3f  dL=%+.3f  dP=%+.3f\n" ,
+             rolltop , pitchtop , yawtop , dxtop , dytop , dztop ) ;
    }
 
    /*-- 12 Sep 2000: add some history? --*/
 
    if( imcount == 1 && VL_rotpar_dset == NULL ){
-      char * str = NULL ;
-      str = THD_zzprintf( str , "3dvolreg did: %s" , modes[VL_final] ) ;
-      if( VL_clipit ) str = THD_zzprintf( str , " -clipit" ) ;
-      else            str = THD_zzprintf( str , " -noclip" ) ;
-      if( VL_zpad )   str = THD_zzprintf( str , " -zpad %d" , VL_zpad ) ;
-      str = THD_zzprintf(str,
-                      " -rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP\n" ,
-                      roll[0],pitch[0],yaw[0], dx[0],dy[0],dz[0]  ) ;
-      tross_Append_History( new_dset , str ) ;
-      free(str) ;
+     char *str = NULL ;
+     str = THD_zzprintf( str , "3dvolreg did: %s" , modes[VL_final] ) ;
+     if( VL_clipit ) str = THD_zzprintf( str , " -clipit" ) ;
+     else            str = THD_zzprintf( str , " -noclip" ) ;
+     if( VL_zpad )   str = THD_zzprintf( str , " -zpad %d" , VL_zpad ) ;
+     str = THD_zzprintf(str,
+                     " -rotate %.4fI %.4fR %.4fA -ashift %.4fS %.4fL %.4fP\n",
+                     roll[0],pitch[0],yaw[0], dx[0],dy[0],dz[0]  ) ;
+     tross_Append_History( new_dset , str ) ;
+     free(str) ;
    }
 
    /*-- 06 Feb 2000: save parameters to header of output in attributes --*/
@@ -889,19 +900,25 @@ int main( int argc , char *argv[] )
      /* -rotparent and -gridparent datasets, if present */
 
      if( VL_rotpar_dset != NULL ){
-       THD_set_string_atr(new_dset->dblk,"VOLREG_ROTPARENT_IDCODE",VL_rotpar_dset->idcode.str   );
-       THD_set_string_atr(new_dset->dblk,"VOLREG_ROTPARENT_NAME"  ,DSET_HEADNAME(VL_rotpar_dset));
+       THD_set_string_atr(new_dset->dblk,"VOLREG_ROTPARENT_IDCODE",
+                                         VL_rotpar_dset->idcode.str   );
+       THD_set_string_atr(new_dset->dblk,"VOLREG_ROTPARENT_NAME"  ,
+                                         DSET_HEADNAME(VL_rotpar_dset));
      }
 
      if( VL_gridpar_dset != NULL ){
-       THD_set_string_atr(new_dset->dblk,"VOLREG_GRIDPARENT_IDCODE",VL_gridpar_dset->idcode.str   );
-       THD_set_string_atr(new_dset->dblk,"VOLREG_GRIDPARENT_NAME"  ,DSET_HEADNAME(VL_gridpar_dset));
+       THD_set_string_atr(new_dset->dblk,"VOLREG_GRIDPARENT_IDCODE",
+                                         VL_gridpar_dset->idcode.str   );
+       THD_set_string_atr(new_dset->dblk,"VOLREG_GRIDPARENT_NAME"  ,
+                                         DSET_HEADNAME(VL_gridpar_dset));
      }
 
      /* Dicom center of input dataset */
 
-     THD_set_string_atr( new_dset->dblk , "VOLREG_INPUT_IDCODE" , VL_dset->idcode.str ) ;
-     THD_set_string_atr( new_dset->dblk , "VOLREG_INPUT_NAME" , DSET_HEADNAME(VL_dset) ) ;
+     THD_set_string_atr( new_dset->dblk, "VOLREG_INPUT_IDCODE",
+                                         VL_dset->idcode.str ) ;
+     THD_set_string_atr( new_dset->dblk, "VOLREG_INPUT_NAME"  ,
+                                         DSET_HEADNAME(VL_dset) ) ;
 
      cv = THD_dataset_center( new_dset ) ;
      THD_set_float_atr( new_dset->dblk , "VOLREG_CENTER_OLD" , 3 , cv.xyz ) ;
@@ -910,8 +927,10 @@ int main( int argc , char *argv[] )
 
      if( VL_bset == NULL ) VL_bset = VL_dset ;  /* default base */
 
-     THD_set_string_atr( new_dset->dblk , "VOLREG_BASE_IDCODE" , VL_bset->idcode.str ) ;
-     THD_set_string_atr( new_dset->dblk , "VOLREG_BASE_NAME" , DSET_HEADNAME(VL_bset) ) ;
+     THD_set_string_atr( new_dset->dblk , "VOLREG_BASE_IDCODE" ,
+                                          VL_bset->idcode.str ) ;
+     THD_set_string_atr( new_dset->dblk , "VOLREG_BASE_NAME" ,
+                                          DSET_HEADNAME(VL_bset) ) ;
 
      cv = THD_dataset_center( VL_bset ) ;
      THD_set_float_atr( new_dset->dblk , "VOLREG_CENTER_BASE" , 3 , cv.xyz ) ;
@@ -953,41 +972,41 @@ int main( int argc , char *argv[] )
    /*-- 08 Dec 2000: execute -twodup? --*/
 
    if( VL_twodup && !VL_intern && VL_rotpar_dset == NULL ){
-      new_dset->daxes->xxorg = VL_bxorg ;
-      new_dset->daxes->yyorg = VL_byorg ;
-      new_dset->daxes->zzorg = VL_bzorg ;
+     new_dset->daxes->xxorg = VL_bxorg ;
+     new_dset->daxes->yyorg = VL_byorg ;
+     new_dset->daxes->zzorg = VL_bzorg ;
 
-      if( new_dset->taxis != NULL && new_dset->taxis->nsl > 0 ){  /* 12 Feb 2001 */
-         new_dset->taxis->zorg_sl = new_dset->daxes->zzorg ;
-      }
+     if( new_dset->taxis != NULL && new_dset->taxis->nsl > 0 ){ /* 12 Feb 2001 */
+       new_dset->taxis->zorg_sl = new_dset->daxes->zzorg ;
+     }
    }
 
    /*-- save new dataset to disk --*/
 
    if( VL_verbose )
-      fprintf(stderr,"++ Writing dataset to disk in %s",DSET_HEADNAME(new_dset) ) ;
+     fprintf(stderr,"++ Writing dataset to disk in %s",DSET_HEADNAME(new_dset));
    DSET_write(new_dset) ;
    if( VL_verbose ) fprintf(stderr,"\n") ;
 
    /*-- save movement parameters to disk --*/
 
    if( VL_dfile[0] != '\0' ){
-      FILE * fp ;
+     FILE *fp ;
 
-      if( THD_is_file(VL_dfile) )
-         fprintf(stderr,"** Warning: overwriting file %s\n",VL_dfile) ;
+     if( THD_is_file(VL_dfile) )
+       fprintf(stderr,"** Warning: overwriting file %s\n",VL_dfile) ;
 
-      fp = fopen( VL_dfile , "w" ) ;
-      for( kim=0 ; kim < imcount ; kim++ )
-         fprintf(fp , "%4d %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f  %11.4g %11.4g\n" ,
-                 kim , roll[kim], pitch[kim], yaw[kim],
-                       dx[kim], dy[kim], dz[kim],
-                       rmsold[kim] , rmsnew[kim]  ) ;
-      fclose(fp) ;
+     fp = fopen( VL_dfile , "w" ) ;
+     for( kim=0 ; kim < imcount ; kim++ )
+       fprintf(fp , "%4d %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f  %11.4g %11.4g\n" ,
+               kim , roll[kim], pitch[kim], yaw[kim],
+                     dx[kim], dy[kim], dz[kim],
+                     rmsold[kim] , rmsnew[kim]  ) ;
+     fclose(fp) ;
    }
 
    if( VL_1Dfile[0] != '\0' ){  /* 14 Apr 2000 */
-      FILE * fp ;
+      FILE *fp ;
 
       if( THD_is_file(VL_1Dfile) )
          fprintf(stderr,"** Warning: overwriting file %s\n",VL_1Dfile) ;
@@ -1325,9 +1344,9 @@ void VL_command_line(void)
          else if( strcmp(str,"quintic") == 0 ) VL_final = MRI_QUINTIC ;
          else if( strcmp(str,"heptic")  == 0 ) VL_final = MRI_HEPTIC ;
          else if( strcmp(str,"Fourier") == 0 ) VL_final = MRI_FOURIER ;
-         else if( strcmp(str,"NN") == 0 ) VL_final = MRI_NN ; /** Added by ZSS: Wed Apr  2 2003 **/
+         else if( strcmp(str,"NN") == 0 )      VL_final = MRI_NN ; /* 02 Apr 2003 */
          else {
-            fprintf(stderr,"** Illegal mode after -final\n"); exit(1);
+           fprintf(stderr,"** Illegal mode after -final\n"); exit(1);
          }
          Iarg++ ; continue ;
       }
@@ -1486,7 +1505,8 @@ void VL_command_line(void)
              exit(1) ;
           }
           if( VL_verbose )
-             fprintf(stderr,"++ Reading in base dataset %s\n",DSET_BRIKNAME(VL_bset)) ;
+            fprintf(stderr,
+                    "++ Reading in base dataset %s\n",DSET_BRIKNAME(VL_bset)) ;
           DSET_load(VL_bset) ;
           if( !DSET_LOADED(VL_bset) ){
              fprintf(stderr,"** Couldn't read -base dataset %s\n",
@@ -1510,9 +1530,9 @@ void VL_command_line(void)
                           replaced by 0, which I just did -- RWCox
                                                        |
                                                        v           */
-          VL_imbase = mri_to_float( DSET_BRICK(VL_bset,0) ) ;   /* copy this */
+          VL_imbase = mri_to_float( DSET_BRICK(VL_bset,0) ) ;  /* copy this */
 
-          VL_bxorg = VL_bset->daxes->xxorg ;                    /* 08 Dec 2000 */
+          VL_bxorg = VL_bset->daxes->xxorg ;                   /* 08 Dec 2000 */
           VL_byorg = VL_bset->daxes->yyorg ;
           VL_bzorg = VL_bset->daxes->zzorg ;
 
