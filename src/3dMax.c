@@ -116,12 +116,31 @@ int main( int argc , char * argv[] )
       exit(1);
    }
 
-   if((slow_flag)&&(quick_flag!=1))
+   if(((mmm!=NULL) && (quick_flag))||(automask &&quick_flag)) {
+      if(quick_flag==1)
+         fprintf(stderr, "+++ Warning - can't have quick option with mask\n");
       quick_flag = 0;
-   if((min_flag)&&(max_flag!=1))
-      max_flag = 0;
-   if(mean_flag==1)
+      slow_flag = 1;
+   }
+
+   if(max_flag==-1) {                   /* if max_flag is not set by user,*/
+     if(min_flag || mean_flag)       /* check if other user options set */
+         max_flag = 0;
+      else
+	max_flag = 1;                  /* otherwise check only for max */
+     }
+
+   if(mean_flag==1)                    /* mean flag implies slow */
      slow_flag = 1;
+
+   /* check slow and quick options */
+   if((slow_flag)&&(quick_flag!=1))  /* if user asked for slow give it to him */
+      quick_flag = 0;
+   else
+      quick_flag = 1;
+
+   if((max_flag==0)&&(min_flag==0))   /* if the user only asked for mean */
+     quick_flag = 0;                  /*  no need to do quick way */
 
    /*----- read input dataset -----*/
 
