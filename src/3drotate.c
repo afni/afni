@@ -927,8 +927,16 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
 
    nval = DSET_NVALS(dset) ;
    if( verb ){
-       fprintf(stderr,"+++ %d sub-bricks: ",nval) ;
-       cputim = COX_cpu_time() ;
+     fprintf(stderr,"+++ %d sub-bricks: ",nval) ;
+     cputim = COX_cpu_time() ;
+   }
+
+   /* 03 May 2005: save rotation center */
+
+   { THD_fvec3 cv ;
+     cv = THD_dataset_center( dset ) ;
+     THD_set_float_atr( dset->dblk , "ROTATE_CENTER_OLD"  , 3 , cv.xyz ) ;
+     THD_set_float_atr( dset->dblk , "ROTATE_CENTER_BASE" , 3 , cv.xyz ) ;
    }
 
    /*-- loop over all sub-bricks: copy into fvol, rotate fvol, copy back --*/
