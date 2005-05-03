@@ -2046,6 +2046,11 @@ Sets the width of the "ULay", "OLay", and "Thr" menu choosers on the
 If the width of your dataset sub-brick labels is more than 14, you may
 want to increase this.  The valid range of values is 4..32 (inclusive).
 
+03 May 2005: The program now calculates the default width based on
+the longest sub-brick label input at startup.  You only need to set
+this if you think you will be reading datasets in later that might
+need a longer label width.
+
 -------------------------
 Variable: AFNI_MAX_1DSIZE
 -------------------------

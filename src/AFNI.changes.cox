@@ -5501,3 +5501,8 @@
 02 May 2005
  * Added plot of least squares overlay line to the Scatterplot plugin.
  * 3drotate.c now records the applied matvec into the AFNI header attributes.
+
+03 May 2005
+ * More changes to 3drotate.c along the same line.
+ * Edit afni.c to set width of bucket label AVs (in Define Overlay) based on
+     max width of input sub-brick labels.
