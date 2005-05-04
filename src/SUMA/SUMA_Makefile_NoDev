@@ -206,6 +206,12 @@ ConvexHull: SUMA_ConvexHull.c
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dCRUISEtoAFNI.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
+3dBRAIN_VOYAGERtoAFNI: SUMA_3dBRAIN_VOYAGERtoAFNI.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_3dBRAIN_VOYAGERtoAFNI.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
        
 3dVol2Surf: SUMA_3dVol2Surf.c 
 	$(RM) $@
@@ -376,6 +382,7 @@ install:
 	@if [ -f SampBias ]; then mv SampBias ${INSTALLDIR_SUMA}; fi;
 	@if [ -f 3dSkullStrip ]; then mv 3dSkullStrip ${INSTALLDIR_SUMA}; fi;
 	@if [ -f 3dCRUISEtoAFNI ]; then mv 3dCRUISEtoAFNI ${INSTALLDIR_SUMA}; fi;
+	@if [ -f 3dBRAIN_VOYAGERtoAFNI ]; then mv 3dBRAIN_VOYAGERtoAFNI ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SumaProgramTemplate ]; then mv SumaProgramTemplate ${INSTALLDIR_SUMA}; fi;
 
 packbins:
@@ -419,6 +426,7 @@ packbins:
 	@if [ -f SurfMesh ]; then $(CP) -p SurfMesh SUMA_bin/; fi;	
 	@if [ -f 3dSkullStrip ]; then $(CP) -p 3dSkullStrip SUMA_bin/; fi;
 	@if [ -f 3dCRUISEtoAFNI ]; then $(CP) -p 3dCRUISEtoAFNI SUMA_bin/; fi;
+	@if [ -f 3dBRAIN_VOYAGERtoAFNI ]; then $(CP) -p 3dBRAIN_VOYAGERtoAFNI SUMA_bin/; fi;
 	@if [ -f SumaProgramTemplate ]; then $(CP) -p SumaProgramTemplate SUMA_bin/; fi;
 
 	$(TAR) -cf $(SUMA_BIN_ARCHIVE) SUMA_bin
@@ -434,7 +442,7 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
 	3dVol2Surf 3dSurf2Vol SurfMeasures SurfaceMetrics    \
 	ROI2dataset SurfSmooth SurfPatch SurfQual inspec quickspec FScurv_to_1D FSread_annot	\
    SUMA_TestDsetIO ConvertDset ShowCmap SurfClust IsoSurface 3dSkullStrip \
-   3dCRUISEtoAFNI	\
+   3dCRUISEtoAFNI	3dBRAIN_VOYAGERtoAFNI\
    SumaProgramTemplate 
    
 #SUMA_TestDataSets
