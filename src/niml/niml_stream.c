@@ -2369,7 +2369,7 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 /*! Close a NI_stream, but don't free the insides.
     If (flag&1 != 0) send a "close_this" message to the other end.
     If (flag&2 != 0) use TCP OOB data to send a SIGURG to the other end.
-    If (flag&4 != 0) don't remove from open_stream list
+    If (flag&4 != 0) don't remove from open_stream list [from atexit()]
 -------------------------------------------------------------------------*/
 
 void NI_stream_close_keep( NI_stream_type *ns , int flag )
@@ -2381,7 +2381,7 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
      return ;
    }
 
-   if( (flag & 4) != 0 )         /* 22 Apr 2005 */
+   if( (flag & 4) == 0 )         /* 22 Apr 2005 */
      remove_open_stream( ns ) ;  /* 02 Jan 2004 */
 
    /*-- 20 Dec 2002: write a farewell message to the other end? --*/

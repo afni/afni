@@ -5506,3 +5506,7 @@
  * More changes to 3drotate.c along the same line.
  * Edit afni.c to set width of bucket label AVs (in Define Overlay) based on
      max width of input sub-brick labels, for each dataset separately.
+
+04 May 2005
+ * Oops.  Fix atexit() bug in niml/niml_stream.c -- had logic inverted on
+     when to remove a stream from the 'open list'.
