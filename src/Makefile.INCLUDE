@@ -1974,7 +1974,7 @@ suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma ScaleToMap CompareSurfaces MakeColorMap ROI2dataset 3dVol2Surf \
 	3dSurf2Vol SurfMeasures ConvertSurface ConvertDset SurfClust IsoSurface ConvexHull MapIcosahedron CreateIcosahedron SurfaceMetrics \
-   SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip 3dCRUISEtoAFNI \
+   SurfSmooth inspec quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI\
    packbins 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -2089,6 +2089,8 @@ suma_clean:
 	if [ -f SUMA/3dSkullStrip  ]; then $(RM) SUMA/3dSkullStrip ; fi;
 	if [ -f 3dCRUISEtoAFNI  ]; then $(RM) 3dCRUISEtoAFNI ; fi;
 	if [ -f SUMA/3dCRUISEtoAFNI  ]; then $(RM) SUMA/3dCRUISEtoAFNI ; fi;
+	if [ -f 3dBRAIN_VOYAGERtoAFNI  ]; then $(RM) 3dBRAIN_VOYAGERtoAFNI ; fi;
+	if [ -f SUMA/3dBRAIN_VOYAGERtoAFNI  ]; then $(RM) SUMA/3dBRAIN_VOYAGERtoAFNI ; fi;
 
 ###
 #Use precompiled libraries present in SUMA/$(SUMA_BIN_ARCHIVE) and just link SUMA
@@ -2099,10 +2101,10 @@ suma_link:
 	$(CP) libmri.a librickr.a libmrix.a libcoxplot.a libf2c.a ../	;\
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol SurfMeasures ScaleToMap MapIcosahedron \
    CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset SurfClust IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
-   quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip 3dCRUISEtoAFNI;\
+   quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI;\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) testGL suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol ScaleToMap SurfMeasures \
 	MapIcosahedron CreateIcosahedron CompareSurfaces ConvertSurface ConvertDset SurfClust IsoSurface ConvexHull SurfaceMetrics SurfSmooth inspec \
-   quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip 3dCRUISEtoAFNI\
+   quickspec FSread_annot SurfPatch SurfQual SampBias 3dSkullStrip 3dCRUISEtoAFNI 3dBRAIN_VOYAGERtoAFNI\
 	'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
@@ -2122,7 +2124,7 @@ suma_install:
 	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron SUMA/CompareSurfaces \
 	SUMA/ConvertSurface SUMA/ConvertDset SUMA/SurfClust SUMA/IsoSurface SUMA/ConvexHull SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics \
    SUMA/inspec SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual SUMA/SurfSmooth \
-   SUMA/SampBias SUMA/3dSkullStrip SUMA/3dCRUISEtoAFNI\
+   SUMA/SampBias SUMA/3dSkullStrip SUMA/3dCRUISEtoAFNI SUMA/3dBRAIN_VOYAGERtoAFNI\
    ${INSTALLDIR} ; \
    if [ -f SUMA/SurfMesh ]; then $(CP) SUMA/SurfMesh ${INSTALLDIR} ; fi; \
 	$(CP) @SUMA_* ${INSTALLDIR} ;)

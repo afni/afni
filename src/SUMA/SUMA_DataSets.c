@@ -6576,6 +6576,8 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
          SUMA_SL_Err("data type not supported");
          break;
    }
+   
+   *nvals_read = ex;
 
    CLEAN_EXIT:
    if (fp) fclose(fp);

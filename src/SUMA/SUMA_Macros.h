@@ -19,6 +19,10 @@
    End = (*(char *)&m_one == 1) ? LSB_FIRST : MSB_FIRST;   \
 }
 
+#define SUMA_OTHER_ENDIAN(End){   \
+   End = (End == LSB_FIRST) ? MSB_FIRST : LSB_FIRST;   \
+}
+
 /*!
    \brief a macro for reading one number at a time from a file
    \param nip (void *) where values go
