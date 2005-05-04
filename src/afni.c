@@ -6994,7 +6994,7 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
                          ) ;
       }
 
-      XtManageChild( im3d->vwid->func->buck_rowcol ) ;
+      XtManageChild( im3d->vwid->func->buck_rowcol ) ;  /* make itvisible */
       XtManageChild( im3d->vwid->func->buck_frame ) ;
    }
 
