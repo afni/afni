@@ -1296,6 +1296,57 @@ void SUMA_orcode_to_orstring (int xxorient,int  yyorient,int zzorient, char *ors
    
    SUMA_RETURNe;
 }
+
+/*!
+   \brief takes the origin as entered to to3d and 
+   changes them to the origin field for AFNI header
+   Based on info in README.attributes and function T3D_save_file_CB
+   int to3d.c
+*/ 
+void SUMA_originto3d_2_originHEAD(THD_ivec3 orient, THD_fvec3 *origin)
+{
+   static char FuncName[]={"SUMA_originto3d_2_originHEAD"};
+   
+   SUMA_ENTRY;
+   
+   origin->xyz[0] = (ORIENT_sign[orient.ijk[0]] == '+')
+                  ? (-origin->xyz[0]) : ( origin->xyz[0]) ;
+
+   origin->xyz[1] = (ORIENT_sign[orient.ijk[1]] == '+')
+                  ? (-origin->xyz[1]) : ( origin->xyz[1]) ;
+   
+   origin->xyz[2] = (ORIENT_sign[orient.ijk[2]] == '+')
+                  ? (-origin->xyz[2]) : ( origin->xyz[2]) ;
+   
+   SUMA_RETURNe;
+   
+} 
+/*!
+   \brief takes the size as entered to to3d and 
+   changes them to the delta field for AFNI header
+   Based on info in README.attributes and function T3D_save_file_CB
+   int to3d.c
+*/ 
+
+void SUMA_sizeto3d_2_deltaHEAD(THD_ivec3 orient, THD_fvec3 *delta)                 
+{
+   static char FuncName[]={"SUMA_sizeto3d_2_deltaHEAD"};
+   
+   SUMA_ENTRY;
+   
+   delta->xyz[0] = (ORIENT_sign[orient.ijk[0]] == '+')
+                  ? (delta->xyz[0]) : ( -delta->xyz[0]) ;
+
+   delta->xyz[1] = (ORIENT_sign[orient.ijk[1]] == '+')
+                  ? (delta->xyz[1]) : ( -delta->xyz[1]) ;
+   
+   delta->xyz[2] = (ORIENT_sign[orient.ijk[2]] == '+')
+                  ? (delta->xyz[2]) : ( -delta->xyz[2]) ;
+   
+   SUMA_RETURNe;
+   
+}    
+
 /*!
    \brief SUMA_Boolean SUMA_vec_3dfind_to_3dmm (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar)
    SUMA_Boolean SUMA_vec_3dmm_to_3dfind (float *NodeList, int N_Node, SUMA_VOLPAR *VolPar);

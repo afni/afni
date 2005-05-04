@@ -6526,7 +6526,8 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
    if (read_n >= 0)  N_alloc = read_n;
    else N_alloc = ( THD_filesize( fname ) - start) / (unsigned long)chnk;
    if (LocalHead) fprintf(SUMA_STDERR,"%s: Expecting to read %d values\n", FuncName, N_alloc);
-
+   
+   ex = 0;
    switch (data_type) {
       case SUMA_float:
          {
