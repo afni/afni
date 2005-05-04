@@ -2041,15 +2041,12 @@ square pixels, even if they are stored with nonsquare pixels.
 -------------------------------
 Variable: AFNI_BUCKET_LABELSIZE
 -------------------------------
-Sets the width of the "ULay", "OLay", and "Thr" menu choosers on the
-"Define Overlay" control panel.  The default value is 14 characters.
-If the width of your dataset sub-brick labels is more than 14, you may
-want to increase this.  The valid range of values is 4..32 (inclusive).
+THIS VARIABLE HAS BEEN REMOVED FROM AFNI.
 
-03 May 2005: The program now calculates the default width based on
-the longest sub-brick label input at startup.  You only need to set
-this if you think you will be reading datasets in later that might
-need a longer label width.
+Formerly, it was used to set the width of the "ULay", "OLay", and "Thr" menu
+choosers on the "Define Overlay" control panel.  As of 03 May 2005, AFNI now
+calculates the default width based on the longest sub-brick label input
+for each dataset.
 
 -------------------------
 Variable: AFNI_MAX_1DSIZE

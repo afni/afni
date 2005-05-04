@@ -4704,6 +4704,9 @@ ENTRY("AFNI_bucket_CB") ;
 
 char * AFNI_bucket_label_CB( MCW_arrowval *av , XtPointer cd )
 {
+   static THD_3dim_dataset *dset_last = NULL ;
+   static int               nsiz_last = 4 ;
+
    THD_3dim_dataset *dset = (THD_3dim_dataset *) cd ;
    static char *fmt[3]={NULL,NULL,NULL} , sfmt[16] , blab[48] ;
    int nlab ;
@@ -4711,26 +4714,53 @@ char * AFNI_bucket_label_CB( MCW_arrowval *av , XtPointer cd )
 
 ENTRY("AFNI_bucket_label_CB") ;
 
+   /** 04 May 2005: customize width to this dataset **/
+
+   if( dset != dset_last && ISVALID_DSET(dset) ){
+     int nvals,kk,blw,mblw=4 ; char *lab ;
+     dset_last = dset ;
+     nvals = DSET_NVALS(dset) ;
+     for( kk=0 ; kk < nvals ; kk++ ){
+       lab = DSET_BRICK_LAB(dset,kk) ;
+       if( lab != NULL ){ blw=strlen(lab) ; if(blw>mblw)mblw=blw ; }
+     }
+     if( mblw > 32 ) mblw = 32 ;
+     nsiz_last = mblw ;
+   }
+
+   /* see if the environment overrides the above */
+
+#if 0
    nlab = (int)AFNI_numenv("AFNI_BUCKET_LABELSIZE") ;
-        if( nlab <= 0 ) nlab = 14 ;
-   else if( nlab <  4 ) nlab =  4 ;
+        if( nlab <= 0 ) nlab = nsiz_last ;
    else if( nlab > 32 ) nlab = 32 ;
+#else
+   nlab = nsiz_last ;
+#endif
+
+   /* make the format for the label string: left justified, width=nlab */
+
    if( nlab != nlab_old ){
      nlab_old = nlab ;
      sprintf(sfmt,"%%-%d.%ds",nlab,nlab) ;
      if( fmt[0] == NULL ){
        fmt[0] = malloc(32); fmt[1] = malloc(32); fmt[2] = malloc(32);
      }
+
+     /* and now the formats including the sub-brick index and the label */
+
 #ifdef USE_RIGHT_BUCK_LABELS
-     sprintf(fmt[0],"%s #%%1d",sfmt) ;
+     sprintf(fmt[0],"%s #%%1d",sfmt) ;   /* if the #xxx goes to the right */
      sprintf(fmt[1],"%s #%%2d",sfmt) ;
      sprintf(fmt[2],"%s #%%3d",sfmt) ;
 #else
-     sprintf(fmt[0],"#%%1d %s",sfmt) ;
+     sprintf(fmt[0],"#%%1d %s",sfmt) ;   /* if the #xxx goes to the left */
      sprintf(fmt[1],"#%%2d %s",sfmt) ;
      sprintf(fmt[2],"#%%3d %s",sfmt) ;
 #endif
    }
+
+   /* now actually make the label for this particular sub-brick */
 
    if( ISVALID_3DIM_DATASET(dset) ){
 
@@ -4751,7 +4781,7 @@ ENTRY("AFNI_bucket_label_CB") ;
 #endif
    }
    else
-     sprintf(blab," #%d ",av->ival) ;
+     sprintf(blab," #%d ",av->ival) ; /* shouldn't hapeen, but you never know */
 
    RETURN(blab) ;
 }
