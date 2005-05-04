@@ -4392,32 +4392,6 @@ STATUS("forcible adoption of unparented datasets") ;
      fprintf(stderr,"\a\n*** Illegal Usage configuration detected!\n"); exit(1);
    }
 
-   /** 03 May 2005: scan datasets for max label width **/
-
-   if( getenv("AFNI_BUCKET_LABELSIZE") == NULL ){
-     char *lab , buf[64] ;
-     THD_session *ss ;
-     THD_3dim_dataset *dset ;
-     int iss , blw , mblw=0 , jj , vv , kk,nvals ;
-
-     for( iss=0 ; iss <  GLOBAL_library.sslist->num_sess ; iss++ ){
-       ss = GLOBAL_library.sslist->ssar[iss] ;
-       for( jj=0 ; jj < ss->num_dsset ; jj++ ){
-         for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ){
-           dset = ss->dsset[jj][vv] ; if( !ISVALID_DSET(dset) ) continue ;
-           nvals = DSET_NVALS(dset) ;
-           for( kk=0 ; kk < nvals ; kk++ ){
-             lab = DSET_BRICK_LAB(dset,kk) ;
-             if( lab != NULL ){ blw=strlen(lab) ; if(blw>mblw)mblw=blw ; }
-           }
-         }
-       }
-     }
-          if( mblw < 14 ) mblw = 14 ;
-     else if( mblw > 32 ) mblw = 32 ;
-     sprintf(buf,"AFNI_BUCKET_LABELSIZE=%d",mblw) ; putenv(buf) ;
-   }
-
    /** done at last **/
 
    MPROBE ; EXRETURN ;
@@ -6985,10 +6959,10 @@ STATUS(" -- set threshold to zero for FIM (once only)") ;
       /*** 29 Jul 2003: always do buckets now ***/
 
       XtManageChild( im3d->vwid->func->anat_buck_av->wrowcol ) ;
-      XtManageChild  ( im3d->vwid->func->fim_buck_av->wrowcol ) ;
-      XtManageChild  ( im3d->vwid->func->thr_buck_av->wrowcol ) ;
+      XtManageChild( im3d->vwid->func->fim_buck_av->wrowcol  ) ;
+      XtManageChild( im3d->vwid->func->thr_buck_av->wrowcol  ) ;
 
-      /* 12 Dec 2001: only refit menus if dataset has changed */
+      /** 12 Dec 2001: only refit menus if dataset has changed **/
 
       if( have_fim && (im3d->fim_now != old_fim || im3d != old_im3d) ){
         refit_MCW_optmenu( im3d->vwid->func->fim_buck_av ,

@@ -2042,10 +2042,12 @@ static char * readme_env[] = {
    "-------------------------------\n" ,
    "Variable: AFNI_BUCKET_LABELSIZE\n" ,
    "-------------------------------\n" ,
-   "Sets the width of the \"ULay\", \"OLay\", and \"Thr\" menu choosers on the\n" ,
-   "\"Define Overlay\" control panel.  The default value is 14 characters.\n" ,
-   "If the width of your dataset sub-brick labels is more than 14, you may\n" ,
-   "want to increase this.  The valid range of values is 4..32 (inclusive).\n" ,
+   "THIS VARIABLE HAS BEEN REMOVED FROM AFNI.\n" ,
+   "\n" ,
+   "Formerly, it was used to set the width of the \"ULay\", \"OLay\", and \"Thr\" menu\n" ,
+   "choosers on the \"Define Overlay\" control panel.  As of 03 May 2005, AFNI now\n" ,
+   "calculates the default width based on the longest sub-brick label input\n" ,
+   "for each dataset.\n" ,
    "\n" ,
    "-------------------------\n" ,
    "Variable: AFNI_MAX_1DSIZE\n" ,
@@ -2204,4 +2206,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2204
+#define NUM_readme_env 2206
