@@ -429,6 +429,17 @@ void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
 #define SUMA_SKIP_BLANK(op, eop){  \
    while (*op != '\0' && op != eop && SUMA_IS_BLANK(*op)) ++op; \
 }
+#define SUMA_SKIP_LINE(op, eop){   \
+   while (*op != '\0' && op != eop && *op != '\n' && *op != '\f' && *op != '\r') ++op; \
+   SUMA_SKIP_BLANK(op, eop);\
+}
+#define SUMA_IS_COMMENT_LINE(opor, eop, cc, ans){   \
+   char *m_op = opor;  \
+   ans = 0;\
+   SUMA_SKIP_BLANK(m_op, eop);\
+   if (*m_op == cc) { ans = 1; } \
+}
+
 
 /*!
    \brief advance pointer to next blank, skips quoted strings (works with " and ' combos, I hope)
@@ -467,6 +478,10 @@ void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
    \brief advance pointer past a string
    \param op (char *) pointer to char array
    \param eop (char *) DO not search op past eop (NULL ok if op is NULL terminated)
+               DO NOT CALL THE MACRO WITH eop SET TO (op+Nchars), i.e. do not do this:
+               SUMA_ADVANCE_PAST(op,(op+5),attr,Found,Word); to check only 5 chars ahead
+               if you do so, a part of the if condition (op < eop) will always evaluate to 
+               true because it is expanded to op < (op+5) !
    \param attr (char *) character string searched (NULL terminated)
    \Found (int)   0 --> Not found, op is not changed
                   1 --> Found, op is set just past the location of attr
@@ -477,7 +492,7 @@ void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
    int m_natr = strlen(attr); \
    char *m_bop = op;    \
    Found = 0;  \
-   while (op != eop && *op != '\0' && Found < m_natr) { \
+   while (op < eop && *op != '\0' && Found < m_natr) { \
       if (*op == attr[Found]) {  \
          /* found a match, increment match counter */ \
          ++Found; \
@@ -496,6 +511,7 @@ void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
          }  \
       }  \
    }  \
+   /* fprintf(SUMA_STDERR,"%s: Searched %d chars.\n", FuncName, op-m_bop);  */\
    if (Found != m_natr) { Found = 0; op = m_bop; }/* reset pointer to origin */ \
 }
 /*!

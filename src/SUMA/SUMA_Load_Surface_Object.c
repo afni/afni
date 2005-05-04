@@ -4123,7 +4123,10 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
                SUMA_iswordin (SO->Name.FileName, ".pial") ||
                SUMA_iswordin (SO->Name.FileName, ".orig") ||
                SUMA_iswordin (SO->Name.FileName, ".fiducial") ||
-               SUMA_iswordin (SO->Name.FileName, "_WM") ) {
+               SUMA_iswordin (SO->Name.FileName, "_WM") || 
+               SUMA_iswordin (SO->Name.FileName, "_GM") || 
+               ( SUMA_iswordin (SO->Name.FileName, "_RECO") && !SUMA_iswordin (SO->Name.FileName, "_inf") )
+               ) {
             SUMA_RETURN('Y');
          } else {
             SUMA_RETURN('N');
@@ -4136,7 +4139,9 @@ char SUMA_GuessAnatCorrect(SUMA_SurfaceObject *SO)
                SUMA_iswordin (SO->Name_coord.FileName, ".pial") ||
                SUMA_iswordin (SO->Name_coord.FileName, ".orig") ||
                SUMA_iswordin (SO->Name_coord.FileName, ".fiducial") ||
-               SUMA_iswordin (SO->Name.FileName, "_WM") ) {
+               SUMA_iswordin (SO->Name.FileName, "_WM") ||
+               SUMA_iswordin (SO->Name.FileName, "_GM")
+               ) {
             SUMA_RETURN('Y');
          } else {
             SUMA_RETURN('N');
