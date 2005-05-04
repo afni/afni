@@ -6568,7 +6568,8 @@ int *SUMA_reorder(int *y, int *isort, int N_isort)
 int SUMA_suck_file( char *fname , char **fbuf )
 {
    static char FuncName[]={"SUMA_suck_file"};
-   int len , fd , ii ;
+   int  fd , ii ;
+   unsigned long len; 
    char * buf ;
 
    SUMA_ENTRY;
