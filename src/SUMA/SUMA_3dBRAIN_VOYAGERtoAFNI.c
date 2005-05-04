@@ -208,6 +208,11 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
    }
    if (LocalHead) fprintf(SUMA_STDERR,"File size passes test\n");
 
+   /* orientation */
+   
+   orixyz.ijk[0] = ORI_A2P_TYPE;
+   orixyz.ijk[1] = ORI_S2I_TYPE;
+   orixyz.ijk[2] = ORI_R2L_TYPE;
    
    /* load number of voxels */
    LOAD_IVEC3( nxyz   , nvox[0]    , nvox[1]    , nvox[2] ) ;
@@ -215,21 +220,17 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
    /* form the command */
    SUMA_LH("Forming command");
    
-   /* dimensions, same for vmr*/
-   float delta[3]={1.0, 1.0, 1.0}, origin[3]={0.0, 0.0, 0.0};
-   
    {  
+      float delta[3]={1.0, 1.0, 1.0};
+      float origin[3]={0.0, 0.0, 0.0};  
+      /* dimensions, same for vmr*/
       LOAD_FVEC3( dxyz , delta[0], delta[1], delta[2]   ) ;
+      SUMA_sizeto3d_2_deltaHEAD(orixyz, &dxyz);
+      /* origin */
+      LOAD_FVEC3( orgxyz , origin[0], origin[1], origin[2]   ) ;
+      SUMA_originto3d_2_originHEAD(orixyz, &orgxyz);
+      
    }
-   
-   /* origin , assumed to be center of first voxel*/
-   LOAD_FVEC3( orgxyz , origin[0], origin[1], origin[2]   ) ;
-   
-   /* orientation */
-   
-   orixyz.ijk[0] = ORI_A2P_TYPE;
-   orixyz.ijk[1] = ORI_S2I_TYPE;
-   orixyz.ijk[2] = ORI_R2L_TYPE;
     
    /* start point (edge of origin voxel) and end point (opposite to start ) */
    sp[0] = orgxyz.xyz[0] + SUMA_ABS(dxyz.xyz[0]) / 2.0;

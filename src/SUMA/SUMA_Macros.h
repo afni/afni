@@ -23,6 +23,12 @@
    End = (End == LSB_FIRST) ? MSB_FIRST : LSB_FIRST;   \
 }
 
+#define SUMA_SWAP_THIS(nip,chnk){   \
+   if (chnk == 4) SUMA_swap_4( nip ) ;  \
+      else if (chnk == 8) SUMA_swap_8( nip ) ;  \
+      else if (chnk == 2) SUMA_swap_2( nip ) ;  \
+      else { SUMA_SL_Err ("No swapping performed.") } \
+}   
 /*!
    \brief a macro for reading one number at a time from a file
    \param nip (void *) where values go

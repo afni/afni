@@ -2016,34 +2016,100 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 		}
 	} /* read a full surface */
 	else { /* that's a patch */
-	   if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading patch ...\n", FuncName);
-		/* Node IDs are a reference to those in the parent surface */
-		cnt = 0;
-      while (ex != EOF && cnt < FS->N_Node) {
-			ex = fscanf(fs_file, "%d", &(FS->NodeId[cnt]));
-			id = 3 * cnt;
-         /* fprintf (SUMA_STDERR, "FS->NodeId[cnt] = %d: cnt = %d, id=%d, id1 = %d, id2 = %d\n", FS->NodeId[cnt], cnt, id, id+1, id+2); */ 
-			ex = fscanf(fs_file, "%f %f %f", &(FS->NodeList[id]),&(FS->NodeList[id+1]),&(FS->NodeList[id+2]));
-			++cnt;
-		}
-      if (cnt != FS->N_Node) {
-			fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
-			SUMA_RETURN (NOPE);
-		}
-		
-      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading FaceSets...\n", FuncName);
-		/* read in the facesets */
-		cnt = 0;
-		while (ex != EOF && cnt < FS->N_FaceSet) {
-			ex = fscanf(fs_file, "%d", &(FS->FaceSetIndexInParent[cnt]));
-			ip = 3 * cnt;
-			ex = fscanf(fs_file, "%d %d %d",  &(FS->FaceSetList[ip]), &(FS->FaceSetList[ip+1]),&(FS->FaceSetList[ip+2]));
-			++cnt;
-		}
-		if (cnt != FS->N_FaceSet) {
-			fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
-			SUMA_RETURN (NOPE);
-		}
+	   #if 0
+         if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading patch olde way...\n", FuncName);
+		   /* Node IDs are a reference to those in the parent surface */
+		   cnt = 0;
+         while (ex != EOF && cnt < FS->N_Node) {
+			   ex = fscanf(fs_file, "%d", &(FS->NodeId[cnt]));
+			   id = 3 * cnt;
+            /* fprintf (SUMA_STDERR, "FS->NodeId[cnt] = %d: cnt = %d, id=%d, id1 = %d, id2 = %d\n", FS->NodeId[cnt], cnt, id, id+1, id+2); */ 
+			   ex = fscanf(fs_file, "%f %f %f", &(FS->NodeList[id]),&(FS->NodeList[id+1]),&(FS->NodeList[id+2]));
+			   ++cnt;
+		   }
+         if (cnt != FS->N_Node) {
+			   fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
+			   SUMA_RETURN (NOPE);
+		   }
+
+         if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading FaceSets...\n", FuncName);
+		   /* read in the facesets */
+		   cnt = 0;
+		   while (ex != EOF && cnt < FS->N_FaceSet) {
+			   ex = fscanf(fs_file, "%d", &(FS->FaceSetIndexInParent[cnt]));
+			   ip = 3 * cnt;
+			   ex = fscanf(fs_file, "%d %d %d",  &(FS->FaceSetList[ip]), &(FS->FaceSetList[ip+1]),&(FS->FaceSetList[ip+2]));
+			   ++cnt;
+		   }
+		   if (cnt != FS->N_FaceSet) {
+			   fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
+			   SUMA_RETURN (NOPE);
+		   }
+      #else 
+      {
+         char *fl=NULL, *eop=NULL;
+         int ans, pnodes, ptri, Found, nchar;
+         double dbuf;
+         
+         if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading patch new way...\n", FuncName);
+         /* suck in the bastard, perhaps this should be done from the start, maybe in the future */  
+         nchar = SUMA_suck_file(f_name, &fl);
+         if (!nchar || !fl) { 
+            SUMA_SL_Err("Failed to read patch file.");
+            SUMA_RETURN(NOPE);
+         }
+         /* skip comment, if any */
+         SUMA_IS_COMMENT_LINE(fl, NULL, '#', ans);
+         if (ans) {  
+            SUMA_LH("Skipping comment..."); 
+            SUMA_SKIP_LINE(fl, NULL);
+         }else {
+            SUMA_SL_Err("Expected comment line....");
+         }
+         /* read in first two nums */
+         SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); pnodes = (int)dbuf;
+         SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); ptri = (int)dbuf;
+         
+         /* Node IDs are a reference to those in the parent surface */
+		   Found = 1;
+         cnt = 0;
+         while (Found && cnt < FS->N_Node) {
+			   eop = fl+50; /* don't you dare use (fl+50) instead of eop below!, else you will serch till the end all the time!
+                           Macro Danger! */
+            SUMA_ADVANCE_PAST(fl, eop,"vno=",Found,0);  /* The new patch format ... */
+            SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->NodeId[cnt] = (int)dbuf;
+			   id = 3 * cnt;
+            /* fprintf (SUMA_STDERR, "FS->NodeId[cnt] = %d: cnt = %d, id=%d, id1 = %d, id2 = %d\n", FS->NodeId[cnt], cnt, id, id+1, id+2); */ 
+			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->NodeList[id] = (float)dbuf;
+            SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->NodeList[id+1] = (float)dbuf;
+            SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->NodeList[id+2] = (float)dbuf;
+			   ++cnt;
+		   }
+         if (cnt != FS->N_Node) {
+			   fprintf(SUMA_STDERR,"Error %s: Expected %d nodes, %d read.\n", FuncName, FS->N_Node, cnt);
+			   SUMA_RETURN (NOPE);
+		   }
+         if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading FaceSets...\n", FuncName);
+		   /* read in the facesets */
+		   Found = 1;
+		   cnt = 0;
+         while (Found && cnt < FS->N_FaceSet) {
+			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetIndexInParent[cnt] = (int)dbuf;
+			   ip = 3 * cnt;
+			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetList[ip  ] = (int)dbuf;
+			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetList[ip+1] = (int)dbuf;
+			   SUMA_ADVANCE_PAST_NUM(fl, dbuf, Found); FS->FaceSetList[ip+2] = (int)dbuf;
+			   ++cnt;
+		   }
+		   if (cnt != FS->N_FaceSet) {
+			   fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
+			   SUMA_RETURN (NOPE);
+		   }
+         SUMA_free(fl); fl = NULL; /* This free is what causes the error 'Deallocation of a pointer not malloced' on the mac
+                                       I think the mac libraries have a bug in them... */
+      }   
+      #endif   
+      
 		/* The FaceSet List which will be read next, uses indices into the NodeList of the parent surface
 		This means that it expects a NodeList of the size of the NodeList in the parent surface. 
 		One could read the maximum number of nodes in the parent surface and create a NodeList of that size.
@@ -2391,10 +2457,11 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
 {
    static char FuncName[]={"SUMA_BrainVoyager_Read"};
 	float FileVersion, cx, cy, cz, *fbuf = NULL;
-	int i, ii, chnk, ex, surf_type, n_neighbors;
+	int i, ii, chnk, ex, surf_type, n_neighbors, bs;
 	char buffer[256];
+   float fbuffer[256];
    FILE *fl=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -2417,30 +2484,46 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    SO->N_Node=0;
 	SO->N_FaceSet=0;
    
+   /* read version, and number of nodes and facesets, assume no swapping for the moment */
+   bs = 0;
    chnk = sizeof(float);
    ex = fread (&FileVersion, chnk, 1, fl);
-   if (FileVersion < 0 || FileVersion > 500000) { /* trouble perhaps ? */
-      SUMA_SL_Err("Version number < 0 || > 500000\nSeems like bad news to me, quitting...");
-      fclose(fl);
-      SUMA_RETURN(NOPE);
-   }
    chnk = sizeof(int);
-   ex = fread (&surf_type, chnk, 1, fl);
+   ex = fread (&surf_type, chnk, 1, fl); /* must be 0, per website www.brainvoyager.com... */
    ex = fread (&(SO->N_Node), chnk, 1, fl);
    ex = fread (&(SO->N_FaceSet), chnk, 1, fl);
+   if (FileVersion < 0 || FileVersion > 500000 || SO->N_Node < 0 || SO->N_FaceSet < 0) { /* trouble perhaps ? */
+      SUMA_LH("Byte swapping needed...");
+      bs = 1;
+   }
+   if (bs) {
+      SUMA_SWAP_THIS(&FileVersion, sizeof(float));
+      SUMA_SWAP_THIS(&surf_type, sizeof(int));
+      SUMA_SWAP_THIS(&(SO->N_Node), sizeof(int));
+      SUMA_SWAP_THIS(&(SO->N_FaceSet), sizeof(int));
+   }
+   
    if (LocalHead) {
       fprintf (SUMA_STDERR,"%s:\nSurfType is %d\nN_Node = %d, N_FaceSet = %d\n", 
                            FuncName, surf_type, SO->N_Node, SO->N_FaceSet);
    }
+   
+   if (FileVersion < 0 || FileVersion > 500000) { /* trouble perhaps ? */
+      SUMA_SL_Err("Version number < 0 || > 500000 \nSeems like bad news to me, quitting...");
+      fclose(fl);
+      SUMA_RETURN(NOPE);
+   }
+   
+   
    if (SO->N_Node < 0 || SO->N_FaceSet < 0) {
       SUMA_SL_Err("Negative values for N_Node and N_FaceSet.");
       fclose(fl);
       SUMA_RETURN(NOPE);
    } 
-   chnk = sizeof(float);
-   ex = fread (&cx, chnk, 1, fl);
-   ex = fread (&cy, chnk, 1, fl);
-   ex = fread (&cz, chnk, 1, fl);
+   
+   SUMA_READ_FLOAT(&cx, bs, fl, ex);
+   SUMA_READ_FLOAT(&cy, bs, fl, ex);
+   SUMA_READ_FLOAT(&cz, bs, fl, ex);
    if (LocalHead) {
       fprintf (SUMA_STDERR,"%s:\ncenter = [%f, %f, %f]\n(Niko adds 30 to cy ...)\n", FuncName, cx, cy, cz);
    }
@@ -2457,30 +2540,57 @@ SUMA_Boolean SUMA_BrainVoyager_Read(char *f_name, SUMA_SurfaceObject *SO, int de
    /* read the coords */
    SUMA_LH("Reading coords...");
    ex = fread(fbuf, sizeof(float), SO->N_Node, fl);
+   if (ex != SO->N_Node) { SUMA_SL_Warn("Failed to read all node X info"); }
+   if (bs) SUMA_SWAP_VEC(fbuf,SO->N_Node,sizeof(float));
    for (i=0; i<SO->N_Node; ++i) SO->NodeList[3*i] = fbuf[i];
    ex = fread(fbuf, sizeof(float), SO->N_Node, fl);
+   if (ex != SO->N_Node) { SUMA_SL_Warn("Failed to read all node Y info"); }
+   if (bs) SUMA_SWAP_VEC(fbuf,SO->N_Node,sizeof(float));
    for (i=0; i<SO->N_Node; ++i) SO->NodeList[3*i+1] = fbuf[i];
    ex = fread(fbuf, sizeof(float), SO->N_Node, fl);
+   if (ex != SO->N_Node) { SUMA_SL_Warn("Failed to read all node Z info"); }
+   if (bs) SUMA_SWAP_VEC(fbuf,SO->N_Node,sizeof(float));
    for (i=0; i<SO->N_Node; ++i) SO->NodeList[3*i+2] = fbuf[i];
    SUMA_free(fbuf); fbuf = NULL;
-   
+   if (LocalHead) { 
+      char *sdbg = SUMA_ShowMeSome((void *)SO->NodeList, SUMA_float, SUMA_MIN_PAIR(20, SO->N_Node), 20);
+      fprintf(SUMA_STDERR,"%s NodeList:\n%s\n", FuncName, sdbg);
+      SUMA_free(sdbg);sdbg = NULL;
+   }
    /* skip the node normals, which would be read much like the x y z coords*/
-   fseek(fl, SO->N_Node*SO->NodeDim*sizeof(float), SEEK_CUR);
+   fseek(fl, SO->N_Node*3*sizeof(float), SEEK_CUR);
    
    /* skip the curvature color info */
-   ex = fread(buffer, 32, 1, fl);
-   fseek(fl, SO->N_Node*4, SEEK_CUR);
+   ex = fread(fbuffer, sizeof(float), 8, fl); /* colors of convex and concave stuff */
+   if (bs) SUMA_SWAP_VEC(fbuffer,8, sizeof(float));
+   if (LocalHead) { 
+      char *sdbg = SUMA_ShowMeSome((void *)fbuffer, SUMA_float, 8,8);
+      fprintf(SUMA_STDERR,"%s colorstuff:\n%s\n", FuncName, sdbg);
+      SUMA_free(sdbg);sdbg = NULL;
+   }
+   fseek(fl, SO->N_Node*sizeof(float), SEEK_CUR); /* junp over mesh color */
    
    /* skip nearest neighbor info */
    for (i=0; i<SO->N_Node; ++i) {
       ex = fread(&n_neighbors, sizeof(int), 1, fl);
+      if (bs) SUMA_SWAP_THIS(&n_neighbors, sizeof(int));
       fseek(fl, n_neighbors*sizeof(int), SEEK_CUR);
    }
    
    /* read dems triangles */
    SUMA_LH("Reading FaceSets...");
    ex = fread(SO->FaceSetList, sizeof(int), SO->N_FaceSet * SO->FaceSetDim , fl);
+   if (ex != SO->N_FaceSet * SO->FaceSetDim) { 
+      fprintf(SUMA_STDERR,"Error %s: Failed to read all faceset info.\nRead %d values, expected %d\n", FuncName, ex, SO->N_FaceSet * SO->FaceSetDim );
+      SUMA_RETURN(NOPE);
+   }
    
+   if (bs) SUMA_SWAP_VEC(SO->FaceSetList,(SO->N_FaceSet * SO->FaceSetDim),sizeof(int));
+   if (LocalHead) { 
+      char *sdbg = SUMA_ShowMeSome((void *)SO->FaceSetList, SUMA_int, SUMA_MIN_PAIR(20, SO->N_FaceSet * SO->FaceSetDim), 20);
+      fprintf(SUMA_STDERR,"%s FaceSetList:\n%s\n", FuncName, sdbg);
+      SUMA_free(sdbg);sdbg = NULL;
+   }
    fclose(fl); fl = NULL;
    
    SO->FileType = SUMA_BRAIN_VOYAGER;
@@ -8052,16 +8162,6 @@ char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int L
    
    /* number of voxels */
    LOAD_IVEC3( nxyz   , dxp->counts[2]    , dxp->counts[1]    , dxp->counts[0] ) ;
-   /* dimensions */
-   {  
-      float fb[3]; 
-      SUMA_NORM_VEC((&(dxp->delta[6])),3, fb[0]);
-      SUMA_NORM_VEC((&(dxp->delta[3])),3, fb[1]);
-      SUMA_NORM_VEC((&(dxp->delta[0])),3, fb[2]);
-      LOAD_FVEC3( dxyz   , fb[0]    , fb[1]    , fb[2]    ) ;
-   }
-   /* origin , assumed to be center of first voxel*/
-   LOAD_FVEC3( orgxyz , dxp->origin[2]    , dxp->origin[1] , dxp->origin[0]  ) ;
    
    /* orientation */
    /* find closest orientation in RAI, delta matrix does allow for obliqueness (non diagonal matrix) but we ignore it */
@@ -8070,6 +8170,20 @@ char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int L
                dxp->delta[3], dxp->delta[4], dxp->delta[5],
                dxp->delta[0], dxp->delta[1], dxp->delta[2] );
    orixyz = THD_matrix_to_orientation( m33 );
+
+   /* dimensions */
+   {  
+      float fb[3]; 
+      SUMA_NORM_VEC((&(dxp->delta[6])),3, fb[0]);
+      SUMA_NORM_VEC((&(dxp->delta[3])),3, fb[1]);
+      SUMA_NORM_VEC((&(dxp->delta[0])),3, fb[2]);
+      LOAD_FVEC3( dxyz   , fb[0]    , fb[1]    , fb[2]    ) ;
+      SUMA_sizeto3d_2_deltaHEAD(orixyz, &dxyz);
+   }
+   
+   /* origin , assumed to be center of first voxel*/
+   LOAD_FVEC3( orgxyz , dxp->origin[2]    , dxp->origin[1] , dxp->origin[0]  ) ;
+   SUMA_originto3d_2_originHEAD(orixyz, &orgxyz);
     
    /* start point (edge of origin voxel) and end point (opposite to start ) */
    sp[0] = dxp->origin[2] + SUMA_ABS(dxyz.xyz[0]) / 2.0;
