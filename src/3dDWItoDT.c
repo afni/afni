@@ -57,6 +57,7 @@ static void Form_R_Matrix (MRI_IMAGE * grad1Dptr);
 static void DWItoDT_tsfunc (double tzero, double tdelta, int npts, float ts[], double ts_mean, double ts_slope, void *ud, int nbriks, float *val);
 static void EIG_func (void);
 static float Calc_FA(float *val);
+static float Calc_MD(float *val);
 static void ComputeD0 (void);
 static double ComputeJ (float ts[], int npts);
 static void ComputeDeltaTau (void);
@@ -120,10 +121,10 @@ main (int argc, char *argv[])
 	      "    solution adjusted to avoid negative eigenvalues.\n\n"
               "   -max_iter_rw n = max number of iterations after reweighting (Default=5)\n"
               "    values can range from 1 to any positive integer less than 101.\n\n"
-              "   -eigs = compute eigenvalues, eigenvectors and fractional anisotropy in \n"
-              "    sub-briks 6-18. Computed as in 3dDTeig\n\n"
-              "   -debug_briks = add sub-briks with Ed (error functional), Ed0 (original error)\n"
-              "    and number of steps to convergence\n\n"
+              "   -eigs = compute eigenvalues, eigenvectors, fractional anisotropy and mean\n"
+              "    diffusivity in sub-briks 6-19. Computed as in 3dDTeig\n\n"
+              "   -debug_briks = add sub-briks with Ed (error functional), Ed0 (orig. error),\n"
+              "     number of steps to convergence and I0 (modeled B0 volume)\n\n"
               "   -cumulative_wts = show overall weight factors for each gradient level\n"
               "    May be useful as a quality control\n\n"
               "   -verbose nnnnn = print convergence steps every nnnnn voxels that survive to\n"
@@ -131,7 +132,7 @@ main (int argc, char *argv[])
               "   -drive_afni nnnnn = show convergence graphs every nnnnn voxels that survive\n"
               "    to convergence loops. AFNI must have NIML communications on (afni -niml).\n\n"
               " Example:\n"
-              "  3dDWItoDTnoise -prefix rw01 -automask -reweight -max_iter 10 \\\n"
+              "  3dDWItoDT -prefix rw01 -automask -reweight -max_iter 10 \\\n"
               "            -max_iter_rw 10 tensor25.1D grad02+orig.\n\n"
 	      " The output is a 6 sub-brick bucket dataset containing Dxx,Dxy,Dxz,Dyy,Dyz,Dzz.\n"
               " Additional sub-briks may be appended with the -eigs and -debug_briks options.\n"
@@ -372,10 +373,10 @@ main (int argc, char *argv[])
   }
 
   if(eigs_flag)
-     nbriks += 13;
+     nbriks += 14;
 
   if(debug_briks)
-     nbriks += 3;
+     nbriks += 4;
      
 
    /*----- read input datasets -----*/
@@ -554,12 +555,14 @@ main (int argc, char *argv[])
         EDIT_dset_items(new_dset, eigs_brik+10,"eigvec_3[2]",ADN_none);
         EDIT_dset_items(new_dset, eigs_brik+11,"eigvec_3[3]",ADN_none);
         EDIT_dset_items(new_dset, eigs_brik+12,"FA",ADN_none);
+        EDIT_dset_items(new_dset, eigs_brik+13,"MD",ADN_none);
       }
 
       if(debug_briks) {
-        EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 3, "Converge Step", ADN_none);
-        EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 2, "ED", ADN_none);
-        EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 1, "EDorig", ADN_none);
+        EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 4, "Converge Step", ADN_none);
+        EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 3, "ED", ADN_none);
+        EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 2, "EDorig", ADN_none);
+        EDIT_dset_items (new_dset, ADN_brick_label_one + nbriks - 1, "I0", ADN_none);
       }
 
       tross_Make_History ("3dDWItoDT", argc, argv, new_dset);
@@ -679,7 +682,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 	{			/* don't include this voxel for mask */
 	  for (i = 0; i < nbriks; i++)	/* faster to copy preset vector */
 	    val[i] = 0.0;	/* return 0 for all Dxx,Dxy,... */
-          val[6] = -3.0;  /* use -3 as flag for number of converge steps to mean exited for automasked voxels */
+          val[nbriks-4] = -3.0;  /* use -3 as flag for number of converge steps to mean exited for automasked voxels */
 	  EXRETURN;
 	}
     }
@@ -710,10 +713,11 @@ DWItoDT_tsfunc (double tzero, double tdelta,
      if(debug_briks) {
        InitWtfactors (npts);		/* initialize all weight factors to 1 for all gradient intensities */
        J = ComputeJ (ts, npts);	/* Ed (error) computed here */
-       val[nbriks-3] = -1.0;  /* use -1 as flag for number of converge steps to mean exited for */
+       val[nbriks-4] = -1.0;  /* use -1 as flag for number of converge steps to mean exited for */
                               /* or initial insignificant deltatau value */
-       val[nbriks-2] = ED;
-       val[nbriks-1] = ED;                  /* store original error */
+       val[nbriks-3] = ED;
+       val[nbriks-2] = ED;                  /* store original error */
+       val[nbriks-1] = J;
      }
 
      if(eigs_flag) {                            /* if user wants eigenvalues in output dataset */
@@ -722,6 +726,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
           val[i+6] = eigs[i];
        /* calc FA */
        val[18] = Calc_FA(val+6);                /* calculate fractional anisotropy */
+       val[19] = Calc_MD(val+6);                /* calculate mean diffusivity */
      }
      EXRETURN;
   }
@@ -741,19 +746,14 @@ DWItoDT_tsfunc (double tzero, double tdelta,
     for(i=0;i<nbriks;i++)
       val[i] = 0.0;
      if(debug_briks) {
-       val[nbriks-3] = -2.0; /* use -2 as flag for number of converge steps to mean exited for insignificant D values*/
-       val[nbriks-2] = 0;
-       val[nbriks-1] = 0;                  /* store original error */
-     }
-
-     if(eigs_flag) {                       /* if user wants eigenvalues in output dataset */
-        for(i=0;i<13;i++) 
-          val[i+6] = 0.0;                  /* put 0 in all sub-briks */
+       val[nbriks-4] = -2.0; /* use -2 as flag for number of converge steps to mean exited for insignificant D values*/
+       val[nbriks-3] = 0;
+       val[nbriks-2] = 0;                  /* store original error */
+       val[nbriks-1] = 0;
      }
 
     EXRETURN;
   }
-
 
 
   converge_step = 0;    /* allow up to max_iter=MAX_CONVERGE_STEPS (10) deltatau steps */
@@ -767,15 +767,17 @@ DWItoDT_tsfunc (double tzero, double tdelta,
   matrix_copy (Dmatrix, &OldD);   /* store first Dmatrix in OldD too */
 
   if(debug_briks)
-     val[nbriks-1] = ED;                  /* store original error */
+     val[nbriks-2] = ED;                  /* store original error */
 
   EDold = ED;
   ComputeDeltaTau ();
   if(deltatau<=TINYNUMBER) {         /* deltatau too small, exit */
     for(i=0;i<nbriks;i++)
       val[i] = 0.0;
-    if(debug_briks)
-      val[nbriks-3] = -1.0; /* use -1 as flag for number of converge steps to mean exited for insignificant deltatau value */
+    if(debug_briks) {
+      val[nbriks-4] = -1.0; /* use -1 as flag for number of converge steps to mean exited for insignificant deltatau value */
+      val[nbriks-1] = J;
+    }
     EXRETURN;
   }
 
@@ -919,7 +921,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
              converge_step = 1;             /* start over now with computed weight factors */
              max_converge_step = max_iter_rw+1;   /* reset limit of converge steps to user option */
              wtflag = 0;                    /* only do it once - turn off next reweighting */
-             ComputeJ(ts, npts);            /* compute new Ed value */
+             J=ComputeJ(ts, npts);            /* compute new Ed value */
              EDold = ED;                    /* this avoids having to go through converge loop for two loops */
 	  }
 	}  /* end while converge loop */
@@ -940,14 +942,16 @@ DWItoDT_tsfunc (double tzero, double tdelta,
       val[i+6] = eigs[i];
     /* calc FA */
     val[18] = Calc_FA(val+6);                /* calculate fractional anisotropy */
+    val[19] = Calc_MD(val+6);               /* calculate average (mean) diffusivity */
   }
 
   /* testing information only */
   if(recordflag)
      printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f\n", ncall, converge_step, deltatau, ED);
   if(debug_briks) {
-    val[nbriks-3] = converge_step;
-    val[nbriks-2] = ED;
+    val[nbriks-4] = converge_step;
+    val[nbriks-3] = ED;
+    val[nbriks-1] = ComputeJ(ts, npts);            /* compute J value */;
   }
   if(graphflag==1) {
      DWI_AFNI_update_graph(Edgraph, dtau, graphpoint);
@@ -1083,6 +1087,26 @@ Calc_FA(float *val)
     FA = 0.0;
 
   RETURN(FA);
+}
+
+/*! calculate Mean Diffusivity */
+/* passed float pointer to start of eigenvalues */
+static float
+Calc_MD(float *val)
+{
+  float MD;
+
+  ENTRY("Calc_MD");
+
+  /* calculate the Fractional Anisotropy, FA */
+  /*   reference, Pierpaoli C, Basser PJ. Microstructural and physiological features 
+       of tissues elucidated by quantitative-diffusion tensor MRI,J Magn Reson B 1996; 111:209-19 */
+  if((val[0]<=0.0)||(val[1]<=0.0)||(val[2]<=0.0)) {   /* any negative eigenvalues*/
+    RETURN(0.0);                                      /* should not see any for non-linear method. Set FA to 0 */  
+  }
+  MD = (val[0] + val[1] + val[2]) / 3;
+
+  RETURN(MD);
 }
 
 
@@ -1933,7 +1957,7 @@ double max1, max2;
 static void DWI_AFNI_update_graph(double *Edgraph, double *dtau, int npts)
 {
    NI_element *nel;
-   char stmp[256], tmpstr[2048];
+   char stmp[256];
    int i;
    double Edmax, dtaumax;
    double *Edptr, *dtauptr;
