@@ -5505,4 +5505,4 @@
 03 May 2005
  * More changes to 3drotate.c along the same line.
  * Edit afni.c to set width of bucket label AVs (in Define Overlay) based on
-     max width of input sub-brick labels.
+     max width of input sub-brick labels, for each dataset separately.
