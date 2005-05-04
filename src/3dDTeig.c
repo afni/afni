@@ -12,21 +12,21 @@ static void EIG_tsfunc( double tzero , double tdelta ,
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
-   int nopt, nbriks, ii ;
-   int addBriks = 0;
-   int numMultBriks,methIndex,brikIndex;
+   int nopt, nbriks ;
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dDTeig [options] dataset\n"
              "Computes eigenvalues and eigenvectors for an input dataset of\n"
              " 6 sub-bricks Dxx,Dxy,Dxz,Dyy,Dyz,Dzz.\n"
-	     " The results are stored in a 13-subbrick bucket dataset.\n"
-	     " The resulting 12-subbricks are\n"
-	     "  lambda1,lambda2,lambda3,E11,E12,E13,E21,E22,E23,E31,E32,E33,FA.\n"
-             "\n"
+	     " The results are stored in a 14-subbrick bucket dataset.\n"
+	     " The resulting 14-subbricks are\n"
+	     "  lambda_1,lambda_2,lambda_3,\n"
+             "  eigvec_1[1-3],eigvec_2[1-3],eigvec_3[1-3],\n"
+             "  FA,MD.\n\n"
              "The output is a bucket dataset.  The input dataset\n"
              "may use a sub-brick selection list, as in program 3dcalc.\n"
+             " Mean diffusivity (MD) calculated as simple average of eigenvalues.\n"
 	     " Fractional Anisotropy (FA) calculated according to Pierpaoli C, Basser PJ.\n"
              " Microstructural and physiological features of tissues elucidated by\n"
              " quantitative-diffusion tensor MRI, J Magn Reson B 1996; 111:209-19\n"
@@ -38,7 +38,7 @@ int main( int argc , char * argv[] )
    mainENTRY("3dDTeig main"); machdep(); AFNI_logger("3dDTeig",argc,argv);
 
    nopt = 1 ;
-   nbriks = 13 ;
+   nbriks = 14 ;
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
@@ -129,6 +129,7 @@ int main( int argc , char * argv[] )
       EDIT_dset_items(new_dset, ADN_brick_label_one+10,"eigvec_3[2]",ADN_none);
       EDIT_dset_items(new_dset, ADN_brick_label_one+11,"eigvec_3[3]",ADN_none);
       EDIT_dset_items(new_dset, ADN_brick_label_one+12,"FA",ADN_none);
+      EDIT_dset_items(new_dset, ADN_brick_label_one+13,"MD",ADN_none);
 
       tross_Make_History( "3dDTeig" , argc,argv , new_dset ) ;
       DSET_write( new_dset ) ;
@@ -152,7 +153,7 @@ static void EIG_tsfunc( double tzero, double tdelta ,
 {
   /*  THD_dmat33 inmat;
       THD_dvecmat eigvmat;*/
-  int i,j,k;
+  int i,j;
   static int nvox , ncall ;
    int maxindex, minindex, midindex;
    float temp, minvalue, maxvalue;
@@ -243,6 +244,7 @@ static void EIG_tsfunc( double tzero, double tdelta ,
        of tissues elucidated by quantitative-diffusion tensor MRI,J Magn Reson B 1996; 111:209-19 */
   if((val[0]<=0.0)||(val[1]<=0.0)||(val[2]<=0.0)) {   /* any negative eigenvalues?*/
     val[12]=0.0;                                      /* set FA to 0 */  
+    val[13]=0.0;                                      /* set MD to 0 */
     EXRETURN;
   }
 
@@ -261,6 +263,7 @@ static void EIG_tsfunc( double tzero, double tdelta ,
     val[12] = sqrt(dsq/(2.0*ssq));   /* FA calculated here */
   else
     val[12] = 0.0;
+  val[13] = (val[0]+val[1]+val[2]) / 3;  /* MD - mean diffusivity=average of eigenvalues */
 
   EXRETURN;
 }
