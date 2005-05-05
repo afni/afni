@@ -1033,10 +1033,12 @@ char *nifti_intent_string( int ii )
 char *nifti_slice_string( int ss )
 {
    switch( ss ){
-     case NIFTI_SLICE_SEQ_INC: return "sequential_increasing"  ;
-     case NIFTI_SLICE_SEQ_DEC: return "sequential_decreasing"  ;
-     case NIFTI_SLICE_ALT_INC: return "alternating_increasing" ;
-     case NIFTI_SLICE_ALT_DEC: return "alternating_decreasing" ;
+     case NIFTI_SLICE_SEQ_INC:  return "sequential_increasing"    ;
+     case NIFTI_SLICE_SEQ_DEC:  return "sequential_decreasing"    ;
+     case NIFTI_SLICE_ALT_INC:  return "alternating_increasing"   ;
+     case NIFTI_SLICE_ALT_DEC:  return "alternating_decreasing"   ;
+     case NIFTI_SLICE_ALT_INC2: return "alternating_increasing_2" ;
+     case NIFTI_SLICE_ALT_DEC2: return "alternating_decreasing_2" ;
    }
    return "Unknown" ;
 }
