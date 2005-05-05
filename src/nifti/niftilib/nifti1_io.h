@@ -330,7 +330,7 @@ int    valid_nifti_extensions      (nifti_image *nim);
 #define NIFTI_FTYPE_ANALYZE   0
 #define NIFTI_FTYPE_NIFTI1_1  1
 #define NIFTI_FTYPE_NIFTI1_2  2
-#define NIFTI_FTYPE_ASCII     2
+#define NIFTI_FTYPE_ASCII     3
 #define NIFTI_MAX_FTYPE       3    /* this should match the maximum code */
 
 /*------------------------------------------------------------------------*/
