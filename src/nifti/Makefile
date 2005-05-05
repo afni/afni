@@ -102,42 +102,53 @@ clean_all: clean install_clean doc_clean
 znz:
 	(cd $(ZNZ); $(MAKE) depend; $(MAKE) lib;)
 	@echo " ----------- $(ZNZ) build completed."
+	@echo ""
 
 nifti:	znz
 	(cd $(NIFTI); $(MAKE) depend; $(MAKE) lib;)
 	@echo " ----------- $(NIFTI) build completed."
+	@echo ""
 
 fslio:	nifti
 	(cd $(FSLIO); $(MAKE) depend; $(MAKE) lib;)
 	@echo " ----------  $(FSLIO) build completed."
+	@echo ""
 
 example:nifti
 	(cd $(EXAMPLES); $(MAKE) all;)
 	@echo Example programs built.
+	@echo ""
+
 
 utils:  nifti
 	(cd $(UTILS); $(MAKE) all;)
 	@echo Utility programs built.
+	@echo ""
 
 doc:
 	(cd docs; doxygen Doxy_nifti.txt;)
 	@echo "doxygen doc rebuilt, run netscape docs/html/index.html to view."
+	@echo ""
 
 znz_install:
 	($(CP) $(ZNZ)/*.a $(INSTALL_LIB_DIR); $(CP) $(ZNZ)/*.h $(INSTALL_INC_DIR);)
 	@echo " $(ZNZ) installed."
+	@echo ""
 
 nifti_install:
 	($(CP) $(NIFTI)/*.a $(INSTALL_LIB_DIR); $(CP) $(NIFTI)/*.h $(INSTALL_INC_DIR);)
 	@echo " $(NIFTI) installed."
+	@echo ""
 
 fslio_install:
 	($(CP) $(FSLIO)/*.a $(INSTALL_LIB_DIR); $(CP) $(FSLIO)/*.h $(INSTALL_INC_DIR);)
 	@echo " $(FSLIO) installed."
+	@echo ""
 
 utils_install: utils
 	(cd $(UTILS); $(CP) $(UTILS_PROGS) ../$(INSTALL_BIN_DIR);)
 	@echo " $(UTILS) installed."
+	@echo ""
 
 install_clean:
 	($(RM) -f $(INSTALL_INC_DIR)/* $(INSTALL_LIB_DIR)/* $(INSTALL_BIN_DIR)/*;)
