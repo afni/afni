@@ -1285,10 +1285,12 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                  if slice_duration is positive, indicates the timing
                  pattern of the slice acquisition.  The following codes
                  are defined:
-                   NIFTI_SLICE_SEQ_INC
-                   NIFTI_SLICE_SEQ_DEC
-                   NIFTI_SLICE_ALT_INC
-                   NIFTI_SLICE_ALT_DEC
+                   NIFTI_SLICE_SEQ_INC  == sequential increasing
+                   NIFTI_SLICE_SEQ_DEC  == sequential decreasing
+                   NIFTI_SLICE_ALT_INC  == alternating increasing
+                   NIFTI_SLICE_ALT_DEC  == alternating decreasing
+                   NIFTI_SLICE_ALT_INC2 == alternating increasing #2
+                   NIFTI_SLICE_ALT_DEC2 == alternating decreasing #2
   { slice_start } = Indicates the start and end of the slice acquisition
   { slice_end   } = pattern, when slice_code is nonzero.  These values
                     are present to allow for the possible addition of
@@ -1298,22 +1300,34 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                     slice_end=dim[slice_dim]-1 are the correct values.
                     For these values to be meaningful, slice_start must
                     be non-negative and slice_end must be greater than
-                    slice_start.
+                    slice_start.  Otherwise, they should be ignored.
 
   The following table indicates the slice timing pattern, relative to
   time=0 for the first slice acquired, for some sample cases.  Here,
   dim[slice_dim]=7 (there are 7 slices, labeled 0..6), slice_duration=0.1,
   and slice_start=1, slice_end=5 (1 padded slice on each end).
 
-    slice
-    index   SEQ_INC SEQ_DEC ALT_INC ALT_DEC
-      6  --   n/a     n/a     n/a     n/a     n/a = not applicable
-      5  --   0.4     0.0     0.2     0.0           (slice time offset
-      4  --   0.3     0.1     0.4     0.3            doesn't apply to
-      3  --   0.2     0.2     0.1     0.1            slices outside range
-      2  --   0.1     0.3     0.3     0.4            slice_start..slice_end)
-      1  --   0.0     0.4     0.0     0.2
-      0  --   n/a     n/a     n/a     n/a
+  slice
+  index  SEQ_INC SEQ_DEC ALT_INC ALT_DEC ALT_INC2 ALT_DEC2
+    6  :   n/a     n/a     n/a     n/a    n/a      n/a    n/a = not applicable
+    5  :   0.4     0.0     0.2     0.0    0.4      0.2    (slice time offset
+    4  :   0.3     0.1     0.4     0.3    0.1      0.0     doesn't apply to
+    3  :   0.2     0.2     0.1     0.1    0.3      0.3     slices outside
+    2  :   0.1     0.3     0.3     0.4    0.0      0.1     the range
+    1  :   0.0     0.4     0.0     0.2    0.2      0.4     slice_start ..
+    0  :   n/a     n/a     n/a     n/a    n/a      n/a     slice_end)
+
+  The SEQ slice_codes are sequential ordering (uncommon but not unknown),
+  either increasing in slice number or decreasing (INC or DEC), as
+  illustrated above.
+
+  The ALT slice codes are alternating ordering.  The 'standard' way for
+  these to operate (without the '2' on the end) is for the slice timing
+  to start at the edge of the slice_start .. slice_end group (at slice_start
+  for INC and at slice_end for DEC).  For the 'ALT_*2' slice_codes, the
+  slice timing instead starts at the first slice in from the edge (at
+  slice_start+1 for INC2 and at slice_end-1 for DEC2).  This latter
+  acquisition scheme is found on some Siemens scanners.
 
   The fields freq_dim, phase_dim, slice_dim are all squished into the single
   byte field dim_info (2 bits each, since the values for each field are
@@ -1346,11 +1360,13 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
            of the slices
     @{
  */
-#define NIFTI_SLICE_UNKNOWN  0
-#define NIFTI_SLICE_SEQ_INC  1
-#define NIFTI_SLICE_SEQ_DEC  2
-#define NIFTI_SLICE_ALT_INC  3
-#define NIFTI_SLICE_ALT_DEC  4
+#define NIFTI_SLICE_UNKNOWN   0
+#define NIFTI_SLICE_SEQ_INC   1
+#define NIFTI_SLICE_SEQ_DEC   2
+#define NIFTI_SLICE_ALT_INC   3
+#define NIFTI_SLICE_ALT_DEC   4
+#define NIFTI_SLICE_ALT_INC2  5  /* 05 May 2005: RWCox */
+#define NIFTI_SLICE_ALT_DEC2  6  /* 05 May 2005: RWCox */
 /* @} */
 
 /*---------------------------------------------------------------------------*/
