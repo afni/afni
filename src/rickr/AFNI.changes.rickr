@@ -1123,4 +1123,6 @@
 
 05 April 2005:
   * modified nifti1_io.h: fixed NIFTI_FTYPE_ASCII (should be 3, not 2)
+  * modified nifti1_io.c: to incorporate Bob's new NIFTI_SLICE_ALT_INC2
+      and NIFTI_SLICE_ALT_DEC2 codes from nifti1.h
 
