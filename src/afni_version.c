@@ -151,8 +151,9 @@ void AFNI_start_version_check(void)
      /** 25 Mar 2005: send more info in the request header **/
 
 #ifdef USE_HTTP_10
+     ubuf.nodename[0] = ubuf.sysname[0] = ubuf.machine[0] = '\0' ;
      jj = uname( &ubuf ) ;
-     if( jj == 0 )
+     if( jj >= 0 && ubuf.nodename[0] != '\0' )
        sprintf( ua ,
                "afni (avers='%s'; prec='%s' node='%s'; sys='%s'; mach='%s')" ,
                 VERSION, PCLAB, ubuf.nodename, ubuf.sysname, ubuf.machine   ) ;
