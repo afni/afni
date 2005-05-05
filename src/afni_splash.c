@@ -1675,6 +1675,7 @@ static mday facials[] = {
  {APR,27,"face_grant"   } ,
  {JUL,22,"face_rbirn"   } ,
  {SEP, 7,"face_rwcox"   } ,
+ {OCT,16,"face_rwcox"   } ,
 {0,0,NULL} } ;  /* last element = flag to stop searching */
 
 static int AFNI_find_todays_face(void)

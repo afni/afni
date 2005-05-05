@@ -539,7 +539,7 @@ static mday holiday[] = {
    {OCT,12,"Columbus Day"                                            } ,
    {OCT,14,"Dwight Eisenhower's birthday"                            } ,
    {OCT,15,"Pelham Grenville Wodehouse's birthday"                   } ,
-   {OCT,16,"Oscar Wilde's birthday"                                  } ,
+   {OCT,16,"National Boss Day"                                       } ,
    {OCT,19,"Anniversary of Cornwallis' surrender at Yorktown"        } ,
    {OCT,21,"Anniversary of Battle of Trafalgar"                      } ,
    {OCT,24,"Anniversary of founding of United Nations"               } ,

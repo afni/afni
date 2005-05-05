@@ -14,8 +14,8 @@
 # define PERROR(x)
 #endif
 
-#include <signal.h>
-#include <fcntl.h>
+#include <signal.h>   /* signal handler stuff */
+#include <fcntl.h>    /* file control stuff  */
 
 /*! For tcp - indicates that SIGPIPE is ignored;
     will be set the first time tcp_send is called. */
@@ -69,6 +69,10 @@ static int           num_open_streams = 0 ;
 
 static NI_stream_type ** open_streams = NULL ;
 
+/*! Signal that we are doing atexit() stuff. */
+
+static volatile int doing_atexit = 0 ;  /* 05 May 2005 */
+
 /*-------------------------------------------------------------------*/
 /*! Add a stream to the open list. */
 
@@ -91,7 +95,7 @@ static void remove_open_stream( NI_stream_type *ns )
 {
    int nn = num_open_streams , ii,jj ;
 
-   if( nn <= 0 || ns == NULL ) return ;  /* bad input */
+   if( doing_atexit || nn <= 0 || ns == NULL ) return ;  /* bad input */
 
    for( ii=0 ; ii < nn ; ii++ )          /* find input */
      if( open_streams[ii] == ns ) break ;
@@ -109,6 +113,8 @@ static void remove_open_stream( NI_stream_type *ns )
 static void atexit_open_streams(void)  /* 22 Apr 2005 */
 {
    int ii ;
+   if( doing_atexit ) return ;
+   doing_atexit = 1 ;
    for( ii=0 ; ii < num_open_streams ; ii++ ){
      NI_sleep(2) ;
      NI_stream_close_keep( open_streams[ii] , 5 ) ;
@@ -459,11 +465,11 @@ static int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-      PERROR("tcp_listen(bind)"); CLOSEDOWN(sd); return -1;
+     PERROR("tcp_listen(bind)"); CLOSEDOWN(sd); return -1;
    }
 
    if( listen(sd,1) == -1 ){
-      PERROR("tcp_listen(listen)"); CLOSEDOWN(sd); return -1;
+     PERROR("tcp_listen(listen)"); CLOSEDOWN(sd); return -1;
    }
 
    tcp_set_cutoff( sd ) ;
@@ -527,11 +533,11 @@ static int tcp_accept( int sd , char **hostname , char **hostaddr )
    /** get name of connector **/
 
    if( hostname != NULL ){
-      hostp = gethostbyaddr( (char *) (&pin.sin_addr) ,
-                             sizeof(struct in_addr) , AF_INET ) ;
+     hostp = gethostbyaddr( (char *) (&pin.sin_addr) ,
+                            sizeof(struct in_addr) , AF_INET ) ;
 
-      if( hostp != NULL ) *hostname = NI_strdup(hostp->h_name) ;
-      else                *hostname = NI_strdup("UNKNOWN") ;  /* bad lookup */
+     if( hostp != NULL ) *hostname = NI_strdup(hostp->h_name) ;
+     else                *hostname = NI_strdup("UNKNOWN") ;  /* bad lookup */
    }
 
    tcp_set_cutoff( sd_new ) ;  /* let it die quickly, we hope */
@@ -586,7 +592,7 @@ static int hostname_dotted( char *hnam )
    if( hnam == NULL ) return 0 ;
    nh = strlen(hnam) ;
    for( ii=0 ; ii < nh ; ii++ )
-      if( !isdigit(hnam[ii]) && hnam[ii] != '.' ) return 0 ;
+     if( !isdigit(hnam[ii]) && hnam[ii] != '.' ) return 0 ;
    return 1 ;
 }
 
@@ -601,14 +607,14 @@ static void add_trusted_host( char *hnam )
 
    if( hnam == NULL || hnam[0] == '\0' ) return ;
 
-   if( !hostname_dotted(hnam) ){          /* not a dotted number */
-      hh = NI_hostname_to_inet( hnam ) ;  /* so do a lookup on it */
-      if( hh == NULL ) return ;           /* failed? */
+   if( !hostname_dotted(hnam) ){         /* not a dotted number */
+     hh = NI_hostname_to_inet( hnam ) ;  /* so do a lookup on it */
+     if( hh == NULL ) return ;           /* failed? */
 
    } else if( strlen(hnam) > HSIZE-1 ){   /* something bad? */
-      return ;
+     return ;
    } else {
-      hh = hnam ;                     /* store dotted number */
+     hh = hnam ;                     /* store dotted number */
    }
 
    host_list = NI_realloc(host_list, char*,sizeof(char *)*(host_num+1)) ;
