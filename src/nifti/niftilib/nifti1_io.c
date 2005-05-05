@@ -2418,11 +2418,16 @@ int nifti_set_type_from_names( nifti_image * nim )
    /* if equal, it should be nifti_type 1, (and end in .nii...) */
    ext = nifti_find_file_extension( nim->fname );
 
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"-d verify nifti_type from filenames: %d",nim->nifti_type);
+
    /* not too picky here, do what must be done, and then verify */
    if( strcmp(nim->fname, nim->iname) == 0 )          /* one file, type 1 */
       nim->nifti_type = NIFTI_FTYPE_NIFTI1_1;
    else if( nim->nifti_type == NIFTI_FTYPE_NIFTI1_1 ) /* cannot be type 1 */
       nim->nifti_type = NIFTI_FTYPE_NIFTI1_2;
+
+   if( g_opts.debug > 2 ) fprintf(stderr," -> %d\n",nim->nifti_type);
 
    if( is_valid_nifti_type(nim->nifti_type) ) return 0;  /* success! */
 

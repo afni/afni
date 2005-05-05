@@ -1121,3 +1121,6 @@
 30 April 2005:
   * modified whereami.c so that it does not crash on missing TTatlas+tlrc
 
+05 April 2005:
+  * modified nifti1_io.h: fixed NIFTI_FTYPE_ASCII (should be 3, not 2)
+
