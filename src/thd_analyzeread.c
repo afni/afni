@@ -246,10 +246,9 @@ ENTRY("THD_open_analyze") ;
 
    dset = EDIT_empty_copy(NULL) ;
 
-   dset->idcode.str[0] = 'A' ;  /* overwrite 1st 4 bytes */
+   dset->idcode.str[0] = 'A' ;  /* overwrite 1st 3 bytes */
    dset->idcode.str[1] = 'N' ;
-   dset->idcode.str[2] = 'L' ;
-   dset->idcode.str[3] = 'Z' ;
+   dset->idcode.str[2] = 'Z' ;
 
    MCW_hash_idcode( hname , dset ) ;  /* 06 May 2005 */
 
