@@ -2245,8 +2245,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   
 
   /*----- write afni data set -----*/
-  printf("++ Writing combined dataset into %s\n",
-	 new_dset->dblk->diskptr->header_name) ;
+  printf("++ Writing combined dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
   
   fbuf[0] = numdof;   
   fbuf[1] = dendof;

@@ -434,7 +434,7 @@ int main( int argc , char * argv[] )
      THD_set_string_atr( outset->dblk , "TLRC_SPACE" , "MNI-152" ) ;
    }
 
-   if( verb ) fprintf(stderr,"\n++ Writing dataset\n") ;
+   if( verb ) fprintf(stderr,"\n++ Writing dataset: %s\n",DSET_BRIKNAME(inset));
    DSET_delete( inset ) ;
    DSET_write( outset ) ;
    exit(0) ;

@@ -434,7 +434,7 @@ int main( int argc , char * argv[] )
 
    DSET_delete(dset) ; INTERP_destroy(imap) ; free(nfz) ; free(ofz) ;
 
-   if( verb ) fprintf(stderr,"\n++ Writing to dataset %s\n",DSET_HEADNAME(nset)) ;
+   if( verb ) fprintf(stderr,"\n++ Writing to dataset %s\n",DSET_BRIKNAME(nset)) ;
 
    DSET_write(nset) ;
    exit(0) ;

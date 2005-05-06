@@ -460,6 +460,17 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
           strcat(fname,".3D");
       }
 
+      /** output of NIfTI-1.1 dataset: 06 May 2005 **/
+
+      if( nprefix != NULL && ( STRING_HAS_SUFFIX(nprefix,".nii") ||
+                               STRING_HAS_SUFFIX(nprefix,".nii.gz") ) ){
+        char *fname = dset->dblk->diskptr->brick_name ;
+        int  ll = strlen(fname) ;
+        fname[ll-10] = '\0' ;
+        if( STRING_HAS_SUFFIX(nprefix,".nii") ) strcat(fname,".nii") ;
+        else                                    strcat(fname,".nii.gz") ;
+      }
+
       if( nprefix != NULL ) free(nprefix) ;
    }
 

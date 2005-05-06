@@ -602,11 +602,9 @@ void write_afni_data
   /*----- write afni data set -----*/
   if (! quiet)
     {
-      if (write_mask)
-	printf("\nWriting functional (mask) dataset: ");
-      else
-	printf ("\nWriting anatomical dataset: ");
-      printf("%s\n", new_dset->dblk->diskptr->header_name) ;
+      if (write_mask) printf("\nWriting functional (mask) dataset: ");
+      else             printf ("\nWriting anatomical dataset: ");
+      printf("%s\n", DSET_BRIKNAME(new_dset) ) ;
     }
 
   
