@@ -192,7 +192,7 @@ int main( int argc , char *argv[] )
    }
 
    if( verb )
-     fprintf(stderr,"++3dSpatNorm: writing dataset with prefix=%s\n",prefix) ;
+     fprintf(stderr,"++3dSpatNorm: writing dataset %s\n",DSET_BRIKNAME(oset)) ;
    
    DSET_write(oset) ;
    

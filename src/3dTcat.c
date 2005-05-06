@@ -947,8 +947,8 @@ fprintf(stderr,"kk=%d iv=%d bar=%g rlt0=%g rlt1=%g qq=%g qmid=%g val=%g\n",
       if( TCAT_verb ) printf("-verb: computing sub-brick statistics\n") ;
       THD_load_statistics( new_dset ) ;
 
-      if( TCAT_verb ) printf("-verb: writing output to %s and %s\n",
-                             DSET_HEADNAME(new_dset) , DSET_BRIKNAME(new_dset) ) ;
+      if( TCAT_verb ) printf("-verb: writing output to %s\n",
+                              DSET_BRIKNAME(new_dset) ) ;
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
    }
 

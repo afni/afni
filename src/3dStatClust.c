@@ -735,8 +735,7 @@ int main( int argc , char * argv[] )
   if( SC_verb ) printf("Computing sub-brick statistics\n") ;
   THD_load_statistics( clust_dset ) ;
 
-  if( SC_verb ) printf("Writing output to %s and %s\n",
-		       DSET_HEADNAME(clust_dset) , DSET_BRIKNAME(clust_dset) );
+  if( SC_verb ) printf("Writing output to %s\n", DSET_BRIKNAME(clust_dset) );
   THD_write_3dim_dataset( NULL,NULL , clust_dset , True ) ;
   
 

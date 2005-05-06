@@ -101,6 +101,7 @@ int main( int argc , char * argv[] )
    EDIT_substitute_brick( outset , 0 , MRI_float , MRI_FLOAT_PTR(imout) ) ;
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dMedianFilter" , argc,argv , outset ) ;
+   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(outset)) ;
    DSET_write(outset) ;
    exit(0) ;
 }
