@@ -487,7 +487,7 @@ int main( int argc , char * argv[] )
 
         /* write dataset out */
 
-        fprintf(stderr,"++ Writing dataset %s\n",DSET_HEADNAME(dset)) ;
+        fprintf(stderr,"++ Writing dataset %s\n",DSET_BRIKNAME(dset)) ;
         DSET_write(dset) ; PURGE_DSET(dset) ; free(mmm) ;
       }
 

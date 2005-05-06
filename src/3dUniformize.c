@@ -1048,7 +1048,7 @@ void write_afni_data
   if (!quiet)
     {
       printf ("\nWriting anatomical dataset: ");
-      printf("%s\n", new_dset->dblk->diskptr->header_name) ;
+      printf("%s\n", DSET_BRIKNAME(new_dset) ) ;
       printf("data type = %s\n",MRI_TYPE_name[output_datum]) ;
     }
 

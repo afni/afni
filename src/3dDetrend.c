@@ -559,7 +559,7 @@ int main( int argc , char * argv[] )
 
    /*-- done done done done --*/
 
-   if( DT_verb ) fprintf(stderr,"+++ Writing output dataset\n") ;
+   if( DT_verb ) fprintf(stderr,"+++ Writing output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
    DSET_write(new_dset) ;
    exit(0) ;
 }

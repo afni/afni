@@ -1575,7 +1575,7 @@ void write_bucket_data
 
   /*----- write bucket data set -----*/
   printf("Writing `bucket' dataset ");
-  printf("into %s\n", DSET_HEADNAME(new_dset));
+  printf("into %s\n", DSET_BRIKNAME(new_dset));
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 

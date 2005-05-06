@@ -1597,8 +1597,7 @@ void write_bucket ()
   if( !EX_quiet ) printf("Computing sub-brick statistics\n") ;
   THD_load_statistics( new_dset ) ;
 
-  if( !EX_quiet ) printf("Writing output to %s and %s\n",
-     DSET_HEADNAME(new_dset) , DSET_BRIKNAME(new_dset) );
+  if( !EX_quiet ) printf("Writing output dataset: %s\n", DSET_BRIKNAME(new_dset) );
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
   
 
