@@ -1463,9 +1463,10 @@ typedef struct {
 typedef struct {
   char str[MCW_IDSIZE] ;    /*!< Unique ID code string */
   char date[MCW_IDDATE] ;   /*!< Date string was generated */
- } MCW_idcode ;
+} MCW_idcode ;
 
-extern MCW_idcode MCW_new_idcode(void) ;
+extern MCW_idcode MCW_new_idcode (void) ;
+extern void       MCW_hash_idcode( char *, struct THD_3dim_dataset * ) ;
 
 /*! Check if 2 ID code strings are equal. */
 

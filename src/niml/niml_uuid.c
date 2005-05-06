@@ -141,7 +141,7 @@ char * UNIQ_idcode(void)
     given the same input.
 ------------------------------------------------------------------------*/
 
-char *UNIQ_hashcode( char *str )
+char * UNIQ_hashcode( char *str )
 {
    char *idc , *eee ;
    int ii , nn ;
