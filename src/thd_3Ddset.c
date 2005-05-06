@@ -141,10 +141,10 @@ STATUS("setting idcode") ;
    if( ppp != NULL && *ppp != '\0' ){
      NI_strncpy( dset->idcode.str , ppp , MCW_IDSIZE ) ;
    } else {
-     dset->idcode.str[0] = 'A' ;  /* overwrite 1st 4 bytes of idcode */
+     MCW_hash_idcode( pathname , dset ) ; /* 06 May 2005 */
+     dset->idcode.str[0] = 'A' ;          /* overwrite 1st 3 bytes of idcode */
      dset->idcode.str[1] = '3' ;
      dset->idcode.str[2] = 'D' ;
-     dset->idcode.str[3] = '_' ;
    }
 
    /* now modify the default dataset */

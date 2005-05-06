@@ -901,6 +901,8 @@ ENTRY("THD_open_ctfsam") ;
    dset->idcode.str[1] = 'T' ;
    dset->idcode.str[2] = 'F' ;
 
+   MCW_hash_idcode( fname , dset ) ;  /* 06 May 2005 */
+
    ppp = THD_trailname(fname,0) ;                   /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
 

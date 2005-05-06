@@ -75,10 +75,10 @@ ENTRY("THD_open_1D") ;
 
    nvals = flim->ny ;                              /* number of sub-bricks */
 
-   dset->idcode.str[0] = 'A' ;  /* overwrite 1st 4 bytes of IDcode */
+   MCW_hash_idcode( pathname , dset ) ; /* 06 May 2005 */
+   dset->idcode.str[0] = 'A' ;          /* overwrite 1st 3 bytes of IDcode */
    dset->idcode.str[1] = '1' ;
    dset->idcode.str[2] = 'D' ;
-   dset->idcode.str[3] = '_' ;
 
    /* note we accept default orientation (RAI) here
       (no use of ADN_xyzorient), since we actually

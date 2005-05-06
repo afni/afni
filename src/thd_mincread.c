@@ -278,10 +278,9 @@ ENTRY("THD_open_minc") ;
       iview = VIEW_ORIGINAL_TYPE ;
    }
 
-   dset->idcode.str[0] = 'M' ;  /* overwrite 1st 4 bytes with something special */
-   dset->idcode.str[1] = 'I' ;
-   dset->idcode.str[2] = 'N' ;
-   dset->idcode.str[3] = 'C' ;
+   dset->idcode.str[0] = 'M' ;  /* overwrite 1st 3 bytes with something special */
+   dset->idcode.str[1] = 'N' ;
+   dset->idcode.str[2] = 'C' ;
 
    MCW_hash_idcode( pathname , dset ) ;  /* 06 May 2005 */
 
