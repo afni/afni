@@ -646,7 +646,7 @@ int main( int argc , char * argv[] )
    if( ! BUCK_dry ){
       if( BUCK_verb ) printf("-verb: loading statistics\n") ;
       THD_load_statistics( new_dset ) ;
-      if( BUCK_verb ) printf("-verb: writing output\n") ;
+      if( BUCK_verb ) printf("-verb: writing output: %s\n",DSET_BRIKNAME(new_dset)) ;
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
    }
 

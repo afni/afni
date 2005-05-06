@@ -250,13 +250,13 @@ int main( int argc , char *argv[] )
 
    } /* end of loop over ref voxels */
 
-   fprintf(stderr,"*writing output*") ;
-
    /* toss the other trash */
 
    DSET_unload(xset); if( mmm != NULL ) free(mmm);
 
    /* finito */
+
+   fprintf(stderr,"++ writing output: %s",DSET_BRIKNAME(cset)) ;
 
    DSET_write(cset) ; fprintf(stderr,"\n") ; exit(0) ;
 }

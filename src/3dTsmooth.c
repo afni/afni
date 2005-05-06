@@ -412,6 +412,7 @@ int main( int argc , char * argv[] )
    }  /* end of loop over voxels */
 
    DSET_unload(old_dset) ; free(ftap) ;
+   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
    DSET_write(new_dset) ;
    exit(0) ;
 }

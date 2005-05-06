@@ -992,8 +992,7 @@ printf(" ** unpooled test: num_tt = %d\n",num_tt) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
    if( dof_dset != NULL ){                                  /* 27 Dec 2002 */
-     printf("--- Writing unpooled DOF dataset into %s\n",
-            DSET_BRIKNAME(dof_dset) ) ;
+     printf("--- Writing unpooled DOF dataset into %s\n", DSET_BRIKNAME(dof_dset) ) ;
      DSET_write( dof_dset ) ;
    }
 

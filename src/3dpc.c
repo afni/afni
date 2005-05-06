@@ -625,7 +625,7 @@ int main( int argc , char * argv[] )
               DSET_HEADNAME(new_dset) ) ;
 
    } else if( !PC_be_quiet ){
-      printf("--- output dataset %s" , DSET_HEADNAME(new_dset) ) ;
+      printf("--- output dataset %s" , DSET_BRIKNAME(new_dset) ) ;
       fflush(stdout) ;
    }
 
@@ -678,6 +678,7 @@ int main( int argc , char * argv[] )
    }
    free(fout) ;
 
+   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
    DSET_write(new_dset) ;
    DSET_delete(new_dset) ;
    if( !PC_be_quiet ){ printf("!\n") ; fflush(stdout); }

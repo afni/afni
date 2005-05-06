@@ -292,7 +292,10 @@ int main( int argc , char * argv[] )
       mri_free(flim) ;
    }
 
-   if( saveit && cc > 0 ) DSET_write( oset ) ;
+   if( saveit && cc > 0 ){
+     fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(oset)) ;
+     DSET_write( oset ) ;
+   }
 
    if( do_range ){
       float *ff = (float *)malloc(sizeof(float)*nvals) , cmed,cmad ;

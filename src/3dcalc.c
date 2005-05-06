@@ -1770,7 +1770,7 @@ int main( int argc , char * argv[] )
    THD_load_statistics( new_dset ) ;
 
    if( CALC_verbose )
-      fprintf(stderr,"++ Writing output to disk\n") ;
+      fprintf(stderr,"++ Writing output: %s\n",DSET_BRIKNAME(new_dset)) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
    exit(0) ;
