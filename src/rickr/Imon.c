@@ -162,6 +162,8 @@ static char g_history[] =
 #include "thd_iochan.h"
 #include "realtime.h"
 
+#define IFM_PROG_NAME   "Imon"
+
 /*----------------------------------------------------------------------*/
 /* static function declarations */
 

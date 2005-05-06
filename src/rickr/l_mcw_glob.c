@@ -1,11 +1,8 @@
 /**************************************************************************
   mcw_glob.c -- slightly adapted from glob.c in tcsh-6.05
                 (made to compile without support files besides mcw_glob.h)
+             -- added routines MCW_*_expand at end
 ***************************************************************************/
-
-/* #ifdef CYGWIN   rickr - 2003 May 01 */
-#include <errno.h>
-/* #else */
 
 /*
  * Copyright (c) 1989 The Regents of the University of California.
@@ -66,9 +63,6 @@
 /** the following were in "sh.h",
     but I put them here to get rid of the need for that file -- RWCox **/
 
-#undef  __P
-#define __P(a) a
-
 #define xfree     free
 #define xmalloc   malloc
 #define xrealloc  realloc
@@ -100,6 +94,9 @@ typedef void * ptr_t;
 
 #include "l_mcw_glob.h"
 
+/* added for direction control on sorting                14 Feb 2005 [rickr] */
+static int g_sort_dir = 1 ;       /* 1 = small to large, -1 = large to small */
+
 #ifndef S_ISDIR
 #define S_ISDIR(a)	(((a) & S_IFMT) == S_IFDIR)
 #endif
@@ -113,6 +110,9 @@ typedef void * ptr_t;
 #endif
 
 typedef unsigned short Char;
+
+#undef  __P
+#define __P(a) a
 
 static	int	 glob1 		__P((Char *, glob_t *, int));
 static	int	 glob2		__P((Char *, Char *, Char *, glob_t *, int));
@@ -184,8 +184,7 @@ struct  dirent {
  */
 
 static DIR *
-Opendir(str)
-    register Char *str;
+Opendir(Char *str)
 {
     char    buf[MAXPATHLEN];
     register char *dc = buf;
@@ -199,9 +198,7 @@ Opendir(str)
 
 #ifdef S_IFLNK
 static int
-Lstat(fn, sb)
-    register Char *fn;
-    struct stat *sb;
+Lstat(Char *fn, struct stat *sb)
 {
     char    buf[MAXPATHLEN];
     register char *dc = buf;
@@ -226,9 +223,7 @@ Lstat(fn, sb)
 #endif /* S_IFLNK */
 
 static int
-Stat(fn, sb)
-    register Char *fn;
-    struct stat *sb;
+Stat(Char *fn, struct stat *sb)
 {
     char    buf[MAXPATHLEN];
     register char *dc = buf;
@@ -250,9 +245,7 @@ Stat(fn, sb)
 }
 
 static Char *
-Strchr(str, ch)
-    Char *str;
-    int ch;
+Strchr(Char *str, int ch)
 {
     do
 	if (*str == ch)
@@ -263,8 +256,7 @@ Strchr(str, ch)
 
 #ifdef DEBUG
 static void
-qprintf(s)
-Char *s;
+qprintf(Char *s)
 {
     Char *p;
 
@@ -281,15 +273,17 @@ Char *s;
 #endif /* DEBUG */
 
 static int
-compare(p, q)
-    const ptr_t  p, q;
+compare(const ptr_t p, const ptr_t q)
 {
 #if defined(NLS) && !defined(NOSTRCOLL)
-    errno = 0;  /* strcoll sets errno, another brain-damage */
 
-    return (strcoll(*(char **) p, *(char **) q));
+#if 0
+    errno = 0;  /* strcoll sets errno, another brain-damage */
+#endif
+
+    return (g_sort_dir * strcoll(*(char **) p, *(char **) q));
 #else
-    return (strcmp(*(char **) p, *(char **) q));
+    return (g_sort_dir * strcmp(*(char **) p, *(char **) q));
 #endif /* NLS && !NOSTRCOLL */
 }
 
@@ -301,16 +295,12 @@ compare(p, q)
  * to find no matches.
  */
 int
-glob(pattern, flags, errfunc, pglob)
-    const char *pattern;
-    int     flags;
-    int     (*errfunc) __P((char *, int));
-    glob_t *pglob;
+glob(const char *pattern, int flags, int(*errfunc)(char *,int), glob_t *pglob)
 {
     int     err, oldpathc;
     Char *bufnext, *bufend, *compilebuf, m_not;
     const unsigned char *compilepat, *patnext;
-    int     c, not;
+    int     c, nnot;
     Char patbuf[MAXPATHLEN + 1], *qpatnext;
     int     no_match;
 
@@ -327,11 +317,11 @@ glob(pattern, flags, errfunc, pglob)
     pglob->gl_matchc = 0;
 
     if (pglob->gl_flags & GLOB_ALTNOT) {
-	not = ALTNOT;
+	nnot = ALTNOT;
 	m_not = M_ALTNOT;
     }
     else {
-	not = NOT;
+	nnot = NOT;
 	m_not = M_NOT;
     }
 
@@ -340,7 +330,7 @@ glob(pattern, flags, errfunc, pglob)
     compilebuf = bufnext;
     compilepat = patnext;
 
-    no_match = *patnext == not;
+    no_match = *patnext == nnot;
     if (no_match)
 	patnext++;
 
@@ -369,18 +359,18 @@ glob(pattern, flags, errfunc, pglob)
 	switch (c) {
 	case LBRACKET:
 	    c = *qpatnext;
-	    if (c == not)
+	    if (c == nnot)
 		++qpatnext;
 	    if (*qpatnext == EOS ||
 		Strchr(qpatnext + 1, RBRACKET) == NULL) {
 		*bufnext++ = LBRACKET;
-		if (c == not)
+		if (c == nnot)
 		    --qpatnext;
 		break;
 	    }
 	    pglob->gl_flags |= GLOB_MAGCHAR;
 	    *bufnext++ = M_SET;
-	    if (c == not)
+	    if (c == nnot)
 		*bufnext++ = m_not;
 	    c = *qpatnext++;
 	    do {
@@ -420,13 +410,13 @@ glob(pattern, flags, errfunc, pglob)
 	return (err);
 
     /*
-     * If there was no match we are going to append the pattern 
+     * If there was no match we are going to append the pattern
      * if GLOB_NOCHECK was specified or if GLOB_NOMAGIC was specified
      * and the pattern did not contain any magic characters
      * GLOB_NOMAGIC is there just for compatibility with csh.
      */
-    if (pglob->gl_pathc == oldpathc && 
-	((flags & GLOB_NOCHECK) || 
+    if (pglob->gl_pathc == oldpathc &&
+	((flags & GLOB_NOCHECK) ||
 	 ((flags & GLOB_NOMAGIC) && !(pglob->gl_flags & GLOB_MAGCHAR)))) {
 	if (!(flags & GLOB_QUOTE)) {
 	    Char *dp = compilebuf;
@@ -459,10 +449,7 @@ glob(pattern, flags, errfunc, pglob)
 }
 
 static int
-glob1(pattern, pglob, no_match)
-    Char *pattern;
-    glob_t *pglob;
-    int     no_match;
+glob1(Char *pattern, glob_t *pglob, int no_match)
 {
     Char pathbuf[MAXPATHLEN + 1];
 
@@ -480,10 +467,7 @@ glob1(pattern, pglob, no_match)
  * more meta characters.
  */
 static int
-glob2(pathbuf, pathend, pattern, pglob, no_match)
-    Char *pathbuf, *pathend, *pattern;
-    glob_t *pglob;
-    int     no_match;
+glob2( Char *pathbuf,Char *pathend, Char *pattern, glob_t *pglob, int no_match)
 {
     struct stat sbuf;
     int anymeta;
@@ -540,12 +524,11 @@ glob2(pathbuf, pathend, pattern, pglob, no_match)
 
 
 static int
-glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
-    Char *pathbuf, *pathend, *pattern, *restpattern;
-    glob_t *pglob;
-    int     no_match;
+glob3(Char *pathbuf, Char *pathend, Char *pattern, Char *restpattern, glob_t *pglob, int no_match)
 {
+#if 0
     extern int errno;
+#endif
     DIR    *dirp;
     struct dirent *dp;
     int     err;
@@ -558,14 +541,21 @@ glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
 #endif
 
     *pathend = EOS;
+
+#if 0
     errno = 0;
+#endif
 
     if (!(dirp = Opendir(pathbuf))) {
 	/* todo: don't call for ENOENT or ENOTDIR? */
 	for (ptr = cpathbuf; (*ptr++ = (char) *pathbuf++) != EOS;)
 	    continue;
+#if 0
 	if ((pglob->gl_errfunc && (*pglob->gl_errfunc) (cpathbuf, errno)) ||
 	    (pglob->gl_flags & GLOB_ERR))
+#else
+	if ( (pglob->gl_flags & GLOB_ERR))
+#endif
 	    return (GLOB_ABEND);
 	else
 	    return (0);
@@ -599,11 +589,11 @@ glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
 	/* initial DOT must be matched literally */
 	if (dname[0] == DOT && *pattern != DOT)
 	    continue;
-	for (sc = (unsigned char *) dname, dc = pathend; 
+	for (sc = (unsigned char *) dname, dc = pathend;
 #else
 	if (dp->d_name[0] == DOT && *pattern != DOT)
 	    continue;
-	for (sc = (unsigned char *) dp->d_name, dc = pathend; 
+	for (sc = (unsigned char *) dp->d_name, dc = pathend;
 #endif
 	     (*dc++ = *sc++) != '\0';)
 	    continue;
@@ -636,9 +626,7 @@ glob3(pathbuf, pathend, pattern, restpattern, pglob, no_match)
  *	 gl_pathv points to (gl_offs + gl_pathc + 1) items.
  */
 static int
-globextend(path, pglob)
-    Char *path;
-    glob_t *pglob;
+globextend(Char *path, glob_t *pglob)
 {
     register char **pathv;
     register int i;
@@ -681,9 +669,7 @@ globextend(path, pglob)
  * pattern causes a recursion level.
  */
 static  int
-match(name, pat, patend, m_not)
-    register Char *name, *pat, *patend;
-    int m_not;
+match(Char *name, Char *pat, Char *patend, int m_not)
 {
     int ok, negate_range;
     Char c, k;
@@ -694,7 +680,7 @@ match(name, pat, patend, m_not)
 	case M_ALL:
 	    if (pat == patend)
 		return (1);
-	    do 
+	    do
 		if (match(name, pat, patend, m_not))
 		    return (1);
 	    while (*name++ != EOS);
@@ -733,8 +719,7 @@ match(name, pat, patend, m_not)
 
 /* free allocated data belonging to a glob_t structure */
 void
-globfree(pglob)
-    glob_t *pglob;
+globfree(glob_t *pglob)
 {
     register int i;
     register char **pp;
@@ -754,16 +739,27 @@ globfree(pglob)
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
+/*! set the direction of the sort (either small to large, or the reverse)    */
+int rglob_set_sort_dir( int dir )                     /* 14 Feb 2005 [rickr] */
+{
+   if ( dir == 1 )       g_sort_dir =  1;
+   else if ( dir == -1 ) g_sort_dir = -1;
+   else                  return 1;          /* else, ignore and signal error */
+                                                                                
+   return 0;
+}
+
+
 static int warn = 0 ;
 void MCW_warn_expand( int www ){ warn = www; return; }  /* 13 Jul 2001 */
 
-/*------------------------------------------------------------------------
-   Routines that allows filename wildcarding to be handled inside
-   to3d.  The advantage: limitations of shell command line lengths.
-   29 July 1996:  Incorporated "glob" functions from tcsh-6.05, rather
-                    than rely on system supplying a library.
-   30 July 1996:  Extended routine to allow for 3D: type prefixes.
-   10 Feb  2000:  and for 3A: prefixes.
+/*------------------------------------------------------------------------*/
+/*! Routines that allows filename wildcarding to be handled inside
+    to3d.  The advantage: limitations of shell command line lengths.
+     - 29 July 1996:  Incorporated "glob" functions from tcsh-6.05, rather
+                       than rely on system supplying a library.
+     - 30 July 1996:  Extended routine to allow for 3D: type prefixes.
+     - 10 Feb  2000:  and for 3A: prefixes.
 --------------------------------------------------------------------------*/
 
 void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
@@ -773,7 +769,7 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
    char ** gout ;
    char *  fn ;
    char prefix[4] , fpre[128] , fname[256] ;
-   int  b1,b2,b3,b4,b5 , ib,ig , lpre ;
+   int  b1,b2,b3,b4,b5 , ib,ig , lpre=0 ;
 
    if( nin <= 0 ){ *nout = 0 ; return ; }
 
@@ -877,6 +873,51 @@ void MCW_file_expand( int nin , char ** fin , int * nout , char *** fout )
 
    *nout = gnum ; *fout = gout ; return ;
 }
+
+/*-----------------------------------------------------------------------*/
+/*! Simpler interface to MCW_file_expand().
+      - fnam = string of form "*.zork fred*.* ?a?b"; e.g., 1 or more
+               wildcards
+      - nout = pointer to output count
+      - fout = pointer to output list of strings.
+
+    Sample usage:
+      int nfile ; char **flist ;
+      MCW_wildcards( "*.jpg *.JPG" , &nfile , &flist ) ;
+       ... do something with flist[0]..flist[nfile-1] if nfile > 0 ...
+      MCW_free_wildcards( nfile , flist ) ;
+-------------------------------------------------------------------------*/
+
+void MCW_wildcards( char *fnam , int *nout , char ***fout )  /* 01 Dec 2003 */
+{
+   char **fin=NULL, *fcop ;
+   int ii , nin , lf , ls ;
+
+   if( fnam == NULL || *fnam == '\0' ){ *nout = 0 ; return ; }
+   fcop = strdup(fnam) ; lf = strlen(fcop) ;
+   ls = 1 ;
+   for( nin=ii=0 ; ii < lf ; ii++ ){
+     if( isspace(fcop[ii]) ){   /* This is a blank, so next */
+       ls = 1 ;                 /*  non-blank is a new word. */
+       fcop[ii] = '\0' ;        /* Set this char to NUL.      */
+
+     } else {                   /* Not a blank. */
+
+       if( ls ){                /* If last was a blank, is new name. */
+         fin = (char **) realloc( fin , sizeof(char *)*(nin+1) ) ;
+         fin[nin++] = fcop+ii ;
+       }
+       ls = 0 ;
+     }
+   }
+
+   if( nin == 0 ){ *nout = 0 ; free(fcop) ; return ; }
+
+   MCW_file_expand( nin , fin , nout , fout ) ;
+   free(fin) ; free(fcop) ; return ;
+}
+
+/*-----------------------------------------------------------------------*/
 
 void MCW_free_expand( int gnum , char ** gout )
 {

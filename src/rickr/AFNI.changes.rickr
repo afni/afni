@@ -1126,3 +1126,8 @@
   * modified nifti1_io.c: to incorporate Bob's new NIFTI_SLICE_ALT_INC2
       and NIFTI_SLICE_ALT_DEC2 codes from nifti1.h
 
+06 April 2005: Dimon (v 0.1)
+  * added files for Dimon: Dimon.[ch], dimon_afni.c, l_mri_dicom_hdr.c
+  * modified Imon.[ch], l_mcw_glob.[ch], rickr/Makefile, Makefile.INCLUDE
+  * mostly as a check-in for now, details and updates to follow
+
