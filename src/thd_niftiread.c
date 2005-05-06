@@ -162,6 +162,8 @@ ENTRY("THD_open_nifti") ;
    dset->idcode.str[1] = 'I' ;
    dset->idcode.str[2] = 'I' ;
 
+   MCW_hash_idcode( pathname , dset ) ;  /* 06 May 2005 */
+
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
                       ADN_datum_all   , datum ,
