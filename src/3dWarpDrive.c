@@ -966,7 +966,7 @@ int main( int argc , char * argv[] )
    /*-- write the results to disk for all of history to see --*/
 
    if( abas.verb )
-     fprintf(stderr,"++ Writing dataset: %s\n",DSET_FILECODE(outset));
+     fprintf(stderr,"++ Writing dataset: %s\n",DSET_BRIKNAME(outset));
    DSET_write( outset ) ;  DSET_unload( outset ) ;
 
    if( W_1Dfile != NULL ){

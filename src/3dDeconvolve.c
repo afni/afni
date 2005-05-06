@@ -4634,8 +4634,8 @@ void write_ts_array
 
   /*----- write afni data set -----*/
   if (!  option_data->quiet){
-    printf ("++ Writing 3D+time dataset into %s\n",
-          new_dset->dblk->diskptr->header_name); fflush(stdout) ;
+    printf ("++ Writing 3D+time dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
+    fflush(stdout) ;
   }
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
@@ -5046,7 +5046,7 @@ void write_bucket_data
 
     if( coef_dset != NULL ){
       if( !option_data->quiet )
-        fprintf(stderr,"++ Writing cbucket to %s\n",DSET_HEADNAME(coef_dset)) ;
+        fprintf(stderr,"++ Writing cbucket to %s\n",DSET_BRIKNAME(coef_dset)) ;
       DSET_write(coef_dset) ;
       DSET_delete(coef_dset) ; coef_dset = NULL ;
     }
@@ -5153,7 +5153,7 @@ void write_bucket_data
 
   /*----- write bucket data set -----*/
   if (! option_data->quiet){
-    printf("++ Writing bucket dataset into %s\n",  DSET_HEADNAME(new_dset));
+    printf("++ Writing bucket dataset into %s\n",  DSET_BRIKNAME(new_dset));
     fflush(stdout) ;
   }
   THD_load_statistics (new_dset);
@@ -7634,7 +7634,7 @@ void basis_write_iresp( int argc , char *argv[] ,
    /* and save the results to disk! */
 
    if( verb )
-    fprintf(stderr,"++ Writing iresp 3D+time dataset into %s\n",DSET_HEADNAME(out_dset)) ;
+    fprintf(stderr,"++ Writing iresp 3D+time dataset into %s\n",DSET_BRIKNAME(out_dset)) ;
 
    DSET_write( out_dset ) ;
    DSET_delete( out_dset ) ;
@@ -7766,7 +7766,7 @@ void basis_write_sresp( int argc , char *argv[] ,
    /* and save the results to disk! */
 
    if( verb )
-    fprintf(stderr,"++ Writing sresp 3D+time dataset into %s\n",DSET_HEADNAME(out_dset)) ;
+    fprintf(stderr,"++ Writing sresp 3D+time dataset into %s\n",DSET_BRIKNAME(out_dset)) ;
 
    DSET_write( out_dset ) ;
    DSET_delete( out_dset ) ;

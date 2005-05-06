@@ -1066,8 +1066,7 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
      cputim = COX_cpu_time() - cputim ;
      fprintf(stderr,"\n+++ CPU time=%10.3g s" , cputim) ;
      if( nval > 1 ) fprintf(stderr,"  [= %10.3g s/sub-brick]" , cputim/nval) ;
-     fprintf(stderr,"\n+++ Writing dataset to disk in %s",
-             dset->dblk->diskptr->header_name) ;
+     fprintf(stderr,"\n+++ Writing dataset to disk in %s", DSET_BRIKNAME(dset) ) ;
    }
 
    dset->dblk->master_nvals = 0 ;  /* 11 Apr 2000 hack */

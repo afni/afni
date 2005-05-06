@@ -223,7 +223,7 @@ int main( int argc , char *argv[] )
          exit(1) ;
       }
       tross_Make_History( "3dAnatNudge" , argc,argv , dsant ) ;
-      fprintf(stderr,"++ Writing new dataset %s\n",DSET_HEADNAME(dsant)) ;
+      fprintf(stderr,"++ Writing new dataset %s\n",DSET_BRIKNAME(dsant)) ;
       DSET_write(dsant) ;
    }
 

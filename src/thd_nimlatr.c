@@ -198,10 +198,9 @@ ENTRY("THD_niml_to_dataset") ;
    if( ngr                  == NULL          ||
        NI_element_type(ngr) != NI_GROUP_TYPE   ) RETURN(NULL) ;
 
-   /* create the shell of a dataset and populate it's attributes */
+   /* create the shell of a dataset's datablock and populate it's attributes */
 
-   blk  = EDIT_empty_datablock() ;
-   dset = EDIT_empty_copy(NULL) ;
+   blk = EDIT_empty_datablock() ;
 
    THD_dblkatr_from_niml( ngr , blk ) ;  /* load attributes from NIML */
 

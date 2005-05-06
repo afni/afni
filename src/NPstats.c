@@ -356,8 +356,7 @@ void write_afni_fizt (int argc, char ** argv, NP_options * option_data,
   
 
   /*----- write afni fizt data set -----*/
-  printf("--- Writing 'fizt' dataset into %s\n",
-	 new_dset->dblk->diskptr->header_name) ;
+  printf("--- Writing 'fizt' dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
   
   for( ii=0 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
@@ -495,8 +494,7 @@ void write_afni_fict (int argc, char ** argv, NP_options * option_data,
   
 
   /*----- write afni fict data set -----*/
-  printf("--- Writing 'fict' dataset into %s\n",
-	 new_dset->dblk->diskptr->header_name) ;
+  printf("--- Writing 'fict' dataset into %s\n", DSET_BRIKNAME(new_dset) ) ;
   
   fbuf[0] = dof;   
   for( ii=1 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;

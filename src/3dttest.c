@@ -978,8 +978,7 @@ printf(" ** unpooled test: num_tt = %d\n",num_tt) ;
       printf("--- Double sided tail p = %8f at t = %8f\n" , ptable[ii] , tt ) ;
    }
 
-   printf("--- Writing combined dataset into %s\n",
-           new_dset->dblk->diskptr->header_name) ;
+   printf("--- Writing combined dataset into %s\n", DSET_BRIKNAME(new_dset) ) ;
 
    fbuf[0] = dof ;
    for( ii=1 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
@@ -994,7 +993,7 @@ printf(" ** unpooled test: num_tt = %d\n",num_tt) ;
 
    if( dof_dset != NULL ){                                  /* 27 Dec 2002 */
      printf("--- Writing unpooled DOF dataset into %s\n",
-            dof_dset->dblk->diskptr->header_name) ;
+            DSET_BRIKNAME(dof_dset) ) ;
      DSET_write( dof_dset ) ;
    }
 

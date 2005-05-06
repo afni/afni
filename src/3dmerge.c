@@ -1234,10 +1234,7 @@ int main( int argc , char * argv[] )
     }  /* iv    End of iteration over sub-bricks */
 
       if( ! MRG_be_quiet )
-         printf("-- Writing edited dataset in files\n"
-                "   %s and %s\n",
-                new_dset->dblk->diskptr->header_name ,
-                new_dset->dblk->diskptr->brick_name    ) ;
+         printf("-- Writing edited dataset: %s\n" , DSET_BRIKNAME(new_dset) ) ;
 
       THD_load_statistics( new_dset ) ;
       THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
@@ -1761,10 +1758,7 @@ int main( int argc , char * argv[] )
    /*** write to disk!!! ***/
 
    if( ! MRG_be_quiet )
-      printf("-- Writing merged dataset in files\n"
-             "   %s and %s\n",
-             new_dset->dblk->diskptr->header_name ,
-             new_dset->dblk->diskptr->brick_name    ) ;
+      printf("-- Writing merged dataset: %s\n" , DSET_BRIKNAME(new_dset) ) ;
 
    tross_Make_History( "3dmerge" , argc , argv , new_dset ) ;
    THD_load_statistics( new_dset ) ;

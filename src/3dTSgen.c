@@ -1192,8 +1192,7 @@ void output_ts_array
   
   
   /*----- write afni data set -----*/
-  printf("--- Writing combined dataset into %s\n",
-	 new_dset->dblk->diskptr->header_name) ;
+  printf("--- Writing combined dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
   
@@ -1309,8 +1308,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
     
 
   /*----- write afni data set -----*/
-  printf("--- Writing combined dataset into %s\n",
-	 new_dset->dblk->diskptr->header_name) ;
+  printf("--- Writing combined dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
   
   for( ii=0 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
@@ -1467,7 +1465,7 @@ void write_bucket_data
 
   /*----- write bucket data set -----*/
   printf("Writing `bucket' dataset ");
-  printf("into %s\n", DSET_HEADNAME(new_dset));
+  printf("into %s\n", DSET_BRIKNAME(new_dset));
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 

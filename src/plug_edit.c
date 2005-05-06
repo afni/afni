@@ -1038,10 +1038,7 @@ char * EDIT_main( PLUGIN_interface * plint )
     }
   
   if (! PE_be_quiet)
-    printf("-- Writing edited dataset in files\n"
-	   "   %s and %s\n",
-	   new_dset->dblk->diskptr->header_name ,
-	   new_dset->dblk->diskptr->brick_name    ) ;
+    printf("-- Writing edited dataset:%s\n" , DSET_BRIKNAME(new_dset) ) ;
   
   ival = PLUTO_add_dset( plint , new_dset , DSET_ACTION_MAKE_CURRENT ) ;
 
