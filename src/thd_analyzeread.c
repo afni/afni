@@ -251,6 +251,8 @@ ENTRY("THD_open_analyze") ;
    dset->idcode.str[2] = 'L' ;
    dset->idcode.str[3] = 'Z' ;
 
+   MCW_hash_idcode( hname , dset ) ;  /* 06 May 2005 */
+
    ppp = THD_trailname(hname,0) ;                   /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
 

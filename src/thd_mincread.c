@@ -283,6 +283,8 @@ ENTRY("THD_open_minc") ;
    dset->idcode.str[2] = 'N' ;
    dset->idcode.str[3] = 'C' ;
 
+   MCW_hash_idcode( pathname , dset ) ;  /* 06 May 2005 */
+
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
                       ADN_datum_all   , datum ,

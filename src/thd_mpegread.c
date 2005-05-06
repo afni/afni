@@ -65,6 +65,8 @@ ENTRY("THD_open_mpeg") ;
    dset->idcode.str[1] = 'P' ;
    dset->idcode.str[2] = 'G' ;
 
+   MCW_hash_idcode( hname , dset ) ;  /* 06 May 2005 */
+
    ppp = THD_trailname(hname,0) ;                   /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
 
