@@ -1328,11 +1328,11 @@ static void NUD_brick_av_CB( MCW_arrowval * av , XtPointer cd )
    Rotate an image in place according to the current specs
 ---------------------------------------------------------------------*/
 
-static void NUD_rotate( MRI_IMAGE * im )
+static void NUD_rotate( MRI_IMAGE *im )
 {
    int clipit=clip_av->ival , mode=REG_resam_ints[interp_av->ival] ;
    float cbot,ctop ;
-   float * fvol ;
+   float *fvol ;
    double th1,th2,th3 , dx,dy,dz ;
 
    if( im == NULL || dset == NULL ) return ;
@@ -1356,7 +1356,37 @@ fprintf(stderr,"th1=%g th2=%g th3=%g\n",th1,th2,th3) ;
    if( clipit && (mode == MRI_LINEAR || mode == MRI_NN) ) clipit = 0 ;
 #endif
 
-   /* need a copy? */
+   /*--- 09 May 2005: RGB input image ==> do each channel separately ---*/
+
+#undef  BCLIP
+#define BCLIP(x)  if((x)<0.0f)(x)=0.0f; else if((x)>255.0)(x)=255.0
+
+   if( im->kind == MRI_rgb ){
+     MRI_IMARR *imtriple ;
+     MRI_IMAGE *rim, *gim, *bim, *newim ;
+     float *fr, *fg, *fb ;
+     register int ii ;
+
+     imtriple = mri_rgb_to_3float( im ) ;
+     if( imtriple == NULL ){
+       fprintf(stderr,"*** mri_rgb_to_3float fails in NUD_rotate!\n"); return;
+     }
+     rim = IMAGE_IN_IMARR(imtriple,0) ;
+     gim = IMAGE_IN_IMARR(imtriple,1) ;
+     bim = IMAGE_IN_IMARR(imtriple,2) ; FREE_IMARR(imtriple) ;
+     NUD_rotate(rim); NUD_rotate(gim); NUD_rotate(bim);
+     fr = MRI_FLOAT_PTR(rim); fg = MRI_FLOAT_PTR(gim); fb = MRI_FLOAT_PTR(bim);
+     for( ii=0 ; ii < im->nvox ; ii++ ){
+       BCLIP(fr[ii]) ; BCLIP(fg[ii]) ; BCLIP(fb[ii]) ;
+     }
+     newim = mri_3to_rgb( rim, gim, bim ) ;
+     mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
+     memcpy( MRI_RGB_PTR(im) , MRI_RGB_PTR(newim) , 3*im->nvox ) ;
+     mri_free(newim) ;
+     return ;
+   }
+
+   /*--- need a floating point copy? ---*/
 
    if( im->kind != MRI_float ){
       fvol = (float *) malloc( sizeof(float) * im->nvox ) ;
@@ -1390,12 +1420,12 @@ fprintf(stderr,"th1=%g th2=%g th3=%g\n",th1,th2,th3) ;
    /* apply bounds? */
 
    if( clipit ){
-      register int ii ; register float bb,tt ;
-      bb = cbot ; tt = ctop ;
-      for( ii=0 ; ii < im->nvox ; ii++ ){
-              if( fvol[ii] < bb ) fvol[ii] = bb ;
-         else if( fvol[ii] > tt ) fvol[ii] = tt ;
-      }
+     register int ii ; register float bb,tt ;
+     bb = cbot ; tt = ctop ;
+     for( ii=0 ; ii < im->nvox ; ii++ ){
+            if( fvol[ii] < bb ) fvol[ii] = bb ;
+       else if( fvol[ii] > tt ) fvol[ii] = tt ;
+     }
    }
 
    /* convert type? */
