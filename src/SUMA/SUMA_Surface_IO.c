@@ -165,11 +165,56 @@ char *SUMA_RemoveSurfNameExtension (char*Name, SUMA_SO_File_Type oType)
 }
 
 /*!
+   \brief much like SUMA_Prefix2SurfaceName, but handles the case where namecoord and nametopo are not the same
+   consider it a more general version of SUMA_Prefix2SurfaceName
+*/
+void * SUMA_2Prefix2SurfaceName (char *namecoord, char *nametopo, char *path, char *vp_name, SUMA_SO_File_Type oType, SUMA_Boolean *exists)
+{
+   static char FuncName[]={"SUMA_2Prefix2SurfaceName"};
+   SUMA_Boolean exist1, exist2;
+   SUMA_SFname *SF_name1 = NULL, *SF_name2 = NULL;
+   
+   SUMA_ENTRY;
+   
+   if (!nametopo && !namecoord) { SUMA_RETURN(NULL); }
+   
+   if (!nametopo) SUMA_RETURN(SUMA_Prefix2SurfaceName (namecoord, path, vp_name, oType, exists));
+   if (!namecoord) SUMA_RETURN(SUMA_Prefix2SurfaceName (nametopo, path, vp_name, oType, exists));
+   
+   if (strcmp(namecoord, nametopo) == 0) SUMA_RETURN(SUMA_Prefix2SurfaceName (nametopo, path, vp_name, oType, exists));
+   if (oType != SUMA_SUREFIT && oType != SUMA_VEC) {
+      SUMA_SL_Err("Wrong usage of function, namecoord and nametopo are different but surface type is neither SUMA_SUREFIT nor SUMA_VEC");
+      SUMA_RETURN(NULL);
+   }
+   
+   /* the pain in the behind case */
+   SF_name1 = SUMA_Prefix2SurfaceName (namecoord, path, vp_name, oType, &exist1);
+   if (!SF_name1) {
+      SUMA_SL_Err("Failed to create name");
+      SUMA_RETURN(NULL);
+   }
+   SF_name2 = SUMA_Prefix2SurfaceName (nametopo, path, vp_name, oType, &exist2);
+   if (!SF_name2) {
+      SUMA_free(SF_name1); SF_name1= NULL;
+      SUMA_SL_Err("Failed to create name");
+      SUMA_RETURN(NULL);
+   }
+   
+   if (exist1 || exist2) *exists = YUP;
+   
+   sprintf(SF_name1->name_topo, "%s", SF_name2->name_topo);
+   SUMA_free(SF_name2); SF_name2= NULL;
+   
+   SUMA_RETURN(SF_name1);
+}  
+/*!
    \brief A function to take a prefix (or name) and turn it into the structure needed
           by SUMA_Save_Surface_Object   
    also sets *exists = YUP if completed filename exists on disk. For surfaces requiring
             two files, *exists = YUP if any of the files exists       
    - free returned pointer with SUMA_free
+   
+   \sa SUMA_2Prefix2SurfaceName if you have a surface with different names for coord and topo )
 */
 
 void * SUMA_Prefix2SurfaceName (char *prefix_in, char *path, char *vp_name, SUMA_SO_File_Type oType, SUMA_Boolean *exists)
@@ -1260,6 +1305,7 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
                 SUMA_READ_INT (&(cte->b), bs, fl, ex);
                 SUMA_READ_INT (&(cte->flag), bs, fl, ex);
          }
+         
       }
    }             
    
@@ -1288,7 +1334,12 @@ SUMA_Boolean SUMA_readFSannot (char *f_name, char *f_ROI, char *f_cmap, char *f_
                   ++j;
                }
                if (imap < 0) {
-                  SUMA_SL_Warn("Node Color (label) not found in cmap.\nMarking with -1.");
+                  static int iwarn;
+                  if (!iwarn) {
+                     SUMA_SL_Warn("Node Color (label) not found in cmap.\nMarking with annotation value.\nFurther occurences will not be reported.");
+                     ++iwarn;
+                  }
+                  imap = anv[i];
                }
                fprintf(fr, "%d  %d  %f %f %f   \n",
                         niv[i], imap, (float)rv[i]/255.0, (float)gv[i]/255.0, (float)bv[i]/255.0);
@@ -1902,12 +1953,12 @@ Side effects :
 ***/
 SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS, int debug)
 {/*SUMA_FreeSurfer_Read_eng*/
+	static char FuncName[]={"SUMA_FreeSurfer_Read_eng"};
    char stmp[50]; 
    FILE *fs_file;
 	int ex, cnt, jnki, amax[3], maxamax, maxamax2, id, ND, id2, NP, ip, *NodeId;
 	float jnkf, *NodeList;
 	char c;
-	static char FuncName[]={"SUMA_FreeSurfer_Read_eng"};
 	SUMA_Boolean LocalHead = NOPE;
 	   
 	SUMA_ENTRY;
@@ -2016,7 +2067,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 		}
 	} /* read a full surface */
 	else { /* that's a patch */
-	   #if 0
+	   #if 0 /* old way, simple parsing ... */
          if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading patch olde way...\n", FuncName);
 		   /* Node IDs are a reference to those in the parent surface */
 		   cnt = 0;
@@ -2047,13 +2098,13 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 		   }
       #else 
       {
-         char *fl=NULL, *eop=NULL;
+         char *fl=NULL, *eop=NULL, *florig=NULL;
          int ans, pnodes, ptri, Found, nchar;
          double dbuf;
          
          if (LocalHead) fprintf (SUMA_STDOUT, "%s: Reading patch new way...\n", FuncName);
          /* suck in the bastard, perhaps this should be done from the start, maybe in the future */  
-         nchar = SUMA_suck_file(f_name, &fl);
+         fl = florig = SUMA_file_suck(f_name, &nchar);
          if (!nchar || !fl) { 
             SUMA_SL_Err("Failed to read patch file.");
             SUMA_RETURN(NOPE);
@@ -2105,8 +2156,7 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 			   fprintf(SUMA_STDERR,"Error %s: Expected %d FaceSets, %d read.\n", FuncName, FS->N_FaceSet, cnt);
 			   SUMA_RETURN (NOPE);
 		   }
-         SUMA_free(fl); fl = NULL; /* This free is what causes the error 'Deallocation of a pointer not malloced' on the mac
-                                       I think the mac libraries have a bug in them... */
+         SUMA_free(florig); fl = florig = NULL; /*  */
       }   
       #endif   
       
@@ -3236,6 +3286,113 @@ SUMA_Boolean SUMA_VEC_Write (SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
 }
 
 /*!
+   \brief function to read 1D (vec) format surfaces
+   \sa SUMA_VEC_Write
+*/
+SUMA_Boolean SUMA_VEC_Read(SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
+{
+   static char FuncName[]={"SUMA_VEC_Read"};
+   MRI_IMAGE *im = NULL;
+   float *far=NULL;
+   int icnt;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO || !Fname) {
+      SUMA_SL_Err("NULL input");
+      SUMA_RETURN(NOPE);
+   }
+   if (SO->NodeList || SO->FaceSetList) {
+      SUMA_SL_Err("Non NULL SO->NodeList || SO->FaceSetList");
+      SUMA_RETURN(NOPE);   
+   }
+
+   im = mri_read_1D (Fname->name_coord);
+   if (!im) {
+      SUMA_SLP_Err("Failed to read 1D file");
+      SUMA_RETURN(NOPE);
+   }
+   far = MRI_FLOAT_PTR(im);
+   SO->N_Node = im->nx;
+   SO->NodeDim = im->ny;
+   if (!SO->N_Node) {
+      SUMA_SL_Err("Empty file");
+      SUMA_RETURN(NOPE);
+   }
+   if (SO->NodeDim !=  3 ) {
+      SUMA_SL_Err("File must have\n"
+                  "3 columns.");
+      mri_free(im); im = NULL;   /* done with that baby */
+      SUMA_RETURN(NOPE);
+   }
+
+   SO->NodeList = (float *)SUMA_calloc (SO->N_Node*SO->NodeDim, sizeof(float));
+   if (!SO->NodeList) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to allocate for NodeList.\n", FuncName);
+      if (SO->NodeList) SUMA_free(SO->NodeList);
+      if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
+      SUMA_RETURN (NULL);
+   }
+
+   for (icnt=0; icnt < SO->N_Node; ++icnt) {
+      SO->NodeList[3*icnt] = far[icnt];
+      SO->NodeList[3*icnt+1] = far[icnt+SO->N_Node];
+      SO->NodeList[3*icnt+2] = far[icnt+2*SO->N_Node];
+   }   
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: SO->NodeList\n Node 0: %f, %f, %f \n Node %d: %f, %f, %f \n",
+         FuncName,
+         SO->NodeList[0], SO->NodeList[1], SO->NodeList[2], SO->N_Node -1, 
+         SO->NodeList[3*(SO->N_Node-1)], SO->NodeList[3*(SO->N_Node-1)+1], SO->NodeList[3*(SO->N_Node-1)+2]);
+   }
+   mri_free(im); im = NULL;
+
+   im = mri_read_1D (Fname->name_topo);
+   if (!im) {
+      SUMA_SL_Err("Failed to read 1D file");
+      SUMA_RETURN(NOPE);
+   }
+   far = MRI_FLOAT_PTR(im);
+   SO->N_FaceSet = im->nx;
+   SO->FaceSetDim = im->ny;
+   if (!SO->N_FaceSet) {
+      SUMA_SL_Err("Empty file");
+      SUMA_RETURN(NOPE);
+   }
+   if (SO->FaceSetDim !=  3 ) {
+      SUMA_SL_Err("File must have\n"
+                  "3 columns.");
+      mri_free(im); im = NULL;   /* done with that baby */
+      SUMA_RETURN(NOPE);
+   }
+
+   SO->FaceSetList = (int *)SUMA_calloc (SO->N_FaceSet*SO->FaceSetDim, sizeof(int));
+   if (!SO->FaceSetList) {
+      fprintf(SUMA_STDERR,"Error %s: Failed to allocate for FaceSetList.\n", FuncName);
+      if (SO->NodeList) SUMA_free(SO->NodeList);
+      if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
+      SUMA_RETURN (NULL);
+   }
+
+   for (icnt=0; icnt < SO->N_FaceSet; ++icnt) {
+      SO->FaceSetList[3*icnt] = (int)far[icnt];
+      SO->FaceSetList[3*icnt+1] = (int)far[icnt+SO->N_FaceSet];
+      SO->FaceSetList[3*icnt+2] = (int)far[icnt+2*SO->N_FaceSet];
+   }   
+
+   if (LocalHead) {
+      fprintf (SUMA_STDERR,"%s: SO->FaceSetList\n Node 0: %d, %d, %d \n Node %d: %d, %d, %d \n",
+         FuncName,
+         SO->FaceSetList[0], SO->FaceSetList[1], SO->FaceSetList[2], SO->N_FaceSet -1, 
+         SO->FaceSetList[3*(SO->N_FaceSet-1)], SO->FaceSetList[3*(SO->N_FaceSet-1)+1], SO->FaceSetList[3*(SO->N_FaceSet-1)+2]);
+   } 
+   mri_free(im); im = NULL;
+
+   SUMA_RETURN(YUP);
+}
+
+/*!
    \brief A function to write a Surface Object into a Surefit ascii format 
    \param F_prefix (char *) Prefix of surace filenames. Output will be of the form:
          Prefix.N_NODE.topo
@@ -3425,7 +3582,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertSurface"}; 
-	int kar, i;
+	int kar, volexists, i;
    float xcen[3], M[3][4];
    char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
          *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
@@ -3442,6 +3599,7 @@ int main (int argc,char *argv[])
    THD_3dim_dataset *aset=NULL;
    SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind, onemore;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
+   SUMA_Boolean exists;
    SUMA_Boolean LocalHead = NOPE;
    
 	SUMA_mainENTRY;
@@ -3751,6 +3909,7 @@ int main (int argc,char *argv[])
 		}
    }
    /* transfer info from ps structure (backward compat) */
+
    if (ps->o_N_surfnames) {
       of_name = ps->o_surfnames[0];
       of_name2 = ps->o_surftopo[0];
@@ -3879,10 +4038,13 @@ int main (int argc,char *argv[])
    }
 
    if (sv_name) {
-      if (!SUMA_filexists(sv_name)) {
-         fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, sv_name);
+      char *head = NULL, view[10];
+      head = SUMA_AfniPrefix(sv_name, view, NULL, &volexists);
+      if (!SUMA_AfniExistsView(volexists, view)) {
+         fprintf (SUMA_STDERR,"Error %s: volume %s not found.\n", FuncName, head);
          exit(1);
       }
+      if (head) SUMA_free(head); head = NULL;
    }
    
    if ((Do_tlrc || Do_acpc) && (!sv_name)) {
@@ -3898,61 +4060,24 @@ int main (int argc,char *argv[])
    }
 
    /* check for existence of output files */
-   if (of_name) {
-      of_name_strip = SUMA_ParseFname (of_name);
-      OF_name = (char *) SUMA_malloc (sizeof(char)*(strlen(of_name)+20));
-   }
    if (of_name2) {
-      of_name2_strip = SUMA_ParseFname (of_name2);
-      OF_name2 = (char *) SUMA_malloc (sizeof(char)*(strlen(of_name2)+20));
-   }
+      SUMA_SFname *SFname;
 
-   if (oType == SUMA_FREE_SURFER || oType == SUMA_FREE_SURFER_PATCH) {
-      if (strcmp (of_name_strip->Ext,".asc")==0) {
-         sprintf (OF_name,"%s%s.asc", of_name_strip->Path, of_name_strip->FileName_NoExt);
-      }else {
-         sprintf (OF_name,"%s%s.asc", of_name_strip->Path, of_name_strip->FileName);
-      }
-   }else if (oType == SUMA_PLY) {
-      if (strcmp (of_name_strip->Ext,".ply")==0) {
-         sprintf (OF_name,"%s%s.ply", of_name_strip->Path, of_name_strip->FileName_NoExt);
-      }else {
-         sprintf (OF_name,"%s%s.ply", of_name_strip->Path, of_name_strip->FileName);
-      }
-   }else if (oType == SUMA_OPENDX_MESH) {
-      if (strcmp (of_name_strip->Ext,".dx")==0) {
-         sprintf (OF_name,"%s%s.dx", of_name_strip->Path, of_name_strip->FileName_NoExt);
-      }else {
-         sprintf (OF_name,"%s%s.dx", of_name_strip->Path, of_name_strip->FileName);
-      }
-   }else if (oType == SUMA_SUREFIT) {
-      if (strcmp (of_name_strip->Ext,".coord")==0) {
-         sprintf (OF_name,"%s%s.coord", of_name_strip->Path, of_name_strip->FileName_NoExt);
-      }else {
-         sprintf (OF_name,"%s%s.coord", of_name_strip->Path, of_name_strip->FileName);
-      }
-      if (strcmp (of_name2_strip->Ext,".topo")==0) {
-         sprintf (OF_name2,"%s%s.topo", of_name2_strip->Path, of_name2_strip->FileName_NoExt);
-      }else {
-         sprintf (OF_name2,"%s%s.topo", of_name2_strip->Path, of_name2_strip->FileName);
-      }
-   }else {
-      sprintf (OF_name, "%s",of_name);
-      if (of_name2) sprintf(OF_name2, "%s",of_name2);
+      SO_name = SUMA_2Prefix2SurfaceName (of_name, of_name2, NULL, vp_name, oType, &exists);
+      SFname = (SUMA_SFname *)SO_name;
+      OF_name2 = SUMA_copy_string(SFname->name_topo);
+      OF_name = SUMA_copy_string(SFname->name_coord);
+   } else {
+      SO_name = SUMA_Prefix2SurfaceName (of_name, vp_name, NULL, oType, &exists);
+      OF_name = SUMA_copy_string((char *) SO_name);
    }
-    
-   if (SUMA_filexists(OF_name)) {
-      fprintf (SUMA_STDERR,"Error %s: %s exists already.\n", FuncName, OF_name);
+   
+   if (exists) {
+      if (OF_name2) fprintf (SUMA_STDERR,"Error %s: output file(s) %s and/or %s exist already.\n", FuncName, OF_name, OF_name2);
+      else fprintf (SUMA_STDERR,"Error %s: output file %s exists already.\n", FuncName, OF_name);
       exit(1);
    }
-   
-   if (of_name2) {
-      if (SUMA_filexists(OF_name2)) {
-         fprintf (SUMA_STDERR,"Error %s: %s exists already.\n", FuncName, OF_name2);
-         exit(1);
-      }
-   }
-   
+      
    /* now for the real work */
    if (Doxmat) {
       MRI_IMAGE *im = NULL;
@@ -4131,65 +4256,40 @@ int main (int argc,char *argv[])
    
    fprintf (SUMA_STDOUT,"Writing surface...\n");
    
-
+   
    /* write the surface object */
    switch (oType) {
       case SUMA_SUREFIT:
-         if (SF_name) SUMA_free(SF_name);
-         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         snprintf(SF_name->name_coord, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
-                   "%s", of_name);
-         snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
-                   "%s", of_name2); 
-         if (!vp_name) { /* initialize to empty string */
-            SF_name->name_param[0] = '\0'; 
-         }
-         else {
-            snprintf(SF_name->name_param, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
-                   "%s", vp_name);
-         }
-         SO_name = (void *)SF_name;
          if (!SUMA_Save_Surface_Object (SO_name, SO,  SUMA_SUREFIT, SUMA_ASCII, NULL)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
          break;
       case SUMA_VEC:
-         if (SF_name) SUMA_free(SF_name);
-         SF_name = (SUMA_SFname *) SUMA_malloc(sizeof(SUMA_SFname));
-         snprintf(SF_name->name_coord, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
-                   "%s", of_name);
-         snprintf(SF_name->name_topo, (SUMA_MAX_DIR_LENGTH+SUMA_MAX_NAME_LENGTH+1)*sizeof(char),
-                   "%s", of_name2); 
-         SO_name = (void *)SF_name;
          if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_VEC, SUMA_ASCII, NULL)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
          break;
       case SUMA_FREE_SURFER:
-         SO_name = (void *)of_name; 
          if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER, SUMA_ASCII, NULL)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
          break;
       case SUMA_FREE_SURFER_PATCH:
-         SO_name = (void *)of_name; 
          if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_FREE_SURFER_PATCH, SUMA_ASCII, SOpar)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
          break;  
       case SUMA_OPENDX_MESH:
-         SO_name = (void *)of_name; 
          if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_OPENDX_MESH, SUMA_ASCII, NULL)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
          }
          break;  
       case SUMA_PLY:
-         SO_name = (void *)of_name; 
          if (!SUMA_Save_Surface_Object (SO_name, SO, SUMA_PLY, SUMA_FF_NOT_SPECIFIED, NULL)) {
             fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
             exit (1);
@@ -4207,6 +4307,7 @@ int main (int argc,char *argv[])
    if (OF_name) SUMA_free(OF_name);
    if (OF_name2) SUMA_free(OF_name2);
    if (SF_name) SUMA_free(SF_name);
+   if (SO_name) SUMA_free(SO_name);
    if (SO) SUMA_Free_Surface_Object(SO);
    if (SOpar) SUMA_Free_Surface_Object(SOpar);
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
@@ -7959,7 +8060,7 @@ SUMA_OPEN_DX_STRUCT **SUMA_OpenDX_Read(char *fname, int *nobj)
    
    if (opv) SUMA_free(opv); opv = NULL;
    if (nchar) SUMA_free(nchar); nchar = NULL;
-   
+   if (fl) SUMA_free(fl); fl = NULL; /* added Mon May 9 05, ZSS */
    *nobj = iop;
    SUMA_RETURN(dxv); 
 }
@@ -8034,7 +8135,7 @@ char * SUMA_OpenDX_Read_CruiseVolHead(char *fname, THD_3dim_dataset *dset, int L
       SUMA_RETURN(NOPE);
    }
    
-   prefix = SUMA_AfniPrefix(fname, NULL);
+   prefix = SUMA_AfniPrefix(fname, NULL, NULL, NULL);
    if( !THD_filename_ok(prefix) ) {
       SUMA_SL_Err("Bad prefix");
       SUMA_RETURN(NOPE);
