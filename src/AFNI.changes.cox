@@ -5518,3 +5518,6 @@
      new prefix ends in '.nii' or '.nii.gz'.
  * Modify a bunch of programs that print "Writing dataset" messages to
      always use the DSET_BRIKNAME() macro, for consistency.
+
+09 May 2005
+ * Modify plug_nudge.c to deal with RGB-valued datasets.

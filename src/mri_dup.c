@@ -97,7 +97,7 @@ ENTRY("mri_dup2D") ;
 
            imtriple = mri_rgb_to_3byte( imin ) ;
            if( imtriple == NULL ){
-             fprintf(stderr,"*** mri_rgb_to_3float fails in mri_dup2D!\n"); RETURN(NULL);
+             fprintf(stderr,"*** mri_rgb_to_3byte fails in mri_dup2D!\n"); RETURN(NULL);
            }
            rim = IMAGE_IN_IMARR(imtriple,0) ;
            gim = IMAGE_IN_IMARR(imtriple,1) ;
