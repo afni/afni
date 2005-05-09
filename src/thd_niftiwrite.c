@@ -1,7 +1,11 @@
 #include "mrilib.h"
 #include "thd_niftiwrite.h"
 
+/* prototypes */
+
 nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t options) ;
+
+void nifti_set_afni_extension(THD_3dim_dataset *dset,nifti_image *nim) ;
 
 /*******************************************************************/
 /*!  Write an AFNI dataset as a NIFTI file.
@@ -69,6 +73,8 @@ ENTRY("THD_write_nifti") ;
   }
 
   /*-- use handy-dandy library function to write out data */
+
+  nifti_set_afni_extension( dset , nim ) ;  /* 09 May 2005 - RWCox */
 
   nifti_image_write_bricks (nim, &nbl ) ;
   RETURN(1) ;
@@ -514,4 +520,82 @@ ENTRY("populate_nifti_image") ;
   nim->sform_code = 0 ;
 
   RETURN(nim) ;
+}
+
+/*-------------------------------------------------------------------*/
+
+static char *badlist[] = {
+     "DATASET_RANK"       ,
+     "DATASET_DIMENSIONS" ,
+     "TYPESTRING"         ,
+     "SCENE_DATA"         ,
+     "ORIENT_SPECIFIC"    ,
+     "ORIGIN"             ,
+     "DELTA"              ,
+     "TAXIS_NUMS"         ,
+     "TAXIS_FLOATS"       ,
+     "TAXIS_OFFSETS"      ,
+     "BYTEORDER_STRING"   ,
+     "BRICK_TYPES"        ,
+     "BRICK_FLOAT_FACS"   ,
+     "STAT_AUX"           ,
+     "LABEL_1"            ,
+     "LABEL_2"            ,
+     "DATASET_NAME"       ,
+ NULL } ;
+
+/*-------------------------------------------------------------------*/
+/*! Create the AFNI extension string for a NIfTI-1.1 file, and insert
+    this metadata into the nifti_image struct for output to disk.
+    -- 09 May 2005 - RWCox
+---------------------------------------------------------------------*/
+
+void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
+{
+   THD_datablock *blk ;
+   NI_group      *ngr ;
+   NI_element    *nel ;
+   NI_stream      ns  ;
+   char *rhs ;
+   int ii,bb , npart,*bpart ;
+
+   if( nim == NULL ) return ;  /* stupid caller */
+
+   /** write all dataset 'attributes' into a NIML group */
+
+   ngr = THD_nimlize_dsetatr( dset ) ;
+   if( ngr == NULL ) return ;
+
+   /** now, scan attribute elements in the group, and mark some
+       of them as being useless or redundant in the NIfTI world **/
+
+   npart = ngr->part_num ;
+   bpart = (int *)calloc(sizeof(int),npart) ;
+   for( ii=0 ; ii < npart ; ii++ ){
+     if( ngr->part_typ[ii] != NI_ELEMENT_TYPE ) continue ;
+     nel = (NI_element *) ngr->part[ii] ;
+     if( strcmp(nel->name,"AFNI_atr") != 0 )    continue ;
+     rhs = NI_get_attribute( nel , "AFNI_name" ) ;
+     if( rhs == NULL )                          continue ;
+
+     for( bb=0 ; badlist[bb] != NULL ; bb++ )
+       if( strcmp(rhs,badlist[bb]) == 0 ){ bpart[ii] = 1; break; }
+   }
+
+   /* remove marked attributes from the NIML group */
+
+   for( ii=npart-1 ; ii >= 0 ; ii-- ){
+     if( bpart[ii] )
+       NI_remove_from_group( ngr , ngr->part[ii] ) ;
+   }
+   free((void *)bpart) ;
+   if( ngr->part_num <= 0 ){ NI_free_element(ngr); return; }
+
+   ns = NI_stream_open( "str:" , "w" ) ;
+   NI_write_element( ns , ngr , NI_TEXT_MODE ) ;
+   rhs = NI_stream_getbuf( ns ) ;
+   nifti_add_extension( nim , rhs , strlen(rhs) , NIFTI_ECODE_AFNI ) ;
+   NI_stream_close(ns) ;
+   NI_free_element(ngr) ;
+   return ;
 }
