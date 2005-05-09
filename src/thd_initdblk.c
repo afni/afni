@@ -108,9 +108,9 @@ ENTRY("THD_init_one_datablock") ;
 
    ii = THD_datablock_from_atr( dblk, dirname, headname ) ;
    if( ii == 0 ){
-      THD_delete_datablock( dblk ) ;
-      myXtFree(dblk) ;
-      RETURN( NULL ) ;
+     THD_delete_datablock( dblk ) ;
+     myXtFree(dblk) ;
+     RETURN( NULL ) ;
    }
 
 #if 0
@@ -407,6 +407,333 @@ ENTRY("THD_datablock_from_atr") ;
 #endif
 
    RETURN(1) ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#define ATR_IS_STR(nnn) ( (atr_str = THD_find_string_atr(blk,nnn)) != NULL )
+#define ATR_IS_FLT(nnn) ( (atr_flt = THD_find_float_atr (blk,nnn)) != NULL )
+#define ATR_IS_INT(nnn) ( (atr_int = THD_find_int_atr   (blk,nnn)) != NULL )
+
+/*---------------------------------------------------------------------------*/
+/*! Apply attributes to modify a datablock.
+    09 May 2005 -- written to support NIfTI-ization.
+-----------------------------------------------------------------------------*/
+
+void THD_datablock_apply_atr( THD_3dim_dataset *dset )
+{
+   THD_datablock     *blk ;
+   THD_diskptr       *dkptr ;
+   THD_dataxes       *daxes ;
+   ATR_int           *atr_int = NULL ;
+   ATR_float         *atr_flt = NULL;
+   ATR_string        *atr_str = NULL ;
+   int ii , view_type , func_type , dset_type , nx,ny,nz,nvox , nvals , ibr,typ ;
+   Boolean ok ;
+   char prefix[THD_MAX_NAME]="Unknown" ;
+   MRI_IMAGE *qim ;
+   int brick_ccode ;
+
+ENTRY("THD_datablock_apply_atr") ;
+
+   if( !ISVALID_DSET(dset) == NULL ) EXRETURN ; /* bad input */
+
+   blk   = dset->dblk   ;  if( blk == NULL   ) EXRETURN ;
+   nvals = blk->nvals   ;  if( nvals <= 0    ) EXRETURN ;
+   daxes = dset->daxes  ;  if( daxes == NULL ) EXRETURN ;
+   dkptr = blk->diskptr ;
+
+   /*-- brick labels --*/
+
+   if( ATR_IS_STR(ATRNAME_BRICK_LABS) ){
+     int ipos = -1 , ipold , ngood ;
+
+     if( blk->brick_lab == NULL ) THD_init_datablock_labels( blk ) ;
+
+     for( ibr=0 ; ibr < nvals ; ibr++ ){  /* loop over bricks */
+
+       for( ipold = ipos++ ;                                   /* skip to */
+            ipos < atr_str->nch && atr_str->ch[ipos] != '\0' ; /* next \0 */
+            ipos++ ) /* nada */ ;                              /* or end. */
+
+       ngood = ipos - ipold - 1 ;                 /* number of good chars */
+       if( ngood > 0 ){
+         XtFree(blk->brick_lab[ibr]) ;
+         if( ngood > 32 ) ngood = 32 ;
+         blk->brick_lab[ibr] = (char *) XtMalloc(sizeof(char)*(ngood+2)) ;
+         memcpy( blk->brick_lab[ibr] , atr_str->ch+(ipold+1) , ngood ) ;
+         blk->brick_lab[ibr][ngood] = '\0' ;
+       }
+
+        if( ipos >= atr_str->nch ) break ;  /* nothing more to do */
+     } /* end of loop over sub-bricks */
+   }
+
+   /*-- keywords for sub-bricks --*/
+
+   if( ATR_IS_STR(ATRNAME_BRICK_KEYWORDS) ){
+     int ipos = -1 , ipold , ngood ;
+
+     if( blk->brick_keywords == NULL ) THD_init_datablock_keywords( blk ) ;
+
+     for( ibr=0 ; ibr < nvals ; ibr++ ){  /* loop over bricks */
+
+       for( ipold = ipos++ ;                                   /* skip to */
+            ipos < atr_str->nch && atr_str->ch[ipos] != '\0' ; /* next \0 */
+            ipos++ ) /* nada */ ;                              /* or end. */
+
+       ngood = ipos - ipold - 1 ;                 /* number of good chars */
+       if( ngood > 0 ){
+         XtFree(blk->brick_keywords[ibr]) ;
+         blk->brick_keywords[ibr] = (char *) XtMalloc(sizeof(char)*(ngood+2)) ;
+         memcpy( blk->brick_keywords[ibr] , atr_str->ch+(ipold+1) , ngood ) ;
+         blk->brick_keywords[ibr][ngood] = '\0' ;
+       }
+
+       if( ipos >= atr_str->nch ) break ;  /* nothing more to do */
+     } /* end of loop over sub-bricks */
+   }
+
+   /*-- auxiliary statistics stuff for each brick --*/
+
+   if( ATR_IS_FLT(ATRNAME_BRICK_STATAUX) ){
+     int ipos=0 , iv,nv,jv ;
+
+     /* attribute stores all stataux stuff as follows:
+          sub-brick-index  statcode  no.-of-values value ... value
+          sub-brick-index  statcode  no.-of-values value ... value, etc. */
+
+     while( ipos <= atr_flt->nfl - 3 ){
+       iv = (int) ( atr_flt->fl[ipos++] ) ;  /* which sub-brick */
+       jv = (int) ( atr_flt->fl[ipos++] ) ;  /* statcode */
+       nv = (int) ( atr_flt->fl[ipos++] ) ;  /* # of values that follow */
+
+       if( nv > atr_flt->nfl - ipos ) nv = atr_flt->nfl - ipos ;
+
+       THD_store_datablock_stataux( blk , iv , jv , nv , atr_flt->fl + ipos ) ;
+       ipos += nv ;
+     }
+   }
+
+   /*-- ID codes --*/
+
+   if( ATR_IS_STR(ATRNAME_IDSTRING) ){
+     MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
+   }
+
+   if( ATR_IS_STR(ATRNAME_IDDATE) ){
+     MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
+   }
+
+   if( ATR_IS_STR(ATRNAME_IDANATPAR) ){
+     MCW_strncpy( dset->anat_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;
+   }
+
+   if( ATR_IS_STR(ATRNAME_IDWARPPAR) ){
+     MCW_strncpy( dset->warp_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;
+   }
+
+   /*-- parent names --*/
+
+   if( ATR_IS_STR(ATRNAME_ANATOMY_PARENT) ){
+     MCW_strncpy( dset->anat_parent_name , atr_str->ch , THD_MAX_NAME ) ;
+   }
+
+   if( ATR_IS_STR(ATRNAME_WARP_PARENT) ){
+     MCW_strncpy( dset->warp_parent_name , atr_str->ch , THD_MAX_NAME ) ;
+   }
+
+   if( ATR_IS_STR(ATRNAME_DATANAME) ){
+     MCW_strncpy( dset->self_name , atr_str->ch , THD_MAX_NAME ) ;
+   }
+
+   /*-- markers --*/
+
+   if( ATR_IS_FLT(ATRNAME_MARKSXYZ) && ATR_IS_STR(ATRNAME_MARKSLAB) ){
+      int im , llen ;
+      THD_ivec3 iv ;
+      float xxdown,xxup , yydown,yyup , zzdown,zzup ;
+
+      if( dset->markers == NULL )
+        dset->markers = myXtNew( THD_marker_set ) ;  /* new set */
+      ADDTO_KILL(dset->kl , dset->markers) ;
+
+      COPY_INTO_STRUCT( *(dset->markers) ,  /* actual struct */
+                        MARKS_FSTART ,      /* byte offset */
+                        float ,             /* type being copied */
+                        atr_flt->fl ,       /* start of source */
+                        MARKS_FSIZE  ) ;    /* number of floats */
+
+      COPY_INTO_STRUCT( *(dset->markers) ,
+                        MARKS_LSTART ,
+                        char ,
+                        atr_str->ch ,
+                        MARKS_LSIZE  ) ;
+
+      xxdown = daxes->xxmin ; xxup = daxes->xxmax ;
+      yydown = daxes->yymin ; yyup = daxes->yymax ;
+      zzdown = daxes->zzmin ; zzup = daxes->zzmax ;
+
+      dset->markers->numdef = dset->markers->numset = 0 ;
+
+      for( im=0 ; im < MARKS_MAXNUM ; im++ ){
+        llen = strlen( &(dset->markers->label[im][0]) ) ;
+        dset->markers->valid[im]   =
+           (llen > 0) &&
+           ( dset->markers->xyz[im][0] >= xxdown ) &&
+           ( dset->markers->xyz[im][0] <= xxup   ) &&
+           ( dset->markers->xyz[im][1] >= yydown ) &&
+           ( dset->markers->xyz[im][1] <= yyup   ) &&
+           ( dset->markers->xyz[im][2] >= zzdown ) &&
+           ( dset->markers->xyz[im][2] <= zzup   )    ;
+
+        if( dset->markers->valid[im] ) (dset->markers->numset)++ ;
+
+        if( llen > 0 ) (dset->markers->numdef)++ ;
+
+        dset->markers->ovcolor[im] = -1 ;  /* default color */
+      }
+
+      if( ATR_IS_STR(ATRNAME_MARKSHELP) ){
+        COPY_INTO_STRUCT( *(dset->markers) ,
+                           MARKS_HSTART ,
+                           char ,
+                           atr_str->ch ,
+                           MARKS_HSIZE  ) ;
+      }
+
+      if( ATR_IS_INT(ATRNAME_MARKSFLAG) ){
+        COPY_INTO_STRUCT( *(dset->markers) ,
+                          MARKS_ASTART ,
+                          int ,
+                          atr_int->in ,
+                          MARKS_ASIZE  ) ;
+        dset->markers->type = dset->markers->aflags[0] ;
+      }
+   }
+
+   /*-- warp --*/
+
+   if( ATR_IS_INT(ATRNAME_WARP_TYPE) && ATR_IS_FLT(ATRNAME_WARP_DATA) ){
+     int wtype = atr_int->in[0] , rtype = atr_int->in[1]  ;
+
+     dset->warp = myXtNew( THD_warp ) ;
+     ADDTO_KILL( dset->kl , dset->warp ) ;
+     switch( wtype ){
+       case WARP_AFFINE_TYPE:{
+         THD_affine_warp *ww = (THD_affine_warp *) dset->warp ;
+         ww->type       = wtype ;
+         ww->resam_type = rtype ;
+         ww->warp.type  = MAPPING_LINEAR_TYPE ;
+
+         COPY_INTO_STRUCT( ww->warp ,
+                           MAPPING_LINEAR_FSTART ,
+                           float ,
+                           atr_flt->fl ,
+                           MAPPING_LINEAR_FSIZE ) ;
+       }
+       break ;  /* end affine warp */
+
+       case WARP_TALAIRACH_12_TYPE:{
+         THD_talairach_12_warp *ww =
+            (THD_talairach_12_warp *) dset->warp ;
+         int iw , ioff ;
+         ww->type       = wtype ;
+         ww->resam_type = rtype ;
+         for( iw=0 ; iw < 12 ; iw++ ){
+            ww->warp[iw].type = MAPPING_LINEAR_TYPE ;
+
+            ioff = iw * MAPPING_LINEAR_FSIZE ;
+
+            COPY_INTO_STRUCT( ww->warp[iw] ,
+                              MAPPING_LINEAR_FSTART ,
+                              float ,
+                              &(atr_flt->fl[ioff]) ,
+                              MAPPING_LINEAR_FSIZE ) ;
+
+         }  /* end loop over 12 warps */
+       }
+       break ;  /* end talairach_12 warp */
+
+     } /* end of switch on warp type */
+   }
+
+   /*-- brick stats --*/
+
+   if( ATR_IS_FLT(ATRNAME_BRICK_STATS) ){
+     int qq ;
+     dset->stats         = myXtNew( THD_statistics ) ;
+     dset->stats->type   = STATISTICS_TYPE ;
+     dset->stats->parent = (XtPointer) dset ;
+     dset->stats->nbstat = blk->nvals ;
+     dset->stats->bstat  = (THD_brick_stats *)
+                              XtMalloc( sizeof(THD_brick_stats) * blk->nvals ) ;
+     for( qq=0 ; qq < blk->nvals ; qq++ ){
+       if( 2*qq+1 < atr_flt->nfl ){
+           dset->stats->bstat[qq].min = atr_flt->fl[2*qq] ;
+           dset->stats->bstat[qq].max = atr_flt->fl[2*qq+1] ;
+       } else {
+           INVALIDATE_BSTAT( dset->stats->bstat[qq] ) ;
+       }
+     }
+     ADDTO_KILL( dset->kl , dset->stats->bstat ) ;
+     ADDTO_KILL( dset->kl , dset->stats ) ;
+   }
+
+   /*-- tagset --*/
+
+   if( ATR_IS_INT(ATRNAME_TAGSET_NUM)    &&
+       ATR_IS_FLT(ATRNAME_TAGSET_FLOATS) &&
+       ATR_IS_STR(ATRNAME_TAGSET_LABELS)    ){
+
+      int nin=atr_int->nin , nfl=atr_flt->nfl , nch=atr_str->nch ;
+      int ii , ntag , nfper , jj , kk ;
+
+      ntag  = atr_int->in[0] ;  /* number of tags */
+      nfper = atr_int->in[1] ;  /* number of floats per tag */
+
+      if( ntag > MAX_TAG_NUM ) ntag = MAX_TAG_NUM ;
+
+      dset->tagset = myXtNew( THD_usertaglist ) ;  /* create tagset */
+      ADDTO_KILL( dset->kl , dset->tagset ) ;
+
+      dset->tagset->num = ntag ;
+      strcpy( dset->tagset->label , "Bebe Rebozo" ) ;  /* not used */
+
+      /* read out tag values; allow for chance there isn't enough data */
+
+#undef  TF
+#define TF(i,j) ( ((j)<nfper && (i)*nfper+(j)<nfl) ? atr_flt->fl[(i)*nfper+(j)] : -666.0 )
+      for( ii=0 ; ii < ntag ; ii++ ){
+         dset->tagset->tag[ii].x   = TF(ii,0) ;  /* coords */
+         dset->tagset->tag[ii].y   = TF(ii,1) ;
+         dset->tagset->tag[ii].z   = TF(ii,2) ;
+         dset->tagset->tag[ii].val = TF(ii,3) ;  /* value */
+         dset->tagset->tag[ii].ti  = TF(ii,4) ;  /* time index; if < 0 ==> not set */
+         if( dset->tagset->tag[ii].ti >= 0 ){
+           dset->tagset->tag[ii].set = 1 ;
+         } else {
+           dset->tagset->tag[ii].set = 0 ; dset->tagset->tag[ii].ti = 0 ;
+         }
+      }
+#undef TF
+
+      /* read out tag labels; allow for empty labels */
+
+      jj = 0 ;
+      for( ii=0 ; ii < ntag ; ii++ ){
+         if( jj < nch ){
+           kk = strlen( atr_str->ch + jj ) ;
+           if( kk > 0 ) TAG_SETLABEL( dset->tagset->tag[ii] , atr_str->ch + jj ) ;
+           else         sprintf( dset->tagset->tag[ii].label , "Tag %d" , ii+1 ) ;
+           jj += kk+1 ;
+         } else {
+           sprintf( dset->tagset->tag[ii].label , "Tag %d" , ii+1 ) ;
+         }
+      }
+   }
+
+   EXRETURN ;
 }
 
 /*----------------------------------------------------------------

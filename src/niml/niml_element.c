@@ -176,7 +176,8 @@ NI_dpr("ENTER make_empty_data_element\n") ;
 
      if( nel->vec_len > 0 ){
        for( ii=0 ; ii < nel->vec_num ; ii++ )
-         nel->vec[ii] = NI_malloc(void, NI_type_size(nel->vec_typ[ii])*nel->vec_len) ;
+         nel->vec[ii] = NI_malloc(void,
+                                  NI_type_size(nel->vec_typ[ii])*nel->vec_len) ;
      } else {
        for( ii=0 ; ii < nel->vec_num ; ii++ )
          nel->vec[ii] = NULL ;
@@ -687,8 +688,8 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
       /* if not, then add a header attribute */
 
       if( nn == nel->attr_num ){
-        nel->attr_lhs = NI_realloc( nel->attr_lhs , char*, sizeof(char *)*(nn+1) ) ;
-        nel->attr_rhs = NI_realloc( nel->attr_rhs , char*, sizeof(char *)*(nn+1) ) ;
+        nel->attr_lhs = NI_realloc( nel->attr_lhs, char*, sizeof(char *)*(nn+1) );
+        nel->attr_rhs = NI_realloc( nel->attr_rhs, char*, sizeof(char *)*(nn+1) );
         nel->attr_num = nn+1 ;
       } else {
         NI_free(nel->attr_lhs[nn]) ;  /* free old attribute */
@@ -707,8 +708,8 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
          if( strcmp(ngr->attr_lhs[nn],attname) == 0 ) break ;
 
       if( nn == ngr->attr_num ){
-        ngr->attr_lhs = NI_realloc( ngr->attr_lhs , char*, sizeof(char *)*(nn+1) ) ;
-        ngr->attr_rhs = NI_realloc( ngr->attr_rhs , char*, sizeof(char *)*(nn+1) ) ;
+        ngr->attr_lhs = NI_realloc( ngr->attr_lhs, char*, sizeof(char *)*(nn+1) );
+        ngr->attr_rhs = NI_realloc( ngr->attr_rhs, char*, sizeof(char *)*(nn+1) );
         ngr->attr_num = nn+1 ;
       } else {
         NI_free(ngr->attr_lhs[nn]) ;
@@ -727,8 +728,8 @@ void NI_set_attribute( void *nini , char *attname , char *attvalue )
         if( strcmp(npi->attr_lhs[nn],attname) == 0 ) break ;
 
       if( nn == npi->attr_num ){
-        npi->attr_lhs = NI_realloc( npi->attr_lhs , char*, sizeof(char *)*(nn+1) ) ;
-        npi->attr_rhs = NI_realloc( npi->attr_rhs , char*, sizeof(char *)*(nn+1) ) ;
+        npi->attr_lhs = NI_realloc( npi->attr_lhs, char*, sizeof(char *)*(nn+1) );
+        npi->attr_rhs = NI_realloc( npi->attr_rhs, char*, sizeof(char *)*(nn+1) );
         npi->attr_num = nn+1 ;
       } else {
         NI_free(npi->attr_lhs[nn]) ;
@@ -961,7 +962,7 @@ void NI_add_to_group( NI_group *ngr , void *nini )
 
    ngr->part_typ     = NI_realloc( ngr->part_typ , int, sizeof(int)*(nn+1) ) ;
    ngr->part_typ[nn] = tt ;
-   ngr->part         = NI_realloc( ngr->part , void*, sizeof(void *)*(nn+1) ) ;
+   ngr->part         = NI_realloc( ngr->part , void*, sizeof(void *)*(nn+1) );
    ngr->part[nn]     = nini ;
    ngr->part_num     = nn+1 ;
    return ;
@@ -987,7 +988,8 @@ void NI_remove_from_group( NI_group *ngr , void *nini )  /* 16 Apr 2005 */
      ngr->part_typ[jj-1] = ngr->part_typ[jj] ;
      ngr->part    [jj-1] = ngr->part    [jj] ;
    }
-   ngr->part[nn-1] = NULL ; ngr->part_num -- ;
+   ngr->part[nn-1] = NULL ;    /* NULL-ify last part to be safe */
+   ngr->part_num -- ;          /* reduce part count */
    return ;
 }
 
