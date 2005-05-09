@@ -243,12 +243,30 @@ ENTRY("THD_open_nifti") ;
              toff[kk] = tsl ; tsl += nim->slice_duration ;
            }
          break ;
+         case NIFTI_SLICE_ALT_INC2:
+           tsl = 0.0 ;
+           for( kk=nim->slice_start+1 ; kk <= nim->slice_end ; kk+=2 ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+           for( kk=nim->slice_start ; kk <= nim->slice_end ; kk+=2 ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+         break ;
          case NIFTI_SLICE_ALT_DEC:
            tsl = 0.0 ;
            for( kk=nim->slice_end ; kk >= nim->slice_start ; kk-=2 ){
              toff[kk] = tsl ; tsl += nim->slice_duration ;
            }
            for( kk=nim->slice_end-1 ; kk >= nim->slice_start ; kk-=2 ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+         break ;
+         case NIFTI_SLICE_ALT_DEC2:
+           tsl = 0.0 ;
+           for( kk=nim->slice_end-1 ; kk >= nim->slice_start ; kk-=2 ){
+             toff[kk] = tsl ; tsl += nim->slice_duration ;
+           }
+           for( kk=nim->slice_end ; kk >= nim->slice_start ; kk-=2 ){
              toff[kk] = tsl ; tsl += nim->slice_duration ;
            }
          break ;
