@@ -7,12 +7,21 @@
 #include "mrilib.h"
 #include "thd.h"
 
+/*---------------------------------------------------------------*/
 static int allow_nodata = 0 ;  /* 23 Mar 2001 */
 
 void THD_allow_empty_dataset( int n ){ allow_nodata = n ; }
+/*---------------------------------------------------------------*/
 
-/*-------------------------------------------------------------------
-   given a datablock, make it into a 3D dataset if possible
+/*! With this macro defined, many of the attributes will actually
+    be set in function THD_datablock_apply_atr() instead of herein.
+    This change is to allow attributes read after the dataset struct
+    is alread created to be useful, for the NIfTI-ization project. */
+
+#define USE_APPLICATOR  /* 10 May 2005 */
+
+/*-------------------------------------------------------------------*/
+/*!  Given a datablock, make it into a 3D dataset if possible.
 ---------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_3dim_from_block( THD_datablock *blk )
@@ -28,7 +37,9 @@ THD_3dim_dataset * THD_3dim_from_block( THD_datablock *blk )
    ATR_string *atr_str ;
    ATR_float  *atr_flo ;
 
-   int new_idcode = 0 ;
+#if 0
+   int new_idcode = 0 ;   /* no longer needed */
+#endif
 
 ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
@@ -39,7 +50,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    /*-- initialize a new 3D dataset --*/
 
-   dset       = myXtNew( THD_3dim_dataset ) ;
+   dset       = myXtNew( THD_3dim_dataset ) ;  /* uses XtCalloc() */
    dset->dblk = blk  ;
    dkptr      = blk->diskptr ;
 
@@ -120,23 +131,22 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    /*--               find identifier codes               --*/
    /*-------------------------------------------------------*/
 
+#ifndef USE_APPLICATOR
    atr_str = THD_find_string_atr( blk , ATRNAME_IDSTRING ) ;
-   if( atr_str == NULL ){
-      dset->idcode = MCW_new_idcode() ;
-      new_idcode = 1 ;
-   } else {
-      MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
-      atr_str = THD_find_string_atr( blk , ATRNAME_IDDATE ) ;
-      if( atr_str == NULL )
-         MCW_strncpy( dset->idcode.date , "None" , MCW_IDDATE ) ;
-      else
-         MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
-      new_idcode = 0 ;
+   if( atr_str != NULL ){
+     MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
+     atr_str = THD_find_string_atr( blk , ATRNAME_IDDATE ) ;
+     if( atr_str == NULL )
+       MCW_strncpy( dset->idcode.date , "None" , MCW_IDDATE ) ;
+     else
+       MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
    }
+#endif
 
    ZERO_IDCODE(dset->anat_parent_idcode) ;
    ZERO_IDCODE(dset->warp_parent_idcode) ;
 
+#ifndef USE_APPLICATOR
    atr_str = THD_find_string_atr( blk , ATRNAME_IDANATPAR ) ;
    if( atr_str != NULL )
       MCW_strncpy( dset->anat_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;
@@ -144,6 +154,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    atr_str = THD_find_string_atr( blk , ATRNAME_IDWARPPAR ) ;
    if( atr_str != NULL )
       MCW_strncpy( dset->warp_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;
+#endif
 
    /*--------------------------------*/
    /*-- get data labels (optional) --*/
@@ -151,54 +162,53 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    atr_str = THD_find_string_atr( blk , ATRNAME_LABEL1 ) ;
    if( atr_str == NULL )
-      atr_str = THD_find_string_atr( blk , ATRNAME_DATANAME ) ;
+     atr_str = THD_find_string_atr( blk , ATRNAME_DATANAME ) ;
 
    if( atr_str != NULL ){
-      MCW_strncpy( dset->label1 , atr_str->ch , THD_MAX_LABEL ) ;
+     MCW_strncpy( dset->label1 , atr_str->ch , THD_MAX_LABEL ) ;
    } else {
-      MCW_strncpy( dset->label1 , THD_DEFAULT_LABEL , THD_MAX_LABEL ) ;
+     MCW_strncpy( dset->label1 , THD_DEFAULT_LABEL , THD_MAX_LABEL ) ;
    }
 
    atr_str = THD_find_string_atr( blk , ATRNAME_LABEL2 ) ;
    if( atr_str != NULL ){
-      MCW_strncpy( dset->label2 , atr_str->ch , THD_MAX_LABEL ) ;
+     MCW_strncpy( dset->label2 , atr_str->ch , THD_MAX_LABEL ) ;
    } else {
-      MCW_strncpy( dset->label2 , THD_DEFAULT_LABEL , THD_MAX_LABEL ) ;
+     MCW_strncpy( dset->label2 , THD_DEFAULT_LABEL , THD_MAX_LABEL ) ;
    }
 
+   dset->keywords = NULL ;
+#ifndef USE_APPLICATOR
    atr_str = THD_find_string_atr( blk , ATRNAME_KEYWORDS ) ;
-   if( atr_str == NULL ){
-      dset->keywords = NULL ;
-   } else {
+   if( atr_str != NULL )
       dset->keywords = XtNewString( atr_str->ch ) ;
-   }
+#endif
 
    /*---------------------------------*/
    /*-- get parent names (optional) --*/
    /*---------------------------------*/
 
+   dset->anat_parent_name[0] = '\0' ;
+   dset->warp_parent_name[0] = '\0' ;
+   MCW_strncpy( dset->self_name , THD_DEFAULT_LABEL , THD_MAX_NAME ) ;
+   dset->anat_parent = dset->warp_parent = NULL ;  /* must be set later */
+
+#ifndef USE_APPLICATOR
    atr_str = THD_find_string_atr( blk , ATRNAME_ANATOMY_PARENT ) ;
    if( atr_str != NULL && ISZERO_IDCODE(dset->anat_parent_idcode) ){
-      MCW_strncpy( dset->anat_parent_name , atr_str->ch , THD_MAX_NAME ) ;
-   } else {
-      dset->anat_parent_name[0] = '\0' ;
+     MCW_strncpy( dset->anat_parent_name , atr_str->ch , THD_MAX_NAME ) ;
    }
 
    atr_str = THD_find_string_atr( blk , ATRNAME_WARP_PARENT ) ;
    if( atr_str != NULL && ISZERO_IDCODE(dset->warp_parent_idcode) ){
-      MCW_strncpy( dset->warp_parent_name , atr_str->ch , THD_MAX_NAME ) ;
-   } else {
-      dset->warp_parent_name[0] = '\0' ;
+     MCW_strncpy( dset->warp_parent_name , atr_str->ch , THD_MAX_NAME ) ;
    }
 
    atr_str = THD_find_string_atr( blk , ATRNAME_DATANAME ) ;
    if( atr_str != NULL ){
-      MCW_strncpy( dset->self_name , atr_str->ch , THD_MAX_NAME ) ;
-   } else {
-      MCW_strncpy( dset->self_name , THD_DEFAULT_LABEL , THD_MAX_NAME ) ;
+     MCW_strncpy( dset->self_name , atr_str->ch , THD_MAX_NAME ) ;
    }
-
-   dset->anat_parent = dset->warp_parent = NULL ;  /* must be set later */
+#endif
 
    /*---------------------------*/
    /*-- find axes orientation --*/
@@ -211,11 +221,11 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    atr_int = THD_find_int_atr( blk , ATRNAME_ORIENT_SPECIFIC ) ;
    if( atr_int == NULL ){
-      DSET_ERR("illegal or missing ORIENT_SPECIFIC") ;
+     DSET_ERR("illegal or missing ORIENT_SPECIFIC") ;
    } else {
-      daxes->xxorient = atr_int->in[0] ;
-      daxes->yyorient = atr_int->in[1] ;
-      daxes->zzorient = atr_int->in[2] ;
+     daxes->xxorient = atr_int->in[0] ;
+     daxes->yyorient = atr_int->in[1] ;
+     daxes->zzorient = atr_int->in[2] ;
    }
 
    /*----------------------*/
@@ -224,11 +234,11 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    atr_flo = THD_find_float_atr( blk , ATRNAME_ORIGIN ) ;
    if( atr_flo == NULL ){
-      DSET_ERR("illegal or missing ORIGIN") ;
+     DSET_ERR("illegal or missing ORIGIN") ;
    } else {
-      daxes->xxorg = atr_flo->fl[0] ;
-      daxes->yyorg = atr_flo->fl[1] ;
-      daxes->zzorg = atr_flo->fl[2] ;
+     daxes->xxorg = atr_flo->fl[0] ;
+     daxes->yyorg = atr_flo->fl[1] ;
+     daxes->zzorg = atr_flo->fl[2] ;
    }
 
    /*------------------------*/
@@ -237,11 +247,11 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    atr_flo = THD_find_float_atr( blk , ATRNAME_DELTA ) ;
    if( atr_flo == NULL ){
-      DSET_ERR("illegal or missing DELTA") ;
+     DSET_ERR("illegal or missing DELTA") ;
    } else {
-      daxes->xxdel = atr_flo->fl[0] ;
-      daxes->yydel = atr_flo->fl[1] ;
-      daxes->zzdel = atr_flo->fl[2] ;
+     daxes->xxdel = atr_flo->fl[0] ;
+     daxes->yydel = atr_flo->fl[1] ;
+     daxes->zzdel = atr_flo->fl[2] ;
    }
 
    /*---------------------------------------*/
@@ -251,22 +261,22 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    daxes->xxmin = daxes->xxorg ;
    daxes->xxmax = daxes->xxorg + (daxes->nxx-1) * daxes->xxdel ;
    if( daxes->xxmin > daxes->xxmax ){
-      float temp   = daxes->xxmin ;
-      daxes->xxmin = daxes->xxmax ; daxes->xxmax = temp ;
+     float temp   = daxes->xxmin ;
+     daxes->xxmin = daxes->xxmax ; daxes->xxmax = temp ;
    }
 
    daxes->yymin = daxes->yyorg ;
    daxes->yymax = daxes->yyorg + (daxes->nyy-1) * daxes->yydel ;
    if( daxes->yymin > daxes->yymax ){
-      float temp   = daxes->yymin ;
-      daxes->yymin = daxes->yymax ; daxes->yymax = temp ;
+     float temp   = daxes->yymin ;
+     daxes->yymin = daxes->yymax ; daxes->yymax = temp ;
    }
 
    daxes->zzmin = daxes->zzorg ;
    daxes->zzmax = daxes->zzorg + (daxes->nzz-1) * daxes->zzdel ;
    if( daxes->zzmin > daxes->zzmax ){
-      float temp   = daxes->zzmin ;
-      daxes->zzmin = daxes->zzmax ; daxes->zzmax = temp ;
+     float temp   = daxes->zzmin ;
+     daxes->zzmin = daxes->zzmax ; daxes->zzmax = temp ;
    }
 
 #ifdef EXTEND_BBOX
@@ -327,11 +337,12 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    /*-- read set of markers (optional) --*/
    /*------------------------------------*/
 
+   dset->markers = NULL ;
+
+#ifndef USE_APPLICATOR
    atr_flo = THD_find_float_atr( blk , ATRNAME_MARKSXYZ ) ;
 
-   if( atr_flo == NULL ){
-      dset->markers = NULL ;
-   } else {
+   if( atr_flo != NULL ){
       dset->markers = myXtNew( THD_marker_set ) ;  /* new set */
       ADDTO_KILL(dset->kl , dset->markers) ;
 
@@ -437,19 +448,19 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
       } /* end of if marker flags exist */
 
    } /* end of if markers exist */
+#endif
 
    /*--------------------------*/
    /*-- read warp (optional) --*/
    /*--------------------------*/
 
-   atr_int = THD_find_int_atr( blk , ATRNAME_WARP_TYPE ) ;
-
    dset->vox_warp  = NULL ;  /* 02 Nov 1996 */
    dset->self_warp = NULL ;  /* 26 Aug 2002 */
+   dset->warp      = NULL ;
 
-   if( atr_int == NULL ){  /* no warp */
-      dset->warp = NULL ;
-   } else {
+#ifndef USE_APPLICATOR
+   atr_int = THD_find_int_atr( blk , ATRNAME_WARP_TYPE ) ;
+   if( atr_int != NULL ){  /* no warp */
       int wtype = atr_int->in[0] , rtype = atr_int->in[1]  ;
 
       dset->warp = myXtNew( THD_warp ) ;
@@ -501,27 +512,11 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
          } /* end of switch on warp type */
       } /* end of if on legal warp data */
    } /* end of if on warp existing */
-
-   /*--- check for the following conditions:
-           if warp exists,    warp_parent_name or _idcode must exist;
-           if warp nonexists, warp_parent_name and _idcode must nonexist,
-                              AND data must exist on disk    ---*/
-
-   if( dset->warp != NULL ){
-      if( strlen(dset->warp_parent_name) <= 0 && ISZERO_IDCODE(dset->warp_parent_idcode) )
-         DSET_ERR("have warp but have no warp parent") ;
-
-      dset->wod_flag = !allow_nodata && !DSET_ONDISK(dset) ;
-   } else {
-      if( strlen(dset->warp_parent_name) > 0 || ! ISZERO_IDCODE(dset->warp_parent_idcode) )
-         DSET_ERR("have no warp but have warp parent") ;
-
-      if( !allow_nodata && !DSET_ONDISK(dset) )
-         DSET_ERR("have no warp but have no data on disk as well") ;
-   }
+#endif
 
    /*----- read statistics, if available -----*/
 
+#ifndef USE_APPLICATOR
    atr_flo = THD_find_float_atr( blk , ATRNAME_BRICK_STATS ) ;  /* new style */
 
    if( atr_flo != NULL ){  /*** have new style statistics ***/
@@ -570,26 +565,27 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
          ADDTO_KILL( dset->kl , dset->stats ) ;
       }
    }
+#endif
 
    /*--- read auxiliary statistics info, if any ---*/
 
    atr_flo = THD_find_float_atr( blk , ATRNAME_STAT_AUX ) ;
 
    if( atr_flo != NULL ){
-      INIT_STAT_AUX( dset , atr_flo->nfl , atr_flo->fl ) ;
-      iq = atr_flo->nfl ;
+     INIT_STAT_AUX( dset , atr_flo->nfl , atr_flo->fl ) ;
+     iq = atr_flo->nfl ;
    } else {
-      ZERO_STAT_AUX( dset ) ;
-      iq = 0 ;
+     ZERO_STAT_AUX( dset ) ;
+     iq = 0 ;
    }
 
    if( ISFUNC(dset) && FUNC_need_stat_aux[dset->func_type] > iq ){
-      DSET_ERR("function type missing auxiliary statistical data") ;
+     DSET_ERR("function type missing auxiliary statistical data") ;
    }
 
    /*--- read time-dependent information, if any ---*/
 
-   atr_int = THD_find_int_atr(   blk , ATRNAME_TAXIS_NUMS ) ;
+   atr_int = THD_find_int_atr  ( blk , ATRNAME_TAXIS_NUMS ) ;
    atr_flo = THD_find_float_atr( blk , ATRNAME_TAXIS_FLOATS ) ;
 
    if( atr_int != NULL && atr_flo != NULL ){
@@ -640,6 +636,7 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    /*--- 23 Oct 1998: read the tagset information ---*/
 
+#ifndef USE_APPLICATOR
    atr_int = THD_find_int_atr   ( blk , ATRNAME_TAGSET_NUM    ) ;
    atr_flo = THD_find_float_atr ( blk , ATRNAME_TAGSET_FLOATS ) ;
    atr_str = THD_find_string_atr( blk , ATRNAME_TAGSET_LABELS ) ;
@@ -691,23 +688,59 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
          }
       }
    }
+#endif
+
+   /* 10 May 2005: new function to apply some attributes
+                   to dataset, rather than doing it here */
+
+#ifdef USE_APPLICATOR
+   THD_datablock_apply_atr( dset ) ;
+#endif
+
+   /*--- check for the following conditions:
+           if warp exists,    warp_parent_name or _idcode must exist;
+           if warp nonexists, warp_parent_name and _idcode must nonexist,
+                              AND data must exist on disk                 ---*/
+
+   if( dset->warp != NULL ){
+     if( strlen(dset->warp_parent_name) <= 0 &&
+         ISZERO_IDCODE(dset->warp_parent_idcode) )
+       DSET_ERR("have warp but have no warp parent") ;
+
+     dset->wod_flag = !allow_nodata && !DSET_ONDISK(dset) ;
+   } else {
+     if( strlen(dset->warp_parent_name) > 0 ||
+         !ISZERO_IDCODE(dset->warp_parent_idcode) )
+       DSET_ERR("have no warp but have warp parent") ;
+
+     if( !allow_nodata && !DSET_ONDISK(dset) )
+       DSET_ERR("have no warp but have no data on disk as well") ;
+   }
+
+   /* backup assignment of ID code if not assigned earlier */
+
+   if( dset->idcode.str[0] == '\0' ) dset->idcode = MCW_new_idcode() ;
 
    /*--- that's all the work for now;
          if any error was flagged, kill this dataset and return nothing ---*/
 
    if( dset_ok == False ){
-      fprintf(stderr,"PURGING dataset %s from memory\n",DSET_HEADNAME(dset)) ;
-      THD_delete_3dim_dataset( dset , False ) ;
-      RETURN(NULL) ;
+     fprintf(stderr,"PURGING dataset %s from memory\n",DSET_HEADNAME(dset)) ;
+     THD_delete_3dim_dataset( dset , False ) ;
+     RETURN(NULL) ;
    }
 
    /*--- If we assigned a new dataset idcode, write it back to disk ---*/
+      /* (This code was for the old days, when there were datasets)
+         (hanging around that hadn't yet been assigned ID codes.  ) */
 
+#if 0
    if( dset != NULL && new_idcode ){
-      fprintf(stderr,"** Writing new ID code to dataset header %s\n",
-              dset->dblk->diskptr->header_name ) ;
-      THD_write_3dim_dataset( NULL , NULL , dset , False ) ;
+     fprintf(stderr,"** Writing new ID code to dataset header %s\n",
+             dset->dblk->diskptr->header_name ) ;
+     THD_write_3dim_dataset( NULL , NULL , dset , False ) ;
    }
+#endif
 
    RETURN( dset );
 }

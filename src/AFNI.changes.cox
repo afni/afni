@@ -5521,3 +5521,8 @@
 
 09 May 2005
  * Modify plug_nudge.c to deal with RGB-valued datasets.
+
+10 May 2005
+ * Modifiy thd_initdblk.c, thd_niftiread.c, thd_niftiwrite.c to store AFNI
+     header data in a NIfTI-1.1 extension, making it more feasible to use
+     .nii datasets in AFNI as a primary storage mechanism.
