@@ -68,6 +68,7 @@
 	             pass the registration parameters before adjusting the
 	             base pointers for plot_ts_addto()                       **/
 /** 02 Apr 2004: move RT_mp_comm_close() from last plot check  [tross/rickr] **/
+/** 10 May 2005: added TPATTERN command to set timing pattern        [rickr] **/
 
 
 /**************************************************************************/
@@ -151,6 +152,7 @@ typedef struct {
    int   dtype ;                  /* dataset type: a DTYPE code */
    int   zorder ;                 /* 2D slice ordering: a ZORDER code */
    int   zorder_lock ;            /* 22 Feb 1999: lock zorder value */
+   int   tpattern ;               /* 2D slice timing     10 May 2005 [rickr] */
    int   nzseq , zseq[NZMAX] ;    /* slice input order */
    int   datum ;                  /* a MRI_type code from mrilib.h */
    int   swap_on_read ;           /* flag: swap bytes?   26 Jun 2003 [rickr] */
@@ -1481,6 +1483,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
 
    rtin->zorder      = ZORDER_ALT ;
    rtin->zorder_lock = 0 ;              /* 22 Feb 1999 */
+   rtin->tpattern    = ZORDER_ALT ;     /* 10 May 2005 [rickr] */
 #endif
 
    rtin->swap_on_read = 0 ;  /* wait for BYTEORDER     26 Jun 2003 [rickr] */
@@ -1732,6 +1735,7 @@ void RT_check_info( RT_input * rtin , int prt )
                    ( rtin->nzz >= 1 )                             &&
                    ( AFNI_GOOD_DTYPE(rtin->datum) )               &&
                    ( rtin->zorder > 0 )                           &&
+                   ( rtin->tpattern > 0 )                         &&
                    ( rtin->orcxx >= 0 )                           &&
                    ( rtin->orcyy >= 0 )                           &&
                    ( rtin->orczz >= 0 )                           &&
@@ -1753,6 +1757,7 @@ void RT_check_info( RT_input * rtin , int prt )
    if( !(rtin->nzz >= 1)                             ) EPR("Slice count (z-dimen) not >= 1") ;
    if( !(AFNI_GOOD_DTYPE(rtin->datum))               ) EPR("Bad datum") ;
    if( !(rtin->zorder > 0)                           ) EPR("Slice ordering illegal") ;
+   if( !(rtin->tpattern > 0)                         ) EPR("Timing pattern illegal") ;
    if( !(rtin->orcxx >= 0)                           ) EPR("x-orientation illegal") ;
    if( !(rtin->orcyy >= 0)                           ) EPR("y-orientation illegal") ;
    if( !(rtin->orczz >= 0)                           ) EPR("z-orientation illegal") ;
@@ -2297,10 +2302,10 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 	 if( verbose > 1 )
 	    fprintf(stderr,"RT: BYTEORDER string = '%s', swap_on_read = %d\n",
 		    BYTE_ORDER_STRING(bo), rtin->swap_on_read) ;
-      } else if( STARTER("LOCK_ZORDER") ){  /* 22 Feb 1999:                    */
-         rtin->zorder_lock = 1 ;            /* allow program to 'lock' zorder, */
-                                            /* so that later changes are       */
-      } else if( STARTER("ZORDER") ){       /* ineffective.                    */
+      } else if( STARTER("LOCK_ZORDER") ){  /* 22 Feb 1999:                   */
+         rtin->zorder_lock = 1 ;            /* allow program to 'lock' zorder,*/
+                                            /* so that later changes are      */
+      } else if( STARTER("ZORDER") ){       /* ineffective.                   */
          if( ! rtin->zorder_lock ){
            char str[32] = "\0" ; int nord=0 , nb = 0 , nq ;
            sscanf( buf , "ZORDER %31s%n" , str , &nb ) ;
@@ -2317,6 +2322,16 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
               rtin->nzseq = nord ;                 /* number found */
               if( nord < 1 || nord > NZMAX ) BADNEWS ;
            }
+           else
+                BADNEWS ;
+         }
+
+      } else if( STARTER("TPATTERN") ){               /* get timing pattern  */
+         if( ! rtin->zorder_lock ){                   /* 10 May 2005 [rickr] */
+           char str[32] = "\0" ;
+           sscanf( buf , "TPATTERN %31s" , str ) ;
+                if( strcmp(str,"alt+z") == 0 ) rtin->tpattern = ZORDER_ALT ;
+           else if( strcmp(str,"seq+z") == 0 ) rtin->tpattern = ZORDER_SEQ ;
            else
                 BADNEWS ;
          }
@@ -2400,6 +2415,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
    if( rtin->nzz == 1 ){                   /* 24 Jun 2002: 1 slice only? */
      rtin->zorder = ZORDER_SEQ ;
+     rtin->tpattern = ZORDER_SEQ ;
      if( REG_IS_3D(rtin->reg_mode) ){
        rtin->reg_mode = REGMODE_NONE ;
        fprintf(stderr,"RT: can't do 3D registration on 2D dataset!\n") ;
@@ -2719,7 +2735,8 @@ void RT_start_dataset( RT_input * rtin )
          float   tsl ;
          int     ii ;
 
-         if( rtin->zorder == ZORDER_ALT ){        /* alternating +z direction */
+         if( rtin->zorder == ZORDER_ALT || rtin->tpattern == ZORDER_ALT ){
+            /* alternating +z direction */
             tsl = 0.0 ;
             for( ii=0 ; ii < rtin->nzz ; ii+=2 ){
                tpattern[ii] = tsl ; tsl += tframe ;
@@ -2727,7 +2744,11 @@ void RT_start_dataset( RT_input * rtin )
             for( ii=1 ; ii < rtin->nzz ; ii+=2 ){
                tpattern[ii] = tsl ; tsl += tframe ;
             }
-         } else if( rtin->zorder == ZORDER_SEQ ){ /* sequential +z direction */
+         }
+         /* make sequential a terminating case     10 May 2005 [rickr] */
+         /* else if( rtin->zorder == ZORDER_SEQ ){                     */
+         /* ... more tpatterns may be added above here                 */
+         else {
             tsl = 0.0 ;
             for( ii=0 ; ii < rtin->nzz ; ii++ ){
                tpattern[ii] = tsl ; tsl += tframe ;

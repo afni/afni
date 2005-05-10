@@ -1529,7 +1529,7 @@ file_tool.exe: ge4_header.o
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) file_tool.exe .. ; )
 
-Dimon: rickr/Dimon.c rickr/Dimon.h rickr/realtime.c rickr/realtime.h
+Dimon: rickr/Dimon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h
 	( cd rickr ; 							\
 	$(MAKE) Dimon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' ;	                                \
