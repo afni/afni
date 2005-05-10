@@ -1135,4 +1135,5 @@
   * added Kate's real_easy/nifti1_read_write.c to AFNI CVS
   * modified znzlib.c, using gzseek() for the failing gzrewind()
   * modified nifti_io.c, opening in compressed mode only on '.gz'
+  * modifited to3d.c: fixed help on 'seqplus' and 'seqminus'
 
