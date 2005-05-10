@@ -248,8 +248,11 @@ static char gni_history[] =
   "   - in nifti_read_extensions(), decrement 'remain' by extender size, 4\n"
   "   - in nifti_set_iname_offset(), case 1, update if offset differs\n"
   "   - only output '-d writing nifti file' if debug > 1\n"
+  "\n"
+  "1.10 10 May 2005 [rickr]\n"
+  "   - files are read using ZLIB only if they end in '.gz'\n"
   "----------------------------------------------------------------------\n";
-static char gni_version[] = "nifti library version 1.9 (April 19, 2005)";
+static char gni_version[] = "nifti library version 1.10 (May 10, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -2467,7 +2470,7 @@ int is_nifti_file( const char *hname )
          fprintf(stderr,"** no header file found for '%s'\n",hname);
       return -1;
    }
-   fp = znzopen( tmpname , "rb" , 1 ) ;
+   fp = znzopen( tmpname , "rb" , nifti_is_gzfile(tmpname) ) ;
    free(tmpname);
    if (znz_isnull(fp))                      return -1 ;  /* bad open? */
 
@@ -2908,7 +2911,7 @@ znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim)
      ERREX("bad header info") ;
                                                                                 
   /* open image data file */
-  fptr = znzopen((*nim)->iname ,opts,1);
+  fptr = znzopen( (*nim)->iname, opts, nifti_is_gzfile((*nim)->iname) );
   if( znz_isnull(fptr) ) ERREX("Can't open data file") ;
                                                                                 
   return fptr;
@@ -2941,7 +2944,7 @@ nifti_1_header * nifti_read_header( char * hname, int * swap, int check )
    } else if( g_opts.debug > 1 )
       fprintf(stderr,"-d %s: found header filename '%s'\n",fname,hfile);
 
-   fp = znzopen(hfile,"rb",1);
+   fp = znzopen( hfile, "rb", nifti_is_gzfile(hfile) );
    if( znz_isnull(fp) ){
       if( g_opts.debug > 0 ) LNI_FERR(fname,"failed to open header file",hfile);
       free(hfile);
@@ -3140,7 +3143,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    if( nifti_is_gzfile(hfile) ) filesize = -1;  /* unknown */
    else                         filesize = nifti_get_filesize(hfile);
 
-   fp = znzopen(hfile,"rb",1);
+   fp = znzopen(hfile, "rb", nifti_is_gzfile(hfile));
    if( znz_isnull(fp) ){
       if( g_opts.debug > 0 ) LNI_FERR(fname,"failed to open header file",hfile);
       free(hfile);
@@ -3746,7 +3749,7 @@ static znzFile nifti_image_load_prep( nifti_image *nim )
 
    /**- open image data file */
 
-   fp = znzopen(nim->iname, "rb", 1);
+   fp = znzopen(nim->iname, "rb", nifti_is_gzfile(nim->iname));
    if( znz_isnull(fp) ){
       if( g_opts.debug > 0 ) LNI_FERR(fname,"cannot open data file",nim->iname);
       return NULL;

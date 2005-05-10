@@ -157,7 +157,13 @@ int znzrewind(znzFile stream)
 {
   if (stream==NULL) { return 0; }
 #ifdef HAVE_ZLIB
-  if (stream->zfptr!=NULL) return gzrewind(stream->zfptr);
+  /* On some systems, gzrewind() fails for uncompressed files.
+     Use gzseek(), instead.               10, May 2005 [rickr]
+
+     if (stream->zfptr!=NULL) return gzrewind(stream->zfptr);
+  */
+
+  if (stream->zfptr!=NULL) return (int)gzseek(stream->zfptr, 0L, SEEK_SET);
 #endif
   rewind(stream->nzfptr);
   return 0;
