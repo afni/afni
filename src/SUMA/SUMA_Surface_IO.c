@@ -3332,7 +3332,7 @@ SUMA_Boolean SUMA_VEC_Read(SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
       fprintf(SUMA_STDERR,"Error %s: Failed to allocate for NodeList.\n", FuncName);
       if (SO->NodeList) SUMA_free(SO->NodeList);
       if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
-      SUMA_RETURN (NULL);
+      SUMA_RETURN (NOPE);
    }
 
    for (icnt=0; icnt < SO->N_Node; ++icnt) {
@@ -3372,7 +3372,7 @@ SUMA_Boolean SUMA_VEC_Read(SUMA_SFname *Fname, SUMA_SurfaceObject *SO)
       fprintf(SUMA_STDERR,"Error %s: Failed to allocate for FaceSetList.\n", FuncName);
       if (SO->NodeList) SUMA_free(SO->NodeList);
       if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
-      SUMA_RETURN (NULL);
+      SUMA_RETURN (NOPE);
    }
 
    for (icnt=0; icnt < SO->N_FaceSet; ++icnt) {
