@@ -663,8 +663,8 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
          SUMA_Read_dfile (SO->FaceSetList, SF_FileName->name_topo, SO->N_FaceSet*SO->FaceSetDim);
         
          #else
-         /* the im_read_1D way */
-         {
+         if (0){
+            /* the local im_read_1D way */
             MRI_IMAGE *im = NULL;
             float *far=NULL;
             int icnt;
@@ -750,6 +750,13 @@ SUMA_SurfaceObject * SUMA_Load_Surface_Object_eng (void *SO_FileName_vp, SUMA_SO
             } 
             mri_free(im); im = NULL;
             
+         } else {
+            if (!SUMA_VEC_Read(SF_FileName, SO)) {
+               SUMA_SLP_Err("Failed to read 1D file");
+               if (SO->NodeList) SUMA_free(SO->NodeList);
+               if (SO->FaceSetList) SUMA_free(SO->FaceSetList);
+               SUMA_RETURN (NULL);
+            }
          }
          #endif
                   

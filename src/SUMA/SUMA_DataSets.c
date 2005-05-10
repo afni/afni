@@ -5198,13 +5198,9 @@ gcc -DSUMA_StripPath_STAND_ALONE -Wall -o $1 $1.c -SUMA_lib.a -I/usr/X11R6/inclu
 ***/
 SUMA_FileName SUMA_StripPath (char *FileName)
 {/*SUMA_StripPath*/
-   char FuncName[100],  PathDelimiter[1]; 
+   static char FuncName[] = {"SUMA_StripPath"},  PathDelimiter[]={"/"}; 
    int i, j, NotFound=1, N_FileName;
 	SUMA_FileName NewName;
-	
-   /* initialize function name for verbose output */
-   sprintf (FuncName,"SUMA_StripPath");
-   sprintf (PathDelimiter,"/");
 	
 	N_FileName = strlen(FileName);
 	if (N_FileName ){
@@ -5256,11 +5252,11 @@ SUMA_FileName SUMA_StripPath (char *FileName)
    \param FileName (char *) obvious ...
    \return ans (SUMA_PARSED_NAME *) pointer to structure with following fields:
       .FileName (char *) containing filename without path. 
-                        if empty .FileName = '\0'
+                        if empty .FileName[0] = '\0'
       .Path (char *) containing path including last slash.
                      If no path exists, Path is "./" 
       .Ext (char *) containing extension including the dot.
-                    If no extension exists, Ext = '\0'
+                    If no extension exists, Ext[0] = '\0'
       .FileName_NoExt (char *) filename without extension.
       
       \sa SUMA_Free_Parsed_Name
@@ -5445,7 +5441,7 @@ char *SUMA_Extension(char *filename, char *ext, SUMA_Boolean Remove)
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Comparing %c %c\n", FuncName, filename[ifile+i], ext[i]);
       if (filename[ifile+i] != ext[i]) NoMatch = YUP;
       ++i;
-   }  while (ifile < nfilename && i < next && NoMatch);
+   }  while (ifile < nfilename && i < next && !NoMatch);
 
    if (NoMatch) {
       if (Remove) { /* nothing to do */
