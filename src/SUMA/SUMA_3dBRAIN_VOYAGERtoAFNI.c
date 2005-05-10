@@ -120,7 +120,7 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
    /* make fname be the new name without the extension*/
    fname = SUMA_Extension(fnameorig,".vmr", YUP);
    
-   prefix = SUMA_AfniPrefix(fname, NULL);
+   prefix = SUMA_AfniPrefix(fname, NULL, NULL, NULL);
    if( !THD_filename_ok(prefix) ) {
       SUMA_SL_Err("Bad prefix");
       goto CLEAN_EXIT;

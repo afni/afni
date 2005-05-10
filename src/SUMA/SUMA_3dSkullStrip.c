@@ -873,7 +873,7 @@ int main (int argc,char *argv[])
          LOAD_FVEC3( orgxyz , originRAIfv.xyz[0]    , originRAIfv.xyz[1]    , originRAIfv.xyz[2]    ) ;
          LOAD_IVEC3( orixyz , ORI_R2L_TYPE , ORI_A2P_TYPE , ORI_I2S_TYPE ) ;
 
-         prefix = SUMA_AfniPrefix(Opt->in_name, NULL); 
+         prefix = SUMA_AfniPrefix(Opt->in_name, NULL, NULL, NULL); 
          if (!prefix) { SUMA_SL_Err("Bad prefix!!!"); exit(1); }
          spatprefix = SUMA_append_string(prefix, "_SpatNorm_OrigSpace");
          EDIT_dset_items( Opt->OrigSpatNormedSet ,
@@ -917,7 +917,7 @@ int main (int argc,char *argv[])
          LOAD_FVEC3( orgxyz , imout_edge->xo    , imout_edge->yo    , imout_edge->zo    ) ;
          LOAD_IVEC3( orixyz , ORI_R2L_TYPE , ORI_A2P_TYPE , ORI_I2S_TYPE ) ;
       
-         prefix = SUMA_AfniPrefix(Opt->in_name, NULL); 
+         prefix = SUMA_AfniPrefix(Opt->in_name, NULL, NULL, NULL); 
          if (!prefix) { SUMA_SL_Err("Bad prefix!!!"); exit(1); }
          spatprefix = SUMA_append_string(prefix, "_EdgeSpatNorm");
          EDIT_dset_items( oset ,
@@ -958,7 +958,7 @@ int main (int argc,char *argv[])
       LOAD_FVEC3( orgxyz , imout->xo    , imout->yo    , imout->zo    ) ;
       LOAD_IVEC3( orixyz , ORI_R2L_TYPE , ORI_A2P_TYPE , ORI_I2S_TYPE ) ;
       
-      prefix = SUMA_AfniPrefix(Opt->in_name, NULL); 
+      prefix = SUMA_AfniPrefix(Opt->in_name, NULL, NULL, NULL); 
       if (!prefix) { SUMA_SL_Err("Bad prefix!!!"); exit(1); }
       spatprefix = SUMA_append_string(prefix, "_SpatNorm");
       EDIT_dset_items( oset ,

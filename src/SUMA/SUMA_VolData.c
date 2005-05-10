@@ -54,40 +54,149 @@ int SUMA_THD_handedness( THD_3dim_dataset * dset )
 }
 
 /*!
-   \brief Return AFNI's prefix, also checks for its validity
-   \param name (char *) dset name
+   see help for SUMA_AfniPrefix below
+*/
+SUMA_Boolean SUMA_AfniExistsView(int exists, char *view)
+{
+   static char FuncName[]={"SUMA_AfniExistsView"};
+   SUMA_Boolean ans = NOPE;
+   
+   if (!exists) SUMA_RETURN(ans);
+   
+   if (strcmp(view,"+orig") == 0) {
+      if (exists == 1 || exists == 3 || exists == 5 || exists == 7) ans = YUP; 
+   } else if (strcmp(view,"+acpc") == 0) {
+      if (exists == 2 || exists == 3 || exists == 6 || exists == 7) ans = YUP; 
+   } else if (strcmp(view,"+tlrc") == 0) {
+      if (exists == 4 || exists == 5 || exists == 6 || exists == 7) ans = YUP; 
+   } 
+   
+   SUMA_RETURN(ans);
+
+}
+
+/*!
+   \brief Return AFNI's prefix, from a file name also checks for its validity
+   \param name (char *) dset name (can contain path)
    \param view (char[4]) array to return view in it
+   \param path (char *) if any, make sure it is not duplicated in name!
+   \param exists (int *) function checks
+                        for all three possible views
+                        0: No afni dset with name/prefix
+                        1: +orig
+                        2: +acpc
+                           3: +orig and +acpc 
+                        4: +tlrc
+                           5: +orig and +tlrc
+                           6: +acpc and +tlrc
+                           7: +orig and +acpc and +tlrc
+                        \sa SUMA_AfniExistsView   
+                        
    \return prefix (char *) dset prefix, free it with SUMA_free
 */
-char *SUMA_AfniPrefix(char *name, char *view) 
+char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists) 
 {
    static char FuncName[]={"SUMA_AfniPrefix"};
-   char *tmp1 = NULL, *tmp2 = NULL, *prfx = NULL;
+   char *tmp1 = NULL, *tmp2 = NULL, *prfx = NULL, *name=NULL;
+   char cview[10];
+   int iview;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
-   if (!name) SUMA_RETURN(prfx);
+   if (!nameorig) SUMA_RETURN(prfx);
+   if (exists) *exists = 0;
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Working with %s\n", FuncName, nameorig);
+   
+   if (!path) name = SUMA_copy_string(nameorig);
+   else {
+      if (path[strlen(path)-1] == '/') {
+         name = SUMA_append_replace_string(path, nameorig, "", 0);
+      } else {
+         name = SUMA_append_replace_string(path, nameorig, "/", 0);
+      }
+   }
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: name now %s\n", FuncName, name);
    
    tmp1 = SUMA_Extension(name, ".HEAD", YUP);
    tmp2 = SUMA_Extension(tmp1, ".BRIK", YUP); SUMA_free(tmp1); tmp1 = NULL;
    /* is there a dot ?*/
    if (tmp2[strlen(tmp2)-1] == '.') tmp2[strlen(tmp2)-1] = '\0';
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Searching for view of %s\n", FuncName, tmp2);
+   
+   /* view */
+   iview = -1;
+   if (SUMA_isExtension(tmp2, "+orig")) { 
+      iview = 0; sprintf(cview, "+orig"); 
+      prfx = SUMA_Extension(tmp2, "+orig", YUP);
+   } else if (SUMA_isExtension(tmp2, "+acpc")) { 
+      iview = 1; sprintf(cview, "+acpc"); 
+      prfx = SUMA_Extension(tmp2, "+acpc", YUP);
+   } else if (SUMA_isExtension(tmp2, "+tlrc")) { 
+      iview = 2; sprintf(cview, "+tlrc"); 
+      prfx = SUMA_Extension(tmp2, "+tlrc", YUP);
+   } else {
+      prfx = SUMA_copy_string(tmp2);
+      cview[0]='\0';
+   }
+   SUMA_free(tmp2); tmp2 = NULL;
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Prefix %s\n", FuncName, prfx);
+   
+   /* can't tell what view is, so can't test properly quite yet */
+   {   
+      /* is name ok ? all I have to do is test with +orig */
+      char *bname=SUMA_append_string(prfx,"+orig");
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: Checking name validity using +orig for view %s\n", FuncName, bname);
+      if( !THD_filename_ok(bname) ){
+         SUMA_SL_Err("not a proper dset name!\n") ;
+         SUMA_free(name); name = NULL;
+         SUMA_free(prfx); prfx = NULL;
+         SUMA_free(bname); bname = NULL;
+         SUMA_RETURN(prfx);
+      }
+   }
+   
+   if (exists) {
+      { /* look for any */
+         char *head=NULL, c2view[10];
+         iview = 0; *exists = 0;
+         while (iview < 3) {
+            if (iview == 0) sprintf(c2view, "+orig"); 
+            else if (iview == 1) sprintf(c2view, "+acpc"); 
+            else if (iview == 2) sprintf(c2view, "+tlrc");
+            head = SUMA_append_replace_string(prfx,".HEAD", c2view,0);
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: Checking existence of %s\n", FuncName, head);
+            if (SUMA_filexists(head)) { *exists += (int)pow(2,iview); }
+            SUMA_free(head); head = NULL; 
+            ++iview;
+         }
+      }
+      if (LocalHead) fprintf(SUMA_STDERR,"%s: exist number is %d\n", FuncName, *exists);
+   }
+   
+   
+   if (cview[0] != '\0') {
+      if (LocalHead) {
+         if (SUMA_AfniExistsView(*exists, cview)) {
+            fprintf(SUMA_STDERR,"%s: dset with view %s does exist.\n", FuncName, cview); 
+         } else {
+            fprintf(SUMA_STDERR,"%s: dset with view %s does not exist.\n", FuncName, cview); 
+         }
+      }
+   }
+   
    if (view) {
-      if (SUMA_isExtension(tmp2, "+orig")) sprintf(view, "+orig");
-      else if (SUMA_isExtension(tmp2, "+acpc")) sprintf(view, "+acpc");
-      else if (SUMA_isExtension(tmp2, "+tlrc")) sprintf(view, "+tlrc");
+      sprintf(view,"%s", cview);
    }
-   tmp1 = SUMA_Extension(tmp2, "+orig", YUP); SUMA_free(tmp2); tmp2 = NULL;
-   tmp2 = SUMA_Extension(tmp1, "+acpc", YUP); SUMA_free(tmp1); tmp1 = NULL;
-   prfx = SUMA_Extension(tmp2, "+tlrc", YUP); SUMA_free(tmp2); tmp2 = NULL;
-   if( !THD_filename_ok(prfx) ){
-      SUMA_SL_Err("prefix contains forbidden characters!\n") ;
-      SUMA_free(prfx); prfx = NULL;
-      SUMA_RETURN(prfx);
-   }
+   if (name) SUMA_free(name); name = NULL;
    
    SUMA_RETURN(prfx);
 }
+                        
 /*!
    \brief A function to find the skin of a volume
    \param dset (THD_3dim_dataset *) an AFNI volume

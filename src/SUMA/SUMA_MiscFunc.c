@@ -6564,6 +6564,7 @@ int *SUMA_reorder(int *y, int *isort, int N_isort)
 /*!
    \brief A function to suck in an ascii file
    Shamelessly stolen from Bob's suck_file
+   \sa SUMA_file_suck
 */
 int SUMA_suck_file( char *fname , char **fbuf )
 {
@@ -6587,6 +6588,37 @@ int SUMA_suck_file( char *fname , char **fbuf )
 
    ii = read( fd , buf , len ) ;
    close( fd ) ;
-   if( ii <= 0 ){ free(buf) ; SUMA_RETURN(0); }
+   if( ii <= 0 ){ SUMA_free(buf) ; SUMA_RETURN(0); }
    *fbuf = buf ; SUMA_RETURN(ii) ;
+}
+/*!
+   \brief Another version of SUMA_suck_file that hopes to
+   avoid the silly error on OSX 
+   \sa SUMA_suck_file
+*/
+char * SUMA_file_suck( char *fname , int *nread )
+{
+   static char FuncName[]={"SUMA_file_suck"};
+   int  fd , ii = 0;
+   unsigned long len; 
+   char * buf = NULL;
+
+   SUMA_ENTRY;
+   
+   *nread = 0;
+   if( fname == NULL || fname[0] == '\0') SUMA_RETURN(0) ;
+
+   len = THD_filesize( fname ) ;
+   if( len <= 0 ) SUMA_RETURN(buf) ;
+
+   buf = (char *) SUMA_malloc( sizeof(char) * (len+4) ) ;
+   if( buf == NULL ) SUMA_RETURN(buf) ;
+
+   fd = open( fname , O_RDONLY ) ;
+   if( fd < 0 ) SUMA_RETURN(buf) ;
+
+   ii = read( fd , buf , len ) ;
+   close( fd ) ;
+   if( ii <= 0 ){ SUMA_free(buf) ; buf = NULL; SUMA_RETURN(buf); }
+   *nread = ii ; SUMA_RETURN(buf) ;
 }
