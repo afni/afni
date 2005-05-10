@@ -1121,13 +1121,18 @@
 30 April 2005:
   * modified whereami.c so that it does not crash on missing TTatlas+tlrc
 
-05 April 2005:
+05 May 2005:
   * modified nifti1_io.h: fixed NIFTI_FTYPE_ASCII (should be 3, not 2)
   * modified nifti1_io.c: to incorporate Bob's new NIFTI_SLICE_ALT_INC2
       and NIFTI_SLICE_ALT_DEC2 codes from nifti1.h
 
-06 April 2005: Dimon (v 0.1)
+06 May 2005: Dimon (v 0.1)
   * added files for Dimon: Dimon.[ch], dimon_afni.c, l_mri_dicom_hdr.c
   * modified Imon.[ch], l_mcw_glob.[ch], rickr/Makefile, Makefile.INCLUDE
   * mostly as a check-in for now, details and updates to follow
+
+10 May 2005: nifti fix
+  * added Kate's real_easy/nifti1_read_write.c to AFNI CVS
+  * modified znzlib.c, using gzseek() for the failing gzrewind()
+  * modified nifti_io.c, opening in compressed mode only on '.gz'
 
