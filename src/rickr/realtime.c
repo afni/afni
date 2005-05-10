@@ -385,6 +385,13 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
         strcpy( tbuf, "ZORDER seq" );   /* back to seq for now  [v3.3 rickr] */
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
+    /* timing pattern, this may also come from image files - rcr */
+    if ( ac->param->opts.sp )
+    {
+        sprintf( tbuf, "TPATTERN %s", ac->param->opts.sp );
+        ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+
     /* volume time step */
     sprintf( tbuf, "TR %f", v->geh.tr );
     ART_ADD_TO_BUF( ac->buf, tbuf );
@@ -554,6 +561,9 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     if ( debug > 1 )
         fprintf( stderr, "++ dataset control info for afni:\n   %s", ac->buf );
+    if ( (debug > 0) && (strlen(ac->buf) > (ART_TBUF_LEN * 0.8)) )
+        fprintf(stderr,"** warning: ac->buf len uses %d of %d bytes\n",
+                (int)strlen(ac->buf), ART_TBUF_LEN);
 
     rv = iochan_sendall( ac->ioc, ac->buf, strlen(ac->buf)+1 );
 

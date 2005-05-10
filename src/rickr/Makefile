@@ -52,7 +52,7 @@ Imon.o: Imon.c Imon.h
 	$(RM) $@
 	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c Imon.c -I.. $(IFLAGS)
 
-Dimon.o: Dimon.c Dimon.h
+Dimon.o: Dimon.c Imon.h
 	$(RM) $@
 	$(CC) $(WARN_OPT) -DDONT_USE_MCW_MALLOC -c Dimon.c -I.. $(IFLAGS)
 

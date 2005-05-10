@@ -1131,9 +1131,13 @@
   * modified Imon.[ch], l_mcw_glob.[ch], rickr/Makefile, Makefile.INCLUDE
   * mostly as a check-in for now, details and updates to follow
 
-10 May 2005: nifti fix
+10 May 2005: nifti fix, Dimon (v 0.2)
   * added Kate's real_easy/nifti1_read_write.c to AFNI CVS
   * modified znzlib.c, using gzseek() for the failing gzrewind()
   * modified nifti_io.c, opening in compressed mode only on '.gz'
   * modifited to3d.c: fixed help on 'seqplus' and 'seqminus'
+  * modified plug_realtime.c to handle TPATTERN command for slice timing
+  * modified Dimon.c, Imon.h: added pause option to opts struct
+  * modified realtime.c to set TPATTERN from opts.sp (for now)
+  * modified Makefile.INCLUDE, rickr/Makefile: Dimon depends on Imon.h
 

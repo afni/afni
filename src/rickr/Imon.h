@@ -94,6 +94,7 @@ typedef struct  /* user options */
     int              argc;
     int              nt;            /* user input time points per run   */
     int              nice;          /* nice offset (must be >= 0)       */
+    int              pause;         /* pause time between volumes (MS)  */
     int              debug;         /* debug level                      */
     int              gert_reco;     /* output GERT_Reco2 script         */
     int              quit;          /* quit when no new images found    */

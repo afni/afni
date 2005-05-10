@@ -105,14 +105,16 @@ static char g_history[] =
     "   - realtime.c: passed list of drive and rt commands to RT plugin\n"
     "   - added add_to_string_list() and empty_string_list()\n"
     "\n"
-    " 0.1 \n"
-    "   - still mostly Imon, but is basically working as Dimon\n"
+    " 0.1 still mostly Imon, but is basically working as Dimon\n"
+    " 0.2 added pause option\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
  * todo:
  *
- * - add -full_prefix option
+ * - re-write help
+ * - can we get the timing from the Dicom file?
+ * - without -prefix, set default from last dir in glob
  *----------------------------------------------------------------------
 */
 
@@ -477,6 +479,8 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 		    ART_send_volume( ac, &vn, gD.level );
 
 		naps = 0;			/* reset on existing volume */
+
+                if( p->opts.pause > 0 ) iochan_sleep(p->opts.pause);
 	    }
 	}
 
@@ -1276,6 +1280,22 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
 	    p->opts.gert_outdir = argv[ac];
 	}
+	else if ( ! strncmp( argv[ac], "-pause", 3 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -pause milliseconds\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+	    p->opts.pause = atoi(argv[ac]);
+	    if ( p->opts.pause < 0 )
+	    {
+		fprintf(stderr,"** illegal -pause time: %s\n",argv[ac]);
+		errors++;
+	    }
+	}
 	else if ( ! strncmp( argv[ac], "-quiet", 6 ) )
 	{
 	    /* only go quiet if '-debug' option has not changed it */
@@ -1642,7 +1662,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp )
         return 1;
     }
 
-    if ( gD.level > 1 )
+    if ( gD.level > 2 )
     {
         fprintf(stderr,"+d dinfo (%s): std, ser, im = (%d, %d, %3d)\n",
             pathname,
@@ -2011,6 +2031,7 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 	    "   gert_outdir        = %s\n"
 	    "   (argv, argc)       = (%p, %d)\n"
 	    "   (nt, nice)         = (%d, %d)\n"
+            "   pause              = %d\n"
 	    "   (debug, gert_reco) = (%d, %d)\n"
 	    "   use_dicom, quit    = %d, %d\n"
 	    "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
@@ -2024,7 +2045,7 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 	    CHECK_NULL_STR(opt->sp),
 	    CHECK_NULL_STR(opt->gert_outdir),
 	    opt->argv, opt->argc,
-	    opt->nt, opt->nice,
+	    opt->nt, opt->nice, opt->pause,
 	    opt->debug, opt->gert_reco, opt->use_dicom, opt->quit,
 	    opt->rt, opt->swap, opt->rev_bo,
 	    CHECK_NULL_STR(opt->host),
