@@ -3146,6 +3146,8 @@ extern THD_3dim_dataset * THD_open_nifti( char * ) ;        /* 28 Aug 2003 */
 extern THD_3dim_dataset * THD_open_mpeg( char * ) ;         /* 03 Dec 2003 */
 extern THD_3dim_dataset * THD_open_tcat( char * ) ;         /* 04 Aug 2004 */
 
+extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
+
 extern THD_3dim_dataset * THD_fetch_dataset      (char *) ; /* 23 Mar 2001 */
 extern XtPointer_array *  THD_fetch_many_datasets(char *) ;
 extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
