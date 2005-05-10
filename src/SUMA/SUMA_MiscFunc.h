@@ -92,6 +92,7 @@ SUMA_IRGB *SUMA_Free_IRGB(SUMA_IRGB *irgb);
 SUMA_IRGB *SUMA_Read_IRGB_file (char *f_name);
 SUMA_IRGB *SUMA_Create_IRGB(int n_el);
 int SUMA_suck_file( char *fname , char **fbuf );
+char * SUMA_file_suck( char *fname , int *nread );
 
 
 
