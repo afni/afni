@@ -305,6 +305,46 @@ ENTRY("THD_open_nifti") ;
    }
 #endif
 
+   /** 09 May 2005: see if there is an AFNI extension;
+                    if so, load attributes from it and
+                    then edit the dataset appropriately **/
+
+   { int ee ;
+     for( ee=0 ; ee < nim->num_ext ; ee++ )                /* scan */
+       if( nim->ext_list[ee].ecode == NIFTI_ECODE_AFNI &&
+           nim->ext_list[ee].esize > 32                &&
+           nim->ext_list[ee].edata != NULL               ) break ;
+
+     if( ee < nim->num_ext ){   /* found AFNI extension */
+       char *buf = nim->ext_list[ee].edata , *rhs ;
+       int  nbuf = nim->ext_list[ee].esize - 8 ;
+       NI_stream ns ;
+       void     *nini ;
+       NI_group *ngr ;
+
+       if( buf != NULL && nbuf > 32 ){
+         if( buf[nbuf-1] != '\0' ) buf[nbuf-1] = '\0' ;  /* for safety */
+         ns = NI_stream_open( "str:" , "r" ) ;
+         NI_stream_setbuf( ns , buf ) ;
+         do{                              /* read until we find what */
+           nini = NI_read_element(ns,1) ; /* we want, or we get nada */
+         } while( nini != NULL                           &&
+                  NI_element_type(nini) != NI_GROUP_TYPE &&
+                  strcmp(NI_element_name(nini),"AFNI_attributes") != 0 ) ;
+         NI_stream_close(ns) ;
+         if( nini != NULL ){
+           ngr = (NI_group *)nini ;
+           rhs = NI_get_attribute( ngr , "AFNI_idcode" ) ;
+           if( rhs != NULL )
+             MCW_strncpy( dset->idcode.str , rhs , MCW_IDSIZE ) ;
+           THD_dblkatr_from_niml( ngr , dset->dblk ) ;
+           NI_free_element( ngr ) ;
+           THD_datablock_apply_atr( dset ) ;
+         }
+       }
+     }
+   }
+
    /* return unpopulated dataset */
 
    nifti_image_free(nim) ; RETURN(dset) ;

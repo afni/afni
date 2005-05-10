@@ -330,7 +330,11 @@ ENTRY("populate_nifti_image") ;
     nim->nt = DSET_NUM_TIMES(dset) ;  /* time is 4th dimension */
   }
 
-  if ( nim->nt > 1) nim->dt = nim->pixdim[4] = dset->taxis->ttdel ;
+  if ( nim->nt > 1){
+    float TR = dset->taxis->ttdel ;
+    if( DSET_TIMEUNITS(dset) == UNITS_MSEC_TYPE ) TR *= 0.001; /* 10 May 2005 */
+    nim->dt = nim->pixdim[4] = TR ;
+  }
 
   nim->dim[0] = nim->ndim;
   nim->dim[1] = nim->nx;
@@ -523,8 +527,10 @@ ENTRY("populate_nifti_image") ;
 }
 
 /*-------------------------------------------------------------------*/
+/*! List of dataset attributes NOT to save in a NIfTI-1.1 file. -----*/
 
 static char *badlist[] = {
+     "IDCODE_STRING"      ,   /* this goes in the NI_group header */
      "DATASET_RANK"       ,
      "DATASET_DIMENSIONS" ,
      "TYPESTRING"         ,
@@ -547,7 +553,8 @@ static char *badlist[] = {
 /*-------------------------------------------------------------------*/
 /*! Create the AFNI extension string for a NIfTI-1.1 file, and insert
     this metadata into the nifti_image struct for output to disk.
-    -- 09 May 2005 - RWCox
+    - If something bad happens, fails silently
+    - 09 May 2005 - RWCox
 ---------------------------------------------------------------------*/
 
 void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
@@ -559,12 +566,13 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
    char *rhs ;
    int ii,bb , npart,*bpart ;
 
-   if( nim == NULL ) return ;  /* stupid caller */
+   if( nim == NULL ) return ;  /* stupid or evil caller */
 
    /** write all dataset 'attributes' into a NIML group */
 
    ngr = THD_nimlize_dsetatr( dset ) ;
-   if( ngr == NULL ) return ;
+   if( ngr == NULL ) return ;            /* bad */
+   NI_rename_group( ngr , "AFNI_attributes" ) ;
 
    /** now, scan attribute elements in the group, and mark some
        of them as being useless or redundant in the NIfTI world **/
@@ -582,20 +590,27 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
        if( strcmp(rhs,badlist[bb]) == 0 ){ bpart[ii] = 1; break; }
    }
 
-   /* remove marked attributes from the NIML group */
+   /** remove marked attributes from the NIML group **/
 
    for( ii=npart-1 ; ii >= 0 ; ii-- ){
      if( bpart[ii] )
        NI_remove_from_group( ngr , ngr->part[ii] ) ;
    }
-   free((void *)bpart) ;
+   free((void *)bpart) ;  /* done with this */
    if( ngr->part_num <= 0 ){ NI_free_element(ngr); return; }
 
+   /** format into a character string to put in the NIfTI-1.1 extension **/
+
    ns = NI_stream_open( "str:" , "w" ) ;
+   NI_stream_writestring( ns , "<?xml version='1.0' ?>\n" ) ;
    NI_write_element( ns , ngr , NI_TEXT_MODE ) ;
    rhs = NI_stream_getbuf( ns ) ;
-   nifti_add_extension( nim , rhs , strlen(rhs) , NIFTI_ECODE_AFNI ) ;
-   NI_stream_close(ns) ;
-   NI_free_element(ngr) ;
+
+   /** write contents of the string into the nifti_image struct **/
+
+   nifti_add_extension( nim , rhs , strlen(rhs)+1 , NIFTI_ECODE_AFNI ) ;
+
+   NI_stream_close(ns) ;   /* frees the string buffer, too */
+   NI_free_element(ngr) ;  /* done with this trashola */
    return ;
 }
