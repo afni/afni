@@ -15,10 +15,12 @@
  *                                                                         *
  ***************************************************************************/
 
+#include "SUMA_suma.h"
 #include "SUMA_gts.h"
  
 GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 {
+	static char FuncName[]={"SumaToGts"};
 	GtsSurface* s = gts_surface_new( gts_surface_class (),
 									 gts_face_class (),
 									 gts_edge_class (),
@@ -29,6 +31,8 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 	int n = 0;
 	int *MapToGts = NULL; /*used to map EL vector to edge vector*/
 
+   SUMA_ENTRY;
+   
 	vertices = g_malloc (SO->N_Node * sizeof (GtsVertex *));
 	for ( i=0; i< SO->N_Node*3; i+=3)
 	{
@@ -84,17 +88,22 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 	g_free (vertices);
 	g_free (edges);
 	g_free (MapToGts);
-	return s;
+	SUMA_RETURN( s );
 }
 
 
 
 SUMA_SurfaceObject* GtsToSuma( GtsSurface *gs)
 {
-	GHashTable *hash = g_hash_table_new(NULL,NULL);
-	SUMA_SurfaceObject* SO = (SUMA_SurfaceObject *)SUMA_malloc(sizeof(SUMA_SurfaceObject));
+	static char FuncName[]={"GtsToSuma"};
+   GHashTable *hash = g_hash_table_new(NULL,NULL);
+	SUMA_SurfaceObject* SO = NULL; 
 	int i = 0;
 	gpointer data1[3];
+   
+   SUMA_ENTRY;
+   
+   SO = (SUMA_SurfaceObject *)SUMA_malloc(sizeof(SUMA_SurfaceObject));
 	SO->N_Node = gts_surface_vertex_number(gs);
 	SO->NodeList = (float*) SUMA_calloc(SO->N_Node * 3, sizeof(float));
 	SO->N_FaceSet = gts_surface_face_number(gs);
@@ -118,7 +127,7 @@ SUMA_SurfaceObject* GtsToSuma( GtsSurface *gs)
 	i = 0;
 	gts_surface_foreach_face( gs, (GtsFunc) MakeFaceList_foreach_face, data1);
 	g_hash_table_destroy(hash);
-	return SO;
+	SUMA_RETURN(SO);
 }
 
 void MakeNodeList_foreach_vertex ( GtsVertex* v, gpointer* data)
