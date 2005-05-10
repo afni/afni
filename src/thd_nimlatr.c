@@ -217,9 +217,7 @@ ENTRY("THD_niml_to_dataset") ;
    THD_allow_empty_dataset(1) ;
    dset = THD_3dim_from_block( blk ) ;
    THD_allow_empty_dataset(0) ;
-   if( dset == NULL ){
-     THD_delete_datablock( blk ) ; RETURN(NULL) ;
-   }
+   if( dset == NULL ){ THD_delete_datablock( blk ); RETURN(NULL); }
 
    DSET_mallocize(dset) ;   /* just to be sure */
 

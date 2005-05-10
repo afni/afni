@@ -410,14 +410,17 @@ ENTRY("THD_datablock_from_atr") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Macros to fetch an attribute named nnn and test if it exists. */
 
 #define ATR_IS_STR(nnn) ( (atr_str = THD_find_string_atr(blk,nnn)) != NULL )
 #define ATR_IS_FLT(nnn) ( (atr_flt = THD_find_float_atr (blk,nnn)) != NULL )
 #define ATR_IS_INT(nnn) ( (atr_int = THD_find_int_atr   (blk,nnn)) != NULL )
 
 /*---------------------------------------------------------------------------*/
-/*! Apply attributes to modify a datablock.
-    09 May 2005 -- written to support NIfTI-ization.
+/*! Apply attributes to modify an existing datablock.
+    Only some attributes have an effect.
+    09 May 2005 -- written to support NIfTI-ization, by allowing
+                   attributes to be applied AFTER a dataset is created.
 -----------------------------------------------------------------------------*/
 
 void THD_datablock_apply_atr( THD_3dim_dataset *dset )
@@ -436,7 +439,7 @@ void THD_datablock_apply_atr( THD_3dim_dataset *dset )
 
 ENTRY("THD_datablock_apply_atr") ;
 
-   if( !ISVALID_DSET(dset) == NULL ) EXRETURN ; /* bad input */
+   if( !ISVALID_DSET(dset) ) EXRETURN ; /* bad input */
 
    blk   = dset->dblk   ;  if( blk == NULL   ) EXRETURN ;
    nvals = blk->nvals   ;  if( nvals <= 0    ) EXRETURN ;
@@ -448,6 +451,7 @@ ENTRY("THD_datablock_apply_atr") ;
    if( ATR_IS_STR(ATRNAME_BRICK_LABS) ){
      int ipos = -1 , ipold , ngood ;
 
+     STATUS("brick labels") ;
      if( blk->brick_lab == NULL ) THD_init_datablock_labels( blk ) ;
 
      for( ibr=0 ; ibr < nvals ; ibr++ ){  /* loop over bricks */
@@ -469,11 +473,19 @@ ENTRY("THD_datablock_apply_atr") ;
      } /* end of loop over sub-bricks */
    }
 
+   /*-- keywords for the dataset itself --*/
+
+   if( ATR_IS_STR(ATRNAME_KEYWORDS) ){
+     STATUS("dataset keywords") ;
+     dset->keywords = XtNewString( atr_str->ch ) ;
+   }
+
    /*-- keywords for sub-bricks --*/
 
    if( ATR_IS_STR(ATRNAME_BRICK_KEYWORDS) ){
      int ipos = -1 , ipold , ngood ;
 
+     STATUS("brick keywords") ;
      if( blk->brick_keywords == NULL ) THD_init_datablock_keywords( blk ) ;
 
      for( ibr=0 ; ibr < nvals ; ibr++ ){  /* loop over bricks */
@@ -499,6 +511,8 @@ ENTRY("THD_datablock_apply_atr") ;
    if( ATR_IS_FLT(ATRNAME_BRICK_STATAUX) ){
      int ipos=0 , iv,nv,jv ;
 
+     STATUS("brick stataux") ;
+
      /* attribute stores all stataux stuff as follows:
           sub-brick-index  statcode  no.-of-values value ... value
           sub-brick-index  statcode  no.-of-values value ... value, etc. */
@@ -517,105 +531,111 @@ ENTRY("THD_datablock_apply_atr") ;
 
    /*-- ID codes --*/
 
-   if( ATR_IS_STR(ATRNAME_IDSTRING) ){
+   if( ATR_IS_STR(ATRNAME_IDSTRING) )
      MCW_strncpy( dset->idcode.str , atr_str->ch , MCW_IDSIZE ) ;
-   }
 
-   if( ATR_IS_STR(ATRNAME_IDDATE) ){
+   if( ATR_IS_STR(ATRNAME_IDDATE) )
      MCW_strncpy( dset->idcode.date , atr_str->ch , MCW_IDDATE ) ;
-   }
 
-   if( ATR_IS_STR(ATRNAME_IDANATPAR) ){
+   if( ATR_IS_STR(ATRNAME_IDANATPAR) )
      MCW_strncpy( dset->anat_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;
-   }
 
-   if( ATR_IS_STR(ATRNAME_IDWARPPAR) ){
+   if( ATR_IS_STR(ATRNAME_IDWARPPAR) )
      MCW_strncpy( dset->warp_parent_idcode.str , atr_str->ch , MCW_IDSIZE ) ;
-   }
 
    /*-- parent names --*/
 
-   if( ATR_IS_STR(ATRNAME_ANATOMY_PARENT) ){
+   if( ATR_IS_STR(ATRNAME_ANATOMY_PARENT) &&
+       ISZERO_IDCODE(dset->anat_parent_idcode) )
      MCW_strncpy( dset->anat_parent_name , atr_str->ch , THD_MAX_NAME ) ;
-   }
 
-   if( ATR_IS_STR(ATRNAME_WARP_PARENT) ){
+   if( ATR_IS_STR(ATRNAME_WARP_PARENT) &&
+       ISZERO_IDCODE(dset->warp_parent_idcode) )
      MCW_strncpy( dset->warp_parent_name , atr_str->ch , THD_MAX_NAME ) ;
-   }
 
-   if( ATR_IS_STR(ATRNAME_DATANAME) ){
+   if( ATR_IS_STR(ATRNAME_DATANAME) )
      MCW_strncpy( dset->self_name , atr_str->ch , THD_MAX_NAME ) ;
-   }
 
    /*-- markers --*/
 
    if( ATR_IS_FLT(ATRNAME_MARKSXYZ) && ATR_IS_STR(ATRNAME_MARKSLAB) ){
-      int im , llen ;
-      THD_ivec3 iv ;
-      float xxdown,xxup , yydown,yyup , zzdown,zzup ;
+     int im , llen ;
+     THD_ivec3 iv ;
+     float xxdown,xxup , yydown,yyup , zzdown,zzup ;
 
-      if( dset->markers == NULL )
-        dset->markers = myXtNew( THD_marker_set ) ;  /* new set */
-      ADDTO_KILL(dset->kl , dset->markers) ;
+     STATUS("markers") ;
 
-      COPY_INTO_STRUCT( *(dset->markers) ,  /* actual struct */
-                        MARKS_FSTART ,      /* byte offset */
-                        float ,             /* type being copied */
-                        atr_flt->fl ,       /* start of source */
-                        MARKS_FSIZE  ) ;    /* number of floats */
+     if( dset->markers == NULL ){
+       dset->markers = myXtNew( THD_marker_set ) ;  /* new set */
+       ADDTO_KILL(dset->kl , dset->markers) ;
+     }
 
-      COPY_INTO_STRUCT( *(dset->markers) ,
-                        MARKS_LSTART ,
-                        char ,
-                        atr_str->ch ,
-                        MARKS_LSIZE  ) ;
+     COPY_INTO_STRUCT( *(dset->markers) ,  /* actual struct */
+                       MARKS_FSTART ,      /* byte offset */
+                       float ,             /* type being copied */
+                       atr_flt->fl ,       /* start of source */
+                       MARKS_FSIZE  ) ;    /* number of floats */
 
-      xxdown = daxes->xxmin ; xxup = daxes->xxmax ;
-      yydown = daxes->yymin ; yyup = daxes->yymax ;
-      zzdown = daxes->zzmin ; zzup = daxes->zzmax ;
+     COPY_INTO_STRUCT( *(dset->markers) ,
+                       MARKS_LSTART ,
+                       char ,
+                       atr_str->ch ,
+                       MARKS_LSIZE  ) ;
 
-      dset->markers->numdef = dset->markers->numset = 0 ;
+     xxdown = daxes->xxmin ; xxup = daxes->xxmax ;
+     yydown = daxes->yymin ; yyup = daxes->yymax ;
+     zzdown = daxes->zzmin ; zzup = daxes->zzmax ;
 
-      for( im=0 ; im < MARKS_MAXNUM ; im++ ){
-        llen = strlen( &(dset->markers->label[im][0]) ) ;
-        dset->markers->valid[im]   =
-           (llen > 0) &&
-           ( dset->markers->xyz[im][0] >= xxdown ) &&
-           ( dset->markers->xyz[im][0] <= xxup   ) &&
-           ( dset->markers->xyz[im][1] >= yydown ) &&
-           ( dset->markers->xyz[im][1] <= yyup   ) &&
-           ( dset->markers->xyz[im][2] >= zzdown ) &&
-           ( dset->markers->xyz[im][2] <= zzup   )    ;
+     dset->markers->numdef = dset->markers->numset = 0 ;
 
-        if( dset->markers->valid[im] ) (dset->markers->numset)++ ;
+     for( im=0 ; im < MARKS_MAXNUM ; im++ ){
+       llen = strlen( &(dset->markers->label[im][0]) ) ;
+       dset->markers->valid[im]   =
+          (llen > 0) &&
+          ( dset->markers->xyz[im][0] >= xxdown ) &&
+          ( dset->markers->xyz[im][0] <= xxup   ) &&
+          ( dset->markers->xyz[im][1] >= yydown ) &&
+          ( dset->markers->xyz[im][1] <= yyup   ) &&
+          ( dset->markers->xyz[im][2] >= zzdown ) &&
+          ( dset->markers->xyz[im][2] <= zzup   )    ;
 
-        if( llen > 0 ) (dset->markers->numdef)++ ;
+       if( dset->markers->valid[im] ) (dset->markers->numset)++ ;
 
-        dset->markers->ovcolor[im] = -1 ;  /* default color */
-      }
+       if( llen > 0 ) (dset->markers->numdef)++ ;
 
-      if( ATR_IS_STR(ATRNAME_MARKSHELP) ){
-        COPY_INTO_STRUCT( *(dset->markers) ,
-                           MARKS_HSTART ,
-                           char ,
-                           atr_str->ch ,
-                           MARKS_HSIZE  ) ;
-      }
+       dset->markers->ovcolor[im] = -1 ;  /* default color */
+     }
 
-      if( ATR_IS_INT(ATRNAME_MARKSFLAG) ){
-        COPY_INTO_STRUCT( *(dset->markers) ,
-                          MARKS_ASTART ,
-                          int ,
-                          atr_int->in ,
-                          MARKS_ASIZE  ) ;
-        dset->markers->type = dset->markers->aflags[0] ;
-      }
+     if( ATR_IS_STR(ATRNAME_MARKSHELP) ){
+       COPY_INTO_STRUCT( *(dset->markers) ,
+                          MARKS_HSTART ,
+                          char ,
+                          atr_str->ch ,
+                          MARKS_HSIZE  ) ;
+     } else {
+       for( im=0 ; im < MARKS_MAXNUM ; im++ )   /* no help */
+         dset->markers->help[im][0] = '\0' ;
+     }
+
+     if( ATR_IS_INT(ATRNAME_MARKSFLAG) ){
+       COPY_INTO_STRUCT( *(dset->markers) ,
+                         MARKS_ASTART ,
+                         int ,
+                         atr_int->in ,
+                         MARKS_ASIZE  ) ;
+       dset->markers->type = dset->markers->aflags[0] ;
+     } else {
+       for( im=0 ; im < MARKS_MAXFLAG ; im++ )
+         dset->markers->aflags[im] = -1 ;
+     }
    }
 
    /*-- warp --*/
 
    if( ATR_IS_INT(ATRNAME_WARP_TYPE) && ATR_IS_FLT(ATRNAME_WARP_DATA) ){
      int wtype = atr_int->in[0] , rtype = atr_int->in[1]  ;
+
+     STATUS("warp") ;
 
      dset->warp = myXtNew( THD_warp ) ;
      ADDTO_KILL( dset->kl , dset->warp ) ;
@@ -662,6 +682,7 @@ ENTRY("THD_datablock_apply_atr") ;
 
    if( ATR_IS_FLT(ATRNAME_BRICK_STATS) ){
      int qq ;
+     STATUS("brick statistics") ;
      dset->stats         = myXtNew( THD_statistics ) ;
      dset->stats->type   = STATISTICS_TYPE ;
      dset->stats->parent = (XtPointer) dset ;
@@ -686,51 +707,54 @@ ENTRY("THD_datablock_apply_atr") ;
        ATR_IS_FLT(ATRNAME_TAGSET_FLOATS) &&
        ATR_IS_STR(ATRNAME_TAGSET_LABELS)    ){
 
-      int nin=atr_int->nin , nfl=atr_flt->nfl , nch=atr_str->nch ;
-      int ii , ntag , nfper , jj , kk ;
+     int nin=atr_int->nin , nfl=atr_flt->nfl , nch=atr_str->nch ;
+     int ii , ntag , nfper , jj , kk ;
 
-      ntag  = atr_int->in[0] ;  /* number of tags */
-      nfper = atr_int->in[1] ;  /* number of floats per tag */
+     STATUS("tagset") ;
+     ntag  = atr_int->in[0] ;  /* number of tags */
+     nfper = atr_int->in[1] ;  /* number of floats per tag */
 
-      if( ntag > MAX_TAG_NUM ) ntag = MAX_TAG_NUM ;
+     if( ntag > MAX_TAG_NUM ) ntag = MAX_TAG_NUM ;
 
-      dset->tagset = myXtNew( THD_usertaglist ) ;  /* create tagset */
-      ADDTO_KILL( dset->kl , dset->tagset ) ;
+     dset->tagset = myXtNew( THD_usertaglist ) ;  /* create tagset */
+     ADDTO_KILL( dset->kl , dset->tagset ) ;
 
-      dset->tagset->num = ntag ;
-      strcpy( dset->tagset->label , "Bebe Rebozo" ) ;  /* not used */
+     dset->tagset->num = ntag ;
+     strcpy( dset->tagset->label , "Bebe Rebozo" ) ;  /* not used */
 
-      /* read out tag values; allow for chance there isn't enough data */
+     /* read out tag values; allow for chance there isn't enough data */
 
 #undef  TF
-#define TF(i,j) ( ((j)<nfper && (i)*nfper+(j)<nfl) ? atr_flt->fl[(i)*nfper+(j)] : -666.0 )
-      for( ii=0 ; ii < ntag ; ii++ ){
-         dset->tagset->tag[ii].x   = TF(ii,0) ;  /* coords */
-         dset->tagset->tag[ii].y   = TF(ii,1) ;
-         dset->tagset->tag[ii].z   = TF(ii,2) ;
-         dset->tagset->tag[ii].val = TF(ii,3) ;  /* value */
-         dset->tagset->tag[ii].ti  = TF(ii,4) ;  /* time index; if < 0 ==> not set */
-         if( dset->tagset->tag[ii].ti >= 0 ){
-           dset->tagset->tag[ii].set = 1 ;
-         } else {
-           dset->tagset->tag[ii].set = 0 ; dset->tagset->tag[ii].ti = 0 ;
-         }
-      }
+#define TF(i,j) \
+  ( ((j)<nfper && (i)*nfper+(j)<nfl) ? atr_flt->fl[(i)*nfper+(j)] : -666.0 )
+
+     for( ii=0 ; ii < ntag ; ii++ ){
+       dset->tagset->tag[ii].x   = TF(ii,0) ; /* coords */
+       dset->tagset->tag[ii].y   = TF(ii,1) ;
+       dset->tagset->tag[ii].z   = TF(ii,2) ;
+       dset->tagset->tag[ii].val = TF(ii,3) ; /* value */
+       dset->tagset->tag[ii].ti  = TF(ii,4) ; /* time index: if < 0, not set */
+       if( dset->tagset->tag[ii].ti >= 0 ){
+         dset->tagset->tag[ii].set = 1 ;
+       } else {
+         dset->tagset->tag[ii].set = 0 ; dset->tagset->tag[ii].ti = 0 ;
+       }
+     }
 #undef TF
 
-      /* read out tag labels; allow for empty labels */
+     /* read out tag labels; allow for empty labels */
 
-      jj = 0 ;
-      for( ii=0 ; ii < ntag ; ii++ ){
-         if( jj < nch ){
-           kk = strlen( atr_str->ch + jj ) ;
-           if( kk > 0 ) TAG_SETLABEL( dset->tagset->tag[ii] , atr_str->ch + jj ) ;
-           else         sprintf( dset->tagset->tag[ii].label , "Tag %d" , ii+1 ) ;
-           jj += kk+1 ;
-         } else {
-           sprintf( dset->tagset->tag[ii].label , "Tag %d" , ii+1 ) ;
-         }
-      }
+     jj = 0 ;
+     for( ii=0 ; ii < ntag ; ii++ ){
+       if( jj < nch ){
+         kk = strlen( atr_str->ch + jj ) ;
+         if( kk > 0 ) TAG_SETLABEL( dset->tagset->tag[ii] , atr_str->ch + jj );
+         else         sprintf( dset->tagset->tag[ii].label , "Tag %d" , ii+1 );
+         jj += kk+1 ;
+       } else {
+         sprintf( dset->tagset->tag[ii].label , "Tag %d" , ii+1 ) ;
+       }
+     }
    }
 
    EXRETURN ;
