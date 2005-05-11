@@ -10,11 +10,15 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAFNItoNIFTI [options] dataset\n"
-             "Reads in an AFNI dataset, and writes it out as a NIfTI-1 file.\n"
+             "Reads in an AFNI dataset, and writes it out as a NIfTI-1.1 file.\n"
              "\n"
              "OPTIONS:\n"
-             "  -prefix ppp = Write the NIfTI-1 file as 'ppp.nii'.\n"
+             "  -prefix ppp = Write the NIfTI-1.1 file as 'ppp.nii'.\n"
              "                  Default: the dataset's prefix is used.\n"
+             "  -pure       = Do NOT write an AFNI extension field into\n"
+             "                  the output file.  Only use this option\n"
+             "                  if needed.  You can also use the 'nifti_tool'\n"
+             "                  program to strip extensions from a file.\n"
 #ifdef HAVE_ZLIB
              "                  If you want a compressed file, try\n"
              "                  something like 'ppp.nii.gz'\n"
@@ -29,6 +33,11 @@ int main( int argc , char *argv[] )
    /*--- check options ---*/
 
    while( narg < argc && argv[narg][0] == '-' ){
+
+     if( strcmp(argv[narg],"-pure") == 0 ){   /* 11 May 2005 */
+        putenv("AFNI_NIFTI_NOEXT=YES") ;
+        narg++ ; continue ;
+     }
 
      if( strcmp(argv[narg],"-prefix") == 0 ){
         prefix = argv[++narg] ;

@@ -566,7 +566,8 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
    char *rhs ;
    int ii,bb , npart,*bpart ;
 
-   if( nim == NULL ) return ;  /* stupid or evil caller */
+   if( nim == NULL                     ) return ;  /* stupid or evil caller */
+   if( AFNI_yesenv("AFNI_NIFTI_NOEXT") ) return ;  /* not allowed */
 
    /** write all dataset 'attributes' into a NIML group */
 
