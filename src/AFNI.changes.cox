@@ -5526,3 +5526,8 @@
  * Modify thd_initdblk.c, thd_niftiread.c, thd_niftiwrite.c to store AFNI
      header data in a NIfTI-1.1 extension, making it more feasible to use
      .nii datasets in AFNI as a primary storage mechanism.
+
+11 May 2005
+ * Modify the NIfTI-1.1 extension stuff to be more robust.  Also add
+     environment variable AFNI_NIFTI_NOEXT to turn extensions off, and
+     use this to provide a '-pure' option to 3dAFNItoNIFTI.c.

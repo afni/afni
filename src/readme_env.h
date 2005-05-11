@@ -2101,6 +2101,17 @@ static char * readme_env[] = {
    "which will force a re-reading of the datasets and so force an elicitation\n" ,
    "of the NIfTI debug messages (for .nii files, that is).\n" ,
    "\n" ,
+   "-------------------------\n" ,
+   "Variable AFNI_NIFTI_NOEXT\n" ,
+   "-------------------------\n" ,
+   "When writing a '.nii' (or '.nii.gz') file from an AFNI program, normally\n" ,
+   "a NIfTI-1.1 extension field with some extra AFNI header information is\n" ,
+   "written into the output file.  If you set this variable to YES, then\n" ,
+   "this extension is not written, which will make the output be a 'pure'\n" ,
+   "NIfTI-1.1 file.  Only use this if absolutely necessary.  You can also\n" ,
+   "use the 'nifti_tool' program to strip extension data from a NIfTI-1.1\n" ,
+   "dataset file.\n" ,
+   "\n" ,
    "---------------------------\n" ,
    "Variable: AFNI_OVERLAY_ZERO (editable)\n" ,
    "---------------------------\n" ,
@@ -2206,4 +2217,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2206
+#define NUM_readme_env 2217
