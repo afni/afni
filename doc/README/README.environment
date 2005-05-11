@@ -2100,6 +2100,17 @@ from within AFNI, a 'Rescan: This' operation should probably be performed,
 which will force a re-reading of the datasets and so force an elicitation
 of the NIfTI debug messages (for .nii files, that is).
 
+-------------------------
+Variable AFNI_NIFTI_NOEXT
+-------------------------
+When writing a '.nii' (or '.nii.gz') file from an AFNI program, normally
+a NIfTI-1.1 extension field with some extra AFNI header information is
+written into the output file.  If you set this variable to YES, then
+this extension is not written, which will make the output be a 'pure'
+NIfTI-1.1 file.  Only use this if absolutely necessary.  You can also
+use the 'nifti_tool' program to strip extension data from a NIfTI-1.1
+dataset file.
+
 ---------------------------
 Variable: AFNI_OVERLAY_ZERO (editable)
 ---------------------------
