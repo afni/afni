@@ -1078,7 +1078,7 @@ int NI_search_group_deep( NI_group *ngr , char *enam , void ***nipt )
        nelar = (void **) NI_realloc(nelar,void*,nn+1) ;
        nelar[nn++] = nini ;
      }
-     if( NI_element_type(nini) == NI_GROUP_TYPE ){
+     if( NI_element_type(nini) == NI_GROUP_TYPE ){  /* recursion */
        int nsub , jj ; void **esub ;
        nsub = NI_search_group_deep( nini , enam , &esub ) ;
        if( nsub > 0 ){
