@@ -5531,3 +5531,6 @@
  * Modify the NIfTI-1.1 extension stuff to be more robust.  Also add
      environment variable AFNI_NIFTI_NOEXT to turn extensions off, and
      use this to provide a '-pure' option to 3dAFNItoNIFTI.c.
+
+12 May 2005
+ * Added "NIfTI_num" signature to thd_niftiwrite.c and thd_niftiread.c.

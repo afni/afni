@@ -352,6 +352,16 @@ ENTRY("THD_open_nifti") ;
                rhs = NI_get_attribute( nngr , "AFNI_idcode" ) ;
                if( rhs != NULL )    /* set dataset ID code from XML attribute */
                  MCW_strncpy( dset->idcode.str , rhs , MCW_IDSIZE ) ;
+               rhs = NI_get_attribute( nngr , "NIfTI_nums" ) ;    /* check if */
+               if( rhs != NULL ){                       /* dataset dimensions */
+                 char buf[128] ;                              /* were altered */
+                 sprintf(buf,"%d,%d,%d,%d,%d,%d" ,             /* 12 May 2005 */
+                   nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->datatype );
+                 if( strcmp(buf,rhs) != 0 )
+                   fprintf(stderr,
+                     "** WARNING: NIfTI file %s dimensions altered since "
+                                 "AFNI extension was added\n",pathname ) ;
+               }
                THD_dblkatr_from_niml( nngr , dset->dblk ); /* load attributes */
                THD_datablock_apply_atr( dset ) ;   /* apply to dataset struct */
              }
