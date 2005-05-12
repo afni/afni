@@ -563,7 +563,7 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
    NI_group      *ngr ;
    NI_element    *nel ;
    NI_stream      ns  ;
-   char *rhs ;
+   char *rhs , buf[128] ;
    int ii,bb , npart,*bpart ;
 
    if( nim == NULL                     ) return ;  /* stupid or evil caller */
@@ -574,6 +574,12 @@ void nifti_set_afni_extension( THD_3dim_dataset *dset , nifti_image *nim )
    ngr = THD_nimlize_dsetatr( dset ) ;
    if( ngr == NULL ) return ;            /* bad */
    NI_rename_group( ngr , "AFNI_attributes" ) ;
+
+   /* 12 May 2005: add a signature to check the file on input to AFNI */
+
+   sprintf(buf,"%d,%d,%d,%d,%d,%d" ,
+           nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->datatype ) ;
+   NI_set_attribute( ngr , "NIfTI_nums" , buf ) ;
 
    /** now, scan attribute elements in the group, and mark some
        of them as being useless or redundant in the NIfTI world **/
