@@ -1,8 +1,11 @@
 /* a file that gets inserted into GTS's surface.c
-No bells and whistles, need to compile in GTS library */
+No bells and whistles, need to compile in GTS library 
+ANY MODIFICATIONS HERE REQUIRE YOU REMAKE libgts.a*/
 
 /* Functions fail if used directly in SUMA's code (at least on Mac OSX), 
-must use copy added to gts's surface.c and gts.h 
+inserting them via:
+#include "../../SUMA_gts_insert.c" 
+gts's surface.c works just fine
 */
 
 /* functions gts_surface_suma, vertex_load, and face_load 

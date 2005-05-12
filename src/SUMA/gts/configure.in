@@ -71,7 +71,7 @@ AC_CHECK_LIB(netpbm, pgm_init, netpbm="true",
   AC_MSG_WARN([libnetpbm not found. Some programs will not be available.]))
 AM_CONDITIONAL(HAS_NETPBM, test x$netpbm = xtrue)
 
-AM_PATH_GLIB_2_0(2.4.0, has_glib2=yes, has_glib2=no, gthread gmodule)
+#AM_PATH_GLIB_2_0(2.4.0, has_glib2=yes, has_glib2=no, gthread gmodule)
 if test x$has_glib2 = xyes; then
   glib_cflags=`$PKG_CONFIG glib-2.0 --cflags`
   glib_thread_cflags=`$PKG_CONFIG glib-2.0 --cflags gthread-2.0`
