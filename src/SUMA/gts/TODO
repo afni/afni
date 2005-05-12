@@ -1,0 +1,41 @@
+This is a non-exhaustive list of things to do.
+
+- cleanup dual isosurface stuff by "Tim F"
+
+- paper doc
+
+- cleanup of GHashTable hack in cdt.c.
+
+- Specialized hash tables for surface->triangles?
+
+- Error status when reading GTS file. (done)
+
+- Homogeneous coordinates?
+
+- Boolean operations: check problems for some degenerate cases.
+
+- More generic interface for gts_surface_inter_new().
+
+- Tutorial for the creation of new GtsObject classes.
+
+- Implicit dependencies for hierarchical surfaces.
+
+- More generic interface for isosurface computation (user-control of
+  vertex generation).
+
+- GtsContainer class? (half-done)
+
+- Graph partitioning
+	* optimisation BKL -> BKL(1,*) (Karypis & Kumar)
+	* k-way partitioning
+	* bug for memplus.graph, add20.graph
+
+- Doc: private fields of structures.
+
+- Include Volodymyr Babin's gts-iso-toy code.
+
+- Apply Norman Vine cygwin patch
+
+- Apply Patch for gts_triangles_angle
+
+- change gts_file_close() to gts_file_destroy() (patch Ray Jones).
