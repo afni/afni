@@ -45,3 +45,7 @@
 
 4 May 2005
  * added Mean diffusivity computation to 3dDWItoDT.c and 3dDTeig.c. Also in 3dDWItoDT.c, added an additional I0 (Ideal image voxel value) sub-brik included with debug_briks option. The I0 will be used as a basis for a test model dataset. Also fixed bug in masked off area for eigenvalues when using debug_briks.
+
+12 May 2005
+ * added count, negative, positive, zero options to 3dMax and fixed bug there in the calculation of a mean with a mask
+ * created 3dDTtoDWI.c to calculate ideal diffusion weighted images from diffusion tensors for testing purposes
