@@ -1,0 +1,112 @@
+# simple degenerate cases
+t1 t2
+t1 t3
+t1 t4
+t1 t5
+t1 t6
+t1 t7
+t1 t9
+t1 t10
+t1 t11
+t1 t12
+t1 t13
+t14 t15
+t11 t16
+t17 t18
+t19 t20
+t19 t21
+t31 t32
+
+# Various cubes
+t1 t22
+t1 t23
+t1 t24
+t27 t28
+cube cube1
+cube cube2
+cube cube5
+
+# touching corner
+t29 t30
+
+# cube and sligthly rotated cube
+cube cube8
+
+# cubes just touching through one edge (like t29 t30)
+cube9 cube10
+
+# Floating point problems
+t25 t26
+
+# Coincident faces
+cube cube4
+
+# Rotated cube cube1 (touching faces)
+cube6 cube7
+
+# Coincident faces (tetrahedra by T. Binder)
+loc1 loc2
+
+# Coincident faces (again by T. Binder)
+p1 p2
+
+# Menger sponge (by B. Petit)
+sponge cutter
+
+# cylinders (by Darie Aron)
+1.gts 2.gts
+
+# horse and sligthly rotated horse
+horse5.gts horse6.gts
+
+# simplified horse
+horse4.gts horse5.gts XFAIL
+
+# identical surfaces
+horse5.gts horse5.gts XFAIL
+sphere.gts sphere.gts
+
+# tetrahedra by Wayne Gramlich
+# looks like it works but visual inspection shows it doesn't
+# (now it should work: Sept 2003)
+a8.gts b8.gts
+a9.gts b9.gts
+a10.gts b10.gts
+a23.gts b23.gts
+a24.gts b24.gts
+a25.gts b25.gts
+
+# Spheres by Romain Behar
+gts-crash.gts gts-crash1.gts
+
+# Big tests
+
+# DTM and buildings
+# illustrates problems with interior loops
+buildings wcc3
+buildings wcc2
+buildings wcc1
+buildings wcc
+
+# gerris failed test cases
+gerris.gts gerris.1
+gerris.gts gerris.2
+gerris.gts gerris.3
+gerris.gts gerris.4
+gerris.gts gerris.5
+gerris.gts gerris.6
+gerris.gts gerris.7
+gerris.gts gerris.8
+gerris.gts gerris.9
+gerris.gts gerris.10
+gerris.gts gerris.11
+gerris.gts gerris.12
+gerris.gts gerris.13
+gerris.gts gerris.14
+gerris.gts gerris.15
+gerris.gts gerris.16
+gerris.gts gerris.17
+gerris.gts gerris.18
+gerris.gts gerris.19
+gerris.gts gerris.20
+gerris.gts gerris.21
