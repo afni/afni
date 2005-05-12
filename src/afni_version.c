@@ -374,7 +374,7 @@ char * AFNI_make_update_script(void)
             "echo '++ Unpacking %s'\n"
             "%s -dc %s | %s xf -\n"      /* uncompress and untar .tgz file */
             "/bin/rm -f %s\n"            /* delete .tgz file */
-            "echo '++ Moving files'"
+            "echo '++ Moving files'\n"
             "/bin/mv -f %s/* .\n"        /* move untar-ed files up to here */
             "/bin/rm -rf %s\n"           /* remove any directory leftovers */
             "echo '++ Finished'\n" ,
