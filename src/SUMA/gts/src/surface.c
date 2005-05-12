@@ -24,6 +24,15 @@
 
 #include "gts-private.h"
 
+#if 1 /* ZSS: Begin functions for suma. 
+   Stuck here because the function to get the vertices (vertex_load) 
+   would fail if placed and compiled outside of the library. 
+   It must be some #define somewhere ....*/
+
+#include "../../SUMA_gts_insert.c"
+
+#endif   /* End SUMA code */
+
 static void destroy_foreach_face (GtsFace * f, GtsSurface * s)
 {
   f->surfaces = g_slist_remove (f->surfaces, s);
