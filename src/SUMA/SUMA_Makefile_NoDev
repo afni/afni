@@ -300,7 +300,7 @@ growingsphere: SUMA_growingsphere.c ${SUMALIB}
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB}			\
 		${SUMA_LINK_PATH} ${SUMA_LINK_LIB} 
 
-SurfMesh: SUMA_coarsen.c libgts.a libSUMAGTS.a
+SurfMesh: SUMA_coarsen.c libgts.a ${SUMAGTSLIB}
 	$(RM) $@
 	${CC} -DSUMA_COMPILED \
    	${CCOPT} ${WARNOPT} -o $@ SUMA_coarsen.c 	\
