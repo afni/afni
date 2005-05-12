@@ -1,0 +1,3 @@
+- hsurface may create surfaces with duplicates edges and triangles (because of 
+ collapses of "empty triangles").
+- psurface however will not.
