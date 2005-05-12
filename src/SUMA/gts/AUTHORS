@@ -1,0 +1,14 @@
+Original Authors
+----------------
+Stéphane Popinet   <popinet@users.sourceforge.net>
+
+Contributors
+------------
+Jonathan R. Shewchuk: robust geometric predicates.
+Ray Jones: discrete differential operators.
+Gert Wollny: marching tetrahedra.
+Jerome Benoit: surface tesselation.
+Wagner Toledo Correa: triangle strips.
+Marcelo E. Magallon: Debian packages.
+Wayne C Gramlich, Michael Loehr: 4x4 GtsMatrix implementation.
+Tim F.: "dual" marching tetrahedra.

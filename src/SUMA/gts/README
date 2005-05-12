@@ -1,0 +1,89 @@
+General Information
+===================
+
+This is the GTS library. GTS stands for the GNU Triangulated
+Surface Library. It includes a number of useful functions to deal with
+triangulated surfaces including, but not limited to, multi-resolution
+models, Delaunay and Constrained Delaunay triangulations, set operations on
+surfaces (intersection, union etc ...), bounding-boxes trees for efficient
+collision and intersection detection, triangle strips generation for fast
+rendering.
+
+The official web site is:
+http://gts.sourceforge.net
+
+Copying
+=======
+
+The GTS library is distributed under the terms of the Library General
+Public License which is compliant with the guidelines of the Open
+Source and Free Software Fundations. See the file COPYING for details.
+
+The robust geometric predicates code (src/predicates.c) was written
+and placed in the public domain by Jonathan R. Shewchuk. The original
+version of the code can be found at
+
+http://www.cs.cmu.edu/~quake/robust.html
+
+Installation
+============
+
+GTS uses the glib library which is part of gtk (http://www.gtk.org). If you
+use linux there is a good chance that this library is already on your
+system, otherwise, you'll need to install it.
+
+A WIN32 glib port is available at
+http://www.gimp.org/~tml/gimp/win32/downloads.html, however it is
+recommended to use GTS within the Cygwin environment under windows.
+
+Unix users (including cygwin users):
+
+If you checked out GTS from sourceforge.net, you will need to have the
+gnu autoconf tools installed.  Generate the "configure" script with
+the following commands:
+
+aclocal
+autoheader
+automake -a
+autoconf
+
+After this, or if you are installing from source where the configure
+script is already built:
+
+./configure
+make
+make install
+
+See the file 'INSTALL' for generic configure instructions.
+
+
+Windows users:
+If you have Microsoft C try:
+
+cd src
+nmake -f makefile.msc install
+
+or use Cygwin (http://www.cygwin.com)
+
+Using GTS
+=========
+
+From version 0.5.0 you can use the `gts-config' script in order to
+obtain the compile flags and link flags necessary to use the GTS
+library (à la Glib).
+
+- To compile add `gts-config --cflags` to your compiler flags.
+- To link add `gts-config --libs` to your linker flags.
+
+When developping code using GTS you probably want to enable control
+over casting operations between objects of the GTS object
+hierarchy. This can be done easily by defining GTS_CHECK_CASTS either
+in the CFLAGS environement variable (CFLAGS=-DGTS_CHECK_CASTS) or on
+the command-line of your compiler.
+
+This will slow down your code but will warn you when you try to
+perform illegal casts between GtsObjects.
+
+You can also to do that using the `--check' option of gts-config,
+i.e. by adding `gts-config --cflags --check' to your compiler flags.
+
