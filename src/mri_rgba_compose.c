@@ -1,12 +1,12 @@
 #include "mrilib.h"
 
-/*-----------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
 /*! Composite a collection of MRI_rgb/MRI_rgba/MRI_byte images.
     The first image is on top, etc.  For MRI_rgb/MRI_byte images,
     the default opacity is alpha in 0..1.  Black (0,0,0) pixels on input
-    are not overlaid. The output image is MRI_rgb; it is composited
-    against a black backdrop.
--------------------------------------------------------------------------*/
+    are not overlaid (unless AFNI_OVERLAY_ZERO is YES).
+    The output image is MRI_rgb; it is composited against a black backdrop.
+---------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_rgba_composite_array( MRI_IMARR *imar, float alpha )
 {
@@ -14,6 +14,7 @@ MRI_IMAGE * mri_rgba_composite_array( MRI_IMARR *imar, float alpha )
    MRI_IMAGE *outim , *inim ;
    rgbyte *outar ;
    float  *usop  ;
+   int reject_zero = !AFNI_yesenv("AFNI_OVERLAY_ZERO") ;
 
 ENTRY("mri_rgba_composite") ;
 
@@ -43,7 +44,8 @@ ENTRY("mri_rgba_composite") ;
          byte *inar = (byte *) MRI_BYTE_PTR(inim) , val ;
          register float opa ;
          for( ii=0 ; ii < npix ; ii++ ){
-           if( usop[ii] < MAX_OPACITY && inar[ii] > 0 ){
+           if( reject_zero && inar[ii]==0 ) continue ;
+           if( usop[ii] < MAX_OPACITY ){
 
              opa = alpha * (1.0-usop[ii]) ; usop[ii] += opa ;
              val = (byte)( opa * inar[ii] ) ;
@@ -59,8 +61,9 @@ ENTRY("mri_rgba_composite") ;
          rgbyte *inar = (rgbyte *) MRI_RGB_PTR(inim) ;
          register float opa ;
          for( ii=0 ; ii < npix ; ii++ ){
-           if( usop[ii]   < MAX_OPACITY &&
-               inar[ii].r > 0           && inar[ii].g > 0 && inar[ii].b > 0 ){
+           if( reject_zero && inar[ii].r==0
+                           && inar[ii].g==0 && inar[ii].b==0 ) continue ;
+           if( usop[ii] < MAX_OPACITY ){
 
              opa = alpha * (1.0-usop[ii]) ; usop[ii] += opa ;
 
@@ -76,8 +79,9 @@ ENTRY("mri_rgba_composite") ;
          rgba *inar = (rgba *) MRI_RGBA_PTR(inim) ;
          register float opa ;
          for( ii=0 ; ii < npix ; ii++ ){
-           if( usop[ii]   < MAX_OPACITY &&
-               inar[ii].r > 0           && inar[ii].g > 0 && inar[ii].b > 0 ){
+           if( reject_zero && inar[ii].r==0
+                           && inar[ii].g==0 && inar[ii].b==0 ) continue ;
+           if( usop[ii] < MAX_OPACITY ){
 
              opa = 0.00392156*inar[ii].a * (1.0-usop[ii]) ; usop[ii] += opa ;
 
