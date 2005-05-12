@@ -1962,13 +1962,7 @@ libSUMA.a: libmri.a libmrix.a libcoxplot.a libf2c.a
 libgts.a:
 	( cd SUMA ;	\
 	rm -f libgts.a	;\
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) libgts.a 'INSTALLDIR=$(INSTALLDIR)' \
-	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
-	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
-	'RANLIB=$(RANLIB)' \
-        'MAKE=$(MAKE)'     \
-	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
-	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) libgts.a ;	\
 	cd ../	;	\
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
 	$(CP) SUMA/libgts.a ${INSTALLDIR}; \
@@ -1994,7 +1988,7 @@ suma_exec:libSUMA.a libmri.a librickr.a xutil.o LiteClue.o parser.o parser_int.o
 
 ###
 #Do the GTS related stuff 	
-suma_gts_progs:libgts.a
+suma_gts_progs: libgts.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) SurfMesh 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
