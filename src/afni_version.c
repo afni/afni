@@ -363,6 +363,7 @@ char * AFNI_make_update_script(void)
    fp = fopen( SNAME , "w" ) ; if( fp == NULL ){ chdir(cwd); return NULL; }
    fprintf( fp ,
             "#!/bin/sh\n"
+            "echo '++ FTP-ing %s from afni.nimh.nih.gov'\n"
             "%s -n afni.nimh.nih.gov << EEEEE\n"   /* FTP to get file */
             "user anonymous AFNI_UPDATER@%s\n"
             "binary\n"
@@ -370,14 +371,18 @@ char * AFNI_make_update_script(void)
             "get %s\n"
             "bye\n"
             "EEEEE\n"
+            "echo '++ Unpacking %s'\n"
             "%s -dc %s | %s xf -\n"      /* uncompress and untar .tgz file */
             "/bin/rm -f %s\n"            /* delete .tgz file */
+            "echo '++ Moving files'"
             "/bin/mv -f %s/* .\n"        /* move untar-ed files up to here */
             "/bin/rm -rf %s\n"           /* remove any directory leftovers */
-            "exit\n" ,
+            "echo '++ Finished'\n" ,
+            fname ,                 /* filename to get (for 'FTP-ing' echo) */
             pg_ftp ,                /* FTP program */
             hbuf ,                  /* hostname, for FTP password */
-            fname ,                 /* filename to get */
+            fname ,                 /* filename to get (for FTP) */
+            fname ,                 /* ditto (for 'Unpacking' echo) */
             pg_gzip, fname, pg_tar, /* GZIP program, filename, TAR program */
             fname ,                 /* filename to delete */
             SHSHSH(SHOWOFF) ,       /* directory to copy up */

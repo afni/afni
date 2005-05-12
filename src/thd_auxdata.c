@@ -13,7 +13,9 @@
 #  define DQQ(s) /* nada */
 #endif
 
-void THD_copy_datablock_auxdata( THD_datablock * old_dblk, THD_datablock * new_dblk )
+/*---------------------------------------------------------------------------*/
+
+void THD_copy_datablock_auxdata( THD_datablock *old_dblk, THD_datablock *new_dblk )
 {
    int new_nvals , old_nvals , min_nvals , iv,kv , ibr ;
 
@@ -88,7 +90,7 @@ DQQ("exit") ;
   30 Nov 1997: Initialize the brick fields in a datablock.
 ------------------------------------------------------------------*/
 
-void THD_init_datablock_labels( THD_datablock * dblk )
+void THD_init_datablock_labels( THD_datablock *dblk )
 {
    int ibr , nvals ;
 
@@ -109,6 +111,8 @@ void THD_init_datablock_labels( THD_datablock * dblk )
 
    return ;
 }
+
+/*---------------------------------------------------------------------------*/
 
 void THD_store_datablock_label( THD_datablock *dblk , int iv , char *str )
 {
@@ -131,7 +135,9 @@ void THD_store_datablock_label( THD_datablock *dblk , int iv , char *str )
    return ;
 }
 
-void THD_init_datablock_keywords( THD_datablock * dblk )
+/*---------------------------------------------------------------------------*/
+
+void THD_init_datablock_keywords( THD_datablock *dblk )
 {
    int ibr , nvals ;
 
@@ -153,7 +159,9 @@ void THD_init_datablock_keywords( THD_datablock * dblk )
    return ;
 }
 
-void THD_store_datablock_keywords( THD_datablock * dblk , int iv , char * str )
+/*---------------------------------------------------------------------------*/
+
+void THD_store_datablock_keywords( THD_datablock *dblk, int iv, char *str )
 {
    if( ! ISVALID_DATABLOCK(dblk) || iv < 0 || iv >= dblk->nvals ) return ;
 
@@ -165,7 +173,9 @@ void THD_store_datablock_keywords( THD_datablock * dblk , int iv , char * str )
    return ;
 }
 
-void THD_append_datablock_keywords( THD_datablock * dblk , int iv , char * str )
+/*---------------------------------------------------------------------------*/
+
+void THD_append_datablock_keywords( THD_datablock *dblk, int iv , char *str )
 {
    if( ! ISVALID_DATABLOCK(dblk)   ||
        iv < 0 || iv >= dblk->nvals || str == NULL ) return ;
@@ -176,7 +186,7 @@ void THD_append_datablock_keywords( THD_datablock * dblk , int iv , char * str )
       THD_store_datablock_keywords( dblk , iv , str ) ;
    } else if( str[0] != '\0' ){
       int ll = strlen(dblk->brick_keywords[iv]) + strlen(str) + 6 ;
-      char * cc = (char*)XtMalloc( sizeof(char) * ll ) ;
+      char *cc = (char*)XtMalloc( sizeof(char) * ll ) ;
       strcpy(cc,dblk->brick_keywords[iv]) ; strcat(cc," ; ") ; strcat(cc,str) ;
       myXtFree( dblk->brick_keywords[iv] ) ;
       dblk->brick_keywords[iv] = cc ;
@@ -184,7 +194,9 @@ void THD_append_datablock_keywords( THD_datablock * dblk , int iv , char * str )
    return ;
 }
 
-void THD_init_datablock_stataux( THD_datablock * dblk )
+/*---------------------------------------------------------------------------*/
+
+void THD_init_datablock_stataux( THD_datablock *dblk )
 {
    int ibr , nvals ;
 
@@ -212,8 +224,10 @@ void THD_init_datablock_stataux( THD_datablock * dblk )
    return ;
 }
 
-void THD_store_datablock_stataux( THD_datablock * dblk ,
-                                  int iv , int scode , int npar , float * par )
+/*---------------------------------------------------------------------------*/
+
+void THD_store_datablock_stataux( THD_datablock *dblk ,
+                                  int iv , int scode , int npar , float *par )
 {
    int kv , jv ;
 
@@ -244,7 +258,9 @@ void THD_store_datablock_stataux( THD_datablock * dblk ,
    return ;
 }
 
-int THD_string_has( char * strbig , char * strlit )
+/*---------------------------------------------------------------------------*/
+
+int THD_string_has( char *strbig , char *strlit )
 {
    if( strbig == NULL || strbig[0] == '\0' ||
        strlit == NULL || strlit[0] == '\0'   ) return 0 ;
@@ -252,7 +268,9 @@ int THD_string_has( char * strbig , char * strlit )
    return ( strstr(strbig,strlit) != NULL ) ;
 }
 
-void THD_store_dataset_keywords( THD_3dim_dataset * dset , char * str )
+/*---------------------------------------------------------------------------*/
+
+void THD_store_dataset_keywords( THD_3dim_dataset *dset , char *str )
 {
    if( ! ISVALID_3DIM_DATASET(dset) ) return ;
 
@@ -262,7 +280,9 @@ void THD_store_dataset_keywords( THD_3dim_dataset * dset , char * str )
    return ;
 }
 
-void THD_append_dataset_keywords( THD_3dim_dataset * dset , char * str )
+/*---------------------------------------------------------------------------*/
+
+void THD_append_dataset_keywords( THD_3dim_dataset *dset , char *str )
 {
    if( ! ISVALID_3DIM_DATASET(dset) || str == NULL ) return ;
 
@@ -270,7 +290,7 @@ void THD_append_dataset_keywords( THD_3dim_dataset * dset , char * str )
       THD_store_dataset_keywords( dset , str ) ;
    } else if( str[0] != '\0' ){
       int ll = strlen(dset->keywords) + strlen(str) + 6 ;
-      char * cc = (char*)XtMalloc( sizeof(char) * ll ) ;
+      char *cc = (char*)XtMalloc( sizeof(char) * ll ) ;
       strcpy(cc,dset->keywords) ; strcat(cc," ; ") ; strcat(cc,str) ;
       myXtFree( dset->keywords ) ;
       dset->keywords = cc ;
