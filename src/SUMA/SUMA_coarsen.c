@@ -14,9 +14,6 @@
  *   (at your option) any later version.                                   *
  *                                                                         *
  ***************************************************************************/
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
 #include "SUMA_suma.h"
 #include "SUMA_GeomComp.h"
@@ -39,7 +36,7 @@ void usage_SUMA_coarsen ()
    char * s = NULL;
    s = SUMA_help_basics();
    printf ( "\nUsage:\n"
-            "  SurfMesh -spec SPECFILE -surf SURFNAME \n"
+            "  SurfMesh HHHHH -spec SPECFILE -surf SURFNAME \n"
             "\n"
             "  Mandatory parameters:\n"
             "     -spec SpecFile: Spec file containing input surfaces.\n"
@@ -211,14 +208,14 @@ double distance(SUMA_SurfaceObject *SO, int n, int m)
 
 int main (int argc,char *argv[])
 {/* Main */
-   static char FuncName[]={"iotest"};
+   static char FuncName[]={"SurfMesh"};
    SUMA_KUBATEST_OPTIONS *Opt;
    int SO_read = -1;
    int i = 0;
-   SUMA_SurfaceObject *SO = NULL;
+   SUMA_SurfaceObject *SO = NULL, *S2 = NULL;
    SUMA_SurfSpecFile Spec;
    void *SO_name = NULL;
-   SUMA_Boolean LocalHead = NOPE;
+   SUMA_Boolean LocalHead = YUP;
    FILE* out = NULL;
 
    SUMA_mainENTRY;
@@ -255,26 +252,24 @@ int main (int argc,char *argv[])
       exit(1);
    }
 
-      /* now identify surface needed */
-      SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
-      if (!SO)
-      {
-         fprintf (SUMA_STDERR,"Error %s:\n"
-                              "Failed to find surface %s\n"
-                              "in spec file. Use full name.\n",
-                              FuncName, Opt->surf_names[0]);
-         exit(1);
-      }
+   /* now identify surface needed */
+   SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
+   if (!SO)
+   {
+      fprintf (SUMA_STDERR,"Error %s:\n"
+                           "Failed to find surface %s\n"
+                           "in spec file. Use full name.\n",
+                           FuncName, Opt->surf_names[0]);
+      exit(1);
+   }
 
-      /* try to simplify mesh */
-      GtsSurface* s  = SumaToGts(SO);
+   S2 = SUMA_Mesh_Resample (SO, Opt->edges);
       
-      if (Opt->edges < 1)
-         coarsen(s, SO->EL->N_Distinct_Edges * Opt->edges);
-      else
-         refine(s, SO->EL->N_Distinct_Edges * Opt->edges);
+      
 
-      SUMA_SurfaceObject* S2 = GtsToSuma(s);
+      
+         
+
       
       out = fopen("testNodes.1D", "w");      
       for (i=0; i < S2->N_Node*3; i+=3)
@@ -291,7 +286,6 @@ int main (int argc,char *argv[])
          S2->FaceSetList[i+2]);
       fclose(out);
       SUMA_free (S2);
-      gts_object_destroy((GtsObject*)s);
 
    SUMA_LH("clean up");
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
@@ -299,7 +293,7 @@ int main (int argc,char *argv[])
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");
    }
-
+   
    if (!SUMA_Free_CommonFields(SUMAg_CF)) {SUMA_SL_Err("SUMAg_CF Cleanup Failed!");}
 
    SUMA_RETURN(0);
