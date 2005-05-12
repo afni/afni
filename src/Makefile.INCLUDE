@@ -413,6 +413,10 @@ dsetdup:dsetdup.o
 3dDWItoDT:3dDWItoDT.o libmri.a
 	$(RM) $@
 	$(CC) -o 3dDWItoDT 3dDWItoDT.o $(LFLAGS) $(LLIBS) -lf2c -lmri
+
+3dDTtoDWI:3dDTtoDWI.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dDTtoDWI 3dDTtoDWI.o $(LFLAGS) $(LLIBS) -lf2c -lmri
 	
 3dToutcount:3dToutcount.o
 	$(RM) $@
