@@ -357,10 +357,13 @@ ENTRY("THD_open_nifti") ;
                  char buf[128] ;                              /* were altered */
                  sprintf(buf,"%d,%d,%d,%d,%d,%d" ,             /* 12 May 2005 */
                    nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->datatype );
-                 if( strcmp(buf,rhs) != 0 )
+                 if( strcmp(buf,rhs) != 0 ){
+                   static int nnn=0 ;
+                   if(nnn==0){fprintf(stderr,"\n"); nnn=1;}
                    fprintf(stderr,
                      "** WARNING: NIfTI file %s dimensions altered since "
                                  "AFNI extension was added\n",pathname ) ;
+                 }
                }
                THD_dblkatr_from_niml( nngr , dset->dblk ); /* load attributes */
                THD_datablock_apply_atr( dset ) ;   /* apply to dataset struct */
