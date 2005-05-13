@@ -13,14 +13,14 @@
 
 #define DEFAULT_NCOLOVR 20
 
-static char * INIT_colovr[DEFAULT_NCOLOVR] = {
+static char *INIT_colovr[DEFAULT_NCOLOVR] = {
    "#ffff00" , "#ffcc00"   , "#ff9900"  , "#ff6900" , "#ff4400" , "#ff0000" ,
    "#0000ff" , "#0044ff"   , "#0069ff"  , "#0099ff" , "#00ccff" , "#00ffff" ,
    "green"   , "limegreen" , "violet"   , "hotpink" ,
    "white"   , "#dddddd"   , "#bbbbbb"  , "black"
 } ;
 
-static char * INIT_labovr[DEFAULT_NCOLOVR] = {
+static char *INIT_labovr[DEFAULT_NCOLOVR] = {
    "yellow" , "yell-oran" , "oran-yell" , "orange"   , "oran-red" , "red"   ,
    "dk-blue", "blue"      , "lt-blue1"  , "lt-blue2" , "blue-cyan", "cyan"  ,
    "green"  , "limegreen" , "violet"    , "hotpink"  ,
@@ -28,29 +28,29 @@ static char * INIT_labovr[DEFAULT_NCOLOVR] = {
 } ;
 
 static int nx,nts , sep=1 ;
-static float ** yar , * xar ;
-static MCW_DC * dc ;
-static char * title = NULL , * xlabel = NULL , * ylabel = NULL ;
+static float **yar , *xar ;
+static MCW_DC *dc ;
+static char *title = NULL , *xlabel = NULL , *ylabel = NULL ;
 
-static char * dfile_nar[6] = {
+static char *dfile_nar[6] = {
          "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"    ,
          "\\Delta I-S [mm]" , "\\Delta R-L [mm]" , "\\Delta A-P [mm]"  } ;
 
 static int    nyar = 0 ;
-static char * ynar[128] ;
-static char ** yname = NULL ;
+static char  *ynar[128] ;
+static char **yname = NULL ;
 
-void startup_timeout_CB( XtPointer client_data , XtIntervalId * id ) ;
+void startup_timeout_CB( XtPointer client_data , XtIntervalId *id ) ;
 
 /*-----------------------------------------------------------------*/
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
    int iarg , ii , ny , ignore=0 , use=0 , install=0 ;
    float dx=1.0 , xzero=0.0 ;
    char *cpt ;
-   MRI_IMAGE * inim , * flim ;
-   float * far ;
+   MRI_IMAGE *inim , *flim ;
+   float *far ;
    XtAppContext app ;
    Widget shell ;
    int use_stdin=0 ; /* 01 Aug 2001 */
@@ -280,46 +280,67 @@ int main( int argc , char * argv[] )
 
    /*-- 01 Aug 2001: read from stdin instead of a file --*/
 
+#define NLBUF 131072
+#define NVMAX 10000
    if( use_stdin ){
-     char lbuf[2560] , *cpt ;
-     int nval ;
-     float val[9] ;
+     char *lbuf , *cpt , *dpt ;
+     int   nval ;
+     float *val , fff ;
 
-     do{                  /* read lines until 1st char is non-blank and non-# */
-       cpt = fgets(lbuf,2560,stdin) ;
+     lbuf = (char * )malloc(sizeof(char )*NLBUF) ;
+     val  = (float *)malloc(sizeof(float)*NVMAX) ;
+
+     /** 13 May 2005: modified to read up to NVMAX numbers from stdin,
+                      rather than the fixed size array of length 9 of old **/
+
+     do{               /* read lines until 1st char is non-blank and non-# */
+       cpt = fgets(lbuf,NLBUF,stdin) ;
        if( cpt==NULL ){ fprintf(stderr,"** Can't read from stdin!\n"); exit(1); }
        for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
      } while( cpt[ii] == '\0' || cpt[ii] == '#' ) ;
-     nval = sscanf(lbuf,"%f%f%f%f%f%f%f%f%f",
-                   val+0,val+1,val+2,val+3,val+4,val+5,val+6,val+7,val+8) ;
+
+     nval = 0 ; cpt = lbuf ;   /* read numbers from lbuf into val */
+     while(1){
+       fff = strtod(cpt,&dpt) ; if( dpt  == cpt   ) break ;
+       val[nval++] = fff ;      if( nval == NVMAX ) break ;
+       cpt = dpt; if( *cpt == ','  ) cpt++; if( *cpt == '\0' ) break;
+     }
      if( nval < 1 ){
        fprintf(stderr,"** Can't read numbers from stdin!\n");
-       fprintf(stderr,"** First line: '%-.20s'\n",lbuf) ;
+       fprintf(stderr,"** First line: '%-.30s'\n",lbuf) ;
        exit(1) ;
      }
 
      nx = nval ; ny = 1 ;
-     far = (float *) malloc(sizeof(float)*nval) ;
+     far = (float *) malloc(sizeof(float)*nx) ;
      memcpy(far,val,sizeof(float)*nx) ;
      while(1){  /* read from stdin */
-        cpt = fgets(lbuf,2560,stdin) ;
+        cpt = fgets(lbuf,NLBUF,stdin) ;
         if( cpt == NULL ) break ;            /* done */
         for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
-        if( cpt[ii] == '\0' || cpt[ii] == '#' ) continue ;          /* skip */
+        if( cpt[ii] == '\0' || cpt[ii] == '#' ) continue ;         /* skip */
         memset(val,0,sizeof(float)*nx) ;
-        nval = sscanf(lbuf,"%f%f%f%f%f%f%f%f%f",
-                      val+0,val+1,val+2,val+3,val+4,val+5,val+6,val+7,val+8) ;
-        if( nval < 1 ) break ;
+
+        nval = 0 ; cpt = lbuf ;   /* read numbers from lbuf into val */
+        while(1){
+          fff = strtod(cpt,&dpt) ; if( dpt  == cpt ) break ;
+          val[nval++] = fff ;      if( nval == nx  ) break ;
+          cpt = dpt; if( *cpt == ','  ) cpt++; if( *cpt == '\0' ) break;
+        }
         far = (float *) realloc( far , sizeof(float)*(ny+1)*nx ) ;
-        memcpy(far+ny*nx,val,sizeof(float)*nx) ;
-        ny++ ;
+        memcpy(far+ny*nx,val,sizeof(float)*nx) ; ny++ ;
      }
-     if( ny < 2 ){
+     if( ny < 2 && nx < 2 ){
        fprintf(stderr,"** Can't read at least 2 lines from stdin\n"); exit(1);
      }
      flim = mri_new_vol_empty( nx,ny,1 , MRI_float ) ;
      mri_fix_data_pointer( far , flim ) ;
-     inim = mri_transpose(flim) ; mri_free(flim) ;
+     if( ny > 1 ){      /* more than one row ==> transpose (the usual case) */
+       inim = mri_transpose(flim) ; mri_free(flim) ;
+     } else {           /* only 1 row ==> am OK this way [13 May 2005] */
+       inim = flim ;
+     }
+     free((void *)val); free((void *)lbuf);
 
    } else {  /*-- old code: read from a file --*/
              /*-- 05 Mar 2003: or more than 1 file --*/
@@ -357,12 +378,21 @@ int main( int argc , char * argv[] )
        DESTROY_IMARR(imar) ; inim = flim ;
      }
 
+     if( inim->nx == 1 && inim->ny > 1 ){  /* 13 May 2005 */
+       flim = mri_transpose(inim); mri_free(inim); inim = flim;
+     }
+
    } /* end of file input */
 
    flim = inim ;
    far  = MRI_FLOAT_PTR(flim) ;
    nx   = flim->nx ;
    ny   = flim->ny ;
+
+   if( nx < 2 ){
+     fprintf(stderr,"** 1dplot can't plot curves only 1 point long!\n") ;
+     exit(1) ;
+   }
 
    /* make x axis */
 
@@ -401,10 +431,10 @@ int main( int argc , char * argv[] )
 }
 
 /*-----------------------------------------------------------------*/
-void killfunc(void * fred){ exit(0) ; }
+void killfunc(void *fred){ exit(0) ; }
 /*-----------------------------------------------------------------*/
 
-void startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
+void startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 {
    int ng ;
 
