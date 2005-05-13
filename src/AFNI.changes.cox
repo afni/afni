@@ -5537,3 +5537,11 @@
 
 13 May 2005
  * Added 'xamplitude' option to waver -tstim option.
+ * Oops.  Fixed bug in 3dDeconvolve for -iresp/-sresp options: malloc-ed
+     the 'hout' float** array with sizeof(float) not sizeof(float*), which
+     doesn't work too good on 64 bit systems.
+ * Modified 1dplot.c to
+     (a) allow reading up to 10000 numbers on a line from stdin, and
+     (b) transpose input file if it has only 1 line, so that a long
+         single line of numbers becomes a decent plot.
+   
