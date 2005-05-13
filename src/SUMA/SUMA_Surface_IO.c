@@ -3539,6 +3539,12 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
                   "       If you supply a surface volume, the coordinates of the input surface.\n"
                   "        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
                   "        You must also specify a VolParam file for SureFit surfaces.\n" */
+                  "    -orient_out STR: Output coordinates in STR coordinate system. \n"
+                  "                      STR is a three character string following AFNI's \n"
+                  "                      naming convention. The program assumes that the native  \n"
+                  "                      orientation of the surface is RAI, unless you use the \n"
+                  "                      -MNI_lpi option. The coordinate transformation is carried \n"
+                  "                      out last, just before writing the surface to disk.\n"
                   "    -make_consistent: Check the consistency of the surface's mesh (triangle\n"
                   "                      winding). This option will write out a new surface even \n"
                   "                      if the mesh was consistent.\n"
@@ -3595,6 +3601,7 @@ int main (int argc,char *argv[])
    SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
    SUMA_SFname *SF_name = NULL;
    void *SO_name = NULL;
+   char orsurf[3], orcode[3];
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
    SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind, onemore;
@@ -3620,6 +3627,8 @@ int main (int argc,char *argv[])
    xmat_name = NULL;
    xcen[0] = 0.0; xcen[1] = 0.0; xcen[2] = 0.0;
 	brk = NOPE;
+   orcode[0] = '\0'; 
+   sprintf(orsurf,"RAI");
    Docen = NOPE;
    Doxmat = NOPE;
    Do_tlrc = NOPE;
@@ -3880,6 +3889,20 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-orient_out") == 0)) {
+         kar ++;
+			if (kar>= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -orient_out\n");
+				exit (1);
+			}
+			snprintf(orcode, 4*sizeof(char), "%s", argv[kar]);
+         if (!SUMA_ok_orstring(orcode)) {
+            fprintf (SUMA_STDERR, "%s is a bad orientation string\n", orcode);
+				exit (1);
+         } 
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-tlrc") == 0)) {
          Do_tlrc = YUP;
          brk = YUP;
@@ -4047,6 +4070,7 @@ int main (int argc,char *argv[])
       if (head) SUMA_free(head); head = NULL;
    }
    
+  
    if ((Do_tlrc || Do_acpc) && (!sv_name)) {
       fprintf (SUMA_STDERR,"Error %s: -tlrc must be used with -sv option.\n", FuncName);
       exit(1);
@@ -4226,6 +4250,7 @@ int main (int argc,char *argv[])
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
          exit(1);
       }
+      sprintf(orsurf,"RAI");
    }
    
    if (Do_mni_LPI) {
@@ -4235,6 +4260,7 @@ int main (int argc,char *argv[])
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNItlrc_toMNI.\n", FuncName);
          exit(1);
       }
+      sprintf(orsurf,"LPI");
    }
    
    if (Doxmat) {
@@ -4249,6 +4275,14 @@ int main (int argc,char *argv[])
          if (!SUMA_ApplyAffine (SO->NodeList, SO->N_Node, M, xcen)) { SUMA_SL_Err("Failed to xform coordinates"); exit(1); }
       } else {
          if (!SUMA_ApplyAffine (SO->NodeList, SO->N_Node, M, NULL)) { SUMA_SL_Err("Failed to xform coordinates"); exit(1); }
+      }
+   }
+   
+   if (orcode[0] != '\0') {
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Changing coordinates from %s to %s\n", FuncName, orsurf, orcode);
+      if (!SUMA_CoordChange(orsurf, orcode, SO->NodeList, SO->N_Node)) {
+         SUMA_S_Err("Failed to change coords.");
+         exit(1);
       }
    }
    
