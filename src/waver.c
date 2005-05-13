@@ -444,7 +444,7 @@ void Syntax(void)
     "                     an ON interval from time=a to time=a+c.\n"
     "   ** 13 May 2005: You can now add an amplitude to each response individually.\n"
     "                     For example\n"
-    "                       waver -dt 1.0 -peak 1.0 -tstim 3.2 17.9/2.0 23.1/-0.5\n"
+    "                       waver -dt 1.0 -peak 1.0 -tstim 3.2 17.9x2.0 23.1x-0.5\n"
     "                     puts the default response amplitude at time 3.2,\n"
     "                     2.0 times the default at time 17.9, and -0.5 times\n"
     "                     the default at time 23.1.\n"
@@ -669,9 +669,9 @@ void Process_Options( int argc , char * argv[] )
           }
           if( nnn == 1 || valb < value ) valb = value ;  /* 12 May 2003 */
 
-          /* 13 May 2005: check for amplitude that follows a '/' */
+          /* 13 May 2005: check for amplitude that follows a 'x' */
 
-          cpt = strchr(argv[iopt],'/') ;
+          cpt = strchr(argv[iopt],'x') ;
           if( cpt != NULL ){
             cpt++ ; valc = strtod( cpt , &dpt ) ;
             if( valc == 0.0 && dpt == cpt ) valc = 1.0 ;
