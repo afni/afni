@@ -159,6 +159,7 @@ static int      IN_num_tstim = -666 ;  /* 16 May 2001 = #8 */
 static double   IN_top_tstim = 0.0  ;
 static double * IN_tstim_a   = NULL ;
 static double * IN_tstim_b   = NULL ;  /* 12 May 2003 */
+static double * IN_tstim_c   = NULL ;  /* 13 May 2005 (Friday the 13th) */
 
 int main( int argc , char * argv[] )
 {
@@ -306,10 +307,10 @@ int main( int argc , char * argv[] )
         dur = IN_tstim_b[jj] - IN_tstim_a[jj] ; dur = MAX(dur,0.0) ;
         ii  = ((int)ceil(dur/dts)) + 1 ;
         if( ii == 1 ){              /* instantaneous impulse */
-          tst[nts] = IN_tstim_a[jj] ; ast[nts] = 1.0 ;
+          tst[nts] = IN_tstim_a[jj] ; ast[nts] = IN_tstim_c[jj] ;
         } else {
-          aa  = dur/(WAV_dt*ii) ;   /* amplitude of each impulse */
-          dur = dur / (ii-1) ;      /* interval between impulses */
+          aa  = dur/(WAV_dt*ii) * IN_tstim_c[jj]; /* amplitude of each impulse */
+          dur = dur / (ii-1) ;                    /* interval between impulses */
           for( kk=0 ; kk < ii ; kk++ ){
             tst[nts+kk] = IN_tstim_a[jj]+kk*dur ;
             ast[nts+kk] = aa ;
@@ -441,6 +442,12 @@ void Syntax(void)
     "                       waver -dt 1.0 -tstim 5     | 1dplot -stdin\n"
     "                     If you prefer, you can use the form 'a%%c' to indicate\n"
     "                     an ON interval from time=a to time=a+c.\n"
+    "   ** 13 May 2005: You can now add an amplitude to each response individually.\n"
+    "                     For example\n"
+    "                       waver -dt 1.0 -peak 1.0 -tstim 3.2 17.9/2.0 23.1/-0.5\n"
+    "                     puts the default response amplitude at time 3.2,\n"
+    "                     2.0 times the default at time 17.9, and -0.5 times\n"
+    "                     the default at time 23.1.\n"
     "\n"
     "  -when DATA     = Read time blocks when stimulus is 'on' (=1) from the\n"
     "                     command line and convolve the waveform with with\n"
@@ -614,9 +621,9 @@ void Process_Options( int argc , char * argv[] )
       }
 
       if( strcmp(argv[nopt],"-tstim") == 0 ){  /* 16 May 2001 */
-        int iopt , nnn ;
-        float value , valb ;
-        char *cpt ;
+        int iopt , nnn , zero_valc=0 ;
+        float value , valb , valc ;
+        char *cpt , *dpt ;
 
         if( IN_num_tstim > 0 || IN_npts > 0 ){
           fprintf(stderr,"Cannot input two timeseries!\n"); exit(1);
@@ -627,16 +634,25 @@ void Process_Options( int argc , char * argv[] )
         IN_num_tstim = 0 ;
         IN_tstim_a   = (double *) malloc( sizeof(double) ) ;
         IN_tstim_b   = (double *) malloc( sizeof(double) ) ;
-        while( iopt < argc && argv[iopt][0] != '-' ){  /* loop over argv until get a '-' */
+        IN_tstim_c   = (double *) malloc( sizeof(double) ) ;
+
+        /* loop over argv until get a '-' or get to end of args */
+
+        while( iopt < argc && argv[iopt][0] != '-' ){
 
           if( isspace(argv[iopt][0]) ){   /* skip if starts with blank */
-            fprintf(stderr,
+            fprintf(stderr,               /* (usually from Microsoft!) */
                     "** Skipping -tstim value #%d that starts with whitespace!\n",
                     IN_num_tstim ) ;
             iopt++; continue;
           }
 
-          valb = 0.0 ;
+          /* formats:  start            ==> instantaneous impulse
+                       start%duration   ==> extended duration
+                       start:end        ==> extended duration
+             can also have "/amplitude" afterwards to scale result */
+
+          valb = 0.0 ; valc = 1.0 ;
           if( strchr(argv[iopt],'%') != NULL ){                       /* 12 May 2003 */
             nnn = sscanf( argv[iopt] , "%f%%%f" , &value , &valb ) ;
             if( nnn == 2 ) valb += value ;
@@ -653,15 +669,30 @@ void Process_Options( int argc , char * argv[] )
           }
           if( nnn == 1 || valb < value ) valb = value ;  /* 12 May 2003 */
 
+          /* 13 May 2005: check for amplitude that follows a '/' */
+
+          cpt = strchr(argv[iopt],'/') ;
+          if( cpt != NULL ){
+            cpt++ ; valc = strtod( cpt , &dpt ) ;
+            if( valc == 0.0 && dpt == cpt ) valc = 1.0 ;
+            if( valc == 0.0 ) zero_valc++ ;
+          }
+
           IN_tstim_a = (double *)realloc(IN_tstim_a,sizeof(double)*(IN_num_tstim+1));
           IN_tstim_b = (double *)realloc(IN_tstim_b,sizeof(double)*(IN_num_tstim+1));
-          IN_tstim_a[IN_num_tstim] = value ;
-          IN_tstim_b[IN_num_tstim] = valb  ;
+          IN_tstim_c = (double *)realloc(IN_tstim_c,sizeof(double)*(IN_num_tstim+1));
+          IN_tstim_a[IN_num_tstim] = value ;   /* start time */
+          IN_tstim_b[IN_num_tstim] = valb  ;   /* end time */
+          IN_tstim_c[IN_num_tstim] = valc  ;   /* amplitude */
           IN_num_tstim++ ;
           if( valb > IN_top_tstim ) IN_top_tstim = valb ;
           iopt++ ;
         }
-        nopt = iopt ; continue ;
+        if( zero_valc == IN_num_tstim )
+          fprintf(stderr,
+                  "** WARNING: all '/' amplitudes in 'waver -tstim' are zero!\n") ;
+
+        nopt = iopt ; continue ;  /* end of -tstim */
       }
 
       if( strncmp(argv[nopt],"-inl",4) == 0 ){

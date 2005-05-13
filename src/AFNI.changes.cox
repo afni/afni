@@ -5534,3 +5534,6 @@
 
 12 May 2005
  * Added "NIfTI_num" signature to thd_niftiwrite.c and thd_niftiread.c.
+
+13 May 2005
+ * Added '/amplitude' option to waver -tstim option.
