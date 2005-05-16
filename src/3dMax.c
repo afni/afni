@@ -43,6 +43,7 @@ int main( int argc , char * argv[] )
              "  -zero = include only zero voxel values (implies slow)\n"
              "  -non-positive = include only voxel values 0 or negative (implies slow)\n"
              "  -non-negative = include only voxel values 0 or greater (implies slow)\n"
+             "  -non-zero = include only voxel values not equal to 0 (implies slow)\n"
              "  -mask dset = use dset as mask to include/exclude voxels\n"
              "  -automask = automatically compute mask for dataset\n"
              "    Can not be combined with -mask\n"
@@ -152,6 +153,18 @@ int main( int argc , char * argv[] )
         zero_flag = 1;
         nopt++; continue;
       }
+
+      if( strcmp(argv[nopt],"-non-zero") == 0 ){
+        if(positive_flag!=-1) {
+          fprintf(stderr, "***Can not use multiple +/-/0 options");
+          exit(1) ;
+        }
+        positive_flag = 1;
+	negative_flag = 1;
+        zero_flag = 0;
+        nopt++; continue;
+      }
+
 
       if( strcmp(argv[nopt],"-autoclip") == 0 ||
           strcmp(argv[nopt],"-automask") == 0   ){
