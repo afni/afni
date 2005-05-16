@@ -776,10 +776,12 @@ ENTRY("glt_analysis") ;
 /*
   Convert t-values and F-values to p-value.
   These routines were copied and modified from: mri_stats.c
+  16 May 2005: Change names from '_t2p' to '_t2pp' to avoid library
+               name conflict on Mac OS X 10.4 (stupid system).
 */
 
 
-static double student_t2p( double tt , double dof )
+static double student_t2pp( double tt , double dof )
 {
    double bb , xx , pp ;
 
@@ -796,7 +798,7 @@ static double student_t2p( double tt , double dof )
 }
 
 
-static double fstat_t2p( double ff , double dofnum , double dofden )
+static double fstat_t2pp( double ff , double dofnum , double dofden )
 {
    int which , status ;
    double p , q , f , dfn , dfd , bound ;
@@ -887,7 +889,7 @@ void report_results
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ; else goto finisher ;
 	  sprintf (sbuf, "%s%d   t-st = %10.4f    ", SPOL,m, tcoef.elts[m]);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ; else goto finisher ;
-	  pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
+	  pvalue = student_t2pp ((double)tcoef.elts[m], (double)(N-p));
 	  sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	}
@@ -909,7 +911,7 @@ void report_results
 	      sprintf (sbuf, "%s%d   t-st = %10.4f    ",
 		       SPOL,m - mfirst, tcoef.elts[m]);
 	      if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ; else goto finisher ;
-	      pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
+	      pvalue = student_t2pp ((double)tcoef.elts[m], (double)(N-p));
 	      sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
 	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	    }
@@ -933,7 +935,7 @@ void report_results
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf) ; else goto finisher ;
 	  sprintf  (sbuf,"h[%2d] t-st = %10.4f    ", ilag, tcoef.elts[m]);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
-	  pvalue = student_t2p ((double)tcoef.elts[m], (double)(N-p));
+	  pvalue = student_t2pp ((double)tcoef.elts[m], (double)(N-p));
 	  sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 	  m++;
@@ -944,7 +946,7 @@ void report_results
       r = p - (itop-ibot+1);
       sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-r, N-p, fpart[is]);
       if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
-      pvalue = fstat_t2p ((double)fpart[is], (double)(p-r), (double)(N-p));
+      pvalue = fstat_t2pp ((double)fpart[is], (double)(p-r), (double)(N-p));
       sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
       if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
     }
@@ -962,7 +964,7 @@ void report_results
 
   sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-q, N-p, ffull);
   if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
-  pvalue = fstat_t2p ((double)ffull, (double)(p-q), (double)(N-p));
+  pvalue = fstat_t2pp ((double)ffull, (double)(p-q), (double)(N-p));
   sprintf (sbuf, "p-value  = %12.4e  \n", pvalue);
   if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
 
@@ -982,7 +984,7 @@ void report_results
 	      sprintf (sbuf, "LC[%d] t-st = %10.4f    ",
 		       ilc, glt_tcoef[iglt].elts[ilc]);
 	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf,sbuf); else goto finisher ;
-	      pvalue = student_t2p ((double)glt_tcoef[iglt].elts[ilc],
+	      pvalue = student_t2pp ((double)glt_tcoef[iglt].elts[ilc],
 				    (double)(N-p));
 	      sprintf (sbuf, "p-value  = %12.4e \n", pvalue);
 	      if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
@@ -994,7 +996,7 @@ void report_results
 	  r = p - glt_rows[iglt];
 	  sprintf (sbuf, "F[%2d,%3d]  = %10.4f    ", p-r, N-p, fglt[iglt]);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
-	  pvalue = fstat_t2p ((double)fglt[iglt],
+	  pvalue = fstat_t2pp ((double)fglt[iglt],
 			      (double)(p-r), (double)(N-p));
 	  sprintf (sbuf, "p-value  = %12.4e  \n", pvalue);
 	  if (strlen(lbuf) < MAXBUF)  strcat (lbuf, sbuf); else goto finisher ;
