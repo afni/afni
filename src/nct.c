@@ -6,33 +6,7 @@
     University of Louisiana at Lafayette
 *****************************************************************************/
 
-
-#if 0
-static double alng( double x )
-{
-   int indx ;
-   double xx,fterm,sum,valg ;
-   double b[9] = { 0.0 ,
-                   8.33333333333333e-2, 3.33333333333333e-2,
-                   2.52380952380952e-1, 5.25606469002695e-1,
-                   1.01152306812684e0,  1.51747364915329e0,
-                   2.26948897420496e0,  3.00991738325940e0   } ;
-
-   if( x < 8.0 ){ xx = x + 8.0 ; indx = 1 ; }
-   else         { xx = x       ; indx = 0 ; }
-
-   fterm = (xx-0.5)*log(xx) - xx + 9.1893853320467e-1 ;
-   sum = b[1]/(xx+b[2]/(xx+b[3]/(xx+b[4]/(xx+b[5]/(xx+b[6]/
-                                         (xx+b[7]/(xx+b[8]))))))) ;
-   valg = sum + fterm ;
-   if(indx)
-     valg = valg-log(x+7.0)-log(x+6.0)-log(x+5.0)
-                -log(x+4.0)-log(x+3.0)-log(x+2.0)-log(x+1.0)-log(x) ;
-   return valg ;
-}
-#else
-# define alng(x) lgamma(x)   /* C math library log(Gamma(x)) function */
-#endif
+#define alng(x) lgamma(x)   /* C math library log(Gamma(x)) function */
 
 /*---------------------------------------------------------------------------*/
 
