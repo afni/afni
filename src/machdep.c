@@ -55,3 +55,58 @@ char * _Xsetlocale( int category, const char * locale)
 #ifdef NEED_NL_LANGINFO
 char * nl_langinfo(){ return "ISO-8859-1"; }
 #endif
+
+#ifdef NO_GAMMA
+/*-------------------------------------------------------------------*/
+/* If the system doesn't provide lgamma() for some reason.
+---------------------------------------------------------------------*/
+
+/** log of gamma, for argument between 1 and 2 **/
+
+static double gamma_12( double y )
+{
+   double x , g ;
+   x = y - 1.0 ;
+   g = ((((((( 0.035868343 * x - 0.193527818 ) * x
+                               + 0.482199394 ) * x
+                               - 0.756704078 ) * x
+                               + 0.918206857 ) * x
+                               - 0.897056937 ) * x
+                               + 0.988205891 ) * x
+                               - 0.577191652 ) * x + 1.0 ;
+   return log(g) ;
+}
+
+/** asymptotic expansion of ln(gamma(x)) for large positive x **/
+
+#define LNSQRT2PI 0.918938533204672  /* ln(sqrt(2*PI)) */
+
+static double gamma_asympt(double x)
+{
+   double sum ;
+
+   sum = (x-0.5)*log(x) - x + LNSQRT2PI + 1.0/(12.0*x) - 1./(360.0*x*x*x) ;
+   return sum ;
+}
+/** log of gamma, argument positive (not very efficient!) **/
+
+double lgamma( double x )
+{
+   double w , g ;
+
+   if( x <= 0.0 ){
+      fprintf(stderr,"Internal gamma: argument %g <= 0\a\n",x) ;
+      return 0.0 ;
+   }
+
+   if( x <  1.0 ) return gamma_12( x+1.0 ) - log(x) ;
+   if( x <= 2.0 ) return gamma_12( x ) ;
+   if( x >= 6.0 ) return gamma_asympt(x) ;
+
+   g = 0 ; w = x ;
+   while( w > 2.0 ){
+      w -= 1.0 ; g += log(w) ;
+   }
+   return ( gamma_12(w) + g ) ;
+}
+#endif  /* NO_GAMMA */
