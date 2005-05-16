@@ -1261,7 +1261,7 @@ CS_OBJS  = cs_sort_fi.o cs_sort_di.o cs_symeig.o cs_sort_ii.o cs_sort_ff.o \
            cs_addto_args.o multivector.o afni_environ.o cs_qmed.o          \
            cs_sort_fv.o cs_laguerre.o machdep.o cs_qhull.o afni_logger.o   \
            afni_suma.o vol2surf.o cl1.o nifti1_io.o znzlib.o cs_misc.o     \
-           list_struct.o
+           list_struct.o nifti_statlib.o
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
@@ -1903,6 +1903,10 @@ nifti1_io.o:nifti/niftilib/nifti1_io.c nifti/niftilib/nifti1_io.h
 znzlib.o:nifti/znzlib/znzlib.c nifti/znzlib/znzlib.h
 	$(RM) $@
 	$(CC) -c nifti/znzlib/znzlib.c $(IFLAGS) $(USE_ZLIB)
+
+nifti_statlib.o:nifti/utils/nifti_stats.c nifti_statlib.c
+	$(RM) $@
+	$(CC) -c nifti_statlib.c -Inifti/niftilib -Inifti/utils $(IFLAGS)
 
 nifti_stats.o:nifti/utils/nifti_stats.c
 	$(RM) $@
