@@ -40,7 +40,7 @@ INSTALLDIR = ./macosx_10.3
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=macosx_10.3
 
-INSTALL_PREREQ = suma
+INSTALL_PREREQ = suma_gts
 
 LIBDL = libdl.a
 
@@ -50,7 +50,7 @@ LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -ldl -
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-1.2 -I/sw/lib/glib/include
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib -L/sw/lib
 SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lmri $(LZLIB) -lm -lmx -lglib -bind_at_load
 SUMA_MAKEFILE_NAME = SUMA_Makefile

@@ -49,7 +49,7 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./linux_gcc33_64
 LIBDIR = $(INSTALLDIR)
 
-INSTALL_PREREQ = suma
+INSTALL_PREREQ = suma_gts
 
 # for dynamic linking
 
@@ -75,7 +75,7 @@ LLIBS  = -lmri /usr/X11R6/lib64/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lSM -lICE 
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma (NO STATIC LINKING OF GL libs)
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/usr/include/glib-1.2 -I/usr/lib64/glib/include
 SUMA_LINK_PATH = -L/usr/lib64 -L/usr/X11R6/lib64 -L../
 #use -lGLw if you have libGLw.a or libGLw.so* or 
 #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
