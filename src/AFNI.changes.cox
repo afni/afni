@@ -5544,4 +5544,7 @@
      (a) allow reading up to 10000 numbers on a line from stdin, and
      (b) transpose input file if it has only 1 line, so that a long
          single line of numbers becomes a decent plot.
-   
+
+16 May 2005
+ * Some minor changes to help AFNI compile on Tiger, as reported by Frank
+     Haist of UCSD.
