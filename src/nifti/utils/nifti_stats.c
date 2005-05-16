@@ -10943,9 +10943,11 @@ static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
      case NIFTI_INTENT_UNIFORM:
                     if( p2 > p1  ) pq = uniform_s2pq((val-p1)/(p2-p1)); break;
 
-     /* this case is trivial */
+     /* these cases are trivial (note what is called 'p' is really 'q') */
 
-     case NIFTI_INTENT_PVAL:       pq.p = 1.0-val ; pq.q = val        ; break;
+     case NIFTI_INTENT_PVAL:       pq.p = 1.0-val     ; pq.q = val     ; break;
+     case NIFTI_INTENT_LOGPVAL:    pq.q = exp(val)    ; pq.p = 1.0-pq.q; break;
+     case NIFTI_INTENT_LOG10PVAL:  pq.q = pow(10.,val); pq.p = 1.0-pq.q; break;
    }
 
    return pq ;
@@ -11002,9 +11004,11 @@ static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
      case NIFTI_INTENT_UNIFORM:
                     if( p2 > p1  ) val = p1+(p2-p1)*uniform_pq2s(pq)   ; break;
 
-     /* this case is trivial */
+     /* these cases are trivial */
 
      case NIFTI_INTENT_PVAL:       val = pq.q                          ; break;
+     case NIFTI_INTENT_LOGPVAL:    val = log(pq.q)                     ; break;
+     case NIFTI_INTENT_LOG10PVAL:  val = log10(pq.q)                   ; break;
    }
 
    return val ;
@@ -11042,6 +11046,8 @@ static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
      NIFTI_INTENT_LAPLACE    = Laplace distribution
      NIFTI_INTENT_UNIFORM    = Uniform distribution
      NIFTI_INTENT_PVAL       = "p-value"
+     NIFTI_INTENT_LOGPVAL    = ln(p)
+     NIFTI_INTENT_LOG10PVAL  = log10(p)
 *****************************************************************************/
 
 static char *inam[]={ NULL , NULL ,
@@ -11050,7 +11056,7 @@ static char *inam[]={ NULL , NULL ,
                        "POISSON"  , "NORMAL"  , "FTEST_NONC" , "CHISQ_NONC" ,
                        "LOGISTIC" , "LAPLACE" , "UNIFORM"    , "TTEST_NONC" ,
                        "WEIBULL"  , "CHI"     , "INVGAUSS"   , "EXTVAL"     ,
-                       "PVAL"     ,
+                       "PVAL"     , "LOGPVAL" , "LOG10PVAL"  ,
                      NULL } ;
 
 #include <ctype.h>
@@ -11184,6 +11190,7 @@ double nifti_stat2hzscore( double val, int code, double p1,double p2,double p3 )
 /* Sample program to test the above functions.  Otherwise unimportant.
 ----------------------------------------------------------------------------*/
 
+#ifndef OMIT_MAIN
 int main( int argc , char *argv[] )
 {
    double val , p , q , p1=0.0,p2=0.0,p3=0.0 ;
@@ -11272,3 +11279,4 @@ int main( int argc , char *argv[] )
 
    exit(0) ;
 }
+#endif /* OMIT_MAIN */
