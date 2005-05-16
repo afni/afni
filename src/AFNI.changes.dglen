@@ -49,3 +49,6 @@
 12 May 2005
  * added count, negative, positive, zero options to 3dMax and fixed bug there in the calculation of a mean with a mask
  * created 3dDTtoDWI.c to calculate ideal diffusion weighted images from diffusion tensors for testing purposes
+
+16 May 2005
+ * added tiny, tiny change to allow non_zero option with 3dMax
