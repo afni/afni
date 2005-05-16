@@ -334,6 +334,7 @@ libgts.a:
 	  automake -a ;	\
 	  autoconf ;	\
 	  ./configure	;	\
+	  $(MAKE) clean ; \
 	  $(MAKE) ; \
 	  $(RANLIB) src/.libs/$@ ;	\
 	  $(CP) -p src/.libs/$@ .. ; )
