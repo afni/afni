@@ -324,6 +324,8 @@ ENTRY("AFNI_make_widgets") ;
    vwid         = im3d->vwid ;
    vwid->parent = im3d ;
 
+   vwid->butx = vwid->buty = 9 ; /* 17 May 2005 */
+
 #define AFNI_FORM_SPACING 9
 
 STATUS("creating top_form") ;
@@ -873,11 +875,22 @@ STATUS("making imag->rowcol") ;
             XmNtraversalOn , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
-
    XtAddCallback( imag->pop_environment_pb , XmNactivateCallback ,
+                  AFNI_imag_pop_CB , im3d ) ;
+
+   imag->pop_drawdataset_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
+            LABEL_ARG("Draw ROI plugin") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , False ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( imag->pop_drawdataset_pb , XmNactivateCallback ,
                   AFNI_imag_pop_CB , im3d ) ;
 #else
    imag->pop_environment_pb = NULL ;
+   imag->pop_drawdataset_pb = NULL ;
 #endif
 
    /*--- frame to hold all crosshair stuff ---*/

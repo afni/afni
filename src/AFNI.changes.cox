@@ -5548,3 +5548,6 @@
 16 May 2005
  * Some minor changes to help AFNI compile on Tiger, as reported by Frank
      Haist of UCSD.
+
+17 May 2005
+ * Added "Draw ROI plugin" menu item to image viewer popup, in afni.[ch].
