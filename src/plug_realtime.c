@@ -382,6 +382,10 @@ static char * GRAPH_strings[NGRAPH] = { "No" , "Yes" , "Realtime" } ;
     "None" , "2D: realtime" , "2D: at end"
            , "3D: realtime" , "3D: at end" , "3D: estimate" } ;
 
+  static char * REG_strings_ENV[NREG] = {  /* ' ' -> '_'  17 May 2005 [rickr */
+    "None" , "2D:_realtime" , "2D:_at_end"
+           , "3D:_realtime" , "3D:_at_end" , "3D:_estimate" } ;
+
 # define REGMODE_NONE      0
 # define REGMODE_2D_RTIME  1
 # define REGMODE_2D_ATEND  2
@@ -555,6 +559,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    ept = getenv("AFNI_REALTIME_Registration") ;  /* 09 Oct 2000 */
    if( ept != NULL ){
       int ii = PLUTO_string_index( ept , NREG , REG_strings ) ;
+      /* on failure, try alternate forms               17 May 2005 [rickr] */
+      if ( ii < 0 ) ii = PLUTO_string_index( ept , NREG , REG_strings_ENV ) ;
       if( ii >= 0 && ii < NREG ) regmode = ii ;
    }
 

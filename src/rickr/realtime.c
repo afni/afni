@@ -8,6 +8,9 @@
 
 extern ART_comm  gAC;
 
+/* maybe we will want this elsewhere at some point */
+static char orient_side_rai( float coord, char dir );
+
 /*----------------------------------------------------------------------
  * history:  see 'Imon -hist'
  *----------------------------------------------------------------------
@@ -418,6 +421,8 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     ART_ADD_TO_BUF( ac->buf, tbuf );
 
     /* volume offsets                          2003 June 25 [rickr] */
+    /* now, base on param->ftype               2005 May  16 [rickr] */
+    if( ac->param->ftype == IFM_IM_FTYPE_GEMS5 )
     {
         char o0 = v->geh.orients[0];    /* for ease of typing later */
         char o2 = v->geh.orients[2];
@@ -427,17 +432,34 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
         /* Note - the LPI directions are negatives in GEMS 5.x files, */
         /*        so when one of those is the origin, negate it.      */
 
+        /* rcr - this must rely on 0,0,0 being within the volume - fix it */
+
         /* just note o_i directions in s_i */
         if ( o0 == 'L' || o0 == 'P' || o0 == 'I' ) sx = -1; else sx = 1;
         if ( o2 == 'L' || o2 == 'P' || o2 == 'I' ) sy = -1; else sy = 1;
         if ( o4 == 'L' || o4 == 'P' || o4 == 'I' ) sz = -1; else sz = 1;
 
-        /* notes - we do not use a dz/2 offset, as we have slice locations */
+        /* note - we do not use a dz/2 offset, as we have slice locations */
         sprintf(tbuf,"XYZFIRST %f %f %f",
             sx * v->gex.xorg - v->geh.dx/2.0,
             sy * v->gex.yorg - v->geh.dy/2.0,
             sz * v->z_first );
 
+        ART_ADD_TO_BUF( ac->buf, tbuf );
+    }
+    else if( ac->param->ftype == IFM_IM_FTYPE_DICOM )  /* 16 May 2005 */
+    {
+        char o0 = v->geh.orients[0];    /* for ease of typing later */
+        char o2 = v->geh.orients[2];
+        char o4 = v->geh.orients[4];
+
+        /* if the files were DICOM, then the origin should be accurate */
+        /* (so pick code based on sign, and remove sign)               */
+
+        sprintf(tbuf,"XYZFIRST %f%c %f%c %f%c",
+                fabs(v->gex.xorg), orient_side_rai(v->gex.xorg, o0),
+                fabs(v->gex.yorg), orient_side_rai(v->gex.yorg, o2),
+                fabs(v->z_first),  orient_side_rai(v->z_first,  o4));
         ART_ADD_TO_BUF( ac->buf, tbuf );
     }
 
@@ -649,5 +671,17 @@ int swap_2( void * ptr, int npairs )
     }
 
     return 0;
+}
+
+
+/* given a coord and direction character, return the side the coord is on */
+/* (assume RAI) */
+static char orient_side_rai( float coord, char dir )
+{
+    int d = toupper(dir);
+
+    if ( d == 'R' || d == 'L' ) return( coord < 0 ? 'R' : 'L' );
+    if ( d == 'A' || d == 'P' ) return( coord < 0 ? 'A' : 'P' );
+    if ( d == 'I' || d == 'S' ) return( coord < 0 ? 'I' : 'S' );
 }
 
