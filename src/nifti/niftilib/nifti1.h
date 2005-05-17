@@ -786,11 +786,13 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 
 #define NIFTI_INTENT_PVAL       22
 
-  /*! Data is ln(p-value) (no params). */
+  /*! Data is ln(p-value) (no params).
+      To be safe, a program should compute p=exp(-abs(this_value)) */
 
 #define NIFTI_INTENT_LOGPVAL    23
 
-  /*! Data is log10(p-value) (no params). */
+  /*! Data is log10(p-value) (no params).
+      To be safe, a program should compute p=pow(10.,-abs(this_value)) */
 
 #define NIFTI_INTENT_LOG10PVAL  24
 
