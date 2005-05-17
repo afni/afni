@@ -4977,17 +4977,17 @@ STATUS("got func info") ;
       /* first time in: create interface like a plugin */
 
       if( plint == NULL ){
-         plint = ENV_init() ;
-         if( plint == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
-         PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
+        plint = ENV_init() ;
+        if( plint == NULL ){ XBell(im3d->dc->display,100); EXRETURN; }
+        PLUG_setup_widgets( plint , GLOBAL_library.dc ) ;
       }
 
       /* code below is from PLUG_startup_plugin_CB() in afni_plugin.c */
 
       plint->im3d = im3d ;
       XtVaSetValues( plint->wid->shell ,
-                      XmNtitle     , "AFNI Environmentalism", /* top of window */
-                      XmNiconName  , "Green AFNI"           , /* label on icon */
+                      XmNtitle    , "AFNI Environmentalism", /* top of window */
+                      XmNiconName , "Green AFNI"           , /* label on icon */
                      NULL ) ;
       PLUTO_cursorize( plint->wid->shell ) ;
 
@@ -4999,7 +4999,7 @@ STATUS("got func info") ;
                       && cbs->event->type == ButtonRelease ){
 
          XButtonEvent *xev = (XButtonEvent *) cbs->event ;
-         int xx = (int) xev->x_root , yy = (int) xev->y_root ;
+         int xx = (int)xev->x_root , yy = (int)xev->y_root ;
          int ww,hh , sw,sh ;
 
          MCW_widget_geom( wpop , &ww,&hh , NULL,NULL ) ;
@@ -5010,6 +5010,10 @@ STATUS("got func info") ;
          if( yy+hh+3 >= sh && hh <= sh ) yy = sh-hh ;
 
          XtVaSetValues( wpop , XmNx , xx , XmNy , yy , NULL ) ;
+      } else if( im3d->vwid->butx >= 0 && im3d->vwid->buty >= 0 ){
+         XtVaSetValues( wpop ,
+                         XmNx , im3d->vwid->butx ,
+                         XmNy , im3d->vwid->buty , NULL ) ; /* 17 May 2005 */
       }
 
       /*-- popup widgets --*/
@@ -5050,7 +5054,7 @@ STATUS("got func info") ;
       if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
 
          XButtonEvent *xev = (XButtonEvent *) cbs->event ;
-         int xx = (int) xev->x_root , yy = (int) xev->y_root ;
+         int xx = (int)xev->x_root , yy = (int)xev->y_root ;
          int ww,hh , sw,sh ;
 
          MCW_widget_geom( wpop , &ww,&hh , NULL,NULL ) ;
@@ -5101,7 +5105,7 @@ STATUS("got func info") ;
       if( cbs->event != NULL && cbs->event->type == ButtonRelease ){
 
          XButtonEvent *xev = (XButtonEvent *) cbs->event ;
-         int xx = (int) xev->x_root , yy = (int) xev->y_root ;
+         int xx = (int)xev->x_root , yy = (int)xev->y_root ;
          int ww,hh , sw,sh ;
 
          MCW_widget_geom( wpop , &ww,&hh , NULL,NULL ) ;
@@ -5472,7 +5476,9 @@ ENTRY("AFNI_hidden_EV") ;
              (event->button == Button1 &&
               (event->state & (ShiftMask|ControlMask))) ){
 
-            event->button = Button3 ;                                 /* fakeout */
+            im3d->vwid->butx = event->x_root ;  /* 17 May 2005 */
+            im3d->vwid->buty = event->y_root ;
+            event->button    = Button3 ;                              /* fakeout */
             XmMenuPosition( im3d->vwid->prog->hidden_menu , event ) ; /* where */
             XtManageChild ( im3d->vwid->prog->hidden_menu ) ;         /* popup */
          }
