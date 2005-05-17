@@ -22,6 +22,10 @@
 #define IFM_USE_HIST         3
 #define IFM_USE_VERSION      4
 
+#define IFM_IM_FTYPE_NONE    0       /* valid image file types:          */
+#define IFM_IM_FTYPE_GEMS5   1       /* GEMS 5.x                         */
+#define IFM_IM_FTYPE_DICOM   4       /* DICOM                            */
+
 #define IFM_DEBUG_DEFAULT    1       /* default debug level: show status */
 #define IFM_MAX_DEBUG        4       /* maximum debug level		 */
 
@@ -111,6 +115,7 @@ typedef struct  /* user options */
 
 typedef struct
 {
+    int              ftype;         /* one of IFM_IM_FTYPE_*            */
     int              nused;         /* number of elements assigned      */
     int              nalloc;        /* number of elements allocated for */
     finfo_t        * flist;         /* array of finfo structures        */
