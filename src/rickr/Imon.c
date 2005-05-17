@@ -78,7 +78,7 @@ static char g_history[] =
     " 2.11 August 14, 2003\n"
     "   - added '-quit' option\n"
     "   - changed CHECK_NULL_STR() output to (NULL) (to see when used)\n"
-    "   - change exit status to 0 (why the heck did I use 1??)\n"
+    "   - change exit status to 0 (why the heck did I use 1?)\n"
     "   - allow I.* or i.* filename expansions\n"
     "\n"
     " 3.0 August 20, 2003\n"
@@ -105,8 +105,8 @@ static char g_history[] =
     "   - realtime.c: passed list of drive and rt commands to RT plugin\n"
     "   - added add_to_string_list() and empty_string_list()\n"
     "\n"
-    " 3.3a March 22, 2005\n"
-    "   - removed all tabs\n"
+    " 3.3a March 22, 2005 - removed all tabs\n"
+    " 3.3b May   16, 2005 - incorporate some Dimon changes\n"
     "----------------------------------------------------------------------\n";
 
 /*----------------------------------------------------------------------
@@ -1413,6 +1413,8 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     p->opts.argv = argv;
     p->opts.argc = argc;
 
+    p->ftype     = IFM_IM_FTYPE_GEMS5;   /* 27 May 2005 */
+
     if ( gD.level > 1 )
     {
         idisp_hf_opts_t ( "end init_options : ", &p->opts );
@@ -1874,12 +1876,13 @@ static int idisp_hf_param_t( char * info, param_t * p )
     }
 
     printf( "param_t struct at %p :\n"
+            "   ftype             =%d\n"
             "   (nused, nalloc)   = (%d, %d)\n"
             "   flist             = %p\n"
             "   glob_dir          = %s\n"
             "   nfiles            = %d\n"
             "   fnames            = %p\n",
-            p, p->nused, p->nalloc, p->flist,
+            p, p->ftype, p->nused, p->nalloc, p->flist,
             CHECK_NULL_STR(p->glob_dir),
             p->nfiles, p->fnames );
 

@@ -1,132 +1,36 @@
 
-#define IFM_VERSION "version 0.1 (May 6, 2005)"
-
 static char g_history[] =
     "----------------------------------------------------------------------\n"
     " history:\n"
     "\n"
-    " 1.0  November 21, 2002\n"
-    "   - initial release\n"
-    "\n"
-    " 1.1  November 27, 2002\n"
-    "   - renamed from Hfile to Imon (I-file monitor)\n"
-    "\n"
-    " 1.2  November 27, 2002\n"
-    "   - after N idle mid-run TRs, print warning message\n"
-    "   - added '-nice INCR' option\n"
-    "   - added BEEP on error\n"
-    "   - replaced '-status' with '-quiet', so '-debug 1' is default\n"
-    "   - no fatal error during volume search, try to recover\n"
-    "   - display that the user should use <ctrl-c> to quit\n"
-    "   - adjust globbing to be '...[0-9][02468]?/I.*'  (or w/[13579])\n"
-    "\n"
-    " 1.3  December 13, 2002\n"
-    "   - compile as standalone (include mcw_glob, but not mcw_malloc)\n"
-    "   - added l_THD_filesize (local copy of THD_filesize)\n"
-    "   - removed dependance on mrilib.h and r_idisp.h\n"
-    "\n"
-    " 2.0  January 15, 2003\n"
-    "   - rtfeedme feature\n"
-    "       o added -rt   option: pass data to afni as collected\n"
-    "       o added -host option: specify afni host for real-time\n"
-    "       o added -swap option: byte swap pairs before sending to afni\n"
-    "       o created realtime.[ch] for all RT processing functions\n"
-    "       o (see gAC struct and ART_ functions)\n"
-    "   - actually read and store images (to be sent to afni)\n"
-    "   - moved function declarations to Imon.c (from Imon.h)\n"
-    "\n"
-    " 2.1  January 27, 2003\n"
-    "   - added '-nt VOLUMES_PER_RUN' option (for checking stalled runs)\n"
-    "\n"
-    " 2.2  February 2, 2003\n"
-    "   - allow IFM_MAX_GE_FAILURES file reading failures\n"
-    "\n"
-    " 2.3  February 14, 2003\n"
-    "   - added -start_file option\n"
-    "   - created opts_t struct for user options\n"
-    "\n"
-    " 2.4  February 18, 2003\n"
-    "   - added DRIVE_AFNI command to open a graph window\n"
-    "   - added -drive_afni option\n"
-    "   - added NOTE command to append Imon command to any new dataset\n"
-    "\n"
-    " 2.5  February 20, 2003\n"
-    "   - deal better with missing first slice of first volume\n"
-    "   - make each DRIVE_AFNI command separate\n"
-    "\n"
-    " 2.6  March 25, 2003\n"
-    "   - added -GERT_Reco2 option\n"
-    "   - RT: only send good volumes to afni\n"
-    "   - RT: added -rev_byte_order option\n"
-    "   - RT: also open relevant image window\n"
-    "   - RT: mention starting file in NOTE command\n"
-    "\n"
-    " 2.7  June 25, 2003\n"
-    "   - added axes offsets (see xorg and realtime.c: XYZFIRST)\n"
-    "\n"
-    " 2.8  June 27, 2003\n"
-    "   - BYTEORDER is now operational in plug_realtime\n"
-    "   - implemented -rev_byte_order option\n"
-    "\n"
-    " 2.9  July 27, 2003\n"
-    "   - wrap unknown printed strings in NULL check\n"
-    "   - only print newer files in debug check\n"
-    "\n"
-    " 2.10 August 5, 2003\n"
-    "   - added '-sp SLICE_PATTERN' option (see spat and opts.sp)\n"
-    "\n"
-    " 2.11 August 14, 2003\n"
-    "   - added '-quit' option\n"
-    "   - changed CHECK_NULL_STR() output to (NULL) (to see when used)\n"
-    "   - change exit status to 0 (why the heck did I use 1?)\n"
-    "   - allow I.* or i.* filename expansions\n"
-    "\n"
-    " 3.0 August 20, 2003\n"
-    "   - It seems that the GE scanners may write the files for a volume\n"
-    "     out of order.  To handle that possibility, volume_match() will\n"
-    "     re-test any volume for error conditions (separated by sleep()).\n"
-    "     Errors will be reported only if they persist (i.e. the scanner\n"
-    "     is not still working on the volume).\n"
-    "\n"
-    " 3.1 September 02, 2003\n"
-    "   - Add option '-od OUTPUT_DIRECTORY' for the GERT_Reco2 case.\n"
-    "\n"
-    " 3.2 January 13, 2004\n"
-    "   - added '-zorder ORDER' option to specify slice timing in the\n"
-    "     real-time mode (the real-time default is now 'alt')\n"
-    "   - added '-hist' option for history display\n"
-    "\n"
-    " 3.3 February 13, 2004\n"
-    "   - added '-rt_cmd' option for passing commands to the realtime plugin\n"
-    "       (this option may be used multiple times)\n"
-    "   - '-drive_cmd' option can now be used multiple times\n"
-    "   - realtime.c: changed default zorder back to seq\n"
-    "       (affects slice order in the RT plugin)\n"
-    "   - realtime.c: passed list of drive and rt commands to RT plugin\n"
-    "   - added add_to_string_list() and empty_string_list()\n"
-    "\n"
-    " 0.1 still mostly Imon, but is basically working as Dimon\n"
+    " 0.1 modified Imon to work with Dimon files as Dimon\n"
     " 0.2 added pause option\n"
+    " 0.3 set ftype, and use -infile_pattern\n"
     "----------------------------------------------------------------------\n";
+
+#define IFM_VERSION "version 0.3 (May 6, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
  *
  * - re-write help
  * - can we get the timing from the Dicom file?
- * - without -prefix, set default from last dir in glob
+ * - without -rt_cmd 'PREFIX ...', set from last dir in glob (data/time?)
+ * - add -infile_prefix for no wildcards (and no quotes)
+ * - command re-run file?  Jerzy might do that.
+ * - put select command arguemnts in quotes?
  *----------------------------------------------------------------------
 */
 
 /*----------------------------------------------------------------------
- * Imon - monitor real-time aquisition of I-files
+ * Dimon - monitor real-time aquisition of Dicom or I-files
  *
  *     This program is intended to be run during a scanning session
  *     on a GE scanner, to monitor the collection of I-files.  The
  *     user will be notified of any missing slice or any slice that
  *     is aquired out of order.
  *
- *     It is recommended that the user runs 'Imon' before scanning
+ *     It is recommended that the user runs 'Dimon' before scanning
  *     begins, and then watches for error messages during the
  *     scanning session.  The user should terminate the program
  *     whey they are done with all runs.
@@ -134,16 +38,12 @@ static char g_history[] =
  *     At the present time, the user must use <ctrl-c> to terminate
  *     the program.
  *
- *   usage: Imon [options] -start_dir DIR
+ *   usage: Dimon [options] -infile_pattern input_file_format
  *
- *   examples:    Imon -start_dir 003
- *                Imon -help
- *                Imon -version
- *                Imon -start_dir 003 -GERT_Reco2
- *                Imon -start_dir 003 -debug 2
- *                Imon -start_dir 003 -nt 120
- *                Imon -start_dir 003 -rt -host pickle -swap
- *                Imon -start_dir 003 -rt -host pickle -rev_byte_order
+ *   examples:    Dimon -infile_pattern 's12345/i*'
+ *                Dimon -help
+ *                Dimon -version
+ *                Dimon -infile_pattern 's12345/i*' -rt -host pickle -quit
  *----------------------------------------------------------------------
 */
 
@@ -217,9 +117,9 @@ static int volume_search ( vol_t * V, param_t * p, int start, int maxsl,
        			   int * fl_start );
 
 /* information functions */
-static int idisp_hf_opts_t      ( char * info, opts_t * opt );
-static int idisp_hf_param_t     ( char * info, param_t * p );
-static int idisp_hf_vol_t       ( char * info, vol_t * v );
+static int idisp_opts_t         ( char * info, opts_t * opt );
+static int idisp_param_t        ( char * info, param_t * p );
+static int idisp_vol_t          ( char * info, vol_t * v );
 static int idisp_ge_extras      ( char * info, ge_extras * E );
 static int idisp_ge_header_info ( char * info, ge_header_info * I );
 static int idisp_im_store_t     ( char * info, im_store_t * is );
@@ -320,8 +220,8 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 		fprintf( stderr, "\n-- first volume found\n" );
 		if ( gD.level > 1 )
 		{
-		    idisp_hf_vol_t( "first volume : ", v );
-		    idisp_hf_param_t( "first vol - new params : ", p );
+		    idisp_vol_t( "first volume : ", v );
+		    idisp_param_t( "first vol - new params : ", p );
 		}
 	    }
 
@@ -339,7 +239,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 		}
 
 		if ( gD.level > 1 )
-		    idisp_hf_param_t( "++ final realloc of flist : ", p );
+		    idisp_param_t( "++ final realloc of flist : ", p );
 	    }
 
 	    /* use this volume to complete the geh.orients string */
@@ -438,7 +338,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 	    if ( (ret_val == 1) || (ret_val == -1) )
 	    {
 		if ( gD.level > 2 )
-		    idisp_hf_vol_t( "-- new volume: ", &vn );
+		    idisp_vol_t( "-- new volume: ", &vn );
 
 		fl_index += vn.nim;		/* note the new position   */
 		next_im   = vn.fn_n + 1;	/* for read_ge_files()     */
@@ -1017,7 +917,7 @@ static int read_ge_files(
 
 	if ( gD.level > 1 )
 	{
-	    idisp_hf_param_t( "++ realloc of flist : ", p );
+	    idisp_param_t( "++ realloc of flist : ", p );
 	    fprintf( stderr,  "-- n2scan = %d, max = %d\n", n2scan, max );
 	}
     }
@@ -1025,7 +925,7 @@ static int read_ge_files(
     p->nused = scan_ge_files( p, next, n2scan );
 
     if ( gD.level > 2 )
-	idisp_hf_param_t( "end read_ge_files : ", p );
+	idisp_param_t( "end read_ge_files : ", p );
 
     /* may be negative for an error condition */
     return p->nused;
@@ -1188,11 +1088,12 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	if ( ! strncmp( argv[ac], "-dicom_glob", 9 ) )
+	if ( ! strncmp( argv[ac], "-dicom_glob", 9 ) || 
+	     ! strncmp( argv[ac], "-infile_pattern", 11 ) )
 	{
 	    if ( ++ac >= argc )
 	    {
-		fputs( "option usage: -dicom_glob FILE_PATTERN\n", stderr );
+		fputs( "option usage: -infile_pattern FILE_PATTERN\n", stderr );
 		usage( IFM_PROG_NAME, IFM_USE_SHORT );
 		return 1;
 	    }
@@ -1280,7 +1181,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
 	    p->opts.gert_outdir = argv[ac];
 	}
-	else if ( ! strncmp( argv[ac], "-pause", 3 ) )
+	else if ( ! strncmp( argv[ac], "-pause", 6 ) )
 	{
 	    if ( ++ac >= argc )
 	    {
@@ -1453,17 +1354,37 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	{
 	    fprintf(stderr,"** order '%s' is invalid for '-zorder' option,\n"
 		    "   must be either 'alt' or 'seq'\n", A->zorder);
-	    return -1;
+	    return 1;
 	}
+    }
+
+    if ( p->opts.use_dicom )
+    {   
+        if( p->opts.gert_reco )
+        {
+            fprintf(stderr,"** -GERT_Reco is not valid for Dicom files\n");
+            return 1;
+        }
+        if( ! p->opts.dicom_glob )
+        {
+            fprintf(stderr,"** missing -infile_pattern option\n");
+            return 1;
+        }
     }
 
     /* done processing argument list */
 
     /* if dicom, start_dir is not used for globbing */
     if ( p->opts.use_dicom )
+    {
         p->glob_dir = p->opts.dicom_glob;
+        p->ftype    = IFM_IM_FTYPE_DICOM;
+    }
     else
-        if ( !dir_expansion_form(p->opts.start_dir, &p->glob_dir) ) return 2;
+    {
+        if ( dir_expansion_form(p->opts.start_dir, &p->glob_dir) ) return 2;
+        p->ftype = IFM_IM_FTYPE_GEMS5;
+    }
 
     /* save command arguments to add as a NOTE to any AFNI datasets */
     p->opts.argv = argv;
@@ -1471,8 +1392,8 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     if ( gD.level > 1 )
     {
-	idisp_hf_opts_t ( "end init_options : ", &p->opts );
-	idisp_hf_param_t( "end init_options : ", p );
+	idisp_opts_t ( "end init_options : ", &p->opts );
+	idisp_param_t( "end init_options : ", p );
     }
 
     /* rcr - make this an option (large-to-small sort is -1) */
@@ -1983,24 +1904,25 @@ static int idisp_im_store_t( char * info, im_store_t * is )
  * print out the contents of the param_t struct
  *------------------------------------------------------------
 */
-static int idisp_hf_param_t( char * info, param_t * p )
+static int idisp_param_t( char * info, param_t * p )
 {
     if ( info )
 	fputs( info, stdout );
 
     if ( p == NULL )
     {
-	printf( "idisp_hf_param_t: p == NULL\n" );
+	printf( "idisp_param_t: p == NULL\n" );
 	return -1;
     }
 
     printf( "param_t struct at %p :\n"
+            "   ftype             = %d\n"
             "   (nused, nalloc)   = (%d, %d)\n"
             "   flist             = %p\n"
 	    "   glob_dir          = %s\n"
 	    "   nfiles            = %d\n"
 	    "   fnames            = %p\n",
-	    p, p->nused, p->nalloc, p->flist,
+	    p, p->ftype, p->nused, p->nalloc, p->flist,
 	    CHECK_NULL_STR(p->glob_dir),
 	    p->nfiles, p->fnames );
 
@@ -2012,14 +1934,14 @@ static int idisp_hf_param_t( char * info, param_t * p )
  * print out the contents of the opts_t struct
  *------------------------------------------------------------
 */
-static int idisp_hf_opts_t( char * info, opts_t * opt )
+static int idisp_opts_t( char * info, opts_t * opt )
 {
     if ( info )
 	fputs( info, stdout );
 
     if ( opt == NULL )
     {
-	printf( "idisp_hf_opts_t: opt == NULL\n" );
+	printf( "idisp_opts_t: opt == NULL\n" );
 	return -1;
     }
 
@@ -2058,17 +1980,45 @@ static int idisp_hf_opts_t( char * info, opts_t * opt )
 
 
 /*------------------------------------------------------------
+ * print out a string corresponding to the file type
+ *------------------------------------------------------------
+*/
+static int disp_ftype( char * info, int ftype )
+{
+    if ( info ) fputs(info, stdout);
+
+    switch( ftype )
+    {
+        case IFM_IM_FTYPE_GEMS5:
+            printf("GEMS 5.x\n");
+            break;
+
+        case IFM_IM_FTYPE_DICOM:
+            printf("DICOM\n");
+            break;
+
+        default:
+            printf("UNKNOWN (%d)\n", ftype);
+            break;
+    }
+
+    fflush(stdout);
+
+    return 0;
+}
+
+/*------------------------------------------------------------
  * print out the contents of the vol_t struct
  *------------------------------------------------------------
 */
-static int idisp_hf_vol_t( char * info, vol_t * v )
+static int idisp_vol_t( char * info, vol_t * v )
 {
     if ( info )
 	fputs( info, stdout );
 
     if ( v == NULL )
     {
-	printf( "idisp_hf_vol_t: v == NULL\n" );
+	printf( "idisp_vol_t: v == NULL\n" );
 	return -1;
     }
 
@@ -2179,10 +2129,10 @@ static int usage ( char * prog, int level )
     {
 	printf(
 	  "\n"
-	  "%s - monitor real-time acquisition of I-files\n"
+	  "%s - monitor real-time acquisition of DICOM image files\n"
 	  "\n"
 	  "    This program is intended to be run during a scanning session\n"
-	  "    on a GE scanner, to monitor the collection of I-files.  The\n"
+	  "    on a scanner, to monitor the collection of I-files.  The\n"
 	  "    user will be notified of any missing slice or any slice that\n"
 	  "    is aquired out of order.\n"
 	  "\n"
@@ -2212,7 +2162,13 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "  examples (basic Dimon option):\n"
 	  "\n"
-	  "    %s -use_dicom -dicom_glob 's*/i*' -start_dir s7223184 -quit\n"
+	  "    %s                                    \\\n"
+          "       -infile_pattern 's*/i*'               \\\n"
+          "       -quit                                 \\\n"
+          "       -rt -nt 120                           \\\n"
+          "       -host pickle                          \\\n"
+          "       -rt_cmd \"PREFIX 2005_0513_run3\"       \\\n"
+          "       -quit                                 \\\n"
 	  "\n"
 	  "  examples (with real-time options):\n"
 	  "\n"
@@ -2544,7 +2500,7 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
     if ( v == NULL || v->seq_num < 0 || v->run < 0 )
     {
 	fprintf( stderr, "failure: SVS - insufficient data\n\n" );
-	idisp_hf_vol_t ( "-- VOLUME FAILURE INFO : ", v );
+	idisp_vol_t ( "-- VOLUME FAILURE INFO : ", v );
     }
 
     /* initialize the stats structure */
