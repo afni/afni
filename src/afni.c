@@ -3105,13 +3105,15 @@ if(PRINT_TRACING)
       break ;  /* end of destroy */
 
       case isqCR_buttonpress:{
-         XButtonEvent * xev = (XButtonEvent *) cbs->event ;
+         XButtonEvent *xev = (XButtonEvent *) cbs->event ;
 
 if(PRINT_TRACING){
  char str[256] ;
  sprintf(str,"isqCR_buttonpress: button=%d state=%x",xev->button,xev->state) ;
  STATUS(str) ; }
 
+         im3d->vwid->butx = xev->x_root ;  /* 17 May 2005 */
+         im3d->vwid->buty = xev->y_root ;
          switch( xev->button ){
 
             default: EXRETURN ;  /* unused button */
@@ -7773,8 +7775,8 @@ ENTRY("AFNI_crosshair_pop_CB") ;
 void AFNI_imag_pop_CB( Widget w ,
                        XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
-   MCW_imseq * seq ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
+   MCW_imseq *seq ;
 
 ENTRY("AFNI_imag_pop_CB") ;
 
@@ -7974,6 +7976,23 @@ ENTRY("AFNI_imag_pop_CB") ;
 
      AFNI_misc_CB( im3d->vwid->dmode->misc_environ_pb ,
                    (XtPointer) im3d , (XtPointer) NULL ) ;
+   }
+
+   /*---- 17 May 2005: open Draw Dataset plugin ----*/
+
+   else if( w == im3d->vwid->imag->pop_drawdataset_pb &&
+            w != NULL                                   ){
+
+     char cmd[128] , cc='A'+AFNI_controller_index(im3d) ;
+     int xx,yy ;
+
+#if 0
+     MCW_widget_geom(im3d->vwid->top_shell,NULL,NULL,&xx,&yy); xx+=29; yy+=19;
+#else
+     xx = im3d->vwid->butx ; yy = im3d->vwid->buty ;
+#endif
+     sprintf(cmd,"OPEN_WINDOW %c.plugin.Draw_Dataset geom=+%d+%d",cc,xx,yy) ;
+     (void) AFNI_driver(cmd) ;
    }
 
    /*--- unmap of the popup itself [elided] ---*/

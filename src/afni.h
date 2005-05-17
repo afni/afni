@@ -356,6 +356,7 @@ typedef struct {
       Widget pop_mnito_pb ;  /* 01 May 2002 */
 
       Widget pop_environment_pb ; /* 05 Nov 2003 */
+      Widget pop_drawdataset_pb ; /* 17 May 2005 */
 } AFNI_imaging_widgets ;
 
 /*--- 19 Aug 2002: Switch Surface control box ---*/
@@ -683,6 +684,8 @@ typedef struct {
       /*--- Pointers to other data ---*/
 
       XtPointer parent ;
+
+      int butx , buty ;        /* 17 May 2005 */
 } AFNI_widget_set ;
 
 /** picture controls **/

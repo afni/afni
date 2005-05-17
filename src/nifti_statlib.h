@@ -1,7 +1,7 @@
 #ifndef _NIFTI_STATLIB_HEADER_
 
-#ifndef NIFTI_INTENT_CORREL           /* abstracted from nifti1.h */
-#  define NIFTI_INTENT_CORREL      2
+#ifndef NIFTI_INTENT_CORREL          /* abstracted from nifti1.h */
+#  define NIFTI_INTENT_CORREL      2   /* NIfTI p1 DOF = AFNI p1-p2-p3 */
 #  define NIFTI_INTENT_TTEST       3
 #  define NIFTI_INTENT_FTEST       4
 #  define NIFTI_INTENT_ZSCORE      5
@@ -25,6 +25,8 @@
 #  define NIFTI_INTENT_LOGPVAL    23
 #  define NIFTI_INTENT_LOG10PVAL  24
 #endif
+
+/** Number of auxiliary parameters needed for each distribution **/
 
 static int NIFTI_need_stat_aux[] = { 0 , 0 ,
                                      3 , 1 , 2 , 0 , 1 , 2 , 2 , 2 , 1 ,
