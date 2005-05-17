@@ -787,12 +787,17 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
 #define NIFTI_INTENT_PVAL       22
 
   /*! Data is ln(p-value) (no params).
-      To be safe, a program should compute p=exp(-abs(this_value)) */
+      To be safe, a program should compute p = exp(-abs(this_value)).
+      The nifti_stats.c library returns this_value
+      as positive, so that this_value = -log(p). */
+
 
 #define NIFTI_INTENT_LOGPVAL    23
 
   /*! Data is log10(p-value) (no params).
-      To be safe, a program should compute p=pow(10.,-abs(this_value)) */
+      To be safe, a program should compute p = pow(10.,-abs(this_value)).
+      The nifti_stats.c library returns this_value
+      as positive, so that this_value = -log10(p). */
 
 #define NIFTI_INTENT_LOG10PVAL  24
 
