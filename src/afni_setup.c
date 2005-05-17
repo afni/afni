@@ -541,9 +541,9 @@ char * AFNI_palette_label_CB( MCW_arrowval * av , XtPointer cd )
 -------------------------------------------------------------------*/
 
 void AFNI_pbar_EV( Widget w , XtPointer cd ,
-                   XEvent * ev , Boolean * continue_to_dispatch )
+                   XEvent *ev , Boolean *continue_to_dispatch )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
 
 ENTRY("AFNI_pbar_EV") ;
 
@@ -551,8 +551,10 @@ ENTRY("AFNI_pbar_EV") ;
 
    switch( ev->type ){
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
-         event->button = Button3 ;                               /* fakeout */
+         XButtonEvent *event = (XButtonEvent *) ev ;
+         im3d->vwid->butx = event->x_root ;  /* 17 May 2005 */
+         im3d->vwid->buty = event->y_root ;
+         event->button    = Button3 ;                            /* fakeout */
          XmMenuPosition( im3d->vwid->func->pbar_menu , event ) ; /* where */
          XtManageChild ( im3d->vwid->func->pbar_menu ) ;         /* popup */
       }
@@ -568,8 +570,8 @@ ENTRY("AFNI_pbar_EV") ;
 
 void AFNI_pbar_CB( Widget w , XtPointer cd , XtPointer cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   MCW_pbar * pbar ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   MCW_pbar *pbar ;
    int npane , jm , ii ;
    double pmax , pmin ;
    float pval[NPANE_MAX+1] ;

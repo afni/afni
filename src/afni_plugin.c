@@ -3623,7 +3623,7 @@ STATUS("calling plugin") ;
                    && cbs->event->type == ButtonRelease ){
 
       XButtonEvent * xev = (XButtonEvent *) cbs->event ;
-      int xx = (int) xev->x_root , yy = (int) xev->y_root ;
+      int xx = (int)xev->x_root , yy = (int)xev->y_root ;
       int ww,hh , sw,sh ;
 
 STATUS("trying to position popup") ;

@@ -7664,7 +7664,9 @@ ENTRY("AFNI_crosshair_EV") ;
            (event->button == Button1 &&
             (event->state & (ShiftMask|ControlMask))) ){
 
-         event->button = Button3 ;                                   /* fake  */
+         im3d->vwid->butx = event->x_root ;  /* 17 May 2005 */
+         im3d->vwid->buty = event->y_root ;
+         event->button    = Button3 ;                                /* fake  */
          XmMenuPosition( im3d->vwid->imag->crosshair_menu , event ); /* where */
          XtManageChild ( im3d->vwid->imag->crosshair_menu ) ;        /* popup */
        }
