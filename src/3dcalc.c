@@ -86,6 +86,12 @@ static char  abet[] = "abcdefghijklmnopqrstuvwxyz" ;
                          (1<<19)|(1<<23)|(1<<24)|(1<<25) )
 
 static int     CALC_has_predefined = 0 ;  /* 19 Nov 1999 */
+static int     CALC_has_xyz        = 0 ;  /* 17 May 2005 */
+static int     CALC_mangle_xyz     = 0 ;  /* 17 May 2005 */
+
+#define MANGLE_NONE 0
+#define MANGLE_RAI  1
+#define MANGLE_LPI  2
 
 static THD_3dim_dataset *  CALC_dset[26] ;
 static int                 CALC_type[26] ;
@@ -135,9 +141,9 @@ int  IJKAR_reader( int , char * ) ;
   Returns -1 if an error occured, 0 otherwise.
 ----------------------------------------------------------------------*/
 
-int TS_reader( int ival , char * fname )
+int TS_reader( int ival , char *fname )
 {
-   MRI_IMAGE * tsim ;
+   MRI_IMAGE *tsim ;
 
    if( ival < 0 || ival >= 26 ) return -1 ;
 
@@ -195,9 +201,21 @@ void CALC_read_opts( int argc , char * argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
+      /**** -dicom, -RAI, -LPI, -SPM [18 May 2005] ****/
+
+      if( strcasecmp(argv[nopt],"-dicom") == 0 || strcasecmp(argv[nopt],"-rai") == 0 ){
+        CALC_mangle_xyz = MANGLE_RAI ;
+        nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-spm") == 0 || strcasecmp(argv[nopt],"-lpi") == 0 ){
+        CALC_mangle_xyz = MANGLE_LPI ;
+        nopt++ ; continue ;
+      }
+
       /**** -rgbfac r g b [10 Feb 2003] ****/
 
-      if( strncmp(argv[nopt],"-rgbfac",7) == 0 ){
+      if( strncasecmp(argv[nopt],"-rgbfac",7) == 0 ){
         if( ++nopt >= argc ){
           fprintf(stderr,"** need an argument after -rgbfac!\n") ; exit(1) ;
         }
@@ -212,7 +230,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -taxis N:dt [28 Apr 2003] ****/
 
-      if( strncmp(argv[nopt],"-taxis",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-taxis",6) == 0 ){
         char *cpt ;
         if( ++nopt >= argc ){
           fprintf(stderr,"** need an argument after -taxis!\n") ; exit(1) ;
@@ -235,7 +253,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -dt val [13 Aug 2001] ****/
 
-      if( strncmp(argv[nopt],"-dt",3) == 0 || strncmp(argv[nopt],"-TR",3) == 0 ){
+      if( strncasecmp(argv[nopt],"-dt",3) == 0 || strncmp(argv[nopt],"-TR",3) == 0 ){
         char *cpt ;
         if( ++nopt >= argc ){
           fprintf(stderr,"** need an argument after -dt!\n") ; exit(1) ;
@@ -250,7 +268,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -histpar letter [22 Nov 1999] ****/
 
-      if( strncmp(argv[nopt],"-histpar",5) == 0 ){
+      if( strncasecmp(argv[nopt],"-histpar",5) == 0 ){
          if( ++nopt >= argc ){
             fprintf(stderr,"** need an argument after -histpar!\n") ; exit(1) ;
          }
@@ -264,17 +282,17 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -datum type ****/
 
-      if( strncmp(argv[nopt],"-datum",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-datum",6) == 0 ){
          if( ++nopt >= argc ){
             fprintf(stderr,"** need an argument after -datum!\n") ; exit(1) ;
          }
-         if( strcmp(argv[nopt],"short") == 0 ){
+         if( strcasecmp(argv[nopt],"short") == 0 ){
             CALC_datum = MRI_short ;
-         } else if( strcmp(argv[nopt],"float") == 0 ){
+         } else if( strcasecmp(argv[nopt],"float") == 0 ){
             CALC_datum = MRI_float ;
-         } else if( strcmp(argv[nopt],"byte") == 0 ){
+         } else if( strcasecmp(argv[nopt],"byte") == 0 ){
             CALC_datum = MRI_byte ;
-         } else if( strcmp(argv[nopt],"complex") == 0 ){  /* not listed in help */
+         } else if( strcasecmp(argv[nopt],"complex") == 0 ){  /* not listed in help */
             CALC_datum = MRI_complex ;
          } else {
             fprintf(stderr,"** -datum of type '%s' not supported in 3dcalc!\n",
@@ -286,14 +304,14 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -verbose [30 April 1998] ****/
 
-      if( strncmp(argv[nopt],"-verbose",5) == 0 ){
+      if( strncasecmp(argv[nopt],"-verbose",5) == 0 ){
          CALC_verbose = 1 ;
          nopt++ ; continue ;
       }
 
       /**** -nscale [15 Jun 2000] ****/
 
-      if( strncmp(argv[nopt],"-nscale",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-nscale",6) == 0 ){
          CALC_gscale = CALC_fscale = 0 ;
          CALC_nscale = 1 ;
          nopt++ ; continue ;
@@ -301,7 +319,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -fscale [16 Mar 1998] ****/
 
-      if( strncmp(argv[nopt],"-fscale",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-fscale",6) == 0 ){
          CALC_fscale = 1 ;
          CALC_nscale = 0 ;
          nopt++ ; continue ;
@@ -309,7 +327,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -gscale [01 Apr 1999] ****/
 
-      if( strncmp(argv[nopt],"-gscale",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-gscale",6) == 0 ){
          CALC_gscale = CALC_fscale = 1 ;
          CALC_nscale = 0 ;
          nopt++ ; continue ;
@@ -317,7 +335,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -prefix prefix ****/
 
-      if( strncmp(argv[nopt],"-prefix",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-prefix",6) == 0 ){
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"** need argument after -prefix!\n") ; exit(1) ;
@@ -328,7 +346,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -session directory ****/
 
-      if( strncmp(argv[nopt],"-session",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-session",6) == 0 ){
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"** need argument after -session!\n") ; exit(1) ;
@@ -339,7 +357,7 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -expr expression ****/
 
-      if( strncmp(argv[nopt],"-expr",4) == 0 ){
+      if( strncasecmp(argv[nopt],"-expr",4) == 0 ){
          if( CALC_code != NULL ){
             fprintf(stderr,"** cannot have 2 -expr options!\n") ; exit(1) ;
          }
@@ -358,21 +376,21 @@ void CALC_read_opts( int argc , char * argv[] )
 
       /**** -dsSTOP [22 Nov 1999] ****/
 
-      if( strncmp(argv[nopt],"-dsSTOP",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-dsSTOP",6) == 0 ){
          CALC_dshift_mode_current = DSHIFT_MODE_STOP ;
          nopt++ ; continue ;
       }
 
       /**** -dsWRAP [22 Nov 1999] ****/
 
-      if( strncmp(argv[nopt],"-dsWRAP",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-dsWRAP",6) == 0 ){
          CALC_dshift_mode_current = DSHIFT_MODE_WRAP ;
          nopt++ ; continue ;
       }
 
       /**** -dsZERO [22 Nov 1999] ****/
 
-      if( strncmp(argv[nopt],"-dsZERO",6) == 0 ){
+      if( strncasecmp(argv[nopt],"-dsZERO",6) == 0 ){
          CALC_dshift_mode_current = DSHIFT_MODE_ZERO ;
          nopt++ ; continue ;
       }
@@ -795,6 +813,7 @@ DSET_DONE: continue;
             CALC_has_predefined++ ;
             fprintf(stderr,"++ Symbol %c using predefined value\n" ,
                     abet[ids] ) ;
+            if( ids >= 23 ) CALC_has_xyz = 1 ;
          }
       }
    }
@@ -807,8 +826,10 @@ DSET_DONE: continue;
 void CALC_Syntax(void)
 {
    printf(
-    "Do arithmetic on 3D datasets, voxel-by-voxel [no inter-voxel computation].\n"
+    "Do arithmetic on 3D datasets, voxel-by-voxel [limited inter-voxel computation].\n"
+    "\n"
     "Usage: 3dcalc [options]\n"
+    "\n"
     "where the options are:\n"
    ) ;
 
@@ -1006,6 +1027,19 @@ void CALC_Syntax(void)
     " Otherwise undefined letters will be set to zero.  In the future,\n"
     " new default values for other letters may be added.\n"
     "\n"
+    " NOTE WELL: By default, the coordinate order of (x,y,z) is the order in\n"
+    " *********  which the data array is stored on disk; this order is output\n"
+    "            by 3dinfo.  The options below control can change this order:\n"
+    "\n"
+    " -dicom }= Sets the coordinates to appear in DICOM standard (RAI) order,\n"
+    " -RAI   }= (the AFNI standard), so that -x=Right, -y=Anterior , -z=Inferior,\n"
+    "                                        +x=Left , +y=Posterior, +z=Superior.\n"
+    "\n"
+    " -SPM   }= Sets the coordinates to appear in SPM (LPI) order,\n"
+    " -LPI   }=                      so that -x=Left , -y=Posterior, -z=Inferior,\n"
+    "                                        +x=Right, +y=Anterior , +z=Superior.\n"
+
+    "\n"
     "DIFFERENTIAL SUBSCRIPTS [22 Nov 1999]:\n"
     " Normal calculations with 3dcalc are strictly on a per-voxel basis:\n"
     " there is no 'cross-talk' between spatial or temporal locations.\n"
@@ -1171,15 +1205,15 @@ int main( int argc , char * argv[] )
    double   temp[VSIZE];
    int      nbad ;      /* 09 Aug 2000: check for bad results */
 
-   THD_ivec3 iv ;       /* 05 Feb 1999:                */
-   THD_fvec3 fv ;       /* stuff for computing (x,y,z) */
-   float xxx,yyy,zzz ;  /* coords for each voxel       */
+   THD_ivec3 iv ;
+   THD_fvec3 fv ;
+   float xxx[VSIZE], yyy[VSIZE], zzz[VSIZE] ;
    int   iii,jjj,kkk , nx,nxy ;
    THD_dataxes * daxes ;
 
    /*** read input options ***/
 
-   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) CALC_Syntax() ;
+   if( argc < 2 || strncasecmp(argv[1],"-help",4) == 0 ) CALC_Syntax() ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
@@ -1273,11 +1307,11 @@ int main( int argc , char * argv[] )
    }
 
    for (ids=0; ids<26; ids++)
-      atoz[ids] = (double *) malloc(sizeof(double) * VSIZE ) ;
+     atoz[ids] = (double *) malloc(sizeof(double) * VSIZE ) ;
 
    for( ids=0 ; ids < 26 ; ids++ )  /* initialize to all zeros */
-      for (ii=0; ii<VSIZE; ii++)
-          atoz[ids][ii] = 0.0 ;
+     for (ii=0; ii<VSIZE; ii++)
+       atoz[ids][ii] = 0.0 ;
 
    /*** loop over time steps ***/
 
@@ -1306,9 +1340,24 @@ int main( int argc , char * argv[] )
           jbot = ii ;
           jtop = MIN( ii + VSIZE , CALC_nvox ) ;
 
-         /* loop over datasets or other symbol definitions */
+          /* load (x,y,z) coords of these voxels into arrays, if needed */
 
-          for (ids = 0 ; ids < 26 ; ids ++ ) {
+          if( CALC_has_xyz ){                       /* 17 May 2005 */
+            for( jj=jbot ; jj < jtop ; jj++ ){
+              LOAD_IVEC3( iv , jj%nx , (jj%nxy)/nx , jj/nxy ) ;
+              fv = THD_3dind_to_3dmm( new_dset , iv ) ;
+              if( CALC_mangle_xyz )
+                fv = THD_3dmm_to_dicomm(new_dset,fv) ;
+              UNLOAD_FVEC3(fv,xxx[jj-jbot],yyy[jj-jbot],zzz[jj-jbot]) ;
+              if( CALC_mangle_xyz == MANGLE_LPI ){
+                xxx[jj-jbot] = -xxx[jj-jbot] ; yyy[jj-jbot] = -yyy[jj-jbot] ;
+              }
+            }
+          }
+
+          /* loop over datasets or other symbol definitions */
+
+          for (ids = 0 ; ids < 26 ; ids ++ ) {  /* the whole alphabet */
 
             /* 17 Apr 1998: if a time series is used here instead of a dataset,
                             just copy the single value (or zero) to all voxels. */
@@ -1560,52 +1609,49 @@ int main( int argc , char * argv[] )
 
               switch( ids ){
                  case 23:     /* x */
-                    if( HAS_X )
+                   if( HAS_X )
                      for( jj=jbot ; jj < jtop ; jj++ )
-                       atoz[ids][jj-ii] = daxes->xxorg +
-                                          (jj%nx) * daxes->xxdel ;
+                       atoz[ids][jj-ii] = xxx[jj-ii] ;
                  break ;
 
                  case 24:     /* y */
-                    if( HAS_Y )
+                   if( HAS_Y )
                      for( jj=jbot ; jj < jtop ; jj++ )
-                       atoz[ids][jj-ii] = daxes->yyorg +
-                                          ((jj%nxy)/nx) * daxes->yydel ;
+                       atoz[ids][jj-ii] = yyy[jj-ii] ;
                  break ;
 
                  case 25:     /* z */
-                    if( HAS_Z )
+                   if( HAS_Z )
                      for( jj=jbot ; jj < jtop ; jj++ )
-                       atoz[ids][jj-ii] = daxes->zzorg +
-                                          (jj/nxy) * daxes->zzdel ;
+                       atoz[ids][jj-ii] = zzz[jj-ii] ;
                  break ;
 
                  case 8:     /* i */
-                    if( HAS_I )
+                   if( HAS_I )
                      for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = (jj%nx) ;
                  break ;
 
                  case 9:     /* j */
-                    if( HAS_J )
+                   if( HAS_J )
                      for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = ((jj%nxy)/nx) ;
                  break ;
 
                  case 10:    /* k */
-                    if( HAS_K )
+                   if( HAS_K )
                      for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = (jj/nxy) ;
                  break ;
 
                  case 19:    /* t */
-                    if( HAS_T )
+                   if( HAS_T )
                      for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = THD_timeof_vox(kt,jj,new_dset) ;
                  break ;
 
                  case 11:    /* l */
-                    if( HAS_L )
+                   if( HAS_L )
                      for( jj=jbot ; jj < jtop ; jj++ )
                        atoz[ids][jj-ii] = kt ;
                  break ;
