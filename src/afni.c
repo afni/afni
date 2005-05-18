@@ -1457,7 +1457,7 @@ STATUS("call 12") ;
       break ;
 
       /*============================================================================
-         Next, setup the plugins, etc.
+         Next, setup the plugins, and things like that ...
         ============================================================================*/
 
       case 13:{
@@ -1509,27 +1509,35 @@ STATUS("call 13") ;
         AFNI_register_1D_funcstr( "Huber Fit" , huber_func ) ;
 #endif
 
+        /** plugins at last! **/
+
 #ifdef ALLOW_PLUGINS
         if( MAIN_im3d->type == AFNI_3DDATA_VIEW ){
-           int nplug = 0 ;
-           char str[128] ;
+          int nplug = 0 ;
+          char str[128] ;
 
-           if( ! GLOBAL_argopt.noplugins ){
+          if( ! GLOBAL_argopt.noplugins ){
 STATUS("initialize plugins") ;
-              GLOBAL_library.plugins = PLUG_get_many_plugins( MAIN_argv[0] ) ;
-              AFNI_plugin_button( MAIN_im3d ) ;
-           }
+            GLOBAL_library.plugins = PLUG_get_many_plugins( MAIN_argv[0] ) ;
+            AFNI_plugin_button( MAIN_im3d ) ;
+          }
 
-           if( GLOBAL_library.plugins != NULL ) nplug = GLOBAL_library.plugins->num ;
-           sprintf(str,"\n Plugins       = %d libraries read",nplug) ;
-           REPORT_PROGRESS(str) ;
+          if( GLOBAL_library.plugins != NULL ) nplug = GLOBAL_library.plugins->num ;
+          sprintf(str,"\n Plugins       = %d libraries read",nplug) ;
+          REPORT_PROGRESS(str) ;
+          if( nplug == 0 && ! GLOBAL_argopt.noplugins )  /* 18 May 2005 */
+            REPORT_PROGRESS(
+                      "\n ** Your Unix path must include the AFNI binary directory"
+                      "\n ** OR you must setenv AFNI_PLUGINPATH to that directory!");
 
-           if( !GLOBAL_argopt.noplugouts ){  /* June 1997 */
-               AFNI_init_plugouts() ;
-               if( MAIN_im3d->vwid->dmode->misc_plugout_pb != NULL )
-                 XtSetSensitive(MAIN_im3d->vwid->dmode->misc_plugout_pb,False) ; /* 07 Nov 2001 */
-               REPORT_PROGRESS("\n Plugouts      = listening for connections") ;
-           }
+          /** and plugouts! **/
+
+          if( !GLOBAL_argopt.noplugouts ){  /* June 1997 */
+            AFNI_init_plugouts() ;
+            if( MAIN_im3d->vwid->dmode->misc_plugout_pb != NULL ) /* 07 Nov 2001 */
+              XtSetSensitive(MAIN_im3d->vwid->dmode->misc_plugout_pb,False) ;
+            REPORT_PROGRESS("\n Plugouts      = listening for connections") ;
+          }
         }
 #endif
 

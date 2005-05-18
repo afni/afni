@@ -5554,3 +5554,5 @@
 
 18 May 2005
  * Add '-dicom' and '-spm' options to 3dcalc.c.
+ * Add a couple of warnings for stupid new users.
+ * Fix parser.f so that acos(1) and asin(1) work (tested .LT., not .LE.).
