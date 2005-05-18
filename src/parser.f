@@ -948,11 +948,11 @@ C.......................................................................
             R8_EVAL(NEVAL) = MIN( R8_EVAL(NEVAL) , R8_EVAL(NEVAL+1) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'ASIN' )THEN
-            IF( ABS(R8_EVAL(NEVAL)) .LT. 1.D+0 )
+            IF( ABS(R8_EVAL(NEVAL)) .LE. 1.D+0 )
      X        R8_EVAL(NEVAL) = ASIN( R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'ACOS' )THEN
-            IF( ABS(R8_EVAL(NEVAL)) .LT. 1.D+0 )
+            IF( ABS(R8_EVAL(NEVAL)) .LE. 1.D+0 )
      X        R8_EVAL(NEVAL) = ACOS( R8_EVAL(NEVAL) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'ATAN' )THEN
@@ -1650,13 +1650,13 @@ C.......................................................................
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'ASIN' )THEN
             DO IV=IVBOT,IVTOP
-               IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LT. 1.D+0 )
+               IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LE. 1.D+0 )
      X           R8_EVAL(IV-IBV,NEVAL) = ASIN( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'ACOS' )THEN
             DO IV=IVBOT,IVTOP
-               IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LT. 1.D+0 )
+               IF( ABS(R8_EVAL(IV-IBV,NEVAL)) .LE. 1.D+0 )
      X           R8_EVAL(IV-IBV,NEVAL) = ACOS( R8_EVAL(IV-IBV,NEVAL) )
             ENDDO
 C.......................................................................
