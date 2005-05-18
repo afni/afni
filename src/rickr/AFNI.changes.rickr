@@ -1150,3 +1150,6 @@
   * modified rickr/realtime.c, base XYZFIRST on ftype, added orient_side_rai()
   * modified plug_realtime.c, adding REG_strings_ENV (' ' -> '_')
 
+18 May 2005: Dimon (v 0.4)
+  * update complete_orients_str() for IFM_IM_FTYPE_DICOM
+
