@@ -1450,13 +1450,13 @@ L1000:
 /* ...................................................................
 .... */
     } else if (s_cmp(cncode, "ASIN", 8L, 4L) == 0) {
-	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) < 1.) {
+	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) <= 1.) {
 	    r8_eval__[neval - 1] = asin(r8_eval__[neval - 1]);
 	}
 /* ...................................................................
 .... */
     } else if (s_cmp(cncode, "ACOS", 8L, 4L) == 0) {
-	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) < 1.) {
+	if ((d__1 = r8_eval__[neval - 1], abs(d__1)) <= 1.) {
 	    r8_eval__[neval - 1] = acos(r8_eval__[neval - 1]);
 	}
 /* ...................................................................
@@ -2435,7 +2435,7 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if ((d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)
-			) < 1.) {
+			) <= 1.) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = asin(r8_eval__[
 			    iv - ibv + (neval << 6) - 65]);
 		}
@@ -2446,7 +2446,7 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if ((d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)
-			) < 1.) {
+			) <= 1.) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = acos(r8_eval__[
 			    iv - ibv + (neval << 6) - 65]);
 		}

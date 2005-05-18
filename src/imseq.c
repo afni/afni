@@ -6939,6 +6939,13 @@ static unsigned char record_bits[] = {
          }
          seq->im_label[0] = '\0' ;  /* will force redraw */
          ISQ_draw_winfo( seq ) ;
+
+         if( ws == NULL )                       /* 18 May 2005: add a hint */
+           MCW_unregister_hint( seq->winfo ) ;  /* for the clueless newbie */
+         else
+           MCW_register_hint( seq->winfo ,
+                    "setenv AFNI_LEFT_IS_LEFT YES disables 'radiology mode'" );
+
          RETURN( True );
       }
 
