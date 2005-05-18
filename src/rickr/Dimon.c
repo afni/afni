@@ -6,9 +6,10 @@ static char g_history[] =
     " 0.1 modified Imon to work with Dimon files as Dimon\n"
     " 0.2 added pause option\n"
     " 0.3 set ftype, and use -infile_pattern\n"
+    " 0.4 update complete_orients_str() for IFM_IM_FTYPE_DICOM\n"
     "----------------------------------------------------------------------\n";
 
-#define IFM_VERSION "version 0.3 (May 6, 2005)"
+#define IFM_VERSION "version 0.4 (May 18, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -17,7 +18,6 @@ static char g_history[] =
  * - can we get the timing from the Dicom file?
  * - without -rt_cmd 'PREFIX ...', set from last dir in glob (data/time?)
  * - add -infile_prefix for no wildcards (and no quotes)
- * - command re-run file?  Jerzy might do that.
  * - put select command arguemnts in quotes?
  *----------------------------------------------------------------------
 */
@@ -243,7 +243,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 	    }
 
 	    /* use this volume to complete the geh.orients string */
-	    if ( !p->opts.use_dicom && complete_orients_str( v, p ) < 0 )
+	    if ( complete_orients_str( v, p ) < 0 )
 		return -1;
 
 	    /* use this volume to note the byte order of image data */
@@ -368,7 +368,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
 		if ( set_volume_stats( p, &gS, &vn ) )
 		    return -1;
 
-		if ( !p->opts.use_dicom && complete_orients_str( &vn, p ) < 0 )
+		if ( complete_orients_str( &vn, p ) < 0 )
 		    return -1;
 
 		if ( ac->state == ART_STATE_TO_SEND_CTRL )
@@ -2167,8 +2167,7 @@ static int usage ( char * prog, int level )
           "       -quit                                 \\\n"
           "       -rt -nt 120                           \\\n"
           "       -host pickle                          \\\n"
-          "       -rt_cmd \"PREFIX 2005_0513_run3\"       \\\n"
-          "       -quit                                 \\\n"
+          "       -rt_cmd \"PREFIX 2005_0513_run3\"       \n"
 	  "\n"
 	  "  examples (with real-time options):\n"
 	  "\n"
@@ -2978,56 +2977,60 @@ static int complete_orients_str( vol_t * v, param_t * p )
 
     if ( gD.level > 2 )
         fprintf(stderr,"completing orients from '%s' to", v->geh.orients);
-                                
 
-    kk = p->flist[v->fl_1].gex.kk;
-
-    switch( kk )
+    if ( p->ftype == IFM_IM_FTYPE_DICOM )
+        strncpy(v->geh.orients + 4, DI_MRL_orients + 4, 2 );
+    else
     {
-	case 1:					/* LR */
-	    if ( v->z_delta > 0 )
-	    {
-		v->geh.orients[4] = 'L';
-		v->geh.orients[5] = 'R';
-	    }
-	    else
-	    {
-		v->geh.orients[4] = 'R';
-		v->geh.orients[5] = 'L';
-	    }
-	    break;
+        kk = p->flist[v->fl_1].gex.kk;
 
-	case 2:					/* PA */
-	    if ( v->z_delta > 0 )
-	    {
-		v->geh.orients[4] = 'P';
-		v->geh.orients[5] = 'A';
-	    }
-	    else
-	    {
-		v->geh.orients[4] = 'A';
-		v->geh.orients[5] = 'P';
-	    }
-	    break;
-	    
-	case 3:					/* IS */
-	    if ( v->z_delta > 0 )
-	    {
-		v->geh.orients[4] = 'I';
-		v->geh.orients[5] = 'S';
-	    }
-	    else
-	    {
-		v->geh.orients[4] = 'S';
-		v->geh.orients[5] = 'I';
-	    }
-	    break;
-	    
-	default:
-	{
-	    fprintf(stderr, "** COS failure: kk (%d) out of [1,3] range\n", kk);
-	    return -1;
-	}
+        switch( kk )
+        {
+            case 1:					/* LR */
+                if ( v->z_delta > 0 )
+                {
+                    v->geh.orients[4] = 'L';
+                    v->geh.orients[5] = 'R';
+                }
+                else
+                {
+                    v->geh.orients[4] = 'R';
+                    v->geh.orients[5] = 'L';
+                }
+                break;
+
+            case 2:					/* PA */
+                if ( v->z_delta > 0 )
+                {
+                    v->geh.orients[4] = 'P';
+                    v->geh.orients[5] = 'A';
+                }
+                else
+                {
+                    v->geh.orients[4] = 'A';
+                    v->geh.orients[5] = 'P';
+                }
+                break;
+                
+            case 3:					/* IS */
+                if ( v->z_delta > 0 )
+                {
+                    v->geh.orients[4] = 'I';
+                    v->geh.orients[5] = 'S';
+                }
+                else
+                {
+                    v->geh.orients[4] = 'S';
+                    v->geh.orients[5] = 'I';
+                }
+                break;
+                
+            default:
+            {
+                fprintf(stderr, "** COS failure: kk (%d) not in [1,3]\n", kk);
+                return -1;
+            }
+        }
     }
 
     v->geh.orients[6] = '\0';
