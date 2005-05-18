@@ -5551,3 +5551,6 @@
 
 17 May 2005
  * Added "Draw ROI plugin" menu item to image viewer popup, in afni.[ch].
+
+18 May 2005
+ * Add '-dicom' and '-spm' options to 3dcalc.c.
