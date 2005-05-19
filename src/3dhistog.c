@@ -25,6 +25,7 @@
 static EDIT_options HI_edopt ;
 
 #define NBIN_SPECIAL 65536
+#define BIG_NUMBER 9.999e+37
 
 static int   HI_nopt ;
 static int   HI_nbin = 100 ;
@@ -39,6 +40,9 @@ static int     HI_doall = 0 ;    /* 16 Feb 2005 */
 static byte  * HI_mask      = NULL ;
 static int     HI_mask_nvox = 0 ;
 static int     HI_mask_hits = 0 ;
+
+static double  HI_min = BIG_NUMBER;
+static double  HI_max = -BIG_NUMBER;
 
 #define KEEP(x) ( (HI_nomit==0) ? 1 :  \
                   (HI_nomit==1) ? ((x) != HI_omit[0]) : HI_keep(x) )
@@ -98,6 +102,8 @@ int main( int argc , char * argv[] )
              "              otherwise, only sub-brick #0 (or that from -dind) is used.\n"
              "  -notit    Means to leave the title line off the output.\n"
              "  -log10    Output log10() of the counts, instead of the count values.\n"
+             "  -min x    Means specify minimum of histogram.\n"
+             "  -max x    Means specify maximum of histogram.\n"
              "\n"
              "The histogram is written to stdout.  Use redirection '>' if you\n"
              "want to save it to a file.  The format is a title line, then\n"
@@ -165,7 +171,7 @@ int main( int argc , char * argv[] )
 
    /* find global min and max of data in all used bricks */
 
-   fbot = 9.999e+37 ; ftop = -fbot ;
+   fbot = BIG_NUMBER ; ftop = -fbot ;
    for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
      vbot = mri_min( DSET_BRICK(dset,iv_fim) ) ;
      vtop = mri_max( DSET_BRICK(dset,iv_fim) ) ;
@@ -174,6 +180,13 @@ int main( int argc , char * argv[] )
      if( vbot < fbot ) fbot = vbot;
      if( vtop > ftop ) ftop = vtop;
    }
+
+   if(HI_min != BIG_NUMBER)
+     fbot = HI_min;
+
+   if(HI_max != -BIG_NUMBER)
+     ftop = HI_max;
+
    if( fbot >= ftop ){
      fprintf(stderr,"** ERROR: all values in dataset are = %f!\n",fbot) ;
      exit(1) ;
@@ -367,6 +380,18 @@ void HI_read_opts( int argc , char * argv[] )
           nopt++ ; continue ;
 
       }
+
+      if( strncmp(argv[nopt],"-min",4) == 0 ){
+         HI_min = strtod( argv[++nopt] , NULL ) ;
+         nopt++ ; continue ;
+      }
+
+
+      if( strncmp(argv[nopt],"-max",4) == 0 ){
+         HI_max = strtod( argv[++nopt] , NULL ) ;
+         nopt++ ; continue ;
+      }
+
 
       /**** unknown switch ****/
 
