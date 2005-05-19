@@ -52,3 +52,6 @@
 
 16 May 2005
  * added tiny, tiny change to allow non_zero option with 3dMax
+
+19 May 2005
+ * added min and max limits to 3dhistog.c
