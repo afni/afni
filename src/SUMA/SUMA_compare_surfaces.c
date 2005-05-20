@@ -297,15 +297,15 @@ int main (int argc,char *argv[])
   if (SkipConsistent) {
    fprintf (SUMA_STDERR,"Skipping consistency check.\n");
   } else {
-     if (!SO1->SEL) SO1->SEL = SUMA_Make_Edge_List (SO1->FaceSetList, SO1->N_FaceSet, SO1->N_Node,SO1->NodeList, SO1->idcode_str); 
-     if (SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, SO1->SEL, 1, &trouble) == YUP)
+     if (!SO1->EL) SO1->EL = SUMA_Make_Edge_List (SO1->FaceSetList, SO1->N_FaceSet, SO1->N_Node,SO1->NodeList, SO1->idcode_str); 
+     if (SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, SO1->EL, 1, &trouble) == YUP)
        fprintf(SUMA_STDERR,"faces are consistent\n");
      else
        fprintf(SUMA_STDERR,"faces are not consistent\n");
   }
  
-  if (!SO2->SEL) SO2->SEL = SUMA_Make_Edge_List (SO2->FaceSetList, SO2->N_FaceSet, SO2->N_Node, SO2->NodeList, SO2->idcode_str); 
-  if (SUMA_MakeConsistent (SO2->FaceSetList, SO2->N_FaceSet, SO2->SEL, 1, &trouble) == YUP)
+  if (!SO2->EL) SO2->EL = SUMA_Make_Edge_List (SO2->FaceSetList, SO2->N_FaceSet, SO2->N_Node, SO2->NodeList, SO2->idcode_str); 
+  if (SUMA_MakeConsistent (SO2->FaceSetList, SO2->N_FaceSet, SO2->EL, 1, &trouble) == YUP)
     fprintf(SUMA_STDERR,"faces are consistent\n");
   else
     fprintf(SUMA_STDERR,"faces are not consistent\n");
@@ -318,8 +318,8 @@ int main (int argc,char *argv[])
    fprintf(SUMA_STDERR, "Number of nodes in surface 2: %d \n", num_nodes2);
    fprintf(SUMA_STDERR, "Number of faces in surface 1: %d \n", SO1->N_FaceSet);
    fprintf(SUMA_STDERR, "Number of faces in surface 2: %d \n", SO2->N_FaceSet);
-   if (!SO1->NodeNormList) SUMA_RECOMPUTE_NORMALS(S01);
-   if (!SO20>NodeNormList) SUMA_RECOMPUTE_NORMALS(S02);
+   if (!SO1->NodeNormList) SUMA_RECOMPUTE_NORMALS(SO1);
+   if (!SO2->NodeNormList) SUMA_RECOMPUTE_NORMALS(SO2);
    
    
    /* add some noise to surface 2 */
@@ -365,9 +365,9 @@ int main (int argc,char *argv[])
     P0[1] = SO1->NodeList[id+1];
     P0[2] = SO1->NodeList[id+2];
 
-    N0[0] = S01->NodeNormList[id];
-    N0[1] = S01->NodeNormList[id+1];
-    N0[2] = S01->NodeNormList[id+2];
+    N0[0] = SO1->NodeNormList[id];
+    N0[1] = SO1->NodeNormList[id+1];
+    N0[2] = SO1->NodeNormList[id+2];
 
    SUMA_POINT_AT_DISTANCE(N0, P0, 100, Points);
    P1[0] = Points[0][0];
