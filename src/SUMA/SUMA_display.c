@@ -7357,6 +7357,7 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
      sprintf (buf, "Pattern found at position %ld.", pos);
      XmTextSetString (TextShell->text_output, buf);
      XmTextSetInsertionPosition (TextShell->text_w, pos);
+     XmTextSetHighlight(TextShell->text_w, pos, pos+len, XmHIGHLIGHT_SELECTED);
    }
    XtFree (string);
    XtFree (search_pat);

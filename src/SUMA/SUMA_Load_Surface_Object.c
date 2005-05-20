@@ -4613,7 +4613,7 @@ SUMA_SurfSpecFile *SUMA_SOGroup_2_Spec(SUMA_SurfaceObject **SOv, int N_SOv)
 {
    static char FuncName[]={"SUMA_SOGroup_2_Spec"};
    SUMA_SurfSpecFile *spec = NULL;
-   int i;
+   int i, nspec;
    char si[100];
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -4632,16 +4632,16 @@ SUMA_SurfSpecFile *SUMA_SOGroup_2_Spec(SUMA_SurfaceObject **SOv, int N_SOv)
       ps->i_FT[i] = SUMA_FT_NOT_SPECIFIED; ps->i_FF[i] = SUMA_FF_NOT_SPECIFIED; 
    }
    
-   spec = SUMA_IO_args_2_spec(ps);
+   spec = SUMA_IO_args_2_spec(ps, &nspec);
    SUMA_FreeGenericArgParse(ps); ps = NULL;
 
    SUMA_RETURN(spec);  
 }
 
-SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps)
+SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps, int *nspec)
 {
    static char FuncName[]={"SUMA_IO_args_2_spec"};
-   int i;
+   int i, ispec0;
    byte ok;
    char sbuf[SUMA_MAX_LABEL_LENGTH+1];
    static char defgroup[]={SUMA_DEF_GROUP_NAME};
@@ -4650,6 +4650,9 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps)
    
    SUMA_ENTRY;
    
+   
+   /* first look for virtual spec */
+   *nspec = 1;
    spec = (SUMA_SurfSpecFile *)SUMA_malloc(sizeof(SUMA_SurfSpecFile));
    spec->N_Surfs = 0;
    spec->N_States = 0;
@@ -4658,11 +4661,11 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps)
    strcpy(spec->SpecFileName, "FromCommandLine.spec");   
    if (ps->accept_i) {
       SUMA_LH("Processing -i");
-      if (ps->i_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { SUMA_S_Err("Too many surfaces to work with.\n"); SUMA_RETURN(spec); }
+      if (ps->i_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { SUMA_S_Err("Too many surfaces to work with.\n"); *nspec = 0; SUMA_RETURN(spec); }
       for (i=0; i<ps->i_N_surfnames; ++i) {
          if (ps->check_input_surf) { 
             SUMA_CHECK_INPUT_SURF(ps->i_surfnames[i], ps->i_surftopo[i], ok);
-            if (!ok) { SUMA_free(spec); spec = NULL; SUMA_RETURN(spec); }
+            if (!ok) { SUMA_free(spec); spec = NULL; *nspec = 0; SUMA_RETURN(spec); }
          }
          strcpy(spec->SurfaceType[spec->N_Surfs], SUMA_SurfaceTypeString (ps->i_FT[i]));
          if (ps->i_FF[i] == SUMA_BINARY || ps->i_FF[i] == SUMA_BINARY_LE || ps->i_FF[i] == SUMA_BINARY_BE) strcpy(spec->SurfaceFormat[spec->N_Surfs], "BINARY");
@@ -4685,11 +4688,11 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps)
    }
    if (ps->accept_ipar) {
       SUMA_LH("Processing -ipar");
-      if (ps->ipar_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { SUMA_S_Err("Too many surfaces to work with.\n"); SUMA_RETURN(spec); }
+      if (ps->ipar_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { SUMA_S_Err("Too many surfaces to work with.\n"); *nspec = 0; SUMA_RETURN(spec); }
       for (i=0; i<ps->ipar_N_surfnames; ++i) {
          if (ps->check_input_surf) { 
             SUMA_CHECK_INPUT_SURF(ps->ipar_surfnames[i], ps->ipar_surftopo[i], ok);
-            if (!ok) { SUMA_free(spec); spec = NULL; SUMA_RETURN(spec); }
+            if (!ok) { SUMA_free(spec); spec = NULL; *nspec = 0; SUMA_RETURN(spec); }
          }
          strcpy(spec->SurfaceType[spec->N_Surfs], SUMA_SurfaceTypeString (ps->ipar_FT[i]));
          if (ps->ipar_FF[i] == SUMA_BINARY || ps->ipar_FF[i] == SUMA_BINARY_LE || ps->ipar_FF[i] == SUMA_BINARY_BE) strcpy(spec->SurfaceFormat[spec->N_Surfs], "BINARY");
@@ -4712,12 +4715,12 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps)
    }
    
    if (ps->accept_t) {
-      SUMA_LH("Processing it");
-      if (ps->t_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { SUMA_S_Err("Too many surfaces to work with.\n"); SUMA_RETURN(spec); }
+      SUMA_LH("Processing -t");
+      if (ps->t_N_surfnames+spec->N_Surfs >= SUMA_MAX_N_SURFACE_SPEC) { SUMA_S_Err("Too many surfaces to work with.\n"); *nspec = 0; SUMA_RETURN(spec); }
       for (i=0; i<ps->t_N_surfnames; ++i) {  
          if (ps->check_input_surf) { 
             SUMA_CHECK_INPUT_SURF(ps->t_surfnames[i], ps->t_surftopo[i], ok);
-            if (!ok) { SUMA_free(spec); spec = NULL; SUMA_RETURN(spec); }
+            if (!ok) { SUMA_free(spec); spec = NULL; *nspec = 0; SUMA_RETURN(spec); }
          }
          strcpy(spec->SurfaceType[spec->N_Surfs], SUMA_SurfaceTypeString (ps->t_FT[i]));
          if (ps->t_FF[i] == SUMA_BINARY || ps->t_FF[i] == SUMA_BINARY_LE || ps->t_FF[i] == SUMA_BINARY_BE) strcpy(spec->SurfaceFormat[spec->N_Surfs], "BINARY");
@@ -4740,16 +4743,56 @@ SUMA_SurfSpecFile *SUMA_IO_args_2_spec(SUMA_GENERIC_ARGV_PARSE *ps)
    }
    
    SUMA_LH("Working States");
-   /* now create the states list */
-   if (!spec->N_Surfs) { SUMA_RETURN(spec); }
    
-   spec->N_States = 1;
-   sprintf(spec->StateList, "%s|", spec->State[0]);
-   for (i=1; i<spec->N_Surfs; ++i) {
-      sprintf(sbuf,"%s|",spec->State[i]); 
-      if (!SUMA_iswordin(spec->StateList, sbuf)) { sprintf(spec->StateList, "%s|", spec->State[i]); ++spec->N_States; }
+   /* now create the states list */
+   if (spec->N_Surfs) { 
+      spec->N_States = 1;
+      sprintf(spec->StateList, "%s|", spec->State[0]);
+      for (i=1; i<spec->N_Surfs; ++i) {
+         sprintf(sbuf,"%s|",spec->State[i]); 
+         if (!SUMA_iswordin(spec->StateList, sbuf)) { sprintf(spec->StateList, "%s|", spec->State[i]); ++spec->N_States; }
+      }
+      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n%d distinct states\n%s\n", FuncName, spec->N_States, spec->StateList);
+      ispec0 = *nspec;
+   } else {
+      if (LocalHead) fprintf(SUMA_STDERR,"%s:\n no surfs\n", FuncName);
+      /* free Spec */
+      SUMA_free(spec); spec = NULL; *nspec = 0; ispec0 = 0;
    }
-   if (LocalHead) fprintf(SUMA_STDERR,"%s:\n%d distinct states\n%s\n", FuncName, spec->N_States, spec->StateList);
+    
+   /* Now see if you have explicity define specs on command line */
+   if (ps->accept_spec || ps->accept_s) {
+      if (ps->N_spec_names) {
+         *nspec = ispec0 + ps->N_spec_names;
+         spec = (SUMA_SurfSpecFile *)SUMA_realloc(spec, *nspec * sizeof(SUMA_SurfSpecFile));
+         SUMA_LH("Here");
+         for (i=0; i<ps->N_spec_names; ++i) {  
+            if (!SUMA_Read_SpecFile (ps->spec_names[i], &(spec[i+ispec0]))) {
+               SUMA_SL_Err("Failed to read SpecFile");
+               SUMA_free(spec); spec = NULL; *nspec = 0; 
+               SUMA_RETURN(spec);
+            }
+         }
+         /* do we have a set of surfaces to read here ? only works with one spec  */
+         if (ps->s_N_surfnames) {
+            int n_read;
+            if (ps->N_spec_names > 1) {
+               SUMA_S_Err("Cannot deal with multiple -spec on command line combined with -surf_ selectors.");
+               SUMA_free(spec); spec = NULL; *nspec = 0; 
+               SUMA_RETURN(spec);
+            }
+            /* purify the spec */
+            n_read = SUMA_spec_select_surfs(&(spec[0+ispec0]), ps->s_surfnames, ps->s_N_surfnames, 0);
+            if (LocalHead) {
+               fprintf(SUMA_STDERR,"%s (%s:%d): Read in %d surfaces\n", FuncName, __FILE__, __LINE__, n_read);
+            }
+         }
+         
+      }
+   }
+   if (LocalHead) { 
+      fprintf(SUMA_STDERR,"%s: About to return, have %d spec files.\n", FuncName, *nspec);
+   }
    SUMA_RETURN(spec);
 }
 

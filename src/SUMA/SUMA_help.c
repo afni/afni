@@ -136,6 +136,8 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + 3dCRUISEtoAFNI: Program to convert CRUISE volumes to AFNI\n"
             "  + 3dBRAIN_VOYAGERtoAFNI: Program to convert BrainVoyager .vmr\n"
             "                           volumes to AFNI\n"
+            "  + SurfMesh: Program to increase or decrease a mesh's density.\n"
+            "  + SurfMask: Program to find the volume enclosed by a surface.\n"
             "Modifications:\n"
             "  + SUMA:\n"
             "    Slight modification to threshold scale.\n"
@@ -893,8 +895,11 @@ char *SUMA_All_Programs(void )
    
    SS = SUMA_StringAppend ( SS,
          "+ List of programs in the SUMA package:\n"
+         "  3dCRUISEtoAFNI\n"
+         "  3dBRAIN_VOYAGERtoAFNI\n"
          "  3dSkullStrip\n"
          "  3dSurf2Vol\n"
+         "  3dSurfMask\n"
          "  3dVol2Surf\n"
          "  CompareSurfaces\n"
          "  ConvertSurface\n"
@@ -912,6 +917,7 @@ char *SUMA_All_Programs(void )
          "  SurfaceMetrics\n"
          "  SurfClust\n"
          "  SurfMeasures\n"
+         "  SurfMesh\n"
          "  SurfPatch\n"
          "  SurfQual\n"
          "  SurfSmooth\n"

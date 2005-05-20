@@ -178,6 +178,7 @@
    #include "SUMA_SurfClust.h"
    #include "SUMA_IsoSurface.h"
    #include "SUMA_BrainWrap.h"
+   #include "SUMA_SurfaceToSurface.h"
    #define SUMA_IGNORE_VOLREG {  \
       SUMAg_CF->IgnoreVolreg = 1;   \
    }
