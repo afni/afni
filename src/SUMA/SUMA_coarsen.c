@@ -30,46 +30,40 @@ SUMA_DO *SUMAg_DOv = NULL;   /*!< Global pointer to Displayable Object structure
 int SUMAg_N_DOv = 0; /*!< Number of DOs stored in DOv */
 SUMA_CommonFields *SUMAg_CF = NULL; /*!< Global pointer to structure containing info common to all viewers */
 
-void usage_SUMA_coarsen ()
+void usage_SUMA_coarsen (SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"usage_SUMA_coarsen"};
-   char * s = NULL;
+   char * s = NULL, *sio=NULL;
    s = SUMA_help_basics();
+   sio = SUMA_help_IO_Args (ps);
    printf ( "\nUsage:\n"
-            "  SurfMesh HHHHH -spec SPECFILE -surf SURFNAME \n"
+            "  SurfMesh <-i_TYPE SURFACE> <-o_TYPE OUTPUT> <-edges FRAC> \n"
+            "           [-sv SURF_VOL]\n"
+            " \n"
+            "  Example:\n"
+            "  SurfMesh -i_ply surf1.ply -o_ply surf1_half -edges 0.5\n"
             "\n"
             "  Mandatory parameters:\n"
-            "     -spec SpecFile: Spec file containing input surfaces.\n"
-            "     -surf SURFNAME: Name of input surface \n"
-            "     -edges fraction: surface will be simplified to number of\n"
-            "              edges times this fraction. Default is .5\n"
+            "     -i_TYPE SURFACE: Input surface. See below for details. \n"
+            "              You can also use the -t* method or\n"
+            "              the -spec SPECFILE -surf SURFACE method.\n"
+            "     -o_TYPE OUTPUT: Output surface, see below.\n"  
+            "     -edges FRAC: surface will be simplified to number of\n"
+            "              edges times FRAC (fraction). Default is .5\n"
             "              refines surface if edges > 1\n"
-            "  outputs files testNodes.1D and testFaces.1D\n"
             "\n"
             "%s"
-            "\n",s); SUMA_free(s); s = NULL;
+            "\n"
+            "%s"
+            "\n",sio,s); SUMA_free(sio); sio = NULL;SUMA_free(s); s = NULL;
    s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-   printf(" blame Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
-   printf(" this program uses the GTS library gts.sf.net\n"
-          " for fun read \"Fast and memory efficient polygonal simplification\" (1998) \n"
-          " and \"Evaluation of memoryless simplification\" (1999) by Lindstrom and Turk.\n");
+   printf(  " Originally written by Jakub Otwinowski.\n"
+            " Now maintained by Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+   printf(  " This program uses the GTS library gts.sf.net\n"
+            " for fun read \"Fast and memory efficient polygonal simplification\" (1998) \n"
+            " and \"Evaluation of memoryless simplification\" (1999) by Lindstrom and Turk.\n");
    exit (0);
 }
-
-typedef struct {
-   SUMA_SO_File_Type iType;
-   char *out_prefix;
-   char *sv_name;
-   char *surf_names[SURFPATCH_MAX_SURF];
-   int N_surf;
-   char *spec_file;
-   char *in_name;
-   int minhits;
-   int thislabel;
-   int labelcol;
-   int nodecol;
-   float edges;
-} SUMA_KUBATEST_OPTIONS;
 
 /*!
    \brief parse the arguments for SurfSmooth program
@@ -81,33 +75,24 @@ typedef struct {
                SUMA_free(Opt->out_prefix);
                SUMA_free(Opt);
 */
-SUMA_KUBATEST_OPTIONS *SUMA_coarsen_ParseInput (char *argv[], int argc)
+SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_coarsen_ParseInput (char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
    static char FuncName[]={"SUMA_coarsen_ParseInput"};
-   SUMA_KUBATEST_OPTIONS *Opt=NULL;
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar, i, ind;
    char *outprefix;
    SUMA_Boolean brk = NOPE;
+   void *SO_name=NULL;
+   SUMA_Boolean exists = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
 
-   Opt = (SUMA_KUBATEST_OPTIONS *)SUMA_malloc(sizeof(SUMA_KUBATEST_OPTIONS));
+   Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
 
    kar = 1;
-   Opt->iType = SUMA_FT_NOT_SPECIFIED;
    Opt->out_prefix = NULL;
-   Opt->sv_name = NULL;
-   Opt->spec_file = NULL;
-   Opt->in_name = NULL;
-   Opt->minhits = 2;
-   Opt->labelcol = -1;
-   Opt->nodecol = -1;
-   Opt->thislabel = -1;
-   Opt->N_surf = -1;
-   for (i=0; i<SURFPATCH_MAX_SURF; ++i)
-      Opt->surf_names[i] = NULL;
-   Opt->edges = .5;
+   Opt->v0 = .5;
    brk = NOPE;
 
    while (kar < argc)
@@ -115,42 +100,13 @@ SUMA_KUBATEST_OPTIONS *SUMA_coarsen_ParseInput (char *argv[], int argc)
       /*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
       if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0)
       {
-         usage_SUMA_coarsen();
+         usage_SUMA_coarsen(ps);
          exit (0);
       }
 
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
-      if (!brk && (strcmp(argv[kar], "-spec") == 0))
-      {
-         kar ++;
-         if (kar >= argc)
-         {
-            fprintf (SUMA_STDERR, "need argument after -spec \n");
-            exit (1);
-         }
-         Opt->spec_file = argv[kar];
-         brk = YUP;
-      }
-      if (!brk && (strcmp(argv[kar], "-surf") == 0))
-      {
-         if (kar + 1>= argc)
-         {
-            fprintf (SUMA_STDERR, "need argument after -surf SURF_NAME \n");
-            exit (1);
-         }
-         /*ind = argv[kar][6] - 'A';
-         if (ind < 0 || ind >= SURFPATCH_MAX_SURF)
-         {
-            fprintf (SUMA_STDERR, "you can use only one surface.\n");
-            exit (1);
-         }*/
-         kar ++;
-         Opt->surf_names[0] = argv[kar];
-         Opt->N_surf = 1;
-         brk = YUP;
-      }
-
+      
       if (!brk && (strcmp(argv[kar], "-edges") == 0))
       {
          if (kar+1 >= argc)
@@ -158,18 +114,13 @@ SUMA_KUBATEST_OPTIONS *SUMA_coarsen_ParseInput (char *argv[], int argc)
             fprintf (SUMA_STDERR, "need a number after -edges \n");
             exit (1);
          }
-         Opt->edges = atof(argv[++kar]);
-         /*if (Opt->edges > 1.0)
-         {
-            fprintf (SUMA_STDERR,"Error %s:\nfraction shouldn't be greater than 1, duh.\n", FuncName);
-            exit (1);
-         }*/
+         Opt->v0 = atof(argv[++kar]);
 
          brk = YUP;
       }
 
 
-      if (!brk)
+      if (!brk && !ps->arg_checked[kar])
       {
          fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
          exit (1);
@@ -181,17 +132,31 @@ SUMA_KUBATEST_OPTIONS *SUMA_coarsen_ParseInput (char *argv[], int argc)
 
    }
 
-   /* sanity checks */
-   if (Opt->N_surf != 1)
-   {
-      SUMA_SL_Err("No surface specified.");
+   /* check for only one surface at input */
+   if (ps->s_N_surfnames + ps->i_N_surfnames + ps->t_N_surfnames != 1) {
+      SUMA_S_Err("Multiple surface specifications used. Only one surface allowed.");
       exit(1);
    }
-   if (Opt->spec_file == NULL) 
-   {
-      SUMA_SL_Err("No spec file specified.");
+
+   /* write out the surface */
+   if (ps->o_N_surfnames) {
+      Opt->out_prefix = SUMA_copy_string(ps->o_surfnames[0]);
+      Opt->SurfFileType = ps->o_FT[0];
+      Opt->SurfFileFormat = ps->o_FF[0];
+   } else {
+      Opt->out_prefix = SUMA_copy_string("SurfMesh_out");
+      Opt->SurfFileType = SUMA_PLY;
+      Opt->SurfFileFormat = SUMA_ASCII;
+   }
+   SO_name = SUMA_Prefix2SurfaceName(Opt->out_prefix, NULL, NULL, Opt->SurfFileType, &exists);
+   if (exists) {
+      fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, Opt->out_prefix);
       exit(1);
    }
+   /* free SO_name for now */
+   if (SO_name) SUMA_free(SO_name); SO_name = NULL;
+
+   
    SUMA_RETURN (Opt);
 
 }
@@ -209,87 +174,77 @@ double distance(SUMA_SurfaceObject *SO, int n, int m)
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"SurfMesh"};
-   SUMA_KUBATEST_OPTIONS *Opt;
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int SO_read = -1;
    int i = 0;
    SUMA_SurfaceObject *SO = NULL, *S2 = NULL;
-   SUMA_SurfSpecFile Spec;
    void *SO_name = NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean exists = NOPE;
    FILE* out = NULL;
+   SUMA_GENERIC_ARGV_PARSE *ps=NULL;
+   SUMA_SurfSpecFile *Spec = NULL;
+   int N_Spec=0;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_mainENTRY;
 
    SUMA_STANDALONE_INIT;
 
 
+   ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;-o;");
+   
    /* Allocate space for DO structure */
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 
    if (argc < 4)
    {
-      usage_SUMA_coarsen();
+      usage_SUMA_coarsen(ps);
       exit (1);
    }
 
-   Opt = SUMA_coarsen_ParseInput (argv, argc);
+   Opt = SUMA_coarsen_ParseInput (argv, argc, ps);
 
-   /* read all surfaces */
-   if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
-      fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
-      exit(1);
-   }
-   SO_read = SUMA_spec_select_surfs(&Spec, Opt->surf_names, SURFPATCH_MAX_SURF, 0);
-   if ( SO_read != Opt->N_surf )
-   {
-      if (SO_read >=0 )
-      fprintf(SUMA_STDERR,"Error %s:\nFound %d surfaces, expected %d.\n", FuncName,  SO_read, Opt->N_surf);
-   exit(1);
-   }
-   /* now read into SUMAg_DOv */
-   if (!SUMA_LoadSpec_eng(&Spec, SUMAg_DOv, &SUMAg_N_DOv, Opt->sv_name, 0, SUMAg_CF->DsetList) ) {
-      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_LoadSpec_eng\n", FuncName);
+   Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
+   if (N_Spec != 1) {
+      SUMA_S_Err("Multiple spec at input.");
       exit(1);
    }
 
-   /* now identify surface needed */
-   SO = SUMA_find_named_SOp_inDOv(Opt->surf_names[0], SUMAg_DOv, SUMAg_N_DOv);
-   if (!SO)
-   {
-      fprintf (SUMA_STDERR,"Error %s:\n"
-                           "Failed to find surface %s\n"
-                           "in spec file. Use full name.\n",
-                           FuncName, Opt->surf_names[0]);
+   SO = SUMA_Load_Spec_Surf(Spec, 0, ps->sv[0], 0);
+   if (!SO) {
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                              "Failed to find surface\n"
+                              "in spec file. \n",
+                              FuncName );
+         exit(1);
+      
+   }   
+   
+   S2 = SUMA_Mesh_Resample (SO, Opt->v0);
+      
+   SO_name = SUMA_Prefix2SurfaceName(Opt->out_prefix, NULL, NULL, Opt->SurfFileType, &exists);
+   if (exists) {
+      fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, Opt->out_prefix);
       exit(1);
    }
-
-   S2 = SUMA_Mesh_Resample (SO, Opt->edges);
+   
+   /* write the surfaces to disk */
+   fprintf (SUMA_STDERR,"%s: Writing surface  ...\n", FuncName);
+   if (!SUMA_Save_Surface_Object (SO_name, S2, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
+      fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+      exit (1);
+   }
       
-      
-
-      
-         
-
-      
-      out = fopen("testNodes.1D", "w");      
-      for (i=0; i < S2->N_Node*3; i+=3)
-         fprintf(out, "%f\t%f\t%f\n",
-         S2->NodeList[i],
-         S2->NodeList[i+1],
-         S2->NodeList[i+2]);
-      fclose(out);
-      out = fopen("testFaces.1D", "w");
-      for (i=0; i < S2->N_FaceSet*3; i+=3)
-         fprintf(out, "%i\t%i\t%i\n",
-         S2->FaceSetList[i],
-         S2->FaceSetList[i+1],
-         S2->FaceSetList[i+2]);
-      fclose(out);
-      SUMA_free (S2);
 
    SUMA_LH("clean up");
-   if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
-   if (Opt) SUMA_free(Opt);
+   
+   /* free SO_name for now */
+   if (SO_name) SUMA_free(SO_name); SO_name = NULL;
+   if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
+   if (S2) SUMA_Free_Surface_Object(S2); S2 = NULL;
+   if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
+   if (Spec) SUMA_free(Spec); Spec = NULL;
+   if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");
    }

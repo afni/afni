@@ -525,7 +525,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ConvexHull_ParseInput (char *argv[], int 
 int main (int argc,char *argv[])
 {/* Main */    
    static char FuncName[]={"ConvexHull"}; 
-	int i, i3;
+	int i, i3, nspec = 0;
    void *SO_name=NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
@@ -645,7 +645,7 @@ int main (int argc,char *argv[])
             SUMA_S_Err("Only 1 input surface allowed!");
             exit(1);
          }
-         Spec = SUMA_IO_args_2_spec(ps);
+         Spec = SUMA_IO_args_2_spec(ps, &nspec);
          if (!Spec) {
             SUMA_S_Err("Failed to create spec!");
             exit(1);

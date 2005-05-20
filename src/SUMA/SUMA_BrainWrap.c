@@ -918,7 +918,7 @@ byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar
    memcpy ((void*)tmpXYZ, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
    
    /* transform the surface's coordinates from RAI to 3dfind */
-   SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, SO->VolPar);
+   SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, VolPar);
    
    /* find the new center and bounding box for the surface in the new coordinate system*/
    SUMA_MIN_MAX_SUM_VECMAT_COL (tmpXYZ, SO->N_Node, 3, MinDims, MaxDims, SOCenter); 
@@ -1044,7 +1044,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       SUMA_RETURN(NULL);
    }
    
-   nx = SO->VolPar->nx; ny = SO->VolPar->ny; nz = SO->VolPar->nz; nxy = nx * ny; nxyz = nx * ny * nz;
+   nx = VolPar->nx; ny = VolPar->ny; nz = VolPar->nz; nxy = nx * ny; nxyz = nx * ny * nz;
    
 
    isin = (short *)SUMA_calloc(nxyz, sizeof(short));
@@ -1233,7 +1233,7 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
    memcpy ((void*)tmpXYZ, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
    
    /* transform the surface's coordinates from RAI to 3dfind */
-   SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, SO->VolPar);
+   SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, VolPar);
    
    /* find the new center and bounding box for the surface in the new coordinate system*/
    SUMA_MIN_MAX_SUM_VECMAT_COL (tmpXYZ, SO->N_Node, 3, MinDims, MaxDims, SOCenter); 
