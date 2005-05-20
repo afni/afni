@@ -2674,6 +2674,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
    Opt->spec_file = NULL;
    Opt->out_vol_prefix = NULL;
+   Opt->out_vol_view[0]='\0';
+   Opt->out_vol_exists = -1;
+   Opt->out_grid_prefix = NULL;
+   Opt->out_grid_view[0]='\0';
+   Opt->out_grid_exists = -1;
+   Opt->in_vol_prefix = NULL;
+   Opt->in_vol_view[0]='\0';
+   Opt->in_vol_exists = -1;
    Opt->out_prefix = NULL;
    Opt->sv_name = NULL;
    Opt->N_surf = -1;
@@ -2759,6 +2767,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    if (Opt->in_vol) { DSET_delete( Opt->in_vol); Opt->in_vol = NULL;} 
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
    if (Opt->out_vol_prefix) SUMA_free(Opt->out_vol_prefix); Opt->out_vol_prefix = NULL;
+   if (Opt->in_vol_prefix) SUMA_free(Opt->in_vol_prefix); Opt->in_vol_prefix = NULL;
+   if (Opt->out_grid_prefix) SUMA_free(Opt->out_grid_prefix); Opt->out_grid_prefix = NULL;
    if (Opt->XYZ) SUMA_free(Opt->XYZ); Opt->XYZ = NULL;
    if (Opt->ztv) SUMA_free(Opt->ztv); Opt->ztv = NULL;
    if (Opt) SUMA_free(Opt);
@@ -2863,7 +2873,7 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
    
    if (opt->accept_i) {
       SS = SUMA_StringAppend (SS, 
-                  " Specifying surfaces using -i_TYPE options: \n"
+                  " Specifying input surfaces using -i_TYPE options: \n"
                   "    -i_TYPE inSurf specifies the input surface,\n"
                   "            TYPE is one of the following:\n"
                   "       fs: FreeSurfer surface. \n"
@@ -2898,10 +2908,64 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
                   "            when -o_fsp is used, see -o_TYPE options.\n"
       );
    }
+   
+   if (opt->accept_t) {
+      SS = SUMA_StringAppend (SS, 
+                  " Specifying surfaces using -t* options: \n"
+                  "   -tn TYPE NAME: specify surface type and name.\n"
+                  "                  See below for help on the parameters.\n"
+                  "   -tsn TYPE STATE NAME: specify surface type state and name.\n"
+	               "        TYPE: Choose from the following (case sensitive):\n"
+                  "           1D: 1D format\n"
+                  "           FS: FreeSurfer ascii format\n"
+                  "           PLY: ply format\n"
+                  "           SF: Caret/SureFit format\n"
+                  "           BV: BrainVoyager format\n"
+                  "        NAME: Name of surface file. \n"
+                  "           For SF and 1D formats, NAME is composed of two names\n"
+                  "           the coord file followed by the topo file\n"
+                  "        STATE: State of the surface.\n"
+                  "           Default is S1, S2.... for each surface.\n"
+      );
+   }
+   
+
+   if (opt->accept_sv) {
+      SS = SUMA_StringAppend (SS, 
+                  " Specifying a Surface Volume:\n"
+                  "    -sv SurfaceVolume [VolParam for sf surfaces]\n"
+                  "       If you supply a surface volume, the coordinates of the input surface.\n"
+                  "        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
+                  "        You must also specify a VolParam file for SureFit surfaces.\n"
+      );
+   }
+   
+   if (opt->accept_spec) {
+      SS = SUMA_StringAppend (SS, 
+                  " Specifying a surface specification (spec) file:\n"
+                  "    -spec SPEC: specify the name of the SPEC file.\n"
+      );
+   }
+   
+   if (opt->accept_s) {
+      SS = SUMA_StringAppend (SS, 
+                  " Specifying a surface using -surf_? method:\n"
+                  "    -surf_A SURFACE: specify the name of the first\n"
+                  "            surface to load. If the program requires\n"
+                  "            or allows multiple surfaces, use -surf_B\n"
+                  "            ... -surf_Z .\n"
+                  "            You need not use _A if only one surface is\n"
+                  "            expected.\n"
+                  "            SURFACE is the name of the surface as specified\n"
+                  "            in the SPEC file. The use of -surf_ option \n"
+                  "            requires the use of -spec option.\n"
+
+      );
+   }
 
    if (opt->accept_o) {
       SS = SUMA_StringAppend (SS, 
-                  " Specifying surfaces using -o_TYPE options: \n"
+                  " Specifying output surfaces using -o_TYPE options: \n"
                   "    -o_TYPE outSurf specifies the output surface, \n"
                   "            TYPE is one of the following:\n"
                   "       fs: FreeSurfer ascii surface. \n"
@@ -2929,36 +2993,6 @@ char *SUMA_help_IO_Args(SUMA_GENERIC_ARGV_PARSE *opt)
                   "            topo contains 3 ints per line, representing \n"
                   "            v1 v2 v3 triangle vertices.\n"
                   "       ply: PLY format, ascii or binary.\n"
-      );
-   }
-   
-   if (opt->accept_t) {
-      SS = SUMA_StringAppend (SS, 
-                  " Specifying surfaces using -t* options: \n"
-                  "   -tn TYPE NAME: specify surface type and name.\n"
-                  "                  See below for help on the parameters.\n"
-                  "   -tsn TYPE STATE NAME: specify surface type state and name.\n"
-	               "        TYPE: Choose from the following (case sensitive):\n"
-                  "           1D: 1D format\n"
-                  "           FS: FreeSurfer ascii format\n"
-                  "           PLY: ply format\n"
-                  "           SF: Caret/SureFit format\n"
-                  "           BV: BrainVoyager format\n"
-                  "        NAME: Name of surface file. \n"
-                  "           For SF and 1D formats, NAME is composed of two names\n"
-                  "           the coord file followed by the topo file\n"
-                  "        STATE: State of the surface.\n"
-                  "           Default is S1, S2.... for each surface.\n"
-      );
-   }
-   
-
-   if (opt->accept_sv) {
-      SS = SUMA_StringAppend (SS, 
-                  "    -sv SurfaceVolume [VolParam for sf surfaces]\n"
-                  "       If you supply a surface volume, the coordinates of the input surface.\n"
-                  "        are modified to SUMA's convention and aligned with SurfaceVolume.\n"
-                  "        You must also specify a VolParam file for SureFit surfaces.\n"
       );
    }
    
@@ -3167,6 +3201,28 @@ SUMA_GENERIC_ARGV_PARSE *SUMA_Parse_IO_Args (int argc, char *argv[], char *optfl
             ps->arg_checked[kar]=1;
             if (ps->s_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
                SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            ps->s_surfnames[ps->s_N_surfnames+ind] = SUMA_copy_string(argv[kar]);
+            ++ps->s_N_surfnames;
+            brk = YUP;
+	      } 
+         if (!brk && (strncmp(argv[kar], "-surf", 5) == 0)) {
+            ps->arg_checked[kar]=1;
+		      if (kar + 1>= argc)  {
+		  	      SUMA_S_Err( "need argument after -surf SURF_NAME \n");
+			      exit (1);
+		      }
+		      ind = 0;
+            
+            kar ++;
+            ps->arg_checked[kar]=1;
+            if (ps->s_N_surfnames >= SUMA_MAX_SURF_ON_COMMAND) {
+               SUMA_SL_Err("Exceeding maximum number of allowed surfaces...");
+               exit(1);   
+            }
+            if (ps->s_surfnames[ps->s_N_surfnames+ind]) {
+               SUMA_SL_Err("surface (A) already specified.");
                exit(1);   
             }
             ps->s_surfnames[ps->s_N_surfnames+ind] = SUMA_copy_string(argv[kar]);

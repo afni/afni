@@ -52,6 +52,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_PROGRAM_NAME_ParseInput(char *argv[], int
 		
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
       
+      if (!brk && (strcmp(argv[kar], "-debug") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a number after -debug \n");
+            exit (1);
+         }
+         
+         Opt->debug = atoi(argv[++kar]);
+         brk = YUP;
+      }
+      
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -87,6 +99,7 @@ int main (int argc,char *argv[])
 
    if (Opt->debug > 2) LocalHead = YUP;
 
+   if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);

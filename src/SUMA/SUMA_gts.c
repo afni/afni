@@ -40,9 +40,14 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 	int i = 0; /*counters */
 	int n = 0;
 	int *MapToGts = NULL; /*used to map EL vector to edge vector*/
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+	if (!SO->EL) {
+      SUMA_SL_Err("Null Edgeist!");
+      SUMA_RETURN(s);
+   }
    
    SUMA_LH("In with ");
    if (LocalHead) SUMA_Print_Surface_Object(SO, stderr);
@@ -60,16 +65,16 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 			(gdouble)SO->NodeList[i+1],
 			(gdouble)SO->NodeList[i+2]);
       if (LocalHead) 
-         fprintf(SUMA_STDERR, "Added vertex %f %f %f\n"
+         fprintf(SUMA_STDERR, "Added vertex (%d/%d)%f %f %f\n"
                                           "Stored gts (fails for some reason, but surface is OK)  %f %f %f\n"
-                                          , SO->NodeList[i], SO->NodeList[i+1], SO->NodeList[i+2]
+                                          , n, SO->N_Node-1, SO->NodeList[i], SO->NodeList[i+1], SO->NodeList[i+2]
                                           , (float)(vertices[n]->p.x), (float)(vertices[n]->p.y), (float)(vertices[n]->p.z));  
 	   ++n;
    }
    edges = (GtsEdge**)g_malloc (SO->EL->N_Distinct_Edges * sizeof (GtsEdge*));
 	n = 0;
 	MapToGts = (int *)g_malloc ( SO->EL->N_EL * sizeof(int));
-	for ( i=0; i< SO->EL->N_EL; i++)
+   for ( i=0; i< SO->EL->N_EL; i++)
 	{
 		if (SO->EL->ELps[i][2] > 0)
 		{ /* a unique edge*/
@@ -289,6 +294,17 @@ SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO, float edge_facto
    
    SUMA_ENTRY;
 
+   if (!SO) {
+      SUMA_SL_Err("NULL SO");
+      SUMA_RETURN(S2);
+   }
+   if (!SO->EL) {
+      SUMA_S_Warn("NULL Edge List, computing it");
+      if (!SUMA_SurfaceMetrics(SO, "EdgeList", NULL)) {
+         SUMA_SL_Err("Failed to create EdgeList");
+         SUMA_RETURN(S2);
+      }
+   }
    /* create a GTS surface */
    s  = SumaToGts(SO);
    if (!s) {

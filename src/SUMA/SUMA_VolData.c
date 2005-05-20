@@ -75,6 +75,55 @@ SUMA_Boolean SUMA_AfniExistsView(int exists, char *view)
 
 }
 
+SUMA_Boolean SUMA_AfniView (char *nameorig, char *cview)
+{
+   static char FuncName[]={"SUMA_AfniView"};
+   char *tmp1 = NULL, *tmp2 = NULL;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+   
+   if (!nameorig) SUMA_RETURN(NOPE);
+   if (!cview) SUMA_RETURN(NOPE);
+
+   tmp1 = SUMA_Extension(nameorig, ".HEAD", YUP);
+   tmp2 = SUMA_Extension(tmp1, ".BRIK", YUP); SUMA_free(tmp1); tmp1 = NULL;
+   /* is there a dot ?*/
+   if (tmp2[strlen(tmp2)-1] == '.') tmp2[strlen(tmp2)-1] = '\0';
+   
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Searching for view of %s\n", FuncName, tmp2);
+   
+   /* view */
+   if (SUMA_isExtension(tmp2, "+orig")) { 
+      sprintf(cview, "+orig"); 
+   } else if (SUMA_isExtension(tmp2, "+acpc")) { 
+      sprintf(cview, "+acpc"); 
+   } else if (SUMA_isExtension(tmp2, "+tlrc")) { 
+      sprintf(cview, "+tlrc"); 
+   } else {
+      cview[0]='\0';
+   }
+   SUMA_free(tmp2); tmp2 = NULL;
+
+   SUMA_RETURN(YUP);
+}
+
+SUMA_Boolean SUMA_AfniExists(char *prefix, char *c2view) 
+{
+   static char FuncName[]={"SUMA_AfniExists"};
+   char *head=NULL;
+   SUMA_Boolean ans = NOPE;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   ans = NOPE;
+
+   head = SUMA_append_replace_string(prefix,".HEAD", c2view,0);
+   if (LocalHead) fprintf(SUMA_STDERR,"%s: Checking existence of %s\n", FuncName, head);
+   if (SUMA_filexists(head)) { ans = YUP; }
+   SUMA_free(head); head = NULL; 
+   
+   SUMA_RETURN(ans);
+}
 /*!
    \brief Return AFNI's prefix, from a file name also checks for its validity
    \param name (char *) dset name (can contain path)
@@ -93,6 +142,7 @@ SUMA_Boolean SUMA_AfniExistsView(int exists, char *view)
                         \sa SUMA_AfniExistsView   
                         
    \return prefix (char *) dset prefix, free it with SUMA_free
+   \sa SUMA_AfniView
 */
 char *SUMA_AfniPrefix(char *nameorig, char *view, char *path, int *exists) 
 {
