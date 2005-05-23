@@ -490,6 +490,14 @@ int main( int argc , char * argv[] )
 
    new_dset = EDIT_empty_copy( DSUB(0) ) ;
 
+   /* 23 May 2005: check for axis consistency */
+
+   for( iv=1 ; iv < ninp ; iv++ ){
+     if( !EQUIV_DATAXES(new_dset->daxes,DSUB(iv)->daxes) )
+       fprintf(stderr,"++ WARNING: %s grid mismatch with %s\n",
+               DSET_BRIKNAME(DSUB(0)) , DSET_BRIKNAME(DSUB(iv)) ) ;
+   }
+
    /*  if( ninp == 1 ) */   tross_Copy_History( DSUB(0) , new_dset ) ;
    tross_Make_History( "3dbucket" , argc,argv , new_dset ) ;
 

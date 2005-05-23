@@ -1242,8 +1242,21 @@ int main( int argc , char * argv[] )
 
    new_dset = EDIT_empty_copy( CALC_dset[ids] ) ;
 
+   /* 23 May 2005: check input datasets for axis consistency */
+
+   for( iii=0 ; iii < 26 ; iii++ ){
+     if( iii            != ids                                &&
+         CALC_dset[iii] != NULL                               &&
+         !EQUIV_DATAXES(new_dset->daxes,CALC_dset[iii]->daxes)  )
+       fprintf(stderr,"++ WARNING: dataset '%c'=%s grid mismatch with %s\n",
+                      'a'+iii , DSET_BRIKNAME(CALC_dset[iii]) ,
+                                DSET_BRIKNAME(CALC_dset[ids]) ) ;
+   }
+
+   /** make history for new dataset */
+
    if( CALC_histpar < 0 ){
-      for( iii=jjj=0 ; iii < 26 ; iii++ )
+      for( iii=jjj=0 ; iii < 26 ; iii++ )       /* count number of input datasets */
          if( CALC_dset[iii] != NULL ) jjj++ ;
    } else {
       ids = CALC_histpar ;

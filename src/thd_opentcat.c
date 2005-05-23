@@ -55,6 +55,10 @@ ENTRY("THD_open_tcat") ;
                sar->str[dd],DSET_NX(dset_in[dd]),
                             DSET_NY(dset_in[dd]),DSET_NZ(dset_in[dd]) ) ;
        nerr++ ;
+     } else if( !EQUIV_DATAXES(dset_in[dd]->daxes,dset_in[0]->daxes) ){
+       fprintf(stderr,
+               "++ THD_open_tcat: %s grid mismatch with %s\n",
+               sar->str[0] , sar->str[dd] ) ;
      }
    }
    if( nerr > 0 ){
