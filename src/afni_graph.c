@@ -878,7 +878,9 @@ if(PRINT_TRACING)
    grapher->xax_tsim    =  NULL ;  /* 09 Jan 1998 */
    grapher->ave_tsim    =  NULL ;  /* 27 Jan 2004 */
 
-   grapher->xx_text_1 = grapher->xx_text_2 = 1 ;
+   grapher->xx_text_1    =
+    grapher->xx_text_2   =
+     grapher->xx_text_2p = grapher->xx_text_3 = 1 ;
 
    grapher->ref_ts = NULL ;
    grapher->ort_ts = NULL ;
@@ -1253,6 +1255,8 @@ ENTRY("GRA_redraw_overlay") ;
       xxx = MAX( grapher->xx_text_2 ,
                  grapher->xorigin[grapher->xc][grapher->yc] ) ;
 
+      if( grapher->init_ignore > 0 ) xxx = MAX( xxx , grapher->xx_text_2p ) ;
+
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
       overlay_txt( grapher, xxx , GB_DLY-15 , strp ) ;
    }
@@ -1360,6 +1364,11 @@ ENTRY("redraw_graph") ;
    DC_linewidth( grapher->dc , 0 ) ;
    fd_line( grapher , xxx-7 , 41 , xxx-7 , 5 ) ;
 
+   if( grapher->init_ignore > 0 ){                    /* 23 May 2005 */
+     sprintf(strp,"Ignore%4d",grapher->init_ignore) ;
+     fd_txt( grapher , xxx , 35, strp) ;
+   }
+
    sprintf(strp,"Grid:%5d", grapher->grid_spacing ) ;
    rrr = DC_text_width(grapher->dc,strp) ;
 
@@ -1385,7 +1394,11 @@ ENTRY("redraw_graph") ;
      else
        sprintf(strp,"Num%3d:%-3d" , bb,tt ) ;
    }
-   fd_line( grapher , grapher->xx_text_2+rrr+3 , 31 , grapher->xx_text_2+rrr+3 , 5 ) ;
+   fd_line( grapher ,
+            grapher->xx_text_2+rrr+3 , (grapher->init_ignore > 0) ? 41 : 31 ,
+            grapher->xx_text_2+rrr+3 , 5 ) ;
+
+   grapher->xx_text_2p = grapher->xx_text_2+rrr+6 ;  /* 23 May 2005 */
 
    if( !grapher->textgraph ){
      switch( grapher->common_base ){
