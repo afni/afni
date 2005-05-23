@@ -1130,11 +1130,11 @@ static XPoint xball[] = {
       {-3, 0}                   /* NBAX ends here */
  } ;
 
-/*--- draw into Pixmap (the graph itself) ---*/
+/*------------------ draw into Pixmap (the graph itself) -----------------------*/
 
-void GRA_small_circle( MCW_grapher * grapher , int xwin , int ywin , int filled )
+void GRA_small_circle( MCW_grapher *grapher, int xwin, int ywin, int filled )
 {
-   int  i , ncirc ;
+   int  i, ncirc ;
    XPoint a[NBTOP] ;
 
    switch( filled ){
@@ -1148,16 +1148,16 @@ void GRA_small_circle( MCW_grapher * grapher , int xwin , int ywin , int filled 
       a[i].y = xball[i].y + ywin ;
    }
 
-   XDrawPoints( grapher->dc->display , grapher->fd_pxWind ,
-                grapher->dc->myGC , a , ncirc , CoordModeOrigin ) ;
+   XDrawPoints( grapher->dc->display, grapher->fd_pxWind,
+                grapher->dc->myGC, a, ncirc, CoordModeOrigin ) ;
    return ;
 }
 
-/*--- draw into window (the graph overlay) ---*/
+/*------------------ draw into window (the graph overlay) -----------------------*/
 
-void GRA_overlay_circle( MCW_grapher *grapher , int xwin , int ywin , int filled )
+void GRA_overlay_circle( MCW_grapher *grapher, int xwin, int ywin, int filled )
 {
-   int  i , ncirc ;
+   int  i, ncirc ;
    XPoint a[NBTOP] ;
 
    switch( filled ){
@@ -1171,12 +1171,26 @@ void GRA_overlay_circle( MCW_grapher *grapher , int xwin , int ywin , int filled
       a[i].y = xball[i].y + ywin ;
    }
 
-   DC_linewidth( grapher->dc , 0 ) ;
+   DC_linewidth( grapher->dc, 0 ) ;
 
-   XDrawPoints( grapher->dc->display , XtWindow(grapher->draw_fd) ,
-                grapher->dc->myGC , a , ncirc , CoordModeOrigin ) ;
+   XDrawPoints( grapher->dc->display, XtWindow(grapher->draw_fd),
+                grapher->dc->myGC, a, ncirc, CoordModeOrigin ) ;
    return ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+void GRA_draw_circle( MCW_grapher *grapher , int xc , int yc , int rad )
+{
+   int xb,yb ;
+   unsigned int ww ;
+
+   if( rad < 0 ) rad = 0 ;
+   xb = xc-rad ; yb = yc-rad ; ww = 2*rad ;
+   XDrawArc( grapher->dc->display , XtWindow(grapher->draw_fd) ,
+             grapher->dc->myGC , xb,yb , ww,ww , 0,360*64 ) ;
+}
+
 
 /*-----------------------------------------------
    redraw stuff that overlays the pixmap
@@ -1215,6 +1229,24 @@ ENTRY("GRA_redraw_overlay") ;
 
    EXRONE(grapher) ;  /* 22 Sep 2000 */
 
+   /* draw some circles over ignored data points [23 May 2005] */
+
+   if( grapher->init_ignore > 0 && !grapher->textgraph ){
+     DC_fg_color( grapher->dc , IGNORE_COLOR(grapher) ) ;
+     jj  = NBOT(grapher) ;                     /* first point to plot */
+     xxx = NTOP(grapher) ;                     /* last */
+     xxx = MIN (xxx , grapher->init_ignore) ;  /* point */
+     xxx = MIN (xxx , ii+grapher->nncen) ;     /* to plot */
+     for( ii=jj ; ii < xxx ; ii++ )
+#if 0
+       GRA_overlay_circle( grapher , grapher->cen_line[ii-jj].x ,
+                                     grapher->cen_line[ii-jj].y , 1 ) ;
+#else
+       GRA_draw_circle( grapher , grapher->cen_line[ii-jj].x ,
+                                  grapher->cen_line[ii-jj].y , 4 ) ;
+#endif
+   }
+
    /* 22 July 1996:
       draw a ball on the graph at the currently display time_index */
 
@@ -1223,8 +1255,8 @@ ENTRY("GRA_redraw_overlay") ;
        ii <  NTOP(grapher) && ii-jj < grapher->nncen && !grapher->textgraph ){
 
       DC_fg_color( grapher->dc , IDEAL_COLOR(grapher) ) ;
-      GRA_overlay_circle( grapher ,
-                          grapher->cen_line[ii-jj].x , grapher->cen_line[ii-jj].y , 2 ) ;
+      GRA_overlay_circle( grapher , grapher->cen_line[ii-jj].x ,
+                                    grapher->cen_line[ii-jj].y , 2 ) ;
    }
 
    /* draw text showing value at currently displayed time_index */
@@ -1398,7 +1430,7 @@ ENTRY("redraw_graph") ;
             grapher->xx_text_2+rrr+3 , (grapher->init_ignore > 0) ? 41 : 31 ,
             grapher->xx_text_2+rrr+3 , 5 ) ;
 
-   grapher->xx_text_2p = grapher->xx_text_2+rrr+6 ;  /* 23 May 2005 */
+   grapher->xx_text_2p = grapher->xx_text_2+rrr+7 ;  /* 23 May 2005 */
 
    if( !grapher->textgraph ){
      switch( grapher->common_base ){
