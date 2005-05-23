@@ -71,10 +71,10 @@ void TCAT_read_opts( int argc , char *argv[] )
 
       if( strncmp(argv[nopt],"-prefix",6) == 0 ||
           strncmp(argv[nopt],"-output",6) == 0   ){
-	 if (TCAT_glue){
-            fprintf(stderr,"*** -prefix and -glueto options are not compatible\n");
-	    exit(1) ;
-	 }
+        if(TCAT_glue){
+          fprintf(stderr,"*** -prefix and -glueto options are not compatible\n");
+          exit(1) ;
+        }
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"*** need argument after -prefix!\n") ; exit(1) ;
@@ -86,11 +86,11 @@ void TCAT_read_opts( int argc , char *argv[] )
       /**** -session directory ****/
 
       if( strncmp(argv[nopt],"-session",6) == 0 ){
-	 if (TCAT_glue){
-            fprintf(stderr,
-		    "*** -session and -glueto options are not compatible\n");
-	    exit(1) ;
-	 }
+        if(TCAT_glue){
+          fprintf(stderr,
+            "*** -session and -glueto options are not compatible\n");
+          exit(1) ;
+        }
          nopt++ ;
          if( nopt >= argc ){
             fprintf(stderr,"*** need argument after -session!\n") ; exit(1) ;
@@ -102,8 +102,8 @@ void TCAT_read_opts( int argc , char *argv[] )
       /**** -dry ****/
 
       if( strncmp(argv[nopt],"-dry",3) == 0 ){
-         TCAT_dry = 1 ; TCAT_verb++ ;
-         nopt++ ; continue ;
+        TCAT_dry = 1 ; TCAT_verb++ ;
+        nopt++ ; continue ;
       }
 
       /**** -verb ****/
@@ -561,9 +561,17 @@ int main( int argc , char * argv[] )
       dset = DSUB(ids) ;
       if( DSET_TIMESTEP(dset) > 0.0 ) break ;
    }
-   if( ids == ninp ) dset = DSUB(0) ;
+   if( ids == ninp ){ ids = 0 ; dset = DSUB(0) ; }
 
    new_dset = EDIT_empty_copy( dset ) ; /* make a copy of its header */
+
+   /* 23 May 2005: check for axis consistency */
+
+   for( iv=0 ; iv < ninp ; iv++ ){
+     if( iv != ids && !EQUIV_DATAXES(new_dset->daxes,DSUB(iv)->daxes) )
+       fprintf(stderr,"++ WARNING: %s grid mismatch with %s\n",
+               DSET_BRIKNAME(dset) , DSET_BRIKNAME(DSUB(iv)) ) ;
+   }
 
    tross_Make_History( "3dTcat" , argc,argv , new_dset ) ;
 

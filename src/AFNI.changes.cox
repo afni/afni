@@ -5556,3 +5556,8 @@
  * Add '-dicom' and '-spm' options to 3dcalc.c.
  * Add a couple of warnings for stupid new users.
  * Fix parser.f so that acos(1) and asin(1) work (tested .LT., not .LE.).
+
+23 May 2005
+ * Add checks for data axes mismatch when inputting multiple datasets to
+     3dcalc.c, 3dTcat.c, 3dbucket.c, and thd_opentcat.c.  Because of
+     stoopid lusers.
