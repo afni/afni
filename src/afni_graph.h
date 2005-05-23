@@ -402,7 +402,7 @@ typedef struct {
    MRI_IMAGE * xax_tsim ;  /* 09 Jan 1998 */
    MRI_IMAGE * ave_tsim ;  /* 26 Jan 2004 */
 
-   int xx_text_1 , xx_text_2 , xx_text_3 ;   /* 19 Dec 2003  [rickr] */
+   int xx_text_1 , xx_text_2 , xx_text_2p , xx_text_3 ;
 
    /* external time-series stuff */
 
