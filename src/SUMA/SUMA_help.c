@@ -138,6 +138,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "                           volumes to AFNI\n"
             "  + SurfMesh: Program to increase or decrease a mesh's density.\n"
             "  + SurfMask: Program to find the volume enclosed by a surface.\n"
+            "  + SurfToSurf: Program to interpolate between non-isotopic surfaces.\n"
             "Modifications:\n"
             "  + SUMA:\n"
             "    Slight modification to threshold scale.\n"
@@ -921,6 +922,7 @@ char *SUMA_All_Programs(void )
          "  SurfPatch\n"
          "  SurfQual\n"
          "  SurfSmooth\n"
+         "  SurfToSurf\n"
      );
    
    /* clean SS */

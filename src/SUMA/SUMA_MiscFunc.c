@@ -3280,7 +3280,7 @@ SUMA_MT_intersect_triangle(float *P0, float *P1, float *NodeList, int N_Node, in
       det = SUMA_MT_DOT(edge1, pvec);
 
    #ifdef SUMA_MT_TEST_CULL           /* define TEST_CULL if culling is desired */
-      if (det < SUMA_EPSILON)
+      if (det > -SUMA_EPSILON && det < SUMA_EPSILON)
          MTI->isHit[iface] = NOPE;
       else {
          /* calculate distance from vert0 to ray origin */
