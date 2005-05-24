@@ -3189,7 +3189,27 @@ STATUS(str); }
       break;
 
       case 'a':
-        redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;  /* 03 Feb 1998 */
+        redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;         /* 03 Feb 1998 */
+      break ;
+
+      case 'i':
+        if( !grapher->textgraph && grapher->init_ignore > 0 ){ /* 24 May 2005 */
+          GRA_cbs cbs ;
+          cbs.reason = graCR_setignore ; cbs.key = grapher->init_ignore - 1 ;
+          CALL_sendback( grapher , cbs ) ;
+        } else {
+          XBell(grapher->dc->display,100) ;
+        }
+      break ;
+
+      case 'I':
+        if( !grapher->textgraph ){                             /* 24 May 2005 */
+          GRA_cbs cbs ;
+          cbs.reason = graCR_setignore ; cbs.key = grapher->init_ignore + 1 ;
+          CALL_sendback( grapher , cbs ) ;
+        } else {
+          XBell(grapher->dc->display,100) ;
+        }
       break ;
 
       case 'm':
@@ -3288,6 +3308,8 @@ STATUS(str); }
           grapher->timer_id    =
            XtAppAddTimeOut( XtWidgetToApplicationContext(grapher->opt_quit_pb),
                             grapher->timer_delay , GRA_timer_CB , grapher ) ;
+        } else {
+          XBell(grapher->dc->display,100) ;
         }
       break ;
 
@@ -3301,6 +3323,8 @@ STATUS(str); }
           grapher->timer_id    =
            XtAppAddTimeOut( XtWidgetToApplicationContext(grapher->opt_quit_pb),
                             grapher->timer_delay , GRA_timer_CB , grapher ) ;
+        } else {
+          XBell(grapher->dc->display,100) ;
         }
       break ;
 
@@ -4291,7 +4315,7 @@ ENTRY("drive_MCW_grapher") ;
 
          if( new_ignore >= 0 && new_ignore < TTOP(grapher)-1 ){
            grapher->init_ignore = new_ignore ;
-           redraw_graph( grapher , 0 ) ;
+           redraw_graph( grapher , PLOTCODE_AUTOSCALE ) ;
            RETURN( True ) ;
          } else {
            RETURN( False ) ;

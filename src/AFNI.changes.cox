@@ -5563,3 +5563,6 @@
      stoopid lusers.
  * Add 'Ignore xxx' label to bottom of afni_graph.c window, for stupid
      users like me.
+
+24 May 2005
+ * Add 'i' and 'I' keystrokes to afni_graph.c, to move init_ignore down/up.
