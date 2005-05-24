@@ -183,7 +183,6 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
          RetStrct.NodeNormList[id2+2] += RetStrct.FaceNormList[ip+2];
          ++N_Memb[FaceSetList[ip+2]];
    }
-      
       SUMA_LH("Normalizing");
       /*Now normalize NodeNormList*/
       NotMember = 0;
@@ -192,15 +191,20 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
             id = ND * i;
             if (N_Memb[i])
             {
+               /* fprintf(SUMA_STDERR,"%s: Node %d, Normal (pre scale) %f %f %f\n", FuncName, i, RetStrct.NodeNormList[id], RetStrct.NodeNormList[id+1], RetStrct.NodeNormList[id+2]); */
                RetStrct.NodeNormList[id] /= N_Memb[i];
                RetStrct.NodeNormList[id+1] /= N_Memb[i];
                RetStrct.NodeNormList[id+2] /= N_Memb[i];
                /* normalize */
                nrm = sqrt(RetStrct.NodeNormList[id]*RetStrct.NodeNormList[id] + RetStrct.NodeNormList[id+1]*RetStrct.NodeNormList[id+1] + RetStrct.NodeNormList[id+2]*RetStrct.NodeNormList[id+2]); 
-               RetStrct.NodeNormList[id] /= nrm;
-               RetStrct.NodeNormList[id+1] /= nrm;
-               RetStrct.NodeNormList[id+2] /= nrm;
+               if (nrm) { /* at times nrm is 0. This happened once on a flat surface that was not consistently wound. Nodes that were 
+                              members of two triangles of opposed normals ended up with a normal (and nrm) of 0 */ 
+                  RetStrct.NodeNormList[id] /= nrm;
+                  RetStrct.NodeNormList[id+1] /= nrm;
+                  RetStrct.NodeNormList[id+2] /= nrm;
+               } 
                
+               /* fprintf(SUMA_STDERR,"%s: Node %d, N_Memb[i] = %d, nrm = %f\n", FuncName, i, N_Memb[i], nrm); */
             }
             else
             {

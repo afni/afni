@@ -36,7 +36,7 @@ SUMA_M2M_STRUCT *SUMA_NewM2M(char *SO1_id, int N_SO1_nodes, char *SO2_id);
 SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
                                  int *oNL_1, int N_NL_1, float *PD_1, float dlim,
                                  int NodeDbg);
-float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, SUMA_INDEXING_ORDER d_order, int useClosest );
+float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, int nrow,  SUMA_INDEXING_ORDER d_order, int useClosest );
 
 
 #endif

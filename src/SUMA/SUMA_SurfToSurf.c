@@ -1,6 +1,3 @@
-/*USE This sample to start writing standalone programs.
-Change SurfToSurf to the program name of your choosing.
-*/
 #include "SUMA_suma.h"
 
 SUMA_SurfaceViewer *SUMAg_cSV = NULL; /*!< Global pointer to current Surface Viewer structure*/
@@ -22,8 +19,76 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps)
                "Usage: SurfToSurf <-i_TYPE S1> [<-sv SV1>]\n"
                "                  <-i_TYPE S2> [<-sv SV1>]\n"
                "                  [<-prefix PREFIX>]\n"
-               "                  [<-output_params .....>]\n" 
+               "                  [<-output_params PARAM_LIST>]\n"
+               "                  [<-node_indices NODE_INDICES>]\n"
+               "                  [<-proj_dir PROJ_DIR>]\n"
+               "                  [<-data DATA>]\n"
+               "                  [<-node_debug NODE>]\n"
                " \n"
+               "  This program is used to interpolate data from one surface (S2)\n"
+               " to another (S1), assuming the surfaces are quite similar in\n"
+               " shape but having different meshes (non-isotopic).\n"
+               " This is done by projecting each node (nj) of S1 along the normal\n"
+               " at nj and finding the closest triangle t of S2 that is intersected\n"
+               " by this projection. Projection is actually bidirectional.\n"
+               " If such a triangle t is found, the nodes (of S2) forming it are \n"
+               " considered to be the neighbors of nj.\n" 
+               " Values (arbitrary data, or coordinates) at these neighboring nodes\n"
+               " are then transfered to nj using barycentric interpolation or \n"
+               " nearest-node interpolation.\n"
+               " Nodes whose projections fail to intersect triangles in S2 are given\n"
+               " nonsensical values of -1 and 0.0 in the output.\n" 
+               "\n"
+               " Mandatory input:\n"
+               "  Two surfaces are required at input. See -i_TYPE options\n"
+               "  below for more information. \n"
+               "\n"
+               " Optional input:\n"
+               "  -prefix PREFIX: Specify the prefix of the output file.\n"
+               "                  The output file is in 1D format at the moment.\n"
+               "                  Default is SurfToSurf\n"
+               "  -output_params PARAM_LIST: Specify the list of mapping\n"
+               "                             parameters to include in output\n"
+               "     PARAM_LIST can have any or all of the following:\n"
+               "        NearestTriangleNodes: Use Barycentric interpolation (default)\n"
+               "                              and output indices of 3 nodes from S2\n"
+               "                              that neighbor nj of S1\n"
+               "        NearestNode: Use only the closest node from S2 (of the three \n"
+               "                     closest neighbors) to nj of S1 for interpolation\n"
+               "                     and output the index of that closest node.\n"
+               "        NearestTriangle: Output index of triangle t from S2 that\n"
+               "                         is the closest to nj along its projection\n"
+               "                         direction. \n"  
+               "        DistanceToSurf: Output distance (signed) from nj, along \n"
+               "                        projection direction to S2.\n"
+               "        ProjectionOnSurf: Output coordinates of projection of nj onto \n"
+               "                          triangle t of S2.\n"
+               "        Data: Output the data from S2, interpolated onto S1\n"
+               "              If no data is specified via the -data option, then\n"
+               "              the XYZ coordinates of SO2's nodes are considered\n"
+               "              the data.\n"
+               "  -data DATA: 1D file containing data to be interpolated.\n"
+               "              Each row i contains data for node i of S2.\n"
+               "              You must have one row for each node making up S2.\n"
+               "              In other terms, if S2 has N nodes, you need N rows\n"
+               "              in DATA. \n"
+               "              Each column of DATA is processed separately (think\n"
+               "              sub-bricks, and spatial interpolation).\n"
+               "              You can use [] selectors to choose a subset \n"
+               "              of columns.\n"
+               "              If -data option is not specified and Data is in PARAM_LIST\n"
+               "              then the XYZ coordinates of SO2's nodes are the data.\n"
+               "  -node_indices NODE_INDICES: 1D file containing the indices of S1\n"
+               "                              to consider. The default is all of the\n"
+               "                              nodes in S1. Only one column of values is\n"
+               "                              allowed here, use [] selectors to choose\n"
+               "                              the column of node indices if NODE_INDICES\n"
+               "                              has multiple columns in it.\n"
+               "  -proj_dir PROJ_DIR: 1D file containing projection directions to use\n"
+               "                      instead of the node normals of S1.\n"
+               "                      Each row should contain one direction for each\n"
+               "                      of the nodes forming S1.\n"
+               "\n"
                "%s"
                "%s"
                "\n", sio,  s);
@@ -47,9 +112,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    kar = 1;
    brk = NOPE;
+   Opt->in_1D = NULL;
    Opt->NodeDbg = -1;
    Opt->debug = 0;
-   Opt->NearestNode = 0;
+   Opt->NearestNode = 3;
    Opt->NearestTriangle = 0;
    Opt->DistanceToMesh = 0;
    Opt->ProjectionOnMesh = 0;
@@ -134,12 +200,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          brk = YUP;
       }
       
-      if (!brk && accepting_out && (strcmp(argv[kar], "DistanceToMesh") == 0)) {
+      if (!brk && accepting_out && (strcmp(argv[kar], "DistanceToSurf") == 0)) {
          Opt->DistanceToMesh = 1;
          brk = YUP;
       }
       
-      if (!brk && accepting_out && (strcmp(argv[kar], "ProjectionOnMesh") == 0)) {
+      if (!brk && accepting_out && (strcmp(argv[kar], "ProjectionOnSurf") == 0)) {
          Opt->ProjectionOnMesh = 1;
          brk = YUP;
       }
@@ -166,6 +232,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          } else {
             Opt->in_name = SUMA_copy_string(argv[kar]);
          }
+         Opt->Data = 1;
          brk = YUP;
       }
       
@@ -178,6 +245,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          }
          
          Opt->out_prefix = SUMA_Extension(argv[++kar],".1D", YUP);
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-proj_dir") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a name after -proj_dir \n");
+            exit (1);
+         }
+         
+         Opt->in_1D = argv[++kar];
          brk = YUP;
       }
       
@@ -206,7 +285,7 @@ int main (int argc,char *argv[])
    int N_Spec=0, *nodeind = NULL, N_nodeind, icol, i, j;
    MRI_IMAGE *im = NULL, *im_data=NULL;
 	int nvec, ncol=0, nvec_data, ncol_data, Nchar;
-   float *far = NULL, *far_data=NULL, *dt = NULL;
+   float *far = NULL, *far_data=NULL, *dt = NULL, *projdir=NULL;
    char *outname = NULL, *s=NULL, sbuf[100];
    void *SO_name = NULL;   
    FILE *outptr=NULL;
@@ -309,9 +388,35 @@ int main (int argc,char *argv[])
             fprintf(SUMA_STDERR, "Error %s: A node index of %d was found in input file %s, entry %d.\n"
                                  "Acceptable indices are positive and less than %d\n", 
                                     FuncName, nodeind[i], Opt->in_nodeindices, i, SO1->N_Node);
+            exit(1);
          }
       } 
       mri_free(im); im = NULL;   /* done with that baby */
+   }
+   
+   /* a preset directions vector ?*/
+   projdir = NULL; 
+   if (Opt->in_1D) {
+      im = mri_read_1D(Opt->in_1D);
+      if (!im) { SUMA_SL_Err("Failed to read 1D file of projection directions"); exit(1);}
+      far = MRI_FLOAT_PTR(im);
+      if (im->ny != 3) { SUMA_SL_Err("Need three columns in projection directions file."); exit(1); }
+      if (im->nx != SO1->N_Node) {
+         fprintf(SUMA_STDERR, "Error %s: You must have a direction for each node in SO1.\n"
+                              "%d directions found but SO1 has %d nodes.\n", FuncName, im->nx, SO1->N_Node);
+         exit(1);
+      }
+
+      /* change to row major major and make it match nodeind */
+      projdir = (float *)SUMA_calloc(SO1->N_Node*3, sizeof(float));
+      if (!projdir) { SUMA_SL_Crit("Failed to allocate"); exit(1); }
+      for (i=0; i<SO1->N_Node; ++i) {
+         projdir[3*i  ] = far[i              ];
+         projdir[3*i+1] = far[i+  SO1->N_Node];
+         projdir[3*i+2] = far[i+2*SO1->N_Node];
+      }
+      mri_free(im); im = NULL;   /* done with that baby */
+
    }
    
    if (SO_name) {
@@ -346,7 +451,7 @@ int main (int argc,char *argv[])
    
      
    SUMA_LH("Going for the mapping of SO1 --> SO2");
-   M2M = SUMA_GetM2M_NN( SO1, SO2, nodeind, N_nodeind, NULL, 0, Opt->NodeDbg);
+   M2M = SUMA_GetM2M_NN( SO1, SO2, nodeind, N_nodeind, projdir, 0, Opt->NodeDbg);
    
    /* Now show the mapping results for a debug node ? */
    if (Opt->NodeDbg >= 0) {
@@ -360,8 +465,14 @@ int main (int argc,char *argv[])
    }
    
    /* Now please do the interpolation */
-   if (Opt->NearestNode > 1) dt = SUMA_M2M_interpolate(M2M, far_data, ncol_data,  d_order, 0 );
-   else if (Opt->NearestNode == 1) dt = SUMA_M2M_interpolate(M2M, far_data, ncol_data,  d_order, 1 );
+   if (Opt->Data) {
+      if (Opt->NearestNode > 1) dt = SUMA_M2M_interpolate(M2M, far_data, ncol_data, nvec_data, d_order, 0 );
+      else if (Opt->NearestNode == 1) dt = SUMA_M2M_interpolate(M2M, far_data, ncol_data, nvec_data, d_order, 1 );
+      if (!dt) {
+         SUMA_SL_Err("Failed to interpolate");
+         exit(1);
+      }
+   }
    
    SUMA_LH("Forming the output");
    outptr = fopen(outname,"w");
@@ -372,64 +483,71 @@ int main (int argc,char *argv[])
    
    /* first create the header of the output */
    SS = SUMA_StringAppend(NULL, NULL);
-   SS = SUMA_StringAppend_va(SS, "#Mapping from nodes on mesh 1 (M1) to nodes on mesh 2 (M2)\n"
-                                 "#  Mesh 1 is labeled %s, idcode:%s\n"
-                                 "#  Mesh 2 is labeled %s, idcode:%s\n",
+   SS = SUMA_StringAppend_va(SS, "#Mapping from nodes on surf 1 (S1) to nodes on surf 2 (S2)\n"
+                                 "#  Surf 1 is labeled %s, idcode:%s\n"
+                                 "#  Surf 2 is labeled %s, idcode:%s\n",
                                  SO1->Label, SO1->idcode_str, SO2->Label, SO2->idcode_str);
    icol = 0;
    SS = SUMA_StringAppend_va(SS, "#Col. %d:\n"
-                                 "#     M1n (or nj): Index of node on M1\n"
+                                 "#     S1n (or nj): Index of node on S1\n"
                                  , icol); ++icol;
    if (Opt->NearestNode > 1) {
       SS = SUMA_StringAppend_va(SS, 
                                  "#Col. %d..%d:\n"
-                                 "#     M2ne_M1n: Indices of %d nodes on M2 \n"
+                                 "#     S2ne_S1n: Indices of %d nodes on S2 \n"
                                  "#     that are closest neighbors of nj.\n"
-                                 "#     The first index is that of the node on M2 that is closest to nj\n" 
+                                 "#     The first index is that of the node on S2 that is closest to nj.\n"
+                                 "#     If -1 then thes values should be ignored. This happens when nj's projection failed.\n" 
                                  , icol, icol+Opt->NearestNode-1, Opt->NearestNode); icol += Opt->NearestNode;
       SS = SUMA_StringAppend_va(SS, 
                                  "#Col. %d..%d:\n"
-                                 "#     M2we_M1n: Weights assigned to nodes on mesh 2 (M2) \n"
+                                 "#     S2we_S1n: Weights assigned to nodes on surf 2 (S2) \n"
                                  "#     that are closest neighbors of nj.\n"
                                  , icol, icol+Opt->NearestNode-1, Opt->NearestNode); icol += Opt->NearestNode;
    } else if (Opt->NearestNode == 1) {
       SS = SUMA_StringAppend_va(SS, 
                                  "#Col. %d:\n"
-                                 "#     M2ne_M1n: Index of the node on M2 (label:%s idcode:%s)\n"
+                                 "#     S2ne_S1n: Index of the node on S2 (label:%s idcode:%s)\n"
                                  "#     that is the closest neighbor of nj.\n"
+                                 "#     If -1 then this value should be ignored. This happens when nj's projection failed.\n" 
                                  , icol, SO2->Label, SO2->idcode_str); ++icol;
    }
    if (Opt->NearestTriangle) { 
       SS = SUMA_StringAppend_va(SS, 
                                  "#Col. %d:\n"
-                                 "#     M2t_M1n: Index of the triangle on M2 that hosts node nj on M1.\n"
-                                 "#     In other words, nj's closest projection onto M2 falls on \n"
-                                 "#     triangle M2t_M1n\n"
+                                 "#     S2t_S1n: Index of the triangle on S2 that hosts node nj on S1.\n"
+                                 "#     In other words, nj's closest projection onto S2 falls on \n"
+                                 "#     triangle S2t_S1n\n"
+                                 "#     If -1 then this value should be ignored. This happens when nj's projection failed.\n" 
                                  , icol); ++icol; 
    }
    if (Opt->ProjectionOnMesh) { 
       SS = SUMA_StringAppend_va(SS, 
                                  "#Col. %d..%d:\n"
-                                 "#     M2p_M1n: Coordinates of projection of nj onto M2\n"
+                                 "#     S2p_S1n: Coordinates of projection of nj onto S2\n"
                                  , icol, icol+2); icol += 3; 
    }
    if (Opt->DistanceToMesh) {
       SS = SUMA_StringAppend_va(SS, 
                                  "#Col. %d:\n"
-                                 "#     Closest distance from nj to M2\n"
+                                 "#     Closest distance from nj to S2\n"
                                  , icol); ++icol;
    }
-   if (!Opt->in_name) {
-      SS = SUMA_StringAppend_va(SS, 
-                                 "#Col. %d..%d:\n"
-                                 "#     Interpolation using XYZ coordinates of nodes on M2 that neighbor nj\n"
-                                 , icol, icol+2); icol += 3; 
-   } else {
-      SS = SUMA_StringAppend_va(SS, 
-                                 "#Col. %d..%d:\n"
-                                 "#     Interpolation of data at nodes on M2 that neighbor nj\n"
-                                 "#     Data obtained from %s\n"
-                                 , icol, icol+ncol_data-1, Opt->in_name);  icol += ncol_data;
+   if (Opt->Data) {
+      if (!Opt->in_name) {
+         SS = SUMA_StringAppend_va(SS, 
+                                    "#Col. %d..%d:\n"
+                                    "#     Interpolation using XYZ coordinates of nodes on S2 that neighbor nj\n"
+                                    "#     (same as coordinates of node's projection onto triangle in S2, if using \n"
+                                    "       barycentric interpolation)\n"
+                                    , icol, icol+2); icol += 3; 
+      } else {
+         SS = SUMA_StringAppend_va(SS, 
+                                    "#Col. %d..%d:\n"
+                                    "#     Interpolation of data at nodes on S2 that neighbor nj\n"
+                                    "#     Data obtained from %s\n"
+                                    , icol, icol+ncol_data-1, Opt->in_name);  icol += ncol_data;
+      }
    } 
    s = SUMA_HistString("SurfToSurf", argc, argv, NULL);
    SS = SUMA_StringAppend_va(SS, 
@@ -447,11 +565,15 @@ int main (int argc,char *argv[])
    for (i=0; i<M2M->M1Nn; ++i) {
       fprintf(outptr,"%6s   ", MV_format_fval2(M2M->M1n[i], Nchar));
       if (Opt->NearestNode > 0) {
-         for (j=0; j<Opt->NearestNode; ++j) { fprintf(outptr,"%6s   ", MV_format_fval2(M2M->M2ne_M1n[i][j], Nchar)); } /* Neighboring nodes */
+         for (j=0; j<Opt->NearestNode; ++j) { 
+            if (j < M2M->M2Nne_M1n[i]) fprintf(outptr,"%6s   ", MV_format_fval2(M2M->M2ne_M1n[i][j], Nchar)); 
+            else fprintf(outptr,"%6s   ", "-1"); 
+         } /* Neighboring nodes */
       } 
       if (Opt->NearestNode > 1) { /* add the weights */
          for (j=0; j<Opt->NearestNode; ++j) { 
-            fprintf(outptr,"%6s   ", MV_format_fval2(M2M->M2we_M1n[i][j], Nchar)); 
+            if (j < M2M->M2Nne_M1n[i]) fprintf(outptr,"%6s   ", MV_format_fval2(M2M->M2we_M1n[i][j], Nchar)); 
+            else fprintf(outptr,"%6s   ", "0.0"); 
          } 
       }
       if (Opt->NearestTriangle) {
@@ -465,12 +587,14 @@ int main (int argc,char *argv[])
       if (Opt->DistanceToMesh) { 
          fprintf(outptr,"%6s   ", MV_format_fval2(M2M->PD[i], Nchar)); 
       }
-      if (!Opt->in_name) {
-         fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i], Nchar));
-         fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i+1], Nchar));
-         fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i+2], Nchar));
-      } else {
-         for (j=0; j<ncol_data; ++j) { fprintf(outptr,"%6s   ", MV_format_fval2(dt[i+j*ncol_data], Nchar)); }
+      if (Opt->Data) {
+         if (!Opt->in_name) {
+            fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i], Nchar));
+            fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i+1], Nchar));
+            fprintf(outptr,"%6s   ", MV_format_fval2(dt[3*i+2], Nchar));
+         } else { /* Column major business */
+            for (j=0; j<ncol_data; ++j) { fprintf(outptr,"%6s   ", MV_format_fval2(dt[i+j*M2M->M1Nn], Nchar)); }
+         }
       }
       fprintf(outptr,"\n");
    }
@@ -488,6 +612,7 @@ int main (int argc,char *argv[])
       SO1->NodeList = tmpfv; tmpfv = NULL;
    }
    
+   if (projdir) SUMA_free(projdir); projdir = NULL;
    if (SO_name) SUMA_free(SO_name); SO_name = NULL;   
    if (outptr) fclose(outptr); outptr = NULL;
    if (dt) SUMA_free(dt); dt = NULL;
