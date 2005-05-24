@@ -2745,6 +2745,15 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->OrigSpatNormedSet = NULL;
    Opt->in_edvol = NULL;
    Opt->blur_fwhm = 0.0;
+   Opt->iset_hand = 0;
+   
+   Opt->NearestNode = 0;
+   Opt->NearestTriangle = 0;
+   Opt->DistanceToMesh = 0;
+   Opt->ProjectionOnMesh = 0;
+   Opt->Data = 0;
+   
+   Opt->in_nodeindices = NULL;
    
    SUMA_RETURN(Opt);
 }   

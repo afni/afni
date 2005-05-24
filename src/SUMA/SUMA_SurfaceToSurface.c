@@ -143,7 +143,8 @@ char *SUMA_M2M_node_Info (SUMA_M2M_STRUCT *M2M, int node)
    \return M2M (SUMA_M2M_STRUCT *) Mesh to Mesh mapping structure, see SUMA_SurfaceToSurface.h for details
 */ 
 SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO2,
-                                 int *oNL_1, int N_NL_1, float *PD_1, float dlim)
+                                 int *oNL_1, int N_NL_1, float *PD_1, float dlim, 
+                                 int NodeDbg)
 {
    static char FuncName[]={"SUMA_GetM2M_NN"};
    SUMA_M2M_STRUCT *M2M = NULL;
@@ -156,7 +157,7 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
    float Points[2][3];
    SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL;
    struct timeval tt; 
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -233,7 +234,12 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
       hit[0] = MTI->P[0];
       hit[1] = MTI->P[1];
       hit[2] = MTI->P[2];
-      
+      if (M2M->M1n[j] == NodeDbg) {
+         fprintf(SUMA_STDERR, "%s: Hit coords for node %d of M1: \n"
+                              "%f %f %f\n"
+                              "%f %f %f\n", FuncName, M2M->M1n[j], hit[0], hit[1], hit[2], 
+                              M2M->M2p_M1n[j3], M2M->M2p_M1n[j3+1], M2M->M2p_M1n[j3+2]);
+      }
       /* store the barycentric (u,v) location of intersection */
       M2M->M2pb_M1n[2*j  ] = MTI->u[MTI->ifacemin];
       M2M->M2pb_M1n[2*j+1] = MTI->v[MTI->ifacemin];
@@ -278,4 +284,77 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
    if (MTI) MTI = SUMA_Free_MT_intersect_triangle(MTI); 
 
    SUMA_RETURN(M2M);
+}
+
+/*!
+   \brief A function to interpolate data from one mesh onto another
+   \param M2M (SUMA_M2M_STRUCT *) 
+   \param far_data (float *) Data from mesh 2. The vector in far_data can 
+                             represent an nvec * ncol matrix of values stored
+                             in row major or column major order. Think of each
+                             column as a separate sub-brick.
+   \param ncol (int) number of columns in far_data
+   \param d_order (SUMA_INDEXING_ORDER) SUMA_ROW_MAJOR, i.e. xyz xyz xyz xyz
+                                       SUMA_COLUMN_MAJOR, i.e. xxxx yyyy zzzz
+   \param useCloset (int) 1 means use only data form the closest node
+                    0 means use data from all neighbors in M2M
+   \return dt (float *) interpolation of far_data from mesh 2 (M2) onto nodes of M1
+                        dt is ncol*M2M->M1Nn in the same order as d_order
+*/
+float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, SUMA_INDEXING_ORDER d_order, int useClosest )
+{
+   static char FuncName[]={"SUMA_M2M_interpolate"};
+   int j, k, i, nk, nkid, njid, N_k, nj;
+   float *dt=NULL;
+   SUMA_Boolean LocalHead = YUP;
+
+   SUMA_ENTRY;
+   
+   if (!M2M || !far_data) {
+      SUMA_SL_Err("NULL input");
+      SUMA_RETURN(dt);
+   }
+   /* allocation */
+   dt = (float *)SUMA_calloc(M2M->M1Nn*ncol, sizeof(float));
+   if (!dt) { SUMA_SL_Crit("Failed to allocate"); SUMA_RETURN(dt); }
+
+   /* here we go */
+   if (d_order == SUMA_ROW_MAJOR) {
+      if (!useClosest) {
+         for (j=0; j<M2M->M1Nn; ++j) {
+            nj = M2M->M1n[j]; /* node on M1 */
+            njid = j*ncol; /* ROW MAJOR BABY */
+            N_k = M2M->M2Nne_M1n[j]; 
+            for (i=0; i<ncol; ++i) { /* for each column */
+               dt[njid+i] = 0.0;
+               for (k=0; k<N_k; ++k) { /* for each neighbor */
+                  nk = M2M->M2ne_M1n[j][k]; 
+                  nkid = nk * ncol; /* ROW MAJOR BABY */
+                  dt[njid+i] += far_data[nkid+i] * M2M->M2we_M1n[j][k]; ;
+               }
+            }
+         }   
+      } else {
+         k = 0;
+         for (j=0; j<M2M->M1Nn; ++j) {
+            nj = M2M->M1n[j]; /* node on M1 */
+            njid = j*ncol; /* ROW MAJOR BABY */
+            for (i=0; i<ncol; ++i) { /* for each column */
+               dt[njid+i] = 0.0;      
+                  /* k = 0, set above */
+                  nk = M2M->M2ne_M1n[j][k]; 
+                  nkid = nk * ncol; /* ROW MAJOR BABY */
+                  dt[njid+i] += far_data[nkid+i];
+            }
+         }
+      }
+   } else if (d_order == SUMA_COLUMN_MAJOR) {
+      SUMA_SL_Err("Not supported yet");
+      SUMA_free(dt); dt = NULL; SUMA_RETURN(dt); 
+   } else {
+      SUMA_SL_Err("Bad order option");
+      SUMA_free(dt); dt = NULL; SUMA_RETURN(dt); 
+   }
+
+   SUMA_RETURN(dt); 
 }
