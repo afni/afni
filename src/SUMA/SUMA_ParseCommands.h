@@ -86,6 +86,14 @@ typedef struct {
    THD_3dim_dataset *in_edvol;
    float blur_fwhm;
    int iset_hand;
+   
+   int NearestNode;
+   int NearestTriangle;
+   int DistanceToMesh;
+   int ProjectionOnMesh;
+   int Data;
+   
+   char *in_nodeindices;
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT;
 
 #define SUMA_MAX_SURF_ON_COMMAND 100

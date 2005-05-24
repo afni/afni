@@ -86,7 +86,6 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "        where TYPE specifies the format of the surface\n"
                "        and PREFIX is, well, the prefix.\n"
                "        TYPE is one of: fs, 1d (or vec), sf, ply.\n"
-               "        Default is: -o_ply skull_strip_out\n"
                "        More on that below.\n"
                "     -prefix VOL_PREFIX: prefix of output volumes.\n"
                "        If not specified, the prefix is the same\n"
@@ -248,8 +247,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
 {
    static char FuncName[]={"SUMA_BrainWrap_ParseInput"}; 
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
-   int kar, i, ind;
-   char *outname;
+   int kar, i, ind, exists;
+   char *outname, cview[10];
    SUMA_Boolean brk = NOPE;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -717,13 +716,26 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
       fprintf (SUMA_STDERR,"Error %s:\n-input  must be used.\n", FuncName);
       exit(1);
    }
-   
+   /* what is the view of the input ?*/
+   if (!SUMA_AfniView (Opt->in_name, cview)) {
+      fprintf (SUMA_STDERR,"Error %s:\nCould not guess view from input dset %s\n", FuncName, Opt->in_name);
+      exit(1);
+   }
 
    if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("skull_strip_out");
    if (!Opt->out_vol_prefix) {
-      if (!Opt->out_prefix) Opt->out_vol_prefix = SUMA_copy_string("skull_strip_out");
-      else Opt->out_vol_prefix = SUMA_copy_string(Opt->out_prefix);
+      if (!Opt->out_prefix) Opt->out_vol_prefix = SUMA_AfniPrefix("skull_strip_out", NULL, NULL, &exists);
+      else Opt->out_vol_prefix = SUMA_AfniPrefix(Opt->out_prefix, NULL, NULL, &exists);
+   } else {
+      char *stmp = Opt->out_vol_prefix;
+      Opt->out_vol_prefix = SUMA_AfniPrefix(stmp, NULL, NULL, &exists); 
+      SUMA_free(stmp); stmp = NULL;
    }
+   if (SUMA_AfniExistsView(exists, cview)) {
+      fprintf (SUMA_STDERR,"Error %s:\nOutput dset %s%s exists, will not overwrite\n", FuncName, Opt->out_vol_prefix, cview);
+      exit(1);
+   }
+
    
    if (Opt->t2 >= 0 || Opt->t98 >= 0 || Opt->tm >= 0  || Opt->t >= 0 ) {
       if (!(Opt->t2 >= 0 && Opt->t98 > 0 && Opt->tm > 0 && Opt->t > 0)){
@@ -778,7 +790,7 @@ int main (int argc,char *argv[])
    if (Opt->debug > 2) LocalHead = YUP;
 
    SO_name = SUMA_Prefix2SurfaceName(Opt->out_prefix, NULL, NULL, Opt->SurfFileType, &exists);
-   if (exists) {
+   if (exists && strcmp(Opt->out_prefix,"skull_strip_out")) { /* do not worry about the default name for the surface */
       fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, Opt->out_prefix);
       exit(1);
    }
@@ -798,7 +810,7 @@ int main (int argc,char *argv[])
    
    /* Load the AFNI volume and prep it*/
    if (Opt->DoSpatNorm) { /* chunk taken from 3dSpatNorm.c */
-      SUMA_SL_Note("Loading dset, performing Spatial Normalization");
+      if (Opt->debug) SUMA_SL_Note("Loading dset, performing Spatial Normalization");
       /* load the dset */
       Opt->iset = THD_open_dataset( Opt->in_name );
       if( !ISVALID_DSET(Opt->iset) ){
@@ -846,7 +858,7 @@ int main (int argc,char *argv[])
       }
       
       if (imout_orig) {
-         SUMA_SL_Note("Creating an output dataset in original grid...");
+         if (Opt->debug) SUMA_SL_Note("Creating an output dataset in original grid...");
          /* me needs the origin of this dset in RAI world */
          LOAD_FVEC3(originRAIfv , Opt->iset->daxes->xxorg , Opt->iset->daxes->yyorg , Opt->iset->daxes->zzorg) ;
          originRAIfv = THD_3dmm_to_dicomm( Opt->iset , originRAIfv ) ;
@@ -1170,7 +1182,7 @@ int main (int argc,char *argv[])
 
       /* check for intersections */
       if (Opt->PercInt >= 0) {
-         fprintf(SUMA_STDERR,"%s: Checking for self intersection...\n", FuncName);
+         if (Opt->debug) fprintf(SUMA_STDERR,"%s: Checking for self intersection...\n", FuncName);
          nseg = 30 * Opt->Icold * Opt->Icold; /* number of segments in Ico */
          nint = SUMA_isSelfIntersect(SO, (int)(Opt->PercInt * nseg / 100.0));
          if (nint < 0) {
@@ -1211,8 +1223,10 @@ int main (int argc,char *argv[])
                nint = 0;
             }
          } else  {
-            if (nint) fprintf(SUMA_STDERR,"%s: Number of intersection below criterion.\n", FuncName);
-            else fprintf(SUMA_STDERR,"%s: No intersections found.\n", FuncName);
+            if (Opt->debug) {
+               if (nint) fprintf(SUMA_STDERR,"%s: Number of intersection below criterion.\n", FuncName);
+               else fprintf(SUMA_STDERR,"%s: No intersections found.\n", FuncName);
+            }
             nint = 0;
          }
       } else {
@@ -1220,12 +1234,12 @@ int main (int argc,char *argv[])
          nint = 0;   
       }
    } while (nint != 0);
-   fprintf(SUMA_STDERR,"%s: Final smoothing of %d\n", FuncName, Opt->NNsmooth);
+   if (Opt->debug) fprintf(SUMA_STDERR,"%s: Final smoothing of %d\n", FuncName, Opt->NNsmooth);
    
    /* touch up, these might cause some surface intersection, but their effects should be small */
    if (Opt->UseNew) {
          double mval = 255;
-         fprintf (SUMA_STDERR,"%s: Touchup correction, pass 1 ...\n", FuncName);
+         if (Opt->debug) fprintf (SUMA_STDERR,"%s: Touchup correction, pass 1 ...\n", FuncName);
          if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("touchup correction next"); }
          /* recover the eye balls please */
          if (mval < Opt->t98) {
@@ -1243,7 +1257,7 @@ int main (int argc,char *argv[])
    if (Opt->smooth_end) {
       ps->cs->kth = 1;  /*make sure all gets sent at this stage */
       if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("beauty treatment smoothing next"); }
-      fprintf (SUMA_STDERR,"%s: The beauty treatment smoothing.\n", FuncName);
+      if (Opt->debug) fprintf (SUMA_STDERR,"%s: The beauty treatment smoothing.\n", FuncName);
       dsmooth = SUMA_Taubin_Smooth( SO, NULL,
                                     0.6307, -.6732, SO->NodeList,
                                     Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL);    
@@ -1261,7 +1275,7 @@ int main (int argc,char *argv[])
    if (Opt->UseNew) {
       ps->cs->kth = 1; /*make sure all gets sent at this stage */
       if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("touchup correction 2 next"); }
-      fprintf (SUMA_STDERR,"%s: Final touchup correction ...\n", FuncName);
+      if (Opt->debug) fprintf (SUMA_STDERR,"%s: Final touchup correction ...\n", FuncName);
       /* SUMA_REPOSITION_TOUCHUP(2); */
       SUMA_Reposition_Touchup(SO, Opt, 2, ps->cs);
 
@@ -1319,11 +1333,14 @@ int main (int argc,char *argv[])
    }
    
    /* write the surfaces to disk */
-   fprintf (SUMA_STDERR,"%s: Writing surface  ...\n", FuncName);
-   if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
-      fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-      exit (1);
+   if (strcmp(Opt->out_prefix,"skull_strip_out")) {
+      fprintf (SUMA_STDERR,"%s: Writing surface  ...\n", FuncName);
+      if (!SUMA_Save_Surface_Object (SO_name, SO, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
+         fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+         exit (1);
+      }
    }
+   
    if (Opt->UseSkull && SOhull) {
       fprintf (SUMA_STDERR,"%s: Writing skull surface  ...\n", FuncName);
       if (!SUMA_Save_Surface_Object (SO_name_hull, SOhull, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
@@ -1332,18 +1349,7 @@ int main (int argc,char *argv[])
       }
    }
    
-   /* what voxels are inside the surface ? */
-   fprintf (SUMA_STDERR,"%s: Locating voxels inside surface  ...\n", FuncName);
-   isin = SUMA_FindVoxelsInSurface (SO, SO->VolPar, &N_in, Opt->fillhole, Opt->OrigSpatNormedSet);
-   isin_float = (float *)SUMA_malloc(sizeof(float) * SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz);
-   if (!isin_float) {
-      SUMA_SL_Crit("Failed to allocate");
-      exit(1);
-   }
-   for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) isin_float[i] = (float)isin[i];
-   if (isin) SUMA_free(isin); isin = NULL;
-      
-   fprintf (SUMA_STDERR,"%s: Writing mask volume  ...\n", FuncName);
+   /* prepare to write masked volume */
    OptDs = SUMA_New_FormAfniDset_Opt();
    if (Opt->out_vol_prefix) {
       SUMA_FileName NewName = SUMA_StripPath(Opt->out_vol_prefix);
@@ -1358,6 +1364,37 @@ int main (int argc,char *argv[])
    } else {
       OptDs->mset = Opt->in_vol;
    }
+   
+   /* what voxels are inside the surface ? */
+   if (Opt->debug) fprintf (SUMA_STDERR,"%s: Locating voxels inside surface  ...\n", FuncName);
+   isin = SUMA_FindVoxelsInSurface (SO, SO->VolPar, &N_in, Opt->fillhole, Opt->OrigSpatNormedSet);
+   isin_float = (float *)SUMA_malloc(sizeof(float) * SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz);
+   if (!isin_float) {
+      SUMA_SL_Crit("Failed to allocate");
+      exit(1);
+   }
+   
+   /* change Opt->dvec to reflect original data (not spat normed baby)*/
+   if (Opt->dvec) { SUMA_free(Opt->dvec); Opt->dvec = NULL; }
+   Opt->nvox = DSET_NVOX( Opt->OrigSpatNormedSet );
+   Opt->dvec = (double *)SUMA_malloc(sizeof(double) * Opt->nvox);
+   if (!Opt->dvec) {
+      SUMA_SL_Crit("Faile to allocate for dvec.\nOh misery.");
+      SUMA_RETURN(NOPE);
+   }
+   EDIT_coerce_scale_type( Opt->nvox , DSET_BRICK_FACTOR(Opt->OrigSpatNormedSet,0) ,
+                           DSET_BRICK_TYPE(Opt->OrigSpatNormedSet,0), DSET_ARRAY(Opt->OrigSpatNormedSet, 0) ,      /* input  */
+                           MRI_double               , Opt->dvec  ) ;   /* output */
+   
+   for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) {
+      /* the mask way:  isin_float[i] = (float)isin[i];*/
+      /* apply the mask automatically */
+      if (isin[i] >= SUMA_ON_NODE) isin_float[i] = (float)Opt->dvec[i];
+      else isin_float[i] = 0.0;
+   }
+   if (isin) SUMA_free(isin); isin = NULL;
+      
+   if (Opt->debug) fprintf (SUMA_STDERR,"%s: Writing masked volume  ...\n", FuncName);
    OptDs->full_list = 1;
    OptDs->dval = 1;
    dset = SUMA_FormAfnidset (NULL, isin_float, SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz, OptDs);
