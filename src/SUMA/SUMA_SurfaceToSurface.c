@@ -132,9 +132,9 @@ char *SUMA_M2M_node_Info (SUMA_M2M_STRUCT *M2M, int node)
    \param NL_1 (int *) list of node indices to consider from surface 1 
                IF NULL, then all nodes of surface 1 are considered
    \param N_NL_1 (int) number of values in NL_1 (= SO1->N_Node if NL_1 is NULL)
-   \param PD_1 (float *) vector of N_NL_1 triplets specifying the direction
+   \param PD_1 (float *) vector of SO1->N_Node triplets specifying the direction
                          of the projection of nodes in NL_1. 
-                         PD_1[3*j], PD_1[3*j+1], PD_1[3*j+2] are the projection directions
+                         PD_1[3*NL_1[j]], PD_1[3*NL_1[j]+1], PD_1[3*NL_1[j]+2] are the projection directions
                          of node NL_1[j].
                          If NULL then the projection direction for node NL_1[j] is:
                          SO1->NodeNormList[3*NL_1[j]], SO1->NodeNormList[3*NL_1[j]+1], SO1->NodeNormList[3*NL_1[j]+2] is used
@@ -175,6 +175,8 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
    if (!oNL_1) { for (j=0; j<N_NL_1; ++j) M2M->M1n[j]= j; }
    else { for (j=0; j<N_NL_1; ++j) M2M->M1n[j]= oNL_1[j]; }
    
+   if (!PD_1) PD_1 = SO1->NodeNormList;
+   
    for (j = 0; j < M2M->M1Nn; ++j) {
       j3    = 3 * j;
       nj    = M2M->M1n[j];
@@ -183,16 +185,9 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
       P0[1] = SO1->NodeList[id+1];
       P0[2] = SO1->NodeList[id+2];
 
-      if (!PD_1) {
-         N0[0] = SO1->NodeNormList[id];
-         N0[1] = SO1->NodeNormList[id+1];
-         N0[2] = SO1->NodeNormList[id+2];
-      } else {
-         id2    = 3 * j;
-         N0[0] = PD_1[id2  ];
-         N0[1] = PD_1[id2+1];
-         N0[2] = PD_1[id2+2];
-      }
+      N0[0] = PD_1[id  ];
+      N0[1] = PD_1[id+1];
+      N0[2] = PD_1[id+2];
       
       SUMA_POINT_AT_DISTANCE(N0, P0, dlim, Points);
       
@@ -202,13 +197,21 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
       P2[0] = Points[1][0];
       P2[1] = Points[1][1];
       P2[2] = Points[1][2];
-
+ 
       /* now determine the distance along normal */
       MTI = SUMA_MT_intersect_triangle(P0, P1, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, MTI);
       if (LocalHead) fprintf(SUMA_STDERR,"%s: number of hits for node %d : %d\n", FuncName, nj, MTI->N_hits);  
       if (MTI->N_hits ==0) {
          if (LocalHead) fprintf(SUMA_STDERR, "%s: Could not find hit for node %d in either direction.\n", FuncName, nj);
          M2M->M2Nne_M1n[j] = 0;
+         M2M->M2t_M1n[j] = -1;
+         M2M->PD[j] = 0.0;
+         M2M->M2pb_M1n[2*j  ] = -1.0;
+         M2M->M2pb_M1n[2*j+1] = -1.0;
+         j3 = 3*j; hit = &(M2M->M2p_M1n[j3]);
+         hit[0] = -1.0;
+         hit[1] = -1.0;
+         hit[2] = -1.0;      
       } else {
          if (LocalHead) {
              for (k = 0; k < MTI->N_el; k++) {
@@ -217,54 +220,57 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
          }
          M2M->M2t_M1n[j] = MTI->ifacemin;
          M2M->PD[j] = MTI->t[MTI->ifacemin];
+         
+         /* create the neighborhood list */
+         M2M->M2Nne_M1n[j] = 3; /* always three neighbors for NN method, first node always the closest! */
+         M2M->M2ne_M1n[j] = (int *)SUMA_malloc(M2M->M2Nne_M1n[j]*sizeof(int));
+                                         *(M2M->M2ne_M1n[j]  ) = MTI->inodemin;   /*! That is the closest node */
+         nnt = (MTI->inodeminlocal+1)%3; *(M2M->M2ne_M1n[j]+1) = SO2->FaceSetList[3*MTI->ifacemin+nnt]; /*index of second node in t2 */
+         nnt = (MTI->inodeminlocal+2)%3; *(M2M->M2ne_M1n[j]+2) = SO2->FaceSetList[3*MTI->ifacemin+nnt]; /*index of third node in t2 */
+
+         /* Now for the weights of each neighboring node */
+         M2M->M2we_M1n[j] = (double *)SUMA_malloc(M2M->M2Nne_M1n[j]*sizeof(double));
+
+         /* store the hit location */
+         j3 = 3*j; hit = &(M2M->M2p_M1n[j3]);
+         hit[0] = MTI->P[0];
+         hit[1] = MTI->P[1];
+         hit[2] = MTI->P[2];
+         if (M2M->M1n[j] == NodeDbg) {
+            fprintf(SUMA_STDERR, "%s: Hit coords for node %d of M1: \n"
+                                 "%f %f %f\n"
+                                 "%f %f %f\n", FuncName, M2M->M1n[j], hit[0], hit[1], hit[2], 
+                                 M2M->M2p_M1n[j3], M2M->M2p_M1n[j3+1], M2M->M2p_M1n[j3+2]);
+         }
+         /* store the barycentric (u,v) location of intersection */
+         M2M->M2pb_M1n[2*j  ] = MTI->u[MTI->ifacemin];
+         M2M->M2pb_M1n[2*j+1] = MTI->v[MTI->ifacemin];
+
+         /**determine weights which are the barycetric corrdinates of the intersection node
+            The intersected triangle is formed by the 1st three nodes stored in M2ne_M1n
+            RESPECT THE ORDER in M2ne_M1n */
+            /* get pointers to x,y,z of each node of intersected triangle*/
+            t3 = 3*MTI->ifacemin;
+            triNode0 = &(SO2->NodeList[ 3*M2M->M2ne_M1n[j][0] ]);
+            triNode1 = &(SO2->NodeList[ 3*M2M->M2ne_M1n[j][1] ]);
+            triNode2 = &(SO2->NodeList[ 3*M2M->M2ne_M1n[j][2] ]);
+
+         SUMA_TRI_AREA( ((MTI->P)), triNode1, triNode2, wgt[0] ); 
+         SUMA_TRI_AREA( ((MTI->P)), triNode0, triNode2, wgt[1] ); 
+         SUMA_TRI_AREA( ((MTI->P)), triNode0, triNode1, wgt[2] ); 
+
+         weight_tot =  wgt[0] + wgt[1] + wgt[2];
+
+         wv = M2M->M2we_M1n[j];
+         if (weight_tot) {
+            wv[0] = wgt[0] / weight_tot;
+            wv[1] = wgt[1] / weight_tot;
+            wv[2] = wgt[2] / weight_tot;
+         }else { /* some triangles have zero area in FreeSurfer surfaces */
+            wv[0] = wv[1] =  wv[2] = 1.0/3.0;
+         }
       }
 
-      /* create the neighborhood list */
-      M2M->M2Nne_M1n[j] = 3; /* always three neighbors for NN method */
-      M2M->M2ne_M1n[j] = (int *)SUMA_malloc(M2M->M2Nne_M1n[j]*sizeof(int));
-                                      *(M2M->M2ne_M1n[j]  ) = MTI->inodemin;   /*! That is the closest node */
-      nnt = (MTI->inodeminlocal+1)%3; *(M2M->M2ne_M1n[j]+1) = SO2->FaceSetList[3*MTI->ifacemin+nnt]; /*index of second node in t2 */
-      nnt = (MTI->inodeminlocal+2)%3; *(M2M->M2ne_M1n[j]+2) = SO2->FaceSetList[3*MTI->ifacemin+nnt]; /*index of third node in t2 */
-      
-      /* Now for the weights of each neighboring node */
-      M2M->M2we_M1n[j] = (double *)SUMA_malloc(M2M->M2Nne_M1n[j]*sizeof(double));
-      
-      /* store the hit location */
-      j3 = 3*j; hit = &(M2M->M2p_M1n[j3]);
-      hit[0] = MTI->P[0];
-      hit[1] = MTI->P[1];
-      hit[2] = MTI->P[2];
-      if (M2M->M1n[j] == NodeDbg) {
-         fprintf(SUMA_STDERR, "%s: Hit coords for node %d of M1: \n"
-                              "%f %f %f\n"
-                              "%f %f %f\n", FuncName, M2M->M1n[j], hit[0], hit[1], hit[2], 
-                              M2M->M2p_M1n[j3], M2M->M2p_M1n[j3+1], M2M->M2p_M1n[j3+2]);
-      }
-      /* store the barycentric (u,v) location of intersection */
-      M2M->M2pb_M1n[2*j  ] = MTI->u[MTI->ifacemin];
-      M2M->M2pb_M1n[2*j+1] = MTI->v[MTI->ifacemin];
-      
-      /**determine weights which are the barycetric corrdinates of the intersection node*/
-         /* get pointers to x,y,z of each node of intersected triangle*/
-         t3 = 3*MTI->ifacemin;
-         triNode0 = &(SO2->NodeList[ 3*SO2->FaceSetList[t3  ] ]);
-         triNode1 = &(SO2->NodeList[ 3*SO2->FaceSetList[t3+1] ]);
-         triNode2 = &(SO2->NodeList[ 3*SO2->FaceSetList[t3+2] ]);
-      
-      SUMA_TRI_AREA( ((MTI->P)), triNode1, triNode2, wgt[0] ); 
-      SUMA_TRI_AREA( ((MTI->P)), triNode0, triNode2, wgt[1] ); 
-      SUMA_TRI_AREA( ((MTI->P)), triNode0, triNode1, wgt[2] ); 
-      
-      weight_tot =  wgt[0] + wgt[1] + wgt[2];
-                    
-      wv = M2M->M2we_M1n[j];
-      if (weight_tot) {
-         wv[0] = wgt[0] / weight_tot;
-         wv[1] = wgt[1] / weight_tot;
-         wv[2] = wgt[2] / weight_tot;
-      }else { /* some triangles have zero area in FreeSurfer surfaces */
-         wv[0] = wv[1] =  wv[2] = 1.0/3.0;
-      }
       
       if (!(j%500) && j) {
          delta_t = SUMA_etime(&tt, 1);
@@ -279,10 +285,16 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
 
    }
 
+   if (LocalHead) {
+      delta_t = SUMA_etime(&tt, 1);
+      fprintf (SUMA_STDERR, " [%d]/[%d] %.2f/100%% completed. Dt = %.2f min done of %.2f min total\r" ,  j, N_NL_1, (float)j / N_NL_1 * 100, delta_t/60, delta_t/j * N_NL_1/60);
+      fprintf (SUMA_STDERR, "\n");
+   }
 
    CLEAN_EXIT:
    if (MTI) MTI = SUMA_Free_MT_intersect_triangle(MTI); 
 
+   
    SUMA_RETURN(M2M);
 }
 
@@ -294,6 +306,7 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
                              in row major or column major order. Think of each
                              column as a separate sub-brick.
    \param ncol (int) number of columns in far_data
+   \param nrow (int) number of rows in far_data (this number must be equal to the number of nodes on mesh 2!)
    \param d_order (SUMA_INDEXING_ORDER) SUMA_ROW_MAJOR, i.e. xyz xyz xyz xyz
                                        SUMA_COLUMN_MAJOR, i.e. xxxx yyyy zzzz
    \param useCloset (int) 1 means use only data form the closest node
@@ -301,7 +314,7 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
    \return dt (float *) interpolation of far_data from mesh 2 (M2) onto nodes of M1
                         dt is ncol*M2M->M1Nn in the same order as d_order
 */
-float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, SUMA_INDEXING_ORDER d_order, int useClosest )
+float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, int nrow, SUMA_INDEXING_ORDER d_order, int useClosest )
 {
    static char FuncName[]={"SUMA_M2M_interpolate"};
    int j, k, i, nk, nkid, njid, N_k, nj;
@@ -321,6 +334,7 @@ float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, SUM
    /* here we go */
    if (d_order == SUMA_ROW_MAJOR) {
       if (!useClosest) {
+         SUMA_LH("Using all neighbors, ROW MAJOR interpolation");
          for (j=0; j<M2M->M1Nn; ++j) {
             nj = M2M->M1n[j]; /* node on M1 */
             njid = j*ncol; /* ROW MAJOR BABY */
@@ -330,27 +344,61 @@ float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, SUM
                for (k=0; k<N_k; ++k) { /* for each neighbor */
                   nk = M2M->M2ne_M1n[j][k]; 
                   nkid = nk * ncol; /* ROW MAJOR BABY */
-                  dt[njid+i] += far_data[nkid+i] * M2M->M2we_M1n[j][k]; ;
+                  dt[njid+i] += far_data[nkid+i] * M2M->M2we_M1n[j][k]; 
                }
             }
          }   
       } else {
-         k = 0;
+         SUMA_LH("Using immediate neighbor, ROW MAJOR interpolation");
+         k = 0; /* just the closest neighbor  */
          for (j=0; j<M2M->M1Nn; ++j) {
             nj = M2M->M1n[j]; /* node on M1 */
             njid = j*ncol; /* ROW MAJOR BABY */
             for (i=0; i<ncol; ++i) { /* for each column */
                dt[njid+i] = 0.0;      
-                  /* k = 0, set above */
+               if (M2M->M2Nne_M1n[j]) { /* Some nodes have no neighbors! */
+                  /* k = 0, set above, just the closest neighbor  */
                   nk = M2M->M2ne_M1n[j][k]; 
                   nkid = nk * ncol; /* ROW MAJOR BABY */
                   dt[njid+i] += far_data[nkid+i];
+               }
             }
          }
       }
    } else if (d_order == SUMA_COLUMN_MAJOR) {
-      SUMA_SL_Err("Not supported yet");
-      SUMA_free(dt); dt = NULL; SUMA_RETURN(dt); 
+      if (!useClosest) {
+         SUMA_LH("Using all neighbors, COLUMN MAJOR interpolation");
+         for (i=0; i<ncol; ++i) { /* for each column */
+            for (j=0; j<M2M->M1Nn; ++j) { /* for each node on M1 */
+               nj = M2M->M1n[j]; 
+               njid = j+i*M2M->M1Nn; /* index of nj's ith column entry into dt, COLUMN MAJOR BABY */
+               dt[njid] = 0;
+               N_k = M2M->M2Nne_M1n[j]; 
+               for (k=0; k<N_k; ++k) { /* for each neighbor */
+                  nk = M2M->M2ne_M1n[j][k];
+                  nkid = nk + i*nrow; /* index of nj's kth neighbor's data into far_data, COLUMN MAJOR BABY */ 
+                  dt[njid] += far_data[nkid]* M2M->M2we_M1n[j][k];
+               }
+            }
+         }
+      } else {
+         SUMA_LH("Using immediate neighbor, COLUMN MAJOR interpolation");
+         k = 0;   /* just the closest neighbor  */
+         for (i=0; i<ncol; ++i) { /* for each column */
+            for (j=0; j<M2M->M1Nn; ++j) { /* for each node on M1 */
+               nj = M2M->M1n[j]; 
+               njid = j+i*M2M->M1Nn; /* index of nj's ith column entry into dt, COLUMN MAJOR BABY */
+               dt[njid] = 0;
+               N_k = M2M->M2Nne_M1n[j]; 
+               if (M2M->M2Nne_M1n[j]) { /* Some nodes have no neighbors! */
+                  /* k = 0, set above, just the closest neighbor  */
+                  nk = M2M->M2ne_M1n[j][k];
+                  nkid = nk + i*nrow; /* index of nj's kth neighbor's data into far_data, COLUMN MAJOR BABY */ 
+                  dt[njid] += far_data[nkid];
+               }
+            }
+         }
+      }
    } else {
       SUMA_SL_Err("Bad order option");
       SUMA_free(dt); dt = NULL; SUMA_RETURN(dt); 
