@@ -24,6 +24,8 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps)
                "                  [<-proj_dir PROJ_DIR>]\n"
                "                  [<-data DATA>]\n"
                "                  [<-node_debug NODE>]\n"
+               "                  [<-debug DBG_LEVEL>]\n"
+               "                  [-make_consistent]\n"
                " \n"
                "  This program is used to interpolate data from one surface (S2)\n"
                " to another (S1), assuming the surfaces are quite similar in\n"
@@ -61,6 +63,8 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps)
                "                         direction. \n"  
                "        DistanceToSurf: Output distance (signed) from nj, along \n"
                "                        projection direction to S2.\n"
+               "                        This is the parameter output by the precursor\n"
+               "                        program CompareSurfaces\n"
                "        ProjectionOnSurf: Output coordinates of projection of nj onto \n"
                "                          triangle t of S2.\n"
                "        Data: Output the data from S2, interpolated onto S1\n"
@@ -88,13 +92,20 @@ void usage_SurfToSurf (SUMA_GENERIC_ARGV_PARSE *ps)
                "                      instead of the node normals of S1.\n"
                "                      Each row should contain one direction for each\n"
                "                      of the nodes forming S1.\n"
+               "  -make_consistent: Force a consistency check and correct triangle \n"
+               "                    orientation of S1 if needed. Triangles are also\n"
+               "                    oriented such that the majority of normals point\n"
+               "                    away from center of surface.\n"
+               "                    The program might not succeed in repairing some\n"
+               "                    meshes with inconsistent orientation.\n" 
                "\n"
                "%s"
                "%s"
                "\n", sio,  s);
       SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-      printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n");
+      printf("       Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov     \n"
+             "       Shruti Japee LBC/NIMH/NIH  shruti@codon.nih.gov \n");
       exit(0);
 }
 
@@ -122,6 +133,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
    Opt->Data = 0;
    Opt->in_name = NULL;
    Opt->out_prefix = NULL;
+   Opt->fix_winding = 0;
    accepting_out = NOPE;
    while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -259,7 +271,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
          Opt->in_1D = argv[++kar];
          brk = YUP;
       }
-      
+      if (!brk && (strcmp(argv[kar], "-make_consistent") == 0))
+      {
+         Opt->fix_winding = 1;
+         brk = YUP;
+      }
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,"Error %s:\nOption %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -347,6 +363,36 @@ int main (int argc,char *argv[])
          exit(1);
    }
    if (!SUMA_SurfaceMetrics(SO1, "EdgeList|MemberFace", NULL)) { SUMA_SL_Err("Failed to create edge list for SO1"); exit(1);  }
+   if (Opt->fix_winding) {
+            int orient, trouble;
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: Making sure S1 is consistently orientated\n", FuncName);
+            if (!SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, SO1->EL, Opt->debug, &trouble)) {
+               SUMA_SL_Err("Failed in SUMA_MakeConsistent");
+            }
+            if (trouble && LocalHead) {
+               fprintf(SUMA_STDERR,"%s: trouble value of %d from SUMA_MakeConsistent.\n"
+                                    "Inconsistencies were found and corrected unless \n"
+                                    "stderr output messages from SUMA_MakeConsistent\n"
+                                    "indicate otherwise.\n", FuncName, trouble);
+            }
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: Checking orientation.\n", FuncName);
+            orient = SUMA_OrientTriangles (SO1->NodeList, SO1->N_Node, SO1->FaceSetList, SO1->N_FaceSet, 1, 0);
+            if (orient < 0) { 
+               /* flipping was done, dump the edge list since it is not automatically updated (should do that in function, just like in SUMA_MakeConsistent,  shame on you) */ 
+               if (SO1->EL) SUMA_free_Edge_List(SO1->EL); SO1->EL = NULL; 
+               if (!SUMA_SurfaceMetrics(SO1, "EdgeList", NULL)) { SUMA_SL_Err("Failed to create edge list for SO1"); exit(1);  }
+               /* free normals, new ones needed (Normals should be flipped inside  of SUMA_OrientTriangles! (just like in SUMA_MakeConsistent) ) */
+               if (SO1->NodeNormList) SUMA_free(SO1->NodeNormList); SO1->NodeNormList = NULL;
+               if (SO1->FaceNormList) SUMA_free(SO1->FaceNormList); SO1->FaceNormList = NULL;
+            }
+            if (!orient) { fprintf(SUMA_STDERR,"Error %s:\nFailed in SUMA_OrientTriangles\n", FuncName); }
+            if (LocalHead) {
+               if (orient < 0) { SUMA_SL_Note("S1 was reoriented"); }
+               else { SUMA_SL_Note("S1 was properly oriented"); }
+            }
+   }
+  
+   
    if (!SO1->NodeNormList || !SO1->FaceNormList) { SUMA_LH("Node Normals"); SUMA_RECOMPUTE_NORMALS(SO1); }
    if (Opt->NodeDbg >= SO1->N_Node) {
       SUMA_SL_Warn("node_debug index is larger than number of nodes in surface, ignoring -node_debug.");

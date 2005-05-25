@@ -69,8 +69,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             [< -smooth_final SM >] [< -avoid_vent >] [< -no_avoid_vent >]\n"
                "             [< -use_skull >] [< -no_use_skull >] \n"
                "             [< -avoid_eyes >] [< -no_avoid_eyes >] \n"
-               "             [< -perc_int PERC_INT >]\n"
-               "             [< -max_inter_iter MII >] \n"
+               "             [< -perc_int PERC_INT >] \n"
+               "             [< -max_inter_iter MII >] [-mask_vol]\n"
                "             [< -debug DBG >] [< -node_dbg NODE_DBG >]\n"
                "             [< -demo_pause >]\n"  
                "\n"
@@ -87,16 +87,22 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "        and PREFIX is, well, the prefix.\n"
                "        TYPE is one of: fs, 1d (or vec), sf, ply.\n"
                "        More on that below.\n"
-               "     -prefix VOL_PREFIX: prefix of output volumes.\n"
+               "     -prefix VOL_PREFIX: prefix of output volume.\n"
                "        If not specified, the prefix is the same\n"
                "        as the one used with -o_TYPE.\n"
-               "        The output mask volume contains:\n"
-               "           0 : outside the brain\n"
-               "           1 : voxels near brain surface on the outside.\n"
-               "           2 : voxels containing a node of the brain surface.\n"
-               "           3 : voxels near brain surface on the inside.\n"
-               "           4 : voxels inside the brain.\n"
-               "        See Tips section below.\n"
+               "        The output volume is skull stripped version\n"
+               "        of the input volume. In the earlier version\n"
+               "        of the program, a mask volume was written out.\n" 
+               "        You can still get that mask volume instead of the\n"
+               "        skull-stripped volume with the option -mask_vol . \n"
+               "     -mask_vol: Output a mask volume instead of a skull-stripped\n"
+               "                volume.\n"
+               "                The mask volume containes:\n"
+               "                0 : outside the brain\n"
+               "                1 : voxels near brain surface on the outside.\n"
+               "                2 : voxels containing a node of the brain surface.\n"
+               "                3 : voxels near brain surface on the inside.\n"
+               "                4 : voxels inside the brain.\n"
                "     -spat_norm: (Default) Perform spatial normalization first.\n"
                "                 This is a necessary step unless the volume has\n"
                "                 been 'spatnormed' already.\n"
@@ -264,7 +270,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->N_surf = -1;
    Opt->in_name = NULL;
    Opt->cmask = NULL;
-   Opt->MaskMode = SUMA_ISO_UNDEFINED;
+   Opt->MaskMode = 0;
    for (i=0; i<SUMA_GENERIC_PROG_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
    Opt->in_vol = NULL;
@@ -660,6 +666,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          brk = YUP;
 		}
       
+      if (!brk && ( (strcmp(argv[kar], "-mask_vol") == 0) ) ) {
+         Opt->MaskMode = 1;
+         brk = YUP;
+      }
       
       if (!brk && ( (strcmp(argv[kar], "-touchup") == 0) ) ) {
          Opt->UseNew = 1.0;
@@ -1386,11 +1396,18 @@ int main (int argc,char *argv[])
                            DSET_BRICK_TYPE(Opt->OrigSpatNormedSet,0), DSET_ARRAY(Opt->OrigSpatNormedSet, 0) ,      /* input  */
                            MRI_double               , Opt->dvec  ) ;   /* output */
    
-   for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) {
-      /* the mask way:  isin_float[i] = (float)isin[i];*/
-      /* apply the mask automatically */
-      if (isin[i] >= SUMA_ON_NODE) isin_float[i] = (float)Opt->dvec[i];
-      else isin_float[i] = 0.0;
+   if (!Opt->MaskMode) {
+      SUMA_LH("Creating skull-stripped volume");
+      for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) {
+         /* apply the mask automatically */
+         if (isin[i] >= SUMA_ON_NODE) isin_float[i] = (float)Opt->dvec[i];
+         else isin_float[i] = 0.0;
+      }
+   } else {
+      SUMA_LH("Creating mask volume");
+      for (i=0; i<SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz; ++i) {
+         isin_float[i] = (float)isin[i];
+      }
    }
    if (isin) SUMA_free(isin); isin = NULL;
       

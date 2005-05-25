@@ -319,7 +319,7 @@ float *SUMA_M2M_interpolate(SUMA_M2M_STRUCT *M2M, float *far_data, int ncol, int
    static char FuncName[]={"SUMA_M2M_interpolate"};
    int j, k, i, nk, nkid, njid, N_k, nj;
    float *dt=NULL;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
    
