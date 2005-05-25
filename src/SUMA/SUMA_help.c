@@ -153,6 +153,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    Fixed bug with recursive function used to fill ROIs.\n"
             "    Support for reading CRUISE surfaces in OpenDX format\n"
             "    Support for reading BrainVoyager surfaces (.srf) format\n"
+            "    Mouse motion effect is modulated with Zoom level\n"
             "  + ConvertSurface:\n"
             "    Option -make_consistent added to make the winding\n"
             "    of the mesh consistent.  \n"

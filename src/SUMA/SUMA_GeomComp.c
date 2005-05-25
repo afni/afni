@@ -7986,7 +7986,10 @@ int main (int argc,char *argv[])
                   "option to fix the problem before proceeding further.\n"
                   "Other results reported by this and other programs\n"
                   "may be incorrect if mesh is not consistently wound.\n" ); 
-   } 
+   } else {
+      fprintf (SUMA_STDERR,"\n");
+      fprintf (SUMA_STDERR,"Surface is consistently wound\n");
+   }
    { 
       int eu;
       SUMA_EULER_SO(SO, eu);
@@ -8000,7 +8003,7 @@ int main (int argc,char *argv[])
    }
    if (SO->EL->min_N_Hosts == 2 && SO->EL->max_N_Hosts == 2) {
       fprintf (SUMA_STDERR,"\n");
-      fprintf(SUMA_STDERR,"Surface is closed.");
+      fprintf(SUMA_STDERR,"Surface is closed and is a 2-manifold.");
    }
    if (SO->EL->min_N_Hosts > 2 || SO->EL->max_N_Hosts > 2) {
       fprintf (SUMA_STDERR,"\n");
@@ -8019,6 +8022,8 @@ int main (int argc,char *argv[])
       }
    }
    
+   fprintf (SUMA_STDERR,"\n");
+   
    SUMA_LH("clean up");
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
    if (Opt) SUMA_free(Opt);   
@@ -8026,6 +8031,7 @@ int main (int argc,char *argv[])
       SUMA_SL_Err("DO Cleanup Failed!");
    }
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
+   
    SUMA_RETURN(0);
 } 
 #endif

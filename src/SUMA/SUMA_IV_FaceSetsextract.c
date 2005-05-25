@@ -87,9 +87,9 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 
 	/*This is a sequence to mark the end of the number list*/
 	sprintf (seq_end[0],"]");
-	sprintf (seq_end[1],"}");
+	sprintf (seq_end[1],"}");  /* you do not need that one, it is possible to have other objects following coordIndex */
 
-	se_exit = 2; /* set equal to the number of strings to be matched */
+	se_exit = 1; /* set equal to the number of strings to be matched */
 
 	iv_file = fopen (IV_filename,"r");
 	if (iv_file == NULL)

@@ -100,9 +100,9 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 
 	/*This is a sequence to mark the end of the number list*/
 	sprintf (seq_end[0],"]");
-	sprintf (seq_end[1],"}");
+	sprintf (seq_end[1],"}");  /* no need to find closing Coordinate element, perhaps other properties are defined.*/
 
-	se_exit = 2; /* set equal to the number of strings to be matched */
+	se_exit = 1; /* set equal to the number of strings to be matched */
 
 	iv_file = fopen (IV_filename,"r");
 	if (iv_file == NULL)
