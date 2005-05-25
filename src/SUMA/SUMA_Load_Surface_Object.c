@@ -4042,7 +4042,6 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
 
    /* check if recognizable type */
    switch (SO->FileType) {
-      case SUMA_INVENTOR_GENERIC:
       case SUMA_FT_NOT_SPECIFIED:
          SUMA_error_message(FuncName, "SO_FileType not specified", 0);
          SUMA_RETURN (NULL);
@@ -4059,6 +4058,7 @@ char * SUMA_SurfaceFileName (SUMA_SurfaceObject * SO, SUMA_Boolean MitPath)
          else nalloc = strlen(SO->Name_coord.FileName) \
                      +   strlen(SO->Name_topo.FileName) + 5;
          break;
+      case SUMA_INVENTOR_GENERIC:
       case SUMA_FREE_SURFER:
       case SUMA_FREE_SURFER_PATCH:
       case SUMA_BRAIN_VOYAGER:

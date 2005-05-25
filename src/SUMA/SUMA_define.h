@@ -1349,6 +1349,7 @@ typedef struct {
    float Aspect;   /*!< Aspect ratio of the viewer*/
    int WindWidth;   /*!< Width of window */
    int WindHeight;   /*!< Height of window */
+   int ZoomCompensate; /*!< Compensate mouse movements by zoom factor */
    float *FOV; /*!< Field of View (affects zoom level, there is a separate FOV for each ViewState)*/
    float ArrowRotationAngle; /*!< Angle to rotate surface by when arrows are used.
                                  Units are in radians */
