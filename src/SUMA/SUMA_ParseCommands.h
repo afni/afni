@@ -28,6 +28,7 @@ typedef struct {
    double *mcdatav; /* the dataset that is passed to the marching cube algorithm */
    int debug;
    int ninmask;
+   int fix_winding;
    float v0;
    float v1;
    int nvox;

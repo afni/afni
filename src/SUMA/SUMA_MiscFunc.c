@@ -4786,6 +4786,11 @@ SUMA_Boolean SUMA_MakeConsistent (int *FL, int N_FL, SUMA_EDGE_LIST *SEL, int de
 
    if (detail > 1) LocalHead = YUP;
    
+   if (!SEL || !FL) {
+      SUMA_SL_Err("NULL input!");
+      SUMA_RETURN (NOPE);
+   }
+   
    NP = 3;
    isflip = (int *)SUMA_calloc(SEL->N_EL/3, sizeof(int));
    ischecked = (int *)SUMA_calloc(SEL->N_EL/3, sizeof(int));

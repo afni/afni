@@ -2723,6 +2723,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->smootheach = 0;
    Opt->avoid_vent = 0;
    Opt->smooth_end = 0;
+   Opt->fix_winding = 0;
    Opt->k98mask = NULL;
    Opt->k98maskcnt = 0;
    Opt->dbg_eyenodes = NULL;

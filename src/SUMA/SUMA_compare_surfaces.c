@@ -470,6 +470,8 @@ void cmp_surf_usage ()
           "             -sv2 <volparentaligned2.BRIK> \n"
           "             [-prefix <fileprefix>]\n"
           "\n"
+          "   NOTE: This program is now superseded by SurfToSurf\n"
+          "\n"
           "   This program calculates the distance, at each node in Surface 1 (S1) to Surface 2 (S2)\n"
           "   The distances are computed along the local surface normal at each node in S1.\n"
           "   S1 and S2 are the first and second surfaces encountered in the spec file, respectively.\n"
