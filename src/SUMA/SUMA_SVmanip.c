@@ -110,6 +110,15 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       
       /* set the standards for all viewing modes here */
       SV->verbose = 1;
+      {
+         char *eee = getenv("SUMA_AdjustMouseMotionWithZoom");
+         if (eee) {
+            if (strcmp (eee, "YES") == 0) SV->ZoomCompensate = 1;
+            else SV->ZoomCompensate = 0;
+         } else {
+            SV->ZoomCompensate = 1; 
+         }
+      }
       SV->Aspect = 1.0;
       SV->FOV = NULL;
       for (j=0; j < SV->N_GVS; ++j) {
@@ -964,6 +973,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   RotaCenter = [%f %f %f]\n", SV->GVS[SV->StdView].RotaCenter[0], SV->GVS[SV->StdView].RotaCenter[1], SV->GVS[SV->StdView].RotaCenter[2]);
    SS = SUMA_StringAppend_va(SS,"   light0_position = [%f %f %f %f]\n", SV->light0_position[0], SV->light0_position[1], SV->light0_position[2], SV->light0_position[3]);
    SS = SUMA_StringAppend_va(SS,"   light1_position = [%f %f %f %f]\n", SV->light1_position[0], SV->light1_position[1], SV->light1_position[2], SV->light1_position[3]);
+   SS = SUMA_StringAppend_va(SS,"   ZoomCompensate = %d\n", SV->ZoomCompensate);
    SS = SUMA_StringAppend_va(SS,"   WindWidth = %d\n", SV->WindWidth);
    SS = SUMA_StringAppend_va(SS,"   WindHeight = %d\n", SV->WindHeight);
    SS = SUMA_StringAppend_va(SS,"   ShowWorldAxis = %d\n", SV->ShowWorldAxis);

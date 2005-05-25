@@ -1770,6 +1770,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /* spinning mode */
             sv->GVS[sv->StdView].spinDeltaX = ((int)Mev.x - sv->GVS[sv->StdView].spinBeginX);
             sv->GVS[sv->StdView].spinDeltaY = ((int)Mev.y - sv->GVS[sv->StdView].spinBeginY);
+            if (sv->ZoomCompensate) {
+               sv->GVS[sv->StdView].spinDeltaX *=  sv->FOV[sv->iState] / FOV_INITIAL;
+               sv->GVS[sv->StdView].spinDeltaY *=  sv->FOV[sv->iState] / FOV_INITIAL; 
+            }
             /*fprintf(stdout,"\nspinBeginX %d spinBeginY %d\nspinDeltaX %d spinDeltaY %d\nWindWidth %d WindHeight %d\n", \
                         sv->GVS[sv->StdView].spinBeginX, sv->GVS[sv->StdView].spinBeginY, sv->GVS[sv->StdView].spinDeltaX, sv->GVS[sv->StdView].spinDeltaY, sv->WindWidth, sv->WindHeight);*/
             if (sv->GVS[sv->StdView].spinDeltaX || sv->GVS[sv->StdView].spinDeltaY){
@@ -1830,6 +1834,10 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /* fprintf(SUMA_STDERR,"%s: In motion, Butt2 \n", FuncName);*/
             sv->GVS[sv->StdView].translateDeltaX = (float)((int)Mev.x - sv->GVS[sv->StdView].translateBeginX)/(float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
             sv->GVS[sv->StdView].translateDeltaY = -(float)((int)Mev.y - sv->GVS[sv->StdView].translateBeginY)/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
+            if (sv->ZoomCompensate) {
+               sv->GVS[sv->StdView].translateDeltaX *=  sv->FOV[sv->iState] / FOV_INITIAL;
+               sv->GVS[sv->StdView].translateDeltaY *=  sv->FOV[sv->iState] / FOV_INITIAL; 
+            }
             if (sv->GVS[sv->StdView].translateDeltaX || sv->GVS[sv->StdView].translateDeltaY){
                sv->GVS[sv->StdView].translateVec[0] += (GLfloat)sv->GVS[sv->StdView].translateDeltaX;
                sv->GVS[sv->StdView].translateVec[1] += (GLfloat)sv->GVS[sv->StdView].translateDeltaY;

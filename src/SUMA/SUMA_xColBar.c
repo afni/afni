@@ -4264,8 +4264,9 @@ SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_SurfaceObject *SO)
 
    SUMA_ENTRY; 
 
-   if (!SO) SUMA_RETURN(NOPE);
-
+   if (!SO || !SO->SurfCont || !SO->SurfCont->NodeTable) SUMA_RETURN(NOPE);
+   if (SO->SelectedNode < 0 || SO->SelectedNode >= SO->N_Node) SUMA_RETURN(NOPE);
+   
    sprintf(str, "%d", SO->SelectedNode);
    SO->SurfCont->NodeTable->num_value[1] = SO->SelectedNode;
    XtVaSetValues(SO->SurfCont->NodeTable->cells[1], XmNvalue, str, NULL);
