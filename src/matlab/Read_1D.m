@@ -27,7 +27,16 @@ function [err, v, Info] = Read_1D (fname, p1)
 %              i.e. one that has only numbers in it.
 %           2: use ConvertDset program to purify 1D file
 %              then read it into matlab.
-%
+%      .chunk_size: number of rows to read at a time
+%                   (think number of voxels per slice)
+%                   set to zero to read entire dataset
+%      .chunk_index: which chunk to read (1st chunk is indexed 0)
+%      .col_index: which column to read (think sub-brick, 1st column is 0)
+%                  can use a vector of indices. Set to empty vector
+%                  if you want to read all columns.
+%      Note that the use of chunk_size, chunk_index, col_index is only
+%      a convenience with Opt.method 0 and 1. It does speed things up
+%      some when using Opt.method 2
 %Output Parameters:
 %   err : 0 No Problem
 %       : 1  Problems
@@ -68,7 +77,11 @@ else
 end
 if (~isfield(Opt, 'method') | isempty(Opt.method)), Opt.method = 0; end
 if (~isfield(Opt, 'verb') | isempty(Opt.verb)), verb = 1; else verb = Opt.verb; end
+if (~isfield(Opt, 'chunk_size') | isempty(Opt.chunk_size)), Opt.chunk_size = 0; end
+if (~isfield(Opt, 'col_index')) Opt.col_index = []; end
+if (~isfield(Opt, 'chunk_index')) Opt.chunk_index = 0; end
 
+if (length(Opt.chunk_index(:)) ~= 1), fprintf(2,'Opt.chunk_index must contain one value'); return; end
 
 %initailize return variables
 err = 1;
@@ -177,6 +190,7 @@ if (Opt.method == 0),
          if (fid < 0),
 			   fprintf(1,'Error %s:\nFailed to open tempfile %s for writing\n', FuncName, ftmp);
             err = 1;
+            return;
 		   end
          fprintf(fid,'%c',c);
          v = load(ftmp);
@@ -184,19 +198,79 @@ if (Opt.method == 0),
          rmcom = sprintf('rm -f %s', ftmp);
          unix(rmcom);
    end
+
+   % sub-bricks?
+   if (~isempty(Opt.col_index)),
+      if (verb) fprintf(1,'Selecting columns ...\n'); end
+      v = v(:, Opt.col_index+1);
+   end
+   
+   %slices? 
+   if (Opt.chunk_size > 0), 
+      strt = (Opt.chunk_size .*  Opt.chunk_index) + 1;
+      stp =   Opt.chunk_size .* (Opt.chunk_index+1);
+      if (strt > size(v,1)), 
+            fprintf(1,'Error %s:\nNothing left to read (strt = %d, nvec = %d)\n', FuncName, strt, size(v,1));
+            err = 1;
+            return;
+		 end         
+      if (stp > size(v,1)) stp = size(v,1); end
+      v = v (strt:stp,:);
+   end
 elseif (Opt.method == 1),
    if (verb) fprintf(1,'1D file is expected not to have any comments.\n'); end
    v = load(fname);
    if (isempty(v)), fprintf(2,'Failed to read 1D file. If file exists Try method 0\n'); err = 1; return; end
+   % sub-bricks?
+   if (~isempty(Opt.col_index)),
+      if (verb) fprintf(1,'Selecting columns ...\n'); end
+      v = v(:, Opt.col_index+1);
+   end
+   
+   %slices? 
+   if (Opt.chunk_size > 0), 
+      strt = (Opt.chunk_size .*  Opt.chunk_index) + 1;
+      stp =   Opt.chunk_size .* (Opt.chunk_index+1);
+      if (strt > size(v,1)), 
+            fprintf(1,'Error %s:\nNothing left to read (strt = %d, nvec = %d)\n', FuncName, strt, size(v,1));
+            err = 1;
+            return;
+		   end         
+      if (stp > size(v,1)) stp = size(v,1); end
+      v = v (strt:stp,:);
+   end
 elseif (Opt.method == 2),
    if (verb) fprintf(1,'Running ConvertDset to purging 1D file of bells and whistles\n'); end
    ftmp = sprintf('%s_Read_1D_tmp_', fname);
-   convcom = sprintf('ConvertDset -o_1dp -input %s -i_1D -prefix %s', fname, ftmp);
+   ftmpout = sprintf('%s.1D.dset', ftmp);
+   rmcom = sprintf('rm -f %s', ftmpout);
+   if (filexist(ftmpout)), 
+      unix(rmcom);% cleanup 
+   end 
+   % sub-bricks?
+   if (~isempty(Opt.col_index)),
+      ssel = sprintf('''[');
+      for (ii=1:1:length(Opt.col_index)-1) ssel = sprintf('%s %d,', ssel, Opt.col_index(ii)); end
+      ssel = sprintf('%s %d ]''', ssel, Opt.col_index(length(Opt.col_index)));
+   else ssel = '';
+   end
+   convcom = sprintf('ConvertDset -o_1dp -input %s%s -i_1D -prefix %s', fname, ssel, ftmp);
+   if (verb > 1) fprintf(2,'Command is:\n%s\n', convcom); end
    unix(convcom);
-   ftmp = sprintf('%s.1D.dset',ftmp);
-   v = load(ftmp);
-   rmcom = sprintf('rm -f %s', ftmp);
+   v = load(ftmpout);
    unix(rmcom); 
+   %slices? 
+   if (Opt.chunk_size > 0), 
+      strt = (Opt.chunk_size .*  Opt.chunk_index) + 1;
+      stp =   Opt.chunk_size .* (Opt.chunk_index+1);
+      if (strt > size(v,1)), 
+            fprintf(1,'Error %s:\nNothing left to read (strt = %d, nvec = %d)\n', FuncName, strt, size(v,1));
+            err = 1;
+            return;
+		   end         
+      if (stp > size(v,1)) stp = size(v,1); end
+      v = v (strt:stp,:);
+   end
 end
 
 %some fake Info stuff

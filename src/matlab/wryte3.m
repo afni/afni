@@ -15,7 +15,9 @@ function [err,Fname] = wryte3 (M,Fname,Opt)
 %             The default is 's'. There won't be a comma after the last number.
 %     .OverWrite specifies whether you want to allow for overwrite
 %          Options are 'y' for yes, 'n' for no and 'p' for prompting
-%          the user for a new name. Default is 'n'
+%          the user for a new name. 
+%          You can also use 'a' for append.
+%          Default is 'n'
 %     .Fast If it is set to 'y', the function will try to use matlab's
 %          save function which is fast, but writes the results in IEEE format.
 %          like 0.00034e5. Not pleasing to the eye ... Default is 'n'.
@@ -73,6 +75,7 @@ end
 
 %Do the deed
 %Check for filename existence
+op = 'w';
 if(filexist(Fname)),
 	switch Opt.OverWrite,
  		case 'n',
@@ -86,13 +89,15 @@ if(filexist(Fname)),
  				ErrEval(FuncName,serr);
 				Fname = input ('','s');
  			end;
-	 	otherwise,
+	 	case 'a',
+         op = 'a';
+      otherwise,
 			err = ErrEval(FuncName,'Err_Bad Opt.OverWrite value');	return
 	 end
 end
 
 %Open file for write operation
-fid = fopen(Fname,'w');
+fid = fopen(Fname,op);
 if (fid == -1),
 	err = ErrEval(FuncName,'Err_Could not open file for write operation');	return
 end
@@ -101,11 +106,13 @@ end
 switch Opt.Fast,
 	case 'y',
 	%fast mode
-		if (Opt.verbose),	fprintf (1,'%s verbose : Writing %s in Fast Mode ...',FuncName,Fname);	end
+		if (eq_str(op,'a')), apnd = '-append';
+      else apnd = ''; end
+      if (Opt.verbose),	fprintf (1,'%s verbose : Writing %s in Fast Mode ...',FuncName,Fname);	end
 		if (eq_str(Opt.Space,'t')),
-			eval(['save ' Fname ' M -ascii -tabs']);
+			eval(['save ' Fname ' M -ascii -tabs -append']);
 		elseif (eq_str(Opt.Space,'s')),
-			eval(['save ' Fname ' M -ascii']);
+			eval(['save ' Fname ' M -ascii -append']);
 		else
 			err = ErrEval(FuncName,'Err_Delimiter not supported in Fast mode');
 			return;

@@ -42,11 +42,18 @@ function [err, ErrMessage, Info] = WriteBrik (M, Info, Opt)
 %                  + The field Info.IDCODE_DATE is set in WriteBrikHEAD
 %      
 %      .Slices: vector of slices, 1 based. Default is all slices.
+%               .Slices can also be used to write a 1D dataset one chunk
+%               at a time. For 1D files however, .Slices can only have 1 number.
+%               When .Slices == 1 the file is open in write 'w' mode and M is 
+%               written into a new file.
+%               When .Slices > 1 the file is open in append 'a' mode and M is 
+%               written into the end of the file.
 %      .Frames: vector of frames, 1 based. Default is all frames.
 %      If min(Slices)>1 or min(Frames)>1 then it assumes that the header 
 %      has already been written. 
 %      If Slices and Frames are not all slices and frames, then Scale 
 %      is set to 0 (no scaling).
+%     
 %
 %Output Parameters:
 %   err : 0 No Problem
@@ -119,8 +126,16 @@ end
 
 if (is1D),
    if (isempty(Info)), Info = Info_1D(M); end
+   Opt1D.OverWrite = 'n'; % default mode
+   if (isfield(Opt,'Slices') & ~isempty(Opt.Slices)), 
+      if (length(Opt.Slices) ~= 1),
+         err = 1; 
+         ErrMessage = sprintf('Error %s: .Slices can only have one value for 1D files', FuncName);  
+         errordlg(ErrMessage); return;
+      end
+      if (Opt.Slices > 1) Opt1D.OverWrite = 'a'; end
+   end
    Opt1D.Space = 't';
-   Opt1D.OverWrite = 'n';
    Opt1D.Fast = 'y';
    Opt1D.verbose = 0;
    [Name, Ext] = Remove1DExtension(Opt.Prefix);
