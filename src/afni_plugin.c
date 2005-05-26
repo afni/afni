@@ -285,13 +285,15 @@ ENTRY("PLUG_get_many_plugins") ;
    epath = getenv("AFNI_PLUGINPATH") ;     /* get the path list to read from */
 
    if( epath == NULL )
-      epath = getenv("AFNI_PLUGIN_PATH") ; /* try another name? */
+     epath = getenv("AFNI_PLUGIN_PATH") ; /* try another name? */
 
    if( epath == NULL ){
      epath = getenv("PATH") ;              /* try yet another name? */
+#if 0
      if( epath != NULL )
        fprintf(stderr,
                "\n++ WARNING: AFNI_PLUGINPATH not set; searching PATH\n") ;
+#endif
    }
 
    if( epath == NULL && pname != NULL && strchr(pname,'/') != NULL ){ /* 29 Mar 2001 */
@@ -302,7 +304,8 @@ ENTRY("PLUG_get_many_plugins") ;
      else                 free(ep) ;      /* got zipperoni */
    }
 
-   if( epath == NULL ) epath = "./:/usr/local/bin" ; /* put in a fake path instead? */
+   if( epath == NULL )                                /* put in a fake path instead? */
+     epath = "./ /usr/local/bin /sw/bin /opt/local/bin /Applications/AFNI" ;
 
    INIT_SARR(qlist) ; /* 02 Feb 2002: list of checked directories */
 
@@ -318,7 +321,7 @@ ENTRY("PLUG_get_many_plugins") ;
    /*----- replace colons with blanks -----*/
 
    for( ii=0 ; ii < ll ; ii++ )
-      if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
+     if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
 
 if(PRINT_TRACING)
 { STATUS("paths to be searched for plugins follows:") ;
