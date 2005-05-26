@@ -155,6 +155,22 @@ if (is1D), % 1D land
    V = []; Info = []; ErrMessage = '';
    Opt.verb = 1;
    if (~isfield(Opt, 'method') | isempty(Opt.method)), Opt.method = 0; end
+   if (isfield(Opt,'Slices') & ~isempty(Opt.Slices)),
+      if (length(Opt.Slices) ~= 1),
+         ErrMessage = sprintf ('%s: Opt.Slices can only be used to specify one slice at a time for 1D format', FuncName, BrikName);
+         err = ErrEval(FuncName,'Err_1D Bad .Slices option');
+         return;
+      end
+      if (~isfield(Opt, 'SliceSize_1D') | isempty(Opt.SliceSize_1D)),
+         ErrMessage = sprintf ('%s: SliceSize_1D must be specified with Slices option for 1D files', FuncName);
+         err = ErrEval(FuncName,'Err_1D Bad .SliceSize_1D option');
+         return;
+      end
+      Opt.chunk_size = Opt.SliceSize_1D;
+      Opt.chunk_index = Opt.Slices - 1;
+      if (isfield(Opt,'Frames') & ~isempty(Opt.Frames)), Opt.col_index = Opt.Frames - 1; end
+   end
+   
    [err, V, Info] = Read_1D(BrikName, Opt);
    if (err), 
       ErrMessage = sprintf ('%s: Failed to read %s file', FuncName, BrikName);
