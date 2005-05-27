@@ -91,10 +91,20 @@ sets the select color of the widget to its foreground color */
 }
 
 #define SUMA_SET_GL_PROJECTION(csv) {  \
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName); \
-   glMatrixMode (GL_PROJECTION); \
-   glLoadIdentity ();   \
-   gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/   \
+   if (!csv->ortho) { \
+      if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName); \
+      glMatrixMode (GL_PROJECTION); \
+      glLoadIdentity ();   \
+      gluPerspective((GLdouble)csv->FOV[csv->iState], csv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/   \
+   }  else { \
+      GLdouble m_sz = 0.5 *tan(SUMA_PI * csv->FOV[csv->iState] / 180.0)*csv->GVS[csv->StdView].ViewFrom[2];   \
+      if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and orthographic projection (m_sz = %g)...\n", FuncName, m_sz); \
+      glMatrixMode (GL_PROJECTION); \
+      glLoadIdentity ();   \
+      glOrtho(-m_sz, m_sz, \
+               -m_sz, m_sz, \
+               SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/   \
+   }  \
 }
 
 #define SUMA_SET_GL_MODELVIEW(csv) {   \

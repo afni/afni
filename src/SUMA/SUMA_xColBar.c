@@ -257,6 +257,7 @@ void SUMA_cmap_wid_display(SUMA_SurfaceObject *SO)
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: performing glClear ...\n", FuncName);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); /* clear the Color Buffer and the depth buffer */
    
+   /* careful here, you might want to turn the next block into a macro like SUMA_SET_GL_PROJECTION */
    if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\nFOV=%f\n", FuncName, SUMA_CMAP_FOV_INITIAL);
    glMatrixMode (GL_PROJECTION);
    glLoadIdentity ();
