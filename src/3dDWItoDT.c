@@ -32,6 +32,7 @@ static matrix tempDmatrix[2];
 static matrix tempHplusmatrix[2], tempHminusmatrix[2];
 /* static vector tempDvector; */
 
+static byte *maskptr = NULL;
 static double eigs[12];
 static double deltatau;
 static double *wtfactor;	/* weight factors for time points at each voxel */
@@ -85,13 +86,22 @@ int
 main (int argc, char *argv[])
 {
   THD_3dim_dataset *old_dset, *new_dset;	/* input and output datasets */
-  int nopt, nbriks, nvox;
+  int nopt, nbriks;
   int i, eigs_brik;
   MRI_IMAGE *grad1Dptr = NULL;
   MRI_IMAGE *anat_im = NULL;
-  short *sar = NULL, *tempsptr = NULL, tempval;
-  byte *maskptr = NULL, *tempbptr = NULL;
+#if 0
+  int nvox;
+  short *sar = NULL;
+  short *tempsptr = NULL;
+  byte *tempbptr = NULL;
+  short tempval;
+#endif
+
   double *cumulativewtptr;
+  int mmvox=0 ;
+  int nxyz;
+
 
    /*----- Read command line -----*/
   if (argc < 2 || strcmp (argv[1], "-help") == 0)
@@ -106,10 +116,11 @@ main (int argc, char *argv[])
               "    volume acquired with no diffusion weighting.\n"
 	      " Options:\n"
               "   -prefix pname = Use 'pname' for the output dataset prefix name.\n"
-              "    [default='DT']\n"
+              "    [default='DT']\n\n"
 	      "   -automask =  mask dataset so that the tensors are computed only for\n"
 	      "    high-intensity (presumably brain) voxels.  The intensity level is\n"
               "    determined the same way that 3dClipLevel works.\n\n"
+              "   -mask dset = use dset as mask to include/exclude voxels\n\n"
               "   -nonlinear = compute iterative solution to avoid negative eigenvalues.\n"
               "    This is the default method.\n\n"
               "   -linear = compute simple linear solution.\n\n"
@@ -207,10 +218,33 @@ main (int argc, char *argv[])
 	}
       if (strcmp (argv[nopt], "-automask") == 0)
 	{
-	  automask = 1;
+         if(maskptr != NULL){
+           fprintf(stderr,"** ERROR: can't use -mask with -automask!\n");
+           exit(1) ;
+         }
+ 	  automask = 1;
 	  nopt++;
 	  continue;
 	}
+
+      if( strcmp(argv[nopt],"-mask") == 0 ){
+         THD_3dim_dataset * mask_dset ;
+         if( automask ){
+           fprintf(stderr,"** ERROR: can't use -mask with -automask!\n");
+           exit(1) ;
+         }
+         mask_dset = THD_open_dataset(argv[++nopt]) ;
+         if( mask_dset == NULL ){
+            fprintf(stderr,"** ERROR: can't open -mask dataset!\n"); exit(1);
+         }
+         if( maskptr != NULL ){
+            fprintf(stderr,"** ERROR: can't have 2 -mask options!\n"); exit(1);
+         }
+         maskptr = THD_makemask( mask_dset , 0 , 1.0,-1.0 ) ;
+         mmvox = DSET_NVOX( mask_dset ) ;
+
+         DSET_delete(mask_dset) ; nopt++ ; continue ;
+      }
 
       if (strcmp (argv[nopt], "-linear") == 0)
         {
@@ -438,6 +472,11 @@ main (int argc, char *argv[])
       mri_free (grad1Dptr);
       exit (1);
     }
+   nxyz = DSET_NVOX(old_dset) ;
+   if( maskptr != NULL && mmvox != nxyz ){
+      fprintf(stderr,"** Mask and input datasets not the same size!\n") ;
+      exit(1) ;
+   }
 
 
   InitGlobals (grad1Dptr->nx + 1);	/* initialize all the matrices and vectors */
@@ -450,7 +489,7 @@ main (int argc, char *argv[])
       /*anat_im = THD_extract_float_brick( 0, old_dset ); */
       anat_im = DSET_BRICK (old_dset, 0);	/* set pointer to the 0th sub-brik of the dataset */
       maskptr = mri_automask_image (anat_im);	/* maskptr is a byte pointer for volume */
-
+#if 0
       /* convert byte mask to same format type as dataset */
       nvox = DSET_NVOX (old_dset);
       sar = (short *) calloc (nvox, sizeof (short));
@@ -468,7 +507,7 @@ main (int argc, char *argv[])
       /*old_dset->dblk->malloc_type = DATABLOCK_MEM_MALLOC; *//* had to set this? */
       EDIT_add_brick (old_dset, MRI_short, 0.0, sar);	/* add sub-brik to end */
 
-
+#endif
     }
 
   /* temporarily set artificial timing to 1 second interval */
@@ -524,11 +563,15 @@ main (int argc, char *argv[])
   mri_free (grad1Dptr);
   matrix_destroy (&Rtmat);	/* clean up */
 
-  if (automask)
+  if (maskptr)
     {
-      mri_free (anat_im);
+      free (maskptr);
+      if(anat_im)
+         mri_free (anat_im);
+#if 0
       DSET_unload_one (old_dset, 0);
       sar = NULL;
+#endif
     }
 
   if (new_dset != NULL)
@@ -650,7 +693,6 @@ DWItoDT_tsfunc (double tzero, double tdelta,
      For each point in volume brik convert vector data to
      symmetric matrix */
   /* ts should come from data sub-briks in form of I0,I1,...Ip */
-  /* if automask is turned on, ts has Np+2 floating point numbers */
   /* val is output vector of form Dxx Dxy Dxz Dyy Dyz Dzz for each voxel in 6 sub-briks */
   /* the Dij vector is computed as the product of  Rt times ln(I0/Ip)
      where Rt is the pseudo-inverse of the [bxx 2bxy 2bxz byy 2byz bzz] for
@@ -674,15 +716,19 @@ DWItoDT_tsfunc (double tzero, double tdelta,
     }
 
   ncall++;
-  /* if there is an automask turned on, use corresponding voxel in the last sub-brik as a flag */
-  if (automask)
+  /* if there is any mask (automask or user mask), use corresponding voxel as a flag */
+  if (maskptr)
     {
-      npts = npts - 1;
-      if (ts[npts] == 0)
+#if 0
+     npts = npts - 1;
+     if (ts[npts] == 0)
+#endif
+       if(maskptr[ncall-1]==0)
 	{			/* don't include this voxel for mask */
 	  for (i = 0; i < nbriks; i++)	/* faster to copy preset vector */
 	    val[i] = 0.0;	/* return 0 for all Dxx,Dxy,... */
-          val[nbriks-4] = -3.0;  /* use -3 as flag for number of converge steps to mean exited for automasked voxels */
+          if(debug_briks)  /* use -3 as flag for number of converge steps to mean exited for masked voxels */
+             val[nbriks-4] = -3.0;
 	  EXRETURN;
 	}
     }
@@ -1587,8 +1633,10 @@ ComputeWtfactors (int npts)
   tempcalc = npts / sum;     /* normalization factor */
   
   wtfactorptr = wtfactor;
-  for (i=0; i<npts; i++)
-      *wtfactorptr++ = *wtfactorptr * tempcalc;
+  for (i=0; i<npts; i++) {
+      *wtfactorptr = *wtfactorptr * tempcalc;
+      wtfactorptr++;
+  }
 
   if(cumulative_flag) {
      wtfactorptr = wtfactor;
