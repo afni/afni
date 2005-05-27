@@ -119,6 +119,16 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
             SV->ZoomCompensate = 1; 
          }
       }
+      {
+         char *eee = getenv("SUMA_ViewOrthographicProjection");
+         if (eee) {
+            if (strcmp (eee, "YES") == 0) SV->ortho = 1;
+            else SV->ortho = 0;
+         } else {
+            SV->ortho = 0; 
+         }
+      }
+
       SV->Aspect = 1.0;
       SV->FOV = NULL;
       for (j=0; j < SV->N_GVS; ++j) {
@@ -964,6 +974,9 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    else SS = SUMA_StringAppend_va(SS,"   Show Left = NO\n");
    if (SV->ShowRight) SS = SUMA_StringAppend_va(SS,"   Show Right = YES\n");
    else SS = SUMA_StringAppend_va(SS,"   Show Right = NO\n");
+   
+   if (SV->ortho) SS = SUMA_StringAppend_va(SS,"   Projection: Orthographic\n");
+   else SS = SUMA_StringAppend_va(SS,"   Projection: Perspective\n");
    SS = SUMA_StringAppend_va(SS,"   Aspect = %f\n", SV->Aspect);
    SS = SUMA_StringAppend_va(SS,"   ViewFrom = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFrom[0], SV->GVS[SV->StdView].ViewFrom[1], SV->GVS[SV->StdView].ViewFrom[2]);
    SS = SUMA_StringAppend_va(SS,"   ViewFromOrig = [%f %f %f]\n", SV->GVS[SV->StdView].ViewFromOrig[0], SV->GVS[SV->StdView].ViewFromOrig[1], SV->GVS[SV->StdView].ViewFromOrig[2]);

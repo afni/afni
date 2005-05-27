@@ -37,6 +37,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    static SUMA_Boolean DoubleClick = NOPE;
    DList *list = NULL;
    DListElmt *NextElm= NULL;
+   float zc_fac = 1.0;
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 
@@ -1548,10 +1549,17 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                sv->GVS[sv->StdView].zoomBegin = (float)Bev.y;
                sv->GVS[sv->StdView].zoomDelta = 0;   
             }else {
+               if (sv->ZoomCompensate) {
+                  zc_fac = sv->FOV[sv->iState] / FOV_INITIAL;
+                  if (zc_fac > 1) zc_fac = 1.0; /* weird stuff at zc_fac higher that 1.5 */
+                  else if (zc_fac < 0.01) zc_fac = 0.01; /* weird stuff cause by integer spin variables! Proper way to handle all this is with float position storage and no recalculation of zc_fac except at zooming.*/ 
+               } else zc_fac = 1.0;
+               Bev.x *= zc_fac;
+               Bev.y *= zc_fac;
                /*fprintf(SUMA_STDERR,"%s: Button 1 down. New\n", FuncName);*/
                /* setup initial spinning conditions */
-               sv->GVS[sv->StdView].spinBeginX = (int)Bev.x;
-               sv->GVS[sv->StdView].spinBeginY = (int)Bev.y;
+               sv->GVS[sv->StdView].spinBeginX = (int)(Bev.x);
+               sv->GVS[sv->StdView].spinBeginY = (int)(Bev.y);
                sv->GVS[sv->StdView].spinDeltaX = 0;
                sv->GVS[sv->StdView].spinDeltaY = 0;   
                /* check to see if other viewers need to be notified */
@@ -1560,8 +1568,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                   for (it=0; it < SUMAg_N_SVv; ++it) {
                      svi = &SUMAg_SVv[it];
                      if (it != ii && SUMAg_CF->ViewLocked[it]) {
-                        svi->GVS[svi->StdView].spinBeginX = (int)Bev.x;
-                        svi->GVS[svi->StdView].spinBeginY = (int)Bev.y;
+                        svi->GVS[svi->StdView].spinBeginX = (int)(Bev.x);
+                        svi->GVS[svi->StdView].spinBeginY = (int)(Bev.y);
                         svi->GVS[svi->StdView].spinDeltaX = 0;
                         svi->GVS[svi->StdView].spinDeltaY = 0; 
                      }  
@@ -1579,8 +1587,8 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             } else {   
                /*fprintf(stdout,"Button 2 down, plain jane\n");*/
                /* setup initial translation conditions */
-               sv->GVS[sv->StdView].translateBeginX = (int)Bev.x;
-               sv->GVS[sv->StdView].translateBeginY = (int)Bev.y;
+               sv->GVS[sv->StdView].translateBeginX = (int)(Bev.x);
+               sv->GVS[sv->StdView].translateBeginY = (int)(Bev.y);
                sv->GVS[sv->StdView].translateDeltaX = 0;
                sv->GVS[sv->StdView].translateDeltaY = 0;
             }
@@ -1768,20 +1776,34 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
          case SUMA_Button_1_Motion:     
             /*fprintf(SUMA_STDERR,"%s: In motion, Butt1 \n", FuncName); */
             /* spinning mode */
+            if (sv->ZoomCompensate) {
+               zc_fac = sv->FOV[sv->iState] / FOV_INITIAL;
+               if (zc_fac > 1) zc_fac = 1.0; /* weird stuff at zc_fac higher that 1.5 */
+               else if (zc_fac < 0.01) zc_fac = 0.01; /* weird stuff cause by integer spin variables! Proper way to handle all this is with float position storage and no recalculation of zc_fac except at zooming.*/ 
+            } else zc_fac = 1.0;
+            Mev.x *= zc_fac;
+            Mev.y *= zc_fac;
+            
             sv->GVS[sv->StdView].spinDeltaX = ((int)Mev.x - sv->GVS[sv->StdView].spinBeginX);
             sv->GVS[sv->StdView].spinDeltaY = ((int)Mev.y - sv->GVS[sv->StdView].spinBeginY);
-            if (sv->ZoomCompensate) {
-               sv->GVS[sv->StdView].spinDeltaX *=  sv->FOV[sv->iState] / FOV_INITIAL;
-               sv->GVS[sv->StdView].spinDeltaY *=  sv->FOV[sv->iState] / FOV_INITIAL; 
-            }
-            /*fprintf(stdout,"\nspinBeginX %d spinBeginY %d\nspinDeltaX %d spinDeltaY %d\nWindWidth %d WindHeight %d\n", \
-                        sv->GVS[sv->StdView].spinBeginX, sv->GVS[sv->StdView].spinBeginY, sv->GVS[sv->StdView].spinDeltaX, sv->GVS[sv->StdView].spinDeltaY, sv->WindWidth, sv->WindHeight);*/
+            
+            /* fprintf(stdout,"\n"
+                           "spinBeginX %d \n"
+                           "spinBeginY %d \n"
+                           "spinDeltaX %d \n"
+                           "spinDeltaY %d \n"
+                           "WindWidth %d  \n"
+                           "WindHeight %d\n"
+                           "zc_fac %g\n", \
+                        sv->GVS[sv->StdView].spinBeginX, sv->GVS[sv->StdView].spinBeginY, 
+                        sv->GVS[sv->StdView].spinDeltaX, sv->GVS[sv->StdView].spinDeltaY, 
+                        sv->WindWidth, sv->WindHeight, zc_fac); */
             if (sv->GVS[sv->StdView].spinDeltaX || sv->GVS[sv->StdView].spinDeltaY){
                trackball(sv->GVS[sv->StdView].deltaQuat, 
                   (float)(2*sv->GVS[sv->StdView].spinBeginX - sv->WindWidth)/(float)sv->WindWidth, (float)(sv->WindHeight - 2*sv->GVS[sv->StdView].spinBeginY)/(float)sv->WindHeight,
-                   (float)(2*(int)Mev.x - sv->WindWidth)/(float)sv->WindWidth, (float)(sv->WindHeight - 2*(int)Mev.y)/(float)sv->WindHeight); /* comput the increment Quat */
-               sv->GVS[sv->StdView].spinBeginX = (int)Mev.x;
-               sv->GVS[sv->StdView].spinBeginY = (int)Mev.y;
+                   (float)(2*(float)Mev.x - sv->WindWidth)/(float)sv->WindWidth, (float)(sv->WindHeight - 2*(float)Mev.y)/(float)sv->WindHeight); /* comput the increment Quat */
+               sv->GVS[sv->StdView].spinBeginX = (int)(Mev.x);
+               sv->GVS[sv->StdView].spinBeginY = (int)(Mev.y);
                add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
                
                ii = SUMA_WhichSV(sv, SUMAg_SVv, SUMAg_N_SVv);
