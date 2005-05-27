@@ -2650,10 +2650,7 @@ SUMA_Boolean SUMA_OpenGLStateReset (SUMA_DO *dov, int N_dov, SUMA_SurfaceViewer 
 
    #if 0
    /* force an axis drawing to set the projection matrix correctly */
-   if (LocalHead) fprintf (SUMA_STDOUT,"%s: Setting up matrix mode and perspective ...\n", FuncName);
-   glMatrixMode (GL_PROJECTION);
-   glLoadIdentity ();
-   gluPerspective((GLdouble)sv->FOV[sv->iState], sv->Aspect, SUMA_PERSPECTIVE_NEAR, SUMA_PERSPECTIVE_FAR); /*lower angle is larger zoom,*/
+   SUMA_SET_GL_PROJECTION(sv);   
    #endif
    
    /* You still need to call SUMA_display via SUMA_postRedisplay but that is done after this function returns */ 

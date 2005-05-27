@@ -1346,6 +1346,7 @@ typedef struct {
 
    SUMA_X *X; /*!< structure containing X widget midgets */
 
+   int ortho; /*!< Orthographic (1) or perspective (0, default) projection */
    float Aspect;   /*!< Aspect ratio of the viewer*/
    int WindWidth;   /*!< Width of window */
    int WindHeight;   /*!< Height of window */
