@@ -177,7 +177,6 @@ int main( int argc , char * argv[] )
       }
 
       if( strcmp(argv[nopt],"-mask") == 0 ){
-         int mcount ;
          THD_3dim_dataset * mask_dset ;
          if( automask ){
            fprintf(stderr,"** ERROR: can't use -mask with -automask!\n");
