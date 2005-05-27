@@ -496,10 +496,14 @@ int main( int argc , char *argv[] )
              }
            if( sq > 0.0 ){
              sf = sf / sq ;
-             if( sf > 0.05 && sf < 20.0 ){
+             if( sf > 0.005 && sf < 200.0 ){
                mri_3dalign_scaleinit(sf) ;
                if( VL_verbose ) fprintf(stderr,"++ Scale init = %g\n",sf) ;
-             }
+             } else {
+               fprintf(stderr,"-- Large scale difference between datasets.\n"
+                              "   Scale init = %g\n"
+                              "   3dvolreg might not converge.",sf) ;
+            }
            }
          }
 
