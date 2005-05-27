@@ -52,7 +52,14 @@ function [err, V, Info, ErrMessage] = BrikLoad (BrikName, param1, param2)
 %
 %   .Slices: vector of slices, 1 based. Default is all slices. 
 %            Read the set of slices specified in .Slices (added for FMRISTAT)
-%
+%   .SliceSize_1D: If you are reading 1D files in chunks, specify the 
+%                  number of rows you want read in at any one time.
+%                  If chunk is 1000 and .Slices = 1 then you would 
+%                  get values from rows 1 (the first row) to row 1000.
+%                  When .Slices = 2, you would get rows 1001 ... 2000 .
+%                  If the number of rows in your dataset is not an 
+%                  integer multiple of SliceSize_1D the last read
+%                  will return the left over rows.
 %   .Frames: vector of frames, 1 based. Default is all frames. 
 %            Read the sub-bricks specified in .Frames (added for FMRISTAT)
 %   .method: method option for Read_1D if you are using 1D files.

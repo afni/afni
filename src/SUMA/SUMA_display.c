@@ -7299,18 +7299,19 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
    Boolean found = False;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_CREATE_TEXT_SHELL_STRUCT *TextShell;
-   static char FuncName[]={"SUMA_search_text"};
+   static char FuncName[]={"SUMA_cb_search_text"};
    
    SUMA_ENTRY;
    
    
    TextShell = (SUMA_CREATE_TEXT_SHELL_STRUCT *)client_data;
+   if (!TextShell) { SUMA_SL_Err("Unexpected NULL TextShell"); SUMA_RETURNe; }
    
    /* get the text that is about to be searched */
    if (!(string = XmTextGetString (TextShell->text_w)) || !*string) {
      XmTextSetString (TextShell->text_output, "No text to search.");
-     XtFree (string); /* may have been ""; free it */
-     return;
+     if (string) XtFree (string); /* may have been ""; free it */
+     SUMA_RETURNe;
    }
    len = strlen(string);
    if (!TextShell->case_sensitive) {
@@ -7323,8 +7324,8 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
    if (!(search_pat = XmTextGetString (TextShell->search_w)) || !*search_pat) {
      XmTextSetString (TextShell->text_output, "Specify a search pattern.");
      XtFree (string); /* this we know is a string; free it */
-     XtFree (search_pat); /* this may be "", XtFree() checks.. */
-     return;
+     if (search_pat) XtFree (search_pat); /* this may be "", XtFree() checks.. */
+     SUMA_RETURNe;
    }
    len = strlen (search_pat);
    
@@ -7359,8 +7360,10 @@ void SUMA_cb_search_text(Widget widget, XtPointer client_data, XtPointer call_da
      XmTextSetInsertionPosition (TextShell->text_w, pos);
      XmTextSetHighlight(TextShell->text_w, pos, pos+len, XmHIGHLIGHT_SELECTED);
    }
-   XtFree (string);
-   XtFree (search_pat);
+   if (string) XtFree (string);
+   if (search_pat) XtFree (search_pat);
+   
+   SUMA_RETURNe;
 }
 
 /*!
