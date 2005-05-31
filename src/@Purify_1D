@@ -1,0 +1,42 @@
+#!/bin/csh -x 
+
+if ("$1" == '' || "$1" == '-help' || "$1" == '-h') then
+   goto HELP
+endif
+
+PARSE:
+if ("$1" == "-sub") then 
+   set ss = "$2"
+   set sslab = 'subset_pure'
+   set list = ( $argv[3-$#argv] )
+else 
+   set ss = ''
+   set sslab = 'pure'
+   set list = ( $argv[1-$#argv] )
+endif
+
+echo "$ss"
+echo "$list"
+
+DOIT:
+foreach fl ($list)
+   set pref = `@NoExt ${fl} 1D 1D.dset`
+   ConvertDset -i_1D -o_1Dp -input ${fl}"$ss" -prefix ${pref}_${sslab} 
+end
+goto END
+
+HELP:
+echo "Usage: `basename $0` [<-sub SUB_STRING>] dset1 dset2 ..."
+echo "Purifies a series of 1D files for faster I/O into matlab."
+echo "  -sub SUB_STRING: You can use the sub-brick selection"
+echo "                   mode, a la AFNI, to output a select"
+echo "                   number of columns. See Example below."
+echo ""
+echo "Example:"
+echo "    @Purify_1D -sub '[0,3]' somedataset.1D.dset"
+echo ""
+echo "Ziad S. Saad SSCC/NIMH/NIH ziad@nih.gov"
+echo ""
+goto END
+
+END:
