@@ -117,6 +117,9 @@ void display_help_menu()
      "[-quiet]          Suppress output to screen                           \n"
      "                                                                      \n"
      "-prefix pname     Prefix name for file to contain segmented image     \n"
+     "\n"
+     "NOTE: The newer program 3dSkullStrip will probably\n"
+     "      give better results than 3dIntracranial.\n"
       );
   
   exit(0);
@@ -558,8 +561,7 @@ void write_afni_data
 				ADN_prefix , filename ,
 				ADN_label1 , filename ,
 				ADN_self_name , filename ,
-				ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : 
-				GEN_FUNC_TYPE ,
+            ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
 				ADN_func_type , func_type ,
 				ADN_nvals , FUNC_nvals[func_type] ,
 				ADN_datum_array , ibuf ,
@@ -605,6 +607,10 @@ void write_afni_data
       if (write_mask) printf("\nWriting functional (mask) dataset: ");
       else             printf ("\nWriting anatomical dataset: ");
       printf("%s\n", DSET_BRIKNAME(new_dset) ) ;
+
+      printf("NOTE: You may get better results by trying\n"
+             "      3dSkullStrip -input %s -prefix %s\n"   ,
+             anat_filename , prefix_filename ) ;
     }
 
   
