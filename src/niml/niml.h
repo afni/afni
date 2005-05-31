@@ -753,7 +753,9 @@ typedef struct {
      ? ( ((NI_float_one *)(nd)->param[i])->val )          \
      : ( ((NI_float_vector *)(nd)->param[i])->vec[j] ) )
 
-/*--- Statistical type codes (2..10 match AFNI's 3ddata.h) ---*/
+/*--- Statistical type codes:
+       2..10 match AFNI's 3ddata.h
+       the rest match those in NIfTI-1.1 (nifti1.h) ---*/
 
                                  /** Parameters **/
 #define NI_STAT_CORREL      2   /* Samples, fits, orts   */
@@ -778,11 +780,17 @@ typedef struct {
 #define NI_STAT_INVGAUSS   20   /* mu, lambda            */
 #define NI_STAT_EXTVAL     21   /* location, scale       */
 
+#define NI_STAT_PVAL       22
+#define NI_STAT_LOGPVAL    23
+#define NI_STAT_LOG10PVAL  24
+
 #define NI_STAT_FIRSTCODE   2
-#define NI_STAT_LASTCODE   21
+#define NI_STAT_LASTCODE   24
 
 extern int    NI_stat_numparam( int ) ;
 extern char * NI_stat_distname( int ) ;
+extern void   NI_stat_decode( char *, int *, float *, float *, float * ) ;
+extern char * NI_stat_encode( int , float,float,float ) ;
 
 /*---------------------------------------------------------------------------*/
 /*! NI struct to hold a vector of values:

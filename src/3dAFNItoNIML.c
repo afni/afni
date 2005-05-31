@@ -118,7 +118,7 @@ int main( int argc , char *argv[] )
 
    if( ngr != NULL ){
      NI_rename_group( ngr , "AFNI_dataset" ) ;
-     NI_set_attribute( ngr , "AFNI_prefix" , DSET_PREFIX(dset) ) ;
+     NI_set_attribute( ngr , "self_prefix" , DSET_PREFIX(dset) ) ;
      nout += NI_write_element( ns_out , ngr , NI_TEXT_MODE ) ;
      NI_free_element( ngr ) ;
    }

@@ -349,7 +349,9 @@ ENTRY("THD_open_nifti") ;
              }
 
              if( NI_element_type(nngr) == NI_GROUP_TYPE ){ /* have  good name */
-               rhs = NI_get_attribute( nngr , "AFNI_idcode" ) ;
+               rhs = NI_get_attribute( nngr , "self_idcode" ) ;
+               if( rhs == NULL )
+                 rhs = NI_get_attribute( nngr , "AFNI_idcode" ) ;
                if( rhs != NULL )    /* set dataset ID code from XML attribute */
                  MCW_strncpy( dset->idcode.str , rhs , MCW_IDSIZE ) ;
                rhs = NI_get_attribute( nngr , "NIfTI_nums" ) ;    /* check if */

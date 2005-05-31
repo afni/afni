@@ -137,7 +137,9 @@ STATUS("setting grid orientation") ;
 
 STATUS("setting idcode") ;
 
-   ppp = NI_get_attribute( nel , "ni_idcode" ) ;
+   ppp = NI_get_attribute( nel , "self_idcode" ) ;
+   if( ppp == NULL )
+     ppp = NI_get_attribute( nel , "ni_idcode" ) ;
    if( ppp != NULL && *ppp != '\0' ){
      NI_strncpy( dset->idcode.str , ppp , MCW_IDSIZE ) ;
    } else {
