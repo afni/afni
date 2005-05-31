@@ -1871,10 +1871,10 @@ ENTRY("RWC_drag_circle") ;
 
      if( x != xold || y != yold ){
 
-       if( !first )  /* undraw old rectangle */
+       if( !first )  /* undraw old circle */
          RWC_draw_circle( dis,win,myGC , x1,y1 , rrr ) ;
 
-       /* draw new rectangle */
+       /* draw new circle */
 
        xold = x ; yold = y ; first = 0 ;
        rrr = (int)rint(sqrt( (x-x1)*(x-x1) + (y-y1)*(y-y1) )) ;
@@ -1884,7 +1884,7 @@ ENTRY("RWC_drag_circle") ;
 
    } /* end of loop while button is pressed */
 
-   if( !first )  /* undraw old rectangle */
+   if( !first )  /* undraw old circle */
      RWC_draw_circle( dis,win,myGC , x1,y1 , rrr ) ;
 
    /* clean up */

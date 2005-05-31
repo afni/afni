@@ -5566,3 +5566,8 @@
 
 24 May 2005
  * Add 'i' and 'I' keystrokes to afni_graph.c, to move init_ignore down/up.
+
+31 May 2005
+ * Modified various things (like thd_nimlatr.c) to change names of some
+     NIML attributes, in concordance with the treaty reached today with
+     Ziad Saad.
