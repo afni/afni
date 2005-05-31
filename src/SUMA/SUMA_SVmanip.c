@@ -113,10 +113,10 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
       {
          char *eee = getenv("SUMA_AdjustMouseMotionWithZoom");
          if (eee) {
-            if (strcmp (eee, "YES") == 0) SV->ZoomCompensate = 1;
-            else SV->ZoomCompensate = 0;
+            if (strcmp (eee, "YES") == 0) SV->ZoomCompensate = 1.0;
+            else SV->ZoomCompensate = 0.0;
          } else {
-            SV->ZoomCompensate = 1; 
+            SV->ZoomCompensate = 1.0; 
          }
       }
       {
@@ -986,7 +986,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   RotaCenter = [%f %f %f]\n", SV->GVS[SV->StdView].RotaCenter[0], SV->GVS[SV->StdView].RotaCenter[1], SV->GVS[SV->StdView].RotaCenter[2]);
    SS = SUMA_StringAppend_va(SS,"   light0_position = [%f %f %f %f]\n", SV->light0_position[0], SV->light0_position[1], SV->light0_position[2], SV->light0_position[3]);
    SS = SUMA_StringAppend_va(SS,"   light1_position = [%f %f %f %f]\n", SV->light1_position[0], SV->light1_position[1], SV->light1_position[2], SV->light1_position[3]);
-   SS = SUMA_StringAppend_va(SS,"   ZoomCompensate = %d\n", SV->ZoomCompensate);
+   SS = SUMA_StringAppend_va(SS,"   ZoomCompensate = %f\n", SV->ZoomCompensate);
    SS = SUMA_StringAppend_va(SS,"   WindWidth = %d\n", SV->WindWidth);
    SS = SUMA_StringAppend_va(SS,"   WindHeight = %d\n", SV->WindHeight);
    SS = SUMA_StringAppend_va(SS,"   ShowWorldAxis = %d\n", SV->ShowWorldAxis);
@@ -1004,11 +1004,11 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   MinIdleDelta = %d\n", SV->GVS[SV->StdView].MinIdleDelta);
    SS = SUMA_StringAppend_va(SS,"   zoomDelta = %f, zoomBegin = %f\n", SV->GVS[SV->StdView].zoomDelta, SV->GVS[SV->StdView].zoomBegin);
    SS = SUMA_StringAppend_va(SS,"   ArrowRotationAngle=%f rad (%f deg)\n", SV->ArrowRotationAngle, SV->ArrowRotationAngle * 180.0 / SUMA_PI);
-   SS = SUMA_StringAppend_va(SS,"   spinDeltaX/Y = %d/%d\n", SV->GVS[SV->StdView].spinDeltaX, SV->GVS[SV->StdView].spinDeltaY);
-   SS = SUMA_StringAppend_va(SS,"   spinBeginX/Y = %d/%d\n", SV->GVS[SV->StdView].spinBeginX, SV->GVS[SV->StdView].spinBeginY);   
+   SS = SUMA_StringAppend_va(SS,"   spinDeltaX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].spinDeltaX, SV->GVS[SV->StdView].spinDeltaY);
+   SS = SUMA_StringAppend_va(SS,"   spinBeginX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].spinBeginX, SV->GVS[SV->StdView].spinBeginY);   
    SS = SUMA_StringAppend_va(SS,"   TranslateGain = %f\n", SV->GVS[SV->StdView].TranslateGain);
    SS = SUMA_StringAppend_va(SS,"   ArrowtranslateDeltaX/Y = %f/%f\n", SV->GVS[SV->StdView].ArrowtranslateDeltaX, SV->GVS[SV->StdView].ArrowtranslateDeltaY);
-   SS = SUMA_StringAppend_va(SS,"   translateBeginX/Y = %d/%d\n", SV->GVS[SV->StdView].translateBeginX, SV->GVS[SV->StdView].translateBeginY);
+   SS = SUMA_StringAppend_va(SS,"   translateBeginX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].translateBeginX, SV->GVS[SV->StdView].translateBeginY);
    SS = SUMA_StringAppend_va(SS,"   translateDeltaX/Y = %f/%f\n", SV->GVS[SV->StdView].translateDeltaX, SV->GVS[SV->StdView].translateDeltaY);
    SS = SUMA_StringAppend_va(SS,"   translateVec = [%f %f 0.0]\n", SV->GVS[SV->StdView].translateVec[0], SV->GVS[SV->StdView].translateVec[1]);
    SS = SUMA_StringAppend_va(SS,"   Show Mesh Axis %d\n", SV->ShowMeshAxis);

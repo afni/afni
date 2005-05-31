@@ -1235,8 +1235,8 @@ typedef struct {
    float ViewCamUp[3];   /*!< Camera Up direction vector */
    float ViewDistance; /*!< Viewing distance */
    
-   int translateBeginX; /*!< User Input (mouse) X axis current position for translation */
-   int translateBeginY; /*!< User Input (mouse) Y axis current position for translation */
+   float translateBeginX; /*!< User Input (mouse) X axis current position for translation */
+   float translateBeginY; /*!< User Input (mouse) Y axis current position for translation */
    float translateDeltaX;   /*!< User Input (mouse) X axis position increment for translation */
    float translateDeltaY;   /*!< User Input (mouse) Y axis position increment for translation */
    float TranslateGain;   /*!< gain applied to mouse movement */
@@ -1246,10 +1246,10 @@ typedef struct {
    GLfloat RotaCenter[3];   /*!<Center of Rotation */
    float zoomDelta;       /*!< Zoom increment */
    float zoomBegin;    /*!< Current zoom level*/
-   int spinDeltaX;            /*!< User Input (mouse) X axis position increment for spinning*/
-   int spinDeltaY;            /*!< User Input (mouse) Y axis position increment for spinning*/
-   int spinBeginX;            /*!< User Input (mouse) X axis current position for spinning */
-   int spinBeginY;            /*!< User Input (mouse) Y axis current position for spinning */
+   float spinDeltaX;            /*!< User Input (mouse) X axis position increment for spinning*/
+   float spinDeltaY;            /*!< User Input (mouse) Y axis position increment for spinning*/
+   float spinBeginX;            /*!< User Input (mouse) X axis current position for spinning */
+   float spinBeginY;            /*!< User Input (mouse) Y axis current position for spinning */
    int MinIdleDelta;       /*!< minimum spinDeltaX or spinDeltaY to initiate momentum rotation */
    float deltaQuat[4];   /*!< Quaternion increment */
    float currentQuat[4]; /*!< Current quaternion */
@@ -1350,7 +1350,7 @@ typedef struct {
    float Aspect;   /*!< Aspect ratio of the viewer*/
    int WindWidth;   /*!< Width of window */
    int WindHeight;   /*!< Height of window */
-   int ZoomCompensate; /*!< Compensate mouse movements by zoom factor */
+   float ZoomCompensate; /*!< Compensate mouse movements by zoom factor */
    float *FOV; /*!< Field of View (affects zoom level, there is a separate FOV for each ViewState)*/
    float ArrowRotationAngle; /*!< Angle to rotate surface by when arrows are used.
                                  Units are in radians */
@@ -1414,7 +1414,6 @@ typedef struct {
    char *CurGroupName; /*!< current name of group */
    int iCurGroup; /*!< index into GroupList (stored in SUMAg_CF) of current group of Surface Viewer */
    SUMA_REDISPLAY_CAUSE rdc;  /*!< Why has a redisplay been requested */
-
 }SUMA_SurfaceViewer;
 
 /*! structure defining an EngineData structure */
