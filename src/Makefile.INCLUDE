@@ -118,7 +118,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                nifti_tool.exe
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
-          @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS                 \
+          @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS @Purify_1D      \
           @SUMA_Make_Spec_SF @make_stim_file @Align_Centers suma_change_spec
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h       \
