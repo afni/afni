@@ -761,6 +761,9 @@ char * SUMA_help_message_Info(void)
       "         ORIG: Col = ( 1 - opacity ) * OldCol + opacity * NewCol \n"
       "         MOD1: Col = ( 1 - opacity ) * OldCol +           NewCol \n");
    SS = SUMA_StringAppend (SS, 
+      "     F8: Viewing mode (Perspective or Orthographic Projection), toggle.\n"
+      );
+   SS = SUMA_StringAppend (SS, 
       "     F12: Time 20 scene renderings.\n\n");
    SS = SUMA_StringAppend (SS, 
       "     HOME: reset view to startup\n\n");
