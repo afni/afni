@@ -32,7 +32,7 @@ ENTRY("THD_nimlize_dsetatr") ;
 
    NI_rename_group( ngr , "AFNI_dataset" ) ;
 
-   NI_set_attribute( ngr , "AFNI_idcode" , dset->idcode.str ) ;
+   NI_set_attribute( ngr , "self_idcode" , dset->idcode.str ) ;
 
    /* make a data element for each attribute ... */
    THD_set_dataset_attributes( dset ) ;
@@ -49,7 +49,7 @@ ENTRY("THD_nimlize_dsetatr") ;
 
          nel = NI_new_data_element( "AFNI_atr" , atr_flo->nfl ) ;
          nel->outmode = NI_TEXT_MODE ;
-         NI_set_attribute( nel , "AFNI_name" , atr_flo->name ) ;
+         NI_set_attribute( nel , "atr_name" , atr_flo->name ) ;
          NI_add_column( nel , NI_FLOAT , atr_flo->fl ) ;
          NI_add_to_group( ngr , nel ) ;
        }
@@ -60,7 +60,7 @@ ENTRY("THD_nimlize_dsetatr") ;
 
          nel = NI_new_data_element( "AFNI_atr" , atr_int->nin ) ;
          nel->outmode = NI_TEXT_MODE ;
-         NI_set_attribute( nel , "AFNI_name" , atr_int->name ) ;
+         NI_set_attribute( nel , "atr_name" , atr_int->name ) ;
          NI_add_column( nel , NI_INT , atr_int->in ) ;
          NI_add_to_group( ngr , nel ) ;
        }
@@ -72,7 +72,7 @@ ENTRY("THD_nimlize_dsetatr") ;
 
          nel = NI_new_data_element( "AFNI_atr" , 1 ) ;
          nel->outmode = NI_TEXT_MODE ;
-         NI_set_attribute( nel , "AFNI_name" , atr_str->name ) ;
+         NI_set_attribute( nel , "atr_name" , atr_str->name ) ;
 
          str = malloc( atr_str->nch + 4 ) ;           /* convert from */
          memcpy( str , atr_str->ch , atr_str->nch ) ; /* char array   */
@@ -129,7 +129,9 @@ ENTRY("THD_dblkatr_from_niml") ;
 
        case NI_ELEMENT_TYPE:{ /* data ==> see if is an AFNI attribute */
          NI_element *nel = (NI_element *)ngr->part[ip] ;
-         char       *rhs = NI_get_attribute( nel , "AFNI_name" ) ;
+         char       *rhs = NI_get_attribute( nel , "atr_name" ) ;
+         if( rhs == NULL )
+                     rhs = NI_get_attribute( nel , "AFNI_name" ) ;
 
          if( strcasecmp(nel->name,"AFNI_atr") == 0 &&    /* AFNI attribute?   */
              nel->vec_num == 1                     &&    /* with 1 column?    */
@@ -173,11 +175,11 @@ ENTRY("THD_dblkatr_from_niml") ;
       to define the dataset header.
     - It may also contain '<VOLUME_DATA ...>' elements that contain
       data for the sub-bricks.  This, however, is optional.
-    - If the element contains a 'AFNI_prefix' attribute, then the RHS
-      of that will become the dataset's prefix name.
-    - If the element contains a 'AFNI_idcode' attribute, then the RHS
-      of that will become the dataset's idcode, overriding the value
-      that may be stored in the similar '<AFNI_atr ...>' element.
+    - If the element contains a 'self_prefix' or 'AFNI_prefix' attribute,
+      then the RHS of that will become the dataset's prefix name.
+    - If the element contains a 'self_idcode' or 'AFNI_idcode' attribute,
+      then the RHS of that will become the dataset's idcode, overriding the
+      value that may be stored in the similar '<AFNI_atr ...>' element.
     - If this element can't easily be re-loaded (e.g., came from a
       socket), then the dataset should be super-locked into memory,
       so it won't be purged!
@@ -223,13 +225,17 @@ ENTRY("THD_niml_to_dataset") ;
 
    /* change the name of the dataset? */
 
-   rhs = NI_get_attribute( ngr , "AFNI_prefix" ) ;
+   rhs = NI_get_attribute( ngr , "self_prefix" ) ;
+   if( rhs == NULL )
+     rhs = NI_get_attribute( ngr , "AFNI_prefix" ) ;  /* for the 'old' way */
    if( rhs != NULL )
      EDIT_dset_items( dset , ADN_prefix,rhs , ADN_none ) ;
 
    /* change the idcode of the dataset? */
 
-   rhs = NI_get_attribute( ngr , "AFNI_idcode" ) ;
+   rhs = NI_get_attribute( ngr , "self_idcode" ) ;
+   if( rhs == NULL )
+     rhs = NI_get_attribute( ngr , "AFNI_idcode" ) ;  /* for the 'old' way */
    if( rhs != NULL )
      NI_strncpy( dset->idcode.str , rhs , MCW_IDSIZE ) ;
 
@@ -409,7 +415,7 @@ ENTRY("THD_subbrick_to_niml") ;
    nxyz = DSET_NVOX(dset) ;             /* number of voxels */
 
    nel = NI_new_data_element( "VOLUME_DATA" , nxyz ) ;
-   NI_set_attribute( nel , "AFNI_idcode" , dset->idcode.str ) ;
+   NI_set_attribute( nel , "self_idcode" , dset->idcode.str ) ;
    NI_add_column( nel , ityp , bar ) ;
    nel->outmode = NI_BINARY_MODE ;  /* write this in binary mode */
 
@@ -417,14 +423,14 @@ ENTRY("THD_subbrick_to_niml") ;
 
    if( (flags & SBFLAG_INDEX) ){
      sprintf(rhs,"%d",ival) ;
-     NI_set_attribute( nel , "AFNI_index" , rhs ) ;
+     NI_set_attribute( nel , "index" , rhs ) ;
    }
 
    if( (flags & SBFLAG_FACTOR) ){
      float fac = DSET_BRICK_FACTOR(dset,ival) ;
      if( fac > 0.0 ){
        sprintf(rhs,"%f",fac) ;
-       NI_set_attribute( nel , "AFNI_factor" , rhs ) ;
+       NI_set_attribute( nel , "scale_factor" , rhs ) ;
      }
    }
 
