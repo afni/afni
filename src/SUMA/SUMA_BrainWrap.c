@@ -1033,7 +1033,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
    float *p1, *p2, *p3, min_v[3], max_v[3], p[3], dist;
    float MaxDims[3], MinDims[3], SOCenter[3];
    int nn, nijk, nx, ny, nz, nxy, nxyz, nf, n1, n2, n3, nn3, *voxelsijk=NULL, N_alloc, en;
-   int N_inbox, nt, nt3, ijkseed, N_in, N_realloc;
+   int N_inbox, nt, nt3, ijkseed = -1, N_in, N_realloc;
    byte *fillmaskvec=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1049,7 +1049,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
 
    isin = (short *)SUMA_calloc(nxyz, sizeof(short));
    if (!isin) {
-      SUMA_SL_Crit("Faile to allocate");
+      SUMA_SL_Crit("Failed to allocate");
       SUMA_RETURN(NULL);
    }
    
@@ -1126,15 +1126,50 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       /* seed: find the center the surface in the index coordinate system*/
       SUMA_MIN_MAX_SUM_VECMAT_COL (NodeIJKlist, SO->N_Node, 3, MinDims, MaxDims, SOCenter); 
       SOCenter[0] /= SO->N_Node;  SOCenter[1] /= SO->N_Node;   SOCenter[2] /= SO->N_Node;
-      if (LocalHead) {
-         fprintf(SUMA_STDERR,"%s:\nSeed is %d %d %d\n", FuncName, (int)SOCenter[0], (int)SOCenter[1], (int)SOCenter[2]); 
+      {
+         float u[3], un, p0[3], p1[3];
+         int Found = 0, cnt;
+         SUMA_MT_INTERSECT_TRIANGLE *mti = NULL; 
+
+         /* Ray from a node on the surface to the center */
+         p0[0] = NodeIJKlist[0]; p1[0] = SOCenter[0]; 
+         p0[1] = NodeIJKlist[1]; p1[1] = SOCenter[1]; 
+         p0[2] = NodeIJKlist[2]; p1[2] = SOCenter[2]; 
+         SUMA_UNIT_VEC(p0, p1, u, un);
+         /* travel along that ray until you find a point inside the surface AND not on the mask */
+         Found = 0; cnt = 1;
+         while (!Found && cnt <= un) {
+            p1[0] = p0[0] + cnt * u[0];
+            p1[1] = p0[1] + cnt * u[1];
+            p1[2] = p0[2] + cnt * u[2];
+            if (LocalHead) {
+               fprintf(SUMA_STDERR,"%s:\nTrying seed ijk is %d %d %d\n", FuncName, (int)p1[0], (int)p1[1], (int)p1[2]); 
+            }
+            ijkseed = SUMA_3D_2_1D_index(p1[0], p1[1], p1[2], nx , nxy);
+            mti = SUMA_MT_intersect_triangle(p1, SOCenter, NodeIJKlist, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, mti);
+            if (!(mti->N_poshits % 2)) { /* number of positive direction hits is a multiple of 2 */
+               /* seed is outside */
+               SUMA_LH("Seed outside");
+            } else {
+               SUMA_LH("Seed inside");
+               /* seed is inside, is it on the mask ? */
+               if (!ijkmask[ijkseed]) { SUMA_LH("Seed Accepted");Found = YUP; }
+               else SUMA_LH("Seed on mask");
+            }
+            ++cnt;   
+         }
+         if (!Found) {
+            SUMA_SL_Err("Failed to find seed!");
+            if (isin) SUMA_free(isin); isin = NULL;
+            goto CLEAN_EXIT;
+         }
+         if (mti) mti = SUMA_Free_MT_intersect_triangle(mti);
       }
-      ijkseed = SUMA_3D_2_1D_index(SOCenter[0], SOCenter[1], SOCenter[2], nx , nxy);  
       
       /* hide the mask values that are outside the surface */
       for (nt=0; nt<nxyz; ++nt) { if (ijkout[nt]) isin[nt] = 0; }
       
-     if (fillmaskset) {
+      if (fillmaskset) {
                   fillmaskvec = (byte *)SUMA_malloc(nx*ny*nz*sizeof(byte));
                   if (!fillmaskvec) { SUMA_SL_Crit("Failed to allocate fillmaskvec"); }
                   /* is this value 0 in the fillmaskset */
@@ -1144,6 +1179,11 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       }
       
       /* get the mask */
+      if (ijkseed < 0) {
+         SUMA_SL_Err("Should not be here!");
+         if (isin) SUMA_free(isin); isin = NULL;
+         goto CLEAN_EXIT;
+      }
       inmask = SUMA_FillToVoxelMask(ijkmask, ijkseed, nx, ny, nz, &N_in, NULL); 
       if (!inmask) {
          SUMA_SL_Err("Failed to FillToVoxelMask!");
@@ -1180,7 +1220,8 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       }
       /* now put back the values outside the surface but protect values in mask */
       for (nt=0; nt<nxyz; ++nt) { if (ijkout[nt] && !inmask[nt]) isin[nt] = SUMA_IN_TRIBOX_OUTSIDE; }
-      
+   
+   CLEAN_EXIT:   
    if (ijkout) SUMA_free(ijkout); ijkout = NULL;
    if (ijkmask) SUMA_free(ijkmask); ijkmask = NULL;
    if (inmask) SUMA_free(inmask); inmask = NULL;
