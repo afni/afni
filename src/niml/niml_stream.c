@@ -2904,7 +2904,7 @@ int NI_stream_fillbuf( NI_stream_type *ns, int minread, int msec )
 
       /* otherwise, sleep a little bit before trying again */
 
-      if( mwait < 99 ) mwait++ ;
+      if( mwait < 9 ) mwait++ ;
    }
 
    /* if didn't get any data, and

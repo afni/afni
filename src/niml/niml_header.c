@@ -114,7 +114,7 @@ NI_dpr("ENTER parse_header_stuff: %.*s\n",ndat,dat) ;
 
    if( id >= ndat-1 ) return NULL ;                   /* bad input */
 
-   hs = NI_malloc(header_stuff, sizeof(header_stuff)) ;             /* make output struct */
+   hs = NI_malloc(header_stuff,sizeof(header_stuff)); /* make output struct */
    hs->nattr = hs->empty = 0 ;
    hs->name  = NULL ;
    hs->lhs   = hs->rhs = NULL ;
@@ -124,10 +124,10 @@ NI_dpr("ENTER parse_header_stuff: %.*s\n",ndat,dat) ;
    ss = find_string( id+1 , ndat , dat ) ;
 
    if( ss.i < 0 || ss.j <= ss.i ){
-      destroy_header_stuff( hs ) ; return NULL ;   /* no name string */
+     destroy_header_stuff( hs ) ; return NULL ;   /* no name string */
    }
 
-   nn = ss.j - ss.i ;                               /* string length */
+   nn = ss.j - ss.i ;                              /* string length */
    hs->name = NI_malloc(char, nn+1) ;
    NI_strncpy( hs->name , dat+ss.i , nn+1 ) ;
 

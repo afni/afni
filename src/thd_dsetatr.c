@@ -476,6 +476,49 @@ ENTRY("THD_set_dataset_attributes") ;
       THD_erase_one_atr( blk , ATRNAME_BRICK_STATAUX ) ;
    }
 
+   /** 01 Jun 2005: save brick_stataux stuff in a different way **/
+
+   if( blk->brick_statcode != NULL &&    /* write out brick stataux */
+       blk->brick_stataux  != NULL   ){  /* stuff, if it exists.    */
+
+     int ibr , jv ;
+
+     for( ibr=0 ; ibr < blk->nvals ; ibr++ ){  /* see if any bricks */
+       jv = blk->brick_statcode[ibr] ;         /* have stat codes */
+       if( FUNC_IS_STAT(jv) ) break ;
+     }
+
+     if( ibr < blk->nvals ){             /* got someone to save */
+       char *statsym=(char *)calloc(1,1), *sstr ; float p1,p2,p3 ; int np ;
+
+       for( ibr=0 ; ibr < blk->nvals ; ibr++ ){
+         jv = blk->brick_statcode[ibr] ;         /* have stat codes */
+         if( FUNC_IS_STAT(jv) ){
+           p1 = p2 = p3 = 0.0f ;
+           np = FUNC_need_stat_aux[jv] ;
+           if( blk->brick_stataux[ibr] != NULL ){
+             if( np > 0 ) p1 = blk->brick_stataux[ibr][0] ;
+             if( np > 1 ) p2 = blk->brick_stataux[ibr][1] ;
+             if( np > 2 ) p3 = blk->brick_stataux[ibr][2] ;
+           }
+           sstr = NI_stat_encode( jv , p1,p2,p3 ) ;
+         } else {
+           sstr = strdup("none") ;
+         }
+         jv = strlen(sstr) + strlen(statsym) + 4 ;
+         statsym = (char *)realloc( statsym , jv ) ;
+         if( ibr > 0 ) strcat(statsym,";") ;
+         strcat(statsym,sstr) ; free(sstr) ;
+       }
+       THD_set_string_atr( blk , "BRICK_STATSYM" , statsym ) ;
+       free(statsym) ;
+     } else {
+       THD_erase_one_atr( blk , "BRICK_STATSYM" ) ;
+     }
+   } else {
+     THD_erase_one_atr( blk , "BRICK_STATSYM" ) ;
+   }
+
    /******/
    /****** N.B.: we do NOT set the byte order attribute here *****/
    /******/ 

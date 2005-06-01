@@ -78,6 +78,8 @@ ENTRY("THD_nimlize_dsetatr") ;
          memcpy( str , atr_str->ch , atr_str->nch ) ; /* char array   */
          THD_zblock( atr_str->nch , str ) ;           /* to C string  */
          str[ atr_str->nch ] = '\0' ;
+         if( atr_str->nch > 1 && str[atr_str->nch-1] == ZBLOCK )
+           str[atr_str->nch-1] = '\0' ;
 
          NI_add_column( nel , NI_STRING , &str ) ;
          NI_add_to_group( ngr , nel ) ;
@@ -102,9 +104,10 @@ ENTRY("THD_nimlize_dsetatr") ;
 
 void THD_dblkatr_from_niml( NI_group *ngr , THD_datablock *blk )
 {
-   ATR_any       *atr ;
-   NI_element    *nel ;
-   int            ip  ;
+   ATR_any    *atr ;
+   NI_element *nel ;
+   int         ip  ;
+   char       *rhs ;
 
 ENTRY("THD_dblkatr_from_niml") ;
 
@@ -165,6 +168,15 @@ ENTRY("THD_dblkatr_from_niml") ;
        break ;
      }
    } /* end of loop over  parts */
+
+   /* 01 Jun 2005: special case:
+      reset the IDCODE_STRING attribute if the group element so indicates
+      (thereby overriding the AFNI_atr element of that name, if was present) */
+
+                     rhs = NI_get_attribute(ngr,"self_idcode") ;
+   if( rhs == NULL ) rhs = NI_get_attribute(ngr,"AFNI_idcode") ;
+   if( rhs != NULL && *rhs != '\0' )
+     THD_set_string_atr( blk , ATRNAME_IDSTRING , rhs ) ;
 
    EXRETURN ;
 }
@@ -331,8 +343,8 @@ ENTRY("THD_add_bricks") ;
    /*- and scale factor, if present -*/
 
    fac = 0.0 ;
-                     str = NI_get_attribute( nel , "AFNI_factor"  ) ;
-   if( str == NULL ) str = NI_get_attribute( nel , "scale_factor" ) ;
+                     str = NI_get_attribute( nel , "scale_factor" ) ;
+   if( str == NULL ) str = NI_get_attribute( nel , "AFNI_factor"  ) ;
    if( str != NULL && ( *str== '-' || isdigit(*str) ) )
      fac = (float)strtod( str , NULL ) ;
 
@@ -380,8 +392,8 @@ ENTRY("THD_add_bricks") ;
      }
      nbr++ ;   /* 1 more sub-brick! */
 
-          if( fac > 0.0 ) EDIT_BRICK_FACTOR(dset,bb,fac) ;
-     else if( fac < 0.0 ) EDIT_BRICK_FACTOR(dset,bb,0.0) ;
+          if( fac >  0.0 ) EDIT_BRICK_FACTOR(dset,bb,fac) ;
+     else if( fac <= 0.0 ) EDIT_BRICK_FACTOR(dset,bb,0.0) ;
 
      DSET_CRUSH_BSTAT(dset,bb) ;
 
@@ -415,7 +427,7 @@ ENTRY("THD_subbrick_to_niml") ;
    nxyz = DSET_NVOX(dset) ;             /* number of voxels */
 
    nel = NI_new_data_element( "VOLUME_DATA" , nxyz ) ;
-   NI_set_attribute( nel , "self_idcode" , dset->idcode.str ) ;
+   NI_set_attribute( nel , "domain_parent_idcode" , dset->idcode.str ) ;
    NI_add_column( nel , ityp , bar ) ;
    nel->outmode = NI_BINARY_MODE ;  /* write this in binary mode */
 

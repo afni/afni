@@ -2227,13 +2227,23 @@ ENTRY("process_NIML_AFNI_volumedata") ;
 
    if( ct_start >= 0 ) ct_read = NI_clock_time() - ct_start ;
 
-                     idc = NI_get_attribute( nini , "AFNI_idcode" ) ;
-   if( idc == NULL ) idc = NI_get_attribute( nini , "self_idcode" ) ;
+   /** find out who owns this otherwise anonymous data **/
+
+                     idc = NI_get_attribute( nini , "domain_parent_idcode" ) ;
+   if( idc == NULL ) idc = NI_get_attribute( nini , "AFNI_idcode" ) ;
    if( idc == NULL ) idc = NI_get_attribute( nini , "idcode"      ) ;
-   if( idc == NULL ) EXRETURN ;
+   if( idc == NULL ){
+     fprintf(stderr,"\n** ERROR: anonymous VOLUME_DATA received via NIML\a\n");
+     EXRETURN ;
+   }
 
    find = PLUTO_dset_finder(idc) ;
-   if( find.dset == NULL ) EXRETURN ;
+   if( find.dset == NULL ){
+     fprintf(stderr,"\n** ERROR: orphan VOLUME_DATA received via NIML\a\n");
+     EXRETURN ;
+   }
+
+   /** put this data into the dataset **/
 
    (void)THD_add_bricks( find.dset , nini ) ;
    THD_update_statistics( find.dset ) ;

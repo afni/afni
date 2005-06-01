@@ -376,26 +376,41 @@ ENTRY("THD_datablock_from_atr") ;
 
    /* create the auxiliary statistics stuff for each brick, if present */
 
-   atr_flt = THD_find_float_atr( dblk , ATRNAME_BRICK_STATAUX ) ;
-   if( atr_flt != NULL && atr_flt->nfl >= 3 ){
-     int ipos=0 , iv,nv,jv ;
+   atr_labs = THD_find_string_atr( dblk , "BRICK_STATSYM" ) ;  /* 01 Jun 2005 */
+   if( atr_labs != NULL && atr_labs->nch > 0 ){
+     NI_str_array *sar ; int scode,np ; float parm[3] ;
+     sar = NI_decode_string_list( atr_labs->ch , ";" ) ;
+     if( sar != NULL && sar->num > 0 ){
+       for( ibr=0 ; ibr < nvals && ibr < sar->num ; ibr++ ){
+         NI_stat_decode( sar->str[ibr] , &scode , parm,parm+1,parm+2 ) ;
+         if( scode >= AFNI_FIRST_STATCODE && scode <= AFNI_LAST_STATCODE ){
+           np = NI_stat_numparam(scode) ;
+           THD_store_datablock_stataux( dblk , ibr,scode,np,parm ) ;
+         }
+       }
+       NI_delete_str_array(sar) ;
+     }
+   } else {          /*--- the olde way to get ye brick stataux parameters ---*/
+     atr_flt = THD_find_float_atr( dblk , ATRNAME_BRICK_STATAUX ) ;
+     if( atr_flt != NULL && atr_flt->nfl >= 3 ){
+       int ipos=0 , iv,nv,jv ;
 
-     /* attribute stores all stataux stuff as follows:
-          sub-brick-index  statcode  no.-of-values value ... value
-          sub-brick-index  statcode  no.-of-values value ... value, etc. */
+       /* attribute stores all stataux stuff as follows:
+            sub-brick-index  statcode  no.-of-values value ... value
+            sub-brick-index  statcode  no.-of-values value ... value, etc. */
 
-     while( ipos <= atr_flt->nfl - 3 ){
-       iv = (int) ( atr_flt->fl[ipos++] ) ;  /* which sub-brick */
-       jv = (int) ( atr_flt->fl[ipos++] ) ;  /* statcode */
-       nv = (int) ( atr_flt->fl[ipos++] ) ;  /* # of values that follow */
+       while( ipos <= atr_flt->nfl - 3 ){
+         iv = (int) ( atr_flt->fl[ipos++] ) ;  /* which sub-brick */
+         jv = (int) ( atr_flt->fl[ipos++] ) ;  /* statcode */
+         nv = (int) ( atr_flt->fl[ipos++] ) ;  /* # of values that follow */
 
-       if( nv > atr_flt->nfl - ipos ) nv = atr_flt->nfl - ipos ;
+         if( nv > atr_flt->nfl - ipos ) nv = atr_flt->nfl - ipos ;
 
-       THD_store_datablock_stataux( dblk , iv , jv , nv , atr_flt->fl + ipos ) ;
-       ipos += nv ;
+         THD_store_datablock_stataux( dblk , iv , jv , nv , atr_flt->fl + ipos ) ;
+         ipos += nv ;
+       }
      }
    }
-
 #if 0
    if( PRINT_TRACING ){
      char str[256] ;
