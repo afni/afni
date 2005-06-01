@@ -4,7 +4,7 @@
 
 /******************************************************************************
   LOCK_file  (FILE *) returns 0 if OK to proceed, -1 if file is already locked
-     UNLOCK_file(FILE *) return value is ignored
+  UNLOCK_file(FILE *) return value is ignored
 *******************************************************************************/
 
 #if defined(USE_FLOCK)
@@ -41,7 +41,7 @@ int AFNI_logger( char * pname , int argc , char ** argv )
 {
    char *cline, *cdate , *eh , *fn , *logfile=LOGFILE ;
    FILE *fp ;
-   int ll ;
+   int ll ; unsigned long fll ;
 
    if( pname == NULL || pname[0] == '\0' ) return -1 ;
    eh = getenv("HOME") ; if( eh == NULL )  return -1 ;
@@ -52,16 +52,18 @@ int AFNI_logger( char * pname , int argc , char ** argv )
    cdate = tross_datetime() ;
    fn = AFMALL(char,  strlen(eh)+strlen(logfile)+8) ;
    strcpy(fn,eh) ; strcat(fn,"/") ; strcat(fn,logfile) ;
+   if( (fll=THD_filesize(fn)) > 100000000 )   /* 01 Jun 2005: for Kevin */
+     fprintf(stderr,"++ WARNING: file %s is now %lu bytes long!\n",fn,fll) ;
    fp = fopen(fn,"a") ;
    if( fp == NULL ){ free(fn); free(cdate); free(cline); return -1; }
    ll = LOCK_file(fp) ;
    if( ll ){
 #if 0
-      fprintf(stderr,"%s: LOCKED\n",cline);
+     fprintf(stderr,"%s: LOCKED\n",cline);
 #endif
-      ll = strlen(pname) ; if( ll > 11 ) ll = 11 ;
-      AFNI_sleep(ll) ; ll = LOCK_file(fp) ;
-      if( ll ){ fclose(fp); free(fn); free(cdate); free(cline); return -1; }
+     ll = strlen(pname) ; if( ll > 11 ) ll = 11 ;
+     AFNI_sleep(ll) ; ll = LOCK_file(fp) ;
+     if( ll ){ fclose(fp); free(fn); free(cdate); free(cline); return -1; }
    }
    fseek(fp,0,SEEK_END) ;
    fprintf(fp,"[%s] %s\n",cdate,cline) ;

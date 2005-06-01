@@ -29,6 +29,17 @@ ENTRY("THD_write_atr") ;
    if( DBLK_IS_MINC(blk)    ) RETURN( False ); /* 29 Oct 2001 */
    if( DBLK_IS_ANALYZE(blk) ) RETURN( False ); /* 27 Aug 2002 */
    if( DBLK_IS_NIFTI(blk)   ) RETURN( False ); /* 28 Aug 2003 */
+   if( DBLK_IS_CTFMRI(blk)  ) RETURN( False );
+   if( DBLK_IS_CTFSAM(blk)  ) RETURN( False );
+   if( DBLK_IS_MPEG(blk)    ) RETURN( False );
+
+   /** 01 Jun 2005: perhaps write in the new NIML format? **/
+
+   if( AFNI_yesenv("AFNI_WRITE_NIML") ){
+     return THD_write_nimlatr( blk ) ;
+   }
+
+   /** Write the old AFNI format **/
 
    header_file = fopen( dkptr->header_name , "w" ) ;
    if( header_file == NULL ){
@@ -130,4 +141,40 @@ ENTRY("THD_write_atr") ;
 
    fclose( header_file ) ;
    RETURN( True );
+}
+
+/*----------------------------------------------------------------------*/
+
+Boolean THD_write_nimlatr( THD_datablock *blk )  /* 01 Jun 2005 */
+{
+   NI_stream ns ;
+   NI_group  *ngr ;
+   char sname[2048] ;
+   THD_3dim_dataset *dset ;
+
+ENTRY("THD_write_nimlatr") ;
+
+   /* get dataset that contains this datablock */
+
+   dset = (THD_3dim_dataset *)blk->parent ;
+   if( !ISVALID_DSET(dset) ) RETURN(False) ;  /* bad */
+
+   /* convert dataset struct AFNI attributes into a NIML element */
+
+   ngr = THD_nimlize_dsetatr( dset ) ;
+   if( ngr == NULL ) return ;            /* bad */
+   NI_set_attribute( ngr , "self_prefix" , blk->diskptr->prefix ) ;
+
+   /* open output NIML stream (to file) */
+
+   sprintf(sname,"file:%s",blk->diskptr->header_name) ;
+   ns = NI_stream_open( sname , "w" ) ;
+   if( ns == (NI_stream)NULL ) RETURN(False) ;
+
+   /* write XML header and then the AFNI header element */
+
+   NI_stream_writestring( ns , "<?xml version='1.0' ?>\n" ) ;
+   NI_write_element( ns , ngr , NI_TEXT_MODE ) ;
+   NI_stream_close( ns ) ;
+   RETURN(True) ;
 }

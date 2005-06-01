@@ -5571,3 +5571,8 @@
  * Modified various things (like thd_nimlatr.c) to change names of some
      NIML attributes, in concordance with the treaty reached today with
      Ziad Saad.
+
+01 Jun 2005
+ * Modifications to thd_atr.c, etc., to allow .HEAD files to be stored
+     using XML.
+ * Warn user when ~/.afni.log file goes over 100 MB (the Kevin Murphy bug).

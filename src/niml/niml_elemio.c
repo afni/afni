@@ -732,6 +732,9 @@ void NI_reset_buffer( NI_stream_type *ns )
       - The '<...' part filled the entire buffer space.  In this case,
          all the input buffer is thrown away - we don't support
          headers or trailers this long!
+
+    01 Jun 2005: skip XML comments, which are of the form
+                 "<!-- arbitrary text -->".
 ------------------------------------------------------------------------*/
 
 static int scan_for_angles( NI_stream_type *ns, int msec )
@@ -759,29 +762,10 @@ Restart:                                       /* loop back here to retry */
 
    if( num_restart > 3 && mleft <= 0 && !caseb ){              /* failure */
       NI_reset_buffer(ns) ;                            /* and out of time */
-#ifdef NIML_DEBUG
-NI_dpr("  scan_for_angles: out of time!\n") ;
-#endif
       return -1 ;
    }
 
-#ifdef NIML_DEBUG
-if( ns->npos < ns->nbuf && dfp != NULL ){
-  int   nb = ns->nbuf - ns->npos ;
-  char *bf = ns->buf  + ns->npos ;
-  int   ii ;
-  fprintf(dfp,"  scan_for_angles: npos=%d epos=%d nbuf=%d buffer=\n",
-        ns->npos,epos,ns->nbuf ) ;
-  for( ii=0 ; ii < nb ; ii++ ){
-    fprintf(dfp," %02x:%c", (unsigned char)(bf[ii]) ,
-                            isprint(bf[ii]) ? bf[ii] : '.' ) ;
-    if( ii%10 == 9 ) fprintf(dfp,"\n") ;
-  }
-  fprintf(dfp,"\n") ;
-}
-#endif
-
-   /*-- scan ahead to find goal in the buffer --*/
+   /*-- scan ahead to find goal character in the buffer --*/
 
    while( epos < ns->nbuf && ns->buf[epos] != goal ) epos++ ;
 
@@ -789,13 +773,35 @@ if( ns->npos < ns->nbuf && dfp != NULL ){
 
    if( epos < ns->nbuf ){
 
-#ifdef NIML_DEBUG
-NI_dpr("  scan_for_angles: found goal=%c at epos=%d\n",goal,epos) ;
+     /*-- if our goal was the closing '>', we are done! (maybe) --*/
+
+     if( goal == '>' ){
+
+       /*- 01 Jun 2005: see if we are at a comment; if so, must start over -*/
+
+       if( epos - ns->npos >= 4 && strncmp(ns->buf+ns->npos,"<!--",4) == 0 ){
+
+         if( strncmp(ns->buf+epos-2,"-->",3) == 0 ){  /* got a full comment */
+
+#if 0
+{ int ncp = 1+epos-ns->npos ; char *cpt=malloc(10+ncp) ;
+  memcpy(cpt,ns->buf+ns->npos,ncp) ; cpt[ncp] = '\0' ;
+  fprintf(stderr, "\nSkipping NIML comment: '%s'\n",cpt); free(cpt);
+}
 #endif
+         
+           ns->npos = epos+1 ; NI_reset_buffer(ns) ;  /* skip it & try again */
+           epos = 0 ; goal = '<' ;
+         } else {                              /* '>' doesn't close comment! */
+           epos++ ;                            /* so look for another one!!! */
+         }
+         caseb = 1 ; goto Restart ;
+       }
 
-     /*-- if our goal was the closing '>', we are done! --*/
+       /*** not a comment, so we can exit triumphantly! ***/
 
-     if( goal == '>' ) return epos+1 ;  /* marks the character after '>' */
+       return epos+1 ;  /* marks the character after '>' */
+     }
 
      /*-- if here, our goal was the opening '<';
           set the buffer position to this location,
@@ -816,21 +822,15 @@ NI_dpr("  scan_for_angles: found goal=%c at epos=%d\n",goal,epos) ;
              - in this case, the universe ends right here and now --*/
 
    if( goal == '<' ){                    /* case (a) */
-#ifdef NIML_DEBUG
-NI_dpr("  scan_for_angles: case (a)\n") ;
-#endif
+
       ns->nbuf = ns->npos = epos = 0 ; caseb = 0 ;
 
    } else if( ns->nbuf < ns->bufsize || ns->npos > 0 ){  /* case (b) */
-#ifdef NIML_DEBUG
-NI_dpr("  scan_for_angles: case (b)\n") ;
-#endif
-      NI_reset_buffer(ns) ; epos = 0 ; caseb = 1 ;
+
+      NI_reset_buffer(ns) ; epos = ns->nbuf ; caseb = 1 ;
 
    } else {                              /* case (c) */
-#ifdef NIML_DEBUG
-NI_dpr("  scan_for_angles: case (c)\n") ;
-#endif
+
       ns->nbuf = 0 ; return -1 ;         /* death of Universe! */
    }
 
@@ -840,7 +840,7 @@ NI_dpr("  scan_for_angles: case (c)\n") ;
         waiting up to mleft ms (unless the data stream goes bad) --*/
 
    if( mleft <= 0 ) mleft = 1 ;
-   nbmin = (goal == '<') ? 3 : 1 ;
+   nbmin = (goal == '<') ? 4 : 1 ;
 
    nn = NI_stream_fillbuf( ns , nbmin , mleft ) ;
 

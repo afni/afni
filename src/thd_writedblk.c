@@ -156,18 +156,18 @@ fprintf(stderr,"THD_write_datablock: save_order=%d  dkptr->byte_order=%d\n",
 #endif
 
    if( save_order != LSB_FIRST && save_order != MSB_FIRST )
-      save_order = native_order ;
+     save_order = native_order ;
 
    if( save_order == LSB_FIRST )
-      THD_set_string_atr( blk , ATRNAME_BYTEORDER , LSB_FIRST_STRING ) ;
+     THD_set_string_atr( blk , ATRNAME_BYTEORDER , LSB_FIRST_STRING ) ;
    else if( save_order == MSB_FIRST )
-      THD_set_string_atr( blk , ATRNAME_BYTEORDER , MSB_FIRST_STRING ) ;
+     THD_set_string_atr( blk , ATRNAME_BYTEORDER , MSB_FIRST_STRING ) ;
 
    /*-- actually write attributes to disk --*/
 
    good = THD_write_atr( blk ) ;
    if( good == False )
-      WRITE_ERR("failure to write attributes - is disk full? do you have write permission?") ;
+     WRITE_ERR("failure to write attributes - is disk full? do you have write permission?") ;
 
    /*-- if not writing data, can exit --*/
 

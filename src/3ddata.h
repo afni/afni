@@ -3098,9 +3098,10 @@ extern char * THD_trailname( char * fname , int lev ) ;
 
 extern int THD_linecount( char * ) ;
 
-extern void THD_read_all_atr( char * , THD_datablock * ) ;
+extern void THD_read_all_atr ( char * , THD_datablock * ) ;
 extern void THD_erase_all_atr( THD_datablock * ) ;
 extern void THD_erase_one_atr( THD_datablock * , char * ) ;
+extern void THD_read_niml_atr( char * , THD_datablock * ) ; /* 01 Jun 2005 */
 
 extern ATR_any    * THD_find_atr       ( THD_datablock * , char * ) ;
 extern ATR_float  * THD_find_float_atr ( THD_datablock * , char * ) ;
@@ -3291,6 +3292,7 @@ extern void THD_use_NIFTI_format( int ) ;  /* 06 Apr 2005 */
 
 extern Boolean THD_write_datablock( THD_datablock * , Boolean ) ;
 extern Boolean THD_write_atr( THD_datablock * ) ;
+extern Boolean THD_write_nimlatr( THD_datablock * ) ;  /* 01 Jun 2005 */
 extern void THD_set_write_compression( int mm ) ;
 extern int THD_enviro_write_compression(void) ;
 extern int THD_get_write_compression(void) ;
