@@ -106,7 +106,11 @@ void atr_print( ATR_any * atr )
          char *str = (char *)malloc(sizeof(char)*(aa->nch+1)) ;
          char *eee ;
          memcpy(str,aa->ch,aa->nch) ; str[aa->nch] = '\0' ;
+#if 0
          eee = tross_Expand_String(str) ;
+#else
+         eee = NULL ;
+#endif
          if( do_name ) printf("%s = ",aa->name) ;
          if( eee != NULL ){
             printf("%s\n",eee) ; free(eee) ;

@@ -231,7 +231,7 @@ int unescape_inplace( char *str )
                   isdigit(str[ii+2]) ){   /* &#dec; */
 
             unsigned int val='?' ; int kk=ii+3 ;
-            while( kk < ll && kk != ';' ) kk++ ;
+            while( kk < ll && str[kk] != ';' ) kk++ ;
             sscanf( str+ii+2 , "%u" , &val ) ;
             str[jj] = (char) val ; ii = kk ; nn++ ;
          }
@@ -242,7 +242,7 @@ int unescape_inplace( char *str )
                   isxdigit(str[ii+3]) ){   /* &#hex; */
 
             unsigned int val='?' ; int kk=ii+4 ;
-            while( kk < ll && kk != ';' ) kk++ ;
+            while( kk < ll && str[kk] != ';' ) kk++ ;
             sscanf( str+ii+3 , "%x" , &val ) ;
             str[jj] = (char) val ; ii = kk ; nn++ ;
          }
@@ -263,7 +263,8 @@ int unescape_inplace( char *str )
 
       /* at this point, ii=index of last character used up in scan
                         jj=index of last character written to (jj <= ii) */
-   }
+
+   } /* end of loop scanning over input/output string */
 
    if( jj < ll ) str[jj] = '\0' ; /* end string properly */
 

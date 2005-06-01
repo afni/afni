@@ -36,12 +36,37 @@ ENTRY("THD_read_all_atr") ;
    blk->natr_alloc = 0 ;
    blk->atr        = NULL ;
 
+   /* certain types of filenames are verboten */
+
    if( STRING_HAS_SUFFIX(headername,".mnc")    ) EXRETURN ;
    if( STRING_HAS_SUFFIX(headername,".nii")    ) EXRETURN ;
    if( STRING_HAS_SUFFIX(headername,".nii.gz") ) EXRETURN ;
+   if( STRING_HAS_SUFFIX(headername,".mri")    ) EXRETURN ;
+   if( STRING_HAS_SUFFIX(headername,".ctf")    ) EXRETURN ;
+   if( STRING_HAS_SUFFIX(headername,".hdr")    ) EXRETURN ;
+   if( STRING_HAS_SUFFIX(headername,".mpg")    ) EXRETURN ;
+
+   /* open file; if unable to do so, exeunt */
 
    header_file = fopen( headername , "r" ) ;
    if( header_file == NULL ) EXRETURN ;
+
+   /* 01 Jun 2005: check if this is a NIML-style header file */
+
+   { char buf[1024] , *cpt ; int nbuf ;
+     nbuf = fread( buf , 1 , 1023 , header_file ) ;    /* read first 1K */
+     if( nbuf > 0 ){                                  /* got something? */
+       buf[nbuf] = '\0' ;
+                         cpt = strstr( buf , "<AFNI_dataset"    ) ;
+       if( cpt == NULL ) cpt = strstr( buf , "<AFNI_attributes" ) ;
+       if( cpt != NULL ){                        /*** NIML Dataset!!! ***/
+         fclose( header_file ) ;
+         THD_read_niml_atr( headername , blk ) ; /** read the new way! **/
+         EXRETURN ;
+       }
+     }
+     rewind( header_file ) ;                /*** old style dataset!!! ***/
+   }
 
    /* read attributes from the header file */
 
@@ -152,6 +177,45 @@ ENTRY("THD_read_all_atr") ;
    } while(1) ; /* end of for loop over all attributes */
 
    fclose( header_file ) ; EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Read NIML-formatted attributes from the header file. [01 Jun 2005]
+-------------------------------------------------------------------------*/
+
+void THD_read_niml_atr( char *headername , THD_datablock *blk )
+{
+   NI_stream ns ;
+   void *nini ;
+   NI_group *ngr ;
+   char sname[2048] ;
+
+ENTRY("THD_read_niml_atr") ;
+
+   /** open NIML stream **/
+
+   if( headername == NULL || *headername == '\0' || blk == NULL ) EXRETURN ;
+   sprintf(sname,"file:%s",headername) ;
+   ns = NI_stream_open( sname , "r" ) ;
+   if( ns == (NI_stream)NULL ) EXRETURN ;
+
+   /** read one group element from it **/
+
+   while(1){
+     nini = NI_read_element( ns , 9 ) ;
+     if( nini == NULL ){ NI_stream_close(ns); EXRETURN; }  /* bad */
+     if( NI_element_type(nini) == NI_GROUP_TYPE ) break ;  /* good */
+     NI_free_element(nini) ;
+   }
+   NI_stream_close( ns ) ;
+   ngr = (NI_group *)nini ;
+   if( strncmp(ngr->name,"AFNI_",5) != 0 ){ NI_free_element(ngr); EXRETURN; }
+
+   /** actually process element, then exit stage right **/
+
+   THD_dblkatr_from_niml( ngr , blk ) ;
+   NI_free_element( ngr ) ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------------
@@ -296,6 +360,8 @@ ENTRY("THD_find_atr") ;
    RETURN(NULL) ;  /* none matched */
 }
 
+/*-----------------------------------------------------------------------*/
+
 ATR_float * THD_find_float_atr( THD_datablock *blk , char *name )
 {
    ATR_any *aa ;
@@ -305,6 +371,8 @@ ATR_float * THD_find_float_atr( THD_datablock *blk , char *name )
    else                                           return (ATR_float *) aa ;
 }
 
+/*-----------------------------------------------------------------------*/
+
 ATR_int * THD_find_int_atr( THD_datablock *blk , char *name )
 {
    ATR_any *aa ;
@@ -313,6 +381,8 @@ ATR_int * THD_find_int_atr( THD_datablock *blk , char *name )
    if( aa == NULL || aa->type != ATR_INT_TYPE ) return NULL ;
    else                                         return (ATR_int *) aa ;
 }
+
+/*-----------------------------------------------------------------------*/
 
 ATR_string * THD_find_string_atr( THD_datablock *blk , char *name )
 {
