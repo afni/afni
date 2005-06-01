@@ -218,7 +218,7 @@ if (Opt.method == 0),
       v = v (strt:stp,:);
    end
 elseif (Opt.method == 1),
-   if (verb) fprintf(1,'1D file is expected not to have any comments.\n'); end
+   if (verb) fprintf(1,'Assuming 1D file has no comments.\n'); end
    v = load(fname);
    if (isempty(v)), fprintf(2,'Failed to read 1D file. If file exists Try method 0\n'); err = 1; return; end
    % sub-bricks?
