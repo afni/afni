@@ -149,6 +149,11 @@ if (is1D),
    FullName = sprintf('%s%s', Name, Ext);
    [err, UsedName] = wryte3(M, FullName, Opt1D);
    Info = Info_1D(M); 
+	
+	if (isempty(Ext) == 1),
+	   Ext = '.1D.dset';		
+	end		
+	
    Info.Extension_1D = sprintf('%s', Ext); 
    Info.RootName = sprintf('%s', Name);
    return;

@@ -227,16 +227,16 @@ switch NF
    case 2,  %totally 3 terms: A, B, abd AXB.
       dfterm_new = dfterm; tnames_new = tnames;	msterm_new = msterm; intensity_new = intensity;
 		
-   switch dsgn  % Allocate denominator and its d.f. for each F ratio
+      switch dsgn  % Allocate denominator and its d.f. for each F ratio
       case 1,
          msdenom = repmat(mse, size(msterm)); 
-	 dfdenom = repmat(dfe, size(msterm)); 
-      case 2,
-	 msdenom = [msterm(3), msterm(3), mse];
-	 dfdenom = [dfterm(3), dfterm(3), dfe];
-      case 3,	
-   	 msdenom = [msterm(3), mse, mse];
-	 dfdenom = [dfterm(3), dfe, dfe];		
+	      dfdenom = repmat(dfe, size(msterm)); 
+      case 2,	
+   	   msdenom = [msterm(3), mse, mse];
+	      dfdenom = [dfterm(3), dfe, dfe];	
+      case 3,
+	      msdenom = [msterm(3), msterm(3), mse];
+	      dfdenom = [dfterm(3), dfterm(3), dfe];				
    end   % Close swtich dsgn
 		
    case 3,
