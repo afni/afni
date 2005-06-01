@@ -8,7 +8,7 @@ function [err, Contr] = ContrVec(order, n, NF, group, dmat, Contr, FL, num_col)
 %   
 %Input Parameters:
 %   
-%   adsgsadhg
+%   
 %   
 %Output Parameters:
 %   err : 0 No Problem

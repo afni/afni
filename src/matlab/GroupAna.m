@@ -52,6 +52,31 @@ fprintf('\n\t5. Currently all of the following terms are modeled: main effects a
 fprintf('\n\t6. One covariate is currently allowed in the analysis, which should be in the format of one-column text file.\n');
 fprintf('\t   The column length has to be the same as the total number of input files.\n');
 
+
+% Grouop analysis for Volume or Surface data?
+flg = 0;
+while flg == 0,
+   data_type = input('\nGroups analysis for volume or surface data (0 - volume; 1 - surface)? ');
+	if (data_type ~= 0 & data_type ~= 1),
+	   flg = 0; fprintf(2,'Error: wrong input! Please try it again.\n');
+	else flg = 1;
+   end
+end
+
+% If for surface data, acquire number of nodes
+flg = 0;
+if (data_type == 1),
+   fprintf(1, '\nProgram @Purify_1D can be used to extract the regressor coefficient column to a 1D file.');
+	Frame_N = input('\nWhich column corresponds to regressor coefficient? (1, 2, 3, ...) ');	
+	while flg == 0,
+	   node_n = input('\nHow many number of nodes in the surface data? ');
+	   if (isnumeric(node_n) == 0 | isempty(node_n)),
+	      flg = 0; fprintf(2,'Error: the input is not a number. Please try it again.\n');
+	   else flg = 1; end
+   end
+else Opt.Frames = 1;	 % In the case of volumetric data, it's supposed to have only ONE subbrik!
+end
+
 flg = 0;
 while flg == 0,
    NF = input('\nHow many factors? ');
@@ -69,10 +94,10 @@ switch NF
    case 2,
    fprintf('\nAvailabe design types:\n');
    fprintf('\n\tType 1: Factorial (crossed) design AXB - both factors are fixed.\n');
-   fprintf('\n\tType 2: Factorial (crossed) design AXB - both factors are random.\n');
-   fprintf('\n\tType 3: Factorial (crossed) design AXB - factor A is fixed while B is random. If B is subject, it is');
+   fprintf('\n\tType 2: Factorial (crossed) design AXB - factor A is fixed while B is random. If B is subject, it is');
 	fprintf('\n\t        usually called 1-way design with A varying within subject. Notice: It is inappropriate to');
 	fprintf('\n\t        run any constrasts including mean estimates and differences for factor B with this design type.\n');
+   fprintf('\n\tType 3: Factorial (crossed) design AXB - both factors are random.\n');	
 
    case 3,
    fprintf('\nAvailabe design types:\n');
@@ -292,7 +317,7 @@ if (cov.do),
  
    FL(NF+1).N_level = 1;  % This is for PreProc.m to get the correct 'shift' position
 
-   if (NF == 2 & dsgn == 2),  % 2-way ANOVA of A(R)XB(R) possible in FMRI?
+   if (NF == 2 & dsgn == 3),  % 2-way ANOVA of A(R)XB(R) possible in FMRI?
 	   fprintf('\nThe 2-way ANCOVA for this design is currently NOT available.\n');
 		while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
    end
@@ -300,6 +325,7 @@ if (cov.do),
    flg = 0;
 	cov.label = input('Label for the covariate is: ', 's');
 	fprintf('The 1D file for the covariate has to be in the format of one-column text.\n');
+	fprintf('And the column should have exactly the same number and order of those input files.\n');	
    while flg == 0,
    cov.FN = input('\nConvariate file name: ', 's');
    fid0 = fopen(cov.FN,'r');
@@ -389,8 +415,12 @@ if (file_format == 1),
 					      elseif isempty(strfind(file(FI).nm, 'orig')) == 0
 					         format = 'orig';
 					      else 	
-					         while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
-						      fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					         if isempty(strfind(file(FI).nm, '1D')) == 0		% if 1D file (surface data)
+								   format = '1D';
+								else 					   
+								   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(FI).nm); 
+						         fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+								end
 					      end
 						end
 						
@@ -421,8 +451,12 @@ if (file_format == 1),
 					      elseif isempty(strfind(file(FI).nm, 'orig')) == 0
 					         format = 'orig';
 					      else 	
-					         while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
-						      fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					         if isempty(strfind(file(FI).nm, '1D')) == 0		% if 1D file (surface data)
+								   format = '1D';
+								else	
+								   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(FI).nm); 
+						         fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+								end
 					      end
 						end
 						
@@ -457,8 +491,12 @@ if (file_format == 1),
 					      elseif isempty(strfind(file(FI).nm, 'orig')) == 0
 					         format = 'orig';
 					      else 	
-					         while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
-						      fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					         if isempty(strfind(file(FI).nm, '1D')) == 0		% if 1D file (surface data)
+								   format = '1D';
+								else 					   
+								   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(FI).nm); 
+						         fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+								end
 					      end
 						end
 						
@@ -496,8 +534,12 @@ if (file_format == 1),
 					      elseif isempty(strfind(file(FI).nm, 'orig')) == 0
 					         format = 'orig';
 					      else 	
-					         while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
-						      fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					         if isempty(strfind(file(FI).nm, '1D')) == 0		% if 1D file (surface data)		   					 
+									format = '1D';
+							   else
+								   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(FI).nm); 
+						         fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+								end
 					      end
 						end
 						
@@ -551,8 +593,12 @@ if (file_format == 1),
 					elseif isempty(strfind(file(FI).nm, 'orig')) == 0
 					   format = 'orig';
 					else 	
-					   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
-						fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					   if isempty(strfind(file(FI).nm, '1D')) == 0		% if 1D file (surface data)
+							format = '1D';
+						else 					   
+						   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(FI).nm); 
+						   fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+						end
 					end					
             end
 				end % for (r = 1:1:FL(NF+1).N_level),	
@@ -596,9 +642,9 @@ if (file_format == 1),
                end
 	            fprintf('\tat repeat %i \n', r);
    	         file(FI).nm = input('is: ', 's');	
-	            fid = fopen (file(i).nm,'r');	
+	            fid = fopen (file(FI).nm,'r');	
                if (fid == -1),
-   	            flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(i).nm);
+   	            flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(FI).nm);
                else flg = 1; fclose (fid);	end
 					
 					if isempty(strfind(file(FI).nm, 'tlrc')) == 0
@@ -606,8 +652,12 @@ if (file_format == 1),
 					elseif isempty(strfind(file(FI).nm, 'orig')) == 0
 					   format = 'orig';
 					else 	
-					   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
-						fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					         if isempty(strfind(file(FI).nm, '1D')) == 0		% if 1D file (surface data)
+								   format = '1D';
+								else 					   
+								   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(FI).nm); 
+						         fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+								end
 					end					
             end
 				end % for (r = 1:1:FL(NF+1).N_level),	
@@ -653,8 +703,12 @@ if (file_format == 1),
 			elseif isempty(strfind(file(i).nm, 'orig')) == 0
 			   format = 'orig';
 			else 	
-			while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
-				fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+					         if isempty(strfind(file(i).nm, '1D')) == 0		% if 1D file (surface data)
+								   format = '1D';
+								else 					   
+								   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(i).nm); 
+						         fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+								end
 			end					
       end	
    end
@@ -710,7 +764,7 @@ if (file_format == 0),   % unused now!
    			   end	
  			
    			   if (fid == -1),
-      	         flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(FI).nm);
+      	         flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(i).nm);
                else flg = 1; fclose (fid);	end
    		   end
    		end   % for (i=1:1:file_num),
@@ -1161,7 +1215,7 @@ end  % end of if (Contrast)
 
 cov.marker = 10000;  % temporary solution when no covariate exists in PreProc.m
      
-if (cov.do),  % new design type after covariate is added
+if (cov.do),  % new design type after covariate is added: Seems this section not needed?
    switch NF
 	   case 1,
 		   NF = 2;   % 1-ay ANCOVA
@@ -1169,7 +1223,7 @@ if (cov.do),  % new design type after covariate is added
 		case 2,
 		   NF = 3;   % 2-ay ANCOVA
 			if (dsgn == 1), dsgn = 1; end
-			if (dsgn == 3), dsgn = 2; end
+			if (dsgn == 2), dsgn = 2; end
 		case 3,
 		   NF = 4;   % 3-ay ANCOVA
 			if (dsgn == 1), dsgn = 1; end
@@ -1337,10 +1391,18 @@ Opt.Format = 'matrix';
 t0 = clock;
 
 [err, FileInfo] = BrikInfo(file(1).nm); 
-slices = FileInfo.DATASET_DIMENSIONS(3);    % Get the number of slices along Z axis from file header
+if (data_type == 0), 
+   slices = FileInfo.DATASET_DIMENSIONS(3);    % Get the number of slices along Z axis from file header
+elseif (data_type == 1),
+   if (Frame_N == 1), Opt.method = 1; % if being purified 
+	else Opt.method = 2; end
+   Opt.SliceSize_1D = 50000;  % each time run 50000 nodes due to memory limit
+	slices =  ceil(node_n/Opt.SliceSize_1D);
+end
 
-fprintf(1,'\nTotal slices along Z axis: %i', slices);
-fprintf(1,'\nRunning analysis on slice:\n');
+fprintf(1, '\nTotal slices along Z axis: %i - You can estimate the total runtime\n', slices);
+fprintf(1, '\tby multiplying the runtime for each slice from downbelow.\n');
+fprintf(1, '\nRunning analysis on slice:\n');
 
 for (sn = 1:1:slices),
 	tic,
@@ -1349,7 +1411,6 @@ for (sn = 1:1:slices),
 
 	if (file_format == 1),   % Each file contains only single subbrik
 %   fprintf(1,'\nReading %d input files...', ntot);
-		Opt.Frames = [];   %subbrik
 		Opt.Slices = sn;   % Right now just try once slice  
 %		Opt.Frames = 1;
 	   for (i=1:1:ntot),      % Read in each file   
@@ -1357,7 +1418,19 @@ for (sn = 1:1:slices),
 		 %should be in Info: Info.DATASET_DIMENSIONS(1), Info.DATASET_DIMENSIONS(2), 
 		 %Info.DATASET_DIMENSIONS(3), Info.DATASET_RANK(2)?
 %      [err, X(:, :, :, i), Info, ErrMessage] = BrikLoad(file(i).nm, Opt);
-			[err, X(:, :, i), Info, ErrMessage] = BrikLoad(file(i).nm, Opt);
+			
+			if (data_type == 0),  % Volume data
+			   [err, X(:, :, i), Info, ErrMessage] = BrikLoad(file(i).nm, Opt);
+			elseif (data_type == 1),	% Surface data
+			   Opt.Frames = Frame_N;
+				[err, Z, Info, ErrMessage] = BrikLoad(file(i).nm, Opt);
+				if (sn ~= 1), X(:,1,i) = zeros(size(X(:,1,i))); end 
+				% For the last chunk of nodes, which are not a whole set of 50,000. 
+				% Not an elegant solution: This would create some dangling 0's in the output file!
+				X(1:size(Z,1), 1, i) = Z;
+				clear Z; 
+			end	
+				
 	   	if (err == 1),
          	fprintf(2,'Error: failure on loading file %s -- %s. \n', file(i).nm, ErrMessage);
 			while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
@@ -1367,7 +1440,6 @@ for (sn = 1:1:slices),
 
 	if (file_format == 0),   % Each file contains mutliple subbriks from one subject
 %   fprintf(1,'\nReading slice #%d from %d input files... ', sn, file_num);
-		Opt.Frames = [];   %subbrik
 		Opt.Slices = sn;   % Right now just try once slice  
 	% Create a subbrik array. Here we assume the first file_SB subbriks are for ANOVA. Need to change for general situation?
 		for (i = 1:1:file_SB), Opt.Frames = [Opt.Frames, i]; end	  
@@ -1436,7 +1508,6 @@ for (sn = 1:1:slices),
    	end
 	end
 
-	fprintf(1, 'done in %f seconds\n', toc);	
 
 %====================================
 
@@ -1752,7 +1823,8 @@ for (sn = 1:1:slices),
    Opt.Prefix = sprintf('%s', OutFN);
    Opt.NoCheck = 0;
    Opt.Scale = 1;
-   Opt.View = sprintf('+%s', format);
+   if (data_type == 0), Opt.View = sprintf('+%s', format); 
+	elseif (data_type == 1) Opt.View = '.1D.dset'; end
 
    Info.TYPESTRING = '3DIM_HEAD_FUNC'; 
    %Info.DATASET_RANK(2) = 2*N_Brik;    % Number of subbriks
@@ -1865,10 +1937,16 @@ for (sn = 1:1:slices),
    Opt.Frames = [];  %Because it might have been set as the frame list in the case of input files with multiple subbriks during loading
 
 % Write output: reshape because the 3rd dimension is supposed to be Z in the normal situation.
-   [err2, ErrMessage, NewInfo] = WriteBrik(reshape(M, D1, D2, 1, Info.DATASET_RANK(2)), Info, Opt); 
+   if (data_type == 0),
+   	[err2, ErrMessage, NewInfo] = WriteBrik(reshape(M, D1, D2, 1, Info.DATASET_RANK(2)), Info, Opt); 
+	elseif (data_type == 1), % Collapse the 2nd dimsion, which is 1 for surface data.
+      [err2, ErrMessage, NewInfo] = WriteBrik(squeeze(reshape(M, D1, D2, 1, Info.DATASET_RANK(2))), Info, Opt); 
+	end	
+	fprintf(1, 'done in %f seconds\n', toc);	
+	
 end  % end of the big loop of running ANOVA and writing up: One slice a time 
 
-fprintf(1, '\nCongratulations, job is done!!! Total runtime: %f minutes...', etime(clock,t0)/60);	
+fprintf(1, '\nCongratulations, job is successfully done!!! Total runtime: %f minutes...', etime(clock,t0)/60);	
 fprintf(1, '\nOutput files are %s%s.*\n\n', Opt.Prefix, Opt.View);	
 err = 0;
 return;
