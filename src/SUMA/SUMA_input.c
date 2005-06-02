@@ -37,7 +37,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
    static SUMA_Boolean DoubleClick = NOPE;
    DList *list = NULL;
    DListElmt *NextElm= NULL;
-   float bevx, bevy, mevx, mevy;
+   float bevx, bevy, mevx, mevy, wwid, whei, zc_fac;
    SUMA_PROMPT_DIALOG_STRUCT *prmpt=NULL; /* Use this only to create prompt that are not to be preserved */
    SUMA_Boolean LocalHead = NOPE; /* local debugging messages */
 
@@ -852,7 +852,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (sv->ZoomCompensate) {
                sv->ZoomCompensate = sv->FOV[sv->iState] / FOV_INITIAL;
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
-               else if (sv->ZoomCompensate < 0.01) sv->ZoomCompensate = 0.01; /* weird stuff cause by integer spin variables! Proper way to handle all this is with float position storage and no recalculation of zc_fac except at zooming.*/ 
+               else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; 
             }
             SUMA_postRedisplay(w, clientData, callData);
             break;
@@ -864,7 +864,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (sv->ZoomCompensate) {
                sv->ZoomCompensate = sv->FOV[sv->iState] / FOV_INITIAL;
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
-               else if (sv->ZoomCompensate < 0.01) sv->ZoomCompensate = 0.01; /* weird stuff cause by integer spin variables! Proper way to handle all this is with float position storage and no recalculation of zc_fac except at zooming.*/ 
+               else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; /* weird stuff cause by integer spin variables! Proper way to handle all this is with float position storage and no recalculation of zc_fac except at zooming.*/ 
             }
             SUMA_postRedisplay(w, clientData, callData);
             break;
@@ -1565,10 +1565,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                sv->GVS[sv->StdView].zoomDelta = 0;   
             }else {
                bevx=(float)Bev.x; bevy = (float)Bev.y;
-               if (sv->ZoomCompensate) {
-                  bevx *= sv->ZoomCompensate;
-                  bevy *= sv->ZoomCompensate;
-               }
                /*fprintf(SUMA_STDERR,"%s: Button 1 down. New\n", FuncName);*/
                /* setup initial spinning conditions */
                sv->GVS[sv->StdView].spinBeginX = bevx;
@@ -1601,10 +1597,6 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /*fprintf(stdout,"Button 2 down, plain jane\n");*/
                /* setup initial translation conditions */
                bevx = (float)Bev.x; bevy = (float)Bev.y;
-               if (sv->ZoomCompensate) { 
-                  bevx *= sv->ZoomCompensate;
-                  bevy *= sv->ZoomCompensate;
-               }
                sv->GVS[sv->StdView].translateBeginX = bevx;;
                sv->GVS[sv->StdView].translateBeginY = bevy;
                sv->GVS[sv->StdView].translateDeltaX = 0.0;
@@ -1791,7 +1783,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if (sv->ZoomCompensate) {
                sv->ZoomCompensate = sv->FOV[sv->iState] / FOV_INITIAL;
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* no need to compensate at low zooms */
-               else if (sv->ZoomCompensate < 0.01) sv->ZoomCompensate = 0.01; /* no need to go lower */ 
+               else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; /* no need to go lower */ 
             }
             ii = SUMA_WhichSV (sv, SUMAg_SVv, SUMAg_N_SVv);
             SUMA_postRedisplay(w, clientData, callData);    
@@ -1801,11 +1793,14 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /*fprintf(SUMA_STDERR,"%s: In motion, Butt1 \n", FuncName); */
             mevx = (float)Mev.x;
             mevy = (float)Mev.y;
+            wwid = (float)sv->WindWidth;
+            whei = (float)sv->WindHeight;
             /* spinning mode */
             if (sv->ZoomCompensate) {
-               mevx *= sv->ZoomCompensate;
-               mevy *= sv->ZoomCompensate;
-            }
+               zc_fac = sv->ZoomCompensate;
+            }else {
+               zc_fac = 1.0;
+            }            
             sv->GVS[sv->StdView].spinDeltaX = (mevx - sv->GVS[sv->StdView].spinBeginX);
             sv->GVS[sv->StdView].spinDeltaY = (mevy - sv->GVS[sv->StdView].spinBeginY);
             
@@ -1821,9 +1816,11 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                         sv->GVS[sv->StdView].spinDeltaX, sv->GVS[sv->StdView].spinDeltaY, 
                         sv->WindWidth, sv->WindHeight, sv->ZoomCompensate); */
             if (sv->GVS[sv->StdView].spinDeltaX || sv->GVS[sv->StdView].spinDeltaY){
-               trackball(sv->GVS[sv->StdView].deltaQuat, 
-                  (2*sv->GVS[sv->StdView].spinBeginX - (float)sv->WindWidth)/(float)sv->WindWidth, ((float)sv->WindHeight - 2*sv->GVS[sv->StdView].spinBeginY)/(float)sv->WindHeight,
-                   (2*mevx - (float)sv->WindWidth)/(float)sv->WindWidth, ((float)sv->WindHeight - 2*mevy)/(float)sv->WindHeight); /* comput the increment Quat */
+               trackball(  sv->GVS[sv->StdView].deltaQuat, 
+                           (2*sv->GVS[sv->StdView].spinBeginX - wwid)/wwid*zc_fac, 
+                           (whei - 2*sv->GVS[sv->StdView].spinBeginY)/whei*zc_fac,
+                           (2*mevx - wwid)/wwid*zc_fac, 
+                           (whei - 2*mevy)/whei*zc_fac); /* comput the increment Quat */
                sv->GVS[sv->StdView].spinBeginX = mevx;
                sv->GVS[sv->StdView].spinBeginY = mevy;
                add_quats (sv->GVS[sv->StdView].deltaQuat, sv->GVS[sv->StdView].currentQuat, sv->GVS[sv->StdView].currentQuat);
@@ -1878,15 +1875,16 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             /* fprintf(SUMA_STDERR,"%s: In motion, Butt2 \n", FuncName);*/
             mevx = (float)Mev.x; mevy = (float)Mev.y;
             if (sv->ZoomCompensate) {
-               mevx *= sv->ZoomCompensate;
-               mevy *= sv->ZoomCompensate;
+               zc_fac = sv->ZoomCompensate;
+            }else {
+               zc_fac = 1.0;
             }
             sv->GVS[sv->StdView].translateDeltaX =  (mevx - sv->GVS[sv->StdView].translateBeginX)/(float)sv->WindWidth*sv->GVS[sv->StdView].TranslateGain;
             sv->GVS[sv->StdView].translateDeltaY = -(mevy - sv->GVS[sv->StdView].translateBeginY)/(float)sv->WindHeight*sv->GVS[sv->StdView].TranslateGain;
             
             if (sv->GVS[sv->StdView].translateDeltaX || sv->GVS[sv->StdView].translateDeltaY){
-               sv->GVS[sv->StdView].translateVec[0] += (GLfloat)sv->GVS[sv->StdView].translateDeltaX;
-               sv->GVS[sv->StdView].translateVec[1] += (GLfloat)sv->GVS[sv->StdView].translateDeltaY;
+               sv->GVS[sv->StdView].translateVec[0] += (GLfloat)sv->GVS[sv->StdView].translateDeltaX * zc_fac;
+               sv->GVS[sv->StdView].translateVec[1] += (GLfloat)sv->GVS[sv->StdView].translateDeltaY * zc_fac;
                sv->GVS[sv->StdView].translateBeginX = mevx;
                sv->GVS[sv->StdView].translateBeginY = mevy;
                SUMA_postRedisplay(w, clientData, callData);
