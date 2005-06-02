@@ -36,7 +36,7 @@ ENTRY("THD_read_all_atr") ;
    blk->natr_alloc = 0 ;
    blk->atr        = NULL ;
 
-   /* certain types of filenames are verboten */
+   /*--- certain types of filenames are verboten ---*/
 
    if( STRING_HAS_SUFFIX(headername,".mnc")    ) EXRETURN ;
    if( STRING_HAS_SUFFIX(headername,".nii")    ) EXRETURN ;
@@ -46,29 +46,28 @@ ENTRY("THD_read_all_atr") ;
    if( STRING_HAS_SUFFIX(headername,".hdr")    ) EXRETURN ;
    if( STRING_HAS_SUFFIX(headername,".mpg")    ) EXRETURN ;
 
-   /* open file; if unable to do so, exeunt */
+   /*--- open file; if unable to do so, exeunt ---*/
 
    header_file = fopen( headername , "r" ) ;
    if( header_file == NULL ) EXRETURN ;
 
-   /* 01 Jun 2005: check if this is a NIML-style header file */
+   /*--- 01 Jun 2005: check if this is a NIML-style header file ---*/
 
    { char buf[1024] , *cpt ; int nbuf ;
      nbuf = fread( buf , 1 , 1023 , header_file ) ;    /* read first 1K */
      if( nbuf > 0 ){                                  /* got something? */
        buf[nbuf] = '\0' ;
-                         cpt = strstr( buf , "<AFNI_dataset"    ) ;
-       if( cpt == NULL ) cpt = strstr( buf , "<AFNI_attributes" ) ;
+       cpt = strstr( buf , "<AFNI_" ) ;
        if( cpt != NULL ){                        /*** NIML Dataset!!! ***/
-         fclose( header_file ) ;
+         fclose( header_file ) ;                 /* is reopened by NIML */
          THD_read_niml_atr( headername , blk ) ; /** read the new way! **/
          EXRETURN ;
        }
      }
-     rewind( header_file ) ;                /*** old style dataset!!! ***/
+     rewind( header_file ) ; /*** old style dataset ==> read it below ***/
    }
 
-   /* read attributes from the header file */
+   /*----- read attributes from the header file -----*/
 
    do{
       char aname[THD_MAX_NAME] , atypestr[THD_MAX_NAME] ;
@@ -192,20 +191,20 @@ void THD_read_niml_atr( char *headername , THD_datablock *blk )
 
 ENTRY("THD_read_niml_atr") ;
 
-   /** open NIML stream **/
+   /** open NIML stream to read from the file **/
 
    if( headername == NULL || *headername == '\0' || blk == NULL ) EXRETURN ;
-   sprintf(sname,"file:%s",headername) ;
+   sprintf(sname,"file:%s",headername) ; STATUS(sname) ;
    ns = NI_stream_open( sname , "r" ) ;
    if( ns == (NI_stream)NULL ) EXRETURN ;
 
-   /** read one group element from it **/
+   /** read one group element from it (e.g., skipping the XML prolog) **/
 
    while(1){
      nini = NI_read_element( ns , 9 ) ;
-     if( nini == NULL ){ NI_stream_close(ns); EXRETURN; }  /* bad */
-     if( NI_element_type(nini) == NI_GROUP_TYPE ) break ;  /* good */
-     NI_free_element(nini) ;
+     if( nini == NULL ){ NI_stream_close(ns); EXRETURN; }      /* bad! */
+     if( NI_element_type(nini) == NI_GROUP_TYPE ) break ;      /* good */
+     NI_free_element(nini) ;                       /* not what we want */
    }
    NI_stream_close( ns ) ;
    ngr = (NI_group *)nini ;
@@ -213,7 +212,7 @@ ENTRY("THD_read_niml_atr") ;
 
    /** actually process element, then exit stage right **/
 
-   THD_dblkatr_from_niml( ngr , blk ) ;
+   THD_dblkatr_from_niml( ngr , blk ) ;  /* cf. thd_nimlatr.c */
    NI_free_element( ngr ) ;
    EXRETURN ;
 }

@@ -5576,3 +5576,7 @@
  * Modifications to thd_atr.c, etc., to allow .HEAD files to be stored
      using XML.
  * Warn user when ~/.afni.log file goes over 100 MB (the Kevin Murphy bug).
+
+02 Jun 2005
+ * Modify thd_nimlatr.c to split large String attributes into multiple
+     substrings when using NIML, so as to avoid buffer size problems.
