@@ -5580,3 +5580,5 @@
 02 Jun 2005
  * Modify thd_nimlatr.c to split large String attributes into multiple
      substrings when using NIML, so as to avoid buffer size problems.
+ * Fixed bug in niml/niml_stat.c decoding of strings such as "Ftest(3,7)"
+     (forgot to skip the comma!).
