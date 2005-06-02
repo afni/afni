@@ -1185,6 +1185,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
          }
          nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
 
+#if 0
          /** 26 Mar 2003: write number of bytes of data contained herein **/
 
          for( jj=ii=0 ; ii < nel->vec_num ; ii++ )
@@ -1192,6 +1193,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
                                   nel->vec_len , nel->vec[ii] ) ;
          sprintf(att,"%sni_datasize%s\"%d\"" , att_prefix , att_equals , jj ) ;
          nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
+#endif
 
 #if 0
          /* extras: ni_veclen and ni_vecnum attributes */
@@ -1274,16 +1276,16 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
 
          strcpy(att,att_prefix) ;
 
-         if( NI_is_name(nel->attr_lhs[ii]) ){
+         if( NI_is_name(nel->attr_lhs[ii]) ){           /* the 'normal' case */
            strcat(att,nel->attr_lhs[ii]) ;
-         } else {
+         } else {                                        /* not legal in XML */
            qtt = quotize_string( nel->attr_lhs[ii] ) ;
            strcat(att,qtt) ; NI_free(qtt) ;
          }
 
          if( kk > 0 ){
             strcat(att,att_equals) ;
-            qtt = quotize_string( nel->attr_rhs[ii] ) ;
+            qtt = quotize_string( nel->attr_rhs[ii] ) ; /* RHS always quoted */
             strcat(att,qtt) ; NI_free(qtt) ;
          }
          nout = NI_stream_writestring( ns , att ) ; ADDOUT ;
@@ -1302,7 +1304,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
           nel->vec     == NULL   ){
 
         nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT ;
-        nout = NI_stream_writestring( ns , "/>\n" ) ; ADDOUT ;
+        nout = NI_stream_writestring( ns , "/>\n" )    ; ADDOUT ;
 
 #ifdef NIML_DEBUG
   NI_dpr("NI_write_element: empty element '%s' had %d total bytes\n",nel->name,ntot) ;
@@ -1333,7 +1335,7 @@ NI_dpr("NI_write_element: write socket now connected\n") ;
       nout = NI_stream_writestring( ns , att_trail ) ; ADDOUT ;
       nout = NI_stream_writestring( ns , btt ) ; ADDOUT ;
 
-      /*-- 13 Feb 2003: output is now done elsewhere --*/
+      /*-- 13 Feb 2003: data output is now done elsewhere --*/
 
       if( !header_only ){
         nout = NI_write_columns( ns, nel->vec_num, nel->vec_typ,
