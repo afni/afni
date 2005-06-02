@@ -5582,3 +5582,5 @@
      substrings when using NIML, so as to avoid buffer size problems.
  * Fixed bug in niml/niml_stat.c decoding of strings such as "Ftest(3,7)"
      (forgot to skip the comma!).
+ * Remove AFNI_niml_atexit() from afni_niml.c since it is now redundant
+     with the atexit stuff in niml/niml_stream.c (oopsie).

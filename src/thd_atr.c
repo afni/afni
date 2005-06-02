@@ -188,15 +188,21 @@ void THD_read_niml_atr( char *headername , THD_datablock *blk )
    void *nini ;
    NI_group *ngr ;
    char sname[2048] ;
+   long fsize ;
 
 ENTRY("THD_read_niml_atr") ;
 
    /** open NIML stream to read from the file **/
 
    if( headername == NULL || *headername == '\0' || blk == NULL ) EXRETURN ;
+   fsize = NI_filesize(headername) ; if( fsize <= 10 ) EXRETURN ;
    sprintf(sname,"file:%s",headername) ; STATUS(sname) ;
    ns = NI_stream_open( sname , "r" ) ;
    if( ns == (NI_stream)NULL ) EXRETURN ;
+   if( fsize > NI_BUFSIZE ){
+     fsize = MIN( 4*NI_BUFSIZE , fsize ) ;
+     NI_stream_setbufsize( ns , fsize ) ;
+   }
 
    /** read one group element from it (e.g., skipping the XML prolog) **/
 
