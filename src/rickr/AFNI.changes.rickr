@@ -1153,3 +1153,5 @@
 18 May 2005: Dimon (v 0.4)
   * update complete_orients_str() for IFM_IM_FTYPE_DICOM
 
+02 June 2005: 3dVol2Surf (v 6.4)
+  * added -skip_col_non_results option
