@@ -2132,6 +2132,17 @@ static char * readme_env[] = {
    "rejected, for the sake of security.  The 'localhost' or 127.0.0.1 address\n" ,
    "and local class B network 192.168.0.* addresses are always trusted.\n" ,
    "\n" ,
+   "---------------------------\n" ,
+   "Variable: AFNI_DONT_LOGFILE\n" ,
+   "---------------------------\n" ,
+   "Most AFNI programs write a copy of their command line to a file in your\n" ,
+   "home directory named \".afni.log\".  If you do NOT want the log to be\n" ,
+   "kept, set this environment variable to YES.  The purpose of the log\n" ,
+   "is for you to be able to look back and see what AFNI commands you used\n" ,
+   "in the past.  However, if you are doing a vast number of commands inside\n" ,
+   "a script, the log file might eventually become gigantic (the Kevin Murphy\n" ,
+   "effect).\n" ,
+   "\n" ,
    "=============================================\n" ,
    "| Robert W Cox, PhD                         |\n" ,
    "| Scientific and Statistical Computing Core |\n" ,
@@ -2217,4 +2228,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2217
+#define NUM_readme_env 2228
