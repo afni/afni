@@ -157,12 +157,12 @@ void NI_stat_decode( char *str, int *scode, float *p1, float *p2 , float *p3 )
      float parm[3]={1.0f,1.0f,1.0f} ; int np,kk,mm , sp ;
      np = NI_stat_numparam(jj) ; sp = ll ;
      for( kk=0 ; kk < np ; kk++ ){
-       mm = 0 ; sscanf(str+sp,"%f%n",parm+kk,&mm) ; sp += mm ;
+       mm = 0 ; sscanf(str+sp,"%f%n",parm+kk,&mm) ; sp += mm+1 ;
      }
-     *scode = jj ;
-     if( p1 != NULL && np > 0 ) *p1 = parm[0] ;
-     if( p2 != NULL && np > 1 ) *p2 = parm[1] ;
-     if( p3 != NULL && np > 2 ) *p3 = parm[2] ;
+     *scode = jj ;                     /* Save results */
+     if( p1 != NULL ) *p1 = parm[0] ;  /* into output */
+     if( p2 != NULL ) *p2 = parm[1] ;  /* variables. */
+     if( p3 != NULL ) *p3 = parm[2] ;
    }
    return ;
 }
