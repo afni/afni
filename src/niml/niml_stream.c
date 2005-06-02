@@ -2178,6 +2178,7 @@ int NI_stream_setbufsize( NI_stream_type *ns , int bs )   /* 03 Jan 2003 */
 
 /*-----------------------------------------------------------------------*/
 /*! Get the input buffer size for a NI_stream.
+    Returns -1 if the stream is bad, or has been sentenced to death.
 -------------------------------------------------------------------------*/
 
 int NI_stream_getbufsize( NI_stream_type *ns )            /* 03 Jan 2003 */
