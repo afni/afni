@@ -205,11 +205,11 @@ static char g_history[] =
     "  - in suma2afni_surf(), dealt with LDP changes to SUMA_surface\n"
     "  - changed write_outfile functions to v2s_*() and moved them to library\n"
     "\n"
-    "6.3a March 22, 2005 [rickr]\n"
-    "  - removed tabs\n"
+    "6.3a March 22, 2005 [rickr] - removed tabs\n"
+    "6.4  June   2, 2005 [rickr] - added -skip_col_non_results option\n"
     "---------------------------------------------------------------------\n";
 
-#define VERSION "version  6.3a (March 22, 2005)"
+#define VERSION "version  6.4 (June 2, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -1298,6 +1298,8 @@ ENTRY("init_options");
         {
             opts->norm_dir = V2S_NORM_REVERSE;
         }
+        else if ( ! strncmp(argv[ac], "-skip_col_non_results", 15) )
+            opts->skip_cols |= (V2S_SKIP_ALL & ~V2S_SKIP_VALS);
         else if ( ! strncmp(argv[ac], "-skip_col_nodes", 13) )
             opts->skip_cols |= V2S_SKIP_NODES;
         else if ( ! strncmp(argv[ac], "-skip_col_1dindex", 12) )
@@ -2358,6 +2360,8 @@ ENTRY("usage");
             "    -skip_col_vals         : do not output vals column\n"
             "    -skip_col_results      : only output ONE result column\n"
             "                             (seems to make the most sense)\n"
+            "    -skip_col_non_results  : skip everything but the results\n"
+            "                             (i.e. only output result columns)\n"
             "\n"
             "        These options are used to restrict output.  Each option\n"
             "        will prevent the program from writing that column of\n"
