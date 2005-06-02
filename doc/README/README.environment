@@ -2142,6 +2142,14 @@ in the past.  However, if you are doing a vast number of commands inside
 a script, the log file might eventually become gigantic (the Kevin Murphy
 effect).
 
+-------------------------
+Variable: AFNI_WRITE_NIML
+-------------------------
+If this variable is set to YES, then AFNI .HEAD files will be written in
+the new NIML (XML subset) format, rather than the 'classic' format.  At
+present (Jun 2005) this format is experimental, but will someday become
+the default.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
