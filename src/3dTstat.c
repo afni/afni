@@ -366,7 +366,8 @@ static void STATS_tsfunc( double tzero, double tdelta ,
 
    ts_det = (float*)calloc(npts, sizeof(float));
    memcpy( ts_det, ts, npts * sizeof(float));
-   for( ii = 0; ii < npts; ii++) ts_det[ii] -= (ts_mean + ts_slope * tdelta * ii) ;
+   for( ii = 0; ii < npts; ii++) ts_det[ii] -= 
+           (ts_mean - (ts_slope * (npts - 1) * tdelta/2) + ts_slope * tdelta * ii) ;
    
    /** OK, actually do some work **/
 
