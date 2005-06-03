@@ -109,9 +109,9 @@ ENTRY("THD_write_3dim_dataset") ;
      RETURN( (Boolean)ii ) ;
    }
 
-   /*------ 21 Mar 2003: the .3D format? -----*/
+   /*------ 21 Mar 2003: use the .3D format? -----*/
 
-   if( DSET_IS_3D(dset) || use_3D_format ){
+   if( STRING_HAS_SUFFIX(ppp,".3D") || DSET_IS_3D(dset) || use_3D_format ){
      if( !write_brick ){
        fprintf(stderr,
                "** ERROR: can't write HEADER only for .3D file: %s\n",
