@@ -24,6 +24,12 @@ extern int SUMAg_N_SVv;
 extern int SUMAg_N_DOv;  
 #endif
 
+static int InteractiveQuit;
+
+int SUMA_DidUserQuit(void)
+{
+   return(InteractiveQuit);
+}
 
 /* 
    volume returned is negative if failed to read volume. 
@@ -522,11 +528,14 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
    double MaxExp;
    int keepgoing=0, N_troub, past_N_troub;
    double pastarea, curarea, darea;
+   char cbuf;
    FILE *OutNodeFile = NULL;
    SUMA_Boolean DoDbg=NOPE;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
+   
+   InteractiveQuit = 0;
    
    if (Opt->debug > 2) LocalHead = YUP;
 
@@ -751,8 +760,29 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
 
       } /* loop over number of iterations */
       ++Stage;
+      if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+         fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
+                              "Increasing number of iterations to reach minimal expansion.\n"
+                              "Do you want to (C)ontinue, (S)kip or (Q)uit? [C] ");
+         cbuf = SUMA_ReadCharStdin ('c', 0,"csq");
+         fprintf (SUMA_STDERR,"%c\n", cbuf);
+         switch (cbuf) {
+            case 'q':
+               fprintf (SUMA_STDERR,"Stopping processing.\n", cbuf);
+               InteractiveQuit = 1;
+               goto CLEAN_RETURN;
+               break;
+            case 's':
+               fprintf (SUMA_STDERR,"Skipping this stage \n", cbuf);
+               goto CLEAN_RETURN;
+               break;
+            case 'c':
+               fprintf (SUMA_STDERR,"Continuing with stage.\n", cbuf);
+               break;
+         }                 
+      }
       if (Stage == 1) { /* if the surface is still growing, keep going */
-         if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("About to be in stage 1"); }
+         if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("About to be in stage 1"); }
          if (LocalHead) fprintf (SUMA_STDERR,"%s: \n In stage 1\n", FuncName);
          if (MaxExp > 0.5) {
             /* Now, if you still have expansion, continue */
@@ -783,9 +813,10 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
             ++Stage;
          }
       }
+      STAGE2:
       if (Stage == 2) {
-         if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("About to be in stage 2"); }
          if (0) {
+            if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("About to be in stage 2"); }
             touchup = SUMA_Suggest_Touchup_Grad(SO, Opt, 4.0, cs, &N_troub);
             if (!touchup) SUMA_SL_Warn("Failed in SUMA_Suggest_Touchup");
          } else {
@@ -803,8 +834,9 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
             ++Stage;  
          }
       }
+      STAGE3:
       if (Stage == 3) {
-         if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("About to be in stage 3"); }
+         if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("About to be in stage 3"); }
          /* see if there is room for extension */
          touchup = SUMA_Suggest_Touchup(SO, Opt, 4.0, cs, &N_troub);
          if (!touchup) SUMA_SL_Warn("Failed in SUMA_Suggest_Touchup");
@@ -850,6 +882,7 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
          SUMA_SL_Err("Stage number invalid");
          Done = 1;
       }
+      STAGE_END:
       /* put a limit */
       if ( (nit > 3 * Opt->N_it) && !Done) {
          SUMA_LH("Funding limit reached. Abandoning improvements");
@@ -857,7 +890,7 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
       }
    } while (!Done);
       
-   
+   CLEAN_RETURN:
    if (undershish) SUMA_free(undershish); undershish = NULL;
    if (overshish) SUMA_free(overshish); overshish = NULL;
    if (OrigNodeList) SUMA_free(OrigNodeList); OrigNodeList = NULL;

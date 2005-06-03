@@ -78,6 +78,7 @@ float * SUMA_Convexity_Engine (float *NodeList, int N_Node, float *NodeNormList,
 int SUMA_Read_file (float *x,char *f_name,int n_points);
 int SUMA_Read_dfile (int *x,char *f_name,int n_points);
 char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt);
+char SUMA_ReadCharStdin (char def, int case_sensitive, char *allowed);
 int SUMA_ReadNumStdin (float *fv, int nv);
 int * SUMA_Find_inIntVect (int *x, int xsz, int val, int *nValLocation);
 int * SUMA_UniqueInt (int *y, int xsz, int *kunq, int Sorted );

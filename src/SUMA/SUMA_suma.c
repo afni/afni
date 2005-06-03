@@ -252,7 +252,8 @@ int main (int argc,char *argv[])
 	if (LocalHead) fprintf (SUMA_STDERR,"%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
    SUMA_STANDALONE_INIT;
    if (LocalHead) fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
-	
+	SUMAg_CF->isGraphical = YUP;
+
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;");
    #if 0
    if (argc < 2)

@@ -1,6 +1,8 @@
 #ifndef SUMA_BRAINWRAP_INCLUDED
 #define SUMA_BRAINWRAP_INCLUDED
 
+typedef enum { SUMA_3dSS_NO_PAUSE = 0, SUMA_3dSS_DEMO_PAUSE, SUMA_3dSS_INTERACTIVE } SUMA_3DSS_MODES;
+
 float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_SurfaceObject **SOhull);
 int SUMA_Find_IminImax (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, int ni, 
                         float *MinMax, float *MinMax_dist , float *MinMax_over, float *MinMax_over_dist,
@@ -13,6 +15,7 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
 int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs) ;
 float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
 float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
+int SUMA_DidUserQuit(void);
 
 /*!
    SUMA_WRAP_BRAIN_SMOOTH(niter, bufp1, bufp2);
