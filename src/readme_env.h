@@ -1765,6 +1765,13 @@ static char * readme_env[] = {
    "If this is set, and AFNI_1D_TIME is YES, then this determines the TR (in\n" ,
    "seconds) of a .1D file read in as an AFNI dataset.\n" ,
    "\n" ,
+   "------------------------\n" ,
+   "Variable: AFNI_3D_BINARY\n" ,
+   "------------------------\n" ,
+   "If this is set to YES, then .3D files are written by AFNI programs in\n" ,
+   "binary, rather than the default text mode.  Binary files will be more\n" ,
+   "compact (usually) and faster to read in.\n" ,
+   "\n" ,
    "--------------------------\n" ,
    "Variable: AFNI_MAX_OPTMENU (editable)\n" ,
    "--------------------------\n" ,
@@ -2242,4 +2249,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2242
+#define NUM_readme_env 2249

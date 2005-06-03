@@ -5588,3 +5588,10 @@
 03 Jun 2005
  * Fixed bug in 3dAFNIto3D; if input is a .1D file and no -prefix was given,
      the output file would overwrite the input!
+ * Modified the .3D I/O functions to
+     (a) allow binary format for the data;
+     (b) allow a time step to indicate 3D+time status;
+     (c) if the output prefix ends in ".3D", automatically write this format.
+   Binary vs text format is setup by environment variable AFNI_3D_BINARY.
+   prefix
+ * Moved AFNI_setenv() function to afni_environ.c for librariness.

@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*------------------------------------------------------------------------
@@ -12,10 +12,10 @@
    is returned as NULL, something bad happened.
 --------------------------------------------------------------------------*/
 
-char * AFNI_suck_file( char * fname )
+char * AFNI_suck_file( char *fname )
 {
    int len , fd , ii ;
-   char * buf ;
+   char *buf ;
 
    if( fname == NULL || fname[0] == '\0' ) return NULL ;
 
@@ -73,7 +73,7 @@ static int afni_env_done = 0 ;
 
 void AFNI_mark_environ_done(void){ afni_env_done = 1 ; return ; }
 
-char * my_getenv( char * ename )
+char * my_getenv( char *ename )
 {
    if( !afni_env_done ){
       char * sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 16 Apr 2000 */
@@ -83,7 +83,7 @@ char * my_getenv( char * ename )
    return getenv( ename ) ;
 }
 
-void AFNI_process_environ( char * fname )
+void AFNI_process_environ( char *fname )
 {
    int   nbuf , nused , ii ;
    char *fbuf , *fptr ;
@@ -151,7 +151,7 @@ ENTRY("AFNI_process_environ") ;
 
 /*-----------------------------------------------------------------*/
 
-int AFNI_yesenv( char * ename )     /* 21 Jun 2000 */
+int AFNI_yesenv( char *ename )     /* 21 Jun 2000 */
 {
    char *ept ;
    if( ename == NULL ) return 0 ;
@@ -159,13 +159,17 @@ int AFNI_yesenv( char * ename )     /* 21 Jun 2000 */
    return YESSISH(ept) ;
 }
 
-int AFNI_noenv( char * ename )     /* 21 Jun 2000 */
+/*------------------------------------------------------------------*/
+
+int AFNI_noenv( char *ename )     /* 21 Jun 2000 */
 {
    char *ept ;
    if( ename == NULL ) return 0 ;
    ept = my_getenv(ename) ;
    return NOISH(ept) ;
 }
+
+/*------------------------------------------------------------------*/
 
 double AFNI_numenv( char *ename )  /* 23 Aug 2003 */
 {
@@ -178,4 +182,27 @@ double AFNI_numenv( char *ename )  /* 23 Aug 2003 */
    else if( *ccc == 'm' || *ccc == 'M' ) val *= 1024.0l*1024.0l ;
    else if( *ccc == 'g' || *ccc == 'G' ) val *= 1024.0l*1024.0l*1024.0l ;
    return val ;
+}
+
+/*------------------------------------------------------------------*/
+/*! Input is "name value".  Return is 0 if OK, -1 if not OK. */
+
+int AFNI_setenv( char *cmd )
+{
+   char nam[256]="\0" , val[1024]="\0" , eqn[1280] , *eee ;
+
+   if( cmd == NULL || strlen(cmd) < 3 ) return(-1) ;
+
+   sscanf( cmd , "%255s %1023s" , nam , val ) ;
+   if( nam[0] == '\0' || val[0] == '\0' && strchr(cmd,'=') != NULL ){
+     char *ccc = strdup(cmd) ;
+     eee = strchr(ccc,'=') ; *eee = ' ' ;
+     sscanf( ccc , "%255s %1023s" , nam , val ) ;
+     free((void *)ccc) ;
+   }
+   if( nam[0] == '\0' || val[0] == '\0' ) return(-1) ;
+
+   sprintf(eqn,"%s=%s",nam,val) ;
+   eee = strdup(eqn) ; putenv(eee) ;
+   return(0) ;
 }
