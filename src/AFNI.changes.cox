@@ -5584,3 +5584,7 @@
      (forgot to skip the comma!).
  * Remove AFNI_niml_atexit() from afni_niml.c since it is now redundant
      with the atexit stuff in niml/niml_stream.c (oopsie).
+
+03 Jun 2005
+ * Fixed bug in 3dAFNIto3D; if input is a .1D file and no -prefix was given,
+     the output file would overwrite the input!
