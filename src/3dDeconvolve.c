@@ -2049,6 +2049,15 @@ ENTRY("read_input_data") ;
         DC_error (message);
       }
       THD_load_datablock ((*dset_time)->dblk);
+      if( !DSET_LOADED(*dset_time) ){
+        sprintf (message,  "Unable to load dataset '%s'",
+        option_data->input_filename);
+        DC_error (message);
+      }
+      if( (*dset_time)->taxis == NULL ){
+        fprintf(stderr,"** WARNING: dataset '%s' has no time axis!!\n",
+                       option_data->input_filename) ;
+      }
       nt = DSET_NUM_TIMES (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
 

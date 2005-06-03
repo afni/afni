@@ -207,6 +207,7 @@ void THD_write_1D( char *sname, char *pname , THD_3dim_dataset *dset )
    char fname[THD_MAX_NAME] , *cpt ;
    int iv,nv , nx,ny,nz,nxyz,ii,jj,kk ;
    FILE *fp ;
+   int binflag ; char shp ; float val[1] ;
 
 ENTRY("THD_write_1D") ;
 
@@ -228,7 +229,12 @@ ENTRY("THD_write_1D") ;
      }
      strcat(fname,pname) ;
    } else {                    /* don't have input prefix */
-     strcpy(fname,dset->dblk->diskptr->brick_name) ;  /* so use current name */
+     cpt = DSET_PREFIX(dset) ;
+     if( STRING_HAS_SUFFIX(cpt,".3D") || STRING_HAS_SUFFIX(cpt,".1D") )
+       strcpy(fname,cpt) ;
+     else
+       strcpy(fname,DSET_BRIKNAME(dset)) ;
+
      cpt = strchr(fname,'[') ;
      if( cpt != NULL ) *cpt = '\0' ;                  /* without subscripts! */
    }
@@ -243,26 +249,42 @@ ENTRY("THD_write_1D") ;
 
    fp = fopen( fname , "w" ) ; if( fp == NULL ) EXRETURN ;
 
+   /* are we going to write in binary? [03 Jun 2005] */
+
+   binflag = STRING_HAS_SUFFIX(fname,".3D") && AFNI_yesenv("AFNI_3D_BINARY") ;
+   shp     = (binflag) ? ' ' : '#' ;
+
    /* write some dataset info as NIML-style header/comments */
 
    fprintf(fp,
-              "# <AFNI_3D_dataset\n"
-              "#  ni_idcode = \"%s\"\n"
-              "#  ni_type   = \"%d*float\"\n"
-              "#  ni_dimen  = \"%d,%d,%d\"\n"
-              "#  ni_delta  = \"%g,%g,%g\"\n"
-              "#  ni_origin = \"%g,%g,%g\"\n"
-              "#  ni_axes   = \"%s,%s,%s\"\n"
+              "%c <AFNI_3D_dataset\n"
+              "%c  self_idcode = \"%s\"\n"
+              "%c  ni_type     = \"%d*float\"\n"    /* all columns are floats! */
+              "%c  ni_dimen    = \"%d,%d,%d\"\n"
+              "%c  ni_delta    = \"%g,%g,%g\"\n"
+              "%c  ni_origin   = \"%g,%g,%g\"\n"
+              "%c  ni_axes     = \"%s,%s,%s\"\n"
            ,
-              dset->idcode.str ,
-              nv ,
-              nx,ny,nz ,
-              DSET_DX(dset)  , DSET_DY(dset)  , DSET_DZ(dset)  ,
-              DSET_XORG(dset), DSET_YORG(dset), DSET_ZORG(dset),
-              ORIENT_shortstr[dset->daxes->xxorient] ,
-                ORIENT_shortstr[dset->daxes->yyorient] ,
-                  ORIENT_shortstr[dset->daxes->zzorient]
+              shp ,
+              shp , dset->idcode.str ,
+              shp , nv ,
+              shp , nx,ny,nz ,
+              shp , DSET_DX(dset)  , DSET_DY(dset)  , DSET_DZ(dset)  ,
+              shp , DSET_XORG(dset), DSET_YORG(dset), DSET_ZORG(dset),
+              shp , ORIENT_shortstr[dset->daxes->xxorient] ,
+                     ORIENT_shortstr[dset->daxes->yyorient] ,
+                       ORIENT_shortstr[dset->daxes->zzorient]
           ) ;
+
+   if( HAS_TIMEAXIS(dset) ){
+     float dt = DSET_TR(dset) ;
+     if( DSET_TIMEUNITS(dset) == UNITS_MSEC_TYPE ) dt *= 0.001 ;
+     fprintf(fp , "%c  ni_timestep = \"%g\"\n" , shp,dt ) ;
+   }
+
+   if( binflag )
+     fprintf(fp , "   ni_form     = \"binary.%s\"\n" ,
+                  (NI_byteorder()==NI_LSB_FIRST) ? "lsbfirst" : "msbfirst" ) ;
 
    /* do stataux for bricks, if any are present */
 
@@ -270,7 +292,7 @@ ENTRY("THD_write_1D") ;
      if( DSET_BRICK_STATCODE(dset,iv) > 0 ) ii++ ;
 
    if( ii > 0 ){
-      fprintf(fp, "#  ni_stat   = \"") ;
+      fprintf(fp, "%c  ni_stat     = \"",shp) ;
       for( iv=0 ; iv < nv ; iv++ ){
         ii = DSET_BRICK_STATCODE(dset,iv) ;
         if( ii <=0 ){
@@ -291,60 +313,66 @@ ENTRY("THD_write_1D") ;
 
    /* close NIML-style header */
 
-   fprintf(fp,"# >\n") ;
+   if( binflag ) fprintf(fp," >") ;
+   else          fprintf(fp,"# >\n") ;
+   fflush(fp) ;
 
    /* now write data */
 
-   for( ii=0 ; ii < nxyz ; ii++ ){
+   for( ii=0 ; ii < nxyz ; ii++ ){  /* loop over voxels */
 
-     for( iv=0 ; iv < nv ; iv++ ){
+     for( iv=0 ; iv < nv ; iv++ ){            /* loop over sub-bricks = columns */
        switch( DSET_BRICK_TYPE(dset,iv) ){
           default:
-            fprintf(fp," 0.0") ;
+            val[0] = 0.0f ;
           break ;
 
           case MRI_float:{
-            float *bar = DSET_ARRAY(dset,iv) ;
-            fprintf(fp," %g",bar[ii]) ;
+            float *bar = DSET_ARRAY(dset,iv) ; val[0] = bar[ii] ;
           }
           break ;
 
           case MRI_short:{
             short *bar = DSET_ARRAY(dset,iv) ;
             float fac = DSET_BRICK_FACTOR(dset,iv) ; if( fac == 0.0 ) fac = 1.0 ;
-            fprintf(fp," %g",fac*bar[ii]) ;
+            val[0] = fac*bar[ii] ;
           }
           break ;
 
           case MRI_byte:{
             byte *bar = DSET_ARRAY(dset,iv) ;
             float fac = DSET_BRICK_FACTOR(dset,iv) ; if( fac == 0.0 ) fac = 1.0 ;
-            fprintf(fp," %g",fac*bar[ii]) ;
+            val[0] = fac*bar[ii] ;
           }
           break ;
 
           /* below here, we convert complicated types to floats, losing data! */
 
           case MRI_complex:{
-            complex *bar = DSET_ARRAY(dset,iv) ; float val ;
-            val = CABS(bar[ii]) ; fprintf(fp," %g",val) ;
+            complex *bar = DSET_ARRAY(dset,iv) ;
+            val[0] = CABS(bar[ii]) ;
           }
           break ;
 
           case MRI_rgb:{
-            rgbyte *bar = DSET_ARRAY(dset,iv) ; float val ;
-            val = (0.299*bar[ii].r+0.587*bar[ii].g+0.114*bar[ii].g) ;
-            fprintf(fp," %g",val) ;
+            rgbyte *bar = DSET_ARRAY(dset,iv) ;
+            val[0] = (0.299*bar[ii].r+0.587*bar[ii].g+0.114*bar[ii].g) ;
           }
           break ;
-       }
-     }
-     fprintf(fp,"\n") ;
-   }
+       } /* end of switch on sub-brick data type */
+
+       if( binflag ) fwrite( val , sizeof(float) , 1 , fp ) ;
+       else          fprintf( fp , " %g" , val[0] ) ;
+
+     } /* end of loop over sub-bricks */
+
+     if( !binflag ) fprintf(fp,"\n") ;
+
+   } /* end of loop over voxels */
 
    /* NIML-style trailer */
 
-   fprintf(fp,"# </AFNI_3D_dataset>\n") ;
+   fflush(fp) ; fprintf(fp,"%c </AFNI_3D_dataset>\n",shp) ;
 
    fclose(fp) ; EXRETURN ;
 }

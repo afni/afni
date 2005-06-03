@@ -15,6 +15,8 @@ extern int AFNI_yesenv( char * ) ;          /* 21 Jun 2000 */
 extern int AFNI_noenv ( char * ) ;          /* 21 Jun 2000 */
 extern double AFNI_numenv( char * ) ;       /* 23 Aug 2003 */
 
+extern int AFNI_setenv( char *cmd ) ;       /* 22 Jan 2003 */
+
 /*-- 22 May 2000: macros for checking for Yes or No --*/
 
 #define YSTART(cp) \

@@ -1785,7 +1785,6 @@ extern TTRR_params * TTRR_get_params(void) ;
 
 extern int AFNI_driver( char *cmd ) ;                    /* 07 Nov 2001 */
 extern int AFNI_controller_code_to_index( char *code ) ;
-extern int AFNI_setenv( char *cmd ) ;                    /* 22 Jan 2003 */
 
 /*-------------------------------------------------------*/
 /*--------------  registration of functions -------------*/

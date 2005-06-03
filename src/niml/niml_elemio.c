@@ -76,6 +76,9 @@ int NI_write_procins( NI_stream_type *ns , char *str )
 static int read_header_only = 0 ;
 void NI_read_header_only( int r ){ read_header_only=r ; } /* 23 Mar 2003 */
 
+static int skip_procins = 0 ;
+void NI_skip_procins( int r ){ skip_procins = r ; }       /* 03 Jun 2005 */
+
 /*--------------------------------------------------------------------*/
 /*! Read only the header part of the next element.
 ----------------------------------------------------------------------*/
@@ -224,7 +227,13 @@ NI_dpr("NI_read_element: header parsed successfully\n") ;
        num_restart = 0 ; goto HeadRestart ;
      }
 
-     /* normal case: make a procins element */
+     /* 03 Jun 2005: if ordered to skip these things, do so */
+
+     if( skip_procins ){
+       destroy_header_stuff( hs ) ; num_restart = 0 ; goto HeadRestart ;
+     }
+
+     /* normal case: make a procins element and give it to the caller */
 
      npi       = NI_malloc(NI_procins,sizeof(NI_procins)) ;
      npi->type = NI_PROCINS_TYPE ;
