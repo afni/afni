@@ -203,7 +203,7 @@ STATUS("checking for statistics") ;
            float parm[4]={1,1,1,1} ; int np,kk,mm , sp ;
            np = NI_stat_numparam(jj) ; sp = ll ;
            for( kk=0 ; kk < np ; kk++ ){
-             mm = 0 ; sscanf(sar->str[ii]+sp,"%f%n",parm+kk,&mm) ; sp += mm ;
+             mm = 0 ; sscanf(sar->str[ii]+sp,"%f%n",parm+kk,&mm) ; sp += mm+1 ;
            }
            EDIT_STATAUX4( dset , ii , jj , parm[0],parm[1],parm[2],parm[3] ) ;
          }
