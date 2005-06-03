@@ -48,6 +48,13 @@ int main( int argc , char *argv[] )
    if( !DSET_LOADED(dset) ){
      fprintf(stderr,"** ERROR: can't load dataset %s\n",argv[narg]); exit(1);
    }
+   if( prefix == NULL ){                       /* 03 Jun 2005 */
+     prefix = strdup( DSET_PREFIX(dset) ) ;
+     if( STRING_HAS_SUFFIX(prefix,".1D") ){    /* don't overwrite .1D files! */
+       char *cpt = strstr(prefix,".1D") ;
+       strcpy(cpt,".3D") ;
+     }
+   }
 
    THD_use_3D_format( 1 ) ;
    THD_write_3dim_dataset( NULL , prefix , dset , True ) ;
