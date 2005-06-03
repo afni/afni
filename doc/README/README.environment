@@ -1764,6 +1764,13 @@ Variable: AFNI_1D_TIME_TR
 If this is set, and AFNI_1D_TIME is YES, then this determines the TR (in
 seconds) of a .1D file read in as an AFNI dataset.
 
+------------------------
+Variable: AFNI_3D_BINARY
+------------------------
+If this is set to YES, then .3D files are written by AFNI programs in
+binary, rather than the default text mode.  Binary files will be more
+compact (usually) and faster to read in.
+
 --------------------------
 Variable: AFNI_MAX_OPTMENU (editable)
 --------------------------

@@ -627,6 +627,7 @@ extern int    NI_size_column  ( NI_rowtype * , int , void * ); /* 26 Mar 2003 */
 
 extern void   NI_read_header_only   ( int ) ;                  /* 21 Mar 2003 */
 extern void * NI_read_element_header( NI_stream_type *, int ); /* 26 Mar 2003 */
+extern void   NI_skip_procins( int ) ;                         /* 03 Jun 2005 */
 
 #define NI_SWAP_MASK  (1<<0)
 #define NI_LTEND_MASK (1<<1)

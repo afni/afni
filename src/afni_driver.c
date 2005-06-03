@@ -116,7 +116,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_FUNC_VISIBLE"   , AFNI_set_func_visible        } ,
  { "SET_FUNC_RESAM"     , AFNI_set_func_resam          } ,
  { "SLEEP"              , AFNI_sleeper                 } ,
- { "SETENV"             , AFNI_setenv                  } ,
+ { "SETENV"             , AFNI_setenv                  } ,  /* external */
  { "DEFINE_COLORSCALE"  , AFNI_define_colorscale       } ,
  { "DEFINE_COLOR_SCALE" , AFNI_define_colorscale       } ,
  { "OPEN_PANEL"         , AFNI_open_panel              } ,
@@ -2012,6 +2012,7 @@ static int AFNI_sleeper( char *cmd )
    return(0) ;
 }
 
+#if 0   /** code removed to afni_environ.c on 03 Jun 2005 **/
 /*------------------------------------------------------------------*/
 /*! SETENV name value */
 
@@ -2034,6 +2035,7 @@ int AFNI_setenv( char *cmd )
    eee = strdup(eqn) ; putenv(eee) ;
    return(0) ;
 }
+#endif
 
 /*------------------------------------------------------------------*/
 /*! REDISPLAY */

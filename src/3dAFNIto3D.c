@@ -13,6 +13,8 @@ int main( int argc , char *argv[] )
              "OPTIONS:\n"
              " -prefix ppp  = Write result into file ppp.3D;\n"
              "                  default prefix is same as AFNI dataset's.\n"
+             " -bin         = Write data in binary format, not text.\n"
+             " -txt         = Write data in text format, not binary.\n"
              "\n"
              "NOTES:\n"
              "* At present, all bricks are written out in float format.\n"
@@ -23,6 +25,16 @@ int main( int argc , char *argv[] )
    mainENTRY("3dAFNIto3D main"); machdep() ;
 
    while( narg < argc && argv[narg][0] == '-' ){
+
+     if( strncmp(argv[narg],"-bin",4) == 0 ){         /* 03 Jun 2005 */
+       (void) AFNI_setenv( "AFNI_3D_BINARY  YES" ) ;
+       narg++ ; continue ;
+     }
+
+     if( strcmp(argv[narg],"-txt") == 0 || strcmp(argv[narg],"-text") == 0 ){
+       (void) AFNI_setenv( "AFNI_3D_BINARY  NO" ) ;
+       narg++ ; continue ;
+     }
 
      if( strcmp(argv[narg],"-prefix") == 0 ){
         prefix = argv[++narg] ;
