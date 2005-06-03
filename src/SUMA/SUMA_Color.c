@@ -540,7 +540,7 @@ SUMA_AFNI_COLORS *SUMA_Build_Color_maps(void)
    SUMA_ENTRY;
    
    SAC = SUMA_Get_AFNI_Default_Color_Maps();
-   
+  
    /* Now add SUMA's colormaps */
    
    for (i=SUMA_CMAP_UNDEFINED+1; i<SUMA_CMAP_N_MAPS; ++i) {
@@ -3771,7 +3771,7 @@ int main (int argc,char *argv[])
       fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Create_CommonFields\n", FuncName);
       exit(1);
    }
-   
+   SUMAg_CF->isGraphical = YUP;
    /* fill the color maps */
    SUMAg_CF->scm = SUMA_Build_Color_maps();
    if (!SUMAg_CF->scm) {
@@ -7280,21 +7280,31 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
          RGB[2] = (float)b/255.0;
          
       } else { /* named */
-         tl = XtAppInitialize(&app, "ScaleToMap", NULL, 0, &cargc, vargv,
-               SUMA_get_fallbackResources(), NULL, 0);
-         dpy = XtDisplay(tl);
-         cmap = DefaultColormap(dpy, DefaultScreen(dpy));
-         
-         XParseColor(dpy, cmap, Name, &color_exact);
-         
-         /* You need to divide by color_exact.red ,green and blue by 257
-         to bring the numbers in the 0..255 range as listed in the rgb.txt file */
-         RGB[0] = (float)color_exact.red/255.0/257.0;
-         RGB[1] = (float)color_exact.green/255.0/257.0;
-         RGB[2] = (float)color_exact.blue/255.0/257.0;
-         
-         XFreeColormap(dpy, cmap);
-         XtDestroyWidget(tl);
+         /* XtAppInitialize (at least on mac osx) forces the application to quit if display cannot be opened
+         So you must decide ahead of time whether to call it or not! */
+         if (SUMAg_CF->isGraphical) {
+            tl = XtAppInitialize(NULL, "ScaleToMap", NULL, 0, &cargc, vargv,
+                  SUMA_get_fallbackResources(), NULL, 0);
+            dpy = XtDisplay(tl);
+            cmap = DefaultColormap(dpy, DefaultScreen(dpy));
+
+            XParseColor(dpy, cmap, Name, &color_exact);
+
+            /* You need to divide by color_exact.red ,green and blue by 257
+            to bring the numbers in the 0..255 range as listed in the rgb.txt file */
+            RGB[0] = (float)color_exact.red/255.0/257.0;
+            RGB[1] = (float)color_exact.green/255.0/257.0;
+            RGB[2] = (float)color_exact.blue/255.0/257.0;
+
+            XFreeColormap(dpy, cmap);
+            XtDestroyWidget(tl);
+         } else {
+            if (LocalHead) fprintf(SUMA_STDERR,"%s: \n"
+                                          "Xcolor %s cannot be resolved without \n"
+                                          "trying to open X display.\n"
+                                          "Returning color 0.5 0.5 0.5", FuncName, Name);
+            RGB[0] = RGB[1] = RGB[2] = 0.5;
+         }
       }
    
 

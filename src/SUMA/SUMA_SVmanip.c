@@ -1688,6 +1688,7 @@ SUMA_CommonFields * SUMA_Create_CommonFields ()
    dlist_init (cf->DsetList, SUMA_FreeDset);
    
    cf->IgnoreVolreg = NOPE;
+   cf->isGraphical = NOPE;
    return (cf);
 
 }
