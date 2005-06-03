@@ -320,7 +320,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->bot_lztclip = 0.65; /* 0.5 is OK but causes too much leakage below cerebellum in most dsets, 0.65 seems better. 0 if you do not want to use it*/
 	Opt->var_lzt = 1.0; /* a flag at the moment, set it to 1 to cause shirnk fac to vary during iterations. Helps escape certain large 
                            chunks of CSF just below the brain */
-   Opt->DemoPause = 0;
+   Opt->DemoPause = SUMA_3dSS_NO_PAUSE;
    Opt->DoSpatNorm = 1;
    Opt->WriteSpatNorm = 0;
    Opt->fillhole = -1;
@@ -454,7 +454,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
 		}
       
       if (!brk && (strcmp(argv[kar], "-demo_pause") == 0)) {
-			Opt->DemoPause = 1;
+			Opt->DemoPause = SUMA_3dSS_DEMO_PAUSE;
+         brk = YUP;
+		} 
+      
+      if (!brk && (strcmp(argv[kar], "-interactive") == 0)) {
+			Opt->DemoPause = SUMA_3dSS_INTERACTIVE;
          brk = YUP;
 		}
       
@@ -769,7 +774,7 @@ int main (int argc,char *argv[])
    float vol, *isin_float=NULL, pint, *dsmooth = NULL, XYZrai_shift[3];
    SUMA_SurfaceObject *SO = NULL, *SOhull=NULL;
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
-   char  stmp[200], stmphull[200], *hullprefix=NULL, *prefix=NULL, *spatprefix=NULL;
+   char  stmp[200], stmphull[200], *hullprefix=NULL, *prefix=NULL, *spatprefix=NULL, cbuf;
    SUMA_Boolean exists = NOPE;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    short *isin = NULL;
@@ -1142,12 +1147,12 @@ int main (int argc,char *argv[])
             if (!nint && SOhull) {
                if (Opt->send_hull) {
                   SUMA_LH("Sending Hull");
-                  if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("Sending HULL next"); }
+                  if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Sending HULL next"); }
                   SUMA_SendSumaNewSurface(SOhull, ps->cs);
                }
             }
             SUMA_LH("Sending Ico");
-            if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("Sending Ico next"); }
+            if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Sending Ico next"); }
             SUMA_SendSumaNewSurface(SO, ps->cs);
 
          }
@@ -1156,7 +1161,7 @@ int main (int argc,char *argv[])
 
       if (!nint && Opt->UseSkull) {
          /* get a crude mask of inner skull */
-         if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("Shrinking skull hull next"); }
+         if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Shrinking skull hull next"); }
          SUMA_SkullMask (SOhull, Opt, ps->cs);
          /* Now take mask and turn it into a volume */
          fprintf (SUMA_STDERR,"%s: Locating voxels on skull boundary  ...\n", FuncName);
@@ -1187,7 +1192,7 @@ int main (int argc,char *argv[])
       }
             
       /* This is it baby, start walking */
-      if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("Brain expansion next"); }
+      if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("Brain expansion next"); }
       SUMA_StretchToFitLeCerveau (SO, Opt, ps->cs);
 
       /* check for intersections */
@@ -1245,12 +1250,35 @@ int main (int argc,char *argv[])
       }
    } while (nint != 0);
    if (Opt->debug) fprintf(SUMA_STDERR,"%s: Final smoothing of %d\n", FuncName, Opt->NNsmooth);
-   
+   if (SUMA_DidUserQuit) {
+      if (Opt->debug) fprintf(SUMA_STDERR,"%s: straight to end per user demand...\n", FuncName);
+      goto FINISH_UP;
+   }
    /* touch up, these might cause some surface intersection, but their effects should be small */
+   TOUCHUP_1:
    if (Opt->UseNew) {
          double mval = 255;
          if (Opt->debug) fprintf (SUMA_STDERR,"%s: Touchup correction, pass 1 ...\n", FuncName);
-         if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("touchup correction next"); }
+         if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("touchup correction next"); }
+         if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+            fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
+                                 "Touchup, pass 1.\n"
+                                 "Do you want to (C)ontinue, (S)kip or (Q)uit? [C] ");
+            cbuf = SUMA_ReadCharStdin ('c', 0,"csq");
+            switch (cbuf) {
+               case 'q':
+                  fprintf (SUMA_STDERR,"Stopping processing.\n");
+                  goto FINISH_UP;
+                  break;
+               case 's':
+                  fprintf (SUMA_STDERR,"Skipping this stage \n");
+                  goto BEAUTY;
+                  break;
+               case 'c':
+                  fprintf (SUMA_STDERR,"Continuing with stage.\n");
+                  break;
+            }                 
+         }
          /* recover the eye balls please */
          if (mval < Opt->t98) {
             SUMA_SL_Warn("Looks like some values in dset might be larger than 255 !");
@@ -1262,12 +1290,31 @@ int main (int argc,char *argv[])
          
          if (LocalHead) fprintf (SUMA_STDERR,"%s: Touchup correction  Done.\n", FuncName);
    }
-   
+   BEAUTY:
    /* smooth the surface a bit */
    if (Opt->smooth_end) {
       ps->cs->kth = 1;  /*make sure all gets sent at this stage */
-      if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("beauty treatment smoothing next"); }
+      if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("beauty treatment smoothing next"); }
       if (Opt->debug) fprintf (SUMA_STDERR,"%s: The beauty treatment smoothing.\n", FuncName);
+      if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+            fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
+                                 "Beauty treatment smoothing.\n"
+                                 "Do you want to (C)ontinue, (S)kip or (Q)uit? [C] ");
+            cbuf = SUMA_ReadCharStdin ('c', 0,"csq");
+            switch (cbuf) {
+               case 'q':
+                  fprintf (SUMA_STDERR,"Stopping processing.\n");
+                  goto FINISH_UP;
+                  break;
+               case 's':
+                  fprintf (SUMA_STDERR,"Skipping this stage \n");
+                  goto TOUCHUP_2;
+                  break;
+               case 'c':
+                  fprintf (SUMA_STDERR,"Continuing with stage.\n");
+                  break;
+            }                 
+         }
       dsmooth = SUMA_Taubin_Smooth( SO, NULL,
                                     0.6307, -.6732, SO->NodeList,
                                     Opt->smooth_end, 3, SUMA_ROW_MAJOR, dsmooth, ps->cs, NULL);    
@@ -1280,12 +1327,32 @@ int main (int argc,char *argv[])
       }
       ps->cs->kth = kth_buf; 
    }
-   
+   TOUCHUP_2:
    /* one more correction pass */
    if (Opt->UseNew) {
       ps->cs->kth = 1; /*make sure all gets sent at this stage */
-      if (Opt->DemoPause) { SUMA_PAUSE_PROMPT("touchup correction 2 next"); }
+      if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("touchup correction 2 next"); }
       if (Opt->debug) fprintf (SUMA_STDERR,"%s: Final touchup correction ...\n", FuncName);
+      if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
+            fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
+                                 "Beauty treatment smoothing.\n"
+                                 "Do you want to (C)ontinue, (S)kip or (Q)uit? [C] ");
+            cbuf = SUMA_ReadCharStdin ('c', 0,"csq");
+            fprintf (SUMA_STDERR,"%c\n", cbuf);
+            switch (cbuf) {
+               case 'q':
+                  fprintf (SUMA_STDERR,"Stopping processing.\n");
+                  goto FINISH_UP;
+                  break;
+               case 's':
+                  fprintf (SUMA_STDERR,"Skipping this stage \n");
+                  goto FINISH_UP;
+                  break;
+               case 'c':
+                  fprintf (SUMA_STDERR,"Continuing with stage.\n");
+                  break;
+            }                 
+      }
       /* SUMA_REPOSITION_TOUCHUP(2); */
       SUMA_Reposition_Touchup(SO, Opt, 2, ps->cs);
 
@@ -1293,6 +1360,7 @@ int main (int argc,char *argv[])
       ps->cs->kth = kth_buf; 
    }
    
+   FINISH_UP:
    /* send the last surface */
    ps->cs->kth = 1;
    if (ps->cs->Send) {

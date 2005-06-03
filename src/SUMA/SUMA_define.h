@@ -2106,6 +2106,10 @@ typedef struct {
    
    int SUMA_ThrScalePowerBias; 
    SUMA_Boolean IgnoreVolreg; /*!< if YUP then ignore any Volreg or TagAlign transform in the header of the surface volume */
+   SUMA_Boolean isGraphical; /*!< if YUP then Named afni colors will get resolved when creating color maps. 
+                                  Otherwise they are set to gray. Only suma and ScaleToMap will need to set 
+                                  this variable to YUP, for the moment June 3 05 */
+                                    
 } SUMA_CommonFields;
 
 typedef enum { SUMA_NO_SORT, SUMA_BY_PLANE_DISTANCE, SUMA_BY_SEGMENT_DISTANCE, SUMA_SORT_BY_LLC_DISTANCE, SUMA_SORT_BY_LL_QUAD } SUMA_SORT_BOX_AXIS_OPTION;

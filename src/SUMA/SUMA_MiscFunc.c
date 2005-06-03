@@ -6220,6 +6220,44 @@ char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt)
 
 }/*SUMA_pad_str*/
 
+
+char SUMA_ReadCharStdin (char def, int case_sensitive, char *allowed)
+{
+   static char FuncName[]={"SUMA_ReadCharStdin"};
+   char str[10], *strback;
+   char cbuf;
+   int Done, i, nc;
+   
+   SUMA_ENTRY;
+   
+   do {
+      Done = 1;
+      fpurge (stdin);
+      str[0] = def;
+      strback = fgets(str, 2*sizeof(char), stdin);
+      cbuf = str[0];
+      if (SUMA_IS_BLANK(str[0])) {
+         cbuf = def;
+      }
+
+      if (!case_sensitive) {
+         if (cbuf >= 'A' && cbuf <= 'Z') cbuf = cbuf + 'a' - 'A';  
+      }
+      
+      if (allowed && cbuf) {
+         /* make sure that the character is allowed */
+         nc = strlen(allowed);
+         for (i=0; i<nc;++i) {
+            if (cbuf == allowed[i]) SUMA_RETURN(cbuf); 
+         }
+         Done = 0;
+         /* rewind */
+         fprintf(stdout,"\abad input, try again: "); fflush(stdout);
+      }
+   } while (!Done);
+   SUMA_RETURN(cbuf);
+}
+
 /*! 
    Function to get a bunch of numbers from stdin
    
