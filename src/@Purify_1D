@@ -5,18 +5,53 @@ if ("$1" == '' || "$1" == '-help' || "$1" == '-h') then
 endif
 
 PARSE:
-if ("$1" == "-sub") then 
-   set ss = "$2"
-   set sslab = 'subset_pure'
-   set list = ( $argv[3-$#argv] )
-else 
-   set ss = ''
+	echo "Parsing ..."
+	set Narg = $#
+	
+	#find the locations of -com and -list
+	set cnt = 1
+	set ss = ''
+	set sslab = ''
+   while ($cnt <= $Narg)
+		if ("$argv[$cnt]" == "-sub") then
+         set SubLoc = $cnt		
+		   if ($SubLoc == $Narg) then
+				echo "Need option after -sub"
+            goto END
+			else
+				@ cnt ++
+				set ss = "$argv[$cnt]"
+            if ("$sslab" == "") then
+               set sslab = 'subset_pure'
+            endif
+            set NxtInd = $cnt
+			endif
+      endif
+		if ("$argv[$cnt]" == "-suf") then
+         set SufLoc = $cnt		
+		   if ($SufLoc == $Narg) then
+				echo "Need option after -suf"
+            goto END
+			else
+				@ cnt ++
+            set sslab = "$argv[$cnt]"
+            set NxtInd = $cnt
+			endif
+      endif
+		
+		@ cnt ++
+	end
+
+if ("$sslab" == "") then
    set sslab = 'pure'
-   set list = ( $argv[1-$#argv] )
 endif
 
-echo "$ss"
-echo "$list"
+@ NxtInd ++
+set list = ( $argv[$NxtInd-$#argv] )
+
+#echo "$ss"
+#echo "$sslab"
+#echo "$list"
 
 DOIT:
 foreach fl ($list)
