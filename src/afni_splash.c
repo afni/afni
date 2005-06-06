@@ -1711,3 +1711,16 @@ static int AFNI_find_todays_face(void)
    if( ii == iold ) ii = (ii+1)%ntar ;
    iold = ii ; return tar[ii] ;
 }
+
+/*---------------------------------------------------------------------------*/
+
+#include "afni_broutim.h"
+
+void AFNI_broutim_CB( Widget w, XtPointer cd, XtPointer cbs ) /* 06 Jun 2005 */
+{
+   MRI_IMAGE *imbr ;
+   imbr = SPLASH_decodexx( NX_broutim,NY_broutim,NLINE_broutim,NC_broutim,
+                           RMAP_broutim,GMAP_broutim,BMAP_broutim,BAR_broutim);
+   (void) PLUTO_popup_image( NULL , imbr ) ;
+   mri_free(imbr) ; return ;
+}

@@ -4345,6 +4345,17 @@ STATUS("making prog->rowcol") ;
       prog->hidden_faces_pb = NULL ;
 #endif
 
+      prog->hidden_broutim_pb =            /* 06 Jun 2005 */
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Brodmann Areas") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_broutim_pb , XmNactivateCallback ,
+                     AFNI_broutim_CB , im3d ) ;
+
       /*----------*/
 
 #if !defined(NO_FRIVOLITIES) && defined(DARWIN)
