@@ -183,6 +183,11 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                      Recommended when you have lots of CSF in brain\n"
                "                      and when you have protruding gyri (finger like)\n"
                "                      Recommended value is 2..4. \n"
+               "     -interactive: Make the program stop at various stages in the \n"
+               "                   segmentation process for a prompt from the user\n"
+               "                   to continue or skip that stage of processing.\n"
+               "                   This option is best used in conjunction with options\n"
+               "                   -talk_suma and -feed_afni\n"
                "     -demo_pause: Pause at various step in the process to facilitate\n"
                "                  interactive demo while 3dSkullStrip is communicating\n"
                "                  with AFNI and SUMA. See 'Eye Candy' mode below and\n"
@@ -1250,12 +1255,12 @@ int main (int argc,char *argv[])
       }
    } while (nint != 0);
    if (Opt->debug) fprintf(SUMA_STDERR,"%s: Final smoothing of %d\n", FuncName, Opt->NNsmooth);
-   if (SUMA_DidUserQuit) {
-      if (Opt->debug) fprintf(SUMA_STDERR,"%s: straight to end per user demand...\n", FuncName);
+   if (SUMA_DidUserQuit()) {
+      if (Opt->debug) fprintf(SUMA_STDERR,"%s: straight to end per user demand (%d)...\n", FuncName, SUMA_DidUserQuit());
       goto FINISH_UP;
    }
    /* touch up, these might cause some surface intersection, but their effects should be small */
-   TOUCHUP_1:
+   /* TOUCHUP_1: */
    if (Opt->UseNew) {
          double mval = 255;
          if (Opt->debug) fprintf (SUMA_STDERR,"%s: Touchup correction, pass 1 ...\n", FuncName);
@@ -1263,15 +1268,15 @@ int main (int argc,char *argv[])
          if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
             fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                                  "Touchup, pass 1.\n"
-                                 "Do you want to (C)ontinue, (S)kip or (Q)uit? [C] ");
-            cbuf = SUMA_ReadCharStdin ('c', 0,"csq");
+                                 "Do you want to (C)ontinue, (P)ass or (S)ave this? [C] ");
+            cbuf = SUMA_ReadCharStdin ('c', 0,"csp");
             switch (cbuf) {
-               case 'q':
-                  fprintf (SUMA_STDERR,"Stopping processing.\n");
+               case 's':
+                  fprintf (SUMA_STDERR,"Saving mask as is.\n");
                   goto FINISH_UP;
                   break;
-               case 's':
-                  fprintf (SUMA_STDERR,"Skipping this stage \n");
+               case 'p':
+                  fprintf (SUMA_STDERR,"Passing this stage \n");
                   goto BEAUTY;
                   break;
                case 'c':
@@ -1299,15 +1304,15 @@ int main (int argc,char *argv[])
       if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
             fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                                  "Beauty treatment smoothing.\n"
-                                 "Do you want to (C)ontinue, (S)kip or (Q)uit? [C] ");
-            cbuf = SUMA_ReadCharStdin ('c', 0,"csq");
+                                 "Do you want to (C)ontinue, (P)ass or (S)ave this? [C] ");
+            cbuf = SUMA_ReadCharStdin ('c', 0,"csp");
             switch (cbuf) {
-               case 'q':
-                  fprintf (SUMA_STDERR,"Stopping processing.\n");
+               case 's':
+                  fprintf (SUMA_STDERR,"Saving mask as is.\n");
                   goto FINISH_UP;
                   break;
-               case 's':
-                  fprintf (SUMA_STDERR,"Skipping this stage \n");
+               case 'p':
+                  fprintf (SUMA_STDERR,"Passing this stage \n");
                   goto TOUCHUP_2;
                   break;
                case 'c':
@@ -1335,17 +1340,17 @@ int main (int argc,char *argv[])
       if (Opt->debug) fprintf (SUMA_STDERR,"%s: Final touchup correction ...\n", FuncName);
       if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
             fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
-                                 "Beauty treatment smoothing.\n"
-                                 "Do you want to (C)ontinue, (S)kip or (Q)uit? [C] ");
-            cbuf = SUMA_ReadCharStdin ('c', 0,"csq");
+                                 "Touchup, pass 2.\n"
+                                 "Do you want to (C)ontinue, (P)ass or (S)ave this? [C] ");
+            cbuf = SUMA_ReadCharStdin ('c', 0,"csp");
             fprintf (SUMA_STDERR,"%c\n", cbuf);
             switch (cbuf) {
-               case 'q':
-                  fprintf (SUMA_STDERR,"Stopping processing.\n");
+               case 's':
+                  fprintf (SUMA_STDERR,"Saving mask as is.\n");
                   goto FINISH_UP;
                   break;
-               case 's':
-                  fprintf (SUMA_STDERR,"Skipping this stage \n");
+               case 'p':
+                  fprintf (SUMA_STDERR,"Passing this stage \n");
                   goto FINISH_UP;
                   break;
                case 'c':
