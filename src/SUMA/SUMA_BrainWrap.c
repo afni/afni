@@ -763,21 +763,21 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
       if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
          fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                               "Increasing number of iterations to reach minimal expansion.\n"
-                              "Do you want to (C)ontinue, (S)kip or (Q)uit? [C] ");
-         cbuf = SUMA_ReadCharStdin ('c', 0,"csq");
+                              "Do you want to (C)ontinue, (P)ass or (S)ave this? [C] ");
+         cbuf = SUMA_ReadCharStdin ('c', 0,"csp");
          fprintf (SUMA_STDERR,"%c\n", cbuf);
          switch (cbuf) {
-            case 'q':
-               fprintf (SUMA_STDERR,"Stopping processing.\n", cbuf);
+            case 's':   
+               fprintf (SUMA_STDERR,"Will check surface, save mask and exit.\n");
                InteractiveQuit = 1;
                goto CLEAN_RETURN;
                break;
-            case 's':
-               fprintf (SUMA_STDERR,"Skipping this stage \n", cbuf);
+            case 'p':
+               fprintf (SUMA_STDERR,"Passing this stage \n");
                goto CLEAN_RETURN;
                break;
             case 'c':
-               fprintf (SUMA_STDERR,"Continuing with stage.\n", cbuf);
+               fprintf (SUMA_STDERR,"Continuing with stage.\n");
                break;
          }                 
       }
@@ -813,7 +813,6 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
             ++Stage;
          }
       }
-      STAGE2:
       if (Stage == 2) {
          if (0) {
             if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("About to be in stage 2"); }
@@ -834,7 +833,6 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
             ++Stage;  
          }
       }
-      STAGE3:
       if (Stage == 3) {
          if (Opt->DemoPause == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("About to be in stage 3"); }
          /* see if there is room for extension */
@@ -882,7 +880,6 @@ int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTION
          SUMA_SL_Err("Stage number invalid");
          Done = 1;
       }
-      STAGE_END:
       /* put a limit */
       if ( (nit > 3 * Opt->N_it) && !Done) {
          SUMA_LH("Funding limit reached. Abandoning improvements");
