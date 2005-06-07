@@ -3665,8 +3665,7 @@ STATUS("graCR_pickort") ;
 
       /*** User sets time_index (from graph) ***/
       /*** 24 Jan 2001: or bucket index      ***/
-      /*** 29 Jul 2003: time_index and
-            anat_index are almost merged now ***/
+      /*** 29 Jul 2003: time_index and anat_index are almost merged now ***/
 
       case graCR_setindex:{
          MCW_arrowval *tav = im3d->vwid->imag->time_index_av ;
@@ -4746,9 +4745,9 @@ ENTRY("AFNI_crosshair_gap_CB") ;
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_time_index_CB( MCW_arrowval * av ,  XtPointer client_data )
+void AFNI_time_index_CB( MCW_arrowval *av ,  XtPointer client_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
    int ipx ;
 
 ENTRY("AFNI_time_index_CB") ;
@@ -7134,7 +7133,7 @@ STATUS(" -- managing talairach_to button") ;
       top = MAX( top , DSET_NUM_TIMES(im3d->fim_now) ) ;
 
    if( top > 1 ){
-     MCW_arrowval * tav = im3d->vwid->imag->time_index_av ;
+     MCW_arrowval *tav = im3d->vwid->imag->time_index_av ;
 STATUS(" -- turning time index control on") ;
 
      AV_SENSITIZE( tav , True ) ; im3d->vinfo->time_on = 1 ;
