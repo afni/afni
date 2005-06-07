@@ -5595,3 +5595,6 @@
    Binary vs text format is setup by environment variable AFNI_3D_BINARY.
    prefix
  * Moved AFNI_setenv() function to afni_environ.c for librariness.
+
+06 Jun 2005
+ * Added 'Brodmann Areas' image popup to the 'Hidden' popup menu.

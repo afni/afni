@@ -2159,9 +2159,10 @@ effect).
 Variable: AFNI_WRITE_NIML
 -------------------------
 If this variable is set to YES, then AFNI .HEAD files will be written in
-the new NIML (XML subset) format, rather than the 'classic' format.  At
-present (Jun 2005) this format is experimental, but will someday become
-the default.
+the new NIML (XML subset) format, rather than the 'classic' format.  The
+volumetric image data is still in the pure binary .BRIK file, not XML-ified
+in any way.  At present (Jun 2005) this format is experimental, but will
+someday soon become the default.
 
 =============================================
 | Robert W Cox, PhD                         |
