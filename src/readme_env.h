@@ -2160,9 +2160,10 @@ static char * readme_env[] = {
    "Variable: AFNI_WRITE_NIML\n" ,
    "-------------------------\n" ,
    "If this variable is set to YES, then AFNI .HEAD files will be written in\n" ,
-   "the new NIML (XML subset) format, rather than the 'classic' format.  At\n" ,
-   "present (Jun 2005) this format is experimental, but will someday become\n" ,
-   "the default.\n" ,
+   "the new NIML (XML subset) format, rather than the 'classic' format.  The\n" ,
+   "volumetric image data is still in the pure binary .BRIK file, not XML-ified\n" ,
+   "in any way.  At present (Jun 2005) this format is experimental, but will\n" ,
+   "someday soon become the default.\n" ,
    "\n" ,
    "=============================================\n" ,
    "| Robert W Cox, PhD                         |\n" ,
@@ -2249,4 +2250,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2249
+#define NUM_readme_env 2250
