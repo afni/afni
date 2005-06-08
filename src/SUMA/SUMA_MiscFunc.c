@@ -6232,7 +6232,7 @@ char SUMA_ReadCharStdin (char def, int case_sensitive, char *allowed)
    
    do {
       Done = 1;
-      fpurge (stdin);
+      /* fpurge (stdin); */ /* fpurge is not standard on all systems! */
       str[0] = def;
       strback = fgets(str, 2*sizeof(char), stdin);
       cbuf = str[0];
