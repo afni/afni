@@ -186,8 +186,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
   n = (int *)calloc(MAX_LEVELS*MAX_LEVELS*MAX_LEVELS, sizeof(int));
   if ( !n )
   {
-    sprintf(message, "failed to allocate %d bytes for file counters\n",
-            MAX_LEVELS*MAX_LEVELS*MAX_LEVELS * sizeof(int));
+    sprintf(message, "failed to allocate %u bytes for file counters\n",
+            (unsigned int)(MAX_LEVELS*MAX_LEVELS*MAX_LEVELS * sizeof(int)) );
     ANOVA_error(message);
   }
 
