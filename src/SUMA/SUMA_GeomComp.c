@@ -3931,12 +3931,18 @@ int main (int argc,char *argv[])
             nvec = im->nx;
             ncol = im->ny;
             d_order = SUMA_COLUMN_MAJOR;
-
+            
             if (!nvec) {
                SUMA_SL_Err("Empty file");
                exit(1);
             }
-            
+            if (nvec != SO->N_Node) {
+               fprintf(SUMA_STDERR, "Error %s:\n"
+                                    "Expecting 1D file to have %d rows\n"
+                                    "                    found %d rows instead.\n",
+                                     FuncName, SO->N_Node, nvec);
+               exit(1); 
+            }
             if (LocalHead) SUMA_etime(&start_time,0);
             wgt = SUMA_Chung_Smooth_Weights(SO);
             if (!wgt) {
