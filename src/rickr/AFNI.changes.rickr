@@ -1155,3 +1155,6 @@
 
 02 June 2005: 3dVol2Surf (v 6.4)
   * added -skip_col_non_results option
+
+08 June 2005: added 2 million to LBUF in mri_read.c (will revisit)
+
