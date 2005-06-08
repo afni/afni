@@ -102,6 +102,8 @@ extern MRI_IMAGE *mri_read_1D(char *) ;
 # define VSUB(n,x,y,z) (memcpy(z,x,sizeof(float)*n),saxpy(n,-1.0f,y,1,z,1))
 #endif
 
+#include <string.h>
+
 /*---------------------------------------------------------------------------*/
 /*!
   Routine to print and error message and stop.

@@ -50,6 +50,8 @@
 #define DA_REV 1.00
 
 #include "whirlgif.h"
+#include <stdlib.h>
+#include <string.h>
 
 #define MAXVAL  4100            /* maxval of lzw coding size */
 #define MAXVALP 4200
