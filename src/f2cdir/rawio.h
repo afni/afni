@@ -28,8 +28,9 @@ extern int creat(const char*,int), open(const char*,int);
 #endif
 extern int close(int) __THROW ;
 #ifndef READ_WRITE_64      /* for some 64-bit machines  03 Aug 2004 [rickr] */
-extern int read(int,void*,size_t) __THROW ;
-extern int write(int,const void*,size_t) __THROW ;
+#include <sys/types.h>
+extern ssize_t read(int,void*,size_t) __THROW ;
+extern ssize_t write(int,const void*,size_t) __THROW ;
 #endif
 extern int unlink(const char*) __THROW ;
 #ifndef _POSIX_SOURCE

@@ -680,7 +680,7 @@ int main
   /*----- Identify software -----*/
   
   for( ii=1 ; ii < argc ; ii++ )
-    if( strncmp(argv[ii],"-quiet",6) == NULL ) break ;
+    if( strncmp(argv[ii],"-quiet",6) == 0 ) break ;
   if( ii == argc ){
     printf ("\n\n");
     printf ("Program: %s \n", PROGRAM_NAME);

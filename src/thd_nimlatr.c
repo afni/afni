@@ -575,7 +575,7 @@ MRI_IMAGE * niml_to_mri( NI_element *nel )
 ENTRY("niml_to_mri") ;
 
    if( NI_element_type(nel)          != NI_ELEMENT_TYPE ||
-       strcmp(nel->name,"MRI_IMAGE") != NULL            ||
+       strcmp(nel->name,"MRI_IMAGE") != 0               ||
        nel->vec_num                  != 1               ||
        nel->vec_len                  <= 0                 ) RETURN(NULL) ;
 
