@@ -439,7 +439,6 @@ ENTRY("adwarp_follower_dataset") ;
   if( ! ISVALID_3DIM_DATASET(anat_parent) ||
       ! ISVALID_3DIM_DATASET(data_parent)   ) RETURN(NULL) ;
 
-
   /* make new dataset, copying appropriate fields from its various parents */
 
   new_dset = myXtNew( THD_3dim_dataset ) ; INIT_KILL( new_dset->kl ) ;
@@ -453,7 +452,7 @@ ENTRY("adwarp_follower_dataset") ;
   new_dset->tagset = NULL ;  /* Oct 1998 */
 
   MCW_strncpy( new_dset->anat_parent_name ,
-	       anat_parent->self_name , THD_MAX_NAME ) ;
+               anat_parent->self_name , THD_MAX_NAME ) ;
 
   new_dset->anat_parent_idcode = anat_parent->idcode ;
 
@@ -464,7 +463,7 @@ ENTRY("adwarp_follower_dataset") ;
                          ? (data_parent->warp_parent) : (data_parent) ;
 
   MCW_strncpy( new_dset->warp_parent_name ,
-	       new_dset->warp_parent->self_name , THD_MAX_NAME ) ;
+               new_dset->warp_parent->self_name , THD_MAX_NAME ) ;
 
   new_dset->warp_parent_idcode = new_dset->warp_parent->idcode ;
 
@@ -704,6 +703,12 @@ ENTRY("adwarp_refashion_dataset") ;
     myXtFree( typ ) ;
   }
 
+  if( dblk->total_bytes > 500*1024*1024 ){
+    int mb = (int)(dblk->total_bytes/(1024*1024)) ;
+    fprintf(stderr,"++ WARNING: output filesize will be %d Mbytes!\n"
+                   "++ SUGGEST: increasing voxel size to save disk space!\n",mb) ;
+  }
+
   dkptr->storage_mode = STORAGE_UNDEFINED ;       /* just for now */
   dblk->malloc_type   = DATABLOCK_MEM_UNDEFINED ;
 
@@ -924,12 +929,3 @@ int main( int argc , char *argv[] )
 
   exit(0) ;
 }
-
-
-/*---------------------------------------------------------------------------*/
-
-
-
-
-
-

@@ -3998,6 +3998,12 @@ ENTRY("AFNI_refashion_dataset") ;
      myXtFree( typ ) ;
    }
 
+   if( dblk->total_bytes > 500*1024*1024 ){
+     int mb = (int)(dblk->total_bytes/(1024*1024)) ;
+     fprintf(stderr,"++ WARNING: output filesize will be %d Mbytes!\n"
+                    "++ SUGGEST: increasing voxel size to save disk space!\n",mb) ;
+   }
+
    dkptr->storage_mode = STORAGE_UNDEFINED ;       /* just for now */
    dblk->malloc_type   = DATABLOCK_MEM_UNDEFINED ;
 
