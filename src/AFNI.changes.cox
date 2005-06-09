@@ -5598,3 +5598,10 @@
 
 06 Jun 2005
  * Added 'Brodmann Areas' image popup to the 'Hidden' popup menu.
+
+08 Jun 2005
+ * A number of small changes to get AFNI to compile on Tiger.
+
+09 Jun 2005
+ * Warnings when adwarp.c or afni_func.c is about to write a .BRIK file
+     over 500 MB in size.
