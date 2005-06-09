@@ -411,6 +411,7 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
    Focus point: Some area <tab> Within 6 mm: Some area <tab> etc
 ***************************************************************************/
 
+#define zischar(ch) ( ( ((ch) >= 'A' && (ch) <= 'Z' ) || ((ch) >= 'a' && (ch) <= 'z' ) ) ? 1 : 0 )
 int main(int argc, char **argv)
 {
   float x, y, z;
@@ -418,20 +419,47 @@ int main(int argc, char **argv)
   int output = 0;
   int first = 1, num = 0;
   int a;
+  int iarg, dicom = 1, i, nakedarg, arglen;
 
-  if (argc != 4) {
-    if (argc == 5) {
-      output = atoi(argv[4]);
-    } else {
-      printf("Usage: whereami x y z [output format]\n");
+   dicom = 1;
+   output = 0;
+   iarg = 1 ; nakedarg = 0;
+   while( iarg < argc ){
+      arglen = strlen(argv[iarg]);
+      if(argv[iarg][0] == '-' && arglen > 1 && zischar(argv[iarg][1])) {
+         for (i=1;i<arglen; ++i) argv[iarg][i] = tolower(argv[iarg][i]);
+         if (strcmp(argv[iarg],"-spm") == 0 || strcmp(argv[iarg],"-lpi") == 0) dicom = 0;
+         else if (strcmp(argv[iarg],"-dicom") == 0 || strcmp(argv[iarg],"-rai") == 0) dicom = 1;
+         else {
+            fprintf(stderr,"** bad option %s\n", argv[iarg]);
+            return 1;
+         }
+      } else {
+         /* xyz format */
+         if (nakedarg == 0) x = atof(argv[iarg]);
+         else if (nakedarg == 1) y = atof(argv[iarg]);
+         else if (nakedarg == 2) z = atof(argv[iarg]);
+         else if (nakedarg == 3) output = atoi(argv[iarg]);
+         ++nakedarg;
+      }
+      ++iarg;
+   }
+  
+  
+  if (nakedarg < 3) {
+      printf("Usage: whereami [-lpi/-spm] x y z [output format]\n");
+      printf("x y z coordinates are assumed to be in RAI or DICOM format\n");
+      printf("unless you use -lpi or -spm to indicate otherwise.\n");
       printf("Output format: 0 - standard AFNI 'Where am I?' format [default]\n");
       printf("               1 - Blank separated list\n");
       return 1;
-    }
   }
-  x = atof(argv[1]);
-  y = atof(argv[2]);
-  z = atof(argv[3]);
+  
+  if (!dicom) {
+   /* go from lpi to rai */
+   x = -x;
+   y = -y; 
+  }
 
   string = TT_whereami(x,y,z);
   if (string == NULL ) {                              /* 30 Apr 2005 [rickr] */
