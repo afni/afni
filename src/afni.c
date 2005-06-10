@@ -1731,6 +1731,7 @@ ENTRY("AFNI_quit_CB") ;
    if( AFNI_count_controllers() <= 1 ){
       XtCloseDisplay( XtDisplay(im3d->vwid->top_shell) ) ;
       AFNI_speak(random_goodbye(),0) ;
+      STATUS("calling exit(0) -- farewell cruel world!") ;
       exit(0) ;
 
    } else {  /* otherwise, patch up the other windows and continue */

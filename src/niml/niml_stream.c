@@ -2073,7 +2073,7 @@ NI_dpr("NI_stream_reopen: sending message %s",msg) ;
 NI_dpr("NI_stream_reopen: waiting for new stream to be good\n") ;
 #endif
 
-   jj = NI_stream_goodcheck( nsnew , 5000 ) ;  /* wait 5 sec */
+   jj = NI_stream_goodcheck( nsnew , 5000 ) ;  /* wait up to 5 sec */
    if( jj <= 0 ){
      NI_stream_closenow(nsnew) ; return 0 ;  /* never got good */
    }
@@ -2086,9 +2086,16 @@ NI_dpr("NI_stream_reopen: waiting for new stream to be good\n") ;
 NI_dpr("NI_stream_reopen: closing old stream\n") ;
 #endif
 
-   NI_stream_close_keep(ns,0) ;
+   NI_stream_close_keep(ns,0) ;   /* will be removed from open streams list */
 
-   *ns = *nsnew ; NI_free(nsnew) ;
+   *ns = *nsnew ;
+
+   /* 10 Jun 2005: at this point, nsnew is in the open streams list,
+                   but the pointer nsnew is about to die, and so we
+                   must munge the open streams list around now to
+                   make sure that nsnew is removed and ns is re-added! */
+
+   remove_open_stream(nsnew) ; NI_free(nsnew) ; add_open_stream(ns) ;
 
    return 1 ; /* :-) */
 }
@@ -2381,15 +2388,15 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
 
 void NI_stream_close_keep( NI_stream_type *ns , int flag )
 {
-   if( ns == NULL ) return ;
+   if( ns == NULL || !isgraph(ns->orig_name[0]) ) return ;
+
+   if( (flag & 4) == 0 )         /* 22 Apr 2005 */
+     remove_open_stream( ns ) ;  /* 02 Jan 2004 */
 
    if( ns->bad == MARKED_FOR_DEATH ){
      if( ns->buf != NULL ){ NI_free(ns->buf); ns->buf = NULL;}
      return ;
    }
-
-   if( (flag & 4) == 0 )         /* 22 Apr 2005 */
-     remove_open_stream( ns ) ;  /* 02 Jan 2004 */
 
    /*-- 20 Dec 2002: write a farewell message to the other end? --*/
 
@@ -2437,8 +2444,9 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
    }
 
    ns->bad = MARKED_FOR_DEATH ; /* label this as unclean, not to be touched */
-   NI_free(ns->buf) ;           /* don't need internal buffer any more */
-   ns->buf = NULL ;
+   if( (flag & 4) != 0 ){       /* only do this if the program is NOT exiting */
+     NI_free(ns->buf) ; ns->buf = NULL ;
+   }
    return ;
 }
 
