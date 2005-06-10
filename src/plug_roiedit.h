@@ -168,7 +168,7 @@ r_pt_conn_s gRCP;               /* point connection structure               */
 char        gRmessage[ 1024 ];  /* error messgae memory                     */
 
 
-static void     r_afni_set_fill_point    ( int *, r_alg_s * );
+static int      r_afni_set_fill_point    ( int *, r_alg_s * );
 static void     r_any_cb_apply           ( Widget, XtPointer, XtPointer );
 static void     r_any_cb_fill_stats      ( Widget, XtPointer, XtPointer );
 static void     r_any_cb_hide            ( Widget, char *, XtPointer );
