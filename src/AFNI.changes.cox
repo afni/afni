@@ -5605,3 +5605,7 @@
 09 Jun 2005
  * Warnings when adwarp.c or afni_func.c is about to write a .BRIK file
      over 500 MB in size.
+
+10 Jun 2005
+ * Changes to niml/niml_stream.c to make atexit() stuff work properly
+     when NI_stream_reopen() is used (this is Ziad's fault, of course).
