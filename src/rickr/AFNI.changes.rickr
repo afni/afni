@@ -1158,3 +1158,4 @@
 
 08 June 2005: added 2 million to LBUF in mri_read.c (will revisit)
 
+10 June 2005: minor updates to plug_roiedit.[ch]
