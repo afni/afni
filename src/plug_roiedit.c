@@ -16,6 +16,10 @@
  *
  * October 7, 2003  [rickr]
  *   - renamed old and new fields of r_alg_s to Bold and Bnew
+ * June 10, 2005 [rickr]
+ *   - added lots of ENTRY/RETURN pairs
+ *   - continue on 'set fill point' with no data
+ *   - use DSET_load in case use has not opened afni windows yet
  ***********************************************************************
  */
 
@@ -138,6 +142,8 @@ char * DRAW_main( PLUGIN_interface * plint )
 {
    XmString xstr ;
 
+   ENTRY("DRAW_main");
+
 #if 0
    /* RCR - this plugin is not authorized outside of the mcw domain */
    if ( ! r_check_host( ) )
@@ -146,7 +152,7 @@ char * DRAW_main( PLUGIN_interface * plint )
 
    /*-- sanity checks --*/
 
-   if( ! IM3D_OPEN(plint->im3d) ) return "AFNI Controller\nnot opened?!" ;
+   if( ! IM3D_OPEN(plint->im3d) ) RETURN( "AFNI Controller\nnot opened?!") ;
 
    if( editor_open )
    {
@@ -162,7 +168,7 @@ char * DRAW_main( PLUGIN_interface * plint )
 	  gRX.main_is_open = 1;
       }
 
-      return NULL;
+      RETURN(NULL);
    }
 
    im3d = plint->im3d ;  /* save for local use */
@@ -223,7 +229,7 @@ char * DRAW_main( PLUGIN_interface * plint )
    SENSITIZE(save_pb,0) ;
    SENSITIZE(choose_pb,1) ;
 
-   return NULL ;
+   RETURN(NULL) ;
 }
 
 /*------------------------------------------------------------------------
@@ -255,6 +261,8 @@ static MCW_action_item DRAW_actor[NACT] = {
 static void DRAW_make_widgets(void)
 {
    XmString xstr ;
+
+   ENTRY("DRAW_make_widgets");
 
    /*** top level shell for window manager ***/
 
@@ -413,7 +421,7 @@ static void DRAW_make_widgets(void)
 
    r_main_mk_main_shell( );
 
-   return;
+   EXRETURN;
 }
 
 
@@ -454,6 +462,7 @@ r_check_host( void )
 static void
 r_main_mk_main_shell( void )
 {
+    ENTRY("r_main_mk_main_shell");
 #ifdef R_LOG_INFO_D
     if ( ! r_open_log_file( ) )
 	return 0;
@@ -463,6 +472,8 @@ r_main_mk_main_shell( void )
     r_INT_mk_main_shell   ( &gRI );             /* interpolation shell */
     r_HL_mk_main_shell    ( &gRH );             /* hole filler shell */
     r_main_mk_show_buttons( );
+
+    EXRETURN;
 }
 
 
@@ -502,6 +513,8 @@ r_main_mk_show_buttons( void )
     Arg      al[ 10 ];
     Widget   button, tmpb, tmpb2;
     XmString xstr;
+
+    ENTRY("r_main_mk_show_buttons");
 
     gRX.main_is_open = 1;
 
@@ -649,6 +662,8 @@ r_main_mk_show_buttons( void )
 
     XtManageChild( gRX.mainForm );
     XtRealizeWidget( gRX.main );
+
+    EXRETURN;
 }
 
 
@@ -665,6 +680,8 @@ r_main_mk_save_as_fr( Widget parent )
     Arg      al[ 10 ];
     int      ac;
     char     string[ 25 ];
+
+    ENTRY("r_main_mk_save_as_fr");
 
       XtVaSetValues( shell ,
 		       XmNmwmFunctions ,
@@ -716,6 +733,8 @@ r_main_mk_save_as_fr( Widget parent )
     ac = 0;
     XtSetArg( al[ac], XmNmappedWhenManaged, True );  ac++;
     XtSetValues( gRX.save_as_file_d, al, ac );
+
+    EXRETURN;
 }
 
 
@@ -733,13 +752,15 @@ r_wtgr_mk_main_shell( r_X_s * X )
     Arg       al[ 20 ];
     int       ac;
 
+    ENTRY("r_wtgr_mk_main_shell");
+
 /* create a main RC widget with four frame children */
     
     if ( ! r_init_Alg_values( &gRA ) )
-	return;
+	EXRETURN;
 
     if ( ! r_init_pt_conn_s( &gRCP ) )
-	return;
+	EXRETURN;
 
     X->display = dc->display;
     X->charset = XmSTRING_DEFAULT_CHARSET;
@@ -769,7 +790,7 @@ r_wtgr_mk_main_shell( r_X_s * X )
     XtManageChild( X->wtgr_mainRC );
     XtRealizeWidget( X->wtgr_main );
 
-    return ;
+    EXRETURN ;
 }
 
 
@@ -787,8 +808,10 @@ r_HL_mk_main_shell( holes_s * H )
     Arg       al[ 20 ];
     int       ac;
 
+    ENTRY("r_HL_mk_main_shell");
+
     if ( ! r_init_holes_vals( H ) )
-	return;
+	EXRETURN;
 
     ac = 0;
     XtSetArg( al[ac], XmNinitialResourcesPersistent, False );  ac++;
@@ -814,7 +837,7 @@ r_HL_mk_main_shell( holes_s * H )
     XtManageChild  ( H->mainRC );
     XtRealizeWidget( H->main );
 
-    return;
+    EXRETURN;
 }
 
 
@@ -831,6 +854,8 @@ r_HL_mk_buttons( holes_s * H, Widget parent )
     Arg      al[ 10 ];
     Widget   form, frame, button1, button2;
     XmString xstr;
+
+    ENTRY("r_HL_mk_buttons");
 
     /* create frame to hold form and buttons */
     ac = 0;
@@ -897,7 +922,7 @@ r_HL_mk_buttons( holes_s * H, Widget parent )
     XtManageChild( form );
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 
@@ -916,6 +941,7 @@ r_HL_mk_maxsize_fr( holes_s * H, Widget parent )
     int      ac;
     char     string[ 15 ];
 
+    ENTRY("r_HL_mk_maxsize_fr");
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
@@ -949,7 +975,7 @@ r_HL_mk_maxsize_fr( holes_s * H, Widget parent )
     XtManageChild( rc );
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 
@@ -968,6 +994,7 @@ r_HL_mk_fillval_fr( holes_s * H, Widget parent )
     int      ac;
     char     string[ 15 ];
 
+    ENTRY("r_HL_mk_fillval_fr");
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
@@ -1001,7 +1028,7 @@ r_HL_mk_fillval_fr( holes_s * H, Widget parent )
     XtManageChild( rc );
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 
@@ -1014,6 +1041,8 @@ r_HL_mk_fillval_fr( holes_s * H, Widget parent )
 static int
 r_init_holes_vals( holes_s * H )
 {
+    ENTRY("r_init_holes_vals");
+
     H->max_size = 6;
     H->fill_val = 3;
 
@@ -1021,7 +1050,7 @@ r_init_holes_vals( holes_s * H )
     H->filled.used   = 0;
     H->filled.M      = 0;
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -1045,6 +1074,7 @@ r_HL_cb_fill(
     int      * wgpts, *tmpp;
     int        count, fill_size, coord, status, pcount;
 
+    ENTRY("r_HL_cb_fill");
 
     /* first store fdata to undo_data  */
     fptr = gRA.fdata; uptr = gRA.undo_data;
@@ -1060,13 +1090,13 @@ r_HL_cb_fill(
 	  count < H->gr_edge.used;
 	  count++, wgpts++ )
 	if ( ! r_add_to_boundary( &H->wtgr_edge, *wgpts ) )
-	    return;
+	    EXRETURN;
 
     for ( count = 0, wgpts = gRA.border.points;
 	  count < gRA.border.used;
 	  count++, wgpts++ )
 	if ( ! r_add_to_boundary( &H->wtgr_edge, *wgpts ) )
-	    return;
+	    EXRETURN;
 
     /* for each point in white/gray boundary - try to grow */
     /* (watch for 3-D brick edges) */
@@ -1082,7 +1112,7 @@ r_HL_cb_fill(
 	   continue;
 
 	if ( ! r_add_to_boundary( &Search, *wgpts ) )
-	    return;
+	    EXRETURN;
 
 	while ( Search.used > 0 )
 	{
@@ -1091,13 +1121,13 @@ r_HL_cb_fill(
 
 	    *(fdata + coord) = H->fill_val;     /* mark as found */
 	    if ( ! r_add_to_boundary( &Marked, coord ) )
-		return;
+		EXRETURN;
 
 	    fill_size++;
 
 	    /* 1 = OK, 0 = BAD point found, -1 = memory error */
 	    if ( ( status = r_HL_check_neighbors( &Search, coord ) ) == -1 )
-		return;
+		EXRETURN;
 	    
 	    if ( ( fill_size > H->max_size ) || ( status == 0 ) )
 	    {
@@ -1133,7 +1163,7 @@ r_HL_cb_fill(
 
     dset_changed = 1;
 
-    return;
+    EXRETURN;
 }
 
 
@@ -1156,57 +1186,59 @@ r_HL_check_neighbors( points_t * P, int coord )
     short * fvalp = NULL;
     int     nx, nxy, value;
 
+    ENTRY("r_HL_check_neighbors");
+
     nx  = gRA.nx;
     nxy = gRA.nxy;
 
     if ( nptr[ coord ] == -1 )  /* do not accept edge points */
-	return 1;  /* normal return */
+	RETURN(1);  /* normal return */
 
     fvalp = gRA.fdata + coord;
 
     value = *(fvalp - 1);
     if ( value == R_HL_BAD_VAL )
-	return 0;
+	RETURN(0);
     else if ( ! value )
 	if ( ! r_add_to_boundary( P, coord - 1 ) )
-	    return -1;
+	    RETURN(-1);
 
     value = *(fvalp + 1);
     if ( value == R_HL_BAD_VAL )
-	return 0;
+	RETURN(0);
     else if ( ! value )
 	if ( ! r_add_to_boundary( P, coord + 1 ) )
-	    return -1;
+	    RETURN(-1);
 
     value = *(fvalp - nx);
     if ( value == R_HL_BAD_VAL )
-	return 0;
+	RETURN(0);
     else if ( ! value )
 	if ( ! r_add_to_boundary( P, coord - nx ) )
-	    return -1;
+	    RETURN(-1);
 
     value = *(fvalp + nx);
     if ( value == R_HL_BAD_VAL )
-	return 0;
+	RETURN(0);
     else if ( ! value )
 	if ( ! r_add_to_boundary( P, coord + nx ) )
-	    return -1;
+	    RETURN(-1);
 
     value = *(fvalp - nxy);
     if ( value == R_HL_BAD_VAL )
-	return 0;
+	RETURN(0);
     else if ( ! value )
 	if ( ! r_add_to_boundary( P, coord - nxy ) )
-	    return -1;
+	    RETURN(-1);
 
     value = *(fvalp + nxy);
     if ( value == R_HL_BAD_VAL )
-	return 0;
+	RETURN(0);
     else if ( ! value )
 	if ( ! r_add_to_boundary( P, coord + nxy ) )
-	    return -1;
+	    RETURN(-1);
 
-    return 1;
+    RETURN(0);
 }
 
 
@@ -1224,8 +1256,10 @@ r_INT_mk_main_shell( interp_s * I )
     Arg       al[ 20 ];
     int       ac;
 
+    ENTRY("r_INT_mk_main_shell");
+
     if ( ! r_init_interp_vals( I ) )
-	return;
+	EXRETURN;
 
     ac = 0;
     XtSetArg( al[ac], XmNinitialResourcesPersistent, False );  ac++;
@@ -1251,7 +1285,7 @@ r_INT_mk_main_shell( interp_s * I )
     XtManageChild( I->mainRC );
     XtRealizeWidget( I->main );
 
-    return ;
+    EXRETURN ;
 }
 
 
@@ -1268,6 +1302,8 @@ r_INT_mk_app_buttons( interp_s * I, Widget parent )
     Arg      al[ 10 ];
     Widget   form, frame, button1, button2;
     XmString xstr;
+
+    ENTRY("r_INT_mk_app_buttons");
 
     /* create frame to hold form and buttons */
     ac = 0;
@@ -1350,7 +1386,7 @@ r_INT_mk_app_buttons( interp_s * I, Widget parent )
     XtManageChild( form );
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 
@@ -1369,6 +1405,7 @@ r_INT_mk_fillval_fr( interp_s * I, Widget parent )
     int      ac;
     char     string[ 15 ];
 
+    ENTRY("r_INT_mk_fillval_fr");
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
@@ -1402,7 +1439,7 @@ r_INT_mk_fillval_fr( interp_s * I, Widget parent )
     XtManageChild( rc );
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 
@@ -1424,10 +1461,12 @@ r_any_cb_apply(
     int      clear_val = *( (int *)client_data );
     int      count;
 
+    ENTRY("r_any_cb_apply");
+
     if ( ! gRA.fdata )  /* error beep */
     {
 	fprintf( stderr, "%c", 7 );
-	return;
+	EXRETURN;
     }
 
     /* first store to undo_data */
@@ -1441,6 +1480,8 @@ r_any_cb_apply(
 
     THD_load_statistics( gRA.func ) ;
     PLUTO_dset_redisplay( gRA.func ) ;
+
+    EXRETURN;
 }
 
 
@@ -1457,6 +1498,8 @@ r_any_cb_hide(
 	XtPointer call_data
 	)
 {
+    ENTRY("r_any_cb_hide");
+
     if      ( ! strcmp( client_data, "INT" ) )
 	XtUnmapWidget( gRI.main );
     else if ( ! strcmp( client_data, "HL" ) )
@@ -1477,6 +1520,8 @@ r_any_cb_hide(
 	sprintf( gRmessage, "rach_10 : client_data is '%s'\n", client_data );
 	rERROR( gRmessage );
     }
+
+    EXRETURN;
 }
 
 
@@ -1493,6 +1538,8 @@ r_any_cb_raise(
 	XtPointer call_data
 	)
 {
+    ENTRY("r_any_cb_raise");
+
     if      ( ! strcmp( client_data, "INT" ) )
     {
 	XMapRaised( XtDisplay( gRI.main ) , XtWindow( gRI.main ) );
@@ -1523,6 +1570,8 @@ r_any_cb_raise(
 	sprintf( gRmessage, "racr_10 : client_data is '%s'\n", client_data );
 	rERROR( gRmessage );
     }
+
+    EXRETURN;
 }
 
 
@@ -1542,12 +1591,22 @@ r_any_cb_undo(
     short * fptr, * uptr;
     int     count;
 
+    ENTRY("r_any_cb_undo");
+
     fptr = gRA.fdata; uptr = gRA.undo_data;
+    if ( !fptr || !uptr )
+    {
+        fprintf(stderr,"** undo without pointers: (%p,%p)\n",fptr,uptr);
+        EXRETURN;
+    }
+
     for ( count = 0; count < gRA.nvox; count++ )
 	*fptr++ = *uptr++;
 
     THD_load_statistics( gRA.func ) ;
     PLUTO_dset_redisplay( gRA.func ) ;
+
+    EXRETURN;
 }
 
 
@@ -1576,16 +1635,18 @@ r_INT_cb_fill(
     int        count, dest_index, coord;
     int        nx = gRA.nx, ny = gRA.ny, nz = gRA.nz;
 
+    ENTRY("r_INT_cb_fill");
+
     if ( ! gRA.fdata )
     {
 	fprintf( stderr, "%c", 7 );
-	return;
+	EXRETURN;
     }
 
     if ( ! I )
     {
 	rERROR( "Error : entered r_INT_cb_fill() without client_data." );
-	return;
+	EXRETURN;
     }
 
     /* check that neither border is empty */
@@ -1593,7 +1654,7 @@ r_INT_cb_fill(
     {
 	fprintf( stderr, "%c", 7 );
 	rWARNING( "Missing bounding curve for interpolation." );
-	return;
+	EXRETURN;
     }
 
     /* first store to undo_data */
@@ -1646,6 +1707,8 @@ r_INT_cb_fill(
     THD_load_statistics( gRA.func );
     PLUTO_dset_redisplay( gRA.func );
     dset_changed = 1;
+
+    EXRETURN;
 }
 
 
@@ -1680,11 +1743,13 @@ r_index2pt( int coord, int nx, int ny, int nz )
     r_ipt_t p = { 0, 0, 0 };
     int     tmp;
 
+    ENTRY("r_index2pt");
+
     if ( coord < 0 )
     {
 	sprintf( gRmessage, "Coordinate %d is out of range!\n", coord );
 	rERROR( gRmessage );
-	return p;
+	RETURN(p);
     }
 
     p.x = coord % nx;
@@ -1700,7 +1765,7 @@ r_index2pt( int coord, int nx, int ny, int nz )
 	rERROR( gRmessage );
     }
 
-    return p;
+    RETURN(p);
 }
 
 
@@ -1759,6 +1824,8 @@ r_init_pt_conn_s( r_pt_conn_s * P )
 static int
 r_init_interp_vals( interp_s * I )
 {
+    ENTRY("r_init_interp_vals");
+
     I->fill_val  = 2;
     I->afni_undo = 0;
 
@@ -1771,7 +1838,7 @@ r_init_interp_vals( interp_s * I )
 	fprintf( stderr, "\nError: riiv10\n"
 		 "Failed to allocate %d ints for interpolation struct.\n\n",
 		 I->A.M );
-	return 0;
+	RETURN(0);
     }
 
     I->B.used   = 0;
@@ -1783,10 +1850,10 @@ r_init_interp_vals( interp_s * I )
 	fprintf( stderr, "\nError: riiv20\n"
 		 "Failed to allocate %d ints for interpolation struct.\n\n",
 		 I->B.M );
-	return 0;
+	RETURN(0);
     }
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -1803,6 +1870,8 @@ r_wt_mk_main_frame( r_X_s * X, Widget parent )
     XmString  xstring;
     Arg       al[ 20 ];
     int       ac;
+
+    ENTRY("r_wt_mk_main_frame");
 
     ac = 0;
     XtSetArg( al[ ac ], XmNmarginHeight, 3 );  ac++;
@@ -1832,7 +1901,7 @@ r_wt_mk_main_frame( r_X_s * X, Widget parent )
     XtManageChild( rc );
     XtManageChild( frame );
 
-    return frame;
+    RETURN(frame);
 }
 
 
@@ -1849,6 +1918,8 @@ r_gr_mk_main_frame( r_X_s * X, Widget parent )
     XmString  xstring;
     Arg       al[ 20 ];
     int       ac;
+
+    ENTRY("r_gr_mk_main_frame");
 
     ac = 0;
     XtSetArg( al[ ac ], XmNmarginHeight, 3 );  ac++;
@@ -1877,7 +1948,7 @@ r_gr_mk_main_frame( r_X_s * X, Widget parent )
     XtManageChild( rc );
     XtManageChild( frame );
 
-    return frame;
+    RETURN(frame);
 }
 
 
@@ -1890,6 +1961,8 @@ r_gr_mk_main_frame( r_X_s * X, Widget parent )
 static int
 r_init_Alg_values( r_alg_s * A )
 {
+    ENTRY("r_init_Alg_values");
+
     A->point_value       = 75;
     A->point_coord       = -1;  /* means user has not yet selected a point */
     A->adjust_point      = 0;
@@ -1911,7 +1984,12 @@ r_init_Alg_values( r_alg_s * A )
     fprintf(stderr,"r_init_Alg_values(): A->anat = %p\n",A->anat);
     if ( A->anat )
     {
-	A->adata   = (short *)DSET_BRICK_ARRAY( A->anat, 0 );
+        if ( ! DSET_LOADED(A->anat) )
+        {
+            DSET_load( A->anat );
+            fprintf(stderr,"-d loading anat...\n");
+        }
+	A->adata = (short *)DSET_BRICK_ARRAY( A->anat, 0 );
 	/*fprintf(stderr,"Set A->adata to %p\n",A->adata);*/
     }
     
@@ -1926,7 +2004,7 @@ r_init_Alg_values( r_alg_s * A )
     {
 	fprintf( stderr, "Error: riAv10\n"
 		 "Failed to allocate %d ints for boundary.\n", A->Bold.M );
-	return 0;
+	RETURN(0);
     }
 
     A->Bnew.used   = 0;
@@ -1937,7 +2015,7 @@ r_init_Alg_values( r_alg_s * A )
     {
 	fprintf( stderr, "\nError: riAv20\n"
 		 "Failed to allocate %d ints for boundary.\n\n", A->Bnew.M );
-	return 0;
+	RETURN(0);
     }
 
     A->border.used   = 0;
@@ -1949,7 +2027,7 @@ r_init_Alg_values( r_alg_s * A )
 	fprintf( stderr, "\nError: riAv30\n"
 		 "Failed to allocate %d ints for boundary.\n\n",
 		 A->border.M );
-	return 0;
+	RETURN(0);
     }
 
     /* we will initialize this after we know we have data */
@@ -1960,7 +2038,7 @@ r_init_Alg_values( r_alg_s * A )
     A->strong_borders = 1;
 
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -1973,6 +2051,8 @@ r_init_Alg_values( r_alg_s * A )
 static void
 r_init_afni_vars( r_alg_s * A, THD_3dim_dataset * func )
 {
+    ENTRY("r_init_afni_vars");
+
     A->anat              = plint->im3d->anat_now;
 
     if ( func )
@@ -1986,7 +2066,7 @@ r_init_afni_vars( r_alg_s * A, THD_3dim_dataset * func )
 			"type short.  Please choose\n"
 			"another dataset.\n",
 			MCW_USER_KILL | MCW_TIMER_KILL );
-	    return;
+	    EXRETURN;
 	}
 
 	A->func   = func;
@@ -2038,10 +2118,16 @@ r_init_afni_vars( r_alg_s * A, THD_3dim_dataset * func )
 			"type short.  Please choose\n"
 			"another dataset.\n",
 			MCW_USER_KILL | MCW_TIMER_KILL );
-	    return;
+	    EXRETURN;
 	}
 
-	A->adata   = (short *)DSET_BRICK_ARRAY( A->anat, 0 );
+        if ( ! DSET_LOADED(A->anat) )
+        {
+            fprintf(stderr,"-d loading anat...\n");
+            DSET_load( A->anat );
+        }
+
+	A->adata = (short *)DSET_BRICK_ARRAY( A->anat, 0 );
 	/*fprintf(stderr,"Set A->adata to %p\n",A->adata);*/
     }
     else
@@ -2052,6 +2138,7 @@ r_init_afni_vars( r_alg_s * A, THD_3dim_dataset * func )
 		    "Please choose another dataset.\n",
 		    MCW_USER_KILL | MCW_TIMER_KILL );
 
+    EXRETURN;
 }
 
 
@@ -2073,10 +2160,12 @@ r_any_cb_fill_stats(
     int     fillval = *(int *)client_data;
     int     count, min = 30000, max = -30000, size = 0;
 
+    ENTRY("r_any_cb_fill_stats");
+
     if ( ! gRA.fdata )
     {
 	fputc( 7, stderr );      /* hard-code a beep */
-	return;
+	EXRETURN;
     }
 
     for ( count = 0; count < gRA.nvox; count++ )
@@ -2110,7 +2199,7 @@ r_any_cb_fill_stats(
 
     printf( "------------------------------------------------------------\n" );
 
-    return;
+    EXRETURN;
 }
 
 
@@ -2129,13 +2218,14 @@ r_histogram( r_alg_s * A, int min, int max, int check_val )
     short * aptr = gRA.adata;
     int     count, size = max - min + 1, total = 0;
 
+    ENTRY("r_histogram");
 
     if ( ( hist = (int *)malloc( size * sizeof( int ) ) ) == NULL )
     {
 	sprintf( gRmessage, "Error: pr_rh_10\n"
 		 "Failed alloca for %d ints.", size );
 	rWARNING( gRmessage );
-	return;
+	EXRETURN;
     }
 
     for ( count = 0; count < size; count++ )
@@ -2160,6 +2250,7 @@ r_histogram( r_alg_s * A, int min, int max, int check_val )
 	printf( " %6d   \t %7d   \t  %7.3f\n",
 		min + count, hist[ count ], 100.0 * hist[ count ] / total );
     free(hist);
+    EXRETURN;
 }
 
 
@@ -2253,11 +2344,13 @@ r_wtgr_cb_suggest_limits(
     Arg    al[ 10 ];
     int    ac, min, max;
 
+    ENTRY("r_wtgr_cb_suggest_limits");
+
     if ( ! cdptr )
     {
 	fprintf( stderr,
 		 "Entered r_wtgr_cb_suggest_limits() without a type.\n" );
-	return;
+	EXRETURN;
     }
 
     min = r_wtgr_calc_min_frm_val( gRA.point_value );
@@ -2298,7 +2391,7 @@ r_wtgr_cb_suggest_limits(
     XtSetArg( al[ ac ], XmNvalue, string );  ac++;
     XtSetValues( maxw, al, ac );
 
-    return;
+    EXRETURN;
 }
 
 
@@ -2315,6 +2408,8 @@ r_gr_mk_fill_buttons( r_X_s * X, Widget parent )
     Arg      al[ 10 ];
     Widget   form, frame, button;
     XmString xstr;
+
+    ENTRY("r_gr_mk_fill_buttons");
 
     /* create frame to hold form and buttons */
     ac = 0;
@@ -2401,7 +2496,7 @@ r_gr_mk_fill_buttons( r_X_s * X, Widget parent )
     XtManageChild( form );
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 
@@ -2418,6 +2513,8 @@ r_wt_mk_fill_buttons( r_X_s * X, Widget parent )
     Arg      al[ 10 ];
     Widget   form, frame, button1, button2, button3;
     XmString xstr;
+
+    ENTRY("r_wt_mk_fill_buttons");
 
     /* create frame to hold form and buttons */
     ac = 0;
@@ -2504,6 +2601,8 @@ r_wt_mk_fill_buttons( r_X_s * X, Widget parent )
 
     XtManageChild( form );
     XtManageChild( frame );
+
+    EXRETURN;
 }
 
 
@@ -2524,6 +2623,7 @@ r_wt_mk_diag_conn_fr( r_X_s * X, Widget parent )
     int      ac;
     char     string[ 15 ];
 
+    ENTRY("r_wt_mk_diag_conn_fr");
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
@@ -2557,7 +2657,7 @@ r_wt_mk_diag_conn_fr( r_X_s * X, Widget parent )
     XtManageChild( rc );
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 /*----------------------------------------------------------------------
@@ -2577,6 +2677,7 @@ r_wt_mk_strong_bord_fr( r_X_s * X, Widget parent )
     int      ac;
     char     string[ 15 ];
 
+    ENTRY("r_wt_mk_strong_bord_fr");
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
@@ -2595,7 +2696,7 @@ r_wt_mk_strong_bord_fr( r_X_s * X, Widget parent )
 
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 
@@ -2614,6 +2715,7 @@ r_wt_mk_nbrs_fr( r_X_s * X, Widget parent )
     int      ac;
     char     string[ 15 ];
 
+    ENTRY("r_wt_mk_nbrs_fr");
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
@@ -2647,7 +2749,7 @@ r_wt_mk_nbrs_fr( r_X_s * X, Widget parent )
     XtManageChild( rc );
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 
@@ -2666,6 +2768,7 @@ r_gr_mk_max_dist_w( r_X_s * X, Widget parent )
     int      ac;
     char     string[ 15 ];
 
+    ENTRY("r_gr_mk_max_dist_w");
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
@@ -2699,7 +2802,7 @@ r_gr_mk_max_dist_w( r_X_s * X, Widget parent )
     XtManageChild( rc );
     XtManageChild( frame );
 
-    return( frame );
+    RETURN( frame );
 }
 
 
@@ -2966,8 +3069,10 @@ r_any_cb_unfill(
     int     count;
     int     unfill_val = *((int *)client_data);
 
+    ENTRY("r_any_cb_unfill");
+
     if ( ! gRA.fdata )
-	return;
+	EXRETURN;
 
     /* first store to undo_data */
     fptr = gRA.fdata; uptr = gRA.undo_data;
@@ -2981,7 +3086,7 @@ r_any_cb_unfill(
     THD_load_statistics( gRA.func ) ;
     PLUTO_dset_redisplay( gRA.func ) ;
 
-    return;
+    EXRETURN;
 }
 
 
@@ -3001,6 +3106,7 @@ r_wt_bad_ngbr_exists( r_alg_s * A, int current, int testval )
     short   val;
     short * data;
 
+    ENTRY("r_wt_bad_ngbr_exists");
 
     data = A->fdata + current;
     nx   = A->nx;
@@ -3008,33 +3114,33 @@ r_wt_bad_ngbr_exists( r_alg_s * A, int current, int testval )
     last = A->nvox - nxy;
 
     if ( ( current < nxy ) || ( current >= last ) )
-	return 1;
+	RETURN(1);
 
     val = data[ -1 ];
     if ( val && ( val != testval ) && ( val != R_BOUND_VAL )  )
-	return 1;
+	RETURN(1);
 
     val = data[ 1 ];
     if ( val && ( val != testval ) && ( val != R_BOUND_VAL )  )
-	return 1;
+	RETURN(1);
 
     val = data[ -nx ];
     if ( val && ( val != testval ) && ( val != R_BOUND_VAL )  )
-	return 1;
+	RETURN(1);
 
     val = data[ nx ];
     if ( val && ( val != testval ) && ( val != R_BOUND_VAL )  )
-	return 1;
+	RETURN(1);
 
     val = data[ -nxy ];
     if ( val && ( val != testval ) && ( val != R_BOUND_VAL )  )
-	return 1;
+	RETURN(1);
 
     val = data[ nxy ];
     if ( val && ( val != testval ) && ( val != R_BOUND_VAL )  )
-	return 1;
+	RETURN(1);
 
-    return 0;
+    RETURN(0);
 }
 
 
@@ -3054,6 +3160,8 @@ r_wt_check_insert( r_alg_s * A, int current )
 
     int value, added = 0;
 
+    ENTRY("r_wt_check_insert");
+
     value = aptr[ current ];
 
     /* if new and in range, we will set as a result voxel */
@@ -3070,7 +3178,7 @@ r_wt_check_insert( r_alg_s * A, int current )
 		     ! r_wt_bad_ngbr_exists( A, current, A->wt_fill_val ) )
 		{
 		    if ( ! r_add_to_boundary( &A->Bnew, current ) )
-			return -1;
+			RETURN(-1);
 		    else
 			added = 1;
 		}
@@ -3084,11 +3192,11 @@ r_wt_check_insert( r_alg_s * A, int current )
 	    *fvp = R_BOUND_VAL; /* mark as in boundary, clear later */
 
 	    if ( ! r_add_to_boundary( &A->border, current ) )
-		return -1;
+		RETURN(-1);
 	}
     }
 
-    return added;
+    RETURN(added);
 }
 
 
@@ -3111,22 +3219,23 @@ r_wt_cb_fill(
     char   * cp = (char *)client_data;
     points_t B;
 
+    ENTRY("r_wt_cb_fill");
 
     /* check that we are ready to fill anything */
     if ( ( gRA.point_coord == -1 ) || ( ! gRA.fdata ) )
     {
 	fputc( 7, stderr );      /* hard-code a beep */
-	return;
+	EXRETURN;
     }
 
     if ( !gRA.Bold.points || !gRA.Bnew.points ||
 	   !gRA.neighbors || !gRA.undo_data)
     {
 	fprintf( stderr, "Error: rcfr10\n"
-		 "Memory failure, addresses are %x, %x, %x and %x.\n",
-		 (int)gRA.Bold.points, (int)gRA.Bnew.points,
-		 (int)gRA.neighbors, (int)gRA.undo_data );
-	return;
+		 "Memory failure, addresses are %p, %p, %p and %p.\n",
+		 gRA.Bold.points, gRA.Bnew.points,
+		 gRA.neighbors, gRA.undo_data );
+	EXRETURN;
     }
 
     /* first store to undo_data */
@@ -3151,7 +3260,7 @@ r_wt_cb_fill(
     gRA.border.used  = 0;
 
     if ( r_wt_check_insert( &gRA, gRA.point_coord ) != 1 )
-	return;
+	EXRETURN;
 
     while ( gRA.Bnew.used > 0 )  /* while boundary exists */
     {
@@ -3220,6 +3329,7 @@ r_wt_cb_fill(
     dset_changed = 1;
 
     fputs( "done\n\n", stderr );
+    EXRETURN;
 }
 
 
@@ -3242,6 +3352,7 @@ r_gr_cb_fill(
     int      count, dist, added, current;
     int      nx, nxy;
 
+    ENTRY("r_gr_cb_fill");
 
     nx   = gRA.nx;
     nxy  = gRA.nxy;
@@ -3250,19 +3361,19 @@ r_gr_cb_fill(
     if ( ( gRA.point_coord == -1 ) || ( ! gRA.fdata ) )
     {
 	fputc( 7, stderr );      /* hard-code a beep */
-	return;
+	EXRETURN;
     }
 
     if ( gRA.gr_max_dist <= 0 )
-	return;
+	EXRETURN;
 
     if ( !gRA.Bold.points || !gRA.Bnew.points ||
 	   !gRA.neighbors || !gRA.undo_data)    {
 	fprintf( stderr, "Error: rcfg10\n"
-		 "Memory failure, addresses are %x, %x, %x and %x.\n",
-		 (int)gRA.Bold.points, (int)gRA.Bnew.points,
-		 (int)gRA.neighbors, (int)gRA.undo_data );
-	return;
+		 "Memory failure, addresses are %p, %p, %p and %p.\n",
+		 gRA.Bold.points, gRA.Bnew.points,
+		 gRA.neighbors, gRA.undo_data );
+	EXRETURN;
     }
 
     /* give the user an idea of what is happening */
@@ -3289,7 +3400,7 @@ r_gr_cb_fill(
     for ( count = 0; count < gRA.border.used; count++ )
     {
 	if ( ( added = r_gr_check_insert( &gRA, &gRA.Bold, *iptr ) ) == -1 )
-	    return;
+	    EXRETURN;
 	iptr++;
     }
 
@@ -3337,6 +3448,7 @@ r_gr_cb_fill(
 
     PLUTO_dset_redisplay( gRA.func ) ;
     dset_changed = 1;
+    EXRETURN;
 }
 
 
@@ -3355,9 +3467,10 @@ r_gr_check_insert( r_alg_s * A, points_t * B, int current )
     short    * fvalp;
     int        value, added = 0;
 
+    ENTRY("r_gr_check_insert");
 
     if ( nptr[ current ] == -1 )        /* do not accept edge points */
-	return 0;
+	RETURN(0);
 
     fvalp = fptr + current;
     value = aptr[ current ];
@@ -3369,7 +3482,7 @@ r_gr_check_insert( r_alg_s * A, points_t * B, int current )
 	     ( value <= A->gr_range_max ) )
 	{
 	    if ( ! r_add_to_boundary( B, current ) )
-		return -1;
+		RETURN(-1);
 
 	    *fvalp = A->gr_fill_val;
 
@@ -3379,11 +3492,11 @@ r_gr_check_insert( r_alg_s * A, points_t * B, int current )
 	{
 	    *fvalp = R_BOUND_VAL;
 	    if ( ! r_add_to_boundary( &gRH.gr_edge, current ) )
-		return -1;
+		RETURN(-1);
 	}
     }
 
-    return added;
+    RETURN(added);
 }
 
 
@@ -3396,11 +3509,13 @@ r_gr_check_insert( r_alg_s * A, points_t * B, int current )
 static int
 r_add_to_boundary( points_t * B, int index )
 {
+    ENTRY("r_add_to_boundary");
+
     if ( !B )
     {
 	fprintf( stderr, "Error: atb10\n"
 		 "Unexpected error - missing memory for bound structure!\n" );
-	return 0;
+	RETURN(0);
     }
     else if ( ! B->points )             /* we need initial memory */
     {
@@ -3412,7 +3527,7 @@ r_add_to_boundary( points_t * B, int index )
 	{
 	    fprintf( stderr, "Error: atb15\n"
 		     "Failed to allocate %d ints for boundary.\n", B->M );
-	    return 0;
+	    RETURN(0);
 	}
     }
     else if ( B->used == B->M )         /* then we need more memory */
@@ -3424,14 +3539,14 @@ r_add_to_boundary( points_t * B, int index )
 	{
 	    fprintf( stderr, "Error: atb20\n"
 		     "Failed to reallocate %d ints for boundary.\n", B->M );
-	    return 0;
+	    RETURN(0);
 	}
     }
 
     B->points[B->used] = index;
     B->used++;
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -3453,6 +3568,8 @@ r_wt_set_neighbors( r_alg_s * A )
     short * nptr = A->neighbors;
     int     cx, cy, cz;
     int     nxy = A->nxy, nx = A->nx;
+
+    ENTRY("r_wt_set_neighbors");
 
 
     for ( cz = 0; cz < A->nz; cz++ )
@@ -3504,6 +3621,8 @@ r_wt_set_neighbors( r_alg_s * A )
 		aptr++;
 		nptr++;
 	    }
+
+    EXRETURN;
 }
 
 
@@ -3523,13 +3642,15 @@ r_wt_cb_set_diag_conn(
     char * text;
     int    ival;
 
+    ENTRY("r_wt_cb_set_diag_conn");
+
     text = XmTextGetString( w );
 
     if ( ! text || ! *text )    /* nothing typed */
     {
 	if ( text )
 	    XtFree( text );
-	return;
+	EXRETURN;
     }
 
     /*
@@ -3542,13 +3663,14 @@ r_wt_cb_set_diag_conn(
     {
 	sprintf( gRmessage, "Value %d is not in range [%d,%d].", ival, 0, 2 );
 	rERROR( gRmessage );
-	return;
+	EXRETURN;
     }
 
     if ( gRA.wt_diag_connect != ival )
 	gRA.wt_diag_connect = ival;
 
     XtFree( text );
+    EXRETURN;
 }
 
 
@@ -4082,12 +4204,14 @@ r_gr_cb_set_range(
 **
 **----------------------------------------------------------------------
  */
-static void
+static int
 r_afni_set_fill_point(
 	int       * coord,      /* offset of initial point (modifiable) */
 	r_alg_s * A             /* algorithm structure                  */
 	)
 {
+    ENTRY("r_afni_set_fill_point");
+
     A->point_coord = *coord;
 
     /*printf("A = %p,  A->adata = %p,  A->point_coord = %d\n",
@@ -4103,7 +4227,7 @@ r_afni_set_fill_point(
 	fputs("view before Switch Underlay or Switch Overlay.\n",stderr);
 	fputs("Try setting the environment variable AFNI_VIEW_ANAT_BRICK\n",stderr);
 	fputs("(The value is irrelevant) and run afni again.\n",stderr);
-	exit(1);
+	RETURN(-1);
     }
     A->point_value = A->adata[A->point_coord];   /* no anat factor? */
 
@@ -4111,7 +4235,7 @@ r_afni_set_fill_point(
     printf( "coord = %d, adata = %d, fdata = %d, ndata = %d\n",
 	     *coord, A->adata[*coord], A->fdata[*coord], A->neighbors[*coord] );
 
-    return;
+    RETURN(0);
 }
 
 
@@ -4197,10 +4321,10 @@ r_main_show_alg_vals( r_alg_s * A )
 	"gray range max          : %d\n"
 	"gray max distance       : %d\n"
 	"\n"
-	"anat dset        (addr) : %x\n"
-	"func dset        (addr) : %x\n"
-	"adata data       (addr) : %x\n"
-	"fdata data       (addr) : %x\n"
+	"anat dset        (addr) : %p\n"
+	"func dset        (addr) : %p\n"
+	"adata data       (addr) : %p\n"
+	"fdata data       (addr) : %p\n"
 	"factor                  : %f\n"
 	"nx                      : %d\n"
 	"ny                      : %d\n"
@@ -4209,16 +4333,16 @@ r_main_show_alg_vals( r_alg_s * A )
 	"\n"
 	"old bound.M             : %d\n"
 	"old bound.used          : %d\n"
-	"old bound.points (addr) : %x\n"
+	"old bound.points (addr) : %p\n"
 	"new bound.M             : %d\n"
 	"new bound.used          : %d\n"
-	"new bound.points (addr) : %x\n"
+	"new bound.points (addr) : %p\n"
 	"border.M                : %d\n"
 	"border.used             : %d\n"
-	"border.points    (addr) : %x\n"
+	"border.points    (addr) : %p\n"
 	"\n"
-	"neighbors        (addr) : %x\n"
-	"undo data        (addr) : %x\n"
+	"neighbors        (addr) : %p\n"
+	"undo data        (addr) : %p\n"
 	"\n"
 	"min neighbors           : %d\n"
 	"strong borders          : %d\n",
@@ -4226,13 +4350,13 @@ r_main_show_alg_vals( r_alg_s * A )
 	A->wt_fill_val, A->wt_range_min, A->wt_range_max,
 	    A->wt_diag_connect,
 	A->gr_fill_val, A->gr_range_min, A->gr_range_max, A->gr_max_dist,
-	(int)A->anat, (int)A->func,
-	(int)A->adata, (int)A->fdata,
+	A->anat, A->func,
+	A->adata, A->fdata,
 	A->factor, A->nx, A->ny, A->nz, A->nvox,
-	A->Bold.M, A->Bold.used, (int)A->Bold.points,
-	A->Bnew.M, A->Bnew.used, (int)A->Bnew.points,
-	A->border.M, A->border.used, (int)A->border.points,
-	(int)A->neighbors, (int)A->undo_data,
+	A->Bold.M, A->Bold.used, A->Bold.points,
+	A->Bnew.M, A->Bnew.used, A->Bnew.points,
+	A->border.M, A->border.used, A->border.points,
+	A->neighbors, A->undo_data,
 	A->min_nbrs, A->strong_borders
 	);
 
@@ -4259,13 +4383,13 @@ r_main_show_INT_vals( interp_s * I )
 	"\n"
 	"A.M              : %d\n"
 	"A.used           : %d\n"
-	"A.points  (addr) : %x\n"
+	"A.points  (addr) : %p\n"
 	"B.M              : %d\n"
 	"B.used           : %d\n"
-	"B.points  (addr) : %x\n",
+	"B.points  (addr) : %p\n",
 	I->fill_val, I->afni_undo,
-	I->A.M, I->A.used, (int)I->A.points,
-	I->B.M, I->B.used, (int)I->B.points
+	I->A.M, I->A.used, I->A.points,
+	I->B.M, I->B.used, I->B.points
 	);
 
     printf( "-----------------------------------\n" );
@@ -4289,13 +4413,13 @@ r_main_show_HL_vals( holes_s * H )
 	"fill value              : %d\n"
 	"wtgr_edge.M             : %d\n"
 	"wtgr_edge.used          : %d\n"
-	"wtgr_edge.points (addr) : %x\n"
+	"wtgr_edge.points (addr) : %p\n"
 	"filled.M                : %d\n"
 	"filled.used             : %d\n"
-	"filled.points (addr)    : %x\n",
+	"filled.points (addr)    : %p\n",
 	H->max_size, H->fill_val,
-	H->wtgr_edge.M, H->wtgr_edge.used, (int)H->wtgr_edge.points,
-	H->filled.M, H->filled.used, (int)H->filled.points
+	H->wtgr_edge.M, H->wtgr_edge.used, H->wtgr_edge.points,
+	H->filled.M, H->filled.used, H->filled.points
 	);
     printf( "-----------------------------------\n" );
 }
@@ -4316,11 +4440,11 @@ r_main_show_pt_conn_vals( r_pt_conn_s * PC )
 	"\n"
 	"plist.M             : %d\n"
 	"plist.used          : %d\n"
-	"plist.points (addr) : %x\n"
+	"plist.points (addr) : %p\n"
 	"source point        : (%d,%d,%d)\n"
 	"dest point          : (%d,%d,%d)\n"
 	"which point         : %d\n",
-	PC->plist.M, PC->plist.used, (int)PC->plist.points,
+	PC->plist.M, PC->plist.used, PC->plist.points,
 	PC->source.x, PC->source.y, PC->source.z,
 	PC->dest.x, PC->dest.y, PC->dest.z,
 	PC->cur_pt
@@ -4390,17 +4514,19 @@ r_main_cb_saveas(
     char * text;
     int    ival;
 
+    ENTRY("r_main_cb_saveas");
+
     cbs = ( XmSelectionBoxCallbackStruct * )call_data;
 
     if ( ! XmStringGetLtoR( cbs->value, gRX.charset, &text ) )
     {
 	rERROR( "Failed to get filename from text." );
-	return;
+	EXRETURN;
     }
     else if ( ! *text )
     {
 	XtFree( text );
-	return;
+	EXRETURN;
     }
 
     /* Make sure file name is not too long.  */
@@ -4417,6 +4543,7 @@ r_main_cb_saveas(
     XtFree( text );
 
     r_save_dataset_as( gRA.save_as_name, client_data );
+    EXRETURN;
 }
 
 
@@ -4432,11 +4559,13 @@ r_save_dataset_as( char * filename, int overwrite )
 {
     THD_3dim_dataset * dset = NULL;
 
+    ENTRY("r_save_dataset_as");
+
     if ( ! ( dset = PLUTO_copy_dset( gRA.func, filename ) ) )
     {
 	sprintf( gRmessage,"Failed to copy dataset with name '%s'.", filename );
 	rERROR( gRmessage );
-	return 0;
+	RETURN(0);
     }
 
     if( ! overwrite && THD_is_file( dset->dblk->diskptr->header_name ) )
@@ -4455,7 +4584,7 @@ r_save_dataset_as( char * filename, int overwrite )
 
     THD_delete_3dim_dataset( dset, False );
 
-    return 1;
+    RETURN(1);
 }
 
 
@@ -4468,6 +4597,8 @@ r_save_dataset_as( char * filename, int overwrite )
 static void
 r_main_cb_show_structs( void )
 {
+    ENTRY("r_main_cb_show_structs");
+
     printf( "------------------------------------------------------------\n" );
 	
     r_main_show_alg_vals    ( &gRA );
@@ -4476,6 +4607,7 @@ r_main_cb_show_structs( void )
     r_main_show_pt_conn_vals( &gRCP );
 
     printf( "------------------------------------------------------------\n" );
+    EXRETURN;
 }
 
 
@@ -4513,6 +4645,8 @@ r_main_cb_show_structs( void )
 
 static void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
+    ENTRY("DRAW_done_CB");
+
    if( dset != NULL ){
       if( recv_open ) AFNI_receive_control( im3d, recv_key, DRAWING_SHUTDOWN, NULL ) ;
       if( dset_changed ){
@@ -4531,7 +4665,7 @@ static void DRAW_done_CB( Widget w, XtPointer client_data, XtPointer call_data )
    }
 
    XtUnmapWidget( shell ) ; editor_open = 0 ; recv_open = 0 ; recv_key = -1 ;
-   return ;
+   EXRETURN;
 }
 
 /*-------------------------------------------------------------------
@@ -4543,7 +4677,9 @@ static void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
    void * ub ; int * ux, * uy, * uz ;
    int ubs = undo_bufsiz , uis = sizeof(int)*undo_bufuse ;
 
-   if( undo_bufuse <= 0 ){ XBell( dc->display , 100 ) ; return ; }
+   ENTRY("DRAW_undo_CB");
+
+   if( undo_bufuse <= 0 ){ XBell( dc->display , 100 ) ; EXRETURN ; }
 
    /* since the undo_stuff will be modified by the
       drawing function, we must make temporary copies */
@@ -4565,7 +4701,7 @@ static void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
    }
 
    free(ub) ; free(ux) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -4574,6 +4710,8 @@ static void DRAW_undo_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 static void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
+   ENTRY("DRAW_quit_CB");
+
    if( dset != NULL ){
       if( recv_open ) AFNI_receive_control( im3d, recv_key, DRAWING_SHUTDOWN, NULL ) ;
       DSET_unlock(dset) ;
@@ -4594,7 +4732,7 @@ static void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
    }
 
    XtUnmapWidget( shell ) ; editor_open = 0 ; recv_open = 0 ; recv_key = -1 ;
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -4603,14 +4741,16 @@ static void DRAW_quit_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 static void DRAW_save_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   if( dset == NULL ){ XBell( dc->display , 100 ) ; return ; }
+   ENTRY("DRAW_save_CB");
+
+   if( dset == NULL ){ XBell( dc->display , 100 ) ; EXRETURN ; }
 
    MCW_invert_widget(save_pb) ;
 
    DSET_write(dset) ; dset_changed = 0 ; SENSITIZE(choose_pb,1) ;
 
    MCW_invert_widget(save_pb) ; SENSITIZE(save_pb,0) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -4777,6 +4917,8 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
    char qnam[THD_MAX_NAME] , label[THD_MAX_NAME] ;
    static char ** strlist = NULL ;
 
+   ENTRY("DRAW_choose_CB");
+
    /* can't do this if a dataset is already active and changed */
 
    if( dset != NULL && dset_changed ){
@@ -4787,7 +4929,7 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
 				   "'Quit' and re-start the Editor" ,
 				MCW_USER_KILL | MCW_TIMER_KILL ) ;
       XBell( dc->display , 100 ) ;
-      return ;
+      EXRETURN ;
    }
 
    /* RCR - If data is not on disk, do not accept it (must be a warp).
@@ -4805,7 +4947,7 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
 		   "   3. Set to 'View Anat Data Brick'",
 		MCW_USER_KILL | MCW_TIMER_KILL ) ;
       XBell( dc->display , 100 ) ;
-      return ;
+      EXRETURN ;
    }
 
    /* initialize */
@@ -4839,7 +4981,7 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
 				   " - you are in the correct session" ,
 				MCW_USER_KILL | MCW_TIMER_KILL ) ;
       XBell( dc->display , 100 ) ;
-      return ;
+      EXRETURN ;
    }
 
    /*--- 23 Nov 1996: loop over dataset links and patch their titles
@@ -4904,7 +5046,7 @@ static void DRAW_choose_CB( Widget w, XtPointer client_data, XtPointer call_data
    MCW_choose_strlist( w , label , ndsl , -1 , strlist ,
 		       DRAW_finalize_dset_CB , NULL     ) ;
 
-   return ;
+   EXRETURN ;
 }
 
 static void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs )
@@ -4914,20 +5056,22 @@ static void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs 
    XmString xstr ;
    char str[256] ;
 
+   ENTRY("DRAW_finalize_dset_CB");
+
    /* check for errors */
 
-   if( ! editor_open ){ POPDOWN_strlist_chooser ; XBell(dc->display,100) ; return ; }
+   if( ! editor_open ){ POPDOWN_strlist_chooser ; XBell(dc->display,100) ; EXRETURN ; }
 
-   if( dset != NULL && dset_changed ){ XBell(dc->display,100) ; return ; }
+   if( dset != NULL && dset_changed ){ XBell(dc->display,100) ; EXRETURN ; }
 
-   if( id < 0 || id >= ndsl ){ XBell(dc->display,100) ; return ; }
+   if( id < 0 || id >= ndsl ){ XBell(dc->display,100) ; EXRETURN ; }
 
    qset = PLUTO_find_dset( &(dsl[id].idcode) ) ;  /* the new dataset? */
 
-   if( qset == NULL ){ XBell(dc->display,100) ; return ; }
+   if( qset == NULL ){ XBell(dc->display,100) ; EXRETURN ; }
 
    if( ! EQUIV_DATAXES( im3d->wod_daxes , qset->daxes ) ){
-      XBell(dc->display,100) ; return ;
+      XBell(dc->display,100) ; EXRETURN ;
    }
 
    /* accept this dataset */
@@ -4961,7 +5105,7 @@ static void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs 
 				     "drawing routines!" ,
 				   MCW_USER_KILL | MCW_TIMER_KILL ) ;
 
-	 dset = NULL ; XBell(dc->display,100) ; return ;
+	 dset = NULL ; XBell(dc->display,100) ; EXRETURN ;
       }
    }
 
@@ -4975,7 +5119,7 @@ static void DRAW_finalize_dset_CB( Widget w, XtPointer fd, MCW_choose_cbs * cbs 
 
    r_init_afni_vars( &gRA, dset );
 
-   return ;
+   EXRETURN ;
 }
 
 /*-------------------------------------------------------------------
@@ -5024,11 +5168,13 @@ static void DRAW_value_CB( MCW_arrowval * av , XtPointer cd )
 
 static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 {
+   ENTRY("DRAW_receiver");
+
    switch( why ){
 
       default:
 	 fprintf(stderr,"DRAW_receiver: illegal why=%d\n",why) ;
-      return ;
+      EXRETURN ;
 
       /*-- we like this one --*/
 
@@ -5038,7 +5184,7 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 	 int mode=ip[3][0] ;                     /* how pts are organized */
 	 int plane ;
 
-	 if( np <= 0 ) return ;  /* some error? */
+	 if( np <= 0 ) EXRETURN ;  /* some error? */
 
 	 plane = mode - SINGLE_MODE ;
 	 if( plane < 1 || plane > 3 ) plane = mode - PLANAR_MODE ;
@@ -5058,7 +5204,8 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 			 *yd * DSET_NX(gRA.anat) +
 			 *zd * DSET_NX(gRA.anat) * DSET_NY(gRA.anat);
 
-	     r_afni_set_fill_point( &coord, &gRA );
+	     if ( r_afni_set_fill_point( &coord, &gRA ) < 0 )
+                EXRETURN ;
 
 	     DRAW_into_dataset( 0, &coord, NULL, NULL, NULL );
 	 }
@@ -5074,7 +5221,7 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 	     else
 	     {
 		 rERROR( "In DRAW_receiver() - gRCP.cur_pt is unset." );
-		 return;
+		 EXRETURN;
 	     }
 
 	     if ( yd == NULL )
@@ -5092,7 +5239,7 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 	     {
 		 gRCP.cur_pt = 2;
 		 DRAW_into_dataset( 0, xd, yd, zd, NULL );
-		 return;
+		 EXRETURN;
 	     }
 	     else
 	     {
@@ -5240,14 +5387,14 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 		  fprintf(stderr,
 			 "Flood not implemented for datasets of type %s\a\n",
 			 MRI_TYPE_name[ityp] ) ;
-	       return ;
+	       EXRETURN ;
 
 	    } /* end of switch on type */
 
 	    /* start point must be a 0 (can't fill from an edge) */
 
 	    if( pl[ix+jy*itop] == 1 ){
-	       free(pl) ; XBell(dc->display,100) ; return ;
+	       free(pl) ; XBell(dc->display,100) ; EXRETURN ;
 	    }
 
 	    /* call a routine to fill the array */
@@ -5258,7 +5405,7 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 
 	    nfill = 0 ;
 	    for( ii=0 ; ii < nij ; ii++ ) nfill += (pl[ii] == 2) ;
-	    if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; return ; }
+	    if( nfill == 0 ){ free(pl) ; XBell(dc->display,100) ; EXRETURN ; }
 
 	    xyzf = (int *) malloc( sizeof(int) * nfill ) ;
 
@@ -5323,7 +5470,7 @@ static void DRAW_receiver( int why , int np , void * vp , void * cbd )
 
    } /* end of switch on why */
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------
@@ -5343,9 +5490,11 @@ static void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * 
    float vload = 0.0 ;
    int nbytes ;
 
+   ENTRY("DRAW_into_dataset");
+
    /* sanity check */
 
-   if( dset==NULL || np <= 0 || xd==NULL ) return ;
+   if( dset==NULL || np <= 0 || xd==NULL ) EXRETURN ;
 
    /* make space for undo */
 
@@ -5510,7 +5659,7 @@ static void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * 
    SENSITIZE(choose_pb,0) ;
    SENSITIZE(undo_pb,1) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------
@@ -5527,6 +5676,8 @@ static void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * 
 static void DRAW_2dfiller( int nx , int ny , int ix , int jy , byte * ar )
 {
    int ii,jj , ip,jp , num ;
+
+   ENTRY("DRAW_2dfiller");
 
 #define AR(i,j) ar[(i)+(j)*nx]
 
@@ -5555,6 +5706,6 @@ static void DRAW_2dfiller( int nx , int ny , int ix , int jy , byte * ar )
       }
    } while( num > 0 ) ;
 
-   return ;
+   EXRETURN ;
 }
 
