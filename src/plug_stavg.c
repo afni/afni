@@ -412,7 +412,8 @@ char * STAVG_main( PLUGIN_interface * plint )
             bout = (short *) malloc( sizeof(short) * nvox ) ;
             if( bout == NULL ){
                fprintf(stderr,"\nFinal malloc error in plug_stavg!\n\a") ;
-               exit(1) ;
+               return("Final malloc error in plug_stavg!"); ;
+               /*  exit(1) ;*/
             }
 
             /*-- find scaling and then scale --*/
@@ -442,7 +443,8 @@ char * STAVG_main( PLUGIN_interface * plint )
             bout = (byte *) malloc( sizeof(byte) * nvox ) ;
             if( bout == NULL ){
                fprintf(stderr,"\nFinal malloc error in plug_stavg!\n\a") ;
-               exit(1) ;
+               return("Final malloc error in plug_stavg!"); ;
+	       /*               exit(1) ;*/
             }
 
             /*-- find scaling and then scale --*/

@@ -260,11 +260,17 @@ void L1F_worker( int nt , double dt , float * vec , int dofit , char ** label )
       /* make space for ref vectors */
 
       ref = (float **) malloc( sizeof(float *) * nref ) ;
-      if( ref == NULL ){fprintf(stderr,"\nmalloc error in plug_lsqfit\n\a");EXIT(1);}
+      if( ref == NULL ){fprintf(stderr,"\nmalloc error in plug_lsqfit\n\a");
+         return;
+         /*EXIT(1);*/
+      }
       for( ir=0 ; ir < nref ; ir++ ){
          ref[ir] = (float *) malloc( sizeof(float) * nlen ) ;
          if( ref[ir] == NULL )
-            {fprintf(stderr,"\nmalloc error in plug_lsqfit\n\a");EXIT(1);}
+            {fprintf(stderr,"\nmalloc error in plug_lsqfit\n\a");
+            return;
+            /* EXIT(1); */
+         }
       }
       nlen_old = nlen ;
       nref_old = nref ;
