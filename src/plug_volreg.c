@@ -513,9 +513,15 @@ char * VOLREG_main( PLUGIN_interface * plint )
          /*-- should not ever get here, but who knows? --*/
 
          default:
+            mri_free( VL_imbase ) ;
+            FREEUP(dx)     ; FREEUP(dy)     ; FREEUP(dz) ;
+            FREEUP(roll)   ; FREEUP(yaw)    ; FREEUP(pitch) ;
+            FREEUP(rmsnew) ; FREEUP(rmsold) ;
+
             fprintf(stderr,"\n*** Can't register bricks of type %s\n",
                     MRI_TYPE_name[qim->kind] ) ;
-            EXIT(1) ;
+            return("*** Can't register bricks of this type");
+            /* EXIT(1) ;*/
       }
 
       DSET_unload_one( VL_dset , kim ) ;      /* don't need this anymore */
