@@ -882,7 +882,8 @@ char * EDIT_main( PLUGIN_interface * plint )
       fprintf(stderr,
 	      "*** Output file %s already exists -- cannot continue!\n",
 	      new_dset->dblk->diskptr->header_name ) ;
-      EXIT(1) ;
+      return("*** Output file already exists -- cannot continue!");
+      /*EXIT(1) ;*/
     }
   
   if (! PE_be_quiet)
@@ -970,7 +971,8 @@ char * EDIT_main( PLUGIN_interface * plint )
 	    {
 	    default: fprintf(stderr,"** illegal output_thdatum = %d\n",
 			     output_thdatum);
-	    EXIT(1) ;
+	      return("** illegal output_thdatum");
+	      /* EXIT(1) ;*/
 	    
 	    case MRI_float:
 	      fimfacinv = 0.0 ;
@@ -1001,7 +1003,8 @@ char * EDIT_main( PLUGIN_interface * plint )
 		  {
 		    fprintf(stderr,
 			    "** illegal input_thdatum = %d\n",input_thdatum);
-		    EXIT(1) ;
+                    return("** illegal input_thdatum");
+		    /* EXIT(1) ;*/
                   }
 	      break ;
 	      
@@ -1022,7 +1025,8 @@ char * EDIT_main( PLUGIN_interface * plint )
 		  {
 		    fprintf(stderr,"** illegal input_thdatum = %d\n",
 			    input_thdatum);
-		    EXIT(1) ;
+	            return("** illegal input_thdatum");
+	      /* EXIT(1) ;*/
                   }
 	      break;
             }

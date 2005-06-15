@@ -59,3 +59,6 @@
 27 May 2005
  * added mask option to 3dDWItoDT and fixed bug with automask for float dsets
  * added initialization to pointer in 3dMax
+
+15 June 2005
+ * removed exits in plug_3Ddump_V2.c, plug_stavg.c, plug_edit.c, plug_volreg.c, plug_L1fit.c, plug_lsqfit.c, plug_power.c to prevent plug-ins from  crashing AFNI application

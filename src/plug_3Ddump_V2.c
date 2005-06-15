@@ -651,7 +651,7 @@ void write_ud (extract_data* ud)
 static char **allocate2D (int rows,int cols,int element_size)
 
 {
-    int i;
+    int i, j;
     char **A;
 
 /* try to allocate the request */
@@ -662,14 +662,21 @@ static char **allocate2D (int rows,int cols,int element_size)
             if(!int_matrix) {
                 printf("\nError making pointers in %dx%d int matrix\n"
                             ,rows,cols);
-                exit(1);
+                return(NULL);
+		/*                exit(1);*/
             }
             for(i = 0 ; i < rows ; i++) {
                 int_matrix[i] = (short *)calloc(cols,sizeof(short));
                 if(!int_matrix[i]) {
                     printf("\nError making row %d in %dx%d int matrix\n"
                             ,i,rows,cols);
-                    exit(1);
+                    for(j=0;j<=i;j++) {
+                      if(int_matrix[j])
+			free(int_matrix[j]);
+                    }
+                    free(int_matrix);
+                    return(NULL);
+		    /*                    exit(1);*/
                 }
             }
             A = (char **)int_matrix;
@@ -681,14 +688,21 @@ static char **allocate2D (int rows,int cols,int element_size)
             if(!float_matrix) {
                 printf("\nError making pointers in %dx%d float matrix\n"
                             ,rows,cols);
-                exit(1);
+                return(NULL);
+		/*                exit(1);*/
             }
             for(i = 0 ; i < rows ; i++) {
                 float_matrix[i] = (float *)calloc(cols,sizeof(float));
                 if(!float_matrix[i]) {
                     printf("\nError making row %d in %dx%d float matrix\n"
                             ,i,rows,cols);
-                    exit(1);
+                    for(j=0;j<=i;j++) {
+                      if(float_matrix[j])
+			free(float_matrix[j]);
+                    }
+                    free(float_matrix);
+                    return(NULL);
+		    /*                    exit(1);*/
                 }
             }
             A = (char **)float_matrix;
@@ -700,14 +714,22 @@ static char **allocate2D (int rows,int cols,int element_size)
             if(!double_matrix) {
                 printf("\nError making pointers in %dx%d double matrix\n"
                             ,rows,cols);
-                exit(1);
+                return(NULL);
+		/*                exit(1);*/
             }
             for(i = 0 ; i < rows ; i++) {
                 double_matrix[i] = (double *)calloc(cols,sizeof(double));
                 if(!double_matrix[i]) {
                     printf("\nError making row %d in %dx%d double matrix\n"
                             ,i,rows,cols);
-                    exit(1);
+                    for(j=0;j<=i;j++) {
+                      if(double_matrix[j])
+			free(double_matrix[j]);
+                    }
+                    free(double_matrix);
+                    return(NULL);
+
+		    /*                    exit(1);*/
                 }
             }
             A = (char **)double_matrix;
@@ -715,7 +737,8 @@ static char **allocate2D (int rows,int cols,int element_size)
         }
         default:
             printf("\nERROR in matrix_allocate: unsupported type\n");
-            exit(1);
+            return(NULL);
+	    /*            exit(1);*/
     }
     return(A);
 }
