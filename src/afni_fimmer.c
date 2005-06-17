@@ -2120,6 +2120,7 @@ void AFNI_process_interrupts( Widget w )
       }
 
       if( ii == nwin ) XBell( dis , 100 ) ;  /* beep for non-allowed event */
+      XUngrabPointer( dis , CurrentTime ) ;  /* 17 Jun 2005 */
    }
 
    return ;
