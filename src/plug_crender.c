@@ -242,6 +242,12 @@ extern void RCREND_xhair_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
 extern void RCREND_xhair_ovc_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 static int xhair_ovc = 0 ;
 
+  /* 17 Jun 2005 - stuff for overlay labels */
+
+extern void RCREND_accum_lab_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
+extern void RCREND_accum_lab_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
+static char accum_label[256] = "\0" ;
+
 static char * RCREND_dummy_av_label[2] = { "[Nothing At All]" , "[Nothing At All]" } ;
 
 static Widget top_rowcol , anat_frame ;
@@ -1676,6 +1682,19 @@ ENTRY( "RCREND_make_widgets" );
                          "IN:  Accumulate images for viewing\n"
                          "OUT: Save only the latest images"     ) ;
 
+   /* 17 Jun 2005: Button3 popup to control overlay label */
+
+   XtInsertEventHandler( accum_bbox->wbut[0] ,
+
+                               0
+                             | ButtonPressMask   /* button presses */
+                            ,
+                            FALSE ,              /* nonmaskable events? */
+                            RCREND_accum_lab_EV, /* handler */
+                            NULL ,               /* client data */
+                            XtListTail           /* last in queue */
+                        ) ;
+
    XtManageChild(hrc) ;
 
    /***=============================================================*/
@@ -1800,6 +1819,7 @@ ENTRY( "RCREND_make_widgets" );
 
    WAIT_for_window(shell) ;
    POPUP_cursorize(xhair_bbox->wbut[0]) ;
+   POPUP_cursorize(accum_bbox->wbut[0]) ;
 
    /*** 12 July 1999: make the overlay widgets now, instead of later ***/
 
@@ -2670,6 +2690,8 @@ ENTRY( "RCREND_draw_CB" );
 
    RCREND_widgets_to_state( last_rendered_state ) ;
 #endif
+
+   mri_add_name( accum_label , rim ) ;  /* 17 Jun 2005 */
 
    if( accum_flag || automate_flag ){
       if( renderings == NULL ){
@@ -3763,12 +3785,14 @@ ENTRY( "RCREND_do_incrot" );
           ! EQUIV_DATAXES(dset->daxes,im3d->wod_daxes) ){               \
         MCW_set_bbox( xhair_bbox , 0 ) ; xhair_flag = 0 ;               \
         (void) MCW_popup_message( xhair_bbox->wrowcol ,                 \
-                                     " Can't overlay AFNI crosshairs\n"  \
+                                     " Can't overlay AFNI crosshairs\n" \
                                      "because dataset grid and AFNI\n"  \
                                      "viewing grid don't coincide."   , \
                                   MCW_USER_KILL | MCW_TIMER_KILL ) ;    \
-        XBell(dc->display,100) ; EXRETURN ;                               \
+        XBell(dc->display,100) ; EXRETURN ;                             \
      } } while(0)
+
+/*-------------------------------------------------------------------------*/
 
 void RCREND_xhair_CB( Widget w , XtPointer cd , XtPointer call_data )
 {
@@ -3938,6 +3962,38 @@ ENTRY( "RCREND_xhair_recv" );
    }  /* end of switch on "why" */
 
    EXRETURN ;
+}
+
+/*------------------------------------------------------------------------
+  Event handler for Button #3 popup on accum toggle - 17 Jun 2005
+--------------------------------------------------------------------------*/
+
+void RCREND_accum_lab_EV( Widget w , XtPointer cd ,
+                    XEvent * ev , Boolean * continue_to_dispatch )
+{
+ENTRY( "RCREND_accum_lab_EV" );
+
+   switch( ev->type ){
+      case ButtonPress:{
+         XButtonEvent * event = (XButtonEvent *) ev ;
+         if( event->button == Button3 || event->button == Button2 ){
+            MCW_choose_string( w,"Next Overlay Label",accum_label ,
+                               RCREND_accum_lab_CB,NULL ) ;
+         }
+      }
+      break ;
+   }
+   EXRETURN ;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void RCREND_accum_lab_CB( Widget w , XtPointer fd , MCW_choose_cbs *cbs )
+{
+   if( cbs != NULL && cbs->reason == mcwCR_string && cbs->cval != NULL ){
+     MCW_strncpy( accum_label , cbs->cval , 255 ) ;
+   }
+   return ;
 }
 
 /*-------------------------------------------------------------------------
@@ -4924,9 +4980,9 @@ ENTRY( "RCREND_imseq_getim" );
    /*--- send control info ---*/
 
    if( type == isqCR_getstatus ){
-      MCW_imseq_status * stat = myXtNew( MCW_imseq_status ) ;  /* will be free-d */
-                                                               /* when imseq is */
-                                                               /* destroyed    */
+      MCW_imseq_status *stat = myXtNew( MCW_imseq_status ); /* will be free-d */
+                                                            /* when imseq is */
+                                                            /* destroyed    */
       stat->num_total  = ntot ;
       stat->num_series = stat->num_total ;
       stat->send_CB    = RCREND_seq_send_CB ;
@@ -4943,11 +4999,23 @@ ENTRY( "RCREND_imseq_getim" );
 
    if( type == isqCR_getoverlay ) RETURN(NULL) ;
 
+   /*--- label string ---*/
+
+   if( type == isqCR_getlabel ){
+     char *lab=NULL ; MRI_IMAGE *im ;
+     if( renderings != NULL ){
+       if( n < 0 ) n = 0 ; else if( n >= ntot ) n = ntot-1 ;
+       im = IMARR_SUBIMAGE(renderings,n) ;
+       if( im->name != NULL ) lab = strdup(im->name) ;
+     }
+     RETURN(lab) ;
+   }
+
    /*--- return a copy of a rendered image
          (since the imseq will delete it when it is done) ---*/
 
    if( type == isqCR_getimage || type == isqCR_getqimage ){
-      MRI_IMAGE * im = NULL , * rim ;
+      MRI_IMAGE *im=NULL , *rim ;
 
       if( renderings != NULL ){
          if( n < 0 ) n = 0 ; else if( n >= ntot ) n = ntot-1 ;
@@ -6691,8 +6759,8 @@ ENTRY( "RCREND_set_pbar_top_CB" );
 
 void RCREND_finalize_saveim_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   char * fname , * ptr ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   char *fname , *ptr ;
    int ll , nx=20 , ny=256 ;
    MRI_IMAGE * im ;
 
@@ -9283,7 +9351,7 @@ ENTRY( "draw_image_line" );
         y = y1 + ydir * (ytot/points);  /* allow arbitrary direction, alas */
 
         index = 3 * (x + y * im->nx);
-        
+
         bp[index]   = rgb[0];
         bp[index+1] = rgb[1];
         bp[index+2] = rgb[2];

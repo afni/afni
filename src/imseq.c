@@ -3491,6 +3491,18 @@ ENTRY("ISQ_saver_CB") ;
            }
          }
 
+         if( seq->wbar_label_av->ival != 0 ){  /* 17 Jun 2005 */
+           char *lab = ISQ_getlabel( kf , seq ) ;
+           if( lab != NULL ){
+             MEM_plotdata *mp = ISQ_plot_label( seq , lab ) ;
+             if( mp != NULL ){
+               memplot_to_RGB_sef( flim, mp, 0,0,MEMPLOT_FREE_ASPECT ) ;
+               delete_memplot(mp) ;
+             }
+             free(lab) ;
+           }
+         }
+
          if( seq->zoom_fac > 1 &&                   /* crop zoomed image */
              seq->mont_nx == 1 &&                   /* to displayed part? */
              seq->mont_ny == 1 &&
