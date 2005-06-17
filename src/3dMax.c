@@ -27,7 +27,7 @@ int main( int argc , char * argv[] )
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dMax [options] dataset\n"
-             "Compute maximum and/or the minimum voxeel values of an input dataset\n"
+             "Compute maximum and/or minimum voxel values of an input dataset\n"
              "\n"
              "The output is a number to the console.  The input dataset\n"
              "may use a sub-brick selection list, as in program 3dcalc.\n"
