@@ -64,7 +64,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm Imon fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
-           3dMedianFilter 3dretroicor 3dAFNItoNIML                              \
+           3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw                  \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -87,6 +87,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI  \
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
+                  3dAFNItoRaw                                                       \
                   $(EXTRAS) Imon nifti_tool nifti_stats nifti1_test
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -103,7 +104,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3drotate 3dvolreg 3dpc 3dfractionize 1dplot adwarp imupsam         \
                3dIntracranial 24swap 3dTsmooth RSFgen float_scan 1dtranspose      \
                3dFourier 3dNotes 3dROIstats 1deval 3dStatClust 1ddot 3dMax        \
-	            3dDWItoDT 3dTstat 3dDTeig 3dmaskdump 3dretroicor 3daxialize        \
+	       3dDWItoDT 3dTstat 3dDTeig 3dmaskdump 3dretroicor 3daxialize        \
                3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot   \
                3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump   \
                3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid      \
@@ -115,7 +116,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
                file_tool.exe Imon.exe 3dresample.exe serial_helper.exe            \
-               nifti_tool.exe
+               nifti_tool.exe 3dAFNItoRaw
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS @Purify_1D      \
@@ -441,6 +442,10 @@ dsetdup:dsetdup.o
 3dAFNItoMINC:3dAFNItoMINC.o
 	$(RM) $@
 	$(CC) -o 3dAFNItoMINC 3dAFNItoMINC.o $(LFLAGS) $(LLIBS)
+
+3dAFNItoRaw:3dAFNItoRaw.o
+	$(RM) $@
+	$(CC) -o 3dAFNItoRaw 3dAFNItoRaw.o $(LFLAGS) $(LLIBS)
 
 3dAFNItoNIML:3dAFNItoNIML.o
 	$(RM) $@
