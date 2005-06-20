@@ -2379,12 +2379,12 @@ int NI_stream_goodcheck( NI_stream_type *ns , int msec )
    return -1 ;  /* unreachable, I hope */
 }
 
-/*-----------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 /*! Close a NI_stream, but don't free the insides.
     If (flag&1 != 0) send a "close_this" message to the other end.
     If (flag&2 != 0) use TCP OOB data to send a SIGURG to the other end.
-    If (flag&4 != 0) don't remove from open_stream list [from atexit()]
--------------------------------------------------------------------------*/
+    If (flag&4 != 0) don't remove from open_stream list [only from atexit()]
+-----------------------------------------------------------------------------*/
 
 void NI_stream_close_keep( NI_stream_type *ns , int flag )
 {
@@ -2444,7 +2444,7 @@ void NI_stream_close_keep( NI_stream_type *ns , int flag )
    }
 
    ns->bad = MARKED_FOR_DEATH ; /* label this as unclean, not to be touched */
-   if( (flag & 4) != 0 ){       /* only do this if the program is NOT exiting */
+   if( (flag & 4) == 0 ){       /* only free buf if program is NOT exiting */
      NI_free(ns->buf) ; ns->buf = NULL ;
    }
    return ;
