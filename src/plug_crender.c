@@ -247,6 +247,7 @@ static int xhair_ovc = 0 ;
 extern void RCREND_accum_lab_EV( Widget, XtPointer, XEvent *, Boolean * ) ;
 extern void RCREND_accum_lab_CB( Widget, XtPointer, MCW_choose_cbs * ) ;
 static char accum_label[256] = "\0" ;
+static int  accum_lab_replace = 0 ;
 
 static char * RCREND_dummy_av_label[2] = { "[Nothing At All]" , "[Nothing At All]" } ;
 
@@ -3975,10 +3976,16 @@ ENTRY( "RCREND_accum_lab_EV" );
 
    switch( ev->type ){
       case ButtonPress:{
-         XButtonEvent * event = (XButtonEvent *) ev ;
+         XButtonEvent *event = (XButtonEvent *) ev ;
+
          if( event->button == Button3 || event->button == Button2 ){
-            MCW_choose_string( w,"Next Overlay Label",accum_label ,
-                               RCREND_accum_lab_CB,NULL ) ;
+           char *ttl ;
+           accum_lab_replace =
+             ( (event->state & ShiftMask) || (event->state & ControlMask) ) ;
+
+           ttl = (accum_lab_replace) ? "Replacment Label"
+                                     : "New Overlay Label" ;
+           MCW_choose_string( w,ttl,accum_label , RCREND_accum_lab_CB,NULL ) ;
          }
       }
       break ;
@@ -3992,6 +3999,16 @@ void RCREND_accum_lab_CB( Widget w , XtPointer fd , MCW_choose_cbs *cbs )
 {
    if( cbs != NULL && cbs->reason == mcwCR_string && cbs->cval != NULL ){
      MCW_strncpy( accum_label , cbs->cval , 255 ) ;
+
+     if( accum_lab_replace && renderings != NULL && imseq != NULL ){
+       int nn=-1 ; MRI_IMAGE *rim ;
+       drive_MCW_imseq( imseq , isqDR_getimnr , (XtPointer)&nn ) ;
+       if( nn >= 0 && nn < IMARR_COUNT(renderings) ){
+         MRI_IMAGE *rim = IMARR_SUBIM(renderings,nn) ;
+         mri_add_name( accum_label , rim ) ;
+         drive_MCW_imseq( imseq , isqDR_display , (XtPointer)nn ) ;
+       }
+     }
    }
    return ;
 }
@@ -5006,6 +5023,7 @@ ENTRY( "RCREND_imseq_getim" );
      if( renderings != NULL ){
        if( n < 0 ) n = 0 ; else if( n >= ntot ) n = ntot-1 ;
        im = IMARR_SUBIMAGE(renderings,n) ;
+       if( accum_lab_replace ) mri_add_name( accum_label , im ) ;
        if( im->name != NULL ) lab = strdup(im->name) ;
      }
      RETURN(lab) ;
