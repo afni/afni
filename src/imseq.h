@@ -295,7 +295,7 @@ typedef struct {
 #endif
 
 #ifndef MONT_SMAX
-#define MONT_SMAX 99
+#define MONT_SMAX 199
 #endif
 
 #ifndef MONT_GMAX
