@@ -5404,7 +5404,7 @@ ENTRY("ISQ_button2_EV") ;
 
 void ISQ_but_disp_CB( Widget w, XtPointer client_data, XtPointer call_data )
 {
-   MCW_imseq * seq = (MCW_imseq *) client_data ;
+   MCW_imseq *seq = (MCW_imseq *) client_data ;
    int ib ;
    Widget rctop , rcboxes , shtop ;
    Widget swtop=NULL ;
@@ -5447,16 +5447,14 @@ ENTRY("ISQ_but_disp_CB") ;
    for( ib=0 ; ib < NACT_DISP ; ib++ )
       ISQ_disp_act[ib].data = (XtPointer) seq ;
 
-   if( AFNI_yesenv("AFNI_DISP_SCROLLBARS") ){  /* 31 Jan 2002 */
+   if( seq->dc->height < 1024 ||               /* 21 Jun 2005 */
+       AFNI_yesenv("AFNI_DISP_SCROLLBARS") ){  /* 31 Jan 2002 */
+
       shtop = swtop = XtVaCreateManagedWidget(
                  "menu" , xmScrolledWindowWidgetClass , seq->dialog ,
                     XmNscrollingPolicy        , XmAUTOMATIC ,
                     XmNvisualPolicy           , XmVARIABLE ,
-#if 0
-                    XmNscrollBarDisplayPolicy , XmAS_NEEDED ,
-#else
                     XmNscrollBarDisplayPolicy , XmSTATIC ,
-#endif
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
    } else {
