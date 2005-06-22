@@ -1159,3 +1159,8 @@
 08 June 2005: added 2 million to LBUF in mri_read.c (will revisit)
 
 10 June 2005: minor updates to plug_roiedit.[ch]
+
+22 June 2005: Dimon (v 0.5)
+  * modified Dimon.c: added -infile_prefix option and allowed single volume run
+  * modified mri_dicom_hdr.c, rickr/l_mri_dicom_hdr.c: fixed small memory leak
+

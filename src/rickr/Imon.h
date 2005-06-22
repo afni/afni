@@ -63,11 +63,11 @@ typedef struct                      /* extra stuff from mri_read.c     */
 
 typedef struct
 {
-    ge_header_info   geh;           /* array of ge_header_info structs  */
-    ge_extras        gex;           /* array of ge_extras structs      */
-    int              index;         /* index into fnames array        */
-    int              bytes;         /* size of image in bytes        */
-    void           * image;	    /* actual image data            */
+    ge_header_info   geh;           /* ge_header_info struct for this file */
+    ge_extras        gex;           /* ge_extras struct for this file     */
+    int              index;         /* index into fnames array           */
+    int              bytes;         /* size of image in bytes           */
+    void           * image;	    /* actual image data               */
 } finfo_t;
 
 typedef struct
