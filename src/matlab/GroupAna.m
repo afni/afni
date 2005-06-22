@@ -867,11 +867,13 @@ if (Contr.do == 0),
 else
 
 	fprintf('\nNow coding contrasts:\n');
-	fprintf('\n\tEach term in a contrast should have %i character(s), \n', NF);
+	fprintf('\n\t1. Each contrast should contain at least 2 terms;');
+	fprintf('\n\t2. Each term in a contrast should have %i character(s), \n', NF);
 	for (i = 1:1:NF), fprintf('\tNo. %i character corresponds to the level of factor %c (%s),\n', i, 'A'+i-1, FL(i).expr); end
 	fprintf('\n\tUse 0 if a factor is collapsed.\n');
 	fprintf('\n\tIf a factor level is smaller than 9, use its ordinal number;');
-	fprintf('\n\tIf a factor level is bigger  than 9, use a, b, c, ... (no capitals) for 10, 11, 12, ... \n');
+	fprintf('\n\tIf a factor level is bigger  than 9, use a, b, c, ... (no capitals) for 10, 11, 12, ... \n');	
+	fprintf('\n\t3. All weights/coeficients in a contrast have to add up to zero.\n');
 
 if (NF == 1),
    % 1st order contrasts
@@ -889,7 +891,16 @@ if (NF == 1),
    for (i = 1:1:Contr.ord1.tot),
 	   fprintf('\nLabel for 1st order contrast No. %i ', i);
 		Contr.ord1.label(i).nm = input('is: ', 's');
-		Contr.ord1.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord1.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord1.cnt(i).NT) == 0 | Contr.ord1.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+		
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord1.cnt(i).NT),
 		   flg = 0;
          while flg == 0,
@@ -901,6 +912,10 @@ if (NF == 1),
 			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
+		if (sum(Contr.ord1.cnt(i).coef) ~= 0), 
+		   flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+		else flg0 = 1; end
+      end
 	end	
 	Contr.ord2.tot = 0;
 	Contr.ord3.tot = 0;
@@ -915,7 +930,7 @@ if (NF == 2),
       fprintf('\n1st order contrasts have %i factor(s) collapsed.\n', NF-1);
       Contr.ord1.tot = input('\nHow many 1st-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord1.tot) == 0 | Contr.ord1.tot < 0),
-	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n');
    	else flg = 1;
 	   end
    end
@@ -923,20 +938,33 @@ if (NF == 2),
    for (i = 1:1:Contr.ord1.tot),
 	   fprintf('\nLabel for 1st order contrast No. %i ', i);
 		Contr.ord1.label(i).nm = input('is: ', 's');
-		Contr.ord1.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord1.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord1.cnt(i).NT) == 0 | Contr.ord1.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord1.cnt(i).NT),
 		   flg = 0;
          while flg == 0,
 			   fprintf('Factor index for No. %i term ', j);
 			   Contr.ord1.cnt(i).code(j).str = input('is (e.g., 10): ', 's');
 				if (length(Contr.ord1.cnt(i).code(j).str) ~= NF),
-               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+               flg = 0; fprintf(2,'\nError: invalid input. Try it again. \n', OutFN);
             else flg = 1; end
 			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
+		if (sum(Contr.ord1.cnt(i).coef) ~= 0), 
+		   flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+		else flg0 = 1; end
+      end
 	end	
-   fprintf(1,'Done with 2nd order contrast information.\n');	
+   fprintf(1,'Done with 1st order contrast information.\n');	
    % 2nd order contrasts
    flg = 0;
    while flg == 0,
@@ -944,7 +972,7 @@ if (NF == 2),
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord2.tot = input('\nHow many 2nd-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord2.tot) == 0 | Contr.ord2.tot < 0),
-	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n');
    	else flg = 1;
 	   end
    end
@@ -953,18 +981,31 @@ if (NF == 2),
    for (i = 1:1:Contr.ord2.tot),
 	   fprintf('\nLabel for 2nd order contrast No. %i: ', i);
 		Contr.ord2.label(i).nm = input('is: ', 's');
-		Contr.ord2.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord2.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord2.cnt(i).NT) == 0 | Contr.ord2.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord2.cnt(i).NT),		   
 		   flg = 0;
          while flg == 0,
 			   fprintf('Factor index for No. %i term ', j);
 			   Contr.ord2.cnt(i).code(j).str = input('is (e.g., 12): ', 's');
 				if (length(Contr.ord2.cnt(i).code(j).str) ~= NF),
-               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+               flg = 0; fprintf(2,'\nError: invalid input. Try it again. \n', OutFN);
             else flg = 1; end
 			end
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
+		if (sum(Contr.ord2.cnt(i).coef) ~= 0), 
+		   flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+		else flg0 = 1; end
+      end
 	end	
 
 	Contr.ord3.tot = 0;
@@ -984,7 +1025,7 @@ if (NF == 3 | NF == 4),
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord1.tot = input('\nHow many 1st-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord1.tot) == 0 | Contr.ord1.tot < 0),
-	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n');
    	else flg = 1;
 	   end
    end
@@ -993,19 +1034,32 @@ if (NF == 3 | NF == 4),
    for (i = 1:1:Contr.ord1.tot),
 	   fprintf('\nLabel for 1st order contrast No. %i ', i);
 		Contr.ord1.label(i).nm = input('is: ', 's');
-		Contr.ord1.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord1.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord1.cnt(i).NT) == 0 | Contr.ord1.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord1.cnt(i).NT),
 		   flg = 0;
          while flg == 0,
 			   fprintf('Factor index for No. %i term ', j);
 			   Contr.ord1.cnt(i).code(j).str = input('is (e.g., 0020): ', 's');
 				if (length(Contr.ord1.cnt(i).code(j).str) ~= NF),
-               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+               flg = 0; fprintf(2,'\nError: invalid input. Try it again. \n', OutFN);
             else flg = 1; end
 			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-	end	
+		if (sum(Contr.ord1.cnt(i).coef) ~= 0), 
+	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+   	else flg0 = 1; end
+     end	
+	end
    fprintf(1,'Done with 1st order contrast information.\n');
 
    % 2nd order contrasts
@@ -1015,7 +1069,7 @@ if (NF == 3 | NF == 4),
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord2.tot = input('\nHow many 2nd-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord2.tot) == 0 | Contr.ord2.tot < 0),
-	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n');
    	else flg = 1;
 	   end
    end
@@ -1024,7 +1078,16 @@ if (NF == 3 | NF == 4),
    for (i = 1:1:Contr.ord2.tot),
 	   fprintf('\nLabel for 2nd order contrast No. %i ', i);
 		Contr.ord2.label(i).nm = input('is: ', 's');
-		Contr.ord2.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord2.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord2.cnt(i).NT) == 0 | Contr.ord2.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord2.cnt(i).NT),
 		   flg = 0;
          while flg == 0,
@@ -1036,7 +1099,12 @@ if (NF == 3 | NF == 4),
 			end
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
-	end	
+		if (sum(Contr.ord2.cnt(i).coef) ~= 0), 
+	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	   else flg0 = 1; end
+   end  %flg0 = 0;
+	end
+
    fprintf(1,'Done with 2nd order contrast information.\n');
 	
 	
@@ -1047,7 +1115,7 @@ if (NF == 3 | NF == 4),
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord3.tot = input('\nHow many 3rd-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord3.tot) == 0 | Contr.ord3.tot < 0),
-	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n');
    	else flg = 1;
 	   end
    end
@@ -1056,18 +1124,31 @@ if (NF == 3 | NF == 4),
    for (i = 1:1:Contr.ord3.tot),
 	   fprintf('\nLabel for 3rd order contrast No. %i ', i);
 		Contr.ord3.label(i).nm = input('is: ', 's');
-		Contr.ord3.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord3.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord3.cnt(i).NT) == 0 | Contr.ord3.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord3.cnt(i).NT),
 		   flg = 0;
          while flg == 0,
 			   fprintf('Factor index for No. %i term ', j);
 			   Contr.ord3.cnt(i).code(j).str = input('is (e.g., 1230): ', 's');
 				if (length(Contr.ord3.cnt(i).code(j).str) ~= NF),
-               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+               flg = 0; fprintf(2,'\nError: invalid input. Try it again. \n', OutFN);
             else flg = 1; end
 			end
 			Contr.ord3.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
+		if (sum(Contr.ord3.cnt(i).coef) ~= 0), 
+	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	   else flg0 = 1; end
+      end  %flg0 = 0;
 	end
 	Contr.ord4.tot = 0;	
    fprintf(1,'Done with 3rd order contrast information.\n');
@@ -1086,7 +1167,7 @@ if (NF == 5),
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord1.tot = input('\nHow many 1st-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord1.tot) == 0 | Contr.ord1.tot < 0),
-	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n');
    	else flg = 1;
 	   end
    end
@@ -1095,7 +1176,16 @@ if (NF == 5),
    for (i = 1:1:Contr.ord1.tot),
 	   fprintf('\nLabel for 1st order contrast No. %i ', i);
 		Contr.ord1.label(i).nm = input('is: ', 's');
-		Contr.ord1.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord1.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord1.cnt(i).NT) == 0 | Contr.ord1.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord1.cnt(i).NT),
 		   flg = 0;
          while flg == 0,
@@ -1107,6 +1197,10 @@ if (NF == 5),
 			end
 			Contr.ord1.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end  % for (j = 1:1:Contr.ord1.cnt(i).NT)
+		if (sum(Contr.ord1.cnt(i).coef) ~= 0), 
+	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	   else flg0 = 1; end
+      end  %flg0 = 0;
 	end	
    fprintf(1,'Done with 1st order contrast information.\n');
 
@@ -1126,18 +1220,31 @@ if (NF == 5),
    for (i = 1:1:Contr.ord2.tot),
 	   fprintf('\nLabel for 2nd order contrast No. %i ', i);
 		Contr.ord2.label(i).nm = input('is: ', 's');
-		Contr.ord2.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord2.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord2.cnt(i).NT) == 0 | Contr.ord2.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord2.cnt(i).NT),
 		   flg = 0;
          while flg == 0,
 			   fprintf('Factor index for No. %i term ', j);
 			   Contr.ord2.cnt(i).code(j).str = input('is (e.g., 01200): ', 's');
 				if (length(Contr.ord2.cnt(i).code(j).str) ~= NF),
-               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+               flg = 0; fprintf(2,'\nError: invalid input. Try it again. \n', OutFN);
             else flg = 1; end
 			end  % while flg == 0
 			Contr.ord2.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end  % for (j = 1:1:Contr.ord2.cnt(i).NT)
+		if (sum(Contr.ord2.cnt(i).coef) ~= 0), 
+	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	   else flg0 = 1; end
+      end  %flg0 = 0;
 	end	 % for (i = 1:1:Contr.ord2.tot)
    fprintf(1,'Done with 2nd order contrast information.\n');
 	
@@ -1149,7 +1256,7 @@ if (NF == 5),
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord3.tot = input('\nHow many 3rd-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord3.tot) == 0 | Contr.ord3.tot < 0),
-	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n');
    	else flg = 1;
 	   end
    end
@@ -1158,18 +1265,31 @@ if (NF == 5),
    for (i = 1:1:Contr.ord3.tot),
 	   fprintf('\nLabel for 3rd order contrast No. %i ', i);
 		Contr.ord3.label(i).nm = input('is: ', 's');
-		Contr.ord3.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord3.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord3.cnt(i).NT) == 0 | Contr.ord3.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord3.cnt(i).NT),
 		   flg = 0;
          while flg == 0,
 			   fprintf('Factor index for No. %i term ', j);
 			   Contr.ord3.cnt(i).code(j).str = input('is (e.g., 1230): ', 's');
 				if (length(Contr.ord3.cnt(i).code(j).str) ~= NF),
-               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+               flg = 0; fprintf(2,'\nError: invalid input. Try it again. \n', OutFN);
             else flg = 1; end
 			end
 			Contr.ord3.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
+		if (sum(Contr.ord3.cnt(i).coef) ~= 0), 
+	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	   else flg0 = 1; end
+      end  %flg0 = 0;
 	end	
    fprintf(1,'Done with 3rd order contrast information.\n');
 	
@@ -1180,7 +1300,7 @@ if (NF == 5),
 	   fprintf('\nNotice: Contrasts for random factor are NOT feasible.\n');
       Contr.ord4.tot = input('\nHow many 4th-order contrasts? (0 if none) ');
       if (isnumeric(Contr.ord4.tot) == 0 | Contr.ord4.tot < 0),
-	      flg = 0; fprintf(2,'Error: inapproriate input. Please try again.\n');
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n');
    	else flg = 1;
 	   end
    end
@@ -1189,18 +1309,31 @@ if (NF == 5),
    for (i = 1:1:Contr.ord4.tot),
 	   fprintf('\nLabel for 4th order contrast No. %i ', i);
 		Contr.ord4.label(i).nm = input('is: ', 's');
-		Contr.ord4.cnt(i).NT = input('How many terms are involved? ');   % NT = number of terms involved in this contrast
+		flg = 0;
+		while flg == 0,
+		Contr.ord4.cnt(i).NT = input('How many terms are involved in this contrast? ');   % NT = number of terms involved in this contrast
+		if (isnumeric(Contr.ord4.cnt(i).NT) == 0 | Contr.ord4.cnt(i).NT < 2),
+	      flg = 0; fprintf(2,'\nError: inapproriate input. Please try again.\n\n');
+   	else flg = 1; end
+      end
+
+		flg0 = 0;
+		while flg0 == 0,
 		for (j = 1:1:Contr.ord4.cnt(i).NT),
 		   flg = 0;
          while flg == 0,
 			   fprintf('Factor index for No. %i term ', j);
 			   Contr.ord4.cnt(i).code(j).str = input('is (e.g., 01230): ', 's');
 				if (length(Contr.ord4.cnt(i).code(j).str) ~= NF),
-               flg = 0; fprintf(2,'Error: invalid input. Try it again. \n', OutFN);
+               flg = 0; fprintf(2,'\nError: invalid input. Try it again. \n', OutFN);
             else flg = 1; end
 			end
 			Contr.ord4.cnt(i).coef(j) = input('Corresponding coefficient (e.g., 1 or -1): ');
 		end
+		if (sum(Contr.ord4.cnt(i).coef) ~= 0), 
+	      flg0 = 0; fprintf(2,'\nError: All the coeficients of a contrast have to sum up to 0! Try again...\n\n');
+	   else flg0 = 1; end
+      end  %flg0 = 0;
 	end	
    fprintf(1,'Done with 4th order contrast information.\n');
 	
@@ -1401,7 +1534,7 @@ elseif (data_type == 1),
 end
 
 fprintf(1, '\nTotal slices along Z axis: %i - You can estimate the total runtime\n', slices);
-fprintf(1, '\tby multiplying the runtime for each slice from downbelow.\n');
+fprintf(1, '\tby multiplying the runtime for each slice from down below.\n');
 fprintf(1, '\nRunning analysis on slice:\n');
 
 for (sn = 1:1:slices),
