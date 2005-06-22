@@ -7,18 +7,25 @@ static char g_history[] =
     " 0.2 added pause option\n"
     " 0.3 set ftype, and use -infile_pattern\n"
     " 0.4 update complete_orients_str() for IFM_IM_FTYPE_DICOM\n"
+    " 0.5 added -infile_prefix option, work for single volume,\n"
+    "     and fixed dicom reader leak\n"
     "----------------------------------------------------------------------\n";
 
-#define IFM_VERSION "version 0.4 (May 18, 2005)"
+#define IFM_VERSION "version 0.5 (June 22, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
  *
- * - re-write help
- * - can we get the timing from the Dicom file?
- * - without -rt_cmd 'PREFIX ...', set from last dir in glob (data/time?)
- * - add -infile_prefix for no wildcards (and no quotes)
- * - put select command arguemnts in quotes?
+ *    - re-write help
+ *    - without -rt_cmd 'PREFIX ...', set from last dir in glob (data/time?)
+ * ok - add -infile_prefix for no wildcards (and no quotes)
+ *    - put select command arguemnts in quotes?
+ * ok - find memory leak in dicom reader
+ * ok - make this work for a single volume (e.g. anatomical)
+ *    - if there is a change in valid volume size, restart
+ *    - setup an infile sorting step that will organize the files
+ *      before running
+ *    - remove tabs
  *----------------------------------------------------------------------
 */
 
@@ -26,14 +33,20 @@ static char g_history[] =
  * Dimon - monitor real-time aquisition of Dicom or I-files
  *
  *     This program is intended to be run during a scanning session
- *     on a GE scanner, to monitor the collection of I-files.  The
- *     user will be notified of any missing slice or any slice that
+ *     on a GE scanner, to monitor the collection of 2D image files.
+ *     The user will be notified of any missing slice or any slice that
  *     is aquired out of order.
  *
- *     It is recommended that the user runs 'Dimon' before scanning
+ *     It is recommended that the user runs 'Dimon' when scanning
  *     begins, and then watches for error messages during the
  *     scanning session.  The user should terminate the program
  *     whey they are done with all runs.
+ *
+ *     - When acquiring GEMS 5.x I-files, users should run Dimon
+ *       once for the entire scanning session.
+ *
+ *     - When acquiring DICOM image files, users should run Dimon
+ *       once per run.
  *
  *     At the present time, the user must use <ctrl-c> to terminate
  *     the program.
@@ -114,7 +127,7 @@ static void hf_signal          ( int signum );
 /* volume scanning */
 static int volume_match  ( vol_t * vin, vol_t * vout, param_t * p, int start );
 static int volume_search ( vol_t * V, param_t * p, int start, int maxsl,
-       			   int * fl_start );
+       			   int * fl_start, int * state );
 
 /* information functions */
 static int idisp_opts_t         ( char * info, opts_t * opt );
@@ -178,7 +191,9 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 {
     int max_im_alloc = IFM_MAX_IM_ALLOC;
     int ret_val;
-    int fl_start = 0;  /* starting offset into the current flist */
+    int sleep_secs = -1; /* has not been set from data yet */
+    int vs_state = 0;    /* state for volume search, can reset */
+    int fl_start = 0;    /* starting offset into the current flist */
 
     if ( gD.level > 0 ) 		/* status */
         fprintf( stderr, "-- scanning for first volume\n" );
@@ -190,28 +205,28 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 
 	if ( ret_val > 0 )
 	{
-	    ret_val = volume_search( v, p, 0, 0, &fl_start );
+	    ret_val = volume_search( v, p, 0, 0, &fl_start, &vs_state );
 
-	    if ( ret_val == -1 )   /* try to recover from a data error */
-		ret_val = 0;
+            /* try to recover from a data error */
+	    if ( ret_val == -1 ) ret_val = 0;
 
+            /* If we don't have a volume yet, but have used "too much" of our
+             * available memory, request more, making sure there is enough for
+             * a volume, despite the previous max_im_alloc limitation.  */
 	    if ( (ret_val == 0) && (p->nused > (max_im_alloc / 2)) )
-	    {
-		/* If we don't have a volume yet, but have used "too much"
-		 * of our available memory, request more, making sure there
-		 * is enough for a volume, despite the previous max_im_alloc
-		 * limitation.
-		 */
 		max_im_alloc *= 2;
-	    }
 	}
 
 	if ( ret_val == 0 )			/* we are not done yet */
 	{
-	    if ( gD.level > 0 ) 		             /* status */
-		fprintf( stderr, "." );
+	    if ( gD.level > 0 ) fprintf( stderr, "." );	  /* status    */
 
-	    sleep( 4 );					  /* nap time! */
+            /* try to update nap time */
+            if( sleep_secs < 0 && p->nused > 0 )
+                sleep_secs = nap_time_from_tr(p->flist->geh.tr);
+
+            if( sleep_secs < 0 ) sleep( 4 );		  /* nap time! */
+            else                 sleep(sleep_secs);
 	}
 	else if ( ret_val > 0 )		/* success - we have a volume! */
 	{
@@ -435,6 +450,10 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
  *     - start should be at the expected beginning of a volume!
  *     - *fl_start may be returned as a new starting index into fnames
  * 
+ * state:     0 :  < 2 slices found (in the past)
+ *            1 : >= 2 slices (new 'bound')
+ *            2 : >= 2 slices (repeated 'bound', may be one volume run)
+ * 
  * return:   -2 : on programming error
  *           -1 : on data error
  *            0 : on success - no volume yet
@@ -446,15 +465,18 @@ static int volume_search(
 	param_t * p,			/* master structure               */
 	int       start,		/* starting index into p->flist   */
         int       maxsl, 		/* max number of slices to check  */
-	int     * fl_start )		/* return new fnames search point */
+	int     * fl_start, 		/* return new fnames search point */
+        int     * state )               /* assumed state of search        */
 {
-    finfo_t * fp;
-    float     z_orig, delta, dz, prev_z;
-    int       bound;			/* upper bound on image slice  */
-    int       next;
-    int       run0, run1;		/* run numbers, for comparison */
-    int       first = start;		/* first image (start or s+1)  */
-    int       last;                     /* final image in volume       */
+    finfo_t  * fp;
+    float      z_orig, delta, dz, prev_z;
+    int        bound;			/* upper bound on image slice  */
+    static int prev_bound = -1;         /* note previous 'bound' value */
+    int        next;
+    int        run0, run1;		/* run numbers, for comparison */
+    int        first = start;		/* first image (start or s+1)  */
+    int        last;                    /* final image in volume       */
+    int        success = 0;             /* flag for finding a volume   */
 
     if ( V == NULL || p == NULL || p->flist == NULL || start < 0 )
     {
@@ -468,8 +490,14 @@ static int volume_search(
     else
 	bound = first + maxsl;
 
-    if ( (bound - first) < 4 )		/* not enough data to work with   */
-	return 0;
+    if ( ( bound-first < 3) ||
+         ((bound-first < 4) && !p->opts.use_dicom) )
+	return 0;                   /* not enough data to work with   */
+
+    /* maintain the state */
+    if ( *state == 1 && bound == prev_bound ) *state = 2;  /* try to finish */
+    else                                      *state = 1;  /* continue mode */
+    prev_bound = bound;
 
     delta = p->flist[first+1].geh.zoff - p->flist[first].geh.zoff;
 
@@ -491,9 +519,7 @@ static int volume_search(
 	{
 	    fprintf( stderr, "Error: 3 slices with 0 delta, beginning with"
 		     "file <%s>\n", p->fnames[p->flist[start].index] );
-
 	    *fl_start = p->flist[start+2].index;
-
 	    return -1;
 	}
     }
@@ -521,9 +547,30 @@ static int volume_search(
 	next++;
     }
 
-    last = next - 2;			    /* note final image in volume */
+    /* note final image in current volume -                        */
+    /* if we left the current volume, next is too far by 2, else 1 */
+    if ( (fabs(dz - delta) > IFM_EPSILON) || (run1 != run0) ) last = next - 2;
+    else                                                      last = next - 1;
 
+    /* If we have found the same slice location, we are done. */
     if ( fabs(fp->geh.zoff - p->flist[first].geh.zoff) < IFM_EPSILON )
+    {
+        if ( gD.level > 1 )
+            fprintf(stderr,"+d found first slice of second volume\n");
+        success = 1;
+    }
+
+    /* Also, if we are still waiting for the same location, but are in
+       state 2, then we seem to have only a single volume in this run. */
+    if ( ( *state == 2 && fabs(dz-delta)<IFM_EPSILON) && run1 == run0 )
+    {
+        if ( gD.level > 1 )
+            fprintf(stderr,"+d no new data after finding sufficient slices\n"
+                           "   --> assuming completed single volume\n");
+        success = 1;
+    }
+
+    if ( success )
     {
 	/* Current location is same as first, we have a volume! */
 
@@ -551,23 +598,19 @@ static int volume_search(
     {
 	/* We have gone in the wrong direction.  This means that the
 	 * starting slice was not the first in the volume.  Try restarting
-	 * from the current position.
-	 */
-	
+	 * from the current position.  */
 	fprintf( stderr, "\n"
 		"*************************************************\n"
 		"Error: missing slice(s) in first volume!\n"
 		"       attempting to re-start at file: %s\n"
 		"*************************************************\n",
 		p->fnames[p->flist[last+1].index] );
-
 	*fl_start = p->flist[last+1].index;
     }
     else    /* right direction, but bad delta */
     {
 	/* the next slice does not match the original - interleaving? */
 	int testc;
-
 	for ( testc = next - 1; testc < bound; testc++ )
 	    if ( abs( p->flist[first].geh.zoff -
 		      p->flist[testc].geh.zoff ) < IFM_EPSILON )
@@ -1088,19 +1131,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     for ( ac = 1; ac < argc; ac++ )
     {
-	if ( ! strncmp( argv[ac], "-dicom_glob", 9 ) || 
-	     ! strncmp( argv[ac], "-infile_pattern", 11 ) )
-	{
-	    if ( ++ac >= argc )
-	    {
-		fputs( "option usage: -infile_pattern FILE_PATTERN\n", stderr );
-		usage( IFM_PROG_NAME, IFM_USE_SHORT );
-		return 1;
-	    }
-
-            p->opts.dicom_glob = argv[ac];
-	}
-	else if ( ! strncmp( argv[ac], "-debug", 4 ) )
+	if ( ! strncmp( argv[ac], "-debug", 4 ) )
 	{
 	    if ( ++ac >= argc )
 	    {
@@ -1131,6 +1162,31 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 	{
 	    usage( IFM_PROG_NAME, IFM_USE_HIST );
 	    return 1;
+	}
+	else if ( ! strncmp( argv[ac], "-infile_pattern", 11 ) ||
+	          ! strncmp( argv[ac], "-dicom_glob", 9 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -infile_pattern FILE_PATTERN\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+
+            p->opts.dicom_glob = argv[ac];
+	}
+	else if ( ! strncmp( argv[ac], "-infile_prefix", 11 ) )
+	{
+	    if ( ++ac >= argc )
+	    {
+		fputs( "option usage: -infile_prefix FILE_PREFIX\n", stderr );
+		usage( IFM_PROG_NAME, IFM_USE_SHORT );
+		return 1;
+	    }
+            /* just append a '*' to the PREFIX */
+            p->opts.dicom_glob = calloc(strlen(argv[ac])+2, sizeof(char));
+            strcpy(p->opts.dicom_glob, argv[ac]);
+            strcat(p->opts.dicom_glob, "*");
 	}
 	else if ( ! strncmp( argv[ac], "-nice", 4 ) )
 	{
@@ -2130,50 +2186,47 @@ static int usage ( char * prog, int level )
 	printf(
 	  "\n"
 	  "%s - monitor real-time acquisition of DICOM image files\n"
+	  "    (or GEMS 5.x I-files, as 'Imon')\n"
 	  "\n"
 	  "    This program is intended to be run during a scanning session\n"
-	  "    on a scanner, to monitor the collection of I-files.  The\n"
+	  "    on a scanner, to monitor the collection of image files.  The\n"
 	  "    user will be notified of any missing slice or any slice that\n"
 	  "    is aquired out of order.\n"
 	  "\n"
-	  "    It is recommended that the user runs '%s' just after the\n"
-	  "    scanner is first prepped, and then watches for error messages\n"
-	  "    during the scanning session.  The user should terminate the\n"
-	  "    program whey they are done with all runs.\n"
+	  "    When collecting DICOM files, it is recommended to run this\n"
+	  "    once per run, only because it is (currently) easier to specify\n"
+	  "    the input file pattern that way (until I add the ability to\n"
+          "    collect single anatomical volume data, too).\n"
 	  "\n"
-	  "    Note that '%s' can also be run separate from scanning, either\n"
-	  "    to verify the integrity of I-files, or to create a GERT_Reco2\n"
-	  "    script, which is used to create AFNI datasets.\n"
-	  "\n"
-	  "    At the present time, the user must use <ctrl-c> to terminate\n"
-	  "    the program.\n"
+	  "    Dimon should be terminated at the end of each run, using\n"
+	  "    <ctrl-c>.\n"
 	  "\n"
 	  "  ---------------------------------------------------------------\n"
-	  "  usage: %s [options] -start_dir DIR\n"
+	  "  usage: %s [options] -infile_pattern \"PATTERN\"\n"
 	  "\n"
 	  "  ---------------------------------------------------------------\n"
 	  "  examples (no real-time options):\n"
 	  "\n"
-	  "    %s -start_dir 003\n"
+	  "    %s -infile_pattern 's8912345/i*'\n"
 	  "    %s -help\n"
-	  "    %s -start_dir 003 -GERT_reco2 -quit\n"
-	  "    %s -start_dir 003 -nt 120 -start_file 043/I.901\n"
-	  "    %s -debug 2 -nice 10 -start_dir 003\n"
-	  "\n"
-	  "  examples (basic Dimon option):\n"
-	  "\n"
-	  "    %s                                    \\\n"
-          "       -infile_pattern 's*/i*'               \\\n"
-          "       -quit                                 \\\n"
-          "       -rt -nt 120                           \\\n"
-          "       -host pickle                          \\\n"
-          "       -rt_cmd \"PREFIX 2005_0513_run3\"       \n"
+	  "    %s -infile_pattern 's8912345/i*' -nt 120\n"
+	  "    %s -infile_pattern 's8912345/i*' -debug 2\n"
 	  "\n"
 	  "  examples (with real-time options):\n"
 	  "\n"
-	  "    %s -start_dir 003 -rt\n"
-	  "    %s -start_dir 003 -rt -host pickle\n"
-	  "    %s -start_dir 003 -nt 120 -rt -host pickle\n"
+	  "    %s -infile_prefix s8912345/i -rt \n"
+	  "\n"
+	  "    %s -infile_pattern 's*/i*' -rt \n"
+	  "    %s -infile_pattern 's*/i*' -rt -nt 120\n"
+	  "    %s -infile_pattern 's*/i*' -rt -quit\n"
+	  "\n"
+	  "  ** detailed real-time example:\n"
+	  "    %s                                    \\\n"
+          "       -infile_pattern 's*/i*'               \\\n"
+          "       -rt -nt 120                           \\\n"
+          "       -host some.remote.computer            \\\n"
+          "       -rt_cmd \"PREFIX 2005_0513_run3\"     \\\n"
+          "       -quit                                 \n"
 	  "\n"
 	  "  ** detailed real-time example:\n"
 	  "\n"
@@ -2214,7 +2267,13 @@ static int usage ( char * prog, int level )
 	  "       -rt_cmd 'GRAPH_YRANGE 1.02'                         \\\n"
 	  "       -rt_cmd 'GRAPH_EXPR sqrt((d*d+e*e+f*f)/3)'            \n"
 	  "\n"
-	  "  ---------------------------------------------------------------\n"
+	  "  ---------------------------------------------------------------\n",
+	  prog, prog,
+          prog, prog, prog, prog,
+          prog, prog, prog, prog, prog,
+          prog );
+          
+	printf(
 	  "  notes:\n"
 	  "\n"
 	  "    - Once started, this program exits only when a fatal error\n"
@@ -2436,8 +2495,6 @@ static int usage ( char * prog, int level )
 	  "\n"
 	  "                        (many thanks to R. Birn)\n"
 	  "\n",
-	  prog, prog, prog, prog, prog, 
-	  prog, prog, prog, prog, prog, prog, prog, prog, prog,
 	  prog, prog, prog, prog, prog, prog, prog,
 	  IFM_VERSION
 	);

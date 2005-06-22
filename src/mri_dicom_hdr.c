@@ -7118,6 +7118,7 @@ ENTRY("readFile1") ;
 		CTN_FREE(elementItem);
 		continue;
 	    } else {
+                CTN_FREE(elementItem);   /* 22 June 2005 [rickr] */
 		RETURN( cond ) ;
 	    }
 	}
