@@ -1164,3 +1164,7 @@
   * modified Dimon.c: added -infile_prefix option and allowed single volume run
   * modified mri_dicom_hdr.c, rickr/l_mri_dicom_hdr.c: fixed small memory leak
 
+23 June 2005:
+  * modified Makefile.linux_gcc32, removing -DNO_GAMMA
+    (was just a warning, but is an error on FC4)
+
