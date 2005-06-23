@@ -2601,6 +2601,10 @@ int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
       }
       /* explicit search */
       SUMA_LH("Explicit");
+      if (nel->vec_filled > N_Node) {
+         SUMA_SL_Err("Unexpected error nel->vec_filled > N_Node");
+         SUMA_RETURN(-1);
+      }
       for (i=0; i<nel->vec_filled; ++i) {
          if (NodeDef[i] == node) SUMA_RETURN(i);
       }
