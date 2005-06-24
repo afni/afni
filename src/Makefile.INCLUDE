@@ -65,6 +65,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dSpatNorm Imon fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw                  \
+           DTIStudioFibertoSegments                                             \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -87,7 +88,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI  \
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
-                  3dAFNItoRaw                                                       \
+                  3dAFNItoRaw DTIStudioFibertoSegments                              \
                   $(EXTRAS) Imon nifti_tool nifti_stats nifti1_test
 
 # For CYGWIN (look for "exe" to find various places below)
@@ -116,7 +117,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
                file_tool.exe Imon.exe 3dresample.exe serial_helper.exe            \
-               nifti_tool.exe 3dAFNItoRaw
+               nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS @Purify_1D      \
@@ -781,6 +782,10 @@ waver:waver.o parser.o parser_int.o
 3dnewid:3dnewid.o
 	$(RM) $@
 	$(CC) -o 3dnewid 3dnewid.o $(LFLAGS) $(LLIBS)
+
+DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
+	$(RM) $@
+	$(CC) -o DTIStudioFibertoSegments DTIStudioFibertoSegments.o $(LFLAGS) $(LLIBS)
 
 
 ### how to compile a C file
