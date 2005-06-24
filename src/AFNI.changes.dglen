@@ -65,3 +65,5 @@
  * created new program, 3dAFNItoRaw, to create raw dataset of multiple sub-brik alternating at each voxel rather than at each volume
 16 June 2005
  * fixed small typo in help for 3dMax.c
+24 June 2005
+ * created new program, DTIStudioFibertoSegments.c, to convert DTIStudio fiber files into SUMA segment files
