@@ -2593,7 +2593,7 @@ int SUMA_GetNodeRow_FromNodeIndex(SUMA_DSET *dset, int node, int N_Node)
    
    if (NodeDef) {
       SUMA_LH("Col. Index found");
-      if (nel->vec_filled < node) {
+      if (nel->vec_filled > node) { /* bug here (used to be < !) discovered thanks to Rosanna and Shane */
          if (node == NodeDef[node]) {
             SUMA_LH("Got lucky");
             SUMA_RETURN(node);
