@@ -319,7 +319,7 @@ int    valid_nifti_extensions      (nifti_image *nim);
 /*-------------------- Some C convenience macros ----------------------------*/
 
 /* nifti extension codes */
-#define NIFTI_ECODE_UNKNOWN   0
+#define NIFTI_ECODE_IGNORE    0    /* changed from UNKNOWN, 29 June 2005 */
 #define NIFTI_ECODE_DICOM     2
 #define NIFTI_ECODE_AFNI      4
 #define NIFTI_ECODE_COMMENT   6
