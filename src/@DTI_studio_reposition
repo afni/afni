@@ -1,0 +1,96 @@
+#!/bin/tcsh -f
+
+if ("$1" == '' || "$1" == '-h' || "$1" == "-help"  || "$2" == '') then
+   goto HELP
+endif
+
+set ana = $1
+set ana_pref = $ana:r
+set ana_ext = $ana:e
+set ref_pref = `@GetAfniPrefix $2`
+set ref_view = `@GetAfniView $2`
+set ref = ${ref_pref}${ref_view}
+
+if ( ! -f $ana ) then
+   echo "Error: Analyze file $ana not found"
+   goto END
+endif
+if ( ${ana_ext} != "hdr") then
+   echo "Error: Analyze file $ana must end with .hdr"
+   goto END
+endif
+
+if ( ! -f ${ref}.HEAD || ! -f ${ref}.BRIK) then
+   echo "Error: AFNI_reference_volume ${ref} (.HEAD or .BRIK) not found"
+   goto END
+endif
+
+if ( ${ref_view} != "+orig") then
+   echo "Error: AFNI_reference_volume should be in +orig view"
+   goto END
+endif
+
+#Create AFNI dataset from .hdr
+rm -f ${ana_pref}_tmp+????.????
+echo "++ Chaging format "
+3dcopy $ana ${ana_pref}_tmp
+if ( -f ${ana_pref}_tmp+orig.HEAD) then 
+   set ana_view = "+orig"
+else if ( -f ${ana_pref}_tmp+acpc.HEAD) then 
+   set ana_view = "+acpc"
+else if ( -f ${ana_pref}_tmp+tlrc.HEAD) then 
+   set ana_view = "+tlrc"
+else
+   echo "Error: 3dcopy command failed!"
+   goto END
+endif
+
+if ($ana_view != "+orig") then
+   echo "++ Refitting to +orig"
+   3drefit -view orig ${ana_pref}_tmp${ana_view} 
+   set ana_view = "+orig"
+endif
+
+#Now reslice the cursed dset
+set ana_orcode = `@GetAfniOrient $ref`
+if ( $#ana_orcode != 1) then
+   echo "Error: Failed to get orientation code, got $ana_orcode !"
+   goto END
+endif
+echo "++ Reslicing to $ana_orcode"
+3daxialize -orient $ana_orcode -prefix ${ana_pref} ${ana_pref}_tmp${ana_view} 
+rm -f ${ana_pref}_tmp+????.????
+
+#make origins match
+echo "++ Matching origins"
+3drefit -duporigin $ref ${ana_pref}${ana_view}
+
+if ( ! -f ${ana_pref}${ana_view}.HEAD ) then
+   echo "Error: Failed to create output dataset!"
+   goto END
+endif
+
+echo ""
+echo "Datasets ${ana_pref}${ana_view} should now be in full alignment with $ref"
+echo "Verify results in AFNI"
+goto END
+
+HELP:
+   echo "`basename $0` <DTI_hdr_volume> <AFNI_reference_volume>"
+   echo "This script reslices and repositions an DTI_studio ANALYZE"
+   echo "volume to match the original volume used to input data"
+   echo "into DTI studio"
+   echo "Check realignment with AFNI to be sure all went well."
+   echo "Example:"
+   echo "FA35.hdr is a (renamed) volume from DTI_studio that contains"
+   echo "   fractional anisotropy"
+   echo "sample_dti_vol+orig is an AFNI volume of one DWI in the first"
+   echo "   gradient direction (54 slices). sample_dti_vol+orig was "
+   echo "   created using: "
+   echo "   to3d DTIepi2new-000[0-4]?.dcm DTIepi2new-0005[0-4].dcm -prefix sample_dti_vol"
+   echo "To create a version of FA35 that is in alignment with sample_dti_vol do:"
+   echo "`basename $0` FA35.hdr sample_dti_vol+orig"
+   echo ""
+   goto END
+   
+END:
