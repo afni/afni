@@ -3022,7 +3022,167 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
 
 
 /*--------------------- Matrix Sorting functions END ------------------------*/
+
+/*!
+   \brief Returns the coordinates of a voxel corner
+   \param center (float *): center of voxel
+   \param dxyz (float *): dimensions of voxel
+   \param en (int): corner of voxel (0 -- 7)
+   \param P0 (float *): corner coords (set by macro)
+*/
+#define SUMA_CORNER_OF_VOXEL(center, dxyz, cn, P){\
+   switch(cn) {   \
+      case 0:  \
+         P[0] =  dxyz[0]; P[1] = -dxyz[1]; P[2] =   dxyz[2];   \
+         break;   \
+      case 1:  \
+         P[0] =  dxyz[0]; P[1] = -dxyz[1]; P[2] =  -dxyz[2];   \
+         break;   \
+      case 2:  \
+         P[0] =  dxyz[0]; P[1] =  dxyz[1]; P[2] =  -dxyz[2];   \
+         break;  \
+      case 3:  \
+         P[0] =  dxyz[0]; P[1] =  dxyz[1]; P[2] =   dxyz[2];   \
+         break;   \
+      case 4:  \
+         P[0] = -dxyz[0]; P[1] = -dxyz[1]; P[2] =   dxyz[2];   \
+         break;   \
+      case 5:  \
+         P[0] = -dxyz[0]; P[1] = -dxyz[1]; P[2] =  -dxyz[2];   \
+         break;   \
+      case 6:  \
+         P[0] = -dxyz[0]; P[1] =  dxyz[1]; P[2] =  -dxyz[2];   \
+         break;  \
+      case 7:  \
+         P[0] = -dxyz[0]; P[1] =  dxyz[1]; P[2] =   dxyz[2];   \
+         break;  \
+      default: \
+         P[0] = 0; P[1] = 0; P[2] = 0; \
+         SUMA_SL_Err("Bad corner index. Returning Center of voxel.");\
+   }  \
+   /* add center coord */  \
+   P[0] = center[0] + 0.5 * P[0];   \
+   P[1] = center[1] + 0.5 * P[1];   \
+   P[2] = center[2] + 0.5 * P[2];   \
+}
+/*!
+   \brief Returns the coordinates of the two points that form an edge of a voxel
+   \param center (float *): center of voxel
+   \param dxyz (float *): dimensions of voxel
+   \param en (int): edge of voxel (0 -- 11)
+   \param P0 (float *): first point forming edge (set by macro)
+   \param P1 (float *): second point forming edge (set by macro)
+*/
+#define SUMA_EDGE_OF_VOXEL(center, dxyz, en, P0, P1){ \
+   switch(en) {   \
+      case 0:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 0, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 1, P1);   \
+         break;   \
+      case 1:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 0, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 3, P1);   \
+         break;   \
+      case 2:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 0, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 4, P1);   \
+         break;   \
+      case 3:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 1, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 5, P1);   \
+         break;   \
+      case 4:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 1, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 2, P1);   \
+         break;   \
+      case 5:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 2, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 6, P1);   \
+         break;   \
+      case 6:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 2, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 3, P1);   \
+         break;   \
+      case 7:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 3, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 7, P1);   \
+         break;   \
+      case 8:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 4, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 7, P1);   \
+         break;   \
+      case 9:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 4, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 5, P1);   \
+         break;   \
+      case 10:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 5, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 6, P1);   \
+         break;   \
+      case 11:  \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 6, P0);   \
+         SUMA_CORNER_OF_VOXEL(center, dxyz, 7, P1);   \
+         break;   \
+      default: \
+         P0[0] = center[0]; P0[1] = center[1]; P0[2] = center[2]; \
+         P1[0] = center[0]; P1[1] = center[1]; P1[2] = center[2]; \
+         SUMA_SL_Err("Bad edge index. Returning Centers of voxel.");\
+   }  \
+}
+
+/*!
+   \brief find out if a point p on the line formed by points p0 and p1 is between p0 and p1
+   ans = SUMA_IS_POINT_IN_SEGMENT(p, p0, p1);
+   if ans then p is between p0 and p1
+   p, p0, p1 (float *) xyz of points
    
+   - NOTE: macro does not check that three points are colinear (as they should be)!
+*/
+#define SUMA_IS_POINT_IN_SEGMENT(p, p0, p1)  (  ( (p[0] > p0[0] && p[0] < p1[0]) ||   \
+                                          (p[0] < p0[0] && p[0] > p1[0]) ||   \
+                                          (p[0] == p0[0] || p[0] == p1[1]) ) ? 1 : 0 )
+                                          
+/*!
+   \brief does a voxel intersect a triangle ? (i.e. one of the edges intersects a triangle)
+   \param center (float *) center of voxel 
+   \param dxyz (float *) dimensions of voxel
+   \param vert0 (float *) xyz first vertex of triangle
+   \param vert1 (float *) xyz of second vertex of triangle
+   \param vert2 (float *) xyz of third vertex of triangle
+   \return YUP == intersects
+*/
+SUMA_Boolean SUMA_isVoxelIntersect_Triangle (float *center, float *dxyz, float *vert0, float *vert1, float *vert2)   
+{
+   static char FuncName[]={"SUMA_isVoxelIntersect_Triangle"};
+   int i = 0;
+   float P0[3], P1[3], iP[3];
+   
+   SUMA_ENTRY;
+   
+   /* loop accross all 12 edges and find out which pierces the triangle */
+   for (i=0; i<12; ++i) {
+      SUMA_EDGE_OF_VOXEL(center, dxyz, i, P0, P1);
+      if (SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, NULL, NULL)) {
+         /* intersects, make sure intersection is between P0 and P1 */
+         if (SUMA_IS_POINT_IN_SEGMENT(iP, P0, P1)) {
+            if (0) fprintf(SUMA_STDERR, "%s:\n"
+                                                "Triangle %.3f, %.3f, %.3f\n"
+                                                "         %.3f, %.3f, %.3f\n"
+                                                "         %.3f, %.3f, %.3f\n"
+                                                "Intersects voxel at:\n"
+                                                "         %.3f, %.3f, %.3f\n", 
+                                                FuncName,
+                                                vert0[0], vert0[1], vert0[2],
+                                                vert1[0], vert1[1], vert1[2],
+                                                vert2[0], vert2[1], vert2[2],
+                                                center[0], center[1], center[2]);
+            SUMA_RETURN(YUP);
+         }
+      }
+   }  
+   SUMA_RETURN(NOPE);
+}
+
 /*
 \brief This function is a stripped down version of SUMA_MT_intersect_triangle. It is meant to
 work faster when few triangles are to be tested. 

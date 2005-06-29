@@ -1061,7 +1061,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
    short *isin=NULL;
    byte *ijkmask=NULL, *inmask = NULL, *ijkout = NULL;
    float *p1, *p2, *p3, min_v[3], max_v[3], p[3], dist;
-   float MaxDims[3], MinDims[3], SOCenter[3];
+   float MaxDims[3], MinDims[3], SOCenter[3], dxyz[3];
    int nn, nijk, nx, ny, nz, nxy, nxyz, nf, n1, n2, n3, nn3, *voxelsijk=NULL, N_alloc, en;
    int N_inbox, nt, nt3, ijkseed = -1, N_in, N_realloc;
    byte *fillmaskvec=NULL;
@@ -1097,6 +1097,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
    N_realloc = 0;
    voxelsijk = (int *)SUMA_malloc(sizeof(int)*N_alloc*3);
    if (!voxelsijk) { SUMA_SL_Crit("Failed to Allocate!"); SUMA_RETURN(NULL);  }   
+   dxyz[0] = VolPar->dx; dxyz[1] = VolPar->dy; dxyz[2] = VolPar->dz;
    for (nf=0; nf<SO->N_FaceSet; ++nf) {
       n1 = SO->FaceSetList[SO->FaceSetDim*nf]; n2 = SO->FaceSetList[SO->FaceSetDim*nf+1]; n3 = SO->FaceSetList[SO->FaceSetDim*nf+2];
       /* find the bounding box of the triangle */
@@ -1118,7 +1119,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       }
       if (!N_inbox) { SUMA_SL_Err("Unexpected error, no voxels in box!"); SUMA_RETURN(NULL);  }
       
-      /* mark hese voxels as inside the business */
+      /* mark these voxels as inside the business */
       for (nt=0; nt < N_inbox; ++nt) {
          nt3 = 3*nt;
          if (voxelsijk[nt3] < nx &&  voxelsijk[nt3+1] < ny &&  voxelsijk[nt3+2] < nz) {
@@ -1131,6 +1132,12 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
                if (dist) {
                   if (SUMA_IS_NEG(VolPar->Hand * dist)) isin[nijk] = SUMA_IN_TRIBOX_INSIDE;  /* ZSS Added handedness factor. who would have thought? Be damned 3D coord systems! */
                   else isin[nijk] = SUMA_IN_TRIBOX_OUTSIDE; 
+               }
+               /* does this triangle actually intersect this voxel ? */
+               if (0) {
+                  if (SUMA_isVoxelIntersect_Triangle (p, dxyz, p1, p2, p3)) {
+                     isin[nijk] = SUMA_INTERSECTS_TRIANGLE;
+                  }
                }
                ++(*N_inp);    
             }
