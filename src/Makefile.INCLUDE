@@ -119,7 +119,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                file_tool.exe Imon.exe 3dresample.exe serial_helper.exe            \
                nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments
 
-SCRIPTS = @4Daverage @CommandGlobb @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
+SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS @Purify_1D      \
           @SUMA_Make_Spec_SF @make_stim_file @Align_Centers suma_change_spec
 

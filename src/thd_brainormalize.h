@@ -12,10 +12,11 @@
 #define THD_BN_XORG -83.0   /* the box for the master dataset grid */
 #define THD_BN_YORG -89.0
 #define THD_BN_ZORG -82.0
-#define THD_BN_NX   167
-#define THD_BN_NY   212
-#define THD_BN_NZ   175
-#define THD_BN_DXYZ   1.0
-
+#if 0
+   #define THD_BN_DXYZ   1.0
+   #define THD_BN_NX   ((int)(167.0/THD_BN_DXYZ))
+   #define THD_BN_NY   ((int)(212.0/THD_BN_DXYZ))
+   #define THD_BN_NZ   ((int)(175.0/THD_BN_DXYZ))
+#endif
 #define THD_BN_ZHEIGHT 170.0   /* height of box, from top slice */
 

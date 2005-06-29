@@ -6,6 +6,36 @@
 
 static int verb = 0 ;
 void mri_brainormalize_verbose( int v ){ verb = v ; }
+static float thd_bn_dxyz = 1.0;
+static int thd_bn_nx     = 167;
+static int thd_bn_ny     = 212;
+static int thd_bn_nz     = 175;
+void mri_brainormalize_initialize(float dx, float dy, float dz)
+{
+   /* Set the reinterpolation resolution to the smallest delta */
+   thd_bn_dxyz = MIN(fabs(dx), fabs(dy)); thd_bn_dxyz = MIN(thd_bn_dxyz, fabs(dz));
+   thd_bn_nx = (int)( (float)thd_bn_nx / thd_bn_dxyz );
+   thd_bn_ny = (int)( (float)thd_bn_ny / thd_bn_dxyz );
+   thd_bn_nz = (int)( (float)thd_bn_nz / thd_bn_dxyz );
+   return;
+}
+float THD_BN_dxyz()
+{
+   return thd_bn_dxyz;
+}
+int THD_BN_nx()
+{
+   return thd_bn_nx;
+}
+int THD_BN_ny()
+{
+   return thd_bn_ny;
+}
+int THD_BN_nz()
+{
+   return thd_bn_nz;
+}
+
 
 /*---------------------------------------------------------------------*/
 /*! Count number of nonzeros in mask array */
@@ -1060,6 +1090,7 @@ void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
    }      
    return;
 } 
+
 /*----------------------------------------------------------------------
    (a) shortize input and flip brick so that orientation is RAI
    (b) find clip levels and create a binary mask
@@ -1150,7 +1181,7 @@ ENTRY("mri_brainormalize") ;
    dx = fabs(sim->dx) ; if( dx == 0.0 ) dx = 1.0 ;
    dy = fabs(sim->dy) ; if( dy == 0.0 ) dy = 1.0 ;
    dz = fabs(sim->dz) ; if( dz == 0.0 ) dz = 1.0 ;
-   
+      
    /* save some info to create an output image with the same number of slices as original image*/
    sim_dx = sim->dx; sim_dy = sim->dy; sim_dz = sim->dz;
    sim_xo = 0.0; sim_yo = 0.0; sim_zo = 0.0;  /* origins are added after this function returns.*/
@@ -1255,17 +1286,17 @@ ENTRY("mri_brainormalize") ;
    }}}
    if( sum == 0.0 ){ mri_free(sim); RETURN(NULL); }  /* huh? */
 
-   ai = THD_BN_DXYZ/dx ; bi = icm/sum - ai*(THD_BN_XCM-THD_BN_XORG)/THD_BN_DXYZ ;
-   aj = THD_BN_DXYZ/dy ; bj = jcm/sum - aj*(THD_BN_YCM-THD_BN_YORG)/THD_BN_DXYZ ;
-   ak = THD_BN_DXYZ/dz ; bk = kcm/sum - ak*(THD_BN_ZCM-THD_BN_ZORG)/THD_BN_DXYZ ;
+   ai = thd_bn_dxyz/dx ; bi = icm/sum - ai*(THD_BN_XCM-THD_BN_XORG)/thd_bn_dxyz ;
+   aj = thd_bn_dxyz/dy ; bj = jcm/sum - aj*(THD_BN_YCM-THD_BN_YORG)/thd_bn_dxyz ;
+   ak = thd_bn_dxyz/dz ; bk = kcm/sum - ak*(THD_BN_ZCM-THD_BN_ZORG)/thd_bn_dxyz ;
 
    if( verb ) fprintf(stderr,"++mri_brainormalize: warping to standard grid\n a = [%f %f %f], b = [%f %f %f]\n", ai, aj, ak, bi, bj, bk) ;
 
    mri_warp3D_method( MRI_CUBIC ) ;
-   tim = mri_warp3D( sim , THD_BN_NX,THD_BN_NY,THD_BN_NZ , ijkwarp ) ;
+   tim = mri_warp3D( sim , thd_bn_nx,thd_bn_ny,thd_bn_nz , ijkwarp ) ;
    mri_free(sim) ;
 
-   tim->dx = tim->dy = tim->dz = THD_BN_DXYZ ;
+   tim->dx = tim->dy = tim->dz = thd_bn_dxyz ;
    tim->xo = THD_BN_XORG ;
    tim->yo = THD_BN_YORG ;
    tim->zo = THD_BN_ZORG ;
