@@ -194,6 +194,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                  -talk_suma option. \n"
                "\n"
                "%s"
+               "     -visual: Equivalent to using -talk_suma -feed_afni -send_kth 5\n"
                "\n"
                "     -debug DBG: debug levels of 0 (default), 1, 2, 3.\n"
                "        This is no Rick Reynolds debug, which is oft nicer\n"
@@ -346,6 +347,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
       
       if (!brk && (strcmp(argv[kar], "-pushout") == 0)) {
          Opt->UseExpansion = 1;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-visual") == 0)) {
+         ps->cs->talk_suma = 1;
+         ps->cs->kth = 5;
+         ps->cs->Feed2Afni = 1;
          brk = YUP;
       }
       
@@ -846,6 +854,7 @@ int main (int argc,char *argv[])
         fprintf(stderr,"**ERROR: can't load dataset %s\n",Opt->in_name) ;
         exit(1);
       }
+      mri_brainormalize_initialize(Opt->iset->daxes->xxdel, Opt->iset->daxes->yydel, Opt->iset->daxes->zzdel);
       imin->dx = fabs(Opt->iset->daxes->xxdel) ;
       imin->dy = fabs(Opt->iset->daxes->yydel) ;
       imin->dz = fabs(Opt->iset->daxes->zzdel) ;
@@ -1031,8 +1040,10 @@ int main (int argc,char *argv[])
       /* load the dset */
       DSET_load(Opt->in_vol);
       if (Opt->fillhole) Opt->OrigSpatNormedSet = Opt->in_vol; /* original is same as in_vol */
-      if (DSET_NX( Opt->in_vol) !=  THD_BN_NX || DSET_NY( Opt->in_vol) !=  THD_BN_NY  || DSET_NZ( Opt->in_vol) !=  THD_BN_NZ ) {
-         fprintf(SUMA_STDERR,"Error %s:\n SpatNormed Dset must be %d x %d x %d\n", FuncName, THD_BN_NX, THD_BN_NY, THD_BN_NZ );
+      /* initialize, just to make sure numbers are ok for if statement below */
+      mri_brainormalize_initialize(Opt->in_vol->daxes->xxdel, Opt->in_vol->daxes->yydel, Opt->in_vol->daxes->zzdel);
+      if (DSET_NX( Opt->in_vol) !=  THD_BN_nx() || DSET_NY( Opt->in_vol) !=  THD_BN_ny()  || DSET_NZ( Opt->in_vol) !=  THD_BN_nz() ) {
+         fprintf(SUMA_STDERR,"Error %s:\n SpatNormed Dset must be %d x %d x %d\n", FuncName, THD_BN_nx(), THD_BN_ny(), THD_BN_nz() );
          exit(1);
       }
       Opt->iset_hand = SUMA_THD_handedness( Opt->in_vol );

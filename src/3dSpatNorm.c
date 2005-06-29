@@ -85,6 +85,8 @@ int main( int argc , char *argv[] )
    imin->dy = fabs(iset->daxes->yydel) ;
    imin->dz = fabs(iset->daxes->zzdel) ;
    
+   mri_brainormalize_initialize(imin->dz, imin->dy, imin->dz); /* To get around the #define for voxel counts and dimensions */
+   
    /* me needs the origin of this dset in RAI world */
    LOAD_FVEC3(originRAIfv , iset->daxes->xxorg , iset->daxes->yyorg , iset->daxes->zzorg) ;
    originRAIfv = THD_3dmm_to_dicomm( iset , originRAIfv ) ;
