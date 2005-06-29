@@ -1168,3 +1168,6 @@
   * modified Makefile.linux_gcc32 and Makefile.linux_gcc33_64
       - removed -DNO_GAMMA (was just a warning, but is an error on FC4)
 
+29 June 2005:
+  * modified nifti1_io.[ch]: changed NIFTI_ECODE_UNKNOWN to _IGNORE
+
