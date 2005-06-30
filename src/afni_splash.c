@@ -17,6 +17,10 @@ void AFNI_splashup   (void){ return; }
 void AFNI_splashraise(void){ return; }
 void AFNI_faceup     (void){ return; }
 
+/* moved the functions into "FRIVOLTIES" section  30 Jun 2005 [rickr] */
+void AFNI_broutim_CB(Widget w, XtPointer cd, XtPointer cbs){ return; }
+static int AFNI_find_todays_face(void){ return -1; }
+
 #else  /*=============================== for party animals !!!!!!!!!!!!!!!!!!*/
 
 #include "afni_splash.h"     /* contains the RLE image data */
@@ -721,6 +725,83 @@ ENTRY("AFNI_faceup") ;
    }
 
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------------*/
+#include <time.h>
+#define JAN  1
+#define FEB  2
+#define MAR  3
+#define APR  4
+#define MAY  5
+#define JUN  6
+#define JUL  7
+#define AUG  8
+#define SEP  9
+#define OCT 10
+#define NOV 11
+#define DEC 12
+
+typedef struct { int mon,day; char *label; } mday ;
+#define NTMAX 9
+
+static mday facials[] = {
+ {MAR,30,"face_vincent" } ,
+ {FEB,12,"face_lincoln" } ,
+ {JAN, 3,"face_tolkien" } ,
+ {MAR,14,"face_einstein"} ,
+ {APR,27,"face_grant"   } ,
+ {JUL,22,"face_rbirn"   } ,
+ {SEP, 7,"face_rwcox"   } ,
+ {OCT,16,"face_rwcox"   } ,
+ {NOV,17,"face_brodman" } ,
+{0,0,NULL} } ;  /* last element = flag to stop searching */
+/*---------------------------------------------------------------------------*/
+
+static int AFNI_find_todays_face(void)
+{
+   time_t tt ;
+   struct tm *lt ;
+   int ii , ntar , dd , tar[NTMAX] ;
+   static int iold=-1 ;
+   char *flab ;
+
+   if( num_face <= 0 || fname_face == NULL ) return -1 ;  /* bad */
+   if( num_face == 1 )                       return  0 ;  /* duh */
+
+   /* find if this day is in the 'facials' list */
+
+   tt = time(NULL) ;         /* seconds since 01 Jan 1970 */
+   lt = localtime( &tt ) ;   /* break into pieces */
+   for( ii=0 ; facials[ii].day > 0 ; ii++ )
+     if( facials[ii].mon == lt->tm_mon+1 && facials[ii].day == lt->tm_mday ) break ;
+   if( facials[ii].day <= 0 ) return -1 ;  /* today is not special */
+
+   /* OK, find face names that match */
+
+   flab = facials[ii].label ;
+
+   for( ntar=dd=0 ; ntar < NTMAX && dd < num_face ; dd++ )
+     if( strstr(fname_face[dd],flab) != NULL ) tar[ntar++] = dd ;
+
+   if( ntar == 0 ) return -1 ;
+   if( ntar == 1 ) return tar[0] ;
+   ii = (lrand48()>>8) % ntar ;
+   if( ii == iold ) ii = (ii+1)%ntar ;
+   iold = ii ; return tar[ii] ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#include "afni_broutim.h"
+
+void AFNI_broutim_CB( Widget w, XtPointer cd, XtPointer cbs ) /* 06 Jun 2005 */
+{
+   MRI_IMAGE *imbr ;
+   imbr = SPLASH_decodexx( NX_broutim,NY_broutim,NLINE_broutim,NC_broutim,
+                           RMAP_broutim,GMAP_broutim,BMAP_broutim,BAR_broutim);
+   (void) PLUTO_popup_image( NULL , imbr ) ;
+   mri_free(imbr) ; return ;
 }
 
 #endif /* NO_FRIVOLITIES */
@@ -1649,79 +1730,3 @@ ENTRY("AFNI_finalrun_script_CB") ;
    EXRETURN ;
 }
 
-/*---------------------------------------------------------------------------*/
-#include <time.h>
-#define JAN  1
-#define FEB  2
-#define MAR  3
-#define APR  4
-#define MAY  5
-#define JUN  6
-#define JUL  7
-#define AUG  8
-#define SEP  9
-#define OCT 10
-#define NOV 11
-#define DEC 12
-
-typedef struct { int mon,day; char *label; } mday ;
-#define NTMAX 9
-
-static mday facials[] = {
- {MAR,30,"face_vincent" } ,
- {FEB,12,"face_lincoln" } ,
- {JAN, 3,"face_tolkien" } ,
- {MAR,14,"face_einstein"} ,
- {APR,27,"face_grant"   } ,
- {JUL,22,"face_rbirn"   } ,
- {SEP, 7,"face_rwcox"   } ,
- {OCT,16,"face_rwcox"   } ,
- {NOV,17,"face_brodman" } ,
-{0,0,NULL} } ;  /* last element = flag to stop searching */
-/*---------------------------------------------------------------------------*/
-
-static int AFNI_find_todays_face(void)
-{
-   time_t tt ;
-   struct tm *lt ;
-   int ii , ntar , dd , tar[NTMAX] ;
-   static int iold=-1 ;
-   char *flab ;
-
-   if( num_face <= 0 || fname_face == NULL ) return -1 ;  /* bad */
-   if( num_face == 1 )                       return  0 ;  /* duh */
-
-   /* find if this day is in the 'facials' list */
-
-   tt = time(NULL) ;         /* seconds since 01 Jan 1970 */
-   lt = localtime( &tt ) ;   /* break into pieces */
-   for( ii=0 ; facials[ii].day > 0 ; ii++ )
-     if( facials[ii].mon == lt->tm_mon+1 && facials[ii].day == lt->tm_mday ) break ;
-   if( facials[ii].day <= 0 ) return -1 ;  /* today is not special */
-
-   /* OK, find face names that match */
-
-   flab = facials[ii].label ;
-
-   for( ntar=dd=0 ; ntar < NTMAX && dd < num_face ; dd++ )
-     if( strstr(fname_face[dd],flab) != NULL ) tar[ntar++] = dd ;
-
-   if( ntar == 0 ) return -1 ;
-   if( ntar == 1 ) return tar[0] ;
-   ii = (lrand48()>>8) % ntar ;
-   if( ii == iold ) ii = (ii+1)%ntar ;
-   iold = ii ; return tar[ii] ;
-}
-
-/*---------------------------------------------------------------------------*/
-
-#include "afni_broutim.h"
-
-void AFNI_broutim_CB( Widget w, XtPointer cd, XtPointer cbs ) /* 06 Jun 2005 */
-{
-   MRI_IMAGE *imbr ;
-   imbr = SPLASH_decodexx( NX_broutim,NY_broutim,NLINE_broutim,NC_broutim,
-                           RMAP_broutim,GMAP_broutim,BMAP_broutim,BAR_broutim);
-   (void) PLUTO_popup_image( NULL , imbr ) ;
-   mri_free(imbr) ; return ;
-}

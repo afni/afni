@@ -1171,3 +1171,6 @@
 29 June 2005:
   * modified nifti1_io.[ch]: changed NIFTI_ECODE_UNKNOWN to _IGNORE
 
+30 June 2005:
+  * modified afni_splash.c and afni_version.c to compile under cygwin
+
