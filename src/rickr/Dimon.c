@@ -9,9 +9,10 @@ static char g_history[] =
     " 0.4 update complete_orients_str() for IFM_IM_FTYPE_DICOM\n"
     " 0.5 added -infile_prefix option, work for single volume,\n"
     "     and fixed dicom reader leak\n"
+    " 0.6 added ability to process run of single-slice volumes (dicom only)\n"
     "----------------------------------------------------------------------\n";
 
-#define IFM_VERSION "version 0.5 (June 22, 2005)"
+#define IFM_VERSION "version 0.6 (June 29, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -19,9 +20,9 @@ static char g_history[] =
  *    - re-write help
  *    - without -rt_cmd 'PREFIX ...', set from last dir in glob (data/time?)
  * ok - add -infile_prefix for no wildcards (and no quotes)
- *    - put select command arguemnts in quotes?
  * ok - find memory leak in dicom reader
  * ok - make this work for a single volume (e.g. anatomical)
+ * ok - process run of single-slice volumes
  *    - if there is a change in valid volume size, restart
  *    - setup an infile sorting step that will organize the files
  *      before running
@@ -125,6 +126,9 @@ static int swap_4              ( void * ptr );
 static void hf_signal          ( int signum );
 
 /* volume scanning */
+int        check_one_volume    (param_t *p, int start, int *fl_start, int bound,
+                                int state, int * r_first, int * r_last,
+                                float * r_delta);
 static int volume_match  ( vol_t * vin, vol_t * vout, param_t * p, int start );
 static int volume_search ( vol_t * V, param_t * p, int start, int maxsl,
        			   int * fl_start, int * state );
@@ -472,11 +476,11 @@ static int volume_search(
     float      z_orig, delta, dz, prev_z;
     int        bound;			/* upper bound on image slice  */
     static int prev_bound = -1;         /* note previous 'bound' value */
-    int        next;
     int        run0, run1;		/* run numbers, for comparison */
     int        first = start;		/* first image (start or s+1)  */
     int        last;                    /* final image in volume       */
     int        success = 0;             /* flag for finding a volume   */
+    int        rv;
 
     if ( V == NULL || p == NULL || p->flist == NULL || start < 0 )
     {
@@ -499,6 +503,96 @@ static int volume_search(
     else                                      *state = 1;  /* continue mode */
     prev_bound = bound;
 
+    rv = check_one_volume(p,start,fl_start,bound,*state, &first,&last,&delta);
+
+    if ( rv == 1 )
+    {
+	/* One volume exists from slice 'first' to slice 'last'. */
+
+	V->geh      = p->flist[first].geh;	   /* copy GE structure  */
+	V->gex      = p->flist[first].gex;	   /* copy GE extras     */
+	V->nim      = last - first + 1;
+	V->fl_1     = first;
+	V->fn_1     = p->flist[first].index;
+	V->fn_n     = p->flist[last].index;
+	strncpy( V->first_file, p->fnames[V->fn_1], IFM_MAX_FLEN );
+	strncpy( V->last_file,  p->fnames[V->fn_n], IFM_MAX_FLEN );
+	V->z_first  = p->flist[first].geh.zoff;
+	V->z_last   = p->flist[last].geh.zoff;
+	V->z_delta  = delta;
+	V->seq_num  = -1;				/* uninitialized */
+	V->run      = V->geh.uv17;
+
+	return 1;
+    }
+    else if ( rv == 0 )
+	return 0;			    /* we did not finish a volume */
+    else if ( rv == -1 )
+    {
+	/* We have gone in the wrong direction.  This means that the
+	 * starting slice was not the first in the volume.  Try restarting
+	 * from the current position.  */
+	fprintf( stderr, "\n"
+		"*************************************************\n"
+		"Error: missing slice(s) in first volume!\n"
+		"       attempting to re-start at file: %s\n"
+		"*************************************************\n",
+		p->fnames[p->flist[last+1].index] );
+	*fl_start = p->flist[last+1].index;
+    }
+    else /* ( rv == -2 ) : right direction, but bad delta */
+    {
+	/* the next slice does not match the original - interleaving? */
+	int testc;
+	for ( testc = last; testc < bound; testc++ )
+	    if ( abs( p->flist[first].geh.zoff -
+		      p->flist[testc].geh.zoff ) < IFM_EPSILON )
+	    {
+		/* aaaaagh!  we are missing data from the first volume!   */
+		/* print error, and try to skip this volume               */
+		fprintf( stderr, "\n"
+			"*************************************************\n"
+			"Error: missing slice in first volume!\n"
+			"       detected    at file: %s\n"
+			"       re-starting at file: %s\n"
+			"*************************************************\n",
+		       	p->fnames[p->flist[last+1].index],
+			p->fnames[p->flist[testc].index] );
+
+	        /* try to skip this volume and recover */
+		*fl_start = p->flist[testc].index;
+
+		return -1;
+	    }
+
+	/* we didn't find the original zoff, wait for more files */
+	return 0;
+    }
+
+    return -1;  /* should not reach here */
+}
+
+/*----------------------------------------------------------------------
+ * check_one_volume:   scan p->flist for an entire volume
+ *
+ * upon success, fill r_first, r_last and r_delta
+ *
+ * return:   -2 : general error
+ *           -1 : found direction change
+ *            0 : no error, no volume yet
+ *            1 : found volume
+ *----------------------------------------------------------------------
+*/
+int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
+                     int * r_first, int * r_last, float * r_delta)
+{
+    finfo_t * fp;
+    float     delta, z_orig, prev_z, dz;
+    int       run0, run1, first, next, last;
+
+    if(bound <= 2){fprintf(stderr,"** cov: bad bound %d\n",bound); return 0;}
+
+    first = start;
     delta = p->flist[first+1].geh.zoff - p->flist[first].geh.zoff;
 
     run0  = p->flist[first  ].geh.uv17;
@@ -507,10 +601,17 @@ static int volume_search(
     /* if apparent 1-slice volume, skip and start over */
     if ( (fabs(delta) < IFM_EPSILON) || (run1 != run0) )
     {
+        /* consider this a single slice volume */
+        if ( p->opts.use_dicom ){
+            if( gD.level > 1 ) fprintf(stderr,"+d found single slice volume\n");
+            *r_first = *r_last = first;
+            *r_delta = 1.0;   /* make one up, zero may be bad */
+            return 1;         /* success */
+        }
+
 	if ( gD.level > 1 )
 	    fprintf( stderr, "-- skipping single slice volume <%s>\n",
 		     p->fnames[p->flist[first].index] );
-
 	first++;
 	delta = p->flist[first+1].geh.zoff - p->flist[first].geh.zoff;
 	run0  = run1;
@@ -524,7 +625,7 @@ static int volume_search(
 	}
     }
 
-    fp     = p->flist + first;			/* initialize flist posn  */
+    fp = p->flist + first;			/* initialize flist posn  */
     z_orig = fp->geh.zoff;			/* note original position */
 
     /* set current values at position (first+1) */
@@ -552,91 +653,39 @@ static int volume_search(
     if ( (fabs(dz - delta) > IFM_EPSILON) || (run1 != run0) ) last = next - 2;
     else                                                      last = next - 1;
 
+    /* set return values */
+    *r_first = first;
+    *r_last  = last;
+    *r_delta = delta;
+
+    if( gD.level > 1 )
+        fprintf(stderr,"+d cov: returning first, last, delta = %d, %d, %f\n",
+                first, last, delta);
+
     /* If we have found the same slice location, we are done. */
     if ( fabs(fp->geh.zoff - p->flist[first].geh.zoff) < IFM_EPSILON )
     {
         if ( gD.level > 1 )
             fprintf(stderr,"+d found first slice of second volume\n");
-        success = 1;
+        return 1;  /* success */
     }
 
     /* Also, if we are still waiting for the same location, but are in
-       state 2, then we seem to have only a single volume in this run. */
-    if ( ( *state == 2 && fabs(dz-delta)<IFM_EPSILON) && run1 == run0 )
+       state 2, then we seem to have only a single volume to read. */
+    if ( ( state == 2 && fabs(dz-delta)<IFM_EPSILON) && run1 == run0 )
     {
         if ( gD.level > 1 )
             fprintf(stderr,"+d no new data after finding sufficient slices\n"
                            "   --> assuming completed single volume\n");
-        success = 1;
+        return 1;
     }
+    /* otherwise, if we have not changed the delta or run, continue */
+    if ( (fabs(dz - delta) < IFM_EPSILON) && (run1 == run0) ) /* not state 2 */
+        return 0;  /* not done yet */
+    if ( dz * delta < 0.0 ) return -1;   /* wrong direction */
 
-    if ( success )
-    {
-	/* Current location is same as first, we have a volume! */
-
-	/* So deltas are consistent from slice 'first' to slice 'last'. */
-
-	V->geh      = p->flist[first].geh;	   /* copy GE structure  */
-	V->gex      = p->flist[first].gex;	   /* copy GE extras     */
-	V->nim      = last - first + 1;
-	V->fl_1     = first;
-	V->fn_1     = p->flist[first].index;
-	V->fn_n     = p->flist[last].index;
-	strncpy( V->first_file, p->fnames[V->fn_1], IFM_MAX_FLEN );
-	strncpy( V->last_file,  p->fnames[V->fn_n], IFM_MAX_FLEN );
-	V->z_first  = p->flist[first].geh.zoff;
-	V->z_last   = p->flist[last].geh.zoff;
-	V->z_delta  = delta;
-	V->seq_num  = -1;				/* uninitialized */
-	V->run      = V->geh.uv17;
-
-	return 1;
-    }
-    else if ( (fabs(dz - delta) < IFM_EPSILON) && (run1 == run0) )
-	return 0;			    /* we did not finish a volume */
-    else if ( dz * delta < 0.0 )
-    {
-	/* We have gone in the wrong direction.  This means that the
-	 * starting slice was not the first in the volume.  Try restarting
-	 * from the current position.  */
-	fprintf( stderr, "\n"
-		"*************************************************\n"
-		"Error: missing slice(s) in first volume!\n"
-		"       attempting to re-start at file: %s\n"
-		"*************************************************\n",
-		p->fnames[p->flist[last+1].index] );
-	*fl_start = p->flist[last+1].index;
-    }
-    else    /* right direction, but bad delta */
-    {
-	/* the next slice does not match the original - interleaving? */
-	int testc;
-	for ( testc = next - 1; testc < bound; testc++ )
-	    if ( abs( p->flist[first].geh.zoff -
-		      p->flist[testc].geh.zoff ) < IFM_EPSILON )
-	    {
-		/* aaaaagh!  we are missing data from the first volume!   */
-		/* print error, and try to skip this volume               */
-		fprintf( stderr, "\n"
-			"*************************************************\n"
-			"Error: missing slice in first volume!\n"
-			"       detected    at file: %s\n"
-			"       re-starting at file: %s\n"
-			"*************************************************\n",
-		       	p->fnames[p->flist[last+1].index],
-			p->fnames[p->flist[testc].index] );
-
-	        /* try to skip this volume and recover */
-		*fl_start = p->flist[testc].index;
-
-		return -1;
-	    }
-
-	/* we didn't find the original zoff, wait for more files */
-	return 0;
-    }
-
-    return -1;  /* thank you, come again */
+    /* all other cases, until we hear of a new one to watch for */
+    return -2;
 }
 
 
