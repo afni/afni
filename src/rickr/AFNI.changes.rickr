@@ -1171,6 +1171,7 @@
 29 June 2005:
   * modified nifti1_io.[ch]: changed NIFTI_ECODE_UNKNOWN to _IGNORE
 
-30 June 2005:
+30 June 2005: Dimon (v 0.6)
+  * modified Dimon.c to process run of single-slice volumes
   * modified afni_splash.c and afni_version.c to compile under cygwin
 
