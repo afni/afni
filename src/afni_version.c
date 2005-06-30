@@ -221,6 +221,12 @@ int AFNI_version_check(void)
    char vv[128]="none" ;
    char *sname , *vvbuf ;
 
+#ifdef CYGWIN   /* 30 Jun 2005 [rickr] */
+
+   return 0;
+
+#else
+
    /* if something is rotten, then toss it out */
 
    if( disabled ) return 0 ;   /* 27 Jan 2003 */
@@ -317,6 +323,8 @@ int AFNI_version_check(void)
           , VERSION, AFNI_HOST , vv ) ;
 
    return 1 ;
+
+#endif /* CYGWIN */
 }
 
 /*----------------------------------------------------------------------*/
