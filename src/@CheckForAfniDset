@@ -1,0 +1,47 @@
+#!/bin/tcsh -f
+if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
+	goto USAGE
+endif
+
+#save path
+set pt = $1:h
+if ("$pt" == "$1") then
+   set pt = "."
+endif
+
+set pref = `@GetAfniPrefix $1`
+set view = `@GetAfniView $1`
+
+set dsethead = "${pt}/${pref}${view}.HEAD"
+set dsetbrik = "${pt}/${pref}${view}.BRIK"
+set cnt = 0
+if ( -f $dsethead ) then 
+   @ cnt ++
+else
+   goto RESULT
+endif
+if ( -f $dsetbrik ) then 
+   @ cnt ++
+else
+   goto RESULT
+endif
+
+
+RESULT:
+echo $cnt
+
+goto ENDALL
+
+USAGE:
+	echo "Usage: `basename $0` <Name> ....."
+	echo "example: `basename $0` /Data/stuff/Hello+orig.HEAD"
+	echo "returns 0 if neither .HEAD nor .BRIK exist" 
+	echo "        1 if only .HEAD exists"
+   echo "        2 if both .HEAD and .BRIK exist"
+	echo ""
+   echo "Ziad Saad (ziad@nih.gov)"
+   echo "  SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
+   echo ""
+	goto ENDALL
+
+ENDALL:
