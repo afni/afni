@@ -1,0 +1,144 @@
+#!/bin/tcsh -f
+
+if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
+   echo "A script to transform an antomical dataset"
+   echo "to match a template in TLRC space. "
+   echo "Usage: `basename $0` [options] <-base template> <-input anat>"
+   echo "Mandatory parameters:"
+   echo "   -base template :  Skull-stripped volume in TLRC space (+tlrc)"
+   echo "   -input anat    :  Original (with skull) anatomical volume (+orig)"
+   echo "Optional parameters:"
+   echo "   -no_ss         :  Do not stip skull of input data set"
+   echo "                     (because skull has already been removed"
+   echo "                      or because template still has the skull)"
+   echo "   -keep_view      :  Do not mark output dataset as +tlrc"
+   echo ""
+   echo "Example:"
+   echo "`basename $0` -base N27_SurfVol_NoSkull+tlrc. -input DemoSubj_spgrsa+orig."
+   echo ""
+   goto END
+endif
+ 
+PARSE: 
+	echo "Parsing ..."
+	set Narg = $#
+	
+	set cnt = 1
+   set RemoveSkull = 1
+   set KeepView = 0
+   set ref_in = ''
+   set anat_in = ''
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-base") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need template volume after -base"
+            goto END
+			else
+            @ cnt ++
+            set ref_in = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+		
+      if ($donext && "$argv[$cnt]" == "-input") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need  volume after -input"
+            goto END
+			else
+            @ cnt ++
+            set anat_in = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-no_ss") then
+         set RemoveSkull = 0;		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-keep_view") then
+         set KeepView = 1;		
+         set donext = 0		
+      endif
+		@ cnt ++
+	end
+   if ("$anat_in" == "" || "$ref_in" == "") then
+      echo "Error: Need both -base and -input parameters"
+      goto END
+   endif
+   
+   set ref_pref  = `@GetAfniPrefix ${ref_in}`
+   set anat_pref = `@GetAfniPrefix ${anat_in}`
+   if ($RemoveSkull == 1) then
+      set ns_pref = ${anat_pref}_ns
+   else
+      set ns_pref = ${anat_pref}
+   endif
+   set rs_pref = ${anat_pref}_rs
+   set tt_pref = ${anat_pref}_tt
+
+IN_CHECK:
+if ( `@CheckForAfniDset ${ref_in}` != 2 ) then
+   echo "Error: Template dset ${ref_in} not found."
+   goto END
+endif
+if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
+   echo "Error: Anatomical dset ${anat_in} not found."
+   goto END
+endif 
+
+if ($KeepView == 1) then
+   if ( `@CheckForAfniDset ${tt_pref}+orig` != 0 ) then
+      echo "Error: Output dset ${tt_pref}+orig exists"
+      goto END
+   endif
+else
+   if ( `@CheckForAfniDset ${tt_pref}+tlrc` != 0 ) then
+      echo "Error: Output dset ${tt_pref}+tlrc exists"
+      goto END
+   endif
+endif
+
+SS:
+#SkullStrippin
+if ( ! -f ${ns_pref}+orig.HEAD ) then
+   echo "Skull Stripping"
+   3dSkullStrip -input ${anat_pref}+orig -prefix ${ns_pref}
+   if ( ! -f ${ns_pref}+orig.HEAD ) then
+      echo "Error: Failed to create skull stripped brain"
+      goto END
+   endif
+endif
+
+RES:
+#Resamplin
+if ( ! -f ${rs_pref}+orig.HEAD ) then
+   echo "Resampling"
+   3dresample -rmode Cu -master ${ref_pref}+tlrc -inset ${ns_pref}+orig -prefix ${rs_pref}
+   3drefit -view orig ${rs_pref}+tlrc.HEAD
+   if ( ! -f ${rs_pref}+orig.HEAD ) then
+      echo "Error: Failed to create resampled volume"
+      goto END
+   endif
+endif
+
+REG:
+#Registration
+echo "Registrationes"
+3dWarpDrive -verb -twopass -shift_rotate_scale -cubic -final quintic -base ${ref_pref}+tlrc -prefix ${tt_pref} -input ${rs_pref}+orig
+if ( ! -f ${tt_pref}+orig.HEAD ) then
+   echo "Error: Failed to create tlrced brain"
+   goto END
+endif
+
+if ($KeepView == 0) then
+   echo "Changing view of transformed anatomy"
+   3drefit -view +tlrc ${tt_pref}+orig.HEAD
+endif
+
+CLEANUP:
+echo "Cleanup, cleanup, everybody cleanup"
+rm -f ${rs_pref}+orig.????
+
+END:
