@@ -3,31 +3,24 @@ static char g_history[] =
     "----------------------------------------------------------------------\n"
     " history:\n"
     "\n"
-    " 0.1 modified Imon to work with Dimon files as Dimon\n"
-    " 0.2 added pause option\n"
-    " 0.3 set ftype, and use -infile_pattern\n"
-    " 0.4 update complete_orients_str() for IFM_IM_FTYPE_DICOM\n"
-    " 0.5 added -infile_prefix option, work for single volume,\n"
-    "     and fixed dicom reader leak\n"
-    " 0.6 added ability to process run of single-slice volumes (dicom only)\n"
-    " 0.7 removed tabs\n"
+    " 1.0  initial release\n"
     "----------------------------------------------------------------------\n";
 
-#define IFM_VERSION "version 0.7 (July 5, 2005)"
+#define DIMON_VERSION "version 1.0 (July 5, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
  *
- *    - re-write help
  *    - without -rt_cmd 'PREFIX ...', set from last dir in glob (data/time?)
+ *    - if there is a change in valid volume size, restart
+ *    - setup an infile sorting step that will organize the files
+ *      before running
+ * ok - re-write help
  * ok - add -infile_prefix for no wildcards (and no quotes)
  * ok - find memory leak in dicom reader
  * ok - make this work for a single volume (e.g. anatomical)
  * ok - process run of single-slice volumes
- *    - if there is a change in valid volume size, restart
- *    - setup an infile sorting step that will organize the files
- *      before running
- *    - remove tabs
+ * ok - remove tabs
  *----------------------------------------------------------------------
 */
 
@@ -104,6 +97,7 @@ static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
 static int create_gert_script  ( stats_t * s, opts_t * opts );
 static int dir_expansion_form  ( char * sin, char ** sexp );
+static int disp_ftype          ( char * info, int ftype );
 static int empty_string_list   ( string_list * list, int free_mem );
 static int find_first_volume   ( vol_t * v, param_t * p, ART_comm * ac );
 static int find_fl_file_index  ( param_t * p );
@@ -240,8 +234,9 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                 fprintf( stderr, "\n-- first volume found\n" );
                 if ( gD.level > 1 )
                 {
-                    idisp_vol_t( "first volume : ", v );
-                    idisp_param_t( "first vol - new params : ", p );
+                    idisp_vol_t( "+d first volume : ", v );
+                    idisp_param_t( "-d first vol - new params : ", p );
+                    disp_ftype("-d ftype: ", p->ftype);
                 }
             }
 
@@ -473,14 +468,11 @@ static int volume_search(
         int     * fl_start,             /* return new fnames search point */
         int     * state )               /* assumed state of search        */
 {
-    finfo_t  * fp;
-    float      z_orig, delta, dz, prev_z;
+    float      delta;
     int        bound;                   /* upper bound on image slice  */
     static int prev_bound = -1;         /* note previous 'bound' value */
-    int        run0, run1;              /* run numbers, for comparison */
     int        first = start;           /* first image (start or s+1)  */
     int        last;                    /* final image in volume       */
-    int        success = 0;             /* flag for finding a volume   */
     int        rv;
 
     if ( V == NULL || p == NULL || p->flist == NULL || start < 0 )
@@ -2244,23 +2236,47 @@ static int usage ( char * prog, int level )
           "    is aquired out of order.\n"
           "\n"
           "    When collecting DICOM files, it is recommended to run this\n"
-          "    once per run, only because it is (currently) easier to specify\n"
-          "    the input file pattern that way (until I add the ability to\n"
-          "    collect single anatomical volume data, too).\n"
+          "    once per run, only because it is easier to specify the input\n"
+          "    file pattern for a single run (it may be very difficult to\n"
+          "    predict the form of input filenames runs that have not yet\n"
+          "    occurred.\n"
           "\n"
-          "    Dimon should be terminated at the end of each run, using\n"
-          "    <ctrl-c>.\n"
+          "    If no -quit option is provided, the user should terminate the\n"
+          "    program when it is done collecting images according to the\n"
+          "    input file pattern.\n"
+          "\n"
+          "    Dimon can be terminated using <ctrl-c>.\n"
           "\n"
           "  ---------------------------------------------------------------\n"
-          "  usage: %s [options] -infile_pattern \"PATTERN\"\n"
+          "  realtime notes for running afni remotely:\n"
+          "\n"
+          "    - The afni program must be started with the '-rt' option to\n"
+          "      invoke the realtime plugin functionality.\n"
+          "\n"
+          "    - If afni is run remotely, then AFNI_TRUSTHOST will need to be\n"
+          "      set on the host running afni.  The value of that variable\n"
+          "      should be set to the IP address of the host running %s.\n"
+          "      This may set as an environment variable, or via the .afnirc\n"
+          "      startup file.\n"
+          "\n"
+          "    - The typical default security on a Linux system will prevent\n"
+          "      %s from communicating with afni on the host running afni.\n"
+          "      The iptables firewall service on afni's host will need to be\n"
+          "      configured to accept the communication from the host running\n"
+          "      %s, or it (iptables) will need to be turned off.\n"
+          "  ---------------------------------------------------------------\n"
+          "  usage: %s [options] -infile_prefix PREFIX\n"
+          "     OR: %s [options] -infile_pattern \"PATTERN\"\n"
           "\n"
           "  ---------------------------------------------------------------\n"
           "  examples (no real-time options):\n"
           "\n"
           "    %s -infile_pattern 's8912345/i*'\n"
+          "    %s -infile_prefix   s8912345/i\n"
           "    %s -help\n"
-          "    %s -infile_pattern 's8912345/i*' -nt 120\n"
-          "    %s -infile_pattern 's8912345/i*' -debug 2\n"
+          "    %s -infile_prefix   s8912345/i   -quit\n"
+          "    %s -infile_prefix   s8912345/i   -nt 120 -quit\n"
+          "    %s -infile_prefix   s8912345/i   -debug 2\n"
           "\n"
           "  examples (with real-time options):\n"
           "\n"
@@ -2278,14 +2294,13 @@ static int usage ( char * prog, int level )
           "       -rt_cmd \"PREFIX 2005_0513_run3\"     \\\n"
           "       -quit                                 \n"
           "\n"
-          "  ** detailed real-time example:\n"
-          "\n"
           "    This example scans data starting from directory 003, expects\n"
           "    160 repetitions (TRs), and invokes the real-time processing,\n"
           "    sending data to a computer called some.remote.computer.name\n"
           "    (where afni is running, and which considers THIS computer to\n"
           "    be trusted - see the AFNI_TRUSTHOST environment variable).\n"
           "\n"
+          "  ---------------------------------------------------------------\n"
           "    Multiple DRIVE_AFNI commands are passed through '-drive_afni'\n"
           "    options, one requesting to open an axial image window, and\n"
           "    another requesting an axial graph, with 160 data points.\n"
@@ -2293,7 +2308,7 @@ static int usage ( char * prog, int level )
           "    See README.driver for acceptable DRIVE_AFNI commands.\n"
           "\n"
           "    Also, multiple commands specific to the real-time plugin are\n"
-          "    passed via the '-rt_cmd' options.  The 'REFIX command sets the\n"
+          "    passed via '-rt_cmd' options.  The PREFIX command sets the\n"
           "    prefix for the datasets output by afni.  The GRAPH_XRANGE and\n"
           "    GRAPH_YRANGE commands set the graph dimensions for the 3D\n"
           "    motion correction graph (only).  And the GRAPH_EXPR command\n"
@@ -2306,7 +2321,7 @@ static int usage ( char * prog, int level )
           "    See README.realtime for acceptable DRIVE_AFNI commands.\n"
           "\n"
           "    %s                                                   \\\n"
-          "       -start_dir 003                                      \\\n"
+          "       -infile_pattern 's*/i*.dcm'                         \\\n"
           "       -nt 160                                             \\\n"
           "       -rt                                                 \\\n"
           "       -host some.remote.computer.name                     \\\n"
@@ -2318,36 +2333,61 @@ static int usage ( char * prog, int level )
           "       -rt_cmd 'GRAPH_EXPR sqrt((d*d+e*e+f*f)/3)'            \n"
           "\n"
           "  ---------------------------------------------------------------\n",
-          prog, prog,
-          prog, prog, prog, prog,
-          prog, prog, prog, prog, prog,
-          prog );
+          prog, prog, prog, prog, prog, prog,
+          prog, prog, prog, prog, prog, prog,
+          prog, prog, prog, prog, prog, prog );
           
         printf(
           "  notes:\n"
           "\n"
-          "    - Once started, this program exits only when a fatal error\n"
-          "      occurs (single missing or out of order slices are not\n"
-          "      considered fatal).\n"
+          "    - Once started, unless the '-quit' option is used, this\n"
+          "      program exits only when a fatal error occurs (single\n"
+          "      missing or out of order slices are not considered fatal).\n"
+          "      Otherwise, it keeps waiting for new data to arrive.\n"
           "\n"
-          "      ** This has been modified.  The '-quit' option tells Imon\n"
-          "         to terminate once it runs out of new data to use.\n"
+          "      With the '-quit' option, the program will terminate once\n"
+          "      there is a significant (~2 TR) pause in acquisition.\n"
           "\n"
           "    - To terminate this program, use <ctrl-c>.\n"
           "\n"
           "  ---------------------------------------------------------------\n"
-          "  main option:\n"
+          "  main options:\n"
           "\n"
-          "    -start_dir DIR     : (REQUIRED) specify starting directory\n"
+          "    For DICOM images, either -infile_pattern or -infile_prefix\n"
+          "    is required.\n"
           "\n"
-          "        e.g. -start_dir 003\n"
+          "    -infile_pattern PATTERN : specify pattern for input files\n"
           "\n"
-          "        The starting directory, DIR, must be of the form 00n,\n"
-          "        where n is a digit.  The program then monitors all\n"
-          "        directories of the form ??n, created by the GE scanner.\n"
+          "        e.g. -infile_pattern 'run1/i*.dcm'\n"
           "\n"
-          "        For instance, with the option '-start_dir 003', this\n"
-          "        program watches for new directories 003, 023, 043, etc.\n"
+          "        This option is used to specify a wildcard pattern matching\n"
+          "        the names of the input DICOM files.  These files should be\n"
+          "        sorted in the order that they are to be assembled, i.e.\n"
+          "        when the files are sorted alphabetically, they should be\n"
+          "        sequential slices in a volume, and the volumes should then\n"
+          "        progress over time (as with the 'to3d' program).\n"
+          "\n"
+          "        The pattern for this option must be within quotes, because\n"
+          "        it will be up to the program to search for new files (that\n"
+          "        match the pattern), not the shell.\n"
+          "\n"
+          "    -infile_prefix PREFIX   : specify prefix matching input files\n"
+          "\n"
+          "        e.g. -infile_prefix run1/i\n"
+          "\n"
+          "        This option is similar to -infile_pattern.  By providing\n"
+          "        only a prefix, the user need not use wildcard characters\n"
+          "        with quotes.  Using PREFIX with -infile_prefix is\n"
+          "        equivalent to using 'PREFIX*' with -infile_pattern (note\n"
+          "        the needed quotes).\n"
+          "\n"
+          "        Note that it may not be a good idea to use, say 'run1/'\n"
+          "        for the prefix, as there might be a readme file under\n"
+          "        that directory.\n"
+          "\n"
+          "        Note also that it is necessary to provide a '/' at the\n"
+          "        end, if the prefix is a directory (e.g. use run1/ instead\n"
+          "        of simply run1).\n"
           "\n"
           "  ---------------------------------------------------------------\n"
           "  real-time options:\n"
@@ -2396,6 +2436,14 @@ static int usage ( char * prog, int level )
           "        set on the machine running afni.  Set this equal to the\n"
           "        name of the machine running Imon (so that afni knows to\n"
           "        accept the data from the sending machine).\n"
+          "\n"
+          "    -pause TIME_IN_MS : pause after each new volume\n"
+          "\n"
+          "        e.g.  -pause 200\n"
+          "\n"
+          "        In some cases, the user may wish to slow down a real-time\n"
+          "        process.  This option will cause a delay of TIME_IN_MS\n"
+          "        milliseconds after each volume is found.\n"
           "\n"
           "    -rev_byte_order   : pass the reverse of the BYTEORDER to afni\n"
           "\n"
@@ -2508,6 +2556,8 @@ static int usage ( char * prog, int level )
           "        would be ignored, along with everything in 043 up through\n"
           "        I.900.  So 043/I.901 might be the first file in run 2.\n"
           "\n"
+          "    -use_imon          : revert to Imon functionality\n"
+          "\n"
           "    -version           : show the version information\n"
           "\n"
           "  ---------------------------------------------------------------\n"
@@ -2542,11 +2592,9 @@ static int usage ( char * prog, int level )
           "  ---------------------------------------------------------------\n"
           "\n"
           "  Author: R. Reynolds - %s\n"
-          "\n"
-          "                        (many thanks to R. Birn)\n"
           "\n",
           prog, prog, prog, prog, prog, prog, prog,
-          IFM_VERSION
+          DIMON_VERSION
         );
 
         return 0;
@@ -2559,7 +2607,7 @@ static int usage ( char * prog, int level )
     else if ( level == IFM_USE_VERSION )
     {
         printf( "%s: %s, compile date: %s\n",
-                prog, IFM_VERSION, __DATE__ );
+                prog, DIMON_VERSION, __DATE__ );
         return 0;
     }
 
