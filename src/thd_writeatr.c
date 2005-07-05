@@ -157,22 +157,29 @@ ENTRY("THD_write_nimlatr") ;
    /* get dataset that contains this datablock */
 
    dset = (THD_3dim_dataset *)blk->parent ;
-   if( !ISVALID_DSET(dset) ) RETURN(False) ;  /* bad */
+   if( !ISVALID_DSET(dset) ){
+     STATUS("parent is not valid dataset!"); RETURN(False);      /* bad */
+   }
 
    /* convert dataset struct AFNI attributes into a NIML element */
 
    ngr = THD_nimlize_dsetatr( dset ) ;
-   if( ngr == NULL ) return ;            /* bad */
+   if( ngr == NULL ){
+     STATUS("can't create NIML header element!"); RETURN(False); /* bad */
+   }
    NI_set_attribute( ngr , "self_prefix" , blk->diskptr->prefix ) ;
 
    /* open output NIML stream (to file) */
 
    sprintf(sname,"file:%s",blk->diskptr->header_name) ;
    ns = NI_stream_open( sname , "w" ) ;
-   if( ns == (NI_stream)NULL ) RETURN(False) ;
+   if( ns == (NI_stream)NULL ){
+     STATUS("can't open output NIML stream!"); RETURN(False);    /* bad */
+   }
 
    /* write XML header and then the AFNI header element */
 
+   STATUS("writing NIML header") ;
    NI_stream_writestring( ns , "<?xml version='1.0' ?>\n" ) ;
    NI_write_element( ns , ngr , NI_TEXT_MODE ) ;
    NI_stream_close( ns ) ;
