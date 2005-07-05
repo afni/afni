@@ -43,6 +43,7 @@ ENTRY("THD_write_3dim_dataset") ;
        ! ISVALID_DISKPTR(dset->dblk->diskptr) ) RETURN(False) ;
 
    blk = dset->dblk ;
+   blk->parent = (XtPointer)dset ;  /* 05 Jul 2005 */
 
    /* Can only write AFNI formatted datasets */
 
