@@ -1175,3 +1175,5 @@
   * modified Dimon.c to process run of single-slice volumes
   * modified afni_splash.c and afni_version.c to compile under cygwin
 
+05 July 2005: Dimon (v 0.7), Imon (v 3.4)
+  * modified Dimon.c, Imon.[ch]: removed all tabs
