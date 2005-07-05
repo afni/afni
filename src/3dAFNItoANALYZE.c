@@ -222,6 +222,7 @@ int main( int argc , char *argv[] )
      im->nt = DSET_NVALS(dset) ;        /* add a time axis */
      im->dt = DSET_TR(dset) ;
      if( im->dt <= 0.0 ) im->dt = 1.0 ;
+     if( DSET_TIMEUNITS(dset) == UNITS_MSEC_TYPE ) im->dt *= 0.001 ;  /* 05 Jul 2005 - oopsie */
 
      mri_write_analyze( aname , im ) ;  /* output 4D .hdr file */
      mri_free(im) ;
@@ -273,7 +274,7 @@ int main( int argc , char *argv[] )
           qim->xo = dset->daxes->xxorg ;                    /* load voxel origin */
           qim->yo = dset->daxes->yyorg ;                    /* 03/11/04 KRH added this bit for SPM */
           qim->zo = dset->daxes->zzorg ;
-  
+
           if( ORIENT_sign[dset->daxes->xxorient] == '-' ){
             qim->dx   = -qim->dx   ;
             /* qim->xo = -qim->xo ; */
