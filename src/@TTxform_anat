@@ -11,7 +11,12 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "   -no_ss         :  Do not stip skull of input data set"
    echo "                     (because skull has already been removed"
    echo "                      or because template still has the skull)"
-   echo "   -keep_view      :  Do not mark output dataset as +tlrc"
+   echo "   -keep_view     :  Do not mark output dataset as +tlrc"
+   echo "   -pad_base  MM  :  Pad the base dset by MM mm in each directions."
+   echo "                     That is needed to  make sure that datasets"
+   echo "                     requiring wild rotations do not get cropped"
+   echo "                     Default is MM = 30"
+   echo "   -verb          :  Yakiti yak yak" 
    echo ""
    echo "Example:"
    echo "`basename $0` -base N27_SurfVol_NoSkull+tlrc. -input DemoSubj_spgrsa+orig."
@@ -28,6 +33,8 @@ PARSE:
    set KeepView = 0
    set ref_in = ''
    set anat_in = ''
+   set verb = 0
+   set pd = 30
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-base") then
@@ -41,7 +48,22 @@ PARSE:
             set donext = 0	
          endif	
       endif
-		
+		if ($donext && "$argv[$cnt]" == "-pad_base") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need value after -pad_base"
+            goto END
+			else
+            @ cnt ++
+            set pd = "$argv[$cnt]"
+            if ($pd > 100 || $pd < 0) then
+               echo "Error: -base_pad should be between 0 and 100"
+               echo "I have $pd"
+               goto END
+            endif
+            set donext = 0	
+         endif	
+      endif
       if ($donext && "$argv[$cnt]" == "-input") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -61,6 +83,10 @@ PARSE:
          set KeepView = 1;		
          set donext = 0		
       endif
+      if ($donext && "$argv[$cnt]" == "-verb") then
+         set verb = 1;		
+         set donext = 0		
+      endif
 		@ cnt ++
 	end
    if ("$anat_in" == "" || "$ref_in" == "") then
@@ -68,8 +94,24 @@ PARSE:
       goto END
    endif
    
-   set ref_pref  = `@GetAfniPrefix ${ref_in}`
-   set anat_pref = `@GetAfniPrefix ${anat_in}`
+   set ref_path  = $ref_in:h
+   if ( "$ref_path" == "$ref_in" ) set ref_path = "."
+   set anat_path = $anat_in:h
+   if ( "$anat_path" == "${anat_in}" ) set anat_path = "."
+   
+   #At the moment, must have . for anat_path
+   #It looks like 3drefit does not like an input dset with a path
+   if ( "$anat_path" != "." ) then
+      echo "Error: input dataset must be in the current directory"
+      echo "Current path for input dataset is $anat_path"
+      echo "Sorry."
+      goto END
+   endif
+   
+   set ref_pref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
+   set ref_pref  = "${ref_pref_nopad}_${pd}pad"
+   set ref_view = `@GetAfniPrefix ${ref_in}`
+   set anat_pref = "${anat_path}/`@GetAfniPrefix ${anat_in}`"
    if ($RemoveSkull == 1) then
       set ns_pref = ${anat_pref}_ns
    else
@@ -100,6 +142,13 @@ else
    endif
 endif
 
+PAD:
+#Paddin the reference since tt vols are perrty tight
+if ( `@CheckForAfniDset ${ref_pref}${ref_view}` == 0 ) then
+   echo "Padding"
+   3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ${ref_pref} ${ref_in}
+endif
+
 SS:
 #SkullStrippin
 if ( ! -f ${ns_pref}+orig.HEAD ) then
@@ -126,11 +175,21 @@ endif
 REG:
 #Registration
 echo "Registrationes"
-3dWarpDrive -verb -twopass -shift_rotate_scale -cubic -final quintic -base ${ref_pref}+tlrc -prefix ${tt_pref} -input ${rs_pref}+orig
-if ( ! -f ${tt_pref}+orig.HEAD ) then
+set spopt = ''
+if ($verb == 1) then
+   set spopt = "$spopt -verb"
+endif
+3dWarpDrive ${spopt} -twopass -shift_rotate_scale -cubic -final quintic -base ${ref_pref}+tlrc -prefix ${tt_pref}_${pd}pad -input ${rs_pref}+orig
+if ( ! -f ${tt_pref}_${pd}pad+orig.HEAD ) then
    echo "Error: Failed to create tlrced brain"
    goto END
 endif
+
+UNPAD:
+#unPaddin the anatomical 
+echo "Padding"
+3dZeropad -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm -prefix ${tt_pref} ${tt_pref}_${pd}pad+orig
+
 
 if ($KeepView == 0) then
    echo "Changing view of transformed anatomy"
@@ -139,6 +198,7 @@ endif
 
 CLEANUP:
 echo "Cleanup, cleanup, everybody cleanup"
-rm -f ${rs_pref}+orig.????
+rm -f ${rs_pref}+????.????
+rm -f ${tt_pref}_${pd}pad+orig.????
 
 END:

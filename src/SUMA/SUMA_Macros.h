@@ -89,11 +89,11 @@
       else { SUMA_SL_Err("Bad chnk");   }   \
 }
 
-#define IS_STRICT_POS(a)   ( ((a) > 0) ? 1 : 0 )
+#define SUMA_IS_STRICT_POS(a)   ( ((a) > 0) ? 1 : 0 )
 
-#define IS_POS(a)   ( ((a) >= 0) ? 1 : 0 )
+#define SUMA_IS_POS(a)   ( ((a) >= 0) ? 1 : 0 )
 
-#define IS_STRICT_NEG(a)   ( ((a) < 0) ? 1 : 0 )
+#define SUMA_IS_STRICT_NEG(a)   ( ((a) < 0) ? 1 : 0 )
 
 #define SUMA_IS_NEG(a)   ( ((a) <= 0) ? 1 : 0 )
 
@@ -106,6 +106,8 @@
 #define SUMA_ABS(a) ( ((a) < 0 ) ? -(a) : a )
 
 #define SUMA_ROUND(a) ( ( ((a) - (int)(a)) < 0.5 ) ? (int)(a) : ((int)(a)+1) )
+
+#define SUMA_CEIL(a) ( ( ((a) - (int)(a)) == 0.0 ) ? (int)(a) : ((int)(a)+1) )
 
 #define SUMA_3D_2_1D_index(i, j, k, ni, nij) ( (int)(i) + (int)(j) * (ni) + (int)(k) * (nij) )
 

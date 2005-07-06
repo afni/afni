@@ -7,11 +7,9 @@ endif
 
 #remove path
 set Name = $1:t
-#remove extension .HEAD or .BRIK
-set Name = $Name:r
 
 
-#remove +orig or whatever it is
+#look for +orig or whatever it is
 echo $Name | grep -q '+orig'
 if ($status == 0) then 
 	echo '+orig'
