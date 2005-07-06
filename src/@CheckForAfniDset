@@ -11,6 +11,12 @@ endif
 
 set pref = `@GetAfniPrefix $1`
 set view = `@GetAfniView $1`
+if ("$view" == "") then
+   echo "Error: No view specified in dset name $1"
+   echo "Make sure you are not passing a prefix instead"
+   echo "of a dataset name"
+   goto ENDALL
+endif
 
 set dsethead = "${pt}/${pref}${view}.HEAD"
 set dsetbrik = "${pt}/${pref}${view}.BRIK"
@@ -20,7 +26,7 @@ if ( -f $dsethead ) then
 else
    goto RESULT
 endif
-if ( -f $dsetbrik ) then 
+if ( -f $dsetbrik || -f {$dsetbrik}.gz ) then 
    @ cnt ++
 else
    goto RESULT
@@ -35,9 +41,9 @@ goto ENDALL
 USAGE:
 	echo "Usage: `basename $0` <Name> ....."
 	echo "example: `basename $0` /Data/stuff/Hello+orig.HEAD"
-	echo "returns 0 if neither .HEAD nor .BRIK exist" 
+	echo "returns 0 if neither .HEAD nor .BRIK(.gz) exist" 
 	echo "        1 if only .HEAD exists"
-   echo "        2 if both .HEAD and .BRIK exist"
+   echo "        2 if both .HEAD and .BRIK(.gz) exist"
 	echo ""
    echo "Ziad Saad (ziad@nih.gov)"
    echo "  SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"

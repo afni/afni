@@ -16,7 +16,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_ST
 float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
 float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
 int SUMA_DidUserQuit(void);
-
+EDIT_options *SUMA_BlankAfniEditOptions(void);
 /*!
    SUMA_WRAP_BRAIN_SMOOTH(niter, bufp1, bufp2);
    \brief a chunk used in two places in SUMA_BrainWrap.

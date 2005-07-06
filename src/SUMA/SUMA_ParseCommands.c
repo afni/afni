@@ -2672,6 +2672,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt = NULL;
    
    Opt = (SUMA_GENERIC_PROG_OPTIONS_STRUCT *)SUMA_malloc(sizeof(SUMA_GENERIC_PROG_OPTIONS_STRUCT));
+   Opt->SpatNormDxyz = 0.0;
    Opt->spec_file = NULL;
    Opt->out_vol_prefix = NULL;
    Opt->out_vol_view[0]='\0';

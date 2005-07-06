@@ -7,7 +7,16 @@ set noglob
 #remove path
 set Name = $1:t
 #remove extension .HEAD or .BRIK
-set Name = $Name:r
+set ext = $Name:e
+if ("$ext" == "gz") then
+   #remove .gz first
+   set Name = $Name:r
+   set ext = $Name:e
+endif
+#Remove extension only if it is .HEAD or .BRIK
+if ("$ext" == "HEAD" || "$ext" == "BRIK") then
+   set Name = $Name:r
+endif
 #remove +orig or whatever it is
 set Name = `echo $Name | sed 's/+orig//'`
 set Name = `echo $Name | sed 's/+acpc//'`
