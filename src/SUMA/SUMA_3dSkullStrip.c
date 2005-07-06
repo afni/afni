@@ -109,6 +109,11 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -no_spatnorm: Do not perform spatial normalization.\n"
                "                   Use this option only when the volume \n"
                "                   has been run through the 'spatnorm' process\n"
+               "     -spatnorm_dxyz DXYZ: Use DXY for the spatial resolution of the\n"
+               "                          spatially normalized volume. The default \n"
+               "                          is the lowest of all three dimensions.\n"
+               "                          For human brains, use DXYZ of 1.0, for\n"
+               "                          primate brain, use the default setting.\n"
                "     -write_spatnorm: Write the 'spatnormed' volume to disk.\n"
                "     -niter N_ITER: Number of iterations. Default is 250\n"
                "        For denser meshes, you need more iterations\n"
@@ -269,6 +274,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    
    kar = 1;
+   Opt->SpatNormDxyz = 0.0;
    Opt->spec_file = NULL;
    Opt->out_vol_prefix = NULL;
    Opt->out_prefix = NULL;
@@ -427,6 +433,21 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
 			Opt->PercInt = atof(argv[kar]);
          if ( (Opt->PercInt < 0 && Opt->PercInt != -1) || Opt->PercInt > 10) {
             fprintf (SUMA_STDERR, "parameter after -perc_int should be -1 or between 0 and 10 (have %f) \n", Opt->PercInt);
+				exit (1);
+         }
+         brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-spatnorm_dxyz") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -spatnorm_dxyz \n");
+				exit (1);
+			}
+			Opt->SpatNormDxyz = atof(argv[kar]);
+         if ( Opt->SpatNormDxyz < 0  || Opt->SpatNormDxyz > 10) {
+            fprintf (SUMA_STDERR, "parameter after -spatnorm_dxyz should be between 0 and 10 (have %f) \n", 
+                     Opt->SpatNormDxyz);
 				exit (1);
          }
          brk = YUP;
@@ -854,7 +875,13 @@ int main (int argc,char *argv[])
         fprintf(stderr,"**ERROR: can't load dataset %s\n",Opt->in_name) ;
         exit(1);
       }
-      mri_brainormalize_initialize(Opt->iset->daxes->xxdel, Opt->iset->daxes->yydel, Opt->iset->daxes->zzdel);
+      
+      if (Opt->SpatNormDxyz) {
+         if (Opt->debug) SUMA_S_Note("Overriding default resampling");
+         mri_brainormalize_initialize(Opt->SpatNormDxyz, Opt->SpatNormDxyz, Opt->SpatNormDxyz);
+      } else {
+         mri_brainormalize_initialize(Opt->iset->daxes->xxdel, Opt->iset->daxes->yydel, Opt->iset->daxes->zzdel);
+      }
       imin->dx = fabs(Opt->iset->daxes->xxdel) ;
       imin->dy = fabs(Opt->iset->daxes->yydel) ;
       imin->dz = fabs(Opt->iset->daxes->zzdel) ;
@@ -1127,7 +1154,35 @@ int main (int argc,char *argv[])
       /* need sv for communication to AFNI */
       SO->VolPar = SUMA_VolParFromDset (Opt->in_vol);
       SO->SUMA_VolPar_Aligned = YUP; /* Surface is in alignment with volume, should not call SUMA_Align_to_VolPar ... */
-   
+      if (0){  
+         SUMA_VTI *vti=NULL;
+         int iii, n1, n2, n3;
+         float *tmpXYZ=NULL;
+         SUMA_S_Note("Test Section");
+         /* copy surface coordinates, we're going to ijk land */
+         tmpXYZ = (float *)SUMA_malloc(SO->N_Node * 3 * sizeof(float));
+         if (!tmpXYZ) {
+            SUMA_SL_Crit("Faile to allocate");
+            exit(1);
+         }
+         memcpy ((void*)tmpXYZ, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
+ 
+         /* transform the surface's coordinates from RAI to 3dfind */
+         SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, SO->VolPar);
+         vti = SUMA_CreateVTI(SO->N_FaceSet, NULL);
+         for (iii=0; iii<SO->N_FaceSet; ++iii) vti->TriIndex[iii] = iii;
+         n1 = SO->FaceSetList[5*3]; n2 = SO->FaceSetList[5*3+1]; n3 = SO->FaceSetList[5*3+2];   
+         fprintf(SUMA_STDERR, "%s: Triangle 5 has nodes: \n"
+                              "        %f %f %f\n"
+                              "        %f %f %f\n"
+                              "        %f %f %f\n", FuncName, 
+                              SO->NodeList[n1*3], SO->NodeList[n1*3+1], SO->NodeList[n1*3+2], 
+                              SO->NodeList[n2*3], SO->NodeList[n2*3+1], SO->NodeList[n2*3+2],
+                              SO->NodeList[n3*3], SO->NodeList[n3*3+1], SO->NodeList[n3*3+2]); 
+         
+         vti = SUMA_GetVoxelsIntersectingTriangle(SO, SO->VolPar, tmpXYZ, vti);
+         vti = SUMA_FreeVTI(vti);
+      }
       if (!SO->State) {SO->State = SUMA_copy_string("3dSkullStrip"); }
       if (!SO->Group) {SO->Group = SUMA_copy_string("3dSkullStrip"); }
       if (!SO->Label) {SO->Label = SUMA_copy_string(stmp); }
@@ -1499,6 +1554,21 @@ int main (int argc,char *argv[])
    OptDs->full_list = 1;
    OptDs->dval = 1;
    dset = SUMA_FormAfnidset (NULL, isin_float, SO->VolPar->nx*SO->VolPar->ny*SO->VolPar->nz, OptDs);
+   
+   /* erode and dilate, a bit of a cleanup? */
+   if (1){
+      EDIT_options *edopt = SUMA_BlankAfniEditOptions();
+      if (Opt->debug) fprintf (SUMA_STDERR,"%s: Applying a bit of erosion and dilatation \n", FuncName);
+      edopt->edit_clust = ECFLAG_SAME;
+      edopt->clust_rmm = SUMA_MAX_PAIR(SUMA_ABS((DSET_DX(OptDs->mset))), SUMA_ABS((DSET_DY(OptDs->mset))));
+      edopt->clust_rmm = SUMA_MAX_PAIR(SUMA_ABS((DSET_DZ(OptDs->mset))), edopt->clust_rmm)*1.01;
+	   edopt->clust_vmul = 1000*SUMA_ABS((DSET_DX(OptDs->mset)))*SUMA_ABS((DSET_DY(OptDs->mset)))*SUMA_ABS((DSET_DZ(OptDs->mset)));
+      edopt->erode_pv  = 75.0 / 100.0;
+      edopt->dilate = 1;
+      EDIT_one_dataset( dset , edopt);
+      SUMA_free(edopt);
+   }
+   
    if (!dset) {
       SUMA_SL_Err("Failed to create output dataset!");
    } else {

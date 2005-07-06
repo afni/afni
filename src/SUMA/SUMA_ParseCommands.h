@@ -78,6 +78,7 @@ typedef struct {
    int send_hull;
    int DemoPause;
    int DoSpatNorm;
+   float SpatNormDxyz;
    int WriteSpatNorm;
    int fillhole;
    THD_3dim_dataset *iset;

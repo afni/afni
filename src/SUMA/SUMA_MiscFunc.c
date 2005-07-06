@@ -3138,9 +3138,21 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
    
    - NOTE: macro does not check that three points are colinear (as they should be)!
 */
-#define SUMA_IS_POINT_IN_SEGMENT(p, p0, p1)  (  ( (p[0] > p0[0] && p[0] < p1[0]) ||   \
-                                          (p[0] < p0[0] && p[0] > p1[0]) ||   \
-                                          (p[0] == p0[0] || p[0] == p1[1]) ) ? 1 : 0 )
+#define SUMA_IS_POINT_IN_SEGMENT(p, p0, p1)  (  (  (  \
+                                                   (p[0] >  p0[0] && p[0] <  p1[0]) ||   \
+                                                   (p[0] <  p0[0] && p[0] >  p1[0]) ||   \
+                                                   (p[0] == p0[0] || p[0] == p1[0]) ) \
+                                                   && \
+                                                   (  \
+                                                   (p[1] >  p0[1] && p[1] <  p1[1]) ||   \
+                                                   (p[1] <  p0[1] && p[1] >  p1[1]) ||   \
+                                                   (p[1] == p0[1] || p[1] == p1[1]) ) \
+                                                   && \
+                                                   (  \
+                                                   (p[2] >  p0[2] && p[2] <  p1[2]) ||   \
+                                                   (p[2] <  p0[2] && p[2] >  p1[2]) ||   \
+                                                   (p[2] == p0[2] || p[2] == p1[2]) ) \
+                                                   ) ? 1 : 0 )
                                           
 /*!
    \brief does a voxel intersect a triangle ? (i.e. one of the edges intersects a triangle)
