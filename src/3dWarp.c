@@ -51,8 +51,14 @@ int main( int argc , char * argv[] )
    void *newggg=NULL ; int gflag=0 ;
 
    int tta2mni=0 , mni2tta=0 ;   /* 11 Mar 2004 */
+   int matdefined=0 ;
 
-   static THD_coorder cord ;
+   THD_coorder cord ;
+
+#if 0
+   MRI_IMAGE *matflim=NULL ;
+   float     *matflar=NULL ;
+#endif
 
    /*-- help? --*/
 
@@ -89,6 +95,33 @@ int main( int argc , char * argv[] )
             "              coordinates to MNI-152 coordinates.\n"
             "  -mni2tta = Transform a dataset in MNI-152 coordinates to\n"
             "              Talairach-Tournoux Atlas coordinates.\n"
+            "\n"
+            "  -matparent mset = Read in the matrix from WARPDRIVE_MATVEC_*\n"
+            "                     attributes in the header of dataset 'mset',\n"
+            "                     which must have been created by program\n"
+            "                     3dWarpDrive.  In this way, you can apply\n"
+            "                     a transformation matrix computed from\n"
+            "                     in 3dWarpDrive to another dataset.\n"
+            "\n"
+            "     ** N.B.: The above option is analogous to the -rotparent\n"
+            "                option in program 3drotate.  Use of -matparent\n"
+            "                should be limited to datasets whose spatial\n"
+            "                coordinate system corresponds to that which\n"
+            "                was used for input to 3dWarpDrive (i.e., the\n"
+            "                input to 3dWarp should overlay properly with\n"
+            "                the input to 3dWarpDrive that generated the\n"
+            "                -matparent dataset).\n"
+            "              Sample usages:\n"
+            " 3dWarpDrive -affine_general -base d1+orig -prefix d2WW -twopass -input d2+orig\n"
+            " 3dWarp      -matparent d2WW+orig -prefix epi2WW epi2+orig\n"
+#if 0
+            "\n"
+            "  -matfile mname  = Read in the file 'mname', which consists\n"
+            "                     of 12 ASCII-formatted numbers per line.\n"
+            "                     The i-th input line defines a 3x4 matrix\n"
+            "                     which is used to transform the i-th\n"
+            "                     sub-brick of the input dataset.\n"
+#endif
             "\n"
             "-----------------------\n"
             "Other Transform Options:\n"
@@ -141,26 +174,85 @@ int main( int argc , char * argv[] )
 
    while( nopt < argc && argv[nopt][0] == '-' ){
 
+     /*----- 06 Jul 2005 -----*/
+
+#if 0
+     if( strncmp(argv[nopt],"-matfile",8) == 0 ){
+       if( matdefined ){
+         fprintf(stderr,"** -matfile: Matrix already defined!\n"); exit(1);
+       }
+       if( ++nopt >= argc ){
+         fprintf(stderr,"** Need argument after -matfile!\n"); exit(1);
+       }
+       matflim = mri_read_ascii( argv[nopt] ) ;
+       if( matflim == NULL ){
+         fprintf(stderr,"** Can't read from -matfile %s\n",argv[nopt]); exit(1);
+       }
+       if( matflim->nx < 12 ){
+         fprintf(stderr,"** Need 12 numbers per line in -matfile %s\n",argv[nopt]) ;
+         exit(1) ;
+       }
+       matflar = MRI_FLOAT_PTR(matflim) ;
+
+       matdefined = 1 ; nopt++ ; continue ;
+     }
+#endif
+
+     /*-----*/
+
+     if( strncmp(argv[nopt],"-matparent",10) == 0 ){
+       ATR_float *atr ; float *matar ; THD_3dim_dataset *matparset=NULL ;
+
+       if( matdefined ){
+         fprintf(stderr,"** -matparent: Matrix already defined!\n"); exit(1);
+       }
+       if( ++nopt >= argc ){
+         fprintf(stderr,"** Need argument after -matparent!\n"); exit(1);
+       }
+       matparset = THD_open_dataset( argv[nopt] ) ;
+       if( matparset == NULL ){
+         fprintf(stderr,"** Can't open -matparent %s\n",argv[nopt]); exit(1);
+       }
+       atr = THD_find_float_atr( matparset->dblk , "WARPDRIVE_MATVEC_INV_000000" ) ;
+       if( atr == NULL ||  atr->nfl < 12 ){
+         fprintf(stderr,"** -matparent %s doesn't have WARPDRIVE attributes!?\n",argv[nopt]) ;
+         exit(1) ;
+       }
+
+       matar = atr->fl ;
+       if( strstr(argv[nopt-1],"INV") == NULL ){
+         LOAD_MAT  ( dicom_in2out.mm, matar[0],matar[1],matar[2],
+                                      matar[4],matar[5],matar[6],
+                                      matar[8],matar[9],matar[10] ) ;
+         LOAD_FVEC3( dicom_in2out.vv, matar[3],matar[7],matar[11] ) ;
+         dicom_out2in = INV_VECMAT( dicom_in2out ) ;
+       } else {
+         LOAD_MAT  ( dicom_out2in.mm, matar[0],matar[1],matar[2],
+                                      matar[4],matar[5],matar[6],
+                                      matar[8],matar[9],matar[10] ) ;
+         LOAD_FVEC3( dicom_out2in.vv, matar[3],matar[7],matar[11] ) ;
+         dicom_in2out = INV_VECMAT( dicom_out2in ) ;
+       }
+
+       DSET_delete(matparset) ;
+
+       use_matvec = MATVEC_FOR ; matdefined = 1 ; nopt++ ; continue ;
+     }
+
      /*----- 11 Mar 2004 -----*/
 
      if( strcmp(argv[nopt],"-tta2mni") == 0 ){
-       if( mni2tta ){
-         fprintf(stderr,"** Can't use -tta2mni with -mni2tta!\n"); exit(1);
+       if( matdefined ){
+         fprintf(stderr,"** -tta2mni: Matrix already defined!\n"); exit(1);
        }
-       if( use_matvec ){
-         fprintf(stderr,"** Can't use -tta2mni with -matvec!\n");  exit(1);
-       }
-       tta2mni = 1 ; nopt++ ; continue ;
+       matdefined = 1 ; tta2mni = 1 ; nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-mni2tta") == 0 ){
-       if( tta2mni ){
-         fprintf(stderr,"** Can't use -mni2tta with -mni2tta!\n"); exit(1);
+       if( matdefined ){
+         fprintf(stderr,"** -mni2tta: Matrix already defined!\n"); exit(1);
        }
-       if( use_matvec ){
-         fprintf(stderr,"** Can't use -mni2tta with -matvec!\n");  exit(1);
-       }
-       mni2tta = 1 ; nopt++ ; continue ;
+       matdefined = 1 ; mni2tta = 1 ; nopt++ ; continue ;
      }
 
      /*-----*/
@@ -260,14 +352,8 @@ int main( int argc , char * argv[] )
      if( strncmp(argv[nopt],"-matvec_",8) == 0 ){
        MRI_IMAGE *matim ; float *matar , dm ;
 
-       if( mni2tta ){
-         fprintf(stderr,"** Can't use -matvec with -mni2tta!\n"); exit(1);
-       }
-       if( tta2mni ){
-         fprintf(stderr,"** Can't use -matvec with -tta2mni!\n"); exit(1);
-       }
-       if( use_matvec ){
-         fprintf(stderr,"** Can't have two -matvec options!\n") ; exit(1);
+       if( matdefined ){
+         fprintf(stderr,"** %s: matrix already defined!\n",argv[nopt]); exit(1);
        }
        if( ++nopt >= argc ){
          fprintf(stderr,"** ERROR: need an argument after -matvec!\n"); exit(1);
@@ -333,7 +419,7 @@ int main( int argc , char * argv[] )
          break ;
        }
 
-       nopt++ ; continue ;
+       matdefined = 1 ; nopt++ ; continue ;
      }
 
      /*-----*/
@@ -345,7 +431,7 @@ int main( int argc , char * argv[] )
 
    /*-- check to see if we have a warp specified --*/
 
-   if( !tta2mni && !mni2tta && !use_matvec ){
+   if( !matdefined ){
      fprintf(stderr,"** No transformation on command line!?\n"); exit(1);
    }
 

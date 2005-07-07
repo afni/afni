@@ -58,6 +58,12 @@ extern float MRILIB_slicespacing ;
 #  define WAY_BIG 1.e+10
 #endif
 
+#ifndef FLDIF
+/*! Are 2 floats significantly different? */
+#  define FLDIF(x,y) ( fabs(x-y) > 1.e-4 * (fabs(x)+fabs(y)) )
+#endif
+
+
 #ifndef MAX
 #  define MAX(a,b) (((a)<(b)) ? (b) : (a))
 #endif
