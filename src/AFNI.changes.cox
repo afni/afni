@@ -5618,3 +5618,9 @@
  * Modified 3dAFNItoANALYZE.c to scale TR by 0.001 if units are msec.
  * Modified thd_writeatr.c and thd_writedset.c to correctly write NIML-style
      .HEAD file from to3d.c (the blk->parent pointer wasn't set correctly).
+
+07 Jul 2005
+ * Modified 3dWarpDrive.c to save affine matrix to output file header attributes
+     (named WARPDRIVE_MATVEC_*), and also to base the coordinates on the actual
+     dataset rather than the center of the volume.
+ * Modified 3dWarp.c to read matrix from header attribute WARPDRIVE_MATVEC_*.

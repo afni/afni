@@ -68,6 +68,9 @@ void ijk_warp_inv( float  ii , float  jj , float  kk ,
 #define WARPDRIVE_AFFINE   4
 #define WARPDRIVE_BILINEAR 5
 
+#define WARPDRIVE_IS_AFFINE(wc)                            \
+  ( (wc) >= WARPDRIVE_SHIFT && (wc) <= WARPDRIVE_AFFINE )
+
 static float xsh , ysh , zsh ;
 
 void parset_shift(void)
@@ -216,6 +219,8 @@ int main( int argc , char * argv[] )
    float clip_baset=0.0f , clip_inset=0.0f ;
    char *W_1Dfile=NULL ;                      /* 04 Jan 2005 */
    float **parsave=NULL ;
+   int output_float=0 ;                      /* 06 Jul 2005 */
+   char *base_idc=NULL , *wt_idc=NULL ;
 
    /*-- help? --*/
 
@@ -286,6 +291,8 @@ int main( int argc , char * argv[] )
             "                   named 'ename'.  Each sub-brick of the input\n"
             "                   dataset gets one line in this file.  Each\n"
             "                   parameter in the model gets one column.\n"
+            "  -float        = Write output dataset in float format, even if\n"
+            "                   input dataset is short or byte.\n"
             "\n"
             "----------------------\n"
             "AFFINE TRANSFORMATIONS:\n"
@@ -377,6 +384,12 @@ int main( int argc , char * argv[] )
    /*-- command line options --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     /*-----*/
+
+     if( strcmp(argv[nopt],"-float") == 0 ){   /* 06 Jul 2005 */
+       output_float = 1 ; nopt++ ; continue ;
+     }
 
      /*-----*/
 
@@ -497,7 +510,7 @@ int main( int argc , char * argv[] )
        warpdrive_code = WARPDRIVE_AFFINE ; nopt++ ; continue ;
      }
 
-     if( strcmp(argv[nopt],"-bilinear_general") == 0 ){
+     if( strcmp(argv[nopt],"-bilinear_general") == 0 ){  /* not implemented */
        warpdrive_code = WARPDRIVE_BILINEAR ; nopt++ ; continue ;
      }
 
@@ -658,8 +671,7 @@ int main( int argc , char * argv[] )
    if( warpdrive_code <= 0 ){
      fprintf(stderr,"** ERROR: need a transform-specifying option!\n");
      nerr++ ;
-   } else if( warpdrive_code >= WARPDRIVE_SHIFT &&
-              warpdrive_code <= WARPDRIVE_AFFINE  ){
+   } else if( WARPDRIVE_IS_AFFINE(warpdrive_code) ) {
 
        char *lab09, *lab10, *lab11 ;
 
@@ -784,6 +796,12 @@ int main( int argc , char * argv[] )
 
    EDIT_dset_items( outset , ADN_prefix , prefix , ADN_none ) ;
 
+   if( output_float ){
+     EDIT_dset_items( outset , ADN_datum_all , MRI_float , ADN_none ) ;
+     for( kim=0 ; kim < nvals ; kim++ )
+       EDIT_BRICK_FACTOR( outset , kim , 0.0 ) ;
+   }
+
    if( THD_is_file( DSET_HEADNAME(outset) ) ){
      fprintf(stderr, "** ERROR: Output file %s already exists!\n",
              DSET_HEADNAME(outset) ) ;
@@ -803,25 +821,60 @@ int main( int argc , char * argv[] )
    dx = DSET_DX(inset) ; dy = DSET_DY(inset) ; dz = DSET_DZ(inset) ;
 
    if( DSET_NX(baset) != nx || DSET_NY(baset) != ny || DSET_NZ(baset) != nz ){
-     fprintf(stderr,"** ERROR: base and input datasets dimensions don't match!\n") ;
+     fprintf(stderr,"** ERROR: base and input grid dimensions don't match!\n") ;
+     fprintf(stderr,"**        base  is %d X %d X %d voxels\n",
+             DSET_NX(baset),DSET_NY(baset),DSET_NZ(baset)    ) ;
+     fprintf(stderr,"**        input is %d X %d X %d voxels\n",nx,ny,nz) ;
      nerr++ ;
    }
 
-   if( DSET_DX(baset) != dx || DSET_DY(baset) != dy || DSET_DZ(baset) != dz ){
-     fprintf(stderr,"** WARNING: base and input datasets grids don't match!\n") ;
+   /* the following aren't fatal errors, but merit a warning slap in the face */
+
+   if( FLDIF(DSET_DX(baset),dx) ||
+       FLDIF(DSET_DY(baset),dy) || FLDIF(DSET_DZ(baset),dz) ){
+     fprintf(stderr,"** WARNING: base and input grid spacings don't match!\n") ;
+     fprintf(stderr,"**          base  grid = %.5f X %.5f X %.5f mm\n",
+             DSET_DX(baset),DSET_DY(baset),DSET_DZ(baset)              ) ;
+     fprintf(stderr,"**          input grid = %.5f X %.5f X %.5f mm\n",
+             DSET_DX(inset),DSET_DY(inset),DSET_DZ(inset)              ) ;
+   }
+
+   if( FLDIF(DSET_XORG(baset),DSET_XORG(inset)) ||
+       FLDIF(DSET_YORG(baset),DSET_YORG(inset)) ||
+       FLDIF(DSET_ZORG(baset),DSET_ZORG(inset))   ){
+     fprintf(stderr,"** WARNING: base and input grid offsets don't match!\n") ;
+     fprintf(stderr,"**          base  offsets = %.5f X %.5f X %.5f mm\n",
+             DSET_XORG(baset),DSET_YORG(baset),DSET_ZORG(baset)           ) ;
+     fprintf(stderr,"**          input offsets = %.5f X %.5f X %.5f mm\n",
+             DSET_XORG(inset),DSET_YORG(inset),DSET_ZORG(inset)           ) ;
    }
 
    if( baset->daxes->xxorient != inset->daxes->xxorient ||
        baset->daxes->yyorient != inset->daxes->yyorient ||
        baset->daxes->zzorient != inset->daxes->zzorient   ){
-     fprintf(stderr,"** WARNING: base and input datasets orientations don't match!\n") ;
+     fprintf(stderr,"** WARNING: base and input orientations don't match!\n") ;
+     fprintf(stderr,"**          base  = %s X %s X %s\n",
+             ORIENT_shortstr[baset->daxes->xxorient] ,
+             ORIENT_shortstr[baset->daxes->yyorient] ,
+             ORIENT_shortstr[baset->daxes->zzorient]  ) ;
+     fprintf(stderr,"**          input = %s X %s X %s\n",
+             ORIENT_shortstr[inset->daxes->xxorient] ,
+             ORIENT_shortstr[inset->daxes->yyorient] ,
+             ORIENT_shortstr[inset->daxes->zzorient]  ) ;
    }
+
+   /* however, this is a fatal error */
 
    if( wtset != NULL &&
       (DSET_NX(wtset) != nx || DSET_NY(wtset) != ny || DSET_NZ(wtset) != nz) ){
-     fprintf(stderr,"** ERROR: weight and input datasets don't match!\n") ;
+     fprintf(stderr,"** ERROR: weight and input grid dimensions don't match!\n") ;
+     fprintf(stderr,"**        weight is %d X %d X %d voxels\n",
+             DSET_NX(wtset),DSET_NY(wtset),DSET_NZ(wtset)    ) ;
+     fprintf(stderr,"**        input  is %d X %d X %d voxels\n",nx,ny,nz) ;
      nerr++ ;
    }
+
+   /* load datasets from disk; if can't do so, fatal errors all around */
 
    if( abas.verb ) fprintf(stderr,"++ Loading datasets\n") ;
 
@@ -849,6 +902,7 @@ int main( int argc , char * argv[] )
    } else {
      clip_baset  = THD_cliplevel( DSET_BRICK(baset,0) , 0.0 ) ;
      abas.imbase = mri_to_float( DSET_BRICK(baset,0) ) ;
+     base_idc = strdup(baset->idcode.str) ;
      DSET_delete(baset) ; baset = NULL ;
    }
 
@@ -859,6 +913,7 @@ int main( int argc , char * argv[] )
        nerr++ ;
      } else {
        abas.imwt = mri_to_float( DSET_BRICK(wtset,0) ) ;
+       wt_idc = strdup(wtset->idcode.str) ;
        DSET_delete(wtset) ; wtset = NULL ;
      }
    }
@@ -875,10 +930,17 @@ int main( int argc , char * argv[] )
                     inset->daxes->xxdel ,
                     inset->daxes->yydel , inset->daxes->zzdel );
 
+#if 0
      /* define (x,y,z)=(0,0,0) at mid-point of dataset 3D array */
 
      LOAD_FVEC3   ( ijk_to_inset_xyz.vv ,
                     -0.5*(nx-1) , -0.5*(ny-1) , -0.5*(nz-1) ) ;
+#else
+     /* define (x,y,z) based strictly on dataset coords */
+
+     LOAD_FVEC3   ( ijk_to_inset_xyz.vv ,
+                    DSET_XORG(inset) , DSET_YORG(inset), DSET_ZORG(inset) ) ;
+#endif
 
      xyz_to_dicom.mm = inset->daxes->to_dicomm ;
      LOAD_FVEC3( xyz_to_dicom.vv , 0.0,0.0,0.0 ) ;
@@ -911,23 +973,36 @@ int main( int argc , char * argv[] )
    mri_warp3D_align_setup( &abas ) ;
 
    if( abas.verb ) fprintf(stderr,"++ Beginning alignment loop\n") ;
+
+   /** loop over input sub-bricks **/
+
    for( kim=0 ; kim < nvals ; kim++ ){
-     for( kpar=0 ; kpar < abas.nparam ; kpar++ ){
+
+     for( kpar=0 ; kpar < abas.nparam ; kpar++ ){  /** init params **/
        if( abas.param[kpar].fixed )
          abas.param[kpar].val_init = abas.param[kpar].val_fixed ;
        else
          abas.param[kpar].val_init = abas.param[kpar].ident ;
      }
 
+     /** create copy of input brick into qim
+         then warp-align it, with result into tim **/
+
      qim = mri_scale_to_float( DSET_BRICK_FACTOR(inset,kim) ,
                                DSET_BRICK(inset,kim)         ) ;
      tim = mri_warp3d_align_one( &abas , qim ) ;
      mri_free( qim ) ; DSET_unload_one( inset , kim ) ;
 
+     if( abas.verb ){ DUMP_VECMAT( "end mv_for" , mv_for ) ; }
+
+     /** save output parameters for later **/
+
      for( kpar=0 ; kpar < abas.nparam ; kpar++ )
        parsave[kpar][kim] = abas.param[kpar].val_out ;  /* 04 Jan 2005 */
 
-     switch( DSET_BRICK_TYPE(inset,kim) ){
+     /** convert output image from float to whatever **/
+
+     switch( DSET_BRICK_TYPE(outset,kim) ){
 
          default:
            fprintf(stderr,"\n** ERROR: Can't store bricks of type %s\n",
@@ -939,10 +1014,15 @@ int main( int argc , char * argv[] )
            mri_fix_data_pointer( NULL , tim ) ; mri_free( tim ) ;
          break ;
 
-         case MRI_short:
-           fim = mri_to_short(1.0,tim) ; mri_free( tim ) ;
+         case MRI_short:{
+           double fac = DSET_BRICK_FACTOR(inset,kim) ;
+           fac = (fac >  0.0) ? 1.0/fac : 1.0 ;
+           fim = mri_to_short(fac,tim) ; mri_free( tim ) ;
            EDIT_substitute_brick( outset, kim, MRI_short, MRI_SHORT_PTR(fim) );
+           fac = (fac != 1.0) ? 1.0/fac : 0.0 ;
+           EDIT_BRICK_FACTOR( outset , kim , fac ) ;
            mri_fix_data_pointer( NULL , fim ) ; mri_free( fim ) ;
+         }
          break ;
 
          case MRI_byte:
@@ -958,10 +1038,49 @@ int main( int argc , char * argv[] )
          break ;
       }
    }
+   DSET_unload( inset ) ;
 
    /*===== hard work is done =====*/
 
    mri_warp3D_align_cleanup( &abas ) ;
+
+   /*-- 06 Jul 2005:
+        write the affine transform matrices into the output header --*/
+
+   THD_set_string_atr( outset->dblk , "WARPDRIVE_INPUT_IDCODE" ,
+                                      inset->idcode.str         ) ;
+   THD_set_string_atr( outset->dblk , "WARPDRIVE_INPUT_NAME" ,
+                                      DSET_HEADNAME(inset)      ) ;
+   if( base_idc != NULL )
+     THD_set_string_atr( outset->dblk , "WARPDRIVE_BASE_IDCODE" , base_idc ) ;
+   if( wt_idc != NULL )
+     THD_set_string_atr( outset->dblk , "WARPDRIVE_WEIGHT_IDCODE" , wt_idc ) ;
+
+   if( WARPDRIVE_IS_AFFINE(warpdrive_code) ){  /* can't do bilinear here */
+     float matar[12] ; char anam[64] ;
+
+     for( kpar=0 ; kpar < 12 ; kpar++ ) parvec[kpar] = 0.0 ;
+
+     for( kim=0 ; kim < nvals ; kim++ ){
+       for( kpar=0 ; kpar < abas.nparam ; kpar++ )  /* load params */
+         parvec[kpar] = parsave[kpar][kim] ;
+       parset_affine() ;                            /* compute matrices */
+
+       UNLOAD_MAT(mv_for.mm,matar[0],matar[1],matar[2],
+                            matar[4],matar[5],matar[6],
+                            matar[8],matar[9],matar[10] ) ;
+       UNLOAD_FVEC3(mv_for.vv,matar[3],matar[7],matar[11]) ;
+       sprintf(anam,"WARPDRIVE_MATVEC_FOR_%06d",kim) ;
+       THD_set_float_atr( outset->dblk , anam , 12 , matar ) ;
+
+       UNLOAD_MAT(mv_inv.mm,matar[0],matar[1],matar[2],
+                            matar[4],matar[5],matar[6],
+                            matar[8],matar[9],matar[10] ) ;
+       UNLOAD_FVEC3(mv_inv.vv,matar[3],matar[7],matar[11]) ;
+       sprintf(anam,"WARPDRIVE_MATVEC_INV_%06d",kim) ;
+       THD_set_float_atr( outset->dblk , anam , 12 , matar ) ;
+     }
+   }
 
    /*-- write the results to disk for all of history to see --*/
 
@@ -999,7 +1118,7 @@ int main( int argc , char * argv[] )
        }
        fclose(fp) ;
      }
-     
+
    }
 
    exit(0) ;
