@@ -10,16 +10,16 @@ CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CCFAST = cc -O3 -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
-# IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
-IFLAGS = -I. -I/usr/X11R6/include
-LFLAGS = -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace -Wl,-x
+
+IFLAGS = -I. -I/sw/include -I/usr/X11R6/include -I/usr/local/include
+LFLAGS = -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-force_flat_namespace -Wl,-x
 
 CCSVD  = $(CCFAST)
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -flat_namespace -bundle -undefined suppress -Wl,-x
 PLUGIN_CC     = $(CC) -dynamic -fno-common
-PLFLAGS       = -dynamic -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace -Wl,-x
+PLFLAGS       = -dynamic -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-force_flat_namespace -Wl,-x
 
 SPECIAL = -faltivec -framework Accelerate -DUSE_ALTIVEC
 
@@ -50,8 +50,8 @@ LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -ldl -
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
-SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib -L/sw/lib
+SUMA_INCLUDE_PATH = -I/sw/include -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include -I/usr/local/include
+SUMA_LINK_PATH = -L/usr/lib -L/sw/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib -L/sw/lib
 SUMA_LINK_LIB = -lGLw -lGLU -lGL -lXmu -lXm -lXp -lXt -lXext -lX11 -lmri $(LZLIB) -lm -lmx -lglib -bind_at_load
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
