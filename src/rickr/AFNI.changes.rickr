@@ -1180,3 +1180,7 @@
   * modified Dimon.c: updated -help
   * modified Makefile.INCLUDE: include Dimon as part of automatic build
 
+07 July 2005:
+  * modified rickr/Makefile and Makefile.INCLUDE for the Dimon build
+    on solaris machines with gcc
+
