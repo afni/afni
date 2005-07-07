@@ -39,7 +39,7 @@ Imon: Imon.o $(IMON_OBJS) Imon.h realtime.h
 
 Dimon: Dimon.o dimon_afni.o l_mri_dicom_hdr.o $(IMON_OBJS)
 	$(RM) $@
-	$(CC) -o Dimon Dimon.o dimon_afni.o l_mri_dicom_hdr.o $(IMON_OBJS) $(LFLAGS) -L.. -lm
+	$(CC) -o Dimon Dimon.o dimon_afni.o l_mri_dicom_hdr.o $(IMON_OBJS) $(LFLAGS) -L.. -lm $(EXTRA_LIBS_2)
 
 serial_helper: serial_helper.o
 	$(RM) $@
