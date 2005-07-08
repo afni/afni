@@ -96,7 +96,7 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 
 /*! Max num datasets per session. */
 
-#define THD_MAX_SESSION_SIZE  1024
+#define THD_MAX_SESSION_SIZE  4096
 
 /*! Max number of directories. */
 
@@ -3102,6 +3102,9 @@ extern void THD_read_all_atr ( char * , THD_datablock * ) ;
 extern void THD_erase_all_atr( THD_datablock * ) ;
 extern void THD_erase_one_atr( THD_datablock * , char * ) ;
 extern void THD_read_niml_atr( char * , THD_datablock * ) ; /* 01 Jun 2005 */
+
+extern void THD_anonymize_dset ( THD_3dim_dataset * ) ;  /* 08 Jul 2005 */
+extern void THD_anonymize_write( int ) ;
 
 extern ATR_any    * THD_find_atr       ( THD_datablock * , char * ) ;
 extern ATR_float  * THD_find_float_atr ( THD_datablock * , char * ) ;

@@ -553,3 +553,62 @@ void THD_set_char_atr( THD_datablock *blk ,
 {
    THD_set_atr( blk , name , ATR_STRING_TYPE , n , str ) ;
 }
+
+/*-----------------------------------------------------------------------*/
+/*! Remove attributes from a dataset that might contain identifying
+    strings.  Can't help against sneaky users who put them into
+    other places, but might be good enough for non-programmers.
+-------------------------------------------------------------------------*/
+
+void THD_anonymize_dset( THD_3dim_dataset *dset ) /* 08 Jul 2005 */
+{
+   THD_datablock *blk ;
+   int ia ;
+
+ENTRY("THD_anonymize_dset") ;
+
+   if( !ISVALID_DSET(dset) ) EXRETURN ;
+   blk = dset->dblk ;
+   if( !ISVALID_DATABLOCK(blk) || blk->natr <= 0 ) EXRETURN ;
+
+   for( ia=0 ; ia < blk->natr ; ia++ ){
+     char *aname ;
+     ATR_any *next_atr = &(blk->atr[ia]) ;  /* pointer to this atr */
+
+     switch( next_atr->type ){
+
+       default: aname = NULL ; break ;
+
+       case ATR_FLOAT_TYPE:{
+         ATR_float *aa = (ATR_float *) next_atr ;
+         aname = aa->name ;
+       }
+       break ;
+
+       case ATR_STRING_TYPE:{
+         ATR_string *aa = (ATR_string *) next_atr ;
+         aname = aa->name ;
+       }
+       break ;
+
+       case ATR_INT_TYPE:{
+         ATR_int *aa = (ATR_int *) next_atr ;
+         aname = aa->name ;
+       }
+       break ;
+     }
+
+     if( aname == NULL || *aname == '\0' ) continue ;
+
+     if( strstr(aname,"NOTE") != NULL || strstr(aname,"_NAME") != NULL )
+       THD_erase_one_atr( blk , aname ) ;
+   }
+
+   THD_set_string_atr( blk , ATRNAME_LABEL1         , "none" ) ;
+   THD_set_string_atr( blk , ATRNAME_LABEL2         , "none" ) ;
+   THD_set_string_atr( blk , ATRNAME_DATANAME       , "none" ) ;
+   THD_erase_one_atr ( blk , ATRNAME_BRICK_KEYWORDS          ) ;
+   THD_erase_one_atr ( blk , ATRNAME_KEYWORDS                ) ;
+
+   EXRETURN ;
+}

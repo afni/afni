@@ -17,12 +17,13 @@ int main( int argc , char * argv[] )
    char new_brikname[THD_MAX_NAME] ;
    char *old_bname=NULL ;
    int brick_ccode , verb=0 ;
+   int denote=0 ;   /* 08 Jul 2005 */
 
    /*-- help? --*/
 
    if( argc < 3 || strcmp(argv[1],"-help") == 0 ){
       printf(
-       "Usage 1: 3dcopy [-verb] old_prefix new_prefix\n"
+       "Usage 1: 3dcopy [-verb] [-denote] old_prefix new_prefix\n"
        "  Will copy all datasets using the old_prefix to use the new_prefix;\n"
        "    3dcopy fred ethel\n"
        "  will copy   fred+orig.HEAD    to ethel+orig.HEAD\n"
@@ -55,8 +56,9 @@ int main( int argc , char * argv[] )
        "* The new_prefix cannot JUST be a directory (unlike the Unix\n"
        "   utility 'cp'); you must supply a filename prefix, even if\n"
        "   is identical to the filename prefix in old_prefix.\n"
-       "* The -verb option will print progress reports; otherwise, the\n"
+       "* The '-verb' option will print progress reports; otherwise, the\n"
        "   program operates silently (unless an error is detected).\n"
+       "* The '-denote' option will remove any Notes from the file.\n"
       ) ;
       exit(0) ;
    }
@@ -65,16 +67,23 @@ int main( int argc , char * argv[] )
 
    /* input arguments */
 
-   if( strcmp(argv[nopt],"-verb") == 0 ){ verb = 1; nopt++; }
+   while( nopt < argc && argv[nopt][0] == '-' ){
+     if( strcmp(argv[nopt],"-verb")   == 0 ){ verb   = 1; nopt++; continue; }
+     if( strcmp(argv[nopt],"-denote") == 0 ){ denote = 1; nopt++; continue; }
+   }
+   if( nopt+1 >= argc ){
+     fprintf(stderr,"** ERROR: 3copy needs input AND output filenames!\n") ;
+     exit(1) ;
+   }
 
    old_name = argv[nopt++] ; old_len = strlen(old_name) ;
    new_name = argv[nopt++] ; new_len = strlen(new_name) ;
 
    if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_ok(old_name) ){
-      fprintf(stderr,"** Illegal old dataset name! - EXIT\n") ; exit(1) ;
+      fprintf(stderr,"** ERROR: Illegal old dataset name! - EXIT\n") ; exit(1) ;
    }
    if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_ok(new_name) ){
-      fprintf(stderr,"** Illegal new dataset name! - EXIT\n") ; exit(1) ;
+      fprintf(stderr,"** ERROR: Illegal new dataset name! - EXIT\n") ; exit(1) ;
    }
 
    if( strstr(new_name,"/") == NULL ){        /* put cwd on new name, if no */
@@ -123,12 +132,12 @@ int main( int argc , char * argv[] )
       }
    }
    if( !THD_filename_ok( new_prefix ) ){  /* 28 Jan 2003 */
-     fprintf(stderr,"** Illegal new prefix: %s\n",new_prefix) ;
+     fprintf(stderr,"** ERROR: Illegal new prefix: %s\n",new_prefix) ;
      exit(1) ;
    }
    if( strstr(new_prefix,".nii") != NULL ){  /* 06 Apr 2005 */
-     fprintf(stderr,"** You can't use 3dcopy to create a .nii file!\n"
-                    "** Use program 3dAFNItoNIFTI for that purpose.\n") ;
+     fprintf(stderr,"** ERROR: You can't use 3dcopy to create a .nii file!\n"
+                    "**        Use program 3dAFNItoNIFTI for that purpose.\n") ;
      exit(1) ;
    }
 
@@ -150,7 +159,7 @@ int main( int argc , char * argv[] )
        tross_Make_History( "3dcopy" , argc,argv , cset ) ;
        DSET_mallocize(qset); DSET_load(qset);
        if( !DSET_LOADED(qset) ){
-         fprintf(stderr,"** Can't load dataset %s\n",old_prefix) ;
+         fprintf(stderr,"** ERROR: Can't load dataset %s\n",old_prefix) ;
          exit(1) ;
        }
        for( ii=0 ; ii < DSET_NVALS(qset) ; ii++ )
@@ -164,7 +173,7 @@ int main( int argc , char * argv[] )
            cset->view_type == VIEW_ORIGINAL_TYPE &&
            DSET_NUM_TIMES(cset) == 1               ){  /* add markers? */
 
-         THD_marker_set * markers ;
+         THD_marker_set *markers ;
          int ii , jj ;
 
          markers = cset->markers = myXtNew( THD_marker_set ) ;
@@ -188,6 +197,8 @@ int main( int argc , char * argv[] )
          for( ii=0 ; ii < MARKS_MAXFLAG ; ii++ )     /* copy flags in */
            markers->aflags[ii] = THD_align_aflags[ii] ;
        }
+
+       if( denote ) THD_anonymize_write(1) ;  /* 08 Jul 2005 */
 
        DSET_write(cset) ; exit(0) ;
      }
@@ -231,7 +242,7 @@ int main( int argc , char * argv[] )
       /*-- check if new header already exists --*/
 
       if( THD_is_file( DSET_HEADNAME(dset[ii]) ) ){
-         fprintf(stderr,"** Output dataset %s already exists! - EXIT\n",
+         fprintf(stderr,"** ERROR: Output dataset %s already exists! - EXIT\n",
                  DSET_HEADNAME(dset[ii]) ) ;
          exit(1) ;
       }
@@ -268,6 +279,8 @@ int main( int argc , char * argv[] )
       if( verb )
         fprintf(stderr,"++ Writing new header %s\n",DSET_HEADNAME(dset[ii])) ;
 
+      if( denote ) THD_anonymize_write(1) ;  /* 08 Jul 2005 */
+
       DSET_write_header( dset[ii] ) ;  /* new header is written */
 
       /*-- create the .BRIK filename for the old and new datasets --*/
@@ -284,7 +297,7 @@ int main( int argc , char * argv[] )
       } else {
          old_bname = COMPRESS_filename( old_brikname ) ;
          if( old_bname == NULL ){  /* should not happen */
-            fprintf(stderr,"** COMPRESS_filename() fails! - EXIT\n"); exit(1);
+            fprintf(stderr,"** ERROR: COMPRESS_filename() fails! - EXIT\n"); exit(1);
          }
          sprintf( new_brikname , "%s+%s.%s" ,
                   new_prefix , VIEW_codestr[ii] , DATASET_BRICK_SUFFIX ) ;
@@ -292,7 +305,7 @@ int main( int argc , char * argv[] )
             strcat(new_brikname,COMPRESS_suffix[brick_ccode]) ;
 
          if( THD_is_file(new_brikname) ){
-            fprintf(stderr,"** New brick %s already exists! - EXIT\n",
+            fprintf(stderr,"** ERROR: New brick %s already exists! - EXIT\n",
                     new_brikname) ;
             exit(1) ;
          }
@@ -337,7 +350,7 @@ int THD_copy_file( char *old , char *newFile )
 
    buf = malloc(NBUF) ;
    if( buf == NULL ){
-      fprintf(stderr,"** Can't malloc() buffer for file copy! - EXIT\n"); exit(1);
+      fprintf(stderr,"** ERROR: Can't malloc() buffer for file copy! - EXIT\n"); exit(1);
    }
    while(1){  /*- loop: read buffer, write buffer -*/
 
