@@ -12,14 +12,14 @@ CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
 
 IFLAGS = -I. -I/sw/include -I/usr/X11R6/include -I/usr/local/include
-LFLAGS = -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-force_flat_namespace -Wl,-x
+LFLAGS = -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
 
 CCSVD  = $(CCFAST)
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -flat_namespace -bundle -undefined suppress -Wl,-x
 PLUGIN_CC     = $(CC) -dynamic -fno-common
-PLFLAGS       = -dynamic -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-force_flat_namespace -Wl,-x
+PLFLAGS       = -dynamic -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
 
 SPECIAL = -faltivec -framework Accelerate -DUSE_ALTIVEC
 

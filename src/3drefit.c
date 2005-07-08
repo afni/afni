@@ -51,9 +51,9 @@ void Syntax(char * str)
     "               ** SPECIAL CASE: you can use the string 'cen' in place of\n"
     "                  a distance to force that axis to be re-centered.\n"
     "\n"
-    " -xorigin_raw xx  Puts the center of the edge voxel at the given COORDINATE\n"
-    " -yorigin_raw yy  rather than the given DISTANCE.  That is, these values\n"
-    " -zorigin_raw zz  directly replace the offsets in the dataset header,\n"
+    "  -xorigin_raw xx Puts the center of the edge voxel at the given COORDINATE\n"
+    "  -yorigin_raw yy rather than the given DISTANCE.  That is, these values\n"
+    "  -zorigin_raw zz directly replace the offsets in the dataset header,\n"
     "                  without any possible sign changes.\n"
     "\n"
     "  -duporigin cset Copies the xorigin, yorigin, and zorigin values from\n"
@@ -122,6 +122,10 @@ void Syntax(char * str)
     "\n"
     "  -label2 llll    Set the 'label2' field in a dataset .HEAD file to the\n"
     "                  string 'llll'.  (Can be used as in AFNI window titlebars.)\n"
+    "\n"
+    "  -denote         Means to remove all possibly-identifying notes from\n"
+    "                  the header.  This includes the History Note, other text\n"
+    "                  Notes, keywords, and labels.\n"
     "\n"
     "  -byteorder bbb  Sets the byte order string in the header.\n"
     "                  Allowable values for 'bbb' are:\n"
@@ -197,7 +201,7 @@ void Syntax(char * str)
     "\n"
    );
 
-   printf("\t\tLast modified: Oct 04/02.\n");
+   printf("++ Last program update: 08 Jul 2005\n");
 
    exit(0) ;
 }
@@ -235,6 +239,7 @@ int main( int argc , char * argv[] )
    int copyaux        = 0 ;          /* 08 Jun 2004 */
    THD_3dim_dataset *auxset=NULL ;   /* 08 Jun 2004 */
    char *new_label2   = NULL ;       /* 21 Dec 2004 */
+   int denote         = 0 ;          /* 08 Jul 2005 */
 
    char str[256] ;
    int  iarg , ii ;
@@ -276,6 +281,12 @@ int main( int argc , char * argv[] )
 #if 0
       if( strncmp(argv[iarg],"-v",5) == 0 ){ verbose = 1 ; iarg++ ; continue ; }
 #endif
+
+      /*----- -denote [08 Jul 2005] -----*/
+
+      if( strcmp(argv[iarg],"-denote") == 0 ){
+        denote = 1 ; new_stuff++ ; iarg++ ; continue ;
+      }
 
       /*----- -copyaux auxset [08 Jun 2004] -----*/
 
@@ -1157,6 +1168,8 @@ int main( int argc , char * argv[] )
             }
          }
       }
+
+      if( denote ) THD_anonymize_write(1) ;   /* 08 Jul 2005 */
 
       THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
       THD_delete_3dim_dataset( dset , False ) ;
