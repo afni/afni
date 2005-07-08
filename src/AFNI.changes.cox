@@ -5624,3 +5624,8 @@
      (named WARPDRIVE_MATVEC_*), and also to base the coordinates on the actual
      dataset rather than the center of the volume.
  * Modified 3dWarp.c to read matrix from header attribute WARPDRIVE_MATVEC_*.
+
+08 Jul 2005
+ * Fixed Makefile.macosx_10.? to suppress multiply-defined symbol errors.
+ * Modified 3drefit.c and 3dcopy.c to add '-denote' option, to remove notes
+     and other potentially identifying attributes.

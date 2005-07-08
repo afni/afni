@@ -35,7 +35,6 @@ ENTRY("THD_nimlize_dsetatr") ;
    NI_set_attribute( ngr , "self_idcode" , dset->idcode.str ) ;
 
    /* make a data element for each attribute ... */
-   THD_set_dataset_attributes( dset ) ;
 
    for( ia=0 ; ia < blk->natr ; ia++ ){
 

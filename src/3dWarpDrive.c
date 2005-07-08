@@ -221,6 +221,7 @@ int main( int argc , char * argv[] )
    float **parsave=NULL ;
    int output_float=0 ;                      /* 06 Jul 2005 */
    char *base_idc=NULL , *wt_idc=NULL ;
+   int ctstart = NI_clock_time() ;
 
    /*-- help? --*/
 
@@ -1119,6 +1120,11 @@ int main( int argc , char * argv[] )
        fclose(fp) ;
      }
 
+   }
+
+   if( abas.verb ){
+     double tt = (NI_clock_time()-ctstart)*0.001 ;
+     fprintf(stderr,"++ Total elapsed time = %.2f s\n",tt) ;
    }
 
    exit(0) ;

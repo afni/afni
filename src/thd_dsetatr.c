@@ -20,6 +20,9 @@
 #define ITFILL(p,q) for(ii=p;ii<q;ii++) itemp[ii] = IFILL
 #define FTFILL(p,q) for(ii=p;ii<q;ii++) ftemp[ii] = FFILL
 
+static int anonymize = 0 ;
+void THD_anonymize_write( int uu ){ anonymize = uu; }
+
 /*-------------------------------------------------------------------*/
 /*! Set attributes from the dataset to the datablock,
    preparing for output to someplace or other.
@@ -522,6 +525,8 @@ ENTRY("THD_set_dataset_attributes") ;
    /******/
    /****** N.B.: we do NOT set the byte order attribute here *****/
    /******/ 
+
+   if( anonymize ) THD_anonymize_dset(dset) ;  /* 08 Jul 2005 */
 
    EXRETURN ;
 }
