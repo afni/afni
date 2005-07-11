@@ -5,7 +5,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ;
    char *prefix=NULL , *fname ;
-   int narg=1 , flags=0 , ii , verb=0 , newid=0 ;
+   int narg=1 , flags=0 , ii , verb=0 , newid=0 , denote=0 ;
    niftiwr_opts_t options ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -23,10 +23,13 @@ int main( int argc , char *argv[] )
              "                  the output file.  Only use this option if\n"
              "                  needed.  You can also use the 'nifti_tool'\n"
              "                  program to strip extensions from a file.\n"
+             "  -denote     = When writing the AFNI extension field, remove\n"
+             "                  text notes that might contain subject\n"
+             "                  identifying information.\n"
+             "  -verb       = Be verbose = print progress messages.\n"
              "  -newid      = Give the new dataset a new AFNI ID code, to\n"
              "                  distinguish it from the input dataset.\n"
              "                  (Has no effect if '-pure' is given!)\n"
-             "  -verb       = Be verbose = print progress messages.\n"
              "                  Repeating this increases the verbosity\n"
              "                  (maximum setting is 3 '-verb' options).\n"
             ) ;
@@ -39,6 +42,10 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[narg],"-newid") == 0 ){  /* 11 May 2005 - RWCox */
         newid = 1 ; narg++ ; continue ;
+     }
+
+     if( strcmp(argv[narg],"-denote") == 0 ){ /* 11 Jul 2005 - RWCox */
+        denote = 1 ; narg++ ; continue ;
      }
 
      if( strcmp(argv[narg],"-pure") == 0 ){   /* 11 May 2005 - RWCox */
@@ -88,6 +95,7 @@ int main( int argc , char *argv[] )
 
    /*--- Go Baby, Go! ---*/
 
+   if( denote ) THD_anonymize_write(1) ;
    ii = THD_write_nifti( dset , options ) ;
    exit(0) ;
 }
