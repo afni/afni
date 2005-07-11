@@ -333,7 +333,8 @@ NI_dpr("NI_read_element: ni_group scan_for_angles; num_restart=%d\n",
           nel->vec_num  == 0    ||     /* that this is an 'empty' element. */
           nel->vec_typ  == NULL ||     /* ==> The header is all there is.  */
           nel->vec      == NULL ||
-          read_header_only       ){
+          nel->name[0]  == '!'  ||     /* Stupid XML declaration */
+          read_header_only        ){
 
 #ifdef NIML_DEBUG
 NI_dpr("NI_read_element: returning empty element\n") ;

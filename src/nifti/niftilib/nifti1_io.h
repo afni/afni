@@ -337,7 +337,7 @@ int    valid_nifti_extensions      (nifti_image *nim);
 
 #define NIFTI_ECODE_JIMDIMINFO      10  /* Mark A Horsfield:
                                            mah5@leicester.ac.uk
-                                           http://someplace/something         */
+                                           http://www.xinapse.com/            */
 
 #define NIFTI_ECODE_WORKFLOW_FWDS   12  /* Kate Fissell: fissel+@pitt.edu
                                            http://kraepelin.wpic.pitt.edu
