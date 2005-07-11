@@ -71,6 +71,9 @@ void ijk_warp_inv( float  ii , float  jj , float  kk ,
 #define WARPDRIVE_IS_AFFINE(wc)                            \
   ( (wc) >= WARPDRIVE_SHIFT && (wc) <= WARPDRIVE_AFFINE )
 
+/*--------------------------------------------------------------------------*/
+/* For shift-only 'warps' */
+
 static float xsh , ysh , zsh ;
 
 void parset_shift(void)
@@ -91,6 +94,7 @@ void warper_shift_inv( float aa , float bb , float cc ,
 }
 
 /*--------------------------------------------------------------------------*/
+/* For affine warps */
 
 static THD_vecmat mv_for , mv_inv ;
 
@@ -203,6 +207,85 @@ void parset_affine(void)
 #if 0
 DUMP_VECMAT("mv_for",mv_for) ; DUMP_VECMAT("mv_inv",mv_inv) ;
 #endif
+}
+
+/*--------------------------------------------------------------------------*/
+/* For bilinear warps */
+
+static float dd_for[3][3][3] , dd_inv[3][3][3] ;
+
+void warper_bilinear_for( float aa , float bb , float cc ,
+                          float *p , float *q , float *r  )
+{
+   THD_fvec3 v,w ; THD_mat33 dd,ee ;
+
+   LOAD_FVEC3( v , aa,bb,cc ) ;
+   w = VECMAT_VEC( mv_for , v ) ;
+
+   dd.mat[0][0] = 1.0f + dd_for[0][0][0]*aa + dd_for[0][0][1]*bb + dd_for[0][0][2]*cc ;
+   dd.mat[0][1] =        dd_for[0][1][0]*aa + dd_for[0][1][1]*bb + dd_for[0][1][2]*cc ;
+   dd.mat[0][2] =        dd_for[0][2][0]*aa + dd_for[0][2][1]*bb + dd_for[0][2][2]*cc ;
+   dd.mat[1][0] =        dd_for[1][0][0]*aa + dd_for[1][0][1]*bb + dd_for[1][0][2]*cc ;
+   dd.mat[1][1] = 1.0f + dd_for[1][1][0]*aa + dd_for[1][1][1]*bb + dd_for[1][1][2]*cc ;
+   dd.mat[1][2] =        dd_for[1][2][0]*aa + dd_for[1][2][1]*bb + dd_for[1][2][2]*cc ;
+   dd.mat[2][0] =        dd_for[2][0][0]*aa + dd_for[2][0][1]*bb + dd_for[2][0][2]*cc ;
+   dd.mat[2][1] =        dd_for[2][1][0]*aa + dd_for[2][1][1]*bb + dd_for[2][1][2]*cc ;
+   dd.mat[2][2] = 1.0f + dd_for[2][2][0]*aa + dd_for[2][2][1]*bb + dd_for[2][2][2]*cc ;
+
+   ee = MAT_INV(dd) ;
+   v  = MATVEC(ee,w) ;
+
+   *p = v.xyz[0] ; *q = v.xyz[1] ; *r = v.xyz[2] ;
+}
+
+void warper_bilinear_inv( float aa , float bb , float cc ,
+                          float *p , float *q , float *r  )
+{
+   THD_fvec3 v,w ; THD_mat33 dd,ee ;
+
+   LOAD_FVEC3( v , aa,bb,cc ) ;
+   w = VECMAT_VEC( mv_inv , v ) ;
+
+   dd.mat[0][0] = 1.0f + dd_inv[0][0][0]*aa + dd_inv[0][0][1]*bb + dd_inv[0][0][2]*cc ;
+   dd.mat[0][1] =        dd_inv[0][1][0]*aa + dd_inv[0][1][1]*bb + dd_inv[0][1][2]*cc ;
+   dd.mat[0][2] =        dd_inv[0][2][0]*aa + dd_inv[0][2][1]*bb + dd_inv[0][2][2]*cc ;
+   dd.mat[1][0] =        dd_inv[1][0][0]*aa + dd_inv[1][0][1]*bb + dd_inv[1][0][2]*cc ;
+   dd.mat[1][1] = 1.0f + dd_inv[1][1][0]*aa + dd_inv[1][1][1]*bb + dd_inv[1][1][2]*cc ;
+   dd.mat[1][2] =        dd_inv[1][2][0]*aa + dd_inv[1][2][1]*bb + dd_inv[1][2][2]*cc ;
+   dd.mat[2][0] =        dd_inv[2][0][0]*aa + dd_inv[2][0][1]*bb + dd_inv[2][0][2]*cc ;
+   dd.mat[2][1] =        dd_inv[2][1][0]*aa + dd_inv[2][1][1]*bb + dd_inv[2][1][2]*cc ;
+   dd.mat[2][2] = 1.0f + dd_inv[2][2][0]*aa + dd_inv[2][2][1]*bb + dd_inv[2][2][2]*cc ;
+
+   ee = MAT_INV(dd) ;
+   v  = MATVEC(ee,w) ;
+
+   *p = v.xyz[0] ; *q = v.xyz[1] ; *r = v.xyz[2] ;
+}
+
+void parset_bilinear(void)
+{
+   THD_mat33 ai ; THD_fvec3 df,di ; int j,k ;
+
+   parset_affine() ;  /* sets up numerator matrices */
+
+   dd_for[0][0][0] = parvec[12]; dd_for[0][0][1] = parvec[13]; dd_for[0][0][2] = parvec[14];
+   dd_for[0][1][0] = parvec[15]; dd_for[0][1][1] = parvec[16]; dd_for[0][1][2] = parvec[17];
+   dd_for[0][2][0] = parvec[18]; dd_for[0][2][1] = parvec[19]; dd_for[0][2][2] = parvec[20];
+   dd_for[1][0][0] = parvec[21]; dd_for[1][0][1] = parvec[22]; dd_for[1][0][2] = parvec[23];
+   dd_for[1][1][0] = parvec[24]; dd_for[1][1][1] = parvec[25]; dd_for[1][1][2] = parvec[26];
+   dd_for[1][2][0] = parvec[27]; dd_for[1][2][1] = parvec[28]; dd_for[1][2][2] = parvec[29];
+   dd_for[2][0][0] = parvec[30]; dd_for[2][0][1] = parvec[31]; dd_for[2][0][2] = parvec[32];
+   dd_for[2][1][0] = parvec[33]; dd_for[2][1][1] = parvec[34]; dd_for[2][1][2] = parvec[35];
+   dd_for[2][2][0] = parvec[36]; dd_for[2][2][1] = parvec[37]; dd_for[2][2][2] = parvec[38];
+
+   ai = mv_inv.mm ;
+   for( k=0 ; k < 3 ; k++ ){
+     for( j=0 ; j < 3 ; j++ ){
+       LOAD_FVEC3( df , -dd_for[0][k][j] , -dd_for[1][k][j] , -dd_for[2][k][j] ) ;
+       di = MATVEC( ai , df ) ;
+       UNLOAD_FVEC3( di , dd_inv[0][j][k] , dd_inv[1][j][k] , dd_inv[2][j][k] ) ;
+     }
+   }
 }
 
 /*--------------------------------------------------------------------------*/
@@ -512,6 +595,7 @@ int main( int argc , char * argv[] )
      }
 
      if( strcmp(argv[nopt],"-bilinear_general") == 0 ){  /* not implemented */
+       fprintf(stderr,"** ERROR: 3dWarpDrive -bilinear_general NOT IMPLEMENTED!\n"); exit(1);
        warpdrive_code = WARPDRIVE_BILINEAR ; nopt++ ; continue ;
      }
 
@@ -729,6 +813,59 @@ int main( int argc , char * argv[] )
          case WARPDRIVE_SCALE:  abas.nparam =  9 ; break ;
          case WARPDRIVE_AFFINE: abas.nparam = 12 ; break ;
        }
+
+   } else if( warpdrive_code == WARPDRIVE_BILINEAR ){
+
+       char *lab09, *lab10, *lab11 , labxx[16] ;
+
+       /* add all 39 parameters (may ignore some, later) */
+
+       ADDPAR( "x-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+
+       ADDPAR( "z-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "x-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+
+       ADDPAR( "x-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
+
+       switch( smat ){
+         default:
+         case SMAT_LOWER:
+           lab09 = "y/x-shear" ; lab10 = "z/x-shear" ; lab11 = "z/y-shear" ;
+         break ;
+
+         case SMAT_UPPER:
+           lab09 = "x/y-shear" ; lab10 = "x/z-shear" ; lab11 = "y/z-shear" ;
+         break ;
+       }
+       ADDPAR( lab09 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab10 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab11 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+
+       for( kpar=12 ; kpar < 39 ; kpar++ ){
+         sprintf(labxx,"blin%02d",kpar+1) ;
+         ADDPAR( labxx , -0.01 , 0.01 , 0.0 , 0.0 , 0.0 ) ;
+       }
+
+       /* initialize transform parameter vector */
+
+       for( kpar=0 ; kpar < 39 ; kpar++ )
+         parvec[kpar] = abas.param[kpar].ident ;
+
+       /* initialize transformation function pointers */
+
+       warp_parset = parset_bilinear ;
+       warp_for    = warper_bilinear_for ;
+       warp_inv    = warper_bilinear_inv ;
+
+       /* how many parameters to actually pay attention to */
+
+       abas.nparam = 39 ;
+
    } else {
      fprintf(stderr,"** ERROR: unimplemented transform model!\n") ;
      nerr++ ;
@@ -931,17 +1068,18 @@ int main( int argc , char * argv[] )
                     inset->daxes->xxdel ,
                     inset->daxes->yydel , inset->daxes->zzdel );
 
-#if 0
-     /* define (x,y,z)=(0,0,0) at mid-point of dataset 3D array */
+     if( warpdrive_code == WARPDRIVE_BILINEAR ){
+       /* define (x,y,z)=(0,0,0) at mid-point of dataset 3D array */
 
-     LOAD_FVEC3   ( ijk_to_inset_xyz.vv ,
-                    -0.5*(nx-1) , -0.5*(ny-1) , -0.5*(nz-1) ) ;
-#else
-     /* define (x,y,z) based strictly on dataset coords */
+       LOAD_FVEC3   ( ijk_to_inset_xyz.vv ,
+                      -0.5*(nx-1) , -0.5*(ny-1) , -0.5*(nz-1) ) ;
 
-     LOAD_FVEC3   ( ijk_to_inset_xyz.vv ,
-                    DSET_XORG(inset) , DSET_YORG(inset), DSET_ZORG(inset) ) ;
-#endif
+     } else {
+       /* define (x,y,z) based strictly on dataset coords */
+
+       LOAD_FVEC3   ( ijk_to_inset_xyz.vv ,
+                      DSET_XORG(inset) , DSET_YORG(inset), DSET_ZORG(inset) ) ;
+     }
 
      xyz_to_dicom.mm = inset->daxes->to_dicomm ;
      LOAD_FVEC3( xyz_to_dicom.vv , 0.0,0.0,0.0 ) ;
