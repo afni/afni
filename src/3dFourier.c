@@ -133,10 +133,12 @@ int main (int argc, char *argv[])
 
 	} /* end of while over arguements */
 
-   if( low_fc > 0.0f && high_fc > 0.0f && low_fc >= high_fc )
-     fprintf(stderr,"** WARNING: lowpass=%f is larger than highpass=%f\n"
+#if 1
+   if( low_fc > 0.0f && high_fc > 0.0f && low_fc <= high_fc )
+     fprintf(stderr,"** WARNING: lowpass=%f is <= than highpass=%f\n"
                     "** -------: results from 3dFourier are suspect!\n"  ,
              low_fc,high_fc) ;
+#endif
 
 	if( narg >= argc )
 		Error_Exit("No input datasets!?\n");
