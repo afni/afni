@@ -7900,7 +7900,7 @@ ENTRY("AFNI_imag_pop_CB") ;
       if( im3d->vwid->imag->pop_whereami_twin != NULL ){
          MCW_textwinkill_CB(NULL,
                             (XtPointer)im3d->vwid->imag->pop_whereami_twin,NULL);
-         im3d->vwid->imag->pop_whereami_twin == NULL ;
+         im3d->vwid->imag->pop_whereami_twin = NULL ;
       }
 
       /*- get TT atlas location, if any -*/

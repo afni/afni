@@ -841,7 +841,13 @@ STATUS("making imag->rowcol") ;
                         AFNI_imag_pop_CB , im3d ) ;
 
       } else {
+         static int first=1 ;
          imag->pop_ttren_pb = imag->pop_whereami_pb = NULL ;
+         if( first ){
+           first = 0 ;
+           fprintf(stderr,
+             "\n** WARNING: Can't find TTatlas+tlrc dataset for 'whereami'!\n");
+         }
       }
       imag->pop_whereami_twin = NULL ;
    } else {
