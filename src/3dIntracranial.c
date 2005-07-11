@@ -118,8 +118,8 @@ void display_help_menu()
      "                                                                      \n"
      "-prefix pname     Prefix name for file to contain segmented image     \n"
      "\n"
-     "NOTE: The newer program 3dSkullStrip will probably\n"
-     "      give better results than 3dIntracranial.\n"
+     "** NOTE **: The newer program 3dSkullStrip will probably give\n"
+     "            better segmentation results than 3dIntracranial!\n"
       );
   
   exit(0);
