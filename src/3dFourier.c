@@ -3,11 +3,10 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*******************************************************
  * 3dFourier                                           *
  * T. Ross  and K. Heimerl 7/99                        *
- *                                                     *
  *******************************************************/
 
 #include "mrilib.h"
@@ -23,8 +22,8 @@
 
 static void *My_Malloc(size_t);
 
-void Error_Exit(char *message) {
-	
+void Error_Exit(char *message)
+{
 	fprintf(stderr, "\n\nError in 3dFourier:\n%s\n\nTry 3dFourier -help\n",message);
 	exit(1);
 }
@@ -35,8 +34,8 @@ void Error_Exit(char *message) {
 
 /***********************************************************************************/
 
-void  help_message(void) {
-
+void  help_message(void)
+{
 	printf(
 		"3dFourier \n"
 		"(c) 1999 Medical College of Wisconsin\n"
@@ -45,7 +44,7 @@ void  help_message(void) {
 		"Usage: 3dFourier [options] dataset\n\n"
 		"The paramters and options are:\n"
 		"	dataset		an afni compatible 3d+time dataset to be operated upon\n"
-		"	-prefix name	output name for new 3d+time dataset [default = fourier]\n" 
+		"	-prefix name	output name for new 3d+time dataset [default = fourier]\n"
 		"	-lowpass f 	low pass filter with a cutoff of f Hz\n"
 		"	-highpass f	high pass filter with a cutoff of f Hz\n"
 		"	-ignore n	ignore the first n images [default = 1]\n"
@@ -59,19 +58,21 @@ void  help_message(void) {
         printf("\n" MASTER_SHORTHELP_STRING ) ;
 
 }
-int main (int argc, char *argv[]) {
 
+/*--------------------------------------------------------------------------*/
+
+int main (int argc, char *argv[])
+{
 	int j, narg=1, autocorr=FALSE, retrend=FALSE, ignore=1;
 	char *prefix=NULL, *err;
 	float low_fc = 0.0, high_fc = 0.0;
 	THD_3dim_dataset *input=NULL;
-	
 
 	if (argc < 2 ||  strcmp(argv[1],"-help") == 0 ) {
 		help_message();
 		exit(1);
 	}
-	
+
 	/* Loop over arguements and pull out what we need */
 	while( narg < argc && argv[narg][0] == '-' ){
 
@@ -82,7 +83,7 @@ int main (int argc, char *argv[]) {
 			j = strlen(argv[narg]);
 			prefix =(char *)My_Malloc((j+1)*sizeof(char));
 			strcpy(prefix, argv[narg++]);
-			continue;	
+			continue;
 		}
 
 		if (strncmp(argv[narg], "-lowpass", 5) == 0) {
@@ -91,8 +92,8 @@ int main (int argc, char *argv[]) {
 				Error_Exit("-lowpass must be followed by a frequency");
 			low_fc = (float)atof(argv[narg++]);
 			continue;
-		}	
-	
+		}
+
 		if (strncmp(argv[narg], "-highpass", 5) == 0) {
 			narg++;
 			if (narg==argc)
@@ -110,7 +111,7 @@ int main (int argc, char *argv[]) {
 				Error_Exit("-ignore must be between 0 and 10, inclusive");
 			continue;
 		}
-/*		
+/*
 		if (strncmp(argv[narg], "-autocorr", 5) == 0) {
 			narg++;
 			autocorr = TRUE;
@@ -122,43 +123,45 @@ int main (int argc, char *argv[]) {
 			retrend = TRUE;
 			continue;
 		}
-		
+
 		if (strncmp(argv[narg], "-help", 5) == 0) {
 			help_message();
 		}
-		
-		
+
+
 		Error_Exit("Illegal or unrecoginized option");
-	
-	} /* end of while over arguements */	
-	
+
+	} /* end of while over arguements */
+
+   if( low_fc > 0.0f && high_fc > 0.0f && low_fc >= high_fc )
+     fprintf(stderr,"** WARNING: lowpass=%f is larger than highpass=%f\n"
+                    "** -------: results from 3dFourier are suspect!\n"  ,
+             low_fc,high_fc) ;
+
 	if( narg >= argc )
 		Error_Exit("No input datasets!?\n");
-		
+
 	if(prefix==NULL) {
 		prefix=(char *)My_Malloc(8*sizeof(char));
 		strcpy(prefix,"fourier");
 	}
-	
+
 	/* try to open input dataset */
 
 	input = THD_open_dataset( argv[narg] ) ; /* 16 Sep 1999 */
 
 	if( input == NULL )
 		Error_Exit("Cannot open input dataset!") ;
-	
+
 	if (!DSET_GRAPHABLE(input))
 		Error_Exit("Input dataset is not a 3d+time dataset");
-		
+
 	if (DSET_BRICK_TYPE(input, 0)==MRI_complex)
 		Error_Exit("Sorry, I can't deal with complex 3d+time datasets");
-	
+
 	err=Fourier_Filter_Driver(input, low_fc, high_fc, ignore, autocorr, retrend, prefix);
 	if (err!=NULL)
 		Error_Exit(err);
-	
+
 	return 0;  /* All went well exit code */
 }
-
-
-
