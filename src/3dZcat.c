@@ -451,8 +451,8 @@ int main( int argc , char * argv[] )
    free(ffac) ;                            /* don't need ffac no more */
    DSET_load(new_dset) ;                   /* read new dataset from disk */
    THD_load_statistics(new_dset) ;         /* compute sub-brick statistics */
-   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
    DSET_write_header(new_dset) ;           /* write output HEAD */
+   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
 
    exit(0) ;                               /* stage left */
 }

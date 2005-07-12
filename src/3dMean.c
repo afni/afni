@@ -441,8 +441,8 @@ int main( int argc , char * argv[] )
    if( verb ) fprintf(stderr,"  ++ Computing output statistics\n") ;
    THD_load_statistics( outset ) ;
 
-   if( verb ) fprintf(stderr,"  ++ Writing output: %s\n",DSET_BRIKNAME(outset)) ;
    THD_write_3dim_dataset( NULL,NULL , outset , True ) ;
+   if( verb ) fprintf(stderr,"  ++ Wrote output: %s\n",DSET_BRIKNAME(outset)) ;
 
    exit(0) ;
 }

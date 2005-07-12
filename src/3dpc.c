@@ -678,8 +678,8 @@ int main( int argc , char * argv[] )
    }
    free(fout) ;
 
-   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
    DSET_write(new_dset) ;
+   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
    DSET_delete(new_dset) ;
    if( !PC_be_quiet ){ printf("!\n") ; fflush(stdout); }
 

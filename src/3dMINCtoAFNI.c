@@ -65,7 +65,7 @@ int main( int argc , char *argv[] )
 
    tross_Make_History( "3dMINCtoAFNI" , argc,argv , dset ) ;
 
-   fprintf(stderr,"++ Writing dataset %s\n",DSET_BRIKNAME(dset)) ;
    DSET_write(dset) ;
+   fprintf(stderr,"++ Wrote dataset %s\n",DSET_BRIKNAME(dset)) ;
    exit(0) ;
 }

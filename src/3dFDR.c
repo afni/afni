@@ -1093,11 +1093,11 @@ void output_results (THD_3dim_dataset * new_dset)
 
 
   /*----- Output the FDR dataset -----*/
-  if( !FDR_quiet ) printf("Computing sub-brick statistics\n") ;
+  if( !FDR_quiet ) fprintf(stderr,"Computing sub-brick statistics\n") ;
   THD_load_statistics( new_dset ) ;
 
-  if( !FDR_quiet ) printf("Writing output to %s\n", DSET_BRIKNAME(new_dset) );
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+  if( !FDR_quiet ) fprintf(stderr,"Wrote output to %s\n", DSET_BRIKNAME(new_dset) );
   
 
   /*----- Deallocate memory for output dataset -----*/   

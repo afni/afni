@@ -293,8 +293,8 @@ int main( int argc , char * argv[] )
    }
 
    if( saveit && cc > 0 ){
-     fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(oset)) ;
      DSET_write( oset ) ;
+     fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(oset)) ;
    }
 
    if( do_range ){

@@ -1546,12 +1546,12 @@ void write_ts_array
 
 
   /*----- write afni data set -----*/
-  printf ("--- Writing 3d+time dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
+  fprintf(stderr,"--- Wrote 3d+time dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
   
 
   /*----- deallocate memory -----*/   
@@ -1831,10 +1831,10 @@ void write_bucket_data
 
 
   /*----- write bucket data set -----*/
-  printf("Writing `bucket' dataset ");
-  printf("into %s\n", DSET_BRIKNAME(new_dset));
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+  fprintf(stderr,"Writing `bucket' dataset ");
+  fprintf(stderr,"into %s\n", DSET_BRIKNAME(new_dset));
 
   
   /*----- deallocate memory -----*/   

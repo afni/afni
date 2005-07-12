@@ -193,10 +193,9 @@ int main( int argc , char *argv[] )
       DSET_delete(oset); oset = ooset; ooset = NULL;
    }
 
-   if( verb )
-     fprintf(stderr,"++3dSpatNorm: writing dataset %s\n",DSET_BRIKNAME(oset)) ;
-   
    DSET_write(oset) ;
+   if( verb )
+     fprintf(stderr,"++3dSpatNorm: wrote dataset %s\n",DSET_BRIKNAME(oset)) ;
    
    exit(0) ;
 }
