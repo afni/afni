@@ -128,7 +128,7 @@ int main( int argc , char * argv[] )
          continue ;
       }
 
-      printf("%s",argv[narg]) ; fflush(stdout) ;
+      fprintf(stderr,"%s",argv[narg]) ; fflush(stdout) ;
 
       init_histo() ;
       if( blast )
@@ -138,12 +138,12 @@ int main( int argc , char * argv[] )
       vmax = 0 ;
       for( iv=0 ; iv < DSET_NVALS(dset) ; iv++ ){
          ii = load_histo(dset,iv) ;
-         if( ii <= 0 ){ printf(": Can't load data, or illegal data!\n"); break; }
+         if( ii <= 0 ){ fprintf(stderr,": Can't load data, or illegal data!\n"); break; }
          bar = DSET_ARRAY(dset,iv) ;
          for( ii=0 ; ii < nvox ; ii++ ) if( vmax < bar[ii] ) vmax = bar[ii] ;
       }
       if( iv < DSET_NVALS(dset) ) continue ;
-      if( vmax < 40 ){ printf(": Didn't fit noise model!\n"); continue; }
+      if( vmax < 40 ){ fprintf(stderr,": Didn't fit noise model!\n"); continue; }
 
       printf(":") ; fflush(stdout) ;
 
@@ -156,7 +156,7 @@ int main( int argc , char * argv[] )
             cbest = ccc ; mbest = mu ; ii++ ;
             if( mu > 0.05 * vmax ){ ii=0 ; break; }
          } while( 1 ) ;
-         if( ii <= 0 ){ printf(" Didn't fit noise model!\n"); continue; }
+         if( ii <= 0 ){ fprintf(stderr," Didn't fit noise model!\n"); continue; }
       } else {
          mbest = nlxx ;
       }
@@ -165,7 +165,7 @@ int main( int argc , char * argv[] )
       nnn  = 0 ;
       for( ii=0 ; ii <= ncut ; ii++ ) nnn += histo[ii] ;
       perc = (100.0*nnn) / (double)(DSET_NVOX(dset)*DSET_NVALS(dset)) ;
-      printf(" Cutoff=%d  Count=%d [%4.1f%%]",ncut,nnn,perc) ; fflush(stdout) ;
+      fprintf(stderr," Cutoff=%d  Count=%d [%4.1f%%]",ncut,nnn,perc) ;
 
       if( blast && nnn > 0 ){
          int nkilled ;
@@ -189,7 +189,7 @@ int main( int argc , char * argv[] )
                }
             }
          }
-         printf("--blasted %d voxels",nkilled) ; fflush(stdout) ;
+         fprintf(stderr,"--blasted %d voxels\n",nkilled) ;
          { char str[128] ;
            sprintf(str,"3dnoise -- blasted %d voxels",nkilled) ;
            tross_Append_History( dset , str ) ;
@@ -197,7 +197,6 @@ int main( int argc , char * argv[] )
          DSET_write(dset) ;
       }
 
-      printf(".\n") ;
       THD_delete_3dim_dataset( dset , False ) ;
    }
 

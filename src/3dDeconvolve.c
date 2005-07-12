@@ -4648,7 +4648,7 @@ void write_ts_array
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
   if (!  option_data->quiet)
-    printf ("++ Wrote 3D+time dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
+    fprintf(stderr,"++ Wrote 3D+time dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
 
 
   /*----- deallocate memory -----*/

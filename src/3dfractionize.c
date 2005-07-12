@@ -513,7 +513,7 @@ int main( int argc , char * argv[] )
       free(voxout) ;
       EDIT_substitute_brick( dset , 0 , MRI_short , sin ) ;
 
-      printf("-- Writing %d nonzero mask voxels to dataset %s\n",
+      fprintf(stderr,"-- Writing %d nonzero mask voxels to dataset %s\n",
              ijk , DSET_BRIKNAME(dset) ) ;
 
    /*-- if voting, output brick will be in vote_bout or vote_sout --*/
@@ -529,7 +529,7 @@ int main( int argc , char * argv[] )
             if( vote_sout[i] != 0 ) ijk++ ;
       }
 
-      printf("-- Writing %d nonzero voted voxels to dataset %s\n",
+      fprintf(stderr,"-- Writing %d nonzero voted voxels to dataset %s\n",
              ijk , DSET_BRIKNAME(dset) ) ;
    }
 
