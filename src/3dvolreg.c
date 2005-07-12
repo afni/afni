@@ -987,9 +987,9 @@ int main( int argc , char *argv[] )
 
    /*-- save new dataset to disk --*/
 
-   if( VL_verbose )
-     fprintf(stderr,"++ Writing dataset to disk in %s",DSET_BRIKNAME(new_dset));
    DSET_write(new_dset) ;
+   if( VL_verbose )
+     fprintf(stderr,"++ Wrote dataset to disk in %s",DSET_BRIKNAME(new_dset));
    if( VL_verbose ) fprintf(stderr,"\n") ;
 
    /*-- save movement parameters to disk --*/

@@ -732,11 +732,11 @@ int main( int argc , char * argv[] )
 
   
   /*----- Output the hierarchical clustering dataset -----*/
-  if( SC_verb ) printf("Computing sub-brick statistics\n") ;
+  if( SC_verb ) fprintf(stderr,"Computing sub-brick statistics\n") ;
   THD_load_statistics( clust_dset ) ;
 
-  if( SC_verb ) printf("Writing output to %s\n", DSET_BRIKNAME(clust_dset) );
   THD_write_3dim_dataset( NULL,NULL , clust_dset , True ) ;
+  if( SC_verb ) fprintf(stderr,"Wrote output to %s\n", DSET_BRIKNAME(clust_dset) );
   
 
   /*----- Deallocate memory for cluster dataset -----*/   

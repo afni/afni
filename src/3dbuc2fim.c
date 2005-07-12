@@ -527,10 +527,10 @@ int main( int argc , char * argv[] )
    } /* end of loop over input datasets */
 
    
-   if( B2F_verb ) printf("-verb: loading statistics\n") ;
+   if( B2F_verb ) fprintf(stderr,"-verb: loading statistics\n") ;
    THD_load_statistics( new_dset ) ;
-   if( B2F_verb ) printf("-verb: writing output: %s\n",DSET_BRIKNAME(new_dset)) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+   if( B2F_verb ) fprintf(stderr,"-verb: wrote output: %s\n",DSET_BRIKNAME(new_dset)) ;
    
 
    exit(0) ;

@@ -491,12 +491,13 @@ int main( int argc , char * argv[] )
 
    /* write results */
 
-   fprintf(stderr,"++ Writing output dataset %s\n",DSET_BRIKNAME(oset)) ;
-   DSET_write(oset) ; DSET_delete(oset) ;
+   DSET_write(oset) ;
+   fprintf(stderr,"++ Wrote output dataset %s\n",DSET_BRIKNAME(oset)) ;
+   DSET_delete(oset) ;
 
    if( tset != NULL ){
-     fprintf(stderr,"++ Writing -ssave dataset %s\n",DSET_BRIKNAME(tset)) ;
      DSET_write(tset) ;
+     fprintf(stderr,"++ Wrote -ssave dataset %s\n",DSET_BRIKNAME(tset)) ;
    }
 
    exit(0) ;

@@ -245,6 +245,7 @@ int main( int argc , char *argv[] )
 
    /* finito */
 
-   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(cset)) ;
-   DSET_write(cset) ; exit(0) ;
+   DSET_write(cset) ;
+   fprintf(stderr,"++ Wrote dataset: %s\n",DSET_BRIKNAME(cset)) ;
+   exit(0) ;
 }

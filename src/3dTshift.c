@@ -598,7 +598,7 @@ int main( int argc , char *argv[] )
       }
    }
 
-   if( TS_verbose ) printf("++ writing output: %s\n",DSET_BRIKNAME(TS_oset)) ;
    DSET_write( TS_oset ) ;
+   if( TS_verbose ) printf("++ Wrote output: %s\n",DSET_BRIKNAME(TS_oset)) ;
    exit(0) ;
 }

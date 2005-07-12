@@ -14,10 +14,11 @@ THD_3dim_dataset * THD_open_1D( char *pathname )
 {
    THD_3dim_dataset *dset=NULL ;
    MRI_IMAGE *flim ;
-   char prefix[1024] , *ppp , tname[12] ;
+   char prefix[1024] , *ppp , tname[12] , *pn ;
    THD_ivec3 nxyz ;
    THD_fvec3 dxyz , orgxyz ;
-   int nvals ;
+   int nvals , lpn , flip=0 ;
+   FILE *fp ;
 
 ENTRY("THD_open_1D") ;
 
@@ -28,8 +29,11 @@ ENTRY("THD_open_1D") ;
    /*-- check if it is a NIML-ish AFNI dataset;
         if so, read it in that way instead of the 1D way [21 Mar 2003] --*/
 
-   if( strchr(pathname,'[') == NULL ){
-     char *pn = strdup(pathname) ; FILE *fp = fopen(pn,"r") ;
+   if( strchr(pathname,'[') == NULL &&
+       strchr(pathname,'{') == NULL && strchr(pathname,'\'') == NULL ){
+
+     pn = strdup(pathname) ; fp = fopen(pn,"r") ;
+
      if( fp == NULL ){
        char *p1 = strstr(pn,"1D") ;   /* if can't open .1D, try .3D */
        if( p1 != NULL ){
@@ -40,7 +44,7 @@ ENTRY("THD_open_1D") ;
          free(pn); RETURN(NULL);
        }
      }
-     memset(prefix,0,32) ; fread(prefix,1,24,fp) ; fclose(fp) ;
+     memset(prefix,0,133) ; fread(prefix,1,128,fp) ; fclose(fp) ;
      if( strstr(prefix,"<AFNI_") != NULL && strstr(prefix,"dataset") != NULL ){
        dset = THD_open_3D(pn) ;
        if( dset != NULL && strcmp(pathname,pn) != 0 )
@@ -51,16 +55,24 @@ ENTRY("THD_open_1D") ;
 
    /*-- otherwise, read it into an MRI_IMAGE, then mangle image into dataset --*/
 
-   flim = mri_read_1D( pathname ) ;
+   lpn = strlen(pathname) ; pn = strdup(pathname) ;
+
+   flip = (pn[lpn-1] == '\'') ;     /* 12 Jul 2005: allow for tranposing input */
+   if( flip ) pn[lpn-1] = '\0' ;
+
+   flim = mri_read_1D(pn) ;
    if( flim == NULL ){
-     fprintf(stderr,"** Can't read 1D dataset file %s\n",pathname); RETURN(NULL);
+     fprintf(stderr,"** Can't read 1D dataset file %s\n",pn); free(pn); RETURN(NULL);
+   }
+   if( flip ){
+     MRI_IMAGE *qim = mri_transpose(flim); mri_free(flim); flim = qim;
    }
 
    /*-- make a dataset --*/
 
    dset = EDIT_empty_copy(NULL) ;        /* default (useless) dataset */
 
-   ppp  = THD_trailname(pathname,0) ;              /* strip directory */
+   ppp  = THD_trailname(pn,0) ;                   /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;  /* to make prefix */
    ppp  = strchr( prefix , '[' ) ;
    if( ppp != NULL ) *ppp = '\0' ;
@@ -116,7 +128,7 @@ ENTRY("THD_open_1D") ;
 
    /*-- purge image data and return the empty dataset */
 
-   mri_free(flim) ; RETURN(dset) ;
+   mri_free(flim) ; free(pn) ; RETURN(dset) ;
 }
 
 /*-----------------------------------------------------------------*/
@@ -130,6 +142,7 @@ void THD_load_1D( THD_datablock *dblk )
    MRI_IMAGE *flim ;
    int nxyz , nbad,iv,nv ;
    float *bar , *flar ;
+   char *pn ; int lpn , flip=0 ;
 
 ENTRY("THD_load_1D") ;
 
@@ -145,10 +158,18 @@ ENTRY("THD_load_1D") ;
 
    if( nxyz*nv > 1000000 ) fprintf(stderr,"++ Reading %s\n",dkptr->brick_name) ;
 
-   flim = mri_read_1D( dkptr->brick_name ) ;
+   pn = strdup(dkptr->brick_name) ; lpn = strlen(pn) ;
+   flip = (pn[lpn-1] == '\'') ;     /* 12 Jul 2005: allow for tranposing input */
+   if( flip ) pn[lpn-1] = '\0' ;
+
+   flim = mri_read_1D(pn) ; free(pn) ;
+
    if( flim == NULL ){
      fprintf(stderr,"** THD_load_1D(%s): can't read file!\n",dkptr->brick_name) ;
      EXRETURN ;
+   }
+   if( flip ){
+     MRI_IMAGE *qim = mri_transpose(flim); mri_free(flim); flim = qim;
    }
 
    /*-- allocate space for data --*/
@@ -206,7 +227,7 @@ void THD_write_1D( char *sname, char *pname , THD_3dim_dataset *dset )
 {
    char fname[THD_MAX_NAME] , *cpt ;
    int iv,nv , nx,ny,nz,nxyz,ii,jj,kk ;
-   FILE *fp ;
+   FILE *fp=NULL ;
    int binflag ; char shp ; float val[1] ;
 
 ENTRY("THD_write_1D") ;
@@ -220,69 +241,80 @@ ENTRY("THD_write_1D") ;
 
    /* make up a filename for output (into fname) */
 
-   if( pname != NULL ){        /* have input prefix */
-     if( sname != NULL ){      /* and input session (directory) */
-       strcpy(fname,sname) ;
-       ii = strlen(fname) ; if( fname[ii-1] != '/' ) strcat(fname,"/") ;
-     } else {
-       strcpy(fname,"./") ;    /* don't have input session */
+   cpt = DSET_PREFIX(dset) ;
+   if( (pname != NULL && *pname == '-') ||
+       (pname == NULL && *cpt   == '-')   ){  /* 12 Jul 2005: to stdout */
+     fp = stdout ; strcpy(fname,"stdout") ; binflag = 0 ;
+   }
+
+   if( fp == NULL ){
+     if( pname != NULL ){        /* have input prefix */
+       if( sname != NULL ){      /* and input session (directory) */
+         strcpy(fname,sname) ;
+         ii = strlen(fname) ; if( fname[ii-1] != '/' ) strcat(fname,"/") ;
+       } else {
+         strcpy(fname,"./") ;    /* don't have input session */
+       }
+       strcat(fname,pname) ;
+     } else {                    /* don't have input prefix */
+       cpt = DSET_PREFIX(dset) ;
+       if( STRING_HAS_SUFFIX(cpt,".3D") || STRING_HAS_SUFFIX(cpt,".1D") )
+         strcpy(fname,cpt) ;
+       else
+         strcpy(fname,DSET_BRIKNAME(dset)) ;
+
+       cpt = strchr(fname,'[') ;
+       if( cpt != NULL ) *cpt = '\0' ;                  /* without subscripts! */
      }
-     strcat(fname,pname) ;
-   } else {                    /* don't have input prefix */
-     cpt = DSET_PREFIX(dset) ;
-     if( STRING_HAS_SUFFIX(cpt,".3D") || STRING_HAS_SUFFIX(cpt,".1D") )
-       strcpy(fname,cpt) ;
-     else
-       strcpy(fname,DSET_BRIKNAME(dset)) ;
+     ii = strlen(fname) ;
+     if( ii > 10 && strstr(fname,".BRIK") != NULL ){    /* delete .BRIK! */
+       fname[ii-10] = '\0' ;
+       if( DSET_IS_1D(dset) || (ny==1 && nz==1) )
+         strcat(fname,".1D");
+       else
+         strcat(fname,".3D");                           /* 21 Mar 2003 */
+     }
 
-     cpt = strchr(fname,'[') ;
-     if( cpt != NULL ) *cpt = '\0' ;                  /* without subscripts! */
-   }
-   ii = strlen(fname) ;
-   if( ii > 10 && strstr(fname,".BRIK") != NULL ){    /* delete .BRIK! */
-     fname[ii-10] = '\0' ;
-     if( DSET_IS_1D(dset) || (ny==1 && nz==1) ) strcat(fname,".1D");
-     else                                       strcat(fname,".3D");  /* 21 Mar 2003 */
+     fp = fopen( fname , "w" ) ; if( fp == NULL ) EXRETURN ;
+     binflag = STRING_HAS_SUFFIX(fname,".3D") && AFNI_yesenv("AFNI_3D_BINARY") ;
    }
 
-   /* open output file */
-
-   fp = fopen( fname , "w" ) ; if( fp == NULL ) EXRETURN ;
+   strcpy( dset->dblk->diskptr->brick_name , fname ); /* 12 Jul 2005 */
 
    /* are we going to write in binary? [03 Jun 2005] */
 
-   binflag = STRING_HAS_SUFFIX(fname,".3D") && AFNI_yesenv("AFNI_3D_BINARY") ;
-   shp     = (binflag) ? ' ' : '#' ;
+   shp = (binflag) ? ' ' : '#' ;
 
    /* write some dataset info as NIML-style header/comments */
 
-   fprintf(fp,
-              "%c <AFNI_3D_dataset\n"
-              "%c  self_idcode = \"%s\"\n"
-              "%c  ni_type     = \"%d*float\"\n"    /* all columns are floats! */
-              "%c  ni_dimen    = \"%d,%d,%d\"\n"
-              "%c  ni_delta    = \"%g,%g,%g\"\n"
-              "%c  ni_origin   = \"%g,%g,%g\"\n"
-              "%c  ni_axes     = \"%s,%s,%s\"\n"
-           ,
-              shp ,
-              shp , dset->idcode.str ,
-              shp , nv ,
-              shp , nx,ny,nz ,
-              shp , DSET_DX(dset)  , DSET_DY(dset)  , DSET_DZ(dset)  ,
-              shp , DSET_XORG(dset), DSET_YORG(dset), DSET_ZORG(dset),
-              shp , ORIENT_shortstr[dset->daxes->xxorient] ,
-                     ORIENT_shortstr[dset->daxes->yyorient] ,
-                       ORIENT_shortstr[dset->daxes->zzorient]
-          ) ;
+   if( fp != stdout )
+     fprintf(fp,
+                "%c <AFNI_3D_dataset\n"
+                "%c  self_idcode = \"%s\"\n"
+                "%c  ni_type     = \"%d*float\"\n"    /* all columns are floats! */
+                "%c  ni_dimen    = \"%d,%d,%d\"\n"
+                "%c  ni_delta    = \"%g,%g,%g\"\n"
+                "%c  ni_origin   = \"%g,%g,%g\"\n"
+                "%c  ni_axes     = \"%s,%s,%s\"\n"
+             ,
+                shp ,
+                shp , dset->idcode.str ,
+                shp , nv ,
+                shp , nx,ny,nz ,
+                shp , DSET_DX(dset)  , DSET_DY(dset)  , DSET_DZ(dset)  ,
+                shp , DSET_XORG(dset), DSET_YORG(dset), DSET_ZORG(dset),
+                shp , ORIENT_shortstr[dset->daxes->xxorient] ,
+                       ORIENT_shortstr[dset->daxes->yyorient] ,
+                         ORIENT_shortstr[dset->daxes->zzorient]
+            ) ;
 
-   if( HAS_TIMEAXIS(dset) ){
+   if( fp != stdout && HAS_TIMEAXIS(dset) ){
      float dt = DSET_TR(dset) ;
      if( DSET_TIMEUNITS(dset) == UNITS_MSEC_TYPE ) dt *= 0.001 ;
      fprintf(fp , "%c  ni_timestep = \"%g\"\n" , shp,dt ) ;
    }
 
-   if( binflag )
+   if( fp != stdout && binflag )
      fprintf(fp , "   ni_form     = \"binary.%s\"\n" ,
                   (NI_byteorder()==NI_LSB_FIRST) ? "lsbfirst" : "msbfirst" ) ;
 
@@ -291,7 +323,7 @@ ENTRY("THD_write_1D") ;
    for( ii=iv=0 ; iv < nv ; iv++ )
      if( DSET_BRICK_STATCODE(dset,iv) > 0 ) ii++ ;
 
-   if( ii > 0 ){
+   if( fp != stdout && ii > 0 ){
       fprintf(fp, "%c  ni_stat     = \"",shp) ;
       for( iv=0 ; iv < nv ; iv++ ){
         ii = DSET_BRICK_STATCODE(dset,iv) ;
@@ -313,9 +345,11 @@ ENTRY("THD_write_1D") ;
 
    /* close NIML-style header */
 
-   if( binflag ) fprintf(fp," >") ;
-   else          fprintf(fp,"# >\n") ;
-   fflush(fp) ;
+   if( fp != stdout ){
+     if( binflag ) fprintf(fp," >") ;
+     else          fprintf(fp,"# >\n") ;
+     fflush(fp) ;
+   }
 
    /* now write data */
 
@@ -372,7 +406,12 @@ ENTRY("THD_write_1D") ;
 
    /* NIML-style trailer */
 
-   fflush(fp) ; fprintf(fp,"%c </AFNI_3D_dataset>\n",shp) ;
+   fflush(fp) ;
 
-   fclose(fp) ; EXRETURN ;
+   if( fp != stdout ){
+     fprintf(fp,"%c </AFNI_3D_dataset>\n",shp) ;
+     fclose(fp) ;
+   }
+
+   EXRETURN ;
 }
