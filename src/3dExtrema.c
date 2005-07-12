@@ -1594,11 +1594,11 @@ void write_bucket ()
 
 
   /*----- Output the extrema dataset -----*/
-  if( !EX_quiet ) printf("Computing sub-brick statistics\n") ;
+  if( !EX_quiet ) fprintf(stderr,"Computing sub-brick statistics\n") ;
   THD_load_statistics( new_dset ) ;
 
-  if( !EX_quiet ) printf("Writing output dataset: %s\n", DSET_BRIKNAME(new_dset) );
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+  if( !EX_quiet ) fprintf(stderr,"Wrote output dataset: %s\n", DSET_BRIKNAME(new_dset) );
   
 
   /*----- Deallocate memory for extrema dataset -----*/   

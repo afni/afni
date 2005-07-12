@@ -270,9 +270,9 @@ int main( int argc , char * argv[] )
 
    /*- do the output header -*/
 
-   if( verbose ) printf("++ Writing new dataset .HEAD\n") ;
-
    DSET_load( new_dset ) ; THD_load_statistics( new_dset ) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , False ) ;
+   if( verbose ) fprintf(stderr,"++ Wrote new dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
+
    exit(0) ;
 }

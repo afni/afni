@@ -487,8 +487,9 @@ int main( int argc , char * argv[] )
 
         /* write dataset out */
 
-        fprintf(stderr,"++ Writing dataset %s\n",DSET_BRIKNAME(dset)) ;
-        DSET_write(dset) ; PURGE_DSET(dset) ; free(mmm) ;
+        DSET_write(dset) ;
+        fprintf(stderr,"++ Wrote dataset %s\n",DSET_BRIKNAME(dset)) ;
+        PURGE_DSET(dset) ; free(mmm) ;
       }
 
       /** sort clusters by size, to make a nice report **/

@@ -500,7 +500,6 @@ int main( int argc , char *argv[] )
   /*-- write dataset header --*/
 
   THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
-
   fprintf(stderr,"++ Wrote dataset header %s\n",DSET_HEADNAME(dset)) ;
   exit(0) ;
 }

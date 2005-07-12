@@ -658,8 +658,8 @@ int main( int argc , char * argv[] )
 
    } /* end of loop over input files */
 
-   fprintf(stderr,"+++ Writing results to dataset %s\n",DSET_BRIKNAME(dset)) ;
    tross_Make_History( "3dUndump" , argc,argv , dset ) ;
    DSET_write(dset) ;
+   fprintf(stderr,"+++ Wrote results to dataset %s\n",DSET_BRIKNAME(dset)) ;
    exit(0) ;
 }

@@ -470,8 +470,8 @@ int main(int argc, char * argv[])
 
    /*-- write out new dataset --*/
 
-   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
    DSET_write(new_dset);
+   fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
 
    /*-- done successfully!!! --*/
 

@@ -4642,15 +4642,13 @@ void write_ts_array
 
 
   /*----- write afni data set -----*/
-  if (!  option_data->quiet){
-    printf ("++ Writing 3D+time dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
-    fflush(stdout) ;
-  }
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
+  if (!  option_data->quiet)
+    printf ("++ Wrote 3D+time dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
 
 
   /*----- deallocate memory -----*/
@@ -5054,9 +5052,9 @@ void write_bucket_data
     }  /*  if (! option_data->nocout)  */
 
     if( coef_dset != NULL ){
-      if( !option_data->quiet )
-        fprintf(stderr,"++ Writing cbucket to %s\n",DSET_BRIKNAME(coef_dset)) ;
       DSET_write(coef_dset) ;
+      if( !option_data->quiet )
+        fprintf(stderr,"++ Wrote cbucket to %s\n",DSET_BRIKNAME(coef_dset)) ;
       DSET_delete(coef_dset) ; coef_dset = NULL ;
     }
 
@@ -5161,12 +5159,11 @@ void write_bucket_data
 
 
   /*----- write bucket data set -----*/
-  if (! option_data->quiet){
-    printf("++ Writing bucket dataset into %s\n",  DSET_BRIKNAME(new_dset));
-    fflush(stdout) ;
-  }
+
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+  if (! option_data->quiet)
+    printf("++ Wrote bucket dataset into %s\n",  DSET_BRIKNAME(new_dset));
 
 
   /*----- deallocate memory -----*/
@@ -7642,10 +7639,10 @@ void basis_write_iresp( int argc , char *argv[] ,
 
    /* and save the results to disk! */
 
-   if( verb )
-    fprintf(stderr,"++ Writing iresp 3D+time dataset into %s\n",DSET_BRIKNAME(out_dset)) ;
-
    DSET_write( out_dset ) ;
+   if( verb )
+    fprintf(stderr,"++ Wrote iresp 3D+time dataset into %s\n",DSET_BRIKNAME(out_dset)) ;
+
    DSET_delete( out_dset ) ;
    return ;
 }
@@ -7774,10 +7771,10 @@ void basis_write_sresp( int argc , char *argv[] ,
 
    /* and save the results to disk! */
 
-   if( verb )
-    fprintf(stderr,"++ Writing sresp 3D+time dataset into %s\n",DSET_BRIKNAME(out_dset)) ;
-
    DSET_write( out_dset ) ;
+   if( verb )
+    fprintf(stderr,"++ Wrote sresp 3D+time dataset into %s\n",DSET_BRIKNAME(out_dset)) ;
+
    DSET_delete( out_dset ) ;
    return ;
 }

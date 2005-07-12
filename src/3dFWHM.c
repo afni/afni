@@ -304,7 +304,7 @@ void get_options (int argc, char ** argv, input_options * option_data)
   Routine to check for valid inputs.
 */
   
-void check_for_valid_inputs (option_data)
+void check_for_valid_inputs (input_options *option_data)
 {
 }
 

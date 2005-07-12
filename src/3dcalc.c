@@ -1828,9 +1828,9 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"++ Computing output statistics\n") ;
    THD_load_statistics( new_dset ) ;
 
-   if( CALC_verbose )
-      fprintf(stderr,"++ Writing output: %s\n",DSET_BRIKNAME(new_dset)) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+   if( CALC_verbose )
+      fprintf(stderr,"++ Wrote output: %s\n",DSET_BRIKNAME(new_dset)) ;
 
    exit(0) ;
 }

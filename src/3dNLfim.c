@@ -2444,11 +2444,9 @@ void write_bucket_data
 
 
   /*----- write bucket data set -----*/
-  printf("++ Writing `bucket' dataset ");
-  printf("into %s\n", DSET_HEADNAME(new_dset));
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
-
+  fprintf(stderr,"++ Wrote bucket dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
   
   /*----- deallocate memory -----*/   
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
@@ -2560,13 +2558,12 @@ void write_3dtime
 
 
   /*----- write afni data set -----*/
-  printf ("++ Writing 3d+time dataset into %s\n",
-	  new_dset->dblk->diskptr->header_name);
 
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
 
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
+  fprintf (stderr,"++ Wrote 3D+time dataset %s\n",DSET_BRIKNAME(new_dset)) ;
 
 
   /*----- deallocate memory -----*/   

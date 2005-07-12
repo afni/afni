@@ -5629,3 +5629,9 @@
  * Fixed Makefile.macosx_10.? to suppress multiply-defined symbol errors.
  * Modified 3drefit.c and 3dcopy.c to add '-denote' option, to remove notes
      and other potentially identifying attributes.
+
+12 Jul 2005
+ * Modify thd_1Ddset.c so that a 1D filename ending in a ' character will be
+     transposed on input (as a dataset), so that columnar datasets can be
+     treated as time, without using 1dtranspose and a temporary file.  Also,
+     if prefix starts with '-' character, will write .1D datasets to stdout.

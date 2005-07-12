@@ -29,7 +29,7 @@ int main( int argc , char * argv[] )
 
    machdep() ;
 
-   if( !THD_filename_ok(argv[2]) ){
+   if( argc > 2 && !THD_filename_ok(argv[2]) ){
       fprintf(stderr,"** Illegal output filename!\n"); exit(1);
    }
    if( argc > 2 && strcmp(argv[2],"-") != 0 && THD_is_file(argv[2]) ){
@@ -43,6 +43,6 @@ int main( int argc , char * argv[] )
      fprintf(stderr,"** Can't read input file!\n"); exit(1);
    }
 
-   mri_write_ascii( (argc >2) ? argv[2] : "-" , inim ) ;
+   mri_write_ascii( (argc>2) ? argv[2] : "-" , inim ) ;
    exit(0) ;
 }

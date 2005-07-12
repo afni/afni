@@ -104,6 +104,7 @@ ENTRY("THD_write_3dim_dataset") ;
        ii = 0 ;
      } else {
        ii = THD_write_nifti(dset,options) ;
+       strcpy( dset->dblk->diskptr->brick_name , options.infile_name ) ;
      }
 
      free((void *)options.infile_name) ;

@@ -306,9 +306,9 @@ fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
    tross_Copy_History( dset , mset ) ;
    tross_Make_History( "3dAutomask", argc,argv, mset ) ;
 
-   if( verb )
-     fprintf(stderr,"++ Writing mask dataset to %s\n",DSET_BRIKNAME(mset)) ;
    DSET_write( mset ) ;
+   if( verb )
+     fprintf(stderr,"++ Wrote mask dataset to %s\n",DSET_BRIKNAME(mset)) ;
    if( verb )
      fprintf(stderr,"++ CPU time = %f sec\n",COX_cpu_time()) ;
    exit(0) ;
