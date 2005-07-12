@@ -299,7 +299,7 @@ main (int argc, char *argv[])
       }
       tross_Make_History ("3dDTtoDWI", argc, argv, new_dset);
       DSET_write (new_dset);
-      printf ("--- Output dataset %s\n", DSET_BRIKNAME(new_dset));
+      fprintf(stderr,"--- Output dataset %s\n", DSET_BRIKNAME(new_dset));
     }
   else
     {
