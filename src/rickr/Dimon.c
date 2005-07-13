@@ -3,10 +3,11 @@ static char g_history[] =
     "----------------------------------------------------------------------\n"
     " history:\n"
     "\n"
-    " 1.0  initial release\n"
+    " 1.0  Jul  5, 2005 [rickr] - initial release\n"
+    " 1.1  Jul 13, 2005 [rickr] - process run of fewer than 3 slices\n"
     "----------------------------------------------------------------------\n";
 
-#define DIMON_VERSION "version 1.0 (July 5, 2005)"
+#define DIMON_VERSION "version 1.1 (July 13, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -20,6 +21,7 @@ static char g_history[] =
  * ok - find memory leak in dicom reader
  * ok - make this work for a single volume (e.g. anatomical)
  * ok - process run of single-slice volumes
+ * ok - process run of fewer than 3 slices
  * ok - remove tabs
  *----------------------------------------------------------------------
 */
@@ -487,7 +489,7 @@ static int volume_search(
     else
         bound = first + maxsl;
 
-    if ( ( bound-first < 3) ||
+    if ( ( bound-first < 1) ||      /* from 3              8 Jul 2005 */
          ((bound-first < 4) && !p->opts.use_dicom) )
         return 0;                   /* not enough data to work with   */
 
@@ -583,7 +585,41 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     float     delta, z_orig, prev_z, dz;
     int       run0, run1, first, next, last;
 
-    if(bound <= 2){fprintf(stderr,"** cov: bad bound %d\n",bound); return 0;}
+    if( bound <= start )
+    {
+        fprintf(stderr,"error: COV: bad bound, start (%d,%d)\n", bound, start);
+        return -2;
+    }
+
+    /* if state is 2 and we have only 1 or 2 images, return quickly */
+    if( state == 2 && (bound-start) < 3 )
+    {
+        if( gD.level > 1 )
+            fprintf(stderr,"-d stall after only %d slices\n", bound-start);
+        *r_first = start;
+        if( (bound-start) == 1 ) /* then only one slice */
+        {
+            *r_last = start;
+            *r_delta = 1.0;  /* doesn't really matter, but 0 may be bad */
+        }
+        else /* 2 slices, so 1 volume of 2 slices or 2 volumes of 1 slice */
+        {
+            delta = p->flist[start+1].geh.zoff - p->flist[start].geh.zoff;
+            if ( fabs(delta) < IFM_EPSILON )  /* one slice per volume */
+            {
+                *r_last = start;
+                *r_delta = 1.0;
+            }
+            else                              /* two slices per volume */
+            {
+                *r_last = start+1;
+                *r_delta = delta;
+            }
+        }
+        return 1;  /* done */
+    }
+    else if ( bound-start < 3 )
+        return 0;
 
     first = start;
     delta = p->flist[first+1].geh.zoff - p->flist[first].geh.zoff;
@@ -595,7 +631,8 @@ int check_one_volume(param_t *p, int start, int *fl_start, int bound, int state,
     if ( (fabs(delta) < IFM_EPSILON) || (run1 != run0) )
     {
         /* consider this a single slice volume */
-        if ( p->opts.use_dicom ){
+        if ( p->opts.use_dicom )
+        {
             if( gD.level > 1 ) fprintf(stderr,"+d found single slice volume\n");
             *r_first = *r_last = first;
             *r_delta = 1.0;   /* make one up, zero may be bad */
