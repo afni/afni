@@ -1418,6 +1418,25 @@ STATUS("imag->view_frame") ;
    MCW_reghint_children( imag->yzx_rowcol , "Open/raise viewing window" ) ;
    MCW_reghint_children( imag->zxy_rowcol , "Open/raise viewing window" ) ;
 
+   XtInsertEventHandler( imag->image_xyz_pb ,
+                           ButtonPressMask , FALSE ,
+                           AFNI_viewbut_EV , (XtPointer)im3d , XtListTail ) ;
+   XtInsertEventHandler( imag->graph_xyz_pb ,
+                           ButtonPressMask , FALSE ,
+                           AFNI_viewbut_EV , (XtPointer)im3d , XtListTail ) ;
+   XtInsertEventHandler( imag->image_yzx_pb ,
+                           ButtonPressMask , FALSE ,
+                           AFNI_viewbut_EV , (XtPointer)im3d , XtListTail ) ;
+   XtInsertEventHandler( imag->graph_yzx_pb ,
+                           ButtonPressMask , FALSE ,
+                           AFNI_viewbut_EV , (XtPointer)im3d , XtListTail ) ;
+   XtInsertEventHandler( imag->image_zxy_pb ,
+                           ButtonPressMask , FALSE ,
+                           AFNI_viewbut_EV , (XtPointer)im3d , XtListTail ) ;
+   XtInsertEventHandler( imag->graph_zxy_pb ,
+                           ButtonPressMask , FALSE ,
+                           AFNI_viewbut_EV , (XtPointer)im3d , XtListTail ) ;
+
    /* imaging column finished, so manage its pieces */
 
    XtManageChild( imag->crosshair_rowcol ) ;
