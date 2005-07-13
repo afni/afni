@@ -266,7 +266,9 @@ void parset_bilinear(void)
 {
    THD_mat33 ai ; THD_fvec3 df,di ; int j,k ;
 
-   parset_affine() ;  /* sets up numerator matrices */
+   parset_affine() ;  /* sets up numerator matrices: mv_for and mv_inv */
+
+   /* load forward denominator 3-tensor */
 
    dd_for[0][0][0] = parvec[12]; dd_for[0][0][1] = parvec[13]; dd_for[0][0][2] = parvec[14];
    dd_for[0][1][0] = parvec[15]; dd_for[0][1][1] = parvec[16]; dd_for[0][1][2] = parvec[17];
@@ -277,6 +279,8 @@ void parset_bilinear(void)
    dd_for[2][0][0] = parvec[30]; dd_for[2][0][1] = parvec[31]; dd_for[2][0][2] = parvec[32];
    dd_for[2][1][0] = parvec[33]; dd_for[2][1][1] = parvec[34]; dd_for[2][1][2] = parvec[35];
    dd_for[2][2][0] = parvec[36]; dd_for[2][2][1] = parvec[37]; dd_for[2][2][2] = parvec[38];
+
+   /* computer inverse denominator 3-tensor */
 
    ai = mv_inv.mm ;
    for( k=0 ; k < 3 ; k++ ){
