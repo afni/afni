@@ -5114,6 +5114,58 @@ STATUS("realizing new grapher") ;
    EXRETURN ;
 }
 
+/*--------------------------------------------------------------------------*/
+/* Button-3 click on an Image or Graph button:
+   recall the corresponding window from offscreen purgatory.  [13 Jul 2005]
+----------------------------------------------------------------------------*/
+
+#undef  GETWIN
+#define GETWIN(w)                                             \
+  do{ XtVaSetValues( (w) , XmNx,(int)(event->x_root),         \
+                           XmNy,(int)(event->y_root), NULL ); \
+      XMapRaised( XtDisplay(w) , XtWindow(w) ) ;              \
+  } while(0)
+
+void AFNI_viewbut_EV( Widget w , XtPointer cd ,
+                      XEvent *ev , Boolean *continue_to_dispatch )
+{
+   Three_D_View *im3d = (Three_D_View *)cd ;
+   XButtonEvent *event=(XButtonEvent *)ev ;
+
+   MCW_imseq   *sxyz , *syzx , *szxy ;
+   MCW_grapher *gxyz , *gyzx , *gzxy ;
+   Widget      pb_xyz , pb_yzx , pb_zxy ;
+   Widget      gr_xyz , gr_yzx , gr_zxy ;
+
+ENTRY("AFNI_viewbut_EV") ;
+
+   if( ev->type != ButtonPress || !IM3D_VALID(im3d) ) EXRETURN ;
+   if( event->button != Button3 ) EXRETURN ;
+
+   sxyz = im3d->s123 ; gxyz = im3d->g123 ;  /* viewer structs */
+   syzx = im3d->s231 ; gyzx = im3d->g231 ;
+   szxy = im3d->s312 ; gzxy = im3d->g312 ;
+
+   pb_xyz = im3d->vwid->imag->image_xyz_pb ;  /* buttons */
+   pb_yzx = im3d->vwid->imag->image_yzx_pb ;
+   pb_zxy = im3d->vwid->imag->image_zxy_pb ;
+
+   gr_xyz = im3d->vwid->imag->graph_xyz_pb ;
+   gr_yzx = im3d->vwid->imag->graph_yzx_pb ;
+   gr_zxy = im3d->vwid->imag->graph_zxy_pb ;
+
+   /* if the input Widget matches a button, and the item is open, get it */
+
+        if( w == pb_xyz && ISQ_REALZ(sxyz) ) GETWIN(sxyz->wtop) ;
+   else if( w == pb_yzx && ISQ_REALZ(syzx) ) GETWIN(syzx->wtop) ;
+   else if( w == pb_zxy && ISQ_REALZ(szxy) ) GETWIN(szxy->wtop) ;
+   else if( w == gr_xyz && GRA_REALZ(gxyz) ) GETWIN(gxyz->fdw_graph) ;
+   else if( w == gr_yzx && GRA_REALZ(gyzx) ) GETWIN(gyzx->fdw_graph) ;
+   else if( w == gr_zxy && GRA_REALZ(gzxy) ) GETWIN(gzxy->fdw_graph) ;
+
+   EXRETURN ;
+}
+
 /*------------------------------------------------------------------------*/
 
 void AFNI_redisplay_func( Three_D_View * im3d )  /* 05 Mar 2002 */
