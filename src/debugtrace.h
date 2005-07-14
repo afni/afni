@@ -213,4 +213,12 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #endif
 /*---------------------------------------------------------------*/
 
+#include <stdarg.h>
+extern void INFO_message   ( char *fmt , ... ) ;  /* 13 Jul 2005 */
+extern void WARNING_message( char *fmt , ... ) ;
+extern void ERROR_message  ( char *fmt , ... ) ;
+extern void ERROR_exit     ( char *fmt , ... ) ;
+#define FATAL_ERROR_message ERROR_exit
+
+
 #endif /* _MCW_DEBUGTRACE_ */

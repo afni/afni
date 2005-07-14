@@ -1103,4 +1103,19 @@ extern double mri_entropy8 ( MRI_IMAGE * ) ;  /* 09 Jan 2004 */
 
 /*------------------------------------------------------------------*/
 
+#include "AFNI_label.h"
+#undef  PRINT_VERSION
+#define PRINT_VERSION(pp) \
+  INFO_message("Program %s: AFNI version=%s",(pp),AFNI_VERSION_LABEL)
+
+#undef  WROTE_DSET_MSG
+#define WROTE_DSET_MSG(dd,ss) \
+  INFO_message("Output dataset %s {%s}",DSET_BRIKNAME(dd),(ss))
+
+#undef  WROTE_DSET
+#define WROTE_DSET(dd) \
+  INFO_message("Output dataset %s",DSET_BRIKNAME(dd))
+
+/*------------------------------------------------------------------*/
+
 #endif /* _MCW_MRILIB_HEADER_ */

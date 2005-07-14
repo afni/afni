@@ -115,6 +115,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dAnhist main"); machdep(); AFNI_logger("3dAnhist",argc,argv);
+   PRINT_VERSION("3dAnhist") ;
 
    /*-- options --*/
 

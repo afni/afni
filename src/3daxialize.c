@@ -75,6 +75,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3daxialize main"); machdep(); AFNI_logger("3daxialize",argc,argv);
+   PRINT_VERSION("3daxialize") ;
 
    /*- scan options -*/
 

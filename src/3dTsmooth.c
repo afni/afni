@@ -116,6 +116,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dTsmooth main"); machdep(); AFNI_logger("3dTsmooth",argc,argv);
+   PRINT_VERSION("3dTsmooth") ;
 
    /* parse options */
 

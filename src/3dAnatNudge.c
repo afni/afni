@@ -84,6 +84,7 @@ int main( int argc , char *argv[] )
    }
 
    mainENTRY("3dAnatNudge"); machdep(); AFNI_logger("3dAnatNudge",argc,argv);
+   PRINT_VERSION("3dAnatNudge");
 
    while( nopt < argc ){
 

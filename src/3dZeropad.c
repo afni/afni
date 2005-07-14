@@ -80,6 +80,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dZeropad main"); machdep(); AFNI_logger("3dZeropad",argc,argv);
+   PRINT_VERSION("3dZeropad") ;
 
    /*-- read command line options --*/
 

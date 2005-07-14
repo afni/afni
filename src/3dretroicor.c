@@ -137,7 +137,7 @@ int main(int argc, char * argv[])
        exit(-1);
    }
 
-   mainENTRY("3dretroicor main");
+   mainENTRY("3dretroicor main"); PRINT_VERSION("3dretroicor") ;
    machdep();
    AFNI_logger("3dretroicor", argc, argv);
 

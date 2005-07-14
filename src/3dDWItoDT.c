@@ -156,6 +156,7 @@ main (int argc, char *argv[])
   mainENTRY ("3dDWItoDT main");
   machdep ();
   AFNI_logger ("3dDWItoDT", argc, argv);
+  PRINT_VERSION("3dDWItoDT") ;
 
   nopt = 1;
   nbriks = 6;		/* output contains 6 sub-briks by default */

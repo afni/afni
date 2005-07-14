@@ -41,6 +41,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dRowFillin main"); machdep(); AFNI_logger("3dRowFillin",argc,argv);
+   PRINT_VERSION("3dRowFillin") ;
 
    /*-- scan args --*/
 

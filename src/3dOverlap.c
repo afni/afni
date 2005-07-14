@@ -32,7 +32,7 @@ int main( int argc , char * argv[] )
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   mainENTRY("3dOverlap main") ; machdep() ;
+   mainENTRY("3dOverlap main") ; machdep() ; PRINT_VERSION("3dOverlap") ;
 
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
