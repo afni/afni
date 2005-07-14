@@ -88,6 +88,8 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
+   mainENTRY("3dAFNItoANALYZE main"); machdep(); PRINT_VERSION("3dAFNItoANALYZE");
+
    /*-- read inputs --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){

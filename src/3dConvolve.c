@@ -288,7 +288,6 @@ void get_options
 
 
   /*-- addto the arglist, if user wants to --*/
-  machdep() ;
   { int new_argc ; char ** new_argv ;
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -300,6 +299,7 @@ void get_options
 
   
   /*----- add to program log -----*/
+  mainENTRY("3dConvolve"); machdep(); PRINT_VERSION("3dConvolve");
   AFNI_logger (PROGRAM_NAME,argc,argv); 
 
   

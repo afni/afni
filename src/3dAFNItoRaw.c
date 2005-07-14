@@ -42,6 +42,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dAFNItoRaw main"); machdep(); AFNI_logger("3dAFNItoRaw",argc,argv);
+   PRINT_VERSION("3dAFNItoRaw") ;
    nopt = 1;
    while( nopt < argc && argv[nopt][0] == '-' ){
     if( (strcmp(argv[nopt],"-output") == 0 ) || (strcmp(argv[nopt],"-prefix")==0))

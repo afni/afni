@@ -51,6 +51,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dWinsor main"); machdep(); AFNI_logger("3dWinsor",argc,argv);
+   PRINT_VERSION("3dWinsor") ;
 
    /*-- scan command line --*/
 

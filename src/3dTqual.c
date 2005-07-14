@@ -214,6 +214,7 @@ int main( int argc , char *argv[] )
    }
 
    mainENTRY("3dTqual main"); machdep(); AFNI_logger("3dTqual",argc,argv);
+   PRINT_VERSION("3dTqual");
 
    /*-- option processing --*/
 

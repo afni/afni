@@ -159,7 +159,7 @@ int main( int argc , char * argv[] )
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   mainENTRY("3dUndump main") ; machdep() ;
+   mainENTRY("3dUndump main") ; machdep() ; PRINT_VERSION("3dUndump");
 
    machdep() ;
    { int new_argc ; char ** new_argv ;

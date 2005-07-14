@@ -221,6 +221,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dZcat main") ; machdep() ; AFNI_logger("3dZcat",argc,argv) ;
+   PRINT_VERSION("3dZcat") ;
 
    ZCAT_read_opts( argc , argv ) ;
 

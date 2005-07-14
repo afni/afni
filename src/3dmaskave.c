@@ -128,6 +128,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dmaskave main"); machdep(); AFNI_logger("3dmaskave",argc,argv);
+   PRINT_VERSION("3dmaskave") ;
 
    /* scan argument list */
 

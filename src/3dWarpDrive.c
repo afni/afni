@@ -443,6 +443,7 @@ int main( int argc , char * argv[] )
    /*-- startup mechanics --*/
 
    mainENTRY("3dWarpDrive main"); machdep(); AFNI_logger("3dWarpDrive",argc,argv);
+   PRINT_VERSION("3dWarpDrive") ;
 
    /* initialize parameters of the alignment basis struct */
 

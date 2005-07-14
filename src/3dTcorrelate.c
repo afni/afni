@@ -63,6 +63,7 @@ int main( int argc , char *argv[] )
    }
 
    mainENTRY("3dTCorrelate main"); machdep(); AFNI_logger("3dTcorrelate",argc,argv);
+   PRINT_VERSION("3dTcorrelate") ;
 
    /*-- option processing --*/
 

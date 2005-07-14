@@ -552,19 +552,23 @@ void identify_software ()
 {
 
   /*----- Identify software -----*/
+#if 1
+  PRINT_VERSION("3dDeconvolve") ;
+#else
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
   printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
-#ifdef USE_ALTIVEC
-  printf ("Compiled with Altivec acceleration for Mac OS X\n") ;
-#elif defined(USE_SUNPERF) && !defined(FLOATIZE)
-  printf ("Compiled with BLAS-1 acceleration for Solaris\n") ;
-#elif defined(USE_SCSLBLAS)
-  printf ("Compiled with BLAS-1 acceleration for SGI Altix\n") ;
 #endif
-  printf ("\n"); fflush(stdout);
+
+#ifdef USE_ALTIVEC
+  INFO_message ("Compiled with Altivec acceleration for Mac OS X\n") ;
+#elif defined(USE_SUNPERF) && !defined(FLOATIZE)
+  INFO_message ("Compiled with BLAS-1 acceleration for Solaris\n") ;
+#elif defined(USE_SCSLBLAS)
+  INFO_message ("Compiled with BLAS-1 acceleration for SGI Altix\n") ;
+#endif
 }
 
 /*---------------------------------------------------------------------------*/
@@ -974,7 +978,7 @@ void get_options
   int nerr ;
 
   /*-- addto the arglist, if user wants to --*/
-  machdep() ; /* RWCox: 20 Apr 2001 */
+  mainENTRY("3dDeconvolve"); machdep() ; /* RWCox: 20 Apr 2001 */
   { int new_argc ; char ** new_argv ;
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }

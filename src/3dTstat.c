@@ -99,6 +99,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dTstat main"); machdep(); AFNI_logger("3dTstat",argc,argv);
+   PRINT_VERSION("3dTstat");
 
    nopt = 1 ;
    nbriks = 0 ;

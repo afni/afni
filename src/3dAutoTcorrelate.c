@@ -63,7 +63,7 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
-   mainENTRY("3dAutoTcorrelate main"); machdep();
+   mainENTRY("3dAutoTcorrelate main"); machdep(); PRINT_VERSION("3dAutoTcorrelate");
    AFNI_logger("3dAutoTcorrelate",argc,argv);
 
    /*-- option processing --*/

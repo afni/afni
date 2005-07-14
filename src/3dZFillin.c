@@ -37,6 +37,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dZFillin main") ; machdep() ; AFNI_logger("3dZfillin",argc,argv) ;
+   PRINT_VERSION(3dZFillin") ;
 
    /*-- scan args --*/
 

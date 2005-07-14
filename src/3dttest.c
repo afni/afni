@@ -442,7 +442,7 @@ int main( int argc , char * argv[] )
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   mainENTRY("3dttest main"); machdep() ;
+   mainENTRY("3dttest main"); machdep() ; PRINT_VERSION("3dttest") ;
 
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;

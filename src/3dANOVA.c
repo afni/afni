@@ -1541,7 +1541,7 @@ int main (int argc, char ** argv)
 {
    anova_options * option_data = NULL;
 
-  
+#if 0  
    /*----- Identify software -----*/
    printf ("\n\n");
    printf ("Program:          %s \n", PROGRAM_NAME);
@@ -1549,11 +1549,13 @@ int main (int argc, char ** argv)
    printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
    printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
    printf ("\n");
+#endif
 
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   machdep() ;
+   mainENTRY("3dANOVA main"); machdep(); PRINT_VERSION("3dANOVA");
+
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }

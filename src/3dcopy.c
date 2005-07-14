@@ -64,6 +64,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dcopy") ; machdep() ; AFNI_logger("3dcopy",argc,argv) ;
+   PRINT_VERSION("3dcopy") ;
 
    /* input arguments */
 
@@ -71,20 +72,16 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-verb")   == 0 ){ verb   = 1; nopt++; continue; }
      if( strcmp(argv[nopt],"-denote") == 0 ){ denote = 1; nopt++; continue; }
    }
-   if( nopt+1 >= argc ){
-     fprintf(stderr,"** ERROR: 3copy needs input AND output filenames!\n") ;
-     exit(1) ;
-   }
+   if( nopt+1 >= argc )
+     ERROR_exit("3copy needs input AND output filenames!\n") ;
 
    old_name = argv[nopt++] ; old_len = strlen(old_name) ;
    new_name = argv[nopt++] ; new_len = strlen(new_name) ;
 
-   if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_ok(old_name) ){
-      fprintf(stderr,"** ERROR: Illegal old dataset name! - EXIT\n") ; exit(1) ;
-   }
-   if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_ok(new_name) ){
-      fprintf(stderr,"** ERROR: Illegal new dataset name! - EXIT\n") ; exit(1) ;
-   }
+   if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_ok(old_name) )
+     ERROR_exit("Illegal old dataset name! - EXIT\n") ;
+   if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_ok(new_name) )
+     ERROR_exit("Illegal new dataset name! - EXIT\n") ;
 
    if( strstr(new_name,"/") == NULL ){        /* put cwd on new name, if no */
      char *str = malloc(new_len+16) ;         /* directory present at all   */
@@ -131,15 +128,11 @@ int main( int argc , char * argv[] )
          new_prefix[ (qq-new_name)-1 ] = '\0' ;  /* truncate prefix */
       }
    }
-   if( !THD_filename_ok( new_prefix ) ){  /* 28 Jan 2003 */
-     fprintf(stderr,"** ERROR: Illegal new prefix: %s\n",new_prefix) ;
-     exit(1) ;
-   }
-   if( strstr(new_prefix,".nii") != NULL ){  /* 06 Apr 2005 */
-     fprintf(stderr,"** ERROR: You can't use 3dcopy to create a .nii file!\n"
-                    "**        Use program 3dAFNItoNIFTI for that purpose.\n") ;
-     exit(1) ;
-   }
+   if( !THD_filename_ok( new_prefix ) )  /* 28 Jan 2003 */
+     ERROR_exit("Illegal new prefix: %s\n",new_prefix) ;
+   if( strstr(new_prefix,".nii") != NULL )  /* 06 Apr 2005 */
+     ERROR_exit("You can't use 3dcopy to create a .nii file!\n"
+                " *        Use program 3dAFNItoNIFTI for that purpose.\n") ;
 
    /* 28 Jan 2003:
       to allow for non-AFNI datasets input,
@@ -149,7 +142,7 @@ int main( int argc , char * argv[] )
      THD_3dim_dataset *qset , *cset ;
      qset = THD_open_one_dataset( old_prefix ) ;
      if( qset != NULL ){
-       if( verb ) fprintf(stderr,"++ Opened dataset %s\n",old_prefix) ;
+       if( verb ) INFO_message("Opened dataset %s\n",old_prefix) ;
        cset = EDIT_empty_copy( qset ) ;
        if( new_view < 0 ) new_view = qset->view_type ;
        EDIT_dset_items( cset ,
@@ -158,15 +151,13 @@ int main( int argc , char * argv[] )
                         ADN_none ) ;
        tross_Make_History( "3dcopy" , argc,argv , cset ) ;
        DSET_mallocize(qset); DSET_load(qset);
-       if( !DSET_LOADED(qset) ){
-         fprintf(stderr,"** ERROR: Can't load dataset %s\n",old_prefix) ;
-         exit(1) ;
-       }
+       if( !DSET_LOADED(qset) )
+         ERROR_exit("Can't load dataset %s\n",old_prefix) ;
        for( ii=0 ; ii < DSET_NVALS(qset) ; ii++ )
          EDIT_substitute_brick( cset , ii ,
                                 DSET_BRICK_TYPE(qset,ii) ,
                                 DSET_BRICK_ARRAY(qset,ii) ) ;
-       if( verb ) fprintf(stderr,"++ Writing %s and %s\n",
+       if( verb ) INFO_message("Writing %s and %s\n",
                           DSET_HEADNAME(cset) , DSET_BRIKNAME(cset) ) ;
 
        if( cset->type      == HEAD_ANAT_TYPE     &&
@@ -207,7 +198,7 @@ int main( int argc , char * argv[] )
    /* of course, we don't actually use the +view suffix on the output */
 
    if( new_view >= 0 ){
-     if( verb ) fprintf(stderr,"++ WARNING: ignoring +view on new_prefix.\n") ;
+     if( verb ) INFO_message("ignoring +view on new_prefix.\n") ;
      new_view = ILLEGAL_TYPE ;
    }
 
@@ -225,11 +216,11 @@ int main( int argc , char * argv[] )
 
       sprintf(dname,"%s+%s" , old_prefix , VIEW_codestr[ii] ) ;
 
-      if( verb ) fprintf(stderr,"++ Opening dataset %s\n",dname) ;
+      if( verb ) INFO_message("Opening dataset %s\n",dname) ;
 
       dset[ii] = THD_open_one_dataset( dname ) ;
       if( dset[ii] == NULL ){
-        fprintf(stderr,"** Can't open dataset %s - SKIPPING \n",dname) ; continue ;
+        ERROR_message("Can't open dataset %s - SKIPPING \n",dname) ; continue ;
       }
       idc[ii] = dset[ii]->idcode ; /* save old ID code */
 
@@ -241,11 +232,9 @@ int main( int argc , char * argv[] )
 
       /*-- check if new header already exists --*/
 
-      if( THD_is_file( DSET_HEADNAME(dset[ii]) ) ){
-         fprintf(stderr,"** ERROR: Output dataset %s already exists! - EXIT\n",
+      if( THD_is_file( DSET_HEADNAME(dset[ii]) ) )
+         ERROR_exit("Output dataset %s already exists! - EXIT\n",
                  DSET_HEADNAME(dset[ii]) ) ;
-         exit(1) ;
-      }
 
       /*-- check if current dataset has a warp
            parent in one of the previous datasets;
@@ -256,7 +245,7 @@ int main( int argc , char * argv[] )
         for( jj=vbot ; jj < ii ; jj++ ){
           if( EQUIV_IDCODES(idc[jj],dset[ii]->warp_parent_idcode) ){
              if( verb )
-               fprintf(stderr,"++ Changing warp parent of %s to %s\n",
+               INFO_message("Changing warp parent of %s to %s\n",
                        DSET_HEADNAME(dset[ii]) , DSET_HEADNAME(dset[jj]) ) ;
 
              dset[ii]->warp_parent_idcode = idc[jj] ; break ;
@@ -277,7 +266,7 @@ int main( int argc , char * argv[] )
       tross_Make_History( "3dcopy" , argc,argv , dset[ii] ) ;
 
       if( verb )
-        fprintf(stderr,"++ Writing new header %s\n",DSET_HEADNAME(dset[ii])) ;
+        INFO_message("Writing new header %s\n",DSET_HEADNAME(dset[ii])) ;
 
       if( denote ) THD_anonymize_write(1) ;  /* 08 Jul 2005 */
 
@@ -296,30 +285,27 @@ int main( int argc , char * argv[] )
          new_brikname[0] = '\0' ;  /* flag to do nothing */
       } else {
          old_bname = COMPRESS_filename( old_brikname ) ;
-         if( old_bname == NULL ){  /* should not happen */
-            fprintf(stderr,"** ERROR: COMPRESS_filename() fails! - EXIT\n"); exit(1);
-         }
+         if( old_bname == NULL )  /* should not happen */
+           ERROR_exit("COMPRESS_filename() fails! - EXIT\n");
          sprintf( new_brikname , "%s+%s.%s" ,
                   new_prefix , VIEW_codestr[ii] , DATASET_BRICK_SUFFIX ) ;
          if( brick_ccode >= 0 )
             strcat(new_brikname,COMPRESS_suffix[brick_ccode]) ;
 
-         if( THD_is_file(new_brikname) ){
-            fprintf(stderr,"** ERROR: New brick %s already exists! - EXIT\n",
+         if( THD_is_file(new_brikname) )
+            ERROR_exit("New brick %s already exists! - EXIT\n",
                     new_brikname) ;
-            exit(1) ;
-         }
       }
 
       if( new_brikname[0] == '\0' ){ /* skip BRIK copy */
          if( verb )
-           fprintf(stderr,"** Old brick file %s does not exist - SKIPPING\n",
+           ERROR_message("Old brick file %s does not exist - SKIPPING\n",
                    old_brikname ) ;
          continue ;
       }
 
       if( verb )
-        fprintf(stderr,"++ Copying file %s to %s\n",old_bname,new_brikname) ;
+        INFO_message("Copying file %s to %s\n",old_bname,new_brikname) ;
 
       THD_copy_file( old_bname , new_brikname ) ;
       free(old_bname) ;
@@ -349,9 +335,8 @@ int THD_copy_file( char *old , char *newFile )
    if( fnew == NULL ){ perror("New open fails"); fclose(fold); return 1; }
 
    buf = malloc(NBUF) ;
-   if( buf == NULL ){
-      fprintf(stderr,"** ERROR: Can't malloc() buffer for file copy! - EXIT\n"); exit(1);
-   }
+   if( buf == NULL )
+      ERROR_exit("Can't malloc() buffer for file copy! - EXIT\n");
    while(1){  /*- loop: read buffer, write buffer -*/
 
      ii = fread( buf , 1 , NBUF , fold ) ; /* read buffer  */

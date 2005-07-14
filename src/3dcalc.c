@@ -216,15 +216,13 @@ void CALC_read_opts( int argc , char * argv[] )
       /**** -rgbfac r g b [10 Feb 2003] ****/
 
       if( strncasecmp(argv[nopt],"-rgbfac",7) == 0 ){
-        if( ++nopt >= argc ){
-          fprintf(stderr,"** need an argument after -rgbfac!\n") ; exit(1) ;
-        }
+        if( ++nopt >= argc )
+          ERROR_exit("need an argument after -rgbfac!\n") ;
         Rfac = strtod( argv[nopt++] , NULL ) ;
         Gfac = strtod( argv[nopt++] , NULL ) ;
         Bfac = strtod( argv[nopt++] , NULL ) ;
-        if( Rfac == 0.0 && Gfac == 0.0 && Bfac == 0.0 ){
-          fprintf(stderr,"** All 3 factors after -rgbfac are zero!?\n"); exit(1);
-        }
+        if( Rfac == 0.0 && Gfac == 0.0 && Bfac == 0.0 )
+          ERROR_exit("All 3 factors after -rgbfac are zero!?\n");
         continue ;
       }
 
@@ -232,20 +230,18 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncasecmp(argv[nopt],"-taxis",6) == 0 ){
         char *cpt ;
-        if( ++nopt >= argc ){
-          fprintf(stderr,"** need an argument after -taxis!\n") ; exit(1) ;
-        }
+        if( ++nopt >= argc )
+          ERROR_exit("need an argument after -taxis!\n") ;
         CALC_taxis_num = strtod( argv[nopt] , &cpt ) ;
-        if( CALC_taxis_num < 2 ){
-          fprintf(stderr,"** N value after -taxis must be bigger than 1!\n"); exit(1);
-        }
+        if( CALC_taxis_num < 2 )
+          ERROR_exit("N value after -taxis must be bigger than 1!\n");
         if( *cpt == ':' ){
           float dt = strtod( cpt+1 , &cpt ) ;
           if( dt > 0.0 ){
             TS_dt = dt ;
             if( *cpt == 'm' && *(cpt+1) == 's' ) TS_dt *= 0.001 ;  /* 09 Mar 2004 */
           } else {
-            fprintf(stderr,"++ time step value in '-taxis %s' not legal!\n",argv[nopt]);
+            WARNING_message("time step value in '-taxis %s' not legal!\n",argv[nopt]);
           }
         }
         nopt++ ; continue ;  /* go to next arg */
@@ -255,13 +251,11 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncasecmp(argv[nopt],"-dt",3) == 0 || strncmp(argv[nopt],"-TR",3) == 0 ){
         char *cpt ;
-        if( ++nopt >= argc ){
-          fprintf(stderr,"** need an argument after -dt!\n") ; exit(1) ;
-        }
+        if( ++nopt >= argc )
+          ERROR_exit("need an argument after -dt!\n") ;
         TS_dt = strtod( argv[nopt] , &cpt ) ;
-        if( TS_dt <= 0.0 ){
-          fprintf(stderr,"** Illegal time step value after -dt!\n"); exit(1);
-        }
+        if( TS_dt <= 0.0 )
+          ERROR_exit("Illegal time step value after -dt!\n");
         if( *cpt == 'm' && *(cpt+1) == 's' ) TS_dt *= 0.001 ;  /* 09 Mar 2004 */
         nopt++ ; continue ;  /* go to next arg */
       }
@@ -269,12 +263,10 @@ void CALC_read_opts( int argc , char * argv[] )
       /**** -histpar letter [22 Nov 1999] ****/
 
       if( strncasecmp(argv[nopt],"-histpar",5) == 0 ){
-         if( ++nopt >= argc ){
-            fprintf(stderr,"** need an argument after -histpar!\n") ; exit(1) ;
-         }
-         if( argv[nopt][0] < 'a' || argv[nopt][0] > 'z'){
-            fprintf(stderr,"** argument after -histpar is illegal!\n"); exit(1);
-         }
+         if( ++nopt >= argc )
+           ERROR_exit("need an argument after -histpar!\n") ;
+         if( argv[nopt][0] < 'a' || argv[nopt][0] > 'z')
+            ERROR_exit("argument after -histpar is illegal!\n");
          CALC_histpar = (int) (argv[nopt][0] - 'a') ;
 
          nopt++ ; continue ;  /* go to next arg */
@@ -283,9 +275,8 @@ void CALC_read_opts( int argc , char * argv[] )
       /**** -datum type ****/
 
       if( strncasecmp(argv[nopt],"-datum",6) == 0 ){
-         if( ++nopt >= argc ){
-            fprintf(stderr,"** need an argument after -datum!\n") ; exit(1) ;
-         }
+         if( ++nopt >= argc )
+           ERROR_exit("need an argument after -datum!\n") ;
          if( strcasecmp(argv[nopt],"short") == 0 ){
             CALC_datum = MRI_short ;
          } else if( strcasecmp(argv[nopt],"float") == 0 ){
@@ -295,9 +286,7 @@ void CALC_read_opts( int argc , char * argv[] )
          } else if( strcasecmp(argv[nopt],"complex") == 0 ){  /* not listed in help */
             CALC_datum = MRI_complex ;
          } else {
-            fprintf(stderr,"** -datum of type '%s' not supported in 3dcalc!\n",
-                    argv[nopt] ) ;
-            exit(1) ;
+            ERROR_exit("-datum of type '%s' not supported in 3dcalc!\n",argv[nopt]) ;
          }
          nopt++ ; continue ;  /* go to next arg */
       }
@@ -337,9 +326,8 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncasecmp(argv[nopt],"-prefix",6) == 0 ){
          nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"** need argument after -prefix!\n") ; exit(1) ;
-         }
+         if( nopt >= argc )
+           ERROR_exit("need argument after -prefix!\n") ;
          MCW_strncpy( CALC_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
          continue ;
       }
@@ -348,9 +336,8 @@ void CALC_read_opts( int argc , char * argv[] )
 
       if( strncasecmp(argv[nopt],"-session",6) == 0 ){
          nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"** need argument after -session!\n") ; exit(1) ;
-         }
+         if( nopt >= argc )
+           ERROR_exit("need argument after -session!\n") ;
          MCW_strncpy( CALC_session , argv[nopt++] , THD_MAX_NAME ) ;
          continue ;
       }
@@ -358,18 +345,15 @@ void CALC_read_opts( int argc , char * argv[] )
       /**** -expr expression ****/
 
       if( strncasecmp(argv[nopt],"-expr",4) == 0 ){
-         if( CALC_code != NULL ){
-            fprintf(stderr,"** cannot have 2 -expr options!\n") ; exit(1) ;
-         }
+         if( CALC_code != NULL )
+           ERROR_exit("cannot have 2 -expr options!\n") ;
          nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"** need argument after -expr!\n") ; exit(1) ;
-         }
+         if( nopt >= argc )
+            ERROR_exit("need argument after -expr!\n") ;
          PARSER_set_printout(1) ;  /* 21 Jul 2003 */
          CALC_code = PARSER_generate_code( argv[nopt++] ) ;
-         if( CALC_code == NULL ){
-            fprintf(stderr,"** illegal expression!\n") ; exit(1) ;
-         }
+         if( CALC_code == NULL )
+            ERROR_exit("illegal expression!\n") ;
          PARSER_mark_symbols( CALC_code , CALC_has_sym ) ; /* 15 Sep 1999 */
          continue ;
       }
@@ -407,21 +391,16 @@ void CALC_read_opts( int argc , char * argv[] )
          THD_3dim_dataset * dset ;
 
          ival = argv[nopt][1] - 'a' ;
-         if( VAR_DEFINED(ival) ){
-            fprintf(stderr,"** Can't define %c symbol twice\n",argv[nopt][1]);
-            exit(1) ;
-         }
+         if( VAR_DEFINED(ival) )
+            ERROR_exit("Can't define %c symbol twice\n",argv[nopt][1]);
 
          isub = (ids == 2) ? 0 : strtol(argv[nopt]+2,NULL,10) ;
-         if( isub < 0 ){
-            fprintf(stderr,"** Illegal sub-brick value: %s\n",argv[nopt]) ;
-            exit(1) ;
-         }
+         if( isub < 0 )
+            ERROR_exit("Illegal sub-brick value: %s\n",argv[nopt]) ;
 
          nopt++ ;
-         if( nopt >= argc ){
-            fprintf(stderr,"** need argument after %s\n",argv[nopt-1]); exit(1);
-         }
+         if( nopt >= argc )
+            ERROR_exit("need argument after %s\n",argv[nopt-1]);
 
          /*-- 22 Feb 2005: allow for I:, J:, K: prefix --*/
 
@@ -470,18 +449,12 @@ void CALC_read_opts( int argc , char * argv[] )
 
             /*- sanity checks -*/
 
-            if( ids > 2 ){
-               fprintf(stderr,
-                       "** Can't combine %s with differential subscripting %s\n",
-                       argv[nopt-1],argv[nopt]) ;
-               exit(1) ;
-            }
-            if( CALC_dset[jds] == NULL ){
-               fprintf(stderr,
-                       "** Must define dataset %c before using it in %s\n",
-                       argv[nopt][0] , argv[nopt] ) ;
-               exit(1) ;
-            }
+            if( ids > 2 )
+              ERROR_exit("Can't combine %s with differential subscripting %s\n",
+                         argv[nopt-1],argv[nopt]) ;
+            if( CALC_dset[jds] == NULL )
+              ERROR_exit("Must define dataset %c before using it in %s\n",
+                         argv[nopt][0] , argv[nopt] ) ;
 
             /*- get subscripts -*/
 
@@ -489,19 +462,15 @@ void CALC_read_opts( int argc , char * argv[] )
                MCW_intlist_allow_negative(1) ;
                ijkl = MCW_get_intlist( 9999 , argv[nopt]+1 ) ;
                MCW_intlist_allow_negative(0) ;
-               if( ijkl == NULL || ijkl[0] != 4 ){
-                  fprintf(stderr,"** Illegal differential subscripting %s\n",
-                                 argv[nopt] ) ;
-                  exit(1) ;
-               }
+               if( ijkl == NULL || ijkl[0] != 4 )
+                 ERROR_exit("Illegal differential subscripting %s\n",
+                            argv[nopt] ) ;
             } else {                               /* format is +i, -j, etc */
                 ijkl = (int *) malloc( sizeof(int) * 5 ) ;
                 ijkl[1] = ijkl[2] = ijkl[3] = ijkl[4] = 0 ;  /* initialize */
                 switch( argv[nopt][2] ){
                    default:
-                      fprintf(stderr,"** Bad differential subscripting %s\n",
-                                 argv[nopt] ) ;
-                   exit(1) ;
+                     ERROR_exit("Bad differential subscripting %s\n",argv[nopt]);
 
                    case 'i': ijkl[1] = (argv[nopt][1]=='+') ? 1 : -1 ; break ;
                    case 'j': ijkl[2] = (argv[nopt][1]=='+') ? 1 : -1 ; break ;
@@ -512,17 +481,14 @@ void CALC_read_opts( int argc , char * argv[] )
 
             /*- more sanity checks -*/
 
-            if( ijkl[1]==0 && ijkl[2]==0 && ijkl[3]==0 && ijkl[4]==0 ){
-               fprintf(stderr,
-                       "** WARNING: differential subscript %s is all zero\n",
-                       argv[nopt] ) ;
-            }
+            if( ijkl[1]==0 && ijkl[2]==0 && ijkl[3]==0 && ijkl[4]==0 )
+              WARNING_message("differential subscript %s is all zero\n",argv[nopt]);
 
             if( ntime[jds] == 1 && ijkl[4] != 0 ){
-               fprintf(stderr,
-                       "** WARNING: differential subscript %s has nonzero time\n"
-                       "             shift on base dataset with 1 sub-brick!\n"
-                       "             Setting time shift to 0.\n" ,
+               WARNING_message(
+                       "differential subscript %s has nonzero time\n"
+                       " +        shift on base dataset with 1 sub-brick!\n"
+                       " +        Setting time shift to 0.\n" ,
                        argv[nopt] ) ;
                ijkl[4] = 0 ;
             }
@@ -549,24 +515,20 @@ void CALC_read_opts( int argc , char * argv[] )
 
 #ifndef ALLOW_SUBV
          dset = THD_open_one_dataset( argv[nopt++] ) ;
-         if( dset == NULL ){
-            fprintf(stderr,"** can't open dataset %s\n",argv[nopt-1]) ; exit(1) ;
-         }
-         if( isub >= DSET_NVALS(dset) ){
-            fprintf(stderr,"** dataset %s only has %d sub-bricks\n",
-                    argv[nopt-1],DSET_NVALS(dset)) ;
-            exit(1) ;
-         }
+         if( dset == NULL )
+           ERROR_exit("can't open dataset %s\n",argv[nopt-1]) ;
+         if( isub >= DSET_NVALS(dset) )
+           ERROR_exit("dataset %s only has %d sub-bricks\n",
+                      argv[nopt-1],DSET_NVALS(dset)) ;
 #else
          { char dname[512] ;                               /* 02 Nov 1999 */
 
            if( ids > 2 ){                                  /* mangle name */
               if( strstr(argv[nopt],"[") != NULL ){
-                 fprintf(stderr,
-                         "** Illegal combination of sub-brick specifiers: "
+                ERROR_exit(
+                         "Illegal combination of sub-brick specifiers: "
                          "%s %s\n" ,
                          argv[nopt-1] , argv[nopt] ) ;
-                 exit(1) ;
               }
               sprintf(dname,"%s[%d]",argv[nopt++],isub) ;  /* use sub-brick */
               isub = 0 ;                                   /* 0 of dname    */
@@ -574,9 +536,8 @@ void CALC_read_opts( int argc , char * argv[] )
               strcpy(dname,argv[nopt++]) ;                 /* don't mangle */
            }
            dset = THD_open_dataset( dname ) ;              /* open it */
-           if( dset == NULL ){
-              fprintf(stderr,"** can't open dataset %s\n",dname) ; exit(1) ;
-           }
+           if( dset == NULL )
+              ERROR_exit("can't open dataset %s\n",dname) ;
          }
 #endif
 
@@ -594,28 +555,25 @@ void CALC_read_opts( int argc , char * argv[] )
          if( CALC_nvox < 0 ){
             CALC_nvox = nxyz ;
          } else if( nxyz != CALC_nvox ){
-            fprintf(stderr,"** dataset %s differs in size from others\n",argv[nopt-1]);
-            exit(1) ;
+            ERROR_exit("dataset %s differs in size from others\n",argv[nopt-1]);
          }
 
          if( !DSET_datum_constant(dset) ){   /* 29 May 2003 */
            float *far ;
 
-           fprintf(stderr,"++ dataset %s has sub-bricks with different types\n",argv[nopt-1]);
-           fprintf(stderr,"   ==> converting all sub-bricks to floats") ;
+           WARNING_message("dataset %s has sub-bricks with different types\n"
+                           " +     ==> converting all sub-bricks to floats\n",
+                          argv[nopt-1]);
 
            DSET_mallocize(dset) ; DSET_load(dset) ;
-           if( ! DSET_LOADED(dset) ){
-             fprintf(stderr,"\n** can't load %s from disk!\n",argv[nopt-1]); exit(1);
-           }
+           if( ! DSET_LOADED(dset) )
+             ERROR_exit("can't load %s from disk!\n",argv[nopt-1]);
 
            for( ii=0 ; ii < ntime[ival] ; ii++ ){
              if( DSET_BRICK_TYPE(dset,ii) != MRI_float ){
-               fprintf(stderr,".") ;
                far = calloc( sizeof(float) , nxyz ) ;
-               if( far == NULL ){
-                 fprintf(stderr,"\n** can't malloc space for conversion\n"); exit(1);
-               }
+               if( far == NULL )
+                 ERROR_exit("can't malloc space for conversion\n");
                EDIT_coerce_scale_type( nxyz , DSET_BRICK_FACTOR(dset,ii) ,
                                        DSET_BRICK_TYPE(dset,ii), DSET_ARRAY(dset,ii),
                                        MRI_float , far ) ;
@@ -623,7 +581,6 @@ void CALC_read_opts( int argc , char * argv[] )
                DSET_BRICK_FACTOR(dset,ii) = 0.0 ;
              }
            }
-           fprintf(stderr,"\n") ;
          }
 
          CALC_type[ival] = DSET_BRICK_TYPE(dset,isub) ;
@@ -652,15 +609,13 @@ void CALC_read_opts( int argc , char * argv[] )
             int iv , nb ;
             for( iv=nb=0 ; iv < DSET_NVALS(dset) ; iv++ )
                nb += DSET_BRICK_BYTES(dset,iv) ;
-            fprintf(stderr,"++ Reading dataset %s (%d bytes)\n",argv[nopt-1],nb);
+            INFO_message("Reading dataset %s (%d bytes)\n",argv[nopt-1],nb);
          }
 
          if( ! DSET_LOADED(dset) ){
            THD_load_datablock( dset->dblk ) ;
-           if( ! DSET_LOADED(dset) ){
-             fprintf(stderr,"** Can't read data brick for dataset %s\n",argv[nopt-1]) ;
-             exit(1) ;
-           }
+           if( ! DSET_LOADED(dset) )
+             ERROR_exit("Can't read data brick for dataset %s\n",argv[nopt-1]) ;
          }
          /* set pointers for actual dataset arrays */
 
@@ -702,10 +657,8 @@ void CALC_read_opts( int argc , char * argv[] )
             break ;
 
             default:
-               fprintf(stderr,"** Dataset %s has illegal data type: %s\n** SORRY\n",
-                         argv[nopt-1] ,
-                         MRI_type_name[CALC_type[ival]] ) ;
-            exit(1) ;
+               ERROR_exit("Dataset %s has illegal data type: %s\n" ,
+                         argv[nopt-1] , MRI_type_name[CALC_type[ival]] ) ;
 
          } /* end of switch over type switch */
          if( CALC_datum < 0 && CALC_type[ival] != MRI_rgb ) CALC_datum = CALC_type[ival] ;
@@ -714,22 +667,19 @@ DSET_DONE: continue;
 
       } /* end of dataset input */
 
-      fprintf(stderr,"** Unknown option: %s\n",argv[nopt]) ; exit(1) ;
+      ERROR_exit("Unknown option: %s\n",argv[nopt]) ;
 
    }  /* end of loop over options */
 
    /*---------------------------------------*/
    /*** cleanup: check for various errors ***/
 
-   if( nopt < argc ){
-     fprintf(stderr,"** Extra command line arguments puzzle me! argv[%d]=%s ...\n",nopt,argv[nopt]) ;
-     exit(1) ;
-   }
+   if( nopt < argc )
+    ERROR_exit("Extra command line arguments puzzle me! argv[%d]=%s ...\n",nopt,argv[nopt]) ;
 
    for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL ) break ;
-   if( ids == 26 ){
-      fprintf(stderr,"** No actual input datasets given!\n") ; exit(1) ;
-   }
+   if( ids == 26 )
+     ERROR_exit("No actual input datasets given!\n") ;
 
    /* 22 Feb 2005: check IJKAR inputs against 1st dataset found */
 
@@ -742,28 +692,24 @@ DSET_DONE: continue;
          case 10: siz = DSET_NZ(CALC_dset[ids]) ; break ;
        }
        if( IJKAR_flim[ii]->nx != siz )
-         fprintf(stderr,"** 3dcalc dimension mismatch between '-%c' and '%-c'\n",
-                 'a'+ii , 'a'+ids ) ;
+         ERROR_message("dimension mismatch between '-%c' and '%-c'\n", 'a'+ii , 'a'+ids ) ;
      }
    }
 
-   if( CALC_code == NULL ){
-      fprintf(stderr,"** No expression given!\n") ; exit(1) ;
-   }
+   if( CALC_code == NULL ) ERROR_exit("No expression given!\n") ;
 
    if( CALC_histpar >= 0 && CALC_dset[CALC_histpar] == NULL ){
-      fprintf(stderr,"** WARNING: -histpar dataset not defined!\n") ;
-      CALC_histpar = -1 ;
+     WARNING_message("-histpar dataset not defined!\n") ;
+     CALC_histpar = -1 ;
    }
 
    for (ids=0; ids < 26; ids ++)
       if (ntime[ids] > 1 && ntime[ids] != ntime_max ) {
 #ifdef ALLOW_BUCKETS
-          fprintf(stderr, "** Multi-brick datasets don't match!\n") ;
+          ERROR_exit("Multi-brick datasets don't match!\n") ;
 #else
-          fprintf(stderr, "** 3D+time datasets don't match!\n") ;
+          ERROR_exit("3D+time datasets don't match!\n") ;
 #endif
-         exit(1) ;
       }
 
    /* 17 Apr 1998: if all input datasets are 3D only (no time),
@@ -773,24 +719,22 @@ DSET_DONE: continue;
    if( ntime_max == 1 && TS_nmax > 0 ){
       ntime_max = TS_nmax ;
       TS_make   = 1 ;        /* flag to force manufacture of a 3D+time dataset */
-      fprintf(stderr,
-              "++ Calculating 3D+time[%d]"
+      INFO_message(
+              "Calculating 3D+time[%d]"
               " dataset from 3D datasets and time series, with dt=%g s\n" ,
               ntime_max , TS_dt ) ;
    }
 
    if( CALC_taxis_num > 0 ){  /* 28 Apr 2003 */
      if( ntime_max > 1 ){
-       fprintf(stderr,
-               "** WARNING: -taxis %d overriden by dataset input(s)\n",
-               CALC_taxis_num) ;
+       WARNING_message("-taxis %d overriden by dataset input(s)\n",
+                       CALC_taxis_num) ;
      } else {
        ntime_max = CALC_taxis_num ;
        TS_make   = 1 ;
-       fprintf(stderr,
-               "++ Calculating 3D+time[%d]"
-               " dataset from 3D datasets and -taxis with dt=%g s\n" ,
-               ntime_max , TS_dt ) ;
+       INFO_message("Calculating 3D+time[%d]"
+                    " dataset from 3D datasets and -taxis with dt=%g s\n" ,
+                    ntime_max , TS_dt ) ;
      }
    }
 
@@ -799,20 +743,16 @@ DSET_DONE: continue;
 
    for (ids=0; ids < 26; ids ++){
       if( VAR_DEFINED(ids) && !CALC_has_sym[ids] )
-         fprintf(stderr ,
-                 "** WARNING: input '%c' is not used in the expression\n" ,
+         WARNING_message("input '%c' is not used in the expression\n" ,
                  abet[ids] ) ;
 
       else if( !VAR_DEFINED(ids) && CALC_has_sym[ids] ){
 
-         if( ((1<<ids) & PREDEFINED_MASK) == 0 )
-            fprintf(stderr ,
-                    "** WARNING: symbol %c is used but not defined\n" ,
-                    abet[ids] ) ;
-         else {
+         if( ((1<<ids) & PREDEFINED_MASK) == 0 ){
+            WARNING_message( "symbol %c is used but not defined\n" , abet[ids] ) ;
+         } else {
             CALC_has_predefined++ ;
-            fprintf(stderr,"++ Symbol %c using predefined value\n" ,
-                    abet[ids] ) ;
+            INFO_message("Symbol %c using predefined value\n",abet[ids] ) ;
             if( ids >= 23 ) CALC_has_xyz = 1 ;
          }
       }
@@ -1217,7 +1157,7 @@ int main( int argc , char * argv[] )
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-   mainENTRY("3dcalc main"); machdep() ;
+   mainENTRY("3dcalc main"); machdep() ; PRINT_VERSION("3dcalc") ;
 
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
@@ -1238,7 +1178,7 @@ int main( int argc , char * argv[] )
       for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL &&
                                           ntime[ids] > 1           ) break ;
    }
-   if( ids == 26 ){fprintf(stderr,"** Can't find template dataset?!\n");exit(1);}
+   if( ids == 26 ) ERROR_exit("Can't find template dataset?!\n") ;
 
    new_dset = EDIT_empty_copy( CALC_dset[ids] ) ;
 
@@ -1248,7 +1188,7 @@ int main( int argc , char * argv[] )
      if( iii            != ids                                &&
          CALC_dset[iii] != NULL                               &&
          !EQUIV_DATAXES(new_dset->daxes,CALC_dset[iii]->daxes)  )
-       fprintf(stderr,"++ WARNING: dataset '%c'=%s grid mismatch with %s\n",
+       WARNING_message("dataset '%c'=%s grid mismatch with %s\n",
                       'a'+iii , DSET_BRIKNAME(CALC_dset[iii]) ,
                                 DSET_BRIKNAME(CALC_dset[ids]) ) ;
    }
@@ -1312,12 +1252,9 @@ int main( int argc , char * argv[] )
    else if( ISANATBUCKET(new_dset) ) /* 30 Nov 1997 */
       EDIT_dset_items( new_dset , ADN_func_type , ANAT_EPI_TYPE , ADN_none ) ;
 
-   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
-      fprintf(stderr,
-              "** Output file %s already exists -- cannot continue!\n",
-              new_dset->dblk->diskptr->header_name ) ;
-      exit(1) ;
-   }
+   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
+     ERROR_exit("Output file %s already exists -- cannot continue!\n",
+                new_dset->dblk->diskptr->header_name ) ;
 
    for (ids=0; ids<26; ids++)
      atoz[ids] = (double *) malloc(sizeof(double) * VSIZE ) ;
@@ -1336,15 +1273,13 @@ int main( int argc , char * argv[] )
    for ( kt = 0 ; kt < ntime_max ; kt ++ ) {
 
       if( CALC_verbose )
-         fprintf(stderr,"++ Computing sub-brick %d\n",kt) ;
+        INFO_message("Computing sub-brick %d\n",kt) ;
 
       /* 30 April 1998: only malloc output space as it is needed */
 
       buf[kt] = (float *) malloc(sizeof(float) * CALC_nvox);
-      if( buf[kt] == NULL ){
-        fprintf(stderr,"** Can't malloc output dataset sub-brick %d!\n",kt) ;
-        exit(1) ;
-      }
+      if( buf[kt] == NULL )
+        ERROR_exit("Can't malloc output dataset sub-brick %d!\n",kt) ;
 
       /*** loop over voxels ***/
 
@@ -1685,9 +1620,8 @@ int main( int argc , char * argv[] )
 
          nbad = thd_floatscan( CALC_nvox , buf[kt] ) ;
          if( nbad > 0 )
-           fprintf(stderr,
-                   "** WARNING: %d bad floats replaced by 0 in sub-brick %d\n\a",
-                   nbad , kt ) ;
+           WARNING_message("%d bad floats replaced by 0 in sub-brick %d\n\a",
+                           nbad , kt ) ;
 
          /* 30 April 1998: purge 3D+time sub-bricks if possible */
 
@@ -1716,9 +1650,7 @@ int main( int argc , char * argv[] )
    switch( CALC_datum ){
 
       default:
-        fprintf(stderr,
-                "** Fatal Error ***\n"
-                "*** Somehow ended up with CALC_datum = %d\n",CALC_datum) ;
+        ERROR_exit("Somehow ended up with CALC_datum = %d\n",CALC_datum) ;
       exit(1) ;
 
       /* the easy case! */
@@ -1739,8 +1671,8 @@ int main( int argc , char * argv[] )
          float gtop , fimfac , gtemp ;
 
          if( CALC_verbose )
-           fprintf(stderr,"++ Scaling output to type %s brick(s)\n",
-                   MRI_TYPE_name[CALC_datum] ) ;
+           INFO_message("Scaling output to type %s brick(s)\n",
+                        MRI_TYPE_name[CALC_datum] ) ;
 
          dfim = (void ** ) malloc( sizeof( void * ) * ntime_max ) ;
 
@@ -1750,7 +1682,7 @@ int main( int argc , char * argv[] )
              gtemp = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
              gtop  = MAX( gtop , gtemp ) ;
              if( gtemp == 0.0 )
-               fprintf(stderr,"** WARNING: output sub-brick %d is all zeros!\n",ii) ;
+               WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
            }
          }
 
@@ -1761,7 +1693,7 @@ int main( int argc , char * argv[] )
            if( ! CALC_gscale ){
              gtop = MCW_vol_amax( CALC_nvox , 1 , 1 , MRI_float, buf[ii] ) ;
              if( gtop == 0.0 )
-               fprintf(stderr,"** WARNING: output sub-brick %d is all zeros!\n",ii) ;
+               WARNING_message("output sub-brick %d is all zeros!\n",ii) ;
            }
 
            /* compute scaling factor for this brick into fimfac */
@@ -1790,24 +1722,23 @@ int main( int argc , char * argv[] )
 
            if( CALC_verbose ){
              if( fimfac != 0.0 )
-               fprintf(stderr,"++ Sub-brick %d scale factor = %f\n",ii,fimfac) ;
+               INFO_message("Sub-brick %d scale factor = %f\n",ii,fimfac) ;
              else
-               fprintf(stderr,"++ Sub-brick %d: no scale factor\n" ,ii) ;
+               INFO_message("Sub-brick %d: no scale factor\n" ,ii) ;
            }
 
            /* make space for output brick and scale into it */
 
            dfim[ii] = (void *) malloc( mri_datum_size(CALC_datum) * CALC_nvox ) ;
-           if( dfim[ii] == NULL ){ fprintf(stderr,"** malloc fails at output\n");exit(1); }
+           if( dfim[ii] == NULL ) ERROR_exit("malloc fails at output[%d]\n",ii);
 
            if( CALC_datum == MRI_byte ){  /* 29 Nov 2004: check for bad byte-ization */
              int nneg ;
              for( nneg=jj=0 ; jj < CALC_nvox ; jj++ ) nneg += (buf[ii][jj] < 0.0f) ;
-             if( nneg > 0 ){
-               fprintf(stderr,
-                "** WARNING: sub-brick #%d has %d negative values set=0 in conversion to bytes\n",
+             if( nneg > 0 )
+               WARNING_message(
+                "sub-brick #%d has %d negative values set=0 in conversion to bytes\n",
                 ii , nneg ) ;
-             }
            }
 
            EDIT_coerce_scale_type( CALC_nvox , fimfac ,
@@ -1824,13 +1755,11 @@ int main( int argc , char * argv[] )
       break ;
    }
 
-   if( CALC_verbose )
-      fprintf(stderr,"++ Computing output statistics\n") ;
+   if( CALC_verbose ) INFO_message("Computing output statistics\n") ;
    THD_load_statistics( new_dset ) ;
 
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
-   if( CALC_verbose )
-      fprintf(stderr,"++ Wrote output: %s\n",DSET_BRIKNAME(new_dset)) ;
+   if( CALC_verbose ) WROTE_DSET(new_dset) ;
 
    exit(0) ;
 }

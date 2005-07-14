@@ -36,6 +36,8 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
+   mainENTRY("3dAFNItoNIFTI main"); machdep(); PRINT_VERSION("3dAFNItoNIFTI");
+
    /*--- check options ---*/
 
    while( narg < argc && argv[narg][0] == '-' ){

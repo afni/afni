@@ -104,6 +104,7 @@ int main( int argc , char * argv[] )
    /** AFNI package setup and logging **/
 
    mainENTRY("3dDespike main"); machdep(); AFNI_logger("3dDespike",argc,argv);
+   PRINT_VERSION("3dDespike") ;
 
    /** parse options **/
 

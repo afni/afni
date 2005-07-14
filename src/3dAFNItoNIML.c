@@ -29,7 +29,7 @@ int main( int argc , char *argv[] )
      exit(0) ;
    }
 
-   mainENTRY("3dAFNItoNIML main"); machdep();
+   mainENTRY("3dAFNItoNIML main"); machdep(); PRINT_VERSION("3dAFNItoNIML");
    if( PRINT_TRACING ){ STATUS("Enable mcw_malloc()"); enable_mcw_malloc(); }
 
    /*-- read command line options --*/
