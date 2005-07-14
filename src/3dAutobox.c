@@ -13,6 +13,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dAutobox main"); machdep(); AFNI_logger("3dAutobox",argc,argv);
+   PRINT_VERSION("3dAutobox") ;
 
    /*-- read data --*/
 

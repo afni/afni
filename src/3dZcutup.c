@@ -72,6 +72,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dZcutup main") ; machdep() ; AFNI_logger("3dZcutup",argc,argv) ;
+   PRINT_VERSION("3dZcutup") ;
 
    /*-- read command line options --*/
 

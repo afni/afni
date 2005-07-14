@@ -133,7 +133,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dfractionize main"); machdep();
-   AFNI_logger("3dfractionize",argc,argv);
+   AFNI_logger("3dfractionize",argc,argv); PRINT_VERSION("3dfractionize");
 
    /*-- read command line args --*/
 

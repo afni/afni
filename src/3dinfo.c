@@ -25,7 +25,7 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax() ;
 
-   mainENTRY("3dinfo main") ; machdep() ;
+   mainENTRY("3dinfo main") ; machdep() ; PRINT_VERSION("3dinfo") ;
 
    iarg = 1 ;
         if( strncmp(argv[iarg],"-verb" ,5) == 0 ){ verbose =  1; iarg++; }

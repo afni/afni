@@ -22,7 +22,7 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
-   mainENTRY("3dAFNIto3D main"); machdep() ;
+   mainENTRY("3dAFNIto3D main"); machdep(); PRINT_VERSION("3dAFNIto3D");
 
    while( narg < argc && argv[narg][0] == '-' ){
 

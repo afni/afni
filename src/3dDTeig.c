@@ -36,6 +36,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dDTeig main"); machdep(); AFNI_logger("3dDTeig",argc,argv);
+   PRINT_VERSION("3dDTeig") ;
 
    nopt = 1 ;
    nbriks = 14 ;

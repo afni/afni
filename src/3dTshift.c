@@ -291,6 +291,7 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) TS_syntax(NULL) ;
 
    mainENTRY("3dTshift main"); machdep(); AFNI_logger("3dTshift",argc,argv);
+   PRINT_VERSION("3dTshift");
 
    SHIFT_set_method( MRI_FOURIER ) ;
 

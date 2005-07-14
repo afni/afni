@@ -75,6 +75,7 @@ main (int argc, char *argv[])
   mainENTRY ("3dDTtoDWI main");
   machdep ();
   AFNI_logger ("3dDTtoDWI", argc, argv);
+  PRINT_VERSION("3dDTtoDWI") ;
 
   nopt = 1;
   datum = MRI_float;

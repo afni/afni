@@ -120,6 +120,8 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){ A2A_help(); exit(0); }
 
+   mainENTRY("3dANALYZEtoAFNI main"); machdep(); PRINT_VERSION("3dANALYZEtoAFNI");
+
    /*-- parse options --*/
 
    while( iarg < argc && argv[iarg][0] == '-' ){

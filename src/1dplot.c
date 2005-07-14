@@ -141,7 +141,7 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
-   mainENTRY("1dplot main"); machdep();
+   mainENTRY("1dplot main"); machdep(); PRINT_VERSION("1dplot");
 
    /* 29 Nov 2002: scan for -ps */
 
@@ -153,9 +153,7 @@ int main( int argc , char *argv[] )
    if( !out_ps ){
      shell = XtVaAppInitialize(
                 &app , "AFNI" , NULL , 0 , &argc , argv , NULL , NULL ) ;
-     if( shell == NULL ){
-        fprintf(stderr,"** Cannot initialize X11!\n") ; exit(1) ;
-     }
+     if( shell == NULL ) ERROR_exit("Cannot initialize X11!") ;
    }
 
    cpt = my_getenv("TMPDIR") ;  /* just for fun */
@@ -167,18 +165,18 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-xaxis") == 0 ){   /* 22 Jul 2003 */
        sscanf(argv[++iarg],"%f:%f:%d:%d",&xbot,&xtop,&nnax,&mmax) ;
-       if( xbot >= xtop || nnax < 0 || mmax < 1 ){
-         fprintf(stderr,"** String after -xaxis is illegal!\n"); exit(1);
-       }
+       if( xbot >= xtop || nnax < 0 || mmax < 1 )
+         ERROR_exit("String after -xaxis is illegal!\n") ;
+
        plot_ts_xfix( nnax,mmax , xbot,xtop ) ;
        iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-yaxis") == 0 ){   /* 22 Jul 2003 */
        sscanf(argv[++iarg],"%f:%f:%d:%d",&ybot,&ytop,&nnay,&mmay) ;
-       if( ybot >= ytop || nnay < 0 || mmay < 1 ){
-         fprintf(stderr,"** String after -yaxis is illegal!\n"); exit(1);
-       }
+       if( ybot >= ytop || nnay < 0 || mmay < 1 )
+         ERROR_exit("String after -yaxis is illegal!\n") ;
+
        plot_ts_yfix( nnay,mmay , ybot,ytop ) ;
        iarg++ ; continue ;
      }
@@ -235,19 +233,19 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[iarg],"-ignore") == 0 ){
         ignore = strtod( argv[++iarg] , NULL ) ;
-        if( ignore < 0 ){fprintf(stderr,"** Illegal -ignore value!\n");exit(1);}
+        if( ignore < 0 ) ERROR_exit("Illegal -ignore value!\n") ;
         iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-use") == 0 ){
         use = strtod( argv[++iarg] , NULL ) ;
-        if( use < 2 ){fprintf(stderr,"** Illegal -use value!\n");exit(1);}
+        if( use < 2 ) ERROR_exit("Illegal -use value!\n") ;
         iarg++ ; continue ;
      }
 
      if( strcmp(argv[iarg],"-dx") == 0 ){
         dx = strtod( argv[++iarg] , NULL ) ;
-        if( dx <= 0.0 ){fprintf(stderr,"** Illegal -dx value!\n");exit(1);}
+        if( dx <= 0.0 ) ERROR_exit("Illegal -dx value!\n");
         iarg++ ; continue ;
      }
 
@@ -264,12 +262,11 @@ int main( int argc , char *argv[] )
         sep = 0 ; iarg++ ; continue ;
      }
 
-     fprintf(stderr,"** Unknown option: %s\n",argv[iarg]) ; exit(1) ;
+     ERROR_exit("Unknown option: %s\n",argv[iarg]) ;
    }
 
-   if( iarg >= argc && !use_stdin ){
-      fprintf(stderr,"** No tsfile on command line!\n") ; exit(1) ;
-   }
+   if( iarg >= argc && !use_stdin )
+      ERROR_exit("No time series file on command line!\n") ;
 
    if( !out_ps )
      dc = MCW_new_DC( shell , 16 ,
@@ -295,7 +292,7 @@ int main( int argc , char *argv[] )
 
      do{               /* read lines until 1st char is non-blank and non-# */
        cpt = fgets(lbuf,NLBUF,stdin) ;
-       if( cpt==NULL ){ fprintf(stderr,"** Can't read from stdin!\n"); exit(1); }
+       if( cpt==NULL ) ERROR_exit("Can't read from stdin!\n");
        for( ii=0 ; cpt[ii] != '\0' && isspace(cpt[ii]) ; ii++ ) ; /* nada */
      } while( cpt[ii] == '\0' || cpt[ii] == '#' ) ;
 
@@ -305,11 +302,9 @@ int main( int argc , char *argv[] )
        val[nval++] = fff ;      if( nval == NVMAX ) break ;
        cpt = dpt; if( *cpt == ','  ) cpt++; if( *cpt == '\0' ) break;
      }
-     if( nval < 1 ){
-       fprintf(stderr,"** Can't read numbers from stdin!\n");
-       fprintf(stderr,"** First line: '%-.30s'\n",lbuf) ;
-       exit(1) ;
-     }
+     if( nval < 1 )
+       ERROR_exit("Can't read numbers from stdin!\n"
+                  "  First line: '%-.30s'\n"       , lbuf) ;
 
      nx = nval ; ny = 1 ;
      far = (float *) malloc(sizeof(float)*nx) ;
@@ -330,9 +325,9 @@ int main( int argc , char *argv[] )
         far = (float *) realloc( far , sizeof(float)*(ny+1)*nx ) ;
         memcpy(far+ny*nx,val,sizeof(float)*nx) ; ny++ ;
      }
-     if( ny < 2 && nx < 2 ){
-       fprintf(stderr,"** Can't read at least 2 lines from stdin\n"); exit(1);
-     }
+     if( ny < 2 && nx < 2 )
+       ERROR_exit("Can't read at least 2 lines from stdin\n");
+
      flim = mri_new_vol_empty( nx,ny,1 , MRI_float ) ;
      mri_fix_data_pointer( far , flim ) ;
      if( ny > 1 ){      /* more than one row ==> transpose (the usual case) */
@@ -345,15 +340,15 @@ int main( int argc , char *argv[] )
    } else {  /*-- old code: read from a file --*/
              /*-- 05 Mar 2003: or more than 1 file --*/
 
-     if( iarg >= argc ){
-       fprintf(stderr,"** No input files on command line?!\n"); exit(1);
-     }
+     if( iarg >= argc )
+       ERROR_exit("No input files on command line?!\n");
+
 
      if( iarg == argc-1 ){                 /* only 1 input file */
        inim = mri_read_1D( argv[iarg] ) ;
-       if( inim == NULL ){
-         fprintf(stderr,"** Can't read input file %s\n",argv[iarg]) ; exit(1);
-       }
+       if( inim == NULL )
+         ERROR_exit("Can't read input file %s\n",argv[iarg]) ;
+
      } else {                              /* multiple inputs [05 Mar 2003] */
        MRI_IMARR *imar ;                   /* read them & glue into 1 image */
        int iarg_first=iarg, nysum=0, ii,jj,nx ;
@@ -362,9 +357,9 @@ int main( int argc , char *argv[] )
        INIT_IMARR(imar) ;
        for( ; iarg < argc ; iarg++ ){
          inim = mri_read_1D( argv[iarg] ) ;
-         if( inim == NULL ){
-           fprintf(stderr,"** Can't read input file %s\n",argv[iarg]) ; exit(1);
-         }
+         if( inim == NULL )
+           ERROR_exit("Can't read input file %s\n",argv[iarg]) ;
+
          if( iarg == iarg_first || inim->nx < nx ) nx = inim->nx ;
          ADDTO_IMARR(imar,inim) ; nysum += inim->ny ;
        }
@@ -389,10 +384,8 @@ int main( int argc , char *argv[] )
    nx   = flim->nx ;
    ny   = flim->ny ;
 
-   if( nx < 2 ){
-     fprintf(stderr,"** 1dplot can't plot curves only 1 point long!\n") ;
-     exit(1) ;
-   }
+   if( nx < 2 )
+     ERROR_exit("1dplot can't plot curves only 1 point long!\n") ;
 
    /* make x axis */
 

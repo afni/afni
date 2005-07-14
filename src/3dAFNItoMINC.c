@@ -39,6 +39,8 @@ int main( int argc , char *argv[] )
       exit(0) ;
    }
 
+   mainENTRY("3dAFNItoMINC main"); machdep(); PRINT_VERSION("3dAFNItoMINC");
+
    while( narg < argc && argv[narg][0] == '-' ){
 
      if( strcmp(argv[narg],"-prefix") == 0 ){

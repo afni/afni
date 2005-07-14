@@ -464,7 +464,7 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) BUCK_Syntax() ;
 
-   mainENTRY("3dbucket main"); machdep();
+   mainENTRY("3dbucket main"); machdep(); PRINT_VERSION("3dbucket") ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 

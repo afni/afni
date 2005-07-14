@@ -32,6 +32,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dMedianFilter main"); machdep(); AFNI_logger("3dMedianFilter",argc,argv);
+   PRINT_VERSION("3dMedianFilter") ;
 
    /*-- scan command line --*/
 

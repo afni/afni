@@ -30,9 +30,9 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
    int ival , ntimes , nval_per , n1,n2,n3 , kv,npar ;
    float tf ;
 
-   static char * RR="[R]" , * LL="[L]" ,
-               * PP="[P]" , * AA="[A]" ,
-               * SS="[S]" , * II="[I]" , * ZZ="   " ;
+   static char *RR="[R]" , *LL="[L]" ,
+               *PP="[P]" , *AA="[A]" ,
+               *SS="[S]" , *II="[I]" , *ZZ="   " ;
    char *xlbot , *xltop , *ylbot , *yltop , *zlbot , *zltop , *cpt ;
    char str[256] ;
    int nstr ;
@@ -315,7 +315,7 @@ ENTRY("THD_dataset_info") ;
 
    /** If present, print out History **/
 
-   { char * chn ; int j,k ;
+   { char *chn ; int j,k ;
      chn = tross_Get_History(dset) ;
      if( chn != NULL ){
        j = strlen(chn) ;
@@ -358,7 +358,7 @@ ENTRY("THD_dataset_info") ;
 
 /*-----------------------------------------------------------*/
 
-char * THD_zzprintf( char * sss , char * fmt , ... )
+char * THD_zzprintf( char *sss , char *fmt , ... )
 {
    static char *sbuf = NULL ;
    char *zz ;
