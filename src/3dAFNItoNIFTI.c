@@ -5,7 +5,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset ;
    char *prefix=NULL , *fname ;
-   int narg=1 , flags=0 , ii , verb=0 , newid=0 , denote=0 ;
+   int narg=1 , flags=0 , ii , verb=0 , newid=0 , denote=0 , floatize=0 ;
    niftiwr_opts_t options ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -27,11 +27,13 @@ int main( int argc , char *argv[] )
              "                  text notes that might contain subject\n"
              "                  identifying information.\n"
              "  -verb       = Be verbose = print progress messages.\n"
+             "                  Repeating this increases the verbosity\n"
+             "                  (maximum setting is 3 '-verb' options).\n"
              "  -newid      = Give the new dataset a new AFNI ID code, to\n"
              "                  distinguish it from the input dataset.\n"
              "                  (Has no effect if '-pure' is given!)\n"
-             "                  Repeating this increases the verbosity\n"
-             "                  (maximum setting is 3 '-verb' options).\n"
+             "  -float      = Force the output dataset to be 32-bit\n"
+             "                  floats.\n"
             ) ;
       exit(0) ;
    }
@@ -50,6 +52,10 @@ int main( int argc , char *argv[] )
         denote = 1 ; narg++ ; continue ;
      }
 
+     if( strcmp(argv[narg],"-float") == 0 ){  /* 14 Jul 2005 - RWCox */
+        floatize = 1 ; narg++ ; continue ;
+     }
+
      if( strcmp(argv[narg],"-pure") == 0 ){   /* 11 May 2005 - RWCox */
         putenv("AFNI_NIFTI_NOEXT=YES") ;
         narg++ ; continue ;
@@ -57,10 +63,8 @@ int main( int argc , char *argv[] )
 
      if( strcmp(argv[narg],"-prefix") == 0 ){
         prefix = argv[++narg] ;
-        if( !THD_filename_ok(prefix) || prefix[0] == '-' ){
-          fprintf(stderr,"** ERROR: -prefix is illegal: %s\n",prefix) ;
-          exit(1) ;
-        }
+        if( !THD_filename_ok(prefix) || prefix[0] == '-' )
+          ERROR_exit("-prefix is illegal: %s\n",prefix) ;
         narg++ ; continue ;
      }
 
@@ -68,19 +72,17 @@ int main( int argc , char *argv[] )
        verb++ ; narg++ ; continue ;
      }
 
-     fprintf(stderr,"** ERROR: unknown option: %s\n",argv[narg]); exit(1);
+     ERROR_exit("Unknown option: %s\n",argv[narg]);
    }
 
    /*--- get the dataset ---*/
 
-   if( narg >= argc ){
-     fprintf(stderr,"** ERROR: no dataset on command line?\n"); exit(1);
-   }
+   if( narg >= argc )
+     ERROR_exit("No dataset on command line?\n");
 
    dset = THD_open_dataset( argv[narg] ) ;
-   if( !ISVALID_DSET(dset) ){
-     fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[narg]); exit(1);
-   }
+   if( !ISVALID_DSET(dset) )
+     ERROR_exit("Can't open dataset %s\n",argv[narg]);
 
    /*--- deal with the filename ---*/
 
@@ -94,6 +96,28 @@ int main( int argc , char *argv[] )
 
    options.infile_name = nifti_strdup(fname) ;
    options.debug_level = verb ;
+
+   /*--- 14 Jul 2005: floatization ---*/
+
+   if( floatize ){
+     int nvals=DSET_NVALS(dset) , nxyz=DSET_NVOX(dset) , tt ;
+     float fac , *far ;
+
+     DSET_mallocize(dset); DSET_load(dset);
+     if( !DSET_LOADED(dset) ) ERROR_exit("Can't load input dataset from disk") ;
+     if( verb ) INFO_message("Converting dataset to floats (in memory)") ;
+     for( ii=0 ; ii < nvals ; ii++ ){
+       fac = DSET_BRICK_FACTOR(dset,ii) ; if( fac == 0.0f ) fac = 1.0f ;
+       tt  = DSET_BRICK_TYPE(dset,ii) ;
+       if( fac == 1.0f && (tt == MRI_float || tt == MRI_complex) ) continue ;
+       far = (float *)calloc( nxyz , sizeof(float) ) ;
+       EDIT_coerce_scale_type( nxyz , fac ,
+                               DSET_BRICK_TYPE(dset,ii),DSET_BRICK_ARRAY(dset,ii) ,
+                               MRI_float , far ) ;
+       EDIT_substitute_brick( dset , ii , MRI_float , far ) ;
+       EDIT_BRICK_FACTOR( dset , ii , 0.0 ) ;
+     }
+   }
 
    /*--- Go Baby, Go! ---*/
 
