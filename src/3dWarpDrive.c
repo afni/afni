@@ -600,7 +600,9 @@ int main( int argc , char * argv[] )
      }
 
      if( strcmp(argv[nopt],"-bilinear_general") == 0 ){  /* not implemented */
+#if 0
        fprintf(stderr,"** ERROR: 3dWarpDrive -bilinear_general NOT IMPLEMENTED!\n"); exit(1);
+#endif
        warpdrive_code = WARPDRIVE_BILINEAR ; nopt++ ; continue ;
      }
 
@@ -732,6 +734,27 @@ int main( int argc , char * argv[] )
 
    } /*--- end of loop over command line options ---*/
 
+   /*-- 1 remaining argument should be a dataset --*/
+
+   if( inset == NULL && nopt != argc-1 ){
+     fprintf(stderr,"** ERROR: Command line should have exactly 1 dataset!\n"
+                    "**        Whereas there seems to be %d of them!\n",
+             argc-nopt ) ;
+     exit(1) ;
+   }
+
+   /*-- input dataset header --*/
+
+   if( inset == NULL ){
+     inset = THD_open_dataset( argv[nopt] ) ;
+     if( !ISVALID_DSET(inset) ){
+       fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[nopt]); exit(1);
+     }
+   }
+
+   nx = DSET_NX(inset) ; ny = DSET_NY(inset) ; nz = DSET_NZ(inset) ;
+   dx = DSET_DX(inset) ; dy = DSET_DY(inset) ; dz = DSET_DZ(inset) ;
+
    if( abas.verb ) fprintf(stderr,"++ Checking inputs\n") ;
 
    /*-- parameterize the warp model --*/
@@ -771,12 +794,12 @@ int main( int argc , char * argv[] )
        ADDPAR( "y-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
        ADDPAR( "z-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
 
-       ADDPAR( "z-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;  /* degrees */
        ADDPAR( "x-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
        ADDPAR( "y-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
 
-       ADDPAR( "x-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "y-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "x-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;  /* identity */
+       ADDPAR( "y-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
        ADDPAR( "z-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
 
        switch( smat ){
@@ -789,9 +812,9 @@ int main( int argc , char * argv[] )
            lab09 = "x/y-shear" ; lab10 = "x/z-shear" ; lab11 = "y/z-shear" ;
          break ;
        }
-       ADDPAR( lab09 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( lab10 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( lab11 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab09 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab10 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab11 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
 
        /* initialize transform parameter vector */
 
@@ -822,6 +845,7 @@ int main( int argc , char * argv[] )
    } else if( warpdrive_code == WARPDRIVE_BILINEAR ){
 
        char *lab09, *lab10, *lab11 , labxx[16] ;
+       float xr,yr,zr,rr ;
 
        /* add all 39 parameters (may ignore some, later) */
 
@@ -847,13 +871,15 @@ int main( int argc , char * argv[] )
            lab09 = "x/y-shear" ; lab10 = "x/z-shear" ; lab11 = "y/z-shear" ;
          break ;
        }
-       ADDPAR( lab09 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( lab10 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( lab11 , -0.3333 , 0.3333 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab09 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab10 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab11 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
 
+       xr = fabs(dx)*nx ; yr = fabs(dy)*ny ; zr = fabs(dz)*nz ;
+       rr = MAX(xr,yr)  ; rr = MAX(rr,zr)  ; rr = 0.2222 / rr ;
        for( kpar=12 ; kpar < 39 ; kpar++ ){
-         sprintf(labxx,"blin%02d",kpar+1) ;
-         ADDPAR( labxx , -0.01 , 0.01 , 0.0 , 0.0 , 0.0 ) ;
+         sprintf(labxx,"blin_%02d",kpar+1) ;
+         ADDPAR( labxx , -rr , rr , 0.0 , 0.0 , 0.0 ) ;
        }
 
        /* initialize transform parameter vector */
@@ -913,24 +939,6 @@ int main( int argc , char * argv[] )
      nerr++ ;
    }
 
-   /*-- 1 remaining argument should be a dataset --*/
-
-   if( inset == NULL && nopt != argc-1 ){
-     fprintf(stderr,"** ERROR: Command line should have exactly 1 dataset!\n"
-                    "**        Whereas there seems to be %d of them!\n",
-             argc-nopt ) ;
-     exit(1) ;
-   }
-
-   /*-- input dataset header --*/
-
-   if( inset == NULL ){
-     inset = THD_open_dataset( argv[nopt] ) ;
-     if( !ISVALID_DSET(inset) ){
-       fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[nopt]); exit(1);
-     }
-   }
-
    if( nerr ) exit(1) ;
 
    if( abas.verb ) fprintf(stderr,"++ Creating empty output dataset\n") ;
@@ -959,9 +967,6 @@ int main( int argc , char * argv[] )
    outset->daxes->zzorg = inset->daxes->zzorg ;
 
    /*-- more checks --*/
-
-   nx = DSET_NX(inset) ; ny = DSET_NY(inset) ; nz = DSET_NZ(inset) ;
-   dx = DSET_DX(inset) ; dy = DSET_DY(inset) ; dz = DSET_DZ(inset) ;
 
    if( DSET_NX(baset) != nx || DSET_NY(baset) != ny || DSET_NZ(baset) != nz ){
      fprintf(stderr,"** ERROR: base and input grid dimensions don't match!\n") ;
