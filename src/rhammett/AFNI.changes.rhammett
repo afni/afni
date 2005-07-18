@@ -1,3 +1,7 @@
+18 Jul 2005
+   * modified thd_niftiwrite.c and thdniftiread.c to allow
+       better interoperability with FSL
+
 13 Apr 2005
    * deprecated quite LOUDLY usage of 3dANALYZEtoAFNI
 05 Apr 2005

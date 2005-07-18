@@ -84,7 +84,7 @@ ENTRY("THD_write_nifti") ;
 
 nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t options)
 {
-  int nparam, type0 , ii ,val;
+  int nparam, type0 , ii , jj, val;
   int nif_x_axnum, nif_y_axnum, nif_z_axnum ;
   int slast, sfirst ;
   int pattern_unknown = 0 ;
@@ -94,6 +94,7 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   int   axnum[3] ;
   float fac0 ;
   float dumqx, dumqy, dumqz, dumdx, dumdy, dumdz ;
+  float pixdimfac[4] ;
   float odd_del, even_del, tmp_float ;
   int even_parity_sign = 0 ;
 
@@ -305,6 +306,16 @@ ENTRY("populate_nifti_image") ;
   nifti_mat44_to_quatern( nim->qto_xyz , &nim->quatern_b, &nim->quatern_c, &nim->quatern_d,
                     &dumqx, &dumqy, &dumqz, &dumdx, &dumdy, &dumdz, &nim->qfac ) ;
 
+  /*-- from the same above info, set the sform matrix to equal the qform --*/
+  /* KRH 7/6/05 - using sform to duplicate qform for
+                           interoperability with FSL                       */
+
+  for ( ii = 0 ; ii < 3 ; ii++ ) {
+    for ( jj = 0 ; jj < 4 ; jj++ ) {
+      nim->sto_xyz.m[ii][jj] = nim->qto_xyz.m[ii][jj] ;
+    }
+  }
+
   /*-- verify dummy quaternion parameters --*/
 
   if( options.debug_level > 2 )
@@ -514,6 +525,8 @@ ENTRY("populate_nifti_image") ;
 
   /*-- odds and ends that are constant for AFNI files --*/
   nim->qform_code = NIFTI_XFORM_SCANNER_ANAT ;
+  nim->sform_code = NIFTI_XFORM_SCANNER_ANAT ; /* KRH 7/6/05 - using sform to duplicate qform for
+                                                  interoperability with FSL                       */
   nim->cal_min = nim->cal_max = 0 ;
   nim->nifti_type = 1 ;
   nim->xyz_units = NIFTI_UNITS_MM ;
@@ -521,7 +534,6 @@ ENTRY("populate_nifti_image") ;
   nim->ext_list = NULL ;
   nim->iname_offset = 352 ; /* until extensions are added */
   nim->data = NULL ;
-  nim->sform_code = 0 ;
 
   RETURN(nim) ;
 }
