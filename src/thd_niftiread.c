@@ -14,6 +14,7 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    THD_3dim_dataset *dset=NULL ;
    nifti_image *nim ;
    int ntt , nbuc , nvals ;
+   int use_qform = 0 , use_sform = 0 ;
    int statcode = 0 , datum , iview , ibr ;
    THD_ivec3 orixyz , nxyz ;
    THD_fvec3 dxyz , orgxyz ;
@@ -111,38 +112,184 @@ ENTRY("THD_open_nifti") ;
      }
    }
 
-   /* determine orientation from the qto_xyz matrix,
+
+  /* KRH 07/11/05 -- adding ability to choose spatial transform
+      from the options of qform, sform, bothform, or noform.
+
+     If qform is present, it will be used.
+
+     If qform is absent, but sform present, then the sform
+       will be modified to be an orthogonal rotation and used.
+
+     If both qform and sform are absent, then we will have
+       an error.
+
+     Previously assumed qform present.  */
+
+   if ((nim->qform_code > 0) && (nim->sform_code > 0) ) {
+     use_qform = 1 ;
+     use_sform = 0 ;
+   } else if (nim->qform_code > 0) {
+     use_qform = 1 ;
+     use_sform = 0 ;
+   } else if (nim->sform_code > 0) { 
+     use_qform = 0 ;
+     use_sform = 1 ;
+   } else {
+     use_qform = 0 ;
+     use_sform = 0 ;
+     fprintf(stderr,
+             "** NO spatial transform (neither preferred qform nor sform), in NIfTI dataset file:\n %s\nUsing senseless defaults.\n",
+             pathname ) ;
+   }
+
+
+   if (use_qform) {
+
+     /* determine orientation from the qto_xyz matrix,
       which transforms (i,j,k) voxel indexes to (x,y,z) LPI coordinates */
 
-   LOAD_MAT(R, -nim->qto_xyz.m[0][0] ,  /* negate x and y   */
-               -nim->qto_xyz.m[0][1] ,  /* coefficients,    */
-               -nim->qto_xyz.m[0][2] ,  /* since AFNI works */
-               -nim->qto_xyz.m[1][0] ,  /* with RAI coords, */
-               -nim->qto_xyz.m[1][1] ,  /* but NIFTI uses   */
-               -nim->qto_xyz.m[1][2] ,  /* LPI coordinates. */
-                nim->qto_xyz.m[2][0] ,  /* [Which is my own] */
-                nim->qto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
-                nim->qto_xyz.m[2][2]  ) ;
+     LOAD_MAT(R, -nim->qto_xyz.m[0][0] ,  /* negate x and y   */
+                 -nim->qto_xyz.m[0][1] ,  /* coefficients,    */
+                 -nim->qto_xyz.m[0][2] ,  /* since AFNI works */
+                 -nim->qto_xyz.m[1][0] ,  /* with RAI coords, */
+                 -nim->qto_xyz.m[1][1] ,  /* but NIFTI uses   */
+                 -nim->qto_xyz.m[1][2] ,  /* LPI coordinates. */
+                  nim->qto_xyz.m[2][0] ,  /* [Which is my own] */
+                  nim->qto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
+                  nim->qto_xyz.m[2][2]  ) ;
 
-   orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
+     orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
+   
+     iview = (nim->qform_code == NIFTI_XFORM_TALAIRACH )
+             ? VIEW_TALAIRACH_TYPE : VIEW_ORIGINAL_TYPE ;
 
-   /* load the offsets and the grid spacings */
 
-   LOAD_FVEC3( orgxyz , -nim->qto_xyz.m[0][3] ,    /* again, negate  */
+     /* load the offsets and the grid spacings */
+
+     LOAD_FVEC3( orgxyz , -nim->qto_xyz.m[0][3] ,    /* again, negate  */
                         -nim->qto_xyz.m[1][3] ,    /* x and y coords */
                          nim->qto_xyz.m[2][3]  ) ;
 
-   /* AFNI space units are always mm */
+     /* AFNI space units are always mm */
 
-   if( nim->xyz_units == NIFTI_UNITS_METER ){
-     nim->dx *= 1000.0 ; nim->dy *= 1000.0 ; nim->dz *= 1000.0 ;
-   } else if(  nim->xyz_units == NIFTI_UNITS_MICRON ){
-     nim->dx *= 0.001  ; nim->dy *= 0.001  ; nim->dz *= 0.001  ;
+     if( nim->xyz_units == NIFTI_UNITS_METER ){
+       nim->dx *= 1000.0 ; nim->dy *= 1000.0 ; nim->dz *= 1000.0 ;
+     } else if(  nim->xyz_units == NIFTI_UNITS_MICRON ){
+       nim->dx *= 0.001  ; nim->dy *= 0.001  ; nim->dz *= 0.001  ;
+     }
+
+     LOAD_FVEC3( dxyz , (ORIENT_sign[orixyz.ijk[0]]=='+') ? nim->dx : -nim->dx ,
+                        (ORIENT_sign[orixyz.ijk[1]]=='+') ? nim->dy : -nim->dy ,
+                        (ORIENT_sign[orixyz.ijk[2]]=='+') ? nim->dz : -nim->dz  ) ;
+
+   } else if (use_sform) {
+
+     int orimap[7] = { 6 , 1 , 0 , 2 , 3 , 4 , 5 } ;
+     int oritmp[3] ;
+     float dxtmp, dytmp, dztmp ;
+     float xmax, ymax, zmax ;
+     float fig_merit, ang_merit ;
+
+     /* convert sform to nifti orientation codes */
+
+     nifti_mat44_to_orientation(nim->sto_xyz, &oritmp[0], &oritmp[1], &oritmp[2] ) ;
+
+     /* convert nifti orientation codes to AFNI codes and store in vector */
+
+     LOAD_IVEC3( orixyz , orimap[oritmp[0]] ,
+                          orimap[oritmp[1]] ,
+                          orimap[oritmp[2]] ) ;
+
+     /* assume original view if there's no talairach id present */
+
+     iview = (nim->sform_code == NIFTI_XFORM_TALAIRACH )
+             ? VIEW_TALAIRACH_TYPE : VIEW_ORIGINAL_TYPE ;
+
+     /* load the offsets and the grid spacings */
+
+     LOAD_FVEC3( orgxyz , -nim->sto_xyz.m[0][3] ,    /* again, negate  */
+                          -nim->sto_xyz.m[1][3] ,    /* x and y coords */
+                           nim->sto_xyz.m[2][3] ) ;
+
+#define MAXNUM(a,b) ( (a) > (b) ? (a):(b))
+#define MAX3(a,b,c) ( (MAXNUM(a,b)) > (MAXNUM(a,c)) ? (MAXNUM(a,b)):(MAXNUM(a,c)))
+#define MINNUM(a,b) ( (a) < (b) ? (a):(b))
+#define MIN3(a,b,c) ( (MINNUM(a,b)) < (MINNUM(a,c)) ? (MINNUM(a,b)):(MINNUM(a,c)))
+
+     dxtmp = sqrt ( nim->sto_xyz.m[0][0] * nim->sto_xyz.m[0][0] +
+                    nim->sto_xyz.m[1][0] * nim->sto_xyz.m[1][0] +
+                    nim->sto_xyz.m[2][0] * nim->sto_xyz.m[2][0] ) ;
+
+     xmax = MAX3(fabs(nim->sto_xyz.m[0][0]),fabs(nim->sto_xyz.m[1][0]),fabs(nim->sto_xyz.m[2][0])) / dxtmp ;
+ 
+     dytmp = sqrt ( nim->sto_xyz.m[0][1] * nim->sto_xyz.m[0][1] +
+                    nim->sto_xyz.m[1][1] * nim->sto_xyz.m[1][1] +
+                    nim->sto_xyz.m[2][1] * nim->sto_xyz.m[2][1] ) ;
+ 
+     ymax = MAX3(fabs(nim->sto_xyz.m[0][1]),fabs(nim->sto_xyz.m[1][1]),fabs(nim->sto_xyz.m[2][1])) / dytmp ;
+
+     dztmp = sqrt ( nim->sto_xyz.m[0][2] * nim->sto_xyz.m[0][2] +
+                    nim->sto_xyz.m[1][2] * nim->sto_xyz.m[1][2] +
+                    nim->sto_xyz.m[2][2] * nim->sto_xyz.m[2][2] ) ;
+
+     zmax = MAX3(fabs(nim->sto_xyz.m[0][2]),fabs(nim->sto_xyz.m[1][2]),fabs(nim->sto_xyz.m[2][2])) / dztmp ;
+
+     fig_merit = MIN3(xmax,ymax,zmax) ;
+     ang_merit = acos (fig_merit) * 180.0 / 3.141592653 ;
+
+     if (fabs(ang_merit) > .01) {
+       fprintf(stderr, "qform not present, sform used.\n"
+                       "sform was not exact, and the worst axis is\n"
+                       "%f degrees from plumb.\n",ang_merit ) ;
+     }
+
+     if( nim->xyz_units == NIFTI_UNITS_METER ){
+       dxtmp *= 1000.0 ; dytmp *= 1000.0 ; dztmp *= 1000.0 ;
+     } else if(  nim->xyz_units == NIFTI_UNITS_MICRON ){
+       dxtmp *= 0.001  ; dytmp *= 0.001  ; dztmp *= 0.001  ;
+     }
+
+     LOAD_FVEC3( dxyz , (ORIENT_sign[orixyz.ijk[0]]=='+') ? dxtmp : -dxtmp ,
+                        (ORIENT_sign[orixyz.ijk[1]]=='+') ? dytmp : -dytmp ,
+                        (ORIENT_sign[orixyz.ijk[2]]=='+') ? dztmp : -dztmp ) ;
+
+   } else { /* NO SPATIAL XFORM. BAD BAD BAD BAD BAD BAD. */
+
+     float dxtmp, dytmp, dztmp ;
+
+     /* if pixdim data are present, use them in order to set pixel 
+        dimensions.  otherwise, set the dimensions to 1 unit.         */ 
+
+     dxtmp = ((nim->pixdim[1] > 0) ? nim->pixdim[1] : 1) ;
+     dytmp = ((nim->pixdim[2] > 0) ? nim->pixdim[2] : 1) ;
+     dztmp = ((nim->pixdim[3] > 0) ? nim->pixdim[3] : 1) ;
+
+     if( nim->xyz_units == NIFTI_UNITS_METER ){
+       dxtmp *= 1000.0 ; dytmp *= 1000.0 ; dztmp *= 1000.0 ;
+     } else if(  nim->xyz_units == NIFTI_UNITS_MICRON ){
+       dxtmp *= 0.001  ; dytmp *= 0.001  ; dztmp *= 0.001  ;
+     }
+
+     /* set orientation to LPI by default    */
+
+     LOAD_IVEC3( orixyz , 1 ,
+                          2 ,
+                          4 ) ;
+
+     LOAD_FVEC3( dxyz , (ORIENT_sign[orixyz.ijk[0]]=='+') ? dxtmp : -dxtmp ,
+                        (ORIENT_sign[orixyz.ijk[1]]=='+') ? dytmp : -dytmp ,
+                        (ORIENT_sign[orixyz.ijk[2]]=='+') ? dztmp : -dztmp ) ;
+
+     iview = VIEW_ORIGINAL_TYPE ;
+
+     /* set origin to 0,0,0   */
+
+     LOAD_FVEC3( orgxyz , 0 ,
+                          0 ,
+                          0 ) ;
    }
 
-   LOAD_FVEC3( dxyz , (ORIENT_sign[orixyz.ijk[0]]=='+') ? nim->dx : -nim->dx ,
-                      (ORIENT_sign[orixyz.ijk[1]]=='+') ? nim->dy : -nim->dy ,
-                      (ORIENT_sign[orixyz.ijk[2]]=='+') ? nim->dz : -nim->dz  ) ;
 
    /*-- make an AFNI dataset! --*/
 
@@ -154,9 +301,6 @@ ENTRY("THD_open_nifti") ;
    nxyz.ijk[0] = nim->nx ;                          /* grid dimensions */
    nxyz.ijk[1] = nim->ny ;
    nxyz.ijk[2] = nim->nz ;
-
-   iview = (nim->qform_code == NIFTI_XFORM_TALAIRACH )
-           ? VIEW_TALAIRACH_TYPE : VIEW_ORIGINAL_TYPE ;
 
    dset->idcode.str[0] = 'N' ;  /* overwrite 1st 3 bytes with something special */
    dset->idcode.str[1] = 'I' ;
