@@ -215,6 +215,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 
 #include <stdarg.h>
 extern void INFO_message   ( char *fmt , ... ) ;  /* 13 Jul 2005 */
+extern void ININFO_message ( char *fmt , ... ) ;
 extern void WARNING_message( char *fmt , ... ) ;
 extern void ERROR_message  ( char *fmt , ... ) ;
 extern void ERROR_exit     ( char *fmt , ... ) ;
