@@ -3699,6 +3699,7 @@ typedef struct {
    void (*vwfor)(float,float,float,float *,float *,float *) ;
    void (*vwinv)(float,float,float,float *,float *,float *) ;
    void (*vwset)(int,float *) ;
+   float (*vwdet)(float,float,float) ;
 
    /*- below here is not to be touched by the user! -*/
 

@@ -212,6 +212,7 @@ DUMP_VECMAT("mv_for",mv_for) ; DUMP_VECMAT("mv_inv",mv_inv) ;
 /*--------------------------------------------------------------------------*/
 /* For bilinear warps */
 
+static float dd_fac = 1.0f ;
 static float dd_for[3][3][3] , dd_inv[3][3][3] ;
 
 void warper_bilinear_for( float aa , float bb , float cc ,
@@ -262,9 +263,43 @@ void warper_bilinear_inv( float aa , float bb , float cc ,
    *p = v.xyz[0] ; *q = v.xyz[1] ; *r = v.xyz[2] ;
 }
 
+float warper_bilinear_det( float ii , float jj , float kk )
+{
+   THD_fvec3 x,v,w ; THD_mat33 dd,ee ; int i,j ; float edet,adet,ddet , aa,bb,cc ;
+
+   LOAD_FVEC3( x , ii,jj,kk )   ; v = VECMAT_VEC( ijk_to_xyz , x ) ;
+   UNLOAD_FVEC3( v , aa,bb,cc ) ; w = VECMAT_VEC( mv_for , v ) ;
+
+   dd.mat[0][0] = 1.0f + dd_for[0][0][0]*aa + dd_for[0][0][1]*bb + dd_for[0][0][2]*cc ;
+   dd.mat[0][1] =        dd_for[0][1][0]*aa + dd_for[0][1][1]*bb + dd_for[0][1][2]*cc ;
+   dd.mat[0][2] =        dd_for[0][2][0]*aa + dd_for[0][2][1]*bb + dd_for[0][2][2]*cc ;
+   dd.mat[1][0] =        dd_for[1][0][0]*aa + dd_for[1][0][1]*bb + dd_for[1][0][2]*cc ;
+   dd.mat[1][1] = 1.0f + dd_for[1][1][0]*aa + dd_for[1][1][1]*bb + dd_for[1][1][2]*cc ;
+   dd.mat[1][2] =        dd_for[1][2][0]*aa + dd_for[1][2][1]*bb + dd_for[1][2][2]*cc ;
+   dd.mat[2][0] =        dd_for[2][0][0]*aa + dd_for[2][0][1]*bb + dd_for[2][0][2]*cc ;
+   dd.mat[2][1] =        dd_for[2][1][0]*aa + dd_for[2][1][1]*bb + dd_for[2][1][2]*cc ;
+   dd.mat[2][2] = 1.0f + dd_for[2][2][0]*aa + dd_for[2][2][1]*bb + dd_for[2][2][2]*cc ;
+
+   ddet = MAT_DET(dd) ;
+   ee = MAT_INV(dd) ; edet = MAT_DET(ee) ; v = MATVEC(ee,w) ;
+
+   for( i=0 ; i < 3 ; i++ )
+    for( j=0 ; j < 3 ; j++ )
+     dd.mat[i][j] = mv_for.mm.mat[i][j] - dd_for[i][0][j]*v.xyz[0]
+                                        - dd_for[i][1][j]*v.xyz[1]
+                                        - dd_for[i][2][j]*v.xyz[2] ;
+
+   adet = MAT_DET(dd) ;
+#if 0
+   return (adet*edet) ;
+#else
+   return ddet ;
+#endif
+}
+
 void parset_bilinear(void)
 {
-   THD_mat33 ai ; THD_fvec3 df,di ; int j,k ;
+   THD_mat33 ai ; THD_fvec3 df,di ; int i,j,k ;
 
    parset_affine() ;  /* sets up numerator matrices: mv_for and mv_inv */
 
@@ -280,6 +315,10 @@ void parset_bilinear(void)
    dd_for[2][1][0] = parvec[33]; dd_for[2][1][1] = parvec[34]; dd_for[2][1][2] = parvec[35];
    dd_for[2][2][0] = parvec[36]; dd_for[2][2][1] = parvec[37]; dd_for[2][2][2] = parvec[38];
 
+   for( i=0 ; i < 3 ; i++ )
+    for( j=0 ; j < 3 ; j++ )
+     for( k=0 ; k < 3 ; k++ ) dd_for[i][j][k] *= dd_fac ;  /* 18 Jul 2005 */
+
    /* computer inverse denominator 3-tensor */
 
    ai = mv_inv.mm ;
@@ -289,6 +328,21 @@ void parset_bilinear(void)
        di = MATVEC( ai , df ) ;
        UNLOAD_FVEC3( di , dd_inv[0][j][k] , dd_inv[1][j][k] , dd_inv[2][j][k] ) ;
      }
+   }
+
+   fprintf(stderr,"++++++++++++ parset_bilinear: dd_fac = %g\n",dd_fac) ;
+   for( k=0 ; k < 3 ; k++ ){
+     fprintf(stderr," +-------+ dd_for[][][%d]                       | dd_inv[][][%d]\n"
+                    "            %11.4g %11.4g %11.4g |  %11.4g %11.4g %11.4g\n"
+                    "            %11.4g %11.4g %11.4g |  %11.4g %11.4g %11.4g\n"
+                    "            %11.4g %11.4g %11.4g |  %11.4g %11.4g %11.4g\n" ,
+         k , k ,
+         dd_for[0][0][k] , dd_for[0][1][k] , dd_for[0][2][k] ,
+           dd_inv[0][0][k] , dd_inv[0][1][k] , dd_inv[0][2][k] ,
+         dd_for[1][0][k] , dd_for[1][1][k] , dd_for[1][2][k] ,
+           dd_inv[1][0][k] , dd_inv[1][1][k] , dd_inv[1][2][k] ,
+         dd_for[2][0][k] , dd_for[2][1][k] , dd_for[2][2][k] ,
+           dd_inv[2][0][k] , dd_inv[2][1][k] , dd_inv[2][2][k]  ) ;
    }
 }
 
@@ -463,6 +517,7 @@ int main( int argc , char * argv[] )
    abas.vwfor      = ijk_warp_for ;
    abas.vwinv      = ijk_warp_inv ;
    abas.vwset      = load_parvec ;
+   abas.vwdet      = NULL ;
 
    abas.xedge = abas.yedge = abas.zedge = -1 ;
    abas.imww  = abas.imap  = abas.imps  = abas.imsk = NULL ;
@@ -875,17 +930,19 @@ int main( int argc , char * argv[] )
        ADDPAR( lab10 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
        ADDPAR( lab11 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
 
-       xr = fabs(dx)*nx ; yr = fabs(dy)*ny ; zr = fabs(dz)*nz ;
-       rr = MAX(xr,yr)  ; rr = MAX(rr,zr)  ; rr = 0.2222 / rr ;
+       xr = 0.5f*fabs(dx)*nx ; yr = 0.5f*fabs(dy)*ny ; zr = 0.5f*fabs(dz)*nz ;
+       rr = MAX(xr,yr)       ; rr = MAX(rr,zr)       ; dd_fac = 1.0f / rr ;
        for( kpar=12 ; kpar < 39 ; kpar++ ){
          sprintf(labxx,"blin_%02d",kpar+1) ;
-         ADDPAR( labxx , -rr , rr , 0.0 , 0.0 , 0.0 ) ;
+         ADDPAR( labxx , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
        }
 
        /* initialize transform parameter vector */
 
        for( kpar=0 ; kpar < 39 ; kpar++ )
          parvec[kpar] = abas.param[kpar].ident ;
+
+       abas.vwdet = warper_bilinear_det ;
 
        /* initialize transformation function pointers */
 
@@ -1096,6 +1153,13 @@ int main( int argc , char * argv[] )
 
      ijk_to_xyz = MUL_VECMAT( xyz_to_dicom , ijk_to_inset_xyz ) ;
      xyz_to_ijk = INV_VECMAT( ijk_to_xyz ) ;
+
+#if 0
+     if( abas.verb ){
+       DUMP_VECMAT("ijk_to_xyz",ijk_to_xyz) ;
+       DUMP_VECMAT("xyz_to_ijk",xyz_to_ijk) ;
+     }
+#endif
    }
 
    /*-- make the shell of the new dataset --*/
