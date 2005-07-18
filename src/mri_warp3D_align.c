@@ -820,13 +820,28 @@ ENTRY("mri_warp3D_align_one") ;
        mri_warp3D_set_womask( NULL ) ;
        bas->vwset( npar , fit ) ;
        tim = mri_warp3D( fim , 0,0,0 , bas->vwfor ) ;
+       tar = MRI_FLOAT_PTR(tim) ;
        mri_warp3D_set_womask( bas->imsk ) ;
        sprintf(sname,"%s_%04d.mmm",save_prefix,save_index++) ;
        fprintf(stderr,"+   Saving intermediate image to binary file %s\n",sname) ;
        fp = fopen( sname , "w" ) ;
        if( fp != NULL ){
-         tar = MRI_FLOAT_PTR(tim) ;
          fwrite( tar, tim->pixel_size, tim->nvox, fp ) ; fclose(fp) ;
+       }
+
+       if( bas->vwdet != NULL ){
+         int i,j,k , nx=tim->nx,ny=tim->ny,nz=tim->nz ;
+         for( k=0 ; k < nz ; k++ ){
+          for( j=0 ; j < ny ; j++ ){
+           for( i=0 ; i < nx ; i++ ){
+             tar[i+(j+k*ny)*nx] = bas->vwdet( (float)i,(float)j,(float)k ) ;
+         }}}
+         sprintf(sname,"%s_%04d.ddd",save_prefix,save_index-1) ;
+         fprintf(stderr,"+   Saving determinant image to binary file %s\n",sname) ;
+         fp = fopen( sname , "w" ) ;
+         if( fp != NULL ){
+           fwrite( tar, tim->pixel_size, tim->nvox, fp ) ; fclose(fp) ;
+         }
        }
        mri_free( tim ) ;
      }
