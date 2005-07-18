@@ -40,6 +40,17 @@ void INFO_message( char *fmt , ... )
 
 /*--------------------------------------------------------------------------*/
 
+void ININFO_message( char *fmt , ... )
+{
+   va_list vararg_ptr ;
+   va_start( vararg_ptr , fmt ) ;
+   output_message( " + " , fmt , vararg_ptr ) ;
+   va_end( vararg_ptr ) ;
+   return ;
+}
+
+/*--------------------------------------------------------------------------*/
+
 void WARNING_message( char *fmt , ... )
 {
    va_list vararg_ptr ;

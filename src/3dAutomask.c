@@ -49,10 +49,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-SI") == 0 ){        /* 06 Mar 2003 */
         SIhh = strtod( argv[++iarg] , NULL ) ;
-        if( SIhh <= 0.0 ){
-          fprintf(stderr,"** -SI value %f is illegal!\n",SIhh) ;
-          exit(1) ;
-        }
+        if( SIhh <= 0.0 )
+          ERROR_exit("-SI value %f is illegal!\n",SIhh) ;
         iarg++ ; continue ;
       }
 
@@ -67,64 +65,58 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
          prefix = argv[++iarg] ;
-         if( !THD_filename_ok(prefix) ){
-           fprintf(stderr,"** -prefix %s is illegal!\n",prefix) ;
-           exit(1) ;
-         }
+         if( !THD_filename_ok(prefix) )
+           ERROR_exit("-prefix %s is illegal!\n",prefix) ;
          iarg++ ; continue ;
       }
 
 #ifdef ALLOW_FILLIN
       if( strcmp(argv[iarg],"-fillin") == 0 ){
          fillin = strtol( argv[++iarg] , NULL , 10 ) ;
-         if( fillin <  0 ){
-           fprintf(stderr,"** -fillin %s is illegal!\n",argv[iarg]) ;
-           exit(1) ;
-         } else if( fillin > 0 ){
+         if( fillin <  0 )
+           ERROR_exit("-fillin %s is illegal!\n",argv[iarg]) ;
+         else if( fillin > 0 )
            fillin = (fillin+2) / 2 ;
-         }
          iarg++ ; continue ;
       }
 #endif
 
       if( strcmp(argv[iarg],"-dilate") == 0 ){
          dilate = strtol( argv[++iarg] , NULL , 10 ) ;
-         if( dilate < 0 ){
-           fprintf(stderr,"** -dilate %s is illegal!\n",argv[iarg]); exit(1);
-         }
+         if( dilate < 0 )
+           ERROR_exit("-dilate %s is illegal!\n",argv[iarg]);
          iarg++ ; continue ;
       }
 
-      fprintf(stderr,"** ILLEGAL option: %s\n",argv[iarg]) ; exit(1) ;
+      ERROR_exit("ILLEGAL option: %s\n",argv[iarg]) ;
    }
 
    /*-- read data --*/
 
    dset = THD_open_dataset(argv[iarg]) ;
-   if( !ISVALID_DSET(dset) ){ fprintf(stderr,"** CAN'T open dataset\n");exit(1); }
+   if( !ISVALID_DSET(dset) ) ERROR_exit("Can't open dataset %s\n",argv[iarg]);
    if( DSET_BRICK_TYPE(dset,0) != MRI_short &&
        DSET_BRICK_TYPE(dset,0) != MRI_byte  &&
        DSET_BRICK_TYPE(dset,0) != MRI_float   ){
-      fprintf(stderr,"** ILLEGAL dataset type\n"); exit(1);
+      ERROR_exit("Illegal dataset datum type\n") ;
    }
-   if( verb ) fprintf(stderr,"++ Loading dataset\n") ;
+   if( verb ) INFO_message("Loading dataset %s\n",argv[iarg]) ;
    DSET_load(dset) ;
-   if( !DSET_LOADED(dset) ){ fprintf(stderr,"** CAN'T load dataset\n");exit(1); }
+   if( !DSET_LOADED(dset) ) ERROR_exit("Can't load dataset %s\n",argv[iarg]);
 
    /*** do all the real work now ***/
 
-   if( verb ) fprintf(stderr,"++ Forming automask\n") ;
+   if( verb ) INFO_message("Forming automask\n") ;
    if( verb ) THD_automask_verbose(1) ;
    mask = THD_automask( dset ) ;
-   if( mask == NULL ){
-     fprintf(stderr,"** Mask creation fails for unknown reasons!\n"); exit(1);
-   }
+   if( mask == NULL )
+     ERROR_exit("Mask creation fails for unknown reasons!\n");
 
    /* 30 Aug 2002 (modified 05 Mar 2003 to do fillin, etc, after dilation) */
 
    if( dilate > 0 ){
      int ii,nx,ny,nz , nmm ;
-     if( verb ) fprintf(stderr,"++ Dilating automask\n") ;
+     if( verb ) INFO_message("Dilating automask\n") ;
      nx = DSET_NX(dset) ; ny = DSET_NY(dset) ; nz = DSET_NZ(dset) ;
      nmm = 1 ;
      ii  = rint(0.032*nx) ; nmm = MAX(nmm,ii) ;
@@ -143,11 +135,10 @@ int main( int argc , char * argv[] )
    /* 18 Apr 2002: print voxel count */
 
    nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
-   if( verb ) fprintf(stderr,"++ %d voxels in the mask [out of %d: %.2f%%]\n",
-           nmask,DSET_NVOX(dset), (100.0*nmask)/DSET_NVOX(dset) ) ;
-   if( nmask == 0 ){
-      fprintf(stderr,"** No voxels? Quitting without saving mask\n"); exit(1);
-   }
+   if( verb ) INFO_message("%d voxels in the mask [out of %d: %.2f%%]\n",
+                 nmask,DSET_NVOX(dset), (100.0*nmask)/DSET_NVOX(dset) ) ;
+   if( nmask == 0 )
+      ERROR_exit("No voxels? Quitting without saving mask\n");
 
    /* 18 Apr 2002: maybe fill in voxels */
 
@@ -155,8 +146,8 @@ int main( int argc , char * argv[] )
    if( fillin > 0 ){
      nfill = THD_mask_fillin_completely(
                  DSET_NX(dset),DSET_NY(dset),DSET_NZ(dset), mask, fillin ) ;
-     if( verb ) fprintf(stderr,"++ %d voxels filled in; %d voxels total\n",
-             nfill,nfill+nmask ) ;
+     if( verb ) INFO_message("%d voxels filled in; %d voxels total\n",
+                             nfill,nfill+nmask ) ;
    }
 #endif
 
@@ -168,8 +159,8 @@ int main( int argc , char * argv[] )
 #if 0
      { int xm=-1,xp=-1,ym=-1,yp=-1,zm=-1,zp=-1 ;
        THD_autobbox( dset , &xm,&xp , &ym,&yp , &zm,&zp ) ;
-       fprintf(stderr,"++ Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",
-               xm,xp,ym,yp,zm,zp ) ;
+       INFO_message("Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",
+                     xm,xp,ym,yp,zm,zp ) ;
      }
 #endif
 
@@ -178,13 +169,10 @@ int main( int argc , char * argv[] )
          for( jj=0 ; jj < ny ; jj++ )
            if( mask[ii+jj*nx+kk*nxy] ) goto CP5 ;
      CP5: if( verb )
-           fprintf(stderr,"++ first %3d x-planes are zero [from %c]\n",
-                  ii,ORIENT_tinystr[dset->daxes->xxorient][0]) ;
+           INFO_message("first %3d x-planes are zero [from %c]\n",
+                        ii,ORIENT_tinystr[dset->daxes->xxorient][0]) ;
      if( SIhh > 0.0 && ORIENT_tinystr[dset->daxes->xxorient][0] == 'S' ){
        SIax = 1 ; SIbot = ii + (int)(SIhh/fabs(DSET_DX(dset))+0.5) ; SItop = nx-1 ;
-#if 0
-fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
-#endif
      }
 
      for( ii=nx-1 ; ii >= 0 ; ii-- )
@@ -192,13 +180,10 @@ fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
          for( jj=0 ; jj < ny ; jj++ )
            if( mask[ii+jj*nx+kk*nxy] ) goto CP6 ;
      CP6: if( verb )
-           fprintf(stderr,"++ last  %3d x-planes are zero [from %c]\n",
-                  nx-1-ii,ORIENT_tinystr[dset->daxes->xxorient][1]) ;
+           INFO_message("last  %3d x-planes are zero [from %c]\n",
+                        nx-1-ii,ORIENT_tinystr[dset->daxes->xxorient][1]) ;
      if( SIhh > 0.0 && ORIENT_tinystr[dset->daxes->xxorient][1] == 'S' ){
        SIax = 1 ; SIbot = 0 ; SItop = ii - (int)(SIhh/fabs(DSET_DX(dset))+0.5) ;
-#if 0
-fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
-#endif
      }
 
      for( jj=0 ; jj < ny ; jj++ )
@@ -206,13 +191,10 @@ fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
          for( ii=0 ; ii < nx ; ii++ )
            if( mask[ii+jj*nx+kk*nxy] ) goto CP3 ;
      CP3: if( verb )
-           fprintf(stderr,"++ first %3d y-planes are zero [from %c]\n",
-                  jj,ORIENT_tinystr[dset->daxes->yyorient][0]) ;
+           INFO_message("first %3d y-planes are zero [from %c]\n",
+                        jj,ORIENT_tinystr[dset->daxes->yyorient][0]) ;
      if( SIhh > 0.0 && ORIENT_tinystr[dset->daxes->yyorient][0] == 'S' ){
        SIax = 2 ; SIbot = jj + (int)(SIhh/fabs(DSET_DY(dset))+0.5) ; SItop = ny-1 ;
-#if 0
-fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
-#endif
      }
 
      for( jj=ny-1 ; jj >= 0 ; jj-- )
@@ -220,13 +202,10 @@ fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
          for( ii=0 ; ii < nx ; ii++ )
            if( mask[ii+jj*nx+kk*nxy] ) goto CP4 ;
      CP4: if( verb )
-           fprintf(stderr,"++ last  %3d y-planes are zero [from %c]\n",
-                  ny-1-jj,ORIENT_tinystr[dset->daxes->yyorient][1]) ;
+           INFO_message("last  %3d y-planes are zero [from %c]\n",
+                        ny-1-jj,ORIENT_tinystr[dset->daxes->yyorient][1]) ;
      if( SIhh > 0.0 && ORIENT_tinystr[dset->daxes->yyorient][1] == 'S' ){
        SIax = 2 ; SIbot = 0 ; SItop = jj - (int)(SIhh/fabs(DSET_DY(dset))+0.5) ;
-#if 0
-fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
-#endif
      }
 
      for( kk=0 ; kk < nz ; kk++ )
@@ -234,13 +213,10 @@ fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
          for( ii=0 ; ii < nx ; ii++ )
            if( mask[ii+jj*nx+kk*nxy] ) goto CP1 ;
      CP1: if( verb )
-           fprintf(stderr,"++ first %3d z-planes are zero [from %c]\n",
-                  kk,ORIENT_tinystr[dset->daxes->zzorient][0]) ;
+           INFO_message("first %3d z-planes are zero [from %c]\n",
+                        kk,ORIENT_tinystr[dset->daxes->zzorient][0]) ;
      if( SIhh > 0.0 && ORIENT_tinystr[dset->daxes->zzorient][0] == 'S' ){
        SIax = 3 ; SIbot = kk + (int)(SIhh/fabs(DSET_DZ(dset))+0.5) ; SItop = nz-1 ;
-#if 0
-fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
-#endif
      }
 
      for( kk=nz-1 ; kk >= 0 ; kk-- )
@@ -248,13 +224,10 @@ fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
          for( ii=0 ; ii < nx ; ii++ )
            if( mask[ii+jj*nx+kk*nxy] ) goto CP2 ;
      CP2: if( verb )
-           fprintf(stderr,"++ last  %3d z-planes are zero [from %c]\n",
-                  nz-1-kk,ORIENT_tinystr[dset->daxes->zzorient][1]) ;
+           INFO_message("last  %3d z-planes are zero [from %c]\n",
+                        nz-1-kk,ORIENT_tinystr[dset->daxes->zzorient][1]) ;
      if( SIhh > 0.0 && ORIENT_tinystr[dset->daxes->zzorient][1] == 'S' ){
        SIax = 3 ; SIbot = 0 ; SItop = kk - (int)(SIhh/fabs(DSET_DZ(dset))+0.5) ;
-#if 0
-fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
-#endif
      }
 
      /* 06 Mar 2003: cut off stuff below SIhh mm from most Superior point */
@@ -262,8 +235,8 @@ fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
      if( SIax > 0 && SIbot <= SItop ){
        char *cax="xyz" ;
        if( verb )
-         fprintf(stderr,"++ SI clipping mask along axis %c from %d..%d\n" ,
-                 cax[SIax-1] , SIbot,SItop ) ;
+         INFO_message("SI clipping mask along axis %c from %d..%d\n" ,
+                      cax[SIax-1] , SIbot,SItop ) ;
        switch( SIax ){
          case 1:
            for( ii=SIbot ; ii <= SItop ; ii++ )
@@ -283,7 +256,7 @@ fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
        }
        nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
        if( verb )
-         fprintf(stderr,"++ %d voxels left [out of %d]\n",nmask,DSET_NVOX(dset)) ;
+         INFO_message("%d voxels left [out of %d]\n",nmask,DSET_NVOX(dset)) ;
      }
    }
 
@@ -308,9 +281,7 @@ fprintf(stderr,"SIax=%d SIbot=%d SItop=%d\n",SIax,SIbot,SItop) ;
    tross_Make_History( "3dAutomask", argc,argv, mset ) ;
 
    DSET_write( mset ) ;
-   if( verb )
-     fprintf(stderr,"++ Wrote mask dataset to %s\n",DSET_BRIKNAME(mset)) ;
-   if( verb )
-     fprintf(stderr,"++ CPU time = %f sec\n",COX_cpu_time()) ;
+   if( verb ) WROTE_DSET(mset) ;
+   if( verb ) INFO_message("CPU time = %f sec\n",COX_cpu_time()) ;
    exit(0) ;
 }
