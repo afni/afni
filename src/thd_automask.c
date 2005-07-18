@@ -107,7 +107,7 @@ ENTRY("mri_automask_image") ;
 
    clip_val = THD_cliplevel(medim,0.5) ;
 
-   if( verb ) fprintf(stderr," + Clip level = %f\n",clip_val) ;
+   if( verb ) ININFO_message("Clip level = %f\n",clip_val) ;
 
    /* create mask of values above clip value */
 
@@ -119,13 +119,13 @@ ENTRY("mri_automask_image") ;
 
    if( AFNI_yesenv("TOPCLIP") ){
      float tclip = 3.1*clip_val ;
-     if( verb ) fprintf(stderr," + Top clip = %f\n",tclip) ;
+     if( verb ) ININFO_message("Top clip = %f\n",tclip) ;
      for( ii=0 ; ii < nvox ; ii++ )
        if( mar[ii] > tclip ) mmm[ii] = 0 ;
      for( nmm=ii=0 ; ii < nvox ; ii++ ) if( mmm[ii] ) nmm++ ;
    }
 
-   if( verb ) fprintf(stderr," + Number voxels above clip level = %d\n",nmm) ;
+   if( verb ) ININFO_message("Number voxels above clip level = %d\n",nmm) ;
    if( im != medim && (!exterior_clip || nmm==0) ){ mri_free(medim); medim=NULL; }
    if( nmm == 0 ) RETURN(mmm) ;  /* should not happen */
 
@@ -134,7 +134,7 @@ ENTRY("mri_automask_image") ;
    nx = im->nx ; ny = im->ny ; nz = im->nz ;
    dall = (nx*ny*nz)/128 ;  /* allocation delta for clustering */
 
-   if( verb ) fprintf(stderr," + Clustering voxels above clip level ...\n") ;
+   if( verb ) ININFO_message("Clustering voxels above clip level ...\n") ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
 
    /* 18 Apr 2002: now erode the resulting volume
@@ -157,13 +157,13 @@ ENTRY("mri_automask_image") ;
      }
    }
    if( jj > 0 && verb )
-    fprintf(stderr," + Filled   %d voxels in small holes; now have %d voxels\n",
+    ININFO_message("Filled   %d voxels in small holes; now have %d voxels\n",
             jj , mask_count(nvox,mmm) ) ;
 
    if( AFNI_yesenv("PEEL") ){
      jj = THD_peel_mask( nx,ny,nz , mmm , 7 ) ;
      if( jj > 0 ){
-       fprintf(stderr," + Peeled %d voxels from surface\n",jj) ;
+       ININFO_message("Peeled %d voxels from surface\n",jj) ;
        THD_mask_erode( nx,ny,nz, mmm ) ;
        THD_mask_clust( nx,ny,nz, mmm ) ;
      }
@@ -179,7 +179,7 @@ ENTRY("mri_automask_image") ;
        jj += THD_mask_fillin_once( nx,ny,nz , mmm , ii ) ;
      jj += THD_mask_fillin_completely( nx,ny,nz, mmm , nmm ) ;
      if( jj > 0 && verb )
-      fprintf(stderr," + Filled   %d voxels in large holes; now have %d voxels\n",
+      ININFO_message("Filled   %d voxels in large holes; now have %d voxels\n",
               jj , mask_count(nvox,mmm) ) ;
    }
 
@@ -195,7 +195,7 @@ ENTRY("mri_automask_image") ;
 
    for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
 
-   if( verb ) fprintf(stderr," + Clustering non-brain voxels ...\n") ;
+   if( verb ) ININFO_message("Clustering non-brain voxels ...\n") ;
    THD_mask_clust( nx,ny,nz, mmm ) ;
 
    /* mask is now 1 for non-brain voxels;
@@ -208,7 +208,7 @@ ENTRY("mri_automask_image") ;
      jj = THD_mask_clip_neighbors( nx,ny,nz , mmm , clip_val,tclip,mar ) ;
      if( im != medim ) mri_free(medim) ;
      if( jj > 0 && verb )
-       fprintf(stderr," + Removed  %d exterior voxels below clip level\n",jj);
+       ININFO_message("Removed  %d exterior voxels below clip level\n",jj);
    } else {
      jj = 0 ;
    }
@@ -216,7 +216,7 @@ ENTRY("mri_automask_image") ;
    /* and re-invert mask to get brain voxels */
 
    for( ii=0 ; ii < nvox ; ii++ ) mmm[ii] = !mmm[ii] ;
-   if( verb ) fprintf(stderr," + Mask now has %d voxels\n",mask_count(nvox,mmm)) ;
+   if( verb ) ININFO_message("Mask now has %d voxels\n",mask_count(nvox,mmm)) ;
 
    if( exterior_clip && jj > 0 ){
      THD_mask_erode( nx,ny,nz, mmm ) ;
@@ -543,7 +543,7 @@ void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
    }
    free(ibest) ; free(jbest) ; free(kbest) ;
 
-   if( verb ) fprintf(stderr," + Largest cluster has %d voxels\n",nbest) ;
+   if( verb ) ININFO_message("Largest cluster has %d voxels\n",nbest) ;
 
    return ;
 }
@@ -598,7 +598,7 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
    for( jj=ii=0 ; ii < nxyz ; ii++ )            /* actually erode */
      if( nnn[ii] ){ mmm[ii] = 0 ; jj++ ; }
 
-   if( verb && jj > 0 ) fprintf(stderr," + Eroded   %d voxels\n",jj) ;
+   if( verb && jj > 0 ) ININFO_message("Eroded   %d voxels\n",jj) ;
 
    /* re-dilate eroded voxels that are next to survivors */
 
@@ -636,7 +636,7 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
    for( jj=ii=0 ; ii < nxyz ; ii++ )
      if( nnn[ii] ){ mmm[ii] = 1 ; jj++ ; }
 
-   if( verb && jj > 0 ) fprintf(stderr," + Restored %d eroded voxels\n",jj) ;
+   if( verb && jj > 0 ) ININFO_message("Restored %d eroded voxels\n",jj) ;
 #endif
 
    free(nnn) ; return ;
