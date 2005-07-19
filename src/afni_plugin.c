@@ -4740,13 +4740,15 @@ static vptr_func * forced_loads[] = {
 #endif
 NULL } ;
 
-vptr_func * MCW_onen_i_estel_edain(int n){
-  return forced_loads[n] ;
+vptr_func * MCW_onen_i_estel_edain(void *n){
+  THD_3dim_dataset *ds = (THD_3dim_dataset *)n ;
+  double             x = (double)(ds->dblk->total_bytes) ;
+  return forced_loads[(int)x] ;
 }
 
 #else  /* not ALLOW_PLUGINS */
 
-void * MCW_onen_i_estel_edain(int n){} ;  /* dummy routine */
+void * MCW_onen_i_estel_edain(void *n){} ;  /* dummy routine */
 
 #endif /* ALLOW_PLUGINS */
 
