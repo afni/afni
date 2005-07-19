@@ -129,6 +129,7 @@ if(PRINT_TRACING)
          (void) THD_load_datablock( dset->dblk ) ;
          bar = DSET_ARRAY(dset,ival) ;
          if( bar == NULL ){
+            STATUS("couldn't load dataset!") ;
             mri_free(newim) ;
             RETURN(NULL) ;  /* couldn't load data --> return nothing */
          }
@@ -241,6 +242,7 @@ STATUS("setting parent_dset to self, and parent_to_child_warp to identity") ;
       Boolean good ;
       good = THD_load_datablock( parent_dset->dblk ) ;
       if( ! good ){
+         STATUS("couldn't load parent dataset!") ;
          mri_free(newim) ;
          RETURN(NULL) ;  /* couldn't load data --> return nothing */
       }
