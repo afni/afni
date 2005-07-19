@@ -137,8 +137,16 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
    /* these next 2 conditions should never happen */
 
    dkptr = blk->diskptr ;
-   if( ! ISVALID_DISKPTR(dkptr) || dkptr->storage_mode == STORAGE_UNDEFINED ){
-     STATUS("invalid dkptr"); RETURN( False );
+   if( ! ISVALID_DISKPTR(dkptr) ){
+     STATUS("invalid dkptr!!!"); RETURN( False );
+   }
+   if( dkptr->storage_mode == STORAGE_UNDEFINED ){
+     if( PRINT_TRACING ){
+       char str[512] ; THD_3dim_dataset *dset=(THD_3dim_dataset *)(blk->parent) ;
+       sprintf(str,"dataset %s == STORAGE_UNDEFINED",DSET_BRIKNAME(dset)) ;
+       STATUS(str) ;
+     }
+     RETURN(False) ;
    }
 
    if( dkptr->rank != 3 ){
