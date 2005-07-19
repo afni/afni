@@ -2599,7 +2599,7 @@ ENTRY("ISQ_process_mri") ;
    if( im->kind == MRI_complex ){
       float *lar ; complex *cxar ; int ii , npix ;
 
-DPRI("complex to real code = ",seq->opt.cx_code) ;
+      DPRI("complex to real code = ",seq->opt.cx_code) ;
 
       lim  = mri_new( im->nx , im->ny , MRI_float ) ;
       lar  = MRI_FLOAT_PTR(lim) ;
@@ -4423,7 +4423,7 @@ STATUS("discarding excess Expose events") ;
                 ISQ_make_image() - by drawing a string
 -------------------------------------------------------------------------*/
 
-void ISQ_show_image( MCW_imseq * seq )
+void ISQ_show_image( MCW_imseq *seq )
 {
    if( seq == NULL || seq->ignore_redraws ) return ;  /* 16 Aug 2002 */
 ENTRY("ISQ_show_image") ;
@@ -4434,11 +4434,7 @@ ENTRY("ISQ_show_image") ;
 
    if( seq->given_xim == NULL ) ISQ_make_image( seq ) ;
 
-#if 0
-   if( seq->given_xim == NULL ){
-      fprintf(stderr,"***seq->given_xim == NULL -- cannot display image\n") ;
-   }
-#endif
+   if( seq->given_xim == NULL ) STATUS("bad news: given_xim == NULL!") ;
 
    if( ! MCW_widget_visible(seq->wimage) ) EXRETURN ;  /* 03 Jan 1999 */
 
@@ -4454,13 +4450,12 @@ ENTRY("ISQ_show_image") ;
    if( seq->given_xim != NULL && seq->sized_xim == NULL ){
       int nx , ny ;
 
-DPR("making sized_xim");
+      STATUS("making sized_xim");
 
       MCW_widget_geom( seq->wimage , &nx , &ny , NULL,NULL ) ;
 
       seq->sized_xim = resize_XImage( seq->dc , seq->given_xim , nx , ny ) ;
    }
-
 
    if( seq->sized_xim != NULL ){
 DPR("putting sized_xim to screen");
@@ -4482,6 +4477,7 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
       static MEM_plotdata *empt=NULL ;  /* only create once */
 
       if( empt == NULL ){
+         STATUS("create EMPTY IMAGE plot") ;
          create_memplot_surely("EmptyImagePlot",1.0) ;
          empt = get_active_memplot() ;
          set_color_memplot(1.0,1.0,1.0) ;
@@ -4499,6 +4495,7 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
          plotpak_line( 0.01,0.99 , 0.01,0.01 ) ;
          set_thick_memplot(0.0) ;
       }
+      STATUS("display EMPTY IMAGE plot") ;
       XClearWindow( seq->dc->display , XtWindow(seq->wimage) ) ;
       memplot_to_X11_sef( seq->dc->display ,
                           XtWindow(seq->wimage) , empt ,

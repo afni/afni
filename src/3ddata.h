@@ -2230,8 +2230,10 @@ typedef struct THD_3dim_dataset {
 
 /*! Determine if dataset ds is loadable into memory */
 
-#define DSET_INMEMORY(ds) ( ISVALID_DSET(ds) && (ds)->dblk!=NULL && \
-                            (ds)->dblk->malloc_type!=DATABLOCK_MEM_UNDEFINED )
+#define DSET_INMEMORY(ds)                                                        \
+  ( ISVALID_DSET(ds) && (ds)->dblk!=NULL &&                                      \
+    (ds)->dblk->malloc_type!=DATABLOCK_MEM_UNDEFINED &&                          \
+    ( (ds)->dblk->diskptr->storage_mode!=STORAGE_UNDEFINED || DSET_LOADED(ds) ) )
 
 #define DBLK_BRICK(db,iv) ((db)->brick->imarr[(iv)])
 
