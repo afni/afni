@@ -225,7 +225,7 @@ int main( int argc , char * argv[] )
    if((max_flag==0)&&(min_flag==0))   /* if the user only asked for mean */
      quick_flag = 0;                  /*  no need to do quick way */
 
-   if((quick_flag) && ((positive_flag=1)||(negative_flag==1)||(zero_flag==1)))
+   if((quick_flag) && ((positive_flag==1)||(negative_flag==1)||(zero_flag==1)))
      fprintf(stderr, "+++ Warning - ignoring +/-/0 flags for quick computations\n");
 
    if(positive_flag==-1) {   /* if no +/-/0 options set, allow all voxels */

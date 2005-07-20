@@ -67,3 +67,5 @@
  * fixed small typo in help for 3dMax.c
 24 June 2005
  * created new program, DTIStudioFibertoSegments.c, to convert DTIStudio fiber files into SUMA segment files
+20 July 2005
+ * fixed bug for quick option for 3dMax
