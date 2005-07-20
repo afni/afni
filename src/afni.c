@@ -34,6 +34,31 @@
 #include <X11/keysym.h>  /* 20 Feb 2003 */
 #include "afni_plugout.h"
 
+/*------------------------------------------------------*/
+#ifdef SHOWOFF
+# undef  SHSH
+# undef  SHSHSH
+# undef  SHSTRING
+# define SHSH(x)   #x
+# define SHSHSH(x) SHSH(x)
+# define SHSTRING  SHSHSH(SHOWOFF)   /* now in "quotes" */
+#else
+# undef  SHSTRING
+#endif
+/*------------------------------------------------------*/
+
+#ifdef SHSTRING
+#define ANNOUNCEMENT                                                           \
+ "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
+ "This is Version " VERSION               "\n"                                 \
+ "[[Precompiled binary " SHSTRING ": " __DATE__ "]]\n\n"                       \
+ " ** This software was designed to be used only for research purposes. **\n"  \
+ " ** Clinical uses are not recommended, and have never been evaluated. **\n"  \
+ " ** This software comes with no warranties of any kind whatsoever,    **\n"  \
+ " ** and may not be useful for anything.  Use it at your own risk!     **\n"  \
+ " ** If these terms are not acceptable, you aren't allowed to use AFNI.**\n"  \
+ " ** See 'Define Datamode->Misc->License Info' for more details.       **\n\n"
+#else
 #define ANNOUNCEMENT                                                           \
  "GPL AFNI: Analysis of Functional NeuroImages, by RW Cox (" COXEMAIL ")\n"    \
  "This is Version " VERSION               "\n\n"                               \
@@ -43,6 +68,7 @@
  " ** and may not be useful for anything.  Use it at your own risk!     **\n"  \
  " ** If these terms are not acceptable, you aren't allowed to use AFNI.**\n"  \
  " ** See 'Define Datamode->Misc->License Info' for more details.       **\n\n"
+#endif
 
 #define USE_FRIENDS
 
@@ -58,19 +84,6 @@
 #ifdef AFNI_DEBUG
 #  define USE_TRACING
 #endif
-
-/*------------------------------------------------------*/
-#ifdef SHOWOFF
-# undef  SHSH
-# undef  SHSHSH
-# undef  SHSTRING
-# define SHSH(x)   #x
-# define SHSHSH(x) SHSH(x)
-# define SHSTRING  SHSHSH(SHOWOFF)   /* now in "quotes" */
-#else
-# undef  SHSTRING
-#endif
-/*------------------------------------------------------*/
 
 /*----------------------------------------------------------------
    Global variables that used to be local variables in main()
@@ -1175,15 +1188,6 @@ int main( int argc , char * argv[] )
 
    REPORT_PROGRESS( "\n" ) ;         /* 02 Dec 2000 */
    REPORT_PROGRESS( ANNOUNCEMENT ) ;
-
-   /*------- 29 Nov 1999: print out precompiled version, if defined --------*/
-#ifdef SHSTRING
-   REPORT_PROGRESS( "[[Precompiled binary "
-                    SHSTRING
-                    ": "
-                    __DATE__
-                    "]]\n" ) ;
-#endif
 
    /*-- Be friendly --*/
 
