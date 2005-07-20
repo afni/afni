@@ -161,7 +161,8 @@ ENTRY("THD_open_nifti") ;
 
      orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
    
-     iview = (nim->qform_code == NIFTI_XFORM_TALAIRACH )
+     iview = ((nim->qform_code == NIFTI_XFORM_TALAIRACH ) ||
+              (nim->qform_code == NIFTI_XFORM_MNI_152 ))
              ? VIEW_TALAIRACH_TYPE : VIEW_ORIGINAL_TYPE ;
 
 
@@ -203,7 +204,8 @@ ENTRY("THD_open_nifti") ;
 
      /* assume original view if there's no talairach id present */
 
-     iview = (nim->sform_code == NIFTI_XFORM_TALAIRACH )
+     iview = ((nim->sform_code == NIFTI_XFORM_TALAIRACH ) ||
+              (nim->sform_code == NIFTI_XFORM_MNI_152 ))
              ? VIEW_TALAIRACH_TYPE : VIEW_ORIGINAL_TYPE ;
 
      /* load the offsets and the grid spacings */
