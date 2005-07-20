@@ -188,18 +188,20 @@ static char * AFNI_funcmode_bbox_label[2] =
    "A Button-3 popup menu lets you\n"  \
    "change coordinate display order."
 
-#define AFNI_view_help                          \
-   "Normal:   button opens viewing window\n"    \
-   "Inverted: button raises opened window\n\n"  \
-   "N.B.: AFNI does not read datasets from\n"   \
-   "      disk until a window is opened.\n"     \
-   "      This can make opening the first\n"    \
-   "      viewing window be quite slow."        \
-   "\n"                                         \
-   "The Graph buttons are only enabled for\n"   \
-   "3D+time datasets that are viewing their\n"  \
-   ".BRIK files (not warping on demand --\n"    \
-   "see the 'Define Datamode' control panel)"
+#define AFNI_view_help                            \
+   "Normal:   button opens viewing window\n"      \
+   "Inverted: button raises opened window\n"      \
+   "     * Right-click on inverted button\n"      \
+   "       'fetches' image/graph window\n\n"      \
+   "N.B.: AFNI does not read datasets from\n"     \
+   "      disk until a window is opened.\n"       \
+   "      This can make opening the first\n"      \
+   "      viewing window be quite slow.\n"        \
+   "\n"                                           \
+   "The Graph buttons are only enabled for\n"     \
+   "datasets that are viewing their data files\n" \
+   "directly (NOT warping on demand -- see the\n" \
+   "top of the 'Define Datamode' control panel)"
 
 #define AFNI_disp_pcolor_help  \
    "Controls the color used\n" \
@@ -4842,6 +4844,7 @@ ENTRY("AFNI_initialize_controller") ;
    /* 06 Dec 2001: cool cursor stuff */
 
    WAIT_for_window( im3d->vwid->top_shell ) ;
+
    POPUP_cursorize( im3d->vwid->func->inten_label ) ;
    POPUP_cursorize( im3d->vwid->picture ) ;
    POPUP_cursorize( imag->crosshair_label ) ;
