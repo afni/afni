@@ -3091,6 +3091,7 @@ if(PRINT_TRACING)
 #endif
          myXtFree( seq ) ;
          MCW_invert_widget(w) ;  /* back to normal */
+         NORMAL_cursorize(w) ;   /* 20 Jul 2005 */
          INIT_BKGD_LAB(im3d) ;
          AFNI_view_setter(im3d,NULL) ;
 
@@ -3450,6 +3451,7 @@ if(PRINT_TRACING)
          myXtFree( grapher->status ) ;  /* 08 Mar 1999: via mcw_malloc.c */
          myXtFree( grapher ) ;          /* free the data space */
          MCW_invert_widget(w) ;         /* back to normal */
+         NORMAL_cursorize(w) ;          /* 20 Jul 2005 */
 
          /* redisplay the crosshairs, if needed */
 
@@ -4944,6 +4946,7 @@ ENTRY("AFNI_view_xyz_CB") ;
     if( snew != NULL ){
 STATUS("opening an image window") ;
       MCW_invert_widget(pboff) ;
+      POPUP_cursorize(pboff) ;   /* 20 Jul 2005 */
       *snew = open_MCW_imseq( im3d->dc, AFNI_brick_to_mri, (XtPointer) brnew ) ;
 
       (*snew)->parent = (XtPointer) im3d ;
@@ -5059,6 +5062,7 @@ STATUS("setting image viewer 'sides'") ;
 STATUS("opening a graph window") ;
 
        MCW_invert_widget(pboff) ;
+       POPUP_cursorize(pboff) ;   /* 20 Jul 2005 */
        gr = new_MCW_grapher( im3d->dc , AFNI_brick_to_mri , (XtPointer) brnew ) ;
        drive_MCW_grapher( gr, graDR_title, (XtPointer) im3d->window_title );
        drive_MCW_grapher( gr, graDR_addref_ts, (XtPointer) im3d->fimdata->fimref );
