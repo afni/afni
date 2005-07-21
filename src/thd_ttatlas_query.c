@@ -43,7 +43,7 @@ THD_3dim_dataset * TT_retrieve_atlas_either(void) /* 22 Aug 2001 */
 
 int TT_load_atlas(void)
 {
-   char *epath , *elocal , ename[THD_MAX_NAME] , *eee ;
+   char *epath, *elocal, ename[THD_MAX_NAME], dname[THD_MAX_NAME], *eee ;
    int epos , ll , ii , id ;
 
 ENTRY("TT_load_atlas") ;
@@ -56,10 +56,10 @@ ENTRY("TT_load_atlas") ;
 
    epath = getenv("AFNI_TTATLAS_DATASET") ;
    if( epath != NULL ){
-      dseTT = THD_open_one_dataset( epath ) ;  /* try to open it */
-      if( dseTT != NULL ){                     /* got it!!! */
-         have_dseTT = 1; RETURN(1);
-      }
+     dseTT = THD_open_one_dataset( epath ) ;  /* try to open it */
+     if( dseTT != NULL ){                     /* got it!!! */
+       have_dseTT = 1; RETURN(1);
+     }
    }
 
    /*----- get path to search -----*/
@@ -81,7 +81,7 @@ ENTRY("TT_load_atlas") ;
    /*----- replace colons with blanks -----*/
 
    for( ii=0 ; ii < ll ; ii++ )
-      if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
+     if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
 
    /*----- extract blank delimited strings;
            use as directory names to look for atlas -----*/
@@ -98,13 +98,19 @@ ENTRY("TT_load_atlas") ;
       if( ename[ii-1] != '/' ){                    /* a trailing '/' on it */
           ename[ii]  = '/' ; ename[ii+1] = '\0' ;
       }
-      strcat(ename,"TTatlas+tlrc") ;               /* add dataset name */
+      strcpy(dname,ename) ;
+      strcat(dname,"TTatlas+tlrc") ;               /* add dataset name */
 
-      dseTT = THD_open_one_dataset( ename ) ;      /* try to open it */
+      dseTT = THD_open_one_dataset( dname ) ;      /* try to open it */
 
       if( dseTT != NULL ){                         /* got it!!! */
          free(elocal); have_dseTT = 1; RETURN(1);
       }
+
+      strcpy(dname,ename) ;           /* 21 Jul 2005: NIfTI-1.1 version? */
+      strcat(dname,"TTatlas.nii.gz") ;
+      dseTT = THD_open_one_dataset( dname ) ;
+      if( dseTT != NULL ){ free(elocal); have_dseTT = 1; RETURN(1); }
 
    } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
 

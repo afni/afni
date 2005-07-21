@@ -49,7 +49,7 @@ THD_3dim_dataset * TT_retrieve_atlas_either(void) /* 22 Aug 2001 */
 
 int TT_load_atlas(void)
 {
-   char *epath , *elocal , ename[THD_MAX_NAME] , *eee ;
+   char *epath, *elocal, ename[THD_MAX_NAME], dname[THD_MAX_NAME], *eee ;
    int epos , ll , ii , id ;
 
 ENTRY("TT_load_atlas") ;
@@ -104,13 +104,18 @@ ENTRY("TT_load_atlas") ;
       if( ename[ii-1] != '/' ){                    /* a trailing '/' on it */
           ename[ii]  = '/' ; ename[ii+1] = '\0' ;
       }
-      strcat(ename,"TTatlas+tlrc") ;               /* add dataset name */
+      strcpy(dname,ename) ;
+      strcat(dname,"TTatlas+tlrc") ;               /* add dataset name */
 
-      dseTT = THD_open_one_dataset( ename ) ;      /* try to open it */
+      dseTT = THD_open_one_dataset( dname ) ;      /* try to open it */
 
       if( dseTT != NULL ){                         /* got it!!! */
          free(elocal); have_dseTT = 1; RETURN(1);
       }
+
+      strcpy(dname,ename) ; strcat(dname,"TTatlas.nii.gz") ;
+      dseTT = THD_open_one_dataset( dname ) ;
+      if( dseTT != NULL ){ free(elocal); have_dseTT = 1; RETURN(1); }
 
    } while( epos < ll ) ;  /* scan until 'epos' is after end of epath */
 
@@ -463,8 +468,8 @@ int main(int argc, char **argv)
 
   string = TT_whereami(x,y,z);
   if (string == NULL ) {                              /* 30 Apr 2005 [rickr] */
-    fprintf(stderr,"** whereami lookup failure, is TTatlas+tlrc available?\n");
-    fprintf(stderr,"   (the TTatlas+tlrc dataset must be in your PATH)\n");
+    fprintf(stderr,"** whereami lookup failure: is TTatlas+tlrc/TTatlas.nii.gz available?\n");
+    fprintf(stderr,"   (the TTatlas+tlrc or TTatlas.nii.gz dataset must be in your PATH)\n");
     return 1;
   }
 
