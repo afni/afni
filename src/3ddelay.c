@@ -10,7 +10,7 @@
 
 #define PROGRAM_NAME "3ddelay"                        /* name of this program */
 #define PROGRAM_AUTHOR "Ziad Saad (using B. Douglas Ward's 3dfim+ to read and write bricks)"  /* program author */
-#define PROGRAM_DATE "Dec 8 2000"               /* date of last program mod */
+#define PROGRAM_DATE "Jul 22 2005"               /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
 
@@ -30,6 +30,9 @@
 /* do not change the order in this string*/
 static char * method_strings[] = { "Seconds" , "Degrees" , "Radians"} ;
 static char * yn_strings[] = { "n" , "y" }; 
+
+/* for printing potentially NULL strings         22 July 2005 [rickr] */
+#define CHECK_NULL_STR(str) (str) ? (str) : "(NULL)"
 
 /*#define ZDBG*/
 #ifdef ZDBG
@@ -2033,15 +2036,21 @@ void show_ud (struct DELAY_options* option_data,int loc)
 /* ************************************************************ */
 /* function to write user data input to log file        */
 /* ************************************************************ */
-
 void write_ud (struct DELAY_options* option_data)
 	{
 		fprintf (option_data->outlogfile,"\nLogfile output by Hilbert Delay98 plugin\n");
 		fprintf (option_data->outlogfile,"\n\nUser Data Values \n");
-		fprintf (option_data->outlogfile,"Input Data Set: %s\n", option_data->input_filename);
-		fprintf (option_data->outlogfile,"Mask Data Set: %s\n", option_data->mask_filename);
-		fprintf (option_data->outlogfile,"Ascii output file name: %s\n", option_data->outname);
-		fprintf (option_data->outlogfile,"Reference File Name: %s\n", option_data->ideal_filename[0]);
+
+                /* check for NULL filenames          22 July 2005 [rickr] */
+		fprintf (option_data->outlogfile,"Input Data Set: %s\n",
+			 CHECK_NULL_STR(option_data->input_filename));
+		fprintf (option_data->outlogfile,"Mask Data Set: %s\n",
+			 CHECK_NULL_STR(option_data->mask_filename));
+		fprintf (option_data->outlogfile,"Ascii output file name: %s\n",
+			 CHECK_NULL_STR(option_data->outname));
+		fprintf (option_data->outlogfile,"Reference File Name: %s\n",
+			 CHECK_NULL_STR(option_data->ideal_filename[0]));
+
 		fprintf (option_data->outlogfile,"Number of voxels in X direction: %d\n", option_data->nxx);
 		fprintf (option_data->outlogfile,"Number of voxels in Y direction: %d\n", option_data->nyy);
 		fprintf (option_data->outlogfile,"Number of voxels in Z direction: %d\n", option_data->nzz);
@@ -2251,12 +2260,3 @@ int main
 		     &fim_params_vol); 
 
 }
-
-
-
-
-
-
-
-
-
