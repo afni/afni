@@ -52,6 +52,9 @@
 
    Mod:     Setup to use .1D dataset filenames on output if these are input.
    Date:    14 March 2003 - RWCox
+   
+   Mod:     -help menu modified.
+   Date:    21 July 2005 - P Christidis
 */
 
 /*---------------------------------------------------------------------------*/
@@ -59,7 +62,7 @@
 #define PROGRAM_NAME    "3dANOVA"                    /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 Dec 1996"     /* date of initial program release */
-#define PROGRAM_LATEST  "14 Mar 2003"     /* date of latest program revision */
+#define PROGRAM_LATEST  "21 Jul 2005"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -78,56 +81,96 @@ void display_help_menu()
 {
   printf 
     (
-     "This program performs single factor ANOVA on 3D data sets \n\n"
-     "Usage: \n"
-     "3dANOVA \n"
-     "-levels r                      r = number of factor levels            \n"
-     "-dset 1 filename               data set for factor level 1            \n"
-     " . . .                           . . .                                \n"
-     "-dset 1 filename               data set for factor level 1            \n"
-     " . . .                           . . .                                \n"
-     "-dset r filename               data set for factor level r            \n"
-     " . . .                           . . .                                \n"
-     "-dset r filename               data set for factor level r            \n"
-     "                                                                      \n"
-     "[-voxel num]                   screen output for voxel # num          \n"
-     "[-diskspace]                   print out disk space required for      \n"
-     "                                  program execution                   \n"
-     "                                                                      \n"
-     "                                                                      \n"
-     "The following commands generate individual AFNI 2 sub-brick datasets: \n"
-     "  (In each case, output is written to the file with the specified     \n"
-     "   prefix file name.)                                                 \n"
-     "                                                                      \n"
-     "[-ftr prefix]                  F-statistic for treatment effect       \n"
-     "[-mean i prefix]               estimate of factor level i mean        \n"
-     "[-diff i j prefix]             difference between factor levels       \n"
-     "[-contr c1...cr prefix]        contrast in factor levels              \n"
-     "                                                                      \n"
-     "                                                                      \n"
-     "The following command generates one AFNI 'bucket' type dataset:       \n"
-     "                                                                      \n"
-     "[-bucket prefix]         create one AFNI 'bucket' dataset whose       \n"
-     "                           sub-bricks are obtained by concatenating   \n"
-     "                           the above output files; the output 'bucket'\n"
-     "                           is written to file with prefix file name   \n"
-     "\n");
+    "This program performs single factor Analysis of Variance (ANOVA)      \n"
+    "on 3D datasets                                                        \n"
+    "                                                                      \n"
+    "---------------------------------------------------------------       \n"
+    "                                                                      \n"
+    "Usage:                                                                \n"
+    "-----                                                                 \n"
+    "                                                                      \n"     
+    "3dANOVA                                                               \n"
+    "   -levels r                   : r = number of factor levels          \n"
+    "                                                                      \n"
+    "   -dset 1 filename            : data set for factor level 1          \n"
+    "         . . .                            . . .                       \n"
+    "   -dset 1 filename              data set for factor level 1          \n"
+    "         . . .                            . . .                       \n"
+    "   -dset r filename              data set for factor level r          \n"
+    "         . . .                             . . .                      \n"
+    "   -dset r filename              data set for factor level r          \n"
+    "                                                                      \n"
+    "  [-voxel num]                 : screen output for voxel # num        \n"
+    "                                                                      \n"
+    "  [-diskspace]                 : print out disk space required for    \n"
+    "                                 program execution                    \n"
+    "                                                                      \n"
+    "The following commands generate individual AFNI 2-sub-brick datasets: \n"
+    "  (In each case, output is written to the file with the specified     \n"
+    "   prefix file name.)                                                 \n"
+    "                                                                      \n"
+    "  [-ftr prefix]                : F-statistic for treatment effect     \n"
+    "                                                                      \n"  
+    "  [-mean i prefix]             : estimate of factor level i mean      \n"
+    "                                                                      \n"  
+    "  [-diff i j prefix]           : difference between factor levels     \n"
+    "                                                                      \n" 
+    "  [-contr c1...cr prefix]      : contrast in factor levels            \n"
+    "                                                                      \n"
+    "The following command generates one AFNI 'bucket' type dataset:       \n"
+    "                                                                      \n"
+    "  [-bucket prefix]             : create one AFNI 'bucket' dataset whose \n"
+    "                                 sub-bricks are obtained by             \n"
+    "                                 concatenating the above output files;  \n"
+    "                                 the output 'bucket' is written to file \n"
+    "                                 with prefix file name                  \n"
+    "\n");
 
   printf
     (
-     "\n"
-     "N.B.: For this program, the user must specify 1 and only 1 sub-brick  \n"
-     "      with each -dset command. That is, if an input dataset contains  \n"
-     "      more than 1 sub-brick, a sub-brick selector must be used, e.g.: \n"
-     "      -dset 2 'fred+orig[3]'                                          \n"
+    "N.B.: For this program, the user must specify 1 and only 1 sub-brick  \n"
+    "      with each -dset command. That is, if an input dataset contains  \n"
+    "      more than 1 sub-brick, a sub-brick selector must be used,       \n"
+    "      e.g., -dset 2 'fred+orig[3]'                                    \n"
      );
-	  
-  
-  printf("\n" MASTER_SHORTHELP_STRING ) ;
+   
+  printf
+   ("\n"
+    "Example of 3dANOVA:                                                   \n"
+    "------------------                                                    \n"
+    "                                                                      \n"
+    " Example is based on a study with one factor (independent variable)   \n"
+    " called 'Pictures', with 3 levels:                                    \n"
+    "        (1) Faces, (2) Houses, and (3) Donuts                         \n"
+    "                                                                      \n"
+    " The ANOVA is being conducted on subject Fred's data:                 \n"
+    "                                                                      \n"
+    " 3dANOVA -levels 3                     \\                             \n"
+    "         -dset 1 fred_Faces+tlrc       \\                             \n"
+    "         -dset 2 fred_Houses+tlrc      \\                             \n"
+    "         -dset 3 fred_Donuts+tlrc      \\                             \n"
+    "         -ftr Pictures                 \\                             \n"
+    "         -mean 1 Faces                 \\                             \n"
+    "         -mean 2 Houses                \\                             \n"
+    "         -mean 3 Donuts                \\                             \n"
+    "         -diff 1 2 FvsH                \\                             \n"
+    "         -diff 2 3 HvsD                \\                             \n"
+    "         -diff 1 3 FvsD                \\                             \n"
+    "         -contr  1  1 -1 FHvsD         \\                             \n"
+    "         -contr -1  1  1 FvsHD         \\                             \n"
+    "         -contr  1 -1  1 FDvsH         \\                             \n"
+    "         -bucket fred_ANOVA                                           \n"
+    ); 
+ 
+  printf("\n" MASTER_SHORTHELP_STRING );
 
+  printf("---------------------------------------------------\n"
+   "Also see HowTo#5 - Group Analysis on the AFNI website:                \n"
+   "http://afni.nimh.nih.gov/pub/dist/HOWTO/howto/ht05_group/html/index.shtml\n"
+     "\n" );
+     
   exit(0);
 }
-
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -143,7 +186,6 @@ void get_options (int argc, char ** argv, anova_options * option_data)
   float fval;                    /* float input */
   THD_3dim_dataset * dset=NULL;             /* test whether data set exists */
   char message[MAX_NAME_LENGTH];            /* error message */
-  int nbricks;                   /* number of sub-bricks selected */ 
 
 
   /*----- does user request help menu? -----*/
@@ -1462,7 +1504,7 @@ void create_bucket (anova_options * option_data)
 
 void terminate (anova_options * option_data)
 {
-  int i, j;
+  int i;
   THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   char filename[MAX_NAME_LENGTH];
@@ -1541,7 +1583,7 @@ int main (int argc, char ** argv)
 {
    anova_options * option_data = NULL;
 
-#if 0  
+#if 0
    /*----- Identify software -----*/
    printf ("\n\n");
    printf ("Program:          %s \n", PROGRAM_NAME);
@@ -1555,7 +1597,6 @@ int main (int argc, char ** argv)
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    mainENTRY("3dANOVA main"); machdep(); PRINT_VERSION("3dANOVA");
-
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -1576,20 +1617,3 @@ int main (int argc, char ** argv)
 
    exit(0);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

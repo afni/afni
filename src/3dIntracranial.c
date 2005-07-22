@@ -33,6 +33,9 @@
 
   Mod:     Convert input from MRI_byte to MRI_short if needed.
   Date:    05 December 2002
+  
+  Mod:     Modified the -help menu -- P Christidis
+  Date:    21 July 2005
 */
 
 /*---------------------------------------------------------------------------*/
@@ -40,7 +43,7 @@
 #define PROGRAM_NAME "3dIntracranial"                /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
 #define PROGRAM_INITIAL "04 June 1999"    /* date of initial program release */
-#define PROGRAM_LATEST "02 December 2002" /* date of latest program revision */
+#define PROGRAM_LATEST "21 July 2005"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -98,28 +101,55 @@ void display_help_menu()
 {
   printf 
     (
-     "This program performs automatic segmentation of intracranial region.\n\n"
-     "Usage: \n"
-     "3dIntracranial \n"
-     "-anat filename    Filename of anat dataset to be segmented            \n"
-     "                                                                      \n"
-     "[-min_val   a]    Minimum voxel intensity limit                       \n"
-     "                     Default: Internal PDF estimate for lower bound   \n"
-     "[-max_val   b]    Maximum voxel intensity limit                       \n"
-     "                     Default: Internal PDF estimate for upper bound   \n"
-     "[-min_conn  m]    Minimum voxel connectivity to enter                 \n"
-     "                     Default: m=4                                     \n"
-     "[-max_conn  n]    Maximum voxel connectivity to leave                 \n"
-     "                     Default: n=2                                     \n"
-     "[-nosmooth]       Suppress spatial smoothing of segmentation mask     \n"
-     "[-mask]           Generate functional image mask (complement)         \n"
-     "                     Default: Generate anatomical image               \n"
-     "[-quiet]          Suppress output to screen                           \n"
-     "                                                                      \n"
-     "-prefix pname     Prefix name for file to contain segmented image     \n"
-     "\n"
-     "** NOTE **: The newer program 3dSkullStrip will probably give\n"
-     "            better segmentation results than 3dIntracranial!\n"
+   "3dIntracranial - performs automatic segmentation of intracranial region.\n"
+   "                                                                        \n"
+   "   This program will strip the scalp and other non-brain tissue from a  \n"
+   "   high-resolution T1 weighted anatomical dataset.                      \n"  
+   "                                                                        \n"
+   "----------------------------------------------------------------------- \n"
+   "                                                                        \n"
+   "Usage:                                                                  \n"
+   "-----                                                                   \n"
+   "                                                                        \n"
+   "3dIntracranial                                                          \n"
+   "   -anat filename   => Filename of anat dataset to be segmented         \n"
+   "                                                                        \n"
+   "   [-min_val   a]   => Minimum voxel intensity limit                    \n"
+   "                         Default: Internal PDF estimate for lower bound \n"
+   "                                                                        \n"
+   "   [-max_val   b]   => Maximum voxel intensity limit                    \n"
+   "                         Default: Internal PDF estimate for upper bound \n"
+   "                                                                        \n"
+   "   [-min_conn  m]   => Minimum voxel connectivity to enter              \n"
+   "                         Default: m=4                                   \n"
+   "                                                                        \n"
+   "   [-max_conn  n]   => Maximum voxel connectivity to leave              \n"
+   "                         Default: n=2                                   \n"
+   "                                                                        \n"
+   "   [-nosmooth]      => Suppress spatial smoothing of segmentation mask  \n"
+   "                                                                        \n"
+   "   [-mask]          => Generate functional image mask (complement)      \n"
+   "                         Default: Generate anatomical image            \n"
+   "                                                                        \n"
+   "   [-quiet]         => Suppress output to screen                        \n"
+   "                                                                        \n"
+   "   -prefix pname    => Prefix name for file to contain segmented image  \n"
+   "                                                                        \n"
+   "   ** NOTE **: The newer program 3dSkullStrip will probably give        \n"
+   "               better segmentation results than 3dIntracranial!         \n"
+
+   "----------------------------------------------------------------------- \n"
+   "                                                                        \n"
+   "Examples:                                                               \n"
+   "--------                                                                \n"
+   "                                                                        \n"
+   "   3dIntracranial -anat elvis+orig -prefix elvis_strip                 \n"
+   "                                                                        \n"
+   "   3dIntracranial -min_val 30 -max_val 350 -anat elvis+orig -prefix strip\n"
+   "                                                                        \n"
+   "   3dIntracranial -nosmooth -quiet -anat elvis+orig -prefix elvis_strip \n"
+   "                                                                        \n"
+   "----------------------------------------------------------------------- \n"
       );
   
   exit(0);
@@ -139,7 +169,7 @@ void get_options
 
 {
   int nopt = 1;                     /* input option argument counter */
-  int ival, index;                  /* integer input */
+  int ival;                         /* integer input */
   float fval;                       /* float input */
   char message[MAX_STRING_LENGTH];  /* error message */
 
@@ -370,7 +400,6 @@ void initialize_program
 
 {
   float parameters [DIMENSION];    /* parameters for PDF estimation */
-  Boolean ok = TRUE;               /* flag for successful PDF estimation */
   int nxyz;
   short * sfim;
   int ixyz, icount;
@@ -441,7 +470,6 @@ int auto_initialize (short ** cv)
 
 {
   int nx, ny, nz, nxy, nxyz, ixyz;       /* voxel counters */
-  int ok;                                /* Boolean for satisfactory */
 
 
   /*----- Initialize local variables -----*/
@@ -561,7 +589,7 @@ void write_afni_data
 				ADN_prefix , filename ,
 				ADN_label1 , filename ,
 				ADN_self_name , filename ,
-            ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
+                    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : GEN_FUNC_TYPE ,
 				ADN_func_type , func_type ,
 				ADN_nvals , FUNC_nvals[func_type] ,
 				ADN_datum_array , ibuf ,
@@ -605,7 +633,7 @@ void write_afni_data
   if (! quiet)
     {
       if (write_mask) printf("\nWriting functional (mask) dataset: ");
-      else             printf ("\nWriting anatomical dataset: ");
+      else            printf ("\nWriting anatomical dataset: ");
       printf("%s\n", DSET_BRIKNAME(new_dset) ) ;
 
       printf("NOTE: You may get better results by trying\n"
@@ -704,9 +732,4 @@ int main
 }
 
 /*---------------------------------------------------------------------------*/
-
-
-
-
-
 

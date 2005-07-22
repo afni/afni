@@ -1187,3 +1187,6 @@
 13 July 2005: Dimon (v 1.1)
   * modified rickr/Dimon.c to handle a run of only 1 or 2 slices, total
 
+22 July 2005: submitted Peggy's modification for -help (and removed warnings)
+  * modified 3dANOVA2.c 3dANOVA.c 3dclust.c 3dIntracranial.c 3dNotes.c
+

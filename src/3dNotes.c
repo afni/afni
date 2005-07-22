@@ -8,6 +8,7 @@
  * 3dNotes                                             *
  * T. Ross 8/99                                        *
  * -- Modified by RWCox to use thd_notes.c functions   *
+ * -- Modified -help menu, P Christidis 21 Jul 2005    *
  *******************************************************/
 
 #include "mrilib.h"
@@ -19,27 +20,52 @@ void Error_Exit(char *message) {
 
 void Show_Help(void) {
    fprintf(stderr, 
-   "3dNotes - a program to add, delete and show notes for AFNI datasets.\n"
-   "(c)1999 Medical College of Wisconsin\nby - T. Ross\n\n"
-   "Usage: 3dNotes [-a \"string\"] [-h \"string\"][-d num] [-help] dataset\n\n"
-   "Where:\n"
-   "dataset   AFNI compatible dataset [required].\n"
-   "-a   \"str\"   Add the string \"str\" to the list of notes.\n"
-   "      Note that you can use the standard C escape codes,\n"
-   "      \\n for newline \\t for tab, etc.\n"
-   "-h   \"str\"   Append the string \"str\" to the dataset's history.  This\n"
-   "      can only appear once on the command line.  As this is added to the\n"
-   "      history, it cannot easily be deleted.  But, the history is\n"
-   "      propagated to the children of this dataset.\n"
-   "-HH  \"str\"   Replace any existing history note with \"str\".  This line\n"
-   "     cannot be used with '-h'.\n"               /* 09 Dec 2000 */
-   "-d   num   deletes note number num.\n"
-   "-help      Displays this screen.\n\n"
-   "The default action, with no options, is to display the notes for the\n"
-   "dataset.  If there are options, all deletions occur first and esentially\n"
-   "simutaneously.  Then, notes are added in the order listed on the command\n"
-   "line.  If you do something like -d 10 -d 10, it will delete both notes 10\n"
-   "and 11.  Don't do that.\n\n"
+"Program: 3dNotes \n"
+"Author:  T. Ross \n"
+"(c)1999 Medical College of Wisconsin \n"
+"                                                                        \n"
+"3dNotes - a program to add, delete and show notes for AFNI datasets.    \n"
+" \n"
+"----------------------------------------------------------------------- \n"
+"                                                                        \n"
+"Usage: 3dNotes [-a \"string\"] [-h \"string\"][-d num] [-help] dataset  \n"
+" \n"
+"Examples: \n"
+" \n"
+"3dNotes -a      \"Subject sneezed in scanner, Aug 13 2004\" elvis+orig     \n"
+"3dNotes -h      \"Subject likes fried PB & banana sandwiches\" elvis+orig  \n"
+"3dNotes -HH     \"Subject has left the building\" elvis +orig              \n"
+"3dNotes -d 2 -h \"Subject sick of PB'n'banana sandwiches\" elvis+orig  \n"
+" \n"
+"----------------------------------------------------------------------- \n"
+"                                                                        \n"
+"Explanation of Options:\n"
+"---------------------- \n"
+"   dataset       : AFNI compatible dataset [required].\n"
+"                                                                        \n"
+"   -a   \"str\"  : Add the string \"str\" to the list of notes.\n"
+"                                                                        \n"
+"                   Note that you can use the standard C escape codes,\n"
+"                   \\n for newline \\t for tab, etc.\n"
+"                                                                        \n"
+"   -h   \"str\"   : Append the string \"str\" to the dataset's history.  This\n"
+"                    can only appear once on the command line.  As this is\n"
+"                    added to the history, it cannot easily be deleted. But,\n"
+"                    history is propagated to the children of this dataset.\n"
+"                                                                        \n"
+"   -HH  \"str\"   : Replace any existing history note with \"str\".  This \n"
+"                    line cannot be used with '-h'.\n" /* 09 Dec 2000 */
+"                                                                        \n"
+"   -d   num       : deletes note number num.\n"
+"                                                                        \n"
+"   -help          : Displays this screen.\n"
+"                                                                        \n"
+"                                                                        \n"
+"The default action, with no options, is to display the notes for the\n"
+"dataset.  If there are options, all deletions occur first and esentially\n"
+"simutaneously.  Then, notes are added in the order listed on the command\n"
+"line.  If you do something like -d 10 -d 10, it will delete both notes 10\n"
+"and 11.  Don't do that.\n\n"
    );
    exit(0);
 }
@@ -47,9 +73,7 @@ void Show_Help(void) {
 
 void Display_Notes(THD_3dim_dataset *dset) {
    ATR_int *notecount;
-   ATR_string *note;
-   int num_notes, i, j, num_char;
-   char note_name[20];
+   int num_notes, i;
    char * chn , * chd ;
 
    notecount = THD_find_int_atr(dset->dblk, "NOTES_COUNT");
@@ -192,4 +216,5 @@ int main (int argc, char * argv[]) {
            THD_delete_3dim_dataset( dset , False ) ; 
    }
 
+   return 0;
 }
