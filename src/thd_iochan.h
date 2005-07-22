@@ -150,6 +150,9 @@ extern pid_t    iochan_fork_relay( char *, char * );      /* 23 May 2001 */
 
 #define IOCHAN_CLOSE(ioc) ( iochan_close(ioc) , (ioc)=NULL )
 
+#define IOCHAN_CLOSENOW(ioc) \
+  ( iochan_set_cutoff(ioc), iochan_sleep(1), iochan_close(ioc), (ioc)=NULL )
+
 extern double COX_clock_time(void) ; /* total elapsed time in seconds */
 extern double COX_cpu_time(void) ;   /* total cpu time used in seconds */
 
