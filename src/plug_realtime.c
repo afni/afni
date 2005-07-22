@@ -57,12 +57,12 @@
 	             motion curve, instead of the normal six
 	             (see p_code, etc., reg_eval, and RT_parser_init())      **/
 /** 31 Mar 2004: added ability to send registration parameters       [rickr]
-	       * If the AFNI_REALTIME_MP_HOST_PORT environment variable is 
+	       * If the AFNI_REALTIME_MP_HOST_PORT environment variable is
 	             set (as HOST:PORT, e.g. localhost:53214), then the six
 	             registration correction parameters will be sent to that
 	             host/port via a tcp socket.  This is done only in the
 	             case of graphing the 3D registration parameters.
-	       * added RT_input variables to manage the new socket 
+	       * added RT_input variables to manage the new socket
 	       * added RT_mp_comm_...() functions
 	       * modified yar[] logic in RT_registration_3D_realtime() to
 	             pass the registration parameters before adjusting the
@@ -782,7 +782,7 @@ int RT_check_listen(void)
 
       if( ! TRUST_host(ioc_control->name) ){
          fprintf(stderr,"RT: untrusted host connection - closing!\a\n") ;
-         IOCHAN_CLOSE(ioc_control) ;
+         IOCHAN_CLOSENOW(ioc_control) ;
          return 0 ;
       }
 
@@ -795,7 +795,7 @@ int RT_check_listen(void)
    } else if( jj == -1 ){  /* something bad! */
 
       fprintf(stderr,"RT: failure while listening for control stream!\a\n") ;
-      IOCHAN_CLOSE(ioc_control) ;
+      IOCHAN_CLOSENOW(ioc_control) ;
       return 0 ;
    }
 
@@ -821,9 +821,9 @@ void cleanup_rtinp( int keep_ioc_data )
    int cc ;
 
    if( !keep_ioc_data )
-     IOCHAN_CLOSE(rtinp->ioc_data) ;       /* close open I/O channels */
+     IOCHAN_CLOSENOW(rtinp->ioc_data) ;    /* close open I/O channels */
 
-   IOCHAN_CLOSE(rtinp->ioc_info) ;
+   IOCHAN_CLOSENOW(rtinp->ioc_info) ;
 
    if( rtinp->child_info > 0 )             /* destroy child process */
       kill( rtinp->child_info , SIGTERM ) ;
@@ -903,13 +903,13 @@ Boolean RT_worker( XtPointer elvis )
       static int nerr = 0 ;
       jj = RT_check_listen() ;             /* see if someone wants to talk */
       if( jj < 0 ){                        /* quit if there's an error */
-         nerr++ ;
+         nerr++ ; iochan_sleep(1) ;
          return (nerr > 9) ? True : False; /* 12 Oct 2000: if a lot of errors */
       }
       nerr = 0 ;                           /* reset error count */
       if( jj == 0 ) return False ;         /* try later if no connection now */
       rtinp = new_RT_input(NULL) ;         /* try to make a new input struct */
-      IOCHAN_CLOSE( ioc_control ) ;        /* not needed any more */
+      IOCHAN_CLOSENOW( ioc_control ) ;     /* not needed any more */
       if( rtinp == NULL ) return False ;   /* try later (?) */
    }
 
@@ -987,7 +987,7 @@ Boolean RT_worker( XtPointer elvis )
             ii = iochan_readcheck( rtinp->ioc_info , SHORT_DELAY ) ;
             if( ii < 1 ) break ;
          }
-         IOCHAN_CLOSE( rtinp->ioc_info ) ; rtinp->child_info = 0 ;
+         IOCHAN_CLOSENOW( rtinp->ioc_info ) ; rtinp->child_info = 0 ;
 
          if( ninfo <= 0 ){
             fprintf(stderr,"RT: child info stream returned no data!\a\n") ;
@@ -1408,7 +1408,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
       else if( ii == 0 && verbose == 2 ) fprintf(stderr,".") ; /* not good yet */
       else {                                                   /* is bad! */
          fprintf(stderr,"RT: data stream fails to become good!\a\n") ;
-         IOCHAN_CLOSE(rtin->ioc_data) ; free(rtin) ;
+         IOCHAN_CLOSENOW(rtin->ioc_data) ; free(rtin) ;
          return NULL ;
       }
    }
@@ -1669,7 +1669,7 @@ int RT_acquire_info( char * command )
    fp = popen( command , "r" ) ;
    if( fp == NULL ){
       fprintf(stderr,"RT: child fails to open pipe to command=%s\a\n",command) ;
-      IOCHAN_CLOSE(ioc) ; _exit(1) ;
+      IOCHAN_CLOSENOW(ioc) ; _exit(1) ;
    }
 
    /** read pipe until nothing more **/
@@ -1684,7 +1684,7 @@ int RT_acquire_info( char * command )
    jj = iochan_writecheck(ioc,-1) ;  /* wait until ready */
    if( jj < 0 ){
       fprintf(stderr,"RT: child can't write IOCHAN to parent!\a\n") ;
-      IOCHAN_CLOSE(ioc) ; _exit(1) ;
+      IOCHAN_CLOSENOW(ioc) ; _exit(1) ;
    }
 
    iochan_sendall( ioc , info , ninfo+1 ) ;        /* include the NUL character */
@@ -1695,7 +1695,7 @@ int RT_acquire_info( char * command )
    iochan_sleep(LONG_DELAY) ;                      /* once more, just for luck */
 
                                                    /**************************/
-   free(info) ; IOCHAN_CLOSE(ioc) ; _exit(0) ;     /** END OF CHILD PROCESS **/
+   free(info); IOCHAN_CLOSENOW(ioc); _exit(0);     /** END OF CHILD PROCESS **/
 }                                                  /**************************/
 
 /****************************************************************************
@@ -4171,7 +4171,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
          free(ttl) ;
 
 	 /* set up comm for motion params    30 Mar 2004 [rickr] */
-	 RT_mp_comm_init_vars( rtin ) ; 
+	 RT_mp_comm_init_vars( rtin ) ;
 	 if ( rtin->mp_tcp_use ) RT_mp_comm_init( rtin ) ;
       }
    }
@@ -4206,7 +4206,7 @@ void RT_registration_3D_realtime( RT_input * rtin )
 	      yar[c]--;
 	  ttbot-- ;
       }
-      
+
       /* if p_code, only plot the reg_eval */
       if ( rtin->p_code )
       {
@@ -4458,13 +4458,13 @@ void RT_registration_3D_onevol( RT_input * rtin , int tt )
    if ( rtin->p_code )
    {
        int c ;
-       
+
        /* clear extras, just to be safe */
        for ( c = 6; c < 26; c++ ) rtin->p_atoz[c] = 0;
 
        rtin->p_atoz[0] = ddx ; rtin->p_atoz[1] = ddy  ; rtin->p_atoz[2] = ddz;
        rtin->p_atoz[3] = roll; rtin->p_atoz[4] = pitch; rtin->p_atoz[5] = yaw;
-       
+
        /* actually set the value via parser evaluation */
        rtin->reg_eval[nest] = PARSER_evaluate_one(rtin->p_code, rtin->p_atoz);
    }
@@ -5012,54 +5012,54 @@ int RT_fim_recurse( RT_input *rtin , int mode )
    for ( it = start_index; it <= mode; it++ )
    {
       nnow = 0 ;     /* number of refs used this time */
-   
+
       if( it >= nx_ref ) return 1 ;  /* can't update without references! */
-   
+
       for( ivec=0 ; ivec < ny_ref ; ivec++ ){           /* for each ideal time series */
          tsar = MRI_FLOAT_PTR(ref_ts) + (ivec*nx_ref) ;
          if( tsar[it] >= WAY_BIG ) continue ;           /* skip this time series */
-   
+
          ref_vec[0] = 1.0 ;         /* we always supply ort for constant */
          for( ip=1 ; ip <= polort ; ip++ )              /* 02 Jun 1999:    */
             ref_vec[ip] = ref_vec[ip-1] * ((float)it) ; /* and polynomials */
-   
+
          if( internal_ort ){
             ref_vec[ip] = tsar[it] ;                    /* ideal */
          } else {
             for( iv=0 ; iv < ny_ort ; iv++ )            /* any other orts? */
                ref_vec[iv+ip] = (it < nx_ort) ? ortar[it+iv*nx_ort]
                                               : 0.0 ;
-   
+
             ref_vec[ny_ort+ip] = tsar[it] ;             /* ideal */
          }
-   
+
          update_PCOR_references( ref_vec , pc_ref[ivec] ) ;  /* Choleski refs */
-   
+
          /* load data from dataset into local float array vval */
-   
+
          switch( dtyp ){
             case MRI_short:{
                short * dar = (short *) DSET_ARRAY(dset_time,it) ;
                for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
             }
             break ;
-   
+
             case MRI_float:{
                float * dar = (float *) DSET_ARRAY(dset_time,it) ;
                for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
             }
             break ;
-   
+
             case MRI_byte:{
                byte * dar = (byte *) DSET_ARRAY(dset_time,it) ;
                for( iv=0 ; iv < nvox ; iv++ ) vval[iv] = (float) dar[indx[iv]] ;
             }
             break ;
          }
-   
+
          PCOR_update_float( vval , pc_ref[ivec] , pc_vc[ivec] ) ;  /* Choleski data */
          nnow++ ;
-   
+
       }
       if( nnow > 0 ) nupdt++ ;  /* at least one ideal vector was used */
    }
