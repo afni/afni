@@ -56,6 +56,9 @@
 
    Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
    Date:    02 December 2002
+   
+   Mod:     -help menu modified.
+   Date:    21 July 2005 - P Christidis
 */
 
 /*---------------------------------------------------------------------------*/
@@ -63,7 +66,7 @@
 #define PROGRAM_NAME    "3dANOVA2"                   /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "09 Dec 1996"     /* date of initial program release */
-#define PROGRAM_LATEST  "02 Dec 2002"     /* date of latest program revision */
+#define PROGRAM_LATEST  "21 Jul 2005"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -82,75 +85,143 @@ void display_help_menu()
 {
   printf 
     (
-     "This program performs two-factor ANOVA on 3D data sets \n\n"
-     "Usage: \n"
-     "3dANOVA2 \n"
-     "-type k          type of ANOVA model to be used:                      \n"
-     "                    k=1  fixed effects model  (A and B fixed)         \n"
-     "                    k=2  random effects model (A and B random)        \n"
-     "                    k=3  mixed effects model  (A fixed, B random)     \n"
-     "                                                                      \n"
-     "-alevels a                     a = number of levels of factor A       \n"
-     "-blevels b                     b = number of levels of factor B       \n"
-     "-dset 1 1 filename             data set for level 1 of factor A       \n"
-     "                                        and level 1 of factor B       \n"
-     " . . .                           . . .                                \n"
-     "                                                                      \n"
-     "-dset i j filename             data set for level i of factor A       \n"
-     "                                        and level j of factor B       \n"
-     " . . .                           . . .                                \n"
-     "                                                                      \n"
-     "-dset a b filename             data set for level a of factor A       \n"
-     "                                        and level b of factor B       \n"
-     "                                                                      \n"
-     "[-voxel num]                   screen output for voxel # num          \n"
-     "[-diskspace]                   print out disk space required for      \n"
-     "                                  program execution                   \n"
-     "                                                                      \n"
-     "                                                                      \n"
-     "The following commands generate individual AFNI 2 sub-brick datasets: \n"
-     "  (In each case, output is written to the file with the specified     \n"
-     "   prefix file name.)                                                 \n"
-     "                                                                      \n"
-     "[-ftr prefix]                F-statistic for treatment effect         \n"
-     "[-fa prefix]                 F-statistic for factor A effect          \n"
-     "[-fb prefix]                 F-statistic for factor B effect          \n"
-     "[-fab prefix]                F-statistic for interaction              \n"
-     "[-amean i prefix]            estimate mean of factor A level i        \n"
-     "[-bmean j prefix]            estimate mean of factor B level j        \n"
-     "[-xmean i j prefix]          estimate mean of cell at level i of      \n"
-     "                                factor A, level j of factor B         \n"
-     "[-adiff i j prefix]          difference between levels i and j of     \n"
-     "                                factor A                              \n"
-     "[-bdiff i j prefix]          difference between levels i and j of     \n"
-     "                                factor B                              \n"
-     "[-xdiff i j k l prefix]      difference between cell mean at A=i,B=j  \n"
-     "                                and cell mean at A=k,B=l              \n"
-     "[-acontr c1 ... ca prefix]   contrast in factor A levels              \n"
-     "[-bcontr c1 ... cb prefix]   contrast in factor B levels              \n"
-     "[-xcontr c11 ... c1b c21 ... c2b  ...  ca1 ... cab  prefix]           \n"
-     "                             contrast in cell means                   \n"
-     "                                                                      \n"
-     "                                                                      \n"
-     "The following command generates one AFNI 'bucket' type dataset:       \n"
-     "                                                                      \n"
-     "[-bucket prefix]         create one AFNI 'bucket' dataset whose       \n"
-     "                           sub-bricks are obtained by concatenating   \n"
-     "                           the above output files; the output 'bucket'\n"
-     "                           is written to file with prefix file name   \n"
-     "\n");
-
+ "This program performs a two-factor Analysis of Variance (ANOVA)            \n"
+ "on 3D datasets                                                             \n"
+ "                                                                           \n"
+ "-----------------------------------------------------------                \n"
+ "                                                                           \n"
+ "Usage:                                                                     \n"
+ "                                                                           \n"
+ "   3dANOVA2                                                                \n"
+ "      -type k              : type of ANOVA model to be used:               \n"
+ "                              k=1  fixed effects model  (A and B fixed)    \n"
+ "                              k=2  random effects model (A and B random)   \n"
+ "                              k=3  mixed effects model  (A fixed, B random)\n"
+ "                                                                           \n"
+ "      -alevels a           : a = number of levels of factor A              \n"
+ "                                                                           \n"
+ "      -blevels b           : b = number of levels of factor B              \n"
+ "                                                                           \n"
+ "      -dset 1 1 filename   : data set for level 1 of factor A              \n"
+ "                                      and level 1 of factor B              \n"
+ "            . . .                           . . .                          \n"
+ "      -dset i j filename   : data set for level i of factor A              \n"
+ "                                      and level j of factor B              \n"
+ "            . . .                           . . .                          \n"
+ "      -dset a b filename   : data set for level a of factor A              \n"
+ "                                      and level b of factor B              \n"
+ "                                                                           \n"
+ "     [-voxel num]          : screen output for voxel # num                 \n"
+ "                                                                           \n"
+ "     [-diskspace]          : print out disk space required for             \n"
+ "                             program execution                             \n"
+ "                                                                           \n"
+ "                                                                           \n"
+ "   The following commands generate individual AFNI 2-sub-brick datasets:   \n"
+ "  (In each case, output is written to the file with the specified          \n"
+ "   prefix file name.)                                                      \n"
+ "                                                                           \n"
+ "     [-ftr prefix]         : F-statistic for treatment effect              \n"
+ "                                                                           \n"
+ "     [-fa prefix]          : F-statistic for factor A effect               \n"
+ "                                                                           \n"
+ "     [-fb prefix]          : F-statistic for factor B effect               \n"
+ "                                                                           \n"
+ "     [-fab prefix]         : F-statistic for interaction                   \n"
+ "                                                                           \n"
+ "     [-amean i prefix]     : estimate mean of factor A level i             \n"
+ "                                                                           \n"
+ "     [-bmean j prefix]     : estimate mean of factor B level j             \n"
+ "                                                                           \n"
+ "     [-xmean i j prefix]   : estimate mean of cell at level i of factor A, \n"
+ "                                                      level j of factor B  \n"
+ "                                                                           \n"
+ "     [-adiff i j prefix]   : difference between levels i and j of factor A \n"
+ "                                                                           \n"
+ "     [-bdiff i j prefix]   : difference between levels i and j of factor B \n"
+ "                                                                           \n"
+ "     [-xdiff i j k l prefix]     : difference between cell mean at A=i,B=j \n"
+ "                                                  and cell mean at A=k,B=l \n"
+ "                                                                           \n"
+ "     [-acontr c1 ... ca prefix]  : contrast in factor A levels             \n"
+ "                                                                           \n"
+ "     [-bcontr c1 ... cb prefix]  : contrast in factor B levels             \n"
+ "                                                                           \n"
+ "     [-xcontr c11 ... c1b c21 ... c2b  ...  ca1 ... cab  prefix]           \n"
+ "                                 : contrast in cell means                  \n"
+ "                                                                           \n"
+ "                                                                           \n"
+ "The following command generates one AFNI 'bucket' type dataset:            \n"
+ "                                                                           \n"
+ "     [-bucket prefix]      : create one AFNI 'bucket' dataset whose        \n"
+ "                             sub-bricks are obtained by concatenating      \n"
+ "                             the above output files; the output 'bucket'   \n"
+ "                             is written to file with prefix file name      \n"
+ "                                                                           \n"
+ "----------------------------------------------------------                 \n"
+ "                                                                           \n"
+ " Example of 3dANOVA2:                                                      \n"
+ "                                                                           \n"
+ "      Example is based on a study with a 3 x 4 mixed factorial design:     \n"
+ "                                                                           \n"
+ "              Factor 1 - DONUTS has 3 levels:                              \n"
+ "                         (1) chocolate, (2) glazed, (3) sugar              \n"
+ "                                                                           \n"
+ "              Factor 2 - SUBJECTS, of which there are 4 in this analysis:  \n"
+ "                         (1) fred, (2) ethel, (3) lucy, (4) ricky          \n"
+ "                                                                           \n"
+ " 3dANOVA2 -type 3 -alevels 3 -blevels 4   \\                               \n"
+ "          -dset 1 1 fred_choc+tlrc        \\                               \n"
+ "          -dset 2 1 fred_glaz+tlrc        \\                               \n"
+ "          -dset 3 1 fred_sugr+tlrc        \\                               \n"
+ "          -dset 1 2 ethel_choc+tlrc       \\                               \n"
+ "          -dset 2 2 ethel_glaz+tlrc       \\                               \n"
+ "          -dset 3 2 ethel_sugr+tlrc       \\                               \n"
+ "          -dset 1 3 lucy_choc+tlrc        \\                               \n"
+ "          -dset 2 3 lucy_glaz+tlrc        \\                               \n"
+ "          -dset 3 3 lucy_sugr+tlrc        \\                               \n"
+ "          -dset 1 3 ricky_choc+tlrc       \\                               \n"
+ "          -dset 2 3 ricky_glaz+tlrc       \\                               \n"
+ "          -dset 3 3 ricky_sugr+tlrc       \\                               \n"
+ "          -amean 1 Chocolate              \\                               \n"
+ "          -amean 2 Glazed                 \\                               \n"
+ "          -amean 3 Sugar                  \\                               \n"
+ "          -adiff 1 2 CvsG                 \\                               \n"
+ "          -adiff 2 3 GvsS                 \\                               \n"
+ "          -adiff 1 3 CvsS                 \\                               \n"
+ "          -acontr 1 1 -1 CGvsS            \\                               \n"
+ "          -acontr -1 1 1 CvsGS            \\                               \n"
+ "          -acontr 1 -1 1 CSvsG            \\                               \n"
+ "          -fa Donuts                      \\                               \n"
+ "          -bucket ANOVA_results                                            \n"
+ "                                                                           \n"
+ " The -bucket option will place all of the 3dANOVA2 results (i.e., main     \n"
+ " effect of DONUTS, means for each of the 3 levels of DONUTS, and           \n"
+ " contrasts between the 3 levels of DONUTS) into one big dataset with       \n"
+ " multiple sub-bricks called ANOVA_results+tlrc.                            \n"
+ "                                                                           \n"
+"-----------------------------------------------------------                 \n"
+ "\n");
+     
   printf
     (
-     "\n"
-     "N.B.: For this program, the user must specify 1 and only 1 sub-brick  \n"
-     "      with each -dset command. That is, if an input dataset contains  \n"
-     "      more than 1 sub-brick, a sub-brick selector must be used, e.g.: \n"
-     "      -dset 2 4 'fred+orig[3]'                                        \n"
+ "\n"
+ "N.B.: For this program, the user must specify 1 and only 1 sub-brick       \n"
+ "      with each -dset command. That is, if an input dataset contains       \n"
+ "      more than 1 sub-brick, a sub-brick selector must be used, e.g.:      \n"
+ "      -dset 2 4 'fred+orig[3]'                                             \n"
      );
 
   printf("\n" MASTER_SHORTHELP_STRING ) ;
   
+  printf
+    ( 
+ "\n"
+ "Also see HowTo #5: Group Analysis on the AFNI website:                    \n"
+ " http://afni.nimh.gov/pub/dist/HOWTO/howto/ht05_group/html/index.shtml    \n"
+ "                                                                          \n"
+    );
+    
   exit(0);
 }
 
@@ -901,11 +972,8 @@ int required_data_files (anova_options * option_data)
 
 void initialize (int argc,  char ** argv,  anova_options ** option_data)
 {
-  int i, j;                            /* factor level indices */
   int a, b;                            /* number of factor levels */
   int n;                               /* number of observations per cell */
-  int nxyz;                            /* number of voxels */
-  char message[MAX_NAME_LENGTH];       /* error message */
   
 
   /*----- save command line for history notes -----*/
@@ -1307,7 +1375,6 @@ void calculate_ssijk (anova_options * option_data)
   int n;                            /* number of observations per cell */
   int ixyz, nxyz;                   /* voxel counters */
   int nvoxel;                       /* output voxel # */
-  float yval;                       /* temporary float value */
   
   
   /*----- initialize local variables -----*/
@@ -1978,7 +2045,6 @@ void calculate_ameans (anova_options * option_data)
    float * tmean = NULL;              /* pointer to t-statistic data */
    int imean;                         /* output mean option index */
    int level;                         /* factor A level index */
-   int j;                             /* factor B level index */
    int n;                             /* number of observations per cell */
    int ixyz, nxyz;                    /* voxel counters */
    int nvoxel;                        /* output voxel # */
@@ -1989,7 +2055,6 @@ void calculate_ameans (anova_options * option_data)
    int df;                            /* degrees of freedom for t-test */
    float fval;                        /* for calculating std. dev. */
    float stddev;                      /* est. std. dev. of factor mean */
-   char filename[MAX_NAME_LENGTH];    /* input data file name */
  
 
    /*----- initialize local variables -----*/
@@ -2073,7 +2138,6 @@ void calculate_bmeans (anova_options * option_data)
    float * tmean = NULL;              /* pointer to t-statistic data */
    int imean;                         /* output mean option index */
    int level;                         /* factor B level index */
-   int i;                             /* factor A level index */
    int n;                             /* number of observations per cell */
    int ixyz, nxyz;                    /* voxel counters */
    int nvoxel;                        /* output voxel # */
@@ -2084,7 +2148,6 @@ void calculate_bmeans (anova_options * option_data)
    int df;                            /* degrees of freedom for t-test */
    float fval;                        /* for calculating std. dev. */
    float stddev;                      /* est. std. dev. of factor mean */
-   char filename[MAX_NAME_LENGTH];    /* input data file name */
  
 
    /*----- initialize local variables -----*/
@@ -2168,7 +2231,6 @@ void calculate_xmeans (anova_options * option_data)
    int df;                            /* degrees of freedom for t-test */
    float fval;                        /* for calculating std. dev. */
    float stddev;                      /* est. std. dev. of cell mean */
-   char filename[MAX_NAME_LENGTH];    /* input data file name */
  
 
    /*----- initialize local variables -----*/
@@ -2252,7 +2314,6 @@ void calculate_adifferences (anova_options * option_data)
    int df;                             /* degrees of freedom for t-test */
    float fval;                         /* for calculating std. dev. */
    float stddev;                       /* est. std. dev. of difference */
-   char filename[MAX_NAME_LENGTH];     /* input file name */
 
 
    /*----- initialize local variables -----*/
@@ -2352,7 +2413,6 @@ void calculate_bdifferences (anova_options * option_data)
    int df;                             /* degrees of freedom for t-test */
    float fval;                         /* for calculating std. dev. */
    float stddev;                       /* est. std. dev. of difference */
-   char filename[MAX_NAME_LENGTH];     /* input file name */
 
 
    /*----- initialize local variables -----*/
@@ -2442,7 +2502,6 @@ void calculate_xdifferences (anova_options * option_data)
    int df;                             /* degrees of freedom for t-test */
    float fval;                         /* for calculating std. dev. */
    float stddev;                       /* est. std. dev. of difference */
-   char filename[MAX_NAME_LENGTH];     /* input file name */
 
 
    /*----- initialize local variables -----*/
@@ -2535,7 +2594,6 @@ void calculate_acontrasts (anova_options * option_data)
    float fval;                         /* for calculating std. dev. */
    float c;                            /* contrast coefficient */
    float stddev;                       /* est. std. dev. of contrast */
-   char filename[MAX_NAME_LENGTH];     /* input data file name */
 
 
    /*----- initialize local variables -----*/
@@ -2639,7 +2697,6 @@ void calculate_bcontrasts (anova_options * option_data)
    float fval;                         /* for calculating std. dev. */
    float c;                            /* contrast coefficient */
    float stddev;                       /* est. std. dev. of contrast */
-   char filename[MAX_NAME_LENGTH];     /* input data file name */
 
 
    /*----- initialize local variables -----*/
@@ -2732,7 +2789,6 @@ void calculate_xcontrasts (anova_options * option_data)
    float fval;                         /* for calculating std. dev. */
    float c;                            /* contrast coefficient */
    float stddev;                       /* est. std. dev. of contrast */
-   char filename[MAX_NAME_LENGTH];     /* input data file name */
 
 
    /*----- initialize local variables -----*/
@@ -3363,20 +3419,3 @@ int main (int argc, char ** argv)
 
    exit(0);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
