@@ -1191,4 +1191,5 @@
   * modified 3dANOVA2.c 3dANOVA.c 3dclust.c 3dIntracranial.c 3dNotes.c
       - Peggy updated the -help output
   * modified 3ddelay.c: check for NULL strings before printing
+  * modified realtime.c (and Dimon.c ->v1.2) to use IOCHAN_CLOSENOW()
 
