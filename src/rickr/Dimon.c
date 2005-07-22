@@ -5,9 +5,10 @@ static char g_history[] =
     "\n"
     " 1.0  Jul  5, 2005 [rickr] - initial release\n"
     " 1.1  Jul 13, 2005 [rickr] - process run of fewer than 3 slices\n"
+    " 1.2  Jul 22, 2005 [rickr] - use IOCHAN_CLOSENOW() in realtime.c\n"
     "----------------------------------------------------------------------\n";
 
-#define DIMON_VERSION "version 1.1 (July 13, 2005)"
+#define DIMON_VERSION "version 1.2 (July 22, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:

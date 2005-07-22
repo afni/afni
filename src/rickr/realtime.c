@@ -88,7 +88,7 @@ int ART_start_io( ART_comm * ac, int debug )
 
       if( ii < 0 ){
          fprintf(stderr,"Control channel to AFNI failed!\n") ;
-         IOCHAN_CLOSE(ac->ioc) ;
+         IOCHAN_CLOSENOW(ac->ioc) ;
          ac->mode = 0 ;                    /* disable AFNI */
          return -1;
       } else if( ii > 0 ){
@@ -124,14 +124,14 @@ int ART_start_io( ART_comm * ac, int debug )
 
       if( ii < 0 ){
          fprintf(stderr,"Transmission of control data to AFNI failed!\a\n") ;
-         IOCHAN_CLOSE(ac->ioc) ;
+         IOCHAN_CLOSENOW(ac->ioc) ;
          ac->mode = 0 ;
          return -1;
       } else {
          /* wait for control data to clear */
          while( ! iochan_clearcheck(ac->ioc,2) )
             iochan_sleep(2) ;
-         IOCHAN_CLOSE(ac->ioc) ;                 /* close control channel */
+         IOCHAN_CLOSENOW(ac->ioc) ;                 /* close control channel */
 
          if( debug > 1 )
             fprintf(stderr,"Opening data channel %s to AFNI.\n",ac->ioc_name) ;
@@ -158,7 +158,7 @@ int ART_start_io( ART_comm * ac, int debug )
       if( ii < 0 ){
          fprintf(stderr,
                  "AFNI data channel aborted before any data was sent!\a\n") ;
-         IOCHAN_CLOSE( ac->ioc ) ;
+         IOCHAN_CLOSENOW(ac->ioc) ;
          ac->mode = 0 ;
          return -1;
       } else if( ii > 0 ){                      /* can now send data to AFNI! */
