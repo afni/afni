@@ -523,10 +523,18 @@ ENTRY("populate_nifti_image") ;
 
   nim->byteorder = nifti_short_order() ;
 
+  /* KRH 7/25/05 modified to note talairach view into NIfTI file */
+
+  if ( dset->view_type == VIEW_TALAIRACH_TYPE ) {
+    nim->qform_code = NIFTI_XFORM_TALAIRACH ;
+  } else {
+    nim->qform_code = NIFTI_XFORM_SCANNER_ANAT ;
+  }
+  nim->sform_code = nim->qform_code ; /* KRH 7/6/05 - using */
+           /* sform to duplicate qform for interoperability with FSL */
+
+
   /*-- odds and ends that are constant for AFNI files --*/
-  nim->qform_code = NIFTI_XFORM_SCANNER_ANAT ;
-  nim->sform_code = NIFTI_XFORM_SCANNER_ANAT ; /* KRH 7/6/05 - using sform to duplicate qform for
-                                                  interoperability with FSL                       */
   nim->cal_min = nim->cal_max = 0 ;
   nim->nifti_type = 1 ;
   nim->xyz_units = NIFTI_UNITS_MM ;
