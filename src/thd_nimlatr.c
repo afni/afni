@@ -566,7 +566,7 @@ ENTRY("mri_to_niml") ;
 MRI_IMAGE * niml_to_mri( NI_element *nel )
 {
    char *rhs ;
-   int   nx,ny,nz,nt,nu,nv,nw ;
+   int   nx=1,ny=1,nz=1,nt=1,nu=1,nv=1,nw=1 ;
    MRI_IMAGE *im ;
    void *vpt ;
    int  nvox ;
