@@ -5644,3 +5644,6 @@
  * 3dWarpdrive '-bilinear_general' now works.  Usefulness is another question.
  * Fixed 'EMPTY IMAGE' display problem in afni_warp.c -- DSET_INMEMORY()
      macro in 3ddata.h needed to check for STORAGE_UNDEFINED.
+
+25 Jul 2005
+ * New program im2niml.c, and '-p' option to aiv.c.
