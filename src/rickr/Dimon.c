@@ -6,9 +6,10 @@ static char g_history[] =
     " 1.0  Jul  5, 2005 [rickr] - initial release\n"
     " 1.1  Jul 13, 2005 [rickr] - process run of fewer than 3 slices\n"
     " 1.2  Jul 22, 2005 [rickr] - use IOCHAN_CLOSENOW() in realtime.c\n"
+    " 1.3  Jul 25, 2005 [rickr] - force connection close on termination\n"
     "----------------------------------------------------------------------\n";
 
-#define DIMON_VERSION "version 1.2 (July 22, 2005)"
+#define DIMON_VERSION "version 1.3 (July 25, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -54,7 +55,7 @@ static char g_history[] =
  *   examples:    Dimon -infile_pattern 's12345/i*'
  *                Dimon -help
  *                Dimon -version
- *                Dimon -infile_pattern 's12345/i*' -rt -host pickle -quit
+ *                Dimon -infile_prefix 's12345/i' -rt -host pickle -quit
  *----------------------------------------------------------------------
 */
 
@@ -2672,6 +2673,13 @@ static void hf_signal( int signum )
         case SIGTERM :
             show_run_stats( &gS );
             break;
+    }
+
+    if( gAC.state != ART_STATE_NO_USE )
+    {
+        if( gD.level > 1 )
+            fprintf(stderr,"-d closing afni connection, state %d\n", gAC.state);
+        ART_exit();
     }
 
     fflush(stderr);  /* in case it is redirected */
