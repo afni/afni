@@ -1,5 +1,9 @@
+25 Jul 2005
+   * modified thd_niftiwrite.c to mark AFNI +tlrc files
+     as NIfTI talairach view files when writing
+
 18 Jul 2005
-   * modified thd_niftiwrite.c and thdniftiread.c to allow
+   * modified thd_niftiwrite.c and thd_niftiread.c to allow
        better interoperability with FSL
 
 13 Apr 2005
