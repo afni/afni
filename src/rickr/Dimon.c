@@ -6,7 +6,7 @@ static char g_history[] =
     " 1.0  Jul  5, 2005 [rickr] - initial release\n"
     " 1.1  Jul 13, 2005 [rickr] - process run of fewer than 3 slices\n"
     " 1.2  Jul 22, 2005 [rickr] - use IOCHAN_CLOSENOW() in realtime.c\n"
-    " 1.3  Jul 25, 2005 [rickr] - force connection close on termination\n"
+    " 1.3  Jul 25, 2005 [rickr] - force tcp close for multiple term signals\n"
     "----------------------------------------------------------------------\n";
 
 #define DIMON_VERSION "version 1.3 (July 25, 2005)"
@@ -337,8 +337,13 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     }
 
     /* give stats when user quits */
-    signal( SIGTERM, hf_signal );
+    signal( SIGHUP,  hf_signal );
     signal( SIGINT,  hf_signal );
+    signal( SIGQUIT,  hf_signal );
+    signal( SIGTRAP,  hf_signal );
+    signal( SIGABRT,  hf_signal );
+    signal( SIGTERM, hf_signal );
+    signal( SIGSEGV,  hf_signal );
 
     if ( set_volume_stats( p, &gS, v0 ) )
         return -1;
@@ -2669,11 +2674,14 @@ static void hf_signal( int signum )
                      signum );
             break;
 
+        case SIGHUP  :
         case SIGINT  :
         case SIGTERM :
             show_run_stats( &gS );
             break;
     }
+
+    if(gD.level > 1) fprintf(stderr, "\n+d received signal, %d\n", signum);
 
     if( gAC.state != ART_STATE_NO_USE )
     {
