@@ -111,7 +111,8 @@ int main( int argc , char *argv[] )
       "\n"
       "The '-p xxxx' option will make aiv listen to TCP/IP port 'xxxx'\n"
       "for incoming images in the NIML '<MRI_IMAGE ...>' format.  The\n"
-      "port number must be between 1024 and 65535, inclusive.\n"
+      "port number must be between 1024 and 65535, inclusive.  For the\n"
+      "NIML '<MRI_IMAGE ...>' format, see program im2niml.\n"
      ) ;
      exit(0) ;
    }
