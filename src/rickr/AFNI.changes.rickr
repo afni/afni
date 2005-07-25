@@ -1193,3 +1193,6 @@
   * modified 3ddelay.c: check for NULL strings before printing
   * modified realtime.c (and Dimon.c ->v1.2) to use IOCHAN_CLOSENOW()
 
+25 July 2005:
+  * modified Dimon.c (-> v1.3): explicit connection close on ctrl-c
+
