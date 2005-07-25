@@ -25,7 +25,7 @@ EXTRA_LIBS = -lsocket -lnsl -lgen -ldl -lc
 EXTRA_LIBS_2 = -lsocket -lnsl -lc
 
 PLUGIN_SUFFIX = so
-PLUGIN_LFLAGS = -s -shared
+PLUGIN_LFLAGS = -s -G
 PLUGIN_CC     = $(CC)
 PLFLAGS       = -Wl,-E -L. -L/usr/dt/lib -L/usr/openwin/lib -s
 
@@ -34,7 +34,7 @@ RANLIB = /usr/bin/touch
 TAR    = /bin/tar
 GZIP   = gzip
 MKDIR  = /bin/mkdir
-LD     = /usr/local/bin/ld
+LD     = /usr/ccs/bin/ld
 
 RM = /bin/rm -f
 MV = /bin/mv -f
@@ -46,7 +46,7 @@ INSTALLDIR = ./solaris28_gcc
 LIBDIR = $(INSTALLDIR)
 SHOWOFF = -DSHOWOFF=solaris28_gcc
 
-INSTALL_PREREQ = suma
+INSTALL_PREREQ = 
 
 LLIBS  = -lmri -lXm -lXt -lX11 $(LZLIB) -lm $(EXTRA_LIBS)
 # LLIBS  = -lmri -lXm $(EXTRA_LIBS) $(LZLIB) -lm -lc
