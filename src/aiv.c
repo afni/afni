@@ -74,15 +74,17 @@ static char *INIT_labovr[DEFAULT_NCOLOVR] = {
 /*------------------------------------------------------------------------*/
 
 static void killer( void *pt ){ exit(0); }
-static void AFNI_handler(char *msg){ return ; }
+static void AFNI_handler(char *msg){ return ; } /* hide X11 warnings */
 
 /*------------------------------------------------------------------------*/
 
 static void timeout_CB( XtPointer client_data , XtIntervalId *id )
 {
+ENTRY("timeout_CB") ;
    (void) AIVVV_imseq_popup( MAIN_imar , killer , NULL ) ;
    if( AIVVV_stream != (NI_stream)NULL )
      XtAppAddWorkProc( AIVVV_appcontext, AIVVV_workproc, NULL ) ;
+   EXRETURN ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -93,7 +95,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *im ;
    MRI_IMARR *qar ;
    Widget shell ;
-   int gnim ; char **gname ;   /* 23 Dec 2002: glob filenames */
+   int gnim ; char **gname=NULL ;   /* 23 Dec 2002: glob filenames */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
      printf(
@@ -114,18 +116,33 @@ int main( int argc , char *argv[] )
       "for incoming images in the NIML '<MRI_IMAGE ...>' format.  The\n"
       "port number must be between 1024 and 65535, inclusive.  For the\n"
       "NIML '<MRI_IMAGE ...>' format, see program im2niml.\n"
+      "\n"
+      "Normally, at least one image must be given on the command line.\n"
+      "If the '-p xxxx' option is used, then you don't have to input\n"
+      "any images this way; however, since the program requires at least\n"
+      "one image to start up, a crude 'X' will be displayed.  When the\n"
+      "first image arrives via the socket, the 'X' image will be replaced.\n"
+      "Subsequent images arriving by socket will be added to the sequence.\n"
      ) ;
      exit(0) ;
    }
 
-   /* verbose? */
+   PRINT_VERSION("aiv") ; mainENTRY("aiv main") ; machdep() ;
+
+   /* options? */
 
    while( iarg < argc && argv[iarg][0] == '-' ){
+
+     /*-- verbosity --*/
+
      if( strncmp(argv[iarg],"-v",2) == 0 ){ verb=1; iarg++; continue; }
+
+     /*-- port or sherry? --*/
+
      if( strncmp(argv[iarg],"-p",2) == 0 ){
        int port = (int)strtol(argv[++iarg],NULL,10) ;
        if( port <= 1023 ){
-         ERROR_message("Illegal value after -p") ;
+         ERROR_message("Illegal value after -p; not listening.") ;
        } else {
          sprintf(AIVVV_strnam,"tcp:x:%d",port) ;
          AIVVV_stream = NI_stream_open( AIVVV_strnam , "r" ) ;
@@ -134,8 +151,10 @@ int main( int argc , char *argv[] )
          } else {
            int nn ;
            nn = NI_stream_goodcheck(AIVVV_stream,66) ;
-           if( nn > 0 ) INFO_message("Connected to port %d",port) ;
-           else         INFO_message("Listening to port %d",port) ;
+           if( verb ){
+             if( nn > 0 ) INFO_message("Connected to port %d",port) ;
+             else         INFO_message("Listening to port %d",port) ;
+           }
          }
        }
        iarg++ ; continue ;
@@ -171,13 +190,15 @@ int main( int argc , char *argv[] )
 
    if( IMARR_COUNT(MAIN_imar) == 0 && AIVVV_stream==(NI_stream)NULL )
      ERROR_exit("NO IMAGES FOUND!?") ;
-   if( verb ) fprintf(stderr," = ") ;
-   if( IMARR_COUNT(MAIN_imar) == 1 )
-     fprintf(stderr,"1 image") ;
-   else if( IMARR_COUNT(MAIN_imar) > 1 )
-     fprintf(stderr,"%d images\n",IMARR_COUNT(MAIN_imar)) ;
+   if( IMARR_COUNT(MAIN_imar) > 0 ){
+     fprintf(stderr, (verb) ? " = " : "++ " ) ;
+     if( IMARR_COUNT(MAIN_imar) == 1 )
+       fprintf(stderr,"1 image\n") ;
+     else
+       fprintf(stderr,"%d images\n",IMARR_COUNT(MAIN_imar)) ;
+   }
 
-   MCW_free_expand( gnim , gname ) ;
+   if( gnim > 0 ) MCW_free_expand( gnim , gname ) ;
 
    /* connect to X11 */
 
@@ -208,10 +229,12 @@ static void * AIVVV_imseq_popup( MRI_IMARR *imar, generic_func *kfunc, void *kda
    MRI_IMAGE *im , *cim ;
    AIVVVV_imseq *psq ;
 
-   if( imar == NULL ) return NULL ;
+ENTRY("AIVVV_imseq_popup") ;
+
+   if( imar == NULL ) RETURN(NULL) ;
 
    ntot = IMARR_COUNT(imar) ;
-   if( ntot == 0 ){
+   if( ntot == 0 ){               /** dummy 'X' image **/
 #define QQ_NXYZ 16
      static byte xxx[QQ_NXYZ*QQ_NXYZ] = {
        0,0,21,131,135,135,135,8,0,0,3,100,135,135,135,128,
@@ -239,8 +262,8 @@ static void * AIVVV_imseq_popup( MRI_IMARR *imar, generic_func *kfunc, void *kda
      ADDTO_IMARR(imar,xim) ; ntot = 1 ; AIVVV_have_dummy = 1 ;
    }
 
-   psq = psq_global = (AIVVVV_imseq *) calloc(1,sizeof(AIVVVV_imseq)) ;
-   if( psq == NULL ) return NULL ;
+   psq = psq_global = (AIVVVV_imseq *)calloc(1,sizeof(AIVVVV_imseq)) ;
+   if( psq == NULL ) RETURN(NULL) ;  /* should never happen */
 
    psq->imar = imar ;
 
@@ -274,7 +297,7 @@ static void * AIVVV_imseq_popup( MRI_IMARR *imar, generic_func *kfunc, void *kda
 
    drive_MCW_imseq( psq->seq , isqDR_display, (XtPointer)0 ) ;
 
-   return (void *) psq ;
+   RETURN( (void *)psq ) ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -298,6 +321,8 @@ static XtPointer AIVVV_imseq_getim( int n, int type, XtPointer handle )
    AIVVVV_imseq *psq = (AIVVVV_imseq *) handle ;
    int ntot = 0 ;
 
+ENTRY("AIVVV_imseq_getim") ;
+
    if( psq->imar != NULL ) ntot = IMARR_COUNT(psq->imar) ;
    if( ntot < 1 ) ntot = 1 ;
 
@@ -317,12 +342,12 @@ static XtPointer AIVVV_imseq_getim( int n, int type, XtPointer handle )
      stat->transforms2D = NULL ;
      stat->slice_proj   = NULL ;
 
-     return (XtPointer) stat ;
+     RETURN( (XtPointer)stat ) ;
    }
 
    /*--- no overlay, never ---*/
 
-   if( type == isqCR_getoverlay ) return NULL ;
+   if( type == isqCR_getoverlay ) RETURN(NULL) ;
 
    /*--- return a copy of an image
          (since the imseq will delete it when it is done) ---*/
@@ -338,10 +363,10 @@ static XtPointer AIVVV_imseq_getim( int n, int type, XtPointer handle )
        else
          im = mri_copy( rim ) ;
      }
-     return (XtPointer) im ;
+     RETURN( (XtPointer)im ) ;
    }
 
-   return NULL ; /* should not occur, but who knows? */
+   RETURN(NULL) ; /* should not occur, but who knows? */
 }
 
 /*---------------------------------------------------------------------------
@@ -353,6 +378,8 @@ static XtPointer AIVVV_imseq_getim( int n, int type, XtPointer handle )
 static void AIVVV_imseq_send_CB( MCW_imseq *seq, XtPointer handle, ISQ_cbs *cbs )
 {
    AIVVVV_imseq *psq = (AIVVVV_imseq *) handle ;
+
+ENTRY("AIVVV_imseq_send_CB") ;
 
    switch( cbs->reason ){
      case isqCR_destroy:{
@@ -370,23 +397,26 @@ static void AIVVV_imseq_send_CB( MCW_imseq *seq, XtPointer handle, ISQ_cbs *cbs 
      }
      break ;
    }
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Add an image to the display sequence. */
 
 static void AIVVV_imseq_addto( MRI_IMAGE *im )
 {
    int ntot ;
    AIVVVV_imseq *psq = psq_global ;
 
-   if( im == NULL ) return ;
+ENTRY("AIVVV_imseq_addto") ;
 
-   if( AIVVV_have_dummy ){
+   if( im == NULL ) EXRETURN ;
+
+   if( AIVVV_have_dummy ){             /* replace the dummy 'X' */
      IMARR_SUBIM(psq->imar,0) = im ;
      AIVVV_have_dummy = 0 ;
    } else {
-     ADDTO_IMARR(psq->imar,im) ;
+     ADDTO_IMARR(psq->imar,im) ;       /* add to sequence */
    }
    if( im->kind == MRI_rgb ) psq->rgb_count++ ;
 
@@ -397,10 +427,13 @@ static void AIVVV_imseq_addto( MRI_IMAGE *im )
      drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
 
    drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)(ntot-1) ) ;
-   return ;
+   EXRETURN ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Listen to the socket and see if any new <MRI_IMAGE ...> NIML elements
+   appear.
+-----------------------------------------------------------------------------*/
 
 static Boolean AIVVV_workproc( XtPointer fred )
 {
@@ -409,19 +442,21 @@ static Boolean AIVVV_workproc( XtPointer fred )
    MRI_IMAGE *im ;
 
    nn = NI_stream_goodcheck(AIVVV_stream,3) ;
-   if( nn < 0 ){
+   if( nn < 0 ){                              /* dead? reopen it */
      NI_stream_closenow(AIVVV_stream) ;
      NI_sleep(9) ;
      AIVVV_stream = NI_stream_open( AIVVV_strnam , "r" ) ;
      return False ;
    }
 
-   nn = NI_stream_hasinput(AIVVV_stream,9) ;
+   nn = NI_stream_hasinput(AIVVV_stream,9) ;   /* anything? */
    if( nn <= 0 ) return False ;                /* no data */
+
+   /* read data, add image */
 
    nel = (NI_element *)NI_read_element(AIVVV_stream,99) ;
    if( nel == NULL ) return False ;
-   im = niml_to_mri( nel ) ;
+   im = niml_to_mri( nel ) ;   /* convert element to image */
    NI_free_element( nel ) ;
    AIVVV_imseq_addto( im ) ;
    return False ;
