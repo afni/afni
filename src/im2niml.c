@@ -13,9 +13,9 @@ int main( int argc , char *argv[] )
      printf("Usage: im2niml imagefile [imagefile ...]\n"
             "Converts the input image(s) to a text-based NIML element\n"
             "and writes the result to stdout.  Sample usage:\n"
-            "\n"
             " aiv -p 4444 &\n"
             " im2niml zork.jpg | nicat tcp:localhost:4444\n"
+            "-- Author: RW Cox.\n"
            ) ;
      exit(0) ;
    }
