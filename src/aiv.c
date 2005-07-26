@@ -123,6 +123,24 @@ int main( int argc , char *argv[] )
       "one image to start up, a crude 'X' will be displayed.  When the\n"
       "first image arrives via the socket, the 'X' image will be replaced.\n"
       "Subsequent images arriving by socket will be added to the sequence.\n"
+      "\n"
+      "Sample program fragment, for sending an image one program\n"
+      "into a copy of aiv:\n"
+      "\n"
+      "#include \"mrilib.h\"\n"
+      "NI_stream ns; MRI_IMAGE *im; float *far; int nx,ny;\n"
+      "system(\"aiv -p 4444 &\");                               /* start aiv */\n"
+      "ns = NI_stream_open( \"tcp:localhost:4444\" , \"w\" ); /* connect to it */\n"
+      "while(1){\n"
+      "  /** ......... create 2D nx X ny data into the far array .........**/\n"
+      "  im = mri_new_vol_empty( nx , ny , 1 , MRI_float );  /* fake image */\n"
+      "  mri_fix_data_pointer( far , im );                  /* attach data */\n"
+      "  NI_element nel = mri_to_niml(im);      /* convert to NIML element */\n"
+      "  NI_write_element( ns , nel , NI_BINARY_MODE );     /* send to aiv */\n"
+      "  NI_free_element(nel); mri_clear_data_pointer(im); mri_free(im);\n"
+      "}\n"
+      "\n"
+      "-- Author: RW Cox\n"
      ) ;
      exit(0) ;
    }
@@ -405,12 +423,30 @@ ENTRY("AIVVV_imseq_send_CB") ;
 
 static void AIVVV_imseq_addto( MRI_IMAGE *im )
 {
-   int ntot ;
+   int ntot , num ;
    AIVVVV_imseq *psq = psq_global ;
 
 ENTRY("AIVVV_imseq_addto") ;
 
    if( im == NULL ) EXRETURN ;
+
+   if( im->nx < 4 || im->ny < 4 ) EXRETURN ;
+
+   /** if more than 1 slice, carve up the volume
+       into multiple 2D slices and recursively add each one **/
+
+   num = im->nz * im->nt * im->nu * im->nv * im->nw ;
+   if( num > 1 ){
+     MRI_IMAGE *qim ; int kk,nb ; char *iar=(char *)mri_data_pointer(im) ;
+     nb = im->nx * im->ny * im->pixel_size ;
+     for( kk=0 ; kk < num ; kk++ ){
+       qim = mri_new_vol_empty( im->nx , im->ny , 1, im->kind ) ;
+       qim->dx = im->dx ; qim->dy = im->dy ;
+       mri_fix_data_pointer( iar + kk*nb , qim ) ;
+       AIVVV_imseq_addto( qim ) ;
+     }
+     EXRETURN ;
+   }
 
    if( AIVVV_have_dummy ){             /* replace the dummy 'X' */
      IMARR_SUBIM(psq->imar,0) = im ;
