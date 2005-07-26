@@ -11,7 +11,9 @@ int main( int argc , char *argv[] )
    int nn , nl=0 , jj , ntot=0 , ct , ech , iarg=1 ;
 
    if( argc < 2 ){
-      fprintf(stderr,"Usage: nicat [-reopen rr] [-rR] streamspec\n");exit(0);
+     printf("Usage: nicat [-reopen rr] [-rR] streamspec\n"
+            "Copies stdin to the NIML stream.\n" ) ;
+     exit(0) ;
    }
 
    if( strcmp(argv[iarg],"-reopen") == 0 ){

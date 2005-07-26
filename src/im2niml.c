@@ -2,13 +2,16 @@
 
 int main( int argc , char *argv[] )
 {
+   MRI_IMARR *iar ;
    MRI_IMAGE *im ;
-   NI_stream ns ;
+   NI_stream ns=NULL ;
    NI_element *nel ;
+   int ii , iarg=1 ;
+   int nb=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: im2niml imagefile\n"
-            "Converts the input image to a text-based NIML element\n"
+     printf("Usage: im2niml imagefile [imagefile ...]\n"
+            "Converts the input image(s) to a text-based NIML element\n"
             "and writes the result to stdout.  Sample usage:\n"
             "\n"
             " aiv -p 4444 &\n"
@@ -17,14 +20,24 @@ int main( int argc , char *argv[] )
      exit(0) ;
    }
 
-   im = mri_read_just_one(argv[1]) ;
-   if( im  == NULL ) ERROR_exit("Can't read file %s",argv[1]) ;
-   nel = mri_to_niml(im) ;
-   if( nel == NULL ) ERROR_exit("Can't convert to NIML?!") ;
-   mri_free(im) ;
    ns = NI_stream_open( "stdout:" , "w" ) ;
    if( ns == NULL ) ERROR_exit("Can't open stdout?!") ;
-   NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+   for( ; iarg < argc ; iarg++ ){
+     iar = mri_read_file( argv[iarg] ) ;
+     if( iar == NULL ){
+       ERROR_message("Can't read file %s",argv[iarg]); continue;
+     }
+     for( ii=0 ; ii < IMARR_COUNT(iar) ; ii++ ){
+       im = IMARR_SUBIM(iar,ii) ; nel = mri_to_niml(im) ; mri_free(im) ;
+       if( nel == NULL ){
+         ERROR_message("Can't process %s[%d]",argv[iarg],ii); continue;
+       }
+       nb += NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+       NI_free_element(nel) ;
+     }
+     FREE_IMARR(iar) ;
+   }
    NI_stream_closenow(ns) ;
+   INFO_message("Wrote %d bytes to stdout",nb) ;
    exit(0) ;
 }
