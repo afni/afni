@@ -20,6 +20,7 @@ static XtAppContext AIVVV_appcontext ;
 
 static NI_stream AIVVV_stream = (NI_stream)NULL ;
 static char      AIVVV_strnam[64] ;
+static int       AIVVV_have_dummy = 0 ;
 
 static void * AIVVV_imseq_popup( MRI_IMARR *, generic_func *, void * ) ;
 static void   AIVVV_imseq_retitle( void * , char * ) ;
@@ -235,7 +236,7 @@ static void * AIVVV_imseq_popup( MRI_IMARR *imar, generic_func *kfunc, void *kda
      memcpy(ar,xxx,sizeof(byte)*QQ_NXYZ*QQ_NXYZ) ;
      xim = mri_new_vol_empty( QQ_NXYZ,QQ_NXYZ,1 , MRI_byte ) ;
      mri_fix_data_pointer( ar , xim ) ;
-     ADDTO_IMARR(imar,xim) ; ntot = 1 ;
+     ADDTO_IMARR(imar,xim) ; ntot = 1 ; AIVVV_have_dummy = 1 ;
    }
 
    psq = psq_global = (AIVVVV_imseq *) calloc(1,sizeof(AIVVVV_imseq)) ;
@@ -381,15 +382,18 @@ static void AIVVV_imseq_addto( MRI_IMAGE *im )
 
    if( im == NULL ) return ;
 
-   ADDTO_IMARR(psq->imar,im) ;
+   if( AIVVV_have_dummy ){
+     IMARR_SUBIM(psq->imar,0) = im ;
+     AIVVV_have_dummy = 0 ;
+   } else {
+     ADDTO_IMARR(psq->imar,im) ;
+   }
    if( im->kind == MRI_rgb ) psq->rgb_count++ ;
 
    drive_MCW_imseq( psq->seq , isqDR_newseq , psq ) ;
 
    ntot = IMARR_COUNT(psq->imar) ;
-   if( ntot == 1 )
-     drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_offwid ) ;
-   else
+   if( ntot == 2 )
      drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_onwid ) ;
 
    drive_MCW_imseq( psq->seq , isqDR_reimage , (XtPointer)(ntot-1) ) ;

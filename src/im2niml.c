@@ -12,7 +12,7 @@ int main( int argc , char *argv[] )
             "and writes the result to stdout.  Sample usage:\n"
             "\n"
             " aiv -p 4444 &\n"
-            " im2niml zork.jpg | nicat tcp:localhost:444\n"
+            " im2niml zork.jpg | nicat tcp:localhost:4444\n"
            ) ;
      exit(0) ;
    }
