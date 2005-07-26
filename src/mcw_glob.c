@@ -905,11 +905,11 @@ void MCW_wildcards( char *fnam , int *nout , char ***fout )  /* 01 Dec 2003 */
 
 /*-----------------------------------------------------------------------*/
 
-void MCW_free_expand( int gnum , char ** gout )
+void MCW_free_expand( int gnum , char **gout )
 {
    int ii ;
 
-   if( gout == NULL ) return ;
+   if( gout == NULL || gnum == 0 ) return ;
 
    for( ii=0 ; ii < gnum ; ii++ ) free( gout[ii] ) ;
    free( gout ) ;
