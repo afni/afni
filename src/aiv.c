@@ -28,6 +28,7 @@ static XtPointer AIVVV_imseq_getim( int , int , XtPointer ) ;
 static void AIVVV_imseq_send_CB( MCW_imseq * , XtPointer , ISQ_cbs * ) ;
 static void AIVVV_imseq_addto( MRI_IMAGE *im ) ;  /* 25 Jul 2005 */
 static Boolean AIVVV_workproc( XtPointer ) ;      /* 25 Jul 2005 */
+static void AIVVV_niml_quitter( char *, NI_stream , NI_element * ) ;
 
 /*------------------------------------------------------------------------*/
 
@@ -77,13 +78,17 @@ static void killer( void *pt ){ exit(0); }
 static void AFNI_handler(char *msg){ return ; } /* hide X11 warnings */
 
 /*------------------------------------------------------------------------*/
+/*! Called to start up display, after X11 has had time to get going. */
 
 static void timeout_CB( XtPointer client_data , XtIntervalId *id )
 {
 ENTRY("timeout_CB") ;
    (void) AIVVV_imseq_popup( MAIN_imar , killer , NULL ) ;
-   if( AIVVV_stream != (NI_stream)NULL )
+   if( AIVVV_stream != (NI_stream)NULL ){
      XtAppAddWorkProc( AIVVV_appcontext, AIVVV_workproc, NULL ) ;
+     NI_register_doer( "QUIT" , AIVVV_niml_quitter ) ;
+     NI_register_doer( "EXIT" , AIVVV_niml_quitter ) ;
+   }
    EXRETURN ;
 }
 
@@ -92,8 +97,8 @@ ENTRY("timeout_CB") ;
 int main( int argc , char *argv[] )
 {
    int ii , verb=0 , iarg=1 , jj ;
-   MRI_IMAGE *im ;
-   MRI_IMARR *qar ;
+   MRI_IMAGE *im ;     /* 1 input image */
+   MRI_IMARR *qar ;    /* all input images */
    Widget shell ;
    int gnim ; char **gname=NULL ;   /* 23 Dec 2002: glob filenames */
 
@@ -140,6 +145,8 @@ int main( int argc , char *argv[] )
       "  NI_write_element( ns , nel , NI_BINARY_MODE );     /* send to aiv */\n"
       "  NI_free_element(nel); mri_clear_data_pointer(im); mri_free(im);\n"
       "}\n"
+      "NI_stream_writestring( ns , \"<ni_do ni_verb='QUIT'>\" ) ;\n"
+      "NI_stream_close( ns ) ;  /* do this, or the above, if done with aiv */\n"
       "\n"
       "-- Author: RW Cox\n"
      ) ;
@@ -160,6 +167,10 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-p",2) == 0 ){
        int port = (int)strtol(argv[++iarg],NULL,10) ;
+       if( AIVVV_stream != NULL ){
+         ERROR_message("Can't use multiple '-p' options!") ;
+         iarg++ ; continue ;   /* skip to next option */
+       }
        if( port <= 1023 ){
          ERROR_message("Illegal value after -p; not listening.") ;
        } else {
@@ -178,10 +189,13 @@ int main( int argc , char *argv[] )
        }
        iarg++ ; continue ;
      }
+
+     /*-- WTF? --*/
+
      ERROR_message("Unknown option: %s",argv[iarg]) ;
    }
 
-   /* read images */
+   /* glob filenames, read images */
 
    MCW_file_expand( argc-iarg , argv+iarg , &gnim , &gname ) ;
    if( gnim == 0 && AIVVV_stream==(NI_stream)NULL )
@@ -192,7 +206,7 @@ int main( int argc , char *argv[] )
    for( ii=0 ; ii < gnim ; ii++ ){
      if( !THD_filename_ok(gname[ii]) ) continue ;  /* 23 Apr 2003 */
      if( verb ) fprintf(stderr,"+") ;
-     qar = mri_read_file( gname[ii] ) ;  /* may have more than 1 image */
+     qar = mri_read_file( gname[ii] ) ;  /* may have more than 1 2D image */
      if( qar == NULL || IMARR_COUNT(qar) < 1 ){
        fprintf(stderr,"\n** Can't read file %s - skipping!",gname[ii]) ;
        continue ;
@@ -207,8 +221,10 @@ int main( int argc , char *argv[] )
      FREE_IMARR(qar) ;
    }
 
+   /* print a message about the images? */
+
    if( IMARR_COUNT(MAIN_imar) == 0 && AIVVV_stream==(NI_stream)NULL )
-     ERROR_exit("NO IMAGES FOUND!?") ;
+     ERROR_exit("No images found on command line!?") ;
    if( IMARR_COUNT(MAIN_imar) > 0 ){
      fprintf(stderr, (verb) ? " = " : "++ " ) ;
      if( IMARR_COUNT(MAIN_imar) == 1 )
@@ -236,11 +252,15 @@ int main( int argc , char *argv[] )
 
    srand48((long)time(NULL)) ;
 
+   /* wait a little bit, then popup the image viewer window */
+
    (void) XtAppAddTimeOut( MAIN_app, 234, timeout_CB, NULL ) ;
-   XtAppMainLoop(MAIN_app) ;
+   XtAppMainLoop(MAIN_app) ;  /* will never return */
+   exit(0) ;
 }
 
 /*-------------------------------------------------------------------------*/
+/*! Open the image viewer. */
 
 static void * AIVVV_imseq_popup( MRI_IMARR *imar, generic_func *kfunc, void *kdata )
 {
@@ -278,8 +298,11 @@ ENTRY("AIVVV_imseq_popup") ;
      memcpy(ar,xxx,sizeof(byte)*QQ_NXYZ*QQ_NXYZ) ;
      xim = mri_new_vol_empty( QQ_NXYZ,QQ_NXYZ,1 , MRI_byte ) ;
      mri_fix_data_pointer( ar , xim ) ;
+     xim->dx = xim->dy = 16.0 ;
      ADDTO_IMARR(imar,xim) ; ntot = 1 ; AIVVV_have_dummy = 1 ;
    }
+
+   /* psq holds all the data needed for viewing */
 
    psq = psq_global = (AIVVVV_imseq *)calloc(1,sizeof(AIVVVV_imseq)) ;
    if( psq == NULL ) RETURN(NULL) ;  /* should never happen */
@@ -289,6 +312,8 @@ ENTRY("AIVVV_imseq_popup") ;
    psq->kill_func = kfunc ;
    psq->kill_data = kdata ;
    psq->rgb_count = 0 ;
+
+   /* actually create the viewer */
 
    psq->seq = open_MCW_imseq( MAIN_dc , AIVVV_imseq_getim , psq ) ;
 
@@ -313,6 +338,8 @@ ENTRY("AIVVV_imseq_popup") ;
      drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_offwid );
    else
      drive_MCW_imseq( psq->seq , isqDR_onoffwid , (XtPointer) isqDR_onwid  );
+
+   /* show the first image */
 
    drive_MCW_imseq( psq->seq , isqDR_display, (XtPointer)0 ) ;
 
@@ -364,10 +391,6 @@ ENTRY("AIVVV_imseq_getim") ;
      RETURN( (XtPointer)stat ) ;
    }
 
-   /*--- no overlay, never ---*/
-
-   if( type == isqCR_getoverlay ) RETURN(NULL) ;
-
    /*--- return a copy of an image
          (since the imseq will delete it when it is done) ---*/
 
@@ -385,7 +408,7 @@ ENTRY("AIVVV_imseq_getim") ;
      RETURN( (XtPointer)im ) ;
    }
 
-   RETURN(NULL) ; /* should not occur, but who knows? */
+   RETURN(NULL) ; /* any other request gets nothing */
 }
 
 /*---------------------------------------------------------------------------
@@ -492,9 +515,24 @@ static Boolean AIVVV_workproc( XtPointer fred )
    /* read data, add image */
 
    nel = (NI_element *)NI_read_element(AIVVV_stream,99) ;
-   if( nel == NULL ) return False ;
+   if( NI_element_type(nel) != NI_ELEMENT_TYPE ){  /* bad read */
+     NI_free_element(nel) ; return False ;
+   }
+
+   /* the only type of element we deal with is MRI_IMAGE */
+
    im = niml_to_mri( nel ) ;   /* convert element to image */
    NI_free_element( nel ) ;
-   AIVVV_imseq_addto( im ) ;
+   AIVVV_imseq_addto( im ) ;   /* add image to the display sequence */
    return False ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void AIVVV_niml_quitter( char *obj, NI_stream ns, NI_element *nel )
+{
+   INFO_message("Received remote command to exit") ;
+   NI_stream_closenow(AIVVV_stream) ;
+   NI_sleep(333) ;
+   exit(0) ;
 }
