@@ -5647,3 +5647,7 @@
 
 25 Jul 2005
  * New program im2niml.c, and '-p' option to aiv.c.
+
+27 Jul 2005
+ * Removed -ffast-math from Makefile.linux_gcc32, since it seems to cause
+     problems in eis_svd.c (at the least).
