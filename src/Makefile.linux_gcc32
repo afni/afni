@@ -8,9 +8,9 @@ LZLIB    = -lz
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
 CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
 
-CC     = /usr/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 $(CEXTRA)
-CCVOL  = /usr/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 $(CEXTRA)
-CCFAST = /usr/bin/gcc -O2 -march=i686 -ffast-math -mmmx -DLINUX2 $(CEXTRA)
+CC     = /usr/bin/gcc -O2 -march=i686 -mmmx -DLINUX2 $(CEXTRA)
+CCVOL  = /usr/bin/gcc -O2 -march=i686 -mmmx -DLINUX2 $(CEXTRA)
+CCFAST = /usr/bin/gcc -O2 -march=i686 -mmmx -DLINUX2 $(CEXTRA)
 
 # The following line includes compiling for the SSE operations.
 # However, I found that it actually makes things worse in some test code.
@@ -23,10 +23,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/X11R6/lib
 
-CCSVD  = $(CCFAST)
-
-
-CCSVD  = $(CCFAST)
+CCSVD = $(CCFAST)
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared

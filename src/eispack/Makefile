@@ -3,8 +3,8 @@
 .c.o:
 	$(CC) -c $<
 
-# eis_svd.o:
-#	$(CCSVD) -c eis_svd.c
+eis_svd.o:
+	$(CCSVD) -c eis_svd.c
 
 EIS_OBJS = eis_bakvec.o eis_balanc.o eis_balbak.o eis_bandr.o              \
            eis_bandv.o eis_bisect.o eis_bqr.o eis_cbabk2.o eis_cbal.o      \
