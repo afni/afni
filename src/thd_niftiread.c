@@ -146,6 +146,8 @@ ENTRY("THD_open_nifti") ;
 
    if (use_qform) {
 
+     float orgx, orgy, orgz ;
+
      /* determine orientation from the qto_xyz matrix,
       which transforms (i,j,k) voxel indexes to (x,y,z) LPI coordinates */
 
@@ -168,9 +170,33 @@ ENTRY("THD_open_nifti") ;
 
      /* load the offsets and the grid spacings */
 
+     if (ORIENT_xyz[orixyz.ijk[0]] == 'z' )  {
+       orgx = nim->qto_xyz.m[ORIENT_xyzint[orixyz.ijk[0]] - 1][3] ;
+     } else {
+       orgx = - nim->qto_xyz.m[ORIENT_xyzint[orixyz.ijk[0]] - 1][3] ;
+     }
+
+     if (ORIENT_xyz[orixyz.ijk[1]] == 'z' )  {
+       orgy = nim->qto_xyz.m[ORIENT_xyzint[orixyz.ijk[1]] - 1][3] ;
+     } else {
+       orgy = - nim->qto_xyz.m[ORIENT_xyzint[orixyz.ijk[1]] - 1][3] ;
+     }
+
+     if (ORIENT_xyz[orixyz.ijk[2]] == 'z' )  {
+       orgz = nim->qto_xyz.m[ORIENT_xyzint[orixyz.ijk[2]] - 1][3] ;
+     } else {
+       orgz = - nim->qto_xyz.m[ORIENT_xyzint[orixyz.ijk[2]] - 1][3] ;
+     }
+
+
+     LOAD_FVEC3( orgxyz ,  orgx ,
+                           orgy ,
+                           orgz  ) ;
+#if 0
      LOAD_FVEC3( orgxyz , -nim->qto_xyz.m[0][3] ,    /* again, negate  */
                         -nim->qto_xyz.m[1][3] ,    /* x and y coords */
                          nim->qto_xyz.m[2][3]  ) ;
+#endif
 
      /* AFNI space units are always mm */
 
@@ -190,6 +216,7 @@ ENTRY("THD_open_nifti") ;
      int oritmp[3] ;
      float dxtmp, dytmp, dztmp ;
      float xmax, ymax, zmax ;
+     float orgx, orgy, orgz ;
      float fig_merit, ang_merit ;
 
      /* convert sform to nifti orientation codes */
@@ -210,9 +237,34 @@ ENTRY("THD_open_nifti") ;
 
      /* load the offsets and the grid spacings */
 
+     if (ORIENT_xyz[orixyz.ijk[0]] == 'z' )  {
+       orgx = nim->sto_xyz.m[ORIENT_xyzint[orixyz.ijk[0]] - 1][3] ;
+     } else {
+       orgx = - nim->sto_xyz.m[ORIENT_xyzint[orixyz.ijk[0]] - 1][3] ;
+     }
+
+     if (ORIENT_xyz[orixyz.ijk[1]] == 'z' )  {
+       orgy = nim->sto_xyz.m[ORIENT_xyzint[orixyz.ijk[1]] - 1][3] ;
+     } else {
+       orgy = - nim->sto_xyz.m[ORIENT_xyzint[orixyz.ijk[1]] - 1][3] ;
+     }
+
+     if (ORIENT_xyz[orixyz.ijk[2]] == 'z' )  {
+       orgz = nim->sto_xyz.m[ORIENT_xyzint[orixyz.ijk[2]] - 1][3] ;
+     } else {
+       orgz = - nim->sto_xyz.m[ORIENT_xyzint[orixyz.ijk[2]] - 1][3] ;
+     }
+
+
+     LOAD_FVEC3( orgxyz ,  orgx ,
+                           orgy ,
+                           orgz  ) ;
+
+#if 0
      LOAD_FVEC3( orgxyz , -nim->sto_xyz.m[0][3] ,    /* again, negate  */
                           -nim->sto_xyz.m[1][3] ,    /* x and y coords */
                            nim->sto_xyz.m[2][3] ) ;
+#endif
 
 #define MAXNUM(a,b) ( (a) > (b) ? (a):(b))
 #define MAX3(a,b,c) ( (MAXNUM(a,b)) > (MAXNUM(a,c)) ? (MAXNUM(a,b)):(MAXNUM(a,c)))

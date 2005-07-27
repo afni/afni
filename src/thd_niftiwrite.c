@@ -286,10 +286,13 @@ ENTRY("populate_nifti_image") ;
   if (axsign[nif_y_axnum] == '+') nim->qoffset_y = - nim->qoffset_y ;
   nim->qoffset_z =  axstart[nif_z_axnum];
   if (axsign[nif_z_axnum] == '-') nim->qoffset_z = - nim->qoffset_z ;
+#endif
+
   nim->qoffset_x =  -axstart[nif_x_axnum] ;
   nim->qoffset_y =  -axstart[nif_y_axnum];
   nim->qoffset_z =  axstart[nif_z_axnum];
-#else
+
+#if 0
   nim->qoffset_x =  -axstart[0] ;
   nim->qoffset_y =  -axstart[1];
   nim->qoffset_z =  axstart[2];
