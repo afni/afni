@@ -2749,7 +2749,7 @@ static char tmp_dblab[8] ;
 
 #define DBLK_mmapfix(db)                                                      \
   do{ if( (db)->malloc_type==DATABLOCK_MEM_MMAP && (db)->total_bytes>TWOGIG ) \
-        (db)->malloc_type = DATABLOCK_MEM_MMAP ; } while(0)
+        (db)->malloc_type = DATABLOCK_MEM_MALLOC ; } while(0)
 
 /*------------- a dynamic array type for 3D datasets ---------------*/
 
