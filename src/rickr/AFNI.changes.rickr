@@ -1196,3 +1196,6 @@
 25 July 2005:
   * modified Dimon.c (-> v1.3): explicit connection close on ctrl-c
 
+27 July 2005:
+  * submitted Peggy's 3dcalc.c updates (for help)
+
