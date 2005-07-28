@@ -238,6 +238,7 @@ static char *  ppmto_mpeg_filter = NULL ;   /* 02 Aug 2001 */
 static char *  ppmto_ppm_filter  = NULL ;
 
 static char *  ppmto_jpg75_filter = NULL ;  /* 27 Mar 2002 */
+static char *  ppmto_jpg95_filter = NULL ;  /* 28 Jul 2005 */
 
  /* the first %s will be the list of input gif filenames     */
  /* the second %s is the single output animated gif filename */
@@ -320,6 +321,7 @@ static void ISQ_setup_ppmto_filters(void)
       str = AFMALL( char, strlen(pg)+32) ;
       sprintf(str,"%s -quality 95 > %%s",pg) ;
       bv <<= 1 ; ADDTO_PPMTO(str,"jpg",bv) ;
+      ppmto_jpg95_filter = strdup(str) ;  /* 28 Jul 2005 */
 
       /* lower quality JPEGs */
 
@@ -6540,6 +6542,8 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_keypress        (unsigned int) character or KeySym to send
 
+*    isqDR_save_jpeg       (char *) save current image to this filename
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -6616,6 +6620,14 @@ ENTRY("drive_MCW_imseq") ;
            ISQ_redisplay( seq , -1 , isqDR_display ) ;
          }
          RETURN( True ) ;
+      }
+
+      /*.....................................................*/
+
+      case isqDR_save_jpeg:{                 /* 28 Jul 2005 */
+        char *fname = (char *)drive_data ;
+        ISQ_save_jpeg( seq , fname ) ;
+        RETURN( True ) ;
       }
 
       /*.....................................................*/
@@ -11203,4 +11215,90 @@ ENTRY("mri_rgb_transform_nD") ;
 
    mri_free(flim) ; mri_free(shim) ;  /* toss the trash */
    EXRETURN ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Save the current image to a JPEG file. [28 Jul 2005] */
+
+void ISQ_save_jpeg( MCW_imseq *seq , char *fname )
+{
+   MRI_IMAGE *tim , *flim ;
+   char fn[288], filt[512] ;
+   FILE *fp ;
+   int sll ;
+
+ENTRY("ISQ_save_jpeg") ;
+
+   if( !ISQ_REALZ(seq) || fname == NULL || ppmto_jpg95_filter == NULL ) EXRETURN;
+
+   sll = strlen(fname) ; if( sll < 1 || sll > 255 ) EXRETURN ;
+
+   reload_DC_colordef( seq->dc ) ;
+   tim = XImage_to_mri( seq->dc, seq->given_xim, X2M_USE_CMAP | X2M_FORCE_RGB );
+   if( tim == NULL ) EXRETURN ;
+
+   /** make the image square? **/
+
+   if( AFNI_yesenv("AFNI_IMAGE_SAVESQUARE") ){
+     tim->dx = seq->last_dx ; tim->dy = seq->last_dy ;
+     flim = mri_squareaspect( tim ) ;
+     if( flim != NULL ){ mri_free(tim); tim = flim; }
+   }
+
+   /** zoom? **/
+
+   if( seq->zoom_fac > 1 && seq->mont_nx == 1 && seq->mont_ny == 1 ){
+     flim = mri_dup2D(seq->zoom_fac,tim) ;
+     if( flim != NULL ){ mri_free(tim); tim = flim; }
+   }
+
+   /** line drawing overlay? **/
+
+   if( seq->mplot != NULL )
+     memplot_to_RGB_sef( tim, seq->mplot, 0,0,MEMPLOT_FREE_ASPECT ) ;
+
+   /** cut up zoomed image? **/
+
+   if( seq->zoom_fac >  1               &&
+       seq->mont_nx  == 1               &&
+       seq->mont_ny  == 1               &&
+       AFNI_yesenv("AFNI_CROP_ZOOMSAVE")  ) {
+
+      int xa,ya , iw=tim->nx/seq->zoom_fac , ih=tim->ny/seq->zoom_fac ;
+
+      xa = seq->zoom_hor_off * tim->nx ;
+      if( xa+iw > tim->nx ) xa = tim->nx-iw ;
+      ya = seq->zoom_ver_off * tim->nx ;
+      if( ya+ih > tim->ny ) ya = tim->ny-ih ;
+      flim = mri_cut_2D( tim , xa,xa+iw-1 , ya,ya+ih-1 ) ;
+      if( flim != NULL ){ mri_free(tim); tim = flim; }
+   }
+
+   /** open a pipe to the filter function **/
+
+   strcpy(fn,fname) ;
+   if( !STRING_HAS_SUFFIX(fname,".jpg") && !STRING_HAS_SUFFIX(fname,".JPG") )
+     strcat(fn,".jpg") ;
+
+   sprintf( filt , ppmto_jpg95_filter , fn ) ;
+   INFO_message("Writing one %dx%d image to file %s",tim->nx,tim->ny,fname) ;
+   signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
+   fp = popen( filt , "w" ) ;
+   if( fp == NULL ){
+     ERROR_message("Can't open output filter: %s",filt) ;
+     if( errno != 0 ) perror("** Unix error message") ;
+     mri_free(tim) ; EXRETURN ;
+   }
+
+   /** write a PPM file to the filter pipe **/
+
+   fprintf(fp,"P6\n%d %d\n255\n" , tim->nx,tim->ny ) ;
+   fwrite( MRI_RGB_PTR(tim), sizeof(byte), 3*tim->nvox, fp ) ;
+   errno = 0 ; sll = pclose(fp) ;
+   if( sll == -1 ){
+     ERROR_message("JPEG Filter command was %s\n",filt) ;
+     if( errno != 0 ) perror("** Unix error in image output pipe") ;
+   }
+
+   mri_free(tim) ; EXRETURN ;
 }
