@@ -54,10 +54,9 @@ int afni_io(void) ;
      Call afni_io routine forever
 =====================================================================*/
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
    int narg , ii;
-   
 
    /***** See if the pitiful user wants help *****/
 
@@ -159,9 +158,9 @@ int main( int argc , char * argv[] )
          if( narg >= argc ){
             fprintf(stderr,"** -com needs a following argument!\a\n"); exit(1);
          }
-         
+
          if (argv[narg] && strlen(argv[narg]) >= COM_LENGTH) {
-            fprintf(stderr,"** Command length must be smaller than %d characters.\n", COM_LENGTH); 
+            fprintf(stderr,"** Command length must be smaller than %d characters.\n", COM_LENGTH);
          }
 
          if (N_com < 1024) {
@@ -169,8 +168,8 @@ int main( int argc , char * argv[] )
             ++N_com;
          } else {
             fprintf(stderr,"** Only 1024 -com options allowed. Are you nuts?\a\n"); exit(1);
-         } 
-         
+         }
+
          narg++ ; continue ;
       }
 
@@ -179,7 +178,7 @@ int main( int argc , char * argv[] )
          DontWait = 1 ;
          narg++ ; continue ;
       }
-      
+
       /** Je ne sais pas **/
 
       fprintf(stderr,"** Unrecognized option: %s\a\n",argv[narg]) ;
@@ -189,8 +188,8 @@ int main( int argc , char * argv[] )
    if (DontWait && !N_com) {
       fprintf(stderr,"** WARNING: -quit option is meaningless without -com option.\n");
       DontWait = 0;
-   }  
-   
+   }
+
    /***** Loop and check in with AFNI every 100 msec *****/
 
    while( 1 ){
@@ -410,7 +409,7 @@ int afni_io(void)
 
       if( I_com < N_com ){                   /* send the I_com'th command */
          strcpy(afni_buf, "DRIVE_AFNI ") ;
-         strcat(afni_buf, com[I_com]   ) ; 
+         strcat(afni_buf, com[I_com]   ) ; strcpy(cmd_buf,com[I_com]) ;
          I_com++ ;
       } else {
          if (DontWait) exit(0);
@@ -428,9 +427,13 @@ int afni_io(void)
 
       ii = iochan_sendall( afni_ioc , afni_buf , strlen(afni_buf)+1 ) ;
 
+      if( strcmp(cmd_buf,"QUIT") == 0 ){  /* 28 Jul 2005 */
+        iochan_sleep(222) ; exit(0) ;
+      }
+
       if( ii > 0 ){  /* send was OK; wait for acknowledgment */
          ii = iochan_recvall( afni_ioc , afni_buf , POACKSIZE ) ;
-         if( ii > 0 )
+         if( ii > 0 && afni_verbose )
            printf("++ AFNI response string: %s\n",afni_buf) ;
       }
 

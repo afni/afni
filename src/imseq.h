@@ -609,6 +609,7 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 
 #define isqDR_plot_label      701  /* 20 Sep 2001 */
 #define isqDR_plot_plot       702  /* 20 Sep 2001 */
+#define isqDR_save_jpeg       703  /* 28 Jul 2005 */
 
 extern Boolean drive_MCW_imseq( MCW_imseq * , int , XtPointer ) ;
 
@@ -782,5 +783,7 @@ extern void ISQ_snapsave( int,int, byte *, Widget ) ;  /* 03 Jul 2003 */
 extern int ISQ_handle_keypress( MCW_imseq * , unsigned long ); /* 18 Feb 2005 */
 
 extern void mri_rgb_transform_nD( MRI_IMAGE *, int, generic_func * ) ;
+
+extern void ISQ_save_jpeg( MCW_imseq *seq , char *fname ) ; /* 28 Jul 2005 */
 
 #endif /* _MCW_IMSEQ_HEADER_ */
