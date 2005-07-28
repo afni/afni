@@ -156,7 +156,7 @@ ENTRY("MCW_set_bbox") ;
    for( ib=0 ; ib < bb->nbut ; ib++ ){
      nset = ( val & (1<<ib) ) ? (True) : (False) ;
      oset = XmToggleButtonGetState( bb->wbut[ib] ) ;
-     if( nset != oset ){
+     if( nset != oset && XtIsSensitive(bb->wbut[ib]) ){
        XmToggleButtonSetState( bb->wbut[ib] , nset , False ) ;
        XmUpdateDisplay( bb->wbut[ib] ) ;
      }

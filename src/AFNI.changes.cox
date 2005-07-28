@@ -5651,3 +5651,7 @@
 27 Jul 2005
  * Removed -ffast-math from Makefile.linux_gcc32, since it seems to cause
      problems in eis_svd.c (at the least).
+
+28 Jul 2005
+ * Added stuff to afni_driver.c (SAVE_JPEG, SET_DICOM_XYZ, SET_SPM_XYZ,
+   SET_IJK, SET_XHAIRS), and imseq.[ch].
