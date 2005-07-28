@@ -185,6 +185,11 @@ CLOSE_WINDOW [c].windowname
   Closes a window from controller 'c'.  You can only close graph and image
   viewer windows this way, not plugin windows.
 
+SAVE_JPEG [c].windowname filename
+  Save a JPEG dump of the given window to 'filename'.  At present,
+  'windowname' can only be one of the 3 image windows, not one of
+  the graph windows.
+
 PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from
   memory, and when re-used, AFNI will re-read them from disk.  If a prefix
