@@ -24,7 +24,7 @@ ADD_OVERLAY_COLOR colordef colorlab
   colors.  It will appear in the menus with the label "colordef".  Example:
     ADD_OVERLAY_COLOR #ff5599 pinkish
 
-SET_THRESHOLD [c].val [dec]
+SET_THRESHOLD [c.]val [dec]
   Sets the threshold slider for controller index 'c' (default='A') to level
   ".val" (a number between .0000 and .9999, inclusive).  If the optional
   'dec' parameter is set, this is a number between 0 and 4 (inclusive) setting
@@ -181,14 +181,26 @@ OPEN_WINDOW [c.]windowname [options]
   use this command to alter some of its properties.
   ++ You can also use "ALTER_WINDOW" for the command name.
 
-CLOSE_WINDOW [c].windowname
+CLOSE_WINDOW [c.]windowname
   Closes a window from controller 'c'.  You can only close graph and image
   viewer windows this way, not plugin windows.
 
-SAVE_JPEG [c].windowname filename
+SAVE_JPEG [c.]windowname filename
   Save a JPEG dump of the given window to 'filename'.  At present,
   'windowname' can only be one of the 3 image windows, not one of
   the graph windows.
+
+SET_DICOM_XYZ [c] x y z
+SET_SPM_XYZ   [c] x y z
+SET_IJK       [c] i j k
+  Set the controller coordinates to the given triple; DICOM_XYZ has the
+  coordinates in DICOM (RAI) order, SPM_XYZ has the coordinates in SPM
+  (LPI) order, and IJK has voxel indexes instead of spatial coordinates.
+
+SET_XHAIRS [c.]code
+  Set the crosshairs ('Xhairs') control to the specified value, where
+  'code' is one of the following strings:
+       OFF  SINGLE  MULTI   LR_AP   LR_IS  AP_IS  LR  AP  IS
 
 PURGE_MEMORY [dataset_prefix]
   If no prefix is given, the sub-bricks of all datasets will be purged from
