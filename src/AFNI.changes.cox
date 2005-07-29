@@ -5655,3 +5655,6 @@
 28 Jul 2005
  * Added stuff to afni_driver.c (SAVE_JPEG, SET_DICOM_XYZ, SET_SPM_XYZ,
    SET_IJK, SET_XHAIRS), and imseq.[ch].
+
+29 Jul 2005
+ * Added '-com' option to afni.c.
