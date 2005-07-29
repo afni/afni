@@ -5868,11 +5868,11 @@ ENTRY("GRA_saver_CB") ;
 
 /*--------------------------------------------------------------------------*/
 
-void GRA_file_pixmap( MCW_grapher * grapher , char * fname )
+void GRA_file_pixmap( MCW_grapher *grapher , char *fname )
 {
-   XImage * xim ;
+   XImage *xim ;
    XGCValues gcv ;
-   MRI_IMAGE * tim ;
+   MRI_IMAGE *tim ;
    int ii ;
 
 ENTRY("GRA_file_pixmap") ;
@@ -5893,7 +5893,7 @@ ENTRY("GRA_file_pixmap") ;
    if( tim == NULL ){ MCW_kill_XImage( xim ) ; EXRETURN ; }
 
    mri_write_pnm( fname , tim ) ;
-   fprintf(stderr,"Writing one PNM image to file %s\n",fname) ;
+   INFO_message("Writing grapher image to file %s\n",fname) ;
    mri_free( tim ) ;
    MCW_kill_XImage( xim ) ;  /* 10 Mar 1999 */
    EXRETURN ;
