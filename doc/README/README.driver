@@ -19,6 +19,17 @@ button from the AFNI controller.  Some of the current state of AFNI can
 be saved to ".afni.startup_script" using the "Datamode->Misc->Save Layout"
 button (by giving a blank as the filename).
 
+You can also give commands to AFNI on the 'afni' command line, using the
+'-com' option.  For example:
+
+  afni -com 'OPEN_WINDOW A.axialimage' \
+       -com 'SWITCH_UNDERLAY anat'     \
+       -com 'SAVE_JPEG sss.jpg'        \
+       -com 'QUIT'                     \
+       somedirectory
+
+could be used to create an image file 'sss.jpg' automatically.
+
 ADD_OVERLAY_COLOR colordef colorlab
   Adds the color defined by the string "colordef" to the list of overlay
   colors.  It will appear in the menus with the label "colordef".  Example:

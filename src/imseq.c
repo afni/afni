@@ -11281,7 +11281,7 @@ ENTRY("ISQ_save_jpeg") ;
      strcat(fn,".jpg") ;
 
    sprintf( filt , ppmto_jpg95_filter , fn ) ;
-   INFO_message("Writing one %dx%d image to file %s",tim->nx,tim->ny,fname) ;
+   INFO_message("Writing one %dx%d image to file %s",tim->nx,tim->ny,fn) ;
    signal( SIGPIPE , SIG_IGN ) ; errno = 0 ;
    fp = popen( filt , "w" ) ;
    if( fp == NULL ){
