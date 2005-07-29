@@ -5658,3 +5658,4 @@
 
 29 Jul 2005
  * Added '-com' option to afni.c.
+ * Added grapher windows to SAVE_JPEG in afni_driver.c.
