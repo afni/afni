@@ -129,6 +129,7 @@ static AFNI_driver_pair dpair[] = {
  { "SET_FUNC_AUTORANGE" , AFNI_set_func_autorange      } ,
  { "SET_FUNC_RANGE"     , AFNI_set_func_range          } ,
  { "SET_FUNC_VISIBLE"   , AFNI_set_func_visible        } ,
+ { "SEE_OVERLAY"        , AFNI_set_func_visible        } ,
  { "SET_FUNC_RESAM"     , AFNI_set_func_resam          } ,
  { "SLEEP"              , AFNI_sleeper                 } ,
  { "SETENV"             , AFNI_setenv                  } ,  /* external */
@@ -289,7 +290,7 @@ ENTRY("AFNI_rescan_controller") ;
 
    /* same callback as Rescan This */
 
-   AFNI_rescan_CB( NULL , (XtPointer) im3d , NULL ) ;
+   AFNI_rescan_CB( NULL , (XtPointer)im3d , NULL ) ;
    RETURN(0) ;
 }
 
@@ -337,7 +338,7 @@ ENTRY("AFNI_switch_session") ;
    cbs.ival = ic ;
 
    AFNI_finalize_dataset_CB( im3d->vwid->view->choose_sess_pb ,
-                             (XtPointer) im3d ,  &cbs          ) ;
+                             (XtPointer)im3d ,  &cbs          ) ;
 
    RETURN(0) ;
 }
@@ -391,7 +392,7 @@ ENTRY("AFNI_switch_anatomy") ;
    /* same callback as Switch Anatomy */
 
    AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
-                             (XtPointer) im3d ,  &cbs          ) ;
+                             (XtPointer)im3d ,  &cbs          ) ;
 
    RETURN(0) ;
 }
@@ -445,7 +446,7 @@ ENTRY("AFNI_switch_function") ;
    /* same callback as Switch Function */
 
    AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
-                             (XtPointer) im3d ,  &cbs          ) ;
+                             (XtPointer)im3d ,  &cbs          ) ;
 
    RETURN(0) ;
 }
@@ -548,9 +549,9 @@ ENTRY("AFNI_drive_open_window") ;
       cpt = strstr(cmd,"ifrac=") ;
       if( cpt == NULL ) cpt = strstr(cmd,"ifrac:") ;
       if( cpt != NULL ){
-         float ifrac = strtod( cpt+6 , NULL ) ;
-         if( ifrac >= FRAC_MIN && ifrac <= 1.0 )
-           drive_MCW_imseq( isq, isqDR_setifrac, (XtPointer)(&ifrac) ) ;
+        float ifrac = strtod( cpt+6 , NULL ) ;
+        if( ifrac >= FRAC_MIN && ifrac <= 1.0 )
+          drive_MCW_imseq( isq, isqDR_setifrac, (XtPointer)(&ifrac) ) ;
       }
 
       /* montage */
@@ -558,17 +559,17 @@ ENTRY("AFNI_drive_open_window") ;
       cpt = strstr(cmd,"mont=") ;
       if( cpt == NULL ) cpt = strstr(cmd,"mont:") ;
       if( cpt != NULL ){
-         int mww=-1 , mhh=-1 , msp=-1 , mgap=-1 , nn ;
-         char mcol[128] = "\0" ;
+        int mww=-1 , mhh=-1 , msp=-1 , mgap=-1 , nn ;
+        char mcol[128] = "\0" ;
 
-         nn = sscanf( cpt+5 , "%dx%d:%d:%d:%s" , &mww,&mhh,&msp,&mgap,mcol );
+        nn = sscanf( cpt+5 , "%dx%d:%d:%d:%s" , &mww,&mhh,&msp,&mgap,mcol );
 
-         if( nn >= 2 && mww >= 1 && mww <= MONT_NMAX && mhh >= 1 && mhh <= MONT_NMAX ){
-            int mp[5] ;
-            mp[0] = mww ; mp[1] = mhh ; mp[2] = msp ; mp[3] = mgap ;
-            mp[4] = DC_find_overlay_color(im3d->dc,mcol);
-            drive_MCW_imseq( isq , isqDR_setmontage , (XtPointer) mp ) ;
-         }
+        if( nn >= 2 && mww >= 1 && mww <= MONT_NMAX && mhh >= 1 && mhh <= MONT_NMAX ){
+          int mp[5] ;
+          mp[0] = mww ; mp[1] = mhh ; mp[2] = msp ; mp[3] = mgap ;
+          mp[4] = DC_find_overlay_color(im3d->dc,mcol);
+          drive_MCW_imseq( isq , isqDR_setmontage , (XtPointer)mp ) ;
+        }
       }
 
       /* iconify [06 Aug 2002] */
@@ -587,7 +588,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt != NULL ){
         int opaval = -1 ;
         sscanf( cpt+8 , "%d" , &opaval ) ;
-        drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer) opaval ) ;
+        drive_MCW_imseq( isq , isqDR_setopacity , (XtPointer)opaval ) ;
       }
 
       /* keypress [18 Feb 2005] */
@@ -639,7 +640,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt != NULL ){
         int mat = (int) strtod( cpt+7 , NULL ) ;
         if( mat > 0 )
-          drive_MCW_grapher( gra , graDR_setmatrix , (XtPointer) mat ) ;
+          drive_MCW_grapher( gra , graDR_setmatrix , (XtPointer)mat ) ;
       }
 
       /* pinnum OR pintop */
@@ -651,7 +652,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt != NULL ){
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn >= MIN_PIN )
-          drive_MCW_grapher( gra, graDR_setpinnum, (XtPointer) pn ) ;
+          drive_MCW_grapher( gra, graDR_setpinnum, (XtPointer)pn ) ;
       }
 
       /* pinbot [19 Mar 2004] */
@@ -661,7 +662,7 @@ ENTRY("AFNI_drive_open_window") ;
       if( cpt != NULL ){
         int pn = (int) strtod( cpt+7 , NULL ) ;
         if( pn > 0 )
-          drive_MCW_grapher( gra, graDR_setpinbot, (XtPointer) pn ) ;
+          drive_MCW_grapher( gra, graDR_setpinbot, (XtPointer)pn ) ;
       }
 
       /* iconify [06 Aug 2002] */
@@ -1704,7 +1705,7 @@ ENTRY("AFNI_drive_set_pbar_sign") ;
    MCW_set_bbox( im3d->vwid->func->inten_bbox , val ) ;
 
    AFNI_inten_bbox_CB( im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ,
-                       (XtPointer) im3d , NULL ) ;
+                       (XtPointer)im3d , NULL ) ;
    RETURN(0) ;
 }
 
@@ -2118,7 +2119,7 @@ static int AFNI_drive_save_jpeg( char *cmd )
 {
    int ic , dadd=2 ;
    Three_D_View *im3d ;
-   char junk[256] , fname[256] ;
+   char junk[256] , fname[288] ;
    MCW_imseq   *isq=NULL ;
    MCW_grapher *gra=NULL ;
 
@@ -2132,13 +2133,21 @@ ENTRY("AFNI_drive_save_jpeg") ;
    if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
 
    im3d = GLOBAL_library.controllers[ic] ;
-   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+   if( !IM3D_OPEN(im3d) ){
+     ERROR_message("SAVE_JPEG %s: controller not open",cmd); RETURN(-1);
+   }
 
    /* extract the filename to save into */
 
    junk[0] = fname[0] = '\0' ;
    sscanf( cmd+dadd , "%255s%255s" , junk , fname ) ;
-   if( junk[0] == '\0' || fname[0] == '\0' ) RETURN(-1) ;
+   if( junk[0] == '\0' || fname[0] == '\0' ){
+     ERROR_message("SAVE_JPEG %s: something is missing",cmd); RETURN(-1);
+     RETURN(-1) ;
+   }
+
+   if( !STRING_HAS_SUFFIX(fname,".jpg") && !STRING_HAS_SUFFIX(fname,".JPG") )
+     strcat(fname,".jpg") ;
 
    /* find graph or image window */
 
@@ -2149,16 +2158,17 @@ ENTRY("AFNI_drive_save_jpeg") ;
    else if( strstr(cmd+dadd,"sagittalgraph") != NULL ) gra = im3d->g231 ;
    else if( strstr(cmd+dadd,"coronalgraph")  != NULL ) gra = im3d->g312 ;
 
-   if( gra != NULL ){
-     ERROR_message("Can't SAVE_JPEG from a graph window at this time!") ;
+   XmUpdateDisplay( im3d->vwid->top_shell ) ;
+
+   if( isq != NULL ){
+     drive_MCW_imseq( isq, isqDR_save_jpeg , (XtPointer)fname ) ;
+   } else if( gra != NULL ){
+     GRA_file_pixmap( gra , fname ) ;
+   } else {
+     ERROR_message("SAVE_JPEG %s: don't understand windowname",cmd) ;
      RETURN(-1) ;
    }
-   if( !ISQ_REALZ(isq) ) RETURN(-1) ;
 
-   /* refresh the display, then dump the image */
-
-   XmUpdateDisplay( im3d->vwid->top_shell ) ;
-   drive_MCW_imseq( isq, isqDR_save_jpeg , (XtPointer)fname ) ;
    RETURN(0) ;
 }
 
