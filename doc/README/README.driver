@@ -30,6 +30,8 @@ You can also give commands to AFNI on the 'afni' command line, using the
 
 could be used to create an image file 'sss.jpg' automatically.
 
+-----------------------------------------------------------------------------
+
 ADD_OVERLAY_COLOR colordef colorlab
   Adds the color defined by the string "colordef" to the list of overlay
   colors.  It will appear in the menus with the label "colordef".  Example:
