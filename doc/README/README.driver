@@ -118,6 +118,8 @@ SET_FUNC_RANGE [c.]value
 SET_FUNC_VISIBLE [c.]{+|-}
   Turns the "See Overlay" toggle on or off:
     SET_FUNC_VISIBLE A.+
+  You can also use SEE_OVERLAY for this, which is closer to the label on
+  the GUI button.
 
 SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
   Sets the functional resampling mode:
@@ -192,16 +194,19 @@ OPEN_WINDOW [c.]windowname [options]
   settings in the plugin interface (e.g., pre-set some fields).
   If the specified image or graph window is already open, you can still
   use this command to alter some of its properties.
-  ++ You can also use "ALTER_WINDOW" for the command name.
+  ++ You can also use "ALTER_WINDOW" for the command name, which makes
+     more sense if you are using this to apply some change to an already
+     open viewer window.
 
 CLOSE_WINDOW [c.]windowname
   Closes a window from controller 'c'.  You can only close graph and image
   viewer windows this way, not plugin windows.
 
 SAVE_JPEG [c.]windowname filename
-  Save a JPEG dump of the given window to 'filename'.  At present,
-  'windowname' can only be one of the 3 image windows, not one of
-  the graph windows.
+  Save a JPEG dump of the given window to 'filename'.  The windowname can be
+  one of 'axialimage', 'sagittalimage', 'coronalimage', 'axialgraph',
+  'sagittalgraph', or 'coronalgraph'.  If the filename does not end in
+  the string ".jpg" or ".JPG", then ".jpg" will be appended.
 
 SET_DICOM_XYZ [c] x y z
 SET_SPM_XYZ   [c] x y z
