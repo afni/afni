@@ -27,9 +27,10 @@
 #define IFM_IM_FTYPE_DICOM   4       /* DICOM                            */
 
 #define IFM_DEBUG_DEFAULT    1       /* default debug level: show status */
-#define IFM_MAX_DEBUG        4       /* maximum debug level              */
+#define IFM_MAX_DEBUG        5       /* maximum debug level              */
 
 #define IFM_GERT_SCRIPT "GERT_Reco2" /* output script, like GERT_Reco    */
+#define IFM_GERT_DICOM  "GERT_Reco_dicom" /* DICOM GERT_Reco script      */
 #define IFM_SLICE_PAT   "alt+z"
 
 /* -- define copies -- */
@@ -44,6 +45,7 @@ typedef struct                      /* stuff extracted from GE I.* image */
     int   good;                     /* is this a good image?           */
     int   nx, ny;                   /* image matrix                    */
     int   uv17;                     /* apparently codes for scan index */
+    int   index;                    /* image counter                   */
     float dx,dy,dz, zoff, tr,te;    /* various dimensions              */
     char  orients[8];               /* orientation string              */
 } ge_header_info;
@@ -103,6 +105,7 @@ typedef struct  /* user options */
     int              gert_reco;     /* output GERT_Reco2 script         */
     int              quit;          /* quit when no new images found    */
     int              use_dicom;     /* flag for dicom (not GE) images   */
+    int              dicom_org;     /* flag to organize dicom files     */
 
     /* realtime options */
     int              rt;            /* run in real-time afni mode       */
@@ -131,6 +134,7 @@ typedef struct
 typedef struct                      /* used for the stats_t struct      */
 {
     int  volumes;                   /* number of volumes in this run    */
+    int  f1index;                   /* index into fnames list           */
     char f1name[IFM_MAX_FLEN];      /* file name for first image        */
 } run_t;
 

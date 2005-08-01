@@ -17,7 +17,7 @@
  * other files.  It is for reading Dicom files, but without having
  * to link libmri.a (and also libXm, to be specific).
  *
- * changes from mri_read_dicom.c:
+ * May, 2005 [rickr] : changes from mri_read_dicom.c:
  *
  *   - inserted some of the MRILIB globals, but using DI_MRL (search)
  *   - added (formerly external) functions: swap_twobytes(),
@@ -34,12 +34,18 @@
  *   - a data pointer may be passed in (as NULL if no data is to be read)
  *   - more E_ fields are now required
  *
- * rick reynolds  May, 2005
+ * 29 July 2005 [rickr] : updates for Dimon
+ *   - mri_read_dicom failure messages (on debug level 3+)
+ *   - close the file early when not reading data
  *----------------------------------------------------------------------
 */
 
 /* misc stuff to keep locally (MRILIB -> DI_MRL) */
 extern char * mri_dicom_header( char * );
+extern void   mri_dicom_pxlarr( off_t *, unsigned int * ) ;
+extern void   mri_dicom_noname( int ) ;
+extern void   mri_dicom_nohex ( int ) ;
+
 static int   use_DI_MRL_xcos   = 0;
 static int   use_DI_MRL_ycos   = 0;
 static int   use_DI_MRL_zcos   = 0;
@@ -278,7 +284,11 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
 
    ENTRY("mri_read_dicom") ;
 
-   if( !mri_possibly_dicom(fname) ) RETURN(NULL) ;  /* 07 May 2003 */
+   if( !mri_possibly_dicom(fname) )
+   {
+      if(debug > 2) fprintf(stderr,"** MRD: mri_possibly_dicom() failure\n");
+      RETURN(NULL) ;  /* 07 May 2003 */
+   }
 
    /* extract header info from file into a string
       - cf. mri_dicom_hdr.[ch]
@@ -287,12 +297,20 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
    mri_dicom_nohex(1) ;              /* don't print ints in hex mode */
    mri_dicom_noname(1) ;             /* don't print names, just tags */
    ppp = mri_dicom_header( fname ) ; /* print header to malloc()-ed string */
-   if( ppp == NULL ) RETURN(NULL);   /* didn't work; not a DICOM file? */
+   if( ppp == NULL )
+   {
+      if(debug > 2) fprintf(stderr,"** MRD: mri_dicom_hdr() failure\n");
+      RETURN(NULL);   /* didn't work; not a DICOM file? */
+   }
 
    /* find out where the pixel array is in the file */
 
    mri_dicom_pxlarr( &poff , &plen ) ;
-   if( plen <= 0 ){ free(ppp) ; RETURN(NULL); }
+   if( plen <= 0 ){
+      if(debug > 2) fprintf(stderr,"** MRD: bad plen, %u\n", plen);
+      free(ppp) ;
+      RETURN(NULL);
+   }
    if( debug > 3 )
       fprintf(stderr,"-d dicom: poff, plen = %d, %d\n",(int)poff,(int)plen);
 
@@ -301,7 +319,11 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
    { unsigned int psiz , fsiz ;
      fsiz = l_THD_filesize( fname ) ;
      psiz = (unsigned int)(poff) + plen ;
-     if( fsiz < psiz ){ free(ppp) ; RETURN(NULL); }
+     if( fsiz < psiz ){
+        if(debug > 2) fprintf(stderr,"** MRD: fsiz < psiz (%d,%d)\n",fsiz,psiz);
+        free(ppp) ;
+        RETURN(NULL);
+     }
    }
 
    /* find positions in header of elements we care about */
@@ -313,31 +335,55 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
 
    if( epos[E_ROWS]           == NULL ||
        epos[E_COLUMNS]        == NULL ||
-       epos[E_BITS_ALLOCATED] == NULL   ){ free(ppp) ; RETURN(NULL); }
+       epos[E_BITS_ALLOCATED] == NULL   ){
+      if(debug > 2)
+         fprintf(stderr,"** MRD: missing ROWS, COLS or BITS (%p,%p,%p)\n",
+                 epos[E_ROWS], epos[E_COLUMNS], epos[E_BITS_ALLOCATED]);
+      free(ppp) ;
+      RETURN(NULL);
+   }
 
    /* check if we have 1 sample per pixel (can't deal with 3 or 4 now) */
 
    if( epos[E_SAMPLES_PER_PIXEL] != NULL ){
       ddd = strstr(epos[E_SAMPLES_PER_PIXEL],"//") ;
-      if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
+      if( ddd == NULL ){
+         if(debug > 2) fprintf(stderr,"** MRD: missing E_SAMPLES_PER_PIXEL\n");
+         free(ppp) ;
+         RETURN(NULL);
+      }
       ii = 0 ; sscanf(ddd+2,"%d",&ii) ;
-      if( ii != 1 ){ free(ppp) ; RETURN(NULL); }
+       if( ii != 1 ){
+         if(debug > 2) fprintf(stderr,"** MRD: SAM_PER_PIX != 1, %d\n",ii);
+         free(ppp) ;
+         RETURN(NULL);
+      }
    }
 
    /* check if photometric interpretation is MONOCHROME (don't like PALETTE) */
 
    if( epos[E_PHOTOMETRIC_INTERPRETATION] != NULL ){
       ddd = strstr(epos[E_PHOTOMETRIC_INTERPRETATION],"MONOCHROME") ;
-      if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
+      if( ddd == NULL ){
+      if(debug > 2) fprintf(stderr,"** MRD: photometric not monochrome\n");
+        free(ppp) ;
+        RETURN(NULL);
+      }
    }
 
    /* check if we have 8, 16, or 32 bits per pixel */
 
    ddd = strstr(epos[E_BITS_ALLOCATED],"//") ;
-   if( ddd == NULL ){ free(ppp); RETURN(NULL); }
+   if( ddd == NULL ){
+      if(debug > 2) fprintf(stderr,"** MRD: missing BITS_ALLOCATED\n");
+      free(ppp);
+      RETURN(NULL);
+   }
    bpp = 0 ; sscanf(ddd+2,"%d",&bpp) ;
    switch( bpp ){
-      default: free(ppp); RETURN(NULL);    /* bad value */
+      default:
+        if(debug > 2) fprintf(stderr,"** MRD: bad bpp value, %d\n",bpp);
+        free(ppp); RETURN(NULL);    /* bad value */
       case  8: datum = MRI_byte ; break ;
       case 16: datum = MRI_short; break ;
       case 32: datum = MRI_int  ; break ;  /* probably not present in DICOM? */
@@ -389,15 +435,31 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
 
    /* get image nx & ny */
 
-   ddd = strstr(epos[E_ROWS],"//") ;                 /* 31 Oct 2002: */
-   if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }    /* Oops: ROWS is ny and */
-   ny = 0 ; sscanf(ddd+2,"%d",&ny) ;                 /*       COLUMNS is nx! */
-   if( ny < 2 ){ free(ppp) ; RETURN(NULL); }
+   ddd = strstr(epos[E_ROWS],"//") ;                         /* 31 Oct 2002: */
+   if( ddd == NULL ){                 /* Oops: ROWS is ny and COLUMNS is nx! */
+      if(debug > 2) fprintf(stderr,"** MRD: missing E_ROWS\n");
+      free(ppp) ;
+      RETURN(NULL);
+   }
+   ny = 0 ; sscanf(ddd+2,"%d",&ny) ;
+   if( ny < 2 ){
+      if(debug > 2) fprintf(stderr,"** MRD: bad ny = %d\n",ny);
+      free(ppp) ;
+      RETURN(NULL);
+   }
 
    ddd = strstr(epos[E_COLUMNS],"//") ;
-   if( ddd == NULL ){ free(ppp) ; RETURN(NULL); }
+   if( ddd == NULL ){
+      if(debug > 2) fprintf(stderr,"** MRD: missing E_COLUMNS\n");
+      free(ppp) ;
+      RETURN(NULL);
+   }
    nx = 0 ; sscanf(ddd+2,"%d",&nx) ;
-   if( nx < 2 ){ free(ppp) ; RETURN(NULL); }
+   if( nx < 2 ){
+      if(debug > 2) fprintf(stderr,"** MRD: bad nx = %d\n",nx);
+      free(ppp) ;
+      RETURN(NULL);
+   }
 
    /* get number of slices */
 
@@ -411,10 +473,14 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
    /* if didn't get nz above, make up a value */
 
    if( nz == 0 ) nz = plen / (bpp*nx*ny) ;   /* compute from image array size */
-   if( nz == 0 ){ free(ppp) ; RETURN(NULL); }
+   if( nz == 0 ){
+      if(debug > 2) fprintf(stderr,"** MRD: bad nz = %d\n", nz);
+      free(ppp) ;
+      RETURN(NULL);
+   }
 
    if( nz != 1 ){
-      fprintf(stderr,"** read_dicom: nz = %d, plen,bpp,nx,ny = %d,%d,%d,%d\n",
+      fprintf(stderr,"** MRD: nz = %d, plen,bpp,nx,ny = %d,%d,%d,%d\n",
          nz, plen, bpp, nx, ny);
       free(ppp);
       RETURN(NULL);
@@ -562,7 +628,11 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
    /** Finally! Read images from file. **/
 
    fp = fopen( fname , "rb" ) ;
-   if( fp == NULL ){ free(ppp) ; RETURN(NULL); }
+   if( fp == NULL ){
+      if(debug > 2) fprintf(stderr,"** MRD: failed to open file '%s'\n",fname);
+      free(ppp) ;
+      RETURN(NULL);
+   }
    lseek( fileno(fp) , poff , SEEK_SET ) ;
 
    /* DICOM files are stored in LSB first (little endian) mode */
@@ -574,7 +644,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
    { /* no mri_new(), as we don't want to link everything */
      im = (MRI_IMAGE *)calloc(1, sizeof(MRI_IMAGE));
      if( !im ){
-        fprintf(stderr,"** im malloc failure!\n");
+        fprintf(stderr,"** MRD: im malloc failure!\n");
         free(ppp);
         RETURN(NULL);
      }
@@ -594,14 +664,20 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
                  im->nvox, im->pixel_size);
         }
         if( ! *data ){
-           fprintf(stderr,"** image data alloc failure\n");
+           fprintf(stderr,"** MRD: image data alloc failure\n");
            free(ppp);
            RETURN(NULL);
         } 
      }
    }
 
-   if( data ){
+   if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
+     im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
+   }
+   if( dt > 0.0 ) im->dt = dt ;
+   
+   if( !data ) fclose(fp) ; 
+   else{
       iar = *data;
       fread( iar , bpp , nx*ny , fp ) ;    /* read data directly into it */
    
@@ -616,11 +692,6 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
       }
    
       /* store auxiliary data in image struct */
-   
-      if( dx > 0.0 && dy > 0.0 && dz > 0.0 ){
-        im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
-      }
-      if( dt > 0.0 ) im->dt = dt ;
    
       fclose(fp) ;     /* 10 Sep 2002: oopsie - forgot to close file */
    
@@ -650,7 +721,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
             }
             break ;
             default:{
-              fprintf(stderr,"** bad kind case (%d) for rescale_slope\n",
+              fprintf(stderr,"** MRD: bad kind case (%d) for rescale_slope\n",
                       im->kind);
               free(ppp);  free(*data);  *data = NULL;
               RETURN(NULL);
@@ -788,7 +859,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
    }  /* end of 2D image orientation */
 
    if( !have_orients ){
-      fprintf(stderr,"** failed to determine orientation of dicom image\n");
+      fprintf(stderr,"** MRD: failed to determine dicom image orientation\n");
       free(ppp);  free(im);
       if( data ){ free(*data); *data = NULL; }
       RETURN(NULL);
@@ -800,7 +871,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
        and (2cd time in) the z-axis orientation **/
 
    if( epos[E_IMAGE_POSITION] == NULL ){
-      fprintf(stderr,"** dicom failure: missing image position\n");
+      fprintf(stderr,"** MRD: missing image position\n");
       free(ppp);  free(im);
       if( data ){ free(*data); *data = NULL; }
       RETURN(NULL);
@@ -808,7 +879,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
 
    ddd = strstr(epos[E_IMAGE_POSITION],"//") ;
    if( ddd == NULL ){
-      fprintf(stderr,"** dicom failure: missing IMAGE_POSITION\n");
+      fprintf(stderr,"** MRD: missing IMAGE_POSITION\n");
       free(ppp);  free(im);
       if( data ){ free(*data); *data = NULL; }
       RETURN(NULL);
@@ -818,7 +889,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
        float xyz[3] ; int qq ;
        qq = sscanf(ddd+2,"%f\\%f\\%f",xyz,xyz+1,xyz+2) ;
        if( qq != 3 ){
-         fprintf(stderr,"** dicom: failed to read IMAGE_POSITION\n");
+         fprintf(stderr,"** MRD: failed to read IMAGE_POSITION\n");
          free(ppp); free(im);
          if( data ){ free(*data); *data = NULL; }
          RETURN(NULL);
@@ -930,9 +1001,9 @@ fprintf(stderr,"  nzoff=1 kor=%d qoff=%f\n",kor,qoff) ;
            }
   
            if( fabs(zz - im->zo) > 0.1 ){
-              fprintf(stderr,"** IMAGE_LOCATION and SLICE_LOCATION disagree!\n"
-                             "   z coord from IL = %f, from SL = %f\n",
-                             im->zo,zz);
+              fprintf(stderr,
+                      "** MRD: IMAGE_LOCATION and SLICE_LOCATION disagree!\n"
+                      "   z coord from IL = %f, from SL = %f\n", im->zo,zz);
               free(ppp); free(im);
               if( data ){ free(*data); *data = NULL; }
               RETURN(NULL);

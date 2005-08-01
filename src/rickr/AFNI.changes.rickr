@@ -1199,3 +1199,9 @@
 27 July 2005:
   * submitted Peggy's 3dcalc.c updates (for help)
 
+01 August 2005: Dimon 2.0
+  * updated Dimon.c, dimon_afni.c, Imon.c
+      - added the option '-dicom_org' to organize DICOM files before any
+        other processing
+      - enabled '-GERT_Reco2', to create a script to build AFNI datasets
+
