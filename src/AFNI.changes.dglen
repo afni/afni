@@ -69,3 +69,5 @@
  * created new program, DTIStudioFibertoSegments.c, to convert DTIStudio fiber files into SUMA segment files
 20 July 2005
  * fixed bug for quick option for 3dMax
+1 Aug 2005
+ * fixed bug in im2niml function in thd_nimlatr.c in testing for name field of images
