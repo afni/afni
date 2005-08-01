@@ -7,9 +7,12 @@ static char g_history[] =
     " 1.1  Jul 13, 2005 [rickr] - process run of fewer than 3 slices\n"
     " 1.2  Jul 22, 2005 [rickr] - use IOCHAN_CLOSENOW() in realtime.c\n"
     " 1.3  Jul 25, 2005 [rickr] - force tcp close for multiple term signals\n"
+    " 2.0  Jul 29, 2005 [rickr] - DICOM file organizer\n"
+    "      - add -dicom_org option, to try to organize the image files\n"
+    "      - enable GERT_Reco option for DICOM files\n"
     "----------------------------------------------------------------------\n";
 
-#define DIMON_VERSION "version 1.3 (July 25, 2005)"
+#define DIMON_VERSION "version 2.0 (August 01, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -86,8 +89,10 @@ extern float DI_MRL_tr;
 
 extern struct dimon_stuff_t { int study, series, image; } gr_dimon_stuff;
 
+int                compare_finfo( const void * v0, const void * v1 );
+static int         dicom_order_files( param_t * p );
 extern MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data );
-static int read_dicom_image( char * pathname, finfo_t * fp );
+static int         read_dicom_image( char *pathname, finfo_t *fp, int get_data);
 
 /*----------------------------------------------------------------------*/
 /* static function declarations */
@@ -99,7 +104,9 @@ static int check_im_byte_order ( int * order, vol_t * v, param_t * p );
 static int check_im_store_space( im_store_t * is, int num_images );
 static int check_stalled_run   ( int run, int seq_num, int naps, int nap_time );
 static int complete_orients_str( vol_t * v, param_t * p );
-static int create_gert_script  ( stats_t * s, opts_t * opts );
+static int create_gert_script  ( stats_t * s, param_t * p );
+static int create_gert_reco    ( stats_t * s, opts_t * opts );
+static int create_gert_dicom   ( stats_t * s, param_t * p );
 static int dir_expansion_form  ( char * sin, char ** sexp );
 static int disp_ftype          ( char * info, int ftype );
 static int empty_string_list   ( string_list * list, int free_mem );
@@ -961,6 +968,7 @@ static int read_ge_files(
         int       start,        /* index of next file to scan from */
         int       max )         /* max number of files to scan     */
 {
+    static int org_todo = 1;    /* only organize once, so flag it   */
     int n2scan;                 /* number of files to actually scan */
     int next = start;           /* initialize next index to start   */
 
@@ -970,8 +978,8 @@ static int read_ge_files(
         return -1;
     }
 
-    /* clear away old file list */
-    if ( p->fnames != NULL )
+    /* clear away old file list, unless we are using the DICOM organizer */
+    if ( p->fnames && !p->opts.dicom_org )
     {
         if ( p->nfiles <= 0 )
         {
@@ -984,8 +992,20 @@ static int read_ge_files(
     }
 
     /* get files (check for dicom) */
-    if ( p->opts.use_dicom && p->opts.dicom_glob )
-        MCW_file_expand( 1, &p->opts.dicom_glob, &p->nfiles, &p->fnames );
+    if ( p->opts.use_dicom )
+    {
+        if ( p->opts.dicom_org ) /* organize? */
+        {
+            if( org_todo )       /* may be used only once */
+            {
+                MCW_file_expand(1, &p->glob_dir, &p->nfiles, &p->fnames);
+                if ( dicom_order_files( p ) != 0 ) return -1;
+                org_todo = 0;  /* now don't do it again */
+            }
+        }
+        else
+            MCW_file_expand( 1, &p->glob_dir, &p->nfiles, &p->fnames );
+    }
     else
         MCW_file_expand( 1, &p->glob_dir, &p->nfiles, &p->fnames );
 
@@ -1102,7 +1122,7 @@ static int scan_ge_files (
         }
 
         if ( p->opts.use_dicom )
-            rv = read_dicom_image( p->fnames[fnum], fp );
+            rv = read_dicom_image( p->fnames[fnum], fp, 1 );
         else 
             rv = read_ge_image( p->fnames[fnum], fp, 1, need_M );
 
@@ -1141,14 +1161,14 @@ static int scan_ge_files (
             /* after too many failure, we give up */
             if ( fail_count > IFM_MAX_GE_FAILURES )
             {
-                fprintf( stderr, "\n** failure: cannot read GE header for "
+                fprintf( stderr, "\n** failure: cannot read image file for "
                          "file <%s>\n", p->fnames[fnum] );
                 return -1;
             }
 
             /* we failed, but will try again later - maybe inform user */
             if ( gD.level > 1 )
-                fprintf( stderr, "\n-- (%d) failures to read GE header for "
+                fprintf( stderr, "\n-- (%d) failures to read image file for "
                          "file <%s>, trying again...\n",
                          fail_count, p->fnames[fnum] );
 
@@ -1175,6 +1195,171 @@ static int scan_ge_files (
                 files_read, p->fnames[next], p->fnames[next+files_read-1] );
 
     return files_read;
+}
+
+
+/*----------------------------------------------------------------------
+ * order the files, by run/index
+ *
+ *   create an array of finfo_t structs
+ *   sort the structures by run/index
+ *   use the new list to sort p->fnames
+ *
+ * return > 0 if sorting did something useful
+ *        = 0 on success
+ *        < 0 on failure
+ *----------------------------------------------------------------------
+*/
+static int dicom_order_files( param_t * p )
+{
+    finfo_t *  flist;
+    char    ** new_names;
+    int        rv, bad, c, dcount;
+    int        scount, mcount, smax;
+
+    if( p->nfiles <= 0 )
+    {
+        fprintf(stderr,"** no DICOM files to order\n");
+        return 0;
+    }
+
+    if( gD.level > 0 )
+        fprintf(stderr,"-- checking %d potential DICOM files...  00%%",
+                p->nfiles);
+
+    flist = (finfo_t *)calloc(p->nfiles, sizeof(finfo_t));
+    if( !flist )
+    {
+        fprintf(stderr,"** failed to malloc %d finfo_t structs\n", p->nfiles);
+        return -1;
+    }
+
+    /* read all files, counting DICOM files */
+    dcount = 0;
+    scount = mcount = 0;  /* status counters */
+    smax = (p->nfiles+99)/100;
+    for( c = 0; c < p->nfiles; c++ )
+    {
+        if( read_dicom_image(p->fnames[c], flist+c, 0) != 0 )
+        {
+            if( gD.level > 1 )  /* do not assume all files are DICOM */
+                fprintf(stderr,"** failed to read DICOM file %d of %d, '%s'\n",
+                        c, p->nfiles, p->fnames[c]);
+            flist[c].geh.uv17 = -1;  /* flag as non-DICOM */
+        }
+        else
+            dcount++;
+        flist[c].index = c;
+
+        /* check status printing */
+        if( mcount < smax ) mcount++;
+        else
+        {
+            mcount = 0;
+            scount++;
+            if(gD.level>0) fprintf(stderr,"%c%c%c%c%c %3d%%",8,8,8,8,8,scount);
+        }
+    }
+    if(gD.level > 0) fprintf(stderr,"%c%c%c%c%c 100%%\n",8,8,8,8,8);
+    if(gD.level > 0) fprintf(stderr,"++ found %d DICOM files\n", dcount);
+
+    if( dcount == 0 )
+    {
+        fprintf(stderr,"** found no DICOM files to process\n");
+        free(flist);
+        return -1;
+    }
+    /* sort the structs by geh.run/index (DICOM files first) */
+    qsort(flist, p->nfiles, sizeof(finfo_t), compare_finfo);
+
+    if( gD.level > 1 && p->nfiles > dcount )
+       fprintf(stderr,"-d first non-DICOM file is '%s', index %d\n",
+               p->fnames[flist[dcount].index], flist[dcount].index);
+
+    /* test the sort */
+    bad = 0;
+    scount = 0;  /* (now) sort inversion counter */
+    for( c = 0; c < dcount-1; c++ )
+        if( compare_finfo((const void *)(flist+c),
+                          (const void *)(flist+c+1)) >= 0 )
+        {
+            bad = 1;
+            fprintf(stderr,"** flist sort failed for files %s, %s\n"
+                           "   (run,index) pairs (%d,%d), (%d,%d)\n",
+                    p->fnames[flist[c].index], p->fnames[flist[c+1].index],
+                    flist[c  ].geh.uv17, flist[c  ].geh.index,
+                    flist[c+1].geh.uv17, flist[c+1].geh.index);
+        }
+        else if( flist[c].index >= flist[c+1].index )
+            scount++;  /* count sort inversions, say */
+
+    if( bad == 1 ){ free(flist);  return -1; }
+ 
+    /* if we don't accomplish anything, return 0, else 1 */
+    if( scount == 0 && p->nfiles == dcount ) rv = 0;
+    else                                     rv = 1;
+
+    if(gD.level > 0)
+    {
+        fprintf(stderr,"-- dicom sort : %d inversions, %d non-DICOM files\n",
+                scount, p->nfiles-dcount);
+        if( rv == 0 ) fprintf(stderr,"   (dicom_org unnecessary)\n");
+        else          fprintf(stderr,"   (dicom_org was useful)\n");
+    }
+
+    /* now create a new fnames list */
+    new_names = (char **)malloc(dcount * sizeof(char *));
+    if( !new_names ) {
+        fprintf(stderr,"** failed to malloc %d name ptrs\n",dcount);
+        free(flist);
+        return -1;
+    }
+
+    /* just grab the appropriate names, in order */
+    for( c = 0; c < dcount; c++ )
+        new_names[c] = p->fnames[flist[c].index];
+    /* and lose the ones we don't want */
+    for( ; c < p->nfiles; c++ )
+    {
+        if( gD.level > 2 )
+            fprintf(stderr,"-d ignoring non-DICOM file, %s\n",
+                    p->fnames[flist[c].index]);
+        free(p->fnames[flist[c].index]);
+    }
+
+    /* and pull the ol' switcheroo... */
+    free(p->fnames);
+    p->fnames = new_names;
+    p->nfiles = dcount;
+
+    free(flist);
+
+    if(gD.level > 1) fprintf(stderr,"-d dicom_org complete\n");
+
+    return 0;
+}
+
+int compare_finfo( const void * v0, const void * v1 )
+{
+    ge_header_info * h0 = &((finfo_t *)v0)->geh;
+    ge_header_info * h1 = &((finfo_t *)v1)->geh;
+
+    /* check for non-DICOM files first */
+    if     ( h1->uv17 < 0 ) return -1;
+    else if( h0->uv17 < 0 ) return 1;
+
+    /* check the run */
+    if( h0->uv17 != h1->uv17 )
+    {
+        if( h0->uv17 < h1->uv17 ) return -1;
+        return 1;
+    }
+
+    /* check the image index */
+    if     ( h0->index < h1->index ) return -1;
+    else if( h0->index > h1->index ) return 1;
+
+    return 0;  /* equal */
 }
 
 
@@ -1234,6 +1419,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                          IFM_MAX_DEBUG );
                 errors++;
             }
+        }
+        else if ( ! strncmp( argv[ac], "-dicom_org", 10 ) )
+        {
+            p->opts.dicom_org = 1;
         }
         else if ( ! strncmp( argv[ac], "-GERT_Reco2", 7 ) )
         {
@@ -1502,11 +1691,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
 
     if ( p->opts.use_dicom )
     {   
-        if( p->opts.gert_reco )
-        {
-            fprintf(stderr,"** -GERT_Reco is not valid for Dicom files\n");
-            return 1;
-        }
         if( ! p->opts.dicom_glob )
         {
             fprintf(stderr,"** missing -infile_pattern option\n");
@@ -1714,11 +1898,11 @@ int dir_expansion_form( char * sin, char ** sexp )
 /*----------------------------------------------------------------------
  *  read_dicom_image
  *---------------------------------------------------------------------- */
-static int read_dicom_image( char * pathname, finfo_t * fp )
+static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 {
     MRI_IMAGE * im;
 
-    im = r_mri_read_dicom( pathname, gD.level, &fp->image );
+    im = r_mri_read_dicom( pathname, gD.level, get_data ? &fp->image : NULL);
     if ( !im )
     {
         fprintf(stderr,"** failed to read file '%s' as dicom\n", pathname);
@@ -1730,21 +1914,21 @@ static int read_dicom_image( char * pathname, finfo_t * fp )
         fprintf(stderr,"+d dinfo (%s): std, ser, im = (%d, %d, %3d)\n",
             pathname,
             gr_dimon_stuff.study, gr_dimon_stuff.series, gr_dimon_stuff.image );
-        if ( gD.level > 2 )
         fprintf(stderr,"          im->xo,yo,zo =    (%6.1f,%6.1f,%6.1f)\n",
                 im->xo, im->yo, im->zo);
     }
 
     /* fill the finfo_t struct */
 
-    fp->geh.good = 1;
-    fp->geh.nx   = im->nx;
-    fp->geh.ny   = im->ny;
-    fp->geh.uv17 = gr_dimon_stuff.series;
-    fp->geh.dx   = im->dx;
-    fp->geh.dy   = im->dy;
-    fp->geh.dz   = im->dz;
-    fp->geh.zoff = im->zo;
+    fp->geh.good  = 1;
+    fp->geh.nx    = im->nx;
+    fp->geh.ny    = im->ny;
+    fp->geh.uv17  = gr_dimon_stuff.series;
+    fp->geh.index = gr_dimon_stuff.image;   /* image index number */
+    fp->geh.dx    = im->dx;
+    fp->geh.dy    = im->dy;
+    fp->geh.dz    = im->dz;
+    fp->geh.zoff  = im->zo;
 
     /* get some stuff from mrilib */
     fp->geh.tr = DI_MRL_tr;
@@ -2241,11 +2425,12 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
             "    good        = %d\n"
             "    (nx,ny)     = (%d,%d)\n"
             "    uv17        = %d\n"
+            "    index        = %d\n"
             "    (dx,dy,dz)  = (%f,%f,%f)\n"
             "    zoff        = %f\n"
             "    (tr,te)     = (%f,%f)\n"
             "    orients     = %-8s\n",
-            I, I->good, I->nx, I->ny, I->uv17,
+            I, I->good, I->nx, I->ny, I->uv17, I->index,
             I->dx, I->dy, I->dz, I->zoff, I->tr, I->te,
             CHECK_NULL_STR(I->orients)
           );
@@ -2285,6 +2470,17 @@ static int usage ( char * prog, int level )
           "    predict the form of input filenames runs that have not yet\n"
           "    occurred.\n"
           "\n"
+          "    This program can also be used off-line (away from the scanner)\n"
+          "    to organize the files, run by run.  If the DICOM files have\n"
+          "    a correct DICOM 'image number' (0x0020 0013), then Dimon can\n"
+          "    use the information to organize the sequence of the files, \n"
+          "    particularly when the alphabetization of the filenames does\n"
+          "    not match the sequencing of the slice positions.  This can be\n"
+          "    used in conjunction with the '-GERT_Reco2' option, which will\n"
+          "    write a script that can be used to create AFNI datasets.\n"
+          "\n"
+          "    See the '-dicom_org' option, under 'other options', below.\n"
+          "\n"
           "    If no -quit option is provided, the user should terminate the\n"
           "    program when it is done collecting images according to the\n"
           "    input file pattern.\n"
@@ -2318,9 +2514,10 @@ static int usage ( char * prog, int level )
           "    %s -infile_pattern 's8912345/i*'\n"
           "    %s -infile_prefix   s8912345/i\n"
           "    %s -help\n"
-          "    %s -infile_prefix   s8912345/i   -quit\n"
-          "    %s -infile_prefix   s8912345/i   -nt 120 -quit\n"
-          "    %s -infile_prefix   s8912345/i   -debug 2\n"
+          "    %s -infile_prefix   s8912345/i  -quit\n"
+          "    %s -infile_prefix   s8912345/i  -nt 120 -quit\n"
+          "    %s -infile_prefix   s8912345/i  -debug 2\n"
+          "    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco2 -quit\n"
           "\n"
           "  examples (with real-time options):\n"
           "\n"
@@ -2553,6 +2750,37 @@ static int usage ( char * prog, int level )
           "        the default level is 1, the domain is [0,3]\n"
           "        the '-quiet' option is equivalent to '-debug 0'\n"
           "\n"
+          "    -dicom_org         : organize files before other processing\n"
+          "\n"
+          "        e.g.  -dicom_org\n"
+          "\n"
+          "        When this flag is set, the program will attempt to read in\n"
+          "        all files subject to -infile_prefix or -infile_pattern,\n"
+          "        determine which are DICOM image files, and organize them\n"
+          "        into an ordered list of files per run.\n"
+          "\n"
+          "        This may be necessary since the alphabetized list of files\n"
+          "        will not always match the sequential slice and time order\n"
+          "        (which means, for instance, that '*.dcm' may not list\n"
+          "        files in the correct order.\n"
+          "\n"
+          "        In this case, if the DICOM files contain a valid 'image\n"
+          "        number' field (0x0020 0013), then they will be sorted\n"
+          "        before any further processing is done.\n"
+          "\n"
+          "        Notes:\n"
+          "\n"
+          "        - This does not work in real-time mode, since the files\n"
+          "          must all be organized before processing begins.\n"
+          "\n"
+          "        - The DICOM images need valid 'image number' fields for\n"
+          "          organization to be possible (DICOM field 0x0020 0013).\n"
+          "\n"
+          "        - This works will in conjunction with '-GERT_Reco2', to\n"
+          "          create a script to make AFNI datasets.  There will be\n"
+          "          a single file per run that contains the image filenames\n"
+          "          for that run (in order).  This is fed to 'to3d'.\n"
+          "\n"
           "    -help              : show this help information\n"
           "\n"
           "    -hist              : display a history of program changes\n"
@@ -2767,7 +2995,10 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
         s->nused = v->run+1;
 
     if ( rp->volumes == 0 )
+    {
+        rp->f1index = v->fn_1; /* index into flist (matching f1name) */
         strncpy( rp->f1name, v->first_file, IFM_MAX_FLEN );
+    }
 
     rp->volumes = v->seq_num;
 
@@ -2784,11 +3015,107 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
 
 /* ----------------------------------------------------------------------
  * Create a gert_reco script.
+ * ---------------------------------------------------------------------- */
+static int create_gert_script( stats_t * s, param_t * p )
+{
+    /* for either GEMS I-files or DICOM files */
+    if( p->opts.use_dicom ) return create_gert_dicom(s, p);
+    else                    return create_gert_reco (s, &p->opts);
+}
+
+
+/* ----------------------------------------------------------------------
+ * Create a gert_reco script for DICOM files.
+ * ---------------------------------------------------------------------- */
+static int create_gert_dicom( stats_t * s, param_t * p )
+{
+    opts_t * opts = &p->opts;
+    FILE   * fp, * nfp;                   /* script and name file pointers */
+    char   * script = IFM_GERT_DICOM;     /* output script filename */
+    char   * spat;                        /* slice acquisition pattern */
+    char     outfile[32];                 /* run files */
+    int      num_valid, c, findex;
+
+    /* if the user did not give a slice pattern string, use the default */
+    spat = opts->sp ? opts->sp : IFM_SLICE_PAT;
+
+    for ( c = 0, num_valid = 0; c < s->nused; c++ )
+        if ( s->runs[c].volumes > 0 )
+            num_valid++;
+
+    if ( num_valid == 0 )
+    {
+        fprintf( stderr, "-- no runs to use for '%s'\n", script );
+        return 0;
+    }
+
+    /* create run files, containing lists of all files in a run */
+    for ( c = 0; c < s->nused; c++ )
+        if ( s->runs[c].volumes > 0 )
+        {
+        }
+
+    if ( (fp = fopen( script, "w" )) == NULL )
+    {
+        fprintf( stderr, "failure: cannot open '%s' for writing, "
+                 "check permissions\n", script );
+        return -1;
+    }
+
+    /* output text casually, uh, borrowed from Ifile.c */
+    fprintf( fp,
+             "#!/bin/tcsh\n"
+             "\n"
+             "# This script was automatically generated by '%s'.\n"
+             "#\n"
+             "# Please modify the following options for your own evil uses.\n"
+             "\n"
+             "set OutlierCheck = ''         # use '-skip_outliers' to skip\n"
+             "set OutPrefix    = 'OutBrick' # prefix for datasets\n"
+             "\n"
+             "\n",
+             IFM_PROG_NAME
+           );
+
+    for ( c = 0; c < s->nused; c++ )
+        if ( s->runs[c].volumes > 0 )
+        {
+            /* create name file */
+            sprintf(outfile, "dimon.files.run.%03d", c);
+            if ( (nfp = fopen( outfile, "w" )) == NULL )
+            {
+                fprintf( stderr, "** DF: cannot open '%s' for writing",outfile);
+                fclose(fp);
+                return -1;
+            }
+            /* write image filenames to file, one per line */
+            for(findex = 0; findex < s->runs[c].volumes*s->slices; findex++)
+                fprintf(nfp, "%s\n", p->fnames[s->runs[c].f1index+findex]);
+            fclose(nfp);
+
+            /* and write to3d command */
+            fprintf(fp, "to3d -prefix ${OutPrefix}_run_%03d  \\\n"
+                        "     -time:zt %d %d 0 %s \\\n"
+                        "     -@ < %s\n\n",
+                    c, s->slices, s->runs[c].volumes, spat, outfile);
+        }
+
+    fclose( fp );
+
+    /* now make it an executable */
+    system( "chmod u+x " IFM_GERT_DICOM );
+
+    return 0;
+}
+
+
+/* ----------------------------------------------------------------------
+ * Create a gert_reco script for GEMS I-files.
  *
  * Note - stats struct parameters have been checked.
  * ----------------------------------------------------------------------
 */
-static int create_gert_script( stats_t * s, opts_t * opts )
+static int create_gert_reco( stats_t * s, opts_t * opts )
 {
     FILE * fp;
     char * spat;                        /* slice acquisition pattern */
@@ -2888,14 +3215,14 @@ static int show_run_stats( stats_t * s )
     for ( c = 0; c < s->nused; c++ )
     {
         if ( s->runs[c].volumes > 0 )
-            printf( "    run #%4d : volumes = %3d, first file = %s\n",
-                    c, s->runs[c].volumes, s->runs[c].f1name );
+            printf( "    run #%4d : volumes = %3d, first file (#%d) = %s\n",
+                    c,s->runs[c].volumes,s->runs[c].f1index,s->runs[c].f1name);
     }
 
     putchar( '\n' );
 
     if ( gP.opts.gert_reco )
-        (void)create_gert_script( s, &gP.opts );
+        (void)create_gert_script( s, &gP );
 
     fflush( stdout );
 
