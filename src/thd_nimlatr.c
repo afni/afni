@@ -528,7 +528,7 @@ ENTRY("mri_to_niml") ;
    nel = NI_new_data_element( "MRI_IMAGE" , im->nvox ) ;
 
    /* put in some attributes about the MRI_IMAGE struct */
-
+ 
    sprintf( rhs , "%d,%d,%d,%d,%d,%d,%d" ,
             im->nx , im->ny , im->nz , im->nt , im->nu , im->nv , im->nw ) ;
    NI_set_attribute( nel , "mri_dimen" , rhs ) ;
@@ -543,18 +543,17 @@ ENTRY("mri_to_niml") ;
 
    if( im->xo != 0.0 || im->yo != 0.0 || im->zo != 0.0 ||
        im->to != 0.0 || im->uo != 0.0 || im->vo != 0.0 || im->wo != 0.0 ){
-
+ 
      sprintf( rhs , "%f,%f,%f,%f,%f,%f,%f" ,
               im->xo , im->yo , im->zo , im->to , im->uo , im->vo , im->wo ) ;
      NI_set_attribute( nel , "mri_xyzo" , rhs ) ;
    }
 
-   if( im->name != NULL || im->name[0] != '\0' )
+   if( im->name != NULL && im->name[0] != '\0' )
      NI_set_attribute( nel , "mri_name" , rhs ) ;
 
    /* put in the data */
-
-   NI_add_column( nel , im->kind , vpt ) ;
+    NI_add_column( nel , im->kind , vpt ) ;
 
    RETURN(nel) ;
 }
