@@ -1424,7 +1424,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             p->opts.dicom_org = 1;
         }
-        else if ( ! strncmp( argv[ac], "-GERT_Reco2", 7 ) )
+        else if ( ! strncmp( argv[ac], "-GERT_Reco", 7 ) )
         {
             p->opts.gert_reco = 1;      /* output script at the end */
         }
@@ -2476,7 +2476,7 @@ static int usage ( char * prog, int level )
           "    use the information to organize the sequence of the files, \n"
           "    particularly when the alphabetization of the filenames does\n"
           "    not match the sequencing of the slice positions.  This can be\n"
-          "    used in conjunction with the '-GERT_Reco2' option, which will\n"
+          "    used in conjunction with the '-GERT_Reco' option, which will\n"
           "    write a script that can be used to create AFNI datasets.\n"
           "\n"
           "    See the '-dicom_org' option, under 'other options', below.\n"
@@ -2517,7 +2517,7 @@ static int usage ( char * prog, int level )
           "    %s -infile_prefix   s8912345/i  -quit\n"
           "    %s -infile_prefix   s8912345/i  -nt 120 -quit\n"
           "    %s -infile_prefix   s8912345/i  -debug 2\n"
-          "    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco2 -quit\n"
+          "    %s -infile_prefix   s8912345/i  -dicom_org -GERT_Reco -quit\n"
           "\n"
           "  examples (with real-time options):\n"
           "\n"
@@ -2576,7 +2576,7 @@ static int usage ( char * prog, int level )
           "  ---------------------------------------------------------------\n",
           prog, prog, prog, prog, prog, prog,
           prog, prog, prog, prog, prog, prog,
-          prog, prog, prog, prog, prog, prog );
+          prog, prog, prog, prog, prog, prog, prog );
           
         printf(
           "  notes:\n"
@@ -2776,7 +2776,7 @@ static int usage ( char * prog, int level )
           "        - The DICOM images need valid 'image number' fields for\n"
           "          organization to be possible (DICOM field 0x0020 0013).\n"
           "\n"
-          "        - This works will in conjunction with '-GERT_Reco2', to\n"
+          "        - This works will in conjunction with '-GERT_Reco', to\n"
           "          create a script to make AFNI datasets.  There will be\n"
           "          a single file per run that contains the image filenames\n"
           "          for that run (in order).  This is fed to 'to3d'.\n"
@@ -2833,31 +2833,31 @@ static int usage ( char * prog, int level )
           "    -version           : show the version information\n"
           "\n"
           "  ---------------------------------------------------------------\n"
-          "  GERT_Reco2 options:\n"
+          "  GERT_Reco options:\n"
           "\n"
-          "    -GERT_Reco2        : output a GERT_Reco2 script\n"
+          "    -GERT_Reco        : output a GERT_Reco_dicom script\n"
           "\n"
-          "        Create a script called 'GERT_Reco2', similar to the one\n"
-          "        that Ifile creates.  This script may be run to create the\n"
-          "        AFNI datasets corresponding to the I-files.\n"
+          "        Create a script called 'GERT_Reco_dicom', similar to the\n"
+          "        one that Ifile creates.  This script may be run to create\n"
+          "        the AFNI datasets corresponding to the I-files.\n"
           "\n"
-          "    -gert_outdir OUTPUT_DIR  : set output directory in GERT_Reco2\n"
+          "    -gert_outdir OUTPUT_DIR  : set output directory in GERT_Reco\n"
           "\n"
           "        e.g. -gert_outdir subject_A7\n"
           "        e.g. -od subject_A7\n"
-          "        the default is '-gert_outdir afni'\n"
+          "        the default is '-gert_outdir .'\n"
           "\n"
           "        This will add '-od OUTPUT_DIR' to the @RenamePanga command\n"
-          "        in the GERT_Reco2 script, creating new datasets in the\n"
+          "        in the GERT_Reco script, creating new datasets in the\n"
           "        OUTPUT_DIR directory, instead of the 'afni' directory.\n"
           "\n"
-          "    -sp SLICE_PATTERN  : set output slice pattern in GERT_Reco2\n"
+          "    -sp SLICE_PATTERN  : set output slice pattern in GERT_Reco\n"
           "\n"
           "        e.g. -sp alt-z\n"
           "        the default is 'alt+z'\n"
           "\n"
           "        This options allows the user to alter the slice\n"
-          "        acquisition pattern in the GERT_Reco2 script.\n"
+          "        acquisition pattern in the GERT_Reco script.\n"
           "\n"
           "        See 'to3d -help' for more information.\n"
           "\n"
@@ -3186,7 +3186,7 @@ static int create_gert_reco( stats_t * s, opts_t * opts )
 
 /* ----------------------------------------------------------------------
  * - show statistics from the runs
- * - output any requested GERT_Reco2 file
+ * - output any requested GERT_Reco file
  * ----------------------------------------------------------------------
 */
 static int show_run_stats( stats_t * s )
