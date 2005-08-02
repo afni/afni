@@ -1205,3 +1205,7 @@
         other processing
       - enabled '-GERT_Reco2', to create a script to build AFNI datasets
 
+02 August 2005:
+  * updated 3dANOVA2.c, updated calculation of sums of squares for all
+      a contrasts (including amean and adiff) [rickr, gangc]
+
