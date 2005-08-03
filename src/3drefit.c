@@ -6,14 +6,11 @@
 
 #include "mrilib.h"
 
-void Syntax(char * str)
+void Syntax(char *str)
 {
    int ii ;
 
-   if( str != NULL ){
-      printf("\n*** Fatal error: %s\n\n*** Try '3drefit -help'\n",str) ;
-      exit(1) ;
-   }
+   if( str != NULL ) ERROR_exit(str) ;  /* does not return */
 
    printf( "Changes some of the information inside a 3D dataset's header.\n"
            "Note that this program does NOT change the .BRIK file at all;\n"
@@ -142,6 +139,26 @@ void Syntax(char * str)
 
    printf(
     "\n"
+    "  -atrcopy dd nn  Copy AFNI header attribute named 'nn' from dataset 'dd'\n"
+    "                  into the header of the dataset(s) being modified.\n"
+    "                  For more information on AFNI header attributes, see\n"
+    "                  documentation file README.attributes. More than one\n"
+    "                  '-atrcopy' option can be used.\n"
+    "          **N.B.: This option is for those who know what they are doing!\n"
+    "                  It can only be used to alter attributes that are NOT\n"
+    "                  directly mapped into dataset internal structures, since\n"
+    "                  those structures are mapped back into attribute values\n"
+    "                  as the dataset is being written to disk.  If you want\n"
+    "                  to change such an attribute, you have to use the\n"
+    "                  corresponding 3drefit option directly.\n"
+    "\n"
+    "  -atrstring nn 'xx' Copy the string 'xx' into the dataset(s) being\n"
+    "                     modified, giving it the attribute name 'nn'.\n"
+    "                     To be safe, the 'xx' string should be in quotes.\n"
+   ) ;
+
+   printf(
+    "\n"
     "  -'type'         Changes the type of data that is declared for this\n"
     "                  dataset, where 'type' is chosen from the following:\n"
    ) ;
@@ -250,16 +267,20 @@ int main( int argc , char * argv[] )
    int nsublab     = 0 ; SUBlabel *   sublab     = NULL ;
    int nsubstatpar = 0 ; SUBstatpar * substatpar = NULL ;
    int nsubkeyword = 0 ; SUBkeyword * subkeyword = NULL ;
-   char * cpt ;
+   char *cpt ;
    int iv ;
 
    float volreg_mat[12];
    float center_old[3];
    float center_base[3];
-   int Do_volreg_mat = 0, Do_center_old = 0, Do_center_base = 0, volreg_matind = 0, icnt = 0;
+   int Do_volreg_mat = 0, Do_center_old = 0, Do_center_base = 0,
+       volreg_matind = 0, icnt = 0;
    char *lcpt=NULL;
 
-   /*--- help me if you can? ---*/
+   int   num_atrcopy = 0 ;    /* 03 Aug 2005 */
+   ATR_any **atrcopy = NULL ;
+
+   /*-------------------------- help me if you can? --------------------------*/
 
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax(NULL) ;
 
@@ -281,6 +302,66 @@ int main( int argc , char * argv[] )
 #if 0
       if( strncmp(argv[iarg],"-v",5) == 0 ){ verbose = 1 ; iarg++ ; continue ; }
 #endif
+
+      /*----- -atrcopy dd nn [03 Aug 2005] -----*/
+
+      if( strcmp(argv[iarg],"-atrcopy") == 0 ){
+        THD_3dim_dataset *qset ; ATR_any *atr ;
+
+        if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrcopy!") ;
+
+        qset = THD_open_dataset( argv[++iarg] ) ;
+        if( qset == NULL ){
+          WARNING_message("Can't open -atrcopy dataset %s",argv[iarg]) ;
+          iarg++ ; goto atrcopy_done ;
+        }
+        atr = THD_find_atr( qset->dblk , argv[++iarg] ) ;
+        if( atr == NULL ){
+          WARNING_message("Can't find attribute %s in -atrcopy dataset %s",
+                          argv[iarg],argv[iarg-1]) ;
+          DSET_delete(qset) ; goto atrcopy_done ;
+        }
+
+        atrcopy = (ATR_any **)realloc( (void *)atrcopy ,
+                                       sizeof(ATR_any *)*(num_atrcopy+1) ) ;
+        atrcopy[num_atrcopy++] = THD_copy_atr( atr ) ;
+
+        DSET_delete(qset) ; new_stuff++ ;
+
+       atrcopy_done:
+        iarg++ ; continue ;
+      }
+
+      /*----- -atrstring nn xx [03 Aug 2005] -----*/
+
+      if( strcmp(argv[iarg],"-atrstring") == 0 ){
+        ATR_string *atr ; char *aname , *xx ;
+
+        if( iarg+2 >= argc ) Syntax("need 2 arguments after -atrstring!") ;
+
+        aname = argv[++iarg] ;
+        if( !THD_filename_pure(aname) ){
+          WARNING_message("Illegal -atrstring name %s",aname) ;
+          iarg++ ; goto atrstring_done ;
+        }
+        xx  = argv[++iarg] ;
+        atr = (ATR_string *)XtMalloc(sizeof(ATR_string)) ;
+
+        atr->type = ATR_STRING_TYPE ;
+        atr->name = XtNewString( aname ) ;
+        atr->nch  = strlen(xx)+1 ; ;
+        atr->ch   = (char *)XtMalloc( sizeof(char) * atr->nch ) ;
+        memcpy( atr->ch , xx , sizeof(char) * atr->nch ) ;
+
+        atrcopy = (ATR_any **)realloc( (void *)atrcopy ,
+                                       sizeof(ATR_any *)*(num_atrcopy+1) ) ;
+        atrcopy[num_atrcopy++] = (ATR_any *)atr ;
+
+        new_stuff++ ;
+       atrstring_done:
+        iarg++ ; continue ;
+      }
+
 
       /*----- -denote [08 Jul 2005] -----*/
 
@@ -1150,23 +1231,28 @@ int main( int argc , char * argv[] )
       }
 
       switch( new_key ){
-         case 1: EDIT_dset_items(dset, ADN_keywords_append , key , ADN_none); break;
-         case 2: EDIT_dset_items(dset, ADN_keywords_replace, key , ADN_none); break;
-         case 3: EDIT_dset_items(dset, ADN_keywords_replace, NULL, ADN_none); break;
+        case 1: EDIT_dset_items(dset, ADN_keywords_append , key , ADN_none); break;
+        case 2: EDIT_dset_items(dset, ADN_keywords_replace, key , ADN_none); break;
+        case 3: EDIT_dset_items(dset, ADN_keywords_replace, NULL, ADN_none); break;
       }
 
       if( nsubstatpar > 0 ){
-         for( ii=0 ; ii < nsubstatpar ; ii++ ){
-            iv = substatpar[ii].iv ;
-            if( iv < 0 || iv >= DSET_NVALS(dset) ){
-               WARNING_message("Can't put statpar on sub-brick %d\n",iv) ;
-            } else {
-               EDIT_dset_items( dset ,
-                                   ADN_brick_stataux_one + iv , substatpar[ii].par ,
-                                ADN_none ) ;
-            }
-         }
+        for( ii=0 ; ii < nsubstatpar ; ii++ ){
+          iv = substatpar[ii].iv ;
+          if( iv < 0 || iv >= DSET_NVALS(dset) ){
+            WARNING_message("Can't put statpar on sub-brick %d",iv) ;
+          } else {
+            EDIT_dset_items( dset ,
+                               ADN_brick_stataux_one + iv , substatpar[ii].par ,
+                             ADN_none ) ;
+          }
+        }
       }
+
+      /* 03 Aug 2005: implement atrcopy */
+
+      for( ii=0 ; ii < num_atrcopy ; ii++ )
+        THD_insert_atr( dset->dblk , atrcopy[ii] ) ;
 
       if( denote ) THD_anonymize_write(1) ;   /* 08 Jul 2005 */
 

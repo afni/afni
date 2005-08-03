@@ -3115,6 +3115,9 @@ extern ATR_string * THD_find_string_atr( THD_datablock * , char * ) ;
 
 extern void THD_set_atr( THD_datablock * , char * , int,int, void * ) ;
 
+extern ATR_any * THD_copy_atr( ATR_any *atr ) ;  /* 03 Aug 2005 */
+extern void THD_insert_atr( THD_datablock *blk , ATR_any *atr ) ;
+
 extern void THD_store_dataset_keywords ( THD_3dim_dataset * , char * ) ;
 extern void THD_append_dataset_keywords( THD_3dim_dataset * , char * ) ;
 extern char * THD_dataset_info( THD_3dim_dataset * , int ) ;
