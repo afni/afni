@@ -247,9 +247,7 @@ int THD_filename_pure( char *name )  /* 28 Feb 2001 */
    int ii ;
 
    ii = THD_filename_ok( name ) ;
-   if( ii ){
-      ii = (strstr(name,"/") == NULL) ;
-   }
+   if( ii ) ii = (strstr(name,"/") == NULL) ;
    return ii ;
 }
 

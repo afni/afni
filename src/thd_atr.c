@@ -411,10 +411,10 @@ void THD_set_atr( THD_datablock *blk , char *aname ,
 ENTRY("THD_set_atr") ;
 
    if( ! ISVALID_DATABLOCK(blk) )
-      THD_FATAL_ERROR( "Illegal block type in THD_set_atr" ) ;
+     THD_FATAL_ERROR( "Illegal block type in THD_set_atr" ) ;
 
    if( acount < 0 || ar == NULL || aname == NULL )
-      THD_FATAL_ERROR( "Illegal input data in THD_set_atr" ) ;
+     THD_FATAL_ERROR( "Illegal input data in THD_set_atr" ) ;
 
    old_atr = THD_find_atr( blk , aname ) ;  /* find matching name */
 
@@ -609,6 +609,90 @@ ENTRY("THD_anonymize_dset") ;
    THD_set_string_atr( blk , ATRNAME_DATANAME       , "none" ) ;
    THD_erase_one_atr ( blk , ATRNAME_BRICK_KEYWORDS          ) ;
    THD_erase_one_atr ( blk , ATRNAME_KEYWORDS                ) ;
+
+   EXRETURN ;
+}
+
+/*------------------------------------------------------------------*/
+
+ATR_any * THD_copy_atr( ATR_any *atr )  /* 03 Aug 2005 */
+{
+   ATR_any *atr_out=NULL ;
+
+ENTRY("THD_copy_atr") ;
+
+   if( atr == NULL ) RETURN(NULL) ;
+
+   switch( atr->type ){
+
+     case ATR_FLOAT_TYPE:{
+       ATR_float *aa = (ATR_float *)atr , *qq ;
+       qq = (ATR_float *)XtMalloc(sizeof(ATR_float)) ;
+       qq->type = ATR_FLOAT_TYPE ;
+       qq->name = XtNewString( aa->name ) ;
+       qq->nfl  = aa->nfl ;
+       qq->fl   = (float *) XtMalloc( sizeof(float) * aa->nfl ) ;
+       memcpy( qq->fl , aa->fl , sizeof(float) * aa->nfl ) ;
+       atr_out = (ATR_any *)qq ;
+     }
+     break ;
+
+     case ATR_STRING_TYPE:{
+       ATR_string *aa = (ATR_string *)atr , *qq ;
+       qq = (ATR_string *)XtMalloc(sizeof(ATR_string)) ;
+       qq->type = ATR_STRING_TYPE ;
+       qq->name = XtNewString( aa->name ) ;
+       qq->nch  = aa->nch ;
+       qq->ch   = (char *) XtMalloc( sizeof(char) * aa->nch ) ;
+       memcpy( qq->ch , aa->ch , sizeof(char) * aa->nch ) ;
+       atr_out = (ATR_any *)qq ;
+     }
+     break ;
+
+     case ATR_INT_TYPE:{
+       ATR_int *aa = (ATR_int *)atr , *qq ;
+       qq = (ATR_int *)XtMalloc(sizeof(ATR_int)) ;
+       qq->type = ATR_INT_TYPE ;
+       qq->name = XtNewString( aa->name ) ;
+       qq->nin  = aa->nin ;
+       qq->in   = (int *) XtMalloc( sizeof(int) * aa->nin ) ;
+       memcpy( qq->in , aa->in , sizeof(int) * aa->nin ) ;
+       atr_out = (ATR_any *)qq ;
+     }
+     break ;
+   }
+
+   RETURN(atr_out) ;
+}
+
+/*------------------------------------------------------------------*/
+
+void THD_insert_atr( THD_datablock *blk , ATR_any *atr )  /* 03 Aug 2005 */
+{
+ENTRY("THD_insert_atr") ;
+
+   if( ! ISVALID_DATABLOCK(blk) || atr == NULL ) EXRETURN ;
+
+   switch( atr->type ){
+
+     case ATR_FLOAT_TYPE:{
+       ATR_float *aa = (ATR_float *)atr ;
+       THD_set_atr( blk , aa->name , ATR_FLOAT_TYPE , aa->nfl , aa->fl ) ;
+     }
+     break ;
+
+     case ATR_STRING_TYPE:{
+       ATR_string *aa = (ATR_string *)atr ;
+       THD_set_atr( blk , aa->name , ATR_STRING_TYPE , aa->nch , aa->ch ) ;
+     }
+     break ;
+
+     case ATR_INT_TYPE:{
+       ATR_int *aa = (ATR_int *)atr ;
+       THD_set_atr( blk , aa->name , ATR_INT_TYPE , aa->nin , aa->in ) ;
+     }
+     break ;
+   }
 
    EXRETURN ;
 }
