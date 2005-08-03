@@ -5659,3 +5659,9 @@
 29 Jul 2005
  * Added '-com' option to afni.c.
  * Added grapher windows to SAVE_JPEG in afni_driver.c.
+
+03 Aug 2005
+ * Modified 3dWarp.c to save WARPDRIVE_MATVEC_ attributes into the header
+     of the output, assuming that they were used (with '-matparent') on input.
+ * Modified 3drefit.c to add '-atrcopy' and '-atrstring' options to copy and
+     set attributes.

@@ -54,6 +54,7 @@ int main( int argc , char * argv[] )
    int matdefined=0 ;
 
    THD_coorder cord ;
+   ATR_float *atr_matfor=NULL , *atr_matinv=NULL ;
 
 #if 0
    MRI_IMAGE *matflim=NULL ;
@@ -179,22 +180,17 @@ int main( int argc , char * argv[] )
 
 #if 0
      if( strncmp(argv[nopt],"-matfile",8) == 0 ){
-       if( matdefined ){
-         fprintf(stderr,"** -matfile: Matrix already defined!\n"); exit(1);
-       }
-       if( ++nopt >= argc ){
-         fprintf(stderr,"** Need argument after -matfile!\n"); exit(1);
-       }
+       if( matdefined )
+         ERROR_exit("-matfile: Matrix already defined!\n");
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after -matfile!\n");
        matflim = mri_read_ascii( argv[nopt] ) ;
-       if( matflim == NULL ){
-         fprintf(stderr,"** Can't read from -matfile %s\n",argv[nopt]); exit(1);
-       }
-       if( matflim->nx < 12 ){
-         fprintf(stderr,"** Need 12 numbers per line in -matfile %s\n",argv[nopt]) ;
-         exit(1) ;
-       }
-       matflar = MRI_FLOAT_PTR(matflim) ;
+       if( matflim == NULL )
+         ERROR_exit("Can't read from -matfile %s\n",argv[nopt]);
+       if( matflim->nx < 12 )
+         ERROR_exit("Need 12 numbers per line in -matfile %s\n",argv[nopt]) ;
 
+       matflar = MRI_FLOAT_PTR(matflim) ;
        matdefined = 1 ; nopt++ ; continue ;
      }
 #endif
@@ -204,23 +200,21 @@ int main( int argc , char * argv[] )
      if( strncmp(argv[nopt],"-matparent",10) == 0 ){
        ATR_float *atr ; float *matar ; THD_3dim_dataset *matparset=NULL ;
 
-       if( matdefined ){
-         fprintf(stderr,"** -matparent: Matrix already defined!\n"); exit(1);
-       }
-       if( ++nopt >= argc ){
-         fprintf(stderr,"** Need argument after -matparent!\n"); exit(1);
-       }
+       if( matdefined )
+         ERROR_exit("-matparent: Matrix already defined!\n");
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after -matparent!\n");
        matparset = THD_open_dataset( argv[nopt] ) ;
-       if( matparset == NULL ){
-         fprintf(stderr,"** Can't open -matparent %s\n",argv[nopt]); exit(1);
-       }
-       atr = THD_find_float_atr( matparset->dblk , "WARPDRIVE_MATVEC_INV_000000" ) ;
-       if( atr == NULL ||  atr->nfl < 12 ){
-         fprintf(stderr,"** -matparent %s doesn't have WARPDRIVE attributes!?\n",argv[nopt]) ;
-         exit(1) ;
-       }
+       if( matparset == NULL )
+         ERROR_exit("Can't open -matparent %s\n",argv[nopt]);
+       atr = THD_find_float_atr( matparset->dblk, "WARPDRIVE_MATVEC_INV_000000" );
+       if( atr != NULL ) atr_matinv = (ATR_float *)THD_copy_atr( (ATR_any *)atr ) ;
+       atr = THD_find_float_atr( matparset->dblk, "WARPDRIVE_MATVEC_FOR_000000" );
+       if( atr != NULL ) atr_matfor = (ATR_float *)THD_copy_atr( (ATR_any *)atr ) ;
+       if( atr_matinv == NULL ||  atr_matinv->nfl < 12 )
+         ERROR_exit("-matparent %s doesn't have WARPDRIVE attributes!?\n",argv[nopt]) ;
 
-       matar = atr->fl ;
+       matar = atr_matinv->fl ;
        if( strstr(argv[nopt-1],"INV") == NULL ){
          LOAD_MAT  ( dicom_in2out.mm, matar[0],matar[1],matar[2],
                                       matar[4],matar[5],matar[6],
@@ -243,16 +237,14 @@ int main( int argc , char * argv[] )
      /*----- 11 Mar 2004 -----*/
 
      if( strcmp(argv[nopt],"-tta2mni") == 0 ){
-       if( matdefined ){
-         fprintf(stderr,"** -tta2mni: Matrix already defined!\n"); exit(1);
-       }
+       if( matdefined )
+         ERROR_exit("-tta2mni: Matrix already defined!\n");
        matdefined = 1 ; tta2mni = 1 ; nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-mni2tta") == 0 ){
-       if( matdefined ){
-         fprintf(stderr,"** -mni2tta: Matrix already defined!\n"); exit(1);
-       }
+       if( matdefined )
+         ERROR_exit("-mni2tta: Matrix already defined!\n");
        matdefined = 1 ; mni2tta = 1 ; nopt++ ; continue ;
      }
 
@@ -265,53 +257,45 @@ int main( int argc , char * argv[] )
      /*-----*/
 
      if( strcmp(argv[nopt],"-gridset") == 0 ){
-       if( use_newgrid ){
-         fprintf(stderr,"** Can't use -gridset with -newgrid!\n"); exit(1);
-       }
-       if( newgset != NULL ){
-         fprintf(stderr,"** Can't use -gridset twice!\n"); exit(1);
-       }
-       if( ++nopt >= argc ){
-         fprintf(stderr,"** Need argument after -gridset!\n"); exit(1);
-       }
+       if( use_newgrid )
+         ERROR_exit("Can't use -gridset with -newgrid!\n");
+       if( newgset != NULL )
+         ERROR_exit("Can't use -gridset twice!\n");
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after -gridset!\n");
        newgset = THD_open_dataset( argv[nopt] ) ;
-       if( newgset == NULL ){
-         fprintf(stderr,"** Can't open -gridset %s\n",argv[nopt]); exit(1);
-       }
+       if( newgset == NULL )
+         ERROR_exit("Can't open -gridset %s\n",argv[nopt]);
        nopt++ ; continue ;
      }
 
      /*-----*/
 
      if( strcmp(argv[nopt],"-zpad") == 0 ){
-       if( ++nopt >= argc ){
-         fprintf(stderr,"** Need argument after -zpad!\n"); exit(1);
-       }
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after -zpad!\n");
        zpad = (int) strtod( argv[nopt] , NULL ) ;
-       if( zpad < 0 ){
-         fprintf(stderr,"** Illegal negative argument after -zpad!\n"); exit(1);
-       } else if( zpad == 0 ){
-         fprintf(stderr,"++ NOTA BENE: -zpad is 0 ==> ignored\n") ;
-       }
+       if( zpad < 0 )
+         ERROR_exit("Illegal negative argument after -zpad!\n");
+       else if( zpad == 0 )
+         INFO_message("NOTA BENE: -zpad is 0 ==> ignored\n") ;
        nopt++ ; continue ;
      }
 
      /*-----*/
 
      if( strcmp(argv[nopt],"-newgrid") == 0 ){
-       if( newgset != NULL ){
-         fprintf(stderr,"** Can't use -newgrid with -gridset!\n"); exit(1);
-       }
-       if( use_newgrid ){
-         fprintf(stderr,"** Can't use -newgrid twice!\n"); exit(1);
-       }
-       if( ++nopt >= argc ){
-         fprintf(stderr,"** Need argument after -newgrid!\n"); exit(1);
-       }
+       if( newgset != NULL )
+         ERROR_exit("Can't use -newgrid with -gridset!\n");
+       if( use_newgrid )
+         ERROR_exit("Can't use -newgrid twice!\n");
+       if( ++nopt >= argc )
+         ERROR_exit("Need argument after -newgrid!\n");
+
        ddd_newgrid = strtod( argv[nopt] , NULL ) ;
-       if( ddd_newgrid <= 0.0 ){
-         fprintf(stderr,"** Illegal argument after -newgrid!\n"); exit(1);
-       }
+       if( ddd_newgrid <= 0.0 )
+         ERROR_exit("Illegal argument after -newgrid!\n");
+
        use_newgrid = 1 ; nopt++ ; continue ;
      }
 
@@ -333,12 +317,11 @@ int main( int argc , char * argv[] )
      /*-----*/
 
      if( strcmp(argv[nopt],"-prefix") == 0 ){
-       if( ++nopt >= argc ){
-         fprintf(stderr,"** ERROR: need an argument after -prefix!\n"); exit(1);
-       }
-       if( !THD_filename_ok(argv[nopt]) ){
-         fprintf(stderr,"** ERROR: -prefix argument is invalid!\n"); exit(1);
-       }
+       if( ++nopt >= argc )
+         ERROR_exit("Need an argument after -prefix!\n");
+       if( !THD_filename_ok(argv[nopt]) )
+         ERROR_exit("-prefix argument is invalid!\n");
+
        prefix = argv[nopt] ; nopt++ ; continue ;
      }
 
@@ -353,12 +336,10 @@ int main( int argc , char * argv[] )
      if( strncmp(argv[nopt],"-matvec_",8) == 0 ){
        MRI_IMAGE *matim ; float *matar , dm ;
 
-       if( matdefined ){
-         fprintf(stderr,"** %s: matrix already defined!\n",argv[nopt]); exit(1);
-       }
-       if( ++nopt >= argc ){
-         fprintf(stderr,"** ERROR: need an argument after -matvec!\n"); exit(1);
-       }
+       if( matdefined )
+         ERROR_exit("%s: matrix already defined!\n",argv[nopt]);
+       if( ++nopt >= argc )
+         ERROR_exit("Need an argument after -matvec!\n");
        if( strcmp(argv[nopt],"IDENTITY") == 0 ){ /* load identity matrix */
          matim = mri_new( 4,3 , MRI_float ) ;    /* will be all zero */
          matar = MRI_FLOAT_PTR(matim) ;
@@ -371,19 +352,14 @@ int main( int argc , char * argv[] )
                      matar+0 , matar+1 , matar+2 , matar+3 ,
                      matar+4 , matar+5 , matar+6 , matar+7 ,
                      matar+8 , matar+9 , matar+10, matar+11 ) ;
-         if( nn < 12 ){
-           fprintf(stderr,"** Could only decode %d numbers from %s\n",
-                   nn,argv[nopt]) ;
-           exit(1) ;
-         }
+         if( nn < 12 )
+           ERROR_exit("Could only decode %d numbers from %s\n",nn,argv[nopt]) ;
        } else {
          matim = mri_read_ascii( argv[nopt] ) ;
-         if( matim == NULL ){
-           fprintf(stderr,"** Can't read -matvec file %s\n",argv[nopt]); exit(1);
-         }
-         if( matim->nx != 4 || matim->ny < 3 ){
-           fprintf(stderr,"** -matvec file not 3x4!\n"); exit(1);
-         }
+         if( matim == NULL )
+           ERROR_exit("Can't read -matvec file %s\n",argv[nopt]);
+         if( matim->nx != 4 || matim->ny < 3 )
+           ERROR_exit("-matvec file not a 3x4 matrix!\n");
          matar = MRI_FLOAT_PTR(matim) ;
        }
 
@@ -398,9 +374,8 @@ int main( int argc , char * argv[] )
            LOAD_FVEC3( dicom_in2out.vv, matar[3],matar[7],matar[11] ) ;
 
            dm = MAT_DET( dicom_in2out.mm ) ;
-           if( dm == 0.0 ){
-             fprintf(stderr,"** Determinant of matrix is 0\n"); exit(1);
-           }
+           if( dm == 0.0 )
+             ERROR_exit("Determinant of matrix is 0\n");
 
            dicom_out2in = INV_VECMAT( dicom_in2out ) ;
          break ;
@@ -412,9 +387,8 @@ int main( int argc , char * argv[] )
            LOAD_FVEC3( dicom_out2in.vv, matar[3],matar[7],matar[11] ) ;
 
            dm = MAT_DET( dicom_out2in.mm ) ;
-           if( dm == 0.0 ){
-             fprintf(stderr,"** Determinant of matrix is 0\n"); exit(1);
-           }
+           if( dm == 0.0 )
+             ERROR_exit("Determinant of matrix is 0\n");
 
            dicom_in2out = INV_VECMAT( dicom_out2in ) ;
          break ;
@@ -425,16 +399,14 @@ int main( int argc , char * argv[] )
 
      /*-----*/
 
-     fprintf(stderr,"** ERROR: unknown option %s\n",argv[nopt]) ;
-     exit(1) ;
+     ERROR_exit("Unknown option %s\n",argv[nopt]) ;
 
    } /* end of loop over options */
 
    /*-- check to see if we have a warp specified --*/
 
-   if( !matdefined ){
-     fprintf(stderr,"** No transformation on command line!?\n"); exit(1);
-   }
+   if( !matdefined )
+     ERROR_exit("No transformation on command line!?\n");
 
    if( tta2mni || mni2tta ) fsl = 0 ;
 
@@ -459,30 +431,27 @@ int main( int argc , char * argv[] )
    /*-- 1 remaining argument should be a dataset --*/
 
    if( nopt != argc-1 ){
-     fprintf(stderr,"** Command line should have exactly 1 dataset!\n"
-                    "** Whereas there seems to be %d of them!\n",
-             argc-nopt ) ;
-     exit(1) ;
+     ERROR_message("Command line should have exactly 1 dataset!") ;
+     ERROR_exit   ("Whereas there seems to be %d of them!\n", argc-nopt ) ;
    }
 
    /*-- input dataset header --*/
 
    inset = THD_open_dataset( argv[nopt] ) ;
-   if( !ISVALID_DSET(inset) ){
-     fprintf(stderr,"** ERROR: can't open dataset %s\n",argv[nopt]); exit(1);
-   }
+   if( !ISVALID_DSET(inset) )
+     ERROR_exit("Can't open dataset %s\n",argv[nopt]);
 
    /*- 11 Mar 2004: check for coherency -*/
 
    if( tta2mni || mni2tta ){
      if( inset->view_type != VIEW_TALAIRACH_TYPE ){
-       fprintf(stderr,"++ WARNING: input dataset not in +tlrc view!\n") ;
+       WARNING_message("Input dataset not in +tlrc view!\n") ;
      } else {
        ATR_string *ast ;
        ast = THD_find_string_atr( inset->dblk , "TLRC_SPACE" ) ;
        if( ast != NULL ){
          if( strcmp(ast->ch,"MNI-152") == 0 && tta2mni ){
-           fprintf(stderr,"++ WARNING: input dataset appears to be MNI-152 already!\n");
+           WARNING_message("Input dataset appears to be MNI-152 already!\n");
          }
        }
      }
@@ -505,10 +474,8 @@ int main( int argc , char * argv[] )
      outset = THD_warp3D_mni2tta( inset , newggg , prefix,zpad,gflag ) ;
    }
 
-   if( outset == NULL ){
-     fprintf(stderr,"** ERROR: THD_warp3D() fails for some reason!\n") ;
-     exit(1) ;
-   }
+   if( outset == NULL )
+     ERROR_exit("THD_warp3D() fails for some reason!\n") ;
 
    /*-- polish up the new dataset info --*/
 
@@ -521,8 +488,14 @@ int main( int argc , char * argv[] )
      THD_set_string_atr( outset->dblk , "TLRC_SPACE" , "MNI-152" ) ;
    }
 
+   /*- 03 Aug 2005: save WARPDRIVE attributes, if present -*/
+
+   if( atr_matfor != NULL ) THD_insert_atr( outset->dblk, (ATR_any *)atr_matfor );
+   if( atr_matinv != NULL ) THD_insert_atr( outset->dblk, (ATR_any *)atr_matinv );
+
+   /*- actually do the writositing -*/
+
    DSET_delete( inset ) ;
-   DSET_write( outset ) ;
-   if( verb ) fprintf(stderr,"\n++ Wrote dataset: %s\n",DSET_BRIKNAME(outset));
+   DSET_write( outset ) ; if( verb ) WROTE_DSET(outset) ;
    exit(0) ;
 }
