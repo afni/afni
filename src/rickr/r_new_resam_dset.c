@@ -24,6 +24,9 @@
  * 2005.03.22
  *   - removed all tabs
  *   - must touch file once per year
+ *
+ * 2005.08.03
+ *   - allow dxyz to override those from master
  *----------------------------------------------------------------------
 */
 
@@ -148,12 +151,18 @@ THD_3dim_dataset * r_new_resam_dset
         /*-- given dx, dy and dz, create a new THD_dataxes structure ---- */
         new_daxes.type = DATAXES_TYPE;
 
-        if ( min )   /* if we have a master, just copy the dataxes struct */
-            new_daxes = *min->daxes;
-        else if ( r_dxyz_mod_dataxes(dx, dy, dz, dout->daxes, &new_daxes) != 0 )
+        /* fill new_daxes, from the master, new dxyz, or both */
+        if ( min && dx == 0.0 ) new_daxes = *min->daxes;
+        else
         {
-            THD_delete_3dim_dataset( dout, FALSE );
-            return NULL;
+            /* possibly start with master (must have master's orient) */
+            if ( min ) *dout->daxes = *min->daxes;
+
+            if ( r_dxyz_mod_dataxes(dx, dy, dz, dout->daxes, &new_daxes) != 0 )
+            {
+                THD_delete_3dim_dataset( dout, FALSE );
+                return NULL;
+            }
         }
 
         if ( apply_dataxes( dout, &new_daxes ) != 0 )
@@ -456,6 +465,14 @@ static int valid_resam_inputs( THD_3dim_dataset * dset, THD_3dim_dataset * mset,
         return LR_RESAM_IN_FAIL;
     }
 
+    /* validate the resampling mode - this is required in any case */
+    if ( resam < 0 || resam > LAST_RESAM_TYPE )
+    {
+        fprintf( stderr, "ERROR: <%s> - invalid resample mode of %d\n",
+                 this_file, resam );
+        return LR_RESAM_IN_FAIL;
+    }
+
     if( mset ) /* behold, the master! */
     {
         /* validate mset and its thd_dataxes structure */
@@ -480,6 +497,14 @@ static int valid_resam_inputs( THD_3dim_dataset * dset, THD_3dim_dataset * mset,
         orient[2] = ORIENT_typestr[mset->daxes->zzorient][0];
         orient[3] = '\0';
 
+        /* validate any new dxyz */
+        if ( dx != 0.0 && (dx < 0.0 || dy <= 0.0 || dz <= 0.0) )
+        {
+            fprintf( stderr, "ERROR: <%s> - invalid (dx,dy,dz) = (%f,%f,%f)\n",
+                     this_file, dx, dy, dz );
+            return LR_RESAM_IN_FAIL;
+        }
+
         return LR_RESAM_IN_RESAM | LR_RESAM_IN_REORIENT; /* we're good to go */
     }
 
@@ -496,14 +521,6 @@ static int valid_resam_inputs( THD_3dim_dataset * dset, THD_3dim_dataset * mset,
     }
     else
         ret_val |= LR_RESAM_IN_RESAM;
-
-    /* validate the resampling mode - this is required in any case */
-    if ( resam < 0 || resam > LAST_RESAM_TYPE )
-    {
-        fprintf( stderr, "ERROR: <%s> - invalid resample mode of %d\n",
-                 this_file, resam );
-        return LR_RESAM_IN_FAIL;
-    }
 
     /* validate orientation */
     if ( orient == NULL )
