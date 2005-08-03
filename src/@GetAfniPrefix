@@ -18,6 +18,9 @@ if ("$ext" == "HEAD" || "$ext" == "BRIK") then
    set Name = $Name:r
 endif
 #remove +orig or whatever it is
+set Name = `echo $Name | sed 's/+orig.//'`
+set Name = `echo $Name | sed 's/+acpc.//'`
+set Name = `echo $Name | sed 's/+tlrc.//'`
 set Name = `echo $Name | sed 's/+orig//'`
 set Name = `echo $Name | sed 's/+acpc//'`
 set Name = `echo $Name | sed 's/+tlrc//'`
