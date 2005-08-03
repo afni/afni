@@ -152,9 +152,15 @@ void Syntax(char *str)
     "                  to change such an attribute, you have to use the\n"
     "                  corresponding 3drefit option directly.\n"
     "\n"
-    "  -atrstring nn 'xx' Copy the string 'xx' into the dataset(s) being\n"
-    "                     modified, giving it the attribute name 'nn'.\n"
-    "                     To be safe, the 'xx' string should be in quotes.\n"
+    "  -atrstring n 'x' Copy the string 'x' into the dataset(s) being\n"
+    "                   modified, giving it the attribute name 'n'.\n"
+    "                   To be safe, the 'x' string should be in quotes.\n"
+    "          **N.B.: You can store attributes with almost any name in\n"
+    "                  the .HEAD file.  AFNI will ignore those it doesn't\n"
+    "                  know anything about.  This technique can be a way of\n"
+    "                  communicating information between programs.  However,\n"
+    "                  when most AFNI programs write a new dataset, they will\n"
+    "                  not preserve any such non-standard attributes.\n"
    ) ;
 
    printf(
