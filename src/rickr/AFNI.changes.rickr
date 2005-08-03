@@ -1200,12 +1200,16 @@
   * submitted Peggy's 3dcalc.c updates (for help)
 
 01 August 2005: Dimon 2.0
-  * updated Dimon.c, dimon_afni.c, Imon.c
+  * modified Dimon.c, dimon_afni.c, Imon.c
       - added the option '-dicom_org' to organize DICOM files before any
         other processing
       - enabled '-GERT_Reco2', to create a script to build AFNI datasets
 
 02 August 2005:
-  * updated 3dANOVA2.c, updated calculation of sums of squares for all
+  * modified 3dANOVA2.c, updated calculation of sums of squares for all
       a contrasts (including amean and adiff) [rickr, gangc]
+
+03 August 2005:
+  * modified 3dresample.c, r_new_resam_dset.c, to allow dxyz to override
+      those from a master (if both are supplied)
 
