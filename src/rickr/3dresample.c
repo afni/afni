@@ -4,7 +4,7 @@
 
 #define MAIN
 
-#define VERSION "Version 1.7a <March 22, 2005>"
+#define VERSION "Version 1.8 <August 3, 2005>"
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
@@ -43,34 +43,22 @@ static char g_history[] =
  "----------------------------------------------------------------------\n"
  " history:\n"
  "\n"
- " 1.0  May 23, 2002\n"
- "   - initial release\n"
- "\n"
- " 1.1  July 2, 2002\n"
- "   - modified to fully align new data set grid to that of the master\n"
- "\n"
- " 1.2  July 29, 2002\n"
+ " 1.0  May 23, 2002 - initial release\n"
+ " 1.1  Jul 02, 2002 - modified to fully align new data set grid to master\n"
+ " 1.2  Jul 29, 2002\n"
  "   - no change here, but updated r_new_resam_dset() for view type\n"
- "\n"
  " 1.3  January 14, 2003\n"
  "   - clear warp information before writing to disk (fix uncommon problem)\n"
- "\n"
- " 1.4  July 27, 2003\n"
- "   - wrap unknown printed strings in NULL check\n"
- "\n"
- " 1.5  January 07, 2004\n"
+ " 1.4  Jul 27, 2003 - wrap unknown printed strings in NULL check\n"
+ " 1.5  Jan 07, 2004\n"
  "   - added suggestion of 3dfractionize to -help output\n"
  "   - added '-hist' option\n"
- "\n"
- " 1.6  March 04, 2004\n"
+ " 1.6  Mar 04, 2004\n"
  "   - added check for RESAM_shortstr[] (to catch NN and Bk modes)\n"
  "   - reversed order of history: recent at the bottom\n"
- "\n"
- " 1.7  July 26, 2004\n"
- "   - passed NULL sublist to r_new_resam_dset()\n"
- "\n"
- " 1.7a March 22, 2005\n"
- "   - removed tabs\n"
+ " 1.7  Jul 26, 2004 - passed NULL sublist to r_new_resam_dset()\n"
+ " 1.7a Mar 22, 2005 - removed tabs\n"
+ " 1.8  Aug 02, 2005 - allow dxyz to override those from master\n"
  "----------------------------------------------------------------------\n";
 
 
@@ -142,8 +130,10 @@ int init_options ( options_t * opts, int argc, char * argv [] )
 {
     int ac;
 
-    /* clear out the options structure */
+    /* clear out the options structure, and explicitly set pointers */
     memset( opts, 0, sizeof(options_t) );
+    opts->orient = opts->prefix = NULL; /* laziness with proper conversions */
+    opts->dset   = opts->mset   = NULL;  
 
     for ( ac = 1; ac < argc; ac++ )
     {
@@ -465,6 +455,9 @@ int usage ( char * prog, int level )
             "    both to match that of a master dataset (via the -master\n"
             "    option).\n"
             "\n"
+            "    Note: if both -master and -dxyz are used, the dxyz values\n"
+            "          will override those from the master dataset.\n"
+            "\n"
             " ** Warning: this program is not meant to transform datasets\n"
             "             between view types (such as '+orig' and '+tlrc').\n"
             "\n"
@@ -536,7 +529,7 @@ int usage ( char * prog, int level )
             "\n"
             "          Get dxyz and orient from a master dataset.  The\n"
             "          resulting grid will match that of the master.  This\n"
-            "          option cannot be used with -dxyz or -orient.\n"
+            "          option can be used with -dxyz, but not with -orient.\n"
             "\n"
             "    -prefix OUT_DSET : required prefix for output dataset\n"
             "          e.g.  -prefix reori.asl.pickle\n"
@@ -652,31 +645,50 @@ int sync_master_opts ( options_t * opts )
         return FAIL;                    /* non-NULL but invalid is bad */
     }
 
-    if ( ( opts->dx != 0.0 ) || ( opts->orient != NULL ) )
+    /* allow dxyz override of master data           03 Aug 2005 [rickr] */
+    if ( opts->orient != NULL )
     {
-        fputs( "error: -dxyz and -orient are not valid with -master option, "
-               "exiting...\n", stderr );
+        fputs( "error: -orient is not valid with -master option, exiting...\n",
+                stderr );
         return FAIL;
     }
 
     /* all is okay, so fill dxyz and orientation code from master */
     dax = opts->mset->daxes;
 
-    opts->dx = fabs(dax->xxdel);
-    opts->dy = fabs(dax->yydel);
-    opts->dz = fabs(dax->zzdel);
-
-    /* make space for orient string */
-    if ( (opts->orient = (char *)malloc(4 * sizeof(char)) ) == NULL )
+    if ( opts->debug >= RL_DEBUG_LOW )
     {
-        fputs( "failure: malloc failure for orient, exiting...\n", stderr );
-        return FAIL;
+        if (opts->dx == 0.0) fprintf(stderr,"-d using dxyz from master\n");
+        else                 fprintf(stderr,"-d overriding dxyz from master\n");
     }
 
-    opts->orient[0] = ORIENT_typestr[dax->xxorient][0];
-    opts->orient[1] = ORIENT_typestr[dax->yyorient][0];
-    opts->orient[2] = ORIENT_typestr[dax->zzorient][0];
-    opts->orient[3] = '\0';
+    if ( opts->dx == 0.0 ) /* then get the values from the master */
+    {
+        opts->dx = fabs(dax->xxdel);
+        opts->dy = fabs(dax->yydel);
+        opts->dz = fabs(dax->zzdel);
+    }
+
+    if ( opts->debug >= RL_DEBUG_LOW )
+    {
+        if (!opts->orient) fprintf(stderr,"-d using orient from master\n");
+        else               fprintf(stderr,"-d overriding orient from master\n");
+    }
+
+    if ( opts->orient == NULL ) /* then get values from the master */
+    {
+        /* make space for orient string */
+        if ( (opts->orient = (char *)malloc(4 * sizeof(char)) ) == NULL )
+        {
+            fputs( "failure: malloc failure for orient, exiting...\n", stderr );
+            return FAIL;
+        }
+
+        opts->orient[0] = ORIENT_typestr[dax->xxorient][0];
+        opts->orient[1] = ORIENT_typestr[dax->yyorient][0];
+        opts->orient[2] = ORIENT_typestr[dax->zzorient][0];
+        opts->orient[3] = '\0';
+    }
 
     if ( opts->debug >= RL_DEBUG_LOW )
     {
