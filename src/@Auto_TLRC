@@ -1,0 +1,295 @@
+#!/bin/tcsh -f
+
+if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
+   echo "Usage 1: A script to transform an antomical dataset"
+   echo "         to match a template in TLRC space. "
+   echo ""
+   echo "   `basename $0` [options] <-base template> <-input anat>"
+   echo "   Mandatory parameters:"
+   echo "      -base template :  Reference anatomical volume in TLRC space (+tlrc)."
+   echo "                        Preferably, this reference volume should have had"
+   echo "                        the skull removed but that is not mandatory."
+   echo "      -input anat    :  Original anatomical volume (+orig)."
+   echo "                        The skull is removed by this script"
+   echo "                        unless instructed otherwise (-no_ss)."
+   echo "   Optional parameters:"
+   echo "      -no_ss         :  Do not strip skull of input data set"
+   echo "                        (because skull has already been removed"
+   echo "                        or because template still has the skull)"
+   echo "      -pad_base  MM  :  Pad the base dset by MM mm in each directions."
+   echo "                        That is needed to  make sure that datasets"
+   echo "                        requiring wild rotations do not get cropped."
+   echo "                        Default is MM = 30."
+   echo "      -keep_tmp      :  Keep temporary files."
+   echo "   Example:"
+   echo "   `basename $0` -base N27_SurfVol_NoSkull+tlrc. -input DemoSubj_spgrsa+orig."
+   echo ""
+   echo "Usage 2: A script to transform any dataset by the same TLRC "
+   echo "         transform obtained with `basename $0` in Usage 1 mode"
+   echo ""
+   echo "   `basename $0` [options] <-apar TLRC_parent> <-input dset>"
+   echo "   Mandatory parameters:"
+   echo "      -apar TLRC_parent : An anatomical dataset in tlrc space"
+   echo "                          created using Usage 1 of `basename $0`"
+   echo "      -input dset       : Dataset (typically EPI time series or"
+   echo "                          statistical datset) to transform to"
+   echo "                          tlrc space per the xform in TLRC_parent" 
+   echo "   Example:"
+   echo "   `basename $0` -apar DemoSubj_spgrsa+tlrc. -input DemoSubj_EPI+orig."
+   echo ""
+   echo "Common Optional parameters:"
+   echo "   -keep_view     :  Do not mark output dataset as +tlrc"
+   echo "   -verb          :  Yakiti yak yak" 
+   echo ""
+   echo ""
+   goto END
+endif
+ 
+PARSE: 
+	echo "Parsing ..."
+	set Narg = $#
+	
+	set cnt = 1
+   set RemoveSkull = 1
+   set KeepView = 0
+   set ref_in = ''
+   set anat_in = ''
+   set apar_mode = 0
+   set KeepTmp = 0
+   set verb = 0
+   set pd = 30
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-base") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need template volume after -base"
+            goto END
+			else
+            @ cnt ++
+            set ref_in = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+		if ($donext && "$argv[$cnt]" == "-apar") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need transform volume after -apar"
+            goto END
+			else
+            @ cnt ++
+            set ref_in = "$argv[$cnt]"
+            set apar_mode = 1
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-pad_base") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need value after -pad_base"
+            goto END
+			else
+            @ cnt ++
+            set pd = "$argv[$cnt]"
+            if ($pd > 100 || $pd < 0) then
+               echo "Error: -base_pad should be between 0 and 100"
+               echo "I have $pd"
+               goto END
+            endif
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-input") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need  volume after -input"
+            goto END
+			else
+            @ cnt ++
+            set anat_in = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-no_ss") then
+         set RemoveSkull = 0;		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-keep_view") then
+         set KeepView = 1;		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-keep_tmp") then
+         set KeepTmp = 1;		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-verb") then
+         set verb = 1;		
+         set donext = 0		
+      endif
+		@ cnt ++
+	end
+   if ("$anat_in" == "" || "$ref_in" == "") then
+      echo "Error: Need both -base and -input parameters"
+      goto END
+   endif
+   
+   set ref_path  = $ref_in:h
+   if ( "$ref_path" == "$ref_in" ) set ref_path = "."
+   set anat_path = $anat_in:h
+   if ( "$anat_path" == "${anat_in}" ) set anat_path = "."
+   
+   #At the moment, must have . for anat_path
+   #It looks like 3drefit does not like an input dset with a path
+   if ( "$anat_path" != "." ) then
+      echo "Error: input dataset must be in the current directory"
+      echo "Current path for input dataset is $anat_path"
+      echo "Sorry."
+      goto END
+   endif
+   
+   set ref_pref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
+   set ref_pref  = "${ref_pref_nopad}_${pd}pad"
+   set ref_view = `@GetAfniView ${ref_in}`
+   set anat_pref = "${anat_path}/`@GetAfniPrefix ${anat_in}`"
+   if ($RemoveSkull == 1) then
+      set ns_pref = ${anat_pref}_ns
+   else
+      set ns_pref = ${anat_pref}
+   endif
+   set rs_pref = ${anat_pref}_rs
+   set tt_pref = ${anat_pref}_tt
+
+IN_CHECK:
+if ( `@CheckForAfniDset ${ref_in}` != 2 ) then
+   echo "Error: Template dset ${ref_in} not found."
+   goto END
+endif
+if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
+   echo "Error: Anatomical dset ${anat_in} not found."
+   goto END
+endif 
+
+if ($KeepView == 1) then
+   if ( `@CheckForAfniDset ${tt_pref}+orig` != 0 ) then
+      echo "Error: Output dset ${tt_pref}+orig exists"
+      goto END
+   endif
+else
+   if ( `@CheckForAfniDset ${tt_pref}+tlrc` != 0 ) then
+      echo "Error: Output dset ${tt_pref}+tlrc exists"
+      goto END
+   endif
+endif
+
+if ($apar_mode == 1) then
+   goto APAR_MODE
+else
+   goto AUTO_TLRC_MODE
+endif
+
+#######################
+#Begin auto tlrc block
+#######################
+AUTO_TLRC_MODE:
+   #cleanup in case cleanup was not done in last execution
+   set Ret_Clean = PAD
+   goto CLEANUP
+
+   PAD:
+   #Paddin the reference since tt vols are perrty tight
+   if ( `@CheckForAfniDset ${ref_pref}${ref_view}` == 0 ) then
+      echo "Padding ..."
+      3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ${ref_pref} ${ref_in}
+   endif
+
+   SS:
+   #Skully Strippin, Brainy Sniffing
+   if ( ! -f ${ns_pref}+orig.HEAD ) then
+      echo "Skull Stripping ..."
+      3dSkullStrip -input ${anat_pref}+orig -prefix ${ns_pref}
+      if ( ! -f ${ns_pref}+orig.HEAD ) then
+         echo "Error: Failed to create skull stripped brain"
+         goto END
+      endif
+   endif
+
+   RES:
+   #Resamplin
+   if ( ! -f ${rs_pref}+orig.HEAD ) then
+      echo "Resampling ..."
+      3dresample -rmode Cu -master ${ref_pref}+tlrc -inset ${ns_pref}+orig -prefix ${rs_pref}
+      3drefit -view orig ${rs_pref}+tlrc.HEAD
+      if ( ! -f ${rs_pref}+orig.HEAD ) then
+         echo "Error: Failed to create resampled volume"
+         goto END
+      endif
+   endif
+
+   REG:
+   #Registration
+   echo "Registration ..."
+   set spopt = ''
+   if ($verb == 1) then
+      set spopt = "$spopt -verb"
+   endif
+   3dWarpDrive ${spopt} -twopass -affine_general -cubic -final quintic -base ${ref_pref}+tlrc -prefix ${tt_pref}_${pd}pad -input ${rs_pref}+orig
+   if ( ! -f ${tt_pref}_${pd}pad+orig.HEAD ) then
+      echo "Error: Failed to create tlrced brain"
+      goto END
+   endif
+
+   if (0) then
+      UNPAD:
+      #unPaddin the anatomical : NOT A GOOD IDEA, SINCE YOU LOOSE XFORM in WARPDRIVE_MATVEC_*
+      echo "Unpadding ..."
+      3dZeropad -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm -prefix ${tt_pref} ${tt_pref}_${pd}pad+orig
+   else
+      WARP_VANILLA:
+      #Typically you unpad here, but if you do so, you will loose the xforms stored in fields WARPDRIVE_MATVEC_*
+      #Instead, apply 3dWarp -matparent ${tt_pref}_${pd}pad+orig 
+      echo "Applying final warp to dset ..."
+      3dWarp -matparent ${tt_pref}_${pd}pad+orig -prefix ${tt_pref} -quintic ${ns_pref}+orig
+   endif
+
+   goto WRAP_UP
+#######################
+#end of auto tlrc block
+#######################
+
+#######################
+#Begin apar block
+#######################
+APAR_MODE:
+   echo "Applying tlrc warp from ${ref_pref_nopad}${ref_view} to ${ns_pref}+orig ..."
+   3dWarp -matparent ${ref_pref_nopad}${ref_view} -prefix ${tt_pref} -quintic ${ns_pref}+orig
+   if ( ! -f ${tt_pref}+orig.HEAD) then
+      echo "Error: Failed to create tlrced brain"
+      goto END
+   endif
+   goto WRAP_UP
+#######################
+#End of apar block
+#######################
+
+
+WRAP_UP:
+if ($KeepView == 0) then
+   echo "Changing view of transformed anatomy"
+   3drefit -view +tlrc ${tt_pref}+orig.HEAD
+endif
+
+#this time, cleanup and goto END
+if ($KeepTmp != 1) then 
+   set Ret_Clean = END
+   echo "Cleanup ..."
+   goto CLEANUP
+else
+   goto END
+endif
+
+CLEANUP:
+rm -f ${rs_pref}+orig.HEAD ${rs_pref}+orig.BRIK 
+rm -f ${tt_pref}_${pd}pad+orig.HEAD ${tt_pref}_${pd}pad+orig.BRIK
+goto $Ret_Clean
+
+END:
