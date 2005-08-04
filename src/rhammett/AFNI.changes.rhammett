@@ -1,3 +1,7 @@
+04 Aug 2005
+   * modified 3dTstat.c to add -argmax, -argmin, and
+     -argabsmax functionality
+
 25 Jul 2005
    * modified thd_niftiwrite.c to mark AFNI +tlrc files
      as NIfTI talairach view files when writing
