@@ -9,6 +9,32 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "      -base template :  Reference anatomical volume in TLRC space (+tlrc)."
    echo "                        Preferably, this reference volume should have had"
    echo "                        the skull removed but that is not mandatory."
+   echo "                        AFNI's distribution contains a few templates:"
+   echo "                        N27+tlrc --> Single subject, skull stripped volume."
+   echo "                                     (www.loni.ucla.edu, www.bic.mni.mcgill.ca)"
+   echo "                                     This template has a full set of FreeSurfer"
+   echo "                                     (surfer.nmr.mgh.harvard.edu)"
+   echo "                                     surface models that can be used in SUMA. "
+   echo "                                     For details, see Talairach-related link:"
+   echo "                                     http://afni.nimh.nih.gov/afni/suma"
+   echo "                        icbm452+tlrc --> Average volume of 452 normal brains."
+   echo "                                         (www.loni.ucla.edu)"
+   echo "                        mni152+tlrc --> Average volume of 152 normal brains."
+   echo "                                        (www.bic.mni.mcgill.ca)"
+   echo ""
+   echo "                        If you do not specify a path for the template, the script"
+   echo "                        will attempt to locate the template AFNI's binaries directory."
+   echo ""
+   echo "                        NOTE: These datasets have been slightly modified from"
+   echo "                              their original size to match the standard TLRC"
+   echo "                              dimensions (Jean Talairach and Pierre Tournoux"
+   echo "                              Co-Planar Stereotaxic Atlas of the Human Brain"
+   echo "                              Thieme Medical Publishers, New York, 1988). "
+   echo "                              That was done for internal consistency in AFNI."
+   echo "                              You may use the original form of these"
+   echo "                              volumes if you choose but your TLRC coordinates"
+   echo "                              will not be consistent with AFNI's TLRC database"
+   echo "                              (San Antonio Talairach Daemon database), for example."
    echo "      -input anat    :  Original anatomical volume (+orig)."
    echo "                        The skull is removed by this script"
    echo "                        unless instructed otherwise (-no_ss)."
@@ -50,6 +76,9 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "   -keep_view     :  Do not mark output dataset as +tlrc"
    echo "   -verb          :  Yakiti yak yak" 
    echo ""
+   echo ""
+   echo "Written by Ziad S. Saad (ziad@nih.gov)"
+   echo "                        SSCC/NIMH/NIH/DHHS"
    echo ""
    goto END
 endif
@@ -185,10 +214,14 @@ PARSE:
       goto END
    endif
    
-   set ref_path  = $ref_in:h
-   if ( "$ref_path" == "$ref_in" ) set ref_path = "."
+   goto SET_REF_PATH
+   SET_REF_PATH_RETURN:
+   #echo "Template/Apar path is: $ref_path"
+   
    set anat_path = $anat_in:h
    if ( "$anat_path" == "${anat_in}" ) set anat_path = "."
+
+   
    
    #At the moment, must have . for anat_path
    #It looks like 3drefit does not like an input dset with a path
@@ -228,7 +261,7 @@ PARSE:
    endif
    
    set ref_pref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
-   set ref_pref  = "${ref_pref_nopad}_${pd}pad"
+   set ref_pref_pad  = "${tmppref}_ref_`@GetAfniPrefix ${ref_in}`_${pd}pad"
    set ref_view = `@GetAfniView ${ref_in}`
    set anat_pref = "${anat_path}/`@GetAfniPrefix ${anat_in}`"
    if ($RemoveSkull == 1) then
@@ -277,9 +310,9 @@ AUTO_TLRC_MODE:
 
    PAD:
    #Paddin the reference since tt vols are perrty tight
-   if ( `@CheckForAfniDset ${ref_pref}${ref_view}` == 0 ) then
+   if ( `@CheckForAfniDset ${ref_pref_pad}${ref_view}` == 0 ) then
       echo "Padding ..."
-      3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ${ref_pref} ${ref_in}
+      3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${ref_pref_pad} ${ref_in}
    endif
 
    SS:
@@ -300,8 +333,8 @@ AUTO_TLRC_MODE:
       rm -f ${tmppref}_resamp* >& /dev/null
       #Use cubic for somoothness of result since it will be used in registration.
       #But that causes edge artifacts from interpolation. Use a NN resampled mask to cleanup
-      3dresample -rmode Cu -master ${ref_pref}+tlrc -inset ${ns_pref}+orig -prefix ${tmppref}_resamp_edge_art
-      3dresample -rmode NN -master ${ref_pref}+tlrc -inset ${ns_pref}+orig -prefix ${tmppref}_resamp_NN
+      3dresample -rmode Cu -master ${ref_pref_pad}+tlrc -inset ${ns_pref}+orig -prefix ${tmppref}_resamp_edge_art
+      3dresample -rmode NN -master ${ref_pref_pad}+tlrc -inset ${ns_pref}+orig -prefix ${tmppref}_resamp_NN
       3dcalc   -a "${tmppref}_resamp_edge_art+tlrc." -b "${tmppref}_resamp_NN+tlrc." \
                -expr "a*step(b)" -prefix ${tmppref}_resamp
       if ( ! -f ${tmppref}_resamp+tlrc.HEAD) then
@@ -334,7 +367,7 @@ AUTO_TLRC_MODE:
       set spopt = "$spopt -verb"
    endif
    3dWarpDrive ${spopt} -twopass -affine_general -cubic  \
-               -final ${rmode} -base ${ref_pref}+tlrc \
+               -final ${rmode} -base ${ref_pref_pad}+tlrc \
                -prefix ${tmppref}_reg_warpdriveout -input ${rs_pref}+orig
    if ( ! -f ${tmppref}_reg_warpdriveout+orig.HEAD ) then
       echo "Error: Failed in 3dWarpDrive "
@@ -407,11 +440,53 @@ else
    goto END
 endif
 
+
+goto END
+
+
 CLEANUP:
+rm -f ${tmppref}_ref* >& /dev/null
 rm -f ${tmppref}_reg* >& /dev/null
 rm -f ${tmppref}_resam* >& /dev/null
 rm -f ${rs_pref}+orig.HEAD ${rs_pref}+orig.BRIK >& /dev/null
 rm -f ${tt_pref}_${pd}pad+orig.HEAD ${tt_pref}_${pd}pad+orig.BRIK >& /dev/null
 goto $Ret_Clean
+
+SET_REF_PATH:
+set ref_path = $ref_in:h
+if ( "$ref_path" == "$ref_in" ) then
+   #echo "No Path specified ( $ref_path == $ref_in )" 
+   set ref_path = "."
+   if ($apar_mode == 1) then
+      goto SET_REF_PATH_RETURN
+   endif
+   #if not in apar mode, try to set the path
+   if ( `@CheckForAfniDset ${ref_in}` == 2 ) then
+      echo "Template dset ${ref_in} found."
+      goto SET_REF_PATH_RETURN
+   endif
+   #search where afni is
+   set wa = `which afni`
+   if ( $status != 0) then
+      echo "Error: afni not located"
+      goto END
+   endif
+   set ref_path = "$wa:h"
+   if ( "$ref_path" == "$wa" ) then
+      set ref_path = "."
+      echo "Error: Template $ref_in could not be located"
+      goto END
+   endif
+   #echo "try finding ref_in in new ref_path"
+   if ( `@CheckForAfniDset ${ref_path}/${ref_in}` != 2 ) then
+      echo "Error: Template dset ${ref_in} not found in afni's binaries directory"
+      goto END
+   endif
+   echo "Using template from ${ref_path} ..."
+   set ref_in = ${ref_path}/${ref_in}
+else
+   #echo "Path specified (${ref_path}), stay out of this"
+endif
+goto SET_REF_PATH_RETURN
 
 END:
