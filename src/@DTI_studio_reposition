@@ -87,7 +87,7 @@ HELP:
    echo "sample_dti_vol+orig is an AFNI volume of one DWI in the first"
    echo "   gradient direction (54 slices). sample_dti_vol+orig was "
    echo "   created using: "
-   echo "   to3d DTIepi2new-000[0-4]?.dcm DTIepi2new-0005[0-4].dcm -prefix sample_dti_vol"
+   echo "   to3d -prefix sample_dti_vol DTIepi2new-000[0-4]?.dcm DTIepi2new-0005[0-4].dcm "
    echo "To create a version of FA35 that is in alignment with sample_dti_vol do:"
    echo "`basename $0` FA35.hdr sample_dti_vol+orig"
    echo ""
