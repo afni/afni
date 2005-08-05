@@ -121,7 +121,8 @@ int main( int argc , char * argv[] )
          }
          printf(" = %g\n",value) ; fflush(stdout) ;
       } else {
-         printf("%g\n",value) ;
+         if (0) printf("%g\n",value) ;   /* Undesirable output when using say -eval "3552 + 0.0001", gives 3552 instead of 3552.0001 */
+         else printf("%f\n",value) ;
          exit (0);
       }
    } while(1) ;
