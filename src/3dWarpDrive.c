@@ -1134,10 +1134,17 @@ int main( int argc , char * argv[] )
 
    if( clip_baset > 0.0f && clip_inset > 0.0f ){
      float fac = clip_inset / clip_baset ;
-     if( fac > 0.01 && fac < 100.0 ){
+     if( fac > 0.005 && fac < 2000.0 ){ /* zss: have encountered OK data needing very large scale corrections...*/
        abas.scale_init = fac ;
        if( abas.verb ) INFO_message("Scale factor set to %.2f/%.2f=%.2g\n",
                                clip_baset , clip_inset , fac ) ;
+       if (fac > 200) {
+         fprintf(stderr,"++ Warning: Scale init = %g is large. Check output.\n", fac) ;
+       }
+     } else {
+      fprintf(stderr,"-- Large scale difference between datasets.\n"
+                     "   Scale init = %g\n"
+                     "   3dWarpDrive might not converge.",fac) ;  
      }
    }
 
