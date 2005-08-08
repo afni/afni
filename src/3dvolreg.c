@@ -497,9 +497,13 @@ int main( int argc , char *argv[] )
              }
            if( sq > 0.0 ){
              sf = sf / sq ;
-             if( sf > 0.005 && sf < 200.0 ){
+             if( sf > 0.005 && sf < 2000.0 ){ /* ZSS: sf increased to 2000 because sf of 1200 has been encountered with acceptable data */
                mri_3dalign_scaleinit(sf) ;
-               if( VL_verbose ) fprintf(stderr,"++ Scale init = %g\n",sf) ;
+               if (sf < 200.0) {
+                  if (VL_verbose) fprintf(stderr,"++ Scale init = %g\n",sf) ;
+               } else {
+                  fprintf(stderr,"++ Warning: Scale init = %g is large. Check output.\n",sf) ;
+               }
              } else {
                fprintf(stderr,"-- Large scale difference between datasets.\n"
                               "   Scale init = %g\n"
