@@ -691,21 +691,20 @@ typedef struct {
 
 /** picture controls **/
 
-#undef OLD_PICTURE
-#ifdef OLD_PICTURE
-#  define PICTURE_ON(im)  XtSetSensitive( (im)->vwid->picture , False )
-#  define PICTURE_OFF(im) XtSetSensitive( (im)->vwid->picture , True )
-#else
-#  define PICTURE_ON(im)                                                      \
-     do{ if( (im)->type == AFNI_3DDATA_VIEW )                                 \
-          XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,logo_pixmap,NULL); \
-       } while(0)
+#define PICTURE_ON(im)                                                      \
+   do{ if( (im)->type == AFNI_3DDATA_VIEW )                                 \
+        XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,logo_pixmap,NULL); \
+   } while(0)
 
-#  define PICTURE_OFF(im)                                                               \
-     do{ if( (im)->type == AFNI_3DDATA_VIEW )                                           \
-          XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,XmUNSPECIFIED_PIXMAP,NULL ); \
-       } while(0)
-#endif
+#define PICTURE_OFF(im)                                                               \
+   do{ if( (im)->type == AFNI_3DDATA_VIEW )                                           \
+        XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,XmUNSPECIFIED_PIXMAP,NULL ); \
+   } while(0)
+
+#define PICTURE_SET(im,px)                                            \
+   do{ if( (im)->type == AFNI_3DDATA_VIEW )                           \
+        XtVaSetValues((im)->vwid->picture,XmNlabelPixmap,(px),NULL ); \
+   } while(0)
 
 /*-----------------------------*/
 /*----- Data for FIM-age ------*/
