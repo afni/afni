@@ -388,12 +388,26 @@ STATUS("WANT_LOGO_BITMAP") ;
                         logo_pixmap ,
                         im3d->dc->origGC ,
                         xim , 0,0 , 0,0 , lll_width , lll_height ) ;
-          MCW_kill_XImage( xim ); mri_clear_data_pointer(bim); mri_free(bim);
+          MCW_kill_XImage( xim );
+
+          mri_fix_data_pointer( vvv_rgb , bim ) ;      /* 08 Aug 2005 */
+          vers_pixmap = XCreatePixmap( im3d->dc->display ,
+                                       RootWindowOfScreen(im3d->dc->screen) ,
+                                       lll_width , lll_height ,
+                                       im3d->dc->planes ) ;
+          xim = rgb_to_XImage( im3d->dc , bim ) ;
+          if( xim != NULL )
+             XPutImage( im3d->dc->display ,
+                        vers_pixmap ,
+                        im3d->dc->origGC ,
+                        xim , 0,0 , 0,0 , lll_width , lll_height ) ;
+          MCW_kill_XImage( xim );
+          mri_clear_data_pointer(bim); mri_free(bim);
         }
 #endif
 
         if( logo_pixmap == XmUNSPECIFIED_PIXMAP )         /* original code */
-          logo_pixmap = XCreatePixmapFromBitmapData(
+          logo_pixmap = XCreatePixmapFromBitmapData(      /* B&W pixmap logo */
                           XtDisplay(vwid->top_shell) ,
                           RootWindowOfScreen(XtScreen(vwid->top_shell)) ,
                           logo_bits , logo_width , logo_height ,
@@ -4096,15 +4110,12 @@ STATUS("making prog->rowcol") ;
                  XmNleftOffset       , 0 ,
                  XmNlabelType        , XmPIXMAP ,
                  XmNalignment        , XmALIGNMENT_CENTER ,
-#ifdef OLD_PICTURE
-                 XmNlabelInsensitivePixmap , logo_pixmap ,
-#endif
-                 XmNwidth        , logo_width ,
-                 XmNheight       , logo_height ,
-                 XmNmarginWidth  , 0 ,
-                 XmNmarginHeight , 0 ,
-                 XmNrecomputeSize, False ,
-                 XmNtraversalOn  , False ,
+                 XmNwidth            , logo_width ,
+                 XmNheight           , logo_height ,
+                 XmNmarginWidth      , 0 ,
+                 XmNmarginHeight     , 0 ,
+                 XmNrecomputeSize    , False ,
+                 XmNtraversalOn      , False ,
                  XmNinitialResourcesPersistent , False ,
              NULL ) ;
       MCW_register_help( vwid->picture , AFNI_abohelp ) ;
