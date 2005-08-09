@@ -5665,3 +5665,7 @@
      of the output, assuming that they were used (with '-matparent') on input.
  * Modified 3drefit.c to add '-atrcopy' and '-atrstring' options to copy and
      set attributes.
+
+08 Aug 2005
+ * Added "AFNI Version Check!" logo to afni.c & afni_widg.c in case user is
+     out of date.
