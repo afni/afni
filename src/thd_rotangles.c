@@ -193,14 +193,14 @@ ENTRY("THD_rotcom_to_matvec") ;
 
    nrc = strlen(rotcom) ;
    buf = strstr(rotcom,"-rotate") ;
-   if( buf != NULL && (buf-rotcom)+10 < nrc ){
-      float th1,th2,th3 , dh1,dh2,dh3 ;
-      char  cp1,cp2,cp3 ;
+   if( buf != NULL && (buf-rotcom)+8 < nrc ){
+      float th1=0.0,th2=0.0,th3=0.0 , dh1,dh2,dh3 ;
+      char  cp1='x',cp2='y',cp3='z' ;
       int   ax1,ax2,ax3 ;
 
       nn = sscanf( buf+7, "%f%c %f%c %f%c",
                    &th1,&cp1, &th2,&cp2, &th3,&cp3 );
-      if( nn < 6 ) RETURN(out) ;
+      if( nn < 1 ) RETURN(out) ;
       if( isspace(cp1) ) cp1 = 'x' ;  /* should not happen */
       if( isspace(cp2) ) cp2 = 'y' ;
       if( isspace(cp3) ) cp3 = 'z' ;

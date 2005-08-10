@@ -114,10 +114,8 @@ int main( int argc , char * argv[] )
       dvm = THD_read_dvecmat( argv[iarg] , invert ) ;
       qmat = dvm.mm ; qvec = dvm.vv ;
 
-      if( SIZE_DMAT(qmat) == 0.0 ){
-         fprintf(stderr,"*** ERROR: can't read mfile %s\n",argv[iarg]) ;
-         exit(1) ;
-      }
+      if( SIZE_DMAT(qmat) == 0.0 )
+        ERROR_exit("can't read mfile %s\n",argv[iarg]) ;
 
       iarg += nadd ;
 
