@@ -5,14 +5,14 @@
   14 Feb 2001: modified to add "-rotate ..." mode
 ---------------------------------------------------------------------*/
 
-THD_dvecmat THD_read_dvecmat( char * fname , int invert )
+THD_dvecmat THD_read_dvecmat( char *fname , int invert )
 {
    THD_dvecmat dvm ;
    THD_dmat33 tmat ;
    THD_dfvec3 tvec ;
-   FILE * fp ;
+   FILE *fp ;
    double dd[12] ;
-   int  nn ;
+   int  nn , loaded=0 ;
 
 ENTRY("THD_read_dvecmat") ;
 
@@ -20,42 +20,54 @@ ENTRY("THD_read_dvecmat") ;
    LOAD_DFVEC3(tvec,0.0,0.0,0.0) ;
 
    if( fname == NULL || fname[0] == '\0' ){
-      dvm.vv = tvec ; dvm.mm = tmat ; RETURN(dvm) ;
+     dvm.vv = tvec ; dvm.mm = tmat ; RETURN(dvm) ;
    }
 
    /*-- filename is "dataset::attribute" --*/
 
    if( strstr(fname,"::") != NULL ){  /*== read from dataset header ==*/
-      char * dname = strdup(fname) ;
-      char * cc = strstr(dname,"::") ;
-      THD_3dim_dataset * dset ;
-      ATR_float * atr ;
+     char *dname = strdup(fname) ;
+     char *cc = strstr(dname,"::") ;
+     char *ss ; int iss=0 ;
+     THD_3dim_dataset *dset ;
+     ATR_float *atr ;
 
-      *cc = '\0' ; cc += 2 ;  /* dname = dataset name ; cc = attribute name */
+     *cc = '\0' ; cc += 2 ;  /* dname = dataset name ; cc = attribute name */
 
-      dset = THD_open_one_dataset( dname ) ;
-      if( !ISVALID_DSET(dset) ){
-         fprintf(stderr,
-                 "*** THD_read_dvecmat: can't open dataset %s\n",
-                 dname) ;
-         dvm.vv = tvec ; dvm.mm = tmat ; free(dname) ; RETURN(dvm) ;
-      }
+     dset = THD_open_one_dataset( dname ) ;
+     if( !ISVALID_DSET(dset) ){
+       ERROR_message("THD_read_dvecmat: can't open dataset %s\n",dname) ;
+       dvm.vv = tvec ; dvm.mm = tmat ; free(dname) ; RETURN(dvm) ;
+     }
 
-      atr = THD_find_float_atr( dset->dblk , cc ) ;
-      if( atr == NULL ){
-         fprintf(stderr,
-                 "*** THD_read_dvecmat: can't find attribute %s in dataset %s\n",
-                 cc,dname) ;
-         dvm.vv = tvec ; dvm.mm = tmat ; free(dname) ; RETURN(dvm) ;
-      }
+     ss = strstr(cc,"[") ;
+     if( ss != NULL ){
+       *ss = '\0'; ss++; iss = (int)strtol(ss,NULL,10); if( iss < 0 ) iss = 0;
+     }
+     atr = THD_find_float_atr( dset->dblk , cc ) ;
+     if( atr == NULL ){
+       ERROR_message("THD_read_dvecmat: can't find attribute %s in dataset %s\n",
+                     cc,dname) ;
+       dvm.vv = tvec ; dvm.mm = tmat ; free(dname) ; RETURN(dvm) ;
+     }
 
+     if( strcmp(cc,"WARP_DATA") == 0 ){  /* 10 Aug 2005 */
+
+       LOAD_DMAT(tmat,atr->fl[0],atr->fl[1],atr->fl[2],
+                      atr->fl[3],atr->fl[4],atr->fl[5],
+                      atr->fl[6],atr->fl[7],atr->fl[8] ) ;
+       LOAD_DFVEC3(tvec,-atr->fl[18],-atr->fl[19],-atr->fl[20]) ;
+       loaded = 1 ;
+    }
+
+    if( !loaded ){
       switch( atr->nfl ){
 
-         default:
-            fprintf(stderr,
-                    "*** THD_read_dvecmat: can't read matrix+vector from dataset %s, attribute %s\n",
-                    dname,cc) ;
-            dvm.vv = tvec ; dvm.mm = tmat ; free(dname) ; RETURN(dvm) ;
+        default:
+          ERROR_message(
+                  "THD_read_dvecmat: can't read matrix+vector from %s::%s\n",
+                   dname,cc) ;
+           dvm.vv = tvec ; dvm.mm = tmat ; free(dname) ; RETURN(dvm) ;
          break ; /* unreachable */
 
          case 12: LOAD_DMAT(tmat,atr->fl[0],atr->fl[1],atr->fl[2],
@@ -69,9 +81,10 @@ ENTRY("THD_read_dvecmat") ;
                                  atr->fl[6],atr->fl[7],atr->fl[8] ) ;
                   LOAD_DFVEC3(tvec,0,0,0) ;
          break ;
-      }
+       }
+    }
 
-      free(dname) ; DSET_delete(dset) ;
+    free(dname) ; DSET_delete(dset) ;
 
    /*-- 14 Feb 2001: filename is "-rotate a b c -[ab]shift x y z" string --*/
 

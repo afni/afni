@@ -971,9 +971,8 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
        if( jj >= ndar ){
          jj = ndar-1 ;
          if( ndar_over == 0 )
-           fprintf(stderr,
-                   "++ WARNING: from brick %d on, using last line (%d) from %s\n",
-                   jj , ndar-1 , dname ) ;
+           WARNING_message("from brick %d on, using last line (%d) from %s\n",
+                           jj , ndar-1 , dname ) ;
          ndar_over++ ;
        }
 
