@@ -5669,3 +5669,6 @@
 08 Aug 2005
  * Added "AFNI Version Check!" logo to afni.c & afni_widg.c in case user is
      out of date.
+
+10 Aug 2005
+ * Modified cat_matvec.c to allow ::WARP_DATA input, and MATRIX() output.

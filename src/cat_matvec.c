@@ -4,8 +4,6 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
 
-/*============ 08 Feb 2001: actually implement this code - RWCox ============*/
-
 #include "mrilib.h"
 #include "vecmat.h"
 
@@ -14,26 +12,27 @@ int main( int argc , char * argv[] )
    int iarg=1 , nn , invert,nadd ;
    THD_dmat33 tmat , qmat , imat ;
    THD_dfvec3 tvec , qvec , ivec ;
-   FILE * fp ;
+   FILE *fp ;
    double dd[12] ;
    THD_dvecmat dvm ;
+   int matout=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: cat_matvec matvec_spec matvec_spec ...\n"
+      printf("Usage: cat_matvec [-MATRIX] matvec_spec matvec_spec ...\n"
              "\n"
              "Catenates 3D rotation+shift matrix+vector transformations.\n"
              "Each matvec_spec is of the form\n"
              "\n"
              "  mfile [-opkey]\n"
              "\n"
-             "'mfile' can take 2 forms:\n"
+             "'mfile' specifies the matrix, and can take 4 forms:\n"
              "\n"
              "=== FORM 1 ===\n"
              "mfile is the name of an ASCII file with 12 numbers arranged\n"
              "in 3 lines:\n"
              "      u11 u12 u13 v1\n"
              "      u21 u22 u23 v2\n"
-             "      u31 u32 u33 u3\n"
+             "      u31 u32 u33 v3\n"
              "where each 'uij' and 'vi' is a number.  The 3x3 matrix [uij]\n"
              "is the matrix of the transform, and the 3-vector [vi] is the\n"
              "shift.  The transform is [xnew] = [uij]*[xold] + [vi].\n"
@@ -42,7 +41,26 @@ int main( int argc , char * argv[] )
              "mfile is of the form 'dataset::attribute', where 'dataset'\n"
              "is the name of an AFNI dataset, and 'attribute' is the name\n"
              "of an attribute in the dataset's header that contains a\n"
-             "matrix+vector (e.g., 'fred+orig::VOLREG_MATVEC_000000').\n"
+             "matrix+vector.  Examples:\n"
+             " 'fred+orig::VOLREG_MATVEC_000000'        = fred+orig from 3dvolreg\n"
+             " 'fred+acpc::WARP_DATA'                   = fred+acpc warped in AFNI\n"
+             " 'fred+orig::WARPDRIVE_MATVEC_FOR_000000' = fred+orig from 3dWarpDrive\n"
+             " 'fred+orig::ROTATE_MATVEC_000000'        = fred+orig from 3drotate\n"
+             "\n"
+             "=== FORM 3 ===\n"
+             "mfile is of the form\n"
+             " 'MATRIX(u11,u12,u13,v1,u21,u22,u23,v2,u31,u32,u33,v3)'\n"
+             "directly giving all 12 numbers on the command line.  You will\n"
+             "need the 'forward single quotes' around this argument.\n"
+             "\n"
+             "=== FORM 4 ===\n"
+             "mfile is of the form\n"
+             " '-rotate xI yR zA'\n"
+             "where 'x', 'y', and 'z' are angles in degrees, specifying rotations\n"
+             "about the I, R, and A axes respectively.  The letters 'I', 'R', 'A'\n"
+             "specify the axes, and can be altered as in program 3drotate.\n"
+             "(The 'quotes' are mandatory here because the argument contains spaces.)\n"
+             "\n"
              "\n"
              "=== COMPUTATIONS ===\n"
              "If [U] [v] are the matrix/vector for the first mfile, and\n"
@@ -60,17 +78,21 @@ int main( int argc , char * argv[] )
              "       [xold] = [uij]  [xnew] - [uij]  [vi]\n"
              "\n"
              "The transformation resulting by catenating the transformations\n"
-             "is written to stdout in the sam ASCII file format.  This can be\n"
-             "used as input to 3drotate -matvec_dicom (provided [uij] is a\n"
+             "is written to stdout in the same 3x4 ASCII file format.  This can\n"
+             "be used as input to 3drotate -matvec_dicom (provided [uij] is a\n"
              "proper orthogonal matrix).\n"
              "\n"
-             "N.B.: If exactly 9 numbers can be read from an mfile, then those\n"
-             "      values form the matrix, and the vector is set to zero.\n"
+             "N.B.: If only 9 numbers can be read from an mfile, then those\n"
+             "      values form the [uij] matrix, and the vector is set to zero.\n"
+             "N.B.: The '-MATRIX' option indicates that the resulting matrix will\n"
+             "      be written to stdout in the 'MATRIX(...)' format (FORM 3).\n"
            ) ;
       exit(0) ;
    }
 
    /* initialize identity transformation into tmat,tvec */
+
+   machdep() ;
 
    LOAD_DIAG_DMAT(tmat,1.0,1.0,1.0) ;
    LOAD_DFVEC3(tvec,0.0,0.0,0.0) ;
@@ -78,6 +100,10 @@ int main( int argc , char * argv[] )
    /* loop and read arguments, process them */
 
    while( iarg < argc ){
+
+      if( strcmp(argv[iarg],"-MATRIX") == 0 ){
+        matout = 1 ;  iarg++ ; continue ;
+      }
 
       nadd = 1 ; invert = 0 ;
       if( iarg+1 < argc && strcmp(argv[iarg+1],"-I") == 0 ){
@@ -103,12 +129,24 @@ int main( int argc , char * argv[] )
 
    /* write results to stdout */
 
-   printf("%13.6g %13.6g %13.6g %13.6g\n"
-          "%13.6g %13.6g %13.6g %13.6g\n"
-          "%13.6g %13.6g %13.6g %13.6g\n" ,
-     tmat.mat[0][0] , tmat.mat[0][1] , tmat.mat[0][2] , tvec.xyz[0] ,
-     tmat.mat[1][0] , tmat.mat[1][1] , tmat.mat[1][2] , tvec.xyz[1] ,
-     tmat.mat[2][0] , tmat.mat[2][1] , tmat.mat[2][2] , tvec.xyz[2]  ) ;
-
+   if( matout ){
+     char buf[1024] ; int ii, lb ;
+     sprintf(buf,"MATRIX(%13.6g,%13.6g,%13.6g,%13.6g,"
+                        "%13.6g,%13.6g,%13.6g,%13.6g,"
+                        "%13.6g,%13.6g,%13.6g,%13.6g)" ,
+       tmat.mat[0][0] , tmat.mat[0][1] , tmat.mat[0][2] , tvec.xyz[0] ,
+       tmat.mat[1][0] , tmat.mat[1][1] , tmat.mat[1][2] , tvec.xyz[1] ,
+       tmat.mat[2][0] , tmat.mat[2][1] , tmat.mat[2][2] , tvec.xyz[2]  ) ;
+     for( ii=0 ; buf[ii] != '\0' ; ii++ )
+       if( !isspace(buf[ii]) ) putchar(buf[ii]) ;
+     putchar('\n') ;
+   } else {
+     printf("%13.6g %13.6g %13.6g %13.6g\n"
+            "%13.6g %13.6g %13.6g %13.6g\n"
+            "%13.6g %13.6g %13.6g %13.6g\n" ,
+       tmat.mat[0][0] , tmat.mat[0][1] , tmat.mat[0][2] , tvec.xyz[0] ,
+       tmat.mat[1][0] , tmat.mat[1][1] , tmat.mat[1][2] , tvec.xyz[1] ,
+       tmat.mat[2][0] , tmat.mat[2][1] , tmat.mat[2][2] , tvec.xyz[2]  ) ;
+   }
    exit(0) ;
 }
