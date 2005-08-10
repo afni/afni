@@ -79,13 +79,15 @@ int main( int argc , char * argv[] )
              "\n"
              "The transformation resulting by catenating the transformations\n"
              "is written to stdout in the same 3x4 ASCII file format.  This can\n"
-             "be used as input to 3drotate -matvec_dicom (provided [uij] is a\n"
-             "proper orthogonal matrix).\n"
+             "be used as input to '3drotate -matvec_dicom' (provided [uij] is a\n"
+             "proper orthogonal matrix), or to '3dWarp -matvec_xxx'.\n"
              "\n"
              "N.B.: If only 9 numbers can be read from an mfile, then those\n"
              "      values form the [uij] matrix, and the vector is set to zero.\n"
              "N.B.: The '-MATRIX' option indicates that the resulting matrix will\n"
              "      be written to stdout in the 'MATRIX(...)' format (FORM 3).\n"
+             "      This feature could be used, with clever scripting, to input\n"
+             "      a matrix directly on the command line to program 3dWarp.\n"
            ) ;
       exit(0) ;
    }
