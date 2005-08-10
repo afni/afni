@@ -3,6 +3,7 @@
 /*-------------------------------------------------------------------
   08 Feb 2001: read a matrix+vector from a file - RWCox
   14 Feb 2001: modified to add "-rotate ..." mode
+  10 Aug 2005: add MATRIX(...)
 ---------------------------------------------------------------------*/
 
 THD_dvecmat THD_read_dvecmat( char *fname , int invert )
@@ -93,14 +94,31 @@ ENTRY("THD_read_dvecmat") ;
       dvm = THD_rotcom_to_matvec( NULL , fname ) ;  /* thd_rotangles.c */
       tvec = dvm.vv ; tmat = dvm.mm ;
 
+   /*-- MATRIX(...) --*/
+
+   } else if( strncmp(fname,"MATRIX(",7) == 0 ){
+     float matar[12] ; int nn ;
+     nn = sscanf(fname,"MATRIX(%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",
+                       matar+0 , matar+1 , matar+2 , matar+3 ,
+                       matar+4 , matar+5 , matar+6 , matar+7 ,
+                       matar+8 , matar+9 , matar+10, matar+11 ) ;
+     if( nn < 12 ){
+       ERROR_message("badly formatted: %s",fname) ;
+     } else {
+       LOAD_DMAT(tmat,matar[0],matar[1],matar[2],
+                      matar[4],matar[5],matar[6],
+                      matar[8],matar[9],matar[10] ) ;
+       LOAD_DFVEC3(tvec,matar[3],matar[7],matar[11]) ;
+     }
+
    /*-- just a normal filename --*/
 
    } else {  /*== read numbers from file ==*/
 
       fp = fopen( fname , "r" ) ;
       if( fp == NULL ){
-         fprintf(stderr,
-                 "*** THD_read_dvecmat: can't open file %s\n",
+         ERROR_message(
+                 "THD_read_dvecmat: can't open file %s\n",
                  fname) ;
          dvm.vv = tvec ; dvm.mm = tmat ; RETURN(dvm) ;
       }
@@ -115,8 +133,8 @@ ENTRY("THD_read_dvecmat") ;
       switch( nn ){  /* how many did we actually read? */
 
          default:
-            fprintf(stderr,
-                    "*** THD_read_dvecmat: can't read matrix+vector from file %s\n",
+            ERROR_message(
+                    "THD_read_dvecmat: can't read matrix+vector from file %s\n",
                     fname) ;
             dvm.vv = tvec ; dvm.mm = tmat ; RETURN(dvm) ;
          break ; /* unreachable */
