@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 #define VERSION_URL "http://afni.nimh.nih.gov/afni/AFNI.version"
@@ -61,7 +61,7 @@ int main( int argc , char *argv[] )
    fprintf(stderr,"\n") ;
 
    if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ){
-     fprintf(stderr,"** Error in fetch!\n"); EXIT(1);
+     printf("** Error fetching %s!\n",VERSION_URL); exit(0);
    }
 
    sscanf( vbuf , "%127s" , vv ) ;
@@ -69,5 +69,5 @@ int main( int argc , char *argv[] )
    printf("Latest version listed at AFNI web site:\n"
           "  Version ID   = %s\n" , vv ) ;
 
-   exit(0) ;
+   exit( (strcmp(vv,VERSION) != 0) ) ;
 }

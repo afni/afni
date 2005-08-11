@@ -4901,7 +4901,7 @@ STATUS("got func info") ;
       char *inf = NULL ; int ii ;
 
       for( ii=0 ; readme_env[ii] != NULL ; ii++ )
-         inf = THD_zzprintf( inf , "%s" , readme_env[ii] ) ;
+        inf = THD_zzprintf( inf , "%s" , readme_env[ii] ) ;
       (void) new_MCW_textwin( im3d->vwid->imag->topper , inf , TEXT_READONLY ) ;
       free(inf) ;
    }
@@ -4909,7 +4909,7 @@ STATUS("got func info") ;
    /*.........................................................*/
 
    else if( w == im3d->vwid->dmode->misc_vcheck_pb ){  /* 11 Jan 2000 */
-      FILE *fp = popen( "afni_vcheck" , "r" ) ;
+      FILE *fp = popen( "afni_vcheck" , "r" ); int vc;
       if( fp == NULL ){
          (void)  MCW_popup_message( im3d->vwid->imag->topper ,
                                      " \n"
@@ -4924,13 +4924,20 @@ STATUS("got func info") ;
                         "   ---------------------------------\n \n"   ) ;
          ninfo = strlen(info) ;
          while( fgets(info+ninfo,ISIZE-ninfo,fp) != NULL ){
-            ninfo = strlen(info) ;
-            if( ninfo >= ISIZE-2 ) break ;
+           ninfo = strlen(info) ;
+           if( ninfo >= ISIZE-2 ) break ;
          }
-         pclose(fp) ;
+         vc = pclose(fp) ;
+         ninfo = strlen(info) ;
+         if( ninfo+42 < ISIZE ){
+                if( vc > 0  ) strcat(info,"\n\n****** VERSIONS DON'T MATCH !! ******\n");
+           else if( vc == 0 ) strcat(info,"\n\n****** VERSIONS MATCH OK !! ******\n") ;
+         }
          (void) MCW_popup_message( im3d->vwid->imag->topper , info ,
                                    MCW_USER_KILL | MCW_TIMER_KILL   ) ;
          free(info) ;
+
+         if( vc > 0 ) AFNI_vcheck_flasher(im3d) ;
       }
    }
 

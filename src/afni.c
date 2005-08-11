@@ -1785,6 +1785,23 @@ ENTRY("AFNI_quit_timeout_CB") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------*/
+
+void AFNI_vcheck_flasher( Three_D_View *im3d )
+{
+   int pp ;
+   if( im3d == NULL || vers_pixmap == XmUNSPECIFIED_PIXMAP ) return ;
+
+   for( pp=0 ; pp < 19 ; pp++ ){
+     PICTURE_SET(im3d,vers_pixmap) ;
+       XmUpdateDisplay(im3d->vwid->top_shell); iochan_sleep(166);
+     PICTURE_OFF(im3d) ;
+       XmUpdateDisplay(im3d->vwid->top_shell); iochan_sleep(166);
+   }
+   logo_pixmap = vers_pixmap ;     /* replace logo with version warning */
+   return ;
+}
+
 /*----------------------------------------------------------------------
   This function is called about 1 s after AFNI startup is completed.
   It's original purpose was to make sure that the help window was
@@ -1850,16 +1867,8 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    vv = AFNI_version_check() ; /* nada if AFNI_start_version_check() inactive */
 
-   if( vv && vers_pixmap != XmUNSPECIFIED_PIXMAP ){     /* 08 Aug 2005 */
-     int pp ;
-     for( pp=0 ; pp < 19 ; pp++ ){   /* and flash it a few times */
-       PICTURE_SET(im3d,vers_pixmap) ;
-         XmUpdateDisplay(im3d->vwid->top_shell); iochan_sleep(166);
-       PICTURE_OFF(im3d) ;
-         XmUpdateDisplay(im3d->vwid->top_shell); iochan_sleep(166);
-     }
-     logo_pixmap = vers_pixmap ;     /* replace logo with version warning */
-   }
+   if( vv && vers_pixmap != XmUNSPECIFIED_PIXMAP )     /* 08 Aug 2005 */
+     AFNI_vcheck_flasher(im3d) ;
 
 #ifdef SHSTRING
    if( vv ){  /* 20 Nov 2003: if version check shows a mismatch */
