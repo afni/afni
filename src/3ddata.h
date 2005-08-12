@@ -2501,6 +2501,19 @@ extern char * THD_deplus_prefix( char *prefix ) ;                    /* 22 Nov 2
 #define DSET_TIMEUNITS(ds)       ( ((ds)->taxis == NULL) ? ILLEGAL_TYPE             \
                                                          : (ds)->taxis->units_type )
 
+/*! Alter a dataset's time units from MSEC to SEC, if need be. */
+
+#define DSET_UNMSEC(ds)                                                               \
+ do{ int zz ;                                                                         \
+   if( (ds)!=NULL && (ds)->taxis!=NULL && (ds)->taxis->units_type==UNITS_MSEC_TYPE ){ \
+     (ds)->taxis->units_type = UNITS_SEC_TYPE ;                                       \
+     (ds)->taxis->ttdel     *= 0.001 ;                                                \
+     (ds)->taxis->ttorg     *= 0.001 ;                                                \
+     (ds)->taxis->ttdur     *= 0.001 ;                                                \
+     if( (ds)->taxis->toff_sl != NULL )                                               \
+      for( zz=0 ; zz < (ds)->taxis->nsl ; zz++ ) (ds)->taxis->toff_sl[zz] *= 0.001 ;  \
+   } } while(0)
+
 /*! Return number of time-axis slice offsets for datsaet ds.
 
     Will be zero for non-time-dependent datasets, and may be zero or positive
