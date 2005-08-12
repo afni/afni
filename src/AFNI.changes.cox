@@ -5672,3 +5672,7 @@
 
 10 Aug 2005
  * Modified cat_matvec.c to allow ::WARP_DATA input, and MATRIX() output.
+
+12 Aug 2005
+ * Start editing 3dDeconvolve.c to have -slice_base option, for slice-dependent
+     baseline regressors.
