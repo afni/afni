@@ -589,49 +589,53 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    atr_flo = THD_find_float_atr( blk , ATRNAME_TAXIS_FLOATS ) ;
 
    if( atr_int != NULL && atr_flo != NULL ){
-      int isfunc , nvals ;
+     int isfunc , nvals ;
 
-      dset->taxis = myXtNew( THD_timeaxis ) ;
+     dset->taxis = myXtNew( THD_timeaxis ) ;
 
-      dset->taxis->type    = TIMEAXIS_TYPE ;
-      dset->taxis->ntt     = atr_int->in[0] ;
-      dset->taxis->nsl     = atr_int->in[1] ;
-      dset->taxis->ttorg   = atr_flo->fl[0] ;
-      dset->taxis->ttdel   = atr_flo->fl[1] ;
-      dset->taxis->ttdur   = atr_flo->fl[2] ;
-      dset->taxis->zorg_sl = atr_flo->fl[3] ;
-      dset->taxis->dz_sl   = atr_flo->fl[4] ;
+     dset->taxis->type    = TIMEAXIS_TYPE ;
+     dset->taxis->ntt     = atr_int->in[0] ;
+     dset->taxis->nsl     = atr_int->in[1] ;
+     dset->taxis->ttorg   = atr_flo->fl[0] ;
+     dset->taxis->ttdel   = atr_flo->fl[1] ;
+     dset->taxis->ttdur   = atr_flo->fl[2] ;
+     dset->taxis->zorg_sl = atr_flo->fl[3] ;
+     dset->taxis->dz_sl   = atr_flo->fl[4] ;
 
-      dset->taxis->units_type = atr_int->in[2] ;      /* 21 Oct 1996 */
-      if( dset->taxis->units_type < 0 )               /* assign units */
-         dset->taxis->units_type = UNITS_MSEC_TYPE ;  /* to the time axis */
+     dset->taxis->units_type = atr_int->in[2] ;    /* 21 Oct 1996 */
+     if( dset->taxis->units_type < 0 )             /* assign units */
+       dset->taxis->units_type = UNITS_SEC_TYPE ;  /* to the time axis */
 
-      if( dset->taxis->nsl > 0 ){
-         atr_flo = THD_find_float_atr( blk , ATRNAME_TAXIS_OFFSETS ) ;
-         if( atr_flo == NULL || atr_flo->nfl < dset->taxis->nsl ){
-            dset->taxis->nsl     = 0 ;
-            dset->taxis->toff_sl = NULL ;
-            dset->taxis->zorg_sl = 0.0 ;
-            dset->taxis->dz_sl   = 0.0 ;
-         } else {
-            int ii ;
-            dset->taxis->toff_sl = (float *) XtMalloc(sizeof(float)*dset->taxis->nsl) ;
-            for( ii=0 ; ii < dset->taxis->nsl ; ii++ )
-               dset->taxis->toff_sl[ii] = atr_flo->fl[ii] ;
-         }
-      } else {
+     if( dset->taxis->nsl > 0 ){
+       atr_flo = THD_find_float_atr( blk , ATRNAME_TAXIS_OFFSETS ) ;
+       if( atr_flo == NULL || atr_flo->nfl < dset->taxis->nsl ){
          dset->taxis->nsl     = 0 ;
          dset->taxis->toff_sl = NULL ;
          dset->taxis->zorg_sl = 0.0 ;
          dset->taxis->dz_sl   = 0.0 ;
-      }
+       } else {
+         int ii ;
+         dset->taxis->toff_sl = (float *) XtMalloc(sizeof(float)*dset->taxis->nsl) ;
+         for( ii=0 ; ii < dset->taxis->nsl ; ii++ )
+           dset->taxis->toff_sl[ii] = atr_flo->fl[ii] ;
+       }
+     } else {
+       dset->taxis->nsl     = 0 ;
+       dset->taxis->toff_sl = NULL ;
+       dset->taxis->zorg_sl = 0.0 ;
+       dset->taxis->dz_sl   = 0.0 ;
+     }
 
-      isfunc = ISFUNCTYPE(dset->type) ;
-      nvals  = (isfunc) ? FUNC_nvals[dset->func_type]
-                        : ANAT_nvals[dset->func_type]  ;
+     isfunc = ISFUNCTYPE(dset->type) ;
+     nvals  = (isfunc) ? FUNC_nvals[dset->func_type]
+                       : ANAT_nvals[dset->func_type]  ;
 
-      if( nvals != 1 )
-         DSET_ERR("Illegal time-dependent dataset and func_type combination!") ;
+     if( nvals != 1 )
+       DSET_ERR("Illegal time-dependent dataset and func_type combination!") ;
+
+     /** 15 Aug 2005: don't allow milliseconds on input any more **/
+
+     if( !AFNI_yesenv("AFNI_ALLOW_MILLISECONDS") ){ DSET_UNMSEC(dset); }
    }
 
    /*--- 23 Oct 1998: read the tagset information ---*/

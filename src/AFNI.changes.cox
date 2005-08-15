@@ -5676,3 +5676,7 @@
 12 Aug 2005
  * Start editing 3dDeconvolve.c to have -slice_base option, for slice-dependent
      baseline regressors.
+
+15 Aug 2005
+ * From now on, unless AFNI_ALLOW_MILLISECONDS is set to YES, AFNI programs will
+     convert MSEC time unit datasets to SEC on input and output.

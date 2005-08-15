@@ -329,8 +329,9 @@ void get_options
 	    * dset_time->dblk->diskptr->dimsizes[2] ;
 	  *ts_length = DSET_NUM_TIMES(dset_time);
 
-          dsTR = DSET_TIMESTEP(dset_time) ;
-          if( DSET_TIMEUNITS(dset_time) == UNITS_MSEC_TYPE ) dsTR *= 0.001 ;
+     DSET_UNMSEC(dset_time) ;  /* RWCox */
+
+     dsTR = DSET_TIMESTEP(dset_time) ;
 
 	  THD_delete_3dim_dataset(dset_time, False);  dset_time = NULL ;
 

@@ -7786,15 +7786,6 @@ void basis_write_sresp( int argc , char *argv[] ,
    nvox    = in_dset->daxes->nxx * in_dset->daxes->nyy * in_dset->daxes->nzz;
    DSET_UNMSEC(in_dset) ;  /* 12 Aug 2005 */
 
-   /* 12 Aug 2005: surgery on the time units? */
-
-   if( in_dset->taxis != NULL &&
-       in_dset->taxis->units_type == UNITS_MSEC_TYPE ){
-
-     in_dset->taxis->units_type = UNITS_SEC_TYPE ;
-     in_dset->taxis->ttdel     *= 0.001 ;
-   }
-
    if( dt <= 0.0f ) dt = DSET_TR(in_dset) ;
    if( dt <= 0.0f ) dt = 1.0f ;
 
