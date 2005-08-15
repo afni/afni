@@ -224,7 +224,7 @@ int main( int argc , char *argv[] )
      im->nt = DSET_NVALS(dset) ;        /* add a time axis */
      im->dt = DSET_TR(dset) ;
      if( im->dt <= 0.0 ) im->dt = 1.0 ;
-     if( DSET_TIMEUNITS(dset) == UNITS_MSEC_TYPE ) im->dt *= 0.001 ;  /* 05 Jul 2005 - oopsie */
+     if( DSET_TIMEUNITS(dset) == UNITS_MSEC_TYPE ) im->dt *= 0.001 ; /* 05 Jul 2005 */
 
      mri_write_analyze( aname , im ) ;  /* output 4D .hdr file */
      mri_free(im) ;

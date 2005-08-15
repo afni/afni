@@ -227,6 +227,7 @@ int main( int argc , char *argv[] )
 
        if( strcmp(eptr,"ms")==0 || strcmp(eptr,"msec")==0 ){
           tunits = UNITS_MSEC_TYPE ;
+          WARNING_message("TR in millisecond units is deprecated.") ;
        } else if( strcmp(eptr,"s")==0 || strcmp(eptr,"sec")==0 ){
           tunits = UNITS_SEC_TYPE ;
        } else if( strcmp(eptr,"Hz")==0 || strcmp(eptr,"Hertz")==0 ){

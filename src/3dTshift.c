@@ -345,6 +345,7 @@ int main( int argc , char *argv[] )
 
          if( strcmp(eptr,"ms")==0 || strcmp(eptr,"msec")==0 ){
             TS_tunits = UNITS_MSEC_TYPE ;
+            WARNING_message("TR expressed in milliseconds is deprecated.") ;
          } else if( strcmp(eptr,"s")==0 || strcmp(eptr,"sec")==0 ){
             TS_tunits = UNITS_SEC_TYPE ;
          } else if( strcmp(eptr,"Hz")==0 || strcmp(eptr,"Hertz")==0 ){

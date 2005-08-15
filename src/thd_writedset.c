@@ -70,6 +70,10 @@ ENTRY("THD_write_3dim_dataset") ;
                            new_sessname , NULL , new_prefixname ,
                            dset->view_type , True ) ;
 
+   /* 15 Aug 2005 */
+
+   if( !AFNI_yesenv("AFNI_ALLOW_MILLISECONDS") ){ DSET_UNMSEC(dset); }
+
    /*----- 09 Mar 2005: set attribute structs in the datablock -----*/
 
    THD_set_dataset_attributes( dset ) ;
