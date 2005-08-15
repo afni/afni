@@ -354,14 +354,14 @@ STATUS("setting orientation from MRILIB_orients") ;
       }
    }
    if( user_inputs.ntt > 1 && user_inputs.TR <= 0.0 ){
-      printf("Setting TR=1s by default\n") ;
-      user_inputs.TR = 1.0 ; user_inputs.tunits = UNITS_SEC_TYPE ;
+     printf("Setting TR=1s by default\n") ;
+     user_inputs.TR = 1.0 ; user_inputs.tunits = UNITS_SEC_TYPE ;
    }
 
    if( all_good && !user_inputs.nosave ){      /* done! */
-      T3D_save_file_CB( NULL , NULL , NULL ) ;
-      printf("3D dataset written to disk\n") ;
-      exit(0) ;
+     T3D_save_file_CB( NULL , NULL , NULL ) ;
+     printf("3D dataset written to disk\n") ;
+     exit(0) ;
    }
 
    /* Otherwise, initialize X11 and Xt */
@@ -1981,7 +1981,7 @@ ENTRY("T3D_initialize_user_data") ;
    user_inputs.nzz      = 0 ;
    user_inputs.t_then_z = 0 ;
    user_inputs.tpattern = NULL ;
-   user_inputs.tunits   = UNITS_MSEC_TYPE ;
+   user_inputs.tunits   = UNITS_MSEC_TYPE ;  /* bad */
 
    /*-- 05 Feb 2000: zpad environment --*/
 
@@ -2610,6 +2610,10 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
 
       if( strcmp(Argv[nopt],"-t=ms")==0 || strcmp(Argv[nopt],"-t=msec")==0 ){
          user_inputs.tunits = UNITS_MSEC_TYPE ;
+         if( AFNI_yesenv("AFNI_ALLOW_MILLISECONDS") )
+           WARNING_message("TR expressed in milliseconds is deprecated.") ;
+         else
+           WARNING_message("TR expressed in milliseconds is disallowed.") ;
          nopt++ ; continue ;
       }
 
@@ -2652,12 +2656,19 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          /** 03 Nov 1996: allow units to be written after TR **/
 
          if( strcmp(eptr,"ms")==0 || strcmp(eptr,"msec")==0 ){
-            user_inputs.tunits = UNITS_MSEC_TYPE ;
+           user_inputs.tunits = UNITS_MSEC_TYPE ;
          } else if( strcmp(eptr,"s")==0 || strcmp(eptr,"sec")==0 ){
-            user_inputs.tunits = UNITS_SEC_TYPE ;
+           user_inputs.tunits = UNITS_SEC_TYPE ;
          } else if( strcmp(eptr,"Hz")==0 || strcmp(eptr,"Hertz")==0 ){
-            user_inputs.tunits = UNITS_HZ_TYPE ;
+           user_inputs.tunits = UNITS_HZ_TYPE ;
          }
+
+         if( AFNI_yesenv("AFNI_ALLOW_MILLISECONDS") )
+           WARNING_message("TR expressed in milliseconds is deprecated.") ;
+         else
+           WARNING_message(
+             "TR expressed in milliseconds is disallowed; will set TR=%.6fs",
+             0.001*TR) ;
 
          /** 31 July 1996: be more specific about errors **/
 

@@ -523,6 +523,7 @@ void get_options
 		       "Unable to open data file: %s", *input_filename);
 	      NLfit_error (message);
 	    }
+     DSET_UNMSEC( *dset_time ) ;  /* RWCox */
 
 	  THD_load_datablock ((*dset_time)->dblk);
 
@@ -531,8 +532,7 @@ void get_options
 	    * (*dset_time)->dblk->diskptr->dimsizes[2] ;
 	  *ts_length = DSET_NUM_TIMES(*dset_time);
 
-          dsTR = DSET_TIMESTEP(*dset_time) ;
-          if( DSET_TIMEUNITS(*dset_time) == UNITS_MSEC_TYPE ) dsTR *= 0.001 ;
+     dsTR = DSET_TIMESTEP(*dset_time) ;
 
 	  nopt++;
 	  continue;
