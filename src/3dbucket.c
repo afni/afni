@@ -457,8 +457,10 @@ int main( int argc , char * argv[] )
    char buf[256] ;
 
    /*----- identify program -----*/
+#if 0
    printf ("\n\nProgram %s \n", PROGRAM_NAME);
    printf ("Last revision: %s \n\n", LAST_MOD_DATE);
+#endif
 
    /*** read input options ***/
 
