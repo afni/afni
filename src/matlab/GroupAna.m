@@ -49,8 +49,8 @@ fprintf('\n\t3. With nesting, arrange your design in such a way that the last fa
 fprintf('\n\t4. Each input file should include only one subbrik. We suggest files be \n');
 fprintf('\t   named by reflecting the hierarchy of the experiment design.\n');
 fprintf('\n\t5. Currently all of the following terms are modeled: main effects and applicable interactions in various orders, .\n');
-fprintf('\n\t6. One covariate is currently allowed in the analysis, which should be in the format of one-column text file.\n');
-fprintf('\t   The column length has to be the same as the total number of input files.\n');
+%fprintf('\n\t6. One covariate is currently allowed in the analysis, which should be in the format of one-column text file.\n');
+%fprintf('\t   The column length has to be the same as the total number of input files.\n');
 
 
 % Grouop analysis for Volume or Surface data?
@@ -294,23 +294,25 @@ else  % Balanced designs
 
 end  % if (unbalanced)
 
-if ~((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1),    % Mainly for ANCOVA?
+if ~((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1 & unbalanced.yes == 1),    % Mainly for ANCOVA?
 fprintf(2,'\nEnter the sample size (number of observations) per cell');
 FL(NF+1).N_level =  input(': ');  % Should it be changed to a different name instead of FL???
 ntot = ntot * FL(NF+1).N_level;    % total number of factor combinations including repeats
 sz(NF+1) = FL(NF+1).N_level; 
 end  
 
-% Running ANOCVA?
+% Running ANCOVA?
 flg = 0;
 %cov.label = [];   
-while flg == 0,
-   cov.do = input('\nAny covariate (concomitant variable)? (1 - Yes; 0 - No) ');
-   if (cov.do ~= 0 & cov.do ~= 1),
-	   flg = 0; fprintf(2,'Error: inapproriate input. Please try it again.\n');
-	else flg = 1;
-	end
-end
+%while flg == 0,
+%   cov.do = input('\nAny covariate (concomitant variable)? (1 - Yes; 0 - No) ');
+%   if (cov.do ~= 0 & cov.do ~= 1),
+%	   flg = 0; fprintf(2,'Error: inapproriate input. Please try it again.\n');
+%	else flg = 1;
+%	end
+%end
+
+cov.do = 0;
 
 %Only allow one covariate now!
 if (cov.do),
@@ -337,6 +339,7 @@ if (cov.do),
 	      fprintf(2, '\nError: The column length of the covariate has to equal to the total number of input files!\n'); 
 			fprintf(2,'Halted: Ctrl+c to exit'); pause;
 	   end
+		cov.vec = cov.vec - mean(cov.vec);
 	end
 	end   % while
 end
