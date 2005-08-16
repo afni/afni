@@ -3811,6 +3811,8 @@ typedef struct {
 
 } regression_matrices ;
 
+/*...........................................................................*/
+
 #define INIT_RMAT(rm,ns,ng)                                         \
  do{ int ii ;                                                       \
      matrix_initialize( &(rm).xdata ) ;                             \
@@ -3834,6 +3836,8 @@ typedef struct {
      (rm).nstim = (ns) ; (rm).nglt = (ng) ; (rm).status = 0 ;       \
   } while(0)
 
+/*...........................................................................*/
+
 #define FREE_RMAT(rm)                                 \
  do{ int ii ;                                         \
      matrix_destroy( &(rm).xdata ) ;                  \
@@ -3853,11 +3857,13 @@ typedef struct {
      (rm).status = -1 ;                               \
   } while(0)
 
-static int              num_Rmat ;
-static regression_matrices *Rmat ;
+/*...........................................................................*/
+
+static int              num_Rmat = 0 ;
+static regression_matrices *Rmat = NULL ;
 
 /*---------------------------------------------------------------------------*/
-#if 0
+
 void setup_regression_matrices( DC_options *option_data ,
                                 int *good_list ,
                                 int *block_list , int num_blocks ,
@@ -3867,26 +3873,27 @@ void setup_regression_matrices( DC_options *option_data ,
   float **sstim ;
 
   num_Rmat = 1 ;
-  if( option_data->num_slice_base > 0 ){
-    for( is=0 ; is < option_data->num_stimts ; is++ ){
-      if( option_data->slice_base[is] > 0 ){
-        nz = num_Rmat = option_data->slice_base[is] ; break ;
-      }
-    }
-  }
+  for( is=0 ; is < option_data->num_stimts && nz < 2 ; is++ )
+    if( option_data->slice_base[is] > 0 )
+      nz = num_Rmat = option_data->slice_base[is] ;
+
   Rmat = (regression_matrices *)malloc(sizeof(regression_matrices)*num_Rmat) ;
 
   for( mm=0 ; mm < num_Rmat ; mm++ )
     INIT_RMAT( Rmat[mm] , option_data->num_stimts , option_data->num_glt ) ;
 
-  sstim = (float **)malloc(sizeof(float *)*option_data->num_stimts) ;
+  sstim = (float **) malloc( sizeof(float *)*option_data->num_stimts ) ;
   memcpy( sstim , stimulus , sizeof(float *)*option_data->num_stimts ) ;
 
+  /*- loop over slices:
+       substituting slice-dependent regressors,
+       making matrices from those collections of vectors -*/
+
   for( mm=0 ; mm < num_Rmat ; mm++ ){
-    for( is=0 ; is < option_data->num_stimts ; is++ ){
+
+    for( is=0 ; is < option_data->num_stimts ; is++ )
       if( mm > 0 && option_data->slice_base[is] > 0 )
         sstim[is] = stimulus[is] + (mm*stim_length[is]) ;
-    }
 
     init_indep_var_matrix( option_data->p,
                            option_data->qp,
@@ -3907,7 +3914,6 @@ void setup_regression_matrices( DC_options *option_data ,
 
   free((void *)sstim) ; return ;
 }
-#endif
 
 /*---------------------------------------------------------------------------*/
 /*
