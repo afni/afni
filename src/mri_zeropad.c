@@ -12,11 +12,11 @@
 -------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_zeropad_2D( int nxbot , int nxtop ,
-                            int nybot , int nytop , MRI_IMAGE * fim )
+                            int nybot , int nytop , MRI_IMAGE *fim )
 {
    int nxold,nyold , nxnew,nynew , nx,ny ;
    int ii,jj , iibot,iitop , jjbot,jjtop ;
-   MRI_IMAGE * vim ;
+   MRI_IMAGE *vim ;
 
 ENTRY("mri_zeropad_2D") ;
 
@@ -68,7 +68,7 @@ ENTRY("mri_zeropad_2D") ;
       RETURN(NULL) ;
 
       case MRI_byte:{
-         byte * bnew = MRI_BYTE_PTR(vim), * bold = MRI_BYTE_PTR(fim) ;
+         byte *bnew = MRI_BYTE_PTR(vim), *bold = MRI_BYTE_PTR(fim) ;
          for( jj=jjbot ; jj < jjtop ; jj++ )
             for( ii=iibot ; ii < iitop ; ii++ )
                bnew[SNEW(ii,jj)] = bold[SOLD(ii,jj)] ;
@@ -76,7 +76,7 @@ ENTRY("mri_zeropad_2D") ;
       break ;
 
       case MRI_rgb:{
-         byte * bnew = MRI_RGB_PTR(vim), * bold = MRI_RGB_PTR(fim) ;
+         byte *bnew = MRI_RGB_PTR(vim), *bold = MRI_RGB_PTR(fim) ;
          for( jj=jjbot ; jj < jjtop ; jj++ )
             for( ii=iibot ; ii < iitop ; ii++ ){
                bnew[3*SNEW(ii,jj)  ] = bold[3*SOLD(ii,jj)  ] ;
@@ -87,7 +87,7 @@ ENTRY("mri_zeropad_2D") ;
       break ;
 
       case MRI_short:{
-         short * bnew = MRI_SHORT_PTR(vim), * bold = MRI_SHORT_PTR(fim) ;
+         short *bnew = MRI_SHORT_PTR(vim), *bold = MRI_SHORT_PTR(fim) ;
          for( jj=jjbot ; jj < jjtop ; jj++ )
             for( ii=iibot ; ii < iitop ; ii++ )
                bnew[SNEW(ii,jj)] = bold[SOLD(ii,jj)] ;
@@ -95,7 +95,7 @@ ENTRY("mri_zeropad_2D") ;
       break ;
 
       case MRI_int:{
-         int * bnew = MRI_INT_PTR(vim), * bold = MRI_INT_PTR(fim) ;
+         int *bnew = MRI_INT_PTR(vim), *bold = MRI_INT_PTR(fim) ;
          for( jj=jjbot ; jj < jjtop ; jj++ )
             for( ii=iibot ; ii < iitop ; ii++ )
                bnew[SNEW(ii,jj)] = bold[SOLD(ii,jj)] ;
@@ -103,7 +103,7 @@ ENTRY("mri_zeropad_2D") ;
       break ;
 
       case MRI_float:{
-         float * bnew = MRI_FLOAT_PTR(vim), * bold = MRI_FLOAT_PTR(fim) ;
+         float *bnew = MRI_FLOAT_PTR(vim), *bold = MRI_FLOAT_PTR(fim) ;
          for( jj=jjbot ; jj < jjtop ; jj++ )
             for( ii=iibot ; ii < iitop ; ii++ )
                bnew[SNEW(ii,jj)] = bold[SOLD(ii,jj)] ;
@@ -111,7 +111,7 @@ ENTRY("mri_zeropad_2D") ;
       break ;
 
       case MRI_double:{
-         double * bnew = MRI_DOUBLE_PTR(vim), * bold = MRI_DOUBLE_PTR(fim) ;
+         double *bnew = MRI_DOUBLE_PTR(vim), *bold = MRI_DOUBLE_PTR(fim) ;
          for( jj=jjbot ; jj < jjtop ; jj++ )
             for( ii=iibot ; ii < iitop ; ii++ )
                bnew[SNEW(ii,jj)] = bold[SOLD(ii,jj)] ;
@@ -119,7 +119,7 @@ ENTRY("mri_zeropad_2D") ;
       break ;
 
       case MRI_complex:{
-         complex * bnew = MRI_COMPLEX_PTR(vim), * bold = MRI_COMPLEX_PTR(fim) ;
+         complex *bnew = MRI_COMPLEX_PTR(vim), *bold = MRI_COMPLEX_PTR(fim) ;
          for( jj=jjbot ; jj < jjtop ; jj++ )
             for( ii=iibot ; ii < iitop ; ii++ )
                bnew[SNEW(ii,jj)] = bold[SOLD(ii,jj)] ;

@@ -1981,7 +1981,7 @@ ENTRY("T3D_initialize_user_data") ;
    user_inputs.nzz      = 0 ;
    user_inputs.t_then_z = 0 ;
    user_inputs.tpattern = NULL ;
-   user_inputs.tunits   = UNITS_MSEC_TYPE ;  /* bad */
+   user_inputs.tunits   = UNITS_MSEC_TYPE ;  /* bad default */
 
    /*-- 05 Feb 2000: zpad environment --*/
 
@@ -2613,7 +2613,7 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
          if( AFNI_yesenv("AFNI_ALLOW_MILLISECONDS") )
            WARNING_message("TR expressed in milliseconds is deprecated.") ;
          else
-           WARNING_message("TR expressed in milliseconds is disallowed.") ;
+           WARNING_message("TR expressed in ms will be converted to s.") ;
          nopt++ ; continue ;
       }
 
@@ -2667,23 +2667,23 @@ printf("decoded %s to give zincode=%d bot=%f top=%f\n",Argv[nopt],
            WARNING_message("TR expressed in milliseconds is deprecated.") ;
          else
            WARNING_message(
-             "TR expressed in milliseconds is disallowed; will set TR=%.6fs",
+             "TR expressed in milliseconds will be converted to TR=%.6fs",
              0.001*TR) ;
 
          /** 31 July 1996: be more specific about errors **/
 
          nerr = 0 ;
          if( ntt < 2 ){
-            fprintf(stderr,"Illegal value of nt after -time: option\n") ; nerr++ ;
+           fprintf(stderr,"Illegal value of nt after -time: option\n") ; nerr++ ;
          }
          if( nzz < NZBOT ){
-            fprintf(stderr,"Illegal value of nz after -time: option\n") ; nerr++ ;
+           fprintf(stderr,"Illegal value of nz after -time: option\n") ; nerr++ ;
          }
          if( TR < 0.0 ){
-            fprintf(stderr,"Illegal value of TR after -time: option\n") ; nerr++ ;
+           fprintf(stderr,"Illegal value of TR after -time: option\n") ; nerr++ ;
          }
          if( nerr > 0 ){
-            nopt++ ; continue ;  /* skip on to next option, this one is bad! */
+           nopt++ ; continue ;  /* skip on to next option, this one is bad! */
          }
 
          user_inputs.tpattern = (float *) malloc( sizeof(float) * nzz ) ;
@@ -3063,6 +3063,14 @@ void Syntax()
     "          Alternatively, the units symbol ('ms', 'msec', 's', 'sec',\n"
     "            'Hz', or 'Hertz') may be attached to TR in the '-time:' option,\n"
     "            as in '-time:zt 16 64 4.0sec alt+z'\n"
+    " ****** 15 Aug 2005 ******\n"
+    "      * Millisecond time units are no longer stored in AFNI dataset\n"
+    "          header files.  For backwards compatibility, the default unit\n"
+    "          of TR (i.e., without a suffix 's') is still milliseconds, but\n"
+    "          this value will be converted to seconds when the dataset is\n"
+    "          written to disk.  Any old AFNI datasets that have millisecond\n"
+    "          units for TR will be read in to all AFNI programs with the TR\n"
+    "          converted to seconds.\n"
 
     "\n"
     "  -Torg ttt = set time origin of dataset to 'ttt' [default=0.0]\n"
