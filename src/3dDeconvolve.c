@@ -502,6 +502,7 @@ typedef struct DC_options
   int * stim_maxlag;       /* max. time lag for impulse response */
   int * stim_nptr;         /* number of stim fn. points per TR */
   int * slice_base ;       /* number of columns in a -slice_base file */
+  int num_slice_base ;     /* number of -slice_base inputs */
 
   int num_glt;             /* number of general linear tests */
   int * glt_rows;          /* number of linear constraints in glt */
@@ -665,11 +666,12 @@ void display_help_menu()
     "   AND specifies that this regressor belongs to the baseline,          \n"
     "   AND specifies that the regressor is different for each slice in     \n"
     "       the input 3D+time dataset.  The sname file should have exactly  \n"
-    "       nz columns of input, where nz=number of slices.                 \n"
+    "       nz columns of input, where nz=number of slices, OR it should    \n"
+    "       have exactly 1 column, in which case this input is the same     \n"
+    "       as using '-stim_file k sname' and '-stim_base k'.               \n"
     " N.B.: * You can't use -stim_minlag or -stim_maxlag or -stim_nptr      \n"
     "         with this value of k.                                         \n"
-    "       * You can't use this option with -input1D or any other file     \n"
-    "         that doesn't have multiple slices.                            \n"
+    "       * You can't use this option with -input1D or -nodata.           \n"
     "       * The intended use of this option is to provide slice-          \n"
     "         dependent physiological noise regressors, e.g., from program  \n"
     "         1dCRphase.                                                    \n"
@@ -824,6 +826,7 @@ void initialize_options
   option_data->iresp_filename = NULL;
   option_data->sresp_filename = NULL;
   option_data->slice_base = NULL ;
+  option_data->num_slice_base = 0 ;
 
   /*----- Initialize glt options -----*/
   option_data->num_glt = 0;
@@ -1395,18 +1398,15 @@ void get_options
           DC_error ("-slice_base k sname   Require: 1 <= k <= num_stimts");
         k = ival-1;
         nopt++;
-        if( option_data->stim_filename[k] != NULL ){
-          fprintf(stderr,
-                  "** ERROR: '-slice_base %d' trying to overwrite previous stimulus\n",
-                  ival ) ;
-          exit(1) ;
-        }
+        if( option_data->stim_filename[k] != NULL )
+          ERROR_exit("'-slice_base %d' trying to overwrite previous stimulus",
+                     ival ) ;
 
-        option_data->stim_filename[k] = malloc (sizeof(char)*THD_MAX_NAME);
-        MTEST (option_data->stim_filename[k]);
-        strcpy (option_data->stim_filename[k], argv[nopt]);
+        option_data->stim_filename[k] = malloc(sizeof(char)*THD_MAX_NAME);
+        MTEST(option_data->stim_filename[k]);
+        strcpy(option_data->stim_filename[k], argv[nopt]);
         option_data->slice_base[k] = 1 ;
-        option_data->stim_base[k] = 1;
+        option_data->stim_base[k] = 1;    /* mark as being in the baseline */
         nopt++;
         continue;
       }
@@ -1466,7 +1466,7 @@ void get_options
         if ((ival < 1) || (ival > option_data->num_stimts))
           DC_error ("-stim_base k   Require: 1 <= k <= num_stimts");
         k = ival-1;
-        option_data->stim_base[k] = 1;
+        option_data->stim_base[k] = 1;    /* mark as being in the baseline */
         nopt++;
         continue;
       }
@@ -1897,6 +1897,12 @@ void get_options
                   k+1 , option_data->stim_maxlag[k] ) ;
           nerr++ ;
         }
+        if( option_data->stim_nptr[k] != 1 ){
+          fprintf(stderr,
+                  "** ERROR: '-stim_nptr %d %d' illegal with '-slice_base'\n",
+                  k+1 , option_data->stim_nptr[k] ) ;
+          nerr++ ;
+        }
       }
     }
 
@@ -2051,37 +2057,44 @@ ENTRY("read_input_data") ;
       {
         if( basis_stim[is] != NULL ) continue ;  /* 11 Aug 2004: skip thisn */
 
-        if( !option_data->slice_base[is] ){  /* ordinary input file */
+        if( !option_data->slice_base[is] ){  /**** ordinary input file ****/
 
           (*stimulus)[is] = read_time_series (option_data->stim_filename[is],
                                       &((*stim_length)[is]));
 
-        if ((*stimulus)[is] == NULL)
-          {
-            sprintf (message,  "Unable to read -stim_file %d %s",
-                   is+1 , option_data->stim_filename[is]);
-            DC_error (message);
-          }
+          if ((*stimulus)[is] == NULL)
+            {
+              sprintf (message,  "Unable to read '-stim_file %d %s'",
+                     is+1 , option_data->stim_filename[is]);
+              DC_error (message);
+            }
 
-        } else {  /* read a -slice_base file */
+        } else {  /**** read a -slice_base file ****/
 
           MRI_IMAGE *sim ;
           sim = mri_read_1D( option_data->stim_filename[is] ) ;
           if( sim == NULL ){
-            sprintf (message,  "Unable to read -slice_base : %s",
-                   option_data->stim_filename[is]);
+            sprintf (message,  "Unable to read '-slice_base %d %s'",
+                   is+1 , option_data->stim_filename[is]);
             DC_error (message);
           }
-          (*stim_length)[is] = sim->nx ;
-          option_data->slice_base[is] = sim->ny ;
+          (*stim_length)[is] = sim->nx ;             /* save length */
+          if( sim->ny > 1 ){                         /* multicolumn */
+            option_data->slice_base[is] = sim->ny ;
+            option_data->num_slice_base++ ;
+          } else {                                   /* unicolumn */
+            option_data->slice_base[is] = 0 ;
+            WARNING_message("'slice_base %d %s' has only 1 column",
+                            is+1 , option_data->stim_filename[is] ) ;
+          }
           (*stimulus)[is] = MRI_FLOAT_PTR(sim) ;
-          if( sim->nx < 2 || sim->ny < 2 )
-            fprintf(stderr,"++ WARNING: -slice_base %d %s: %d rows, %d cols\n",
+          if( sim->nx < 2 )
+            fprintf(stderr,"++ WARNING: -slice_base %d %s: %d rows, %d cols ???\n",
                     is+1 , option_data->stim_filename[is] , sim->nx,sim->ny ) ;
         }
 
       }
-    }
+    }  /* end of input of -stim_file and -slice_base files */
 
 
   *num_blocks = 0 ;  /* 04 Aug 2004 */
@@ -2092,6 +2105,9 @@ ENTRY("read_input_data") ;
       /*----- No input data -----*/
       if (num_stimts <= 0)
         DC_error ("Must have num_stimts > 0 for -nodata option");
+
+      if( option_data->num_slice_base > 0 )
+        ERROR_exit("'-nodata' and '-slice_base' are incompatible!") ;
 
       if( basis_count > 0 ){
              if( option_data->nodata_TR > 0.0 ) basis_TR = option_data->nodata_TR ;
@@ -2111,6 +2127,10 @@ ENTRY("read_input_data") ;
 
   else if (option_data->input1D_filename != NULL)
     {
+
+      if( option_data->num_slice_base > 0 )
+        ERROR_exit("'-input1D' and '-slice_base' are incompatible!") ;
+
       /*----- Read the input fMRI 1D time series -----*/
       *fmri_data = read_time_series (option_data->input1D_filename,
                              fmri_length);
@@ -2149,6 +2169,19 @@ ENTRY("read_input_data") ;
       nxyz = DSET_NVOX (*dset_time);
 
       DSET_UNMSEC( *dset_time ) ; /* 12 Aug 2005: surgery on the time units? */
+
+      if( option_data->num_slice_base > 0 ){  /* check slice counts */
+        int nz=DSET_NZ(*dset_time) , nerr=0 ;
+        for( is=0 ; is < num_stimts ; is++ ){
+          if( option_data->slice_base[is] >  0  &&
+              option_data->slice_base[is] != nz   ){
+            nerr++ ;
+            ERROR_message("Dataset nz=%d but '-slice_base %d' has nz=%d",
+                          nz, is+1, option_data->slice_base[is] ) ;
+          }
+        }
+        if( nerr > 0 ) ERROR_exit("Can't continue from nz mismatch!") ;
+      }
 
       basis_TR = DSET_TR(*dset_time) ;          /* 11 Aug 2004 */
       if( basis_TR <= 0.0f ) basis_TR = 1.0f ;
@@ -2816,8 +2849,17 @@ void check_for_valid_inputs
                   "** WARNING: input stimulus time series file %s is too short:\n"
                   "            length = %d, but should be at least %d.\n" ,
             option_data->stim_filename[is] , stim_length[is] , nlen ) ;
-          stimulus[is] = (float *) realloc( stimulus[is] , sizeof(float)*nlen ) ;
-          for( qq=stim_length[is] ; qq < nlen ; qq++ ) stimulus[is][qq] = 0.0 ;
+
+          if( option_data->slice_base[is] == 0 ){
+            stimulus[is] = (float *) realloc( stimulus[is] , sizeof(float)*nlen ) ;
+            for( qq=stim_length[is] ; qq < nlen ; qq++ ) stimulus[is][qq] = 0.0 ;
+          } else {
+            int ny=option_data->slice_base[is] , nx=stim_length[is] ;
+            MRI_IMAGE *tim, *sim=mri_new_vol_empty(nx,ny,1,MRI_float) ;
+            mri_fix_data_pointer( stimulus[is] , sim ) ;
+            tim = mri_zeropad_2D( 0,nlen-nx , 0,0 , sim ) ;
+            stimulus[is] = MRI_FLOAT_PTR(tim) ; mri_free(sim) ;
+          }
           stim_length[is] = nlen ; nerr++ ;
 #endif
       }
@@ -3750,7 +3792,8 @@ typedef struct {
       q     ,           /* total number of baseline parameters */
       p     ,           /* total number of parameters */
       nstim ,           /* number of stim functions = number of rdcd matrices */
-      nglt   ;          /* number of glt matrices */
+      nglt  ,           /* number of glt matrices */
+      status ;          /* are all matrices computed? */
 
   matrix xdata ;        /* regression model, without censoring */
   matrix x_full ;       /* with censoring = [X] */
@@ -3765,7 +3808,106 @@ typedef struct {
 
   matrix *glt_cxtxinvct;/* matrices for GLT calculations */
   matrix *glt_amat ;
+
 } regression_matrices ;
+
+#define INIT_RMAT(rm,ns,ng)                                         \
+ do{ int ii ;                                                       \
+     matrix_initialize( &(rm).xdata ) ;                             \
+     matrix_initialize( &(rm).x_full ) ;                            \
+     matrix_initialize( &(rm).xtxinv_full ) ;                       \
+     matrix_initialize( &(rm).xtxinvxt_full ) ;                     \
+     matrix_initialize( &(rm).x_base ) ;                            \
+     matrix_initialize( &(rm).xtxinvxt_base ) ;                     \
+     (rm).x_rdcd        = (matrix *)malloc(sizeof(matrix)*(ns)) ;   \
+     (rm).xtxinvxt_rdcd = (matrix *)malloc(sizeof(matrix)*(ns)) ;   \
+     for( ii=0 ; ii < (ns) ; ii++ ){                                \
+       matrix_initialize( &(rm).x_rdcd[ii] ) ;                      \
+       matrix_initialize( &(rm).xtxinvxt_rdcd[ii] ) ;               \
+     }                                                              \
+     (rm).glt_cxtxinvct = (matrix *)malloc(sizeof(matrix)*(ng)) ;   \
+     (rm).glt_amat      = (matrix *)malloc(sizeof(matrix)*(ng)) ;   \
+     for( ii=0 ; ii < (ng) ; ii++ ){                                \
+       matrix_initialize( &(rm).glt_cxtxinvct[ii] ) ;               \
+       matrix_initialize( &(rm).glt_amat[ii] ) ;                    \
+     }                                                              \
+     (rm).nstim = (ns) ; (rm).nglt = (ng) ; (rm).status = 0 ;       \
+  } while(0)
+
+#define FREE_RMAT(rm)                                 \
+ do{ int ii ;                                         \
+     matrix_destroy( &(rm).xdata ) ;                  \
+     matrix_destroy( &(rm).x_full ) ;                 \
+     matrix_destroy( &(rm).xtxinv_full ) ;            \
+     matrix_destroy( &(rm).xtxinvxt_full ) ;          \
+     matrix_destroy( &(rm).x_base ) ;                 \
+     matrix_destroy( &(rm).xtxinvxt_base ) ;          \
+     for( ii=0 ; ii < (rm).nstim ; ii++ ){            \
+       matrix_destroy( &(rm).x_rdcd[ii] ) ;           \
+       matrix_destroy( &(rm).xtxinvxt_rdcd[ii] ) ;    \
+     }                                                \
+     for( ii=0 ; ii < (rm).nglt ; ii++ ){             \
+       matrix_destroy( &(rm).glt_cxtxinvct[ii] ) ;    \
+       matrix_destroy( &(rm).glt_amat[ii] ) ;         \
+     }                                                \
+     (rm).status = -1 ;                               \
+  } while(0)
+
+static int              num_Rmat ;
+static regression_matrices *Rmat ;
+
+/*---------------------------------------------------------------------------*/
+#if 0
+void setup_regression_matrices( DC_options *option_data ,
+                                int *good_list ,
+                                int *block_list , int num_blocks ,
+                                float **stimulus , int *stim_length )
+{
+  int is , mm , nz=1 ;
+  float **sstim ;
+
+  num_Rmat = 1 ;
+  if( option_data->num_slice_base > 0 ){
+    for( is=0 ; is < option_data->num_stimts ; is++ ){
+      if( option_data->slice_base[is] > 0 ){
+        nz = num_Rmat = option_data->slice_base[is] ; break ;
+      }
+    }
+  }
+  Rmat = (regression_matrices *)malloc(sizeof(regression_matrices)*num_Rmat) ;
+
+  for( mm=0 ; mm < num_Rmat ; mm++ )
+    INIT_RMAT( Rmat[mm] , option_data->num_stimts , option_data->num_glt ) ;
+
+  sstim = (float **)malloc(sizeof(float *)*option_data->num_stimts) ;
+  memcpy( sstim , stimulus , sizeof(float *)*option_data->num_stimts ) ;
+
+  for( mm=0 ; mm < num_Rmat ; mm++ ){
+    for( is=0 ; is < option_data->num_stimts ; is++ ){
+      if( mm > 0 && option_data->slice_base[is] > 0 )
+        sstim[is] = stimulus[is] + (mm*stim_length[is]) ;
+    }
+
+    init_indep_var_matrix( option_data->p,
+                           option_data->qp,
+                           option_data->polort,
+                           option_data->nt,
+                           option_data->N,
+                           good_list, block_list, num_blocks,
+                           option_data->num_stimts,
+                           sstim, stim_length,
+                           option_data->stim_minlag,
+                           option_data->stim_maxlag,
+                           option_data->stim_nptr, option_data->stim_base ,
+                           &Rmat[mm].xdata);
+    Rmat[mm].qp = option_data->qp ;
+    Rmat[mm].q  = option_data->q ;
+    Rmat[mm].p  = option_data->p ;
+  }
+
+  free((void *)sstim) ; return ;
+}
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*

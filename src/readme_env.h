@@ -2165,6 +2165,20 @@ static char * readme_env[] = {
    "in any way.  At present (Jun 2005) this format is experimental, but will\n" ,
    "someday soon become the default.\n" ,
    "\n" ,
+   "---------------------------------\n" ,
+   "Variable: AFNI_ALLOW_MILLISECONDS\n" ,
+   "---------------------------------\n" ,
+   "The TR value (time step) in 3D+time datasets created with to3d can be flagged\n" ,
+   "as being in units of milliseconds (ms) or seconds (s).  This situation is\n" ,
+   "unfortunate, as some AFNI programs assume that the units are always s, which\n" ,
+   "doesn't work well when the TR is actually in ms.  On 15 Aug 2005, AFNI dataset\n" ,
+   "I/O was modified to only write out TR in s units, and to convert ms units\n" ,
+   "to s units on input.  If you absolutely need to store TR in ms, then you\n" ,
+   "must set this environment variable to YES.  I strongly recommend against\n" ,
+   "such a setting, but recall the AFNI philosophy: \"provide mechanism, not\n" ,
+   "policy\" -- in other words, if you want to shoot yourself in the foot, go\n" ,
+   "right ahead.  This variable is just the safety on the revolver.\n" ,
+   "\n" ,
    "=============================================\n" ,
    "| Robert W Cox, PhD                         |\n" ,
    "| Scientific and Statistical Computing Core |\n" ,
@@ -2250,4 +2264,4 @@ static char * readme_env[] = {
    "in 3dDeconvolve by the \"-gltsym\" option will be printed to the screen\n" ,
    "when the program starts up.\n" ,
    NULL } ;
-#define NUM_readme_env 2250
+#define NUM_readme_env 2264
