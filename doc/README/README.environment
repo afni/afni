@@ -2164,6 +2164,20 @@ volumetric image data is still in the pure binary .BRIK file, not XML-ified
 in any way.  At present (Jun 2005) this format is experimental, but will
 someday soon become the default.
 
+---------------------------------
+Variable: AFNI_ALLOW_MILLISECONDS
+---------------------------------
+The TR value (time step) in 3D+time datasets created with to3d can be flagged
+as being in units of milliseconds (ms) or seconds (s).  This situation is
+unfortunate, as some AFNI programs assume that the units are always s, which
+doesn't work well when the TR is actually in ms.  On 15 Aug 2005, AFNI dataset
+I/O was modified to only write out TR in s units, and to convert ms units
+to s units on input.  If you absolutely need to store TR in ms, then you
+must set this environment variable to YES.  I strongly recommend against
+such a setting, but recall the AFNI philosophy: "provide mechanism, not
+policy" -- in other words, if you want to shoot yourself in the foot, go
+right ahead.  This variable is just the safety on the revolver.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
