@@ -294,7 +294,7 @@ char * nifti_makebasename(const char* fname);
 
 /* other routines */
 struct nifti_1_header   nifti_convert_nim2nhdr(nifti_image* nim);
-nifti_1_header        * nifti_read_header(char * hname, int * swap, int check);
+nifti_1_header        * nifti_read_header(char *hname, int *swapped, int check);
 nifti_image           * nifti_copy_nim_info(nifti_image* src);
 nifti_image           * nifti_simple_init_nim(void);
 nifti_image           * nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
@@ -305,6 +305,7 @@ int    nifti_is_valid_ecode        (int ecode);
 int    nifti_nim_is_valid          (nifti_image * nim, int complain);
 int    nifti_nim_has_valid_dims    (nifti_image * nim, int complain);
 int    is_valid_nifti_type         (int nifti_type);
+int    nifti_type_and_names_match  (nifti_image * nim, int show_warn);
 int    nifti_update_dims_from_array(nifti_image * nim);
 void   nifti_set_iname_offset      (nifti_image *nim);
 int    nifti_set_type_from_names   (nifti_image * nim);
