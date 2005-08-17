@@ -251,8 +251,11 @@ static char gni_history[] =
   "\n"
   "1.10 10 May 2005 [rickr]\n"
   "   - files are read using ZLIB only if they end in '.gz'\n"
+  "\n"
+  "1.11 17 Aug 2005 [kate fissell]\n"
+  "   - Kate's 0.2 release packaging, for sourceforge\n"
   "----------------------------------------------------------------------\n";
-static char gni_version[] = "nifti library version 1.10 (May 10, 2005)";
+static char gni_version[] = "nifti library version 1.11 (Aug 17, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
