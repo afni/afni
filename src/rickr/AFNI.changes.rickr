@@ -1213,3 +1213,5 @@
   * modified 3dresample.c, r_new_resam_dset.c, to allow dxyz to override
       those from a master (if both are supplied)
 
+17 August 2005:
+  * incorporated Kate's niftilib-0.2 packaging
