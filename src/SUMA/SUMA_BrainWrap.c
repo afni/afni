@@ -1227,7 +1227,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
    float *p1, *p2, *p3, min_v[3], max_v[3], p[3], dist;
    float MaxDims[3], MinDims[3], SOCenter[3], dxyz[3];
    int nn, nijk, nx, ny, nz, nxy, nxyz, nf, n1, n2, n3, nn3, *voxelsijk=NULL, N_alloc, en;
-   int N_inbox, nt, nt3, ijkseed = -1, N_in, N_realloc;
+   int N_inbox, nt, nt3, ijkseed = -1, N_in, N_realloc, isincand;
    byte *fillmaskvec=NULL;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -1287,24 +1287,31 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       for (nt=0; nt < N_inbox; ++nt) {
          nt3 = 3*nt;
          if (voxelsijk[nt3] < nx &&  voxelsijk[nt3+1] < ny &&  voxelsijk[nt3+2] < nz) {
+            isincand = 0;
             nijk = SUMA_3D_2_1D_index(voxelsijk[nt3], voxelsijk[nt3+1], voxelsijk[nt3+2], nx , nxy);  
-            if (!isin[nijk]) { 
+            if (1 || !isin[nijk]) { /* Used to be that if a voxel was tagged (isin[nijk]), do not tag it again, 
+                           But that is not good if a voxel has been tagged outside for one
+                           node but should be tagged inside the surface for that voxel's intersection
+                           with a triangle or perhaps for containing another node. */ 
                /* what side of the plane is this voxel on ? */
                p[0] = (float)voxelsijk[nt3]; p[1] = (float)voxelsijk[nt3+1]; p[2] = (float)voxelsijk[nt3+2]; 
                SUMA_DIST_FROM_PLANE(p1, p2, p3, p, dist);
                
                if (dist) {
-                  if (SUMA_IS_NEG(VolPar->Hand * dist)) isin[nijk] = SUMA_IN_TRIBOX_INSIDE;  /* ZSS Added handedness factor. who would have thought? Be damned 3D coord systems! */
-                  else isin[nijk] = SUMA_IN_TRIBOX_OUTSIDE; 
+                  if (SUMA_IS_NEG(VolPar->Hand * dist)) isincand = SUMA_IN_TRIBOX_INSIDE;  /* ZSS Added handedness factor. who would have thought? Be damned 3D coord systems! */
+                  else isincand = SUMA_IN_TRIBOX_OUTSIDE; 
                }
                
                if (1) { /* does this triangle actually intersect this voxel ?*/
                   if (SUMA_isVoxelIntersect_Triangle (p, dxyz, p1, p2, p3)) {
-                     if (isin[nijk] == SUMA_IN_TRIBOX_INSIDE) isin[nijk] = SUMA_INTERSECTS_TRIANGLE_INSIDE;
-                     else isin[nijk] = SUMA_INTERSECTS_TRIANGLE_OUTSIDE;
+                     if (isincand == SUMA_IN_TRIBOX_INSIDE) isincand = SUMA_INTERSECTS_TRIANGLE_INSIDE;
+                     else isincand = SUMA_INTERSECTS_TRIANGLE_OUTSIDE;
                   } 
                }
-               ++(*N_inp);    
+               if (isincand > isin[nijk]) { /* voxel has graduated further inwards */
+                  if (!isin[nijk]) { ++(*N_inp);   } /* a new baby */
+                  isin[nijk] = isincand;
+               }    
             }
          }
       }

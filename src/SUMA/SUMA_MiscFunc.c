@@ -6396,17 +6396,16 @@ char * SUMA_pad_str ( char *str, char pad_val , int pad_ln , int opt)
 char SUMA_ReadCharStdin (char def, int case_sensitive, char *allowed)
 {
    static char FuncName[]={"SUMA_ReadCharStdin"};
-   char str[10], *strback;
+   char str[500], *strback;
    char cbuf;
-   int Done, i, nc;
+   int Done, i, nc, nss;
    
    SUMA_ENTRY;
-   
    do {
       Done = 1;
       /* fpurge (stdin); */ /* fpurge is not standard on all systems! */
       str[0] = def;
-      strback = fgets(str, 2*sizeof(char), stdin);
+      str[0] = getchar(); do { str[1] = getchar(); } while (str[1] != '\n'); str[1] = '\0';
       cbuf = str[0];
       if (SUMA_IS_BLANK(str[0])) {
          cbuf = def;

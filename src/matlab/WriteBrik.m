@@ -53,7 +53,6 @@ function [err, ErrMessage, Info] = WriteBrik (M, Info, Opt)
 %      has already been written. 
 %      If Slices and Frames are not all slices and frames, then Scale 
 %      is set to 0 (no scaling).
-%     
 %
 %Output Parameters:
 %   err : 0 No Problem
@@ -194,6 +193,8 @@ end
    nd = ndims(M);
    
    % unsqueeze the array sizes (Keith's addition to fix writing time series, one slice at a time. Oct 01 04 )  
+   if  (~isfield(Opt,'Slices')),  Opt.Slices = [];  end
+   if  (~isfield(Opt,'Frames')),  Opt.Frames = [];  end
    if nd==3 & length(Opt.Slices)==1 & length(Opt.Frames)>1
       N=[N(1) N(2) 1 N(3)];
    end
@@ -343,7 +344,7 @@ numframes=length(Opt.Frames);
 
 %open file for writing based on the type specified in Info
 if Opt.Slices(1)==1 & Opt.Frames(1)==1
-   if (exist(FnameHEAD) == 2 | exist(FnameBRIK) == 2),
+   if ((exist(FnameHEAD) == 2 | exist(FnameBRIK) == 2)),
       err = 1; ErrMessage = sprintf('Error %s: Output data set %s exists.', FuncName, Fname); errordlg(ErrMessage); return;
    end
    [fid, mess] = fopen (FnameBRIK, 'w', ByteOrder);
