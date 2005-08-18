@@ -1,0 +1,23 @@
+#!/bin/tcsh -f
+if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
+   echo "Usage 1: A script to parse an AFNI name"
+   echo ""
+   echo "   `basename $0` <name>"
+   echo ""
+   echo "Outputs the path, prefix, view and sub-brick selection string."
+   echo ""
+   goto END
+endif
+
+set anat_in = `echo "$1" | cut -d \[ -f1`
+set bling = `echo "$1" | cut -d \[ -f1 | cut -d \] -f1`
+
+set anat_path = $anat_in:h
+if ( "$anat_path" == "${anat_in}" ) set anat_path = "."
+
+set ana_pref = `@GetAfniPrefix ${anat_in}`
+set ana_view = `@GetAfniView ${anat_in}`
+
+echo "$anat_path $ana_pref $ana_view $bling"
+
+END:
