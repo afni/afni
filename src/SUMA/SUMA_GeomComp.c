@@ -330,7 +330,7 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(   SUMA_SurfaceObject *SO, SUMA_VOL
             0 in case of no intersection
             1 in case of intersection
 */ 
-int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt)
+int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt, int report)
 {
    static char FuncName[]={"SUMA_isSelfIntersect"};
    float *NodePos = NULL, *p1=NULL, *p2=NULL, *p3 = NULL, p[3], *ep1=NULL, *ep2=NULL;
@@ -365,7 +365,7 @@ int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt)
                   if (p[1] > ep1[1] && p[1] < ep2[1]) {
                      if (p[2] > ep1[2] && p[2] < ep2[2]) {
                         /* point in segment, self intersection detected. */
-                        if (LocalHead) fprintf(SUMA_STDERR,"%s: Triangle %d (%d, %d, %d) was hit by segment formed by nodes [%d, %d]\n", 
+                        if (report || LocalHead) fprintf(SUMA_STDERR,"%s: Triangle %d (%d, %d, %d) was hit by segment formed by nodes [%d, %d]\n", 
                            FuncName, it, n1, n2, n3, SO->EL->EL[k][0], SO->EL->EL[k][1]);
                            ++ hit;
                         break;
@@ -383,7 +383,7 @@ int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt)
    
    if (MTI) MTI = SUMA_Free_MT_intersect_triangle(MTI); 
    
-   if (LocalHead) {
+   if (report || LocalHead) {
       if (!hit) {
          SUMA_LH("Surface does not self intersect.");
       } else {
@@ -7987,6 +7987,7 @@ typedef struct {
    int N_surf;
    char *spec_file;
    char *surftype;
+   int self_intersect;
 } SUMA_SURFQUAL_OPTIONS;
 
 /*!
@@ -8019,6 +8020,7 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
    Opt->spec_file = NULL;
    Opt->N_surf = -1;
    Opt->surftype = NULL;
+   Opt->self_intersect = 0;
    for (i=0; i<SURFQUAL_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
 	brk = NOPE;
    
@@ -8040,6 +8042,12 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
          Opt->surftype = argv[kar];
 			brk = YUP;
 		}
+      
+      if (!brk && (strcmp(argv[kar], "-self_intersect") == 0)) {
+         Opt->self_intersect = 1;
+			brk = YUP;
+		}
+      
       
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
@@ -8107,7 +8115,7 @@ int main (int argc,char *argv[])
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfSpecFile Spec;
    void *SO_name = NULL;
-   SUMA_Boolean DoConv = NOPE, DoSphQ = NOPE;   
+   SUMA_Boolean DoConv = NOPE, DoSphQ = NOPE, DoSelfInt = NOPE;   
    SUMA_Boolean LocalHead = NOPE;
 	
    SUMA_mainENTRY;
@@ -8143,6 +8151,8 @@ int main (int argc,char *argv[])
       exit(1);
    }
   
+   if (Opt->self_intersect) DoSelfInt = YUP;
+   
    DoConv = NOPE;
    DoSphQ = NOPE;   
    if (Opt->surftype) {
@@ -8248,6 +8258,19 @@ int main (int argc,char *argv[])
                                              iii+1, SO->EL->EL[iii][0], SO->EL->EL[iii][1] , SO->EL->ELps[iii][2] );
          }
       }
+   }
+   
+   if (DoSelfInt) {
+      int nsi;
+      nsi = SUMA_isSelfIntersect(SO, 300, 1);
+      if (nsi) {
+         fprintf(SUMA_STDERR, " Surface is self intersecting.\n%d segments were found to intersect the surface.\n", nsi);
+         if (nsi >= 300) {
+            fprintf(SUMA_STDERR, " It is possible that you have additional segments intersecting the surface.\n");
+         }
+      }else {
+         fprintf(SUMA_STDERR, " Surface is not self intersecting.\n");
+      }   
    }
    
    fprintf (SUMA_STDERR,"\n");

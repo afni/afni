@@ -24,7 +24,7 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle( SUMA_SurfaceObject *SO, SUMA_VOLPA
 
 
 
-int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int FullCount);
+int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int FullCount, int report);
 int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES ntype, int *nl);
 byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, int *N_in, byte *usethisisin); 
 SUMA_Boolean SUMA_VoxelsInBox(int *voxelsijk, int *N_in, float *c1, float *c2);

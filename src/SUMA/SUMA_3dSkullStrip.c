@@ -1270,7 +1270,7 @@ int main (int argc,char *argv[])
       if (Opt->PercInt >= 0) {
          if (Opt->debug) fprintf(SUMA_STDERR,"%s: Checking for self intersection...\n", FuncName);
          nseg = 30 * Opt->Icold * Opt->Icold; /* number of segments in Ico */
-         nint = SUMA_isSelfIntersect(SO, (int)(Opt->PercInt * nseg / 100.0));
+         nint = SUMA_isSelfIntersect(SO, (int)(Opt->PercInt * nseg / 100.0), 0);
          if (nint < 0) {
             SUMA_SL_Err("Error in SUMA_isSelfIntersect. Ignoring self intersection test.");
             nint = 0;
