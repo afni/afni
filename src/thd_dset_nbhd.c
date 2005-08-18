@@ -109,5 +109,5 @@ ENTRY("THD_get_dset_nbhd") ;
 
    if( nout == 0 ){ mri_free(im) ; RETURN(NULL) ; }
 
-   im->nx = nout ; RETURN(im) ;
+   im->nx = im->nvox = nout ; RETURN(im) ;
 }
