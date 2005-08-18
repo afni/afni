@@ -28,7 +28,7 @@ MCW_cluster * MCW_build_mask (int nx, int ny, int nz,
 {
    int ii, jj, kk, idx, jdy, kdz, nxy, nxyz, ijkma, mnum;
    float xq, yq, zq, dist_q;
-   MCW_cluster * mask;
+   MCW_cluster *mask;
 
 ENTRY("MCW_build_mask") ;
 
@@ -61,7 +61,7 @@ printf("MCW_find_clusters: idx=%d jdy=%d kdz=%d\n",idx,jdy,kdz) ;
          for( ii=-idx ; ii <= idx ; ii++ ){
             xq = yq + (ii*dx)*(ii*dx) ;
             if( xq <= dist_q && xq > 0.0 ){
-	      ADDTO_CLUSTER( mask , ii, jj, kk, 0 ) ;
+              ADDTO_CLUSTER( mask , ii, jj, kk, 0 ) ;
             }
          }
       }
@@ -80,4 +80,46 @@ printf("  mask size = %d\n",mask->num_pt ) ;
    }
 
    RETURN (mask);
+}
+
+/*----------------------------------------------------------------------*/
+
+MCW_cluster * MCW_spheremask( int   nx, int   ny, int   nz,
+                              float dx, float dy, float dz,
+                              float radius )
+{
+   MCW_cluster *mask;
+
+   mask = MCW_build_mask(nx,ny,nz,dx,dy,dz,radius) ;
+   if( mask == NULL ){ INIT_CLUSTER(mask) ; }
+   ADDTO_CLUSTER(mask,0,0,0,0) ;
+   return mask ;
+}
+
+/*----------------------------------------------------------------------*/
+
+MCW_cluster * MCW_rectmask( int   nx, int   ny, int   nz,
+                            float dx, float dy, float dz,
+                            float xh, float yh, float zh )
+{
+   int ii, jj, kk, idx, jdy, kdz ;
+   MCW_cluster *mask;
+
+   if( dx <= 0.0f ) dx = 1.0f ;
+   if( dy <= 0.0f ) dy = 1.0f ;
+   if( dz <= 0.0f ) dz = 1.0f ;
+
+   idx = (int)(xh/dx) ; if( idx < 0 ) idx = 0 ;
+   jdy = (int)(yh/dy) ; if( jdy < 0 ) jdy = 0 ;
+   kdz = (int)(zh/dz) ; if( kdz < 0 ) kdz = 0 ;
+
+   INIT_CLUSTER(mask) ;
+
+   for( kk=-kdz ; kk <= kdz ; kk++ ){
+    for( jj=-jdy ; jj <= jdy ; jj++ ){
+     for( ii=-idx ; ii <= idx ; ii++ ){
+       ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
+   }}}
+
+   return mask ;
 }
