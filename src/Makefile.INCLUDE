@@ -1215,7 +1215,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_read_stuff.o mri_flip3D.o mri_warp3D.o mri_fromstring.o         \
            ge4_header.o mri_equal.o mri_scalize.o mri_isgray.o mri_read_mpeg.o \
            mri_entropy16.o mri_symbolize.o mri_colorsetup.o mri_warp3D_align.o \
-           mri_medianfilter.o
+           mri_medianfilter.o mri_nstats.o
 
 CDF_OBJS = cdf_00.o cdf_01.o cdf_02.o cdf_03.o cdf_04.o cdf_05.o \
            cdf_06.o cdf_07.o cdf_08.o cdf_09.o cdf_10.o cdf_11.o \
@@ -1257,7 +1257,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_analyzeread.o thd_ctfread.o thd_1Ddset.o thd_getorient.o   \
            thd_3Ddset.o thd_mattor.o thd_niftiread.o thd_mpegread.o       \
            thd_brainormalize.o thd_opentcat.o thd_nimlatr.o thd_dsetatr.o \
-           thd_logafni.o
+           thd_logafni.o thd_dset_nbhd.o
 
 # these are now included in NIML
 

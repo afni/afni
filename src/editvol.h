@@ -176,6 +176,9 @@ extern float MCW_vol_amax( int,int,int , int,void *) ;
 extern MCW_cluster * MCW_build_mask (int, int, int,
                                      float, float, float, float);
 
+extern MCW_cluster * MCW_spheremask( int,int,int , float,float,float,float ) ;
+extern MCW_cluster * MCW_rectmask  ( int,int,int , float,float,float,float,float,float ) ;
+
 /* 16 June 1998 */
 extern void MCW_erode_clusters (int, int, int, float, float, float, int,
 				  void *, float, float, int);
