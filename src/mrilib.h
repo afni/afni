@@ -563,6 +563,18 @@ extern void mri_add_name( char * , MRI_IMAGE * ) ;
 
 extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 
+#define NSTAT_MEAN   0
+#define NSTAT_SIGMA  2
+#define NSTAT_CVAR   3
+#define NSTAT_MEDIAN 4
+#define NSTAT_MAD    5
+#define NSTAT_MAX    6
+#define NSTAT_MIN    7
+#define NSTAT_ABSMAX 13
+#define NSTAT_VAR    17
+
+extern float mri_nstat( int , MRI_IMAGE * ) ;  /* 19 Aug 2005 */
+
 extern MRI_IMAGE * mri_edit_image( float pthr, float power, MRI_IMAGE * im ) ;
 
 extern MRI_IMARR * mri_read_mpeg( char * ) ;    /* 03 Dec 2003 */
