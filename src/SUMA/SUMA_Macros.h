@@ -89,6 +89,8 @@
       else { SUMA_SL_Err("Bad chnk");   }   \
 }
 
+#define SUMA_CHECK_NULL_STR(str) ((str) ? (str) : "(NULL)")
+
 #define SUMA_IS_STRICT_POS(a)   ( ((a) > 0) ? 1 : 0 )
 
 #define SUMA_IS_POS(a)   ( ((a) >= 0) ? 1 : 0 )
@@ -193,9 +195,9 @@
    change from barycentric coordinates.
 */
 #define SUMA_FROM_BARYCENTRIC(u, v, p1, p2, p3, p){   \
-   (p)[0] = (p1)[0] + u * ((p2)[0] - (p1)[0] ) + v * ((p3)[0] - (p1)[0]);  \
-   (p)[1] = (p1)[1] + u * ((p2)[1] - (p1)[1] ) + v * ((p3)[1] - (p1)[1]);  \
-   (p)[2] = (p1)[2] + u * ((p2)[2] - (p1)[2] ) + v * ((p3)[2] - (p1)[2]);  \
+   (p)[0] = (p1)[0] + (u) * ((p2)[0] - (p1)[0] ) + (v) * ((p3)[0] - (p1)[0]);  \
+   (p)[1] = (p1)[1] + (u) * ((p2)[1] - (p1)[1] ) + (v) * ((p3)[1] - (p1)[1]);  \
+   (p)[2] = (p1)[2] + (u) * ((p2)[2] - (p1)[2] ) + (v) * ((p3)[2] - (p1)[2]);  \
 }
 
 /*!
