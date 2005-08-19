@@ -330,7 +330,7 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(   SUMA_SurfaceObject *SO, SUMA_VOL
             0 in case of no intersection
             1 in case of intersection
 */ 
-int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt, int report)
+int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt, byte *report)
 {
    static char FuncName[]={"SUMA_isSelfIntersect"};
    float *NodePos = NULL, *p1=NULL, *p2=NULL, *p3 = NULL, p[3], *ep1=NULL, *ep2=NULL;
@@ -354,20 +354,26 @@ int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt, int report)
          /* find out if segment intersects */
          MTI = SUMA_MT_intersect_triangle(ep1, ep2, SO->NodeList, SO->N_Node, SO->FaceSetList, SO->N_FaceSet, MTI); 
          for (it=0; it<SO->N_FaceSet; ++it) {
-            if (MTI->isHit[it] && it != t1 && it != t2) {
+            if (MTI->isHit[it] && it != t1 && it != t2 && MTI->u[it] > SUMA_EPSILON && MTI->v[it] > SUMA_EPSILON) {
                /* ray hit triangle, is intersection inside segment ? */
                /* SUMA_LH("Checking hit..."); */
                it3 = SO->FaceSetDim*it;
                n1 = SO->FaceSetList[it3]; n2 = SO->FaceSetList[it3+1]; n3 = SO->FaceSetList[it3+2];
                p1 = &(SO->NodeList[SO->NodeDim*n1]); p2 = &(SO->NodeList[SO->NodeDim*n2]); p3 = &(SO->NodeList[SO->NodeDim*n3]);   
                SUMA_FROM_BARYCENTRIC(MTI->u[it], MTI->v[it], p1, p2, p3, p);
+               
                if (p[0] > ep1[0] && p[0] < ep2[0]) {
+                  /* if  (LocalHead && it == 1638) {
+                  fprintf(SUMA_STDERR,"%s: Segment [%d %d] u = %f v = %f\nep1: %.6f   %.6f   %.6f\n p : %.6f   %.6f  %.6f\nep2: %.6f   %.6f  %.6f\n", 
+                                 FuncName, SO->EL->EL[k][0], SO->EL->EL[k][1], MTI->u[it], MTI->v[it],ep1[0], ep1[1], ep1[2], p[0], p[1], p[2], ep2[0], ep2[1], ep2[2]); 
+                  } */ 
                   if (p[1] > ep1[1] && p[1] < ep2[1]) {
                      if (p[2] > ep1[2] && p[2] < ep2[2]) {
                         /* point in segment, self intersection detected. */
                         if (report || LocalHead) fprintf(SUMA_STDERR,"%s: Triangle %d (%d, %d, %d) was hit by segment formed by nodes [%d, %d]\n", 
                            FuncName, it, n1, n2, n3, SO->EL->EL[k][0], SO->EL->EL[k][1]);
                            ++ hit;
+                           report[SO->EL->EL[k][0]] = report[SO->EL->EL[k][1]] = 1;
                         break;
                      }
                   }
@@ -7911,7 +7917,7 @@ void usage_SUMA_SurfQual ()
       s = SUMA_help_basics();
       printf ( "\nUsage: A program to check the quality of surfaces.\n"
                "  SurfQual <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
-               "             <-sphere> [-prefix OUTPREF]  \n"
+               "             <-sphere> [-self_intersect] [-prefix OUTPREF]  \n"
                "\n"
                "  Mandatory parameters:\n"
                "     -spec SpecFile: Spec file containing input surfaces.\n"
@@ -7920,6 +7926,12 @@ void usage_SUMA_SurfQual ()
                "              files, use the name of the node coordinate file.\n"
                "  Mesh winding consistency and 2-manifold checks are performed\n"
                "  on all surfaces.\n"
+               "  Optional parameters:\n"
+               "     -self_intersect: Check if surface is self intersecting.\n"
+               "                      This option is rather slow, so be patient.\n"
+               "                      In the presence of intersections, the output file\n"
+               "                      OUTPREF_IntersNodes.1D.dset will contain the indices\n"
+               "                      of nodes forming segments that intersect the surface.\n"
                "  Most other checks are specific to spherical surfaces (see option below).\n"
                "     -sphere: Indicates that surfaces read are spherical.\n"
                "              With this option you get the following output.\n"
@@ -8214,7 +8226,6 @@ int main (int argc,char *argv[])
          if (OutName) SUMA_free(OutName); OutName = NULL;
       }
       
-      if (prefix) SUMA_free(prefix); prefix = NULL;
    }
    
   
@@ -8261,21 +8272,51 @@ int main (int argc,char *argv[])
    }
    
    if (DoSelfInt) {
-      int nsi;
-      nsi = SUMA_isSelfIntersect(SO, 300, 1);
+      int nsi, iii;
+      FILE *fout=NULL;
+      byte *report = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
+      if (!report) {
+         SUMA_SL_Crit("Failed to allocate for report");
+         report = NULL;
+      }  
+      fprintf( SUMA_STDERR, "\n\nChecking for intersections...:\n");
+      nsi = SUMA_isSelfIntersect(SO, 500, report);
       if (nsi) {
          fprintf(SUMA_STDERR, " Surface is self intersecting.\n%d segments were found to intersect the surface.\n", nsi);
-         if (nsi >= 300) {
+         if (nsi >= 500) {
             fprintf(SUMA_STDERR, " It is possible that you have additional segments intersecting the surface.\n");
          }
+         if (report) {
+            if (Opt->N_surf > 1) {
+               sprintf(ext,"_%c", 65+i);
+               OutName = SUMA_append_replace_string (prefix, "_IntersNodes.1D.dset", ext, 0);
+            } else { 
+               OutName = SUMA_append_string (prefix, "_IntersNodes.1D.dset");
+            }
+            fout = fopen(OutName, "w");
+            if (fout) {
+               fprintf(fout,  "#List of nodes that are part of segments which intersect the surface\n"
+                              "#%s\n"
+                              "#A total of %d segments (search limit is 500) were found to intersect the surface.\n"
+                              "#Col.1 : Node index\n"
+                              "#Col.2 : Dummny flag, always 1\n", SUMA_CHECK_NULL_STR(SO->Label), nsi );
+               for (iii=0; iii<SO->N_Node; ++iii) if (report[iii]) fprintf(fout, "%d\t1\n", iii);
+               fclose(fout); fout = NULL;
+            } else {
+               SUMA_SL_Err("Failed to open file for output.");
+            }
+            if (OutName) SUMA_free(OutName);
+         }         
       }else {
          fprintf(SUMA_STDERR, " Surface is not self intersecting.\n");
       }   
+      if (report) SUMA_free(report); report = NULL;
    }
    
    fprintf (SUMA_STDERR,"\n");
    
    SUMA_LH("clean up");
+   if (prefix) SUMA_free(prefix); prefix = NULL;
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
    if (Opt) SUMA_free(Opt);   
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
