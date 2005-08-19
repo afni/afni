@@ -4712,7 +4712,7 @@ ENTRY( "RCREND_cutout_blobs" );
 
             } else {                                     /* dilation */
 
-              MCW_cluster * mask = MCW_build_mask( nx,ny,nz, adx,ady,adz, par ) ;
+              MCW_cluster * mask = MCW_build_mask( adx,ady,adz, par ) ;
               int mnum = mask->num_pt , pp,ip,jp,kp ;
               short * mi = mask->i , * mj = mask->j , * mk = mask->k ;
               byte * keep = calloc(nxyz,sizeof(byte)) ;

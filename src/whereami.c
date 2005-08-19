@@ -180,7 +180,7 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
    b4 = DSET_BRICK_ARRAY(dset,1) ; if( b4 == NULL ) RETURN(NULL) ;
 
    if( wamiclust == NULL ){
-      wamiclust = MCW_build_mask( 0,0,0 , 1.0,1.0,1.0 , WAMIRAD ) ;
+      wamiclust = MCW_build_mask( 1.0,1.0,1.0 , WAMIRAD ) ;
       if( wamiclust == NULL ) RETURN(NULL) ;  /* should not happen! */
 
       for( ii=0 ; ii < wamiclust->num_pt ; ii++ )       /* load radius */

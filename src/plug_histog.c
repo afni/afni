@@ -301,9 +301,9 @@ static char * HISTO_main( PLUGIN_interface * plint )
       short *di,*dj,*dk ;
       int nd , xx,yy,zz , dd , nx,ny,nz,nxy, nx1,ny1,nz1 , ip,jp,kp ;
 
-      cl = MCW_build_mask( 0,0,0 , fabs(DSET_DX(input_dset)) ,
-                                   fabs(DSET_DY(input_dset)) ,
-                                   fabs(DSET_DZ(input_dset)) , hrad ) ;
+      cl = MCW_build_mask( fabs(DSET_DX(input_dset)) ,
+                           fabs(DSET_DY(input_dset)) ,
+                           fabs(DSET_DZ(input_dset)) , hrad ) ;
 
       if( cl == NULL || cl->num_pt < 6 ){
          KILL_CLUSTER(cl);

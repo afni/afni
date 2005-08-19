@@ -47,7 +47,7 @@ ENTRY("NIH_find_clusters") ;
    /*--- make a cluster that is a mask of points closer than max_dist ---*/
 
    if( mode == ISOVALUE_MODE ){
-     mask = MCW_build_mask (nx, ny, nz, dx, dy, dz, max_dist);
+     mask = MCW_build_mask (dx, dy, dz, max_dist);
      if (mask == NULL)
      {
         fprintf(stderr, "Unable to build mask in NIH_find_clusters");
