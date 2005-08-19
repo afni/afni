@@ -44,7 +44,7 @@ THD_3dim_dataset * WINsorize( THD_3dim_dataset *inset ,
 
    /*- build list of points to use -*/
 
-   cl = MCW_build_mask( 0,0,0 , 1.0,1.0,1.0 , irad ) ;
+   cl = MCW_build_mask( 1.0,1.0,1.0 , irad ) ;
 
    if( cl == NULL || cl->num_pt < 6 ){ KILL_CLUSTER(cl); return NULL; }
 

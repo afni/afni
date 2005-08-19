@@ -100,7 +100,7 @@ ENTRY("EDIT_filter_volume") ;
 
    /*--- Make a cluster that is a mask of points closer than filter_rmm ---*/
 
-   mask = MCW_build_mask (nx, ny, nz, dx, dy, dz, filter_rmm);
+   mask = MCW_build_mask (dx, dy, dz, filter_rmm);
    if (mask == NULL)
    {
       fprintf (stderr, "Warning: Filter option has no effect. \n");
@@ -402,7 +402,7 @@ ENTRY("EDIT_aver_fvol") ;
 
    /*--- Make a cluster that is a mask of points closer than rmm ---*/
 
-   mask = MCW_build_mask(nx,ny,nz, dx,dy,dz, rmm) ;
+   mask = MCW_build_mask(dx,dy,dz, rmm) ;
    if( mask == NULL || mask->num_pt < 2 ){
       fprintf(stderr,"Warning: EDIT_aver_volume has no effect.\n") ;
       EXRETURN ;

@@ -108,21 +108,26 @@ float qmed_float( int n , float * ar )
 
 void qmedmad_float( int n, float *ar, float *med, float *mad )
 {
-   float * q = (float *) malloc(sizeof(float)*n) ;
-   float me,ma ;
+   float me=0.0f , ma=0.0f , *q ;
    register int ii ;
 
+   if( med == NULL && mad == NULL || n <= 0 || ar == NULL ) return ;
+
+   q = (float *)malloc(sizeof(float)*n) ;
    memcpy(q,ar,sizeof(float)*n) ;  /* duplicate input array */
    me = qmed_float( n , q ) ;      /* compute median */
 
-   for( ii=0 ; ii < n ; ii++ )     /* subtract off median */
-      q[ii] = fabs(q[ii]-me) ;     /* (absolute deviation) */
+   if( mad != NULL && n > 1 ){
+     for( ii=0 ; ii < n ; ii++ )   /* subtract off median */
+       q[ii] = fabs(q[ii]-me) ;    /* (absolute deviation) */
+     ma = qmed_float( n , q ) ;    /* MAD = median absolute deviation */
+   }
 
-   ma = qmed_float( n , q ) ;      /* MAD = median absolute deviation */
+   free(q) ;                       /* 05 Nov 2001 - oops */
 
-   free(q) ;                       /* 05 Nov 2001 */
-
-   *med = me ; *mad = ma ; return ;
+   if( med != NULL ) *med = me ;   /* 19 Aug 2005 - assign only */
+   if( mad != NULL ) *mad = ma ;   /*               if not NULL */
+   return ;
 }
 
 /*---------------------------------------------------------------*/
