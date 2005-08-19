@@ -11,36 +11,52 @@
 
 /*---------------------------------------------------------------------------*/
 /*! Extract a nbhd from a dataset sub-brick.
-  The 3-index of a voxel from the row is in (xx,yy,zz).
+  The 3-index of a voxel from the row is in (xx,yy,zz).  The result
+  is a 1D MRI_IMAGE *im, with im->nx = number of points extracted.
+  If mask!=NULL, then it is a mask of allowed points.
 -----------------------------------------------------------------------------*/
 
 MRI_IMAGE * THD_get_dset_nbhd( THD_3dim_dataset *dset, int ival, byte *mask,
                                int xx, int yy, int zz, MCW_cluster *nbhd    )
 {
-   int kind , nx,ny,nz,nxy , ibase , npt , nout , aa,bb,cc,kk,ii ;
+   int kind , nx,ny,nz,nxy , npt , nout , aa,bb,cc,kk,ii ;
    void *brick ;
    MRI_IMAGE *im ;
 
-ENTRY("THD_get_dset_nbhd") ;
+   if( dset == NULL || nbhd == NULL || nbhd->num_pt <= 0 ) return NULL ;
+   if( ival < 0 || ival >= DSET_NVALS(dset) )              return NULL ;
 
-   if( dset == NULL || nbhd == NULL || nbhd->num_pt <= 0 ) RETURN(NULL) ;
+   im = mri_get_nbhd( DSET_BRICK(dset,ival) , mask , xx,yy,zz , nbhd ) ;
+   return im ;
+}
 
-   nx = DSET_NX(dset) ;
-   ny = DSET_NY(dset) ; nxy = nx*ny ;
-   nz = DSET_NZ(dset) ; npt = nbhd->num_pt ; nout = 0 ;
+/*---------------------------------------------------------------------------*/
 
-   ibase = xx + yy*nx + zz*nxy ;
-   if( !INMASK(ibase) ) RETURN(NULL) ;
+MRI_IMAGE * mri_get_nbhd( MRI_IMAGE *inim , byte *mask ,
+                          int xx, int yy, int zz, MCW_cluster *nbhd )
+{
+   int kind , nx,ny,nz,nxy , npt , nout , aa,bb,cc,kk,ii ;
+   MRI_IMAGE *im ;
+   void *brick ;
 
-   kind  = DSET_BRICK_TYPE(dset,ival) ;
-   brick = DSET_ARRAY(dset,ival) ;
+ENTRY("mri_get_nbhd") ;
+
+   nx = inim->nx ;
+   ny = inim->ny ; nxy = nx*ny ;
+   nz = inim->nz; npt = nbhd->num_pt ; nout = 0 ;
+
+   kk = xx + yy*nx + zz*nxy ;
+   if( !INMASK(kk) ) RETURN(NULL) ;
+
+   kind  = inim->kind ;
+   brick = mri_data_pointer(inim) ;
    im    = mri_new( npt , 1 , kind ) ;
 
    /*-- extract data, based on kind of data in sub-brick --*/
 
    switch( kind ){
 
-     default: mri_free(im) ; RETURN(NULL) ;  /* bad */
+     default: break ;   /* bad bad bad */
 
      case MRI_short:{
        short *rr = MRI_SHORT_PTR(im) , *vv = (short *)brick ;
