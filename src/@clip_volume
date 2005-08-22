@@ -1,0 +1,208 @@
+#!/bin/tcsh -f
+
+HELP:
+if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
+   echo "Usage 1: A script to clip regions of a volume"
+   echo ""
+   echo "   `basename $0` <-input VOL> <-below Zmm> [ [-and/-or] <-above Zmm> ]"
+   echo ""
+   echo "   Mandatory parameters:"
+   echo "      -input VOL: Volume to clip"
+   echo "    + At least one of the options below:"
+   echo "      -below Zmm: Set to 0 slices below Zmm"
+   echo "                  Zmm (and all other coordinates) are in RAI"
+   echo "                  as displayed by AFNI on the top left corner"
+   echo "                  of the AFNI controller" 
+   echo "      -above Zmm: Set to 0 slices above Zmm"
+   echo "      -left  Xmm: Set to 0 slices left of Xmm"
+   echo "      -right  Xmm: Set to 0 slices right of Xmm"
+   echo "      -anterior Ymm: Set to 0 slices anterior to Ymm"
+   echo "      -posterior Ymm: Set to 0 slices posterior to Ymm"
+   echo ""
+   echo "    Optional parameters:"
+   echo "      -and (default): Combine with next clipping planes using 'and'"
+   echo "      -or           : Combine with next clipping planes using 'or'"
+   echo "      -verb         : Verbose, show command"
+   echo "      -prefix PRFX  : Use PRFX for output prefix. Default is the "
+   echo "                      input prefix with _clp suffixed to it."
+   echo ""    
+   echo "Example:"
+   echo "@clip_volume -below -30 -above 53 -left 20 -right -13 -anterior -15 \"
+   echo "             -posterior 42 -input ABanat+orig. -verb -prefix sample"
+   echo ""
+   echo "Written by Ziad S. Saad (ziad@nih.gov)"
+   echo "                        SSCC/NIMH/NIH/DHHS"
+   echo ""
+   goto END
+endif
+  
+
+PARSE:
+	echo "Parsing ..."
+	set Narg = $#
+	
+	set cnt = 1
+   set anat_in = ''
+   set prefix = ''
+   set sgn = '*'
+   set verb = 0
+   set neq = 0
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-below") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need Zmm after -below"
+            goto END
+			else
+            @ cnt ++
+            if ($neq == 0) then 
+               set eq = "step(z - ($argv[$cnt]))"
+               @ neq ++
+            else 
+               set eq = "$eq $sgn step(z - ($argv[$cnt]))"
+               @ neq ++
+            endif
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-above") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need Zmm after -above"
+            goto END
+			else
+            @ cnt ++
+            if ($neq == 0) then 
+               set eq = "step(($argv[$cnt]) - z)"
+               @ neq ++
+            else 
+               set eq = "$eq $sgn step(($argv[$cnt]) - z)"
+               @ neq ++
+            endif
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-right") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need Xmm after -right"
+            goto END
+			else
+            @ cnt ++
+            if ($neq == 0) then 
+               set eq = "step(x - ($argv[$cnt]))"
+               @ neq ++
+            else 
+               set eq = "$eq $sgn step(x - ($argv[$cnt]))"
+               @ neq ++
+            endif
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-left") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need Xmm after -left"
+            goto END
+			else
+            @ cnt ++
+            if ($neq == 0) then 
+               set eq = "step(($argv[$cnt]) - x)"
+               @ neq ++
+            else 
+               set eq = "$eq $sgn step(($argv[$cnt]) - x)"
+               @ neq ++
+            endif
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-anterior") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need Ymm after -anterior"
+            goto END
+			else
+            @ cnt ++
+            if ($neq == 0) then 
+               set eq = "step(y - ($argv[$cnt]))"
+               @ neq ++
+            else 
+               set eq = "$eq $sgn step(y - ($argv[$cnt]))"
+               @ neq ++
+            endif
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-posterior") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need Ymm after -posterior"
+            goto END
+			else
+            @ cnt ++
+            if ($neq == 0) then 
+               set eq = "step(($argv[$cnt]) - y)"
+               @ neq ++
+            else 
+               set eq = "$eq $sgn step(($argv[$cnt]) - y)"
+               @ neq ++
+            endif
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-and") then
+         set sgn = '*';		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-or") then
+         set sgn = '+';		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-prefix") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a string after -prefix"
+            goto END
+			else
+            @ cnt ++
+            set prefix = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-input") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need  volume after -input"
+            goto END
+			else
+            @ cnt ++
+            set anat_in = "$argv[$cnt]"
+            set in_name = `@parse_afni_name $anat_in`
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-verb") then
+         set verb = 1;		
+         set donext = 0		
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+		@ cnt ++
+	end
+   
+   if ($prefix == '') then
+      set prefix = $in_name[2]"_clp"
+   endif
+
+DOIT:
+   echo "Clipping"
+   set noglob
+   if ($verb) echo "3dcalc -a "$anat_in" -expr "a * $eq" -rai -prefix $prefix"
+   unset noglob
+   3dcalc -a "$anat_in" -expr "a * $eq" -rai -prefix $prefix
+
+END:
