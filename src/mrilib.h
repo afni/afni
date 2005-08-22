@@ -572,6 +572,7 @@ extern MRI_IMAGE ** mri_stat_seq( MRI_IMAGE * ) ;
 #define NSTAT_MIN    7
 #define NSTAT_ABSMAX 13
 #define NSTAT_VAR    17
+#define NSTAT_NUM    18
 
 extern float mri_nstat( int , MRI_IMAGE * ) ;  /* 19 Aug 2005 */
 
