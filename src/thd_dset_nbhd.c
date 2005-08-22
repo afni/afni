@@ -22,12 +22,22 @@ MRI_IMAGE * THD_get_dset_nbhd( THD_3dim_dataset *dset, int ival, byte *mask,
    int kind , nx,ny,nz,nxy , npt , nout , aa,bb,cc,kk,ii ;
    void *brick ;
    MRI_IMAGE *im ;
+   float fac ;
 
-   if( dset == NULL || nbhd == NULL || nbhd->num_pt <= 0 ) return NULL ;
-   if( ival < 0 || ival >= DSET_NVALS(dset) )              return NULL ;
+ENTRY("THD_get_dset_nbhd") ;
+
+   if( dset == NULL || nbhd == NULL || nbhd->num_pt <= 0 ) RETURN(NULL) ;
+   if( ival < 0 || ival >= DSET_NVALS(dset) )              RETURN(NULL) ;
 
    im = mri_get_nbhd( DSET_BRICK(dset,ival) , mask , xx,yy,zz , nbhd ) ;
-   return im ;
+
+   fac = DSET_BRICK_FACTOR(dset,ival) ;
+   if( im != NULL && fac != 0.0f && fac != 1.0f ){
+     MRI_IMAGE *qim = mri_scale_to_float( fac , im ) ;
+     mri_free(im) ; im = qim ;
+   }
+
+   RETURN(im) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -35,21 +45,23 @@ MRI_IMAGE * THD_get_dset_nbhd( THD_3dim_dataset *dset, int ival, byte *mask,
 MRI_IMAGE * mri_get_nbhd( MRI_IMAGE *inim , byte *mask ,
                           int xx, int yy, int zz, MCW_cluster *nbhd )
 {
-   int kind , nx,ny,nz,nxy , npt , nout , aa,bb,cc,kk,ii ;
+   int kind , nx,ny,nz,nxy,nxyz , npt , nout , aa,bb,cc,kk,ii ;
    MRI_IMAGE *im ;
    void *brick ;
 
 ENTRY("mri_get_nbhd") ;
 
+   if( inim == NULL || nbhd == NULL ) RETURN(NULL) ;
+
    nx = inim->nx ;
-   ny = inim->ny ; nxy = nx*ny ;
-   nz = inim->nz; npt = nbhd->num_pt ; nout = 0 ;
+   ny = inim->ny ; nxy  = nx*ny  ;
+   nz = inim->nz ; nxyz = nxy*nz ; npt = nbhd->num_pt ; nout = 0 ;
 
    kk = xx + yy*nx + zz*nxy ;
-   if( !INMASK(kk) ) RETURN(NULL) ;
+   if( npt == 0 || kk < 0 || kk >= nxyz || !INMASK(kk) ) RETURN(NULL) ;
 
    kind  = inim->kind ;
-   brick = mri_data_pointer(inim) ;
+   brick = mri_data_pointer(inim) ;  if( brick == NULL ) RETURN(NULL) ;
    im    = mri_new( npt , 1 , kind ) ;
 
    /*-- extract data, based on kind of data in sub-brick --*/
