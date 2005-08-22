@@ -1217,3 +1217,7 @@
   * incorporated Kate's niftilib-0.2 packaging (v1.11)
   * updated comments on most functions, added nifti_type_and_names_match()
 
+22 August 2005:
+  * modified to3d.c:T3D_set_dependent_geometries, case of not IRREGULAR:
+      only use fov if nx == ny
+

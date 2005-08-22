@@ -3475,7 +3475,9 @@ ENTRY("T3D_set_dependent_geometries") ;
 
    /* Voxel shapes not irregular?  Then set them appropriately. */
 
-   if( user_inputs.voxshape != VOXSHAPE_IRREGULAR && user_inputs.nx > 0 ){
+   /* this assumes nx == ny, so check               22 Aug 2005 [rickr] */
+   if( user_inputs.voxshape != VOXSHAPE_IRREGULAR &&
+       user_inputs.nx > 0 && user_inputs.nx == user_inputs.ny ){
 
       size = user_inputs.fov / user_inputs.nx ;
 
