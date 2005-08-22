@@ -46,6 +46,76 @@ PARSE_COMMAND:
 		#no path given
 		set SurfAnatPath = .
 	endif
+	
+   #continue parsing for new options
+   set Narg = $#
+   set cnt = 3
+   set prefix = ''
+   set UseWarp = 0
+   set clpbelow = ''
+   while ($cnt <= $Narg)
+		set donext = 1;
+      if ($donext && "$argv[$cnt]" == "-dxyz") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need value after -dxyz"
+            goto END
+			else
+            @ cnt ++
+            set DownSample = "$argv[$cnt]"
+            if ($DownSample < 0.3 || $DownSample > 4) then
+               echo "Error: Bad value for dxyz ($argv[$cnt])"
+               echo ""
+               goto END
+            endif
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-EA_clip_below") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need Zmm after -EA_clip_below"
+            goto END
+			else
+            @ cnt ++
+            set clpbelow = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-prefix") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a string after -prefix"
+            goto END
+			else
+            @ cnt ++
+            set prefix = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-wd") then
+         set UseWarp = 1;		
+         set donext = 0		
+      endif
+      if ($donext == 1 && $cnt == 3) then
+         #probably the dxyz parameter
+         set DownSample = $argv[$cnt]
+         if ($DownSample < 0.3 || $DownSample > 4) then
+            echo "Error: Option '$argv[$cnt]' not understood"
+            echo ""
+            goto END
+         endif
+         set donext = 0
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      
+		@ cnt ++
+	end
+   
 	goto Ret_PARSE_COMMAND
 
 SET_VARIABLES:
@@ -53,6 +123,7 @@ SET_VARIABLES:
 	set SurfAnat = $SurfAnatPrefix$SurfAnatView
 	set Resampled = 0 #flag set when resampling is done
 	goto Ret_SET_VARIABLES
+
 
 DOWNSAMPLE:
 	set Skip = 0
@@ -96,7 +167,7 @@ RESAMPLE:
 	#resample Experiment volume to look like SurfAnat
 	set Skip = 0
 	cd $CurDir
-	set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"
+	set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"$clpbelow
 	set ExpAnat_Resamp = $ExpAnat_ResampPrefix$ExpAnatView
 	echo ""
 	echo "resampling $ExpAnat to match $SurfAnatPath/$SurfAnat"
@@ -119,12 +190,24 @@ RESAMPLE:
 		echo ""
 	endif
 	if ($Skip == 0) then
-		echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat"
+      set tmpref = '___tmp__rs'"$ExpAnat_ResampPrefix"
+		if ($clpbelow != '') then
+         rm -rf ${tmpref}*.???? >& /dev/null
+         @clip_volume -below $clpbelow -input $ExpAnat -prefix $tmpref
+         set nxt = "$tmpref""$ExpAnatView"
+         if (!(-f $nxt.BRIK || -f $nxt.BRIK.gz || -f $nxt.BRIK.Z)) then 
+			   goto NO_RESAMP
+		   endif
+      else   
+         set nxt = "$ExpAnat"
+      endif
+      echo "3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $nxt"
 		echo ""
-		3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $ExpAnat
+		3dresample -master $SurfAnatPath/$SurfAnat -prefix $ExpAnat_ResampPrefix -rmode Cu -inset $nxt
 		if (!(-f $ExpAnat_Resamp.BRIK || -f $ExpAnat_Resamp.BRIK.gz || -f $ExpAnat_Resamp.BRIK.Z)) then 
 			goto NO_RESAMP
 		endif
+      rm -rf ${tmpref}*.???? >& /dev/null
 	endif
 	set ExpAnatPrefix = $ExpAnat_ResampPrefix
 	set ExpAnat = $ExpAnat_Resamp
@@ -133,8 +216,12 @@ RESAMPLE:
 	
 REGISTER:
 	cd $CurDir
-	set VolRegPrefix = $SurfAnatPrefix"_Alnd_Exp"
-	echo ""
+	if ($prefix == '') then
+      set VolRegPrefix = $SurfAnatPrefix"_Alnd_Exp"
+	else
+      set VolRegPrefix = $prefix
+   endif
+   echo ""
 	if (-f $VolRegPrefix$SurfAnatView.BRIK) then
 		echo ""
 		echo "Warning: $VolRegPrefix$SurfAnatView exists in $CurDir"
@@ -150,13 +237,34 @@ REGISTER:
 		echo ""
 	endif
 	
-	echo "Registering $SurfAnatPath/$SurfAnat to $ExpAnat"
-	echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
-	echo ""
-	3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
-	if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
-		goto NO_VOLREG
-	endif
+   echo "Registering $SurfAnatPath/$SurfAnat to $ExpAnat"
+	if ($UseWarp == 0) then
+	   echo "3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat"
+	   echo ""
+	   3dvolreg -wtrim -clipit -twopass -twodup -zpad 8 -rotcom -verbose -base $ExpAnat -prefix $VolRegPrefix $SurfAnatPath/$SurfAnat
+	   if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
+		   goto NO_VOLREG
+	   endif
+   else      
+      set tmpref = '___tmp__zp'"$ExpAnatPrefix$SurfAnatPrefix"
+      rm -rf ${tmpref}*.???? >& /dev/null
+      set pd = 8
+      
+      echo "3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat"
+      echo ""
+      
+      3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
+      3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_refpad $ExpAnat
+
+      3dWarpDrive -twopass -verb -affine_general -cubic -final quintic -base ./${tmpref}_refpad$ExpAnatView -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
+	   
+      3dZeropad -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm -prefix ./$VolRegPrefix ${tmpref}_pad_wd$SurfAnatView
+	   
+      if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
+		   goto NO_VOLREG
+	   endif
+      rm -rf ${tmpref}*.???? >& /dev/null
+   endif
 	
 	mv $SurfAnatPath/$VolRegPrefix* ./
 	
@@ -229,26 +337,55 @@ NO_RESAMP:
 	
 USAGE:
 	echo ""
-	echo "Usage: `basename $0` <Experiment Anatomy> <Surface Anatomy> [dxyz]"
+	echo "Usage: `basename $0` <Experiment Anatomy> <Surface Anatomy> "
+   echo "                     [dxyz] [-wd] [-prefix PREFIX] [-EA_clip_below CLP]"
 	echo "creates a version of Surface Anatomy that is registered to Experiment Anatomy."
 	echo ""
-	echo "<Experiment Anatomy> Name of high resolution anatomical data set in register with experimental data."
-	echo "<Surface Anatomy> Path and Name of high resolution antomical data set used to create the surface."
-	echo "[dxyz]: This optional parameter indicates that the anatomical volumes must be downsampled to dxyz mm"
-	echo "        voxel resolution before registration. That is only necessary if 3dvolreg runs out of memory."
-	echo "        You MUST have 3dvolreg that comes with afni distributions newer than version 2.45l. It contains"
-	echo "        an option for reducing memory usage and thus allow the registration of large data sets."
-	echo ""         
+	echo "Mandatory parameters:"
+   echo "<Experiment Anatomy>: Name of high resolution anatomical data set in register "
+   echo "        with experimental data."
+	echo "<Surface Anatomy> Path and Name of high resolution antomical data set used to "
+   echo "        create the surface."
+	echo ""
+   echo "Optional parameters:"
+   echo "   [DXYZ|-dxyz DXYZ]: This optional parameter indicates that the anatomical "
+   echo "        volumes must be downsampled to dxyz mm voxel resolution before "
+	echo "        registration. That is only necessary if 3dvolreg runs out of memory."
+	echo "        You MUST have 3dvolreg that comes with afni distributions newer than "
+   echo "        version 2.45l. It contains an option for reducing memory usage and "
+	echo "        thus allow the registration of large data sets."
+	echo "   [-wd]: Use 3dWarpDrive's general affine transform (12 param) instead of "
+   echo "        3dvolreg's 6 parameters."
+   echo "        If the anatomical coverage differs markedly between 'Experiment "
+   echo "        Anatomy' and 'Surface Anatomy', you might need to use -EA_clip_below "
+   echo "        option or you could end up with a very distorted brain."
+   echo "   [-EA_clip_below CLP]: Set slices below CLPmm in 'Experiment Anatomy' to zero."
+   echo "        Use this if the coverage of 'Experiment Anatomy' dataset"
+   echo "        extends far below the data in 'Surface Anatomy' dataset."
+   echo "        To get the value of CLP, use AFNI to locate the slice"
+   echo "        below which you want to clip and set CLP to the z coordinate"
+   echo "        from AFNI's top left corner. Coordinate must be in RAI, DICOM."                      
+   echo "   [-prefix PREFIX]: Use PREFIX for the output volume. Default is the prefix "
+   echo "        of the 'Surface Anatomy' suffixed by _AlndExp."
+   echo ""         
 	echo ""
 	echo "NOTE: You must run the script from the directory where Experiment Anatomy resides."
 	echo ""
-	echo "Example:"
-	echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
+	echo "Example 1: For datasets with no relative distortion and comparable coverage."
+   echo "           Using 6 param. rigid body transform."
+	echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. \"
+   echo "                        ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
 	echo ""
+   echo "Example 2: For datasets with some distortion and different coverage."
+   echo "           Using 12 param. transform and clipping of areas below cerebellum:"
+   echo "@SUMA_AlignToExperiment ABanat+orig. DemoSubj_SurfVol+orig. \"
+   echo "                       -wd -prefix DemoSubj_SurfVol_WD_AlndExp \"
+   echo "                       -EA_clip_below -30"
+   echo ""
    echo "More help may be found at http://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
 	echo ""
 	echo "Ziad Saad (ziad@nih.gov)"
-	echo "LBC/NIMH/ National Institutes of Health, Bethesda Maryland"
+	echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
 	echo ""
 	goto END
 
