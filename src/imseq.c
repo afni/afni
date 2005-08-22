@@ -11083,7 +11083,7 @@ ENTRY("ISQ_handle_keypress") ;
        int nn=seq->im_nr , nt=seq->status->num_total ;
        if( nt > 1 ){
          if( key == '<' ){ nn--; if( nn <  0 ) nn = nt-1; }
-         else               { nn++; if( nn >= nt) nn = 0   ; }
+         else            { nn++; if( nn >= nt) nn = 0   ; }
 #if 1
          ISQ_redisplay( seq , nn , isqDR_display ) ;
 #else
@@ -11133,7 +11133,7 @@ ENTRY("ISQ_handle_keypress") ;
      }
      break ;
 
-           /* 17 May 2002: do image fraction */
+     /* 17 May 2002: do image fraction */
 
      case 'i':
      case 'I':{
@@ -11144,6 +11144,20 @@ ENTRY("ISQ_handle_keypress") ;
          AV_assign_ival( seq->arrow[NARR_FRAC] , iv+1 ) ;
        ISQ_arrow_CB( seq->arrow[NARR_FRAC] , seq ) ;
        busy=0; RETURN(1) ;
+     }
+     break ;
+
+     /* 22 Aug 2005: 'm' == Min-2-Max toggle */
+
+     case 'm':{
+       if( seq->dialog_starter==NBUT_DISP ){XBell(seq->dc->display,100); break;}
+       if( seq->opt.scale_range != ISQ_RNG_MINTOMAX )
+         seq->opt.scale_range = ISQ_RNG_MINTOMAX ;
+       else
+         seq->opt.scale_range = ISQ_RNG_02TO98 ;
+
+       ISQ_redisplay( seq , -1 , isqDR_display ) ;
+       busy=0 ; RETURN(1) ;
      }
      break ;
 

@@ -5683,3 +5683,4 @@
 
 22 Aug 2005
  * New program 3dLocalstat.
+ * 'm' in imseq.c (toggle Min-to-Max).
