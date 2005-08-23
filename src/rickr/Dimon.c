@@ -10,17 +10,20 @@ static char g_history[] =
     " 2.0  Jul 29, 2005 [rickr] - DICOM file organizer\n"
     "      - add -dicom_org option, to try to organize the image files\n"
     "      - enable GERT_Reco option for DICOM files\n"
+    " 2.1  Aug 23, 2005 [rickr]\n"
+    "      - added -sort_by_num_suffix option and routines\n"
+    "      - output actual TR in to3d command of GERT_Reco script\n"
     "----------------------------------------------------------------------\n";
 
-#define DIMON_VERSION "version 2.0 (August 01, 2005)"
+#define DIMON_VERSION "version 2.1 (August 23, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
  *
  *    - without -rt_cmd 'PREFIX ...', set from last dir in glob (data/time?)
  *    - if there is a change in valid volume size, restart
- *    - setup an infile sorting step that will organize the files
- *      before running
+ * ok - add -sort_by_num_suffix option
+ * ok - setup an infile sorting step that will organize the files
  * ok - re-write help
  * ok - add -infile_prefix for no wildcards (and no quotes)
  * ok - find memory leak in dicom reader
@@ -89,10 +92,14 @@ extern float DI_MRL_tr;
 
 extern struct dimon_stuff_t { int study, series, image; } gr_dimon_stuff;
 
+static int         clear_float_zeros( char * str );
 int                compare_finfo( const void * v0, const void * v1 );
+int                compare_by_num_suff( const void * v0, const void * v1 );
 static int         dicom_order_files( param_t * p );
+static int         get_num_suffix( char * str );
 extern MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data );
 static int         read_dicom_image( char *pathname, finfo_t *fp, int get_data);
+static int         sort_by_num_suff( char ** names, int nnames);
 
 /*----------------------------------------------------------------------*/
 /* static function declarations */
@@ -1004,7 +1011,12 @@ static int read_ge_files(
             }
         }
         else
+        {
             MCW_file_expand( 1, &p->glob_dir, &p->nfiles, &p->fnames );
+            if( p->opts.sort_num_suff )
+                if ( sort_by_num_suff( p->fnames, p->nfiles ) < 0 )
+                    return -1;
+        }
     }
     else
         MCW_file_expand( 1, &p->glob_dir, &p->nfiles, &p->fnames );
@@ -1269,6 +1281,7 @@ static int dicom_order_files( param_t * p )
         free(flist);
         return -1;
     }
+
     /* sort the structs by geh.run/index (DICOM files first) */
     qsort(flist, p->nfiles, sizeof(finfo_t), compare_finfo);
 
@@ -1339,6 +1352,114 @@ static int dicom_order_files( param_t * p )
     return 0;
 }
 
+
+/*----------------------------------------------------------------------
+ * compare filenames by numerical suffix (must be .nnn)
+ *
+ * return  0 on success, or -1 on failure
+ *----------------------------------------------------------------------
+*/
+static int sort_by_num_suff( char ** names, int nnames)
+{
+    int c, val, errs = 0;
+
+    if( gD.level > 2 ) fprintf(stderr,"-- sort_by_num_suff...\n");
+
+    if( !names || nnames <= 0 || !*names ) return -1;
+
+    /* sort the names */
+    qsort(names, nnames, sizeof(char *), compare_by_num_suff);
+
+    /* test the sort */
+    for( c = 0; c < nnames-1; c++ )
+    {
+        val = compare_by_num_suff(names+c, names+c+1);
+        if( val == -2 )
+        {
+            fprintf(stderr,"** bad numerical suffix for sorting in pair:\n"
+                           "   (%s , %s)\n", names[c], names[c+1]);
+            errs++;
+        }
+        else if( val == 0 )
+        {
+            fprintf(stderr,"** suffix not unique for sorting in pair:\n"
+                           "   (%s , %s)\n", names[c], names[c+1]);
+            errs++;
+        }
+    }
+
+    if( gD.level > 4 )
+    {
+        fprintf(stderr,"+d names, sorted by suffix :\n");
+        for( c = 0; c < nnames; c++ )
+            fprintf(stderr,"      #%04d : suff %04d : %s\n",
+                    c, get_num_suffix(names[c]), names[c]);
+    }
+
+    if( gD.level > 2 ) fprintf(stderr,"-- sort_by_num_suff: errs = %d\n",errs);
+
+    if( errs > 0 ) return -1;
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * compare filenames by numerical suffix (must be .nnn)
+ *----------------------------------------------------------------------
+*/
+int compare_by_num_suff( const void * v0, const void * v1 )
+{
+    int n0 = get_num_suffix(*(char **)v0);
+    int n1 = get_num_suffix(*(char **)v1);
+
+    if ( n0 < 0 || n1 < 0 ) return -2;   /* error condition */
+
+    if ( n0 < n1 ) return -1;
+    if ( n0 > n1 ) return  1;
+
+    return 0;  /* equal */
+}
+
+
+/*----------------------------------------------------------------------
+ *  find a non-negative suffix
+ *
+ *  return  >= 0  : numerical suffix
+ *            -1  : bad str
+ *            -2  : no '.'
+ *            -3  : no number
+ *----------------------------------------------------------------------
+*/
+static int get_num_suffix( char * str )
+{
+    char * cp;
+    int    len, val;
+
+    if ( !str ) return -1;
+    len = strlen( str );
+    if ( len <= 0 ) return -1;
+
+    cp = strrchr(str, '.');
+
+    if ( !cp )                   return -2;
+    if ( cp >= (str + len - 1) ) return -3;
+
+    /* point to what should be the start of an integer */
+    cp++;
+
+    if ( !isdigit(*cp) ) return -3;
+    len = sscanf(cp, "%i", &val);
+    if ( len != 1 ) return -3;
+
+    return val;
+}
+
+
+/*----------------------------------------------------------------------
+ * compare run:index values from ge_header structs
+ *----------------------------------------------------------------------
+*/
 int compare_finfo( const void * v0, const void * v1 )
 {
     ge_header_info * h0 = &((finfo_t *)v0)->geh;
@@ -1537,6 +1658,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else if ( ! strncmp( argv[ac], "-quit", 5 ) )
         {
             p->opts.quit = 1;
+        }
+        else if ( ! strncmp( argv[ac], "-sort_by_num_suffix", 12 ) )
+        {
+            p->opts.sort_num_suff = 1;
         }
         else if ( ! strncmp( argv[ac], "-sp", 3 ) )
         {
@@ -2281,7 +2406,9 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   (nt, nice)         = (%d, %d)\n"
             "   pause              = %d\n"
             "   (debug, gert_reco) = (%d, %d)\n"
-            "   use_dicom, quit    = %d, %d\n"
+            "   quit, use_dicom    = %d, %d\n"
+            "   dicom_org          = %d\n"
+            "   sort_num_suff      = %d\n"
             "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
             "   host               = %s\n"
             "   drive_list(u,a,p)  = %d, %d, %p\n"
@@ -2294,7 +2421,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->gert_outdir),
             opt->argv, opt->argc,
             opt->nt, opt->nice, opt->pause,
-            opt->debug, opt->gert_reco, opt->use_dicom, opt->quit,
+            opt->debug, opt->gert_reco, opt->quit, opt->use_dicom,
+            opt->dicom_org, opt->sort_num_suff,
             opt->rt, opt->swap, opt->rev_bo,
             CHECK_NULL_STR(opt->host),
             opt->drive_list.nused, opt->drive_list.nalloc, opt->drive_list.str,
@@ -2816,6 +2944,29 @@ static int usage ( char * prog, int level )
           "        in new data occurs.  This is most appropriate to use when\n"
           "        the image files have already been collected.\n"
           "\n"
+          "    -sort_by_num_suffix : sort files according to numerical suffix\n"
+          "\n"
+          "        e.g.  -sort_by_num_suffix\n"
+          "\n"
+          "        With this option, the program will sort the input files\n"
+          "        according to the trailing '.NUMBER' in the filename.  This\n"
+          "        NUMBER will be evaluated as a positive integer, not via\n"
+          "        an alphabetic sort (so numbers need not be zero-padded).\n"
+          "\n"
+          "        This is intended for use on interleaved files, which are\n"
+          "        properly enumerated, but only in the filename suffix.\n"
+          "        Consider a set of names for a single, interleaved volume:\n"
+          "\n"
+          "          im001.1  im002.3  im003.5  im004.7  im005.9  im006.11\n"
+          "          im007.2  im008.4  im009.6  im010.8  im011.10\n"
+          "\n"
+          "        Here the images were named by 'time' of acquisition, and\n"
+          "        were interleaved.  So an alphabetic sort is not along the\n"
+          "        slice position (z-order).  However the slice ordering was\n"
+          "        encoded in the suffix of the filenames.\n"
+          "\n"
+          "        NOTE: the suffix numbers must be unique\n"
+          "\n"
           "    -start_file S_FILE : have %s process starting at S_FILE\n"
           "\n"
           "        e.g.  -start_file 043/I.901\n"
@@ -2998,6 +3149,8 @@ static int set_volume_stats( param_t * p, stats_t * s, vol_t * v )
     {
         rp->f1index = v->fn_1; /* index into flist (matching f1name) */
         strncpy( rp->f1name, v->first_file, IFM_MAX_FLEN );
+        rp->geh = v->geh;      /* keep a copy of the volume info */
+        rp->gex = v->gex;
     }
 
     rp->volumes = v->seq_num;
@@ -3034,6 +3187,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     char   * script = IFM_GERT_DICOM;     /* output script filename */
     char   * spat;                        /* slice acquisition pattern */
     char     outfile[32];                 /* run files */
+    char     TR[16];                      /* for printing TR w/out zeros */
     int      num_valid, c, findex;
 
     /* if the user did not give a slice pattern string, use the default */
@@ -3048,12 +3202,6 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         fprintf( stderr, "-- no runs to use for '%s'\n", script );
         return 0;
     }
-
-    /* create run files, containing lists of all files in a run */
-    for ( c = 0; c < s->nused; c++ )
-        if ( s->runs[c].volumes > 0 )
-        {
-        }
 
     if ( (fp = fopen( script, "w" )) == NULL )
     {
@@ -3077,10 +3225,11 @@ static int create_gert_dicom( stats_t * s, param_t * p )
              IFM_PROG_NAME
            );
 
+    /* create run files, containing lists of all files in a run */
     for ( c = 0; c < s->nused; c++ )
         if ( s->runs[c].volumes > 0 )
         {
-            /* create name file */
+            /*-- create name file --*/
             sprintf(outfile, "dimon.files.run.%03d", c);
             if ( (nfp = fopen( outfile, "w" )) == NULL )
             {
@@ -3092,12 +3241,17 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             for(findex = 0; findex < s->runs[c].volumes*s->slices; findex++)
                 fprintf(nfp, "%s\n", p->fnames[s->runs[c].f1index+findex]);
             fclose(nfp);
+            /*---------------------*/
+
+            /* remove trailing zeros from TR printing */
+            sprintf(TR, "%.6f",s->runs[c].geh.tr);
+            clear_float_zeros(TR);
 
             /* and write to3d command */
             fprintf(fp, "to3d -prefix ${OutPrefix}_run_%03d  \\\n"
-                        "     -time:zt %d %d 0 %s \\\n"
+                        "     -time:zt %d %d %ssec %s \\\n"
                         "     -@ < %s\n\n",
-                    c, s->slices, s->runs[c].volumes, spat, outfile);
+                    c, s->slices, s->runs[c].volumes, TR, spat, outfile);
         }
 
     fclose( fp );
@@ -3106,6 +3260,29 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     system( "chmod u+x " IFM_GERT_DICOM );
 
     return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * remove trailing zeros from string of printed float
+ * return  1 if something was cleared
+ *         0 if not
+ *----------------------------------------------------------------------*/
+static int clear_float_zeros( char * str )
+{
+   char * dp  = strchr(str, '.'), * valp;
+   int    len;
+
+   if( !dp ) return 0;      /* nothing to clear */
+
+   len = strlen(dp);
+
+   /* never clear what is just to the right of '.' */
+   for( valp = dp+len-1; (valp > dp+1) && (*valp==' ' || *valp=='0'); valp-- )
+       *valp = '\0';     /* clear, so we don't worry about break conditions */
+
+   if( valp < dp + len - 1 ) return 1;
+   return 0;
 }
 
 
