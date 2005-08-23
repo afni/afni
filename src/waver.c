@@ -208,7 +208,7 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strncmp(argv[1],"-help",5) == 0 ) Syntax() ;
 
-   machdep(); if(argc > 1) AFNI_logger("waver",argc,argv) ;
+   PRINT_VERSION("waver"); machdep(); AFNI_logger("waver",argc,argv);
 
    Process_Options( argc , argv ) ;
 
