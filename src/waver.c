@@ -23,6 +23,7 @@ void Process_Options( int c , char * a[] ) ;
 void Syntax(void) ;
 
 double waveform_EXPR( double t ) ;  /* 01 Aug 2001 */
+double waveform_FILE( double t ) ;  /* 23 Aug 2005 */
 
 /*----------------------------------------------------------------
   Function that transitions from 0 to 1 over input x in [0,1].
@@ -51,6 +52,9 @@ double ztone( double x )
 #define GAM_TYPE  2
 #define EXPR_TYPE 3  /* 01 Aug 2001 */
 
+#undef  FILE_TYPE
+#define FILE_TYPE 4  /* 23 Aug 2005 */
+
 static int    waveform_type    = WAV_TYPE ;
 
 static double WAV_delay_time   =  2.0 ,
@@ -72,6 +76,12 @@ static double GAM_delay_time   = 0.0 ;
 static PARSER_code * EXPR_pcode = NULL ;  /* 01 Aug 2001 */
 static double        EXPR_fac   = 1.0  ;
 
+static double FILE_dt ;                   /* 23 Aug 2005 */
+static int    FILE_nval ;
+static float *FILE_val = NULL ;
+
+/*----------------------------------------------------------------*/
+
 double waveform( double t )
 {
    switch( waveform_type ){
@@ -82,9 +92,13 @@ double waveform( double t )
       case GAM_TYPE:  return waveform_GAM(t) ;
 
       case EXPR_TYPE: return waveform_EXPR(t);  /* 01 Aug 2001 */
+
+      case FILE_TYPE: return waveform_FILE(t);  /* 23 Aug 2005 */
    }
    return 0.0 ;  /* unreachable */
 }
+
+/*----------------------------------------------------------------*/
 
 #define TT 19
 double waveform_EXPR( double t )  /* 01 Aug 2001 */
@@ -103,6 +117,8 @@ double waveform_EXPR( double t )  /* 01 Aug 2001 */
    return (EXPR_fac * PARSER_evaluate_one(EXPR_pcode,atoz) ) ;
 }
 
+/*----------------------------------------------------------------*/
+
 double waveform_GAM( double t )
 {
    if( GAM_ampl == 0.0 ){
@@ -113,6 +129,8 @@ double waveform_GAM( double t )
 
    return GAM_ampl * pow((t-GAM_delay_time),GAM_power) * exp(-(t-GAM_delay_time)/GAM_time) ;
 }
+
+/*----------------------------------------------------------------*/
 
 double waveform_WAV( double t )
 {
@@ -139,6 +157,26 @@ double waveform_WAV( double t )
    return 0.0 ;
 }
 
+/*----------------------------------------------------------------*/
+
+double waveform_FILE( double t )   /* 23 Aug 2005 */
+{
+   int nn ; double tf ;
+
+   if( t < 0.0 ) return 0.0 ;
+
+   tf = t / FILE_dt ;
+   nn = (int) tf ;
+   tf = tf - (double)nn ;
+   if( nn < 0 || nn > FILE_nval ) return 0.0 ;
+   if( nn == FILE_nval )
+     return (tf < 0.0001) ? (double)FILE_val[nn-1] : 0.0 ;
+
+   return ( (1.0-tf)*FILE_val[nn] + tf*FILE_val[nn+1] ) ;
+}
+
+/*----------------------------------------------------------------*/
+
 static double WAV_peak = 100.0 ;
 static double WAV_dt   =   0.1 ;
 
@@ -161,6 +199,8 @@ static double * IN_tstim_a   = NULL ;
 static double * IN_tstim_b   = NULL ;  /* 12 May 2003 */
 static double * IN_tstim_c   = NULL ;  /* 13 May 2005 (Friday the 13th) */
 
+/*----------------------------------------------------------------*/
+
 int main( int argc , char * argv[] )
 {
    int ii , jj ;
@@ -180,20 +220,20 @@ int main( int argc , char * argv[] )
 
       default:
       case WAV_TYPE:
-         WAV_duration = WAV_delay_time + WAV_rise_time + WAV_fall_time
-                       + ( (WAV_undershoot != 0.0) ? WAV_restore_time : 0.0 ) ;
+        WAV_duration = WAV_delay_time + WAV_rise_time + WAV_fall_time
+                      + ( (WAV_undershoot != 0.0) ? WAV_restore_time : 0.0 ) ;
       break ;
 
       /* slightly complicated for the gamma variate */
 
       case GAM_TYPE:{
-         double bal = 5.5/GAM_power + 1.0 ;
-         double al  = bal ;
-         double lal = log(al) ;
+        double bal = 5.5/GAM_power + 1.0 ;
+        double al  = bal ;
+        double lal = log(al) ;
 
-         while( al < bal + lal ){ al = bal + 1.1*lal ; lal = log(al) ; }
+        while( al < bal + lal ){ al = bal + 1.1*lal ; lal = log(al) ; }
 
-         WAV_duration = al * GAM_power * GAM_time ;
+        WAV_duration = al * GAM_power * GAM_time ;
       }
       break ;
 
@@ -203,31 +243,37 @@ int main( int argc , char * argv[] )
 #define SPASS 10000
 #define STHR  5
       case EXPR_TYPE:{
-         double val , vtop=0.0 , vthr ;
-         int itop=-1 , icount ;
-         for( ii=0 ; ii < FPASS ; ii++ ){
-            val = waveform_EXPR( WAV_dt * ii ) ; val = fabs(val) ;
-            if( val > vtop ){ vtop = val ; itop = ii ; }
-         }
-         if( itop < 0 ){
-            fprintf(stderr,"** -EXPR is 0 for 1st %d points!\n",FPASS);
-            exit(1) ;
-         }
-         vthr = 0.01 * vtop ;
-         for( icount=0,ii=itop+1 ; ii < SPASS && icount < STHR ; ii++ ){
-            val = waveform_EXPR( WAV_dt * ii ) ; val = fabs(val) ;
-            if( val <= vthr ) icount++ ;
-            else              icount=0 ;
-         }
-         if( ii == SPASS && icount < STHR ){
-            fprintf(stderr,"** -EXPR doesn't decay away in %d points!\n",SPASS);
-            exit(1) ;
-         }
-         WAV_duration = WAV_dt * ii ;
+        double val , vtop=0.0 , vthr ;
+        int itop=-1 , icount ;
+        for( ii=0 ; ii < FPASS ; ii++ ){
+          val = waveform_EXPR( WAV_dt * ii ) ; val = fabs(val) ;
+          if( val > vtop ){ vtop = val ; itop = ii ; }
+        }
+        if( itop < 0 ){
+          fprintf(stderr,"** -EXPR is 0 for 1st %d points!\n",FPASS);
+          exit(1) ;
+        }
+        vthr = 0.01 * vtop ;
+        for( icount=0,ii=itop+1 ; ii < SPASS && icount < STHR ; ii++ ){
+          val = waveform_EXPR( WAV_dt * ii ) ; val = fabs(val) ;
+          if( val <= vthr ) icount++ ;
+          else              icount=0 ;
+        }
+        if( ii == SPASS && icount < STHR ){
+          fprintf(stderr,"** -EXPR doesn't decay away in %d points!\n",SPASS);
+          exit(1) ;
+        }
+        WAV_duration = WAV_dt * ii ;
 
-         if( WAV_peak != 0.0 ) EXPR_fac = WAV_peak / vtop ;
-         WAV_peak = 1.0 ;
+        if( WAV_peak != 0.0 ) EXPR_fac = WAV_peak / vtop ;
+        WAV_peak = 1.0 ;
       }
+      break ;
+
+      /* 23 Aug 2005: not too hard for the FILE type */
+
+      case FILE_TYPE:
+        WAV_duration = (FILE_nval+1) * FILE_dt ;
       break ;
    }
 
@@ -237,21 +283,21 @@ int main( int argc , char * argv[] )
    WAV_ts   = (double *) malloc( sizeof(double) * WAV_npts ) ;
 
    for( ii=0 ; ii < WAV_npts ; ii++ )
-      WAV_ts[ii] = WAV_peak * waveform( WAV_dt * ii ) ;
+     WAV_ts[ii] = WAV_peak * waveform( WAV_dt * ii ) ;
 
    /*---- if no input timeseries, just output waveform ----*/
 
    if( IN_npts < 1 && IN_num_tstim < 1 ){
-      int top = WAV_npts ;
-      if( OUT_numout > 0 ) top = OUT_numout ;
-      if( OUT_xy ){
-         for( ii=0 ; ii < top ; ii++ )
-            printf( "%g %g\n" , WAV_dt * ii , WAV_ts[ii] ) ;
-      } else {
-         for( ii=0 ; ii < top ; ii++ )
-            printf( "%g\n" , WAV_ts[ii] ) ;
-      }
-      exit(0) ;
+     int top = WAV_npts ;
+     if( OUT_numout > 0 ) top = OUT_numout ;
+     if( OUT_xy ){
+       for( ii=0 ; ii < top ; ii++ )
+         printf( "%g %g\n" , WAV_dt * ii , WAV_ts[ii] ) ;
+     } else {
+       for( ii=0 ; ii < top ; ii++ )
+         printf( "%g\n" , WAV_ts[ii] ) ;
+     }
+     exit(0) ;
    }
 
    /*---- must convolve input with waveform ----*/
@@ -344,6 +390,8 @@ int main( int argc , char * argv[] )
    exit(0) ;
 }
 
+/*----------------------------------------------------------------*/
+
 void Syntax(void)
 {
    printf(
@@ -364,6 +412,18 @@ void Syntax(void)
     "           be scaled to the value given by '-peak'; if this is not\n"
     "           desired, set '-peak 0', and the 'natural' peak value of\n"
     "           the expression will be used.\n"
+    "\n"
+    "  -FILE dt wname = Sets waveform to the values read from the file\n"
+    "                   'wname', which should be a single column .1D file\n"
+    "                   (i.e., 1 ASCII number per line).  The 'dt value\n"
+    "                   is the time step (in seconds) between lines\n"
+    "                   in 'wname'; the first value will be at t=0, the\n"
+    "                   second at t='dt', etc.  Intermediate time values\n"
+    "                   will be linearly interpolated.  Times past the\n"
+    "                   the end of the 'wname' file length will have\n"
+    "                   the waveform value set to zero.\n"
+    "               *** N.B.: If the -peak option is used AFTER -FILE,\n"
+    "                         its value will be multiplied into the result.\n"
     "\n"
     "These options set parameters for the -WAV waveform.\n"
     "  -delaytime #   = Sets delay time to # seconds                [2]\n"
@@ -476,6 +536,8 @@ void Syntax(void)
    exit(0) ;
 }
 
+/*----------------------------------------------------------------*/
+
 #define ERROR \
  do{fprintf(stderr,"Illegal %s option\n",argv[nopt]);Syntax();}while(0)
 
@@ -485,15 +547,38 @@ void Process_Options( int argc , char * argv[] )
 
    while( nopt < argc ){
 
+      /*-----*/
+
+      if( strncmp(argv[nopt],"-FILE",4) == 0 ){  /* 23 Aug 2005 */
+        MRI_IMAGE *fim ;
+        waveform_type = FILE_TYPE ;
+        if( nopt+2 >= argc ) ERROR_exit("need 2 arguments after -FILE!") ;
+        FILE_dt = strtod( argv[++nopt] , NULL ) ;
+        if( FILE_dt <= 0.0 ) ERROR_exit("-FILE '%s' is illegal 'dt' value",argv[nopt]);
+        fim = mri_read_1D( argv[++nopt] ) ;
+        if( fim == NULL ) ERROR_exit("Can't read file '%s' for -FILE",argv[nopt]) ;
+        FILE_nval = fim->nx ;
+        if( FILE_nval < 2 ) ERROR_exit("File '%s' too short for -FILE",argv[nopt]) ;
+        FILE_val = MRI_FLOAT_PTR(fim) ;
+        WAV_peak = 1.0 ;
+        nopt++ ; continue ;
+      }
+
+      /*-----*/
+
       if( strncmp(argv[nopt],"-GAM",4) == 0 ){
          waveform_type = GAM_TYPE ;
          nopt++ ; continue ;
       }
 
+      /*-----*/
+
       if( strncmp(argv[nopt],"-WAV",4) == 0 ){
          waveform_type = WAV_TYPE ;
          nopt++ ; continue ;
       }
+
+      /*-----*/
 
       if( strncmp(argv[nopt],"-EXPR",4) == 0 ){  /* 01 Aug 2001 */
          waveform_type = EXPR_TYPE ;
@@ -517,6 +602,8 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      /*-----*/
+
       if( strncmp(argv[nopt],"-gamb",5) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          GAM_power = strtod(argv[nopt+1],NULL) ;
@@ -524,6 +611,8 @@ void Process_Options( int argc , char * argv[] )
          waveform_type = GAM_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
+
+      /*-----*/
 
       if( strncmp(argv[nopt],"-gamc",5) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
@@ -533,6 +622,8 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; nopt++ ; continue ;
       }
 
+      /*-----*/
+
       if( strncmp(argv[nopt],"-gamd",5) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          GAM_delay_time = strtod(argv[nopt+1],NULL) ;
@@ -540,6 +631,8 @@ void Process_Options( int argc , char * argv[] )
          waveform_type = GAM_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
+
+      /*-----*/
 
       if( strncmp(argv[nopt],"-del",4) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
@@ -549,6 +642,8 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; nopt++ ; continue ;
       }
 
+      /*-----*/
+
       if( strncmp(argv[nopt],"-ris",4) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          WAV_rise_time = strtod(argv[nopt+1],NULL) ;
@@ -556,6 +651,8 @@ void Process_Options( int argc , char * argv[] )
          waveform_type = WAV_TYPE ;
          nopt++ ; nopt++ ; continue ;
       }
+
+      /*-----*/
 
       if( strncmp(argv[nopt],"-fal",4) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
@@ -565,6 +662,8 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; nopt++ ; continue ;
       }
 
+      /*-----*/
+
       if( strncmp(argv[nopt],"-und",4) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          WAV_undershoot = strtod(argv[nopt+1],NULL) ;
@@ -572,11 +671,15 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; nopt++ ; continue ;
       }
 
+      /*-----*/
+
       if( strncmp(argv[nopt],"-pea",4) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          WAV_peak = strtod(argv[nopt+1],NULL) ;
          nopt++ ; nopt++ ; continue ;
       }
+
+      /*-----*/
 
       if( strncmp(argv[nopt],"-res",4) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
@@ -586,6 +689,8 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; nopt++ ; continue ;
       }
 
+      /*-----*/
+
       if( strncmp(argv[nopt],"-dt",3) == 0 || strncmp(argv[nopt],"-TR",3) == 0 ){
          if( nopt+1 >= argc ) ERROR ;
          WAV_dt = strtod(argv[nopt+1],NULL) ;
@@ -593,10 +698,14 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; nopt++ ; continue ;
       }
 
+      /*-----*/
+
       if( strncmp(argv[nopt],"-xyo",4) == 0 ){
          OUT_xy = 1 ;
          nopt++ ; continue ;
       }
+
+      /*-----*/
 
       if( strncmp(argv[nopt],"-inp",4) == 0 ){
          MRI_IMAGE * tsim ;
@@ -619,6 +728,8 @@ void Process_Options( int argc , char * argv[] )
          mri_free(tsim) ;
          nopt++ ; nopt++ ; continue ;
       }
+
+      /*-----*/
 
       if( strcmp(argv[nopt],"-tstim") == 0 ){  /* 16 May 2001 */
         int iopt , nnn , zero_valc=0 ;
@@ -695,6 +806,8 @@ void Process_Options( int argc , char * argv[] )
         nopt = iopt ; continue ;  /* end of -tstim */
       }
 
+      /*-----*/
+
       if( strncmp(argv[nopt],"-inl",4) == 0 ){
          int iopt , count , nnn ;
          float value ;
@@ -739,6 +852,8 @@ void Process_Options( int argc , char * argv[] )
          }
          nopt = iopt ; continue ;
       }
+
+      /*-----*/
 
       if( strcmp(argv[nopt],"-when") == 0 ){   /* 08 Apr 2002 */
          int iopt , bot,top , nn , nbt,*bt , count=0 , ii,kk ;
@@ -796,6 +911,8 @@ void Process_Options( int argc , char * argv[] )
          free(bt) ; nopt = iopt ; continue ;
       }
 
+      /*-----*/
+
       if( strcmp(argv[nopt],"-numout") == 0 ){   /* 08 Apr 2002 */
          int val = -1 ;
          if( nopt+1 >= argc ) ERROR ;
@@ -808,12 +925,14 @@ void Process_Options( int argc , char * argv[] )
          nopt++ ; nopt++ ; continue ;
       }
 
+      /*-----*/
+
       ERROR ;
    }
 
    if( WAV_peak == 0.0 && waveform_type != EXPR_TYPE ){
-      fprintf(stderr,"** Illegal -peak 0 for non-EXPR waveform type!\n") ;
-      exit(1) ;
+     fprintf(stderr,"** Illegal -peak 0 for non-EXPR waveform type!\n") ;
+     exit(1) ;
    }
 
    return ;
