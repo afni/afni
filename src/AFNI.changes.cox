@@ -5686,3 +5686,6 @@
  * In imseq.c: 'm' (toggle Min-to-Max), 'a' (fix aspect), 'l' (LR mirror).
  * '%s' in thd_compress.h means that you can now read .gz files with spaces
      in their names.
+
+23 Aug 2005
+ * -FILE option for waver.c.
