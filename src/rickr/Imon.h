@@ -47,6 +47,7 @@ typedef struct                      /* stuff extracted from GE I.* image */
     int   uv17;                     /* apparently codes for scan index */
     int   index;                    /* image counter                   */
     float dx,dy,dz, zoff, tr,te;    /* various dimensions              */
+                                    /* dxyz in mm, tr in seconds       */
     char  orients[8];               /* orientation string              */
 } ge_header_info;
 
@@ -105,7 +106,10 @@ typedef struct  /* user options */
     int              gert_reco;     /* output GERT_Reco2 script         */
     int              quit;          /* quit when no new images found    */
     int              use_dicom;     /* flag for dicom (not GE) images   */
+
+    /* DICOM organization options */
     int              dicom_org;     /* flag to organize dicom files     */
+    int              sort_num_suff; /* flag to sort by numerical suffix */
 
     /* realtime options */
     int              rt;            /* run in real-time afni mode       */
@@ -131,11 +135,13 @@ typedef struct
     opts_t           opts;          /* user specified options           */
 } param_t;
 
-typedef struct                      /* used for the stats_t struct      */
+typedef struct                           /* used for the stats_t struct      */
 {
-    int  volumes;                   /* number of volumes in this run    */
-    int  f1index;                   /* index into fnames list           */
-    char f1name[IFM_MAX_FLEN];      /* file name for first image        */
+    ge_header_info geh;                  /* first GE header structure        */
+    ge_extras      gex;                  /* first GE extras structure        */
+    int            volumes;              /* number of volumes in this run    */
+    int            f1index;              /* index into fnames list           */
+    char           f1name[IFM_MAX_FLEN]; /* file name for first image        */
 } run_t;
 
 typedef struct                  /* used to output statistics at the end */

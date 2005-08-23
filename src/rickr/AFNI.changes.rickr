@@ -1221,3 +1221,7 @@
   * modified to3d.c:T3D_set_dependent_geometries, case of not IRREGULAR:
       only use fov if nx == ny
 
+23 August 2005: (Dimon -> v2.1)
+  * added option -sort_by_num_suffix (for Jerzy)
+  * output TR (instead of 0) in GERT_Reco script (for Peggy)
+
