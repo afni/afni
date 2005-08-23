@@ -3443,7 +3443,7 @@ ENTRY("ISQ_saver_CB") ;
             }
             if( dbg ) fprintf(stderr,"  flip overlay?\n") ;
             if( tim != NULL )
-               ovim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, tim );
+              ovim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, tim );
             if( tim != ovim ) KILL_1MRI(tim) ;
          }
 
@@ -3468,9 +3468,9 @@ ENTRY("ISQ_saver_CB") ;
          /* if needed, convert from indices to RGB */
 
          if( flim->kind == MRI_short ){
-            if( dbg ) fprintf(stderr,"  convert to RGB\n") ;
-            tim = ISQ_index_to_rgb( seq->dc , 0 , flim ) ;
-            mri_free(flim) ; flim = tim ;
+           if( dbg ) fprintf(stderr,"  convert to RGB\n") ;
+           tim = ISQ_index_to_rgb( seq->dc , 0 , flim ) ;
+           mri_free(flim) ; flim = tim ;
          }
 
          /* 26 Mar 2002: zoom out, and geometry overlay, maybe */
@@ -3765,7 +3765,7 @@ ENTRY("ISQ_saver_CB") ;
                KILL_1MRI(tim) ;
             }
             if( tim != NULL )
-               ovim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot) , seq->opt.mirror , tim ) ;
+              ovim = mri_flippo( ISQ_TO_MRI_ROT(seq->opt.rot), seq->opt.mirror, tim ) ;
             if( tim != ovim ) KILL_1MRI(tim) ;
          }
 
@@ -11147,7 +11147,7 @@ ENTRY("ISQ_handle_keypress") ;
      }
      break ;
 
-     /* 22 Aug 2005: 'm' == Min-2-Max toggle */
+     /* 22 Aug 2005: 'm' == Min-to-Max toggle */
 
      case 'm':{
        if( seq->dialog_starter==NBUT_DISP ){XBell(seq->dc->display,100); break;}
@@ -11157,6 +11157,26 @@ ENTRY("ISQ_handle_keypress") ;
          seq->opt.scale_range = ISQ_RNG_02TO98 ;
 
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
+       busy=0 ; RETURN(1) ;
+     }
+     break ;
+
+     /* 22 Aug 2005: 'l' == LR mirror toggle */
+
+     case 'l':{
+       if( seq->dialog_starter==NBUT_DISP ){XBell(seq->dc->display,100); break;}
+       seq->opt.mirror = ! seq->opt.mirror ;
+       ISQ_redisplay( seq , -1 , isqDR_display ) ;
+       busy=0 ; RETURN(1) ;
+     }
+     break ;
+
+     /* 22 Aug 2005: 'a' = fix aspect ratio */
+
+     case 'a':{
+       int bx = seq->opt.free_aspect ; seq->opt.free_aspect = 0 ;
+       ISQ_reset_dimen( seq, seq->last_width_mm, seq->last_height_mm ) ;
+       seq->opt.free_aspect = bx ;
        busy=0 ; RETURN(1) ;
      }
      break ;
