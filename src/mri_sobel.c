@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*** NOT 7D SAFE ***/
@@ -20,15 +20,15 @@ void nonmax_kill( int , int , float * ) ;
          (either or both may be zero).
 ---------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_sobel( int nloc_individual , int nloc_collective , MRI_IMAGE * imin )
+MRI_IMAGE * mri_sobel( int nloc_individual , int nloc_collective , MRI_IMAGE *imin )
 {
-   MRI_IMAGE * imfl , * imout ;
-   float * flin , * flout , * fjj,*fjp,*fjm ;
+   MRI_IMAGE *imfl , *imout ;
+   float *flin , *flout , *fjj,*fjp,*fjm ;
    int ii , jj , joff , nx,ny , ij , nij , nloc ;
    register float sxx,syy,sdd,see ;
 
-   MRI_IMAGE * imxx , * imyy , * imdd , * imee ;
-   float     * flxx , * flyy , * fldd , * flee ;
+   MRI_IMAGE *imxx , *imyy , *imdd , *imee ;
+   float     *flxx , *flyy , *fldd , *flee ;
 
 #ifdef DEBUG
 printf("Entry: mri_sobel\n") ;
@@ -248,7 +248,7 @@ printf("Entry: mri_sobel\n") ;
 
 /*--------------------------------------------------------------------------*/
 
-void nonmax_kill( int nloc , int npt , float * ar )
+void nonmax_kill( int nloc , int npt , float *ar )
 {
             int ii ;
    register int jj , jbot,jtop ;
@@ -274,27 +274,22 @@ void nonmax_kill( int nloc , int npt , float * ar )
    (e.g., homomorphic filtering).
 ------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_sharpen( float phi , int logify , MRI_IMAGE * im )
+MRI_IMAGE * mri_sharpen( float phi , int logify , MRI_IMAGE *im )
 {
    int ii,jj , nx , ny , joff,ijoff , npix ;
-   MRI_IMAGE * flim , * outim ;
-   float * flar , * outar ;
+   MRI_IMAGE *flim , *outim ;
+   float *flar , *outar ;
    float nphi , omphi , sum , bot,top ;
 
-#ifdef DEBUG
-printf("Entry: mri_sharpen\n") ;
-#endif
+ENTRY("mri_sharpen") ;
 
    if( phi <= 0.0 || phi >= 1.0 ){
-      fprintf(stderr,"*** mri_sharpen: illegal phi=%g\n",phi) ;
-      return NULL ;
+     ERROR_message("mri_sharpen: illegal phi=%g\n",phi) ;
+     phi = (phi <= 0.0) ? 0.1 : 0.9 ;
    }
 
-   if( im->kind == MRI_float && !logify ){
-      flim = im ;
-   } else {
-      flim = mri_to_float( im ) ;
-   }
+   if( im->kind == MRI_float && !logify ) flim = im ;
+   else                                   flim = mri_to_float( im ) ;
    flar = mri_data_pointer( flim ) ;
 
    nx = flim->nx ; ny = flim->ny ; npix = nx*ny ;
@@ -302,7 +297,7 @@ printf("Entry: mri_sharpen\n") ;
    outar = mri_data_pointer( outim ) ;
 
    if( logify ){
-      for( ii=0 ; ii < npix ; ii++ ) flar[ii] = log( fabs(flar[ii])+1.0 ) ;
+     for( ii=0 ; ii < npix ; ii++ ) flar[ii] = log( fabs(flar[ii])+1.0 ) ;
    }
 
    for( ii=0 ; ii < nx ; ii++ ) outar[ii] = flar[ii] ;  /* copy 1st row */
@@ -313,33 +308,32 @@ printf("Entry: mri_sharpen\n") ;
    top   = mri_max(flim) ;
 
    for( jj=1 ; jj < ny-1 ; jj++ ){
-      joff = jj * nx ;
+     joff = jj * nx ;
 
-      outar[joff]      = flar[joff] ;       /* copy 1st and last columns */
-      outar[joff+nx-1] = flar[joff+nx-1] ;
+     outar[joff]      = flar[joff] ;       /* copy 1st and last columns */
+     outar[joff+nx-1] = flar[joff+nx-1] ;
 
-      for( ii=1 ; ii < nx-1 ; ii++ ){       /* filter all intermediate points */
-         ijoff = joff + ii ;
+     for( ii=1 ; ii < nx-1 ; ii++ ){       /* filter all intermediate points */
+       ijoff = joff + ii ;
 
-         sum = flar[ijoff-nx-1] + flar[ijoff-nx] + flar[ijoff-nx+1]
-              +flar[ijoff-1]    + flar[ijoff]    + flar[ijoff+1]
-              +flar[ijoff+nx-1] + flar[ijoff+nx] + flar[ijoff+nx+1] ;
+       sum = flar[ijoff-nx-1] + flar[ijoff-nx] + flar[ijoff-nx+1]
+            +flar[ijoff-1]    + flar[ijoff]    + flar[ijoff+1]
+            +flar[ijoff+nx-1] + flar[ijoff+nx] + flar[ijoff+nx+1] ;
 
-         outar[ijoff] = (flar[ijoff] - nphi*sum) * omphi ;
+       outar[ijoff] = (flar[ijoff] - nphi*sum) * omphi ;
 
-              if( outar[ijoff] < bot ) outar[ijoff] = bot ;
-         else if( outar[ijoff] > top ) outar[ijoff] = top ;
-      }
+            if( outar[ijoff] < bot ) outar[ijoff] = bot ;
+       else if( outar[ijoff] > top ) outar[ijoff] = top ;
+     }
    }
 
    joff = (ny-1) * nx ;
    for( ii=0 ; ii < nx ; ii++ ) outar[joff+ii] = flar[joff+ii] ;  /* copy last row */
 
    if( logify ){
-      for( ii=0 ; ii < npix ; ii++ ) outar[ii] = exp(outar[ii]) ;
+     for( ii=0 ; ii < npix ; ii++ ) outar[ii] = exp(outar[ii]) ;
    }
 
-
    if( flim != im ) mri_free( flim ) ;
-   return outim ;
+   RETURN(outim) ;
 }

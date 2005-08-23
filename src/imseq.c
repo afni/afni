@@ -5412,9 +5412,9 @@ ENTRY("ISQ_but_disp_CB") ;
 
    if( ! ISQ_REALZ(seq) || seq->dialog != NULL ) EXRETURN ;
 
-   for( ib=0 ; ib < NBUTTON_BOT-1 ; ib++ )        /* turn off buttons  */
-      if( ISQ_but_bot_dial[ib] == True )          /* that also want to */
-        SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
+   for( ib=0 ; ib < NBUTTON_BOT-1 ; ib++ )       /* turn off buttons  */
+     if( ISQ_but_bot_dial[ib] == True )          /* that also want to */
+       SENSITIZE( seq->wbut_bot[ib] , False ) ;  /* use seq->dialog   */
 
    seq->dialog = XtVaCreatePopupShell(
                     "menu" , xmDialogShellWidgetClass , seq->wtop ,
@@ -7727,7 +7727,7 @@ ENTRY("ISQ_wbar_menu_CB") ;
 
    else if( w == seq->wbar_sharp_but ){
       MCW_choose_integer( seq->wimage , "Sharpen Factor" ,
-                          1 , 9 , (int)(10*seq->sharp_fac) ,
+                          1 , 9 , (int)(10.01*seq->sharp_fac) ,
                           ISQ_set_sharp_CB , seq ) ;
    }
 
@@ -11179,6 +11179,41 @@ ENTRY("ISQ_handle_keypress") ;
        seq->opt.free_aspect = bx ;
        busy=0 ; RETURN(1) ;
      }
+     break ;
+
+     /* 23 Aug 2005: 's' = sharpen */
+
+     case 's':{
+       if( seq->dialog_starter==NBUT_DISP ){XBell(seq->dc->display,100); break;}
+       if( !(seq->opt.improc_code & ISQ_IMPROC_SHARP) ){
+         seq->opt.improc_code |= ISQ_IMPROC_SHARP ;
+       } else {
+         int ss = (int)(10.01*seq->sharp_fac)+1 ;
+         if( ss > 9 ) ss = 1 ;
+         seq->sharp_fac = 0.1 * ss ;
+       }
+       ISQ_redisplay( seq , -1 , isqDR_display ) ;
+       busy=0 ; RETURN(1) ;
+     }
+     break ;
+
+     /* 23 Aug 2005: open some windows */
+
+     case 'D':
+       ISQ_but_disp_CB( seq->wbut_bot[NBUT_DISP] , seq , NULL ) ;
+       busy=0 ; RETURN(1) ;
+     break ;
+
+     case 'M':
+       if( seq->status->num_total > 1 )
+         ISQ_montage_CB( seq->wbut_bot[NBUT_MONT] , seq , NULL ) ;
+       busy=0 ; RETURN(1) ;
+     break ;
+
+     case 'S':
+       if( (seq->opt.save_one || seq->status->num_total > 1) )
+         ISQ_but_save_CB( seq->wbut_bot[NBUT_SAVE] , seq , NULL ) ;
+       busy=0 ; RETURN(1) ;
      break ;
 
    } /* end of switch on character typed */
