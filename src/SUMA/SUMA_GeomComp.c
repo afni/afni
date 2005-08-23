@@ -373,7 +373,7 @@ int SUMA_isSelfIntersect(SUMA_SurfaceObject *SO, int StopAt, byte *report)
                         if (report || LocalHead) fprintf(SUMA_STDERR,"%s: Triangle %d (%d, %d, %d) was hit by segment formed by nodes [%d, %d]\n", 
                            FuncName, it, n1, n2, n3, SO->EL->EL[k][0], SO->EL->EL[k][1]);
                            ++ hit;
-                           report[SO->EL->EL[k][0]] = report[SO->EL->EL[k][1]] = 1;
+                           if (report) { report[SO->EL->EL[k][0]] = report[SO->EL->EL[k][1]] = 1; }
                         break;
                      }
                   }
