@@ -1269,7 +1269,7 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       SUMA_TRIANGLE_BOUNDING_BOX(p1, p2, p3, min_v, max_v);
       
       /* quick check of preallocate size of voxelsijk */
-      en =((int)(max_v[0] - min_v[0] + 2) * (int)(max_v[1] - min_v[1] + 2) * (int)(max_v[2] - min_v[2] + 2)); 
+      en =((int)(max_v[0] - min_v[0] + 3) * (int)(max_v[1] - min_v[1] + 3) * (int)(max_v[2] - min_v[2] + 3)); 
       if ( en > N_alloc) {
          ++N_realloc; if (N_realloc > 5) { SUMA_SL_Warn("Reallocating, increase limit to improve speed.\nEither triangles too large or grid too small"); }
          N_alloc = 2*en;
@@ -1277,7 +1277,9 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
          if (!voxelsijk) { SUMA_SL_Crit("Failed to Allocate!"); SUMA_RETURN(NULL); }
       } 
       /* find the list of voxels inhabiting this box */
-      N_inbox = 0;
+      N_inbox = N_alloc; /* that's used to tell SUMA_VoxelsInBox how much is allocated. 
+                            N_inbox will reflect the number of voxels in the box on the way back 
+                            from SUMA_VoxelsInBox */
       if (!SUMA_VoxelsInBox(voxelsijk, &N_inbox, min_v, max_v)) {
          SUMA_SL_Err("Unexpected error!"); SUMA_RETURN(NULL); 
       }

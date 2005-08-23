@@ -574,6 +574,7 @@ SUMA_Boolean SUMA_VoxelsInBox(int *voxelsijk, int *N_in, float *c1, float *c2)
 {
    static char FuncName[]={"SUMA_VoxelsInBox"};
    int n3, i, j, k;
+   int N_Allocated = 0;
    
    SUMA_ENTRY;
    
@@ -582,6 +583,7 @@ SUMA_Boolean SUMA_VoxelsInBox(int *voxelsijk, int *N_in, float *c1, float *c2)
       SUMA_RETURN(NOPE); 
    }
    
+   if (*N_in != 0) { N_Allocated = *N_in; }
    *N_in = 0;
    
    #if 0
@@ -598,6 +600,12 @@ SUMA_Boolean SUMA_VoxelsInBox(int *voxelsijk, int *N_in, float *c1, float *c2)
    for (k = (int)(c1[2]); k <= SUMA_CEIL(c2[2]); ++k) {
       for (j = (int)(c1[1]); j <= SUMA_CEIL(c2[1]); ++j) {
          for (i = (int)(c1[0]); i <= SUMA_CEIL(c2[0]); ++i) {
+            if (N_Allocated) {
+               if (*N_in >= N_Allocated) {
+                  fprintf(SUMA_STDERR,"Error %s: More voxels inbox than allocated (%d)\n", FuncName, N_Allocated);
+                  SUMA_RETURN(NOPE);
+               }
+            }
             n3 = 3*(*N_in);
             voxelsijk[n3] = i; voxelsijk[n3+1] = j; voxelsijk[n3+2] = k; 
             ++(*N_in); 

@@ -154,7 +154,9 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -no_pushout: Do not use -pushout.\n"
                "     -exp_frac FRAC: Speed of expansion (see BET paper). Default is 0.1.\n"
                "     -touchup: Perform touchup operations at end to include\n"
-               "               areas not covered by surface expansion. (Default)\n"
+               "               areas not covered by surface expansion. \n"
+               "               Use -touchup -touchup for aggressive makeup.\n"
+               "               (Default is -touchup)\n"
                "     -no_touchup: Do not use -touchup\n"
                "     -fill_hole R: Fill small holes that can result from small surface\n"
                "                   intersections caused by the touchup operation.\n"
@@ -228,10 +230,16 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "        + Use a denser mesh (like -ld 50) and increase iterations \n"
                "        (-niter 750). The program will take much longer to run in that case.\n"
                "        + Instead of using denser meshes, you could try blurring the data \n"
-               "        before skull stripping. Something like 3dmerge -1blur_fwhm 2 did\n"
+               "        before skull stripping. Something like -blur_fwhm 2 did\n"
                "        wonders for some of my data with the default options of 3dSkullStrip\n"
                "        Blurring is a lot faster than increasing mesh density.\n"
                "        + Use also a smaller -shrink_fac is you have lots of CSF between gyri.\n"
+               "     Massive chunks missing:\n"
+               "        + If brain has very large ventricles and lots of CSF between gyri, the\n"
+               "        ventricles will keep attracting the surface inwards. In such cases, use\n"
+               "        the -visual option to see what is happening and try these options to \n"
+               "        reduce the severity of the problem:\n"
+               "            -blur_fwhm 2 -use_skull\n"
                "\n" 
                " Eye Candy Mode: (previous restrictions removed)\n"
                "  You can run BrainWarp and have it send successive iterations\n"
@@ -318,7 +326,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->r = 0;
    Opt->d1 = 20;
    Opt->su1 = 1;
-   Opt->UseNew = 1.0;
+   Opt->UseNew = -1.0;
    Opt->d4 = 15;
    Opt->ztv = NULL;
    Opt->Kill98 = 0;
@@ -719,10 +727,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
       }
       
       if (!brk && ( (strcmp(argv[kar], "-touchup") == 0) ) ) {
-         Opt->UseNew = 1.0;
+         if (Opt->UseNew < 0) Opt->UseNew = 1.0;
+         else ++ Opt->UseNew;
          brk = YUP;
       }
-
+      
       if (!brk && ( (strcmp(argv[kar], "-no_touchup") == 0) ) ) {
          Opt->UseNew = 0.0;
          brk = YUP;
@@ -752,6 +761,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
 			kar ++;
 		}
    }
+   
+   if (Opt->UseNew < 0) Opt->UseNew = Opt->UseNew * -1.0;
    
    if (Opt->fillhole < 0) {
       if (Opt->UseExpansion) {
@@ -1408,7 +1419,7 @@ int main (int argc,char *argv[])
    }
    TOUCHUP_2:
    /* one more correction pass */
-   if (Opt->UseNew) {
+   if (Opt->UseNew > 1.0) {
       ps->cs->kth = 1; /*make sure all gets sent at this stage */
       if (Opt->DemoPause  == SUMA_3dSS_DEMO_PAUSE) { SUMA_PAUSE_PROMPT("touchup correction 2 next"); }
       if (Opt->debug) fprintf (SUMA_STDERR,"%s: Final touchup correction ...\n", FuncName);
