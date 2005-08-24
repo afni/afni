@@ -67,6 +67,20 @@ void symeigval_double( int n , double *a , double *e )
 }
 
 /*--------------------------------------------------------------------*/
+
+#define CHECK_SVD
+
+#undef CHK
+#ifdef CHECK_SVD
+# define CHK 1
+# define A(i,j) aa[(i)+(j)*m]
+# define U(i,j) uu[(i)+(j)*m]
+# define V(i,j) vv[(i)+(j)*n]
+#else
+# define CHK 0
+#endif
+
+/*--------------------------------------------------------------------*/
 /*! Compute SVD of double precision matrix:                      T
                                             [a] = [u] diag[s] [v]
     - m = # of rows in a
@@ -93,7 +107,7 @@ void svd_double( int m , int n , double *a , double *s , double *u , double *v )
    ww  = s ;
 
    if( u == NULL ){
-     matu = (logical) 0 ;
+     matu = (logical) CHK ;
      uu   = (doublereal *)malloc(sizeof(double)*m*n) ;
    } else {
      matu = (logical) 1 ;
@@ -102,11 +116,11 @@ void svd_double( int m , int n , double *a , double *s , double *u , double *v )
    ldu = m ;
 
    if( v == NULL ){
-     matv = (logical) 0 ;
-     vv   = NULL ;
+     matv = (logical) CHK ;
+     vv   = (CHK) ? (doublereal *)malloc(sizeof(double)*n*n) : NULL ;
    } else {
      matv = (logical) 1 ;
-     vv = v ;
+     vv   = v ;
    }
    ldv = n ;
 
@@ -115,69 +129,37 @@ void svd_double( int m , int n , double *a , double *s , double *u , double *v )
    (void) svd_( &mm , &nn , &lda , aa , ww ,
                 &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
 
+#ifdef CHECK_SVD
+   { register int i,j,k ; register doublereal aij ; double err ;
+     err = 0.0 ;
+     for( j=0 ; j < n ; j++ ){
+      for( i=0 ; i < m ; i++ ){
+        aij = A(i,j) ;
+        for( k=0 ; k < n ; k++ ) aij -= U(i,k)*V(j,k)*ww[k] ;
+        err += fabs(aij) ;
+     }}
+     err /= (m*n) ;
+     if( err >= 1.e-5 ){
+       fprintf(stderr,"++ WARNING: svd err=%g; recomputing ...\n",err) ;
+       (void) svd_slow_( &mm , &nn , &lda , aa , ww ,
+                         &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
+       err = 0.0 ;
+       for( j=0 ; j < n ; j++ ){
+        for( i=0 ; i < m ; i++ ){
+          aij = A(i,j) ;
+          for( k=0 ; k < n ; k++ ) aij -= U(i,k)*V(j,k)*ww[k] ;
+          err += fabs(aij) ;
+       }}
+       err /= (m*n) ;
+       fprintf(stderr,"++ WARNING: recomputed svd err=%g %s\n",
+               err , (err >= 1.e-5) ? "**BAD**" : "**OK**"      ) ;
+     }
+   }
+#endif
+
    free((void *)rv1) ;
 
-   if( u == NULL ) free((void *)uu) ;
+   if( u == NULL && uu != NULL ) free((void *)uu) ;
+   if( v == NULL && vv != NULL ) free((void *)vv) ;
    return ;
 }
-
-#if 0
-/*--------------------------------------------------------------------*/
-/*! Compute SVD of single precision matrix:                      T
-                                            [a] = [u] diag[s] [v]
-    - m = # of rows in a
-    - n = # of columns in a
-    - a = pointer to input matrix; a[i+j*m] has the (i,j) element
-    - s = pointer to output singular values; length = n
-    - u = pointer to output matrix, if desired; length = m*n
-    - v = pointer to output matrix, if desired; length = n*n
-
-----------------------------------------------------------------------*/
-
-void svd_float( int m , int n , float *a , float *s , float *u , float *v )
-{
-   integer mm,nn , lda,ldu,ldv , ierr ;
-   doublereal *aa, *ww , *uu , *vv , *rv1 ;
-   logical    matu , matv ;
-
-   int ii ;
-
-   if( a == NULL || s == NULL || m < 1 || n < 1 ) return ;
-
-   mm  = m ;
-   nn  = n ;
-   aa  = (doublereal *)malloc(sizeof(double)*m*n) ;
-   lda = m ;
-   ww  = (doublereal *)malloc(sizeof(double)*n) ;
-
-   for( ii=0 ; ii < m*n ; ii++ ) aa[ii] = (doublereal)a[ii] ;
-
-   matu = (logical) 1 ;
-   uu   = (doublereal *)malloc(sizeof(double)*m*n) ;
-   ldu  = m ;
-
-   matv = (logical) 1 ;
-   vv   = (doublereal *)malloc(sizeof(double)*n*n) ;
-   ldv  = n ;
-
-   rv1 = (double *) malloc(sizeof(double)*n) ;  /* workspace */
-
-   (void) svd_( &mm , &nn , &lda , aa , ww ,
-                &matu , &ldu , uu , &matv , &ldv , vv , &ierr , rv1 ) ;
-
-   free((void *)rv1) ; free((void *)aa) ;
-
-   /* copy results out */
-
-   for( ii=0 ; ii < n ; ii++ ) s[ii] = (float)ww[ii] ;
-
-   if( u != NULL )
-     for( ii=0 ; ii < m*n ; ii++ ) u[ii] = (float)uu[ii] ;
-
-   if( v != NULL )
-     for( ii=0 ; ii < n*n ; ii++ ) v[ii] = (float)vv[ii] ;
-
-   free((void *)uu) ; free((void *)vv) ;
-   return ;
-}
-#endif
