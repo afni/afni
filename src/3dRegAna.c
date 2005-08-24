@@ -52,6 +52,9 @@
 
   Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
   Date:    02 December 2002
+
+  Mod:     Check for proper ':' usage in -model parameters.
+  Date:    24 August 2005 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -59,7 +62,7 @@
 #define PROGRAM_NAME    "3dRegAna"                   /* name of this program */
 #define PROGRAM_AUTHOR  "B. Douglas Ward"                  /* program author */
 #define PROGRAM_INITIAL "10 Oct 1997"     /* date of initial program release */
-#define PROGRAM_LATEST  "02 Dec 2002"     /* date of latest program revision */
+#define PROGRAM_LATEST  "24 Aug 2005"     /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 
@@ -1279,7 +1282,10 @@ void get_inputs
 	  {
 	    sscanf (argv[nopt], "%d", &ival);
 	    if ((ival <= 0) || (ival > cols))
+            {
+              fprintf(stderr,"bad Xi integer, '%s'\n\n", argv[nopt]);
 	      RA_error ("illegal argument after -model ");
+            }
 	    regmodel->flist[regmodel->p] = ival;
 	
 	    regmodel->p++;
@@ -1288,6 +1294,13 @@ void get_inputs
 	
 	if (strncmp(argv[nopt], ":", 1) == 0)
 	  {
+            if (isdigit(argv[nopt][1]))  /* e.g. the user gives :3 ... */
+              {
+                fprintf(stderr,
+                        "please separate ':' from -model argument in '%s'\n\n",
+                        argv[nopt]);
+		RA_error ("illegal argument after -model ");
+              }
 	    nopt++;
 
 	    while ((nopt < argc)
@@ -1295,13 +1308,23 @@ void get_inputs
 	      {
 		sscanf (argv[nopt], "%d", &ival);
 		if ((ival < 0) || (ival > cols))
+                {
+                  fprintf(stderr,"bad Xj integer, '%s'\n\n", argv[nopt]);
 		  RA_error ("illegal argument after -model ");
+                }
 		regmodel->flist[regmodel->p] = ival;
 		regmodel->rlist[regmodel->q] = ival;
 		regmodel->p++;
 		regmodel->q++;
 		nopt++;
 	      }
+	  }    
+        /* incorrect usage, complain and fail        24 Aug 2005 [rickr] */
+        else
+	  {
+            fprintf(stderr,"missing ':' between sets of -model parameters\n"
+                           "    (is ':' attached to a number?)\n\n");
+            RA_error ("bad -model usage ");
 	  }    
 	
 	/*----- sort model variable indices into ascending order -----*/
