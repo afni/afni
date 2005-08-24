@@ -12,7 +12,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -s -L. -L/usr/X11R6/lib
 
-CCSVD  = $(CCFAST)
+CCSVD  = gcc -O0
 
 
 # Plugins are not actually compiled on CYGWIN, since I can't get dlopen()

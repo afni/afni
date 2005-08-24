@@ -12,7 +12,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace -Wl,-x
 
-CCSVD  = $(CCFAST)
+CCSVD  = cc -O0 -no-cpp-precomp
 
 
 PLUGIN_SUFFIX = so

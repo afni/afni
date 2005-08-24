@@ -13,7 +13,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/local/include -I/usr/X11R6/include
 LFLAGS = -s -L. -L/usr/local/lib -L/usr/X11R6/lib
 
-CCSVD  = $(CCFAST)
+CCSVD  = gcc -O0
 
 
 PLUGIN_SUFFIX = so

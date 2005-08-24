@@ -14,7 +14,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/sw/include -I/usr/X11R6/include -I/usr/local/include
 LFLAGS = -L. -L/sw/lib -L/usr/X11R6/lib -L/usr/local/lib -Wl,-x -Wl,-multiply_defined -Wl,warning -Wl,-bind_at_load
 
-CCSVD  = $(CCFAST)
+CCSVD  = cc -O0 -no-cpp-precomp
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -flat_namespace -bundle -undefined suppress -Wl,-x
