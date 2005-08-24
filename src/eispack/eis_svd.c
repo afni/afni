@@ -9,7 +9,11 @@
 
 static doublereal c_b47 = 1.;
 
-/* Subroutine */ int svd_(integer *m, integer *n, integer *lda, doublereal *a,
+#ifndef FUNCNAME
+#define FUNCNAME svd_
+#endif
+
+/* Subroutine */ int FUNCNAME(integer *m, integer *n, integer *lda, doublereal *a,
 	 doublereal *w, logical *matu, integer *ldu, doublereal *u, logical *
 	matv, integer *ldv, doublereal *v, integer *ierr, doublereal *rv1)
 {
