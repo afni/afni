@@ -23,7 +23,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/X11R6/include
 LFLAGS = -L. -L/usr/X11R6/lib
 
-CCSVD = $(CCFAST)
+CCSVD = /usr/bin/gcc -O2 -fno-gcse -march=i686 -mmmx -DLINUX2 $(CEXTRA)
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared
