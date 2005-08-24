@@ -13,7 +13,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/Motif-2.1/include
 LFLAGS = -s -L. -L/usr/Motif-2.1/lib -Wl,-x
 
-CCSVD  = $(CCFAST)
+CCSVD  = cc -O0
 
 
 PLUGIN_SUFFIX = so

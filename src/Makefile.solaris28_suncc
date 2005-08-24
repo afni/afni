@@ -12,7 +12,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include
 LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
 
-CCSVD  = $(CCFAST)
+CCSVD  = cc -Xa
 
 
 # These extra libraries are for Suns

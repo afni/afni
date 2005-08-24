@@ -9,7 +9,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/include/X11R5 -I/usr/include/Motif1.2
 LFLAGS = -s -L. -L/usr/lib/X11R5 -L/usr/lib/Motif1.2
 
-CCSVD  = $(CCFAST)
+CCSVD  = cc -Ae -z +O0
 
 
 PLUGIN_SUFFIX = sl

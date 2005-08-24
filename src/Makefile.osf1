@@ -24,7 +24,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I.
 LFLAGS = -s -L.
 
-CCSVD  = $(CCFAST)
+CCSVD  = cc -std -O0
 
 
 PLUGIN_SUFFIX = so

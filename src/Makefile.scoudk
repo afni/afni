@@ -12,7 +12,7 @@ CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/local/include
 LFLAGS = -W l,'-Bexport' -L.
 
-CCSVD  = $(CCFAST)
+CCSVD  = cc
 
 
 PLUGIN_SUFFIX = so
