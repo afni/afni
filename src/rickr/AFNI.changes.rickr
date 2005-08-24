@@ -1225,3 +1225,6 @@
   * added option -sort_by_num_suffix (for Jerzy)
   * output TR (instead of 0) in GERT_Reco script (for Peggy)
 
+24 August 2005:
+  * modified 3dRegAna.c: check for proper ':' usage in -model parameters
+
