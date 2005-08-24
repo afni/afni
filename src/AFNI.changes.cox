@@ -5690,3 +5690,6 @@
 23 Aug 2005
  * -FILE option for waver.c.
  * In imseq.c: 's' (sharpen), 'D', 'M', 'S' (Disp, Mont, Save).
+
+24 Aug 2005
+ * Ugghh.  More SVD trouble.
