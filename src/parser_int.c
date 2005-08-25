@@ -7,6 +7,9 @@
 #define  NEED_PARSER_INTERNALS
 #include "parser.h"
 #include "Amalloc.h"
+#include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /***** C routines to interface to the f2c generated parser code *****/
 
@@ -244,8 +247,6 @@ doublereal derf_ ( doublereal * x )
 
 doublereal derfc_( doublereal * x )
 { return (doublereal) erfc( (double) *x ) ; }
-
-#include <time.h>
 
 doublereal unif_( doublereal * x )  /* 04 Feb 2000 */
 {
