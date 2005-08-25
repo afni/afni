@@ -1228,3 +1228,14 @@
 24 August 2005:
   * modified 3dRegAna.c: check for proper ':' usage in -model parameters
 
+25 August 2005: nifti changes for Insight
+      (nifti_tool -> v1.9, niftilib -> v1.13)
+  * added CMakeLists.txt in every directory (Hans)
+  * added Testing/niftilib/nifti_test.c (Hans)
+  * removed tabs from all *.[ch] files
+  * modified many Makefiles for SGI test and RANLIB (Hans)
+  * added appropriate const qualifiers for funtion param pointers to const data
+  * modifed nifti_io.c, nifti1_test.c, nifti_tool.c, reducing constant
+    strings below 509 bytes in length (-hist, -help strings)
+  * modified nifti_stats.c: replaced strdup with malloc/strcpy for warning
+
