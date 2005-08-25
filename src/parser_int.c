@@ -28,7 +28,9 @@ PARSER_code * PARSER_generate_code( char * expression )
    int nexp ;
    PARSER_code * pc ;
    char *exp,cc ; int ii,jj ;  /* 22 Jul 2003 */
+   static first=1 ;
 
+   if( first ){ srand48((long)time(NULL)+(long)getpid()); first=0; }
    if( expression == NULL ) return NULL ;
    nexp = strlen( expression ) ;
    if( nexp == 0 ) return NULL ;
@@ -247,9 +249,7 @@ doublereal derfc_( doublereal * x )
 
 doublereal unif_( doublereal * x )  /* 04 Feb 2000 */
 {
-   static first=1 ;
    doublereal val ;
-   if( first ){ srand48((long)time(NULL)); first=0; }
    val = (doublereal) drand48() ;
    return val ;
 }
