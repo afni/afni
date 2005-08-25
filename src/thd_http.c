@@ -68,9 +68,9 @@ IOCHAN * open_URL_hpf( char * host , int port , char * file , int msec )
    DMESS(" ++Opening %s",str);
    ioc = iochan_init( str , "create" ) ;
    if( ioc == NULL ){ FAILED; return NULL; }
-   fprintf(stderr,".");
+   if( debug )fprintf(stderr,".");
    iochan_set_cutoff( ioc ) ;
-   fprintf(stderr,".");
+   if( debug )fprintf(stderr,".");
    ii = iochan_writecheck( ioc , msec ) ;
    if( ii <= 0 ){ FAILED; IOCHAN_CLOSE(ioc) ; return NULL ; }
 
@@ -212,7 +212,7 @@ int read_URL_http( char * url , int msec , char ** data )
 
       if( prog ){
         nget += ii ; jj = nget/(1024*1024) ;
-        if( jj > nmeg ){ nmeg=jj; fprintf(stderr,"."); }
+        if( jj > nmeg ){ nmeg=jj; if(debug)fprintf(stderr,"."); }
       }
 
       if( first ){                           /* check for "not found" */
