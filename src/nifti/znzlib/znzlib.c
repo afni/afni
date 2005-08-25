@@ -1,6 +1,6 @@
 /** \file znzlib.c
     \brief Low level i/o interface to compressed and noncompressed files.
-	Written by Mark Jenkinson, FMRIB
+        Written by Mark Jenkinson, FMRIB
 
 This library provides an interface to both compressed (gzip/zlib) and
 uncompressed (normal) file IO.  The functions are written to have the
@@ -134,7 +134,7 @@ size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file)
   return fread(buf,size,nmemb,file->nzfptr);
 }
 
-size_t znzwrite(void* buf, size_t size, size_t nmemb, znzFile file)
+size_t znzwrite(const void* buf, size_t size, size_t nmemb, znzFile file)
 {
   if (file==NULL) { return 0; }
 #ifdef HAVE_ZLIB
@@ -178,7 +178,7 @@ long znztell(znzFile file)
   return ftell(file->nzfptr);
 }
 
-int znzputs(char* str, znzFile file)
+int znzputs(const char * str, znzFile file)
 {
   if (file==NULL) { return 0; }
 #ifdef HAVE_ZLIB

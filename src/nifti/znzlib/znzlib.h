@@ -84,7 +84,7 @@ int Xznzclose(znzFile * file);
 
 size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file);
 
-size_t znzwrite(void* buf, size_t size, size_t nmemb, znzFile file);
+size_t znzwrite(const void* buf, size_t size, size_t nmemb, znzFile file);
 
 long znzseek(znzFile file, long offset, int whence);
 
@@ -92,7 +92,7 @@ int znzrewind(znzFile stream);
 
 long znztell(znzFile file);
 
-int znzputs(char *str, znzFile file);
+int znzputs(const char *str, znzFile file);
 
 char * znzgets(char* str, int size, znzFile file);
 
