@@ -17,13 +17,12 @@
 
 int main( int argc , char *argv[] )
 {
-   int nbuf ;
-   char *vbuf=NULL ,
-         vv[128]="none" ;
+   int nbuf , verb=1 ;
+   char *vbuf=NULL , vv[128]="none" ;
 
    /*-- for my use only: write out the new version file --*/
 
-   if( argc == 2 && strcmp(argv[1],"-write") == 0 ){
+   if( argc > 1 && strcmp(argv[1],"-write") == 0 ){
      FILE *fp = fopen(VERSION_FILE,"w") ;
      if( fp == NULL ){
        fprintf(stderr,"** Failed to open %s!\n",VERSION_FILE); EXIT(1);
@@ -36,9 +35,9 @@ int main( int argc , char *argv[] )
 
    machdep() ;
 
-   /*-- otherwise, any options means the user needs help --*/
+   /*-- help the poor user? --*/
 
-   if( argc > 1 ){
+   if( argc > 1 && strcmp(argv[1],"-help") == 0 ){
      printf("Usage: afni_version\n"
             " Prints out the AFNI version with which it was compiled,\n"
             " and checks across the Web for the latest version available.\n"
@@ -48,26 +47,31 @@ int main( int argc , char *argv[] )
      exit(0) ;
    }
 
+   if( argc > 1 && strcmp(argv[1],"-q") == 0 ) verb = 0 ;
+
    /*-- internal information --*/
 
-   printf("This program was compiled with the following settings:\n"
-          "  Version ID   = %s\n" , VERSION ) ;
+   if( verb ) printf("This program was compiled with the following settings:\n"
+                     "  Version ID   = %s\n" , VERSION ) ;
 
-   fprintf(stderr,"++ now fetching %s",VERSION_URL) ;
+   if( verb ) fprintf(stderr,"++ now fetching %s",VERSION_URL) ;
 
    /*-- get information from the master computer --*/
 
    nbuf = read_URL( VERSION_URL , &vbuf ) ;  /* see thd_http.c */
-   fprintf(stderr,"\n") ;
+   if( verb ) fprintf(stderr,"\n") ;
 
    if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ){
-     printf("** Error fetching %s!\n",VERSION_URL); exit(0);
+     if( verb ) printf("** Error fetching %s!\n",VERSION_URL);
+     exit(0);
    }
 
    sscanf( vbuf , "%127s" , vv ) ;
 
-   printf("Latest version listed at AFNI web site:\n"
-          "  Version ID   = %s\n" , vv ) ;
+   if( verb ) printf("Latest version listed at AFNI web site:\n"
+                     "  Version ID   = %s\n" , vv ) ;
+
+   /* exit status is 0 if versions compare same, 1 if not the same */
 
    exit( (strcmp(vv,VERSION) != 0) ) ;
 }
