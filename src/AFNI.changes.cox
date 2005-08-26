@@ -5693,3 +5693,6 @@
 
 24 Aug 2005
  * Ugghh.  More SVD trouble.
+
+26 Aug 2005
+ * THD_check_AFNI_version() function in thd_vcheck.c.

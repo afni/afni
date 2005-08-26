@@ -208,6 +208,7 @@ int main( int argc , char * argv[] )
    Argc = argc ; Argv = argv ;
 
    T3D_initialize_user_data() ;
+   THD_check_AFNI_version() ;
 
    if( user_inputs.nosave ){
      printf("Opening X11 now") ; fflush(stdout) ;
