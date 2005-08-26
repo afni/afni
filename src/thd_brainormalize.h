@@ -2,6 +2,7 @@
 
 
 #if 0
+   /* ZSS: See replacement functions called THD_BN in 3ddata.h */
    #define THD_BN_XCM    0.0   /* center of mass of output dataset goes here */
    #define THD_BN_YCM   20.0
 

@@ -2748,6 +2748,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Alloc_Generic_Prog_Options_Struct(void)
    Opt->in_edvol = NULL;
    Opt->blur_fwhm = 0.0;
    Opt->iset_hand = 0;
+   Opt->shrink_bias_name = NULL;
+   Opt->shrink_bias = NULL;
+   Opt->monkey = 0;
    
    Opt->NearestNode = 0;
    Opt->NearestTriangle = 0;
@@ -2782,6 +2785,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
    if (Opt->out_grid_prefix) SUMA_free(Opt->out_grid_prefix); Opt->out_grid_prefix = NULL;
    if (Opt->XYZ) SUMA_free(Opt->XYZ); Opt->XYZ = NULL;
    if (Opt->ztv) SUMA_free(Opt->ztv); Opt->ztv = NULL;
+   if (Opt->shrink_bias) SUMA_free(Opt->shrink_bias); Opt->shrink_bias = NULL;
+   if (Opt->shrink_bias_name) SUMA_free(Opt->shrink_bias_name); Opt->shrink_bias_name = NULL;
    if (Opt) SUMA_free(Opt);
 
    SUMA_RETURN(NULL);
