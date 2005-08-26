@@ -505,7 +505,7 @@ int main( int argc , char * argv[] )
    /*-- startup mechanics --*/
 
    mainENTRY("3dWarpDrive main"); machdep(); AFNI_logger("3dWarpDrive",argc,argv);
-   PRINT_VERSION("3dWarpDrive") ;
+   PRINT_VERSION("3dWarpDrive") ; THD_check_AFNI_version() ;
 
    /* initialize parameters of the alignment basis struct */
 
