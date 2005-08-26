@@ -196,7 +196,7 @@ EDIT_options *SUMA_BlankAfniEditOptions(void);
 }
 
 #define SUMA_IS_EYE_ZONE(n,c) ( ( ( (n)[1] - (c)[1] ) < -10 && ( (n)[2] - (c)[2] ) < 0 ) ? 1 : 0 ) 
-
+#define SUMA_IS_LOWER_ZONE(n,c) ( ( ( (n)[2] - (c)[2] ) < 10 ) ? 1 : 0 ) 
 
 /*!
    finds the mean coordinate of the neighboring nodes (not including node i)
