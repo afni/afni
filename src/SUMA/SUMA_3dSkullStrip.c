@@ -72,7 +72,8 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             [< -perc_int PERC_INT >] \n"
                "             [< -max_inter_iter MII >] [-mask_vol]\n"
                "             [< -debug DBG >] [< -node_dbg NODE_DBG >]\n"
-               "             [< -demo_pause >]\n"  
+               "             [< -demo_pause >]\n"
+               "             [< -monkey >]\n"  
                "\n"
                "  NOTE: Program is in Beta mode, please report bugs and strange failures\n"
                "        to ziad@nih.gov\n"
@@ -82,6 +83,7 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "                 \n"
                "\n"
                "  Optional Parameters:\n"
+               "     -monkey: the brain of a monkey.\n"
                "     -o_TYPE PREFIX: prefix of output surface.\n"
                "        where TYPE specifies the format of the surface\n"
                "        and PREFIX is, well, the prefix.\n"
@@ -149,6 +151,10 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "             below SFBL . Default 0.65. \n"
                "             This option helps reduce potential for leakage below \n"
                "             the cerebellum.\n"
+/*               "     -shrink_fac_bias SHRINK_BIAS_FILE: A file containing bias \n"
+               "                      factors to apply to the shrink_fac at certain nodes.\n"
+               "                      This option is experimental at the moment.\n"
+               "                      Column 0 has node indices, Col. 1 has the bias factors\n" */
                "     -pushout: Consider values above each node in addition to values\n"
                "               below the node when deciding on expansion. (Default)\n"
                "     -no_pushout: Do not use -pushout.\n"
@@ -227,8 +233,9 @@ void usage_SUMA_BrainWrap (SUMA_GENERIC_ARGV_PARSE *ps)
                "     Clipping in general:\n"
                "        + Use lower -shrink_fac, start with 0.5 then 0.4\n"
                "     Some lobules are not included:\n"
-               "        + Use a denser mesh (like -ld 50) and increase iterations \n"
-               "        (-niter 750). The program will take much longer to run in that case.\n"
+               "        + Use a denser mesh. Start with -ld 30. If that still fails,\n"
+               "        try even higher density (like -ld 50) and increase iterations \n"
+               "        (say to -niter 750). Expect the program to take much longer in that case.\n"
                "        + Instead of using denser meshes, you could try blurring the data \n"
                "        before skull stripping. Something like -blur_fwhm 2 did\n"
                "        wonders for some of my data with the default options of 3dSkullStrip\n"
@@ -357,6 +364,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
    Opt->OrigSpatNormedSet = NULL;
    Opt->in_edvol = NULL;
    Opt->blur_fwhm = 0.0;
+   Opt->shrink_bias_name = NULL;
+   Opt->shrink_bias = NULL;
+   Opt->monkey = 0;
+   
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -369,6 +380,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
       
       if (!brk && (strcmp(argv[kar], "-pushout") == 0)) {
          Opt->UseExpansion = 1;
+         brk = YUP;
+      }
+
+      if (!brk && (strcmp(argv[kar], "-monkey") == 0)) {
+         Opt->monkey = 1;
          brk = YUP;
       }
       
@@ -711,6 +727,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (char *argv[], int a
          brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-shrink_fac_bias") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -shrink_fac_bias \n");
+				exit (1);
+			}
+			Opt->shrink_bias_name = SUMA_copy_string(argv[kar]);
+         brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -895,6 +921,7 @@ int main (int argc,char *argv[])
         exit(1);
       }
       
+      mri_monkeybusiness(Opt->monkey);
       if (Opt->SpatNormDxyz) {
          if (Opt->debug) SUMA_S_Note("Overriding default resampling");
          mri_brainormalize_initialize(Opt->SpatNormDxyz, Opt->SpatNormDxyz, Opt->SpatNormDxyz);
@@ -978,10 +1005,14 @@ int main (int argc,char *argv[])
 
          EDIT_substitute_brick( Opt->OrigSpatNormedSet , 0 , imout_orig->kind , mri_data_pointer(imout_orig) ) ;      
 
-         oset = r_new_resam_dset ( Opt->OrigSpatNormedSet, Opt->iset,	0,	0,	0,	NULL, MRI_NN, NULL);
+         oset = r_new_resam_dset ( Opt->OrigSpatNormedSet, Opt->iset,	0,	0,	0,	NULL, MRI_LINEAR, NULL);
          if (!oset) {
             fprintf(stderr,"**ERROR: Failed to reslice!?\n"); exit(1);
          }
+         EDIT_dset_items(  oset ,
+                            ADN_prefix      , spatprefix,
+                            ADN_none ) ;
+         tross_Copy_History( Opt->OrigSpatNormedSet , oset ) ;
          DSET_delete(Opt->OrigSpatNormedSet); Opt->OrigSpatNormedSet = oset; oset = NULL;
 
          if (Opt->WriteSpatNorm) {
@@ -1130,9 +1161,45 @@ int main (int argc,char *argv[])
       if (LocalHead) fprintf (SUMA_STDERR,"%s: Got me a volume of %f mm3\n", FuncName, vol);
    }
    
+   /* allocate and initialize shrink bias vector */
+   {
+      int nico = (2 + 10 * Opt->Icold * Opt->Icold );
+      Opt->shrink_bias = (float *)SUMA_calloc(nico, sizeof(float));
+      if (!Opt->shrink_bias) { SUMA_SL_Crit("Failed to allocate"); exit(1); }
+      for (i=0; i<nico; ++i) Opt->shrink_bias[i] = 1.0;
+
+      if (Opt->shrink_bias_name) {
+         MRI_IMAGE *im = NULL;
+         float *far = NULL;
+
+         /* load the shrink_bias_file */
+         im = mri_read_1D(Opt->shrink_bias_name);
+         if (!im) { SUMA_SL_Err("Failed to read 1D file of shrink factor bias file."); exit(1);}
+         far = MRI_FLOAT_PTR(im);
+         if (im->ny != 2) { SUMA_SL_Err("Need 2 columns in shrink factor bias file."); exit(1); }
+         if (im->nx > nico) {
+            fprintf(SUMA_STDERR, "Error %s: File too big. Maximum number of lines (%d) should not exceed %d,\n"
+                                 "which is the number of nodes forming the surface.\n", FuncName, im->nx, nico);
+            exit(1);
+         }
+
+         /* change to row major major and make it match nodeind */
+         for (i=0; i<im->nx; ++i) {
+            if (far[i] < nico) {
+               Opt->shrink_bias[(int)far[i]] = far[i+  im->nx];
+            } else {
+               fprintf(SUMA_STDERR, "Error %s: Node index of (%d) in shrink factor bias file\n"
+                                    "exceeds maximum allowed node index (%d) for surface.\n", FuncName, (int)far[i], nico-1);
+               exit(1);
+            }
+         }
+         mri_free(im); im = NULL;   /* done with that baby */
+
+      }
+
+   } 
    
-   
-  do {   
+   do {   
       /* Now create that little sphere that is about to expand */
       sprintf(stmp,"icobaby_ld%d", Opt->Icold);  
       SO = SUMA_CreateIcosahedron (Opt->r/2.0, Opt->Icold, Opt->cog, "n", 1);
@@ -1168,7 +1235,7 @@ int main (int argc,char *argv[])
          SUMA_SL_Crit("Failed to allocate");
          exit(1);
       } 
-      for (i=0; i<SO->N_Node; ++i) Opt->ztv[i] = Opt->Zt;
+      for (i=0; i<SO->N_Node; ++i) Opt->ztv[i] = SUMA_MIN_PAIR(1.0, (Opt->Zt*Opt->shrink_bias[i]));
 
       /* need sv for communication to AFNI */
       SO->VolPar = SUMA_VolParFromDset (Opt->in_vol);
@@ -1353,7 +1420,7 @@ int main (int argc,char *argv[])
          if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
             fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                                  "Touchup, pass 1.\n"
-                                 "Do you want to (C)ontinue, (P)ass or (S)ave this? [C] ");
+                                 "Do you want to (C)ontinue, (P)ass or (S)ave this? ");
             cbuf = SUMA_ReadCharStdin ('c', 0,"csp");
             switch (cbuf) {
                case 's':
@@ -1389,7 +1456,7 @@ int main (int argc,char *argv[])
       if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
             fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                                  "Beauty treatment smoothing.\n"
-                                 "Do you want to (C)ontinue, (P)ass or (S)ave this? [C] ");
+                                 "Do you want to (C)ontinue, (P)ass or (S)ave this?  ");
             cbuf = SUMA_ReadCharStdin ('c', 0,"csp");
             switch (cbuf) {
                case 's':
@@ -1426,7 +1493,7 @@ int main (int argc,char *argv[])
       if (Opt->DemoPause == SUMA_3dSS_INTERACTIVE) {
             fprintf (SUMA_STDERR,"3dSkullStrip Interactive: \n"
                                  "Touchup, pass 2.\n"
-                                 "Do you want to (C)ontinue, (P)ass or (S)ave this? [C] ");
+                                 "Do you want to (C)ontinue, (P)ass or (S)ave this?  ");
             cbuf = SUMA_ReadCharStdin ('c', 0,"csp");
             fprintf (SUMA_STDERR,"%c\n", cbuf);
             switch (cbuf) {
@@ -1470,7 +1537,7 @@ int main (int argc,char *argv[])
       brainnormalize_coord( ispat , jspat, kspat,
                            &iorig, &jorig, &korig , Opt->iset,
                            &xrai_orig, &yrai_orig, &zrai_orig);
-      Opt->SpatShift[0] = xrai_orig - THD_BN_XORG; Opt->SpatShift[1] = yrai_orig - THD_BN_YORG; Opt->SpatShift[2] = zrai_orig - THD_BN_ZORG;
+      Opt->SpatShift[0] = xrai_orig - THD_BN_xorg(); Opt->SpatShift[1] = yrai_orig - THD_BN_yorg(); Opt->SpatShift[2] = zrai_orig - THD_BN_zorg();
 
       /* shift the surface */
       for (i=0; i<SO->N_Node; ++i) {
