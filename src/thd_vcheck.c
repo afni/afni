@@ -3,68 +3,100 @@
 #define VERSION_URL  "http://afni.nimh.nih.gov/afni/AFNI.version"
 #define VERSION_FILE "/Volumes/afni/var/www/html/pub/dist/AFNI.version"
 
+#undef  VSIZE
+#define VSIZE  1066
+#undef  VDELAY
+#define VDELAY 429999  /* 429999 s = 5 days */
+
 /*------------------------------------------------------------------------*/
-/*! Function to check AFNI version.
+/*! Function to check AFNI version.  Forks and returns to caller instantly.
+    The only output is from the child process to stderr; a message will
+    be printed if the version check doesn't match.
 --------------------------------------------------------------------------*/
 
 void THD_check_AFNI_version(void)
 {
    int nbuf ;
-   char *vbuf=NULL , vv[128]="none" ;
    pid_t ppp ;
+   char *vbuf=NULL , vv[128]="none" ;
+   char *home , mname[VSIZE]="file:" ;
+   NI_stream ns ;
+
+   /* recall that fork() return value is
+        < 0 for an error
+        > 0 in the parent
+       == 0 in the child  */
 
    ppp = fork() ;
+
    if( ppp < 0 ) return ; /* fork failed */
 
    /* parent: wait for child to exit (happens almost instantly) */
 
-   if( ppp > 0 ){ waitpid(ppp,NULL,0); return; }
+   if( ppp > 0 ){ waitpid(ppp,NULL,0); return; }  /* parent */
 
-   /* child: fork again immediately, then this child exits;
+   /* below here is the child, which never returns:
+      fork again immediately, then this child exits;
       this is to prevent zombie processes from hanging around */
 
    ppp = fork() ; if( ppp != 0 ) _exit(0) ;
 
    /* grandchild process continues to do the actual work */
 
-#undef  VSIZE
-#define VSIZE  1066
-#undef  VDELAY
-#define VDELAY 429999  /* 429999 s = 5 days */
+   /* get time of last check -- do nothing if was recent */
 
-   { char *home=getenv("HOME") , mname[VSIZE]="file:" ;
-     NI_stream ns ;
-     if( home != NULL ) strcat(mname,home) ;
-     strcat(mname,"/.afni.vctime") ;
-     ns = NI_stream_open( mname , "r" ) ;
-     if( ns != NULL ){
-       NI_element *nel = NI_read_element(ns,22) ;
-       NI_stream_close(ns) ;
-       if( nel != NULL ){
-         char *rhs = NI_get_attribute(nel,"version_check_time") ;
-         if( rhs != NULL ){
-           int last_time = strtol(rhs,NULL,10) ;
-           int dtime     = ((int)time(NULL)) - last_time ;
-           if( dtime >= 0 && dtime < VDELAY ) _exit(0) ;
-         }
-         NI_free_element(nel) ;
+   home=getenv("HOME") ;
+   if( home != NULL ) strcat(mname,home);
+   strcat(mname,"/.afni.vctime") ;
+
+   ns = NI_stream_open( mname , "r" ) ;
+   if( ns != NULL ){
+     NI_element *nel = NI_read_element(ns,22) ;
+     NI_stream_close(ns) ;
+     if( nel != NULL ){
+       char *rhs = NI_get_attribute(nel,"version_check_time") ;
+       if( rhs != NULL ){
+         int last_time = (int)strtol(rhs,NULL,10) ;
+         int dtime     = ((int)time(NULL)) - last_time ;
+         if( dtime >= 0 && dtime < VDELAY ) _exit(0) ;  /* too soon */
        }
+       NI_free_element(nel) ;
      }
    }
 
-   /*-- get information from the master computer --*/
+   /*-- fetch information from the AFNI master computer --*/
 
    nbuf = read_URL( VERSION_URL , &vbuf ) ;  /* see thd_http.c */
 
-   if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ) _exit(0) ;
+   if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ) _exit(0) ; /* failed */
+
+   /* get the first string -- that is the current AFNI version number */
 
    sscanf( vbuf , "%127s" , vv ) ;
+
+   /* compare with compiled-in version (from afni.h) */
 
    if( strcmp(vv,VERSION) != 0 )
     fprintf(stderr,"\n"
                    "++ VERSION CHECK!  This program = %s\n"
                    "++         Current AFNI website = %s\n" ,
             VERSION , vv ) ;
+
+   /* record the current time and VERSION, so we don't check too often */
+
+   ns = NI_stream_open( mname , "w" ) ;
+   if( ns != NULL ){
+     NI_element *nel=NI_new_data_element("AFNI_vctime",0); char rhs[32];
+     sprintf(rhs,"%d",(int)time(NULL)) ;
+     NI_set_attribute( nel , "version_check_time" , rhs ) ;
+     if( strcmp(vv,"none") != 0 )
+       NI_set_attribute( nel , "version_string" , VERSION ) ;
+     NI_write_element( ns , nel , NI_TEXT_MODE ) ;
+     NI_stream_close(ns) ;
+     NI_free_element(nel) ;
+   }
+
+   /* Alas, poor Version Check, I knew him well */
 
    _exit(0) ;
 }
