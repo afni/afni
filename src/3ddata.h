@@ -3912,11 +3912,19 @@ extern void brainnormalize_coord( float  ispat, float  jspat, float  kspat ,
                            THD_3dim_dataset *origset,
                            float *xrai_orig, float *yrai_orig, float *zrai_orig); /* ZSS */
 extern MRI_IMAGE * mri_watershedize( MRI_IMAGE * , float ) ;
+extern void mri_monkeybusiness( int ) ;
 extern void mri_brainormalize_initialize(float dx, float dy, float dz);
 extern float THD_BN_dxyz(void);
 extern int THD_BN_nx(void);
 extern int THD_BN_ny(void);
 extern int THD_BN_nz(void);
+extern float THD_BN_xorg(void);
+extern float THD_BN_yorg(void);
+extern float THD_BN_zorg(void);
+extern float THD_BN_zheight(void);
+extern float THD_BN_xcm (void);
+extern float THD_BN_ycm (void);
+extern float THD_BN_zcm (void);
 /*------------------------------------------------------------------------*/
 /* 09 May 2005: stuff for converting a dataset to from a NIML group.      */
 
