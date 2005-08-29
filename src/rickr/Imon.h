@@ -110,6 +110,8 @@ typedef struct  /* user options */
     /* DICOM organization options */
     int              dicom_org;     /* flag to organize dicom files     */
     int              sort_num_suff; /* flag to sort by numerical suffix */
+    int              rev_org_dir;   /* flag to reverse dicom_org dir    */
+    int              rev_sort_dir;  /* flag to reverse glob sort dir    */
 
     /* realtime options */
     int              rt;            /* run in real-time afni mode       */
