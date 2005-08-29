@@ -1,21 +1,25 @@
 
-static char g_history[] =
+static char * g_history[] =
+{
     "----------------------------------------------------------------------\n"
     " history:\n"
-    "\n"
-    " 1.0  Jul  5, 2005 [rickr] - initial release\n"
-    " 1.1  Jul 13, 2005 [rickr] - process run of fewer than 3 slices\n"
-    " 1.2  Jul 22, 2005 [rickr] - use IOCHAN_CLOSENOW() in realtime.c\n"
-    " 1.3  Jul 25, 2005 [rickr] - force tcp close for multiple term signals\n"
+    "\n",
+    " 1.0  Jul  5, 2005 [rickr] - initial release\n",
+    " 1.1  Jul 13, 2005 [rickr] - process run of fewer than 3 slices\n",
+    " 1.2  Jul 22, 2005 [rickr] - use IOCHAN_CLOSENOW() in realtime.c\n",
+    " 1.3  Jul 25, 2005 [rickr] - force tcp close for multiple term signals\n",
     " 2.0  Jul 29, 2005 [rickr] - DICOM file organizer\n"
     "      - add -dicom_org option, to try to organize the image files\n"
-    "      - enable GERT_Reco option for DICOM files\n"
+    "      - enable GERT_Reco option for DICOM files\n",
     " 2.1  Aug 23, 2005 [rickr]\n"
     "      - added -sort_by_num_suffix option and routines\n"
-    "      - output actual TR in to3d command of GERT_Reco script\n"
-    "----------------------------------------------------------------------\n";
+    "      - output actual TR in to3d command of GERT_Reco script\n",
+    " 2.2  Aug 29, 2005 [rickr]\n"
+    "      - added -rev_org_dir and -rev_sort_dir options\n",
+    "----------------------------------------------------------------------\n"
+};
 
-#define DIMON_VERSION "version 2.1 (August 23, 2005)"
+#define DIMON_VERSION "version 2.2 (August 29, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -168,6 +172,8 @@ IFM_debug gD;           /* debug information         */
 param_t   gP;           /* main parameter struct     */
 stats_t   gS;           /* general run information   */
 ART_comm  gAC;          /* afni communication struct */
+
+int       g_dicom_sort_dir = 1;  /* can use to swap sort direction */
 
 /***********************************************************************/
 int main( int argc, char * argv[] )
@@ -1462,8 +1468,9 @@ static int get_num_suffix( char * str )
 */
 int compare_finfo( const void * v0, const void * v1 )
 {
-    ge_header_info * h0 = &((finfo_t *)v0)->geh;
-    ge_header_info * h1 = &((finfo_t *)v1)->geh;
+    ge_header_info * h0  = &((finfo_t *)v0)->geh;
+    ge_header_info * h1  = &((finfo_t *)v1)->geh;
+    int              dir = g_dicom_sort_dir;
 
     /* check for non-DICOM files first */
     if     ( h1->uv17 < 0 ) return -1;
@@ -1472,13 +1479,13 @@ int compare_finfo( const void * v0, const void * v1 )
     /* check the run */
     if( h0->uv17 != h1->uv17 )
     {
-        if( h0->uv17 < h1->uv17 ) return -1;
+        if( h0->uv17 < h1->uv17 ) return -dir;
         return 1;
     }
 
     /* check the image index */
-    if     ( h0->index < h1->index ) return -1;
-    else if( h0->index > h1->index ) return 1;
+    if     ( h0->index < h1->index ) return -dir;
+    else if( h0->index > h1->index ) return dir;
 
     return 0;  /* equal */
 }
@@ -1658,6 +1665,14 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else if ( ! strncmp( argv[ac], "-quit", 5 ) )
         {
             p->opts.quit = 1;
+        }
+        else if ( ! strncmp( argv[ac], "-rev_org_dir", 8 ) )
+        {
+            p->opts.rev_org_dir = 1;
+        }
+        else if ( ! strncmp( argv[ac], "-rev_sort_dir", 9 ) )
+        {
+            p->opts.rev_sort_dir = 1;
         }
         else if ( ! strncmp( argv[ac], "-sort_by_num_suffix", 12 ) )
         {
@@ -1847,9 +1862,9 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         idisp_param_t( "end init_options : ", p );
     }
 
-    /* rcr - make this an option (large-to-small sort is -1) */
-    if ( p->opts.use_dicom )
-        rglob_set_sort_dir( 1 );   /* use a negative sort */
+    /* large-to-small sort is -1 */
+    if ( p->opts.rev_sort_dir ) rglob_set_sort_dir( -1 );
+    if ( p->opts.rev_org_dir )  g_dicom_sort_dir = -1;
 
     if ( gD.level > 0 )
         fprintf( stderr, "\n%s running, use <ctrl-c> to quit...\n\n",
@@ -2409,6 +2424,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   quit, use_dicom    = %d, %d\n"
             "   dicom_org          = %d\n"
             "   sort_num_suff      = %d\n"
+            "   rev_org_dir        = %d\n"
+            "   rev_sort_dir       = %d\n"
             "   (rt, swap, rev_bo) = (%d, %d, %d)\n"
             "   host               = %s\n"
             "   drive_list(u,a,p)  = %d, %d, %p\n"
@@ -2423,6 +2440,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->nt, opt->nice, opt->pause,
             opt->debug, opt->gert_reco, opt->quit, opt->use_dicom,
             opt->dicom_org, opt->sort_num_suff,
+            opt->rev_org_dir, opt->rev_sort_dir,
             opt->rt, opt->swap, opt->rev_bo,
             CHECK_NULL_STR(opt->host),
             opt->drive_list.nused, opt->drive_list.nalloc, opt->drive_list.str,
@@ -2909,6 +2927,9 @@ static int usage ( char * prog, int level )
           "          a single file per run that contains the image filenames\n"
           "          for that run (in order).  This is fed to 'to3d'.\n"
           "\n"
+          "        - The images can be sorted in reverse order using the\n"
+          "          option, -rev_org_dir.\n"
+          "\n"
           "    -help              : show this help information\n"
           "\n"
           "    -hist              : display a history of program changes\n"
@@ -2943,6 +2964,24 @@ static int usage ( char * prog, int level )
           "        With this option, the program will terminate once a delay\n"
           "        in new data occurs.  This is most appropriate to use when\n"
           "        the image files have already been collected.\n"
+          "\n"
+          "    -rev_org_dir       : reverse the sort in dicom_org\n"
+          "\n"
+          "        e.g.  -rev_org_dir\n"
+          "\n"
+          "        With the -dicom_org option, the program will attempt to\n"
+          "        organize the DICOM files with respect to run and image\n"
+          "        numbers.  Normally that is an ascending sort.  With this\n"
+          "        option, the sort is reversed.\n"
+          "\n"
+          "        see also: -dicom_org\n"
+          "\n"
+          "    -rev_sort_dir      : reverse the alphabetical sort on names\n"
+          "\n"
+          "        e.g.  -rev_sort_dir\n"
+          "\n"
+          "        With this option, the program will sort the input files\n"
+          "        in descending order, as opposed to ascending order.\n"
           "\n"
           "    -sort_by_num_suffix : sort files according to numerical suffix\n"
           "\n"
@@ -3024,7 +3063,9 @@ static int usage ( char * prog, int level )
     }
     else if ( level == IFM_USE_HIST )
     {
-        fputs( g_history, stdout );
+        int c, len = sizeof(g_history)/sizeof(char *);
+        for( c = 0; c < len; c++ )
+            fputs( g_history[c], stdout );
         return 0;
     }
     else if ( level == IFM_USE_VERSION )

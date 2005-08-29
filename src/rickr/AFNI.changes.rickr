@@ -1239,3 +1239,6 @@
     strings below 509 bytes in length (-hist, -help strings)
   * modified nifti_stats.c: replaced strdup with malloc/strcpy for warning
 
+29 Auguest 2005: Dimon (-> v 2.2)
+  * added options -rev_org_dir and -rev_sort_dir
+
