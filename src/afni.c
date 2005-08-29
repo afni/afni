@@ -1171,6 +1171,14 @@ int main( int argc , char * argv[] )
    if( !GLOBAL_argopt.quiet && !ALLOW_real_time )
      AFNI_start_version_check() ;               /* 21 Nov 2002 */
 
+#ifdef DARWIN
+   if( !THD_is_directory("/sw/bin") )
+     WARNING_message("On Mac OS X, you should install the fink software:\n"
+                     "            cf. http://fink.sourceforge.net/\n"
+                     "            and then do\n"
+                     "            fink install netpbm\n" ) ;
+#endif
+
    /** set default values of some environment variables [22 Jun 2004] **/
 
    { char **ed , *eqn ;
