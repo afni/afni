@@ -1470,7 +1470,7 @@ int compare_finfo( const void * v0, const void * v1 )
 {
     ge_header_info * h0  = &((finfo_t *)v0)->geh;
     ge_header_info * h1  = &((finfo_t *)v1)->geh;
-    int              dir = g_dicom_sort_dir;
+    int              dir;
 
     /* check for non-DICOM files first */
     if     ( h1->uv17 < 0 ) return -1;
@@ -1479,11 +1479,12 @@ int compare_finfo( const void * v0, const void * v1 )
     /* check the run */
     if( h0->uv17 != h1->uv17 )
     {
-        if( h0->uv17 < h1->uv17 ) return -dir;
+        if( h0->uv17 < h1->uv17 ) return -1;
         return 1;
     }
 
-    /* check the image index */
+    /* check the image index, this is where dir can be changed */
+    dir = g_dicom_sort_dir;
     if     ( h0->index < h1->index ) return -dir;
     else if( h0->index > h1->index ) return dir;
 
