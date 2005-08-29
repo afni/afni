@@ -22,6 +22,8 @@ void THD_check_AFNI_version(void)
    char *home , mname[VSIZE]="file:" ;
    NI_stream ns ;
 
+   if( AFNI_noenv("AFNI_VERSION_CHECK") ) return ;
+
    /* recall that fork() return value is
         < 0 for an error
         > 0 in the parent
