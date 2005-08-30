@@ -32,27 +32,16 @@ goto END
 
 
 PARSE_COMMAND:
-	if ($# == 3) then
-		set DownSample = $3
-	else
-		set DownSample = 0
-	endif
-	set ExpAnatPrefix = `@GetAfniPrefix $1`
-	set ExpAnatView = `@GetAfniView $1`
-	set SurfAnatPrefix = `@GetAfniPrefix $2` 
-	set SurfAnatView = `@GetAfniView $2` 
-	set SurfAnatPath = $2:h
-	if ($SurfAnatPath == $2:t) then 
-		#no path given
-		set SurfAnatPath = .
-	endif
 	
    #continue parsing for new options
    set Narg = $#
-   set cnt = 3
+   set cnt = 1
    set prefix = ''
    set UseWarp = 0
    set clpbelow = ''
+   set SA_in = ''
+   set EA_in = ''
+   set DownSample = 0
    while ($cnt <= $Narg)
 		set donext = 1;
       if ($donext && "$argv[$cnt]" == "-dxyz") then
@@ -93,11 +82,53 @@ PARSE_COMMAND:
             set donext = 0	
          endif	
       endif
-      
+      if ($donext && "$argv[$cnt]" == "-surf_anat") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a volume after -surf_anat"
+            goto END
+			else
+            @ cnt ++
+            set SA_in = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-exp_anat") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need a volume after -exp_anat"
+            goto END
+			else
+            @ cnt ++
+            set EA_in = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+     
       if ($donext && "$argv[$cnt]" == "-wd") then
          set UseWarp = 1;		
          set donext = 0		
       endif
+      
+      #ADD NO NEW OPTIONS BELOW THIS LINE
+      
+      if ($donext == 1 && $cnt == 1) then
+	      set EA_in = "$argv[$cnt]"
+         echo "Note: Guessing that '$EA_in' is the experiment anatomy."
+         echo "Better use -exp_anat flag in your command."
+	      echo ""
+         set donext = 0
+      endif      
+      
+      if ($donext == 1 && $cnt == 2) then
+         set SA_in = "$argv[$cnt]"
+         echo ""
+         echo "Note: Guessing that '$SA_in' is the surface anatomy."
+         echo "Better use -surf_anat flag in your command."
+	      echo ""
+         set donext = 0
+      endif         
+
       if ($donext == 1 && $cnt == 3) then
          #probably the dxyz parameter
          set DownSample = $argv[$cnt]
@@ -115,6 +146,21 @@ PARSE_COMMAND:
       
 		@ cnt ++
 	end
+   
+   if ("$SA_in" == "" || "$EA_in" == "") then 
+      echo "Error: Failed to find surface and/or experiment anatomies on command line."
+      goto END
+   else
+         set ExpAnatPrefix = `@GetAfniPrefix $EA_in`
+	      set ExpAnatView = `@GetAfniView $EA_in`
+	      set SurfAnatPrefix = `@GetAfniPrefix $SA_in` 
+         set SurfAnatView = `@GetAfniView $SA_in` 
+	      set SurfAnatPath = $SA_in:h
+	      if ($SurfAnatPath == $SA_in:t) then 
+		      #no path given
+		      set SurfAnatPath = .
+	      endif
+   endif
    
 	goto Ret_PARSE_COMMAND
 
@@ -245,6 +291,7 @@ REGISTER:
 	   if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
 		   goto NO_VOLREG
 	   endif
+	   mv $SurfAnatPath/$VolRegPrefix* ./
    else      
       set tmpref = '___tmp__zp'"$ExpAnatPrefix$SurfAnatPrefix"
       rm -rf ${tmpref}*.???? >& /dev/null
@@ -259,14 +306,19 @@ REGISTER:
       3dWarpDrive -twopass -verb -affine_general -cubic -final quintic -base ./${tmpref}_refpad$ExpAnatView -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
 	   
       3dZeropad -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm -prefix ./$VolRegPrefix ${tmpref}_pad_wd$SurfAnatView
-	   
-      if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
-		   goto NO_VOLREG
+	   #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
+      3drefit -atrcopy ${tmpref}_pad_wd$SurfAnatView WARPDRIVE_INPUT_IDCODE $VolRegPrefix$SurfAnatView
+      3drefit -atrcopy ${tmpref}_pad_wd$SurfAnatView WARPDRIVE_INPUT_NAME $VolRegPrefix$SurfAnatView
+      3drefit -atrcopy ${tmpref}_pad_wd$SurfAnatView WARPDRIVE_BASE_IDCODE $VolRegPrefix$SurfAnatView
+      3drefit -atrcopy ${tmpref}_pad_wd$SurfAnatView WARPDRIVE_MATVEC_FOR_000000 $VolRegPrefix$SurfAnatView
+      3drefit -atrcopy ${tmpref}_pad_wd$SurfAnatView WARPDRIVE_MATVEC_INV_000000 $VolRegPrefix$SurfAnatView
+
+      if (!(-f ./$VolRegPrefix$SurfAnatView.BRIK || -f ./$VolRegPrefix$SurfAnatView.BRIK.gz || -f ./$VolRegPrefix$SurfAnatView.BRIK.Z)) then
+		   goto NO_WARPDRIVE
 	   endif
       rm -rf ${tmpref}*.???? >& /dev/null
    endif
 	
-	mv $SurfAnatPath/$VolRegPrefix* ./
 	
 	#remove _resamp_
 	if ($Resampled == 1) then
@@ -329,6 +381,11 @@ NO_VOLREG:
 	echo "Error: 3dvolreg failed."
 	echo ""
 	goto END
+NO_WARPDRIVE:
+	echo ""
+	echo "Error: 3dwarpdrive failed."
+	echo ""
+	goto END
 NO_RESAMP:
 	echo ""
 	echo "Error: 3dresample failed."
@@ -337,18 +394,21 @@ NO_RESAMP:
 	
 USAGE:
 	echo ""
-	echo "Usage: `basename $0` <Experiment Anatomy> <Surface Anatomy> "
+	echo "Usage: `basename $0` <-exp_anat Experiment_Anatomy> <-surf_anat Surface_Anatomy> "
    echo "                     [dxyz] [-wd] [-prefix PREFIX] [-EA_clip_below CLP]"
 	echo "creates a version of Surface Anatomy that is registered to Experiment Anatomy."
 	echo ""
 	echo "Mandatory parameters:"
-   echo "<Experiment Anatomy>: Name of high resolution anatomical data set in register "
+   echo "<-exp_anat Experiment_Anatomy>: Name of high resolution anatomical data set in register "
    echo "        with experimental data."
-	echo "<Surface Anatomy> Path and Name of high resolution antomical data set used to "
+	echo "<-surf_anat Surface_Anatomy> Path and Name of high resolution antomical data set used to "
    echo "        create the surface."
+   echo ""
+   echo "  NOTE: In the old usage, there were no -exp_anat and -surf_anat flags and the two "
+   echo "  volumes had to appear first on the command line and in the proper order."
 	echo ""
    echo "Optional parameters:"
-   echo "   [DXYZ|-dxyz DXYZ]: This optional parameter indicates that the anatomical "
+   echo "   [-dxyz DXYZ]: This optional parameter indicates that the anatomical "
    echo "        volumes must be downsampled to dxyz mm voxel resolution before "
 	echo "        registration. That is only necessary if 3dvolreg runs out of memory."
 	echo "        You MUST have 3dvolreg that comes with afni distributions newer than "
@@ -373,12 +433,12 @@ USAGE:
 	echo ""
 	echo "Example 1: For datasets with no relative distortion and comparable coverage."
    echo "           Using 6 param. rigid body transform."
-	echo "@SUMA_AlignToExperiment DemoSubj_spgrsa+orig. \"
-   echo "                        ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
+	echo "@SUMA_AlignToExperiment -exp_anat DemoSubj_spgrsa+orig. \"
+   echo "                        -surf_anat ../FreeSurfer/SUMA/DemoSubj_SurfVol+orig."
 	echo ""
    echo "Example 2: For datasets with some distortion and different coverage."
    echo "           Using 12 param. transform and clipping of areas below cerebellum:"
-   echo "@SUMA_AlignToExperiment ABanat+orig. DemoSubj_SurfVol+orig. \"
+   echo "@SUMA_AlignToExperiment -exp_anat ABanat+orig. -surf_anat DemoSubj_SurfVol+orig. \"
    echo "                       -wd -prefix DemoSubj_SurfVol_WD_AlndExp \"
    echo "                       -EA_clip_below -30"
    echo ""
