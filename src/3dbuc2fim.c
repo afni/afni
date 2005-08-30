@@ -336,12 +336,14 @@ int main( int argc , char * argv[] )
    char buf[256] ;
 
   /*----- Identify software -----*/
+#if 0
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
   printf ("Author:  %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+#endif
 
 
    /*** read input options ***/
@@ -349,6 +351,7 @@ int main( int argc , char * argv[] )
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) B2F_Syntax() ;
 
    mainENTRY("3dbuc2fim main"); machdep(); AFNI_logger(PROGRAM_NAME,argc,argv);
+   PRINT_VERSION("3dbuc2fim") ;
 
    B2F_read_opts( argc , argv ) ;
 

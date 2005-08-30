@@ -1717,11 +1717,15 @@ int main
   char ** scoef_filename = NULL;   /* file name for signal model parameters */  
   
   /*----- Identify software -----*/
+#if 0
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
   printf ("Author:  %s \n", PROGRAM_AUTHOR); 
   printf ("Date:    %s \n", PROGRAM_DATE);
   printf ("\n");
+#endif
+
+   PRINT_VERSION("3dTSgen") ; mainENTRY("3dTSgen main") ; machdep() ;
 
    
   /*----- program initialization -----*/

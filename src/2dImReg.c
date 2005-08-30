@@ -1499,13 +1499,17 @@ int main
   float * new_rms_array = NULL;        /* registered data volume RMS error */
 
 
-   
+  
+#if 0 
   /*----- Identify software -----*/
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+#endif
+
+  machdep() ; mainENTRY("2dImReg main") ; PRINT_VERSION("2dImReg") ;
 
   
   /*----- Program initialization -----*/

@@ -2222,11 +2222,15 @@ int main
 
   
   /*----- Identify software -----*/
+#if 0
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
   printf ("Author:  %s \n", PROGRAM_AUTHOR); 
   printf ("Date:    %s \n", PROGRAM_DATE);
   printf ("\n");
+#endif
+
+   PRINT_VERSION("3ddelay") ; mainENTRY("3ddelay main") ; machdep() ;
 
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, &dset_time, &mask_dset, 

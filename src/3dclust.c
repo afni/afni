@@ -327,6 +327,7 @@ int main( int argc , char * argv[] )
      THD_coorder_fill( "LPI" , &CL_cord ) ;  /* 30 Apr 2002 */
 
  /*----- Identify software -----*/
+#if 0
    if( !CL_quiet ){
       printf ("\n\n");
       printf ("Program: %s \n", PROGRAM_NAME);
@@ -334,6 +335,7 @@ int main( int argc , char * argv[] )
       printf ("Date:    %s \n", PROGRAM_DATE);
       printf ("\n");
    }
+#endif
 
    if( nopt+3 >  argc ){
       fprintf(stderr,"\n*** No rmm or vmul arguments?\a\n") ;

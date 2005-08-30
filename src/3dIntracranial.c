@@ -706,7 +706,8 @@ int main
   int ii ;
 
   /*----- Identify software -----*/
-  
+ 
+#if 0 
   for( ii=1 ; ii < argc ; ii++ )
     if( strncmp(argv[ii],"-quiet",6) == 0 ) break ;
   if( ii == argc ){
@@ -717,8 +718,9 @@ int main
     printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
     printf ("\n");
   }
+#endif
 
-  mainENTRY("3dIntracranial:main") ; machdep() ;
+  mainENTRY("3dIntracranial:main") ; machdep() ; PRINT_VERSION("3dIntracranial") ;
 
   
   /*----- Program initialization -----*/
