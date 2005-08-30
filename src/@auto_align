@@ -175,7 +175,8 @@ PARSE:
    if ("$rmode" == "default") then
          set rmode = "quintic"
    endif
-   
+
+   set Xform_Opt = '-affine_general'   
 
 CLEANUP_BEGINNING:
 rm -f *_${TS}_*.HEAD *_${TS}_*.BRIK >& /dev/null 
@@ -207,7 +208,7 @@ endif
 set ci_name[2] = $ci_name[2]_${TS}_resamp
             
 #do the warping deed
-3dWarpDrive    -twopass -affine_general -cubic  \
+3dWarpDrive    -twopass ${Xform_Opt} -cubic  \
                -final ${rmode} -base $cb_name[1]/$cb_name[2]$cb_name[3] \
                -prefix $ci_name[1]/$ci_name[2]_${TS}_wd -input $ci_name[1]/$ci_name[2]$ci_name[3]
 set ci_name[2] = $ci_name[2]_${TS}_wd
