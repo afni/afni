@@ -48,7 +48,13 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "      -pad_base  MM  :  Pad the base dset by MM mm in each directions."
    echo "                        That is needed to  make sure that datasets"
    echo "                        requiring wild rotations do not get cropped."
-   echo "                        Default is MM = 30."
+   echo "                        Default is MM = 40."
+   echo "                        If your output dataset is clipped, try increasing"
+   echo "                        MM to 50 or 60. If that does not help, make sure"
+   echo "                        that the skull-stripped volume has no clipping."
+   echo "                        If it does, then the skull stripping needs to"
+   echo "                        be corrected. Feel free to report such instances"
+   echo "                        to the script's authors." 
    echo "      -keep_tmp      :  Keep temporary files."
    echo "   Example:"
    echo "   `basename $0` -base TT_N27+tlrc. -input DemoSubj_spgrsa+orig."
@@ -99,7 +105,7 @@ PARSE:
    set apar_mode = 0
    set KeepTmp = 0
    set verb = 0
-   set pd = 30
+   set pd = 40
    set suf = "_at"
    set rmode = 'default'
    set dxyz_list = ( 1 1 1 )
@@ -327,6 +333,8 @@ AUTO_TLRC_MODE:
          echo "Error: Failed to create skull stripped brain"
          goto END
       endif
+   else
+      echo "Reusing skull stripped volume ${ns_pref}+orig found on disk."
    endif
 
    RES:
@@ -335,11 +343,12 @@ AUTO_TLRC_MODE:
       echo "Resampling ..."
       rm -f ${tmppref}_resamp* >& /dev/null
       #Use cubic for somoothness of result since it will be used in registration.
-      #But that causes edge artifacts from interpolation. Use a NN resampled mask to cleanup
+      #But that causes edge artifacts from interpolation. Use a resampled mask to cleanup
       3dresample -rmode Cu -master ${ref_pref_pad}+tlrc -inset ${ns_pref}+orig -prefix ${tmppref}_resamp_edge_art
-      3dresample -rmode NN -master ${ref_pref_pad}+tlrc -inset ${ns_pref}+orig -prefix ${tmppref}_resamp_NN
+      3dcalc -a "${ns_pref}+orig" -expr "step(a)*10000" -prefix ${tmppref}_resamp_step
+      3dresample -rmode Linear -master ${ref_pref_pad}+tlrc -inset ${tmppref}_resamp_step+orig -prefix ${tmppref}_resamp_NN
       3dcalc   -a "${tmppref}_resamp_edge_art+tlrc." -b "${tmppref}_resamp_NN+tlrc." \
-               -expr "a*step(b)" -prefix ${tmppref}_resamp
+               -expr "a*step(b-5000)" -prefix ${tmppref}_resamp
       if ( ! -f ${tmppref}_resamp+tlrc.HEAD) then
          echo "Error: Failed to create resampled volume"
          goto END
@@ -377,10 +386,11 @@ AUTO_TLRC_MODE:
       goto END
    endif
    #apply same warp for mask of dataset and use mask to get rid of edge artifacts
-   3dWarp -matparent ${tmppref}_reg_warpdriveout+orig -NN -prefix ${tmppref}_reg_braintlrcmask ${rs_pref}+orig 
+   3dcalc -a "${rs_pref}+orig" -expr "step(a)*10000" -prefix ${tmppref}_reg_braintlrcstep
+   3dWarp -matparent ${tmppref}_reg_warpdriveout+orig -linear -prefix ${tmppref}_reg_braintlrcmask ${tmppref}_reg_braintlrcstep+orig 
    3dcalc   -a "${tmppref}_reg_braintlrcmask+orig" \
             -b "${tmppref}_reg_warpdriveout+orig" \
-            -expr "step(a)*b" -prefix ${tt_pref}_${pd}pad
+            -expr "step(a-5000)*b" -prefix ${tt_pref}_${pd}pad
    if ( ! -f ${tt_pref}_${pd}pad+orig.HEAD ) then
       echo "Error: Failed to create tlrced brain"
       goto END
