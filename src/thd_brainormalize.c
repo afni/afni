@@ -1588,6 +1588,23 @@ ENTRY("mri_brainormalize") ;
      free((void *)mask); free((void *)ccc);
    }
 
+   /*-- convert output to bytes --*/
+
+   bim = mri_new_conforming( tim , MRI_byte ) ;
+   MRI_COPY_AUX(bim,tim) ;
+   bar = MRI_BYTE_PTR(bim) ;
+
+   jj = 0 ;
+   for( ii=0 ; ii < nxyz ; ii++ ) if( sar[ii] > jj ) jj = sar[ii] ;
+
+   if( jj > 255 ){
+     float fac = 255.0 / jj ;
+     if( verb ) fprintf(stderr," + scaling by fac=%g\n",fac) ;
+     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)(fac*sar[ii]+0.49) ;
+   } else {
+     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)sar[ii] ;
+   }
+
    /* create a spat norm of the original volume ZSS */
    if (imout_origp) {
       mri_warp3D_method( MRI_LINEAR) ;
@@ -1595,26 +1612,28 @@ ENTRY("mri_brainormalize") ;
       imout_orig = mri_warp3D( tim, sim_nx, sim_ny, sim_nz, ijk_invwarp );
       imout_orig->dx = sim_dx; imout_orig->dy = sim_dy; imout_orig->dz = sim_dz; 
       imout_orig->xo = sim_xo; imout_orig->yo = sim_yo; imout_orig->zo = sim_zo; 
-      /* Normally you're done here by because of linear interpolation, zero values (masked in the normalization process) end up non zero with 
+      /* Normally you're done here but because of linear interpolation, zero values (masked in the normalization process) end up non zero with 
       linear interpolation. To set what was zero to zero again, without causing a shift in the final volume's position because of NN interpolation,
-      I will create a NN version of the volume, use its zero values to mask out those voxels closest to 0 in NN version. 
-      A better idea would be to do some sort of 3dfractionize, but that's a pain here */
+      To apply the zero mask again, warp a mask version of the dset and threshold at 0.5 before masking imout_origp (a good tip from Rick) 
+      NOTE: tim will be modified*/
       {
          int ii, maxmasked, minmasked, n_masked;
-         short *osar, *osar_NN ;
+         short *osar, *osar_NN, *tim_NN, maskval = 10000;
          float meanmasked;
          MRI_IMAGE *imout_orig_NN;
-         /* create a NN version now */
-         mri_warp3D_method( MRI_NN) ;
-         if (1 && verb) fprintf(stderr,"thd_brainormalize (ZSS):\n Masking with NN version (3dfractionize too much of a pain)\n ");
+         /* create a mask version now */
+         mri_warp3D_method( MRI_LINEAR) ;
+         if (1 && verb) fprintf(stderr,"thd_brainormalize (ZSS):\n Masking \n ");
+         tim_NN = MRI_SHORT_PTR(tim);
+         for (ii = 0; ii<nxyz; ++ii) { if (tim_NN[ii]) tim_NN[ii] = maskval; }
          imout_orig_NN = mri_warp3D( tim, sim_nx, sim_ny, sim_nz, ijk_invwarp );
-         /* mask values in imout_orig that are zero in imout_orig_NN */
+         /* mask values in imout_orig that are less than 0.5 in imout_orig_NN */
          osar_NN = MRI_SHORT_PTR(imout_orig_NN);
          osar    = MRI_SHORT_PTR(imout_orig);
          maxmasked = 0; minmasked = 300000; n_masked = 0;
          meanmasked = 0;
          for (ii = 0; ii<sim_nx *sim_ny* sim_nz; ++ii) { 
-            if (!osar_NN[ii]) { 
+            if (osar_NN[ii] < maskval/2) { 
                if (osar[ii]) {
                   if (osar[ii] > maxmasked) maxmasked = osar[ii];
                   else if (osar[ii] < minmasked) minmasked = osar[ii];
@@ -1636,22 +1655,6 @@ ENTRY("mri_brainormalize") ;
       *imout_edge = NULL;
    }
       
-   /*-- convert output to bytes --*/
-
-   bim = mri_new_conforming( tim , MRI_byte ) ;
-   MRI_COPY_AUX(bim,tim) ;
-   bar = MRI_BYTE_PTR(bim) ;
-
-   jj = 0 ;
-   for( ii=0 ; ii < nxyz ; ii++ ) if( sar[ii] > jj ) jj = sar[ii] ;
-
-   if( jj > 255 ){
-     float fac = 255.0 / jj ;
-     if( verb ) fprintf(stderr," + scaling by fac=%g\n",fac) ;
-     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)(fac*sar[ii]+0.49) ;
-   } else {
-     for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = (byte)sar[ii] ;
-   }
    mri_free(tim) ;
 
    /*-- done!!! --*/
