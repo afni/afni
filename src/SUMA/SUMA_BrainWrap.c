@@ -1901,10 +1901,15 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_ST
                      shft += touchup[SO->FN->FirstNeighb[in][nin]];
                      if (Opt->NodeDbg == in) { fprintf(SUMA_STDERR,"   (%f)", touchup[SO->FN->FirstNeighb[in][nin]]); }
                   }
-                  shft /= (SO->FN->N_Neighb[in]+1);  
-                  if (Opt->NodeDbg == in) {
-                     fprintf(SUMA_STDERR,"]. Smoothed to = %f\n", shft);
-                  } 
+                  if (shft == touchup[in]) {
+                     if (Opt->NodeDbg == in) { fprintf(SUMA_STDERR,"\nonly one node wants to move in this hood. No sir, Shft = 0\n");}
+                     shft = 0;
+                  } else {
+                     shft /= (SO->FN->N_Neighb[in]+1);  
+                     if (Opt->NodeDbg == in) {
+                        fprintf(SUMA_STDERR,"]. Smoothed to = %f\n", shft);
+                     } 
+                  }
                }
                if (shft) { 
                   a = &(SO->NodeList[3*in]);   
