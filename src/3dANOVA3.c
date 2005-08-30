@@ -5042,19 +5042,21 @@ int main (int argc, char ** argv)
   
    
   /*----- Identify software -----*/
+#if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
   printf ("Author:           %s \n", PROGRAM_AUTHOR); 
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+#endif
     
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
   
   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
-  mainENTRY("3dANOVA3 main") ; machdep() ;
+  mainENTRY("3dANOVA3 main") ; machdep() ; PRINT_VERSION("3dANOVA3") ;
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }

@@ -1445,13 +1445,16 @@ int main (int argc, char ** argv)
 
   
   /*----- Identify software -----*/
+#if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
   printf ("Author:           %s \n", PROGRAM_AUTHOR); 
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+#endif
 
+   PRINT_VERSION("AlphaSim") ; mainENTRY("AlphaSim main") ; machdep() ;
 
   /*----- program initialization -----*/
   initialize (argc, argv, 

@@ -1090,6 +1090,7 @@ int main
   }
 
   /*----- Identify software -----*/
+#if 0
   if( !quiet ){
    printf ("\n\n");
    printf ("Program: %s \n", PROGRAM_NAME);
@@ -1098,6 +1099,9 @@ int main
    printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
    printf ("\n");
   }
+#endif
+
+   PRINT_VERSION("3dUniformize") ; mainENTRY("3dUniformize main") ; machdep() ;
 
   
   /*----- Program initialization -----*/

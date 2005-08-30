@@ -128,7 +128,8 @@ if((ptr)==NULL) \
 
 void identify_software ()
 {
-  
+ 
+#if 0 
   /*----- Identify software -----*/
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
@@ -136,6 +137,9 @@ void identify_software ()
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+#endif
+
+  PRINT_VERSION("RSFgen") ;
 }
 
 
@@ -1005,7 +1009,9 @@ int main
   int * earray = NULL;     /* expanded array (arbitrary block length) */
   MRI_IMAGE * flim = NULL; /* data structure containing input table */
 
-  
+ 
+  machdep() ; mainENTRY("RSFgen") ;
+
   /*----- Perform program initialization -----*/
   initialize (argc, argv, &darray, &earray, &flim);
 

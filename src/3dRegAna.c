@@ -3217,16 +3217,19 @@ int main
 
    
   /*----- Identify software -----*/
+#if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
   printf ("Author:           %s \n", PROGRAM_AUTHOR); 
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+#endif
 
   /*-- 22 Feb 1999: addto the arglist, if user wants to --*/
 
-   machdep() ; 
+   PRINT_VERSION("3dRegAna") ; mainENTRY("3dRegAna main") ; machdep() ;
+
   { int new_argc ; char ** new_argv ;
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
