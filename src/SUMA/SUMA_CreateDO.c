@@ -3429,6 +3429,8 @@ char *SUMA_SurfaceObject_Info (SUMA_SurfaceObject *SO, DList *DsetList)
       SS = SUMA_StringAppend (SS,stmp);
       sprintf (stmp,"TAGALIGN_APPLIED: %d\n", SO->TAGALIGN_APPLIED);
       SS = SUMA_StringAppend (SS,stmp);
+      sprintf (stmp,"WARPDRIVE_APPLIED: %d\n", SO->WARPDRIVE_APPLIED);
+      SS = SUMA_StringAppend (SS,stmp);
       sprintf (stmp,"ShowSelecetedNode: %d\tSelectedNode %d\n",\
          SO->ShowSelectedNode, SO->SelectedNode);
       SS = SUMA_StringAppend (SS,stmp);
@@ -3779,6 +3781,7 @@ SUMA_SurfaceObject *SUMA_Alloc_SurfObject_Struct(int N)
       SO[i].SUMA_VolPar_Aligned = NOPE;
       SO[i].VOLREG_APPLIED = NOPE;
       SO[i].TAGALIGN_APPLIED = NOPE;
+      SO[i].WARPDRIVE_APPLIED = NOPE;
       SO[i].ROTATE_APPLIED = NOPE;
       SO[i].SurfCont = NULL; /* This is now handled in SUMA_LoadSpec_eng (used to be SUMA_CreateSurfContStruct();) */
       SO[i].PolyMode = SRM_ViewerDefault;

@@ -2640,6 +2640,13 @@ SUMA_Boolean SUMA_VolPar_nel2SOVolPar(SUMA_SurfaceObject *SO, NI_element *nel)
       SUMA_COPY_VEC(fv15, SO->VolPar->TAGALIGN_MATVEC, 2, float, float);
    }
 
+   tmp = NI_get_attribute(nel, "WARPDRIVE_MATVEC"); 
+   if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
+      SUMA_StringToNum(tmp, fv15, 12); 
+      SO->VolPar->WARPDRIVE_MATVEC = (float*)SUMA_malloc(sizeof(float)*12);
+      SUMA_COPY_VEC(fv15, SO->VolPar->WARPDRIVE_MATVEC, 2, float, float);
+   }
+
    tmp = NI_get_attribute(nel, "ROTATE_MATVEC"); 
    if (!SUMA_IS_EMPTY_STR_ATTR(tmp)) { 
       SUMA_StringToNum(tmp, fv15, 12); 
@@ -2766,6 +2773,12 @@ NI_element *SUMA_SOVolPar2VolPar_nel (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPa
       stmp[0] = '\0';
       for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->TAGALIGN_MATVEC[i]);
       NI_set_attribute(nel, "TAGALIGN_MATVEC", stmp);
+   }
+
+   if (VolPar->WARPDRIVE_MATVEC) {
+      stmp[0] = '\0';
+      for (i=0; i<12; ++i) sprintf(stmp,"%s %f", stmp, VolPar->WARPDRIVE_MATVEC[i]);
+      NI_set_attribute(nel, "WARPDRIVE_MATVEC", stmp);
    }
 
    if (VolPar->ROTATE_MATVEC) {
