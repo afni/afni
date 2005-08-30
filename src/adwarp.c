@@ -877,8 +877,9 @@ int main( int argc , char *argv[] )
   THD_3dim_dataset *new_dset = NULL;       /* new (output) dataset */
   THD_dataxes new_daxes;                   /* new dataset axes */
 
-  mainENTRY("adwarp main") ; machdep() ;
+  mainENTRY("adwarp main") ; machdep() ; PRINT_VERSION("adwarp") ;
 
+#if 0
   /*----- Identify software -----*/
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
@@ -886,6 +887,7 @@ int main( int argc , char *argv[] )
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+#endif
 
   /*----- Allocate memory -----*/
   option_data = (adwarp_options *) malloc (sizeof(adwarp_options));
