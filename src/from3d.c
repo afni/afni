@@ -238,12 +238,16 @@ int main( int argc , char * argv[] )
 
   
   /*----- Identify software -----*/
+#if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
   printf ("Author:           %s \n", PROGRAM_AUTHOR); 
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
+#endif
+
+   PRINT_VERSION("from3d") ; mainENTRY("from3d main") ; machdep() ;
 
    /* --- get user command line inputs --- */
    F3D_initialize_user_data (argc, argv,
