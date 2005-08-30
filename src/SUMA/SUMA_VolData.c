@@ -366,6 +366,7 @@ SUMA_VOLPAR *SUMA_Alloc_VolPar (void)
    VP->VOLREG_CENTER_BASE = NULL; /*!< pointer to the named attribute (3x1) in the .HEAD file of the experiment-aligned Parent Volume */
    VP->VOLREG_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the experiment-aligned Parent Volume */
    VP->TAGALIGN_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the tag aligned Parent Volume */
+   VP->WARPDRIVE_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the 3dWarpDrive aligned Parent Volume */
    VP->ROTATE_MATVEC = NULL; /*!< pointer to the named attribute (12x1) in the .HEAD file of the 3drotated Parent Volume */
    VP->ROTATE_CENTER_OLD = NULL;
    VP->ROTATE_CENTER_BASE = NULL;
@@ -389,6 +390,7 @@ SUMA_Boolean SUMA_Free_VolPar (SUMA_VOLPAR *VP)
    if (VP->VOLREG_CENTER_BASE != NULL) SUMA_free(VP->VOLREG_CENTER_BASE);
    if (VP->VOLREG_MATVEC != NULL) SUMA_free(VP->VOLREG_MATVEC);
    if (VP->TAGALIGN_MATVEC != NULL) SUMA_free(VP->TAGALIGN_MATVEC);
+   if (VP->WARPDRIVE_MATVEC != NULL) SUMA_free(VP->WARPDRIVE_MATVEC);
    if (VP->ROTATE_MATVEC != NULL) SUMA_free(VP->ROTATE_MATVEC);
    if (VP->ROTATE_CENTER_OLD != NULL) SUMA_free(VP->ROTATE_CENTER_OLD);
    if (VP->ROTATE_CENTER_BASE != NULL) SUMA_free(VP->ROTATE_CENTER_BASE);
@@ -490,6 +492,23 @@ SUMA_VOLPAR *SUMA_VolParFromDset (THD_3dim_dataset *dset)
          }
       } else {
          fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->TAGALIGN_MATVEC\n", FuncName);
+      }
+   }
+
+   /* Get the tagalign matrix if possible*/
+   atr = THD_find_float_atr( dset->dblk , "WARPDRIVE_MATVEC_INV_000000" ) ; /* _INV_ yes _INV_, not _FOR_: Don't ask why. */
+   if (atr == NULL) {
+      VP->WARPDRIVE_MATVEC = NULL;
+   }else {
+      VP->WARPDRIVE_MATVEC = (float *)SUMA_calloc(12, sizeof(float));
+      if (VP->WARPDRIVE_MATVEC != NULL) {
+         if (atr->nfl == 12) {
+            for (ii=0; ii<12; ++ii) VP->WARPDRIVE_MATVEC[ii] = atr->fl[ii];
+         } else {   
+            fprintf(SUMA_STDERR,"Error %s: WARPDRIVE_MATVEC_FOR_000000 does not have 12 elements.\n", FuncName);
+         }
+      } else {
+         fprintf(SUMA_STDERR,"Error %s: Failed to allocate for VP->WARPDRIVE_MATVEC\n", FuncName);
       }
    }
    
@@ -708,6 +727,22 @@ char *SUMA_VolPar_Info (SUMA_VOLPAR *VP)
          SS = SUMA_StringAppend (SS, stmp);
       }      
       
+      if (VP->WARPDRIVE_MATVEC != NULL) {
+         sprintf (stmp,"VP->WARPDRIVE_MATVEC = \n\tMrot\tDelta\n");
+         SS = SUMA_StringAppend (SS, stmp);
+         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
+         VP->WARPDRIVE_MATVEC[0], VP->WARPDRIVE_MATVEC[1], VP->WARPDRIVE_MATVEC[2], VP->WARPDRIVE_MATVEC[3]); 
+         SS = SUMA_StringAppend (SS, stmp);
+         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
+         VP->WARPDRIVE_MATVEC[4], VP->WARPDRIVE_MATVEC[5], VP->WARPDRIVE_MATVEC[6], VP->WARPDRIVE_MATVEC[7]);
+         SS = SUMA_StringAppend (SS, stmp);
+         sprintf (stmp,"|%f\t%f\t%f|\t|%f|\n", \
+         VP->WARPDRIVE_MATVEC[8], VP->WARPDRIVE_MATVEC[9], VP->WARPDRIVE_MATVEC[10], VP->WARPDRIVE_MATVEC[11]);
+         SS = SUMA_StringAppend (SS, stmp);
+      } else {
+         sprintf (stmp,"VP->WARPDRIVE_MATVEC = NULL\n");
+         SS = SUMA_StringAppend (SS, stmp);
+      }      
       if (VP->VOLREG_MATVEC != NULL) {
          sprintf (stmp,"VP->VOLREG_MATVEC = \n\tMrot\tDelta\n");
          SS = SUMA_StringAppend (SS, stmp);
@@ -898,7 +933,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
 {
    static char FuncName[]={"SUMA_Apply_VolReg_Trans"};
    int i, ND, id;
-   SUMA_Boolean UseVolreg, UseTagAlign, UseRotate, Bad=YUP;
+   SUMA_Boolean UseVolreg, UseTagAlign, UseRotate, UseWarpAlign, Bad=YUP;
    
    SUMA_ENTRY;
 
@@ -908,8 +943,8 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
       SUMA_RETURN (YUP);
    }
    
-   if (SO->VOLREG_APPLIED || SO->TAGALIGN_APPLIED || SO->ROTATE_APPLIED) {
-      fprintf (SUMA_STDERR,"Error %s: Volreg (or Tagalign or rotate) already applied. Nothing done.\n", FuncName);
+   if (SO->VOLREG_APPLIED || SO->TAGALIGN_APPLIED || SO->ROTATE_APPLIED || SO->WARPDRIVE_APPLIED) {
+      fprintf (SUMA_STDERR,"Error %s: Volreg (or Tagalign or rotate or warpdrive) already applied. Nothing done.\n", FuncName);
       SUMA_RETURN (NOPE);
    }
 
@@ -919,6 +954,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
    UseVolreg = NOPE;
    UseTagAlign = NOPE;
    UseRotate = NOPE;
+   UseWarpAlign = NOPE;
    /* perform the rotation needed to align the surface with the current experiment's data */
    if (SO->VolPar->VOLREG_MATVEC != NULL || SO->VolPar->VOLREG_CENTER_OLD != NULL || SO->VolPar->VOLREG_CENTER_BASE != NULL) {
       Bad = NOPE;
@@ -939,6 +975,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
    
    /* Check for Tagalign and Rotate field */
    if (SO->VolPar->TAGALIGN_MATVEC) UseTagAlign = YUP;
+   if (SO->VolPar->WARPDRIVE_MATVEC) UseWarpAlign = YUP;
    if (SO->VolPar->ROTATE_MATVEC || SO->VolPar->ROTATE_CENTER_OLD || SO->VolPar->ROTATE_CENTER_BASE) {
       Bad = NOPE;
       if (SO->VolPar->ROTATE_MATVEC == NULL) {
@@ -955,7 +992,6 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
       }
       if (!Bad) UseRotate = YUP;
    }
-   
    if (UseTagAlign && UseVolreg) {
       SUMA_SL_Note("Found both Volreg and TagAlign fields.\n"
                    "Using Volreg fields for alignment.");
@@ -970,6 +1006,11 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
       SUMA_SL_Note("Found both Rotate and TagAlign fields.\n"
                    "Using Tagalign fields for alignment.");
       UseRotate = NOPE;
+   }
+   if (UseWarpAlign && (UseRotate || UseTagAlign || UseVolreg)) {
+      SUMA_SL_Note("Found WarpDrive and and some other transformation field.\n"
+                   "Ignoring WarpDrive field for alignment.");
+      UseWarpAlign = NOPE;
    }
    
    if (UseTagAlign) {
@@ -994,7 +1035,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
       NetShift[2] = Delta[2];
       
       /*
-      fprintf (SUMA_STDERR,"%s: Applying Rotation.\nMrot[\t%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f]\nDelta = [%f %f %f]\n", FuncName,\
+      fprintf (SUMA_STDERR,"%s: Applying xform.\nMrot[\t%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f]\nDelta = [%f %f %f]\n", FuncName,\
                Mrot[0][0], Mrot[0][1], Mrot[0][2], Mrot[1][0], Mrot[1][1], Mrot[1][2], Mrot[2][0], Mrot[2][1], Mrot[2][2], \
                Delta[0], Delta[1], Delta[2]);
       
@@ -1020,6 +1061,55 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
       SO->TAGALIGN_APPLIED = YUP;   
    } else
       SO->TAGALIGN_APPLIED = NOPE;
+
+   if (UseWarpAlign) {
+      float Mrot[3][3], Delta[3], x, y, z, NetShift[3];
+      
+      /* fillerup*/
+      Mrot[0][0] = SO->VolPar->WARPDRIVE_MATVEC[0];
+      Mrot[0][1] = SO->VolPar->WARPDRIVE_MATVEC[1];
+      Mrot[0][2] = SO->VolPar->WARPDRIVE_MATVEC[2];
+      Delta[0]   = SO->VolPar->WARPDRIVE_MATVEC[3];
+      Mrot[1][0] = SO->VolPar->WARPDRIVE_MATVEC[4];
+      Mrot[1][1] = SO->VolPar->WARPDRIVE_MATVEC[5];
+      Mrot[1][2] = SO->VolPar->WARPDRIVE_MATVEC[6];
+      Delta[1]   = SO->VolPar->WARPDRIVE_MATVEC[7];   
+      Mrot[2][0] = SO->VolPar->WARPDRIVE_MATVEC[8];
+      Mrot[2][1] = SO->VolPar->WARPDRIVE_MATVEC[9];
+      Mrot[2][2] = SO->VolPar->WARPDRIVE_MATVEC[10];
+      Delta[2]   = SO->VolPar->WARPDRIVE_MATVEC[11];
+      
+      NetShift[0] = Delta[0];
+      NetShift[1] = Delta[1];
+      NetShift[2] = Delta[2];
+      
+      
+      fprintf (SUMA_STDERR,"%s: Applying xform.\nMrot[\t%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f]\nDelta = [%f %f %f]\n", FuncName,\
+               Mrot[0][0], Mrot[0][1], Mrot[0][2], Mrot[1][0], Mrot[1][1], Mrot[1][2], Mrot[2][0], Mrot[2][1], Mrot[2][2], \
+               Delta[0], Delta[1], Delta[2]);
+      
+      
+      
+      for (i=0; i < SO->N_Node; ++i) {
+         id = ND * i;
+         /* zero the center */ 
+         x = SO->NodeList[id] ;
+         y = SO->NodeList[id+1] ;
+         z = SO->NodeList[id+2] ;
+         
+         /* Apply the rotation matrix XYZn = Mrot x XYZ*/
+         SO->NodeList[id] = Mrot[0][0] * x + Mrot[0][1] * y + Mrot[0][2] * z;
+         SO->NodeList[id+1] = Mrot[1][0] * x + Mrot[1][1] * y + Mrot[1][2] * z;
+         SO->NodeList[id+2] = Mrot[2][0] * x + Mrot[2][1] * y + Mrot[2][2] * z;
+         
+         /*apply netshift*/
+         SO->NodeList[id] += NetShift[0];
+         SO->NodeList[id+1] += NetShift[1];
+         SO->NodeList[id+2] += NetShift[2];
+      }
+      SO->WARPDRIVE_APPLIED = YUP;   
+   } else
+      SO->WARPDRIVE_APPLIED = NOPE;
          
    if (UseVolreg) {
       float Mrot[3][3], Delta[3], x, y, z, NetShift[3];
