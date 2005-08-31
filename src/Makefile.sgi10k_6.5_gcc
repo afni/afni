@@ -5,15 +5,15 @@
 # LZLIB    = -lz
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = gcc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE
-CCVOL  = gcc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE
+CC     = gcc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE -mabi=64
+CCVOL  = gcc -w -O2 -DSGI -DUSE_TRACING -DHAVE_XDBE -mabi=64
 CCFAST = $(CC)
-CCMIN  = gcc
+CCMIN  = gcc -mabi=64
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/Motif-2.1/include
 LFLAGS = -s -L. -L/usr/Motif-2.1/lib
 
-CCSVD  = gcc -O0
+CCSVD  = gcc -O0 -mabi=64
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared
