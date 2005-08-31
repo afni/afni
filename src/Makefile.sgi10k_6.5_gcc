@@ -24,7 +24,7 @@ AR     = /usr/bin/ar
 RANLIB = /sbin/touch
 TAR    = /bin/tar
 MKDIR  = /bin/mkdir
-LD     = /bin/ld
+LD     = /bin/ld -64
 GZIP   = /usr/local/bin/gzip
 
 RM = /bin/rm -f
