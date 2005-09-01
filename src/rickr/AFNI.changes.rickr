@@ -1244,3 +1244,5 @@
 
 01 September 2005:
   * modified 3dANOVA2.c (to properly handle multiple samples)
+  * modified Dimon.c/Imon.h (Dimon -> v2.3): added option -tr
+
