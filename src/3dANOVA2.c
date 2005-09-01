@@ -94,7 +94,7 @@ void display_help_menu()
  "\n"
  "-----------------------------------------------------------\n"
  "\n"
- "Usage:                                                                     \n"
+ "Usage:\n"
  "\n"
  "   3dANOVA2\n"
  "      -type k              : type of ANOVA model to be used:\n"
@@ -2229,9 +2229,8 @@ void calculate_ameans (anova_options * option_data)
                                           /*-  01 Sep 2005 [rickr, gangc] -*/
 
           /*----- set level as a trivial contrast -----*/
-          for (index = 0; index < a; index++ )
-             if (index == level) contr[index] = 1.0;
-             else                contr[index] = 0.0;
+          for (index = 0; index < a; index++ ) contr[index] = 0.0;
+          contr[level] = 1.0;
      
           df = b - 1;  /*-- note degrees of freedom --*/
 
@@ -2722,7 +2721,8 @@ void calculate_acontrasts (anova_options * option_data)
    float * contr;                      /* pointer to contrast estimate */
    float * tcontr;                     /* pointer to t-statistic data */
    float   fval, stddev;               /* stddev computation */
-   int a, b, c, level;                 /* levels variables */
+   float   c;                          /* contrast value */
+   int a, b, level;                    /* levels variables */
    int ixyz, nxyz;                     /* number of voxels */
    int nvoxel;                         /* output voxel # */
    int num_contr;                      /* number of user requested contrasts */
@@ -2751,6 +2751,9 @@ void calculate_acontrasts (anova_options * option_data)
    {
       if (option_data->model == 1)
       {
+         volume_zero (contr, nxyz);
+         fval = 0.0;
+
          for (level = 0;  level < a;  level++)
          {
             c = option_data->acontr[icontr][level];
@@ -2770,8 +2773,10 @@ void calculate_acontrasts (anova_options * option_data)
          for (ixyz = 0;  ixyz < nxyz;  ixyz++)
          {
             stddev = sqrt ((tcontr[ixyz] / df) * fval);
-            if (stddev < EPSILON) tcontr[ixyz] = 0.0;
-            else                  tcontr[ixyz] = contr[ixyz] / stddev;
+            if (stddev < EPSILON)
+              tcontr[ixyz] = 0.0;
+            else
+              tcontr[ixyz] = contr[ixyz] / stddev;
          }
       }
       else      /* type-3: now, new and improved!   1 Sep 2005 [rickr,gangc] */
