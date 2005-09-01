@@ -1242,3 +1242,5 @@
 29 Auguest 2005: Dimon (-> v 2.2)
   * added options -rev_org_dir and -rev_sort_dir
 
+01 September 2005:
+  * modified 3dANOVA2.c (to properly handle multiple samples)
