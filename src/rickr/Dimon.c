@@ -14,12 +14,12 @@ static char * g_history[] =
     " 2.1  Aug 23, 2005 [rickr]\n"
     "      - added -sort_by_num_suffix option and routines\n"
     "      - output actual TR in to3d command of GERT_Reco script\n",
-    " 2.2  Aug 29, 2005 [rickr]\n"
-    "      - added -rev_org_dir and -rev_sort_dir options\n",
+    " 2.2  Aug 29, 2005 [rickr] - added options -rev_org_dir, -rev_sort_dir\n",
+    " 2.3  Sep 01, 2005 [rickr] - added option -tr\n",
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 2.2 (August 29, 2005)"
+#define DIMON_VERSION "version 2.3 (September 01, 2005)"
 
 /*----------------------------------------------------------------------
  * todo:
@@ -246,7 +246,9 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
 
             /* try to update nap time */
             if( sleep_secs < 0 && p->nused > 0 )
-                sleep_secs = nap_time_from_tr(p->flist->geh.tr);
+                sleep_secs = (p->opts.tr > 0) ? /* TR option overrides image */
+                                nap_time_from_tr(p->opts.tr) :
+                                nap_time_from_tr(p->flist->geh.tr);
 
             if( sleep_secs < 0 ) sleep( 4 );              /* nap time! */
             else                 sleep(sleep_secs);
@@ -348,7 +350,8 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
     fl_index = v0->fn_n + 1;            /* start looking past first volume */
     next_im  = v0->fn_n + 1;            /* for read_ge_files()             */
 
-    nap_time = nap_time_from_tr( v0->geh.tr );
+    nap_time = (p->opts.tr > 0) ? nap_time_from_tr(p->opts.tr) :
+                                  nap_time_from_tr(v0->geh.tr);
 
     if ( gD.level > 0 )                 /* status */
     {
@@ -951,7 +954,8 @@ static int check_error( int * retry, float tr, char * note )
                     CHECK_NULL_STR(note));
 
         *retry = 0;
-        sleep( nap_time_from_tr(tr) );
+                                /* use tr option, if given */
+        sleep( nap_time_from_tr(gP.opts.tr > 0 ? gP.opts.tr : tr) );
         return 0;
     }
 
@@ -1536,7 +1540,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -debug LEVEL\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1573,7 +1576,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -infile_pattern FILE_PATTERN\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1584,7 +1586,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -infile_prefix FILE_PREFIX\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
             /* just append a '*' to the PREFIX */
@@ -1597,7 +1598,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -nice INCREMENT\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1615,7 +1615,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -nt VOLUMES_PER_RUN\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1635,7 +1634,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_outdir OUTPUT_DIR\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1646,7 +1644,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -pause milliseconds\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1684,7 +1681,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sp PATTERN\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1695,7 +1691,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -start_dir DIRECTORY\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1706,11 +1701,26 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -start_file DIR/FIRST_FILE\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
             p->opts.start_file = argv[ac];
+        }
+        else if ( ! strncmp( argv[ac], "-tr", 3 ) )
+        {
+            if ( ++ac >= argc )
+            {
+                fputs( "option usage: -tr TR  (in seconds)\n", stderr );
+                return 1;
+            }
+
+            p->opts.tr = atof(argv[ac]);
+            if ( p->opts.tr <= 0 || p->opts.tr > 30 )
+            {
+                fprintf(stderr,"bad value for -tr: %f (from '%s')\n",
+                        p->opts.tr, argv[ac]);
+                return 1;
+            }
         }
         else if ( ! strncmp( argv[ac], "-version", 2 ) )
         {
@@ -1723,7 +1733,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -drive_afni COMMAND\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1738,7 +1747,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -host HOSTNAME\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1755,7 +1763,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -rt_cmd COMMAND\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1785,7 +1792,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -zorder ORDER\n", stderr );
-                usage( IFM_PROG_NAME, IFM_USE_SHORT );
                 return 1;
             }
 
@@ -1794,7 +1800,6 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         else
         {
             fprintf( stderr, "error: invalid option <%s>\n\n", argv[ac] );
-            usage( IFM_PROG_NAME, IFM_USE_SHORT );
             return 1;
         }
     }
@@ -2419,8 +2424,8 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   sp                 = %s\n"
             "   gert_outdir        = %s\n"
             "   (argv, argc)       = (%p, %d)\n"
-            "   (nt, nice)         = (%d, %d)\n"
-            "   pause              = %d\n"
+            "   tr                 = %f\n"
+            "   (nt, nice, pause)  = (%d, %d, %d)\n"
             "   (debug, gert_reco) = (%d, %d)\n"
             "   quit, use_dicom    = %d, %d\n"
             "   dicom_org          = %d\n"
@@ -2438,7 +2443,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             CHECK_NULL_STR(opt->sp),
             CHECK_NULL_STR(opt->gert_outdir),
             opt->argv, opt->argc,
-            opt->nt, opt->nice, opt->pause,
+            opt->tr, opt->nt, opt->nice, opt->pause,
             opt->debug, opt->gert_reco, opt->quit, opt->use_dicom,
             opt->dicom_org, opt->sort_num_suff,
             opt->rev_org_dir, opt->rev_sort_dir,
@@ -2594,7 +2599,7 @@ static int usage ( char * prog, int level )
     if ( level == IFM_USE_SHORT )
     {
         fprintf( stderr,
-            "usage: %s [options] -start_dir DIR\n"
+            "usage: %s [options] -infile_prefix prefix\n"
             "usage: %s -help\n",
             prog, prog );
         return 0;
@@ -3019,6 +3024,22 @@ static int usage ( char * prog, int level )
           "        would be ignored, along with everything in 043 up through\n"
           "        I.900.  So 043/I.901 might be the first file in run 2.\n"
           "\n"
+          "    -tr TR             : specify the TR, in seconds\n"
+          "\n"
+          "        e.g.  -tr 5.0\n"
+          "\n"
+          "        In the case where volumes are aquired in clusters, the TR\n"
+          "        is different than the time needed to aquire one volume.\n"
+          "        But some scanners incorrectly store the latter time in the\n"
+          "        TR field.\n"
+          "        \n"
+          "        This option allows the user to override what is found in\n"
+          "        the image files, which is particularly useul in real-time\n"
+          "        mode, though is also important to have stored properly in\n"
+          "        the final EPI datasets.\n"
+          "\n"
+          "        Here, TR is in seconds.\n"
+          "\n"
           "    -use_imon          : revert to Imon functionality\n"
           "\n"
           "    -version           : show the version information\n"
@@ -3286,7 +3307,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
             /*---------------------*/
 
             /* remove trailing zeros from TR printing */
-            sprintf(TR, "%.6f",s->runs[c].geh.tr);
+            sprintf(TR, "%.6f",opts->tr > 0 ? opts->tr : s->runs[c].geh.tr);
             clear_float_zeros(TR);
 
             /* and write to3d command */
@@ -3461,8 +3482,8 @@ static int nap_time_from_tr( float tr )
     if ( tr2 < 1 )
         return 1;
 
-    if ( tr2 > 10 )
-        return 10;                      /* ??? tres big */
+    if ( tr2 > 30 )
+        return 30;                      /* ??? tres big */
 
     nap_time = (int)(tr2 + 0.9);
 
