@@ -847,7 +847,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_Z:
             /*fprintf(stdout,"Zoom in");*/
-            sv->FOV[sv->iState] /= FOV_IN_FACT; if (sv->FOV[sv->iState] < FOV_MIN) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN; }
+            sv->FOV[sv->iState] /= (1+sv->KeyZoomGain); if (sv->FOV[sv->iState] < FOV_MIN) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN; }
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
                sv->ZoomCompensate = sv->FOV[sv->iState] / FOV_INITIAL;
@@ -859,7 +859,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
 
          case XK_z:
             /*fprintf(stdout,"Zoom out");*/
-            sv->FOV[sv->iState] /= FOV_OUT_FACT; if (sv->FOV[sv->iState] > FOV_MAX) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX; }
+            sv->FOV[sv->iState] /= (1-sv->KeyZoomGain); if (sv->FOV[sv->iState] > FOV_MAX) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX; }
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
                sv->ZoomCompensate = sv->FOV[sv->iState] / FOV_INITIAL;
