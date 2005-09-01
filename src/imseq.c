@@ -452,11 +452,11 @@ static void ISQ_setup_ppmto_filters(void)
      if( need_netpbm > 0 )
        fprintf(stderr,
                "++ Some of the missing image Save programs are in\n"
-               "    the netpbm software package, which is freeware.\n" ) ;
+               "++  the netpbm software package, which is freeware.\n" ) ;
 
      fprintf(stderr,
                "++ To disable these warnings, set environment\n"
-               "    variable AFNI_IMSAVE_WARNINGS to 'NO'.\n"
+               "++  variable AFNI_IMSAVE_WARNINGS to 'NO'.\n"
                "+++++++++++++++++++++++++++++++++++++++++++\n" ) ;
    }
 

@@ -5695,4 +5695,8 @@
  * Ugghh.  More SVD trouble.
 
 26 Aug 2005
- * THD_check_AFNI_version() function in thd_vcheck.c.
+ * THD_check_AFNI_version() function in thd_vcheck.c.  Use this in a few
+     popular "3d" programs.
+
+01 Sep 2005
+ * Fixed 3drotate.c so that "-rotate 0 0 0" doesn't fail.

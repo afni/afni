@@ -533,10 +533,10 @@ int main( int argc , char * argv[] )
    }
 
    if( dar != NULL && dopoints )
-      ERREX("*** Can't combine -dfile/-1Dfile with -points!") ;
+     ERREX("*** Can't combine -dfile/-1Dfile with -points!") ;
 
    if( matvec==0 && dcode<0 && rotarg<0 && rotpar_dset==NULL && dar==NULL )
-      ERREX("Don't you want to do anything [no -rotate,-shift,-matvec,-rotparent,-dfile]?");
+     ERREX("Don't you want to do anything [no -rotate,-shift,-matvec,-rotparent,-dfile]?");
 
    /** read input dataset */
 
@@ -570,7 +570,8 @@ int main( int argc , char * argv[] )
 
       th1 = (PI/180.0) * strtod( argv[++iopt] , &cpt ) ;
       switch( *cpt ){
-         default: fprintf(stderr,"*** Illegal code after th1 in -rotate\n");exit(1);
+         default: ERROR_exit("Illegal code after th1 in -rotate\n");
+
          case '\0': case 'x': case 'X': ax1 = 0 ; neg = 0 ; break ;
                     case 'y': case 'Y': ax1 = 1 ; neg = 0 ; break ;
                     case 'z': case 'Z': ax1 = 2 ; neg = 0 ; break ;
@@ -585,7 +586,8 @@ int main( int argc , char * argv[] )
 
       th2 = (PI/180.0) * strtod( argv[++iopt] , &cpt ) ;
       switch( *cpt ){
-         default: fprintf(stderr,"*** Illegal code after th2 in -rotate\n");exit(1);
+         default: ERROR_exit("Illegal code after th2 in -rotate\n");
+
                     case 'x': case 'X': ax2 = 0 ; break ;
          case '\0': case 'y': case 'Y': ax2 = 1 ; break ;
                     case 'z': case 'Z': ax2 = 2 ; break ;
@@ -600,7 +602,8 @@ int main( int argc , char * argv[] )
 
       th3 = (PI/180.0) * strtod( argv[++iopt] , &cpt ) ;
       switch( *cpt ){
-         default: fprintf(stderr,"*** Illegal code after th3 in -rotate\n");exit(1);
+         default: ERROR_exit("Illegal code after th3 in -rotate\n");
+
                     case 'x': case 'X': ax3 = 0 ; break ;
                     case 'y': case 'Y': ax3 = 1 ; break ;
          case '\0': case 'z': case 'Z': ax3 = 2 ; break ;
@@ -613,15 +616,11 @@ int main( int argc , char * argv[] )
       }
       if( neg ) th3 = -th3 ;
 
-      if( th1 == 0.0 && th2 == 0.0 && th3 == 0.0 ){
-         fprintf(stderr,"*** Why are all the angles after -rotate equal to 0?\n") ;
-         exit(1) ;
-      }
+      if( th1 == 0.0 && th2 == 0.0 && th3 == 0.0 )
+        INFO_message("All angles after -rotate are 0!") ;
 
-      if( ax1 < 0 || ax1 > 2 || ax2 < 0 || ax2 > 2 || ax3 < 0 || ax3 > 2 ){
-         fprintf(stderr,"*** Some error occured: can't understand axes codes!\n") ;
-         exit(1) ;
-      }
+      if( ax1 < 0 || ax1 > 2 || ax2 < 0 || ax2 > 2 || ax3 < 0 || ax3 > 2 )
+        ERROR_exit("Can't understand axes codes in -rotate!") ;
 
       if( ihand < 0 ){ th1 = -th1 ; th2 = -th2 ; th3 = -th3 ; }
 
@@ -681,10 +680,10 @@ fprintf(stderr,"ax1=%d ax2=%d ax3=%d\n",ax1,ax2,ax3) ;
      }
 
      if( verb )
-       fprintf(stderr,"Shifting parameters:\n"
-                      " direction codes: adx=%d ady=%d adz=%d\n"
-                      " input values:     dx=%g  dy=%g  dz=%g\n"
-                      " output values:   qdx=%g qdy=%g qdz=%g\n" ,
+       fprintf(stderr,"++ Shifting parameters:\n"
+                      "++   direction codes: adx=%d ady=%d adz=%d\n"
+                      "++   input values:     dx=%g  dy=%g  dz=%g\n"
+                      "++   output values:   qdx=%g qdy=%g qdz=%g\n" ,
                adx,ady,adz , dx,dy,dz , qdx,qdy,qdz ) ;
 
      dx = qdx ; dy = qdy ; dz = qdz ;
