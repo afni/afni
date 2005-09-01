@@ -177,7 +177,7 @@ if (Opt.method == 0),
    end
 
 
-   meth = 2;
+   meth = 3;
    switch (meth),
       case 1
          %this one's slow as hell
@@ -197,6 +197,15 @@ if (Opt.method == 0),
          fclose(fid);
          rmcom = sprintf('rm -f %s', ftmp);
          unix(rmcom);
+      case 3
+         if (verb > 1), fprintf(1,'The fast about way, no temp business ...\n'); end
+         %remove insignificant trailing whites
+         c = strtrim(c);
+         %count number of lines
+         eofline1 = find(c == 10,1);
+         lv = sscanf(c(1:eofline1),'%f'); 
+         v = sscanf(c,'%f'); nr = length(v)/length(lv);
+         if (nr ~= 1), v = reshape(v,length(lv), nr)'; end
    end
 
    % sub-bricks?
@@ -218,7 +227,7 @@ if (Opt.method == 0),
       v = v (strt:stp,:);
    end
 elseif (Opt.method == 1),
-   if (verb) fprintf(1,'Assuming 1D file has no comments.\n'); end
+   if (verb) fprintf(1,'Assuming 1D file has no comments, or bells and whistles.\n'); end
    v = load(fname);
    if (isempty(v)), fprintf(2,'Failed to read 1D file. If file exists Try method 0\n'); err = 1; return; end
    % sub-bricks?
@@ -240,7 +249,7 @@ elseif (Opt.method == 1),
       v = v (strt:stp,:);
    end
 elseif (Opt.method == 2),
-   if (verb) fprintf(1,'Running ConvertDset to purging 1D file of bells and whistles\n'); end
+   if (verb) fprintf(1,'Running ConvertDset for purging 1D file of bells and whistles\n'); end
    ftmp = sprintf('%s_Read_1D_tmp_', fname);
    ftmpout = sprintf('%s.1D.dset', ftmp);
    rmcom = sprintf('rm -f %s', ftmpout);

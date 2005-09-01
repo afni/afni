@@ -251,6 +251,14 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
             else SV->ArrowRotationAngle = SUMA_PI * ARROW_ROTATION_ANGLE_DEG / 180.0;
          } else SV->ArrowRotationAngle = SUMA_PI * ARROW_ROTATION_ANGLE_DEG / 180.0;
       }
+      {
+         char *eee = getenv("SUMA_KeyZoomGain");
+         if (eee) {
+            float rotval = strtod(eee, NULL);
+            if (rotval > 0.0 && rotval < 50.0) SV->KeyZoomGain = rotval/100.0;
+            else SV->KeyZoomGain = 0.05;
+         } else SV->KeyZoomGain = 0.05;
+      }
       
       SV->Open = NOPE;
       
@@ -1004,6 +1012,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   MinIdleDelta = %d\n", SV->GVS[SV->StdView].MinIdleDelta);
    SS = SUMA_StringAppend_va(SS,"   zoomDelta = %f, zoomBegin = %f\n", SV->GVS[SV->StdView].zoomDelta, SV->GVS[SV->StdView].zoomBegin);
    SS = SUMA_StringAppend_va(SS,"   ArrowRotationAngle=%f rad (%f deg)\n", SV->ArrowRotationAngle, SV->ArrowRotationAngle * 180.0 / SUMA_PI);
+   SS = SUMA_StringAppend_va(SS,"   KeyZoomGain=%f \n", SV->KeyZoomGain);
    SS = SUMA_StringAppend_va(SS,"   spinDeltaX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].spinDeltaX, SV->GVS[SV->StdView].spinDeltaY);
    SS = SUMA_StringAppend_va(SS,"   spinBeginX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].spinBeginX, SV->GVS[SV->StdView].spinBeginY);   
    SS = SUMA_StringAppend_va(SS,"   TranslateGain = %f\n", SV->GVS[SV->StdView].TranslateGain);
