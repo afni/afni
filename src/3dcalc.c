@@ -1356,7 +1356,7 @@ int main( int argc , char * argv[] )
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    mainENTRY("3dcalc main"); machdep() ; PRINT_VERSION("3dcalc") ;
-   THD_check_AFNI_version() ;
+   THD_check_AFNI_version("3dcalc") ;
 
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
