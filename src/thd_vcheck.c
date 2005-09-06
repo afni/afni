@@ -15,7 +15,7 @@
     be printed if the version check doesn't match.
 --------------------------------------------------------------------------*/
 
-void THD_check_AFNI_version(void)
+void THD_check_AFNI_version( char *pname )
 {
    int nbuf ;
    pid_t ppp ;
@@ -89,14 +89,15 @@ void THD_check_AFNI_version(void)
        struct utsname ubuf ;
        char ua[512] ;
 
+       if( pname == NULL ) pname = "afni" ;
        ubuf.nodename[0] = ubuf.sysname[0] = ubuf.machine[0] = '\0' ;
        jj = uname( &ubuf ) ;
        if( jj >= 0 && ubuf.nodename[0] != '\0' )
          sprintf( ua ,
-                 "afni (avers='%s'; prec='%s' node='%s'; sys='%s'; mach='%s')" ,
-                  VERSION, PCLAB, ubuf.nodename, ubuf.sysname, ubuf.machine   ) ;
+                 "%s (avers='%s'; prec='%s' node='%s'; sys='%s'; mach='%s')" ,
+                  pname,VERSION,PCLAB,ubuf.nodename,ubuf.sysname,ubuf.machine );
        else
-         sprintf( ua , "afni (avers='%s'; prec='%s')" , VERSION , PCLAB ) ;
+         sprintf( ua , "%s (avers='%s'; prec='%s')" , pname , VERSION , PCLAB );
 
        set_HTTP_10( 1 ) ;
        set_HTTP_user_agent( ua ) ;
