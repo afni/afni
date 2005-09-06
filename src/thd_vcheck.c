@@ -1,4 +1,5 @@
 #include "afni.h"
+#include <sys/utsname.h>
 
 #define VERSION_URL  "http://afni.nimh.nih.gov/afni/AFNI.version"
 #define VERSION_FILE "/Volumes/afni/var/www/html/pub/dist/AFNI.version"
@@ -66,9 +67,51 @@ void THD_check_AFNI_version(void)
      }
    }
 
-   /*-- fetch information from the AFNI master computer --*/
+   /*-- setup the "User-agent:" header for HTTP --*/
+
+#define USE_HTTP_10
+
+#ifdef USE_HTTP_10
+#  undef PCLAB
+#  ifdef SHOWOFF
+#    undef SHSH
+#    undef SHSHSH
+#    define SHSH(x)   #x
+#    define SHSHSH(x) SHSH(x)
+#    define PCLAB     SHSHSH(SHOWOFF)
+#  else
+#    define PCLAB     "Unknown"
+#  endif
+#endif
+
+#ifdef USE_HTTP_10
+     { int jj ;
+       struct utsname ubuf ;
+       char ua[512] ;
+
+       ubuf.nodename[0] = ubuf.sysname[0] = ubuf.machine[0] = '\0' ;
+       jj = uname( &ubuf ) ;
+       if( jj >= 0 && ubuf.nodename[0] != '\0' )
+         sprintf( ua ,
+                 "afni (avers='%s'; prec='%s' node='%s'; sys='%s'; mach='%s')" ,
+                  VERSION, PCLAB, ubuf.nodename, ubuf.sysname, ubuf.machine   ) ;
+       else
+         sprintf( ua , "afni (avers='%s'; prec='%s')" , VERSION , PCLAB ) ;
+
+       set_HTTP_10( 1 ) ;
+       set_HTTP_user_agent( ua ) ;
+     }
+#else
+     set_HTTP_10( 0 ) ;
+#endif
+
+   /*-- NOW, fetch information from the AFNI master computer --*/
 
    nbuf = read_URL( VERSION_URL , &vbuf ) ;  /* see thd_http.c */
+
+#ifdef USE_HTTP_10
+   set_HTTP_10( 0 ) ;
+#endif
 
    if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ) _exit(0) ; /* failed */
 
