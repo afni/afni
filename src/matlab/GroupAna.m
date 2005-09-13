@@ -119,7 +119,7 @@ switch NF
    fprintf('\n\t        is random.');
    fprintf('\n\tType 5: Mixed design CXD(AXB) - only the nested (4th) factor D (usually subject) is random,');
    fprintf('\n\t        but factor D is nested within both factors A and B. If D is subject it is also called 3-way');
-   fprintf('\n\t        design with factor D varying within-subject and factors A and B between-subjects.\n');
+   fprintf('\n\t        design with factor C varying within-subject and factors A and B between-subjects.\n');
 %	fprintf('\nNotice: This is NOT an exhaustive list of design types for 4-way ANOVA. Other types might be implemented upon request.\n');
 	
 	case 5,
