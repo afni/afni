@@ -259,3 +259,53 @@ ENTRY("EDIT_empty_datablock") ;
 
    RETURN( new_dblk ) ;
 }
+
+
+/*-----------------------------------------------------------------------*/
+/*! Create an empty marker set.                      13 Sep 2005 [rickr] */
+/*  (copied from 3drefit.c)                                              */
+
+THD_marker_set * create_empty_marker_set(void)
+{
+   THD_marker_set * markers = myXtNew( THD_marker_set ) ;
+   int              ii, jj ;
+
+   if( !markers ) return NULL;
+
+   markers->numdef = 0 ;
+
+   for( ii=0 ; ii < MARKS_MAXNUM ; ii++ ){       /* null all data out */
+      markers->valid[ii] = 0 ;
+      for( jj=0 ; jj < MARKS_MAXLAB  ; jj++ )
+         markers->label[ii][jj] = '\0';
+      for( jj=0 ; jj < MARKS_MAXHELP ; jj++ )
+         markers->help[ii][jj]  = '\0';
+   }
+
+   for( ii=0 ; ii < NMARK_ALIGN ; ii++ ){       /* copy strings in */
+      MCW_strncpy( &(markers->label[ii][0]) ,
+                   THD_align_label[ii] , MARKS_MAXLAB ) ;
+      MCW_strncpy( &(markers->help[ii][0]) ,
+                   THD_align_help[ii] , MARKS_MAXHELP ) ;
+   }
+
+   for( ii=0 ; ii < MARKS_MAXFLAG ; ii++ )     /* copy flags in */
+      markers->aflags[ii] = THD_align_aflags[ii] ;
+
+   return markers ;
+}
+
+int okay_to_add_markers(THD_3dim_dataset * dset)
+{
+   if( !dset )         return 0 ;
+   if( dset->markers ) return 0 ; /* already have some */
+
+   /* test comes from 3drefit.c */
+   if( dset->type           == HEAD_ANAT_TYPE     &&
+       dset->view_type      == VIEW_ORIGINAL_TYPE &&
+       DSET_NUM_TIMES(dset) == 1                  &&
+       DSET_NVALS(dset)     == 1 )
+     return 1 ;
+
+   return 0 ;
+}

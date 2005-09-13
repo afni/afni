@@ -1153,34 +1153,9 @@ int main( int argc , char * argv[] )
          }
       }
 
-      if( new_markers                           &&
-          dset->type      == HEAD_ANAT_TYPE     &&
-          dset->view_type == VIEW_ORIGINAL_TYPE &&
-          DSET_NUM_TIMES(dset) == 1                ){  /* code copied from to3d.c */
-
-         THD_marker_set * markers ;
-         int ii , jj ;
-
-         markers = dset->markers = myXtNew( THD_marker_set ) ;
-         markers->numdef = 0 ;
-
-         for( ii=0 ; ii < MARKS_MAXNUM ; ii++ ){       /* null all data out */
-            markers->valid[ii] = 0 ;
-            for( jj=0 ; jj < MARKS_MAXLAB  ; jj++ )
-               markers->label[ii][jj] = '\0';
-            for( jj=0 ; jj < MARKS_MAXHELP ; jj++ )
-               markers->help[ii][jj]  = '\0';
-         }
-
-         for( ii=0 ; ii < NMARK_ALIGN ; ii++ ){       /* copy strings in */
-            MCW_strncpy( &(markers->label[ii][0]) ,
-                         THD_align_label[ii] , MARKS_MAXLAB ) ;
-            MCW_strncpy( &(markers->help[ii][0]) ,
-                         THD_align_help[ii] , MARKS_MAXHELP ) ;
-         }
-
-         for( ii=0 ; ii < MARKS_MAXFLAG ; ii++ )     /* copy flags in */
-            markers->aflags[ii] = THD_align_aflags[ii] ;
+      /* code moved to edt_emptycopy.c                   13 Sep 2005 [rickr] */
+      if( new_markers && okay_to_add_markers(dset) ){
+         dset->markers = create_empty_marker_set() ;
 
       } else if( new_markers ){
             WARNING_message("Can't add markers to this dataset\n") ;

@@ -364,6 +364,11 @@ extern void EDIT_cluster_array (MCW_cluster_array * , int, float, float);
 extern void EDIT_filter_volume (int, int, int, float, float, float,
                                 int, void *, int, float , byte * , char * );
 
+/* 13 Sept 2005 [rickr] */
+extern THD_marker_set * create_empty_marker_set(void);
+extern int              okay_to_add_markers(THD_3dim_dataset * dset);
+
+
 /**---------------- AFNI Dataset item Names ----------------**/
 
 #define ADN_none                 0

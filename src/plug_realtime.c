@@ -69,6 +69,7 @@
 	             base pointers for plot_ts_addto()                       **/
 /** 02 Apr 2004: move RT_mp_comm_close() from last plot check  [tross/rickr] **/
 /** 10 May 2005: added TPATTERN command to set timing pattern        [rickr] **/
+/** 13 Sep 2005: add empty markers to appropriate datasets           [rickr] **/
 
 
 /**************************************************************************/
@@ -1074,8 +1075,11 @@ Boolean RT_worker( XtPointer elvis )
          THD_set_write_compression(COMPRESS_NONE) ;
          SHOW_AFNI_PAUSE ;
 
-         for( cc=0 ; cc < rtinp->num_chan ; cc++ )
+         for( cc=0 ; cc < rtinp->num_chan ; cc++ ) {
+           if( okay_to_add_markers(rtinp->dset[cc]) ) /* 13 Sep 2005 [rickr] */
+              rtinp->dset[cc]->markers = create_empty_marker_set() ;
            THD_write_3dim_dataset( NULL,NULL , rtinp->dset[cc] , True ) ;
+         }
 
          if( rtinp->func_dset != NULL )
             THD_write_3dim_dataset( NULL,NULL , rtinp->func_dset , True ) ;
@@ -3584,6 +3588,9 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
       cmode = THD_get_write_compression() ;
       THD_set_write_compression(COMPRESS_NONE) ;
       SHOW_AFNI_PAUSE ;
+
+      if( okay_to_add_markers(rtinp->dset[cc]) ) /* 13 Sep 2005 [rickr] */
+         rtinp->dset[cc]->markers = create_empty_marker_set() ;
 
       THD_write_3dim_dataset( NULL,NULL , rtin->dset[cc] , True ) ;
       DSET_unlock( rtin->dset[cc] ) ;  /* 20 Mar 1998 */
