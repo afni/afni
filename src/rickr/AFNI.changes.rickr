@@ -1246,3 +1246,10 @@
   * modified 3dANOVA2.c (to properly handle multiple samples)
   * modified Dimon.c/Imon.h (Dimon -> v2.3): added option -tr
 
+13 September 2005:
+  * modified edt_emptycopy.c, editvol.h
+      - added functions okay_to_add_markers() and create_empty_marker_set()
+  * modified 3drefit.c
+      - moved marker test and creation to said functions in edt_emptycopy.c
+  * modified plug_realtime.c: add empty markers to appropriate datasets
+
