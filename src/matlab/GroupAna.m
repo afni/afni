@@ -168,7 +168,8 @@ while flg == 0,
 		fprintf('\n\t 1-way ANOVA; 2-way ANOVA type 1: AXB; and 3-way ANOVA type 1: AXBXC');
 	   fprintf('\n\n(2) When a random factor (subject) is nested within another factor A,');
    	fprintf('\n\t each level of factor A contains a unique and unequal number of subjects - ');
-	   fprintf('\n\t 3-way ANOVA type 3: BXC(A); and 4-way ANOVA type 3: BXCXD(A)')
+	   fprintf('\n\t 3-way ANOVA type 3: BXC(A); 4-way ANOVA types 3: BXCXD(A); ');
+		fprintf('\n\t and 4-way ANOVA type 5: CXD(AXB).')
 	   if (input('\n\nDoes your unbalanced design belong to either of the above types? (1 - Yes; 0 - No) ') == 0);
 		   while (1); fprintf(2,'Halted: Ctrl+c to exit'); pause; end
 		end	
@@ -272,6 +273,64 @@ if (unbalanced.yes == 1),
 		end % while flag == 0
 		
    end   % if (((NF == 3 | NF == 4) & dsgn == 3))
+	
+	if (NF == 4 & dsgn == 5),   % CXD(AXB)
+      for (i=1:1:(NF-1)),   % Get information for factors A, B, and C
+         fprintf('\nLabel for No. %i ', i);
+         FL(i).expr = input('factor: ', 's');     % Factor Label i	
+	      fprintf(2,'How many levels does factor %c (%s) ', 64+i, FL(i).expr);
+ 	      FL(i).N_level = input('have? ');
+ 	      if (isnumeric(FL(i).N_level) == 0 | isempty(FL(i).N_level)),
+ 	         flg = 0; fprintf(2,'Error: the input is not a number. Please try again.\n');
+ 	      else flg = 1;
+         end
+ 	      for (j=1:1:FL(i).N_level),
+ 	         fprintf('Label for No. %i level of factor %c (%s)', j, 64+i, FL(i).expr);
+ 		      FL(i).level(j).expr = input(' is: ', 's');
+ 	      end
+         sz(i) = FL(i).N_level;    % number of levels of factor i
+         ntot = ntot * FL(i).N_level;  %total number of combinations
+ 	   end  % for (i=1:1:(NF-1))
+	
+	   FL(NF).N_level = 0;		% Info for factor D, which is nested with both A and B
+	   fprintf(2, '\nLabel for No. %i ', NF); 
+	   FL(NF).expr = input('factor: ', 's');     % Label this unbalanced factor
+ 	
+ 	   flag = 0;
+		while flag == 0,
+		combine = [];
+		for (ii = 1:1:FL(1).N_level),  % factor A
+		for (jj = 1:1:FL(2).N_level), % factor B
+ 	      fprintf(2,'How many levels does factor %c (%s) corresponding to level %i (%s) of factor %c (%s) and level %i (%s) of factor %c (%s) ', ...
+ 		      64+NF, FL(NF).expr, ii, FL(1).level(ii).expr, 64+1, FL(1).expr, jj, FL(2).level(jj).expr, 64+2, FL(2).expr);
+ 		   FL(NF).UL(ii, jj).N_level = input('have? ');   % unbalanced levels for this factor
+ 		   for (kk=1:1:FL(NF).UL(ii, jj).N_level),
+ 		      fprintf('Label for No. %i level of factor %c (%s) in group %i of factor %c (%s) and group %i of factor %c (%s)', ...
+				   kk, 64+NF, FL(NF).expr, ii, 64+1, FL(1).expr, jj, 64+2, FL(2).expr);
+ 		      FL(NF).UL(ii, jj).n(kk).expr = input(' is: ', 's');
+				combine = [combine {FL(NF).UL(ii, jj).n(kk).expr}];  % Concatenate them to make a cell array
+ 		   end	
+ 	   end  % jj
+		end  % ii		
+		
+		if (length(unique(combine)) == max([FL(NF).UL.N_level])),   % if same labels are used across groups
+		   FL(NF).N_level = max([FL(NF).UL.N_level]); flag = 1;     % design matrix is built based on the longest group length
+			ntot = ntot * sum([FL(NF).UL.N_level]) / (FL(1).N_level * FL(2).N_level);  % total number of input files
+%		elseif (length(unique(combine)) == sum([FL(NF).UL.N_level])),  % if different labels are used across groups
+%		   FL(NF).N_level = sum([FL(NF).UL.N_level]); flag = 1;    % design matrix is built based on the total length of the groups
+%			ntot = ntot * FL(NF).N_level / (FL(1).N_level * FL(2).N_level);
+%		else 	
+%		   flag = 0;
+%			fprintf(2, '\nError: There is some overlap among the labels of factor %c (%s) across the groups of factor %c (%s) and factor %c (%s)!\n', ...
+%			   64+NF, FL(NF).expr, 64+1, FL(1).expr, 64+2, FL(2).expr); 
+		else 	
+		   flag = 0;
+			fprintf(2, '\nError: Currently the labels for different groups have to be the same for this design.'); 						
+	   end			
+		end % while flag == 0
+		
+   end   % (NF == 4 & dsgn == 5)
+	
 
 else  % Balanced designs
 
@@ -294,8 +353,8 @@ else  % Balanced designs
 
 end  % if (unbalanced)
 
-if ~((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1 & unbalanced.yes == 1),    % Mainly for ANCOVA?
-fprintf(2,'\nEnter the sample size (number of observations) per cell');
+if ~((NF == 1 | NF == 2 | NF == 3 | NF == 4) & dsgn == 1 & unbalanced.yes == 1),
+fprintf(2,'\nEnter the sample size (number of observations) per combination');
 FL(NF+1).N_level =  input(': ');  % Should it be changed to a different name instead of FL???
 ntot = ntot * FL(NF+1).N_level;    % total number of factor combinations including repeats
 sz(NF+1) = FL(NF+1).N_level; 
@@ -673,8 +732,57 @@ if (file_format == 1),
  	 		  		
 %     end % if (unbalanced.type == 1),
      end % if ((NF == 4 & dsgn == 3))
+	  
+   if ((NF == 4 & dsgn == 5)),	% CXD(AXB)
+   		FI = 0; % File index
+			for (i = 1:1:FL(1).N_level),
+   	   for (j = 1:1:FL(2).N_level),
+   	   for (k = 1:1:FL(3).N_level),
+   	   for (l = 1:1:FL(4).UL(i, j).N_level),
+ 	      			
+				for (r = 1:1:FL(NF+1).N_level),				
+				FI = FI +1;
+				GP(1, FI) = {FL(1).level(i).expr};
+   		   GP(2, FI) = {FL(2).level(j).expr};
+   		   GP(3, FI) = {FL(3).level(k).expr};
+   		   GP(4, FI) = {FL(4).UL(i, j).n(l).expr};
+				
+				flg = 0;		
+				while flg == 0,
+   	         fprintf (2,'\n(%i) factor combination:\n', FI);
+               for (m=1:1:NF),
+	               fprintf('\tfactor %c (%s) at level %s \n', 64+m, FL(m).expr, char(GP(m, FI)));   			      
+               end
+	            fprintf('\tat repeat %i \n', r);
+   	         file(FI).nm = input('is: ', 's');	
+	            fid = fopen (file(FI).nm,'r');	
+               if (fid == -1),
+   	            flg = 0; fprintf(2,'Error: File %s does not exist. Please try it again. \n', file(FI).nm);
+               else flg = 1; fclose (fid);	end
+					
+					if isempty(strfind(file(FI).nm, 'tlrc')) == 0
+					   format = 'tlrc';
+					elseif isempty(strfind(file(FI).nm, 'orig')) == 0
+					   format = 'orig';
+					else 	
+					         if isempty(strfind(file(FI).nm, '1D')) == 0		% if 1D file (surface data)
+								   format = '1D';
+								else 					   
+								   while (1); fprintf(2,'Error: format of file %s is incorrect!\n', file(FI).nm); 
+						         fprintf(2,'Halted: Ctrl+c to exit'); pause; end
+								end
+					end					
+            end
+				end % for (r = 1:1:FL(NF+1).N_level),	
+ 			
+   	 	end
+ 		   end
+ 	  	   end
+   		end
+ 	 		  		
+     end % if ((NF == 4 & dsgn == 5))	  	  
+	  
      %end  % (unbalanced.yes == 1),
-
 
    else  % Balanced designs	
 	

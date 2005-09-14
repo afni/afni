@@ -58,7 +58,7 @@ dfvar = zeros(ng,1);
 
 if (unbalanced.yes == 0), % Balanced designs
    vconstr = cell(ng,1);
-   %vmean = cell(ng,1);  %vmean is never used!!!
+   %vmean = cell(ng,1);   %vmean is never used!!!
 end
 
 for j=1:ng   % for each factor
