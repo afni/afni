@@ -1811,6 +1811,19 @@ for (sn = 1:1:slices),
 
 % Get df for 2nd order contrasts	
 
+   if ((NF == 2) & Contr.ord2.tot > 0),
+   for (i = 1:1:Contr.ord2.tot),
+		   switch Contr.ord2.cnt(i).idx1   % 1st factor whose level is fixed
+		   case 1,
+			   switch Contr.ord2.cnt(i).idx2    % 2nd factor whose level is fixed
+				   case 2, Contr.ord2.df(i) = dfdenom(3);  % MSAB
+				end	
+			case 2,
+			   fprintf('\nSomething is wrong in the contrast coding!\n'); fprintf(2,'Halted: Ctrl+c to exit'); pause;
+		   end
+   end
+   end	
+
    if ((NF == 3) & Contr.ord2.tot > 0),
    for (i = 1:1:Contr.ord2.tot),
 		   switch Contr.ord2.cnt(i).idx1   % 1st factor whose level is fixed
