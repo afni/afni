@@ -1,4 +1,4 @@
-function [err, fstat, intensity_new, dfterm_new, dfdenom, tnames_new, LC] = SumsOFSquares(y, NF, FL, ntot, nterms, Qd, s, sindices, dfbothSS, modw, modwo, tnames, dfterm, dfe, dsgn, N_Brik, Contr)
+function [err, fstat, intensity_new, dfterm_new, dfdenom, tnames_new, LC] = SumsOfSquares(y, NF, FL, ntot, nterms, Qd, s, sindices, dfbothSS, modw, modwo, tnames, dfterm, dfe, dsgn, N_Brik, Contr)
 %
 %   [err,] = ss.m ()
 %
@@ -375,11 +375,21 @@ if (NF == 2),
    if (Contr.ord1.tot > 0),
       for (i = 1:1:Contr.ord1.tot),
          LC.t1(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0			
-	 LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
-	 tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
-	 if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
+	      LC.t1(i).value = Contr.ord1.cnt(i).vec * y0;   % intensity for this 1st order contrast
+	      tmp = msdenom(Contr.ord1.cnt(i).idx1)*Contr.ord1.cnt(i).scalar;
+	      if (tmp > 0), LC.t1(i).t = LC.t1(i).value/sqrt(tmp); end
       end
    end
+	
+	if (Contr.ord2.tot > 0),    % 7 terms: 1 (A); 2 (B); 3 (AB)
+      for (i = 1:1:Contr.ord2.tot),
+         LC.t2(i).t = 0;  % initializtion in case it is assigned later on due to denominator of 0
+	      LC.t2(i).value = Contr.ord2.cnt(i).vec * y0;   % intensity for this 2nd order contrast
+	      tmp = msdenom(Contr.ord2.cnt(i).idx2)*Contr.ord2.cnt(i).scalar;
+	      if (tmp > 0), LC.t2(i).t = LC.t2(i).value/sqrt(tmp); end
+      end %for (i = 1:1:Contr.ord2.tot),
+   end	%if (Contr.ord2.tot > 0),
+	
 end %if (NF == 2)
 
 if (NF == 3),
