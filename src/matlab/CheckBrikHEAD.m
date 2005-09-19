@@ -190,7 +190,7 @@ end
 			end
 		end
 
-		if (isfield('BRICK_LABS') & (WordCount(Info.BRICK_LABS, '~') ~= Info.DATASET_RANK(2))),
+		if (isfield(Info, 'BRICK_LABS') & (WordCount(Info.BRICK_LABS, '~') ~= Info.DATASET_RANK(2))),
 			err = 1; ErrMessage = sprintf('Error %s: There has to be exactly %d ~ separated labels in BRICK_LABS', FuncName, Info.DATASET_RANK(2)); errordlg(ErrMessage); return;	
 		end
 
