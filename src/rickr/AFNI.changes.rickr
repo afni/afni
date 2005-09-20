@@ -1253,3 +1253,6 @@
       - moved marker test and creation to said functions in edt_emptycopy.c
   * modified plug_realtime.c: add empty markers to appropriate datasets
 
+20 September 2005:
+  * modified 2dImReg.c to return 0 from main
+

@@ -1539,7 +1539,6 @@ int main
   terminate_program (&option_data, &state_history,
 		     &old_rms_array, &new_rms_array);
  
+  return 0;
 }
-
-
 
