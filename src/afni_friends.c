@@ -502,6 +502,7 @@ static mday holiday[] = {
    {SEP, 9,"Bulgaria Liberation Day"                                 } ,
    {SEP,12,"Anniversary of Battle of Vienna"                         } ,
    {SEP,14,"Jan Masaryk's birthday"                                  } ,
+   {SEP,14,"Anniversary of Friston & Cox Debut"                      } ,
    {SEP,15,"Costa Rica Independence Day"                             } ,
    {SEP,15,"El Salvador Independence Day"                            } ,
    {SEP,15,"Guatemala Independence Day"                              } ,
