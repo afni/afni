@@ -334,7 +334,9 @@ AUTO_TLRC_MODE:
          goto END
       endif
    else
-      echo "Reusing skull stripped volume ${ns_pref}+orig found on disk."
+      if ($RemoveSkull == 1) then
+         echo "Reusing skull stripped volume ${ns_pref}+orig found on disk."
+      endif
    endif
 
    RES:

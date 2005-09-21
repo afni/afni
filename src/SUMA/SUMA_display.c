@@ -1401,8 +1401,12 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
    /* Step 1. */
    if (CallNum == 0) { /* first call, initialize App */
       SUMAg_CF->N_OpenSV = 0;
-      SUMAg_SVv[ic].X->TOPLEVEL = XtAppInitialize(&SUMAg_CF->X->App, "SUMA", NULL, 0, &cargc, vargv,
-       SUMA_get_fallbackResources(), NULL, 0);
+      /*
+         SUMAg_SVv[ic].X->TOPLEVEL = XtAppInitialize(&SUMAg_CF->X->App, "SUMA", NULL, 0, &cargc, vargv,
+       SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication
+      */
+      SUMAg_SVv[ic].X->TOPLEVEL = XtOpenApplication(&SUMAg_CF->X->App, "SUMA", NULL, 0, &cargc, vargv,
+       SUMA_get_fallbackResources(), topLevelShellWidgetClass, NULL, 0); 
       SUMAg_SVv[ic].X->DPY = XtDisplay(SUMAg_SVv[ic].X->TOPLEVEL);
       /* save DPY for first controller opened */
       SUMAg_CF->X->DPY_controller1 = SUMAg_SVv[ic].X->DPY;
@@ -1467,10 +1471,19 @@ SUMA_Boolean SUMA_X_SurfaceViewer_Create (void)
          SUMAg_SVv[ic].X->DOUBLEBUFFER = SUMAg_SVv[0].X->DOUBLEBUFFER;
       }
 		
+      #ifdef LESSTIF 
+         SUMA_S_Warn("Using LessTif Libraries. Bad idea.");
+      #else
+         SUMA_LH("Using Open Motif libraries");
+      #endif
+
       /* Step 3.5 Wed Dec 18 14:49:25 EST 2002 - The GUI*/
          /* see Kilgard's OpenGL Programming for the X window system */
          /* create main window */
-         mainw = XmCreateMainWindow (SUMAg_SVv[ic].X->TOPLEVEL, "mainw", NULL, 0);
+         SUMA_LH("Creating Main Window");
+	 /* Next call Causes Seg. fault on Fedora Core 4. Not much I can do. Same happens with demo code paperplane.c by Kilgard */
+         mainw = XmCreateMainWindow (SUMAg_SVv[ic].X->TOPLEVEL, "mainw", NULL, 0); 
+         SUMA_LH("Managing Main Window");
          XtManageChild (mainw);      
          /* create menu bar */
          menubar = XmCreateMenuBar (mainw, "menubar", NULL, 0);
@@ -5493,7 +5506,8 @@ void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_da
    
    SO = (SUMA_SurfaceObject *)data;
    
-   if (!SO->SurfCont->curColPlane) SUMA_RETURNe;
+   if (!SO || !SO->SurfCont) SUMA_RETURNe;
+   if (!SO->SurfCont->curColPlane || !SO->SurfCont->ColPlaneShow_tb) SUMA_RETURNe;
 
    SO->SurfCont->curColPlane->Show = XmToggleButtonGetState (SO->SurfCont->ColPlaneShow_tb);
    /* set the duplicate button next to int */
@@ -9617,7 +9631,7 @@ void SUMA_ShowAllVisuals (void)
 {
    static char FuncName[]={"SUMA_ShowAllVisuals"};
    Display *dpy;
-   XVisualInfo match, *visualList, *vi, *visualToTry;
+   XVisualInfo match, *visualList=NULL, *vi=NULL, *visualToTry=NULL;
    int errorBase, eventBase, major, minor, found, glxcapable;
    Widget TopLevel;
    XtAppContext App;
@@ -9677,11 +9691,13 @@ void SUMA_ShowAllVisuals (void)
          fprintf(SUMA_STDERR, "direct rendering: supported\n");
    } else fprintf(SUMA_STDERR, "No GLX-capable visuals!\n");
    
-   XFree(visualList);
+   if (visualList) XFree(visualList);
 
    /* which visual will be chosen by SUMA ? (based on Step 3 in SUMA_X_SurfaceViewer_Create) */
-   TopLevel = XtAppInitialize(&App, "SUMA", NULL, 0, &cargc, vargv,
-                              SUMA_get_fallbackResources(), NULL, 0);
+   /* TopLevel = XtAppInitialize(&App, "SUMA", NULL, 0, &cargc, vargv,
+                              SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication*/
+   TopLevel = XtOpenApplication(&App, "SUMA", NULL, 0, &cargc, vargv,
+                              SUMA_get_fallbackResources(), topLevelShellWidgetClass, NULL, 0); 
    dpy = XtDisplay(TopLevel);
 
    vi = glXChooseVisual(dpy, DefaultScreen(dpy), dblBuf);
@@ -9700,8 +9716,9 @@ void SUMA_ShowAllVisuals (void)
       fprintf (SUMA_STDERR,"%s: Visual is not TrueColor.\n", FuncName); 
       fprintf (SUMA_STDERR," SUMA NO LIKE.\n");
    }
+   /* Might cause trouble on Fedora Core 4. Don't know what to do with it */
    XtDestroyWidget(TopLevel);
-   
+   XtDestroyApplicationContext(App);
    SUMA_RETURNe;
 }
 

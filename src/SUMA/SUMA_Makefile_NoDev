@@ -74,6 +74,10 @@ SUMA_glxdino:
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_glxdino.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
 
+SUMA_paperplane:
+	$(RM) $@
+	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_paperplane.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
+
 SUMA_pixmap2eps:
 	$(RM) $@
 	${CC} ${CCOPT} ${WARNOPT} -o $@ SUMA_pixmap2eps.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} ${SUMA_LINK_LIB}
@@ -391,6 +395,7 @@ install:
 	@if [ -f 3dSurf2Vol ]; then mv 3dSurf2Vol ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SurfMeasures ]; then mv SurfMeasures ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_glxdino ]; then mv SUMA_glxdino ${INSTALLDIR_SUMA}; fi;
+	@if [ -f SUMA_paperplane ]; then mv SUMA_paperplane ${INSTALLDIR_SUMA}; fi;
 	@if [ -f SUMA_pixmap2eps ]; then mv SUMA_pixmap2eps ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ConvertSurface ]; then mv ConvertSurface ${INSTALLDIR_SUMA}; fi;
 	@if [ -f ConvertDset ]; then mv ConvertDset ${INSTALLDIR_SUMA}; fi;
@@ -437,6 +442,7 @@ packbins:
 	@if [ -f 3dSurf2Vol ]; then $(CP) -p 3dSurf2Vol SUMA_bin/; fi;
 	@if [ -f SurfMeasures ]; then $(CP) -p SurfMeasures SUMA_bin/; fi;
 	@if [ -f SUMA_glxdino ]; then $(CP) -p SUMA_glxdino SUMA_bin/; fi;
+	@if [ -f SUMA_paperplane ]; then $(CP) -p SUMA_paperplane SUMA_bin/; fi;
 	@if [ -f SUMA_pixmap2eps ]; then $(CP) -p SUMA_pixmap2eps SUMA_bin/; fi;	
 	@if [ -f ConvertSurface ]; then $(CP) -p ConvertSurface SUMA_bin/; fi;	
 	@if [ -f ConvertDset ]; then $(CP) -p ConvertDset SUMA_bin/; fi;	
@@ -475,4 +481,4 @@ standalones: CreateIcosahedron SUMA_Map_SurfacetoSurface MapIcosahedron       \
  
 anew: clean libSUMA.a mainobj suma standalones packbins install 
 
-testGL: SUMA_glxdino SUMA_pixmap2eps
+testGL: SUMA_glxdino SUMA_paperplane SUMA_pixmap2eps

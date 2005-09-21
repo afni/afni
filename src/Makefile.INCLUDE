@@ -122,7 +122,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS @Purify_1D      \
           @SUMA_Make_Spec_SF @make_stim_file @Align_Centers suma_change_spec      \
-          @CheckForAfniDset @clip_volume @AfniOrient2RAImap @parse_afni_name @auto_tlrc
+          @CheckForAfniDset @clip_volume @AfniOrient2RAImap @parse_afni_name      \
+          @auto_align @auto_tlrc
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h       \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h        \
@@ -2098,7 +2099,9 @@ suma_clean:
 	if [ -f ConvexHull ]; then $(RM) ConvexHull; fi;
 	if [ -f SUMA/ConvexHull ]; then $(RM) SUMA/ConvexHull; fi;
 	if [ -f SUMA_glxdino ]; then $(RM) SUMA_glxdino; fi;
+	if [ -f SUMA_paperplane ]; then $(RM) SUMA_paperplane; fi;
 	if [ -f SUMA/SUMA_glxdino ]; then $(RM) SUMA/SUMA_glxdino; fi;
+	if [ -f SUMA/SUMA_paperplane ]; then $(RM) SUMA/SUMA_paperplane; fi;
 	if [ -f SUMA_pixmap2eps ]; then $(RM) SUMA_pixmap2eps; fi;
 	if [ -f SUMA/SUMA_pixmap2eps ]; then $(RM) SUMA/SUMA_pixmap2eps; fi;
 	if [ -f SurfaceMetrics ]; then $(RM) SurfaceMetrics; fi;
@@ -2167,7 +2170,7 @@ suma_install:
 	$(CP) SUMA/suma SUMA/MakeColorMap SUMA/ROI2dataset SUMA/3dVol2Surf SUMA/3dSurf2Vol SUMA/SurfMeasures \
 	SUMA/ScaleToMap SUMA/MapIcosahedron SUMA/CreateIcosahedron SUMA/CompareSurfaces \
 	SUMA/ConvertSurface SUMA/ConvertDset SUMA/SurfClust SUMA/IsoSurface SUMA/ConvexHull SUMA/SUMA_glxdino SUMA/SUMA_pixmap2eps SUMA/SurfaceMetrics \
-   SUMA/inspec SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual SUMA/SurfSmooth \
+   SUMA/inspec SUMA/quickspec SUMA/FSread_annot SUMA/SurfPatch SUMA/SurfQual SUMA/SurfSmooth SUMA/SUMA_paperplane\
    SUMA/SampBias SUMA/3dSkullStrip SUMA/3dCRUISEtoAFNI SUMA/3dBRAIN_VOYAGERtoAFNI SUMA/3dSurfMask\
    SUMA/SurfToSurf   \
    ${INSTALLDIR} ; \
