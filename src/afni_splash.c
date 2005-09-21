@@ -48,7 +48,7 @@ void AFNI_splashraise(void) /* 25 Sep 2000: bring splash window to the top */
    PLUGIN_impopper *ppp = (PLUGIN_impopper *) handle ;
 
    if( ppp != NULL && ISQ_REALZ(ppp->seq) )
-      XMapRaised( XtDisplay(ppp->seq->wtop) , XtWindow(ppp->seq->wtop) ) ;
+     XMapRaised( XtDisplay(ppp->seq->wtop) , XtWindow(ppp->seq->wtop) ) ;
 
    return ;
 }
@@ -63,28 +63,19 @@ ENTRY("AFNI_splashdown") ;
 
    if( handle != NULL ){
 #ifdef USE_FADING
-      float max_splash = 3.0 ;
-      char *hh = getenv("AFNI_SPLASHTIME") ;
-      if( hh != NULL ) max_splash = strtod(hh,NULL) ;
-      if( max_splash > 0.0 ){
-         if( imspl != NULL ){  /* fade gently away */
-            byte *bspl ; int ii , nv , kk ; double et ;
-            bspl = mri_data_pointer(imspl) ;
-            nv   = (imspl->pixel_size) * (imspl->nvox) ;
-            et   = COX_clock_time() ;
-            do_write = 0 ;
-            for( kk=0 ; kk < 10 ; kk++ ){
-#if 0
-               for( ii=0 ; ii < nv ; ii++ ) bspl[ii] *= 0.92 ;
-#else
-               for( ii=0 ; ii < nv ; ii++ ) bspl[ii] = (15*bspl[ii]) >> 4 ;
-#endif
-               SPLASH_popup_image(handle,imspl) ;
-               drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
-               if( COX_clock_time()-et > 2.1 ) break ;
-            }
-         }
-      }
+     if( imspl != NULL ){  /* fade gently away */
+       byte *bspl ; int ii , nv , kk ; double et ;
+       bspl = mri_data_pointer(imspl) ;
+       nv   = (imspl->pixel_size) * (imspl->nvox) ;
+       et   = COX_clock_time() ;
+       do_write = 0 ;
+       for( kk=0 ; kk < 10 ; kk++ ){
+         for( ii=0 ; ii < nv ; ii++ ) bspl[ii] = (15*bspl[ii]) >> 4 ;
+         SPLASH_popup_image(handle,imspl) ;
+         drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
+         if( COX_clock_time()-et > 3.333 ) break ;
+       }
+     }
 #endif
       SPLASH_popup_image(handle,NULL); myXtFree(handle) ; /* get rid of window */
    }
@@ -97,6 +88,7 @@ ENTRY("AFNI_splashdown") ;
 
 static int    num_splash   =  0 ;   /* 26 Nov 2003 */
 static int    first_splash = -1 ;
+static int    first_face   = -1 ;   /* 21 Sep 2005 */
 static char **fname_splash = NULL ;
 
 static int    num_face     =  0 ;   /* 28 Mar 2003 */
@@ -124,17 +116,19 @@ ENTRY("AFNI_splashup") ;
       /* get some fun stuff, first time in */
 
       if( ncall == 0 ){
+        int np ;
         num_face   = AFNI_find_jpegs( "face_"   , &fname_face   ) ;
         num_splash = AFNI_find_jpegs( "splash_" , &fname_splash ) ;
         if( num_splash > 0 ){
-          int np ;
           for( np=0 ; np < num_splash ; np++ )
-            if( strstr(fname_splash[np],"sscc") != NULL ) break ;
+            if( strstr(fname_splash[np],"bobkarl") != NULL ) break ;
           if( np < num_splash ) first_splash = np ;
-#if 0
-          for( np=0 ; np < num_splash ; np++ )
-           fprintf(stderr,"SPLASH: %s\n",fname_splash[np]) ;
-#endif
+
+          if( num_face > 0 ){                     /* 21 Sep 2005 */
+            for( np=0 ; np < num_face ; np++ )
+              if( strstr(fname_face[np],"rwcox6") != NULL ) break ;
+            if( np < num_face ) first_face = np ;
+          }
         }
       }
 
@@ -210,7 +204,7 @@ ENTRY("AFNI_splashup") ;
           (ncall <= num_splash  || ((lrand48() >> 8 ) % 7) != 0) ){
 
         static int np=-1 , dp ;
-        if( np < 0 ){
+        if( np < 0 || ncall < 2 ){
           np = (first_splash >= 0) ? first_splash
                                    : (lrand48() >> 8) % num_splash ;
           dp = 2*((lrand48() >> 8)%2)-1 ;  /* -1 or +1 */
@@ -229,6 +223,15 @@ ENTRY("AFNI_splashup") ;
           STATUS("overlaying splash image") ;
           mri_overlay_2D( imspl , imov , 0,0 ) ;
           mri_free(imov) ;
+        }
+        if( np == first_splash && first_face >= 0 ){   /* 21 Sep 2005 */
+          imov = mri_read_stuff( fname_face[first_face] ) ;
+          if( imov != NULL ){
+            nxov = imov->nx ; nyov = imov->ny ;
+            dd = IXOVER + (MAX_XOVER-nxov)/2 ;
+            ee = JYOVER + (MAX_YOVER-nyov)/2 ;
+            mri_overlay_2D( imspl, imov, dd,ee ); mri_free(imov);
+          }
         }
 
       } /* end of replacing splash image */
