@@ -2467,7 +2467,7 @@ SUMA_Boolean SUMA_ScaleToMap_alaAFNI ( float *V, int N_V,
       if (LocalHead) fprintf(SUMA_STDERR,"%s: [Vrange, Vmax, Vmin] = [%f, %f, %f]\nInterpMode=%d\n", 
                                           FuncName, Vrange, Vmax, Vmin, Opt->interpmode);
       if (Vrange < 0) {
-         fprintf (SUMA_STDERR,"Error %s: Vmax < Vmin.\n", FuncName);
+         fprintf (SUMA_STDERR,"Error %s: Vmax (%f)< Vmin(%f).\n", FuncName, Vmax, Vmin);
          SUMA_RETURN (NOPE);
       }
 
@@ -2786,7 +2786,7 @@ SUMA_Boolean SUMA_ScaleToMap (float *V, int N_V,
       MinCol = 0.0; MaxCol = (float)ColMap->N_Col; 
       Vrange = Vmax - Vmin; 
       if (Vrange < 0) {
-         fprintf (SUMA_STDERR,"Error %s: Vmax < Vmin.\n", FuncName);
+         fprintf (SUMA_STDERR,"Error %s: Vmax (%f)< Vmin(%f).\n", FuncName, Vmax, Vmin);
          SUMA_RETURN (NOPE);
       }
 
@@ -7283,8 +7283,12 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
          /* XtAppInitialize (at least on mac osx) forces the application to quit if display cannot be opened
          So you must decide ahead of time whether to call it or not! */
          if (SUMAg_CF->isGraphical) {
-            tl = XtAppInitialize(NULL, "ScaleToMap", NULL, 0, &cargc, vargv,
-                  SUMA_get_fallbackResources(), NULL, 0);
+            /* tl = XtAppInitialize(&app, "ScaleToMap", NULL, 0, &cargc, vargv,
+                  SUMA_get_fallbackResources(), NULL, 0); Superseded by XtOpenApplication */
+                  
+            tl = XtOpenApplication(&app, "ScaleToMap", NULL, 0, &cargc, vargv,
+                  SUMA_get_fallbackResources(),topLevelShellWidgetClass,  NULL, 0);
+                  
             dpy = XtDisplay(tl);
             cmap = DefaultColormap(dpy, DefaultScreen(dpy));
 
@@ -7297,7 +7301,10 @@ SUMA_Boolean SUMA_Interpret_AFNIColor (char *Name, float RGB[3])
             RGB[2] = (float)color_exact.blue/255.0/257.0;
 
             XFreeColormap(dpy, cmap);
-            XtDestroyWidget(tl);
+            
+            /* These 2 lines cause a crash on Fedora Core 4, but Core 4 crashes at XmCreateMainWindow anyway so we're doomed.*/
+            XtDestroyWidget(tl); 
+            XtDestroyApplicationContext(app);
          } else {
             if (LocalHead) fprintf(SUMA_STDERR,"%s: \n"
                                           "Xcolor %s cannot be resolved without \n"
