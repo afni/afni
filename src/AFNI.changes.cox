@@ -5700,3 +5700,7 @@
 
 01 Sep 2005
  * Fixed 3drotate.c so that "-rotate 0 0 0" doesn't fail.
+
+21 Sep 2005
+ * Modified thd_writedset.c and 3dAFNItoNIFTI.c so that if AFNI_AUTOGZIP is
+     YES, then .nii.gz files will be written instead of .nii files.

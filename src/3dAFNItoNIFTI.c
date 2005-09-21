@@ -28,8 +28,14 @@ int main( int argc , char *argv[] )
              "  -prefix ppp = Write the NIfTI-1.1 file as 'ppp.nii'.\n"
              "                  Default: the dataset's prefix is used.\n"
 #ifdef HAVE_ZLIB
-             "                  If you want a compressed file, try\n"
+             "                * If you want a compressed file, try\n"
              "                  using a prefix like 'ppp.nii.gz'.\n"
+             "                * Setting the Unix environment variable\n"
+             "                  AFNI_AUTOGZIP to YES will result in\n"
+             "                  all output files being gzip-ed.\n"
+#else
+             "                * This system does not support writing\n"
+             "                  compressed ('-prefix ppp.nii.gz') files!\n"
 #endif
              "  -verb       = Be verbose = print progress messages.\n"
              "                  Repeating this increases the verbosity\n"
@@ -115,7 +121,7 @@ int main( int argc , char *argv[] )
 
    if( newid ) dset->idcode = MCW_new_idcode() ;  /* 11 May 2005 */
 
-   fname = malloc( strlen(prefix)+16 ) ;
+   fname = malloc( strlen(prefix)+32 ) ;
    strcpy(fname,prefix) ;
    if( strstr(fname,".nii") == NULL ) strcat(fname,".nii") ;
 
@@ -157,9 +163,21 @@ int main( int argc , char *argv[] )
        EDIT_substitute_brick( dset , ii , MRI_float , far ) ;
        EDIT_BRICK_FACTOR( dset , ii , 0.0 ) ;
      } /* end of loop over sub-bricks */
-   } /* end of floatizationing */
+   } /* end of floatization-osity */
 
    /*--- Go Baby, Go! ---*/
+
+#ifdef HAVE_ZLIB                                            /* 21 Sep 2005 */
+     if( AFNI_yesenv("AFNI_AUTOGZIP")                  &&
+         STRING_HAS_SUFFIX(options.infile_name,".nii")   )
+       strcat(options.infile_name,".gz") ;
+#else
+     if( STRING_HAS_SUFFIX(options.infile_name,".nii.gz") ){
+       WARNING_message("Can't write compressed file '%s'; writing '.nii' instead") ;
+       ii = strlen(options.infile_name) ;
+       options.infile_name[ii-3] = '\0' ;
+     }
+#endif
 
    if( denote ) THD_anonymize_write(1) ; /* sets a flag for attribute output */
    ii = THD_write_nifti( dset , options ) ; /* actually write the damn thing */
