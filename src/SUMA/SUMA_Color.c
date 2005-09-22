@@ -5122,7 +5122,10 @@ SUMA_Boolean SUMA_Overlays_2_GLCOLAR4(SUMA_SurfaceObject *SO, SUMA_SurfaceViewer
    
    \sa SUMA_Overlays_2_GLCOLAR4
 */
-SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *ShowOverlays, int NshowOverlays, GLfloat *glcolar, int N_Node, SUMA_Boolean *isColored, SUMA_Boolean FILL)
+SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays, 
+                                 int *ShowOverlays, int NshowOverlays, 
+                                 GLfloat *glcolar, int N_Node, 
+                                 SUMA_Boolean *isColored, SUMA_Boolean FILL)
 {    
    static char FuncName[] = {"SUMA_MixOverlays"};
    int i, j;
@@ -5184,6 +5187,10 @@ SUMA_Boolean SUMA_MixOverlays (SUMA_OVERLAYS ** Overlays, int N_Overlays, int *S
          if (Overlays[i]->GlobalOpacity < 0.0) {         Glob = NOPE;      }
 
          /* is this a Local Factor */
+         if (!Overlays[i]->LocalOpacity) {
+            fprintf(SUMA_STDERR,"Error %s:\nNULL Overlays[%d]->LocalOpacity\n", FuncName, i);
+            SUMA_RETURN (NOPE);
+         }
          if (Overlays[i]->LocalOpacity[0] < 0) {         Locl = NOPE;      }
       } else {
          Glob = NOPE; Locl = NOPE;
@@ -6782,7 +6789,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    
    /* load the dude */
    /* first, set the parent ID of the dset to be loaded,
-   This ID is only used when generating an ID for those dsets
+   This parent ID is only used when generating an ID for those dsets
    that have no ID attached, like the 1D ones */
    if (SO->LocalDomainParentID) SUMA_SetParent_DsetToLoad(SO->LocalDomainParentID);
    else if (SO->idcode_str) SUMA_SetParent_DsetToLoad(SO->idcode_str); 
@@ -6808,9 +6815,21 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    if (!np || lnp == 0) { 
       SUMA_SL_Note("dset has no mesh parent, assigning SO");
       if (!SUMA_OKassign(dset, SO)) {
-         SUMA_SLP_Err("Cannot assign dset to SO.\n");
-         SUMA_FreeDset(dset); dset=NULL;
-         SUMA_RETURNe;
+         SUMA_SurfaceObject *SOldp = SUMA_findSOp_inDOv(SO->LocalDomainParentID,SUMAg_DOv, SUMAg_N_DOv);
+         if (SOldp) {
+            SUMA_SLP_Err("Cannot assign dset to SO.\nTrying to assign to domain parent.");
+            if (!SUMA_OKassign(dset, SOldp)) {
+               SUMA_SLP_Err("Cannot assign dset to SO \nor its local domain parent");
+               SUMA_FreeDset(dset); dset=NULL;
+               SUMA_RETURNe;
+            }
+            /* from that point on, treat dset as if being loaded onto SOpar*/
+            SO = SOldp;
+         } else {
+            SUMA_SLP_Err("Cannot assign dset to SO.");
+            SUMA_FreeDset(dset); dset=NULL;
+            SUMA_RETURNe;
+         }
       }
       NI_set_attribute(dset->ngr,"Parent_ID", SO->idcode_str);
       NI_set_attribute(dset->ngr,"GeomParent_idcode", SO->idcode_str);
@@ -6865,7 +6884,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    /* colorize the plane */
    SUMA_ColorizePlane(NewColPlane);
 
-   /* SUMA_Show_ColorOverlayPlanes(&NewColPlane, 1, 1); */
+    SUMA_Show_ColorOverlayPlanes(&NewColPlane, 1, 1); 
    
    /* set the new curColPlane to the newly loaded plane,
    you need to do this before you remix the colors in case

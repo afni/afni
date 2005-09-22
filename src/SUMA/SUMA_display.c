@@ -3986,6 +3986,7 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
    char sbuf[SUMA_MAX_LABEL_LENGTH];
    float range[2];
    int loc[2], i;
+   SUMA_SurfaceObject *SOpar=NULL;
    
    SUMA_Boolean LocalHead = NOPE;
    
@@ -4003,14 +4004,24 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
       SUMA_SET_TEXT_FIELD(SO->SurfCont->ColPlaneDimFact->textfield,"-");
    }else {
       SUMA_LH("Initializing for real");
-      if (strlen(ColPlane->Label) + strlen(SO->Label) +25 > SUMA_MAX_LABEL_LENGTH) {
+      if (ColPlane->dset_link) { /* get the parent surface of the colorplane */
+         if (ColPlane->dset_link->ngr) {
+            SOpar = SUMA_findSOp_inDOv(NI_get_attribute(ColPlane->dset_link->ngr,"Parent_ID"), SUMAg_DOv, SUMAg_N_DOv);
+         }
+      }
+      if (!SOpar) {
+         SUMA_SL_Warn("No parent for dset found.\nProceeding with next best option.");
+         SOpar = SO;
+      }
+      
+      if (strlen(ColPlane->Label) + strlen(SOpar->Label) +25 > SUMA_MAX_LABEL_LENGTH) {
          SUMA_SL_Warn("Surface Labels too long!");
          SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, "Surface Labels too long!");
          SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, "Surface Labels too long!");
       } else {
-         if (strlen(SO->Label) > 40) {
+         if (strlen(SOpar->Label) > 40) {
             char *tmpstr=NULL;
-            tmpstr = SUMA_truncate_string(SO->Label, 40);
+            tmpstr = SUMA_truncate_string(SOpar->Label, 40);
             if (tmpstr) { 
                sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, tmpstr);
                free(tmpstr); tmpstr = NULL;
@@ -4018,10 +4029,10 @@ SUMA_Boolean SUMA_InitializeColPlaneShell(SUMA_SurfaceObject *SO, SUMA_OVERLAYS 
             SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, ColPlane->Label);
             SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, tmpstr);
          } else {
-            sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, SO->Label);
+            sprintf (sbuf, "Label: %s\nParent: %s", ColPlane->Label, SOpar->Label);
          }
          SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 0, 1, ColPlane->Label);
-         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, SO->Label);
+         SUMA_INSERT_CELL_STRING(SO->SurfCont->ColPlaneLabelTable, 1, 1, SOpar->Label);
       }
       
       SO->SurfCont->ColPlaneOrder->value = ColPlane->PlaneOrder;
