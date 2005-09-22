@@ -573,7 +573,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             if ((Kev.state & Mod1Mask || Kev.state & Mod2Mask) && (Kev.state & ControlMask) ){
                   #ifndef DONT_USE_MCW_MALLOC
                   /* write memtrace results to disk */
-                  if (!mcw_malloc_enabled) {
+                  if (!mcw_malloc_enabled()) {
                      SUMA_SLP_Warn("Memory tracing\n"
                                   "is not enabled.\n"
                                   "Use Help-->MemTrace.");

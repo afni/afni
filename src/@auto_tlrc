@@ -71,6 +71,15 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "                          tlrc space per the xform in TLRC_parent"
    echo "      -dxyz MM          : Voxel size of output dset in TLRC space."
    echo "                          Default MM is 1." 
+   echo "   Optional parameters:"
+   echo "      -pad_input  MM    :  Pad the input dset by MM mm in each directions."
+   echo "                        That is needed to  make sure that datasets"
+   echo "                        requiring wild rotations do not get cropped."
+   echo "                        Default is MM = 40."
+   echo "                        If your output dataset is clipped, try increasing"
+   echo "                        MM to 50 or 60. If that does not help, report the"
+   echo "                        problem to the script's authors."
+   echo "" 
    echo "   Example:"
    echo "   `basename $0` -apar DemoSubj_spgrsa+tlrc. -input DemoSubj_EPI+orig."
    echo ""
@@ -78,7 +87,9 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "   -rmode     MODE:  Resampling mode. Choose from:"
    echo "                     linear, cubic, NN or quintic ."
    echo "                     Default for 'Usage 1' is quintic"
-   echo "                     Default for 'Usage 2' is NN"
+   echo "                     Default for 'Usage 2' is NN, although"
+   echo "                     you should use linear, cubic or quintic"
+   echo "                     if your input data is the EPI time series."
    echo "   -suffix    SUF :  Name the output dataset by append SUF "
    echo "                     to the prefix of the input data for the output."
    echo "                     Default for SUF is _at"
@@ -169,10 +180,10 @@ PARSE:
             set donext = 0	
          endif	
       endif
-      if ($donext && "$argv[$cnt]" == "-pad_base") then
+      if ($donext && ( "$argv[$cnt]" == "-pad_base" || "$argv[$cnt]" == "-pad_input" ) ) then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
-				echo "Need value after -pad_base"
+				echo "Need value after -pad_base (or -pad_input) "
             goto END
 			else
             @ cnt ++
@@ -428,16 +439,21 @@ APAR_MODE:
    if ( -f warp_tmp+orig.HEAD) then
       rm -f warp_tmp+orig.HEAD warp_tmp+orig.BRIK
    endif
+   
+   echo "Padding the input data before warping"
+   3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmppref}_ipad ${ns_pref}+orig
+   
    echo "Warping per parent transform ($rmode interpolation) ..."
-   3dWarp -matparent ${ref_pref_nopad}${ref_view} -prefix warp_tmp -${rmode} ${ns_pref}+orig
-   if ( ! -f warp_tmp+orig.HEAD) then
+   3dWarp -matparent ${ref_pref_nopad}${ref_view} -prefix ${tmppref}_warp_tmp -${rmode} ${tmppref}_ipad+orig
+   if ( ! -f ${tmppref}_warp_tmp+orig.HEAD) then
       echo "Error: Failed to create tlrced dset"
       goto END
    endif
+   
    echo "Resampling to fit tlrc box ($resam interpolation) ..."
    3dresample  -master ${ref_in} -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
-               -prefix ${tt_pref} -inset warp_tmp+orig -rmode ${resam}  
-   if ( $KeepTmp == 0) rm -f warp_tmp+orig.HEAD warp_tmp+orig.BRIK >& /dev/null
+               -prefix ${tt_pref} -inset ${tmppref}_warp_tmp+orig -rmode ${resam}  
+   if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
    
    goto WRAP_UP
 #######################
