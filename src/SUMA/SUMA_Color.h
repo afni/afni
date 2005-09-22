@@ -81,6 +81,7 @@ void SUMA_LoadColorPlaneFile (char *filename, void *data);
 SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleColorPlaneList (SUMA_SurfaceObject *SO); 
 void SUMA_RefreshDsetList (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_FlushPlaneNotInUse (char *PlaneName, SUMA_SurfaceObject *SO, SUMA_DO *dov, int N_dov);
+char *SUMA_CmapModeName (SUMA_COLORMAP_INTERP_MODE mapmode);
 SUMA_STANDARD_CMAP SUMA_StandardMapCode (char *Name);
 char *SUMA_StandardMapName (SUMA_STANDARD_CMAP mapcode, int *N_col);
 SUMA_COLOR_MAP *SUMA_Linearize_Color_Map (SUMA_COLOR_MAP* SM, int N_lin);
