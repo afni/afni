@@ -1144,18 +1144,18 @@ SUMA_MenuItem CoordBias_Menu[] = {
 };
 
 SUMA_MenuItem CmapMode_Menu[] = {
-   {  "Int", &xmPushButtonWidgetClass, 
-      '\0', NULL, NULL, 
-      SUMA_cb_SetCmapMode, (XtPointer) SW_Interp, NULL},
-      
-   {  "NN", &xmPushButtonWidgetClass, 
-      '\0', NULL, NULL, 
-      SUMA_cb_SetCmapMode, (XtPointer) SW_NN, NULL},
-   
    {  "Dir", &xmPushButtonWidgetClass, 
       '\0', NULL, NULL, 
       SUMA_cb_SetCmapMode, (XtPointer) SW_Direct, NULL},
     
+   {  "NN", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetCmapMode, (XtPointer) SW_NN, NULL},
+   
+   {  "Int", &xmPushButtonWidgetClass, 
+      '\0', NULL, NULL, 
+      SUMA_cb_SetCmapMode, (XtPointer) SW_Interp, NULL},
+      
    {NULL},
 };
 

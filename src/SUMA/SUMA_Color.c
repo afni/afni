@@ -3064,6 +3064,35 @@ SUMA_SCALE_TO_MAP_OPT * SUMA_ScaleToMapOptInit(void)
 }
 
 /*!
+   \brief the interpmode value to a string.
+*/ 
+char *SUMA_CmapModeName (SUMA_COLORMAP_INTERP_MODE mapmode)
+{
+   static char FuncName[]={"SUMA_CmapModeName"};
+   
+   SUMA_ENTRY;
+   
+   switch (mapmode) {
+         case SUMA_UNDEFINED_MODE:
+            SUMA_RETURN("Undefined");
+            break;
+         case SUMA_DIRECT:
+            SUMA_RETURN("Direct");
+            break;
+         case SUMA_NO_INTERP:
+            SUMA_RETURN("NearestNeighbor");
+            break;
+         case SUMA_INTERP:
+            SUMA_RETURN("Interpolate");
+            break;
+         default:
+            SUMA_RETURN("Unexpected business");
+            break;
+   }
+}
+
+
+/*!
    \brief Returns the ascii name of a Suma standard map.
    
    \param mapcode (SUMA_STANDARD_CMAP)
@@ -5460,7 +5489,7 @@ char *SUMA_ScaleToMapOpt_Info (SUMA_SCALE_TO_MAP_OPT *OptScl, int detail)
          OptScl->BrightMap[0], OptScl->BrightMap[1]);
       SS = SUMA_StringAppend_va (SS, "AutoBrtRange = %d\n", OptScl->AutoBrtRange);
       SS = SUMA_StringAppend_va (SS, "alaAFNI = %d\n", OptScl->alaAFNI);
-      SS = SUMA_StringAppend_va (SS, "interpmode = %d\n", OptScl->interpmode);
+      SS = SUMA_StringAppend_va (SS, "interpmode = %d (%s)\n", OptScl->interpmode, SUMA_CmapModeName(OptScl->interpmode));
       SS = SUMA_StringAppend_va (SS, "BiasMode = %d, Range=%f, %f \n", 
             OptScl->DoBias, OptScl->CoordBiasRange[0], OptScl->CoordBiasRange[1]);
       if (OptScl->BiasVect) SS = SUMA_StringAppend_va (SS, "BiasVect is NOT NULL\n");
@@ -6884,7 +6913,7 @@ void SUMA_LoadDsetFile (char *filename, void *data)
    /* colorize the plane */
    SUMA_ColorizePlane(NewColPlane);
 
-    SUMA_Show_ColorOverlayPlanes(&NewColPlane, 1, 1); 
+   /* SUMA_Show_ColorOverlayPlanes(&NewColPlane, 1, 1); */
    
    /* set the new curColPlane to the newly loaded plane,
    you need to do this before you remix the colors in case
