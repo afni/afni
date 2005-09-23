@@ -1984,7 +1984,8 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 	
 	/* read first character and check if it is a comment */
 	ex = fscanf (fs_file,"%c",&c);
-	if (c == '#') {
+	if (LocalHead) fprintf (SUMA_STDOUT, "%s: --->%c<---\n", FuncName, c);
+   if (c == '#') {
 		if (LocalHead) fprintf (SUMA_STDOUT, "%s: Found comment\n", FuncName); 
 		
       /*skip till next line */
@@ -2000,15 +2001,18 @@ SUMA_Boolean SUMA_FreeSurfer_Read_eng (char * f_name, SUMA_FreeSurfer_struct *FS
 				SUMA_RETURN (NOPE);
 			}
 		}
+      if (LocalHead) fprintf (SUMA_STDOUT, "%s: Comment:-->%s<--", FuncName, FS->comment);
 	}
 	
 	/* find out if surface is patch */
 	sprintf(stmp,"patch");
 	if (SUMA_iswordin (FS->comment, stmp) == 1) {
 		FS->isPatch = YUP;
-	}
+	   SUMA_LH("is patch");
+   }
 	else {
 		FS->isPatch = NOPE;
+      SUMA_LH("ain't patch");
 	}
 		
 	/* read in the number of nodes and the number of facesets */
