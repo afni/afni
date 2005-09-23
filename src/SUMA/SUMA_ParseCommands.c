@@ -2443,9 +2443,8 @@ SUMA_SO_File_Type SUMA_guess_surftype_argv(char *str)
 {
    static char FuncName[]={"SUMA_guess_surftype_argv"};
    SUMA_SO_File_Type tp=SUMA_FT_NOT_SPECIFIED;
-
+   
    SUMA_ENTRY;
-
    if (SUMA_iswordin_ci(str, "FreeSurfer") == 1 || SUMA_iswordin_ci(str, "fs") == 1 ) {
       SUMA_RETURN( SUMA_FREE_SURFER );
    }

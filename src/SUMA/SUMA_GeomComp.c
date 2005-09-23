@@ -4701,7 +4701,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc)
 				exit (1);
 			}
 			Opt->oType = SUMA_guess_surftype_argv(argv[kar]);
-			brk = YUP;
+         brk = YUP;
 		}
 
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
@@ -4852,6 +4852,16 @@ int main (int argc,char *argv[])
    far = MRI_FLOAT_PTR(im);
    nvec = im->nx;
    ncol = im->ny;
+   if (Opt->nodecol >= ncol || Opt->labelcol >= ncol) {
+      fprintf(SUMA_STDERR, "\n"
+                           "Error %s: Input file has a total of %d columns.\n"
+                           "One or both user-specified node (%d) and \n"
+                           "label (%d) columns are too high. Maximum usable\n"
+                           "column index is %d.\n"
+                           , FuncName, ncol, Opt->nodecol, Opt->labelcol, ncol -1 );
+      exit(1);
+   }
+   
    d_order = SUMA_COLUMN_MAJOR;
 
    if (!nvec) {
@@ -4954,9 +4964,13 @@ int main (int argc,char *argv[])
          /* replace with Patch */
          SO->FaceSetList = ptch->FaceSetList;
          SO->N_FaceSet = ptch->N_FaceSet; 
-         if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, SUMA_ASCII, NULL)) {
-               fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
-               exit (1);
+         if (SO->N_FaceSet <= 0) {
+            SUMA_S_Warn("The patch is empty.\n Non existing surface not written to disk.\n");
+         } else {
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, SUMA_ASCII, NULL)) {
+                  fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
+                  exit (1);
+            }
          }
          /* bring SO back to shape */
          SO->FileType = typetmp;
