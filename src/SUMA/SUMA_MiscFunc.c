@@ -1108,6 +1108,9 @@ int SUMA_iswordin_ci ( const char *sbig, const char *ssub)
    sbigc = SUMA_copy_string((char *)sbig);
    ssubc = SUMA_copy_string((char *)ssub);
    
+   SUMA_TO_LOWER(sbigc);
+   SUMA_TO_LOWER(ssubc);
+   
    ans = SUMA_iswordin (sbigc, ssubc);
    if (sbigc) SUMA_free(sbigc); sbigc = NULL;
    if (ssubc) SUMA_free(ssubc); ssubc = NULL;

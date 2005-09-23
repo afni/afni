@@ -1078,7 +1078,7 @@ byte *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar
    byte *isin = NULL, *tmpin = NULL;
    int i, N_in, j, k , n, khits, dims[2], N_hits, iii, jjj, niii, ncul;
    float *tmpXYZ=NULL, Center[3], MaxDims[3], MinDims[3], aMaxDims, aMinDims, delta_t;
-   float hdim[3], t0, t1, t2, SOCenter[0], p0[3], p1[3];
+   float hdim[3], t0, t1, t2, SOCenter[3], p0[3], p1[3];
    SUMA_MT_INTERSECT_TRIANGLE *mti = NULL; 
    struct  timeval tti;
    int nfound = 0, N_poshits = 0;
@@ -1454,7 +1454,7 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
    byte *tmpin = NULL;
    int i, N_in, j, k , n, khits, dims[2], N_hits, iii, jjj, niii, ncul;
    float *tmpXYZ=NULL, Center[3], MaxDims[3], MinDims[3], aMaxDims, aMinDims, delta_t;
-   float hdim[3], t0, t1, t2, SOCenter[0], p0[3], p1[3];
+   float hdim[3], t0, t1, t2, SOCenter[3], p0[3], p1[3];
    SUMA_MT_INTERSECT_TRIANGLE *mti = NULL; 
    struct  timeval tti;
    int nfound = 0, N_poshits = 0;
