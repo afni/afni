@@ -1121,7 +1121,7 @@ debugtrace.o:debugtrace.h
 
 afni_vcheck.o:afni.h
 
-afni_splash.o:afni_splash.h imseq.h
+afni_splash.o:afni_splash.h imseq.h afni_splash.c
 
 afni_func.o:imseq.h 3ddata.h xutil.h pbar.h afni.h machdep.h
 afni_widg.o:imseq.h 3ddata.h xutil.h pbar.h afni.h logo.h machdep.h
