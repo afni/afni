@@ -1052,7 +1052,7 @@
       in the case where a type array is not provided
 
 08 April 2005:
-  * modifited nifti_tool.[ch]  (-> v1.6)
+  * modified nifti_tool.[ch]  (-> v1.6)
       - added -cbl: 'copy brick list' dataset copy functionality
       - added -ccd: 'copy collapsed dimensions' dataset copy functionality
       - added -disp_ts: 'disp time series' data display functionality
@@ -1255,4 +1255,9 @@
 
 20 September 2005:
   * modified 2dImReg.c to return 0 from main
+
+26 September 2005:
+  * modified 3dANOVA3.c: applied formulas provided by Gang for variance
+    computations of type 4 and 5, A and B contrasts (including means, diffs
+    and contrs)
 
