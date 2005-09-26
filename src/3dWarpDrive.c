@@ -371,6 +371,7 @@ int main( int argc , char * argv[] )
    int output_float=0 ;                      /* 06 Jul 2005 */
    char *base_idc=NULL , *wt_idc=NULL ;
    int ctstart = NI_clock_time() ;
+   float i_xcm,i_ycm,i_zcm , b_xcm,b_ycm,b_zcm ;  /* 26 Sep 2005 */
 
    /*-- help? --*/
 
@@ -787,8 +788,64 @@ int main( int argc , char * argv[] )
        ERROR_exit("Can't open dataset %s\n",argv[nopt]);
    }
 
+   if( baset == NULL ){
+     ERROR_message("Need to specify a base dataset!\n") ;
+     nerr++ ;
+   }
+
    nx = DSET_NX(inset) ; ny = DSET_NY(inset) ; nz = DSET_NZ(inset) ;
    dx = DSET_DX(inset) ; dy = DSET_DY(inset) ; dz = DSET_DZ(inset) ;
+
+   if( DSET_NX(baset) != nx || DSET_NY(baset) != ny || DSET_NZ(baset) != nz ){
+     ERROR_message("base and input grid dimensions don't match!\n") ;
+     ERROR_message("base  is %d X %d X %d voxels\n",
+                    DSET_NX(baset),DSET_NY(baset),DSET_NZ(baset) ) ;
+     ERROR_exit   ("input is %d X %d X %d voxels\n",nx,ny,nz) ;
+   }
+
+   /*- load datasets from disk; if can't do so, fatal errors all around -*/
+
+   if( abas.verb ) INFO_message("Loading datasets\n") ;
+
+   DSET_load(inset) ;
+   if( !DSET_LOADED(inset) ){
+     ERROR_exit("Can't load input dataset into memory!\n") ;
+   } else {
+     nvals = DSET_NVALS(inset) ;
+     if( nvals == 1 ){
+       clip_inset = THD_cliplevel( DSET_BRICK(inset,0) , 0.0 ) ;
+       if( DSET_BRICK_FACTOR(inset,0) > 0.0f )
+         clip_inset *= DSET_BRICK_FACTOR(inset,0) ;
+         mri_get_cmass_3D( DSET_BRICK(inset,0) , &i_xcm,&i_ycm,&i_zcm ) ;
+     } else {
+       qim = THD_median_brick( inset ) ;
+       clip_inset = THD_cliplevel( qim , 0.0 ) ;
+       mri_get_cmass_3D( qim , &i_xcm,&i_ycm,&i_zcm ) ;
+       mri_free(qim) ;
+     }
+   }
+
+   DSET_load(baset) ;
+   if( !DSET_LOADED(baset) ){
+     ERROR_exit("Can't load base dataset into memory!\n") ;
+   } else {
+     mri_get_cmass_3D( DSET_BRICK(baset,0) , &b_xcm,&b_ycm,&b_zcm ) ;
+     clip_baset  = THD_cliplevel( DSET_BRICK(baset,0) , 0.0 ) ;
+     abas.imbase = mri_to_float( DSET_BRICK(baset,0) ) ;
+     base_idc = strdup(baset->idcode.str) ;
+     DSET_delete(baset) ; baset = NULL ;
+   }
+
+   if( wtset != NULL ){
+     DSET_load(wtset) ;
+     if( !DSET_LOADED(wtset) ){
+       ERROR_exit("Can't load weight dataset into memory!\n") ;
+     } else {
+       abas.imwt = mri_to_float( DSET_BRICK(wtset,0) ) ;
+       wt_idc = strdup(wtset->idcode.str) ;
+       DSET_delete(wtset) ; wtset = NULL ;
+     }
+   }
 
    if( abas.verb ) INFO_message("Checking inputs\n") ;
 
@@ -822,16 +879,23 @@ int main( int argc , char * argv[] )
    } else if( WARPDRIVE_IS_AFFINE(warpdrive_code) ) {
 
        char *lab09, *lab10, *lab11 ;
+       float xd,yd,zd , xl,yl,zl , xxx ;
+
+       xd = 2.22*fabs( dx * (i_xcm-b_xcm) ) ; xl = 0.222 * fabs( dx*nx ) ;
+       yd = 2.22*fabs( dy * (i_ycm-b_ycm) ) ; yl = 0.222 * fabs( dy*ny ) ;
+       zd = 2.22*fabs( dz * (i_zcm-b_zcm) ) ; zl = 0.222 * fabs( dz*nz ) ;
+       xd = MAX(xd,xl) ; yd = MAX(yd,yl) ; zd = MAX(zd,zl) ;
+       xxx = sqrt( xd*xd + yd*yd + zd*zd ) ;
 
        /* add all 12 parameters (may ignore some, later) */
 
-       ADDPAR( "x-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "y-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "z-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "x-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
 
-       ADDPAR( "z-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;  /* degrees */
-       ADDPAR( "x-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "y-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-angle" , -120.0 , 120.0 , 0.0 , 0.0 , 0.0 ) ;  /* degrees */
+       ADDPAR( "x-angle" , -120.0 , 120.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-angle" , -120.0 , 120.0 , 0.0 , 0.0 , 0.0 ) ;
 
        ADDPAR( "x-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;  /* identity */
        ADDPAR( "y-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;  /*  == 1.0 */
@@ -847,9 +911,9 @@ int main( int argc , char * argv[] )
            lab09 = "x/y-shear" ; lab10 = "x/z-shear" ; lab11 = "y/z-shear" ;
          break ;
        }
-       ADDPAR( lab09 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( lab10 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( lab11 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab09 , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab10 , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab11 , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
 
        /* initialize transform parameter vector */
 
@@ -881,16 +945,23 @@ int main( int argc , char * argv[] )
 
        char *lab09, *lab10, *lab11 , labxx[16] ;
        float xr,yr,zr,rr ;
+       float xd,yd,zd , xl,yl,zl , xxx ;
+
+       xd = 2.22*fabs( dx * (i_xcm-b_xcm) ) ; xl = 0.222 * fabs( dx*nx ) ;
+       yd = 2.22*fabs( dy * (i_ycm-b_ycm) ) ; yl = 0.222 * fabs( dy*ny ) ;
+       zd = 2.22*fabs( dz * (i_zcm-b_zcm) ) ; zl = 0.222 * fabs( dz*nz ) ;
+       xd = MAX(xd,xl) ; yd = MAX(yd,yl) ; zd = MAX(zd,zl) ;
+       xxx = sqrt( xd*xd + yd*yd + zd*zd ) ;
 
        /* add all 39 parameters (may ignore some, later) */
 
-       ADDPAR( "x-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "y-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "z-shift" , -100.0 , 100.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "x-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-shift" , -xxx , xxx , 0.0 , 0.0 , 0.0 ) ;
 
-       ADDPAR( "z-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "x-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( "y-angle" , -180.0 , 180.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "z-angle" , -120.0 , 120.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "x-angle" , -120.0 , 120.0 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( "y-angle" , -120.0 , 120.0 , 0.0 , 0.0 , 0.0 ) ;
 
        ADDPAR( "x-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
        ADDPAR( "y-scale" , 0.618  , 1.618 , 1.0 , 0.0 , 0.0 ) ;
@@ -906,15 +977,15 @@ int main( int argc , char * argv[] )
            lab09 = "x/y-shear" ; lab10 = "x/z-shear" ; lab11 = "y/z-shear" ;
          break ;
        }
-       ADDPAR( lab09 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( lab10 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
-       ADDPAR( lab11 , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab09 , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab10 , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
+       ADDPAR( lab11 , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
 
        xr = 0.5f*fabs(dx)*nx ; yr = 0.5f*fabs(dy)*ny ; zr = 0.5f*fabs(dz)*nz ;
        rr = MAX(xr,yr)       ; rr = MAX(rr,zr)       ; dd_fac = 1.0f / rr ;
        for( kpar=12 ; kpar < 39 ; kpar++ ){
          sprintf(labxx,"blin_%02d",kpar+1) ;
-         ADDPAR( labxx , -0.2222 , 0.2222 , 0.0 , 0.0 , 0.0 ) ;
+         ADDPAR( labxx , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
        }
 
        /* initialize transform parameter vector */
@@ -969,11 +1040,6 @@ int main( int argc , char * argv[] )
 
    /*-- other checks for good set of inputs --*/
 
-   if( baset == NULL ){
-     ERROR_message("Need to specify a base dataset!\n") ;
-     nerr++ ;
-   }
-
    if( nerr ) exit(1) ;  /** bad user!! **/
 
    if( abas.verb ) INFO_message("Creating empty output dataset\n") ;
@@ -999,13 +1065,6 @@ int main( int argc , char * argv[] )
    outset->daxes->zzorg = inset->daxes->zzorg ;
 
    /*-- more checks --*/
-
-   if( DSET_NX(baset) != nx || DSET_NY(baset) != ny || DSET_NZ(baset) != nz ){
-     ERROR_message("base and input grid dimensions don't match!\n") ;
-     ERROR_message("base  is %d X %d X %d voxels\n",
-                    DSET_NX(baset),DSET_NY(baset),DSET_NZ(baset) ) ;
-     ERROR_exit   ("input is %d X %d X %d voxels\n",nx,ny,nz) ;
-   }
 
    /* the following aren't fatal errors, but merit a warning slap in the face */
 
@@ -1042,7 +1101,7 @@ int main( int argc , char * argv[] )
              ORIENT_shortstr[inset->daxes->zzorient]  ) ;
    }
 
-   /* however, this is a fatal error */
+   /*- however, this is a fatal error -*/
 
    if( wtset != NULL &&
       (DSET_NX(wtset) != nx || DSET_NY(wtset) != ny || DSET_NZ(wtset) != nz) ){
@@ -1050,47 +1109,6 @@ int main( int argc , char * argv[] )
      ERROR_message("weight is %d X %d X %d voxels\n",
                    DSET_NX(wtset),DSET_NY(wtset),DSET_NZ(wtset)    ) ;
      ERROR_exit   ("input  is %d X %d X %d voxels\n",nx,ny,nz) ;
-   }
-
-   /* load datasets from disk; if can't do so, fatal errors all around */
-
-   if( abas.verb ) INFO_message("Loading datasets\n") ;
-
-   DSET_load(inset) ;
-   if( !DSET_LOADED(inset) ){
-     ERROR_exit("Can't load input dataset into memory!\n") ;
-   } else {
-     nvals = DSET_NVALS(inset) ;
-     if( nvals == 1 ){
-       clip_inset = THD_cliplevel( DSET_BRICK(inset,0) , 0.0 ) ;
-       if( DSET_BRICK_FACTOR(inset,0) > 0.0f )
-         clip_inset *= DSET_BRICK_FACTOR(inset,0) ;
-     } else {
-       qim = THD_median_brick( inset ) ;
-       clip_inset = THD_cliplevel( qim , 0.0 ) ;
-       mri_free(qim) ;
-     }
-   }
-
-   DSET_load(baset) ;
-   if( !DSET_LOADED(baset) ){
-     ERROR_exit("Can't load base dataset into memory!\n") ;
-   } else {
-     clip_baset  = THD_cliplevel( DSET_BRICK(baset,0) , 0.0 ) ;
-     abas.imbase = mri_to_float( DSET_BRICK(baset,0) ) ;
-     base_idc = strdup(baset->idcode.str) ;
-     DSET_delete(baset) ; baset = NULL ;
-   }
-
-   if( wtset != NULL ){
-     DSET_load(wtset) ;
-     if( !DSET_LOADED(wtset) ){
-       ERROR_exit("Can't load weight dataset into memory!\n") ;
-     } else {
-       abas.imwt = mri_to_float( DSET_BRICK(wtset,0) ) ;
-       wt_idc = strdup(wtset->idcode.str) ;
-       DSET_delete(wtset) ; wtset = NULL ;
-     }
    }
 
    /*-- set up (x,y,z) <-> (i,j,k) transformations ---*/
@@ -1134,18 +1152,10 @@ int main( int argc , char * argv[] )
 
    if( clip_baset > 0.0f && clip_inset > 0.0f ){
      float fac = clip_inset / clip_baset ;
-     if( fac > 0.005 && fac < 2000.0 ){ /* zss: have encountered OK data needing very large scale corrections...*/
-       abas.scale_init = fac ;
-       if( abas.verb ) INFO_message("Scale factor set to %.2f/%.2f=%.2g\n",
-                               clip_baset , clip_inset , fac ) ;
-       if (fac > 200) {
-         fprintf(stderr,"++ Warning: Scale init = %g is large. Check output.\n", fac) ;
-       }
-     } else {
-      fprintf(stderr,"-- Large scale difference between datasets.\n"
-                     "   Scale init = %g\n"
-                     "   3dWarpDrive might not converge.",fac) ;  
-     }
+     abas.scale_init = fac ;
+     if( abas.verb || fac >= 100.0 || fac <= 0.01 )
+       INFO_message("Initial scale factor set to %.2f/%.2f=%.2g\n",
+                     clip_baset , clip_inset , fac ) ;
    }
 
    /*===== do the hard work =====*/

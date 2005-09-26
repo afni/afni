@@ -119,16 +119,23 @@ ENTRY("AFNI_splashup") ;
         int np ;
         num_face   = AFNI_find_jpegs( "face_"   , &fname_face   ) ;
         num_splash = AFNI_find_jpegs( "splash_" , &fname_splash ) ;
+if(PRINT_TRACING){
+ char str[256]; sprintf(str,"num_face=%d  num_splash=%d",num_face,num_splash); STATUS(str);
+}
         if( num_splash > 0 ){
+          char *targ = (lrand48()&16 != 0) ? "bobkarl" : "sscc" ;
           for( np=0 ; np < num_splash ; np++ )
-            if( strstr(fname_splash[np],"bobkarl") != NULL ) break ;
+            if( strstr(fname_splash[np],targ) != NULL ) break ;
           if( np < num_splash ) first_splash = np ;
 
-          if( num_face > 0 ){                     /* 21 Sep 2005 */
+          if( first_splash >= 0 && num_face > 0 && strcmp(targ,"bobkarl") == 0 ){
             for( np=0 ; np < num_face ; np++ )
               if( strstr(fname_face[np],"rwcox6") != NULL ) break ;
             if( np < num_face ) first_face = np ;
           }
+if(PRINT_TRACING){
+ char str[256]; sprintf(str,"first_face=%d  first_splash=%d",first_face,first_splash); STATUS(str);
+}
         }
       }
 
@@ -147,15 +154,15 @@ ENTRY("AFNI_splashup") ;
       /*  if have face jpegs, use them; else, use builtin faces [28 Mar 2003] */
 
       imov = NULL ; ff = 0 ;
-      if( num_face > 0 ){                       /* external face_*.jpg files */
+      if( num_face > 0 ){                      /* external face_*.jpg files */
         static int *dold=NULL, ndold=0 ; int qq ;
-        dd = AFNI_find_todays_face() ;               /* 30 Mar 2005: find a */
-        if( dd >= 0 ){ ff=-1; goto Have_dd; }     /* special face for today */
         if( ndold == 0 && num_face > 1 ){
           ndold = num_face/2 ;
           dold  = (int *) malloc(sizeof(int)*ndold) ;
           for( qq=0 ; qq < ndold ; qq++ ) dold[qq] = -1 ;
         }
+        dd = AFNI_find_todays_face() ;                 /* 30 Mar 2005: find */
+        if( dd >= 0 ){ first_face=ff=-1; goto Have_dd; }    /* today's face */
       Retry_dd:
         dd = (lrand48() >> 8) % num_face ;              /* pick random file */
         if( num_face > 1 ){                       /* check if used recently */
@@ -175,12 +182,14 @@ ENTRY("AFNI_splashup") ;
           nxnew = (int)(xfac*imov->nx) ; nynew = (int)(xfac*imov->ny) ;
           imq = mri_resize( imov , nxnew,nynew ) ;          /* kind of slow */
           mri_free(imov); imov = imq;        /* replace with rescaled image */
+          STATUS("loaded face") ;
         }
         if( ff == 0 && imov != NULL ){       /* ff = 2 for me, 1 for everyone else */
           ff = (strstr(fname_face[dd],"_rwcox") != NULL) ? 2 : 1 ;
         }
       }
       if( imov == NULL ){                  /* if didn't get face jpeg above */
+        STATUS("didn't load face") ;
         nov  = (nov+dnov+NOVER) % NOVER ;
         imov = SPLASH_decode26( xover[nov], yover[nov], lover[nov], bover[nov] ) ;
       }
@@ -196,6 +205,7 @@ ENTRY("AFNI_splashup") ;
         if( ff == 2 ) mri_invert_inplace( imov ) ;           /* for me only */
         dd = IXOVER + (MAX_XOVER-imov->nx)/2 ; ee += nyov+1 ;
         mri_overlay_2D( imspl, imov, dd,ee ) ; mri_free(imov) ;
+        STATUS("loaded face label") ;
       }
 
       /* possibly replace the splash image at the top [26 Nov 2003] */
@@ -221,8 +231,7 @@ ENTRY("AFNI_splashup") ;
           }
 #endif
           STATUS("overlaying splash image") ;
-          mri_overlay_2D( imspl , imov , 0,0 ) ;
-          mri_free(imov) ;
+          mri_overlay_2D( imspl , imov , 0,0 ) ; mri_free(imov) ;
         }
         if( np == first_splash && first_face >= 0 ){   /* 21 Sep 2005 */
           imov = mri_read_stuff( fname_face[first_face] ) ;
@@ -230,6 +239,7 @@ ENTRY("AFNI_splashup") ;
             nxov = imov->nx ; nyov = imov->ny ;
             dd = IXOVER + (MAX_XOVER-nxov)/2 ;
             ee = JYOVER + (MAX_YOVER-nyov)/2 ;
+            STATUS("re-overlaying first_face") ;
             mri_overlay_2D( imspl, imov, dd,ee ); mri_free(imov);
           }
         }

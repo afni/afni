@@ -239,6 +239,7 @@ ENTRY("new_MCW_arrowval") ;
    }
 
    av = myXtNew( MCW_arrowval ) ;
+   STATUS("creating wrowcol") ;
    av->wrowcol = XtVaCreateWidget(
                     "dialog" , xmRowColumnWidgetClass , parent ,
 
@@ -259,6 +260,7 @@ ENTRY("new_MCW_arrowval") ;
       XmString   xstr = XmStringCreateLtoR( label , XmFONTLIST_DEFAULT_TAG );
       XmFontList xflist ;
 
+      STATUS("creating wlabel") ;
       av->wlabel = XtVaCreateManagedWidget(
                     "dialog" , xmLabelWidgetClass , av->wrowcol ,
 
@@ -271,7 +273,9 @@ ENTRY("new_MCW_arrowval") ;
 
       XtVaGetValues( av->wlabel , XmNfontList , &xflist , NULL ) ;
 
+      STATUS("getting label height") ;
       asizy = XmStringHeight( xflist , xstr ) ;
+      STATUS("freeing xstr") ;
       XmStringFree( xstr ) ;
 
    } else {
@@ -281,6 +285,7 @@ ENTRY("new_MCW_arrowval") ;
    if( asizx < asizy ) asizx = asizy ;
    else                asizy = asizx ;
 
+   STATUS("creating item labels") ;
    av->wdown = XtVaCreateManagedWidget(
                   "arrow" , xmArrowButtonWidgetClass , av->wrowcol ,
 
@@ -338,6 +343,7 @@ ENTRY("new_MCW_arrowval") ;
 #endif
 
       case MCW_AV_readtext:
+         STATUS("creating wtext1") ;
          av->wtext = XtVaCreateManagedWidget(
                        "dialog" , TEXT_CLASS , av->wrowcol ,
 
@@ -368,6 +374,7 @@ ENTRY("new_MCW_arrowval") ;
          Widget wf ; int maxlen ;
 
          if( textype == MCW_AV_noactext ){
+            STATUS("creating frame") ;
             wf = XtVaCreateWidget( "dialog" , xmFrameWidgetClass , av->wrowcol ,
                                       XmNshadowType , XmSHADOW_OUT ,
                                       XmNshadowThickness , 1 ,
@@ -380,6 +387,7 @@ ENTRY("new_MCW_arrowval") ;
             maxlen = AV_NCOL ;
          }
 
+         STATUS("creating wtext2") ;
          av->wtext = XtVaCreateManagedWidget(
                        "dialog" , TEXT_CLASS , wf ,
 
