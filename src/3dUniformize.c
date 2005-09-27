@@ -22,7 +22,7 @@
 #define PROGRAM_NAME "3dUniformize"                  /* name of this program */
 #define PROGRAM_AUTHOR "B. D. Ward"                        /* program author */
 #define PROGRAM_INITIAL "28 January 2000" /* date of initial program release */
-#define PROGRAM_LATEST  "16 April 2003"   /* date of latest program revision */
+#define PROGRAM_LATEST  "26 September 2005 [rickr, zss]"   /* date of latest program revision */
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -53,6 +53,7 @@ typedef struct UN_options
   char * prefix_filename;     /* prefix name for output dataset */
   Boolean quiet;              /* flag for suppress screen output */
   int lower_limit;    /* lower limit for voxel intensity */
+  int upper_limit;    /* upper limit for voxel intensity 0 for ignoring this parameter*/
   int rpts;           /* #voxels in sub-sampled image (for pdf) */
   int spts;           /* #voxels in subsub-sampled image (for field poly.) */
   int nbin;           /* #bins for pdf estimation */
@@ -104,6 +105,17 @@ void display_help_menu()
      "3dUniformize  \n"
      "-anat filename    Filename of anat dataset to be corrected            \n"
      "                                                                      \n"
+     "[-clip_low LOW]   Use LOW as the voxel intensity separating           \n"
+     "                  brain from air.                                     \n"
+     "[-clip_high HIGH] Do not include voxels with intensity higher         \n"
+     "                  than HIGH in calculations.                          \n"
+     "[-auto_clip]      Automatically set the clip levels.                  \n"
+     "                  LOW in a procedure similar to 3dClipLevel,          \n"
+     "                  HIGH is set to 3*LOW.                               \n"
+     "NOTE: The default (historic) clip_low value is 25. But that only works\n"
+     "      for certain types of input data and can result in bad output    \n"
+     "      depending on the range of values in the input dataset.          \n"
+     "      It is best you use -clip_low or -auto_clip options instead.     \n"
      "[-quiet]          Suppress output to screen                           \n"
      "                                                                      \n"
      "-prefix pname     Prefix name for file to contain corrected image     \n"
@@ -130,7 +142,8 @@ void initialize_options
   option_data->anat_filename = NULL;    /* file name for input anat dataset */
   option_data->prefix_filename = NULL;  /* prefix name for output dataset */
   option_data->quiet = FALSE;           /* flag for suppress screen output */
-  option_data->lower_limit = 25;        /* voxel intensity lower limit */
+  option_data->lower_limit = 0;        /* voxel intensity lower limit, used to be 25 always ZSS Sept. 36 05 */
+  option_data->upper_limit = 0;
   option_data->rpts = 200000;   /* #voxels in sub-sampled image (for pdf) */
   option_data->spts = 10000;    /* #voxels in subsub-sampled image 
 				   (for field polynomial estimation) */
@@ -225,7 +238,42 @@ void get_options
 	  continue;
 	}
       
+      /*-----   -clip_low  -----*/
+      if (strncmp(argv[nopt], "-clip_low", 9) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  UN_error ("need value after -clip_low ");
+     if (option_data->lower_limit) {
+      UN_error ("lower clip value already set, check your options");
+     }
+     option_data->lower_limit = atoi(argv[nopt]); /* ZSS Sept 26 05 */
+	  nopt++;
+	  continue;
+	}
 
+      /*-----   -clip_high  -----*/
+      if (strncmp(argv[nopt], "-clip_high", 9) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  UN_error ("need value after -clip_high ");
+     if (option_data->upper_limit) {
+      UN_error ("upper clip value already set, check your options");
+     }
+     option_data->upper_limit = atoi(argv[nopt]); /* ZSS Sept 26 05 */
+	  nopt++;
+	  continue;
+	}
+   
+   if (strncmp(argv[nopt], "-auto_clip", 8) == 0)
+	{
+     if (option_data->lower_limit) {
+      UN_error ("lower clip value already set, check your options");
+     }
+     option_data->lower_limit = -1; /* flag for auto_clip ZSS Sept 26 05 */
+	  nopt++;
+	  continue;
+	} 
+      
       /*-----   -quiet  -----*/
       if (strncmp(argv[nopt], "-quiet", 6) == 0)
 	{
@@ -255,8 +303,51 @@ void get_options
       UN_error (message);
       
     }
-
-  
+    
+   if (option_data->lower_limit < 0) { /* ZSS Sept 26 05 */
+      option_data->lower_limit = (int) THD_cliplevel( DSET_BRICK(anat_dset,0) , 0.0 ) ;
+      option_data->upper_limit = 3*option_data->lower_limit;
+      if (!quiet) {
+         printf ( "\n"
+                  "Lower limit set with THD_cliplevel at %d\n"
+                  "Upper limit set to %d\n", option_data->lower_limit, option_data->upper_limit);
+      }
+   } else if (option_data->lower_limit == 0) {
+      option_data->lower_limit = 25; /* The olde value */
+      if (!quiet) {
+         if (!option_data->upper_limit) {
+            printf ( "\n"
+                  "Lower limit set to historic default of %d\n"
+                  "No upper limit used.\n", option_data->lower_limit);
+         } else {
+            printf ( "\n"
+                  "Lower limit set to historic default of %d\n"
+                  "Upper limit set to %d.\n", option_data->lower_limit, option_data->upper_limit);
+         }
+         printf ( "\n"
+               "WARNING:\n"
+               "Using the default clip value of 25\n"
+               "might cause bad output depending\n"
+               "on the range of values in your input\n"
+               "dataset. You are better off using -auto_clip\n"
+               "or -clip_low options instead.\n"
+               "\n" );
+      }
+   } else {
+      if (!quiet) {
+         if (option_data->upper_limit) {
+            printf ( "\n"
+                  "Lower limit set by user to %d\n"
+                  "Upper limit set to %d\n", option_data->lower_limit, option_data->upper_limit);
+         } else {
+            printf ( "\n"
+                  "Lower limit set by user to %d\n"
+                  "Upper limit not set.\n", option_data->lower_limit);
+         }
+      }
+   } 
+   
+   
 }
 
 
@@ -425,7 +516,7 @@ void resample
   while (it < rpts)
     {
       k = rand_uniform (0, nxyz);
-      if ( (k >= 0) && (k < nxyz) && (anat_data[k] > lower_limit) )
+      if ( (k >= 0) && (k < nxyz) && (anat_data[k] > lower_limit) && (option_data->upper_limit && (anat_data[k] < option_data->upper_limit)))
 	{
 	  ir[it] = k;
 	  vr[it] = log (anat_data[k] + rand_uniform (0.0,1.0));
@@ -864,6 +955,9 @@ void remove_field (UN_options * option_data, float * fpar, short * sfim)
   float * xrow;
   float f;
 
+  double d, dmax = 0.0;
+  int    tcount  = 0;
+
 
   /*----- Initialize local variables -----*/
   nx = DSET_NX(anat_dset);  ny = DSET_NY(anat_dset);  nz = DSET_NZ(anat_dset);
@@ -879,19 +973,37 @@ void remove_field (UN_options * option_data, float * fpar, short * sfim)
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     {
       if (anat_data[ixyz] > lower_limit) 
-	{
-	  create_row (ixyz, nx, ny, nz, xrow);
-	  
-	  f = 0.0;
-	  for (jpar = 1;  jpar < npar;  jpar++)
-	    f += fpar[jpar] * xrow[jpar];
-	  
-	  sfim[ixyz] = exp( log(anat_data[ixyz]) - f);
-	}
+	   {
+	     create_row (ixyz, nx, ny, nz, xrow);
+
+	     f = 0.0;
+	     for (jpar = 1;  jpar < npar;  jpar++)
+	       f += fpar[jpar] * xrow[jpar];
+
+          /* monitor the results for short range (rickr) */
+          {
+            d = exp( log(anat_data[ixyz]) - f);
+            if ( d > 32767.0 )
+            {
+                if ( d > dmax ) dmax = d;
+                sfim[ixyz] = 32767;
+                tcount++;
+            } else sfim[ixyz] = d;
+          }
+	   }
       else
-	sfim[ixyz] = anat_data[ixyz];
+	   sfim[ixyz] = anat_data[ixyz];
     }
 
+  if ( dmax > 32767.0 && !option_data->quiet )  /* then report an overflow */
+      fprintf(stderr,
+        "\n"
+        "** warning: %d values exceeded the maximum dataset value of %d\n"
+        "            (max overflow value of %.1f)\n"
+        "** such values were set to the maximum %d\n"
+        "** check your results!\n",
+        tcount, 32767, dmax, 32767);
+  
   
   return;
 }
