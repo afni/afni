@@ -644,6 +644,7 @@ MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
     *pma ;                        /* = map of free to total params */
    int ctstart ;
    int do_twopass=(bas->imps_blur != NULL && bas->twoblur > 0.0f) , passnum=1 ;
+   int first_pass ;
    char      *save_prefix ;
    static int save_index=0 ;
 
@@ -676,7 +677,8 @@ ENTRY("mri_warp3D_align_one") ;
 
  ReStart:
 
-   mri_warp3D_method( (do_twopass && passnum==1) ? MRI_LINEAR : bas->regmode ) ;
+   first_pass = (do_twopass && passnum==1) ;
+   mri_warp3D_method( first_pass ? MRI_LINEAR : bas->regmode ) ;
 
    /* load initial fit parameters;
       if they are all the identity transform value,
@@ -701,18 +703,19 @@ ENTRY("mri_warp3D_align_one") ;
 
    for( pp=0 ; pp < npar ; pp++ ) tol[pp] = bas->param[pp].toler ;
 
-   if( do_twopass && passnum == 1 ){
+   if( first_pass ){
      float fac = (1.0f+bas->twoblur) ;
      if( fac < 3.0f ) fac = 3.0f ;
      for( pp=0 ; pp < npar ; pp++ ) tol[pp] *= fac ;
    }
 
-   if( bas->verb ) fprintf(stderr,"++ mri_warp3d_align_one: START PASS #%d\n",passnum) ;
+   if( bas->verb )
+     fprintf(stderr,"++ mri_warp3d_align_one: START PASS #%d\n",passnum) ;
 
    /* setup base image for registration into fim,
       and pseudo-inverse of base+derivative images into pmat */
 
-   if( do_twopass && passnum==1 ){    /* first pass ==> registering blurred images */
+   if( first_pass ){             /* first pass ==> registering blurred images */
      float *far , blur=bas->twoblur ;
      int nx=im->nx , ny=im->ny , nz=im->nz ;
      fim = mri_to_float( im ) ; far = MRI_FLOAT_PTR(fim) ;
@@ -736,6 +739,11 @@ ENTRY("mri_warp3D_align_one") ;
        tim = mri_warp3D( fim , 0,0,0 , bas->vwfor ) ; /* warp on current params */
      }
      tar = MRI_FLOAT_PTR(tim) ;
+
+     if( bas->verb && !first_pass ){
+       float sdif = mri_scaled_diff( bas->imbase , tim , bas->imsk ) ;
+       fprintf(stderr,"++ Iter=%d  Sdif=%g\n",iter,sdif) ;
+     }
 
      /* find least squares fit of base + derivatives to warped image */
 
@@ -868,7 +876,7 @@ ENTRY("mri_warp3D_align_one") ;
 
    /*--- do the second pass? ---*/
 
-   if( do_twopass && passnum == 1 ){
+   if( first_pass ){
      if( bas->verb )
        fprintf(stderr,"+++++++++++++ Loop back for next pass +++++++++++++\n");
      mri_free(fim) ; fim = NULL ; passnum++ ; goto ReStart ;
