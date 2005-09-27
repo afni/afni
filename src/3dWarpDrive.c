@@ -832,8 +832,8 @@ int main( int argc , char * argv[] )
      mri_get_cmass_3D( DSET_BRICK(baset,0) , &b_xcm,&b_ycm,&b_zcm ) ;
      clip_baset  = THD_cliplevel( DSET_BRICK(baset,0) , 0.0 ) ;
      abas.imbase = mri_to_float( DSET_BRICK(baset,0) ) ;
-     base_idc = strdup(baset->idcode.str) ;
-     DSET_delete(baset) ; baset = NULL ;
+     base_idc    = strdup(baset->idcode.str) ;
+     DSET_unload(baset) ;
    }
 
    if( wtset != NULL ){
@@ -842,8 +842,8 @@ int main( int argc , char * argv[] )
        ERROR_exit("Can't load weight dataset into memory!\n") ;
      } else {
        abas.imwt = mri_to_float( DSET_BRICK(wtset,0) ) ;
-       wt_idc = strdup(wtset->idcode.str) ;
-       DSET_delete(wtset) ; wtset = NULL ;
+       wt_idc    = strdup(wtset->idcode.str) ;
+       DSET_unload(wtset) ;
      }
    }
 
