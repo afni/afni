@@ -644,7 +644,7 @@ MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
     *pma ;                        /* = map of free to total params */
    int ctstart ;
    int do_twopass=(bas->imps_blur != NULL && bas->twoblur > 0.0f) , passnum=1 ;
-   int first_pass ;
+   int blur_pass ;
    char      *save_prefix ;
    static int save_index=0 ;
 
@@ -652,6 +652,8 @@ MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
 #define NMEM    5
    float *fitmem[NMEM] ;
    int mm , last_aitken , num_aitken=0 ;
+   float  sdif , fitdif[NMEM] ;   /* 28 Sep 2005 */
+   int    num_bad_diff ;
 
 ENTRY("mri_warp3D_align_one") ;
 
@@ -669,6 +671,7 @@ ENTRY("mri_warp3D_align_one") ;
    tol  = (float *)malloc(sizeof(float) * npar ) ;
 
    for( mm=0 ; mm < NMEM ; mm++ ) fitmem[mm] = NULL ;
+   for( mm=0 ; mm < NMEM ; mm++ ) fitdif[mm] = 3.e+33 ;
 
    /*--- loop back point for two pass alignment ---*/
 
@@ -677,8 +680,8 @@ ENTRY("mri_warp3D_align_one") ;
 
  ReStart:
 
-   first_pass = (do_twopass && passnum==1) ;
-   mri_warp3D_method( first_pass ? MRI_LINEAR : bas->regmode ) ;
+   blur_pass = (do_twopass && passnum==1) ;
+   mri_warp3D_method( blur_pass ? MRI_LINEAR : bas->regmode ) ;
 
    /* load initial fit parameters;
       if they are all the identity transform value,
@@ -699,11 +702,11 @@ ENTRY("mri_warp3D_align_one") ;
    }
 
    fitmem[0] = (float *)malloc(sizeof(float)*npar) ;
-   memcpy( fitmem[0] , fit , sizeof(float)*npar) ;
+   memcpy( fitmem[0] , fit , sizeof(float)*npar ) ;
 
    for( pp=0 ; pp < npar ; pp++ ) tol[pp] = bas->param[pp].toler ;
 
-   if( first_pass ){
+   if( blur_pass ){
      float fac = (1.0f+bas->twoblur) ;
      if( fac < 3.0f ) fac = 3.0f ;
      for( pp=0 ; pp < npar ; pp++ ) tol[pp] *= fac ;
@@ -715,7 +718,7 @@ ENTRY("mri_warp3D_align_one") ;
    /* setup base image for registration into fim,
       and pseudo-inverse of base+derivative images into pmat */
 
-   if( first_pass ){             /* first pass ==> registering blurred images */
+   if( blur_pass ){             /* first pass ==> registering blurred images */
      float *far , blur=bas->twoblur ;
      int nx=im->nx , ny=im->ny , nz=im->nz ;
      fim = mri_to_float( im ) ; far = MRI_FLOAT_PTR(fim) ;
@@ -730,7 +733,7 @@ ENTRY("mri_warp3D_align_one") ;
 
    /*-- iterate fit --*/
 
-   iter = 0 ; good = 1 ; last_aitken = 3 ;
+   iter = 0 ; good = 1 ; last_aitken = 3 ; num_bad_diff = 0 ;
    while( good ){
      if( skip_first ){
        tim = fim ; skip_first = 0 ;
@@ -740,10 +743,9 @@ ENTRY("mri_warp3D_align_one") ;
      }
      tar = MRI_FLOAT_PTR(tim) ;
 
-     if( bas->verb && !first_pass ){
-       float sdif = mri_scaled_diff( bas->imbase , tim , bas->imsk ) ;
-       fprintf(stderr,"++ Iter=%d  Sdif=%g\n",iter,sdif) ;
-     }
+     sdif = mri_scaled_diff( bas->imbase , tim , bas->imsk ) ;
+     if( bas->verb )
+       fprintf(stderr,"++++++++++ Start iter=%d  RMS_diff=%g\n",iter+1,sdif) ;
 
      /* find least squares fit of base + derivatives to warped image */
 
@@ -777,7 +779,24 @@ ENTRY("mri_warp3D_align_one") ;
      if( fitmem[NMEM-1] != NULL ) free((void *)fitmem[NMEM-1]) ;
      for( mm=NMEM-1 ; mm > 0 ; mm-- ) fitmem[mm] = fitmem[mm-1] ;
      fitmem[0] = (float *)malloc(sizeof(float)*npar) ;
-     memcpy( fitmem[0] , fit , sizeof(float)*npar) ;
+     memcpy( fitmem[0] , fit , sizeof(float)*npar ) ;
+
+     /* 28 Sep 2005: if RMS went up, back off the changes! */
+
+     for( mm=NMEM-1 ; mm > 0 ; mm-- ) fitdif[mm] = fitdif[mm-1] ;
+     fitdif[0] = sdif ;
+
+     if( iter > 1          && num_bad_diff < 1                  &&
+         fitmem[1] != NULL && fitdif[0]    > 1.0666 * fitdif[1]   ){
+       for( pp=0 ; pp < npar ; pp++ )
+         fit[pp] = 0.5 * ( fitmem[0][pp] + fitmem[1][pp] ) ;
+       memcpy( fitmem[0] , fit , sizeof(float)*npar ) ;
+       last_aitken = iter+1 ; num_bad_diff++ ;
+       if( bas->verb )
+         fprintf(stderr,"+++ RMS_diff changes too much!\n") ;
+     } else {
+       num_bad_diff = 0 ;
+     }
 
      iter++ ;
      if( iter > last_aitken+NMEM && !AFNI_noenv("AFNI_WARPDRIVE_AITKEN") ){
@@ -821,11 +840,11 @@ ENTRY("mri_warp3D_align_one") ;
        }
      }
 
-     /* save intermediate result? */
+     /* save intermediate image? */
 
      if( save_prefix != NULL ){
        char sname[THD_MAX_NAME] ; FILE *fp ;
-       mri_warp3D_set_womask( NULL ) ;
+       mri_warp3D_set_womask( NULL ) ;        /* must warp the whole thing */
        bas->vwset( npar , fit ) ;
        tim = mri_warp3D( fim , 0,0,0 , bas->vwfor ) ;
        tar = MRI_FLOAT_PTR(tim) ;
@@ -867,16 +886,14 @@ ENTRY("mri_warp3D_align_one") ;
 
      good = (ngood < nfree) && (iter < bas->max_iter) ;
 
-   } /* end while */
-
-   bas->num_iter += iter ;
+   } /* end while loop for iteration of fitting procedure */
 
    for( mm=0 ; mm < NMEM ; mm++ )
      if( fitmem[mm] != NULL ){ free((void *)fitmem[mm]); fitmem[mm] = NULL; }
 
    /*--- do the second pass? ---*/
 
-   if( first_pass ){
+   if( blur_pass ){
      if( bas->verb )
        fprintf(stderr,"+++++++++++++ Loop back for next pass +++++++++++++\n");
      mri_free(fim) ; fim = NULL ; passnum++ ; goto ReStart ;
@@ -886,6 +903,8 @@ ENTRY("mri_warp3D_align_one") ;
    }
 
    /*--- done! ---*/
+
+   bas->num_iter = iter ;
 
    for( pp=0 ; pp < npar ; pp++ ) bas->param[pp].val_out = fit[pp] ;
 
