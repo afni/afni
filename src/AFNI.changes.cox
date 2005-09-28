@@ -5704,3 +5704,7 @@
 21 Sep 2005
  * Modified thd_writedset.c and 3dAFNItoNIFTI.c so that if AFNI_AUTOGZIP is
      YES, then .nii.gz files will be written instead of .nii files.
+
+28 Sep 2005
+ * Changes to 3dWarpDrive.c to summarize results (-summ) and to prevent steps
+     that make the RMS error much worse.

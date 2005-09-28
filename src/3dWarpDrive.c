@@ -372,6 +372,8 @@ int main( int argc , char * argv[] )
    char *base_idc=NULL , *wt_idc=NULL ;
    int ctstart = NI_clock_time() ;
    float i_xcm,i_ycm,i_zcm , b_xcm,b_ycm,b_zcm ;  /* 26 Sep 2005 */
+   float sdif_before , sdif_after ;               /* 28 Sep 2005 */
+   char *W_summfile=NULL ; FILE *summfp=NULL ;
 
    /*-- help? --*/
 
@@ -414,6 +416,7 @@ int main( int argc , char * argv[] )
             "  -input ddd  = You can put the input dataset anywhere in the\n"
             "                  command line option list by using the '-input'\n"
             "                  option, instead of always putting it last.\n"
+            "  -summ sss   = Save summary of calculations into text file 'sss'.\n"
             "\n"
             "-----------------\n"
             "Technical Options:\n"
@@ -537,6 +540,17 @@ int main( int argc , char * argv[] )
    /*-- command line options --*/
 
    while( nopt < argc && argv[nopt][0] == '-' ){
+
+     /*-----*/
+
+     if( strcmp(argv[nopt],"-summ") == 0 ){    /* 28 Sep 2005 */
+       if( ++nopt >= argc )
+         ERROR_exit("Need 1 parameter afer -summ!\n");
+       W_summfile = strdup( argv[nopt] ) ;
+       if( !THD_filename_ok(W_summfile) )
+         ERROR_exit("Name after -summ has bad characters!\n") ;
+       nopt++ ; continue ;
+     }
 
      /*-----*/
 
@@ -1170,6 +1184,17 @@ int main( int argc , char * argv[] )
 
    mri_warp3D_align_setup( &abas ) ;
 
+   /*-- open summ file, if desired --*/
+
+   if( W_summfile != NULL ){
+     if( THD_is_file(W_summfile) )
+       WARNING_message("Over-writing -summ file '%s'",W_summfile) ;
+     if( strcmp(W_summfile,"-") == 0 ) summfp = stdout ;
+     else                              summfp = fopen( W_summfile, "w" ) ;
+     if( summfp == NULL )
+       ERROR_message("Can't open -summ file '%s'",W_summfile) ;
+   }
+
    if( abas.verb ) INFO_message("Beginning alignment loop\n") ;
 
    /** loop over input sub-bricks **/
@@ -1188,10 +1213,22 @@ int main( int argc , char * argv[] )
 
      qim = mri_scale_to_float( DSET_BRICK_FACTOR(inset,kim) ,
                                DSET_BRICK(inset,kim)         ) ;
+
+     sdif_before = mri_scaled_diff( abas.imbase , qim , abas.imsk ) ;
+
      tim = mri_warp3d_align_one( &abas , qim ) ;
      mri_free( qim ) ; DSET_unload_one( inset , kim ) ;
 
+     sdif_after = mri_scaled_diff( abas.imbase , tim , abas.imsk ) ;
+
      if( abas.verb ){ DUMP_VECMAT( "end mv_for" , mv_for ) ; }
+
+     if( abas.verb )
+       INFO_message("#%d RMS_diff: before=%g  after=%g",kim,sdif_before,sdif_after) ;
+
+     if( summfp != NULL )
+       fprintf(summfp,"RMS[%d] = %g %g   ITER = %d/%d\n",
+               kim , sdif_before , sdif_after , abas.num_iter , abas.max_iter ) ;
 
      /** save output parameters for later **/
 
@@ -1237,6 +1274,8 @@ int main( int argc , char * argv[] )
       }
    }
    DSET_unload( inset ) ;
+
+   if( summfp != NULL && summfp != stdout ){ fclose(summfp); summfp = NULL; }
 
    /*===== hard work is done =====*/
 
