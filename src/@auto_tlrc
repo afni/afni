@@ -58,8 +58,9 @@ if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
    echo "      -keep_tmp      :  Keep temporary files."
    echo "      -xform  XFORM  : Transform to use for warping:"
    echo "                       Choose from affine_general or shift_rotate_scale"
-   echo "                       Default is affine_general but you should use "
-   echo "                       shift_rotate_scale if the alignment does not converge."
+   echo "                       Default is affine_general but the script will"
+   echo "                       automatically try to use shift_rotate_scale "
+   echo "                       if the alignment does not converge."
    echo "      -no_avoid_eyes : An option that gets passed to 3dSkullStrip."
    echo "                       Use it when parts of the frontal lobes get clipped."
    echo "                       See 3dSkullStrip -help for more details." 
@@ -511,7 +512,7 @@ AUTO_TLRC_MODE:
          if ($pass == 1) then
             if ("$xform_type" == "affine_general") then
                echo ""
-               echo "Warning:"
+               echo "Warning:*****************************"
                echo "Registration did not converge, trying "
                echo "registration without shearing."
                echo ""
@@ -521,7 +522,7 @@ AUTO_TLRC_MODE:
                set pass = 2
             else 
                echo ""
-               echo "Warning:"
+               echo "Warning:**************************"
                echo "Registration did not converge, not "
                echo "much else to try automatically. "
                echo "Check your results, the -help tips"
@@ -537,7 +538,7 @@ AUTO_TLRC_MODE:
          else 
             if ($pass == 2) then
                echo ""
-               echo "Warning:"
+               echo "Warning:***************************"
                echo "Registration did not converge, even "
                echo "without shear operation."
                echo "Check your results, the -help tips"
