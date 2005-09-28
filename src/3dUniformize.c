@@ -329,7 +329,8 @@ void get_options
                "Using the default clip value of 25\n"
                "might cause bad output depending\n"
                "on the range of values in your input\n"
-               "dataset. You are better off using -auto_clip\n"
+               "dataset.\n"
+               "You are better off using -auto_clip\n"
                "or -clip_low options instead.\n"
                "\n" );
       }
