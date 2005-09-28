@@ -485,13 +485,88 @@ AUTO_TLRC_MODE:
    if ($verb == 1) then
       set spopt = "$spopt -verb"
    endif
-   3dWarpDrive ${spopt} -twopass -${xform_type} -cubic  \
-               -final ${rmode} -base ${ref_pref_pad}+tlrc \
+   
+   set pass = 1
+   set Converged = 0
+   while ($Converged == 0 && $pass < 3)
+      rm -f ${ns_pref}_WarpDrive.log >& /dev/null
+      3dWarpDrive ${spopt} -twopass -${xform_type} -cubic  \
+               -final ${rmode} -base ${ref_pref_pad}+tlrc -summ ${ns_pref}_WarpDrive.log \
                -prefix ${tmppref}_reg_warpdriveout -input ${rs_pref}+orig
-   if ( ! -f ${tmppref}_reg_warpdriveout+orig.HEAD ) then
-      echo "Error: Failed in 3dWarpDrive "
-      goto END
-   endif
+      if ( ! -f ${tmppref}_reg_warpdriveout+orig.HEAD ) then
+         echo "Error: Failed in 3dWarpDrive "
+         goto END
+      endif
+      #check for convergence
+      set res = "`cat ${ns_pref}_WarpDrive.log | grep 'RMS\[0\]'`"
+      echo "$res"
+      set rms_i = `echo "$res" | cut -d ' ' -f3`
+      set rms_f = `echo "$res" | cut -d ' ' -f4`
+      set rms_diff_pos = `ccalc -eval "step($rms_f - $rms_i)" | cut -d '.' -f1`
+      set rat = `echo "$res" | cut -d ' ' -f9` 
+      set niter = `echo "$rat" | cut -d '/' -f1`
+      set nitermax = `echo "$rat" | cut -d '/' -f2`
+      set Converged = 1
+      if ($rms_diff_pos) then
+         if ($pass == 1) then
+            if ("$xform_type" == "affine_general") then
+               echo ""
+               echo "Warning:"
+               echo "Registration did not converge, trying "
+               echo "registration without shearing."
+               echo ""
+               set xform_type = 'shift_rotate_scale'
+               3drename ${tmppref}_reg_warpdriveout+orig ${tmppref}_reg_warpdriveout_NoConvergence
+               set Converged = 0
+               set pass = 2
+            else 
+               echo ""
+               echo "Warning:"
+               echo "Registration did not converge, not "
+               echo "much else to try automatically. "
+               echo "Check your results, the -help tips"
+               echo "and report persisting problems to "
+               echo "progam authors."
+               echo ""
+               echo "Script will stop ..."
+               echo ""
+               goto END
+               set pass = 3
+               set Converged = 0
+            endif
+         else 
+            if ($pass == 2) then
+               echo ""
+               echo "Warning:"
+               echo "Registration did not converge, even "
+               echo "without shear operation."
+               echo "Check your results, the -help tips"
+               echo "and report persisting problems to "
+               echo "progam authors."
+               echo ""
+               echo "Script will stop ..."
+               echo ""
+               goto END
+               set pass = 3
+               set Converged = 0
+            endif
+         endif
+      else
+         #looks OK, but did we reach the limit?
+         if ($niter < $nitermax) then
+            echo ""
+            echo "Warping has converged."
+            echo ""
+         else
+            echo ""
+            echo "Warping used up maximum iterations"
+            echo "Convergence might not have"
+            echo "been reached. Check your results..."
+            echo ""
+         endif
+      endif
+   end
+   
    #apply same warp for mask of dataset and use mask to get rid of edge artifacts
    3dcalc -a "${rs_pref}+orig" -expr "step(a)*10000" -prefix ${tmppref}_reg_braintlrcstep
    3dWarp -matparent ${tmppref}_reg_warpdriveout+orig -linear -prefix ${tmppref}_reg_braintlrcmask ${tmppref}_reg_braintlrcstep+orig 
@@ -514,6 +589,7 @@ AUTO_TLRC_MODE:
    3drefit -atrcopy ${tmppref}_reg_warpdriveout+orig WARPDRIVE_BASE_IDCODE ${tt_pref}+orig
    3drefit -atrcopy ${tmppref}_reg_warpdriveout+orig WARPDRIVE_MATVEC_FOR_000000 ${tt_pref}+orig
    3drefit -atrcopy ${tmppref}_reg_warpdriveout+orig WARPDRIVE_MATVEC_INV_000000 ${tt_pref}+orig
+   3dNotes -a "Dataset created via: `basename $0` $argv[*]" ${tt_pref}+orig
    
    if ($KeepView == 0) then
       echo "Changing view of transformed anatomy"
@@ -550,6 +626,8 @@ APAR_MODE:
    3dresample  -master ${ref_in} -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
                -prefix ${tt_pref} -inset ${tmppref}_warp_tmp+orig -rmode ${resam}  
    if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
+   
+   3dNotes -a "Dataset created via: `basename $0` $argv[*]" ${tt_pref}+tlrc
    
    goto WRAP_UP
 #######################
