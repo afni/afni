@@ -214,7 +214,7 @@ RESAMPLE:
 	set Skip = 0
 	cd $CurDir
 	set ExpAnat_ResampPrefix = $ExpAnatPrefix"_resamp_"$clpbelow
-	set ExpAnat_Resamp = $ExpAnat_ResampPrefix$ExpAnatView
+	set ExpAnat_Resamp = $ExpAnat_ResampPrefix$SurfAnatView
 	echo ""
 	echo "resampling $ExpAnat to match $SurfAnatPath/$SurfAnat"
 	if (-f $ExpAnat_Resamp.BRIK) then
@@ -303,7 +303,7 @@ REGISTER:
       3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
       3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_refpad $ExpAnat
 
-      3dWarpDrive -twopass -verb -affine_general -cubic -final quintic -base ./${tmpref}_refpad$ExpAnatView -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
+      3dWarpDrive -twopass -verb -affine_general -cubic -final quintic -base ./${tmpref}_refpad$SurfAnatView -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
 	   
       3dZeropad -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm -prefix ./$VolRegPrefix ${tmpref}_pad_wd$SurfAnatView
 	   #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
@@ -312,7 +312,10 @@ REGISTER:
       3drefit -atrcopy ${tmpref}_pad_wd$SurfAnatView WARPDRIVE_BASE_IDCODE $VolRegPrefix$SurfAnatView
       3drefit -atrcopy ${tmpref}_pad_wd$SurfAnatView WARPDRIVE_MATVEC_FOR_000000 $VolRegPrefix$SurfAnatView
       3drefit -atrcopy ${tmpref}_pad_wd$SurfAnatView WARPDRIVE_MATVEC_INV_000000 $VolRegPrefix$SurfAnatView
-
+      #differing views?
+      if ("$SurfAnatView" != "$ExpAnatView") then
+         3drefit -view $ExpAnatView $VolRegPrefix$SurfAnatView
+      endif
       if (!(-f ./$VolRegPrefix$SurfAnatView.BRIK || -f ./$VolRegPrefix$SurfAnatView.BRIK.gz || -f ./$VolRegPrefix$SurfAnatView.BRIK.Z)) then
 		   goto NO_WARPDRIVE
 	   endif
