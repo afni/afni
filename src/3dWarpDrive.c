@@ -417,6 +417,7 @@ int main( int argc , char * argv[] )
             "                  command line option list by using the '-input'\n"
             "                  option, instead of always putting it last.\n"
             "  -summ sss   = Save summary of calculations into text file 'sss'.\n"
+            "                  (N.B.: If 'sss' is '-', summary goes to stdout.)\n"
             "\n"
             "-----------------\n"
             "Technical Options:\n"
