@@ -315,8 +315,11 @@ REGISTER:
       #differing views?
       if ("$SurfAnatView" != "$ExpAnatView") then
          3drefit -view $ExpAnatView $VolRegPrefix$SurfAnatView
+         set fview = $ExpAnatView
+      else
+         set fview = $SurfAnatView
       endif
-      if (!(-f ./$VolRegPrefix$SurfAnatView.BRIK || -f ./$VolRegPrefix$SurfAnatView.BRIK.gz || -f ./$VolRegPrefix$SurfAnatView.BRIK.Z)) then
+      if (!(-f ./$VolRegPrefix$fview.BRIK || -f ./$VolRegPrefix$fview.BRIK.gz || -f ./$VolRegPrefix$fview.BRIK.Z)) then
 		   goto NO_WARPDRIVE
 	   endif
       rm -rf ${tmpref}*.???? >& /dev/null
