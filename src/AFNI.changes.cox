@@ -5708,3 +5708,6 @@
 28 Sep 2005
  * Changes to 3dWarpDrive.c to summarize results (-summ) and to prevent steps
      that make the RMS error much worse.
+
+30 Sep 2005
+ * 2x2 and 3x3 special cases for cs_symeig.c.
