@@ -18,6 +18,9 @@
 #undef  PI
 #define PI 3.14159265358979323846
 
+#undef  MIN
+#define MIN(a,b) (((a)>(b)) ? (b) : (a))
+
 #undef  SWAP
 #define SWAP(x,y) (th=(x),(x)=(y),(y)=th)
 
@@ -270,6 +273,11 @@ void symeig_2( double *a , double *e , int dovec )
    return ;
 }
 
+/*--------------------------------------------------------------------------*/
+
+static int forbid_23 = 0 ;
+void symeig_forbid_23( int ii ){ forbid_23 = ii ; return ; }
+
 /*--------------------------------------------------------------------------
    Compute the eigenvalue/vector decomposition of a symmetric matrix,
    stored in double precision.
@@ -292,10 +300,11 @@ void symeig_double( int n , double *a , double *e )
 
    /* special cases of small n */
 
-   switch( n ){
-     case 1: e[0] = a[0] ; a[0] = 1.0 ; return ;  /* degenerate case */
-     case 2: symeig_2( a , e , 1 )    ; return ;
-     case 3: symeig_3( a , e , 1 )    ; return ;
+   if( n == 1 ){
+     e[0] = a[0] ; a[0] = 1.0 ; return ;  /* degenerate case */
+   } else if( !forbid_23 ){
+     if( n == 2 ){ symeig_2( a , e , 1 ) ; return ; }
+     if( n == 3 ){ symeig_3( a , e , 1 ) ; return ; }
    }
 
    /*-- default code: n > 3 --*/
@@ -322,10 +331,11 @@ void symeigval_double( int n , double *a , double *e )
 
    /* special cases of small n */
 
-   switch( n ){
-     case 1: e[0] = a[0]           ; return ;  /* degenerate case */
-     case 2: symeig_2( a , e , 0 ) ; return ;
-     case 3: symeig_3( a , e , 0 ) ; return ;
+   if( n == 1 ){
+     e[0] = a[0] ; return ;  /* degenerate case */
+   } else if( !forbid_23 ){
+     if( n == 2 ){ symeig_2( a , e , 0 ) ; return ; }
+     if( n == 3 ){ symeig_3( a , e , 0 ) ; return ; }
    }
 
    /*-- here, deal with general n > 3 --*/
