@@ -1084,9 +1084,9 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
       NetShift[2] = Delta[2];
       
       
-      fprintf (SUMA_STDERR,"%s: Applying xform.\nMrot[\t%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f]\nDelta = [%f %f %f]\n", FuncName,\
+      /* fprintf (SUMA_STDERR,"%s: Applying xform.\nMrot[\t%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f]\nDelta = [%f %f %f]\n", FuncName,\
                Mrot[0][0], Mrot[0][1], Mrot[0][2], Mrot[1][0], Mrot[1][1], Mrot[1][2], Mrot[2][0], Mrot[2][1], Mrot[2][2], \
-               Delta[0], Delta[1], Delta[2]);
+               Delta[0], Delta[1], Delta[2]); */
       
       
       
