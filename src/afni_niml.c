@@ -1870,7 +1870,9 @@ STATUS("received Node_ROI element") ;
 
 STATUS("checking Node_ROI ID codes") ;
 
-   surf_idc = NI_get_attribute( nel , "MeshParent_idcode" ) ;
+   surf_idc = NI_get_attribute( nel , "Parent_ID" ) ;
+   if( surf_idc == NULL )
+     surf_idc = NI_get_attribute( nel , "MeshParent_idcode" ) ;
    if( surf_idc == NULL )
      surf_idc = NI_get_attribute( nel , "surface_idcode" ) ;
    if( surf_idc == NULL )
