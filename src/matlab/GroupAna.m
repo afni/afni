@@ -66,8 +66,9 @@ end
 % If for surface data, acquire number of nodes
 flg = 0;
 if (data_type == 1),
-   fprintf(1, '\nProgram @Purify_1D can be used to extract the regressor coefficient column to a 1D file.');
-	Frame_N = input('\nWhich column corresponds to regressor coefficient? (1, 2, 3, ...) ');	
+   fprintf(1, '\nInput files have to be in 1D format, and program @Purify_1D can be used to extract the regressor ...
+	    coefficient column to a 1D file. Type @Purify_1D for usage ...');
+	Frame_N = input('\nWhich column corresponds to regressor coefficient in the 1D files? (1, 2, 3, ...) ');	
 	while flg == 0,
 	   node_n = input('\nHow many number of nodes in the surface data? ');
 	   if (isnumeric(node_n) == 0 | isempty(node_n)),
