@@ -1,10 +1,7 @@
-/* This file generates an image, writes it to disk, reads it from disk, and compares the results to make sure that all the data survived. */
-
 #include <nifti1_io.h>
-static nifti_image * generate_reference_image()
+
+nifti_image * generate_reference_image( const char * write_image_filename )
 {
-    char write_image_filename[]="ATestReferenceImageForReadingAndWriting.nii";
-    nifti_image * reference_image;
     nifti_1_header reference_header;
     memset(&reference_header,0,sizeof(reference_header));
     reference_header.sizeof_hdr=sizeof(reference_header);
@@ -17,8 +14,8 @@ static nifti_image * generate_reference_image()
     reference_header.dim[3]=11;
     reference_header.dim[4]=7;
     reference_header.dim[5]=3;
-    reference_header.dim[6]=16000;
-    reference_header.dim[7]=16000;
+    reference_header.dim[6]=1; //This MUST be 1 anything else is invalid due to code that usees huristics to fix other possible problems;
+    reference_header.dim[7]=1; //This MUST be 1 anything else is invalid due to code that usees huristics to fix other possible problems;
     reference_header.intent_p1=10101010.101F;
     reference_header.intent_p2=987654321.0F;
     reference_header.intent_p3=-1234.0F;
@@ -70,7 +67,7 @@ static nifti_image * generate_reference_image()
         reference_header.bitpix=nbyper*8;
         }
 
-    reference_image=nifti_convert_nhdr2nim(reference_header,write_image_filename);
+    nifti_image * reference_image=nifti_convert_nhdr2nim(reference_header,write_image_filename);
         {
         const unsigned int NumVoxels=reference_image->nx*reference_image->ny*reference_image->nz*reference_image->nt*reference_image->nu;
         reference_image->data=calloc(NumVoxels,sizeof(signed int)) ;                  /*!< pointer to data: nbyper*nvox bytes     */
@@ -82,10 +79,13 @@ static nifti_image * generate_reference_image()
                 }
             }
         }
+    if(nifti_set_filenames( reference_image,write_image_filename, 0, 0 ) ) { return NULL; }
+    if(nifti_set_type_from_names( reference_image ) != 0 ) { return NULL; }
+    if(nifti_type_and_names_match( reference_image , 1 ) !=1) { return NULL; }
     return reference_image;
 }
 
-static unsigned int compare_known_values(nifti_image const * const known, nifti_image const * const unknown)
+unsigned int compare_known_values(nifti_image const * const known, nifti_image const * const unknown)
 {
     if(known->nifti_type!=unknown->nifti_type) return __LINE__;
     if(!strcmp(known->fname,unknown->fname)) return __LINE__;
@@ -120,20 +120,111 @@ static unsigned int compare_known_values(nifti_image const * const known, nifti_
     return 0;
 }
 
+int PrintTest(const int line,const char * message,const int TestValue)
+{
+    char * PREFIX= (TestValue)?"==========ERROR":"..........SUCCESS";
+    printf("%s (%d): %s\n",PREFIX,line,message);
+    fflush(stdout);
+    return TestValue;
+}
 int main (int argc, char *argv[])
 {
-    nifti_image * reference_image = generate_reference_image();
-    if(!reference_image) return __LINE__;
+    char TEMP_STR[256];
+    int ERRORS_FOUND=0;
         {
-        nifti_image_write   ( reference_image ) ;
+        const char write_image_filename[6][64]={
+            "ATestReferenceImageForReadingAndWriting.nii",
+            "ATestReferenceImageForReadingAndWriting.hdr",
+            "ATestReferenceImageForReadingAndWriting.img",
+            "ATestReferenceImageForReadingAndWriting.nii.gz",
+            "ATestReferenceImageForReadingAndWriting.hdr.gz",
+            "ATestReferenceImageForReadingAndWriting.img.gz"
+        };
+        printf("======= Testing All Nifti Valid Names ======\n");
+        fflush(stdout);
+        unsigned int filenameindex;
+        for(filenameindex=0;filenameindex<6; filenameindex++)
             {
-            nifti_image * reloaded_image = nifti_image_read(reference_image->fname,0);
-            if(!reloaded_image) return __LINE__;
-            nifti_image_infodump(reloaded_image);
-            if(!compare_known_values(reference_image,reloaded_image)) return __LINE__;
-            nifti_image_free(reloaded_image);
+            printf("======= Testing with filename: %s ======\n",write_image_filename[filenameindex]);
+            fflush(stdout);
+            nifti_image * reference_image = generate_reference_image(write_image_filename[filenameindex]);
+            ERRORS_FOUND+=PrintTest(__LINE__,"",!reference_image);
+                {
+                nifti_image_write   ( reference_image ) ;
+                nifti_image * reloaded_image = nifti_image_read(reference_image->fname,0);
+                ERRORS_FOUND+=PrintTest(__LINE__,"",!reloaded_image);
+                nifti_image_infodump(reloaded_image);
+                ERRORS_FOUND+=PrintTest(__LINE__,"",!compare_known_values(reference_image,reloaded_image));
+                nifti_image_free(reloaded_image);
+                }
+            nifti_image_free(reference_image);
             }
         }
-    nifti_image_free(reference_image);
-    return 0;
+        {
+        enum { NUM_FILE_NAMES=8 };
+        const char * FILE_NAMES[NUM_FILE_NAMES]={
+            "myimage",
+            "myimage.tif",
+            "myimage.tif.gz",
+            "myimage.nii",
+            "myimage.img.gz",
+            ".nii",
+            ".myhiddenimage",
+            ".myhiddenimage.nii"
+        };
+        const char * KNOWN_FILE_BASENAMES[NUM_FILE_NAMES]={
+            "myimage",
+            "myimage.tif",
+            "myimage.tif.gz",
+            "myimage",
+            "myimage",
+            "",
+            ".myhiddenimage",
+            ".myhiddenimage"
+        };
+        const int KNOWN_nifti_validfilename[NUM_FILE_NAMES]={
+            1,
+            1,
+            1,
+            1,
+            1,
+            0,
+            1,
+            1
+        };
+        const int KNOWN_nifti_is_complete_filename[NUM_FILE_NAMES]={
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+            0,
+            1
+        };
+        unsigned int fni;
+        for(fni=0;fni<NUM_FILE_NAMES;fni++)
+            {
+            printf("\nTesting \"%s\" filename\n",FILE_NAMES[fni]);
+                {
+                int KnownValid=nifti_validfilename(FILE_NAMES[fni]);
+                snprintf(TEMP_STR,256,"nifti_validfilename(\"%s\")=%d",FILE_NAMES[fni],KnownValid);
+                ERRORS_FOUND+=PrintTest(__LINE__,TEMP_STR,KnownValid != KNOWN_nifti_validfilename[fni]);
+                }
+                {
+                int KnownValid=nifti_is_complete_filename(FILE_NAMES[fni]);
+                snprintf(TEMP_STR,256,"nifti_is_complete_filename(\"%s\")=%d",FILE_NAMES[fni],KnownValid);
+                ERRORS_FOUND+=PrintTest(__LINE__,TEMP_STR,KnownValid != KNOWN_nifti_is_complete_filename[fni]);
+                }
+
+                {
+                char * basename=nifti_makebasename(FILE_NAMES[fni]);
+                snprintf(TEMP_STR,256,"nifti_makebasename(\"%s\")=\"%s\"",FILE_NAMES[fni],basename);
+                ERRORS_FOUND+=PrintTest(__LINE__,TEMP_STR,strcmp(basename,KNOWN_FILE_BASENAMES[fni]) != 0);
+                free(basename);
+                }
+            }
+        }
+    printf("\n\nTOTAL ERRORS=%d\n",ERRORS_FOUND);
+    return ERRORS_FOUND;
 }

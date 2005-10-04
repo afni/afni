@@ -1261,3 +1261,14 @@
     computations of type 4 and 5, A and B contrasts (including means, diffs
     and contrs)
 
+04 October 2005:
+  * checking in changes by Hans Johnson
+      - added new files Clibs/DartConfig.cmake
+      - updates to Testing/niftilib/niti_test.c (this is not all ANSI C - fix)
+      - znzlib.c: cast away const for call to gzwrite
+      - nifti1_io.c: comment nifti_valid_filename
+                     added nifti_is_complete_filename
+                     added 2 free()s in nifti_findhdrname
+                     cast away const in call to znzwrite
+                     fixed error in QSTR() defn (intent_name[ml]=0 -> nam[ml]=0)
+
