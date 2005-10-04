@@ -29,7 +29,7 @@ int main( int argc , char * argv[] )
    oform = CCALC_DOUBLE; /* double is default */
    while (kar < argc) {
       if (strcmp(argv[1],"-help") == 0 ){
-         printf("Usage: ccalc [-form FORM] [-eval <expr>]\n"
+         printf("Usage: ccalc [-form FORM] [-eval 'expr']\n"
                 "Usage mode 1: Interactive numerical calculator\n"
                 "    Interactive numerical calculator, using the \n"
                 "    same expression syntax as 3dcalc. \n"

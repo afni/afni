@@ -312,6 +312,17 @@ extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;
 extern void EDIT_blur_volume( int,int,int , float,float,float , int,void * , float ) ;
 extern void EDIT_blur_volume_3d( int,int,int , float,float,float , int,void * , float, float, float ) ;
 
+/* Gaussian blur in image space, not FFT space: 04 Oct 2005 */
+
+extern void FIR_blur_volume( int nx, int ny, int nz,
+                             float dx, float dy, float dz,
+                             float *ffim , float sigma ) ;
+
+extern void FIR_blur_volume_3d( int nx, int ny, int nz,
+                                float dx, float dy, float dz,
+                                float *ffim ,
+                                float sigmax, float sigmay, float sigmaz ) ;
+
 /*! Convert Gaussian blur RMS width to sigma [1/sqrt(3)] */
 #define RMS_TO_SIGMA(rms) (0.57735027*(rms))
 
