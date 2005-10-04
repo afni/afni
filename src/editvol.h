@@ -312,6 +312,8 @@ extern void EDIT_one_dataset( THD_3dim_dataset * dset , EDIT_options * edopt ) ;
 extern void EDIT_blur_volume( int,int,int , float,float,float , int,void * , float ) ;
 extern void EDIT_blur_volume_3d( int,int,int , float,float,float , int,void * , float, float, float ) ;
 
+void EDIT_blur_allow_fir( int ) ;  /* 04 Oct 2005 */
+
 /* Gaussian blur in image space, not FFT space: 04 Oct 2005 */
 
 extern void FIR_blur_volume( int nx, int ny, int nz,
