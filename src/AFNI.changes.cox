@@ -5711,3 +5711,8 @@
 
 30 Sep 2005
  * 2x2 and 3x3 special cases for cs_symeig.c.
+
+04 Sep 2005
+ * Modified edt_blur.c to do small Gaussian blurs in real-space, with the
+    fir_blur?() functions.  Also added FIR_blur_volume() function to allow
+    user to invoke FIR explicitly, rather than implicitly.
