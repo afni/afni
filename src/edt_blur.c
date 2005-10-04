@@ -876,7 +876,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ; f = f+off ;
+          off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
 
@@ -893,7 +893,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ; f = f+off ;
+          off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
 
