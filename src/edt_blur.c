@@ -16,9 +16,7 @@ static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 #undef  FIR_MAX
 #define FIR_MAX 11  /* max length of FIR filter to use */
 
-/*************************************************************************
-  Routine to blur a 3D volume with a Gaussian, using FFTs.
-**************************************************************************/
+/**************************************************************************/
 
 #define GET_AS_BIG(name,type,dim)                                       \
    do{ if( (dim) > name ## _size ){                                     \
@@ -30,6 +28,14 @@ static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
           name ## _size = (dim) ; }                                     \
        break ; } while(1)
 
+/**************************************************************************/
+
+static int allow_fir = 1 ;
+void EDIT_blur_allow_fir( int i ){ allow_fir = i; }
+
+/*************************************************************************
+  Routine to blur a 3D volume with a Gaussian, using FFTs.
+**************************************************************************/
 
 void EDIT_blur_volume( int nx, int ny, int nz,
                        float dx, float dy, float dz,
@@ -131,7 +137,7 @@ STATUS("start x FFTs") ;
    if( nx < 2 || sigmax <= 0.0 ){ fir_num++ ;  goto DO_Y_BLUR ; }
 
    fir_m = (int) ceil( 2.5 * sigmax / dx ) ;
-   if( ftype == MRI_float && fir_m <= FIR_MAX ){
+   if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
      if( fir_m < 1 ) fir_m = 1 ;
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
@@ -257,7 +263,7 @@ STATUS("start y FFTs") ;
    if( ny < 2 || sigmay <= 0.0 ){ fir_num++ ; goto DO_Z_BLUR ; }
 
    fir_m = (int) ceil( 2.5 * sigmay / dy ) ;
-   if( ftype == MRI_float && fir_m <= FIR_MAX ){
+   if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
      if( fir_m < 1 ) fir_m = 1 ;
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
@@ -379,7 +385,7 @@ STATUS("start z FFTs") ;
    if( nz < 2 || sigmay <= 0.0 ){ fir_num++ ; goto ALL_DONE_NOW ; }
 
    fir_m = (int) ceil( 2.5 * sigmaz / dz ) ;
-   if( ftype == MRI_float && fir_m <= FIR_MAX ){
+   if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
      if( fir_m < 1 ) fir_m = 1 ;
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
@@ -547,9 +553,10 @@ STATUS("start z FFTs") ;
 static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
-   float *r , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum ;
+   float *r , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
 
    if( m < 1 || wt == NULL || nx < (m+1) || f == NULL ) return ;
+   if( ny <= 0 || nz <= 0 ) return ;
 
    r = (float *)calloc(sizeof(float),(nx+2*m)) ;
 
@@ -559,15 +566,15 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
-          off = jj*nx + kk*nxy ;
-          memcpy( r+m , f+off , sizeof(float)*nx ) ;
+          off = jj*nx + kk*nxy ; ff = f+off ;
+          memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[m-1] = r[m+1] ; r[nx+m] = r[nx+m-2] ;
 
           for( ii=0 ; ii < nx ; ii++ ){
             sum = wt[0]*r[ii+m] ;
             for( qq=1 ; qq <= m ; qq++ )
               sum += wt[qq] * ( r[ii+m-qq] + r[ii+m+qq] ) ;
-            f[ii+off] = sum ;
+            ff[ii] = sum ;
           }
         }}
      break ;
@@ -580,18 +587,18 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
-          off = jj*nx + kk*nxy ;
-          memcpy( r+m , f+off , sizeof(float)*nx ) ;
+          off = jj*nx + kk*nxy ; ff = f+off ;
+          memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( ii=0 ; ii < nx ; ii++ )
-            f[ii+off] = wt7*(r[ii  ]+r[ii+14])
-                         +wt6*(r[ii+1]+r[ii+13])
-                         +wt5*(r[ii+2]+r[ii+12])
-                         +wt4*(r[ii+3]+r[ii+11])
-                         +wt3*(r[ii+4]+r[ii+10])
-                         +wt2*(r[ii+5]+r[ii+ 9])
-                         +wt1*(r[ii+6]+r[ii+ 8])+wt0*r[ii+7] ;
+            ff[ii] = wt7*(r[ii  ]+r[ii+14])
+                    +wt6*(r[ii+1]+r[ii+13])
+                    +wt5*(r[ii+2]+r[ii+12])
+                    +wt4*(r[ii+3]+r[ii+11])
+                    +wt3*(r[ii+4]+r[ii+10])
+                    +wt2*(r[ii+5]+r[ii+ 9])
+                    +wt1*(r[ii+6]+r[ii+ 8])+wt0*r[ii+7] ;
         }}
      break ;
 
@@ -603,17 +610,17 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
-          off = jj*nx + kk*nxy ;
-          memcpy( r+m , f+off , sizeof(float)*nx ) ;
+          off = jj*nx + kk*nxy ; ff = f+off ;
+          memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( ii=0 ; ii < nx ; ii++ )
-            f[ii+off] = wt6*(r[ii  ]+r[ii+12])
-                         +wt5*(r[ii+1]+r[ii+11])
-                         +wt4*(r[ii+2]+r[ii+10])
-                         +wt3*(r[ii+3]+r[ii+ 9])
-                         +wt2*(r[ii+4]+r[ii+ 8])
-                         +wt1*(r[ii+5]+r[ii+ 7])+wt0*r[ii+6] ;
+            ff[ii] = wt6*(r[ii  ]+r[ii+12])
+                    +wt5*(r[ii+1]+r[ii+11])
+                    +wt4*(r[ii+2]+r[ii+10])
+                    +wt3*(r[ii+3]+r[ii+ 9])
+                    +wt2*(r[ii+4]+r[ii+ 8])
+                    +wt1*(r[ii+5]+r[ii+ 7])+wt0*r[ii+6] ;
         }}
      break ;
 
@@ -625,16 +632,16 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
-          off = jj*nx + kk*nxy ;
-          memcpy( r+m , f+off , sizeof(float)*nx ) ;
+          off = jj*nx + kk*nxy ; ff = f+off ;
+          memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( ii=0 ; ii < nx ; ii++ )
-            f[ii+off] = wt5*(r[ii  ]+r[ii+10])
-                         +wt4*(r[ii+1]+r[ii+ 9])
-                         +wt3*(r[ii+2]+r[ii+ 8])
-                         +wt2*(r[ii+3]+r[ii+ 7])
-                         +wt1*(r[ii+4]+r[ii+ 6])+wt0*r[ii+5] ;
+            ff[ii] = wt5*(r[ii  ]+r[ii+10])
+                    +wt4*(r[ii+1]+r[ii+ 9])
+                    +wt3*(r[ii+2]+r[ii+ 8])
+                    +wt2*(r[ii+3]+r[ii+ 7])
+                    +wt1*(r[ii+4]+r[ii+ 6])+wt0*r[ii+5] ;
         }}
      break ;
 
@@ -646,15 +653,15 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
-          off = jj*nx + kk*nxy ;
-          memcpy( r+m , f+off , sizeof(float)*nx ) ;
+          off = jj*nx + kk*nxy ; ff = f+off ;
+          memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( ii=0 ; ii < nx ; ii++ )
-            f[ii+off] = wt4*(r[ii  ]+r[ii+ 8])
-                         +wt3*(r[ii+1]+r[ii+ 7])
-                         +wt2*(r[ii+2]+r[ii+ 6])
-                         +wt1*(r[ii+3]+r[ii+ 5])+wt0*r[ii+4] ;
+            ff[ii] = wt4*(r[ii  ]+r[ii+ 8])
+                    +wt3*(r[ii+1]+r[ii+ 7])
+                    +wt2*(r[ii+2]+r[ii+ 6])
+                    +wt1*(r[ii+3]+r[ii+ 5])+wt0*r[ii+4] ;
         }}
      break ;
 
@@ -665,14 +672,14 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
-          off = jj*nx + kk*nxy ;
-          memcpy( r+m , f+off , sizeof(float)*nx ) ;
+          off = jj*nx + kk*nxy ; ff = f+off ;
+          memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( ii=0 ; ii < nx ; ii++ )
-            f[ii+off] = wt3*(r[ii  ]+r[ii+ 6])
-                         +wt2*(r[ii+1]+r[ii+ 5])
-                         +wt1*(r[ii+2]+r[ii+ 4])+wt0*r[ii+3] ;
+            ff[ii] = wt3*(r[ii  ]+r[ii+ 6])
+                    +wt2*(r[ii+1]+r[ii+ 5])
+                    +wt1*(r[ii+2]+r[ii+ 4])+wt0*r[ii+3] ;
         }}
      break ;
 
@@ -683,13 +690,13 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
-          off = jj*nx + kk*nxy ;
-          memcpy( r+m , f+off , sizeof(float)*nx ) ;
+          off = jj*nx + kk*nxy ; ff = f+off ;
+          memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( ii=0 ; ii < nx ; ii++ )
-            f[ii+off] = wt2*(r[ii  ]+r[ii+ 4])
-                         +wt1*(r[ii+1]+r[ii+ 3])+wt0*r[ii+2] ;
+            ff[ii] = wt2*(r[ii  ]+r[ii+ 4])
+                    +wt1*(r[ii+1]+r[ii+ 3])+wt0*r[ii+2] ;
         }}
      break ;
 
@@ -700,12 +707,12 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
-          off = jj*nx + kk*nxy ;
-          memcpy( r+m , f+off , sizeof(float)*nx ) ;
+          off = jj*nx + kk*nxy ; ff = f+off ;
+          memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( ii=0 ; ii < nx ; ii++ )
-            f[ii+off] = wt1*(r[ii]+r[ii+2])+wt0*r[ii+1] ;
+            ff[ii] = wt1*(r[ii]+r[ii+2])+wt0*r[ii+1] ;
         }}
      break ;
 
@@ -721,9 +728,10 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
 static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
-   float *r , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum ;
+   float *r , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
 
    if( m < 1 || wt == NULL || ny < (m+1) || f == NULL ) return ;
+   if( nx <= 0 || nz <= 0 ) return ;
 
    r = (float *)calloc(sizeof(float),(ny+2*m)) ;
 
@@ -733,15 +741,15 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ;
-          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = f[D*jj+off] ;
+          off = ii + kk*nxy ; ff = f+off ;
+          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
           r[m-1] = r[m+1] ; r[nx+m] = r[nx+m-2] ;
 
           for( jj=0 ; jj < ny ; jj++ ){
             sum = wt[0]*r[jj+m] ;
             for( qq=1 ; qq <= m ; qq++ )
               sum += wt[qq] * ( r[jj+m-qq] + r[jj+m+qq] ) ;
-            f[D*jj+off] = sum ;
+            ff[D*jj] = sum ;
           }
         }}
      break ;
@@ -754,18 +762,18 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ;
-          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = f[D*jj+off] ;
+          off = ii + kk*nxy ; ff = f+off ;
+          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( jj=0 ; jj < ny ; jj++ )
-            f[D*jj+off] = wt7*(r[jj  ]+r[jj+14])
-                         +wt6*(r[jj+1]+r[jj+13])
-                         +wt5*(r[jj+2]+r[jj+12])
-                         +wt4*(r[jj+3]+r[jj+11])
-                         +wt3*(r[jj+4]+r[jj+10])
-                         +wt2*(r[jj+5]+r[jj+ 9])
-                         +wt1*(r[jj+6]+r[jj+ 8])+wt0*r[jj+7] ;
+            ff[D*jj] = wt7*(r[jj  ]+r[jj+14])
+                      +wt6*(r[jj+1]+r[jj+13])
+                      +wt5*(r[jj+2]+r[jj+12])
+                      +wt4*(r[jj+3]+r[jj+11])
+                      +wt3*(r[jj+4]+r[jj+10])
+                      +wt2*(r[jj+5]+r[jj+ 9])
+                      +wt1*(r[jj+6]+r[jj+ 8])+wt0*r[jj+7] ;
         }}
      break ;
 
@@ -777,17 +785,17 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ;
-          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = f[D*jj+off] ;
+          off = ii + kk*nxy ; ff = f+off ;
+          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( jj=0 ; jj < ny ; jj++ )
-            f[D*jj+off] = wt6*(r[jj  ]+r[jj+12])
-                         +wt5*(r[jj+1]+r[jj+11])
-                         +wt4*(r[jj+2]+r[jj+10])
-                         +wt3*(r[jj+3]+r[jj+ 9])
-                         +wt2*(r[jj+4]+r[jj+ 8])
-                         +wt1*(r[jj+5]+r[jj+ 7])+wt0*r[jj+6] ;
+            ff[D*jj] = wt6*(r[jj  ]+r[jj+12])
+                      +wt5*(r[jj+1]+r[jj+11])
+                      +wt4*(r[jj+2]+r[jj+10])
+                      +wt3*(r[jj+3]+r[jj+ 9])
+                      +wt2*(r[jj+4]+r[jj+ 8])
+                      +wt1*(r[jj+5]+r[jj+ 7])+wt0*r[jj+6] ;
         }}
      break ;
 
@@ -799,16 +807,16 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ;
-          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = f[D*jj+off] ;
+          off = ii + kk*nxy ; ff = f+off ;
+          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( jj=0 ; jj < ny ; jj++ )
-            f[D*jj+off] = wt5*(r[jj  ]+r[jj+10])
-                         +wt4*(r[jj+1]+r[jj+ 9])
-                         +wt3*(r[jj+2]+r[jj+ 8])
-                         +wt2*(r[jj+3]+r[jj+ 7])
-                         +wt1*(r[jj+4]+r[jj+ 6])+wt0*r[jj+5] ;
+            ff[D*jj] = wt5*(r[jj  ]+r[jj+10])
+                      +wt4*(r[jj+1]+r[jj+ 9])
+                      +wt3*(r[jj+2]+r[jj+ 8])
+                      +wt2*(r[jj+3]+r[jj+ 7])
+                      +wt1*(r[jj+4]+r[jj+ 6])+wt0*r[jj+5] ;
         }}
      break ;
 
@@ -820,15 +828,15 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ;
-          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = f[D*jj+off] ;
+          off = ii + kk*nxy ; ff = f+off ;
+          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( jj=0 ; jj < ny ; jj++ )
-            f[D*jj+off] = wt4*(r[jj  ]+r[jj+ 8])
-                         +wt3*(r[jj+1]+r[jj+ 7])
-                         +wt2*(r[jj+2]+r[jj+ 6])
-                         +wt1*(r[jj+3]+r[jj+ 5])+wt0*r[jj+4] ;
+            ff[D*jj] = wt4*(r[jj  ]+r[jj+ 8])
+                      +wt3*(r[jj+1]+r[jj+ 7])
+                      +wt2*(r[jj+2]+r[jj+ 6])
+                      +wt1*(r[jj+3]+r[jj+ 5])+wt0*r[jj+4] ;
         }}
      break ;
 
@@ -839,14 +847,14 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ;
-          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = f[D*jj+off] ;
+          off = ii + kk*nxy ; ff = f+off ;
+          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( jj=0 ; jj < ny ; jj++ )
-            f[D*jj+off] = wt3*(r[jj  ]+r[jj+ 6])
-                         +wt2*(r[jj+1]+r[jj+ 5])
-                         +wt1*(r[jj+2]+r[jj+ 4])+wt0*r[jj+3] ;
+            ff[D*jj] = wt3*(r[jj  ]+r[jj+ 6])
+                      +wt2*(r[jj+1]+r[jj+ 5])
+                      +wt1*(r[jj+2]+r[jj+ 4])+wt0*r[jj+3] ;
         }}
      break ;
 
@@ -857,13 +865,13 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ;
-          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = f[D*jj+off] ;
+          off = ii + kk*nxy ; f = f+off ;
+          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( jj=0 ; jj < ny ; jj++ )
-            f[D*jj+off] = wt2*(r[jj  ]+r[jj+ 4])
-                         +wt1*(r[jj+1]+r[jj+ 3])+wt0*r[jj+2] ;
+            ff[D*jj] = wt2*(r[jj  ]+r[jj+ 4])
+                      +wt1*(r[jj+1]+r[jj+ 3])+wt0*r[jj+2] ;
         }}
      break ;
 
@@ -874,12 +882,12 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
-          off = ii + kk*nxy ;
-          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = f[D*jj+off] ;
+          off = ii + kk*nxy ; f = f+off ;
+          for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
 
           for( jj=0 ; jj < ny ; jj++ )
-            f[D*jj+off] = wt1*(r[jj]+r[jj+2])+wt0*r[jj+1] ;
+            ff[D*jj] = wt1*(r[jj]+r[jj+2])+wt0*r[jj+1] ;
         }}
      break ;
 
@@ -895,10 +903,11 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
 static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
-   float *rr,*ss , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum ;
+   float *rr,*ss , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
    int nz2m = nz+2*m ;
 
    if( m < 1 || wt == NULL || nz < (m+1) || f == NULL ) return ;
+   if( nxy <= 0 ) return ;
 
    /* 2D (z,x) slice, with m-long buffers on each side in the z-direction.
       The purpose of this is to get multiple lines of z-direction data into
@@ -914,12 +923,12 @@ static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
    ss = (float *)malloc(sizeof(float)*nz  *nx) ;
 
    for( jj=0 ; jj < ny ; jj++ ){  /* loop in y-direction */
-     off = jj*nx ;                /* 3D (i,j,k) is at i+j*nx+k*nxy */
+     off = jj*nx ; ff = f+off ;   /* 3D (i,j,k) is at i+j*nx+k*nxy */
 
      /* load data into 2D (z,x) slice from 3D (x,y,z) array */
 
      for( kk=0 ; kk < nz ; kk++ ){
-       for( ii=0 ; ii < nx ; ii++ ) RR(ii,kk) = f[ii+off+D*kk] ;
+       for( ii=0 ; ii < nx ; ii++ ) RR(ii,kk) = ff[ii+D*kk] ;
      }
      for( ii=0 ; ii < nx ; ii++ ){
        RR(ii,-1) = RR(ii,1) ; RR(ii,nz) = RR(ii,nz-2) ;
@@ -1032,7 +1041,7 @@ static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
      /* put ss array back into 3D array */
 
      for( kk=0 ; kk < nz ; kk++ ){
-       for( ii=0 ; ii < nx ; ii++ ) f[ii+off+D*kk] = SS(ii,kk) ;
+       for( ii=0 ; ii < nx ; ii++ ) ff[ii+D*kk] = SS(ii,kk) ;
      }
 
    } /* end of loop over y-direction (jj) */
