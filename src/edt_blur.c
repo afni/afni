@@ -128,7 +128,7 @@ STATUS("start x FFTs") ;
 
    /** 03 Oct 2005: perhaps do the x-blur in real-space? **/
 
-   if( sigmax <= 0.0 ){ fir_num++ ;  goto DO_Y_BLUR ; }
+   if( nx < 2 || sigmax <= 0.0 ){ fir_num++ ;  goto DO_Y_BLUR ; }
 
    fir_m = (int) ceil( 2.5 * sigmax / dx ) ;
    if( ftype == MRI_float && fir_m <= FIR_MAX ){
@@ -254,7 +254,7 @@ STATUS("start y FFTs") ;
 
    /** 03 Oct 2005: perhaps do the y-blur in real-space? **/
 
-   if( sigmay <= 0.0 ){ fir_num++ ; goto DO_Z_BLUR ; }
+   if( ny < 2 || sigmay <= 0.0 ){ fir_num++ ; goto DO_Z_BLUR ; }
 
    fir_m = (int) ceil( 2.5 * sigmay / dy ) ;
    if( ftype == MRI_float && fir_m <= FIR_MAX ){
@@ -376,7 +376,7 @@ STATUS("start z FFTs") ;
 
    /** 03 Oct 2005: perhaps do the y-blur in real-space? **/
 
-   if( sigmay <= 0.0 ){ fir_num++ ; goto ALL_DONE_NOW ; }
+   if( nz < 2 || sigmay <= 0.0 ){ fir_num++ ; goto ALL_DONE_NOW ; }
 
    fir_m = (int) ceil( 2.5 * sigmaz / dz ) ;
    if( ftype == MRI_float && fir_m <= FIR_MAX ){
