@@ -5716,3 +5716,4 @@
  * Modified edt_blur.c to do small Gaussian blurs in real-space, with the
     fir_blur?() functions.  Also added FIR_blur_volume() function to allow
     user to invoke FIR explicitly, rather than implicitly.
+ * Add "TRACE" command to afni_driver.c.

@@ -59,6 +59,8 @@ static int AFNI_open_panel             ( char *cmd ) ; /* 05 Feb 2003 */
 static int AFNI_drive_purge_memory     ( char *cmd ) ; /* 09 Dec 2004 */
 static int AFNI_redisplay              ( char *cmd ) ;
 
+static int AFNI_trace                  ( char *cmd ) ; /* 04 Oct 2005 */
+
 /*-----------------------------------------------------------------
   Drive AFNI in various (incomplete) ways.
   Return value is 0 if good, -1 if bad.
@@ -139,6 +141,8 @@ static AFNI_driver_pair dpair[] = {
 
  { "REDISPLAY"          , AFNI_redisplay               } ,
  { "REDRAW"             , AFNI_redisplay               } ,
+
+ { "TRACE"              , AFNI_trace                   } , /* debugging */
 
  { NULL , NULL } } ;
 
@@ -2295,5 +2299,14 @@ static int AFNI_drive_set_xhairs( char *cmd )
 
    AV_assign_ival( im3d->vwid->imag->crosshair_av, hh ) ;
    AFNI_crosshair_visible_CB( im3d->vwid->imag->crosshair_av, (XtPointer)im3d );
+   return 0 ;
+}
+
+/*--------------------------------------------------------------------*/
+/*! TRACE {YES | NO} */
+
+static int AFNI_trace( char *cmd )
+{
+   DBG_trace = (YESSISH(cmd)) ? 2 : 0 ;
    return 0 ;
 }
