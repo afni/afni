@@ -243,6 +243,9 @@ SLEEP ms
   Causes AFNI to sleep for "ms" milliseconds.  The main use would be in
   a script file to provide a pause between some effects.
 
+TRACE {YES | NO}
+  Turns debug tracig on or off.
+
 
 ============
 ** GRAPHS **
