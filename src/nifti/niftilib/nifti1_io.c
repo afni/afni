@@ -141,7 +141,7 @@ static char * gni_history[] =
   "   - in int_force_positive(), check for (!list)\n"
   "   - in swap_nifti_header(), swap sizeof_hdr, and reorder to struct order\n"
   "   - change get_filesize functions to signed ( < 0 is no file or error )\n",
-  "   - in nifti_valid_filename(), lose redundant (len < 0) check\n"
+  "   - in nifti_validfilename(), lose redundant (len < 0) check\n"
   "   - make print_hex_vals() static\n"
   "   - in disp_nifti_1_header, restrict string field widths\n"
   "\n",
@@ -2105,8 +2105,58 @@ int nifti_fileexists(const char* fname)
 /*----------------------------------------------------------------------*/
 /*! return whether the filename is valid
 
+    The name is considered valid if the file basename has length greater than
+    zero, AND one of the valid nifti extensions is provided.
+    fname input          | return |
+    ===============================
+    "myimage"            |  0     |
+    "myimage.tif"        |  0     |
+    "myimage.tif.gz"     |  0     |
+    "myimage.nii"        |  1     |
+    ".nii"               |  0     |
+    ".myhiddenimage"     |  0     |
+    ".myhiddenimage.nii" |  1     |
+*//*--------------------------------------------------------------------*/
+int nifti_is_complete_filename(const char* fname)
+{
+   char * ext;
+
+   /* check input file(s) for sanity */
+   if( fname == NULL || *fname == '\0' ){
+      if ( g_opts.debug > 1 )
+         fprintf(stderr,"-- empty filename in nifti_validfilename()\n");
+      return 0;
+   }
+
+   ext = nifti_find_file_extension(fname);
+   if ( ext == NULL ) { /*Invalid extension given */
+      if ( g_opts.debug > 0 )
+         fprintf(stderr,"-- no nifti valid extension for filename '%s'\n", fname);
+       return 0;
+   }
+
+   if ( ext && ext == fname ) {   /* then no filename prefix */
+      if ( g_opts.debug > 0 )
+         fprintf(stderr,"-- no prefix for filename '%s'\n", fname);
+      return 0;
+   }
+   return 1;
+}
+
+/*----------------------------------------------------------------------*/
+/*! return whether the filename is valid
+
     The name is considered valid if its length is positive, excluding
     any nifti filename extension.
+    fname input         |  return | result of nifti_makebasename
+    ====================================================================
+    "myimage"           |  1      | "myimage"
+    "myimage.tif"       |  1      | "myimage.tif"
+    "myimage.tif.gz"    |  1      | "myimage.tif"
+    "myimage.nii"       |  1      | "myimage"
+    ".nii"              |  0      | <ERROR - basename has zero length>
+    ".myhiddenimage"    |  1      | ".myhiddenimage"
+    ".myhiddenimage.nii |  1      | ".myhiddenimage"
 *//*--------------------------------------------------------------------*/
 int nifti_validfilename(const char* fname)
 {
@@ -2247,6 +2297,7 @@ char * nifti_findhdrname(const char* fname)
    if ( ext && nifti_fileexists(fname) ) { 
      if ( strncmp(ext,".img",4) != 0 ){
         hdrname = nifti_strdup(fname); 
+        free(basename);
         return hdrname; 
      }
    }
@@ -2265,6 +2316,7 @@ char * nifti_findhdrname(const char* fname)
    hdrname = (char *)calloc(sizeof(char),strlen(basename)+8);
    if( !hdrname ){
       fprintf(stderr,"** nifti_findhdrname: failed to alloc hdrname\n");
+      free(basename);
       return NULL;
    }
 
@@ -4317,7 +4369,7 @@ size_t nifti_write_buffer(znzFile fp, const void *buffer, size_t numbytes)
       fprintf(stderr,"** ERROR: nifti_write_buffer: null file pointer\n");
       return 0;
    }
-   ss = znzwrite( buffer , 1 , numbytes , fp ) ;
+   ss = znzwrite( (void*)buffer , 1 , numbytes , fp ) ;
    return ss;
 }
 
@@ -5422,7 +5474,7 @@ int nifti_short_order(void)   /* determine this CPU's byte order */
    put rhs string into nim->"nam" string, with max length = "ml" */
 
 #define QSTR(nam,ml) if( strcmp(lhs,#nam) == 0 )                           \
-                       strncpy(nim->nam,rhs,ml), nim->intent_name[ml]='\0'
+                       strncpy(nim->nam,rhs,ml), nim->nam[ml]='\0'
 
 /*---------------------------------------------------------------------------*/
 /*! Take an XML-ish ASCII string and create a NIFTI image header to match.
