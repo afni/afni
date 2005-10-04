@@ -579,6 +579,9 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
         }}
      break ;
 
+     /** for the cases below, the innermost loop
+         (qq, above) is completely unrolled for speedup **/
+
 #undef  M
 #define M 7
      case 7:
@@ -723,7 +726,9 @@ static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f )
 
 /*-------------------------------------------------------------------*/
 #undef  D
-#define D nx
+#define D nx  /* stride along y-axis */
+
+/*! Similar to fir_blurx(), but along the y-axis. */
 
 static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
 {
@@ -898,7 +903,9 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
 
 /*-------------------------------------------------------------------*/
 #undef  D
-#define D nxy
+#define D nxy  /* stride along z-axis */
+
+/*! Similar to fir_blurx(), but along z-axis. */
 
 static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
 {
@@ -911,10 +918,18 @@ static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
 
    /* 2D (z,x) slice, with m-long buffers on each side in the z-direction.
       The purpose of this is to get multiple lines of z-direction data into
-      the CPU cache, to speed up processing (a lot).                       */
+      the CPU cache, to speed up processing (a lot).  For the x-axis, this
+      was unneeded, since the x-rows are contiguous in memory.  For the
+      y-axis, this trick might help, but only if a single (x,y) plane
+      doesn't fit into cache.  For nx=ny=256, 1 plane is 256 KB, so I
+      decided that this 2D extract/process/insert trick was nugatory. */
+
+   /* macro to access the input data 2D slice */
 
 #undef  RR
 #define RR(i,k) rr[(k)+m+(i)*nz2m]  /*** 0 <= i <= nx-1 ; -m <= k <= nz-1+m ***/
+
+   /* macro to access the output data 2D slice */
 
 #undef  SS
 #define SS(i,k) ss[(k)+(i)*nz]
@@ -931,7 +946,7 @@ static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f )
        for( ii=0 ; ii < nx ; ii++ ) RR(ii,kk) = ff[ii+D*kk] ;
      }
      for( ii=0 ; ii < nx ; ii++ ){
-       RR(ii,-1) = RR(ii,1) ; RR(ii,nz) = RR(ii,nz-2) ;
+       RR(ii,-1) = RR(ii,1) ; RR(ii,nz) = RR(ii,nz-2) ; /* edge reflection */
      }
 
      /* filter data along z-direction, put into 2D ss array */
@@ -1062,6 +1077,12 @@ void FIR_blur_volume( int nx, int ny, int nz,
 }
 
 /*-------------------------------------------------------------------*/
+/* Gaussian blur in real space, of a float volume.
+    - nx,ny,nz = dimensions of array
+    - dx,dy,dz = grid step sizes
+    - ffim     = array
+    - sigmax   = stdev for blur along x; if 0, no blurring in x.
+---------------------------------------------------------------------*/
 
 void FIR_blur_volume_3d( int nx, int ny, int nz,
                          float dx, float dy, float dz,
@@ -1081,7 +1102,7 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
    if( dz <= 0.0 ) dz = dx  ;
 
    if( sigmax > 0.0 ){
-     fir_m = (int) ceil( 2.5 * sigmax / dx ) ;
+     fir_m = (int) ceil( 2.5 * sigmax / dx ) ;  /* about the 5% level */
      if( fir_m < 1 ) fir_m = 1 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
      fac = fir_wt[0] = 1.0f ;
