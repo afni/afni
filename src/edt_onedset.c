@@ -602,6 +602,8 @@ STATUS("abs applied to meaningless type: will be ignored") ;
 
    /*----- blur? -----*/
 
+   if( AFNI_yesenv("AFNI_BLUR_FFT") ) EDIT_blur_allow_fir(0) ;  /* 04 Oct 2005 */
+
    if( edit_blur > 0.0 ){
 
       if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: blurring fim\n") ;
