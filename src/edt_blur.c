@@ -14,7 +14,7 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 
 #undef  FIR_MAX
-#define FIR_MAX 11  /** max length of FIR filter to use instead of FFTs **/
+#define FIR_MAX 13  /** max length of FIR filter to use instead of FFTs **/
 
 /*! If set to 0, EDIT_blur_volume() will not use the fir_blur? functions. */
 
