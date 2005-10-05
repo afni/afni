@@ -5446,14 +5446,17 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
         }
         if (jj != FN->N_Neighb[i]) {
             if (!TessErr_Cnt) {
-               fprintf (SUMA_STDERR,"Error %s:\n"
-                                    " Failed in copying neighbor list! jj=%d, FN->N_Neighb[%d]=%d\n"
-                                    " If this is a closed surface, the problem is likely due to a\n"
-                                    " tessellation error. One or more edges may not be part of 2 \n"
-                                    " and only 2 triangles. Neighbor list for node %d will not be\n"
-                                    " ordered as connected vertices.\n"
-                                    " Further occurences of this error will not be reported.\n"
-                                    ,  FuncName, jj, i, FN->N_Neighb[i], i);
+               if ( !(el->min_N_Hosts == 1 && el->max_N_Hosts == 2) ) {/* do not complain if surface is open */
+                  fprintf (SUMA_STDERR,"Warning %s: (Ignore warning for open surfaces)\n"
+                                       " Failed in copying neighbor list.\n"
+                                       " If surface is closed, there is likely \n"
+                                       " a tessellation error. One or more edges may not \n"
+                                       " be part of 2 and only 2 triangles. \n"
+                                       " Neighbor list for node %d will not be ordered as \n"
+                                       " connected vertices (jj=%d, FN->N_Neighb[%d]=%d). \n"
+                                       " Further occurences of this error will not be reported.\n"
+                                       ,  FuncName, i, jj, i, FN->N_Neighb[i]);
+                  }
             }
             ++TessErr_Cnt;
             while (jj < FN->N_Neighb[i]) {
@@ -5464,7 +5467,7 @@ SUMA_NODE_FIRST_NEIGHB * SUMA_Build_FirstNeighb (SUMA_EDGE_LIST *el, int N_Node,
       #endif
    }
    if (TessErr_Cnt) {
-      fprintf (SUMA_STDERR, " %d similar occurences of the error above were found in this mesh.\n", TessErr_Cnt);
+      if ( !(el->min_N_Hosts == 1 && el->max_N_Hosts == 2) ) fprintf (SUMA_STDERR, " %d similar occurences were found in this mesh.\n", TessErr_Cnt);
    }
    SUMA_free2D((char **)FN->FirstNeighb, N_Node);
    FN->FirstNeighb = FirstNeighb;
