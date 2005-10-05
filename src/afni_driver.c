@@ -2307,6 +2307,8 @@ static int AFNI_drive_set_xhairs( char *cmd )
 
 static int AFNI_trace( char *cmd )
 {
+#ifdef USE_TRACING
    DBG_trace = (YESSISH(cmd)) ? 2 : 0 ;
+#endif
    return 0 ;
 }
