@@ -7,17 +7,26 @@
 #include "mrilib.h"
 
 /**************************************************************************/
-/** prototypes for functions at the end of this file **/
+/***** prototypes for FIR blurring functions at the end of this file ******/
 
 static void fir_blurx( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 
 #undef  FIR_MAX
-#define FIR_MAX 11  /* max length of FIR filter to use */
+#define FIR_MAX 11  /** max length of FIR filter to use instead of FFTs **/
+
+/*! If set to 0, EDIT_blur_volume() will not use the fir_blur? functions. */
+
+static int allow_fir = 1 ;
+
+/*! Controls whether EDIT_blur_volume() will use the fir_blur? functions. */
+
+void EDIT_blur_allow_fir( int i ){ allow_fir = i; }
 
 /**************************************************************************/
 
+#undef  GET_AS_BIG
 #define GET_AS_BIG(name,type,dim)                                       \
    do{ if( (dim) > name ## _size ){                                     \
           if( name != NULL ) free(name) ;                               \
@@ -30,11 +39,11 @@ static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 
 /**************************************************************************/
 
-static int allow_fir = 1 ;
-void EDIT_blur_allow_fir( int i ){ allow_fir = i; }
-
-/*************************************************************************
-  Routine to blur a 3D volume with a Gaussian, using FFTs.
+/*************************************************************************/
+/*!  Routine to blur a 3D volume with a Gaussian, using FFTs.
+     If the blurring parameter (sigma) is small enough, will use
+     real-space FIR filter instead.  This function actually just
+     calls EDIT_blur_volume_3d() to do the real work.
 **************************************************************************/
 
 void EDIT_blur_volume( int nx, int ny, int nz,
@@ -46,12 +55,14 @@ void EDIT_blur_volume( int nx, int ny, int nz,
 }
 
 /**************************************************************************/
-/*
+/*!
   The following slightly modified version of EDIT_blur_volume allows
   independent specification of Gaussian filter widths along the three
   perpendicular axes.
-  BDW  21 Feb 1997
-*/
+  - BDW - 21 Feb 1997
+  - RWC - 04 Feb 2005: use fir_blur? function if sigma? is small
+                       - also see EDIT_blur_allow_fir()
+--------------------------------------------------------------------------*/
 
 void EDIT_blur_volume_3d( int nx, int ny, int nz,
                           float dx, float dy, float dz,
@@ -62,35 +73,35 @@ void EDIT_blur_volume_3d( int nx, int ny, int nz,
    float  dk , aa , k , fac ;
    register int ii , nup ;
 
-   static int cx_size  = 0 ;     /* workspaces */
+   static int cx_size  = 0 ;     /* workspaces: cf. GET_AS_BIG macro */
    static int gg_size  = 0 ;
    static complex *cx = NULL ;
    static float   *gg = NULL ;
 
-   byte     *bfim = NULL ;
+   byte     *bfim = NULL ;       /* pointers to data array vfim */
    short    *sfim = NULL ;
    float    *ffim = NULL ;
    complex  *cfim = NULL ;
 
-   float fbot,ftop ;     /* 10 Jan 2003 */
-   int nxyz ;
+   float fbot,ftop ;     /* 10 Jan 2003: for clipping results */
+   int nxyz ;            /* number of voxels */
 
-   int   fir_m , fir_num=0 ;  /* 03 Oct 2005 */
+   int   fir_m , fir_num=0 ;  /* 03 Oct 2005: for fir_blur? filtering */
    float fir_wt[FIR_MAX+1] ;
 
-   /*** initialize ***/
+   /***---------- initialize ----------***/
 
 ENTRY("EDIT_blur_volume_3d") ;
 
-   if( vfim == NULL ) EXRETURN ;
+   if( vfim == NULL ) EXRETURN ;  /* no data? */
 
    if( sigmax <= 0.0 && sigmay <= 0.0 && sigmaz <= 0.0 ) EXRETURN ;
 
-   if( dx <= 0.0 ) dx = 1.0 ;  /* 03 Oct 2005 */
+   if( dx <= 0.0 ) dx = 1.0 ;  /* 03 Oct 2005: regularize grid sizes */
    if( dy <= 0.0 ) dy = dx  ;
    if( dz <= 0.0 ) dz = dx  ;
 
-   switch( ftype ){
+   switch( ftype ){            /* cast pointer to correct type */
       default: EXRETURN ;
       case MRI_short:   sfim = (short *)   vfim ; break ;
       case MRI_float:   ffim = (float *)   vfim ; break ;
@@ -103,7 +114,7 @@ ENTRY("EDIT_blur_volume_3d") ;
 
    switch( ftype ){
      default:
-       fbot = ftop = 0.0 ;
+       fbot = ftop = 0.0 ;  /* for complex */
      break ;
 
      case MRI_short:
@@ -130,14 +141,15 @@ ENTRY("EDIT_blur_volume_3d") ;
 
    /*** do x-direction ***/
 
-STATUS("start x FFTs") ;
-
    /** 03 Oct 2005: perhaps do the x-blur in real-space? **/
 
-   if( nx < 2 || sigmax <= 0.0 ){ fir_num++ ;  goto DO_Y_BLUR ; }
+   if( nx < 2 || sigmax <= 0.0 ){
+     STATUS("skipping x blur") ; fir_num++ ; goto DO_Y_BLUR ;
+   }
 
    fir_m = (int) ceil( 2.5 * sigmax / dx ) ;
    if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
+     STATUS("start x FIR") ;
      if( fir_m < 1 ) fir_m = 1 ;
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
@@ -149,6 +161,8 @@ STATUS("start x FFTs") ;
      fir_blurx( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      fir_num++ ; goto DO_Y_BLUR ;
    }
+
+STATUS("start x FFTs") ;
 
    aa  = sigmax * sigmax * 0.5 ;
    nup = nx + (int)(3.0 * sigmax / dx) ;      /* min FFT length */
@@ -256,14 +270,15 @@ STATUS("start x FFTs") ;
    /*** do y-direction ***/
  DO_Y_BLUR:
 
-STATUS("start y FFTs") ;
-
    /** 03 Oct 2005: perhaps do the y-blur in real-space? **/
 
-   if( ny < 2 || sigmay <= 0.0 ){ fir_num++ ; goto DO_Z_BLUR ; }
+   if( ny < 2 || sigmay <= 0.0 ){
+     STATUS("skip y blur") ; fir_num++ ; goto DO_Z_BLUR ;
+   }
 
    fir_m = (int) ceil( 2.5 * sigmay / dy ) ;
    if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
+     STATUS("start y FIR") ;
      if( fir_m < 1 ) fir_m = 1 ;
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
@@ -275,6 +290,8 @@ STATUS("start y FFTs") ;
      fir_blury( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      fir_num++ ; goto DO_Z_BLUR ;
    }
+
+STATUS("start y FFTs") ;
 
    aa  = sigmay * sigmay * 0.5 ;
    nup = ny + (int)(3.0 * sigmay / dy) ;      /* min FFT length */
@@ -378,14 +395,15 @@ STATUS("start y FFTs") ;
    /*** do z-direction ***/
  DO_Z_BLUR:
 
-STATUS("start z FFTs") ;
-
    /** 03 Oct 2005: perhaps do the y-blur in real-space? **/
 
-   if( nz < 2 || sigmay <= 0.0 ){ fir_num++ ; goto ALL_DONE_NOW ; }
+   if( nz < 2 || sigmay <= 0.0 ){
+     STATUS("skip z blur") ; fir_num++ ; goto ALL_DONE_NOW ;
+   }
 
    fir_m = (int) ceil( 2.5 * sigmaz / dz ) ;
    if( allow_fir && ftype == MRI_float && fir_m <= FIR_MAX ){
+     STATUS("start z FIR") ;
      if( fir_m < 1 ) fir_m = 1 ;
      fac = fir_wt[0] = 1.0f ;
      for( ii=1 ; ii <= fir_m ; ii++ ){
@@ -397,6 +415,8 @@ STATUS("start z FFTs") ;
      fir_blurz( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      fir_num++ ; goto ALL_DONE_NOW ;
    }
+
+STATUS("start z FFTs") ;
 
    aa  = sigmaz * sigmaz * 0.5 ;
    nup = nz + (int)(3.0 * sigmaz / dz) ;      /* min FFT length */
@@ -503,6 +523,7 @@ STATUS("start z FFTs") ;
  ALL_DONE_NOW:
 
    if( fir_num < 3 ){
+     STATUS("clipping results") ;
      switch( ftype ){
 
        case MRI_short:
@@ -561,6 +582,9 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
    if( m < 1 || wt == NULL || nx < (m+1) || f == NULL ) EXRETURN ;
    if( ny <= 0 || nz <= 0 ) EXRETURN ;
 
+   /* 1 row workspace, with m-long buffers at each end
+      (so that the i-th element of the row is in r[i+m]) */
+
    r = (float *)calloc(sizeof(float),(nx+2*m)) ;
 
    switch( m ){
@@ -569,15 +593,15 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
-          off = jj*nx + kk*nxy ; ff = f+off ;
-          memcpy( r+m , ff , sizeof(float)*nx ) ;
-          r[m-1] = r[m+1] ; r[nx+m] = r[nx+m-2] ;
+          off = jj*nx + kk*nxy ; ff = f+off ;     /* ff = ptr to this row */
+          memcpy( r+m , ff , sizeof(float)*nx ) ; /* copy row into workspace */
+          r[m-1] = r[m+1] ; r[nx+m] = r[nx+m-2] ; /* mirror at ends */
 
-          for( ii=0 ; ii < nx ; ii++ ){
+          for( ii=0 ; ii < nx ; ii++ ){   /* filter at ii-th location */
             sum = wt[0]*r[ii+m] ;
             for( qq=1 ; qq <= m ; qq++ )
               sum += wt[qq] * ( r[ii+m-qq] + r[ii+m+qq] ) ;
-            ff[ii] = sum ;
+            ff[ii] = sum ;                /* save result back in input array */
           }
         }}
      break ;
@@ -731,7 +755,8 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  D
 #define D nx  /* stride along y-axis */
 
-/*! Similar to fir_blurx(), but along the y-axis. */
+/*! Similar to fir_blurx(), but along the y-axis.
+    For further comments, see fir_blurx() source code. */
 
 static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
 {
@@ -925,7 +950,8 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
    if( m < 1 || wt == NULL || nz < (m+1) || f == NULL ) EXRETURN ;
    if( nxy <= 0 ) EXRETURN ;
 
-   /* 2D (z,x) slice, with m-long buffers on each side in the z-direction.
+   /* In this function, for each value of jj (y index), we extract a
+      2D (z,x) slice, with m-long buffers on each side in the z-direction.
       The purpose of this is to get multiple lines of z-direction data into
       the CPU cache, to speed up processing (a lot).  For the x-axis, this
       was unneeded, since the x-rows are contiguous in memory.  For the
@@ -933,7 +959,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
       doesn't fit into cache.  For nx=ny=256, 1 plane is 256 KB, so I
       decided that this 2D extract/process/insert trick was nugatory. */
 
-   /* macro to access the input data 2D slice */
+   /* macro to access the input data 2D slice: (i,k) = (x,z) indexes */
 
 #undef  RR
 #define RR(i,k) rr[(k)+m+(i)*nz2m]  /*** 0 <= i <= nx-1 ; -m <= k <= nz-1+m ***/
@@ -943,13 +969,14 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  SS
 #define SS(i,k) ss[(k)+(i)*nz]
 
-   rr = (float *)calloc(sizeof(float),nz2m*nx) ;
+   rr = (float *)calloc(sizeof(float),nz2m*nx) ;  /* nz2m = nz+2*m */
    ss = (float *)malloc(sizeof(float)*nz  *nx) ;
 
    for( jj=0 ; jj < ny ; jj++ ){  /* loop in y-direction */
-     off = jj*nx ; ff = f+off ;   /* 3D (i,j,k) is at i+j*nx+k*nxy */
+     off = jj*nx ; ff = f+off ;   /* ff = ptr to start of this 2D slice */
 
-     /* load data into 2D (z,x) slice from 3D (x,y,z) array */
+     /* load data into 2D (z,x) slice from 3D (x,y,z) array;
+        inner loop is over ii so as to access in the most contiguous way */
 
      for( kk=0 ; kk < nz ; kk++ ){
        for( ii=0 ; ii < nx ; ii++ ) RR(ii,kk) = ff[ii+D*kk] ;
@@ -958,7 +985,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        RR(ii,-1) = RR(ii,1) ; RR(ii,nz) = RR(ii,nz-2) ; /* edge reflection */
      }
 
-     /* filter data along z-direction, put into 2D ss array */
+     /* filter data in RR along z-direction, put into 2D SS array */
 
      switch(m){  /** for small m, unroll the inner loop for speed **/
 
@@ -1062,7 +1089,8 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
      } /* end of special cases of m */
 
-     /* put ss array back into 3D array */
+     /* put SS array back into input 3D array;
+        again, inner loop over ii for most contiguous access to f[] array */
 
      for( kk=0 ; kk < nz ; kk++ ){
        for( ii=0 ; ii < nx ; ii++ ) ff[ii+D*kk] = SS(ii,kk) ;
@@ -1070,12 +1098,15 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
    } /* end of loop over y-direction (jj) */
 
-   /*** finito ***/
+   /*** finito; ciao, baby ***/
 
    free((void *)ss) ; free((void *)rr) ; EXRETURN ;
 }
 
 /*-------------------------------------------------------------------*/
+/*! Like EDIT_blur_volume(), using FIR only (no FFTs)
+    and only for float arrays.
+---------------------------------------------------------------------*/
 
 void FIR_blur_volume( int nx, int ny, int nz,
                       float dx, float dy, float dz,
@@ -1086,11 +1117,12 @@ void FIR_blur_volume( int nx, int ny, int nz,
 }
 
 /*-------------------------------------------------------------------*/
-/* Gaussian blur in real space, of a float volume.
+/* Gaussian blur in real space, of a float volume; like
+   EDIT_blur_volume_3d(), but using FIR only.
     - nx,ny,nz = dimensions of array
     - dx,dy,dz = grid step sizes
     - ffim     = array
-    - sigmax   = stdev for blur along x; if 0, no blurring in x.
+    - sigmax   = stdev for blur along x; if 0, no blurring in x; etc.
 ---------------------------------------------------------------------*/
 
 void FIR_blur_volume_3d( int nx, int ny, int nz,
@@ -1110,7 +1142,7 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
    if( dy <= 0.0 ) dy = dx  ;
    if( dz <= 0.0 ) dz = dx  ;
 
-   if( sigmax > 0.0 ){
+   if( sigmax > 0.0 && nx > 1 ){
      fir_m = (int) ceil( 2.5 * sigmax / dx ) ;  /* about the 5% level */
      if( fir_m < 1 ) fir_m = 1 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
@@ -1125,7 +1157,7 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      free((void *)fir_wt) ;
    }
 
-   if( sigmay > 0.0 ){
+   if( sigmay > 0.0 && ny > 1 ){
      fir_m = (int) ceil( 2.5 * sigmay / dy ) ;
      if( fir_m < 1 ) fir_m = 1 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
@@ -1140,7 +1172,7 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      free((void *)fir_wt) ;
    }
 
-   if( sigmaz > 0.0 ){
+   if( sigmaz > 0.0 && nz > 1 ){
      fir_m = (int) ceil( 2.5 * sigmaz / dz ) ;
      if( fir_m < 1 ) fir_m = 1 ;
      fir_wt = (float *)malloc(sizeof(float)*(fir_m+1)) ;
@@ -1155,5 +1187,5 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      free((void *)fir_wt) ;
    }
 
-   return ;
+   EXRETURN ;
 }
