@@ -896,9 +896,9 @@ int main( int argc , char * argv[] )
        char *lab09, *lab10, *lab11 ;
        float xd,yd,zd , xl,yl,zl , xxx ;
 
-       xd = 2.22*fabs( dx * (i_xcm-b_xcm) ) ; xl = 0.222 * fabs( dx*nx ) ;
-       yd = 2.22*fabs( dy * (i_ycm-b_ycm) ) ; yl = 0.222 * fabs( dy*ny ) ;
-       zd = 2.22*fabs( dz * (i_zcm-b_zcm) ) ; zl = 0.222 * fabs( dz*nz ) ;
+       xd = 3.33*fabs( dx * (i_xcm-b_xcm) ) ; xl = 0.333 * fabs( dx*nx ) ;
+       yd = 3.33*fabs( dy * (i_ycm-b_ycm) ) ; yl = 0.333 * fabs( dy*ny ) ;
+       zd = 3.33*fabs( dz * (i_zcm-b_zcm) ) ; zl = 0.333 * fabs( dz*nz ) ;
        xd = MAX(xd,xl) ; yd = MAX(yd,yl) ; zd = MAX(zd,zl) ;
        xxx = sqrt( xd*xd + yd*yd + zd*zd ) ;
 
@@ -962,9 +962,9 @@ int main( int argc , char * argv[] )
        float xr,yr,zr,rr ;
        float xd,yd,zd , xl,yl,zl , xxx ;
 
-       xd = 2.22*fabs( dx * (i_xcm-b_xcm) ) ; xl = 0.222 * fabs( dx*nx ) ;
-       yd = 2.22*fabs( dy * (i_ycm-b_ycm) ) ; yl = 0.222 * fabs( dy*ny ) ;
-       zd = 2.22*fabs( dz * (i_zcm-b_zcm) ) ; zl = 0.222 * fabs( dz*nz ) ;
+       xd = 3.33*fabs( dx * (i_xcm-b_xcm) ) ; xl = 0.333 * fabs( dx*nx ) ;
+       yd = 3.33*fabs( dy * (i_ycm-b_ycm) ) ; yl = 0.333 * fabs( dy*ny ) ;
+       zd = 3.33*fabs( dz * (i_zcm-b_zcm) ) ; zl = 0.333 * fabs( dz*nz ) ;
        xd = MAX(xd,xl) ; yd = MAX(yd,yl) ; zd = MAX(zd,zl) ;
        xxx = sqrt( xd*xd + yd*yd + zd*zd ) ;
 
