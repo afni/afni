@@ -2677,6 +2677,12 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "Select Intensity (I) column", 
                            SUMA_SurfContHelp_SelInt,
                            SO->SurfCont->SwitchIntMenu );
+         XtInsertEventHandler( SO->SurfCont->SwitchIntMenu[0] ,      /* handle events in optmenu */
+                        ButtonPressMask ,  /* button presses */
+                        FALSE ,            /* nonmaskable events? */
+                        SUMA_optmenu_EV ,  /* handler */
+                        (XtPointer) SO ,   /* client data */
+                        XtListTail ) ;
          if (LocalHead) SUMA_ShowMeTheChildren(SO->SurfCont->SwitchIntMenu[0]);
          XtManageChild (SO->SurfCont->SwitchIntMenu[0]);
          /* Now destroy the SwitchInt_Menu */
@@ -2705,6 +2711,12 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "Select Threshold (T) column", 
                            SUMA_SurfContHelp_SelThr ,    
                            SO->SurfCont->SwitchThrMenu );
+         XtInsertEventHandler( SO->SurfCont->SwitchThrMenu[0] ,      /* handle events in optmenu */
+                        ButtonPressMask ,  /* button presses */
+                        FALSE ,            /* nonmaskable events? */
+                        SUMA_optmenu_EV ,  /* handler */
+                        (XtPointer) SO ,   /* client data */
+                        XtListTail ) ;
          XtManageChild (SO->SurfCont->SwitchThrMenu[0]);
          /* Now destroy the SwitchThr_Menu */
          SwitchThr_Menu = SUMA_FreeMenuVector(SwitchThr_Menu, N_items);
@@ -2732,6 +2744,13 @@ void SUMA_set_cmap_options(SUMA_SurfaceObject *SO, SUMA_Boolean NewDset, SUMA_Bo
                            "Select Brightness (B) column", 
                            SUMA_SurfContHelp_SelBrt,
                            SO->SurfCont->SwitchBrtMenu );
+         XtInsertEventHandler( SO->SurfCont->SwitchBrtMenu[0] ,      /* handle events in optmenu */
+                        ButtonPressMask ,  /* button presses */
+                        FALSE ,            /* nonmaskable events? */
+                        SUMA_optmenu_EV ,  /* handler */
+                        (XtPointer) SO ,   /* client data */
+                        XtListTail ) ;
+
          XtManageChild (SO->SurfCont->SwitchBrtMenu[0]);
          /* Now destroy the SwitchBrt_Menu */
          SwitchBrt_Menu = SUMA_FreeMenuVector(SwitchBrt_Menu, N_items);
@@ -3321,6 +3340,69 @@ SUMA_Boolean SUMA_DsetColSelectList(SUMA_SurfaceObject *SO, int type)
    SUMA_ENTRY;
    
    SUMA_LH("Called");
+   
+   #if 0 /* not ready yet */
+   if (!SO || !SO->SurfCont) SUMA_RETURN(NOPE);
+   
+   /* Widget is common to a surface controller. */
+   switch (type) {
+      case 0:
+         LW = SO->SurfCont->SwitchIntLst;
+         if (!LW) {
+            SUMA_LH("Allocating widget");
+            /* need to create widget */
+            LW = SUMA_AllocateScrolledList   (  "Switch Intensity", SUMA_LSP_SINGLE,
+                                                NOPE,          NOPE,
+                                                SO->SurfCont->TopLevelShell, SWP_POINTER_OFF,
+                                                SUMA_cb_SelectSwitchInt, (void *)SO,
+                                                SUMA_cb_SelectSwitchInt, (void *)SO,
+                                                SUMA_cb_CloseSwitchInt, NULL);
+
+            SO->SurfCont->SwitchIntLst = LW;
+            refresh = 1; /* no doubt aboot it */
+         } else {
+            /* STOPPED HERE, figure out what that block does below, all that's next was for the Cmp equivalent...*/
+            if ((void *)SO != LW->Default_Data || (void *)SO != LW->Select_Data) {
+               /* just update the callback data info in LW */
+               SUMA_UpdateScrolledListData(LW, (void *)SO, (void *)SO, NULL);
+            }
+         }
+         break;
+      case 1:
+         LW = SO->SurfCont->SwitchThrLst;
+         break;
+      case 2:
+         LW = SO->SurfCont->SwitchBrtLst;
+         break;
+      default:
+         SUMA_SL_Err("Unexpected type");
+         SUMA_RETURN(NOPE);
+   }
+   
+  if (refresh) {
+      /* Now creating list*/
+      if (LW->ALS) {
+         if (LocalHead) SUMA_S_Err("Freeing the hag.");
+         LW->ALS = SUMA_FreeAssembleListStruct(LW->ALS);
+      }
+      SUMA_LH("Assembling");
+      LW->ALS = SUMA_AssembleCmapList(SUMAg_CF->scm->CMv, SUMAg_CF->scm->N_maps);
+      if (!LW->ALS) {
+         SUMA_SL_Err("Failed to assemble list");
+         SUMA_RETURN(NOPE);
+      }
+      if (LW->ALS->N_clist < 0) {
+         SUMA_SL_Err("Failed in SUMA_AssembleCmapList");
+         SUMA_RETURN(NOPE);
+      }
+      if (!LW->ALS->N_clist) {
+         SUMA_SLP_Note ("No cmaps to choose from.");
+         SUMA_RETURN(NOPE);
+      }
+   }
+   
+   if (bringup) SUMA_CreateScrolledList ( LW->ALS->clist, LW->ALS->N_clist, NOPE, LW);
+   #endif
    
    SUMA_RETURN(YUP);
 }

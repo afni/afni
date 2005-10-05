@@ -1937,6 +1937,9 @@ SUMA_X_SurfCont *SUMA_CreateSurfContStruct (char *idcode_str)
    SurfCont->SwitchIntMenu = NULL;
    SurfCont->SwitchBrtMenu = NULL;
    SurfCont->SwitchThrMenu = NULL;
+   SurfCont->SwitchIntLst = NULL;
+   SurfCont->SwitchThrLst = NULL;
+   SurfCont->SwitchBrtLst = NULL;
    SurfCont->SwitchCmapMenu = NULL;
    SurfCont->rc_CmapCont = NULL;
    SurfCont->N_CmapMenu = -1;

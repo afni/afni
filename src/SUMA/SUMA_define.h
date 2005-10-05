@@ -1013,8 +1013,11 @@ typedef struct {
    Widget cmaptit_lb;  /*! title of cmap */
    Widget cmapswtch_pb; /*! button for switching color map */
    Widget *SwitchIntMenu; /* vector of widgets controlling the switch intensity widgets */
-   Widget *SwitchThrMenu; /* vector of widgets controlling the switch brightness widgets */
+   Widget *SwitchThrMenu; /* vector of widgets controlling the switch threshold widgets */
    Widget *SwitchBrtMenu; /* vector of widgets controlling the switch brightness widgets */
+   SUMA_LIST_WIDGET *SwitchIntLst; /*!< list widget for switching intensity */
+   SUMA_LIST_WIDGET *SwitchThrLst; /*!< list widget for switching intensity */
+   SUMA_LIST_WIDGET *SwitchBrtLst; /*!< list widget for switching intensity */
    Widget *SwitchCmapMenu; /* vector of widgets controlling the switch cmap widgets */
    Widget rc_CmapCont; /* rc container to contain Cmap menu */
    int N_CmapMenu; /* Number of widgets in SwitchCmapMenu */
