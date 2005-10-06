@@ -10,17 +10,17 @@ set Name = $1:t
 
 
 #look for +orig or whatever it is
-echo $Name | grep -q '+orig'
+echo $Name | grep '+orig' >& /dev/null
 if ($status == 0) then 
 	echo '+orig'
 	goto ENDALL
 endif
-echo $Name | grep -q '+acpc'
+echo $Name | grep '+acpc' >& /dev/null
 if ($status == 0) then 
 	echo '+acpc'
 	goto ENDALL
 endif
-echo $Name | grep -q '+tlrc'
+echo $Name | grep '+tlrc' >& /dev/null
 if ($status == 0) then 
 	echo '+tlrc'
 	goto ENDALL
