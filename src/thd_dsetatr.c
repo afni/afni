@@ -522,6 +522,23 @@ ENTRY("THD_set_dataset_attributes") ;
      THD_erase_one_atr( blk , "BRICK_STATSYM" ) ;
    }
 
+   /* 06 Oct 2005 -- output BRICK_STATSYM from older fitt (etc.) datasets */
+
+   if( THD_find_string_atr(blk,"BRICK_STATSYM") == NULL &&
+       ISFUNC(dset)                                     &&
+       FUNC_IS_STAT(dset->func_type)                    &&
+       blk->nvals == 2                                    ){
+
+     char statsym[256]="none;", *sstr; float p1,p2,p3; int np;
+
+     p1 = dset->stat_aux[0]; p2 = dset->stat_aux[1]; p3 = dset->stat_aux[2];
+     sstr = NI_stat_encode( dset->func_type , p1,p2,p3 ) ;
+     strcat(statsym,sstr) ; free(sstr) ;
+     THD_set_string_atr( blk , "BRICK_STATSYM" , statsym ) ;
+   }
+     
+       
+
    /******/
    /****** N.B.: we do NOT set the byte order attribute here *****/
    /******/ 
