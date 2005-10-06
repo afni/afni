@@ -14,7 +14,7 @@ static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 static void fir_blurz( int m, float *wt,int nx, int ny, int nz, float *f ) ;
 
 #undef  FIR_MAX
-#define FIR_MAX 13  /** max length of FIR filter to use instead of FFTs **/
+#define FIR_MAX 15  /** max length of FIR filter to use instead of FFTs **/
 
 /*! If set to 0, EDIT_blur_volume() will not use the fir_blur? functions. */
 
@@ -55,13 +55,12 @@ void EDIT_blur_volume( int nx, int ny, int nz,
 }
 
 /**************************************************************************/
-/*!
-  The following slightly modified version of EDIT_blur_volume allows
-  independent specification of Gaussian filter widths along the three
-  perpendicular axes.
-  - BDW - 21 Feb 1997
-  - RWC - 04 Feb 2005: use fir_blur? function if sigma? is small
-                       - also see EDIT_blur_allow_fir()
+/*! The following slightly modified version of EDIT_blur_volume allows
+    independent specification of Gaussian filter widths along the three
+    perpendicular axes.
+     - BDW - 21 Feb 1997
+     - RWC - 04 Feb 2005: use fir_blur? function if sigma? is small
+     - also see EDIT_blur_allow_fir() and FIR_blur_volume_3d()
 --------------------------------------------------------------------------*/
 
 void EDIT_blur_volume_3d( int nx, int ny, int nz,
@@ -88,6 +87,7 @@ void EDIT_blur_volume_3d( int nx, int ny, int nz,
 
    int   fir_m , fir_num=0 ;  /* 03 Oct 2005: for fir_blur? filtering */
    float fir_wt[FIR_MAX+1] ;
+   int all_fir=0 ;            /* 06 Oct 2005 */
 
    /***---------- initialize ----------***/
 
@@ -112,7 +112,15 @@ ENTRY("EDIT_blur_volume_3d") ;
 
    /*** 10 Jan 2003: find bot and top of data input */
 
-   switch( ftype ){
+   if( allow_fir ){ 
+     ii = (int) ceil( 2.5 * sigmax / dx ) ;
+     jj = (int) ceil( 2.5 * sigmay / dy ) ;
+     kk = (int) ceil( 2.5 * sigmaz / dz ) ;
+     if( ii <= FIR_MAX && jj <= FIR_MAX && kk <= FIR_MAX ) all_fir = 1 ;
+   }
+
+   if( !all_fir ){
+    switch( ftype ){
      default:
        fbot = ftop = 0.0 ;  /* for complex */
      break ;
@@ -137,6 +145,7 @@ ENTRY("EDIT_blur_volume_3d") ;
               if( bfim[ii] < fbot ) fbot = bfim[ii] ;
          else if( bfim[ii] > ftop ) ftop = bfim[ii] ;
      break ;
+    }
    }
 
    /*** do x-direction ***/
@@ -522,7 +531,7 @@ STATUS("start z FFTs") ;
 
  ALL_DONE_NOW:
 
-   if( fir_num < 3 ){
+   if( !all_fir && fir_num < 3 ){
      STATUS("clipping results") ;
      switch( ftype ){
 
@@ -1098,7 +1107,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
    } /* end of loop over y-direction (jj) */
 
-   /*** finito; ciao, baby ***/
+   /*** finito, cara mia ***/
 
    free((void *)ss) ; free((void *)rr) ; EXRETURN ;
 }
@@ -1112,7 +1121,7 @@ void FIR_blur_volume( int nx, int ny, int nz,
                       float dx, float dy, float dz,
                       float *ffim , float sigma )
 {
-  if( sigma > 0.0 )
+  if( ffim != NULL && sigma > 0.0 )
     FIR_blur_volume_3d(nx,ny,nz, dx,dy,dz, ffim, sigma,sigma,sigma) ;
 }
 
@@ -1142,6 +1151,8 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
    if( dy <= 0.0 ) dy = dx  ;
    if( dz <= 0.0 ) dz = dx  ;
 
+   /*-- blur along x --*/
+
    if( sigmax > 0.0 && nx > 1 ){
      fir_m = (int) ceil( 2.5 * sigmax / dx ) ;  /* about the 5% level */
      if( fir_m < 1 ) fir_m = 1 ;
@@ -1157,6 +1168,8 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      free((void *)fir_wt) ;
    }
 
+   /*-- blur along y --*/
+
    if( sigmay > 0.0 && ny > 1 ){
      fir_m = (int) ceil( 2.5 * sigmay / dy ) ;
      if( fir_m < 1 ) fir_m = 1 ;
@@ -1171,6 +1184,8 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
      fir_blury( fir_m , fir_wt , nx,ny,nz , ffim ) ;
      free((void *)fir_wt) ;
    }
+
+   /*-- blur along z --*/
 
    if( sigmaz > 0.0 && nz > 1 ){
      fir_m = (int) ceil( 2.5 * sigmaz / dz ) ;
@@ -1189,3 +1204,78 @@ void FIR_blur_volume_3d( int nx, int ny, int nz,
 
    EXRETURN ;
 }
+
+/**************************************************************************/
+/**************************************************************************/
+/**************************************************************************/
+#if 0
+/*------------------------------------------------------------------------*/
+/* Below is a test program that can be used to evaluate the relative
+   speed of FFT and FIR blurring.  If compiled into 'tblur', then a
+   command line would be
+     'tblur 240 13.0'
+   meaning blur a 240x240x240 volume with sigma=13.0.  The output is
+   a line indicating the input parameters and the CPU time ratio
+   (FFT time)/(FIR time).
+
+   Compilation should be something like so:
+
+   make tblur.o
+   cc -o tblur tblur.o -L. -L/usr/X11R6/lib -lmri -lXt -lm
+--------------------------------------------------------------------------*/
+#include "mrilib.h"
+
+int main( int argc , char *argv[] )
+{
+   int nx , nxxx , ii , jj ;
+   float sigma , *gar , *far ;
+   double c1,c2,c3 , cg,cf ;
+
+   EDIT_blur_allow_fir(0) ;  /* turn off auto-FIR in EDIT_blur_volume() */
+
+   /* get command line params */
+
+   if( argc < 3 ) exit(0) ;
+   nx = (int)strtod( argv[1] , NULL) ; if( nx < 32 ) nx = 128 ;
+   sigma = (float)strtod( argv[2] , NULL ) ; if( sigma <= 0.0 ) exit(0) ;
+
+   /* allocate volumes */
+
+   nxxx = nx*nx*nx ;
+   gar = (float *)malloc( sizeof(float)*nxxx ) ;
+   far = (float *)malloc( sizeof(float)*nxxx ) ;
+
+   /* load volume for FFT and then blur 5 times */
+
+   for( ii=0 ; ii < nxxx ; ii++ ) gar[ii] = cos(0.37382*ii) ;
+   c1 = COX_cpu_time() ;
+   for( jj=0 ; jj < 5 ; jj++ )
+     EDIT_blur_volume( nx,nx,nx , 1.0,1.0,1.0 , MRI_float,gar , sigma ) ;
+   c2 = COX_cpu_time() ; cg = c2-c1 ;
+   /** printf("nx=%d sigma=%.2f Gaussian cpu=%.3f\n",nx,sigma,cg) ; **/
+
+   /* load volume for FIR and then blur 5 times */
+
+   for( ii=0 ; ii < nxxx ; ii++ ) far[ii] = cos(0.37382*ii) ;
+   c1 = COX_cpu_time() ;
+   for( jj=0 ; jj < 5 ; jj++ )
+     FIR_blur_volume( nx,nx,nx , 1.0,1.0,1.0 , far , sigma ) ;
+   c2 = COX_cpu_time() ; cf = c2-c1 ;
+   /** printf("nx=%d sigma=%.2f FIR_blur cpu=%.3f\n",nx,sigma,cf) ; **/
+
+   /* output CPU time ratio */
+
+   printf("ratio: %d %.2f %.2f\n",nx,sigma,cg/cf) ;
+
+   /* compute mean difference between the 2 approaches */
+
+   /**
+   c1 = 0.0 ;
+   for( ii=0 ; ii < nxxx ; ii++ ) c1 += fabs(far[ii]-gar[ii]) ;
+   c1 = c1 / nxxx ;
+   printf("mean abs diff = %g\n",c1) ;
+   **/
+
+   exit(0) ;
+}
+#endif
