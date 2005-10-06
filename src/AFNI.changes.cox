@@ -5712,8 +5712,16 @@
 30 Sep 2005
  * 2x2 and 3x3 special cases for cs_symeig.c.
 
-04 Sep 2005
+04 Oct 2005
  * Modified edt_blur.c to do small Gaussian blurs in real-space, with the
-    fir_blur?() functions.  Also added FIR_blur_volume() function to allow
-    user to invoke FIR explicitly, rather than implicitly.
+     fir_blur?() functions.  Also added FIR_blur_volume() function to allow
+     user to invoke FIR explicitly, rather than implicitly.
  * Add "TRACE" command to afni_driver.c.
+
+06 Oct 2005
+ * Modified edt_blur.c to skip min/max clip calculations when all directions
+     are done with FIR.
+ * Modified thd_dsetatr.c to write BRICK_STATSYM attribute not just for
+     func bucket datasets but for fitt, fift (etc.) legacy types.
+ * Fixed bug in 3dbucfim.c where the stat_aux array was possibly loaded
+     with illegal array access values.
