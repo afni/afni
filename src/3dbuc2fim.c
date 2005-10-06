@@ -6,7 +6,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  This program takes bucket sub-bricks and creates a fim (fico, fitt, 
+  This program takes bucket sub-bricks and creates a fim (fico, fitt,
   fift, ...) dataset.  This program was adapted from 3dbucket.c.
 
 
@@ -104,7 +104,7 @@ void B2F_read_opts( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      
+
       if( argv[nopt][0] == '-' ){
          fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ; exit(1) ;
       }
@@ -274,7 +274,7 @@ int * B2F_get_subv( int nvals , char * str )
 
 void B2F_Syntax(void)
 {
-  printf 
+  printf
     (
      "This program converts bucket sub-bricks to fim (fico, fitt, fift, ...)\n"
      "type dataset.                                                       \n\n"
@@ -380,7 +380,7 @@ int main( int argc , char * argv[] )
 
    /*-----  Set default value for function type. This will be changed later,
             if the second sub-brick has a statistic type.  -----*/
-   if (new_nvals == 1)  
+   if (new_nvals == 1)
      B2F_func_type = FUNC_FIM_TYPE;
    else
      B2F_func_type = FUNC_THR_TYPE;
@@ -391,10 +391,10 @@ int main( int argc , char * argv[] )
 		    ADN_directory_name, B2F_session ,
 		    ADN_type          , HEAD_FUNC_TYPE,
 		    ADN_func_type     , B2F_func_type,
-		    ADN_ntt           , 0 , 
+		    ADN_ntt           , 0 ,
 		    ADN_nvals         , new_nvals ,
-                    ADN_none ) ; 
-   
+                    ADN_none ) ;
+
 
    if( THD_is_file(DSET_HEADNAME(new_dset)) ){
      fprintf(stderr,"*** Fatal error: file %s already exists!\n",
@@ -419,7 +419,7 @@ int main( int argc , char * argv[] )
 		DSET_FILECODE(dset)) ;
 	exit(1) ;
       }
-  
+
 
       /** loop over sub-bricks to output **/
 
@@ -428,53 +428,53 @@ int main( int argc , char * argv[] )
 
 	 EDIT_substitute_brick( new_dset , ivout ,
 				DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
-	 
-	 /*----- If this sub-brick is from a bucket dataset, 
+	
+	 /*----- If this sub-brick is from a bucket dataset,
 	   preserve the label for this sub-brick -----*/
 	 if (dset->func_type == FUNC_BUCK_TYPE)
 	   sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
 	 else
 	   sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
 	 EDIT_dset_items( new_dset , ADN_brick_label_one+ivout, buf , ADN_none ) ;
-	 
+	
 	 sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;
 	 EDIT_dset_items(
 			 new_dset, ADN_brick_keywords_replace_one+ivout, buf, ADN_none ) ;
-	 
+	
 	 EDIT_dset_items(
 			 new_dset ,
 			 ADN_brick_fac_one            +ivout, DSET_BRICK_FACTOR(dset,jv),
 			 ADN_brick_keywords_append_one+ivout, DSET_BRICK_KEYWORDS(dset,jv) ,
 			 ADN_none ) ;
-	 
+	
 	 /** possibly write statistical parameters for this sub-brick **/
-	 
+	
 	 kv = DSET_BRICK_STATCODE(dset,jv) ;
-	 
+	
 	 if( FUNC_IS_STAT(kv) ){ /* input sub-brick has stat params */
-	   
+	
 	   int npar = MAX_STAT_AUX , lv ;
 	   float * par = (float *) malloc( sizeof(float) * (npar) ) ;
 	   float * sax = DSET_BRICK_STATAUX(dset,jv) ;
 	   for( lv=0 ; lv < npar ; lv++ )
-	     par[lv] = (sax != NULL) ? sax[lv] : 0.0 ;
-	     
+	     par[lv] = (sax != NULL && lv < FUNC_need_stat_aux[kv]) ? sax[lv] : 0.0;
+	
 	   if (ivout == 1)
 	     {
 	       EDIT_dset_items(new_dset ,
-			       ADN_func_type     , kv,		     
+			       ADN_func_type     , kv,		
 			       ADN_stat_aux, par ,
 			       ADN_none ) ;
 	     }
-	   
+	
 	   free(par) ;
-	     
+	
 	     /* 2: if the input dataset has statistical parameters */
 
 	 } else if( ISFUNC(dset)                        &&   /* dset has stat */
 		    FUNC_IS_STAT(dset->func_type)       &&   /* params        */
 		    jv == FUNC_ival_thr[dset->func_type]  ){ /* thr sub-brick */
-	   
+	
 	   int npar , lv ;
 	   float * par , * sax ;
 	   kv  = dset->func_type ;
@@ -483,23 +483,23 @@ int main( int argc , char * argv[] )
 	   sax  = dset->stat_aux ;
 	   for( lv=0 ; lv < npar ; lv++ )
 	     par[lv] = (sax != NULL) ? sax[lv] : 0.0 ;
-	     
+	
 
 	   if (ivout == 1)
 	     {
 	       for( lv=0 ; lv < npar+2 ; lv++ )
 		 printf ("par[%d] = %f \n", lv, par[lv]);
 	       EDIT_dset_items(new_dset ,
-			       ADN_func_type     , kv,		     
+			       ADN_func_type     , kv,		
 			       ADN_stat_aux, par ,
 			       ADN_none ) ;
 	     }
-	   
+	
 	   free(par) ;
 	 }
-	 
+	
 	 /** print a message? **/
-	 
+	
 	 if( B2F_verb ) printf("-verb: copied %s[%d] into %s[%d]\n" ,
 			       DSET_FILECODE(dset) , jv ,
 			       DSET_FILECODE(new_dset) , ivout ) ;
@@ -509,7 +509,7 @@ int main( int argc , char * argv[] )
       /** loop over all bricks in input dataset and
 	unload them if they aren't going into the output
 	(not required, but is done to economize on memory) **/
-      
+
       if( nv < DSET_NVALS(dset) ){
 	
 	for( kv=0 ; kv < DSET_NVALS(dset) ; kv++ ){  /* all input sub-bricks */
@@ -526,16 +526,15 @@ int main( int argc , char * argv[] )
 	  }
 	}
       }
-      
+
    } /* end of loop over input datasets */
 
-   
+
    if( B2F_verb ) fprintf(stderr,"-verb: loading statistics\n") ;
    THD_load_statistics( new_dset ) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
    if( B2F_verb ) fprintf(stderr,"-verb: wrote output: %s\n",DSET_BRIKNAME(new_dset)) ;
-   
+
 
    exit(0) ;
 }
-

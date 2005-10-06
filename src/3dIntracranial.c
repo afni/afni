@@ -33,7 +33,7 @@
 
   Mod:     Convert input from MRI_byte to MRI_short if needed.
   Date:    05 December 2002
-  
+
   Mod:     Modified the -help menu -- P Christidis
   Date:    21 July 2005
 */
@@ -99,12 +99,12 @@ void SI_error (char * message)
 
 void display_help_menu()
 {
-  printf 
+  printf
     (
    "3dIntracranial - performs automatic segmentation of intracranial region.\n"
    "                                                                        \n"
    "   This program will strip the scalp and other non-brain tissue from a  \n"
-   "   high-resolution T1 weighted anatomical dataset.                      \n"  
+   "   high-resolution T1 weighted anatomical dataset.                      \n"
    "                                                                        \n"
    "----------------------------------------------------------------------- \n"
    "                                                                        \n"
@@ -151,7 +151,7 @@ void display_help_menu()
    "                                                                        \n"
    "----------------------------------------------------------------------- \n"
       );
-  
+
   exit(0);
 }
 
@@ -164,7 +164,7 @@ void display_help_menu()
 void get_options
 (
   int argc,                        /* number of input arguments */
-  char ** argv                     /* array of input arguments */ 
+  char ** argv                     /* array of input arguments */
 )
 
 {
@@ -175,11 +175,11 @@ void get_options
 
 
   /*----- does user request help menu? -----*/
-  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
-   
-  
+  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
+
+
   /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- main loop over input options -----*/
@@ -198,14 +198,14 @@ void get_options
 	  anat = THD_open_dataset (anat_filename);
 	  if (!ISVALID_3DIM_DATASET (anat))
 	    {
-	      sprintf (message, "Can't open dataset: %s\n", anat_filename); 
-	      SI_error (message); 
-	    } 
-	  THD_load_datablock (anat->dblk); 
+	      sprintf (message, "Can't open dataset: %s\n", anat_filename);
+	      SI_error (message);
+	    }
+	  THD_load_datablock (anat->dblk);
 	  if (DSET_ARRAY(anat,0) == NULL)
 	    {
-	      sprintf (message, "Can't access data: %s\n", anat_filename); 
-	      SI_error (message); 
+	      sprintf (message, "Can't access data: %s\n", anat_filename);
+	      SI_error (message);
 	    }
 
           /** RWCox [05 Dec 2002]
@@ -228,14 +228,14 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -min_val a  -----*/
       if (strncmp(argv[nopt], "-min_val", 8) == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  SI_error ("need argument after -min_val ");
-	  sscanf (argv[nopt], "%f", &fval); 
+	  sscanf (argv[nopt], "%f", &fval);
 	  if (fval < 0.0)
 	    SI_error ("illegal argument after -min_val ");
 	  min_val_float = fval;
@@ -243,14 +243,14 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -max_val b  -----*/
       if (strncmp(argv[nopt], "-max_val", 8) == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  SI_error ("need argument after -max_val ");
-	  sscanf (argv[nopt], "%f", &fval); 
+	  sscanf (argv[nopt], "%f", &fval);
 	  if (fval < 0.0)
 	    SI_error ("illegal argument after -max_val ");
 	  max_val_float = fval;
@@ -326,15 +326,15 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       SI_error (message);
-      
+
     }
 
-  
+
 }
 
 
@@ -343,7 +343,7 @@ void get_options
   Routine to check whether one output file already exists.
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   char * filename                   /* name of output file */
 )
@@ -353,25 +353,25 @@ void check_one_output_file
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
 
-  
+
   /*----- make an empty copy of input dataset -----*/
   new_dset = EDIT_empty_copy ( anat );
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_self_name , filename ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n", 
+	       "*** %d errors in attempting to create output dataset!\n",
 	       ierror);
       SI_error (message);
     }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
@@ -380,10 +380,10 @@ void check_one_output_file
 	       new_dset->dblk->diskptr->header_name);
       SI_error (message);
     }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -392,10 +392,10 @@ void check_one_output_file
   Program initialization.
 */
 
-void initialize_program 
+void initialize_program
 (
   int argc,                        /* number of input arguments */
-  char ** argv                     /* array of input arguments */ 
+  char ** argv                     /* array of input arguments */
 )
 
 {
@@ -443,8 +443,8 @@ void initialize_program
   if (min_val_int || max_val_int)  estpdf_short (icount, rfim, parameters);
   if (min_val_int)  min_val_float = parameters[4] - 2.0*parameters[5];
   if (max_val_int)  max_val_float = parameters[7] + 2.0*parameters[8];
-  
-   
+
+
   if (! quiet)
     {
       printf ("\n");
@@ -497,7 +497,7 @@ int auto_initialize (short ** cv)
   Put estimated target structure into output dataset.
 */
 
-void target_into_dataset 
+void target_into_dataset
 (
   short * cv            /* volume with 1's at target voxel locations */
 )
@@ -505,7 +505,7 @@ void target_into_dataset
 {
   short * anat_data  = NULL;               /* data from anatomical image */
   int nx, ny, nz, nxy, nxyz, ixyz;         /* voxel counters */
- 
+
 
   /*----- Initialize local variables -----*/
   anat_data  = (short *) DSET_BRICK_ARRAY(anat,0) ;
@@ -522,8 +522,8 @@ void target_into_dataset
 	}
     }
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset (anat, False);   anat = NULL;
 
 
@@ -534,13 +534,13 @@ void target_into_dataset
 /*---------------------------------------------------------------------------*/
 /*
   Routine to write one AFNI dataset.
-  
-  The output is either a segmented anatomical dataset, 
+
+  The output is either a segmented anatomical dataset,
   or a mask 'fim' type dataset.
-  
+
 */
 
-void write_afni_data 
+void write_afni_data
 (
   short * cv            /* volume with 1's at target voxel locations */
 )
@@ -563,7 +563,7 @@ void write_afni_data
   dset = THD_open_dataset (anat_filename);
   nxyz = DSET_NX(dset) * DSET_NY(dset) * DSET_NZ(dset);
 
-  
+
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
 
@@ -573,15 +573,15 @@ void write_afni_data
   if( commandline != NULL )
      tross_Append_History( new_dset , commandline ) ;
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset (dset, False);   dset = NULL ;
-  
+
 
   output_datum = MRI_short ;
-  
+
   ibuf[0] = output_datum ;
-  
+
   if (write_mask)
     {
       int func_type = FUNC_FIM_TYPE;
@@ -593,7 +593,7 @@ void write_afni_data
 				ADN_func_type , func_type ,
 				ADN_nvals , FUNC_nvals[func_type] ,
 				ADN_datum_array , ibuf ,
-				ADN_malloc_type, DATABLOCK_MEM_MALLOC ,  
+				ADN_malloc_type, DATABLOCK_MEM_MALLOC ,
 				ADN_none ) ;
     }
   else
@@ -603,14 +603,14 @@ void write_afni_data
 				ADN_label1 , filename ,
 				ADN_self_name , filename ,
 				ADN_datum_array , ibuf ,
-				ADN_malloc_type, DATABLOCK_MEM_MALLOC ,  
+				ADN_malloc_type, DATABLOCK_MEM_MALLOC ,
 				ADN_none ) ;
     }
 
-     
+
   if( ierror > 0 ){
     fprintf(stderr,
-	    "*** %d errors in attempting to create output dataset!\n", 
+	    "*** %d errors in attempting to create output dataset!\n",
 	    ierror ) ;
     exit(1) ;
   }
@@ -622,12 +622,12 @@ void write_afni_data
 	    new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-  
-  
+
+
   /*----- attach bricks to new data set -----*/
-  mri_fix_data_pointer (cv, DSET_BRICK(new_dset,0)); 
+  mri_fix_data_pointer (cv, DSET_BRICK(new_dset,0));
   fimfac = 1.0;
-  
+
 
   /*----- write afni data set -----*/
   if (! quiet)
@@ -641,20 +641,20 @@ void write_afni_data
              anat_filename , prefix_filename ) ;
     }
 
-  
+
   for( ii=0 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
-  
+
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
-  
+
   THD_load_statistics( new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -699,15 +699,15 @@ void SEGMENT_auto ()
 int main
 (
   int argc,                /* number of input arguments */
-  char ** argv             /* array of input arguments */ 
+  char ** argv             /* array of input arguments */
 )
 
 {
   int ii ;
 
   /*----- Identify software -----*/
- 
-#if 0 
+
+#if 0
   for( ii=1 ; ii < argc ; ii++ )
     if( strncmp(argv[ii],"-quiet",6) == 0 ) break ;
   if( ii == argc ){
@@ -722,11 +722,11 @@ int main
 
   mainENTRY("3dIntracranial:main") ; machdep() ; PRINT_VERSION("3dIntracranial") ;
 
-  
+
   /*----- Program initialization -----*/
   initialize_program (argc, argv);
 
-  
+
   /*----- Perform automatic segmentation -----*/
   SEGMENT_auto();
 
