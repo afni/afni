@@ -71,3 +71,6 @@
  * fixed bug for quick option for 3dMax
 1 Aug 2005
  * fixed bug in im2niml function in thd_nimlatr.c in testing for name field of images
+7 Oct 2005
+ * Created anisosmooth program to do anisotropical smoothing of datasets (particularly DWI data). Current version is 2D only.
+
