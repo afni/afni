@@ -343,6 +343,21 @@ ENTRY("AIVVV_imseq_popup") ;
 
    drive_MCW_imseq( psq->seq , isqDR_display, (XtPointer)0 ) ;
 
+   drive_MCW_imseq( psq->seq , isqDR_imhelptext ,
+                    (XtPointer)
+                     "Keyboard Shortcuts:\n\n"
+                     "q = close window         a = fix aspect ratio\n"
+                     "p = toggle panning mode  c = crop image mode\n"
+                     "s = sharpen image        m = toggle Min-to-Max\n"
+                     "D = open Disp panel      M = open Montage panel\n"
+                     "S = Save image           l = left-right mirror\n"
+                     "> = Page Up   = forward  1 image\n"
+                     "< = Page Down = backward 1 image\n"
+                     "v/V = Video image sequence up/down\n"
+                     "r/R = Ricochet image sequence up/down\n"
+                     "i/I = image fraction down/up\n"
+                   ) ;
+
    RETURN( (void *)psq ) ;
 }
 
