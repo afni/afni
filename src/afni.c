@@ -4869,21 +4869,24 @@ ENTRY("AFNI_time_index_CB") ;
 ---------------------------------------------------------------------------*/
 
 static char * AFNI_image_help =
- "Button 1: Set crosshair location\n"
- "Button 3: Pop up image menu\n\n"
- "Shift/Ctrl/Alt + Button 3\n"
- "will open up the Disp/Mont/Save\n"
- "control panels, respectively.\n\n"
- "Shift+Button2: drag crop region\n\n"
- "q = close window (=Done)\n"
- "z = zoom out  Z = zoom in\n"
- "p = panning mode on & off\n"
- "> = Page Up   = forward 1 image\n"
+ "Button 1      = Set crosshair location\n"
+ "Button 3      = Pop up image menu\n"
+ "Shift+Button2 = drag crop region\n"
+ "\n"
+ "q = close window         a = fix aspect ratio\n"
+ "p = toggle panning mode  c = crop image mode\n"
+ "s = sharpen image        m = toggle Min-to-Max\n"
+ "D = open Disp panel      M = open Montage panel\n"
+ "S = Save image           l = left-right mirror\n"
+ "> = Page Up   = forward  1 image\n"
  "< = Page Down = backward 1 image\n"
- "v/V = Video up/down\n"
- "r/R = Ricochet up/down\n"
+ "v/V = Video image sequence up/down\n"
+ "r/R = Ricochet image sequence up/down\n"
+ "i/I = image fraction down/up\n"
+ "z/Z = zoom out/in\n"
+ "Del = drawing undo       F2= drawing pencil\n"
  "Left/Right/Up/Down arrow keys\n"
- "  move crosshairs OR pan image\n" ;
+ "    = move crosshairs OR pan image\n" ;
 
 static char * AFNI_arrowpad_help =
    "Click arrows to scroll crosshair position\n"
