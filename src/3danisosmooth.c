@@ -54,7 +54,7 @@ extern THD_3dim_dataset *
 DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag);
 extern MRI_IMARR *Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D, byte *maskptr, int prodflag);
 extern MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag);
-static inline float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k);
+extern float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k);
 extern void Compute_IMARR_Max(MRI_IMARR *Imptr);
 
 /*! compute the overall minimum and maximum voxel values for a dataset */
@@ -829,37 +829,4 @@ Test_data(THD_3dim_dataset *indset)
         in_ar++;
      } 
    }	 
-}
-
-/*! get voxel value at x,y,z from image but limit by dimensions and mask */
-static inline float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k)
-{
-   float voxval;
-   int offset;
-   /* get voxel values within limits of 0 to nx-1 and 0 to ny-1*/
-   /* if value is not inside mask use value at i, j, k instead */
-
-
-#define max(a,b) ((a) > (b) ? (a) : (b))
-#define min(a,b) (((a) < (b)) ? (a) : (b))
-
-   x = min(x, (nx-1));
-   x = max(x,0);
-
-   y = min(y, (ny-1));
-   y = max(y, 0);
-
-   z = min(z, (nz-1));
-   z = max(z, 0);
-
-   offset = z*nx*ny+(y*nx) + x;
-   /* put mask check here too */ 
-   if((maskptr!=NULL) && !(*(maskptr+offset))) /* if not in mask use i,j,k offset*/
-     offset = k*nx*ny+(j*nx) + i;
-   voxval = *(imptr+offset);
-
-   /*define VOX_VAL(x,y,offset,nx, ny) \
-     (*((offset) + min(max((y),0),(ny-1))*(nx) + min(max((x),0),(nx-1))))*/
-   
-   RETURN(voxval);
 }
