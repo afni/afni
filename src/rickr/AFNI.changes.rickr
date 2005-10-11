@@ -1272,3 +1272,9 @@
                      cast away const in call to znzwrite
                      fixed error in QSTR() defn (intent_name[ml]=0 -> nam[ml]=0)
 
+11 October 2005:
+  * added program 3dmaxima, with files 3dmaxima.c and maxima.[ch]
+  * plug_maxima.so is now built from plug_maxima.c and maxima.[ch]
+  * modified Makefile.INCLUDE, adding 3dmaxima to PROGRAMS, adding a
+        3dmaxima target, and a plug_maxima.so target (for maxima.o)
+
