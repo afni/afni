@@ -94,7 +94,7 @@ for (ir = 1:1:N_Rules),
 			%check for minimum length specs
 			if (~isempty(Rules(ir).minLength)),
 				if (length(getfield(Info,Rules(ir).Name)) < Rules(ir).minLength),
-					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be at least %d.', FuncName, Rules(ir), Rules(ir).minLength);warndlg(ErrMessage);return;
+					err = 1; ErrMessage = sprintf('Error %s: Field %s length must be at least %d.', FuncName, Rules(ir).Name, Rules(ir).minLength);warndlg(ErrMessage);return;
 				end
 			end
 		end
