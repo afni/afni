@@ -79,10 +79,12 @@ ENTRY("THD_write_3dim_dataset") ;
    THD_set_dataset_attributes( dset ) ;
 
    /*------ 06 Apr 2005: write a NIFTI-1 dataset??? -----*/
+   /*       11 Oct 2005: allow .hdr suffix also          */
 
    ppp = DSET_PREFIX(dset) ;
    if( STRING_HAS_SUFFIX(ppp,".nii")    ||
-       STRING_HAS_SUFFIX(ppp,".nii.gz") || use_NIFTI_format ){
+       STRING_HAS_SUFFIX(ppp,".nii.gz") ||
+       STRING_HAS_SUFFIX(ppp,".hdr")    || use_NIFTI_format ){
 
      niftiwr_opts_t options ;
 
@@ -92,7 +94,8 @@ ENTRY("THD_write_3dim_dataset") ;
      strcat(options.infile_name,ppp) ;
 
      if( !STRING_HAS_SUFFIX(options.infile_name,".nii")    &&
-         !STRING_HAS_SUFFIX(options.infile_name,".nii.gz")   )
+         !STRING_HAS_SUFFIX(options.infile_name,".nii.gz") &&
+         !STRING_HAS_SUFFIX(options.infile_name,".hdr")      ) /* 11 Oct 2005 */
        strcat(options.infile_name,".nii") ;
 
      /* allow user to order gzip-ed output via environment,

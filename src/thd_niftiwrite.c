@@ -8,20 +8,19 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
 void nifti_set_afni_extension(THD_3dim_dataset *dset,nifti_image *nim) ;
 
 /*******************************************************************/
-/*!  Write an AFNI dataset as a NIFTI file.
-     - fname = NIFTI filename
-     - dset = AFNI dataset
-     - flags = logical OR of various masks:
+/*!  Write an AFNI dataset as a NIfTI file.
+     - dset  = AFNI dataset
+     - options = structure with options to control the output
 
    Return value is 1 if went OK, 0 if not.
 -------------------------------------------------------------------*/
 
 int THD_write_nifti( THD_3dim_dataset *dset, niftiwr_opts_t options )
 {
-  nifti_image * nim ;
+  nifti_image *nim ;
   nifti_brick_list nbl ;
   int ii ;
-  char * fname ;
+  char *fname , *cpt ;
 
 ENTRY("THD_write_nifti") ;
 
@@ -29,18 +28,16 @@ ENTRY("THD_write_nifti") ;
 
    /*-- check inputs for goodness --*/
 
-  fname = nifti_strdup(options.infile_name );
+  fname = nifti_strdup(options.infile_name);
 
   if( !THD_filename_ok(fname) || fname[0] == '-' ){
-    fprintf(stderr,"** ERROR: Illegal filename for NIFTI output: %s\n",
-      (fname != NULL) ? fname : "(null)" ) ;
+    ERROR_message("Illegal filename for NIfTI output: %s\n",
+                  (fname != NULL) ? fname : "(null)" ) ;
     RETURN(0) ;
   }
 
   if( !ISVALID_DSET(dset) ){
-    fprintf(stderr,
-         "** ERROR: Illegal input dataset for NIFTI output: %s\n",
-         fname ) ;
+    ERROR_message("Illegal input dataset for NIfTI output: %s\n", fname) ;
     RETURN(0) ;
   }
 
@@ -48,8 +45,8 @@ ENTRY("THD_write_nifti") ;
 
   DSET_load(dset) ;
   if( !DSET_LOADED(dset) ){
-    fprintf(stderr,
-            "** ERROR: Can't write NIFTI file since dataset isn't loaded: %s\n", fname) ;
+    ERROR_message(
+            "Can't write NIfTI file since dataset isn't loaded: %s\n", fname) ;
     RETURN(0) ;
   }
 
@@ -57,10 +54,18 @@ ENTRY("THD_write_nifti") ;
 
   /*-- construct filename --*/
 
-   nim->fname = malloc( strlen(fname)+16 ) ;
-   nim->iname = malloc( strlen(fname)+16 ) ;
-   strcpy(nim->fname,fname) ;
-   strcpy(nim->iname,fname) ;
+  nim->fname = malloc( strlen(fname)+16 ) ;
+  nim->iname = malloc( strlen(fname)+16 ) ;
+  strcpy(nim->fname,fname) ;
+  strcpy(nim->iname,fname) ;
+
+  /* 11 Oct 2005: Allow for .hdr/.img file outputs -- RWCox */
+
+  cpt = nifti_find_file_extension( nim->iname ) ;
+  if( cpt != NULL && strcmp(cpt,".hdr") == 0 ){
+    nim->nifti_type = 2 ;   /* indicate 2 file output    */
+    memcpy(cpt,".img",4) ;  /* convert .hdr name to .img */
+  }
 
   /*-- construct nifti_brick_list of pointers to data briks */
 
@@ -88,7 +93,7 @@ nifti_image * populate_nifti_image(THD_3dim_dataset *dset, niftiwr_opts_t option
   int nif_x_axnum, nif_y_axnum, nif_z_axnum ;
   int slast, sfirst ;
   int pattern_unknown = 0 ;
-  nifti_image * nim ;
+  nifti_image *nim ;
   char axcode[3], axsign[3] ;
   float axstep[3] , axstart[3] ;
   int   axnum[3] ;
@@ -131,11 +136,11 @@ ENTRY("populate_nifti_image") ;
     for( ii=1 ; ii < DSET_NVALS(dset) ; ii++ ){
       if( DSET_BRICK_TYPE(dset,ii) != type0){
         fprintf(stderr,
-        "** ERROR: CANNOT WRITE NIFTI FILE; BRICK DATA TYPES NOT CONSISTENT\n") ;
+        "** ERROR: CANNOT WRITE NIfTI FILE; BRICK DATA TYPES NOT CONSISTENT\n") ;
         RETURN(0);
       } else if( DSET_BRICK_FACTOR(dset,ii) != fac0) {
         fprintf(stderr,
-        "** ERROR: CANNOT WRITE NIFTI FILE; BRICK FACTORS NOT CONSISTENT\n") ;
+        "** ERROR: CANNOT WRITE NIfTI FILE; BRICK FACTORS NOT CONSISTENT\n") ;
         fprintf(stderr,
         "RICH HAMMETT SHOULD FIX THIS REAL SOON NOW\n") ;
         RETURN(0);
@@ -209,13 +214,13 @@ ENTRY("populate_nifti_image") ;
       break;
     case MRI_rgba:
       fprintf(stderr,
-               "** ERROR: Can't write NIFTI file since dataset is RGBA: %s\n",
+               "** ERROR: Can't write NIfTI file since dataset is RGBA: %s\n",
                options.infile_name) ;
       RETURN(0) ;
       break;
     default:
       fprintf(stderr,
-               "** ERROR: Can't write NIFTI file since datatype is unknown: %s\n",
+               "** ERROR: Can't write NIfTI file since datatype is unknown: %s\n",
                options.infile_name) ;
       RETURN(0) ;
       break;
@@ -501,7 +506,7 @@ ENTRY("populate_nifti_image") ;
           break ;
         default: /* sanity check */
           fprintf(stderr,
-          "++ ERROR: CANNOT WRITE NIFTI FILE; LOGIC BORKED IN SLICE TIMING\n") ;
+          "++ ERROR: CANNOT WRITE NIfTI FILE; LOGIC BORKED IN SLICE TIMING\n") ;
           fprintf(stderr, "RICH HAMMETT SHOULD FIX THIS REAL SOON NOW\n") ;
           RETURN(0);
       }
