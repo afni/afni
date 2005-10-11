@@ -37,7 +37,7 @@ MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr);
 MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr);
 MRI_IMARR *ComputeDTensor(MRI_IMARR *phi_Im, int flag2D3D, byte *maskptr);
 THD_3dim_dataset *Copy_IMARR_to_dset(THD_3dim_dataset * base_dset,MRI_IMARR *Imptr, char *new_prefix);
-static inline float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k);
+float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k);
 extern THD_3dim_dataset * Copy_dset_to_float(THD_3dim_dataset * dset , char * new_prefix );
 void Compute_IMARR_Max(MRI_IMARR *Imptr);
 float Find_Max_Im(MRI_IMAGE *im, byte *maskptr);
@@ -743,7 +743,7 @@ Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int
 }
 
 /*! get voxel value at x,y,z from image but limit by dimensions and mask */
-static inline float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k)
+float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k)
 {
    float voxval;
    int offset;
