@@ -5725,3 +5725,9 @@
      func bucket datasets but for fitt, fift (etc.) legacy types.
  * Fixed bug in 3dbucfim.c where the stat_aux array was possibly loaded
      with illegal array access values.
+
+11 Oct 2005
+ * Modified thd_niftiwrite.c and 3dAFNItoNIFTI.c so that specifying a .hdr
+     output filename means you get a .hdr/.img NIfTI-1.1 file pair.  Note
+     that thd_analyzeread.c and thd_niftiread.c already allow for .hdr/.img
+     NIfTI-1.1 file pair inputs.

@@ -130,8 +130,9 @@ int main( int argc , char *argv[] )
    }
    if( !THD_filename_ok( new_prefix ) )  /* 28 Jan 2003 */
      ERROR_exit("Illegal new prefix: %s\n",new_prefix) ;
-   if( strstr(new_prefix,".nii") != NULL )  /* 06 Apr 2005 */
-     ERROR_exit("You can't use 3dcopy to create a .nii file!\n"
+   if( strstr(new_prefix,".nii") != NULL ||   /* 06 Apr 2005 */
+       strstr(new_prefix,".hdr") != NULL   )  /* 11 Oct 2005 */
+     ERROR_exit("You can't use 3dcopy to create a NIfTI-1.1 file!\n"
                 " *        Use program 3dAFNItoNIFTI for that purpose.\n") ;
 
    /* 28 Jan 2003:

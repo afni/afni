@@ -12,7 +12,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3dAFNItoNIFTI [options] dataset\n"
-             "Reads an AFNI dataset, writes it out as a NIfTI-1.1 (.nii) file.\n"
+             "Reads an AFNI dataset, writes it out as a NIfTI-1.1 file.\n"
              "\n"
              "NOTES:\n"
              "* The nifti_tool program can be used to manipulate\n"
@@ -27,12 +27,14 @@ int main( int argc , char *argv[] )
              "OPTIONS:\n"
              "  -prefix ppp = Write the NIfTI-1.1 file as 'ppp.nii'.\n"
              "                  Default: the dataset's prefix is used.\n"
+             "                * You can use 'ppp.hdr' to output a 2-file\n"
+             "                  NIfTI-1.1 file pair 'ppp.hdr' & 'ppp.img'.\n"
 #ifdef HAVE_ZLIB
              "                * If you want a compressed file, try\n"
              "                  using a prefix like 'ppp.nii.gz'.\n"
              "                * Setting the Unix environment variable\n"
              "                  AFNI_AUTOGZIP to YES will result in\n"
-             "                  all output files being gzip-ed.\n"
+             "                  all output .nii files being gzip-ed.\n"
 #else
              "                * This system does not support writing\n"
              "                  compressed ('-prefix ppp.nii.gz') files!\n"
@@ -123,7 +125,8 @@ int main( int argc , char *argv[] )
 
    fname = malloc( strlen(prefix)+32 ) ;
    strcpy(fname,prefix) ;
-   if( strstr(fname,".nii") == NULL ) strcat(fname,".nii") ;
+   if( strstr(fname,".nii") == NULL && strstr(fname,".hdr") == NULL )
+     strcat(fname,".nii") ;
 
    options.infile_name = nifti_strdup(fname) ;
    options.debug_level = verb ;
