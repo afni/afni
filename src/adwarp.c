@@ -287,8 +287,9 @@ void get_options
 	  MTEST (option_data->prefix);
 	  MCW_strncpy (option_data->prefix, argv[nopt], THD_MAX_PREFIX);
 
-     if( strstr(option_data->prefix,".nii") != NULL ){  /* 06 Apr 2005 */
-       fprintf(stderr,"** You can't use adwarp to create a .nii file!\n") ;
+     if( strstr(option_data->prefix,".nii") != NULL ||    /* 06 Apr 2005 */
+         strstr(option_data->prefix,".hdr") != NULL   ){  /* 11 Oct 2005 */
+       fprintf(stderr,"** You can't use adwarp to create a NIfTI file!\n") ;
        exit(1) ;
      }
 
