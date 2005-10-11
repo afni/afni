@@ -65,7 +65,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dSpatNorm Imon fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml          \
-           DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth               \
+           DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -89,8 +89,9 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat          \
-                  3danisosmooth                                                       \
-                  $(EXTRAS) Imon nifti_tool nifti_stats nifti1_test Dimon
+                  Imon nifti_tool nifti_stats nifti1_test Dimon 3danisosmooth       \
+                  3dmaxima                                                          \
+                  $(EXTRAS)
 
 # For CYGWIN (look for "exe" to find various places below)
 #  Note that 3dNLfim and 3dTSgen are missing for now
@@ -1422,6 +1423,11 @@ plug_crender.$(SO):plug_crender.c librickr.a
 	$(PLUGIN_CC) -c plug_crender.c $(IFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L. -lrickr
 
+plug_maxima.$(SO):plug_maxima.c maxima.o
+	$(RM) $@
+	$(PLUGIN_CC) -c plug_maxima.c $(IFLAGS)
+	$(LD) $(PLUGIN_LFLAGS) -o plug_maxima.$(SO) plug_maxima.o maxima.o -L.
+
 ### From Fred Tam
 
 plug_retroicor.$(SO):plug_retroicor.c retroicor.o
@@ -1546,6 +1552,10 @@ librickr.a:
 
 #######
 # rickr programs
+
+3dmaxima: 3dmaxima.o maxima.o libmri.a
+	$(RM) $@
+	$(CC) -o 3dmaxima 3dmaxima.o maxima.o $(LFLAGS) $(LLIBS)
 
 3dresample: librickr.a libmri.a $(AFWARPOBJS)
 	( cd rickr ; 							\
