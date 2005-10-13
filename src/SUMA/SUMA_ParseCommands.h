@@ -99,7 +99,8 @@ typedef struct {
    
    char *in_nodeindices;
    
-   
+   byte b1;
+   byte b2;
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT;
 
 #define SUMA_MAX_SURF_ON_COMMAND 100
