@@ -6564,7 +6564,7 @@ void *SUMA_BinarySuck(char *fname, SUMA_VARTYPE data_type, int endian, int start
             SUMA_LH("Reading bytes");
             ex = fread((void*)vec, chnk, N_alloc, fp);
             if (ex != N_alloc) { SUMA_SL_Err("Failed to read all data!"); SUMA_free(vec); goto CLEAN_EXIT; }
-            if (bs) { SUMA_LH("swapping");  SUMA_SWAP_VEC(vec,N_alloc,chnk); }
+            if (bs) { SUMA_LH("swapping 1 byte numbers!? Nothing to do loco!");  }
             ans = (void*)vec;
          }
          break;

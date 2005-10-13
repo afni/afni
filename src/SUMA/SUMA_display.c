@@ -1071,11 +1071,16 @@ int SUMA_BuildMenu(Widget parent, int menu_type, char *menu_title,
      XtSetArg (args[n], XmNmarginHeight, 0); n++;
      XtSetArg (args[n], XmNmarginTop, 0 ); n++;
      XtSetArg (args[n], XmNmarginBottom, 0 ); n++;
+     /* Following three settings have no effect ...
+     XtSetArg (args[n], XmNpacking, XmPACK_COLUMN); n++;
+     XtSetArg (args[n], XmNnumColumns, 2); n++;
+     XtSetArg (args[n], XmNorientation, XmHORIZONTAL); n++;*/
      
      /* This really isn't a cascade, but this is the widget handle
       * we're going to return at the end of the function.
       */
      cascade = XmCreateOptionMenu (parent, menu_title, args, n);
+     
      XmStringFree (str);
    }
    
@@ -5520,10 +5525,12 @@ void SUMA_cb_ColPlaneShow_toggled (Widget w, XtPointer data, XtPointer client_da
    if (!SO || !SO->SurfCont) SUMA_RETURNe;
    if (!SO->SurfCont->curColPlane || !SO->SurfCont->ColPlaneShow_tb) SUMA_RETURNe;
 
+   SUMA_LH("Getting State");
    SO->SurfCont->curColPlane->Show = XmToggleButtonGetState (SO->SurfCont->ColPlaneShow_tb);
    /* set the duplicate button next to int */
+   SUMA_LH("Setting State of duplicate button");
    XmToggleButtonSetState (SO->SurfCont->Int_tb, SO->SurfCont->curColPlane->Show, NOPE);
-   
+   SUMA_LH("Updating color plane shells");
    SUMA_UpdateColPlaneShellAsNeeded(SO); /* update other open ColPlaneShells */
 
    SUMA_RemixRedisplay(SO);

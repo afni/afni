@@ -211,12 +211,15 @@ end
    if (~isempty(vtmp)), %remove .BRIK
       BrikName = BrikName(1:vtmp(1)-1);
    end
-   
    vtmp = findstr(BrikName,'.HEAD');
    if (~isempty(vtmp)), %remove .HEAD
       BrikName = BrikName(1:vtmp(1)-1);
    end
-
+   
+   %remove last dot if it is in name
+   if (BrikName(length(BrikName)) == '.' && length(BrikName)>1),
+      BrikName = BrikName(1:length(BrikName)-1);
+   end
 
    %Now make sure .HEAD and .BRIK are present
    sHead = sprintf('%s.HEAD', BrikName);
