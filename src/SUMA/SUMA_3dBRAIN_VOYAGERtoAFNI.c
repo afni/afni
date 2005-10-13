@@ -16,12 +16,22 @@ void usage_3dBRAIN_VOYAGERtoAFNI (SUMA_GENERIC_ARGV_PARSE *ps)
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
-               "Usage: 3dBRAIN_VOYAGERtoAFNI -input BV_VOLUME.vmr\n"
+               "Usage: 3dBRAIN_VOYAGERtoAFNI <-input BV_VOLUME.vmr> [-bs] [-qx]\n"
+               " \n"
                " Converts a BrainVoyager vmr dataset to AFNI's BRIK format\n"
                " The conversion is based on information from BrainVoyager's\n"
-               " website: www.brainvoyager.com. Sample data and information\n"
-               " provided by Adam Greenberg and Nikolaus Kriegeskorte.\n"
+               " website: www.brainvoyager.com. \n"
+               " Sample data and information provided by \n"
+               "  Adam Greenberg and Nikolaus Kriegeskorte.\n"
                "\n"
+               "  If you get error messages about the number of\n"
+               " voxels and file size, try the options below.\n"
+               " I hope to automate these options once I have\n"
+               " a better description of the BrainVoyager QX format.\n"
+               "\n"
+               "  Optional Parameters:\n"
+               "  -bs: Force byte swapping.\n"
+               "  -qx: .vmr file is from BrainVoyager QX\n"
                "%s"
                "%s"
                "\n", sio,  s);
@@ -42,6 +52,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dBRAIN_VOYAGERtoAFNI_ParseInput(char *ar
    SUMA_ENTRY;
    
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
+   Opt->b1 = 0;
+   Opt->b2 = 0;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -62,6 +74,19 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dBRAIN_VOYAGERtoAFNI_ParseInput(char *ar
          Opt->in_name = argv[kar];
 			brk = YUP;
 		}
+      
+      if (!brk && (strcmp(argv[kar], "-bs") == 0)) {
+         
+         Opt->b1 = 1;
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-qx") == 0)) {
+         
+         Opt->b2 = 1;
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-debug") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -84,13 +109,15 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_3dBRAIN_VOYAGERtoAFNI_ParseInput(char *ar
    SUMA_RETURN(Opt);
 }
 
-char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int LoadData)
+
+char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int LoadData, byte Qxforce, byte bsforce)
 {
    static char FuncName[]={"SUMA_BrainVoyager_Read_vmr"};
    int  i = 0, nf, iop, dchunk, End, bs, doff, ex,
          data_type=SUMA_notypeset, view, endian, dblock;
    THD_ivec3 iv3;
    unsigned long len;
+   short qxver;
    short nvox[3]; /* values are unsigned, so check for sign for bs... */
    THD_mat33 m33;
    THD_ivec3 orixyz , nxyz ;
@@ -126,6 +153,13 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
       goto CLEAN_EXIT;
    }
    
+   /* someday, guess format on your own...*/
+   qxver = 0;
+   if (Qxforce) {
+      SUMA_LH("Forcing qxver");
+      qxver = 1;  /* set to 1 if qx format */
+   } 
+   
    /* view ? */
    view = VIEW_ORIGINAL_TYPE;
    if (strstr(fname, "_tal")) { view = VIEW_TALAIRACH_TYPE; sprintf(sview,"+tlrc"); }
@@ -146,23 +180,36 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
       goto CLEAN_EXIT;      
    }
    
-   SUMA_LH("Reading dimensions, 1st 6 bytes and deciding on swap");
-   doff = 3*sizeof(short);/* data offset */
+   if (qxver) { 
+      SUMA_LH("Reading dimensions, 2+ 1st 6 bytes and deciding on swap");
+      doff = 4*sizeof(short);/* data offset 2 + 6 bytes */
+   } else {
+      SUMA_LH("Reading dimensions, 1st 6 bytes and deciding on swap");
+      doff = 3*sizeof(short);/* data offset */
+   }
    SUMA_WHAT_ENDIAN(endian);
    bs = 0;
    swp[0] = '\0';
    data_type = SUMA_byte; /* voxel data is bytes */
    dchunk = sizeof(byte); /* voxel data is bytes */
    sprintf(form,"3Db");
+   if (qxver) { SUMA_READ_NUM(&(qxver), fid, ex, sizeof(short)); if (LocalHead) fprintf(SUMA_STDERR,"%s: QXver = %d\n", FuncName, qxver);}/* is this a QX format?*/
    SUMA_READ_NUM(&(nvox[2]), fid, ex, sizeof(short)); /* Z first */
    SUMA_READ_NUM(&(nvox[1]), fid, ex, sizeof(short));
    SUMA_READ_NUM(&(nvox[0]), fid, ex, sizeof(short));
-   if (nvox[0] < 0 || nvox[1] < 0 || nvox[2] < 0 ) {
+   
+   if ((nvox[0] < 0 || nvox[1] < 0 || nvox[2] < 0 )) {
       SUMA_LH("Byte swapping needed");
       bs = 1;
    }
+   if (bsforce) {
+      SUMA_LH("Byte swapping forced");
+      bs = 1;
+   }
+   
    
    if (bs) {
+      if (qxver) SUMA_swap_2(&(qxver));
       SUMA_swap_2(&(nvox[0]));
       SUMA_swap_2(&(nvox[1]));
       SUMA_swap_2(&(nvox[2]));
@@ -191,7 +238,7 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
                               FuncName, nvox[0], nvox[1], nvox[2]); }
    }
    
-   if (LocalHead) fprintf(SUMA_STDERR,"Number of voxels: %d %d %d\n", nvox[0], nvox[1], nvox[2]);
+   if (LocalHead) fprintf(SUMA_STDERR,"Number of voxels: %d %d %d. qxver %d\n", nvox[0], nvox[1], nvox[2], qxver);
    
 
    /* check against filesize */
@@ -199,12 +246,19 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
    len = THD_filesize( fnameorig ) ;
    dblock = nvox[0]*nvox[1]*nvox[2]*dchunk;
    if (len != (dblock + doff)) {
-      if (LocalHead) {
+      if (!qxver) {
          fprintf(SUMA_STDERR, "Mismatch between file size    %ld\n"
                               "and expected size             %d = (%d*%d*%d*%d+%d) \n",
                               len, (dblock + doff), nvox[0], nvox[1], nvox[2], dchunk, doff);
+         goto CLEAN_EXIT; 
+      }else if (len < dblock + doff) {
+         fprintf(SUMA_STDERR, "Mismatch between file size    %ld\n"
+                              "and minimum expected size     %d = (%d*%d*%d*%d+%d) \n",
+                              len, (dblock + doff), nvox[0], nvox[1], nvox[2], dchunk, doff);
+         goto CLEAN_EXIT; 
+      }else {
+         SUMA_LH("Proceeding");
       }
-      goto CLEAN_EXIT; 
    }
    if (LocalHead) fprintf(SUMA_STDERR,"File size passes test\n");
 
@@ -249,6 +303,7 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
             swp, xfov, yfov, zfov, prefix, form, doff, 
             nvox[0], nvox[1], nvox[0], fnameorig);
    
+   SUMA_LH("HERE");
    
    if (dset) { /* form the dset header */
          int nvals_read = 0;
@@ -272,9 +327,14 @@ char * SUMA_BrainVoyager_Read_vmr(char *fnameorig, THD_3dim_dataset *dset, int L
             if (!(vec = SUMA_BinarySuck(fnameorig, data_type, endian, 3*sizeof(short), -1, &nvals_read))) {
                SUMA_SL_Err("Failed to read data file"); goto CLEAN_EXIT;
             }
-            if (nvals_read != nvox[0]*nvox[1]*nvox[2]) {
-               SUMA_SL_Warn("Failed to read the appropriate number of voxels\n proceeding...");
-               
+            if (qxver) {
+               if (nvals_read < nvox[0]*nvox[1]*nvox[2]) {
+                  SUMA_SL_Warn("Failed to read expected number of voxels\n proceeding...");
+               }
+            } else {
+               if (nvals_read != nvox[0]*nvox[1]*nvox[2]) {
+                  SUMA_SL_Warn("Failed to read the appropriate number of voxels\n proceeding...");
+               }
             }  
             EDIT_substitute_brick( dset , 0 , data_type , vec) ;      
             if (LocalHead) fprintf(SUMA_STDERR,"%s: Read %d values from file.\n", FuncName, nvals_read);
@@ -319,7 +379,7 @@ int main (int argc,char *argv[])
    
    dset = EDIT_empty_copy( NULL ) ;
    tross_Make_History( "3dBRAIN_VOYAGERtoAFNI" , argc,argv , dset) ;
-   if (!(sto3d = SUMA_BrainVoyager_Read_vmr(Opt->in_name, dset, 1))) {
+   if (!(sto3d = SUMA_BrainVoyager_Read_vmr(Opt->in_name, dset, 1, Opt->b2, Opt->b1))) {
       if (Opt->debug) SUMA_SL_Err("Failed in SUMA_BrainVoyager_Read_vmr");
       exit(1);   
    }
