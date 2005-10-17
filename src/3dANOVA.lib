@@ -132,14 +132,12 @@ void initialize_options (anova_options * option_data)
   option_data->num_bdiffs  = 0;
   option_data->num_cdiffs  = 0;
   option_data->num_xdiffs  = 0;
-  option_data->num_abdiffs = 0;     /* 14 Oct 2005 [rickr] */
   for (i = 0;  i < MAX_DIFFS;  i++)
     {
       option_data->adname[i]  = NULL;
       option_data->bdname[i]  = NULL;
       option_data->cdname[i]  = NULL;
       option_data->xdname[i]  = NULL;
-      option_data->abdname[i] = NULL;
       for (j = 0;  j < 2;  j++)
         {
           option_data->adiffs[i][j] = 0;
@@ -147,7 +145,6 @@ void initialize_options (anova_options * option_data)
           option_data->cdiffs[i][j] = 0;
 	  for (k = 0;  k < 3;  k++)
 	    option_data->xdiffs[i][j][k] = 0;	
-          option_data->abdiffs[i][j] = 0;
         }
     }
   
