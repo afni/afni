@@ -50,7 +50,13 @@
 
    Mod:     Modify add_file_name() to use .1D filenames if so ordered.
    Date:    14 March 2003 - RWCox.
+
+   Mod:     Modified to init 2nd order contrast struct members.
+   Date:    17 October 2005 [rickr/gangc]
 */
+
+/* defined 'later' in parent file */
+int required_data_files (anova_options * option_data);
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -59,7 +65,7 @@
 
 void initialize_options (anova_options * option_data)
 {
-  int i, j, k, m;
+  int i, j, k;
   
   option_data->datum = ILLEGAL_TYPE;
   strcpy (option_data->session, "./");
@@ -122,16 +128,18 @@ void initialize_options (anova_options * option_data)
 	option_data->xmeans[i][j] = 0;
     }
   
-  option_data->num_adiffs = 0;
-  option_data->num_bdiffs = 0;
-  option_data->num_cdiffs = 0;
-  option_data->num_xdiffs = 0;
+  option_data->num_adiffs  = 0;
+  option_data->num_bdiffs  = 0;
+  option_data->num_cdiffs  = 0;
+  option_data->num_xdiffs  = 0;
+  option_data->num_abdiffs = 0;     /* 14 Oct 2005 [rickr] */
   for (i = 0;  i < MAX_DIFFS;  i++)
     {
-      option_data->adname[i] = NULL;
-      option_data->bdname[i] = NULL;
-      option_data->cdname[i] = NULL;
-      option_data->xdname[i] = NULL;
+      option_data->adname[i]  = NULL;
+      option_data->bdname[i]  = NULL;
+      option_data->cdname[i]  = NULL;
+      option_data->xdname[i]  = NULL;
+      option_data->abdname[i] = NULL;
       for (j = 0;  j < 2;  j++)
         {
           option_data->adiffs[i][j] = 0;
@@ -139,19 +147,28 @@ void initialize_options (anova_options * option_data)
           option_data->cdiffs[i][j] = 0;
 	  for (k = 0;  k < 3;  k++)
 	    option_data->xdiffs[i][j][k] = 0;	
+          option_data->abdiffs[i][j] = 0;
         }
     }
   
-  option_data->num_acontr = 0;
-  option_data->num_bcontr = 0;
-  option_data->num_ccontr = 0;
-  option_data->num_xcontr = 0;	
+  option_data->num_acontr  = 0;
+  option_data->num_bcontr  = 0;
+  option_data->num_ccontr  = 0;
+  option_data->num_xcontr  = 0;	
+  option_data->num_aBcontr = 0;      /* 14 Oct 2005 [rickr] */
+  option_data->num_Abcontr = 0;
   for (i = 0;  i < MAX_CONTR;  i++)
     {
-      option_data->acname[i] = NULL;
-      option_data->bcname[i] = NULL;
-      option_data->ccname[i] = NULL;
-      option_data->xcname[i] = NULL;
+      option_data->acname[i]  = NULL;
+      option_data->bcname[i]  = NULL;
+      option_data->ccname[i]  = NULL;
+      option_data->xcname[i]  = NULL;
+      option_data->aBcname[i] = NULL;
+      option_data->Abcname[i] = NULL;
+
+      option_data->aBclevel[i] = 0;
+      option_data->Abclevel[i] = 0;
+
       for (j = 0;  j < MAX_LEVELS;  j++)
 	{
 	  option_data->acontr[i][j] = 0.0;
@@ -159,6 +176,8 @@ void initialize_options (anova_options * option_data)
 	  option_data->ccontr[i][j] = 0.0;
 	  for (k = 0;  k < MAX_LEVELS;  k++)
 	    option_data->xcontr[i][j][k] = 0.0;
+	  option_data->aBcontr[i][j] = 0.0;
+	  option_data->Abcontr[i][j] = 0.0;
 	}
     }
 
@@ -438,7 +457,6 @@ void check_disk_space (anova_options * option_data)
   char ch;                         /* user response */
   int nxyz;                        /* number of voxels per image */
   int nmax;                        /* maximum number of disk files */
-  char filename[MAX_NAME_LENGTH];  /* output file name */ 
 
 
   /*----- initialize local variables -----*/

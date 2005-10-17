@@ -198,6 +198,17 @@ typedef struct anova_options
                                 /* cell means contrast vectors */
   char  * xcname[MAX_CONTR];    /* names of output files for cell contrasts */
 
+  /* second order contrasts for 3dANOVA3 (e.g. -aBcontr) 14 Oct 2005 [rickr] */
+  int   num_aBcontr;            /* number of A contrasts at fixed B level */
+  float aBcontr[MAX_CONTR][MAX_LEVELS];        /* factor contrast vectors */
+  int   aBclevel[MAX_CONTR];    /* factor B level for aB contrasts        */
+  char  * aBcname[MAX_CONTR];   /* names of output files for aB contrasts */
+
+  int   num_Abcontr;            /* number of B contrasts at fixed A level */
+  float Abcontr[MAX_CONTR][MAX_LEVELS];        /* factor contrast vectors */
+  int   Abclevel[MAX_CONTR];    /* factor A level for Ab contrasts        */
+  char  * Abcname[MAX_CONTR];   /* names of output files for Ab contrasts */
+
   char * bucket_filename;       /* file name for bucket dataset */
 
 } anova_options;

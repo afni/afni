@@ -1278,3 +1278,6 @@
   * modified Makefile.INCLUDE, adding 3dmaxima to PROGRAMS, adding a
         3dmaxima target, and a plug_maxima.so target (for maxima.o)
 
+17 October 2005:
+  * modified 3dANOVA3.c - added -aBcontr and -Abcontr as 2nd order contrasts
+  * modified 3dANOVA.h, 3dANOVA.lib - added and initialized appropriate fields
