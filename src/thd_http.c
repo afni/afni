@@ -369,6 +369,7 @@ int read_URL_ftp( char * url , char ** data )
       fprintf( sp , "open %s\n" , hostname ) ;
    fprintf( sp , "user %s %s\n" , ftp_name, ftp_pwd ) ;
    fprintf( sp , "binary\n" ) ;
+   fprintf( sp , "passive\n" ) ;
    fprintf( sp , "get %s %s\n" , file , qname ) ;
    fprintf( sp , "bye\n" ) ;
    fprintf( sp , "EEEEE\n" ) ;
