@@ -375,6 +375,7 @@ char * AFNI_make_update_script(void)
             "%s -n afni.nimh.nih.gov << EEEEE\n"   /* FTP to get file */
             "user anonymous AFNI_UPDATER@%s\n"
             "binary\n"
+            "passive\n"
             "cd tgz\n"
             "get %s\n"
             "bye\n"
