@@ -5022,6 +5022,7 @@ STATUS("opening an image window") ;
 STATUS("realizing new image viewer") ;
       drive_MCW_imseq( *snew, isqDR_ignore_redraws, (XtPointer) 1 ) ; /* 16 Aug 2002 */
       drive_MCW_imseq( *snew, isqDR_realize, NULL ) ;
+      iochan_sleep(17) ;                                              /* 17 Oct 2005 */
       drive_MCW_imseq( *snew, isqDR_title, (XtPointer) im3d->window_title ) ;
       drive_MCW_imseq( *snew, isqDR_periodicmont,
                       (XtPointer)(int) im3d->vinfo->xhairs_periodic );
@@ -5114,6 +5115,7 @@ STATUS("setting image viewer 'sides'") ;
 
       AFNI_view_setter ( im3d , *snew ) ;
       AFNI_range_setter( im3d , *snew ) ;  /* 04 Nov 2003 */
+      iochan_sleep(17) ;                   /* 17 Oct 2005 */
 
     } /* end of creating a new image viewer */
 
