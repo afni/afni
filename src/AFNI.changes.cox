@@ -5731,3 +5731,6 @@
      output filename means you get a .hdr/.img NIfTI-1.1 file pair.  Note
      that thd_analyzeread.c and thd_niftiread.c already allow for .hdr/.img
      NIfTI-1.1 file pair inputs.
+
+18 Oct 2005
+ * Added -usetemp option to 3dcalc.c.

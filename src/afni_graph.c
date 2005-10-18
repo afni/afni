@@ -4983,7 +4983,7 @@ ENTRY("GRA_setshift_startup") ;
    (void) MCW_action_area( wrc , SETSHIFT_act , NUM_SETSHIFT_ACT ) ;
 
    XtManageChild( wrc ) ;
-   XtPopup( grapher->dialog , XtGrabNone ) ;
+   XtPopup( grapher->dialog , XtGrabNone ) ; RWC_sleep(1);
    RWC_visibilize_widget( grapher->dialog ) ; /* 09 Nov 1999 */
    NORMAL_cursorize( grapher->dialog ) ;
    EXRETURN ;

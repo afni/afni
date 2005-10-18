@@ -6846,7 +6846,7 @@ STATUS("setting anatmode_bbox back to 'View ULay Data Brick'") ;
 
    fbr = THD_setup_bricks( im3d->anat_now ) ;
    if( fbr == NULL ){
-      fprintf(stderr,"THD_setup_bricks of anat_now fails!\n") ; EXRETURN ;
+     fprintf(stderr,"THD_setup_bricks of anat_now fails!\n") ; EXRETURN ;
    }
    myXtFree(im3d->b123_anat) ; im3d->b123_anat = fbr[0] ;
    myXtFree(im3d->b231_anat) ; im3d->b231_anat = fbr[1] ;
@@ -6927,7 +6927,7 @@ STATUS("forcing function WOD") ;
 
       fbr = THD_setup_bricks( im3d->fim_now ) ;
       if( fbr == NULL ){
-         fprintf(stderr,"THD_setup_bricks of fim_now fails!\n") ; EXRETURN ;
+        fprintf(stderr,"THD_setup_bricks of fim_now fails!\n") ; EXRETURN ;
       }
       myXtFree(im3d->b123_fim) ; im3d->b123_fim = fbr[0] ;
       myXtFree(im3d->b231_fim) ; im3d->b231_fim = fbr[1] ;
@@ -7305,6 +7305,7 @@ STATUS(" -- turning time index control off") ;
    old_fim  = im3d->fim_now ;   /* remembrance */
    old_anat = im3d->anat_now ;
 
+   iochan_sleep(13) ;           /* 18 Oct 2005: for luck */
    EXRETURN ;
 }
 
