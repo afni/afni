@@ -2476,7 +2476,7 @@ ENTRY("AFNI_read_sess_CB") ;
                      XmNtitle, "AFNI: Read Session",
                   NULL ) ;
 
-   XtPopup( im3d->vwid->file_dialog , XtGrabNone ) ;
+   XtPopup( im3d->vwid->file_dialog , XtGrabNone ) ; RWC_sleep(1);
    RWC_visibilize_widget( im3d->vwid->file_dialog ) ; /* 09 Nov 1999 */
    NORMAL_cursorize( im3d->vwid->file_dialog ) ;
 
@@ -2730,7 +2730,7 @@ ENTRY("AFNI_read_1D_CB") ;
                      XmNtitle, "AFNI: Read 1D Timeseries",
                   NULL ) ;
 
-   XtPopup( im3d->vwid->file_dialog , XtGrabNone ) ;
+   XtPopup( im3d->vwid->file_dialog , XtGrabNone ) ; RWC_sleep(1);
    RWC_visibilize_widget( im3d->vwid->file_dialog ) ; /* 09 Nov 1999 */
 
    EXRETURN ;

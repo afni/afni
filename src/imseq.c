@@ -5788,7 +5788,7 @@ ENTRY("ISQ_but_disp_CB") ;
 
    ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
 
-   XtPopup( seq->dialog , XtGrabNone ) ;
+   XtPopup( seq->dialog , XtGrabNone ) ; RWC_sleep(1);
 
    ISQ_disp_options( seq , False ) ;  /* set toggles from option list */
    seq->save_opt = seq->opt ;         /* for use with Reset button */
@@ -8040,7 +8040,7 @@ fprintf(stderr,"montage: zoom_fac = %d\n",seq->zoom_fac) ;
 
    XtManageChild( wrc ) ;
    ISQ_place_dialog( seq ) ;  /* 05 Jan 1999 */
-   XtPopup( seq->dialog , XtGrabNone ) ;
+   XtPopup( seq->dialog , XtGrabNone ) ; RWC_sleep(1);
    NORMAL_cursorize( seq->dialog ) ;
    ISQ_but_done_reset( seq ) ;
    EXRETURN ;

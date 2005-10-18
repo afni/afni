@@ -429,7 +429,7 @@ ENTRY("MCW_popup_message") ;
    }
 
    SAVEUNDERIZE(wmsg) ;           /* 27 Feb 2001 */
-   XtPopup( wmsg , XtGrabNone ) ;
+   XtPopup( wmsg , XtGrabNone ) ; RWC_sleep(1);
 
    /* now wait until the label is exposed, and make sure it appears;
       the reason for this stuff is that this routine is likely to be
@@ -879,7 +879,7 @@ void MCW_help_CB( Widget w , XtPointer client_data , XtPointer call_data )
    if( yy+hh+3 >= sh && hh <= sh ) yy = sh-hh ;
 
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
-   XtPopup( wpop , XtGrabNone ) ;
+   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
    RWC_visibilize(wpop) ;  /* 27 Sep 2000 */
    NORMAL_cursorize(wpop) ;
    return ;
@@ -1038,7 +1038,7 @@ ENTRY("MCW_popup_meter") ;
                XmNinitialResourcesPersistent , False ,
             NULL ) ;
 
-   XtPopup( wmsg , XtGrabNone ) ;
+   XtPopup( wmsg , XtGrabNone ) ; RWC_sleep(1);
 
    RETURN(wscal) ;
 }
@@ -1267,7 +1267,7 @@ ENTRY("new_MCW_textwin_2001") ;
 
    XtVaSetValues( tw->wshell , XmNwidth,swid , XmNheight,shi , NULL ) ;
 
-   XtPopup( tw->wshell , XtGrabNone ) ;
+   XtPopup( tw->wshell , XtGrabNone ) ; RWC_sleep(1);
 
    RWC_visibilize_widget( tw->wshell ) ;  /* 09 Nov 1999 */
 
@@ -1924,7 +1924,7 @@ void RWC_XtPopdown( Widget w )
 
    if( wpar == NULL ) return ;
    while( XtIsShell(wpar) == 0 && XtParent(wpar) != NULL ) wpar = XtParent(wpar);
-   XtPopdown(wpar) ;
+   XtPopdown(wpar) ; RWC_sleep(1) ;
    return ;
 }
 
