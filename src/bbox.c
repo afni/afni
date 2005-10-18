@@ -1652,7 +1652,7 @@ ENTRY("MCW_choose_ovcolor") ;
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
 
    XtManageChild( wrc ) ;
-   XtPopup( wpop , XtGrabNone ) ;
+   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 
    if( av->wtext != NULL )
       MCW_set_widget_bg( av->wtext , NULL , dc->ovc->pix_ov[ovc_init] ) ; /* after popup */
@@ -1779,7 +1779,7 @@ ENTRY("MCW_choose_vector") ;
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
 
    XtManageChild( wrc ) ;
-   XtPopup( wpop , XtGrabNone ) ;
+   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 
    RWC_visibilize_widget( wpop ) ;
    NORMAL_cursorize( wpop ) ;
@@ -1900,7 +1900,7 @@ ENTRY("MCW_choose_integer") ;
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
 
    XtManageChild( wrc ) ;
-   XtPopup( wpop , XtGrabNone ) ;
+   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
@@ -2243,7 +2243,7 @@ ENTRY("MCW_choose_string") ;
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
 
    XtManageChild( wrc ) ;
-   XtPopup( wpop , XtGrabNone ) ;
+   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
@@ -2477,7 +2477,7 @@ ENTRY("MCW_choose_multi_strlist") ;
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
 
    XtManageChild( wrc ) ;
-   XtPopup( wpop , XtGrabNone ) ;
+   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
@@ -2743,7 +2743,7 @@ if(PRINT_TRACING){
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
 
    XtManageChild( wrc ) ;
-   XtPopup( wpop , XtGrabNone ) ;
+   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;
@@ -3043,7 +3043,7 @@ ENTRY("MCW_choose_multi_editable_strlist") ;
    XtVaSetValues( wpop , XmNx , (int) xx , XmNy , (int) yy , NULL ) ;
 
    XtManageChild( wrc ) ;
-   XtPopup( wpop , XtGrabNone ) ;
+   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
 
    RWC_visibilize_widget( wpop ) ;   /* 09 Nov 1999 */
    NORMAL_cursorize( wpop ) ;

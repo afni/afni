@@ -53,7 +53,9 @@ static int                CALC_fscale = 0 ;  /* 16 Mar 1998 */
 static int                CALC_gscale = 0 ;  /* 01 Apr 1999 */
 static int                CALC_nscale = 0 ;  /* 15 Jun 2000 */
 
-static int                CALC_histpar = -1 ; /* 22 Nov 1999 */
+static int                CALC_histpar = -1; /* 22 Nov 1999 */
+
+static int                CALC_usetemp = 0 ; /* 18 Oct 2005 */
 
 /*---------- dshift stuff [22 Nov 1999] ----------*/
 
@@ -247,6 +249,13 @@ void CALC_read_opts( int argc , char * argv[] )
             WARNING_message("time step value in '-taxis %s' not legal!\n",argv[nopt]);
           }
         }
+        nopt++ ; continue ;  /* go to next arg */
+      }
+
+      /**** -usetemp [18 Oct 2005] ****/
+
+      if( strncmp(argv[nopt],"-usetemp",6) == 0 ){
+        CALC_usetemp = 1 ;
         nopt++ ; continue ;  /* go to next arg */
       }
 
@@ -678,7 +687,11 @@ DSET_DONE: continue;
    /*** cleanup: check for various errors ***/
 
    if( nopt < argc )
-    ERROR_exit("Extra command line arguments puzzle me! argv[%d]=%s ...\n",nopt,argv[nopt]) ;
+     ERROR_exit(
+      "Extra command line arguments puzzle me! argv[%d]=%s ...\n",nopt,argv[nopt]) ;
+
+   if( CALC_gscale && CALC_usetemp )  /* 18 Oct 2005 */
+     ERROR_exit("-gscale and -usetemp are incompatible!") ;
 
    for( ids=0 ; ids < 26 ; ids++ ) if( CALC_dset[ids] != NULL ) break ;
    if( ids == 26 )
@@ -772,7 +785,7 @@ void CALC_Syntax(void)
     "Program: 3dcalc                                                         \n"
     "Author:  RW Cox et al                                                   \n"
     "                                                                        \n"
-    "3dcalc - AFNI's calculator program                                      \n"  
+    "3dcalc - AFNI's calculator program                                      \n"
     "                                                                        \n"
     "     This program does voxel-by-voxel arithmetic on 3D datasets         \n"
     "     (limited to inter-voxel computation).                              \n"
@@ -833,7 +846,7 @@ void CALC_Syntax(void)
     "   everything is active, but also each stimulus individually, and all   \n"
     "   combinations).  The output mask dataset labels voxel values as such: \n"
     "        0 = none active    1 = A only active    2 = B only active       \n"
-    "        3 = A and B only   4 = C only active    5 = A and C only        \n" 
+    "        3 = A and B only   4 = C only active    5 = A and C only        \n"
     "        6 = B and C only   7 = all A, B, and C active                   \n"
     "                                                                        \n"
     "     3dcalc -a 'func+orig[12]' -b 'func+orig[15]' -c 'func+orig[18]' \\ \n"
@@ -933,6 +946,7 @@ void CALC_Syntax(void)
     "  -gscale    = Same as '-fscale', but also forces each output sub-brick \n"
     "               to get the same scaling factor.  This may be desirable   \n"
     "               for 3D+time datasets, for example.                       \n"
+    "            ** N.B.: -usetemp and -gscale are incompatible!!            \n"
     "                                                                        \n"
     "  -nscale    = Don't do any scaling on output to byte or short datasets.\n"
     "               This may be especially useful when operating on mask     \n"
@@ -950,9 +964,17 @@ void CALC_Syntax(void)
     "                                                                        \n"
     "  -session dir  = Use 'dir' for the output dataset session directory.   \n"
     "                  [default='./'=current working directory]              \n"
+    "                  You can also include the output directory in the      \n"
+    "                  'pname' parameter to the -prefix option.              \n"
     "                                                                        \n"
-    "  -dt tstep     = Use 'tstep' as the TR for manufactured 3D+time datasets.\n"
+    "  -usetemp      = With this option, a temporary file will be created to \n"
+    "                  hold intermediate results.  This will make the program\n"
+    "                  run slower, but can be useful when creating huge      \n"
+    "                  datasets that won't all fit in memory at once.        \n"
+    "               ** N.B.: -usetemp and -gscale are incompatible!!         \n"
     "                                                                        \n"
+    "  -dt tstep     = Use 'tstep' as the TR for \"manufactured\" 3D+time    \n"
+    "    *OR*          datasets.                                             \n"
     "  -TR tstep     = If not given, defaults to 1 second.                   \n"
     "                                                                        \n"
     "  -taxis N      = If only 3D datasets are input (no 3D+time or .1D files),\n"
@@ -1099,7 +1121,7 @@ void CALC_Syntax(void)
     " specifies that variable 'a' be assigned to a 1D time series of 35,     \n"
     " alternating in blocks between values 0 and value 1.                    \n"
     "                                                                        \n"
-    "------------------------------------------------------------------------\n"  
+    "------------------------------------------------------------------------\n"
     "'I:*.1D' and 'J:*.1D' and 'K:*.1D' INPUT:                               \n"
     "----------------------------------------                                \n"
     "                                                                        \n"
@@ -1118,7 +1140,7 @@ void CALC_Syntax(void)
     " In this example, the '-b' value only varies in the k-index spatial     \n"
     " direction.                                                             \n"
     "                                                                        \n"
-    "------------------------------------------------------------------------\n"  
+    "------------------------------------------------------------------------\n"
     "COORDINATES and PREDEFINED VALUES:                                      \n"
     "---------------------------------                                       \n"
     "                                                                        \n"
@@ -1332,7 +1354,7 @@ void CALC_Syntax(void)
 
 /*------------------------------------------------------------------*/
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
 #define VSIZE 1024
 
@@ -1348,6 +1370,10 @@ int main( int argc , char * argv[] )
    float xxx[VSIZE], yyy[VSIZE], zzz[VSIZE] ;
    int   iii,jjj,kkk , nx,nxy ;
    THD_dataxes * daxes ;
+
+   char *tempfnam = NULL ;  /* 18 Oct 2005: -usetemp stuff */
+   FILE *tempfile = NULL ;
+   size_t tempnum , tempsiz ;
 
    /*** read input options ***/
 
@@ -1469,14 +1495,21 @@ int main( int argc , char * argv[] )
 
    buf = (float **) malloc(sizeof(float *) * ntime_max);
 
-   for ( kt = 0 ; kt < ntime_max ; kt ++ ) {
+   if( CALC_usetemp ){                  /* 18 Oct 2005: -usetemp? */
+     tempfnam = UNIQ_idcode() ;
+     tempfile = fopen( tempfnam , "w+b" ) ;
+     if( CALC_verbose ) INFO_message("-usetemp filename = %s",tempfnam) ;
+   }
+   tempsiz = ((size_t)CALC_nvox) * sizeof(float) ;
+
+   for( kt=0 ; kt < ntime_max ; kt++ ){
 
       if( CALC_verbose )
         INFO_message("Computing sub-brick %d\n",kt) ;
 
       /* 30 April 1998: only malloc output space as it is needed */
 
-      buf[kt] = (float *) malloc(sizeof(float) * CALC_nvox);
+      buf[kt] = (float *) malloc(tempsiz);
       if( buf[kt] == NULL )
         ERROR_exit("Can't malloc output dataset sub-brick %d!\n",kt) ;
 
@@ -1813,7 +1846,7 @@ int main( int argc , char * argv[] )
             for ( jj = jbot ; jj < jtop ; jj ++ )
               buf[kt][jj] = temp[jj-ii];
 
-         } /* end of loop over space (voxels) */
+         } /*---------- end of loop over space (voxels) ----------*/
 
          /* 09 Aug 2000: check results for validity */
 
@@ -1836,15 +1869,42 @@ int main( int argc , char * argv[] )
            }
          }
 
-   } /* end of loop over time steps */
+         /* 18 Oct 2005: write to a temp file? */
+
+         if( tempfile != NULL ){
+           tempnum = fwrite( buf[kt] , 1 , tempsiz , tempfile ) ;
+           free( buf[kt] ) ; buf[kt] = NULL ;
+           if( tempnum < tempsiz ){
+             ERROR_message("-usetemp #%d: only %u bytes written, out of %u\n",
+                           kt , (unsigned)tempnum , (unsigned)tempsiz ) ;
+             perror("** Unix error message") ;
+           } else if( CALC_verbose )
+             INFO_message("-usetemp #%d output %u bytes",kt,(unsigned)tempsiz) ;
+         }
+
+   } /*-------------- end of loop over time steps -------------*/
 
    for( ids=0 ; ids < 26 ; ids++ ){
-      if( CALC_dset[ids] != NULL ) PURGE_DSET( CALC_dset[ids] ) ;
-      if( TS_flim[ids]   != NULL ) mri_free( TS_flim[ids] ) ;
-      if( IJKAR_flim[ids]!= NULL ) mri_free( IJKAR_flim[ids] ) ;
+     if( CALC_dset[ids] != NULL ) PURGE_DSET( CALC_dset[ids] ) ;
+     if( TS_flim[ids]   != NULL ) mri_free( TS_flim[ids] ) ;
+     if( IJKAR_flim[ids]!= NULL ) mri_free( IJKAR_flim[ids] ) ;
    }
 
    /*** attach new data to output brick ***/
+
+   if( tempfile != NULL ) rewind(tempfile) ;   /* 18 Oct 2005 */
+
+#undef  TGET
+#define TGET(q)                                                      \
+  if( tempfile != NULL ){                                            \
+    buf[q] = (float *)calloc(1,tempsiz) ;                            \
+    tempnum = fread( buf[q] , 1 , tempsiz , tempfile ) ;             \
+    if( tempnum < tempsiz ){                                         \
+      ERROR_message("-usetemp #%d: only %u bytes read, out of %u\n", \
+                    (q) , (unsigned)tempnum , (unsigned)tempsiz ) ;  \
+      perror("** Unix error message") ;                              \
+    }                                                                \
+  }
 
    switch( CALC_datum ){
 
@@ -1856,6 +1916,7 @@ int main( int argc , char * argv[] )
 
       case MRI_float:{
         for( ii=0 ; ii < ntime_max ; ii++ ){
+          TGET(ii) ;                  /* 18 Oct 2005: load from temp file? */
           EDIT_substitute_brick(new_dset, ii, MRI_float, buf[ii]);
           DSET_BRICK_FACTOR(new_dset, ii) = 0.0;
         }
@@ -1864,16 +1925,16 @@ int main( int argc , char * argv[] )
 
       /* the harder cases */
 
-      case MRI_byte:             /* modified 31 Mar 1999 to scale each sub-brick  */
-      case MRI_short:{           /* with its own factor, rather than use the same */
-         void ** dfim ;          /* factor for each sub-brick -- RWCox            */
+      case MRI_byte:         /* modified 31 Mar 1999 to scale each sub-brick  */
+      case MRI_short:{       /* with its own factor, rather than use the same */
+         void **dfim ;       /* factor for each sub-brick -- RWCox            */
          float gtop , fimfac , gtemp ;
 
          if( CALC_verbose )
            INFO_message("Scaling output to type %s brick(s)\n",
                         MRI_TYPE_name[CALC_datum] ) ;
 
-         dfim = (void ** ) malloc( sizeof( void * ) * ntime_max ) ;
+         dfim = (void **) malloc( sizeof(void *) * ntime_max ) ;
 
          if( CALC_gscale ){   /* 01 Apr 1999: global scaling */
            gtop = 0.0 ;
@@ -1885,7 +1946,9 @@ int main( int argc , char * argv[] )
            }
          }
 
-         for (ii = 0 ; ii < ntime_max ; ii ++ ) {
+         for( ii=0 ; ii < ntime_max ; ii++ ) {
+
+           TGET(ii) ;   /* 18 Oct 2005: temp load */
 
            /* get max of this sub-brick, if not doing global scaling */
 
@@ -1942,7 +2005,7 @@ int main( int argc , char * argv[] )
 
            EDIT_coerce_scale_type( CALC_nvox , fimfac ,
                                    MRI_float, buf[ii] , CALC_datum,dfim[ii] ) ;
-           free( buf[ii] ) ;
+           free( buf[ii] ) ; buf[ii] = NULL ;
 
            /* put result into output dataset */
 
@@ -1952,6 +2015,10 @@ int main( int argc , char * argv[] )
          }
       }
       break ;
+   }
+
+   if( tempfile != NULL ){                   /* 18 Oct 2005 */
+     fclose(tempfile) ; remove(tempfnam) ;
    }
 
    if( CALC_verbose ) INFO_message("Computing output statistics\n") ;

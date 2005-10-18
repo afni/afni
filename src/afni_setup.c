@@ -632,7 +632,7 @@ ENTRY("AFNI_pbar_CB") ;
       XtVaSetValues( im3d->vwid->file_sbox , XmNpattern , xstr , NULL ) ;
       XmStringFree(xstr) ;
 
-      XtPopup( im3d->vwid->file_dialog , XtGrabNone ) ;
+      XtPopup( im3d->vwid->file_dialog , XtGrabNone ) ; RWC_sleep(1);
       RWC_visibilize_widget( im3d->vwid->file_dialog ) ; /* 09 Nov 1999 */
    }
 

@@ -216,7 +216,7 @@ static void psfile_CB( Widget w , XtPointer cd , XtPointer cb )
 
    XtManageChild( form ) ;
    XtManageChild( wrc ) ;
-   XtPopup( wpop , XtGrabNone ) ;
+   XtPopup( wpop , XtGrabNone ) ; RWC_sleep(1);
    return ;
 }
 

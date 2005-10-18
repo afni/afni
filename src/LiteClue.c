@@ -30,6 +30,9 @@ J Satchell, Eric Marttila
 */
 /* Revision History:
 $Log$
+Revision 1.17  2005/10/18 22:00:53  rwcox
+Cput
+
 Revision 1.16  2003/12/19 22:39:00  rwcox
 Cput
 
@@ -522,7 +525,7 @@ static void timeout_event( XtPointer client_data, XtIntervalId *id)
 #endif
         }
 
-	XtPopup((Widget) cw, XtGrabNone);
+	XtPopup((Widget) cw, XtGrabNone); RWC_sleep(1);
 	cw->liteClue.HelpIsUp = True;
 
 #if XtSpecificationRelease < 5		/* R4 hack */

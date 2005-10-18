@@ -1555,7 +1555,7 @@ r_any_cb_raise(
     else if ( ! strcmp( client_data, "saveas" ) )
     {
 	XtManageChild( gRX.save_as_file_d );
-	XtPopup( XtParent( gRX.save_as_file_d ), XtGrabNone );
+	XtPopup( XtParent( gRX.save_as_file_d ), XtGrabNone ); RWC_sleep(1);
     }
     else if ( ! strcmp( client_data, "all" ) )
     {
@@ -1563,7 +1563,7 @@ r_any_cb_raise(
 	XMapRaised( XtDisplay( gRH.main ) , XtWindow( gRH.main ) );
 	XMapRaised( XtDisplay( gRX.wtgr_main ) , XtWindow( gRX.wtgr_main ) );
 	XtManageChild( gRX.save_as_file_d );
-	XtPopup( XtParent( gRX.save_as_file_d ), XtGrabNone );
+	XtPopup( XtParent( gRX.save_as_file_d ), XtGrabNone ); RWC_sleep(1);
     }
     else
     {
