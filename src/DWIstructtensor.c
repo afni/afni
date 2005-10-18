@@ -32,7 +32,7 @@ THD_3dim_dataset *DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byt
 void Smooth_DWI_dset(THD_3dim_dataset * DWI_dset, int flag2D3D);
 void Smooth_Gradient_Matrix(MRI_IMARR *Gradient_Im, int flag2D3D);
 MRI_IMARR *Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D,byte*maskptr,int prodflag);
-MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag);
+MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag, int zflag);
 MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr);
 MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr);
 MRI_IMARR *ComputeDTensor(MRI_IMARR *phi_Im, int flag2D3D, byte *maskptr);
@@ -50,7 +50,7 @@ THD_3dim_dataset *
 DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag)
 {
   MRI_IMARR *Gradient_Im, *EV_Im, *phi_Im, *D_Im;
-  THD_3dim_dataset *D_dset, *tempdset, *Gradient_dset;
+  THD_3dim_dataset *D_dset, *tempdset;
 
   ENTRY("DWIstructtensor");
 
@@ -62,7 +62,7 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
   /* compute gradients of smoothed DWI images */
   /* and form matrix of gradients - imarr with 3 sub-briks for 2D */
   Gradient_Im = Compute_Gradient_Matrix(tempdset, flag2D3D, maskptr, 1);
-  THD_delete_3dim_dataset(tempdset , False ) ;  /* delete tensor */
+  THD_delete_3dim_dataset(tempdset , False ) ;  /* delete temporary copy */
   if(save_tempdsets_flag)
      Save_imarr_to_dset(Gradient_Im,DWI_dset, "Gradient");
 
@@ -97,23 +97,31 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
   /*  DESTROY_IMARR(phi_Im);*/
   /* DESTROY_IMARR(EV_Im); */
   /* for 2D, keep first three sub-briks and remove remaining sub-briks */
-   TRUNCATE_IMARR(D_Im,3);
-
-   /*printf("computed D_Im\n");*/
-   /*Compute_IMARR_Max(D_Im);*/
- 
-   D_dset = Copy_IMARR_to_dset(DWI_dset, D_Im, D_prefix);
-
-   tross_Copy_History (DWI_dset, D_dset);
-   EDIT_dset_items (D_dset, ADN_brick_label_one + 0, "Dxx", ADN_none);
-   EDIT_dset_items (D_dset, ADN_brick_label_one + 1, "Dxy", ADN_none);
-   EDIT_dset_items (D_dset, ADN_brick_label_one + 2, "Dyy", ADN_none);
+  if(flag2D3D==2) {
+     TRUNCATE_IMARR(D_Im,3);
+     D_dset = Copy_IMARR_to_dset(DWI_dset, D_Im, D_prefix);
+     tross_Copy_History (DWI_dset, D_dset);
+     EDIT_dset_items (D_dset, ADN_brick_label_one + 0, "Dxx", ADN_none);
+     EDIT_dset_items (D_dset, ADN_brick_label_one + 1, "Dxy", ADN_none);
+     EDIT_dset_items (D_dset, ADN_brick_label_one + 2, "Dyy", ADN_none);
+  }
+  else {
+     TRUNCATE_IMARR(D_Im,6);
+     D_dset = Copy_IMARR_to_dset(DWI_dset, D_Im, D_prefix);
+     tross_Copy_History (DWI_dset, D_dset);
+     EDIT_dset_items (D_dset, ADN_brick_label_one + 0, "Dxx", ADN_none);
+     EDIT_dset_items (D_dset, ADN_brick_label_one + 1, "Dxy", ADN_none);
+     EDIT_dset_items (D_dset, ADN_brick_label_one + 2, "Dxz", ADN_none);
+     EDIT_dset_items (D_dset, ADN_brick_label_one + 3, "Dyy", ADN_none);
+     EDIT_dset_items (D_dset, ADN_brick_label_one + 4, "Dyz", ADN_none);
+     EDIT_dset_items (D_dset, ADN_brick_label_one + 5, "Dzz", ADN_none);
+  }
 
    EDIT_dset_items( D_dset ,
-              ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
-		   ADN_prefix , "Dtensor",
-                          ADN_label1 , "Dtensor" ,
-                       ADN_none ) ;
+      ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
+      ADN_prefix , "Dtensor",
+      ADN_label1 , "Dtensor" ,
+      ADN_none ) ;
    /* return D - diffusion tensor of image */
    RETURN(D_dset);
 }
@@ -247,16 +255,15 @@ Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D, byte *maskptr,
    MRI_IMARR *Gradient_Im;
    MRI_IMAGE *im, *data_im;
    byte *tempmaskptr;
-   byte temp;
 
    float *ar,*gptr[6];
    static double a, b, c, d; 
    double dudx, dudy, dudz;
-   float v0, v1, v2, v3, v4, v5, tempv;
+   float v0, v1, v2, v3, v4, v5, tempv, temp;
    float vv[3][3][3];  /* voxel values for cubic stencil */
    int nx, ny, nz, i, j, k, l, ii, nbriks, nout,ll ,kk, jj;
    THD_dataxes   * daxes ;
-   float dx = 1.0;   /* delta x - assume cubical voxels for now */
+   /*float dx = 1.0;*/   /* delta x - assume cubical voxels for now */
 
    ENTRY("Compute_Gradient_Matrix");
  
@@ -379,9 +386,9 @@ Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D, byte *maskptr,
         /* build 27 point stencil (0,0,0) (2,2,2) */
         /* don't actually need to get central point (1,1,1) */
         for(ll=0;ll<3;ll++) {
-	  for(jj=0;jj<3;jj++) {
-	    for(kk=0;kk<3;kk++) {
-	      vv[ll][jj][kk] = vox_val(l-ll-1, k-kk-1, j-jj-1, ar, nx, ny, nz, maskptr, l, k, j);
+	  for(kk=0;kk<3;kk++) {
+	    for(jj=0;jj<3;jj++) {
+	      vv[ll][kk][jj] = vox_val(l-1+ll, k-1+kk, j-1+jj, ar, nx, ny, nz, maskptr, l, k, j);
             }
           }
         }
@@ -390,23 +397,23 @@ Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D, byte *maskptr,
   /* corners of cube */
   /* centers of edges of cube */
         dudx = a * ( vv[2][0][0] + vv[2][0][2] + vv[2][2][0] + vv[2][2][2] -  \
-                     vv[0][0][0] + vv[0][0][2] + vv[0][2][0] + vv[0][2][2]) + \
+                     vv[0][0][0] - vv[0][0][2] - vv[0][2][0] - vv[0][2][2]) + \
 	  b * ( vv[2][0][1] + vv[2][1][0] + vv[2][1][2] + vv[2][2][1] -  \
-                     vv[0][0][0] + vv[0][1][0] + vv[0][1][2] + vv[0][2][1]) + \
+                     vv[0][0][0] - vv[0][1][0] - vv[0][1][2] - vv[0][2][1]) + \
 	  c * ( vv[2][1][1] - vv[0][1][1]);  /* centers of cube */
 
 	/* du/dy  across alternating planes above and below current voxel */
         dudy = a * ( vv[0][2][0] + vv[2][2][0] + vv[0][2][2] + vv[2][2][2] -  \
-                     vv[0][0][0] + vv[2][0][0] + vv[0][0][2] + vv[2][0][2]) + \
+                     vv[0][0][0] - vv[2][0][0] - vv[0][0][2] - vv[2][0][2]) + \
 	  b * ( vv[1][2][0] + vv[0][2][1] + vv[2][2][1] + vv[1][2][2] -  \
-                vv[1][0][0] + vv[0][0][1] + vv[2][0][1] + vv[1][0][2]) + \
+                vv[1][0][0] - vv[0][0][1] - vv[2][0][1] - vv[1][0][2]) + \
 	  c * ( vv[1][2][1] - vv[1][0][1]);  /* centers of square faces of cube */
 
 	/* du/dz  across alternating slices before and after current voxel */
         dudz = a * ( vv[0][0][2] + vv[2][0][2] + vv[0][2][2] + vv[2][2][2] -  \
-                     vv[0][0][0] + vv[2][0][0] + vv[0][2][0] + vv[2][2][0]) + \
+                     vv[0][0][0] - vv[2][0][0] - vv[0][2][0] - vv[2][2][0]) + \
 	  b * ( vv[1][0][2] + vv[0][1][2] + vv[2][1][2] + vv[1][2][2] -  \
-                vv[1][0][0] + vv[0][1][0] + vv[2][1][0] + vv[1][2][0]) + \
+                vv[1][0][0] - vv[0][1][0] - vv[2][1][0] - vv[1][2][0]) + \
 	  c * ( vv[1][1][2] - vv[1][1][0]);  /* centers of square faces of cube */
 
         if(prodflag) {
@@ -423,9 +430,201 @@ Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D, byte *maskptr,
          *(gptr[2]) += dudz;
          }
 
+      } /* end of 3D gradient */
+
+      } /* sum over all sub-briks */
+
+        for(ii=0;ii<nout;ii++) {
+	  *gptr[ii] = *gptr[ii] / nbriks;/* normalize gradient for number of briks*/
+	  temp = fabs(*gptr[ii]);
+          if(temp<TINYNUMBER)
+	     *gptr[ii] = 0.0;
+	  gptr[ii]++;    /*and increment pointers*/
+        }
+      } /* not masked point */
+     }
+    }
+   }
+ 
+   RETURN(Gradient_Im);
+}
+
+/* compute numerical gradients for each voxel and compose matrix for smoothing
+   including [du/dx du/dy] for single volume MRI_IMAGE */
+MRI_IMARR *
+Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag, int zflag)
+{
+  /* SourceIm is input volume */
+  /* flag2D3D is flag for dimensionality of gradient */
+  /* maskptr is pointer to mask array to mask data - null if no mask */
+  /* xflag - compute and return dU/dx */
+  /* yflag - compute and return dU/dy */
+  /* gradient matrix is returned as MRI_IMARR (1 or 2 sub-briks for 2D case)*/
+
+/* edge points and masked points are treated equivalently */
+/*  with a test for the index of each node in the kernels and
+    the central voxels themselves */
+
+/* du/dx is calculated with 3x3 kernel for 2D as */
+/*       -a 0 a   v0 0 v3 */
+/*       -b 0 b   v1 0 v4 */
+/*       -a 0 a   v2 0 v5*/
+/* where a=3/16, b= 10/16 */
+
+/* du/dy is calculated with 3x3 kernel for 2D as */
+/*   c  d  c     v0 v1 v2 */
+/*   0  0  0      0  0  0 */
+/*  -c -d -c     v3 v4 v5 */
+/* where c=3/16, d= 10/16 */
+
+   MRI_IMARR *Gradient_Im;
+   MRI_IMAGE *im;
+
+   byte *tempmaskptr;
+   float *ar,*gptr[3], *tempptr;
+   double a, b, c, d; 
+   double dudx, dudy, dudz; 
+   float v0, v1, v2, v3, v4, v5, vv[18], temp;
+   int nx, ny, nz, i, j, k, l, ii, nout;
+   /* float dx = 1.0; */  /* delta x - assume cubical voxels for now */
+
+   ENTRY("Compute_Gradient_Matrix_Im");
+
+   tempmaskptr = maskptr;
+   /* set up constants for kernel */
+   a = 0.1875; /* / (2.0 * dx);*/   /*3/16;*/
+   b = 0.625;  /* / (2.0 * dx);*/    /* 10/16;*/
+   c = 0.1875;
+   d = 0.625;
+
+   nout = 0;
+   if(xflag)
+     nout++;
+   if(yflag)
+     nout++;
+   if(zflag)
+     nout++;
+   if(nout==0) {
+      fprintf(stderr,"Nothing to compute in Compute_Gradient_Matrix_Im\n");
+      RETURN(NULL);
+   }
+   /** load the grid parameters **/
+   nx    = SourceIm->nx ;
+   ny    = SourceIm->ny;
+   nz    = SourceIm->nz ;
+ 
+   /* make new Image Array to hold gradients and then gradient products */
+   INIT_IMARR(Gradient_Im);
+   for(i=0;i<nout; i++) {  /* create sub-briks for output gradient */
+      im = mri_new_vol(nx, ny, nz, MRI_float);
+      if(im==NULL) {
+	fprintf(stderr,"+++can not create temporary data storage \n");
+        RETURN(NULL);
+      }
+      ADDTO_IMARR(Gradient_Im, im);
+   }
+
+  
+    for(ii=0;ii<nout;ii++) {
+       im  = (Gradient_Im->imarr[ii]);
+       gptr[ii] = (float *) mri_data_pointer(im);
+       if(gptr[ii]==NULL) {
+	 fprintf(stderr,"+++can not create temporary data storage pointers \n");
+        RETURN(NULL);
+       }
+     }
+
+       ar = mri_data_pointer(SourceIm);
 
 
-#ifdef individualgradients
+       if(flag2D3D==2) {   /* 2D option */
+       for(j=0;j<nz;j++) {      /* for each slice in sub-brik */
+        for(k=0;k<ny;k++) {    /*   for each row */
+	  for(l=0;l<nx;l++) {  /* for each column */
+
+            if((tempmaskptr!=NULL)&&(!*tempmaskptr++)) {    /*  check if point is in mask or not */
+	      for(ii=0;ii<nout;ii++) {
+		tempptr = gptr[ii];
+                *tempptr = 0.0;
+	        gptr[ii]++;
+              }
+            }
+            else {
+	      if (xflag) {
+ /* column before voxel*/
+                            /*  voxel_value(col-1, row-1) */
+	      v0 = vox_val(l-1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
+                            /*  voxel_value(col-1, row) */
+	      v1 = vox_val(l-1,k,j,ar,nx,ny,nz,maskptr,l,k,j);
+                            /*  voxel_value(col-1, row+1) */
+	      v2 = vox_val(l-1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
+
+/* column after voxel */
+	                    /*  voxel_value(col+1,row-1) */
+	      v3 = vox_val(l+1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
+                            /*  voxel_value(col+1,row) */
+	      v4 = vox_val(l+1,k,j,ar,nx,ny,nz,maskptr,l,k,j);
+
+                            /*  voxel_value(col+1,row+1) */
+	      v5 = vox_val(l+1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
+              dudx = a*(v3+v5-v0-v2) + b*(v4-v1);
+                *(gptr[0]) = dudx; /* put gradient components in output image array */
+              } 
+
+
+	      if (yflag) {
+ /* row before voxel*/
+		if(xflag) {  /* corners v0,v2,v3,v5 already found for du/dx*/
+		  temp = v3;   /* swap v2, v3 */
+	          v3 = v2; /* previously found, use for lower left corner of kernel */
+                  v2 = temp;
+                }
+                else {
+                            /*  voxel_value(col-1, row-1) */
+ 	          v0 = vox_val(l-1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
+                            /*  voxel_value(col-1, row+1) */
+  	          v2 = vox_val(l+1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
+                            /*  voxel_value(col+1,row-1) */
+	          v3 = vox_val(l-1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
+                            /*  voxel_value(col+1,row+1) */
+	          v5 = vox_val(l+1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
+                }
+                            /*  voxel_value(col-1, row) */
+	        v1 = vox_val(l,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
+                            /*  voxel_value(col+1,row) */
+	        v4 = vox_val(l,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
+
+
+ 	        dudy =  c*(v3+v5-v0-v2) + d*(v4 - v1);
+                *(gptr[nout-1]) = dudy;
+              }
+
+	      for(ii=0;ii<nout;ii++) {
+  	         temp = fabs(*gptr[ii]);
+                 if(temp<TINYNUMBER)
+	         *gptr[ii] = 0.0;
+                 gptr[ii]++;
+              }
+	    } /* not masked */
+
+      }
+     }
+    }
+   }
+   else { /* 3D option */
+       for(j=0;j<nz;j++) {      /* for each slice in sub-brik */
+        for(k=0;k<ny;k++) {    /*   for each row */
+	  for(l=0;l<nx;l++) {  /* for each column */
+
+            if((tempmaskptr!=NULL)&&(!*tempmaskptr++)) {    /*  check if point is in mask or not */
+	      for(ii=0;ii<nout;ii++) {
+		tempptr = gptr[ii];
+                *tempptr = 0.0;
+	        gptr[ii]++;
+              }
+            }
+            else {
+	      if (xflag) {
 	/* left plane first (l-1) */
         /* line through z axis upper left */
 	      vv[0] = vox_val(l-1,k-1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
@@ -460,284 +659,97 @@ Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D, byte *maskptr,
               dudx = a*(vv[9]+vv[11]+vv[15]+vv[17]-vv[0]-vv[2]-vv[6]-vv[8]) + \
 		b*(vv[10]+vv[12]+vv[14]+vv[16]-vv[1]-vv[3]-vv[5]-vv[7]) + \
                 c*(vv[13]-vv[4]);
+              *(gptr[0]) = dudx; /* put gradient components in output image array */
+              }
 
+	      if (yflag) {
 	/* du/dy  across alternating planes above and below current voxel */
 	/* upper plane first (k-1) */
         /* line through z axis upper left */
-	      /* line already retrieved in dudx */
-#if 0
 	      vv[0] = vox_val(l-1,k-1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[1] = vox_val(l-1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[2] = vox_val(l-1,k-1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
-#endif
         /* line through z axis above  */
               vv[3] = vox_val(l,k-1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[4] = vox_val(l,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[5] = vox_val(l,k-1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
-        /* this line out of order for temporary storage */
-        /* line through z axis lower left */
-	      vv[12] = vv[6];
-	      vv[13] = vv[7];
-	      vv[14] = vc[8];
-
         /* line through z axis upper right */
-	      vv[6] = vv[9];
-	      vv[7] = vv[10];
-	      vv[8] = vv[11];
+	      vv[6] = vox_val(l+1,k-1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[7] = vox_val(l+1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[8] = vox_val(l+1,k-1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
 
 	/* lower plane now (l+1) */
-        /* this line out of order to save time */
         /* line through z axis lower left */
-	      vv[9] = vv[12];
-	      vv[10] = vv[13];
-	      vv[11] = vc[14];
-
+	      vv[9] = vox_val(l-1,k+1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[10] = vox_val(l-1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[11] = vox_val(l-1,k+1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
         /* line through z axis below */
               vv[12] = vox_val(l,k+1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[13] = vox_val(l,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[14] = vox_val(l,k+1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
-
         /* line through z axis lower right */
-	      /* line already retrieved in dudx */
-#if 0
 	      vv[15] = vox_val(l+1,k+1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[16] = vox_val(l+1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[17] = vox_val(l+1,k+1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
-#endif
+
               dudy = a*(vv[9]+vv[11]+vv[15]+vv[17]-vv[0]-vv[2]-vv[6]-vv[8]) + \
 		b*(vv[10]+vv[12]+vv[14]+vv[16]-vv[1]-vv[3]-vv[5]-vv[7]) + \
                 c*(vv[13]-vv[4]);
 
+              if(!zflag)
+                   *(gptr[nout-1]) = dudy;
+              else
+                   *(gptr[nout-2]) = dudy;
+              }
 
+	      if (zflag) {
 	/* du/dz  across alternating slices before and after current voxel */
 	/* previous slice first (j-1) */
         /* upper row on previous slice */
-	      /* vv[0] stays the same */
-	      vv[1] = vv[3];
-              vv[2] = vv[6];
-#if 0
 	      vv[0] = vox_val(l-1,k-1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[1] = vox_val(l,k-1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[2] = vox_val(l+1,k-1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
-#endif
-
         /* middle row on previous slice */
-	      vv[3] = vv[18];
-	      vv[4] = vox_val(l,k,j-1,ar,nx,ny,nz,maskptr,l,k,j);
-              vv[5] = vv[19];
-#if 0
               vv[3] = vox_val(l-1,k,j-1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[4] = vox_val(l,k,j-1,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[5] = vox_val(l+1,k,j-1,ar,nx,ny,nz,maskptr,l,k,j);
-#endif
+        /* last row on previous slice */
+              vv[6] = vox_val(l-1,k+1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[7] = vox_val(l,k+1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[8] = vox_val(l+1,k+1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
 
-        /* line through z axis upper right */
-	      vv[6] = vv[9];
-	      vv[7] = vv[10];
-	      vv[8] = vv[11];
-
-	/* lower plane now (l+1) */
-        /* this line out of order to save time */
-        /* line through z axis lower left */
-	      vv[9] = vv[12];
-	      vv[10] = vv[13];
-	      vv[11] = vc[14];
-
-        /* line through z axis below */
-              vv[12] = vox_val(l,k+1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
-	      vv[13] = vox_val(l,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
-	      vv[14] = vox_val(l,k+1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
-
-        /* line through z axis lower right */
-	      /* line already retrieved in dudx */
-#if 0
-	      vv[15] = vox_val(l+1,k+1,j-1,ar,nx,ny,nz,maskptr,l,k,j);
-	      vv[16] = vox_val(l+1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
+        /* upper row on next slice */
+	      vv[9] = vox_val(l-1,k-1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[10] = vox_val(l,k-1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[11] = vox_val(l+1,k-1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
+        /* middle row on next slice */
+              vv[12] = vox_val(l-1,k,j+1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[13] = vox_val(l,k,j+1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[14] = vox_val(l+1,k,j+1,ar,nx,ny,nz,maskptr,l,k,j);
+        /* last row on next slice */
+              vv[15] = vox_val(l-1,k+1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
+	      vv[16] = vox_val(l,k+1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
 	      vv[17] = vox_val(l+1,k+1,j+1,ar,nx,ny,nz,maskptr,l,k,j);
-#endif
-              dudy = a*(vv[9]+vv[11]+vv[15]+vv[17]-vv[0]-vv[2]-vv[6]-vv[8]) + \
+
+              dudz = a*(vv[9]+vv[11]+vv[15]+vv[17]-vv[0]-vv[2]-vv[6]-vv[8]) + \
 		b*(vv[10]+vv[12]+vv[14]+vv[16]-vv[1]-vv[3]-vv[5]-vv[7]) + \
                 c*(vv[13]-vv[4]);
-#endif
 
-
-
-      } /* end of 3D gradient */
-
-       	 } /* sum over all sub-briks */
-
-
-
-
-
-        for(ii=0;ii<nout;ii++) {
-	  *gptr[ii] = *gptr[ii] / nbriks;/* normalize gradient for number of briks*/
-	  gptr[ii]++;    /*and increment pointers*/
-        }
-      } /* not masked point */
-     }
-     }
-   }
- 
-   RETURN(Gradient_Im);
-}
-
-/* compute numerical gradients for each voxel and compose matrix for smoothing
-   including [du/dx du/dy] for single volume MRI_IMAGE */
-MRI_IMARR *
-Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag)
-{
-  /* SourceIm is input volume */
-  /* flag2D3D is flag for dimensionality of gradient */
-  /* maskptr is pointer to mask array to mask data - null if no mask */
-  /* xflag - compute and return dU/dx */
-  /* yflag - compute and return dU/dy */
-  /* gradient matrix is returned as MRI_IMARR (1 or 2 sub-briks for 2D case)*/
-
-/* edge points and masked points are treated equivalently */
-/*  with a test for the index of each node in the kernels and
-    the central voxels themselves */
-
-/* du/dx is calculated with 3x3 kernel for 2D as */
-/*       -a 0 a   v0 0 v3 */
-/*       -b 0 b   v1 0 v4 */
-/*       -a 0 a   v2 0 v5*/
-/* where a=3/16, b= 10/16 */
-
-/* du/dy is calculated with 3x3 kernel for 2D as */
-/*   c  d  c     v0 v1 v2 */
-/*   0  0  0      0  0  0 */
-/*  -c -d -c     v3 v4 v5 */
-/* where c=3/16, d= 10/16 */
-
-   MRI_IMARR *Gradient_Im;
-   MRI_IMAGE *im;
-
-   byte *tempmaskptr;
-   float *ar,*gptr[3], *tempptr;
-   double a, b, c, d; 
-   double dudx, dudy; 
-   float v0, v1, v2, v3, v4, v5, temp;
-   int nx, ny, nz, i, j, k, l, ii, nout;
-   float dx = 1.0;   /* delta x - assume cubical voxels for now */
-
-   ENTRY("Compute_Gradient_Matrix_Im");
-
-   tempmaskptr = maskptr;
-   /* set up constants for kernel */
-   a = 0.1875; /* / (2.0 * dx);*/   /*3/16;*/
-   b = 0.625;  /* / (2.0 * dx);*/    /* 10/16;*/
-   c = 0.1875;
-   d = 0.625;
-
-   nout = 0;
-   if(xflag)
-     nout++;
-   if(yflag)
-     nout++;
-
-   if(nout==0) {
-      fprintf(stderr,"Nothing to compute in Compute_Gradient_Matrix_Im\n");
-      RETURN(NULL);
-   }
-   /** load the grid parameters **/
-   nx    = SourceIm->nx ;
-   ny    = SourceIm->ny;
-   nz    = SourceIm->nz ;
- 
-   /* make new Image Array to hold gradients and then gradient products */
-   INIT_IMARR(Gradient_Im);
-   for(i=0;i<nout; i++) {  /* create sub-briks for output gradient */
-      im = mri_new_vol(nx, ny, nz, MRI_float);
-      if(im==NULL) {
-	fprintf(stderr,"+++can not create temporary data storage \n");
-        RETURN(NULL);
-      }
-      ADDTO_IMARR(Gradient_Im, im);
-   }
-
-  
-    for(ii=0;ii<nout;ii++) {
-       im  = (Gradient_Im->imarr[ii]);
-       gptr[ii] = (float *) mri_data_pointer(im);
-       if(gptr[ii]==NULL) {
-	 fprintf(stderr,"+++can not create temporary data storage pointers \n");
-        RETURN(NULL);
-       }
-     }
-
-       ar = mri_data_pointer(SourceIm);
-       for(j=0;j<nz;j++) {      /* for each slice in sub-brik */
-        for(k=0;k<ny;k++) {    /*   for each row */
-	  for(l=0;l<nx;l++) {  /* for each column */
-
-            if((tempmaskptr!=NULL)&&(!*tempmaskptr++)) {    /*  check if point is in mask or not */
-	      for(ii=0;ii<nout;ii++) {
-		tempptr = gptr[ii];
-                *tempptr = 0.0;
-	        gptr[ii]++;
-              }
+              *(gptr[nout-1]) = dudz;  
             }
-            else {
-	      if (xflag) {
- /* column before voxel*/
-                            /*  voxel_value(col-1, row-1) */
-	      v0 = vox_val(l-1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
-                            /*  voxel_value(col-1, row) */
-	      v1 = vox_val(l-1,k,j,ar,nx,ny,nz,maskptr,l,k,j);
-                            /*  voxel_value(col-1, row+1) */
-	      v2 = vox_val(l-1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
 
-/* column after voxel */
-	                    /*  voxel_value(col+1,row-1) */
-	      v3 = vox_val(l+1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
-                            /*  voxel_value(col+1,row) */
-	      v4 = vox_val(l+1,k,j,ar,nx,ny,nz,maskptr,l,k,j);
-
-                            /*  voxel_value(col+1,row+1) */
-	      v5 = vox_val(l+1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
-              dudx = a*(v3+v5-v0-v2) + b*(v4-v1);
-              } 
-
-
-	      if (yflag) {
- /* row before voxel*/
-		if(xflag) {  /* corners v0,v2,v3,v5 already found for du/dx*/
-		  temp = v3;   /* swap v2, v3 */
-	          v3 = v2; /* previously found, use for lower left corner of kernel */
-                  v2 = temp;
-                }
-                else {
-                            /*  voxel_value(col-1, row-1) */
- 	          v0 = vox_val(l-1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
-                            /*  voxel_value(col-1, row+1) */
-  	          v2 = vox_val(l+1,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
-                            /*  voxel_value(col+1,row-1) defined above */
-	          v3 = vox_val(l-1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
-                            /*  voxel_value(col+1,row+1) */
-	          v5 = vox_val(l+1,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
-                }
-                            /*  voxel_value(col-1, row) */
-	        v1 = vox_val(l,k-1,j,ar,nx,ny,nz,maskptr,l,k,j);
-                            /*  voxel_value(col+1,row) */
-	        v4 = vox_val(l,k+1,j,ar,nx,ny,nz,maskptr,l,k,j);
-
-
- 	        dudy =  c*(v3+v5-v0-v2) + d*(v4 - v1);
-              }
-
-	      if(xflag)
-      *(gptr[0]) = dudx; /* put gradient components in output image array */
-	      if(yflag)
-      *(gptr[nout-1]) = dudy;
-	    
-	      for(ii=0;ii<nout;ii++)
+	      for(ii=0;ii<nout;ii++) {
+  	         temp = fabs(*gptr[ii]);
+                 if(temp<TINYNUMBER)
+	         *gptr[ii] = 0.0;
                  gptr[ii]++;
+              }
 	    } /* not masked */
 
-	}
-     }
+	  }
+        }
+       }
    }
-
  
    RETURN(Gradient_Im);
 }
@@ -783,14 +795,15 @@ MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr)
   MRI_IMAGE *im;
   byte *tempmaskptr;
 
-   float *gptr[6];
-   int ii, jj;
+   float *gptr[12];
+   int ii, jj, starti, endi;
    register float a1, a2, a3, aa2;
    double a13, rad, L1, L2, x11, x12, x21, x22;
-   int nx, ny, nz, nxyz, i;
+   int nx, ny, nz, nxyz;
    float maxim, tempmax0, tempmax2;
    double almostzero;
-   int testii;
+    double aa[9], e[3];
+    int i;
 
    ENTRY("Eig_Gradient");
    tempmaskptr = maskptr;
@@ -799,9 +812,17 @@ MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr)
 
    /* will use Gradient_Im structure and data space in place already for
       eigenvalues and eigenvectors ) */
+   if(flag2D3D==2) {
+     starti = 3;
+     endi = 6;
+   }
+   else {
+     starti = 6;
+     endi = 12;
+   }
 
    /* for 2D, need 6 sub-briks in output mri_imarr-2 eigenvalues,4 vector components  */
-   for(ii=3;ii<6; ii++) {  /* add 3 sub-briks to the current mri_imarr for each original sub-brik*/
+   for(ii=starti;ii<endi; ii++) {  /* add 3 sub-briks to the current mri_imarr for each original sub-brik*/
       im = mri_new_vol(nx, ny, nz, MRI_float);
       if(im==NULL) {
 	fprintf(stderr,"+++can not create temporary data storage \n");
@@ -810,26 +831,38 @@ MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr)
       ADDTO_IMARR(Gradient_Im, im);
    }
 
-    for(ii=0;ii<6;ii++) {
+    for(ii=0;ii<endi;ii++) {
        im  = (Gradient_Im->imarr[ii]);
        gptr[ii] = (float *) mri_data_pointer(im);
      }
+
     /* find max Sxx, Syy in gradients */
    im  = (Gradient_Im->imarr[0]);
-   tempmax0 = Find_Max_Im(im, maskptr);
-   im  = (Gradient_Im->imarr[2]);
-   tempmax2 = Find_Max_Im(im, maskptr);
+   tempmax0 = Find_Max_Im(im, maskptr);   /* max Sxx */
+   if(flag2D3D==2)
+      im  = (Gradient_Im->imarr[2]);
+   else
+      im  = (Gradient_Im->imarr[3]);
+   tempmax2 = Find_Max_Im(im, maskptr);   /* max Syy */
 
    if(tempmax0>tempmax2)
       maxim = tempmax0;
    else
       maxim = tempmax2;
+
+   if(flag2D3D==3) {
+      im  = (Gradient_Im->imarr[5]);
+      tempmax2 = Find_Max_Im(im, maskptr);   /* max Szz */
+      if(tempmax2>maxim)
+	maxim = tempmax2;
+   }
+
    almostzero = maxim / 100000.0;
 
    for(ii=0;ii<nxyz;ii++) {
       if(maskptr && (!(*tempmaskptr++))) {
 
-       for(jj=0;jj<6;jj++) {
+       for(jj=0;jj<endi;jj++) {
            *gptr[jj] = 0.0;
         }
       }
@@ -837,6 +870,8 @@ MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr)
        {
 
       /* for 2D case, solve by "hand" */
+
+	 if(flag2D3D==2) {
 
       a1 = *gptr[0];
       a2 = *gptr[1];
@@ -887,10 +922,51 @@ MRI_IMARR *Eig_Gradient(MRI_IMARR *Gradient_Im, int flag2D3D, byte *maskptr)
            *gptr[4] = x11;
            *gptr[5] = x12;
         }
+
+	 } 
+         else {   /* 3d flag */
+	   aa[0] = *gptr[0];
+	   aa[1] = *gptr[1];
+	   aa[2] = *gptr[2];
+
+	   aa[3] = *gptr[1];
+	   aa[4] = *gptr[3];
+	   aa[5] = *gptr[4];
+
+	   aa[6] = *gptr[2];
+	   aa[7] = *gptr[4];
+	   aa[8] = *gptr[5];
+
+
+           symeig_double(3, aa, e);  /* e has eigenvalues in result, aa has eigenvectors */
+
+           /* add check for small eigenvalues here */
+
+
+           /* reverse the order in gptr to give maximum value first */
+           *gptr[0] = e[2]; /* eigenvalues */
+           *gptr[1] = e[1];
+           *gptr[2] = e[0];
+
+           *gptr[3] = aa[6]; /* eigenvectors */
+           *gptr[4] = aa[7];
+           *gptr[5] = aa[8];
+
+           *gptr[6] = aa[3];
+           *gptr[7] = aa[4];
+           *gptr[8] = aa[5];
+
+           *gptr[9] = aa[0];
+           *gptr[10] = aa[1];
+           *gptr[11] = aa[2];
+         }
+
       } /* not masked */
-      for(jj=0;jj<6;jj++) 
+      for(jj=0;jj<endi;jj++) {
+        if(isnan(*gptr[jj]))
+	   *gptr[jj] = 0.0;
 	gptr[jj]++;   /* increment pointers for next voxel */
-        
+      }
 
     }
 
@@ -931,24 +1007,31 @@ MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr)
   {
     MRI_IMARR *phi_Im;
     MRI_IMAGE *im;
-    double c1 = 0.01, c2 = -1.00, mc1 = 0.99 ;
-    double e1, e2, e12, a, b, emax, e1me2;
-    float *gptr[2];
-    int nxyz, ii;
+    double c1 = 0.01, c2 = -1.00, mc1 = 0.99, evensplit, secondsplit;
+    double e1, e2,e3, e12, a, b, emax;
+    /* e1me2;*/
+    float *gptr[3];
+    int nxyz, ii, jj, endi;
     byte *tempmaskptr;
 
     ENTRY("Compute_Phi");
 
+    if(flag2D3D==2) {
+      evensplit = 0.5;
+      secondsplit = 1.0;
+    }
+    else {
+      evensplit = 1.0/3.0;
+      secondsplit = 0.5;
+    }
+    endi = flag2D3D;
 
     im = EV_Im->imarr[0];
     nxyz = im->nxyz;
     tempmaskptr = maskptr;
     
-    emax = Find_Max_Im(EV_Im->imarr[0], maskptr);
-    a = emax / 100.0;
-
     /* replace first two eigenvalue sub-briks with phi values */
-    for(ii=0;ii<2;ii++) {
+    for(ii=0;ii<endi;ii++) {
        im  = (EV_Im->imarr[ii]);
        gptr[ii] = (float *) mri_data_pointer(im);
      }
@@ -956,76 +1039,120 @@ MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr)
 
    /* Ding method phi1,2 = c/e1, c/e2 */
    if(compute_method==0) {
-   emax = Find_Max_Im(EV_Im->imarr[0], maskptr);
-   a = emax / 100.0;
-   b = 1.0 / a;
-   for(ii=0;ii<nxyz;ii++) {
-     if(maskptr && !*tempmaskptr++) {
-       *gptr[0] = 0.0;
-       *gptr[1] = 0.0; 
-     }
-     else {
+      emax = Find_Max_Im(EV_Im->imarr[0], maskptr);
+      a = emax / 100.0;
+      b = 1.0 / a;
 
-      e1 = *gptr[0];
-      e2 = *gptr[1];
+      for(ii=0;ii<nxyz;ii++) {
+       if(maskptr && !*tempmaskptr++) {
+         for(jj=0;jj<endi;jj++) {
+             *gptr[jj] = 0.0;
+         }
+       }
+       else {
+         e1 = *gptr[0];
+         e2 = *gptr[1];
 
-      if(e1<=0.0) {    /* e1 equal or close to zero */
-        *gptr[0] = 0.5;
-        *gptr[1] = 0.5;
-      }
-      else {
-	if(e2<=0.0) {  /* e2 equal or close to zero */
-          *gptr[0] = 0.0;
-          *gptr[1] = 1.0;
-        }
-        else {      /* normal case */
-          e1 = 1.0/e1;
-          e2 = 1.0/e2;
-          e12 = e1 + e2;
-          *gptr[0] = e1 / e12; 
-          *gptr[1] = e2 / e12; 
-        }
-      }
-     } /* included in mask */
-     gptr[0]++; gptr[1]++;
-   }
-
-  }
-  else {                     /* use exponential method instead */
-   for(ii=0;ii<nxyz;ii++) {
-     if(maskptr && !*tempmaskptr++) {
-       *gptr[0] = 0.0;
-       *gptr[1] = 0.0; 
-     }
-     else {
-
-      e1 = *gptr[0];
-      e2 = *gptr[1];
-
-      if(e1<=0.0) {    /* e1 equal or close to zero */
-        *gptr[0] = c1;
-        *gptr[1] = c1;
-      }
-      else {
-	if(e2<=0.0) {  /* e2 equal or close to zero */
-          *gptr[0] = c1;
-          *gptr[1] = c1;
-        }
-        else {      /* normal case */
-           if(e1==e2)
-	     *gptr[0] = c1;
-           else {
-             e12 = (e1-e2);
-             e12 *= e12;
-             *gptr[0] =  c1 + (mc1 * exp(c2 / e12) );
+         if(e1<=0.0) {    /* e1 equal or close to zero */
+           for(jj=0;jj<endi;jj++) {
+	     *gptr[jj] = evensplit;    /* phi values all equal - 2D 0.5,0.5 or for 3D 0.33, 0.33, 0.33 */
            }
-           *gptr[1] = c1;
-	}
-      }
-     }   
-     gptr[0]++; gptr[1]++;
-   }
-  }
+         }
+         else {
+	    if(e2<=0.0) {  /* e2 equal or close to zero */
+             *gptr[0] = 0.0;
+             for(jj=1;jj<endi;jj++)
+	       *gptr[jj] = secondsplit;  /* remaining phi value  - 2D 0 1 or for 3D 0 0.5 0.5 */
+            }
+            else {
+              e1 = 1.0/e1;
+              e2 = 1.0/e2;
+              e12 = e1 + e2;
+              if(flag2D3D==3) {
+ 	        e3 = *gptr[2];
+                if(e3<=0) {          /* zero e3 - phi for 3D is 0 0 1 */
+		  e3 = 1.0;
+                  e1 = 0.0;
+                  e2 = 0.0;
+                  e12 = 1.0;
+                }
+                else {               /* normal case phi- e1 / sum(1/e1+1/e2+1/e3) */
+                  e3 = 1.0 / e3;
+	          e12 += e3;
+                }
+                *gptr[2] = e3 / e12; 
+              }
+              *gptr[0] = e1 / e12; 
+              *gptr[1] = e2 / e12; 
+             }
+         }
+        } /* included in mask */
+       for(jj=0;jj<endi;jj++)
+  	  gptr[jj]++;
+      } /* end for each voxel in volume */
+   } /* end Ding method */
+   else {                     /* use exponential method instead */
+      for(ii=0;ii<nxyz;ii++) {
+        if(maskptr && !*tempmaskptr++) {
+	  for(jj=0;jj<endi;jj++)
+             *gptr[jj] = 0.0;
+        }
+        else {
+           e1 = *gptr[0];
+           e2 = *gptr[1];
+           if(flag2D3D==3) {
+             e3 = *gptr[2];
+             *gptr[0] = 1.0;
+             if(e1==e2) {
+               *gptr[1] = c1;
+	     }
+             else {
+               e12 =  e1 - e2;
+               e12 *= e12;
+               *gptr[1] = 0.01 + (0.99 * exp (c2/e12));
+	     }
+ 
+            if(e1==e3) {
+              *gptr[2] = c1;
+	    }
+            else {
+               e12 =  e1 - e3;
+               e12 *= e12;
+               *gptr[2] = 0.01 + (0.99 * exp (c2/e12));
+	     }
+ 	   }
+           else {    /* 2D case */
+
+              if(e1<=0.0) {    /* e1 equal or close to zero */
+	         for(jj=0;jj<endi;jj++)
+                   *gptr[jj] = c1;
+               }
+#if 0
+           else {
+
+	     if(e2<=0.0) {  /* e2 equal or close to zero */
+               *gptr[0] = c1;
+               *gptr[1] = c1;
+             }
+	   }
+#endif
+
+             else {      /* normal case */
+                if(e1==e2)
+	           *gptr[0] = c1;
+                else {
+                   e12 = (e1-e2);
+                   e12 *= e12;
+                 *gptr[0] =  c1 + (mc1 * exp(c2 / e12) );
+                }
+                *gptr[1] = c1;
+	     }
+ 
+	   }  /* end in 2D */
+	} /* end in mask */  
+       gptr[0]++; gptr[1]++;
+     }
+    }
 
 
 
@@ -1098,9 +1225,14 @@ MRI_IMARR *ComputeDTensor(MRI_IMARR *phi_Im, int flag2D3D, byte *maskptr)
     MRI_IMARR *DTensor;
     MRI_IMAGE *im;
     double v[4], a1, a2;
-    int nxyz, ii, i;
-    float *gptr[6], *tempptr;
+    int nxyz, ii, i, endi;
+    float *gptr[12], *tempptr;
     byte *tempmaskptr;
+    double e10, e11, e12, e20, e21, e22, e30, e31, e32;
+    double l1, l2, l3;
+    double t1, t3, t5, t8, t10, t12, t14, t18, t19, t21, t23, t32, t33, t35,t37;
+
+
 
     ENTRY("ComputeDTensor");
     /* D = V Phi VT */
@@ -1108,36 +1240,98 @@ MRI_IMARR *ComputeDTensor(MRI_IMARR *phi_Im, int flag2D3D, byte *maskptr)
     nxyz = im->nxyz;
     tempmaskptr = maskptr;
 
+    if(flag2D3D==2)
+      endi = 6;
+    else
+      endi = 12;
     /* replace first three phi,eigenvector sub-briks with Dxx,Dxy,Dyy values */
-    for(ii=0;ii<6;ii++) {
+    for(ii=0;ii<endi;ii++) {
        im  = (phi_Im->imarr[ii]);
        gptr[ii] = (float *) mri_data_pointer(im);
      }
 
+
+    if(flag2D3D==2) {
+      for(ii=0;ii<nxyz;ii++) {
+         if(maskptr && !(*tempmaskptr++)) {
+            for(i=0;i<endi;i++) {
+	      tempptr = gptr[i];
+              *tempptr = 0.0;
+              gptr[i]++;
+            }
+         }
+         else {
+           /* for 2D case, solve by "hand" */
+           a1 = *gptr[0];
+           a2 = *gptr[1];
+           v[0] = *gptr[2]; /* don't increment this one, use this one in-place */
+           for(i=1;i<4;i++){
+	      v[i] = *gptr[i+2];
+           }
+           *gptr[0] = (v[0] * v[0] * a1)+ (v[2] * v[2] * a2);
+           *gptr[1] = (v[0] * v[1] * a1)+ (v[2] * v[3] * a2);
+           *gptr[2] = (v[1] * v[1] * a1)+ (v[3] * v[3] * a2);
+
+           for(i=0;i<endi;i++) {
+              gptr[i]++;
+           }
+        }
+      } 
+    }
+    else {      /* 3D option */
+
     for(ii=0;ii<nxyz;ii++) {
-       if(maskptr && !(*tempmaskptr++)) {
-          for(i=0;i<6;i++) {
-	    tempptr = gptr[i];
-            *tempptr = 0.0;
+
+         if(maskptr && !(*tempmaskptr++)) {
+            for(i=0;i<endi;i++) {
+	      tempptr = gptr[i];
+              *tempptr = 0.0;
+            }
+         }
+         else {         /* use maple generated code to calculate V Phi Vt */
+           l1 = *gptr[0];
+           l2 = *gptr[1];
+           l3 = *gptr[2];
+
+           e10 = *gptr[3];
+           e11 = *gptr[4];
+           e12 = *gptr[5];
+
+           e20 = *gptr[6];
+           e21 = *gptr[7];
+           e22 = *gptr[8];
+
+           e30 = *gptr[9];
+           e31 = *gptr[10];
+           e32 = *gptr[11];
+
+           t1 = e10 * e10;
+           t3 = e20 * e20;
+           t5 = e30 * e30;
+           t8 = e10 * l1;
+           t10 = e20 * l2;
+           t12 = e30 * l3;
+           t14 = t8 * e11 + t10 * e21 + t12 * e31;
+           t18 = t8 * e12 + t10 * e22 + t12 * e32;
+           t19 = e11 * e11;
+           t21 = e21 * e21;
+           t23 = e31 * e31;
+           t32 = e11 * l1 * e12 + e21 * l2 * e22 + e31 * l3 * e32;
+           t33 = e12 * e12;
+           t35 = e22 * e22;
+           t37 = e32 * e32;
+           *gptr[0] = t1 * l1 + t3 * l2 + t5 * l3;
+           *gptr[1] = t14;
+           *gptr[2] = t18;
+           *gptr[3] = t19 * l1 + t21 * l2 + t23 * l3;
+           *gptr[4] = t32;
+           *gptr[5] = t33 * l1 + t35 * l2 + t37 * l3;
+	 }
+        for(i=0;i<endi;i++) {
             gptr[i]++;
-          }
-       }
-       else {
-      /* for 2D case, solve by "hand" */
-      a1 = *gptr[0];
-      a2 = *gptr[1];
-      v[0] = *gptr[2]; /* don't increment this one, use this one in-place */
-      for(i=1;i<4;i++){
-	v[i] = *gptr[i+2];
+         }
       }
-      *gptr[0] = (v[0] * v[0] * a1)+ (v[2] * v[2] * a2);
-      *gptr[1] = (v[0] * v[1] * a1)+ (v[2] * v[3] * a2);
-      *gptr[2] = (v[1] * v[1] * a1)+ (v[3] * v[3] * a2);
-      for(i=0;i<6;i++) {
-        gptr[i]++;
-       }
-      }
-    } 
+    }
 
     DTensor = phi_Im;
 
