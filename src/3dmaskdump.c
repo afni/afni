@@ -415,14 +415,14 @@ int main( int argc , char * argv[] )
        if( kbot > ktop ){ btyp = kbot; kbot = ktop; ktop = btyp; }
 
        /* skip box if outside dataset */
-       if ( itop < 0 || ibot >= nx-1 ) continue;
-       if ( jtop < 0 || jbot >= ny-1 ) continue;
-       if ( ktop < 0 || kbot >= nz-1 ) continue;
+       if ( itop < 0 || ibot >= nx ) continue;
+       if ( jtop < 0 || jbot >= ny ) continue;
+       if ( ktop < 0 || kbot >= nz ) continue;
 
        /* constrain values to dataset dimensions */
-       if ( ibot < 0 ) ibot = 0;  if ( itop >= nx-1 ) itop = nx-1;
-       if ( jbot < 0 ) jbot = 0;  if ( jtop >= ny-1 ) jtop = ny-1;
-       if ( kbot < 0 ) kbot = 0;  if ( ktop >= nz-1 ) ktop = nz-1;
+       if ( ibot < 0 ) ibot = 0;  if ( itop >= nx ) itop = nx-1;
+       if ( jbot < 0 ) jbot = 0;  if ( jtop >= ny ) jtop = ny-1;
+       if ( kbot < 0 ) kbot = 0;  if ( ktop >= nz ) ktop = nz-1;
 
        for( kk=kbot ; kk <= ktop ; kk++ )
         for( jj=jbot ; jj <= jtop ; jj++ )
