@@ -53,7 +53,7 @@ static void Test_data(THD_3dim_dataset *structtensor);
 extern THD_3dim_dataset *
 DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag);
 extern MRI_IMARR *Compute_Gradient_Matrix(THD_3dim_dataset *DWI_dset, int flag2D3D, byte *maskptr, int prodflag);
-extern MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag);
+extern MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag, int zflag);
 extern float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k);
 extern void Compute_IMARR_Max(MRI_IMARR *Imptr);
 
@@ -480,7 +480,8 @@ static int Show_dset_slice(THD_3dim_dataset *dset)
    ny    = daxes->nyy ;
    nz    = daxes->nzz ;
    far = mri_data_pointer(data_im);
-   far += nx*ny*(nz-1)/2;      /* show middle brik, middle Z slice */
+   nz = (nz-1) / 2;      /* get middle slice in integer */
+   far += nx*ny*nz;      /* show middle brik, middle Z slice */
    ret = Smooth_Show_Image(far,nx,ny);
    RETURN(ret);
 }
@@ -522,7 +523,7 @@ static void Smooth_dset_tensor(THD_3dim_dataset *udset, THD_3dim_dataset *struct
 
   ENTRY("Smooth_dset_tensor");
 
-  /* find mean and max of (Dxx+Dxy)*/
+  /* find mean and max of (Dxx+Dyy)*/
   Compute_Dstats(structtensor,flag2D3D, maskptr); 
   /* deviation from mean, can use structtensor space */
   /*  printf("Compute Ematrix\n");*/
@@ -562,50 +563,89 @@ static void Smooth_dset_tensor(THD_3dim_dataset *udset, THD_3dim_dataset *struct
    }
 }
 
-/*! find mean and max of (Dxx+Dxy)*/
+/*! find mean and max of (Dxx+Dyy(+Dzz))*/
 static void Compute_Dstats(THD_3dim_dataset *structtensor,int flag2D3D, byte *maskptr)
 {
   int i, nvox;
   double s0, s1, ts0;
+  double ts1, ts2, ts3;
   MRI_IMAGE *data_im = NULL;
-  float *dx, *dy;
+  float *dx, *dy, *dz;
   byte *tempmaskptr;
 
   ENTRY("Compute_Dstats");
 
   tempmaskptr = maskptr;
   s0 = 0.0; s1 = -1E10;
+  ts1 = 0.0; ts2 = 0.0; ts3 = 0.0;
   data_im = DSET_BRICK(structtensor, 0);
   dx = mri_data_pointer(data_im);
-  data_im = DSET_BRICK(structtensor, 2);
-  dy = mri_data_pointer(data_im);
+  if(flag2D3D==2) {
+     data_im = DSET_BRICK(structtensor, 2);
+     dy = mri_data_pointer(data_im);
+     dz = dy;
+  }
+  else {
+     data_im = DSET_BRICK(structtensor, 3);
+     dy = mri_data_pointer(data_im);
+     data_im = DSET_BRICK(structtensor, 5);
+     dz = mri_data_pointer(data_im);
+  }
 
   nvox = 0;
-  for(i=0;i<data_im->nxyz;i++) {
-    if(maskptr && !(*tempmaskptr++)) {
-      dx++; dy++;
+  if(flag2D3D==2) {
+    for(i=0;i<data_im->nxyz;i++) {
+      if(maskptr && !(*tempmaskptr++)) {
+          dx++; dy++;
+      }
+      else {
+        nvox++;
+        ts0 = *dx + *dy;
+        dx++; dy++;
+        if(ts0>s1)
+          s1 = ts0;           /* update max(Dxx + Dyy)*/
+        s0 +=  ts0;           /* get sum of Dxx + Dyy */
+      }
     }
-    else {
-      nvox++;
-      ts0 = *dx + *dy;
-      dx++; dy++;
-      if(ts0>s1)
-        s1 = ts0;           /* update max(Dxx + Dyy)*/
-      s0 +=  ts0;           /* get sum of Dxx + Dyy */
+  }
+  else {   /* 3D option */
+    for(i=0;i<data_im->nxyz;i++) {
+      if(maskptr && !(*tempmaskptr++)) {
+	dx++; dy++; dz++;
+      }
+      else {
+        nvox++;
+        ts0 = *dx + *dy + *dz;
+        ts1 = *dx;
+        ts2 = *dy;
+        ts3 = *dz;
+        if(isnan(ts1)||isnan(ts2)||isnan(ts3)) {
+	  printf("D matrix has elements that are not numbers (NAN) at point %d\n", i);
+          printf("ts1 %g ts2 %g ts3 %g\n", ts1, ts2, ts3);
+        }
+
+        dx++; dy++; dz++;
+        if(ts0>s1)
+          s1 = ts0;           /* update max(Dxx + Dyy + Dzz)*/
+        s0 +=  ts0;           /* get sum of Dxx + Dyy + Dzz */
+      }
     }
   }
 
-  if(maskptr!=NULL) 
-    nvox = data_im->nxyz;
-  Dmean = s0 / (2.0 * nvox);  /* Dmean = 1/2 mean(Dxx+Dyy) */
+  /* if(maskptr!=NULL) 
+     nvox = data_im->nxyz;*/
+  if(nvox==0)
+    Dmean = 0.0;
+  else
+    Dmean = s0 / (flag2D3D * nvox);  /* Dmean = 1/2 or 1/3 mean(Dxx+Dyy(+Dzz)) */
   if(deltatflag==-1.0) {      /* if no user setting for delta T */
      Dmax = s1;
   /* DeltaT  = 1.0/7.0; */
      DeltaT  = Dmax / 4;      /*   set pseudo-time step to Dmax/4 */
   }
   else DeltaT = deltatflag;
-
-  /*  printf("Dmean %g   Dmax %g   DeltaT %g\n", Dmean, Dmax, DeltaT);*/
+  /*  printf("s0 %g, nvox %d, s1 %g, ts0 %g\n", s0, nvox,  s1, ts0);
+      printf("Dmean %g   Dmax %g   DeltaT %g\n", Dmean, Dmax, DeltaT);*/
 
   EXRETURN;
 }
@@ -616,7 +656,7 @@ static void Compute_Ematrix(THD_3dim_dataset *structtensor, int flag2D3D, byte *
 
   int i;
   MRI_IMAGE *data_im = NULL;
-  float *e0, *e2, tempe0, tempe2;
+  float *e0, *e2, *e3, tempe0, tempe2;
   byte *tempmaskptr;
 
   ENTRY("Compute_Ematrix");
@@ -624,23 +664,44 @@ static void Compute_Ematrix(THD_3dim_dataset *structtensor, int flag2D3D, byte *
   tempmaskptr = maskptr;
   data_im = DSET_BRICK(structtensor, 0);
   e0 = mri_data_pointer(data_im);
-  /* e1 = Dxy, so just leave in place at second sub-brik */
-  data_im = DSET_BRICK(structtensor, 2);
-  e2 = mri_data_pointer(data_im);
+  /* e1 = Dxy, so just leave in place at second sub-brick */
+  /* for 3D, we also leave 3rd, 5th sub-brick in place */
+  if(flag2D3D==2) {
+   data_im = DSET_BRICK(structtensor, 2);
+   e2 = mri_data_pointer(data_im);
 
-  for(i=0;i<data_im->nxyz;i++) {
-    if(maskptr && !(*tempmaskptr++)) {
-      *e0 = 0.0; *e2 = 0.0;
-    }
-    else {
-      tempe0 = *e0;
-      tempe2 = *e2;
-      *e0 = tempe0 - Dmean;    /* e0 = Dxx-Dmean */
-      *e2 = tempe2 - Dmean;    /* e2 = Dyy-Dmean */
-    }
-    e0++; e2++;
+   for(i=0;i<data_im->nxyz;i++) {
+     if(maskptr && !(*tempmaskptr++)) {
+       *e0 = 0.0; *e2 = 0.0;
+     }
+     else {
+       tempe0 = *e0;
+       tempe2 = *e2;
+       *e0 = tempe0 - Dmean;    /* e0 = Dxx-Dmean */
+       *e2 = tempe2 - Dmean;    /* e2 = Dyy-Dmean */
+     }
+     e0++; e2++;
+   }
   }
+  else {
+   data_im = DSET_BRICK(structtensor, 3);
+   e2 = mri_data_pointer(data_im);
+   data_im = DSET_BRICK(structtensor, 5);
+   e3 = mri_data_pointer(data_im);
 
+   for(i=0;i<data_im->nxyz;i++) {
+     if(maskptr && !(*tempmaskptr++)) {
+       *e0 = 0.0; *e2 = 0.0; *e3 = 0.0;
+     }
+     else {
+       *e0 = *e0 - Dmean;    /* e0 = Dxx-Dmean */
+       *e2 = *e2 - Dmean;    /* e2 = Dyy-Dmean */
+       *e3 = *e3 - Dmean;    /* e3 = Dzz-Dmean */
+     }
+     e0++; e2++; e3++;
+   }
+
+  }
   EXRETURN;
 }
 
@@ -649,8 +710,8 @@ static void Compute_Flux(MRI_IMARR * Gradient_Im, THD_3dim_dataset *structtensor
 {
   int i;
   MRI_IMAGE *data_im = NULL;
-  float *e0,*e1,*e2, *Gx, *Gy;
-  double Jx, Jy;
+  float *e0,*e1,*e2, *e3, *e4, *e5, *Gx, *Gy, *Gz;
+  double Jx, Jy, Jz;
   byte *tempmaskptr;
 
   ENTRY("Compute_Flux");
@@ -665,20 +726,49 @@ static void Compute_Flux(MRI_IMARR * Gradient_Im, THD_3dim_dataset *structtensor
   Gx = mri_data_pointer(Gradient_Im->imarr[0]);
   Gy = mri_data_pointer(Gradient_Im->imarr[1]);
 
+  if(flag2D3D==2) {
+    for(i=0;i<data_im->nxyz;i++) {
+      if(maskptr && !(*tempmaskptr++)) {
+        *Gx = 0.0;
+        *Gy = 0.0;
+      }
+      else {
+        Jx =  (*e0 * *Gx) + (*e1 * *Gy);   /* Jx = Exx * du/dx + Exy * du/dy */
+        Jy =  (*e1 * *Gx) + (*e2 * *Gy);   /* Jy = Exy * du/dx + Eyy * du/dy */
+        *Gx = Jx;         /* replace gradient values with flux values */
+        *Gy = Jy;
+      }
+      Gx++; Gy++;
+      e0++; e1++; e2++;
+     }
+  }
+  else {
+    data_im = DSET_BRICK(structtensor, 3);
+    e3 = mri_data_pointer(data_im);
+    data_im = DSET_BRICK(structtensor, 4);
+    e4 = mri_data_pointer(data_im);
+    data_im = DSET_BRICK(structtensor, 5);
+    e5 = mri_data_pointer(data_im);
 
-  for(i=0;i<data_im->nxyz;i++) {
-    if(maskptr && !(*tempmaskptr++)) {
-      *Gx = 0.0;
-      *Gy = 0.0;
-    }
-    else {
-    Jx =  (*e0 * *Gx) + (*e1 * *Gy);   /* Jx = Exx * du/dx + Exy * du/dy */
-    Jy =  (*e1 * *Gx) + (*e2 * *Gy);   /* Jy = Exy * du/dx + Eyy * du/dy */
-    *Gx = Jx;         /* replace gradient values with flux values */
-    *Gy = Jy;
-    }
-    Gx++; Gy++;
-    e0++; e1++; e2++;
+    Gz = mri_data_pointer(Gradient_Im->imarr[2]);
+    for(i=0;i<data_im->nxyz;i++) {
+      if(maskptr && !(*tempmaskptr++)) {
+        *Gx = 0.0;
+        *Gy = 0.0;
+        *Gz = 0.0;
+      }
+      else {
+        Jx =  (*e0 * *Gx) + (*e1 * *Gy) + (*e2 * *Gz);   /* Jx = Exx * du/dx + Exy * du/dy  + Exz * du/dz*/
+        Jy =  (*e1 * *Gx) + (*e3 * *Gy) + (*e4 * *Gz);   /* Jy = Exy * du/dx + Eyy * du/dy + Eyz * du/dz*/
+        Jz =  (*e2 * *Gx) + (*e4 * *Gy) + (*e5 * *Gz);   /* Jz = Exz * du/dx + Eyz * du/dy + Ezz * du/dz*/
+
+        *Gx = Jx;         /* replace gradient values with flux values */
+        *Gy = Jy;
+        *Gz = Jz;
+      }
+      Gx++; Gy++; Gz++;
+      e0++; e1++; e2++; e3++; e4++; e5++;
+     }
   }
 
   EXRETURN;
@@ -690,11 +780,13 @@ static void Compute_Gmatrix(MRI_IMARR * Flux_Im, int flag2D3D, byte *maskptr)
 /*   put in Flux_Im space - first sub-brik */
 /* compute gradient of Jx, Jy (first two sub-briks) */
 /* G = dJx/dx + dJy/dy */
+/* for 3D compute gradient of Jx, Jy, Jz */
+/* G = dJx/dx + dJy/dy */
 
    int i, nxyz;
-   float *dJx, *dJy, *Gptr;
+   float *dJx, *dJy, *dJz, *Gptr;
    MRI_IMAGE *data_im;
-   MRI_IMARR *tempimarr0, *tempimarr1;
+   MRI_IMARR *tempimarr0, *tempimarr1, *tempimarr2;
    byte *tempmaskptr;
 
    ENTRY("Compute_Gmatrix");
@@ -702,12 +794,19 @@ static void Compute_Gmatrix(MRI_IMARR * Flux_Im, int flag2D3D, byte *maskptr)
    data_im = Flux_Im->imarr[0];
    Gptr = mri_data_pointer(data_im);
    nxyz = data_im->nxyz;
-   tempimarr0 = Compute_Gradient_Matrix_Im(data_im, flag2D3D, maskptr,1,0);  /* dJx/dx */
+   tempimarr0 = Compute_Gradient_Matrix_Im(data_im, flag2D3D, maskptr,1,0,0);  /* dJx/dx */
    data_im = Flux_Im->imarr[1];
-   tempimarr1 = Compute_Gradient_Matrix_Im(data_im, flag2D3D, maskptr,0,1);  /* dJy/dy */
+   tempimarr1 = Compute_Gradient_Matrix_Im(data_im, flag2D3D, maskptr,0,1,0);  /* dJy/dy */
 
    dJx = mri_data_pointer(tempimarr0->imarr[0]);
    dJy = mri_data_pointer(tempimarr1->imarr[0]);
+   dJz = dJy; /* if unused pointer - faster than checking on increment */
+
+   if(flag2D3D==3) {
+     data_im = Flux_Im->imarr[2];
+     tempimarr2 = Compute_Gradient_Matrix_Im(data_im, flag2D3D, maskptr,0,0,1);  /* dJz/dz */
+     dJz = mri_data_pointer(tempimarr2->imarr[0]);
+   }
 
    for(i=0;i<nxyz;i++) {
       if(maskptr && !(*tempmaskptr++)) {
@@ -715,12 +814,17 @@ static void Compute_Gmatrix(MRI_IMARR * Flux_Im, int flag2D3D, byte *maskptr)
       }
       else {
        *Gptr = *dJx + *dJy;  /* G = dJx + dJy */
+       if(flag2D3D==3) {
+         *Gptr += *dJz;
+       }
       }
       Gptr++;
-      dJx++; dJy++;
+      dJx++; dJy++; dJz++;
    }
 
    /* delete tempimarrs */
+   if(flag2D3D==3)
+     DESTROY_IMARR(tempimarr2);
    DESTROY_IMARR(tempimarr1);
    DESTROY_IMARR(tempimarr0);
 
@@ -732,7 +836,7 @@ static void Compute_Smooth(THD_3dim_dataset *tempdset, MRI_IMARR *G_Im, int flag
 {
    byte *tempmaskptr;
    int nx, ny, nz, nbriks, i,j,k,l;
-   double a, b, c;
+   double a, b, c, d;
    THD_dataxes   * daxes ;
    float *Gptr, *ar, *Gvalptr;
    MRI_IMAGE *data_im;
@@ -743,12 +847,28 @@ static void Compute_Smooth(THD_3dim_dataset *tempdset, MRI_IMARR *G_Im, int flag
    /* F = (Dmean / DeltaX^2) * [ 1/6  2/3  1/6]
                               [ 2/3 -10/3 2/3]
                               [ 1/6  2/3  1/6]U 
+
+    The kernel for 3D is 3 3x3 kernel stencils:
+
+    b a b                 c b c
+    a d a                 b a b
+    b a b                 c b c
+
+    at slice p       at slices p+/-1 
+    a, b, c, d values are listed below.
     The kernel is applied to the U (original image matrix */
    /* Delta X is 1.0 here for cubic voxels */
-   a = 1.0 / 6.0;   /* constants for kernel */
+   if(flag2D3D==2) {
+   a = 1.0 / 6.0;   /* constants for 2D kernel */
    b = 2.0 / 3.0;
    c = -10.0 / 3.0;
-
+   }
+   else {   /* constants for 3D kernel */
+     a = 0.4;
+     b = 2.0/15.0;
+     c = 1.0/60.0;
+     d = (-6.0 * a) - (12.0 * b) - (8.0 * c);
+   }
    /** load the grid parameters **/
    daxes = tempdset->daxes ;
    nx    = daxes->nxx ;
@@ -769,7 +889,8 @@ static void Compute_Smooth(THD_3dim_dataset *tempdset, MRI_IMARR *G_Im, int flag
             }
             else {
             uval = vox_val(l,k,j, ar, nx, ny, nz, maskptr,l,k,j);
-	    Fval = Dmean * (a * (vox_val(l-1,k-1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
+            if(flag2D3D==2)
+  	       Fval = Dmean * (a * (vox_val(l-1,k-1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
                            vox_val(l+1,k-1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
                            vox_val(l-1,k+1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
                            vox_val(l+1,k+1,j, ar, nx, ny, nz, maskptr,l,k,j)) + \
@@ -778,6 +899,44 @@ static void Compute_Smooth(THD_3dim_dataset *tempdset, MRI_IMARR *G_Im, int flag
                            vox_val(l+1,k,j, ar, nx, ny, nz, maskptr,l,k,j) + \
                            vox_val(l,k+1,j, ar, nx, ny, nz, maskptr,l,k,j)) + \
 	              c * uval);
+            else {
+	      /* multiply by 'a' four voxel values in current slice and in 
+                 centers of slices before and after current slice */
+  	       Fval = a * (vox_val(l,k-1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l-1,k,j, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l+1,k,j, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l,k+1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l,k,j-1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l,k,j+1, ar, nx, ny, nz, maskptr,l,k,j));
+               /* 'b' * corners of kernel stencil in current slice
+                     and centers of edges on previous and following slices */
+               Fval += b * (vox_val(l-1,k-1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l+1,k-1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l-1,k+1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l+1,k+1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l,k-1,j-1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l-1,k,j-1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l+1,k,j-1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l,k+1,j-1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l,k-1,j+1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l-1,k,j+1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l+1,k,j+1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l,k+1,j+1, ar, nx, ny, nz, maskptr,l,k,j));
+               /* 'c' * corners of kernel stencil on previous and following slices */
+               Fval += c * (vox_val(l-1,k-1,j-1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l+1,k-1,j-1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l-1,k+1,j-1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l+1,k+1,j-1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l-1,k-1,j+1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l+1,k-1,j+1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l-1,k+1,j+1, ar, nx, ny, nz, maskptr,l,k,j) + \
+                           vox_val(l+1,k+1,j+1, ar, nx, ny, nz, maskptr,l,k,j));
+               /* 'd' * voxel value at current point only */
+               Fval += d * uval;
+               /* scale by Dmean */
+               Fval *= Dmean;
+            }
+
             *Gptr = uval + DeltaT  * (Fval + *Gvalptr);
             }
             Gptr++; Gvalptr++;
