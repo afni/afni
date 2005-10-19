@@ -34,8 +34,8 @@ MCW_bbox * new_MCW_bbox( Widget parent ,
 ENTRY("new_MCW_bbox") ;
 
    if( num_but <= 0 || num_but >= 32 ){
-      fprintf(stderr,"\n*** illegal new_MCW_bbox has %d buttons\n",num_but) ;
-      EXIT(1) ;
+     fprintf(stderr,"\n*** illegal new_MCW_bbox has %d buttons\n",num_but) ;
+     EXIT(1) ;
    }
 
    bb = (MCW_bbox *) XtMalloc( sizeof(MCW_bbox) ) ;
@@ -48,6 +48,7 @@ ENTRY("new_MCW_bbox") ;
    switch( bb_frame ){
 
       case MCW_BB_frame:
+         STATUS("create frame") ;
          rc_parent = bb->wtop = bb->wframe =
             XtVaCreateManagedWidget(
                "frame" , xmFrameWidgetClass , parent ,
@@ -94,6 +95,7 @@ ENTRY("new_MCW_bbox") ;
       }
    }
 
+   STATUS("create rowcol") ;
    bb->wrowcol = XtCreateWidget(
                    "dialog" , xmRowColumnWidgetClass , rc_parent ,
                    wa , na ) ;
@@ -104,6 +106,7 @@ ENTRY("new_MCW_bbox") ;
 
    /***--- create the buttons ---***/
 
+   STATUS("create toggle buttons") ;
    for( ib=0 ; ib < num_but ; ib++ ){
       bb->wbut[ib] = XtVaCreateManagedWidget(
                         "dialog" , xmToggleButtonWidgetClass , bb->wrowcol ,
@@ -123,6 +126,7 @@ ENTRY("new_MCW_bbox") ;
    for( ib=num_but ; ib < MCW_MAX_BB ; ib++ ) bb->wbut[ib] = NULL ;
 
    MCW_set_bbox( bb , initial_value ) ;
+   STATUS("manage button box") ;
    XtManageChild( bb->wrowcol ) ;
 
    bb->parent = bb->aux = NULL ;
