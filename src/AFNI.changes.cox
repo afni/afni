@@ -5734,3 +5734,4 @@
 
 18 Oct 2005
  * Added -usetemp option to 3dcalc.c.
+ * Added some timing delays to popup/popdowns.
