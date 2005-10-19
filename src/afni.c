@@ -312,6 +312,9 @@ void AFNI_syntax(void)
      "                  displays (default is %d)\n"
      "   -xtwarns     Tells afni to show any Xt warning messages that may\n"
      "                  occur; the default is to suppress these messages.\n"
+#ifdef USE_TRACING
+     "   -XTWARNS     Trigger a debug trace when an Xt warning happens.\n"
+#endif
      "   -tbar name   Uses 'name' instead of 'AFNI' in window titlebars.\n"
      "   -flipim and  The '-flipim' option tells afni to display images in the\n"
      "   -noflipim      'flipped' radiology convention (left on the right).\n"
@@ -486,7 +489,7 @@ ENTRY("AFNI_parse_args") ;
    GLOBAL_argopt.keep_logo     = False ;       /* For making pretty pictures? */
    GLOBAL_argopt.pos_func      = INIT_posfunc ;/* Positive valued functions? */
    GLOBAL_argopt.recurse       = 0 ;           /* Recurse on session directories? */
-   GLOBAL_argopt.xtwarns       = False ;       /* True means keep Xt warnings turned on */
+   GLOBAL_argopt.xtwarns       = 0     ;       /* > 0 means keep Xt warnings turned on */
    GLOBAL_argopt.destruct      = False ;       /* True means allow overwrite of datasets */
                                                /* (Not yet properly implemented!) */
 
@@ -639,7 +642,12 @@ ENTRY("AFNI_parse_args") ;
       /*----- -xtwarns option -----*/
 
       if( strncmp(argv[narg],"-xtwarns",6) == 0 ){
-         GLOBAL_argopt.xtwarns = True ;
+         GLOBAL_argopt.xtwarns = 1 ;
+         narg++ ; continue ;  /* go to next arg */
+      }
+
+      if( strncmp(argv[narg],"-XTWARNS",6) == 0 ){
+         GLOBAL_argopt.xtwarns = 2 ;
          narg++ ; continue ;  /* go to next arg */
       }
 
@@ -1018,11 +1026,27 @@ fprintf(stderr,"\ncoorder: signs = %d %d %d  order = %d %d %d\n" ,
    It simply does nothing -- it replaces the default Xt warning handler.
 -------------------------------------------------------------------------*/
 
-void AFNI_handler(char * msg){ return ; }
+void AFNI_handler(char *msg){
+   if( GLOBAL_argopt.xtwarns > 0 ){
+     ERROR_message("Xt message: %s", (msg != NULL) ? msg : "(null)" ) ;
+     TRACEBACK ;
+   }
+   return ;
+}
+
+/*-----------------------------------------------------------------------*/
 
 /*! Avoid fatal X11 errors. */
 
-int AFNI_xerrhandler( Display *d , XErrorEvent *x ){ return 0; }
+int AFNI_xerrhandler( Display *d , XErrorEvent *x ){
+  if( GLOBAL_argopt.xtwarns > 0 ){
+    char buf[256] = "(null)" ;
+    if( x != NULL && d != NULL ) XGetErrorText( d,x->error_code , buf,255 ) ;
+    ERROR_message( "Intercepted fatal X11 error: %s\n",buf) ;
+    TRACEBACK ;
+  }
+  return 0 ;
+}
 
 /*-----------------------------------------------------------------------
    Fallback resources for AFNI.  May be overridden by the user's
@@ -1317,7 +1341,7 @@ int main( int argc , char * argv[] )
    (void) XSetErrorHandler( AFNI_xerrhandler ) ;      /* 26 Jun 2003 */
    (void) XtAppSetErrorHandler(MAIN_app,AFNI_handler) ;
 
-   if( GLOBAL_argopt.xtwarns == False )
+   if( GLOBAL_argopt.xtwarns != 1 )
      (void) XtAppSetWarningHandler(MAIN_app,AFNI_handler) ;  /* turn off */
 
    /* FIM background threshold */
