@@ -41,9 +41,10 @@
 typedef struct {
       float dy , dz , gamma , gsfac ;
       Boolean read_images , read_sessions , auto_purge ,
-              resize_images , keep_logo , pos_func , xtwarns ,
+              resize_images , keep_logo , pos_func ,
               destruct , tlrc_big , warp_4D , unique_dcs ;
       int ncolor , datum , ignore , allow_rt , skip_afnirc ;
+      int xtwarns ;
       char orient_code[4] ;
       char title_name[32] ;
 #ifdef ALLOW_PLUGINS
