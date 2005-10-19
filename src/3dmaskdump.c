@@ -52,8 +52,8 @@ int main( int argc , char * argv[] )
              "                 all nonzero values from 'mset' are used.\n"
              "                 Note that if a voxel is zero in 'mset', then\n"
              "                 it won't be included, even if a < 0 < b.\n"
-                             /*-- 09 May 2003: add -index option [rickr] */
-	     "  -index       Means to write out the dataset index values.\n"
+       /*-- 09 May 2003: add -index option [rickr] */
+             "  -index       Means to write out the dataset index values.\n"
              "  -noijk       Means not to write out the i,j,k values.\n"
              "  -xyz         Means to write the x,y,z coordinates from\n"
              "                 the 1st input dataset at the start of each\n"
@@ -207,8 +207,8 @@ int main( int argc , char * argv[] )
 
       /*-- 09 May 2003: option to output index value (for Mike B) [rickr] --*/
       if( strcmp(argv[narg],"-index") == 0 ){
-	 yes_index = 1 ;
-	 narg++ ; continue ;
+        yes_index = 1 ;
+        narg++ ; continue ;
       }
 
       if( strcmp(argv[narg],"-noijk") == 0 ){
@@ -484,7 +484,7 @@ int main( int argc , char * argv[] )
       /*-- 09 May 2003: optionally display index    [rickr] --*/
       if ( yes_index ){
          otemp = MV_format_fval((float)ii);
-	 strcat(obuf,otemp); strcat(obuf," ");
+         strcat(obuf,otemp); strcat(obuf," ");
       }
 
       if( ! noijk ){
