@@ -6,7 +6,7 @@
 static int datum                   = MRI_float ;
 static void Print_Header_MinMax(int Minflag, int Maxflag, THD_3dim_dataset * dset);
 static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag, int Posflag,\
-    int Negflag, int Zeroflag, THD_3dim_dataset * dset, byte *mmm, int mmvox);
+    int Negflag, int Zeroflag, int nan_flag, THD_3dim_dataset * dset, byte *mmm, int mmvox);
 static void Max_tsfunc( double tzero , double tdelta ,
                          int npts , float ts[] , double ts_mean ,
                          double ts_slope , void * ud , int nbriks, float * val ) ;
@@ -17,7 +17,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    int nopt, nbriks;
    int slow_flag, quick_flag, min_flag, max_flag, mean_flag, automask,count_flag;
-   int positive_flag, negative_flag, zero_flag;
+   int positive_flag, negative_flag, zero_flag, nan_flag;
    byte * mmm=NULL ;
    int    mmvox=0 ;
    int nxyz, i;
@@ -44,6 +44,8 @@ int main( int argc , char * argv[] )
              "  -non-positive = include only voxel values 0 or negative (implies slow)\n"
              "  -non-negative = include only voxel values 0 or greater (implies slow)\n"
              "  -non-zero = include only voxel values not equal to 0 (implies slow)\n"
+             "  -nan = include only voxel values that are not numbers (NaN, inf, -if,\n       implies slow)\n"
+             "  -nonan =exclude voxel values that are not numbers\n"
              "  -mask dset = use dset as mask to include/exclude voxels\n"
              "  -automask = automatically compute mask for dataset\n"
              "    Can not be combined with -mask\n"
@@ -67,6 +69,7 @@ int main( int argc , char * argv[] )
    positive_flag = -1;
    negative_flag = -1;
    zero_flag = -1;
+   nan_flag = -1;
 
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
@@ -165,6 +168,23 @@ int main( int argc , char * argv[] )
         nopt++; continue;
       }
 
+      if( strcmp(argv[nopt],"-nan") == 0 ){
+        if(nan_flag!=-1) {
+          fprintf(stderr, "***Can not use both -nan -nonan options");
+          exit(1) ;
+        }
+        nan_flag = 1;
+        nopt++; continue;
+      }
+
+      if( strcmp(argv[nopt],"-nonan") == 0 ){
+        if(nan_flag!=-1) {
+          fprintf(stderr, "***Can not use both -nan -nonan options");
+          exit(1) ;
+        }
+        nan_flag = 0;
+        nopt++; continue;
+      }
 
       if( strcmp(argv[nopt],"-autoclip") == 0 ||
           strcmp(argv[nopt],"-automask") == 0   ){
@@ -213,7 +233,7 @@ int main( int argc , char * argv[] )
 	max_flag = 1;                  /* otherwise check only for max */
      }
 
-   if((mean_flag==1)||(count_flag==1)||(positive_flag!=-1))  /* mean flag or count_flag implies slow */
+   if((mean_flag==1)||(count_flag==1)||(positive_flag!=-1)||(nan_flag!=-1))  /* mean flag or count_flag implies slow */
      slow_flag = 1;
 
    /* check slow and quick options */
@@ -265,7 +285,7 @@ int main( int argc , char * argv[] )
       exit(0);
 
    Max_func(min_flag, max_flag, mean_flag,count_flag,positive_flag, negative_flag, zero_flag,\
-      old_dset, mmm, mmvox);
+     nan_flag, old_dset, mmm, mmvox);
 
    if(mmm!=NULL)
      free(mmm);
@@ -360,7 +380,7 @@ THD_3dim_dataset * dset;
 
 /*! search whole dataset for minimum and maximum */
 /* load all at one time */
-static void Max_func(Minflag, Maxflag, Meanflag, Countflag, Posflag, Negflag, Zeroflag, dset, mmm, mmvox)
+static void Max_func(Minflag, Maxflag, Meanflag, Countflag, Posflag, Negflag, Zeroflag, nan_flag, dset, mmm, mmvox)
 int Minflag, Maxflag;
 THD_3dim_dataset * dset;
 byte *mmm;  /* mask pointer */
@@ -370,6 +390,7 @@ int mmvox;
    double voxval, fac, sum;
    int nvox, npts;
    int i,k;
+   int test_flag;
 
    MRI_IMAGE *data_im = NULL;
 
@@ -446,6 +467,17 @@ int mmvox;
 
              if( mmm == NULL || ((mmm!=NULL) && mmm[k] != 0 )){   /* masked in voxel? */
 	      voxval = voxval * fac;             /* apply scale factor */
+              if(nan_flag!=-1) {       /* check for various not a numbers */
+                test_flag = finite(voxval);
+                if((nan_flag==1) && (test_flag==1)) /* only looking for NaNs*/
+		  continue;
+                if((nan_flag==0) && (test_flag==0)) /* only looking for finites */
+		  continue;
+                if(test_flag==0) {  /* not a number */
+		  ++npts;
+                  continue;
+                }
+              }
               if(((voxval<0)&&Negflag)||((voxval==0)&&Zeroflag)||((voxval>0)&&Posflag)) {
 	         sum += voxval;
                  ++npts;            
