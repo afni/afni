@@ -123,8 +123,10 @@ int main( int argc , char * argv[] )
 
    mainENTRY("3danisosmooth main"); machdep(); AFNI_logger("3danisosmooth",argc,argv);
 
+
   datum = MRI_float;
    compute_method = -1;  /* detect multiple or default selection of compute_method */
+
    deltatflag = -1.0;    /* pseudo-time step */   
    while( nopt < argc && argv[nopt][0] == '-' ){
       if( strcmp(argv[nopt],"-prefix") == 0 ){
