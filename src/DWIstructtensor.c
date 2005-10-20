@@ -1100,9 +1100,18 @@ MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr)
         else {
            e1 = *gptr[0];
            e2 = *gptr[1];
-           if(flag2D3D==3) {
+           if(flag2D3D==3) {    /* 3D case */
              e3 = *gptr[2];
-             *gptr[0] = 1.0;
+             e12 = e1 + e2 + e3;
+             if(e12<TINYNUMBER) {       /* if very small numbers or zero */
+	       e1 = e2 =e3 = evensplit;  /* set to be all equal = 1/3 */
+             }
+             else {        /* scale eigenvalues to sum to 1 */
+               e1 = e1 / e12;
+               e2 = e2 / e12;
+               e3 = e3 / e12;
+	     }
+             *gptr[0] = c1;
              if(e1==e2) {
                *gptr[1] = c1;
 	     }
@@ -1122,22 +1131,13 @@ MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr)
 	     }
  	   }
            else {    /* 2D case */
-
-              if(e1<=0.0) {    /* e1 equal or close to zero */
-	         for(jj=0;jj<endi;jj++)
-                   *gptr[jj] = c1;
+	       e12 = e1 + e2;
+               if(e12<TINYNUMBER)
+                 e1 = e2 = evensplit;
+               else {
+                 e1 = e1 / e12;
+                 e2 = e2 / e12;
                }
-#if 0
-           else {
-
-	     if(e2<=0.0) {  /* e2 equal or close to zero */
-               *gptr[0] = c1;
-               *gptr[1] = c1;
-             }
-	   }
-#endif
-
-             else {      /* normal case */
                 if(e1==e2)
 	           *gptr[0] = c1;
                 else {
@@ -1146,11 +1146,10 @@ MRI_IMARR *Compute_Phi(MRI_IMARR *EV_Im, int flag2D3D, byte *maskptr)
                  *gptr[0] =  c1 + (mc1 * exp(c2 / e12) );
                 }
                 *gptr[1] = c1;
-	     }
- 
 	   }  /* end in 2D */
 	} /* end in mask */  
        gptr[0]++; gptr[1]++;
+       if(flag2D3D==3) gptr[2]++;
      }
     }
 

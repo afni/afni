@@ -78,3 +78,7 @@
  * Fixed small bug in 3dMaskdump not allowing selection of last voxel in any dimension
 19 Oct 2005
  * added support to 3dMax for checking for NaN,Inf and -Inf with the -nan and -nonan options
+20 Oct 2005
+ * fixed 3danisosmooth phi calculation for exponential version to use scaled eigenvalues
+
+
