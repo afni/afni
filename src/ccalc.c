@@ -15,7 +15,7 @@ typedef enum { CCALC_DOUBLE = 1, CCALC_NICE, CCALC_INT, CCALC_FINT, CCALC_CINT};
 int main( int argc , char * argv[] )
 {
    PARSER_code * pcode ;
-   char expr[900] , * cexp ;
+   char expr[9000] , * cexp ;
    double atoz[26] , value ;
    int ii , kvar, kar, brk, strt, oform ;
    int DoOnce;
@@ -52,6 +52,12 @@ int main( int argc , char * argv[] )
                 "                     or: ccalc -eval 3 +5 '*' 'sin(22)'\n"
                 "                You can't not use variables in EXPR\n"
                 "                like you do with 3dcalc.\n"
+                "    SECRET: You don't need to use -eval if you are \n"
+                "            not using any other options. I hate typing\n"
+                "            it for quick command line calculations. \n"
+                "            But that feature might be removed in the\n"
+                "            future, so always use -eval when you are \n"
+                "            using this program in your scripts.\n" 
                 ) ;
          exit(0) ;
       }
@@ -83,6 +89,15 @@ int main( int argc , char * argv[] )
          }
          /* anything after eval gets put into an expression */
          while (kar < argc)  {
+            if (  strcmp(argv[kar],"-eval") == 0 || 
+                  strcmp(argv[kar],"-expr") == 0 ||
+                  strcmp(argv[kar],"-form") == 0   ) {
+               fprintf (stderr,  "Error:\n"
+                                 "You have optional parameters (%s) following \n"
+                                 "the expression to evaluate.\n"
+                                 "Stop it!\n", argv[kar]);
+		         exit (1);      
+            } 
             sprintf(expr,"%s %s", expr, argv[kar]);
             ++ kar;
          }
@@ -92,8 +107,28 @@ int main( int argc , char * argv[] )
       }
 
       if (!brk) {
+         /* if nothing is understood, assume the expression follows, instead of moaning and quitting*/
+         while (kar < argc)  {
+            if (  strcmp(argv[kar],"-eval") == 0 || 
+                  strcmp(argv[kar],"-expr") == 0 ||
+                  strcmp(argv[kar],"-form") == 0   ) {
+               fprintf (stderr,  "Error:\n"
+                                 "You have optional parameters (%s) following \n"
+                                 "the expression to evaluate.\n"
+                                 "Stop it!\n", argv[kar]);
+		         exit (1);      
+            } 
+            sprintf(expr,"%s %s", expr, argv[kar]);
+            ++ kar;
+         }
+         /* fprintf (stdout, "%s\n", expr);*/
+         DoOnce = 1;
+         brk = 1;
+	   }
+      
+      if (!brk) {
 		   fprintf (stderr,"Error: Option %s not understood. Try -help for usage\n", argv[kar]);
-		   exit (1);
+		   exit (1); 
 	   } else {	
 		   brk = 0;
 		   kar ++;
