@@ -1602,7 +1602,7 @@ ENTRY("MCW_choose_ovcolor") ;
    }
 
    if( av != NULL ){
-       myXtFree( av ) ; av = NULL ;
+     myXtFree( av ) ; av = NULL ;
    }
 
    /*--- create popup widget ---*/
