@@ -1027,8 +1027,10 @@ fprintf(stderr,"\ncoorder: signs = %d %d %d  order = %d %d %d\n" ,
 -------------------------------------------------------------------------*/
 
 void AFNI_handler(char *msg){
-   if( GLOBAL_argopt.xtwarns > 0 ){
-     ERROR_message("Xt message: %s", (msg != NULL) ? msg : "(null)" ) ;
+   if( GLOBAL_argopt.xtwarns > 0 &&
+       msg != NULL               &&
+       strstr(msg,"Attempt to add wrong") == NULL ){
+     ERROR_message("Xt message: %s", msg ) ;
      TRACEBACK ;
    }
    return ;

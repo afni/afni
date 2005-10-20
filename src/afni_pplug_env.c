@@ -422,6 +422,9 @@ PLUGIN_interface * ENV_init(void)
                    "Do 0 values get color in an Overlay?" ,
                    NUM_yesno_list , yesno_list , ENV_redisplay ) ;
 
+   /* 20 Oct 2005 [RWCox] */
+   ENV_add_yesno( "AFNI_TTATLAS_CAUTION" , "Add caution to 'Where Am I' output?" ) ;
+
    /*---------------- compute helpstring -----------------------*/
 
    helpstring = THD_zzprintf( helpstring , "%s\n" , help_start ) ;
