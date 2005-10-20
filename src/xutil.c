@@ -1922,10 +1922,12 @@ void RWC_XtPopdown( Widget w )
 {
    Widget wpar = w ;
 
-   if( wpar == NULL ) return ;
-   while( XtIsShell(wpar) == 0 && XtParent(wpar) != NULL ) wpar = XtParent(wpar);
+ENTRY("RWC_XtPopdown") ;
+
+   if( wpar == NULL ) EXRETURN ;
+   while( XtIsShell(wpar)==0 && XtParent(wpar)!=NULL ) wpar = XtParent(wpar) ;
    XtPopdown(wpar) ; RWC_sleep(1) ;
-   return ;
+   EXRETURN ;
 }
 
 /*-----------------------------------------------------------------*/

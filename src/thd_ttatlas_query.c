@@ -384,7 +384,7 @@ else                    fprintf(stderr,"TT_whereami using dseTT\n") ;
    if( sar->num == 1 ){    /* shouldn't ever happen */
       sprintf(lbuf,"Found %d marked but unlabeled regions???\n",nfind) ;
       ADDTO_SARR(sar,lbuf) ;
-   } else {
+   } else if( !AFNI_noenv("AFNI_TTATLAS_CAUTION") ){
       ADDTO_SARR(sar,WAMI_TAIL) ;  /* cautionary tail */
    }
 
