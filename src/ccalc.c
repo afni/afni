@@ -11,14 +11,18 @@
 #ifdef USE_READLINE
 #include "readline.h"
 #endif
-typedef enum { CCALC_DOUBLE = 1, CCALC_NICE, CCALC_INT, CCALC_FINT, CCALC_CINT};
+typedef enum { CCALC_DOUBLE = 1, CCALC_NICE, CCALC_INT, CCALC_FINT, CCALC_CINT, CCALC_CUSTOM};
+#define AFNI_EOL '\n'
+
 int main( int argc , char * argv[] )
 {
    PARSER_code * pcode ;
    char expr[9000] , * cexp ;
    double atoz[26] , value ;
-   int ii , kvar, kar, brk, strt, oform ;
+   int ii , kvar, kar, brk, strt, oform , len;
    int DoOnce;
+   char *formatstr, *strptr;
+   char ch;
 
    DoOnce = 0;
 
@@ -46,12 +50,22 @@ int main( int argc , char * argv[] )
                 "                int (or rint): Rounded to nearest integer.\n"
                 "                cint: Rounded up.\n"
                 "                fint: Rounded down.\n"
+                "                %%n.mf: custom format string, used as in printf.\n"
+                "                   format string can contain %%%%, \\n and other\n"
+                "                   regular characters.\n"
+                "                   See man fprintf and man printf for details.\n"
                 "    Mandatory parameter: (must come last on command line)\n"
                 "    -eval EXPR: EXPR is the expression to evaluate.\n" 
                 "                Example: ccalc -eval '3 + 5 * sin(22)' \n"
                 "                     or: ccalc -eval 3 +5 '*' 'sin(22)'\n"
-                "                You can't not use variables in EXPR\n"
-                "                like you do with 3dcalc.\n"
+                "                You can not use variables in EXPR\n"
+                "                as you do with 3dcalc.\n"
+                "    Example with formatting:\n"
+                "        ccalc -form '********\\n%%6.4f%%%%\\n********' -eval '100*328/457'\n" 
+                "    gives:\n"
+                "        ********\n"
+                "        0.7177%%\n"
+                "        ********\n\n"
                 "    SECRET: You don't need to use -eval if you are \n"
                 "            not using any other options. I hate typing\n"
                 "            it for quick command line calculations. \n"
@@ -74,6 +88,10 @@ int main( int argc , char * argv[] )
          else if (strcmp(argv[kar],"rint") == 0 ) oform = CCALC_INT;
          else if (strcmp(argv[kar],"fint") == 0 ) oform = CCALC_FINT;
          else if (strcmp(argv[kar],"cint") == 0 ) oform = CCALC_CINT;
+         else if (strlen(argv[kar])<=256) {
+            oform = CCALC_CUSTOM;
+            formatstr = argv[kar];
+         }
          else {
             fprintf (stderr, "Format type '%s' not supported.\nSee -help for details.\n", argv[kar]);
             exit (1);
@@ -204,6 +222,51 @@ int main( int argc , char * argv[] )
                break;
             case CCALC_CINT:
                printf("%d\n",(int)ceil(value)) ;
+               break;
+  	    case CCALC_CUSTOM:           /* use user customized format */
+	      /* add check for integer output %d */
+	      strptr = strchr(formatstr, '%');
+              if(strptr==NULL) {
+               printf("%f\n",value) ;
+              }
+              else {
+		len = strlen(strptr);
+                for(ii=1;ii<len;ii++) {
+                  ch = *(++strptr);
+  	          switch(ch) {
+		  case 'd':  case 'i': case 'c': case 'o': case 'u': case 'x': case 'X':
+		    value = (int)value;              /* integer (no decimal) type output */
+                       ii = len + 1;
+                       break;
+
+                  case 'e': case 'E':         /* floating point output types */
+		  case 'f': case 'F':
+                  case 'g': case 'G':
+                  case 'a': case 'A':
+                    ii = len+1;
+		    break;
+                  case '%':
+                    strptr = strchr(strptr, '%'); /* find next % symbol */
+                  default:
+		    break;
+                  }
+                }
+		if(ii==len) {
+		    printf("unknown format specifier. Try %%d, %%c, %%f or %%g instead.\n");
+                    exit(1);
+		}
+                strptr = (char *) 1;
+                while(strptr) {
+	  	  strptr = strstr(formatstr, "\\n");
+                  if(strptr) {
+                    *strptr = ' ';
+                    *(strptr+1) = AFNI_EOL;
+		  }
+                }
+               
+               printf(formatstr,value) ;
+               printf("\n");
+              }
                break;
             default:
                printf("%f\n",value) ;
