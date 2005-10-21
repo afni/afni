@@ -5735,3 +5735,6 @@
 18 Oct 2005
  * Added -usetemp option to 3dcalc.c.
  * Added some timing delays to popup/popdowns.
+
+21 Oct 2005
+ * Modified 3dToutcount.c to check for float_scan type errors.
