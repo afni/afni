@@ -1,19 +1,19 @@
 #include "mrilib.h"
 
-int main( int argc , char * argv[] )
+int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset * dset , * oset=NULL ;
+   THD_3dim_dataset *dset , *oset=NULL ;
    int nvals , iv , nxyz , ii,jj , iarg , saveit=0 , oot , ic,cc ;
-   int * count ;
+   int *count ;
    float qthr=0.001 , alph,fmed,fmad , fbot,ftop,fsig , sq2p,cls ;
-   MRI_IMAGE * flim ;
-   float * far , * var ;
-   byte * mmm=NULL ;
+   MRI_IMAGE *flim ;
+   float *far , *var ;
+   byte *mmm=NULL ;
    int    mmvox=0 ;
-   char * prefix=NULL ;
+   char *prefix=NULL ;
    int do_autoclip=0 , npass=0 , do_range=0 ;   /* 12 Aug 2001 */
 
-   int polort=0 , nref ;                        /* 07 Aug 2002 */
+   int polort=0 , nref , nbad=0 , nfsc=0 ;      /* 07 Aug 2002 */
    float **ref ;
    float  *fit ;
 
@@ -109,7 +109,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
          int mcount ;
-         THD_3dim_dataset * mask_dset ;
+         THD_3dim_dataset *mask_dset ;
          if( do_autoclip ){
            fprintf(stderr,"** ERROR: can't use -mask with -autoclip/mask!\n");
            exit(1) ;
@@ -133,7 +133,7 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[iarg],"-polort") == 0 ){
         polort = strtol( argv[++iarg] , NULL , 10 ) ;
-        if( polort < 0 || polort > 3){
+        if( polort < 0 || polort > 3 ){
           fprintf(stderr,"** Illegal value of polort!\n"); exit(1);
         }
         iarg++ ; continue ;
@@ -177,7 +177,7 @@ int main( int argc , char * argv[] )
    /*-- setup to save a new dataset, if desired --*/
 
    if( saveit ){
-      float * bar ;
+      float *bar ;
       oset = EDIT_empty_copy( dset ) ;
       EDIT_dset_items( oset ,
                          ADN_prefix    , prefix ,
@@ -187,16 +187,16 @@ int main( int argc , char * argv[] )
                        ADN_none ) ;
 
       if( THD_is_file(DSET_HEADNAME(oset)) ){
-         fprintf(stderr,"** ERROR: -save dataset already exists!\n"); exit(1);
+        fprintf(stderr,"** ERROR: -save dataset already exists!\n"); exit(1);
       }
 
       tross_Copy_History( oset , dset ) ;
       tross_Make_History( "3dToutcount" , argc , argv , oset ) ;
 
       for( iv=0 ; iv < nvals ; iv++ ){
-         EDIT_substitute_brick( oset , iv , MRI_float , NULL ) ;
-         bar = DSET_ARRAY(oset,iv) ;
-         for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = 0.0 ;
+        EDIT_substitute_brick( oset , iv , MRI_float , NULL ) ;
+        bar = DSET_ARRAY(oset,iv) ;
+        for( ii=0 ; ii < nxyz ; ii++ ) bar[ii] = 0.0 ;
       }
    }
 
@@ -232,8 +232,8 @@ int main( int argc , char * argv[] )
      /* r(t) = (t-tmid)**jj */
 
      for( ; jj <= polort ; jj++ )
-       for( iv=0 ; iv < nvals ; iv++ )
-         ref[jj][iv] = pow( (iv-tm)*fac , (double)jj ) ;
+      for( iv=0 ; iv < nvals ; iv++ )
+       ref[jj][iv] = pow( (iv-tm)*fac , (double)jj ) ;
    }
 
    /*--- loop over voxels and count ---*/
@@ -258,8 +258,8 @@ int main( int argc , char * argv[] )
       } else {                               /* 07 Aug 2002: detrend */
 
         float val ;
-        cls = cl1_solve( nvals , nref , far , ref , fit,0 ); /* get fit */
-        if( cls < 0.0 ) continue ;                          /* bad! should not happen */
+        cls = cl1_solve( nvals, nref , far , ref , fit,0 ); /* get fit */
+        if( cls < 0.0 ){ nbad++ ; continue; }               /* bad! should not happen */
         for( iv=0 ; iv < nvals ; iv++ ){                    /* detrend */
           val = 0.0 ;
           for( jj=0 ; jj < nref ; jj++ )                    /* fitted value */
@@ -270,7 +270,7 @@ int main( int argc , char * argv[] )
         }
       }
 
-      /* find median of detrended data */
+      /* find median of abs(detrended data) */
 
       fmad = qmed_float( nvals , far ) ;
       ftop = alph*fmad ; fbot = -ftop ;
@@ -286,16 +286,22 @@ int main( int argc , char * argv[] )
           }
         }
 
-        if( ic > 0 )
+        if( ic > 0 ){
+          nfsc += thd_floatscan( nvals , far ) ;
           THD_insert_series( ii,oset, nvals,MRI_float,far , 0 ) ;
+        }
       }
 
       mri_free(flim) ;
-   }
+
+   } /* end of loop over voxels */
+
+   if( nbad > 0 ) WARNING_message("%d failures of cl1_solve",nbad) ;
+   if( nfsc > 0 ) WARNING_message("%d float errors in -save output",nfsc) ;
 
    if( saveit && cc > 0 ){
      DSET_write( oset ) ;
-     fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(oset)) ;
+     INFO_message("Output dataset = %s\n",DSET_BRIKNAME(oset)) ;
    }
 
    if( do_range ){
