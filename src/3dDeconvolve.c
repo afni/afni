@@ -3064,6 +3064,21 @@ void proc_finalize_shm_volumes(void)
 
    if( proc_shm_arnum == 0 ) return ;   /* should never happen */
 
+   /** 21 Oct 2005: check in big arithmetic how much mem we need **/
+
+   { long long psum=0 , twogig=2ll * 1024ll * 1024ll * 1024ll;
+     psum = 0 ;
+     for( ii=0 ; ii < proc_shm_arnum ; ii++ )
+       psum += (long long)proc_shm_arsiz[ii] ;
+     psum *= sizeof(float) ;
+     if( psum >= twogig )
+       ERROR_exit("total shared memory needed = %lld >= %lld (2 GB)\n"
+                  "** SUGGESTION: use 3dZcutup to slice dataset into smaller pieces" ,
+                  psum,twogig) ;
+     else
+       INFO_message("total shared memory needed = %lld bytes",psum) ;
+   }
+
    proc_shmsize = 0 ;                       /* add up sizes of */
    for( ii=0 ; ii < proc_shm_arnum ; ii++ ) /* all arrays for */
      proc_shmsize += proc_shm_arsiz[ii] ;   /* shared memory */
