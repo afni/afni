@@ -45,6 +45,7 @@ CP = /bin/cp -f
 
 LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 
+SHOWOFF = -DSHOWOFF=macosx_10.3_G5
 INSTALLDIR = ./macosx_10.3_G5
 LIBDIR = $(INSTALLDIR)
 
