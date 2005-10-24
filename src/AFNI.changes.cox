@@ -5738,3 +5738,8 @@
 
 21 Oct 2005
  * Modified 3dToutcount.c to check for float_scan type errors.
+
+24 Oct 2005
+ * Modified 3dDeconvolve.c to use mmap() with MAP_ANON instead of shmem
+     for inter-process storage.  Can go beyond 2 GB barrier this way,
+     on 64-bit compiles.
