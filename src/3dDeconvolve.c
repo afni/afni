@@ -313,7 +313,7 @@
   static pid_t proc_pid[PROC_MAX]     ; /* IDs of processes */
   static int proc_shmid         = 0   ; /* shared memory ID */
   static char *proc_shmptr      = NULL; /* pointer to shared memory */
-  static int proc_shmsize       = 0   ; /* total size of shared memory */
+  static long long proc_shmsize = 0   ; /* total size of shared memory */
 
   static int proc_shm_arnum     = 0   ; /* num arrays in shared memory */
   static float ***proc_shm_ar   = NULL; /* *proc_shm_ar[i] = ptr to array #i */
@@ -3058,39 +3058,62 @@ void proc_atexit( void )  /*** similarly - atexit handler ***/
 /*** This function is called to allocate all output
      volumes at once in shared memory, and set their pointers ***/
 
+/** 24 Oct 2005: use mmap() instead of shared memory, if possible **/
+
+#include <sys/mman.h>
+#if !defined(MAP_ANON) && defined(MAP_ANONYMOUS)
+# define MAP_ANON MAP_ANONYMOUS
+#endif
+
 void proc_finalize_shm_volumes(void)
 {
    char kstr[32] ; int ii ;
+   long long psum , twogig = 2ll * 1024ll * 1024ll * 1024ll ;
 
    if( proc_shm_arnum == 0 ) return ;   /* should never happen */
 
    /** 21 Oct 2005: check in big arithmetic how much mem we need **/
 
-   { long long psum=0 , twogig=2ll * 1024ll * 1024ll * 1024ll;
-     psum = 0 ;
-     for( ii=0 ; ii < proc_shm_arnum ; ii++ )
-       psum += (long long)proc_shm_arsiz[ii] ;
-     psum *= sizeof(float) ;
-     if( psum >= twogig )
-       ERROR_exit("total shared memory needed = %lld >= %lld (2 GB)\n"
-                  "** SUGGESTION: use 3dZcutup to slice dataset into smaller pieces" ,
-                  psum,twogig) ;
-     else
-       INFO_message("total shared memory needed = %lld bytes",psum) ;
-   }
+   psum = 0 ;
+   for( ii=0 ; ii < proc_shm_arnum ; ii++ )
+     psum += (long long)proc_shm_arsiz[ii] ;
+   psum *= sizeof(float) ;
+#ifdef MAP_ANON
+   if( psum >= twogig && 
+       ( sizeof(void *) < 8 || sizeof(size_t) < 8 ) )  /* too much for 32-bit */
+#else
+   if( psum >= twogig )                                /* too much for shmem */
+#endif
+     ERROR_exit(
+       "total shared memory needed = %lld >= %lld (2 GB)\n"
+       "** SUGGESTION: Use 3dZcutup to slice dataset into smaller pieces\n"
+       "**               and then 3dZcat to glue results back together.\n"
+       "** SUGGESTION: Run on a 64-bit computer system, instead of 32-bit.\n"
+      , psum,twogig) ;
+   else
+     INFO_message("total shared memory needed = %lld bytes",psum) ;
 
-   proc_shmsize = 0 ;                       /* add up sizes of */
-   for( ii=0 ; ii < proc_shm_arnum ; ii++ ) /* all arrays for */
-     proc_shmsize += proc_shm_arsiz[ii] ;   /* shared memory */
-
-   proc_shmsize *= sizeof(float) ;          /* convert to byte count */
+   proc_shmsize = psum ;
 
    /* create shared memory segment */
+
+#ifdef MAP_ANON  /** 24 Oct 2005: use mmap() instead of shmem **/
+
+   proc_shmptr = mmap( (void *)0 , (size_t)psum ,
+                       PROT_READ | PROT_WRITE , MAP_ANON | MAP_SHARED ,
+                       -1 , 0 ) ;
+   if( proc_shmptr == NULL ){
+     perror("** FATAL ERROR: Can't create shared mmap() segment\n"
+            "** Unix message") ;
+     exit(1) ;
+   }
+
+#else    /** old code: shared memory segment **/
 
    UNIQ_idcode_fill( kstr ) ;               /* unique string "key" */
    proc_shmid = shm_create( kstr , proc_shmsize ) ; /* thd_iochan.c */
    if( proc_shmid < 0 ){
-     fprintf(stderr,"\n** Can't create shared memory of size %d!\n"
+     fprintf(stderr,"\n** Can't create shared memory of size %lld!\n"
                       "** Try re-running without -jobs option!\n" ,
              proc_shmsize ) ;
 
@@ -3107,22 +3130,24 @@ void proc_finalize_shm_volumes(void)
        if( cmd != NULL ){
         FILE *fp = popen( cmd , "r" ) ;
         if( fp != NULL ){
-         unsigned int smax=0 ;
-         fscanf(fp,"%u",&smax) ; pclose(fp) ;
+         long long smax=0 ;
+         fscanf(fp,"%lld",&smax) ; pclose(fp) ;
          if( smax > 0 )
            fprintf(stderr ,
-                   "\n"
-                   "** POSSIBLY USEFUL ADVICE:\n"
-                   "** Current max shared memory size = %u bytes.\n"
-                   "** For information on how to change this, see\n"
-                   "**   http://afni.nimh.nih.gov/afni/doc/misc/parallize.html \n"
-                   "** and also contact your system administrator.\n"
-                   , smax ) ;
+               "\n"
+               "** POSSIBLY USEFUL ADVICE:\n"
+               "** Current max shared memory size = %lld bytes.\n"
+               "** For information on how to change this, see\n"
+               "** http://afni.nimh.nih.gov/afni/doc/misc/afni_parallelize\n"
+               "** and also contact your Unix system administrator.\n"
+               , smax ) ;
         }
        }
      }
      exit(1) ;
    }
+
+#endif  /* MAP_ANON */
 
    /* set a signal handler to catch most fatal errors and
       delete the shared memory segment if program crashes */
@@ -3134,18 +3159,27 @@ void proc_finalize_shm_volumes(void)
    signal(SIGKILL,proc_sigfunc) ; signal(SIGPIPE,proc_sigfunc) ;
    atexit(proc_atexit) ;   /* or when the program exits */
 
-   fprintf(stderr , "++ Shared memory: %d bytes at id=%d\n" ,
+#ifdef MAP_ANON
+   fprintf(stderr , "++ mmap() memory allocated: %lld bytes\n" ,
+           proc_shmsize ) ;
+#else
+   fprintf(stderr , "++ Shared memory allocated: %lld bytes at id=%d\n" ,
            proc_shmsize , proc_shmid ) ;
+#endif
 
    /* get pointer to shared memory segment we just created */
 
-   proc_shmptr = shm_attach( proc_shmid ) ; /* thd_iochan.c */
-   if( proc_shmptr == NULL ){
-     fprintf(stderr,"\n** Can't attach to shared memory!?\n"
-                      "** This is bizarre.\n" ) ;
-     shmctl( proc_shmid , IPC_RMID , NULL ) ;
-     exit(1) ;
+#ifndef MAP_ANON
+   if( proc_shmid > 0 )
+     proc_shmptr = shm_attach( proc_shmid ) ; /* thd_iochan.c */
+     if( proc_shmptr == NULL ){
+       fprintf(stderr,"\n** Can't attach to shared memory!?\n"
+                        "** This is bizarre.\n" ) ;
+       shmctl( proc_shmid , IPC_RMID , NULL ) ;
+       exit(1) ;
+     }
    }
+#endif
 
    /* clear all shared memory */
 
@@ -3167,7 +3201,7 @@ void proc_free( void *ptr )
    int ii ;
 
    if( ptr == NULL ) return ;
-   if( proc_shmid == 0 ){ free(ptr); return; }  /* no shm */
+   if( proc_shmptr == NULL ){ free(ptr); return; }  /* no shm */
    for( ii=0 ; ii < proc_shm_arnum ; ii++ )
      if( ((float *)ptr) == *proc_shm_ar[ii] ) return;
    free(ptr); return;
