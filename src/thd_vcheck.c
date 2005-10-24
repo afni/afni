@@ -19,7 +19,7 @@ void THD_check_AFNI_version( char *pname )
 {
    int nbuf ;
    pid_t ppp ;
-   char *vbuf=NULL , vv[128]="none" ;
+   char *vbuf=NULL , vv[128]="none" , *vvaa ;
    char *home , mname[VSIZE]="file:" ;
    NI_stream ns ;
 
@@ -116,9 +116,11 @@ void THD_check_AFNI_version( char *pname )
 
    if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ) _exit(0) ; /* failed */
 
+   vvaa = strstr(vbuf,"AFNI_") ;   if( vvaa == NULL ) _exit(0) ;
+
    /* get the first string -- that is the current AFNI version number */
 
-   sscanf( vbuf , "%127s" , vv ) ;
+   sscanf( vvaa , "%127s" , vv ) ;
 
    /* compare with compiled-in version (from afni.h) */
 
