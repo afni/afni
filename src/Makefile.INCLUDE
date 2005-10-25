@@ -571,7 +571,7 @@ d3dmerge:3dmerge.c
 	$(CC) -o 3dttest 3dttest.o parser.o parser_int.o \
               $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-whereami:whereami.o
+whereami:whereami.c
 	$(RM) $@
 	$(CC) -o whereami whereami.c $(IFLAGS) $(LFLAGS) -lmri $(LLIBS)
 
