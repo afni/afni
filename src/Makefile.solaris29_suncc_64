@@ -4,15 +4,15 @@ USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CC     = cc -xarch=generic64 -xO4 -xbuiltin=%all -xlibmil -Xa -w -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
-CCVOL  = cc -xarch=generic64 -xO2 -Xa -w -DSOLARIS
+CC     = cc -xarch=generic64 -xcode=pic32 -xO4 -xbuiltin=%all -xlibmil -Xa -w -DSOLARIS -DSOLARIS_DIRENT_ZERO -UUSE_TRACING -DDONT_USE_MCW_MALLOC
+CCVOL  = cc -xarch=generic64 -xcode=pic32 -xO2 -Xa -w -DSOLARIS
 CCFAST = $(CC) -DUSE_SUNPERF -dalign -xlic_lib=sunperf
-CCMIN  = cc -xarch=generic64
+CCMIN  = cc -xarch=generic64 -xcode=pic32
 CCD    = $(CC) $(CCDEBS)
 IFLAGS = -I. -I/usr/dt/include -I/usr/openwin/include
 LFLAGS = -s -L. -L/usr/dt/lib -L/usr/openwin/lib
 
-CCSVD  = cc -xarch=generic64 -Xa
+CCSVD  = cc -xarch=generic64 -xcode=pic32 -Xa
 
 # These extra libraries are for Suns
 
@@ -29,7 +29,7 @@ RANLIB = /usr/bin/touch
 TAR    = /bin/tar
 GZIP   = gzip
 MKDIR  = /bin/mkdir
-LD     = /usr/ucb/ld
+LD     = /usr/ccs/bin/ld -64
 
 RM = /bin/rm -f
 MV = /bin/mv -f
