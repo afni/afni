@@ -3048,6 +3048,8 @@ void proc_sigfunc(int sig)
    exit(1) ;
 }
 
+/*---------------------------------------------------------------*/
+
 void proc_atexit( void )  /*** similarly - atexit handler ***/
 {
   if( proc_shmid > 0 )
@@ -3079,30 +3081,30 @@ void proc_finalize_shm_volumes(void)
      psum += (long long)proc_shm_arsiz[ii] ;
    psum *= sizeof(float) ;
 #ifdef MAP_ANON
-   if( psum >= twogig && 
-       ( sizeof(void *) < 8 || sizeof(size_t) < 8 ) )  /* too much for 32-bit */
+   if( psum >= twogig &&
+       ( sizeof(void *) < 8 || sizeof(size_t) < 8 ) ) /* too much for 32-bit */
 #else
-   if( psum >= twogig )                                /* too much for shmem */
+   if( psum >= twogig )                               /* too much for shmem */
 #endif
      ERROR_exit(
-       "total shared memory needed = %lld >= %lld (2 GB)\n"
-       "** SUGGESTION: Use 3dZcutup to slice dataset into smaller pieces\n"
-       "**               and then 3dZcat to glue results back together.\n"
-       "** SUGGESTION: Run on a 64-bit computer system, instead of 32-bit.\n"
+       "Total shared memory needed = %lld >= %lld (2 GB)\n"
+       "** SUGGESTION:  Use 3dZcutup to slice dataset into smaller pieces\n"
+       "**                and then 3dZcat to glue results back together.\n"
+       "** SUGGESTION:  Run on a 64-bit computer system, instead of 32-bit.\n"
       , psum,twogig) ;
    else
      INFO_message("total shared memory needed = %lld bytes",psum) ;
 
-   proc_shmsize = psum ;
+   proc_shmsize = psum ;  /* global variable */
 
-   /* create shared memory segment */
+   /*------- create shared memory segment -------*/
 
 #ifdef MAP_ANON  /** 24 Oct 2005: use mmap() instead of shmem **/
 
    proc_shmptr = mmap( (void *)0 , (size_t)psum ,
                        PROT_READ | PROT_WRITE , MAP_ANON | MAP_SHARED ,
                        -1 , 0 ) ;
-   if( proc_shmptr == NULL ){
+   if( proc_shmptr == NULL || proc_shmptr == (void *)(-1) ){
      perror("** FATAL ERROR: Can't create shared mmap() segment\n"
             "** Unix message") ;
      exit(1) ;
@@ -3170,7 +3172,7 @@ void proc_finalize_shm_volumes(void)
    /* get pointer to shared memory segment we just created */
 
 #ifndef MAP_ANON
-   if( proc_shmid > 0 )
+   if( proc_shmid > 0 ){
      proc_shmptr = shm_attach( proc_shmid ) ; /* thd_iochan.c */
      if( proc_shmptr == NULL ){
        fprintf(stderr,"\n** Can't attach to shared memory!?\n"
@@ -3181,7 +3183,7 @@ void proc_finalize_shm_volumes(void)
    }
 #endif
 
-   /* clear all shared memory */
+   /* clear all shared memory to zero */
 
    memset( proc_shmptr , 0 , proc_shmsize ) ;
 
@@ -3190,6 +3192,8 @@ void proc_finalize_shm_volumes(void)
    *proc_shm_ar[0] = (float *) proc_shmptr ;
    for( ii=1 ; ii < proc_shm_arnum ; ii++ )
      *proc_shm_ar[ii] = *proc_shm_ar[ii-1] + proc_shm_arsiz[ii] ;
+
+   return ;
 }
 
 /*-------------------------------------------------------------*/
