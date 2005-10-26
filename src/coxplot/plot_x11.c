@@ -79,6 +79,9 @@ void set_memplot_X11_box( int xbot, int ybot, int xtop, int ytop )
 
 /*------------------------------------------------------------------------*/
 
+static int rectfill = 0 ;
+void set_memplot_X11_rectfill( int i ){ rectfill = i ; }  /* 26 Oct 2005 */
+
 /*------------------------------------------------------------------------*/
 /*! Get the layout of a window/pixmap.  [12 Mar 2002]
 --------------------------------------------------------------------------*/
@@ -234,13 +237,12 @@ fprintf(stderr,"Changing color to %f %f %f\n",rr,gg,bb) ;
                if( x1 < x2 ){ xb=x1; xt=x2; } else { xb=x2; xt=x1; }
                if( y1 < y2 ){ yb=y1; yt=y2; } else { yb=y2; yt=y1; }
                w = xt-xb ; h = yt-yb ;
-               if( w || h )
-#if 0
-                 XFillRectangle( old_dpy,old_w,old_GC , xb,yb,w,h ) ;
-#else
-                 XDrawRectangle( old_dpy,old_w,old_GC , xb,yb,w,h ) ;
-#endif
-               else
+               if( w || h ){
+                 if( rectfill )
+                   XFillRectangle( old_dpy,old_w,old_GC , xb,yb,w,h ) ;
+                 else
+                   XDrawRectangle( old_dpy,old_w,old_GC , xb,yb,w,h ) ;
+               } else
                  XDrawPoint( old_dpy,old_w,old_GC , xb,yb ) ;
                skip = 1 ;
             }

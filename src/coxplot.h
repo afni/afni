@@ -209,6 +209,8 @@ extern void set_memplot_X11_box( int,int,int,int ) ;  /* 26 Feb 2001 */
 extern void set_X11_background( Display * , Window ,
                                 unsigned char , unsigned char , unsigned char ) ;
 
+extern void set_memplot_X11_rectfill( int ) ;  /* 26 Oct 2005 */
+
 #define memplot_to_X11(d,w) \
    memplot_to_X11_sef( (d),(w) , get_active_memplot() , 0,0,0 )
 
