@@ -11,6 +11,9 @@
 
 /*---------------------------------------------------------------------------*/
 
+#undef  SQR
+#define SQR(a)  ((a)*(a))
+
 #undef  DET3
 #define DET3(m) ( m[0]*m[4]*m[8]-m[0]*m[7]*m[5]-m[1]*m[3]*m[8] \
                  +m[1]*m[6]*m[5]+m[2]*m[3]*m[7]-m[2]*m[6]*m[4] )
@@ -93,7 +96,7 @@ void symeig_3( double *a , double *e , int dovec )
 
    /*-- Scale matrix so abs sum is 1; unscale e[i] on output [26 Oct 2005] --*/
 
-   anni = 1.0 / ann ;
+   anni = 1.0 / ann ;                      /* ann != 0, from above */
    aa *= anni ; bb *= anni ; cc *= anni ;
    dd *= anni ; ee *= anni ; ff *= anni ;
 
@@ -104,11 +107,19 @@ void symeig_3( double *a , double *e , int dovec )
    a2 =  (aa*ff+aa*dd+dd*ff - bb*bb-cc*cc-ee*ee) ;
    a3 =  ( aa*(ee*ee-dd*ff) + bb*(bb*ff-cc*ee) + cc*(cc*dd-bb*ee) ) ;
 
+   /*-- Rewrite classical formula for qq as a sum of squares [26 Oct 2005] --*/
+#if 0
    qq = (a1*a1 - 3.0*a2) / 9.0 ;
+#else
+   qq = (  0.5 * ( SQR(dd-aa) + SQR(ff-aa) + SQR(ff-dd) )
+         + 3.0 * ( bb*bb      + cc*cc      + ee*ee      ) ) / 9.0 ;
+#endif
    rr = (2.0*a1*a1*a1 - 9.0*a1*a2 + 27.0*a3) / 54.0 ;
 
-   if( qq <= 0.0 ){
-     fprintf(stderr,"** ERROR in symeig_3: discrim=%g numer=%g\n",qq,rr) ;
+   if( qq <= 0.0 ){       /*** This should never happen!!! ***/
+     static int nerr=0 ;
+     if( ++nerr < 4 )
+       fprintf(stderr,"** ERROR in symeig_3: discrim=%g numer=%g\n",qq,rr) ;
      qs = qq = rr = 0.0 ;
    } else {
      qs = sqrt(qq) ; rr = rr / (qs*qq) ;
@@ -272,9 +283,9 @@ void symeig_2( double *a , double *e , int dovec )
 
    /*--- non-diagonal matrix ==> solve quadratic equation for eigenvalues ---*/
 
-   ss = sqrt( (sxx-syy)*(sxx-syy) + 4.0*sxy*sxy ) ;
-   lam1 = 0.5 * ( sxx + syy - ss ) ;  /* smaller */
-   lam2 = 0.5 * ( sxx + syy + ss ) ;  /* larger */
+   ss = sqrt( (sxx-syy)*(sxx-syy) + 4.0*sxy*sxy ) ;   /* positive */
+   lam1 = 0.5 * ( sxx + syy - ss ) ;                  /* smaller */
+   lam2 = 0.5 * ( sxx + syy + ss ) ;                  /* larger */
 
    if( dovec ){
      x = 2.0*sxy ; y = syy - sxx - ss ; tt = sqrt(x*x+y*y) ;
@@ -290,6 +301,9 @@ void symeig_2( double *a , double *e , int dovec )
 /*--------------------------------------------------------------------------*/
 
 static int forbid_23 = 0 ;
+
+/*! To turn off use of symeig_3() and symeig_2() in the symeig functions. */
+
 void symeig_forbid_23( int ii ){ forbid_23 = ii ; return ; }
 
 /*--------------------------------------------------------------------------
