@@ -45,6 +45,7 @@ MEM_plotdata * PLOT_tsgray( int npt , int nts , int ymask , float **y )
    create_memplot_surely( "Gplot" , 1.0 ) ;
    set_color_memplot( 0.0 , 0.0 , 0.0 ) ;
    set_thick_memplot( 0.0 ) ;
+   set_memplot_X11_rectfill( 1 ) ;  /* 26 Oct 2005 */
 
    flipxy = (ymask & TSGRAY_FLIP_XY) != 0 ;
    sepscl = (ymask & TSGRAY_SEPARATE_YSCALE) != 0 ;

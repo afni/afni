@@ -5746,3 +5746,7 @@
 
 25 Oct 2005
  * Makefiles for macosx_10.4_G5 and solaris29_suncc_64.
+
+26 Oct 2005
+ * Mod to symeig_3 (in cs_symeig.c) to avoid problems that are invisible.
+ * Mod to plot_x11.c (in coxplot/) and 1dgrayplot.c, to plot correctly.
