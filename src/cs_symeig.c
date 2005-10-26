@@ -47,6 +47,7 @@ void symeig_3( double *a , double *e , int dovec )
    double aba,abb,abc,abd,abe,abf , ann ;
    double d12,d13,d23 ;
    double u1,u2,u3 , v1,v2,v3 , w1,w2,w3 , t1,t2,t3 , tn ;
+   double anni ;
 
    if( a == NULL || e == NULL ) return ;
 
@@ -68,7 +69,8 @@ void symeig_3( double *a , double *e , int dovec )
 
    /*----- check for matrix that is essentially diagonal -----*/
 
-   if( EPS*aba > (abb+abc) && EPS*abd > (abb+abe) && EPS*abf > (abc+abe) ){
+   if( abb+abc+abe == 0.0 ||
+       ( EPS*aba > (abb+abc) && EPS*abd > (abb+abe) && EPS*abf > (abc+abe) ) ){
 
      lam1 = aa ; lam2 = dd ; lam3 = ff ;
 
@@ -89,6 +91,12 @@ void symeig_3( double *a , double *e , int dovec )
      return ;
    }
 
+   /*-- Scale matrix so abs sum is 1; unscale e[i] on output [26 Oct 2005] --*/
+
+   anni = 1.0 / ann ;
+   aa *= anni ; bb *= anni ; cc *= anni ;
+   dd *= anni ; ee *= anni ; ff *= anni ;
+
    /*----- not diagonal ==> must solve cubic polynomial for eigenvalues -----*/
    /*      the cubic polynomial is x**3 + a1*x**2 + a2*x + a3 = 0            */
 
@@ -99,8 +107,13 @@ void symeig_3( double *a , double *e , int dovec )
    qq = (a1*a1 - 3.0*a2) / 9.0 ;
    rr = (2.0*a1*a1*a1 - 9.0*a1*a2 + 27.0*a3) / 54.0 ;
 
-   qs = sqrt(qq) ; rr = rr / (qs*qq) ;
-   if( rr < -1.0 ) rr = -1.0 ; else if( rr > 1.0 ) rr = 1.0 ;
+   if( qq <= 0.0 ){
+     fprintf(stderr,"** ERROR in symeig_3: discrim=%g numer=%g\n",qq,rr) ;
+     qs = qq = rr = 0.0 ;
+   } else {
+     qs = sqrt(qq) ; rr = rr / (qs*qq) ;
+     if( rr < -1.0 ) rr = -1.0 ; else if( rr > 1.0 ) rr = 1.0 ;
+   }
    th = acos(rr) ;
 
    lam1 = -2.0 * qs * cos(  th        /3.0 ) - a1 / 3.0 ;
@@ -113,7 +126,7 @@ void symeig_3( double *a , double *e , int dovec )
      if( lam1 > lam2 ) SWAP(lam1,lam2) ;
      if( lam1 > lam3 ) SWAP(lam1,lam3) ;
      if( lam2 > lam3 ) SWAP(lam2,lam3) ;
-     e[0] = lam1 ; e[1] = lam2 ; e[2] = lam3 ;
+     e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;
      return ;
    }
 
@@ -131,7 +144,7 @@ void symeig_3( double *a , double *e , int dovec )
      if( lam1 > lam2 )  SWAP(lam1,lam2) ;  /* start by sorting eigenvalues */
      if( lam1 > lam3 )  SWAP(lam1,lam3) ;
      if( lam2 > lam3 )  SWAP(lam2,lam3) ;
-     e[0] = lam1 ; e[1] = lam2 ; e[2] = lam3 ;
+     e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;
 
      /* find eigenvector for lam1 by computing Ay-lam1*y for
         vectors y1=[1,0,0], y2=[0,1,0], and y3=[0,0,1]; the eigenvector
@@ -227,12 +240,13 @@ void symeig_3( double *a , double *e , int dovec )
        if( DET3(a) < 0.0 ){ a[6] = -a[6]; a[7] = -a[7]; a[8] = -a[8]; }
      }
 
-     e[0] = lam1 ; e[1] = lam2 ; e[2] = lam3 ;
+     e[0] = ann*lam1 ; e[1] = ann*lam2 ; e[2] = ann*lam3 ;
      return ;
    }
 }
 
 /*---------------------------------------------------------------------------*/
+/*! 2x2 symmetric eigenvalue/vector problem, like symeig_3() above. */
 
 void symeig_2( double *a , double *e , int dovec )
 {
@@ -244,7 +258,7 @@ void symeig_2( double *a , double *e , int dovec )
 
    ss = fabs(sxx) ; tt = fabs(syy) ; if( ss > tt ) ss = tt ;
 
-   if( fabs(sxy) < EPS*ss ){   /* essentially a diagonal matrix */
+   if( fabs(sxy) < EPS*ss ){   /*--- essentially a diagonal matrix ---*/
      if( sxx <= syy ){
        lam1 = sxx ; lam2 = syy ;
        if( dovec ){ a[0]=a[3]=1.0; a[1]=a[2]=0.0; }
@@ -256,7 +270,7 @@ void symeig_2( double *a , double *e , int dovec )
      return ;
    }
 
-   /* non-diagonal matrix ==> solve quadratic equation for eignenvalues */
+   /*--- non-diagonal matrix ==> solve quadratic equation for eigenvalues ---*/
 
    ss = sqrt( (sxx-syy)*(sxx-syy) + 4.0*sxy*sxy ) ;
    lam1 = 0.5 * ( sxx + syy - ss ) ;  /* smaller */
