@@ -1,0 +1,22 @@
+#!/bin/tcsh -f
+if ("$1" == '' || "$1" == '-h' || "$1" == '-help') then
+	goto USAGE
+endif
+
+set or = `echo "$1" | cut -c1`
+set or = ($or `echo "$1" | cut -c2`)
+set or = ($or `echo "$1" | cut -c3`)
+
+set di = (1 1 1)
+foreach i (1 2 3)
+   set ax = $or[$i]
+   if ($ax == 'l' || $ax == 'L') then
+      set di[$i] = -1
+   else if ($ax == 'p' || $ax == 'P') then
+      set di[$i] = -1
+   else if ($ax == 's' || $ax == 'S') then
+      set di[$i] = -1
+   endif
+end
+
+echo $di

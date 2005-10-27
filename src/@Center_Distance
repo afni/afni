@@ -1,0 +1,68 @@
+#!/bin/tcsh -f
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   set d1 = ""
+   set d2 = ""
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-dset") then
+         set pLoc = $cnt      
+         if (`expr $pLoc + 1` >= $Narg) then
+            echo "Need 2 dsets after -dset"
+            goto END
+         else
+            @ cnt ++
+            set d1 = ($argv[$cnt])
+            @ cnt ++
+            set d2 = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+   if ( `@CheckForAfniDset $d1` == 0 ) then
+      echo ""
+      echo "Error `basename $0`"
+      echo "Dset $d1 not found"
+      echo ""
+      goto END
+   endif
+   if ( `@CheckForAfniDset $d2` == 0 ) then
+      echo ""
+      echo "Error `basename $0`"
+      echo "Dset $d2 not found"
+      echo ""
+      goto END
+   endif
+
+DEED:
+   set c1 = `@VolCenter -dset $d1 -or RAI`
+   set c2 = `@VolCenter -dset $d2 -or RAI`
+
+   set dist = `ccalc -expr "sqrt( ($c2[1] - $c1[1])*($c2[1] - $c1[1]) + ($c2[2] - $c1[2])*($c2[2] - $c1[2]) + ($c2[3] - $c1[3])*($c2[3] - $c1[3]) ) "`
+   echo $dist
+   
+   goto END
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <-dset DSET_1 DSET_2> "
+   echo ""
+   echo "   Returns the distance between the centers "
+   echo "   of DSET_1 and DSET_2"
+   echo ""
+   goto END
+   
+END:
