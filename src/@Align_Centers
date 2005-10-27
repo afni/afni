@@ -1,12 +1,197 @@
 #!/bin/csh -f
 
-if ("$1" == "-help" || "$1" == "-h" || $#argv != 2) then
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   set v1_list = ""
+   set v2i = ""
+   set v1i = ""
+   set usecp = 1
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-base") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need string after -base"
+            goto END
+         else
+            @ cnt ++
+            set v2i = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-no_cp") then
+         set usecp = 0
+         set donext = 0   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-dset") then
+         set pLoc = $cnt      
+         if ($pLoc >= $Narg) then
+            echo "Need dset after -dset"
+            goto END
+         else
+            @ cnt ++
+            set v1i = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-child") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need dsets after -child"
+            goto END
+         else
+            @ cnt ++
+            set v1_list = ($argv[$cnt-])
+            set nv1 = $#v1_list
+            set cnt = `expr $cnt + $nv1 - 1`
+            set donext = 0   
+         endif   
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+   
+SET_PARAMS:
+set v2_vw = `@GetAfniView $v2i`
+set pth2 = $2:h
+if ("$pth2" == "$v2i") then 
+   set pth2 = .
+endif
+
+set v2_pref = `@GetAfniPrefix $v2i`
+set v2 = $pth2/$v2_pref$v2_vw
+
+
+CHECKS:
+#make sure output doe not exist
+if ( ! -f $v2.HEAD || ! -f $v2.BRIK ) then
+   echo "Error: base brick $v2 not found."
+   goto END
+endif
+
+SETCENTER:
+   set v1_vw = `@GetAfniView $v1i`
+   set v1_pth = $v1i:h
+   if ("$v1_pth" == "$v1i") then 
+      set v1_pth = .
+   endif
+
+   set v1_pref = `@GetAfniPrefix $v1i`
+   set v1 = $v1_pth/$v1_pref$v1_vw
+
+
+   #orientation of v1
+   set v1_orient = `@GetAfniOrient $v1`
+   #center of v1, in native orientation
+   set v1_center = `@VolCenter -dset $v1`
+   #center of v2, in v1's orientation
+   set v2_center_v1or = `@VolCenter -dset $v2 -or $v1_orient`
+   #calculate deltas
+   set del = ( 0 0 0 )
+   foreach i (1 2 3)
+      set del[$i] = `ccalc -eval "$v2_center_v1or[$i] - $v1_center[$i]"`
+   end
+   #multiply deltas by axis signs
+   set mp = `@AfniOrientSign $v1_orient`
+   set del_refit = ($del)
+   foreach i ( 1 2 3)
+         set del_refit[$i] = `ccalc -form int -expr "$mp[$i] * $del[$i]"`
+   end
+   #apply delta
+   if ($usecp == 1) then
+      3dcopy $v1  $v1_pth/${v1_pref}_shft
+      3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1_pth/${v1_pref}_shft$v1_vw
+   else
+      3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1
+   endif
+   
+   #get delta in RAI 
+   #echo "del: $del"
+   set del_RAI = `@ToRAI -xyz $del -or $v1_orient`
+   #echo "del_RAI: $del_RAI"
+   
+SETCHILDREN:
+foreach v1foli ( $v1_list )
+   set v1fol_vw = `@GetAfniView $v1foli`
+   set v1fol_pth = $v1foli:h
+   if ("$v1fol_pth" == "$v1foli") then 
+      set v1fol_pth = .
+   endif
+
+   set v1fol_pref = `@GetAfniPrefix $v1foli`
+   set v1fol = $v1fol_pth/$v1fol_pref$v1fol_vw
+
+
+   #orientation of v1fol
+   set v1fol_orient = `@GetAfniOrient $v1fol`
+   #change del_RAI to v1fol_orient
+   set del = `@FromRAI -xyz $del_RAI -or $v1fol_orient`
+   echo $del
+
+   #multiply deltas by axis signs
+   set mp = `@AfniOrientSign $v1_orient`
+   set del_refit = ($del)
+   foreach i ( 1 2 3)
+         set del_refit[$i] = `ccalc -form int -expr "$mp[$i] * $del[$i]"`
+   end
+   
+   #apply the  delta
+   if ($usecp == 1) then
+      3dcopy $v1fol  $v1fol_pth/${v1fol_pref}_shft
+      3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1fol_pth/${v1fol_pref}_shft$v1fol_vw
+   else   
+      3drefit -dxorigin $del_refit[1] -dyorigin $del_refit[2] -dzorigin $del_refit[3] $v1fol
+   endif
+end   
+
+goto END  
+
+
+HELP:
    echo ""
-   echo "Usage: `basename $0` <Vol1> <Vol2> "
+   echo "Usage: `basename $0` <-base BASE> <-dset DSET> [-no_cp] [-child CHILD_2 ... CHILD_N] "
    echo ""
-   echo "Creates a copy of Vol1 (Vol1_Shft) with a modified origin"
-   echo "   to make the centers Vol1_Shft and Vol2 coincide."
-   echo "   Vol1_Shft is written out to the directory containing Vol2."
+   echo "   Moves the center of DSET to the center of BASE."
+   echo "   -base BASE: Base volume, typically a template."
+   echo "   -dset DSET: Typically an anatomical dset to be"
+   echo "               aligned to BASE."
+   echo "   -child CHILD_'*': A bunch of datasets, originally"
+   echo "                     in register with DSET, that"
+   echo "                     should be shifted in the same"
+   echo "                     way."
+   echo "   -no_cp: Do not create new data, shift existing ones"
+   echo "           This is a good option if you know what you "
+   echo "           are doing. It will save you a lot of space."
+   echo "           See NOTE below before using it."
+   echo "    DSET and CHILD_'*' are typically all the datasets "
+   echo "    from a particular scanning session that"
+   echo "    you want to eventually align to BASE."
+   echo "    Such an operation is needed when DSET and CHILD_'*'"
+   echo "    overlap very little, if at all with BASE"
+   echo ""
+   echo "   See also @Center_Distance"
+   echo ""
+   echo " NOTE: Running the script multiple times on the same data"
+   echo "       will cause a lot of trouble. That is why the default"
+   echo "       is to create new datasets as opposed to shifting the"
+   echo "       existing ones. Do not use -no_cp unless you know what"
+   echo "       you are doing."
+   echo "       To undo errors caused by repeated executions"
+   echo "       look at the history of each dset and undo"
+   echo "       the excess 3drefit operations."
    echo ""
    echo "Requires 3drefit newer than Oct. 02/02."
    echo ""
@@ -14,93 +199,6 @@ if ("$1" == "-help" || "$1" == "-h" || $#argv != 2) then
    echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
    echo ""
    goto END
-endif
-
-SET_PARAMS:
-set view = `@GetAfniView $2`
-
-set pthTal = $1:h
-if ("$pthTal" == "$1") then 
-   set pthTal = .
-endif
-
-set tmpTal = `@GetAfniPrefix $1`
-set SurfTal = $pthTal/$tmpTal$view
-
-set pth2 = $2:h
-if ("$pth2" == "$2") then 
-   set pth2 = .
-endif
-
-set tmp2 = `@GetAfniPrefix $2`
-set ExpTal = $pth2/$tmp2$view
-
-set SurfTal_Shft = $pth2/$tmpTal'_Shft'$view
-
- 
-CHECKS:
-#make sure output doe not exist
-if (-f $SurfTal_Shft.HEAD || -f $SurfTal_Shft.BRIK) then
-   echo "Error: output brick $SurfTal_Shft exists, please clean up before proceeding."
-   goto END
-endif
-
-GETVOL1_INFO:
-#get the Center of the experiment's talairach brain. (in RAI)
-   set resp = `3dAttribute -name ORIGIN $ExpTal`
-   set ExpTalOr_RAI = ( $resp[3] $resp[4] $resp[5] )
-   #echo "Origin Experiment Talairach: $ExpTalOr_RAI : RAI"
-   
-   set resp = `3dAttribute -name DELTA $ExpTal`
-   set ExpTalDe_RAI = ( $resp[3] $resp[4] $resp[5] )
-   #echo "Dela Experiment Talairach: $ExpTalDe_RAI : RAI"
-   
-   set resp = `3dAttribute -name DATASET_DIMENSIONS $ExpTal`
-   set ExpTalNd_RAI = ( $resp[3] $resp[4] $resp[5] )
-   #echo "N Experiment Talairach: $ExpTalNd_RAI : RAI"
-   
-   #calclulate the center of the brain
-   set ExpTalCe_RAI = ( `ccalc -eval "$ExpTalOr_RAI[1] + ($ExpTalDe_RAI[1] * ($ExpTalNd_RAI[1] -1))/2"`\
-                        `ccalc -eval "$ExpTalOr_RAI[2] + ($ExpTalDe_RAI[2] * ($ExpTalNd_RAI[2] -1))/2"`\
-                        `ccalc -eval "$ExpTalOr_RAI[3] + ($ExpTalDe_RAI[3] * ($ExpTalNd_RAI[3] -1))/2"` )
-   #echo Experiment Data Set Center: $ExpTalCe_RAI : RAI
-
-   #Turn the center of the experiment brick to RSP
-   
-   set ExpTalCe_RSP = ( `ccalc -eval "1 * $ExpTalCe_RAI[1]"`\
-                        `ccalc -eval "1 * $ExpTalCe_RAI[3]"`\
-                        `ccalc -eval "1 * $ExpTalCe_RAI[2]"` )
-   #echo Experiment Data Set Center: $ExpTalCe_RSP : RSP
-
-GETVOL2_INFO:
-#Get the surface header info
-   set resp = `3dAttribute -name ORIGIN $SurfTal`
-   set SurfTalOr_RSP = ( $resp[3] $resp[4] $resp[5] )
-   #echo "Origin Surface Volume $SurfTalOr_RSP : RSP "
-   set resp = `3dAttribute -name DELTA $SurfTal`
-   set SurfTalDe_RSP = ( $resp[3] $resp[4] $resp[5] )
-   #echo "Dela Surface Volume $SurfTalDe_RSP : RSP"
-   set resp = `3dAttribute -name DATASET_DIMENSIONS $SurfTal`
-   set SurfTalNd_RSP = ( $resp[3] $resp[4] $resp[5] )
-   #echo "N Surface Volume $SurfTalNd_RSP : RSP"
-
-PERFORM_SHIFT:   
-#Calculate the origin of the Surface Volume to make its new center be that of the experiment    
-   #Ce = Or + ( De * ( Nd -1 ) / 2 )
-   #Ce1 = Ce2 
-   #the use of abs is temporary, it is a glitch of the option to 3drefit, abs will not work in situations where the entire volume is 
-   set SurfTalOr_RSP = ( `ccalc -eval "( $ExpTalCe_RSP[1] - ( $SurfTalDe_RSP[1] * ($SurfTalNd_RSP[1] -1) )/2 )"`\
-                        `ccalc -eval " ( $ExpTalCe_RSP[2] - ( $SurfTalDe_RSP[2] * ($SurfTalNd_RSP[2] -1) )/2 )"`\
-                        `ccalc -eval " ( $ExpTalCe_RSP[3] - ( $SurfTalDe_RSP[3] * ($SurfTalNd_RSP[3] -1) )/2 )"` )
-   #echo "New origin of Surface Volume $SurfTalOr_RSP : RSP "                  
-   rm -f $SurfTal_Shft.HEAD $SurfTal_Shft.BRIK
-   3dcopy $SurfTal $SurfTal_Shft 
-   echo "running: 3drefit -xorigin_raw $SurfTalOr_RSP[1] -yorigin_raw $SurfTalOr_RSP[2] -zorigin_raw $SurfTalOr_RSP[3] \"
-   echo "                 -vr_mat 1.0 0 0 $ExpTalCe_RAI[1] 0 1.0 0 $ExpTalCe_RAI[2] 0 0 1.0 $ExpTalCe_RAI[3] \"
-   echo "                 -vr_mat_ind 0 -vr_cen_old 0 0 0 -vr_cen_base 0 0 0 $SurfTal_Shft "
-   3drefit -xorigin_raw $SurfTalOr_RSP[1] -yorigin_raw $SurfTalOr_RSP[2] -zorigin_raw $SurfTalOr_RSP[3] \
-           -vr_mat 1.0 0 0 $ExpTalCe_RAI[1] 0 1.0 0 $ExpTalCe_RAI[2] 0 0 1.0 $ExpTalCe_RAI[3] \
-           -vr_mat_ind 0 -vr_cen_old 0 0 0 -vr_cen_base 0 0 0 $SurfTal_Shft
 
 
 goto END
