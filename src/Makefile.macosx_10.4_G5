@@ -56,7 +56,7 @@ LIBDL = libdl.a
 # for dynamic linking
 
 LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -ldl -lc
-# LLIBS  = -lmri /sw/lib/libXm.a -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -ldl -lc
+# LLIBS  = -lmri /sw/lib/libXm.a -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -ldl -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
