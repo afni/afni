@@ -344,6 +344,27 @@ CHECK_EXISTENCE:
 	if (!(-f $SurfAnatPath/$SurfAnat.BRIK || -f $SurfAnatPath/$SurfAnat.BRIK.gz || -f $SurfAnatPath/$SurfAnat.BRIK.Z)) then
 		goto NO_SURFANAT
 	endif
+   
+   #check for large center difference
+   set dist_cent = `@Center_Distance -dset $ExpAnat.HEAD $SurfAnatPath/$SurfAnat.HEAD`
+   if (`ccalc -form int -eval "step($dist_cent - 80)"`) then
+      echo ""
+      echo "*********** Warning *************"
+      echo "Dataset centers are $dist_cent mm"
+      echo "apart. If registration fails, try"
+      echo "recentering all the input data using"
+      echo "@Align_Centers -base $SurfAnatPath/$SurfAnat.HEAD -dset $ExpAnat.HEAD -child CHILDREN"
+      echo "and rerun `basename $0` using the shifted dset"
+      echo "See @Align_Centers for more help."
+      echo "*********************************"
+      echo ""
+      echo "Hit Enter to proceed or ctrl+c to quit."
+      echo ""
+      set junk = $<
+   else
+      echo "Center distance of $dist_cent mm"   
+   endif 
+
 	goto Ret_CHECK_EXISTENCE
 
 CHECK_PROGRAMS:
