@@ -52,13 +52,13 @@ LIBDL = libdl.a
 # for dynamic linking
 
 # LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) -lm -lmri -ldl -lc
-LLIBS  = -lmri /sw/lib/libXm.a -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) -lm -lmri -ldl -lc
+LLIBS  = -lmri /sw/lib/libXm.a -lXm -lXmu -lXp -lXpm -lXext -lXt -lX11 $(LZLIB) -lm -lmri -ldl -lc
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma 
 SUMA_INCLUDE_PATH = -I/sw/include -I/usr/X11R6/include -I./ -I../ -I../niml/ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
 SUMA_LINK_PATH = -L/usr/lib -L/sw/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib
-SUMA_LINK_LIB = /sw/lib/libXm.a -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) -lm -lmx -lglib -bind_at_load
+SUMA_LINK_LIB = /sw/lib/libXm.a -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) -lm -lmx -lglib -bind_at_load
 SUMA_MAKEFILE_NAME = SUMA_Makefile
 SUMA_BIN_ARCHIVE = SUMA_MacOSX.tar
 
