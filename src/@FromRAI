@@ -1,0 +1,96 @@
+#!/bin/tcsh -f
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   set signed = 1
+   set nrai = (0 0 0)
+   set no = ( 0 0 0 )
+   set v = ""
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-xyz") then
+         set pLoc = $cnt      
+         if (`expr $pLoc + 2` == $Narg) then
+            echo "Need coordinates after -xyz"
+            goto END
+         else
+            @ cnt ++
+            set no[1] = "$argv[$cnt]"
+            @ cnt ++
+            set no[2] = "$argv[$cnt]"
+            @ cnt ++
+            set no[3] = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-or") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need orientation string after -or"
+            goto END
+         else
+            @ cnt ++
+            set v = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-delta") then
+         set signed = 0
+         set donext = 0   
+      endif
+      
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+
+DEED:
+set mp = `@AfniOrient2RAImap $v`
+#get the signs
+set sg = ( 1 1 1 )
+foreach i ( 1 2 3 )
+	if ($mp[$i]<0) then
+		set l = `ccalc -form int -eval "-1 * $mp[$i]"`
+		set mp[$i] = $l
+		set sg[$i] = -1
+	endif
+end
+
+#echo $mp
+#echo $sg
+if ($signed == 1) then
+   foreach i ( 1 2 3 )
+	   set nrai[$mp[$i]] = `ccalc -eval "$sg[$i] * $no[$i]"`
+   end 
+else
+   foreach i ( 1 2 3 )
+	   set nrai[$mp[$i]] = `ccalc -eval "$no[$i]"`
+   end 
+endif
+
+echo $nrai
+
+goto END
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <-xyz X Y Z> <-or ORIENT>"
+   echo ""
+   echo "   Changes the RAI coordinates X Y Z to"
+   echo "   orientation ORIENT"
+   echo ""
+
+   goto END
+
+
+END:

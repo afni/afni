@@ -1,0 +1,102 @@
+#!/bin/tcsh -f
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   set or = ""
+   set v1 = ""
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-dset") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need dset after -dset"
+            goto END
+         else
+            @ cnt ++
+            set v1 = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-or") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need orientation string after -or"
+            goto END
+         else
+            @ cnt ++
+            set or = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+   
+   if ( `@CheckForAfniDset $v1` == 0 ) then
+      echo ""
+      echo "Error `basename $0`"
+      echo "Dset $v1 not found"
+      echo ""
+      goto END
+   endif
+DEED:
+   set v1_orient = `@GetAfniOrient $v1`
+   set resp = `3dAttribute -name ORIGIN $v1`
+   set v1_origin = ( $resp[3] $resp[4] $resp[5] )
+   #echo "Origin Experiment Talairach: $v1_origin : $v1_orient"
+   
+   set resp = `3dAttribute -name DELTA $v1`
+   set v1_delta = ( $resp[3] $resp[4] $resp[5] )
+   #echo "Dela Experiment Talairach: $v1_delta : $v1_orient"
+   
+   set resp = `3dAttribute -name DATASET_DIMENSIONS $v1`
+   set v1_Nd = ( $resp[3] $resp[4] $resp[5] )
+   #echo "N Experiment Talairach: $v1_Nd : $v1_orient"
+   
+   #calclulate the center of the brain
+   set v1_center = ( `ccalc -eval "$v1_origin[1] + ($v1_delta[1] * ($v1_Nd[1] -1))/2"`\
+                        `ccalc -eval "$v1_origin[2] + ($v1_delta[2] * ($v1_Nd[2] -1))/2"`\
+                        `ccalc -eval "$v1_origin[3] + ($v1_delta[3] * ($v1_Nd[3] -1))/2"` )
+   #echo Experiment Data Set Center: $v1_center along  $v1_orient directions
+   
+   #get center in RAI	(don't ask me about the F* delta)
+   set v1_center_RAI = `@ToRAI -xyz $v1_center[1] $v1_center[2] $v1_center[3] -or $v1_orient -delta`
+
+
+   if ("$or" == "") then
+      set or = $v1_orient
+   endif
+      
+   set v1_center_out = `@FromRAI -xyz $v1_center_RAI[1] $v1_center_RAI[2] $v1_center_RAI[3] -or $or`
+   echo $v1_center_out
+
+goto END
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <-dset DSET> [-or ORIENT]"
+   echo ""
+   echo "   Returns the center of volume DSET"
+   echo "   The default coordinate system of the center"
+   echo "   is the same as that of DSET, unless another"
+   echo "   coordinate system is specified with the "
+   echo "   -or option"
+   echo ""
+   echo "Example:"
+   echo "`basename $0` -dset Vol+orig.BRIK -or RAI"
+   echo " outputs the center of Vol+orig in RAI coordinate system"
+   echo ""
+
+   goto END
+END:
