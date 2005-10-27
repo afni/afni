@@ -54,6 +54,9 @@
             The contrast and t-stat files will go at the end of any bucket.
             Changed EPSILON values to 1e10-15 (from -10).
    Date:    17 Oct 2005 [rickr,gangc]
+
+   Mod:     Fixed -help typo, num_Abcontr assignment and df in calc_Abc().
+   Date:    27 Oct 2005 [rickr,gangc]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -149,7 +152,7 @@ void display_help_menu()
      "\n"
      "[-aBcontr c1 ... ca : j prefix]   2nd order contrast in A, at fixed\n"
      "                                     B level j (collapsed across C)\n"
-     "[-Abcontr c1 ... cb : i prefix]   2nd order contrast in B, at fixed\n"
+     "[-Abcontr i : c1 ... cb prefix]   2nd order contrast in B, at fixed\n"
      "                                     A level i (collapsed across C)\n"
      "\n"
      "The following command generates one AFNI 'bucket' type dataset:\n"
@@ -840,7 +843,6 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (option_data->num_aBcontr > MAX_CONTR)
 	    ANOVA_error ("too many aB contrasts ");
 	  
-	  
 	  for (i = 0;  i < option_data->a;  i++)
 	    {
 	      sscanf (argv[nopt], "%f", &fval); 
@@ -880,11 +882,15 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (nopt + option_data->b + 2 >= argc)  
             ANOVA_error ("need b+3 arguments after -Abcontr");
 
+	  option_data->num_Abcontr++;
+	  if (option_data->num_Abcontr > MAX_CONTR)
+	    ANOVA_error ("too many Ab contrasts ");
+
           /* get A level */
 	  sscanf (argv[nopt], "%d", &ival);
 	  option_data->Abclevel[option_data->num_Abcontr-1] = ival - 1;
           if (ival <= 0 || ival > option_data->a)
-            ANOVA_error("invalid A level in -aBcontr");
+            ANOVA_error("invalid A level in -Abcontr");
           nopt++;
 
           /* skip ':' */
@@ -895,10 +901,6 @@ void get_options (int argc, char ** argv, anova_options * option_data)
               ANOVA_error ("failing...");
             }
           nopt++;
-
-	  option_data->num_Abcontr++;
-	  if (option_data->num_Abcontr > MAX_CONTR)
-	    ANOVA_error ("too many Ab contrasts ");
 
           /* read in B contrast */
 	  for (i = 0;  i < option_data->b;  i++)
@@ -5044,7 +5046,7 @@ void calculate_Abcontrasts (anova_options * option_data)
       if (option_data->model == 4 || option_data->model == 5)
       {
         calc_type5_bcontr(option_data, bcontr, Alevel, contr, tcontr);
-        df = a * (c - 1);
+        df = c - 1;
       }
       else /* invalid */
       {

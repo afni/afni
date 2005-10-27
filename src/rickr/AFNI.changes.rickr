@@ -1281,3 +1281,7 @@
 17 October 2005:
   * modified 3dANOVA3.c - added -aBcontr and -Abcontr as 2nd order contrasts
   * modified 3dANOVA.h, 3dANOVA.lib - added and initialized appropriate fields
+
+27 October 2005:
+  * modified 3dANOVA3.c
+      - fixed -help typo, num_Abcontr assignment and df in calc_Abc()
