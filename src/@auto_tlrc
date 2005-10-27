@@ -1,11 +1,11 @@
 #!/bin/tcsh -f
 
 PARSE: 
-	echo "Parsing ..."
-	set Narg = $#
-	
+   echo "Parsing ..."
+   set Narg = $#
+   
    set pd_default = 40
-	set cnt = 1
+   set cnt = 1
    set tmppref = '__ats_tmp_'
    set RemoveSkull = 1
    set KeepView = 0
@@ -24,18 +24,18 @@ PARSE:
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
-		set donext = 1;
+      set donext = 1;
       
       if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
          goto HELP
       endif
       
       if ($donext && "$argv[$cnt]" == "-xform") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need string after -xform"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need string after -xform"
             goto END
-			else
+         else
             @ cnt ++
             set xform_type = "$argv[$cnt]"
             if ("$xform_type" != "affine_general" && "$xform_type" != "shift_rotate_scale" && "$xform_type" != "auto" && "$xform_type" != "shift_rotate") then
@@ -49,107 +49,107 @@ PARSE:
                echo "Proceeding with your wishes anyway ..."
                echo ""
             endif
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-rmode") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need string after -rmode"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need string after -rmode"
             goto END
-			else
+         else
             @ cnt ++
             set rmode = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-dxyz") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need voxel size after -dxyz"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need voxel size after -dxyz"
             goto END
-			else
+         else
             @ cnt ++
             set dxyz_list[1] = "$argv[$cnt]"
             set dxyz_list[2] = "$argv[$cnt]"
             set dxyz_list[3] = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-dx") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need voxel size after -dx"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need voxel size after -dx"
             goto END
-			else
+         else
             @ cnt ++
             set dxyz_list[1] = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-dy") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need voxel size after -dy"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need voxel size after -dy"
             goto END
-			else
+         else
             @ cnt ++
             set dxyz_list[2] = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-dz") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need voxel size after -dz"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need voxel size after -dz"
             goto END
-			else
+         else
             @ cnt ++
             set dxyz_list[3] = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       
       if ($donext && "$argv[$cnt]" == "-suffix") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need a string after -suffix"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a string after -suffix"
             goto END
-			else
+         else
             @ cnt ++
             set suf = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-base") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need template volume after -base"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need template volume after -base"
             goto END
-			else
+         else
             @ cnt ++
             set ref_in = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
-		if ($donext && "$argv[$cnt]" == "-apar") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need transform volume after -apar"
+      if ($donext && "$argv[$cnt]" == "-apar") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need transform volume after -apar"
             goto END
-			else
+         else
             @ cnt ++
             set ref_in = "$argv[$cnt]"
             set apar_mode = 1
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && ( "$argv[$cnt]" == "-pad_base" || "$argv[$cnt]" == "-pad_input" ) ) then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need value after -pad_base (or -pad_input) "
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need value after -pad_base (or -pad_input) "
             goto END
-			else
+         else
             @ cnt ++
             set pd = "$argv[$cnt]"
             if ($pd > 100 || $pd < 0) then
@@ -157,46 +157,46 @@ PARSE:
                echo "I have $pd"
                goto END
             endif
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-input") then
-         set pLoc = $cnt		
-		   if ($pLoc == $Narg) then
-				echo "Need  volume after -input"
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need  volume after -input"
             goto END
-			else
+         else
             @ cnt ++
             set anat_in = "$argv[$cnt]"
-            set donext = 0	
-         endif	
+            set donext = 0   
+         endif   
       endif
       if ($donext && "$argv[$cnt]" == "-no_ss") then
-         set RemoveSkull = 0;		
-         set donext = 0		
+         set RemoveSkull = 0;      
+         set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-keep_view") then
-         set KeepView = 1;		
-         set donext = 0		
+         set KeepView = 1;      
+         set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-keep_tmp") then
-         set KeepTmp = 1;		
-         set donext = 0		
+         set KeepTmp = 1;      
+         set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-verb") then
-         set verb = 1;		
-         set donext = 0		
+         set verb = 1;      
+         set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-no_avoid_eyes") then
-         set ss_opt = "$ss_opt -no_avoid_eyes";		
-         set donext = 0		
+         set ss_opt = "$ss_opt -no_avoid_eyes";      
+         set donext = 0      
       endif
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
          goto END
       endif
-		@ cnt ++
-	end
+      @ cnt ++
+   end
    if ("$anat_in" == "" || "$ref_in" == "") then
       echo "Error: Need both -base and -input parameters"
       goto END
@@ -292,10 +292,29 @@ else
    goto AUTO_TLRC_MODE
 endif
 
+
 #######################
 #Begin auto tlrc block
 #######################
 AUTO_TLRC_MODE:
+   #Check for center differences and warn
+   set dist_cent = `@Center_Distance -dset ${ref_in} ${anat_in}`
+   if (`ccalc -form int -eval "step($dist_cent - 80)"`) then
+      echo ""
+      echo "*********** Warning *************"
+      echo "Dataset centers are $dist_cent mm"
+      echo "apart. If registration fails, try"
+      echo "recentering all the input data using"
+      echo "@Align_Centers"
+      echo "*********************************"
+      echo ""
+      echo "Hit Enter to proceed."
+      echo ""
+      set junk = $<
+   else
+      echo "Center distance of $dist_cent mm"   
+   endif 
+   
    #cleanup in case cleanup was not done in last execution
    set Ret_Clean = PAD
    goto CLEANUP
