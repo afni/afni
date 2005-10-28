@@ -1285,3 +1285,9 @@
 27 October 2005:
   * modified 3dANOVA3.c
       - fixed -help typo, num_Abcontr assignment and df in calc_Abc()
+
+28 October 2005:
+  * niftilib update: merged updates by Hans Johnson
+      - nifti1_io.c:nifti_convert_nhdr2nim : use nifti_set_filenames()
+      - updated Testing/niftilib/nifti_test.c with more tests
+
