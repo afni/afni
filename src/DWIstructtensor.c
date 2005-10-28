@@ -775,16 +775,16 @@ float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *mask
    z = min(z, (nz-1));
    z = max(z, 0);
 
-   offset = z*nx*ny+(y*nx) + x;
+   offset = nx*(z*ny+y) + x;
    /* put mask check here too */ 
    if((maskptr!=NULL) && !(*(maskptr+offset))) /* if not in mask use i,j,k offset*/
-     offset = k*nx*ny+(j*nx) + i;
+     offset = nx*(k*ny+j) + i;
    voxval = *(imptr+offset);
 
    /*define VOX_VAL(x,y,offset,nx, ny) \
      (*((offset) + min(max((y),0),(ny-1))*(nx) + min(max((x),0),(nx-1))))*/
    
-   RETURN(voxval);
+   return(voxval);
 }
 
 
