@@ -2925,7 +2925,6 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
 {
    int   ii , doswap , ioff, ndim, nvox ;
    int   is_nifti , is_onefile ;
-   char *iname=NULL;
    nifti_image *nim;
 
    nim = (nifti_image *) calloc( 1 , sizeof(nifti_image) ) ;
@@ -3159,18 +3158,8 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
 
    /**- deal with file names if set */
    if (fname!=NULL) {
-     nim->fname = nifti_strdup(fname);
-     /* determine name of image, if not already set */
-     if (nim->iname==NULL) {
-       if (is_onefile) {
-         iname = nifti_strdup(nim->fname);
-       } else {
-         iname = nifti_findimgname(nim->fname,nim->nifti_type);
-         if (iname==NULL)  { ERREX("bad filename"); }
-       }
-       /* don't free iname, as now nim->iname is using this storage */
-       nim->iname        = iname ;          /* save image filename */
-     }
+       nifti_set_filenames(nim,fname,0,0);
+       if (nim->iname==NULL)  { ERREX("bad filename"); }
    } else { 
      nim->fname = NULL;  
      nim->iname = NULL; 
