@@ -217,7 +217,7 @@ void matrix_create (int rows, int cols, matrix * m)
 
 void matrix_print (matrix m)
 {
-  int i, j;
+  int i=0, j=0;
   int rows, cols;
   double val ;
   int ipr ;
@@ -342,17 +342,18 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 
   /*----- Read the matrix file -----*/
   flim = mri_read_1D(filename);
-  if (flim == NULL)
-    if (error_exit)
-      {
-	sprintf (message,  "Unable to read matrix from file: %s",  filename);
-	matrix_error (message);
-      }
-    else
-      {
-	matrix_destroy (m);
-	return;
-      }
+  if (flim == NULL) {
+       if (error_exit)
+         {
+	   sprintf (message,  "Unable to read matrix from file: %s",  filename);
+	   matrix_error (message);
+         }
+       else
+         {
+	   matrix_destroy (m);
+	   return;
+         }
+  }
 
 
   /*----- Set pointer to data  -----*/
@@ -360,19 +361,20 @@ void matrix_file_read (char * filename, int rows, int cols,  matrix * m,
 
 
   /*----- Test for correct dimensions -----*/
-  if ( (rows != flim->nx) || (cols != flim->ny) )
-    if (error_exit)
-      {
-	sprintf (message,
-		 "In matrix file: %s   Expected: %d x %d   Actual: %d x %d",
-		 filename, rows, cols, flim->nx, flim->ny);
-	matrix_error (message);
-      }
-    else
-      {
-	matrix_destroy (m);
-	return;
-      }
+  if ( (rows != flim->nx) || (cols != flim->ny) ) {
+       if (error_exit)
+         {
+	   sprintf (message,
+		    "In matrix file: %s   Expected: %d x %d   Actual: %d x %d",
+		    filename, rows, cols, flim->nx, flim->ny);
+	   matrix_error (message);
+         }
+       else
+         {
+	   matrix_destroy (m);
+	   return;
+         }
+   }
 
 
   matrix_create (rows, cols, m);

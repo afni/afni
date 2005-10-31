@@ -1437,7 +1437,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             } 
             
             { float CurrentDistance;
-              float fm2_3[2][3], *dir;
+              float fm2_3[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *dir;
               
             /* modify the ViewFrom Value such that the viewing distance remains the same */
             CurrentDistance = sqrt((sv->GVS[sv->StdView].ViewFrom[0]-sv->GVS[sv->StdView].ViewCenter[0])*(sv->GVS[sv->StdView].ViewFrom[0]-sv->GVS[sv->StdView].ViewCenter[0]) +\

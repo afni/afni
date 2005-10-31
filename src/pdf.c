@@ -240,7 +240,16 @@ void PDF_write_file (char * filename, pdf p)
 
 
   outfile = fopen (filename, "w");
-
+  if (!outfile) {
+   fprintf (stderr,  "\n"
+                     "*****************************\n"
+                     "Error:\n"
+                     "Failed to open %s for output.\n"
+                     "Check for write permissions.\n"
+                     "*****************************\n"
+                     "\n", filename);
+   return;
+  }
   for (ibin = 0;  ibin < p.nbin;  ibin++)
     fprintf (outfile, "%d  %f  %f \n", 
 	    ibin, PDF_ibin_to_xvalue(p, ibin), p.prob[ibin]);

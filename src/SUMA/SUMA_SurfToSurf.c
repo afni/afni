@@ -126,7 +126,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
    Opt->in_1D = NULL;
    Opt->NodeDbg = -1;
    Opt->debug = 0;
-   Opt->NearestNode = 3;
+   Opt->NearestNode = 0;
    Opt->NearestTriangle = 0;
    Opt->DistanceToMesh = 0;
    Opt->ProjectionOnMesh = 0;
@@ -284,6 +284,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfToSurf_ParseInput(char *argv[], int a
 			kar ++;
 		}
    }
+   
+   /* set default for NearestNode if nothing has been set */
+   if (Opt->NearestNode < 1) Opt->NearestNode = 3;
    
    if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("SurfToSurf"); 
    
