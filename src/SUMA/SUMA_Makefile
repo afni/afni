@@ -27,23 +27,23 @@ CC_G5  = -O3 -funroll-loops -fstrict-aliasing -fsched-interblock               \
          -mtune=G5 -mcpu=G5 -mpowerpc64 -fPIC
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp 
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -no-cpp-precomp
 CCFAST = cc $(CC_G5) -DDARWIN $(CEXTRA)
-
-# CCFAST = cc -O2 -ffast-math -DDARWIN -DNO_GAMMA $(CEXTRA)
+# CCFAST = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CC     = $(CCFAST)
 CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
-IFLAGS = -I. -I/usr/X11R6/include
-LFLAGS = -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
+# IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
+IFLAGS = -I. -I/usr/X11R6/include -I/sw/include
+LFLAGS = -L. -L/usr/X11R6/lib -L/sw/lib -Wl,-multiply_defined -Wl,suppress
 
-CCSVD  = $(CCFAST)
+CCSVD  = cc -O0 -fPIC -no-cpp-precomp
 
 PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -flat_namespace -bundle -undefined suppress
 PLUGIN_CC     = $(CC) -dynamic -fno-common
-PLFLAGS       = -dynamic -L. -L/usr/X11R6/lib -Wl,-force_flat_namespace
+PLFLAGS       = -dynamic -L. -L/usr/X11R6/lib -L/sw/lib -Wl,-multiply_defined -Wl,suppress
 
 SPECIAL = -faltivec -framework Accelerate -DUSE_ALTIVEC
 endif
@@ -59,7 +59,7 @@ CCOPT =
 
 ifndef SUMA_INCLUDE_PATH
 #Don't prepend -Igts/src -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include/  here since only one program needs them
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
+SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include -I/sw/include
 endif
 ifndef SUMA_LINK_PATH
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/usr/local/lib -L/sw/lib

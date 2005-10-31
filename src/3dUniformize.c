@@ -872,16 +872,26 @@ void estimate_field (UN_options * option_data,
 
 
   /*----- Estimate pdf for resampled data -----*/
+  if( 0 && !quiet ){
+   fprintf (stderr,"       PDF_Initializing... \n");
+  }
   PDF_initialize (&p);
+  if( 0 && !quiet ){
+   fprintf (stderr,"       float to pdf... \n");
+  }
   PDF_float_to_pdf (rpts, vr, nbin, &p);
 
   if( !quiet ){
    sprintf (filename, "p%d.1D", iter);
+   fprintf (stderr,"       Writing pdf output to %s... \n", filename);
    PDF_write_file (filename, p);
   }
 
 
   /*----- Estimate gross field distortion -----*/
+  if( 0 && !quiet ){
+   fprintf (stderr,"       Estimating gross distortions... \n");
+  }
   poly_field (nx, ny, nz, rpts, ir, vr, spts, npar, fpar);
   warp_image (npar, fpar, nx, ny, nz, rpts, ir, fs);
   subtract (rpts, vr, fs, ur);
@@ -1036,14 +1046,23 @@ void uniformize (UN_options * option_data, short * sfim)
 
 
   /*----- Resample the data -----*/
+  if( 0 && !quiet ){
+   fprintf (stderr,"     resampling... \n");
+  }
   resample (option_data, ir, vr);
 
 
   /*----- Estimate the nonuniformity field -----*/
+  if( 0 && !quiet ){
+   fprintf (stderr,"     estimating field... \n");
+  }
   estimate_field (option_data, ir, vr, fpar);
 
 
   /*----- Remove the nonuniformity field -----*/
+  if( 0 && !quiet ){
+   fprintf (stderr,"     removing field... \n");
+  }
   remove_field (option_data, fpar, sfim);
 
  
@@ -1218,14 +1237,24 @@ int main
 
   
   /*----- Program initialization -----*/
+  if( !quiet ){
+   fprintf (stderr,"  Initializing... \n");
+  }
   initialize_program (argc, argv, &option_data, &sfim);
 
 
   /*----- Perform uniformization -----*/
+  
+  if( !quiet ){
+   fprintf (stderr,"  Uniformizing... \n");
+  }
   uniformize (option_data, sfim);
 
 
   /*----- Write out the results -----*/
+  if( !quiet ){
+   fprintf (stderr,"  Writing results... \n");
+  }
   write_afni_data (option_data, sfim);
   
 

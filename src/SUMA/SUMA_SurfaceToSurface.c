@@ -154,7 +154,7 @@ SUMA_M2M_STRUCT *SUMA_GetM2M_NN( SUMA_SurfaceObject *SO1, SUMA_SurfaceObject *SO
    float delta_t;
    double *wv, wgt[3], weight_tot; 
    float P0[3], P1[3], P2[3], N0[3];
-   float Points[2][3];
+   float Points[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} } ;
    SUMA_MT_INTERSECT_TRIANGLE *MTI = NULL;
    struct timeval tt; 
    SUMA_Boolean LocalHead = NOPE;

@@ -101,6 +101,8 @@ typedef struct {
    
    byte b1;
    byte b2;
+   
+   void *popt;    /*< NULL pointer to hide program specific structure */
 } SUMA_GENERIC_PROG_OPTIONS_STRUCT;
 
 #define SUMA_MAX_SURF_ON_COMMAND 100
