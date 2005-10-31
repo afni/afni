@@ -117,7 +117,7 @@
 
 #define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when keeping track of allocated memory. If needed more space is reallocated with SUMA_MEMTRACE_BLOCK increments. */
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
-#define SUMA_PI 3.141592653589793 
+#define SUMA_PI 3.141592653589793115997963 
 #define SUMA_EPSILON 0.000001
 /*!
    Debugging flags

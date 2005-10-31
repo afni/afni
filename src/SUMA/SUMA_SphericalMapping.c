@@ -853,7 +853,7 @@ SUMA_SurfaceObject * SUMA_CreateIcosahedron (float r, int depth, float ctr[3], c
    
    /* project to sphere ? */
    if (ToSphere) {
-      float dv, uv[3], U[2][3], *p1;
+      float dv, uv[3], U[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *p1;
       for (i=0; i<SO->N_Node; ++i) {
          i3 = 3*i;
          p1 = &(SO->NodeList[i3]);

@@ -576,7 +576,7 @@ int SUMA_SkullMask (SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Op
    float *n=NULL, *undershish = NULL, diffmax;
    float *tmpptr, *NewCoord = NULL, f3, f4, *dsmooth = NULL;
    float *refNodeList = NULL, sksearch = 15;
-   float U[3], Un;
+   float U[3]={0.0, 0.0, 0.0}, Un;
    int  nx, nxy, n_stp;
    SUMA_Boolean DoDbg=NOPE, Send_buf;
    SUMA_Boolean LocalHead = NOPE;
@@ -1847,7 +1847,7 @@ int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_ST
    byte *fmask=NULL;
    int in, N_troub = 0, cond1=0, cond2=0, cond3 = 0, cond4 = 0, nn, nin;   
    float MinMax_over[2], MinMax[2], MinMax_dist[2], MinMax_over_dist[2], Means[3], tb; 
-   float U[3], Un, *a, P2[2][3], *norm, shft, *b; 
+   float U[3], Un, *a, P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} }, *norm, shft, *b; 
    float *touchup=NULL, **wgt=NULL, *dsmooth=NULL; 
    int nstp, stillmoving, kth_buf, N_Touch;
    float stp, *csmooth=NULL, *shftvec=NULL, *targetloc=NULL;

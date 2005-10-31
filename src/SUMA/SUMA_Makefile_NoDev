@@ -3,7 +3,7 @@
 MAKE = make
 SUMALIB = libSUMA.a
 SUMAGTSLIB = libSUMAGTS.a
-AFNILIB = -lrickr -lmrix -lcoxplot -lf2c -lmri 
+AFNILIB = -lrickr -lmrix -lcoxplot -lmri -lf2c 
 MAINCODE = SUMA
 SUMALIBLIST = libSUMA.a libglut.a libply.a 
 
@@ -329,6 +329,12 @@ SurfToSurf: SUMA_SurfToSurf.c
 SumaProgramTemplate: SUMA_ProgramTemplate.c
 	$(RM) $@
 	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_ProgramTemplate.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
+		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
+		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
+
+toy_circle: SUMA_toy_circle.c
+	$(RM) $@
+	${CC} -DSUMA_COMPILED ${CCOPT} ${WARNOPT} -o $@ $(AFWARPOBJS) ${AFNI_OBJS} SUMA_toy_circle.c ${SUMA_INCLUDE_PATH} ${SUMA_LINK_PATH} 	\
 		${AFNI_3dOBJS} MarchingCubes/debug/MarchingCubes.o			\
 		${SUMALIBLIST} ${AFNILIB} ${ZLIB} ${SUMA_LINK_LIB}
 
