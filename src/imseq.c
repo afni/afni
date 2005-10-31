@@ -4529,11 +4529,11 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
   Draw the message data in the winfo label
 ---------------------------------------------------------------------*/
 
-void ISQ_draw_winfo( MCW_imseq * seq )
+void ISQ_draw_winfo( MCW_imseq *seq )
 {
    char buf[128] = "\0" ;
    int nn , ibuf ;
-   ISQ_indiv_statistics * st ;
+   ISQ_indiv_statistics *st ;
 
 ENTRY("ISQ_draw_winfo") ;
 
@@ -4555,6 +4555,7 @@ ENTRY("ISQ_draw_winfo") ;
 
    nn = seq->im_nr ;  if( nn < 0 ) EXRETURN ;
    st = &( seq->imstat[nn] ) ;
+#if 0
    if( st->one_done ){
 #if 0
       if( seq->opt.scale_group == ISQ_SCL_AUTO   &&
@@ -4563,9 +4564,19 @@ ENTRY("ISQ_draw_winfo") ;
            sprintf( buf+ibuf , " 2%%=%g 98%%=%g", st->per02 , st->per98 ) ;
       else
 #endif
+
+#if 0
            sprintf( buf+ibuf , "=%g..%g ent=%.2f" ,
                     st->min , st->max , st->entropy ) ;
+#endif
+           sprintf( buf+ibuf , "=%g..%g" , st->min , st->max ) ;
    }
+#endif
+
+   if( seq->opt.scale_range == ISQ_RNG_MINTOMAX )
+     sprintf(buf+strlen(buf)," Min2Max") ;
+   if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) )
+     sprintf(buf+strlen(buf)," s=%d",(int)(10.0*seq->sharp_fac+.01)) ;
 
    if( seq->im_label[0] == '\0' || strcmp(buf,seq->im_label) != 0 ){
      if( seq->winfo_extra[0] == '\0' ){
@@ -11168,6 +11179,7 @@ ENTRY("ISQ_handle_keypress") ;
      case 'l':{
        if( seq->dialog_starter==NBUT_DISP ){XBell(seq->dc->display,100); break;}
        seq->opt.mirror = ! seq->opt.mirror ;
+       seq->im_label[0] = '\0' ; ISQ_draw_winfo( seq ) ;
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        busy=0 ; RETURN(1) ;
      }
