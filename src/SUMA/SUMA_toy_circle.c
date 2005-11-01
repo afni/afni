@@ -26,7 +26,7 @@ typedef struct
       double *Dtheta;
       double Center[3];
       double Radius;
-      int cons_velocity;
+      int renew_weights;
       int adjust;
       char outfile[500];
    } MyCircleOpt;
@@ -36,6 +36,7 @@ typedef struct
       int N_Node;
       double *NodeList;
       double *VelocityField;
+      double *VelocityMagnitude;
       double *NewNodeList;
       double *Theta;
       vector Wv;
@@ -53,7 +54,7 @@ void usage_toy_circle (SUMA_GENERIC_ARGV_PARSE *ps)
       printf ( "\n"
                "usage:\n"
                "  toy_circle [-dbg DBG] [-N_node N_NODE] [-dt DT] <-ctrl CTRL_FILE>\n"
-               "                             [-cons_velocity CONS_VELOCITY] [-ouput OUTPUT]\n"
+               "                             [-renew_weights CONS_VELOCITY] [-ouput OUTPUT]\n"
                "  -dbg DBG: Choose the debug level, default is 0\n"
                "  -N_node N_NODE: Set the number of nodes forming circle.\n"
                "                 Default N_NODE is 100.\n"
@@ -61,10 +62,9 @@ void usage_toy_circle (SUMA_GENERIC_ARGV_PARSE *ps)
                "                 Default DT is 0.001.\n"
                "  -ctrl CTRLFILE: Control nodes 1D file.\n"
                "                  Each row is for one node's intial and final XYZ.\n"
-               "  -cons_velocity CONS_VELOCITY: Choose whether to use constant velocity.\n"
-               "                 Default is constant velocity, CONS_VELOCITY=1.\n"
-               "  -adjust ADJUST: Choose to scale displacement.\n"
-               "                 Default is no adjustment, ADJUST = 0.\n"                            
+               "  -renew_weights : huh\n"
+               "  -adjust : Choose to scale displacement.\n"
+               "            Default is no adjustment.\n"                            
                "  -output OUTPUT: Name output file. Default OUTPUT is test_move.1D.\n"
                " \n"
                "%s"
@@ -93,7 +93,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
    popt->dt = 0.001;
    popt->ctrl = NULL;
    popt->N_ctrl_points = 1;
-   popt->cons_velocity = 1;
+   popt->renew_weights = 0;
    popt->CtrlPts_iim = NULL;
    popt->CtrlPts_i = NULL;
    popt->CtrlPts_f = NULL;
@@ -162,25 +162,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_toy_circle_ParseInput(char *argv[], int a
          brk = 1;
       }
       
-      if (!brk && (strcmp(argv[kar], "-cons_velocity") == 0)) {
-         kar ++;
-         if (kar >= argc)  
-         {
-           fprintf (stderr, "need argument after -cons_velocity \n");
-           exit (1);
-         }
-         popt->cons_velocity = atoi(argv[kar]);
+      if (!brk && (strcmp(argv[kar], "-renew_weights") == 0)) {
+         popt->renew_weights = 1;
          brk = 1;
       }      
       
       if (!brk && (strcmp(argv[kar], "-adjust") == 0)) {
-         kar ++;
-         if (kar >= argc)  
-         {
-           fprintf (stderr, "need argument after -adjust \n");
-           exit (1);
-         }
-         popt->adjust = atoi(argv[kar]);
+         popt->adjust = 1;
          brk = 1;
       }      
       
@@ -289,6 +277,8 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
    double  *t=NULL;
    SUMA_Boolean LocalHead = YUP;
    
+   SUMA_ENTRY;
+   
    if (LocalHead) {
       fprintf(SUMA_STDERR, "%s:\n"
                            "Number of control points: %d\n" 
@@ -312,6 +302,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
       i3 = 3*i;
       t[i] = atan2 ( opt->CtrlPts_i[i3+1], opt->CtrlPts_i[i3  ] );
       opt->Dtheta[i] = atan2 ( opt->CtrlPts_f[i3+1], opt->CtrlPts_f[i3  ] ) - t[i]; 
+      SUMA_S_Note("Make usage of Dtheta_new the norm");
       if (LocalHead) {
          double Dtheta_new;
          SUMA_ANGLE_DIST_NC((&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts_i[i3])), Dtheta_new);
@@ -320,6 +311,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
                                  FuncName, i, opt->Dtheta[i], SUMA_R2D(opt->Dtheta[i]),
                                  Dtheta_new, SUMA_R2D(Dtheta_new) ); 
       }
+      
       Vv.elts[i3  ] = opt->Dtheta[i] * - opt->CtrlPts_i[i3+1];
       Vv.elts[i3+1] = opt->Dtheta[i] *   opt->CtrlPts_i[i3  ];
       Vv.elts[i3+2] = 0.0;
@@ -333,6 +325,7 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
       SUMA_S_Crit("Failed to allocate");
       exit(1);
    }
+   /* 2D ONLY */
    for(r=0; r<opt->N_ctrl_points; ++r) { /* r is j in Julia's matlab function, c is i */
       for(c=0; c<opt->N_ctrl_points; ++c) { /* m(i,j) = m(i+j*Ni) */
          V_row1[0] = 0.5 * (cos(t[r] - t[c]) + 1.0) *  cos(t[r] - t[c]);
@@ -403,9 +396,13 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
 SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt) 
 {
    static char FuncName[]={"Velocity"};
+   static int ncall = 0;
+   byte repeat;
    int i, i3, j, j3;
-   double Wax, Way, Waz, AS, cas, sas, was, *xyz_i, *xyz_j;
-   SUMA_Boolean LocalHead = NOPE;
+   double Wax, Way, Waz, AS, cas, sas, dv[3],was, *xyz_i, *xyz_j, mag, scale;
+   SUMA_Boolean LocalHead = YUP;
+   
+   SUMA_ENTRY;
      
    /* reset velocity field */
    for (i = 0; i < C->N_Node; ++i) {  
@@ -424,16 +421,65 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
       for (i = 0; i < C->N_Node; ++i) {  
          i3 = i*3;
          /* Calculate the angle AS between node i and ctrl pt j. Assuming sphere of rad 1, centered at 0 0 0*/
-         xyz_i = &(C->NodeList[i3]);
+         xyz_i = &(C->NewNodeList[i3]);
          SUMA_ANGLE_DIST_NC(xyz_i, xyz_j, AS);
-         /* some frequent flyer variables */
-         cas = cos(AS); sas = sin(AS); was = 0.5*(cas + 1.0);
+         repeat = 0;
+         do {
+            /* some frequent flyer variables */
+            cas = cos(AS); sas = sin(AS); was = 0.5*(cas + 1.0);
+            /* calculate contribution of point j */
+            dv[0] = was * ( cas*Wax - sas*Way ); 
+            dv[1] = was * ( sas*Wax - cas*Way );
+            dv[2] = 0.0;
+            /* test for dot product of radius with dv */
+            if (repeat) { /* done, get out */
+               repeat = 0;
+            } else { /* 1st pass, check things out */
+               if (SUMA_ABS(SUMA_MT_DOT(dv, xyz_i)) > 0.000000001) {
+                  AS = -AS;
+                  repeat = 1;
+               }
+            }
+         } while (repeat);
          /* add contribution of point j to velocity field at node i. Note that equations are for 2D */
-         C->VelocityField[i3  ] += was * ( cas*Wax - sas*Way );
-         C->VelocityField[i3+1] += was * ( sas*Wax - cas*Way );
-         C->VelocityField[i3+2] += 0.0;
+         C->VelocityField[i3  ] += dv[0];
+         C->VelocityField[i3+1] += dv[1];
+         C->VelocityField[i3+2] += dv[2];
+         /* check the dot product */
+         if (0 && LocalHead) {
+            fprintf(SUMA_STDERR,"%s: AS %.5f, Vel dot Rad at %d = %.6f\n", 
+                        FuncName, 
+                        AS, i,
+                        SUMA_MT_DOT((&(C->VelocityField[i3])), xyz_i));
+         }
       }      
    }
+ 
+   if (ncall == 0) { /* at the first call, calculate magnitudes of velocities */
+      for (i = 0; i < C->N_Node; ++i) {  
+         i3 = i*3;
+         C->VelocityMagnitude[i] = sqrt ( SUMA_POW2 (C->VelocityField[i3  ]) +
+                                          SUMA_POW2 (C->VelocityField[i3+1]) +
+                                          SUMA_POW2 (C->VelocityField[i3+2]) );
+      }
+   } else {
+      /* second time around, rescale vectors to original velocity magnitude */
+      for (i = 0; i < C->N_Node; ++i) {  
+         i3 = i*3;
+         mag = sqrt ( SUMA_POW2 (C->VelocityField[i3  ]) +
+                      SUMA_POW2 (C->VelocityField[i3+1]) +
+                      SUMA_POW2 (C->VelocityField[i3+2]) );
+         if (mag) {
+            scale = C->VelocityMagnitude[i] / mag;
+            C->VelocityField[i3  ] *= scale;
+            C->VelocityField[i3+1] *= scale;
+            C->VelocityField[i3+2] *= scale;
+         }
+      }
+   }
+   
+   ++ncall;
+
    
 #if 0
 {
@@ -510,7 +556,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
 }
 #endif
 
-    return(YUP);
+    SUMA_RETURN(YUP);
 }
 
 /*! 
@@ -526,7 +572,9 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    MyCircleOpt myopt, *opt = NULL;
    int i, i3;
-   double  t, dt, te, Wax, mag, scale = 0, talpha = 0, u[3], um, oda, faa, error;
+   double  t, dt, dt2, te, Wax, mag;
+   double scale = 0, talpha = 0, u[3], oxyz[3]={0.0, 0.0, 0.0};
+   double um=-1.0, oda, faa, error, dtheta=0.0;
    int niter=0;
    MyCircle *Ci = NULL;
    vector Wv;
@@ -553,9 +601,10 @@ int main (int argc,char *argv[])
    
    Ci = (MyCircle *)SUMA_malloc(sizeof (MyCircle));
    Ci->N_Node = opt->N_node;
-   Ci->NodeList = Ci->VelocityField = Ci->NewNodeList = NULL;
+   Ci->NodeList = Ci->VelocityField = Ci->NewNodeList = Ci->VelocityMagnitude = NULL;
    Ci->NodeList = (double *)SUMA_malloc(Ci->N_Node * 3 * sizeof (double));
    Ci->VelocityField = (double *)SUMA_malloc(Ci->N_Node * 3 * sizeof (double));
+   Ci->VelocityMagnitude = (double *)SUMA_malloc(Ci->N_Node * sizeof (double));
    Ci->NewNodeList = (double *)SUMA_malloc(Ci->N_Node * 3 * sizeof (double));
    Ci->Theta = (double *)SUMA_malloc(Ci->N_Node * 3 * sizeof (double));
    Ci->Initial = 1;
@@ -603,18 +652,12 @@ int main (int argc,char *argv[])
 
    if (opt->dbg_flag > 0) { fprintf(stderr,"%s: Calculating initial velocity field.\n", FuncName); }
    
-   if (!Velocity(Ci, opt)) {
-      SUMA_S_Err("Failed while calculating velocity field");
-      exit(1);
-   }  
-
-
    /*MOVE POINTS.*/
    
    if (opt->dbg_flag > 0) 
    {
-      if (opt->cons_velocity) fprintf(stderr,"%s: Moving the points, constant velocity. (N_Node = %d)\n", FuncName, Ci->N_Node); 
-      else fprintf(stderr,"%s: Moving the points, changing velocity. (N_Node = %d)\n", FuncName, Ci->N_Node); 
+      fprintf(stderr,"%s: Moving the points. (N_Node = %d)\n", FuncName, Ci->N_Node);
+      
    }
    
    if (opt->dbg_flag > 0) 
@@ -623,37 +666,55 @@ int main (int argc,char *argv[])
       else fprintf(stderr,"%s: Moving the points, adjusted. (N_Node = %d)\n", FuncName, Ci->N_Node); 
    }
    
-   /* initialize newnodelist */
-   for (i = 0; i < 3*Ci->N_Node; ++i)  Ci->NewNodeList[i] = Ci->NodeList[i];
    
    /* loop until time is 1 */
    if (LocalHead) {
       fprintf(SUMA_STDERR,"%s: About to enter main loop:\n"
-                          "constant velocity = %d\n"
                           "adjust shorty     = %d\n", 
                           FuncName, 
-                          opt->cons_velocity,
                           opt->adjust );
    }
    
+   /* initialize newnodelist */
+   for (i = 0; i < 3*Ci->N_Node; ++i)  Ci->NewNodeList[i] = Ci->NodeList[i];
+
+   if (!Velocity(Ci, opt)) {
+      SUMA_S_Err("Failed while calculating velocity field");
+      exit(1);
+   }
+     
    te=0.0;
    niter = 0;
    dt = opt->dt;
-   
+   dt2 = dt / 2.0;
    do {  
+
       if (opt->dbg_flag > 0) { if (!(niter%100)) fprintf(stderr,"%s: te = %.3f.\n", FuncName, te); }
       for (i = 0; i < Ci->N_Node; ++i) 
       {  
          i3 = i*3;  
          
-         u[0] = Ci->VelocityField[i3  ]; 
-         u[1] = Ci->VelocityField[i3+1]; 
-         u[2] = Ci->VelocityField[i3+2];
-          
-         um = sqrt(  SUMA_POW2(Ci->VelocityField[i3  ]) + 
-                     SUMA_POW2(Ci->VelocityField[i3+1]) + 
-                     SUMA_POW2(Ci->VelocityField[i3+2]));
+         /* See figure ZSS, NIH-4, p 61 */
+            u[0] = Ci->VelocityField[i3  ] * dt; 
+            u[1] = Ci->VelocityField[i3+1] * dt; 
+            u[2] = Ci->VelocityField[i3+2] * dt;
+            
+            if (opt->adjust) {
+               /* must turn the magnitude of u to that of uc, where |uc| / |u| = tan(a) / a; 
+                  since for unit circle/sphere a = |u|, |uc| = tan(a) */
+               /* um = |u| */
+               um = sqrt(  SUMA_POW2(u[0]) + 
+                           SUMA_POW2(u[1]) + 
+                           SUMA_POW2(u[2]));
+               /* rescale |u| to make it |uc| */
+               if (um){
+                  u[0] *=  tan(um)/um;
+                  u[1] *=  tan(um)/um;            
+                  u[2] *=  tan(um)/um;            
+               }            
+            }
          
+         #if 0
          if(opt->adjust == 0)  { talpha = ( dt );} 
          else { /* if(opt->adjust == 1)  { */ 
             talpha = tan( dt * um ); 
@@ -662,21 +723,28 @@ int main (int argc,char *argv[])
             u[1] = u[1] / um; 
             u[2] = u[2] / um;
          }
-
+         #endif
+         
          if (i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
-            fprintf(SUMA_STDERR, "*******debug for ctrl point 0 == node %d**********\n"
-                                 "te = %f, talpha = %f, tan(talpha)/talpha = %f \n"
-                                 "u        = [%.8f %.8f %.8f], um = %.8f\n" 
+            fprintf(SUMA_STDERR, "********************************************\n"
+                                 "Iter %d: debug for ctrl point 0 == node %d\n"
+                                 "te = %f\n"
+                                 "u        = [%.8f %.8f %.8f], um = %.8f\n"
+                                 "udotrad  = [%.18f]\n" 
                                  "old[XYZ] = [%.8f %.8f %.8f]\n", 
-                                 i,
-                                 te, talpha, tan(talpha)/talpha,
+                                 niter, i,
+                                 te, 
                                  u[0], u[1], u[2], um,
+                                 SUMA_MT_DOT(u,(&(Ci->NewNodeList[i3  ]))),
                                  Ci->NewNodeList[i3  ], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2]);
+            oxyz[0] = Ci->NewNodeList[i3  ];
+            oxyz[1] = Ci->NewNodeList[i3+1];
+            oxyz[2] = Ci->NewNodeList[i3+2];
          }
          
-         Ci->NewNodeList[i3  ] = Ci->NewNodeList[i3  ] + talpha * u[0];
-         Ci->NewNodeList[i3+1] = Ci->NewNodeList[i3+1] + talpha * u[1];
-         Ci->NewNodeList[i3+2] = Ci->NewNodeList[i3+2] + talpha * u[2];
+         Ci->NewNodeList[i3  ] = Ci->NewNodeList[i3  ] + u[0];
+         Ci->NewNodeList[i3+1] = Ci->NewNodeList[i3+1] + u[1];
+         Ci->NewNodeList[i3+2] = Ci->NewNodeList[i3+2] + u[2];
          if (i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
             fprintf(SUMA_STDERR, "par[XYZ] = [%.8f %.8f %.8f]\n", 
                                  Ci->NewNodeList[i3  ], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2]);
@@ -689,8 +757,11 @@ int main (int argc,char *argv[])
          Ci->NewNodeList[i3+1] = (Ci->NewNodeList[i3+1])/( mag );
          Ci->NewNodeList[i3+2] = (Ci->NewNodeList[i3+2])/( mag );
          if (i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
-            fprintf(SUMA_STDERR, "new[XYZ] = [%.8f %.8f %.8f]\n", 
-                                 Ci->NewNodeList[i3  ], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2]);
+            SUMA_ANGLE_DIST_NC( oxyz, (&(Ci->NewNodeList[i3])), dtheta);
+            fprintf(SUMA_STDERR, "new[XYZ] = [%.8f %.8f %.8f]\n"
+                                 "Dtheta = %.18f rad, (%.18f deg.)\n", 
+                                 Ci->NewNodeList[i3  ], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2],
+                                 dtheta, SUMA_R2D(dtheta));
          }
          /*if (opt->dbg_flag > 0) { 
             fprintf(stderr,"mag final  : %f\n", mag);} */
@@ -700,11 +771,12 @@ int main (int argc,char *argv[])
          Ci->Theta[i3] = atan2(Ci->NewNodeList[i3+1], Ci->NewNodeList[i3]);
       }
      
-      if ( opt->cons_velocity == 0) { Velocity(Ci, opt); /*Ci->Initial = 0;*/} 
+      
+      Velocity(Ci, opt); 
       
       te = te + dt; 
       ++niter;
-   }  while (te < 1.0);
+   }  while (1.0 - te > dt2);
    
    /*Check magnitude of velocity vectors.*/
    
@@ -752,6 +824,7 @@ int main (int argc,char *argv[])
    vector_destroy(&(Ci->Wv));
    if(Ci->NodeList) SUMA_free(Ci->NodeList); Ci ->NodeList = NULL;
    if(Ci->VelocityField) SUMA_free(Ci->VelocityField); Ci ->VelocityField = NULL;
+   if(Ci->VelocityMagnitude) SUMA_free(Ci->VelocityMagnitude); Ci ->VelocityMagnitude = NULL;
    if(Ci->NewNodeList) SUMA_free(Ci->NewNodeList); Ci ->NewNodeList = NULL;  
    if(Ci) SUMA_free(Ci); Ci = NULL;
    if (Opt->debug > 2) LocalHead = YUP;

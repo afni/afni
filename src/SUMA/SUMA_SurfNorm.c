@@ -119,7 +119,7 @@ SUMA_SURF_NORM SUMA_SurfNorm (float *NodeList, int N_NodeList, int *FaceSetList,
          d1[j] = NodeList[(ND*FaceSetList[ip])+j] - NodeList[(ND*FaceSetList[ip+1])+j];
          d2[j] = NodeList[(ND*FaceSetList[ip+1])+j] - NodeList[(ND*FaceSetList[ip+2])+j];
       }
-      RetStrct.FaceNormList[ip] = d1[1]*d2[2] - d1[2]*d2[1];
+      RetStrct.FaceNormList[ip  ] = d1[1]*d2[2] - d1[2]*d2[1];
       RetStrct.FaceNormList[ip+1] = d1[2]*d2[0] - d1[0]*d2[2];
       RetStrct.FaceNormList[ip+2] = d1[0]*d2[1] - d1[1]*d2[0];
       d = sqrt(RetStrct.FaceNormList[ip]*RetStrct.FaceNormList[ip]+RetStrct.FaceNormList[ip+1]*RetStrct.FaceNormList[ip+1]+RetStrct.FaceNormList[ip+2]*RetStrct.FaceNormList[ip+2]);

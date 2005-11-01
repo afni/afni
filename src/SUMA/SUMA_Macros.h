@@ -459,6 +459,7 @@ Tx to tip from JHU's Applied Physics Laboratory web page
       SUMA_MT_CROSS(m_cr, m_p2, m_p1); \
       a = atan2(sqrt(m_cr[0]*m_cr[0]+m_cr[1]*m_cr[1]+m_cr[2]*m_cr[2]),SUMA_MT_DOT(m_p2, m_p1)); \
    }
+
 #define SUMA_ANGLE_DIST(p2,p1,cent,a)   \
    {\
       double m_cr[3],m_p1[3],m_p2[3],m_np1, m_np2;   \
