@@ -11,7 +11,7 @@
 #ifdef USE_READLINE
 #include "readline.h"
 #endif
-typedef enum { CCALC_DOUBLE = 1, CCALC_NICE, CCALC_INT, CCALC_FINT, CCALC_CINT, CCALC_CUSTOM};
+enum { CCALC_DOUBLE = 1, CCALC_NICE, CCALC_INT, CCALC_FINT, CCALC_CINT, CCALC_CUSTOM};
 #define AFNI_EOL '\n'
 
 int main( int argc , char * argv[] )
