@@ -1056,7 +1056,7 @@ int AFNI_xerrhandler( Display *d , XErrorEvent *x ){
    with an "app-defaults" file, since that would be too much like work.
 -------------------------------------------------------------------------*/
 
-static char * FALLback[] =
+static char *FALLback[] =
   {   "AFNI*fontList:              9x15bold=charset1"    ,
       "AFNI*pbar*fontList:         6x10=charset1"        ,
       "AFNI*imseq*fontList:        7x13=charset1"        ,
