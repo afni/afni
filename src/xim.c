@@ -53,8 +53,8 @@ ENTRY("mri_to_XImage") ;
    if( im->kind == MRI_rgb ) RETURN( rgb_to_XImage(dc,im) ) ;  /* 11 Feb 1999 */
 
    if( im->kind != MRI_short ){
-      fprintf(stderr,"\n*** ILLEGAL image input to mri_to_XImage\n") ;
-      EXIT(1) ;
+     fprintf(stderr,"\n*** ILLEGAL image input to mri_to_XImage\n") ;
+     EXIT(1) ;
    }
    sar  = MRI_SHORT_PTR(im) ;
    ppix = dc->pix_im ;       /* array for positive pixels */
@@ -71,8 +71,8 @@ ENTRY("mri_to_XImage") ;
                           ZPixmap , 0 , Image , width,height , 8 , w2 ) ;
 
    if( ximage == NULL ){
-      fprintf(stderr,"\n*** CANNOT create new XImage for display\n") ;
-      EXIT(1) ;
+     fprintf(stderr,"\n*** CANNOT create new XImage for display\n") ;
+     EXIT(1) ;
    }
 
    border = ximage->byte_order ;          /* 22 Aug 1998 */
