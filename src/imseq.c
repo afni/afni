@@ -771,6 +771,7 @@ if( PRINT_TRACING ){
    newseq->barbot = newseq->bartop = 0.0 ;
 
    strcpy( newseq->im_label , "hi bob" ) ;
+   newseq->scl_label[0] = '\0' ;
 
    /* set display processing options */
 
@@ -2727,6 +2728,8 @@ ENTRY("ISQ_process_mri") ;
             ar[3*ii] = rz ; ar[3*ii+1] = gz ; ar[3*ii+2] = bz ;
           }
       }
+
+      seq->scl_label[0] = '\0' ;
    }  /** end of RGB processing **/
 
    /****** Not RGB ==>                                             ******/
@@ -2758,6 +2761,7 @@ ENTRY("ISQ_process_mri") ;
                       seq->dc->ncol_im , seq->scl,seq->lev ) ;
            clbot = seq->clbot = seq->rng_bot ;
            cltop = seq->cltop = seq->rng_top ;
+           strcpy(seq->scl_label,"[User]") ;
          }
          break ; /* end of user input range scaling */
 
@@ -2788,6 +2792,7 @@ ENTRY("ISQ_process_mri") ;
                seq->lev = st->lev_mm ;
                seq->clbot = st->min ;   /* 29 Jul 2001 */
                seq->cltop = st->max ;
+               strcpy(seq->scl_label,"[Min2Max]") ;
              break ;
 
              case ISQ_RNG_02TO98:
@@ -2795,6 +2800,7 @@ ENTRY("ISQ_process_mri") ;
                seq->lev = st->lev_per ;
                clbot = seq->clbot = st->per02 ;
                cltop = seq->cltop = st->per98 ;
+               strcpy(seq->scl_label,"[2%-98%]") ;
              break ;
            }
          }
@@ -2812,6 +2818,7 @@ ENTRY("ISQ_process_mri") ;
                  seq->lev = gl->lev_mm ;
                  seq->clbot = gl->min ;   /* 29 Jul 2001 */
                  seq->cltop = gl->max ;
+                 strcpy(seq->scl_label,"[Min2Max]") ;
                break ;
 
                case ISQ_RNG_02TO98:
@@ -2820,6 +2827,7 @@ ENTRY("ISQ_process_mri") ;
                  seq->lev = gl->lev_per ;
                  clbot = seq->clbot = gl->per02 ;
                  cltop = seq->cltop = gl->per98 ;
+                 strcpy(seq->scl_label,"[2%-98%]") ;
                break ;
             }
          }
@@ -2980,6 +2988,7 @@ DPR("scale to shorts") ;
             ISQ_SCLEV( hbot,htop , seq->dc->ncol_im , scl,lev ) ;
             seq->clbot = hbot ;  /* 29 Jul 2001 */
             seq->cltop = htop ;
+            strcpy(seq->scl_label,"[Min2Max]") ;
          break ;
 
          case ISQ_RNG_02TO98:{
@@ -2993,6 +3002,7 @@ DPR("call ISQ_perpoints") ;
             ISQ_SCLEV( h02,h98 , seq->dc->ncol_im , scl,lev ) ;
             seq->clbot = h02 ;  /* 29 Jul 2001 */
             seq->cltop = h98 ;
+            strcpy(seq->scl_label,"[2%-98%]") ;
          }
          break ;
       }
@@ -4189,6 +4199,7 @@ ENTRY("ISQ_redisplay") ;
       MCW_kill_XImage( seq->zoom_xim ) ; seq->zoom_xim = NULL ;
    }
 
+   seq->scl_label[0] = '\0' ;
    ISQ_show_image( seq ) ;
    ISQ_rowgraph_draw( seq ) ;
    ISQ_surfgraph_draw( seq ) ;  /* 21 Jan 1999 */
@@ -4573,8 +4584,8 @@ ENTRY("ISQ_draw_winfo") ;
    }
 #endif
 
-   if( seq->opt.scale_range == ISQ_RNG_MINTOMAX )
-     sprintf(buf+strlen(buf)," Min2Max") ;
+   if( seq->scl_label[0] != '\0' )
+     sprintf(buf+strlen(buf)," %s",seq->scl_label) ;
    if( (seq->opt.improc_code & ISQ_IMPROC_SHARP) )
      sprintf(buf+strlen(buf)," s=%d",(int)(10.0*seq->sharp_fac+.01)) ;
 
@@ -11169,6 +11180,7 @@ ENTRY("ISQ_handle_keypress") ;
        else
          seq->opt.scale_range = ISQ_RNG_02TO98 ;
 
+       seq->im_label[0] = '\0' ;  /* forces redraw of text */
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        busy=0 ; RETURN(1) ;
      }
@@ -11179,7 +11191,7 @@ ENTRY("ISQ_handle_keypress") ;
      case 'l':{
        if( seq->dialog_starter==NBUT_DISP ){XBell(seq->dc->display,100); break;}
        seq->opt.mirror = ! seq->opt.mirror ;
-       seq->im_label[0] = '\0' ; ISQ_draw_winfo( seq ) ;
+       seq->im_label[0] = '\0' ;  /* forces redraw of text */
        ISQ_redisplay( seq , -1 , isqDR_display ) ;
        busy=0 ; RETURN(1) ;
      }
