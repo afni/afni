@@ -59,11 +59,11 @@ static MCW_action_item ISQ_disp_act[NACT_DISP] = {
 #define NBUT_DISP4  2  /* Range scaling box */
 #define NBUT_DISP5  2  /* Auto- or Group- scale box */
 #define NBUT_DISP6  1  /* Free aspect box */
-#define NBUT_DISP7  2  /* Save box */              /* 26 Jul 2001: was 3, now 2 */
+#define NBUT_DISP7  2  /* Save box */          /* 26 Jul 2001: was 3, now 2 */
 #define NBUT_DISP8  3  /* IMPROC buttons */
 #define NBUT_DISP9  4  /* CX buttons */
 
-#define NTOG_ROT  0  /* index of which button box control which option(s) */
+#define NTOG_ROT  0    /* index of which button box control which option(s) */
 #define NTOG_MIR  1
 #define NTOG_COL  2
 #define NTOG_RNG  3
@@ -11146,7 +11146,7 @@ ENTRY("ISQ_handle_keypress") ;
      }
      break ;
 
-     /* 17 May 2002: do image fraction */
+     /* 17 May 2002: do image fraction up or down */
 
      case 'i':
      case 'I':{
