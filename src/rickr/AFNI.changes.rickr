@@ -1291,3 +1291,7 @@
       - nifti1_io.c:nifti_convert_nhdr2nim : use nifti_set_filenames()
       - updated Testing/niftilib/nifti_test.c with more tests
 
+02 November 2005:
+  * modified nifti1_io.[ch]: added skip_blank_ext to nifti_global_options
+      - if skip_blank_ext and no extensions, do not read/write extender
+
