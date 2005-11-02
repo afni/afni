@@ -267,9 +267,15 @@ static char * gni_history[] =
   "   - added const in all appropraite parameter locations (30-40)\n"
   "     (any pointer referencing data that will not change)\n"
   "   - shortened all string constants below 509 character limit\n"
+  "1.14  28 October 2005 [HJohnson]\n",
+  "   - use nifti_set_filenames() in nifti_convert_nhdr2nim()\n"
+  "1.15  02 November 2005 [rickr]\n",
+  "   - added skip_blank_ext to nifti_global_options\n"
+  "   - added nifti_set_skip_blank_ext(), to set option\n"
+  "   - if skip_blank_ext and no extensions, do not read/write extender\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.13 (Aug 25, 2005)";
+static char gni_version[] = "nifti library version 1.15 (Nov 2, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -3513,8 +3519,7 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
    if( NIFTI_ONEFILE(nhdr) ) remaining = nim->iname_offset - sizeof(nhdr);
    else                      remaining = filesize - sizeof(nhdr);
 
-   if( remaining > 4 )       (void) nifti_read_extensions(nim, fp, remaining);
-   else if ( g_opts.debug > 1 ) fprintf(stderr,"-d no room for extensions\n");
+   (void)nifti_read_extensions(nim, fp, remaining);
 
    znzclose( fp ) ;                                      /* close the file */
    free(hfile);
@@ -3663,7 +3668,13 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int remain )
               posn, nim->iname_offset, nim->nifti_type, remain);
 
    if( remain < 16 ){
-      if( g_opts.debug > 2 ) fprintf(stderr,"-d no space for extensions\n");
+      if( g_opts.debug > 2 ){
+         if( g_opts.skip_blank_ext )
+            fprintf(stderr,"-d no extender in '%s' is okay, as "
+                           "skip_blank_ext is set\n",nim->fname);
+         else
+            fprintf(stderr,"-d no space for extensions\n");
+      }
       return 0;
    }
 
@@ -4442,6 +4453,14 @@ static int nifti_write_extensions(znzFile fp, nifti_image *nim)
       if( g_opts.debug > 0 )
          fprintf(stderr,"** nifti_write_extensions, bad params\n");
       return -1;
+   }
+
+   /* if no extensions and user requests it, skip extender */
+   if( g_opts.skip_blank_ext && (nim->num_ext == 0 || ! nim->ext_list ) ){
+      if( g_opts.debug > 1 )
+         fprintf(stderr,"-d no exts and skip_blank_ext set, "
+                        "so skipping 4-byte extender\n");
+      return 0;
    }
 
    /* if invalid extension list, clear num_ext */
