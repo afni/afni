@@ -5754,3 +5754,6 @@
 31 Oct 2005
  * Small changes to imseq.c, to display "Min2Max" and "s=%d" modes, and
      to update winfo label when Keypress 'l' is used.
+
+02 Nov 2005
+ * Another small change to imseq.[ch] to the winfo label.
