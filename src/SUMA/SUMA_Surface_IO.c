@@ -201,6 +201,7 @@ void * SUMA_2Prefix2SurfaceName (char *namecoord, char *nametopo, char *path, ch
    }
    
    if (exist1 || exist2) *exists = YUP;
+   else                  *exists = NOPE;              /* 4 Nov 2005 [rickr] */
    
    sprintf(SF_name1->name_topo, "%s", SF_name2->name_topo);
    SUMA_free(SF_name2); SF_name2= NULL;

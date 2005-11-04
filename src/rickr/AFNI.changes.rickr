@@ -1295,3 +1295,7 @@
   * modified nifti1_io.[ch]: added skip_blank_ext to nifti_global_options
       - if skip_blank_ext and no extensions, do not read/write extender
 
+04 November 2005:
+  * modified SUMA_Surface_IO.c:SUMA_2Prefix2SurfaceName() to return NOPE in
+        exists if exist1 and exist2 are false
+
