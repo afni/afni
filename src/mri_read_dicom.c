@@ -325,22 +325,22 @@ ENTRY("mri_read_dicom") ;
    }
 
    /*-- process str_sexinfo only if this is marked as a mosaic image --*/
+   /*-- preliminary processing of sexinfo EVEN IF NOT MARKED AS MOSAIC, --*/
+   /*-- SINCE PSYCHOTIC, UNMARKED MOSAICS ARE TURNING UP IN THE WILD!  KRH, 11/6/05 --*/
 
-   if(        epos[E_ID_IMAGE_TYPE]              != NULL &&
-       strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL &&
-       str_sexinfo                               != NULL   ){
+   /* 31 Oct 2002: extract extra Siemens info from str_sexinfo */
 
-     /* 31 Oct 2002: extract extra Siemens info from str_sexinfo */
+   /* KRH 25 Jul 2003 if start and end markers are present for
+    * Siemens extra info, cut string down to those boundaries */
 
-     /* KRH 25 Jul 2003 if start and end markers are present for
-      * Siemens extra info, cut string down to those boundaries */
+   if( str_sexinfo                               != NULL   ){
 
      sexi_start = strstr(str_sexinfo, "### ASCCONV BEGIN ###");
      sexi_end = strstr(str_sexinfo, "### ASCCONV END ###");
      if ((sexi_start != NULL) && (sexi_end != NULL)) {
        char *sexi_tmp;
        int sexi_size;
-
+  
        sexi_size = sexi_end - sexi_start + 19 ;
        sexi_tmp = AFMALL( char, sexi_size );
        memcpy(sexi_tmp,sexi_start,sexi_size);
@@ -356,65 +356,69 @@ ENTRY("mri_read_dicom") ;
 
      if( sexinfo.good ){                                   /* if data is good */
 
-       /* compute size of mosaic layout
+       if((        epos[E_ID_IMAGE_TYPE]              != NULL &&
+         strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL) ||
+         sexinfo.mosaic_num                        > 1   ) {
+
+         /* compute size of mosaic layout
           as 1st integer whose square is >= # of images in mosaic */
 
-       for( mos_ix=1 ; mos_ix*mos_ix < sexinfo.mosaic_num ; mos_ix++ ) ; /* nada */
-       mos_iy = mos_ix ;
+         for( mos_ix=1 ; mos_ix*mos_ix < sexinfo.mosaic_num ; mos_ix++ ) ; /* nada */
+         mos_iy = mos_ix ;
+  
+         mos_nx = nx / mos_ix ; mos_ny = ny / mos_iy ;  /* sub-image dimensions */
 
-       mos_nx = nx / mos_ix ; mos_ny = ny / mos_iy ;  /* sub-image dimensions */
-
-       if( mos_ix*mos_nx == nx &&               /* Sub-images must fit nicely */
+         if( mos_ix*mos_nx == nx &&               /* Sub-images must fit nicely */
            mos_iy*mos_ny == ny    ){            /* into super-image layout.   */
 
-           static int nwarn=0 ;
+             static int nwarn=0 ;
 
-           /* should be tagged as a 1 slice image thus far */
+             /* should be tagged as a 1 slice image thus far */
 
-           if( nz > 1 ){
-             fprintf(stderr,
+             if( nz > 1 ){
+               fprintf(stderr,
                      "** DICOM ERROR: %dx%d Mosaic of %dx%d images in file %s, but also have nz=%d\n",
                      mos_ix,mos_iy,mos_nx,mos_ny,fname,nz) ;
-             free(ppp) ; RETURN(NULL) ;
-           }
+               free(ppp) ; RETURN(NULL) ;
+             }
 
-           /* mark as a mosaic */
+             /* mark as a mosaic */
 
-           mosaic = 1 ;
-           mos_nz = mos_ix * mos_iy ;   /* number of slices in mosaic */
-           if( nwarn < NWMAX )
-             fprintf(stderr,"++ DICOM NOTICE: %dx%d Siemens Mosaic of %d %dx%d images in file %s\n",
+             mosaic = 1 ;
+             mos_nz = mos_ix * mos_iy ;   /* number of slices in mosaic */
+             if( nwarn < NWMAX )
+               fprintf(stderr,"++ DICOM NOTICE: %dx%d Siemens Mosaic of %d %dx%d images in file %s\n",
                     mos_ix,mos_iy,sexinfo.mosaic_num,mos_nx,mos_ny,fname) ;
-           if( nwarn == NWMAX )
-             fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosiac messages will be printed\n") ;
-           nwarn++ ;
+             if( nwarn == NWMAX )
+               fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosiac messages will be printed\n") ;
+             nwarn++ ;
 
-       } /* end of if mosaic sizes are reasonable */
+         } /* end of if mosaic sizes are reasonable */
 
-       else {                        /* warn about bad mosaic sizes */
-         static int nwarn=0 ;
-         if( nwarn < NWMAX )
-           fprintf(stderr,
+         else {                        /* warn about bad mosaic sizes */
+           static int nwarn=0 ;
+           if( nwarn < NWMAX )
+             fprintf(stderr,
                    "++ DICOM WARNING: bad Siemens Mosaic params: nx=%d ny=%d ix=%d iy=%d imx=%d imy=%d\n",
                    mos_nx,mos_ny , mos_ix,mos_iy , nx,ny ) ;
-         if( nwarn == NWMAX )
-           fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic param messages will be printed\n");
-         nwarn++ ;
-       }
+           if( nwarn == NWMAX )
+             fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic param messages will be printed\n");
+           nwarn++ ;
+         }
+       } /* end of if a Siemens mosaic */
 
      } /* end of if sexinfo was good */
 
-     else {                  /* warn if sexinfo was bad */
-       static int nwarn=0 ;
-       if( nwarn < NWMAX )
-         fprintf(stderr,"++ DICOM WARNING: indecipherable Siemens Mosaic info (%s) in file %s\n",
+       else {                  /* warn if sexinfo was bad */
+         static int nwarn=0 ;
+         if( nwarn < NWMAX )
+           fprintf(stderr,"++ DICOM WARNING: indecipherable Siemens Mosaic info (%s) in file %s\n",
                  elist[E_SIEMENS_2] , fname ) ;
-       if( nwarn == NWMAX )
-         fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic info messages will be printed\n");
-       nwarn++ ;
-     }
-
-   } /* end of if a Siemens mosaic */
+         if( nwarn == NWMAX )
+           fprintf(stderr,"++ DICOM NOTICE: no more Siemens Mosaic info messages will be printed\n");
+         nwarn++ ;
+       }
+   } /* end of if str_sexinfo exists */
 
    /*-- try to get dx, dy, dz, dt --*/
 
@@ -1263,9 +1267,7 @@ ENTRY("mri_imcount_dicom") ;
      }
    }
 
-   if(        epos[E_ID_IMAGE_TYPE]              != NULL &&
-       strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL &&
-       str_sexinfo                               != NULL   ){
+   if( str_sexinfo                               != NULL   ){
 
      /* 31 Oct 2002: extract extra Siemens info from file */
 
@@ -1291,7 +1293,13 @@ ENTRY("mri_imcount_dicom") ;
 
      if( sexinfo.good ){                                   /* if data is good */
 
-       nz = sexinfo.mosaic_num ;
+       if((        epos[E_ID_IMAGE_TYPE]              != NULL &&
+         strstr(epos[E_ID_IMAGE_TYPE],"MOSAIC")    != NULL ) ||
+         sexinfo.mosaic_num > 1 ) {
+
+           nz = sexinfo.mosaic_num ;
+
+       } /* end of if actually MOSAIC */
 
      } /* end of if sexinfo was good */
 
@@ -1305,7 +1313,7 @@ ENTRY("mri_imcount_dicom") ;
        nwarn++ ;
      }
 
-   } /* end of if a Siemens mosaic */
+   } /* end of if str_sexinfo != NULL */
 
    free(ppp) ; RETURN(nz);
 }
