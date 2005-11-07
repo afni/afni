@@ -1299,3 +1299,6 @@
   * modified SUMA_Surface_IO.c:SUMA_2Prefix2SurfaceName() to return NOPE in
         exists if exist1 and exist2 are false
 
+07 November 2005:
+  * checked in rhammett's mri_read_dicom.c changes for the Siemens mosaic format
+
