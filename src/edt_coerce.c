@@ -6,8 +6,8 @@
 
 #include "mrilib.h"
 
-#undef ROUND
-#define ROUND(qq)   rint((qq))
+#undef  ROUND
+#define ROUND(qq)   rint((qq)+0.00001)
 
 /*------------------------------------------------------------------------
   convert one volume to another type
