@@ -259,6 +259,7 @@ static int  nib = -1 ;
 
 #define IBASE(i,j,k) ((i)+(j)*jstep+(k)*kstep)
 #define ROUND(qq)    ((int)(qq+0.5))
+#define ROUND(qq)    ((int)rint((qq)+0.00001))
 #define FLOOR(qq)    ((int)(qq))          /* cheap and fast */
 #define GFLOOR(qq)   ((int)floor(qq))     /* good and slow */
 
