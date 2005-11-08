@@ -873,8 +873,8 @@ int main( int argc , char * argv[] )
                   qq = kk - ivbot ;
                   switch( DSET_BRICK_TYPE(new_dset,kk) ){
 
-#undef ROUND
-#define ROUND(qq) ((short)rint((qq)))
+#undef  ROUND
+#define ROUND(qq) ((short)rint((qq)+0.00001))
 
                      case MRI_short:{
                         short * bar = (short *) DSET_ARRAY(new_dset,kk) ;
