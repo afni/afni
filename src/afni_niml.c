@@ -334,6 +334,8 @@ ENTRY("AFNI_niml_workproc") ;
 
    /** loop over input NIML streams **/
 
+   AFNI_block_rescan(1) ;  /* 10 Nov 2005 */
+
    for( cc=0 ; cc < NUM_NIML ; cc++ ){
 
      keep_reading = 0 ;  /* 17 Mar 2005 */
@@ -462,6 +464,7 @@ ENTRY("AFNI_niml_workproc") ;
 
    dont_tell_suma = 0 ;                              /* talk to SUMA */
    dont_overlay_suma = 0 ;
+   AFNI_block_rescan(0) ;  /* 10 Nov 2005 */
 
    /* hopefully the following will never happen */
 

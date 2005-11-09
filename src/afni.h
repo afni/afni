@@ -1193,6 +1193,9 @@ extern void AFNI_rescan_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_rescan_all_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_rescan_timeseries_CB( Widget , XtPointer , XtPointer ) ;
 
+extern void AFNI_block_rescan( int bb ) ;    /* 09 Nov 2005 */
+extern void AFNI_rescan_timeout_CB( XtPointer , XtIntervalId * ) ;
+
 extern void AFNI_read_sess_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_sess_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_make_file_dialog( Three_D_View * ) ;

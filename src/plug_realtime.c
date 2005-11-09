@@ -488,6 +488,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    if( ncall > 0 )         return NULL ;  /* only one interface */
    if( ! ALLOW_real_time ) return NULL ;  /* do nothing if not allowed */
+   AFNI_block_rescan(1) ;                 /* 10 Nov 2005 */
 
    /*-- set titles and call point --*/
 
