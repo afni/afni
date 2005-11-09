@@ -440,7 +440,7 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
             "   parent         : %p\n"
             "-----------------------------------------\n",
             dp->brick_keywords, dp->brick_statcode, dp->brick_stataux,
-            dp->total_bytes, dp->malloc_type, dp->locked,
+            (int)dp->total_bytes, dp->malloc_type, dp->locked,
             dp->master_nvals, dp->master_ival, dp->master_bytes,
             dp->master_bot, dp->master_top,
             dp->diskptr, dp->natr, dp->natr_alloc, dp->atr,
