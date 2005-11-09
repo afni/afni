@@ -1958,6 +1958,11 @@ ENTRY("AFNI_startup_timeout_CB") ;
 
    for( vv=0 ; vv < COM_num ; vv++ ) AFNI_driver( COM_com[vv] ) ;
 
+   /* 09 Nov 2005: start checking periodically for updated datasets */
+
+   if( AFNI_yesenv("AFNI_AUTO_RESCAN") )
+    (void) XtAppAddTimeOut( MAIN_app,29999, AFNI_rescan_timeout_CB,&MAIN_app );
+
    MPROBE ;                       /* check mcw_malloc() for integrity */
    EXRETURN ;
 }

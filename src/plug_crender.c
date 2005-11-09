@@ -5111,7 +5111,7 @@ void RCREND_autocompute_CB( Widget w, XtPointer client_data, XtPointer call_data
 
 ENTRY( "RCREND_autocompute_CB" );
 
-   automate_flag = 1 ;
+   automate_flag = 1 ;  AFNI_block_rescan(1) ;
    if( ! accum_flag ){
       DESTROY_IMARR(renderings) ;
 #ifdef USE_SCRIPTING
@@ -5149,7 +5149,7 @@ ENTRY( "RCREND_autocompute_CB" );
 
    XtUnmanageChild( autocancel_pb ) ; AFNI_add_interruptable(NULL) ;
 
-   automate_flag = 0 ;
+   automate_flag = 0 ; AFNI_block_rescan(0) ;
    EXRETURN ;
 }
 

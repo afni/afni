@@ -186,7 +186,9 @@ ENTRY("AFNI_driver") ;
          for( ii=dlen ; ii < clen ; ii++ )      /* skip blanks */
             if( !isspace(cmd[ii]) ) break ;     /* after command name */
 
+         AFNI_block_rescan(1) ;                 /* 10 Nov 2005 */
          rval = dpair[dd].fun( cmd+ii ) ;       /* execute command */
+         AFNI_block_rescan(0) ;
          free(dmd) ; RETURN(rval) ;
       }
    }

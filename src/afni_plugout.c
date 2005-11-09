@@ -95,6 +95,8 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
    /********************************************/
    /** start up non-listening control sockets **/
 
+   AFNI_block_rescan(1) ;    /* 10 Nov 2005 */
+
    for( cc=0 ; cc < NUM_TCP_CONTROL ; cc++ ){
 
      if( ioc_control[cc] == NULL ){  /* not open now, so open it */
@@ -232,6 +234,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
 
    /* if nothing happened, take a short nap */
 
+   AFNI_block_rescan(0) ;    /* 10 Nov 2005 */
    if( opcount == 0 ) iochan_sleep(LONG_DELAY) ;
    return(False) ;
 }
