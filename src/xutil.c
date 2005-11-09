@@ -1925,7 +1925,7 @@ void RWC_XtPopdown( Widget w )
 ENTRY("RWC_XtPopdown") ;
 
    if( wpar == NULL ) EXRETURN ;
-   while( XtIsShell(wpar)==0 && XtParent(wpar)!=NULL ) wpar = XtParent(wpar) ;
+   while( XtIsShell(wpar)==0 && XtParent(wpar)!=NULL ) wpar = XtParent(wpar);
    XtPopdown(wpar) ; RWC_sleep(1) ;
    EXRETURN ;
 }
