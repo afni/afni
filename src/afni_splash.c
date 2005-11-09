@@ -33,6 +33,10 @@ static MRI_IMAGE * SPLASH_decodexx( int , int , int , int ,
 static MRI_IMAGE *imspl = NULL ;
 static void *handle = NULL ;
 
+/*----------------------------------------------------------------------------*/
+int AFNI_splash_isopen(void){ return (handle != NULL) ; }  /* 10 Nov 2005 */
+/*----------------------------------------------------------------------------*/
+
 #define USE_FADING
 
 #define USE_WRITING     /* 26 Feb 2001 */
@@ -45,7 +49,7 @@ static int AFNI_find_todays_face(void) ;         /* 30 Mar 2005 */
 
 void AFNI_splashraise(void) /* 25 Sep 2000: bring splash window to the top */
 {
-   PLUGIN_impopper *ppp = (PLUGIN_impopper *) handle ;
+   PLUGIN_impopper *ppp = (PLUGIN_impopper *)handle ;
 
    if( ppp != NULL && ISQ_REALZ(ppp->seq) )
      XMapRaised( XtDisplay(ppp->seq->wtop) , XtWindow(ppp->seq->wtop) ) ;
@@ -57,7 +61,7 @@ void AFNI_splashraise(void) /* 25 Sep 2000: bring splash window to the top */
 
 void AFNI_splashdown(void)
 {
-   PLUGIN_impopper *ppp = (PLUGIN_impopper *) handle ;
+   PLUGIN_impopper *ppp = (PLUGIN_impopper *)handle ;
 
 ENTRY("AFNI_splashdown") ;
 

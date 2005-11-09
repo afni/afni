@@ -10,9 +10,9 @@
 #define VDELAY 429999  /* 429999 s = 5 days */
 
 /*------------------------------------------------------------------------*/
-/*! Function to check AFNI version.  Forks and returns to caller instantly.
-    The only output is from the child process to stderr; a message will
-    be printed if the version check doesn't match.
+/*! Function to check AFNI version.  Forks and returns to caller almost
+    instantly.  The only output is from the child process to stderr;
+    a message will be printed if the version check doesn't match.
 --------------------------------------------------------------------------*/
 
 void THD_check_AFNI_version( char *pname )
@@ -24,6 +24,29 @@ void THD_check_AFNI_version( char *pname )
    NI_stream ns ;
 
    if( AFNI_noenv("AFNI_VERSION_CHECK") ) return ;
+
+   /* get time of last check -- do nothing if was very recent */
+
+   home=getenv("HOME") ;
+   if( home != NULL ) strcat(mname,home);
+   strcat(mname,"/.afni.vctime") ;
+
+   ns = NI_stream_open( mname , "r" ) ;
+   if( ns != NULL ){
+     NI_element *nel = NI_read_element(ns,11) ;
+     NI_stream_close(ns) ;
+     if( nel != NULL ){
+       char *rhs ; int done=0 ;
+       rhs = NI_get_attribute(nel,"version_check_time") ;
+       if( rhs != NULL ){
+         int last_time = (int)strtol(rhs,NULL,10) ;
+         int dtime     = ((int)time(NULL)) - last_time ;
+         done = ( dtime >= 0 && dtime < VDELAY ) ;  /* too soon */
+       }
+       NI_free_element(nel) ;
+       if( done ) return ;
+     }
+   }
 
    /* recall that fork() return value is
         < 0 for an error
@@ -45,27 +68,6 @@ void THD_check_AFNI_version( char *pname )
    ppp = fork() ; if( ppp != 0 ) _exit(0) ;
 
    /* grandchild process continues to do the actual work */
-
-   /* get time of last check -- do nothing if was recent */
-
-   home=getenv("HOME") ;
-   if( home != NULL ) strcat(mname,home);
-   strcat(mname,"/.afni.vctime") ;
-
-   ns = NI_stream_open( mname , "r" ) ;
-   if( ns != NULL ){
-     NI_element *nel = NI_read_element(ns,22) ;
-     NI_stream_close(ns) ;
-     if( nel != NULL ){
-       char *rhs = NI_get_attribute(nel,"version_check_time") ;
-       if( rhs != NULL ){
-         int last_time = (int)strtol(rhs,NULL,10) ;
-         int dtime     = ((int)time(NULL)) - last_time ;
-         if( dtime >= 0 && dtime < VDELAY ) _exit(0) ;  /* too soon */
-       }
-       NI_free_element(nel) ;
-     }
-   }
 
    /*-- setup the "User-agent:" header for HTTP --*/
 
