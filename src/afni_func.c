@@ -2980,37 +2980,56 @@ ENTRY("AFNI_rescan_CB") ;
 }
 
 /*----------------------------------------------------------------*/
+/* 10 Nov 2005: check periodically for updated datasets */
+
+static int block_rescan = 0 ;
+void AFNI_block_rescan( int bb ){ block_rescan = bb ; }
+
+void AFNI_rescan_timeout_CB( XtPointer client_data , XtIntervalId *id )
+{
+  XtAppContext *apc = (XtAppContext *)client_data ;
+
+ENTRY("AFNI_rescan_timeout_CB") ;
+  if( !block_rescan ) AFNI_rescan_all_CB(NULL,NULL,NULL) ;
+  (void) XtAppAddTimeOut( *apc, 14999, AFNI_rescan_timeout_CB, apc ) ;
+  EXRETURN ;
+}
+
+/*----------------------------------------------------------------*/
 
 void AFNI_rescan_all_CB( Widget w, XtPointer cd, XtPointer cb )
 {
-   int iss , cc=0 ;
+   int iss , cc=0 , uu=(w!=(Widget)NULL) , pp=0 ;
    Three_D_View *im3d ;
 
 ENTRY("AFNI_rescan_all_CB") ;
 
-   SHOW_AFNI_PAUSE ;
-   for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ )
-      cc += AFNI_rescan_session( iss ) ;
-   if( cc > 0 ){
-      char str[256] ;
-      POPDOWN_strlist_chooser ;
-      sprintf(str," \n"
-                  " Added %d datasets total \n" , cc ) ;
-      (void) MCW_popup_message( w , str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
-   } else {
-      (void) MCW_popup_message( w ,
-                                " \n Found no new datasets \n" ,
-                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   for( iss=0 ; iss < GLOBAL_library.sslist->num_sess ; iss++ ){
+     cc += AFNI_rescan_session( iss ) ;
+     if( pp==0 && cc > 0 ){ SHOW_AFNI_PAUSE; pp=1; }
+   }
+   if( cc > 0 && uu ){
+     char str[256] ;
+     POPDOWN_strlist_chooser ;
+     sprintf(str," \n"
+                 " Added %d datasets total \n" , cc ) ;
+     (void) MCW_popup_message( w , str , MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   } else if( cc == 0 && uu ){
+     (void) MCW_popup_message( w ,
+                               " \n Found no new datasets \n" ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
    }
 
 #if 1
-   for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
-      im3d = GLOBAL_library.controllers[cc] ;
-      if( IM3D_OPEN(im3d) ) AFNI_process_dsetchange( im3d ) ;
+   if( cc > 0 ){
+     for( cc=0 ; cc < MAX_CONTROLLERS ; cc++ ){    /* 31 Mar 1999 */
+       im3d = GLOBAL_library.controllers[cc] ;
+       if( IM3D_OPEN(im3d) ) AFNI_process_dsetchange( im3d ) ;
+     }
    }
 #endif
 
-   SHOW_AFNI_READY ;
+   if( pp ) SHOW_AFNI_READY ;
    EXRETURN ;
 }
 
@@ -3090,7 +3109,7 @@ STATUS("checking active controllers") ;
          anat_idcode[cc] = im3d->anat_now->idcode ;
 
          if( ISVALID_3DIM_DATASET(im3d->fim_now) )
-            func_idcode[cc] = im3d->fim_now->idcode ;
+           func_idcode[cc] = im3d->fim_now->idcode ;
 
          XmUpdateDisplay(im3d->vwid->top_shell) ;
       }
@@ -3302,6 +3321,7 @@ STATUS(old_ss->sessname) ;
        old_ss->dsset[nr][vv] = new_ss->dsset[ii][vv];
      old_ss->num_dsset ++ ;  na_new++ ;            /* 1 more row in old   */
    }
+   if( na_new == 0 ) RETURN(0) ;                   /* 10 Nov 2005 */
 
    /*-- 15 Jan 2003: purge all datasets from memory (for Hauke Heekeren) --*/
 
@@ -3338,10 +3358,14 @@ STATUS(old_ss->sessname) ;
 int AFNI_rescan_session( int sss )
 {
    char *eee = getenv("AFNI_RESCAN_METHOD") ;
+   int use_new ;
 
-   return ( eee == NULL || strcmp(eee,"REPLACE") != 0 )
-          ? AFNI_rescan_session_NEW( sss )
-          : AFNI_rescan_session_OLD( sss ) ;
+   use_new = ( eee == NULL                      ||
+               strcasecmp(eee,"REPLACE") != 0   ||
+               AFNI_yesenv("AFNI_AUTO_RESCAN")    ) ;
+
+   return (use_new) ? AFNI_rescan_session_NEW( sss )
+                    : AFNI_rescan_session_OLD( sss ) ;
 }
 
 /*---------------------------------------------------------------

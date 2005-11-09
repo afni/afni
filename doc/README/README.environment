@@ -2185,6 +2185,16 @@ If this YES/NO variable is set to NO, then the warning about the potential
 errors in the "Where am I?" popup will not appear.  This is purely for
 cosmetic purposes, Ziad.
 
+--------------------------
+Variable: AFNI_AUTO_RESCAN
+--------------------------
+If this YES/NO variable is set to YES, then the interactive AFNI program
+will rescan all session directories every 15 seconds for new datasets.
+Basically, this is just a way for you to avoid pressing the 'Rescan'
+buttons.  Note that if AFNI_AUTO_RESCAN is enabled, then the rescan
+method will be 'Add', not 'Replace', no matter what you set variable
+AFNI_RESCAN_METHOD to.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
