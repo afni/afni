@@ -1302,3 +1302,9 @@
 07 November 2005:
   * checked in rhammett's mri_read_dicom.c changes for the Siemens mosaic format
 
+10 November 2005:
+  * modified mri_dicom_hdr.h
+      - In defining LONG_WORD, it was assumed that long was 4 bytes, but this
+        is not true on 64-bit solaris.  Since it was figured out in defining
+        U32, just use that type for l.
+
