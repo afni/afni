@@ -2466,11 +2466,18 @@ typedef union {
 }   SHORT_WORD;
 
 typedef union {
+/* Type unsigned long is 64-bits on 64-bit Solaris, but such checks have
+   been made for defining U32, so use it.            10 Nov 2005 [rickr] */
+#if 0
 #ifdef __alpha
     unsigned int l;
 #else
     unsigned long l;
+    U32 l;
 #endif
+#endif
+
+    U32 l;
     unsigned char u[4];
 }   LONG_WORD;
 
