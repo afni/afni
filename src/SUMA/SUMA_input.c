@@ -850,7 +850,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             sv->FOV[sv->iState] /= (1+sv->KeyZoomGain); if (sv->FOV[sv->iState] < FOV_MIN) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MIN; }
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
-               sv->ZoomCompensate = sv->FOV[sv->iState] / FOV_INITIAL;
+               sv->ZoomCompensate = sv->FOV[sv->iState] / sv->FOV_original;
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
                else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; 
             }
@@ -862,7 +862,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
             sv->FOV[sv->iState] /= (1-sv->KeyZoomGain); if (sv->FOV[sv->iState] > FOV_MAX) { SUMA_BEEP; sv->FOV[sv->iState] = FOV_MAX; }
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
-               sv->ZoomCompensate = sv->FOV[sv->iState] / FOV_INITIAL;
+               sv->ZoomCompensate = sv->FOV[sv->iState] / sv->FOV_original;
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* weird stuff at zc_fac higher that 1.5 */
                else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; /* weird stuff cause by integer spin variables! Proper way to handle all this is with float position storage and no recalculation of zc_fac except at zooming.*/ 
             }
@@ -1781,7 +1781,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                /*fprintf(stdout, "FOV zoom Delta = %f=n", sv->GVS[sv->StdView].zoomDelta);*/
             /* Now update the zoom compensation variable */
             if (sv->ZoomCompensate) {
-               sv->ZoomCompensate = sv->FOV[sv->iState] / FOV_INITIAL;
+               sv->ZoomCompensate = sv->FOV[sv->iState] / sv->FOV_original;
                if (sv->ZoomCompensate > 1) sv->ZoomCompensate = 1.0; /* no need to compensate at low zooms */
                else if (sv->ZoomCompensate < 0.005) sv->ZoomCompensate = 0.005; /* no need to go lower */ 
             }
@@ -2862,7 +2862,7 @@ SUMA_Boolean SUMA_BrushStrokeToNodeStroke (SUMA_SurfaceViewer *sv)
       DListElmt *Eli=NULL, *Eln=NULL;
       float ip[3], d[3];
       int IncTri[100], N_IncTri=0, n1=-1, n2=-1, n3=-1, ni = -1, ti = -1, N_Neighb=0,DeciLevel = 0, i, j, Removed=0;
-      int DeciReentry=0, UsedNode[3];
+      int DeciReentry=0, UsedNode[3]={ 0 , 0, 0 };
       SUMA_BRUSH_STROKE_DATUM *bsdi=NULL, *bsdn=NULL, *bsd_deci=NULL;
       SUMA_Boolean  DoesInters=NOPE; /* flag for Decimation mode */
       SUMA_Boolean  TrackOscillation = YUP; /* flag to tracking algorithm oscillation */

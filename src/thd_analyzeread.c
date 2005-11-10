@@ -125,7 +125,6 @@ THD_3dim_dataset * THD_open_analyze( char *hname )
 ENTRY("THD_open_analyze") ;
 
    /* 28 Aug 2003: check if this is a NIFTI file instead */
-
    { nifti_image *nim = nifti_image_read(hname,0) ;
      if( nim != NULL && nim->nifti_type > 0 ){
        nifti_image_free(nim); dset = THD_open_nifti(hname); RETURN(dset);
@@ -231,14 +230,23 @@ ENTRY("THD_open_analyze") ;
    /* 11 Mar 2004 - oops: SPM indexes start at 1 - RWCox */
 
    spmorg = spmxx = spmyy = spmzz = 0 ;
-   { short xyzuv[5] , xx,yy,zz ;
+   { short xyzuv[5] , xx,yy,zz,aa,bb ;
      memcpy( xyzuv , hdr.hist.originator , 10 ) ;
-     if( xyzuv[3] == 0 && xyzuv[4] == 0 ){
+     if( doswap ){ swap_2(&(xyzuv[0])); swap_2(&(xyzuv[1])); swap_2(&(xyzuv[2])); swap_2(&(xyzuv[3])); swap_2(&(xyzuv[4]));}
+     /*fprintf(stderr,  "\n"
+                        "hdr.hist.originator:   %d %d %d %d %d\n",
+                        xyzuv[0], xyzuv[1], xyzuv[2], xyzuv[3], xyzuv[4]
+                        );*/
+     if( 1 || (xyzuv[3] == 0 && xyzuv[4] == 0) ){ /* ZSS Nov 10 05. Looks like xyzuv[3] and xyzuv[4] can be complete rubbish. Not reliable. */
        xx = xyzuv[0] ; yy = xyzuv[1] ; zz = xyzuv[2] ;
-       if( doswap ){ swap_2(&xx); swap_2(&yy); swap_2(&zz); }
        if( xx > 0 && xx < nx-1 &&
            yy > 0 && yy < ny-1 &&
            zz > 0 && zz < nz-1   ){ spmorg=1; spmxx=xx-1; spmyy=yy-1; spmzz=zz-1; }
+       /*fprintf(stderr,  "\n"
+                        "        xx      yy       zz     :   %d %d %d \n"
+                        "spmorg  spmxx   spmyy    spmzz  : %d %d %d %d\n", 
+                                                xx, yy, zz,
+                                                spmorg, spmxx, spmyy, spmzz);*/
      }
    }
 
@@ -263,8 +271,15 @@ ENTRY("THD_open_analyze") ;
 
    { char *ori = getenv("AFNI_ANALYZE_ORIENT") ;
      int oxx,oyy,ozz ;
-     if( ori == NULL || strlen(ori) < 3 ) ori = "LPI"; /* set default LPI */
-
+     if( ori == NULL || strlen(ori) < 3 ) {
+      ori = "LPI"; /* set default LPI */
+      fprintf(stderr,   "Notice:\n"
+                        "Assuming analyze orientaion is LPI.\n"
+                        "To change orientation or silence this message,\n"
+                        "Set AFNI_ANALYZE_ORIENT to the proper orienation\n"
+                        "in your .afnirc file.\n"
+                        "e.g.: AFNI_ANALYZE_ORIENT = LPI");
+     }
      oxx = ORCODE(ori[0]); oyy = ORCODE(ori[1]); ozz = ORCODE(ori[2]);
      if( !OR3OK(oxx,oyy,ozz) ){
        oxx = ORI_L2R_TYPE; oyy = ORI_P2A_TYPE; ozz = ORI_I2S_TYPE; /* LPI? */
@@ -284,6 +299,9 @@ ENTRY("THD_open_analyze") ;
    /*-- 04 Oct 2002: allow auto-centering of ANALYZE datasets --*/
 
    if( AFNI_yesenv("AFNI_ANALYZE_AUTOCENTER") ){
+      fprintf(stderr,   "Notice:\n"
+                        "Autocentering dataset because\n"
+                        "AFNI_ANALYZE_AUTOCENTER is set.\n");
      orgxyz.xyz[0] = -0.5 * (nx-1) * dx ;
      orgxyz.xyz[1] = -0.5 * (ny-1) * dy ;
      orgxyz.xyz[2] = -0.5 * (nz-1) * dz ;
@@ -293,8 +311,15 @@ ENTRY("THD_open_analyze") ;
    iview = VIEW_ORIGINAL_TYPE ;   /* can't tell if it is Talairach-ed (default)*/
    {/* ZSS Dec 15 03 */
       char *vie = getenv("AFNI_ANALYZE_VIEW") ;
-      if (!vie) iview = VIEW_ORIGINAL_TYPE; 
-      else {
+      if (!vie) {
+         iview = VIEW_ORIGINAL_TYPE; 
+         fprintf(stderr,   "Notice:\n"
+                        "Assuming view is orig.\n"
+                        "To change view or silence this message,\n"
+                        "Set AFNI_ANALYZE_VIEW to the proper view\n"
+                        "in your .afnirc file.\n"
+                        "e.g.: AFNI_ANALYZE_VIEW = orig");
+      } else {
          if (strcmp(vie, "tlrc") == 0) iview = VIEW_TALAIRACH_TYPE; 
          else if (strcmp(vie, "orig") == 0) iview = VIEW_ORIGINAL_TYPE;
          else {
@@ -314,7 +339,21 @@ ENTRY("THD_open_analyze") ;
      orgxyz.xyz[0] = -spmxx * dx ; /* (0,0,0) is at (spmxx,spmyy,spmzz) */
      orgxyz.xyz[1] = -spmyy * dy ;
      orgxyz.xyz[2] = -spmzz * dz ;
+   } else {
+      if (!spmorg) {
+         fprintf(stderr,   "Notice:\n"
+                           "No ANALYZE origin found.\n");
+      }else{
+         fprintf(stderr,   "Notice:\n"
+                           "ANALYZE origin ignored.\n"
+                           "If dataset are out of alignment,\n"
+                           "Set AFNI_ANALYZE_ORIGINATOR to yes\n"
+                           "in your .afnirc file.\n");
+      }
    }
+   /* fprintf (stderr,   "\n"
+                      "orgxyz.xyz: %f %f %f\n",
+                       orgxyz.xyz[0], orgxyz.xyz[1], orgxyz.xyz[2]); */
 
    /* 10 Oct 2002: change voxel size signs, if axis orientation is negative */
    /*              [above, we assumed that axes were oriented in - to + way] */

@@ -1356,6 +1356,7 @@ typedef struct {
    int WindHeight;   /*!< Height of window */
    float ZoomCompensate; /*!< Compensate mouse movements by zoom factor */
    float *FOV; /*!< Field of View (affects zoom level, there is a separate FOV for each ViewState)*/
+   float FOV_original; /*!< Original field of view of viewer */
    float ArrowRotationAngle; /*!< Angle to rotate surface by when arrows are used.
                                  Units are in radians */
    float KeyZoomGain; /*!< gain for zooming in and out with the 'z' and 'Z' keys. Typical range from 0 to 0.5. Must be < 1*/

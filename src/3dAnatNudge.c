@@ -145,7 +145,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-x") == 0 ){
          nx = strtol( argv[++nopt] , NULL , 10 ) ;
          if( nx < 0 || nx > 10 ){
-           fprintf(stderr,"** Illegal value of -x\n"); exit(1);
+           fprintf(stderr,"** Illegal value of -x (range 0 10)\n"); exit(1);
          }
          nopt++ ; continue ;
       }
@@ -153,7 +153,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-y") == 0 ){
          ny = strtol( argv[++nopt] , NULL , 10 ) ;
          if( ny < 0 || ny > 10 ){
-           fprintf(stderr,"** Illegal value of -y\n"); exit(1);
+           fprintf(stderr,"** Illegal value of -y (range 0 10)\n"); exit(1);
          }
          nopt++ ; continue ;
       }
@@ -161,7 +161,7 @@ int main( int argc , char *argv[] )
       if( strcmp(argv[nopt],"-z") == 0 ){
          nz = strtol( argv[++nopt] , NULL , 10 ) ;
          if( nz < 0 || nz > 10 ){
-           fprintf(stderr,"** Illegal value of -z\n"); exit(1);
+           fprintf(stderr,"** Illegal value of -z (range 0 10)\n"); exit(1);
          }
          nopt++ ; continue ;
       }
