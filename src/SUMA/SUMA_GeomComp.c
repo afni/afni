@@ -5032,7 +5032,7 @@ int SUMA_OrientTriangles (float *NodeList, int N_Node, int *FaceSetList, int N_F
    }
    NP = ND = 3;
    /* calculate the center coordinate */
-   c[0] = c[1] = c[2];
+   c[0] = c[1] = c[2] = 0.0;
    for (i=0; i < N_Node; ++i) {
       ip = ND * i; c[0] += NodeList[ip]; c[1] += NodeList[ip+1]; c[2] += NodeList[ip+2];    
    }

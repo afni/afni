@@ -176,6 +176,8 @@ void * SUMA_2Prefix2SurfaceName (char *namecoord, char *nametopo, char *path, ch
    
    SUMA_ENTRY;
    
+   *exists = YUP; /* initialize to bad case, for safety */
+   
    if (!nametopo && !namecoord) { SUMA_RETURN(NULL); }
    
    if (!nametopo) SUMA_RETURN(SUMA_Prefix2SurfaceName (namecoord, path, vp_name, oType, exists));

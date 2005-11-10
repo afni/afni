@@ -1694,7 +1694,8 @@ SUMA_ISINSPHERE SUMA_isinsphere (float * NodeList, int nr, float *S_cent , float
 
    ND = 3;
    IsIn_strct.nIsIn = 0;
-      
+   IsIn_strct.dXYZ = NULL;
+   
    t = (float *) SUMA_calloc (nr, sizeof(float));
    IsIn = (int *) SUMA_calloc (nr, sizeof(int));
    
@@ -1845,7 +1846,8 @@ SUMA_ISINBOX SUMA_isinbox (float * XYZ, int nr, float *S_cent , float *S_dim , i
    */
       
    IsIn_strct.nIsIn = 0;   
-
+   IsIn_strct.dXYZ = NULL;
+   
    hdim0 = S_dim[0]/2;
    hdim1 = S_dim[1]/2;
    hdim2 = S_dim[2]/2;
