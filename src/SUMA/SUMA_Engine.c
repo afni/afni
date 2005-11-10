@@ -1591,7 +1591,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
             /* expects nothing in EngineData, needs sv */
             sv->GVS[sv->StdView].translateVec[0]=0; sv->GVS[sv->StdView].translateVec[1]=0;
             glMatrixMode(GL_PROJECTION);
-            /* sv->FOV[sv->iState] = FOV_INITIAL;   *//* Now done in SE_FOVreset *//* reset the zooming */
+            /* sv->FOV[sv->iState] = sv->FOV_original;   *//* Now done in SE_FOVreset *//* reset the zooming */
             sv->GVS[sv->StdView].ViewFrom[0] = sv->GVS[sv->StdView].ViewFromOrig[0];
             sv->GVS[sv->StdView].ViewFrom[1] = sv->GVS[sv->StdView].ViewFromOrig[1];
             sv->GVS[sv->StdView].ViewFrom[2] = sv->GVS[sv->StdView].ViewFromOrig[2];
@@ -1626,7 +1626,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
          
          case SE_FOVreset:
             /* expects nothing in EngineData */
-            sv->FOV[sv->iState] = FOV_INITIAL;   /* reset the zooming */
+            sv->FOV[sv->iState] = sv->FOV_original;   /* reset the zooming */
             break;
             
          case SE_SetNodeColor:

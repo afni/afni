@@ -260,6 +260,15 @@ SUMA_SurfaceViewer *SUMA_Alloc_SurfaceViewer_Struct (int N)
          } else SV->KeyZoomGain = 0.05;
       }
       
+      {
+         char *eee = getenv("SUMA_FOV_Original");
+         if (eee) {
+            float fovinit = strtod(eee, NULL);
+            if (fovinit > 1.0 && fovinit < 100.0)  SV->FOV_original = fovinit;
+            else  SV->FOV_original = FOV_INITIAL;
+         } else SV->FOV_original = FOV_INITIAL;
+      }
+
       SV->Open = NOPE;
       
       SV->RegisteredDO = (int *)SUMA_calloc( SUMA_MAX_DISPLAYABLE_OBJECTS, sizeof(int));
@@ -1014,6 +1023,7 @@ char *SUMA_SurfaceViewer_StructInfo (SUMA_SurfaceViewer *SV, int detail)
    SS = SUMA_StringAppend_va(SS,"   zoomDelta = %f, zoomBegin = %f\n", SV->GVS[SV->StdView].zoomDelta, SV->GVS[SV->StdView].zoomBegin);
    SS = SUMA_StringAppend_va(SS,"   ArrowRotationAngle=%f rad (%f deg)\n", SV->ArrowRotationAngle, SV->ArrowRotationAngle * 180.0 / SUMA_PI);
    SS = SUMA_StringAppend_va(SS,"   KeyZoomGain=%f \n", SV->KeyZoomGain);
+   SS = SUMA_StringAppend_va(SS,"   FOV_original=%f \n", SV->FOV_original);
    SS = SUMA_StringAppend_va(SS,"   spinDeltaX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].spinDeltaX, SV->GVS[SV->StdView].spinDeltaY);
    SS = SUMA_StringAppend_va(SS,"   spinBeginX/Y = %.4f/%.4f\n", SV->GVS[SV->StdView].spinBeginX, SV->GVS[SV->StdView].spinBeginY);   
    SS = SUMA_StringAppend_va(SS,"   TranslateGain = %f\n", SV->GVS[SV->StdView].TranslateGain);
@@ -1440,7 +1450,8 @@ SUMA_Boolean SUMA_RegisterSpecSO (SUMA_SurfSpecFile *Spec, SUMA_SurfaceViewer *c
                   ++iwarn;
    }
    for (i=0; i < csv->N_VSv; ++i) {
-      csv->FOV[i] = FOV_INITIAL;
+      csv->FOV[i] = csv->FOV_original;
+      
       if (!csv->VSv[i].MembSOs) {
          csv->VSv[i].MembSOs = (int *) SUMA_calloc(csv->VSv[i].N_MembSOs, sizeof(int));
       } else {
