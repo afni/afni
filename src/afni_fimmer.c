@@ -34,11 +34,11 @@ ENTRY("AFNI_ts_in_library") ;
 /*--------------------------------------------------------------------*/
 
 void AFNI_fimmer_pickref_CB( Widget wcall ,
-                             XtPointer cd , MCW_choose_cbs * cbs )
+                             XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    int its ;
-   MRI_IMAGE * tsim ;
+   MRI_IMAGE *tsim ;
 
 ENTRY("AFNI_fimmer_pickref_CB") ;
 
@@ -59,9 +59,9 @@ ENTRY("AFNI_fimmer_pickref_CB") ;
 /*--------------------------------------------------------------------*/
 
 void AFNI_fimmer_pickort_CB( Widget wcall ,
-                             XtPointer cd , MCW_choose_cbs * cbs )
+                             XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    int its ;
    MRI_IMAGE * tsim ;
 
@@ -1856,10 +1856,10 @@ ENTRY("AFNI_fimmer_menu_CB") ;
 #ifdef USE_OPTMENUS
 void AFNI_fimmer_ignore_choose_CB( MCW_arrowval * cbs , XtPointer cd )
 #else
-void AFNI_fimmer_ignore_choose_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs * cbs )
+void AFNI_fimmer_ignore_choose_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs *cbs )
 #endif
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
 
    if( ! IM3D_VALID(im3d) ) return ;
 
@@ -1869,7 +1869,7 @@ void AFNI_fimmer_ignore_choose_CB( Widget wcaller, XtPointer cd, MCW_choose_cbs 
 #endif
 
 #ifdef USE_FUNC_FIM
-void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs * cbs )
+void AFNI_fimmer_dset_choose_CB( Widget wcaller , XtPointer cd , MCW_choose_cbs *cbs )
 {
    Three_D_View * im3d = (Three_D_View *) cd ;
    int ii , vv , num_str ;

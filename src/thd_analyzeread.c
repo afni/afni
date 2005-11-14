@@ -272,13 +272,17 @@ ENTRY("THD_open_analyze") ;
    { char *ori = getenv("AFNI_ANALYZE_ORIENT") ;
      int oxx,oyy,ozz ;
      if( ori == NULL || strlen(ori) < 3 ) {
+      static int nwarn=0 ;
       ori = "LPI"; /* set default LPI */
-      fprintf(stderr,   "Notice:\n"
-                        "Assuming analyze orientaion is LPI.\n"
-                        "To change orientation or silence this message,\n"
-                        "Set AFNI_ANALYZE_ORIENT to the proper orienation\n"
-                        "in your .afnirc file.\n"
-                        "e.g.: AFNI_ANALYZE_ORIENT = LPI");
+      if( nwarn == 0 ){
+        fprintf(stderr, "++WARNING:\n"
+                        "++ Assuming analyze orientaion is LPI.\n"
+                        "++ To change orientation or silence this message,\n"
+                        "++ Set AFNI_ANALYZE_ORIENT to the proper orientation\n"
+                        "++ in your .afnirc file.\n"
+                        "++   e.g.: AFNI_ANALYZE_ORIENT = LPI");
+        nwarn++ ;
+      }
      }
      oxx = ORCODE(ori[0]); oyy = ORCODE(ori[1]); ozz = ORCODE(ori[2]);
      if( !OR3OK(oxx,oyy,ozz) ){
@@ -312,22 +316,27 @@ ENTRY("THD_open_analyze") ;
    {/* ZSS Dec 15 03 */
       char *vie = getenv("AFNI_ANALYZE_VIEW") ;
       if (!vie) {
-         iview = VIEW_ORIGINAL_TYPE; 
-         fprintf(stderr,   "Notice:\n"
-                        "Assuming view is orig.\n"
-                        "To change view or silence this message,\n"
-                        "Set AFNI_ANALYZE_VIEW to the proper view\n"
-                        "in your .afnirc file.\n"
-                        "e.g.: AFNI_ANALYZE_VIEW = orig");
+        static int nwarn = 0 ;
+        iview = VIEW_ORIGINAL_TYPE; 
+        if( nwarn == 0 ){
+          fprintf(stderr,"++WARNING:\n"
+                         "++ Assuming view is orig.\n"
+                         "++ To change view or silence this message,\n"
+                         "++ Set AFNI_ANALYZE_VIEW to the proper view\n"
+                         "++ in your .afnirc file.\n"
+                         "++   e.g.: AFNI_ANALYZE_VIEW = orig");
+          nwarn++ ;
+        }
       } else {
+         static int nwarn = 0 ;
          if (strcmp(vie, "tlrc") == 0) iview = VIEW_TALAIRACH_TYPE; 
          else if (strcmp(vie, "orig") == 0) iview = VIEW_ORIGINAL_TYPE;
-         else {
-            fprintf (stderr,  "\nWarning: Bad value (%s) for environment \n"
-                              "variable AFNI_ANALYZE_VIEW. Choose from:\n"
-                              "orig or tlrc.\n"
-                              "Assuming orig view.\n", vie);
-            iview = VIEW_ORIGINAL_TYPE;  
+         else if( nwarn == 0 ) {
+            fprintf (stderr,  "++ WARNING: Bad value (%s) for environment \n"
+                              "++ variable AFNI_ANALYZE_VIEW. Choose from:\n"
+                              "++ orig or tlrc.\n"
+                              "++ Assuming orig view.\n", vie);
+            iview = VIEW_ORIGINAL_TYPE;   nwarn++ ;
          }
       }
    }
