@@ -303,12 +303,14 @@ ENTRY("THD_open_analyze") ;
    /*-- 04 Oct 2002: allow auto-centering of ANALYZE datasets --*/
 
    if( AFNI_yesenv("AFNI_ANALYZE_AUTOCENTER") ){
-      fprintf(stderr,   "Notice:\n"
-                        "Autocentering dataset because\n"
-                        "AFNI_ANALYZE_AUTOCENTER is set.\n");
+      static int nwarn=0 ;
+      if( nwarn == 0 )
+       fprintf(stderr,   "++ NOTICE:\n"
+                         "++ Autocentering dataset because\n"
+                         "++ AFNI_ANALYZE_AUTOCENTER is set.\n");
      orgxyz.xyz[0] = -0.5 * (nx-1) * dx ;
      orgxyz.xyz[1] = -0.5 * (ny-1) * dy ;
-     orgxyz.xyz[2] = -0.5 * (nz-1) * dz ;
+     orgxyz.xyz[2] = -0.5 * (nz-1) * dz ; nwarn++ ;
    }
 
    
@@ -350,14 +352,13 @@ ENTRY("THD_open_analyze") ;
      orgxyz.xyz[2] = -spmzz * dz ;
    } else {
       if (!spmorg) {
-         fprintf(stderr,   "Notice:\n"
-                           "No ANALYZE origin found.\n");
+         fprintf(stderr,   "++ NOTICE: No ANALYZE origin found.\n");
       }else{
-         fprintf(stderr,   "Notice:\n"
-                           "ANALYZE origin ignored.\n"
-                           "If dataset are out of alignment,\n"
-                           "Set AFNI_ANALYZE_ORIGINATOR to yes\n"
-                           "in your .afnirc file.\n");
+         fprintf(stderr,   "++ NOTICE:\n"
+                           "++ ANALYZE origin ignored.\n"
+                           "++ If datasets are out of alignment,\n"
+                           "++ Set AFNI_ANALYZE_ORIGINATOR to YES\n"
+                           "++ in your .afnirc file.\n");
       }
    }
    /* fprintf (stderr,   "\n"
