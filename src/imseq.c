@@ -7261,7 +7261,7 @@ static unsigned char record_bits[] = {
       case isqDR_unrealize:{
          ISQ_timer_stop(seq) ;
          if( ISQ_REALZ(seq) ) XtUnrealizeWidget( seq->wtop ) ;
-         seq->valid = 1 ; RWC_sleep(1) ;
+         seq->valid = 1 ;
          RETURN( True );
       }
       break ;
@@ -7270,13 +7270,13 @@ static unsigned char record_bits[] = {
 
       case isqDR_realize:{
          if( ! ISQ_REALZ(seq) ){
-            XtRealizeWidget( seq->wtop )   ; RWC_sleep(1) ;
+            XtRealizeWidget( seq->wtop )   ;
             WAIT_for_window( seq->wtop )   ; RWC_sleep(1) ;
             NORMAL_cursorize( seq->wtop )  ;
             POPUP_cursorize( seq->wimage ) ;
             POPUP_cursorize( seq->wbar )   ;
             POPUP_cursorize( seq->wbut_bot[NBUT_SAVE] ) ;
-            XmUpdateDisplay( seq->wtop )   ; RWC_sleep(1) ;
+            XmUpdateDisplay( seq->wtop )   ;
          }
 #ifndef DONT_ONOFF_ONE
          if( seq->status->num_total == 1 )  /* 08 Aug 2001 */

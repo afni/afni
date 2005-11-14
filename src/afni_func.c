@@ -1952,6 +1952,9 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
    if( GLOBAL_library.have_dummy_dataset ){ BEEPIT ; EXRETURN ; }
+#if 0
+   if( AFNI_splash_isopen() == 1         ){ BEEPIT ; EXRETURN ; }
+#endif
 
    if( first_call ){
       for( ii=0 ; ii < THD_MAX_CHOICES ; ii++ )
@@ -2813,6 +2816,10 @@ void AFNI_read_Web_CB( Widget w, XtPointer cd, XtPointer cb )
    XmString xstr ;
 
 ENTRY("AFNI_read_Web_CB") ;
+
+#if 0
+   if( AFNI_splash_isopen() == 1 ){ BEEPIT ; EXRETURN ; }
+#endif
 
    MCW_choose_string( w ,
     "Complete http:// or ftp:// address of dataset (.HEAD or .mnc or .mnc.gz):\n"

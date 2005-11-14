@@ -48,7 +48,7 @@ CC = gcc
 CCDEPMODE = depmode=none
 CFLAGS = -g  -Wall -O3 -fomit-frame-pointer
 CPP = gcc -E
-CPPFLAGS = -I/sw/include -I/sw/include/lame
+CPPFLAGS = 
 CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
@@ -63,7 +63,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = ${SHELL} $(install_sh) -c -s
-LDFLAGS = -L/sw/lib
+LDFLAGS = 
 LIBMPEG2_CFLAGS =  -prefer-non-pic
 LIBMPEG2_LIBS = 
 LIBS = 
