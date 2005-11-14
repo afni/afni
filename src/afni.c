@@ -1408,7 +1408,7 @@ static Boolean MAIN_workprocess( XtPointer fred )
 {
    static int MAIN_calls = 0 ;  /* controls what happens */
    static int nosplash = 0 , nodown = 0 ;
-   static double eltime=0.0 , max_splash=5.0 ;
+   static double eltime=0.0 , max_splash=3.0 ;
    int ii ;
 
 ENTRY("MAIN_workprocess") ;  /* 23 Jan 2001: added ENTRY/RETURN to this routine */
@@ -1443,10 +1443,13 @@ STATUS("call 0") ;
         nosplash = AFNI_yesenv("AFNI_NOSPLASH") ;
 #endif
         if( !nosplash ){
-          char * hh ;
+          char *hh ;
           AFNI_splashup() ; eltime = COX_clock_time() ;
           hh = getenv("AFNI_SPLASHTIME") ;
-          if( hh != NULL ) max_splash = strtod(hh,NULL) ;
+          if( hh != NULL ){
+            max_splash = strtod(hh,NULL) ;
+            if( max_splash > 9.0 ) max_splash = 9.0 ;
+          }
         }
       }
       break ;
@@ -8174,10 +8177,10 @@ ENTRY("AFNI_imag_pop_CB") ;
    called when the talto chooser is set
 -----------------------------------------------------------------------*/
 
-void AFNI_talto_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void AFNI_talto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
-   THD_dataxes  * daxes ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
+   THD_dataxes  *daxes ;
    float xx,yy,zz ;
    int nn , ii,jj,kk ;
    THD_fvec3 fv,tv ; THD_ivec3 iv ;
@@ -8306,9 +8309,9 @@ void AFNI_see_ttatlas_CB( Widget w, XtPointer cd, XtPointer cb)
    called when the mnito chooser is set - 01 May 2002
 -----------------------------------------------------------------------*/
 
-void AFNI_mnito_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void AFNI_mnito_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    float xx,yy,zz ;
    char dum1[32],dum2[32];
    int nn ;
@@ -8349,9 +8352,9 @@ ENTRY("AFNI_mnito_CB") ;
    called when the jumpto chooser is set
 -----------------------------------------------------------------------*/
 
-void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    float xx,yy,zz ;
    char dum1[32],dum2[32];
    int nn ;
@@ -8427,9 +8430,9 @@ ENTRY("AFNI_jumpto_ijk") ;
 
 /*---------------------------------------------------------------------*/
 
-void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    int ii,jj,kk ;
    int nn ;
    char dum1[32],dum2[32];
@@ -8453,9 +8456,9 @@ ENTRY("AFNI_jumpto_CB") ;
    called when the sumato chooser is set
 -----------------------------------------------------------------------*/
 
-void AFNI_sumato_CB( Widget w , XtPointer cd , MCW_choose_cbs * cbs )
+void AFNI_sumato_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 {
-   Three_D_View * im3d = (Three_D_View *) cd ;
+   Three_D_View *im3d = (Three_D_View *) cd ;
    int nn , ii ;
 
 ENTRY("AFNI_sumato_CB") ;
@@ -10098,8 +10101,8 @@ void AFNI_popup_sonnet( Widget w , int ii )  /* 12 Dec 2001 */
 
 void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
-   MCW_choose_cbs * cbs ;
+   Three_D_View *im3d = (Three_D_View *) client_data ;
+   MCW_choose_cbs *cbs ;
 
    if( NO_frivolities || !IM3D_VALID(im3d) ) return ;
 

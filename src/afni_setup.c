@@ -579,6 +579,9 @@ void AFNI_pbar_CB( Widget w , XtPointer cd , XtPointer cbs )
 ENTRY("AFNI_pbar_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+#if 0
+   if( AFNI_splash_isopen() == 1 ){ BEEPIT ; EXRETURN ; }
+#endif
 
    pbar  = im3d->vwid->func->inten_pbar ;
    npane = pbar->num_panes ;

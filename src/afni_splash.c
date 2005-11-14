@@ -33,8 +33,15 @@ static MRI_IMAGE * SPLASH_decodexx( int , int , int , int ,
 static MRI_IMAGE *imspl = NULL ;
 static void *handle = NULL ;
 
+#define SAVE_HANDLE
+
 /*----------------------------------------------------------------------------*/
-int AFNI_splash_isopen(void){ return (handle != NULL) ; }  /* 10 Nov 2005 */
+static int num_splashup = 0 ;  /* 14 Nov 2005 */
+int AFNI_splash_isopen(void)
+{
+   PLUGIN_impopper *ppp = (PLUGIN_impopper *)handle ;
+   return (ppp != NULL && ISQ_REALZ(ppp->seq)) ? num_splashup : 0 ;
+}
 /*----------------------------------------------------------------------------*/
 
 #define USE_FADING
@@ -65,23 +72,26 @@ void AFNI_splashdown(void)
 
 ENTRY("AFNI_splashdown") ;
 
-   if( handle != NULL ){
+   if( ppp != NULL ){
 #ifdef USE_FADING
-     if( imspl != NULL ){  /* fade gently away */
-       byte *bspl ; int ii , nv , kk ; double et ;
-       bspl = mri_data_pointer(imspl) ;
-       nv   = (imspl->pixel_size) * (imspl->nvox) ;
-       et   = COX_clock_time() ;
-       do_write = 0 ;
-       for( kk=0 ; kk < 10 ; kk++ ){
-         for( ii=0 ; ii < nv ; ii++ ) bspl[ii] = (15*bspl[ii]) >> 4 ;
-         SPLASH_popup_image(handle,imspl) ;
-         drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
-         if( COX_clock_time()-et > 3.333 ) break ;
-       }
-     }
+    if( ISQ_REALZ(ppp->seq) && imspl != NULL ){  /* fade gently away */
+      byte *bspl ; int ii , nv , kk ; double et ;
+      bspl = mri_data_pointer(imspl) ;
+      nv   = (imspl->pixel_size) * (imspl->nvox) ;
+      et   = COX_clock_time() ;
+      do_write = 0 ;
+      for( kk=0 ; kk < 10 ; kk++ ){
+        for( ii=0 ; ii < nv ; ii++ ) bspl[ii] = (15*bspl[ii]) >> 4 ;
+        SPLASH_popup_image(handle,imspl) ;
+        drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer) 0 ) ;
+        if( COX_clock_time()-et > 1.234 ) break ;
+      }
+    }
 #endif
-      SPLASH_popup_image(handle,NULL); myXtFree(handle) ; /* get rid of window */
+    SPLASH_popup_image(handle,NULL);
+#ifndef SAVE_HANDLE
+    myXtFree(handle) ; /* get rid of window */
+#endif
    }
    mri_free(imspl) ; imspl = NULL ;
    do_write = ( (lrand48() >> 8) % 3 == 0 ) ? 2 : 1 ;
@@ -113,9 +123,11 @@ ENTRY("AFNI_splashup") ;
 
    /*--- create splash image ---*/
 
-   if( ! PLUTO_popup_open(handle) ){
+   if( ! PLUTO_popup_open(handle) ){  /* not open at this time? */
 
       int nxov,nyov,ff ;
+
+      num_splashup++ ;  /* 14 Nov 2005 */
 
       /* get some fun stuff, first time in */
 
@@ -124,7 +136,8 @@ ENTRY("AFNI_splashup") ;
         num_face   = AFNI_find_jpegs( "face_"   , &fname_face   ) ;
         num_splash = AFNI_find_jpegs( "splash_" , &fname_splash ) ;
 if(PRINT_TRACING){
- char str[256]; sprintf(str,"num_face=%d  num_splash=%d",num_face,num_splash); STATUS(str);
+ char str[256];
+ sprintf(str,"num_face=%d  num_splash=%d",num_face,num_splash); STATUS(str);
 }
         if( num_splash > 0 ){
           char *targ = (lrand48()&16 != 0) ? "bobkarl" : "sscc" ;
@@ -138,7 +151,8 @@ if(PRINT_TRACING){
             if( np < num_face ) first_face = np ;
           }
 if(PRINT_TRACING){
- char str[256]; sprintf(str,"first_face=%d  first_splash=%d",first_face,first_splash); STATUS(str);
+ char str[256];
+ sprintf(str,"first_face=%d  first_splash=%d",first_face,first_splash); STATUS(str);
 }
         }
       }
@@ -259,7 +273,7 @@ if(PRINT_TRACING){
 
       /* modify image display properties */
 
-      ppp = (PLUGIN_impopper *) handle ;
+      ppp = (PLUGIN_impopper *)handle ;
 
       if( ncall==0 ){ dd = MWM_DECOR_BORDER ;
                       ee = 0 ;
@@ -273,13 +287,13 @@ if(PRINT_TRACING){
       syy = 100 ;
       sen = getenv("AFNI_SPLASH_XY") ;
       if( sen != NULL ){
-         int n,x,y ;
-         n = sscanf(sen,"%d:%d",&x,&y) ;
-         if( n == 2 && x >= 0 && x < GLOBAL_library.dc->width &&
-                       y >= 0 && y < GLOBAL_library.dc->height  ){
+        int n,x,y ;
+        n = sscanf(sen,"%d:%d",&x,&y) ;
+        if( n == 2 && x >= 0 && x < GLOBAL_library.dc->width &&
+                      y >= 0 && y < GLOBAL_library.dc->height  ){
 
-            sxx = x ; syy = y ;
-         }
+          sxx = x ; syy = y ;
+        }
       }
 
       XtVaSetValues( ppp->seq->wtop ,
@@ -292,59 +306,28 @@ if(PRINT_TRACING){
 
       /* actually popup image display */
 
-      drive_MCW_imseq( ppp->seq , isqDR_realize   , NULL                     ) ;
-      drive_MCW_imseq( ppp->seq , isqDR_onoffwid  , (XtPointer) isqDR_offwid ) ;
-      drive_MCW_imseq( ppp->seq , isqDR_clearstat , NULL                     ) ;
-#if 0
-      drive_MCW_imseq( ppp->seq , isqDR_reimage   , (XtPointer) 0            ) ;
-#endif
+      drive_MCW_imseq( ppp->seq , isqDR_realize   , NULL                    );
+      drive_MCW_imseq( ppp->seq , isqDR_onoffwid  , (XtPointer)isqDR_offwid );
+      drive_MCW_imseq( ppp->seq , isqDR_clearstat , NULL                    );
 
       NORMAL_cursorize( ppp->seq->wimage ) ; /* 07 Dec 2001 */
 
-      /* some super-frivolities */
-
-      if( ncall==0 ){
-         drive_MCW_imseq( ppp->seq , isqDR_title , (XtPointer) "AFNI!" ) ;
-         drive_MCW_imseq( ppp->seq , isqDR_imhelptext,
-                          (XtPointer)
-                           " \n"
-                           " Thou art indeed just, Lord, if I contend\n"
-                           "  With thee; but, sir, so what I plead is just.\n"
-                           "  Why do sinners' ways prosper? and why must\n"
-                           "  Disappointment all I endeavour end?\n"
-                           " Wert thou my enemy, O thou my friend,\n"
-                           "  How wouldst thou worse, I wonder, than thou dost\n"
-                           "  Defeat, thwart me? Oh, the sots and thralls of lust\n"
-                           "  Do in spare hours more thrive than I that spend,\n"
-                           "  Sir, life upon thy cause. See, banks and brakes\n"
-                           "  Now, leaved how thick! laced they are again\n"
-                           "  With fretty chervil, look, and fresh wind shakes\n"
-                           "  Them; birds build -- but not I build; no, but strain,\n"
-                           "  Time's eunuch, and not breed one work that wakes.\n"
-                           " Mine, O thou lord of life, send my roots rain.\n"
-                        ) ;
-
-#if 0
-        {                      /* 21 Jun 2000 -- turn sharpening on */
-         ISQ_options opt ;
-         drive_MCW_imseq( ppp->seq , isqDR_getoptions , (XtPointer) &opt ) ;
-         opt.improc_code |= ISQ_IMPROC_SHARP ;
-         drive_MCW_imseq( ppp->seq , isqDR_options    , (XtPointer) &opt ) ;
-        }
-#endif
+      if( ncall > 0 ){
+        drive_MCW_imseq( ppp->seq , isqDR_title , (XtPointer) "AFNI!" ) ;
+        drive_MCW_imseq( ppp->seq , isqDR_reimage , (XtPointer)0 ) ;
       }
 
    /*--- destroy splash image ---*/
 
    } else {
-      ppp = (PLUGIN_impopper *) handle ;
+     ppp = (PLUGIN_impopper *)handle ;
 
-      /* bring splash window to the top */
+     /* bring splash window to the top */
 
-      if( ISQ_REALZ(ppp->seq) )
-         XMapRaised( XtDisplay(ppp->seq->wtop) , XtWindow(ppp->seq->wtop) ) ;
+     if( ppp != NULL && ISQ_REALZ(ppp->seq) )
+       XMapRaised( XtDisplay(ppp->seq->wtop) , XtWindow(ppp->seq->wtop) ) ;
 
-      AFNI_splashdown() ;  /* off with their heads */
+     AFNI_splashdown() ;  /* off with their heads */
    }
 
    ncall++ ; EXRETURN ;
@@ -361,7 +344,7 @@ static XtPointer SPLASH_imseq_getim( int n, int type, XtPointer handle )
 
 ENTRY("SPLASH_imseq_getim") ;
 
-   if( imp == NULL ) RETURN(NULL) ;
+   if( imp == NULL ) RETURN(NULL) ;  /* bad */
 
    /*--- control info ---*/
 
@@ -454,17 +437,21 @@ ENTRY("SPLASH_popup_image") ;
    /*-- input image is NULL ==> popdown, if applicable --*/
 
    if( im == NULL ){
-      if( imp != NULL )
-         drive_MCW_imseq( imp->seq , isqDR_destroy , NULL ) ;
+     if( imp != NULL )
+#ifdef SAVE_HANDLE
+       drive_MCW_imseq( imp->seq , isqDR_unrealize , NULL ) ;
+#else
+       drive_MCW_imseq( imp->seq , isqDR_destroy , NULL ) ;
+#endif
 
-      RETURN ((void *) imp) ;
+     RETURN ((void *) imp) ;
    }
 
    /*-- input = no popper handle ==> create one --*/
 
    if( imp == NULL ){
-      imp      = myXtNew(PLUGIN_impopper) ;
-      imp->seq = NULL ; imp->im  = NULL ;
+     imp      = myXtNew(PLUGIN_impopper) ;
+     imp->seq = NULL ; imp->im  = NULL ;
    }
 
    /*-- input = non-null image ==> replace image --*/
@@ -475,8 +462,10 @@ ENTRY("SPLASH_popup_image") ;
    /*-- input = inactive popper handle ==> activate it --*/
 
    if( imp->seq == NULL )
-      imp->seq = open_MCW_imseq( GLOBAL_library.dc ,
-                                 SPLASH_imseq_getim , (XtPointer) imp ) ;
+     imp->seq = open_MCW_imseq( GLOBAL_library.dc ,
+                                SPLASH_imseq_getim , (XtPointer) imp ) ;
+   else
+     drive_MCW_imseq( imp->seq , isqDR_realize , NULL ) ;
 
    /*-- unlike PLUTO_popup_image, actual popup is left to caller --*/
 
