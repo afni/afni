@@ -5761,3 +5761,7 @@
 08 Nov 2005
  * rint(x) -> rint(x+.00001) in edt_coerce.c, to avoid an artifact in
      3dMean.c when the number of averages is a small even integer.
+
+14 Nov 2005
+ * Changes to afni_splash.c to try to avoid the "Mr Freeze" bug (e.g.,
+     unrealize image viewer rather than destroy it).
