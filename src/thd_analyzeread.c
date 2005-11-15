@@ -146,7 +146,7 @@ ENTRY("THD_open_analyze") ;
    fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
    fclose(fp) ;
    if( hdr.dime.dim[0] == 0 ){    /* bad input */
-     fprintf(stderr,"*** ANALYZE file %s has dim[0]=0!\n",hname) ;
+     ERROR_message("ANALYZE file %s has dim[0]=0!\n",hname) ;
      RETURN( NULL ) ;
    }
 
@@ -154,7 +154,7 @@ ENTRY("THD_open_analyze") ;
 
    length = THD_filesize(iname) ;  /* will use this later */
    if( length <= 0 ){
-     fprintf(stderr,"*** Can't find ANALYZE file %s\n",iname) ;
+     ERROR_message("Can't find ANALYZE file %s\n",iname) ;
      RETURN( NULL );
    }
 
@@ -175,7 +175,7 @@ ENTRY("THD_open_analyze") ;
 
    switch( hdr.dime.datatype ){
      default:
-        fprintf(stderr,"*** %s: Unsupported ANALYZE datatype=%d (%s)\n",
+        ERROR_message("File %s: Unsupported ANALYZE datatype=%d (%s)\n",
                 hname,hdr.dime.datatype,ANDT_string(hdr.dime.datatype) ) ;
      RETURN( NULL );
 
@@ -203,8 +203,8 @@ ENTRY("THD_open_analyze") ;
      case 4:  nz = hdr.dime.dim[3] ; nt = hdr.dime.dim[4] ; break ;
 
      default:
-       fprintf(stderr,"*** ANALYZE file %s has %d dimensions!\n",
-               hname,hdr.dime.dim[0]) ;
+       ERROR_message("ANALYZE file %s has %d dimensions!\n",
+                     hname,hdr.dime.dim[0]) ;
        RETURN( NULL ) ;
    }
    if( nz < 1 ) nz = 1 ;
@@ -219,9 +219,9 @@ ENTRY("THD_open_analyze") ;
 
    ngood = datum_len*nx*ny*nz*nt ;  /* number bytes needed in .img file */
    if( length < ngood ){
-     fprintf( stderr,
-       "*** ANALYZE file %s is %d bytes long but must be %d bytes long\n"
-       "*** for nx=%d ny=%d nz=%d nt=%d and %d bytes/voxel\n",
+     ERROR_message(
+       "ANALYZE file %s is %d bytes long but must be %d bytes long\n"
+       "**      for nx=%d ny=%d nz=%d nt=%d and %d bytes/voxel\n",
        iname,length,ngood,nx,ny,nz,nt,datum_len ) ;
      fclose(fp) ; RETURN( NULL );
    }
@@ -275,12 +275,11 @@ ENTRY("THD_open_analyze") ;
       static int nwarn=0 ;
       ori = "LPI"; /* set default LPI */
       if( nwarn == 0 ){
-        fprintf(stderr, "++WARNING:\n"
-                        "++ Assuming analyze orientaion is LPI.\n"
-                        "++ To change orientation or silence this message,\n"
-                        "++ Set AFNI_ANALYZE_ORIENT to the proper orientation\n"
-                        "++ in your .afnirc file.\n"
-                        "++   e.g.: AFNI_ANALYZE_ORIENT = LPI");
+        WARNING_message("Assuming ANALYZE orientaion is LPI.\n"
+                        "++    To change orientation or silence this message,\n"
+                        "++    Set AFNI_ANALYZE_ORIENT to the proper orientation\n"
+                        "++    in your .afnirc file.\n"
+                        "++      e.g.: AFNI_ANALYZE_ORIENT = LPI");
         nwarn++ ;
       }
      }
@@ -305,9 +304,8 @@ ENTRY("THD_open_analyze") ;
    if( AFNI_yesenv("AFNI_ANALYZE_AUTOCENTER") ){
       static int nwarn=0 ;
       if( nwarn == 0 )
-       fprintf(stderr,   "++ NOTICE:\n"
-                         "++ Autocentering dataset because\n"
-                         "++ AFNI_ANALYZE_AUTOCENTER is set.\n");
+       WARNING_message("Autocentering datasets because"
+                       " AFNI_ANALYZE_AUTOCENTER is set");
      orgxyz.xyz[0] = -0.5 * (nx-1) * dx ;
      orgxyz.xyz[1] = -0.5 * (ny-1) * dy ;
      orgxyz.xyz[2] = -0.5 * (nz-1) * dz ; nwarn++ ;
@@ -321,44 +319,43 @@ ENTRY("THD_open_analyze") ;
         static int nwarn = 0 ;
         iview = VIEW_ORIGINAL_TYPE; 
         if( nwarn == 0 ){
-          fprintf(stderr,"++WARNING:\n"
-                         "++ Assuming view is orig.\n"
-                         "++ To change view or silence this message,\n"
-                         "++ Set AFNI_ANALYZE_VIEW to the proper view\n"
-                         "++ in your .afnirc file.\n"
-                         "++   e.g.: AFNI_ANALYZE_VIEW = orig");
+          WARNING_message("Assuming view is +orig.\n"
+                          "++    To change view or silence this message,\n"
+                          "++    Set AFNI_ANALYZE_VIEW to the proper view\n"
+                          "++    in your .afnirc file.\n"
+                          "++      e.g.: AFNI_ANALYZE_VIEW = orig");
           nwarn++ ;
         }
       } else {
          static int nwarn = 0 ;
-         if (strcmp(vie, "tlrc") == 0) iview = VIEW_TALAIRACH_TYPE; 
+              if (strcmp(vie, "tlrc") == 0) iview = VIEW_TALAIRACH_TYPE; 
          else if (strcmp(vie, "orig") == 0) iview = VIEW_ORIGINAL_TYPE;
+         else if (strcmp(vie, "acpc") == 0) iview = VIEW_ACPCALIGNED_TYPE;
          else if( nwarn == 0 ) {
-            fprintf (stderr,  "++ WARNING: Bad value (%s) for environment \n"
-                              "++ variable AFNI_ANALYZE_VIEW. Choose from:\n"
-                              "++ orig or tlrc.\n"
-                              "++ Assuming orig view.\n", vie);
+            WARNING_message("Bad value (%s) for environment \n"
+                            "++    variable AFNI_ANALYZE_VIEW. Choose from:\n"
+                            "++      orig or acpc or tlrc.\n"
+                            "++    Assuming orig view.\n", vie);
             iview = VIEW_ORIGINAL_TYPE;   nwarn++ ;
          }
       }
    }
    
    if( AFNI_yesenv("AFNI_ANALYZE_ORIGINATOR") && spmorg ){  /* 03 Nov 2003 */
-     if ( !getenv ("AFNI_ANALYZE_VIEW") ) { /* ZSS Dec. 16 03 */
-       iview         = VIEW_TALAIRACH_TYPE ;     /* for backward compatibility */
+     if ( !getenv ("AFNI_ANALYZE_VIEW") ) { /* ZSS 16 Dec 2003 */
+       iview = VIEW_TALAIRACH_TYPE ;        /* for backward compatibility */
      } 
      orgxyz.xyz[0] = -spmxx * dx ; /* (0,0,0) is at (spmxx,spmyy,spmzz) */
      orgxyz.xyz[1] = -spmyy * dy ;
      orgxyz.xyz[2] = -spmzz * dz ;
    } else {
-      if (!spmorg) {
-         fprintf(stderr,   "++ NOTICE: No ANALYZE origin found.\n");
-      }else{
-         fprintf(stderr,   "++ NOTICE:\n"
-                           "++ ANALYZE origin ignored.\n"
-                           "++ If datasets are out of alignment,\n"
-                           "++ Set AFNI_ANALYZE_ORIGINATOR to YES\n"
-                           "++ in your .afnirc file.\n");
+      if (!spmorg){
+         WARNING_message("No ANALYZE origin found in file %s\n",hname);
+      } else {
+         WARNING_message("ANALYZE origin ignored in file %s\n"
+                         "++    If datasets are out of alignment,\n"
+                         "++    Set AFNI_ANALYZE_ORIGINATOR = YES\n"
+                         "++    in your .afnirc file.\n" , hname );
       }
    }
    /* fprintf (stderr,   "\n"
@@ -488,8 +485,7 @@ ENTRY("THD_load_analyze") ;
    /*-- if couldn't get them all, take our ball and go home in a snit --*/
 
    if( nbad > 0 ){
-      fprintf(stderr,
-              "\n** failed to malloc %d ANALYZE bricks out of %d\n\a",nbad,nv);
+      ERROR_message("failed to malloc %d ANALYZE bricks out of %d\n\a",nbad,nv);
       for( ibr=0 ; ibr < nv ; ibr++ ){
         if( DBLK_ARRAY(dblk,ibr) != NULL ){
            free(DBLK_ARRAY(dblk,ibr)) ;
@@ -540,9 +536,8 @@ ENTRY("THD_load_analyze") ;
      }
    }
    if( nbad > 0 )
-     fprintf(stderr ,
-             "*** %s: found %d float errors -- see program float_scan\n" ,
-             dkptr->brick_name , nbad ) ;
+     ERROR_message("File %s: found %d float errors -- see program float_scan\n" ,
+                   dkptr->brick_name , nbad ) ;
 
    EXRETURN ;
 }
