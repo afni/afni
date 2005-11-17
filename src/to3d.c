@@ -161,7 +161,8 @@ int main( int argc , char * argv[] )
    Boolean        all_good ;
 
    mainENTRY("to3d:main") ;
-   machdep() ; /* RWCox: 20 Apr 2001 */
+   machdep() ; /* 20 Apr 2001 */
+   PRINT_VERSION("to3d") ; AUTHOR("RW Cox") ;
 
    if( DBG_trace ){                              /* 10 Sep 2002 */
      fprintf(stderr,"Enabling mcw_malloc()\n") ;
@@ -195,8 +196,6 @@ int main( int argc , char * argv[] )
    argopt.nofloatscan = 0 ;                  /* 14 Sep 1999 */
 
    /* read the inputs */
-
-   printf("to3d: 2D slices into 3D datasets for AFNI, by RW Cox\n") ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to --*/
 
