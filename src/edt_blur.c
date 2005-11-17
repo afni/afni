@@ -118,6 +118,7 @@ ENTRY("EDIT_blur_volume_3d") ;
      kk = (int) ceil( 2.5 * sigmaz / dz ) ;
      if( ii <= FIR_MAX && jj <= FIR_MAX && kk <= FIR_MAX ) all_fir = 1 ;
    }
+   if( ftype != MRI_float ) all_fir = 0 ;  /* 17 Nov 2005: oopsie */
 
    if( !all_fir ){
     switch( ftype ){
