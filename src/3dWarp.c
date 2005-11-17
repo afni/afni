@@ -168,7 +168,7 @@ int main( int argc , char * argv[] )
    /*-- startup mechanics --*/
 
    mainENTRY("3dWarp main"); machdep(); AFNI_logger("3dWarp",argc,argv);
-   PRINT_VERSION("3dWarp") ;
+   PRINT_VERSION("3dWarp") ; AUTHOR("RW Cox") ;
 
    THD_coorder_fill( my_getenv("AFNI_ORIENT") , &cord ) ;  /* 12 Mar 2004 */
 

@@ -1233,7 +1233,8 @@ int main
   }
 #endif
 
-   PRINT_VERSION("3dUniformize") ; mainENTRY("3dUniformize main") ; machdep() ;
+   PRINT_VERSION("3dUniformize") ; AUTHOR(PROGRAM_AUTHOR);
+   mainENTRY("3dUniformize main") ; machdep() ;
 
   
   /*----- Program initialization -----*/

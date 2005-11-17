@@ -3228,7 +3228,8 @@ int main
 
   /*-- 22 Feb 1999: addto the arglist, if user wants to --*/
 
-   PRINT_VERSION("3dRegAna") ; mainENTRY("3dRegAna main") ; machdep() ;
+   PRINT_VERSION("3dRegAna") ; AUTHOR(PROGRAM_AUTHOR);
+   mainENTRY("3dRegAna main") ; machdep() ;
 
   { int new_argc ; char ** new_argv ;
     addto_args( argc , argv , &new_argc , &new_argv ) ;

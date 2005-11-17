@@ -41,7 +41,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dAutomask main"); machdep(); AFNI_logger("3dAutomask",argc,argv);
-   PRINT_VERSION("3dAutomask") ;
+   PRINT_VERSION("3dAutomask") ; AUTHOR("RW Cox") ;
 
    /*-- options --*/
 
