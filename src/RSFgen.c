@@ -139,7 +139,7 @@ void identify_software ()
   printf ("\n");
 #endif
 
-  PRINT_VERSION("RSFgen") ;
+  PRINT_VERSION("RSFgen") ; AUTHOR(PROGRAM_AUTHOR) ;
 }
 
 

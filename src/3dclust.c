@@ -317,7 +317,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dclust main"); machdep(); AFNI_logger("3dclust",argc,argv);
-   PRINT_VERSION("3dclust") ;
+   PRINT_VERSION("3dclust") ; AUTHOR(PROGRAM_AUTHOR) ;
 
    THD_coorder_fill( my_getenv("AFNI_ORIENT") , &CL_cord ) ; /* July 1997 */
    CL_read_opts( argc , argv ) ;

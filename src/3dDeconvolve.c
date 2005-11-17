@@ -555,7 +555,8 @@ void identify_software ()
 
   /*----- Identify software -----*/
 #if 1
-  PRINT_VERSION("3dDeconvolve") ; THD_check_AFNI_version("3dDeconvolve") ;
+  PRINT_VERSION("3dDeconvolve") ; AUTHOR(PROGRAM_AUTHOR) ;
+  THD_check_AFNI_version("3dDeconvolve") ;
 #else
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);

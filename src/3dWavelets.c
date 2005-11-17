@@ -2056,7 +2056,8 @@ int main
   printf ("\n");
 #endif
 
-   PRINT_VERSION("3dWavelets") ; mainENTRY("3dWavelets main") ; machdep() ;
+   PRINT_VERSION("3dWavelets") ; AUTHOR(PROGRAM_AUTHOR);
+   mainENTRY("3dWavelets main") ; machdep() ;
 
   
   /*----- Program initialization -----*/

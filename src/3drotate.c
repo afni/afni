@@ -246,7 +246,7 @@ int main( int argc , char * argv[] )
       exit(0) ;
    }
 
-   mainENTRY("3drotate main") ; machdep() ; PRINT_VERSION("3drotate") ;
+   mainENTRY("3drotate main"); machdep(); PRINT_VERSION("3drotate"); AUTHOR("RW Cox");
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 

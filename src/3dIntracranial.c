@@ -721,7 +721,7 @@ int main
 #endif
 
   mainENTRY("3dIntracranial:main") ; machdep() ; PRINT_VERSION("3dIntracranial") ;
-
+  AUTHOR(PROGRAM_AUTHOR) ;
 
   /*----- Program initialization -----*/
   initialize_program (argc, argv);

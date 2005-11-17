@@ -624,7 +624,7 @@ int main (int argc, char ** argv)
   printf ("\n");
 #endif
 
-  PRINT_VERSION("3dFWHM") ; mainENTRY("3dFWHM main") ; machdep() ;
+  PRINT_VERSION("3dFWHM") ; AUTHOR(PROGRAM_AUTHOR); mainENTRY("3dFWHM main") ; machdep() ;
 
   /*----- program initialization -----*/
   initialize (argc, argv, &option_data, &fim, &fmask);

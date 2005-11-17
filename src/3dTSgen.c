@@ -1725,7 +1725,8 @@ int main
   printf ("\n");
 #endif
 
-   PRINT_VERSION("3dTSgen") ; mainENTRY("3dTSgen main") ; machdep() ;
+   PRINT_VERSION("3dTSgen") ; AUTHOR(PROGRAM_AUTHOR);
+   mainENTRY("3dTSgen main") ; machdep() ;
 
    
   /*----- program initialization -----*/

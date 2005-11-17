@@ -247,7 +247,7 @@ int main( int argc , char * argv[] )
   printf ("\n");
 #endif
 
-   PRINT_VERSION("from3d") ; mainENTRY("from3d main") ; machdep() ;
+   PRINT_VERSION("from3d") ; AUTHOR(PROGRAM_AUTHOR) ; mainENTRY("from3d main") ; machdep() ;
 
    /* --- get user command line inputs --- */
    F3D_initialize_user_data (argc, argv,

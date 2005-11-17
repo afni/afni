@@ -1702,7 +1702,8 @@ int main
   printf ("\n");
 #endif
 
-   PRINT_VERSION("3dfim+") ; mainENTRY("3dfim+ main") ; machdep() ;
+   PRINT_VERSION("3dfim+") ; AUTHOR(PROGRAM_AUTHOR) ;
+   mainENTRY("3dfim+ main") ; machdep() ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
