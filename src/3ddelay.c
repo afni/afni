@@ -9,7 +9,7 @@
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME "3ddelay"                        /* name of this program */
-#define PROGRAM_AUTHOR "Ziad Saad (using B. Douglas Ward's 3dfim+ to read and write bricks)"  /* program author */
+#define PROGRAM_AUTHOR "Ziad Saad (with help from B Douglas Ward)"  /* program author */
 #define PROGRAM_DATE "Jul 22 2005"               /* date of last program mod */
 
 /*---------------------------------------------------------------------------*/
@@ -2230,7 +2230,7 @@ int main
   printf ("\n");
 #endif
 
-   PRINT_VERSION("3ddelay") ; mainENTRY("3ddelay main") ; machdep() ;
+   PRINT_VERSION("3ddelay") ; AUTHOR(PROGRAM_AUTHOR) ; mainENTRY("3ddelay main") ; machdep() ;
 
   /*----- Program initialization -----*/
   initialize_program (argc, argv, &option_data, &dset_time, &mask_dset, 

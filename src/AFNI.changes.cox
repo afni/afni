@@ -5765,3 +5765,6 @@
 14 Nov 2005
  * Changes to afni_splash.c to try to avoid the "Mr Freeze" bug (e.g.,
      unrealize image viewer rather than destroy it).
+
+18 Nov 2005
+ * AUTHOR AUTHOR.

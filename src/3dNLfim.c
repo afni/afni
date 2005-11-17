@@ -3056,7 +3056,8 @@ int main
 #endif
 
   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
-   PRINT_VERSION("3dNLfim") ; mainENTRY("3dNLfim main") ; machdep() ;
+   PRINT_VERSION("3dNLfim") ; AUTHOR(PROGRAM_AUTHOR);
+   mainENTRY("3dNLfim main") ; machdep() ;
 
   { 
     int new_argc ; char ** new_argv ;

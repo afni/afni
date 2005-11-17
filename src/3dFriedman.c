@@ -817,7 +817,7 @@ int main (int argc, char ** argv)
   printf ("\n");
 #endif
 
-   PRINT_VERSION("3dFriedman") ; mainENTRY("3dFriedman main") ; machdep() ;
+   PRINT_VERSION("3dFriedman") ; AUTHOR(PROGRAM_AUTHOR); mainENTRY("3dFriedman main") ; machdep() ;
 
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 

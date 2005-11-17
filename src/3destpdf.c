@@ -243,7 +243,7 @@ int main
   printf ("\n");
 #endif
 
-   PRINT_VERSION("3destpdf") ; mainENTRY("3destpdf main") ; machdep() ;
+   PRINT_VERSION("3destpdf") ; AUTHOR(PROGRAM_AUTHOR) ;mainENTRY("3destpdf main") ; machdep() ;
   
   /*----- Program initialization -----*/
   initialize_program (argc, argv);

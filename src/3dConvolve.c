@@ -2074,7 +2074,7 @@ int main
   printf ("\n");
 #endif
 
-  mainENTRY("3dConvolve main") ; machdep() ; PRINT_VERSION("3dConvolve") ;
+  mainENTRY("3dConvolve main") ; machdep() ; PRINT_VERSION("3dConvolve") ; AUTHOR(PROGRAM_AUTHOR);
 
 
   /*----- Program initialization -----*/

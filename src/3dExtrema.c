@@ -1666,7 +1666,8 @@ int main( int argc , char * argv[] )
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
 #else
-  PRINT_VERSION("3dExtrema") ; mainENTRY("3dExtrema main") ;
+  PRINT_VERSION("3dExtrema") ; AUTHOR(PROGRAM_AUTHOR) ;
+  mainENTRY("3dExtrema main") ;
 #endif
 
 

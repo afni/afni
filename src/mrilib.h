@@ -1124,6 +1124,9 @@ extern float mri_scaled_diff( MRI_IMAGE *bim, MRI_IMAGE *nim, MRI_IMAGE *msk ) ;
   INFO_message("Program %s: AFNI version=%s [%d-bit]",          \
                (pp),AFNI_VERSION_LABEL,(int)(sizeof(void *)*8))
 
+#undef  AUTHOR
+#define AUTHOR(aa) INFO_message("Authored by: %s",aa)
+
 #undef  WROTE_DSET_MSG
 #define WROTE_DSET_MSG(dd,ss) \
   INFO_message("Output dataset %s {%s}",DSET_BRIKNAME(dd),(ss))

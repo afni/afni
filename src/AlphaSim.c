@@ -1454,7 +1454,8 @@ int main (int argc, char ** argv)
   printf ("\n");
 #endif
 
-   PRINT_VERSION("AlphaSim") ; mainENTRY("AlphaSim main") ; machdep() ;
+   PRINT_VERSION("AlphaSim") ; AUTHOR(PROGRAM_AUTHOR) ;
+   mainENTRY("AlphaSim main") ; machdep() ;
 
   /*----- program initialization -----*/
   initialize (argc, argv, 

@@ -1124,7 +1124,7 @@ int main( int argc , char * argv[] )
   printf ("\n");
 #endif
 
-  PRINT_VERSION("3dFDR") ; mainENTRY("3dFDR main") ; machdep() ;
+  PRINT_VERSION("3dFDR") ; AUTHOR(PROGRAM_AUTHOR); mainENTRY("3dFDR main") ; machdep() ;
 
   /*----- Initialize program:  get all operator inputs; 
     create mask for voxels above mask threshold -----*/

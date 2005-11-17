@@ -879,6 +879,7 @@ int main( int argc , char *argv[] )
   THD_dataxes new_daxes;                   /* new dataset axes */
 
   mainENTRY("adwarp main") ; machdep() ; PRINT_VERSION("adwarp") ;
+  AUTHOR(PROGRAM_AUTHOR) ;
 
 #if 0
   /*----- Identify software -----*/
