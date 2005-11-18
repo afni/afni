@@ -164,6 +164,8 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    o Added NN_geom, nearest neighbor interpolation option.\n"
             "    o Combined with -match_vol or -match_area, this geometry\n"
             "    smoothing mode can be used to inflate surfaces.\n"
+            "    o New weighting for Taubin geometry filtering.\n"
+            "    o Option for masking nodes to be filtered.\n"
             "  + SurfaceMetrics:\n"
             "    o Option -vol calculates the volume of the closed surface.\n"
             "  + SurfPatch:\n"
@@ -175,6 +177,8 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "  + ConvertDset:\n"
             "    o Option -o_1dp was added to write 1D file data only,\n"
             "    without additional comments.\n"
+            "  + SurfaceMetrics:\n"
+            "    o Options for finding surface boundaries.\n"
             );
          break; 
          

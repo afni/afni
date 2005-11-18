@@ -919,7 +919,7 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      cnt += 1;
                   } 
 
-                  attr_sm = SUMA_SmoothAttr_Neighb (attrbuf, SO->N_Node, NULL, SO->FN, 1); 
+                  attr_sm = SUMA_SmoothAttr_Neighb (attrbuf, SO->N_Node, NULL, SO->FN, 1, NULL); 
                   if (attr_sm == NULL) {
                      fprintf(stderr,"Error SUMA_input: Failed in SUMA_SmoothAttr_Neighb\n");
                      break;
@@ -990,12 +990,12 @@ void SUMA_input(Widget w, XtPointer clientData, XtPointer callData)
                      break;
                }   
                /* smooth estimate twice */
-               attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL, SO->FN, 1);
+               attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL, SO->FN, 1, NULL);
                if (attr_sm == NULL) {
                      fprintf(stderr,"Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
                      break;
                }   
-               Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, Cx, SO->FN, 1);
+               Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, Cx, SO->FN, 1, NULL);
                if (attr_sm) SUMA_free(attr_sm);
 
                fprintf(SUMA_STDOUT, "%s: Use SUMA_ScaleToMap to colorize Conv.txt and display it on surface.\n", FuncName);
@@ -2070,7 +2070,7 @@ int SUMA_MarkLineSurfaceIntersect (SUMA_SurfaceViewer *sv, SUMA_DO *dov)
 
       /* print nodes about the closets faceset*/
       fprintf(SUMA_STDOUT, "\nvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
-      fprintf(SUMA_STDOUT, "Selected surface %s (Focus_SO_ID # %d). FaceSet %d, Closest Node %d\n", 
+      fprintf(SUMA_STDOUT, "Selected surface %s (Focus_SO_ID # %d).\nFaceSet %d, Closest Node %d\n", 
          SO->Label, sv->Focus_SO_ID, MTI->ifacemin, MTI->inodemin);
       fprintf(SUMA_STDOUT, "Nodes forming closest FaceSet:\n");
       fprintf(SUMA_STDOUT, "%d, %d, %d\n", \

@@ -47,6 +47,12 @@ extern int SUMAg_N_DOv;
 int SUMA_GEOMCOMP_NI_MODE = NI_BINARY_MODE;
 #endif
 
+void SUMA_Set_SurfSmooth_NodeDebug(int n)
+{
+   SUMA_SSidbg = n;
+}
+
+
 /*!
    \brief function to subdivide triangles to meet a maxarea criterion
    Divisions are done by adding a node at the centroid of the triangle 
@@ -1819,7 +1825,7 @@ SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObjec
           Adjust node coordinates of SO so that
           Node i on SO is repositioned such 
           that |c i| = radius
-          c is the centers of SO .
+          c is the center of SO, calculated as the average coordinate.
    \param SOref reference SurfaceObject, used to communicate with SUMA 
    \param radius , you know what.
    \param cs the famed communication structure
@@ -1839,7 +1845,7 @@ SUMA_Boolean SUMA_ProjectSurfaceToSphere(SUMA_SurfaceObject *SO, SUMA_SurfaceObj
    
    SUMA_ENTRY;
 
-   if (!SO || !SOref) { SUMA_SL_Err("NULL surface"); SUMA_RETURN(NOPE); }
+   if (!SO || (cs && !SOref)) { SUMA_SL_Err("NULL surface"); SUMA_RETURN(NOPE); }
    
    if (LocalHead) {
       fprintf(SUMA_STDERR, "%s:\n"
@@ -2112,7 +2118,7 @@ float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO)
    float **wgt=NULL, *coord_nbr=NULL, *cotan=NULL, *tfp=NULL;
    float dv[3], p[3], q[3];
    float area, area_p, area_q, dot_p, dot_q;
-   int i, j, k, n, j3p1, j3m1, n3, j3=0, nj, nj3, i_dbg;
+   int i, j, k, n, j3p1, j3m1, n3, j3=0, nj, nj3;
    SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
@@ -2126,11 +2132,10 @@ float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO)
       SUMA_RETURN(NULL);
    }
    
-   i_dbg = -1; /* index of debugging node, set to -1 for no debugging */
    /* in the demo mesh that Moo Chung gave me, 
    Node 17 has the following neighbors in ccw order:
    231 230 250 261 239 236 - 231 230 250 261 239 236 
-   Set i_dbg = 17 and turn on LocalHead to get a confirmation of this
+   Set SUMA_SSidbg = 17 and turn on LocalHead to get a confirmation of this
    by this function*/
    /* implement the non-parametric weight estimation method */
    wgt = (float **)SUMA_allocate2D(SO->N_Node, SO->FN->N_Neighb_max, sizeof(float));  /* vector of node weights */
@@ -2157,7 +2162,7 @@ float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO)
       for (k=0; k < 3; ++k) coord_nbr[k] = coord_nbr[j3+k];  
       j3 = 3 * ( SO->FN->N_Neighb[n] + 1);
       for (k=0; k < 3; ++k) coord_nbr[j3+k] = coord_nbr[3+k];
-      if (LocalHead && n == i_dbg) { SUMA_disp_vect (coord_nbr, 3 * (SO->FN->N_Neighb[n] + 2)) ;  }
+      if (LocalHead && n == SUMA_SSidbg) { SUMA_disp_vect (coord_nbr, 3 * (SO->FN->N_Neighb[n] + 2)) ;  }
       
       
       area = 0.0;
@@ -2177,7 +2182,7 @@ float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO)
          
          cotan[j-1] = dot_p/area_p + dot_q/area_q;
          area += area_p/2.0;
-         if (LocalHead && n == i_dbg) {
+         if (LocalHead && n == SUMA_SSidbg) {
             fprintf (SUMA_STDERR,"[%d->%d] area_p, area_q = %f, %f\n",
                                   n, SO->FN->FirstNeighb[n][j-1],
                                   area_p / 2.0,  area_q / 2.0);
@@ -2187,7 +2192,7 @@ float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO)
       for (j=0; j<SO->FN->N_Neighb[n]; ++j) {
          wgt[n][j] = cotan[j]/area;
       }
-      if (LocalHead && n == i_dbg) {
+      if (LocalHead && n == SUMA_SSidbg) {
          fprintf (SUMA_STDERR,"%s: Weight Results for neighbors of %d (matlab node %d):\n",
                               FuncName, n, n+1);
          SUMA_disp_vect (wgt[n], SO->FN->N_Neighb[n]);
@@ -2201,6 +2206,234 @@ float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO)
    SUMA_RETURN(wgt);
 }
 
+void SUMA_Set_Taubin_Weights(SUMA_TAUBIN_SMOOTH_OPTIONS tb) 
+{
+   SUMA_Taubin_Weights = tb;
+}
+
+/*!
+   \brief calculate the Fujiwara interpolation weights. Compensates for irregular edge lengths, trying
+   to better preserve geometry in instances with mesh is irregular 
+   (Taubin G, Eurographics 2000)
+   
+   \param SO (SUMA_SurfaceObject *) Surface object with valid SO->NodeList, SO->FaceSetList and SO->FN
+   \param NewNodeList (float *) a node list to use instead of the one in SO. Useful when you're calling 
+                                the function repeatedly. Set to NULL if you want to use SO->NodeList
+   \param UseThisWeight (float ***) Pointer to a weight matrix that is to be used instead of reallocating a new
+                                    one. If UseThisWeight == NULL, a new wgt is returned at each time.
+                                    If *UseThisWeight == NULL, a new wgt is allocated and stored in *UseThisWeight
+                                    so the next time you call the function with UseThisWeight, a new wgt needs
+                                    not be created.
+   \return wgt (float **) 2D matrix of the same size as SO->FirstNeighb that contains the
+                           weights to be applied to a node's neighbors in interpolation
+                           Free the result with SUMA_free2D ((char **)wgt, SO->N_Node);
+                           
+   \sa SUMA_Taubin_Smooth
+*/
+float ** SUMA_Taubin_Fujiwara_Smooth_Weights (SUMA_SurfaceObject *SO, float *NewNodeList, float ***UseThisWeight)
+{
+   static char FuncName[]={"SUMA_Taubin_Fujiwara_Smooth_Weights"};
+   float **wgt=NULL, *coord_nbr=NULL, *cotan=NULL, *tfp=NULL, *nl = NULL;
+   float dv[3], p[3], q[3];
+   double cij=0.0;
+   float area, area_p, area_q, dot_p, dot_q;
+   int i, j, k, n, j3p1, j3m1, n3, j3=0, nj, nj3;
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO) {
+      SUMA_SL_Err("Null SO");
+      SUMA_RETURN(NULL);
+   }
+   if (!SO->FN) {
+      SUMA_SL_Err("Null SO->FN");
+      SUMA_RETURN(NULL);
+   }
+   if (NewNodeList) {
+      nl = NewNodeList;
+   } else {
+      nl = SO->NodeList;
+   }
+   
+   SUMA_SL_Note("FUJIWARA!!!!");
+   /* implement the Fujiwara weight estimation method */
+   wgt = NULL;
+   if (UseThisWeight) {
+      wgt = *UseThisWeight;
+   } 
+   if (!wgt) {
+      wgt = (float **)SUMA_allocate2D(SO->N_Node, SO->FN->N_Neighb_max, sizeof(float));  /* vector of node weights */
+      if (UseThisWeight) { /* store it for use later on */
+         *UseThisWeight = wgt;
+      }
+   }
+   if (!wgt) {
+      SUMA_SL_Crit("Failed to allocate for wgt &/|coord_nbr &/|cotan");
+      SUMA_RETURN(NULL);
+   }
+   
+   for (n=0; n < SO->N_Node; ++n) {
+      n3 = 3 * n;
+      area = 0.0;
+      for (j=0; j<SO->FN->N_Neighb[n]; ++j) {
+         j3 = 3 * (j);
+         nj = SO->FN->FirstNeighb[n][j]; nj3 = 3 * nj;
+         SUMA_SEG_LENGTH( (&(nl[nj3])), (&(nl[n3])), cij);
+         if (cij > 0.00001) {
+            cij = 1/cij;
+         } else {
+            cij = 0.0;
+         }
+         area += (float)cij; 
+         wgt[n][j] = (float)cij;
+      }  /* for j */
+      if (area) { 
+         for (j=0; j<SO->FN->N_Neighb[n]; ++j) { wgt[n][j] /= area; }
+      }
+      
+      
+      if (LocalHead && n == SUMA_SSidbg) {
+         fprintf (SUMA_STDERR,"%s: Weight Results for neighbors of %d (matlab node %d):\n",
+                              FuncName, n, n+1);
+         SUMA_disp_vect (wgt[n], SO->FN->N_Neighb[n]);
+      }
+   }  /* for n */
+
+   SUMA_RETURN(wgt);
+}
+
+/*!
+   \brief calculate the Desbrun interpolation weights, results in zero tangential component to smoothing
+   (Taubin G, Eurographics 2000)
+   
+   \param SO (SUMA_SurfaceObject *) Surface object with valid SO->NodeList, SO->FaceSetList and SO->FN
+   \param NewNodeList (float *) a node list to use instead of the one in SO. Useful when you're calling 
+                                the function repeatedly. Set to NULL if you want to use SO->NodeList
+   \param UseThisWeight (float ***) Pointer to a weight matrix that is to be used instead of reallocating a new
+                                    one. If UseThisWeight == NULL, a new wgt is returned at each time.
+                                    If *UseThisWeight == NULL, a new wgt is allocated and stored in *UseThisWeight
+                                    so the next time you call the function with UseThisWeight, a new wgt needs
+                                    not be created.
+   \return wgt (float **) 2D matrix of the same size as SO->FirstNeighb that contains the
+                           weights to be applied to a node's neighbors in interpolation
+                           Free the result with SUMA_free2D ((char **)wgt, SO->N_Node);
+                           
+   \sa SUMA_Taubin_Smooth
+*/
+float ** SUMA_Taubin_Desbrun_Smooth_Weights (SUMA_SurfaceObject *SO, float *NewNodeList, float ***UseThisWeight)
+{
+   static char FuncName[]={"SUMA_Taubin_Desbrun_Smooth_Weights"};
+   float **wgt=NULL, *coord_nbr=NULL, *cotan=NULL, *tfp=NULL, *nl = NULL;
+   float dv[3], p[3], q[3];
+   double cij=0.0, cot1, cot2, Uc[3], U1[3], U2[3], Ucn, U1n, U2n;
+   float area, area_p, area_q, dot_p, dot_q;
+   int N_inci_alloc=100;
+   int i, j, k, n, j3p1, j3m1, n3, j3=0, nj, nj3, nk_1, nk_2, N_inci, inci[N_inci_alloc];
+   SUMA_Boolean LocalHead = NOPE;
+   
+   SUMA_ENTRY;
+
+   if (!SO) {
+      SUMA_SL_Err("Null SO");
+      SUMA_RETURN(NULL);
+   }
+   if (!SO->FN) {
+      SUMA_SL_Err("Null SO->FN");
+      SUMA_RETURN(NULL);
+   }
+   if (NewNodeList) {
+      nl = NewNodeList;
+   } else {
+      nl = SO->NodeList;
+   }
+   
+   SUMA_SL_Note("DESBRUN!!!!");
+   /* implement the Desbrun weight estimation method */
+   wgt = NULL;
+   if (UseThisWeight) {
+      wgt = *UseThisWeight;
+   } 
+   if (!wgt) {
+      wgt = (float **)SUMA_allocate2D(SO->N_Node, SO->FN->N_Neighb_max, sizeof(float));  /* vector of node weights */
+      if (UseThisWeight) { /* store it for use later on */
+         *UseThisWeight = wgt;
+      }
+   }
+   if (!wgt) {
+      SUMA_SL_Crit("Failed to allocate for wgt");
+      SUMA_RETURN(NULL);
+   }
+   
+   for (n=0; n < SO->N_Node; ++n) {
+      n3 = 3 * n;
+      area = 0.0;
+      for (j=0; j<SO->FN->N_Neighb[n]; ++j) {
+         j3 = 3 * (j);
+         nj = SO->FN->FirstNeighb[n][j]; nj3 = 3 * nj;
+         /* find the incident triangle to n nj */
+         N_inci = 0;
+         if (!SUMA_Get_Incident(n, nj, SO->EL, inci, &N_inci, 0)) {
+            SUMA_SL_Err("Failed to find incident triangles!\n");
+            SUMA_RETURN(NULL);
+         }else if (N_inci > 2) {
+            SUMA_SL_Warn("Non 2-manifold surface!");
+            if (N_inci > N_inci_alloc) {
+               SUMA_SL_Crit("Bad allocation for inci.");
+               SUMA_RETURN(NULL);
+            }
+         }
+         
+         /* calculate cij = cot1 + cot2 */
+         
+         cot1= cot2 = cij = 0.0;   
+         /* find the third node from each of the triangles */
+         SUMA_THIRD_NODE(nj,n,inci[0],SO->FaceSetList,nk_1);
+         /* find the cotangent of the opposing angles at nk_1 and nk_2 */
+         /* form vectors */
+         SUMA_UNIT_VEC((&(nl[3*nk_1])), (&(nl[3*n ])), U1, U1n);
+         SUMA_UNIT_VEC((&(nl[3*nk_1])), (&(nl[3*nj])), U2, U2n);
+         SUMA_MT_CROSS(Uc, U1, U2); Ucn = sqrt(Uc[0]*Uc[0]+Uc[1]*Uc[1]+Uc[2]*Uc[2]);
+         /* cotangent = dot / cross product*/
+         if (Ucn > 0.00000000001) cot1 = SUMA_MT_DOT(U1,U2)/Ucn;
+         if (N_inci > 1) {
+            SUMA_THIRD_NODE(nj,n,inci[1],SO->FaceSetList,nk_2);
+            /* form vectors */
+            SUMA_UNIT_VEC((&(nl[3*nk_2])), (&(nl[3*n ])), U1, U1n);
+            SUMA_UNIT_VEC((&(nl[3*nk_2])), (&(nl[3*nj])), U2, U2n);
+            SUMA_MT_CROSS(Uc, U1, U2); Ucn = sqrt(Uc[0]*Uc[0]+Uc[1]*Uc[1]+Uc[2]*Uc[2]);
+            /* cotangent = dot / cross product*/
+            if (Ucn > 0.00000000001) cot2 = SUMA_MT_DOT(U1,U2)/Ucn;
+         }
+         if (LocalHead && n == SUMA_SSidbg) {
+            int kk;
+            fprintf (SUMA_STDERR,"%s: Edge [%d %d]:   third nodes:\n", 
+                              FuncName, n, nj);
+            for (kk=0; kk<N_inci; ++kk) {
+               fprintf (SUMA_STDERR,"   %d", inci[kk]);
+            }
+            fprintf (SUMA_STDERR,"\n"); 
+            fprintf (SUMA_STDERR,"   cot: %f   %f\n", cot1, cot2);              
+         }
+         cij = SUMA_MAX_PAIR((cot1 + cot2), 0.05); /* give a minimum of 5% weight to each node */
+         
+         area += (float)cij; 
+         wgt[n][j] = (float)cij;
+      }  /* for j */
+      if (area) { 
+         for (j=0; j<SO->FN->N_Neighb[n]; ++j) { wgt[n][j] /= area; }
+      }
+      
+      
+      if (LocalHead && n == SUMA_SSidbg) {
+         fprintf (SUMA_STDERR,"%s: Weight Results for neighbors of %d (matlab node %d):\n",
+                              FuncName, n, n+1);
+         SUMA_disp_vect (wgt[n], SO->FN->N_Neighb[n]);
+      }
+   }  /* for n */
+
+   SUMA_RETURN(wgt);
+}
 /*!
    \brief Show the transfer function (f(k)) for the Taubin 
    smoothing algorithm for a combination of scaling factors
@@ -2467,6 +2700,16 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                fin = fin_next;
                fout = fbuf; /* results go into buffer */
                fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+               if (wgt && niter) {
+                  /* recalculate the weights */
+                  if (SUMA_Taubin_Weights == SUMA_FUJIWARA) {
+                     SUMA_Taubin_Fujiwara_Smooth_Weights(SO, fin, &wgt);
+                  } else if (SUMA_Taubin_Weights == SUMA_DESBRUN) {
+                     SUMA_Taubin_Desbrun_Smooth_Weights(SO, fin, &wgt);
+                  } else {
+                     SUMA_SL_Err("Weights not set");
+                  }
+               }
             }
             for (k=0; k < vpn; ++k) {
                n_offset = k * SO->N_Node;  /* offset of kth node value in fin */
@@ -2524,6 +2767,16 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
                fin = fin_next;
                fout = fbuf; /* results go into buffer */
                fin_next = fbuf; /* in the next iteration, the input is from the buffer */
+               if (wgt && niter ) {
+                  /* recalculate the weights */
+                  if (SUMA_Taubin_Weights == SUMA_FUJIWARA) {
+                     SUMA_Taubin_Fujiwara_Smooth_Weights(SO, fin, &wgt);
+                  } else if (SUMA_Taubin_Weights == SUMA_DESBRUN) {
+                     SUMA_Taubin_Desbrun_Smooth_Weights(SO, fin, &wgt);
+                  } else {
+                     SUMA_SL_Err("Weights not set");
+                  }
+               }
             }
             for (n=0; n < SO->N_Node; ++n) {
                DoThis = 1;
@@ -2952,7 +3205,7 @@ float *SUMA_Offset_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float OffsetL
 
 float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig, 
                            int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
-                           SUMA_COMM_STRUCT *cs)
+                           SUMA_COMM_STRUCT *cs, byte *nmask)
 {
    static char FuncName[]= {"SUMA_NN_GeomSmooth"};
    float *fout_final=NULL, *fbuf=NULL, *fin_next=NULL, *fin=NULL, *fout=NULL;
@@ -3017,7 +3270,7 @@ float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int N_iter, float *fin_orig,
                fin_next = fbuf; /* in the next iteration, the input is from the buffer */
             }
             fout = SUMA_SmoothAttr_Neighb ( fin, vpn*SO->N_Node, 
-                                                 fout, SO->FN, vpn);
+                                                 fout, SO->FN, vpn, nmask);
             if (cs->Send) {
                if (!SUMA_SendToSuma (SO, cs, (void *)fout, SUMA_NODE_XYZ, 1)) {
                   SUMA_SL_Warn("Failed in SUMA_SendToSuma\nCommunication halted.");
@@ -3213,7 +3466,7 @@ void usage_SUMA_SurfSmooth ()
               "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
               "              This method is used to filter data\n"
               "              on the surface.\n"
-              "      LM: [-kpb k] [-lm l m] [-surf_out surfname]\n"
+              "      LM: [-kpb k] [-lm l m] [-surf_out surfname] [-iw weights]\n"
               "          This method is used to filter the surface's\n"
               "          geometry (node coordinates).\n"
               "      NN_geom: smooth by averaging coordinates of \n"
@@ -3222,7 +3475,7 @@ void usage_SUMA_SurfSmooth ()
               "               and is meant for test purposes only.\n"
               "\n"
               "   Common options:\n"
-              "      [-Niter N] [-output out.1D] [-h/-help] \n"
+              "      [-Niter N] [-output out.1D] [-h/-help] [-dbg_n node]\n"
               "      [-add_index] [-ni_text|-ni_binary] [-talk_suma]\n\n"
               "\n"
               "   Detailed usage:\n"
@@ -3269,7 +3522,16 @@ void usage_SUMA_SurfSmooth ()
               "      -surf_out surfname: Writes the surface with smoothed coordinates\n"
               "                          to disk. For SureFit and 1D formats, only the\n"
               "                          coord file is written out.\n"
-              "      NOTE: -surf_out and -output are mutually exclusive.\n"  
+              "      NOTE: -surf_out and -output are mutually exclusive.\n" 
+              "      -iw wgt: Set interpolation weights to wgt. You can choose from:\n"
+              "               Equal   : Equal weighting, fastest (default), \n"
+              "                         tends to make edges equal.\n"
+              "               Fujiwara: Weighting based on inverse edge length.\n"
+              "                         Would be a better preserver of geometry when\n"
+              "                         mesh has irregular edge lengths.\n"
+              "               Desbrun : Weighting based on edge angles (slooow).\n"
+              "                         Removes tangential displacement during smoothing.\n"
+              "                         Might not be too useful for brain surfaces.\n"
               "\n"
               "   Options for NN_geom:\n"
               "      -match_size r: Adjust node coordinates of smoothed surface to \n"
@@ -3296,6 +3558,9 @@ void usage_SUMA_SurfSmooth ()
               "      -match_sphere rad: Project nodes of smoothed surface to a sphere\n"
               "                   of radius rad. Projection is carried out along the \n"
               "                   direction formed by the surface's center and the node.\n"
+              "      -surf_out surfname: Writes the surface with smoothed coordinates\n"
+              "                          to disk. For SureFit and 1D formats, only the\n"
+              "                          coord file is written out.\n"
               "\n"
               "   Common options:\n"
               "      -Niter N: Number of smoothing iterations (default is 100)\n"
@@ -3315,6 +3580,13 @@ void usage_SUMA_SurfSmooth ()
               "                      and NodeList_sm.1D with LM method.\n" 
               "      -add_index : Output the node index in the first column.\n"
               "                   This is not done by default.\n"
+              "      -dbg_n node : output debug information for node 'node'.\n"
+              "      -n_mask filtermask: Apply filtering to nodes listed in\n"
+              "                          filtermask only. Nodes not in the filtermask will\n"
+              "                          not see their value change, but they will still \n"
+              "                          contribute to the values of nodes in the filtermask.\n"
+              "                          At the moment, it is only implemented for methods\n"
+              "                          NN_geom and LM\n" 
               "\n"
               "%s"
               "\n"
@@ -3417,11 +3689,13 @@ typedef struct {
    char *if_name2;
    char *in_name;
    char *out_name;   /* this one's dynamically allocated so you'll have to free it yourself */
-   char *ShowOffset_DBG;
+   char *ShowOffset_DBG; /* meant to be a file where one outputs some debugging info. Not being used ...*/
    char *surf_out;
    char *surf_names[SURFSMOOTH_MAX_SURF];
    char *spec_file;
    int MatchMethod;
+   byte *nmask;
+   char *nmaskname;
 } SUMA_SURFSMOOTH_OPTIONS;
 
 /*!
@@ -3470,7 +3744,10 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    Opt->m = -1.0;
    Opt->AddIndex = 0;
    Opt->insurf_method = 0;
+   Opt->nmask = NULL;
+   Opt->nmaskname = NULL;
    Opt->spec_file = NULL;
+   SUMA_Set_Taubin_Weights(SUMA_EQUAL);
    for (i=0; i<SURFSMOOTH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
 	brk = NOPE;
@@ -3551,15 +3828,24 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
      
       if (!brk && (strcmp(argv[kar], "-dbg_n") == 0)) {
          kar ++;
-			if (kar+1 >= argc)  {
-		  		fprintf (SUMA_STDERR, "need 2 arguments after -dbg_n \n");
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -dbg_n \n");
 				exit (1);
 			}
-			Opt->ShowNode = atoi(argv[kar]); kar ++;
-         Opt->ShowOffset_DBG = argv[kar];
+			Opt->ShowNode = atoi(argv[kar]); 
+         SUMA_Set_SurfSmooth_NodeDebug(Opt->ShowNode);
 			brk = YUP;
 		}
-      
+      if (!brk && (strcmp(argv[kar], "-n_mask") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -n_mask \n");
+				exit (1);
+			}
+			Opt->nmaskname = argv[kar]; 
+			brk = YUP;
+		}
+
       if (!brk && (strcmp(argv[kar], "-Niter") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -3610,6 +3896,25 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
          }
 			Opt->l = atof(argv[kar]); kar ++;
          Opt->m = atof(argv[kar]);  
+			brk = YUP;
+		}
+      if (!brk && (strcmp(argv[kar], "-iw") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -iw \n");
+				exit (1);
+			}
+         SUMA_TO_LOWER(argv[kar]);
+         if (strcmp(argv[kar], "equal") == 0 ) {
+            SUMA_Set_Taubin_Weights(SUMA_EQUAL);
+         }else if (strcmp(argv[kar],"fujiwara")==0) {
+            SUMA_Set_Taubin_Weights(SUMA_FUJIWARA); 
+         }else if (strcmp(argv[kar],"desbrun")==0) {
+            SUMA_Set_Taubin_Weights(SUMA_DESBRUN);
+         } else {
+            fprintf (SUMA_STDERR, "Weights option %s not understood.\n", argv[kar]);
+            exit (1);
+         } 
 			brk = YUP;
 		}
       
@@ -4099,6 +4404,46 @@ int main (int argc,char *argv[])
       exit (1);
    }
 
+   /* setup the mask, if needed */
+   if (Opt->nmaskname) {
+      int kk;
+      float *far=NULL;
+      MRI_IMAGE * im=NULL;
+      
+      
+      im = mri_read_1D (Opt->nmaskname);
+      if (!im) {
+         SUMA_S_Err("Failed to read mask file");  
+         exit(1);
+      }
+      far = MRI_FLOAT_PTR(im);
+   
+      if (!im->nx) {
+         SUMA_S_Err("Empty file");  
+         exit(1);
+      }
+      if (im->ny != 1 ) {
+         SUMA_S_Err("nmask file must have\n"
+                     " 1 column.");
+         fprintf(SUMA_STDERR,"Have %d columns!\n", im->ny);
+         exit(1);
+      }
+      Opt->nmask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
+      if (!Opt->nmask) {
+         SUMA_S_Crit("Failed to allocate"); exit(1);
+      }
+      for (kk=0; kk<im->nx; ++kk) {
+         if (far[kk] < 0 || far[kk] >= SO->N_Node) {
+            SUMA_S_Err( "Bad indices in mask file.\n"
+                        "Values either < 0 or >= number\n"
+                        "of nodes in surface.");
+            exit(1);
+         }
+         Opt->nmask[(int)far[kk]] = 1;   
+      }
+      mri_free(im); im = NULL;
+   }
+   
    if (Opt->ShowNode >= 0 && Opt->ShowNode >= SO->N_Node) {
       fprintf (SUMA_STDERR,"Error %s: Requesting debugging info for a node index (%d) \n"
                            "that does not exist in a surface of %d nodes.\nRemember, indexing starts at 0.\n", 
@@ -4226,7 +4571,7 @@ int main (int argc,char *argv[])
             d_order =  SUMA_ROW_MAJOR; 
             
             dsmooth = SUMA_NN_GeomSmooth( SO, Opt->N_iter, SO->NodeList,
-                                          3, d_order, NULL, cs);
+                                          3, d_order, NULL, cs, Opt->nmask);
             if (0 && LocalHead) {
                SUMA_LH("See dsmooth.1D");
                SUMA_disp_vecmat (dsmooth, SO->N_Node, 3, 1,  d_order, NULL, YUP);
@@ -4271,12 +4616,31 @@ int main (int argc,char *argv[])
          {
             
             if (LocalHead) SUMA_etime(&start_time,0);
+            wgt = NULL;
             
             d_order =  SUMA_ROW_MAJOR; 
-            dsmooth = SUMA_Taubin_Smooth (SO, NULL, 
-                            Opt->l, Opt->m, SO->NodeList, 
-                            Opt->N_iter, 3, d_order,
-                            NULL, cs, NULL); 
+            if (SUMA_Taubin_Weights == SUMA_FUJIWARA) {
+               SUMA_SL_Note("Fujiwara!!!");
+               wgt = SUMA_Taubin_Fujiwara_Smooth_Weights(SO, NULL, NULL);
+               if (!wgt) {
+                  SUMA_SL_Err("Failed to compute weights.\n");
+                  exit(1);
+               }
+            } else if (SUMA_Taubin_Weights == SUMA_DESBRUN) {
+               wgt = SUMA_Taubin_Desbrun_Smooth_Weights(SO, NULL, NULL);
+               if (!wgt) {
+                  SUMA_SL_Err("Failed to compute weights.\n");
+                  exit(1);
+               }
+            } else if (SUMA_Taubin_Weights != SUMA_EQUAL) {
+               SUMA_SL_Err("Weights improperly initialized!");
+               exit(1);
+            }
+             
+            dsmooth = SUMA_Taubin_Smooth (SO, wgt, 
+                      Opt->l, Opt->m, SO->NodeList, 
+                      Opt->N_iter, 3, d_order,
+                      NULL, cs, Opt->nmask); 
 
             if (LocalHead) {
                etime_GetOffset = SUMA_etime(&start_time,1);
@@ -4285,6 +4649,8 @@ int main (int argc,char *argv[])
                                        FuncName, etime_GetOffset, SO->N_Node, 
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
+            
+            if (wgt) SUMA_free2D ((char **)wgt, SO->N_Node); wgt = NULL;
             /* writing of results is done below */
          }
          break;
@@ -4498,6 +4864,7 @@ int main (int argc,char *argv[])
    if (Opt->insurf_method == 1) { if (SO) SUMA_Free_Surface_Object(SO); }
    if (data_old) SUMA_free(data_old);  
    if (Opt->out_name) SUMA_free(Opt->out_name); Opt->out_name = NULL;
+   if (Opt->nmask) SUMA_free(Opt->nmask); Opt->nmask = NULL;
    if (Opt) SUMA_free(Opt);
  	if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
@@ -8022,6 +8389,7 @@ typedef struct {
    char *spec_file;
    char *surftype;
    int self_intersect;
+   int DoSum;
 } SUMA_SURFQUAL_OPTIONS;
 
 /*!
@@ -8055,6 +8423,8 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
    Opt->N_surf = -1;
    Opt->surftype = NULL;
    Opt->self_intersect = 0;
+   Opt->DoSum = 0;
+   
    for (i=0; i<SURFQUAL_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
 	brk = NOPE;
    
@@ -8082,6 +8452,10 @@ SUMA_SURFQUAL_OPTIONS *SUMA_SurfQual_ParseInput (char *argv[], int argc)
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-summary") == 0)) {
+         Opt->DoSum = 1;
+			brk = YUP;
+		}
       
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
@@ -8144,8 +8518,8 @@ int main (int argc,char *argv[])
    static char FuncName[]={"SurfQual"};
    char *OutName = NULL, ext[5], *prefix = NULL, *shist=NULL;
    SUMA_SURFQUAL_OPTIONS *Opt; 
-   int SO_read = -1;
-   int i, cnt, trouble;
+   int SO_read = -1, nbad = -1;
+   int i, cnt, trouble, consistent = -1, eu = -1, nsi = -1;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_SurfSpecFile Spec;
    void *SO_name = NULL;
@@ -8186,7 +8560,7 @@ int main (int argc,char *argv[])
    }
   
    if (Opt->self_intersect) DoSelfInt = YUP;
-   
+
    DoConv = NOPE;
    DoSphQ = NOPE;   
    if (Opt->surftype) {
@@ -8221,7 +8595,9 @@ int main (int argc,char *argv[])
       if (!SUMA_MakeConsistent (SO->FaceSetList, SO->N_FaceSet, SO->EL, 0, &trouble)) {
          SUMA_S_Warn("Failed to make sure surface's mesh is consistently wound.\n"
                      "You should fix the mesh.\n");
-      }
+         consistent = 0;
+      } 
+      
       if (DoConv) {
          float *Cx = NULL;
          if (Opt->N_surf > 1) {
@@ -8235,6 +8611,7 @@ int main (int argc,char *argv[])
          if (Cx) SUMA_free(Cx); Cx = NULL;
          if (OutName) SUMA_free(OutName); OutName = NULL;
       } 
+      
       if (DoSphQ) {
          if (Opt->N_surf > 1) {
             sprintf(ext,"_%c", 65+i);
@@ -8243,7 +8620,7 @@ int main (int argc,char *argv[])
             OutName = SUMA_copy_string (prefix);
          }
          shist = SUMA_HistString (NULL, argc, argv, NULL);
-         SUMA_SphereQuality (SO, OutName, shist);   
+         nbad = SUMA_SphereQuality (SO, OutName, shist);   
          if (shist) SUMA_free(shist); shist = NULL;
          if (OutName) SUMA_free(OutName); OutName = NULL;
       }
@@ -8257,12 +8634,13 @@ int main (int argc,char *argv[])
                   "option to fix the problem before proceeding further.\n"
                   "Other results reported by this and other programs\n"
                   "may be incorrect if mesh is not consistently wound.\n" ); 
+      consistent = 0;
    } else {
+      consistent = 1;
       fprintf (SUMA_STDERR,"\n");
       fprintf (SUMA_STDERR,"Surface is consistently wound\n");
    }
    { 
-      int eu;
       SUMA_EULER_SO(SO, eu);
       fprintf (SUMA_STDERR,"\n");
       fprintf(SUMA_STDERR,"Surface Euler number is: %d\n", eu);
@@ -8294,7 +8672,7 @@ int main (int argc,char *argv[])
    }
    
    if (DoSelfInt) {
-      int nsi, iii;
+      int iii;
       FILE *fout=NULL;
       byte *report = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
       if (!report) {
@@ -8336,6 +8714,15 @@ int main (int argc,char *argv[])
    }
    
    fprintf (SUMA_STDERR,"\n");
+   
+   if (Opt->DoSum) {   /* do not change syntax, scripts depend on this */
+                     fprintf(stdout,"Summary:\n");
+                     fprintf(stdout,"Euler_No %d\n", eu);
+                     fprintf(stdout,"Consistent_Winding %d\n", consistent);
+      if (DoSphQ)    fprintf(stdout,"Folding_Triangles %d\n", nbad);
+      if (DoSelfInt) fprintf(stdout,"Self_Intersections %d\n", nsi);
+                     fprintf(stdout,"\n");
+   }
    
    SUMA_LH("clean up");
    if (prefix) SUMA_free(prefix); prefix = NULL;
