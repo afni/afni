@@ -1308,3 +1308,10 @@
         is not true on 64-bit solaris.  Since it was figured out in defining
         U32, just use that type for l.
 
+18 November 2005:
+  * modified nifti1_io.c (nifti_hist -> v1.16):
+      - removed any test or access of dim[i], i>dim[0]
+        (except setting them to 0 upon reading, so garbage does not propagate)
+      - do not set pixdim for collapsed dims to 1.0, leave them
+      - added magic and dim[i] tests in nifti_hdr_looks_good()
+

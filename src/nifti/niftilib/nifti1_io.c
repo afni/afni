@@ -273,9 +273,13 @@ static char * gni_history[] =
   "   - added skip_blank_ext to nifti_global_options\n"
   "   - added nifti_set_skip_blank_ext(), to set option\n"
   "   - if skip_blank_ext and no extensions, do not read/write extender\n"
+  "1.16  18 November 2005 [rickr]\n",
+  "   - removed any test or access of dim[i], i>dim[0]\n"
+  "   - do not set pixdim for collapsed dims to 1.0, leave them as they are\n"
+  "   - added magic and dim[i] tests in nifti_hdr_looks_good()\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.15 (Nov 2, 2005)";
+static char gni_version[] = "nifti library version 1.16 (Nov 18, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -308,7 +312,6 @@ static int  make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
                             int prods[], int * nprods );
 
 /* misc */
-static int   int_force_positive(int * list, int nel);
 static int   need_nhdr_swap    (short dim0, int hdrsize);
 static int   print_hex_vals    (const char * data, int nbytes, FILE * fp);
 static int   unescape_string   (char *str);  /* string utility functions */
@@ -450,12 +453,13 @@ static void update_nifti_image_for_brick_list( nifti_image * nim , int nbricks )
 
    nim->nt = nbricks;
    nim->nu = nim->nv = nim->nw = 1;
-
-   nim->nvox =  nim->nx * nim->ny * nim->nz
-              * nim->nt * nim->nu * nim->nv * nim->nw;
-
    nim->dim[4] = nbricks;
    nim->dim[5] = nim->dim[6] = nim->dim[7] = 1;
+
+   /* compute nvox                                                       */
+   /* do not rely on dimensions above dim[0]         16 Nov 2005 [rickr] */
+   for( nim->nvox = 1, ndim = 1; ndim <= nim->dim[0]; ndim++ )
+      nim->nvox *= nim->dim[ndim];
 
    /* update the dimensions to 4 or lower */
    for( ndim = 4; (ndim > 1) && (nim->dim[ndim] <= 1); ndim-- )
@@ -476,6 +480,8 @@ static void update_nifti_image_for_brick_list( nifti_image * nim , int nbricks )
 
     Fix all the dimension information, based on a new nim->dim[].
 
+    Note: we assume that dim[0] will not increase.
+
     Check for updates to pixdim[], dx,...,  nx,..., nvox, ndim, dim[0].
 *//*--------------------------------------------------------------------*/
 int nifti_update_dims_from_array( nifti_image * nim )
@@ -493,20 +499,64 @@ int nifti_update_dims_from_array( nifti_image * nim )
       fputc('\n',stderr);
    }
 
-   /* set nx, ..., one by one (abusing promotion, just a little) */
-   if(nim->dim[1] <= 1){ nim->pixdim[1] = nim->dx = nim->nx = nim->dim[1] = 1; }
-   if(nim->dim[2] <= 1){ nim->pixdim[2] = nim->dy = nim->ny = nim->dim[2] = 1; }
-   if(nim->dim[3] <= 1){ nim->pixdim[3] = nim->dz = nim->nz = nim->dim[3] = 1; }
-   if(nim->dim[4] <= 1){ nim->pixdim[4] = nim->dt = nim->nt = nim->dim[4] = 1; }
-   if(nim->dim[5] <= 1){ nim->pixdim[5] = nim->du = nim->nu = nim->dim[5] = 1; }
-   if(nim->dim[6] <= 1){ nim->pixdim[6] = nim->dv = nim->nv = nim->dim[6] = 1; }
-   if(nim->dim[7] <= 1){ nim->pixdim[7] = nim->dw = nim->nw = nim->dim[7] = 1; }
+   /* verify dim[0] first */
+   if(nim->dim[0] < 1 || nim->dim[0] > 7){
+      fprintf(stderr,"** invalid dim[0], dim[] = ");
+      for( c = 0; c < 8; c++ ) fprintf(stderr," %d", nim->dim[c]);
+      fputc('\n',stderr);
+      return 1;
+   }
 
-   nim->nvox =  nim->nx * nim->ny * nim->nz
-              * nim->nt * nim->nu * nim->nv * nim->nw;
+   /* set nx, ny ..., dx, dy, ..., one by one */
 
-   /* compute ndim */
-   for( ndim = 7; (ndim > 1) && (nim->dim[ndim] <= 1); ndim-- )
+   /* less than 1, set to 1, else copy */
+   if(nim->dim[1] < 1) nim->nx = nim->dim[1] = 1;
+   else                nim->nx = nim->dim[1];
+   nim->dx = nim->pixdim[1];
+
+   /* if undefined, or less than 1, set to 1 */
+   if(nim->dim[0] < 2 || (nim->dim[0] >= 2 && nim->dim[2] < 1))
+      nim->ny = nim->dim[2] = 1;
+   else
+      nim->ny = nim->dim[2];
+   /* copy delta values, in any case */
+   nim->dy = nim->pixdim[2];
+
+   if(nim->dim[0] < 3 || (nim->dim[0] >= 3 && nim->dim[3] < 1))
+      nim->nz = nim->dim[3] = 1;
+   else /* just copy vals from arrays */
+      nim->nz = nim->dim[3];
+   nim->dz = nim->pixdim[3];
+
+   if(nim->dim[0] < 4 || (nim->dim[0] >= 4 && nim->dim[4] < 1))
+      nim->nt = nim->dim[4] = 1;
+   else /* just copy vals from arrays */
+      nim->nt = nim->dim[4];
+   nim->dt = nim->pixdim[4];
+
+   if(nim->dim[0] < 5 || (nim->dim[0] >= 5 && nim->dim[5] < 1))
+      nim->nu = nim->dim[5] = 1;
+   else /* just copy vals from arrays */
+      nim->nu = nim->dim[5];
+   nim->du = nim->pixdim[5];
+
+   if(nim->dim[0] < 6 || (nim->dim[0] >= 6 && nim->dim[6] < 1))
+      nim->nv = nim->dim[6] = 1;
+   else /* just copy vals from arrays */
+      nim->nv = nim->dim[6];
+   nim->dv = nim->pixdim[6];
+
+   if(nim->dim[0] < 7 || (nim->dim[0] >= 7 && nim->dim[7] < 1))
+      nim->nw = nim->dim[7] = 1;
+   else /* just copy vals from arrays */
+      nim->nw = nim->dim[7];
+   nim->dw = nim->pixdim[7];
+
+   for( c = 1, nim->nvox = 1; c <= nim->dim[0]; c++ )
+      nim->nvox *= nim->dim[c];
+
+   /* compute ndim, assuming it can be no larger than the old one */
+   for( ndim = nim->dim[0]; (ndim > 1) && (nim->dim[ndim] <= 1); ndim-- )
        ;
 
    if( g_opts.debug > 2 ){
@@ -852,13 +902,13 @@ int valid_nifti_brick_list(nifti_image * nim , int nbricks,
    }
 
    /* nsubs sub-brick is nt*nu*nv*nw */
-   nsubs = nim->dim[4] * nim->dim[5] * nim->dim[6] * nim->dim[7];
+   for( c = 4, nsubs = 1; c <= nim->dim[0]; c++ )
+      nsubs *= nim->dim[c];
 
    if( nsubs <= 0 ){
       fprintf(stderr,"** VNBL warning: bad dim list (%d,%d,%d,%d)\n",
                      nim->dim[4], nim->dim[5], nim->dim[6], nim->dim[7]);
-      int_force_positive(nim->dim+4, 4);
-      nsubs = nim->dim[4] * nim->dim[5] * nim->dim[6] * nim->dim[7];
+      return 0;
    }
 
    for( c = 0; c < nbricks; c++ )
@@ -873,6 +923,7 @@ int valid_nifti_brick_list(nifti_image * nim , int nbricks,
    return 1;  /* all is well */
 }
 
+#if 0
 /* set any non-positive values to 1 */
 static int int_force_positive( int * list, int nel )
 {
@@ -887,6 +938,7 @@ static int int_force_positive( int * list, int nel )
       if( list[c] <= 0 ) list[c] = 1;
    return 0;
 }
+#endif
 /* end of new nifti_image_read_bricks() functionality */
 
 /*----------------------------------------------------------------------*/
@@ -2929,7 +2981,7 @@ int disp_nifti_1_header( const char * info, const nifti_1_header * hp )
 nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
                                     const char * fname)
 {
-   int   ii , doswap , ioff, ndim, nvox ;
+   int   ii , doswap , ioff ;
    int   is_nifti , is_onefile ;
    nifti_image *nim;
 
@@ -2965,18 +3017,25 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
 
    if( nhdr.dim[1] <= 0 )                ERREX("bad dim[1]") ;
 
-   for( ii=2 ; ii <= 7 ; ii++ )
-     if( nhdr.dim[ii] <= 0 ) nhdr.dim[ii] = 1 ;  /* fix bad dim[] values */
+   /* fix bad dim[] values in the defined dimension range */
+   for( ii=2 ; ii <= nhdr.dim[0] ; ii++ )
+     if( nhdr.dim[ii] <= 0 ) nhdr.dim[ii] = 1 ;
+
+   /* fix any remaining bad dim[] values, so garbage does not propagate */
+   for( ii=nhdr.dim[0]+1 ; ii <= 7 ; ii++ )
+     if( nhdr.dim[ii] != 1 ) nhdr.dim[ii] = 1 ;
+
+#if 0  /* rely on dim[0], do not attempt to modify it   16 Nov 2005 [rickr] */
 
    /**- get number of dimensions (ignoring dim[0] now) */
-
    for( ii=7 ; ii >= 2 ; ii-- )            /* loop backwards until we  */
      if( nhdr.dim[ii] > 1 ) break ;        /* find a dim bigger than 1 */
    ndim = ii ;
+#endif
 
    /**- set bad grid spacings to 1.0 */
 
-   for( ii=1 ; ii <= 7 ; ii++ ){
+   for( ii=1 ; ii <= nhdr.dim[0] ; ii++ ){
      if( nhdr.pixdim[ii] == 0.0         ||
          !IS_GOOD_FLOAT(nhdr.pixdim[ii])  ) nhdr.pixdim[ii] = 1.0 ;
    }
@@ -2994,14 +3053,17 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
 
   /**- set dimensions of data array */
   
-  nim->ndim = nim->dim[0] = ndim ;
-  nim->nx   = nim->dim[1] = nhdr.dim[1]; nvox  = nim->nx;
-  nim->ny   = nim->dim[2] = nhdr.dim[2]; nvox *= nim->ny;
-  nim->nz   = nim->dim[3] = nhdr.dim[3]; nvox *= nim->nz;
-  nim->nt   = nim->dim[4] = nhdr.dim[4]; nvox *= nim->nt;
-  nim->nu   = nim->dim[5] = nhdr.dim[5]; nvox *= nim->nu;
-  nim->nv   = nim->dim[6] = nhdr.dim[6]; nvox *= nim->nv;
-  nim->nw   = nim->dim[7] = nhdr.dim[7]; nvox *= nim->nw; nim->nvox = nvox;
+  nim->ndim = nim->dim[0] = nhdr.dim[0];
+  nim->nx   = nim->dim[1] = nhdr.dim[1];
+  nim->ny   = nim->dim[2] = nhdr.dim[2];
+  nim->nz   = nim->dim[3] = nhdr.dim[3];
+  nim->nt   = nim->dim[4] = nhdr.dim[4];
+  nim->nu   = nim->dim[5] = nhdr.dim[5];
+  nim->nv   = nim->dim[6] = nhdr.dim[6];
+  nim->nw   = nim->dim[7] = nhdr.dim[7];
+
+  for( ii=1, nim->nvox=1; ii <= nhdr.dim[0]; ii++ )
+     nim->nvox *= nhdr.dim[ii];
   
   /**- set the type of data in voxels and how many bytes per voxel */
   
@@ -3323,6 +3385,7 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
 /*! decide if this nifti_1_header structure looks reasonable
 
    Check dim[0], dim[1], sizeof_hdr, and datatype.
+   Check magic string for "n+1".
    Maybe more tests will follow.
 
    \return 1 if the header seems valid, 0 otherwise
@@ -3331,33 +3394,58 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
 *//*--------------------------------------------------------------------*/
 int nifti_hdr_looks_good(const nifti_1_header * hdr)
 {
-   int    nbyper, swapsize;
+   int nbyper, swapsize;
+   int c, errs = 0;
 
+   /* check dim[0] and sizeof_hdr */
    if( need_nhdr_swap(hdr->dim[0], hdr->sizeof_hdr) < 0 ){
       if( g_opts.debug > 0 )
          fprintf(stderr,"** bad nhdr fields: dim0, sizeof_hdr = %d, %d\n",
                  hdr->dim[0], hdr->sizeof_hdr);
-      return 0;
+      errs++;
    }
 
+   /* check the valid dimension sizes */
+   for( c = 1; c <= hdr->dim[0]; c++ )
+      if( hdr->dim[c] <= 0 ){
+         if( g_opts.debug > 0 )
+            fprintf(stderr,"** bad nhdr field: dim[%d] = %d\n",c,hdr->dim[c]);
+         errs++;
+      }
+
+   /* check the magic string */
+   if( (hdr->magic[0] != 'n')                           ||
+       (hdr->magic[1] != 'i' && hdr->magic[1] != '+')   ||
+       (hdr->magic[2] != '1')                           ||
+       (hdr->magic[3] != '\0') )
+   {
+      if( g_opts.debug > 0 )
+         fprintf(stderr,
+            "** bad nhdr field: magic = %.4s, should be \"n+1\" or \"ni1\"\n"
+            "   (in hex) magic = 0x%02x%02x%02x%02x\n"
+            "        should be = 0x6e2b3100  or  0x6e693100\n",
+            hdr->magic, hdr->magic[0], hdr->magic[1],
+            hdr->magic[2], hdr->magic[3]);
+      errs++;
+   }
+
+   /* check the datatype */
    if( hdr->datatype == DT_BINARY || hdr->datatype == DT_UNKNOWN ){
       if( g_opts.debug > 0 )
          fprintf(stderr,"** bad nhdr field: datatype = %d\n",hdr->datatype);
-      return 0;
-   }
-
-   if( hdr->dim[1] <= 0 ){
-      if( g_opts.debug > 0 )
-         fprintf(stderr,"** bad nhdr field: dim[1] = %d\n",hdr->dim[1]);
-      return 0;
+      errs++;
    }
 
    nifti_datatype_sizes(hdr->datatype, &nbyper, &swapsize);
    if( nbyper == 0 ){
       if( g_opts.debug > 0 )
          fprintf(stderr,"** bad nhdr field: datatype = %d\n",hdr->datatype);
-      return 0;
+      errs++;
    }
+
+   if( errs ) return 0;  /* problems */
+
+   if( g_opts.debug > 2 ) fprintf(stderr,"-d nifti header looks good\n");
 
    return 1;   /* looks good */
 }
@@ -5743,10 +5831,13 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    }
 
    /**- compare each dim[i] to the proper nx, ny, ... */
-   if( (nim->dim[1] != nim->nx) || (nim->dim[2] != nim->ny) ||
-       (nim->dim[3] != nim->nz) || (nim->dim[4] != nim->nt) ||
-       (nim->dim[5] != nim->nu) || (nim->dim[6] != nim->nv) ||
-       (nim->dim[7] != nim->nw)   ){
+   if( ( (nim->dim[0] >= 1) && (nim->dim[1] != nim->nx) ) ||
+       ( (nim->dim[0] >= 2) && (nim->dim[2] != nim->ny) ) ||
+       ( (nim->dim[0] >= 3) && (nim->dim[3] != nim->nz) ) ||
+       ( (nim->dim[0] >= 4) && (nim->dim[4] != nim->nt) ) ||
+       ( (nim->dim[0] >= 5) && (nim->dim[5] != nim->nu) ) ||
+       ( (nim->dim[0] >= 6) && (nim->dim[6] != nim->nv) ) ||
+       ( (nim->dim[0] >= 7) && (nim->dim[7] != nim->nw) )   ){
       errs++;
       if( !complain ) return 0;
       fprintf(stderr,"** NVd mismatch: dims    = %d,%d,%d,%d,%d,%d,%d\n"
@@ -5762,9 +5853,9 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
    for( c = 1; c <= nim->dim[0]; c++ ){
       if( nim->dim[c] > 0)
          prod *= nim->dim[c];
-      else if( nim->dim[c] < 0 ){
+      else if( nim->dim[c] <= 0 ){
          if( !complain ) return 0;
-         fprintf(stderr,"** NVd: dim[%d] (=%d) < 0\n",c, nim->dim[c]);
+         fprintf(stderr,"** NVd: dim[%d] (=%d) <= 0\n",c, nim->dim[c]);
          errs++;
       }
    }
@@ -5775,15 +5866,14 @@ int nifti_nim_has_valid_dims(nifti_image * nim, int complain)
       errs++;
    }
 
-   /**- check that remaining dims are 1 (if zero, set to 1) */
-   for( c = nim->dim[0]+1; c <= 7; c++ )
-      if( nim->dim[c] == 0 ) nim->dim[c] = 1;
-      else if( nim->dim[c] != 1 ){
-         if( !complain ) return 0;
-         fprintf(stderr,"** NVd: dim[%d] = %d, but ndim = %d\n",
-                 c, nim->dim[c], nim->dim[0]);
-         errs++;
-      }
+   /**- if debug, warn about any remaining dim that is neither 0, nor 1 */
+   /*   (values in dims above dim[0] are undefined, as reminded by Cinly
+         Ooi and Alle Meije Wink)                   16 Nov 2005 [rickr] */
+   if( g_opts.debug > 1 )
+      for( c = nim->dim[0]+1; c <= 7; c++ )
+         if( nim->dim[c] != 0 && nim->dim[c] != 1 )
+            fprintf(stderr,"** NVd warning: dim[%d] = %d, but ndim = %d\n",
+                    c, nim->dim[c], nim->dim[0]);
 
    if( g_opts.debug > 2 )
       fprintf(stderr,"-d nim_has_valid_dims check, errs = %d\n", errs);
