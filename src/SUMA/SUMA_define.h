@@ -720,7 +720,7 @@ typedef struct {
    int ** EL; /*!< pointer to where the Edge List ( N_EL x 2 ) will be placed
                         each row is an edge, i1 i2 where i1 is always <= i2
                         EL is sorted by row */
-   int ** ELps; /*!< pointer to where the Edge List Property matrix ( N_EL x 2 )will be placed 
+   int ** ELps; /*!< pointer to where the Edge List Property matrix ( N_EL x 3 )will be placed 
                         1st column, row i = 1 means edge i: i1,i2 was encountered as i2->i1 in the triangle J (so it was flipped when stored in EL)
                                           = -1 means edge i: i1,i2 was encountered as i1->i2 in the triangle J (so no flipping was done to store it in EL)
                         2nd column, row i = J is the triangle ( FL[J] ) that the segment belongs to. 

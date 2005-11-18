@@ -2629,11 +2629,11 @@ SUMA_Boolean SUMA_SurfaceMetrics_eng (SUMA_SurfaceObject *SO, const char *Metric
       { 
          /* smooth the estimate twice*/
          float *attr_sm;
-         attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL, SO->FN, 1);
+         attr_sm = SUMA_SmoothAttr_Neighb (Cx, SO->N_Node, NULL, SO->FN, 1, NULL);
          if (attr_sm == NULL) {
                fprintf(stderr,"Error %s: Failed in SUMA_SmoothAttr_Neighb\n", FuncName);
          }   else {
-            Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, Cx, SO->FN, 1);
+            Cx = SUMA_SmoothAttr_Neighb (attr_sm, SO->N_Node, Cx, SO->FN, 1, NULL);
             if (attr_sm) SUMA_free(attr_sm);
          }
       }
@@ -3183,7 +3183,13 @@ void usage_SUMA_SurfaceMetrics ()
                "          Col. 0: Node Index\n"
                "          Col. 1: R (radius)\n"
                "          Col. 2: T (azimuth)\n"
-               "          Col. 3: P (elevation)\n" 
+               "          Col. 3: P (elevation)\n"
+               "      -boundary_nodes: Output nodes that form a boundary of a surface\n"
+               "                   i.e. they form edges that belong to one and only\n"
+               "                   one triangle.\n"
+               "      -internal_nodes: Output nodes that are not a boundary.\n"
+               "                   i.e. they form edges that belong to more than\n"
+               "                   one triangle.\n"
                "\n"
                "      You can use any or all of these metrics simultaneously.\n"
                "\n"
@@ -3232,7 +3238,8 @@ int main (int argc,char *argv[])
    char *spec_file, *histnote;
    int insurf_method = 0, N_surf = 0, ind = 0;
    SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
-                  Do_area, Do_edges, Do_vol, Do_sph, NewCent, Do_cord, Do_TriNorm, Do_NodeNorm, LocalHead = NOPE;  
+                  Do_area, Do_edges, Do_vol, Do_sph, NewCent, Do_cord, Do_TriNorm, 
+                  Do_NodeNorm, Do_en, Do_in, LocalHead = NOPE;  
    
    SUMA_mainENTRY;
    
@@ -3261,6 +3268,8 @@ int main (int argc,char *argv[])
    Do_edges = NOPE;
    Do_TriNorm = NOPE;
    Do_NodeNorm = NOPE;
+   Do_en = NOPE;
+   Do_in = NOPE;
    NormScale = 5.0;
    NewCent = NOPE;
    OutPrefix = NULL;
@@ -3474,6 +3483,16 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-boundary_nodes") == 0)) {
+         Do_en = YUP;
+         brk = YUP;
+      }
+      
+      if (!brk && (strcmp(argv[kar], "-internal_nodes") == 0)) {
+         Do_in = YUP;
+         brk = YUP;
+      }
+      
       if (!brk) {
 			fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
 			exit (1);
@@ -3492,7 +3511,7 @@ int main (int argc,char *argv[])
    MetricList = SUMA_StringAppend (MetricList, NULL); 
    
    /* sanity checks */
-   if (!strlen(MetricList->s) && !Do_vol && !Do_sph && !Do_cord && !Do_TriNorm && !Do_NodeNorm) {
+   if (!strlen(MetricList->s) && !Do_vol && !Do_sph && !Do_cord && !Do_TriNorm && !Do_NodeNorm && !Do_en && !Do_in) {
       SUMA_S_Err("No Metrics specified.\nNothing to do.\n");
       exit(1);
    }
@@ -3890,8 +3909,8 @@ int main (int argc,char *argv[])
       }  
       
       fprintf (fout,"#Convexity\n");
-      fprintf (fout,"nI = Node Index\n");
-      fprintf (fout,"C = Convexity\n");
+      fprintf (fout,"#nI = Node Index\n");
+      fprintf (fout,"#C = Convexity\n");
       fprintf (fout,"#nI\tC\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
       
@@ -3908,6 +3927,83 @@ int main (int argc,char *argv[])
       vol = SUMA_Mesh_Volume(SO, NULL, -1);
       fprintf (SUMA_STDERR,   "Volume of closed surface is %f (units3).\n"
                               "Signed volume is  %f (units3).\n", fabs(vol), vol); 
+   }
+   
+   if (Do_en || Do_in) {
+      byte *enmask = NULL;
+      if (Do_en) fprintf (SUMA_STDOUT,"finding boundary nodes...\n");
+      else fprintf (SUMA_STDOUT,"finding internal nodes...\n");
+      enmask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));  
+      if (!enmask) {
+         SUMA_S_Crit("Failed to allocate.");
+         exit(1);
+      }
+      if (!SO->EL) {
+         SUMA_S_Err("Unexpected error, no edge list.");
+         exit(1);
+      }
+      /* first find the boundary nodes */
+      i=0;
+      while(i<SO->EL->N_EL) {
+         /* find edges that form boundaries */
+         if (SO->EL->ELps[i][2] == 1) {
+            enmask[SO->EL->EL[i][0]] = 1;
+            enmask[SO->EL->EL[i][1]] = 1; 
+         }
+         ++i;
+      }
+      
+      if (Do_en) {
+         sprintf(OutName, "%s.boundarynodes.1D.dset", OutPrefix);
+         if (SUMA_filexists(OutName)) {
+            SUMA_S_Err("Boundarynodes output file exists.\nWill not overwrite.");
+            exit(1);
+         }
+      } else {
+         /* actually need internal ones */
+         i=0;
+         while(i<SO->EL->N_EL) {
+            /* find edges that are internal, NOT part of boundary already */
+            if (SO->EL->ELps[i][2] > 1) {
+               if (!enmask[SO->EL->EL[i][0]]) enmask[SO->EL->EL[i][0]] = 2;
+               if (!enmask[SO->EL->EL[i][1]]) enmask[SO->EL->EL[i][1]] = 2; 
+            }
+            ++i;
+         }
+         sprintf(OutName, "%s.internalnodes.1D.dset", OutPrefix);
+         if (SUMA_filexists(OutName)) {
+            SUMA_S_Err("Internalnodes output file exists.\nWill not overwrite.");
+            exit(1);
+         }
+      }
+      
+      fout = fopen(OutName,"w");
+      if (!fout) {
+         SUMA_S_Err("Failed to open file for writing.\nCheck your permissions.\n");
+         exit(1);
+      }  
+      
+      if (Do_en) {
+         fprintf (fout,"#Boundary Nodes\n");
+      } else {
+         fprintf (fout,"#Internal Nodes\n");
+      }
+      fprintf (fout,"#nI = Node Index\n");
+      fprintf (fout,"#nI\n\n");
+      if (histnote) fprintf (fout,"#History:%s\n", histnote);
+      
+      if (Do_en) {
+         for (i=0; i < SO->N_Node; ++i) {
+            if (enmask[i] == 1) fprintf (fout,"%d\n", i);
+         }
+      } else {
+         for (i=0; i < SO->N_Node; ++i) {
+            if (enmask[i] == 2) fprintf (fout,"%d\n", i);
+         }
+      }
+      SUMA_free(enmask); enmask = NULL;
+      
+      fclose(fout); fout = NULL;
    }
    
    SUMA_LH("Clean up");

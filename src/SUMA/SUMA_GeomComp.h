@@ -1,6 +1,11 @@
 #ifndef SUMA_GEOMCOMP_INCLUDED
 #define SUMA_GEOMCOMP_INCLUDED
 
+typedef enum { SUMA_SMOOTH_NOT_SET, SUMA_EQUAL, SUMA_FUJIWARA, SUMA_DESBRUN } SUMA_TAUBIN_SMOOTH_OPTIONS;
+
+static byte SUMA_Taubin_Weights=SUMA_SMOOTH_NOT_SET;
+static int SUMA_SSidbg=-1; /*!< Index of node for debug */
+
 typedef struct {
    int ni;
    int layer;
@@ -79,7 +84,7 @@ float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt,
 SUMA_Boolean SUMA_ApplyAffine (float *NodeList, int N_Node, float M[][4], float *center);
 float *SUMA_NN_GeomSmooth( SUMA_SurfaceObject *SO, int Niter, float *fin_orig, 
                            int vpn, SUMA_INDEXING_ORDER d_order, float *fout_final_user,
-                           SUMA_COMM_STRUCT *cs);
+                           SUMA_COMM_STRUCT *cs, byte *nmask);
 SUMA_Boolean SUMA_EquateSurfaceSize(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float max_off, SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_EquateSurfaceVolumes(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);
 SUMA_Boolean SUMA_EquateSurfaceAreas(SUMA_SurfaceObject *SO, SUMA_SurfaceObject *SOref, float perc_tol, SUMA_COMM_STRUCT *cs);

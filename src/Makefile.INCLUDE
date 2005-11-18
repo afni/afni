@@ -127,7 +127,7 @@ SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition @GetAfn
           @SUMA_Make_Spec_SF @make_stim_file @Align_Centers suma_change_spec      \
           @CheckForAfniDset @clip_volume @AfniOrient2RAImap @parse_afni_name      \
           @auto_align @auto_tlrc @FromRAI @ToRAI @AfniOrientSign @VolCenter       \
-          @Center_Distance
+          @Center_Distance @fix_FSsphere
 
 LIBHEADERS = mrilib.h cdflib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h       \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h        \

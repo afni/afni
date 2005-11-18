@@ -5193,7 +5193,7 @@ int main (int argc,char *argv[])
    Nodes are neighbors if they are connected by an edge in the triangulation.
 
    \param attr (float *) pointer to vector of type tp containing a node's attribute
-   \param tp (SUMA_VARTYPE) type of values in attr (SUMA_float, SUMA_int)
+   \param N_attr (int) number of elements in attr. 
    \param attr_sm (float *) pointer to smoothed version of attr. If you pass NULL then
             the pointer is allocated for and returned from the function. If attr_sm is not
             null then it is assumed to have the required allocated space for the proper type.
@@ -5202,12 +5202,13 @@ int main (int argc,char *argv[])
             That is from 0 to N_attr. 
    \param nr (int) number of values per node in attr (for multiplexed vectors).
                    So, if attr was R0G0Bo R1 G1 B1, ..., RnGnBn then nr = 3
-                   Only row major multiplexing is allowed. 
+                   Only row major multiplexing is allowed.
+   \param nmask (byte *) if not NULL, then attributes are smoothed ONLY for nodes n where nmask[n] = 1 
    \return attr_sm (float *) pointer to smoothed version of attr
    
    \sa   SUMA_SmoothAttr_Neighb_Rec  
 */
-float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, int nr)
+float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NODE_FIRST_NEIGHB *fn, int nr, byte *nmask)
 {
    static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
    int ni, im, offs, j;
@@ -5253,11 +5254,15 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
       offs = nr * ni;
       for (im=0; im<nr; ++im) {
          attr_sm[offs+im] = attr[offs+im];
-         for (j=0; j < fn->N_Neighb[ni]; ++j)
-         {
-            attr_sm[offs+im] += attr[nr*fn->FirstNeighb[ni][j]+im]; 
-         }   
-         attr_sm[offs+im] /= (fn->N_Neighb[ni]+1);
+         if (nmask && !nmask[fn->NodeId[ni]]){
+            /* do nothing */
+         } else {
+            for (j=0; j < fn->N_Neighb[ni]; ++j)
+            {
+               attr_sm[offs+im] += attr[nr*fn->FirstNeighb[ni][j]+im]; 
+            }   
+            attr_sm[offs+im] /= (fn->N_Neighb[ni]+1);
+         }
       }
    }
    
@@ -5277,7 +5282,7 @@ float * SUMA_SmoothAttr_Neighb (float *attr, int N_attr, float *attr_sm, SUMA_NO
 float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig, 
                                     SUMA_NODE_FIRST_NEIGHB *fn, int nr, int N_rep)
 {
-   static char FuncName[]={"SUMA_SmoothAttr_Neighb"};
+   static char FuncName[]={"SUMA_SmoothAttr_Neighb_Rec"};
    int i;
    float *curr_attr=NULL, *attr_sm=NULL;
    SUMA_Boolean LocalHead = NOPE;
@@ -5298,7 +5303,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    curr_attr = attr; /* initialize with user's data */
    while (i < N_rep) {
       /* intermediary calls */
-      attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, NULL, fn, nr);
+      attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, NULL, fn, nr, NULL);
       if (i > 1)  { /* second or more time in */
          /* free input to previous calculation */
          if (curr_attr) SUMA_free(curr_attr);
@@ -5308,7 +5313,7 @@ float * SUMA_SmoothAttr_Neighb_Rec (float *attr, int N_attr, float *attr_sm_orig
    }      
    
    /* last call, honor the user's return pointer */
-   attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, attr_sm_orig, fn, nr);
+   attr_sm = SUMA_SmoothAttr_Neighb (curr_attr, N_attr, attr_sm_orig, fn, nr, NULL);
    
    /* free curr_attr if i > 1, i.e. it is not the user's original copy */
    if (i > 1) {
@@ -5617,7 +5622,7 @@ float * SUMA_TriSurf3v (float *NodeList, int *FaceSets, int N_FaceSet)
    \param PolyDim (int) dimension of polygons (3 triangles)
    \param FaceNormList (float *) N_FaceSet x 3 vector of normals to polygons
    \param SignedArea (SUMA_Boolean) signed or unsigned areas
-      positive means the vertices are oriented counterclockwise around the polygon when viewed from the side of the plane poited to by the normal 
+      positive means the vertices are oriented counterclockwise around the polygon when viewed from the side of the plane pointed to by the normal 
    \return A (float *) vector containing the area of each polygon in FaceSets
   
 

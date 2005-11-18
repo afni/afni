@@ -39,6 +39,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(char *argv[], int argc
    SUMA_ENTRY;
    
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
+   Opt->out_prefix = NULL;
+   Opt->d1 = -1;
+   Opt->in_nodeindices = NULL;
    kar = 1;
    brk = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -74,6 +77,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(char *argv[], int argc
          brk = YUP;
       }
       
+      if (!brk && (strcmp(argv[kar], "-prefix") == 0))
+      {
+         if (kar+1 >= argc)
+         {
+            fprintf (SUMA_STDERR, "need a name after -prefix \n");
+            exit (1);
+         }
+         
+         Opt->out_prefix = SUMA_Extension(argv[++kar],".1D", YUP);
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-lim") == 0))
       {
          if (kar+1 >= argc)
@@ -96,6 +111,15 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(char *argv[], int argc
 		}
    }
    
+   if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("ROIgrow"); 
+   if (Opt->d1 < 0) {
+      fprintf (SUMA_STDERR,"-lim option not specified.");
+      exit (1);
+   }
+   if (!Opt->in_nodeindices) {
+      fprintf (SUMA_STDERR,"-roi_nodes option not specified.");
+      exit (1);
+   }
    SUMA_RETURN(Opt);
 }
 
@@ -109,7 +133,7 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
    SUMA_GET_OFFSET_STRUCT *OffS = NULL; 
    struct timeval start_time, start_time_all;
    float etime_GetOffset, etime_GetOffset_all;
-   SUMA_Boolean LocalHead = YUP;
+   SUMA_Boolean LocalHead = NOPE;
    
    SUMA_ENTRY;
    
@@ -158,7 +182,7 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
    
    }
    etime_GetOffset_all = SUMA_etime(&start_time_all,1);
-   fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" ,
+   if (LocalHead) fprintf(SUMA_STDERR, "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" ,
                             FuncName, lim, etime_GetOffset_all / 60.0 , SO->N_Node);
    SUMA_Free_getoffsets(OffS);
    
@@ -176,7 +200,7 @@ int main (int argc,char *argv[])
    MRI_IMAGE *im = NULL;
 	int nvec, ncol=0;
    float *far=NULL;
-   
+   char *outname = NULL;
    SUMA_SurfaceObject *SO = NULL;
    SUMA_Boolean LocalHead = NOPE;
 
@@ -194,6 +218,12 @@ int main (int argc,char *argv[])
    
    Opt = SUMA_ROIgrow_ParseInput (argv, argc, ps);
 
+   
+   outname = SUMA_append_string(Opt->out_prefix,".1D");
+   if (SUMA_filexists(outname)) {
+      fprintf(SUMA_STDERR,"Output file %s exists.\n", outname);
+      exit(1);
+   }
    
    if (Opt->debug > 2) LocalHead = YUP;
    /* Load the surfaces from command line*/
@@ -253,7 +283,7 @@ int main (int argc,char *argv[])
    {
       FILE *fout = NULL;
       
-      fout = fopen("crap.1D", "w");
+      fout = fopen(outname, "w");
       fprintf(fout,  "#Col. 0 Node index\n");
       
       for (i=0; i<SO->N_Node; ++i) {
@@ -262,6 +292,7 @@ int main (int argc,char *argv[])
       fclose(fout); fout = NULL;
    }
    
+   if (outname) SUMA_free(outname); outname = NULL;
    if (nmask) SUMA_free(nmask); nmask = NULL;
    if (nodeind) SUMA_free(nodeind); nodeind = NULL;
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
