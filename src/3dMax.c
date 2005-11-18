@@ -56,7 +56,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dMax main"); machdep(); AFNI_logger("3dMax",argc,argv);
-
+   PRINT_VERSION("3dMax"); AUTHOR("Daniel Glen");
    nopt = 1 ;
 
    min_flag  = 0;
@@ -105,8 +105,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-positive") == 0 ){
         if(positive_flag!=-1) {
-          fprintf(stderr, "***Can not use multiple +/-/0 options");
-          exit(1) ;
+          ERROR_exit( "Can not use multiple +/-/0 options");
+          
         }
         positive_flag = 1;
 	negative_flag = 0;
@@ -116,8 +116,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-negative") == 0 ){
         if(positive_flag!=-1) {
-          fprintf(stderr, "***Can not use multiple +/-/0 options");
-          exit(1) ;
+          ERROR_exit( "Can not use multiple +/-/0 options");
+          
         }
         positive_flag = 0;
 	negative_flag = 1;
@@ -127,8 +127,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-zero") == 0 ){
         if(positive_flag!=-1) {
-          fprintf(stderr, "***Can not use multiple +/-/0 options");
-          exit(1) ;
+          ERROR_exit( "Can not use multiple +/-/0 options");
+          
         }
         positive_flag = 0;
         negative_flag = 0;
@@ -138,8 +138,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-non-positive") == 0 ){
         if(positive_flag!=-1) {
-          fprintf(stderr, "***Can not use multiple +/-/0 options");
-          exit(1) ;
+          ERROR_exit( "Can not use multiple +/-/0 options");
+          
         }
         positive_flag = 0;
 	negative_flag = 1;
@@ -148,8 +148,8 @@ int main( int argc , char * argv[] )
       }
       if( strcmp(argv[nopt],"-non-negative") == 0 ){
         if(positive_flag!=-1) {
-          fprintf(stderr, "***Can not use multiple +/-/0 options");
-          exit(1) ;
+          ERROR_exit( "Can not use multiple +/-/0 options");
+          
         }
         positive_flag = 1;
 	negative_flag = 0;
@@ -159,8 +159,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-non-zero") == 0 ){
         if(positive_flag!=-1) {
-          fprintf(stderr, "***Can not use multiple +/-/0 options");
-          exit(1) ;
+          ERROR_exit( "Can not use multiple +/-/0 options");
+          
         }
         positive_flag = 1;
 	negative_flag = 1;
@@ -170,8 +170,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-nan") == 0 ){
         if(nan_flag!=-1) {
-          fprintf(stderr, "***Can not use both -nan -nonan options");
-          exit(1) ;
+          ERROR_exit( "Can not use both -nan -nonan options");
+          
         }
         nan_flag = 1;
         nopt++; continue;
@@ -179,8 +179,8 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-nonan") == 0 ){
         if(nan_flag!=-1) {
-          fprintf(stderr, "***Can not use both -nan -nonan options");
-          exit(1) ;
+          ERROR_exit( "Can not use both -nan -nonan options");
+          
         }
         nan_flag = 0;
         nopt++; continue;
@@ -190,8 +190,8 @@ int main( int argc , char * argv[] )
           strcmp(argv[nopt],"-automask") == 0   ){
 
          if( mmm != NULL ){
-           fprintf(stderr,"** ERROR: can't use -autoclip/mask with -mask!\n");
-           exit(1) ;
+           ERROR_exit(" ERROR: can't use -autoclip/mask with -mask!");
+           
          }
          automask = 1 ; nopt++ ; continue ;
       }
@@ -199,15 +199,15 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-mask") == 0 ){
          THD_3dim_dataset * mask_dset ;
          if( automask ){
-           fprintf(stderr,"** ERROR: can't use -mask with -automask!\n");
-           exit(1) ;
+           ERROR_exit(" ERROR: can't use -mask with -automask!");
+           
          }
          mask_dset = THD_open_dataset(argv[++nopt]) ;
          if( mask_dset == NULL ){
-            fprintf(stderr,"** ERROR: can't open -mask dataset!\n"); exit(1);
+            ERROR_exit(" ERROR: can't open -mask dataset!"); 
          }
          if( mmm != NULL ){
-            fprintf(stderr,"** ERROR: can't have 2 -mask options!\n"); exit(1);
+            ERROR_exit(" ERROR: can't have 2 -mask options!"); 
          }
          mmm = THD_makemask( mask_dset , 0 , 1.0,-1.0 ) ;
          mmvox = DSET_NVOX( mask_dset ) ;
@@ -215,13 +215,13 @@ int main( int argc , char * argv[] )
          DSET_delete(mask_dset) ; nopt++ ; continue ;
       }
 
-      fprintf(stderr, "*** Error - unknown option %s\n", argv[nopt]);
-      exit(1);
+      ERROR_exit( " Error - unknown option %s", argv[nopt]);
+      
    }
 
    if(((mmm!=NULL) && (quick_flag))||(automask &&quick_flag)) {
       if(quick_flag==1)
-         fprintf(stderr, "+++ Warning - can't have quick option with mask\n");
+         WARNING_message( "+++ Warning - can't have quick option with mask");
       quick_flag = 0;
       slow_flag = 1;
    }
@@ -246,7 +246,7 @@ int main( int argc , char * argv[] )
      quick_flag = 0;                  /*  no need to do quick way */
 
    if((quick_flag) && ((positive_flag==1)||(negative_flag==1)||(zero_flag==1)))
-     fprintf(stderr, "+++ Warning - ignoring +/-/0 flags for quick computations\n");
+     WARNING_message( " Warning - ignoring +/-/0 flags for quick computations");
 
    if(positive_flag==-1) {   /* if no +/-/0 options set, allow all voxels */
      positive_flag = 1;
@@ -257,18 +257,18 @@ int main( int argc , char * argv[] )
    /*----- read input dataset -----*/
 
    if( nopt >= argc ){
-      fprintf(stderr,"*** No input dataset!?\n"); exit(1);
+      ERROR_exit(" No input dataset!?"); 
    }
 
    old_dset = THD_open_dataset( argv[nopt] ) ;
    if( !ISVALID_DSET(old_dset) ){
-      fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]); exit(1);
+      ERROR_exit(" Can't open dataset %s",argv[nopt]); 
    }
 
    nxyz = DSET_NVOX(old_dset) ;
    if( mmm != NULL && mmvox != nxyz ){
-      fprintf(stderr,"** Mask and input datasets not the same size!\n") ;
-      exit(1) ;
+      ERROR_exit(" Mask and input datasets not the same size!") ;
+      
    }
 
    if(automask && mmm == NULL ){
@@ -360,7 +360,7 @@ THD_3dim_dataset * dset;
 	 }
       } 
       else {
-         printf( "No valid statistics in header\n") ;
+         WARNING_message("No valid statistics in header") ;
          EXRETURN;
       }
    }
@@ -461,7 +461,7 @@ int mmvox;
 	      default:                          /* unknown type */
 		 voxval = 0.0;                   /* ignore this voxel */
                  k = nvox;                       /* skip to next sub-brik */
-                 fprintf(stderr,"Unknown type, %s, in sub-brik %d\n", MRI_TYPE_name[data_im->kind], i);
+                 WARNING_message("Unknown type, %s, in sub-brik %d", MRI_TYPE_name[data_im->kind], i);
 	       break;
             }
 

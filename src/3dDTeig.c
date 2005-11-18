@@ -36,7 +36,7 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dDTeig main"); machdep(); AFNI_logger("3dDTeig",argc,argv);
-   PRINT_VERSION("3dDTeig") ;
+   PRINT_VERSION("3dDTeig") ; AUTHOR("Daniel Glen");
 
    nopt = 1 ;
    nbriks = 14 ;
@@ -47,11 +47,11 @@ int main( int argc , char * argv[] )
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"*** -prefix needs an argument!\n"); exit(1);
+            ERROR_exit("  -prefix needs an argument!");
          }
          MCW_strncpy(prefix,argv[nopt],THD_MAX_PREFIX) ;
          if( !THD_filename_ok(prefix) ){
-            fprintf(stderr,"*** %s is not a valid prefix!\n",prefix); exit(1);
+            ERROR_exit("%s is not a valid prefix!",prefix);
          }
          nopt++ ; continue ;
       }
@@ -60,7 +60,7 @@ int main( int argc , char * argv[] )
  
       if( strcmp(argv[nopt],"-datum") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"*** -datum needs an argument!\n"); exit(1);
+            ERROR_exit(" -datum needs an argument!");
          }
          if( strcmp(argv[nopt],"short") == 0 ){
             datum = MRI_short ;
@@ -69,9 +69,8 @@ int main( int argc , char * argv[] )
          } else if( strcmp(argv[nopt],"byte") == 0 ){
             datum = MRI_byte ;
          } else {
-            fprintf(stderr,"-datum of type '%s' is not supported!\n",
+            ERROR_exit("-datum of type '%s' is not supported!",
                     argv[nopt] ) ;
-            exit(1) ;
          }
          nopt++ ; continue ;
       }
@@ -80,18 +79,17 @@ int main( int argc , char * argv[] )
    /*----- read input dataset -----*/
 
    if( nopt >= argc ){
-      fprintf(stderr,"*** No input dataset!?\n"); exit(1);
+      ERROR_exit("No input dataset!?");
    }
 
    old_dset = THD_open_dataset( argv[nopt] ) ;
    if( !ISVALID_DSET(old_dset) ){
-      fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]); exit(1);
+      ERROR_exit("Can't open dataset %s",argv[nopt]);
    }
 
    /* expect 6 values per voxel - 6 sub-briks as input dataset */ 
    if( DSET_NVALS(old_dset) < 6 ){  /* allows 6 or greater sub-briks */
-      fprintf(stderr,"*** Can't use dataset that is not at least 6 values per voxel!\n") ;
-      exit(1) ;
+      ERROR_exit("Can't use dataset that is not at least 6 values per voxel!") ;
    }
 
    EDIT_dset_items( old_dset ,
@@ -134,10 +132,9 @@ int main( int argc , char * argv[] )
 
       tross_Make_History( "3dDTeig" , argc,argv , new_dset ) ;
       DSET_write( new_dset ) ;
-      fprintf(stderr,"--- Output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
+      INFO_message("Output dataset: %s",DSET_BRIKNAME(new_dset)) ;
    } else {
-      fprintf(stderr,"*** Unable to compute output dataset!\n") ;
-      exit(1) ;
+      ERROR_exit("Unable to compute output dataset!") ;
    }
 
    exit(0) ;
