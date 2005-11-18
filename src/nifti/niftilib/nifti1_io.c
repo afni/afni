@@ -277,6 +277,7 @@ static char * gni_history[] =
   "   - removed any test or access of dim[i], i>dim[0]\n"
   "   - do not set pixdim for collapsed dims to 1.0, leave them as they are\n"
   "   - added magic and dim[i] tests in nifti_hdr_looks_good()\n"
+  "   - added 2 size_t casts\n"
   "----------------------------------------------------------------------\n"
 };
 static char gni_version[] = "nifti library version 1.16 (Nov 18, 2005)";
@@ -2855,12 +2856,12 @@ int is_nifti_file( const char *hname )
    /* check for ANALYZE-ness (sizeof_hdr field == 348) */
 
    ii = nhdr.sizeof_hdr ;
-   if( ii == sizeof(nhdr) ) return 0 ;  /* matches */
+   if( ii == (int)sizeof(nhdr) ) return 0 ;  /* matches */
 
    /* try byte-swapping header */
 
    swap_4(ii) ;
-   if( ii == sizeof(nhdr) ) return 0 ;  /* matches */
+   if( ii == (int)sizeof(nhdr) ) return 0 ;  /* matches */
 
    return -1 ;                          /* not good */
 }
@@ -3339,7 +3340,7 @@ nifti_1_header * nifti_read_header(const char * hname, int * swapped, int check)
    bytes = znzread( &nhdr, 1, sizeof(nhdr), fp );
    znzclose( fp );                      /* we are done with the file now */
 
-   if( bytes < sizeof(nhdr) ){
+   if( bytes < (int)sizeof(nhdr) ){
       if( g_opts.debug > 0 ){
          LNI_FERR(fname,"bad binary header read for file", hname);
          fprintf(stderr,"  - read %d of %d bytes\n",bytes, (int)sizeof(nhdr));
@@ -4494,7 +4495,7 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
       }
 
       ss = nifti_write_buffer(fp,nim->data,nim->nbyper * nim->nvox);
-      if (ss < (nim->nbyper * nim->nvox)){
+      if (ss < (size_t)(nim->nbyper * nim->nvox)){
          fprintf(stderr,
             "** ERROR: NWAD: wrote only %d of %d bytes to file\n",
             (int)ss, nim->nbyper * nim->nvox);
@@ -4512,7 +4513,7 @@ int nifti_write_all_data(znzFile fp, nifti_image * nim,
 
       for( bnum = 0; bnum < NBL->nbricks; bnum++ ){
          ss = nifti_write_buffer(fp, NBL->bricks[bnum], NBL->bsize);
-         if( ss < NBL->bsize ){
+         if( ss < (size_t)NBL->bsize ){
             fprintf(stderr,
                "** NWAD ERROR: wrote %d of %d bytes of brick %d of %d to file",
                (int)ss, NBL->bsize, bnum+1, NBL->nbricks);
