@@ -3556,6 +3556,8 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
                   "                      winding). This option will write out a new surface even \n"
                   "                      if the mesh was consistent.\n"
                   "                      See SurfQual -help for mesh checks.\n"
+                  "    -radial_to_sphere rad: Push each node along the center-->node direction until\n"
+                  "                           |center-->node| = rad.\n"
                   "    -acpc: Apply acpc transform (which must be in acpc version of \n"
                   "        SurfaceVolume) to the surface vertex coordinates. \n"
                   "        This option must be used with the -sv option.\n"
@@ -3575,6 +3577,12 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
                   "         transformed if -sv option is used. If you do transform surfaces, \n"
                   "         take care not to load them into SUMA with another -sv option.\n"
                   "\n"
+                  "    -patch2surf: Change a patch, defined here as a surface with a mesh that\n"
+                  "                 uses only a subset of the full nodelist, to a surface\n"
+                  "                 where all the nodes in nodelist are used in the mesh.\n"
+                  "                 Note that node indices will no longer correspond between\n"
+                  "                 the input patch and the output surface.\n"
+                  "\n"                 
                   "    Options for applying arbitrary affine transform:\n"
                   "    [xyz_new] = [Mr] * [xyz_old - cen] + D + cen\n"
                   "    -xmat_1D mat: Apply transformation specified in 1D file mat.1D.\n"
@@ -3596,7 +3604,7 @@ int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertSurface"}; 
 	int kar, volexists, i;
-   float xcen[3], M[3][4];
+   float xcen[3], M[3][4], DoR2S;
    char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
          *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
          *OF_name = NULL, *OF_name2 = NULL, *tlrc_name = NULL,
@@ -3611,7 +3619,7 @@ int main (int argc,char *argv[])
    char orsurf[3], orcode[3];
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind, onemore;
+   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind, Do_p2s, onemore;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean exists;
    SUMA_Boolean LocalHead = NOPE;
@@ -3643,6 +3651,8 @@ int main (int argc,char *argv[])
    Do_mni_LPI = NOPE;
    Do_acpc = NOPE;
    Do_wind = NOPE;
+   Do_p2s = NOPE;
+   DoR2S = 0.0;
    onemore = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
@@ -3910,6 +3920,21 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-radial_to_sphere") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need 1 argument after -radial_to_sphere\n");
+				exit (1);
+			}
+         DoR2S = atof(argv[kar]);
+			brk = YUP;
+		}
+      
+      if (!brk && (strcmp(argv[kar], "-patch2surf") == 0)) {
+         Do_p2s = YUP;
+         brk = YUP;
+      }
+      
       if (!brk && (strcmp(argv[kar], "-tlrc") == 0)) {
          Do_tlrc = YUP;
          brk = YUP;
@@ -4159,6 +4184,13 @@ int main (int argc,char *argv[])
       exit (1);
    }
 
+   if (DoR2S > 0.0000001) {
+      if (!SUMA_ProjectSurfaceToSphere(SO, NULL , DoR2S , NULL)) {
+         SUMA_S_Err("Failed to project to surface");
+         exit(1);
+      }
+   }
+
    if (ifpar_name) {
       SOpar = SUMA_Load_Surface_Object_Wrapper ( ifpar_name, ifpar_name2, vp_name, iparType, iparForm, sv_name, 1);
       if (!SOpar) {
@@ -4291,6 +4323,19 @@ int main (int argc,char *argv[])
          SUMA_S_Err("Failed to change coords.");
          exit(1);
       }
+   }
+   
+   if (Do_p2s) {
+      SUMA_SurfaceObject *SOold = SO;
+      if (LocalHead) fprintf (SUMA_STDERR,"%s: Changing patch to surface...\n", FuncName);
+      SO = SUMA_Patch2Surf(SOold->NodeList, SOold->N_Node, SO->FaceSetList, SO->N_FaceSet, 3);
+      if (!SO) {
+         SUMA_S_Err("Failed to change patch to surface.");
+         exit(1);
+      }
+      
+      /* get rid of old surface object */
+      SUMA_Free_Surface_Object(SOold);
    }
    
    if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);

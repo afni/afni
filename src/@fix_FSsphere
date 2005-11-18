@@ -4,6 +4,7 @@ INITS:
    set niter = 3000
    set lim = 8
    set tmp = "___fstmp_"
+   set keep_tmp = 0
    
 PARSE:
    set Narg = $#
@@ -29,7 +30,13 @@ PARSE:
             set donext = 0   
          endif   
       endif
-
+      
+      if ($donext && "$argv[$cnt]" == "-keep_temp") then
+         set pLoc = $cnt      
+         set keep_tmp = 1 
+         set donext = 0     
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-spec") then
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
@@ -100,6 +107,9 @@ PATHS_NAMES:
    set spcp = `@NoExt $spcn spec`
    set outsn = ${srfp}_fxd.asc         
 
+CLEANUP:
+   rm -f ${tmp}_*.* >& /dev/null
+
 PROJECT_TO_SPHERE:
    echo "Projecting to sphere ..."
    rm -f ${tmp}_${srfp}_pj.asc >& /dev/null
@@ -153,7 +163,7 @@ PROJECT_AGAIN:
    ConvertSurface -i_fs ${tmp}_${srfp}_pj_final.asc -o_fs ${outsn} -radial_to_sphere 100
 
    rm -f ${outsn}.spec >& /dev/null
-   quickspec -tn FS ${outsn} -spec ${outsn}.spec
+   quickspec -tn FS ${outsn} -tn FS $srfin -spec ${outsn}.spec
    #echo "Running SUMA..."
    #suma -spec ${outsn}.spec -dev &
 
@@ -188,7 +198,7 @@ goto END
 HELP:
    echo ""
    echo "Usage: `basename $0` <-spec SPEC> <-sphere SPHERE.asc>"
-   echo "                     [-niter NITER] [-lim LIM]"
+   echo "                     [-niter NITER] [-lim LIM] [-keep_temp]"
    echo ""
    echo "   Fixes errors in FreeSurfer spherical surfaces."
    echo "   Mandatory parameters:"
@@ -210,4 +220,6 @@ HELP:
    
 
 END:
-rm -f ${tmp}_*.* >& /dev/null
+if ($keep_tmp == 0) then
+   rm -f ${tmp}_*.* >& /dev/null
+endif

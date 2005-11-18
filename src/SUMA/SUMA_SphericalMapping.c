@@ -63,7 +63,7 @@ float ep = 1e-4; /* this represents the smallest coordinate difference to be exp
    
       
 */
-SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
+int SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist)
 {
    static char FuncName[]={"SUMA_SphereQuality"};
    float *dist = NULL, mdist, *dot=NULL, nr, r[3], *bad_dot = NULL;
@@ -81,7 +81,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist
    
    if (!SO) {
       SUMA_SL_Err("NULL SO");
-      SUMA_RETURN(NOPE);
+      SUMA_RETURN(-1);
    }
    
    /* get the options for creating the scaled color mapping */
@@ -304,13 +304,16 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist
       
    
    /* report, just 10 of them  */
-   if (ibad > 10) ibad = 10;
-   fprintf (SUMA_STDERR,"%d of the nodes with normals at angle with radial direction\n"
-                        " i.e. abs(dot product < 0.9)\n"
-                        " See output files for full list\n", ibad);
-   for (i=0; i < ibad; ++i) {
-      fprintf (SUMA_STDERR,"cos(ang) @ node %d: %f\n", bad_ind[i], bad_dot[i]);
-   }   
+   {
+      int nrep;
+      nrep = SUMA_MIN_PAIR(ibad, 10); 
+      fprintf (SUMA_STDERR,"%d of the %d nodes with normals at angle with radial direction\n"
+                           " i.e. abs(dot product < 0.9)\n"
+                           " See output files for full list\n", nrep, ibad);
+      for (i=0; i < nrep; ++i) {
+         fprintf (SUMA_STDERR,"cos(ang) @ node %d: %f\n", bad_ind[i], bad_dot[i]);
+      } 
+   }  
    
    if (dot) SUMA_free(dot);
    if (bad_dot) SUMA_free(bad_dot);
@@ -321,7 +324,7 @@ SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, char *Froot, char *shist
    if (OptScl) SUMA_free(OptScl);
    
    
-   SUMA_RETURN(YUP);
+   SUMA_RETURN(ibad);
 }
 
 /*!

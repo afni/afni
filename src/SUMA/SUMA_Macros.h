@@ -366,6 +366,19 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    c[2] = (SO->NodeList[3*m_n1+2] + SO->NodeList[3*m_n2+2] + SO->NodeList[3*m_n3+2])/3; \
 }
 
+/*!
+   A macro to find the third node forming a triangle
+*/
+#define SUMA_THIRD_NODE(n1,n2,t,facelist,n3){  \
+   static int m_t3;  \
+   m_t3 = 3 * t;  \
+   n3 = -1; \
+   do {  \
+      if (facelist[m_t3] != n1 && facelist[m_t3] != n2) n3 = facelist[m_t3];  \
+      else ++m_t3;   \
+   }   while (n3 < 0);  \
+}
+   
 /*! 
    A macro version of SUMA_FindEdge
    Use function for robust error checking.
@@ -441,6 +454,25 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
       m_TRIAREA_A *= 0.5; \
    }
 
+/*!
+   XYZ: vector of coordinates
+   nrm: unit normal vector of axis of rotation
+   phi: angle of rotation, clockwise, in radians
+   XYZr: vector to contain rotated coordinates
+   Equation from: http://mathworld.wolfram.com/RotationFormula.html
+   See also RotateAboutAxis.m
+*/
+
+#define SUMA_ROTATE_ABOUT_AXIS(xyz, nrm, phi, xyzr)  { \
+   double m_cop, m_sip, m_dop, m_cro[3], m_1cop;   \
+   m_cop = cos(phi); m_1cop = 1 - m_cop; m_sip = sin(phi);   \
+   SUMA_MT_CROSS(m_cro, xyz, nrm);  \
+   m_dop = SUMA_MT_DOT(nrm,xyz);   \
+   xyzr[0] = xyz[0]*m_cop + nrm[0] * m_dop * m_1cop - m_cro[0] * m_sip; \
+   xyzr[1] = xyz[0]*m_cop + nrm[1] * m_dop * m_1cop - m_cro[1] * m_sip; \
+   xyzr[2] = xyz[0]*m_cop + nrm[2] * m_dop * m_1cop - m_cro[2] * m_sip; \
+}   
+   
 /*! 
 SUMA_ANGLE_DIST(p2,p1,cent,a)  
 SUMA_ANGLE_DIST_NC(p2,p1,a) 
@@ -455,8 +487,8 @@ Tx to tip from JHU's Applied Physics Laboratory web page
 */ 
 #define SUMA_ANGLE_DIST_NC(m_p2,m_p1,a)   \
    {\
-      double m_cr[3];   \
-      SUMA_MT_CROSS(m_cr, m_p2, m_p1); \
+      double m_cr[3], m_p2r[3];   \
+      SUMA_MT_CROSS(m_cr, m_p1, m_p2); \
       a = atan2(sqrt(m_cr[0]*m_cr[0]+m_cr[1]*m_cr[1]+m_cr[2]*m_cr[2]),SUMA_MT_DOT(m_p2, m_p1)); \
    }
 
