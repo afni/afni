@@ -173,15 +173,13 @@ main (int argc, char *argv[])
 	{
 	  if (++nopt >= argc)
 	    {
-	      fprintf (stderr, "*** Error - prefix needs an argument!\n");
-	      exit (1);
+	      ERROR_exit("Error - prefix needs an argument!");
 	    }
 	  MCW_strncpy (prefix, argv[nopt], THD_MAX_PREFIX);	/* change name from default prefix */
           /* check file name to be sure not to overwrite - mod drg 12/9/2004 */
 	  if (!THD_filename_ok (prefix))
 	    {
-	      fprintf (stderr, "*** Error - %s is not a valid prefix!\n", prefix);
-	      exit (1);
+	      ERROR_exit("Error - %s is not a valid prefix!", prefix);
 	    }
 	  nopt++;
 	  continue;
@@ -193,8 +191,7 @@ main (int argc, char *argv[])
 	{
 	  if (++nopt >= argc)
 	    {
-	      fprintf (stderr, "*** Error - datum needs an argument!\n");
-	      exit (1);
+	      ERROR_exit("Error - datum needs an argument!");
 	    }
 	  if (strcmp (argv[nopt], "short") == 0)
 	    {
@@ -210,9 +207,8 @@ main (int argc, char *argv[])
 	    }
 	  else
 	    {
-	      fprintf (stderr, "-datum of type '%s' is not supported!\n",
+	      ERROR_exit("-datum of type '%s' is not supported!",
 		       argv[nopt]);
-	      exit (1);
 	    }
 	  nopt++;
 	  continue;
@@ -220,8 +216,7 @@ main (int argc, char *argv[])
       if (strcmp (argv[nopt], "-automask") == 0)
 	{
          if(maskptr != NULL){
-           fprintf(stderr,"** ERROR: can't use -mask with -automask!\n");
-           exit(1) ;
+           ERROR_exit("ERROR: can't use -mask with -automask!");
          }
  	  automask = 1;
 	  nopt++;
@@ -231,15 +226,14 @@ main (int argc, char *argv[])
       if( strcmp(argv[nopt],"-mask") == 0 ){
          THD_3dim_dataset * mask_dset ;
          if( automask ){
-           fprintf(stderr,"** ERROR: can't use -mask with -automask!\n");
-           exit(1) ;
+           ERROR_exit("ERROR: can't use -mask with -automask!");
          }
          mask_dset = THD_open_dataset(argv[++nopt]) ;
          if( mask_dset == NULL ){
-            fprintf(stderr,"** ERROR: can't open -mask dataset!\n"); exit(1);
+            ERROR_exit("ERROR: can't open -mask dataset!");
          }
          if( maskptr != NULL ){
-            fprintf(stderr,"** ERROR: can't have 2 -mask options!\n"); exit(1);
+            ERROR_exit("** ERROR: can't have 2 -mask options!");
          }
          maskptr = THD_makemask( mask_dset , 0 , 1.0,-1.0 ) ;
          mmvox = DSET_NVOX( mask_dset ) ;
@@ -251,8 +245,7 @@ main (int argc, char *argv[])
         {
           if(method==1)
             {
-              fprintf(stderr, "*** Error - can not select both linear and non-linear methods at the same time\n");
-              exit(1);
+              ERROR_exit("Error - can not select both linear and non-linear methods at the same time");
             }
           method = 0;
           nopt++;
@@ -263,7 +256,7 @@ main (int argc, char *argv[])
         {
           if(method==0)
             {
-              fprintf(stderr, "*** Error - can not select both linear and non-linear methods at the same time\n");
+              ERROR_exit("Error - can not select both linear and non-linear methods at the same time");
               exit(1);
             }
           method = 1;
@@ -280,13 +273,11 @@ main (int argc, char *argv[])
       if (strcmp (argv[nopt], "-max_iter") == 0)
         {
 	   if(++nopt >=argc ){
-	      fprintf(stderr,"*** Error - need an argument after -max_iter!\n");
-	      exit(1);
+	      ERROR_exit("Error - need an argument after -max_iter!");
 	   }
            max_iter = strtol(argv[nopt], NULL, 10);
 	   if ((max_iter <-1)||(max_iter>100)) {
-	      fprintf(stderr, "Error - max_iter must be between -1 and 100\n");
-	      exit(1);
+	      ERROR_exit("Error - max_iter must be between -1 and 100");
            }
           nopt++;
 	  continue;
@@ -295,13 +286,11 @@ main (int argc, char *argv[])
      if (strcmp (argv[nopt], "-max_iter_rw") == 0)
         {
 	   if(++nopt >=argc ){
-	      fprintf(stderr,"*** Error - need an argument after -max_iter_rw!\n");
-	      exit(1);
+	      ERROR_exit("Error - need an argument after -max_iter_rw!");
 	   }
            max_iter_rw = strtol(argv[nopt], NULL, 10);
 	   if ((max_iter_rw <=0)||(max_iter_rw>100)) {
-	      fprintf(stderr, "*** Error - max_iter_rw must be between 1 and 100\n");
-	      exit(1);
+	      ERROR_exit("Error - max_iter_rw must be between 1 and 100");
            }
           nopt++;
 	  continue;
@@ -331,13 +320,11 @@ main (int argc, char *argv[])
      if (strcmp (argv[nopt], "-verbose") == 0)
         {
 	   if(++nopt >=argc ){
-	      fprintf(stderr,"*** Error - need an argument after -verbose!\n");
-	      exit(1);
+	      ERROR_exit("*** Error - need an argument after -verbose!");
 	   }
            verbose = strtol(argv[nopt], NULL, 10);
 	   if (verbose<=0) {
-	      fprintf(stderr, "*** Error - verbose steps must be a positive number !\n");
-	      exit(1);
+	      ERROR_exit("Error - verbose steps must be a positive number !");
            }
           nopt++;
 	  continue;
@@ -346,20 +333,17 @@ main (int argc, char *argv[])
      if (strcmp (argv[nopt], "-drive_afni") == 0)
         {
 	   if(++nopt >=argc ){
-	      fprintf(stderr,"*** Error - need an argument after -drive_afni!\n");
-	      exit(1);
+	      ERROR_exit("Error - need an argument after -drive_afni!");
 	   }
            afnitalk_flag = strtol(argv[nopt], NULL, 10);
 	   if (afnitalk_flag<=0) {
-	      fprintf(stderr, "*** Error - drive_afni steps must be a positive number !\n");
-	      exit(1);
+	      ERROR_exit("Error - drive_afni steps must be a positive number !");
            }
           nopt++;
 	  continue;
         }
 
-	fprintf(stderr, "*** Error - unknown option %s\n", argv[nopt]);
-	exit(1);
+	ERROR_exit("Error - unknown option %s", argv[nopt]);
     }
   
   if(method==-1)
@@ -367,43 +351,43 @@ main (int argc, char *argv[])
 
   if(max_iter>=-1){
      if(method==0)
-              fprintf(stderr, "+++ Warning - max_iter will be ignored for linear methods.\n");
+              WARNING_message("Warning - max_iter will be ignored for linear methods");
   }
   else
      max_iter = MAX_CONVERGE_STEPS;
 
   if(max_iter_rw>=0) {
      if(method==0)
-              fprintf(stderr, "+++ Warning - max_iter_rw will be ignored for linear methods.\n");
+              WARNING_message("Warning - max_iter_rw will be ignored for linear methods");
      if(reweight_flag==0)
-              fprintf(stderr, "+++ Warning - max_iter_rw will be ignored when not reweighting.\n");
+              WARNING_message("Warning - max_iter_rw will be ignored when not reweighting");
   }
   else
      max_iter_rw = MAX_RWCONVERGE_STEPS;
      
   if((method==0)&&(reweight_flag==1)) {
-      fprintf(stderr, "+++ Warning - can not reweight voxels for linear method\n");
+      WARNING_message("Warning - can not reweight voxels for linear method");
       reweight_flag = 0;
   }
 
   if(cumulative_flag==1) {
      if(method==0) {
-        fprintf(stderr, "+++ Warning - can not compute cumulative weights for linear method\n");
+        WARNING_message("Warning - can not compute cumulative weights for linear method");
         cumulative_flag = 0;
      }
      if(reweight_flag == 0) {
-        fprintf(stderr, "+++ Warning - can not compute cumulative weights if not reweighting\n");
+        WARNING_message("Warning - can not compute cumulative weights if not reweighting");
         cumulative_flag = 0;
      }
   }
 
   if((method==0)&&(debug_briks==1)) {
-      fprintf(stderr, "+++ Warning - can not compute debug sub-briks for linear method\n");
+      WARNING_message("Warning - can not compute debug sub-briks for linear method");
       debug_briks = 0;
   }
 
   if((method==0)&&(afnitalk_flag>0)) {
-      fprintf(stderr, "+++ Warning - can not graph convergence in AFNI for linear method\n");
+      WARNING_message("Warning - can not graph convergence in AFNI for linear method");
       afnitalk_flag = 0;
   }
 
@@ -418,8 +402,7 @@ main (int argc, char *argv[])
 
   if (nopt >= argc)
     {
-      fprintf (stderr, "*** Error - No input dataset!?\n");
-      exit (1);
+      ERROR_exit("Error - No input dataset!?");
     }
 
   /* first input dataset - should be gradient vector file of ascii floats Gx,Gy,Gz */
@@ -428,24 +411,22 @@ main (int argc, char *argv[])
   grad1Dptr = mri_read_1D (argv[nopt]);
   if (grad1Dptr == NULL)
     {
-      fprintf (stderr, "*** Error reading gradient vector file\n");
-      exit (1);
+      ERROR_exit("Error reading gradient vector file");
     }
 
   if (grad1Dptr->ny != 3)
     {
-      fprintf (stderr, "*** Error - Only 3 columns of gradient vectors allowed\n");
-      fprintf (stderr, "%d columns found\n", grad1Dptr->nx);
       mri_free (grad1Dptr);
+      ERROR_message("Error - Only 3 columns of gradient vectors allowed");
+      ERROR_exit(" %d columns found", grad1Dptr->nx);
       exit (1);
     }
 
   if (grad1Dptr->nx < 6)
     {
-      fprintf (stderr, "*** Error - Must have at least 6 gradient vectors\n");
-      fprintf (stderr, "%d columns found\n", grad1Dptr->nx);
       mri_free (grad1Dptr);
-      exit (1);
+      ERROR_message("Error - Must have at least 6 gradient vectors");
+      ERROR_exit("%d columns found", grad1Dptr->nx);
     }
 
 
@@ -459,24 +440,20 @@ main (int argc, char *argv[])
 
   if (!ISVALID_DSET (old_dset))
     {
-      fprintf (stderr, "*** Error - Can not open dataset %s\n", argv[nopt]);
       mri_free (grad1Dptr);
-      exit (1);
+      ERROR_exit("Error - Can not open dataset %s", argv[nopt]);
     }
 
   /* expect at least 7 values per voxel - 7 sub-briks as input dataset */
   if (DSET_NVALS (old_dset) != (grad1Dptr->nx + 1))
     {
-      fprintf (stderr,
-	       "*** Error - Dataset must have number of sub-briks equal to one more than number\n");
-      fprintf (stderr, "  of gradient vectors (B0+Bi)!\n");
       mri_free (grad1Dptr);
-      exit (1);
+      ERROR_message("Error - Dataset must have number of sub-briks equal to one more than number");
+      ERROR_exit("  of gradient vectors (B0+Bi)!");
     }
    nxyz = DSET_NVOX(old_dset) ;
    if( maskptr != NULL && mmvox != nxyz ){
-      fprintf(stderr,"** Mask and input datasets not the same size!\n") ;
-      exit(1) ;
+      ERROR_exit("Mask and input datasets not the same size!") ;
    }
 
 
@@ -520,12 +497,12 @@ main (int argc, char *argv[])
   if(afnitalk_flag) {
      if(DWI_Open_NIML_stream()!=0) {   /* Open NIML stream */
        afnitalk_flag = 0;
-       fprintf(stderr,"+++could not open NIML communications with AFNI\n");
+       WARNING_message("Could not open NIML communications with AFNI");
      }
      else
        if(DWI_NIML_create_graph()!=0) {
           afnitalk_flag = 0;
-          fprintf(stderr,"+++could not create graph within AFNI\n");
+          WARNING_message("Could not create graph within AFNI");
           /* Close NIML stream */
           NI_stream_close(DWIstreamid);
           DWIstreamid = 0;
@@ -552,12 +529,12 @@ main (int argc, char *argv[])
 
   if(cumulative_flag && reweight_flag) {
     cumulativewtptr = cumulativewt;
-    printf("Cumulative Wt. factors: ");
+    INFO_message("Cumulative Wt. factors: ");
     for(i=0;i<(grad1Dptr->nx + 1);i++){
        *cumulativewtptr = *cumulativewtptr / rewtvoxels;
-       printf("%5.3f ", *cumulativewtptr++);
+       INFO_message("%5.3f ", *cumulativewtptr++);
     }
-     printf("\n");
+     /* printf("\n");*/
   }
 
   FreeGlobals ();
@@ -611,12 +588,11 @@ main (int argc, char *argv[])
 
       tross_Make_History ("3dDWItoDT", argc, argv, new_dset);
       DSET_write (new_dset);
-      fprintf(stderr,"--- Output dataset %s\n", DSET_BRIKNAME(new_dset));
+      INFO_message("--- Output dataset %s", DSET_BRIKNAME(new_dset));
     }
   else
     {
-      fprintf (stderr, "*** Error - Unable to compute output dataset!\n");
-      exit (1);
+      ERROR_exit("*** Error - Unable to compute output dataset!");
     }
 
   exit (0);
@@ -640,7 +616,7 @@ Form_R_Matrix (MRI_IMAGE * grad1Dptr)
   matrix_create (nrows, 6, &Rmat);	/* Rmat = Np x 6 matrix */
   if (Rmat.elts == NULL)
     {				/* memory allocation error */
-      fprintf (stderr, "could not allocate memory for Rmat \n");
+      ERROR_message("Could not allocate memory for Rmat");
       EXRETURN;
     }
   sf2 = sf + sf;		/* 2 * scale factor for minor speed improvement */
@@ -863,7 +839,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 	        {
 	        /* found acceptable step size of DeltaTau */
                 if(recordflag==1)
-                 printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f, ntrial %d in find dtau\n", ncall, converge_step, deltatau, ED, ntrial);
+                 INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f, ntrial %d in find dtau", ncall, converge_step, deltatau, ED, ntrial);
                 if(graphflag==1) {
                   dtau[graphpoint] = deltatau;
                   Edgraph[graphpoint] = ED;
@@ -909,7 +885,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
                 EDold = ED;
 
                 if(recordflag==1)
-                  printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt*2 best\n", ncall, converge_step, deltatau, ED);
+                  INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt*2 best", ncall, converge_step, deltatau, ED);
 
                 if(graphflag==1) {
                   dtau[graphpoint] = deltatau;
@@ -928,7 +904,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
              Store_Computations(0, npts, wtflag);	/* Store Tau+dtau step computations */
 	  }
          if(recordflag==1)
-              printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt best\n", ncall, converge_step, deltatau, ED);
+              INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f dt best", ncall, converge_step, deltatau, ED);
 
          if(graphflag==1) {
             dtau[graphpoint] = deltatau;
@@ -943,7 +919,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
           matrix_copy (Dmatrix, &OldD);
           if(recordflag==1)
-              printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f\n", ncall, converge_step, deltatau, ED);
+              printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f", ncall, converge_step, deltatau, ED);
 
          if(graphflag==1) {
             dtau[graphpoint] = deltatau;
@@ -956,7 +932,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 	else
           {
 	    if(recordflag==1)
-             printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f Exiting time evolution\n", ncall, converge_step, deltatau, ED);
+             INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f Exiting time evolution", ncall, converge_step, deltatau, ED);
             Restore_Computations(0, npts, wtflag);       /* Exit with original step calculation */
             ED = EDold;
 	  }
@@ -994,7 +970,7 @@ DWItoDT_tsfunc (double tzero, double tdelta,
 
   /* testing information only */
   if(recordflag)
-     printf("ncall= %d, converge_step=%d, deltatau=%f, ED=%f\n", ncall, converge_step, deltatau, ED);
+     INFO_message("ncall= %d, converge_step=%d, deltatau=%f, ED=%f", ncall, converge_step, deltatau, ED);
   if(debug_briks) {
     val[nbriks-4] = converge_step;
     val[nbriks-3] = ED;
@@ -1240,7 +1216,7 @@ ComputeD0 ()
   matrix_create (3, 3, &ULmatrix);
   if (ULmatrix.elts == NULL)
     {				/* memory allocation error */
-      fprintf (stderr, "could not allocate memory for Rmat \n");
+      ERROR_message("Could not allocate memory for Rmat");
       EXRETURN;
     }
 
@@ -1901,20 +1877,20 @@ static int DWI_Open_NIML_stream()
    /* contact afni */
    tempport = NIML_TCP_FIRST_PORT;
    sprintf(streamname, "tcp:localhost:%d",tempport);
-   fprintf(stderr,"Contacting AFNI\n");
+   INFO_message("Contacting AFNI");
  
    DWIstreamid =  NI_stream_open( streamname, "w" ) ;
    if (DWIstreamid==0) {
-       fprintf(stderr,"+++ Warning - NI_stream_open failed\n");
+       WARNING_message("Warning - NI_stream_open failed");
       DWIstreamid = NULL;
       RETURN(1);
    }
 
-   fprintf (stderr,"\nTrying shared memory...\n");
+   INFO_message("Trying shared memory...");
    if (!NI_stream_reopen( DWIstreamid, "shm:DWIDT1M:1M" ))
-       fprintf (stderr, "Warning: Shared memory communcation failed.\n");
+       INFO_message("Warning: Shared memory communcation failed.");
    else
-     fprintf(stderr, "Shared memory connection OK.\n");
+      INFO_message("Shared memory connection OK.");
    Wait_tot = 0;
    while(Wait_tot < DWI_WriteCheckWaitMax){
       nn = NI_stream_writecheck( DWIstreamid , DWI_WriteCheckWait) ;
@@ -1923,7 +1899,7 @@ static int DWI_Open_NIML_stream()
          RETURN(0) ; 
       }
       if( nn <  0 ){ 
-         fprintf(stderr,"Bad connection to AFNI\n"); 
+         WARNING_message("Bad connection to AFNI"); 
          DWIstreamid = NULL;
          RETURN(1);
       }
@@ -1931,7 +1907,7 @@ static int DWI_Open_NIML_stream()
       fprintf(stderr,".") ;
    }
 
-   fprintf(stderr,"+++ WriteCheck timed out (> %d ms).\n",DWI_WriteCheckWaitMax);
+   WARNING_message("WriteCheck timed out (> %d ms).",DWI_WriteCheckWaitMax);
    RETURN(1);
 }
 
@@ -1945,7 +1921,7 @@ static int DWI_NIML_create_graph()
    NI_set_attribute ( nel, "ni_verb", "DRIVE_AFNI");
    NI_set_attribute ( nel, "ni_object", "OPEN_GRAPH_1D DWIConvEd 'DWI Convergence' 25 1 'converge step' 1 0 300000 Ed");
    if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
-      fprintf(stderr,"Failed to send data to AFNI\n");
+      WARNING_message("Failed to send data to AFNI");
       NI_free_element(nel) ; nel = NULL;
       RETURN(1);
    }
@@ -1972,7 +1948,7 @@ double max1, max2;
       NI_set_attribute ( nel, "ni_object","CLEAR_GRAPH_1D DWIConvEd\n");
 
    if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
-      fprintf(stderr,"Failed to send data to AFNI\n");
+      WARNING_message("Failed to send data to AFNI");
       NI_free_element(nel) ; nel = NULL;
       RETURN(1);
    }
@@ -1986,13 +1962,13 @@ double max1, max2;
       sprintf(stmp,"OPEN_GRAPH_1D DWIConvEd 'DWI Convergence' %d 1 'converge step' 2 0 100 %%Maximum Ed \\Delta\\tau\n",nx  );
       NI_set_attribute ( nel, "ni_object", stmp);
       if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
-        fprintf(stderr,"Failed to send data to AFNI\n");
+        WARNING_message("Failed to send data to AFNI");
         NI_free_element(nel) ; nel = NULL;
         RETURN(1);
       }
       NI_set_attribute ( nel, "ni_object", "SET_GRAPH_GEOM DWIConvEd geom=700x400+100+400\n");
       if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
-        fprintf(stderr,"Failed to send data to AFNI\n");
+        WARNING_message("Failed to send data to AFNI");
         NI_free_element(nel) ; nel = NULL;
         RETURN(1);
       }
@@ -2034,7 +2010,7 @@ static void DWI_AFNI_update_graph(double *Edgraph, double *dtau, int npts)
    NI_set_attribute ( nel, "ni_object", "CLEAR_GRAPH_1D DWIConvEd\n");
    /*      NI_sleep(25);*/
    if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
-      fprintf(stderr,"Failed to send data to AFNI\n");
+      WARNING_message("Failed to send data to AFNI");
    }
 
 
@@ -2052,7 +2028,7 @@ static void DWI_AFNI_update_graph(double *Edgraph, double *dtau, int npts)
       NI_set_attribute ( nel, "ni_object", stmp);  /* put command and data in stmp */
       NI_sleep(25);    /* for dramatic effect */
       if (NI_write_element( DWIstreamid, nel, NI_BINARY_MODE ) < 0) {
-        fprintf(stderr,"Failed to send data to AFNI\n");
+        WARNING_message("Failed to send data to AFNI");
       }
    }
    NI_free_element(nel) ; nel = NULL;
