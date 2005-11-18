@@ -1,0 +1,213 @@
+#!/bin/tcsh -f
+
+INITS:
+   set niter = 3000
+   set lim = 8
+   set tmp = "___fstmp_"
+   
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   set srfin = ""
+   set spcin = ""
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-sphere") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need dset after -sphere"
+            goto END
+         else
+            @ cnt ++
+            set srfin = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-spec") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need orientation string after -spec"
+            goto END
+         else
+            @ cnt ++
+            set spcin = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-niter") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need orientation string after -niter"
+            goto END
+         else
+            @ cnt ++
+            set niter = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-lim") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need orientation string after -niter"
+            goto END
+         else
+            @ cnt ++
+            set lim = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+   
+   if ( ! -f $spcin ) then
+      echo ""
+      echo "Error `basename $0`"
+      echo "Spec file $spcin not found"
+      echo ""
+      goto END
+   endif
+   
+   if ( ! -f $srfin ) then
+      echo ""
+      echo "Error `basename $0`"
+      echo "Sphere $srfin not found"
+      echo ""
+      goto END
+   endif
+
+
+PATHS_NAMES:
+   set srfd = $srfin:h
+   set srfn = $srfin:t
+   if ("$srfd" == "$srfin") set srfd = '.'
+   set spcd = $spcin:h
+   set spcn = $spcin:t
+   if ("$spcd" == "$spcin") set spcd = '.'
+   set srfp = `@NoExt $srfn asc`
+   set spcp = `@NoExt $spcn spec`
+   set outsn = ${srfp}_fxd.asc         
+
+PROJECT_TO_SPHERE:
+   echo "Projecting to sphere ..."
+   rm -f ${tmp}_${srfp}_pj.asc >& /dev/null
+   ConvertSurface -i_fs ${srfin} -o_fs ${tmp}_${srfp}_pj.asc -radial_to_sphere 100
+   set srfp = ${tmp}_${srfp}_pj
+   set srfn = $srfp.asc
+   rm -f ${srfp}.spec >& /dev/null
+   quickspec -tn FS ${srfp}.asc -spec ${srfp}.spec
+   set spcp = $srfp
+   set spcn = $srfp.spec
+
+   #recreate full name and final output
+   set spc = ${spcd}/${srfp}.spec
+   set srf = ${srfd}/${srfp}.asc
+
+
+SURFQUAL:
+   echo "Running SurfQual ..."
+   rm -f ${tmp}_sq_*.* >& /dev/null 
+   SurfQual -spec $spc -surf_A $srfp.asc -sphere -prefix ${tmp}_sq_ -summary > ${tmp}_sq_.log
+   set bad = `grep Folding_Triangles ${tmp}_sq_.log` 
+   set nbad = $bad[2]
+   echo "Found $nbad folding triangles."
+
+   if ($nbad == 0) then
+      echo "All is well with the world"
+      goto END
+   else
+      echo "Not gonna not gonna do it"
+   endif
+
+FATTEN_THE_GOOSE:
+   echo "Fattening the goose..."
+   rm -f ${tmp}_bd*.* >& /dev/null 
+   ROIgrow -i_fs $srfp.asc -lim $lim -roi_nodes ${tmp}_sq__BadNodes.1D.dset'[0]' -prefix ${tmp}_bd
+   set troub = ${tmp}_bd.1D
+
+SMOOTH_OUT_TROUBLE:
+   echo "Soothing the kinks..."
+   set wm = nngeom
+   set out = ${tmp}_sm_${srfp}_nl_sm${niter}_${wm}  
+   if ( -f ${out}.1D) rm -f ${out}.1D
+   if ( -f ${outsn} ) rm -f ${outsn} 
+   SurfSmooth  -spec $spc -surf_A $srfn  \
+               -met NN_geom -Niter $niter -surf_out ${outsn}        \
+               -n_mask $troub
+
+PROJECT_AGAIN:
+   echo "Projecting again..."
+   mv ${outsn} ${tmp}_${srfp}_pj_final.asc
+   ConvertSurface -i_fs ${tmp}_${srfp}_pj_final.asc -o_fs ${outsn} -radial_to_sphere 100
+
+   rm -f ${outsn}.spec >& /dev/null
+   quickspec -tn FS ${outsn} -spec ${outsn}.spec
+   #echo "Running SUMA..."
+   #suma -spec ${outsn}.spec -dev &
+
+NEW_METRICS:
+   echo "New Surface Metrics ..."
+   rm -f ${tmp}_smet_${outsn}* >& /dev/null
+   SurfaceMetrics -spec ${outsn}.spec -surf_A ${outsn}  \
+                  -face_normals -prefix ${tmp}_smet_${outsn}
+
+CHECK_AGAIN:
+   echo "Running SurfQual on fixed surface..."
+   SurfQual -spec ${outsn}.spec -surf_A ${outsn} -sphere -prefix ${tmp}_sq_${outsn} -summary > ${tmp}_sq_${outsn}.log
+   set bad = `grep Folding_Triangles ${tmp}_sq_${outsn}.log` 
+   set nbad = $bad[2]
+   echo "Found $nbad folding triangles."
+
+   if ($nbad == 0) then
+      echo ""
+      echo "Good."
+      echo ""
+      goto END
+   else 
+      echo ""
+      echo "Not good, try increasing number of iterations"
+      echo ""
+      goto END
+   endif
+
+   
+goto END
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <-spec SPEC> <-sphere SPHERE.asc>"
+   echo "                     [-niter NITER] [-lim LIM]"
+   echo ""
+   echo "   Fixes errors in FreeSurfer spherical surfaces."
+   echo "   Mandatory parameters:"
+   echo "   -spec SPEC: Spec file"
+   echo "   -sphere SPHERE.asc: SPHERE.asc is the sphere to be used."
+   echo "   Optional parameters:"
+   echo "   -niter NITER: Number of local smoothing operations."
+   echo "                 Default is $niter"
+   echo "   -lim LIM: Extent, in mm, by which troubled sections "
+   echo "             are fattened. Default is $lim"
+   echo ""
+   echo "   Output:"
+   echo "   Corrected surface is called SPHERE_fxd.asc"
+   echo ""
+   echo "Example:"
+   echo "`basename $0` -spec ./2005-10-01-km_rh.spec -sphere ./rh.sphere.asc"
+   echo ""
+   goto END
+   
+
+END:
+rm -f ${tmp}_*.* >& /dev/null
