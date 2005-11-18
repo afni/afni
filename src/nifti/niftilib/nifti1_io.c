@@ -3405,8 +3405,8 @@ int nifti_hdr_looks_good(const nifti_1_header * hdr)
       errs++;
    }
 
-   /* check the valid dimension sizes */
-   for( c = 1; c <= hdr->dim[0]; c++ )
+   /* check the valid dimension sizes (maybe dim[0] is bad) */
+   for( c = 1; c <= hdr->dim[0] && c <= 7; c++ )
       if( hdr->dim[c] <= 0 ){
          if( g_opts.debug > 0 )
             fprintf(stderr,"** bad nhdr field: dim[%d] = %d\n",c,hdr->dim[c]);
@@ -3421,7 +3421,7 @@ int nifti_hdr_looks_good(const nifti_1_header * hdr)
    {
       if( g_opts.debug > 0 )
          fprintf(stderr,
-            "** bad nhdr field: magic = %.4s, should be \"n+1\" or \"ni1\"\n"
+            "** bad nhdr field: magic = '%.4s', should be \"n+1\" or \"ni1\"\n"
             "   (in hex) magic = 0x%02x%02x%02x%02x\n"
             "        should be = 0x6e2b3100  or  0x6e693100\n",
             hdr->magic, hdr->magic[0], hdr->magic[1],
