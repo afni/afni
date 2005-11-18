@@ -1316,4 +1316,6 @@
       - added magic and dim[i] tests in nifti_hdr_looks_good()
   * modified nifti_tool.[ch] (-> v1.10)
       - added check_hdr and check_nim action options
+  * checked in some of Hans' changes (with some alterations)
+      - a few casts in fslio.[ch] and nifti1_io.[ch] and () in nifti_stats.c
 
