@@ -80,5 +80,9 @@
  * added support to 3dMax for checking for NaN,Inf and -Inf with the -nan and -nonan options
 20 Oct 2005
  * fixed 3danisosmooth phi calculation for exponential version to use scaled eigenvalues
-
+18 Nov 2005
+ * made major changes to 3danisosmooth and DWIstructtensor to improve
+ performance. Also included changes for standardized message printing system for AFNI
+ programs.
+ 
 
