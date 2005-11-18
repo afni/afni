@@ -1314,4 +1314,6 @@
         (except setting them to 0 upon reading, so garbage does not propagate)
       - do not set pixdim for collapsed dims to 1.0, leave them
       - added magic and dim[i] tests in nifti_hdr_looks_good()
+  * modified nifti_tool.[ch] (-> v1.10)
+      - added check_hdr and check_nim action options
 
