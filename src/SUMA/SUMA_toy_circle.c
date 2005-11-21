@@ -304,8 +304,8 @@ SUMA_Boolean FindSplineWeights (MyCircle *C, MyCircleOpt *opt)
       opt->Dtheta[i] = atan2 ( opt->CtrlPts_f[i3+1], opt->CtrlPts_f[i3  ] ) - t[i]; 
       SUMA_S_Note("Make usage of Dtheta_new the norm");
       if (LocalHead) {
-         double Dtheta_new;
-         SUMA_ANGLE_DIST_NC((&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts_i[i3])), Dtheta_new);
+         double Dtheta_new, nrm[3]={0,0,0};
+         SUMA_ANGLE_DIST_NC((&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts_i[i3])), Dtheta_new, nrm);
          fprintf(SUMA_STDERR, "%s: Point %d, Dtheta = %.9f rad (%.9f deg)\n"
                               "New meth: Dtheta = %.9f rad (%.9f deg)\n", 
                                  FuncName, i, opt->Dtheta[i], SUMA_R2D(opt->Dtheta[i]),
@@ -399,7 +399,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
    static int ncall = 0;
    byte repeat;
    int i, i3, j, j3;
-   double Wax, Way, Waz, AS, cas, sas, dv[3],was, *xyz_i, *xyz_j, mag, scale;
+   double Wax, Way, Waz, AS, cas, sas, dv[3],was, *xyz_i, *xyz_j, mag, scale, nrm[3]={0,0,0};
    SUMA_Boolean LocalHead = YUP;
    
    SUMA_ENTRY;
@@ -422,7 +422,7 @@ SUMA_Boolean Velocity( MyCircle *C, MyCircleOpt *opt)
          i3 = i*3;
          /* Calculate the angle AS between node i and ctrl pt j. Assuming sphere of rad 1, centered at 0 0 0*/
          xyz_i = &(C->NewNodeList[i3]);
-         SUMA_ANGLE_DIST_NC(xyz_i, xyz_j, AS);
+         SUMA_ANGLE_DIST_NC(xyz_i, xyz_j, AS, nrm);
          repeat = 0;
          do {
             /* some frequent flyer variables */
@@ -574,7 +574,7 @@ int main (int argc,char *argv[])
    int i, i3;
    double  t, dt, dt2, te, Wax, mag;
    double scale = 0, talpha = 0, u[3], oxyz[3]={0.0, 0.0, 0.0};
-   double um=-1.0, oda, faa, error, dtheta=0.0;
+   double um=-1.0, oda, faa, error, dtheta=0.0, nrm[3]={0.0, 0.0, 0.0}, nrmf[3]={0.0, 0.0, 0.0};
    int niter=0;
    MyCircle *Ci = NULL;
    vector Wv;
@@ -757,7 +757,7 @@ int main (int argc,char *argv[])
          Ci->NewNodeList[i3+1] = (Ci->NewNodeList[i3+1])/( mag );
          Ci->NewNodeList[i3+2] = (Ci->NewNodeList[i3+2])/( mag );
          if (i == opt->CtrlPts_iim[0]) { /* debug when node is 1st control point */
-            SUMA_ANGLE_DIST_NC( oxyz, (&(Ci->NewNodeList[i3])), dtheta);
+            SUMA_ANGLE_DIST_NC( oxyz, (&(Ci->NewNodeList[i3])), dtheta, nrm);
             fprintf(SUMA_STDERR, "new[XYZ] = [%.8f %.8f %.8f]\n"
                                  "Dtheta = %.18f rad, (%.18f deg.)\n", 
                                  Ci->NewNodeList[i3  ], Ci->NewNodeList[i3+1], Ci->NewNodeList[i3+2],
@@ -801,8 +801,8 @@ int main (int argc,char *argv[])
                           "#Col. 3: Error (ODA-FAA) in rad.\n"
                           "#Col. 4: Error (ODA-FAA) in deg.\n", FuncName, niter, te - dt);
       if (opt->CtrlPts_iim[i] >= 0) {
-         SUMA_ANGLE_DIST_NC( (&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts_i[i3])), oda); /* original desired angle */ 
-         SUMA_ANGLE_DIST_NC( (&(Ci->NewNodeList[3*opt->CtrlPts_iim[i]])), (&(opt->CtrlPts_i[i3])), faa ); /* final achieved angle */ 
+         SUMA_ANGLE_DIST_NC( (&(opt->CtrlPts_f[i3])), (&(opt->CtrlPts_i[i3])), oda, nrm); /* original desired angle */ 
+         SUMA_ANGLE_DIST_NC( (&(Ci->NewNodeList[3*opt->CtrlPts_iim[i]])), (&(opt->CtrlPts_i[i3])), faa, nrmf); /* final achieved angle */ 
          error = oda - faa;
          fprintf(SUMA_STDERR,"%d   %.5f   %.5f   %.15f   %.15f\n", opt->CtrlPts_iim[i], oda, faa, error, SUMA_R2D(error)); 
       }
