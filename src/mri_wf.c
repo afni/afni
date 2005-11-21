@@ -22,33 +22,35 @@ static MRI_IMAGE * mri_psinv( MRI_IMAGE *imc , float *wt ) ;
 
 /*---------------------------------------------------------------------------*/
 
-void wtarray_inverse( int nnx , wtarray *wf , wtarray *wi )
+float wtarray_inverse( int nnx , wtarray *wf , int nwi , wtarray *wi )
 {
    MRI_IMAGE *imc , *imp ;
    float     *car , *par , *wtf , *wti , *rhs ;
-   int nx=nnx , nw , ii,jj ;
+   int nx=nnx , nwf , ii,jj ;
    float dx , xx , ss , yy , aa,ainv ;
+   double esum ;
 
    /** take care of pathological cases **/
 
-   if( wi == NULL || nx < 2 ) return ;
+   if( wi == NULL || nx < 2 ) return 0.0f ;
    if( wf == NULL || wf->a == 0.0f ){
      ERROR_message("wf is bad") ;
-     wi->a = 1.0f ; wi->nwt = 0 ; FREEIF(wi->wt) ; return ;
+     wi->a = 1.0f ; wi->nwt = 0 ; FREEIF(wi->wt) ; return 0.0f ;
    }
    if( wf->nwt <= 0 ){
      ERROR_message("wf->nwt is %d",wf->nwt) ;
      wi->a = (wf->a != 0.0f) ? 1.0f/wf->a : 1.0f ;
-     wi->nwt = 0 ; FREEIF(wi->wt) ; return ;
+     wi->nwt = 0 ; FREEIF(wi->wt) ; return 0.0f ;
    }
+   if( nwi < 1 ) nwi = wf->nwt ;
 
    FREEIF(wi->wt) ;
    aa  = wf->a ; wi->a = ainv = 1.0f/aa ;
    dx  = TWOPI / (nx-1) ;
-   nw  = wi->nwt = wf->nwt ;
+   nwf = wf->nwt ; wi->nwt = nwi ;
    wtf = wf->wt ;
-   wti = wi->wt = (float *)malloc(sizeof(float *)*nw) ;
-   imc = mri_new( nx , nw , MRI_float ) ;
+   wti = wi->wt = (float *)malloc(sizeof(float *)*nwi) ;
+   imc = mri_new( nx , nwi , MRI_float ) ;
    car = MRI_FLOAT_PTR(imc) ;
    rhs = (float *)malloc(sizeof(float)*nx) ;
 
@@ -56,22 +58,32 @@ void wtarray_inverse( int nnx , wtarray *wf , wtarray *wi )
 
    for( ii=0 ; ii < nx ; ii++ ){
      xx = dx * ii ; ss = 0.0f ;
-     for( jj=0 ; jj < nw ; jj++ ) ss += wtf[jj] * sinf((jj+1)*xx) ;
+     for( jj=0 ; jj < nwf ; jj++ ) ss += wtf[jj] * sinf((jj+1)*xx) ;
      rhs[ii] = -ainv * ss ;
      yy = aa*xx + TWOPI*ss ;
-     for( jj=0 ; jj < nw ; jj++ ) car[ii+jj*nx] = sinf((jj+1)*yy) ;
+     for( jj=0 ; jj < nwi ; jj++ ) car[ii+jj*nx] = sinf((jj+1)*yy) ;
    }
 
    imp = mri_psinv( imc , NULL ) ; mri_free(imc) ;
    par = MRI_FLOAT_PTR(imp) ;
 
-   for( jj=0 ; jj < nw ; jj++ ){
+   for( jj=0 ; jj < nwi ; jj++ ){
      ss = 0.0f ;
-     for( ii=0 ; ii < nx ; ii++ ) ss += par[jj+ii*nw] * rhs[ii] ;
+     for( ii=0 ; ii < nx ; ii++ ) ss += par[jj+ii*nwi] * rhs[ii] ;
      wti[jj] = ss ;
    }
    mri_free(imp) ; free((void *)rhs) ;
-   return ;
+
+   esum = 0.0 ;
+   for( ii=0 ; ii < nx ; ii++ ){
+     xx = dx * ii ; ss = 0.0f ;
+     for( jj=0 ; jj < nwf ; jj++ ) ss += wtf[jj] * sinf((jj+1)*xx) ;
+     yy = aa*xx + TWOPI*ss ;
+     ss = ainv*ss ;
+     for( jj=0 ; jj < nwi ; jj++ ) ss += wti[jj] * sinf((jj+1)*yy) ;
+     esum += ss*ss ;
+   }
+   return (float)sqrt(esum/nx) ;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -189,6 +201,28 @@ static MRI_IMAGE * mri_psinv( MRI_IMAGE *imc , float *wt )
        V(ii,ii) += PSINV_EPS ;   /* note V(ii,ii)==1 before this */
      }
 
+#if 0
+fprintf(stderr,"NORMAL MATRIX::\n") ;
+for( ii=0 ; ii < n ; ii++ ){
+  fprintf(stderr,"%2d:",ii) ;
+  for( jj=0 ; jj <= ii ; jj++ ) fprintf(stderr," %7.4f",V(ii,jj)) ;
+  fprintf(stderr,"\n") ;
+}
+#endif
+#if 1
+{ double rr,rmax=0.0 ;
+  for( ii=0 ; ii < n ; ii++ ){
+    rr = 0.0 ;
+    for( jj=0 ; jj < n ; jj++ ){
+           if( jj < ii ) rr += fabs(V(ii,jj)) ;
+      else if( jj > ii ) rr += fabs(V(jj,ii)) ;
+    }
+    rr = rr / V(ii,ii) ; if( rr > rmax ) rmax = rr ;
+  }
+  fprintf(stderr,"MAX row ratio = %g\n",rmax) ;
+}
+#endif
+
      /* Choleski factor */
 
      for( ii=0 ; ii < n ; ii++ ){
@@ -205,6 +239,15 @@ static MRI_IMAGE * mri_psinv( MRI_IMAGE *imc , float *wt )
        }
        V(ii,ii) = sqrt(sum) ;
      }
+
+#if 0
+fprintf(stderr,"CHOLESKI FACTOR::\n") ;
+for( ii=0 ; ii < n ; ii++ ){
+  fprintf(stderr,"%2d:",ii) ;
+  for( jj=0 ; jj <= ii ; jj++ ) fprintf(stderr," %7.4f",V(ii,jj)) ;
+  fprintf(stderr,"\n") ;
+}
+#endif
 
      /* create pseudo-inverse */
 
@@ -259,19 +302,33 @@ int main( int argc , char *argv[] )
 {
    wtarray *wt_for , *wt_inv ;
    int jj ;
+   int nwf=NW , nwi=0 ;
+   float err ;
 
-   INIT_wtarray(wt_for,1.0f,NW) ;
-   INIT_wtarray(wt_inv,1.0f,0 ) ;
+   if( argc > 1 ){
+     nwf = (int)strtod(argv[1],NULL) ;
+     if( nwf < 1 || nwf > 99 ) nwf = NW ;
+   }
+   if( argc > 2 ){
+     nwi = (int)strtod(argv[2],NULL) ;
+     if( nwi < 1 || nwi > 999 ) nwi = 0 ;
+   }
+   if( nwi < 1 ) nwi = nwf ;
 
-   for( jj=1 ; jj <= NW ; jj++ )
-     wt_for->wt[jj-1] = 0.2f /(jj*jj*jj + 1.0f) ;
+   INIT_wtarray(wt_for,1.0f,nwf) ;
+   INIT_wtarray(wt_inv,1.0f,0  ) ;
 
-   wtarray_inverse( 500 , wt_for , wt_inv ) ;
+   for( jj=1 ; jj <= nwf ; jj++ )
+     wt_for->wt[jj-1] = 0.43f /(jj*jj + 1.0f) ;
+
+   err = wtarray_inverse( 66*nwf , wt_for , nwi , wt_inv ) ;
 
    if( wt_inv->nwt == 0 || wt_inv->wt == NULL ) ERROR_exit("Bad wt_inv!") ;
 
+   printf("err = %.5g\n",err) ;
+
    printf("z := x -> %f * x ",wt_inv->a) ;
-   for( jj=1 ; jj <= NW ; jj++ ){
+   for( jj=1 ; jj <= nwi ; jj++ ){
      if( wt_inv->wt[jj-1] != 0.0f ){
        if( wt_inv->wt[jj-1] >  0.0f ) printf(" +") ;
        printf("%f * sin(%d*Pi*x)" , wt_inv->wt[jj-1] , 2*jj ) ;
@@ -280,7 +337,7 @@ int main( int argc , char *argv[] )
    printf(";\n") ;
 
    printf("y := x -> %f * x ",wt_for->a) ;
-   for( jj=1 ; jj <= NW ; jj++ ){
+   for( jj=1 ; jj <= nwf ; jj++ ){
      if( wt_for->wt[jj-1] != 0.0f ){
        if( wt_for->wt[jj-1] >  0.0f ) printf(" +") ;
        printf("%f * sin(%d*Pi*x)" , wt_for->wt[jj-1] , 2*jj ) ;
