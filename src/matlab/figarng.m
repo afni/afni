@@ -18,8 +18,8 @@ nf = length(hvect);
 
 monpos = get(0, 'monitorposition');
 
-mx_x = monpos(1,3)+monpos(2,3)
-mx_y = monpos(1,4)+monpos(2,4)
+mx_x = monpos(1,3)+monpos(2,3);
+mx_y = monpos(1,4)+monpos(2,4);
 
 if (nf == 0),
 	fprintf (2,'figarng : No figure handles specified\n');
@@ -34,20 +34,19 @@ end
 frmx = 13;	% frame size (approximate extra size of window decorations
 frmy = 100;
 
-nfy = (nf./nfx)
+nfy = (nf./nfx);
 
 xwdth = xur - xll ;
 ywdth = yur - yll ;
 
-fwdx = (xwdth)./nfx - frmx
-fwdy = (ywdth)./nfy - frmy
+fwdx = (xwdth)./nfx - frmx;
+fwdy = (ywdth)./nfy - frmy;
 
 xlli = xll;
 ylli = yll;
 
 for i=1:nf,
 	figure (i);
-   i, xlli, ylli,
 	h = setfpos ( xlli , ylli );
 	setfsize (fwdx,fwdy);
 	xlli = xlli + fwdx + frmx;
