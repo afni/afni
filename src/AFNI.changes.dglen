@@ -84,3 +84,6 @@
  * made major changes to 3danisosmooth and DWIstructtensor to improve performance. 
    Also included changes for standardized message printing system for AFNI programs in 3danisosmooth.c, 
    DWIstructtensor.c, 3dMax.c, 3dDTeig.c, 3dDWItoDT.c
+21 Nov 2005
+ * fixed bug to improve efficiency of 3danisosmooth with mask datasets
+ 

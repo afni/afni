@@ -1474,7 +1474,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 static void
 Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)  
 {
-   int ii, jj, kk, nx, ny, nz, nxy;
+   int ii, jj, kk, nx, ny, nz, nxy, nxyz1, nxyz2, nxyz;
    byte *mptr;
    THD_dataxes   * daxes ;
    
@@ -1486,6 +1486,8 @@ Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)
    nz    = daxes->nzz ;
  
    nxy = nx * ny;
+   nxyz = nxy*nz;
+   nxyz1 = nxyz2 = 0;
    
    if(flag2D3D==2) {
        for(kk=0;kk<nz;kk++) {
@@ -1494,11 +1496,14 @@ Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)
 	        if(*mptr) { /* if mask value anything other than 0 */
 		    if((jj>0) && (jj<(ny-1)) && (ii>0) && (ii<nx-1)) {
            /* check all neighboring voxels to see if all surrounding voxels are also included */
-
-        	       if(Check_Neighbors_2D(mptr,nx))
+        	       if(Check_Neighbors_2D(mptr,nx)) {
 		         *mptr = 1;  /* replace with value of 1 if all neigbors are 1 also*/	
-        	       else
+			  nxyz1++;
+			 }
+        	       else {
         	         *mptr = 2;  /* set edge of mask to 2 */
+			  nxyz2++;
+		       }
 		    }
 		    else
 		       *mptr = 2; /* on edge of volume */
@@ -1514,10 +1519,14 @@ Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)
 	     for(ii=0;ii<nx;ii++) {  
                  if(*mptr) { /* if mask value anything other than 0 */
 		    if((kk>0)&&(kk<(nz-1)) && (jj>0) && (jj<(ny-1)) && (ii>0) && (ii<nx-1)) {
-		       if(Check_Neighbors_3D(mptr, nx, nxy))
+		       if(Check_Neighbors_3D(mptr, nx, nxy)) {
 		           *mptr = 1;
-		       else
+			  nxyz1++;
+			 }
+		       else {
 		           *mptr = 2;
+			  nxyz2++;
+			 }
 		    }
 		    else
 		       *mptr = 2;  /* on edge of volume */
@@ -1527,6 +1536,8 @@ Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)
 	 }
       } 
    }
+   INFO_message("total voxels %d, voxels completely inside mask %d, voxels on edge of mask %d\n", nxyz, nxyz1,
+   nxyz2);
 }
 
 
@@ -1540,11 +1551,14 @@ static int Check_Neighbors_2D(byte *mptr, int nx)
    /* check 1st row of 3 voxels */
    bptr = mptr - nx + 1;
    flag =  (*bptr) && (*(bptr+1)) && (*(bptr+2));
+
    if(flag==0) {
        return(0);
    }
+
    /* check central row*/
-   flag =  (*mptr-1) && (*mptr) && (*(mptr+1));
+   flag =  (*(mptr-1)) && (*mptr) && (*(mptr+1));
+
    if(flag==0) {
        return(0);
    }
@@ -1567,7 +1581,7 @@ static int Check_Neighbors_3D(byte *mptr, int nx, int nxy)
    flag = Check_Neighbors_2D(mptr, nx);
    if(flag==0) return(0);
    bptr = mptr + nxy;
-   flag = Check_Neighbors_2D(mptr, nx);
+   flag = Check_Neighbors_2D(bptr, nx);
    return(flag);
 }
 
