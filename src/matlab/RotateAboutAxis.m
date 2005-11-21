@@ -9,6 +9,7 @@ function [XYZr] = RotateAboutAxis(XYZ, nrm, phi)
 %Origin of coordinate system is assumed to be 0
 %Function is equivalent to AxisRotate3D
 %equation for rotation from http://mathworld.wolfram.com/RotationFormula.html
+%see C macro in SUMA: SUMA_ROTATE_ABOUT_AXIS
 % ZSS, Nov 05
 
 % angle already in radians phi = phi./180.*pi;
