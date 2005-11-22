@@ -35,6 +35,9 @@
 
 static char D_prefix[THD_MAX_PREFIX] = "TempDAni";
 
+float aniso_sigma1 = 0.5;
+float aniso_sigma2 = 1.0;
+
 
 THD_3dim_dataset *DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag);
 void Smooth_DWI_dset(THD_3dim_dataset * DWI_dset, int flag2D3D);
@@ -71,8 +74,8 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
                                      smoothing */
   /* compute gradients of smoothed DWI images */
   /* and form matrix of gradients - imarr with 3 sub-briks for 2D */
-  smooth_factor1 = 0.5;
-  Gradient_Im = Compute_Gradient_Matrix(DWI_dset, flag2D3D, maskptr, 1, smooth_flag, smooth_factor1);
+  Gradient_Im = Compute_Gradient_Matrix(DWI_dset, flag2D3D, maskptr,
+  1,smooth_flag, aniso_sigma1);
 /*  THD_delete_3dim_dataset(tempdset , False ) ;*/  /* delete temporary copy */
   if(save_tempdsets_flag)
      Save_imarr_to_dset(Gradient_Im,DWI_dset, "Gradient");
@@ -226,7 +229,7 @@ Smooth_Gradient_Matrix(MRI_IMARR *Gradient_Im, int flag2D3D)
       else
          dz = 1.0f;
 
-      EDIT_blur_volume( nx,ny,nz, 1.0f,1.0f,dz, fim_type, ar, 1.0f ) ;
+      EDIT_blur_volume( nx,ny,nz, 1.0f,1.0f,dz, fim_type, ar, aniso_sigma2 ) ;
    }
    EXRETURN;
 }
