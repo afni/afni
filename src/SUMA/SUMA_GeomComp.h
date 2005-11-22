@@ -73,7 +73,7 @@ float ** SUMA_Chung_Smooth_Weights (SUMA_SurfaceObject *SO);
 float * SUMA_Chung_Smooth (SUMA_SurfaceObject *SO, float **wgt, 
                            int N_iter, float FWHM, float *fin, 
                            int vpn, SUMA_INDEXING_ORDER d_order, float *fout_user,
-                           SUMA_COMM_STRUCT *cs);
+                           SUMA_COMM_STRUCT *cs, byte *nmask);
 SUMA_Boolean  SUMA_Taubin_Smooth_TransferFunc (float l, float m, int N, FILE *Out);
 SUMA_Boolean SUMA_Taubin_Smooth_Coef (float k, float *l, float *m);
 float * SUMA_Taubin_Smooth (SUMA_SurfaceObject *SO, float **wgt, 

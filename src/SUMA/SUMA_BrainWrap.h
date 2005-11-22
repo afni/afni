@@ -169,7 +169,7 @@ EDIT_options *SUMA_BlankAfniEditOptions(void);
             SUMA_SL_Err("Failed to compute weights.\n"); \
             exit(1); \
          }  \
-         m_dsmooth = SUMA_Chung_Smooth (SO, m_wgt, 200, 20, m_touchup, 1, SUMA_COLUMN_MAJOR, NULL, ps->cs);   \
+         m_dsmooth = SUMA_Chung_Smooth (SO, m_wgt, 200, 20, m_touchup, 1, SUMA_COLUMN_MAJOR, NULL, ps->cs, NULL);   \
          if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* filtering done.\n", FuncName);   \
       } else { \
          m_dsmooth = m_touchup; m_touchup = NULL;  \
