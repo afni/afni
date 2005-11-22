@@ -63,7 +63,6 @@ DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int sm
 {
   MRI_IMARR *Gradient_Im, *EV_Im, *phi_Im, *D_Im;
   THD_3dim_dataset *D_dset, *tempdset;
-  float smooth_factor1;
 
   ENTRY("DWIstructtensor");
 
