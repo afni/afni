@@ -273,14 +273,16 @@ static char * gni_history[] =
   "   - added skip_blank_ext to nifti_global_options\n"
   "   - added nifti_set_skip_blank_ext(), to set option\n"
   "   - if skip_blank_ext and no extensions, do not read/write extender\n"
-  "1.16  18 November 2005 [rickr]\n",
+  "1.16 18 November 2005 [rickr]\n",
   "   - removed any test or access of dim[i], i>dim[0]\n"
   "   - do not set pixdim for collapsed dims to 1.0, leave them as they are\n"
   "   - added magic and dim[i] tests in nifti_hdr_looks_good()\n"
   "   - added 2 size_t casts\n"
+  "1.17 22 November 2005 [rickr]\n",
+  "   - in hdr->nim, for i > dim[0], pass 0 or 1, else set to 1\n"
   "----------------------------------------------------------------------\n"
 };
-static char gni_version[] = "nifti library version 1.16 (Nov 18, 2005)";
+static char gni_version[] = "nifti library version 1.17 (Nov 22, 2005)";
 
 /*! global nifti options structure */
 static nifti_global_options g_opts = { 1 };
@@ -3023,8 +3025,9 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
      if( nhdr.dim[ii] <= 0 ) nhdr.dim[ii] = 1 ;
 
    /* fix any remaining bad dim[] values, so garbage does not propagate */
+   /* (only values 0 or 1 seem rational, otherwise set to arbirary 1)   */
    for( ii=nhdr.dim[0]+1 ; ii <= 7 ; ii++ )
-     if( nhdr.dim[ii] != 1 ) nhdr.dim[ii] = 1 ;
+     if( nhdr.dim[ii] != 1 && nhdr.dim[ii] != 0) nhdr.dim[ii] = 1 ;
 
 #if 0  /* rely on dim[0], do not attempt to modify it   16 Nov 2005 [rickr] */
 
