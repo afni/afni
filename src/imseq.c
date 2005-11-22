@@ -4609,11 +4609,16 @@ ENTRY("ISQ_draw_winfo") ;
          strcat(qbuf," ") ; strcat(qbuf,buf) ;
          MCW_set_widget_label( seq->winfo , qbuf ) ;
        } else if( seq->opt.mirror || seq->opt.rot != ISQ_ROT_0 ){
-         sprintf(qbuf,"%s%s",
-                    (seq->opt.rot==ISQ_ROT_0  ) ? "["
-                   :(seq->opt.rot==ISQ_ROT_90 ) ? "[90"
-                   :(seq->opt.rot==ISQ_ROT_180) ? "[180" : "[270" ,
-                 (seq->opt.mirror) ? "+l] " : "] " ) ;
+         switch( seq->opt.rot ){
+           case ISQ_ROT_0  : strcpy(qbuf,"["   ) ; break ;
+           case ISQ_ROT_90 : strcpy(qbuf,"[90" ) ; break ;
+           case ISQ_ROT_180: strcpy(qbuf,"[180") ; break ;
+           case ISQ_ROT_270: strcpy(qbuf,"[270") ; break ;
+         }
+         if( seq->opt.mirror ){
+           if( seq->opt.rot == ISQ_ROT_0 ) strcat(qbuf,"l] " ) ;
+           else                            strcat(qbuf,"+l] ") ;
+         } else                            strcat(qbuf,"] "  ) ;
          strcat(qbuf,buf) ;
          MCW_set_widget_label( seq->winfo , qbuf ) ;
        } else {
