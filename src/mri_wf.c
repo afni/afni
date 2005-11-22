@@ -303,7 +303,7 @@ int main( int argc , char *argv[] )
    wtarray *wt_for , *wt_inv ;
    int jj ;
    int nwf=NW , nwi=0 ;
-   float err ;
+   float err , aa=0.222 ;
 
    if( argc > 1 ){
      nwf = (int)strtod(argv[1],NULL) ;
@@ -314,14 +314,17 @@ int main( int argc , char *argv[] )
      if( nwi < 1 || nwi > 999 ) nwi = 0 ;
    }
    if( nwi < 1 ) nwi = nwf ;
+   if( argc > 3 ){
+     aa = (float)strtod(argv[3],NULL) ;
+   }
 
    INIT_wtarray(wt_for,1.0f,nwf) ;
    INIT_wtarray(wt_inv,1.0f,0  ) ;
 
    for( jj=1 ; jj <= nwf ; jj++ )
-     wt_for->wt[jj-1] = 0.43f /(jj*jj + 1.0f) ;
+     wt_for->wt[jj-1] = aa /(jj*jj + 1.0f) ;
 
-   err = wtarray_inverse( 66*nwf , wt_for , nwi , wt_inv ) ;
+   err = wtarray_inverse( 66*MAX(nwf,nwi) , wt_for , nwi , wt_inv ) ;
 
    if( wt_inv->nwt == 0 || wt_inv->wt == NULL ) ERROR_exit("Bad wt_inv!") ;
 
