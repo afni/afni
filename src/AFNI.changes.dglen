@@ -86,4 +86,6 @@
    DWIstructtensor.c, 3dMax.c, 3dDTeig.c, 3dDWItoDT.c
 21 Nov 2005
  * fixed bug to improve efficiency of 3danisosmooth with mask datasets
- 
+22 Nov 2005
+ * support for user options for level of Gaussian smoothing (-sigma1, -sigma2) in 3danisosmooth
+  

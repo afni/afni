@@ -35,6 +35,7 @@ static NI_stream ns = NULL;
 
 int compute_method = 0;   /* use Ding's method to compute phi values */
 float deltatflag = -1.0;  /* compute pseudotime step or use specific value */
+extern float aniso_sigma1, aniso_sigma2;
 
 #define Smooth_WriteCheckWaitMax 2000
 #define Smooth_WriteCheckWait 400
@@ -105,6 +106,12 @@ int main( int argc , char * argv[] )
              "  -viewer = show central axial slice image every iteration.\n"
              "    Starts aiv program internally.\n"
              "  -nosmooth = do not do intermediate smoothing of gradients\n"
+	     "  -sigma1 n.nnn = assign Gaussian smoothing sigma before\n"
+	     "    gradient computation for calculation of structure tensor.\n"
+	     "    Default = 0.5\n"
+	     "  -sigma2 n.nnn = assign Gaussian smoothing sigma after\n"
+	     "    gradient matrix computation for calculation of structure tensor.\n"
+	     "    Default = 1.0\n"
              "  -deltat n.nnn = assign pseudotime step. Default = 0.25\n"
              "  -savetempdata = save temporary datasets each iteration.\n"
              "   Dataset prefixes are Gradient, Eigens, phi and Dtensor.\n"
@@ -239,7 +246,7 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[nopt],"-deltat") == 0 ){
 	   if(++nopt >=argc ){
-	      ERROR_exit("Error - need an argument after -iters!");
+	      ERROR_exit("Error - need an argument after -deltat!");
 	      
 	   }
            deltatflag = atof(argv[nopt]);
@@ -250,6 +257,38 @@ int main( int argc , char * argv[] )
           nopt++;
 	  continue;
       }
+
+     if( strcmp(argv[nopt],"-sigma1") == 0 ){
+	   if(++nopt >=argc ){
+	      ERROR_exit("Error - need an argument after -sigma1!");
+	      
+	   }
+           aniso_sigma1 = atof(argv[nopt]);
+	   if (aniso_sigma1 <0) {
+	      ERROR_exit( "Error - sigma1 must be positive!");
+	     
+           }
+          nopt++;
+	  continue;
+      }
+
+
+
+     if( strcmp(argv[nopt],"-sigma2") == 0 ){
+	   if(++nopt >=argc ){
+	      ERROR_exit("Error - need an argument after -sigma2!");
+	      
+	   }
+           aniso_sigma2 = atof(argv[nopt]);
+	   if (aniso_sigma2 <0) {
+	      ERROR_exit( "Error - sigma2 must be positive!");
+           }
+          nopt++;
+	  continue;
+      }
+
+
+
 
      if( strcmp(argv[nopt],"-phiding") == 0 ){
            if(compute_method!=-1) {
