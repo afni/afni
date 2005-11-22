@@ -53,6 +53,9 @@
 
    Mod:     Modified to init 2nd order contrast struct members.
    Date:    17 October 2005 [rickr/gangc]
+
+   Mod:     Init option_data->old_method to 0.
+   Date:    22 November 2005 [rickr]
 */
 
 /* defined 'later' in parent file */
@@ -75,6 +78,8 @@ void initialize_options (anova_options * option_data)
   option_data->nvoxel = -1;
 
   option_data->model = 1;
+
+  option_data->old_method = 0;
   
   option_data->a = 0;
   option_data->b = 0;
