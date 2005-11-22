@@ -5466,7 +5466,7 @@ void usage_ROI2dataset_Main ()
             "                            are not part of any ROI will get\n"
             "                            a default label of 0 unless you\n"
             "                            specify your own padding label.\n"
-            "    -pad_val padding_label: Use padding_label (an integer) to\n"
+            "    -pad_label padding_label: Use padding_label (an integer) to\n"
             "                            label nodes that do not belong\n"
             "                            to any ROI. Default is 0.\n" 
             "\n");
@@ -5579,7 +5579,7 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       
-      if (!brk && (strcmp(argv[kar], "-pad_label") == 0)) {
+      if (!brk && ( (strcmp(argv[kar], "-pad_label") == 0) || (strcmp(argv[kar], "-pad_val") == 0) )) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -pad_label");

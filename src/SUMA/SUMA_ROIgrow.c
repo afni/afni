@@ -155,12 +155,12 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
          SUMA_etime(&start_time,0);
       }
       SUMA_getoffsets2 (n, SO, lim, OffS, NULL, 0);
-      if (i == 99) {
+      if (LocalHead && i == 99) {
          etime_GetOffset = SUMA_etime(&start_time,1);
          fprintf(SUMA_STDERR, "%s: Search to %f mm took %f seconds for %d nodes.\n"
                   "Projected completion time: %f minutes\n",
                   FuncName, lim, etime_GetOffset, i+1,
-                  etime_GetOffset * SO->N_Node / 60.0 / (i+1));
+                  etime_GetOffset * N_nodeind / 60.0 / (i+1));
       }
       
       /* go over all nodes in offset */
