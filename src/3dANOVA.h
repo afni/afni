@@ -45,6 +45,12 @@
 
    Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
    Date:    02 December 2002
+
+   Mod:     Added aBcontr/Abcontr fields to the anova_options struct.
+   Date:    14 October 2005 [rickr]
+
+   Mod:     Added old_method flag to anova_options struct.
+   Date:    14 October 2005 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -114,6 +120,8 @@ typedef struct anova_options
 				  model=4   A,B fixed; C random;  AxBxC
 				  model=5   A,B fixed; C random;  AxB,BxC,C(A)
                                 */
+
+  int   old_method;             /* flag: use the method assuming sphericity */
 
   int   a;                      /* number of levels for factor A */
   int   b;                      /* number of levels for factor B */

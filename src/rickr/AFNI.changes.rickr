@@ -1319,3 +1319,8 @@
   * checked in some of Hans' changes (with some alterations)
       - a few casts in fslio.[ch] and nifti1_io.[ch] and () in nifti_stats.c
 
+22 November 2005:
+  * modified 3dANOVA3.c, 3dANOVA.h, 3dANOVA.lib
+      - added -old_method option for using the a/bmeans, a/bdiff, a/bcontr
+        computations that assume sphericity (not yet documented)
+

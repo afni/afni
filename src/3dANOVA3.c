@@ -57,6 +57,11 @@
 
    Mod:     Fixed -help typo, num_Abcontr assignment and df in calc_Abc().
    Date:    27 Oct 2005 [rickr,gangc]
+
+   Mod:     Allow old computations to be done via -old_method.  This affects
+            calc_ameans, bmeans, adiff, bdiff, acontr, bcontr, and for the
+            types 4 and 5 models, only (not type 1).
+   Date:    22 Nov 2005 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -310,6 +315,15 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	 if ((ival < 1) || (ival > 5))
 	    ANOVA_error ("illegal argument after -type ");
 	 option_data->model = ival;
+         nopt++;
+         continue;
+      }
+
+      
+      /*-----  -old_method      22 Nov 2005 [rickr]  -----*/
+      if (strncmp(argv[nopt], "-old_method", 6) == 0)
+      {
+	 option_data->old_method = 1;
          nopt++;
          continue;
       }
@@ -3831,6 +3845,644 @@ void calculate_fabc (anova_options * option_data)
   
 }
 
+/*---------------------------------------------------------------------------*/
+/*
+  The following are the old calculate_* functions, before the changes
+  by rickr/gangc.  The function names have been prepended by old_,
+  allowing the addition of an option to call those functions, instead
+  of the new varieties.  This seems to be the cleanest way to allow
+  users to compare results between the old vs. new functions.  Putting
+  multiple tests in each function would be quite messy.
+
+  Note that the different functionality exists for types 4 and 5 of
+  a/b means, a/b diff, and a/b contr.
+                                                   22 Nov 2005 [rickr]
+*/
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Routine to calculate the mean treatment effect for factor A at the user 
+  specified treatment level.  The output is stored as a 2 sub-brick AFNI 
+  data set. The first sub-brick contains the estimated mean at this treatment
+  level, and the second sub-brick contains the corresponding t-statistic.
+*/
+void old_calculate_ameans (anova_options * option_data)
+{
+  const float  EPSILON = 1.0e-15;    /* protect against divide by zero */
+  float * mean = NULL;               /* pointer to treatment mean data */
+  float * tmean = NULL;              /* pointer to t-statistic data */
+  int a;                             /* number of levels for factor A */
+  int b;                             /* number of levels for factor B */
+  int c;                             /* number of levels for factor C */
+  int n;                             /* number of observations per cell */
+  int ixyz, nxyz;                    /* voxel counters */
+  int nvoxel;                        /* output voxel # */
+  int num_means;                     /* number of user requested means */
+  int imean;                         /* output mean option index */
+  int level;                         /* factor A level index */
+  int df;                            /* degrees of freedom for t-test */
+  float fval;                        /* for calculating std. dev. */
+  float stddev;                      /* est. std. dev. of factor mean */
+
+  /*----- initialize local variables -----*/
+  a = option_data->a;
+  b = option_data->b;
+  c = option_data->c;
+  n = option_data->n;
+  num_means = option_data->num_ameans;
+  nxyz = option_data->nxyz;
+  nvoxel = option_data->nvoxel;
+
+  /*----- allocate memory space for calculations -----*/
+  mean = (float *) malloc(sizeof(float)*nxyz);
+  tmean = (float *) malloc(sizeof(float)*nxyz);
+  if ((mean == NULL) || (tmean == NULL))  
+    ANOVA_error ("unable to allocate sufficient memory");
+   
+  /*----- loop over user specified treatment means -----*/ 
+  for (imean = 0;  imean < num_means;  imean++)
+    {
+      level = option_data->ameans[imean];
+      
+      /*----- estimate factor mean for this treatment level -----*/
+      calculate_sum (option_data, level, -1, -1, mean);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	mean[ixyz] = mean[ixyz] / (b*c*n);
+      if (nvoxel > 0)
+	printf ("Mean of factor A level %d = %f \n", level+1, mean[nvoxel-1]);
+      
+      /*----- standard deviation depends on model type -----*/
+      switch (option_data->model)
+	{
+	case 1:
+	  volume_read ("sse", tmean, nxyz); 
+	  df = a * b * c * (n-1);
+	  break;
+	case 4:
+	  volume_read ("ssac", tmean, nxyz); 
+	  df = (a-1) * (c-1);
+	  break;
+	case 5:
+	  volume_read ("ssca", tmean, nxyz); 
+	  df = a * (c-1);
+	  break;
+	}
+
+      /*----- divide by estimated standard deviation of factor mean -----*/
+      fval = (1.0 / df) * (1.0 / (b*c*n));
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  stddev =  sqrt(tmean[ixyz] * fval);
+	  if (stddev < EPSILON)
+	    tmean[ixyz] = 0.0;
+	  else
+	    tmean[ixyz] = mean[ixyz] / stddev;
+	}
+      
+      if (nvoxel > 0)
+	printf ("t for mean of factor A level %d = %f \n", 
+		level+1, tmean[nvoxel-1]);
+      
+      /*----- write out afni data file -----*/
+      write_afni_data (option_data, option_data->amname[imean], 
+                       mean, tmean, df, 0);
+      
+    }
+  
+  /*----- release memory -----*/
+  free (tmean);   tmean = NULL;
+  free (mean);    mean = NULL;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+  Routine to calculate the mean treatment effect for factor B at the user 
+  specified treatment level.  The output is stored as a 2 sub-brick AFNI 
+  data set. The first sub-brick contains the estimated mean at this treatment
+  level, and the second sub-brick contains the corresponding t-statistic.
+*/
+
+void old_calculate_bmeans (anova_options * option_data)
+{
+  const float  EPSILON = 1.0e-15;    /* protect against divide by zero */
+  float * mean = NULL;               /* pointer to treatment mean data */
+  float * tmean = NULL;              /* pointer to t-statistic data */
+  int a;                             /* number of levels for factor A */
+  int b;                             /* number of levels for factor B */
+  int c;                             /* number of levels for factor C */
+  int n;                             /* number of observations per cell */
+  int ixyz, nxyz;                    /* voxel counters */
+  int nvoxel;                        /* output voxel # */
+  int nt;                            /* total number of observations */
+  int num_means;                     /* number of user requested means */
+  int imean;                         /* output mean option index */
+  int level;                         /* factor B level index */
+  int df;                            /* degrees of freedom for t-test */
+  float fval;                        /* for calculating std. dev. */
+  float stddev;                      /* est. std. dev. of factor mean */
+
+  /*----- initialize local variables -----*/
+  a = option_data->a;
+  b = option_data->b;
+  c = option_data->c;
+  n = option_data->n;
+  nt = option_data->nt;
+  num_means = option_data->num_bmeans;
+  nxyz = option_data->nxyz;
+  nvoxel = option_data->nvoxel;
+
+  /*----- allocate memory space for calculations -----*/
+  mean = (float *) malloc(sizeof(float)*nxyz);
+  tmean = (float *) malloc(sizeof(float)*nxyz);
+  if ((mean == NULL) || (tmean == NULL))  
+    ANOVA_error ("unable to allocate sufficient memory");
+   
+  /*----- loop over user specified treatment means -----*/ 
+  for (imean = 0;  imean < num_means;  imean++)
+    {
+      level = option_data->bmeans[imean];
+      
+      /*----- estimate factor mean for this treatment level -----*/
+      calculate_sum (option_data, -1, level, -1, mean);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	mean[ixyz] = mean[ixyz] / (a*c*n);
+      if (nvoxel > 0)
+	printf ("Mean of factor B level %d = %f \n", level+1, mean[nvoxel-1]);
+      
+      /*----- standard deviation depends on model type -----*/
+      switch (option_data->model)
+	{
+	case 1:
+	  volume_read ("sse", tmean, nxyz); 
+	  df = a * b * c * (n-1);
+	  break;
+	case 4:
+	  volume_read ("ssbc", tmean, nxyz); 
+	  df = (b-1) * (c-1);
+	  break;
+	case 5:
+	  volume_read ("ssbca", tmean, nxyz); 
+	  df = a * (b-1) * (c-1);
+	  break;
+	}
+
+      /*----- divide by estimated standard deviation of factor mean -----*/
+      fval = (1.0 / df) * (1.0 / (a*c*n));
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  stddev =  sqrt(tmean[ixyz] * fval);
+	  if (stddev < EPSILON)
+	    tmean[ixyz] = 0.0;
+	  else
+	    tmean[ixyz] = mean[ixyz] / stddev;
+	}
+      if (nvoxel > 0)
+	printf ("t for mean of factor B level %d = %f \n", 
+		level+1, tmean[nvoxel-1]);
+      
+      /*----- write out afni data file -----*/
+      write_afni_data (option_data, option_data->bmname[imean], 
+                       mean, tmean, df, 0);
+      
+    }
+  
+  /*----- release memory -----*/
+  free (tmean);   tmean = NULL;
+  free (mean);    mean = NULL;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+   Routine to estimate the difference in the means between two user specified
+   treatment levels for factor A.  The output is a 2 sub-brick AFNI data set.
+   The first sub-brick contains the estimated difference in the means.  
+   The second sub-brick contains the corresponding t-statistic.
+*/
+
+void old_calculate_adifferences (anova_options * option_data)
+{
+  const float  EPSILON = 1.0e-15;     /* protect against divide by zero */
+  float * diff = NULL;                /* pointer to est. diff. in means */
+  float * tdiff = NULL;               /* pointer to t-statistic data */
+  int a;                              /* number of levels for factor A */
+  int b;                              /* number of levels for factor B */
+  int c;                              /* number of levels for factor C */
+  int n;                              /* number of observations per cell */
+  int ixyz, nxyz;                     /* voxel counters */
+  int nvoxel;                         /* output voxel # */
+  int num_diffs;                      /* number of user requested diffs. */
+  int idiff;                          /* index for requested differences */
+  int i, j;                           /* factor level indices */
+  int df;                             /* degrees of freedom for t-test */
+  float fval;                         /* for calculating std. dev. */
+  float stddev;                       /* est. std. dev. of difference */
+  
+  /*----- initialize local variables -----*/
+  a = option_data->a;
+  b = option_data->b;
+  c = option_data->c;
+  n = option_data->n;
+  num_diffs = option_data->num_adiffs;
+  nxyz = option_data->nxyz;
+  nvoxel = option_data->nvoxel;
+  
+  /*----- allocate memory space for calculations -----*/
+  diff = (float *) malloc(sizeof(float)*nxyz);
+  tdiff = (float *) malloc(sizeof(float)*nxyz);
+  if ((diff == NULL) || (tdiff == NULL))
+    ANOVA_error ("unable to allocate sufficient memory");
+  
+  /*----- loop over user specified treatment differences -----*/
+  for (idiff = 0;  idiff < num_diffs;  idiff++)
+    {
+
+      /*----- read first treatment level mean -----*/
+      i = option_data->adiffs[idiff][0];
+      calculate_sum (option_data, i, -1, -1, diff);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	diff[ixyz] = diff[ixyz] / (b*c*n);
+      
+      /*----- subtract second treatment level mean -----*/
+      j = option_data->adiffs[idiff][1];
+      calculate_sum (option_data, j, -1, -1, tdiff);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	diff[ixyz] -= tdiff[ixyz] / (b*c*n);
+      if (nvoxel > 0)
+	printf ("Difference of factor A level %d - level %d = %f \n", 
+		i+1, j+1, diff[nvoxel-1]);
+
+      /*----- standard deviation depends on model type -----*/
+      switch (option_data->model)
+	{
+	case 1:
+	  volume_read ("sse", tdiff, nxyz); 
+	  df = a * b * c * (n-1);
+	  break;
+	case 4:
+	  volume_read ("ssac", tdiff, nxyz); 
+	  df = (a-1) * (c-1);
+	  break;
+	case 5:
+	  volume_read ("ssca", tdiff, nxyz); 
+	  df = a * (c-1);
+	  break;
+	}
+      
+      /*----- divide by estimated standard deviation of difference -----*/  
+      fval = (1.0 / df) * (2.0 / (b*c*n));
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  stddev = sqrt (tdiff[ixyz] * fval);
+	  if (stddev < EPSILON)
+	    tdiff[ixyz] = 0.0;
+	  else
+	    tdiff[ixyz] = diff[ixyz] / stddev;
+	} 
+      
+      if (nvoxel > 0)
+	printf ("t for difference of factor A level %d - level %d = %f \n", 
+		i+1, j+1, tdiff[nvoxel-1]);
+      
+      /*----- write out afni data file -----*/
+      write_afni_data (option_data, option_data->adname[idiff], 
+                       diff, tdiff, df, 0);
+      
+    }
+  
+  /*----- release memory -----*/
+  free (tdiff);   tdiff = NULL;
+  free (diff);    diff = NULL;
+  
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+   Routine to estimate the difference in the means between two user specified
+   treatment levels for factor B.  The output is a 2 sub-brick AFNI data set.
+   The first sub-brick contains the estimated difference in the means.  
+   The second sub-brick contains the corresponding t-statistic.
+*/
+
+void old_calculate_bdifferences (anova_options * option_data)
+{
+  const float  EPSILON = 1.0e-15;     /* protect against divide by zero */
+  float * diff = NULL;                /* pointer to est. diff. in means */
+  float * tdiff = NULL;               /* pointer to t-statistic data */
+  int a;                              /* number of levels for factor A */
+  int b;                              /* number of levels for factor B */
+  int c;                              /* number of levels for factor C */
+  int n;                              /* number of observations per cell */
+  int ixyz, nxyz;                     /* voxel counters */
+  int nvoxel;                         /* output voxel # */
+  int num_diffs;                      /* number of user requested diffs. */
+  int idiff;                          /* index for requested differences */
+  int i, j;                           /* factor level indices */
+  int df;                             /* degrees of freedom for t-test */
+  float fval;                         /* for calculating std. dev. */
+  float stddev;                       /* est. std. dev. of difference */
+  
+  /*----- initialize local variables -----*/
+  a = option_data->a;
+  b = option_data->b;
+  c = option_data->c;
+  n = option_data->n;
+  num_diffs = option_data->num_bdiffs;
+  nxyz = option_data->nxyz;
+  nvoxel = option_data->nvoxel;
+  
+  /*----- allocate memory space for calculations -----*/
+  diff = (float *) malloc(sizeof(float)*nxyz);
+  tdiff = (float *) malloc(sizeof(float)*nxyz);
+  if ((diff == NULL) || (tdiff == NULL))
+    ANOVA_error ("unable to allocate sufficient memory");
+  
+  /*----- loop over user specified treatment differences -----*/
+  for (idiff = 0;  idiff < num_diffs;  idiff++)
+    {
+
+      /*----- read first treatment level mean -----*/
+      i = option_data->bdiffs[idiff][0];
+      calculate_sum (option_data, -1, i, -1, diff);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	diff[ixyz] = diff[ixyz] / (a*c*n);
+      
+      /*----- subtract second treatment level mean -----*/
+      j = option_data->bdiffs[idiff][1];
+      calculate_sum (option_data, -1, j, -1, tdiff);
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	diff[ixyz] -= tdiff[ixyz] / (a*c*n);
+      if (nvoxel > 0)
+	printf ("Difference of factor B level %d - level %d = %f \n", 
+		i+1, j+1, diff[nvoxel-1]);
+
+      /*----- standard deviation depends on model type -----*/
+      switch (option_data->model)
+	{
+	case 1:
+	  volume_read ("sse", tdiff, nxyz); 
+	  df = a * b * c * (n-1);
+	  break;
+	case 4:
+	  volume_read ("ssbc", tdiff, nxyz); 
+	  df = (b-1) * (c-1);
+	  break;
+	case 5:
+	  volume_read ("ssbca", tdiff, nxyz); 
+	  df = a * (b-1) * (c-1);
+	  break;
+	}
+
+      /*----- divide by estimated standard deviation of difference -----*/
+      fval = (1.0 / df) * (2.0 / (a*c*n));
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  stddev = sqrt (tdiff[ixyz] * fval);
+	  if (stddev < EPSILON)
+	    tdiff[ixyz] = 0.0;
+	  else
+	    tdiff[ixyz] = diff[ixyz] / stddev;
+	} 
+      
+      if (nvoxel > 0)
+	printf ("t for difference of factor B level %d - level %d = %f \n", 
+		i+1, j+1, tdiff[nvoxel-1]);
+      
+      /*----- write out afni data file -----*/
+      write_afni_data (option_data, option_data->bdname[idiff], 
+                       diff, tdiff, df, 0);
+      
+    }
+  
+  /*----- release memory -----*/
+  free (tdiff);   tdiff = NULL;
+  free (diff);    diff = NULL;
+  
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*
+  Routine to estimate a user specified contrast in treatment levels for
+  factor A.  The output is stored as a 2 sub-brick AFNI data set.  The first
+  sub-brick contains the estimated contrast.  The second sub-brick contains 
+  the corresponding t-statistic.
+*/
+
+void old_calculate_acontrasts (anova_options * option_data)
+{
+  const float  EPSILON = 1.0e-15;     /* protect against divide by zero */
+  float * contr = NULL;               /* pointer to contrast estimate */
+  float * tcontr = NULL;              /* pointer to t-statistic data */
+  int a;                              /* number of levels for factor A */
+  int b;                              /* number of levels for factor B */
+  int c;                              /* number of levels for factor C */
+  int n;                              /* number of observations per cell */
+  int ixyz, nxyz;                     /* voxel counters */
+  int nvoxel;                         /* output voxel # */
+  int num_contr;                      /* number of user requested contrasts */
+  int icontr;                         /* index of user requested contrast */
+  int level;                          /* factor level index */
+  int df;                             /* degrees of freedom for t-test */
+  float fval;                         /* for calculating std. dev. */
+  float coef;                         /* contrast coefficient */
+  float stddev;                       /* est. std. dev. of contrast */
+  
+  /*----- initialize local variables -----*/
+  a = option_data->a;
+  b = option_data->b;
+  c = option_data->c;
+  n = option_data->n;
+  num_contr = option_data->num_acontr;
+  nxyz = option_data->nxyz;
+  nvoxel = option_data->nvoxel;
+  
+  /*----- allocate memory space for calculations -----*/
+  contr  = (float *) malloc(sizeof(float)*nxyz);
+  tcontr = (float *) malloc(sizeof(float)*nxyz);
+  if ((contr == NULL) || (tcontr == NULL))
+    ANOVA_error ("unable to allocate sufficient memory");
+  
+  
+  /*----- loop over user specified constrasts -----*/
+  for (icontr = 0;  icontr < num_contr;  icontr++)
+    {
+      volume_zero (contr, nxyz);
+      fval = 0.0;
+      
+      for (level = 0;  level < a;  level++)
+	{
+	  coef = option_data->acontr[icontr][level]; 
+	  if (coef == 0.0) continue; 
+	  
+	  /*----- add coef * treatment level mean to contrast -----*/
+	  calculate_sum (option_data, level, -1, -1, tcontr);
+	  fval += coef * coef / (b*c*n);
+	  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	    contr[ixyz] += coef * tcontr[ixyz] / (b*c*n);
+	}
+
+      if (nvoxel > 0)
+	printf ("No.%d contrast for factor A = %f \n", 
+		icontr+1, contr[nvoxel-1]);
+      
+      /*----- standard deviation depends on model type -----*/
+      switch (option_data->model)
+	{
+	case 1:
+	  volume_read ("sse", tcontr, nxyz); 
+	  df = a * b * c * (n-1);
+	  break;
+	case 4:
+	  volume_read ("ssac", tcontr, nxyz); 
+	  df = (a-1) * (c-1);
+	  break;
+	case 5:
+	  volume_read ("ssca", tcontr, nxyz); 
+	  df = a * (c-1);
+	  break;
+	}
+
+      /*----- divide by estimated standard deviation of the contrast -----*/
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  stddev = sqrt ((tcontr[ixyz] / df) * fval);
+	  if (stddev < EPSILON)
+	    tcontr[ixyz] = 0.0;
+	  else
+	    tcontr[ixyz] = contr[ixyz] / stddev;
+	}   
+      
+      if (nvoxel > 0)
+	printf ("t of No.%d contrast for factor A = %f \n", 
+		icontr+1, tcontr[nvoxel-1]);
+      
+      /*----- write out afni data file -----*/
+      write_afni_data (option_data, option_data->acname[icontr], 
+                       contr, tcontr, df, 0);
+      
+    }
+  
+  /*----- release memory -----*/
+  free (tcontr);   tcontr = NULL;
+  free (contr);    contr = NULL;
+  
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+  Routine to estimate a user specified contrast in treatment levels for
+  factor B.  The output is stored as a 2 sub-brick AFNI data set.  The first
+  sub-brick contains the estimated contrast.  The second sub-brick contains 
+  the corresponding t-statistic.
+*/
+
+void old_calculate_bcontrasts (anova_options * option_data)
+{
+  const float  EPSILON = 1.0e-15;     /* protect against divide by zero */
+  float * contr = NULL;               /* pointer to contrast estimate */
+  float * tcontr = NULL;              /* pointer to t-statistic data */
+  int a;                              /* number of levels for factor A */
+  int b;                              /* number of levels for factor B */
+  int c;                              /* number of levels for factor C */
+  int n;                              /* number of observations per cell */
+  int ixyz, nxyz;                     /* voxel counters */
+  int nvoxel;                         /* output voxel # */
+  int num_contr;                      /* number of user requested contrasts */
+  int icontr;                         /* index of user requested contrast */
+  int level;                          /* factor level index */
+  int df;                             /* degrees of freedom for t-test */
+  float fval;                         /* for calculating std. dev. */
+  float coef;                         /* contrast coefficient */
+  float stddev;                       /* est. std. dev. of contrast */
+  
+  /*----- initialize local variables -----*/
+  a = option_data->a;
+  b = option_data->b;
+  c = option_data->c;
+  n = option_data->n;
+  num_contr = option_data->num_bcontr;
+  nxyz = option_data->nxyz;
+  nvoxel = option_data->nvoxel;
+  
+  /*----- allocate memory space for calculations -----*/
+  contr  = (float *) malloc(sizeof(float)*nxyz);
+  tcontr = (float *) malloc(sizeof(float)*nxyz);
+  if ((contr == NULL) || (tcontr == NULL))
+    ANOVA_error ("unable to allocate sufficient memory");
+  
+  
+  /*----- loop over user specified constrasts -----*/
+  for (icontr = 0;  icontr < num_contr;  icontr++)
+    {
+      volume_zero (contr, nxyz);
+      fval = 0.0;
+      
+      for (level = 0;  level < b;  level++)
+	{
+	  coef = option_data->bcontr[icontr][level]; 
+	  if (coef == 0.0) continue; 
+	  
+	  /*----- add coef * treatment level mean to contrast -----*/
+	  calculate_sum (option_data, -1, level, -1, tcontr);
+	  fval += coef * coef / (a*c*n);
+	  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	    contr[ixyz] += coef * tcontr[ixyz] / (a*c*n);
+	}
+
+      if (nvoxel > 0)
+	printf ("No.%d contrast for factor B = %f \n", 
+		icontr+1, contr[nvoxel-1]);
+      
+      /*----- standard deviation depends on model type -----*/
+      switch (option_data->model)
+	{
+	case 1:
+	  volume_read ("sse", tcontr, nxyz); 
+	  df = a * b * c * (n-1);
+	  break;
+	case 4:
+	  volume_read ("ssbc", tcontr, nxyz); 
+	  df = (b-1) * (c-1);
+	  break;
+	case 5:
+	  volume_read ("ssbca", tcontr, nxyz); 
+	  df = a * (b-1) * (c-1);
+	  break;
+	}
+
+      /*----- divide by estimated standard deviation of the contrast -----*/
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
+	{
+	  stddev = sqrt ((tcontr[ixyz] / df) * fval);
+	  if (stddev < EPSILON)
+	    tcontr[ixyz] = 0.0;
+	  else
+	    tcontr[ixyz] = contr[ixyz] / stddev;
+	}   
+      
+      if (nvoxel > 0)
+	printf ("t of No.%d contrast for factor B = %f \n", 
+		icontr+1, tcontr[nvoxel-1]);
+      
+      /*----- write out afni data file -----*/
+      write_afni_data (option_data, option_data->bcname[icontr], 
+                       contr, tcontr, df, 0);
+      
+    }
+  
+  /*----- release memory -----*/
+  free (tcontr);   tcontr = NULL;
+  free (contr);    contr = NULL;
+  
+}
+
+/*---------------------------------------------------------------------------*/
+/*                  --- end old_calclulte_* functions ---                    */
+/*---------------------------------------------------------------------------*/
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -5175,10 +5827,17 @@ void analyze_results (anova_options * option_data)
    if (option_data->nfabc)  calculate_fabc (option_data);
 
    /*-----  estimate level means for factor A  -----*/
-   if (option_data->num_ameans)  calculate_ameans (option_data);
+   /* the user may have requested the "old" calculation  22 Nov 2005 [rickr] */
+   if (option_data->num_ameans){
+      if (option_data->old_method) old_calculate_ameans (option_data);
+      else                         calculate_ameans (option_data);
+   }
 
    /*-----  estimate level means for factor B  -----*/
-   if (option_data->num_bmeans)  calculate_bmeans (option_data);
+   if (option_data->num_bmeans){
+      if (option_data->old_method) old_calculate_bmeans (option_data);
+      else                         calculate_bmeans (option_data);
+   }
 
    /*-----  estimate level means for factor C  -----*/
    if (option_data->num_cmeans)  calculate_cmeans (option_data);
@@ -5187,10 +5846,16 @@ void analyze_results (anova_options * option_data)
    if (option_data->num_xmeans)  calculate_xmeans (option_data);
 
    /*-----  estimate level differences for factor A  -----*/
-   if (option_data->num_adiffs)  calculate_adifferences (option_data);
+   if (option_data->num_adiffs){
+      if (option_data->old_method) old_calculate_adifferences (option_data);
+      else                         calculate_adifferences (option_data);
+   }
 
    /*-----  estimate level differences for factor B  -----*/
-   if (option_data->num_bdiffs)  calculate_bdifferences (option_data);
+   if (option_data->num_bdiffs){
+      if (option_data->old_method) old_calculate_bdifferences (option_data);
+      else                         calculate_bdifferences (option_data);
+   }
 
    /*-----  estimate level differences for factor C  -----*/
    if (option_data->num_cdiffs)  calculate_cdifferences (option_data);
@@ -5199,10 +5864,16 @@ void analyze_results (anova_options * option_data)
    if (option_data->num_xdiffs)  calculate_xdifferences (option_data);
 
    /*-----  estimate level contrasts for factor A  -----*/
-   if (option_data->num_acontr)  calculate_acontrasts (option_data);
+   if (option_data->num_acontr){
+      if (option_data->old_method) old_calculate_acontrasts (option_data);
+      else                         calculate_acontrasts (option_data);
+   }
 
    /*-----  estimate level contrasts for factor B  -----*/
-   if (option_data->num_bcontr)  calculate_bcontrasts (option_data);
+   if (option_data->num_bcontr){
+      if (option_data->old_method) old_calculate_bcontrasts (option_data);
+      else                         calculate_bcontrasts (option_data);
+   }
 
    /*-----  estimate level contrasts for factor C  -----*/
    if (option_data->num_ccontr)  calculate_ccontrasts (option_data);
