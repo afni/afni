@@ -1324,3 +1324,6 @@
       - added -old_method option for using the a/bmeans, a/bdiff, a/bcontr
         computations that assume sphericity (not yet documented)
 
+23 November 2005:
+  * modified 3dANOVA2.c, added -old_method for type 3 ameans, adiff, acontr
+
