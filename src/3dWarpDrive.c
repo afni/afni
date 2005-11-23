@@ -161,11 +161,23 @@ void parset_affine(void)
    /* rotation */
 
    uu = rot_matrix( 2, D2R*parvec[3] , 0, D2R*parvec[4] , 1, D2R*parvec[5] ) ;
-
+   #if 0
+   DUMP_MAT33("ZSS uu:", uu);
+   #endif
+   
    /* scaling */
 
-   LOAD_DIAG_MAT( dd , parvec[6] , parvec[7] , parvec[8] ) ;
-
+   if (!parvec[6] || !parvec[7] || !parvec[8]) {
+      /* no scaling used */
+      LOAD_MAT(  dd , 1.0  , 0.0    , 0.0 ,
+                      0.0  , 1.0    , 0.0 ,
+                      0.0  , 0.0    , 1.0  ) ;
+   } else {
+      LOAD_DIAG_MAT( dd , parvec[6] , parvec[7] , parvec[8] ) ;
+   }
+   #if 0
+   DUMP_MAT33("ZSS dd:", dd);
+   #endif
    /* shear */
 
    switch( smat ){
@@ -182,7 +194,10 @@ void parset_affine(void)
                       0.0 , 0.0       , 1.0         ) ;
      break ;
    }
-
+   #if 0
+   DUMP_MAT33("ZSS ss:", ss);
+   #endif
+   
    /* multiply them, as ordered */
 
    switch( matorder ){
@@ -1234,9 +1249,9 @@ int main( int argc , char * argv[] )
 
      /** save output parameters for later **/
 
-     for( kpar=0 ; kpar < abas.nparam ; kpar++ )
+     for( kpar=0 ; kpar < abas.nparam ; kpar++ ) {
        parsave[kpar][kim] = abas.param[kpar].val_out ;  /* 04 Jan 2005 */
-
+      }
      /** convert output image from float to whatever **/
 
      switch( DSET_BRICK_TYPE(outset,kim) ){
@@ -1281,7 +1296,7 @@ int main( int argc , char * argv[] )
 
    /*===== hard work is done =====*/
 
-   mri_warp3D_align_cleanup( &abas ) ;
+   /* mri_warp3D_align_cleanup( &abas ) ; ZSS: This one's moved below, just in case it messes with abas which is still in use. */
 
    /*-- 06 Jul 2005:
         write the affine transform matrices into the output header --*/
@@ -1301,8 +1316,9 @@ int main( int argc , char * argv[] )
      for( kpar=0 ; kpar < 12 ; kpar++ ) parvec[kpar] = 0.0 ;
 
      for( kim=0 ; kim < nvals ; kim++ ){
-       for( kpar=0 ; kpar < abas.nparam ; kpar++ )  /* load params */
+       for( kpar=0 ; kpar < abas.nparam ; kpar++ )  {/* load params */
          parvec[kpar] = parsave[kpar][kim] ;
+       }
        parset_affine() ;                            /* compute matrices */
 
        UNLOAD_MAT(mv_for.mm,matar[0],matar[1],matar[2],
@@ -1363,6 +1379,8 @@ int main( int argc , char * argv[] )
      double tt = (NI_clock_time()-ctstart)*0.001 ;
      INFO_message("Total elapsed time = %.2f s\n",tt) ;
    }
+
+   mri_warp3D_align_cleanup( &abas ) ; 
 
    exit(0) ;
 }
