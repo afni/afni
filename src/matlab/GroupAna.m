@@ -20,6 +20,8 @@
 %   
 %   
 %   
+diary('diary');    % save all subsequent command window input and most of the resulting command window output to be appended
+                   % to file 'diary'
 
 fprintf('\nWelcome to GroupAna, AFNI Group Analysis Package!');
 fprintf('\n-----------------------------------------------------------\n');
@@ -40,8 +42,6 @@ err = 1;
 
 clear all;
 
-diary('diary');    % save all subsequent command window input and most of the resulting command window output to be appended
-                   % to file 'diary'
 fprintf('\nPlease read the following carefully about group analysis setup:\n');
 fprintf('\n\t1. If the resolution of your EPI data is near n millimeters, during Talairach conversion use\n');
 fprintf('\t  "the command adwarp -dxyz n" to greatly reduce runtime without sacrificing accuracy.\n');
