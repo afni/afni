@@ -24,7 +24,7 @@
 fprintf('\nWelcome to GroupAna, AFNI Group Analysis Package!');
 fprintf('\n-----------------------------------------------------------\n');
 
-fprintf('\nVersion 1.1, Nov. 23, 2005');
+fprintf('\nVersion 1.0.1, Nov. 23, 2005');
 fprintf('\nAuthor: Gang Chen');
 fprintf('\nSSCC/NIMH/ National Institutes of Health, Bethesda MD 20892');
 fprintf('\n-----------------------------------------------------------\n');
