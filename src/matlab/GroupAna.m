@@ -20,11 +20,14 @@
 %   
 %   
 %   
-%
-%     Author : Gang Chen
-%     Date : Tue Mar 23 14:06:44 EST 2004
-%     SSCC/NIMH/ National Institutes of Health, Bethesda MD 20892
 
+fprintf('\nWelcome to GroupAna, AFNI Group Analysis Package!');
+fprintf('\n-----------------------------------------------------------\n');
+
+fprintf('\nVersion 1.1, Nov. 23, 2005');
+fprintf('\nAuthor: Gang Chen');
+fprintf('\nSSCC/NIMH/ National Institutes of Health, Bethesda MD 20892');
+fprintf('\n-----------------------------------------------------------\n');
 
 %Define the function name for easy referencing
 FuncName = 'GroupAna.m';
