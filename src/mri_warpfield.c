@@ -7,7 +7,7 @@ typedef void (*Warpfield_basis)(int,float *,int,float *,float *,float *,float *)
 
 typedef struct {
   mat44 aa ;
-  float param[9] ;
+  float param[19] ;
   int   nwx , nwy , nwz ;
   float *wx , *wy , *wz ;
   Warpfield_basis bfun ;
@@ -41,21 +41,23 @@ float Warpfield_approx_inverse( int nnx , int nny , int nnz , Warpfield *wf ,
 #undef  TWOPI
 #define TWOPI 6.283185307f
 
-#undef  PACK3
-#define PACK3(a,b,c) ( ((a)&0xff) | (((b)&0xff)<<8) | (((c)0xff)<<16) )
+/*! param[0] = xbot  param[1] = xtop  param[2] = number of sin(x) func,
+    etc. for y & z parameters
+*/
 
-#undef  UNPACK3
-#define UNPACK3(v,a,b,c) ( (a)=(v)&0xff, (b)=((v)>>8)&0xff, (c)=((v)>>16)&0xff )
-
-void Warpfield_sinf( int nord, float *param ,
-                     int npt, float *x, float *y, float *z, float *val )
+void Warpfield_sin( int nord, float *param ,
+                    int npt, float *x, float *y, float *z, float *val )
 {
    int nx,ny,nz , ii=0 ;
    float bot,top,scl ;
+   int   nxfun,nyfun,nzfun ;
 
    if( nord < 1 || param == NULL || npt < 1 || val == NULL ) return ;
 
-   UNPACK3(nord,nx,ny,nz) ;
+   nxfun = (int)param[2] ;
+   nyfun = (int)param[5] ;
+   nzfun = (int)param[8] ;
+
    if( nx == 0 && ny == 0 && nz == 0 ) return ;
 
    memset( val , 0 , sizeof(float)*npt ) ;
