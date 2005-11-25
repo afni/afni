@@ -1327,3 +1327,6 @@
 23 November 2005:
   * modified 3dANOVA2.c, added -old_method for type 3 ameans, adiff, acontr
 
+25 November 2005:
+  * modified 3dANOVA.c, added subject ethel to -help example
+
