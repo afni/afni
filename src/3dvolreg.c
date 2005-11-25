@@ -42,6 +42,9 @@ static int         VL_edperc=-1 ;
 static int         VL_coarse_del=10 ; /* 11 Dec 2000 */
 static int         VL_coarse_num=2  ;
 
+static int         VL_coarse_rot   =10 ;  /* 25 Nov 2005 */
+static int         VL_coarse_rotnum=2  ;
+
 static THD_3dim_dataset * VL_dset = NULL ;
 static THD_3dim_dataset * VL_bset = NULL ;  /* 06 Feb 2001 */
 
@@ -73,8 +76,8 @@ void VL_command_line(void) ;
 float voldif( int nx, int ny, int nz, float *b,
               int dx, int dy, int dz, float *v, int edge ) ;
 
-void get_best_shift( int nx, int ny, int nz,
-                     float *b, float *v, int *dxp,int *dyp,int *dzp ) ;
+float get_best_shift( int nx, int ny, int nz,
+                      float *b, float *v, int *dxp,int *dyp,int *dzp ) ;
 
 /**********************************************************************/
 /***************************** the program! ***************************/
@@ -472,7 +475,7 @@ int main( int argc , char *argv[] )
          if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
            if( VL_verbose )
              fprintf(stderr,"++ Getting best coarse shift [0]:") ;
-           get_best_shift( nx,ny,nz , bar,far , &sx,&sy,&sz ) ;
+           (void)get_best_shift( nx,ny,nz , bar,far , &sx,&sy,&sz ) ;
            if( VL_verbose ) fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
          } else {
            sx = sy = sz = 0 ;
@@ -572,22 +575,22 @@ int main( int argc , char *argv[] )
 
          if( kim != VL_nbase ){ /* 16 Nov 1998: don't register to base image */
 
-             EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
-                                  MRI_float , MRI_FLOAT_PTR(fim) ,
-                                  VL_twoblur,VL_twoblur,VL_twoblur ) ;
+            EDIT_blur_volume_3d( nx,ny,nz , 1.0,1.0,1.0 ,
+                                 MRI_float , MRI_FLOAT_PTR(fim) ,
+                                 VL_twoblur,VL_twoblur,VL_twoblur ) ;
 
             if( kim > 0 || sx == 66666 ){ /* if didn't already get best shift */
-               if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
-                  if( VL_verbose )
-                     fprintf(stderr,"++ Getting best coarse shift [%d]:",kim) ;
-                  get_best_shift( nx,ny,nz ,
-                                  MRI_FLOAT_PTR(tp_base),MRI_FLOAT_PTR(fim) ,
-                                  &sx,&sy,&sz ) ;
-                  if( VL_verbose )
-                     fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
-               } else {
-                  sx = sy = sz = 0 ;
-               }
+              if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
+                if( VL_verbose )
+                  fprintf(stderr,"++ Getting best coarse shift [%d]:",kim) ;
+                (void)get_best_shift( nx,ny,nz ,
+                                      MRI_FLOAT_PTR(tp_base),MRI_FLOAT_PTR(fim) ,
+                                      &sx,&sy,&sz ) ;
+                if( VL_verbose )
+                  fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
+              } else {
+                sx = sy = sz = 0 ;
+              }
             }
 
             mri_3dalign_initvals( 0.0 , 0.0 , 0.0 ,
@@ -1912,12 +1915,12 @@ float voldif( int nx, int ny, int nz, float *b,
    float bbsum=0.0 , vvsum=0.0 , bvsum=0.0 , bb,vv ;
 
    for( kk=edge ; kk < nztop ; kk++ ){
-      for( jj=edge ; jj < nytop ; jj++ ){
-         for( ii=edge ; ii < nxtop ; ii++ ){
-            bb = B(ii,jj,kk) ; vv = V(ii-dx,jj-dy,kk-dz) ;
-            bbsum += bb*bb ; vvsum += vv*vv ; bvsum += bb*vv ;
-         }
-      }
+     for( jj=edge ; jj < nytop ; jj++ ){
+       for( ii=edge ; ii < nxtop ; ii++ ){
+         bb = B(ii,jj,kk) ; vv = V(ii-dx,jj-dy,kk-dz) ;
+         bbsum += bb*bb ; vvsum += vv*vv ; bvsum += bb*vv ;
+       }
+     }
    }
 
    if( vvsum > 0.0 ) bbsum -= bvsum*bvsum/vvsum ;
@@ -1929,9 +1932,9 @@ float voldif( int nx, int ny, int nz, float *b,
   (globals VL_coarse_del and VL_coarse_num control operations).
 -----------------------------------------------------------------------*/
 
-void get_best_shift( int nx, int ny, int nz,
-                     float *b, float *v ,
-                     int *dxp , int *dyp , int *dzp )
+float get_best_shift( int nx, int ny, int nz,
+                      float *b, float *v ,
+                      int *dxp , int *dyp , int *dzp )
 {
    int bdx=0 , bdy=0 , bdz=0 , dx,dy,dz , nxyz=nx*ny*nz ;
    float bsum , sum ;
@@ -1943,19 +1946,63 @@ void get_best_shift( int nx, int ny, int nz,
    for( dx=0 ; dx < nxyz ; dx++ ) bsum += b[dx]*b[dx] ;
 
    for( dz=-shtop ; dz <= shtop ; dz+=shift ){
-      for( dy=-shtop ; dy <= shtop ; dy+=shift ){
-         for( dx=-shtop ; dx <= shtop ; dx+=shift ){
-            if( dx*dx+dy*dy+dz*dz > sqtop ) continue ;
-            sum = voldif( nx,ny,nz , b , dx,dy,dz , v , edge ) ;
-            if( sum < bsum ){
-#if 0
-fprintf(stderr,"  get_best_shift: bsum=%g dx=%d dy=%d dz=%d\n",sum,dx,dy,dz) ;
-#endif
-               bsum = sum ; bdx = dx ; bdy = dy ; bdz = dz ;
-            }
-         }
-      }
-   }
+    for( dy=-shtop ; dy <= shtop ; dy+=shift ){
+     for( dx=-shtop ; dx <= shtop ; dx+=shift ){
+       if( dx*dx+dy*dy+dz*dz > sqtop ) continue ;
+       sum = voldif( nx,ny,nz , b , dx,dy,dz , v , edge ) ;
+       if( sum < bsum ){ bsum = sum; bdx = dx; bdy = dy; bdz = dz; }
+   }}}
 
-   *dxp = bdx ; *dyp = bdy ; *dzp = bdz ; return ;
+   *dxp = bdx ; *dyp = bdy ; *dzp = bdz ; return bsum ;
+}
+
+/*----------------------------------------------------------------------*/
+/* Find best angles AND best shifts all at once't.
+------------------------------------------------------------------------*/
+
+#define DANGLE 9.0f
+#define NROLL  2
+#define NPITCH 3
+#define NYAW   1
+
+float get_best_shiftrot( THD_3dim_dataset *dset ,   /* template */
+                         MRI_IMAGE *base , MRI_IMAGE *vol ,
+                         float *roll , float *pitch , float *yaw ,
+                         int   *dxp  , int   *dyp   , int   *dzp  )
+{
+   int ii,jj,kk ;
+   float r,p,y , br=0.0f , bp=0.0f , by=0.0f ;
+   float bsum=1.e+38 , sum ;
+   MRI_IMAGE *tim ;
+   float *bar , *tar , dif ;
+   int nx,ny,nz , sx,sy,sz , bsx=0,bsy=0,bsz=0 ;
+
+   bar = MRI_FLOAT_PTR(base) ;
+   nx  = base->nx ; ny = base->ny ; nz = base->nz ;
+   THD_rota_method( MRI_NN ) ;
+
+   for( kk=-NROLL ; kk <= NROLL ; kk++ ){
+    for( jj=-NPITCH ; jj <= NPITCH ; jj++ ){
+     for( ii=-NYAW ; ii <= NYAW ; ii++ ){
+       r = kk*DANGLE ; p = jj*DANGLE ; y = ii*DANGLE ;
+
+      if( r == 0.0f && p == 0.0f && y == 0.0f ){
+        tim = vol ;
+      } else {
+        char sbuf[128] ; THD_dvecmat vm ;
+        sprintf(sbuf,"-rotate %.4fI %.4fR %.4fA" , r,p,y ) ;
+        vm  = THD_rotcom_to_matvec( dset , sbuf ) ;
+        tim = THD_rota3D_matvec( vol , vm.mm,vm.vv ) ;
+      }
+      tar = MRI_FLOAT_PTR(tim) ;
+      sum = get_best_shift( nx,ny,nz , bar , tar , &sx,&sy,&sz ) ;
+      if( sum < bsum ){
+        br=r ; bp=p ; by=y ; bsx=sx ; bsy=sy; bsz=sz ; bsum=sum ;
+      }
+      if( tim != vol ) mri_free(tim) ;
+   }}}
+
+   *roll = br ; *pitch = bp ; *yaw = by ;
+   *dxp  = bsx; *dyp   = bsy; *dzp = bsz ;
+   return bsum ;
 }
