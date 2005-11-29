@@ -1330,3 +1330,6 @@
 25 November 2005:
   * modified 3dANOVA.c, added subject ethel to -help example
 
+29 November 2005:
+  * modified 3dROIstats.c, added more help with examples
+
