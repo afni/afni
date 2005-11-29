@@ -21,6 +21,7 @@ void THD_check_AFNI_version( char *pname )
    pid_t ppp ;
    char *vbuf=NULL , vv[128]="none" , *vvaa ;
    char *home , mname[VSIZE]="file:" ;
+   char *motd=NULL ;
    NI_stream ns ;
 
    if( AFNI_noenv("AFNI_VERSION_CHECK") ) return ;
@@ -43,6 +44,8 @@ void THD_check_AFNI_version( char *pname )
          int dtime     = ((int)time(NULL)) - last_time ;
          done = ( dtime >= 0 && dtime < VDELAY ) ;  /* too soon */
        }
+       rhs = NI_get_attribute(nel,"motd") ;      /* 29 Nov 2005 */ 
+       if( rhs != NULL ) motd = strdup(rhs) ;
        NI_free_element(nel) ;
        if( done ) return ;
      }
@@ -141,6 +144,9 @@ void THD_check_AFNI_version( char *pname )
      NI_set_attribute( nel , "version_check_time" , rhs ) ;
      if( strcmp(vv,"none") != 0 )
        NI_set_attribute( nel , "version_string" , VERSION ) ;
+     if( motd != NULL ){     /* 29 Nov 2005 */
+       NI_set_attribute( nel , "motd" , motd ); free((void *)motd) ;
+     }
      NI_write_element( ns , nel , NI_TEXT_MODE ) ;
      NI_stream_close(ns) ;
      NI_free_element(nel) ;

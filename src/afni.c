@@ -1847,9 +1847,9 @@ void AFNI_vcheck_flasher( Three_D_View *im3d )
   Thus, the timeout - waiting a little made things work OK.
 ------------------------------------------------------------------------*/
 
-void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
+void AFNI_startup_timeout_CB( XtPointer client_data , XtIntervalId *id )
 {
-   Three_D_View * im3d = (Three_D_View *) client_data ;
+   Three_D_View *im3d = (Three_D_View *)client_data ;
    int vv ;
 
 ENTRY("AFNI_startup_timeout_CB") ;
@@ -1960,6 +1960,11 @@ ENTRY("AFNI_startup_timeout_CB") ;
    /* 29 Jul 2005: run any driver commands from the command line */
 
    for( vv=0 ; vv < COM_num ; vv++ ) AFNI_driver( COM_com[vv] ) ;
+
+   /* 29 Nov 2005: Message Of The Day -- did it change? */
+
+   if( GLOBAL_motd != NULL && !AFNI_noenv("AFNI_MOTD_CHECK") )
+     AFNI_display_motd( im3d->vwid->imag->topper ) ;
 
    /* 09 Nov 2005: start checking periodically for updated datasets */
 

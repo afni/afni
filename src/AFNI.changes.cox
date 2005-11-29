@@ -5771,3 +5771,6 @@
 
 22 Nov 2005
  * [l] in imseq.c.
+
+29 Nov 2005
+ * Message of the Day (motd) stuff.

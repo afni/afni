@@ -4939,6 +4939,12 @@ STATUS("got func info") ;
 
    /*.........................................................*/
 
+   else if( w == im3d->vwid->dmode->misc_motd_pb ){  /* 29 Nov 2005 */
+     AFNI_display_motd( im3d->vwid->imag->topper ) ;
+   }
+
+   /*.........................................................*/
+
    else if( w == im3d->vwid->dmode->misc_vcheck_pb ){  /* 11 Jan 2000 */
       FILE *fp = popen( "afni_vcheck" , "r" ); int vc;
       if( fp == NULL ){

@@ -596,6 +596,8 @@ typedef struct {
 
       Widget         misc_readme_env_pb ; /* 05 Aug 2004 */
 
+      Widget         misc_motd_pb ;       /* 29 Nov 2005 */
+
 } AFNI_datamode_widgets ;
 
 /*---*/
@@ -995,10 +997,14 @@ typedef struct {
 #ifdef MAIN
    AFNI_library_type GLOBAL_library ;
    int GLOBAL_num_dsets = 0 ;
+   char *GLOBAL_motd = NULL ;                     /* 29 Nov 2005 */
 #else
    extern AFNI_library_type GLOBAL_library ;
-   extern GLOBAL_num_dsets ;
+   extern int GLOBAL_num_dsets ;
+   extern char *GLOBAL_motd ;
 #endif
+
+extern void AFNI_display_motd( Widget w ) ;       /* 29 Nov 2005 */
 
 #define FIM_THR          (0.01*GLOBAL_library.fim_bkthr_perc)  /* 02 Jun 1999 */
 #define SET_FIM_bkthr(v) (GLOBAL_library.fim_bkthr_perc = (v))
