@@ -1426,6 +1426,13 @@ If this YES/NO variable is set to NO, then AFNI will not try to check if its
 version is up-to-date when it starts.  Otherwise, it will try to check the
 program version with the AFNI web server.
 
+-------------------------
+Variable: AFNI_MOTD_CHECK
+-------------------------
+Similarly, if this YES/NO variable is set to NO, then AFNI will not display
+and fetch the AFNI "Message of the Day" at startup.  You can always check
+the MOTD by using the Datamode->Misc menu.
+
 -----------------------------------
 Variable: AFNI_SLICE_SPACING_IS_GAP
 -----------------------------------
