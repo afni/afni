@@ -1155,6 +1155,10 @@ int main( int argc , char * argv[] )
      exit(0) ;
    }
 
+   if( check_string("--motd",argc,argv) ){   /* 29 Nov 2005 */
+     AFNI_display_motd(NULL) ; exit(0) ;
+   }
+
    /** just print the SHOWOFF string [26 Oct 2004] **/
 
    if( check_string("-show",argc,argv) || check_string("--show",argc,argv) ){

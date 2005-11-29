@@ -469,7 +469,7 @@ ENTRY("AFNI_display_motd") ;
      char *msg = malloc(sizeof(char)*(nbuf+2048)) ;
      sprintf(msg,
      "\n"
-     "          *********** New AFNI Message of the Day **********\n\n"
+     "         *********** Current AFNI Message of the Day **********\n\n"
      "     [cf. %s ]\n\n"
      " ====================================================================\n\n"
      "%s\n"
