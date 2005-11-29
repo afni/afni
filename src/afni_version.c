@@ -16,6 +16,8 @@ static int disabled = 0 ;
 
 static pid_t vc_child_pid = (pid_t)(-1) ;
 static IOCHAN *vc_ioc     = NULL ;
+static char *motd_old     = NULL ;  /* 29 Nov 2005 */
+static char *motd_new     = NULL ;
 
 #undef VERBOSE   /* print messages on failure? */
 
@@ -88,6 +90,8 @@ void AFNI_start_version_check(void)
                    "\n** Your AFNI version changed from %s to %s since last check\n",
                    rhs , VERSION ) ;
          }
+         rhs = NI_get_attribute(nel,"motd") ;            /* 29 Nov 2005 */
+         if( rhs != NULL ) motd_old = strdup(rhs) ;
          NI_free_element(nel) ;
        }
      }
@@ -101,13 +105,14 @@ void AFNI_start_version_check(void)
      return ;
    }
 
+   /*---------------------------------------------------------*/
    if( child_pid > 0 ){                     /* I'm the parent */
 
      /*-- save PID of child for later use --*/
 
      vc_child_pid = child_pid ;
 
-     /*-- open a shared mem segment to talk to child --*/
+     /*-- open an IOCHAN to talk to child --*/
 
      vc_ioc = iochan_init( STR_CHILD , "accept" ) ;
      if( vc_ioc == NULL ){
@@ -120,8 +125,9 @@ void AFNI_start_version_check(void)
      }
      return ;
 
-   } else {                                 /* I'm the child */
-                                            /* (never returns) */
+   /*---------------------------------------------------------*/
+   } else {                                  /* I'm the child */
+                                           /* (never returns) */
      int nbuf=0 , jj ;
      char *vbuf=NULL ;
      IOCHAN *ioc ;
@@ -176,7 +182,7 @@ void AFNI_start_version_check(void)
 
      if( nbuf <= 0 || vbuf == NULL || vbuf[0] == '\0' ) vexit(1);
 
-     /*-- talk to parent process thru shared memory --*/
+     /*-- talk to parent process thru IOCHAN --*/
 
      ioc = iochan_init( STR_CHILD , "create" ) ;
      if( ioc == NULL )                                  vexit(2);
@@ -207,12 +213,15 @@ void AFNI_start_version_check(void)
 # define KAPUT(ss) return
 #endif
 
-/*------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
 /*! Complete the version check by seeing if the child process
-    has any data to report from the AFNI web site.  Returns 1 if the
-    version at the AFNI site doesn't match the version of this program;
-    returns 0 if they match, or it can't tell.  Also prints stuff out.
---------------------------------------------------------------------------*/
+    has any data to report from the AFNI web site.
+    - Returns 1 if the version at the AFNI site doesn't match the compiled-in
+      version of this program;
+    - Returns 0 if they match, or it can't tell.
+    - Also prints stuff out.
+    - 29 Nov 2005: also sets GLOBAL_motd string, maybe.
+------------------------------------------------------------------------------*/
 
 int AFNI_version_check(void)
 {
@@ -248,7 +257,7 @@ int AFNI_version_check(void)
    /* if here, have data ready to read from child! */
 
    nbuf = 0 ;
-   vbuf = AFMALL( char, VSIZE) ;
+   vbuf = AFMALL(char, VSIZE) ;
    while(1){
      jj = iochan_recv( vc_ioc , vbuf+nbuf , VSIZE-nbuf ) ;
      if( jj < 1 ) break ;
@@ -269,15 +278,18 @@ int AFNI_version_check(void)
 
    /* extract version and data/time strings from data */
 
-#ifdef USE_HTTP_10
-   vvbuf = strstr(vbuf,"\r\n\r\n") ;
-   if( vvbuf == NULL ) vvbuf = vbuf      ;
-   else                vvbuf = vvbuf + 4 ;
-#else
-   vvbuf = vbuf ;
-#endif
+   vvbuf = strstr(vbuf,"AFNI_") ;   /* 29 Nov 2005: scan for version string */
+   if( vvbuf == NULL ) vvbuf = vbuf ;
+   sscanf( vvbuf , "%127s" , vv );  /* get version string out of data */
 
-   sscanf( vvbuf , "%127s" , vv ); free(vbuf);
+   vvbuf = strstr(vbuf,"motd=") ;   /* 29 Nov 2005: motd string */
+   if( vvbuf != NULL ){
+     motd_new = (char *)calloc(sizeof(char),VSIZE) ;
+     sscanf( vvbuf+5 , "%988s" , motd_new ) ;
+     if( motd_new[0] == '\0' ){ free(motd_new); motd_new=NULL; }
+   }
+
+   free(vbuf) ;  /* done with the input data from the child */
 
    /* record the current time, so we don't check too often */
 
@@ -292,10 +304,25 @@ int AFNI_version_check(void)
        NI_set_attribute( nel , "version_check_time" , rhs ) ;
        if( strcmp(vv,"none") != 0 )                            /* 27 Jan 2003 */
          NI_set_attribute( nel , "version_string" , VERSION ) ;
+       if( motd_new != NULL )
+         NI_set_attribute( nel , "motd" , motd_new ) ;         /* 29 Nov 2005 */
        NI_write_element( ns , nel , NI_TEXT_MODE ) ;
        NI_stream_close(ns) ;
      }
    }
+
+   /* 29 Nov 2005:
+      compare motd strings (old and new)
+      if different, save new one in GLOBAL_motd for display later */
+
+   if( motd_new != NULL ){
+     if( motd_old == NULL || strcmp(motd_new,motd_old) != 0 ){
+       GLOBAL_motd = motd_new ;
+     } else {
+       free(motd_new) ; motd_new = NULL ;
+     }
+   }
+   if( motd_old != NULL ){ free(motd_old); motd_old=NULL; }
 
    /* compare version strings */
 
@@ -409,3 +436,52 @@ char * AFNI_make_update_script(void)
 #else /* undefined SHOWOFF */
 char * AFNI_make_update_script(void){ return NULL; }
 #endif /* SHOWOFF */
+
+/*----------------------------------------------------------------------*/
+/*! Display the AFNI message of the day.  [29 Nov 2005]
+------------------------------------------------------------------------*/
+
+void AFNI_display_motd( Widget w )
+{
+   int nbuf ;
+   char *buf=NULL , url[VSIZE] ;
+
+ENTRY("AFNI_display_motd") ;
+
+   set_HTTP_10( 0 ) ;
+
+   if( GLOBAL_motd == NULL || *GLOBAL_motd == '\0' ){ /* fetch motd name */
+     char *vbuf , *vvbuf ;                           /* from AFNI server */
+     nbuf = read_URL( VERSION_URL , &vbuf ) ;
+     if( nbuf == 0 || vbuf == NULL ) EXRETURN ;
+     vvbuf = strstr(vbuf,"motd=") ;
+     if( vvbuf == NULL ){ free(vbuf); EXRETURN; }
+     GLOBAL_motd = (char *)calloc(sizeof(char),VSIZE) ;
+     sscanf( vvbuf+5 , "%988s" , GLOBAL_motd ) ; free(vbuf) ;
+     if( GLOBAL_motd[0] == '\0' ){
+       free(GLOBAL_motd); GLOBAL_motd=NULL; EXRETURN;
+     }
+   }
+
+   sprintf(url,"%s%.988s",AFNI_HOST,GLOBAL_motd) ;
+   nbuf = read_URL( url , &buf ) ;
+   if( nbuf > 0 && buf != NULL ){
+     char *msg = malloc(sizeof(char)*(nbuf+2048)) ;
+     sprintf(msg,
+     "\n"
+     "          *********** New AFNI Message of the Day **********\n\n"
+     "     [cf. %s ]\n\n"
+     " ====================================================================\n\n"
+     "%s\n"
+     , url , buf );
+
+     if( w != NULL )
+       (void) new_MCW_textwin( w , msg , TEXT_READONLY );
+     else
+       fputs(msg,stderr) ;
+
+     free(msg) ; free(buf) ;
+   }
+
+   EXRETURN ;
+}
