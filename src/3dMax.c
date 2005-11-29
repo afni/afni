@@ -49,6 +49,7 @@ int main( int argc , char * argv[] )
              "  -mask dset = use dset as mask to include/exclude voxels\n"
              "  -automask = automatically compute mask for dataset\n"
              "    Can not be combined with -mask\n"
+	     "  -ver = print author and version info\n"
              "  -help = print this help screen\n"
            ) ;
       printf("\n" MASTER_SHORTHELP_STRING ) ;
@@ -56,7 +57,6 @@ int main( int argc , char * argv[] )
    }
 
    mainENTRY("3dMax main"); machdep(); AFNI_logger("3dMax",argc,argv);
-   PRINT_VERSION("3dMax"); AUTHOR("Daniel Glen");
    nopt = 1 ;
 
    min_flag  = 0;
@@ -73,6 +73,11 @@ int main( int argc , char * argv[] )
 
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
+      if( strcmp(argv[nopt],"-ver") == 0 ){
+        PRINT_VERSION("3dMax"); AUTHOR("Daniel Glen");
+        nopt++; continue;
+      }
+
       if( strcmp(argv[nopt],"-quick") == 0 ){
 	quick_flag = 1;
         nopt++; continue;
