@@ -4,20 +4,22 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
    
-/*******************************************************
- * 3dROIstats                                          *
- * T. Ross 5/99                                        *
- *-----------------------------------------------------*
- * Code for -summary added by M.S. Beauchamp, 12/1999  *
- *-----------------------------------------------------*
- * Code for -numROI added by T. ROss 5/00              * 
- *-----------------------------------------------------*
- * Code for -minmax,-nzminmax added by R Reynolds 7/04 *
- *-----------------------------------------------------*
- * Fixed minmax initializers           R Reynolds 9/04 *
- *-----------------------------------------------------*
- * Code for -mask_f2short              R Reynolds 2/05 *
- *******************************************************/
+/********************************************************
+ * 3dROIstats                                           *
+ * T. Ross 5/99                                         *
+ *------------------------------------------------------*
+ * Code for -summary added by M.S. Beauchamp, 12/1999   *
+ *------------------------------------------------------*
+ * Code for -numROI added by T. ROss 5/00               * 
+ *------------------------------------------------------*
+ * Code for -minmax,-nzminmax added by R Reynolds  7/04 *
+ *------------------------------------------------------*
+ * Fixed minmax initializers           R Reynolds  9/04 *
+ *------------------------------------------------------*
+ * Code for -mask_f2short              R Reynolds  2/05 *
+ *------------------------------------------------------*
+ * More info in -help w/examples       R Reynolds 11/05 *
+ ********************************************************/
 
 #include "mrilib.h"
 #include <stdio.h>
@@ -54,11 +56,29 @@ int main(int argc, char *argv[])
 
     if (argc < 3 || strcmp(argv[1], "-help") == 0) {
 	printf("Usage: 3dROIstats -mask[n] mset [options] datasets\n"
+	       "\n"
+	       "   Display statistics over masked regions.  The default statistic\n"
+	       "   is the mean.\n"
+	       "\n"
+	       "   There will be one line of output for every sub-brick of every\n"
+	       "   input dataset.  Across each line will be every statistic for\n"
+	       "   every mask value.  For instance, if there 3 mask values (1,2,3),\n"
+	       "   then the columns Mean_1, Mean_2 and Mean_3 will refer to the\n"
+	       "   means across each mask value, respectively.  If 4 statics are\n"
+	       "   requested, then there will be 12 stats displayed on each line\n"
+	       "   (4 for each mask region), besides the file and sub-brick number.\n"
+	       "\n"
+	       "Examples:\n"
+	       "\n"
+	       "   3dROIstats -mask mask+orig. 'func_slim+orig[1,3,5]'\n"
+	       "\n"
+	       "   3dROIstats -minmax -sigma -mask mask+orig. 'func_slim+orig[1,3,5]'\n"
+	       "\n"
 	       "Options:\n"
 	   "  -mask[n] mset Means to use the dataset 'mset' as a mask:\n"
 	"                 If n is present, it specifies which sub-brick\n"
 	       "                 in mset to use a la 3dcalc.  Note: do not include\n"
-	       "                 the brackets if specifing a sub-brick, they are\n"
+	       "                 the brackets if specifying a sub-brick, they are\n"
 	       "                 there to indicate that they are optional.  If not\n"
 	       "                 present, 0 is assumed\n"
 	"                 Voxels with the same nonzero values in 'mset'\n"
@@ -90,13 +110,13 @@ int main(int argc, char *argv[])
 	       "                 this option!\n"
 	       "\n"
 	       "  -debug        Print out debugging information\n"
-	  "  -quiet        Do not print out labels for columns or rows\n"
+	       "  -quiet        Do not print out labels for columns or rows\n"
 	       "\n"
 	       "The following options specify what stats are computed.  By default\n"
 	       "the mean is always computed.\n"
 	       "\n"
 	       "  -nzmean       Compute the mean using only non_zero voxels.  Implies\n"
-	   "                 the oppisite for the normal mean computed\n"
+	       "                 the opposite for the normal mean computed\n"
 	       "  -nzvoxels     Compute the number of non_zero voxels\n"
 	       "  -minmax       Compute the min/max of all voxels\n"
 	       "  -nzminmax     Compute the min/max of non_zero voxels\n"
