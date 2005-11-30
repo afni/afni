@@ -1,13 +1,4 @@
 #!/bin/tcsh -f
-if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
-   echo "Beginnings of a script to improve alignment of EPI to anatomical data"
-   echo ""
-   echo "   `basename $0` <-input epi> <-base anat>"
-   echo "                 [-blr_input FWHM_input] [-blr_base FWHM_base] [-blr_all FWHM]"
-   echo "                 [-suffix SUF] [-keep_tmp] "
-   echo ""
-   goto END
-endif
 
 PARSE: 
 	echo "Parsing ..."
@@ -18,13 +9,42 @@ PARSE:
    set blr_base = 8
    set pad_base = 10
    set rmode = 'default'
+   set xform_type = 'affine_general'
    set suf = 'final'
    set KeepTmp = 0
    set TS = "_"
    set dxyz_list = ( 1 1 1 )
    set cnt = 1
+   if ("$1" == '') then
+      goto HELP
+   endif
    while ($cnt <= $Narg)
 		set donext = 1;
+      if ("$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+      if ($donext && "$argv[$cnt]" == "-xform") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need string after -xform"
+            goto END
+         else
+            @ cnt ++
+            set xform_type = "$argv[$cnt]"
+            if ("$xform_type" != "affine_general" && "$xform_type" != "shift_rotate_scale" && "$xform_type" != "auto" && "$xform_type" != "shift_rotate") then
+               echo "-xform option $xform_type not allowed."
+               goto END
+            endif
+            if ("$xform_type" == "shift_rotate") then
+               echo ""
+               echo "Warning: ********************************"
+               echo "-xform option does not allow for scaling!"
+               echo "Proceeding with your wishes anyway ..."
+               echo ""
+            endif
+            set donext = 0   
+         endif   
+      endif
       if ($donext && "$argv[$cnt]" == "-rmode") then
          set pLoc = $cnt		
 		   if ($pLoc == $Narg) then
@@ -176,7 +196,6 @@ PARSE:
          set rmode = "quintic"
    endif
 
-   set Xform_Opt = '-affine_general'   
 
 CLEANUP_BEGINNING:
 rm -f *_${TS}_*.HEAD *_${TS}_*.BRIK >& /dev/null 
@@ -208,7 +227,7 @@ endif
 set ci_name[2] = $ci_name[2]_${TS}_resamp
             
 #do the warping deed
-3dWarpDrive    -twopass ${Xform_Opt} -cubic  \
+3dWarpDrive    -twopass -${xform_type} -cubic  \
                -final ${rmode} -base $cb_name[1]/$cb_name[2]$cb_name[3] \
                -prefix $ci_name[1]/$ci_name[2]_${TS}_wd -input $ci_name[1]/$ci_name[2]$ci_name[3]
 set ci_name[2] = $ci_name[2]_${TS}_wd
@@ -220,5 +239,26 @@ CLEANUP_END:
 if ($KeepTmp == 0) then
    rm -f *_${TS}_*.HEAD *_${TS}_*.BRIK >& /dev/null 
 endif
+
+goto END
+
+HELP:
+if ("$1" == '' || "$1" == "-help" || "$1" == "-h") then
+   echo "Beginnings of a script to improve alignment of EPI to anatomical data"
+   echo ""
+   echo "   `basename $0` <-input epi> <-base anat>"
+   echo "                 [-blr_input FWHM_input] [-blr_base FWHM_base] [-blr_all FWHM]"
+   echo "                 [-suffix SUF] [-keep_tmp] "
+   echo ""
+      echo "      -keep_tmp      :  Keep temporary files."
+      echo "      -xform  XFORM  : Transform to use for warping:"
+      echo "                       Choose from affine_general or shift_rotate_scale"
+      echo "                       Default is affine_general but the script will"
+      echo "                       automatically try to use shift_rotate_scale "
+      echo "                       if the alignment does not converge."
+   echo ""
+   goto END
+endif
+
 
 END:
