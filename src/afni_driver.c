@@ -16,6 +16,8 @@ static int AFNI_drive_open_window( char *cmd ) ;
 static int AFNI_drive_close_window( char *cmd ) ;
 static int AFNI_drive_quit( char *cmd ) ;
 
+static int AFNI_drive_set_subbricks( char *cmd ) ;  /* 30 Nov 2005 */
+
 static int AFNI_drive_save_jpeg( char *cmd ) ;      /* 28 Jul 2005 */
 static int AFNI_drive_set_view( char *cmd ) ;       /* 28 Jul 2005 */
 static int AFNI_drive_set_dicom_xyz( char *cmd ) ;  /* 28 Jul 2005 */
@@ -88,6 +90,8 @@ static AFNI_driver_pair dpair[] = {
  { "SWITCH_FUNCTION"  , AFNI_drive_switch_function   } ,
  { "SWITCH_OVERLAY"   , AFNI_drive_switch_function   } ,
  { "SET_OVERLAY"      , AFNI_drive_switch_function   } ,
+ { "SET_SUBBRICKS"    , AFNI_drive_set_subbricks     } ,
+ { "SET_SUB_BRICKS"   , AFNI_drive_set_subbricks     } ,
 
  { "PURGE_MEMORY"     , AFNI_drive_purge_memory      } ,
 
@@ -349,14 +353,86 @@ ENTRY("AFNI_switch_session") ;
    RETURN(0) ;
 }
 
-/*----------------------------------------------------------------------
+/*------------------------------------------------------------------*/
+
+void AFNI_set_anat_index( Three_D_View *im3d , int nuse )
+{
+   if( IM3D_OPEN(im3d)                    &&
+       im3d->type == AFNI_3DDATA_VIEW     &&
+       nuse >= 0                          &&
+       nuse <  DSET_NVALS(im3d->anat_now) &&
+       nuse != im3d->vinfo->anat_index      ){
+
+     MCW_arrowval *tav = im3d->vwid->imag->time_index_av ;
+     MCW_arrowval *aav = im3d->vwid->func->anat_buck_av ;
+     if( im3d->vinfo->time_on ){
+       AV_assign_ival( tav , nuse ) ;               /* set time_index */
+       AFNI_time_index_CB( tav, (XtPointer) im3d ); /* will set anat_index */
+     } else {
+       AV_assign_ival( aav, nuse ) ;                /* set directly */
+       AFNI_bucket_CB( aav, im3d ) ;
+     }
+   }
+}
+
+/*------------------------------------------------------------------*/
+
+void AFNI_set_fim_index( Three_D_View *im3d , int nfun )
+{
+   if( IM3D_OPEN(im3d)                   &&
+       im3d->type == AFNI_3DDATA_VIEW    &&
+       nfun >= 0                         &&
+       nfun <  DSET_NVALS(im3d->fim_now) &&
+       nfun != im3d->vinfo->fim_index       ){
+     MCW_arrowval *aav = im3d->vwid->func->fim_buck_av ;
+     AV_assign_ival( aav, nfun ) ;
+     AFNI_bucket_CB( aav, im3d ) ;
+   }
+}
+
+/*------------------------------------------------------------------*/
+
+void AFNI_set_thr_index( Three_D_View *im3d , int nthr )
+{
+   if( IM3D_OPEN(im3d)                   &&
+       im3d->type == AFNI_3DDATA_VIEW    &&
+       nthr >= 0                         &&
+       nthr <  DSET_NVALS(im3d->fim_now) &&
+       nthr != im3d->vinfo->thr_index       ){
+     MCW_arrowval *aav = im3d->vwid->func->thr_buck_av ;
+     AV_assign_ival( aav, nthr ) ;
+     AFNI_bucket_CB( aav, im3d ) ;
+   }
+}
+
+/*------------------------------------------------------------------*/
+
+static int AFNI_drive_set_subbricks( char *cmd )
+{
+   int ic , dadd=2 , nanat=-1,nfun=-1,nthr=-1 ;
+   Three_D_View *im3d ;
+
+   ic = AFNI_controller_code_to_index( cmd ) ;
+   if( ic < 0 ){ ic = 0 ; dadd = 0 ; }
+
+   im3d = GLOBAL_library.controllers[ic] ;
+   if( !IM3D_OPEN(im3d) ) RETURN(-1) ;
+
+   sscanf( cmd+dadd , "%d%d%d" , &nanat,&nfun,&nthr ) ;
+   AFNI_set_anat_index( im3d , nanat ) ;
+   AFNI_set_fim_index ( im3d , nfun  ) ;
+   AFNI_set_thr_index ( im3d , nthr  ) ;
+   RETURN(0) ;
+}
+
+/*------------------------------------------------------------------
   Set the anatomical dataset.  Input is of the form "A.prefix".
   Return value is 0 if good, -1 if bad.
 -------------------------------------------------------------------*/
 
 static int AFNI_drive_switch_anatomy( char *cmd )
 {
-   int ic , dadd=2 ;
+   int ic , dadd=2 , nuse=0 ;
    Three_D_View *im3d ;
    char dname[THD_MAX_NAME] ;
    MCW_choose_cbs cbs ;
@@ -374,12 +450,15 @@ ENTRY("AFNI_switch_anatomy") ;
 
    /* get dataset name, truncate trailing blanks */
 
-   MCW_strncpy( dname , cmd+dadd , THD_MAX_NAME ) ;
+   sscanf( cmd+dadd , "%244s%n" , dname , &nuse ) ;
    for( ic=strlen(dname)-1 ; ic >= 0 ; ic-- )
      if( isspace(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
      else break ;
 
    if( strlen(dname) == 0 ) RETURN(-1) ;
+
+   if( nuse > 0 ) sscanf( cmd+dadd+nuse+1 , "%d" , &nuse ) ;  /* 30 Nov 2005 */
+   else           nuse = -1 ;
 
    /* find this dataset in current session of this controller */
 
@@ -400,6 +479,8 @@ ENTRY("AFNI_switch_anatomy") ;
    AFNI_finalize_dataset_CB( im3d->vwid->view->choose_anat_pb ,
                              (XtPointer)im3d ,  &cbs          ) ;
 
+   AFNI_set_anat_index( im3d , nuse ) ;   /* 30 Nov 2005 */
+
    RETURN(0) ;
 }
 
@@ -410,7 +491,7 @@ ENTRY("AFNI_switch_anatomy") ;
 
 static int AFNI_drive_switch_function( char *cmd )
 {
-   int ic , dadd=2 ;
+   int ic , dadd=2 , nuse=0 , nfun=-1,nthr=-1 ;
    Three_D_View *im3d ;
    char dname[THD_MAX_NAME] ;
    MCW_choose_cbs cbs ;
@@ -428,12 +509,15 @@ ENTRY("AFNI_switch_function") ;
 
    /* get dataset name, truncate trailing blanks */
 
-   MCW_strncpy( dname , cmd+dadd , THD_MAX_NAME ) ;
+   sscanf( cmd+dadd , "%244s%n" , dname , &nuse ) ;
    for( ic=strlen(dname)-1 ; ic >= 0 ; ic-- )
       if( isspace(dname[ic]) || iscntrl(dname[ic]) ) dname[ic] = '\0' ;
       else break ;
 
    if( strlen(dname) == 0 ) RETURN(-1) ;
+
+   if( nuse > 0 )                                    /* 30 Nov 2005 */
+     sscanf( cmd+dadd+nuse+1 , "%d%d" , &nfun,&nthr ) ;
 
    /* find this dataset in current session of this controller */
 
@@ -453,6 +537,9 @@ ENTRY("AFNI_switch_function") ;
 
    AFNI_finalize_dataset_CB( im3d->vwid->view->choose_func_pb ,
                              (XtPointer)im3d ,  &cbs          ) ;
+
+   AFNI_set_fim_index( im3d , nfun ) ;   /* 30 Nov 2005 */
+   AFNI_set_thr_index( im3d , nthr ) ;
 
    RETURN(0) ;
 }

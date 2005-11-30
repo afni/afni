@@ -1801,6 +1801,11 @@ extern TTRR_params * TTRR_get_params(void) ;
 extern int AFNI_driver( char *cmd ) ;                    /* 07 Nov 2001 */
 extern int AFNI_controller_code_to_index( char *code ) ;
 
+extern void AFNI_set_thr_index ( Three_D_View * , int ) ; /* 30 Nov 2005 */
+extern void AFNI_set_anat_index( Three_D_View * , int ) ;
+extern void AFNI_set_fim_index ( Three_D_View * , int ) ;
+
+
 /*-------------------------------------------------------*/
 /*--------------  registration of functions -------------*/
 
