@@ -1,9 +1,5 @@
 #!/bin/tcsh -f
 
-set base_o = full
-set anat_o = partial
-
-
 PARSE: 
    echo "Parsing ..."
    set Narg = $#
@@ -133,9 +129,8 @@ PARSE:
          set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-clean") then
-         echo 'Cleanup...'
-         set Ret_Clean = END
-         goto CLEANUP      
+         rm -f ${tmp}_*.* >& /dev/null
+         goto END      
          set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-verb") then
@@ -153,8 +148,11 @@ PARSE:
       goto END
    endif
 
-set base_o = `@GetAfniPrefix $ref_in`
-set anat_o = `@GetAfniPrefix $anat_in`
+set base_parsed = `@parse_afni_name $ref_in`
+set anat_parsed = `@parse_afni_name $anat_in`
+
+set base_o = $base_parsed[2]
+set anat_o = $anat_parsed[2]
 
 set base = $base_o
 set anat = $anat_o
@@ -170,11 +168,11 @@ ALIGN_CENTERS:
 
 MOVE_BASE:
 #Try different large angles, moving base because it is much larger
-   #rm -f ${tmp}_${base}_rs*.???? >& /dev/null
-   #3dresample -dxyz $dxyz_list[1] $dxyz_list[2] $dxyz_list[3]   -inset ${base}+orig -prefix ${tmp}_${base}_rs
+   rm -f ${tmp}_${base}_rs*.???? >& /dev/null
+   3dresample -dxyz $dxyz_list[1] $dxyz_list[2] $dxyz_list[3]   -inset ${base_parsed[1]}/${base}+orig -prefix ./${tmp}_${base}_rs
    set base = ${tmp}_${base}_rs
-   #rm -f ${tmp}_${anat}_rs*.???? >& /dev/null
-   #3dresample -inset ${anat}+orig -prefix ${tmp}_${anat}_rs -master ${base}+orig
+   rm -f ${tmp}_${anat}_rs*.???? >& /dev/null
+   3dresample -inset ${anat_parsed[1]}/${anat}+orig -prefix ./${tmp}_${anat}_rs -master ${base}+orig
    set anat = ${tmp}_${anat}_rs
    set anat_i = $anat
    set base_i = $base
@@ -188,12 +186,12 @@ MOVE_BASE:
       echo "Trying ${ang}R 0A 0I...(`date`)"
       @ cnt ++
       set anat = ${anat_i}
-      #rm -f ${base}_R${ang}*.???? >& /dev/null
-      #3drotate -rotate ${ang}R 0A 0I -prefix ${base}_R${ang} ${base}+orig
+      rm -f ${base}_R${ang}*.???? >& /dev/null
+      3drotate -rotate ${ang}R 0A 0I -prefix ${base}_R${ang} ${base}+orig
       set ilst = ($ilst ${base}_R${ang}+orig)
-      #rm -f ${anat}_b${ang}_aa*.???? >& /dev/null
-      if (1) then
-         #3dvolreg -twopass -cubic -prefix ${anat}_b${ang}_aa -dfile ${anat}_b${ang}_aa.log -base ${base}_R${ang}+orig ${anat}+orig.
+      rm -f ${anat}_b${ang}_aa*.???? >& /dev/null
+         
+         3dvolreg -twopass -cubic -prefix ${anat}_b${ang}_aa -dfile ${anat}_b${ang}_aa.log -base ${base}_R${ang}+orig ${anat}+orig.
          #get the rms result 
          set dfile = `cat ${anat}_b${ang}_aa.log`
          if ( `ccalc -form int -expr step"($RMSmin - $dfile[9])"` ) then
@@ -202,17 +200,13 @@ MOVE_BASE:
             set CNTmin = $cnt;
          endif
          set anat = ${anat}_b${ang}_aa
-      else
-         @auto_tlrc  -no_ss -base ${base}_R${ang}+orig. \
-                     -input ${anat}+orig. -suffix _b${ang}_aa -xform shift_rotate -verb -pad_base 0
-         set anat = ${anat}_b${ang}_aa
-      endif
+      
       set olst = ($olst ${anat}+orig)
    end
    echo $olst
    echo $ilst
-   echo "`date`:Optimal registration found at test number $CNTmin ANGmin = $ANGmin, RMSmin = $RMSmin" >> ${tmp}_LeLog
-   tail ${tmp}_LeLog
+   echo "`date`:Optimal registration found at test number $CNTmin ANGmin = $ANGmin, RMSmin = $RMSmin" >> ${tmp}_LeLog.txt
+   tail ${tmp}_LeLog.txt
 
 goto THE_FINAL_GIG
 
@@ -233,15 +227,20 @@ APPLY_BEST_MOVE_BASE:
    echo "Run: afni -noplugouts `@GetAfniPrefix $ilst[$CNTmin]`_alnd_${anat_i}+orig.HEAD ${anat_i}+orig.HEAD"
 
 THE_FINAL_GIG:
+   if ("$suf" == "") then
+      set suf = "_alnd_${anat_o}"
+   endif
+
    #apply full xform to initial base
    cat_matvec ${base}_R${ANGmin}+orig::ROTATE_MATVEC_000000 "$olst[$CNTmin]"::VOLREG_MATVEC_000000 -I > ${tmp}_BaseToAnat.1D
    #apply to initial base
-   rm -f ${base_o}_alnd_${anat_o}*.???? >& /dev/null
-   3drotate -matvec_dicom ${tmp}_BaseToAnat.1D -prefix ${base_o}_alnd_${anat_o} ${base_o}+orig 
+   rm -f ${base_o}${suf}*.???? >& /dev/null
+   3drotate -matvec_dicom ${tmp}_BaseToAnat.1D -prefix ./${base_o}${suf} ${base_parsed[1]}/${base_o}+orig 
    
    echo "Run: afni -noplugouts ${base_o}_alnd_${anat_o}+orig.HEAD ${anat_o}+orig.HEAD"
 
-goto END
+goto CLEANUP
+
 
 FINE_REG:
 #Cannot do finer registration because scaling is not allowed, partial coverage...
@@ -251,6 +250,10 @@ if (0) then
                -input ${anat_i}+orig -quintic -verb
 endif
 
+CLEANUP:
+if ($KeepTmp == 0) then
+   rm -f ${tmp}_*.* >& /dev/null
+endif
 
 goto END
 
@@ -267,8 +270,6 @@ HELP:
       echo "   Mandatory parameters:"
       echo "      -base  FullCoverageT1:  Reference anatomical full coverage volume."
       echo ""
-      echo "                        For the moment, FullCoverageT1 has to be in the current directory."
-      echo ""
       echo "      -input  PartialCoverageObliqueT1:  The name says it all."
       echo ""                        
       echo "   Optional parameters:"
@@ -278,6 +279,9 @@ HELP:
       #echo "                        Default is MM = $pd_default."
       #echo "                        If your output dataset is clipped, try increasing"
       #echo "                        MM to `ccalc -eval $pd_default+10` or `ccalc -eval $pd_default+20`."
+      echo "      -suffix  SUF   :  Output dataset name is formed by adding SUF to"
+      echo "                        the prefix of the base dataset."
+      echo "                        The default suffix is _alnd_PartialCoverageObliqueT1"
       echo "      -keep_tmp      :  Keep temporary files."
       echo "      -clean         :  Clean all temp files, likely left from -keep_tmp"
       echo "                        option then exit."

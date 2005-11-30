@@ -183,6 +183,12 @@ PARSE:
          set KeepTmp = 1;      
          set donext = 0      
       endif
+      if ($donext && "$argv[$cnt]" == "-clean") then
+         echo 'Cleanup...'
+         set Ret_Clean = END
+         goto CLEANUP      
+         set donext = 0      
+      endif
       if ($donext && "$argv[$cnt]" == "-verb") then
          set verb = 1;      
          set donext = 0      
@@ -248,20 +254,22 @@ PARSE:
       goto END
    endif
    
-   set anat_pref = "${anat_path}/`@GetAfniPrefix ${anat_in}`"
+   set anat_pref = "`@GetAfniPrefix ${anat_in}`"
+   set anat_view = "`@GetAfniView ${anat_in}`"
+   
    if ($RemoveSkull == 1) then
       set ns_pref = ${anat_pref}_ns
    else
       set ns_pref = ${anat_pref}
    endif
-   set rs_pref = ${anat_pref}_rs
+   #update tmppref IF YOU MUST! so that you can use multiple versions concurrently
+   #set tmppref = "${tmppref}__`@GetAfniPrefix ${anat_in}`" 
+   set rs_pref = ${tmppref}__rs_`@GetAfniPrefix ${anat_in}`
    set tt_pref = ${anat_pref}${suf}
-   #update tmppref so that you can use multiple versions concurrently
-   set tmppref = "${tmppref}__`@GetAfniPrefix ${anat_in}`"
 
    set ref_pref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
    set ref_pref_pad  = "${tmppref}_ref_`@GetAfniPrefix ${ref_in}`_${pd}pad"
-   set ref_view = `@GetAfniView ${ref_in}`
+   set ref_view = "`@GetAfniView ${ref_in}`"
 
 
 IN_CHECK:
@@ -275,13 +283,13 @@ if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
 endif 
 
 if ($KeepView == 1) then
-   if ( `@CheckForAfniDset ${tt_pref}+orig` != 0 ) then
-      echo "Error: Output dset ${tt_pref}+orig exists"
+   if ( `@CheckForAfniDset ${tt_pref}${anat_view}` != 0 ) then
+      echo "Error: Output dset ${tt_pref}${anat_view} exists"
       goto END
    endif
 else
-   if ( `@CheckForAfniDset ${tt_pref}+tlrc` != 0 ) then
-      echo "Error: Output dset ${tt_pref}+tlrc exists"
+   if ( `@CheckForAfniDset ${tt_pref}${ref_view}` != 0 ) then
+      echo "Error: Output dset ${tt_pref}${ref_view} exists"
       goto END
    endif
 endif
@@ -328,53 +336,53 @@ AUTO_TLRC_MODE:
 
    SS:
    #Skully Strippin, Brainy Sniffing
-   if ( ! -f ${ns_pref}+orig.HEAD ) then
+   if ( ! -f ${ns_pref}${anat_view}.HEAD ) then
       if ("$ss_opt" != "") then
          echo "Skull Stripping (with options ${ss_opt})..."
       else 
          echo "Skull Stripping ..."
       endif
-      3dSkullStrip -input ${anat_pref}+orig -prefix ${ns_pref} ${ss_opt}
-      if ( ! -f ${ns_pref}+orig.HEAD ) then
+      3dSkullStrip -input ${anat_path}/${anat_pref}${anat_view} -prefix ${ns_pref} ${ss_opt}
+      if ( ! -f ${ns_pref}${anat_view}.HEAD ) then
          echo "Error: Failed to create skull stripped brain"
          goto END
       endif
    else
       if ($RemoveSkull == 1) then
          echo "Notice:"
-         echo "Reusing skull stripped volume ${ns_pref}+orig found on disk."
+         echo "Reusing skull stripped volume ${ns_pref}${anat_view} found on disk."
          echo ""
       endif
    endif
 
    RES:
    #Resamplin
-   if ( ! -f ${rs_pref}+orig.HEAD ) then
+   if ( ! -f ${rs_pref}${anat_view}.HEAD ) then
       echo "Resampling ..."
       rm -f ${tmppref}_resamp* >& /dev/null
       #Use cubic for somoothness of result since it will be used in registration.
       #But that causes edge artifacts from interpolation. Use a resampled mask to cleanup
-      3dresample -rmode Cu -master ${ref_pref_pad}+tlrc -inset ${ns_pref}+orig -prefix ${tmppref}_resamp_edge_art
-      3dcalc -a "${ns_pref}+orig" -expr "step(a)*10000" -prefix ${tmppref}_resamp_step
-      3dresample -rmode Linear -master ${ref_pref_pad}+tlrc -inset ${tmppref}_resamp_step+orig -prefix ${tmppref}_resamp_NN
-      3dcalc   -a "${tmppref}_resamp_edge_art+tlrc." -b "${tmppref}_resamp_NN+tlrc." \
+      3dresample -rmode Cu -master ${ref_pref_pad}${ref_view} -inset ${ns_pref}${anat_view} -prefix ${tmppref}_resamp_edge_art
+      3dcalc -a "${ns_pref}${anat_view}" -expr "step(a)*10000" -prefix ${tmppref}_resamp_step
+      3dresample -rmode Linear -master ${ref_pref_pad}${ref_view} -inset ${tmppref}_resamp_step${anat_view} -prefix ${tmppref}_resamp_NN
+      3dcalc   -a "${tmppref}_resamp_edge_art${ref_view}." -b "${tmppref}_resamp_NN${ref_view}." \
                -expr "a*step(b-5000)" -prefix ${tmppref}_resamp
-      if ( ! -f ${tmppref}_resamp+tlrc.HEAD) then
+      if ( ! -f ${tmppref}_resamp${ref_view}.HEAD) then
          echo "Error: Failed to create resampled volume"
          goto END
       endif
       #clip values to range of input
-      set range = `3dMax -min -max ${ns_pref}+orig`
+      set range = `3dMax -min -max ${ns_pref}${anat_view}`
       set min = `ccalc -eval "$range[1] - 0.0001"`
       set max = `ccalc -eval "$range[2] + 0.0001"`
       echo "Clipping $min $max ..."
-      3dcalc   -a ${tmppref}_resamp+tlrc -expr "a*step(a-$min)*step($max-a) + $range[1]*step($range[1]-a) + $range[2]*step(a-$range[2])" \
+      3dcalc   -a ${tmppref}_resamp${ref_view} -expr "a*step(a-$min)*step($max-a) + $range[1]*step($range[1]-a) + $range[2]*step(a-$range[2])" \
                -prefix ${rs_pref} 
-      3drefit -view orig ${rs_pref}+tlrc.HEAD
-      3drefit -view orig ${tmppref}_resamp_NN+tlrc.HEAD
-      3drefit -view orig ${tmppref}_resamp_edge_art+tlrc.HEAD
+      3drefit -view ${anat_view} ${rs_pref}${ref_view}.HEAD
+      3drefit -view ${anat_view} ${tmppref}_resamp_NN${ref_view}.HEAD
+      3drefit -view ${anat_view} ${tmppref}_resamp_edge_art${ref_view}.HEAD
       if ( $KeepTmp == 0) rm -f ${tmppref}_resamp* >& /dev/null 
-      if ( ! -f ${rs_pref}+orig.HEAD ) then
+      if ( ! -f ${rs_pref}${anat_view}.HEAD ) then
          echo "Error: Failed to change view of resampled volume"
          goto END
       endif
@@ -394,9 +402,9 @@ AUTO_TLRC_MODE:
    while ($Converged == 0 && $pass < 3)
       rm -f ${ns_pref}_WarpDrive.log >& /dev/null
       3dWarpDrive ${spopt} -twopass -${xform_type} -cubic  \
-               -final ${rmode} -base ${ref_pref_pad}+tlrc -summ ${ns_pref}_WarpDrive.log \
-               -prefix ${tmppref}_reg_warpdriveout -input ${rs_pref}+orig
-      if ( ! -f ${tmppref}_reg_warpdriveout+orig.HEAD ) then
+               -final ${rmode} -base ${ref_pref_pad}${ref_view} -summ ${ns_pref}_WarpDrive.log \
+               -prefix ${tmppref}_reg_warpdriveout -input ${rs_pref}${anat_view}
+      if ( ! -f ${tmppref}_reg_warpdriveout${anat_view}.HEAD ) then
          echo "Error: Failed in 3dWarpDrive "
          goto END
       endif
@@ -419,7 +427,7 @@ AUTO_TLRC_MODE:
                echo "registration without shearing."
                echo ""
                set xform_type = 'shift_rotate_scale'
-               3drename ${tmppref}_reg_warpdriveout+orig ${tmppref}_reg_warpdriveout_NoConvergence
+               3drename ${tmppref}_reg_warpdriveout${anat_view} ${tmppref}_reg_warpdriveout_NoConvergence
                set Converged = 0
                set pass = 2
             else 
@@ -468,7 +476,7 @@ AUTO_TLRC_MODE:
             echo "without shearing."
             echo ""
             set xform_type = 'shift_rotate_scale'
-            3drename ${tmppref}_reg_warpdriveout+orig ${tmppref}_reg_warpdriveout_NoConvergence
+            3drename ${tmppref}_reg_warpdriveout${anat_view} ${tmppref}_reg_warpdriveout_NoConvergence
             set Converged = 0
             set pass = 2
          endif
@@ -476,12 +484,13 @@ AUTO_TLRC_MODE:
    end
    
    #apply same warp for mask of dataset and use mask to get rid of edge artifacts
-   3dcalc -a "${rs_pref}+orig" -expr "step(a)*10000" -prefix ${tmppref}_reg_braintlrcstep
-   3dWarp -matparent ${tmppref}_reg_warpdriveout+orig -linear -prefix ${tmppref}_reg_braintlrcmask ${tmppref}_reg_braintlrcstep+orig 
-   3dcalc   -a "${tmppref}_reg_braintlrcmask+orig" \
-            -b "${tmppref}_reg_warpdriveout+orig" \
-            -expr "step(a-5000)*b" -prefix ${tt_pref}_${pd}pad
-   if ( ! -f ${tt_pref}_${pd}pad+orig.HEAD ) then
+   3dcalc -a "${rs_pref}${anat_view}" -expr "step(a)*10000" -prefix ${tmppref}_reg_braintlrcstep
+   3dWarp -matparent ${tmppref}_reg_warpdriveout${anat_view} -linear -prefix ${tmppref}_reg_braintlrcmask ${tmppref}_reg_braintlrcstep${anat_view} 
+   set tt_prefpad = ${tmppref}__pad${pd}_${tt_pref}
+   3dcalc   -a "${tmppref}_reg_braintlrcmask${anat_view}" \
+            -b "${tmppref}_reg_warpdriveout${anat_view}" \
+            -expr "step(a-5000)*b" -prefix ${tt_prefpad}
+   if ( ! -f ${tt_prefpad}${anat_view}.HEAD ) then
       echo "Error: Failed to create tlrced brain"
       goto END
    endif
@@ -490,18 +499,18 @@ AUTO_TLRC_MODE:
    #unPadding the anatomical 
    echo "Unpadding ..."
    3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm \
-               -prefix ${tt_pref} ${tt_pref}_${pd}pad+orig
+               -prefix ${tt_pref} ${tt_prefpad}${anat_view}
    #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout+orig WARPDRIVE_INPUT_IDCODE ${tt_pref}+orig
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout+orig WARPDRIVE_INPUT_NAME ${tt_pref}+orig
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout+orig WARPDRIVE_BASE_IDCODE ${tt_pref}+orig
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout+orig WARPDRIVE_MATVEC_FOR_000000 ${tt_pref}+orig
-   3drefit -atrcopy ${tmppref}_reg_warpdriveout+orig WARPDRIVE_MATVEC_INV_000000 ${tt_pref}+orig
-   3dNotes -a "Dataset created via: `basename $0` $argv[*]" ${tt_pref}+orig
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_INPUT_IDCODE ${tt_pref}${anat_view}
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_INPUT_NAME ${tt_pref}${anat_view}
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_BASE_IDCODE ${tt_pref}${anat_view}
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_MATVEC_FOR_000000 ${tt_pref}${anat_view}
+   3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_MATVEC_INV_000000 ${tt_pref}${anat_view}
+   3dNotes -a "Dataset created via: `basename $0` $argv[*]" ${tt_pref}${anat_view}
    
    if ($KeepView == 0) then
       echo "Changing view of transformed anatomy"
-      3drefit -view +tlrc ${tt_pref}+orig.HEAD
+      3drefit -view ${ref_view} ${tt_pref}${anat_view}.HEAD
    endif
 
    goto WRAP_UP
@@ -513,17 +522,17 @@ AUTO_TLRC_MODE:
 #Begin apar block
 #######################
 APAR_MODE:
-   echo "Applying tlrc warp from ${ref_pref_nopad}${ref_view} to ${ns_pref}+orig ..."
-   if ( -f warp_tmp+orig.HEAD) then
-      rm -f warp_tmp+orig.HEAD warp_tmp+orig.BRIK
+   echo "Applying tlrc warp from ${ref_pref_nopad}${ref_view} to ${ns_pref}${anat_view} ..."
+   if ( -f warp_tmp${anat_view}.HEAD) then
+      rm -f warp_tmp${anat_view}.HEAD warp_tmp${anat_view}.BRIK
    endif
    
    echo "Padding the input data before warping"
-   3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmppref}_ipad ${ns_pref}+orig
+   3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmppref}_ipad ${ns_pref}${anat_view}
    
    echo "Warping per parent transform ($rmode interpolation) ..."
-   3dWarp -matparent ${ref_pref_nopad}${ref_view} -prefix ${tmppref}_warp_tmp -${rmode} ${tmppref}_ipad+orig
-   if ( ! -f ${tmppref}_warp_tmp+orig.HEAD) then
+   3dWarp -matparent ${ref_pref_nopad}${ref_view} -prefix ${tmppref}_warp_tmp -${rmode} ${tmppref}_ipad${anat_view}
+   if ( ! -f ${tmppref}_warp_tmp${anat_view}.HEAD) then
       echo "Error: Failed to create tlrced dset"
       goto END
    endif
@@ -532,10 +541,10 @@ APAR_MODE:
    echo "(${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]})mm RAI resolution..."
    echo ""
    3dresample  -master ${ref_in} -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
-               -prefix ${tt_pref} -inset ${tmppref}_warp_tmp+orig -rmode ${resam}  
+               -prefix ${tt_pref} -inset ${tmppref}_warp_tmp${anat_view} -rmode ${resam}  
    if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
    
-   3dNotes -a "Dataset created via: `basename $0` $argv[*]" ${tt_pref}+tlrc
+   3dNotes -a "Dataset created via: `basename $0` $argv[*]" ${tt_pref}${ref_view}
    
    goto WRAP_UP
 #######################
@@ -559,11 +568,11 @@ goto END
 #ONLY SUB-ROUTINES BELOW
 
 CLEANUP:
-rm -f ${tmppref}_ref* >& /dev/null
-rm -f ${tmppref}_reg* >& /dev/null
-rm -f ${tmppref}_resam* >& /dev/null
-rm -f ${rs_pref}+orig.HEAD ${rs_pref}+orig.BRIK >& /dev/null
-rm -f ${tt_pref}_${pd}pad+orig.HEAD ${tt_pref}_${pd}pad+orig.BRIK >& /dev/null
+rm -f ${tmppref}*_ref*.???? >& /dev/null
+rm -f ${tmppref}*_reg*.???? >& /dev/null
+rm -f ${tmppref}*_resam*.???? >& /dev/null
+rm -f ${tmppref}*__rs*.???? >& /dev/null
+rm -f ${tmppref}__pad*.???? >& /dev/null
 goto $Ret_Clean
 
 SET_REF_PATH:
@@ -654,12 +663,15 @@ HELP:
       echo "                        requiring wild rotations do not get cropped."
       echo "                        Default is MM = $pd_default."
       echo "                        If your output dataset is clipped, try increasing"
-      echo "                        MM to `ccalc -eval $pd_default+10` or `ccalc -eval $pd_default+20`. If that does not help, make sure"
+      echo "                        MM to `ccalc -eval $pd_default+10` or `ccalc -eval $pd_default+20`."
+      echo "                        If that does not help, make sure"
       echo "                        that the skull-stripped volume has no clipping."
       echo "                        If it does, then the skull stripping needs to"
       echo "                        be corrected. Feel free to report such instances"
       echo "                        to the script's authors." 
       echo "      -keep_tmp      :  Keep temporary files."
+      echo "      -clean         :  Clean all temp files, likely left from -keep_tmp"
+      echo "                        option then exit."
       echo "      -xform  XFORM  : Transform to use for warping:"
       echo "                       Choose from affine_general or shift_rotate_scale"
       echo "                       Default is affine_general but the script will"
@@ -667,7 +679,7 @@ HELP:
       echo "                       if the alignment does not converge."
       echo "      -no_avoid_eyes : An option that gets passed to 3dSkullStrip."
       echo "                       Use it when parts of the frontal lobes get clipped."
-      echo "                       See 3dSkullStrip -help for more details." 
+      echo "                       See 3dSkullStrip -help for more details."
       echo "   Example:"
       echo "   `basename $0` -base TT_N27+tlrc. -input SubjectHighRes+orig."
       echo "    (the output is named SubjectHighRes_at+TLRC, by default."
@@ -700,7 +712,8 @@ HELP:
       echo "                        requiring wild rotations do not get cropped."
       echo "                        Default is MM = $pd_default."
       echo "                        If your output dataset is clipped, try increasing"
-      echo "                        MM to `ccalc -eval $pd_default+10` or `ccalc -eval $pd_default+20`. If that does not help, report the"
+      echo "                        MM to `ccalc -eval $pd_default+10` or `ccalc -eval $pd_default+20`."
+      echo "                        If that does not help, report the"
       echo "                        problem to the script's authors."
       echo "" 
       echo "   Example:"
