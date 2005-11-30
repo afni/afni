@@ -5774,3 +5774,6 @@
 
 29 Nov 2005
  * Message of the Day (motd) stuff.
+
+30 Nov 2005
+ * Change sub-bricks stuff in afni_driver.c.

@@ -153,15 +153,31 @@ SET_SESSION [c.]directoryname
   "wilhelm/frederick/von/guttenstein".
   ++ You can also use "SWITCH_SESSION" or "SWITCH_DIRECTORY" for the command.
 
-SET_ANATOMY [c.]prefix
+SET_ANATOMY [c.]prefix [i]
   Switches controller 'c' to be looking at the anatomical dataset with
   the given prefix.  The prefix must be a perfect match - this is NOT
   a sub-string match.
+  ++ If an optional integer is given (separated by a space) after the
+     prefix, this is the sub-brick index to view.
   ++ You can also use "SWITCH_ANATOMY" or "SWITCH_UNDERLAY" for the command.
 
-SET_FUNCTION [c.]prefix
+SET_FUNCTION [c.]prefix [j [k]]
   Same, but for the functional dataset in controller 'c'.
+  ++ If an optional integer is given (separated by a space) after the
+     prefix, this is the sub-brick index to view as the 'OLay'; if a second
+     integer is given, this is the sub-brick index to use as the 'Thr'.
   ++ You can also use "SWITCH_FUNCTION" or "SWITCH_OVERLAY" for the command.
+
+SET_SUBBRICKS [c] i j k
+  Without switching underlay or overlay datasets, change the sub-bricks
+  being viewed in the viewer specified by the initial letter.
+    Index i = underlay sub-brick           (grayscale)
+    Index j = overlay sub-brick for 'Olay' (color)
+    Index k = overlay sub-brick for 'Thr'  (threshold)
+  For example, "SET_SUBBRICKS B 33 -1 44" will set the underlay sub-brick
+  to 33, the threshold sub-brick to 44, and will not change the color
+  sub-brick (since -1 is not a legal value).
+ ++ You can also use "SET_SUB_BRICKS" for the command name.
 
 OPEN_WINDOW [c.]windowname [options]
   Opens a window from controller 'c'.  The window name can be one of
