@@ -41,12 +41,10 @@ static int         VL_edperc=-1 ;
 
 static int         VL_coarse_del=10 ; /* 11 Dec 2000 */
 static int         VL_coarse_num=2  ;
+static int         VL_coarse_rot=0  ; /* 01 Dec 2005 */
 
-static int         VL_coarse_rot   =10 ;  /* 25 Nov 2005 */
-static int         VL_coarse_rotnum=2  ;
-
-static THD_3dim_dataset * VL_dset = NULL ;
-static THD_3dim_dataset * VL_bset = NULL ;  /* 06 Feb 2001 */
+static THD_3dim_dataset *VL_dset = NULL ;
+static THD_3dim_dataset *VL_bset = NULL ;  /* 06 Feb 2001 */
 
 static char VL_prefix[256] = "volreg" ;
 static int  VL_verbose     = 0 ;
@@ -78,6 +76,11 @@ float voldif( int nx, int ny, int nz, float *b,
 
 float get_best_shift( int nx, int ny, int nz,
                       float *b, float *v, int *dxp,int *dyp,int *dzp ) ;
+
+float new_get_best_shiftrot( THD_3dim_dataset *dset ,
+                             MRI_IMAGE *base , MRI_IMAGE *vol ,
+                             float *roll , float *pitch , float *yaw ,
+                             int   *dxp  , int   *dyp   , int   *dzp  ) ;
 
 /**********************************************************************/
 /***************************** the program! ***************************/
@@ -342,23 +345,23 @@ int main( int argc , char *argv[] )
    /*-- 14 Feb 2001: adjust time-offsets for slice direction shifts --*/
 
    if( new_dset->taxis != NULL && new_dset->taxis->nsl > 0 && matvec ){
-      int ndz ;
-      int kk,jj , nsl = new_dset->taxis->nsl ;
+     int ndz ;
+     int kk,jj , nsl = new_dset->taxis->nsl ;
 
-      ndz = (int)rint( tvec.xyz[2] / fabs(new_dset->daxes->zzdel) ); /* shift */
+     ndz = (int)rint( tvec.xyz[2] / fabs(new_dset->daxes->zzdel) ); /* shift */
 
-      if( ndz != 0 ){
-         float * tsl = (float *)malloc(sizeof(float)*nsl) ;
-         for( kk=0 ; kk < nsl ; kk ++ ){
-            jj = kk - ndz ;
-            if( jj < 0 || jj >= nsl ) tsl[kk] = 0.0 ;
-            else                      tsl[kk] = new_dset->taxis->toff_sl[jj] ;
-         }
-         EDIT_dset_items( new_dset , ADN_toff_sl , tsl , ADN_none ) ;
-         free(tsl) ;
-         if( VL_verbose )
-            fprintf(stderr,"++ adjusting time-offsets by %d slices\n",ndz) ;
-      }
+     if( ndz != 0 ){
+       float * tsl = (float *)malloc(sizeof(float)*nsl) ;
+       for( kk=0 ; kk < nsl ; kk ++ ){
+         jj = kk - ndz ;
+         if( jj < 0 || jj >= nsl ) tsl[kk] = 0.0 ;
+         else                      tsl[kk] = new_dset->taxis->toff_sl[jj] ;
+       }
+       EDIT_dset_items( new_dset , ADN_toff_sl , tsl , ADN_none ) ;
+       free(tsl) ;
+       if( VL_verbose )
+         fprintf(stderr,"++ adjusting time-offsets by %d slices\n",ndz) ;
+     }
    }
 
    /*-- read the input dataset into memory --*/
@@ -388,9 +391,9 @@ int main( int argc , char *argv[] )
    /*-- initialize the registration algorithm --*/
 
    if( VL_imbase == NULL ){
-      VL_imbase = mri_to_float(DSET_BRICK(VL_dset,VL_nbase)) ; /* copy this */
+     VL_imbase = mri_to_float(DSET_BRICK(VL_dset,VL_nbase)) ; /* copy this */
    } else {
-      VL_nbase = -1 ;  /* will not match any sub-brick index */
+     VL_nbase = -1 ;  /* will not match any sub-brick index */
    }
 
    VL_imbase->dx = fabs( DSET_DX(VL_dset) ) ;  /* set the voxel dimensions */
@@ -426,6 +429,7 @@ int main( int argc , char *argv[] )
    if( VL_twopass ){
       MRI_IMAGE * tp_base ;
       int sx=66666,sy,sz ;
+      float rr=0.0f,pp=0.0f,yy=0.0f ;  /* 01 Dec 2005 */
 
       if( VL_verbose ){
         fprintf(stderr,"++ Start of first pass alignment on all sub-bricks\n");
@@ -473,12 +477,24 @@ int main( int argc , char *argv[] )
          /* find shift of 1st data brick that best overlaps with base brick */
 
          if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
-           if( VL_verbose )
-             fprintf(stderr,"++ Getting best coarse shift [0]:") ;
-           (void)get_best_shift( nx,ny,nz , bar,far , &sx,&sy,&sz ) ;
-           if( VL_verbose ) fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
+           if( VL_coarse_rot == 0 ){
+             if( VL_verbose )
+               fprintf(stderr,"++ Getting best coarse shift [0]:") ;
+             (void)get_best_shift( nx,ny,nz , bar,far , &sx,&sy,&sz ) ;
+             if( VL_verbose ) fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
+           } else {                   /* 01 Dec 2005 */
+             if( VL_verbose )
+               fprintf(stderr,"++ Getting best coarse rot+shift [0]:") ;
+               (void)new_get_best_shiftrot( VL_dset , tp_base , fim ,
+                                            &rr, &pp, &yy, &sx, &sy, &sz ) ;
+               if( hax1 < 0 ) rr = -rr ;
+               if( hax2 < 0 ) pp = -pp ;
+               if( hax3 < 0 ) yy = -yy ;
+               if( VL_verbose ) fprintf(stderr," %g %g %g : %d %d %d\n",
+                                        rr,pp,yy , sx,sy,sz) ;
+           }
          } else {
-           sx = sy = sz = 0 ;
+           sx = sy = sz = 0 ; rr = pp = yy = 0.0f ;
          }
 
 #define BAR(i,j,k) bar[(i)+(j)*nx+(k)*nxy]
@@ -581,19 +597,30 @@ int main( int argc , char *argv[] )
 
             if( kim > 0 || sx == 66666 ){ /* if didn't already get best shift */
               if( VL_coarse_del > 0 && VL_coarse_num > 0 ){
-                if( VL_verbose )
-                  fprintf(stderr,"++ Getting best coarse shift [%d]:",kim) ;
-                (void)get_best_shift( nx,ny,nz ,
-                                      MRI_FLOAT_PTR(tp_base),MRI_FLOAT_PTR(fim) ,
-                                      &sx,&sy,&sz ) ;
-                if( VL_verbose )
-                  fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
+                if( VL_coarse_rot == 0 ){
+                  if( VL_verbose )
+                    fprintf(stderr,"++ Getting best coarse shift [%d]:",kim) ;
+                  (void)get_best_shift( nx,ny,nz ,
+                                        MRI_FLOAT_PTR(tp_base),MRI_FLOAT_PTR(fim) ,
+                                        &sx,&sy,&sz ) ;
+                  if( VL_verbose ) fprintf(stderr," %d %d %d\n",sx,sy,sz) ;
+                } else {                   /* 01 Dec 2005 */
+                  if( VL_verbose )
+                    fprintf(stderr,"++ Getting best coarse rot+shift [%d]:",kim) ;
+                    (void)new_get_best_shiftrot( VL_dset , tp_base , fim ,
+                                                 &rr, &pp, &yy, &sx, &sy, &sz ) ;
+                    if( hax1 < 0 ) rr = -rr ;
+                    if( hax2 < 0 ) pp = -pp ;
+                    if( hax3 < 0 ) yy = -yy ;
+                    if( VL_verbose ) fprintf(stderr," %g %g %g : %d %d %d\n",
+                                             rr,pp,yy , sx,sy,sz) ;
+                }
               } else {
-                sx = sy = sz = 0 ;
+                sx = sy = sz = 0 ; rr = pp = yy = 0.0f ;
               }
             }
 
-            mri_3dalign_initvals( 0.0 , 0.0 , 0.0 ,
+            mri_3dalign_initvals( rr , pp , yy ,
                                   sx*fim->dx , sy*fim->dy , sz*fim->dz ) ;
 
             (void) mri_3dalign_one( albase , fim ,
@@ -1262,6 +1289,11 @@ void VL_syntax(void)
     "                             N.B.: The 'del' parameter cannot be larger than\n"
     "                                   10%% of the smallest dimension of the input\n"
     "                                   dataset.\n"
+    "              -coarserot        Also do a coarse search in angle for the\n"
+    "                                  starting point of the first pass.\n"
+    "                             N.B.: This option is experimental for now,\n"
+    "                                   but will become the default for -twopass\n"
+    "                                   in the future. [01 Dec 2005 -- RWCox]\n"
 #if 0
     "              -wtrim          = Attempt to trim the intermediate volumes to\n"
     "                                  a smaller region (determined by the weight\n"
@@ -1558,6 +1590,11 @@ void VL_command_line(void)
       if( strcmp(Argv[Iarg],"-coarse") == 0 ){
          VL_coarse_del = strtol(Argv[++Iarg],NULL,10) ;
          VL_coarse_num = strtol(Argv[++Iarg],NULL,10) ;
+         Iarg++ ; continue ;
+      }
+
+      if( strcmp(Argv[Iarg],"-coarserot") == 0 ){  /* 01 Dec 2005 */
+         VL_coarse_rot = 1 ;
          Iarg++ ; continue ;
       }
 
@@ -1878,8 +1915,8 @@ void VL_command_line(void)
      mm = MIN( DSET_NZ(VL_dset) , mm ) ;
      mm = (int)(0.1*mm + 0.499) ;
      if( VL_coarse_del > mm ){
-        fprintf(stderr,"++ Coarse del was %d, replaced with %d\n",VL_coarse_del,mm) ;
-        VL_coarse_del = mm ;
+       fprintf(stderr,"++ Coarse del was %d, replaced with %d\n",VL_coarse_del,mm) ;
+       VL_coarse_del = mm ;
      }
    }
 
@@ -1956,53 +1993,200 @@ float get_best_shift( int nx, int ny, int nz,
    *dxp = bdx ; *dyp = bdy ; *dzp = bdz ; return bsum ;
 }
 
+/*==========================================================================*/
+/*=============== 01 Dec 2005: Newer versions of the above =================*/
+/*==========================================================================*/
+
+/*--------------------------------------------------------------------
+  Calculate
+              (      [                                 2          ] )
+          min ( sum  [ {a v(i-dx,j-dy,k-dz) - b(i,j,k)}  w(i,j,k) ] )
+           a  (  ijk [                                            ] )
+
+  where the sum is taken over voxels at least 'edge' in from the edge.
+  'edge' must be bigger than max(|dx|,|dy|,|dz|).  The weight w may
+  be NULL, in which case it is taken to be identically 1.
+----------------------------------------------------------------------*/
+
+#define B(i,j,k) b[(i)+(j)*nx+(k)*nxy]
+#define V(i,j,k) v[(i)+(j)*nx+(k)*nxy]
+#define W(i,j,k) w[(i)+(j)*nx+(k)*nxy]
+
+float new_voldif( int nx, int ny, int nz, float *b,
+                  int dx, int dy, int dz, float *v, int edge , float *w )
+{
+   int nxy=nx*ny, nxtop=nx-edge, nytop=ny-edge, nztop=nz-edge , ii,jj,kk ;
+   float bbsum=0.0f , vvsum=0.0f , bvsum=0.0f , bb,vv,ww ;
+
+   if( w == NULL ){                         /** no weight given **/
+     for( kk=edge ; kk < nztop ; kk++ ){
+      for( jj=edge ; jj < nytop ; jj++ ){
+       for( ii=edge ; ii < nxtop ; ii++ ){
+         bb = B(ii,jj,kk) ; vv = V(ii-dx,jj-dy,kk-dz) ;
+         bbsum += bb*bb ; vvsum += vv*vv ; bvsum += bb*vv ;
+     }}}
+   } else {                                /** use given weight **/
+     for( kk=edge ; kk < nztop ; kk++ ){
+      for( jj=edge ; jj < nytop ; jj++ ){
+       for( ii=edge ; ii < nxtop ; ii++ ){
+         ww = W(ii,jj,kk) ;
+         if( ww > 0.0f ){
+           bb = B(ii,jj,kk) ; vv = V(ii-dx,jj-dy,kk-dz) ;
+           bbsum += ww*bb*bb ; vvsum += ww*vv*vv ; bvsum += ww*bb*vv ;
+         }
+     }}}
+   }
+
+   if( vvsum > 0.0f ) bbsum -= bvsum*bvsum/vvsum ;
+   return bbsum ;
+}
+
+/*---------------------------------------------------------------------
+  Do some shifts to find the best starting point for registration
+  (globals VL_coarse_del and VL_coarse_num control operations).
+-----------------------------------------------------------------------*/
+
+float new_get_best_shift( int nx, int ny, int nz,
+                          float *b, float *v , float *w ,
+                          int *dxp , int *dyp , int *dzp )
+{
+   int bdx=0 , bdy=0 , bdz=0 , dx,dy,dz , nxyz=nx*ny*nz ;
+   float bsum , sum ;
+
+   int shift = VL_coarse_del, numsh = VL_coarse_num,
+       shtop = shift*numsh  , edge  = shtop+shift  , sqtop = shtop*shtop ;
+
+   bsum = 0.0 ;
+   for( dx=0 ; dx < nxyz ; dx++ ) bsum += b[dx]*b[dx] ;
+
+   for( dz=-shtop ; dz <= shtop ; dz+=shift ){
+    for( dy=-shtop ; dy <= shtop ; dy+=shift ){
+     for( dx=-shtop ; dx <= shtop ; dx+=shift ){
+       if( dx*dx+dy*dy+dz*dz > sqtop ) continue ;
+       sum = new_voldif( nx,ny,nz , b , dx,dy,dz , v , edge , w ) ;
+       if( sum < bsum ){ bsum = sum; bdx = dx; bdy = dy; bdz = dz; }
+   }}}
+
+   *dxp = bdx ; *dyp = bdy ; *dzp = bdz ; return bsum ;
+}
+
 /*----------------------------------------------------------------------*/
 /* Find best angles AND best shifts all at once't.
 ------------------------------------------------------------------------*/
 
 #define DANGLE 9.0f
-#define NROLL  2
-#define NPITCH 3
+#define NROLL  1
+#define NPITCH 2
 #define NYAW   1
 
-float get_best_shiftrot( THD_3dim_dataset *dset ,   /* template */
-                         MRI_IMAGE *base , MRI_IMAGE *vol ,
-                         float *roll , float *pitch , float *yaw ,
-                         int   *dxp  , int   *dyp   , int   *dzp  )
+float new_get_best_shiftrot( THD_3dim_dataset *dset ,   /* template */
+                             MRI_IMAGE *base , MRI_IMAGE *vol ,
+                             float *roll , float *pitch , float *yaw ,
+                             int   *dxp  , int   *dyp   , int   *dzp  )
 {
    int ii,jj,kk ;
    float r,p,y , br=0.0f , bp=0.0f , by=0.0f ;
    float bsum=1.e+38 , sum ;
-   MRI_IMAGE *tim ;
-   float *bar , *tar , dif ;
-   int nx,ny,nz , sx,sy,sz , bsx=0,bsy=0,bsz=0 ;
+   MRI_IMAGE *tim , *wim=NULL , *bim, *vim ;
+   float *bar , *tar , *var , dif , *www=NULL , wtop ;
+   byte *mmm ;
+   int nx,ny,nz , sx,sy,sz , bsx=0,bsy=0,bsz=0 , nxy,nxyz , subd=0 ;
 
-   bar = MRI_FLOAT_PTR(base) ;
-   nx  = base->nx ; ny = base->ny ; nz = base->nz ;
+   *roll = *pitch = *yaw = 0.0f ;   /* in case of sudden death */
+   *dxp  = *dyp   = *dzp = 0    ;
+
+   nx  = base->nx ; ny = base->ny ; nz = base->nz ; nxy = nx*ny ;
+
+   /** if image volume is big enough, sub-sample by 2 for speedup **/
+
+   bim = base ; vim = vol ;
+
+   if( nx >= 120 && ny >= 120 && nz >= 120 ){
+     int hnx=(nx+1)/2 , hny=(ny+1)/2 , hnz=(nz+1)/2 , hnxy=hnx*hny ;
+
+     /* copy and blur base, then subsample it into new image bim */
+
+     tim = mri_copy(base) ; tar = MRI_FLOAT_PTR(tim) ;
+     FIR_blur_volume( nx,ny,nz , 1.0f,1.0f,1.0f , tar , 1.0f ) ;
+     bim = mri_new_vol( hnx,hny,hnz , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
+     for( kk=0 ; kk < hnz ; kk++ )    /* subsampling */
+      for( jj=0 ; jj < hny ; jj++ )
+       for( ii=0 ; ii < hnx ; ii++ )
+         bar[ii+jj*hnx+kk*hnxy] = tar[2*(ii+jj*nx+kk*nxy)] ;
+     mri_free(tim) ;
+
+     /* copy and blur vol, then subsample it into a new image vim */
+
+     tim = mri_copy(vol) ; tar = MRI_FLOAT_PTR(tim) ;
+     FIR_blur_volume( nx,ny,nz , 1.0f,1.0f,1.0f , tar , 1.0f ) ;
+     vim = mri_new_vol( hnx,hny,hnz , MRI_float ) ; var = MRI_FLOAT_PTR(vim) ;
+     for( kk=0 ; kk < hnz ; kk++ )    /* subsampling */
+      for( jj=0 ; jj < hny ; jj++ )
+       for( ii=0 ; ii < hnx ; ii++ )
+         var[ii+jj*hnx+kk*hnxy] = tar[2*(ii+jj*nx+kk*nxy)] ;
+     mri_free(tim) ;
+
+     /* adjust grid spacing in new images */
+
+     bim->dx = vim->dx = 2.0f * base->dx ;
+     bim->dy = vim->dy = 2.0f * base->dy ;
+     bim->dz = vim->dz = 2.0f * base->dz ;
+
+     nx = hnx; ny = hny; nz = hnz; nxy = hnxy; subd = 2;
+     VL_coarse_del /= 2 ;
+   }
+
+   /* make a weighting image (blurred & masked copy of base) */
+
+   wim = mri_copy(bim) ; www = MRI_FLOAT_PTR(tim) ; nxyz = nx*ny*nz ;
+   for( ii=0 ; ii < nxyz ; ii++ ) www[ii] = fabsf(www[ii]) ;
+   FIR_blur_volume( nx,ny,nz , 1.0f,1.0f,1.0f , www , 1.0f ) ;
+   wtop = 0.0f ;
+   for( ii=0 ; ii < nxyz ; ii++ ) wtop = MAX(wtop,www[ii]) ;
+   wtop = 1.0f / wtop ;
+   for( ii=0 ; ii < nxyz ; ii++ ){
+     www[ii] *= wtop ; if( www[ii] < 0.05 ) www[ii] = 0.0f ;
+   }
+   mmm = mri_automask_image( wim ) ;
+   for( ii=0 ; ii < nxyz ; ii++ ) if( mmm[ii] == 0 ) www[ii] = 0.0f ;
+   free(mmm) ;
+
+   /* prepare to rotate and shift the night away */
+
    THD_rota_method( MRI_NN ) ;
+   bar = MRI_FLOAT_PTR(bim) ;
 
-   for( kk=-NROLL ; kk <= NROLL ; kk++ ){
+   for( kk=-NROLL  ; kk <= NROLL  ; kk++ ){
     for( jj=-NPITCH ; jj <= NPITCH ; jj++ ){
-     for( ii=-NYAW ; ii <= NYAW ; ii++ ){
+     for( ii=-NYAW   ; ii <= NYAW   ; ii++ ){
        r = kk*DANGLE ; p = jj*DANGLE ; y = ii*DANGLE ;
 
-      if( r == 0.0f && p == 0.0f && y == 0.0f ){
-        tim = vol ;
-      } else {
-        char sbuf[128] ; THD_dvecmat vm ;
-        sprintf(sbuf,"-rotate %.4fI %.4fR %.4fA" , r,p,y ) ;
-        vm  = THD_rotcom_to_matvec( dset , sbuf ) ;
-        tim = THD_rota3D_matvec( vol , vm.mm,vm.vv ) ;
-      }
-      tar = MRI_FLOAT_PTR(tim) ;
-      sum = get_best_shift( nx,ny,nz , bar , tar , &sx,&sy,&sz ) ;
-      if( sum < bsum ){
-        br=r ; bp=p ; by=y ; bsx=sx ; bsy=sy; bsz=sz ; bsum=sum ;
-      }
-      if( tim != vol ) mri_free(tim) ;
+       if( r == 0.0f && p == 0.0f && y == 0.0f ){  /* no rotate */
+         tim = vim ;
+       } else {                                    /* rotate vim */
+         char sbuf[128] ; THD_dvecmat vm ;
+         sprintf(sbuf,"-rotate %.4fI %.4fR %.4fA" , r,p,y ) ;
+         vm  = THD_rotcom_to_matvec( dset , sbuf ) ;
+         tim = THD_rota3D_matvec( vim , vm.mm,vm.vv ) ;
+       }
+       tar = MRI_FLOAT_PTR(tim) ;
+       sum = new_get_best_shift( nx,ny,nz, bar, tar, www, &sx,&sy,&sz ) ;
+       if( sum < bsum ){
+         br=r ; bp=p ; by=y ; bsx=sx ; bsy=sy; bsz=sz ; bsum=sum ;
+       }
+       if( tim != vim ) mri_free(tim) ;
    }}}
+
+   /* cleanup and exeunt */
+
+   mri_free(wim) ;
+   if( subd ){
+     mri_free(bim); mri_free(vim);
+     bsx *= 2; bsy *= 2; bsz *= 2; VL_coarse_del *=2;
+   }
 
    *roll = br ; *pitch = bp ; *yaw = by ;
    *dxp  = bsx; *dyp   = bsy; *dzp = bsz ;
+
    return bsum ;
 }
