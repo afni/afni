@@ -103,6 +103,11 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
    } else {
      fprintf(stderr,"[No debug tracing stack: DBG_num=%d]\n",DBG_num) ;
    }
+#ifdef AFNI_VERSION_LABEL
+   fprintf(stderr,"** AFNI version = " AFNI_VERSION_LABEL 
+                   "  Compile date = " __DATE__ "\n" );
+#endif
+
    fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
    MPROBE ; exit(1) ;
 }
