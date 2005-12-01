@@ -108,7 +108,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
                    "  Compile date = " __DATE__ "\n" );
 #endif
 
-   fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
+   fprintf(stderr,"** Program Abort **\n") ; fflush(stderr) ;
    MPROBE ; exit(1) ;
 }
 
