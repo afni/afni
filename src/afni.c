@@ -1096,6 +1096,7 @@ void AFNI_sigfunc(int sig)   /** signal handler for fatal errors **/
    }
    fprintf(stderr,"\nFatal Signal %d (%s) received\n",sig,sname); fflush(stderr);
    TRACEBACK ;
+   fprintf(stderr,"*** AFNI version = " VERSION "\n" ) ;
    fprintf(stderr,"*** Program Abort ***\n") ; fflush(stderr) ;
    exit(1) ;
 }
