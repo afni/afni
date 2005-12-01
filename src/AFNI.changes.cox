@@ -5777,3 +5777,6 @@
 
 30 Nov 2005
  * Change sub-bricks stuff in afni_driver.c.
+
+01 Dec 2005
+ * -coarserot in 3dvolreg.c
