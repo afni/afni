@@ -58,6 +58,7 @@ typedef struct UN_options
   int spts;           /* #voxels in subsub-sampled image (for field poly.) */
   int nbin;           /* #bins for pdf estimation */
   int npar;           /* #parameters for field polynomial */
+  int niter;          /* #number of iterations */
 } UN_options;
 
 
@@ -116,6 +117,8 @@ void display_help_menu()
      "      for certain types of input data and can result in bad output    \n"
      "      depending on the range of values in the input dataset.          \n"
      "      It is best you use -clip_low or -auto_clip options instead.     \n"
+     "[-niter NITER]    Set the number of iterations for concentrating PDF\n"
+     "                  Default is 5.\n"
      "[-quiet]          Suppress output to screen                           \n"
      "                                                                      \n"
      "-prefix pname     Prefix name for file to contain corrected image     \n"
@@ -149,6 +152,7 @@ void initialize_options
 				   (for field polynomial estimation) */
   option_data->nbin = 250;      /* #bins for pdf estimation */
   option_data->npar = 35;       /* #parameters for field polynomial */
+  option_data->niter = 5;       /* #number of iterations  */
 
 }
 
@@ -270,6 +274,15 @@ void get_options
       UN_error ("lower clip value already set, check your options");
      }
      option_data->lower_limit = -1; /* flag for auto_clip ZSS Sept 26 05 */
+	  nopt++;
+	  continue;
+	}
+   
+   if (strncmp(argv[nopt], "-niter", 6) == 0)
+	{
+     nopt++;
+	  if (nopt >= argc)  UN_error ("need value after -niter ");
+     option_data->niter = atoi(argv[nopt]); /* flag for auto_clip ZSS Sept 26 05 */
 	  nopt++;
 	  continue;
 	} 
@@ -833,7 +846,7 @@ void estimate_field (UN_options * option_data,
   float * ur = NULL, * us = NULL, * fr = NULL, * fs = NULL, * wr = NULL;
   float * vtou = NULL;
   float * gpar;
-  int iter = 0;
+  int iter = 0, itermax=5;
   int ip;
   int it;
   int nx, ny, nz, nxy, nxyz;
@@ -850,7 +863,7 @@ void estimate_field (UN_options * option_data,
   spts = option_data->spts;
   nbin = option_data->nbin;
   npar = option_data->npar;
-  
+  itermax = option_data->niter;
 
 
   /*----- Allocate memory -----*/
@@ -902,7 +915,7 @@ void estimate_field (UN_options * option_data,
 
 
   /*----- Iterate over field distortion for concentrating the PDF -----*/
-  for (iter = 1;  iter <= 5;  iter++)
+  for (iter = 1;  iter <= itermax;  iter++)
     {
       /*----- Estimate pdf for perturbed image ur -----*/
       estpdf_float (rpts, ur, nbin, parameters);
