@@ -65,10 +65,15 @@
    Date:    02 August 2005 [rickr, gangc]
    Date:    01 September 2005 [rickr, gangc]
 
-   Mod:     Allow old (spericity assuming) computations to be done via
+   Mod:     Allow old (sphericity assuming) computations to be done via
             the -old_method option.  This applies to ameans, adiff and
             acontr for type 3 ANOVA, only.
    Date:    23 Nov 2005 [rickr]
+
+   Mod:     The -old_method option requires -OK.
+            Added the -assume_sph option and a check for validity of the
+            contrasts (that they all sum to zero).  If valid, use old_method.
+   Date:    01 Dec 2005 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -167,6 +172,27 @@ void display_help_menu()
  "                             the above output files; the output 'bucket'\n"
  "                             is written to file with prefix file name\n"
  "\n"
+ "Modified ANOVA computation options:    (December, 2005)\n"
+ "\n"
+ "     ** These options apply to model type 3, only.\n"
+ "        For details, see %s\n"
+ "\n"
+ "     [-old_method]         : request to perform ANOVA using the previous\n"
+ "                             functionality (requires -OK, also)\n"
+ "\n"
+ "     [-OK]                 : confirm you understand that contrasts that\n"
+ "                             do not sum to zero have inflated t-stats\n"
+ "                             (to be used with -old_method)\n"
+ "\n"
+ "     [-assume_sph]         : assume sphericity (zero-sum contrasts, only)\n"
+ "\n"
+ "                             This allows use of the old_method for\n"
+ "                             computing contrasts which sum to zero (this\n"
+ "                             includes diffs, for instance).  Any contrast\n"
+ "                             that does not sum to zero is invalid, and\n"
+ "                             cannot be used with this option (such as\n"
+ "                             ameans).\n"
+ "\n"
  "----------------------------------------------------------\n"
  "\n"
  " Example of 3dANOVA2:\n"
@@ -210,7 +236,7 @@ void display_help_menu()
  " multiple sub-bricks called ANOVA_results+tlrc.\n"
  "\n"
 "-----------------------------------------------------------\n"
- "\n");
+ "\n", ANOVA_MODS_LINK);
      
   printf
     (
@@ -357,14 +383,50 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	}
 
 
+      /*------------------------------------------------------------*/
+      /*-----  Using the old_method:      23 Nov 2005 [rickr]  -----*/
+      /*   if -old_method 
+               if -OK, all contrasts are okay
+               else if -assume_sph, contrasts adding to 0 are okay
+               else complain and fail
+
+           bits: -old_method = 001, -OK = 010, -assume_sph = 100
+
+           valid bit patterns:
+               000 - use the new method
+               011 - use the old method
+               101 - use the old method (only allows zero-sum contrasts)
+        ------------------------------------------------------------*/
+      
       /*-----  -old_method      23 Nov 2005 [rickr]  -----*/
       if (strncmp(argv[nopt], "-old_method", 6) == 0)
       {
-         option_data->old_method = 1;
+         option_data->old_method |= 1;
          nopt++;
          continue;
       }
       
+      /*-----  -OK                  25 Nov 2005 [rickr]  -----*/
+      /* denote both OK and old_method by old_method = 3 */
+      if (strncmp(argv[nopt], "-OK", 3) == 0)
+      {
+         option_data->old_method |= 2;
+         nopt++;
+         continue;
+      }
+
+      /*-----  -assume_sphericity   25 Nov 2005 [rickr]  -----*/
+      /* denote assume_sphericity by old_method = 4           */
+      if (strncmp(argv[nopt], "-assume_sph", 11) == 0)
+      {
+         option_data->old_method |= 5;  /* also set -old_method bit */
+         nopt++;
+         continue;
+      }
+      
+      /*------- end old_method checks ------------------------------*/
+      /*------------------------------------------------------------*/
+
       
       /*-----   -alevels a  -----*/
       if (strncmp(argv[nopt], "-alevels", 5) == 0)
@@ -776,6 +838,15 @@ void get_options (int argc, char ** argv, anova_options * option_data)
     for (j = 0;  j < option_data->b;  j++)
       if (n[i][j] != option_data->n)
 	ANOVA_error ("must have equal sample sizes for 3dANOVA2");
+
+  /*----- checks on -old_method -----*/
+  if (option_data->old_method)
+  {
+    if (option_data->model != 3 )
+      ANOVA_error("currently, -old_method applies to model type 3, only");
+    if (option_data->old_method == 1 )
+      ANOVA_error("-old_method is insufficient by itself");
+  }
 }
 
 
@@ -935,9 +1006,14 @@ void check_for_valid_inputs (anova_options * option_data)
 	    ANOVA_error ("sample size too small to calculate F-interaction");
 	 if ((n == 1) && (option_data->nfb > 0))
 	    ANOVA_error ("sample size too small to calculate F for B effect");
+
+         /* this check only applies to type 3 at the moment... */
+         /* check contrasts (show errors, and specify ANOVA-2) */
+         if ( !contrasts_are_valid(option_data, 1, 2) )
+            ANOVA_error("invalid contrast(s)");
+
 	 break;
    } 
-
 }
 
 
@@ -3864,6 +3940,7 @@ int main (int argc, char ** argv)
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    mainENTRY("3dANOVA main"); machdep(); PRINT_VERSION("3dANOVA"); AUTHOR(PROGRAM_AUTHOR);
+
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
@@ -3871,6 +3948,13 @@ int main (int argc, char ** argv)
    
    /*----- program initialization -----*/
    initialize (argc, argv, &option_data);
+
+   /*----- warn user (after any help) -----*/
+   if( option_data->model == 3 )
+       fprintf(stderr,"\n"
+           "** Changes have been made for 3ANOVA2 computations of type 3.\n"
+           "   For details, please see:\n"
+           "   %s\n\n", ANOVA_MODS_LINK);
 
    /*----- calculate sums of squares -----*/
    calculate_anova (option_data);
