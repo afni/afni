@@ -3731,7 +3731,7 @@ typedef struct {
 } MRI_warp3D_align_basis ;
 
 extern int         mri_warp3D_align_setup  ( MRI_warp3D_align_basis * ) ;
-extern MRI_IMAGE * mri_warp3d_align_one    ( MRI_warp3D_align_basis *, MRI_IMAGE * );
+extern MRI_IMAGE * mri_warp3D_align_one    ( MRI_warp3D_align_basis *, MRI_IMAGE * );
 extern void        mri_warp3D_align_cleanup( MRI_warp3D_align_basis * ) ;
 
 extern void THD_check_AFNI_version(char *) ;  /* 26 Aug 2005 */
