@@ -1,0 +1,58 @@
+
+Software  Edges3D (c) INRIA 1999 in its version of the Dec 8 1999, 
+hereinafter referred to as "THE SOFTWARE".
+
+The SOFTWARE has been designed and produced by Gregoire Malandain, 
+researcher of the project Epidaure, a research project of the National 
+Computer and Automatics Institute (INRIA), Domaine de Voluceau, 
+Rocquencourt, 78153 Le Chesnay Cedex.
+
+INRIA holds all the patent rights concerning the   SOFTWARE
+The SOFTWARE has been registered at the Agency for the Protection of
+Programmes (APP) under the number          .
+IDDN.FR.001.280037.00.R.P.1998.000.21000
+
+Foreword
+
+The SOFTWARE is currently being developed and INRIA wishes for it to be
+used by the scientific world so as to test, evaluate and continually update
+it.
+To this end, INRIA has decided to distribute the prototype of the SOFTWARE
+by FIP in a source form.
+
+a) Extent of the rights granted by INRIA to the user of the SOFTWARE.
+
+INRIA freely grants the right to use, modify and integrate the SOFTWARE in
+another software.
+
+b) Reproduction of the SOFTWARE
+
+- Clauses 9 and 10 of the Berne agreement for the protection of literary
+and artistic works (Union of Berne) respectively specify in their
+paragraphs 2 and 3 authorizing only the reproduction and quoting of works
+on the condition that :
+-       "this reproduction does not adversely affect the normal
+exploitation of the work or cause any unjustified prejudice to the
+legitimate interests of the author".
+-       that the quotations given by way of illustration and/or tuition
+conform to the proper uses and that it mentions the source and name of the
+author if this name features in the source",
+any use or reproduction of  the software items and/or documents exclusively
+owned by  INRIA and carried out to obtain profit  or for commercial ends
+being subject to obtaining the prior express authorization of INRIA.
+Any commercial use made without obtaining the prior express agreement of
+the INRIA would therefore constitute a fraudulent imitation.
+
+c) Return of information
+
+Any user of the SOFTWARE shall send his comments on the use of the SOFTWARE
+to  INRIA at (gregoire.malandain@sophia.inria.fr).
+
+d) Guarantees
+
+Note that the SOFTWARE is a research product currently being developed. 
+
+INRIA disclaims any responsibility in any way in any
+instance of being obliged to put right any possible direct or indirect
+damage sustained by the user.
+
