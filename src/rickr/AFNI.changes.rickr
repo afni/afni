@@ -1339,4 +1339,5 @@
       - The -old_method option requires -OK.
       - Added the -assume_sph option and a check for validity of the contrasts.
       - Contrasts are verified via contrasts_are_valid().
+  * fixed Makefile.INCLUDE (had extra '\' at end of PROGRAMS)
 
