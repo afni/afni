@@ -629,7 +629,7 @@ ENTRY("mri_warp3D_align_setup") ;
             Note that returned image is floats.
 -------------------------------------------------------------------------*/
 
-MRI_IMAGE * mri_warp3d_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
+MRI_IMAGE * mri_warp3D_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
 {
    float *fit , *dfit , *qfit , *tol ;
    int iter , good,ngood , ii, pp , skip_first ;
@@ -713,7 +713,7 @@ ENTRY("mri_warp3D_align_one") ;
    }
 
    if( bas->verb )
-     fprintf(stderr,"++ mri_warp3d_align_one: START PASS #%d\n",passnum) ;
+     fprintf(stderr,"++ mri_warp3D_align_one: START PASS #%d\n",passnum) ;
 
    /* setup base image for registration into fim,
       and pseudo-inverse of base+derivative images into pmat */
@@ -731,16 +731,16 @@ ENTRY("mri_warp3D_align_one") ;
      pmat = MRI_FLOAT_PTR(bas->imps) ;
    }
 
-   /*-- iterate fit --*/
+   /******** iterate fit ********/
 
    iter = 0 ; good = 1 ; last_aitken = 3 ; num_bad_diff = 0 ;
    while( good ){
      if( skip_first ){
        tim = fim ; skip_first = 0 ;
      } else {
-       bas->vwset( npar , fit ) ;
+       bas->vwset( npar , fit ) ;                     /**************************/
        tim = mri_warp3D( fim , 0,0,0 , bas->vwfor ) ; /* warp on current params */
-     }
+     }                                                /**************************/
      tar = MRI_FLOAT_PTR(tim) ;
 
      sdif = mri_scaled_diff( bas->imbase , tim , bas->imsk ) ;
@@ -886,7 +886,7 @@ ENTRY("mri_warp3D_align_one") ;
 
      good = (ngood < nfree) && (iter < bas->max_iter) ;
 
-   } /* end while loop for iteration of fitting procedure */
+   } /******** end while loop for iteration of fitting procedure ********/
 
    for( mm=0 ; mm < NMEM ; mm++ )
      if( fitmem[mm] != NULL ){ free((void *)fitmem[mm]); fitmem[mm] = NULL; }
@@ -921,7 +921,7 @@ ENTRY("mri_warp3D_align_one") ;
 
    if( bas->verb ){
      double st = (NI_clock_time()-ctstart) * 0.001 ;
-     fprintf(stderr,"++ mri_warp3d_align_one EXIT: %.2f seconds elapsed\n",st) ;
+     fprintf(stderr,"++ mri_warp3D_align_one EXIT: %.2f seconds elapsed\n",st) ;
    }
 
    RETURN( tim ) ;

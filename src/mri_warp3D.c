@@ -500,7 +500,7 @@ ENTRY("mri_warp3D_NN") ;
           NAR(ii,jj,kk) = 0.0 ; continue ;
        }
 
-       ix = rint(xx) ; jy = rint(yy) ; kz = rint(zz) ;
+       ix = (int)rint(xx) ; jy = (int)rint(yy) ; kz = (int)rint(zz) ;
        CLIP(ix,nx1)  ; CLIP(jy,ny1)  ; CLIP(kz,nz1)  ;
 
        NAR(ii,jj,kk) = FAR(ix,jy,kz) ;
@@ -818,15 +818,15 @@ MRI_IMAGE *mri_warp3D_resize( MRI_IMAGE *im , int nxnew, int nynew, int nznew )
 
    if( nnx <= 0 ){
      sx_scale = MAX(sy_scale,sz_scale) ;
-     nnx      = rint(sx_scale*nx) ;
+     nnx      = (int)rint(sx_scale*nx) ;
    }
    if( nny <= 0 ){
      sy_scale = MAX(sx_scale,sz_scale) ;
-     nny      = rint(sy_scale*ny) ;
+     nny      = (int)rint(sy_scale*ny) ;
    }
    if( nnz <= 0 ){
      sz_scale = MAX(sx_scale,sy_scale) ;
-     nnz      = rint(sz_scale*nz) ;
+     nnz      = (int)rint(sz_scale*nz) ;
    }
 
    return mri_warp3D( im , nnx,nny,nnz , w3dMRI_scaler ) ;
