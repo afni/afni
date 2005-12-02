@@ -65,8 +65,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dSpatNorm Imon fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml          \
-           DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
-           3dedge3                                                              \
+           DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \                                                              \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -573,9 +572,9 @@ d3dmerge:3dmerge.c
 	$(CC) -o 3dttest 3dttest.o parser.o parser_int.o \
               $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-3dedge3:3dedge3.o lib3DEdge.a
+3dedge3:lib3DEdge.a 3dedge3.c
 	$(RM) $@
-	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src -l3DEdge \
+	$(CC) -o 3dedge3 3dedge3.c -I3DEdge/src -l3DEdge \
               $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 whereami:whereami.c
