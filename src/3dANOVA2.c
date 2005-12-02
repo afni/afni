@@ -177,21 +177,22 @@ void display_help_menu()
  "     ** These options apply to model type 3, only.\n"
  "        For details, see %s\n"
  "\n"
- "     [-old_method]         : request to perform ANOVA using the previous\n"
- "                             functionality (requires -OK, also)\n"
+ "     [-old_method]        : request to perform ANOVA using the previous\n"
+ "                            functionality (requires -OK, also)\n"
  "\n"
- "     [-OK]                 : confirm you understand that contrasts that\n"
- "                             do not sum to zero have inflated t-stats\n"
- "                             (to be used with -old_method)\n"
+ "     [-OK]                : confirm you understand that contrasts that\n"
+ "                            do not sum to zero have inflated t-stats, and\n"
+ "                            contrasts that do sum to zero assume sphericity\n"
+ "                            (to be used with -old_method)\n"
  "\n"
- "     [-assume_sph]         : assume sphericity (zero-sum contrasts, only)\n"
+ "     [-assume_sph]        : assume sphericity (zero-sum contrasts, only)\n"
  "\n"
- "                             This allows use of the old_method for\n"
- "                             computing contrasts which sum to zero (this\n"
- "                             includes diffs, for instance).  Any contrast\n"
- "                             that does not sum to zero is invalid, and\n"
- "                             cannot be used with this option (such as\n"
- "                             ameans).\n"
+ "                            This allows use of the old_method for\n"
+ "                            computing contrasts which sum to zero (this\n"
+ "                            includes diffs, for instance).  Any contrast\n"
+ "                            that does not sum to zero is invalid, and\n"
+ "                            cannot be used with this option (such as\n"
+ "                            ameans).\n"
  "\n"
  "----------------------------------------------------------\n"
  "\n"
@@ -406,8 +407,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
          continue;
       }
       
-      /*-----  -OK                  25 Nov 2005 [rickr]  -----*/
-      /* denote both OK and old_method by old_method = 3 */
+      /*-----  -OK: denote both OK and old_method by old_method = 3 -----*/
       if (strncmp(argv[nopt], "-OK", 3) == 0)
       {
          option_data->old_method |= 2;
@@ -415,8 +415,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
          continue;
       }
 
-      /*-----  -assume_sphericity   25 Nov 2005 [rickr]  -----*/
-      /* denote assume_sphericity by old_method = 4           */
+      /*-----  -assume_sph: denote assume_sphericity by old_method = 4 -----*/
       if (strncmp(argv[nopt], "-assume_sph", 11) == 0)
       {
          option_data->old_method |= 5;  /* also set -old_method bit */
@@ -3950,7 +3949,7 @@ int main (int argc, char ** argv)
    initialize (argc, argv, &option_data);
 
    /*----- warn user (after any help) -----*/
-   if( option_data->model == 3 )
+   if( option_data->model == 3 && !option_data->old_method )
        fprintf(stderr,"\n"
            "** Changes have been made for 3ANOVA2 computations of type 3.\n"
            "   For details, please see:\n"
