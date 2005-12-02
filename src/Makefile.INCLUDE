@@ -66,6 +66,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml          \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
+           3dedge3                                                              \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
@@ -570,6 +571,11 @@ d3dmerge:3dmerge.c
 3dttest:3dttest.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dttest 3dttest.o parser.o parser_int.o \
+              $(LFLAGS) -lmri -lf2c $(LLIBS)
+
+3dedge3:3dedge3.o lib3DEdge.a
+	$(RM) $@
+	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src -l3DEdge \
               $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 whereami:whereami.c
@@ -1641,6 +1647,12 @@ qhull.exe:
 	( cd qhulldir ;                                                  \
 	  $(MAKE) qhull clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' ; \
 	  $(MV) qhull.exe .. ; )
+
+#######
+# 3DEdge library files - make them and move them up here
+
+lib3DEdge.a:
+	( cd 3DEdge/src ; $(MAKE) clean lib3DEdge.a 'RM=$(RM)' 'AR=$(AR)' 'RANLIB=$(RANLIB)' 'CC=$(CCFAST)' 'IFLAGS=$(IFLAGS)' 'LFLAGS=$(LFLAGS)' ; $(MV) *.a ../.. ; )
 
 #######
 # Eispack and CDF library files - make them and move them up here
