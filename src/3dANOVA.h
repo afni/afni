@@ -50,7 +50,8 @@
    Date:    14 October 2005 [rickr]
 
    Mod:     Added old_method flag to anova_options struct.
-   Date:    14 October 2005 [rickr]
+            Added prototype for contrasts_are_valid(), and ANOVA_MODS_LINK.
+   Date:    01 December 2005 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -59,6 +60,8 @@
 
 static char * commandline = NULL ;         /* command line for history notes */
 
+/* documentation about modifications to ANOVA computations */
+#define ANOVA_MODS_LINK "http://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html"
 
 /*** HP-UX ***/
 #ifdef HP
@@ -121,7 +124,11 @@ typedef struct anova_options
 				  model=5   A,B fixed; C random;  AxB,BxC,C(A)
                                 */
 
-  int   old_method;             /* flag: use the method assuming sphericity */
+  int   old_method;             /* flag indicating use of old functionality
+                                     bits: 001 = old_method
+                                           010 = OK
+                                           100 = assume sphericity
+                                */
 
   int   a;                      /* number of levels for factor A */
   int   b;                      /* number of levels for factor B */
@@ -433,19 +440,12 @@ void destroy_anova_options (anova_options * option_data);
 
 
 /*---------------------------------------------------------------------------*/
+/*
+  Routine to check for contrasts not summing to zero.
+*/
+
+int contrasts_are_valid (anova_options * option_data, int show_errs, int level);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*---------------------------------------------------------------------------*/
 

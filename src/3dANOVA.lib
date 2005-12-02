@@ -56,6 +56,10 @@
 
    Mod:     Init option_data->old_method to 0.
    Date:    22 November 2005 [rickr]
+
+   Mod:     Added contrasts_are_valid(), along with supporting functions
+            float_sum_is_small() and old_method_applies().
+   Date:    01 December 2005 [rickr]
 */
 
 /* defined 'later' in parent file */
@@ -933,26 +937,152 @@ void destroy_anova_options (anova_options * option_data)
 	option_data->xcname[i] = NULL;
       }
 }
-  
+ 
+/*---------------------------------------------------------------------------*/
+/*
+    Indicate whether -old_method should be considered.    2 Dec 2005 [rickr]
+    Valid uses:
 
+        level 1: TBD
+        level 2: model 3
+        level 3: TBD
+*/
+int old_method_applies(int level, int model)
+{
+   if( level == 2 ) return(model == 3);
 
+   return 0;  /* otherwise, invalid */
+}
 
+/*---------------------------------------------------------------------------*/
+/*
+    Routine to check that abs(float sum) < epsilon.       1 Dec 2005 [rickr]
+*/
+int float_sum_is_small(float * list, int length)
+{
+   double sum = 0, epsilon = 1e-5;
+   int    c;
+   for (c = 0; c < length; c++)
+      sum += list[c];
 
+   return (fabs(sum) < epsilon); /* sum is small if abs() < epsilon */
+}
 
+/* convenience macros */
 
+#define ANOVA_CONTR_ERR(str)             \
+        do {                              \
+            if ( !show_errs ) return 0;    \
+            if (valid) fprintf(stderr,"** contrasts must sum to zero:\n"); \
+            fprintf(stderr,"  -- %s\n",str);  \
+            valid = 0;                         \
+        } while (0)
 
+#define ANOVA_CONTR_ERR2(s1,s2)                   \
+        do {                                       \
+            if (!show_errs) return 0;               \
+            if (valid) fprintf(stderr,"** contrasts must sum to zero:\n"); \
+            fprintf(stderr,"  -- %s %s\n",s1,s2);     \
+            valid = 0;                                 \
+        } while (0)
 
+/*---------------------------------------------------------------------------*/
+/*
+    Routine to test the validity of contrasts.           01 Dec 2005 [rickr]
 
+    if !old_method, everything is okay (use new method)
+    if old_method and OK (bits 011), everything is okay (use old method)
+    if old_method and assume_sph (use old method, but):
+       - all contrasts must sum to 0
+       - note that ameans is invalid, for example
 
+    old_method bit values: 2^0 : -old_method
+                           2^1 : -OK
+                           2^2 : -assume_sph
 
+    If show_errs, display information about any errors found.
+    The level corresponds to the 3dANOVA[level] program run.
 
+     3dANOVA level        checks (assuming sphericity)
+     -------------        -----------------------------
+           1              factor A     means, contr
+           2              factor A,B   means, contr
+           3              factor A,B,C means, contr, aBcontr, Abcontr
 
+     Note that the diff options are okay under the assumption of spericity.
+*/
 
+int contrasts_are_valid (anova_options * option_data, int show_errs, int level)
+{
+  int valid = 1, c;    /* valid, return value, level counter */
 
+  if ( !option_data || level < 0 ){
+    fprintf(stderr,"** cav: bad params (%p,%d)\n", option_data, level);
+    return 0;
+  }
 
+  /* verify that we should be testing this, at all */
+  if ( ! old_method_applies(level, option_data->model) ){
+    fprintf(stderr,"** cav ERROR: -old_method does not apply to model %d\n",
+            option_data->model);
+    return 0;
+  }
 
+  /* using the new method, any contrast is okay */
+  if ( ! option_data->old_method )
+    return 1;
 
+  /* if old_method && OK, we are also okay */
+  if ( (option_data->old_method & 3) == 3 )
+    return 1;
 
+  if ( !(option_data->old_method & 4) ){  /* no -assume_sph, fail */
+    if (show_errs)
+       fprintf(stderr,"** -old_method option is not sufficient\n");
+    return 0;
+  }
 
+  /*----------------------------------------------------------------*/
+  /* from here on, only look for non-zero contrasts (so diffs okay) */
 
+  /* factor A (a loop is not convenient for all of the cases) */
+  if ( option_data->num_ameans > 0 )  /* returns if not showing errors */
+    ANOVA_CONTR_ERR("computing A level means is invalid");
+
+  for ( c = 0; c < option_data->num_acontr; c++ )
+    if ( !float_sum_is_small(option_data->acontr[c], option_data->a) )
+      ANOVA_CONTR_ERR2("invalid A contrast:", option_data->acname[c]);
+
+  /* factor B */
+  if ( level < 2 ) return valid;  /* we're done (3dANOVA) */
+
+  if ( option_data->num_bmeans > 0 )
+    ANOVA_CONTR_ERR("computing B level means is invalid");
+
+  for ( c = 0; c < option_data->num_bcontr; c++ )
+    if ( !float_sum_is_small(option_data->bcontr[c], option_data->b) )
+      ANOVA_CONTR_ERR2("invalid B contrast:", option_data->bcname[c]);
+
+  /* factor C */
+  if ( level < 3 ) return valid;  /* we're done (3dANOVA2) */
+
+  if ( option_data->num_cmeans > 0 )
+    ANOVA_CONTR_ERR("computing C level means is invalid");
+
+  for ( c = 0; c < option_data->num_ccontr; c++ )
+    if ( !float_sum_is_small(option_data->ccontr[c], option_data->c) )
+      ANOVA_CONTR_ERR2("invalid C contrast:", option_data->ccname[c]);
+
+  /* for 3dANOVA3, we must also check aBcontr and Abcontr */
+
+  for ( c = 0; c < option_data->num_aBcontr; c++ )
+    if ( !float_sum_is_small(option_data->aBcontr[c], option_data->a) )
+      ANOVA_CONTR_ERR2("invalid aBcontr :", option_data->aBcname[c]);
+
+  for ( c = 0; c < option_data->num_Abcontr; c++ )
+    if ( !float_sum_is_small(option_data->Abcontr[c], option_data->b) )
+      ANOVA_CONTR_ERR2("invalid Abcontr :", option_data->Abcname[c]);
+
+  return valid;
+}
 
