@@ -65,7 +65,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dSpatNorm Imon fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml          \
-           DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \                                                              \
+           DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            $(EXTRAS)
 
 PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge      \
