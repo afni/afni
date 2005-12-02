@@ -62,6 +62,11 @@
             calc_ameans, bmeans, adiff, bdiff, acontr, bcontr, and for the
             types 4 and 5 models, only (not type 1).
    Date:    22 Nov 2005 [rickr]
+
+   Mod:     The -old_method option requires -OK.
+            Added -assume_sph and a check that the contrasts sum to zero.
+            (if so, use old_method)
+   Date:    02 Dec 2005 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -166,7 +171,29 @@ void display_help_menu()
      "                           sub-bricks are obtained by concatenating\n"
      "                           the above output files; the output 'bucket'\n"
      "                           is written to file with prefix file name\n"
-     "\n");
+     "\n"
+     "Modified ANOVA computation options:    (December, 2005)\n"
+     "\n"
+     "     ** These options apply to model types 4 and 5, only.\n"
+     "        For details, see %s\n"
+     "\n"
+     "[-old_method]       request to perform ANOVA using the previous\n"
+     "                    functionality (requires -OK, also)\n"
+     "\n"
+     "[-OK]               confirm you understand that contrasts that\n"
+     "                    do not sum to zero have inflated t-stats, and\n"
+     "                    contrasts that do sum to zero assume sphericity\n"
+     "                    (to be used with -old_method)\n"
+     "\n"
+     "[-assume_sph]       assume sphericity (zero-sum contrasts, only)\n"
+     "\n"
+     "                    This allows use of the old_method for\n"
+     "                    computing contrasts which sum to zero (this\n"
+     "                    includes diffs, for instance).  Any contrast\n"
+     "                    that does not sum to zero is invalid, and\n"
+     "                    cannot be used with this option (such as\n"
+     "                    ameans).\n"
+     "\n", ANOVA_MODS_LINK);
 
   printf
     (
@@ -319,7 +346,50 @@ void get_options (int argc, char ** argv, anova_options * option_data)
          continue;
       }
 
-      
+
+      /*------------------------------------------------------------*/
+      /*-----  Using the old_method:      02 Dec 2005 [rickr]  -----*/
+      /*   if -old_method
+               if -OK, all contrasts are okay
+               else if -assume_sph, contrasts adding to 0 are okay
+               else complain and fail
+
+           bits: -old_method = 001, -OK = 010, -assume_sph = 100
+
+           valid bit patterns:
+               000 - use the new method
+               011 - use the old method
+               101 - use the old method (only allows zero-sum contrasts)
+        ------------------------------------------------------------*/
+
+      /*-----  -old_method      23 Nov 2005 [rickr]  -----*/
+      if (strncmp(argv[nopt], "-old_method", 6) == 0)
+      {
+         option_data->old_method |= 1;
+         nopt++;
+         continue;
+      }
+
+      /*----- -OK: denote both OK and old_method by old_method = 3 -----*/
+      if (strncmp(argv[nopt], "-OK", 3) == 0)
+      {
+         option_data->old_method |= 2;
+         nopt++;
+         continue;
+      }
+
+      /*----- -assume_sph: denote assume_sphericity by old_method = 4 ----*/
+      if (strncmp(argv[nopt], "-assume_sph", 11) == 0)
+      {
+         option_data->old_method |= 5;  /* also set -old_method bit */
+         nopt++;
+         continue;
+      }
+
+      /*------- end old_method checks ------------------------------*/
+      /*------------------------------------------------------------*/
+
+
       /*-----  -old_method      22 Nov 2005 [rickr]  -----*/
       if (strncmp(argv[nopt], "-old_method", 6) == 0)
       {
@@ -959,6 +1029,15 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	if (N_INDEX(i, j, k) != option_data->n)
 	  ANOVA_error ("must have equal sample sizes for 3dANOVA3");
 
+  /*----- checks on -old_method -----*/
+  if (option_data->old_method)
+  {
+    if (option_data->model != 4 && option_data->model != 5 )
+      ANOVA_error("currently, -old_method applies to model types 4 or 5, only");
+    if (option_data->old_method == 1 )
+      ANOVA_error("-old_method is insufficient by itself");
+  }
+
   free(n);
 }
 
@@ -1225,6 +1304,12 @@ void check_for_valid_inputs (anova_options * option_data)
       break;
     }
   
+  if (option_data->model == 4 || option_data->model == 5 )
+  {
+     /* check contrasts (show errors, and specify ANOVA-3) */
+     if ( !contrasts_are_valid(option_data, 1, 3) )
+        ANOVA_error("invalid contrast(s)");
+  }
 }
 
 
@@ -6502,6 +6587,14 @@ int main (int argc, char ** argv)
 
    /*----- program initialization -----*/
    initialize (argc, argv, &option_data);
+
+   /*----- warn user (after any help) -----*/
+   if( (option_data->model == 4 || option_data->model == 5)
+       && !option_data->old_method )
+       fprintf(stderr,"\n"
+       "** Changes have been made for 3ANOVA3 computations of types 4 and 5.\n"
+       "   For details, please see:\n"
+       "   %s\n\n", ANOVA_MODS_LINK);
 
    /*----- calculate sums and sums of squares -----*/
    calculate_anova (option_data);

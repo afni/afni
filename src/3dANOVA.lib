@@ -945,11 +945,12 @@ void destroy_anova_options (anova_options * option_data)
 
         level 1: TBD
         level 2: model 3
-        level 3: TBD
+        level 3: models 4 and 5
 */
 int old_method_applies(int level, int model)
 {
    if( level == 2 ) return(model == 3);
+   if( level == 3 ) return(model == 4 || model == 5);
 
    return 0;  /* otherwise, invalid */
 }
