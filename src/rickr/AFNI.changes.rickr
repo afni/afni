@@ -1333,3 +1333,10 @@
 29 November 2005:
   * modified 3dROIstats.c, added more help with examples
 
+02 December 2005:
+  * modified 3dANOVA2.c, 3dANOVA.h, 3dANOVA.lib
+      - Note updates at the web site defined by ANOVA_MODS_LINK
+      - The -old_method option requires -OK.
+      - Added the -assume_sph option and a check for validity of the contrasts.
+      - Contrasts are verified via contrasts_are_valid().
+
