@@ -12,6 +12,10 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
                                 MRI_IMAGE *base , MRI_IMAGE *vol ,
                                 float *roll , float *pitch , float *yaw ,
                                 int   *dxp  , int   *dyp   , int   *dzp  ) ;
+
+static int VL_coarse_del = 10 ;  /* variables for the above, */
+static int VL_coarse_num =  2 ;  /* copied from 3dvolreg.c   */
+static int VL_coarse_rot =  0 ;
 /*--------------------------------------------------------------------------*/
 
 #define MAXPAR 99
@@ -459,6 +463,9 @@ int main( int argc , char * argv[] )
             "                   parameter in the model gets one column.\n"
             "  -float        = Write output dataset in float format, even if\n"
             "                   input dataset is short or byte.\n"
+            "  -coarserot    = Initialize shift+rotation parameters by a\n"
+            "                   brute force coarse search, as in the similar\n"
+            "                   3dvolreg option.\n"
             "\n"
             "----------------------\n"
             "AFFINE TRANSFORMATIONS:\n"
@@ -569,6 +576,13 @@ int main( int argc , char * argv[] )
 
      if( strcmp(argv[nopt],"-float") == 0 ){   /* 06 Jul 2005 */
        output_float = 1 ; nopt++ ; continue ;
+     }
+
+     /*-----*/
+
+     if( strcmp(argv[nopt],"-coarserot") == 0 ){  /* 05 Dec 2005 */
+       if( VL_coarse_rot ) INFO_message("-coarserot is already on") ;
+       VL_coarse_rot = 1 ; nopt++ ; continue ;
      }
 
      /*-----*/
@@ -857,8 +871,9 @@ int main( int argc , char * argv[] )
      ERROR_exit("Can't load base dataset into memory!\n") ;
    } else {
      mri_get_cmass_3D( DSET_BRICK(baset,0) , &b_xcm,&b_ycm,&b_zcm ) ;
-     clip_baset  = THD_cliplevel( DSET_BRICK(baset,0) , 0.0 ) ;
-     abas.imbase = mri_to_float( DSET_BRICK(baset,0) ) ;
+     abas.imbase = mri_scale_to_float( DSET_BRICK_FACTOR(baset,0) ,
+                                       DSET_BRICK(baset,0)         ) ;
+     clip_baset  = THD_cliplevel( abas.imbase , 0.0 ) ;
      base_idc    = strdup(baset->idcode.str) ;
      DSET_unload(baset) ;
    }
@@ -1061,7 +1076,24 @@ int main( int argc , char * argv[] )
      nerr++ ;
    }
 
-   /* default number of iterations allowed */
+   /*-- 05 Dec 2005: initialize shift + rotation parameters? --*/
+
+   if( VL_coarse_rot && abas.nparam >= 6 ){
+     float roll, pitch , yaw ;
+     int   dxp , dyp   , dzp ;
+     MRI_IMAGE *vim ;
+
+     vim = THD_median_brick( inset ) ;
+     (void)get_best_shiftrot( &abas , abas.imbase , vim ,
+                              &roll,&pitch,&yaw , &dxp,&dyp,&dzp ) ;
+     mri_free(vim) ;
+
+     if( abas.verb )
+       INFO_message("Initialize roll=%g pitch=%g yaw=%g  dx=%d dy=%d dz=%d\n",
+                    roll,pitch,yaw,dxp,dyp,dzp ) ;
+   }
+
+   /*-- default number of iterations allowed --*/
 
    if( abas.max_iter <= 0 ) abas.max_iter = 11*nfree+5 ;
 
@@ -1385,9 +1417,6 @@ int main( int argc , char * argv[] )
 /*======= Code to find best initial shift_rotate parameters, crudely =======*/
 /*==========================================================================*/
 
-static int VL_coarse_del = 10 ;
-static int VL_coarse_num =  2 ;
-
 /*--------------------------------------------------------------------
   Calculate
               (      [                                 2          ] )
@@ -1482,11 +1511,13 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
    float *bar , *tar , *var , dif , *www=NULL , wtop , param[12] ;
    byte *mmm ;
    int nx,ny,nz , sx,sy,sz , bsx=0,bsy=0,bsz=0 , nxy,nxyz , subd=0 ;
+   THD_vecmat ijk_to_xyz_save , xyz_to_ijk_save ;
+   THD_mat33  mat ;
 
    *roll = *pitch = *yaw = 0.0f ;   /* in case of sudden death */
    *dxp  = *dyp   = *dzp = 0    ;
 
-   if( bas->nparam < 6 ) return ;   /* no rotations allowed? */
+   if( bas->nparam < 6 ) return 0.0f ;   /* no rotations allowed? */
 
    for( ii=0 ; ii < 12 ; ii++ ) param[ii] = 0.0f ;
 
@@ -1529,6 +1560,14 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
 
      nx = hnx; ny = hny; nz = hnz; nxy = hnxy; subd = 2;
      VL_coarse_del /= 2 ;
+
+     /* scale up the index-to-coord transformation */
+
+     ijk_to_xyz_save = ijk_to_xyz ;
+     xyz_to_ijk_save = xyz_to_ijk ;
+     mat             = ijk_to_xyz.mm ;
+     ijk_to_xyz.mm   = MAT_SCALAR( mat , 2.0f ) ;
+     xyz_to_ijk      = INV_VECMAT( ijk_to_xyz ) ;
    }
 
    /* make a weighting image (blurred & masked copy of base) */
@@ -1567,6 +1606,8 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
        }
        tar = MRI_FLOAT_PTR(tim) ;
        sum = get_best_shift( nx,ny,nz, bar, tar, www, &sx,&sy,&sz ) ;
+fprintf(stderr,"sum=%g%s r=%g p=%g y=%g  sx=%d sy=%d sz=%d\n",
+        sum , (sum<bsum)?"* ":" " , r,p,y , sx,sy,sz ) ;
        if( sum < bsum ){
          br=r ; bp=p ; by=y ; bsx=sx ; bsy=sy; bsz=sz ; bsum=sum ;
        }
@@ -1579,6 +1620,8 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
    if( subd ){
      mri_free(bim); mri_free(vim);
      bsx *= 2; bsy *= 2; bsz *= 2; VL_coarse_del *=2;
+     ijk_to_xyz = ijk_to_xyz_save ;
+     xyz_to_ijk = xyz_to_ijk_save ;
    }
 
    *roll = br ; *pitch = bp ; *yaw = by ;
