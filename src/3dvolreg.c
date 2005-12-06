@@ -2106,6 +2106,8 @@ float new_get_best_shiftrot( THD_3dim_dataset *dset ,   /* template */
 
      /* copy and blur base, then subsample it into new image bim */
 
+     if( VL_verbose ) fprintf(stderr,"x") ;
+
      tim = mri_copy(base) ; tar = MRI_FLOAT_PTR(tim) ;
      FIR_blur_volume( nx,ny,nz , 1.0f,1.0f,1.0f , tar , 1.0f ) ;
      bim = mri_new_vol( hnx,hny,hnz , MRI_float ) ; bar = MRI_FLOAT_PTR(bim) ;
@@ -2138,7 +2140,9 @@ float new_get_best_shiftrot( THD_3dim_dataset *dset ,   /* template */
 
    /* make a weighting image (blurred & masked copy of base) */
 
-   wim = mri_copy(bim) ; www = MRI_FLOAT_PTR(tim) ; nxyz = nx*ny*nz ;
+   if( VL_verbose ) fprintf(stderr,"w") ;
+
+   wim = mri_copy(bim) ; www = MRI_FLOAT_PTR(wim) ; nxyz = nx*ny*nz ;
    for( ii=0 ; ii < nxyz ; ii++ ) www[ii] = fabsf(www[ii]) ;
    FIR_blur_volume( nx,ny,nz , 1.0f,1.0f,1.0f , www , 1.0f ) ;
    wtop = 0.0f ;
@@ -2149,6 +2153,8 @@ float new_get_best_shiftrot( THD_3dim_dataset *dset ,   /* template */
    }
    mmm = mri_automask_image( wim ) ;
    for( ii=0 ; ii < nxyz ; ii++ ) if( mmm[ii] == 0 ) www[ii] = 0.0f ;
+   if( VL_verbose )
+     fprintf(stderr,"[%.1f%%]" , (100.0*THD_countmask(nxyz,mmm))/nxyz );
    free(mmm) ;
 
    /* prepare to rotate and shift the night away */
@@ -2171,6 +2177,7 @@ float new_get_best_shiftrot( THD_3dim_dataset *dset ,   /* template */
        }
        tar = MRI_FLOAT_PTR(tim) ;
        sum = new_get_best_shift( nx,ny,nz, bar, tar, www, &sx,&sy,&sz ) ;
+       if( VL_verbose ) fprintf(stderr,"%s", (sum<bsum)?"*":"." ) ;
        if( sum < bsum ){
          br=r ; bp=p ; by=y ; bsx=sx ; bsy=sy; bsz=sz ; bsum=sum ;
        }
