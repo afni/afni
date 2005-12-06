@@ -5780,3 +5780,6 @@
 
 01 Dec 2005
  * -coarserot in 3dvolreg.c
+
+06 Dec 2005
+ * -coarserot in 3dWarpDrive.c, too.

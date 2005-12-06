@@ -173,31 +173,35 @@ void parset_affine(void)
    /* rotation */
 
    uu = rot_matrix( 2, D2R*parvec[3] , 0, D2R*parvec[4] , 1, D2R*parvec[5] ) ;
-   
+
    /* scaling */
 
-   a = parvec[6] ; if( a <= 0.0f ) a = 1.0f ;
-   b = parvec[7] ; if( b <= 0.0f ) b = 1.0f ;
-   c = parvec[8] ; if( c <= 0.0f ) c = 1.0f ;
+   a = parvec[6] ; if( a <= 0.01f ) a = 1.0f ;
+   b = parvec[7] ; if( b <= 0.01f ) b = 1.0f ;
+   c = parvec[8] ; if( c <= 0.01f ) c = 1.0f ;
    LOAD_DIAG_MAT( dd , a,b,c ) ;
 
    /* shear */
 
+   a = parvec[ 9] ; if( fabs(a) > 0.3333f ) a = 0.0f ;
+   b = parvec[10] ; if( fabs(b) > 0.3333f ) b = 0.0f ;
+   c = parvec[11] ; if( fabs(c) > 0.3333f ) c = 0.0f ;
+
    switch( smat ){
      default:
      case SMAT_LOWER:
-       LOAD_MAT( ss , 1.0        , 0.0        , 0.0 ,
-                      parvec[9]  , 1.0        , 0.0 ,
-                      parvec[10] , parvec[11] , 1.0  ) ;
+       LOAD_MAT( ss , 1.0 , 0.0 , 0.0 ,
+                       a  , 1.0 , 0.0 ,
+                       b  ,  c  , 1.0  ) ;
      break ;
 
      case SMAT_UPPER:
-       LOAD_MAT( ss , 1.0 , parvec[9] , parvec[10] ,
-                      0.0 , 1.0       , parvec[11] ,
-                      0.0 , 0.0       , 1.0         ) ;
+       LOAD_MAT( ss , 1.0 ,  a  ,  b ,
+                      0.0 , 1.0 ,  c ,
+                      0.0 , 0.0 , 1.0  ) ;
      break ;
    }
-   
+
    /* multiply them, as ordered */
 
    switch( matorder ){
@@ -213,7 +217,7 @@ void parset_affine(void)
    LOAD_FVEC3( vv , parvec[0] , parvec[1] , parvec[2] ) ;
 
    switch( dcode ){
-     case DELTA_AFTER:  mv_for.vv = vv ; break ;
+     case DELTA_AFTER:  mv_for.vv = vv ;                       break ;
      case DELTA_BEFORE: mv_for.vv = MATVEC( mv_for.mm , vv ) ; break ;
    }
 
@@ -389,6 +393,8 @@ int main( int argc , char * argv[] )
    float i_xcm,i_ycm,i_zcm , b_xcm,b_ycm,b_zcm ;  /* 26 Sep 2005 */
    float sdif_before , sdif_after ;               /* 28 Sep 2005 */
    char *W_summfile=NULL ; FILE *summfp=NULL ;
+   int   init_set=0 ;                             /* 06 Dec 2005 */
+   float init_val[12] ;
 
    /*-- help? --*/
 
@@ -1076,23 +1082,6 @@ int main( int argc , char * argv[] )
      nerr++ ;
    }
 
-   /*-- 05 Dec 2005: initialize shift + rotation parameters? --*/
-
-   if( VL_coarse_rot && abas.nparam >= 6 ){
-     float roll, pitch , yaw ;
-     int   dxp , dyp   , dzp ;
-     MRI_IMAGE *vim ;
-
-     vim = THD_median_brick( inset ) ;
-     (void)get_best_shiftrot( &abas , abas.imbase , vim ,
-                              &roll,&pitch,&yaw , &dxp,&dyp,&dzp ) ;
-     mri_free(vim) ;
-
-     if( abas.verb )
-       INFO_message("Initialize roll=%g pitch=%g yaw=%g  dx=%d dy=%d dz=%d\n",
-                    roll,pitch,yaw,dxp,dyp,dzp ) ;
-   }
-
    /*-- default number of iterations allowed --*/
 
    if( abas.max_iter <= 0 ) abas.max_iter = 11*nfree+5 ;
@@ -1219,6 +1208,35 @@ int main( int argc , char * argv[] )
 
    /*===== do the hard work =====*/
 
+   /*-- 05 Dec 2005: initialize shift + rotation parameters? --*/
+
+   if( VL_coarse_rot && abas.nparam >= 6 ){
+     float roll, pitch , yaw , sx , sy , sz ;
+     int   dxp , dyp   , dzp ;
+     MRI_IMAGE *vim ;
+     THD_fvec3  dxyz , sxyz ;
+
+     if( abas.verb ) fprintf(stderr,"++ Coarse initialize ") ;
+
+     vim = THD_median_brick( inset ) ;
+     (void)get_best_shiftrot( &abas , abas.imbase , vim ,
+                              &roll,&pitch,&yaw , &dxp,&dyp,&dzp ) ;
+     mri_free(vim) ;
+
+     LOAD_FVEC3( dxyz , -dxp,-dyp,-dzp ) ;
+     sxyz = MATVEC( ijk_to_xyz.mm , dxyz ) ;
+     UNLOAD_FVEC3( sxyz , sx,sy,sz ) ;
+
+     init_set    = 6 ;
+     init_val[0] = sx   ; init_val[1] = sy    ; init_val[2] = sz  ;
+     init_val[3] = roll ; init_val[4] = pitch ; init_val[5] = yaw ;
+
+     if( abas.verb )
+       fprintf(stderr,
+               "\n++  dx=%.1f dy=%.1f dz=%.1f  roll=%.1f pitch=%.1f yaw=%.1f\n",
+               sx,sy,sz , roll,pitch,yaw ) ;
+   }
+
    if( abas.verb ) INFO_message("Beginning alignment setup\n") ;
 
    /* 04 Jan 2005: set up to save the computed parameters */
@@ -1249,6 +1267,8 @@ int main( int argc , char * argv[] )
      for( kpar=0 ; kpar < abas.nparam ; kpar++ ){  /** init params **/
        if( abas.param[kpar].fixed )
          abas.param[kpar].val_init = abas.param[kpar].val_fixed ;
+       else if( kpar < init_set )
+         abas.param[kpar].val_init = init_val[kpar] ;  /* 06 Dec 2005 */
        else
          abas.param[kpar].val_init = abas.param[kpar].ident ;
      }
@@ -1408,7 +1428,7 @@ int main( int argc , char * argv[] )
      INFO_message("Total elapsed time = %.2f s\n",tt) ;
    }
 
-   mri_warp3D_align_cleanup( &abas ) ; 
+   mri_warp3D_align_cleanup( &abas ) ;
 
    exit(0) ;
 }
@@ -1491,7 +1511,8 @@ static float get_best_shift( int nx, int ny, int nz,
 }
 
 /*----------------------------------------------------------------------*/
-/* Find best angles AND best shifts all at once't.
+/* Find best angles AND best shifts all at once't.  Will only be
+   called if VL_coarse_rot is nonzero.
 ------------------------------------------------------------------------*/
 
 #define DANGLE 9.0f
@@ -1520,6 +1541,7 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
    if( bas->nparam < 6 ) return 0.0f ;   /* no rotations allowed? */
 
    for( ii=0 ; ii < 12 ; ii++ ) param[ii] = 0.0f ;
+   param[6] = param[7] = param[8] = 1.0f ;
 
    nx = base->nx ; ny = base->ny ; nz = base->nz ; nxy = nx*ny ;
 
@@ -1527,8 +1549,11 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
 
    bim = base ; vim = vol ;
 
+#if 1
    if( nx >= 120 && ny >= 120 && nz >= 120 ){
      int hnx=(nx+1)/2 , hny=(ny+1)/2 , hnz=(nz+1)/2 , hnxy=hnx*hny ;
+
+     if( bas->verb ) fprintf(stderr,"x") ;
 
      /* copy and blur base, then subsample it into new image bim */
 
@@ -1569,10 +1594,13 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
      ijk_to_xyz.mm   = MAT_SCALAR( mat , 2.0f ) ;
      xyz_to_ijk      = INV_VECMAT( ijk_to_xyz ) ;
    }
+#endif
 
    /* make a weighting image (blurred & masked copy of base) */
 
-   wim = mri_copy(bim) ; www = MRI_FLOAT_PTR(tim) ; nxyz = nx*ny*nz ;
+   if( bas->verb ) fprintf(stderr,"w") ;
+
+   wim = mri_copy(bim) ; www = MRI_FLOAT_PTR(wim) ; nxyz = nx*ny*nz ;
    for( ii=0 ; ii < nxyz ; ii++ ) www[ii] = fabsf(www[ii]) ;
    FIR_blur_volume( nx,ny,nz , 1.0f,1.0f,1.0f , www , 1.0f ) ;
    wtop = 0.0f ;
@@ -1585,6 +1613,9 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
    for( ii=0 ; ii < nxyz ; ii++ ) if( mmm[ii] == 0 ) www[ii] = 0.0f ;
    msk = mri_empty_conforming( bim , MRI_byte ) ;
    mri_fix_data_pointer( mmm , msk ) ;
+
+   if( bas->verb )
+     fprintf(stderr,"[%.1f%%]" , (100.0*THD_countmask(nxyz,mmm))/nxyz ) ;
 
    /* prepare to rotate and shift the night away */
 
@@ -1600,14 +1631,13 @@ static float get_best_shiftrot( MRI_warp3D_align_basis *bas ,
        if( r == 0.0f && p == 0.0f && y == 0.0f ){  /* no rotate */
          tim = vim ;
        } else {                                    /* rotate vim */
-         param[0] = r ; param[1] = p ; param[2] = y ;
+         param[3] = r ; param[4] = p ; param[5] = y ;
          bas->vwset( 12 , param ) ;
          tim = mri_warp3D( vim , 0,0,0 , bas->vwfor ) ;
        }
        tar = MRI_FLOAT_PTR(tim) ;
        sum = get_best_shift( nx,ny,nz, bar, tar, www, &sx,&sy,&sz ) ;
-fprintf(stderr,"sum=%g%s r=%g p=%g y=%g  sx=%d sy=%d sz=%d\n",
-        sum , (sum<bsum)?"* ":" " , r,p,y , sx,sy,sz ) ;
+       if( bas->verb ) fprintf(stderr,"%s",(sum<bsum)?"*":".") ;
        if( sum < bsum ){
          br=r ; bp=p ; by=y ; bsx=sx ; bsy=sy; bsz=sz ; bsum=sum ;
        }
