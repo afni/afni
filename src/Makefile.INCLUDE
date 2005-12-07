@@ -1287,7 +1287,7 @@ THD_OBJS = thd_atr.o thd_dsetto1D.o thd_initalldir.o thd_reconpar.o \
            thd_analyzeread.o thd_ctfread.o thd_1Ddset.o thd_getorient.o   \
            thd_3Ddset.o thd_mattor.o thd_niftiread.o thd_mpegread.o       \
            thd_brainormalize.o thd_opentcat.o thd_nimlatr.o thd_dsetatr.o \
-           thd_logafni.o thd_dset_nbhd.o thd_vcheck.o
+           thd_logafni.o thd_dset_nbhd.o thd_vcheck.o thd_matdaxes.o
 
 # these are now included in NIML
 
