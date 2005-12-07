@@ -90,8 +90,6 @@ void THD_daxes_to_mat44( THD_dataxes *dax )
 }
 
 /*---------------------------------------------------------------------------*/
-
-/*---------------------------------------------------------------------------*/
 /*! Given the ijk_to_xyz index to DICOM transformation in the header, load
     the legacy dataxes information:
       - xxorient  = Orientation code
@@ -112,11 +110,14 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
    int icod , jcod , kcod ;
    mat44 nmat ;
 
+   /* table to convert NIfTI-1 orientation codes (1..6)
+      into AFNI orientation codes (0..5, and in a different order) */
+
    static int orient_nifti2afni[7] =
                { -1 , ORI_L2R_TYPE, ORI_R2L_TYPE, ORI_P2A_TYPE,
                       ORI_A2P_TYPE, ORI_I2S_TYPE, ORI_S2I_TYPE } ;
 
-   if( dax == NULL || dax->ijk_to_xyz.m[3][3] == 0.0f ) return ;
+   if( dax == NULL ) return ;
 
    /* use the NIfTI-1 library function to determine best orientation;
       but, must remember that NIfTI-1 x and y are reversed from AFNI's,
@@ -128,20 +129,24 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
 
    if( icod == 0 || jcod == 0 || kcod == 0 ) return ;
 
-   dax->xxorient = icod = orient_nifti2afni[icod] ;
-   dax->yyorient = jcod = orient_nifti2afni[jcod] ;
-   dax->zzorient = kcod = orient_nifti2afni[kcod] ;
+   dax->xxorient = orient_nifti2afni[icod] ;
+   dax->yyorient = orient_nifti2afni[jcod] ;
+   dax->zzorient = orient_nifti2afni[kcod] ;
 
-   /* grid spacing and offset stuff */
+   /* grid offsets */
 
    dax->xxorg = dax->ijk_to_xyz.m[0][3] ;
    dax->yyorg = dax->ijk_to_xyz.m[1][3] ;
    dax->zzorg = dax->ijk_to_xyz.m[2][3] ;
 
+   /* grid spacing along i-direction is length of 1st column of matrix */
+
    dax->xxdel = sqrt( SQR(dax->ijk_to_xyz.m[0][0])
                      +SQR(dax->ijk_to_xyz.m[1][0])
                      +SQR(dax->ijk_to_xyz.m[2][0]) ) ;
    if( ORIENT_sign[dax->xxorient] == '-' ) dax->xxdel = -dax->xxdel ;
+
+   /* mutatis mutandis for j- and k-directions */
 
    dax->yydel = sqrt( SQR(dax->ijk_to_xyz.m[0][1])
                      +SQR(dax->ijk_to_xyz.m[1][1])
@@ -153,7 +158,8 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
                      +SQR(dax->ijk_to_xyz.m[2][2]) ) ;
    if( ORIENT_sign[dax->zzorient] == '-' ) dax->zzdel = -dax->yydel ;
 
-   /* to_dicomm orthogonal matrix */
+   /* to_dicomm orthogonal matrix:
+      we make an orthogonal matrix out of the columns of ijk_to_xyz */
 
    nmat = nifti_make_orthog_mat44(
     dax->ijk_to_xyz.m[0][0], dax->ijk_to_xyz.m[1][0], dax->ijk_to_xyz.m[2][0],
