@@ -460,7 +460,7 @@ function [win,p1,p1n] = NewCs_GetWin(p1)
       end
       p1n = str2double(p1);
    else 
-      p1n = p1
+      p1n = p1;
    end
 
 return
