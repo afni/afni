@@ -5,6 +5,11 @@
 
 F2C = ./f2c -A
 
+## 07 Dec 2005: modify the include flags here
+
+INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/znzlib $(USE_ZLIB)
+ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/znzlib $(USE_ZLIB)
+
 DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox   \
            rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett
 MINDOCS  = AFNI.changes.cox
@@ -202,40 +207,40 @@ byteorder:byteorder.o
 	$(CC) -o 3dbuc2fim 3dbuc2fim.o $(LFLAGS) $(LLIBS)
 
 mritopgm:mritopgm.c
-	$(CC) -o mritopgm mritopgm.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o mritopgm mritopgm.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 ppmtocmap:ppmtocmap.c
-	$(CC) -o ppmtocmap ppmtocmap.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o ppmtocmap ppmtocmap.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 impdif:impdif.c
-	$(CC) -o impdif impdif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o impdif impdif.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 imcutup:imcutup.c
-	$(CC) -o imcutup imcutup.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o imcutup imcutup.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 Vecwarp:Vecwarp.c
-	$(CC) -o Vecwarp Vecwarp.c $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CC) -o Vecwarp Vecwarp.c $(INFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 float_scan:float_scan.c
-	$(CC) -o float_scan float_scan.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o float_scan float_scan.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 to26:to26.c
-	$(CC) -o to26 to26.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o to26 to26.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 toxx:toxx.c
-	$(CC) -o toxx toxx.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o toxx toxx.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 imupsam:imupsam.c
-	$(CC) -o imupsam imupsam.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o imupsam imupsam.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 2swap:2swap.c
-	$(CC) -o 2swap 2swap.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o 2swap 2swap.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 4swap:4swap.c
-	$(CC) -o 4swap 4swap.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o 4swap 4swap.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 24swap:24swap.c
-	$(CC) -o 24swap 24swap.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o 24swap 24swap.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 crao:crao.o
 	$(CC) -o crao crao.o $(LFLAGS) $(LLIBS)
@@ -265,12 +270,12 @@ sqwave:sqwave.o
 
 pcor.o:pcor.c pcor.h
 	$(RM) $@
-	$(CC) -c pcor.c $(IFLAGS) -DREF_FLOAT_SINGLE -UVOX_SHORT
+	$(CC) -c pcor.c $(INFLAGS) -DREF_FLOAT_SINGLE -UVOX_SHORT
 
 pcorsh.o:pcor.c pcor.h
 	$(RM) $@
 	$(CP) pcor.c pcorsh.c
-	$(CC) -c pcorsh.c $(IFLAGS) -DREF_FLOAT_SINGLE -DVOX_SHORT
+	$(CC) -c pcorsh.c $(INFLAGS) -DREF_FLOAT_SINGLE -DVOX_SHORT
 	$(RM) pcorsh.c
 
 FD2:FD2.o ts.o mcw.o overfim.o pcorsh.o csfft_AJ.o
@@ -579,7 +584,7 @@ d3dmerge:3dmerge.c
 
 whereami:whereami.c
 	$(RM) $@
-	$(CC) -o whereami whereami.c $(IFLAGS) $(LFLAGS) -lmri $(LLIBS)
+	$(CC) -o whereami whereami.c $(INFLAGS) $(LFLAGS) -lmri $(LLIBS)
 
 3dUniformize:3dUniformize.o
 	$(RM) $@
@@ -767,19 +772,19 @@ AlphaSim:AlphaSim.o
 
 3dDeconvolve:3dDeconvolve.c Deconvolve.c RegAna.c matrix.c matrix.h parser.o parser_int.o
 	$(RM) $@
-	$(CCFAST) -o 3dDeconvolve 3dDeconvolve.c parser.o parser_int.o $(IFLAGS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+	$(CCFAST) -o 3dDeconvolve 3dDeconvolve.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 # float version of 3dDeconvolve
 
 3dDeconvolve_f:3dDeconvolve.c Deconvolve.c RegAna.c matrix_f.c matrix_f.h parser.o parser_int.o
 	$(RM) $@
-	$(CCFAST) $(SPECIAL) -DFLOATIZE -o 3dDeconvolve_f 3dDeconvolve.c matrix_f.c parser.o parser_int.o $(IFLAGS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+	$(CCFAST) $(SPECIAL) -DFLOATIZE -o 3dDeconvolve_f 3dDeconvolve.c matrix_f.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 # double precision version of 3dDeconvolve
 
 3dDeconvolve_n:3dDeconvolve.c Deconvolve.c RegAna.c matrix.c matrix.h parser.o parser_int.o
 	$(RM) $@
-	$(CC) -o 3dDeconvolve_n 3dDeconvolve.c parser.o parser_int.o $(IFLAGS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
+	$(CC) -o 3dDeconvolve_n 3dDeconvolve.c parser.o parser_int.o $(INFLAGS) $(LFLAGS) -lcoxplot -lmri -lf2c $(LLIBS)
 
 3dConvolve:3dConvolve.o
 	$(RM) $@
@@ -821,7 +826,7 @@ DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 
 .c.o:
 	$(RM) $@
-	$(CC) -c $*.c $(IFLAGS)
+	$(CC) -c $*.c $(INFLAGS)
 
 ### Special compilations for the reslicing routines, which
 ### are templates that require definition of the data type
@@ -829,47 +834,47 @@ DTIStudioFibertoSegments:DTIStudioFibertoSegments.o
 
 afni_slice_short.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CC) -c -DDTYPE=short afni_slice.c $(IFLAGS)
+	$(CC) -c -DDTYPE=short afni_slice.c $(INFLAGS)
 	$(MV) afni_slice.o afni_slice_short.o
 
 afni_slice_float.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CC) -c -DDTYPE=float afni_slice.c $(IFLAGS)
+	$(CC) -c -DDTYPE=float afni_slice.c $(INFLAGS)
 	$(MV) afni_slice.o afni_slice_float.o
 
 afni_slice_byte.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CC) -c -DDTYPE=byte afni_slice.c $(IFLAGS)
+	$(CC) -c -DDTYPE=byte afni_slice.c $(INFLAGS)
 	$(MV) afni_slice.o afni_slice_byte.o
 
 afni_slice_int.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CC) -c -DDTYPE=int afni_slice.c $(IFLAGS)
+	$(CC) -c -DDTYPE=int afni_slice.c $(INFLAGS)
 	$(MV) afni_slice.o afni_slice_int.o
 
 afni_slice_complex.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CC) -c -DDTYPE=complex afni_slice.c $(IFLAGS)
+	$(CC) -c -DDTYPE=complex afni_slice.c $(INFLAGS)
 	$(MV) afni_slice.o afni_slice_complex.o
 
 afni_slice_rgbyte.o:3ddata.h afni_slice.c afni_warp.h
 	$(RM) $@
-	$(CC) -c -DDTYPE=rgbyte afni_slice.c $(IFLAGS)
+	$(CC) -c -DDTYPE=rgbyte afni_slice.c $(INFLAGS)
 	$(MV) afni_slice.o afni_slice_rgbyte.o
 
 afni_pcor_byte.o:afni_pcor.h afni_pcor_update.c
 	$(RM) $@
-	$(CC) -c -DDTYPE=byte afni_pcor_update.c $(IFLAGS)
+	$(CC) -c -DDTYPE=byte afni_pcor_update.c $(INFLAGS)
 	$(MV) afni_pcor_update.o afni_pcor_byte.o
 
 afni_pcor_float.o:afni_pcor.h afni_pcor_update.c
 	$(RM) $@
-	$(CC) -c -DDTYPE=float afni_pcor_update.c $(IFLAGS)
+	$(CC) -c -DDTYPE=float afni_pcor_update.c $(INFLAGS)
 	$(MV) afni_pcor_update.o afni_pcor_float.o
 
 afni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 	$(RM) $@
-	$(CC) -c -DDTYPE=short afni_pcor_update.c $(IFLAGS)
+	$(CC) -c -DDTYPE=short afni_pcor_update.c $(INFLAGS)
 	$(MV) afni_pcor_update.o afni_pcor_short.o
 
 ### End of reslicing routines
@@ -880,11 +885,11 @@ afni_pcor_short.o:afni_pcor.h afni_pcor_update.c
 
 afni.o:afni.c niml.h
 	$(RM) $@
-	$(CC) -c afni.c $(IFLAGS) $(SHOWOFF)
+	$(CC) -c afni.c $(INFLAGS) $(SHOWOFF)
 
 afni_version.o:afni_version.c
 	$(RM) $@
-	$(CC) -c afni_version.c $(IFLAGS) $(SHOWOFF)
+	$(CC) -c afni_version.c $(INFLAGS) $(SHOWOFF)
 
 afni:$(AFOBJS) libcoxplot.a libmri.a libmrix.a libvolpack.a volpack.h coxplot.h niml.h
 	$(RM) $@
@@ -1171,57 +1176,57 @@ mcw_graf.o:mcw_graf.h
 
 afni_suma.o:afni_suma.c afni_suma.h cs_sort_template.h
 	$(RM) $@
-	$(CCFAST) -c afni_suma.c $(IFLAGS)
+	$(CCFAST) -c afni_suma.c $(INFLAGS)
 
 csfft.o:csfft.c
 	$(RM) $@
-	$(CCFAST) -c csfft.c $(IFLAGS)
+	$(CCFAST) -c csfft.c $(INFLAGS)
 
 cl1.o:cl1.c
 	$(RM) $@
-	$(CCFAST) -c cl1.c $(IFLAGS)
+	$(CCFAST) -c cl1.c $(INFLAGS)
 
 mri_drawing.o:mri_drawing.c
 	$(RM) $@
-	$(CCFAST) -c mri_drawing.c $(IFLAGS)
+	$(CCFAST) -c mri_drawing.c $(INFLAGS)
 
 mri_dup.o:mri_dup.c
 	$(RM) $@
-	$(CCFAST) -c mri_dup.c $(IFLAGS)
+	$(CCFAST) -c mri_dup.c $(INFLAGS)
 
 mri_warp.o:mri_warp.c
 	$(RM) $@
-	$(CCFAST) -c mri_warp.c $(IFLAGS)
+	$(CCFAST) -c mri_warp.c $(INFLAGS)
 
 mri_warp3D.o:mri_warp3D.c
 	$(RM) $@
-	$(CCFAST) -c mri_warp3D.c $(IFLAGS)
+	$(CCFAST) -c mri_warp3D.c $(INFLAGS)
 
 mri_warp3D_align.o:mri_warp3D_align.c
 	$(RM) $@
-	$(CCFAST) -c mri_warp3D_align.c $(IFLAGS)
+	$(CCFAST) -c mri_warp3D_align.c $(INFLAGS)
 
 thd_rot3d.o:thd_rot3d.c
 	$(RM) $@
-	$(CCFAST) -c thd_rot3d.c $(IFLAGS)
+	$(CCFAST) -c thd_rot3d.c $(INFLAGS)
 
 thd_automask.o:thd_automask.c
 	$(RM) $@
-	$(CCFAST) -c thd_automask.c $(IFLAGS)
+	$(CCFAST) -c thd_automask.c $(INFLAGS)
 
 # can't use CCFAST on thd_shift2 because GCC optimizer fails
 
 thd_shift2.o:thd_shift2.c
 	$(RM) $@
-	$(CC) -c thd_shift2.c $(IFLAGS)
+	$(CC) -c thd_shift2.c $(INFLAGS)
 
 thd_rot3d_byte.o:thd_rot3d_byte.c
 	$(RM) $@
-	$(CCFAST) -c thd_rot3d_byte.c $(IFLAGS)
+	$(CCFAST) -c thd_rot3d_byte.c $(INFLAGS)
 
 cox_render.o:cox_render.h cox_render.c
 	$(RM) $@
-	$(CCFAST) -c cox_render.c $(IFLAGS)
+	$(CCFAST) -c cox_render.c $(INFLAGS)
 
 MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            mri_max.o mri_new.o mri_read.o mri_swapbytes.o mri_dup.o        \
@@ -1411,34 +1416,34 @@ install_plugins: $(INSTALLDIR)
 
 .c.$(SO):afni_plugin.h afni.h 3ddata.h
 	$(RM) $@
-	$(PLUGIN_CC) -c $*.c $(IFLAGS)
+	$(PLUGIN_CC) -c $*.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o $*.$(SO) $*.o
 
 plug_realtime.$(SO):plug_realtime.c
 	$(RM) $@
-	$(PLUGIN_CC) -c plug_realtime.c $(IFLAGS)
+	$(PLUGIN_CC) -c plug_realtime.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_realtime.$(SO) plug_realtime.o
 
 plug_drealtime.$(SO):plug_realtime.c
 	$(RM) $@
-	$(PLUGIN_CCD) -c plug_realtime.c $(IFLAGS)
+	$(PLUGIN_CCD) -c plug_realtime.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_drealtime.$(SO) plug_realtime.o
 
 plug_crender.$(SO):plug_crender.c librickr.a
 	$(RM) $@
-	$(PLUGIN_CC) -c plug_crender.c $(IFLAGS)
+	$(PLUGIN_CC) -c plug_crender.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_crender.$(SO) plug_crender.o -L. -lrickr
 
 plug_maxima.$(SO):plug_maxima.c maxima.o
 	$(RM) $@
-	$(PLUGIN_CC) -c plug_maxima.c $(IFLAGS)
+	$(PLUGIN_CC) -c plug_maxima.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_maxima.$(SO) plug_maxima.o maxima.o -L.
 
 ### From Fred Tam
 
 plug_retroicor.$(SO):plug_retroicor.c retroicor.o
 	$(RM) $@
-	$(PLUGIN_CC) -c plug_retroicor.c $(IFLAGS)
+	$(PLUGIN_CC) -c plug_retroicor.c $(INFLAGS)
 	$(LD) $(PLUGIN_LFLAGS) -o plug_retroicor.$(SO) plug_retroicor.o \
       retroicor.o
 
@@ -1472,7 +1477,7 @@ plugin_fixed:$(PLUGIN_FIXED)
 
 .c.fixed:afni_plugin.h afni.h 3ddata.h
 	$(RM) $@
-	$(PLUGIN_CC) -c $*.c $(IFLAGS) -DPLUGIN_init=PLUGIN_init_$*
+	$(PLUGIN_CC) -c $*.c $(INFLAGS) -DPLUGIN_init=PLUGIN_init_$*
 	$(MV) $*.o $*.fixed
 
 # Miscellaneous stuff (plugouts)
@@ -1507,13 +1512,13 @@ plugout_graph:plugout_graph.o
 f2c:
 	( cd f2cdir ;                                                         \
 	  $(MAKE) f2c clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)' 'CCMIN=$(CCMIN)' \
-	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ;  \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ;  \
 	  $(MV) f2c .. ; )
 
 libf2c.a:
 	( cd f2cdir ;                                                        \
 	  $(MAKE) libf2c.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'            \
-	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libf2c.a .. ; )
 
 f2c.h:
@@ -1538,7 +1543,7 @@ libdl.a:dlcompat/dlfcn.h dlcompat/dlopen.c
 libcoxplot.a:coxplot.h
 	( cd coxplot ;                                                       \
 	  $(MAKE) libcoxplot.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'        \
-	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libcoxplot.a .. ; )
 
 coxplot.h:coxplot/coxplot.h
@@ -1553,7 +1558,7 @@ coxplot.tgz:
 librickr.a:
 	( cd rickr ; 							\
 	$(MAKE) librickr.a clean 'RM=$(RM)' 'CC=$(CC)'			\
-			      'RANLIB=$(RANLIB)' 'IFLAGS=$(IFLAGS)' ;	\
+			      'RANLIB=$(RANLIB)' 'IFLAGS=$(ISFLAGS)' ;	\
 	$(MV) librickr.a .. ; )
 
 #######
@@ -1565,55 +1570,55 @@ librickr.a:
 
 3dresample: librickr.a libmri.a $(AFWARPOBJS)
 	( cd rickr ; 							\
-	$(MAKE) 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'     \
+	$(MAKE) 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'     \
 	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
 	$(MV) 3dresample .. ; )
 
 3dresample.exe: librickr.a libmri.a $(AFWARPOBJS)
 	( cd rickr ; 							\
-	$(MAKE) 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'     \
+	$(MAKE) 3dresample 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'     \
 	                'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;		\
 	$(MV) 3dresample.exe .. ; )
 
 file_tool: ge4_header.o
 	( cd rickr ;                                                    \
-	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'      \
+	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      \
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) file_tool .. ; )
 
 file_tool.exe: ge4_header.o
 	( cd rickr ;                                                    \
-	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'      \
+	$(MAKE) file_tool 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'      \
 			'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ;           \
 	$(MV) file_tool.exe .. ; )
 
 Dimon: rickr/Dimon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h
 	( cd rickr ; 							\
-	$(MAKE) Dimon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
+	$(MAKE) Dimon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) Dimon .. ; )
 
 Imon: rickr/Imon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h thd_iochan.o
 	( cd rickr ; 							\
-	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
+	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) Imon .. ; )
 
 Imon.exe: thd_iochan.o
 	( cd rickr ; 							\
-	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'        	\
+	$(MAKE) Imon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) Imon.exe .. ; )
 
 serial_helper: rickr/serial_helper.c
 	( cd rickr ;                                                    \
-	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'  \
+	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'  \
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) serial_helper .. ; )
 
 serial_helper.exe: rickr/serial_helper.c
 	( cd rickr ;                                                    \
-	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(IFLAGS)'  \
+	$(MAKE) serial_helper 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'  \
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) serial_helper.exe .. ; )
 
@@ -1623,7 +1628,7 @@ serial_helper.exe: rickr/serial_helper.c
 libvolpack.a:
 	( cd volpack ;                                                       \
 	  $(MAKE) libvolpack.a clean 'RM=$(RM)' 'CC=$(CCVOL)' 'AR=$(AR)'     \
-	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libvolpack.a .. ; )
 
 volpack.h:
@@ -1651,7 +1656,7 @@ qhull.exe:
 # 3DEdge library files - make them and move them up here
 
 lib3DEdge.a:
-	( cd 3DEdge/src ; $(MAKE) clean lib3DEdge.a 'RM=$(RM)' 'AR=$(AR)' 'RANLIB=$(RANLIB)' 'CC=$(CCFAST)' 'IFLAGS=$(IFLAGS)' 'LFLAGS=$(LFLAGS)' ; $(MV) *.a ../.. ; )
+	( cd 3DEdge/src ; $(MAKE) clean lib3DEdge.a 'RM=$(RM)' 'AR=$(AR)' 'RANLIB=$(RANLIB)' 'CC=$(CCFAST)' 'IFLAGS=$(ISFLAGS)' 'LFLAGS=$(LFLAGS)' ; $(MV) *.a ../.. ; )
 
 #######
 # Eispack and CDF library files - make them and move them up here
@@ -1738,7 +1743,7 @@ cjpeg:
 libfftw.a:
 	( cd fftw ;                                                    \
 	  $(MAKE) libfftw.a clean 'RM=$(RM)' 'CC=$(CCFAST)' 'AR=$(AR)' \
-	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(IFLAGS)' ; \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libfftw.a .. ; )
 
 fftw.h:
@@ -1775,7 +1780,7 @@ parser.c:
 ## expression parsing and evaluation functions
 
 parser.o:parser.c f2c.h libf2c.a
-	$(CCFAST) -c parser.c $(IFLAGS)
+	$(CCFAST) -c parser.c $(INFLAGS)
 
 ## programs that user parser.c functions
 
@@ -1842,58 +1847,58 @@ ibinom:ibinom.o
 ## GIF animation
 
 whirlgif:whirlgif.h whirlgif.c
-	$(CC) -o whirlgif whirlgif.c $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o whirlgif whirlgif.c $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 extor.o:extor.c
-	$(CCFAST) -c extor.c $(IFLAGS)
+	$(CCFAST) -c extor.c $(INFLAGS)
 
 extor:extor.o
-	$(CC) -o extor extor.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o extor extor.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 exx.o:exx.c
-	$(CCFAST) -c exx.c $(IFLAGS)
+	$(CCFAST) -c exx.c $(INFLAGS)
 
 exx:exx.o
-	$(CC) -o exx exx.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o exx exx.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 qqq.o:qqq.c
-	$(CCFAST) -c qqq.c $(IFLAGS)
+	$(CCFAST) -c qqq.c $(INFLAGS)
 
 qqq:qqq.o
-	$(CC) -o qqq qqq.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o qqq qqq.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 bitvec.o:bitvec.c
-	$(CCFAST) -c bitvec.c $(IFLAGS)
+	$(CCFAST) -c bitvec.c $(INFLAGS)
 
 bitvec:bitvec.o
-	$(CC) -o bitvec bitvec.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o bitvec bitvec.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 unu.o:unu.c
-	$(CCFAST) -c unu.c $(IFLAGS)
+	$(CCFAST) -c unu.c $(INFLAGS)
 
 unu:unu.o
-	$(CC) -o unu unu.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o unu unu.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 Xphace:Xphace.o
-	$(CC) -o Xphace Xphace.o $(IFLAGS) $(LFLAGS) -lmrix -lcoxplot  -lf2c $(LLIBS)
+	$(CC) -o Xphace Xphace.o $(INFLAGS) $(LFLAGS) -lmrix -lcoxplot  -lf2c $(LLIBS)
 
 3dbetafit:3dbetafit.o betafit.c
-	$(CC) -o 3dbetafit 3dbetafit.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dbetafit 3dbetafit.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 3dbetafit2.o:3dbetafit2.c
-	$(CCFAST) -c 3dbetafit2.c $(IFLAGS)
+	$(CCFAST) -c 3dbetafit2.c $(INFLAGS)
 
 3dbetafit2:3dbetafit2.o betafit.c
-	$(CC) -o 3dbetafit2 3dbetafit2.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dbetafit2 3dbetafit2.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 3dbetafit3:3dbetafit3.o betafit.c
-	$(CC) -o 3dbetafit3 3dbetafit3.o $(IFLAGS) $(LFLAGS) $(LLIBS)
+	$(CC) -o 3dbetafit3 3dbetafit3.o $(INFLAGS) $(LFLAGS) $(LLIBS)
 
 testcox:testcox.o
-	$(CC) -o testcox testcox.o $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CC) -o testcox testcox.o $(INFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 agni_to_afni:agni_to_afni.o agni.o
-	$(CC) -o agni_to_afni agni_to_afni.o $(IFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CC) -o agni_to_afni agni_to_afni.o $(INFLAGS) $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 epsim:epsim.o
 	$(RM) $@
@@ -1932,45 +1937,30 @@ asnap:asnap.o
 	$(CC) -o asnap asnap.o $(LFLAGS) -lmrix -lcoxplot $(LLIBS) -lf2c
 
 # specifics for the nifti library files
-thd_analyzeread.o:thd_analyzeread.c
-	$(RM) $@
-	$(CC) -c thd_analyzeread.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
-
-thd_niftiread.o:thd_niftiread.c
-	$(RM) $@
-	$(CC) -c thd_niftiread.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
-
-thd_writedset.o:thd_writedset.c
-	$(RM) $@
-	$(CC) -c thd_writedset.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
 
 3dAFNItoNIFTI.o:3dAFNItoNIFTI.c
 	$(RM) $@
-	$(CC) -c 3dAFNItoNIFTI.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
+	$(CC) -c 3dAFNItoNIFTI.c $(INFLAGS)
 
 3dAFNItoNIFTI:3dAFNItoNIFTI.o nifti1_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o 3dAFNItoNIFTI 3dAFNItoNIFTI.o nifti1_io.o znzlib.o $(LFLAGS) $(LLIBS)
 
-thd_niftiwrite.o:thd_niftiwrite.c
-	$(RM) $@
-	$(CC) -c thd_niftiwrite.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
-
 nifti1_io.o:nifti/niftilib/nifti1_io.c nifti/niftilib/nifti1_io.h
 	$(RM) $@
-	$(CC) -c nifti/niftilib/nifti1_io.c -Inifti/znzlib $(IFLAGS) $(USE_ZLIB)
+	$(CC) -c nifti/niftilib/nifti1_io.c $(INFLAGS)
 
 znzlib.o:nifti/znzlib/znzlib.c nifti/znzlib/znzlib.h
 	$(RM) $@
-	$(CC) -c nifti/znzlib/znzlib.c $(IFLAGS) $(USE_ZLIB)
+	$(CC) -c nifti/znzlib/znzlib.c $(INFLAGS)
 
 nifti_statlib.o:nifti/utils/nifti_stats.c nifti_statlib.c
 	$(RM) $@
-	$(CC) -c nifti_statlib.c -Inifti/niftilib -Inifti/utils $(IFLAGS)
+	$(CC) -c nifti_statlib.c -Inifti/utils $(INFLAGS)
 
 nifti_stats.o:nifti/utils/nifti_stats.c
 	$(RM) $@
-	$(CC) -c nifti/utils/nifti_stats.c -Inifti/niftilib $(IFLAGS)
+	$(CC) -c nifti/utils/nifti_stats.c $(INFLAGS)
 
 nifti_stats:nifti_stats.o
 	$(RM) $@
@@ -1978,7 +1968,7 @@ nifti_stats:nifti_stats.o
 
 nifti1_test.o:nifti/utils/nifti1_test.c
 	$(RM) $@
-	$(CC) -c nifti/utils/nifti1_test.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS)
+	$(CC) -c nifti/utils/nifti1_test.c $(INFLAGS)
 
 nifti1_test:nifti1_test.o nifti1_io.o znzlib.o
 	$(RM) $@
@@ -1986,7 +1976,7 @@ nifti1_test:nifti1_test.o nifti1_io.o znzlib.o
 
 nifti_tool.o:nifti/utils/nifti_tool.c
 	$(RM) $@
-	$(CC) -c nifti/utils/nifti_tool.c -Inifti/niftilib -Inifti/znzlib $(IFLAGS)
+	$(CC) -c nifti/utils/nifti_tool.c $(INFLAGS)
 
 nifti_tool:nifti_tool.o nifti1_io.o znzlib.o
 	$(RM) $@
