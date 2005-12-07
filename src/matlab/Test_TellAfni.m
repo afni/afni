@@ -55,6 +55,7 @@ i = 1;
 cs(i) = NewCs('open_window', '', 'axialimage', 'keypress=" "'); i = i+1; % stop the video with space press
 cs(i) = NewCs('Set_Function', 'A', 'ARzs_CW_avvr.DEL'); i = i + 1;
 cs(i) = NewCs('See_Overlay', '', '+'); i = i + 1;
+cs(i) = NewCs('SET_DICOM_XYZ', '', '-6 86 -3'); i = i+1; 
 cs(i) = NewCs('SET_PBAR_SIGN', '' ,'+'); i = i + 1;
 cs(i) = NewCs('SET_PBAR_NUMBER', '' ,'20'); i = i + 1;
 cs(i) = NewCs('SET_SUBBRICKS', '', '-1 0 2'); i = i + 1;
@@ -65,7 +66,6 @@ TellAfni(cs); clear cs
 fprintf(1,'Sleeping for a few seconds...\n'); pause(4);
 i = 1;
 cs(i) = NewCs('open_window', '', 'coronalimage', 'geom=500x500+50+450'); i = i+1; 
-cs(i) = NewCs('SET_DICOM_XYZ', '', '-6 86 -3'); i = i+1; 
 cs(i) = NewCs('open_window', '', 'axialimage', 'mont=1x1'); i = i+1;
 TellAfni(cs); clear cs
 
