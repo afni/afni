@@ -34,8 +34,13 @@
 DBG = 1;
 
 %get the directory
-dirname = uigetdir;
+dirname = uigetdir(cd,'Select directory that has AFNI''s matlab demo data');
 
+%check for dsets
+if (exist(sprintf('%s%cARzsspgrax+orig.HEAD',dirname, filesep),'file') ~= 2),
+   fprintf(2,'Error: Could not find test data in selected directory:\n%s\n', dirname);
+   return;
+end
 %launch afni
 cs = NewCs('start_afni', '', dirname);
 TellAfni(cs);
@@ -68,7 +73,7 @@ fprintf(1,'Sleeping for a few seconds...\n'); pause(4);
 for (k=1:1:20),
    i = 2*k-1;
    cs(i) = NewCs('PBAR_ROTATE', '', '+'); i = i+1;
-   fnm = sprintf('Rot_%s.jpg',pad_strn(sprintf('%d',i), '0', 2, 1));
+   fnm = sprintf('Rot_%s.jpg',pad_strn(sprintf('%d',k), '0', 2, 1));
    unix(sprintf('rm %s', fnm));
    cs(i) = NewCs('SAVE_JPEG', '', 'coronalimage', fnm); 
 end
