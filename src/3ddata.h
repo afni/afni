@@ -36,6 +36,8 @@
 
 #include "thd_compress.h"
 
+#include "nifti1_io.h"   /* 06 Dec 2005 */
+
 #ifndef myXtFree
 /*! Macro to free a pointer and NULL-ize it as well. */
 #define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
@@ -566,7 +568,7 @@ typedef struct {
 
      Boolean valid[MARKS_MAXNUM] ;            /*!< True if actually set */
 
-     float xyz[MARKS_MAXNUM][3] ;             /*!< Coordinates (3dmm, not Dicom) */
+     float xyz[MARKS_MAXNUM][3] ;             /*!< Coordinates (3dmm, not DICOM) */
 
      int aflags[MARKS_MAXFLAG] ;              /*!< Action flags */
 
@@ -1238,10 +1240,10 @@ static char * ORIENT_tinystr[] = {
    "RL" , "LR" , "PA" , "AP" , "IS" , "SI" , "??"
 } ;
 
-static char ORIENT_xyz[]   = "xxyyzzg" ;  /* Dicom directions are
+static char ORIENT_xyz[]   = "xxyyzzg" ;  /* DICOM directions are
                                              x = R->L , y = A->P , z = I->S */
 
-/*! Determines if orientation code (0..5) is Dicom positive or negative. */
+/*! Determines if orientation code (0..5) is DICOM positive or negative. */
 
 static char ORIENT_sign[]  = "+--++-" ;
 
@@ -1282,7 +1284,12 @@ typedef struct {
       int zzorient ;  /*!< Orientation code */
 
       THD_mat33 to_dicomm ; /*!< Orthogonal matrix transforming from
-                                dataset coordinates to Dicom coordinates */
+                                dataset coordinates to DICOM coordinates */
+
+      /*** 06 Dec 2005: extensions to allow arbitrarily oriented volumes ***/
+
+      mat44 ijk_to_xyz ;  /* matrix taking ijk indexes to DICOM xyz coords */
+      mat44 xyz_to_ijk ;  /* inverse of above */
 
    /* pointers to other stuff */
 
@@ -1370,7 +1377,7 @@ static char * UNITS_TYPE_labelstring[] = { "ms" , "s" , "Hz" } ;
 
     If ( nsl > 0 && toff_sl != NULL), then the data was acquired as
     slices, not as a 3D block.  The slicing direction must be the
-    dataset (not Dicom) z-axis.  The extra offset for the data at
+    dataset (not DICOM) z-axis.  The extra offset for the data at
     z is given by computing isl = (z - zorg_sl) / dz_sl + 0.5; the
     extra offset is then toff_sl[isl].  Note that dz_sl might be
     different from the dataxes zzdel because the dataset might actually
@@ -1501,7 +1508,7 @@ extern void       MCW_hash_idcode( char *, struct THD_3dim_dataset * ) ;
 /*----------------------------------------------------------------------*/
 /*------------------- how to present the coordinates -------------------*/
 
-/*! How to present coordinates to the user (vs. the internal RAI/Dicom order). */
+/*! How to present coordinates to the user (vs. the internal RAI/DICOM order). */
 
 typedef struct {
    int xxsign , yysign , zzsign ,
@@ -1989,7 +1996,7 @@ typedef struct THD_3dim_dataset {
       char self_name[THD_MAX_NAME]        ;  /*!< my own "name" (no longer used) */
 
 #ifdef ALLOW_DATASET_VLIST
-      THD_vector_list * pts ;     /*!< in dataset coords (not Dicom order!) - for Ted Deyoe */
+      THD_vector_list * pts ;     /*!< in dataset coords (not DICOM order!) - for Ted Deyoe */
       Boolean pts_original ;      /*!< true if was read from disk directly */
 #endif
 
