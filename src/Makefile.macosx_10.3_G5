@@ -20,7 +20,7 @@ CCVOL  = cc -O2 -ffast-math -DDARWIN $(CEXTRA)
 CCMIN  = cc
 CCD    = $(CC) $(CCDEBS)
 # IFLAGS = -I. -I/usr/include -I/usr/include/sys -I/usr/X11R6/include
-IFLAGS = -I. -I/usr/X11R6/include
+IFLAGS = -I. -I/sw/include -I/usr/X11R6/include
 LFLAGS = -L. -L/sw/lib -L/usr/X11R6/lib -Wl,-multiply_defined -Wl,suppress
 
 CCSVD  = cc -O0 -fPIC -no-cpp-precomp
@@ -60,7 +60,7 @@ LLIBS  = -lmri -lXm -lXp -lXpm -lXext -lXmu -lXt -lX11 $(LZLIB) -lm -lmri -ldl -
 
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 # For suma
-SUMA_INCLUDE_PATH = -I/usr/X11R6/include -I./ -I../ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
+SUMA_INCLUDE_PATH = -I/sw/include -I/usr/X11R6/include -I./ -I../ -Igts/src -I/sw/include/glib-2.0 -I/sw/lib/glib-2.0/include
 SUMA_LINK_PATH = -L/usr/lib -L/usr/X11R6/lib -L../ -L/sw/lib -L/usr/local/lib
 SUMA_LINK_LIB = /sw/lib/libXm.a -lXm -lGLw -lGLU -lGL -lXmu -lXp -lXt -lXext -lX11 -lmri $(LZLIB) -lm -lmx -lglib -bind_at_load
 SUMA_MAKEFILE_NAME = SUMA_Makefile
