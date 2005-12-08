@@ -55,6 +55,9 @@
 
   Mod:     Check for proper ':' usage in -model parameters.
   Date:    24 August 2005 [rickr]
+
+  Mod:     Changed default workmem to 750 MB (from 12).
+  Date:    08 December 2005 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -217,7 +220,7 @@ void display_help_menu()
      "                                                                      \n"
      "[-diskspace]       print out disk space required for program execution\n"
      "[-workmem mega]    number of megabytes of RAM to use for statistical  \n"
-     "                   workspace  (default = 12)                          \n"
+     "                   workspace  (default = 750 (was 12))                \n"
      "[-rmsmin r]        r = minimum rms error to reject constant model     \n"
      "[-fdisp fval]      display (to screen) results for those voxels       \n"
      "                   whose F-statistic is > fval                        \n"
@@ -967,7 +970,7 @@ void initialize_options
   option_data->nxyz = 0;
 
   option_data->diskspace = 0;
-  option_data->workmem = 12;
+  option_data->workmem = 750;           /* from 12 - 8 Dec 2005 [rickr] */
   option_data->piece_size = 0;
   option_data->num_pieces = 0;
 
