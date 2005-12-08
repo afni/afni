@@ -58,9 +58,11 @@ if (np == 3),                            p4 = ''; p5 = ''; end
 if (np == 4),                                     p5 = ''; end
 
 if (~isempty(win)), 
-   win = upper(win); 
+   win = upper(win);
+   uwin = win; 
 else 
    win = 'A';
+   uwin = '';
 end
 
 if (length(win) ~= 1 || win < 'A' || win > 'J'),
@@ -138,7 +140,7 @@ switch (Name),
       end
       cs.w = win;
       cs.c = Name;
-      cs.v = sprintf('%c %f %c%c', cs.w, val, dec, isp); 
+      cs.v = sprintf('%c %.14f %c%c', cs.w, val, dec, isp); 
    case 'SET_PBAR_NUMBER',
       if (np ~= 1),
          fprintf(2,'Command <%s> requires 1 parameter\n', Name);
@@ -163,7 +165,7 @@ switch (Name),
          fprintf(2,'Command <%s> requires 1 parameter\n', Name);
          return;
       end      
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       if (p1(1) ~= '+' & p1(1) ~= '-'),
          fprintf(2,'parameter must be either + or -\n', Name);
          return;
@@ -174,7 +176,7 @@ switch (Name),
          fprintf(2,'Command <%s> requires 2 parameters\n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       ps = p1(1); p1 = p1(2:length(p1));
       if (ps ~= '+' & ps ~= '-'),
          fprintf(2,'Missing sign for pbar\n', Name);
@@ -212,21 +214,24 @@ switch (Name),
          fprintf(2,'Command <%s> requires 1 parameter\n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       if (p1(1) ~= '+' & p1(1) ~= '-'),
          fprintf(2,'parameter must be either + or -\n', Name);
          return;
       end 
       cs.w = win; cs.c = Name; cs.v = sprintf('%c.%s', win, p1);
    case 'DEFINE_COLORSCALE',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 2),
+         fprintf(2,'Command <%s> requires 2 parametera\n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s %s', p1, p2);
    case 'SET_FUNC_AUTORANGE',
       if (np ~= 1),
          fprintf(2,'Command <%s> requires 1 parameter\n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       if (p1(1) ~= '+' & p1(1) ~= '-'),
          fprintf(2,'parameter must be either + or -\n', Name);
          return;
@@ -237,7 +242,7 @@ switch (Name),
          fprintf(2,'Command <%s> requires 1 parameter\n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       if (p1n < 0.0),
          fprintf(2,'Command <%s> requires a positive parameter\n', Name);
          return;
@@ -248,24 +253,64 @@ switch (Name),
          fprintf(2,'Command <%s> requires 1 parameter\n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       if (p1(1) ~= '+' & p1(1) ~= '-'),
          fprintf(2,'parameter must be either + or -\n', Name);
          return;
       end 
       cs.w = win; cs.c = Name; cs.v = sprintf('%c.%s', win, p1);
    case 'SET_FUNC_RESAM',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 1),
+         fprintf(2,'Command <%s> requires 1 parameter\n', Name);
+         return;
+      end
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
+      [err,l1] = GetWord(p1,1,'.');
+      if (isempty(l1)),
+         fprintf(2,'Command <%s> has empty parameter\n', Name);
+         return;
+      end
+      err = NewCs_OKresam(l1);
+      if (err),
+         fprintf(2,'Function resampling mode %s not recognized.\nChoose from:\n%s\n',...
+                      l1, NewCs_OKresam());
+         return;
+      end
+      [err, l2] = GetWord(p1,2,'.');
+      if (~isempty(l2)),
+         err = NewCs_OKresam(l2);
+         if (err),
+            fprintf(2,'Resampling mode %s not recognized.\nChoose from:\n%s\n',...
+                      l2, NewCs_OKresam());
+            return;
+         end
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%c.%s.%s', win, l1, l2);
    case 'OPEN_PANEL',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 1),
+         fprintf(2,'Command <%s> requires 1 parameter\n', Name);
+         return;
+      end
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
+      err = NewCs_OKpanel(p1);
+      if (err),
+         fprintf(2,'Panel %s not recognized.\nChoose from:\n%s\n',...
+                      p1, NewCs_OKpanel());
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%c.%s',win,p1);
    case 'SYSTEM',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np < 1),
+         fprintf(2,'Command <%s> requires at least 1 parameter\n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s %s', p1, p2);
    case 'CHDIR',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 1),
+         fprintf(2,'Command <%s> requires 1 parameter\n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s', p1);
    case 'RESCAN_THIS',
       if (np > 1),
          fprintf(2,'Command <%s> requires 1 parameter\n', Name);
@@ -280,9 +325,12 @@ switch (Name),
       end
       cs.w = win; cs.c = Name;  cs.v = sprintf('%c', win);
    case {'SET_SESSION', 'SWITCH_SESSION', 'SWITCH_DIRECTORY'},
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
-   
+      if (np ~= 1),
+         fprintf(2,'Command <%s> requires 1 parameter\n', Name);
+         return;
+      end
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
+      cs.w = win; cs.c = Name; cs.v = sprintf('%c.%s',win,p1);
    case {'SET_SUBBRICKS','SET_SUB_BRICKS'},
       if (np < 1),
          fprintf(2,'Command <%s> requires at least 1 parameter\n', Name);
@@ -301,7 +349,7 @@ switch (Name),
          fprintf(2,'Command <%s> requires at least 1 parameter\n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       if (np == 2),
          sb = str2num(p2);
          if (length(sb) ~= 1),
@@ -322,14 +370,14 @@ switch (Name),
             return;
          end
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       cs.w = win; cs.c = Name; cs.v = sprintf('%c.%s %s', win, p1, p2);
    case 'OPEN_WINDOW',
       if (np < 1),
          fprintf(2,'Command <%s> requires 1 parameter at least\n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       err = NewCs_OKwindowname(p1);
       if (err),
          fprintf(2,'Window name %s not recognized.\nChoose from:\n%s\n',...
@@ -342,7 +390,7 @@ switch (Name),
          fprintf(2,'Command <%s> requires 1 parameter \n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       err = NewCs_OKwindowname(p1);
       if (err),
          fprintf(2,'Window name %s not recognized.\nChoose from:\n%s\n',...
@@ -355,7 +403,7 @@ switch (Name),
          fprintf(2,'Command <%s> requires 2 parameters\n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       err = NewCs_OKwindowname(p1);
       if (err),
          fprintf(2,'Window name %s not recognized.\nChoose from:\n%s\n',...
@@ -380,7 +428,7 @@ switch (Name),
          fprintf(2,'Command <%s> requires 1 parameter \n', Name);
          return;
       end
-      [win, p1, p1n] = NewCs_GetWin(p1);
+      [win, p1, p1n] = NewCs_GetWin(p1, uwin);
       err = NewCs_OKxhaircode(p1);
       if (err),
          fprintf(2,'Xhair code %s not recognized.\nChoose from:\n%s\n',...
@@ -407,32 +455,59 @@ switch (Name),
       end
       cs.w = win; cs.c = Name; cs.v = sprintf('%f', p1);
    case 'OPEN_GRAPH_XY',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 2),
+         fprintf(2,'Command <%s> requires 2 parameters \n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s %s', p1, p2);
    case 'CLOSE_GRAPH_XY',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 1),
+         fprintf(2,'Command <%s> requires 1 parameter \n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s', p1);
    case 'CLEAR_GRAPH_XY',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 1),
+         fprintf(2,'Command <%s> requires 1 parameter \n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s', p1);
    case 'ADDTO_GRAPH_XY',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 2),
+         fprintf(2,'Command <%s> requires 2 parameters \n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s %s', p1, p2);
    case 'OPEN_GRAPH_1D',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 2),
+         fprintf(2,'Command <%s> requires 2 parameters \n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s %s', p1, p2);
    case 'CLOSE_GRAPH_1D',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 1),
+         fprintf(2,'Command <%s> requires 1 parameter \n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s', p1);
    case 'CLEAR_GRAPH_1D',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 1),
+         fprintf(2,'Command <%s> requires 1 parameter \n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s', p1);
    case 'ADDTO_GRAPH_1D',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 2),
+         fprintf(2,'Command <%s> requires 2 parameters \n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s %s', p1, p2);
    case 'SET_GRAPH_GEOM',
-      fprintf(2,'Command <%s> not implemented yet.\n', Name);
-      return;
+      if (np ~= 2),
+         fprintf(2,'Command <%s> requires 2 parameters \n', Name);
+         return;
+      end
+      cs.w = win; cs.c = Name; cs.v = sprintf('%s %s', p1, p2);
    case 'MADMAG',
       fprintf(2,'Command <%s> not implemented yet.\n', Name);
       return;
@@ -446,15 +521,20 @@ return;
 
 %%%%% Supporting functions below %%%%%%%%%%%%%%%%%
 %figure out the window deal
-function [win,p1,p1n] = NewCs_GetWin(p1)
+function [win,p1,p1n] = NewCs_GetWin(p1, uwin)
 
-   win = 'A';
+   win = uwin;
    p1n = 0.0;
 
    if (~isnumeric(p1)),
       if (length(p1) > 1),
          if ((p1(1)) >= 'A' & (p1(1)) <= 'J' & p1(2) == '.'),
             win = p1(1);
+            if (~isempty(uwin) & uwin ~= win),
+               fprintf(2,...
+                  'Warning: Conflict in window specification (%c vs %c).\nChoosing one in parameter (%c).\n',...
+                  uwin, win, win);
+            end
             p1 = p1(3:length(p1));
          end
       end
@@ -462,7 +542,7 @@ function [win,p1,p1n] = NewCs_GetWin(p1)
    else 
       p1n = p1;
    end
-
+   if (isempty(win)) win = 'A'; end
 return
 
 %check on windowname
@@ -512,3 +592,51 @@ function [err] = NewCs_OKxhaircode(p1)
    end
 
 return
+
+%Check on resample
+function [err] = NewCs_OKresam(p1)
+   
+   lcool = {'NN', 'Li', 'Cu',...
+            'Bk'};
+   if (nargin == 1),   
+      switch (p1),
+         case lcool,
+            err = 0;
+            return;
+         otherwise,
+            err = 1;
+            return;
+      end
+   else
+      err = '';
+      for (i=1:1:length(lcool)),
+         err = sprintf('%s %s\n', err, char(lcool(i)));
+      end
+      return;
+   end
+
+return
+
+%Check on panel
+function [err] = NewCs_OKpanel(p1)
+   
+   lcool = {'Define_Overlay', 'Define_Datamode', 'Define_Markers'};
+   if (nargin == 1),   
+      switch (p1),
+         case lcool,
+            err = 0;
+            return;
+         otherwise,
+            err = 1;
+            return;
+      end
+   else
+      err = '';
+      for (i=1:1:length(lcool)),
+         err = sprintf('%s %s\n', err, char(lcool(i)));
+      end
+      return;
+   end
+
+return
+
