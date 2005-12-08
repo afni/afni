@@ -70,10 +70,10 @@ for (i=1:1:ncs),
       switch (cs(i).c),
          case 'START_AFNI',
             if (exist(LogFile) == 2),
-               fprintf(2,'Error: Log file %s found.\n', LogFile);
+               fprintf(2,'\nError: Log file %s found.\n', LogFile);
                fprintf(2,'Make sure no other AFNI is running AND listening for plugouts.\n');
-               fprintf(2,'rm the logfile with: rm -f %s \n', LogFile);
-               fprintf(2,'Then try your command again.\n');
+               fprintf(2,'rm the logfile with:\n!rm -f %s \n', LogFile);
+               fprintf(2,'Then try your command again.\n\n');
                return;
             end
             scom = sprintf('afni -yesplugouts %s |& tee %s &', cs(i).v, LogFile);
@@ -94,9 +94,9 @@ for (i=1:1:ncs),
                Tel = Tel+0.2;
             end
             if (iserr),
-               fprintf(2,'Launched a new AFNI but failed to communicate.\n');
+               fprintf(2,'\nLaunched a new AFNI but failed to communicate.\n');
                fprintf(2,'Close the failed AFNI and any other AFNI sessions\n');
-               fprintf(2,'that are listening to plugouts.\n');
+               fprintf(2,'that are listening to plugouts.\n\n');
                scom = sprintf('rm -f %s >& /dev/null',  LogFile);
                unix(scom);
                return;
