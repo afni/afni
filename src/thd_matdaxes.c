@@ -27,11 +27,9 @@
 #undef  XYINVERT_MAT44
 #define XYINVERT_MAT44(AA)                                               \
   ( AA.m[0][0] = -AA.m[0][0] , AA.m[0][1] = -AA.m[0][1] ,                \
-    AA.m[0][2] = -AA.m[0][2] , AA.m[0][3] = -AA.m[0][3] ,                \
+     AA.m[0][2] = -AA.m[0][2] , AA.m[0][3] = -AA.m[0][3] ,               \
     AA.m[1][0] = -AA.m[1][0] , AA.m[1][1] = -AA.m[1][1] ,                \
-    AA.m[1][2] = -AA.m[1][2] , AA.m[1][3] = -AA.m[1][3] ,                \
-    AA.m[2][0] = -AA.m[2][0] , AA.m[2][1] = -AA.m[2][1] ,                \
-    AA.m[2][2] = -AA.m[2][2] , AA.m[2][3] = -AA.m[2][3]  )
+     AA.m[1][2] = -AA.m[1][2] , AA.m[1][3] = -AA.m[1][3] )
 
 /*---------------------------------------------------------------------------*/
 /*! Multiply 2 mat44 matrices (a utility missing from nifti1_io.c).
@@ -109,6 +107,7 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
 {
    int icod , jcod , kcod ;
    mat44 nmat ;
+   float xx,yy,zz , ss , aa,bb,cc ;
 
    /* table to convert NIfTI-1 orientation codes (1..6)
       into AFNI orientation codes (0..5, and in a different order) */
@@ -133,11 +132,34 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
    dax->yyorient = orient_nifti2afni[jcod] ;
    dax->zzorient = orient_nifti2afni[kcod] ;
 
-   /* grid offsets */
+   /* grid offset int i-direction is projection of last
+      column of ijk_to_xyz matrix (the shifts) along the
+      direction of the first column of the matrix (the i-column) */
 
-   dax->xxorg = dax->ijk_to_xyz.m[0][3] ;
-   dax->yyorg = dax->ijk_to_xyz.m[1][3] ;
-   dax->zzorg = dax->ijk_to_xyz.m[2][3] ;
+   aa = dax->ijk_to_xyz.m[0][3] ;
+   bb = dax->ijk_to_xyz.m[1][3] ;
+   cc = dax->ijk_to_xyz.m[2][3] ;
+
+   xx = dax->ijk_to_xyz.m[0][0] ;
+   yy = dax->ijk_to_xyz.m[1][0] ;
+   zz = dax->ijk_to_xyz.m[2][0] ;
+   ss = sqrt(xx*xx+yy*yy+zz*zz) ; if( ss == 0.0f ) ss = 1.0f ;
+   dax->xxorg = (xx*aa+yy*bb+zz*cc) / ss ;
+   if( ORIENT_sign[dax->xxorient] == '-' ) dax->xxorg = -dax->xxorg ;
+
+   xx = dax->ijk_to_xyz.m[0][1] ;
+   yy = dax->ijk_to_xyz.m[1][1] ;
+   zz = dax->ijk_to_xyz.m[2][1] ;
+   ss = sqrt(xx*xx+yy*yy+zz*zz) ; if( ss == 0.0f ) ss = 1.0f ;
+   dax->yyorg = (xx*aa+yy*bb+zz*cc) / ss ;
+   if( ORIENT_sign[dax->yyorient] == '-' ) dax->yyorg = -dax->yyorg ;
+
+   xx = dax->ijk_to_xyz.m[0][2] ;
+   yy = dax->ijk_to_xyz.m[1][2] ;
+   zz = dax->ijk_to_xyz.m[2][2] ;
+   ss = sqrt(xx*xx+yy*yy+zz*zz) ; if( ss == 0.0f ) ss = 1.0f ;
+   dax->zzorg = (xx*aa+yy*bb+zz*cc) / ss ;
+   if( ORIENT_sign[dax->zzorient] == '-' ) dax->zzorg = -dax->zzorg ;
 
    /* grid spacing along i-direction is length of 1st column of matrix */
 
@@ -167,13 +189,13 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
     dax->ijk_to_xyz.m[0][2], dax->ijk_to_xyz.m[1][2], dax->ijk_to_xyz.m[2][2] );
 
    dax->to_dicomm.mat[0][0] = nmat.m[0][0] ;
-   dax->to_dicomm.mat[0][1] = nmat.m[0][1] ;
-   dax->to_dicomm.mat[0][2] = nmat.m[0][2] ;
-   dax->to_dicomm.mat[1][0] = nmat.m[1][0] ;
+   dax->to_dicomm.mat[0][1] = nmat.m[1][0] ;
+   dax->to_dicomm.mat[0][2] = nmat.m[2][0] ;
+   dax->to_dicomm.mat[1][0] = nmat.m[0][1] ;
    dax->to_dicomm.mat[1][1] = nmat.m[1][1] ;
-   dax->to_dicomm.mat[1][2] = nmat.m[1][2] ;
-   dax->to_dicomm.mat[2][0] = nmat.m[2][0] ;
-   dax->to_dicomm.mat[2][1] = nmat.m[2][1] ;
+   dax->to_dicomm.mat[1][2] = nmat.m[2][1] ;
+   dax->to_dicomm.mat[2][0] = nmat.m[0][2] ;
+   dax->to_dicomm.mat[2][1] = nmat.m[1][2] ;
    dax->to_dicomm.mat[2][2] = nmat.m[2][2] ;
 
    return ;
