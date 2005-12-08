@@ -74,6 +74,7 @@ for (i=1:1:ncs),
                fprintf(2,'Make sure no other AFNI is running AND listening for plugouts.\n');
                fprintf(2,'rm the logfile with: rm -f %s \n', LogFile);
                fprintf(2,'Then try your command again.\n');
+               return;
             end
             scom = sprintf('afni -yesplugouts %s |& tee %s &', cs(i).v, LogFile);
             [s,w] = unix(scom);
