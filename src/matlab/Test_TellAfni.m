@@ -5,6 +5,7 @@
 %Purpose:
 %   
 %   A script to demonstrate the use of the matlab AFNI driver tools (TellAfni).
+%   Make sure no current AFNI session is running with the -yesplugouts option.
 %   
 %Input:
 %   
@@ -43,7 +44,11 @@ if (exist(sprintf('%s%cARzsspgrax+orig.HEAD',dirname, filesep),'file') ~= 2),
 end
 %launch afni
 cs = NewCs('start_afni', '', dirname);
-TellAfni(cs);
+err = TellAfni(cs);
+if (err),
+   fprintf(2,'Error: Failed to start AFNI in listening mode.\n');
+   return;
+end
 
 %switch to relevant datsets
 i = 1;
