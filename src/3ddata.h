@@ -1288,8 +1288,10 @@ typedef struct {
 
       /*** 06 Dec 2005: extensions to allow arbitrarily oriented volumes ***/
 
-      mat44 ijk_to_xyz ;  /* matrix taking ijk indexes to DICOM xyz coords */
-      mat44 xyz_to_ijk ;  /* inverse of above */
+      mat44 ijk_to_dicom ;  /* matrix taking ijk indexes to DICOM xyz coords */
+      mat44 dicom_to_ijk ;  /* inverse of above */
+      float dicom_xxmin , dicom_yymin , dicom_zzmin ;
+      float dicom_xxmax , dicom_yymax , dicom_zzmax ;
 
    /* pointers to other stuff */
 
@@ -1354,9 +1356,87 @@ extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
 int THD_get_axis_direction( THD_dataxes *, int ) ; /* 19 Mar 2003 */
 
-extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;       /* 07 Dec 2005 */
-extern void THD_daxes_to_mat44( THD_dataxes *dax ) ;
+extern void THD_daxes_to_mat44( THD_dataxes *dax ) ;   /* 07 Dec 2005 */
 extern void THD_daxes_from_mat44( THD_dataxes *dax ) ;
+
+/*---------------------------------------------------------------------*/
+/* Macros and functions for dealing with mat44 structs. */
+
+extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;
+
+/*******
+   Functions in nifti1_io.c:
+      mat44 nifti_mat44_inverse( mat44 R ) ;
+      mat33 nifti_mat33_inverse( mat33 R ) ;
+      mat33 nifti_mat33_polar  ( mat33 A ) ;
+      float nifti_mat33_rownorm( mat33 A ) ;
+      float nifti_mat33_colnorm( mat33 A ) ;
+      float nifti_mat33_determ ( mat33 R ) ;
+      mat33 nifti_mat33_mul    ( mat33 A , mat33 B ) ;
+*******/
+
+#undef  ISVALID_MAT44
+#define ISVALID_MAT44(AA) (AA.m[3][3] != 0.0f)
+
+/* load the top 3 rows of a mat44 matrix,
+   and set the 4th row to [ 0 0 0 1], as required */
+
+#undef  LOAD_MAT44
+#define LOAD_MAT44(AA,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34)    \
+  ( AA.m[0][0]=a11 , AA.m[0][1]=a12 , AA.m[0][2]=a13 , AA.m[0][3]=a14 ,   \
+    AA.m[1][0]=a21 , AA.m[1][1]=a22 , AA.m[1][2]=a23 , AA.m[1][3]=a24 ,   \
+    AA.m[2][0]=a31 , AA.m[2][1]=a32 , AA.m[2][2]=a33 , AA.m[2][3]=a34 ,   \
+    AA.m[3][0]=AA.m[3][1]=AA.m[3][2]=0.0f , AA.m[3][3]=1.0f            )
+
+/* negate the top 2 rows of a mat44 matrix
+   (for transforming between NIfTI-1 and DICOM coord systems) */
+
+#undef  XYINVERT_MAT44
+#define XYINVERT_MAT44(AA)                                  \
+  ( AA.m[0][0] = -AA.m[0][0] , AA.m[0][1] = -AA.m[0][1] ,   \
+     AA.m[0][2] = -AA.m[0][2] , AA.m[0][3] = -AA.m[0][3] ,  \
+    AA.m[1][0] = -AA.m[1][0] , AA.m[1][1] = -AA.m[1][1] ,   \
+     AA.m[1][2] = -AA.m[1][2] , AA.m[1][3] = -AA.m[1][3] )
+
+/* load a mat33 matrix */
+
+#undef  LOAD_MAT33
+#define LOAD_MAT33(AA,a11,a12,a13,a21,a22,a23,a31,a32,a33)  \
+  ( AA.m[0][0]=a11 , AA.m[0][1]=a12 , AA.m[0][2]=a13 ,      \
+    AA.m[1][0]=a21 , AA.m[1][1]=a22 , AA.m[1][2]=a23 ,      \
+    AA.m[2][0]=a31 , AA.m[2][1]=a32 , AA.m[2][2]=a33  )
+
+/* copy the upper left corner of a mat44 struct into a mat33 struct */
+
+#undef  MAT44_TO_MAT33
+#define MAT44_TO_MAT33(AA,BB)                      \
+  LOAD_MAT33(BB,AA.m[0][0],AA.m[0][1],AA.m[0][2],  \
+                AA.m[1][0],AA.m[1][1],AA.m[1][2],  \
+                AA.m[2][0],AA.m[2][1],AA.m[2][2] )
+
+/* the reverse: copy mat33 to mat44 upper left corner */
+
+#undef  MAT33_TO_MAT44
+#define MAT33_TO_MAT44(AA,BB)                            \
+   LOAD_MAT44(BB,AA.m[0][0],AA.m[0][1],AA.m[0][2],0.0f,  \
+                 AA.m[1][0],AA.m[1][1],AA.m[1][2],0.0f,  \
+                 AA.m[2][0],AA.m[2][1],AA.m[2][2],0.0f )
+
+/* apply a mat44 matrix to a 3 vector (x,y,z) to produce (a,b,c) */
+
+#undef  MAT44_VEC
+#define MAT44_VEC(AA,x,y,z,a,b,c)                                        \
+ ( (a) = AA.m[0][0]*(x) + AA.m[0][1]*(y) + AA.m[0][2]*(z) + AA.m[0][3] , \
+   (b) = AA.m[1][0]*(x) + AA.m[1][1]*(y) + AA.m[1][2]*(z) + AA.m[1][3] , \
+   (c) = AA.m[2][0]*(x) + AA.m[2][1]*(y) + AA.m[2][2]*(z) + AA.m[2][3]  )
+
+/* apply a mat33 matrix to a 3 vector (x,y,z) to produce (a,b,c) */
+
+#undef  MAT33_VEC
+#define MAT33_VEC(AA,x,y,z,a,b,c)                           \
+ ( (a) = AA.m[0][0]*(x) + AA.m[0][1]*(y) + AA.m[0][2]*(z) , \
+   (b) = AA.m[1][0]*(x) + AA.m[1][1]*(y) + AA.m[1][2]*(z) , \
+   (c) = AA.m[2][0]*(x) + AA.m[2][1]*(y) + AA.m[2][2]*(z)  )
 
 /*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/
