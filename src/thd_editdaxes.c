@@ -12,8 +12,8 @@
    voxel size (resam).
 -----------------------------------------------------------------*/
 
-void THD_edit_dataxes( float resam , THD_dataxes * daxes ,
-                                     THD_dataxes * wod_daxes )
+void THD_edit_dataxes( float resam , THD_dataxes *daxes ,
+                                     THD_dataxes *wod_daxes )
 {
    float lxx , lyy , lzz ;
    float rex , rey , rez ;

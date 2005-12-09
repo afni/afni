@@ -333,6 +333,10 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
       default: THD_FATAL_ERROR("illegal zxorient code") ;
    }
 
+   /* 09 Dec 2005: set ijk_to_dicom matrix and its inverse */
+
+   THD_daxes_to_mat44( daxes ) ;
+
    /*------------------------------------*/
    /*-- read set of markers (optional) --*/
    /*------------------------------------*/
