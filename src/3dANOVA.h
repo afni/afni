@@ -52,6 +52,9 @@
    Mod:     Added old_method flag to anova_options struct.
             Added prototype for contrasts_are_valid(), and ANOVA_MODS_LINK.
    Date:    01 December 2005 [rickr]
+
+   Mod:     Added debug field to anova_options struct.
+   Date:    08 December 2005 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -226,6 +229,7 @@ typedef struct anova_options
 
   char * bucket_filename;       /* file name for bucket dataset */
 
+  int    debug;                 /* for more verbose output */
 } anova_options;
 
 

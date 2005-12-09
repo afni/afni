@@ -1344,3 +1344,12 @@
 08 December 2005:
   * modified 3dRegAna.c, setting default workmem to 750 (MB)
 
+09 December 2005:
+  * modified 3dANOVA.c
+      - modified contrast t-stat computations (per Gang)
+      - added -old_method, -OK, -assume_sph and -debug options
+  * modified 3dANOVA.h, added debug field to anova_options
+  * modified 3dANOVA.lib
+      - no models to check for level 1 in old_method_applies()
+      - option -OK is insufficient by itself
+

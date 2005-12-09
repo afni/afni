@@ -189,6 +189,7 @@ void initialize_options (anova_options * option_data)
 
   option_data->bucket_filename = NULL;
 
+  option_data->debug = 0; /* 8 Dec 2005 [rickr] */
 }
 
    
@@ -943,12 +944,13 @@ void destroy_anova_options (anova_options * option_data)
     Indicate whether -old_method should be considered.    2 Dec 2005 [rickr]
     Valid uses:
 
-        level 1: TBD
+        level 1: valid (no models)
         level 2: model 3
         level 3: models 4 and 5
 */
 int old_method_applies(int level, int model)
 {
+   if( level == 1 ) return 1;
    if( level == 2 ) return(model == 3);
    if( level == 3 ) return(model == 4 || model == 5);
 
@@ -1036,6 +1038,13 @@ int contrasts_are_valid (anova_options * option_data, int show_errs, int level)
   /* if old_method && OK, we are also okay */
   if ( (option_data->old_method & 3) == 3 )
     return 1;
+
+  /* if only OK, whine and return */
+  if ( (option_data->old_method & 3) == 2 ){
+    if (show_errs)
+       fprintf(stderr,"** -OK option is not sufficient\n");
+    return 0;
+  }
 
   if ( !(option_data->old_method & 4) ){  /* no -assume_sph, fail */
     if (show_errs)
