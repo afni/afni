@@ -488,6 +488,8 @@ char * MV_format_fval2( float fval, int len)
    if (strlen(buf) < len) return (buf);
    
    /* trim it down */
+   pos = strchr (buf, 'e');
+   if (pos) return(buf); /* scientific notation, get out (ZSS, thanks to tip by Ben Singer Dec 12 05) */
    pos = strchr (buf, '.');
    if (!pos) return(buf);  /* can't do no'in */
    wid = pos - buf;

@@ -275,6 +275,7 @@ int tcp_connect( char * host , int port )
 
 int tcp_listen( int port )
 {
+   static int nobindmsg;
    int sd , l ;
    struct sockaddr_in sin ;
 
@@ -303,7 +304,12 @@ int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-      PERROR("Can't bind? tcp_listen[bind]"); CLOSEDOWN(sd); return -1;
+      if (!(nobindmsg % 10000)) { /* slow message printing down! ZSS */
+         PERROR("\nCan't bind? tcp_listen[bind]");
+         nobindmsg = 0; 
+      }
+      ++nobindmsg;
+      CLOSEDOWN(sd); return -1;
    }
 
    if( listen(sd,1) == -1 ){

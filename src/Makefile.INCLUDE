@@ -7,8 +7,8 @@ F2C = ./f2c -A
 
 ## 07 Dec 2005: modify the include flags here
 
-INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/znzlib $(USE_ZLIB)
-ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/znzlib $(USE_ZLIB)
+INFLAGS  = $(IFLAGS) -Inifti/niftilib -Inifti/znzlib -I3DEdge/src $(USE_ZLIB)
+ISFLAGS  = $(IFLAGS) -I../nifti/niftilib -I../nifti/znzlib -I../3DEdge/src $(USE_ZLIB)
 
 DOCS     = ../doc/ps/*.ps ../doc/README/README* AFNI.changes.cox   \
            rickr/AFNI.changes.rickr rhammett/AFNI.changes.rhammett
@@ -69,7 +69,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm Imon fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive   \
            nifti_tool nifti_stats nifti1_test whereami plugout_drive            \
-           3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml          \
+           3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon 3dLocalstat 3danisosmooth 3dmaxima    \
            $(EXTRAS)
 
@@ -577,9 +577,9 @@ d3dmerge:3dmerge.c
 	$(CC) -o 3dttest 3dttest.o parser.o parser_int.o \
               $(LFLAGS) -lmri -lf2c $(LLIBS)
 
-3dedge3:lib3DEdge.a 3dedge3.c
+3dedge3:lib3DEdge.a 3dedge3.o
 	$(RM) $@
-	$(CC) -o 3dedge3 3dedge3.c -I3DEdge/src -l3DEdge \
+	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src -l3DEdge \
               $(LFLAGS) -lmri -lf2c $(LLIBS)
 
 whereami:whereami.c

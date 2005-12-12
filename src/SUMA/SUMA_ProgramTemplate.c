@@ -98,7 +98,7 @@ int main (int argc,char *argv[])
    Opt = SUMA_PROGRAM_NAME_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
-
+   
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
