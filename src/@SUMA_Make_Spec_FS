@@ -294,11 +294,29 @@ L_SET_SURF_DIRS:
 	endif
     end
 
-    if ( $orig_dir == "" ) then
-	set endstr = "failure: cannot find directory 'orig' under $fs_dir"
+    set orig_mgz = ""
+    foreach test_mgz (  $surf_dir/orig.mgz		\
+			$surf_dir/mri/orig.mgz	\
+			orig.mgz			\
+			mri/orig.mgz		\
+			../orig.mgz			\
+			../mri/orig.mgz )
+	if ( -f $test_mgz ) then
+	    set orig_mgz = $test_mgz
+	    break
+	endif
+    end
+    
+    if ( $orig_dir == "" && $orig_mgz == "") then
+	set endstr = "failure: cannot find directory 'orig' or file 'orig.mgz' under $fs_dir"
 	goto L_BAD_END
     endif
 
+    if ( $orig_dir == "" ) then
+   set endstr = "failure: script expects an 'orig' directory even if it is empty."
+   goto L_BAD_END 
+    endif
+    
     # verify orig dir permissions
     if ( ! -w $orig_dir ) then
 	set endstr = "failure: no write permissions for directory '$orig_dir'"
@@ -532,9 +550,31 @@ goto L_CREATE_SPEC_DONE
 L_CREATE_BRICK:
 
     cd $orig_dir
-
     # verify existence of 256 COR files, Checking for 256 is now obsolete ZSS Oct 14 04
-    set cor_files = ( COR-??? ) >& /dev/null
+    set cor_files = ( `echo COR-???` ) >& /dev/null 
+    
+    if ( $status) then
+      if ($orig_mgz != "") then   
+         #Try the orig.mgz business
+         echo "No COR files, converting $orig_mgz ..."
+         cd $start_dir
+         mri_convert -ot cor $orig_mgz $orig_dir
+         cd $orig_dir
+      else 
+         set endstr = "failure: No COR files and no $orig.mgz"
+         goto L_BAD_END
+      endif
+    else
+      if ($orig_mgz != "") then  
+         echo ""
+         echo "Warning: Found COR files and $orig_mgz"
+         echo "******** Will use COR files."
+         echo ""
+      endif
+    endif
+   
+   #check again
+   set cor_files = ( `echo COR-???` ) >& /dev/null 
     if ( $status ) then
 	set endstr = "failure: did not find COR files under '$orig_dir'"
 	goto L_BAD_END
@@ -598,7 +638,7 @@ L_CREATE_BRICK:
 	   #  -zSLAB 128P-127A $cor_files
     endif
 
-    mv $afni_dataset.HEAD $afni_dataset.BRIK $start_dir/$suma_dir
+    mv $afni_dataset.HEAD $afni_dataset.BRIK* $start_dir/$suma_dir
 
     echo "++ created AFNI file '$suma_dir/$afni_dataset.HEAD'"
     echo "++ created AFNI file '$suma_dir/$afni_dataset.BRIK'"
