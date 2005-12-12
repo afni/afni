@@ -6947,7 +6947,7 @@ STATUS("deciding whether to use function WOD") ;
       /*- The Ides of March, 2000: allow switching back to "view brick" -*/
 
 
-      if( func_brick_possible                          &&
+      if( func_brick_possible                       &&
           ( ( im3d->vinfo->force_func_wod  &&
               im3d->vinfo->tempflag == 0   &&
               !AFNI_noenv("AFNI_VIEW_FUNC_BRICK") ) ||
