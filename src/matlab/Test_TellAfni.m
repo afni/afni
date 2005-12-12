@@ -38,8 +38,8 @@
 DBG = 1;
 
 %get the directory
-dirname = uigetdir(cd,'Select directory that has AFNI''s matlab demo data');
-%dirname = '/Users/ziad/DownLoad/Demo_Bricks'
+%dirname = uigetdir(cd,'Select directory that has AFNI''s matlab demo data');
+dirname = '/Users/ziad/DownLoad/Demo_Bricks'
 
 %check for dsets
 if (exist(sprintf('%s%cARzsspgrax+orig.HEAD',dirname, filesep),'file') ~= 2),
