@@ -3137,7 +3137,7 @@ ENTRY("MCW_choose_CB") ;
 
    clear = (strcmp(wname,OVC_clear_label) == 0) ;
 
-   if( clear && cd->ctype != mcwCT_string ){
+   if( clear && cd->ctype != mcwCT_string ){   /* bad */
       XBell( XtDisplay(cd->wpop) , 100 ) ;
       RWC_XtPopdown( cd->wpop ) ;
       EXRETURN ;
@@ -3229,6 +3229,7 @@ ENTRY("MCW_choose_CB") ;
             call  = True ;
          }
 
+         if( done ) RWC_XtPopdown( cd->wpop ) ;
 
          if( call ){
             int pos_count=0 , * pos_list=NULL , ib ;
@@ -3254,7 +3255,6 @@ ENTRY("MCW_choose_CB") ;
                   cbs.nilist = pos_count ;             /* number of choices */
                   cbs.ilist  = pos_list ;              /* holds all choices */
                } else {
-                  if( done ) RWC_XtPopdown( cd->wpop ) ;
                   EXRETURN ;  /* no choice made */
                }
             }
@@ -3272,7 +3272,6 @@ ENTRY("MCW_choose_CB") ;
 
             myXtFree(pos_list) ;
          }
-         if( done ) RWC_XtPopdown( cd->wpop ) ;
          EXRETURN ;
       }
 
