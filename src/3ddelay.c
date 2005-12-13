@@ -1091,10 +1091,13 @@ void check_for_valid_inputs
   if (lncheck != nt)
   	{
 		printf("Error: Reference filename contains %d values.\n %d values were expected.\n", lncheck, nt);
-		exit (0);
+		exit (1);
 	}
   
-	Read_part_file_delay (option_data->rvec, option_data->ideal_filename[0], option_data->NFirst + 1,option_data->NLast + 1);  
+	if (Read_part_file_delay (option_data->rvec, option_data->ideal_filename[0], option_data->NFirst,option_data->NLast) <= 0) {
+      printf("Error: Reference filename could not be read or contain too few values.\n");
+		exit (1);
+   }  
 
 	 
   /* --- decide on the bucket name ----*/ 
@@ -1473,7 +1476,7 @@ void calculate_results
   
   
    /*--- get scaling factors for input sub-bricks ---*/
-	nuse      = DSET_NUM_TIMES(dset) - option_data->NFirst ;
+	nuse      = option_data->NLast - option_data->NFirst + 1;
    fac = (float *) malloc( sizeof(float) * nuse ) ;   /* factors */ MTEST (fac);
    
 
@@ -1523,7 +1526,9 @@ void calculate_results
 
 
      /*----- Extract Y-data for this voxel -----*/
-   	if (option_data->input1D_filename != NULL)
+   	
+      
+      if (option_data->input1D_filename != NULL)
 			{
 			  for (i = 0;  i < N;  i++)
 	   		 vox_vect[i] = (float)fmri_data[good_list[i]+NFirst];
@@ -1534,8 +1539,17 @@ void calculate_results
 			  for (i = 0;  i < N;  i++)
 	   		 vox_vect[i] = (float)ts_array[good_list[i]+NFirst];
 			}
-      
-		#ifdef ZDBG
+      #ifdef ZDBG
+         if (ixyz == 34 + 34 * 64 + 6 * (64*64)) {
+            fprintf(stderr,"\nigood (nuse=%d, N = %d)\n", nuse, N);
+            for (i= 0;  i < N;  i++)
+               fprintf(stderr,"%d\t", good_list[i]);
+            fprintf(stderr,"\n");
+            fprintf(stderr,"\nts\n");
+            for (i= 0;  i < N;  i++)
+               fprintf(stderr,"%.3f\t", vox_vect[i]);
+            fprintf(stderr,"\n");
+         }
 			if (ixyz == iposdbg)
 				{
 					printf ("TS extracted\n");

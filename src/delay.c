@@ -303,9 +303,38 @@ float sign (float x)
 }
 
 
-/*---------------------------------------------------------------------------*/
 
-int Read_part_file_delay (float *x,
+/*---------------------------------------------------------------------------*/
+int Read_part_file_delay(float *x,
+					char *f_name,
+					int a,
+					int b)
+   
+   { 
+      float *far=NULL;
+      int i=0, cnt=0;
+      MRI_IMAGE *im_data=NULL;
+      
+      im_data = mri_read_1D(f_name);
+      if (!im_data) { fprintf(stderr,"Failed to read 1D file."); return(-1);}
+      far = MRI_FLOAT_PTR(im_data);
+      if (im_data->ny != 1) { fprintf(stderr,"More than one column in 1D file."); return(-1);}
+      if (b>=im_data->nx) { fprintf(stderr,"Nlast >= number of values in 1D file!"); return(-1);}
+      cnt = 0;
+      for (i=a;i<=b;++i) {
+         x[cnt] = far[i];
+         #ifdef ZDBG
+            if (cnt < 10) { fprintf(stderr,"%d: %.3f\t", i, x[cnt]);}
+         #endif
+         ++cnt;
+      }
+      mri_free(im_data);  im_data = NULL;
+      
+      return(cnt);
+   
+   }
+   
+int Read_part_file_delay_OLD (float *x,
 					char *f_name,
 					int a,
 					int b)
