@@ -5060,6 +5060,9 @@ char *SUMA_help_basics()
    
    SS = SUMA_StringAppend(NULL, NULL);
    SS = SUMA_StringAppend(SS,
+                  "   [-novolreg|-noxform]: Ignore any Rotate, Volreg, Tagalign, \n"
+                  "                or WarpDrive transformations present in \n"
+                  "                the Surface Volume.\n"
                   "  Common Debugging Options:\n"
                   "   [-trace]: Turns on In/Out debug and Memory tracing.\n"
                   "             For speeding up the tracing log, I recommend \n"
@@ -5070,8 +5073,6 @@ char *SUMA_help_basics()
                   "   [-TRACE]: Turns on extreme tracing.\n"
                   "   [-nomall]: Turn off memory tracing.\n"
                   "   [-yesmall]: Turn on memory tracing (default).\n"
-                  "   [-novolreg]: Ignore any Volreg or Tagalign transformations\n"
-                  "                present in the Surface Volume.\n"
                   "  NOTE: For programs that output results to stdout\n"
                   "    (that is to your shell/screen), the debugging info\n"
                   "    might get mixed up with your results.\n" 
@@ -5161,7 +5162,7 @@ void SUMA_ParseInput_basics (char *argv[], int argc)
          brk = 1;
 		}
       
-      if (!brk && (strcmp(argv[kar], "-novolreg") == 0)) {
+      if (!brk && (strcmp(argv[kar], "-novolreg") == 0 || strcmp(argv[kar], "-noxform") == 0)) {
 			SUMA_IGNORE_VOLREG;
          brk = 1;
 		}

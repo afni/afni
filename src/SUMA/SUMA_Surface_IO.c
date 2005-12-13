@@ -3552,6 +3552,9 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps)
                   "                      orientation of the surface is RAI, unless you use the \n"
                   "                      -MNI_lpi option. The coordinate transformation is carried \n"
                   "                      out last, just before writing the surface to disk.\n"
+                  "    -native: Write the output surface in the coordinate system native to its format.\n"
+                  "             Option makes sense for BrainVoyager, Caret/SureFit and FreeSurfer surfaces.\n"
+                  "             But the implementation for Caret/Surefit is not finished yet (sorry).\n" 
                   "    -make_consistent: Check the consistency of the surface's mesh (triangle\n"
                   "                      winding). This option will write out a new surface even \n"
                   "                      if the mesh was consistent.\n"
@@ -3619,7 +3622,7 @@ int main (int argc,char *argv[])
    char orsurf[3], orcode[3];
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
-   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind, Do_p2s, onemore;
+   SUMA_Boolean brk, Do_tlrc, Do_mni_RAI, Do_mni_LPI, Do_acpc, Docen, Doxmat, Do_wind, Do_p2s, onemore, Do_native;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean exists;
    SUMA_Boolean LocalHead = NOPE;
@@ -3652,6 +3655,7 @@ int main (int argc,char *argv[])
    Do_acpc = NOPE;
    Do_wind = NOPE;
    Do_p2s = NOPE;
+   Do_native = NOPE;
    DoR2S = 0.0;
    onemore = NOPE;
 	while (kar < argc) { /* loop accross command ine options */
@@ -3906,6 +3910,11 @@ int main (int argc,char *argv[])
 			brk = YUP;
 		}
       
+      if (!brk && (strcmp(argv[kar], "-native") == 0)) {
+         Do_native = YUP;
+			brk = YUP;
+		}
+      
       if (!brk && (strcmp(argv[kar], "-orient_out") == 0)) {
          kar ++;
 			if (kar>= argc)  {
@@ -3987,6 +3996,11 @@ int main (int argc,char *argv[])
    if (ps->N_vp) vp_name = ps->vp[0];
          
    /* sanity checks */
+   if (Do_native && orcode[0] != '\0') {
+      SUMA_S_Err("Options -native and -orient_out are mutually exclusive");
+      exit(1);   
+   }
+   
    if (Do_mni_LPI && Do_mni_RAI) {
       fprintf (SUMA_STDERR,"Error %s:\nCombining -MNI_lpi and -MNI_rai options.\nNot good.", FuncName);
       exit(1);
@@ -4336,6 +4350,13 @@ int main (int argc,char *argv[])
       
       /* get rid of old surface object */
       SUMA_Free_Surface_Object(SOold);
+   }
+   
+   if (Do_native) {
+      if (!SUMA_Delign_to_VolPar (SO, NULL)) {
+         SUMA_S_Err("Failed to transform coordinates to native space");
+         exit(1);  
+      }
    }
    
    if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);

@@ -922,6 +922,120 @@ SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
 }
 
 /*!
+   \brief Undo the transform the coordinates of a surface object from AFNI-DICOM convention to the native space
+   Transforms in SO->VolPar are ignored
+   ans = SUMA_Delign_to_VolPar (SO, SF_Struct);
+   \param SO (SUMA_SurfaceObject *)
+   \param S_Struct (void *) That is only needed for SureFit surfaces and is nothing but a type cast of a SUMA_SureFit_struct containing information on cropping.
+                              send NULL for all other surfaces.
+   \return YUP/NOPE
+   For SureFit and FreeSurfer surfaces, the coordinates are first set in RAI (DICOM) coordinate system before applying SO->VolPar.
+   For other surface formats, SO->VolPar is applied to whatever coordinates are in SO->NodeList
+*/
+SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct)
+{
+   static char FuncName[]={"SUMA_Delign_to_VolPar"};
+   char  orcode[3];
+   float xx, yy, zz;
+   THD_coorder * cord_surf, *cord_RAI;
+   int i, ND, id;
+   SUMA_SureFit_struct *SF;
+   SUMA_FreeSurfer_struct *FS;
+   
+   SUMA_ENTRY;
+
+   /* allocate for cord structure */
+   cord_surf = (THD_coorder *)SUMA_malloc(sizeof(THD_coorder));
+   cord_RAI = (THD_coorder *)SUMA_malloc(sizeof(THD_coorder));
+   if (cord_surf == NULL || cord_RAI == NULL) {
+      fprintf(SUMA_STDERR,"Error %s: failed to allocate for cord\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   
+   /* do the dance to get cord for RAI */
+   THD_coorder_fill( NULL, cord_RAI);
+   ND = SO->NodeDim;
+   switch (SO->FileType) {
+      case SUMA_INVENTOR_GENERIC:
+      case SUMA_OPENDX_MESH:
+      case SUMA_PLY:
+      case SUMA_VEC:
+         /* Do nothing */
+         break;
+      case SUMA_FREE_SURFER:
+      case SUMA_FREE_SURFER_PATCH:
+         /* For free surfer, all you need to do is 
+          go from LPI to RAI (DICOM)*/
+         sprintf(orcode,"LPI");
+         THD_coorder_fill(orcode , cord_surf); 
+         /*loop over XYZs and change them to surface's order*/
+         for (i=0; i < SO->N_Node; ++i) {
+            id = i * ND;
+            THD_dicom_to_coorder (cord_surf, &(SO->NodeList[id]), &(SO->NodeList[id+1]), &(SO->NodeList[id+2])); 
+         }
+         break;
+      case SUMA_SUREFIT:
+         /* For SureFit, coordinates are actually a float version of the indices */
+         SUMA_SL_Warn(  "Reverse implementation not finished\n"
+                        "Send me a complaint, I must have forgotten\n"
+                        "Coords will be left untouched. (ziad@nih.gov)\n");
+         #if 0               
+         SF = (SUMA_SureFit_struct *)S_Struct;
+         {   THD_fvec3 fv, iv;
+            float D[3];
+            /* Calcluate Delta caused by cropping */
+            for (i=0; i < 3; ++i) D[i] = SF->AC_WholeVolume[i] - SF->AC[i];
+            /* fprintf (SUMA_STDERR,"%s: Shift Values: [%f, %f, %f]\n", FuncName, D[0], D[1], D[2]); */
+            for (i=0; i < SO->N_Node; ++i) {
+               id = i * ND;
+               /* change float indices to mm coords */
+               iv.xyz[0] = SO->NodeList[id] + D[0];
+               iv.xyz[1] = SO->NodeList[id+1] + D[1];
+               iv.xyz[2] = SO->NodeList[id+2] + D[2];
+               fv = SUMA_THD_3dfind_to_3dmm( SO, iv );
+               
+               /* change mm to RAI coords */
+               iv = SUMA_THD_3dmm_to_dicomm( SO->VolPar->xxorient, SO->VolPar->yyorient, SO->VolPar->zzorient,  fv );
+               SO->NodeList[id] = iv.xyz[0];
+               SO->NodeList[id+1] = iv.xyz[1];
+               SO->NodeList[id+2] = iv.xyz[2];
+            }
+         }
+         #endif
+         break;
+      case SUMA_BRAIN_VOYAGER:
+         /* For Brain Voyager, all you need to do is 
+          go from AIR to RAI (DICOM)
+          Note: The center of the volume is at the 1st voxel's center and that huge
+          center shift, relative to standard AFNI dsets (centered about middle of volume)
+          might throw off 3dVolreg. If you want to shift volume's center to be in
+          the middle voxel, you'll need to shift the surface coordinates before transforming
+          them to ASR*/
+         sprintf(orcode,"ASR");
+         THD_coorder_fill(orcode , cord_surf); 
+         /*loop over XYZs and change them to native space*/
+         for (i=0; i < SO->N_Node; ++i) {
+            id = i * ND;
+            THD_dicom_to_coorder (cord_surf, &(SO->NodeList[id]), &(SO->NodeList[id+1]), &(SO->NodeList[id+2])); 
+         }
+         break;
+      default:
+         fprintf(SUMA_STDERR,"Warning %s: Unknown SO->FileType. Assuming coordinates are in DICOM already.\n", FuncName);
+         break;
+   }
+   
+   #if 0
+   /* I don't thin the inverse of that step will be needed .... */
+   if (!SUMA_Apply_VolReg_Trans (SO)) {
+      fprintf(SUMA_STDERR,"Error %s: Failed in SUMA_Apply_VolReg_Trans.\n", FuncName);
+      SUMA_RETURN (NOPE);
+   }
+   #endif
+
+   SUMA_RETURN (YUP);
+}
+
+/*!
 \brief applies the transform in SO->VolPar to SO->NodeList. This only makes sense if 
 SO->NodeList is in DICOM to begin with...
 \param SO (SUMA_SurfaceObject *) You better have NodeList and VolPar in there...
@@ -938,7 +1052,7 @@ SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO)
    SUMA_ENTRY;
 
    if (SUMAg_CF->IgnoreVolreg) {
-      SUMA_SL_Note("Ignoring any Volreg or TagAlign transforms present in Surface Volume.\n");
+      SUMA_SL_Note("Ignoring any Volreg, TagAlign, Rotate or WarpDrive transforms present in Surface Volume.\n");
       SO->VOLREG_APPLIED = NOPE;
       SUMA_RETURN (YUP);
    }
