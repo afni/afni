@@ -28,6 +28,7 @@ byte * SUMA_isSkin(THD_3dim_dataset *dset, double *dvec, double thresh, int *N_s
 void SUMA_Show_VolPar(SUMA_VOLPAR *VP, FILE *Out);
 char *SUMA_VolPar_Info (SUMA_VOLPAR *VP);
 SUMA_Boolean SUMA_Align_to_VolPar (SUMA_SurfaceObject *SO, void* S_struct);
+SUMA_Boolean SUMA_Delign_to_VolPar (SUMA_SurfaceObject *SO, void * S_Struct);
 SUMA_Boolean SUMA_Apply_VolReg_Trans (SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_Read_SureFit_Param (char *f_name, SUMA_SureFit_struct *SF);
 int SUMA_ReleaseLink (SUMA_INODE * IN);
