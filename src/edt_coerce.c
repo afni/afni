@@ -396,6 +396,76 @@ ENTRY("EDIT_coerce_autoscale") ;
    RETURN( fac );
 }
 
+/*------------------------------------------------------------------------
+  Convert data to another type, scaling, if needed.    12 Dec 2005 [rickr]
+
+  Scaling occurs when the output type is integral and either has a
+  maximum value above limit (or the natural limit, if limit is zero),
+  or has resulting values that are not integers.
+
+  So for output integers not to be scaled, they must be bounded by
+  limit and come from integral values.
+  
+     nxy   = # values
+     itype = input data type
+     ivol  = pointer to input data (memory must exist)
+     otype = output data type
+     ovol  = pointer to output data (memory must exist)
+     limit = limit on magnitude of output data (0 to use natural limit)
+
+  Return value is the scaling factor used (0.0 --> no scaling).
+--------------------------------------------------------------------------*/
+
+float EDIT_convert_dtype( int nxyz , int itype,void *ivol ,
+                                     int otype,void *ovol , int limit )
+{
+   float fac=0.0 , top, olimit ;
+
+ENTRY("EDIT_convert_dtype") ;
+
+   if( MRI_IS_INT_TYPE(otype) ){
+      olimit = (limit > 0) ? limit : MRI_TYPE_maxval[otype];
+      top = MCW_vol_amax( nxyz,1,1 , itype,ivol ) ;
+      if( top > olimit || !is_integral_data(nxyz, itype, ivol) )
+          fac = olimit/top ;
+   }
+
+   EDIT_coerce_scale_type( nxyz , fac , itype,ivol , otype,ovol ) ;
+   RETURN( fac );
+}
+
+/*------------------------------------------------------------------------
+  If the data values are real-based, check to see if the values
+  can be represented as int.
+ *------------------------------------------------------------------------*/
+int is_integral_data( int nxyz , int dtype, void *vol )
+{
+    int c ;
+
+ENTRY("is_integral_data") ;
+
+    if( dtype == MRI_complex )  /* do not process for now */
+        RETURN(0);
+    else if( dtype == MRI_float )
+    {
+      float * dptr = (float *)vol;
+      float * dend = (float *)vol + nxyz;
+      for( ; dptr < dend ; dptr ++ )
+          if( (float)(int)*dptr != *dptr )
+              RETURN(0);  /* then not integral */
+    }
+    else if( dtype == MRI_double )
+    {
+      double * dptr = (double *)vol;
+      double * dend = (double *)vol + nxyz;
+      for( ; dptr < dend ; dptr ++ )
+          if( (double)(int)*dptr != *dptr )
+              RETURN(0); /* then not integral */
+    }
+
+    RETURN(1);  /* so yes */
+}
+
 /*-----------------------------------------------------------------------*/
 
 void EDIT_clip_float( float top , int nxyz , float * vol )

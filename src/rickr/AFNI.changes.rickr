@@ -1353,3 +1353,10 @@
       - no models to check for level 1 in old_method_applies()
       - option -OK is insufficient by itself
 
+14 Dec 2005:
+  * modified edt_coerce.c, added EDIT_convert_dtype() and is_integral_data()
+  * modified 3dttest.c
+      - process entire volume at once, not in multiple pieces
+      - added -voxel option (similar to the 3dANOVA progs)
+      - replaced scaling work with EDIT_convert_dtype() call
+

@@ -9,6 +9,13 @@
 #undef  TTDEBUG
 #undef  USE_PTHRESH
 
+/*---------------------------- history ----------------------------
+  14 Dec 2005 [rickr]
+     - process entire volume at once, not in multiple pieces
+     - added -voxel option (similar to the 3dANOVA progs)
+     - replaced scaling work with EDIT_convert_dtype() call
+  ----------------------------------------------------------------- */
+
 /*-------------------------- global data --------------------------*/
 
 /** inputs **/
@@ -23,6 +30,7 @@ static float TT_bval       = 0.0 ;
 static int   TT_use_editor = 0 ;
 static int   TT_be_quiet   = 0 ;
 static int   TT_workmem    = 12 ;  /* default = 12 Megabytes */
+static int   TT_voxel      = -1 ;  /* 0-based (but 1-based on cmd, like ANOVA)  */
 
 #define MEGA  1048576  /* 2^20 */
 
@@ -58,7 +66,6 @@ void TT_syntax(char *) ;
 void TT_read_opts( int argc , char * argv[] )
 {
    int nopt = 1 ;
-   float val ;
    int  ival , kk ;
 
    INIT_EDOPT( &TT_edopt ) ;
@@ -107,6 +114,15 @@ DUMP1 ;
                     argv[nopt] ) ;
             TT_syntax(buf) ;
          }
+         nopt++ ; continue ;  /* go to next arg */
+      }
+
+      /**** -voxel voxel ****/
+
+      if( strncmp(argv[nopt],"-voxel",6) == 0 ){        /* 14 Dec 2005 [rickr] */
+         if( ++nopt >= argc ) TT_syntax("need an argument after -voxel!") ;
+
+         TT_voxel = atoi(argv[nopt]) - 1 ; /* make zero-based */
          nopt++ ; continue ;  /* go to next arg */
       }
 
@@ -360,6 +376,9 @@ void TT_syntax(char * msg)
     "                         to 12.  The program will run faster if this is\n"
     "                         larger (see the NOTES section below).\n"
     "\n"
+    "  -voxel voxel       = like 3dANOVA, get screen output for a given voxel.\n"
+    "                         This is 1-based, as with 3dANOVA.\n"
+    "\n"
     "The -base1 or -set1 command line switches must follow all other options\n"
     "(including those described below) except for the -set2 switch.\n"
     "\n"
@@ -411,26 +430,18 @@ static float ptable[] = { 0.5 , 0.2 , 0.1 , 0.05 , 0.01 , 0.001 , 0.0001 , 0.000
 int main( int argc , char * argv[] )
 {
    int nx,ny,nz , nxyz , ii,kk , num1,num2 , num_tt=0 , iv ,
-       output_type , output_nvals , piece , num_piece , piece_len , fim_offset ;
+       piece , fim_offset;
    float dx,dy,dz , dxyz ,
-         num1_inv , num2_inv , num1m1_inv , num2m1_inv , dof , tthr ,
+         num1_inv , num2_inv , num1m1_inv , num2m1_inv , dof ,
          dd,tt,q1,q2 , f1,f2 , tt_max=0.0 ;
-   THD_3dim_dataset * dset=NULL , * new_dset=NULL , * qset=NULL ;
+   THD_3dim_dataset * dset=NULL , * new_dset=NULL ;
    float * av1 , * av2 , * sd1 , * sd2 , * ffim , * gfim ;
 
    void  * vsp ;
-   short * tsp , * tsar ;   /* output t-statistic */
-   float * fsp , * fsar ;
-
    void  * vdif ;           /* output mean difference */
-   short * sdif , * sdar ;  /* (in various formats) */
-   float * fdif , * fdar ;
-
-   void  * vfim ;
    char  cbuf[THD_MAX_NAME] ;
-   float fbuf[MAX_STAT_AUX] , fimfac , fimfacinv ;
+   float fbuf[MAX_STAT_AUX] , fimfac ;
    int   output_datum ;
-   int   piece_size ;
    float npiece , memuse ;
 
    float *dofbrik=NULL , *dofar=NULL ;
@@ -541,6 +552,7 @@ printf("*** deleting exemplar dataset\n") ;
 
    /*-- make space for the t-test computations --*/
 
+   /* (allocate entire volumes) 13 Dec 2005 [rickr] */
                               npiece  = 3.0 ;  /* need at least this many */
    if( TT_paired )            npiece += 1.0 ;
    else if( TT_set1 != NULL ) npiece += 2.0 ;
@@ -548,6 +560,7 @@ printf("*** deleting exemplar dataset\n") ;
    npiece += mri_datum_size(output_datum) / (float) sizeof(float) ;
    npiece += mri_datum_size(output_datum) / (float) sizeof(float) ;
 
+#if 0
    piece_size = TT_workmem * MEGA / ( npiece * sizeof(float) ) ;
    if( piece_size > nxyz ) piece_size = nxyz ;
 
@@ -555,19 +568,20 @@ printf("*** deleting exemplar dataset\n") ;
 printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
        npiece,piece_size) ;
 #endif
+#endif
 
-   av2  = (float *) malloc( sizeof(float) * piece_size ) ; MTEST(av2) ;
-   sd2  = (float *) malloc( sizeof(float) * piece_size ) ; MTEST(sd2) ;
-   ffim = (float *) malloc( sizeof(float) * piece_size ) ; MTEST(ffim) ;
+   av2  = (float *) malloc( sizeof(float) * nxyz ) ; MTEST(av2) ;
+   sd2  = (float *) malloc( sizeof(float) * nxyz ) ; MTEST(sd2) ;
+   ffim = (float *) malloc( sizeof(float) * nxyz ) ; MTEST(ffim) ;
    num2 = TT_set2->num ;
 
    if( TT_paired ){
       av1  = sd1 = NULL ;
-      gfim = (float *) malloc( sizeof(float) * piece_size ) ; MTEST(gfim) ;
+      gfim = (float *) malloc( sizeof(float) * nxyz ) ; MTEST(gfim) ;
       num1 = num2 ;
    } else if( TT_set1 != NULL ){
-      av1  = (float *) malloc( sizeof(float) * piece_size ) ; MTEST(av1) ;
-      sd1  = (float *) malloc( sizeof(float) * piece_size ) ; MTEST(sd1) ;
+      av1  = (float *) malloc( sizeof(float) * nxyz ) ; MTEST(av1) ;
+      sd1  = (float *) malloc( sizeof(float) * nxyz ) ; MTEST(sd1) ;
       gfim = NULL ;
       num1 = TT_set1->num ;
    } else {
@@ -610,24 +624,23 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
    /* print out memory usage to edify the user */
 
    if( ! TT_be_quiet ){
-      memuse =    sizeof(float) * piece_size * npiece
+      memuse =    sizeof(float) * nxyz * npiece
               + ( mri_datum_size(output_datum) + sizeof(short) ) * nxyz ;
 
       if( dofbrik != NULL ) memuse += sizeof(float) * nxyz ;  /* 27 Dec 2002 */
 
-      printf("--- allocated %d Megabytes memory for internal use\n",(int)(memuse/MEGA)) ;
+      printf("--- allocated %d Megabytes memory for internal use (%d volumes)\n",
+             (int)(memuse/MEGA), (int)npiece) ;
    }
 
    mri_fix_data_pointer( vdif , DSET_BRICK(new_dset,0) ) ;  /* attach bricks */
    mri_fix_data_pointer( vsp  , DSET_BRICK(new_dset,1) ) ;  /* to new dataset */
 
-   switch( output_datum ){
-      default: fprintf(stderr,"Illegal input data type %d = %s!\n",
-                       output_datum , MRI_TYPE_name[output_datum] ) ;
+   /** only short and float are allowed for output **/
+   if( output_datum != MRI_short && output_datum != MRI_float ) {
+      fprintf(stderr,"Illegal output data type %d = %s!\n",
+                     output_datum , MRI_TYPE_name[output_datum] ) ;
       exit(1) ;
-
-      case MRI_short: sdif = (short *) vdif ; tsp = (short *) vsp ; break ;
-      case MRI_float: fdif = (float *) vdif ; fsp = (float *) vsp ; break ;
    }
 
    num2_inv = 1.0 / num2 ;  num2m1_inv = 1.0 / (num2-1) ;
@@ -656,6 +669,7 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
           fprintf(stderr,"*** Can't use complex data: %s\n",(name)) ; exit(1); }     \
        break ; } while (0)
 
+#if 0   /* can do it directly now (without offsets)  13 Dec 2005 [rickr] */
 /** macro to return pointer to correct location in brick for current processing **/
 
 #define SUB_POINTER(ds,vv,ind,ptr)                                            \
@@ -670,32 +684,30 @@ printf("*** malloc-ing space for statistics: %g float arrays of length %d\n",
             case MRI_float:{ float * fim = (float *) DSET_ARRAY((ds),(vv)) ;  \
                              (ptr) = (void *)( fim + (ind) ) ;                \
             } break ; } break ; } while(0)
+#endif
 
    /** number of pieces to process **/
-
-   num_piece = (nxyz + piece_size - 1) / piece_size ;
+   /* num_piece = (nxyz + piece_size - 1) / nxyz ; */
 
    nice(2) ;  /** lower priority a little **/
 
-   for( piece=0 ; piece < num_piece ; piece++ ){
+   for( piece=0 ; piece < 1 ; piece++ ){  /* only 1 piece now   13 Dec 2005 [rickr] */
 
-      fim_offset = piece * piece_size ;
-      piece_len  = (piece < num_piece-1 ) ? piece_size
-                                          : (nxyz - fim_offset) ;
+      fim_offset = 0 ;
 
 #ifdef TTDEBUG
-printf("*** start of piece %d: length=%d offset=%d\n",piece,piece_len,fim_offset) ;
+printf("*** start of piece %d: length=%d offset=%d\n",piece,nxyz,fim_offset) ;
 #else
       if( ! TT_be_quiet ){
-         printf("--- starting piece %d/%d (%d voxels) ",piece+1,num_piece,piece_len) ;
+         printf("--- starting piece %d/%d (%d voxels) ",piece+1,1,nxyz) ;
          fflush(stdout) ;
       }
 #endif
 
       /** process set2 (and set1, if paired) **/
 
-      for( ii=0 ; ii < piece_len ; ii++ ) av2[ii] = 0.0 ;
-      for( ii=0 ; ii < piece_len ; ii++ ) sd2[ii] = 0.0 ;
+      for( ii=0 ; ii < nxyz ; ii++ ) av2[ii] = 0.0 ;
+      for( ii=0 ; ii < nxyz ; ii++ ) sd2[ii] = 0.0 ;
 
       for( kk=0 ; kk < num2 ; kk++ ){
 
@@ -710,6 +722,7 @@ printf("*** start of piece %d: length=%d offset=%d\n",piece,piece_len,fim_offset
          printf(" ** opened dataset file %s\n",TT_set2->ar[kk]);
 #endif
 
+#if 0 /* fimfac will be compute when the results are ready */
          if( piece == 0 && kk == 0 ){
             fimfac = DSET_BRICK_FACTOR(dset,iv) ;
             if( fimfac == 0.0 ) fimfac = 1.0 ;
@@ -718,13 +731,12 @@ printf("*** start of piece %d: length=%d offset=%d\n",piece,piece_len,fim_offset
 printf(" ** set fimfac = %g\n",fimfac) ;
 #endif
          }
+#endif
 
          /** convert it to floats (in ffim) **/
-
-         SUB_POINTER(dset,iv,fim_offset,vfim) ;
-         EDIT_coerce_scale_type( piece_len , DSET_BRICK_FACTOR(dset,iv) ,
-                                 DSET_BRICK_TYPE(dset,iv),vfim ,      /* input  */
-                                 MRI_float               ,ffim  ) ;   /* output */
+         EDIT_coerce_scale_type(nxyz , DSET_BRICK_FACTOR(dset,iv) ,
+                                DSET_BRICK_TYPE(dset,iv),DSET_ARRAY(dset,iv), /* input */
+                                MRI_float ,ffim  ) ;                         /* output */
          THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 
          /** get the paired dataset, if present **/
@@ -739,14 +751,19 @@ printf(" ** set fimfac = %g\n",fimfac) ;
         printf(" ** opened dataset file %s\n",TT_set1->ar[kk]);
 #endif
 
-            SUB_POINTER(dset,iv,fim_offset,vfim) ;
-            EDIT_coerce_scale_type( piece_len , DSET_BRICK_FACTOR(dset,iv) ,
-                                    DSET_BRICK_TYPE(dset,iv),vfim ,    /* input  */
-                                    MRI_float               ,gfim  ) ; /* output */
+            EDIT_coerce_scale_type(
+                        nxyz , DSET_BRICK_FACTOR(dset,iv) ,
+                        DSET_BRICK_TYPE(dset,iv),DSET_ARRAY(dset,iv), /* input */
+                        MRI_float ,gfim  ) ;                         /* output */
             THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 
-            for( ii=0 ; ii < piece_len ; ii++ ) ffim[ii] -= gfim[ii] ;
-         }
+            if( TT_voxel >= 0 )
+              fprintf(stderr,"-- paired values #%02d: %f, %f\n",
+                      kk,ffim[TT_voxel],gfim[TT_voxel]) ;
+
+            for( ii=0 ; ii < nxyz ; ii++ ) ffim[ii] -= gfim[ii] ;
+         } else if( TT_voxel >= 0 )
+            fprintf(stderr,"-- set2 value #%02d: %f\n",kk,ffim[TT_voxel]);
 
 #ifdef TTDEBUG
 printf("  * adding into av2 and sd2\n") ;
@@ -754,7 +771,7 @@ printf("  * adding into av2 and sd2\n") ;
 
          /* accumulate into av2 and sd2 */
 
-         for( ii=0 ; ii < piece_len ; ii++ ){
+         for( ii=0 ; ii < nxyz ; ii++ ){
             dd = ffim[ii] ; av2[ii] += dd ; sd2[ii] += dd * dd ;
          }
 
@@ -766,18 +783,21 @@ printf("  * adding into av2 and sd2\n") ;
 printf(" ** forming mean and sigma of set2\n") ;
 #endif
 
-      for( ii=0 ; ii < piece_len ; ii++ ){
+      for( ii=0 ; ii < nxyz ; ii++ ){
          av2[ii] *= num2_inv ;
          dd       = (sd2[ii] - num2*av2[ii]*av2[ii]) ;
          sd2[ii]  = (dd > 0.0) ? sqrt( num2m1_inv * dd ) : 0.0 ;
       }
+      if( TT_voxel >= 0 )
+         fprintf(stderr,"-- s2 mean = %g, sd = %g\n",
+                 av2[TT_voxel],sd2[TT_voxel]) ;
 
       /** if set1 exists but is not paired with set2, process it now **/
 
       if( ! TT_paired && TT_set1 != NULL ){
 
-         for( ii=0 ; ii < piece_len ; ii++ ) av1[ii] = 0.0 ;
-         for( ii=0 ; ii < piece_len ; ii++ ) sd1[ii] = 0.0 ;
+         for( ii=0 ; ii < nxyz ; ii++ ) av1[ii] = 0.0 ;
+         for( ii=0 ; ii < nxyz ; ii++ ) sd1[ii] = 0.0 ;
 
          for( kk=0 ; kk < num1 ; kk++ ){
             DOPEN(dset,TT_set1->ar[kk]) ;
@@ -789,19 +809,21 @@ printf(" ** forming mean and sigma of set2\n") ;
          printf(" ** opened dataset file %s\n",TT_set1->ar[kk]);
 #endif
 
-            SUB_POINTER(dset,iv,fim_offset,vfim) ;
-            EDIT_coerce_scale_type( piece_len , DSET_BRICK_FACTOR(dset,iv) ,
-                                    DSET_BRICK_TYPE(dset,iv),vfim ,     /* input  */
-                                    MRI_float               ,ffim  ) ;  /* output */
+            EDIT_coerce_scale_type(
+                                nxyz , DSET_BRICK_FACTOR(dset,iv) ,
+                                DSET_BRICK_TYPE(dset,iv),DSET_ARRAY(dset,iv), /* input */
+                                MRI_float ,ffim  ) ;                         /* output */
             THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 
 #ifdef TTDEBUG
 printf("  * adding into av1 and sd1\n") ;
 #endif
 
-            for( ii=0 ; ii < piece_len ; ii++ ){
+            for( ii=0 ; ii < nxyz ; ii++ ){
                dd = ffim[ii] ; av1[ii] += dd ; sd1[ii] += dd * dd ;
             }
+            if( TT_voxel >= 0 )
+               fprintf(stderr,"-- set1 value #%02d: %g\n",kk,ffim[TT_voxel]) ;
          }  /* end of loop over set1 datasets */
 
          /** form the mean and stdev of set1 **/
@@ -810,11 +832,14 @@ printf("  * adding into av1 and sd1\n") ;
 printf(" ** forming mean and sigma of set1\n") ;
 #endif
 
-         for( ii=0 ; ii < piece_len ; ii++ ){
+         for( ii=0 ; ii < nxyz ; ii++ ){
             av1[ii] *= num1_inv ;
             dd       = (sd1[ii] - num1*av1[ii]*av1[ii]) ;
             sd1[ii]  = (dd > 0.0) ? sqrt( num1m1_inv * dd ) : 0.0 ;
          }
+         if( TT_voxel >= 0 )
+            fprintf(stderr,"-- s1 mean = %g, sd = %g\n",
+                    av1[TT_voxel], sd1[TT_voxel]) ;
       }  /* end of processing set1 by itself */
 
       /***** now form difference and t-statistic *****/
@@ -825,53 +850,36 @@ printf(" ** forming mean and sigma of set1\n") ;
          printf(" ** computing t-tests next\n") ;
 #endif
 
-      switch( output_datum ){
-         case MRI_short:                                      /* if fim is shorts */
-           sdar = sdif + fim_offset ;
-           tsar = tsp  + fim_offset ;    /* pointer into output t-statistic array */
-         break ;
-         case MRI_float:                                      /* if fim is floats */
-           fdar = fdif + fim_offset ;
-           fsar = fsp  + fim_offset ;
-         break ;
-      }
+#if 0 /* will do at end using EDIT_convert_dtype  13 Dec 2005 [rickr] */
 
       /** macro to assign difference value to correct type of array **/
-
-#define DIFASS switch( output_datum ){                                         \
-                  case MRI_short: sdar[ii] = (short) (fimfacinv*dd) ; break ;  \
-                  case MRI_float: fdar[ii] = (float) dd             ; break ; }
-
+#define DIFASS switch( output_datum ){                                        \
+                 case MRI_short: sdar[ii] = (short) (fimfacinv*dd) ; break ;  \
+                 case MRI_float: fdar[ii] = (float) dd             ; break ; }
 #define TOP_SS  32700
 #define TOP_TT (32700.0/FUNC_TT_SCALE_SHORT)
+
+#endif
 
       if( TT_paired || TT_use_bval == 1 ){ /** case 1: paired estimate or 1-sample **/
 
          f2 = 1.0 / sqrt( (double) num2 ) ;
-         for( ii=0 ; ii < piece_len ; ii++ ){
-            dd = av2[ii] - TT_bval ; DIFASS ;
+         for( ii=0 ; ii < nxyz ; ii++ ){
+            av2[ii] -= TT_bval ;  /* final mean */
             if( sd2[ii] > 0.0 ){
                num_tt++ ;
-               tt       = dd / (f2 * sd2[ii]) ;
-               switch( output_datum ){
-                 case MRI_short:
-                   tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
-                                          : (tt<-TOP_TT) ? (-TOP_SS)
-                                                         : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
-                 break ;
-                 case MRI_float:
-                   fsar[ii] = tt ;
-                 break ;
-               }
+               tt      = av2[ii] / (f2 * sd2[ii]) ;
+               sd2[ii] = tt;      /* final t-stat */
+
                tt = fabs(tt) ; if( tt > tt_max ) tt_max = tt ;
             } else {
-               switch( output_datum ){
-                 case MRI_short: tsar[ii] = 0 ; break ;
-                 case MRI_float: fsar[ii] = 0 ; break ;
-               }
+               sd2[ii] = 0.0;
             }
          }
 
+         if( TT_voxel >= 0 )
+            fprintf(stderr,"-- paired/bval mean = %g, t = %g\n",
+                    av2[TT_voxel], sd2[TT_voxel]) ;
 #ifdef TTDEBUG
 printf(" ** paired or bval test: num_tt = %d\n",num_tt) ;
 #endif
@@ -880,31 +888,23 @@ printf(" ** paired or bval test: num_tt = %d\n",num_tt) ;
 
          f1 = (num1-1.0) * (1.0/num1 + 1.0/num2) / (num1+num2-2.0) ;
          f2 = (num2-1.0) * (1.0/num1 + 1.0/num2) / (num1+num2-2.0) ;
-         for( ii=0 ; ii < piece_len ; ii++ ){
-            dd = av2[ii] - av1[ii]                           ; DIFASS ;
+         for( ii=0 ; ii < nxyz ; ii++ ){
+            av2[ii] -= av1[ii] ;        /* final mean */
             q1 = f1 * sd1[ii]*sd1[ii] + f2 * sd2[ii]*sd2[ii] ;
             if( q1 > 0.0 ){
                num_tt++ ;
-               tt       = dd / sqrt(q1) ;
-               switch( output_datum ){
-                 case MRI_short:
-                   tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
-                                          : (tt<-TOP_TT) ? (-TOP_SS)
-                                                         : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
-                 break ;
-                 case MRI_float:
-                   fsar[ii] = tt ;
-                 break ;
-               }
+               tt = av2[ii] / sqrt(q1) ;
+               sd2[ii] = tt ;      /* final t-stat */
+
                tt = fabs(tt) ; if( tt > tt_max ) tt_max = tt ;
             } else {
-               switch( output_datum ){
-                 case MRI_short: tsar[ii] = 0 ; break ;
-                 case MRI_float: fsar[ii] = 0 ; break ;
-               }
+               sd2[ii] = 0.0 ;
             }
          }
 
+         if( TT_voxel >= 0 )
+            fprintf(stderr,"-- unpaired, pooled mean = %g, t = %g\n",
+                    av2[TT_voxel], sd2[TT_voxel]) ;
 #ifdef TTDEBUG
 printf(" ** pooled test: num_tt = %d\n",num_tt) ;
 #endif
@@ -914,37 +914,29 @@ printf(" ** pooled test: num_tt = %d\n",num_tt) ;
 
          if( dofbrik != NULL ) dofar = dofbrik + fim_offset ;  /* 27 Dec 2002 */
 
-         for( ii=0 ; ii < piece_len ; ii++ ){
-            dd = av2[ii] - av1[ii]          ; DIFASS ;
+         for( ii=0 ; ii < nxyz ; ii++ ){
+            av2[ii] -= av1[ii] ;
             q1 = num1_inv * sd1[ii]*sd1[ii] ;
             q2 = num2_inv * sd2[ii]*sd2[ii] ;
             if( q1>0.0 && q2>0.0 ){               /* have positive variances? */
                num_tt++ ;
-               tt       = dd / sqrt(q1+q2) ;
-               switch( output_datum ){
-                 case MRI_short:
-                   tsar[ii] = (tt>TOP_TT) ? (TOP_SS)
-                                          : (tt<-TOP_TT) ? (-TOP_SS)
-                                                         : ((short)(FUNC_TT_SCALE_SHORT*tt)) ;
-                 break ;
-                 case MRI_float:
-                   fsar[ii] = tt ;
-                 break ;
-               }
+               tt = av2[ii] / sqrt(q1+q2) ;
+               sd2[ii] = tt ;      /* final t-stat */
+
                tt = fabs(tt) ; if( tt > tt_max ) tt_max = tt ;
 
                if( dofar != NULL )                             /* 27 Dec 2002 */
                  dofar[ii] =  (q1+q2)*(q1+q2)
                             / (num1m1_inv*q1*q1 + num2m1_inv*q2*q2) ;
             } else {
-               switch( output_datum ){
-                 case MRI_short: tsar[ii] = 0 ; break ;
-                 case MRI_float: fsar[ii] = 0 ; break ;
-               }
+               sd2[ii] = 0.0 ;
                if( dofar != NULL ) dofar[ii] = 1.0 ;           /* 27 Dec 2002 */
             }
          }
 
+         if( TT_voxel >= 0 )
+            fprintf(stderr,"-- unpaired, unpooled mean = %g, t = %g\n",
+                    av2[TT_voxel], sd2[TT_voxel]) ;
 #ifdef TTDEBUG
 printf(" ** unpooled test: num_tt = %d\n",num_tt) ;
 #endif
@@ -978,15 +970,40 @@ printf(" ** unpooled test: num_tt = %d\n",num_tt) ;
       printf("--- Double sided tail p = %8f at t = %8f\n" , ptable[ii] , tt ) ;
    }
 
+   /**----------------------------------------------------------------------**/
+   /** now convert data to output format                13 Dec 2005 [rickr] **/
+
+   /* first set mean */
+   fimfac = EDIT_convert_dtype(nxyz , MRI_float,av2 , output_datum,vdif , 0.0) ;
+   DSET_BRICK_FACTOR(new_dset, 0) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
+   dd = fimfac; /* save for debug output */
+
+   /* if output is of type short, limit t-stat magnitude to 32.7 */
+   if( output_datum == MRI_short ){
+      for( ii=0 ; ii < nxyz ; ii++ )
+        if     ( sd2[ii] >  32.7 ) sd2[ii] =  32.7 ;
+        else if( sd2[ii] < -32.7 ) sd2[ii] = -32.7 ;
+   }
+
+   fimfac = EDIT_convert_dtype(nxyz , MRI_float,sd2 , output_datum,vsp , 0.0) ;
+   DSET_BRICK_FACTOR(new_dset, 1) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
+
+#ifdef TTDEBUG
+printf(" ** fimfac for mean, t-stat = %g, %g\n",dd, fimfac) ;
+#endif
+   /**----------------------------------------------------------------------**/
+
    printf("--- Writing combined dataset into %s\n", DSET_BRIKNAME(new_dset) ) ;
 
    fbuf[0] = dof ;
    for( ii=1 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
    (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
 
+#if 0 /* factors already set */
    fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac                    : 0.0 ;
    fbuf[1] = (output_datum == MRI_short                  ) ? 1.0 / FUNC_TT_SCALE_SHORT : 0.0 ;
    (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
+#endif
 
    THD_load_statistics( new_dset ) ;
    THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
