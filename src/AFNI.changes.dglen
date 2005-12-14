@@ -91,4 +91,8 @@
 29 Nov 2005
  * removed default author and version info for 3dMax. Now option -ver gives that
  output. 3dMax is used in scripts, so that change confuses everything.
+14 Dec 2005
+ * added new options to 3danisosmooth for avoiding negative numbers and
+ fractional control of amount of edginess. 2D exponential method gives faster
+ results because of new constant and switched phi values.
  
