@@ -336,6 +336,10 @@ extern int EDIT_check_argv( int , char * argv[] , int , EDIT_options * ) ;
 extern void EDIT_coerce_type      ( int , int,void * , int,void * ) ;
 extern void EDIT_coerce_scale_type( int , float , int,void * , int,void * ) ;
 extern float EDIT_coerce_autoscale( int , int,void * , int,void * ) ;
+extern float EDIT_convert_dtype   ( int , int,void * , int,void *, int ) ;
+extern int   is_integral_data     ( int , int , void * ) ;
+
+
 
 extern void EDIT_aver_fvol( int, int, int,
                             float, float, float, float *, float) ;
