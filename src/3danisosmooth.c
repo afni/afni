@@ -35,6 +35,8 @@ static NI_stream ns = NULL;
 
 int compute_method = 0;   /* use Ding's method to compute phi values */
 float deltatflag = -1.0;  /* compute pseudotime step or use specific value */
+int noneg = 0;
+float edgefraction = 0.5;  /* default fraction of anisotropic image to add */
 extern float aniso_sigma1, aniso_sigma2;
 
 #define Smooth_WriteCheckWaitMax 2000
@@ -44,7 +46,8 @@ extern float aniso_sigma1, aniso_sigma2;
 
 
 THD_3dim_dataset * Copy_dset_to_float(THD_3dim_dataset * dset , char * new_prefix );
-static void Smooth_dset_tensor(THD_3dim_dataset *tempdset, THD_3dim_dataset *structtensor, int flag2D3D, byte *maskptr);
+static void Smooth_dset_tensor(THD_3dim_dataset *tempdset, THD_3dim_dataset *structtensor, int flag2D3D, byte *maskptr,
+int save_tempdsets_flag);
 
 static int Smooth_Open_Stream(int port);
 static int Smooth_Show_Image(float *far, int nx, int ny);
@@ -68,6 +71,8 @@ float smooth_factor);
 extern MRI_IMARR *Compute_Gradient_Matrix_Im(MRI_IMAGE *SourceIm, int flag2D3D, byte *maskptr, int xflag, int yflag, int zflag);
 static INLINE float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *maskptr, int i, int j, int k);
 extern void Compute_IMARR_Max(MRI_IMARR *Imptr);
+extern void Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset, char *dset_name);
+
 
 /*! compute the overall minimum and maximum voxel values for a dataset */
 int main( int argc , char * argv[] )
@@ -92,9 +97,8 @@ int main( int argc , char * argv[] )
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3danisosmooth [options] dataset\n"
-             "Smooths a dataset using anisotropic smoothing.\n"
-             "\n"
-             "The output dataset is preferentially smoothed in similar areas.\n\n"
+             "Smooths a dataset using an anisotropic smoothing technique.\n\n"
+             "The output dataset is preferentially smoothed to preserve edges.\n\n"
              "Options :\n"
              "  -prefix pname = Use 'pname' for output dataset prefix name.\n"
              "  -iters nnn = compute nnn iterations (default=10)\n"
@@ -114,11 +118,16 @@ int main( int argc , char * argv[] )
 	     "    Default = 1.0\n"
              "  -deltat n.nnn = assign pseudotime step. Default = 0.25\n"
              "  -savetempdata = save temporary datasets each iteration.\n"
-             "   Dataset prefixes are Gradient, Eigens, phi and Dtensor.\n"
-             "   Each is overwritten each iteration\n"
+             "    Dataset prefixes are Gradient, Eigens, phi, Dtensor.\n"
+	     "    Ematrix, Flux and Gmatrix are also stored for the first sub-brick.\n"
+             "    Each is overwritten each iteration\n"
              "  -phiding = use Ding method for computing phi (default)\n"
-             "  -phiexp = use exponential method for computing phi\n\n" 
-             "  -help = print this help screen\n"
+             "  -phiexp = use exponential method for computing phi\n"
+	     "  -noneg = set negative voxels to 0\n" 
+	     "  -edgefraction n.nnn = adjust the fraction of the anisotropic\n"
+	     "    component to be added\n"
+	     "    to the original image. Can vary between 0 and 1. Default =0.5\n"
+             "  -help = print this help screen\n\n"
              "References:\n"
              "  Z Ding, JC Gore, AW Anderson, Reduction of Noise in Diffusion\n"
              "   Tensor Images Using Anisotropic Smoothing, Mag. Res. Med.,\n"
@@ -147,7 +156,8 @@ int main( int argc , char * argv[] )
   datum = MRI_float;
    compute_method = -1;  /* detect multiple or default selection of compute_method */
 
-   deltatflag = -1.0;    /* pseudo-time step */   
+   deltatflag = -1.0;    /* pseudo-time step */ 
+     
    while( nopt < argc && argv[nopt][0] == '-' ){
       if( strcmp(argv[nopt],"-prefix") == 0 ){
 	  if (++nopt >= argc)
@@ -307,6 +317,25 @@ int main( int argc , char * argv[] )
 	   nopt++;
 	   continue;
      }
+     if( strcmp(argv[nopt],"-noneg") == 0 ){
+           noneg = 1;
+	   nopt++;
+	   continue;
+     }
+
+     if( strcmp(argv[nopt],"-edgefraction") == 0 ){
+	   if(++nopt >=argc ){
+	      ERROR_exit("Error - need an argument after -edgefraction!");
+	      
+	   }
+           edgefraction = atof(argv[nopt]);
+	   if ((edgefraction <0) || (edgefraction > 1)) {
+	      ERROR_exit( "Error - edgefraction must be between 0 and 1!");
+	     
+           }
+           nopt++;
+	   continue;
+     }
      
      ERROR_exit( "Error - unknown option %s", argv[nopt]);
  
@@ -416,7 +445,7 @@ int main( int argc , char * argv[] )
      }
      INFO_message("    applying structure tensor");
      /* Smooth udset image using image diffusion tensor */
-     Smooth_dset_tensor(udset, structtensor, flag2D3D, maskptr);
+     Smooth_dset_tensor(udset, structtensor, flag2D3D, maskptr, save_tempdsets_flag);
 
      /* display sample udset slice after smoothing for this iteration */
      if(afnitalk_flag) {
@@ -579,7 +608,8 @@ static int Smooth_Show_Image(far, nx, ny)
 
 
 /*! Smooth dataset image using image diffusion tensor */
-static void Smooth_dset_tensor(THD_3dim_dataset *udset, THD_3dim_dataset *structtensor, int flag2D3D, byte *maskptr)
+static void Smooth_dset_tensor(THD_3dim_dataset *udset, THD_3dim_dataset *structtensor, int flag2D3D, byte *maskptr, int
+save_tempdsets_flag)
 {
   MRI_IMARR *Gradient_Im;
   int nbriks,i;
@@ -593,6 +623,8 @@ static void Smooth_dset_tensor(THD_3dim_dataset *udset, THD_3dim_dataset *struct
   /* deviation from mean, can use structtensor space */
   /*  printf("Compute Ematrix\n");*/
   Compute_Ematrix(structtensor, flag2D3D, maskptr); 
+  if(save_tempdsets_flag)
+    Save_imarr_to_dset(structtensor->dblk->brick,structtensor, "Ematrix");
   /*  Compute_IMARR_Max(structtensor->dblk->brick);*/
   nbriks =   udset->dblk->nvals;
   sublist[0] = 1;
@@ -612,11 +644,17 @@ static void Smooth_dset_tensor(THD_3dim_dataset *udset, THD_3dim_dataset *struct
      /* Compute flux - results in Gradient_Im */
      /*printf("Compute Flux\n");*/
      Compute_Flux(Gradient_Im, structtensor, flag2D3D, maskptr);
+     if((save_tempdsets_flag)&&(i==0))  /* first sub-brick only */
+        Save_imarr_to_dset(Gradient_Im,structtensor, "Flux");
+
      /*Compute_IMARR_Max(Gradient_Im);*/
      /* Compute anisotropic component of smoothing, G */
      /*   put in Gradient_Im space */
      /*printf("Compute Gmatrix\n");*/
      Compute_Gmatrix(Gradient_Im, flag2D3D, maskptr);
+     if((save_tempdsets_flag)&&(i==0))  /* first sub-brick only */
+        Save_imarr_to_dset(Gradient_Im,structtensor, "Gmatrix");
+
      /*Compute_IMARR_Max(Gradient_Im);*/
      /* compute isotropic diffusion component of smooth, F */
      /* and update dset with new smoothed image */
@@ -1035,6 +1073,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
    int vx,vy,vz, nxm1, nym1, nzm1,nxy;  
    int maskflag, baseoffset;
    float sv00061824, sv01071925, sv02082026, sv0915, sv1016, sv1117, sv0321, sv0422, sv0523;
+   float Gfrac, Ffrac;
    
    ENTRY("Compute_Smooth");
    /* compute isotropic diffusion component of smooth, F and then overall smooth*/
@@ -1064,6 +1103,9 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
      d = (-6.0 * a) - (12.0 * b) - (8.0 * c);
    }
 
+   Gfrac = edgefraction * 2.0f;
+   Ffrac = 2.0f - Gfrac;
+   
   /** load the grid parameters **/
    data_im = DSET_BRICK (tempdset, 0);
    nx = data_im->nx; ny = data_im->ny; nz = data_im->nz; nxyz = data_im->nxyz;
@@ -1153,8 +1195,10 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 
 /*    	        Fval = Dmean * ((a * (v0 + v2 + v6 + v8)) + (b * (v1 + v3 + v5 + v7)) + c*v4);*/
     	        Fval = Dmean * ((a * (sv0 + sv2)) + (b * (sv1 + v3 + v5)) + c*v4);
-
-        	*tempptr++ =  v4 + DeltaT  *  (Fval + *Gvalptr);
+                Fval = v4 + DeltaT  *  ((Fval*Ffrac) + (*Gvalptr*Gfrac));
+		if((noneg)&&(Fval<0.0f))
+		   Fval = 0.0f;
+        	*tempptr++ =  Fval;
         	Gvalptr++; 
         	baseoffset++;
   	 }
@@ -1370,11 +1414,12 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 	       Fval += d * v13;
                /* scale by Dmean */
 	       Fval *= Dmean;
-
-        	*tempptr++ =  v13 + DeltaT  *  (Fval + *Gvalptr);
+               Fval = v13 + DeltaT  *  ((Fval*Ffrac) + (*Gvalptr*Gfrac));
+	       if((noneg)&&(Fval<0.0f))
+	          Fval = 0.0f;
+        	*tempptr++ = Fval; 
         	Gvalptr++; 
         	baseoffset++;
-     
        }   /* x */
       }  /* y */
      } /* z */		 
