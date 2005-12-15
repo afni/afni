@@ -14,6 +14,8 @@
   Mod:   5 Dec 2000, by Vinai Roopchansingh, to include -mask option
 
   Mod:   16 Feb 2005, RWCox: remove threshold stuff, and add -doall.
+
+  Mod:   15 Dec 2005, rickr: fixed use of sub-brick factors
 */
 
 #include <stdio.h>
@@ -69,8 +71,10 @@ int main( int argc , char * argv[] )
 
    int nx,ny,nz , nxyz , ii , kk , nopt , nbin ;
    float fbot , ftop ;
+   int   ibot , itop , has_fac; /* to deal with multiple short sub-bricks */
    int *fbin=NULL , *tbin=NULL ;
    float df , dfi ;
+   float fval ;
 
    float fimfac;
    int iv_fim, fim_type;
@@ -172,10 +176,20 @@ int main( int argc , char * argv[] )
    /* find global min and max of data in all used bricks */
 
    fbot = BIG_NUMBER ; ftop = -fbot ;
+   itop = -32768 ; ibot = 32767 ;
+   has_fac = 0 ;
    for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
      vbot = mri_min( DSET_BRICK(dset,iv_fim) ) ;
      vtop = mri_max( DSET_BRICK(dset,iv_fim) ) ;
      fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ; if (fimfac == 0.0)  fimfac = 1.0;
+
+     /* if short, get range before applying factor */
+     if( fim_type == MRI_short || fim_type == MRI_byte ){
+        if( fimfac != 1.0 ) has_fac = 1 ;
+        if( vbot < ibot ) ibot = vbot ;
+        if( vtop > itop ) itop = vtop ;
+     }
+
      vbot *= fimfac ; vtop *= fimfac ;
      if( vbot < fbot ) fbot = vbot;
      if( vtop > ftop ) ftop = vtop;
@@ -198,7 +212,7 @@ int main( int argc , char * argv[] )
 
       case MRI_byte:
       case MRI_short:
-        nbin = (int)(ftop-fbot+1.0) ;
+        nbin = (int)(itop-ibot+1.0) ;  /* ftop -> stop (for unscaled range) */
         if( nbin > HI_nbin ) nbin = HI_nbin ;
         if( nbin < 2       ) nbin = 2 ;
       break ;
@@ -222,8 +236,9 @@ int main( int argc , char * argv[] )
        case MRI_short:{
          short *fim = (short *)vfim ;
          for( ii=0 ; ii < nxyz ; ii++ ){
-           if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
-             kk = (int)( (fim[ii]-fbot)*dfi ) ;
+           fval = fim[ii]*fimfac ;
+           if( KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
+             kk = (int)( (fval-fbot)*dfi ) ; /* use real value */
              fbin[kk]++ ;
            }
          }
@@ -233,8 +248,9 @@ int main( int argc , char * argv[] )
        case MRI_byte:{
          byte *fim = (byte *)vfim ;
          for( ii=0 ; ii < nxyz ; ii++ ){
-           if( KEEP(fim[ii]*fimfac) && (HI_mask == NULL || HI_mask[ii]) ){
-             kk = (int)( (fim[ii]-fbot)*dfi ) ;
+           fval = fim[ii]*fimfac ;
+           if( KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
+             kk = (int)( (fval-fbot)*dfi ) ;
              fbin[kk]++ ;
            }
          }
@@ -267,7 +283,7 @@ int main( int argc , char * argv[] )
      for( kk=0 ; kk < nbin ; kk++ ){
        cumfbin += fbin[kk];
        printf ("%12.6f %13.6f %13.6f\n",
-               (fbot+kk*df)*fimfac,
+               fbot+kk*df,
                log10((double)fbin[kk]+1.0), log10((double)cumfbin+1.0));
      }
    } else {
@@ -277,7 +293,7 @@ int main( int argc , char * argv[] )
      for( kk=0 ; kk < nbin ; kk++ ){
        cumfbin += fbin[kk];
        printf ("%12.6f %13d %13ld\n",
-               (fbot+kk*df)*fimfac, fbin[kk], cumfbin);
+               fbot+kk*df, fbin[kk], cumfbin);
      }
    }
    exit(0) ;
