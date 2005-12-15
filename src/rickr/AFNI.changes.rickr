@@ -1360,3 +1360,6 @@
       - added -voxel option (similar to the 3dANOVA progs)
       - replaced scaling work with EDIT_convert_dtype() call
 
+15 Dec 2005:
+  * modified 3dhistog.c: fixed use of sub-brick factors
+
