@@ -18,7 +18,7 @@ void THD_edit_dataxes( float resam , THD_dataxes *daxes ,
    float lxx , lyy , lzz ;
    float rex , rey , rez ;
 
-   if( ! ISVALID_DATAXES(daxes) || ! ISVALID_DATAXES(wod_daxes) ) return ;
+   if( !ISVALID_DATAXES(daxes) || !ISVALID_DATAXES(wod_daxes) ) return ;
 
    *wod_daxes = *daxes ;       /* copy insides, then edit them */
 
@@ -84,6 +84,20 @@ void THD_edit_dataxes( float resam , THD_dataxes *daxes ,
    wod_daxes->zzmin -= 0.5 * wod_daxes->zzdel ;
    wod_daxes->zzmax += 0.5 * wod_daxes->zzdel ;
 #endif
+
+   /** 15 Dec 2005: deal with the new matrix coordinate entries **/
+
+   { mat44 new_mat ; int nxnew , nynew , nznew ;
+     new_mat = THD_resample_mat44( daxes->ijk_to_dicom ,
+                                   daxes->nxx , daxes->nyy , daxes->nzz ,
+                                   resam      , resam      , resam      ,
+                                   &nxnew     , &nynew     , &nznew      ) ;
+     if( ISVALID_MAT44(new_mat) ){
+       wod_daxes->ijk_to_dicom = new_mat ;
+       wod_daxes->dicom_to_ijk = nifti_mat44_inverse( new_mat ) ;
+       THD_set_dicom_box(wod_daxes) ;
+     }
+   }
 
    return ;
 }

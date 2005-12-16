@@ -3137,6 +3137,9 @@ ENTRY("AFNI_read_images") ;
      dset->daxes->zzorient = zz ;
    }
 
+   if( !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+     THD_daxes_to_mat44( dset->daxes ) ;
+
    dset->wod_flag  = False ;  /* no warp-on-demand */
    dset->wod_daxes = NULL ;   /* 02 Nov 1996 */
 
@@ -5381,14 +5384,14 @@ void AFNI_view_setter( Three_D_View *im3d , MCW_imseq *seq )
 
 /*------------------------------------------------------------------------*/
 
-void AFNI_set_viewpoint( Three_D_View * im3d ,
+void AFNI_set_viewpoint( Three_D_View *im3d ,
                          int xx,int yy,int zz , int redisplay_option )
 {
    int old_i1 , old_j2 , old_k3 , i1,j2,k3 ;
    int dim1,dim2,dim3 , isq_driver , do_lock , new_xyz ;
    int newti ; /* 24 Jan 2001 */
 
-   THD_dataxes * daxes ;
+   THD_dataxes *daxes ;
    THD_fvec3 fv ;
    THD_ivec3 old_ib , new_ib , old_id , new_id ;
 
@@ -9590,6 +9593,9 @@ STATUS("init new_daxes") ;
    new_daxes->yyorient = ORI_A2P_TYPE ;
    new_daxes->zzorient = ORI_I2S_TYPE ;
    LOAD_DIAG_MAT(new_daxes->to_dicomm,1,1,1) ;  /* identity matrix */
+
+   if( !ISVALID_MAT44(new_daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+     THD_daxes_to_mat44( new_daxes ) ;
 
    /*--- if view type is appropriate, set new markers ---*/
 

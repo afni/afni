@@ -33,22 +33,23 @@ mat44 THD_mat44_mul( mat44 A , mat44 B )
 /*! Compute the mat44 elements of a dataset dataxes struct, given the
     other elements that define the coordinate system.  Also see
     function THD_daxes_from_mat44(), which does the reverse.
+
+    On input to this function, the XXdel, XXorg, nXX, and to_dicomm elements
+    of dax must have been set already.
 -----------------------------------------------------------------------------*/
 
 void THD_daxes_to_mat44( THD_dataxes *dax )
 {
    mat44 ijk_to_dxyz , dxyz_to_dicom ;
-   float x,y,z , nx1,ny1,nz1 ;
-   float xbot,ybot,zbot , xtop,ytop,ztop ;
 
    if( dax == NULL ) return ;
 
    /* ijk_to_dxyz: transforms (i,j,k) to dataset (x,y,z) coords */
 
    LOAD_MAT44( ijk_to_dxyz ,
-               dax->xxdel , 0.0f , 0.0f , dax->xxorg ,
-               dax->yydel , 0.0f , 0.0f , dax->yyorg ,
-               dax->zzdel , 0.0f , 0.0f , dax->zzorg  ) ;
+               dax->xxdel , 0.0f       , 0.0f       , dax->xxorg ,
+               0.0f       , dax->yydel , 0.0f       , dax->yyorg ,
+               0.0f       , 0.0f       , dax->zzdel , dax->zzorg  ) ;
 
    /* dxyz_to_dicom: transforms dataset (x,y,z) coords to DICOM coords */
 
@@ -68,12 +69,44 @@ void THD_daxes_to_mat44( THD_dataxes *dax )
 
    dax->dicom_to_ijk = nifti_mat44_inverse( dax->ijk_to_dicom ) ;
 
-   /* and the min and max DICOM coords that can occur */
+   THD_set_dicom_box( dax ) ;
+
+#if 0
+   { THD_dataxes new_daxes ;
+     new_daxes.type = DATAXES_TYPE;
+     THD_edit_dataxes(1.0, dax, &new_daxes);
+     printf("edited dataxes:\n"
+            " nxx=%d xxorg=%11.4g xxdel=%11.4g\n"
+            " nyy=%d yyorg=%11.4g yydel=%11.4g\n"
+            " nzz=%d zzorg=%11.4g zzdel=%11.4g\n" ,
+      new_daxes.nxx , new_daxes.xxorg , new_daxes.xxdel ,
+      new_daxes.nyy , new_daxes.yyorg , new_daxes.yydel ,
+      new_daxes.nzz , new_daxes.zzorg , new_daxes.zzdel  ) ;
+      DUMP_MAT44("ijk_to_dicom",new_daxes.ijk_to_dicom) ;
+   }
+#endif
+
+   return ;
+}
+
+/*------------------------------------------------------------------------*/
+/*! Set the min and max DICOM coords that can occur:
+    scan all 8 possible corners of the box the matrix defines.
+--------------------------------------------------------------------------*/
+
+void THD_set_dicom_box( THD_dataxes *dax )
+{
+   float x,y,z , nx1,ny1,nz1 ;
+   float xbot,ybot,zbot , xtop,ytop,ztop ;
+
+   if( dax == NULL || !ISVALID_MAT44(dax->ijk_to_dicom) ) return ;
 
    nx1 = dax->nxx - 1.0f; ny1 = dax->nyy - 1.0f; nz1 = dax->nzz - 1.0f;
 
-   MAT44_VEC(dax->ijk_to_dicom , 0,0,0 , x,y,z ) ;
+   MAT44_VEC(dax->ijk_to_dicom , 0,0,0 , x,y,z ) ;        /* (0,0,0) corner */
    xbot = xtop = x ; ybot = ytop = y ; zbot = ztop = z ;
+
+     /* this macro checks the (a,b,c) corner and updates the bot/top values */
 
 #undef  BT
 #define BT(a,b,c)                                        \
@@ -89,6 +122,7 @@ void THD_daxes_to_mat44( THD_dataxes *dax )
    dax->dicom_yymin = ybot ; dax->dicom_yymin = ytop ;
    dax->dicom_zzmin = zbot ; dax->dicom_zzmin = ztop ;
 
+#undef BT
    return ;
 }
 
@@ -238,4 +272,81 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
 #endif
 
    return ;
+}
+
+/*-----------------------------------------------------------------------*/
+/*! Inputs:
+      - matrix old_mat: transforms (i,j,k) indexes to (x,y,z) coords
+      - ni,nj,nk: number of grid points along each direction
+      - ri,rj,rk: new grid spacing along each direction
+    Outputs:
+      - ninew,njnew,nknew: number of grid points along each new direction
+      - return value: new matrix; the [3][3] element will be 0 on error
+-------------------------------------------------------------------------*/
+
+mat44 THD_resample_mat44( mat44 old_mat ,
+                          int ni     , int nj     , int nk    ,
+                          float ri   , float rj   , float rk  ,
+                          int *ninew , int *njnew , int *nknew )
+{
+   mat44 new_mat ;
+   float di,dj,dk , fi,fj,fk , aa,bb,cc , pp,qq,rr ;
+
+   new_mat.m[3][3] = 0.0f ;   /* mark output as bad; will fix later */
+
+   if( !ISVALID_MAT44(old_mat)     ||
+       ninew == NULL || njnew == NULL || nknew == NULL ||
+       ni    <= 0    || nj    <= 0    || nk    <= 0      ) return new_mat ;
+
+   /* spacing along input (i,j,k) directions */
+
+   di = MAT33_CLEN(old_mat,0) ; if( di == 0.0f ) di == 1.0f ;
+   dj = MAT33_CLEN(old_mat,1) ; if( dj == 0.0f ) dj == di   ;
+   dk = MAT33_CLEN(old_mat,2) ; if( dk == 0.0f ) dk == di   ;
+
+   if( ri <= 0.0f ) ri = 1.0f ;   /* don't allow negative spacing    */
+   if( rj <= 0.0f ) rj = ri   ;   /* along output (i,j,k) directions */
+   if( rk <= 0.0f ) rk = ri   ;
+
+   fi = ri/di ; fj = rj/dj ; fk = rk/dk ;
+
+   /* copy input matrix to output,
+      then scale the upperleft 3x3 to allow for new spacings */
+
+   new_mat = old_mat ;
+
+   new_mat.m[0][0] *= fi ;   /* first column */
+   new_mat.m[1][0] *= fi ;
+   new_mat.m[2][0] *= fi ;
+   new_mat.m[0][1] *= fj ;   /* second column */
+   new_mat.m[1][1] *= fj ;
+   new_mat.m[2][1] *= fj ;
+   new_mat.m[0][2] *= fk ;   /* third column */
+   new_mat.m[1][2] *= fk ;
+   new_mat.m[2][2] *= fk ;
+
+   /* number of points along each axis in new grid */
+
+   *ninew = (int)rint(ni/fi) ;  /* so that ninew*ri == ni*di */
+   *njnew = (int)rint(nj/fj) ;
+   *nknew = (int)rint(nk/fk) ;
+
+   /* now compute offset (fourth column) in new_mat so
+      that the input and output grids have the same (x,y,z) centers;
+      center of input is at (i,j,k) = 0.5*(ni-1,nj-1,nk-1), et cetera */
+
+   di = 0.5*( ni   -1) ; dj = 0.5*( nj   -1) ; dk = 0.5*( nk   -1) ;
+   fi = 0.5*(*ninew-1) ; fj = 0.5*(*njnew-1) ; fk = 0.5*(*nknew-1) ;
+
+   MAT33_VEC( old_mat , di,dj,dk , aa,bb,cc ) ;
+   MAT33_VEC( new_mat , fi,fj,fk , pp,qq,rr ) ;
+
+   /* adjust so that MAT44_VEC(new_mat,fi,fj,fk,...) is
+      same result as MAT44_VEC(old_mat,di,dj,dk,...)    */
+
+   new_mat.m[0][3] += (aa-pp) ;
+   new_mat.m[1][3] += (bb-qq) ;
+   new_mat.m[2][3] += (cc-rr) ;
+
+   return new_mat ;
 }
