@@ -335,7 +335,8 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
 
    /* 09 Dec 2005: set ijk_to_dicom matrix and its inverse */
 
-   THD_daxes_to_mat44( daxes ) ;
+   if( !ISVALID_MAT44(daxes->ijk_to_dicom) )
+     THD_daxes_to_mat44( daxes ) ;
 
    /*------------------------------------*/
    /*-- read set of markers (optional) --*/

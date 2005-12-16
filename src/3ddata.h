@@ -1356,24 +1356,29 @@ extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
 int THD_get_axis_direction( THD_dataxes *, int ) ; /* 19 Mar 2003 */
 
-extern void THD_daxes_to_mat44( THD_dataxes *dax ) ;   /* 07 Dec 2005 */
+extern void THD_daxes_to_mat44  ( THD_dataxes *dax ) ; /* 07 Dec 2005 */
 extern void THD_daxes_from_mat44( THD_dataxes *dax ) ;
+extern void THD_set_dicom_box   ( THD_dataxes *dax ) ; /* 15 Dec 2005 */
+extern mat44 THD_resample_mat44( mat44 , int,int,int ,
+                                 float,float,float , int *,int *,int *) ;
 
 /*---------------------------------------------------------------------*/
 /* Macros and functions for dealing with mat44 structs. */
 
-extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;
-
 /*******
-   Functions in nifti1_io.c:
-      mat44 nifti_mat44_inverse( mat44 R ) ;
-      mat33 nifti_mat33_inverse( mat33 R ) ;
-      mat33 nifti_mat33_polar  ( mat33 A ) ;
-      float nifti_mat33_rownorm( mat33 A ) ;
-      float nifti_mat33_colnorm( mat33 A ) ;
-      float nifti_mat33_determ ( mat33 R ) ;
-      mat33 nifti_mat33_mul    ( mat33 A , mat33 B ) ;
+   Useful mat33 and mat44 functions in nifti1_io.c:
+      mat44 nifti_mat44_inverse( mat44 R ) ;           == matrix inverse
+      mat33 nifti_mat33_inverse( mat33 R ) ;           == matrix inverse
+      mat33 nifti_mat33_polar  ( mat33 A ) ;           == polar decomp
+      float nifti_mat33_rownorm( mat33 A ) ;           == max row sum
+      float nifti_mat33_colnorm( mat33 A ) ;           == max col sum
+      float nifti_mat33_determ ( mat33 R ) ;           == determinant
+      mat33 nifti_mat33_mul    ( mat33 A, mat33 B ) ;  == matrix multiply
 *******/
+
+/******* Not in nifti1_io.c, due to some oversight *******/
+
+extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;      /* matrix multiply */
 
 #undef  ISVALID_MAT44
 #define ISVALID_MAT44(AA) (AA.m[3][3] != 0.0f)
@@ -1387,6 +1392,12 @@ extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;
     AA.m[1][0]=a21 , AA.m[1][1]=a22 , AA.m[1][2]=a23 , AA.m[1][3]=a24 ,   \
     AA.m[2][0]=a31 , AA.m[2][1]=a32 , AA.m[2][2]=a33 , AA.m[2][3]=a34 ,   \
     AA.m[3][0]=AA.m[3][1]=AA.m[3][2]=0.0f , AA.m[3][3]=1.0f            )
+
+#undef  UNLOAD_MAT44
+#define UNLOAD_MAT44(AA,a11,a12,a13,a14,a21,a22,a23,a24,a31,a32,a33,a34)  \
+  ( a11=AA.m[0][0] , a12=AA.m[0][1] , a13=AA.m[0][2] , a14=AA.m[0][3] ,   \
+    a21=AA.m[1][0] , a22=AA.m[1][1] , a23=AA.m[1][2] , a24=AA.m[1][3] ,   \
+    a31=AA.m[2][0] , a32=AA.m[2][1] , a33=AA.m[2][2] , a34=AA.m[2][3]  )
 
 /* negate the top 2 rows of a mat44 matrix
    (for transforming between NIfTI-1 and DICOM coord systems) */
@@ -1430,13 +1441,33 @@ extern mat44 THD_mat44_mul( mat44 A , mat44 B ) ;
    (b) = AA.m[1][0]*(x) + AA.m[1][1]*(y) + AA.m[1][2]*(z) + AA.m[1][3] , \
    (c) = AA.m[2][0]*(x) + AA.m[2][1]*(y) + AA.m[2][2]*(z) + AA.m[2][3]  )
 
-/* apply a mat33 matrix to a 3 vector (x,y,z) to produce (a,b,c) */
+/* apply a mat33 matrix to a 3 vector (x,y,z) to produce (a,b,c);
+   could also be used to apply the upper left 3x3
+   corner of a mat44 matrix to (x,y,z), if you insist */
 
 #undef  MAT33_VEC
 #define MAT33_VEC(AA,x,y,z,a,b,c)                           \
  ( (a) = AA.m[0][0]*(x) + AA.m[0][1]*(y) + AA.m[0][2]*(z) , \
    (b) = AA.m[1][0]*(x) + AA.m[1][1]*(y) + AA.m[1][2]*(z) , \
    (c) = AA.m[2][0]*(x) + AA.m[2][1]*(y) + AA.m[2][2]*(z)  )
+
+/* L2 norm of i-th column of a matrix (3x3 or 4x4) */
+
+#undef  MAT33_CLEN
+#define MAT33_CLEN(AA,i)  \
+ sqrt(AA.m[0][i]*AA.m[0][i]+AA.m[1][i]*AA.m[1][i]+AA.m[2][i]*AA.m[2][i])
+
+/* print a mat44 struct to stdout (with a string) */
+
+#undef  DUMP_MAT44
+#define DUMP_MAT44(SS,AA)                              \
+     printf("mat44 %s:\n"                              \
+            " %9.4f %9.4f %9.4f | %9.4f\n"             \
+            " %9.4f %9.4f %9.4f | %9.4f\n"             \
+            " %9.4f %9.4f %9.4f | %9.4f\n" ,           \
+  SS, AA.m[0][0], AA.m[0][1], AA.m[0][2], AA.m[0][3],  \
+      AA.m[1][0], AA.m[1][1], AA.m[1][2], AA.m[1][3],  \
+      AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3] )
 
 /*---------------------------------------------------------------------*/
 /*--- data structure for information about time axis of 3D dataset ----*/

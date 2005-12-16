@@ -40,14 +40,20 @@ ENTRY("THD_open_dataset") ;
    if( strncmp(pathname,"http://",7) == 0 ||
        strncmp(pathname,"ftp://" ,6) == 0   ){
 
-      dset = THD_fetch_dataset( pathname ) ;
-      RETURN(dset) ;
+     dset = THD_fetch_dataset( pathname ) ;
+     if( ISVALID_DSET(dset) && 
+        !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+       THD_daxes_to_mat44(dset->daxes) ;
+     RETURN(dset) ;
    }
 
    /*-- 17 Mar 2000: check if this is a 3dcalc() run --*/
 
    if( strncmp(pathname,"3dcalc(",7)  == 0 ){
      dset = THD_open_3dcalc( pathname ) ;
+     if( ISVALID_DSET(dset) && 
+        !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+       THD_daxes_to_mat44(dset->daxes) ;
      RETURN(dset) ;
    }
 
@@ -56,6 +62,9 @@ ENTRY("THD_open_dataset") ;
 
    if( strstr(pathname,".1D") != NULL ){
      dset = THD_open_1D( pathname ) ;
+     if( ISVALID_DSET(dset) && 
+        !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+       THD_daxes_to_mat44(dset->daxes) ;
      if( dset != NULL ) RETURN(dset) ;
    }
 
@@ -63,6 +72,9 @@ ENTRY("THD_open_dataset") ;
 
    if( strchr(pathname,' ') != NULL ){
      dset = THD_open_tcat( pathname ) ;
+     if( ISVALID_DSET(dset) && 
+        !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+       THD_daxes_to_mat44(dset->daxes) ;
      RETURN(dset) ;
    }
 
@@ -73,6 +85,9 @@ ENTRY("THD_open_dataset") ;
 
    if( cpt == NULL && bpt == NULL ){            /* no "[" or "<"  */
      dset = THD_open_one_dataset( pathname ) ;  /* ==> open      */
+     if( ISVALID_DSET(dset) && 
+        !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+       THD_daxes_to_mat44(dset->daxes) ;
      RETURN(dset) ;                             /*     normally */
    }
 
@@ -146,6 +161,10 @@ fprintf(stderr,"dpt=%s\n",dpt) ;
 
    THD_setup_mastery( dset , ivlist ) ;
    free(ivlist) ;
+
+   if( ISVALID_DSET(dset) && 
+      !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+     THD_daxes_to_mat44(dset->daxes) ;
 
    RETURN(dset) ;
 }
@@ -459,6 +478,10 @@ for(ii=0; ii< newArgc-1; ii++) fprintf(stderr," argv[%d]=%s\n",ii,newArgv[ii]);
    /* 30 Jul 2003: changes its directory to cwd */
 
    EDIT_dset_items( dset , ADN_directory_name , "./" , ADN_none ) ;
+
+   if( ISVALID_DSET(dset) && 
+      !ISVALID_MAT44(dset->daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+     THD_daxes_to_mat44(dset->daxes) ;
 
    RETURN(dset) ;
 }

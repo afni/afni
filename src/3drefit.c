@@ -1158,7 +1158,7 @@ int main( int argc , char * argv[] )
          dset->markers = create_empty_marker_set() ;
 
       } else if( new_markers ){
-            WARNING_message("Can't add markers to this dataset\n") ;
+         WARNING_message("Can't add markers to this dataset\n") ;
       } /* end of markers */
 
       /*-- 08 Jun 2004: copyaux? --*/
