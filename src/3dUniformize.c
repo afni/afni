@@ -530,7 +530,10 @@ void resample
   while (it < rpts)
     {
       k = rand_uniform (0, nxyz);
-      if ( (k >= 0) && (k < nxyz) && (anat_data[k] > lower_limit) && (option_data->upper_limit && (anat_data[k] < option_data->upper_limit)))
+      /* okay if no upper_limit, or data < upper_limit   16 Dec 2005 [rickr] */
+      if ( (k >= 0) && (k < nxyz) && (anat_data[k] > lower_limit) &&
+           ( ! option_data->upper_limit ||
+               (anat_data[k] < option_data->upper_limit) ) )
 	{
 	  ir[it] = k;
 	  vr[it] = log (anat_data[k] + rand_uniform (0.0,1.0));
