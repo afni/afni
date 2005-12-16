@@ -17,7 +17,7 @@
    #define INLINE   inline
 #else
    #define INLINE   /**/
-#endif
+#endif
 #include "thd_shear3d.h"
 #include "matrix.h"
 /*#include "matrix.c"*/
@@ -77,10 +77,10 @@ extern void Save_imarr_to_dset(MRI_IMARR *Imarr_Im, THD_3dim_dataset *base_dset,
 /*! compute the overall minimum and maximum voxel values for a dataset */
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset * dset , * udset ;  /* input and output datasets */
+   THD_3dim_dataset * dset , * udset, * out_dset ;  /* input and output datasets */
    THD_3dim_dataset * structtensor; /* structure tensor dataset */
    THD_3dim_dataset * mask_dset ;
-   int nxyz, i, datum;
+   int nxyz, i, datum, nbriks;
    int afnitalk_flag = 0;
    int nopt = 1;
    byte *maskptr = NULL;
@@ -93,6 +93,13 @@ int main( int argc , char * argv[] )
    int save_tempdsets_flag = 0;
    int smooth_flag = 1;
    MRI_IMAGE *data_im = NULL;
+   int output_datum = MRI_float;  /* default output data type */
+   float *fptr;
+   void *out_ptr;
+   MRI_IMARR *fim_array;
+   MRI_IMAGE *fim;
+   float fimfac;
+
 
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -127,6 +134,8 @@ int main( int argc , char * argv[] )
 	     "  -edgefraction n.nnn = adjust the fraction of the anisotropic\n"
 	     "    component to be added\n"
 	     "    to the original image. Can vary between 0 and 1. Default =0.5\n"
+	     "  -datum type = Coerce the output data to be stored as the given type\n"
+	     "    which may be byte, short or float. [default=float]\n"
              "  -help = print this help screen\n\n"
              "References:\n"
              "  Z Ding, JC Gore, AW Anderson, Reduction of Noise in Diffusion\n"
@@ -141,7 +150,7 @@ int main( int argc , char * argv[] )
              "   Communication and Image Representation, Special Issue On\n"
              "   Partial Differential Equations In Image Processing,Comp Vision\n"
              "   Computer Graphics, pages 103-118, 2002.\n"
-             "  Gerig, G., Kübler, O., Kikinis, R., Jolesz, F., Nonlinear\n"
+             "  Gerig, G., Kubler, O., Kikinis, R., Jolesz, F., Nonlinear\n"
              "   anisotropic filtering of MRI data, IEEE Trans. Med. Imaging 11\n"
              "   (2), 221-232, 1992.\n\n"
            ) ;
@@ -336,7 +345,25 @@ int main( int argc , char * argv[] )
            nopt++;
 	   continue;
      }
-     
+         /**** -datum type ****/
+
+     if( strncasecmp(argv[nopt],"-datum",6) == 0 ){
+        if( ++nopt >= argc )
+          ERROR_exit("need an argument after -datum!\n") ;
+        if( strcasecmp(argv[nopt],"short") == 0 ){
+           output_datum = MRI_short ;
+        } else if( strcasecmp(argv[nopt],"float") == 0 ){
+           output_datum = MRI_float ;
+        } else if( strcasecmp(argv[nopt],"byte") == 0 ){
+           output_datum = MRI_byte ;
+        } else if( strcasecmp(argv[nopt],"complex") == 0 ){  /* not listed in help */
+           output_datum = MRI_complex ;
+        } else {
+           ERROR_exit("-datum of type '%s' not supported in 3danisosmooth!\n",argv[nopt]) ;
+        }
+        nopt++ ; continue ;  /* go to next arg */
+     }
+
      ERROR_exit( "Error - unknown option %s", argv[nopt]);
  
 
@@ -422,7 +449,11 @@ int main( int argc , char * argv[] )
   else {
 #endif
 
-     udset = Copy_dset_to_float(dset, prefix);
+     if(output_datum ==  MRI_float)
+        udset = Copy_dset_to_float(dset, prefix);
+     else
+        udset = Copy_dset_to_float(dset, "ttttani"); /* not actually written to disk */
+
      tross_Copy_History (dset, udset);
      THD_delete_3dim_dataset(dset , False ) ;  /* do not need original anymore */
 
@@ -457,9 +488,44 @@ int main( int argc , char * argv[] )
 
   /* save the dataset */
   tross_Make_History ("3danisosmooth", argc, argv, udset);
-  THD_load_statistics( udset );
-  DSET_write (udset);
-  INFO_message("--- Output dataset %s", DSET_BRIKNAME(udset));
+  if(output_datum==MRI_float) {
+     THD_load_statistics( udset );
+     DSET_write (udset);
+     INFO_message("--- Output dataset %s", DSET_BRIKNAME(udset));
+     THD_delete_3dim_dataset(udset , False ) ; /* do not need floating point version anymore */
+  }
+  else {
+     nbriks =   udset->dblk->nvals;
+     out_dset = EDIT_empty_copy(udset) ;
+     tross_Copy_History (udset, out_dset);
+     EDIT_dset_items( out_dset ,
+              ADN_malloc_type , DATABLOCK_MEM_MALLOC , /* store in memory */
+                          ADN_prefix , prefix ,
+                          ADN_label1 , prefix ,
+	                  ADN_datum_all , output_datum ,
+                          ADN_none ) ;
+     /* make new Image Array */
+     INIT_IMARR(fim_array);
+     for(i=0;i<nbriks;i++) {
+        fim = mri_new_conforming( DSET_BRICK(udset,i) , output_datum ) ;
+        ADDTO_IMARR(fim_array, fim);
+     }
+
+     out_dset->dblk->brick = fim_array;   /* update pointer to data */
+     for(i=0;i<nbriks;i++) {
+       data_im = DSET_BRICK(udset, i);
+       fptr = (float *) mri_data_pointer(data_im);
+       data_im = DSET_BRICK(out_dset, i);
+       out_ptr = (void *) mri_data_pointer(data_im);
+       fimfac = EDIT_convert_dtype(nxyz , MRI_float, fptr , output_datum, out_ptr , 0.0) ;
+       DSET_BRICK_FACTOR(out_dset, i) = (fimfac != 0.0) ? 1.0/fimfac : 0.0 ;
+     }
+     THD_load_statistics( out_dset );
+     THD_delete_3dim_dataset(udset , False ) ; /* do not need floating point version anymore */
+     DSET_write (out_dset);
+     INFO_message("--- Output dataset %s", DSET_BRIKNAME(out_dset));
+     THD_delete_3dim_dataset(out_dset , False ) ; /* do not need output version anymore either */
+  }
 
   if(afnitalk_flag) {
     /* Close viewer stream */

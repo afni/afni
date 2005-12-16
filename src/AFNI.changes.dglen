@@ -95,4 +95,6 @@
  * added new options to 3danisosmooth for avoiding negative numbers and
  fractional control of amount of edginess. 2D exponential method gives faster
  results because of new constant and switched phi values.
+16 Dec 2005
+ * added new datum option to 3danisosmooth
  
