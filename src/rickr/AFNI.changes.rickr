@@ -1363,3 +1363,6 @@
 15 Dec 2005:
   * modified 3dhistog.c: fixed use of sub-brick factors
 
+16 Dec 2005:
+  * modified 3dUniformize.c: fixed upper_limit==0 case in resample()
+
