@@ -154,6 +154,8 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
 
    if( old_good )
      *new_daxes  = *(old_dset->daxes) ;    /* copy all contents */
+     if( !ISVALID_MAT44(new_daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
+       THD_daxes_to_mat44(new_daxes) ;
    else {
      new_daxes->type = DATAXES_TYPE ;      /* make up contents */
 
@@ -171,6 +173,7 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
 
      new_daxes->xxmin = new_daxes->yymin = new_daxes->zzmin = -0.5 ;
      new_daxes->xxmax = new_daxes->yymax = new_daxes->zzmax =  0.5 ;
+     THD_daxes_to_mat44(new_daxes) ;
    }
    new_daxes->parent = (XtPointer) new_dset ;
 
@@ -226,7 +229,7 @@ ENTRY("EDIT_empty_datablock") ;
    new_dblk->brick_keywords = NULL ;
    new_dblk->brick_statcode = NULL ;
    new_dblk->brick_stataux  = NULL ;
-   new_dblk->master_nvals   = 0    ; 
+   new_dblk->master_nvals   = 0    ;
    new_dblk->master_ival    = NULL ;
    new_dblk->master_bytes   = NULL ;
    new_dblk->master_bot     = 1.0  ;
@@ -259,7 +262,6 @@ ENTRY("EDIT_empty_datablock") ;
 
    RETURN( new_dblk ) ;
 }
-
 
 /*-----------------------------------------------------------------------*/
 /*! Create an empty marker set.                      13 Sep 2005 [rickr] */
@@ -294,6 +296,8 @@ THD_marker_set * create_empty_marker_set(void)
 
    return markers ;
 }
+
+/*------------------------------------------------------------------*/
 
 int okay_to_add_markers(THD_3dim_dataset * dset)
 {
