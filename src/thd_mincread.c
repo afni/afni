@@ -18,10 +18,10 @@ static char *fname_err ;
 -------------------------------------------------------------------*/
 
 typedef struct {
-   int dimid , varid , good , afni_orient ;
-   size_t len ;
-   float start , step , xcos,ycos,zcos ;
-   char spacetype[32] ;
+  int dimid , varid , good , afni_orient ;
+  size_t len ;
+  float start , step , xcos,ycos,zcos ;
+  char spacetype[32] ;
 } mincdim ;
 
 static mincdim read_mincdim( int ncid , char *dname )
@@ -56,38 +56,38 @@ static mincdim read_mincdim( int ncid , char *dname )
 
    code = nc_inq_varid( ncid , dname , &ddd.varid ) ;
    if( code != NC_NOERR ){   /* this is bad: try to fake it */
-      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC warning: %s variable missing\n",ename);
-      ddd.start = -0.5*ddd.step*ddd.len ;
-      ddd.good = 1 ; return ddd ;
+     if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+     fprintf(stderr,"** MINC warning: %s variable missing\n",ename);
+     ddd.start = -0.5*ddd.step*ddd.len ;
+     ddd.good = 1 ; return ddd ;
    }
 
    /* get step attribute of this variable */
 
    code = nc_get_att_float( ncid , ddd.varid , "step" , &ddd.step ) ;
    if( code != NC_NOERR ){
-      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC warning: %s:step missing\n",ename);
+     if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+     fprintf(stderr,"** MINC warning: %s:step missing\n",ename);
    } else if( ddd.step == 0.0 ){
-      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC warning: %s:step=0\n",ename);
-      ddd.step = 1.0 ;
+     if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+     fprintf(stderr,"** MINC warning: %s:step=0\n",ename);
+     ddd.step = 1.0 ;
    }
 
    /* get start attribute of this variable */
 
    code = nc_get_att_float( ncid , ddd.varid , "start" , &ddd.start ) ;
    if( code != NC_NOERR ){
-      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC warning: %s:start missing\n",ename) ;
-      ddd.start = -0.5*ddd.step*ddd.len ;
+     if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+     fprintf(stderr,"** MINC warning: %s:start missing\n",ename) ;
+     ddd.start = -0.5*ddd.step*ddd.len ;
    }
 
    /* get direction_cosines attribute of this variable [not used yet] */
 
    code = nc_get_att_float( ncid,ddd.varid , "direction_cosines" , ccc ) ;
    if( code == NC_NOERR ){
-      ddd.xcos = ccc[0] ; ddd.ycos = ccc[1] ; ddd.zcos = ccc[2] ;
+     ddd.xcos = ccc[0] ; ddd.ycos = ccc[1] ; ddd.zcos = ccc[2] ;
    }
 
    /* get spacetype attribute of this variable [Talairach or not?] */
@@ -95,12 +95,12 @@ static mincdim read_mincdim( int ncid , char *dname )
    lll = 0 ;
    code = nc_inq_attlen( ncid , ddd.varid , "spacetype" , &lll ) ;
    if( code == NC_NOERR && lll > 0 && lll < 32 ){
-      code = nc_get_att_text( ncid,ddd.varid , "spacetype" , ddd.spacetype ) ;
-      if( code == NC_NOERR ){
-         ddd.spacetype[lll] = '\0' ;  /* make sure ends in NUL */
-      } else {
-         ddd.spacetype[0] = '\0' ;    /* make sure is empty */
-      }
+     code = nc_get_att_text( ncid,ddd.varid , "spacetype" , ddd.spacetype ) ;
+     if( code == NC_NOERR ){
+       ddd.spacetype[lll] = '\0' ;  /* make sure ends in NUL */
+     } else {
+       ddd.spacetype[0] = '\0' ;    /* make sure is empty */
+     }
    }
 
    ddd.good = 1 ; return ddd ;
@@ -161,7 +161,9 @@ ENTRY("THD_open_minc") ;
    /*-- get info about the image data --*/
 
    code = nc_inq_varid( ncid , "image" , &im_varid ) ;
-   if( code != NC_NOERR ){ EPR(code,pathname,"image varid"); nc_close(ncid); RETURN(NULL); }
+   if( code != NC_NOERR ){
+     EPR(code,pathname,"image varid"); nc_close(ncid); RETURN(NULL);
+   }
 
    if( !AFNI_yesenv("AFNI_MINC_FLOATIZE") ){  /* determine type of dataset values */
       code = nc_inq_vartype( ncid , im_varid , &im_type ) ;
@@ -188,15 +190,19 @@ ENTRY("THD_open_minc") ;
    /* we allow nD mages only for n=3 or n=4 */
 
    code = nc_inq_varndims( ncid , im_varid , &im_rank ) ;
-   if( code != NC_NOERR ){ EPR(code,pathname,"image varndims"); nc_close(ncid); RETURN(NULL); }
+   if( code != NC_NOERR ){
+     EPR(code,pathname,"image varndims"); nc_close(ncid); RETURN(NULL);
+   }
    if( im_rank < 3 || im_rank > 4 ){
-      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC error: image rank=%d\n",im_rank) ;
-      nc_close(ncid); RETURN(NULL);
+     if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+     fprintf(stderr,"** MINC error: image rank=%d\n",im_rank) ;
+     nc_close(ncid); RETURN(NULL);
    }
 
    code = nc_inq_vardimid( ncid , im_varid , im_dimid ) ;
-   if( code != NC_NOERR ){ EPR(code,pathname,"image vardimid"); nc_close(ncid); RETURN(NULL); }
+   if( code != NC_NOERR ){
+     EPR(code,pathname,"image vardimid"); nc_close(ncid); RETURN(NULL);
+   }
 
    /*-- find axes order --*/
 
@@ -206,9 +212,9 @@ ENTRY("THD_open_minc") ;
    else if( im_dimid[im_rank-1] == yspace.dimid ) xyz[0] = &yspace ;
    else if( im_dimid[im_rank-1] == zspace.dimid ) xyz[0] = &zspace ;
    else {
-      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC error: image dim[2] illegal\n") ;
-      nc_close(ncid) ; RETURN(NULL) ;
+     if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+     fprintf(stderr,"** MINC error: image dim[2] illegal\n") ;
+     nc_close(ncid) ; RETURN(NULL) ;
    }
 
      /* next fastest variation */
@@ -217,9 +223,9 @@ ENTRY("THD_open_minc") ;
    else if( im_dimid[im_rank-2] == yspace.dimid ) xyz[1] = &yspace ;
    else if( im_dimid[im_rank-2] == zspace.dimid ) xyz[1] = &zspace ;
    else {
-      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC error: image dim[1] illegal\n") ;
-      nc_close(ncid) ; RETURN(NULL) ;
+     if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+     fprintf(stderr,"** MINC error: image dim[1] illegal\n") ;
+     nc_close(ncid) ; RETURN(NULL) ;
    }
 
      /* slowest variation */
@@ -228,9 +234,9 @@ ENTRY("THD_open_minc") ;
    else if( im_dimid[im_rank-3] == yspace.dimid ) xyz[2] = &yspace ;
    else if( im_dimid[im_rank-3] == zspace.dimid ) xyz[2] = &zspace ;
    else {
-      if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
-      fprintf(stderr,"** MINC error: image dim[0] illegal\n") ;
-      nc_close(ncid) ; RETURN(NULL) ;
+     if( first_err ){ fprintf(stderr,"\n"); first_err=0; }
+     fprintf(stderr,"** MINC error: image dim[0] illegal\n") ;
+     nc_close(ncid) ; RETURN(NULL) ;
    }
 
    /*-- determine the length of the 4th dimension, if any --*/
@@ -238,23 +244,25 @@ ENTRY("THD_open_minc") ;
    strcpy(tname,"MINC") ;  /* default name for 4th dimension */
 
    if( im_rank == 4 ){
-      char fname[NC_MAX_NAME+4] ;
-      code = nc_inq_dimlen( ncid , im_dimid[0] , &len ) ;
-      if( code != NC_NOERR ){ EPR(code,pathname,"dimid[0] dimlen"); nc_close(ncid); RETURN(NULL); }
+     char fname[NC_MAX_NAME+4] ;
+     code = nc_inq_dimlen( ncid , im_dimid[0] , &len ) ;
+     if( code != NC_NOERR ){
+       EPR(code,pathname,"dimid[0] dimlen"); nc_close(ncid); RETURN(NULL);
+     }
 
-      nvals = len ;  /* number of volumes in this file */
+     nvals = len ;  /* number of volumes in this file */
 
-      /* get the name of this dimension */
+     /* get the name of this dimension */
 
-      code = nc_inq_dimname( ncid , im_dimid[0] , fname ) ;
-      if( code == NC_NOERR ){
-         MCW_strncpy(tname,fname,10) ;
-      }
+     code = nc_inq_dimname( ncid , im_dimid[0] , fname ) ;
+     if( code == NC_NOERR ){
+       MCW_strncpy(tname,fname,10) ;
+     }
 
-      /* get the stepsize of this dimension */
+     /* get the stepsize of this dimension */
 
-      code = nc_get_att_float( ncid , im_dimid[0] , "step" , &dtime ) ;
-      if( code != NC_NOERR || dtime <= 0.0 ) dtime = 1.0 ;
+     code = nc_get_att_float( ncid , im_dimid[0] , "step" , &dtime ) ;
+     if( code != NC_NOERR || dtime <= 0.0 ) dtime = 1.0 ;
    }
 
    /*-- make a dataset --*/
@@ -273,9 +281,9 @@ ENTRY("THD_open_minc") ;
    orixyz.ijk[2] = xyz[2]->afni_orient ; orgxyz.xyz[2] = xyz[2]->start ;
 
    if( strstr(xyz[0]->spacetype,"alairach") != NULL ){  /* coord system */
-      iview = VIEW_TALAIRACH_TYPE ;
+     iview = VIEW_TALAIRACH_TYPE ;
    } else {
-      iview = VIEW_ORIGINAL_TYPE ;
+     iview = VIEW_ORIGINAL_TYPE ;
    }
 
    dset->idcode.str[0] = 'M' ;  /* overwrite 1st 3 bytes with something special */
@@ -300,14 +308,14 @@ ENTRY("THD_open_minc") ;
                     ADN_none ) ;
 
    if( nvals > 9 )              /* pretend it is 3D+time */
-      EDIT_dset_items( dset ,
-                         ADN_func_type, ANAT_EPI_TYPE ,
-                         ADN_ntt      , nvals ,
-                         ADN_ttorg    , 0.0 ,
-                         ADN_ttdel    , dtime ,
-                         ADN_ttdur    , 0.0 ,
-                         ADN_tunits   , UNITS_SEC_TYPE ,
-                       ADN_none ) ;
+     EDIT_dset_items( dset ,
+                        ADN_func_type, ANAT_EPI_TYPE ,
+                        ADN_ntt      , nvals ,
+                        ADN_ttorg    , 0.0 ,
+                        ADN_ttdel    , dtime ,
+                        ADN_ttdur    , 0.0 ,
+                        ADN_tunits   , UNITS_SEC_TYPE ,
+                      ADN_none ) ;
 
    /*-- flag to read data from disk using MINC/netCDF functions --*/
 
@@ -315,8 +323,8 @@ ENTRY("THD_open_minc") ;
    strcpy( dset->dblk->diskptr->brick_name , pathname ) ;
 
    for( ibr=0 ; ibr < nvals ; ibr++ ){     /* make sub-brick labels */
-      sprintf(prefix,"%s[%d]",tname,ibr) ;
-      EDIT_BRICK_LABEL( dset , ibr , prefix ) ;
+     sprintf(prefix,"%s[%d]",tname,ibr) ;
+     EDIT_BRICK_LABEL( dset , ibr , prefix ) ;
    }
 
    /*-- read and save the global:history attribute --*/
@@ -328,13 +336,13 @@ ENTRY("THD_open_minc") ;
 
    code = nc_inq_attlen( ncid , NC_GLOBAL , "history" , &len ) ;
    if( code == NC_NOERR && len > 0 ){
-      ppp = AFMALL(char,len+4) ;
-      code = nc_get_att_text( ncid , NC_GLOBAL , "history" , ppp ) ;
-      if( code == NC_NOERR ){  /* should always happen */
-         ppp[len] = '\0' ;
-         tross_Append_History( dset , ppp ) ;
-      }
-      free(ppp) ;
+     ppp = AFMALL(char,len+4) ;
+     code = nc_get_att_text( ncid , NC_GLOBAL , "history" , ppp ) ;
+     if( code == NC_NOERR ){  /* should always happen */
+       ppp[len] = '\0' ;
+       tross_Append_History( dset , ppp ) ;
+     }
+     free(ppp) ;
    }
 
    /*-- close file and return the empty dataset */
@@ -372,7 +380,9 @@ ENTRY("THD_load_minc") ;
    if( code != NC_NOERR ){ EPR(code,dkptr->brick_name,"open"); EXRETURN; }
 
    code = nc_inq_varid( ncid , "image" , &im_varid ) ;
-   if( code != NC_NOERR ){ EPR(code,dkptr->brick_name,"image varid"); nc_close(ncid); EXRETURN; }
+   if( code != NC_NOERR ){
+     EPR(code,dkptr->brick_name,"image varid"); nc_close(ncid); EXRETURN;
+   }
 
    /*-- allocate space for data --*/
 
@@ -386,24 +396,24 @@ ENTRY("THD_load_minc") ;
    /** malloc space for each brick separately **/
 
    for( nbad=ibr=0 ; ibr < nv ; ibr++ ){
-      if( DBLK_ARRAY(dblk,ibr) == NULL ){
-         ptr = AFMALL(void, DBLK_BRICK_BYTES(dblk,ibr) ) ;
-         mri_fix_data_pointer( ptr ,  DBLK_BRICK(dblk,ibr) ) ;
-         if( ptr == NULL ) nbad++ ;
-      }
+     if( DBLK_ARRAY(dblk,ibr) == NULL ){
+       ptr = AFMALL(void, DBLK_BRICK_BYTES(dblk,ibr) ) ;
+       mri_fix_data_pointer( ptr ,  DBLK_BRICK(dblk,ibr) ) ;
+       if( ptr == NULL ) nbad++ ;
+     }
    }
 
    /** if couldn't get them all, take our ball and go home in a snit **/
 
    if( nbad > 0 ){
-      fprintf(stderr,"\n** failed to malloc %d MINC bricks out of %d\n\a",nbad,nv) ;
-      for( ibr=0 ; ibr < nv ; ibr++ ){
-        if( DBLK_ARRAY(dblk,ibr) != NULL ){
-           free(DBLK_ARRAY(dblk,ibr)) ;
-           mri_fix_data_pointer( NULL , DBLK_BRICK(dblk,ibr) ) ;
-        }
+     fprintf(stderr,"\n** failed to malloc %d MINC bricks out of %d\n\a",nbad,nv) ;
+     for( ibr=0 ; ibr < nv ; ibr++ ){
+      if( DBLK_ARRAY(dblk,ibr) != NULL ){
+        free(DBLK_ARRAY(dblk,ibr)) ;
+        mri_fix_data_pointer( NULL , DBLK_BRICK(dblk,ibr) ) ;
       }
-      nc_close(ncid) ; EXRETURN ;
+     }
+     nc_close(ncid) ; EXRETURN ;
    }
 
    /** get scaling attributes/variables **/
@@ -422,16 +432,15 @@ ENTRY("THD_load_minc") ;
 
    if( code != NC_NOERR || im_valid_range[0] >= im_valid_range[1] ){
 
-      im_valid_range[0] = 0.0 ;
+     im_valid_range[0] = 0.0 ;
 
-      switch( im_type ){
-         case NC_BYTE:   im_valid_range[1] = 255.0        ; break ;
-         case NC_SHORT:  im_valid_range[1] = 32767.0      ; break ;
-         case NC_INT:    im_valid_range[1] = 2147483647.0 ; break ;
-         case NC_FLOAT:
-         case NC_DOUBLE: im_valid_range[1] = 1.0          ; break ;
-      break ;
-      }
+     switch( im_type ){
+       case NC_BYTE:   im_valid_range[1] = 255.0        ; break ;
+       case NC_SHORT:  im_valid_range[1] = 32767.0      ; break ;
+       case NC_INT:    im_valid_range[1] = 2147483647.0 ; break ;
+       case NC_FLOAT:
+       case NC_DOUBLE: im_valid_range[1] = 1.0          ; break ;
+     }
    }
    inbot = im_valid_range[0] ;
    intop = im_valid_range[1] ;
