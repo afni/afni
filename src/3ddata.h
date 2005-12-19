@@ -1356,8 +1356,8 @@ extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
 int THD_get_axis_direction( THD_dataxes *, int ) ; /* 19 Mar 2003 */
 
-extern void THD_daxes_to_mat44  ( THD_dataxes *dax ) ; /* 07 Dec 2005 */
-extern void THD_daxes_from_mat44( THD_dataxes *dax ) ;
+extern int  THD_daxes_to_mat44  ( THD_dataxes *dax ) ; /* 07 Dec 2005 */
+extern int  THD_daxes_from_mat44( THD_dataxes *dax ) ;
 extern void THD_set_dicom_box   ( THD_dataxes *dax ) ; /* 15 Dec 2005 */
 extern mat44 THD_resample_mat44( mat44 , int,int,int ,
                                  float,float,float , int *,int *,int *) ;
