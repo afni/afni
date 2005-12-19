@@ -35,14 +35,15 @@ mat44 THD_mat44_mul( mat44 A , mat44 B )
     function THD_daxes_from_mat44(), which does the reverse.
 
     On input to this function, the XXdel, XXorg, nXX, and to_dicomm elements
-    of dax must have been set already.
+    of dax must have been set already, for XX=xx,yy,zz.  Return value is
+    -1 if an error occurs, 0 if all is cool.
 -----------------------------------------------------------------------------*/
 
-void THD_daxes_to_mat44( THD_dataxes *dax )
+int THD_daxes_to_mat44( THD_dataxes *dax )
 {
    mat44 ijk_to_dxyz , dxyz_to_dicom ;
 
-   if( dax == NULL ) return ;
+   if( dax == NULL ) return -1 ;
 
    /* ijk_to_dxyz: transforms (i,j,k) to dataset (x,y,z) coords */
 
@@ -86,7 +87,7 @@ void THD_daxes_to_mat44( THD_dataxes *dax )
    }
 #endif
 
-   return ;
+   return 0 ;
 }
 
 /*------------------------------------------------------------------------*/
@@ -127,8 +128,8 @@ void THD_set_dicom_box( THD_dataxes *dax )
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Given the ijk_to_dicom index to DICOM transformation in the header, load
-    the legacy dataxes information:
+/*! Given the ijk_to_dicom index to DICOM transformation in the header, AND
+    the nxx,nyy,nzz values, load the legacy dataxes information:
       - xxorient  = Orientation code
       - yyorient  = Orientation code
       - zzorient  = Orientation code
@@ -142,9 +143,11 @@ void THD_set_dicom_box( THD_dataxes *dax )
       - xxmax     = Min value of x (etc.)
       - to_dicomm = Orthogonal matrix transforming from dataset coordinates
                     to DICOM coordinates
+
+   Return value is -1 if there is an error, 0 if not.
 -----------------------------------------------------------------------------*/
 
-void THD_daxes_from_mat44( THD_dataxes *dax )
+int THD_daxes_from_mat44( THD_dataxes *dax )
 {
    int icod , jcod , kcod ;
    mat44 nmat ;
@@ -157,7 +160,8 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
                { -1 , ORI_L2R_TYPE, ORI_R2L_TYPE, ORI_P2A_TYPE,
                       ORI_A2P_TYPE, ORI_I2S_TYPE, ORI_S2I_TYPE } ;
 
-   if( dax == NULL ) return ;
+   if( dax == NULL ) return -1 ;
+   if( dax->nxx < 1 || dax->nyy < 1 || dax->nzz < 1 ) return -1 ;
 
    /* use the NIfTI-1 library function to determine best orientation;
       but, must remember that NIfTI-1 x and y are reversed from AFNI's,
@@ -167,7 +171,7 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
 
    nifti_mat44_to_orientation( nmat , &icod, &jcod, &kcod ) ;
 
-   if( icod == 0 || jcod == 0 || kcod == 0 ) return ;
+   if( icod == 0 || jcod == 0 || kcod == 0 ) return -1 ;
 
    dax->xxorient = orient_nifti2afni[icod] ;
    dax->yyorient = orient_nifti2afni[jcod] ;
@@ -271,7 +275,7 @@ void THD_daxes_from_mat44( THD_dataxes *dax )
    dax->zzmax += 0.5 * fabs(dax->zzdel) ;
 #endif
 
-   return ;
+   return 0 ;
 }
 
 /*-----------------------------------------------------------------------*/

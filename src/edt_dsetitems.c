@@ -31,48 +31,48 @@
 #define EDERR(str) \
    do{ fprintf(stderr,"*** EDIT_dset_items: %s\n",str) ; errnum++ ; } while(0)
 
-int EDIT_dset_items( THD_3dim_dataset * dset , ... )
+int EDIT_dset_items( THD_3dim_dataset *dset , ... )
 {
    va_list vararg_ptr ;
    int     flag_arg , errnum = 0 ;
    int     redo_bricks , redo_daxes , redo_taxis , ii ;
-   void *  dummy ;
+   void   *dummy ;
    int     iarg ;
 
    /**----- variables to flag and store presence of arguments -----**/
 
-   int new_prefix         = 0 ; char *              prefix         = NULL ;
-   int new_directory_name = 0 ; char *              directory_name = NULL ;
-   int new_brick_fac      = 0 ; float *             brick_fac      = NULL ;
-   int new_malloc_type    = 0 ; int                 malloc_type    = ILLEGAL_TYPE ;
-   int new_datum_all      = 0 ; int                 datum_all      = ILLEGAL_TYPE ;
-   int new_datum_array    = 0 ; int *               datum_array    = NULL ;
-   int new_nvals          = 0 ; int                 nvals          = 0 ;
-   int new_nxyz           = 0 ; THD_ivec3           nxyz           ;
-   int new_xyzdel         = 0 ; THD_fvec3           xyzdel         ;
-   int new_xyzorg         = 0 ; THD_fvec3           xyzorg         ;
-   int new_xyzorient      = 0 ; THD_ivec3           xyzorient      ;
-   int new_to_dicomm      = 0 ; THD_mat33           to_dicomm      ;
-   int new_ntt            = 0 ; int                 ntt            = 0 ;
-   int new_ttorg          = 0 ; float               ttorg          = 0.0 ;
-   int new_ttdel          = 0 ; float               ttdel          = 0.0 ;
-   int new_ttdur          = 0 ; float               ttdur          = 0.0 ;
-   int new_nsl            = 0 ; int                 nsl            = 0 ;
-   int new_zorg_sl        = 0 ; float               zorg_sl        = 0.0 ;
-   int new_dz_sl          = 0 ; float               dz_sl          = 0.0 ;
-   int new_toff_sl        = 0 ; float *             toff_sl        = NULL ;
-   int new_type           = 0 ; int                 type           = ILLEGAL_TYPE ;
-   int new_view_type      = 0 ; int                 view_type      = ILLEGAL_TYPE ;
-   int new_func_type      = 0 ; int                 func_type      = ILLEGAL_TYPE ;
-   int new_label1         = 0 ; char *              label1         = NULL ;
-   int new_label2         = 0 ; char *              label2         = NULL ;
-   int new_self_name      = 0 ; char *              self_name      = NULL ;
-   int new_warp_parent    = 0 ; THD_3dim_dataset *  warp_parent    = NULL ;
-   int new_anat_parent    = 0 ; THD_3dim_dataset *  anat_parent    = NULL ;
-   int new_stat_aux       = 0 ; float *             stat_aux       = NULL ;
-   int new_warp           = 0 ; THD_warp *          warp           = NULL ;
-   int new_tunits         = 0 ; int                 tunits         = ILLEGAL_TYPE ;
-   int new_keywords       = 0 ; char *              keywords       = NULL ;
+   int new_prefix        = 0; char *            prefix         = NULL ;
+   int new_directory_name= 0; char *            directory_name = NULL ;
+   int new_brick_fac     = 0; float *           brick_fac      = NULL ;
+   int new_malloc_type   = 0; int               malloc_type    = ILLEGAL_TYPE ;
+   int new_datum_all     = 0; int               datum_all      = ILLEGAL_TYPE ;
+   int new_datum_array   = 0; int *             datum_array    = NULL ;
+   int new_nvals         = 0; int               nvals          = 0 ;
+   int new_nxyz          = 0; THD_ivec3         nxyz           ;
+   int new_xyzdel        = 0; THD_fvec3         xyzdel         ;
+   int new_xyzorg        = 0; THD_fvec3         xyzorg         ;
+   int new_xyzorient     = 0; THD_ivec3         xyzorient      ;
+   int new_to_dicomm     = 0; THD_mat33         to_dicomm      ;
+   int new_ntt           = 0; int               ntt            = 0 ;
+   int new_ttorg         = 0; float             ttorg          = 0.0 ;
+   int new_ttdel         = 0; float             ttdel          = 0.0 ;
+   int new_ttdur         = 0; float             ttdur          = 0.0 ;
+   int new_nsl           = 0; int               nsl            = 0 ;
+   int new_zorg_sl       = 0; float             zorg_sl        = 0.0 ;
+   int new_dz_sl         = 0; float             dz_sl          = 0.0 ;
+   int new_toff_sl       = 0; float *           toff_sl        = NULL ;
+   int new_type          = 0; int               type           = ILLEGAL_TYPE ;
+   int new_view_type     = 0; int               view_type      = ILLEGAL_TYPE ;
+   int new_func_type     = 0; int               func_type      = ILLEGAL_TYPE ;
+   int new_label1        = 0; char *            label1         = NULL ;
+   int new_label2        = 0; char *            label2         = NULL ;
+   int new_self_name     = 0; char *            self_name      = NULL ;
+   int new_warp_parent   = 0; THD_3dim_dataset *warp_parent    = NULL ;
+   int new_anat_parent   = 0; THD_3dim_dataset *anat_parent    = NULL ;
+   int new_stat_aux      = 0; float *           stat_aux       = NULL ;
+   int new_warp          = 0; THD_warp *        warp           = NULL ;
+   int new_tunits        = 0; int               tunits         = ILLEGAL_TYPE ;
+   int new_keywords      = 0; char *            keywords       = NULL ;
 
    /* 30 Nov 1997 */
 
@@ -87,6 +87,10 @@ int EDIT_dset_items( THD_3dim_dataset * dset , ... )
 
    int new_brick_keywords_one = 0 ; char * brick_keywords_one    = NULL ;
                                     int    brick_keywords_one_iv = -1 ;
+
+   /* 19 Dec 2005 */
+
+   int new_ijk_to_dicom = 0; mat44 ijk_to_dicom ;
 
    /****---------------------- Sanity Check ----------------------****/
 
@@ -220,6 +224,12 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
 
          /** these commands affect the spatial axes,
              which may also influence size of the data bricks **/
+
+         case ADN_ijk_to_dicom:  /* processed later [19 Dec 2005] */
+           ijk_to_dicom = va_arg( vararg_ptr , mat44 ) ;
+           if( ISVALID_MAT44(ijk_to_dicom) ) new_ijk_to_dicom = 1 ;
+           else EDERR("illegal new ijk_to_dicom") ;
+         break ;
 
          case ADN_nxyz:  /* processed later */
             nxyz = va_arg( vararg_ptr , THD_ivec3 ) ;
@@ -477,11 +487,39 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
    /**----------- Need to reconfigure the spatial axes? -----------**/
    /**    Most of this code is from routine THD_3dim_from_block    **/
 
-   redo_daxes = ( new_nxyz || new_xyzorg || new_xyzdel || new_xyzorient ) ;
+   /*----- ye newe waye fore ye axes change [19 Dec 2005] -----*/
+
+   if( new_ijk_to_dicom ){
+     THD_dataxes *daxes = dset->daxes ; int eee ;
+     THD_diskptr *dkptr = dset->dblk->diskptr ;
+     if( new_nxyz ){
+       daxes->nxx  = dkptr->dimsizes[0] = nxyz.ijk[0] ;
+       daxes->nyy  = dkptr->dimsizes[1] = nxyz.ijk[1] ;
+       daxes->nzz  = dkptr->dimsizes[2] = nxyz.ijk[2] ;
+     }
+     daxes->ijk_to_dicom = ijk_to_dicom ;
+     daxes->dicom_to_ijk = nifti_mat44_inverse( ijk_to_dicom ) ;
+     THD_set_dicom_box( daxes ) ;
+     eee = THD_daxes_from_mat44( daxes ) ;
+     if( eee != 0 )
+       EDERR("modified ijk_to_dicom matrix is bad") ;
+     if( new_xyzorg )
+       EDERR("can't set ijk_to_dicom and xyzorg at same time");
+     if( new_xyzdel )
+       EDERR("can't set ijk_to_dicom and xyzdel at same time");
+     if( new_xyzorient )
+       EDERR("can't set ijk_to_dicom and xyzorient at same time");
+     if( errnum > 0 ) RETURN(errnum) ;
+   }
+
+   /*------ ye olde waye fore ye axes change -----*/
+
+   redo_daxes = ( (new_nxyz && !new_ijk_to_dicom) ||
+                 new_xyzorg || new_xyzdel || new_xyzorient ) ;
 
    if( redo_daxes ){
-      THD_dataxes * daxes = dset->daxes ;
-      THD_diskptr * dkptr = dset->dblk->diskptr ;
+      THD_dataxes *daxes = dset->daxes ;
+      THD_diskptr *dkptr = dset->dblk->diskptr ;
 
       /** copy new stuff into the daxes structure **/
 
@@ -575,13 +613,15 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
          case ORI_I2S_TYPE:
          case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][2] = 1.0 ; break ;
       }
+
+      THD_daxes_to_mat44( daxes ) ;  /* 19 Dec 2005 */
    }
 
    /**---------- Need to reconfigure the sub-bricks? ----------**/
 
    if( new_datum_all && new_datum_array ){
-       EDERR("datum_all and datum_array can't be used together") ;
-       RETURN(errnum) ;
+     EDERR("datum_all and datum_array can't be used together") ;
+     RETURN(errnum) ;
    }
 
    redo_bricks = ( new_datum_all || new_datum_array ||
