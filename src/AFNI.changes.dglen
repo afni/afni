@@ -97,4 +97,5 @@
  results because of new constant and switched phi values.
 16 Dec 2005
  * added new datum option to 3danisosmooth
- 
+20 Dec 2005
+ * updated edt_blur.c to improve performance of y blurring on large images (nx>=512) 
