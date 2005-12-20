@@ -405,7 +405,7 @@ STATUS("start y FFTs") ;
    /*** do z-direction ***/
  DO_Z_BLUR:
 
-   /** 03 Oct 2005: perhaps do the y-blur in real-space? **/
+   /** 03 Oct 2005: perhaps do the z-blur in real-space? **/
 
    if( nz < 2 || sigmay <= 0.0 ){
      STATUS("skip z blur") ; fir_num++ ; goto ALL_DONE_NOW ;
@@ -771,13 +771,173 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 static void fir_blury( int m, float *wt,int nx, int ny, int nz, float *f )
 {
    int ii,jj,kk,qq , nxy=nx*ny , off ;
-   float *r , wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
+   float *r, wt0,wt1,wt2,wt3,wt4,wt5,wt6,wt7 , sum , *ff ;
+   float *rr, *ss;
+   int ny2m = ny+2*m;
 
 ENTRY("fir_blury") ;
 if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
    if( m < 1 || wt == NULL || ny < (m+1) || f == NULL ) EXRETURN ;
    if( nx <= 0 || nz <= 0 ) EXRETURN ;
+   if( nx < 512) goto SMALLIMAGE;
+
+   /* In this function, for each value of kk (z index), we extract a
+      2D (y,x) slice, with m-long buffers on each side in the y-direction.
+      The purpose of this is to get multiple lines of y-direction data into
+      the CPU cache, to speed up processing (a lot).  For the x-axis, this
+      was unneeded, since the x-rows are contiguous in memory. For data at 256x256 
+      this 2D extract/process/insert trick was nugatory. However, for 512x512 data
+      this trick becomes important. The same method is used for the z-axis in fir_blurz*/
+
+   /* macro to access the input data 2D slice: (i,j) = (x,y) indexes */
+
+#undef  RR
+#define RR(i,j) rr[(j)+m+(i)*ny2m]  /*** 0 <= i <= nx-1 ; -m <= m <= ny-1+m ***/
+
+   /* macro to access the output data 2D slice */
+
+#undef  SS
+#define SS(i,k) ss[(k)+(i)*ny]
+
+   rr = (float *)calloc(sizeof(float),ny2m*nx) ;  /* ny2m = ny+2*m */
+   ss = (float *)malloc(sizeof(float)*ny  *nx) ;
+
+   for( kk=0 ; kk < nz ; kk++ ){  /* loop in z-direction  (an xy slice at a time) */
+     off = kk*nxy ; ff = f+off ;   /* ff = ptr to start of this 2D slice */
+
+     /* load data into 2D (y+2m,x) slice from 3D (x,y,z) array;
+        inner loop is over ii so as to access in the most contiguous way */
+
+     for( jj=0 ; jj < ny ; jj++ ){
+       for( ii=0 ; ii < nx ; ii++ ) RR(ii,jj) = ff[ii+D*jj] ;  /* D = nx here */
+     }
+     for( ii=0 ; ii < nx ; ii++ ){
+       RR(ii,-1) = RR(ii,1) ; RR(ii,ny) = RR(ii,ny-2) ; /* edge reflection - */
+                                                   /* only 1 point reflected*/
+     }
+
+     /* filter data in RR along y-direction, put into 2D SS array */
+
+     switch(m){  /** for small m, unroll the inner loop for speed **/
+
+       default:
+         for( ii=0 ; ii < nx ; ii++ ){
+           for( jj=0 ; jj < ny ; jj++ ){
+             sum = wt[0]*RR(ii,jj) ;
+             for( qq=1 ; qq <= m ; qq++ )
+               sum += wt[qq] * ( RR(ii,jj+qq) + RR(ii,jj-qq) ) ;
+             SS(ii,jj) = sum ;
+         }}
+       break ;
+
+       case 7:
+         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
+         wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ; wt7 = wt[7] ;
+         for( ii=0 ; ii < nx ; ii++ ){
+           for( jj=0 ; jj < ny ; jj++ ){
+              SS(ii,jj) =  wt7 * ( RR(ii,jj+7) + RR(ii,jj-7) )
+                         + wt6 * ( RR(ii,jj+6) + RR(ii,jj-6) )
+                         + wt5 * ( RR(ii,jj+5) + RR(ii,jj-5) )
+                         + wt4 * ( RR(ii,jj+4) + RR(ii,jj-4) )
+                         + wt3 * ( RR(ii,jj+3) + RR(ii,jj-3) )
+                         + wt2 * ( RR(ii,jj+2) + RR(ii,jj-2) )
+                         + wt1 * ( RR(ii,jj+1) + RR(ii,jj-1) )
+                         + wt0 *   RR(ii,jj) ;
+         }}
+       break ;
+
+       case 6:
+         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
+         wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ;
+         for( ii=0 ; ii < nx ; ii++ ){
+           for( jj=0 ; jj < ny ; jj++ ){
+              SS(ii,jj) =  wt6 * ( RR(ii,jj+6) + RR(ii,jj-6) )
+                         + wt5 * ( RR(ii,jj+5) + RR(ii,jj-5) )
+                         + wt4 * ( RR(ii,jj+4) + RR(ii,jj-4) )
+                         + wt3 * ( RR(ii,jj+3) + RR(ii,jj-3) )
+                         + wt2 * ( RR(ii,jj+2) + RR(ii,jj-2) )
+                         + wt1 * ( RR(ii,jj+1) + RR(ii,jj-1) )
+                         + wt0 *   RR(ii,jj) ;
+         }}
+       break ;
+
+       case 5:
+         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
+         wt4 = wt[4] ; wt5 = wt[5] ;
+         for( ii=0 ; ii < nx ; ii++ ){
+           for( jj=0 ; jj < ny ; jj++ ){
+              SS(ii,jj) =  wt5 * ( RR(ii,jj+5) + RR(ii,jj-5) )
+                         + wt4 * ( RR(ii,jj+4) + RR(ii,jj-4) )
+                         + wt3 * ( RR(ii,jj+3) + RR(ii,jj-3) )
+                         + wt2 * ( RR(ii,jj+2) + RR(ii,jj-2) )
+                         + wt1 * ( RR(ii,jj+1) + RR(ii,jj-1) )
+                         + wt0 *   RR(ii,jj) ;
+         }}
+       break ;
+
+       case 4:
+         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
+         wt4 = wt[4] ;
+         for( ii=0 ; ii < nx ; ii++ ){
+           for( jj=0 ; jj < ny ; jj++ ){
+              SS(ii,jj) =  wt4 * ( RR(ii,jj+4) + RR(ii,jj-4) )
+                         + wt3 * ( RR(ii,jj+3) + RR(ii,jj-3) )
+                         + wt2 * ( RR(ii,jj+2) + RR(ii,jj-2) )
+                         + wt1 * ( RR(ii,jj+1) + RR(ii,jj-1) )
+                         + wt0 *   RR(ii,jj) ;
+         }}
+       break ;
+
+       case 3:
+         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
+         for( ii=0 ; ii < nx ; ii++ ){
+           for( jj=0 ; jj < ny ; jj++ ){
+              SS(ii,jj) =  wt3 * ( RR(ii,jj+3) + RR(ii,jj-3) )
+                         + wt2 * ( RR(ii,jj+2) + RR(ii,jj-2) )
+                         + wt1 * ( RR(ii,jj+1) + RR(ii,jj-1) )
+                         + wt0 *   RR(ii,jj) ;
+         }}
+       break ;
+
+       case 2:
+         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ;
+         for( ii=0 ; ii < nx ; ii++ ){
+           for( jj=0 ; jj < ny ; jj++ ){
+              SS(ii,jj) =  wt2 * ( RR(ii,jj+2) + RR(ii,jj-2) )
+                         + wt1 * ( RR(ii,jj+1) + RR(ii,jj-1) )
+                         + wt0 *   RR(ii,jj) ;
+         }}
+       break ;
+
+       case 1:
+         wt0 = wt[0] ; wt1 = wt[1] ;
+         for( ii=0 ; ii < nx ; ii++ ){
+           for( jj=0 ; jj < ny ; jj++ ){
+              SS(ii,jj) =  wt1 * ( RR(ii,jj+1) + RR(ii,jj-1) )
+                         + wt0 *   RR(ii,jj) ;
+         }}
+       break ;
+
+     } /* end of special cases of m */
+
+     /* put SS array back into input 3D array;
+        again, inner loop over ii for most contiguous access to f[] array */
+
+     for( jj=0 ; jj < ny ; jj++ ){
+       for( ii=0 ; ii < nx ; ii++ ) ff[ii+D*jj] = SS(ii,jj) ;
+     }
+
+   } /* end of loop over y-direction (zz) */
+
+   /*** finito, cara mia mine, oh, oh, oh, each time we part, my heart wants to die...***/
+
+   free((void *)ss) ; free((void *)rr) ; EXRETURN ;
+   
+
+/* for small images (nx<512), use slice as is and don't use reslicing trick*/
+
+SMALLIMAGE:
 
    r = (float *)calloc(sizeof(float),(ny+2*m)) ;
 
@@ -939,7 +1099,7 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
    }  /* end of switch on m */
 
-   free((void *)r) ; EXRETURN ;
+   free((void *)r) ; EXRETURN ;  
 }
 
 /*-------------------------------------------------------------------*/
