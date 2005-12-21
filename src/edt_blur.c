@@ -591,6 +591,26 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
    if( m < 1 || wt == NULL || nx < (m+1) || f == NULL ) EXRETURN ;
    if( ny <= 0 || nz <= 0 ) EXRETURN ;
+   switch(m){  /**assign weights to variables not arrays **/
+      case 7:
+           wt7 = wt[7];   /* let cases fall through to next case to assign weights */
+      case 6:
+           wt6 = wt[6];
+      case 5:
+           wt5 = wt[5];
+      case 4:
+           wt4 = wt[4];
+      case 3:
+           wt3 = wt[3];
+      case 2:
+           wt2 = wt[2];
+      case 1:
+           wt1 = wt[1];
+      case 0:
+           wt0 = wt[0];
+      default:
+      break ;
+   }
 
    /* 1 row workspace, with m-long buffers at each end
       (so that the i-th element of the row is in r[i+m]) */
@@ -602,7 +622,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
      default:
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
-
           off = jj*nx + kk*nxy ; ff = f+off ;     /* ff = ptr to this row */
           memcpy( r+m , ff , sizeof(float)*nx ) ; /* copy row into workspace */
           r[m-1] = r[m+1] ; r[nx+m] = r[nx+m-2] ; /* mirror at ends */
@@ -622,11 +641,8 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  M
 #define M 7
      case 7:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-       wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ; wt7 = wt[7] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
-
           off = jj*nx + kk*nxy ; ff = f+off ;
           memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
@@ -645,11 +661,8 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  M
 #define M 6
      case 6:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-       wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
-
           off = jj*nx + kk*nxy ; ff = f+off ;
           memcpy( r+m , ff , sizeof(float)*nx ) ;
           r[M-1] = r[M+1] ; r[nx+M] = r[nx+M-2] ;
@@ -667,8 +680,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  M
 #define M 5
      case 5:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-       wt4 = wt[4] ; wt5 = wt[5] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
@@ -688,8 +699,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  M
 #define M 4
      case 4:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-       wt4 = wt[4] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
@@ -708,7 +717,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  M
 #define M 3
      case 3:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
@@ -726,7 +734,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  M
 #define M 2
      case 2:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
@@ -743,7 +750,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 #undef  M
 #define M 1
      case 1:
-       wt0 = wt[0] ; wt1 = wt[1] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( jj=0 ; jj < ny ; jj++ ){
 
@@ -780,6 +786,27 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
 
    if( m < 1 || wt == NULL || ny < (m+1) || f == NULL ) EXRETURN ;
    if( nx <= 0 || nz <= 0 ) EXRETURN ;
+   switch(m){  /**assign weights to variables not arrays **/
+      case 7:
+           wt7 = wt[7];   /* let cases fall through to next case to assign weights */
+      case 6:
+           wt6 = wt[6];
+      case 5:
+           wt5 = wt[5];
+      case 4:
+           wt4 = wt[4];
+      case 3:
+           wt3 = wt[3];
+      case 2:
+           wt2 = wt[2];
+      case 1:
+           wt1 = wt[1];
+      case 0:
+           wt0 = wt[0];
+      default:
+      break ;
+   }
+   
    if( nx < 512) goto SMALLIMAGE;
 
    /* In this function, for each value of kk (z index), we extract a
@@ -832,8 +859,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 7:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-         wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ; wt7 = wt[7] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( jj=0 ; jj < ny ; jj++ ){
               SS(ii,jj) =  wt7 * ( RR(ii,jj+7) + RR(ii,jj-7) )
@@ -848,8 +873,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 6:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-         wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( jj=0 ; jj < ny ; jj++ ){
               SS(ii,jj) =  wt6 * ( RR(ii,jj+6) + RR(ii,jj-6) )
@@ -863,8 +886,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 5:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-         wt4 = wt[4] ; wt5 = wt[5] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( jj=0 ; jj < ny ; jj++ ){
               SS(ii,jj) =  wt5 * ( RR(ii,jj+5) + RR(ii,jj-5) )
@@ -877,8 +898,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 4:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-         wt4 = wt[4] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( jj=0 ; jj < ny ; jj++ ){
               SS(ii,jj) =  wt4 * ( RR(ii,jj+4) + RR(ii,jj-4) )
@@ -890,7 +909,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 3:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( jj=0 ; jj < ny ; jj++ ){
               SS(ii,jj) =  wt3 * ( RR(ii,jj+3) + RR(ii,jj-3) )
@@ -901,7 +919,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 2:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( jj=0 ; jj < ny ; jj++ ){
               SS(ii,jj) =  wt2 * ( RR(ii,jj+2) + RR(ii,jj-2) )
@@ -911,7 +928,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 1:
-         wt0 = wt[0] ; wt1 = wt[1] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( jj=0 ; jj < ny ; jj++ ){
               SS(ii,jj) =  wt1 * ( RR(ii,jj+1) + RR(ii,jj-1) )
@@ -946,7 +962,6 @@ SMALLIMAGE:
      default:
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
-
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+m] = ff[D*jj] ;
           r[m-1] = r[m+1] ; r[ny+m] = r[ny+m-2] ;
@@ -963,11 +978,8 @@ SMALLIMAGE:
 #undef  M
 #define M 7
      case 7:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-       wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ; wt7 = wt[7] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
-
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
@@ -986,11 +998,8 @@ SMALLIMAGE:
 #undef  M
 #define M 6
      case 6:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-       wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
-
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
@@ -1008,11 +1017,8 @@ SMALLIMAGE:
 #undef  M
 #define M 5
      case 5:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-       wt4 = wt[4] ; wt5 = wt[5] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
-
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
@@ -1029,11 +1035,8 @@ SMALLIMAGE:
 #undef  M
 #define M 4
      case 4:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-       wt4 = wt[4] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
-
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
@@ -1049,10 +1052,8 @@ SMALLIMAGE:
 #undef  M
 #define M 3
      case 3:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
-
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
@@ -1067,7 +1068,6 @@ SMALLIMAGE:
 #undef  M
 #define M 2
      case 2:
-       wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
 
@@ -1084,10 +1084,8 @@ SMALLIMAGE:
 #undef  M
 #define M 1
      case 1:
-       wt0 = wt[0] ; wt1 = wt[1] ;
        for( kk=0 ; kk < nz ; kk++ ){
         for( ii=0 ; ii < nx ; ii++ ){
-
           off = ii + kk*nxy ; ff = f+off ;
           for( jj=0 ; jj < ny ; jj++ ) r[jj+M] = ff[D*jj] ;
           r[M-1] = r[M+1] ; r[ny+M] = r[ny+M-2] ;
@@ -1128,6 +1126,27 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
       y-axis, this trick might help, but only if a single (x,y) plane
       doesn't fit into cache.  For nx=ny=256, 1 plane is 256 KB, so I
       decided that this 2D extract/process/insert trick was nugatory. */
+
+   switch(m){  /**assign weights to variables not arrays **/
+      case 7:
+           wt7 = wt[7];   /* let cases fall through to next case to assign weights */
+      case 6:
+           wt6 = wt[6];
+      case 5:
+           wt5 = wt[5];
+      case 4:
+           wt4 = wt[4];
+      case 3:
+           wt3 = wt[3];
+      case 2:
+           wt2 = wt[2];
+      case 1:
+           wt1 = wt[1];
+      case 0:
+           wt0 = wt[0];
+      default:
+      break ;
+   }
 
    /* macro to access the input data 2D slice: (i,k) = (x,z) indexes */
 
@@ -1170,8 +1189,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 7:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-         wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ; wt7 = wt[7] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( kk=0 ; kk < nz ; kk++ ){
               SS(ii,kk) =  wt7 * ( RR(ii,kk+7) + RR(ii,kk-7) )
@@ -1186,8 +1203,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 6:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-         wt4 = wt[4] ; wt5 = wt[5] ; wt6 = wt[6] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( kk=0 ; kk < nz ; kk++ ){
               SS(ii,kk) =  wt6 * ( RR(ii,kk+6) + RR(ii,kk-6) )
@@ -1201,8 +1216,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 5:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-         wt4 = wt[4] ; wt5 = wt[5] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( kk=0 ; kk < nz ; kk++ ){
               SS(ii,kk) =  wt5 * ( RR(ii,kk+5) + RR(ii,kk-5) )
@@ -1215,8 +1228,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 4:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
-         wt4 = wt[4] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( kk=0 ; kk < nz ; kk++ ){
               SS(ii,kk) =  wt4 * ( RR(ii,kk+4) + RR(ii,kk-4) )
@@ -1228,7 +1239,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 3:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ; wt3 = wt[3] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( kk=0 ; kk < nz ; kk++ ){
               SS(ii,kk) =  wt3 * ( RR(ii,kk+3) + RR(ii,kk-3) )
@@ -1239,7 +1249,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 2:
-         wt0 = wt[0] ; wt1 = wt[1] ; wt2 = wt[2] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( kk=0 ; kk < nz ; kk++ ){
               SS(ii,kk) =  wt2 * ( RR(ii,kk+2) + RR(ii,kk-2) )
@@ -1249,7 +1258,6 @@ if(PRINT_TRACING){char str[256];sprintf(str,"m=%d",m);STATUS(str);}
        break ;
 
        case 1:
-         wt0 = wt[0] ; wt1 = wt[1] ;
          for( ii=0 ; ii < nx ; ii++ ){
            for( kk=0 ; kk < nz ; kk++ ){
               SS(ii,kk) =  wt1 * ( RR(ii,kk+1) + RR(ii,kk-1) )
