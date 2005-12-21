@@ -463,6 +463,7 @@ int main( int argc , char * argv[] )
             "  -parfix n v   = Fix the n'th parameter of the warp model to\n"
             "                   the value 'v'.  More than one -parfix option\n"
             "                   can be used, to fix multiple parameters.\n"
+            "      ***N.B.: this option appears to be broken at this time!!!\n"
             "  -1Dfile ename = Write out the warping parameters to the file\n"
             "                   named 'ename'.  Each sub-brick of the input\n"
             "                   dataset gets one line in this file.  Each\n"
