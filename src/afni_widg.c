@@ -4387,13 +4387,24 @@ STATUS("making prog->rowcol") ;
       prog->hidden_broutim_pb =            /* 06 Jun 2005 */
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                  LABEL_ARG("Brodmann Areas") ,
+                  LABEL_ARG("Brodmann Areas: imag") ,
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , False ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
       XtAddCallback( prog->hidden_broutim_pb , XmNactivateCallback ,
                      AFNI_broutim_CB , im3d ) ;
+
+      prog->hidden_broutext_pb =            /* 21 Dec 2005 */
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Brodmann Areas: text") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , False ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_broutext_pb , XmNactivateCallback ,
+                     AFNI_broutext_CB , im3d ) ;
 
       /*----------*/
 

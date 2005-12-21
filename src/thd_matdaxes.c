@@ -42,6 +42,7 @@ mat44 THD_mat44_mul( mat44 A , mat44 B )
 int THD_daxes_to_mat44( THD_dataxes *dax )
 {
    mat44 ijk_to_dxyz , dxyz_to_dicom ;
+   float aaa ;
 
    if( dax == NULL ) return -1 ;
 
@@ -51,6 +52,15 @@ int THD_daxes_to_mat44( THD_dataxes *dax )
                dax->xxdel , 0.0f       , 0.0f       , dax->xxorg ,
                0.0f       , dax->yydel , 0.0f       , dax->yyorg ,
                0.0f       , 0.0f       , dax->zzdel , dax->zzorg  ) ;
+
+   /* set to_dicomm if not valid */
+
+   aaa = fabsf(dax->to_dicomm.mat[0][0])+fabsf(dax->to_dicomm.mat[0][1])
+        +fabsf(dax->to_dicomm.mat[0][2])+fabsf(dax->to_dicomm.mat[1][0])
+        +fabsf(dax->to_dicomm.mat[1][1])+fabsf(dax->to_dicomm.mat[1][2])
+        +fabsf(dax->to_dicomm.mat[2][0])+fabsf(dax->to_dicomm.mat[2][1])
+        +fabsf(dax->to_dicomm.mat[2][2]) ;
+   if( aaa == 0.0f ) THD_set_daxes_to_dicomm(dax) ;
 
    /* dxyz_to_dicom: transforms dataset (x,y,z) coords to DICOM coords */
 
@@ -267,12 +277,12 @@ int THD_daxes_from_mat44( THD_dataxes *dax )
    }
 
 #ifdef EXTEND_BBOX
-   dax->xxmin -= 0.5 * fabs(dax->xxdel) ;  /* pushes edges back by 1/2  */
-   dax->xxmax += 0.5 * fabs(dax->xxdel) ;  /* voxel dimensions (the box */
-   dax->yymin -= 0.5 * fabs(dax->yydel) ;  /* defined above is based on */
-   dax->yymax += 0.5 * fabs(dax->yydel) ;  /* voxel centers, not edges) */
-   dax->zzmin -= 0.5 * fabs(dax->zzdel) ;
-   dax->zzmax += 0.5 * fabs(dax->zzdel) ;
+   dax->xxmin -= 0.5 * fabsf(dax->xxdel) ;  /* pushes edges back by 1/2  */
+   dax->xxmax += 0.5 * fabsf(dax->xxdel) ;  /* voxel dimensions (the box */
+   dax->yymin -= 0.5 * fabsf(dax->yydel) ;  /* defined above is based on */
+   dax->yymax += 0.5 * fabsf(dax->yydel) ;  /* voxel centers, not edges) */
+   dax->zzmin -= 0.5 * fabsf(dax->zzdel) ;
+   dax->zzmax += 0.5 * fabsf(dax->zzdel) ;
 #endif
 
    return 0 ;

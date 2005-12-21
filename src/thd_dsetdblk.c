@@ -258,80 +258,13 @@ ENTRY("THD_3dim_from_block") ; /* 29 Aug 2001 */
    /*-- set bounding box for this dataset --*/
    /*---------------------------------------*/
 
-   daxes->xxmin = daxes->xxorg ;
-   daxes->xxmax = daxes->xxorg + (daxes->nxx-1) * daxes->xxdel ;
-   if( daxes->xxmin > daxes->xxmax ){
-     float temp   = daxes->xxmin ;
-     daxes->xxmin = daxes->xxmax ; daxes->xxmax = temp ;
-   }
-
-   daxes->yymin = daxes->yyorg ;
-   daxes->yymax = daxes->yyorg + (daxes->nyy-1) * daxes->yydel ;
-   if( daxes->yymin > daxes->yymax ){
-     float temp   = daxes->yymin ;
-     daxes->yymin = daxes->yymax ; daxes->yymax = temp ;
-   }
-
-   daxes->zzmin = daxes->zzorg ;
-   daxes->zzmax = daxes->zzorg + (daxes->nzz-1) * daxes->zzdel ;
-   if( daxes->zzmin > daxes->zzmax ){
-     float temp   = daxes->zzmin ;
-     daxes->zzmin = daxes->zzmax ; daxes->zzmax = temp ;
-   }
-
-#ifdef EXTEND_BBOX
-   daxes->xxmin -= 0.5 * fabs(daxes->xxdel) ;  /* pushes edges back by 1/2  */
-   daxes->xxmax += 0.5 * fabs(daxes->xxdel) ;  /* voxel dimensions (the box */
-   daxes->yymin -= 0.5 * fabs(daxes->yydel) ;  /* defined above is based on */
-   daxes->yymax += 0.5 * fabs(daxes->yydel) ;  /* voxel centers, not edges) */
-   daxes->zzmin -= 0.5 * fabs(daxes->zzdel) ;
-   daxes->zzmax += 0.5 * fabs(daxes->zzdel) ;
-#endif
+   THD_set_daxes_bbox( daxes ) ; /* 20 Dec 2005 */
 
    /*----------------------------------------------------------------*/
    /*--  matrix that transforms to Dicom (left-posterior-superior) --*/
    /*----------------------------------------------------------------*/
 
-   /* At present, the code below just produces a permutation matrix.
-      In the future, oblique scans may be allowed for by putting
-      an arbitrary orthogonal matrix in here.  (A non orthogonal
-      matrix implies non-orthogonal image scan axes and/or a
-      different set of units than mm, neither of which I will allow!) */
-
-   LOAD_ZERO_MAT(daxes->to_dicomm) ;
-
-   switch( daxes->xxorient ){
-      case ORI_R2L_TYPE:
-      case ORI_L2R_TYPE: daxes->to_dicomm.mat[0][0] = 1.0 ; break ;
-      case ORI_P2A_TYPE:
-      case ORI_A2P_TYPE: daxes->to_dicomm.mat[1][0] = 1.0 ; break ;
-      case ORI_I2S_TYPE:
-      case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][0] = 1.0 ; break ;
-
-      default: THD_FATAL_ERROR("illegal xxorient code") ;
-   }
-
-   switch( daxes->yyorient ){
-      case ORI_R2L_TYPE:
-      case ORI_L2R_TYPE: daxes->to_dicomm.mat[0][1] = 1.0 ; break ;
-      case ORI_P2A_TYPE:
-      case ORI_A2P_TYPE: daxes->to_dicomm.mat[1][1] = 1.0 ; break ;
-      case ORI_I2S_TYPE:
-      case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][1] = 1.0 ; break ;
-
-      default: THD_FATAL_ERROR("illegal yyorient code") ;
-   }
-
-   switch( daxes->zzorient ){
-      case ORI_R2L_TYPE:
-      case ORI_L2R_TYPE: daxes->to_dicomm.mat[0][2] = 1.0 ; break ;
-      case ORI_P2A_TYPE:
-      case ORI_A2P_TYPE: daxes->to_dicomm.mat[1][2] = 1.0 ; break ;
-      case ORI_I2S_TYPE:
-      case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][2] = 1.0 ; break ;
-
-      default: THD_FATAL_ERROR("illegal zxorient code") ;
-   }
+   THD_set_daxes_to_dicomm( daxes ) ; /* 20 Dec 2005 */
 
    /* 09 Dec 2005: set ijk_to_dicom matrix and its inverse */
 
