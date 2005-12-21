@@ -4432,37 +4432,9 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
 
    /*--- 15 Dec 2005: set the coordinate matrices in the header as well ---*/
 
-   LOAD_ZERO_MAT(daxes->to_dicomm) ;
+   THD_set_daxes_to_dicomm(daxes) ;
 
-   switch( daxes->xxorient ){
-      case ORI_R2L_TYPE:
-      case ORI_L2R_TYPE: daxes->to_dicomm.mat[0][0] = 1.0 ; break ;
-      case ORI_P2A_TYPE:
-      case ORI_A2P_TYPE: daxes->to_dicomm.mat[1][0] = 1.0 ; break ;
-      case ORI_I2S_TYPE:
-      case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][0] = 1.0 ; break ;
-   }
-
-   switch( daxes->yyorient ){
-      case ORI_R2L_TYPE:
-      case ORI_L2R_TYPE: daxes->to_dicomm.mat[0][1] = 1.0 ; break ;
-      case ORI_P2A_TYPE:
-      case ORI_A2P_TYPE: daxes->to_dicomm.mat[1][1] = 1.0 ; break ;
-      case ORI_I2S_TYPE:
-      case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][1] = 1.0 ; break ;
-   }
-
-   switch( daxes->zzorient ){
-      case ORI_R2L_TYPE:
-      case ORI_L2R_TYPE: daxes->to_dicomm.mat[0][2] = 1.0 ; break ;
-      case ORI_P2A_TYPE:
-      case ORI_A2P_TYPE: daxes->to_dicomm.mat[1][2] = 1.0 ; break ;
-      case ORI_I2S_TYPE:
-      case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][2] = 1.0 ; break ;
-   }
-
-   if( !ISVALID_MAT44(daxes->ijk_to_dicom) )
-     THD_daxes_to_mat44( daxes ) ;
+   if( !ISVALID_MAT44(daxes->ijk_to_dicom) ) THD_daxes_to_mat44(daxes) ;
 
    /*-----*/
 

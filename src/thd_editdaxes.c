@@ -55,35 +55,7 @@ void THD_edit_dataxes( float resam , THD_dataxes *daxes ,
 
    /* do the bounding box thing again */
 
-   wod_daxes->xxmin = wod_daxes->xxorg ;
-   wod_daxes->xxmax = wod_daxes->xxorg + (wod_daxes->nxx-1)*wod_daxes->xxdel ;
-   if( wod_daxes->xxmin > wod_daxes->xxmax ){
-      float temp = wod_daxes->xxmin ;
-      wod_daxes->xxmin = wod_daxes->xxmax ; wod_daxes->xxmax = temp ;
-   }
-
-   wod_daxes->yymin = wod_daxes->yyorg ;
-   wod_daxes->yymax = wod_daxes->yyorg + (wod_daxes->nyy-1)*wod_daxes->yydel ;
-   if( wod_daxes->yymin > wod_daxes->yymax ){
-      float temp = wod_daxes->yymin ;
-      wod_daxes->yymin = wod_daxes->yymax ; wod_daxes->yymax = temp ;
-   }
-
-   wod_daxes->zzmin = wod_daxes->zzorg ;
-   wod_daxes->zzmax = wod_daxes->zzorg + (wod_daxes->nzz-1)*wod_daxes->zzdel ;
-   if( wod_daxes->zzmin > wod_daxes->zzmax ){
-      float temp = wod_daxes->zzmin ;
-      wod_daxes->zzmin = wod_daxes->zzmax ; wod_daxes->zzmax = temp ;
-   }
-
-#ifdef EXTEND_BBOX
-   wod_daxes->xxmin -= 0.5 * wod_daxes->xxdel ;
-   wod_daxes->xxmax += 0.5 * wod_daxes->xxdel ;
-   wod_daxes->yymin -= 0.5 * wod_daxes->yydel ;
-   wod_daxes->yymax += 0.5 * wod_daxes->yydel ;
-   wod_daxes->zzmin -= 0.5 * wod_daxes->zzdel ;
-   wod_daxes->zzmax += 0.5 * wod_daxes->zzdel ;
-#endif
+   THD_set_daxes_bbox( wod_daxes ) ;  /* 20 Dec 2005 */
 
    /** 15 Dec 2005: deal with the new matrix coordinate entries **/
 
@@ -100,4 +72,89 @@ void THD_edit_dataxes( float resam , THD_dataxes *daxes ,
    }
 
    return ;
+}
+
+/*----------------------------------------------------------------*/
+
+void THD_set_daxes_bbox( THD_dataxes *daxes )  /* 20 Dec 2005 */
+{
+    if( !ISVALID_DATAXES(daxes) ) return ;
+
+    /*---------------------------------------*/
+    /*-- set bounding box for this dataset --*/
+    /*---------------------------------------*/
+
+    daxes->xxmin = daxes->xxorg ;
+    daxes->xxmax = daxes->xxorg + (daxes->nxx-1) * daxes->xxdel ;
+    if( daxes->xxmin > daxes->xxmax ){
+      float temp   = daxes->xxmin ;
+      daxes->xxmin = daxes->xxmax ; daxes->xxmax = temp ;
+    }
+
+    daxes->yymin = daxes->yyorg ;
+    daxes->yymax = daxes->yyorg + (daxes->nyy-1) * daxes->yydel ;
+    if( daxes->yymin > daxes->yymax ){
+      float temp   = daxes->yymin ;
+      daxes->yymin = daxes->yymax ; daxes->yymax = temp ;
+    }
+
+    daxes->zzmin = daxes->zzorg ;
+    daxes->zzmax = daxes->zzorg + (daxes->nzz-1) * daxes->zzdel ;
+    if( daxes->zzmin > daxes->zzmax ){
+      float temp   = daxes->zzmin ;
+      daxes->zzmin = daxes->zzmax ; daxes->zzmax = temp ;
+    }
+
+#ifdef EXTEND_BBOX
+    daxes->xxmin -= 0.5 * daxes->xxdel ;  /* pushes edges back by 1/2  */
+    daxes->xxmax += 0.5 * daxes->xxdel ;  /* voxel dimensions (the box */
+    daxes->yymin -= 0.5 * daxes->yydel ;  /* defined above is based on */
+    daxes->yymax += 0.5 * daxes->yydel ;  /* voxel centers, not edges) */
+    daxes->zzmin -= 0.5 * daxes->zzdel ;
+    daxes->zzmax += 0.5 * daxes->zzdel ;
+#endif
+
+   return ;
+}
+
+/*----------------------------------------------------------------*/
+
+void THD_set_daxes_to_dicomm( THD_dataxes *daxes )  /* 20 Dec 2005 */
+{
+    if( !ISVALID_DATAXES(daxes) ) return ;
+
+    /*----------------------------------------------------------------*/
+    /*--  matrix that transforms to Dicom (left-posterior-superior) --*/
+    /*----------------------------------------------------------------*/
+
+    LOAD_ZERO_MAT(daxes->to_dicomm) ;
+
+    switch( daxes->xxorient ){
+      case ORI_R2L_TYPE:
+      case ORI_L2R_TYPE: daxes->to_dicomm.mat[0][0] = 1.0 ; break ;
+      case ORI_P2A_TYPE:
+      case ORI_A2P_TYPE: daxes->to_dicomm.mat[1][0] = 1.0 ; break ;
+      case ORI_I2S_TYPE:
+      case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][0] = 1.0 ; break ;
+    }
+
+    switch( daxes->yyorient ){
+      case ORI_R2L_TYPE:
+      case ORI_L2R_TYPE: daxes->to_dicomm.mat[0][1] = 1.0 ; break ;
+      case ORI_P2A_TYPE:
+      case ORI_A2P_TYPE: daxes->to_dicomm.mat[1][1] = 1.0 ; break ;
+      case ORI_I2S_TYPE:
+      case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][1] = 1.0 ; break ;
+    }
+
+    switch( daxes->zzorient ){
+      case ORI_R2L_TYPE:
+      case ORI_L2R_TYPE: daxes->to_dicomm.mat[0][2] = 1.0 ; break ;
+      case ORI_P2A_TYPE:
+      case ORI_A2P_TYPE: daxes->to_dicomm.mat[1][2] = 1.0 ; break ;
+      case ORI_I2S_TYPE:
+      case ORI_S2I_TYPE: daxes->to_dicomm.mat[2][2] = 1.0 ; break ;
+    }
+
+    return ;
 }

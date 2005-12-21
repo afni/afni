@@ -1354,6 +1354,9 @@ typedef struct {
 
 extern void THD_edit_dataxes( float , THD_dataxes * , THD_dataxes * ) ;
 
+extern void THD_set_daxes_bbox     ( THD_dataxes * ) ; /* 20 Dec 2005 */
+extern void THD_set_daxes_to_dicomm( THD_dataxes * ) ;
+
 int THD_get_axis_direction( THD_dataxes *, int ) ; /* 19 Mar 2003 */
 
 extern int  THD_daxes_to_mat44  ( THD_dataxes *dax ) ; /* 07 Dec 2005 */

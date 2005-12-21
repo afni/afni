@@ -5783,3 +5783,6 @@
 
 06 Dec 2005
  * -coarserot in 3dWarpDrive.c, too.
+
+21 Dec 2005
+ * afni_broutext.h

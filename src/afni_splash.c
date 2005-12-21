@@ -18,7 +18,8 @@ void AFNI_splashraise(void){ return; }
 void AFNI_faceup     (void){ return; }
 
 /* moved the functions into "FRIVOLTIES" section  30 Jun 2005 [rickr] */
-void AFNI_broutim_CB(Widget w, XtPointer cd, XtPointer cbs){ return; }
+void AFNI_broutim_CB (Widget w, XtPointer cd, XtPointer cbs){ return; }
+void AFNI_broutext_CB(Widget w, XtPointer cd, XtPointer cbs){ return; }
 static int AFNI_find_todays_face(void){ return -1; }
 
 #else  /*=============================== for party animals !!!!!!!!!!!!!!!!!!*/
@@ -808,6 +809,24 @@ void AFNI_broutim_CB( Widget w, XtPointer cd, XtPointer cbs ) /* 06 Jun 2005 */
                            RMAP_broutim,GMAP_broutim,BMAP_broutim,BAR_broutim);
    (void) PLUTO_popup_image( NULL , imbr ) ;
    mri_free(imbr) ; return ;
+}
+
+/*---------------------------------------------------------------------------*/
+
+#include "afni_broutext.h"
+
+void AFNI_broutext_CB( Widget w, XtPointer cd, XtPointer cbs ) /* 21 Dec 2005 */
+{
+   char *inf=NULL ; int ii ;
+   Three_D_View *im3d = (Three_D_View *)cd ;
+
+   if( IM3D_OPEN(im3d) ){
+     for( ii=0 ; afni_broutext[ii] != NULL ; ii++ )
+       inf = THD_zzprintf( inf , "%s" , afni_broutext[ii] ) ;
+     (void) new_MCW_textwin( im3d->vwid->imag->topper, inf, TEXT_READONLY ) ;
+     free(inf) ;
+   }
+   return ;
 }
 
 #endif /* NO_FRIVOLITIES */

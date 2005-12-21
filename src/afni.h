@@ -638,6 +638,7 @@ typedef struct {
    Widget hidden_faces_pb   ;  /* 17 Dec 2004 */
    Widget hidden_browser_pb ;  /* 22 Apr 2005 */
    Widget hidden_broutim_pb ;  /* 06 Jun 2005 */
+   Widget hidden_broutext_pb;  /* 21 Dec 2005 */
 
 #endif  /* USE_HIDDEN */
 
@@ -1047,6 +1048,7 @@ extern void AFNI_splashraise(void) ;  /* 25 Sep 2000 */
 extern void AFNI_faceup     (void) ;  /* 17 Dec 2004 */
 extern int  AFNI_splash_isopen(void); /* 10 Nov 2005 */
 extern void AFNI_broutim_CB (Widget,XtPointer,XtPointer) ; /* 06 Jun 2005 */
+extern void AFNI_broutext_CB(Widget,XtPointer,XtPointer) ; /* 21 Dec 2005 */
 
 extern void AFNI_quit_CB           ( Widget wcall , XtPointer cd , XtPointer cbs );
 extern void AFNI_quit_timeout_CB   ( XtPointer , XtIntervalId * ) ;
