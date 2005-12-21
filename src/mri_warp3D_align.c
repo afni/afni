@@ -325,7 +325,7 @@ static MRI_IMAGE * mri_warp3D_align_fitim( MRI_warp3D_align_basis *bas ,
 
    pvec = (float *)malloc(sizeof(float) * npar) ;
 
-   /* for each parameter:
+   /* for each free parameter:
        apply inverse transform to base image with param value up and down
        compute central difference to approximate derivative of base
         image wrt parameter
@@ -661,9 +661,17 @@ ENTRY("mri_warp3D_align_one") ;
 
    save_prefix = getenv("AFNI_WARPDRIVE_SAVER") ;
 
+   /** pma[k] = external parameter index for the k-th free parameter **/
+
    pma = (int *)malloc(sizeof(int) * nfree) ;
    for( pp=ii=0 ; ii < npar ; ii++ )
      if( !bas->param[ii].fixed ) pma[pp++] = ii ;
+
+#if 0
+fprintf(stderr,"pma=") ;
+for(pp=0;pp<nfree;pp++)fprintf(stderr," %d",pma[pp]);
+fprintf(stderr,"\n") ;
+#endif
 
    fit  = (float *)malloc(sizeof(float) * npar ) ;
    dfit = (float *)malloc(sizeof(float) * npar ) ;
@@ -694,8 +702,8 @@ ENTRY("mri_warp3D_align_one") ;
          fit[pp] = bas->param[pp].val_fixed ;
        } else {
          fit[pp] = bas->param[pp].val_init ;
-         skip_first = skip_first && (fit[pp] == bas->param[pp].ident) ;
        }
+       skip_first = skip_first && (fit[pp] == bas->param[pp].ident) ;
      }
    } else {
      skip_first = 0 ;  /* and fit[] is unchanged */
@@ -757,7 +765,7 @@ ENTRY("mri_warp3D_align_one") ;
        for( pp=0 ; pp < nfree ; pp++ ) qfit[pp] += P(pp,ii) * tv ;
      }
      if( tim != fim ) mri_free( tim ) ;
-     for( pp=0 ; pp < nfree ; pp++ ) dfit[pp] = qfit[pma[pp]] ;
+     for( pp=0 ; pp < nfree ; pp++ ) dfit[pma[pp]] = qfit[pp] ;
      for( pp=0 ; pp < npar  ; pp++ ){
        fit[pp] += dfit[pp] ;
             if( fit[pp] > bas->param[pp].max ) fit[pp] = bas->param[pp].max ;
