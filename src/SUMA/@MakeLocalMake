@@ -13,7 +13,6 @@ else
    set am = $1
 endif
 
-
 if ( ! -f $am) then
    echo "Makefile $am not found"
    goto END
@@ -45,7 +44,8 @@ if ( ! -f $mo) then
    goto END
 endif
 
-#append the suma include
+#append the install dir and suma include
+echo "INSTALLDIR_SUMA = INSTALLDIR" >> $mo
 echo "include SUMA_Makefile_NoDev" >> $mo
 
 echo "Local Makefile $mo created."
@@ -58,6 +58,9 @@ HELP:
    echo "Creates a makefile in src/SUMA/ directory"
    echo "to be used for compiling specific"
    echo "parts of SUMA's code."
+   echo "Examples:"
+   echo "`basename $0`"
+   echo "`basename $0` ../Makefile.linux_gcc33_64"
    echo ""
    echo "AFNI_Makefile is the makefile used "
    echo "to compile AFNI and SUMA from the"
