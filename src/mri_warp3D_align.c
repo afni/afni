@@ -765,6 +765,11 @@ fprintf(stderr,"\n") ;
        for( pp=0 ; pp < nfree ; pp++ ) qfit[pp] += P(pp,ii) * tv ;
      }
      if( tim != fim ) mri_free( tim ) ;
+#if 1
+fprintf(stderr,"qfit=");
+for(pp=0;pp<nfree;pp++)fprintf(stderr," %g",qfit[pp]);
+fprintf(stderr,"\n") ;
+#endif
      for( pp=0 ; pp < nfree ; pp++ ) dfit[pma[pp]] = qfit[pp] ;
      for( pp=0 ; pp < npar  ; pp++ ){
        fit[pp] += dfit[pp] ;
