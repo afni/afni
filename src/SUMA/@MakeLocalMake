@@ -48,6 +48,8 @@ endif
 #append the suma include
 echo "include SUMA_Makefile_NoDev" >> $mo
 
+echo "Local Makefile $mo created."
+
 goto END
 
 HELP:
