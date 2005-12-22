@@ -1,0 +1,74 @@
+#!/bin/tcsh -f
+
+set tmp = "./___tmp_LocalMake"
+set mo = "Makefile_loc"
+
+if ( "$1" == "-h" || "$1" == "-help") then
+   goto HELP
+endif
+
+if ( "$1" == "" ) then
+   set am = "../Makefile"
+else
+   set am = $1
+endif
+
+
+if ( ! -f $am) then
+   echo "Makefile $am not found"
+   goto END
+endif
+ 
+#copy AFNI makefile
+cp $am $tmp
+
+if ( ! -f $tmp) then
+   echo "Could not create temp file"
+   goto END
+endif
+
+
+#remove line that includes AFNI's big makefile
+set grepres = `\grep -n 'include Makefile.INCLUDE' $tmp`
+if ( "$grepres" == "") then 
+   echo "Could not find 'include Makefile.INCLUDE'"
+   echo "Weird"
+   goto END
+endif
+set l = `echo $grepres | cut -d : -f 1`
+#echo "$l"
+
+sed "${l}d" $tmp > $mo
+
+if ( ! -f $mo) then
+   echo "They failed"
+   goto END
+endif
+
+#append the suma include
+echo "include SUMA_Makefile_NoDev" >> $mo
+
+goto END
+
+HELP:
+   echo ""
+   echo "Usage `basename $0` [AFNI_Makefile]"
+   echo "Creates a makefile in src/SUMA/ directory"
+   echo "to be used for compiling specific"
+   echo "parts of SUMA's code."
+   echo ""
+   echo "AFNI_Makefile is the makefile used "
+   echo "to compile AFNI and SUMA from the"
+   echo "src/ directory. If not specified,"
+   echo "../Makefile is used"
+   echo ""
+   echo "The output makefile is called $mo"
+   echo "Use $mo for making things like"
+   echo "make -f $mo all"
+   echo "make -f $mo 3dSurfMask "
+   echo ""
+   goto END
+
+END:
+   rm -f ./___tmp_LocalMake >& /dev/null
+   
