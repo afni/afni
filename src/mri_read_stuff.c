@@ -19,6 +19,7 @@ MRI_IMAGE * mri_read_stuff( char *fname )
    FILE *fp ;
    MRI_IMAGE *im ;
    byte *imar , *buf ;
+   char *qs , *qd , *qname , *qq ;
 
 ENTRY("mri_read_stuff") ;
 
@@ -107,7 +108,17 @@ ENTRY("mri_read_stuff") ;
    /*--- create the filter for this file and open the pipe ---*/
 
    pg = AFMALL(char, nf+strlen(filt)+32) ;  /* string to hold filter */
-   sprintf( pg , filt , fname ) ;
+
+   qs = strchr(fname,'\'') ;
+   qd = strchr(fname,'\"') ;
+   if( qs == NULL || qd == NULL ){  /* 22 Dec 2005: quotize name */
+     qq    = (qs==NULL) ? "'" : "\"" ;
+     qname = (char *)malloc(sizeof(char)*(nf+8)) ;
+     strcpy(qname,qq); strcat(qname,fname); strcat(qname,qq);
+     sprintf( pg , filt , qname ) ; free((void *)qname) ;
+   } else {
+     sprintf( pg , filt , fname ) ;
+   }
 
    signal( SIGPIPE , SIG_IGN ) ;  /* ignore this signal */
    fp = popen( pg , "r" ) ;
