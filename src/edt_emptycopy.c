@@ -152,11 +152,11 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
    new_dblk->master_ival  = NULL ;  /* Copy does not inherit mastery */
    new_dblk->master_bytes = NULL ;
 
-   if( old_good )
+   if( old_good ){
      *new_daxes  = *(old_dset->daxes) ;    /* copy all contents */
      if( !ISVALID_MAT44(new_daxes->ijk_to_dicom) )  /* 15 Dec 2005 */
        THD_daxes_to_mat44(new_daxes) ;
-   else {
+   } else {
      new_daxes->type = DATAXES_TYPE ;      /* make up contents */
 
      new_daxes->nxx = new_dkptr->dimsizes[0] ;
