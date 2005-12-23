@@ -1267,7 +1267,23 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
       /* find the bounding box of the triangle */
       p1 = &(NodeIJKlist[3*n1]); p2 = &(NodeIJKlist[3*n2]); p3 = &(NodeIJKlist[3*n3]); 
       SUMA_TRIANGLE_BOUNDING_BOX(p1, p2, p3, min_v, max_v);
-      
+      #if 0
+         if (LocalHead && nf == 5 ) {
+            FILE *fout = NULL;
+            int i;
+            fout = fopen("SUMA_SurfGridIntersect_BB.1D","w");
+            if (fout) {
+               SUMA_LH("Writing BB for debug...");
+               for (i=0; i<3; ++i) {
+                  fprintf(fout,"%d po p1 p2: %f %f %f\n", nf, p1[i], p2[i], p3[i]);
+                  fprintf(fout,"%d min max: %f %f\n", nf, min_v[i], max_v[i]);
+               }
+               fclose(fout);
+            } else {
+               SUMA_LH("Failed to write BB for debug...");
+            }   
+         }
+      #endif
       /* quick check of preallocate size of voxelsijk */
       en =((int)(max_v[0] - min_v[0] + 3) * (int)(max_v[1] - min_v[1] + 3) * (int)(max_v[2] - min_v[2] + 3)); 
       if ( en > N_alloc) {
@@ -1291,6 +1307,11 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
          if (voxelsijk[nt3] < nx &&  voxelsijk[nt3+1] < ny &&  voxelsijk[nt3+2] < nz) {
             isincand = 0;
             nijk = SUMA_3D_2_1D_index(voxelsijk[nt3], voxelsijk[nt3+1], voxelsijk[nt3+2], nx , nxy);  
+            #if 0
+               if (nijk == 6567) {
+                  fprintf(SUMA_STDERR,"%s: %d examined, cand %d initial isin[%d] = %d\n", FuncName, nijk,  isincand, nijk, isin[nijk]);
+               }
+            #endif
             if (1 || !isin[nijk]) { /* Used to be that if a voxel was tagged (isin[nijk]), do not tag it again, 
                            But that is not good if a voxel has been tagged outside for one
                            node but should be tagged inside the surface for that voxel's intersection
@@ -1303,22 +1324,53 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
                   if (SUMA_IS_NEG(VolPar->Hand * dist)) isincand = SUMA_IN_TRIBOX_INSIDE;  /* ZSS Added handedness factor. who would have thought? Be damned 3D coord systems! */
                   else isincand = SUMA_IN_TRIBOX_OUTSIDE; 
                }
-               
+               #if 0               
+                  if (nijk == 6567) {
+                     fprintf(SUMA_STDERR,"    after dist check cand = %d\n", isincand);
+                     SUMA_Set_VoxIntersDbg(1);
+                  }
+               #endif              
                if (1) { /* does this triangle actually intersect this voxel ?*/
                   if (SUMA_isVoxelIntersect_Triangle (p, dxyz, p1, p2, p3)) {
                      if (isincand == SUMA_IN_TRIBOX_INSIDE) isincand = SUMA_INTERSECTS_TRIANGLE_INSIDE;
                      else isincand = SUMA_INTERSECTS_TRIANGLE_OUTSIDE;
                   } 
                }
+               #if 0               
+                  if (nijk == 6567) {
+                     SUMA_Set_VoxIntersDbg(0);
+                     fprintf(SUMA_STDERR,"    after intersection cand = %d\n", isincand);
+                  }              
+               #endif              
                if (isincand > isin[nijk]) { /* voxel has graduated further inwards */
                   if (!isin[nijk]) { ++(*N_inp);   } /* a new baby */
                   isin[nijk] = isincand;
-               }    
+               }
+               #if 0               
+                  if (nijk == 6567) {
+                     fprintf(SUMA_STDERR,"    final isin[%d] = %d\n", nijk, isin[nijk]);
+                  } 
+               #endif              
+                   
             }
          }
       }
    }
    
+   if (LocalHead) {
+      FILE *fout = NULL;
+      int i;
+      fout = fopen("SUMA_SurfGridIntersect_isin1.1D","w");
+      if (fout) {
+         SUMA_LH("Writing isin for debug...");
+         for (i=0; i<nxyz; ++i) {
+            if (isin[i]) fprintf(fout,"%d   %d\n", i, isin[i]);
+         }
+         fclose(fout);
+      } else {
+         SUMA_LH("Failed to write isin for debug...");
+      }
+   }
    /* Now fill in inside of the sphere */
       /* create a mask vector*/
       ijkmask = (byte *)SUMA_calloc(nxyz, sizeof(byte));
@@ -1396,6 +1448,21 @@ short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, SUMA_
          goto CLEAN_EXIT;
       }
       inmask = SUMA_FillToVoxelMask(ijkmask, ijkseed, nx, ny, nz, &N_in, NULL); 
+      if (LocalHead) {
+         FILE *fout = NULL;
+         int i;
+         fout = fopen("SUMA_SurfGridIntersect_inmask.1D","w");
+         if (fout) {
+            SUMA_LH("Writing inmask for debug...");
+            for (i=0; i<nxyz; ++i) {
+               if (inmask[i]) fprintf(fout,"%d   %d\n", i, inmask[i]);
+            }
+            fclose(fout);
+         } else {
+            SUMA_LH("Failed to write inmask for debug...");
+         }
+      }
+
       if (!inmask) {
          SUMA_SL_Err("Failed to FillToVoxelMask!");
       } else {
@@ -1455,11 +1522,11 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
    int i, N_in, j, k , n, khits, dims[2], N_hits, iii, jjj, niii, ncul;
    float *tmpXYZ=NULL, Center[3], MaxDims[3], MinDims[3], aMaxDims, aMinDims, delta_t;
    float hdim[3], t0, t1, t2, SOCenter[3], p0[3], p1[3];
-   SUMA_MT_INTERSECT_TRIANGLE *mti = NULL; 
    struct  timeval tti;
    int nfound = 0, N_poshits = 0;
    int cnt = 0, sgn, sgnref, n1, n2, n3;
    float ivec[3] = { 1, 0, 0}, dp = 0.0, cx = 0.0;
+   
    SUMA_Boolean LocalHead = NOPE;
    
 
@@ -1483,9 +1550,35 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
    }
    
    memcpy ((void*)tmpXYZ, (void *)SO->NodeList, SO->N_Node * 3 * sizeof(float));
-   
+   #if MSK_DBG
+      if (fdb) {
+         fprintf(fdb, "Begin NodeList and copy\n");
+         for (i=0; i<SO->N_Node; ++i) {
+            fprintf(fdb, "%f %f %f\n%f %f %f\n\n",
+                     SO->NodeList[3*i  ], SO->NodeList[3*i+1], SO->NodeList[3*i+2], 
+                     tmpXYZ[3*i  ], tmpXYZ[3*i+1], tmpXYZ[3*i+2]);
+         }
+         fprintf(fdb, "Begin VolPar action\n"); 
+         SUMA_Show_VolPar(VolPar, fdb);
+      }
+      
+   #endif
    /* transform the surface's coordinates from RAI to 3dfind */
-   SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, VolPar);
+   if (!SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, VolPar)) {
+      SUMA_SL_Err("Failed to effectuate coordinate transform.");
+      SUMA_free(tmpXYZ); tmpXYZ = NULL;
+      SUMA_RETURN(NULL);
+   }
+   #if MSK_DBG
+      if (fdb) {
+         fprintf(fdb, "Begin SUMA_vec_dicomm_to_3dfind\n");
+         for (i=0; i<SO->N_Node; ++i) {
+            fprintf(fdb, "%f %f %f\n%f %f %f\n\n",
+                     SO->NodeList[3*i  ], SO->NodeList[3*i+1], SO->NodeList[3*i+2], 
+                     tmpXYZ[3*i  ], tmpXYZ[3*i+1], tmpXYZ[3*i+2]);
+         }
+      }
+   #endif
    
    /* find the new center and bounding box for the surface in the new coordinate system*/
    SUMA_MIN_MAX_SUM_VECMAT_COL (tmpXYZ, SO->N_Node, 3, MinDims, MaxDims, SOCenter); 
@@ -1517,7 +1610,6 @@ short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, in
    }
    
    SUMA_free(tmpXYZ); tmpXYZ = NULL;
-   if (mti) mti = SUMA_Free_MT_intersect_triangle(mti);
    if (tmpin) SUMA_free(tmpin); tmpin = NULL;
    
    SUMA_RETURN(isin);

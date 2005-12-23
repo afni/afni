@@ -305,7 +305,11 @@ SUMA_VTI *SUMA_GetVoxelsIntersectingTriangle(   SUMA_SurfaceObject *SO, SUMA_VOL
                                                              or an effect of discretization. At any rate
                                                              it should not affect what I plan to do with
                                                              this. Could the bug be in 
-                                                             SUMA_isVoxelIntersect_Triangle?*/
+                                                             SUMA_isVoxelIntersect_Triangle?
+                                                             Thu Dec 22 17:03:48 EST 2005, Update:
+                                                             SUMA_isVoxelIntersect_Triangle had a precision
+                                                             bug. It has been fixed but I have not reexamined
+                                                             this block yet*/
                if (!(SUMA_IS_STRICT_NEG(VolPar->Hand * dist))) { /* voxel is outside (along normal) */
                   /* does this triangle actually intersect this voxel ?*/
                   if (SUMA_isVoxelIntersect_Triangle (p, dxyz, p1, p2, p3)) {
@@ -430,7 +434,11 @@ int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES 
    
    /* change ijk to 3D */
    SUMA_1D_2_3D_index(ijk, i, j, k, ni, nij);
-   
+   /* 
+   if (ijk == 5030) {
+      fprintf(SUMA_STDERR,"%s:[%d] %d %d %d\n", FuncName, ijk, i, j, k);      
+   }
+   */
    if (i >= ni || i < 0) { SUMA_SL_Err("Voxel out of bounds along i direction"); SUMA_RETURN(N_n); }
    if (j >= nj || j < 0) { SUMA_SL_Err("Voxel out of bounds along j direction"); SUMA_RETURN(N_n); }
    if (k >= nk || k < 0) { SUMA_SL_Err("Voxel out of bounds along k direction"); SUMA_RETURN(N_n); }
@@ -442,7 +450,12 @@ int SUMA_VoxelNeighbors (int ijk, int ni, int nj, int nk, SUMA_VOX_NEIGHB_TYPES 
    if (i+1 < ni) { nl[N_n] = SUMA_3D_2_1D_index(i+1, j, k, ni, nij); ++N_n; } 
    if (j+1 < nj) { nl[N_n] = SUMA_3D_2_1D_index(i, j+1, k, ni, nij); ++N_n; } 
    if (k+1 < nk) { nl[N_n] = SUMA_3D_2_1D_index(i, j, k+1, ni, nij); ++N_n; } 
-   
+   /*
+   if (ijk == 5030) {
+      fprintf(SUMA_STDERR,"%s:[%d] %d %d %d %d %d %d\n", FuncName, ijk, 
+                              nl[0],nl[1],nl[2],nl[3],nl[4],nl[5] );      
+   }
+   */   
    if ( ntype < SUMA_VOX_NEIGHB_EDGE) { SUMA_RETURN(N_n); }
    
    /* add edge neighbors */
@@ -496,7 +509,8 @@ byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, i
    byte *isin = NULL, *visited=NULL;
    DList*candlist=NULL;
    DListElmt *dothiselm=NULL;
-   int dothisvoxel, itmp;
+   int dothisvoxel;
+   void * dtmp=NULL;
    int nl[50], N_n, in ,neighb, nijk, i, j, k, nij;
    SUMA_Boolean LocalHead = NOPE;
    
@@ -527,39 +541,57 @@ byte *SUMA_FillToVoxelMask(byte *ijkmask, int ijkseed, int ni, int nj, int nk, i
       SUMA_RETURN(NULL);  
    }
    
-   if (usethisisin) isin = usethisisin;
-   else {
+   if (usethisisin) {
+      isin = usethisisin;
+      SUMA_LH("Reusing isin");
+   } else {
       isin = (byte *)SUMA_calloc(nijk, sizeof(byte));
       if (!isin) {
          SUMA_SL_Crit("Failed to allocate");
          SUMA_RETURN(NULL);
       }
+      SUMA_LH("Fresh isin");
    }
    
    dothisvoxel = ijkseed;
    dlist_init(candlist, NULL);
    
-   
    isin[dothisvoxel] = 1; ++(*N_in); /* Add voxel to cluster */
    visited[dothisvoxel] = 1;  
-   dlist_ins_next(candlist, dlist_tail(candlist), (void *)dothisvoxel); /* Add voxel as next candidate*/
+   dlist_ins_next(candlist, dlist_tail(candlist), (const void *)dothisvoxel); /* Add voxel as next candidate*/
    
    while (dlist_size(candlist)) {
       /* find neighbors in its vicinity */
       dothiselm = dlist_head(candlist); dothisvoxel = (int) dothiselm->data;
       N_n = SUMA_VoxelNeighbors (dothisvoxel, ni, nj, nk, SUMA_VOX_NEIGHB_FACE, nl);
+      /*
+         if (dothisvoxel == 5030 && LocalHead) {
+            for (in=0; in<N_n; ++in) {  fprintf(SUMA_STDERR,"%s: pre removal %d\n", FuncName, nl[in]); }    
+         }
+      */
       /* remove node from candidate list */
-      dlist_remove(candlist, dothiselm, (void*)&itmp);
+      dlist_remove(candlist, dothiselm, (void *)(&dtmp)); /* Make sure dtmp has enough space to hold a pointer! An int does not hold a pointer on 64 bit MCs */
+      /*
+         if (dothisvoxel == 5030 && LocalHead) {
+            for (in=0; in<N_n; ++in) {  fprintf(SUMA_STDERR,"%s: post removal %d\n", FuncName, nl[in]); }    
+         }
+      */
       /* search to see if any are to be assigned */
+      /* if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"%s: dothisvoxel = %d\n", FuncName, dothisvoxel);*/
       for (in=0; in<N_n; ++in) { 
          neighb = nl[in];
+         /* if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"   Working neighb %d, ijkmask[neighb] = %d\n", neighb, ijkmask[neighb]);*/
          if (!ijkmask[neighb]) {
+            /* if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"   neighb %d marked isin\n", neighb); */
             isin[neighb] = 1; ++(*N_in); /* Add voxel to cluster */
             /* mark it as a candidate if it has not been visited as a candidate before */
             if (!visited[neighb]) {
-               dlist_ins_next(candlist, dlist_tail(candlist), (void *)neighb);
+               /* if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"   neighb %d added to candidate list\n", neighb); */
+               dlist_ins_next(candlist, dlist_tail(candlist), (const void *)neighb);
                visited[neighb] = 1;   
             }
+         } else {
+         /*   if (dothisvoxel == 5030 && LocalHead) fprintf(SUMA_STDERR,"   neighb %d already in mask\n", neighb); */
          }
       }
    }

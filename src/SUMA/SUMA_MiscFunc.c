@@ -3027,6 +3027,12 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
 
 
 /*--------------------- Matrix Sorting functions END ------------------------*/
+static VoxIntersDbg = 0;
+void SUMA_Set_VoxIntersDbg(int v)
+{
+   VoxIntersDbg = v;
+   return;
+}
 
 /*!
    \brief Returns the coordinates of a voxel corner
@@ -3144,19 +3150,25 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
    - NOTE: macro does not check that three points are colinear (as they should be)!
 */
 #define SUMA_IS_POINT_IN_SEGMENT(p, p0, p1)  (  (  (  \
-                                                   (p[0] >  p0[0] && p[0] <  p1[0]) ||   \
-                                                   (p[0] <  p0[0] && p[0] >  p1[0]) ||   \
-                                                   (p[0] == p0[0] || p[0] == p1[0]) ) \
+                                                      (p[0] >  p0[0] && p[0] <  p1[0]) ||   \
+                                                      (p[0] <  p0[0] && p[0] >  p1[0]) ||   \
+                                                      (SUMA_ABS(p[0] - p0[0]) < 0.00000001 || \
+                                                       SUMA_ABS(p[0] - p1[0]) < 0.00000001 ) \
+                                                   )\
                                                    && \
                                                    (  \
-                                                   (p[1] >  p0[1] && p[1] <  p1[1]) ||   \
-                                                   (p[1] <  p0[1] && p[1] >  p1[1]) ||   \
-                                                   (p[1] == p0[1] || p[1] == p1[1]) ) \
+                                                      (p[1] >  p0[1] && p[1] <  p1[1]) ||   \
+                                                      (p[1] <  p0[1] && p[1] >  p1[1]) ||   \
+                                                      (SUMA_ABS(p[1] - p0[1]) < 0.00000001 || \
+                                                       SUMA_ABS(p[1] - p1[1]) < 0.00000001 ) \
+                                                   )\
                                                    && \
                                                    (  \
-                                                   (p[2] >  p0[2] && p[2] <  p1[2]) ||   \
-                                                   (p[2] <  p0[2] && p[2] >  p1[2]) ||   \
-                                                   (p[2] == p0[2] || p[2] == p1[2]) ) \
+                                                      (p[2] >  p0[2] && p[2] <  p1[2]) ||   \
+                                                      (p[2] <  p0[2] && p[2] >  p1[2]) ||   \
+                                                      (SUMA_ABS(p[2] - p0[2]) < 0.00000001 || \
+                                                       SUMA_ABS(p[2] - p1[2]) < 0.00000001 ) \
+                                                   )\
                                                    ) ? 1 : 0 )
                                           
 /*!
@@ -3180,9 +3192,13 @@ SUMA_Boolean SUMA_isVoxelIntersect_Triangle (float *center, float *dxyz, float *
    for (i=0; i<12; ++i) {
       SUMA_EDGE_OF_VOXEL(center, dxyz, i, P0, P1);
       if (SUMA_MT_isIntersect_Triangle (P0, P1, vert0, vert1, vert2, iP, NULL, NULL)) {
+         #if 0 
+            if (VoxIntersDbg) fprintf(SUMA_STDERR, "%s: intersection detected.\n", FuncName);
+         #endif
          /* intersects, make sure intersection is between P0 and P1 */
          if (SUMA_IS_POINT_IN_SEGMENT(iP, P0, P1)) {
-            if (0) fprintf(SUMA_STDERR, "%s:\n"
+            #if 0
+            if (VoxIntersDbg) fprintf(SUMA_STDERR, "%s:\n"
                                                 "Triangle %.3f, %.3f, %.3f\n"
                                                 "         %.3f, %.3f, %.3f\n"
                                                 "         %.3f, %.3f, %.3f\n"
@@ -3193,6 +3209,7 @@ SUMA_Boolean SUMA_isVoxelIntersect_Triangle (float *center, float *dxyz, float *
                                                 vert1[0], vert1[1], vert1[2],
                                                 vert2[0], vert2[1], vert2[2],
                                                 center[0], center[1], center[2]);
+            #endif
             SUMA_RETURN(YUP);
          }
       }
