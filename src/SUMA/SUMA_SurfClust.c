@@ -278,7 +278,8 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
    SUMA_CLUST_DATUM *Clust = NULL;
    static int ncall;
    static int N_Orig = -1;
-   int il, jl, neighb, itmp;
+   int il, jl, neighb;
+   void *dtmp=NULL;
    SUMA_GET_OFFSET_STRUCT *OffS = NULL;
    DList *offlist = NULL, *candlist=NULL;
    DListElmt *elm = NULL, *dothiselm=NULL;
@@ -330,7 +331,7 @@ SUMA_CLUST_DATUM * SUMA_Build_Cluster_From_Node_NoRec    (  int dothisnode,
          dothiselm = dlist_head(candlist); dothisnode = (int) dothiselm->data;
          SUMA_getoffsets2 (dothisnode, SO, Opt->DistLim, OffS, NULL, 0);
          /* remove node from candidate list */
-         dlist_remove(candlist, dothiselm, (void*)&itmp);
+         dlist_remove(candlist, dothiselm, (void*)&dtmp);
          /* search to see if any are to be assigned */
          for (il=1; il<OffS->N_layers; ++il) { /* starting at layer 1, layer 0 is the node itself */
             for (jl=0; jl<OffS->layers[il].N_NodesInLayer; ++jl) {
