@@ -5306,7 +5306,11 @@ SUMA_Boolean SUMA_MixOverlays (  SUMA_OVERLAYS ** Overlays, int N_Overlays,
        
       if (!Full && Glob && !Locl) {
          if (SUMAg_CF->ColMixMode == SUMA_ORIG_MIX_MODE) {
-            if (LocalHead) fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBv_PGnL_AR4op...\n", FuncName);
+            if (LocalHead) {
+               fprintf (SUMA_STDOUT,"%s: Calling  SUMA_RGBv_PGnL_AR4op...\n"
+                                    "    N_NodeDef = %d, N_Node = %d\n", FuncName, N_NodeDef, N_Node);
+            
+            }
             /* This macro used to be called: SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity*/
             SUMA_RGBv_PGnL_AR4op(\
             Overlays[i]->ColVec, NodeDef, glcolar, N_NodeDef, isColored, Overlays[i]->GlobalOpacity, N_Node);
