@@ -1819,16 +1819,14 @@ WARNING: The input data vectors are not cast to the type of s.
       float m_of;\
          m_of = (1 - opacity); \
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
-               if (NodeId[m_I] < N_Node) {\
+            if (NodeId[m_I] < N_Node) {\
+               if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
                   m_I4 = 4*NodeId[m_I]; \
                   glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
                   glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
                   glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
                   isColored[NodeId[m_I]] = YUP;\
-               }\
-            }else {/* mixing to be done */\
-               if (NodeId[m_I] < N_Node) {\
+               }else {/* mixing to be done */\
                   m_I4 = 4*NodeId[m_I]; \
                   glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][0];  ++m_I4;\
                   glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBmat[m_I][1];  ++m_I4;\
@@ -1842,17 +1840,15 @@ WARNING: The input data vectors are not cast to the type of s.
       float m_of;\
          m_of = (1 - opacity); \
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
-               if (NodeId[m_I] < N_Node) {\
+            if (NodeId[m_I] < N_Node) {\
+               if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
                   m_I4 = 4*NodeId[m_I]; \
                   m_I3 = 3*m_I; \
                   glcolar[m_I4] = RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   glcolar[m_I4] = RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   glcolar[m_I4] = RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   isColored[NodeId[m_I]] = YUP;\
-               }\
-            }else {/* mixing to be done */\
-               if (NodeId[m_I] < N_Node) {\
+               }else {/* mixing to be done */\
                   m_I4 = 4*NodeId[m_I]; \
                   m_I3 = 3*m_I; \
                   glcolar[m_I4] = m_of * glcolar[m_I4] + opacity * RGBvec[m_I3];  ++m_I4; ++m_I3;\
@@ -1868,16 +1864,14 @@ WARNING: The input data vectors are not cast to the type of s.
       float m_of;\
          m_of = (1 - opacity); \
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
-               if (NodeId[m_I] < N_Node) {\
+            if (NodeId[m_I] < N_Node) {\
+               if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
                   m_I4 = 4*NodeId[m_I]; \
                   glcolar[m_I4] = RGBmat[m_I][0]; ++m_I4;\
                   glcolar[m_I4] = RGBmat[m_I][1]; ++m_I4;\
                   glcolar[m_I4] = RGBmat[m_I][2]; ++m_I4;\
                   isColored[NodeId[m_I]] = YUP;\
-               }\
-            }else {/* mixing to be done */\
-               if (NodeId[m_I] < N_Node) {\
+               }else {/* mixing to be done */\
                   m_I4 = 4*NodeId[m_I]; \
                   glcolar[m_I4] = m_of * glcolar[m_I4] + RGBmat[m_I][0]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
                   glcolar[m_I4] = m_of * glcolar[m_I4] + RGBmat[m_I][1]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4;\
@@ -1891,17 +1885,15 @@ WARNING: The input data vectors are not cast to the type of s.
       float m_of;\
          m_of = (1 - opacity); \
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
-               if (NodeId[m_I] < N_Node) {\
+            if (NodeId[m_I] < N_Node) {\
+               if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is, Opacity gain should not be applied Wed Apr  2 17:31:33 EST 2003*/\
                   m_I4 = 4*NodeId[m_I]; \
                   m_I3 = 3*m_I; \
                   glcolar[m_I4] = RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   glcolar[m_I4] = RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   glcolar[m_I4] = RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   isColored[NodeId[m_I]] = YUP;\
-               }\
-            }else {/* mixing to be done */\
-               if (NodeId[m_I] < N_Node) {\
+               }else {/* mixing to be done */\
                   m_I4 = 4*NodeId[m_I]; \
                   m_I3 = 3*m_I; \
                   glcolar[m_I4] = m_of * glcolar[m_I4] + RGBvec[m_I3]; SUMA_CLIP_UB(glcolar[m_I4], 1.0); ++m_I4; ++m_I3;\
@@ -1943,16 +1935,14 @@ WARNING: The input data vectors are not cast to the type of s.
       int m_I, m_I4 = 0; \
       float m_of, m_of2;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
-               if (NodeId[m_I] < N_Node) {\
+            if (NodeId[m_I] < N_Node) {\
+               if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
                   m_I4 = 4*NodeId[m_I]; \
                   glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][0]; ++m_I4;\
                   glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][1]; ++m_I4;\
                   glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][2]; ++m_I4;\
                   isColored[NodeId[m_I]] = YUP;\
-               }\
-            }else { /* mixing to be done */\
-               if (NodeId[m_I] < N_Node) {\
+               }else { /* mixing to be done */\
                   m_I4 = 4*NodeId[m_I]; \
                   m_of = (locgain[m_I]  * opacity); /* Dec. 04 03, changed from locgain[m_I] * opacity */\
                   m_of2 = (1 - opacity);\
@@ -1967,17 +1957,15 @@ WARNING: The input data vectors are not cast to the type of s.
       int m_I, m_I4 = 0, m_I3=0; \
       float m_of, m_of2;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
-               if (NodeId[m_I] < N_Node) {\
+            if (NodeId[m_I] < N_Node) {\
+               if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
                   m_I4 = 4*NodeId[m_I]; \
                   m_I3 = 3*m_I; \
                   glcolar[m_I4] = locgain[m_I] * RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   glcolar[m_I4] = locgain[m_I] * RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   glcolar[m_I4] = locgain[m_I] * RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   isColored[NodeId[m_I]] = YUP;\
-               }\
-            }else { /* mixing to be done */\
-               if (NodeId[m_I] < N_Node) {\
+               }else { /* mixing to be done */\
                   m_I4 = 4*NodeId[m_I]; \
                   m_I3 = 3*m_I; \
                   m_of = (locgain[m_I]  * opacity); /* Dec. 04 03, changed from locgain[m_I] * opacity */\
@@ -1994,16 +1982,14 @@ WARNING: The input data vectors are not cast to the type of s.
       int m_I, m_I4 = 0; \
       float m_of, m_of2;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
-               if (NodeId[m_I] < N_Node) {\
+            if (NodeId[m_I] < N_Node) {\
+               if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
                   m_I4 = 4*NodeId[m_I]; \
                   glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][0]; ++m_I4;\
                   glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][1]; ++m_I4;\
                   glcolar[m_I4] = locgain[m_I] * RGBmat[m_I][2]; ++m_I4;\
                   isColored[NodeId[m_I]] = YUP;\
-               }\
-            }else { /* mixing to be done */\
-               if (NodeId[m_I] < N_Node) {\
+               }else { /* mixing to be done */\
                   m_I4 = 4*NodeId[m_I]; \
                   m_of = (locgain[m_I]); /* Dec. 04 03, changed from locgain[m_I] * opacity */\
                   m_of2 = (1 - opacity);\
@@ -2018,17 +2004,15 @@ WARNING: The input data vectors are not cast to the type of s.
       int m_I, m_I4 = 0, m_I3=0; \
       float m_of, m_of2;\
          for (m_I=0; m_I < nrgb; ++m_I) {\
-            if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
-               if (NodeId[m_I] < N_Node) {\
+            if (NodeId[m_I] < N_Node) {\
+               if (!isColored[NodeId[m_I]]) { /* a new color, put it down as it is */\
                   m_I4 = 4*NodeId[m_I]; \
                   m_I3 = 3*m_I; \
                   glcolar[m_I4] = locgain[m_I] * RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   glcolar[m_I4] = locgain[m_I] * RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   glcolar[m_I4] = locgain[m_I] * RGBvec[m_I3]; ++m_I4; ++m_I3;\
                   isColored[NodeId[m_I]] = YUP;\
-               }\
-            }else { /* mixing to be done */\
-               if (NodeId[m_I] < N_Node) {\
+               }else { /* mixing to be done */\
                   m_I4 = 4*NodeId[m_I]; \
                   m_I3 = 3*m_I; \
                   m_of = (locgain[m_I]); /* Dec. 04 03, changed from locgain[m_I] * opacity */\
