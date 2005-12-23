@@ -1888,6 +1888,9 @@ SUMA_Boolean SUMA_vec_3dmm_to_3dfind (float *NodeList, int N_Node, SUMA_VOLPAR *
       iv.xyz[1] = SO.NodeList[id+1] ;
       iv.xyz[2] = SO.NodeList[id+2] ;
       fv = SUMA_THD_3dmm_to_3dfind( &SO, iv );
+      /* fprintf(SUMA_STDERR,"%s: In[%f %f %f] Out[%f %f %f]\n", 
+                        FuncName, iv.xyz[0], iv.xyz[1], iv.xyz[2], 
+                        fv.xyz[0], fv.xyz[1], fv.xyz[2]); */
       SO.NodeList[id] = fv.xyz[0];
       SO.NodeList[id+1] = fv.xyz[1];
       SO.NodeList[id+2] = fv.xyz[2];
@@ -1976,6 +1979,9 @@ SUMA_Boolean SUMA_vec_dicomm_to_3dmm (float *NodeList, int N_Node, SUMA_VOLPAR *
 
       /* change mm to RAI coords */
       fv = SUMA_THD_dicomm_to_3dmm( &SO, iv );
+      /* fprintf(SUMA_STDERR,"%s: In[%f %f %f] Out[%f %f %f]\n", 
+                        FuncName, iv.xyz[0], iv.xyz[1], iv.xyz[2], 
+                        fv.xyz[0], fv.xyz[1], fv.xyz[2]); */
       SO.NodeList[id] = fv.xyz[0];
       SO.NodeList[id+1] = fv.xyz[1];
       SO.NodeList[id+2] = fv.xyz[2];
