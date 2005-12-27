@@ -156,6 +156,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    o Support for reading BrainVoyager surfaces (.srf) format\n"
             "    o Mouse motion effect is modulated with Zoom level\n"
             "    o F8 toggles between orthographic and perspective viewing\n"
+            "    o Fixed bug causing crash in SUMA_MixColorOverlays\n"
             "  + ConvertSurface:\n"
             "    o Option -make_consistent added to make the winding\n"
             "    of the mesh consistent.  \n"
@@ -181,6 +182,8 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    without additional comments.\n"
             "  + SurfaceMetrics:\n"
             "    o Options for finding surface boundaries.\n"
+            "  + 3dSkullStrip:\n"
+            "    o Fixed bug on 64 bit machines.\n"
             );
          break; 
          
