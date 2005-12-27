@@ -291,6 +291,7 @@ REGISTER:
 	   if (!(-f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.gz || -f $SurfAnatPath/$VolRegPrefix$SurfAnatView.BRIK.Z)) then
 		   goto NO_VOLREG
 	   endif
+      set fview = $SurfAnatView
 	   mv $SurfAnatPath/$VolRegPrefix* ./
    else      
       set tmpref = '___tmp__zp'"$ExpAnatPrefix$SurfAnatPrefix"
@@ -332,6 +333,10 @@ REGISTER:
 		rm -f $ExpAnat_Resamp".HEAD"
 		rm -f $ExpAnat_Resamp".BRIK"
 	endif
+   
+   #add a history note
+   3dNotes -h "`basename $0` $argv[*]" $VolRegPrefix$fview
+   
 	goto Ret_REGISTER
 
 CHECK_EXISTENCE:
