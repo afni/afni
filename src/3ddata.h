@@ -3901,6 +3901,7 @@ extern THD_3dim_dataset * WINsorize( THD_3dim_dataset * ,
 #define ZPAD_EMPTY (1<<0)
 #define ZPAD_PURGE (1<<1)
 #define ZPAD_MM    (1<<2)
+#define ZPAD_IJK   (1<<3)     /* ZSS Dec 23 05 pad values are in voxel coords */
 
 extern THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * ,
                                        int,int,int,int,int,int, char *, int );
