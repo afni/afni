@@ -11,7 +11,8 @@
     ZPAD_PURGE = purge input dataset bricks after they are copied
     ZPAD_MM    = increments are mm instead of slice counts
                  (at least 'add_?' mm will be added/subtracted)
-
+    ZPAD_IJK   = increments are relative to dset axes I0--I1 J0-- J1 
+                 K0--K1 not I--S A--P L---R
   14 May 2002: if inputs crops are all zero, return something anyway
 ---------------------------------------------------------------------*/
 
@@ -23,12 +24,13 @@ THD_3dim_dataset * THD_zeropad( THD_3dim_dataset * inset ,
    THD_3dim_dataset *outset ;
    int nxold,nyold,nzold , nxnew,nynew,nznew , nxyold,nxynew ,
        nxbot=0,nxtop=0 , nybot=0,nytop=0 , nzbot=0,nztop=0    ;
-   int ii,jj,kk , iv , iibot,iitop , jjbot,jjtop , kkbot,kktop ;
+   int ii,jj,kk , iv , iibot,iitop , jjbot,jjtop , kkbot,kktop;
 
    int empty_flag = (flag & ZPAD_EMPTY) ;  /* 09 Feb 2001 */
    int purge_flag = (flag & ZPAD_PURGE) ;  /* 09 Feb 2001 */
    int mm_flag    = (flag & ZPAD_MM   ) ;  /* 13 Feb 2001 */
-
+   int ijk_flag   = (flag & ZPAD_IJK   );  /* ZSS: 23 Dec The year of the war on Christmas */
+   
    THD_ivec3 iv_nxyz ;
    THD_fvec3 fv_xyzorg ;
 
@@ -58,59 +60,65 @@ ENTRY("THD_zeropad") ;
    nyold = DSET_NY(inset) ;
    nzold = DSET_NZ(inset) ;
 
-   /* comput n?top and n?bot, the number of planes to add at
-      the top and bottom of the ? direction, for ? = x, y, or z */
+   if (ijk_flag) { /* ZSS Dec 23 05 */
+      nxbot = add_I; nxtop = add_S;
+      nybot = add_A; nytop = add_P;
+      nzbot = add_L; nztop = add_R;
+   } else {
+      /* comput n?top and n?bot, the number of planes to add at
+         the top and bottom of the ? direction, for ? = x, y, or z */
+      
+      switch( inset->daxes->xxorient ){
+         default:
+           fprintf(stderr,"*** THD_zeropad: Unknown orientation codes!\n") ;
+           RETURN( NULL );
 
-   switch( inset->daxes->xxorient ){
-      default:
-        fprintf(stderr,"*** THD_zeropad: Unknown orientation codes!\n") ;
-        RETURN( NULL );
+         case ORI_R2L_TYPE: nxtop = add_L ; nxbot = add_R ; break ;
+         case ORI_L2R_TYPE: nxtop = add_R ; nxbot = add_L ; break ;
+         case ORI_P2A_TYPE: nxtop = add_A ; nxbot = add_P ; break ;
+         case ORI_A2P_TYPE: nxtop = add_P ; nxbot = add_A ; break ;
+         case ORI_I2S_TYPE: nxtop = add_S ; nxbot = add_I ; break ;
+         case ORI_S2I_TYPE: nxtop = add_I ; nxbot = add_S ; break ;
+      }
 
-      case ORI_R2L_TYPE: nxtop = add_L ; nxbot = add_R ; break ;
-      case ORI_L2R_TYPE: nxtop = add_R ; nxbot = add_L ; break ;
-      case ORI_P2A_TYPE: nxtop = add_A ; nxbot = add_P ; break ;
-      case ORI_A2P_TYPE: nxtop = add_P ; nxbot = add_A ; break ;
-      case ORI_I2S_TYPE: nxtop = add_S ; nxbot = add_I ; break ;
-      case ORI_S2I_TYPE: nxtop = add_I ; nxbot = add_S ; break ;
-   }
+      switch( inset->daxes->yyorient ){
+         default:
+           fprintf(stderr,"*** THD_zeropad: Unknown orientation codes!\n") ;
+           RETURN( NULL );
 
-   switch( inset->daxes->yyorient ){
-      default:
-        fprintf(stderr,"*** THD_zeropad: Unknown orientation codes!\n") ;
-        RETURN( NULL );
+         case ORI_R2L_TYPE: nytop = add_L ; nybot = add_R ; break ;
+         case ORI_L2R_TYPE: nytop = add_R ; nybot = add_L ; break ;
+         case ORI_P2A_TYPE: nytop = add_A ; nybot = add_P ; break ;
+         case ORI_A2P_TYPE: nytop = add_P ; nybot = add_A ; break ;
+         case ORI_I2S_TYPE: nytop = add_S ; nybot = add_I ; break ;
+         case ORI_S2I_TYPE: nytop = add_I ; nybot = add_S ; break ;
+      }
 
-      case ORI_R2L_TYPE: nytop = add_L ; nybot = add_R ; break ;
-      case ORI_L2R_TYPE: nytop = add_R ; nybot = add_L ; break ;
-      case ORI_P2A_TYPE: nytop = add_A ; nybot = add_P ; break ;
-      case ORI_A2P_TYPE: nytop = add_P ; nybot = add_A ; break ;
-      case ORI_I2S_TYPE: nytop = add_S ; nybot = add_I ; break ;
-      case ORI_S2I_TYPE: nytop = add_I ; nybot = add_S ; break ;
-   }
+      switch( inset->daxes->zzorient ){
+         default:
+           fprintf(stderr,"*** THD_zeropad: Unknown orientation codes!\n") ;
+           RETURN( NULL );
 
-   switch( inset->daxes->zzorient ){
-      default:
-        fprintf(stderr,"*** THD_zeropad: Unknown orientation codes!\n") ;
-        RETURN( NULL );
+         case ORI_R2L_TYPE: nztop = add_L ; nzbot = add_R ; break ;
+         case ORI_L2R_TYPE: nztop = add_R ; nzbot = add_L ; break ;
+         case ORI_P2A_TYPE: nztop = add_A ; nzbot = add_P ; break ;
+         case ORI_A2P_TYPE: nztop = add_P ; nzbot = add_A ; break ;
+         case ORI_I2S_TYPE: nztop = add_S ; nzbot = add_I ; break ;
+         case ORI_S2I_TYPE: nztop = add_I ; nzbot = add_S ; break ;
+      }
 
-      case ORI_R2L_TYPE: nztop = add_L ; nzbot = add_R ; break ;
-      case ORI_L2R_TYPE: nztop = add_R ; nzbot = add_L ; break ;
-      case ORI_P2A_TYPE: nztop = add_A ; nzbot = add_P ; break ;
-      case ORI_A2P_TYPE: nztop = add_P ; nzbot = add_A ; break ;
-      case ORI_I2S_TYPE: nztop = add_S ; nzbot = add_I ; break ;
-      case ORI_S2I_TYPE: nztop = add_I ; nzbot = add_S ; break ;
-   }
+      /* 13 Feb 2001: round to millimeters? */
 
-   /* 13 Feb 2001: round to millimeters? */
+   #undef  RMM
+   #define RMM(n,d)                                                           \
+     do{      if( (n) > 0 ) (n) = (int)( (n)/fabs(d) + 0.999 ) ;              \
+         else if( (n) < 0 ) (n) = (int)( (n)/fabs(d) - 0.999 ) ; } while(0) ;
 
-#undef  RMM
-#define RMM(n,d)                                                           \
-  do{      if( (n) > 0 ) (n) = (int)( (n)/fabs(d) + 0.999 ) ;              \
-      else if( (n) < 0 ) (n) = (int)( (n)/fabs(d) - 0.999 ) ; } while(0) ;
-
-   if( mm_flag ){
-      RMM(nxtop,inset->daxes->xxdel) ; RMM(nxbot,inset->daxes->xxdel) ;
-      RMM(nytop,inset->daxes->yydel) ; RMM(nybot,inset->daxes->yydel) ;
-      RMM(nztop,inset->daxes->zzdel) ; RMM(nzbot,inset->daxes->zzdel) ;
+      if( mm_flag ){
+         RMM(nxtop,inset->daxes->xxdel) ; RMM(nxbot,inset->daxes->xxdel) ;
+         RMM(nytop,inset->daxes->yydel) ; RMM(nybot,inset->daxes->yydel) ;
+         RMM(nztop,inset->daxes->zzdel) ; RMM(nzbot,inset->daxes->zzdel) ;
+      }
    }
 
    nxnew = nxold + nxbot + nxtop ;  /* dimensions of new bricks */
