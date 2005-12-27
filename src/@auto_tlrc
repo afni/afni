@@ -506,7 +506,7 @@ AUTO_TLRC_MODE:
    3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_BASE_IDCODE ${tt_pref}${anat_view}
    3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_MATVEC_FOR_000000 ${tt_pref}${anat_view}
    3drefit -atrcopy ${tmppref}_reg_warpdriveout${anat_view} WARPDRIVE_MATVEC_INV_000000 ${tt_pref}${anat_view}
-   3dNotes -a "Dataset created via: `basename $0` $argv[*]" -h "`basename $0` $argv[*]" ${tt_pref}${anat_view}
+   3dNotes -a "Dataset created via: `basename $0` $argv[*]" -h "Dataset created via: `basename $0` $argv[*]" ${tt_pref}${anat_view}
    
    if ($KeepView == 0) then
       echo "Changing view of transformed anatomy"
@@ -544,7 +544,7 @@ APAR_MODE:
                -prefix ${tt_pref} -inset ${tmppref}_warp_tmp${anat_view} -rmode ${resam}  
    if ( $KeepTmp == 0) rm -f ${tmppref}*+????.???? >& /dev/null
    
-   3dNotes -a "Dataset created via: `basename $0` $argv[*]" -h "`basename $0` $argv[*]" ${tt_pref}${ref_view}
+   3dNotes -a "Dataset created via: `basename $0` $argv[*]" -h "Dataset created via: `basename $0` $argv[*]" ${tt_pref}${ref_view}
    
    goto WRAP_UP
 #######################

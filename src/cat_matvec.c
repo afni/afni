@@ -47,6 +47,12 @@ int main( int argc , char * argv[] )
              " 'fred+orig::WARPDRIVE_MATVEC_FOR_000000' = fred+orig from 3dWarpDrive\n"
              " 'fred+orig::ROTATE_MATVEC_000000'        = fred+orig from 3drotate\n"
              "\n"
+             "Note that both of VOLREG_MATVEC_ and ROTATE_MATVEC_ are usually\n"
+             "accompanied with VOLREG_CENTER_OLD and VOLREG_CENTER_BASE or\n"
+             "ROTATE_CENTER_OLD and ROTATE_CENTER_BASE attributes.\n"
+             "These center attributes are automatically taken into account in\n"
+             "cat_matvec's output.\n" 
+             "\n"
              "=== FORM 3 ===\n"
              "mfile is of the form\n"
              " 'MATRIX(u11,u12,u13,v1,u21,u22,u23,v2,u31,u32,u33,v3)'\n"
@@ -106,7 +112,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[iarg],"-MATRIX") == 0 ){
         matout = 1 ;  iarg++ ; continue ;
       }
-
+ 
       nadd = 1 ; invert = 0 ;
       if( iarg+1 < argc && strcmp(argv[iarg+1],"-I") == 0 ){
          invert = 1 ; nadd = 2 ;
