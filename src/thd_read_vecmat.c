@@ -31,7 +31,9 @@ ENTRY("THD_read_dvecmat") ;
      char *cc = strstr(dname,"::") ;
      char *ss ; int iss=0 ;
      THD_3dim_dataset *dset ;
-     ATR_float *atr ;
+     ATR_float *atr, *atrc ;
+     int incl;
+     THD_dfvec3 tvec_co, tvec_cb;
 
      *cc = '\0' ; cc += 2 ;  /* dname = dataset name ; cc = attribute name */
 
@@ -85,6 +87,67 @@ ENTRY("THD_read_dvecmat") ;
        }
     }
 
+   {
+      /* ZSS: Dec 27, the year of our Lord when the War on Christmas was raging */
+      /* Need to include VOLREG_CENTER_OLD, VOLREG_CENTER_BASE, 
+                         ROTATE_CENTER_OLD, ROTATE_CENTER_BASE, if applicable. */
+      /* Do we have a ROTATE or VOLREG attribute ?*/
+      incl = 0;
+      if (strstr(cc,"VOLREG_MATVEC")) {
+         atrc = THD_find_float_atr( dset->dblk , "VOLREG_CENTER_OLD");
+         if ( atrc ) {
+            LOAD_DFVEC3(tvec_co,atrc->fl[0],atrc->fl[1],atrc->fl[2]) ;
+            incl = 1;
+         } else {
+            LOAD_DFVEC3(tvec_co,0,0,0) ;
+         }
+         
+         atrc = THD_find_float_atr( dset->dblk , "VOLREG_CENTER_BASE");
+         if ( atrc ) {
+            LOAD_DFVEC3(tvec_cb,atrc->fl[0],atrc->fl[1],atrc->fl[2]) ;
+            incl = 1;
+         } else {
+            LOAD_DFVEC3(tvec_cb,0,0,0) ;
+         }
+         
+         if (incl == 1) INFO_message("THD_read_dvecmat:\n"
+                                     "   Including VOLREG_CENTER_BASE and VOLREG_CENTER_OLD\n"
+                                     "   attributes in final transform\n");
+         else INFO_message("THD_read_dvecmat:\n"
+                                     "   No VOLREG_CENTER_BASE or VOLREG_CENTER_OLD\n"
+                                     "   attributes found with VOLREG_MATVEC\n");
+      } else if (strstr(cc,"ROTATE_MATVEC")) {
+         atrc = THD_find_float_atr( dset->dblk , "ROTATE_CENTER_OLD");
+         if ( atrc ) {
+            LOAD_DFVEC3(tvec_co,atrc->fl[0],atrc->fl[1],atrc->fl[2]) ;
+            incl = 1;
+         } else {
+            LOAD_DFVEC3(tvec_co,0,0,0) ;
+         }
+         
+         atrc = THD_find_float_atr( dset->dblk , "ROTATE_CENTER_BASE");
+         if ( atrc ) {
+            LOAD_DFVEC3(tvec_cb,atrc->fl[0],atrc->fl[1],atrc->fl[2]) ;
+            incl = 1;
+         } else {
+            LOAD_DFVEC3(tvec_cb,0,0,0) ;
+         }
+                  
+         if (incl == 1) INFO_message("THD_read_dvecmat:\n"
+                                     "   Including ROTATE_CENTER_BASE and ROTATE_CENTER_OLD\n"
+                                     "   attributes in final transform\n");
+         else INFO_message("THD_read_dvecmat:\n"
+                                     "   No ROTATE_CENTER_BASE or ROTATE_CENTER_OLD\n"
+                                     "   attributes found with ROTATE_MATVEC\n");
+      }
+      if (incl == 1) {
+         tvec_co = DMATVEC(tmat, tvec_co);
+         NEGATE_DFVEC3(tvec_co);
+         tvec.xyz[0] += tvec_cb.xyz[0] + tvec_co.xyz[0];
+         tvec.xyz[1] += tvec_cb.xyz[1] + tvec_co.xyz[1];
+         tvec.xyz[2] += tvec_cb.xyz[2] + tvec_co.xyz[2];
+      }
+   }
     free(dname) ; DSET_delete(dset) ;
 
    /*-- 14 Feb 2001: filename is "-rotate a b c -[ab]shift x y z" string --*/
