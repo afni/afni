@@ -472,7 +472,9 @@ void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
    int nbest ; short *ibest, *jbest , *kbest ;
    int nnow  ; short *inow , *jnow  , *know  ; int nall ;
 
-   if( mmm == NULL ) return ;
+ENTRY("THD_mask_clust") ;
+
+   if( mmm == NULL ) EXRETURN ;
 
    nxy = nx*ny ; nxyz = nxy * nz ;
 
@@ -545,7 +547,7 @@ void THD_mask_clust( int nx, int ny, int nz, byte *mmm )
 
    if( verb ) ININFO_message("Largest cluster has %d voxels\n",nbest) ;
 
-   return ;
+   EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -561,27 +563,41 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
    int nxy=nx*ny , nxyz=nxy*nz ;
    byte *nnn ;
 
-   if( mmm == NULL ) return ;
+ENTRY("THD_mask_erode") ;
 
-   nnn = (byte*)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
+   if( mmm == NULL ) EXRETURN ;
+
+   nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
+   if( nnn == NULL ) EXRETURN ;               /* WTF? */
 
    /* mark interior voxels that don't have 17 out of 18 nonzero nbhrs */
 
+   STATUS("marking to erode") ;
    for( kk=0 ; kk < nz ; kk++ ){
     kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
-         if( kk == 0    ) km = kz ;
-    else if( kk == nz-1 ) kp = kz ;
+    if( kk == 0    ) km = kz ;
+    if( kk == nz-1 ) kp = kz ;
+#if 0
+fprintf(stderr,"kk=%d kz=%d\n",kk,kz) ;
+#endif
 
     for( jj=0 ; jj < ny ; jj++ ){
      jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
-          if( jj == 0    ) jm = jy ;
-     else if( jj == ny-1 ) jp = jy ;
+     if( jj == 0    ) jm = jy ;
+     if( jj == ny-1 ) jp = jy ;
+
+#if 0
+fprintf(stderr,"  jj=%d jy=%d\n",jj,jy) ;
+#endif
 
      for( ii=0 ; ii < nx ; ii++ ){
        if( mmm[ii+jy+kz] ){           /* count nonzero nbhrs */
+#if 0
+fprintf(stderr,".") ;
+#endif
          im = ii-1 ; ip = ii+1 ;
-              if( ii == 0    ) im = 0 ;
-         else if( ii == nx-1 ) ip = ii ;
+         if( ii == 0    ) im = 0 ;
+         if( ii == nx-1 ) ip = ii ;
          num =  mmm[im+jy+km]
               + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
               + mmm[ip+jy+km]
@@ -591,10 +607,14 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
               + mmm[im+jy+kp]
               + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
               + mmm[ip+jy+kp] ;
+#if 0
+fprintf(stderr,"%s", (num<17) ? "o" : "x") ;
+#endif
          if( num < 17 ) nnn[ii+jy+kz] = 1 ;  /* mark to erode */
        }
    } } }
 
+   STATUS("eroding") ;
    for( jj=ii=0 ; ii < nxyz ; ii++ )            /* actually erode */
      if( nnn[ii] ){ mmm[ii] = 0 ; jj++ ; }
 
@@ -603,21 +623,22 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
    /* re-dilate eroded voxels that are next to survivors */
 
 #ifdef USE_DILATE
+   STATUS("marking to redilate") ;
    for( kk=0 ; kk < nz ; kk++ ){
     kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
-         if( kk == 0    ) km = kz ;
-    else if( kk == nz-1 ) kp = kz ;
+    if( kk == 0    ) km = kz ;
+    if( kk == nz-1 ) kp = kz ;
 
     for( jj=0 ; jj < ny ; jj++ ){
      jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
-          if( jj == 0    ) jm = jy ;
-     else if( jj == ny-1 ) jp = jy ;
+     if( jj == 0    ) jm = jy ;
+     if( jj == ny-1 ) jp = jy ;
 
      for( ii=0 ; ii < nx ; ii++ ){
        if( nnn[ii+jy+kz] ){           /* was eroded */
          im = ii-1 ; ip = ii+1 ;
-              if( ii == 0    ) im = 0 ;
-         else if( ii == nx-1 ) ip = ii ;
+         if( ii == 0    ) im = 0 ;
+         if( ii == nx-1 ) ip = ii ;
          nnn[ii+jy+kz] =              /* see if has any nbhrs */
                mmm[im+jy+km]
             || mmm[ii+jm+km] || mmm[ii+jy+km] || mmm[ii+jp+km]
@@ -633,13 +654,14 @@ void THD_mask_erode( int nx, int ny, int nz, byte *mmm )
 
    /* actually do the dilation */
 
+   STATUS("redilating") ;
    for( jj=ii=0 ; ii < nxyz ; ii++ )
      if( nnn[ii] ){ mmm[ii] = 1 ; jj++ ; }
 
    if( verb && jj > 0 ) ININFO_message("Restored %d eroded voxels\n",jj) ;
 #endif
 
-   free(nnn) ; return ;
+   free(nnn) ; EXRETURN ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -664,19 +686,19 @@ void THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
 
    for( kk=0 ; kk < nz ; kk++ ){
     kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
-         if( kk == 0    ) km = kz ;
-    else if( kk == nz-1 ) kp = kz ;
+    if( kk == 0    ) km = kz ;
+    if( kk == nz-1 ) kp = kz ;
 
     for( jj=0 ; jj < ny ; jj++ ){
      jy = jj*nx ; jm = jy-nx ; jp = jy+nx ;
-          if( jj == 0    ) jm = jy ;
-     else if( jj == ny-1 ) jp = jy ;
+     if( jj == 0    ) jm = jy ;
+     if( jj == ny-1 ) jp = jy ;
 
      for( ii=0 ; ii < nx ; ii++ ){
        if( mmm[ii+jy+kz] == 0 ){           /* count nonzero nbhrs */
          im = ii-1 ; ip = ii+1 ;
-              if( ii == 0    ) im = 0 ;
-         else if( ii == nx-1 ) ip = ii ;
+         if( ii == 0    ) im = 0 ;
+         if( ii == nx-1 ) ip = ii ;
          num =  mmm[im+jy+km]
               + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
               + mmm[ip+jy+km]

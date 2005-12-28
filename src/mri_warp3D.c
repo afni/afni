@@ -21,6 +21,7 @@ void mri_warp3D_set_womask( MRI_IMAGE *wim )
                                                    : MRI_BYTE_PTR(wim) ;
 }
 
+#undef  SKIP
 #define SKIP(i,j,k) (womask!=NULL && womask[(i)+(j)*nxnew+(k)*nxynew]==0)
 
 /*--------------------------------------------------------------------------*/
@@ -31,15 +32,23 @@ void mri_warp3D_zerout( int zzzz ){ zout  = zzzz ; }      /** outside = 0? **/
 /*--------------------------------------------------------------------------*/
 /* Macros for interpolation and access to data arrays. */
 
+#undef  FAR
 #define FAR(i,j,k) far[(i)+(j)*nx+(k)*nxy]         /* input point */
+#undef  NAR
 #define NAR(i,j,k) nar[(i)+(j)*nxnew+(k)*nxynew]   /* output point */
 
 /** clip input mm to range [0..nn] (for indexing) **/
 
+#undef  CLIP
 #define CLIP(mm,nn) if(mm < 0)mm=0; else if(mm > nn)mm=nn
 
 /* define Lagrange cubic interpolation polynomials */
 
+#undef  P_M1
+#undef  P_00
+#undef  P_P1
+#undef  P_P2
+#undef  P_FACTOR
 #define P_M1(x)  (-(x)*((x)-1)*((x)-2))
 #define P_00(x)  (3*((x)+1)*((x)-1)*((x)-2))
 #define P_P1(x)  (-3*(x)*((x)+1)*((x)-2))
@@ -263,6 +272,10 @@ INLINE MRI_IMAGE *mri_warp3D_linear(
 
    float f_j00_k00, f_jp1_k00, f_j00_kp1, f_jp1_kp1, f_k00, f_kp1 ;
 
+#if 0
+int nzset ; float zzsum ;
+#endif
+
 ENTRY("mri_warp3D_linear") ;
 
    /*--- sanity check inputs ---*/
@@ -274,6 +287,11 @@ ENTRY("mri_warp3D_linear") ;
    nx = im->nx ; nx1 = nx-1 ;          /* input image dimensions */
    ny = im->ny ; ny1 = ny-1 ;
    nz = im->nz ; nz1 = nz-1 ; nxy = nx*ny ;
+
+#if 0
+fprintf(stderr,"mri_warp3D_linear: nx=%d ny=%d nz=%d\n",nx,ny,nz) ;
+nzset = 0 ; zzsum = 0.0 ;
+#endif
 
    nxnew = (nxnew > 0) ? nxnew : nx ;  /* output image dimensions */
    nynew = (nynew > 0) ? nynew : ny ;
@@ -348,6 +366,9 @@ ENTRY("mri_warp3D_linear") ;
            (xx < -0.5 || xx > nxh ||
             yy < -0.5 || yy > nyh || zz < -0.5 || zz > nzh ) ){
 
+#if 0
+nzset++ ;
+#endif
           NAR(ii,jj,kk) = 0.0 ; continue ;
        }
 
@@ -387,6 +408,9 @@ ENTRY("mri_warp3D_linear") ;
        val = (1.0-fz) * f_k00 + fz * f_kp1 ;
 
        NAR(ii,jj,kk) = val ;
+#if 0
+zzsum += fabsf(val) ;
+#endif
      }
     }
    }
@@ -394,6 +418,10 @@ ENTRY("mri_warp3D_linear") ;
    /*** cleanup and return ***/
 
    if( im != imfl ) mri_free(imfl) ;  /* throw away unneeded workspace */
+#if 0
+zzsum /= (nxnew*nynew*nznew) ;
+fprintf(stderr,"  nzset=%d  zzsum=%g\n",nzset,zzsum) ;
+#endif
    RETURN(newImg);
 }
 
@@ -516,6 +544,12 @@ ENTRY("mri_warp3D_NN") ;
 
 /* define quintic interpolation polynomials (Lagrange) */
 
+#undef  Q_M2
+#undef  Q_M1
+#undef  Q_00
+#undef  Q_P1
+#undef  Q_P2
+#undef  Q_P3
 #define Q_M2(x)  (x*(x*x-1.0)*(2.0-x)*(x-3.0)*0.008333333)
 #define Q_M1(x)  (x*(x*x-4.0)*(x-1.0)*(x-3.0)*0.041666667)
 #define Q_00(x)  ((x*x-4.0)*(x*x-1.0)*(3.0-x)*0.083333333)

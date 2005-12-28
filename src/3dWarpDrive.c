@@ -534,6 +534,10 @@ int main( int argc , char * argv[] )
 
    /*-- startup mechanics --*/
 
+#ifdef USING_MCW_MALLOC
+   enable_mcw_malloc() ;
+#endif
+
    mainENTRY("3dWarpDrive main"); machdep(); AFNI_logger("3dWarpDrive",argc,argv);
    PRINT_VERSION("3dWarpDrive") ; AUTHOR("RW Cox") ;
    THD_check_AFNI_version("3dWarpDrive") ;
@@ -761,12 +765,16 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-weight") == 0 ){
        if( ++nopt >= argc )
          ERROR_exit("Need an argument after -weight!\n");
+       if( wtset != NULL ){
+         WARNING_message("2nd -weight option replaces 1st") ;
+         DSET_delete(wtset) ;
+       }
        wtset = THD_open_dataset( argv[nopt] ) ;
        if( wtset == NULL )
          ERROR_exit("Can't open -weight dataset %s\n",argv[nopt]);
        if( DSET_NVALS(wtset) > 1 )
          WARNING_message(
-           "-weight dataset %s has %d sub-bricks; will only use #0\n",
+           "-weight %s has %d sub-bricks; will only use #0\n",
            argv[nopt],DSET_NVALS(wtset) ) ;
        nopt++ ; continue ;
      }
@@ -890,7 +898,8 @@ int main( int argc , char * argv[] )
      if( !DSET_LOADED(wtset) ){
        ERROR_exit("Can't load weight dataset into memory!\n") ;
      } else {
-       abas.imwt = mri_to_float( DSET_BRICK(wtset,0) ) ;
+       abas.imwt = mri_scale_to_float( DSET_BRICK_FACTOR(wtset,0) ,
+                                       DSET_BRICK(wtset,0)         ) ;
        wt_idc    = strdup(wtset->idcode.str) ;
        DSET_unload(wtset) ;
      }
@@ -1189,7 +1198,7 @@ int main( int argc , char * argv[] )
      ijk_to_xyz = MUL_VECMAT( xyz_to_dicom , ijk_to_inset_xyz ) ;
      xyz_to_ijk = INV_VECMAT( ijk_to_xyz ) ;
 
-#if 0
+#if 1
      if( abas.verb ){
        DUMP_VECMAT("ijk_to_xyz",ijk_to_xyz) ;
        DUMP_VECMAT("xyz_to_ijk",xyz_to_ijk) ;
@@ -1287,7 +1296,9 @@ int main( int argc , char * argv[] )
 
      sdif_after = mri_scaled_diff( abas.imbase , tim , abas.imsk ) ;
 
+#if 0
      if( abas.verb ){ DUMP_VECMAT( "end mv_for" , mv_for ) ; }
+#endif
 
      if( abas.verb )
        INFO_message("#%d RMS_diff: before=%g  after=%g",kim,sdif_before,sdif_after) ;
