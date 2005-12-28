@@ -13,7 +13,8 @@ set Name = $1
 
 set cnt = 2
 while ($cnt <= $ComCnt)
-	if ("$Name$argv[$cnt]") then
+	#if ("$Name$argv[$cnt]") then
+   if ("$Name$argv[$cnt]") then
 		set Name = $Name:r
 	endif
 	@ cnt ++
