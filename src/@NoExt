@@ -15,7 +15,7 @@ set junk = $Name:e
 
 set cnt = 2
 while ($cnt <= $ComCnt)
-   if ("$Name$argv[$cnt]") then
+   if ("$junk" == "$argv[$cnt]") then
 		set Name = $Name:r
 	endif
 	@ cnt ++
