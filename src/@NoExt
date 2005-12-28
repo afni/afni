@@ -11,6 +11,8 @@ set Name = $1
 		@ ComCnt ++
 	end
 
+set junk = $Name:e
+
 set cnt = 2
 while ($cnt <= $ComCnt)
    if ("$Name$argv[$cnt]") then
@@ -18,7 +20,6 @@ while ($cnt <= $ComCnt)
 	endif
 	@ cnt ++
 end
-    if ("$Name$argv[$cnt]") then
 
 echo $Name
 
