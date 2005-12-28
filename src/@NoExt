@@ -11,10 +11,10 @@ set Name = $1
 		@ ComCnt ++
 	end
 
-set junk = $Name:e
 
 set cnt = 2
 while ($cnt <= $ComCnt)
+   set junk = $Name:e
    if ("$junk" == "$argv[$cnt]") then
 		set Name = $Name:r
 	endif
