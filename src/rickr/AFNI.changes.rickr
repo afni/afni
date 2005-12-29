@@ -1379,3 +1379,7 @@
       anova_options struct, along with the ANOVA_BOUND() macro.
   * modified 3dANOVA.lib, to init aBdiff, Abdiff and abmean struct members.
 
+29 Dec 2005:
+  * modified Dimon.c
+      - make any IMAGE_LOCATION/SLICE_LOCATION difference only a warning
+
