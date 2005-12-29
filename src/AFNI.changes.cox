@@ -5786,3 +5786,7 @@
 
 21 Dec 2005
  * afni_broutext.h
+
+28 Dec 2005
+ * fixes to mri_warp3D_align.c and thd_automask.c to deal with problems
+     with -parfix, and with doing mask stuff on 2D images.
