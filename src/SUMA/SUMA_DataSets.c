@@ -3246,7 +3246,7 @@ SUMA_DSET *SUMA_LoadDset (char *Name, SUMA_DSET_FORMAT *form, int verb)
       case SUMA_NO_DSET_FORMAT:
          if (!dset) { SUMA_LH("Trying NIML Dset"); dset = SUMA_LoadNimlDset(Name, 0); *form = SUMA_NIML; }
          if (!dset) { SUMA_LH("Trying 1D Dset"); dset = SUMA_Load1DDset(Name, 0); *form = SUMA_1D; }
-         if (!dset) { SUMA_LH("Trying DX Dset"); dset = SUMA_Load1DDset(Name, 0); *form = SUMA_ASCII_OPEN_DX_DSET; }
+         if (!dset) { SUMA_LH("Trying DX Dset"); dset = SUMA_LoadDXDset(Name, 0); *form = SUMA_ASCII_OPEN_DX_DSET; }
          break;
       default:
          if (verb) SUMA_SLP_Err("Bad format specification");
@@ -3588,7 +3588,7 @@ SUMA_DSET *SUMA_LoadNimlDset (char *Name, int verb)
       SUMA_LH("Dealing with element");
    } else {
       fprintf(SUMA_STDERR,"Error %s: Not an element, nor a group. What is this?\n", FuncName);
-      SUMA_RETURN(NOPE);
+      SUMA_RETURN(NULL);
    }
    
    
@@ -3714,8 +3714,8 @@ SUMA_DSET *SUMA_far2dset( char *FullName, char *dset_id, char *dom_id,
                         "1D files where the number of columns\n"
                         "is much larger than the number of \n"
                         "rows will take a long time to load \n"
-                        "and a longer time to have the X interface\n"
-                        "initialized.\n"
+                        "and a longer time, much longer a times,\n"
+                        "to have the X interface initialized.\n"
                         "The read operation was cancelled this\n"
                         "time, read the file again if you think\n"
                         "the file you are reading is properly \n"
