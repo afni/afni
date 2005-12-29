@@ -127,7 +127,8 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments Dimon          \
                3danisosmooth
 
-SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga \
+SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
+          @GetAfniPrefix @NoExt @UpdateAfni @RenamePanga @2dwarper                \
           @GetAfniView @SUMA_AlignToExperiment @SUMA_Make_Spec_FS @Purify_1D      \
           @SUMA_Make_Spec_SF @make_stim_file @Align_Centers suma_change_spec      \
           @CheckForAfniDset @clip_volume @AfniOrient2RAImap @parse_afni_name      \
@@ -1041,7 +1042,7 @@ iochan_relay:iochan_relay.o
 
 3dSpatNorm:3dSpatNorm.o
 	$(RM) $@
-	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(AFWARPOBJS) $(LFLAGS) -lrickr $(LLIBS) 
+	$(CC) -o 3dSpatNorm 3dSpatNorm.o $(AFWARPOBJS) $(LFLAGS) -lrickr $(LLIBS)
 
 ### These programs are from Fred Tam
 
@@ -1083,11 +1084,11 @@ backup:
 
 afni_src.tgz:
 	$(MKDIR) afni_src
-	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) $(SCRIPTS) ./afni_src
-	$(CP) -pr coxplot volpack moveup moveAFNI* cdflib eispack ./afni_src
-	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir mpegtoppm_dir dlcompat ./afni_src
-	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti ./afni_src
-	$(CP) -pr SUMA matlab rickr faces poems ni_test_? README.* ./afni_src
+	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC) ./afni_src
+	$(CP) -pr coxplot volpack moveup moveAFNI* cdflib eispack $(SCRIPTS) ./afni_src
+	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir mpegtoppm_dir   ./afni_src
+	$(CP) -pr 3DEdge netcdf-3.5.0 jpeg-6b niml Makefile_* nifti dlcompat ./afni_src
+	$(CP) -pr SUMA matlab rickr faces poems ni_test_? README.*           ./afni_src
 	$(TAR) cf - afni_src | $(GZIP) -9v > afni_src.tgz
 	$(RM) -r afni_src
 
