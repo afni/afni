@@ -60,6 +60,9 @@
    Mod:     Added contrasts_are_valid(), along with supporting functions
             float_sum_is_small() and old_method_applies().
    Date:    01 December 2005 [rickr]
+
+   Mod:     Modified to init aBdiff, Abdiff and abmean struct members.
+   Date:    28 December 2005 [rickr]
 */
 
 /* defined 'later' in parent file */
@@ -124,29 +127,37 @@ void initialize_options (anova_options * option_data)
   option_data->num_bmeans = 0;
   option_data->num_cmeans = 0;
   option_data->num_xmeans = 0;
+  option_data->num_abmeans = 0;       /* 16 Dec 2005 [rickr] */
   for (i = 0;  i < MAX_MEANS;  i++)
     {
       option_data->amname[i] = NULL;
       option_data->bmname[i] = NULL;
       option_data->cmname[i] = NULL;
       option_data->xmname[i] = NULL;
+      option_data->abmname[i] = NULL;
       option_data->ameans[i] = 0;
       option_data->bmeans[i] = 0;
       option_data->cmeans[i] = 0;
       for (j = 0;  j < 3;  j++)
 	option_data->xmeans[i][j] = 0;
+      for (j = 0;  j < 2;  j++)
+	option_data->abmeans[i][j] = 0;
     }
   
   option_data->num_adiffs  = 0;
   option_data->num_bdiffs  = 0;
   option_data->num_cdiffs  = 0;
   option_data->num_xdiffs  = 0;
+  option_data->num_aBdiffs  = 0;        /* 16 Dec 2005 [rickr] */
+  option_data->num_Abdiffs  = 0;
   for (i = 0;  i < MAX_DIFFS;  i++)
     {
       option_data->adname[i]  = NULL;
       option_data->bdname[i]  = NULL;
       option_data->cdname[i]  = NULL;
       option_data->xdname[i]  = NULL;
+      option_data->aBdname[i]  = NULL;
+      option_data->Abdname[i]  = NULL;
       for (j = 0;  j < 2;  j++)
         {
           option_data->adiffs[i][j] = 0;
@@ -154,7 +165,11 @@ void initialize_options (anova_options * option_data)
           option_data->cdiffs[i][j] = 0;
 	  for (k = 0;  k < 3;  k++)
 	    option_data->xdiffs[i][j][k] = 0;	
+          option_data->aBdiffs[i][j] = 0;
+          option_data->Abdiffs[i][j] = 0;
         }
+      option_data->aBdlevel[i]  = 0;
+      option_data->Abdlevel[i]  = 0;
     }
   
   option_data->num_acontr  = 0;

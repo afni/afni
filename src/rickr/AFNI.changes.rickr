@@ -1366,3 +1366,16 @@
 16 Dec 2005:
   * modified 3dUniformize.c: fixed upper_limit==0 case in resample()
 
+28 Dec 2005:
+  * modified 3dANOVA3.c
+      - Added -aBdiff, -Abdiff and -abmean options and routines.
+      - Replaced calc_mean_sum2_acontr() with calc_type4_acontr(), to
+          avoid intermediate storage of data as floats (by absorbing the
+          calculate_t_from_sums() operation).
+      - Similarly, replaced calc_mean_sum2_bcontr() with calc_type4_bcontr().
+      - Removed calculate_t_from_sums().
+      - Do checks against EPSILON before sqrt(), in case < 0.
+  * modified 3dANOVA.h, adding aBdiff, Abdiff and abmean fields to
+      anova_options struct, along with the ANOVA_BOUND() macro.
+  * modified 3dANOVA.lib, to init aBdiff, Abdiff and abmean struct members.
+
