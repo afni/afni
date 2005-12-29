@@ -37,6 +37,9 @@
  * 29 July 2005 [rickr] : updates for Dimon
  *   - mri_read_dicom failure messages (on debug level 3+)
  *   - close the file early when not reading data
+ *
+ * 29 December 2005 [rickr]
+ *   - make any IMAGE_LOCATION/SLICE_LOCATION difference only a warning
  *----------------------------------------------------------------------
 */
 
@@ -48,11 +51,11 @@ extern void   mri_dicom_nohex ( int ) ;
 
 static int   use_DI_MRL_xcos   = 0;
 static int   use_DI_MRL_ycos   = 0;
-static int   use_DI_MRL_zcos   = 0;
+/* static int   use_DI_MRL_zcos   = 0;    not used */
 
 static float DI_MRL_xcos[3]    = { 1.0, 0.0, 0.0 };
 static float DI_MRL_ycos[3]    = { 0.0, 1.0, 0.0 };
-static float DI_MRL_zcos[3]    = { 0.0, 0.0, 1.0 };
+/* static float DI_MRL_zcos[3]    = { 0.0, 0.0, 1.0 };    not used */
 
 static float DI_MRL_xoff       = 0.0;
 static float DI_MRL_yoff       = 0.0;
@@ -974,45 +977,49 @@ fprintf(stderr,"  nzoff=1 kor=%d qoff=%f\n",kor,qoff) ;
    /* if this is here, use it for additional accuracy
       (it must basically match current zo) */
 
-   { /* just use one warning counter, since these should be unique */
-     static int nwarn = 0;
+   { /* use three warning counters here */
+     static int nwarn0 = 0, nwarn1 = 0, nwarn2 = 0;
 
      if( ( epos[E_SLICE_LOCATION] == NULL) ||
          ( (ddd = strstr(epos[E_SLICE_LOCATION],"//")) == NULL ) )
      {
-       if( nwarn == 0 && debug > 1 )
-          fprintf(stderr,"-d dimon: missing SLICE_LOCATION, continuing...\n");
-       nwarn++;
+       if( nwarn0 == 0 && debug > 1 )
+          fprintf(stderr,"** dimon: missing SLICE_LOCATION, continuing...\n");
+       nwarn0++;
      } else {
         /* get and test the slice location */
         float zz ; int qq;
         qq = sscanf(ddd+2,"%f",&zz) ;
         if( qq != 1 ){
-           if( !nwarn )fprintf(stderr,"** failed to extract SLICE_LOCATION\n");
-           nwarn++;
+           if( !nwarn0 )fprintf(stderr,"** failed to extract SLICE_LOCATION\n");
+           nwarn0++;
         } else {
            /* it seems we have to add our own sign to the slice location */
-           if( zz * im->zo < 0.0 ){
-              if( (nwarn == 0) && (debug > 3) )
-                fprintf(stderr,"-d image and slice loc diff in sign: %f, %f\n",
+           if( zz * im->zo < 0.0 && (fabs(zz + im->zo) < 0.1) ){
+              if( (nwarn1 == 0) && (debug > 2) )
+                fprintf(stderr,"** image and slice loc diff in sign: %f, %f\n",
                         im->zo, zz);
-              nwarn++;
+              nwarn1++;
               zz = -zz;
            }
   
            if( fabs(zz - im->zo) > 0.1 ){
-              fprintf(stderr,
-                      "** MRD: IMAGE_LOCATION and SLICE_LOCATION disagree!\n"
-                      "   z coord from IL = %f, from SL = %f\n", im->zo,zz);
-              free(ppp); free(im);
-              if( data ){ free(*data); *data = NULL; }
-              RETURN(NULL);
-           }
+              if( nwarn2 == 0 )
+                  fprintf(stderr,
+                      "** MRD: IMAGE_LOCATION and SLICE_LOCATION disagree:\n"
+                      "   z coord from IL = %f, from SL = %f\n"
+                      "   (using IMAGE_LOCATION)\n", im->zo,zz);
+              /* apply IMAGE_LOCATION and continue         29 Dec 2005 [rickr]
+                 free(ppp); free(im); if( data ){ free(*data); *data = NULL; }
+                 RETURN(NULL); */
+              nwarn2++;
 
-           if( debug > 3 )
-              fprintf(stderr,"-d dicom: using slice location %f (zo = %f)\n",
-                      zz, im->zo );
-           im->zo = zz;
+           } else {
+              if( debug > 3 )
+                 fprintf(stderr,"-d dicom: using slice location %f (zo = %f)\n",
+                         zz, im->zo );
+              im->zo = zz;
+           }
         }
      }
    }
