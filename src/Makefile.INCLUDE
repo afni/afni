@@ -124,7 +124,7 @@ PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge 
                3dAutobox 3dLRflip 3dANALYZEtoAFNI dicom_hdr 3dDespike nicat       \
                dicom_to_raw rotcom 3dDeconvolve_f 3dUniformize 3dWarp 3dWarpDrive \
                file_tool.exe Imon.exe 3dresample.exe serial_helper.exe im2niml    \
-               nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments Dimon          \
+               nifti_tool.exe 3dAFNItoRaw DTIStudioFibertoSegments Dimon.exe      \
                3danisosmooth
 
 SCRIPTS = @4Daverage @CommandGlobb @GetAfniOrient @DTI_studio_reposition          \
@@ -1469,7 +1469,7 @@ PLUGIN_FIXED = plug_clust.fixed    plug_copy.fixed     plug_rename.fixed     \
                plug_second_dataset.fixed                                     \
                plug_stavg.fixed    plug_reorder.fixed                        \
                plug_roiedit.fixed  plug_hemisub.fixed  plug_maskcalc.fixed   \
-               plug_maxima.fixed   plug_fourier.fixed  plug_threshold.fixed  \
+               plug_fourier.fixed  plug_threshold.fixed                      \
                plug_permtest.fixed
 
 plugin_fixed:$(PLUGIN_FIXED)
@@ -1598,6 +1598,12 @@ Dimon: rickr/Dimon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h
 	$(MAKE) Dimon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
 		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
 	$(MV) Dimon .. ; )
+
+Dimon.exe: rickr/Dimon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h
+	( cd rickr ; 							\
+	$(MAKE) Dimon 'RM=$(RM)' 'CC=$(CC)' 'IFLAGS=$(ISFLAGS)'        	\
+		  'LFLAGS=$(LFLAGS)' 'EXTRA_LIBS_2=$(EXTRA_LIBS_2)' ;	\
+	$(MV) Dimon.exe .. ; )
 
 Imon: rickr/Imon.c rickr/Imon.h rickr/realtime.c rickr/realtime.h thd_iochan.o
 	( cd rickr ; 							\

@@ -1382,4 +1382,8 @@
 29 Dec 2005:
   * modified Dimon.c
       - make any IMAGE_LOCATION/SLICE_LOCATION difference only a warning
+  * modified Makefile.INCLUDE (for cygwin)
+      - removed plug_maxima.fixed from PLUGIN_FIXED
+      - added Dimon.exe target
+  * modified fixed_plugins.h: removed plugin_maxima from file
 
