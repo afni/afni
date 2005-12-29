@@ -37,7 +37,6 @@ extern PLUGIN_interface * PLUGIN_init_plug_reorder        (int) ;
 extern PLUGIN_interface * PLUGIN_init_plug_roiedit        (int) ;
 extern PLUGIN_interface * PLUGIN_init_plug_hemisub        (int) ;
 extern PLUGIN_interface * PLUGIN_init_plug_maskcalc       (int) ;
-extern PLUGIN_interface * PLUGIN_init_plug_maxima         (int) ;
 extern PLUGIN_interface * PLUGIN_init_plug_fourier        (int) ;
 extern PLUGIN_interface * PLUGIN_init_plug_threshold      (int) ;
 extern PLUGIN_interface * PLUGIN_init_plug_permtest       (int) ;
@@ -86,7 +85,6 @@ static FIXED_plugin FIXED_plugin_funcs[] = {
      { (vptr_func *) PLUGIN_init_plug_roiedit        , "plug_roiedit"        } ,
      { (vptr_func *) PLUGIN_init_plug_hemisub        , "plug_hemisub"        } ,
      { (vptr_func *) PLUGIN_init_plug_maskcalc       , "plug_maskcalc"       } ,
-     { (vptr_func *) PLUGIN_init_plug_maxima         , "plug_maxima"         } ,
      { (vptr_func *) PLUGIN_init_plug_fourier        , "plug_fourier"        } ,
      { (vptr_func *) PLUGIN_init_plug_threshold      , "plug_threshold"      } ,
      { (vptr_func *) PLUGIN_init_plug_permtest       , "plug_permtest"       } ,
