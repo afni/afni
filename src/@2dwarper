@@ -1,0 +1,66 @@
+#!/bin/tcsh
+
+### script to do 2D registration on each slice of a 3D+time
+### dataset, and glue the results back together at the end
+
+### Set prefix of input 3D+time dataset here.
+### In this example with 'barney', the output
+### dataset will be 'barney_reg+orig'.
+
+set inp = barney
+
+### extract number of slices into nz
+
+set qq  = ( `3dAttribute DATASET_DIMENSIONS ${inp}+orig` )
+set nz  = $qq[3]
+@ nz1   = $nz - 1
+
+### Extract mean of input time series volumes,
+### then make a mask from that, then make a weight volume from both
+
+echo "========== Computing mean, mask, and weight datasets =========="
+
+3dTstat    -mean -prefix ${inp}_mean ${inp}+orig
+
+3dAutomask -dilate 4 -prefix ${inp}_mask ${inp}_mean+orig
+
+3dcalc     -a ${inp}_mean+orig -b ${inp}_mask+orig           \
+           -c a+i -d a-i -e a+j -f a-j                       \
+           -expr 'median(a,c,d,e,f)*b' -prefix ${inp}_weight
+
+### extract each slice in turn, and register it in 2D only;
+### suppressed parameters (-parfix) are
+###   #3 = z shift
+###   #5 = rotation about x
+###   #6 = rotation about y
+###   #7 = dilation factor in x (fixed to 1)
+###   #9 = dilation factor in z (fixed to 1)
+###  #11 = x/z shear factor
+###  #12 = y/z shear factor
+
+foreach zz ( `count 0 $nz1` )
+  echo "==================== processing slice #$zz ===================="
+  3dZcutup -keep $zz $zz -prefix ${inp}_${zz}        ${inp}+orig
+  3dZcutup -keep $zz $zz -prefix ${inp}_weight_${zz} ${inp}_weight+orig
+  3dZcutup -keep $zz $zz -prefix ${inp}_mean_${zz}   ${inp}_mean+orig
+
+  3dWarpDrive -affine_general -cubic                 \
+              -prefix ${inp}_reg_${zz}               \
+              -base ${inp}_mean_${zz}+orig           \
+              -input ${inp}_${zz}+orig               \
+              -weight ${inp}_weight_${zz}+orig       \
+              -parfix 3  0                           \
+              -parfix 5  0 -parfix 6  0              \
+              -parfix 7  1 -parfix 9  1              \
+              -parfix 11 0 -parfix 12 0
+end
+
+### glue the slices back together
+
+echo "======= Assembling registered 3D dataset ${inp}_reg+orig ======="
+
+3dZcat -prefix ${inp}_reg ${inp}_reg_0*+orig.HEAD
+
+### remove the single-slice datasets
+
+/bin/rm -f ${inp}_*0*+orig.*
