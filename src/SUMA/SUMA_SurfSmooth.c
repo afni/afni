@@ -25,6 +25,10 @@ void usage_SUMA_SurfSmooth ()
               "   progression of the smoothing in real-time in suma.\n"
               "\n"
               "   Method specific options:\n"
+              "      HEAT: <-input inData.1D> <-fwhm F> <-Niter N>  \n"
+              "            This method is used to filter data\n"
+              "            on the surface. It is faster and more stable than\n"
+              "            the older LB_FEM below.\n"
               "      LB_FEM: <-input inData.1D> <-fwhm f>\n"
               "              This method is used to filter data\n"
               "              on the surface.\n"
@@ -60,6 +64,7 @@ void usage_SUMA_SurfSmooth ()
               "                          options below. \n" 
               "\n"
               "   Options for LB_FEM:\n"
+              "   It is now recommended that you use the newer method HEAT (see below).\n"
               "      -input inData.1D: file containing data (in 1D format)\n"
               "                        Each column in inData.1D is processed separately.\n"
               "                        The number of rows must equal the number of\n"
@@ -73,6 +78,28 @@ void usage_SUMA_SurfSmooth ()
               "               Blurring on the surface depends on the geodesic instead \n"
               "               of the Euclidean disntaces. See Ref #1 for more details \n"
               "               on this parameter.\n"
+              "\n"
+              "   Options for HEAT:\n"
+              "      -input inData.1D: file containing data (in 1D format)\n"
+              "                        Each column in inData.1D is processed separately.\n"
+              "                        The number of rows must equal the number of\n"
+              "                        nodes in the surface. You can select certain\n"
+              "                        columns using the [] notation adopted by AFNI's\n"
+              "                        programs.\n"
+              "      Two and only two of the following three parameters:\n"
+              "                     (See Refs #3&4 for more details)\n"
+              "      -fwhm F: Effective Full Width at Half Maximum in surface coordinate units \n"
+              "               (usuallly mm) of an equivalent Gaussian filter had the surface been \n"
+              "               flat. With curved surfaces, the equation used to estimate FWHM is \n"
+              "               an approximation. \n"
+              "               Blurring on the surface depends on the geodesic instead \n"
+              "               of the Euclidean disntaces. \n"
+              "      -Niter N: Number of iterations, must be multiple of 2.\n"
+              "                For this method, N > 200 is a good start. \n"
+              "      -sigma  S: Bandwidth of smoothing kernel (single iteration).\n"
+              "                 S should be small (< 1) and is related to the previous two\n"
+              "                 parameters by: F = sqrt(N) * S * 2.355\n" 
+              "\n"
               "\n"
               "   Options for LM:\n"
               "      -kpb k: Band pass frequency (default is 0.1).\n"
@@ -137,6 +164,8 @@ void usage_SUMA_SurfSmooth ()
               "                the results then your choice is fine (smoothing has converged).\n"
               "                For an example of the artifact caused by small Niter see:\n"
               "          http://afni.nimh.nih.gov/sscc/staff/ziad/SUMA/SuSmArt/DSart.html\n"
+              "                To avoid this problem altogether, it is better that you use \n"
+              "                the newer method HEAT which does not suffer from this problem.\n"
               "      -output out.1D: Name of output file. \n"
               "                      The default is inData_sm.1D with LB_FEM method\n"
               "                      and NodeList_sm.1D with LM method.\n" 
@@ -159,6 +188,10 @@ void usage_SUMA_SurfSmooth ()
               "%s"
               "\n"
               "   Sample commands lines for data smoothing:\n"
+              "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met LB_FEM   \\\n"
+              "                  -input in.1D -Niter 200 -fwhm 8 -add_index         \\\n"
+              "                  -output in_smh8.1D \n"
+              "      Or using the older (less recommended method):\n"
               "      SurfSmooth  -spec quick.spec -surf_A NodeList.1D -met LB_FEM   \\\n"
               "                  -input in.1D -Niter 100 -fwhm 8 -add_index         \\\n"
               "                  -output in_sm8.1D \n"
@@ -215,6 +248,14 @@ void usage_SUMA_SurfSmooth ()
               "                       Montreal, Canada\n"
               "      (2) G. Taubin.       Mesh Signal Processing. \n"
               "                           Eurographics 2000.\n"
+              "      (3) M.K. Chung et al.  Cortical thickness analysis in autism \n"
+              "                             via heat kernel smoothing. NeuroImage, \n"
+              "                             submitted.(2004) \n"
+              "             http://www.stat.wisc.edu/~mchung/papers/ni_heatkernel.pdf\n"
+              "      (4) M.K. Chung,  Heat kernel smoothing and its application to \n"
+              "                       cortical manifolds. Technical Report 1090. \n"
+              "                       Department of Statististics, U.W.Madison\n"
+              "             http://www.stat.wisc.edu/~mchung/papers/heatkernel_tech.pdf"
               "\n"
               "   See Also:   \n"
               "       ScaleToMap to colorize the output, however it is better\n"
@@ -316,7 +357,7 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
    Opt->nmaskname = NULL;
    Opt->bmaskname = NULL;
    Opt->spec_file = NULL;
-   Opt->sigma = 0.0;
+   Opt->sigma = -1.0;
    SUMA_Set_Taubin_Weights(SUMA_EQUAL);
    for (i=0; i<SURFSMOOTH_MAX_SURF; ++i) { Opt->surf_names[i] = NULL; }
    outname = NULL;
@@ -718,6 +759,15 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 			Opt->fwhm = atof(argv[kar]);
 			brk = YUP;
 		}
+      if (!brk && (strcmp(argv[kar], "-sigma") == 0)) {
+         kar ++;
+			if (kar >= argc)  {
+		  		fprintf (SUMA_STDERR, "need argument after -sigma \n");
+				exit (1);
+			}
+			Opt->sigma = atof(argv[kar]);
+			brk = YUP;
+		}
       
       if (!brk && (strcmp(argv[kar], "-met") == 0)) {
          kar ++;
@@ -746,13 +796,48 @@ SUMA_SURFSMOOTH_OPTIONS *SUMA_SurfSmooth_ParseInput (char *argv[], int argc, SUM
 		}
    }
 
+   /* check on options for HEAT budiness first */
+   if (Opt->Method == SUMA_HEAT_05) {
+      float sequiv;
+      if (  (Opt->N_iter < 0 && Opt->fwhm < 0 && Opt->sigma < 0) || 
+            (Opt->N_iter > 0 && Opt->fwhm > 0 && Opt->sigma > 0) || 
+            (Opt->N_iter < 0 && Opt->fwhm < 0) ||
+            (Opt->N_iter < 0 && Opt->sigma < 0)||
+            (Opt->fwhm < 0 && Opt->sigma < 0) ) {
+         fprintf (SUMA_STDERR,"Error %s:\n"
+                              "Need to specify two and only two out of the three options:\n"
+                              "-N_iter, -fwhm, -sigma\n", FuncName);
+         exit (1);
+      }
+      if (Opt->N_iter < 0) {
+         sequiv  = Opt->fwhm * 0.42466090;
+         Opt->N_iter = SUMA_POW2(sequiv/Opt->sigma);
+         if (Opt->N_iter % 2) ++Opt->N_iter;
+         if (Opt->N_iter < 100) {
+            fprintf (SUMA_STDERR,"Warning: N_iter = %d\n"
+                                 "Perhaps too small for comfort.\n"
+                                 "Consider reducing sigma.\n", Opt->N_iter);
+         }
+      }
+      if (Opt->fwhm < 0) {
+         sequiv = sqrt(Opt->N_iter)*Opt->sigma;
+         Opt->fwhm = sequiv / 0.42466090;
+      }
+      if (Opt->sigma < 0) {
+         sequiv = Opt->fwhm * 0.42466090;
+         Opt->sigma = sequiv / sqrt(Opt->N_iter);
+      }
+      fprintf (SUMA_STDERR,"Effective FWHM = %f, kernel bandwidth = %f, N_iter = %d\n", Opt->fwhm, Opt->sigma, Opt->N_iter);
+   }
+   
+   if (Opt->N_iter == -1) { /* default */ Opt->N_iter = 100; }
    if (Opt->N_iter < 1) {
       fprintf (SUMA_STDERR,"Error %s:\nWith -Niter N option, N must be > 1\n", FuncName);
       exit (1);
    }
    
    if ( (Opt->N_iter % 2) &&
-        (Opt->Method == SUMA_LB_FEM || Opt->Method == SUMA_LM) ) {
+        (Opt->Method == SUMA_LB_FEM || Opt->Method == SUMA_HEAT_05 ||Opt->Method == SUMA_LM) ) {
       fprintf (SUMA_STDERR, "Number of iterations must be a multiple of 2.\n%d is not a multiple of 2.\n", Opt->N_iter);
       exit(1);
    }
@@ -1189,7 +1274,6 @@ int main (int argc,char *argv[])
                                        etime_GetOffset * 100000 / 60.0 / (SO->N_Node));
             }
             
-            exit(1);
             dsmooth = SUMA_Chung_Smooth_05 (SO, wgt, Opt->N_iter, Opt->fwhm, far, ncol, SUMA_COLUMN_MAJOR, NULL, cs, Opt->nmask);
             
             if (LocalHead) {
