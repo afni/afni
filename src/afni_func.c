@@ -5381,9 +5381,12 @@ ENTRY("AFNI_hidden_CB") ;
 
    /*------ Browser [22 Apr 2005] -----*/
 
-   else if( w == im3d->vwid->prog->hidden_browser_pb && w != NULL ){
+   else if( w == im3d->vwid->prog->hidden_browser_pb && w != NULL &&
+            GLOBAL_browser != NULL ){
 
-     system("open http://afni.nimh.nih.gov/afni") ;
+     char cmd[2345] ;
+     sprintf(cmd,"%s http://afni.nimh.nih.gov/afni &",GLOBAL_browser) ;
+     system(cmd) ;
    }
 
    /*------- random speaking --------*/

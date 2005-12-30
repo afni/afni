@@ -4408,12 +4408,12 @@ STATUS("making prog->rowcol") ;
 
       /*----------*/
 
-#if !defined(NO_FRIVOLITIES) && defined(DARWIN)
       (void) XtVaCreateManagedWidget(
                "dialog" , xmSeparatorWidgetClass , prog->hidden_menu ,
                   XmNseparatorType , XmSINGLE_LINE ,
             NULL ) ;
 
+#if 0
       prog->hidden_speech_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
@@ -4428,22 +4428,36 @@ STATUS("making prog->rowcol") ;
       prog->hidden_speech_pb = NULL ;
 #endif
 
-      /*----------*/
+      /*---------- modified 30 Dec 2005 ----------*/
 
-#if !defined(NO_FRIVOLITIES) && defined(DARWIN)
-      prog->hidden_browser_pb =
-            XtVaCreateManagedWidget(
-               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                  LABEL_ARG("Web Browser") ,
-                  XmNmarginHeight , 0 ,
-                  XmNtraversalOn , False ,
-                  XmNinitialResourcesPersistent , False ,
-               NULL ) ;
-      XtAddCallback( prog->hidden_browser_pb , XmNactivateCallback ,
-                     AFNI_hidden_CB , im3d ) ;
-#else
-      prog->hidden_browser_pb = NULL ;
+      GLOBAL_browser = getenv("AFNI_WEB_BROWSER") ;
+#ifdef DARWIN
+      if( GLOBAL_browser == NULL )
+        GLOBAL_browser = strdup("open") ;  /* for Mac OS X */
 #endif
+      if( GLOBAL_browser == NULL )
+        GLOBAL_browser = THD_find_executable( "firefox" ) ;
+      if( GLOBAL_browser == NULL )
+        GLOBAL_browser = THD_find_executable( "mozilla" ) ;
+      if( GLOBAL_browser == NULL )
+        GLOBAL_browser = THD_find_executable( "netscape" ) ;
+      if( GLOBAL_browser == NULL )
+        GLOBAL_browser = THD_find_executable( "opera" ) ;
+
+      if( GLOBAL_browser != NULL ){
+        prog->hidden_browser_pb =
+              XtVaCreateManagedWidget(
+                 "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                    LABEL_ARG("Web Browser") ,
+                    XmNmarginHeight , 0 ,
+                    XmNtraversalOn , False ,
+                    XmNinitialResourcesPersistent , False ,
+                 NULL ) ;
+        XtAddCallback( prog->hidden_browser_pb , XmNactivateCallback ,
+                       AFNI_hidden_CB , im3d ) ;
+      } else {
+        prog->hidden_browser_pb = NULL ;
+      }
 
     } /* if prog->hidden_menu isn't NULL */
    }
