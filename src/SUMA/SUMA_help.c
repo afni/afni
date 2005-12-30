@@ -169,6 +169,7 @@ char * SUMA_New_Additions_perver (int ver, SUMA_Boolean StampOnly)
             "    smoothing mode can be used to inflate surfaces.\n"
             "    o New weighting for Taubin geometry filtering.\n"
             "    o Option for masking nodes to be filtered.\n"
+            "    o New HEAT method for filtering data.\n"
             "  + SurfaceMetrics:\n"
             "    o Option -vol calculates the volume of the closed surface.\n"
             "  + SurfPatch:\n"
