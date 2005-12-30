@@ -2202,6 +2202,17 @@ buttons.  Note that if AFNI_AUTO_RESCAN is enabled, then the rescan
 method will be 'Add', not 'Replace', no matter what you set variable
 AFNI_RESCAN_METHOD to.
 
+--------------------------
+Variable: AFNI_WEB_BROWSER
+--------------------------
+This variable should be set to the full executable path to a Web browser,
+as in
+  setenv AFNI_WEB_BROWSER /usr/bin/mozilla
+If it is not set, AFNI will scan your path to see if it can find a browser,
+looking for "firefox", "mozilla", "netscape", and "opera" (in that order).
+If a browser is found, or set, then the 'hidden' popup menu (in the blank
+square to the right of the 'done' button) will have a menu item to open it.
+
 =============================================
 | Robert W Cox, PhD                         |
 | Scientific and Statistical Computing Core |
