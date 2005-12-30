@@ -5790,3 +5790,6 @@
 28 Dec 2005
  * fixes to mri_warp3D_align.c and thd_automask.c to deal with problems
      with -parfix, and with doing mask stuff on 2D images.
+
+30 Dec 2005
+ * Web browser stuff in afni.h, afni_func.c, afni_widg.c.
