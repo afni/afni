@@ -31,7 +31,8 @@
 /***** Header file for communication routines *****/
 
 #include "thd_iochan.h"
-#define COM_LENGTH 1000   /* max length of command (to allow for ziad's filenames) */
+#define COM_LENGTH 1000   /* max length of command (to allow for ziad's 
+                                                    beautiful and inspired filenames) */
 
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/
@@ -160,7 +161,8 @@ int main( int argc , char *argv[] )
          }
 
          if (argv[narg] && strlen(argv[narg]) >= COM_LENGTH) {
-            fprintf(stderr,"** Command length must be smaller than %d characters.\n", COM_LENGTH);
+            fprintf(stderr,"** Command length must be smaller than %d characters.\n"
+                           "   If you really need a longer command let us know.\n" , COM_LENGTH);
          }
 
          if (N_com < 1024) {
@@ -410,6 +412,9 @@ int afni_io(void)
       if( I_com < N_com ){                   /* send the I_com'th command */
          strcpy(afni_buf, "DRIVE_AFNI ") ;
          strcat(afni_buf, com[I_com]   ) ; strcpy(cmd_buf,com[I_com]) ;
+         if (afni_verbose) {
+            fprintf(stderr,"Command String %d Echo: '%s'\n", I_com, afni_buf); fflush(stderr) ; 
+         }
          I_com++ ;
       } else {
          if (DontWait) exit(0);
@@ -424,7 +429,7 @@ int afni_io(void)
       }
 
       /* send command to AFNI */
-
+      
       ii = iochan_sendall( afni_ioc , afni_buf , strlen(afni_buf)+1 ) ;
 
       if( strcmp(cmd_buf,"QUIT") == 0 ){  /* 28 Jul 2005 */
