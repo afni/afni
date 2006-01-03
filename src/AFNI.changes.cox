@@ -5637,7 +5637,7 @@
      if prefix starts with '-' character, will write .1D datasets to stdout.
 
 13 Jul 2005
- * Modifiy afni_widg.c and afni.c so that a Button-3 click on an Image or
+ * Modify afni_widg.c and afni.c so that a Button-3 click on an Image or
      Graph button will recall the open window from offscreen purgatory.
 
 19 Jul 2005
