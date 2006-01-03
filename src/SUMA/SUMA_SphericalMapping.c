@@ -3025,6 +3025,11 @@ int main (int argc, char *argv[])
                exit (1);
             }
             morph_surf = argv[kar];
+            if (strcmp (morph_surf, "sphere.reg") != 0 && strcmp (morph_surf, "sphere") != 0 ) {
+               fprintf (SUMA_STDERR, " Only 'sphere' or 'sphere.reg' are allowed with -morph option\n"
+                                     " User specified %s\n", morph_surf);
+               exit (1);
+            }
             brk = YUP;
          }   
       if (!brk && (strcmp(argv[kar], "-it") == 0 ))
@@ -3354,20 +3359,23 @@ int main (int argc, char *argv[])
    i_morph = -1;
    if ( morph_surf!=NULL ) {
       /*sphere specified by user input*/
-      if (SUMA_iswordin( morph_surf, "sphere.reg") ==1 )
+      if (strcmp (morph_surf, "sphere.reg") == 0) { /* (SUMA_iswordin( morph_surf, "sphere.reg") ==1 ) */
+         fprintf(SUMA_STDERR, "Note %s: Using sphere.reg, per user request.\n", FuncName);
          i_morph = 4;
-      else if ( SUMA_iswordin( morph_surf, "sphere") == 1 &&
-                SUMA_iswordin( morph_surf, "sphere.reg") == 0 ) 
+      } else if ( strcmp( morph_surf, "sphere") == 0 ) { /*( SUMA_iswordin( morph_surf, "sphere") == 1 &&SUMA_iswordin( morph_surf, "sphere.reg") == 0 ) */
+         fprintf(SUMA_STDERR, "Note %s: Using sphere, per user request.\n", FuncName);
          i_morph = 3;
-      else {
-         fprintf(SUMA_STDERR, "\nWarning %s: Indicated morphSurf (%s) is not sphere or sphere.reg.\n\tDefault path to determine morphing sphere will be taken.\n", FuncName, morph_surf);
+      } else {
+         fprintf(SUMA_STDERR, "\nError %s: Indicated morphSurf (%s) is not sphere or sphere.reg.\n", FuncName, morph_surf);
          morph_surf = NULL;
+         exit (1);
       }
       if ( i_morph!=-1 ) {
          if ( spec_order[i_morph]==-1 ) {
             /*user specified sphere does not exist*/
-            fprintf(SUMA_STDERR, "\nWarning %s: Indicated morphSurf (%s) does not exist.\n\tDefault path to determine morphing sphere will be taken.\n", FuncName, morph_surf);
+            fprintf(SUMA_STDERR, "\nError %s: Indicated morphSurf (%s) does not exist.\n", FuncName, morph_surf);
             morph_surf = NULL;
+            exit (1);
          }
       }
    }
