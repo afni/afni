@@ -580,8 +580,8 @@ d3dmerge:3dmerge.c
 
 3dedge3:lib3DEdge.a 3dedge3.o
 	$(RM) $@
-	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src -l3DEdge \
-              $(LFLAGS) -lmri -lf2c $(LLIBS)
+	$(CC) -o 3dedge3 3dedge3.o -I3DEdge/src            \
+              $(LFLAGS) -l3DEdge -lmri -lf2c $(LLIBS)
 
 whereami:whereami.c
 	$(RM) $@
