@@ -27,7 +27,7 @@ EOBJS = test-edges.o \
 #RANLIB = /usr/bin/ranlib
 #RM = /bin/rm -f
 
-.c.o:; cc -O $(IFLAGS) $(LFLAGS) -c $*.c;
+.c.o:; $(CC) $(IFLAGS) $(LFLAGS) -c $*.c;
 
 all : clean test-edges test-edges-pnm test-hyster-pnm
 
@@ -40,10 +40,10 @@ lib3DEdge.a: $(COBJS)
 	$(RANLIB) lib3DEdge.a
 
 test-edges : $(EOBJS) $(COBJS)
-	cc -O $(IFLAGS) $(LFLAGS) -o test-edges test-edges.o $(COBJS) -lm
+	$(CC) $(IFLAGS) $(LFLAGS) -o test-edges test-edges.o $(COBJS) -lm
 
 test-edges-pnm : $(EOBJS) $(COBJS)
-	cc -O $(IFLAGS) $(LFLAGS)  -o test-edges-pnm test-edges-pnm.o $(COBJS) -lm
+	$(CC) $(IFLAGS) $(LFLAGS)  -o test-edges-pnm test-edges-pnm.o $(COBJS) -lm
 
 test-hyster-pnm : $(EOBJS) $(COBJS)
-	cc -O $(IFLAGS) $(LFLAGS)  -o test-hyster-pnm test-hyster-pnm.o $(COBJS) -lm
+	$(CC) $(IFLAGS) $(LFLAGS)  -o test-hyster-pnm test-hyster-pnm.o $(COBJS) -lm
