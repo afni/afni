@@ -74,6 +74,10 @@
             Added the -assume_sph option and a check for validity of the
             contrasts (that they all sum to zero).  If valid, use old_method.
    Date:    01 Dec 2005 [rickr]
+
+   Mod:     Wrote calc_type3_acontr() to replace calc_sum_sum2_acontr() and
+            calc_t_from_sums(), to avoid an intermediate conversion to floats.
+   Date:    04 Jan 2006 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -1208,69 +1212,36 @@ void calculate_sum (anova_options * option_data,
   
 
 /*---------------------------------------------------------------------------*/
-/*                                                    12 Jul 2005 [gangc,rickr]
-   Routine to calculate the t-statistic from its pieces.
+/*                                                        03 Jan 2006 [rickr]
 
-   Try to be efficient with the following formula, coming from the mean (sum),
-   the sum of squares, and df.
+  Routine to compute the mean and t-stat for a type 3 A contrast.
 
-       t = mean * sqrt[     df ( df + 1 )      ]
-                      [ ---------------------- ]
-                      [ sum_sq - (df+1)*mean^2 ]
-
-   Note that it is okay for result to be the same pointer as either of
-   the other two (for overwriting the data space).
-*/
-void calculate_t_from_sums(float * result, float * mean, float * sum_sq,
-                           int df, int nvox)
-{
-  const float  EPSILON = 1.0e-10;      /* protect against divide by zero */
-  double dval;
-  float  *res, *mp, *ssp, sval;
-  int    index, df_prod;
-
-  /* set df_prod and use pointers, for slight speed improvement */
-  df_prod = df * (df + 1);
-
-  res = result;
-  mp = mean;
-  ssp = sum_sq;
-  for (index = 0;  index < nvox;  index++)
-  {
-     sval = *mp;  /* for repeated use */
-     dval = *ssp - (df+1.0) * sval * sval;
-
-     if (dval < EPSILON) *res = 0.0;
-     else                *res = sval * sqrt( df_prod / dval );
-
-     res++;  mp++;  ssp++;
-  }
-}
-  
-
-/*---------------------------------------------------------------------------*/
-/*                                                    12 Jul 2005 [gangc,rickr]
-  Routine to compute the sum and sum of squared contrasts:
-
-      sum  = sum_over_j[ (sum_over_i_in_contrast[c_i * y_i_j])   ]
+      mean = sum_over_j[ (sum_over_i_in_contrast[c_i * y_i_j])   ] / b
       sum2 = sum_over_j[ (sum_over_i_in_contrast[c_i * y_i_j])^2 ]
+
+      t = mean * sqrt[     df ( df + 1 )      ]
+                     [ ---------------------- ]
+                     [ sum_sq - (df+1)*mean^2 ]
+
 
   Note that y_i_j is the mean over k, i.e. 1/K*sum_over_k[y_i_j_k].
 
-  For accuracy, sum is computed using doubles, then copied to float.
+  For accuracy, results are computed using doubles, then copied to float.
   The contrast is passed in to allow for more uses of this function.
 */
 
-void calc_sum_sum2_acontr(anova_options *option_data, float *acontr,
-                          float *sum, float * sum2)
+void calc_type3_acontr(anova_options *option_data, float *acontr, int df,
+                       float *mean, float * tmean)
 {
+  const float  EPSILON = 1.0e-15;  /* protect against divide by zero */
   double * dsum, * dsum2;          /* cumulative sums, for accuracy */
   double * dcontr;                 /* current contrast sum */
+  double   dval, dmean;            /* for ease in computations */
   int i, j;                        /* indices for levels of factors A and B */
   int a, b;                        /* number of levels for factors A and B */
   int n;                           /* number of observations per cell */
   int ixyz, nxyz;                  /* voxel counters */
-  int nvoxel;                      /* output voxel # */
+  int nvoxel, df_prod;             /* output voxel #, df*(df+1) */
   
   
   /*----- initialize local variables -----*/
@@ -1302,9 +1273,9 @@ void calc_sum_sum2_acontr(anova_options *option_data, float *acontr,
           if (acontr[i] == 0.0 ) continue;  /* then skip this index */
 
           /* get sum over k for mean (cheat, using sum for memory) */
-          calculate_sum(option_data, i, j, sum);
+          calculate_sum(option_data, i, j, mean);
           for (ixyz = 0; ixyz < nxyz; ixyz++)
-              dcontr[ixyz] += acontr[i] * (double)sum[ixyz] / n;
+              dcontr[ixyz] += acontr[i] * (double)mean[ixyz] / n;
       }
 
       /*-----  tally sum of contrast and squares for the current j -----*/
@@ -1315,17 +1286,22 @@ void calc_sum_sum2_acontr(anova_options *option_data, float *acontr,
       }
   }
 
-  /*----- copy results to float output -----*/
+  /*----- compute results -----*/
+  df_prod = df * (df + 1);
   for (ixyz = 0; ixyz < nxyz; ixyz++)
   {
-      sum[ixyz] = dsum[ixyz];
-      sum2[ixyz] = dsum2[ixyz];
+      dmean = dsum[ixyz] / b;     /* store single mean for efficiency */
+      mean[ixyz] = dmean;         /* copy mean to float output */
+
+      dval = dsum2[ixyz] - (df+1) * dmean * dmean;
+      if (dval < EPSILON) tmean[ixyz] = 0.0;
+      else                tmean[ixyz] = dmean * sqrt( df_prod / dval );
   }
 
   /*----- release memory -----*/
   free (dsum);  free (dsum2);  free (dcontr);
 }
-  
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -2631,12 +2607,8 @@ void calculate_ameans (anova_options * option_data)
           for (index = 0; index < a; index++ ) contr[index] = 0.0;
           contr[level] = 1.0;
      
-          df = b - 1;  /*-- note degrees of freedom --*/
-
-          /*----- get sums, mean and then tstat -----*/
-          calc_sum_sum2_acontr(option_data, contr, mean, tmean);
-          for (ixyz = 0;  ixyz < nxyz;  ixyz++) mean[ixyz] /= (df + 1.0);
-          calculate_t_from_sums(tmean, mean, tmean, df, nxyz);
+          df = b - 1;  /*-- note degrees of freedom, and compute contrast --*/
+          calc_type3_acontr(option_data, contr, df, mean, tmean);
       }
 
       if (nvoxel > 0)
@@ -2827,7 +2799,7 @@ void calculate_xmeans (anova_options * option_data)
    The first sub-brick contains the estimated difference in the means.  
    The second sub-brick contains the corresponding t-statistic.
 
-   Modified to use calc_sum_sum2_acontr functions, for ease of calculation of
+   Modified to use calc_type3_acontr functions, for ease of calculation of
    sum of squared differences.                      31 Aug 2005 [gangc,rickr]
 */
 
@@ -2846,7 +2818,7 @@ void calculate_adifferences (anova_options * option_data)
    int idiff;                          /* index for requested differences */
    int i, j, c;                        /* factor level indices */
    int n;                              /* number of observations per cell */
-   int df, df_prod;                    /* degrees of freedom for t-test */
+   int df;                             /* degrees of freedom for t-test */
 
 
    /*----- initialize local variables -----*/
@@ -2856,10 +2828,6 @@ void calculate_adifferences (anova_options * option_data)
    num_diffs = option_data->num_adiffs;
    nxyz = option_data->nxyz;
    nvoxel = option_data->nvoxel;
-
-   /*----- number of differences, minus one -----*/
-   df = b - 1;
-   df_prod = df * (df+1);
    
    /*----- allocate memory space for calculations -----*/
    diff = (float *) malloc(sizeof(float)*nxyz);
@@ -2902,10 +2870,9 @@ void calculate_adifferences (anova_options * option_data)
           for (c = 0 ; c < a; c++ ) contrast[c] = 0.0;
           contrast[i] = 1.0;  contrast[j] = -1.0;
 
-          /*----- compute sums as contrast, take mean, get tstat -----*/
-          calc_sum_sum2_acontr(option_data, contrast, diff, tdiff);
-          for (ixyz = 0; ixyz < nxyz; ixyz++ ) diff[ixyz] /= b;
-          calculate_t_from_sums(tdiff, diff, tdiff, df, nxyz);
+          /*----- compute sums as contrast, compute mean, tstat -----*/
+          df = b - 1;
+          calc_type3_acontr(option_data, contrast, df, diff, tdiff);
       }
 
       if (nvoxel > 0)
@@ -3180,14 +3147,10 @@ void calculate_acontrasts (anova_options * option_data)
       }
       else      /* type-3: now, new and improved!   1 Sep 2005 [rickr,gangc] */
       {
-
+         /*----- compute the acontr_mean and tstat -----*/
          df = b - 1;
-
-         /*----- get the acontr_mean and sum of squared contrast -----*/
-         calc_sum_sum2_acontr(option_data, option_data->acontr[icontr],
+         calc_type3_acontr(option_data, option_data->acontr[icontr], df,
                               contr, tcontr);
-         for (ixyz = 0; ixyz < nxyz; ixyz++ ) contr[ixyz] /= b;   /* mean   */
-         calculate_t_from_sums(tcontr, contr, tcontr, df, nxyz);  /* t-stat */
       }
 
       if (nvoxel > 0)
