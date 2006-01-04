@@ -97,8 +97,7 @@ PBAR_ROTATE [c.]{+|-}
     PBAR_ROTATE A.+
 
 DEFINE_COLORSCALE name number=color number=color ...
-  or
-DEFINE_COLORSCALE name color color color
+or DEFINE_COLORSCALE name color color color
   Defines a new colorscale with the given name.  The format of the following
   arguments is either like "1.0=#ffff00" or like "#ff00ff" (all must be in the
   same format).  See http://afni.nimh.nih.gov/afni/afni_colorscale.html for
