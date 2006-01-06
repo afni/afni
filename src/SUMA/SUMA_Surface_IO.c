@@ -7200,7 +7200,7 @@ NI_group *SUMA_SO2nimlSO(SUMA_SurfaceObject *SO, char *optlist, int nlee)
    }
    
    /** END Adding data elements **/ 
-   if (1) {
+   if (LocalHead) {
       int suc;
       SUMA_SL_Warn("writing SO group to DISK!");
       NEL_WRITE_TX(ngr, "file:Test_SO2NIML_write_asc_1D", suc);
