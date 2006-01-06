@@ -1391,3 +1391,6 @@
   * modified 3dANOVA2.c, replaced calc_sum_sum2_acontr and calc_t_from_sums
         with calc_type3_acontr, to avoid intermediate storage of data as floats
 
+06 Jan 2006:
+  * modified waver.c: only output version info with new '-ver' option.
+
