@@ -7,6 +7,7 @@ PARSE:
    set pd_default = 40
    set cnt = 1
    set tmppref = '__ats_tmp_'
+   set cropt = '-coarserot'
    set RemoveSkull = 1
    set KeepView = 0
    set ref_in = ''
@@ -170,6 +171,11 @@ PARSE:
             set anat_in = "$argv[$cnt]"
             set donext = 0   
          endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-ncr") then
+         set cropt = '';		
+         set donext = 0		
       endif
       if ($donext && "$argv[$cnt]" == "-no_ss") then
          set RemoveSkull = 0;      
@@ -396,12 +402,13 @@ AUTO_TLRC_MODE:
    if ($verb == 1) then
       set spopt = "$spopt -verb"
    endif
+   set spopt = "$spopt $cropt"
    
    set pass = 1
    set Converged = 0
    while ($Converged == 0 && $pass < 3)
       rm -f ${ns_pref}_WarpDrive.log >& /dev/null
-      3dWarpDrive ${spopt} -twopass -${xform_type} -cubic  \
+      3dWarpDrive ${spopt}  -twopass -${xform_type} -cubic  \
                -final ${rmode} -base ${ref_pref_pad}${ref_view} -summ ${ns_pref}_WarpDrive.log \
                -prefix ${tmppref}_reg_warpdriveout -input ${rs_pref}${anat_view}
       if ( ! -f ${tmppref}_reg_warpdriveout${anat_view}.HEAD ) then
@@ -680,6 +687,11 @@ HELP:
       echo "      -no_avoid_eyes : An option that gets passed to 3dSkullStrip."
       echo "                       Use it when parts of the frontal lobes get clipped."
       echo "                       See 3dSkullStrip -help for more details."
+      echo "      -ncr           : The 3dWarpDrive option -coarserot is now used by default."
+      echo "                       It should not cause any harm, only good shall come of it."
+      echo "                       -ncr is there however, should you choose NOT TO want coarserot"
+      echo "                       used for some reason"
+      echo ""                      
       echo "   Example:"
       echo "   `basename $0` -base TT_N27+tlrc. -input SubjectHighRes+orig."
       echo "    (the output is named SubjectHighRes_at+TLRC, by default."
