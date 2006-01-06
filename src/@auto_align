@@ -5,6 +5,7 @@ PARSE:
 	set Narg = $#
    set base = ''
    set input = ''
+   set cropt = '-coarserot'
    set blr_input = 8
    set blr_base = 8
    set pad_base = 10
@@ -176,6 +177,11 @@ PARSE:
          set donext = 0		
       endif
       
+      if ($donext && "$argv[$cnt]" == "-ncr") then
+         set cropt = '';		
+         set donext = 0		
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-verb") then
          set verb = 1;		
          set donext = 0		
@@ -226,8 +232,9 @@ endif
             -inset $ci_name[1]/$ci_name[2]$ci_name[3]
 set ci_name[2] = $ci_name[2]_${TS}_resamp
             
-#do the warping deed
-3dWarpDrive    -twopass -${xform_type} -cubic  \
+#do the warping deed   
+
+3dWarpDrive    -twopass $cropt -${xform_type} -cubic  \
                -final ${rmode} -base $cb_name[1]/$cb_name[2]$cb_name[3] \
                -prefix $ci_name[1]/$ci_name[2]_${TS}_wd -input $ci_name[1]/$ci_name[2]$ci_name[3]
 set ci_name[2] = $ci_name[2]_${TS}_wd
