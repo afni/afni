@@ -6,7 +6,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  This program calculates a functional image from an ANFI 3D+time data set, 
+  This program calculates a functional image from an AFNI 3D+time data set, 
   by calculating the correlation between the image time series and one or
   more reference ("ideal") time series.
   
