@@ -36,6 +36,7 @@ PARSE_COMMAND:
    #continue parsing for new options
    set Narg = $#
    set cnt = 1
+   set cropt = '-coarserot'
    set prefix = ''
    set UseWarp = 0
    set clpbelow = ''
@@ -107,6 +108,11 @@ PARSE_COMMAND:
      
       if ($donext && "$argv[$cnt]" == "-wd") then
          set UseWarp = 1;		
+         set donext = 0		
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-ncr") then
+         set cropt = '';		
          set donext = 0		
       endif
       
@@ -304,7 +310,7 @@ REGISTER:
       3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_pad $SurfAnatPath/$SurfAnat
       3dZeropad -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm -prefix ./${tmpref}_refpad $ExpAnat
 
-      3dWarpDrive -twopass -verb -affine_general -cubic -final quintic -base ./${tmpref}_refpad$SurfAnatView -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
+      3dWarpDrive $cropt -twopass -verb -affine_general -cubic -final quintic -base ./${tmpref}_refpad$SurfAnatView -prefix ./${tmpref}_pad_wd ./${tmpref}_pad$SurfAnatView
 	   
       3dZeropad -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm -prefix ./$VolRegPrefix ${tmpref}_pad_wd$SurfAnatView
 	   #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
@@ -451,9 +457,14 @@ USAGE:
    echo "        If the anatomical coverage differs markedly between 'Experiment "
    echo "        Anatomy' and 'Surface Anatomy', you might need to use -EA_clip_below "
    echo "        option or you could end up with a very distorted brain."
-   echo "        With more degrees of freedom, there is more room for the alignment not"
-   echo "        to converge very well, especially when spatial coverage of the two dsets"
-   echo "        is not the same. So use this option when you have to, not as the default." 
+   #echo "        With more degrees of freedom, there is more room for the alignment not"
+   #echo "        to converge very well, especially when spatial coverage of the two dsets"
+   #echo "        is not the same. So use this option when you have to, not as the default."
+   echo "        The default now is to use -coarserot option with 3dWarpDrive, this"
+   echo "        should make the program more robust. If you want to try running without it"
+   echo "        the add -ncr with -wd"
+   echo "        I would be interested in examining cases where -wd option failed to "
+   echo "        produce a good alignment."  
    echo "   [-EA_clip_below CLP]: Set slices below CLPmm in 'Experiment Anatomy' to zero."
    echo "        Use this if the coverage of 'Experiment Anatomy' dataset"
    echo "        extends far below the data in 'Surface Anatomy' dataset."

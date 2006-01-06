@@ -245,7 +245,7 @@ goto CLEANUP
 FINE_REG:
 #Cannot do finer registration because scaling is not allowed, partial coverage...
 if (0) then
-      3dWarpDrive -base `@GetAfniPrefix $ilst[$CNTmin]`_alnd_${anat_i}+orig\
+      3dWarpDrive -coarserot -base `@GetAfniPrefix $ilst[$CNTmin]`_alnd_${anat_i}+orig\
                -prefix Anat_alnd_MovedBase -affine_general \
                -input ${anat_i}+orig -quintic -verb
 endif
