@@ -679,6 +679,8 @@ MRI_IMAGE * mri_warp3D_align_one( MRI_warp3D_align_basis *bas, MRI_IMAGE *im )
    int mm , last_aitken , num_aitken=0 ;
    float  sdif , fitdif[NMEM] ;   /* 28 Sep 2005 */
    int    num_bad_diff ;
+   float  best_dif , best_par[999] ;  /* 09 Jan 2006 */
+   int    best_ite ;
 
 ENTRY("mri_warp3D_align_one") ;
 
@@ -713,6 +715,7 @@ fprintf(stderr,"\n") ;
 
  ReStart:
 
+   best_dif  = -666.0f ;                     /* 09 Jan 2006 */
    blur_pass = (do_twopass && passnum==1) ;
    mri_warp3D_method( blur_pass ? MRI_LINEAR : bas->regmode ) ;
 
@@ -780,6 +783,11 @@ fprintf(stderr,"\n") ;
      if( bas->verb )
        fprintf(stderr,"++++++++++ Start iter=%d  RMS_diff=%g\n",iter+1,sdif) ;
 
+     if( best_dif < 0.0f || sdif < best_dif ){        /* 09 Jan 2006 */
+       best_dif = sdif ; best_ite = iter ;
+       memcpy( best_par , fit , sizeof(float)*npar ) ;
+     }
+
      /* find least squares fit of base + derivatives to warped image */
 
      sfit = 0.0f ;
@@ -824,14 +832,14 @@ fprintf(stderr,"\n") ;
      for( mm=NMEM-1 ; mm > 0 ; mm-- ) fitdif[mm] = fitdif[mm-1] ;
      fitdif[0] = sdif ;
 
-     if( iter > 1          && num_bad_diff < 1                  &&
-         fitmem[1] != NULL && fitdif[0]    > 1.0666 * fitdif[1]   ){
+     if( iter > 1          && num_bad_diff < 2                   &&
+         fitmem[1] != NULL && fitdif[0]    > 1.0666f * fitdif[1]   ){
        for( pp=0 ; pp < npar ; pp++ )
          fit[pp] = 0.5 * ( fitmem[0][pp] + fitmem[1][pp] ) ;
        memcpy( fitmem[0] , fit , sizeof(float)*npar ) ;
        last_aitken = iter+1 ; num_bad_diff++ ;
        if( bas->verb )
-         fprintf(stderr,"+++ RMS_diff changes too much!\n") ;
+         fprintf(stderr,"+++ RMS_diff changes too much! Shrinking!\n") ;
      } else {
        num_bad_diff = 0 ;
      }
@@ -928,6 +936,15 @@ fprintf(stderr,"\n") ;
 
    for( mm=0 ; mm < NMEM ; mm++ )
      if( fitmem[mm] != NULL ){ free((void *)fitmem[mm]); fitmem[mm] = NULL; }
+
+   /*--- 09 Jan 2006: if prior best fit was better than current, replace ---*/
+
+   if( best_dif > 0.0f && 1.0666f*best_dif < sdif ){
+     memcpy( fit , best_par , sizeof(float)*npar ) ;
+     if( bas->verb )
+       fprintf(stderr,"+++++ Replacing final fit with iter #%d's fit +++++\n",
+               best_ite+1) ;
+   }
 
    /*--- do the second pass? ---*/
 
