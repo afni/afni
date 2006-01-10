@@ -1,0 +1,147 @@
+#!/bin/tcsh -f
+
+PARSE:
+   echo "Parsing ..."
+   set Narg = $#
+   
+   set cnt = 1
+   set tmppref = '__im_tmp_'
+   set anat_in = ''
+   set verb = 0
+   set speco = ""
+   
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+      
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-mask") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need  volume after -mask"
+            goto END
+         else
+            @ cnt ++
+            set anat = `@parse_afni_name "$argv[$cnt]"`
+            echo "have $anat for input "
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-spec") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need  volume after -spec"
+            goto END
+         else
+            @ cnt ++
+            set speco = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-verb") then
+         set verb = 1;      
+         set donext = 0      
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-isovals") then
+         #get all the isovals
+         set pLoc = $cnt
+         if ($pLoc == $Narg) then
+            echo "Need  value(s) after -isovals"
+            goto END
+         else
+            set isovals = ''
+            @ cnt ++
+            set ok = 1
+            while ($cnt <= $Narg && $ok == 1)
+               set cc = `ccalc -form int -expr $argv[$cnt]`
+               if ($status == 0 && ("$argv[$cnt]" == '0' || "$argv[$cnt]" == '0.0' || "$cc" != 0)) then
+                  set isovals = ($isovals $argv[$cnt])
+                  @ cnt ++
+               else
+                  #not a number anymore
+                  @ cnt --
+                  set ok = 0
+               endif
+            end
+            echo "Isovals = ($isovals[*])" 
+         endif
+         
+         set donext = 0      
+      endif
+      
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+
+CHECKS:
+if ("$speco" == "") then
+   set speco = $anat[2]_isosurfs.spec
+else
+   #already set
+endif
+if ( -f $speco ) then
+   echo "Error"
+   echo "Output spec file $speco exists"
+   echo ""
+   goto END
+endif
+
+ISO_SURFIATE:
+set qs_opt = ''
+foreach val ($isovals[*])
+   set suf = "_iso_${val}"
+   if ($anat[4] != "") then
+      set sb = "[$anat[4]]"
+   else
+      set sb = ''
+   endif
+   echo "Running: IsoSurface -input $anat[1]/$anat[2]$anat[3]'$sb' -isoval $val -o_ply $anat[2]${suf} ... "
+   IsoSurface -input $anat[1]/$anat[2]$anat[3]"$sb" -isoval $val -o_ply $anat[2]${suf}
+   if ( -f $anat[2]${suf}.ply ) then
+      set qs_opt = ( $qs_opt -tsn PLY $anat[2] $anat[2]${suf}.ply )
+   endif
+end
+if ("$qs_opt" == '') then
+   echo "Failed to create any new isosurfaces"
+   goto END
+endif
+
+SPECATE:
+   echo "Creating $speco with:"
+   echo "quickspec $qs_opt -spec $speco"
+   
+   quickspec $qs_opt -spec $speco
+   if ($status) then
+      echo "Failed to create new spec file"
+      goto END
+   endif
+   
+SPECULATE:
+   echo ""
+   echo "Suggested command:"
+   echo "suma -spec $anat[2]_isosurfs.spec -sv $anat[1]/$anat[2]$anat[3] &"
+   echo "afni -niml $anat[1]/$anat[2]$anat[3] &"
+   echo ""
+
+goto END
+
+
+HELP:
+   echo "Usage: `basename $0` -mask DSET -isovals v1 v1 ..."
+   echo "Creates isosurfaces from isovolume envelopes."
+   echo ""
+   echo "For example, to create contours of TLRC regions:"
+   echo " `basename $0` -mask ~/abin/TTatlas+tlrc'[0]' -isovals "' `count -digits 1 1 77` '
+   echo ""
+   goto END
+   
+END: 
