@@ -344,7 +344,7 @@ void parset_bilinear(void)
     for( j=0 ; j < 3 ; j++ )
      for( k=0 ; k < 3 ; k++ ) dd_for[i][j][k] *= dd_fac ;  /* 18 Jul 2005 */
 
-   /* computer inverse denominator 3-tensor */
+   /* compute inverse denominator 3-tensor */
 
    ai = mv_inv.mm ;
    for( k=0 ; k < 3 ; k++ ){
@@ -463,7 +463,6 @@ int main( int argc , char * argv[] )
             "  -parfix n v   = Fix the n'th parameter of the warp model to\n"
             "                   the value 'v'.  More than one -parfix option\n"
             "                   can be used, to fix multiple parameters.\n"
-            "      ***N.B.: this option appears to be broken at this time!!!\n"
             "  -1Dfile ename = Write out the warping parameters to the file\n"
             "                   named 'ename'.  Each sub-brick of the input\n"
             "                   dataset gets one line in this file.  Each\n"
@@ -709,7 +708,7 @@ int main( int argc , char * argv[] )
 #if 0
        ERROR_exit("3dWarpDrive -bilinear_general NOT IMPLEMENTED!\n");
 #else
-       WARNING_message("-bilinear_general transformations are experimental!") ;
+       WARNING_message("-bilinear_general transformation is experimental!") ;
 #endif
        warpdrive_code = WARPDRIVE_BILINEAR ; nopt++ ; continue ;
      }
