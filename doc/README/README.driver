@@ -119,6 +119,9 @@ SET_FUNC_VISIBLE [c.]{+|-}
     SET_FUNC_VISIBLE A.+
   You can also use SEE_OVERLAY for this, which is closer to the label on
   the GUI button.
+ 
+SEE_OVERLAY
+   Same as SET_FUNC_VISIBLE
 
 SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
   Sets the functional resampling mode:
