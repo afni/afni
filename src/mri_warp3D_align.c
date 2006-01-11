@@ -294,6 +294,18 @@ static void mri_warp3D_get_delta( MRI_warp3D_align_basis *bas , int kpar )
    if( bas->verb ) fprintf(stderr,"\n") ;
 
    bas->param[kpar].delta = dpar ;   /* save result, whatever it is */
+
+   dpar = 1.666f * dpar ;
+
+   if( bas->param[kpar].ident == 0.0f &&
+       dpar > bas->param[kpar].max       ){   /* 11 Jan 2005 */
+
+     bas->param[kpar].min = -dpar ;
+     bas->param[kpar].max =  dpar ;
+     if( bas->verb )
+       fprintf(stderr,"+    reset range to %f .. %f\n",
+               bas->param[kpar].min,bas->param[kpar].max) ;
+   }
    free((void *)pvec) ;
    return ;
 }
