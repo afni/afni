@@ -1042,7 +1042,7 @@ int main( int argc , char * argv[] )
        rr = MAX(xr,yr)       ; rr = MAX(rr,zr)       ; dd_fac = 1.0f / rr ;
        for( kpar=12 ; kpar < 39 ; kpar++ ){
          sprintf(labxx,"blin_%02d",kpar+1) ;
-         ADDPAR( labxx , -0.1666 , 0.1666 , 0.0 , 0.0 , 0.0 ) ;
+         ADDPAR( labxx , -0.3456 , 0.3456 , 0.0 , 0.0 , 0.0 ) ;
        }
 
        /* initialize transform parameter vector */
