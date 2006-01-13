@@ -76,8 +76,8 @@ figure (1);
 colormap (Mrgb./255);
 subplot 211;
 image ([1:1:length(Mrgb(:,1))]);
-subplot 212;
-pie (ones(1,length(Mrgb(:,1))));
+%subplot 212;
+%pie (ones(1,length(Mrgb(:,1))));
 
 for (i=1:1:size(Mrgb,1)),
 		s1 = pad_strn (lower(dec2hex(Mrgb(i,1))),'0',2,1);
