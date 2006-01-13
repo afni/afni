@@ -60,7 +60,7 @@ PROGRAMS = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge count   
            3dWavelets 3dfim+ imcutup 3dWinsor 3dZeropad 3dTagalign 3dUndump     \
            3dMean 3dAttribute cat_matvec 3dOverlap 3dClipLevel 3dZregrid        \
            3dEntropy 3ddelay ent16 3dRowFillin 1dgrayplot 3dToutcount 1dsum     \
-           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual          \
+           3dExtrema qhull strblast 3dConvolve 3dZcutup 3dZcat 3dTqual 3dGetrow \
            3dTcorrelate 3dAnatNudge 3dcopy Vecwarp 3dMINCtoAFNI 3dCM            \
            3dAFNItoANALYZE siemens_vision ge_header mayo_analyze 3dAFNItoNIFTI  \
            3dAutoTcorrelate 3dFDR rtfeedme 3dAutomask 3dAFNItoMINC 3dMax        \
@@ -93,7 +93,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   3dThreetoRGB Ifile 3dresample 3dAutobox 3dLRflip 3dANALYZEtoAFNI  \
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header         \
-                  3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat          \
+                  3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
                   Imon nifti_tool nifti_stats nifti1_test Dimon 3danisosmooth       \
                   3dmaxima                                                          \
                   $(EXTRAS)
@@ -103,7 +103,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
 
 PROGRAMS_EXE = afni.exe to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge   \
                sfim tfim ftosh 3dttest 3ddup imrotate imreg imstat 3dnvals count  \
-               fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim          \
+               fim2 imand FD2 sqwave immask imdump imaver 3dhistog 3dfim 3dGetrow \
                p2t cdf 2swap 4swap mritopgm 3dANOVA 3dANOVA2 3dANOVA3 plugout_tta \
                waver 3dnewid 3dcalc ccalc imcalc 3T_toafni 3drefit 3dbucket       \
                3dAFNItoNIML    AlphaSim 3dFWHM plugout_tt 3dnoise plugout_ijk     \
@@ -194,6 +194,9 @@ Ifile:Ifile.o
 
 3dUndump:3dUndump.o
 	$(CC) -o 3dUndump 3dUndump.o $(LFLAGS) $(LLIBS)
+
+3dGetrow:3dGetrow.o
+	$(CC) -o 3dGetrow 3dGetrow.o $(LFLAGS) $(LLIBS)
 
 3dnoise:3dnoise.o
 	$(CC) -o 3dnoise 3dnoise.o $(LFLAGS) $(LLIBS)
