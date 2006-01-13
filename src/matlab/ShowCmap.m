@@ -4,7 +4,7 @@ function ShowCmap(M, h)
 % M (nx3): color map 
 % h: figure handle
 % 
-% see also readXcol, ROIcmap
+% see also readXcol, ROIcmap, rgbdectohex, and ScaleToMap
 %
    figure(h); clf
    subplot (211);
@@ -26,7 +26,7 @@ function ShowCmap(M, h)
          addsquare([0 i], [2.5 1+i], M(x1,:)); hold on
          plot (-0.2, i+0.5, 'k*');
          axis ([-1 3 -1 11]);
-         str = sprintf ('Top Col: %.3g %.3g %.3g', M(x1,1), M(x1,2), M(x1,3));
+         str = sprintf ('Col %d: %.3g %.3g %.3g', x1, M(x1,1), M(x1,2), M(x1,3));
          ht = text (3, 0.3+i, 0, str, 'fontsize',14, 'color', M(x1,:));
          title (str);
          i = rem(i +1, 10);
