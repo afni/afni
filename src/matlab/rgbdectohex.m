@@ -15,9 +15,13 @@ function [Cs] = rgbdectohex (Mrgb,strg)
 %
 %The hex values are all padded to two characters, looks nice.
 %
-% The function gives you the option of writing out the results to an ascii
-%file that can be (if you specified the right strg parameter) used 
-%directly in .Xdefaults
+% The function first displays the map, then  gives you the option of 
+%   writing out the results:
+%     to an ascii file that can be (if you specified the right strg parameter) used 
+%        directly in .Xdefaults
+%     to an ascii file that contains RGB values
+%     to an ascii file containing the definition of the colormap in a C-
+%        syntax that can be added to pbar.c and added with PBAR_define_bigmap( char *mapcmd );
 % 
 %the result is written to stdout in a format used 
 %by .Xdefault files, to make importing them to
@@ -92,24 +96,33 @@ end %i
 chc = input ('Wanna write this to disk ? (y/n)','s');
 if (chc == 'y'),
 	chc2 = input ('Write rgb version of map too ? (y/n)','s');
+	chc3 = input ('Write C-friendly version of map to include in AFNI''c code ? (y/n)','s');
 	rep = 1;
+   strout = strg;
 	while (rep == 1),
-		strout = input ('Enter filename :','s');
+		%strout = input ('Enter filename :','s');
 		rep = filexist (strout);
 		if (rep == 1),
 			fprintf (2,'rgdtodec : file %s exists, enter another name\n\a', strout);
 		end
 	end
 	strout2 = sprintf ('%s.rgb',strout);
+	strout3 = sprintf ('%s.love.c',strout);
 	fid = fopen (strout,'wt');
 	if (chc2 == 'y'),
 		fid2 = fopen (strout2,'wt');
 	end
-	
-	if (fid == -1 | (chc2 == 'y' & fid2 == -1)),
-		fprintf (2,'rgdtodec : Could not open %s or %s file for write operation\n',strout,strout2);
+   if (chc3 == 'y'),
+		fid3 = fopen (strout3,'wt');
 	end
 	
+	if (fid == -1 | (chc2 == 'y' & fid2 == -1) | (chc3 == 'y' & fid3 == -1)),
+		fprintf (2,'rgdtodec : Could not open %s or %s  %s file for write operation\n',strout,strout2, strout3);
+	end
+	
+   if (chc3 == 'y'),
+         fprintf (fid3,'static char %s_CMD[] = {  \n      "%s "\n      "',  upper(strg), strg);
+   end
 	for (i=1:1:size(Mrgb,1)),
 		s1 = pad_strn (lower(dec2hex(Mrgb(i,1))),'0',2,1);
 		s2 = pad_strn (lower(dec2hex(Mrgb(i,2))),'0',2,1);
@@ -125,10 +138,20 @@ if (chc == 'y'),
 		if (chc2 == 'y'),
 			fprintf (fid2,'%g %g %g\n',Mrgb(i,1),Mrgb(i,2),Mrgb(i,3));
 		end
+      if (chc3 == 'y'),
+         if (rem(i, 5)==1 & i > 1),
+            fprintf (fid3,'"\n      "');
+         end
+         fprintf (fid3,'#%s%s%s ',s1,s2,s3);
+      end
 	end %i
 	fclose (fid);
 	if (chc2 == 'y'),
 		fclose (fid2);
+	end
+   if (chc3 == 'y'),
+      fprintf (fid3,'"\n};');
+		fclose (fid3);
 	end
 end
 
