@@ -58,8 +58,13 @@ if (isempty(f)),
    end
 end
 
-if (~isempty(f) & exist(f,'file') == 2),
-   fprintf(1,'Using file %s for info.\n', f);
+if (~isempty(f)),
+   if (exist(f,'file') == 2),
+      fprintf(1,'Using file %s for info.\n', f);
+   else
+      fprintf(2,'Failed to find README file %s\n', f);
+      return;
+   end
 else 
    f = '';
 end
@@ -69,6 +74,7 @@ if (isempty(f)),
    if (f == 0),
       return;
    end
+   f = sprintf('%s%c%s',p,filesep,f);
 end
 
 fid = fopen(f, 'r');

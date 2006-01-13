@@ -164,22 +164,41 @@ end
 
    if (Opt.verbose), fprintf(1,'%s verbose: Checking input data ...', FuncName); end
    if (~isfield(Opt, 'Scale') | isempty (Opt.Scale)), Opt.Scale = 0; end
-   if (~isfield(Opt, 'View') | isempty(Opt.View)), Opt.View = 'orig'; end
+   if (~isfield(Opt, 'View') | isempty(Opt.View)), Opt.View = ''; end
+   %Make sure prefix is clear of view
+      [Opt.Prefix, uv, ue]  = AfniPrefix(Opt.Prefix);
+      if (~isempty(uv)),
+         if (~isempty(Opt.View)),
+            %check for inconsistency, warn user
+            if (~strcmp(uv, Opt.View)),
+               wrn = sprintf('\nWarning %s:\n You have specified a view in your prefix (%s)\nthat is different from Opt.View (%s)\nOpt.View take precedence.\n', ...
+                  FuncName,uv, Opt.View);
+               warndlg(wrn);
+               fprintf(2,'%s', wrn);
+            end
+         else
+            Opt.View = uv;
+            fprintf(2,'\nNote %s:\n Adopting view (%s) from supplied prefix \n', FuncName, Opt.View);
+         end
+      end
+      if (isempty(Opt.View)), Opt.View = '+orig'; end
    if (~isempty(findstr('orig', lower(Opt.View)))),
-      Opt.Views = '+orig';
+      Opt.View = '+orig';
    elseif (~isempty(findstr('acpc', lower(Opt.View)))),
-      Opt.Views = '+acpc';
+      Opt.View = '+acpc';
    elseif (~isempty(findstr('tlrc', lower(Opt.View)))),
-      Opt.Views = '+tlrc';
+      Opt.View = '+tlrc';
    else
       err = 1; ErrMessage = sprintf('Error %s: Bad value (%s) for Opt.View', FuncName, Opt.View); errordlg(ErrMessage); return;
    end
    if (~isfield(Opt, 'AppendHistory') | isempty (Opt.AppendHistory)), Opt.AppendHistory = 1; end
 
+
+
 %form the flename based on the stuff in Opt.Prefix, just use the option
-   Fname = sprintf('%s%s', Opt.Prefix, Opt.Views);
-   FnameHEAD = sprintf('%s%s.HEAD', Opt.Prefix, Opt.Views);
-   FnameBRIK = sprintf('%s%s.BRIK', Opt.Prefix, Opt.Views);
+   Fname = sprintf('%s%s', Opt.Prefix, Opt.View);
+   FnameHEAD = sprintf('%s%s.HEAD', Opt.Prefix, Opt.View);
+   FnameBRIK = sprintf('%s%s.BRIK', Opt.Prefix, Opt.View);
 
 % This check is done later on before we write Slice 1 Frame 1 (see below)
    %if (exist(FnameHEAD) == 2 | exist(FnameBRIK) == 2),
