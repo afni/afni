@@ -61,7 +61,7 @@ function [err,M] = MakeColorMap (Fiducials,Ncols,Opt)
 %   255     0     0
 %
 %   see also rgbdectohex, and ScaleToMap
-%   
+%            ROIcmap, ShowCmap, readXcol
 %
 %     Author : Ziad Saad
 %     Date : Wed Apr 08 12:51:29 CDT 1998 
