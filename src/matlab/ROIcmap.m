@@ -40,13 +40,30 @@ if (~isfield(opt,'write') | isempty(opt.write)), opt.write = ''; end
 rand('state',opt.state);
 
 M = zeros(nc,3);
+alldiff_lim = 0.5; %between 0 and 1, controls how different all colors in map are. 
+               %The first few colors can be quite different, high alldiff_lim 
+               %The difference is adjusted as more colors are demanded.
+g_lim = 0.2; %limit for too gray (0-1)
+d_lim = 0.40; %limit for too dim (0-3)
+b_lim = 2.2; %limit for too bright  (0-3)              
 for (i=1:1:nc),
    M(i,:) = rand(1,3);
+   cnt = 0;
    %reject if too gray or too close to previous color
-   while (toogray(M(i,:)) || tooclose(M,i)),
+   while (toogray(M(i,:), g_lim, d_lim, b_lim) || tooclose(M,i, 0.6, alldiff_lim)),
       M(i,:) = rand(1,3);
+      cnt = cnt + 1;
+      if (cnt > 2000), % too tight, relax
+         alldiff_lim = max([0.95.*alldiff_lim 0.1]) ;
+         d_lim = max([0.95.*d_lim 0.05]);
+         b_lim = min([b_lim*1.05, 3.0]);
+         fprintf(1,'Reduced alldiff_lim to %g, d_lim to %g, b_lim to %g\n', alldiff_lim, d_lim, b_lim);
+         cnt = 0;
+      end
    end
+   fprintf(1,'Color %d OK\n', i);
 end
+fprintf(1,'alldiff_lim final was %g, d_lim final was %g, b_lim final was %g\n', alldiff_lim, d_lim, b_lim);
 
 if (~isempty(opt.write)),
    optw.OverWrite = 'p';
@@ -60,14 +77,16 @@ end
 return;
 
 
-function [a] = toogray(c)
+function [a] = toogray(c, g_lim, d_lim, b_lim)
 
    a = 0;
    dc = abs(c - mean(c));
-   if (dc(1) < 0.1 & dc(2) < 0.1 & dc(3) < 0.1), a = 1; end
+   cs = sum(c);
+   if (dc(1) < g_lim & dc(2) < g_lim & dc(3) < g_lim), a = 1; return; end
+   if (cs < d_lim | cs > b_lim), a = 1; return; end
    return;
 
-function [a] = tooclose(M,i)
+function [a] = tooclose(M,i,prev_lim, alldiff_lim)
 
    if (i==1), a = 0; return; end
    
@@ -75,13 +94,13 @@ function [a] = tooclose(M,i)
    
    %too close to previous ?
    dc = abs(M(i,:)-M(i-1,:));
-   if (sum(dc) < 0.4), return; end
+   if (sum(dc) < prev_lim), return; end
    
    %too close to one before?
    if (i > 2), 
       for (j=1:1:i-2),
          dc = abs(M(i,:)-M(j,:));
-         if (dc(1) < 0.1 & dc(2) < 0.1 & dc(3) < 0.1), return; end  
+         if (dc(1) < alldiff_lim & dc(2) < alldiff_lim & dc(3) < alldiff_lim), return; end  
       end
    end
    %OK if you get here
