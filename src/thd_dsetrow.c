@@ -139,6 +139,72 @@ ENTRY("THD_get_dset_row") ;
    RETURN(row) ;
 }
 
+/*---------------------------------------------------------------------------*/
+/*! Get a row, but always return a float MRI_IMAGE, and scaled if need be.
+-----------------------------------------------------------------------------*/
+
+MRI_IMAGE * mri_get_dset_row( THD_3dim_dataset *dset, int ival,
+                              int dcode , int xx,int yy,int zz  )
+{
+   void *rawrow ;
+   MRI_IMAGE *im ;
+   float *fim , fac ;
+   int ii , nrow , kind ;
+
+ENTRY("MRI_get_dset_row") ;
+
+   rawrow = THD_get_dset_row( dset , ival , dcode , xx,yy,zz ) ;
+   if( rawrow == NULL ) RETURN(NULL) ;
+   nrow = THD_get_dset_rowcount( dset , dcode ) ;
+   kind = DSET_BRICK_TYPE(dset,ival) ;
+   fac  = DSET_BRICK_FACTOR(dset,ival); if( fac <= 0.0f ) fac = 1.0f;
+
+   switch( kind ){
+
+     case MRI_float:{
+       fim = (float *)rawrow ;
+       if( fac != 1.0f ) for( ii=0 ; ii < nrow ; ii++ ) fim[ii] *= fac ;
+       im = mri_new_vol_empty( nrow,1,1 , MRI_float ) ;
+       mri_fix_data_pointer( fim , im ) ;
+     }
+     break ;
+
+     case MRI_short:{
+       short *rr = (short *)rawrow ;
+       im = mri_new( nrow , 1 , MRI_float ); fim = MRI_FLOAT_PTR(im);
+       for( ii=0 ; ii < nrow ; ii++ ) fim[ii] = rr[ii] * fac ;
+     }
+     break ;
+
+     case MRI_byte:{
+       byte *rr = (byte *)rawrow ;
+       im = mri_new( nrow , 1 , MRI_float ); fim = MRI_FLOAT_PTR(im);
+       for( ii=0 ; ii < nrow ; ii++ ) fim[ii] = rr[ii] * fac ;
+     }
+     break ;
+
+     case MRI_complex:{
+       complex *rr = (complex *)rawrow ;
+       im = mri_new( nrow , 1 , MRI_float ); fim = MRI_FLOAT_PTR(im);
+       for( ii=0 ; ii < nrow ; ii++ ) fim[ii] = CABS(rr[ii]) ;
+     }
+     break ;
+
+     case MRI_rgb:{
+       byte *rr = (byte *)rawrow ;
+       im = mri_new( nrow , 1 , MRI_float ); fim = MRI_FLOAT_PTR(im);
+       for( ii=0 ; ii < nrow ; ii++ ) fim[ii] =  0.299 * rr[3*ii  ]
+                                               + 0.587 * rr[3*ii+1]
+                                               + 0.114 * rr[3*ii+2] ;
+     }
+     break ;
+
+   }
+
+   if( rawrow != (void *)fim ) free(rawrow) ;
+   RETURN(im) ;
+}
+
 /*---------------------------------------------------------------------------
    The inverse of THD_get_dset_row: put data back into a dataset.
 -----------------------------------------------------------------------------*/
