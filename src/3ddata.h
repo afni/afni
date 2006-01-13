@@ -3672,6 +3672,8 @@ extern void THD_put_dset_row( THD_3dim_dataset *, int,
 extern int THD_dataset_rowfillin( THD_3dim_dataset *, int, int, int ) ;
 extern int THD_dataset_zfillin( THD_3dim_dataset *, int, int, int ) ; /* 03 Jul 2001 */
 
+extern MRI_IMAGE * mri_get_dset_row( THD_3dim_dataset *, int , int,int,int,int ) ;
+
 /*------------------------------------------------------------------*/
 /*-- October 1998: routines for 3D volume rotation and alignment. --*/
 
