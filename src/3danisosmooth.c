@@ -34,9 +34,12 @@ static char prefix[THD_MAX_PREFIX] = "SmoothAni";
 static NI_stream ns = NULL;
 
 int compute_method = 0;   /* use Ding's method to compute phi values */
+int matchorig = 0;        /* match original range of data - off by default */
 float deltatflag = -1.0;  /* compute pseudotime step or use specific value */
-int noneg = 0;
+int noneg = 0;            /* allow only non-negative values - off by default */
 float edgefraction = 0.5;  /* default fraction of anisotropic image to add */
+float *brikmax, *brikmin;  /* array of maximum and minimum values for each sub-brick in volume */
+
 extern float aniso_sigma1, aniso_sigma2;
 
 #define Smooth_WriteCheckWaitMax 2000
@@ -62,7 +65,11 @@ static void Test_data(THD_3dim_dataset *structtensor);
 static void Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D);
 static int Check_Neighbors_3D(byte *mptr, int nx, int nxy);
 static int Check_Neighbors_2D(byte *mptr, int nx);
+static void Compute_3dAS_Max(THD_3dim_dataset *dset, byte *maskptr, float *asfmax, float *asfmin);
+static void Compute_3dAS_Max_Brick(THD_3dim_dataset *dset, byte *maskptr, int bricki, float *asfmax, float
+*asfmin);
 
+static void AS_scale_float_dset(THD_3dim_dataset *dset, byte *maskptr, float fratio);
 
 extern THD_3dim_dataset *
 DWIstructtensor(THD_3dim_dataset * DWI_dset, int flag2D3D, byte *maskptr, int smooth_flag, int save_tempdsets_flag);
@@ -99,6 +106,7 @@ int main( int argc , char * argv[] )
    MRI_IMARR *fim_array;
    MRI_IMAGE *fim;
    float fimfac;
+   float as_fmax, as_fmin;   /* max and min values in original dataset */
 
 
    /*----- Read command line -----*/
@@ -132,11 +140,12 @@ int main( int argc , char * argv[] )
              "  -phiexp = use exponential method for computing phi\n"
 	     "  -noneg = set negative voxels to 0\n" 
 	     "  -edgefraction n.nnn = adjust the fraction of the anisotropic\n"
-	     "    component to be added\n"
-	     "    to the original image. Can vary between 0 and 1. Default =0.5\n"
+	     "    component to be added to the original image. Can vary between\n"
+	     "    0 and 1. Default =0.5\n"
 	     "  -datum type = Coerce the output data to be stored as the given type\n"
 	     "    which may be byte, short or float. [default=float]\n"
-             "  -help = print this help screen\n\n"
+	     "  -matchorig - match datum type and clip min and max to match input data\n"
+	     "  -help = print this help screen\n\n"
              "References:\n"
              "  Z Ding, JC Gore, AW Anderson, Reduction of Noise in Diffusion\n"
              "   Tensor Images Using Anisotropic Smoothing, Mag. Res. Med.,\n"
@@ -160,7 +169,8 @@ int main( int argc , char * argv[] )
 
    mainENTRY("3danisosmooth main"); machdep(); AFNI_logger("3danisosmooth",argc,argv);
    PRINT_VERSION("3danisosmooth"); AUTHOR("Daniel Glen");
-   
+/*   initSaturn("", 1, 0, 0, 9);
+   startSaturn();*/
 
   datum = MRI_float;
    compute_method = -1;  /* detect multiple or default selection of compute_method */
@@ -326,8 +336,15 @@ int main( int argc , char * argv[] )
 	   nopt++;
 	   continue;
      }
+
      if( strcmp(argv[nopt],"-noneg") == 0 ){
            noneg = 1;
+	   nopt++;
+	   continue;
+     }
+
+     if( strcmp(argv[nopt],"-matchorig") == 0 ){
+           matchorig = 1;
 	   nopt++;
 	   continue;
      }
@@ -449,10 +466,26 @@ int main( int argc , char * argv[] )
   else {
 #endif
 
+     if(matchorig) {
+        data_im = DSET_BRICK (dset, 0); /* assume all data is same type as first sub-brik */
+        output_datum = data_im->kind;   /*  match original type of data */
+
+     }
+     
      if(output_datum ==  MRI_float)
         udset = Copy_dset_to_float(dset, prefix);
      else
         udset = Copy_dset_to_float(dset, "ttttani"); /* not actually written to disk */
+     if(matchorig) {         /* if user wants to match original data range */
+        brikmax = malloc(dset->dblk->nvals*sizeof(float));
+        brikmin = malloc(dset->dblk->nvals*sizeof(float));
+	for(i=0;i<dset->dblk->nvals;i++) {
+	   Compute_3dAS_Max_Brick(udset, maskptr, i, &as_fmax, &as_fmin);
+	   brikmax[i] = as_fmax;
+	   brikmin[i] = as_fmin;
+	}      
+     }
+
 
      tross_Copy_History (dset, udset);
      THD_delete_3dim_dataset(dset , False ) ;  /* do not need original anymore */
@@ -486,6 +519,8 @@ int main( int argc , char * argv[] )
      THD_delete_3dim_dataset( structtensor , False ) ;  /* delete tensor */
   }
 
+
+  
   /* save the dataset */
   tross_Make_History ("3danisosmooth", argc, argv, udset);
   if(output_datum==MRI_float) {
@@ -528,12 +563,19 @@ int main( int argc , char * argv[] )
   }
 
   if(afnitalk_flag) {
-    /* Close viewer stream */
-    NI_stream_closenow(ns) ;
-    /*    RT_exit();*/
+     /* Close viewer stream */
+     NI_stream_closenow(ns) ;
+     /*    RT_exit();*/
   }
   if(maskptr)
-    free(maskptr);
+     free(maskptr);
+  if(matchorig) {
+     free(brikmax);
+     free(brikmin);
+  }
+
+/*   stopSaturn();*/
+   
    exit (0);
 }
 
@@ -1140,7 +1182,8 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
    int maskflag, baseoffset;
    float sv00061824, sv01071925, sv02082026, sv0915, sv1016, sv1117, sv0321, sv0422, sv0523;
    float Gfrac, Ffrac;
-   
+   float as_fmin, as_fmax;
+      
    ENTRY("Compute_Smooth");
    /* compute isotropic diffusion component of smooth, F and then overall smooth*/
    /* F = (Dmean / DeltaX^2) * [ 1/6  2/3  1/6]
@@ -1171,6 +1214,10 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 
    Gfrac = edgefraction * 2.0f;
    Ffrac = 2.0f - Gfrac;
+   if(matchorig) {
+     as_fmax = brikmax[outbrik];   /* limit max to max of original brik */
+     as_fmin = brikmin[outbrik];
+   }
    
   /** load the grid parameters **/
    data_im = DSET_BRICK (tempdset, 0);
@@ -1262,8 +1309,16 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 /*    	        Fval = Dmean * ((a * (v0 + v2 + v6 + v8)) + (b * (v1 + v3 + v5 + v7)) + c*v4);*/
     	        Fval = Dmean * ((a * (sv0 + sv2)) + (b * (sv1 + v3 + v5)) + c*v4);
                 Fval = v4 + DeltaT  *  ((Fval*Ffrac) + (*Gvalptr*Gfrac));
-		if((noneg)&&(Fval<0.0f))
+		if((noneg)&&(Fval<0.0f))      /* limit values to positive for user option */
 		   Fval = 0.0f;
+		else {
+		   if(matchorig) {
+		     if(Fval>as_fmax) /* peg values to max and min of original values for user option*/
+		       Fval = as_fmax;
+		     if(Fval<as_fmin)
+		       Fval = as_fmin;
+		   }
+		 }
         	*tempptr++ =  Fval;
         	Gvalptr++; 
         	baseoffset++;
@@ -1483,6 +1538,15 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
                Fval = v13 + DeltaT  *  ((Fval*Ffrac) + (*Gvalptr*Gfrac));
 	       if((noneg)&&(Fval<0.0f))
 	          Fval = 0.0f;
+    	       else {
+		   if(matchorig) {
+		     if(Fval>as_fmax) /* peg values to max and min of original values for user option*/
+		       Fval = as_fmax;
+		     if(Fval<as_fmin)
+		       Fval = as_fmin;
+		   }
+		 }
+
         	*tempptr++ = Fval; 
         	Gvalptr++; 
         	baseoffset++;
@@ -1812,3 +1876,109 @@ float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *mask
    return(voxval);
 }
 
+
+
+/*! find min and max of possibly masked dataset */
+static void Compute_3dAS_Max(THD_3dim_dataset *dset, byte *maskptr, float *asfmax, float *asfmin)
+{
+  int i, j, nbriks;
+  MRI_IMAGE *data_im = NULL;
+  float *fptr;
+  float ts0;
+  byte *tempmaskptr;
+
+  ENTRY("Compute_3dAS_Max");
+
+  tempmaskptr = maskptr;
+
+  *asfmin = 1E38;
+  *asfmax = -1E38;
+
+  nbriks = dset->dblk->nvals;
+  
+  for(i=0;i<nbriks;i++) {
+    data_im = DSET_BRICK(dset, i);
+    fptr = (float *) mri_data_pointer(data_im);
+    for(j=0;j<data_im->nxyz;j++) {
+      if(maskptr && !(*tempmaskptr++)) {
+          fptr++;
+      }
+      else {
+        ts0 = *fptr++;
+        if(ts0>*asfmax)
+          *asfmax = ts0;           /* update max */
+        if(ts0<*asfmin)
+          *asfmin = ts0;           /* update min */
+      }
+    }
+  }
+
+  EXRETURN;
+}
+
+
+/*! find min and max of possibly masked float dataset for a particular sub-brick */
+static void Compute_3dAS_Max_Brick(THD_3dim_dataset *dset, byte *maskptr, int bricki, float *asfmax, float *asfmin)
+{
+  int j;
+  MRI_IMAGE *data_im = NULL;
+  float *fptr;
+  float ts0;
+  byte *tempmaskptr;
+
+  ENTRY("Compute_3dAS_Max_Brick");
+
+  tempmaskptr = maskptr;
+
+  *asfmin = 1E38;
+  *asfmax = -1E38;
+
+  data_im = DSET_BRICK(dset, bricki);
+  fptr = (float *) mri_data_pointer(data_im);
+  for(j=0;j<data_im->nxyz;j++) {
+      if(maskptr && !(*tempmaskptr++)) {
+          fptr++;
+      }
+      else {
+        ts0 = *fptr++;
+        if(ts0>*asfmax)
+          *asfmax = ts0;           /* update max */
+        if(ts0<*asfmin)
+          *asfmin = ts0;           /* update min */
+      }
+  }
+
+  EXRETURN;
+}
+
+
+/* scale float dataset that may have a mask by multiplication by fratio */
+static void
+AS_scale_float_dset(THD_3dim_dataset *dset, byte *maskptr, float fratio)  
+{
+  int i, j, nbriks;
+  MRI_IMAGE *data_im = NULL;
+  float *fptr;
+
+  byte *tempmaskptr;
+
+  ENTRY("AS_scale_float_dset");
+
+  tempmaskptr = maskptr;
+  nbriks = dset->dblk->nvals;
+  
+  for(i=0;i<nbriks;i++) {
+    data_im = DSET_BRICK(dset, i);
+    fptr = (float *) mri_data_pointer(data_im);
+    for(j=0;j<data_im->nxyz;j++) {
+      if(maskptr && !(*tempmaskptr++)) {
+          fptr++;
+      }
+      else {
+        *fptr++ *= fratio;
+      }
+    }
+  }
+
+  EXRETURN;
+}
