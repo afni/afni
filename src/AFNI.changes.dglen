@@ -101,4 +101,7 @@
  * updated edt_blur.c to improve performance of y blurring on large images (nx>=512) 
 21 Dec 2005
  * minor update to edt_blur.c for slightly more compact code.
+13 Jan 2006
+ * added option to 3danisosmooth (-matchorig) to match range of original
+ voxels in each sub-brick. 
  
