@@ -95,6 +95,14 @@ int use_MRILIB_slicespacing = 0 ;
 
 float MRILIB_slicespacing = 0.0 ;
 
+/*! Global variable saying whether to use MRILIB_dicom_* variables */
+
+int   use_MRILIB_dicomstuff = 0 ;   /* 18 Jan 2006 */
+int   MRILIB_dicom_mosaic   = 0 ;
+float MRILIB_dicom_orimat[3][3] ;
+float MRILIB_dicom_origin[3]    ;
+float MRILIB_dicom_deltas[3]    ;
+
 /*** 7D SAFE (but most routines only return 2D images!) ***/
 
 MRI_IMAGE *mri_try_mri( FILE * , int * ) ;  /* prototypes */
