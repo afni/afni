@@ -31,6 +31,12 @@ extern float MRILIB_zcos[3] ;
 extern int   use_MRILIB_slicespacing ;  /* 10 Jan 2004 */
 extern float MRILIB_slicespacing ;
 
+extern int   use_MRILIB_dicomstuff    ; /* 18 Jan 2006 */
+extern int   MRILIB_dicom_mosaic      ;
+extern float MRILIB_dicom_orimat[3][3];
+extern float MRILIB_dicom_origin[3]   ;
+extern float MRILIB_dicom_deltas[3]   ;
+
 /*! Clear the MRILIB globals (which are designed to transmit info from image files to to3d.c). */
 
 #define CLEAR_MRILIB_globals                              \
