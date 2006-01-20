@@ -40,8 +40,8 @@ LogFile = '.TellAfni.log';
 
 if (nargin == 1) opt.QuitOnErr = []; end
 
-if (~isfield(opt, 'QuitOnErr') || isempty(opt.QuitOnErr)) opt.QuitOnErr = 1; end
-if (~isfield(opt, 'Verbose') || isempty(opt.Verbose)) opt.Verbose = 1; end
+if (~isfield(opt, 'QuitOnErr') | isempty(opt.QuitOnErr)) opt.QuitOnErr = 1; end
+if (~isfield(opt, 'Verbose') | isempty(opt.Verbose)) opt.Verbose = 1; end
 
 ncs = length(cs);
 if (ncs == 0) err = 0; return; end
@@ -129,7 +129,7 @@ if (~isempty(com)),
       if (err),
          fprintf(2,'Warning: Failed in parsing plugout_drive output.\nCannot confirm how %d out of %d commands executed\n', err, ncom);
       end
-      if (g && opt.Verbose),
+      if (g & opt.Verbose),
          fprintf(1,'%d out of %d commands OK\n', g, ncom);
       end
       if (b),

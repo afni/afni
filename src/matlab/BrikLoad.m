@@ -217,7 +217,7 @@ end
    end
    
    %remove last dot if it is in name
-   if (BrikName(length(BrikName)) == '.' && length(BrikName)>1),
+   if (BrikName(length(BrikName)) == '.' & length(BrikName)>1),
       BrikName = BrikName(1:length(BrikName)-1);
    end
 
