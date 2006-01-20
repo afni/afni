@@ -65,7 +65,7 @@ else
    uwin = '';
 end
 
-if (length(win) ~= 1 || win < 'A' || win > 'J'),
+if (length(win) ~= 1 | win < 'A' | win > 'J'),
    fprintf(2,'Bad window specifer %s\n', win); 
    return;           
 end
@@ -84,7 +84,7 @@ switch (Name),
       cs.v = sprintf('%s %s', cs.v, p2);;
       
    case 'ADD_OVERLAY_COLOR',
-      if (np ~= 2 || isnumeric(p1) || isnumeric(p2)),
+      if (np ~= 2 | isnumeric(p1) | isnumeric(p2)),
          fprintf(2,'Command <%s> requires two string parameters.\nHave %d in %s\n',...
              Name, np); 
          return;
@@ -93,7 +93,7 @@ switch (Name),
       cs.w = win;
       cs.v = sprintf('%s %s', p1, p2);
    case 'SET_THRESHOLD',
-      if (np < 1 || np > 2),
+      if (np < 1 | np > 2),
          fprintf(2,'Command <%s> needs 1 or 2 parameters.\nHave %d\n', Name, np);
          return;
       end
@@ -105,13 +105,13 @@ switch (Name),
          end
          p1 = str2double(p1);
       end
-      if (p1 < 0 || p1 >= 1.0),
+      if (p1 < 0 | p1 >= 1.0),
          fprintf(2,'Command <%s> has a bad value for threshold (%s).\nThreshold must be between 0 and 1\n',...
                      Name, p1);
          return;
       end
       if (np == 2),
-         if (p2 < 0 || p2 > 4),
+         if (p2 < 0 | p2 > 4),
             fprintf(2,'Command <%s> has a bad value for decimal (%f).\nDecimal must be between 0 and 4\n',...
                      cs.c, p2);
          end 
@@ -130,7 +130,7 @@ switch (Name),
          end
          if (~isempty(find(p2 == 'p'))), 
             isp = 'p';
-            if (val < 0.0 || val > 1.0),
+            if (val < 0.0 | val > 1.0),
                fprintf(2,'Command <%s> requires pvalues between 0 and 1.0\n',...
                   Name); 
             end
@@ -153,7 +153,7 @@ switch (Name),
          end
          p1 = str2double(p1);
       end
-      if (p1 < 2 || p1 > 20),
+      if (p1 < 2 | p1 > 20),
          fprintf(2,'Command <%s> requires a number between 2 and 20\nHave %f', Name, p1);
          return;
       end
@@ -317,7 +317,7 @@ switch (Name),
          return;
       end
       if (np),
-         if (p1(1) < 'A' || p1(1) > 'J'),
+         if (p1(1) < 'A' | p1(1) > 'J'),
             fprintf(2,'Command <%s> requires 1 parameter between A and J\n', Name);
             return;
          end

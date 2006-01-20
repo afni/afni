@@ -67,7 +67,7 @@ if (max(Mrgb(:)) < 1.1),
 	input ('Hit enter to continue','s');
 end
 
-if (min(Mrgb(:)) < 0 || max(Mrgb(:)) > 255),
+if (min(Mrgb(:)) < 0 | max(Mrgb(:)) > 255),
    fprintf(2,'rgbdectohex : RGB value must range between 0 and 255.');
    return;
 end

@@ -236,7 +236,7 @@ FigHndls = [];
    if (size(FaceSetList,2) == 1),
       FaceSetList = reshape (FaceSetList, 3, length(FaceSetList)/3); FaceSetList = FaceSetList'; 
    end
-	if (size(NodeList,2) ~= 4 && size(NodeList,2) ~= 3),
+	if (size(NodeList,2) ~= 4 & size(NodeList,2) ~= 3),
 		err = ErrEval(FuncName,'Err_Bad Size for NodeList.');	return
 	end	
    if (size(NodeList,2) == 4),

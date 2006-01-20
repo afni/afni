@@ -50,7 +50,7 @@ for (i=1:1:nc),
    M(i,:) = rand(1,3);
    cnt = 0;
    %reject if too gray or too close to previous color
-   while (toogray(M(i,:), g_lim, d_lim, b_lim) || tooclose(M,i, 0.6, alldiff_lim)),
+   while (toogray(M(i,:), g_lim, d_lim, b_lim) | tooclose(M,i, 0.6, alldiff_lim)),
       M(i,:) = rand(1,3);
       cnt = cnt + 1;
       if (cnt > 2000), % too tight, relax
