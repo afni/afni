@@ -1394,3 +1394,9 @@
 06 Jan 2006:
   * modified waver.c: only output version info with new '-ver' option.
 
+25 Jan 2006:
+  * added model_michaelis_menton.c model function for Jasmin Salloum
+  * modified NLfit_model.h, added NL_get_aux_filename and NL_get_aux_val protos
+  * modified 3dNLfim.c, added options -aux_name, -aux_fval and -voxel_count.
+  * modified Makefile.INCLUDE, added model_michaelis_menton to models target
+

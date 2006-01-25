@@ -1382,13 +1382,14 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_3ddup.$(SO)                                               \
         models contrib_plugins
 
-models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO) \
-        model_null.$(SO) model_diffusion.$(SO) model_beta.$(SO) \
-        model_sinewave_ap.$(SO) model_sinewave_apf.$(SO) \
-        model_squarewave_ap.$(SO) model_squarewave_apf.$(SO) \
-        model_trnglwave_ap.$(SO) model_trnglwave_apf.$(SO) \
-        model_diffexp.$(SO) model_gammavar.$(SO) \
-        model_convgamma.$(SO) model_convgamma2a.$(SO)
+models: model_constant.$(SO) model_linear.$(SO) model_quadratic.$(SO)  \
+        model_null.$(SO) model_diffusion.$(SO) model_beta.$(SO)        \
+        model_sinewave_ap.$(SO) model_sinewave_apf.$(SO)               \
+        model_squarewave_ap.$(SO) model_squarewave_apf.$(SO)           \
+        model_trnglwave_ap.$(SO) model_trnglwave_apf.$(SO)             \
+        model_diffexp.$(SO) model_gammavar.$(SO)                       \
+        model_convgamma.$(SO) model_convgamma2a.$(SO)                  \
+        model_michaelis_menton.$(SO)
 
 # Contributed plugins go last, since they might not compile well
 
