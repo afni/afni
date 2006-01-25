@@ -16,6 +16,8 @@
             of models.
   Date:     08 August 2001
 
+  Mod:      Added NL_get_aux_filename and NL_get_aux_val.
+  Date:     23 Jan 2006 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -231,6 +233,10 @@ typedef struct NLFIT_MODEL_array {
 extern NLFIT_MODEL_array * NLFIT_get_all_MODELs (char * dname);
 extern NLFIT_MODEL *       NLFIT_read_MODEL (char * fname);
 extern NLFIT_MODEL_array * NLFIT_get_many_MODELs (void);
+
+/*----- defined in 3dNLfim.c -----*/
+extern int NL_get_aux_filename( char ** fname, int index );
+extern int NL_get_aux_fval    ( float * fval, int index );
 
 /*---------------------------------------------------------------------------*/
 /*----- Array of pointers to functions that are needed by the model_conv*.c  */

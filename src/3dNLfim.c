@@ -75,6 +75,8 @@
    Mod:      Changes to allow -jobs option.
    Date:     07 May 2003 - RWCox.
 
+   Mod:      Added options -aux_name, -aux_fval and -voxel_count.
+   Date:     25 Jan 2006 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -124,6 +126,22 @@
 
 #endif
 
+/*---------------------------------------------------------------------------*/
+/*--------- Global variables for "callback" routines in model files. --------*/
+/*                                               20 Jan 2006 [rickr]         */
+
+/* These variables are set via the -aux_name and -aux_faval options, and are */
+/* accessed by model functions via NL_get_aux_filename and _fval.            */
+
+#define NL_MAX_AUX_LEN          5 /* allow upto 5 data items */
+
+  int     g_num_aux_str  = 0;
+  int     g_num_aux_fval = 0;
+  char  * g_aux_strings[NL_MAX_AUX_LEN];  /* auxiliary user data */
+  float   g_aux_fvals  [NL_MAX_AUX_LEN];
+
+/*---------------------------------------------------------------------------*/
+
 #include "matrix.h"
 #include "simplex.h"
 #include "NLfit.h"
@@ -151,9 +169,11 @@ typedef struct NL_options
 /***** 22 July 1998 -- RWCox:
        Modified to allow DELT to be set from the TR of the input file *****/
 
-static float DELT = 1.0;   /* default */
-static int   inTR = 0 ;    /* set to 1 if -inTR option is used */
-static float dsTR = 0.0 ;  /* TR of the input file */
+static float DELT = 1.0;        /* default */
+static int   inTR = 0 ;         /* set to 1 if -inTR option is used */
+static float dsTR = 0.0 ;       /* TR of the input file */
+static int   g_voxel_count = 0; /* display current voxel counter */
+                                         /* 25 Jan 2006 [rickr]  */
 
 static char * commandline = NULL ;       /* command line for history notes */
 
@@ -203,6 +223,15 @@ void display_help_menu()
      "[-rmsmin r]        r = minimum rms error to reject reduced model      \n"
      "[-fdisp fval]      display (to screen) results for those voxels       \n"
      "                     whose f-statistic is > fval                      \n"
+     "[-voxel_count]     display (to screen) the current voxel index        \n"
+     "                                                                      \n"
+     "                                                                      \n"
+     "The following options are to set auxiliary data for model functions.  \n"
+     "These can be used multiple times, with values stored sequentially.    \n"
+     "                                                                      \n"
+     "[-aux_name name]   Store 'name' as an auxiliary string                \n"
+     "                                                                      \n"
+     "[-aux_fval fval]   Store 'fval' as an auxiliary float value           \n"
      "                                                                      \n"
      "                                                                      \n"
      "The following commands generate individual AFNI 2 sub-brick datasets: \n"
@@ -415,6 +444,15 @@ void initialize_options
   option_data->brick_coef = NULL;
   option_data->brick_label = NULL;
 
+  /*----- initialize global auxiliary options -----*/
+  /*                      20 Jan 2006 [rickr]      */
+  g_num_aux_str = 0;
+  g_num_aux_fval = 0;
+  for (ip = 0; ip < NL_MAX_AUX_LEN; ip++ )
+  {
+      g_aux_strings[ip] = NULL;
+      g_aux_fvals  [ip] = 0.0;
+  }
 }
 
 
@@ -727,6 +765,42 @@ void get_options
 	}
       
 
+       /*-----   -aux_name name   -----*/
+      if (strcmp(argv[nopt], "-aux_name") == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  NLfit_error ("need argument after -aux_name ");
+          if (g_num_aux_str < NL_MAX_AUX_LEN) {
+              g_aux_strings[g_num_aux_str] = argv[nopt];
+              g_num_aux_str++;
+          } else {
+              fprintf(stderr,"** only %d -aux_name options allowed\n",
+                      NL_MAX_AUX_LEN);
+              NLfit_error("too many -aux_name options");
+          }
+	  nopt++;
+	  continue;
+	}
+      
+
+       /*-----   -aux_fval fval   -----*/
+      if (strcmp(argv[nopt], "-aux_fval") == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  NLfit_error ("need argument after -aux_fval ");
+          if (g_num_aux_fval < NL_MAX_AUX_LEN) {
+              sscanf (argv[nopt], "%f", g_aux_fvals+g_num_aux_fval);
+              g_num_aux_fval++;
+          } else {
+              fprintf(stderr,"** only %d -aux_fval options allowed\n",
+                      NL_MAX_AUX_LEN);
+              NLfit_error("too many -aux_fval options");
+          }
+	  nopt++;
+	  continue;
+	}
+      
+
        /*-----   -fdisp fval   -----*/
       if (strcmp(argv[nopt], "-fdisp") == 0)
 	{
@@ -735,6 +809,15 @@ void get_options
 	  sscanf (argv[nopt], "%f", &fval); 
 	  *fdisp = fval;
 	  nopt++;
+	  continue;
+	}
+      
+
+       /*-----   -voxel_count   -----*/
+      if (strcmp(argv[nopt], "-voxel_count") == 0)
+	{
+	  nopt++;
+          g_voxel_count = 1;
 	  continue;
 	}
       
@@ -2948,6 +3031,68 @@ void terminate_program
 
 }
 
+/*---------------------------------------------------------------------------*/
+/* functions for "external" use, i.e. for models to call                     */
+/* (prototypes in NLfit_model.h)                         20 Jan 2006 [rickr] */
+
+/*------------------------------------------------------------
+   set the auxiliary filename, given the index
+   return 0 on success, 1 on error
+ *------------------------------------------------------------
+*/
+int NL_get_aux_filename( char ** fname, int index )
+{
+  if ( !fname ) {
+      fprintf(stderr,"** NLGAF error: NULL filename pointer\n");
+      return 1;
+  }
+
+  if (index >= g_num_aux_str)  /* don't have it, just return "no" */
+      return 1;
+
+  if (index >= NL_MAX_AUX_LEN) {  /* just to be sure */
+      fprintf(stderr,"** NLGAF error: index %d, max stored aux files, %d\n",
+              index, NL_MAX_AUX_LEN);
+      return 1;
+  }
+
+  *fname = g_aux_strings[index];
+
+  if (! *fname ) {
+      fprintf(stderr,"** NLGAF error: aux file is NULL at index %d\n", index );
+      return 1;
+  }
+
+  return 0;
+}
+
+/*------------------------------------------------------------
+   set the auxiliary value, given the index
+   return 0 on success, 1 on error
+ *------------------------------------------------------------
+*/
+int NL_get_aux_fval( float * fval, int index )
+{
+  if ( !fval ) {
+      fprintf(stderr,"** NLGAV error: NULL value pointer\n");
+      return 1;
+  }
+
+  if (index >= g_num_aux_fval) /* don't have it, just return "no" */
+      return 1;
+
+  if (index >= NL_MAX_AUX_LEN) {  /* just to be sure */
+      fprintf(stderr,"** NLGAV error: index %d, max stored aux vals, %d\n",
+              index, NL_MAX_AUX_LEN);
+      return 1;
+  }
+
+  *fval = g_aux_fvals[index];
+
+  /* no check on values */
+
+  return 0;
+}
 
 /*---------------------------------------------------------------------------*/
 
@@ -3173,7 +3318,8 @@ int main
 #endif /* PROC_MAX */
 
    if( proc_numjob == 1 )
-     fprintf(stderr,"++ Calculations starting; elapsed time=%.3f\n",COX_clock_time()) ;
+     fprintf(stderr,"++ Calculations starting; elapsed time=%.3f\n",
+             COX_clock_time()) ;
 
 
   /*----- loop over voxels in the data set -----*/
@@ -3183,6 +3329,11 @@ int main
       if (mask_vol != NULL)
 	if (mask_vol[iv] == 0)  continue;
 
+      /*----- display progress for user (1-based) -----*/
+      if (g_voxel_count) {
+        fprintf(stderr,"\r++ voxel count: %8d (of %d)", iv+1, ixyz_top);
+        if(iv == ixyz_top-1) fputc('\n',stderr);
+      }
 
       /*----- read the time series for voxel iv -----*/
       read_ts_array (dset_time, iv, ts_length, ignore, ts_array);
@@ -3220,7 +3371,6 @@ int main
 	  printf ("%s \n", label);
 	}
 
-
       /*----- save results for this voxel into volume data -----*/
       save_results (iv, nmodel, smodel, r, p, novar, ts_length, x_array, 
 		    par_full, tpar_full, rmsreg, freg, rsqr, smax, 
@@ -3237,7 +3387,8 @@ int main
 #ifdef PROC_MAX
     if( proc_numjob > 1 ){
      if( proc_ind > 0 ){                          /* death of child */
-       fprintf(stderr,"++ Job #%d finished; elapsed time=%.3f\n",proc_ind,COX_clock_time()) ;
+       fprintf(stderr,"++ Job #%d finished; elapsed time=%.3f\n",
+               proc_ind,COX_clock_time()) ;
        _exit(0) ;
 
      } else {                      /* parent waits for children */
@@ -3245,7 +3396,8 @@ int main
        fprintf(stderr,"++ Job #0 waiting for children to finish; elapsed time=%.3f\n",COX_clock_time()) ;
        for( pp=1 ; pp < proc_numjob ; pp++ )
          waitpid( proc_pid[pp] , NULL , 0 ) ;
-       fprintf(stderr,"++ Job #0 now finishing up; elapsed time=%.3f\n",COX_clock_time()) ;
+       fprintf(stderr,"++ Job #0 now finishing up; elapsed time=%.3f\n",
+               COX_clock_time()) ;
      }
 
      /* when get to here, only parent process is left alive,
@@ -3253,7 +3405,8 @@ int main
    }
 #endif
    if( proc_numjob == 1 )
-     fprintf(stderr,"++ Calculations finished; elapsed time=%.3f\n",COX_clock_time()) ;
+     fprintf(stderr,"++ Calculations finished; elapsed time=%.3f\n",
+             COX_clock_time()) ;
 
 
   /*----- delete input dataset -----*/ 
