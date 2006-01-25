@@ -2057,7 +2057,8 @@ ENTRY("mri_read_ascii") ;
    fclose( fts ) ; /* finished with this file! */
    (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
 
-   if( used_tsar <= 1 ){ FRB(buf); free(tsar); RETURN(NULL); }
+   /* from <= 1 to < 1 (allow 1x1 image) 25 Jan 2006 [rickr] */
+   if( used_tsar < 1 ){ FRB(buf); free(tsar); RETURN(NULL); }
 
    tsar = (float *) realloc( tsar , sizeof(float) * used_tsar ) ;
    if( tsar == NULL ){

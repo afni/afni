@@ -1399,4 +1399,5 @@
   * modified NLfit_model.h, added NL_get_aux_filename and NL_get_aux_val protos
   * modified 3dNLfim.c, added options -aux_name, -aux_fval and -voxel_count.
   * modified Makefile.INCLUDE, added model_michaelis_menton to models target
+  * modified mri_read.1D: mri_read_ascii to allow 1x1 image file
 
