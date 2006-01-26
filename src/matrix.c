@@ -1458,7 +1458,7 @@ void matrix_psinv( matrix X , matrix *XtXinv , matrix *XtXinvXt )
 
    /* "reciprocals" of singular values:  1/s is actually s/(s^2+del) */
 
-   del  = PSINV_EPS * smax*smax ;
+   del = PSINV_EPS * smax*smax ;
    for( ii=0 ; ii < n ; ii++ )
      sval[ii] = sval[ii] / ( sval[ii]*sval[ii] + del ) ;
 
