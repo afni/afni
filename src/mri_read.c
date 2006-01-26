@@ -83,7 +83,7 @@ float MRILIB_ycos[3]   = { 0.0 , 1.0 , 0.0 } ;
 
 int use_MRILIB_zcos    = 0 ;
 
-/*! Global vector pointing in direction of y-axis. */
+/*! Global vector pointing in direction of z-axis. */
 
 float MRILIB_zcos[3]   = { 0.0 , 0.0 , 1.0 } ;
 
@@ -94,14 +94,6 @@ int use_MRILIB_slicespacing = 0 ;
 /*! Global variable giving the spacing between slice centers. */
 
 float MRILIB_slicespacing = 0.0 ;
-
-/*! Global variable saying whether to use MRILIB_dicom_* variables */
-
-int   use_MRILIB_dicomstuff = 0 ;   /* 18 Jan 2006 */
-int   MRILIB_dicom_mosaic   = 0 ;
-float MRILIB_dicom_orimat[3][3] ;
-float MRILIB_dicom_origin[3]    ;
-float MRILIB_dicom_deltas[3]    ;
 
 /*** 7D SAFE (but most routines only return 2D images!) ***/
 
