@@ -1,0 +1,158 @@
+#!/bin/tcsh -f
+
+
+PARSE:
+   set Narg = $#
+   set cnt = 1
+   set v1_list = ""
+   set v2i = ""
+   set v1i = ""
+   set usecp = 1
+   set DR = 0
+   set DA = 0
+   set DI = 0
+   set shftin = 0
+   if ("$1" == '') goto HELP
+   while ($cnt <= $Narg)
+      set donext = 1;
+
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-rai_shift") then
+         if ($shftin) then
+            echo "Error: Shift option used already."
+            echo "One at a time."
+            goto END
+         endif
+         set pLoc = $cnt      
+         if ("`ccalc -form int -expr $pLoc+3`" >= $Narg) then
+            echo "Need 3 values after -rai_shift"
+            goto END
+         else
+            @ cnt ++
+            set DR = "$argv[$cnt]"
+            @ cnt ++
+            set DA = "$argv[$cnt]"
+            @ cnt ++
+            set DI = "$argv[$cnt]"
+            set shftin = 1
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-MNI_Anat_to_MNI") then
+         if ($shftin) then
+            echo "Error: Shift option used already."
+            echo "One at a time."
+            goto END
+         endif
+         set DR = 0 
+         set DA = 4 
+         set DI = -5
+         set donext = 0   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-MNI_to_MNI_Anat") then
+         if ($shftin) then
+            echo "Error: Shift option used already."
+            echo "One at a time."
+            goto END
+         endif
+         set DR = 0 
+         set DA = -4 
+         set DI = 5
+         set donext = 0   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-no_cp") then
+         set usecp = 0
+         set donext = 0   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-dset") then
+         set pLoc = $cnt      
+         if ($pLoc >= $Narg) then
+            echo "Need dset after -dset"
+            goto END
+         else
+            @ cnt ++
+            set v1i = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         goto END
+      endif
+      @ cnt ++
+   end
+
+DOIT:
+   set v1_vw = `@GetAfniView $v1i`
+   set v1_pth = $v1i:h
+   if ("$v1_pth" == "$v1i") then 
+      set v1_pth = .
+   endif
+
+   set v1_pref = `@GetAfniPrefix $v1i`
+   set v1 = $v1_pth/$v1_pref$v1_vw
+
+   #orientation of v1
+   set v1_orient = `@GetAfniOrient $v1`
+   
+   #Shift in orientation of v1
+   set D_orv1 = `@FromRAI -xyz $DR $DA $DI -or $v1_orient`
+   
+   #apply delta
+   if ($usecp == 1) then
+      if ( `@CheckForAfniDset $v1_pth/${v1_pref}_shft$v1_vw` != 0 ) then
+         echo ""
+         echo "Error `basename $0`"
+         echo "Dset $v1_pth/${v1_pref}_shft$v1_vw found, cleanup first!"
+         echo ""
+         goto END
+      endif
+
+      3dcopy $v1  $v1_pth/${v1_pref}_shft
+      3drefit -dxorigin $D_orv1[1] -dyorigin $D_orv1[2] -dzorigin $D_orv1[3] $v1_pth/${v1_pref}_shft$v1_vw
+   else
+      3drefit -dxorigin $D_orv1[1] -dyorigin $D_orv1[2] -dzorigin $D_orv1[3] $v1
+   endif
+
+goto END  
+
+
+HELP:
+   echo ""
+   echo "Usage: `basename $0` <[-rai_shift dR dA dI] [-MNI_Anat_to_MNI] [-MNI_to_MNI_Anat]> <-dset DSET> [-no_cp]  "
+   echo ""
+   echo "   Shifts a dataset"
+   echo "   -rai_shift dR dA dI: Move dset by dR dA dI mm (RAI coord sys)."
+   echo "   or:"
+   echo "   -MNI_Anat_to_MNI: (same as -rai_shift-rai_shift 0 4 -5)"
+   echo "                    Moves a dataset from MNI Anatomical space"
+   echo "                    to MNI space."
+   echo "   -MNI_to_MNI_Anat: (same as -rai_shift-rai_shift 0 -4 5)"
+   echo "                    Moves a dataset from MNI space"
+   echo "                    to MNI Anatomical space."
+   echo "   For the -MNI_* options, See Eickhoff et al. Neuroimage (25) 2005"
+   echo "   -dset DSET: Typically an anatomical dset to be"
+   echo "               aligned to BASE."
+   echo "   -no_cp: Do not create new data, shift existing ones"
+   echo "           This is a good option if you know what you "
+   echo "           are doing. "
+   echo ""
+   echo "Requires 3drefit newer than Oct. 02/02."
+   echo ""
+   echo "Ziad Saad (ziad@nih.gov)"
+   echo "SSCC/NIMH/ National Institutes of Health, Bethesda Maryland"
+   echo ""
+   goto END
+
+
+goto END
+
+ 
+END:
