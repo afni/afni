@@ -77,6 +77,10 @@
 
    Mod:      Added options -aux_name, -aux_fval and -voxel_count.
    Date:     25 Jan 2006 [rickr]
+
+   Mod:      Removed options -aux_name and -aux_fval, and the globals
+             require linking to afni, too.
+   Date:     30 Jan 2006 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -125,20 +129,6 @@
 # define proc_ind    0   /* index of THIS job */
 
 #endif
-
-/*---------------------------------------------------------------------------*/
-/*--------- Global variables for "callback" routines in model files. --------*/
-/*                                               20 Jan 2006 [rickr]         */
-
-/* These variables are set via the -aux_name and -aux_faval options, and are */
-/* accessed by model functions via NL_get_aux_filename and _fval.            */
-
-#define NL_MAX_AUX_LEN          5 /* allow upto 5 data items */
-
-  int     g_num_aux_str  = 0;
-  int     g_num_aux_fval = 0;
-  char  * g_aux_strings[NL_MAX_AUX_LEN];  /* auxiliary user data */
-  float   g_aux_fvals  [NL_MAX_AUX_LEN];
 
 /*---------------------------------------------------------------------------*/
 
@@ -224,14 +214,6 @@ void display_help_menu()
      "[-fdisp fval]      display (to screen) results for those voxels       \n"
      "                     whose f-statistic is > fval                      \n"
      "[-voxel_count]     display (to screen) the current voxel index        \n"
-     "                                                                      \n"
-     "                                                                      \n"
-     "The following options are to set auxiliary data for model functions.  \n"
-     "These can be used multiple times, with values stored sequentially.    \n"
-     "                                                                      \n"
-     "[-aux_name name]   Store 'name' as an auxiliary string                \n"
-     "                                                                      \n"
-     "[-aux_fval fval]   Store 'fval' as an auxiliary float value           \n"
      "                                                                      \n"
      "                                                                      \n"
      "The following commands generate individual AFNI 2 sub-brick datasets: \n"
@@ -444,15 +426,6 @@ void initialize_options
   option_data->brick_coef = NULL;
   option_data->brick_label = NULL;
 
-  /*----- initialize global auxiliary options -----*/
-  /*                      20 Jan 2006 [rickr]      */
-  g_num_aux_str = 0;
-  g_num_aux_fval = 0;
-  for (ip = 0; ip < NL_MAX_AUX_LEN; ip++ )
-  {
-      g_aux_strings[ip] = NULL;
-      g_aux_fvals  [ip] = 0.0;
-  }
 }
 
 
@@ -760,42 +733,6 @@ void get_options
 	  if (fval < 0.0)
 	    NLfit_error ("illegal argument after -rmsmin ");
 	  *rms_min = fval;
-	  nopt++;
-	  continue;
-	}
-      
-
-       /*-----   -aux_name name   -----*/
-      if (strcmp(argv[nopt], "-aux_name") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  NLfit_error ("need argument after -aux_name ");
-          if (g_num_aux_str < NL_MAX_AUX_LEN) {
-              g_aux_strings[g_num_aux_str] = argv[nopt];
-              g_num_aux_str++;
-          } else {
-              fprintf(stderr,"** only %d -aux_name options allowed\n",
-                      NL_MAX_AUX_LEN);
-              NLfit_error("too many -aux_name options");
-          }
-	  nopt++;
-	  continue;
-	}
-      
-
-       /*-----   -aux_fval fval   -----*/
-      if (strcmp(argv[nopt], "-aux_fval") == 0)
-	{
-	  nopt++;
-	  if (nopt >= argc)  NLfit_error ("need argument after -aux_fval ");
-          if (g_num_aux_fval < NL_MAX_AUX_LEN) {
-              sscanf (argv[nopt], "%f", g_aux_fvals+g_num_aux_fval);
-              g_num_aux_fval++;
-          } else {
-              fprintf(stderr,"** only %d -aux_fval options allowed\n",
-                      NL_MAX_AUX_LEN);
-              NLfit_error("too many -aux_fval options");
-          }
 	  nopt++;
 	  continue;
 	}
@@ -3031,68 +2968,6 @@ void terminate_program
 
 }
 
-/*---------------------------------------------------------------------------*/
-/* functions for "external" use, i.e. for models to call                     */
-/* (prototypes in NLfit_model.h)                         20 Jan 2006 [rickr] */
-
-/*------------------------------------------------------------
-   set the auxiliary filename, given the index
-   return 0 on success, 1 on error
- *------------------------------------------------------------
-*/
-int NL_get_aux_filename( char ** fname, int index )
-{
-  if ( !fname ) {
-      fprintf(stderr,"** NLGAF error: NULL filename pointer\n");
-      return 1;
-  }
-
-  if (index >= g_num_aux_str)  /* don't have it, just return "no" */
-      return 1;
-
-  if (index >= NL_MAX_AUX_LEN) {  /* just to be sure */
-      fprintf(stderr,"** NLGAF error: index %d, max stored aux files, %d\n",
-              index, NL_MAX_AUX_LEN);
-      return 1;
-  }
-
-  *fname = g_aux_strings[index];
-
-  if (! *fname ) {
-      fprintf(stderr,"** NLGAF error: aux file is NULL at index %d\n", index );
-      return 1;
-  }
-
-  return 0;
-}
-
-/*------------------------------------------------------------
-   set the auxiliary value, given the index
-   return 0 on success, 1 on error
- *------------------------------------------------------------
-*/
-int NL_get_aux_fval( float * fval, int index )
-{
-  if ( !fval ) {
-      fprintf(stderr,"** NLGAV error: NULL value pointer\n");
-      return 1;
-  }
-
-  if (index >= g_num_aux_fval) /* don't have it, just return "no" */
-      return 1;
-
-  if (index >= NL_MAX_AUX_LEN) {  /* just to be sure */
-      fprintf(stderr,"** NLGAV error: index %d, max stored aux vals, %d\n",
-              index, NL_MAX_AUX_LEN);
-      return 1;
-  }
-
-  *fval = g_aux_fvals[index];
-
-  /* no check on values */
-
-  return 0;
-}
 
 /*---------------------------------------------------------------------------*/
 

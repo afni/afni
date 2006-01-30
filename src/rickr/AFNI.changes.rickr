@@ -1401,3 +1401,8 @@
   * modified Makefile.INCLUDE, added model_michaelis_menton to models target
   * modified mri_read.1D: mri_read_ascii to allow 1x1 image file
 
+30 Jan 2006:
+  * modified model_michaelis_menton.c to get aux info via environment vars
+    (AFNI_MM_MODEL_RATE_FILE and AFNI_MM_MODEL_DT)
+  * modified NLfit_model.h and 3dNLfim.c, removing -aux_ options and code
+
