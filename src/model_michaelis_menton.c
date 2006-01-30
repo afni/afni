@@ -106,6 +106,12 @@ void signal_model (
         fprintf(stderr,"** apparent TR of %f is illegal, exiting...\n", TR);
         exit(1);
     }
+    if( dt > TR )
+    {
+        fprintf(stderr,"** dt > TR (%f > %f), this is unacceptable\n"
+                       "   refusing to go on with life...\n", dt, TR);
+        exit(1);
+    }
 
     compute_ts( rtime, rates, rlen, ts_array, ts_len, dt, TR,
                 params[0], params[1], params[2], params[3], km );
@@ -189,6 +195,7 @@ int get_init_data( float ** rtime, float ** rates, int * len, float * dt )
     MRI_IMAGE * im;
     float       fval;
     char      * rate_file;
+    char      * dt_text;
     int         rv;
 
     if( !rtime || !rates || !len || !dt )
@@ -198,9 +205,12 @@ int get_init_data( float ** rtime, float ** rates, int * len, float * dt )
         return 1;
     }
 
-    if( NL_get_aux_filename( &rate_file, 0 ) )
+    /* get rate file name, and then try to read it */
+    rate_file = my_getenv("AFNI_MM_MODEL_RATE_FILE");
+    if( !rate_file )
     {
-        fprintf(stderr,"** NLfim: MM: failed to retrieve rate file\n");
+        fprintf(stderr,"\n** NLfim: need env var AFNI_MM_MODEL_RATE_FILE\n");
+        fprintf(stderr,"   (might also want AFNI_MM_MODEL_DT)\n");
         return 1;
     }
 
@@ -217,10 +227,14 @@ int get_init_data( float ** rtime, float ** rates, int * len, float * dt )
     *rates = *rtime + im->nx;
     *len   = im->nx;
 
-    /* set dt */
-    if( NL_get_aux_fval( dt, 0 ) )  /* if user did not provide it... */
+    /* get dt from another env var */
+    dt_text = my_getenv("AFNI_MM_MODEL_DT");
+    if( dt_text )
+        *dt = atof(dt_text);
+    else  /* if user did not provide it... */
     {
         fprintf(stderr,"NLfim: MM: using default dt of %.3f s\n", NL_MM_DEF_DT);
+        fprintf(stderr,"       (use env var AFNI_MM_MODEL_DT to override)\n");
         *dt = NL_MM_DEF_DT;
     }
 
