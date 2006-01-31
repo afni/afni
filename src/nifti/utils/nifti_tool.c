@@ -130,9 +130,11 @@ static char * g_history[] =
   "1.9  25 August 2005 [rickr] - const/string cleanup for warnings\n"
   "\n",
   "1.10 18 November 2005 [rickr] - added check_hdr and check_nim actions\n"
+  "\n",
+  "1.11 31 January 2006 [rickr] - check for new vox_offset in act_mod_hdrs\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 1.10 (November 18, 2005)";
+static char g_version[] = "version 1.11 (January 31, 2006)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -2150,7 +2152,8 @@ int act_mod_hdrs( nt_opts * opts )
          fname = dupname;
          nifti_image_write(nim);  /* create the duplicate file */
          /* if we added a history note, get the new offset into the header */
-         if( opts->keep_hist ) nhdr->vox_offset = nim->iname_offset;
+         /* mod: if the new offset is valid, use it    31 Jan 2006 [rickr] */
+         if( nim->iname_offset >= 348 ) nhdr->vox_offset = nim->iname_offset;
          nifti_image_free(nim);
       }
       else if ( swap )
