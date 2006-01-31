@@ -1409,4 +1409,6 @@
 31 Jan 2006:
   * modified 3dANOVA3.c, actually assign df_prod, and fix label for aBdiff
   * modified nifti_tool.c, check for new vox_offset in act_mod_hdrs
+  * modified afni_plugout.c, applied (modified) changes by Judd Storrs to
+      override BASE_TCP_CONTROL with environment variable AFNI_PLUGOUT_TCP_BASE
 

@@ -34,7 +34,9 @@ int AFNI_have_plugouts( void ){ return started ; }  /* 07 Nov 2001 */
 
 void AFNI_init_plugouts( void )
 {
-   int cc ;
+   int    cc ;
+   char * env ;
+   int    base_ip ;
 
 ENTRY("AFNI_init_plugouts") ;
 
@@ -45,10 +47,25 @@ ENTRY("AFNI_init_plugouts") ;
 
    verbose = (GLOBAL_argopt.plugout_code & 1) != 0 ;
 
+   /* 14 Dec 2005 by JMS: allow plugout tcp ports to be overrided */
+   /*            (put into AFNI distribution 31 Jan 2006 [rickr]) */
+   base_ip = BASE_TCP_CONTROL;
+   env = getenv("AFNI_PLUGOUT_TCP_BASE");
+   if( env != NULL ){
+      base_ip = atoi(env);
+      if( base_ip < 1024 || base_ip > 65535 ){      /* check for validity */
+         fprintf(stderr,"\nPO: bad AFNI_PLUGOUT_TCP_BASE %d,"
+                        " should be in [%d,%d]\n", base_ip, 1024, 65535);
+         base_ip = BASE_TCP_CONTROL;           /* invalid, so use default */
+      } else /* warn user (and use it) */
+         fprintf(stderr,"\nPO: applying AFNI_PLUGOUT_TCP_BASE %d (%d ports)\n",
+                 base_ip, NUM_TCP_CONTROL);
+   }
+
    for( cc=0 ; cc < NUM_TCP_CONTROL ; cc++ ){       /* 21 Nov 2001: */
       ioc_control[cc] = NULL ;                      /* initialize control */
       ioc_conname[cc] = AFMALL(char, 32) ;          /* sockets and names  */
-      sprintf(ioc_conname[cc],"tcp:*:%d",BASE_TCP_CONTROL+cc) ;
+      sprintf(ioc_conname[cc],"tcp:*:%d",base_ip+cc) ;
    }
 
    started = 1 ; EXRETURN ;
