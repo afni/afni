@@ -1406,3 +1406,6 @@
     (AFNI_MM_MODEL_RATE_FILE and AFNI_MM_MODEL_DT)
   * modified NLfit_model.h and 3dNLfim.c, removing -aux_ options and code
 
+31 Jan 2006:
+  * modified 3dANOVA3.c, actually assign df_prod, and fix label for aBdiff.
+

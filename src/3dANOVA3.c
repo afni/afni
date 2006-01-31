@@ -76,6 +76,11 @@
             Removed calculate_t_from_sums().
             Do checks against EPSILON before sqrt(), in case < 0.
    Date:    28 Dec 2005 [rickr]
+
+   Mod:     Bothered to actually assign df_prod before using it in
+            calc_type4_bcontr().  Fixed -aBdiff label.  Thanks to Debbie
+            at U-Toronto.
+   Date:    31 Jan 2005 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -1764,7 +1769,7 @@ void calc_type4_acontr(anova_options *option_data, float *acontr,
   dsum2 = (double *) malloc(sizeof(double)*nxyz);
   dcontr = (double *) malloc(sizeof(double)*nxyz);
   if (dsum == NULL || dsum2 == NULL || dcontr == NULL)
-      ANOVA_error ("calc_sum_sq_acontr: unable to allocate sufficient memory");
+      ANOVA_error ("calc_type4_acontr: unable to allocate sufficient memory");
 
   for (ixyz = 0; ixyz < nxyz; ixyz++)  /* init sums to zero */
       dsum[ixyz] = dsum2[ixyz] = 0.0;
@@ -2081,7 +2086,7 @@ void calc_type4_bcontr(anova_options *option_data, float *acontr,
   dsum2 = (double *) malloc(sizeof(double)*nxyz);
   dcontr = (double *) malloc(sizeof(double)*nxyz);
   if (dsum == NULL || dsum2 == NULL || dcontr == NULL)
-      ANOVA_error ("calc_sum_sq_acontr: unable to allocate sufficient memory");
+      ANOVA_error ("calc_type4_bcontr: unable to allocate sufficient memory");
 
   for (ixyz = 0; ixyz < nxyz; ixyz++)  /* init sums to zero */
       dsum[ixyz] = dsum2[ixyz] = 0.0;
@@ -2112,12 +2117,13 @@ void calc_type4_bcontr(anova_options *option_data, float *acontr,
   }
 
   /*----- compute results -----*/
+  df_prod = df * (df + 1);
   for (ixyz = 0; ixyz < nxyz; ixyz++)
   {
       dmean = dsum[ixyz] / c;    /* divide by k for the mean */
       mean[ixyz] = dmean;        /* copy result to float output */
 
-      dval  = dsum2[ixyz] - (df+1.0) * dmean * dmean;
+      dval = dsum2[ixyz] - (df+1.0) * dmean * dmean;
       if (dval < EPSILON) tmean[ixyz] = 0.0;
       else                tmean[ixyz] = dmean * sqrt( df_prod / dval );
   }
@@ -6760,7 +6766,7 @@ void create_bucket (anova_options * option_data)
 
 	ibrick++;
 	sprintf (str, " -sublabel %d %s:Diff ", 
-		 ibrick, option_data->aBcname[i]);
+		 ibrick, option_data->aBdname[i]);
 	strcat (refit_str, str);
 
 	ibrick++;
