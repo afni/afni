@@ -36,7 +36,7 @@ void AFNI_init_plugouts( void )
 {
    int    cc ;
    char * env ;
-   int    base_ip ;
+   int    base_port ;
 
 ENTRY("AFNI_init_plugouts") ;
 
@@ -49,23 +49,23 @@ ENTRY("AFNI_init_plugouts") ;
 
    /* 14 Dec 2005 by JMS: allow plugout tcp ports to be overrided */
    /*            (put into AFNI distribution 31 Jan 2006 [rickr]) */
-   base_ip = BASE_TCP_CONTROL;
+   base_port = BASE_TCP_CONTROL;
    env = getenv("AFNI_PLUGOUT_TCP_BASE");
    if( env != NULL ){
-      base_ip = atoi(env);
-      if( base_ip < 1024 || base_ip > 65535 ){      /* check for validity */
+      base_port = atoi(env);
+      if( base_port < 1024 || base_port > 65535 ){     /* check for validity */
          fprintf(stderr,"\nPO: bad AFNI_PLUGOUT_TCP_BASE %d,"
-                        " should be in [%d,%d]\n", base_ip, 1024, 65535);
-         base_ip = BASE_TCP_CONTROL;           /* invalid, so use default */
+                        " should be in [%d,%d]\n", base_port, 1024, 65535);
+         base_port = BASE_TCP_CONTROL;            /* invalid, so use default */
       } else /* warn user (and use it) */
          fprintf(stderr,"\nPO: applying AFNI_PLUGOUT_TCP_BASE %d (%d ports)\n",
-                 base_ip, NUM_TCP_CONTROL);
+                 base_port, NUM_TCP_CONTROL);
    }
 
    for( cc=0 ; cc < NUM_TCP_CONTROL ; cc++ ){       /* 21 Nov 2001: */
       ioc_control[cc] = NULL ;                      /* initialize control */
       ioc_conname[cc] = AFMALL(char, 32) ;          /* sockets and names  */
-      sprintf(ioc_conname[cc],"tcp:*:%d",base_ip+cc) ;
+      sprintf(ioc_conname[cc],"tcp:*:%d",base_port+cc) ;
    }
 
    started = 1 ; EXRETURN ;

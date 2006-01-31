@@ -1411,4 +1411,5 @@
   * modified nifti_tool.c, check for new vox_offset in act_mod_hdrs
   * modified afni_plugout.c, applied (modified) changes by Judd Storrs to
       override BASE_TCP_CONTROL with environment variable AFNI_PLUGOUT_TCP_BASE
+  * modified README.environment for description of AFNI_PLUGOUT_TCP_BASE
 
