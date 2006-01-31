@@ -463,11 +463,11 @@ void CREN_set_angles( void * ah , float th1 , float th2 , float th3 )
    If rotm is valid, copy the rotation matrix.     2002.08.28 - rickr
 -------------------------------------------------------------------------------*/
 
-MRI_IMAGE * CREN_render( void * ah, THD_mat33 * rotm )
+MRI_IMAGE * CREN_render( void *ah, THD_mat33 *rotm )
 {
-   CREN_stuff * ar = (CREN_stuff *) ah ;
-   MRI_IMAGE * bim , * qim ;
-   byte * rgb , * var , * sl ;
+   CREN_stuff *ar = (CREN_stuff *) ah ;
+   MRI_IMAGE *bim , *qim ;
+   byte *rgb , *var , *sl ;
    int nvox , nxy , vtop=128+ar->nrgb ;
    float *used=NULL , obot=ar->min_opacity ;
    THD_mat33 uu ;
@@ -629,8 +629,12 @@ fprintf(stderr,"warp: aii=%g  aij=%g\n"
 
       ppk = (pk_reverse) ? (nk-1-pk) : pk ;  /* maybe going backwards? */
 
+      /* extract the ppk-th slice, shifted over appropriately */
+
       ifunc( ar->nx,ar->ny,ar->nz , var , ar->vtm ,
              kk+1 , ppk , ba-a*(ppk-hnk) , bb-b*(ppk-hnk) , ma,mb , sl ) ;
+
+      /* merge this slice into the output slice */
 
       switch( ar->renmode ){
 
