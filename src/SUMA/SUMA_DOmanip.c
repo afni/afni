@@ -1084,7 +1084,7 @@ SUMA_Boolean SUMA_isSO_G (SUMA_DO DO, char *Group)
    SUMA_SurfaceObject *SO = NULL;
    
    SUMA_ENTRY;
-   
+ 
    if (!Group) {
       SUMA_SL_Err("Null Group");
       SUMA_RETURN(NOPE);
@@ -1092,9 +1092,13 @@ SUMA_Boolean SUMA_isSO_G (SUMA_DO DO, char *Group)
    
    if (SUMA_isSO(DO)) {
       SO = (SUMA_SurfaceObject *)DO.OP;
+      if (!SO->Group) {
+         SUMA_SL_Err("Surface has no group, imbecile");
+         SUMA_RETURN(NOPE);
+      }
       if (strcmp(SO->Group, Group)) { SUMA_RETURN(NOPE); }
       else { SUMA_RETURN(YUP); }
-   }
+  }
    
    SUMA_RETURN(NOPE);
 }
