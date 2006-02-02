@@ -1413,3 +1413,6 @@
       override BASE_TCP_CONTROL with environment variable AFNI_PLUGOUT_TCP_BASE
   * modified README.environment for description of AFNI_PLUGOUT_TCP_BASE
 
+02 Feb 2006:
+  * submitted version 7 of plug_permtest.c for Matthew Belmonte
+
