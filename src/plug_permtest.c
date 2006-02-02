@@ -25,6 +25,7 @@
 
 #define BLAST 33333.0
 #include <sys/types.h>
+#include <sys/param.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -70,10 +71,58 @@ static char help[] =
   "saved as a FIZT dataset.\n\n"
 
   "`alpha level' is the tail probability at which to stop marking voxels as\n"
-  "activated.  (Note that the slider in the `Define Function' panel will\n"
+  "activated.  (Note that the slider in the `Define Overlay' panel will\n"
   "have no effect below this value.)  You should avoid setting this value\n"
   "very high, lest the Phase 3 algorithm run out of substitute points in too\n"
   "many cases (for an explanation of substitutes, see the article cited above).\n\n"
+
+  "`AR order', an optional parameter, is the order (i.e. the number of\n"
+  "samples of look-back) of the autoregressive model used to remove noise\n"
+  "colouring from the fMRI time series before permuting it, and to restore\n"
+  "this colouring after permutation.  At field strengths (B0) of 3 Tesla or\n"
+  "more, or repetition times (TR) of 2 seconds or less, autocorrelation can\n"
+  "be non-negligible and you therefore should select this option.  In most\n"
+  "cases an autoregressive order of 1 should suffice, though you may want to\n"
+  "try going up to 3.  You can experiment with greater orders by examining\n"
+  "the automatically generated files DSET_autocorrelation.1D and\n"
+  "DSET_autoregression.1D, where DSET is the name of the 3D+time dataset to\n"
+  "which you've just applied the permutation test; if the Nth autocorrelation\n"
+  "coefficient is near zero then you can safely restrict the autoregressive\n"
+  "model to order N-1.  (In extreme cases the program will detect this\n"
+  "condition and decrease the model order automatically.)\n"
+	"\tAutoregressive modelling was suggested early on as a method of\n"
+  "correcting for coloured noise as a preparatory step to permutation testing\n"
+  "of fMRI time series [1].  Although methods based around permuting in a\n"
+  "wavelet domain leave residuals that are more temporally independent in\n"
+  "comparison to those left by autoregressive methods [2], it's uclear how\n"
+  "much of this residual temporal dependence arises from coloured noise\n"
+  "versus how much may reflect the presence of (subthreshold) signal.\n"
+  "Recently it's been shown that wavelet methods, like Fourier methods, may\n"
+  "tend to underestimate thresholds for statistical significance (and\n"
+  "therefore risk producing false positive results) when the permuted series\n"
+  "include frequency-localised BOLD signal as well as noise [3] -- a\n"
+  "condition that applies especially in block designs.  For these reasons as\n"
+  "as well as for simplicity of implementation, I've chosen to implement here\n"
+  "autoregressive rather than wavelet whitening.\n"
+  "[1] JJ Locascio, PJ Jennings, CI Moore, S Corkin, `Time Series Analysis in\n"
+  "    the Time Domain and Resampling Methods for Studies of Functional\n"
+  "    Magnetic Resonance Brain Imaging', Human Brain Mapping 5(3):168-193\n"
+  "    (1997).\n"
+  "[2] ET Bullmore, C Long, J Suckling, J Fadili, G Calvert, F Zelaya,\n"
+  "    TA Carpenter, MJ Brammer, `Colored Noise and Computational Inference\n"
+  "    in Neurophysiological (fMRI) Time Series Analysis: Resampling Methods\n"
+  "    in Time and Wavelet Domains', Human Brain Mapping 12(2):61-78\n"
+  "    (February 2001).\n"
+  "[3] O Friman, C-F Westin, `Resampling fMRI Time Series', NeuroImage\n"
+  "    25(3):859-867 (15 April 2005).\n\n"
+
+  "`AR exclude', an optional parameter which has effect only when `AR order'\n"
+  "has been specified, is a vector of flags in which non-zero values specify\n"
+  "that the corresponding elements of the fMRI time series are to be excluded\n"
+  "from the autocorrelation computation.  If this parameter is not specified,\n"
+  "all time points are included.  Normally you won't need to specify this\n"
+  "parameter, although it may be useful in some block designs in which the\n"
+  "noise structure depends on the experimental condition.\n\n"
 
   "`two-tailed', `one-tailed positive', and `one-tailed negative' select the\n"
   "tail(s) of interest.  Exactly one of these options must be selected.\n\n"
@@ -84,7 +133,7 @@ static char help[] =
   "short integer are included in the permutation test.  These inclusion\n"
   "limits can be overridden using the optional `least mask value' and\n"
   "`greatest mask value' parameters.  Mask datasets can be generated\n"
-  "automatically using the Threshold plugin (q.v.), or using 3dAutomask\n\n"
+  "automatically using the Threshold plugin (q.v.), or using 3dAutomask.\n\n"
 
 "AUTHOR\n\n"
 
@@ -94,6 +143,7 @@ static char help[] =
 
 "REVISION HISTORY\n\n"
 
+  "2.0  7 November 2005   added autoregressive correction for coloured noise\n"
   "1.3  20 January 2005   added support for 3dAutomask and other byte-valued masks\n"
   "1.2  19 December 2002  fixed a dtree bug that caused a rare crash in phase 3\n"
   "1.1  14 June 2001      cosmetic changes only\n"
@@ -111,6 +161,8 @@ static char help[] =
 	    ort_label[] = "Ort",
 	    output_label[] = "Output",
 	    alpha_label[] = "alpha level (0,1]",
+	    AR_order_label[] = "AR order",
+	    AR_excl_label[] = "AR exclude",
 	    tails2[] = "two-tailed",
 	    tails1pos[] = "one-tailed positive",
 	    tails1neg[] = "one-tailed negative",
@@ -453,7 +505,7 @@ static double stree_extract_max(STREE *t, int *x, int *y, int *z)
   SNODE *target;
   if(t->root == (SNODE *)0)
     {
-    fprintf(stderr, "Error: STREE underflow\n");
+    fprintf(stderr, "Error: STREE underflow\n- this happens when every voxel in the brain has been identified as activated\n");
     return(0.0);
     }
   if((t->root->left == (SNODE *)0) && (t->root->right == (SNODE *)0))
@@ -840,6 +892,482 @@ static void orthogonalise(float *x, float *y, float *new_y, int n, double m, dou
       new_y[n] = y[n]-(m*x[n]+b);
   }
 
+/*Initialise the numerator sums (*cov)[0..order-1], the denominator sum *var,
+  the number of included time points *n_incl, and optionally the exclusion
+  vector excl[order..n-1], for an AR(order) autocorrelation computation.  If
+  the pointer excl_0 is non-null then excl_0[0..n-1] is a time series whose
+  elements are non-zero iff the corresponding element of the fMRI time series
+  is to be excluded from the autocorrelation computation.  (For example, in the
+  context of a block design it may be desirable to exclude expected intervals of
+  activation, and to include only expected baseline intervals.)  Compute
+  excl[order..n-1] such that excl_0[t] ==> excl[max(t, order) .. min(t+order,
+  n-1)]  for all i in [0, n-1], that is, the exclusion of a time point also
+  excludes the following 'order' time points.  (This requirement ensures that
+  looking back at lagging points yields valid data.)  ((*excl)-order) and *cov
+  are dynamically allocated; the calling routine is responsible for invoking
+  autocorrelate_finish() after the last call to autocorrelate_compute() to free
+  ((*excl)-order), and for freeing *cov itself once the correlations are no
+  longer needed.  Return 0 if successful, 1 if out of memory.*/
+static int autocorrelate_init(excl_0, n, order, excl, cov, var, n_incl)
+float *excl_0;
+int n,
+    order;
+char **excl;
+double **cov,
+	*var;
+int *n_incl;
+  {
+  register int t, k;
+  *cov = (double *)calloc(order, sizeof(**cov));
+  if(*cov == (double *)0)
+    return(1);
+/*no need to zero (*cov)[0..order-1], since calloc() has already done so*/
+  *var = 0.0;
+  *n_incl = n-order;
+  if(excl_0 != (float *)0)
+    {
+    *excl = calloc(n, sizeof(**excl));
+    if(*excl == (char *)0)
+      {
+      free(*cov);
+      return(1);
+      }
+  /*no need to initialise (*excl)[] to 0, since calloc() has already done so*/
+  /*compute (*excl)[] at its lower boundary*/
+    for(t = 0; t != order; t++)
+      if(excl_0[t] != 0.0)
+	{
+	for(k = order-t; k <= order; k++)
+	  (*excl)[t+k] = 1;
+	*n_incl -= t+1;
+	}
+  /*compute (*excl)[] between its boundaries*/
+    while(t < n-order)
+      {
+      if(excl_0[t] != 0.0)
+	{
+	for(k = 0; k <= order; k++)
+	  (*excl)[t+k] = 1;
+	*n_incl -= order+1;
+	}
+      t++;
+      }
+  /*compute (*excl)[] at its upper boundary*/
+    while(t < n)
+      {
+      if(excl_0[t] != 0.0)
+	{
+	for(k = 0; k < n-t; k++)
+	  (*excl)[t+k] = 1;
+	*n_incl -= n-t;
+	}
+      t++;
+      }
+    }
+  else
+    *excl = (char *)0;
+  return(0);
+  }
+
+/*Given ts[0..n-1], a voxel's detrended fMRI time series, and optionally
+  excl[0..n-1], a vector of flags computed by autocorrelate_init() that signify
+  exclusion from the autocorrelation computation, accumulate data from this
+  voxel's time series into the numerator sums cov[0..order-1] and the
+  denominator sum var for computing autocorrelation coefficients in an AR(order)
+  model.*/
+static void autocorrelate_sum(ts, n, n_incl, order, excl, cov, var)
+float *ts;	/*detrended fMRI time series from one voxel*/
+int n,		/*length of ts[]*/
+    n_incl,	/*number of 0's in excl[0..n-1], or else n-order if no excl[]*/
+    order;	/*AR order - i.e., number of lags modelled in r[]*/
+char *excl;	/*excl[i]=0 <==> include ts[i] in autocorrelation computation*/
+double *cov,	/*cov[k-1] accumulates Sigma[(ts[i]-ts_avg)*(ts[i-k]-ts_avg)],*/
+		/*		       !excl[i] & !excl[i-k], order<=i<n*/
+	*var;	/**var accumulates Sigma[(ts[i]-ts_avg)^2],		*/
+		/*		   !excl[i] & !excl[i-k], order<=i<n	*/
+  {
+  register int t,	/*time index*/
+	k;		/*AR lag index*/
+  double avg,		/*average of ts[] over all included time points*/
+	excursion;	/*current sample's excursion from the mean*/
+  avg = 0.0;
+  if(excl == (char *)0)
+    {
+  /*if no exclusion vector has been provided, then all points are included*/
+    for(t = order; t < n; t++)
+      avg += ts[t];
+    avg /= n_incl;
+    for(t = order; t < n; t++)
+      {
+      excursion = ts[t]-avg;
+      for(k = order; k; k--)
+	cov[k-1] += excursion*(ts[t-k]-avg);
+      *var += excursion*excursion;
+      }
+    }
+  else
+    {
+  /*exclude the points specified by the exclusion vector*/
+    for(t = order; t < n; t++)
+      if(!excl[t])
+	avg += ts[t];
+    avg /= n_incl;
+    for(t = order; t < n; t++)
+      if(!excl[t])
+	{
+	excursion = ts[t]-avg;
+	for(k = order; k; k--)
+	  cov[k-1] += excursion*(ts[t-k]-avg);
+	*var += excursion*excursion;
+	}
+    }
+  }
+
+/*Finish the autocorrelation computation by dividing the numerator sums
+  cov[0..order-1] by the denominator sum var, and leaving the resulting
+  autocorrelations in cov[0..order-1].  Check for autocorrelations that are
+  impossible (|r| > 1, possible in the event of some weird accumulation of
+  rounding errors), or physiologically implausible (|r| = 1 or r < 0).  If such
+  values are found, eliminate them from the model by decreasing the model's
+  order (*order).  Also, deallocate the storage used for excl[order..n-1].*/
+static void autocorrelate_finish(order, excl, cov, var)
+int *order;
+char *excl;
+double *cov,
+	var;
+  {
+  register int k;
+  if(excl != (char *)0)
+    free(excl);			/*exclusion vector is no longer needed*/
+  k = *order;
+  while(k--)
+    {
+    cov[k] /= var;
+    if((cov[k] >= 1.0) || (cov[k] < 0.0))
+      {
+      fprintf(stderr, "Suspect AR(%d) autocorrelation %f; restricting model to AR(%d)\n", k+1, cov[k], k);
+#ifdef AR_DEBUG
+      fprintf(stderr, "\tDEBUG MODE: OVERRIDING THIS RESTRICTION\n");
+#else
+      *order = k;
+#endif
+      }
+    }
+  }
+
+/*Solve the system of equations represented by the augmented matrix
+  m[0..n-1][0..n] (in row-major order), using simple Gaussian elimination.
+  (n is assumed to be small enough so that LU decomposition wouldn't yield any
+  substantial increase in speed.)  If m is singular, 1 is returned.  If m is
+  non-singular, 0 is returned and the solutions are left in m[0..n-1][n].*/
+static int solve(m, n)
+double **m;
+int n;
+  {
+  register int i, j, k;
+  int singular;
+  double *tmprow;
+  singular = 0;
+/*inv: m is a linear combination of the original m, and
+       for all i where 0<=i<j, (m[ii]=1 and m[i][i+1..n-1]=0)*/
+  for(j = 0; (!singular) && (j != n); j++)
+    {
+  /*inv: m[j..i-1][j]=0*/
+    for(i = j; (i != n) && (m[i][j] == 0.0); i++)
+      ;
+    if(i == n)
+      singular = 1;
+    else
+      {
+    /*m[i][j] is the topmost nonzero element in column j - if row i isn't
+      already the top row, make it the top row by exchanging rows:*/
+      if(i != j)
+	{
+	tmprow = m[i];
+	m[i] = m[j];
+	m[j] = tmprow;
+	}
+    /*m[j][j] is nonzero; multiply row j by 1/m[j][j] to make m[j][j]=1*/
+      for(i = n; i != j; i--)
+	m[j][i] /= m[j][j];
+      m[j][j] = 1.0;
+    /*subtract scalar multiples of row j from rows j+1..n-1 so as to make
+      the lower column m[j+1..n-1][j]=0*/
+    /*inv: m is a linear combination of the original m, and m[j+1..i-1][j]=0*/
+      for(i = j+1; i != n; i++)
+	{
+	for(k = n; k != j; k--)
+	  m[i][k] -= m[i][j]*m[j][k];
+	m[i][j]= 0.0;
+	}
+      }
+    }
+  if(!singular)
+    {
+  /*inv: m is a linear combination of the original m with rows j+1..n-1 solved*/
+    for(j = n-1; j; j--)
+    /*inv: m is a linear combination of the original m and m[0..i-1][j]=0*/
+      for(i = 0; i != j; i++)
+	{
+	m[i][n] -= m[i][j]*m[j][n];
+	m[i][j] = 0.0;
+	}
+    }
+  return(singular);
+  }
+
+/*On entry, r[0..order-1] are the autocorrelation coefficients for lags
+  1..order.  On successful exit, 0 is returned and r[0..order-1] are the
+  autoregression coefficients for lags 1..order - i.e., they implement the
+  AR(order) model ts[t] = r[0]*ts[t-1] + r[1]*ts[t-2] + ...
+  + r[order-1]*ts[t-order] + e(t).  If a singular matrix is encountered,
+  or if a memory allocation error arises, r[] is zeroed and 1 is returned.*/
+static int yule_walker(r, order)
+double *r;	/*r[0..order-1] are the autocorrelations for lags 1..order*/
+int order;
+  {
+  register int i, k;
+  int retval;
+  double **m;	/*the Yule-Walker matrix*/
+/*allocate storage for all rows m[0..order-1]*/
+  m = (double **)calloc(order, sizeof(*m));
+  if(m == (double **)0)
+    retval = 1;
+  else
+    {
+  /*set up row pointers*/
+    *m = (double *)calloc(order*(order+1), sizeof(**m));
+    if(*m == (double *)0)
+      {
+      free(m);
+      retval = 1;
+      }
+    else
+      {
+      for(i = 1; i != order; i++)
+	m[i] = m[i-1]+order+1;		/*1 extra column for augmented matrix*/
+      for(i = 0; i != order; i++)
+        {
+        for(k = i-1; k >= 0; k--)
+	  m[i][k] = r[i-k-1];		/*m[i][i-1..0] = r[0..i-1]*/
+        m[i][i] = 1.0;			/*diagonal is 1*/
+        for(k = i+1; k != order; k++)
+	  m[i][k] = r[k-i-1];		/*m[i][i+1..order-1] = r[0..order-2-i]*/
+        m[i][k] = r[i];			/*rightmost column is r[0..order-1]*/
+        }
+
+#ifdef AR_DEBUG
+{int i, j; printf("\nYULE-WALKER MATRIX:\n");
+for(i=0; i!=order; i++){
+  for(j=0; j!=1+order; j++) printf("%f ", m[i][j]);
+  putchar('\n');}}
+#endif
+
+      retval = solve(m, order);
+
+#ifdef AR_DEBUG
+{int i, j; printf("YULE-WALKER SOLUTION:\n");
+for(i=0; i!=order; i++){
+  for(j=0; j!=1+order; j++) printf("%f ", m[i][j]);
+  putchar('\n');}}
+#endif
+
+      if(retval == 0)
+    /*read out autoregression coefficients*/
+        for(i = 0; i != order; i++)
+	  r[i] = m[i][order];
+      free(*m);
+      free(m);
+      }
+    }
+/*if there was a singularity or a memory error, zero r[]*/
+  if(retval)
+    for(i = 0; i != order; i++)
+      r[i] = 0.0;
+  return(retval);
+  }
+
+/*Apply the AR(order) autoregression coefficients reg[0..order-1] to whiten the
+  coloured time series coloured[0..n-1].  Place the result in white[0..n-1].
+  coloured[] and white[] must be distinct storage.*/
+static void whiten(coloured, white, n, reg, order)
+const float *coloured;		/*coloured[0..n-1] (source)*/
+float *white;			/*white[0..n-1] (destination)*/
+int n;
+double *reg;			/*reg[0..order-1] (AR(order) regression coeff.*/
+int order;
+  {
+  register int t, k;
+  *white = *coloured;
+  for(t = 1; t < order; t++)
+    {
+    white[t] = coloured[t];
+    for(k = 0; k != order; k++)
+      white[t] -= reg[k]*coloured[(t-k<=0)? 0: (t-k-1)];
+    }
+  while(t < n)
+    {
+    white[t] = coloured[t];
+    for(k = 0; k != order; k++)
+      white[t] -= reg[k]*coloured[t-k-1];
+    t++;
+    }
+  }
+
+/*Apply the AR(order) autoregression coefficients reg[0..order-1] to colour
+  the white time series white[0..n-1].  Place the result in coloured[0..n-1].
+  coloured[] and white[] must be distinct storage.*/
+static void colour(coloured, white, n, reg, order)
+float *coloured;		/*coloured[0..n-1] (source)*/
+const float *white;		/*white[0..n-1] (destination)*/
+int n;
+double *reg;			/*reg[0..order-1] (AR(order) regression coeff.*/
+int order;
+  {
+  register int t, k;
+  *coloured = *white;
+  for(t = 1; t < order; t++)
+    {
+    coloured[t] = white[t];
+    for(k = 0; k != order; k++)
+      coloured[t] += reg[k]*coloured[(t-k<=0)? 0: (t-k-1)];
+    }
+  while(t < n)
+    {
+    coloured[t] = white[t];
+    for(k = 0; k != order; k++)
+      coloured[t] += reg[k]*coloured[t-k-1];
+    t++;
+    }
+  }
+
+/*Write vec[0..len-1] to the ASCII file whose name is filename_prefix
+  concatenated with filename_suffix concatenated with ".1D".*/
+static int write_1D_file(vec, len, filename_prefix, filename_suffix)
+const double *vec;
+int len;
+const char *filename_prefix, *filename_suffix;
+  {
+  register int i, j;
+  FILE *fp;
+  char filename[1+MAXPATHLEN];
+  for(i = 0; filename_prefix[i] != '\0'; i++)
+    filename[i] = filename_prefix[i];
+  for(j = 0; filename_suffix[j] != '\0'; j++)
+    filename[i++] = filename_suffix[j];
+  filename[i++] = '.';
+  filename[i++] = '1';
+  filename[i++] = 'D';
+  filename[i++] = '\0';
+  fp = fopen(filename, "w");
+  if(fp == NULL)
+    {
+    perror(filename);
+    return(1);
+    }
+  while(len--)
+    fprintf(fp, "%f\n", *(vec++));
+  fclose(fp);
+  return(0);
+  }
+
+#ifdef AR_DEBUG
+
+/*test driver: writes a coloured time series to "permtest_autoregr_series.dat",
+  writes this time series' autocorrelation coefficients to "_autocorrelation"
+  and its autoregression coefficients to "_autoregression", then writes the
+  corresponding whitened time series to "permtest_autoregr_whitened.dat" and
+  the recoloured time series to "permtest_autoregr_recoloured.dat" and prints
+  the autocorrelation coefficients of this recoloured time series.*/
+void AR_test()
+  {
+  FILE *tsfile;
+  const int tslen = 200;
+  int i, j, k;
+  float ts[tslen],	/*original, coloured time series*/
+	white[tslen],	/*whitened time series*/
+	excl_0[tslen];	/*time points to be excluded from the computation*/
+  char *excl;		/*excl_0[] with time lags of length 'order'*/
+  double *r,		/*covariances, autocorrelations, autoregressions*/
+	var,		/*variance*/
+	e0, e1, e2, e3;	/*additive coloured noise terms*/
+  int order,		/*autoregressive order*/
+	n_incl;		/*# of included (i.e. non-excluded) points*/
+  order = 3;
+  tsfile = fopen("permtest_autoregr_series.dat", "w");
+  if(tsfile == NULL) exit(1);
+  e1 = e2 = e3 = 0.0;
+  for(i = 0; i != tslen; i++)
+    {
+  /*10% + 20% + 30% = 60% coloured noise plus 40% white noise:*/
+    e0 = 0.1*e3 + 0.2*e2 + 0.3*e1 + 0.4*((random()/(double)RAND_MAX)-0.5);
+    ts[i] = e0		/*	+sin((2.0*3.14159*i)/(tslen-order))	*/ ;
+    e3 = e2; e2 = e1; e1 = e0;
+    fprintf(tsfile, "%f\n", ts[i]);
+    }
+  fclose(tsfile);
+  j = order*order;
+  k = 0;
+/*alternating included and excluded blocks of 9 samples each:*/
+  for(i = 0; i != tslen; i++, j--)
+    {
+    if(j == 0)
+      {
+      j = order*order;
+      k = !k;
+      }
+    excl_0[i] = k;
+    }
+  if(autocorrelate_init((float *)0, tslen, order, &excl, &r, &var, &n_incl))
+    {
+    fprintf(stderr, "autocorrelate_init: out of memory\n");
+    return(1);
+    }
+  autocorrelate_sum(ts, tslen, n_incl, order, excl, r, &var);
+  autocorrelate_finish(&order, excl, r, var);
+  write_1D_file(r, order, "", "autocorrelation");
+  if(order)
+    {
+    if(yule_walker(r, order))
+      /*this never happens*/
+      fprintf(stderr,
+	"Cannot compute autoregression; Yule-Walker matrix is singular.\n");
+    else
+      {
+      write_1D_file(r, order, "", "autoregression");
+      whiten(ts, white, tslen, r, order);
+      tsfile = fopen("permtest_autoregr_whitened.dat", "w");
+      if(tsfile == NULL) exit(1);
+      for(i = 0; i != tslen; i++)
+	fprintf(tsfile, "%f\n", white[i]);
+      fclose(tsfile);
+      colour(ts, white, tslen, r, order);
+      tsfile = fopen("permtest_autoregr_recoloured.dat", "w");
+      if(tsfile == NULL) exit(1);
+      for(i = 0; i != tslen; i++)
+	fprintf(tsfile, "%f\n", ts[i]);
+      fclose(tsfile);
+      }
+    free(r);
+    if(autocorrelate_init((float *)0, tslen, order, &excl, &r, &var, &n_incl))
+      {
+      fprintf(stderr, "autocorrelate_init: out of memory\n");
+      return(1);
+      }
+    autocorrelate_sum(white, tslen, n_incl, order, excl, r, &var);
+    for(i = 1; i <= order; i++)
+      printf("\t\tAR(%d)", i);
+    autocorrelate_finish(&order, excl, r, var);
+    printf("\nautocorrelations:");
+    for(i = 0; i != order; i++)
+      printf("\t%f", r[i]);
+    putchar('\n');
+    }
+  free(r);
+  }
+
+#endif
+
 /*Compute the permutation test.  Return 0 if successful, 1 if error.*/
 static int PERMTEST_compute(
   PLUGIN_interface *plint,	/*AFNI plugin interface*/
@@ -855,7 +1383,9 @@ static int PERMTEST_compute(
   THD_3dim_dataset *mask,	/*mask dataset, or NULL for no mask*/
   float masklo,			/*lower and upper bounds on masked range*/
   float maskhi,
-  int verbose)		/*1 for verbose info on coordinates, 0 otherwise*/
+  int verbose,		/*1 for verbose info on coordinates, 0 otherwise*/
+  int AR_order,			/*autoregressive model order*/
+  MRI_IMAGE *AR_excl_ts)	/*autoregression exclusion flags*/
   {
   register int t, iter, xyz;	/*indices and counters*/
   int x, y, z,
@@ -867,6 +1397,7 @@ static int PERMTEST_compute(
       *tindex,			/*temporal sequence of all included images*/
       *sequence;		/*permuted temporal sequence*/
   float *vox_xyz,		/*time series for one voxel*/
+	*AR_ts,			/*time series after whitening or colouring*/
 	*vox,			/*3D+time data indexed by z,y,x,t*/
 	*ts,		      /*storage for linear series (ts[t]=t, 0<=t<tsize),
 				 and later for randomised time series*/
@@ -882,6 +1413,13 @@ static int PERMTEST_compute(
 	 max_corr;			/*correlation w/ max absolute value*/
   int percent_done, prev_percent_done,	/*statistics for progress meter*/
       not_done;
+
+/*variables for the autoregression computation*/
+  double *AR,			/*autoregression coefficients*/
+	  AR_var;		/*variance*/
+  int AR_n_incl;		/*# of points included in covariance calc.*/
+  char *AR_excl;		/*flags at each time point, 1=excluded*/
+
 /*set dimensions*/
   xdim = dset->daxes->nxx;
   ydim = dset->daxes->nyy;
@@ -914,14 +1452,14 @@ static int PERMTEST_compute(
     dataset; it excludes ignored time points.  `sequence' is initially the same
     as tindex but will be permuted during each iteration of the resampling
     procedure.*/
-  tindex = calloc(tdim, sizeof(*tindex));
+  tindex = (int *)calloc(tdim, sizeof(*tindex));
   if(tindex == (int *)0)
     {
     free(*zvals);
     free(*intensities);
     return 1;
     }
-  sequence = calloc(tdim, sizeof(*sequence));
+  sequence = (int *)calloc(tdim, sizeof(*sequence));
   if(sequence == (int *)0)
     {
     free(tindex);
@@ -941,10 +1479,11 @@ static int PERMTEST_compute(
     free(tindex);
     free(*zvals);
     free(*intensities);
+    fprintf(stderr, "ERROR: %d time points aren't enough to perform regression\n", tsize);
     return 1;
     }
 /*initialise data*/
-  vox = calloc(xdim*ydim*zdim*tdim, sizeof(*vox));
+  vox = (float *)calloc(xdim*ydim*zdim*tdim, sizeof(*vox));
   if(vox == (float *)0)
     {
     free(sequence);
@@ -953,7 +1492,7 @@ static int PERMTEST_compute(
     free(*intensities);
     return 1;
     }
-  sy = calloc(xdim*ydim*zdim, sizeof(*sy));
+  sy = (double *)calloc(xdim*ydim*zdim, sizeof(*sy));
   if(sy == (double *)0)
     {
     free(vox);
@@ -963,7 +1502,7 @@ static int PERMTEST_compute(
     free(*intensities);
     return 1;
     }
-  syy = calloc(xdim*ydim*zdim, sizeof(*syy));
+  syy = (double *)calloc(xdim*ydim*zdim, sizeof(*syy));
   if(syy == (double *)0)
     {
     free(sy);
@@ -974,7 +1513,7 @@ static int PERMTEST_compute(
     free(*intensities);
     return 1;
     }
-  ts = calloc(tdim, sizeof(*ts));
+  ts = (float *)calloc(tdim, sizeof(*ts));
   if(ts == (float *)0)
     {
     free(syy);
@@ -1033,6 +1572,16 @@ static int PERMTEST_compute(
     correlate_prep(MRI_FLOAT_PTR(ort_ts), MRI_FLOAT_PTR(ort_ts), tdim, &sx_ort, &sxx_ort);
   *fim_scale = 0.0;
   mask_val = masklo;
+/*if autoregressive correction for coloured noise has been requested,
+  iniialise the autoregression computation:*/
+  if(AR_order && autocorrelate_init(((AR_excl_ts != (MRI_IMAGE *)0)?
+					MRI_FLOAT_PTR(AR_excl_ts)+ignore:
+					(float *)0),
+    tdim-ignore, AR_order, &AR_excl, &AR, &AR_var, &AR_n_incl))
+    {
+    fprintf(stderr, "autocorrelate_init: out of memory\n");
+    return 1;
+    }
   xyz = 0;
   for(z = 0; z !=  zdim; z++)
     for(y = 0; y != ydim; y++)
@@ -1040,9 +1589,11 @@ static int PERMTEST_compute(
 	{
 	if(mask != NULL)
 	  {
+	/*fetch the mask brick's scaling factor...*/
 	  mask_val = DSET_BRICK_FACTOR(mask, 0);
 	  if(mask_val == 0.0)
 	    mask_val = 1.0;
+	/*...and multiply it by the mask datum at coordinates (x, y, z)*/
 	  if(DSET_BRICK_TYPE(mask, 0) == MRI_short)
 	    mask_val *= ((short *)DSET_ARRAY(mask, 0))[xyz];
 	  else
@@ -1053,9 +1604,11 @@ static int PERMTEST_compute(
 	  vox_xyz = vox + tdim*xyz;
 	  for(t = 0; t != tdim; t++)
 	    {
+	  /*fetch the time series brick's scaling factor...*/
 	    vox_xyz[t] = DSET_BRICK_FACTOR(dset, t);
 	    if(vox_xyz[t] == 0.0)
 	      vox_xyz[t] = 1.0;
+	  /*...and multiply it by the time series datum at (x, y, z, t)*/
 	    vox_xyz[t] *= ((short *)DSET_ARRAY(dset, t))[xyz];
 	    }
 	/*detrend*/
@@ -1080,10 +1633,84 @@ static int PERMTEST_compute(
 	    *fim_scale = slope;
 	/*save correlation coefficient*/
 	  stree_insert(actual_corr, corr, x, y, z);
+	/*compute sums for autocorregression computation, if requested*/
+	  if(AR_order)
+	    autocorrelate_sum(vox_xyz+ignore, tdim-ignore, AR_n_incl, AR_order, AR_excl, AR, &AR_var);
 	  }
 	xyz++;
 	}
-  /*make sure that the mask left us *some* voxels*/
+/*if autoregression has been requested, compute autocorrelations from sums...*/
+  if(AR_order)
+    autocorrelate_finish(&AR_order, AR_excl, AR, AR_var);
+/*...& solve the Yule-Walker equations to derive autoregression coefficients
+  (note that autocorrelate_finish() may have decreased AR_order, perhaps all
+  the way to zero, if it has detected unrealistic autocorrelations)*/
+  if(AR_order)
+    {
+  /*write the autocorrelation coefficients to a .1D file*/
+    write_1D_file(AR, AR_order, DSET_FILECODE(dset), "_autocorrelation");
+    if(yule_walker(AR, AR_order))
+      {
+      /*this never happens*/
+      fprintf(stderr,
+	"Cannot compute autoregression; Yule-Walker matrix is singular.\n");
+      AR_order = 0;
+      }
+    else
+      {
+    /*write the autoregression coefficients to a .1D file*/
+      write_1D_file(AR, AR_order, DSET_FILECODE(dset), "_autoregression");
+    /*apply the Yule-Walker autoregression coefficients to whiten the time
+      series at each voxel, iterating through the voxels just as in the loop
+      above*/
+      AR_ts = (float *)calloc(tdim, sizeof(*AR_ts));
+      if(AR_ts == (float *)0)
+	{
+	fprintf(stderr, "Cannot apply autoregression: out of memory\n");
+	AR_order = 0;
+	}
+      else
+	{
+	xyz = 0;
+	for(z = 0; z !=  zdim; z++)
+	  for(y = 0; y != ydim; y++)
+	    for(x = 0; x != xdim; x++)
+	      {
+	      if(mask != NULL)
+		{
+	    /*fetch the mask brick's scaling factor...*/
+		mask_val = DSET_BRICK_FACTOR(mask, 0);
+		if(mask_val == 0.0)
+		  mask_val = 1.0;
+	    /*...and multiply it by the mask datum at coordinates (x, y, z)*/
+		if(DSET_BRICK_TYPE(mask, 0) == MRI_short)
+		  mask_val *= ((short *)DSET_ARRAY(mask, 0))[xyz];
+		else
+		  mask_val *= ((char *)DSET_ARRAY(mask, 0))[xyz];
+		}
+	      if((mask_val >= masklo) && (mask_val <= maskhi))
+		{
+		vox_xyz = vox + tdim*xyz;
+		for(t = 0; t != tdim; t++)
+		  {
+		/*fetch the time series brick's scaling factor...*/
+		  vox_xyz[t] = DSET_BRICK_FACTOR(dset, t);
+		  if(vox_xyz[t] == 0.0)
+		    vox_xyz[t] = 1.0;
+		/*...and multiply it by the time series datum at (x, y, z, t)*/
+		  vox_xyz[t] *= ((short *)DSET_ARRAY(dset, t))[xyz];
+		  }
+	      /*whiten, and copy the result over the original, coloured data*/
+		whiten(vox_xyz, AR_ts, tdim, AR, AR_order);
+		for(t = 0; t != tdim; t++)
+		  vox_xyz[t] = AR_ts[t];
+		}
+	      xyz++;
+	      }
+	}
+      }
+    }
+/*make sure that the mask left us *some* voxels*/
   if(stree_null(actual_corr))
     {
     fprintf(stderr, "PERMTEST: All voxels are masked!\n");
@@ -1149,9 +1776,11 @@ static int PERMTEST_compute(
 	  {
 	  if(mask != NULL)
 	    {
+	  /*fetch the mask brick's scaling factor...*/
 	    mask_val = DSET_BRICK_FACTOR(mask, 0);
 	    if(mask_val == 0.0)
 	      mask_val = 1.0;
+	  /*...and multiply it by the mask datum at coordinates (x, y, z)*/
 	    if(DSET_BRICK_TYPE(mask, 0) == MRI_short)
 	      mask_val *= ((short *)DSET_ARRAY(mask, 0))[xyz];
 	    else
@@ -1160,9 +1789,35 @@ static int PERMTEST_compute(
 	  if((mask_val >= masklo) && (mask_val <= maskhi))
 	    {
 	    vox_xyz = vox + tdim*xyz;
-	    for((t = ignore), (t2 = 0); t != tdim; t++)
-	      if(MRI_FLOAT_PTR(ref_ts)[t] < BLAST)
-		ts[t] = vox_xyz[sequence[t2++]];
+	  /*apply the autoregression coefficients to re-colour the permuted
+	    time series before correlating*/
+	    if(AR_order)
+	      {
+	    /*fetch the time series, in the permuted order given by sequence[],
+	      but with ignored and excluded points copied in their original
+	      positions - these are needed in order to fill in the whole array
+	      so that colour() below will have valid data at each time point.*/
+	      for(t = 0; t != ignore; t++)
+		ts[t] = vox_xyz[t];
+	      for(t2 = 0; t != tdim; t++)
+		ts[t] = ((MRI_FLOAT_PTR(ref_ts)[t] < BLAST)?
+			  vox_xyz[sequence[t2++]]:
+			  vox_xyz[t]);
+	    /*colour the permuted time series*/
+	      colour(AR_ts, ts, tdim, AR, AR_order);
+	    /*copy the coloured series into the work space*/
+	      for(t = 0; t != tdim; t++)
+		ts[t] = AR_ts[t];
+	    /*compute new sums for the permuted & re-coloured time series*/
+	      correlate_prep(MRI_FLOAT_PTR(ref_ts)+ignore, ts+ignore, tdim-ignore, sy+xyz, syy+xyz);
+	      }
+	    else
+	      {
+	    /*fetch the time series, in the permuted order given by sequence[]*/
+	      for((t = ignore), (t2 = 0); t != tdim; t++)
+		if(MRI_FLOAT_PTR(ref_ts)[t] < BLAST)
+		  ts[t] = vox_xyz[sequence[t2++]];
+	      }
 	    correlate(MRI_FLOAT_PTR(ref_ts)+ignore, ts+ignore, tdim-ignore, sx_ref, sxx_ref, sy[xyz], syy[xyz], &corr, (double *)0, (double *)0);
 	  /*Since num_coords is tiny, any sorting algorithm faster
 	    than linear insertion wouldn't be worth the trouble.*/
@@ -1189,6 +1844,8 @@ static int PERMTEST_compute(
 #ifdef PERMTEST_DEBUG
   dtree_traverse(randomised_corr, 0);	/*dump distribution to stdout*/
 #endif
+  if(AR_order)
+    free(AR_ts);
   PLUTO_set_meter(plint, 100);
 
 /******************************************************************************
@@ -1370,13 +2027,14 @@ char *PERMTEST_main(PLUGIN_interface *plint)
   {
   int t;
   char *prefix;
-  MRI_IMAGE *ref_time_series, *orthogonal_time_series;
+  MRI_IMAGE *ref_time_series, *orthogonal_time_series, *AR_excl_time_series;
   THD_3dim_dataset *dset, *mask, *new_dset;
   short *intensities, *zvals;
   double fim_scale,			/*scaling factor for short image data*/
 	 pcrit;				/*alpha level*/
   char *optiontag;			/*one of tails2, tails1pos, tails1neg*/
-  int one_tailed;			/*0, 1, or -1*/
+  int one_tailed,			/*0, 1, or -1*/
+	AR_order;			/*autoregressive model order*/
   float masklo, maskhi;			/*bounds on mask dataset*/
   static char tails_err[] = "exactly one of two-tailed, one-tailed positive, or one-tailed negative must be chosen";
 
@@ -1431,8 +2089,30 @@ char *PERMTEST_main(PLUGIN_interface *plint)
   PLUTO_next_option(plint);
   pcrit = PLUTO_get_number(plint);
 
-/*Exactly one of two-tailed, one-tailed positive, one-tailed negative*/
+/*Read the autoregressive model order, if autoregression has been specified*/
   optiontag = PLUTO_get_optiontag(plint);
+  if(strcmp(optiontag, AR_order_label))
+    AR_order = 0;
+  else
+    {
+    AR_order = (int)PLUTO_get_number(plint);
+    optiontag = PLUTO_get_optiontag(plint);
+    }
+
+/*Read the autoregression exclusion flags vector, if it exists*/
+  if(strcmp(optiontag, AR_excl_label))
+    AR_excl_time_series = (MRI_IMAGE *)0;
+  else
+    {
+    AR_excl_time_series = PLUTO_get_timeseries(plint);
+    if((AR_excl_time_series == (MRI_IMAGE *)0)
+     ||(AR_excl_time_series->kind != MRI_float)
+     ||(AR_excl_time_series->nx < DSET_NUM_TIMES(dset)))
+      return("bad AR exclusion vector");
+    optiontag = PLUTO_get_optiontag(plint);
+    }
+
+/*Exactly one of two-tailed, one-tailed positive, one-tailed negative*/
   if(optiontag == (char *)0)
     return(tails_err);
   if(strcmp(optiontag, tails2))
@@ -1489,7 +2169,7 @@ char *PERMTEST_main(PLUGIN_interface *plint)
   PERMTEST_set_logo(plint);
 /*Make sure source dataset is in memory*/
   DSET_load(dset);
-  if(PERMTEST_compute(plint, dset, ref_time_series, orthogonal_time_series, pcrit, one_tailed, &intensities, &zvals, &fim_scale, mask, masklo, maskhi, 0))
+  if(PERMTEST_compute(plint, dset, ref_time_series, orthogonal_time_series, pcrit, one_tailed, &intensities, &zvals, &fim_scale, mask, masklo, maskhi, 0, AR_order, AR_excl_time_series))
     {
     PERMTEST_reset_logo(plint);
     return("out of memory");
@@ -1555,6 +2235,12 @@ PLUGIN_interface *PLUGIN_init(int ncall)
 /*fifth line of dialogue box: alpha level (range 10^-4..1, default 0.05)*/
   PLUTO_add_option(plint, alpha_label, alpha_label, TRUE);
   PLUTO_add_number(plint, "alpha level", 1, 10000, 4, 500, 1);
+/*sixth line of dialogue box: autoregressive model order*/
+  PLUTO_add_option(plint, AR_order_label, AR_order_label, FALSE);
+  PLUTO_add_number(plint, "autoregressive model order", 0, 32, 0, 1, 1);
+/*seventh line of dialogue box: autoregression exclusion vector*/
+  PLUTO_add_option(plint, AR_excl_label, AR_excl_label, FALSE);
+  PLUTO_add_timeseries(plint, "Autoregression Exclusion Flags");
 /*penultimate lines of dialogue box: tail options*/
   PLUTO_add_option(plint, tails2, tails2, FALSE);
   PLUTO_add_option(plint, tails1pos, tails1pos, FALSE);
