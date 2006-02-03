@@ -538,6 +538,7 @@ int main( int argc , char * argv[] )
    exit(0) ;
 }
 
+#if 0 /* Now in libmri.a ZSS Feb 2006 */
 /*------------------------------------------------------------------------
    Backward transform a vector following a warp
    - lifted from afni.c
@@ -583,3 +584,4 @@ THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
    }
    return new_fv ;
 }
+#endif

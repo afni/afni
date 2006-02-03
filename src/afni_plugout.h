@@ -7,6 +7,11 @@
 #ifndef _AFNI_PLUGOUT_HEADER_
 #define _AFNI_PLUGOUT_HEADER_
 
+#define PLUGOUT_COM_LENGTH (4*1024)   /* max length of command (to allow for ziad's 
+                                                    beautiful and inspired commands) */
+#define PLUGOUT_SHM_SIZE_K 4      /* size of shm used by plugout_drive. 
+                                     modify along with PLUGOUT_COM_LENGTH */
+                                     
 extern void AFNI_init_plugouts( void ) ;  /* prototypes */
 extern int AFNI_have_plugouts( void ) ;   /* 07 Nov 2001 */
 

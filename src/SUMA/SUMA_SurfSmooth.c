@@ -1080,7 +1080,10 @@ int main (int argc,char *argv[])
       exit(1);
    } else { /* method 2 */
       int SO_read = -1;
-      
+      if (!SUMA_AllocSpecFields(&Spec)) {
+         SUMA_S_Err("Failed to allocate");
+         exit(1);
+      }
       if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
 			fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
 			exit(1);
@@ -1654,6 +1657,9 @@ int main (int argc,char *argv[])
       SUMA_LH("Freeing dsmooth...:");
       if (dsmooth) SUMA_free(dsmooth); dsmooth = NULL;
       SUMA_LH("Done:");
+   }
+   if (!SUMA_FreeSpecFields(&Spec)) {
+      SUMA_S_Err("Failed to free spec fields");
    }
    mri_free(im); im = NULL;   /* done with that baby */
    if (cs) cs = NULL; /* ps->cs if freed below */

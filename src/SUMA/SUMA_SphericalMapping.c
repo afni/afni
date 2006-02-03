@@ -2589,6 +2589,10 @@ int main (int argc, char *argv[])
   
 
    /* read spec file*/
+   if (!SUMA_AllocSpecFields(&spec)) {
+      SUMA_S_Err("Failed to allocate spec fields");
+      exit(1);
+   }
    if ( !SUMA_Read_SpecFile (specFile, &spec) ) {
       fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
       exit(1);
@@ -2796,6 +2800,9 @@ int main (int argc, char *argv[])
 
 
    /* free the variables */
+   if (!SUMA_FreeSpecFields(&spec)) {
+      SUMA_S_Err("Failed to free spec fields");
+   }
    if (MI) SUMA_Free_MorphInfo (MI);
    if (SUMAg_DOv) SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv);
    if (surfaces_orig) SUMA_free(surfaces_orig);
@@ -3103,6 +3110,10 @@ int main (int argc, char *argv[])
    }
  
    /* read spec file*/
+   if (!SUMA_AllocSpecFields(&brainSpec)) {
+      SUMA_S_Err("Failed to allocate spec fields");
+      exit(1);
+   }
    if ( !SUMA_Read_SpecFile (brainSpecFile, &brainSpec)) {
       fprintf(SUMA_STDERR,"Error %s: Error in %s SUMA_Read_SpecFile\n", FuncName, brainSpecFile);
       exit(1);
@@ -3626,6 +3637,9 @@ int main (int argc, char *argv[])
    
    
    /* free variables */
+   if (!SUMA_FreeSpecFields(&brainSpec)) {
+      SUMA_S_Err("Faile to free spec fields");
+   }
    if (spec_order) SUMA_free(spec_order);
    if (spec_mapRef) SUMA_free(spec_mapRef);
    if (spec_info) SUMA_free(spec_info);

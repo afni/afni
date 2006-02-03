@@ -11,6 +11,7 @@ PARSE:
    set DR = 0
    set DA = 0
    set DI = 0
+   set opref = ''
    set shftin = 0
    if ("$1" == '') goto HELP
    while ($cnt <= $Narg)
@@ -82,6 +83,19 @@ PARSE:
             set donext = 0   
          endif   
       endif
+      
+      if ($donext && "$argv[$cnt]" == "-prefix") then
+         set pLoc = $cnt      
+         if ($pLoc >= $Narg) then
+            echo "Need dset after -prefix"
+            goto END
+         else
+            @ cnt ++
+            set opref = ($argv[$cnt])
+            set donext = 0   
+         endif   
+      endif
+      
       if ($donext == 1) then
          echo "Error: Option or parameter '$argv[$cnt]' not understood"
          goto END
@@ -107,26 +121,34 @@ DOIT:
    
    #apply delta
    if ($usecp == 1) then
-      if ( `@CheckForAfniDset $v1_pth/${v1_pref}_shft$v1_vw` != 0 ) then
+      if ( "$opref" == "") then
+         set opref = ${v1_pref}_shft
+      else
+         set opref = `@GetAfniPrefix $opref`
+      endif
+      echo "opref $opref"
+      if ( `@CheckForAfniDset ${opref}$v1_vw` != 0 ) then
          echo ""
          echo "Error `basename $0`"
-         echo "Dset $v1_pth/${v1_pref}_shft$v1_vw found, cleanup first!"
+         echo "Dset ${opref}$v1_vw found, cleanup first!"
          echo ""
          goto END
       endif
-
-      3dcopy $v1  $v1_pth/${v1_pref}_shft
-      3drefit -dxorigin $D_orv1[1] -dyorigin $D_orv1[2] -dzorigin $D_orv1[3] $v1_pth/${v1_pref}_shft$v1_vw
+      3dcopy $v1  ${opref}
+      3drefit -dxorigin $D_orv1[1] -dyorigin $D_orv1[2] -dzorigin $D_orv1[3] ${opref}$v1_vw
+      3dNotes -h "`basename $0` $argv[*]" ${opref}$v1_vw
    else
       3drefit -dxorigin $D_orv1[1] -dyorigin $D_orv1[2] -dzorigin $D_orv1[3] $v1
+      3dNotes -h "`basename $0` $argv[*]" $v1
    endif
+   
 
 goto END  
 
 
 HELP:
    echo ""
-   echo "Usage: `basename $0` <[-rai_shift dR dA dI] [-MNI_Anat_to_MNI] [-MNI_to_MNI_Anat]> <-dset DSET> [-no_cp]  "
+   echo "Usage: `basename $0` <[-rai_shift dR dA dI] [-MNI_Anat_to_MNI] [-MNI_to_MNI_Anat]> <-dset DSET> [-no_cp] [-prefix PREFIX]  "
    echo ""
    echo "   Shifts a dataset"
    echo "   -rai_shift dR dA dI: Move dset by dR dA dI mm (RAI coord sys)."
@@ -143,6 +165,7 @@ HELP:
    echo "   -no_cp: Do not create new data, shift existing ones"
    echo "           This is a good option if you know what you "
    echo "           are doing. "
+   echo "   -prefix PREFIX: Prefix for output dset."
    echo ""
    echo "Requires 3drefit newer than Oct. 02/02."
    echo ""

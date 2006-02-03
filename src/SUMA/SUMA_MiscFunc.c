@@ -881,39 +881,58 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
    
    /* try to allocate the request */
    switch(element_size) {
-     case sizeof(short): {    /* integer matrix */
+     case sizeof(short): {    /* short matrix */
          short **int_matrix;
          int_matrix = (short **)calloc(rows,sizeof(short *));
          if(!int_matrix) {
-             printf("\nError making pointers in %dx%d int matrix\n"
+             printf("\nError making pointers in %dx%d short matrix\n"
                          ,rows,cols);
-             exit(1);
+             SUMA_RETURN(NULL);
          }
          for(i = 0 ; i < rows ; i++) {
              int_matrix[i] = (short *)calloc(cols,sizeof(short));
              if(!int_matrix[i]) {
-                 printf("\nError making row %d in %dx%d int matrix\n"
+                 printf("\nError making row %d in %dx%d short matrix\n"
                          ,i,rows,cols);
-                 exit(1);
+                 SUMA_RETURN(NULL);
              }
          }
          A = (char **)int_matrix;
          break;
      }
-     case sizeof(float): {    /* float matrix */
+     case sizeof(char): {    /* char matrix */
+         char **char_matrix;
+         char_matrix = (char **)calloc(rows,sizeof(char *));
+         if(!char_matrix) {
+             printf("\nError making pointers in %dx%d char matrix\n"
+                         ,rows,cols);
+             SUMA_RETURN(NULL);
+         }
+         for(i = 0 ; i < rows ; i++) {
+             char_matrix[i] = (char *)calloc(cols,sizeof(char));
+             if(!char_matrix[i]) {
+                 printf("\nError making row %d in %dx%d char matrix\n"
+                         ,i,rows,cols);
+                 SUMA_RETURN(NULL);
+             }
+         }
+         A = (char **)char_matrix;
+         break;
+     }
+     case sizeof(float): {    /* float, int,  matrix */
          float **float_matrix;
          float_matrix = (float **)calloc(rows,sizeof(float *));
          if(!float_matrix) {
              printf("\nError making pointers in %dx%d float matrix\n"
                          ,rows,cols);
-             exit(1);
+             SUMA_RETURN(NULL);
          }
          for(i = 0 ; i < rows ; i++) {
              float_matrix[i] = (float *)calloc(cols,sizeof(float));
              if(!float_matrix[i]) {
                  printf("\nError making row %d in %dx%d float matrix\n"
                          ,i,rows,cols);
-                 exit(1);
+                 SUMA_RETURN(NULL);
              }
          }
          A = (char **)float_matrix;
@@ -925,22 +944,23 @@ char **SUMA_allocate2D (int rows,int cols,int element_size)
          if(!double_matrix) {
              printf("\nError making pointers in %dx%d double matrix\n"
                          ,rows,cols);
-             exit(1);
+             SUMA_RETURN(NULL);
          }
          for(i = 0 ; i < rows ; i++) {
              double_matrix[i] = (double *)calloc(cols,sizeof(double));
              if(!double_matrix[i]) {
                  printf("\nError making row %d in %dx%d double matrix\n"
                          ,i,rows,cols);
-                 exit(1);
+                 SUMA_RETURN(NULL);
              }
          }
          A = (char **)double_matrix;
          break;
      }
+     
      default:
          printf("\nERROR in matrix_allocate: unsupported type\n");
-         exit(1);
+         SUMA_RETURN(NULL);
    }
    
    #ifdef USE_SUMA_MALLOC
@@ -3027,7 +3047,7 @@ int * SUMA_dqsortrow (int **X , int nr, int nc  )
 
 
 /*--------------------- Matrix Sorting functions END ------------------------*/
-static VoxIntersDbg = 0;
+static int VoxIntersDbg = 0;
 void SUMA_Set_VoxIntersDbg(int v)
 {
    VoxIntersDbg = v;

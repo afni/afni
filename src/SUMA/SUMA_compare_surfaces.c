@@ -55,7 +55,7 @@ int main (int argc,char *argv[])
   float N0[3];
   float maxdistance, mindistance;
   float *distance, distanceneg, distancepos;
-  float Points[2][3];
+  float Points[2][3]={{0.0, 0.0, 0.0},{0.0, 0.0, 0.0}};
   SUMA_COLOR_MAP *MyColMap;
   SUMA_SCALE_TO_MAP_OPT *MyOpt;
   SUMA_COLOR_SCALED_VECT * MySV;
@@ -201,6 +201,10 @@ int main (int argc,char *argv[])
   if (specfilename == NULL) {
     fprintf (SUMA_STDERR,"Error %s: No spec filename specified.\n", FuncName);
     exit(1);
+  }
+  if (!SUMA_AllocSpecFields(&Spec)) {
+   SUMA_S_Err("Failed to allocate Spec Fields");
+   exit(1);
   }
   if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
@@ -450,7 +454,9 @@ int main (int argc,char *argv[])
      }
 
   if (fname) SUMA_free(fname);
-  
+  if (!SUMA_FreeSpecFields(&Spec)) {
+   SUMA_S_Err("Failed to free spec fields");
+  }
   if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);  
   SUMA_RETURN (1);
 }

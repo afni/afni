@@ -260,6 +260,12 @@ int main( int argc , char * argv[] )
     if ( (ret_val = set_smap_opts( &opts, &params, &sopt )) != 0 )
         return ret_val;
 
+    /* initialize the spec ZSS Jan 9 06*/
+    if (!SUMA_AllocSpecFields(&spec)) {
+       fprintf( stderr, "** failed to initialize spec\n" );
+       return(-1);
+    }
+
     /* read surface files */
     if ( (ret_val = read_surf_files(&opts, &spec)) != 0 )
         return ret_val;
@@ -275,6 +281,12 @@ int main( int argc , char * argv[] )
 
     /* free memory */
     final_clean_up(&opts, &params, &spec);
+
+    /* free the spec ZSS Jan 9 06*/
+    if (!SUMA_FreeSpecFields(&spec)) {
+       fprintf( stderr, "** failed to free spec\n" );
+       return(-1);
+    }
 
     return ret_val;
 }

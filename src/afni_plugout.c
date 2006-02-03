@@ -499,7 +499,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
       /*-- 07 Nov 2001: drive various AFNI user interface widgets --*/
 
       } else if( strncmp(str[ss],"DRIVE_AFNI",10) == 0 ){
-        char cmd[1024]="\0" ;
+        char cmd[PLUGOUT_COM_LENGTH]="\0" ;
 
         if( strlen(str[ss]) < 11 ){
           fprintf(stderr,"PO: DRIVE_AFNI from plugout %s lacks command\n",
@@ -508,7 +508,7 @@ int AFNI_process_plugout( PLUGOUT_spec * pp )
 
         } else {  /* the command is everything after "DRIVE_AFNI " */
 
-          MCW_strncpy(cmd,str[ss]+11,1024) ;
+          MCW_strncpy(cmd,str[ss]+11,PLUGOUT_COM_LENGTH) ;
           if( verbose )
             fprintf(stderr,"PO: command DRIVE_AFNI %s\n",cmd) ;
           ii = AFNI_driver( cmd ) ;  /* just do it */
