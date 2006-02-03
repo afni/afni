@@ -104,11 +104,14 @@ foreach val ($isovals[*])
    else
       set sb = ''
    endif
-   echo "Running: IsoSurface -input $anat[1]/$anat[2]$anat[3]'$sb' -isoval $val -o_ply $anat[2]${suf} ... "
-   IsoSurface -input $anat[1]/$anat[2]$anat[3]"$sb" -isoval $val -o_ply $anat[2]${suf}
+   echo "Isolating voxels with value ${val}"
+   3dcalc -a $anat[1]/$anat[2]$anat[3]"$sb" -expr "a*equals(a,$val)" -prefix $tmppref 
+   echo "Running: IsoSurface -input $tmppref$anat[3] -isoval $val -o_ply $anat[2]${suf} ... "
+   IsoSurface -input $tmppref$anat[3]"$sb" -isoval $val -o_ply $anat[2]${suf}
    if ( -f $anat[2]${suf}.ply ) then
       set qs_opt = ( $qs_opt -tsn PLY $anat[2] $anat[2]${suf}.ply )
    endif
+   rm -f $tmppref$anat[3].???? >& /dev/null
 end
 if ("$qs_opt" == '') then
    echo "Failed to create any new isosurfaces"
@@ -128,7 +131,7 @@ SPECATE:
 SPECULATE:
    echo ""
    echo "Suggested command:"
-   echo "suma -spec $anat[2]_isosurfs.spec -sv $anat[1]/$anat[2]$anat[3] &"
+   echo "suma -spec $speco -sv $anat[1]/$anat[2]$anat[3] &"
    echo "afni -niml $anat[1]/$anat[2]$anat[3] &"
    echo ""
 

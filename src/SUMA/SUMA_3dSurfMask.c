@@ -176,6 +176,10 @@ int main (int argc,char *argv[])
    }
 
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
+   if (N_Spec == 0) {
+      SUMA_S_Err("No surfaces found.");
+      exit(1);
+   }
    if (N_Spec != 1) {
       SUMA_S_Err("Multiple spec at input.");
       exit(1);
@@ -279,7 +283,13 @@ int main (int argc,char *argv[])
    if (vp != SO->VolPar) SUMA_Free_VolPar(vp); vp = NULL;
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
-   if (Spec) SUMA_free(Spec); Spec = NULL;
+   if (N_Spec) {
+      int k=0; 
+      for (k=0; k<N_Spec; ++k) {
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+      }
+      SUMA_free(Spec); Spec = NULL; N_Spec = 0;
+   }
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);

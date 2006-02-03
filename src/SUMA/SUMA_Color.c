@@ -3778,7 +3778,7 @@ int main (int argc,char *argv[])
    int Vminloc, Vmaxloc, *iV = NULL;
    float Vmin, Vmax, brfact;
    float *V = NULL, *Vsort = NULL;
-   float IntRange[2], MaskColor[3], MaskRange[2], arange;
+   float IntRange[2], MaskColor[3], MaskRange[2]={0.0, 0.0}, arange;
    SUMA_Boolean ApplyClip, ApplyMask, setMaskCol, ApplyPercClip, Vopt;
    SUMA_Boolean iVopt, inopt, NoMaskCol, MapSpecified, alaAFNI, MaskZero;
    SUMA_Boolean brk, frf, ShowMap, ShowMapdb;

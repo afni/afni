@@ -238,7 +238,13 @@ int main (int argc,char *argv[])
 
    SUMA_LH("clean up");
    
-   /* free SO_name for now */
+   if (N_Spec) {
+      int k=0; 
+      for (k=0; k<N_Spec; ++k) {
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+      }
+      SUMA_free(Spec); Spec = NULL; N_Spec = 0;
+   }
    if (SO_name) SUMA_free(SO_name); SO_name = NULL;
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    if (S2) SUMA_Free_Surface_Object(S2); S2 = NULL;

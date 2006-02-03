@@ -21,7 +21,7 @@ PARSE:
    set xform_type = 'affine_general'
    set ss_opt = ''
    set dxyz_list = ( 1 1 1 )
-   
+   set clpbelow = ''
    if ("$1" == '') goto HELP
 
    while ($cnt <= $Narg)
@@ -52,6 +52,17 @@ PARSE:
             endif
             set donext = 0   
          endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-clip_below") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need Zmm after -clip_below"
+            goto END
+			else
+            @ cnt ++
+            set clpbelow = "$argv[$cnt]"
+            set donext = 0	
+         endif	
       endif
       if ($donext && "$argv[$cnt]" == "-rmode") then
          set pLoc = $cnt      
@@ -342,14 +353,14 @@ AUTO_TLRC_MODE:
 
    SS:
    #Skully Strippin, Brainy Sniffing
-   if ( ! -f ${ns_pref}${anat_view}.HEAD ) then
+   if ( `@CheckForAfniDset ${ns_pref}${anat_view}` != 2 ) then
       if ("$ss_opt" != "") then
          echo "Skull Stripping (with options ${ss_opt})..."
       else 
          echo "Skull Stripping ..."
       endif
       3dSkullStrip -input ${anat_path}/${anat_pref}${anat_view} -prefix ${ns_pref} ${ss_opt}
-      if ( ! -f ${ns_pref}${anat_view}.HEAD ) then
+      if ( `@CheckForAfniDset ${ns_pref}${anat_view}` != 2 ) then
          echo "Error: Failed to create skull stripped brain"
          goto END
       endif
@@ -361,9 +372,20 @@ AUTO_TLRC_MODE:
       endif
    endif
 
+   CLIP_BELOW:
+   if ($clpbelow != '') then
+      rm -rf ${ns_pref}_clpbel*.???? >& /dev/null
+      @clip_volume -below $clpbelow -input ${ns_pref}${anat_view} -prefix ${ns_pref}_clpbel
+      set ns_pref = ${ns_pref}_clpbel
+      if (`@CheckForAfniDset ${ns_pref}${anat_view}` != 2) then 
+			echo "Error: Failed to clip below $clpbelow mm"
+         goto END
+		endif
+   endif
+      
    RES:
    #Resamplin
-   if ( ! -f ${rs_pref}${anat_view}.HEAD ) then
+   if ( `@CheckForAfniDset ${rs_pref}${anat_view}` != 2 ) then
       echo "Resampling ..."
       rm -f ${tmppref}_resamp* >& /dev/null
       #Use cubic for somoothness of result since it will be used in registration.
@@ -373,7 +395,7 @@ AUTO_TLRC_MODE:
       3dresample -rmode Linear -master ${ref_pref_pad}${ref_view} -inset ${tmppref}_resamp_step${anat_view} -prefix ${tmppref}_resamp_NN
       3dcalc   -a "${tmppref}_resamp_edge_art${ref_view}." -b "${tmppref}_resamp_NN${ref_view}." \
                -expr "a*step(b-5000)" -prefix ${tmppref}_resamp
-      if ( ! -f ${tmppref}_resamp${ref_view}.HEAD) then
+      if ( `@CheckForAfniDset ${tmppref}_resamp${ref_view}` != 2 ) then
          echo "Error: Failed to create resampled volume"
          goto END
       endif
@@ -388,7 +410,7 @@ AUTO_TLRC_MODE:
       3drefit -view ${anat_view} ${tmppref}_resamp_NN${ref_view}.HEAD
       3drefit -view ${anat_view} ${tmppref}_resamp_edge_art${ref_view}.HEAD
       if ( $KeepTmp == 0) rm -f ${tmppref}_resamp* >& /dev/null 
-      if ( ! -f ${rs_pref}${anat_view}.HEAD ) then
+      if ( `@CheckForAfniDset ${rs_pref}${anat_view}` != 2 ) then
          echo "Error: Failed to change view of resampled volume"
          goto END
       endif
@@ -411,7 +433,7 @@ AUTO_TLRC_MODE:
       3dWarpDrive ${spopt}  -twopass -${xform_type} -cubic  \
                -final ${rmode} -base ${ref_pref_pad}${ref_view} -summ ${ns_pref}_WarpDrive.log \
                -prefix ${tmppref}_reg_warpdriveout -input ${rs_pref}${anat_view}
-      if ( ! -f ${tmppref}_reg_warpdriveout${anat_view}.HEAD ) then
+      if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${anat_view}` != 2) then
          echo "Error: Failed in 3dWarpDrive "
          goto END
       endif
@@ -497,7 +519,7 @@ AUTO_TLRC_MODE:
    3dcalc   -a "${tmppref}_reg_braintlrcmask${anat_view}" \
             -b "${tmppref}_reg_warpdriveout${anat_view}" \
             -expr "step(a-5000)*b" -prefix ${tt_prefpad}
-   if ( ! -f ${tt_prefpad}${anat_view}.HEAD ) then
+   if ( `@CheckForAfniDset ${tt_prefpad}${anat_view}` != 2 ) then
       echo "Error: Failed to create tlrced brain"
       goto END
    endif
@@ -531,7 +553,7 @@ AUTO_TLRC_MODE:
 APAR_MODE:
    echo "Applying tlrc warp from ${ref_pref_nopad}${ref_view} to ${ns_pref}${anat_view} ..."
    if ( -f warp_tmp${anat_view}.HEAD) then
-      rm -f warp_tmp${anat_view}.HEAD warp_tmp${anat_view}.BRIK
+      rm -f warp_tmp${anat_view}.HEAD warp_tmp${anat_view}.BRIK*
    endif
    
    echo "Padding the input data before warping"
@@ -539,7 +561,7 @@ APAR_MODE:
    
    echo "Warping per parent transform ($rmode interpolation) ..."
    3dWarp -matparent ${ref_pref_nopad}${ref_view} -prefix ${tmppref}_warp_tmp -${rmode} ${tmppref}_ipad${anat_view}
-   if ( ! -f ${tmppref}_warp_tmp${anat_view}.HEAD) then
+   if ( `@CheckForAfniDset ${tmppref}_warp_tmp${anat_view}` != 2) then
       echo "Error: Failed to create tlrced dset"
       goto END
    endif

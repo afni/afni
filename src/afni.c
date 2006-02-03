@@ -31,6 +31,7 @@
 #define MAIN
 
 #include "afni.h"
+#include "thd_ttatlas_query.h"
 #include <X11/keysym.h>  /* 20 Feb 2003 */
 #include "afni_plugout.h"
 
@@ -7447,6 +7448,7 @@ THD_fvec3 AFNI_transform_vector( THD_3dim_dataset * old_dset ,
    return old_fv ;
 }
 
+#if 0 /* functions now in thd_ttatlas_query.c */
 /*------------------------------------------------------------------------
    Forward transform a vector following a warp
 --------------------------------------------------------------------------*/
@@ -7535,6 +7537,7 @@ THD_fvec3 AFNI_backward_warp_vector( THD_warp * warp , THD_fvec3 old_fv )
    }
    return new_fv ;
 }
+#endif /* ZSS, functions now in thd_ttatlas_query.c */
 
 /*------------------------------------------------------------------------
   09 May 2001: fix a Solaris stupidity, where the scale is resized

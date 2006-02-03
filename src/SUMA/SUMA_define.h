@@ -113,7 +113,7 @@
 #define SUMA_WriteCheckWait 400 /*!< Milliseconds to wait for each stream_writecheck call */ 
 #define SUMA_WriteCheckWaitMax 2000 /*!< Milliseconds to try and establish a good WriteCheck */
 
-#define SUMA_MAX_N_SURFACE_SPEC 20/*!< Maximum number of surfaces allowed in a spec file */
+#define SUMA_MAX_N_SURFACE_SPEC 500/*!< Maximum number of surfaces allowed in a spec file */
 
 #define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when keeping track of allocated memory. If needed more space is reallocated with SUMA_MEMTRACE_BLOCK increments. */
 #define SUMA_MEMTRACE_FLAG 1    /*!< Flag to turn on(1) or off (0) the memory tracing capability */
@@ -663,6 +663,82 @@ typedef struct {
    char StateList[SUMA_MAX_N_SURFACE_SPEC*100];
    char SpecFilePath[SUMA_MAX_DIR_LENGTH];
    char SpecFileName[SUMA_MAX_NAME_LENGTH];
+} SUMA_SurfSpecFile_OLD_DELETEME_SOON;
+
+/*! 
+Stucture to hold the contents of the specs file 
+*/
+typedef struct {
+   char **SurfaceType;    /*!< Type of surface loaded: 
+                                                                        FreeSurfer, SureFit/Caret, 1D format, inventor, Ply */ 
+   char **SurfaceFormat;  /*!< ASCII or Binary */
+   char **TopoFile; /*!< Surface Topology (mesh) file 
+                                                                     renamed from SureFitTopo because 1D uses it too */ 
+   char **CoordFile; /*!< Surface Coordinate (XYZ) file
+                                                                      renamed from SureFitCoord because 1D uses it too  */ 
+   char **MappingRef; /*!< Becoming obsolete. Jan 2 03 */
+   char **SureFitVolParam; /*!< For SureFit only: Name of file containing anatomical
+                                                                             coordinates modification. */
+   char **SurfaceFile;  /*!< File containing topology and geometry of surface. */
+   char **VolParName;   /*!< Now known as surface volume in the documentation 
+                                                                          This is the volume from which the surface was created,
+                                                                          aligned to the experiment's data. Alignment transforms
+                                                                          added by 3dVolreg or 3dAnatNudge that are stored in this 
+                                                                          volume ar applied to the surface. Also, tlrc transforms of
+                                                                          this volume can be applied to the surface. */
+   char **IDcode;                            /*!< Unique identifier for the surface object */
+   char **State;       /*!< Geometrical state of the surface. For example:
+                                                                           pial, white, inflated, spherical, etc... */
+                                                                           
+   char **Group;        /*!< Some identifier, best thought of as the name of 
+                                                                           the subject */
+   char **SurfaceLabel; /*!< A user defined "short" label to use in GUI */
+   int *EmbedDim;                            /*!< 2 for flat surfaces, 3 for 3D dwelling ones. */
+   
+   /* modifications to the lame MappingRef field */
+   char **AnatCorrect;    /*!< Does surface geometry match the anatomy ?*/
+   char **Hemisphere;     /*!< Left/Right */
+   char **DomainGrandParentID;   /*!< Grandparent's mesh ID 
+                                                                                    (icosahedron's for std-meshes) */
+   char **OriginatorID;   /*!<  ID common to surfaces from one subject that are created
+                                                                              at one point in time. Surfaces of the same subject,
+                                                                              created at different points in time (like in a longitudinal
+                                                                              study) will have differing OriginatorID fields */
+   char **LocalCurvatureParent;   /*!<  Name of surface (in current spec file)
+                                                                                 from which the curvature will be borrowed.
+                                                                                 The LocalCurvatureParent must be isotopic to 
+                                                                                 the child surface. This Parent used to be
+                                                                                 the MappingRef field*/
+   char **LocalDomainParent;       /*!< Name of surface (in current spec file)
+                                                                                 from which EdgeLists and other shared information
+                                                                                 will be borrowed. This field used to be 
+                                                                                 the MappingRef field. Naturally, Parent and 
+                                                                                 Child must be isotopic.
+                                                                                 You must have at least one of the surfaces loaded
+                                                                                 into SUMA be the Parent. Use SAME for this field when
+                                                                                 a surface is a LocalDomainParent.
+                                                                                 */
+   #if 0
+   /* Not being used yet, but in the SurfaceObject structure */
+   int NodeDim; /*!< 3 for nodes specified in 3D, 2 for X,Y only (not really supported...) */
+   int MeshDim; /*!< 3 for triangles, 4 for quadrilaterals (not quite supported) */
+   /* you can also envision ID fields that point to surface attributes that are time consuming 
+   to calculate and do not change often. I use none at the moment, but will do so, perhaps in the future.
+   For example:
+   A sorted EdgeList (for fast topological shenanigans, I swear by this one)
+   A node curvature list,
+   Interpolation weights,
+   Datasets containing ROI or parcellation information  
+   etc...
+   */  
+   #endif
+   
+   int N_Surfs;                                                      /*!< Number of surfaces, in the spec file */
+   int N_States;                                                     
+   int N_Groups;
+   char *StateList;
+   char *SpecFilePath;
+   char *SpecFileName;
 } SUMA_SurfSpecFile;
 
 /*! structure that containing node's first order neighbors */

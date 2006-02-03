@@ -138,6 +138,11 @@ PARSE_COMMAND:
       if ($donext == 1 && $cnt == 3) then
          #probably the dxyz parameter
          set DownSample = $argv[$cnt]
+         if ("$DownSample" =~ *[^0-9]*) then
+            echo "Error: Option '$argv[$cnt]' not understood"
+            echo ""
+            goto END
+         endif
          if ($DownSample < 0.3 || $DownSample > 4) then
             echo "Error: Option '$argv[$cnt]' not understood"
             echo ""

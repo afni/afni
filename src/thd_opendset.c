@@ -7,6 +7,8 @@
 #include "mrilib.h"
 #include "thd.h"
 
+extern THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar);
+
 #undef  CHECK_FOR_DATA     /* 06 Jan 2005: message about empty files */
 #define CHECK_FOR_DATA(fn)                                                \
  do{ if( fsize <= 0 ){                                                    \
@@ -43,7 +45,6 @@ ENTRY("THD_open_one_dataset") ;
 
    if( getenv("AFNI_USE_THD_open_dataset") != NULL &&
        strstr(pathname,"[")                != NULL   ){
-
       RETURN( THD_open_dataset(pathname) ) ;
    }
 
@@ -105,6 +106,9 @@ ENTRY("THD_open_one_dataset") ;
      RETURN( THD_open_mpeg(pathname) ) ;
    }
 
+   /* -- Try to read an AFNI dataset and if that fails, 
+         there is one more chance                 -- */
+         
    /*-- Must be an AFNI-formatted dataset! -------------*/
    /*-- find directory and last names in the pathname --*/
 
@@ -143,13 +147,22 @@ ENTRY("THD_open_one_dataset") ;
 
    fsize = THD_filesize(fullname) ;                         /* 06 Jan 2005 */
    if( fsize == 0 && !THD_is_file(pathname) ) fsize = -1 ;  /* 31 Mar 2005 */
+   if (fsize > 0) { /* there's more to try should this fail ... ZSS Feb 06 */
+      dblk = THD_init_one_datablock( dirname , fullname ) ;
+      if( dblk != NULL ) {
+         dset = THD_3dim_from_block( dblk ) ;
+         RETURN(dset) ;
+      }
+   } else {
+      /*-- Nothing worked, see if name is that of an atlas based ROI -- */
+      dset = NULL;
+      /* fprintf(stderr,"Here's your moment %s\n", pathname); */
+      RETURN(THD_3dim_from_ROIstring(pathname));
+   }
+   /* all else failed, give them the famed message */
    CHECK_FOR_DATA(fullname) ;
-
-   dblk = THD_init_one_datablock( dirname , fullname ) ;
-   if( dblk == NULL ) RETURN(NULL) ;
-
-   dset = THD_3dim_from_block( dblk ) ;
-   RETURN(dset) ;
+   
+   RETURN(dset) ; /* not destined to get here */
 }
 
 /*--------------------------------------------------------------------

@@ -661,6 +661,14 @@ int main (int argc,char *argv[])
       SO1->NodeList = tmpfv; tmpfv = NULL;
    }
    
+   if (N_Spec) {
+      int k=0; 
+      for (k=0; k<N_Spec; ++k) {
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+      }
+      SUMA_free(Spec); Spec = NULL; N_Spec = 0;
+   }
+
    if (projdir) SUMA_free(projdir); projdir = NULL;
    if (SO_name) SUMA_free(SO_name); SO_name = NULL;   
    if (outptr) fclose(outptr); outptr = NULL;

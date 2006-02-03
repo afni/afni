@@ -205,7 +205,16 @@ void CALC_read_opts( int argc , char * argv[] )
    }
 
    while( nopt < argc && argv[nopt][0] == '-' ){
-
+      #ifdef USE_TRACING
+               if( strncmp(argv[nopt],"-trace",5) == 0 ){
+                  DBG_trace = 1 ;
+                  nopt++ ; continue ;
+               }
+               if( strncmp(argv[nopt],"-TRACE",5) == 0 ){  
+                  DBG_trace = 2 ;
+                  nopt++ ; continue ;
+               }
+      #endif
       /**** -dicom, -RAI, -LPI, -SPM [18 May 2005] ****/
 
       if( strcasecmp(argv[nopt],"-dicom") == 0 || strcasecmp(argv[nopt],"-rai") == 0 ){

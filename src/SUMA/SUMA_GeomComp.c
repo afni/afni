@@ -4092,6 +4092,7 @@ int main (int argc,char *argv[])
    }
    
    /* read all surfaces */
+   if (!SUMA_AllocSpecFields(&Spec)) { SUMA_S_Err("Failed to initialize spec fields."); exit(1); }
    if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
 		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
 		exit(1);
@@ -4250,6 +4251,7 @@ int main (int argc,char *argv[])
    } 
    
    SUMA_LH("clean up");
+   if (!SUMA_FreeSpecFields(&Spec)) { SUMA_S_Err("Failed to free spec fields"); }
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
    if (Opt) SUMA_free(Opt);   
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
@@ -7443,6 +7445,7 @@ int main (int argc,char *argv[])
    Opt = SUMA_SurfQual_ParseInput (argv, argc);
    
    /* read all surfaces */
+   if (!SUMA_AllocSpecFields(&Spec)) { SUMA_S_Err("Failed to initialize spec fields."); exit(1); }   
    if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
 		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
 		exit(1);
@@ -7626,6 +7629,7 @@ int main (int argc,char *argv[])
    }
    
    SUMA_LH("clean up");
+   if (!SUMA_FreeSpecFields(&Spec)) { SUMA_S_Err("Failed to free spec fields"); }
    if (prefix) SUMA_free(prefix); prefix = NULL;
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
    if (Opt) SUMA_free(Opt);   

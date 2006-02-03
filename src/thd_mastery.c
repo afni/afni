@@ -82,7 +82,6 @@ ENTRY("THD_open_dataset") ;
 
    cpt = strstr(pathname,"[") ;
    bpt = strstr(pathname,"<") ;  /* 21 Feb 2001 */
-
    if( cpt == NULL && bpt == NULL ){            /* no "[" or "<"  */
      dset = THD_open_one_dataset( pathname ) ;  /* ==> open      */
      if( ISVALID_DSET(dset) && 

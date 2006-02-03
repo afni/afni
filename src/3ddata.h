@@ -4005,6 +4005,7 @@ extern void   UNIQ_idcode_fill(char *) ;
 /*------------------------------------------------------------------------*/
 
 extern char * TT_whereami( float , float , float ) ;
+extern char * TT_whereami_old( float , float , float ) ;
 extern int  TT_load_atlas (void);
 extern void TT_purge_atlas(void);
 extern THD_3dim_dataset * TT_retrieve_atlas(void) ;
