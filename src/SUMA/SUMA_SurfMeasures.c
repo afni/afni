@@ -1243,7 +1243,12 @@ ENTRY("spec2SUMA");
     }
 
     SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct(SUMA_MAX_DISPLAYABLE_OBJECTS);
-
+    
+    if (!SUMA_AllocSpecFields(spec)) { /* ZSS Jan 9 05 */
+      fprintf( stderr, "** failed SUMA_AllocSpecFields(), exiting...\n" );
+	   RETURN(-1);
+    }
+      
     if ( SUMA_Read_SpecFile( opts->spec_file, spec) == 0 )
     {
 	fprintf( stderr, "** failed SUMA_Read_SpecFile(), exiting...\n" );
@@ -2219,7 +2224,7 @@ ENTRY("final_cleanup");
     /* first, close the output file, the rest are in order */
     if ( p->outfp != stdout )
 	fclose(p->outfp);
-
+    SUMA_FreeSpecFields(&(p->S.spec)); /* ZSS Jan 9 06 */
     if ( p->S.narea[0] )  free(p->S.narea[0]);
     if ( p->S.narea[1] )  free(p->S.narea[1]);
     if ( p->S.slist    )  free(p->S.slist);

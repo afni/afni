@@ -314,6 +314,13 @@ int main (int argc,char *argv[])
       fclose(fout); fout = NULL;
    }
    
+   if (N_Spec) {
+      int k=0; 
+      for (k=0; k<N_Spec; ++k) {
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+      }
+      SUMA_free(Spec); Spec = NULL; N_Spec = 0;
+   }
    if (outname) SUMA_free(outname); outname = NULL;
    if (nmask) SUMA_free(nmask); nmask = NULL;
    if (nodeind) SUMA_free(nodeind); nodeind = NULL;

@@ -818,6 +818,9 @@ SUMA_Boolean SUMA_process_NIML_data( void *nini , SUMA_SurfaceViewer *sv)
 	      }
 
          /* do not switch or redisplay yet, all you have is garbage for geometry ... */
+         if (!SUMA_FreeSpecFields(Spec)) {
+            SUMA_S_Err("Failed to free spec fields");
+         }
          SUMA_free(Spec); Spec = NULL;
 
          /* switch viewer 0 to the group in question */
@@ -3254,7 +3257,10 @@ SUMA_Boolean SUMA_SendToSuma (SUMA_SurfaceObject *SO, SUMA_COMM_STRUCT *cs, void
       #endif
 
       if (cs->nelps > 0) { /* make sure that you are not sending elements too fast */
-         if (!etm) etm = 100000.0; /* first pass, an eternity */
+         if (!etm) {
+            etm = 100000.0; /* first pass, an eternity */
+            SUMA_etime(&tt, 0);
+         }
          else etm = SUMA_etime(&tt, 1);
          wtm = 1./cs->nelps - etm;
          if (wtm > 0) { /* wait */

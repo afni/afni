@@ -337,6 +337,10 @@ int main (int argc,char *argv[])
    SUMA_SampBias_ParseInput (argv, argc, &Opt);
    
    /* read all surfaces */
+   if (!SUMA_AllocSpecFields(&Spec)) {
+      SUMA_S_Err("Failed to AllocateSpecFields");
+      exit (1);
+   }
    if (!SUMA_Read_SpecFile (Opt.spec_file, &Spec))
    {
       fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
@@ -373,10 +377,14 @@ int main (int argc,char *argv[])
       SUMA_SL_Err("DO Cleanup Failed!");
    }
 
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) {SUMA_SL_Err("SUMAg_CF Cleanup Failed!");}
-   
    if (Opt.outfile) SUMA_free(Opt.outfile);
    if (Opt.histnote) SUMA_free(Opt.histnote);
+   if (!SUMA_FreeSpecFields(&Spec)) {
+      SUMA_S_Err("Failed to free SpecFields");
+   }
+   
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) {SUMA_SL_Err("SUMAg_CF Cleanup Failed!");}
+   
    
    SUMA_RETURN(0);
 }

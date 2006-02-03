@@ -234,7 +234,6 @@ int main (int argc,char *argv[])
    char *specfilename[SUMA_MAX_N_GROUPS], *VolParName[SUMA_MAX_N_GROUPS];
    byte InMem[SUMA_MAX_N_GROUPS];
 	SUMA_SurfSpecFile *Specp[SUMA_MAX_N_GROUPS];   
-   SUMA_SurfSpecFile Spec;   
 	SUMA_Axis *EyeAxis; 	
    SUMA_EngineData *ED= NULL;
    DList *list = NULL;
@@ -600,7 +599,14 @@ int main (int argc,char *argv[])
 
 	
 	/* Done, clean up time */
-	  
+	if (ispec) {
+      int k=0; 
+      for (k=0; k<ispec; ++k) {
+         if (!SUMA_FreeSpecFields((Specp[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+         Specp[k] = NULL;
+      }
+   } ispec = 0;
+  
 	if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) SUMA_error_message(FuncName,"DO Cleanup Failed!",1);
 	if (!SUMA_Free_SurfaceViewer_Struct_Vect (SUMAg_SVv, SUMA_MAX_SURF_VIEWERS)) SUMA_error_message(FuncName,"SUMAg_SVv Cleanup Failed!",1);
 	if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);

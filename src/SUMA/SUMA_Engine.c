@@ -628,6 +628,7 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                if (specfilename) {
                   /* Load The spec file */
 		            if (LocalHead) fprintf (SUMA_STDERR, "%s: Reading Spec File ...\n", FuncName);
+                  if (!SUMA_AllocSpecFields(&Spec)) { SUMA_S_Err("Failed to initialize spec fields."); exit(1); }
                   if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
 			            fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile.\n", FuncName);
 			            exit(1);
@@ -696,6 +697,13 @@ SUMA_Boolean SUMA_Engine (DList **listp)
                   fprintf(SUMA_STDERR,"Error %s: Failed to register command\n", FuncName);
                   break;
                }
+               
+               if (specfilename) {
+                  /* locally created spec, free contents */
+                  if (!SUMA_FreeSpecFields(&Spec)) { SUMA_S_Err("Failed to free spec fields"); break;}
+                  
+               }
+
    
             }
             if (LocalHead) fprintf (SUMA_STDERR, "%s: Done in SE_Load_Spec.\n", FuncName);

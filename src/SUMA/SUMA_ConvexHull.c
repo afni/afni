@@ -650,6 +650,9 @@ int main (int argc,char *argv[])
             SUMA_S_Err("Failed to create spec!");
             exit(1);
          }
+         if (nspec != 1) {
+            SUMA_S_Warn("Expected one spec and nothing else");
+         }
          /* load the surface object */
          SO = SUMA_Load_Spec_Surf(Spec, 0, ps->sv[0], 0);
          if (!SO) {
@@ -670,7 +673,14 @@ int main (int argc,char *argv[])
          }
          for (i=0;i<SO->NodeDim*SO->N_Node; ++i) Opt->XYZ[i] = SO->NodeList[i];
          
-         if (Spec) SUMA_free(Spec); Spec = NULL;
+         if (nspec) {
+            int k=0; 
+            for (k=0; k<nspec; ++k) {
+               if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+            }
+            SUMA_free(Spec); Spec = NULL; nspec = 0;
+         }
+
          if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
       } else {
          SUMA_S_Err("No input!");

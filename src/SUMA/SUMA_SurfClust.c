@@ -1439,6 +1439,10 @@ int main (int argc,char *argv[])
    }
 
    /* read  surfaces */
+   if (!SUMA_AllocSpecFields(&Spec)) {
+      SUMA_S_Err("Failed to allocate Spec Fields");
+      exit(1);
+   }
    if (!SUMA_Read_SpecFile (Opt->spec_file, &Spec)) {
 		fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
 		exit(1);
@@ -1590,6 +1594,9 @@ int main (int argc,char *argv[])
       if (Clustprefix) SUMA_free(Clustprefix); Clustprefix = NULL; 
    }
    
+   if (!SUMA_FreeSpecFields(&Spec)) {
+      SUMA_S_Err("Failed to free Spec fields");
+   }
    if (ClustOutName) SUMA_free(ClustOutName); ClustOutName = NULL;
    if (list) dlist_destroy(list); SUMA_free(list); list = NULL;
    if (ni) SUMA_free(ni); ni = NULL;

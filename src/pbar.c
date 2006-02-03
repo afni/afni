@@ -25,6 +25,8 @@ static MCW_DC *myfirst_dc = NULL ;  /* 04 Feb 2003 */
      if( pf != NULL ) pf( pb, (XtPointer)(pb->pb_data), (int)(vv) );    \
  } while(0)
 
+#include "pbardefs.h"
+
 /*----------------------------------------------------------------------
    Make a new paned-window color+threshold selection bar:
 
@@ -268,6 +270,15 @@ ENTRY("new_MCW_pbar") ;
    /*-- go home --*/
 
    XtManageChild( pbar->top ) ;
+   
+   /* ZSS: Jan 13 Now add some funky ones */
+   PBAR_define_bigmap( CYTOARCH_ROI_256_CMD );
+   PBAR_define_bigmap( CYTOARCH_ROI_256_GAP_CMD );
+   PBAR_define_bigmap( ROI_32_CMD );
+   PBAR_define_bigmap( ROI_64_CMD );
+   PBAR_define_bigmap( ROI_128_CMD );
+   PBAR_define_bigmap( ROI_256_CMD );
+   
    RETURN( pbar );
 }
 
@@ -317,7 +328,6 @@ void PBAR_add_bigmap( char *name , rgbyte *cmap )
 ENTRY("PBAR_add_bigmap") ;
 
    /* if needed, setup initial colorscale tables */
-
 #define NBIGMAP_INIT 7                           /* # of initial colorscales */
 #define NBIG_GAP     6
 #define NBIG_MBOT    (NPANE_BIG/2-NBIG_GAP)

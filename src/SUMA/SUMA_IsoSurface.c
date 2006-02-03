@@ -312,7 +312,7 @@ SUMA_Boolean SUMA_Get_isosurface_datasets (SUMA_GENERIC_PROG_OPTIONS_STRUCT * Op
    }
    
    if ( Opt->ninmask  <= 0 ) {
-	   SUMA_SL_Err("No isovolume found!\nNothing to do." );
+	   SUMA_SL_Err("No isovolume found!\n Nothing to do." );
 	   SUMA_RETURN(NOPE);
 	}
    
