@@ -1,5 +1,6 @@
 #undef MAIN
 #include "afni.h"
+#include "thd_ttatlas_query.h"
 #include <Xm/XmAll.h>
 
 #define NUM_AV_FIRST 20  /* number of colormenus to create on first pass */
