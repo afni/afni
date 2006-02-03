@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 #include "afni.h"
-
+#include "thd_ttatlas_query.h"
 #ifndef ALLOW_PLUGINS
 #  error "Plugins not properly set up -- see machdep.h"
 #endif
