@@ -1,0 +1,162 @@
+Fri Aug 26 11:07:41 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Fixes for compilation warnings (thanks to Omar Cornut)
+
+Mon Aug 15 16:01:28 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Cleanup
+
+Sun Aug 14 22:07:41 NZST 2005  Stephane Popinet <popinet@users.sf.net>
+  * New function gts_bbox_overlaps_segment()
+  
+  Using the same fast routine as gts_bbox_overlaps_triangle() but with a
+  degenerate triangle as input.
+
+Wed Jul 20 16:26:02 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Removed attribute byte count check for stl2gts
+
+Wed Jul 13 11:27:25 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Added ChangeLog target
+
+Tue Jul 12 16:02:33 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Version set to 0.7.4 prior to release
+
+Fri Jul  1 10:53:59 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * GtsFile now reports errors starting at column number 1
+
+Fri Jul  1 10:53:09 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Fix for comments not being fully ignored by GtsFile
+
+Thu Jun 30 17:44:52 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Fix for customised handling of parsing of GtsFile
+
+Thu Jun 30 17:44:00 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * gts_file_new_from_string() makes a copy of the string
+
+Wed Jun 29 13:27:34 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Small change to interface of gts_file_new_from_string()
+
+Sun Jun 12 21:00:09 NZST 2005  Stephane Popinet <popinet@users.sf.net>
+  * new gts_file_new_from_string() function
+
+Fri Jun 10 12:26:49 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * added const qualifier to gts_object_class_from_name()
+
+Tue Jun  7 15:52:53 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Fixed bug in gts_delaunay_remove_vertex
+
+Tue Jun  7 15:41:56 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Fix for degenerate case in isotetra_bcl()
+  
+  It handles the degenerate case where an interpolated point
+  falls directly on a mesh vertex (the previous code would generate
+  edges with length zero).
+
+Tue Jun  7 15:41:30 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Added Magnus to thanks
+
+Tue Jun  7 15:40:46 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Fixed gts.def
+
+Tue Jun  7 15:28:20 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Support binary STL files in stl2gts on win32
+
+Thu May 26 15:19:54 NZST 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Added autogen.sh
+
+Wed Mar  9 15:26:55 NZDT 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * delaunay is installed
+
+Wed Jan 19 18:41:50 NZDT 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Updates for switch to darcs
+
+Mon Nov 15 12:44:04 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * Bug fixes for gts_delaunay_add_constraint (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-12)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-12
+  Keywords: 
+  
+  This function was returning destroyed conflicting constraints.
+  Improper handling of special cases in remove_intersected_edge was
+  causing failure in some cases.
+  
+
+Tue Nov  9 18:20:14 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * closest face for glib >= 2.4 did not use planar distance (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-11)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-11
+  Keywords: 
+  
+  This was fixed for the glib 1.2 version a while ago.
+  
+
+Thu Nov  4 15:12:42 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * New function gts_triangle_interpolate_height() (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-10)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-10
+  Keywords: 
+  
+  
+
+Thu Oct 28 18:46:25 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * Added fast triangle-box intersection test (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-9)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-9
+  Keywords: 
+  
+  Written by Tomas Akenine-Moller.
+  
+
+Tue Oct 26 17:21:27 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * New "closed" option for happrox (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-8)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-8
+  Keywords: 
+  
+  
+
+Tue Oct 26 17:20:51 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * happrox is installed (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-7)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-7
+  Keywords: 
+  
+  
+
+Tue Oct 26 17:20:06 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * New function gts_face_is_compatible (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-6)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-6
+  Keywords: 
+  
+  
+
+Mon Oct 18 13:43:55 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * Updates before release 0.7.3 (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-5)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-5
+  Keywords: 
+  
+  
+
+Mon Oct 18 13:20:36 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * Added vertex indices in doc/isocube.fig (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-4)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-4
+  Keywords: 
+  
+  
+
+Thu Oct 14 11:06:27 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * Simpler and more efficient gts_file_read function (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-3)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-3
+  Keywords: 
+  
+  
+
+Mon Oct 11 13:00:09 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * Glib-2.0 and mingwin support (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-2)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-2
+  Keywords: 
+  
+  Based on patches by Tim Fenn and others.
+  
+
+Mon Oct 11 11:32:18 NZDT 2004  Stephane Popinet <popinet@users.sourceforge.net>
+  * Interoperability with CVS (s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-1)
+  s.popinet@niwa.co.nz--2004/gts--mainline--0.7--patch-1
+  Keywords: 
+  
+  
+
+Wed Jan 19 17:47:16 NZDT 2005  Stephane Popinet <s.popinet@niwa.co.nz>
+  * Initial commit (s.popinet@niwa.co.nz--2004/gts--mainline--0.7)
