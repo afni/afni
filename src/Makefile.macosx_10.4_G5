@@ -49,7 +49,8 @@ SHOWOFF = -DSHOWOFF=macosx_10.4_G5
 INSTALLDIR = ./macosx_10.4_G5
 LIBDIR = $(INSTALLDIR)
 
-INSTALL_PREREQ = suma_gts
+#INSTALL_PREREQ = suma_gts
+INSTALL_PREREQ = suma
 
 LIBDL = libdl.a
 
