@@ -48,8 +48,8 @@ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
 INSTALLDIR = ./linux_gcc32
 LIBDIR = $(INSTALLDIR)
 
-INSTALL_PREREQ = suma
-#INSTALL_PREREQ = suma_gts
+#INSTALL_PREREQ = suma
+INSTALL_PREREQ = suma_gts
 
 # for dynamic linking
 
