@@ -179,8 +179,14 @@ int main (int argc, char * argv[]) {
    
    
    if (ShowString) {
-      for (i=0; i<curr_note; i++)
-         fprintf(stdout, "%s\n", tross_Expand_String(notes[i]));
+      char *str=NULL;
+      for (i=0; i<curr_note; i++) {
+         str = tross_Expand_String(notes[i]);
+         if (str) {
+            fprintf(stdout, "%s\n", tross_Expand_String(notes[i]));
+            free(str); str = NULL;
+         }
+      }
    }
    
    if( narg >= argc) {
