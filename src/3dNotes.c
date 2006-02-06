@@ -58,6 +58,8 @@ void Show_Help(void) {
 "                                                                        \n"
 "   -d   num       : deletes note number num.\n"
 "                                                                        \n"
+"   -ses           : Print to stdout the expanded notes.                 \n"
+"                                                                        \n"
 "   -help          : Displays this screen.\n"
 "                                                                        \n"
 "                                                                        \n"
@@ -106,7 +108,8 @@ int main (int argc, char * argv[]) {
    char *history_note = NULL;
    int delnotes[MAX_DSET_NOTES], delindex, delnum;
    int HH=0 ;  /* 09 Dec 2000 */
-
+   int ShowString;
+   
    if (argc == 1)   /* no file listed */
       Show_Help();
 
@@ -119,12 +122,19 @@ int main (int argc, char * argv[]) {
 
 
         /* Loop over arguements and pull out what we need */
+        ShowString = 0;
         while( narg < argc && argv[narg][0] == '-' ){
 
                 if( strncmp(argv[narg],"-help",5) == 0 ) {
                         Show_Help();
                 }
-
+                
+                if( strncmp(argv[narg],"-ses",4) == 0 ) {
+                        narg++;
+                        ShowString = 1;
+                        continue;    
+                }
+                
                 if( strncmp(argv[narg],"-a",2) == 0 ) {
                         narg++;
                         if (narg==argc)
@@ -166,8 +176,20 @@ int main (int argc, char * argv[]) {
                 }
    }
 
-   if( narg >= argc )
-      Error_Exit("No input dataset!?\n") ;
+   
+   
+   if (ShowString) {
+      for (i=0; i<curr_note; i++)
+         fprintf(stdout, "%s\n", tross_Expand_String(notes[i]));
+   }
+   
+   if( narg >= argc) {
+      if (!ShowString) {
+         Error_Exit("No input dataset!?\n") ;
+      } else {
+         exit(0);  
+      }
+   }
 
    dset = THD_open_one_dataset( argv[narg] ) ;
    if( dset == NULL          ) Error_Exit("Cannot open dataset") ; 
@@ -216,5 +238,6 @@ int main (int argc, char * argv[]) {
            THD_delete_3dim_dataset( dset , False ) ; 
    }
 
+   
    return 0;
 }
