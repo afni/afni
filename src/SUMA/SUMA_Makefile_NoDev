@@ -362,10 +362,6 @@ libply.a:
 
 libgts.a:
 	( cd gts ;	\
-	  aclocal ;	\
-	  autoheader ;	\
-	  automake -a ;	\
-	  autoconf ;	\
 	  ./configure	;	\
 	  $(MAKE) clean ; \
 	  $(MAKE) ; \
