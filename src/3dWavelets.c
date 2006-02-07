@@ -17,6 +17,9 @@
 
   Mod:     Set MAX_NAME_LENGTH equal to THD_MAX_NAME.
   Date:    02 December 2002
+
+  Mod:     Added -datum option.
+  Date:    07 February 2006 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -99,6 +102,7 @@ typedef struct WA_options
   int vout;                 /* flag to output variance map */
   int stat_first;           /* flag to output full model stats first */
 
+  int datum;                /* data type for output bucket and time_series */
 } WA_options;
 
 
@@ -129,6 +133,7 @@ void display_help_menu()
     "                       whose F-statistic is >= fval                    \n"
     "                                                                       \n"
     "Filter options:                                                        \n"
+    "                                                                       \n"
     "[-filt_stop band mintr maxtr] Specify wavelet coefs. to set to zero    \n"
     "[-filt_base band mintr maxtr] Specify wavelet coefs. for baseline model\n"
     "[-filt_sgnl band mintr maxtr] Specify wavelet coefs. for signal model  \n"
@@ -137,6 +142,10 @@ void display_help_menu()
     "            maxtr = max. value for time window (in TR)                 \n"
     "                                                                       \n"
     "Output options:                                                        \n"
+    "                                                                       \n"
+    "[-datum DTYPE]      Coerce the output data to be stored as type DTYPE, \n"
+    "                       which may be short or float. (default = short)  \n"
+    "                                                                       \n"
     "[-coefts cprefix]   cprefix = prefix of 3d+time output dataset which   \n"
     "                       will contain the forward wavelet transform      \n"
     "                       coefficients                                    \n"
@@ -154,6 +163,7 @@ void display_help_menu()
     "                       from the full model fit to the input data       \n"
     "                                                                       \n"
     "The following options control the contents of the bucket dataset:      \n"
+    "                                                                       \n"
     "[-fout]            Flag to output the F-statistics                     \n"
     "[-rout]            Flag to output the R^2 statistics                   \n"
     "[-cout]            Flag to output the full model wavelet coefficients  \n"
@@ -224,6 +234,7 @@ void initialize_options
   option_data->cout = 0;
   option_data->vout = 0;
   option_data->stat_first = 0;
+  option_data->datum = MRI_short;
 
 
   /*----- Initialize file name character strings -----*/
@@ -253,7 +264,7 @@ void get_options
 
 {
   int nopt = 1;                     /* input option argument counter */
-  int ival, index;                  /* integer input */
+  int ival;                         /* integer input */
   float fval;                       /* float input */
   char message[MAX_NAME_LENGTH];    /* error message */
   int ifilter;                      /* filter index */
@@ -522,6 +533,21 @@ void get_options
 	}
       
 
+      /*-----   -datum DTYPE   -----*/
+      if (strncmp(argv[nopt], "-datum", 6) == 0)
+	{
+	  nopt++;
+	  if (nopt >= argc)  WA_error ("need argument after -datum ");
+
+	  if      (!strcmp(argv[nopt],"short")) option_data->datum = MRI_short;
+	  else if (!strcmp(argv[nopt],"float")) option_data->datum = MRI_float;
+          else WA_error ("illegal argument after -datum ");
+
+	  nopt++;
+	  continue;
+	}
+      
+
       /*-----   -bucket filename   -----*/
       if (strncmp(argv[nopt], "-bucket", 6) == 0)
 	{
@@ -613,10 +639,7 @@ float * read_time_series
 
 {
   char message[MAX_NAME_LENGTH];   /* error message */
-  char * cpt;                      /* pointer to column suffix */
-  char filename[THD_MAX_NAME];     /* time series file name w/o column index */
-  char subv[THD_MAX_NAME];         /* string containing column index */
-  MRI_IMAGE * im, * flim;  /* pointers to image structures
+  MRI_IMAGE * flim;                /* pointer to image structures
 			      -- used to read 1D ASCII */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
@@ -858,12 +881,10 @@ void initialize_filters
 )
 
 {
-  char message[MAX_NAME_LENGTH];  /* error message */
   int nt;                  /* number of images in input 3d+time dataset */
   int NFirst;              /* first image from input 3d+time dataset to use */
   int NLast;               /* last image from input 3d+time dataset to use */
   int N;                   /* number of usable time points */
-  int ifilter;             /* filter number index */
   int i;                   /* filter coefficient index */
   int f, q, p;             /* numbers of model parameters */
 
@@ -1277,8 +1298,6 @@ void calculate_results
   int f;
   int p;                      /* number of parameters in the full model */
   int q;                      /* number of parameters in the baseline model */
-  int m;                      /* parameter index */
-  int n;                      /* data point index */
 
   float * coef = NULL;        /* regression parameters */
   float sse_base;             /* baseline model error sum of squares */ 
@@ -1447,7 +1466,7 @@ void write_ts_array
   char ** argv,                          /* array of input arguments */ 
   WA_options * option_data,              /* wavelet analysis options */
   int ts_length,                         /* length of time series data */  
-  float ** vol_array,                    /* output time series volume data */
+  float *** vol_array,                   /* output time series volume data */
   char * output_filename                 /* output afni data set file name */
 )
 
@@ -1474,7 +1493,8 @@ void write_ts_array
 
  
   /*----- allocate memory -----*/
-  bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
+  if( option_data->datum != MRI_float )
+    { bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar); }
   fbuf = (float *)  malloc (sizeof(float)   * ts_length);   MTEST (fbuf);
   
   
@@ -1503,7 +1523,7 @@ void write_ts_array
 			    ADN_label1,      output_filename,
 			    ADN_self_name,   output_filename,
 			    ADN_malloc_type, DATABLOCK_MEM_MALLOC,  
-			    ADN_datum_all,   MRI_short,   
+			    ADN_datum_all,   option_data->datum,
 			    ADN_nvals,       ts_length,
 			    ADN_ntt,         ts_length,
 			    ADN_none);
@@ -1524,25 +1544,36 @@ void write_ts_array
   
   /*----- attach bricks to new data set -----*/
   for (ib = 0;  ib < ts_length;  ib++)
-    {
+  {
+      if( option_data->datum == MRI_float )
+      {
+          fbuf[ib] = 1.0;  /* factor array is all 1's for float output */
 
-      /*----- Set pointer to appropriate volume -----*/
-      volume = vol_array[ib];
+          /*----- attach vol_array[ib] to be sub-brick #ib -----*/
+          mri_fix_data_pointer ((*vol_array)[ib], DSET_BRICK(new_dset,ib)); 
+          (*vol_array)[ib] = NULL;  /* data is now owned by dataset */
+      }
+      else
+      {
+          /*----- Set pointer to appropriate volume -----*/
+          volume = (*vol_array)[ib];
       
-      /*----- Allocate memory for output sub-brick -----*/
-      bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
-      MTEST (bar[ib]);
+          /*----- Allocate memory for output sub-brick -----*/
+          bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
+          MTEST (bar[ib]);
 
-      /*----- Convert data type to short for this sub-brick -----*/
-      factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
-					  MRI_short, bar[ib]);
-      if (factor < EPSILON)  factor = 0.0;
-      else factor = 1.0 / factor;
-      fbuf[ib] = factor;
+          /*----- Convert data type to short for this sub-brick -----*/
+          factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+                                              MRI_short, bar[ib]);
+          if (factor < EPSILON)  factor = 0.0;
+          else factor = 1.0 / factor;
+          fbuf[ib] = factor;
 
-      /*----- attach bar[ib] to be sub-brick #ib -----*/
-      mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
-    }
+          /*----- attach bar[ib] to be sub-brick #ib -----*/
+          mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
+      }
+  }
+  if( option_data->datum == MRI_float ) *vol_array = NULL;
 
 
   /*----- write afni data set -----*/
@@ -1612,7 +1643,43 @@ void attach_sub_brick
 
 /*---------------------------------------------------------------------------*/
 /*
+  Attach one sub-brick to output bucket data set (of type MRI_float).
+*/
+
+void attach_float_brick
+(
+  THD_3dim_dataset * new_dset,      /* output bucket dataset */
+  int ibrick,               /* sub-brick indices */
+  float * volume,           /* volume of floating point data */
+  int brick_type,           /* indicates statistical type of sub-brick */
+  char * brick_label,       /* character string label for sub-brick */
+  int dof, 
+  int ndof, 
+  int ddof                  /* degrees of freedom */
+)
+
+{
+  /*----- edit the sub-brick -----*/
+  EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
+  EDIT_BRICK_FACTOR (new_dset, ibrick, 1.0);   /* all factors are 1.0 here */
+
+  if (brick_type == FUNC_TT_TYPE)
+    EDIT_BRICK_TO_FITT (new_dset, ibrick, dof);
+  else if (brick_type == FUNC_FT_TYPE)
+    EDIT_BRICK_TO_FIFT (new_dset, ibrick, ndof, ddof);
+  
+  
+  /*----- attach bar[ib] to be sub-brick #ibrick -----*/
+  EDIT_substitute_brick (new_dset, ibrick, MRI_float, volume);
+
+}
+
+/*---------------------------------------------------------------------------*/
+/*
   Routine to write one bucket data set.
+
+  All _vol variables have ptrs passed now, to free memory if it is used
+  for the MRI_float dataset sub-bricks.             07 Feb 2006 [rickr]
 */
 
 void write_bucket_data 
@@ -1621,10 +1688,10 @@ void write_bucket_data
   char ** argv,                     /* array of input arguments */ 
   WA_options * option_data,         /* wavelet analysis options */
 
-  float ** coef_vol,       /* array of volumes of signal model parameters */
-  float * mse_vol,         /* volume of full model mean square error */
-  float * ffull_vol,       /* volume of full model F-statistics */
-  float * rfull_vol        /* volume of full model R^2 statistics */
+  float *** coef_vol,       /* array of volumes of signal model parameters */
+  float ** mse_vol,         /* volume of full model mean square error */
+  float ** ffull_vol,       /* volume of full model F-statistics */
+  float ** rfull_vol        /* volume of full model R^2 statistics */
 )
 
 {
@@ -1636,7 +1703,6 @@ void write_bucket_data
   short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
 
   int brick_type;           /* indicates statistical type of sub-brick */
-  int brick_coef;           /* regression coefficient index for sub-brick */
   char brick_label[MAX_NAME_LENGTH]; /* character string label for sub-brick */
 
   int ierror;               /* number of errors in editing data */
@@ -1650,10 +1716,9 @@ void write_bucket_data
   int nxyz;                 /* total number of voxels */
   int nt;                   /* number of images in input 3d+time dataset */
   int it;
-  int ilag;                 /* lag index */
   int icoef;                /* coefficient index */
   int ibrick;               /* sub-brick index */
-  int dof, ndof, ddof;      /* degrees of freedom */
+  int ndof, ddof;           /* degrees of freedom */
   char label[MAX_NAME_LENGTH];   /* general label for sub-bricks */
 
 
@@ -1685,9 +1750,12 @@ void write_bucket_data
   
  
   /*----- allocate memory -----*/
-  bar  = (short **) malloc (sizeof(short *) * nbricks);
-  MTEST (bar);
-  
+  if( option_data->datum != MRI_float )
+  {
+      bar  = (short **) malloc (sizeof(short *) * nbricks);
+      MTEST (bar);
+  }
+
 
   /*-- make an empty copy of prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (old_dset);
@@ -1711,7 +1779,7 @@ void write_bucket_data
 			    ADN_directory_name,  output_session,
 			    ADN_type,            HEAD_FUNC_TYPE,
 			    ADN_func_type,       FUNC_BUCK_TYPE,
-			    ADN_datum_all,       MRI_short ,   
+			    ADN_datum_all,       option_data->datum,
                             ADN_ntt,             0,               /* no time */
 			    ADN_nvals,           nbricks,
 			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
@@ -1778,15 +1846,28 @@ void write_bucket_data
 		  sprintf (brick_label, "S(%2d)[%3d,%3d]", band, mintr, maxtr);
 	      }
 
-	      volume = coef_vol[icoef];		  
-	      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-				brick_type, brick_label, 0, 0, 0, bar);
+	      volume = (*coef_vol)[icoef];		  
+              if( option_data->datum == MRI_float )
+              {
+                  attach_float_brick (new_dset, ibrick, volume,
+                                      brick_type, brick_label, 0, 0, 0);
+                  (*coef_vol)[icoef] = NULL; /* dataset owns this now */
+              }
+              else
+                  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+                                    brick_type, brick_label, 0, 0, 0, bar);
 	      
 	      ibrick++;
 	      icoef++;
 	    }
 	  
 	}  /* End loop over Wavelet coefficients */
+
+        if( option_data->datum == MRI_float ) /* then free array, also */
+        {
+            free( *coef_vol );
+            *coef_vol = NULL;
+        }
     }  /* if (option_data->cout) */
 
 
@@ -1799,9 +1880,16 @@ void write_bucket_data
     {
       brick_type = FUNC_FIM_TYPE;
       sprintf (brick_label, "Full MSE");
-      volume = mse_vol;
-      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			brick_type, brick_label, 0, 0, 0, bar);
+      volume = *mse_vol;
+      if( option_data->datum == MRI_float )
+      {
+          attach_float_brick (new_dset, ibrick, volume,
+                              brick_type, brick_label, 0, 0, 0);
+          *mse_vol = NULL;  /* since the dataset owns this now */
+      }
+      else
+          attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+                            brick_type, brick_label, 0, 0, 0, bar);
       ibrick++;
     }
 
@@ -1810,9 +1898,16 @@ void write_bucket_data
     {
       brick_type = FUNC_THR_TYPE;
       sprintf (brick_label, "Full R^2");
-      volume = rfull_vol;
-      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			brick_type, brick_label, 0, 0, 0, bar);
+      volume = *rfull_vol;
+      if( option_data->datum == MRI_float )
+      {
+          attach_float_brick (new_dset, ibrick, volume,
+                              brick_type, brick_label, 0, 0, 0);
+          *rfull_vol = NULL;  /* since the dataset owns this now */
+      }
+      else
+          attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+                            brick_type, brick_label, 0, 0, 0, bar);
       ibrick++;
     }
 
@@ -1823,9 +1918,16 @@ void write_bucket_data
       ndof = p - q;
       ddof = N - f - p;
       sprintf (brick_label, "Full F-stat");
-      volume = ffull_vol;
-      attach_sub_brick (new_dset, ibrick, volume, nxyz, 
-			brick_type, brick_label, 0, ndof, ddof, bar);
+      volume = *ffull_vol;
+      if( option_data->datum == MRI_float )
+      {
+          attach_float_brick (new_dset, ibrick, volume,
+                              brick_type, brick_label, 0, ndof, ddof);
+          *ffull_vol = NULL;  /* since the dataset owns this now */
+      }
+      else
+          attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+                            brick_type, brick_label, 0, ndof, ddof, bar);
       ibrick++;
     }
 
@@ -1846,6 +1948,9 @@ void write_bucket_data
 /*---------------------------------------------------------------------------*/
 /*
   Write out the user requested output files.
+
+  Each item has address passed, so that data used for MRI_float datasets
+  can have its pointer(s) cleared.                    7 Feb 2006 [rickr]
 */
 
 void output_results
@@ -1854,14 +1959,14 @@ void output_results
   char ** argv,                     /* array of input arguments */ 
   WA_options * option_data,         /* wavelet analysis options */
 
-  float ** coef_vol,        /* array of volumes of signal model parameters */
-  float * mse_vol,          /* volume of full model mean square error */
-  float * ffull_vol,        /* volume of full model F-statistics */
-  float * rfull_vol,        /* volume of full model R^2 statistics */
-  float ** coefts_vol,     /* volumes for forward wavelet transform coefs. */
-  float ** fitts_vol,      /* volumes for wavelet filtered time series */
-  float ** sgnlts_vol,      /* volumes for signal model time series */
-  float ** errts_vol        /* volumes for residual errors */
+  float *** coef_vol,        /* array of volumes of signal model parameters */
+  float  ** mse_vol,         /* volume of full model mean square error */
+  float  ** ffull_vol,       /* volume of full model F-statistics */
+  float  ** rfull_vol,       /* volume of full model R^2 statistics */
+  float *** coefts_vol,      /* volumes for forward wavelet transform coefs. */
+  float *** fitts_vol,       /* volumes for wavelet filtered time series */
+  float *** sgnlts_vol,      /* volumes for signal model time series */
+  float *** errts_vol        /* volumes for residual errors */
 )
 
 {
@@ -1928,7 +2033,6 @@ void terminate_program
 {
   int p;                    /* number of parameters in full model */
   int ip;                   /* parameter index */
-  int is;                   /* stimulus index */
   int it;                   /* time index */
   int N;                    /* number of usable data points */
 
@@ -1985,7 +2089,10 @@ void terminate_program
   if (*coefts_vol != NULL)
     {
       for (it = 0;  it < N;  it++)
-	{ free ((*coefts_vol)[it]);   (*coefts_vol)[it] = NULL; }
+	{
+          if ((*coefts_vol)[it] != NULL)
+            { free ((*coefts_vol)[it]);   (*coefts_vol)[it] = NULL; }
+        }
       free (*coefts_vol);   *coefts_vol = NULL;
     }
 
@@ -1994,7 +2101,10 @@ void terminate_program
   if (*fitts_vol != NULL)
     {
       for (it = 0;  it < N;  it++)
-	{ free ((*fitts_vol)[it]);   (*fitts_vol)[it] = NULL; }
+        {
+          if ((*fitts_vol)[it] != NULL)
+	    { free ((*fitts_vol)[it]);   (*fitts_vol)[it] = NULL; }
+        }
       free (*fitts_vol);   *fitts_vol = NULL;
     }
 
@@ -2003,7 +2113,10 @@ void terminate_program
   if (*sgnlts_vol != NULL)
     {
       for (it = 0;  it < N;  it++)
-	{ free ((*sgnlts_vol)[it]);   (*sgnlts_vol)[it] = NULL; }
+        {
+          if ((*sgnlts_vol)[it] != NULL)
+            { free ((*sgnlts_vol)[it]);   (*sgnlts_vol)[it] = NULL; }
+        }
       free (*sgnlts_vol);   *sgnlts_vol = NULL;
     }
 
@@ -2012,11 +2125,12 @@ void terminate_program
   if (*errts_vol != NULL)
     {
       for (it = 0;  it < N;  it++)
-	{ free ((*errts_vol)[it]);   (*errts_vol)[it] = NULL; }
+        {
+          if ((*errts_vol)[it] != NULL)
+            { free ((*errts_vol)[it]);   (*errts_vol)[it] = NULL; }
+        }
       free (*errts_vol);   *errts_vol = NULL;
     }
-
-
 }
 
 
@@ -2081,10 +2195,11 @@ int main
 
 
   /*----- Write requested output files -----*/
+  /* (pass addresses, in case data is stolen for datasets) 7 Feb 2006 [rickr] */
   if (option_data->input1D_filename == NULL)
-    output_results (argc, argv, option_data, coef_vol, mse_vol, 
-		    ffull_vol, rfull_vol, 
-		    coefts_vol, fitts_vol, sgnlts_vol, errts_vol);
+    output_results (argc, argv, option_data, &coef_vol, &mse_vol, 
+		    &ffull_vol, &rfull_vol, 
+		    &coefts_vol, &fitts_vol, &sgnlts_vol, &errts_vol);
 
 
   /*----- Terminate program -----*/
@@ -2094,8 +2209,3 @@ int main
 
   exit(0);
 }
-
-
-
-
-
