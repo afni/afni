@@ -1416,3 +1416,6 @@
 02 Feb 2006:
   * submitted version 7 of plug_permtest.c for Matthew Belmonte
 
+07 Feb 2006:
+  * added -datum option to 3dWavelets.c
+
