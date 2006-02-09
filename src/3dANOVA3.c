@@ -81,6 +81,9 @@
             calc_type4_bcontr().  Fixed -aBdiff label.  Thanks to Debbie
             at U-Toronto.
    Date:    31 Jan 2005 [rickr]
+
+   Mod:     Small help update, including example.
+   Date:    09 Feb 2006 [rickr]
 */
 
 /*---------------------------------------------------------------------------*/
@@ -179,10 +182,10 @@ void display_help_menu()
      "[-Abcontr i : c1 ... cb prefix]   2nd order contrast in B, at fixed\n"
      "                                     A level i (collapsed across C)\n"
      "\n"
-     "[-aBdiff a1 a2 : j prefix]   difference between levels a1 and a2 of\n"
+     "[-aBdiff i_1 i_2 : j prefix] difference between levels i_1 and i_2 of\n"
      "                               factor A, with factor B fixed at level j\n"
      "\n"
-     "[-Abdiff i : b1 b2 prefix]   difference between levels b1 and b2 of\n"
+     "[-Abdiff i : j_1 j_2 prefix] difference between levels j_1 and j_2 of\n"
      "                               factor B, with factor A fixed at level i\n"
      "\n"
      "[-abmean i j prefix]         mean effect at factor A level i and\n"
@@ -216,6 +219,36 @@ void display_help_menu()
      "                    that does not sum to zero is invalid, and\n"
      "                    cannot be used with this option (such as\n"
      "                    ameans).\n"
+     "\n"
+     "-----------------------------------------------------------------\n"
+     "example: \"classic\" houses/faces/donuts for 2 sexes and 3 subjects\n"
+     "         (so level sets are sex (M/W), image (H/F/D), and subject)\n"
+     "\n"
+     "    3dANOVA3 -type 5                            \\\n"
+     "        -alevels 2                              \\\n"
+     "        -blevels 3                              \\\n"
+     "        -clevels 4                              \\\n"
+     "        -dset 1 1 1 s1_houses+tlrc              \\\n"
+     "        -dset 1 2 1 s1_faces+tlrc               \\\n"
+     "        -dset 1 3 1 s1_donuts+tlrc              \\\n"
+     "        -dset 2 1 2 s2_houses+tlrc              \\\n"
+     "        -dset 2 2 2 s2_faces+tlrc               \\\n"
+     "        -dset 2 3 2 s2_donuts+tlrc              \\\n"
+     "        -dset 1 1 3 s3_houses+tlrc              \\\n"
+     "        -dset 1 2 3 s3_faces+tlrc               \\\n"
+     "        -dset 1 3 3 s3_donuts+tlrc              \\\n"
+     "        -dset 2 1 4 s4_houses+tlrc              \\\n"
+     "        -dset 2 2 4 s4_faces+tlrc               \\\n"
+     "        -dset 2 3 4 s4_donuts+tlrc              \\\n"
+     "        -adiff   1 2           MvsW             \\\n"
+     "        -bdiff   2 3           FvsD             \\\n"
+     "        -bcontr -0.5 1 -0.5    FvsHD            \\\n"
+     "        -aBcontr 1 -1 : 1      MHvsWH           \\\n"
+     "        -aBdiff  1  2 : 1      same_as_MHvsWH   \\\n"
+     "        -Abcontr 2 : 0 1 -1    WFvsWD           \\\n"
+     "        -Abdiff  2 : 2 3       same_as_WFvsWD   \\\n"
+     "        -Abcontr 2 : 1 7 -4.2  goofy_example    \\\n"
+     "        -bucket donut_anova\n"
      "\n", ANOVA_MODS_LINK);
 
   printf
