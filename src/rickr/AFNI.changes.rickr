@@ -1419,3 +1419,6 @@
 07 Feb 2006:
   * added -datum option to 3dWavelets.c
 
+09 Feb 2006:
+  * added example to 3dANOVA3 -help
+
