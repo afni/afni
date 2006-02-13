@@ -88,7 +88,11 @@ static void Syntax(void)
     "                 int label that precedes it.  Lines that cannot be\n"
     "                 scanned as 1 int and 3 floats are treated as comments\n"
     "                 and are passed to through to the output unchanged.\n"
-    "               N.B.: SureFit coordinates are\n"
+    "             N.B.-1: For those using SureFit surfaces created after\n"
+    "                     the SureFit/Caret merger (post. 2005), you need\n"
+    "                     to use the flag -new_surefit. Talk to Donna about\n"
+    "                     this!\n"
+    "             N.B.-2: SureFit coordinates are\n"
     "                   x = distance Right    of Left-most      dataset corner\n"
     "                   y = distance Anterior to Posterior-most dataset corner\n"
     "                   z = distance Superior to Inferior-most  dataset corner\n"
@@ -171,12 +175,13 @@ int main( int argc , char *argv[] )
    THD_fvec3 vin , vout ;
    float xx,yy,zz ;
    int nn , ii , good=0 ;
+   byte old_surefit_mode = 1;
    THD_3dim_dataset *aset=NULL , *oset=NULL ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) Syntax() ;
 
    /*-- process command line arguments --*/
-
+   old_surefit_mode = 1;
    while( iarg < argc ){
 
       /* -input */
@@ -220,6 +225,13 @@ int main( int argc , char *argv[] )
          iarg++ ; continue ;
       }
 
+      /* -new_surefit */
+
+      if( strcmp(argv[iarg],"-new_surefit") == 0 ){
+         old_surefit_mode = 0 ;
+         iarg++ ; continue ;
+      }      
+      
       /* -forward */
 
       if( strcmp(argv[iarg],"-forward") == 0 ){
@@ -408,7 +420,7 @@ fprintf(stderr,"\n") ;
 DUMP_FVEC3("vin              ",vin) ;
 #endif
 
-         if( itype == SUREFIT && aset != NULL ){
+         if( itype == SUREFIT && old_surefit_mode && aset != NULL ){
             if( backward ) vin = THD_surefit_to_dicomm( aset , vin ) ;
             else           vin = THD_surefit_to_dicomm( oset , vin ) ;
 #ifdef DEBUG
@@ -423,7 +435,7 @@ DUMP_FVEC3("surefit_to_dicomm",vin) ;
 DUMP_FVEC3("vout             ",vout) ;
 #endif
 
-         if( itype == SUREFIT && aset != NULL ){
+         if( itype == SUREFIT && old_surefit_mode && aset != NULL ){
             if( backward ) vout = THD_dicomm_to_surefit( oset , vout ) ;
             else           vout = THD_dicomm_to_surefit( aset , vout ) ;
 #ifdef DEBUG

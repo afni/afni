@@ -23,6 +23,7 @@
 #include <math.h>
 
 #include "mrilib.h"
+#include "thd_ttatlas_query.h"
 
 static EDIT_options HI_edopt ;
 
@@ -45,6 +46,8 @@ static int     HI_mask_hits = 0 ;
 
 static double  HI_min = BIG_NUMBER;
 static double  HI_max = -BIG_NUMBER;
+
+static char *  HI_unq = NULL;
 
 #define KEEP(x) ( (HI_nomit==0) ? 1 :  \
                   (HI_nomit==1) ? ((x) != HI_omit[0]) : HI_keep(x) )
@@ -85,7 +88,9 @@ int main( int argc , char * argv[] )
    long cumfbin, cumtbin;
    int iv_bot , iv_top ;
    float vbot , vtop ;
-
+   FILE *fout = NULL;
+   int n_unq=0;
+   
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ){
       printf("Compute histogram of 3D Dataset\n"
              "Usage: 3dhistog [editing options] [histogram options] dataset\n"
@@ -108,6 +113,10 @@ int main( int argc , char * argv[] )
              "  -log10    Output log10() of the counts, instead of the count values.\n"
              "  -min x    Means specify minimum of histogram.\n"
              "  -max x    Means specify maximum of histogram.\n"
+             "  -unq U.1D Writes out the sorted unique values to file U.1D.\n"
+             "            This option is not allowed for float data\n"
+             "            If you have a problem with this, write\n"
+             "            Ziad S. Saad (ziad@nih.gov)\n"
              "\n"
              "The histogram is written to stdout.  Use redirection '>' if you\n"
              "want to save it to a file.  The format is a title line, then\n"
@@ -121,7 +130,7 @@ int main( int argc , char * argv[] )
 
       exit(0) ;
    }
-
+   
    HI_read_opts( argc , argv ) ;
    nopt = HI_nopt ;
 
@@ -219,13 +228,31 @@ int main( int argc , char * argv[] )
 
       case MRI_float:
         nbin = (HI_nbin==NBIN_SPECIAL) ? 100 : HI_nbin ;
+        if (HI_unq) {
+         fprintf(stderr,"** ERROR: Unique operation not allowed for float data.\n") ;
+      exit(1) ;
+        }
       break ;
    }
    df  = (ftop-fbot) / (nbin-1) ;
    dfi = 1.0 / df ;
 
    /* loop over all bricks and accumulate histogram */
-
+   if (HI_unq) {
+      fout = fopen(HI_unq,"r");
+      if (fout) {
+         fclose(fout);
+         fprintf(stderr,"** ERROR: Output file %s exists, will not overwrite.\n", HI_unq) ;
+      exit(1) ;
+      }
+      fout = fopen(HI_unq,"w"); 
+      if (!fout) {
+         fprintf(stderr,"** ERROR: Could not open %s for write operation.\nCheck your directory permissions\n", HI_unq) ;
+      exit(1) ;
+      } 
+   }
+   if (!fout) HI_unq = NULL; /* safety valve */
+   
    for( iv_fim=iv_bot ; iv_fim <= iv_top ; iv_fim++ ){
      fimfac = DSET_BRICK_FACTOR(dset,iv_fim) ;
      if (fimfac == 0.0)  fimfac = 1.0;
@@ -235,6 +262,7 @@ int main( int argc , char * argv[] )
 
        case MRI_short:{
          short *fim = (short *)vfim ;
+         short *funq=NULL;
          for( ii=0 ; ii < nxyz ; ii++ ){
            fval = fim[ii]*fimfac ;
            if( KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
@@ -242,17 +270,40 @@ int main( int argc , char * argv[] )
              fbin[kk]++ ;
            }
          }
+         if (HI_unq) {
+            funq = UniqueShort(fim, nxyz, &n_unq, 0);
+            if (!funq) {
+               fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
+               exit(1) ;
+            }
+            fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );  
+            for (ii=0; ii<n_unq; ++ii) fprintf(fout,"%d\n", funq[ii]);  
+            fclose(fout); fout = NULL;
+            free(funq); funq = NULL;
+         }
       }
       break ;
 
        case MRI_byte:{
          byte *fim = (byte *)vfim ;
+         byte *funq=NULL;
          for( ii=0 ; ii < nxyz ; ii++ ){
            fval = fim[ii]*fimfac ;
            if( KEEP(fval) && (HI_mask == NULL || HI_mask[ii]) ){
              kk = (int)( (fval-fbot)*dfi ) ;
              fbin[kk]++ ;
            }
+         }
+         if (HI_unq) {
+            funq = UniqueByte(fim, nxyz, &n_unq, 0);
+            if (!funq) {
+               fprintf(stderr,"** ERROR: Failed to uniquate.\n") ;
+               exit(1) ;
+            }
+            fprintf(fout,"# %d unique values in %s\n", n_unq, argv[iarg] );  
+            for (ii=0; ii<n_unq; ++ii) fprintf(fout,"%d\n", funq[ii]);  
+            fclose(fout); fout = NULL;
+            free(funq); funq = NULL;
          }
        }
        break ;
@@ -321,7 +372,7 @@ void HI_read_opts( int argc , char * argv[] )
    int  ival , kk ;
 
    INIT_EDOPT( &HI_edopt ) ;
-
+   HI_unq = NULL;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
       /**** check for editing options ****/
@@ -335,7 +386,14 @@ void HI_read_opts( int argc , char * argv[] )
         if( HI_nbin == 0 ) HI_nbin = NBIN_SPECIAL ;
         nopt++ ; continue ;
       }
-
+      if( strncmp(argv[nopt],"-unq",4) == 0 ){
+        nopt++;
+        if (nopt == argc) {
+         HI_syntax("Need 1D filename after -unq");
+        }
+        HI_unq = argv[nopt];
+        nopt++ ; continue ;
+      }
       if( strncmp(argv[nopt],"-dind",5) == 0 ){
         HI_dind = strtol( argv[++nopt] , NULL , 10 ) ;
         if( HI_dind < 0 ) HI_syntax("illegal value of -dind!") ;
