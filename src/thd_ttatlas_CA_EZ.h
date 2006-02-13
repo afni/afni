@@ -1,5 +1,11 @@
-/*--- ZSS: MacroLabels data, 
-      Eickhoff & Zilles ------*/
+/*! Data for atlases from Eickhoff's SPM toolbox.
+Automatically compiled from: AllAreas_v13b_MPM.mat
+ located at: /Volumes/elrond0/home4/users/ziad/Programs/matlab/spm2/toolbox/Anatomy_13b
+ by function /Users/ziad/AFNI/src/matlab/CA_EZ_Prep.m
+Date: 13-Feb-2006*/
+
+/* ----------- Macro Labels --------------------- */
+/* ----------- Based on: Macro.mat -------------*/
 #define ML_EZ_CMAX    58
 #define ML_EZ_COUNT   116
 
@@ -8,19 +14,12 @@ typedef struct {
    char name[ML_EZ_CMAX];
 } ML_EZ_point ;
 
-#ifdef MAIN 
-   /* Table moved to thd_ttatlas_query.c, access is no longer
-   restricted to when MAIN is defined */
-#else
-#endif
 extern ML_EZ_point ML_EZ_list[ML_EZ_COUNT] ;
 extern char * ML_EZ_labels[ML_EZ_COUNT] ;
 extern int ML_EZ_labeled ;
 extern int ML_EZ_current ;
-
-/*-------------------------------------*/
-/*--- ZSS: Left/Right data, 
-      Eickhoff & Zilles ------*/
+/* ----------- Left Right   --------------------- */
+/* ---- Based on my understanding -------------- */
 #define LR_EZ_CMAX    36
 #define LR_EZ_COUNT   3
 
@@ -29,21 +28,15 @@ typedef struct {
    char name[LR_EZ_CMAX];
 } LR_EZ_point ;
 
-#ifdef MAIN
-   /* Table moved to thd_ttatlas_query.c, access is no longer
-   restricted to when MAIN is defined */
-#else
-#endif
 extern LR_EZ_point LR_EZ_list[LR_EZ_COUNT] ;
 extern char * LR_EZ_labels[LR_EZ_COUNT] ;
 extern int LR_EZ_labeled ;
 extern int LR_EZ_current ;
 
-/*--- ZSS data for Eickhoff & Zilles 
-      CytoArchitectonic Maximum 
-      Proability Map (MPM) dsets ------*/
+/* -----------     MPM      --------------------- */
+/* ----------- Based on: AllAreas_v13b_MPM.mat --------------*/
 #define CA_EZ_CMAX    48
-#define CA_EZ_COUNT   26
+#define CA_EZ_COUNT   28
 #define CA_EZ_MPM_MIN 100  /*!< minimum meaningful value in MPM atlas */
 typedef struct {
    char name[CA_EZ_CMAX];
@@ -51,12 +44,8 @@ typedef struct {
    char dsetpref[CA_EZ_CMAX];
 } CA_EZ_point ;
 
-#ifdef MAIN    
-/* Table moved to thd_ttatlas_query.c, access is no longer
-   restricted to when MAIN is defined */
-#else
-#endif
 extern CA_EZ_point CA_EZ_list[CA_EZ_COUNT] ;
 extern char * CA_EZ_labels[CA_EZ_COUNT] ;
 extern int CA_EZ_labeled ;
 extern int CA_EZ_current ;
+
