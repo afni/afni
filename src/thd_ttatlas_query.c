@@ -279,174 +279,21 @@ char * TTO_labels[TTO_COUNT] ;
 int TTO_labeled = 0 ;  /* flag that labels not yet computed */
 int TTO_current = 0 ;  /* last chosen TTO */
 
-/*! Atlas by Eickhoff, Zilles et al.
-current version of list from MacroLabels_Lookup.rtf */
-ML_EZ_point ML_EZ_list[ML_EZ_COUNT] = {
-   {   1 , "Left Precentral Gyrus............................."},
-   {   2 , "Right Precentral Gyrus............................"},
-   {   3 , "Left Superior Frontal Gyrus......................."},
-   {   4 , "Right Superior Frontal Gyrus......................"},
-   {   5 , "Left Superior Orbital Gyrus......................."},
-   {   6 , "Right Superior Orbital Gyrus......................"},
-   {   7 , "Left Middle Frontal Gyrus........................."},
-   {   8 , "Right Middle Frontal Gyrus........................"},
-   {   9 , "Left Middle Orbital Gyrus........................."},
-   {  10 , "Right Middle Orbital Gyrus........................"},
-   {  11 , "Left Inferior Frontal Gyrus (p. Opercularis)......"},
-   {  12 , "Right Inferior Frontal Gyrus (p. Opercularis)....."},
-   {  13 , "Left Inferior Frontal Gyrus (p. Triangularis)....."},
-   {  14 , "Right Inferior Frontal Gyrus (p. Triangularis)...."},
-   {  15 , "Left Inferior Frontal Gyrus (p. Orbitalis)........"},
-   {  16 , "Right Inferior Frontal Gyrus (p. Orbitalis)......."},
-   {  17 , "Left Rolandic Operculum..........................."},
-   {  18 , "Right Rolandic Operculum.........................."},
-   {  19 , "Left SMA.........................................."},
-   {  20 , "Right SMA........................................."},
-   {  21 , "Left Olfactory cortex............................."},
-   {  22 , "Right Olfactory cortex............................"},
-   {  23 , "Left Superior Medial Gyrus........................"},
-   {  24 , "Right Superior Medial Gyrus......................."},
-   {  25 , "Left Mid Orbital Gyrus............................"},
-   {  26 , "Right Mid Orbital Gyrus..........................."},
-   {  27 , "Left Rectal Gyrus................................."},
-   {  28 , "Right Rectal Gyrus................................"},
-   {  29 , "Left Insula Lobe.................................."},
-   {  30 , "Right Insula Lobe................................."},
-   {  31 , "Left Anterior Cingulate Cortex...................."},
-   {  32 , "Right Anterior Cingulate Cortex..................."},
-   {  33 , "Left Middle Cingulate Cortex......................"},
-   {  34 , "Right Middle Cingulate Cortex....................."},
-   {  35 , "Left Posterior Cingulate Cortex..................."},
-   {  36 , "Right Posterior Cingulate Cortex.................."},
-   {  37 , "Left Hippocampus.................................."},
-   {  38 , "Right Hippocampus................................."},
-   {  39 , "Left ParaHippocampal Gyrus........................"},
-   {  40 , "Right ParaHippocampal Gyrus......................."},
-   {  41 , "Left Amygdala....................................."},
-   {  42 , "Right Amygdala...................................."},
-   {  43 , "Left Calcarine Gyrus.............................."},
-   {  44 , "Right Calcarine Gyrus............................."},
-   {  45 , "Left Cuneus......................................."},
-   {  46 , "Right Cuneus......................................"},
-   {  47 , "Left Lingual Gyrus................................"},
-   {  48 , "Right Lingual Gyrus..............................."},
-   {  49 , "Left Superior Occipital Gyrus....................."},
-   {  50 , "Right Superior Occipital Gyrus...................."},
-   {  51 , "Left Middle Occipital Gyrus......................."},
-   {  52 , "Right Middle Occipital Gyrus......................"},
-   {  53 , "Left Inferior Occipital Gyrus....................."},
-   {  54 , "Right Inferior Occipital Gyrus...................."},
-   {  55 , "Left Fusiform Gyrus..............................."},
-   {  56 , "Right Fusiform Gyrus.............................."},
-   {  57 , "Left Postcentral Gyrus............................"},
-   {  58 , "Right Postcentral Gyrus..........................."},
-   {  59 , "Left Superior Parietal Lobule ...................."},
-   {  60 , "Right Superior Parietal Lobule ..................."},
-   {  61 , "Left Inferior Parietal Lobule ...................."},
-   {  62 , "Right Inferior Parietal Lobule ..................."},
-   {  63 , "Left SupraMarginal Gyrus.........................."},
-   {  64 , "Right SupraMarginal Gyrus........................."},
-   {  65 , "Left Angular Gyrus................................"},
-   {  66 , "Right Angular Gyrus..............................."},
-   {  67 , "Left Precuneus...................................."},
-   {  68 , "Right Precuneus..................................."},
-   {  69 , "Left Paracentral Lobule..........................."},
-   {  70 , "Right Paracentral Lobule.........................."},
-   {  71 , "Left Caudate Nucleus.............................."},
-   {  72 , "Right Caudate Nucleus............................."},
-   {  73 , "Left Putamen......................................"},
-   {  74 , "Right Putamen....................................."},
-   {  75 , "Left Pallidum....................................."},
-   {  76 , "Right Pallidum...................................."},
-   {  77 , "Left Thalamus....................................."},
-   {  78 , "Right Thalamus...................................."},
-   {  79 , "Left Heschls Gyrus................................"},
-   {  80 , "Right Heschls Gyrus..............................."},
-   {  81 , "Left Superior Temporal Gyrus......................"},
-   {  82 , "Right Superior Temporal Gyrus....................."},
-   {  83 , "Left Temporal Pole................................"},
-   {  84 , "Right Temporal Pole..............................."},
-   {  85 , "Left Middle Temporal Gyrus........................"},
-   {  86 , "Right Middle Temporal Gyrus......................."},
-   {  87 , "Left Medial Temporal Pole........................."},
-   {  88 , "Right Medial Temporal Pole........................"},
-   {  89 , "Left Inferior Temporal Gyrus......................"},
-   {  90 , "Right Inferior Temporal Gyrus....................."},
-   {  91 , "Left Cerebelum (Crus 1)..........................."},
-   {  92 , "Right Cerebelum (Crus 1).........................."},
-   {  93 , "Left Cerebelum (Crus 2)..........................."},
-   {  94 , "Right Cerebelum (Crus 2).........................."},
-   {  95 , "Left Cerebelum (III).............................."},
-   {  96 , "Right Cerebelum (III)............................."},
-   {  97 , "Left Cerebelum (IV-V)............................."},
-   {  98 , "Right Cerebelum (IV-V)............................"},
-   {  99 , "Left Cerebelum (VI)..............................."},
-   { 100 , "Right Cerebelum (VI).............................."},
-   { 101 , "Left Cerebelum (VII).............................."},
-   { 102 , "Right Cerebelum (VII)............................."},
-   { 103 , "Left Cerebelum (VIII)............................."},
-   { 104 , "Right Cerebelum (VIII)............................"},
-   { 105 , "Left Cerebelum (IX)..............................."},
-   { 106 , "Right Cerebelum (IX).............................."},
-   { 107 , "Left Cerebelum (X)................................"},
-   { 108 , "Right Cerebelum (X)..............................."},
-   { 109 , "Cerebellar Vermis (1/2)..........................."},
-   { 110 , "Cerebellar Vermis (3)............................."},
-   { 111 , "Cerebellar Vermis (4/5)..........................."},
-   { 112 , "Cerebellar Vermis (6)............................."},
-   { 113 , "Cerebellar Vermis (7)............................."},
-   { 114 , "Cerebellar Vermis (8)............................."},
-   { 115 , "Cerebellar Vermis (9)............................."},
-   { 116 , "Cerebellar Vermis (10)............................"}
-};
-   
+/*! CA_EZ atlas material is now automatically prepared
+from a downloaded SPM toolbox. See the matlab function
+CA_EZ_Prep.m */
+
+#include "thd_ttatlas_CA_EZ.c"
+
 char * ML_EZ_labels[ML_EZ_COUNT] ;
 
 int ML_EZ_labeled = 0 ;  /* flag that labels not yet computed */
 int ML_EZ_current = 0 ;  /* last chosen ML_EZ */
 
-/* Left Right atlas by Eickhoff & Zilles */
-LR_EZ_point LR_EZ_list[LR_EZ_COUNT] = {
-   {   0 , "Non-Brain..."},
-   {   1 , "Right Brain."},
-   {   2 , "Left Brain.."},
-};
-
 char * LR_EZ_labels[LR_EZ_COUNT] ;
 
 int LR_EZ_labeled = 0 ;  /* flag that labels not yet computed */
 int LR_EZ_current = 0 ;  /* last chosen LR_EZ */
-
-/* PMAPS atlases by Eickhoff and Zilles
-current version of list from Lookup_AllAreas_v12.rtf */
-CA_EZ_point CA_EZ_list[CA_EZ_COUNT] = { 
-      {  "Amygdala (CM)...........................",  124, "Amygdala_CM................" },
-      {  "Amygdala (LB)...........................",  220, "Amygdala_LB................" },
-      {  "Amygdala (SF)...........................",  154, "Amygdala_SF................" },
-      {  "Area 1..................................",  184, "PSC_1......................" },
-      {  "Area 2..................................",  232, "PSC_2......................" },
-      {  "Area 3a.................................",  226, "PSC_3a....................." },
-      {  "Area 3b.................................",  142, "PSC_3b....................." },
-      {  "Area 4a.................................",  118, "PMC_4a....................." },
-      {  "Area 4p.................................",  178, "PMC_4p....................." },
-      {  "Area 6..................................",  214, "premotor_6................." },
-      {  "Area 17.................................",  148, "visual_V1.................." },
-      {  "Area 18.................................",  190, "visual_V2.................." },
-      {  "Area 44.................................",  166, "Broca_44..................." },
-      {  "Area 45.................................",  112, "Broca_45..................." },
-      {  "Hippocampus (CA)........................",  100, "Hippocampus_CA............." },
-      {  "Hippocampus (EC)........................",  136, "Hippocampus_EC............." },
-      {  "Hippocampus (FD)........................",  172, "Hippocampus_FD............." },
-      {  "Hippocampus (HATA)......................",  202, "Hippocampus_HATA..........." },
-      {  "Hippocampus (SUB).......................",  250, "Hippocampus_SUB............" },
-      {  "OP 1....................................",  106, "SII_OP1...................." },
-      {  "OP 2....................................",  208, "SII_OP2...................." },
-      {  "OP 3....................................",  160, "SII_OP3...................." },
-      {  "OP 4....................................",  244, "SII_OP4...................." },
-      {  "TE 1.0..................................",  130, "PAC_TE10..................." },
-      {  "TE 1.1..................................",  196, "PAC_TE11..................." },
-      {  "TE 1.2..................................",  238, "PAC_TE12..................." },      
-   };
    
 char * CA_EZ_labels[CA_EZ_COUNT] ;
 
@@ -1643,6 +1490,27 @@ int compare_Z_IQSORT_FLOAT (Z_QSORT_FLOAT *a, Z_QSORT_FLOAT *b )
    return (0);
 }
 
+int compare_short (byte *a, byte *b )
+{/* compare_short*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}/* compare_short*/
+int compare_byte (byte *a, byte *b )
+{/* compare_byte*/
+    if (*a < *b)
+      return (-1);
+   else if (*a == *b)
+      return (0);
+   else
+      return (1);
+   
+}/* compare_byte*/
+
 /*!
     l left
     u unknown
@@ -1711,6 +1579,138 @@ int *z_iqsort (float *x , int nx )
 
 }/*z_iqsort*/
 
+/* return the unique values in y
+   y : Vector of values
+   ysz: Number of elements in y
+   kunq: (int *) pointer to number of unique values
+   Sorted: (1 means values in y are sorted)
+*/
+short * UniqueShort (short *y, int ysz, int *kunq, int Sorted )
+{/*UniqueInt*/
+   short  *xunq, *x;
+   int k;
+   byte LocalHead = 0;
+   static char FuncName[]={"UniqueShort"};
+
+   ENTRY("UniqueShort");
+   *kunq = 0;
+
+   if (!ysz) {
+      RETURN(NULL);
+   }
+   if (!Sorted)
+    {/* must sort y , put in a new location so that y is not disturbed*/
+      x = (short *)calloc(ysz, sizeof(short));
+      if (!x)
+         {
+            fprintf (stderr,"Error %s: Failed to allocate for x.", FuncName);
+            RETURN (NULL);
+         }
+      for (k=0; k < ysz; ++k)
+         x[k] = y[k];
+      qsort(x,ysz,sizeof(short), (int(*) (const void *, const void *)) compare_short);
+   }
+   else
+      x = y;
+
+   xunq = (short *) calloc(ysz,sizeof(short));
+   if (xunq == NULL)
+    {
+      fprintf (stderr,"Error %s: Could not allocate memory", FuncName);
+      RETURN (NULL);
+   }
+
+   *kunq = 0;
+   xunq[0] = x[0];
+   for (k=1;k<ysz;++k)
+    {
+      if ((x[k] != x[k - 1]))
+         {
+            ++*kunq;
+            xunq[*kunq] = x[k];   
+         }
+   }
+   ++*kunq;
+   
+   
+   /* get rid of extra space allocated */
+   xunq = (short *) realloc(xunq, *kunq*sizeof(short));
+
+   if (!Sorted)
+      free (x);
+
+   RETURN (xunq);
+}/*UniqueShort*/
+/* return the unique values in y
+   y : Vector of values
+   ysz: Number of elements in y
+   kunq: (int *) pointer to number of unique values
+   Sorted: (1 means values in y are sorted)
+*/
+byte * UniqueByte (byte *y, int ysz, int *kunq, int Sorted )
+{/*UniqueInt*/
+   byte  *xunq, *x;
+   int k;
+   byte LocalHead = 0;
+   static char FuncName[]={"UniqueByte"};
+
+   ENTRY("UniqueByte");
+   *kunq = 0;
+
+   if (!ysz) {
+      RETURN(NULL);
+   }
+   
+   if (!Sorted)
+    {/* must sort y , put in a new location so that y is not disturbed*/
+      x = (byte *)calloc(ysz, sizeof(byte));
+      if (!x)
+         {
+            fprintf (stderr,"Error %s: Failed to allocate for x.", FuncName);
+            RETURN (NULL);
+         }
+      for (k=0; k < ysz; ++k)
+         x[k] = y[k];
+      qsort(x,ysz,sizeof(byte), (int(*) (const void *, const void *)) compare_byte);
+   }
+   else
+      x = y;
+
+   xunq = (byte *) calloc(ysz,sizeof(byte));
+   if (xunq == NULL)
+    {
+      fprintf (stderr,"Error %s: Could not allocate memory", FuncName);
+      RETURN (NULL);
+   }
+
+   *kunq = 0;
+   xunq[0] = x[0];
+   for (k=1;k<ysz;++k)
+    {
+      if ((x[k] != x[k - 1]))
+         {
+            ++*kunq;
+            xunq[*kunq] = x[k];   
+         }
+   }
+   ++*kunq;
+   
+   
+   /* get rid of extra space allocated */
+   xunq = (byte *) realloc(xunq, *kunq*sizeof(byte));
+
+   if (!Sorted)
+      free (x);
+
+   RETURN (xunq);
+}/*UniqueByte*/
+
+static int AtlasShowMode = 0; /* 0 = nice mode, 1 = debug mode  */
+void Set_Show_Atlas_Mode(int md)
+{
+   AtlasShowMode = md;
+   return;
+}
 void Show_Atlas_Region (AFNI_ATLAS_REGION *aar)
 {
    int k = 0;
@@ -1722,16 +1722,21 @@ void Show_Atlas_Region (AFNI_ATLAS_REGION *aar)
       EXRETURN;
    }
    
-   fprintf(stdout,""
-                  "Side      : %c\n"
-                  "orig_label: %s\n"
-                  "id        : %d\n"
-                  "N_chnks     : %d\n",
-                  aar->side, STR_PRINT(aar->orig_label), aar->id, aar->N_chnks);
-   for (k=0; k<aar->N_chnks; ++k) {
-      fprintf(stdout,"aar->chnks[%d] = %s\n", k, STR_PRINT(aar->chnks[k]));
+   if (AtlasShowMode) {
+      fprintf(stdout,""
+                     "Side      : %c\n"
+                     "orig_label: %s\n"
+                     "id        : %d\n"
+                     "N_chnks     : %d\n",
+                     aar->side, STR_PRINT(aar->orig_label), aar->id, aar->N_chnks);
+      for (k=0; k<aar->N_chnks; ++k) {
+         fprintf(stdout,"aar->chnks[%d] = %s\n", k, STR_PRINT(aar->chnks[k]));
+      }
+      fprintf(stdout,"\n");
+   } else {
+      fprintf(stdout,"%c:%s:%-3d\n",
+                     aar->side, STR_PRINT(aar->orig_label), aar->id);
    }
-   fprintf(stdout,"\n");
    
    EXRETURN;
 }
@@ -1988,16 +1993,27 @@ void Show_Atlas (AFNI_ATLAS *aa)
       EXRETURN;
    }
    
-   fprintf(stdout,"\n"
-                  "Atlas     :%s\n"
-                  "N_regions :%d\n"
-                  "----------- Begin regions for %s atlas-----------\n"
-                  , STR_PRINT(aa->AtlasLabel), aa->N_regions, STR_PRINT(aa->AtlasLabel));
-   for (k=0; k<aa->N_regions; ++k) {
-      fprintf(stdout,"%d%s region:\n", k, COUNTER_SUFFIX(k));
-      Show_Atlas_Region(aa->reg[k]);
+   if (AtlasShowMode) {
+      fprintf(stdout,"\n"
+                     "Atlas     :%s\n"
+                     "N_regions :%d\n"
+                     "----------- Begin regions for %s atlas-----------\n"
+                     , STR_PRINT(aa->AtlasLabel), aa->N_regions, STR_PRINT(aa->AtlasLabel));
+      for (k=0; k<aa->N_regions; ++k) {
+         fprintf(stdout,"%d%s region:\n", k, COUNTER_SUFFIX(k));
+         Show_Atlas_Region(aa->reg[k]);
+      }
+      fprintf(stdout,"----------- End regions for %s atlas --------------\n\n", STR_PRINT(aa->AtlasLabel));
+   } else {
+      fprintf(stdout,"\n"
+                     "Atlas %s,      %d regions\n"
+                     "----------- Begin regions for %s atlas-----------\n"
+                     , STR_PRINT(aa->AtlasLabel), aa->N_regions, STR_PRINT(aa->AtlasLabel));
+      for (k=0; k<aa->N_regions; ++k) {
+         Show_Atlas_Region(aa->reg[k]);
+      }
+      fprintf(stdout,"----------- End regions for %s atlas --------------\n\n", STR_PRINT(aa->AtlasLabel));
    }
-   fprintf(stdout,"----------- End regions for %s atlas --------------\n\n", STR_PRINT(aa->AtlasLabel));
    EXRETURN;
 }
 

@@ -360,6 +360,16 @@ libply.a:
 	  $(RANLIB) $@ ;	\
 	  $(CP) -p $@ .. ; )
 
+# used to have block below for building libgts.a, but skipping aclocal, autoheader, automake -a and autoconf seems to cause less headaches.
+# perhaps current aclocal.m4 works fine in cases I tested. Including the whole block should also work on machines where autoconf, automake
+# are properly installed.
+#    cd gts ;	\ 
+#	  aclocal ;	\
+#	  autoheader ;	\
+#	  automake -a ;	\
+#	  autoconf ;	\
+#	  ./configure	;	\
+
 libgts.a:
 	( cd gts ;	\
 	  ./configure	;	\

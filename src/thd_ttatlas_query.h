@@ -29,68 +29,12 @@ extern char * TTO_labels[TTO_COUNT] ;
 extern int TTO_labeled ;
 extern int TTO_current ;
 /*-------------------------------------*/
-/*--- ZSS: MacroLabels data, 
-      Eickhoff & Zilles ------*/
-#define ML_EZ_CMAX    58
-#define ML_EZ_COUNT   116
 
-typedef struct {
-   short tdval;
-   char name[ML_EZ_CMAX];
-} ML_EZ_point ;
 
-#ifdef MAIN 
-   /* Table moved to thd_ttatlas_query.c, access is no longer
-   restricted to when MAIN is defined */
-#else
-#endif
-extern ML_EZ_point ML_EZ_list[ML_EZ_COUNT] ;
-extern char * ML_EZ_labels[ML_EZ_COUNT] ;
-extern int ML_EZ_labeled ;
-extern int ML_EZ_current ;
-
-/*-------------------------------------*/
-/*--- ZSS: Left/Right data, 
-      Eickhoff & Zilles ------*/
-#define LR_EZ_CMAX    36
-#define LR_EZ_COUNT   3
-
-typedef struct {
-   short tdval;
-   char name[LR_EZ_CMAX];
-} LR_EZ_point ;
-
-#ifdef MAIN
-   /* Table moved to thd_ttatlas_query.c, access is no longer
-   restricted to when MAIN is defined */
-#else
-#endif
-extern LR_EZ_point LR_EZ_list[LR_EZ_COUNT] ;
-extern char * LR_EZ_labels[LR_EZ_COUNT] ;
-extern int LR_EZ_labeled ;
-extern int LR_EZ_current ;
-
-/*--- ZSS data for Eickhoff & Zilles 
-      CytoArchitectonic Maximum 
-      Proability Map (MPM) dsets ------*/
-#define CA_EZ_CMAX    48
-#define CA_EZ_COUNT   26
-#define CA_EZ_MPM_MIN 100  /*!< minimum meaningful value in MPM atlas */
-typedef struct {
-   char name[CA_EZ_CMAX];
-   short tdval;
-   char dsetpref[CA_EZ_CMAX];
-} CA_EZ_point ;
-
-#ifdef MAIN    
-/* Table moved to thd_ttatlas_query.c, access is no longer
-   restricted to when MAIN is defined */
-#else
-#endif
-extern CA_EZ_point CA_EZ_list[CA_EZ_COUNT] ;
-extern char * CA_EZ_labels[CA_EZ_COUNT] ;
-extern int CA_EZ_labeled ;
-extern int CA_EZ_current ;
+/*! CA_EZ atlas material is now automatically prepared
+from a downloaded SPM toolbox. See the matlab function
+CA_EZ_Prep.m */
+#include "thd_ttatlas_CA_EZ.h"
 
 /*-------- End Atlas Tables ------------*/
 
@@ -204,6 +148,7 @@ AFNI_ATLAS_CODES Atlas_Name_to_Atlas_Code (char *name);
 ATLAS_ZONE *Get_Atlas_Zone(ATLAS_QUERY *aq, int level);
 ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code, float prob, float within, AFNI_ATLAS_CODES atcode) ;
 ATLAS_ZONE *Free_Atlas_Zone(ATLAS_ZONE *zn);
+void Set_Show_Atlas_Mode(int md);
 void Show_Atlas_Zone(ATLAS_ZONE *zn);
 void Show_Atlas_Query(ATLAS_QUERY *aq);
 ATLAS_QUERY *Add_To_Atlas_Query(ATLAS_QUERY *aq, ATLAS_ZONE *zn);
@@ -227,6 +172,8 @@ void TT_whereami_remove_atlas(AFNI_ATLAS_CODES ac);
 void TT_whereami_add_atlas(AFNI_ATLAS_CODES ac);
 THD_3dim_dataset *THD_3dim_from_ROIstring(char *shar);
 void Set_ROI_String_Decode_Verbosity(byte lvl);
+short * UniqueShort (short *y, int ysz, int *kunq, int Sorted );
+byte * UniqueByte (byte *y, int ysz, int *kunq, int Sorted );
 
 
 /* Transforms for going from one space to another */
