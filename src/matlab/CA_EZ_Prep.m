@@ -108,10 +108,105 @@ end
    end
    MapML = char(MapML);
 
-%Prep C output files
+%Output files
    cname = 'thd_ttatlas_CA_EZ-auto.c';
    hname = 'thd_ttatlas_CA_EZ-auto.h';
    rname = 'thd_ttatlas_CA_EZ-ref.h';
+
+%Do the references
+% a horrible mess of an if block below. One hopes for a better solution someday
+if (~isempty(which('se_note'))),
+   fprintf(1,'\nNow trying to get at references using se_note\n');
+   se_note;
+   k = 0;
+   if (exist('fg')),   
+      h = get(fg, 'Children');
+      cs = [];
+      nref = 0;
+      l = 1;
+      for (i=1:1:length(h)),
+         tmp = get(h(i),'String');
+         if (~isempty(tmp)),
+            k = k + 1;
+            cs(k).s = tmp;
+            if (iscellstr(cs(k).s) && length(cs(k).s) > 1), 
+               if (length(cs(k).s) > 5), %papers 
+                  nref = nref + 1;
+                  ref(nref) = k;
+                  cs(k).typ = 1;
+               else 
+                  cs(k).typ = -1; %the authors's info
+                  au = cellstr(cs(k).s);
+               end
+            else
+               cs(k).typ = 0; %other strings
+               ot(l) = cellstr(cs(k).s);
+               l = l + 1;
+            end
+         end   
+      end
+      % find the corresponding references
+      ti = char(cs(ref(1)).s); ar = char(cs(ref(2)).s);
+      if (nref ~= 2 || (size(ar,1) ~= size(ti,1))),
+         fprintf(2,'Unexpected number of ref strings or some mismatch\n');
+         return;
+      else
+         k = 1;
+         l = 1;
+         ar_tmp = '';
+         ti_tmp = '';
+         while (k<=size(ar,1)),
+            if (sum(isspace(ar(k))) == size(k,2) && ~isempty(ar_tmp)), % all space, combine
+               ca(l) = cellstr([ar_tmp '-x->' ti_tmp]);
+               ar_tmp = '';
+               ti_tmp = '';
+               l = l + 1;
+            else %catenate
+               ar_tmp = [ar_tmp ' ' deblank(ar(k,:))];
+               ti_tmp = [ti_tmp ' ' deblank(ti(k,:))];
+            end
+            k = k + 1;
+         end
+         %Now fix up the looks of the list
+         imx = 0;
+         for (l=1:1:length(ca)),
+            isep = strfind(char(ca(l)), '-x->');
+            imx = max(isep, imx);
+         end
+         for (l=1:1:length(ca)),
+            isep = strfind(char(ca(l)), '-x->');
+            ca_tmp = char(ca(l));
+            c1 = pad_strn(ca_tmp(1:isep), '-', imx, -1);
+            c2 = ca_tmp(isep+4:length(ca_tmp));
+            ca(l) = cellstr([c1 '>' c2]);
+         end
+         aur = char(au);
+         iout = find (aur < 32 | aur > 127); %replace characters outside of basci ascii text
+         aur(iout) = '-'; %dunno what to do yet....
+         otr = flipud(char(ot));
+         car = char(ca);
+         sdecl = sprintf('char CA_EZ_REF_STR[%d][%d]', size(otr,1)+size(aur,1)+size(car,1)+10, max([size(otr,2)+15, size(aur,2)+15,size(car,2)+15]));
+         %do someting nice
+         fida = fopen(rname,'w');
+         fprintf(fida, '%s = {\n',sdecl);
+         fprintf(fida, '"%s",\n"%s",\n"%s",\n',otr(1,:), otr(2,:), otr(3,:)); 
+         for (i=1:1:size(aur,1)), fprintf(fida, '"   %s",\n', aur(i,:)); end
+         fprintf(fida, '"%s",\n', otr(4,:)); 
+         for (i=1:1:size(car,1)), fprintf(fida, '"   %s",\n', car(i,:));  end
+         fprintf(fida, '"%s",\n', otr(5,:));
+         fprintf(fida, '" ",\n" ",\n"AFNI adaptation by",\n" Ziad S. Saad (ziad@nih.gov, SSCC/NIMH/NIH)",\n');
+         fprintf(fida, '" Info automatically created with CA_EZ_Prep.m based on se_note.m",\n'); 
+         fprintf(fida, '""};/* Must be the only empty string in the array*/\n'); %Must be the only empty string in the array
+         
+         fclose(fida);
+      end
+   end
+else
+   fprintf(2,'Failed to locate se_note.m\nNo new reference string created');
+   return;
+end
+
+%Prep C output files
    
    fidc = fopen (cname,'w');
    if (fidc < 0),
@@ -130,7 +225,8 @@ end
    fprintf(fidc,'%s', str);
 
 %Add the references string file
-   fprintf(fidh,'#include "%s"', rname);   
+   fprintf(fidc,'/*! Leave the reference string in a separate file\nfor easy script parsing.*/\n#include "%s"\n\n', rname);   
+
 %Now do specifics to .h file
    NLbl_ML = size(MapML,1);
    MaxLbl_ML = max(size(MapML,2)+3, 58);
@@ -161,7 +257,9 @@ end
    fprintf(fidh,'typedef struct {\n   char name[CA_EZ_CMAX];\n   short tdval;\n   char dsetpref[CA_EZ_CMAX];\n} CA_EZ_point ;\n\n');
    fprintf(fidh,'extern CA_EZ_point CA_EZ_list[CA_EZ_COUNT] ;\nextern char * CA_EZ_labels[CA_EZ_COUNT] ;\n');
    fprintf(fidh,'extern int CA_EZ_labeled ;\nextern int CA_EZ_current ;\n\n');
-
+   fprintf(fidh,'/* -----------     Refs      --------------------- */\n');
+   fprintf(fidh,'/* ----------- Based on se_note.m --------------*/\n');   
+   fprintf(fidh,'%s;\n', sdecl);
 
 
 %first create ML structure
@@ -198,94 +296,6 @@ end
 
 fclose(fidh); fclose(fidc);
 
-% a horrible mess of an if block below. One hopes for a better solution someday
-if (~isempty(which('se_note'))),
-   fprintf(1,'\nNow trying to get at references using se_note\n');
-   se_note;
-   k = 0;
-   if (exist('fg')),   
-      h = get(fg, 'Children');
-      cs = [];
-      nref = 0;
-      l = 1;
-      for (i=1:1:length(h)),
-         tmp = get(h(i),'String');
-         if (~isempty(tmp)),
-            k = k + 1;
-            cs(k).s = tmp;
-            if (iscellstr(cs(k).s) && length(cs(k).s) > 1), 
-               if (length(cs(k).s) > 5), %papers 
-                  nref = nref + 1;
-                  ref(nref) = k;
-                  cs(k).typ = 1;
-               else 
-                  cs(k).typ = -1; %the authors's info
-                  au = cellstr(cs(k).s);
-               end
-            else
-               cs(k).typ = 0; %other strings
-               ot(l) = cellstr(cs(k).s);
-               l = l + 1;
-            end
-         end   
-      end
-      % find the corresponding references
-      ti = char(cs(ref(1)).s); ar = char(cs(ref(2)).s);
-      if (nref ~= 2 || (size(ar,1) ~= size(ti,1))),
-         fprintf(2,'Unexpected number of ref strings or some mismatch\n');
-      else
-         k = 1;
-         l = 1;
-         ar_tmp = '';
-         ti_tmp = '';
-         while (k<=size(ar,1)),
-            if (sum(isspace(ar(k))) == size(k,2) && ~isempty(ar_tmp)), % all space, combine
-               ca(l) = cellstr([ar_tmp '-x->' ti_tmp]);
-               ar_tmp = '';
-               ti_tmp = '';
-               l = l + 1;
-            else %catenate
-               ar_tmp = [ar_tmp ' ' deblank(ar(k,:))];
-               ti_tmp = [ti_tmp ' ' deblank(ti(k,:))];
-            end
-            k = k + 1;
-         end
-         %Now fix up the looks of the list
-         imx = 0;
-         for (l=1:1:length(ca)),
-            isep = strfind(char(ca(l)), '-x->');
-            imx = max(isep, imx);
-         end
-         for (l=1:1:length(ca)),
-            isep = strfind(char(ca(l)), '-x->');
-            ca_tmp = char(ca(l));
-            c1 = pad_strn(ca_tmp(1:isep), '-', imx, -1);
-            c2 = ca_tmp(isep+4:length(ca_tmp));
-            ca(l) = cellstr([c1 '>' c2]);
-         end
-         aur = char(au);
-         iout = find (aur < 32 | aur > 127); %replace characters outside of basci ascii text
-         aur(iout) = '-'; %dunno what to do yet....
-         otr = flipud(char(ot));
-         car = char(ca);
-         %do someting nice
-         fida = fopen(rname,'w');
-         fprintf(fida, 'static char CA_EZ_REF_STR[%d][] = {"\n',size(otr,1)+size(aur,1)+size(car,1)+10);
-         fprintf(fida, '"%s",\n"%s",\n"%s",\n',otr(1,:), otr(2,:), otr(3,:)); 
-         for (i=1:1:size(aur,1)), fprintf(fida, '"   %s",\n', aur(i,:)); end
-         fprintf(fida, '"%s",\n', otr(4,:)); 
-         for (i=1:1:size(car,1)), fprintf(fida, '"   %s",\n', car(i,:));  end
-         fprintf(fida, '"%s",\n', otr(5,:));
-         fprintf(fida, '"",\n"",\n"AFNI adaptation by",\n" Ziad S. Saad (ziad@nih.gov, SSCC/NIMH/NIH)",\n');
-         fprintf(fida, '" Info automatically created with CA_EZ_Prep.m based on se_note.m",\n'); 
-         fprintf(fida, '""};\n');
-         
-         fclose(fida);
-      end
-   end
-else
-   fprintf(2,'Failed to locate se_note.m\nNo new reference string created');
-end
 
 if (exist(rname) == 2),
    lst = sprintf('%s, %s and %s', cname, hname, rname);
