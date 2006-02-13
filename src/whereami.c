@@ -43,6 +43,8 @@ static MCW_cluster * wamiclust_CA_EZ=NULL ;
 
 void whereami_usage(void) 
 {
+   int i = 0;
+   
    ENTRY("whereami_usage");
       printf(  "Usage: whereami [x y z [output_format]] [-lpi/-spm] [-atlas ATLAS] \n"
                "   ++ Reports brain areas located at x y z mm in TLRC space according \n"
@@ -78,18 +80,27 @@ void whereami_usage(void)
                "               You can use this option repeatedly to specify\n"
                "               more than one atlas. Default is all available atlases.\n"
                "               ATLAS is one of:\n"
-               "   %-12s: Created by tracing Talairach and \n"
-               "   Tournoux brain illustrations [1].\n"
-               "   Generously contributed by Jack Lancaster\n"
-               "   and Peter Fox of RIC UTHSCSA)\n" 
+               "   %-12s: Created by tracing Talairach and Tournoux brain illustrations.\n"
+               "   Generously contributed by Jack Lancaster and Peter Fox of RIC UTHSCSA)\n"
+               "\n"
                "   %-12s: Anatomy Toolbox's atlases with some created from cytoarchitectonic \n"
                "   %-12s: studies of 10 human post-mortem brains (CA_MPM, CA_PMaps). \n"
                "   %-12s: Generously contributed by Simon Eickhoff,\n"
                "   %-12s: Katrin Amunts and Karl Zilles of IME, Julich, \n"
-               "   Germany. Please take into account the \n"
-               "   references and the warning below, when\n"
-               "   using these atlases:\n"
-               "   %s\n"
+               "   Germany. Please take into account the references and abide by the \n"
+               "   warning below (provided with the Anatomy toolbox) when using these atlases:\n", 
+               Atlas_Code_to_Atlas_Name(AFNI_TLRC_ATLAS),
+               Atlas_Code_to_Atlas_Name(CA_EZ_MPM_ATLAS),
+               Atlas_Code_to_Atlas_Name(CA_EZ_ML_ATLAS),
+               Atlas_Code_to_Atlas_Name(CA_EZ_PMAPS_ATLAS),
+               Atlas_Code_to_Atlas_Name(CA_EZ_LR_ATLAS));                       
+      i = 0;
+      printf(  "Anatomy Toolbox Reference and Warning:\n"
+               "--------------------------------------\n" );
+      do { 
+         printf(  "   %s\n" , CA_EZ_REF_STR[i]);
+         ++i;  
+      } while (CA_EZ_REF_STR[i][0] != '\0');
               /* "      [1] Auditory cortex (TE 1.0, TE 1.1, TE 1.2) : Morosan et al., Neuroimage, 2001\n"
                "      [2] Broca's area (BA 44, BA 45) : Amunts et al., J Comp Neurol, 1999\n"
                "      [3] Motor cortex (BA 4a, BA 4p, BA 6) : Geyer et al., Nature, 1996 ; S. Geyer, Springer press 2003\n"
@@ -99,8 +110,9 @@ void whereami_usage(void)
                "      [7] Visual cortex (BA 17, BA 18) : Amunts et al., Neuroimage, 2000\n"
                "      Warning:\n"
                "        All other areas may only be used after consultation (contact S.Eickhoff@fz-juelich.de)\n" */
-               "    See Eickhoff et al. Neuroimage 25 (2005) for more info on Probability Maps (CA_PMaps)\n"
-               "    and Maximum Probability Maps (CA_MPM)\n"
+       printf( "   \nSee Eickhoff et al. Neuroimage 25 (2005) for more info on Probability Maps (CA_PMaps)\n"
+               "    and Maximum Probability Maps (CA_MPM)\n");
+       printf( "--------------------------------------\n\n" 
                " -atlas_sort: Sort results by atlas (default)\n"
                " -zone_sort | -radius_sort: Sort by radius of search\n"
                " -old : Run whereami in the olde (Pre Feb. 06) way.\n"
@@ -157,12 +169,7 @@ void whereami_usage(void)
                "Questions Comments:\n"
                "   Ziad S. Saad   (ziad@nih.gov)\n"
                "   SSCC/NIMH/NIH/DHHS/USA\n" 
-               "\n" ,
-               Atlas_Code_to_Atlas_Name(AFNI_TLRC_ATLAS),
-               Atlas_Code_to_Atlas_Name(CA_EZ_MPM_ATLAS),
-               Atlas_Code_to_Atlas_Name(CA_EZ_ML_ATLAS),
-               Atlas_Code_to_Atlas_Name(CA_EZ_PMAPS_ATLAS),
-               Atlas_Code_to_Atlas_Name(CA_EZ_LR_ATLAS));                       
+               "\n");
    EXRETURN;
 }
 int main(int argc, char **argv)
