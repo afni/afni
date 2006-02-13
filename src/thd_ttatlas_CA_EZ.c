@@ -4,6 +4,10 @@ Automatically compiled from: AllAreas_v13b_MPM.mat
  by function /Users/ziad/AFNI/src/matlab/CA_EZ_Prep.m
 Date: 13-Feb-2006*/
 
+/*! Leave the reference string in a separate file
+for easy script parsing.*/
+#include "thd_ttatlas_CA_EZ-ref.h"
+
 /* ----------- Macro Labels --------------------- */
 /* ----------- Based on: Macro.mat -------------*/
 ML_EZ_point ML_EZ_list[ML_EZ_COUNT] = {
