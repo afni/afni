@@ -926,7 +926,7 @@ char * Atlas_Query_to_String (ATLAS_QUERY *wami, ATLAS_COORD ac, WAMI_SORT_MODES
                   for (il=0; il<wami->zone[iq]->N_label; ++il) { /* for each label in a zone il */
                      if (wami->zone[iq]->atcode[il] == atcode) {
                         if (!nfind_one) {
-                           sprintf(lbuf, "Atlas %s:", Atlas_Code_to_Atlas_Name(atcode));
+                           sprintf(lbuf, "Atlas %s: %s", Atlas_Code_to_Atlas_Name(atcode), Atlas_Code_to_Atlas_Description (atcode));
                            ADDTO_SARR(sar,lbuf);
                         }
                         if (newzone) {
@@ -2809,6 +2809,31 @@ const char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod)
          RETURN("CA_N27_LR");
       case CA_EZ_N27_PMAPS_ATLAS:
          RETURN("CA_N27_PM");
+      case NUMBER_OF_ATLASES:
+         RETURN("Flag for number of atlases");
+      default:
+         RETURN("Bert?");
+   }
+   
+   RETURN("No way Bert.");
+}
+const char *Atlas_Code_to_Atlas_Description (AFNI_ATLAS_CODES cod)
+{
+   ENTRY("Atlas_Code_to_Atlas_Name");
+   
+   switch(cod) {
+      case UNKNOWN_ATLAS:
+         RETURN("Unknown");
+      case AFNI_TLRC_ATLAS:
+         RETURN("Talairach-Tournoux Atlas");
+      case CA_EZ_N27_MPM_ATLAS:
+         RETURN("Cytoarch. Max. Prob. Maps (N27)");
+      case CA_EZ_N27_ML_ATLAS:
+         RETURN("Macro Labels (N27)");
+      case CA_EZ_N27_LR_ATLAS:
+         RETURN("Left/Right (N27)");
+      case CA_EZ_N27_PMAPS_ATLAS:
+         RETURN("Cytoarch. Probabilistic Maps (N27)");
       case NUMBER_OF_ATLASES:
          RETURN("Flag for number of atlases");
       default:
