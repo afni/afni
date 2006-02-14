@@ -686,11 +686,11 @@ char MNI_Anatomical_Side(ATLAS_COORD ac)
    }
    
    if (dseCA_EZ_LR == NULL) {
-      if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(CA_EZ_LR_ATLAS));
+      if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS));
       ii = CA_EZ_LR_load_atlas(); 
       if (ii == 0) {
          WARNING_message("Could not read LR atlas (dset %s+tlrc)", 
-            Atlas_Code_to_Atlas_Dset_Name(CA_EZ_LR_ATLAS));
+            Atlas_Code_to_Atlas_Dset_Name(CA_EZ_N27_LR_ATLAS));
       }
    }
    
@@ -1927,9 +1927,9 @@ AFNI_ATLAS *Build_Atlas (AFNI_ATLAS_CODES ac)
             /* Show_Atlas_Region (aa->reg[k]); */
          }
          break;
-      case CA_EZ_MPM_ATLAS:
+      case CA_EZ_N27_MPM_ATLAS:
          aa = (AFNI_ATLAS *)malloc(sizeof(AFNI_ATLAS));
-         aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(CA_EZ_MPM_ATLAS));
+         aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(CA_EZ_N27_MPM_ATLAS));
          aa->N_regions = CA_EZ_COUNT;
          aa->reg = (AFNI_ATLAS_REGION **)calloc(aa->N_regions, sizeof(AFNI_ATLAS_REGION *));
          for (k=0; k<aa->N_regions; ++k) {
@@ -1937,9 +1937,9 @@ AFNI_ATLAS *Build_Atlas (AFNI_ATLAS_CODES ac)
             /* Show_Atlas_Region (aa->reg[k]); */
          }
          break;
-      case CA_EZ_PMAPS_ATLAS:
+      case CA_EZ_N27_PMAPS_ATLAS:
          aa = (AFNI_ATLAS *)malloc(sizeof(AFNI_ATLAS));
-         aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(CA_EZ_PMAPS_ATLAS));
+         aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(CA_EZ_N27_PMAPS_ATLAS));
          aa->N_regions = CA_EZ_COUNT;
          aa->reg = (AFNI_ATLAS_REGION **)calloc(aa->N_regions, sizeof(AFNI_ATLAS_REGION *));
          for (k=0; k<aa->N_regions; ++k) {
@@ -1947,9 +1947,9 @@ AFNI_ATLAS *Build_Atlas (AFNI_ATLAS_CODES ac)
             /* Show_Atlas_Region (aa->reg[k]); */
          }
          break;
-      case CA_EZ_ML_ATLAS:
+      case CA_EZ_N27_ML_ATLAS:
          aa = (AFNI_ATLAS *)malloc(sizeof(AFNI_ATLAS));
-         aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(CA_EZ_ML_ATLAS));
+         aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(CA_EZ_N27_ML_ATLAS));
          aa->N_regions = ML_EZ_COUNT;
          aa->reg = (AFNI_ATLAS_REGION **)calloc(aa->N_regions, sizeof(AFNI_ATLAS_REGION *));
          for (k=0; k<aa->N_regions; ++k) {
@@ -1957,9 +1957,9 @@ AFNI_ATLAS *Build_Atlas (AFNI_ATLAS_CODES ac)
             /* Show_Atlas_Region (aa->reg[k]); */
          }
          break;
-      case CA_EZ_LR_ATLAS:
+      case CA_EZ_N27_LR_ATLAS:
          aa = (AFNI_ATLAS *)malloc(sizeof(AFNI_ATLAS));
-         aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(CA_EZ_LR_ATLAS));
+         aa->AtlasLabel = strdup(Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS));
          aa->N_regions = LR_EZ_COUNT;
          aa->reg = (AFNI_ATLAS_REGION **)calloc(aa->N_regions, sizeof(AFNI_ATLAS_REGION *));
          for (k=0; k<aa->N_regions; ++k) {
@@ -1972,10 +1972,10 @@ AFNI_ATLAS *Build_Atlas (AFNI_ATLAS_CODES ac)
                         "Available names (codes) are:\n"
                         "%s (%d), %s (%d), %s (%d), %s (%d), %s (%d)\n", ac, 
                         Atlas_Code_to_Atlas_Name(AFNI_TLRC_ATLAS), AFNI_TLRC_ATLAS,
-                        Atlas_Code_to_Atlas_Name(CA_EZ_MPM_ATLAS), CA_EZ_MPM_ATLAS, 
-                        Atlas_Code_to_Atlas_Name(CA_EZ_PMAPS_ATLAS), CA_EZ_PMAPS_ATLAS,
-                        Atlas_Code_to_Atlas_Name(CA_EZ_ML_ATLAS), CA_EZ_ML_ATLAS,
-                        Atlas_Code_to_Atlas_Name(CA_EZ_LR_ATLAS), CA_EZ_LR_ATLAS);
+                        Atlas_Code_to_Atlas_Name(CA_EZ_N27_MPM_ATLAS), CA_EZ_N27_MPM_ATLAS, 
+                        Atlas_Code_to_Atlas_Name(CA_EZ_N27_PMAPS_ATLAS), CA_EZ_N27_PMAPS_ATLAS,
+                        Atlas_Code_to_Atlas_Name(CA_EZ_N27_ML_ATLAS), CA_EZ_N27_ML_ATLAS,
+                        Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS), CA_EZ_N27_LR_ATLAS);
          RETURN(aa);
    }
    
@@ -2270,7 +2270,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
       build_lr = 0;
       lrmask = NULL;
       switch (atcode) {
-         case CA_EZ_MPM_ATLAS:
+         case CA_EZ_N27_MPM_ATLAS:
             if (dseCA_EZ_MPM == NULL) {
                if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
                ii = CA_EZ_MPM_load_atlas(); 
@@ -2283,7 +2283,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
             dset = dseCA_EZ_MPM;
             build_lr = 1;
             break;
-         case CA_EZ_ML_ATLAS:
+         case CA_EZ_N27_ML_ATLAS:
             if (dseCA_EZ_ML == NULL) {
                if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
                ii = CA_EZ_ML_load_atlas(); 
@@ -2296,7 +2296,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
             dset = dseCA_EZ_ML;
             build_lr = 1;
             break;
-         case CA_EZ_LR_ATLAS:
+         case CA_EZ_N27_LR_ATLAS:
             if (dseCA_EZ_LR == NULL) {
                if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
                ii = CA_EZ_LR_load_atlas(); 
@@ -2309,7 +2309,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
             dset = dseCA_EZ_LR;
             build_lr = 1;
             break;
-         case CA_EZ_PMAPS_ATLAS:
+         case CA_EZ_N27_PMAPS_ATLAS:
             /* Load the PMaps */
             if (dseCA_EZ_PMaps == NULL) {
                if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
@@ -2376,7 +2376,7 @@ THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_CODES atcode, AFNI_ATLAS_REGION *
          RETURN(maskset);
       }
       
-      if (atcode != CA_EZ_PMAPS_ATLAS) {
+      if (atcode != CA_EZ_N27_PMAPS_ATLAS) {
          for (sb=0; sb < DSET_NVALS(dset); ++sb) {
             ba = DSET_BRICK_ARRAY(dset,sb); 
             if (!ba) { ERROR_message("Unexpected NULL array"); free(bmask); bmask = NULL; RETURN(maskset); }
@@ -2687,7 +2687,7 @@ char * Clean_Atlas_Label( char *lb)
 char * Clean_Atlas_Label_to_Prefix( char *lb)
 {
    static char lab_buf[256];
-   int nn=0, cnt=0, nlab=0;
+   int nn=0, cnt=0, nlab=0, notnum = 0;
    
    ENTRY("Clean_Atlas_Label_to_Prefix");
    
@@ -2699,6 +2699,19 @@ char * Clean_Atlas_Label_to_Prefix( char *lb)
       RETURN(lab_buf);
    }
 
+   /* do we have an integer label ? */
+   notnum=0;
+   nn=0;
+   while (lb[nn] != '\0' && !notnum) {
+      if (!IS_NUMBER(lb[nn])) notnum = 1;
+      ++nn;
+   }
+   if (!notnum) {
+      sprintf(lab_buf,"%d",atoi(lb));
+      RETURN(lab_buf);
+   }
+   
+   /* Not an integer label ... */
    cnt=0;
    for (nn=0; nn<nlab; ++nn) {
       if (!IS_LETTER(lb[nn]) && lb[nn] != '-' && lb[nn] != '_' && lb[nn] != '.') {
@@ -2763,14 +2776,14 @@ const char *Atlas_Code_to_Atlas_Dset_Name (AFNI_ATLAS_CODES cod)
          RETURN("Unknown ");
       case AFNI_TLRC_ATLAS:
          RETURN(TT_DAEMON_TT_PREFIX);
-      case CA_EZ_MPM_ATLAS:
-         RETURN(CA_EZ_MPM_TT_PREFIX);
-      case CA_EZ_ML_ATLAS:
-         RETURN(CA_EZ_ML_TT_PREFIX);
-      case CA_EZ_LR_ATLAS:
-         RETURN(CA_EZ_LR_TT_PREFIX);
-      case CA_EZ_PMAPS_ATLAS:
-         RETURN(CA_EZ_PMaps_TT_PREFIX);
+      case CA_EZ_N27_MPM_ATLAS:
+         RETURN(CA_EZ_N27_MPM_TT_PREFIX);
+      case CA_EZ_N27_ML_ATLAS:
+         RETURN(CA_EZ_N27_ML_TT_PREFIX);
+      case CA_EZ_N27_LR_ATLAS:
+         RETURN(CA_EZ_N27_LR_TT_PREFIX);
+      case CA_EZ_N27_PMAPS_ATLAS:
+         RETURN(CA_EZ_N27_PMaps_TT_PREFIX);
       case NUMBER_OF_ATLASES:
          RETURN("Flag for number of atlases");
       default:
@@ -2788,14 +2801,14 @@ const char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod)
          RETURN("Unknown");
       case AFNI_TLRC_ATLAS:
          RETURN("TT_Daemon");
-      case CA_EZ_MPM_ATLAS:
-         RETURN("CA_MPM");
-      case CA_EZ_ML_ATLAS:
-         RETURN("CA_MacroLabels");
-      case CA_EZ_LR_ATLAS:
-         RETURN("CA_LeftRight");
-      case CA_EZ_PMAPS_ATLAS:
-         RETURN("CA_PMaps");
+      case CA_EZ_N27_MPM_ATLAS:
+         RETURN("CA_N27_MPM");
+      case CA_EZ_N27_ML_ATLAS:
+         RETURN("CA_N27_ML");
+      case CA_EZ_N27_LR_ATLAS:
+         RETURN("CA_N27_LR");
+      case CA_EZ_N27_PMAPS_ATLAS:
+         RETURN("CA_N27_PM");
       case NUMBER_OF_ATLASES:
          RETURN("Flag for number of atlases");
       default:
@@ -3056,11 +3069,11 @@ int CA_EZ_ML_load_atlas(void)
 
    /*----- 20 Aug 2001: see if user specified alternate database -----*/
 
-   epath = getenv("AFNI_CA_EZ_ML_ATLAS_DATASET") ;   /* suggested path, if any */
-   snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_ML_TT_PREFIX);
+   epath = getenv("AFNI_CA_EZ_N27_ML_ATLAS_DATASET") ;   /* suggested path, if any */
+   snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_N27_ML_TT_PREFIX);
    dseCA_EZ_ML = get_altas( epath, atpref ) ;  /* try to open it */
    if (!dseCA_EZ_ML) { /* try for NIFTI */
-      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_ML_TT_PREFIX);
+      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_N27_ML_TT_PREFIX);
       dseCA_EZ_ML = get_altas( epath, atpref) ;
    }
    if( dseCA_EZ_ML != NULL ){                     /* got it!!! */
@@ -3083,11 +3096,11 @@ int CA_EZ_LR_load_atlas(void)
 
    /*----- 20 Aug 2001: see if user specified alternate database -----*/
 
-   epath = getenv("AFNI_CA_EZ_LR_ATLAS_DATASET") ;   /* suggested path, if any */
-   snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_LR_TT_PREFIX);
+   epath = getenv("AFNI_CA_EZ_N27_LR_ATLAS_DATASET") ;   /* suggested path, if any */
+   snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_N27_LR_TT_PREFIX);
    dseCA_EZ_LR = get_altas( epath, atpref ) ;  /* try to open it */
    if (!dseCA_EZ_LR) { /* try for NIFTI */
-      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_LR_TT_PREFIX);
+      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_N27_LR_TT_PREFIX);
       dseCA_EZ_LR = get_altas( epath, atpref) ;
    }
    if( dseCA_EZ_LR != NULL ){                     /* got it!!! */
@@ -3110,11 +3123,11 @@ int CA_EZ_MPM_load_atlas(void)
 
    /*----- 20 Aug 2001: see if user specified alternate database -----*/
 
-   epath = getenv("AFNI_CA_EZ_MPM_ATLAS_DATASET") ;   /* suggested path, if any */
-   snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_MPM_TT_PREFIX);  
+   epath = getenv("AFNI_CA_EZ_N27_MPM_ATLAS_DATASET") ;   /* suggested path, if any */
+   snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_N27_MPM_TT_PREFIX);  
    dseCA_EZ_MPM = get_altas( epath, atpref ) ;  /* try to open it */
    if (!dseCA_EZ_MPM) { /* try for NIFTI */
-      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_MPM_TT_PREFIX);  
+      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_N27_MPM_TT_PREFIX);  
       dseCA_EZ_MPM = get_altas( epath, atpref) ;
    }
    if( dseCA_EZ_MPM != NULL ){                     /* got it!!! */
@@ -3137,11 +3150,11 @@ int CA_EZ_PMaps_load_atlas(void)
 
    /*----- 20 Aug 2001: see if user specified alternate database -----*/
 
-   epath = getenv("AFNI_CA_EZ_PMAPS_ATLAS_DATASET") ;   /* suggested path, if any */
-   snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_PMaps_TT_PREFIX) ;
+   epath = getenv("AFNI_CA_EZ_N27_PMAPS_ATLAS_DATASET") ;   /* suggested path, if any */
+   snprintf(atpref, 255*sizeof(char), "%s+tlrc", CA_EZ_N27_PMaps_TT_PREFIX) ;
    dseCA_EZ_PMaps = get_altas( epath, atpref ) ;  /* try to open it */
    if (!dseCA_EZ_PMaps) { /* try for NIFTI */
-      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_PMaps_TT_PREFIX) ;
+      snprintf(atpref, 255*sizeof(char), "%s.nii.gz", CA_EZ_N27_PMaps_TT_PREFIX) ;
       dseCA_EZ_PMaps = get_altas( epath, atpref) ;
    }
    if( dseCA_EZ_PMaps != NULL ){                     /* got it!!! */
@@ -3236,7 +3249,7 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
       if (LocalHead) INFO_message("Now Processing atlas %s (%d)", Atlas_Code_to_Atlas_Name(atcode), atcode);
       dset = NULL;
       switch (atcode) {
-         case CA_EZ_MPM_ATLAS:
+         case CA_EZ_N27_MPM_ATLAS:
             /* Load the MPM */
             if (dseCA_EZ_MPM == NULL) {
                if (LocalHead) fprintf(stderr,"Loading %s\n", Atlas_Code_to_Atlas_Name(atcode));
@@ -3252,7 +3265,7 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
             mxelm = CA_EZ_COUNT;
             probkey = -2.0;
             break;
-         case CA_EZ_ML_ATLAS:
+         case CA_EZ_N27_ML_ATLAS:
             /* Load the MacroLabels */
             if (dseCA_EZ_ML == NULL) {
                if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
@@ -3264,12 +3277,12 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
                }
             }
             dset = dseCA_EZ_ML;
-            atcode = CA_EZ_ML_ATLAS;
+            atcode = CA_EZ_N27_ML_ATLAS;
             mxlablen = ML_EZ_CMAX;
             mxelm = ML_EZ_COUNT;
             probkey = -1.0;
             break;
-         case CA_EZ_LR_ATLAS:
+         case CA_EZ_N27_LR_ATLAS:
             /* Load the MacroLabels */
             if (dseCA_EZ_LR == NULL) {
                if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
@@ -3281,12 +3294,12 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
                }
             }
             dset = dseCA_EZ_LR;
-            atcode = CA_EZ_LR_ATLAS;
+            atcode = CA_EZ_N27_LR_ATLAS;
             mxlablen = LR_EZ_CMAX;
             mxelm = LR_EZ_COUNT;
             probkey = -1.0;
             break;
-         case CA_EZ_PMAPS_ATLAS:
+         case CA_EZ_N27_PMAPS_ATLAS:
             /* Load the PMaps */
             if (dseCA_EZ_PMaps == NULL) {
                if (LocalHead) fprintf(stderr,"Loading %s\n",  Atlas_Code_to_Atlas_Name(atcode));
@@ -3335,7 +3348,7 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
       DSET_load(dset);
       if (LocalHead) INFO_message("   loaded dset");
       
-      if (atcode == CA_EZ_ML_ATLAS || atcode == CA_EZ_MPM_ATLAS || atcode == AFNI_TLRC_ATLAS || atcode == CA_EZ_LR_ATLAS ) { /* the multi-radius searches */
+      if (atcode == CA_EZ_N27_ML_ATLAS || atcode == CA_EZ_N27_MPM_ATLAS || atcode == AFNI_TLRC_ATLAS || atcode == CA_EZ_N27_LR_ATLAS ) { /* the multi-radius searches */
          for (sb=0; sb < DSET_NVALS(dset); ++sb) {
             if (LocalHead)  fprintf(stderr,"Processing sub-brick %d with %s\n",sb,  Atlas_Code_to_Atlas_Name(atcode));  
             ba = DSET_BRICK_ARRAY(dset,sb); if (!ba) { ERROR_message("Unexpected NULL array"); RETURN(s); }
@@ -3367,7 +3380,7 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
             /*-- check the exact input location --*/
 
             kk = ix + jy*nx + kz*nxy ;        /* index into brick arrays */
-            if( ba[kk] != 0 && !(atcode == CA_EZ_MPM_ATLAS && ba[kk] < CA_EZ_MPM_MIN)){
+            if( ba[kk] != 0 && !(atcode == CA_EZ_N27_MPM_ATLAS && ba[kk] < CA_EZ_MPM_MIN)){
                b_find[0] = ba[kk] ;
                rr_find[0] = 0     ; 
                if (LocalHead)  fprintf(stderr,"Adding b_find[%d]=%d rr_find[%d]=%d\n",nfind, b_find[nfind], nfind, rr_find[nfind]);
@@ -3393,7 +3406,7 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
                   if( baf == b_find[ff] ) baf = 0 ;  /* duplicate labels  */
                }
 
-               if (atcode == CA_EZ_MPM_ATLAS) { /* cast out inappropriate values*/
+               if (atcode == CA_EZ_N27_MPM_ATLAS) { /* cast out inappropriate values*/
                   if (baf < CA_EZ_MPM_MIN) baf = 0;
                }
 
@@ -3437,15 +3450,15 @@ char *whereami_9yards(ATLAS_COORD aci, ATLAS_QUERY **wamip, AFNI_ATLAS_CODES *at
 
                if( baf != 0 ){                               /* find label     */
                   for( ii=0 ; ii < mxelm ; ii++ ) {          /* in AFNI's atlas list */
-                     if( atcode == CA_EZ_MPM_ATLAS && baf == CA_EZ_list[ii].tdval ) break ;
-                     else if( atcode == CA_EZ_ML_ATLAS && baf == ML_EZ_list[ii].tdval ) break ;
-                     else if( atcode == CA_EZ_LR_ATLAS && baf == LR_EZ_list[ii].tdval ) break ;
+                     if( atcode == CA_EZ_N27_MPM_ATLAS && baf == CA_EZ_list[ii].tdval ) break ;
+                     else if( atcode == CA_EZ_N27_ML_ATLAS && baf == ML_EZ_list[ii].tdval ) break ;
+                     else if( atcode == CA_EZ_N27_LR_ATLAS && baf == LR_EZ_list[ii].tdval ) break ;
                      else if( atcode == AFNI_TLRC_ATLAS && baf == TTO_list[ii].tdval ) break ;
                   }   
                   if( ii < mxelm )  {                     /* always true? */
-                     if( atcode == CA_EZ_MPM_ATLAS) blab = CA_EZ_list[ii].name ;
-                     else if( atcode == CA_EZ_ML_ATLAS) blab = ML_EZ_list[ii].name ;
-                     else if( atcode == CA_EZ_LR_ATLAS) blab = LR_EZ_list[ii].name ;
+                     if( atcode == CA_EZ_N27_MPM_ATLAS) blab = CA_EZ_list[ii].name ;
+                     else if( atcode == CA_EZ_N27_ML_ATLAS) blab = ML_EZ_list[ii].name ;
+                     else if( atcode == CA_EZ_N27_LR_ATLAS) blab = LR_EZ_list[ii].name ;
                      else if( atcode == AFNI_TLRC_ATLAS) blab = TTO_list[ii].name ; 
                   }
                }
