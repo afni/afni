@@ -428,7 +428,8 @@ int main( int argc , char * argv[] )
              "[Connectivity radius = %.2f mm  Volume threshold = %.2f ]\n"
              "[Single voxel volume = %.1f (microliters) ]\n"
              "[Voxel datum type    = %s ]\n"
-             "[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n",
+             "[Voxel dimensions    = %.3f mm X %.3f mm X %.3f mm ]\n"
+             "[Coordinates Order   = %s ]\n",
               argv[iarg] ,
               do_mni ? "[MNI coords]" : "" ,  /* 30 Apr 2002 */
 #if 0
@@ -436,7 +437,8 @@ int main( int argc , char * argv[] )
 #endif
               rmm , ptmin*dx*dy*dz , dx*dy*dz ,
               MRI_TYPE_name[ DSET_BRICK_TYPE(dset,ivfim) ] ,
-              dx,dy,dz );
+              dx,dy,dz,
+              CL_cord.orcode );
 
              if( CL_edopt.fake_dxyz )  /* 24 Jan 2001 */
                printf("[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",

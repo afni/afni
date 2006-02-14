@@ -86,10 +86,10 @@ typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
                
 typedef enum { UNKNOWN_ATLAS=0, /*!< Dunno */
                AFNI_TLRC_ATLAS, /*!< The Classic */
-               CA_EZ_MPM_ATLAS,  /*!< Eickhoff, Zilles MPM atlas*/
-               CA_EZ_ML_ATLAS,  /*!< Eickhoff, Zilles MacroLabels atlas*/
-               CA_EZ_PMAPS_ATLAS, /*!< Eickhoff, Zilles Probability maps atlas*/
-               CA_EZ_LR_ATLAS,  /*!< Eickhoff, Zilles Left/Right Anatomy atlas*/
+               CA_EZ_N27_MPM_ATLAS,  /*!< Eickhoff, Zilles MPM atlas*/
+               CA_EZ_N27_ML_ATLAS,  /*!< Eickhoff, Zilles MacroLabels atlas*/
+               CA_EZ_N27_PMAPS_ATLAS, /*!< Eickhoff, Zilles Probability maps atlas*/
+               CA_EZ_N27_LR_ATLAS,  /*!< Eickhoff, Zilles Left/Right Anatomy atlas*/
                
                NUMBER_OF_ATLASES  /*!< A flag for the number of atlases, leave for last */
                } AFNI_ATLAS_CODES;
@@ -182,10 +182,10 @@ static char MNI_N27_to_AFNI_TLRC_HEAD[256] = {"TT_N27+tlrc"}; /*!<  TT_N27+tlrc 
                                                     N27 was taken from Zilles' v12 database (colin_seg.hdr) before it got changed
                                                     to MNI anatomical (by simple shift) in v13 database*/
 static char TT_DAEMON_TT_PREFIX[256] = {"TTatlas"}; /*!< Good old tlrc daemon */
-static char CA_EZ_MPM_TT_PREFIX[256] = {"TT_N27_CA_EZ_MPM"};   /*!< Prefix of the Zilles Eickhoff Maximum Probability Maps in TT space */
-static char CA_EZ_PMaps_TT_PREFIX[256] = {"TT_N27_CA_EZ_PMaps"};    /*!< Prefix of the Zilles Eickhoff Probability Maps in TT space */
-static char CA_EZ_ML_TT_PREFIX[256] = {"TT_N27_EZ_ML"};  /*!< Prefix of the Zilles Eickhoff Macro Labels in TT space */
-static char CA_EZ_LR_TT_PREFIX[256] = {"TT_N27_EZ_LR"};   /*!< Prefix of the Zilles Eickhoff Left/Right mask dset */
+static char CA_EZ_N27_MPM_TT_PREFIX[256] = {"TT_N27_CA_EZ_MPM"};   /*!< Prefix of the Zilles Eickhoff Maximum Probability Maps in TT space */
+static char CA_EZ_N27_PMaps_TT_PREFIX[256] = {"TT_N27_CA_EZ_PMaps"};    /*!< Prefix of the Zilles Eickhoff Probability Maps in TT space */
+static char CA_EZ_N27_ML_TT_PREFIX[256] = {"TT_N27_EZ_ML"};  /*!< Prefix of the Zilles Eickhoff Macro Labels in TT space */
+static char CA_EZ_N27_LR_TT_PREFIX[256] = {"TT_N27_EZ_LR"};   /*!< Prefix of the Zilles Eickhoff Left/Right mask dset */
 
 
 static float MNI_N27_to_AFNI_TLRC_WRP_VEC[360] = {       

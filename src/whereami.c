@@ -84,16 +84,16 @@ void whereami_usage(void)
                "   Generously contributed by Jack Lancaster and Peter Fox of RIC UTHSCSA)\n"
                "\n"
                "   %-12s: Anatomy Toolbox's atlases with some created from cytoarchitectonic \n"
-               "   %-12s: studies of 10 human post-mortem brains (CA_MPM, CA_PMaps). \n"
+               "   %-12s: studies of 10 human post-mortem brains (CA_N27_MPM, CA_N27_PM). \n"
                "   %-12s: Generously contributed by Simon Eickhoff,\n"
                "   %-12s: Katrin Amunts and Karl Zilles of IME, Julich, \n"
                "   Germany. Please take into account the references and abide by the \n"
                "   warning below (provided with the Anatomy toolbox) when using these atlases:\n", 
                Atlas_Code_to_Atlas_Name(AFNI_TLRC_ATLAS),
-               Atlas_Code_to_Atlas_Name(CA_EZ_MPM_ATLAS),
-               Atlas_Code_to_Atlas_Name(CA_EZ_ML_ATLAS),
-               Atlas_Code_to_Atlas_Name(CA_EZ_PMAPS_ATLAS),
-               Atlas_Code_to_Atlas_Name(CA_EZ_LR_ATLAS));                       
+               Atlas_Code_to_Atlas_Name(CA_EZ_N27_MPM_ATLAS),
+               Atlas_Code_to_Atlas_Name(CA_EZ_N27_ML_ATLAS),
+               Atlas_Code_to_Atlas_Name(CA_EZ_N27_PMAPS_ATLAS),
+               Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS));                       
       i = 0;
       printf(  "Anatomy Toolbox Reference and Warning:\n"
                "--------------------------------------\n" );
@@ -110,8 +110,8 @@ void whereami_usage(void)
                "      [7] Visual cortex (BA 17, BA 18) : Amunts et al., Neuroimage, 2000\n"
                "      Warning:\n"
                "        All other areas may only be used after consultation (contact S.Eickhoff@fz-juelich.de)\n" */
-       printf( "   \nSee Eickhoff et al. Neuroimage 25 (2005) for more info on Probability Maps (CA_PMaps)\n"
-               "    and Maximum Probability Maps (CA_MPM)\n");
+       printf( "   \nSee Eickhoff et al. Neuroimage 25 (2005) for more info on Probability Maps (CA_N27_PM)\n"
+               "    and Maximum Probability Maps (CA_N27_MPM)\n");
        printf( "--------------------------------------\n\n" 
                " -atlas_sort: Sort results by atlas (default)\n"
                " -zone_sort | -radius_sort: Sort by radius of search\n"
@@ -137,16 +137,16 @@ void whereami_usage(void)
                "                                 For example:\n"
                "                              1- TT_Daemon::ant_cing specifies the bilateral\n"
                "                                 anterior cingulate in the TT_Daemon atlas.\n"
-               "                              2- CA_MacroLabels:left:hippo specifies the left\n"
-               "                                 hippocampus in the CA_MacroLabels atlas.\n"
-               "                              3- CA_MPM:right:124 specifies the right\n"
-               "                                 ROI with integer code 124 in the CA_MPM atlas\n"
-               "                              4- CA_MacroLabels::cereb_ver seeks the Cerebellar\n"
-               "                                 Vermis in the CA_MacroLabels atlas. However there\n"
+               "                              2- CA_N27_ML:left:hippo specifies the left\n"
+               "                                 hippocampus in the CA_N27_ML atlas.\n"
+               "                              3- CA_N27_MPM:right:124 specifies the right\n"
+               "                                 ROI with integer code 124 in the CA_N27_MPM atlas\n"
+               "                              4- CA_N27_ML::cereb_ver seeks the Cerebellar\n"
+               "                                 Vermis in the CA_N27_ML atlas. However there\n"
                "                                 many distinct areas with this name so the program\n"
                "                                 will return with 'potential matches' or suggestions.\n"
                "                                 Use the suggestions to refine your query. For example:\n"
-               "                                 CA_MacroLabels::cereb_vermis_8\n"
+               "                                 CA_N27_ML::cereb_vermis_8\n"
                " -mask_atlas_region REGION_CODE: Same as -show_atlas_region, plus\n"
                "                                 write out a mask dataset of the region.\n"
                " -prefix PREFIX: Prefix for the output mask dataset\n"
@@ -273,46 +273,46 @@ int main(int argc, char **argv)
                   atlaslist[N_atlaslist] = AFNI_TLRC_ATLAS;
                   ++N_atlaslist;
                }
-            } else if (strcmp(argv[iarg],Atlas_Code_to_Atlas_Name(CA_EZ_MPM_ATLAS) ) == 0) {
-               if (!isatlasused[CA_EZ_MPM_ATLAS]) {
-                  isatlasused[CA_EZ_MPM_ATLAS] = 1;
-                  atlaslist[N_atlaslist]= CA_EZ_MPM_ATLAS; 
+            } else if (strcmp(argv[iarg],Atlas_Code_to_Atlas_Name(CA_EZ_N27_MPM_ATLAS) ) == 0) {
+               if (!isatlasused[CA_EZ_N27_MPM_ATLAS]) {
+                  isatlasused[CA_EZ_N27_MPM_ATLAS] = 1;
+                  atlaslist[N_atlaslist]= CA_EZ_N27_MPM_ATLAS; 
                   ++N_atlaslist;
                }
-            } else if (strcmp(argv[iarg],Atlas_Code_to_Atlas_Name(CA_EZ_ML_ATLAS)) == 0) {
-               if (!isatlasused[CA_EZ_ML_ATLAS]) {
-                  isatlasused[CA_EZ_ML_ATLAS] = 1;   
-                  atlaslist[N_atlaslist]= CA_EZ_ML_ATLAS; 
+            } else if (strcmp(argv[iarg],Atlas_Code_to_Atlas_Name(CA_EZ_N27_ML_ATLAS)) == 0) {
+               if (!isatlasused[CA_EZ_N27_ML_ATLAS]) {
+                  isatlasused[CA_EZ_N27_ML_ATLAS] = 1;   
+                  atlaslist[N_atlaslist]= CA_EZ_N27_ML_ATLAS; 
                   ++N_atlaslist;
                }
-            } else if (strcmp(argv[iarg],Atlas_Code_to_Atlas_Name(CA_EZ_PMAPS_ATLAS)) == 0) {
-               if (!isatlasused[CA_EZ_PMAPS_ATLAS]) {
-                  isatlasused[CA_EZ_PMAPS_ATLAS] = 1;   
-                  atlaslist[N_atlaslist]= CA_EZ_PMAPS_ATLAS; 
+            } else if (strcmp(argv[iarg],Atlas_Code_to_Atlas_Name(CA_EZ_N27_PMAPS_ATLAS)) == 0) {
+               if (!isatlasused[CA_EZ_N27_PMAPS_ATLAS]) {
+                  isatlasused[CA_EZ_N27_PMAPS_ATLAS] = 1;   
+                  atlaslist[N_atlaslist]= CA_EZ_N27_PMAPS_ATLAS; 
                   ++N_atlaslist;
                }
-            } else if (strcmp(argv[iarg],Atlas_Code_to_Atlas_Name(CA_EZ_LR_ATLAS)) == 0) {
-               if (!isatlasused[CA_EZ_LR_ATLAS]) {
-                  isatlasused[CA_EZ_LR_ATLAS] = 1;   
-                  atlaslist[N_atlaslist]= CA_EZ_LR_ATLAS; 
+            } else if (strcmp(argv[iarg],Atlas_Code_to_Atlas_Name(CA_EZ_N27_LR_ATLAS)) == 0) {
+               if (!isatlasused[CA_EZ_N27_LR_ATLAS]) {
+                  isatlasused[CA_EZ_N27_LR_ATLAS] = 1;   
+                  atlaslist[N_atlaslist]= CA_EZ_N27_LR_ATLAS; 
                   ++N_atlaslist;
                }
             } else if (strcmp(argv[iarg],"CA_EZ") == 0) {
-               if (!isatlasused[CA_EZ_MPM_ATLAS]) { 
-                  atlaslist[N_atlaslist]= CA_EZ_MPM_ATLAS; 
+               if (!isatlasused[CA_EZ_N27_MPM_ATLAS]) { 
+                  atlaslist[N_atlaslist]= CA_EZ_N27_MPM_ATLAS; 
                   ++N_atlaslist;
                }
-               if (!isatlasused[CA_EZ_ML_ATLAS]) {
-                  atlaslist[N_atlaslist]= CA_EZ_ML_ATLAS; 
+               if (!isatlasused[CA_EZ_N27_ML_ATLAS]) {
+                  atlaslist[N_atlaslist]= CA_EZ_N27_ML_ATLAS; 
                   ++N_atlaslist;
                }
-               if (!isatlasused[CA_EZ_PMAPS_ATLAS]) {
-                  atlaslist[N_atlaslist]= CA_EZ_PMAPS_ATLAS; 
+               if (!isatlasused[CA_EZ_N27_PMAPS_ATLAS]) {
+                  atlaslist[N_atlaslist]= CA_EZ_N27_PMAPS_ATLAS; 
                   ++N_atlaslist;
                }
-               isatlasused[CA_EZ_MPM_ATLAS] = 1;
-               isatlasused[CA_EZ_ML_ATLAS] = 1;   
-               isatlasused[CA_EZ_PMAPS_ATLAS] = 1;
+               isatlasused[CA_EZ_N27_MPM_ATLAS] = 1;
+               isatlasused[CA_EZ_N27_ML_ATLAS] = 1;   
+               isatlasused[CA_EZ_N27_PMAPS_ATLAS] = 1;
             } else {
                fprintf(stderr,"** Atlas name %s is not recognized\n", argv[iarg]);
                return(1);
@@ -383,9 +383,9 @@ int main(int argc, char **argv)
    if (N_atlaslist == 0) {
       /* use all */
       atlaslist[N_atlaslist] = AFNI_TLRC_ATLAS; ++N_atlaslist; isatlasused[AFNI_TLRC_ATLAS] = 1;
-      atlaslist[N_atlaslist] = CA_EZ_MPM_ATLAS; ++N_atlaslist; isatlasused[CA_EZ_MPM_ATLAS] = 1;
-      atlaslist[N_atlaslist] = CA_EZ_ML_ATLAS; ++N_atlaslist; isatlasused[CA_EZ_ML_ATLAS] = 1;
-      atlaslist[N_atlaslist] = CA_EZ_PMAPS_ATLAS; ++N_atlaslist; isatlasused[CA_EZ_PMAPS_ATLAS] = 1;
+      atlaslist[N_atlaslist] = CA_EZ_N27_MPM_ATLAS; ++N_atlaslist; isatlasused[CA_EZ_N27_MPM_ATLAS] = 1;
+      atlaslist[N_atlaslist] = CA_EZ_N27_ML_ATLAS; ++N_atlaslist; isatlasused[CA_EZ_N27_ML_ATLAS] = 1;
+      atlaslist[N_atlaslist] = CA_EZ_N27_PMAPS_ATLAS; ++N_atlaslist; isatlasused[CA_EZ_N27_PMAPS_ATLAS] = 1;
    }
    
    if (nakedarg < 3 && !Show_Atlas_Code && !shar) {

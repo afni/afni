@@ -225,9 +225,9 @@ void print_all_extrema (int ivolume, int islice, extrema * extrema_ptr)
     printf ("Minima ");
 
   if (EX_slice)
-    printf ("for Volume #%d and Slice #%d: \n", ivolume, islice);
+    printf ("for Volume #%d and Slice #%d (Coordinates Order = %s): \n", ivolume, islice, EX_cord.orcode);
   else
-    printf ("for Volume #%d: \n", ivolume);
+    printf ("for Volume #%d (Coordinates Order = %s): \n", ivolume, EX_cord.orcode);
 
 
   if (extrema_ptr != NULL)
