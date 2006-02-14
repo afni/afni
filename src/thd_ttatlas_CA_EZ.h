@@ -51,4 +51,4 @@ extern int CA_EZ_current ;
 
 /* -----------     Refs      --------------------- */
 /* ----------- Based on se_note.m --------------*/
-char CA_EZ_REF_STR[26][142];
+extern char CA_EZ_REF_STR[26][142];
