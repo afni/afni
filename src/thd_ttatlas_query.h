@@ -144,6 +144,7 @@ char * Clean_Atlas_Label_to_Prefix( char *lb);
 const char *Space_Code_to_Space_Name (AFNI_STD_SPACES cod);
 const char *Atlas_Code_to_Atlas_Name (AFNI_ATLAS_CODES cod);
 const char *Atlas_Code_to_Atlas_Dset_Name (AFNI_ATLAS_CODES cod);
+const char *Atlas_Code_to_Atlas_Description (AFNI_ATLAS_CODES cod);
 AFNI_ATLAS_CODES Atlas_Name_to_Atlas_Code (char *name);
 ATLAS_ZONE *Get_Atlas_Zone(ATLAS_QUERY *aq, int level);
 ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code, float prob, float within, AFNI_ATLAS_CODES atcode) ;
