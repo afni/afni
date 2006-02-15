@@ -431,8 +431,6 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    }
 
 
-
-   
 /* definitions for SUMA_MT_intersect */
 #define SUMA_MT_CROSS(m_MTCR_dest,m_MTCR_v1,m_MTCR_v2) \
           m_MTCR_dest[0]=m_MTCR_v1[1]*m_MTCR_v2[2]-m_MTCR_v1[2]*m_MTCR_v2[1]; \
@@ -456,10 +454,13 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 
 /*!
    XYZ: vector of coordinates
-   nrm: unit normal vector of axis of rotation
-   phi: angle of rotation, clockwise, in radians
+   nrm: unit normal vector of axis of rotaion
+   phi: angle of rotation, counterclockwise, in radians
    XYZr: vector to contain rotated coordinates
    Equation from: http://mathworld.wolfram.com/RotationFormula.html
+      Note that this equation subtracts the last term, the cross product.
+      The website equation adds the last term.
+      This change permits counterclockwise angle of rotation and the proper axis of rotation.
    See also RotateAboutAxis.m
 */
 
@@ -469,9 +470,46 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    SUMA_MT_CROSS(m_cro, xyz, nrm);  \
    m_dop = SUMA_MT_DOT(nrm,xyz);   \
    xyzr[0] = xyz[0]*m_cop + nrm[0] * m_dop * m_1cop - m_cro[0] * m_sip; \
-   xyzr[1] = xyz[0]*m_cop + nrm[1] * m_dop * m_1cop - m_cro[1] * m_sip; \
-   xyzr[2] = xyz[0]*m_cop + nrm[2] * m_dop * m_1cop - m_cro[2] * m_sip; \
+   xyzr[1] = xyz[1]*m_cop + nrm[1] * m_dop * m_1cop - m_cro[1] * m_sip; \
+   xyzr[2] = xyz[2]*m_cop + nrm[2] * m_dop * m_1cop - m_cro[2] * m_sip; \
 }   
+
+/*!
+SUMA_3D_Rotation_Matrix(P1, P2, M, alpha, nrm)
+Generate the rotation matrix for moving from P1 to P2.
+For rotation about a specified origin and direction.
+Rotation through angle alpha about an axis m_u.  Alpha is always positive and counterclockwise.
+P1, P2: intial and final vector location
+m_alpha: angle between P1 and P2
+m_u: axis of rotation and cross product of P1, P2
+mn_u: magnitude of axis of rotation needed to normalize the axis of rota
+m_M: 3x3 rotation matrix
+Equations based on matlab script AxisRotate3D.m     
+*/
+
+#define SUMA_3D_Rotation_Matrix(P1, P2, M, m_alpha, m_u)  { \
+   static double m_x, m_y, m_z, m_mag_u; \
+   static double m_xy_vera, m_xz_vera, m_yz_vera; \
+   static double m_cosa, m_sina, m_vera; \
+   SUMA_ANGLE_DIST_NC(P2 , P1, m_alpha, m_u); \
+      if( i == opt->CtrlPts_iim[0] ) { \
+         fprintf(SUMA_STDERR, "ALPHA CALCULATED BY MACRO: %f\n", m_alpha); }\
+   m_mag_u = sqrt( m_u[0]*m_u[0] + m_u[1]*m_u[1] + m_u[2]*m_u[2] ); \
+   if( m_mag_u > 0.000000001 ) { m_u[0] = m_u[0]/m_mag_u ;  m_u[1] = m_u[1]/m_mag_u ; m_u[2] = m_u[2]/m_mag_u ;}; \
+   m_x = m_u[0]; m_y = m_u[1]; m_z = m_u[2]; \
+   m_cosa = cos(m_alpha); m_sina = sin(m_alpha); m_vera = 1 - m_cosa; \
+   m_xy_vera = m_x * m_y * m_vera; m_xz_vera = m_x * m_z * m_vera; m_yz_vera = m_y * m_z * m_vera;\
+   \
+   M[0][0] = m_cosa + m_x * m_x * m_vera; \
+   M[0][1] = m_xy_vera - m_z * m_sina; \
+   M[0][2] = m_xz_vera + m_y * m_sina; \
+   M[1][0] = m_xy_vera + m_z * m_sina; \
+   M[1][1] = m_cosa + m_y * m_y * m_vera; \
+   M[1][2] = m_yz_vera - m_x * m_sina; \
+   M[2][0] = m_xz_vera - m_y*m_sina; \
+   M[2][1] = m_yz_vera + m_x*m_sina; \
+   M[2][2] = m_cosa + m_z * m_z * m_vera; \
+}
    
 /*! 
 SUMA_ANGLE_DIST(p2,p1,cent,a,nrm)  
@@ -483,12 +521,13 @@ For the _NC version, the sphere is centered on
 p1 and p2 are the XYZ of the two points
 cent is the center of the sphere
 and 'a' is the angle in radians between them.
-m_nrm contains the cross product p1 cross p2
+m_cr contains the cross product p1 cross p2
 Tx to tip from JHU's Applied Physics Laboratory web page 
 */ 
 #define SUMA_ANGLE_DIST_NC(m_p2,m_p1,a, m_cr)   \
    {\
       double m_p2r[3];   \
+      static double m_mag; \
       SUMA_MT_CROSS(m_cr, m_p1, m_p2); \
       a = atan2(sqrt(m_cr[0]*m_cr[0]+m_cr[1]*m_cr[1]+m_cr[2]*m_cr[2]),SUMA_MT_DOT(m_p2, m_p1)); \
    }
@@ -501,8 +540,19 @@ Tx to tip from JHU's Applied Physics Laboratory web page
       SUMA_MT_CROSS(m_cr, m_p2, m_p1); \
       a = atan2(sqrt(m_cr[0]*m_cr[0]+m_cr[1]*m_cr[1]+m_cr[2]*m_cr[2]),SUMA_MT_DOT(m_p2, m_p1)); \
    }
-              
 
+/*! 
+SUMA_SINC(alpha)
+calculate the sinc function.
+alpha is an angle in radians
+sinc is the value of the function at alpha
+*/
+#define SUMA_SINC(alpha, sinc) \
+   {\
+      if( alpha < 0.0000001 ) { sinc = 1.0; }   \
+      else { sinc = sin(alpha) / alpha ; }   \
+   }
+ 
 /*!
    \brief SUMA_EULER_SO (SO, eu)
    computes the euler number = N  - E + F
